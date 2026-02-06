@@ -39,6 +39,10 @@ const mdiText = ref("G0 X0 Y0");
 const coordMode = ref<"work" | "machine">("work");
 const busy = ref(false);
 
+// Workpiece configuration
+const workpieceSize = ref<[number, number, number]>([100, 100, 20]);
+const workpieceOffset = ref<[number, number, number]>([0, 0, -20]); // Z offset = -height (zero at top)
+
 /** ---------- status helpers ---------- */
 const st = computed<Record<string, any>>(() => status.value?.data ?? {});
 
@@ -154,11 +158,15 @@ onUnmounted(() => {
             @resetBackplot="onResetBackplotL"
             @setView="onSetViewL"
             @toggleLayer="onToggleLayerL"
+            :workpieceSize="workpieceSize"
+            :workpieceOffset="workpieceOffset"
+            @update:workpieceSize="workpieceSize = $event"
+            @update:workpieceOffset="workpieceOffset = $event"
           >
             <ThreeViewer
               ref="viewerL"
-              :workpieceSize="[100, 100, 20]"
-              :workpieceOffset="[0, 0, 0]"
+              :workpieceSize="workpieceSize"
+              :workpieceOffset="workpieceOffset"
             />
           </Toolbar>
         </template>
@@ -190,11 +198,15 @@ onUnmounted(() => {
             @resetBackplot="onResetBackplotR"
             @setView="onSetViewR"
             @toggleLayer="onToggleLayerR"
+            :workpieceSize="workpieceSize"
+            :workpieceOffset="workpieceOffset"
+            @update:workpieceSize="workpieceSize = $event"
+            @update:workpieceOffset="workpieceOffset = $event"
           >
             <ThreeViewer
               ref="viewerR"
-              :workpieceSize="[100, 100, 20]"
-              :workpieceOffset="[0, 0, 0]"
+              :workpieceSize="workpieceSize"
+              :workpieceOffset="workpieceOffset"
             />
           </Toolbar>
         </template>

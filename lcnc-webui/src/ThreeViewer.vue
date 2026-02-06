@@ -30,7 +30,7 @@ type ViewerInit = {
 type Vec3N = [number, number, number];
 
 type ViewPreset = "top" | "left" | "right" | "front" | "back" | "iso" | "dimetric" | "reset";
-type Layer = "backplot" | "toolpath" | "machine" | "workpiece" | "bounds" | "tool";
+type Layer = "backplot" | "toolpath" | "machine" | "workpiece" | "bounds" | "tool" | "hud";
 
 
 type ViewerState = {
@@ -69,6 +69,7 @@ const props = defineProps<{
 
 // ---------- DOM ----------
 const host = ref<HTMLDivElement | null>(null);
+const hudVisible = ref(true);
 
 // ---------- Three globals ----------
 let renderer: THREE.WebGLRenderer | null = null;
@@ -177,6 +178,9 @@ function setLayerVisible(layer: Layer, on: boolean) {
       break;
     case "tool":
       if (toolMarker) toolMarker.visible = on;
+      break;
+    case "hud":
+      hudVisible.value = on;
       break;
   }
 }
@@ -777,6 +781,12 @@ watch(
 );
 
 
+// Format coordinate for HUD display
+function formatCoord(val: number | null | undefined): string {
+  if (val == null) return '---';
+  return val.toFixed(3);
+}
+
 defineExpose({
   resetBackplot,
   setView,
@@ -787,18 +797,91 @@ defineExpose({
 </script>
 
 <template>
-  <div ref="host" class="viewerHost" />
+  <div class="viewerWrapper">
+    <div ref="host" class="viewerHost" />
+
+    <!-- HUD Overlay -->
+    <div v-show="hudVisible" class="hud">
+      <div class="hudSection">
+        <div class="hudLabel">Machine Position</div>
+        <div class="hudValue">
+          X: {{ formatCoord(viewerState?.machine_pos?.[0]) }}
+          Y: {{ formatCoord(viewerState?.machine_pos?.[1]) }}
+          Z: {{ formatCoord(viewerState?.machine_pos?.[2]) }}
+        </div>
+      </div>
+
+      <div class="hudSection">
+        <div class="hudLabel">Work Position</div>
+        <div class="hudValue">
+          X: {{ formatCoord(viewerState?.work_pos?.[0]) }}
+          Y: {{ formatCoord(viewerState?.work_pos?.[1]) }}
+          Z: {{ formatCoord(viewerState?.work_pos?.[2]) }}
+        </div>
+      </div>
+
+      <div class="hudSection">
+        <div class="hudLabel">Tool</div>
+        <div class="hudValue">
+          T{{ viewerState?.tool_number ?? '-' }}
+          Ø{{ formatCoord(viewerState?.tool_diameter) }}
+          L{{ formatCoord(viewerState?.tool_length) }}
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
-
 <style scoped>
-.viewerHost {
+.viewerWrapper {
+  position: relative;
   width: 100%;
   height: 520px;
+}
+
+.viewerHost {
+  width: 100%;
+  height: 100%;
   border-radius: 14px;
   overflow: hidden;
   border: 1px solid var(--border);
   background: color-mix(in oklab, var(--panel) 70%, transparent);
+}
+
+.hud {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+  user-select: none;
+}
+
+.hudSection {
+  background: color-mix(in oklab, #000 75%, transparent);
+  backdrop-filter: blur(8px);
+  border: 1px solid color-mix(in oklab, #fff 15%, transparent);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.hudLabel {
+  color: color-mix(in oklab, #fff 60%, transparent);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.hudValue {
+  color: #00ff88;
+  font-weight: 500;
+  white-space: nowrap;
 }
 </style>
 
