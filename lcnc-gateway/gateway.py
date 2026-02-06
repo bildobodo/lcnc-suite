@@ -1,0 +1,742 @@
+#!/usr/bin/env python3
+import asyncio
+import json
+import time
+import os
+import linuxcnc
+
+from dataclasses import asdict, dataclass
+from typing import Any, Dict, Optional, List
+from fastapi.staticfiles import StaticFiles
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
+
+
+# ---- Config ----
+POLL_HZ = 10  # status update rate
+
+# ---- LinuxCNC handles ----
+STAT = linuxcnc.stat()
+CMD = linuxcnc.command()
+ERR = linuxcnc.error_channel()
+
+
+@dataclass
+class StatusPayload:
+    ts: float
+
+    # safety / state
+    estop: bool
+    enabled: bool
+    homed: Optional[bool]  # LinuxCNC stat truth (normalized)
+
+    # task/motion
+    task_mode: Optional[int]
+    interp_state: Optional[int]
+    state: Optional[int]
+
+    # offsets and positions
+    g5x_offset: Optional[List[float]]
+    g92_offset: Optional[List[float]]
+    joint_pos: Optional[List[float]]
+    tool_offset: Optional[List[float]]
+    machine_pos: Optional[List[float]]
+    work_pos: Optional[List[float]]
+    dtg: Optional[List[float]]
+
+    # misc
+    feed_override: Optional[float]
+    spindle_override: Optional[float]
+    active_file: Optional[str]
+    motion_line: Optional[int]
+
+    # tool (stat-only)
+    tool_number: Optional[int]
+    tool_diameter: Optional[float]
+    tool_length: Optional[float]   # Z length offset (positive magnitude)
+
+
+
+
+def safe_get(attr: str, default=None):
+    try:
+        return getattr(STAT, attr)
+    except Exception:
+        return default
+
+
+def to_float_list(x) -> Optional[List[float]]:
+    if x is None:
+        return None
+    try:
+        return [float(v) for v in x]
+    except Exception:
+        return None
+
+
+def normalize_homed(homed_val) -> Optional[bool]:
+    """
+    LinuxCNC-native homed confirmation (stat-only), using only configured joints.
+
+    Why: STAT.homed can be a fixed-length mask (e.g. 9 entries). Unused joints stay False.
+    If we all() the whole mask, homed may remain False even when the machine is homed.
+    """
+    # Scalar case (some builds)
+    if isinstance(homed_val, (int, bool)):
+        return bool(homed_val)
+
+    # Mask case
+    if isinstance(homed_val, (list, tuple)):
+        if len(homed_val) == 0:
+            return None
+
+        # Prefer STAT.joints if available
+        nj = safe_get("joints", None)
+        if isinstance(nj, int) and nj > 0:
+            mask = homed_val[:nj]
+        else:
+            # Fallback: infer from STAT.joint list length if available
+            jlist = safe_get("joint", None)
+            if jlist is not None:
+                try:
+                    mask = homed_val[:len(jlist)]
+                except Exception:
+                    mask = homed_val
+            else:
+                mask = homed_val
+
+        return all(bool(x) for x in mask)
+
+    return None
+
+def _ini_float(ini, section: str, key: str):
+    v = ini.find(section, key)
+    if v is None:
+        return None
+    try:
+        return float(v)
+    except Exception:
+        return None
+
+
+def read_machine_limits_from_ini(stat_obj):
+    """
+    Returns (origin_xyz, size_xyz) from the *active* LinuxCNC INI.
+
+    origin = [xmin, ymin, zmin]
+    size   = [xmax-xmin, ymax-ymin, zmax-zmin]
+    """
+    ini_path = getattr(stat_obj, "ini_filename", None)
+    if not ini_path:
+        return None
+
+    ini = linuxcnc.ini(ini_path)
+
+    def axis_limits(axis_letter: str, joint_idx: int):
+        # Prefer AXIS_X/Y/Z
+        sec_axis = f"AXIS_{axis_letter}"
+        mn = _ini_float(ini, sec_axis, "MIN_LIMIT")
+        mx = _ini_float(ini, sec_axis, "MAX_LIMIT")
+
+        # Fallback to JOINT_*
+        if mn is None or mx is None:
+            sec_joint = f"JOINT_{joint_idx}"
+            mn = _ini_float(ini, sec_joint, "MIN_LIMIT")
+            mx = _ini_float(ini, sec_joint, "MAX_LIMIT")
+
+        if mn is None or mx is None:
+            return None
+        return (mn, mx)
+
+    xl = axis_limits("X", 0)
+    yl = axis_limits("Y", 1)
+    zl = axis_limits("Z", 2)
+    if not xl or not yl or not zl:
+        return None
+
+    xmin, xmax = xl
+    ymin, ymax = yl
+    zmin, zmax = zl
+
+    origin = [xmin, ymin, zmin]
+    size = [xmax - xmin, ymax - ymin, zmax - zmin]
+    return origin, size
+
+
+def poll_status() -> StatusPayload:
+    STAT.poll()
+
+    # ---- safety/state ----
+    estop = bool(safe_get("estop", True))
+    enabled = bool(safe_get("enabled", False))
+
+    # ---- homing (stat-only truth) ----
+    homed_val = safe_get("homed", None)
+    homed = normalize_homed(homed_val)
+
+    # ---- offsets ----
+    g5x = to_float_list(safe_get("g5x_offset", None))
+    g92 = to_float_list(safe_get("g92_offset", None))
+
+    # ---- positions ----
+    machine_pos = to_float_list(safe_get("actual_position", None))
+    if machine_pos is None:
+        machine_pos = to_float_list(safe_get("position", None))  # fallback
+
+    # Tool offset vector (active tool length comp)
+    tool_offset = to_float_list(safe_get("tool_offset", None))
+
+    # Work position (AXIS "G54 WORK"): WORK = MACHINE - G5X - G92 - TOOL_OFFSET
+    work_pos = None
+    if machine_pos is not None:
+        work_pos = machine_pos.copy()
+
+        if g5x is not None:
+            for i in range(min(len(work_pos), len(g5x))):
+                work_pos[i] -= g5x[i]
+
+        if g92 is not None:
+            for i in range(min(len(work_pos), len(g92))):
+                work_pos[i] -= g92[i]
+
+        if tool_offset is not None:
+            for i in range(min(len(work_pos), len(tool_offset))):
+                work_pos[i] -= tool_offset[i]
+
+    # RAW joint positions (for driving the machine model / spindle nose)
+    jpos = safe_get("joint_actual_position", None)
+    if jpos is None:
+        jpos = safe_get("joint_position", None)
+    joint_pos = to_float_list(jpos)
+
+    dtg = to_float_list(safe_get("dtg", None))
+
+
+
+
+    # ---- tool (stat-only) ----
+    tool_number = safe_get("tool_in_spindle", None)
+    try:
+        tool_number = int(tool_number) if tool_number is not None else None
+    except Exception:
+        tool_number = None
+
+    tool_diameter = None
+    tool_length = None
+
+    # Try STAT.tool_table (if present)
+    tt = safe_get("tool_table", None)
+    if tool_number is not None and tt:
+        try:
+            for t in tt:
+                # tool id varies by build
+                tnum = getattr(t, "id", None)
+                if tnum is None:
+                    tnum = getattr(t, "toolno", None)
+                if tnum is None:
+                    tnum = getattr(t, "tool", None)
+                if tnum is None:
+                    continue
+                if int(tnum) != int(tool_number):
+                    continue
+
+                d = getattr(t, "diameter", None)
+                if d is None:
+                    d = getattr(t, "dia", None)
+                if d is not None:
+                    tool_diameter = float(d)
+
+                z = getattr(t, "zoffset", None)
+                if z is None:
+                    # sometimes offset is a tuple/struct with .z
+                    off = getattr(t, "offset", None)
+                    if off is not None:
+                        z = getattr(off, "z", None)
+                if z is not None:
+                    tool_length = abs(float(z))
+
+                break
+        except Exception:
+            pass
+
+    # Fallback: STAT.tool_offset vector (if present)
+    if tool_length is None:
+        tofs = safe_get("tool_offset", None)
+        if tofs is not None:
+            try:
+                tool_length = abs(float(tofs[2]))
+            except Exception:
+                pass
+
+
+    return StatusPayload(
+        ts=time.time(),
+        estop=estop,
+        enabled=enabled,
+        homed=homed,
+        task_mode=safe_get("task_mode", None),
+        interp_state=safe_get("interp_state", None),
+        state=safe_get("state", None),
+        g5x_offset=g5x,
+        g92_offset=g92,
+        joint_pos=joint_pos,
+        tool_offset=tool_offset,
+        machine_pos=machine_pos,
+        work_pos=work_pos,       # <-- tool-tip work coords
+        dtg=dtg,
+        feed_override=safe_get("feedrate", None),
+        spindle_override=safe_get("spindle", None),
+        active_file=safe_get("file", None),
+        motion_line=safe_get("motion_line", None),
+        tool_number=tool_number,
+        tool_diameter=tool_diameter,
+        tool_length=tool_length,
+    )
+
+
+
+def read_errors_nonblocking() -> list:
+    out = []
+    while True:
+        e = ERR.poll()
+        if not e:
+            break
+        out.append(e)
+    return out
+
+
+async def ws_send_json(ws: WebSocket, obj: Dict[str, Any]):
+    # default=str prevents weird types from killing the WS during development
+    await ws.send_text(json.dumps(obj, separators=(",", ":"), default=str))
+
+
+def set_mode(mode: int):
+    CMD.mode(mode)
+    CMD.wait_complete()
+
+def reject_if_auto_running() -> Optional[Dict[str, Any]]:
+    STAT.poll()
+    mode = safe_get("task_mode", None)
+    interp = safe_get("interp_state", None)
+
+    # If we're in AUTO and interpreter isn't idle, don't allow mode switches / jog / mdi
+    if mode == linuxcnc.MODE_AUTO and interp != linuxcnc.INTERP_IDLE:
+        return {
+            "ok": False,
+            "error": "Busy in AUTO (interpreter not IDLE) — command rejected",
+            "task_mode": mode,
+            "interp_state": interp,
+        }
+    return None
+
+
+
+def require_armed(armed: bool):
+    if not armed:
+        raise PermissionError("Not armed")
+
+
+def handle_command(msg: Dict[str, Any], armed: bool):
+    cmd = msg.get("cmd")
+    if not cmd:
+        return {"ok": False, "error": "Missing cmd"}
+
+    try:
+        if cmd == "arm":
+            return {"ok": True}
+
+        if cmd == "estop":
+            require_armed(armed)
+            CMD.state(linuxcnc.STATE_ESTOP)
+            CMD.wait_complete()
+            return {"ok": True}
+
+        if cmd == "estop_reset":
+            require_armed(armed)
+            CMD.state(linuxcnc.STATE_ESTOP_RESET)
+            CMD.wait_complete()
+            return {"ok": True}
+
+        if cmd == "machine_on":
+            require_armed(armed)
+            # Optional but nice: avoid guaranteed-fail calls
+            STAT.poll()
+            if bool(safe_get("estop", True)):
+                return {"ok": False, "error": "Cannot Machine On while in E-stop"}
+            CMD.state(linuxcnc.STATE_ON)
+            CMD.wait_complete()
+            return {"ok": True}
+
+        if cmd == "machine_off":
+            require_armed(armed)
+            CMD.state(linuxcnc.STATE_OFF)
+            CMD.wait_complete()
+            return {"ok": True}
+
+        if cmd == "abort":
+            require_armed(armed)
+            CMD.abort()
+            return {"ok": True}
+
+        if cmd == "mdi":
+            require_armed(armed)
+
+            blocked = reject_if_auto_running()
+            if blocked:
+                return blocked
+
+            text = msg.get("text", "")
+
+            if not isinstance(text, str) or not text.strip():
+                return {"ok": False, "error": "Missing text"}
+            set_mode(linuxcnc.MODE_MDI)
+            CMD.mdi(text)
+            CMD.wait_complete()
+            return {"ok": True}
+
+        if cmd == "auto_run":
+            require_armed(armed)
+            set_mode(linuxcnc.MODE_AUTO)
+            start_line = int(msg.get("line", 0))
+            CMD.auto(linuxcnc.AUTO_RUN, start_line)
+            return {"ok": True}
+
+        # jog left intact (even if you're not using it right now)
+        if cmd == "jog_cont":
+            require_armed(armed)
+
+            blocked = reject_if_auto_running()
+            if blocked:
+                return blocked
+
+            axis = int(msg.get("axis"))
+            vel = float(msg.get("vel", 0.0))
+            set_mode(linuxcnc.MODE_MANUAL)
+            CMD.jog(linuxcnc.JOG_CONTINUOUS, 0, axis, vel)
+            return {"ok": True}
+
+        if cmd == "jog_stop":
+            require_armed(armed)
+
+            blocked = reject_if_auto_running()
+            if blocked:
+                return blocked
+
+            axis = int(msg.get("axis"))
+            set_mode(linuxcnc.MODE_MANUAL)
+            CMD.jog(linuxcnc.JOG_STOP, 0, axis)
+            return {"ok": True}
+
+
+
+        return {"ok": False, "error": f"Unknown cmd: {cmd}"}
+
+    except PermissionError as pe:
+        return {"ok": False, "error": str(pe)}
+    except Exception as e:
+        return {"ok": False, "error": f"{type(e).__name__}: {e}"}
+
+# -----------------------------
+# Viewer support (Web 3D)
+# -----------------------------
+
+def build_viewer_init(stl_base_url: str) -> Dict[str, Any]:
+    STAT.poll()
+
+    limits = read_machine_limits_from_ini(STAT)
+    if limits:
+        bounds_origin, bounds_size = limits
+    else:
+        bounds_origin, bounds_size = [0, 0, 0], [0, 0, 0]
+
+    return {
+        "units": "mm",
+        "stl_base_url": stl_base_url,
+        "machine_bounds": {
+        "origin": bounds_origin,
+        "size": bounds_size,
+        },
+        "parts": [
+            # these translations are from your vismach model (machine.py)
+            {"id": "frame",  "file": "frame.stl",  "parent": None, "t": [-760, -122, -294]},
+            {"id": "x_axis", "file": "x_axis.stl", "parent": "x",  "t": [319, 398, -244]},
+            {"id": "y_axis", "file": "y_axis.stl", "parent": "y",  "t": [-140, 0, 21]},
+            {"id": "z_axis", "file": "z_axis.stl", "parent": "z",  "t": [0, 0, 0]},
+        ],
+        # match your joint sign usage (X inverted in your model)
+        "kinematics": {
+            "x": {"axis": 0, "sign": -1},
+            "y": {"axis": 1, "sign":  1},
+            "z": {"axis": 2, "sign":  1},
+        },
+    }
+
+
+def parse_gcode_preview(filename: str) -> Dict[str, Any]:
+    """
+    Preview-grade modal parser (work coords) inspired by vtk_vismach.GCodePath.
+    Returns polyline point lists for feed and rapid moves.
+    """
+    feed: List[List[float]] = []
+    rapid: List[List[float]] = []
+
+    # current position (work coords)
+    x = y = z = 0.0
+
+    # modal state
+    motion_mode: Optional[str] = None   # G0 / G1 / G2 / G3
+    plane = "G17"                       # G17=XY, G18=XZ, G19=YZ
+
+    import math
+
+    def add(arr: List[List[float]], px: float, py: float, pz: float):
+        arr.append([float(px), float(py), float(pz)])
+
+    # basic safety: only read real files
+    if not filename or not os.path.isfile(filename):
+        return {"feed": feed, "rapid": rapid}
+
+    with open(filename, "r") as f:
+        for raw in f:
+            line = raw.strip().upper()
+            if not line or line.startswith(("(", ";")):
+                continue
+
+            words = line.split()
+
+            # update modal state
+            for w in words:
+                if w in ("G0", "G00"):
+                    motion_mode = "G0"
+                elif w in ("G1", "G01"):
+                    motion_mode = "G1"
+                elif w in ("G2", "G02"):
+                    motion_mode = "G2"
+                elif w in ("G3", "G03"):
+                    motion_mode = "G3"
+                elif w in ("G17", "G18", "G19"):
+                    plane = w
+
+            if motion_mode not in ("G0", "G1", "G2", "G3"):
+                continue
+
+            # parse endpoint + arc center offsets (IJK)
+            nx, ny, nz = x, y, z
+            i = j = k = 0.0
+
+            for w in words:
+                try:
+                    if w.startswith("X"):
+                        nx = float(w[1:])
+                    elif w.startswith("Y"):
+                        ny = float(w[1:])
+                    elif w.startswith("Z"):
+                        nz = float(w[1:])
+                    elif w.startswith("I"):
+                        i = float(w[1:])
+                    elif w.startswith("J"):
+                        j = float(w[1:])
+                    elif w.startswith("K"):
+                        k = float(w[1:])
+                except ValueError:
+                    pass
+
+            # linear / rapid
+            if motion_mode == "G0":
+                add(rapid, nx, ny, nz)
+                x, y, z = nx, ny, nz
+                continue
+
+            if motion_mode == "G1":
+                add(feed, nx, ny, nz)
+                x, y, z = nx, ny, nz
+                continue
+
+            # arcs (G2/G3)
+            cw = (motion_mode == "G2")
+
+            # select plane axes (copying the same structure you had in vtk_vismach)
+            if plane == "G17":  # XY
+                sx, sy = x, y
+                ex, ey = nx, ny
+                cx, cy = x + i, y + j
+                fixed_axis = ("Z", z)
+            elif plane == "G18":  # XZ
+                sx, sy = x, z
+                ex, ey = nx, nz
+                cx, cy = x + i, z + k
+                fixed_axis = ("Y", y)
+            else:  # G19 YZ
+                sx, sy = y, z
+                ex, ey = ny, nz
+                cx, cy = y + j, z + k
+                fixed_axis = ("X", x)
+
+            r = math.hypot(sx - cx, sy - cy)
+            if r <= 0:
+                x, y, z = nx, ny, nz
+                continue
+
+            a0 = math.atan2(sy - cy, sx - cx)
+            a1 = math.atan2(ey - cy, ex - cx)
+
+            if cw and a1 > a0:
+                a1 -= 2 * math.pi
+            elif (not cw) and a1 < a0:
+                a1 += 2 * math.pi
+
+            steps = max(12, int(abs(a1 - a0) * 16))
+
+            for s in range(1, steps + 1):
+                a = a0 + (a1 - a0) * (s / steps)
+                px = cx + math.cos(a) * r
+                py = cy + math.sin(a) * r
+
+                if plane == "G17":
+                    add(feed, px, py, fixed_axis[1])
+                elif plane == "G18":
+                    add(feed, px, fixed_axis[1], py)
+                else:
+                    add(feed, fixed_axis[1], px, py)
+
+            x, y, z = nx, ny, nz
+
+    return {"feed": feed, "rapid": rapid}
+
+
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+
+
+from pathlib import Path
+
+# Serve static machine assets (STLs etc.)
+# Always resolve relative to THIS FILE, not cwd
+BASE_DIR = Path(__file__).resolve().parent
+MACHINE_DIR = BASE_DIR / "machine"
+
+app.mount("/assets", StaticFiles(directory=str(MACHINE_DIR), html=False), name="assets")
+
+
+
+@app.get("/health")
+def health():
+    return {"ok": True}
+
+
+@app.websocket("/ws")
+async def ws_endpoint(ws: WebSocket):
+    await ws.accept()
+    armed = False  # connection-local arming
+
+    # Viewer: send static model/init once per connection
+    host = ws.headers.get("host", "127.0.0.1:8000")  # includes port
+    stl_base_url = f"http://{host}/assets/"
+
+    await ws_send_json(ws, {"type": "viewer_init", "data": build_viewer_init(stl_base_url)})
+
+
+    last_file: Optional[str] = None
+
+
+    async def status_loop():
+        nonlocal last_file
+        while True:
+            try:
+                st = poll_status()
+                errs = read_errors_nonblocking()
+                await ws_send_json(
+                    ws,
+                    {
+                        "type": "status",
+                        "data": asdict(st),
+                        "errors": errs,
+                    },
+                )
+                # Viewer: lightweight high-frequency state (you can also drive it from status on the frontend)
+                await ws_send_json(
+                    ws,
+                    {
+                        "type": "viewer_state",
+                        "data": {
+                            "ts": st.ts,
+                            "machine_pos": st.machine_pos,
+                            "g5x_offset": st.g5x_offset,
+                            "g92_offset": st.g92_offset,
+                            "active_file": st.active_file,
+                            "motion_line": st.motion_line,
+                            "tool_number": st.tool_number,
+                            "tool_diameter": st.tool_diameter,
+                            "tool_length": st.tool_length,
+                            "joint_pos": st.joint_pos,
+                            "tool_offset": st.tool_offset,
+                            "work_pos": st.work_pos,
+                        },
+                    },
+                )
+            
+
+                # Viewer: gcode preview only when the file changes
+                if st.active_file and st.active_file != last_file:
+                    last_file = st.active_file
+                    try:
+                        preview = parse_gcode_preview(last_file)
+                        await ws_send_json(
+                            ws,
+                            {
+                                "type": "viewer_gcode",
+                                "data": {
+                                    "file": last_file,
+                                    "feed": preview["feed"],
+                                    "rapid": preview["rapid"],
+                                },
+                            },
+                        )
+                    except Exception as e:
+                        await ws_send_json(
+                            ws,
+                            {
+                                "type": "viewer_gcode",
+                                "ok": False,
+                                "error": f"{type(e).__name__}: {e}",
+                                "data": {"file": last_file},
+                            },
+                        )
+
+                await asyncio.sleep(1.0 / POLL_HZ)
+            except Exception as e:
+                await ws_send_json(ws, {"type": "status_error", "error": f"{type(e).__name__}: {e}"})
+                await asyncio.sleep(0.5)
+
+    status_task = asyncio.create_task(status_loop())
+
+    try:
+        while True:
+            raw = await ws.receive_text()
+            try:
+                msg = json.loads(raw)
+            except Exception:
+                await ws_send_json(ws, {"type": "reply", "ok": False, "error": "Invalid JSON"})
+                continue
+
+            if msg.get("cmd") == "arm":
+                armed = bool(msg.get("armed", False))
+                await ws_send_json(ws, {"type": "reply", "ok": True, "armed": armed})
+                continue
+
+            reply = handle_command(msg, armed)
+            await ws_send_json(ws, {"type": "reply", **reply})
+
+    except WebSocketDisconnect:
+        pass
+    finally:
+        status_task.cancel()

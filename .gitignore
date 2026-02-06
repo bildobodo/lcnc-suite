@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.pyo
+*.swp
+.DS_Store
+
+.venv/
+venv/
+
+*.log
+*.tmp
+
+# If you have generated artifacts:
+dist/
+build/
