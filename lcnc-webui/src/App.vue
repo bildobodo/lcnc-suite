@@ -343,8 +343,6 @@ watch(viewerGcode, (newGcode) => {
             :mdiText="mdiText"
             :canMdi="canMdi"
             :busy="busy"
-            :lastReply="lastReply"
-            :status="status"
             @update:mdiText="mdiText = $event"
             @send="sendMdi"
           />
@@ -413,8 +411,6 @@ watch(viewerGcode, (newGcode) => {
             :mdiText="mdiText"
             :canMdi="canMdi"
             :busy="busy"
-            :lastReply="lastReply"
-            :status="status"
             @update:mdiText="mdiText = $event"
             @send="sendMdi"
           />
@@ -573,6 +569,21 @@ watch(viewerGcode, (newGcode) => {
       <div class="hint">
         Arm to enable controls. Cycle Start runs loaded G-code. Abort stops program execution.
       </div>
+    </section>
+
+    <!-- Debug widget -->
+    <section class="card">
+      <details>
+        <summary class="sub" style="cursor: pointer">Debug</summary>
+
+        <div class="debugSection">
+          <div class="sub" style="margin-top: 10px">Last reply</div>
+          <pre class="pre">{{ lastReply }}</pre>
+
+          <div class="sub" style="margin-top: 10px">Raw status</div>
+          <pre class="pre">{{ status }}</pre>
+        </div>
+      </details>
     </section>
   </div>
 </template>
@@ -782,5 +793,18 @@ watch(viewerGcode, (newGcode) => {
   margin-top: 10px;
   font-size: 12px;
   opacity: 0.65;
+}
+
+.debugSection {
+  margin-top: 8px;
+}
+
+.pre {
+  background: color-mix(in oklab, var(--panel) 50%, transparent);
+  padding: 10px;
+  border-radius: 12px;
+  overflow: auto;
+  font-size: 11px;
+  max-height: 400px;
 }
 </style>
