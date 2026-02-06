@@ -36,6 +36,7 @@ class StatusPayload:
     state: Optional[int]
 
     # offsets and positions
+    g5x_index: Optional[int]  # 0=G54, 1=G55, 2=G56, etc.
     g5x_offset: Optional[List[float]]
     g92_offset: Optional[List[float]]
     joint_pos: Optional[List[float]]
@@ -175,6 +176,7 @@ def poll_status() -> StatusPayload:
     homed = normalize_homed(homed_val)
 
     # ---- offsets ----
+    g5x_index = safe_get("g5x_index", None)
     g5x = to_float_list(safe_get("g5x_offset", None))
     g92 = to_float_list(safe_get("g92_offset", None))
 
@@ -277,6 +279,7 @@ def poll_status() -> StatusPayload:
         task_mode=safe_get("task_mode", None),
         interp_state=safe_get("interp_state", None),
         state=safe_get("state", None),
+        g5x_index=g5x_index,
         g5x_offset=g5x,
         g92_offset=g92,
         joint_pos=joint_pos,
@@ -431,6 +434,23 @@ def handle_command(msg: Dict[str, Any], armed: bool):
             require_armed(armed)
             set_mode(linuxcnc.MODE_MANUAL)
             CMD.home(-1)  # -1 homes all axes
+            return {"ok": True}
+
+        if cmd == "cycle_start":
+            require_armed(armed)
+            set_mode(linuxcnc.MODE_AUTO)
+            CMD.auto(linuxcnc.AUTO_RUN, 0)  # Start from beginning
+            return {"ok": True}
+
+        if cmd == "cycle_pause":
+            require_armed(armed)
+            CMD.auto(linuxcnc.AUTO_PAUSE)
+            return {"ok": True}
+
+        if cmd == "cycle_resume":
+            require_armed(armed)
+            # Don't call set_mode - already in AUTO mode when paused
+            CMD.auto(linuxcnc.AUTO_RESUME)
             return {"ok": True}
 
         return {"ok": False, "error": f"Unknown cmd: {cmd}"}

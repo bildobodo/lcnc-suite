@@ -98,6 +98,59 @@ const isHomed = computed(() => {
   return !!h;
 });
 
+// LinuxCNC interpreter states: IDLE=1, READING=2, PAUSED=3, WAITING=4
+const interpState = computed(() => st.value.interp_state ?? 1);
+const isPaused = computed(() => interpState.value === 3); // INTERP_PAUSED
+const isRunning = computed(() => interpState.value === 2 || interpState.value === 4); // INTERP_READING or INTERP_WAITING
+const isIdle = computed(() => interpState.value === 1); // INTERP_IDLE
+
+const canCycleStart = computed(() =>
+  armed.value && !isEstop.value && isEnabled.value && activeFile.value && (isIdle.value || (!isRunning.value && !isPaused.value))
+);
+const canCyclePause = computed(() =>
+  armed.value && isEnabled.value && isRunning.value && !isPaused.value
+);
+const canCycleResume = computed(() =>
+  armed.value && isEnabled.value && isPaused.value
+);
+
+/** ---------- display helpers for machine states ---------- */
+// G5x work coordinate system (G54, G55, etc.)
+const g5xLabel = computed(() => {
+  const idx = st.value.g5x_index;
+  if (idx == null) return "-";
+  // LinuxCNC g5x_index is 1-based: 1=G54, 2=G55, 3=G56, 4=G57, 5=G58, 6=G59, 7=G59.1, 8=G59.2, 9=G59.3
+  if (idx >= 1 && idx <= 6) return `G${53 + idx}`;
+  if (idx === 7) return "G59.1";
+  if (idx === 8) return "G59.2";
+  if (idx === 9) return "G59.3";
+  return `G5x[${idx}]`;
+});
+
+// Task mode: MANUAL=1, AUTO=2, MDI=3
+const taskModeLabel = computed(() => {
+  const mode = st.value.task_mode;
+  if (mode === 1) return "MANUAL";
+  if (mode === 2) return "AUTO";
+  if (mode === 3) return "MDI";
+  return "-";
+});
+
+// Interpreter state label
+const interpStateLabel = computed(() => {
+  if (isPaused.value) return "PAUSED";
+  if (isRunning.value) return "RUNNING";
+  if (isIdle.value) return "IDLE";
+  return "-";
+});
+
+// Feed override percentage
+const feedOverride = computed(() => {
+  const fo = st.value.feed_override;
+  if (fo == null) return "-";
+  return `${Math.round(fo * 100)}%`;
+});
+
 
 /** ---------- actions ---------- */
 function arm(v: boolean) {
@@ -139,6 +192,18 @@ function zeroAxis(axis: number) {
 
 function homeAll() {
   fire({ cmd: "home_all" });
+}
+
+function cycleStart() {
+  fire({ cmd: "cycle_start" });
+}
+
+function cyclePause() {
+  fire({ cmd: "cycle_pause" });
+}
+
+function cycleResume() {
+  fire({ cmd: "cycle_resume" });
 }
 
 /** ---------- safety: stop jog on focus loss ---------- */
@@ -300,65 +365,125 @@ watch(viewerGcode, (newGcode) => {
 
     <!-- Pinned cards below -->
     <section class="card">
-      <div class="sub">Machine status</div>
-        <div class="row">
-          <div class="k">E-Stop</div>
-          <div class="v" :class="isEstop ? 'badText' : 'okText'">
-            {{ isEstop ? "TRUE" : "FALSE" }}
-          </div>
+      <div class="sub">Machine Status</div>
 
-          <div class="k">Enabled</div>
-          <div class="v" :class="isEnabled ? 'okText' : 'mutedText'">
-            {{ isEnabled ? "TRUE" : "FALSE" }}
+      <div class="statusGroups">
+        <div class="statusGroup">
+          <div class="groupTitle">Machine State</div>
+          <div class="statusRow">
+            <div class="k">E-Stop</div>
+            <div class="v" :class="isEstop ? 'badText' : 'okText'">
+              {{ isEstop ? "TRUE" : "FALSE" }}
+            </div>
           </div>
-
-          <div class="k">Homed</div>
-          <div class="v" :class="isHomed ? 'okText' : 'badText'">
-            {{ isHomed ? "TRUE" : "FALSE" }}
+          <div class="statusRow">
+            <div class="k">Enabled</div>
+            <div class="v" :class="isEnabled ? 'okText' : 'mutedText'">
+              {{ isEnabled ? "TRUE" : "FALSE" }}
+            </div>
+          </div>
+          <div class="statusRow">
+            <div class="k">Homed</div>
+            <div class="v" :class="isHomed ? 'okText' : 'badText'">
+              {{ isHomed ? "TRUE" : "FALSE" }}
+            </div>
           </div>
         </div>
+
+        <div class="statusGroup">
+          <div class="groupTitle">Program State</div>
+          <div class="statusRow">
+            <div class="k">Task Mode</div>
+            <div class="v">{{ taskModeLabel }}</div>
+          </div>
+          <div class="statusRow">
+            <div class="k">Interpreter</div>
+            <div class="v" :class="isRunning ? 'okText' : (isPaused ? 'warnText' : '')">
+              {{ interpStateLabel }}
+            </div>
+          </div>
+          <div class="statusRow">
+            <div class="k">Work Coord</div>
+            <div class="v">{{ g5xLabel }}</div>
+          </div>
+        </div>
+
+        <div class="statusGroup">
+          <div class="groupTitle">Overrides</div>
+          <div class="statusRow">
+            <div class="k">Feed Override</div>
+            <div class="v">{{ feedOverride }}</div>
+          </div>
+        </div>
+      </div>
     </section>
 
-     <section class="card">
-      <div class="sub">Safety</div>
+    <section class="card">
+      <div class="sub">Control</div>
 
-      <div class="btnrow">
-        <button class="btn" @click="arm(true)" :disabled="armed || busy">
-          Arm
-        </button>
-        <button class="btn" @click="arm(false)" :disabled="!armed || busy">
-          Disarm
-        </button>
+      <div class="controlGroups">
+        <div class="controlGroup">
+          <div class="groupTitle">Machine Safety</div>
+          <div class="btnrow">
+            <button class="btn" @click="arm(true)" :disabled="armed || busy">
+              Arm
+            </button>
+            <button class="btn" @click="arm(false)" :disabled="!armed || busy">
+              Disarm
+            </button>
 
-        <div class="sep"></div>
+            <div class="sep"></div>
 
-        <button class="btn danger" @click="fire({ cmd: 'estop' })" :disabled="!canEstop || busy">
-          E-Stop
-        </button>
+            <button class="btn danger" @click="fire({ cmd: 'estop' })" :disabled="!canEstop || busy">
+              E-Stop
+            </button>
 
-        <button
-          class="btn"
-          @click="fire({ cmd: 'estop_reset' })"
-          :disabled="!canResetEstop || busy"
-        >
-          Reset
-        </button>
+            <button
+              class="btn"
+              @click="fire({ cmd: 'estop_reset' })"
+              :disabled="!canResetEstop || busy"
+            >
+              Reset E-Stop
+            </button>
 
-        <button class="btn" @click="fire({ cmd: 'machine_on' })" :disabled="!canMachineOn || busy">
-          Machine On
-        </button>
+            <div class="sep"></div>
 
-        <button class="btn" @click="fire({ cmd: 'machine_off' })" :disabled="!canMachineOff || busy">
-          Machine Off
-        </button>
+            <button class="btn" @click="fire({ cmd: 'machine_on' })" :disabled="!canMachineOn || busy">
+              Machine On
+            </button>
 
-        <button class="btn" @click="fire({ cmd: 'abort' })" :disabled="!canAbort || busy">
-          Abort
-        </button>
+            <button class="btn" @click="fire({ cmd: 'machine_off' })" :disabled="!canMachineOff || busy">
+              Machine Off
+            </button>
+          </div>
+        </div>
+
+        <div class="controlGroup">
+          <div class="groupTitle">Program Control</div>
+          <div class="btnrow">
+            <button class="btn primary" @click="cycleStart" :disabled="!canCycleStart || busy">
+              Cycle Start
+            </button>
+
+            <button class="btn" @click="cyclePause" :disabled="!canCyclePause || busy">
+              Pause
+            </button>
+
+            <button class="btn" @click="cycleResume" :disabled="!canCycleResume || busy">
+              Resume
+            </button>
+
+            <div class="sep"></div>
+
+            <button class="btn" @click="fire({ cmd: 'abort' })" :disabled="!canAbort || busy">
+              Abort
+            </button>
+          </div>
+        </div>
       </div>
 
       <div class="hint">
-        MDI requires: armed + enabled + not in E-Stop.
+        Arm to enable controls. Cycle Start runs loaded G-code. Abort stops program execution.
       </div>
     </section>
   </div>
@@ -447,6 +572,53 @@ watch(viewerGcode, (newGcode) => {
   margin-bottom: 8px;
 }
 
+.controlGroups {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.controlGroup {
+  flex: 1;
+  padding: 12px;
+  border: 1px solid color-mix(in oklab, var(--border) 50%, transparent);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--panel) 30%, transparent);
+}
+
+.groupTitle {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.7;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.statusGroups {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.statusGroup {
+  flex: 1;
+  padding: 12px;
+  border: 1px solid color-mix(in oklab, var(--border) 50%, transparent);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--panel) 30%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.statusRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
 .row {
   display: grid;
   grid-template-columns: 90px 1fr 90px 1fr 90px 1fr;
@@ -469,6 +641,10 @@ watch(viewerGcode, (newGcode) => {
 
 .badText {
   color: #b00020;
+}
+
+.warnText {
+  color: #ffa500;
 }
 
 .mutedText {
@@ -501,6 +677,12 @@ watch(viewerGcode, (newGcode) => {
 .btn.danger {
   border-color: #b0002030;
   background: #b0002008;
+}
+
+.btn.primary {
+  border-color: #0a7a0a30;
+  background: #0a7a0a12;
+  font-weight: 600;
 }
 
 .btn:disabled {

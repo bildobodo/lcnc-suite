@@ -21,6 +21,67 @@ const lines = computed(() => {
 
 const lineCount = computed(() => lines.value.length);
 
+type Token = {
+  type: 'gcode' | 'mcode' | 'coord' | 'param' | 'comment' | 'text';
+  text: string;
+};
+
+// Syntax highlighter for G-code
+function highlightGcode(line: string): Token[] {
+  const tokens: Token[] = [];
+
+  // Check for comment (everything after semicolon or inside parentheses)
+  const commentMatch = line.match(/^([^;(]*)(;.*|(\(.*\).*)?)$/);
+  if (commentMatch) {
+    const [, code, comment] = commentMatch;
+
+    // Process the code part
+    if (code) {
+      tokenizeCode(code, tokens);
+    }
+
+    // Add comment
+    if (comment) {
+      tokens.push({ type: 'comment', text: comment });
+    }
+  } else {
+    tokenizeCode(line, tokens);
+  }
+
+  return tokens;
+}
+
+function tokenizeCode(code: string, tokens: Token[]) {
+  // Regex to match G-code tokens
+  const pattern = /([GM]\d+(?:\.\d+)?)|([XYZIJKABC][-+]?\d+(?:\.\d+)?)|([FSTPQRHDL]\d+(?:\.\d+)?)|([N]\d+)|(\s+)|([^\s]+)/gi;
+
+  let match;
+  while ((match = pattern.exec(code)) !== null) {
+    const [full, gcode, coord, param, lineNum, space, other] = match;
+
+    if (gcode) {
+      // G or M code
+      const isG = gcode.toUpperCase().startsWith('G');
+      tokens.push({ type: isG ? 'gcode' : 'mcode', text: gcode });
+    } else if (coord) {
+      // Coordinate (X, Y, Z, I, J, K, A, B, C)
+      tokens.push({ type: 'coord', text: coord });
+    } else if (param) {
+      // Parameter (F, S, T, P, Q, R, H, D, L)
+      tokens.push({ type: 'param', text: param });
+    } else if (lineNum) {
+      // Line number
+      tokens.push({ type: 'comment', text: lineNum });
+    } else if (space) {
+      // Whitespace
+      tokens.push({ type: 'text', text: space });
+    } else if (other) {
+      // Unknown
+      tokens.push({ type: 'text', text: other });
+    }
+  }
+}
+
 // Auto-scroll to current line
 watch(() => props.currentLine, async (newLine) => {
   if (newLine !== null && codeViewerRef.value) {
@@ -52,7 +113,13 @@ watch(() => props.currentLine, async (newLine) => {
            :data-line="index + 1"
            :class="{ active: currentLine === index + 1 }">
         <span class="lineNumber">{{ index + 1 }}</span>
-        <span class="lineContent">{{ line }}</span>
+        <span class="lineContent">
+          <span
+            v-for="(token, ti) in highlightGcode(line)"
+            :key="ti"
+            :class="'token-' + token.type"
+          >{{ token.text }}</span>
+        </span>
       </div>
     </div>
 
@@ -181,5 +248,33 @@ watch(() => props.currentLine, async (newLine) => {
 .emptyHint {
   font-size: 13px;
   opacity: 0.7;
+}
+
+/* Syntax highlighting tokens */
+.token-gcode {
+  color: #569cd6; /* Blue for G-codes */
+  font-weight: 600;
+}
+
+.token-mcode {
+  color: #c586c0; /* Purple for M-codes */
+  font-weight: 600;
+}
+
+.token-coord {
+  color: #4ec9b0; /* Teal for coordinates */
+}
+
+.token-param {
+  color: #9cdcfe; /* Light blue for parameters */
+}
+
+.token-comment {
+  color: #6a9955; /* Green for comments */
+  opacity: 0.8;
+}
+
+.token-text {
+  color: var(--fg);
 }
 </style>
