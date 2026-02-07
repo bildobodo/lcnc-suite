@@ -3,6 +3,7 @@ defineProps<{
   workPos: number[];
   machinePos: number[];
   dtg: number[];
+  g5xLabel: string;
   armed: boolean;
   busy: boolean;
   homed: boolean;
@@ -13,7 +14,10 @@ const emit = defineEmits<{
   (e: "zeroAll"): void;
   (e: "homeAll"): void;
   (e: "unhomeAll"): void;
+  (e: "setG5x", gcode: string): void;
 }>();
+
+const g5xOptions = ["G54", "G55", "G56", "G57", "G58", "G59", "G59.1", "G59.2", "G59.3"];
 
 function fmt(n: any) {
   const x = Number(n);
@@ -23,8 +27,19 @@ function fmt(n: any) {
 
 <template>
   <div class="container">
+    <div class="g5xRow">
+      <button
+        v-for="g in g5xOptions"
+        :key="g"
+        class="g5xBtn"
+        :class="{ active: g === g5xLabel }"
+        :disabled="!armed || busy"
+        @click="emit('setG5x', g)"
+      >{{ g }}</button>
+    </div>
+
     <div class="section">
-      <div class="sub">Work Position</div>
+      <div class="sub">Work Position ({{ g5xLabel }})</div>
       <div class="grid">
         <div class="axis"><span>X</span><b>{{ fmt(workPos[0]) }}</b></div>
         <div class="dtg"><span>DTG</span>{{ fmt(dtg[0]) }}</div>
@@ -168,6 +183,42 @@ function fmt(n: any) {
 
 .homeBtn:disabled {
   opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.g5xRow {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.g5xBtn {
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--button-bg);
+  color: var(--fg);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  opacity: 0.6;
+}
+
+.g5xBtn.active {
+  opacity: 1;
+  font-weight: 700;
+  border-color: var(--fg);
+}
+
+.g5xBtn:hover:not(:disabled) {
+  opacity: 1;
+  background: color-mix(in oklab, var(--button-bg) 85%, var(--fg));
+}
+
+.g5xBtn:disabled {
+  opacity: 0.3;
   cursor: not-allowed;
 }
 

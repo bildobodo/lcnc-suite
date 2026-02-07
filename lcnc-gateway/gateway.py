@@ -3,6 +3,7 @@ import asyncio
 import json
 import time
 import os
+import subprocess
 import linuxcnc
 
 from dataclasses import asdict, dataclass
@@ -50,6 +51,10 @@ class StatusPayload:
     spindle_override: Optional[float]
     rapid_override: Optional[float]
     max_velocity: Optional[float]
+    current_vel: Optional[float]
+    spindle_speed: Optional[float]       # commanded (S word)
+    spindle_speed_actual: Optional[float] # after override
+    spindle_direction: Optional[int]
     active_file: Optional[str]
     motion_line: Optional[int]
 
@@ -59,6 +64,25 @@ class StatusPayload:
     tool_length: Optional[float]   # Z length offset (positive magnitude)
 
 
+
+
+def hal_get(pin: str, default=None):
+    """Read a HAL pin value. Tries hal module first, falls back to halcmd."""
+    try:
+        import hal
+        return hal.get_value(pin)
+    except Exception:
+        pass
+    try:
+        result = subprocess.run(
+            ['halcmd', '-s', 'getp', pin],
+            capture_output=True, text=True, timeout=1
+        )
+        if result.returncode == 0:
+            return float(result.stdout.strip())
+    except Exception:
+        pass
+    return default
 
 
 def safe_get(attr: str, default=None):
@@ -275,6 +299,63 @@ def poll_status() -> StatusPayload:
 
     dtg = to_float_list(safe_get("dtg", None))
 
+    # ---- velocity & spindle ----
+    current_vel = safe_get("current_vel", None)
+    try:
+        current_vel = float(current_vel) if current_vel is not None else None
+    except Exception:
+        current_vel = None
+
+    # Spindle speed and direction
+    spindle_speed = None
+    spindle_direction = None
+    spindles = safe_get("spindle", None)
+    if spindles is not None:
+        try:
+            if hasattr(spindles, '__getitem__'):
+                s0 = spindles[0]
+                # Try attribute access
+                for attr in ('speed', 'Speed'):
+                    v = getattr(s0, attr, None)
+                    if v is not None:
+                        spindle_speed = float(v)
+                        break
+                # Try dict access
+                if spindle_speed is None and isinstance(s0, dict):
+                    spindle_speed = float(s0.get('speed', s0.get('Speed', 0)))
+                for attr in ('direction', 'Direction'):
+                    v = getattr(s0, attr, None)
+                    if v is not None:
+                        spindle_direction = int(v)
+                        break
+                if spindle_direction is None and isinstance(s0, dict):
+                    spindle_direction = int(s0.get('direction', s0.get('Direction', 0)))
+        except Exception:
+            pass
+    # Fallback: direct stat attributes
+    if spindle_speed is None:
+        val = safe_get("spindle_speed", None)
+        if val is not None:
+            try:
+                spindle_speed = float(val)
+            except Exception:
+                pass
+    # Fallback: settings[2] holds the commanded S word
+    if spindle_speed is None:
+        settings = safe_get("settings", None)
+        if settings is not None:
+            try:
+                spindle_speed = float(settings[2])
+            except Exception:
+                pass
+    if spindle_direction is None:
+        val = safe_get("spindle_direction", None)
+        if val is not None:
+            try:
+                spindle_direction = int(val)
+            except Exception:
+                pass
+
 
 
 
@@ -333,6 +414,8 @@ def poll_status() -> StatusPayload:
                 pass
 
 
+    spindle_ovr = get_spindle_override()
+
     return StatusPayload(
         ts=time.time(),
         estop=estop,
@@ -350,9 +433,13 @@ def poll_status() -> StatusPayload:
         work_pos=work_pos,       # <-- tool-tip work coords
         dtg=dtg,
         feed_override=safe_get("feedrate", None),
-        spindle_override=get_spindle_override(),
+        spindle_override=spindle_ovr,
         rapid_override=safe_get("rapidrate", None),
         max_velocity=safe_get("max_velocity", None),
+        current_vel=current_vel,
+        spindle_speed=spindle_speed,
+        spindle_speed_actual=hal_get('spindle.0.speed-in', 0) * 60,
+        spindle_direction=spindle_direction,
         active_file=safe_get("file", None),
         motion_line=safe_get("motion_line", None),
         tool_number=tool_number,
@@ -834,6 +921,9 @@ async def ws_endpoint(ws: WebSocket):
                             "joint_pos": st.joint_pos,
                             "tool_offset": st.tool_offset,
                             "work_pos": st.work_pos,
+                            "current_vel": st.current_vel,
+                            "spindle_speed": st.spindle_speed_actual,
+                            "spindle_direction": st.spindle_direction,
                         },
                     },
                 )

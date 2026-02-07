@@ -51,6 +51,10 @@ type ViewerState = {
   tool_length?: number | null;
 
   work_pos?: Vec3N; // <-- stricter
+
+  current_vel?: number | null;
+  spindle_speed?: number | null;
+  spindle_direction?: number | null;
 };
 
 
@@ -65,6 +69,7 @@ const props = defineProps<{
   // workpiece (editable by UI)
   workpieceSize: Vec3;
   workpieceOffset: Vec3; // min corner relative to DRO/work zero
+  g5xLabel?: string;
 }>();
 
 // ---------- DOM ----------
@@ -812,7 +817,7 @@ defineExpose({
       </div>
 
       <div class="hudSection">
-        <div class="hudLabel">Work Position</div>
+        <div class="hudLabel">Work Position ({{ props.g5xLabel || '-' }})</div>
         <div class="hudValue">
           X: {{ formatCoord(viewerState?.work_pos?.[0]) }}
           Y: {{ formatCoord(viewerState?.work_pos?.[1]) }}
@@ -827,6 +832,16 @@ defineExpose({
           Ø{{ formatCoord(viewerState?.tool_diameter) }}
           L{{ formatCoord(viewerState?.tool_length) }}
         </div>
+      </div>
+
+      <div class="hudSection">
+        <div class="hudLabel">Feed</div>
+        <div class="hudValue">{{ formatCoord(viewerState?.current_vel) }} u/s</div>
+      </div>
+
+      <div class="hudSection">
+        <div class="hudLabel">Spindle</div>
+        <div class="hudValue">{{ formatCoord(viewerState?.spindle_speed) }} RPM</div>
       </div>
     </div>
   </div>

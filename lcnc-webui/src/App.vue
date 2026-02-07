@@ -229,6 +229,10 @@ function zeroAll() {
   fire({ cmd: "mdi", text: "G10 L20 P0 X0 Y0 Z0" });
 }
 
+function setG5x(gcode: string) {
+  fire({ cmd: "mdi", text: gcode });
+}
+
 function homeAll() {
   fire({ cmd: "home_all" });
 }
@@ -326,6 +330,7 @@ watch(viewerGcode, (newGcode) => {
               ref="viewerL"
               :workpieceSize="workpieceSize"
               :workpieceOffset="workpieceOffset"
+              :g5xLabel="g5xLabel"
             />
           </Toolbar>
         </template>
@@ -335,11 +340,13 @@ watch(viewerGcode, (newGcode) => {
             :workPos="workPos"
             :machinePos="machinePos"
             :dtg="dtg"
+            :g5xLabel="g5xLabel"
             :armed="armed"
             :busy="busy"
             :homed="isHomed"
             @zeroAxis="zeroAxis"
             @zeroAll="zeroAll"
+            @setG5x="setG5x"
             @homeAll="homeAll"
             @unhomeAll="unhomeAll"
           />
@@ -405,11 +412,13 @@ watch(viewerGcode, (newGcode) => {
             :workPos="workPos"
             :machinePos="machinePos"
             :dtg="dtg"
+            :g5xLabel="g5xLabel"
             :armed="armed"
             :busy="busy"
             :homed="isHomed"
             @zeroAxis="zeroAxis"
             @zeroAll="zeroAll"
+            @setG5x="setG5x"
             @homeAll="homeAll"
             @unhomeAll="unhomeAll"
           />
