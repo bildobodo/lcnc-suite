@@ -2,6 +2,7 @@
 defineProps<{
   workPos: number[];
   machinePos: number[];
+  dtg: number[];
   armed: boolean;
   busy: boolean;
   homed: boolean;
@@ -9,6 +10,7 @@ defineProps<{
 
 const emit = defineEmits<{
   (e: "zeroAxis", axis: number): void;
+  (e: "zeroAll"): void;
   (e: "homeAll"): void;
   (e: "unhomeAll"): void;
 }>();
@@ -23,19 +25,17 @@ function fmt(n: any) {
   <div class="container">
     <div class="section">
       <div class="sub">Work Position</div>
-      <div class="dro">
-        <div class="axisRow">
-          <div class="axis"><span>X</span><b>{{ fmt(workPos[0]) }}</b></div>
-          <button class="zeroBtn" @click="emit('zeroAxis', 0)" :disabled="!armed || busy">Zero X</button>
-        </div>
-        <div class="axisRow">
-          <div class="axis"><span>Y</span><b>{{ fmt(workPos[1]) }}</b></div>
-          <button class="zeroBtn" @click="emit('zeroAxis', 1)" :disabled="!armed || busy">Zero Y</button>
-        </div>
-        <div class="axisRow">
-          <div class="axis"><span>Z</span><b>{{ fmt(workPos[2]) }}</b></div>
-          <button class="zeroBtn" @click="emit('zeroAxis', 2)" :disabled="!armed || busy">Zero Z</button>
-        </div>
+      <div class="grid">
+        <div class="axis"><span>X</span><b>{{ fmt(workPos[0]) }}</b></div>
+        <div class="dtg"><span>DTG</span>{{ fmt(dtg[0]) }}</div>
+        <button class="zeroBtn" @click="emit('zeroAxis', 0)" :disabled="!armed || busy">Zero X</button>
+        <button class="homeBtn spanBtn" style="grid-column: 4" @click="emit('zeroAll')" :disabled="!armed || busy">Zero All</button>
+        <div class="axis"><span>Y</span><b>{{ fmt(workPos[1]) }}</b></div>
+        <div class="dtg"><span>DTG</span>{{ fmt(dtg[1]) }}</div>
+        <button class="zeroBtn" @click="emit('zeroAxis', 1)" :disabled="!armed || busy">Zero Y</button>
+        <div class="axis"><span>Z</span><b>{{ fmt(workPos[2]) }}</b></div>
+        <div class="dtg"><span>DTG</span>{{ fmt(dtg[2]) }}</div>
+        <button class="zeroBtn" @click="emit('zeroAxis', 2)" :disabled="!armed || busy">Zero Z</button>
       </div>
     </div>
 
@@ -43,16 +43,12 @@ function fmt(n: any) {
 
     <div class="section">
       <div class="sub">Machine Position</div>
-      <div class="machineRow">
-        <div class="dro">
-          <div class="axis"><span>X</span><b>{{ fmt(machinePos[0]) }}</b></div>
-          <div class="axis"><span>Y</span><b>{{ fmt(machinePos[1]) }}</b></div>
-          <div class="axis"><span>Z</span><b>{{ fmt(machinePos[2]) }}</b></div>
-        </div>
-        <div class="homingButtons">
-          <button class="homeBtn" @click="emit('homeAll')" :disabled="!armed || busy || homed">Home All Axes</button>
-          <button class="homeBtn" @click="emit('unhomeAll')" :disabled="!armed || busy || !homed">Unhome</button>
-        </div>
+      <div class="grid machineGrid">
+        <div class="axis"><span>X</span><b>{{ fmt(machinePos[0]) }}</b></div>
+        <div class="axis"><span>Y</span><b>{{ fmt(machinePos[1]) }}</b></div>
+        <div class="axis"><span>Z</span><b>{{ fmt(machinePos[2]) }}</b></div>
+        <button class="homeBtn spanBtn" style="grid-column: 3" @click="emit('homeAll')" :disabled="!armed || busy || homed">Home All</button>
+        <button class="homeBtn spanBtn" style="grid-column: 4" @click="emit('unhomeAll')" :disabled="!armed || busy || !homed">Unhome</button>
       </div>
     </div>
   </div>
@@ -77,28 +73,36 @@ function fmt(n: any) {
   margin-bottom: 8px;
 }
 
-.dro {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.axisRow {
-  display: flex;
+.grid {
+  display: grid;
+  grid-template-columns: 180px 30px 110px 110px;
+  column-gap: 16px;
+  row-gap: 12px;
   align-items: center;
-  gap: 16px;
 }
 
-.machineRow {
-  display: flex;
-  align-items: stretch;
-  gap: 16px;
+.spanBtn {
+  grid-row: 1 / 4;
+  align-self: stretch;
 }
 
-.homingButtons {
+.machineGrid .axis {
+  grid-column: 1;
+}
+
+.dtg {
   display: flex;
-  flex-direction: row;
-  gap: 12px;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 14px;
+  opacity: 0.45;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  justify-content: flex-end;
+}
+
+.dtg span {
+  font-size: 10px;
+  opacity: 0.7;
 }
 
 .axis {
@@ -106,7 +110,6 @@ function fmt(n: any) {
   align-items: baseline;
   gap: 10px;
   font-size: 24px;
-  min-width: 180px;
 }
 
 .axis span {
@@ -125,7 +128,6 @@ function fmt(n: any) {
   cursor: pointer;
   transition: all 0.15s ease;
   white-space: nowrap;
-  min-width: 120px;
 }
 
 .zeroBtn:hover {
@@ -151,7 +153,6 @@ function fmt(n: any) {
   color: var(--fg);
   cursor: pointer;
   transition: all 0.15s ease;
-  min-width: 120px;
   display: flex;
   align-items: center;
   justify-content: center;

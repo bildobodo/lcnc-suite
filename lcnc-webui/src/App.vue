@@ -74,6 +74,11 @@ const machinePos = computed<number[]>(() => {
   return Array.isArray(data.machine_pos) ? data.machine_pos : [];
 });
 
+const dtg = computed<number[]>(() => {
+  const data = st.value ?? {};
+  return Array.isArray(data.dtg) ? data.dtg : [];
+});
+
 const activeFile = computed<string | null>(() => {
   return st.value?.active_file || null;
 });
@@ -220,6 +225,10 @@ function zeroAxis(axis: number) {
   fire({ cmd: "mdi", text: `G10 L20 P0 ${axisName}0` });
 }
 
+function zeroAll() {
+  fire({ cmd: "mdi", text: "G10 L20 P0 X0 Y0 Z0" });
+}
+
 function homeAll() {
   fire({ cmd: "home_all" });
 }
@@ -325,10 +334,12 @@ watch(viewerGcode, (newGcode) => {
           <DroPanel
             :workPos="workPos"
             :machinePos="machinePos"
+            :dtg="dtg"
             :armed="armed"
             :busy="busy"
             :homed="isHomed"
             @zeroAxis="zeroAxis"
+            @zeroAll="zeroAll"
             @homeAll="homeAll"
             @unhomeAll="unhomeAll"
           />
@@ -393,10 +404,12 @@ watch(viewerGcode, (newGcode) => {
           <DroPanel
             :workPos="workPos"
             :machinePos="machinePos"
+            :dtg="dtg"
             :armed="armed"
             :busy="busy"
             :homed="isHomed"
             @zeroAxis="zeroAxis"
+            @zeroAll="zeroAll"
             @homeAll="homeAll"
             @unhomeAll="unhomeAll"
           />
