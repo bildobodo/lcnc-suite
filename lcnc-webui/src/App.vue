@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
-import { connectWs, connected, status, send, lastReply, viewerGcode } from "./lcncWs";
+import { connectWs, connected, status, send, lastReply, viewerGcode, lcncError } from "./lcncWs";
 import ThreeViewer from "./ThreeViewer.vue";
 import Toolbar from "./Toolbar.vue";
 import TabPanel from "./TabPanel.vue";
@@ -83,6 +83,21 @@ const gcodeContent = ref<string | null>(null);
 
 /** ---------- status helpers ---------- */
 const st = computed<Record<string, any>>(() => status.value?.data ?? {});
+
+// LinuxCNC config name from INI path (e.g. "/home/cnc/.../my-mill/my-mill.ini" → "my-mill")
+const configName = computed(() => {
+  const ini = st.value.ini_filename;
+  if (!ini) return null;
+  const parts = ini.replace(/\\/g, "/").split("/");
+  // Use parent folder name (the config directory)
+  return parts.length >= 2 ? parts[parts.length - 2] : parts[parts.length - 1];
+});
+
+const lcncLabel = computed(() => {
+  if (lcncError.value) return "LCNC error";
+  if (configName.value) return configName.value;
+  return "LCNC: -";
+});
 
 const isEstop = computed(() => !!st.value.estop);
 const isEnabled = computed(() => !!st.value.enabled);
@@ -346,6 +361,10 @@ watch(viewerGcode, (newGcode) => {
       <div class="hdrRight">
         <div class="pill" :class="connected ? 'ok' : 'bad'">
           {{ connected ? "WS connected" : "WS disconnected" }}
+        </div>
+
+        <div class="pill" :class="lcncError ? 'bad' : (configName ? 'ok' : '')">
+          {{ lcncLabel }}
         </div>
 
         <div class="pill" :class="armed ? 'armed' : 'disarmed'">

@@ -3,6 +3,7 @@ import { ref } from "vue";
 export const connected = ref(false);
 export const status = ref<any>(null);
 export const lastReply = ref<any>(null);
+export const lcncError = ref<string | null>(null);
 
 export const viewerInit = ref<any>(null);
 export const viewerState = ref<any>(null);
@@ -25,6 +26,9 @@ export function connectWs() {
 
     if (msg.type === "status") {
       status.value = msg;
+      lcncError.value = null;
+    } else if (msg.type === "status_error") {
+      lcncError.value = msg.error;
     } else if (msg.type === "reply") {
       lastReply.value = msg;
     } else if (msg.type === "viewer_init") {

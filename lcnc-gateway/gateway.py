@@ -16,10 +16,65 @@ from fastapi.middleware.cors import CORSMiddleware
 # ---- Config ----
 POLL_HZ = 10  # status update rate
 
-# ---- LinuxCNC handles ----
-STAT = linuxcnc.stat()
-CMD = linuxcnc.command()
-ERR = linuxcnc.error_channel()
+# ---- LinuxCNC handles (nullable for auto-reconnect) ----
+STAT: Optional[linuxcnc.stat] = None
+CMD: Optional[linuxcnc.command] = None
+ERR: Optional[linuxcnc.error_channel] = None
+lcnc_connected = False
+_lcnc_pid: Optional[int] = None  # tracks linuxcncsvr PID
+
+
+def _get_lcnc_pid() -> Optional[int]:
+    """Return PID of linuxcncsvr if running, else None."""
+    try:
+        result = subprocess.run(
+            ['pgrep', '-x', 'linuxcncsvr'],
+            capture_output=True, text=True, timeout=1,
+        )
+        if result.returncode == 0:
+            return int(result.stdout.strip().split('\n')[0])
+    except Exception:
+        pass
+    return None
+
+
+def try_connect_lcnc() -> bool:
+    """Attempt to connect to LinuxCNC. Returns True on success."""
+    global STAT, CMD, ERR, lcnc_connected, _lcnc_pid
+    try:
+        STAT = linuxcnc.stat()
+        CMD = linuxcnc.command()
+        ERR = linuxcnc.error_channel()
+        STAT.poll()  # verify it actually works
+        lcnc_connected = True
+        _lcnc_pid = _get_lcnc_pid()
+        return True
+    except Exception:
+        STAT = CMD = ERR = None
+        lcnc_connected = False
+        _lcnc_pid = None
+        return False
+
+
+def check_lcnc_instance() -> bool:
+    """Check if linuxcncsvr PID changed. Returns True if reconnect needed."""
+    global _lcnc_pid, lcnc_connected
+    pid = _get_lcnc_pid()
+    if pid == _lcnc_pid:
+        # Same PID (or both None) — but if None and we think we're connected, flag it
+        if pid is None and lcnc_connected:
+            lcnc_connected = False
+            return True
+        return False
+    # PID changed (appeared, disappeared, or different instance)
+    _lcnc_pid = pid
+    if pid is None:
+        lcnc_connected = False
+    return True
+
+
+# Best-effort connection at startup (gateway still runs if LinuxCNC isn't up yet)
+try_connect_lcnc()
 
 
 @dataclass
@@ -57,6 +112,7 @@ class StatusPayload:
     spindle_direction: Optional[int]
     active_file: Optional[str]
     motion_line: Optional[int]
+    ini_filename: Optional[str]
 
     # tool (stat-only)
     tool_number: Optional[int]
@@ -86,6 +142,8 @@ def hal_get(pin: str, default=None):
 
 
 def safe_get(attr: str, default=None):
+    if STAT is None:
+        return default
     try:
         return getattr(STAT, attr)
     except Exception:
@@ -251,6 +309,8 @@ def get_spindle_override() -> Optional[float]:
 
 
 def poll_status() -> StatusPayload:
+    if STAT is None:
+        raise RuntimeError("LinuxCNC not connected")
     STAT.poll()
 
     # ---- safety/state ----
@@ -442,6 +502,7 @@ def poll_status() -> StatusPayload:
         spindle_direction=spindle_direction,
         active_file=safe_get("file", None),
         motion_line=safe_get("motion_line", None),
+        ini_filename=safe_get("ini_filename", None),
         tool_number=tool_number,
         tool_diameter=tool_diameter,
         tool_length=tool_length,
@@ -450,6 +511,8 @@ def poll_status() -> StatusPayload:
 
 
 def read_errors_nonblocking() -> list:
+    if ERR is None:
+        return []
     out = []
     while True:
         e = ERR.poll()
@@ -494,6 +557,8 @@ def handle_command(msg: Dict[str, Any], armed: bool):
     cmd = msg.get("cmd")
     if not cmd:
         return {"ok": False, "error": "Missing cmd"}
+    if not lcnc_connected:
+        return {"ok": False, "error": "LinuxCNC not connected"}
 
     try:
         if cmd == "arm":
@@ -859,13 +924,17 @@ async def ws_endpoint(ws: WebSocket):
     host = ws.headers.get("host", "127.0.0.1:8000")  # includes port
     stl_base_url = f"http://{host}/assets/"
 
-    await ws_send_json(ws, {"type": "viewer_init", "data": build_viewer_init(stl_base_url)})
+    try:
+        await ws_send_json(ws, {"type": "viewer_init", "data": build_viewer_init(stl_base_url)})
+    except Exception:
+        pass  # will send viewer_init on reconnect
 
     # Send initial G-code if a file is already loaded
-    STAT.poll()
-    initial_file = safe_get("file", None)
-    if initial_file:
-        try:
+    try:
+        if STAT is not None:
+            STAT.poll()
+        initial_file = safe_get("file", None)
+        if initial_file:
             preview = parse_gcode_preview(initial_file)
             # Read the raw G-code content
             gcode_content = None
@@ -888,8 +957,8 @@ async def ws_endpoint(ws: WebSocket):
                     },
                 },
             )
-        except Exception as e:
-            print(f"Error loading initial G-code: {e}")
+    except Exception as e:
+        print(f"Error loading initial G-code: {e}")
 
     last_file: Optional[str] = None
 
@@ -898,6 +967,22 @@ async def ws_endpoint(ws: WebSocket):
         nonlocal last_file
         while True:
             try:
+                # Process-level detection: check if linuxcncsvr PID changed
+                if check_lcnc_instance():
+                    if _lcnc_pid is not None:
+                        # New instance detected — reconnect
+                        try_connect_lcnc()
+                        try:
+                            await ws_send_json(ws, {"type": "viewer_init", "data": build_viewer_init(stl_base_url)})
+                        except Exception:
+                            pass
+                        last_file = None  # force re-send of gcode
+                    else:
+                        # Process gone — null handles and raise
+                        global STAT, CMD, ERR
+                        STAT = CMD = ERR = None
+                        raise RuntimeError("LinuxCNC process exited")
+
                 st = poll_status()
                 errs = read_errors_nonblocking()
                 await ws_send_json(
@@ -974,8 +1059,17 @@ async def ws_endpoint(ws: WebSocket):
 
                 await asyncio.sleep(1.0 / POLL_HZ)
             except Exception as e:
+                global lcnc_connected
+                lcnc_connected = False
                 await ws_send_json(ws, {"type": "status_error", "error": f"{type(e).__name__}: {e}"})
-                await asyncio.sleep(0.5)
+                # Try to reconnect to LinuxCNC
+                if try_connect_lcnc():
+                    try:
+                        await ws_send_json(ws, {"type": "viewer_init", "data": build_viewer_init(stl_base_url)})
+                    except Exception:
+                        pass
+                    last_file = None  # force re-send of gcode on reconnect
+                await asyncio.sleep(2.0)
 
     status_task = asyncio.create_task(status_loop())
 
