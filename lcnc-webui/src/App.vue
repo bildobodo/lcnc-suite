@@ -58,28 +58,47 @@ const tabs = [
   { id: "settings", label: "Settings" },
 ];
 
-const leftTab = ref("viewer");
-const rightTab = ref("dro");
+/** ---------- dynamic panels (1–4) ---------- */
+const MAX_PANELS = 3;
+let _nextPanelId = 0;
+
+const panels = ref([
+  { id: _nextPanelId++, tab: "viewer" },
+  { id: _nextPanelId++, tab: "dro" },
+]);
+
+const viewerRefs = new Map<number, any>();
+
+function setViewerRef(panelId: number, el: any) {
+  if (el) viewerRefs.set(panelId, el);
+  else viewerRefs.delete(panelId);
+}
+
+function addPanel() {
+  if (panels.value.length >= MAX_PANELS) return;
+  panels.value.push({ id: _nextPanelId++, tab: "dro" });
+}
+
+function removePanel(panelId: number) {
+  if (panels.value.length <= 1 || panels.value[0].id === panelId) return;
+  panels.value = panels.value.filter(p => p.id !== panelId);
+  viewerRefs.delete(panelId);
+}
+
+function panelMinWidth(tab: string): string {
+  if (tab === "viewer" || tab === "dro") return "480px";
+  return "360px";
+}
+
 
 const tabBadges = computed((): Record<string, number> =>
   unreadCount.value > 0 ? { messages: unreadCount.value } : {}
 );
 
-watch([leftTab, rightTab], ([l, r]) => {
-  if (l === "messages" || r === "messages") markMessagesRead();
-});
-
-/** ---------- dual viewer refs ---------- */
-const viewerL = ref<InstanceType<typeof ThreeViewer> | null>(null);
-const viewerR = ref<InstanceType<typeof ThreeViewer> | null>(null);
-
-function onResetBackplotL() { viewerL.value?.resetBackplot?.(); }
-function onSetViewL(preset: any) { viewerL.value?.setView?.(preset); }
-function onToggleLayerL(layer: string, on: boolean) { viewerL.value?.setLayerVisible?.(layer, on); }
-
-function onResetBackplotR() { viewerR.value?.resetBackplot?.(); }
-function onSetViewR(preset: any) { viewerR.value?.setView?.(preset); }
-function onToggleLayerR(layer: string, on: boolean) { viewerR.value?.setLayerVisible?.(layer, on); }
+watch(
+  () => panels.value.map(p => p.tab),
+  (tabs) => { if (tabs.includes("messages")) markMessagesRead(); }
+);
 
 /** ---------- local UI state ---------- */
 const armed = ref(false);
@@ -369,8 +388,9 @@ onMounted(() => {
   nextTick(() => {
     for (const layer of ALL_LAYERS) {
       const on = defaults.layers[layer];
-      viewerL.value?.setLayerVisible?.(layer, on);
-      viewerR.value?.setLayerVisible?.(layer, on);
+      for (const viewer of viewerRefs.values()) {
+        viewer?.setLayerVisible?.(layer, on);
+      }
     }
   });
 });
@@ -418,212 +438,130 @@ watch(isHomed, (nowHomed, wasHomed) => {
       </div>
     </header>
 
-    <!-- Dual tab panels -->
+    <!-- Dynamic tab panels (1–4) -->
     <div class="panels">
-      <TabPanel :tabs="tabs" v-model="leftTab" :badges="tabBadges" class="panel">
-        <template #viewer>
-          <Toolbar
-            @resetBackplot="onResetBackplotL"
-            @setView="onSetViewL"
-            @toggleLayer="onToggleLayerL"
-            :layerDefaults="defaults.layers"
-            :workpieceSize="workpieceSize"
-            :workpieceOffset="workpieceOffset"
-            @update:workpieceSize="workpieceSize = $event"
-            @update:workpieceOffset="workpieceOffset = $event"
-          >
-            <ThreeViewer
-              ref="viewerL"
+      <div v-for="(panel, idx) in panels" :key="panel.id" class="panel"
+           :style="{ minWidth: panelMinWidth(panel.tab) }">
+        <button
+          v-if="idx > 0"
+          class="panelClose"
+          @click="removePanel(panel.id)"
+        >&times;</button>
+
+        <TabPanel
+          :tabs="tabs"
+          :modelValue="panel.tab"
+          @update:modelValue="panel.tab = $event"
+          :badges="tabBadges"
+        >
+          <template #viewer>
+            <Toolbar
+              @resetBackplot="viewerRefs.get(panel.id)?.resetBackplot?.()"
+              @setView="(p: any) => viewerRefs.get(panel.id)?.setView?.(p)"
+              @toggleLayer="(l: string, on: boolean) => viewerRefs.get(panel.id)?.setLayerVisible?.(l, on)"
+              :layerDefaults="defaults.layers"
               :workpieceSize="workpieceSize"
               :workpieceOffset="workpieceOffset"
-              :colors="defaults.colors"
-              :opacities="defaults.opacities"
+              @update:workpieceSize="workpieceSize = $event"
+              @update:workpieceOffset="workpieceOffset = $event"
+            >
+              <ThreeViewer
+                :ref="(el: any) => setViewerRef(panel.id, el)"
+                :workpieceSize="workpieceSize"
+                :workpieceOffset="workpieceOffset"
+                :colors="defaults.colors"
+                :opacities="defaults.opacities"
+                :g5xLabel="g5xLabel"
+              />
+            </Toolbar>
+          </template>
+
+          <template #dro>
+            <DroPanel
+              :workPos="workPos"
+              :machinePos="machinePos"
+              :dtg="dtg"
               :g5xLabel="g5xLabel"
+              :armed="armed"
+              :busy="busy"
+              :homed="isHomed"
+              @zeroAxis="zeroAxis"
+              @zeroAll="zeroAll"
+              @setG5x="setG5x"
+              @homeAll="homeAll"
+              @unhomeAll="unhomeAll"
             />
-          </Toolbar>
-        </template>
+          </template>
 
-        <template #dro>
-          <DroPanel
-            :workPos="workPos"
-            :machinePos="machinePos"
-            :dtg="dtg"
-            :g5xLabel="g5xLabel"
-            :armed="armed"
-            :busy="busy"
-            :homed="isHomed"
-            @zeroAxis="zeroAxis"
-            @zeroAll="zeroAll"
-            @setG5x="setG5x"
-            @homeAll="homeAll"
-            @unhomeAll="unhomeAll"
-          />
-        </template>
+          <template #jog>
+            <JogPanel :jogVel="jogVel" :canJog="canJog" :isTeleop="isTeleop" :isHomed="isHomed" :armed="armed" @update:jogVel="jogVel = $event" @toggleTeleop="toggleTeleop" />
+          </template>
 
-        <template #jog>
-          <JogPanel :jogVel="jogVel" :canJog="canJog" :isTeleop="isTeleop" :isHomed="isHomed" :armed="armed" @update:jogVel="jogVel = $event" @toggleTeleop="toggleTeleop" />
-        </template>
-
-        <template #mdi>
-          <MdiPanel
-            :mdiText="mdiText"
-            :canMdi="canMdi"
-            :busy="busy"
-            @update:mdiText="mdiText = $event"
-            @send="sendMdi"
-          />
-        </template>
-
-        <template #overrides>
-          <OverridePanel
-            :feedOverride="feedOverrideValue"
-            :spindleOverride="spindleOverrideValue"
-            :rapidOverride="rapidOverrideValue"
-            :armed="armed"
-            :busy="busy"
-            @setFeedOverride="setFeedOverride"
-            @setSpindleOverride="setSpindleOverride"
-            @setRapidOverride="setRapidOverride"
-          />
-        </template>
-
-        <template #spindle>
-          <SpindlePanel
-            :spindleSpeed="spindleSpeed"
-            :spindleActual="spindleActual"
-            :spindleDirection="spindleDirection"
-            :spindleOverride="spindleOverrideValue"
-            :armed="armed"
-            :busy="busy"
-            @spindleForward="spindleForward"
-            @spindleReverse="spindleReverse"
-            @spindleStop="spindleStop"
-            @setSpindleOverride="setSpindleOverride"
-          />
-        </template>
-
-        <template #gcode>
-          <GcodePanel
-            :activeFile="activeFile"
-            :gcodeContent="gcodeContent"
-            :currentLine="currentLine"
-          />
-        </template>
-
-        <template #messages>
-          <MessagesPanel
-            :messages="messages"
-            @dismiss="dismissMessage"
-            @clearAll="clearAllMessages"
-          />
-        </template>
-
-        <template #settings>
-          <SettingsPanel />
-        </template>
-      </TabPanel>
-
-      <TabPanel :tabs="tabs" v-model="rightTab" :badges="tabBadges" class="panel">
-        <template #viewer>
-          <Toolbar
-            @resetBackplot="onResetBackplotR"
-            @setView="onSetViewR"
-            @toggleLayer="onToggleLayerR"
-            :layerDefaults="defaults.layers"
-            :workpieceSize="workpieceSize"
-            :workpieceOffset="workpieceOffset"
-            @update:workpieceSize="workpieceSize = $event"
-            @update:workpieceOffset="workpieceOffset = $event"
-          >
-            <ThreeViewer
-              ref="viewerR"
-              :workpieceSize="workpieceSize"
-              :workpieceOffset="workpieceOffset"
-              :colors="defaults.colors"
-              :opacities="defaults.opacities"
+          <template #mdi>
+            <MdiPanel
+              :mdiText="mdiText"
+              :canMdi="canMdi"
+              :busy="busy"
+              @update:mdiText="mdiText = $event"
+              @send="sendMdi"
             />
-          </Toolbar>
-        </template>
+          </template>
 
-        <template #dro>
-          <DroPanel
-            :workPos="workPos"
-            :machinePos="machinePos"
-            :dtg="dtg"
-            :g5xLabel="g5xLabel"
-            :armed="armed"
-            :busy="busy"
-            :homed="isHomed"
-            @zeroAxis="zeroAxis"
-            @zeroAll="zeroAll"
-            @setG5x="setG5x"
-            @homeAll="homeAll"
-            @unhomeAll="unhomeAll"
-          />
-        </template>
+          <template #overrides>
+            <OverridePanel
+              :feedOverride="feedOverrideValue"
+              :spindleOverride="spindleOverrideValue"
+              :rapidOverride="rapidOverrideValue"
+              :armed="armed"
+              :busy="busy"
+              @setFeedOverride="setFeedOverride"
+              @setSpindleOverride="setSpindleOverride"
+              @setRapidOverride="setRapidOverride"
+            />
+          </template>
 
-        <template #jog>
-          <JogPanel :jogVel="jogVel" :canJog="canJog" :isTeleop="isTeleop" :isHomed="isHomed" :armed="armed" @update:jogVel="jogVel = $event" @toggleTeleop="toggleTeleop" />
-        </template>
+          <template #spindle>
+            <SpindlePanel
+              :spindleSpeed="spindleSpeed"
+              :spindleActual="spindleActual"
+              :spindleDirection="spindleDirection"
+              :spindleOverride="spindleOverrideValue"
+              :armed="armed"
+              :busy="busy"
+              @spindleForward="spindleForward"
+              @spindleReverse="spindleReverse"
+              @spindleStop="spindleStop"
+              @setSpindleOverride="setSpindleOverride"
+            />
+          </template>
 
-        <template #mdi>
-          <MdiPanel
-            :mdiText="mdiText"
-            :canMdi="canMdi"
-            :busy="busy"
-            @update:mdiText="mdiText = $event"
-            @send="sendMdi"
-          />
-        </template>
+          <template #gcode>
+            <GcodePanel
+              :activeFile="activeFile"
+              :gcodeContent="gcodeContent"
+              :currentLine="currentLine"
+            />
+          </template>
 
-        <template #overrides>
-          <OverridePanel
-            :feedOverride="feedOverrideValue"
-            :spindleOverride="spindleOverrideValue"
-            :rapidOverride="rapidOverrideValue"
-            :armed="armed"
-            :busy="busy"
-            @setFeedOverride="setFeedOverride"
-            @setSpindleOverride="setSpindleOverride"
-            @setRapidOverride="setRapidOverride"
-          />
-        </template>
+          <template #messages>
+            <MessagesPanel
+              :messages="messages"
+              @dismiss="dismissMessage"
+              @clearAll="clearAllMessages"
+            />
+          </template>
 
-        <template #spindle>
-          <SpindlePanel
-            :spindleSpeed="spindleSpeed"
-            :spindleActual="spindleActual"
-            :spindleDirection="spindleDirection"
-            :spindleOverride="spindleOverrideValue"
-            :armed="armed"
-            :busy="busy"
-            @spindleForward="spindleForward"
-            @spindleReverse="spindleReverse"
-            @spindleStop="spindleStop"
-            @setSpindleOverride="setSpindleOverride"
-          />
-        </template>
+          <template #settings>
+            <SettingsPanel />
+          </template>
+        </TabPanel>
+      </div>
 
-        <template #gcode>
-          <GcodePanel
-            :activeFile="activeFile"
-            :gcodeContent="gcodeContent"
-            :currentLine="currentLine"
-          />
-        </template>
-
-        <template #messages>
-          <MessagesPanel
-            :messages="messages"
-            @dismiss="dismissMessage"
-            @clearAll="clearAllMessages"
-          />
-        </template>
-
-        <template #settings>
-          <SettingsPanel />
-        </template>
-      </TabPanel>
+      <button
+        v-if="panels.length < MAX_PANELS"
+        class="addPanel"
+        @click="addPanel"
+      >+</button>
     </div>
 
     <!-- Pinned cards below -->
@@ -837,16 +775,59 @@ watch(isHomed, (nowHomed, wasHomed) => {
   display: flex;
   gap: 12px;
   margin-bottom: 12px;
+  align-items: stretch;
 }
 
 .panel {
   flex: 1;
   min-width: 0;
+  position: relative;
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 12px;
   background: var(--panel);
   color: var(--fg);
+}
+
+.panelClose {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 10;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--button-bg);
+  color: var(--fg);
+  font-size: 16px;
+  cursor: pointer;
+  opacity: 0.5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.15s;
+}
+
+.panelClose:hover {
+  opacity: 1;
+}
+
+.addPanel {
+  flex: 0 0 36px;
+  border-radius: 14px;
+  border: 1px dashed var(--border);
+  background: transparent;
+  color: var(--fg);
+  font-size: 22px;
+  cursor: pointer;
+  opacity: 0.4;
+  transition: opacity 0.15s, background 0.15s;
+}
+
+.addPanel:hover {
+  opacity: 0.8;
+  background: color-mix(in oklab, var(--panel) 50%, transparent);
 }
 
 .card {

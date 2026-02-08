@@ -880,6 +880,11 @@ onMounted(() => {
 
   resize();
   animate();
+
+  // Initialize from existing data (for dynamically added viewers where
+  // viewerInit/viewerGcode were already set before this component mounted)
+  if (viewerInit.value) buildFromInit(viewerInit.value as ViewerInit);
+  if (viewerGcode.value) applyGcode(viewerGcode.value as ViewerGcode);
 });
 
 onUnmounted(() => {
