@@ -2,6 +2,7 @@
 defineProps<{
   tabs: Array<{ id: string; label: string }>;
   modelValue: string;
+  badges?: Record<string, number>;
 }>();
 
 const emit = defineEmits<{
@@ -20,6 +21,7 @@ const emit = defineEmits<{
         @click="emit('update:modelValue', tab.id)"
       >
         {{ tab.label }}
+        <span v-if="badges?.[tab.id]" class="badge">{{ badges[tab.id]! > 99 ? '99+' : badges[tab.id] }}</span>
       </button>
     </div>
 
@@ -68,6 +70,22 @@ const emit = defineEmits<{
 
 .tab-btn:hover:not(.active) {
   opacity: 0.85;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  margin-left: 6px;
+  border-radius: 9px;
+  font-size: 10px;
+  font-weight: 700;
+  background: #b00020;
+  color: #fff;
+  line-height: 1;
 }
 
 .tab-content {

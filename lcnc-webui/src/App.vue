@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
-import { connectWs, connected, status, send, lastReply, viewerGcode, lcncError } from "./lcncWs";
+import { connectWs, connected, status, send, lastReply, viewerGcode, lcncError, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead } from "./lcncWs";
 import ThreeViewer from "./ThreeViewer.vue";
 import Toolbar from "./Toolbar.vue";
 import TabPanel from "./TabPanel.vue";
@@ -11,6 +11,7 @@ import GcodePanel from "./GcodePanel.vue";
 import OverridePanel from "./OverridePanel.vue";
 import SettingsPanel from "./SettingsPanel.vue";
 import SpindlePanel from "./SpindlePanel.vue";
+import MessagesPanel from "./MessagesPanel.vue";
 
 type Layer = "backplot" | "toolpath" | "machine" | "workpiece" | "bounds" | "workzero" | "hud";
 const ALL_LAYERS: Layer[] = ["backplot", "toolpath", "machine", "workpiece", "bounds", "workzero", "hud"];
@@ -53,11 +54,20 @@ const tabs = [
   { id: "overrides", label: "Overrides" },
   { id: "spindle", label: "Spindle" },
   { id: "gcode", label: "G-code" },
+  { id: "messages", label: "Messages" },
   { id: "settings", label: "Settings" },
 ];
 
 const leftTab = ref("viewer");
 const rightTab = ref("dro");
+
+const tabBadges = computed((): Record<string, number> =>
+  unreadCount.value > 0 ? { messages: unreadCount.value } : {}
+);
+
+watch([leftTab, rightTab], ([l, r]) => {
+  if (l === "messages" || r === "messages") markMessagesRead();
+});
 
 /** ---------- dual viewer refs ---------- */
 const viewerL = ref<InstanceType<typeof ThreeViewer> | null>(null);
@@ -341,6 +351,7 @@ function spindleStop() {
 
 /** ---------- safety: stop jog on focus loss ---------- */
 function stopAllJog() {
+  if (!canJog.value) return; // no jog possible unless armed + enabled + homed
   send({ cmd: "jog_stop", axis: 0 });
   send({ cmd: "jog_stop", axis: 1 });
   send({ cmd: "jog_stop", axis: 2 });
@@ -409,7 +420,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 
     <!-- Dual tab panels -->
     <div class="panels">
-      <TabPanel :tabs="tabs" v-model="leftTab" class="panel">
+      <TabPanel :tabs="tabs" v-model="leftTab" :badges="tabBadges" class="panel">
         <template #viewer>
           <Toolbar
             @resetBackplot="onResetBackplotL"
@@ -499,12 +510,20 @@ watch(isHomed, (nowHomed, wasHomed) => {
           />
         </template>
 
+        <template #messages>
+          <MessagesPanel
+            :messages="messages"
+            @dismiss="dismissMessage"
+            @clearAll="clearAllMessages"
+          />
+        </template>
+
         <template #settings>
           <SettingsPanel />
         </template>
       </TabPanel>
 
-      <TabPanel :tabs="tabs" v-model="rightTab" class="panel">
+      <TabPanel :tabs="tabs" v-model="rightTab" :badges="tabBadges" class="panel">
         <template #viewer>
           <Toolbar
             @resetBackplot="onResetBackplotR"
@@ -590,6 +609,14 @@ watch(isHomed, (nowHomed, wasHomed) => {
             :activeFile="activeFile"
             :gcodeContent="gcodeContent"
             :currentLine="currentLine"
+          />
+        </template>
+
+        <template #messages>
+          <MessagesPanel
+            :messages="messages"
+            @dismiss="dismissMessage"
+            @clearAll="clearAllMessages"
           />
         </template>
 

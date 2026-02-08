@@ -530,6 +530,9 @@ async def ws_send_json(ws: WebSocket, obj: Dict[str, Any]):
 
 
 def set_mode(mode: int):
+    STAT.poll()
+    if safe_get("task_mode", None) == mode:
+        return
     CMD.mode(mode)
     CMD.wait_complete()
 
@@ -995,6 +998,19 @@ async def ws_endpoint(ws: WebSocket):
     await ws.accept()
     armed = False  # connection-local arming
 
+    # Restore lcnc_connected if LinuxCNC is still running but the flag was
+    # cleared by a previous connection's WebSocket error
+    global lcnc_connected
+    if not lcnc_connected:
+        if STAT is not None:
+            try:
+                STAT.poll()
+                lcnc_connected = True
+            except Exception:
+                try_connect_lcnc()
+        else:
+            try_connect_lcnc()
+
     # Viewer: send static model/init once per connection
     host = ws.headers.get("host", "127.0.0.1:8000")  # includes port
     stl_base_url = f"http://{host}/assets/"
@@ -1111,13 +1127,16 @@ async def ws_endpoint(ws: WebSocket):
             except Exception as e:
                 global lcnc_connected
                 lcnc_connected = False
-                await ws_send_json(ws, {"type": "status_error", "error": f"{type(e).__name__}: {e}"})
+                try:
+                    await ws_send_json(ws, {"type": "status_error", "error": f"{type(e).__name__}: {e}"})
+                except Exception:
+                    break  # WebSocket is dead — exit loop cleanly
                 # Try to reconnect to LinuxCNC
                 if try_connect_lcnc():
                     try:
                         await ws_send_json(ws, {"type": "viewer_init", "data": build_viewer_init(stl_base_url)})
                     except Exception:
-                        pass
+                        break
                     last_file = None  # force re-send of gcode on reconnect
                 await asyncio.sleep(2.0)
 
