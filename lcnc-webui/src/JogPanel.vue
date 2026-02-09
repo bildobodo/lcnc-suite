@@ -7,6 +7,8 @@ const props = defineProps<{
   isTeleop: boolean;
   isHomed: boolean;
   armed: boolean;
+  linearUnit: string;
+  maxJogVel: number;
 }>();
 
 const emit = defineEmits<{
@@ -45,13 +47,13 @@ function onInput(ev: Event) {
         style="min-width: 220px"
         type="range"
         min="0.1"
-        max="50"
+        :max="maxJogVel"
         step="0.1"
         :value="jogVel"
         @input="onInput"
         :disabled="!canJog"
       />
-      <div class="pill">{{ jogVel.toFixed(1) }} u/s</div>
+      <div class="pill">{{ (jogVel * 60).toFixed(0) }} {{ linearUnit }}/min</div>
     </div>
 
     <div class="joggrid">

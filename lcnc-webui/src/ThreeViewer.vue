@@ -90,6 +90,7 @@ const props = defineProps<{
   colors?: ColorDefaults;
   opacities?: OpacityDefaults;
   g5xLabel?: string;
+  linearUnit?: string;
 }>();
 
 // HUD data (read from status for template)
@@ -990,14 +991,14 @@ defineExpose({
         <div class="hudLabel">Tool</div>
         <div class="hudValue">
           T{{ vst?.tool_number ?? '-' }}
-          Ø{{ formatCoord(vst?.tool_diameter) }}
-          L{{ formatCoord(vst?.tool_length) }}
+          Ø{{ formatCoord(vst?.tool_diameter) }} {{ props.linearUnit || 'mm' }}
+          L{{ formatCoord(vst?.tool_length) }} {{ props.linearUnit || 'mm' }}
         </div>
       </div>
 
       <div class="hudSection">
         <div class="hudLabel">Feed</div>
-        <div class="hudValue">{{ formatCoord(vst?.current_vel) }} u/s</div>
+        <div class="hudValue">{{ vst?.current_vel != null ? (vst.current_vel * 60).toFixed(1) : '---' }} {{ props.linearUnit || 'mm' }}/min</div>
       </div>
 
       <div class="hudSection">

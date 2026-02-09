@@ -41,8 +41,9 @@ def _get_lcnc_pid() -> Optional[int]:
 
 def try_connect_lcnc() -> bool:
     """Attempt to connect to LinuxCNC. Returns True on success."""
-    global STAT, CMD, ERR, lcnc_connected, _lcnc_pid, _nc_files_dir
-    _nc_files_dir = None  # re-resolve on reconnect
+    global STAT, CMD, ERR, lcnc_connected, _lcnc_pid, _nc_files_dir, _max_jog_velocity
+    _nc_files_dir = None        # re-resolve on reconnect
+    _max_jog_velocity = None    # re-read from INI on reconnect
     try:
         STAT = linuxcnc.stat()
         CMD = linuxcnc.command()
@@ -83,6 +84,27 @@ try_connect_lcnc()
 ALLOWED_EXTENSIONS = {".ngc", ".nc", ".gcode", ".tap", ".txt"}
 MAX_UPLOAD_SIZE = 50 * 1024 * 1024  # 50 MB
 _nc_files_dir: Optional[str] = None
+_max_jog_velocity: Optional[float] = None
+
+
+def get_max_jog_velocity() -> Optional[float]:
+    """Return [DISPLAY]MAX_LINEAR_VELOCITY from INI (units/sec), cached."""
+    global _max_jog_velocity
+    if _max_jog_velocity is not None:
+        return _max_jog_velocity
+    if STAT is not None:
+        try:
+            STAT.poll()
+            ini_path = getattr(STAT, "ini_filename", None)
+            if ini_path:
+                ini = linuxcnc.ini(ini_path)
+                val = ini.find("DISPLAY", "MAX_LINEAR_VELOCITY")
+                if val:
+                    _max_jog_velocity = float(val)
+                    return _max_jog_velocity
+        except Exception:
+            pass
+    return None
 
 
 def get_nc_files_dir() -> str:
@@ -165,6 +187,7 @@ class StatusPayload:
     spindle_override: Optional[float]
     rapid_override: Optional[float]
     max_velocity: Optional[float]
+    max_jog_velocity: Optional[float]
     current_vel: Optional[float]
     spindle_speed: Optional[float]       # commanded (S word)
     spindle_speed_actual: Optional[float] # after override
@@ -172,6 +195,10 @@ class StatusPayload:
     active_file: Optional[str]
     motion_line: Optional[int]
     ini_filename: Optional[str]
+
+    # active modal codes
+    gcodes: Optional[List[int]]
+    mcodes: Optional[List[int]]
 
     # tool (stat-only)
     tool_number: Optional[int]
@@ -556,6 +583,7 @@ def poll_status() -> StatusPayload:
         spindle_override=spindle_ovr,
         rapid_override=safe_get("rapidrate", None),
         max_velocity=safe_get("max_velocity", None),
+        max_jog_velocity=get_max_jog_velocity(),
         current_vel=current_vel,
         spindle_speed=spindle_speed,
         spindle_speed_actual=hal_get('spindle.0.speed-in', 0) * 60,
@@ -563,6 +591,8 @@ def poll_status() -> StatusPayload:
         active_file=safe_get("file", None),
         motion_line=safe_get("motion_line", None),
         ini_filename=safe_get("ini_filename", None),
+        gcodes=to_float_list(safe_get("gcodes", None)),
+        mcodes=to_float_list(safe_get("mcodes", None)),
         tool_number=tool_number,
         tool_diameter=tool_diameter,
         tool_length=tool_length,

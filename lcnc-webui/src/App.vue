@@ -269,6 +269,41 @@ const rapidOverrideValue = computed(() => {
 });
 
 
+// Active modal codes
+const activeGcodes = computed(() => {
+  const raw = st.value.gcodes;
+  if (!Array.isArray(raw)) return "-";
+  return raw
+    .filter((v: number) => v >= 0)
+    .sort((a: number, b: number) => a - b)
+    .map((v: number) => `G${(v / 10).toFixed(v % 10 ? 1 : 0)}`)
+    .join(" ") || "-";
+});
+
+const activeMcodes = computed(() => {
+  const raw = st.value.mcodes;
+  if (!Array.isArray(raw)) return "-";
+  return raw
+    .filter((v: number) => v >= 0)
+    .sort((a: number, b: number) => a - b)
+    .map((v: number) => `M${v}`)
+    .join(" ") || "-";
+});
+
+// Linear unit system (derived from active G20/G21)
+const linearUnit = computed(() => {
+  const raw = st.value.gcodes;
+  if (!Array.isArray(raw)) return "mm";
+  if (raw.includes(200)) return "in";   // G20 = inches
+  return "mm";                           // G21 (210) or default
+});
+
+// Max jog velocity from INI [DISPLAY]MAX_LINEAR_VELOCITY (u/s)
+const maxJogVel = computed(() => {
+  const v = st.value.max_jog_velocity ?? st.value.max_velocity;
+  return (v != null && Number.isFinite(v) && v > 0) ? v : 50;
+});
+
 // Spindle state
 const spindleSpeed = computed(() => st.value.spindle_speed ?? null);
 const spindleActual = computed(() => st.value.spindle_speed_actual ?? null);
@@ -481,6 +516,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
                 :colors="defaults.colors"
                 :opacities="defaults.opacities"
                 :g5xLabel="g5xLabel"
+                :linearUnit="linearUnit"
               />
             </Toolbar>
           </template>
@@ -491,6 +527,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
               :machinePos="machinePos"
               :dtg="dtg"
               :g5xLabel="g5xLabel"
+              :linearUnit="linearUnit"
               :armed="armed"
               :busy="busy"
               :homed="isHomed"
@@ -503,7 +540,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
           </template>
 
           <template #jog>
-            <JogPanel :jogVel="jogVel" :canJog="canJog" :isTeleop="isTeleop" :isHomed="isHomed" :armed="armed" @update:jogVel="jogVel = $event" @toggleTeleop="toggleTeleop" />
+            <JogPanel :jogVel="jogVel" :canJog="canJog" :isTeleop="isTeleop" :isHomed="isHomed" :armed="armed" :linearUnit="linearUnit" :maxJogVel="maxJogVel" @update:jogVel="jogVel = $event" @toggleTeleop="toggleTeleop" />
           </template>
 
           <template #mdi>
@@ -625,6 +662,14 @@ watch(isHomed, (nowHomed, wasHomed) => {
           <div class="statusRow">
             <div class="k">Work Coord</div>
             <div class="v">{{ g5xLabel }}</div>
+          </div>
+          <div class="statusRow">
+            <div class="k">G-codes</div>
+            <div class="v codes">{{ activeGcodes }}</div>
+          </div>
+          <div class="statusRow">
+            <div class="k">M-codes</div>
+            <div class="v codes">{{ activeMcodes }}</div>
           </div>
         </div>
 
@@ -919,6 +964,11 @@ watch(isHomed, (nowHomed, wasHomed) => {
 
 .v {
   font-weight: 650;
+}
+
+.v.codes {
+  text-align: right;
+  word-break: break-word;
 }
 
 .v.warn {
