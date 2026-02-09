@@ -12,6 +12,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: "loadFile", path: string): void;
+  (e: "unloadFile"): void;
 }>();
 
 const codeViewerRef = ref<HTMLDivElement | null>(null);
@@ -137,6 +138,14 @@ function selectFile(entry: FileEntry) {
   showBrowser.value = false;
 }
 
+function reloadFile() {
+  if (props.activeFile) emit("loadFile", props.activeFile);
+}
+
+function unloadFile() {
+  emit("unloadFile");
+}
+
 /** ---------- Upload ---------- */
 async function handleUpload(file: File) {
   uploadError.value = null;
@@ -191,12 +200,18 @@ function formatSize(bytes: number): string {
       </div>
       <div class="headerActions">
         <span class="stats" v-if="gcodeContent">{{ lineCount }} lines</span>
-        <button class="actionBtn" @click="toggleBrowser" :disabled="loading">
+        <button class="actionBtn" @click="reloadFile" :disabled="!activeFile || loading || !armed">
+          Reload
+        </button>
+        <button class="actionBtn" @click="unloadFile" :disabled="!activeFile || loading || !armed">
+          Unload
+        </button>
+        <button class="actionBtn" @click="toggleBrowser" :disabled="loading || !armed">
           {{ showBrowser ? 'Hide Files' : 'Browse' }}
         </button>
-        <label class="actionBtn uploadBtn">
+        <label class="actionBtn uploadBtn" :class="{ disabled: !armed }">
           Upload
-          <input type="file" accept=".ngc,.nc,.gcode,.tap,.txt" @change="onFileSelect" hidden />
+          <input type="file" accept=".ngc,.nc,.gcode,.tap,.txt" @change="onFileSelect" hidden :disabled="!armed" />
         </label>
       </div>
     </div>
@@ -226,29 +241,46 @@ function formatSize(bytes: number): string {
       </div>
     </div>
 
-    <!-- Code viewer -->
-    <div class="codeViewer" v-if="gcodeContent" ref="codeViewerRef">
-      <div class="codeLine"
-           v-for="(line, index) in lines"
-           :key="index"
-           :data-line="index + 1"
-           :class="{ active: currentLine === index + 1 }">
-        <span class="lineNumber">{{ index + 1 }}</span>
-        <span class="lineContent">
-          <span
-            v-for="(token, ti) in highlightGcode(line)"
-            :key="ti"
-            :class="'token-' + token.type"
-          >{{ token.text }}</span>
-        </span>
+    <!-- Code area wrapper (drop overlay target) -->
+    <div class="codeArea">
+      <!-- Drop overlay -->
+      <div v-if="dragOver" class="dropOverlay">
+        <svg class="dropIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        <div class="dropText">Drop G-code file to upload</div>
       </div>
-    </div>
 
-    <!-- Empty state with drop zone hint -->
-    <div class="emptyState" v-else :class="{ dragOver }">
-      <div class="emptyIcon" v-if="dragOver">&#x2B07;</div>
-      <div class="emptyText">{{ dragOver ? 'Drop G-code file here' : 'No G-code file loaded' }}</div>
-      <div class="emptyHint" v-if="!dragOver">Upload a file or browse existing programs</div>
+      <!-- Code viewer -->
+      <div class="codeViewer" v-if="gcodeContent" ref="codeViewerRef">
+        <div class="codeLine"
+             v-for="(line, index) in lines"
+             :key="index"
+             :data-line="index + 1"
+             :class="{ active: currentLine === index + 1 }">
+          <span class="lineNumber">{{ index + 1 }}</span>
+          <span class="lineContent">
+            <span
+              v-for="(token, ti) in highlightGcode(line)"
+              :key="ti"
+              :class="'token-' + token.type"
+            >{{ token.text }}</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- Empty state / drop zone -->
+      <div class="emptyState" v-else :class="{ dragOver }">
+        <svg class="uploadIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        <div class="emptyText">No G-code file loaded</div>
+        <div class="emptyHint">Drag &amp; drop a file here, or use Upload / Browse above</div>
+      </div>
     </div>
   </div>
 </template>
@@ -331,6 +363,12 @@ function formatSize(bytes: number): string {
 
 .uploadBtn {
   cursor: pointer;
+}
+
+.uploadBtn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 /* Error banner */
@@ -455,6 +493,44 @@ function formatSize(bytes: number): string {
   opacity: 0.5;
 }
 
+/* Code area wrapper */
+.codeArea {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.dropOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border: 2px dashed #569cd6;
+  border-radius: 8px;
+  background: color-mix(in oklab, #569cd6 10%, var(--panel) 90%);
+  pointer-events: none;
+}
+
+.dropIcon {
+  width: 48px;
+  height: 48px;
+  color: #569cd6;
+  opacity: 0.8;
+}
+
+.dropText {
+  font-size: 14px;
+  font-weight: 600;
+  color: #569cd6;
+  opacity: 0.9;
+}
+
 .codeViewer {
   flex: 1;
   min-height: 0;
@@ -502,15 +578,16 @@ function formatSize(bytes: number): string {
 
 .emptyState {
   flex: 1;
+  min-height: 200px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 12px;
   opacity: 0.6;
-  border: 2px dashed transparent;
+  border: 2px dashed var(--border);
   border-radius: 8px;
-  transition: border-color 0.2s, background 0.2s;
+  transition: border-color 0.2s, background 0.2s, opacity 0.2s;
 }
 
 .emptyState.dragOver {
@@ -519,9 +596,10 @@ function formatSize(bytes: number): string {
   opacity: 1;
 }
 
-.emptyIcon {
-  font-size: 48px;
-  opacity: 0.5;
+.uploadIcon {
+  width: 40px;
+  height: 40px;
+  opacity: 0.4;
 }
 
 .emptyText {

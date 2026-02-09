@@ -869,6 +869,17 @@ def handle_command(msg: Dict[str, Any], armed: bool):
             CMD.wait_complete()
             return {"ok": True, "path": real_path}
 
+        if cmd == "unload_file":
+            require_armed(armed)
+            blocked = reject_if_auto_running()
+            if blocked:
+                return blocked
+            CMD.abort()
+            CMD.wait_complete()
+            CMD.reset_interpreter()
+            CMD.wait_complete()
+            return {"ok": True}
+
         return {"ok": False, "error": f"Unknown cmd: {cmd}"}
 
     except PermissionError as pe:
@@ -1284,6 +1295,12 @@ async def ws_endpoint(ws: WebSocket):
                                 "data": {"file": last_file},
                             },
                         )
+                elif not st.active_file and last_file:
+                    last_file = None
+                    await ws_send_json(ws, {
+                        "type": "viewer_gcode",
+                        "data": {"file": None, "feed": [], "feed_lines": [], "rapid": [], "content": None},
+                    })
 
                 await asyncio.sleep(1.0 / POLL_HZ)
             except Exception as e:

@@ -372,9 +372,14 @@ function loadFile(path: string) {
   fire({ cmd: "load_file", path });
 }
 
+function unloadFile() {
+  fire({ cmd: "unload_file" });
+}
+
 /** ---------- safety: stop jog on focus loss ---------- */
 function stopAllJog() {
   if (!canJog.value) return; // no jog possible unless armed + enabled + homed
+  if (isRunning.value || isPaused.value) return; // no jog during program execution
   send({ cmd: "jog_stop", axis: 0 });
   send({ cmd: "jog_stop", axis: 1 });
   send({ cmd: "jog_stop", axis: 2 });
@@ -547,6 +552,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
               :armed="armed"
               :busy="busy"
               @loadFile="loadFile"
+              @unloadFile="unloadFile"
             />
           </template>
 
