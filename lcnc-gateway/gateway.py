@@ -110,7 +110,6 @@ def try_connect_lcnc() -> bool:
         STAT.poll()  # verify it actually works
         lcnc_connected = True
         _lcnc_pid = _get_lcnc_pid()
-        _start_hal_watchdog()
         return True
     except Exception:
         STAT = CMD = ERR = None
@@ -124,8 +123,14 @@ def check_lcnc_instance() -> bool:
     global _lcnc_pid, lcnc_connected
     pid = _get_lcnc_pid()
     if pid == _lcnc_pid:
-        # Same PID (or both None) — but if None and we think we're connected, flag it
         if pid is None and lcnc_connected:
+            # pgrep returned None — but verify NML is actually dead
+            try:
+                if STAT is not None:
+                    STAT.poll()
+                    return False  # NML still works, LinuxCNC is fine
+            except Exception:
+                pass
             lcnc_connected = False
             return True
         return False
@@ -139,6 +144,8 @@ def check_lcnc_instance() -> bool:
 
 # Best-effort connection at startup (gateway still runs if LinuxCNC isn't up yet)
 try_connect_lcnc()
+if lcnc_connected:
+    _start_hal_watchdog()
 
 
 # ---- NC files directory ----
@@ -1332,7 +1339,8 @@ async def ws_endpoint(ws: WebSocket):
                 if check_lcnc_instance():
                     if _lcnc_pid is not None:
                         # New instance detected — reconnect
-                        try_connect_lcnc()
+                        if try_connect_lcnc():
+                            _start_hal_watchdog()
                         try:
                             await ws_send_json(ws, {"type": "viewer_init", "data": build_viewer_init(stl_base_url)})
                         except Exception:
@@ -1412,11 +1420,12 @@ async def ws_endpoint(ws: WebSocket):
                         armed = False
                         _clients[client_id]["armed"] = False
                         try:
-                            set_mode(linuxcnc.MODE_MANUAL)
-                            jf = _jog_joint_flag()
-                            for ax in range(3):
-                                CMD.jog(linuxcnc.JOG_STOP, jf, ax)
-                            CMD.abort()
+                            if bool(safe_get("enabled", False)):
+                                set_mode(linuxcnc.MODE_MANUAL)
+                                jf = _jog_joint_flag()
+                                for ax in range(3):
+                                    CMD.jog(linuxcnc.JOG_STOP, jf, ax)
+                                CMD.abort()
                         except Exception:
                             pass
                         try:
@@ -1434,6 +1443,7 @@ async def ws_endpoint(ws: WebSocket):
                     break  # WebSocket is dead — exit loop cleanly
                 # Try to reconnect to LinuxCNC
                 if try_connect_lcnc():
+                    _start_hal_watchdog()
                     try:
                         await ws_send_json(ws, {"type": "viewer_init", "data": build_viewer_init(stl_base_url)})
                     except Exception:
@@ -1475,11 +1485,16 @@ async def ws_endpoint(ws: WebSocket):
         # Safety: stop all motion if this armed client disconnects
         if armed and CMD is not None:
             try:
-                set_mode(linuxcnc.MODE_MANUAL)
-                jf = _jog_joint_flag()
-                for ax in range(3):
-                    CMD.jog(linuxcnc.JOG_STOP, jf, ax)
-                CMD.abort()
+                STAT.poll()
+                if bool(safe_get("enabled", False)):
+                    set_mode(linuxcnc.MODE_MANUAL)
+                    jf = _jog_joint_flag()
+                    for ax in range(3):
+                        CMD.jog(linuxcnc.JOG_STOP, jf, ax)
+                    CMD.abort()
             except Exception:
                 pass
         status_task.cancel()
+        # Update HAL pins to reflect this client is gone
+        has_armed = any(c["armed"] for c in _clients.values())
+        _hal_send({"connected": has_armed, "heartbeat": False})

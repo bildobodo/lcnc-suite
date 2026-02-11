@@ -434,8 +434,73 @@ function unloadFile() {
   fire({ cmd: "unload_file" });
 }
 
+/** ---------- keyboard shortcuts ---------- */
+const JOG_KEY_MAP: Record<string, { axis: number; dir: 1 | -1 }> = {
+  ArrowLeft:  { axis: 0, dir: -1 },
+  ArrowRight: { axis: 0, dir:  1 },
+  ArrowUp:    { axis: 1, dir:  1 },
+  ArrowDown:  { axis: 1, dir: -1 },
+  PageUp:     { axis: 2, dir:  1 },
+  PageDown:   { axis: 2, dir: -1 },
+};
+const _jogKeys = new Set<string>();
+
+function isInputFocused(): boolean {
+  const tag = document.activeElement?.tagName;
+  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+}
+
+function onKeyDown(e: KeyboardEvent) {
+  // E-stop: ALWAYS works, even in inputs
+  if (e.key === "Escape") {
+    e.preventDefault();
+    if (canEstop.value) fire({ cmd: "estop" });
+    else if (canResetEstop.value) fire({ cmd: "estop_reset" });
+    return;
+  }
+
+  // Everything else skipped when typing in inputs
+  if (isInputFocused()) return;
+
+  // Jog keys (hold-to-jog)
+  const jog = JOG_KEY_MAP[e.key];
+  if (jog) {
+    e.preventDefault();
+    if (e.repeat || _jogKeys.has(e.key)) return;
+    if (!canJog.value) return;
+    _jogKeys.add(e.key);
+    send({ cmd: "jog_cont", axis: jog.axis, vel: jogVel.value * jog.dir });
+    return;
+  }
+
+  // Space: cycle start / pause / resume
+  if (e.key === " ") {
+    e.preventDefault();
+    if (canCycleResume.value) fire({ cmd: "cycle_resume" });
+    else if (canCyclePause.value) fire({ cmd: "cycle_pause" });
+    else if (canCycleStart.value) fire({ cmd: "cycle_start" });
+    return;
+  }
+
+  // Backtick: abort
+  if (e.key === "`") {
+    e.preventDefault();
+    if (canAbort.value) fire({ cmd: "abort" });
+    return;
+  }
+}
+
+function onKeyUp(e: KeyboardEvent) {
+  const jog = JOG_KEY_MAP[e.key];
+  if (jog && _jogKeys.has(e.key)) {
+    _jogKeys.delete(e.key);
+    send({ cmd: "jog_stop", axis: jog.axis });
+  }
+}
+
 /** ---------- safety: stop jog on focus loss ---------- */
 function stopAllJog() {
+  _jogKeys.clear();
   if (!canJog.value) return; // no jog possible unless armed + enabled + homed
   if (isRunning.value || isPaused.value) return; // no jog during program execution
   send({ cmd: "jog_stop", axis: 0 });
@@ -450,6 +515,8 @@ function visHandler() {
 onMounted(() => {
   window.addEventListener("resize", onResize);
   window.addEventListener("blur", stopAllJog);
+  window.addEventListener("keydown", onKeyDown);
+  window.addEventListener("keyup", onKeyUp);
   document.addEventListener("visibilitychange", visHandler);
 
   // Apply saved layer defaults after viewers are mounted
@@ -466,6 +533,8 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener("resize", onResize);
   window.removeEventListener("blur", stopAllJog);
+  window.removeEventListener("keydown", onKeyDown);
+  window.removeEventListener("keyup", onKeyUp);
   document.removeEventListener("visibilitychange", visHandler);
 });
 
