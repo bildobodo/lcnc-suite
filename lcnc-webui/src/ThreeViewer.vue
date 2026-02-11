@@ -126,6 +126,7 @@ let feedLineMap: Map<number, { start: number; end: number }> = new Map();
 
 // Pending layer visibility: stores calls made before scene objects exist
 let pendingLayers: Map<Layer, boolean> | null = new Map();
+let toolpathVisible = true;
 
 // ---- Backplot (live toolpath history) ----
 let backplotLine: THREE.Line | null = null;
@@ -207,6 +208,7 @@ function setLayerVisible(layer: Layer, on: boolean) {
       if (backplotLine) backplotLine.visible = on;
       break;
     case "toolpath":
+      toolpathVisible = on;
       if (feedLine) feedLine.visible = on;
       if (rapidLine) rapidLine.visible = on;
       if (highlightLine) highlightLine.visible = on;
@@ -544,6 +546,11 @@ resetBackplot();
   MAT.tool.color.set(props.colors?.tool ?? "#ffdd00");
 }
 
+function sceneBgFromTheme(): THREE.Color {
+  const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+  return new THREE.Color(bg);
+}
+
 async function buildFromInit(init: ViewerInit) {
   if (!scene) return;
 
@@ -552,8 +559,7 @@ async function buildFromInit(init: ViewerInit) {
 
   clearScene();
 
-  // Background (optional; remove if you prefer transparent)
-  scene.background = new THREE.Color(0x0f0f0f);
+  scene.background = sceneBgFromTheme();
 
   // lights (no grid)
   scene.add(new THREE.AmbientLight());
@@ -727,7 +733,7 @@ function applyState(init: ViewerInit, st: ViewerState) {
       if (highlightMarker && feedPtsCache[range.end]) {
         const p = feedPtsCache[range.end];
         highlightMarker.position.set(p[0], p[1], p[2]);
-        highlightMarker.visible = true;
+        highlightMarker.visible = toolpathVisible;
       }
     } else {
       highlightLine.geometry.setDrawRange(0, 0);
@@ -852,8 +858,14 @@ function animate() {
   renderer?.render(scene!, camera!);
 }
 
+const themeMql = window.matchMedia('(prefers-color-scheme: dark)');
+function onThemeChange() {
+  if (scene) scene.background = sceneBgFromTheme();
+}
+
 onMounted(() => {
   scene = new THREE.Scene();
+  scene.background = sceneBgFromTheme();
 
   camera = new THREE.PerspectiveCamera(45, 1, 1, 20000);
   camera.up.set(0, 0, 1); // Z-up
@@ -877,6 +889,7 @@ onMounted(() => {
   controls.enablePan = true;
   controls.screenSpacePanning = true;
 
+  themeMql.addEventListener('change', onThemeChange);
 
   resizeObs = new ResizeObserver(() => resize());
   resizeObs.observe(host.value!);
@@ -891,6 +904,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  themeMql.removeEventListener('change', onThemeChange);
   resizeObs?.disconnect();
   resizeObs = null;
   cancelAnimationFrame(raf);
