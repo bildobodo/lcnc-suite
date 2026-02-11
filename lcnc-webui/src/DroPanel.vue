@@ -91,8 +91,8 @@ function fmt(n: any) {
 
 .grid {
   display: grid;
-  grid-template-columns: 180px 30px 110px 110px;
-  column-gap: 16px;
+  grid-template-columns: minmax(100px, 1fr) auto minmax(70px, 110px) minmax(70px, 110px);
+  column-gap: 12px;
   row-gap: 12px;
   align-items: center;
 }

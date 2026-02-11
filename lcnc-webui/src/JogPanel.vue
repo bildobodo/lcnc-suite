@@ -44,7 +44,6 @@ function onInput(ev: Event) {
 
       <input
         class="inp"
-        style="min-width: 220px"
         type="range"
         min="0.1"
         :max="maxJogVel"
@@ -113,7 +112,8 @@ function onInput(ev: Event) {
 }
 
 .inp {
-  min-width: 220px;
+  flex: 1;
+  min-width: 0;
   padding: 10px 12px;
   border-radius: 12px;
   border: 1px solid #0002;
@@ -127,8 +127,8 @@ function onInput(ev: Event) {
 
 .joggrid {
   display: grid;
-  grid-template-columns: 80px 80px 80px;
-  grid-template-rows: 80px 80px 80px;
+  grid-template-columns: repeat(3, minmax(50px, 80px));
+  grid-template-rows: repeat(3, minmax(50px, 80px));
   gap: 6px;
   align-items: center;
   justify-content: start;

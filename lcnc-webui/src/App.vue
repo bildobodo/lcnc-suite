@@ -58,14 +58,31 @@ const tabs = [
   { id: "settings", label: "Settings" },
 ];
 
-/** ---------- dynamic panels (1–4) ---------- */
-const MAX_PANELS = 3;
+/** ---------- dynamic panels (1–3, responsive) ---------- */
+const windowWidth = ref(window.innerWidth);
+function onResize() { windowWidth.value = window.innerWidth; }
+
+const maxPanels = computed(() => {
+  if (windowWidth.value >= 1200) return 3;
+  if (windowWidth.value >= 768) return 2;
+  return 1;
+});
+
 let _nextPanelId = 0;
 
 const panels = ref([
   { id: _nextPanelId++, tab: "viewer" },
   { id: _nextPanelId++, tab: "dro" },
 ]);
+
+// Trim excess panels when screen shrinks
+watch(maxPanels, (max) => {
+  while (panels.value.length > max) {
+    const last = panels.value[panels.value.length - 1];
+    panels.value.pop();
+    viewerRefs.delete(last.id);
+  }
+});
 
 const viewerRefs = new Map<number, any>();
 
@@ -75,7 +92,7 @@ function setViewerRef(panelId: number, el: any) {
 }
 
 function addPanel() {
-  if (panels.value.length >= MAX_PANELS) return;
+  if (panels.value.length >= maxPanels.value) return;
   panels.value.push({ id: _nextPanelId++, tab: "dro" });
 }
 
@@ -86,8 +103,9 @@ function removePanel(panelId: number) {
 }
 
 function panelMinWidth(tab: string): string {
-  if (tab === "viewer" || tab === "dro") return "480px";
-  return "360px";
+  if (windowWidth.value < 768) return "0px";
+  if (tab === "viewer" || tab === "dro") return "420px";
+  return "320px";
 }
 
 
@@ -425,6 +443,7 @@ function visHandler() {
 }
 
 onMounted(() => {
+  window.addEventListener("resize", onResize);
   window.addEventListener("blur", stopAllJog);
   document.addEventListener("visibilitychange", visHandler);
 
@@ -440,6 +459,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  window.removeEventListener("resize", onResize);
   window.removeEventListener("blur", stopAllJog);
   document.removeEventListener("visibilitychange", visHandler);
 });
@@ -611,7 +631,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
       </div>
 
       <button
-        v-if="panels.length < MAX_PANELS"
+        v-if="panels.length < maxPanels"
         class="addPanel"
         @click="addPanel"
       >+</button>
@@ -1056,5 +1076,35 @@ watch(isHomed, (nowHomed, wasHomed) => {
   overflow: auto;
   font-size: 11px;
   max-height: 400px;
+}
+
+/* ---- Responsive: tablet portrait (< 768px) ---- */
+@media (max-width: 767px) {
+  .wrap {
+    padding: 8px;
+  }
+  .hdr {
+    flex-wrap: wrap;
+  }
+  .hdrRight {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .panels {
+    flex-direction: column;
+  }
+  .statusGroups, .controlGroups {
+    flex-direction: column;
+  }
+}
+
+/* ---- Responsive: tablet landscape / narrow desktop (768–1199px) ---- */
+@media (max-width: 1199px) and (min-width: 768px) {
+  .statusGroups, .controlGroups {
+    flex-wrap: wrap;
+  }
+  .statusGroup, .controlGroup {
+    min-width: calc(50% - 6px);
+  }
 }
 </style>

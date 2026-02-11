@@ -322,4 +322,27 @@ function updateOffset(axis: number, value: number) {
 .layersBar input[type="checkbox"] {
   cursor: pointer;
 }
+
+/* ---- Responsive: collapse sidebar to horizontal on narrow screens ---- */
+@media (max-width: 767px) {
+  .viewerContainer {
+    flex-direction: column;
+  }
+  .leftSidebar {
+    flex-direction: row;
+    flex-wrap: wrap;
+    min-width: unset;
+    gap: 8px;
+  }
+  .group {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+  }
+  .groupLabel {
+    margin-bottom: 0;
+    margin-right: 4px;
+  }
+}
 </style>
