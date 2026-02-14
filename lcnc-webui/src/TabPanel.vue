@@ -59,6 +59,8 @@ const totalBadge = computed(() => {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  flex: 1;
+  min-height: 0;
 }
 
 /* ---- Top bar row ---- */
@@ -168,7 +170,7 @@ const totalBadge = computed(() => {
 /* ---- Content ---- */
 .tab-content {
   flex: 1;
-  min-height: 660px;
+  min-height: 0;
 }
 
 .tab-pane {

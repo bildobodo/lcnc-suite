@@ -58,10 +58,7 @@ const tabs = [
   { id: "settings", label: "Settings" },
 ];
 
-/** ---------- dynamic panels (1–3, responsive) ---------- */
-const windowWidth = ref(window.innerWidth);
-function onResize() { windowWidth.value = window.innerWidth; }
-
+/** ---------- dynamic panels (1–3) ---------- */
 const maxPanels = 3;
 
 let _nextPanelId = 0;
@@ -104,7 +101,6 @@ function removePanel(panelId: number) {
 }
 
 function panelMinWidth(tab: string): string {
-  if (windowWidth.value < 768) return "0px";
   if (tab === "viewer" || tab === "dro") return "420px";
   return "320px";
 }
@@ -520,7 +516,6 @@ function visHandler() {
 }
 
 onMounted(() => {
-  window.addEventListener("resize", onResize);
   window.addEventListener("blur", stopAllJog);
   window.addEventListener("keydown", onKeyDown);
   window.addEventListener("keyup", onKeyUp);
@@ -538,7 +533,6 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  window.removeEventListener("resize", onResize);
   window.removeEventListener("blur", stopAllJog);
   window.removeEventListener("keydown", onKeyDown);
   window.removeEventListener("keyup", onKeyUp);
@@ -678,6 +672,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
     <!-- Dynamic tab panels (1–4) -->
     <div class="panels">
       <div v-for="(panel, idx) in panels" :key="panel.id" class="panel"
+           :class="'panel-' + panel.tab"
            :style="{ minWidth: panelMinWidth(panel.tab) }">
         <TabPanel
           :tabs="tabs"
@@ -912,10 +907,12 @@ watch(isHomed, (nowHomed, wasHomed) => {
   gap: 12px;
   margin-bottom: 12px;
   align-items: stretch;
+  flex: 1;
+  min-height: 0;
 }
 
 .panel {
-  flex: 1;
+  flex: 0 1 auto;
   min-width: 0;
   position: relative;
   border: 1px solid var(--border);
@@ -923,6 +920,20 @@ watch(isHomed, (nowHomed, wasHomed) => {
   padding: 12px;
   background: var(--panel);
   color: var(--fg);
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-viewer {
+  flex: 1;
+}
+
+.panel-gcode {
+  flex: 0.5;
+}
+
+.mainCol > .card {
+  flex-shrink: 0;
 }
 
 .addPanel {
@@ -947,25 +958,58 @@ watch(isHomed, (nowHomed, wasHomed) => {
 }
 
 .bodyLayout {
-  /* default wide: normal block flow (topRow above, mainCol below) */
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
 }
 
 .mainCol {
-  /* default wide: block element, no special layout */
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 86px);
 }
 
 .topRow {
   display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  width: 150px;
   gap: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 0;
+  position: sticky;
+  top: 8px;
+  z-index: 20;
 }
 
 .topRow > .card {
   margin-bottom: 0;
 }
 
-.topRow > .topStatus {
-  flex: 1;
+.topRow .btnrow {
+  flex-direction: column;
+  gap: 8px;
+}
+
+.topRow .safetyBtn {
+  width: 100%;
+  padding: 8px 10px;
+  min-width: 0;
+}
+
+.topRow .sep {
+  width: 100%;
+  height: 1px;
+  margin: 0;
+}
+
+.topRow .compactStatus {
+  flex-direction: column;
+}
+
+.topRow .statusChip {
+  min-width: 0;
 }
 
 .card {
@@ -1114,9 +1158,9 @@ watch(isHomed, (nowHomed, wasHomed) => {
 .chipPopover {
   display: none;
   position: absolute;
-  top: 100%;
-  left: 0;
-  margin-top: 6px;
+  top: 0;
+  left: 100%;
+  margin-left: 6px;
   padding: 10px;
   border-radius: 8px;
   border: 1px solid var(--border);
@@ -1220,55 +1264,10 @@ watch(isHomed, (nowHomed, wasHomed) => {
   max-height: 400px;
 }
 
-/* ---- Responsive: tablet portrait (< 768px) ---- */
-@media (max-width: 767px) {
-  .wrap {
-    padding: 8px;
-  }
-  .hdr {
-    flex-wrap: wrap;
-  }
-  .hdrRight {
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-  .bodyLayout {
-    display: flex;
-    gap: 12px;
-    align-items: flex-start;
-  }
-  .topRow {
-    flex-direction: column;
-    flex-shrink: 0;
-    width: 150px;
-    margin-bottom: 0;
-    position: sticky;
-    top: 8px;
-    z-index: 20;
-  }
-  .topRow .btnrow {
-    flex-direction: column;
-    gap: 8px;
-  }
-  .topRow .safetyBtn {
-    width: 100%;
-    padding: 8px 10px;
-    min-width: 0;
-  }
-  .topRow .sep {
-    width: 100%;
-    height: 1px;
-    margin: 0;
-  }
-  .topRow .compactStatus {
-    flex-direction: column;
-  }
-  .topRow .statusChip {
-    min-width: 0;
-  }
+/* ---- Responsive: portrait — stack panels vertically ---- */
+@media (orientation: portrait) {
   .mainCol {
-    flex: 1;
-    min-width: 0;
+    height: auto;
   }
   .panels {
     flex-direction: column;
@@ -1276,17 +1275,21 @@ watch(isHomed, (nowHomed, wasHomed) => {
   .panel {
     flex: none;
   }
+  .panel :deep(.tab-content) {
+    min-height: auto;
+  }
+  .panel-viewer :deep(.tab-content),
+  .panel-gcode :deep(.tab-content) {
+    min-height: 660px;
+  }
   .addPanel {
     flex: 0 0 auto;
     width: 100%;
     height: 36px;
   }
-  .statusGroups, .controlGroups {
-    flex-direction: column;
-  }
 }
 
-/* ---- Responsive: narrow portrait (< 500px) — icon-only sidebar ---- */
+/* ---- Responsive: narrow — icon-only sidebar ---- */
 @media (max-width: 500px) {
   .topRow {
     width: 52px;
