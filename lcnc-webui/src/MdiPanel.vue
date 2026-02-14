@@ -214,11 +214,4 @@ function loadFromHistory(cmd: string) {
 .historyItem:active {
   transform: scale(0.98);
 }
-
-@media (orientation: portrait) {
-  .historyList {
-    min-height: 200px;
-    max-height: 200px;
-  }
-}
 </style>

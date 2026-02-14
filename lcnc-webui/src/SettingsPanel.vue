@@ -133,6 +133,7 @@ const opacityFields: { key: keyof OpacityDefaults; label: string }[] = [
     <div class="hint">Changes here set startup defaults. They take effect on next page load.</div>
     <TabPanel :tabs="subTabs" v-model="activeTab" class="subTabs">
       <template #viewer>
+        <div class="scrollContent">
         <div class="section">
           <div class="sectionTitle">Workpiece Defaults</div>
           <div class="wpColumns">
@@ -204,6 +205,7 @@ const opacityFields: { key: keyof OpacityDefaults; label: string }[] = [
             </div>
           </div>
         </div>
+        </div>
       </template>
 
       <template #dro>
@@ -224,12 +226,23 @@ const opacityFields: { key: keyof OpacityDefaults; label: string }[] = [
 <style scoped>
 .settings {
   padding: 4px 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .hint {
   font-size: 11px;
   opacity: 0.45;
   margin-bottom: 12px;
+  flex-shrink: 0;
+}
+
+.scrollContent {
+  overflow-y: auto;
+  height: 100%;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
 }
 
 .subTabs :deep(.tab-btn) {

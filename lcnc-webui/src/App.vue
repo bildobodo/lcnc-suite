@@ -775,8 +775,17 @@ watch(isHomed, (nowHomed, wasHomed) => {
               :armed="armed"
               :busy="busy"
               :isIdle="isIdle"
+              :canCycleStart="canCycleStart"
+              :canCyclePause="canCyclePause"
+              :canCycleResume="canCycleResume"
+              :canAbort="canAbort"
+              :isPaused="isPaused"
               @loadFile="loadFile"
               @unloadFile="unloadFile"
+              @cycleStart="cycleStart"
+              @cyclePause="cyclePause"
+              @cycleResume="cycleResume"
+              @abort="fire({ cmd: 'abort' })"
             />
           </template>
 
@@ -800,37 +809,6 @@ watch(isHomed, (nowHomed, wasHomed) => {
         @click="addPanel"
       >+</button>
     </div>
-
-    <!-- Program Control — temporarily removed to maximize panel space
-    <section class="card">
-      <div class="sub">Program Control</div>
-
-      <div class="btnrow">
-        <button class="btn safetyBtn primary" @click="cycleStart" :disabled="!canCycleStart || busy">
-          <span class="safetyIcon">&#x25B6;</span>
-          <span class="safetyLabel">Start</span>
-        </button>
-
-        <div class="sep"></div>
-
-        <button
-          class="btn safetyBtn"
-          @click="isPaused ? cycleResume() : cyclePause()"
-          :disabled="!(canCyclePause || canCycleResume) || busy"
-        >
-          <span class="safetyIcon">{{ isPaused ? '&#x25B6;' : '&#x23F8;' }}</span>
-          <span class="safetyLabel">{{ isPaused ? 'Resume' : 'Pause' }}</span>
-        </button>
-
-        <div class="sep"></div>
-
-        <button class="btn safetyBtn danger" @click="fire({ cmd: 'abort' })" :disabled="!canAbort || busy">
-          <span class="safetyIcon">&#x23F9;</span>
-          <span class="safetyLabel">Abort</span>
-        </button>
-      </div>
-    </section>
-    -->
 
     <!-- Debug widget -->
     <section class="card">
@@ -914,7 +892,6 @@ watch(isHomed, (nowHomed, wasHomed) => {
 .panel {
   min-width: 0;
   min-height: 0;
-  overflow: hidden;
   position: relative;
   border: 1px solid var(--border);
   border-radius: 14px;
@@ -1258,16 +1235,19 @@ watch(isHomed, (nowHomed, wasHomed) => {
 @media (orientation: landscape) {
   .panels          { align-items: stretch; flex: 1; min-height: 0; }
   .panel           { flex: 0 0 auto; }   /* width = content */
-  .panel-viewer    { flex: 1; }          /* fills remaining width */
+  .panel-viewer    { flex: 1; overflow: hidden; } /* fills remaining width */
   .panel-gcode     { flex: 0.5; }        /* medium width priority */
 }
 
 /* ---- Portrait layout — panels stacked vertically ---- */
 @media (orientation: portrait) {
+  .mainCol         { overflow-y: auto; } /* scroll when panels exceed viewport */
   .panels          { flex-direction: column; flex: 1; min-height: 0; }
   .panel           { flex: 0 0 auto; }   /* height = content */
-  .panel-viewer    { flex: 1; }          /* fills remaining height */
-  .panel-gcode     { flex: 0.5; }        /* medium height priority */
+  .panel-viewer    { flex: 1; min-height: 500px; overflow: hidden; } /* fills remaining height, can't be crushed */
+  .panel-gcode     { flex: 0 0 350px; }  /* fixed height, includes program control row */
+  .panel-settings  { flex: 0 0 350px; }  /* fixed height, content scrolls */
+  .panel-mdi       { flex: 0 0 350px; }  /* fixed height, history scrolls */
   .addPanel        { flex: 0 0 auto; width: 100%; height: 36px; }
 }
 

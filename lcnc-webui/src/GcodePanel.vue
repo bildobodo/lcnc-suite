@@ -9,11 +9,20 @@ const props = defineProps<{
   armed: boolean;
   busy: boolean;
   isIdle: boolean;
+  canCycleStart: boolean;
+  canCyclePause: boolean;
+  canCycleResume: boolean;
+  canAbort: boolean;
+  isPaused: boolean;
 }>();
 
 const emit = defineEmits<{
   (e: "loadFile", path: string): void;
   (e: "unloadFile"): void;
+  (e: "cycleStart"): void;
+  (e: "cyclePause"): void;
+  (e: "cycleResume"): void;
+  (e: "abort"): void;
 }>();
 
 const codeViewerRef = ref<HTMLDivElement | null>(null);
@@ -29,6 +38,11 @@ const lines = computed(() => {
 });
 
 const lineCount = computed(() => lines.value.length);
+
+const progressPercent = computed(() => {
+  if (!lineCount.value || props.currentLine == null) return 0;
+  return Math.min(100, (props.currentLine / lineCount.value) * 100);
+});
 
 type Token = {
   type: 'gcode' | 'mcode' | 'coord' | 'param' | 'comment' | 'text';
@@ -245,6 +259,33 @@ function formatSize(bytes: number): string {
       </div>
     </div>
 
+    <!-- Program control -->
+    <div class="controlRow">
+      <button class="ctrlBtn primary" @click="emit('cycleStart')" :disabled="!canCycleStart">
+        <span class="ctrlIcon">&#x25B6;</span> Start
+      </button>
+      <button class="ctrlBtn"
+        @click="isPaused ? emit('cycleResume') : emit('cyclePause')"
+        :disabled="!(canCyclePause || canCycleResume)">
+        <span class="ctrlIcon">{{ isPaused ? '&#x25B6;' : '&#x23F8;' }}</span>
+        {{ isPaused ? 'Resume' : 'Pause' }}
+      </button>
+      <button class="ctrlBtn danger" @click="emit('abort')" :disabled="!canAbort">
+        <span class="ctrlIcon">&#x23F9;</span> Abort
+      </button>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="progressRow" v-if="gcodeContent">
+      <div class="progressTrack">
+        <div class="progressFill" :style="{ width: progressPercent + '%' }"></div>
+      </div>
+      <span class="progressLabel">
+        {{ currentLine ?? 0 }} / {{ lineCount }}
+        <span class="progressPct">({{ progressPercent.toFixed(0) }}%)</span>
+      </span>
+    </div>
+
     <!-- Error banner -->
     <div v-if="uploadError" class="errorBanner">
       <span>{{ uploadError }}</span>
@@ -334,6 +375,79 @@ function formatSize(bytes: number): string {
   background: color-mix(in oklab, var(--panel) 50%, transparent);
   border: 1px solid var(--border);
   border-radius: 8px;
+}
+
+.controlRow {
+  display: flex;
+  gap: 8px;
+}
+
+.ctrlBtn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--button-bg);
+  color: var(--fg);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ctrlBtn:hover:not(:disabled) { opacity: 0.8; }
+.ctrlBtn:active:not(:disabled) { transform: scale(0.96); }
+.ctrlBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.ctrlBtn.primary {
+  background: color-mix(in oklab, #1a9a1a 25%, var(--button-bg));
+  border-color: #1a9a1a80;
+}
+
+.ctrlBtn.danger {
+  background: color-mix(in oklab, #cc3333 25%, var(--button-bg));
+  border-color: #cc333380;
+}
+
+.ctrlIcon {
+  font-size: 14px;
+}
+
+.progressRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.progressTrack {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: color-mix(in oklab, var(--panel) 90%, var(--fg));
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: 3px;
+  background: #569cd6;
+  transition: width 0.3s ease;
+}
+
+.progressLabel {
+  font-size: 11px;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  opacity: 0.7;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.progressPct {
+  opacity: 0.6;
 }
 
 .fileInfo {

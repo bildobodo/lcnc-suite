@@ -61,7 +61,6 @@ const totalBadge = computed(() => {
   min-width: 0;
   flex: 1;
   min-height: 0;
-  overflow: hidden;
 }
 
 /* ---- Top bar row ---- */
@@ -109,7 +108,7 @@ const totalBadge = computed(() => {
   background: var(--panel);
   border: 1px solid var(--border);
   box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-  z-index: 30;
+  z-index: 9999;
   min-width: 140px;
   flex-direction: column;
   gap: 2px;
