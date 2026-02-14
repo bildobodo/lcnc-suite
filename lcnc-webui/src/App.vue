@@ -62,27 +62,28 @@ const tabs = [
 const windowWidth = ref(window.innerWidth);
 function onResize() { windowWidth.value = window.innerWidth; }
 
-const maxPanels = computed(() => {
-  if (windowWidth.value >= 1200) return 3;
-  if (windowWidth.value >= 768) return 2;
-  return 1;
-});
+const maxPanels = 3;
 
 let _nextPanelId = 0;
 
-const panels = ref([
-  { id: _nextPanelId++, tab: "viewer" },
-  { id: _nextPanelId++, tab: "dro" },
-]);
+function loadPanels(): Array<{ id: number; tab: string }> {
+  try {
+    const raw = localStorage.getItem("lcnc-panels");
+    if (raw) {
+      const tabs = JSON.parse(raw) as string[];
+      if (Array.isArray(tabs) && tabs.length > 0) {
+        return tabs.slice(0, maxPanels).map(tab => ({ id: _nextPanelId++, tab }));
+      }
+    }
+  } catch { /* ignore */ }
+  return [
+    { id: _nextPanelId++, tab: "viewer" },
+    { id: _nextPanelId++, tab: "dro" },
+  ];
+}
 
-// Trim excess panels when screen shrinks
-watch(maxPanels, (max) => {
-  while (panels.value.length > max) {
-    const last = panels.value[panels.value.length - 1];
-    panels.value.pop();
-    viewerRefs.delete(last.id);
-  }
-});
+const panels = ref(loadPanels());
+
 
 const viewerRefs = new Map<number, any>();
 
@@ -92,7 +93,7 @@ function setViewerRef(panelId: number, el: any) {
 }
 
 function addPanel() {
-  if (panels.value.length >= maxPanels.value) return;
+  if (panels.value.length >= maxPanels) return;
   panels.value.push({ id: _nextPanelId++, tab: "dro" });
 }
 
@@ -115,7 +116,10 @@ const tabBadges = computed((): Record<string, number> =>
 
 watch(
   () => panels.value.map(p => p.tab),
-  (tabs) => { if (tabs.includes("messages")) markMessagesRead(); }
+  (tabs) => {
+    if (tabs.includes("messages")) markMessagesRead();
+    localStorage.setItem("lcnc-panels", JSON.stringify(tabs));
+  }
 );
 
 /** ---------- local UI state ---------- */
@@ -630,6 +634,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 
       <div class="compactStatus">
         <div class="statusChip" :class="isEstop ? 'bad' : (isEnabled && isHomed ? 'ok' : '')">
+          <span class="chipIcon">&#x2699;</span>
           <span class="chipLabel">Machine</span>
           <span class="chipValue">{{ isEstop ? 'E-STOP' : (!isEnabled ? 'OFF' : (!isHomed ? 'NOT HOMED' : 'READY')) }}</span>
           <div class="chipPopover">
@@ -641,6 +646,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
         </div>
 
         <div class="statusChip" :class="isRunning ? 'ok' : (isPaused ? 'warn' : '')">
+          <span class="chipIcon">&#x25B6;</span>
           <span class="chipLabel">Program</span>
           <span class="chipValue">{{ isRunning ? 'RUNNING' : (isPaused ? 'PAUSED' : 'IDLE') }}</span>
           <div class="chipPopover">
@@ -653,6 +659,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
         </div>
 
         <div class="statusChip" :class="{ warn: overridesActive }">
+          <span class="chipIcon">%</span>
           <span class="chipLabel">Overrides</span>
           <span class="chipValue">{{ overridesActive ? 'ACTIVE' : 'DEFAULT' }}</span>
           <div class="chipPopover">
@@ -919,7 +926,11 @@ watch(isHomed, (nowHomed, wasHomed) => {
 }
 
 .addPanel {
-  flex: 0 0 36px;
+  flex: 0 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
   border-radius: 14px;
   border: 1px dashed var(--border);
   background: transparent;
@@ -1096,6 +1107,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
   50% { background: color-mix(in oklab, #b8860b 10%, var(--panel)); }
 }
 
+.chipIcon { display: none; font-size: 16px; }
 .chipLabel { font-size: 10px; opacity: 0.6; text-transform: uppercase; letter-spacing: 0.5px; }
 .chipValue { font-size: 13px; font-weight: 650; }
 
@@ -1230,6 +1242,9 @@ watch(isHomed, (nowHomed, wasHomed) => {
     flex-shrink: 0;
     width: 150px;
     margin-bottom: 0;
+    position: sticky;
+    top: 8px;
+    z-index: 20;
   }
   .topRow .btnrow {
     flex-direction: column;
@@ -1258,8 +1273,50 @@ watch(isHomed, (nowHomed, wasHomed) => {
   .panels {
     flex-direction: column;
   }
+  .panel {
+    flex: none;
+  }
+  .addPanel {
+    flex: 0 0 auto;
+    width: 100%;
+    height: 36px;
+  }
   .statusGroups, .controlGroups {
     flex-direction: column;
+  }
+}
+
+/* ---- Responsive: narrow portrait (< 500px) — icon-only sidebar ---- */
+@media (max-width: 500px) {
+  .topRow {
+    width: 52px;
+  }
+  .topRow .card {
+    padding: 6px;
+  }
+  .topRow .sub {
+    display: none;
+  }
+  .topRow .safetyLabel {
+    display: none;
+  }
+  .topRow .safetyBtn {
+    padding: 8px 0;
+    justify-content: center;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .topRow .chipLabel,
+  .topRow .chipValue {
+    display: none;
+  }
+  .topRow .chipIcon {
+    display: block;
+    text-align: center;
+  }
+  .topRow .statusChip {
+    padding: 8px 0;
+    justify-content: center;
   }
 }
 
