@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
+import { usePermissions } from "./permissions";
 
 const props = defineProps<{
   feedOverride: number | null;
   spindleOverride: number | null;
   rapidOverride: number | null;
-  armed: boolean;
-  busy: boolean;
 }>();
+
+const can = usePermissions();
 
 const emit = defineEmits<{
   (e: "setFeedOverride", scale: number): void;
@@ -74,7 +75,7 @@ function resetAll() {
 <template>
   <div class="container">
     <div class="resetAllRow">
-      <button class="resetAllBtn" @click="resetAll" :disabled="!armed || busy">Reset All Overrides</button>
+      <button class="resetAllBtn" @click="resetAll" :disabled="!can.override">Reset All Overrides</button>
     </div>
 
     <div class="separator"></div>
@@ -93,13 +94,13 @@ function resetAll() {
           min="0"
           max="200"
           step="5"
-          :disabled="!armed || busy"
+          :disabled="!can.override"
         />
         <div class="presets">
-          <button class="presetBtn" @click="setPreset('feed', 50)" :disabled="!armed || busy">50%</button>
-          <button class="presetBtn" @click="setPreset('feed', 100)" :disabled="!armed || busy">100%</button>
-          <button class="presetBtn" @click="setPreset('feed', 150)" :disabled="!armed || busy">150%</button>
-          <button class="presetBtn" @click="setPreset('feed', 200)" :disabled="!armed || busy">200%</button>
+          <button class="presetBtn" @click="setPreset('feed', 50)" :disabled="!can.override">50%</button>
+          <button class="presetBtn" @click="setPreset('feed', 100)" :disabled="!can.override">100%</button>
+          <button class="presetBtn" @click="setPreset('feed', 150)" :disabled="!can.override">150%</button>
+          <button class="presetBtn" @click="setPreset('feed', 200)" :disabled="!can.override">200%</button>
         </div>
       </div>
     </div>
@@ -120,13 +121,13 @@ function resetAll() {
           min="50"
           max="200"
           step="5"
-          :disabled="!armed || busy"
+          :disabled="!can.override"
         />
         <div class="presets">
-          <button class="presetBtn" @click="setPreset('spindle', 50)" :disabled="!armed || busy">50%</button>
-          <button class="presetBtn" @click="setPreset('spindle', 100)" :disabled="!armed || busy">100%</button>
-          <button class="presetBtn" @click="setPreset('spindle', 150)" :disabled="!armed || busy">150%</button>
-          <button class="presetBtn" @click="setPreset('spindle', 200)" :disabled="!armed || busy">200%</button>
+          <button class="presetBtn" @click="setPreset('spindle', 50)" :disabled="!can.override">50%</button>
+          <button class="presetBtn" @click="setPreset('spindle', 100)" :disabled="!can.override">100%</button>
+          <button class="presetBtn" @click="setPreset('spindle', 150)" :disabled="!can.override">150%</button>
+          <button class="presetBtn" @click="setPreset('spindle', 200)" :disabled="!can.override">200%</button>
         </div>
       </div>
     </div>
@@ -147,13 +148,13 @@ function resetAll() {
           min="25"
           max="100"
           step="25"
-          :disabled="!armed || busy"
+          :disabled="!can.override"
         />
         <div class="presets">
-          <button class="presetBtn" @click="setPreset('rapid', 25)" :disabled="!armed || busy">25%</button>
-          <button class="presetBtn" @click="setPreset('rapid', 50)" :disabled="!armed || busy">50%</button>
-          <button class="presetBtn" @click="setPreset('rapid', 75)" :disabled="!armed || busy">75%</button>
-          <button class="presetBtn" @click="setPreset('rapid', 100)" :disabled="!armed || busy">100%</button>
+          <button class="presetBtn" @click="setPreset('rapid', 25)" :disabled="!can.override">25%</button>
+          <button class="presetBtn" @click="setPreset('rapid', 50)" :disabled="!can.override">50%</button>
+          <button class="presetBtn" @click="setPreset('rapid', 75)" :disabled="!can.override">75%</button>
+          <button class="presetBtn" @click="setPreset('rapid', 100)" :disabled="!can.override">100%</button>
         </div>
       </div>
     </div>

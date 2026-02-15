@@ -1,14 +1,16 @@
 <script setup lang="ts">
-defineProps<{
+import { usePermissions } from "./permissions";
+
+const props = defineProps<{
   workPos: number[];
   machinePos: number[];
   dtg: number[];
   g5xLabel: string;
   linearUnit: string;
-  armed: boolean;
-  busy: boolean;
   homed: boolean;
 }>();
+
+const can = usePermissions();
 
 const emit = defineEmits<{
   (e: "zeroAxis", axis: number): void;
@@ -34,7 +36,7 @@ function fmt(n: any) {
         :key="g"
         class="g5xBtn"
         :class="{ active: g === g5xLabel }"
-        :disabled="!armed || busy"
+        :disabled="!can.idle"
         @click="emit('setG5x', g)"
       >{{ g }}</button>
     </div>
@@ -44,14 +46,14 @@ function fmt(n: any) {
       <div class="grid">
         <div class="axis"><span>X</span><b>{{ fmt(workPos[0]) }}</b></div>
         <div class="dtg"><span>DTG</span>{{ fmt(dtg[0]) }}</div>
-        <button class="zeroBtn" @click="emit('zeroAxis', 0)" :disabled="!armed || busy || !homed">Zero X</button>
-        <button class="homeBtn spanBtn" style="grid-column: 4" @click="emit('zeroAll')" :disabled="!armed || busy || !homed">Zero All</button>
+        <button class="zeroBtn" @click="emit('zeroAxis', 0)" :disabled="!can.idle">Zero X</button>
+        <button class="homeBtn spanBtn" style="grid-column: 4" @click="emit('zeroAll')" :disabled="!can.idle">Zero All</button>
         <div class="axis"><span>Y</span><b>{{ fmt(workPos[1]) }}</b></div>
         <div class="dtg"><span>DTG</span>{{ fmt(dtg[1]) }}</div>
-        <button class="zeroBtn" @click="emit('zeroAxis', 1)" :disabled="!armed || busy || !homed">Zero Y</button>
+        <button class="zeroBtn" @click="emit('zeroAxis', 1)" :disabled="!can.idle">Zero Y</button>
         <div class="axis"><span>Z</span><b>{{ fmt(workPos[2]) }}</b></div>
         <div class="dtg"><span>DTG</span>{{ fmt(dtg[2]) }}</div>
-        <button class="zeroBtn" @click="emit('zeroAxis', 2)" :disabled="!armed || busy || !homed">Zero Z</button>
+        <button class="zeroBtn" @click="emit('zeroAxis', 2)" :disabled="!can.idle">Zero Z</button>
       </div>
     </div>
 
@@ -63,8 +65,8 @@ function fmt(n: any) {
         <div class="axis"><span>X</span><b>{{ fmt(machinePos[0]) }}</b></div>
         <div class="axis"><span>Y</span><b>{{ fmt(machinePos[1]) }}</b></div>
         <div class="axis"><span>Z</span><b>{{ fmt(machinePos[2]) }}</b></div>
-        <button class="homeBtn spanBtn" style="grid-column: 3" @click="emit('homeAll')" :disabled="!armed || busy || homed">Home All</button>
-        <button class="homeBtn spanBtn" style="grid-column: 4" @click="emit('unhomeAll')" :disabled="!armed || busy || !homed">Unhome</button>
+        <button class="homeBtn spanBtn" style="grid-column: 3" @click="emit('homeAll')" :disabled="!can.idle || homed">Home All</button>
+        <button class="homeBtn spanBtn" style="grid-column: 4" @click="emit('unhomeAll')" :disabled="!can.idle || !homed">Unhome</button>
       </div>
     </div>
   </div>

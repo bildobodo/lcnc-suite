@@ -1,20 +1,16 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import { listFiles, uploadFile, type FileEntry } from "./lcncApi";
+import { usePermissions } from "./permissions";
 
 const props = defineProps<{
   activeFile: string | null;
   gcodeContent: string | null;
   currentLine: number | null;
-  armed: boolean;
-  busy: boolean;
-  isIdle: boolean;
-  canCycleStart: boolean;
-  canCyclePause: boolean;
-  canCycleResume: boolean;
-  canAbort: boolean;
   isPaused: boolean;
 }>();
+
+const can = usePermissions();
 
 const emit = defineEmits<{
   (e: "loadFile", path: string): void;
@@ -243,34 +239,34 @@ function formatSize(bytes: number): string {
       </div>
       <div class="headerActions">
         <span class="stats" v-if="gcodeContent">{{ lineCount }} lines</span>
-        <button class="actionBtn" @click="reloadFile" :disabled="!activeFile || loading || !armed || !isIdle">
+        <button class="actionBtn" @click="reloadFile" :disabled="!activeFile || loading || !can.idle">
           Reload
         </button>
-        <button class="actionBtn" @click="unloadFile" :disabled="!activeFile || loading || !armed || !isIdle">
+        <button class="actionBtn" @click="unloadFile" :disabled="!activeFile || loading || !can.idle">
           Unload
         </button>
-        <button class="actionBtn" @click="toggleBrowser" :disabled="loading || !armed || !isIdle">
+        <button class="actionBtn" @click="toggleBrowser" :disabled="loading || !can.idle">
           {{ showBrowser ? 'Hide Files' : 'Browse' }}
         </button>
-        <label class="actionBtn uploadBtn" :class="{ disabled: !armed || !isIdle }">
+        <label class="actionBtn uploadBtn" :class="{ disabled: !can.idle }">
           Upload
-          <input type="file" accept=".ngc,.nc,.gcode,.tap,.txt" @change="onFileSelect" hidden :disabled="!armed || !isIdle" />
+          <input type="file" accept=".ngc,.nc,.gcode,.tap,.txt" @change="onFileSelect" hidden :disabled="!can.idle" />
         </label>
       </div>
     </div>
 
     <!-- Program control -->
     <div class="controlRow">
-      <button class="ctrlBtn primary" @click="emit('cycleStart')" :disabled="!canCycleStart">
+      <button class="ctrlBtn primary" @click="emit('cycleStart')" :disabled="!can.idle || !activeFile">
         <span class="ctrlIcon">&#x25B6;</span> Start
       </button>
       <button class="ctrlBtn"
         @click="isPaused ? emit('cycleResume') : emit('cyclePause')"
-        :disabled="!(canCyclePause || canCycleResume)">
+        :disabled="!(can.pause || can.resume)">
         <span class="ctrlIcon">{{ isPaused ? '&#x25B6;' : '&#x23F8;' }}</span>
         {{ isPaused ? 'Resume' : 'Pause' }}
       </button>
-      <button class="ctrlBtn danger" @click="emit('abort')" :disabled="!canAbort">
+      <button class="ctrlBtn danger" @click="emit('abort')" :disabled="!can.abort">
         <span class="ctrlIcon">&#x23F9;</span> Abort
       </button>
     </div>

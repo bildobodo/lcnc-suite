@@ -110,14 +110,17 @@ BY USING THIS SOFTWARE, YOU EXPRESSLY ACKNOWLEDGE AND ASSUME ALL RISKS ASSOCIATE
 - Modern Vue 3 + TypeScript single-page interface
 - Real-time DRO with G5x work coordinate selector and DTG display
 - XY + Z jogging with diagonal support and World/Joint mode toggle
+- Keyboard jog with visual key highlights and incremental jog mode
 - Spindle control panel (FWD/REV/STOP, RPM input, live actual speed)
 - Feed, spindle, and rapid override sliders with presets
 - MDI command interface with history
 - G-code file browser with drag-and-drop upload
-- G-code viewer with virtual scroll and line highlighting
-- 3D machine visualization with Three.js (colorized toolpath, backplot, HUD overlay)
+- G-code viewer with syntax highlighting, program controls, and progress bar
+- 3D machine visualization with Three.js (colorized toolpath, backplot, HUD overlays)
+- HUD overlay pills on 3D viewer: jog, gcode, spindle, override, and setup controls
+- Centralized permission system — 6 state-driven classes (`idle`, `jog`, `override`, `pause`, `resume`, `abort`) via Vue provide/inject
 - Persistent settings (colors, opacities, layers, workpiece defaults)
-- Responsive auto-layout (1–4 panels based on viewport width)
+- Responsive auto-layout (1–4 panels based on viewport) with portrait and landscape modes
 - Connected clients display with IP and armed status
 - Dynamic connection label (local vs. LAN hostname)
 - Error/message panel with unread count badge
@@ -532,22 +535,39 @@ Adjust `POLL_HZ` in `gateway.py` (default: 10 Hz).
 
 ```
 lcnc-suite/
-├── lcnc-gateway/          # Backend WebSocket gateway
-│   ├── gateway.py         # FastAPI application
-│   ├── hal_watchdog.py    # HAL safety component (loaded by LinuxCNC)
-│   ├── requirements.txt   # Python dependencies
-│   ├── setup-venv.sh      # Virtual environment setup
-│   └── machine/           # STL machine models (Git LFS)
-├── lcnc-webui/            # Reference Vue 3 UI
+├── lcnc-gateway/              # Backend WebSocket gateway
+│   ├── gateway.py             # FastAPI application
+│   ├── hal_watchdog.py        # HAL safety component (loaded by LinuxCNC)
+│   ├── requirements.txt       # Python dependencies
+│   ├── setup-venv.sh          # Virtual environment setup
+│   └── machine/               # STL machine models (Git LFS)
+├── lcnc-webui/                # Reference Vue 3 UI
 │   ├── src/
-│   │   ├── App.vue
-│   │   ├── lcncWs.ts      # WebSocket client
-│   │   ├── ThreeViewer.vue
-│   │   └── ...
+│   │   ├── App.vue            # Root component, state, layout, permission provider
+│   │   ├── permissions.ts     # Centralized button permission system
+│   │   ├── lcncWs.ts          # WebSocket client
+│   │   ├── lcncApi.ts         # REST API helpers (file ops)
+│   │   ├── Toolbar.vue        # Top toolbar with status + controls
+│   │   ├── TabPanel.vue       # Tab selector for side panels
+│   │   ├── ThreeViewer.vue    # 3D machine visualization
+│   │   ├── DroPanel.vue       # Digital readout
+│   │   ├── JogPanel.vue       # Axis jogging controls
+│   │   ├── JogButton.vue      # Reusable jog button
+│   │   ├── MdiPanel.vue       # Manual data input
+│   │   ├── GcodePanel.vue     # G-code viewer + program controls
+│   │   ├── SpindlePanel.vue   # Spindle control
+│   │   ├── OverridePanel.vue  # Feed/spindle/rapid overrides
+│   │   ├── SettingsPanel.vue  # Application settings
+│   │   ├── MessagesPanel.vue  # Error/message log
+│   │   ├── JogHUD.vue         # Jog overlay pill
+│   │   ├── GcodeHUD.vue       # G-code overlay pill
+│   │   ├── SpindleHUD.vue     # Spindle overlay pill
+│   │   ├── OverrideHUD.vue    # Override overlay pill
+│   │   └── SetupHUD.vue       # Setup overlay pill
 │   └── package.json
-├── restart.sh             # Start/restart gateway + web UI
-├── kill.sh                # Stop gateway + web UI
-├── runlogs/               # Application logs
+├── restart.sh                 # Start/restart gateway + web UI
+├── kill.sh                    # Stop gateway + web UI
+├── runlogs/                   # Application logs
 └── README.md
 ```
 

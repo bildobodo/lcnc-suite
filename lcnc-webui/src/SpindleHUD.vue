@@ -1,14 +1,12 @@
 <script setup lang="ts">
 import { ref, watch, computed } from "vue";
+import { usePermissions } from "./permissions";
 
 const props = defineProps<{
   spindleSpeed: number | null;
   spindleActual: number | null;
   spindleDirection: number | null;
   spindleOverride: number | null;
-  armed: boolean;
-  busy: boolean;
-  isIdle: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -18,11 +16,12 @@ const emit = defineEmits<{
   (e: "setSpindleOverride", scale: number): void;
 }>();
 
+const can = usePermissions();
+
 const rpmInput = ref(1000);
 
 const isForward = computed(() => props.spindleDirection === 1);
 const isReverse = computed(() => props.spindleDirection === -1);
-const canControl = computed(() => props.armed && !props.busy && props.isIdle);
 
 const overrideSlider = ref(100);
 
@@ -47,21 +46,21 @@ function formatRpm(val: number | null): string {
       <button
         class="dirBtn"
         :class="{ active: isReverse }"
-        :disabled="!canControl"
+        :disabled="!can.idle"
         @click="emit('spindleReverse', rpmInput)"
         title="Reverse (CCW)"
       >&#x21BA; REV</button>
       <button
         class="dirBtn stop"
         :class="{ active: isForward || isReverse }"
-        :disabled="!canControl"
+        :disabled="!can.idle"
         @click="emit('spindleStop')"
         title="Stop"
       >&#x25A0; STOP</button>
       <button
         class="dirBtn"
         :class="{ active: isForward }"
-        :disabled="!canControl"
+        :disabled="!can.idle"
         @click="emit('spindleForward', rpmInput)"
         title="Forward (CW)"
       >&#x21BB; FWD</button>
@@ -77,7 +76,7 @@ function formatRpm(val: number | null): string {
         min="0"
         max="99999"
         step="100"
-        :disabled="!canControl"
+        :disabled="!can.idle"
       />
     </div>
 
@@ -98,7 +97,7 @@ function formatRpm(val: number | null): string {
         min="50"
         max="200"
         step="5"
-        :disabled="!props.armed || props.busy"
+        :disabled="!can.override"
       />
       <span class="overrideLabel" :class="{ warn: overrideSlider !== 100 }">{{ overrideSlider }}%</span>
     </div>

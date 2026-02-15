@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import { ref, watch, computed } from "vue";
+import { usePermissions } from "./permissions";
 
 const props = defineProps<{
   spindleSpeed: number | null;
   spindleActual: number | null;
   spindleDirection: number | null;
   spindleOverride: number | null;
-  armed: boolean;
-  busy: boolean;
-  isIdle: boolean;
 }>();
+
+const can = usePermissions();
 
 const emit = defineEmits<{
   (e: "spindleForward", speed: number): void;
@@ -47,7 +47,6 @@ function formatRpm(val: number | null): string {
   return Math.round(val).toLocaleString();
 }
 
-const canControl = computed(() => props.armed && !props.busy && props.isIdle);
 </script>
 
 <template>
@@ -57,7 +56,7 @@ const canControl = computed(() => props.armed && !props.busy && props.isIdle);
       <button
         class="dirBtn rev"
         :class="{ active: isReverse }"
-        :disabled="!canControl"
+        :disabled="!can.idle"
         @click="emit('spindleReverse', rpmInput)"
         title="Spindle Reverse (CCW)"
       >
@@ -68,7 +67,7 @@ const canControl = computed(() => props.armed && !props.busy && props.isIdle);
       <button
         class="dirBtn stop"
         :class="{ active: isSpinning }"
-        :disabled="!canControl"
+        :disabled="!can.idle"
         @click="emit('spindleStop')"
         title="Spindle Stop"
       >
@@ -79,7 +78,7 @@ const canControl = computed(() => props.armed && !props.busy && props.isIdle);
       <button
         class="dirBtn fwd"
         :class="{ active: isForward }"
-        :disabled="!canControl"
+        :disabled="!can.idle"
         @click="emit('spindleForward', rpmInput)"
         title="Spindle Forward (CW)"
       >
@@ -100,7 +99,7 @@ const canControl = computed(() => props.armed && !props.busy && props.isIdle);
         min="0"
         max="99999"
         step="100"
-        :disabled="!canControl"
+        :disabled="!can.idle"
       />
     </div>
 
@@ -140,13 +139,13 @@ const canControl = computed(() => props.armed && !props.busy && props.isIdle);
         min="50"
         max="200"
         step="5"
-        :disabled="!armed || busy"
+        :disabled="!can.override"
       />
       <div class="presets">
-        <button class="presetBtn" @click="setPreset(50)" :disabled="!armed || busy">50%</button>
-        <button class="presetBtn" @click="setPreset(100)" :disabled="!armed || busy">100%</button>
-        <button class="presetBtn" @click="setPreset(150)" :disabled="!armed || busy">150%</button>
-        <button class="presetBtn" @click="setPreset(200)" :disabled="!armed || busy">200%</button>
+        <button class="presetBtn" @click="setPreset(50)" :disabled="!can.override">50%</button>
+        <button class="presetBtn" @click="setPreset(100)" :disabled="!can.override">100%</button>
+        <button class="presetBtn" @click="setPreset(150)" :disabled="!can.override">150%</button>
+        <button class="presetBtn" @click="setPreset(200)" :disabled="!can.override">200%</button>
       </div>
     </div>
   </div>

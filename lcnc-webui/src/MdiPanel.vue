@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
+import { usePermissions } from "./permissions";
 
 const props = defineProps<{
   mdiText: string;
-  canMdi: boolean;
-  busy: boolean;
 }>();
+
+const can = usePermissions();
 
 const emit = defineEmits<{
   (e: "update:mdiText", text: string): void;
@@ -49,10 +50,10 @@ function loadFromHistory(cmd: string) {
         :value="mdiText"
         @input="emit('update:mdiText', ($event.target as HTMLInputElement).value)"
         @keyup.enter="handleSend"
-        :disabled="!canMdi || busy"
+        :disabled="!can.idle"
         placeholder="Enter G-code command..."
       />
-      <button class="btn" @click="handleSend" :disabled="!canMdi || busy">
+      <button class="btn" @click="handleSend" :disabled="!can.idle">
         Send
       </button>
     </div>

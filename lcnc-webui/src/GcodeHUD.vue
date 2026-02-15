@@ -1,15 +1,14 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { usePermissions } from "./permissions";
 
 const props = defineProps<{
   gcodeContent: string | null;
   currentLine: number | null;
-  canCycleStart: boolean;
-  canCyclePause: boolean;
-  canCycleResume: boolean;
-  canAbort: boolean;
   isPaused: boolean;
 }>();
+
+const can = usePermissions();
 
 const emit = defineEmits<{
   (e: "cycleStart"): void;
@@ -91,13 +90,13 @@ function tokenizeCode(code: string, tokens: Token[]) {
   <div class="gcodeHud">
     <!-- Program controls -->
     <div class="ctrlRow">
-      <button class="ctrlBtn primary" :disabled="!canCycleStart" @click="emit('cycleStart')">&#9654;</button>
+      <button class="ctrlBtn primary" :disabled="!can.idle || !gcodeContent" @click="emit('cycleStart')">&#9654;</button>
       <button
         class="ctrlBtn"
-        :disabled="!canCyclePause && !canCycleResume"
+        :disabled="!can.pause && !can.resume"
         @click="isPaused ? emit('cycleResume') : emit('cyclePause')"
       >{{ isPaused ? '&#9654;' : '&#9646;&#9646;' }}</button>
-      <button class="ctrlBtn danger" :disabled="!canAbort" @click="emit('abort')">&#9632;</button>
+      <button class="ctrlBtn danger" :disabled="!can.abort" @click="emit('abort')">&#9632;</button>
     </div>
 
     <!-- Progress bar -->

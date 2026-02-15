@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { usePermissions } from "./permissions";
 
 const props = defineProps<{
-  armed: boolean;
-  busy: boolean;
   homed: boolean;
-  canMdi: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -15,9 +13,11 @@ const emit = defineEmits<{
   (e: "zeroAll"): void;
 }>();
 
-const homeDisabled = computed(() => !props.armed || props.busy || props.homed);
-const unhomeDisabled = computed(() => !props.armed || props.busy || !props.homed);
-const zeroDisabled = computed(() => !props.canMdi || props.busy);
+const can = usePermissions();
+
+const homeDisabled = computed(() => !can.value.idle || props.homed);
+const unhomeDisabled = computed(() => !can.value.idle || !props.homed);
+const zeroDisabled = computed(() => !can.value.idle);
 </script>
 
 <template>

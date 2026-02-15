@@ -1,12 +1,10 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { send } from "./lcncWs";
+import { usePermissions } from "./permissions";
 
 const props = defineProps<{
   jogVel: number;
-  canJog: boolean;
-  isHomed: boolean;
-  armed: boolean;
   linearUnit: string;
   maxJogVel: number;
   jogIncrement: number;
@@ -16,6 +14,8 @@ const emit = defineEmits<{
   (e: "update:jogVel", vel: number): void;
   (e: "update:jogIncrement", val: number): void;
 }>();
+
+const can = usePermissions();
 
 const incrementOptions = computed(() => {
   if (props.linearUnit === "in") {
@@ -36,7 +36,7 @@ const incrementOptions = computed(() => {
   ];
 });
 
-const disabled = computed(() => !props.canJog);
+const disabled = computed(() => !can.value.jog);
 
 // ---- Jog axis definitions ----
 type Axis = { id: string; axis: number; dir: 1 | -1; label: string };

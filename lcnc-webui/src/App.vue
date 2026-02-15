@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, provide, reactive, ref, watch } from "vue";
+import { evaluatePermissions, PERMISSIONS_KEY } from "./permissions";
 import { connectWs, connected, status, send, lastReply, viewerGcode, lcncError, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead } from "./lcncWs";
 import ThreeViewer from "./ThreeViewer.vue";
 import Toolbar from "./Toolbar.vue";
@@ -201,8 +202,19 @@ const canMachineOn = computed(
 );
 const canMachineOff = computed(() => armed.value && isEnabled.value);
 
-const canAbort = computed(() => armed.value);
-const canMdi = computed(() => armed.value && !isEstop.value && isEnabled.value && isIdle.value);
+/** Centralized permissions — single source of truth for all button enable/disable */
+const permissions = computed(() => evaluatePermissions({
+  armed: armed.value,
+  isEstop: isEstop.value,
+  isEnabled: isEnabled.value,
+  isHomed: isHomed.value,
+  isIdle: isIdle.value,
+  isRunning: isRunning.value,
+  isPaused: isPaused.value,
+  busy: busy.value,
+  hasFile: !!activeFile.value,
+}));
+provide(PERMISSIONS_KEY, permissions);
 
 const isHomed = computed(() => {
   const h = st.value.homed;
@@ -219,16 +231,6 @@ const interpState = computed(() => st.value.interp_state ?? 1);
 const isPaused = computed(() => interpState.value === 3); // INTERP_PAUSED
 const isRunning = computed(() => interpState.value === 2 || interpState.value === 4); // INTERP_READING or INTERP_WAITING
 const isIdle = computed(() => interpState.value === 1); // INTERP_IDLE
-
-const canCycleStart = computed(() =>
-  armed.value && !isEstop.value && isEnabled.value && activeFile.value && (isIdle.value || (!isRunning.value && !isPaused.value))
-);
-const canCyclePause = computed(() =>
-  armed.value && isEnabled.value && isRunning.value && !isPaused.value
-);
-const canCycleResume = computed(() =>
-  armed.value && isEnabled.value && isPaused.value
-);
 
 /** ---------- display helpers for machine states ---------- */
 // G5x work coordinate system (G54, G55, etc.)
@@ -348,9 +350,6 @@ function arm(v: boolean) {
 /** ---------- local UI jog ---------- */
 const jogVel = ref(10);
 const jogIncrement = ref(0); // 0 = continuous, >0 = increment distance in machine units
-
-const canJog = computed(() => armed.value && !isEstop.value && isEnabled.value && isHomed.value && isIdle.value);
-
 
 /**
  * Simple anti-spam gate so you don't double-send on fast clicks.
@@ -475,7 +474,7 @@ function onKeyDown(e: KeyboardEvent) {
   if (jog) {
     e.preventDefault();
     if (e.repeat || jogKeys.has(e.key)) return;
-    if (!canJog.value) return;
+    if (!permissions.value.jog) return;
     jogKeys.add(e.key);
     const v = jogVel.value * jog.dir;
     if (jogIncrement.value > 0) {
@@ -489,16 +488,16 @@ function onKeyDown(e: KeyboardEvent) {
   // Space: cycle start / pause / resume
   if (e.key === " ") {
     e.preventDefault();
-    if (canCycleResume.value) fire({ cmd: "cycle_resume" });
-    else if (canCyclePause.value) fire({ cmd: "cycle_pause" });
-    else if (canCycleStart.value) fire({ cmd: "cycle_start" });
+    if (permissions.value.resume) fire({ cmd: "cycle_resume" });
+    else if (permissions.value.pause) fire({ cmd: "cycle_pause" });
+    else if (permissions.value.idle && !!activeFile.value) fire({ cmd: "cycle_start" });
     return;
   }
 
   // Backtick: abort
   if (e.key === "`") {
     e.preventDefault();
-    if (canAbort.value) fire({ cmd: "abort" });
+    if (permissions.value.abort) fire({ cmd: "abort" });
     return;
   }
 }
@@ -516,7 +515,7 @@ function onKeyUp(e: KeyboardEvent) {
 /** ---------- safety: stop jog on focus loss ---------- */
 function stopAllJog() {
   jogKeys.clear();
-  if (!canJog.value) return; // no jog possible unless armed + enabled + homed
+  if (!permissions.value.jog) return; // no jog possible unless armed + enabled + homed
   if (isRunning.value || isPaused.value) return; // no jog during program execution
   send({ cmd: "jog_stop", axis: 0 });
   send({ cmd: "jog_stop", axis: 1 });
@@ -723,25 +722,17 @@ watch(isHomed, (nowHomed, wasHomed) => {
                 :g5xLabel="g5xLabel"
                 :linearUnit="linearUnit"
                 :jogVel="jogVel"
-                :canJog="canJog"
                 :isHomed="isHomed"
-                :armed="armed"
                 :maxJogVel="maxJogVel"
                 :jogIncrement="jogIncrement"
                 :gcodeContent="gcodeContent"
                 :currentLine="currentLine"
-                :canCycleStart="canCycleStart"
-                :canCyclePause="canCyclePause"
-                :canCycleResume="canCycleResume"
-                :canAbort="canAbort"
                 :isPaused="isPaused"
-                :busy="busy"
-                :canMdi="canMdi"
+                :activeFile="activeFile"
                 :spindleSpeed="spindleSpeed"
                 :spindleActual="spindleActual"
                 :spindleDirection="spindleDirection"
                 :spindleOverride="spindleOverrideValue"
-                :isIdle="isIdle"
                 :feedOverride="feedOverrideValue"
                 :rapidOverride="rapidOverrideValue"
                 @update:jogVel="jogVel = $event"
@@ -771,8 +762,6 @@ watch(isHomed, (nowHomed, wasHomed) => {
               :dtg="dtg"
               :g5xLabel="g5xLabel"
               :linearUnit="linearUnit"
-              :armed="armed"
-              :busy="busy"
               :homed="isHomed"
               @zeroAxis="zeroAxis"
               @zeroAll="zeroAll"
@@ -783,14 +772,12 @@ watch(isHomed, (nowHomed, wasHomed) => {
           </template>
 
           <template #jog>
-            <JogPanel :jogVel="jogVel" :canJog="canJog" :isTeleop="isTeleop" :isHomed="isHomed" :armed="armed" :linearUnit="linearUnit" :maxJogVel="maxJogVel" :activeJogKeys="jogKeys" :jogIncrement="jogIncrement" @update:jogVel="jogVel = $event" @update:jogIncrement="jogIncrement = $event" @toggleTeleop="toggleTeleop" />
+            <JogPanel :jogVel="jogVel" :isTeleop="isTeleop" :isHomed="isHomed" :linearUnit="linearUnit" :maxJogVel="maxJogVel" :activeJogKeys="jogKeys" :jogIncrement="jogIncrement" @update:jogVel="jogVel = $event" @update:jogIncrement="jogIncrement = $event" @toggleTeleop="toggleTeleop" />
           </template>
 
           <template #mdi>
             <MdiPanel
               :mdiText="mdiText"
-              :canMdi="canMdi"
-              :busy="busy"
               @update:mdiText="mdiText = $event"
               @send="sendMdi"
             />
@@ -801,8 +788,6 @@ watch(isHomed, (nowHomed, wasHomed) => {
               :feedOverride="feedOverrideValue"
               :spindleOverride="spindleOverrideValue"
               :rapidOverride="rapidOverrideValue"
-              :armed="armed"
-              :busy="busy"
               @setFeedOverride="setFeedOverride"
               @setSpindleOverride="setSpindleOverride"
               @setRapidOverride="setRapidOverride"
@@ -815,9 +800,6 @@ watch(isHomed, (nowHomed, wasHomed) => {
               :spindleActual="spindleActual"
               :spindleDirection="spindleDirection"
               :spindleOverride="spindleOverrideValue"
-              :armed="armed"
-              :busy="busy"
-              :isIdle="isIdle"
               @spindleForward="spindleForward"
               @spindleReverse="spindleReverse"
               @spindleStop="spindleStop"
@@ -830,13 +812,6 @@ watch(isHomed, (nowHomed, wasHomed) => {
               :activeFile="activeFile"
               :gcodeContent="gcodeContent"
               :currentLine="currentLine"
-              :armed="armed"
-              :busy="busy"
-              :isIdle="isIdle"
-              :canCycleStart="canCycleStart"
-              :canCyclePause="canCyclePause"
-              :canCycleResume="canCycleResume"
-              :canAbort="canAbort"
               :isPaused="isPaused"
               @loadFile="loadFile"
               @unloadFile="unloadFile"

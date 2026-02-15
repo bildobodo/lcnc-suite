@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
+import { usePermissions } from "./permissions";
 
 const props = defineProps<{
   feedOverride: number | null;
   spindleOverride: number | null;
   rapidOverride: number | null;
-  armed: boolean;
-  busy: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -15,11 +14,11 @@ const emit = defineEmits<{
   (e: "setRapidOverride", scale: number): void;
 }>();
 
+const can = usePermissions();
+
 const feedSlider = ref(100);
 const spindleSlider = ref(100);
 const rapidSlider = ref(100);
-
-const disabled = !props.armed || props.busy;
 
 watch(() => props.feedOverride, (val) => {
   if (val != null && Number.isFinite(val)) feedSlider.value = Math.round(val * 100);
@@ -56,7 +55,7 @@ function resetAll() {
         type="range" class="ovSlider"
         v-model.number="feedSlider" @change="onFeedChange"
         min="0" max="200" step="5"
-        :disabled="!armed || busy"
+        :disabled="!can.override"
       />
       <span class="ovValue" :class="{ warn: feedSlider !== 100 }">{{ feedSlider }}%</span>
     </div>
@@ -68,7 +67,7 @@ function resetAll() {
         type="range" class="ovSlider"
         v-model.number="spindleSlider" @change="onSpindleChange"
         min="50" max="200" step="5"
-        :disabled="!armed || busy"
+        :disabled="!can.override"
       />
       <span class="ovValue" :class="{ warn: spindleSlider !== 100 }">{{ spindleSlider }}%</span>
     </div>
@@ -80,13 +79,13 @@ function resetAll() {
         type="range" class="ovSlider"
         v-model.number="rapidSlider" @change="onRapidChange"
         min="25" max="100" step="25"
-        :disabled="!armed || busy"
+        :disabled="!can.override"
       />
       <span class="ovValue" :class="{ warn: rapidSlider !== 100 }">{{ rapidSlider }}%</span>
     </div>
 
     <!-- Reset -->
-    <button class="resetBtn" :disabled="!armed || busy" @click="resetAll">Reset All</button>
+    <button class="resetBtn" :disabled="!can.override" @click="resetAll">Reset All</button>
   </div>
 </template>
 

@@ -3,17 +3,19 @@ import { computed, reactive } from "vue";
 import { send } from "./lcncWs";
 import JogButton from "./JogButton.vue";
 
+import { usePermissions } from "./permissions";
+
 const props = defineProps<{
   jogVel: number;
-  canJog: boolean;
   isTeleop: boolean;
   isHomed: boolean;
-  armed: boolean;
   linearUnit: string;
   maxJogVel: number;
   activeJogKeys?: Set<string>;
   jogIncrement: number;
 }>();
+
+const can = usePermissions();
 
 const emit = defineEmits<{
   (e: "update:jogVel", vel: number): void;
@@ -115,7 +117,7 @@ function isSectorActive(id: string): boolean {
 }
 
 function startJog(s: Sector, e: PointerEvent) {
-  if (!props.canJog || !Number.isFinite(props.jogVel) || props.jogVel <= 0) return;
+  if (!can.value.jog || !Number.isFinite(props.jogVel) || props.jogVel <= 0) return;
 
   try { (e.currentTarget as Element)?.setPointerCapture?.(e.pointerId); } catch {}
 
@@ -183,7 +185,7 @@ function stopJog(s: Sector, e?: PointerEvent) {
       <button
         class="modePill"
         :class="isTeleop ? 'teleop' : 'joint'"
-        :disabled="!armed || !isHomed"
+        :disabled="!can.jog"
         @click="emit('toggleTeleop')"
         :title="isTeleop ? 'Switch to Joint mode' : (isHomed ? 'Switch to World mode' : 'Home all axes first')"
       >
@@ -203,7 +205,7 @@ function stopJog(s: Sector, e?: PointerEvent) {
         step="0.1"
         :value="jogVel"
         @input="onInput"
-        :disabled="!canJog"
+        :disabled="!can.jog"
       />
       <div class="pill">{{ (jogVel * 60).toFixed(0) }} {{ linearUnit }}/min</div>
     </div>
@@ -217,7 +219,7 @@ function stopJog(s: Sector, e?: PointerEvent) {
           class="incrBtn"
           :class="{ active: jogIncrement === opt.value }"
           @click="emit('update:jogIncrement', opt.value)"
-          :disabled="!canJog"
+          :disabled="!can.jog"
         >{{ opt.label }}</button>
       </div>
       <div class="pill" v-if="jogIncrement > 0">{{ jogIncrement }} {{ linearUnit }}/click</div>
@@ -255,8 +257,8 @@ function stopJog(s: Sector, e?: PointerEvent) {
 
       <!-- Z column -->
       <div class="zcol">
-        <JogButton :axis="2" :dir="1" label="Z+" :vel="jogVel" :disabled="!canJog" direction="up" :active="activeJogKeys?.has('PageUp')" :jogIncrement="jogIncrement" />
-        <JogButton :axis="2" :dir="-1" label="Z-" :vel="jogVel" :disabled="!canJog" direction="down" :active="activeJogKeys?.has('PageDown')" :jogIncrement="jogIncrement" />
+        <JogButton :axis="2" :dir="1" label="Z+" :vel="jogVel" :disabled="!can.jog" direction="up" :active="activeJogKeys?.has('PageUp')" :jogIncrement="jogIncrement" />
+        <JogButton :axis="2" :dir="-1" label="Z-" :vel="jogVel" :disabled="!can.jog" direction="down" :active="activeJogKeys?.has('PageDown')" :jogIncrement="jogIncrement" />
       </div>
     </div>
 

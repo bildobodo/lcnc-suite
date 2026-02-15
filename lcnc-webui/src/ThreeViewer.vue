@@ -156,25 +156,17 @@ const props = defineProps<{
   linearUnit?: string;
   active?: boolean;
   jogVel?: number;
-  canJog?: boolean;
   isHomed?: boolean;
-  armed?: boolean;
   maxJogVel?: number;
   jogIncrement?: number;
   gcodeContent?: string | null;
   currentLine?: number | null;
-  canCycleStart?: boolean;
-  canCyclePause?: boolean;
-  canCycleResume?: boolean;
-  canAbort?: boolean;
   isPaused?: boolean;
-  busy?: boolean;
-  canMdi?: boolean;
+  activeFile?: string | null;
   spindleSpeed?: number | null;
   spindleActual?: number | null;
   spindleDirection?: number | null;
   spindleOverride?: number | null;
-  isIdle?: boolean;
   feedOverride?: number | null;
   rapidOverride?: number | null;
 }>();
@@ -1165,9 +1157,6 @@ defineExpose({
       <div v-show="activeHudPanel === 'jog'">
         <JogHUD
           :jogVel="props.jogVel ?? 10"
-          :canJog="props.canJog ?? false"
-          :isHomed="props.isHomed ?? false"
-          :armed="props.armed ?? false"
           :linearUnit="props.linearUnit ?? 'mm'"
           :maxJogVel="props.maxJogVel ?? 100"
           :jogIncrement="props.jogIncrement ?? 0"
@@ -1180,10 +1169,6 @@ defineExpose({
         <GcodeHUD
           :gcodeContent="props.gcodeContent ?? null"
           :currentLine="props.currentLine ?? null"
-          :canCycleStart="props.canCycleStart ?? false"
-          :canCyclePause="props.canCyclePause ?? false"
-          :canCycleResume="props.canCycleResume ?? false"
-          :canAbort="props.canAbort ?? false"
           :isPaused="props.isPaused ?? false"
           @cycleStart="emit('cycleStart')"
           @cyclePause="emit('cyclePause')"
@@ -1194,10 +1179,7 @@ defineExpose({
 
       <div v-show="activeHudPanel === 'setup'">
         <SetupHUD
-          :armed="props.armed ?? false"
-          :busy="props.busy ?? false"
           :homed="props.isHomed ?? false"
-          :canMdi="props.canMdi ?? false"
           @homeAll="emit('homeAll')"
           @unhomeAll="emit('unhomeAll')"
           @zeroAxis="emit('zeroAxis', $event)"
@@ -1211,9 +1193,6 @@ defineExpose({
           :spindleActual="props.spindleActual ?? null"
           :spindleDirection="props.spindleDirection ?? null"
           :spindleOverride="props.spindleOverride ?? null"
-          :armed="props.armed ?? false"
-          :busy="props.busy ?? false"
-          :isIdle="props.isIdle ?? false"
           @spindleForward="emit('spindleForward', $event)"
           @spindleReverse="emit('spindleReverse', $event)"
           @spindleStop="emit('spindleStop')"
@@ -1226,8 +1205,6 @@ defineExpose({
           :feedOverride="props.feedOverride ?? null"
           :spindleOverride="props.spindleOverride ?? null"
           :rapidOverride="props.rapidOverride ?? null"
-          :armed="props.armed ?? false"
-          :busy="props.busy ?? false"
           @setFeedOverride="emit('setFeedOverride', $event)"
           @setSpindleOverride="emit('setSpindleOverride', $event)"
           @setRapidOverride="emit('setRapidOverride', $event)"
