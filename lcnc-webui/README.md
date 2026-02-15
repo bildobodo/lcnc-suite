@@ -45,21 +45,7 @@ App.vue                          Root — state, layout, permission provider
 
 All button enable/disable logic is defined once in `permissions.ts` and distributed via Vue's provide/inject. Components never compute their own disable conditions — they reference a permission class.
 
-### Classes
-
-| Class | Rule | Buttons / Actions |
-|-------|------|-------------------|
-| `idle` | base, idle, not busy | Home All, Unhome, Zero X/Y/Z, Zero All, G5x select, file Reload/Unload/Browse/Upload |
-| `jog` | base, idle, homed | Jog X+/X-/Y+/Y-/Z+/Z-, speed slider, increment select, teleop toggle, keyboard jog |
-| `override` | base, not busy | Feed/Spindle/Rapid override sliders + presets, Reset All |
-| `ready` | base, idle, not busy, homed | MDI input + Send, Cycle Start, Spindle FWD/REV/STOP, RPM input |
-| `pause` | base, running, not paused | Pause |
-| `resume` | base, paused | Resume |
-| `abort` | armed | Abort |
-
-`base` = armed, not estopped, enabled
-
-Safety buttons (E-Stop, Machine On/Off) use direct conditions in App.vue — they have unique toggle logic and appear in one place.
+See the [permission class table](../README.md#reference-ui-lcnc-webui) in the root README for the full rule and button matrix.
 
 ### Usage
 
