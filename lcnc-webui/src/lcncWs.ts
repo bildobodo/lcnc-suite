@@ -14,6 +14,8 @@ export const lcncError = ref<string | null>(null);
 export const messages = ref<LcncMessage[]>([]);
 export const unreadCount = ref(0);
 
+export const latency = ref<number | null>(null);
+
 export const viewerInit = ref<any>(null);
 export const viewerGcode = ref<any>(null);
 
@@ -22,8 +24,16 @@ let _nextMsgId = 1;
 
 let ws: WebSocket | null = null;
 let _heartbeatInterval: ReturnType<typeof setInterval> | null = null;
+let _heartbeatSentAt = 0;
 
 export function connectWs() {
+  // Close previous connection if any (prevents leaks during HMR)
+  if (ws) {
+    ws.onclose = null; // prevent auto-reconnect from the old socket
+    ws.close();
+  }
+  if (_heartbeatInterval) { clearInterval(_heartbeatInterval); _heartbeatInterval = null; }
+
   const host = (location.hostname === "localhost") ? "127.0.0.1" : location.hostname;
   const wsUrl = `ws://${host}:8000/ws`;
   ws = new WebSocket(wsUrl);
@@ -31,12 +41,17 @@ export function connectWs() {
   ws.onopen = () => {
     connected.value = true;
     _heartbeatInterval = setInterval(() => {
-      if (ws && ws.readyState === WebSocket.OPEN) ws.send('{"cmd":"heartbeat"}');
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        _heartbeatSentAt = performance.now();
+        ws.send('{"cmd":"heartbeat"}');
+      }
     }, 1000);
   };
 
   ws.onclose = () => {
     connected.value = false;
+    latency.value = null;
+    _heartbeatSentAt = 0;
     if (_heartbeatInterval) { clearInterval(_heartbeatInterval); _heartbeatInterval = null; }
     setTimeout(() => connectWs(), 2000);
   };
@@ -48,6 +63,12 @@ export function connectWs() {
     const msg = JSON.parse(ev.data);
 
     if (msg.type === "status") {
+      // Measure heartbeat round-trip latency
+      if (_heartbeatSentAt > 0) {
+        latency.value = Math.round(performance.now() - _heartbeatSentAt);
+        _heartbeatSentAt = 0;
+      }
+
       // Extract errors BEFORE rAF buffer to prevent message loss when
       // a newer status overwrites _pendingStatus before the frame fires.
       const errs: [number, string][] = msg.errors;
