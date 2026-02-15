@@ -300,9 +300,6 @@ function stopJog(s: Sector, e?: PointerEvent) {
 .inp {
   flex: 1;
   min-width: 0;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid #0002;
 }
 
 .hint {
@@ -426,15 +423,6 @@ function stopJog(s: Sector, e?: PointerEvent) {
   background: color-mix(in oklab, var(--panel) 80%, transparent);
 }
 
-.modePill:hover:not(:disabled) {
-  opacity: 0.8;
-}
-
-.modePill:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
 .modeHint {
   font-size: 11px;
   opacity: 0.5;
@@ -449,13 +437,8 @@ function stopJog(s: Sector, e?: PointerEvent) {
 .incrBtn {
   padding: 6px 10px;
   border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--button-bg);
-  color: var(--fg);
   font-size: 11px;
   font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
-  cursor: pointer;
-  transition: all 0.12s;
   user-select: none;
 }
 
@@ -465,8 +448,4 @@ function stopJog(s: Sector, e?: PointerEvent) {
   border-color: color-mix(in oklab, var(--fg) 30%, var(--border));
 }
 
-.incrBtn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
 </style>

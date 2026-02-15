@@ -64,11 +64,64 @@ button {
   background-color: var(--button-bg);
   color: var(--fg);
   cursor: pointer;
-  transition: border-color 0.25s;
+  transition: background 0.12s, border-color 0.12s, opacity 0.15s;
 }
 
-button:hover {
-  border-color: #646cff;
+button:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--fg) 12%, var(--button-bg));
+}
+
+button:active:not(:disabled) {
+  background: color-mix(in oklab, var(--fg) 18%, var(--button-bg));
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 3px;
+  background: color-mix(in oklab, var(--panel) 90%, var(--fg));
+  outline: none;
+  cursor: pointer;
+}
+
+input[type="range"]:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--fg);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--fg);
+  cursor: pointer;
+  border: none;
+  transition: transform 0.15s ease;
+}
+
+input[type="range"]::-moz-range-thumb:hover {
+  transform: scale(1.2);
 }
 
 .card {

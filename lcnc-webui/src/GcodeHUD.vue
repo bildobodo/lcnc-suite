@@ -151,20 +151,6 @@ function tokenizeCode(code: string, tokens: Token[]) {
   padding: 4px 0;
   font-size: 12px;
   border-radius: 4px;
-  border: 1px solid var(--border);
-  background: var(--button-bg);
-  color: var(--fg);
-  cursor: pointer;
-  transition: background 0.1s;
-}
-
-.ctrlBtn:hover:not(:disabled) {
-  background: color-mix(in oklab, var(--fg) 10%, var(--button-bg));
-}
-
-.ctrlBtn:disabled {
-  opacity: 0.35;
-  cursor: default;
 }
 
 .ctrlBtn.primary {

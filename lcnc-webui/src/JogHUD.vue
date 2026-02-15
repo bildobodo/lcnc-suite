@@ -2,6 +2,7 @@
 import { computed, reactive } from "vue";
 import { send } from "./lcncWs";
 import { usePermissions } from "./permissions";
+import JogButton from "./JogButton.vue";
 
 const props = defineProps<{
   jogVel: number;
@@ -147,35 +148,6 @@ function stopJog(s: Sector, e?: PointerEvent) {
   }
 }
 
-// ---- Z axis ----
-const zActive = reactive(new Set<string>());
-
-function startZ(dir: 1 | -1, e: PointerEvent) {
-  if (disabled.value || !Number.isFinite(props.jogVel) || props.jogVel <= 0) return;
-  try { (e.currentTarget as Element)?.setPointerCapture?.(e.pointerId); } catch {}
-  const id = dir > 0 ? "zp" : "zn";
-  if (zActive.has(id)) return;
-  zActive.add(id);
-
-  if (props.jogIncrement > 0) {
-    send({ cmd: "jog_incr", axis: 2, vel: props.jogVel * dir, distance: props.jogIncrement * dir });
-  } else {
-    send({ cmd: "jog_cont", axis: 2, vel: props.jogVel * dir });
-  }
-}
-
-function stopZ(dir: 1 | -1, e?: PointerEvent) {
-  const id = dir > 0 ? "zp" : "zn";
-  if (!zActive.has(id)) return;
-  zActive.delete(id);
-  if (props.jogIncrement <= 0) {
-    send({ cmd: "jog_stop", axis: 2 });
-  }
-  if (e) {
-    try { (e.currentTarget as Element)?.releasePointerCapture?.(e.pointerId); } catch {}
-  }
-}
-
 function onVelInput(ev: Event) {
   const val = parseFloat((ev.target as HTMLInputElement).value);
   if (Number.isFinite(val)) emit("update:jogVel", val);
@@ -213,7 +185,7 @@ function onVelInput(ev: Event) {
 
     <!-- Wheel + Z column -->
     <div class="padRow">
-      <svg class="jogwheel" viewBox="0 0 200 200">
+      <svg class="jogwheel" :class="{ disabled }" viewBox="0 0 200 200">
         <path
           v-for="s in sectors"
           :key="s.id"
@@ -241,24 +213,8 @@ function onVelInput(ev: Event) {
       </svg>
 
       <div class="zCol">
-        <button
-          class="zBtn"
-          :class="{ active: zActive.has('zp') }"
-          :disabled="disabled"
-          @pointerdown.prevent="startZ(1, $event)"
-          @pointerup.prevent="stopZ(1, $event)"
-          @pointercancel.prevent="stopZ(1, $event)"
-          @pointerleave.prevent="stopZ(1, $event)"
-        >Z+</button>
-        <button
-          class="zBtn"
-          :class="{ active: zActive.has('zn') }"
-          :disabled="disabled"
-          @pointerdown.prevent="startZ(-1, $event)"
-          @pointerup.prevent="stopZ(-1, $event)"
-          @pointercancel.prevent="stopZ(-1, $event)"
-          @pointerleave.prevent="stopZ(-1, $event)"
-        >Z-</button>
+        <JogButton :axis="2" :dir="1" label="Z+" :vel="jogVel" :disabled="disabled" direction="up" :jogIncrement="jogIncrement" />
+        <JogButton :axis="2" :dir="-1" label="Z-" :vel="jogVel" :disabled="disabled" direction="down" :jogIncrement="jogIncrement" />
       </div>
     </div>
   </div>
@@ -295,19 +251,10 @@ function onVelInput(ev: Event) {
   transition: background 0.1s;
 }
 
-.incBtn:hover:not(:disabled) {
-  background: color-mix(in oklab, var(--fg) 10%, var(--button-bg));
-}
-
 .incBtn.active {
   background: color-mix(in oklab, var(--fg) 15%, var(--button-bg));
   font-weight: 600;
   border-color: color-mix(in oklab, var(--fg) 30%, var(--border));
-}
-
-.incBtn:disabled {
-  opacity: 0.35;
-  cursor: default;
 }
 
 /* Velocity slider */
@@ -319,8 +266,6 @@ function onVelInput(ev: Event) {
 
 .velSlider {
   flex: 1;
-  height: 14px;
-  cursor: pointer;
 }
 
 .velLabel {
@@ -340,8 +285,8 @@ function onVelInput(ev: Event) {
 }
 
 .jogwheel {
-  width: 140px;
-  height: 140px;
+  width: 170px;
+  height: 170px;
   flex-shrink: 0;
   touch-action: none;
 }
@@ -364,8 +309,11 @@ function onVelInput(ev: Event) {
 }
 
 .sector.disabled {
-  opacity: 0.4;
   cursor: not-allowed;
+}
+
+.jogwheel.disabled {
+  opacity: 0.35;
 }
 
 .hub {
@@ -404,38 +352,12 @@ function onVelInput(ev: Event) {
 .zCol {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-}
-
-.zBtn {
-  width: 36px;
-  height: 52px;
-  padding: 0;
-  font-size: 10px;
-  font-weight: 600;
-  border-radius: 4px;
-  border: 1px solid var(--border);
-  background: var(--button-bg);
-  color: var(--fg);
-  cursor: pointer;
-  touch-action: none;
-  user-select: none;
-  display: flex;
+  gap: 6px;
   align-items: center;
-  justify-content: center;
-  transition: background 0.1s;
 }
 
-.zBtn:hover:not(:disabled) {
-  background: color-mix(in oklab, var(--fg) 10%, var(--button-bg));
-}
-
-.zBtn.active:not(:disabled) {
-  background: color-mix(in oklab, var(--fg) 20%, var(--button-bg));
-}
-
-.zBtn:disabled {
-  opacity: 0.35;
-  cursor: default;
+.zCol :deep(button) {
+  width: 42px;
+  height: 68px;
 }
 </style>

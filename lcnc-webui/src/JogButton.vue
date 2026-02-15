@@ -145,11 +145,6 @@ function stopJog(e?: PointerEvent) {
   fill: color-mix(in oklab, var(--fg) 20%, var(--button-bg));
 }
 
-.jbtn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
 .tri {
   position: absolute;
   inset: 0;

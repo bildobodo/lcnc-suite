@@ -140,25 +140,7 @@ function fmt(n: any) {
   padding: 6px 12px;
   font-size: 12px;
   border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--button-bg);
-  color: var(--fg);
-  cursor: pointer;
-  transition: all 0.15s ease;
   white-space: nowrap;
-}
-
-.zeroBtn:hover {
-  background: color-mix(in oklab, var(--button-bg) 85%, var(--fg));
-}
-
-.zeroBtn:active:not(:disabled) {
-  transform: scale(0.98);
-}
-
-.zeroBtn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
 }
 
 .homeBtn {
@@ -166,27 +148,9 @@ function fmt(n: any) {
   font-size: 13px;
   font-weight: 600;
   border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--button-bg);
-  color: var(--fg);
-  cursor: pointer;
-  transition: all 0.15s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.homeBtn:hover {
-  background: color-mix(in oklab, var(--button-bg) 85%, var(--fg));
-}
-
-.homeBtn:active:not(:disabled) {
-  transform: scale(0.98);
-}
-
-.homeBtn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
 }
 
 .g5xRow {
@@ -201,11 +165,6 @@ function fmt(n: any) {
   font-size: 11px;
   font-weight: 500;
   border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--button-bg);
-  color: var(--fg);
-  cursor: pointer;
-  transition: all 0.15s ease;
   opacity: 0.6;
 }
 
@@ -213,16 +172,6 @@ function fmt(n: any) {
   opacity: 1;
   font-weight: 700;
   border-color: var(--fg);
-}
-
-.g5xBtn:hover:not(:disabled) {
-  opacity: 1;
-  background: color-mix(in oklab, var(--button-bg) 85%, var(--fg));
-}
-
-.g5xBtn:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
 }
 
 .separator {

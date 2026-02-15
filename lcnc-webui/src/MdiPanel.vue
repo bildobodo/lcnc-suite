@@ -100,15 +100,6 @@ function loadFromHistory(cmd: string) {
 .btn {
   padding: 10px 12px;
   border-radius: 12px;
-  border: 1px solid var(--border);
-  background: var(--button-bg);
-  color: var(--fg);
-  cursor: pointer;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .inp {

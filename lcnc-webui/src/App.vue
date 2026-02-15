@@ -1179,10 +1179,6 @@ watch(isHomed, (nowHomed, wasHomed) => {
 .btn {
   padding: 10px 12px;
   border-radius: 12px;
-  border: 1px solid var(--border);
-  background: var(--button-bg);
-  color: var(--fg);
-  cursor: pointer;
 }
 
 .btn.danger {
@@ -1196,11 +1192,6 @@ watch(isHomed, (nowHomed, wasHomed) => {
   font-weight: 600;
 }
 
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
 .safetyBtn {
   display: flex;
   flex-direction: column;
@@ -1208,15 +1199,6 @@ watch(isHomed, (nowHomed, wasHomed) => {
   gap: 4px;
   padding: 12px 20px;
   min-width: 80px;
-  transition: all 0.15s ease;
-}
-
-.safetyBtn:hover:not(:disabled) {
-  opacity: 0.8;
-}
-
-.safetyBtn:active:not(:disabled) {
-  transform: scale(0.95);
 }
 
 .safetyIcon {

@@ -386,18 +386,9 @@ function formatSize(bytes: number): string {
   gap: 6px;
   padding: 8px 12px;
   border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--button-bg);
-  color: var(--fg);
   font-size: 12px;
   font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s ease;
 }
-
-.ctrlBtn:hover:not(:disabled) { opacity: 0.8; }
-.ctrlBtn:active:not(:disabled) { transform: scale(0.96); }
-.ctrlBtn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .ctrlBtn.primary {
   background: color-mix(in oklab, #1a9a1a 25%, var(--button-bg));
@@ -487,20 +478,7 @@ function formatSize(bytes: number): string {
   font-size: 11px;
   padding: 4px 10px;
   border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--button-bg);
-  color: var(--fg);
-  cursor: pointer;
   white-space: nowrap;
-}
-
-.actionBtn:hover {
-  border-color: #646cff;
-}
-
-.actionBtn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .uploadBtn {

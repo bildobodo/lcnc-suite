@@ -437,8 +437,6 @@ const opacityFields: { key: keyof OpacityDefaults; label: string }[] = [
 
 .opacitySlider {
   flex: 1;
-  cursor: pointer;
-  accent-color: var(--fg);
 }
 
 .opacityValue {
@@ -458,15 +456,6 @@ const opacityFields: { key: keyof OpacityDefaults; label: string }[] = [
   padding: 5px 10px;
   font-size: 12px;
   border-radius: 4px;
-  border: 1px solid var(--border);
-  background: var(--button-bg);
-  color: var(--fg);
-  cursor: pointer;
-  transition: background 0.12s;
-}
-
-.optBtn:hover {
-  background: color-mix(in oklab, var(--fg) 10%, var(--button-bg));
 }
 
 .optBtn.active {

@@ -256,20 +256,7 @@ function updateOffset(axis: number, value: number) {
   padding: 6px 10px;
   font-size: 12px;
   border-radius: 4px;
-  border: 1px solid var(--border);
-  background: var(--button-bg);
-  color: var(--fg);
-  cursor: pointer;
   white-space: nowrap;
-  transition: background 0.12s;
-}
-
-.viewBtn:hover {
-  background: color-mix(in oklab, var(--fg) 15%, var(--button-bg));
-}
-
-.viewBtn:active {
-  transform: scale(0.96);
 }
 
 .viewBtn.active {

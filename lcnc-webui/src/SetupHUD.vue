@@ -76,24 +76,6 @@ const zeroDisabled = computed(() => !can.value.idle);
   font-size: 11px;
   font-weight: 600;
   border-radius: 4px;
-  border: 1px solid var(--border);
-  background: var(--button-bg);
-  color: var(--fg);
-  cursor: pointer;
-  transition: background 0.1s;
-}
-
-.btn:hover:not(:disabled) {
-  background: color-mix(in oklab, var(--fg) 10%, var(--button-bg));
-}
-
-.btn:active:not(:disabled) {
-  background: color-mix(in oklab, var(--fg) 20%, var(--button-bg));
-}
-
-.btn:disabled {
-  opacity: 0.35;
-  cursor: default;
 }
 
 .btn.primary {

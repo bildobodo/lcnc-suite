@@ -171,25 +171,7 @@ function formatRpm(val: number | null): string {
   gap: 4px;
   padding: 12px 20px;
   border-radius: 10px;
-  border: 1px solid var(--border);
-  background: var(--button-bg);
-  color: var(--fg);
-  cursor: pointer;
-  transition: all 0.15s ease;
   min-width: 80px;
-}
-
-.dirBtn:hover:not(:disabled) {
-  opacity: 0.8;
-}
-
-.dirBtn:active:not(:disabled) {
-  transform: scale(0.95);
-}
-
-.dirBtn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
 }
 
 .dirBtn.fwd.active {
@@ -346,47 +328,6 @@ function formatRpm(val: number | null): string {
 
 .slider {
   width: 100%;
-  height: 6px;
-  border-radius: 3px;
-  background: color-mix(in oklab, var(--panel) 90%, var(--fg));
-  outline: none;
-  -webkit-appearance: none;
-  appearance: none;
-  cursor: pointer;
-}
-
-.slider:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--fg);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.slider::-webkit-slider-thumb:hover {
-  transform: scale(1.2);
-}
-
-.slider::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--fg);
-  cursor: pointer;
-  border: none;
-  transition: all 0.15s ease;
-}
-
-.slider::-moz-range-thumb:hover {
-  transform: scale(1.2);
 }
 
 .presets {
@@ -399,24 +340,6 @@ function formatRpm(val: number | null): string {
   padding: 4px 10px;
   font-size: 11px;
   border-radius: 4px;
-  border: 1px solid var(--border);
-  background: var(--button-bg);
-  color: var(--fg);
-  cursor: pointer;
-  transition: all 0.15s ease;
   white-space: nowrap;
-}
-
-.presetBtn:hover:not(:disabled) {
-  background: color-mix(in oklab, var(--button-bg) 85%, var(--fg));
-}
-
-.presetBtn:active:not(:disabled) {
-  transform: scale(0.95);
-}
-
-.presetBtn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
 }
 </style>
