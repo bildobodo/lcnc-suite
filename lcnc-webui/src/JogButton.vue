@@ -125,8 +125,6 @@ function stopJog(e?: PointerEvent) {
   height: 100%;
   border: none;
   background: transparent;
-  color: var(--fg);
-  cursor: pointer;
   user-select: none;
   touch-action: none; /* prevents touch scrolling from interrupting hold */
   font-weight: 650;

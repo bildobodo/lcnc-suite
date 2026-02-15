@@ -1239,9 +1239,7 @@ defineExpose({
   border-radius: 12px;
   border: 1px solid var(--border);
   background: color-mix(in oklab, var(--panel) 85%, transparent);
-  color: var(--fg);
   opacity: 0.75;
-  cursor: pointer;
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   transition: opacity 0.12s, background 0.12s;

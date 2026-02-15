@@ -405,13 +405,9 @@ function stopJog(s: Sector, e?: PointerEvent) {
   border-radius: 999px;
   font-size: 12px;
   font-weight: 600;
-  border: 1px solid var(--border);
-  cursor: pointer;
   user-select: none;
-  transition: all 0.15s ease;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: var(--fg);
 }
 
 .modePill.teleop {

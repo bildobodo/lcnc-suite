@@ -244,11 +244,6 @@ function onVelInput(ev: Event) {
   padding: 3px 0;
   font-size: 10px;
   border-radius: 4px;
-  border: 1px solid var(--border);
-  background: var(--button-bg);
-  color: var(--fg);
-  cursor: pointer;
-  transition: background 0.1s;
 }
 
 .incBtn.active {
