@@ -4,8 +4,7 @@
  */
 
 function getBaseUrl(): string {
-  const host = (location.hostname === "localhost") ? "127.0.0.1" : location.hostname;
-  return `http://${host}:8000`;
+  return location.origin;
 }
 
 export interface FileEntry {

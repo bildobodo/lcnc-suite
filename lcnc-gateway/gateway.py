@@ -13,7 +13,6 @@ from fastapi.staticfiles import StaticFiles
 import tempfile
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.middleware.base import BaseHTTPMiddleware
 
 
 # ---- Config ----
@@ -1227,12 +1226,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-class CacheStaticAssets(BaseHTTPMiddleware):
-    async def dispatch(self, request, call_next):
-        response = await call_next(request)
-        if request.url.path.startswith("/assets/"):
-            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
-        return response
+class CacheStaticAssets:
+    """Pure ASGI middleware — adds Cache-Control to /assets/ responses without buffering."""
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http" or not scope["path"].startswith("/assets/"):
+            await self.app(scope, receive, send)
+            return
+
+        async def send_with_cache(message):
+            if message["type"] == "http.response.start":
+                headers = list(message.get("headers", []))
+                headers.append((b"cache-control", b"public, max-age=31536000, immutable"))
+                message = {**message, "headers": headers}
+            await send(message)
+
+        await self.app(scope, receive, send_with_cache)
 
 app.add_middleware(CacheStaticAssets)
 

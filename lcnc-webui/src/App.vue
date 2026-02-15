@@ -14,7 +14,12 @@ import SettingsPanel from "./SettingsPanel.vue";
 import SpindlePanel from "./SpindlePanel.vue";
 import MessagesPanel from "./MessagesPanel.vue";
 
-import { loadViewerDefaults } from "./defaults";
+import { loadViewerDefaults, loadPanelsDefaults, savePanelsDefaults } from "./defaults";
+import {
+  INTERP_IDLE, INTERP_READING, INTERP_PAUSED, INTERP_WAITING,
+  TRAJ_MODE_FREE, TRAJ_MODE_TELEOP,
+  TASK_MODE_MANUAL, TASK_MODE_AUTO, TASK_MODE_MDI,
+} from "./lcnc";
 
 const _vd = loadViewerDefaults();
 
@@ -38,23 +43,8 @@ const maxPanels = 3;
 
 let _nextPanelId = 0;
 
-function loadPanels(): Array<{ id: number; tab: string }> {
-  try {
-    const raw = localStorage.getItem("lcnc-panels");
-    if (raw) {
-      const tabs = JSON.parse(raw) as string[];
-      if (Array.isArray(tabs) && tabs.length > 0) {
-        return tabs.slice(0, maxPanels).map(tab => ({ id: _nextPanelId++, tab }));
-      }
-    }
-  } catch { /* ignore */ }
-  return [
-    { id: _nextPanelId++, tab: "viewer" },
-    { id: _nextPanelId++, tab: "dro" },
-  ];
-}
-
-const panels = ref(loadPanels());
+const _pd = loadPanelsDefaults();
+const panels = ref(_pd.tabs.slice(0, maxPanels).map(tab => ({ id: _nextPanelId++, tab })));
 
 
 const viewerRefs = new Map<number, any>();
@@ -89,7 +79,7 @@ watch(
   () => panels.value.map(p => p.tab),
   (tabs) => {
     if (tabs.includes("messages")) markMessagesRead();
-    localStorage.setItem("lcnc-panels", JSON.stringify(tabs));
+    savePanelsDefaults({ tabs });
   }
 );
 
@@ -192,15 +182,13 @@ const isHomed = computed(() => {
   return !!h;
 });
 
-// Motion/trajectory mode: TRAJ_MODE_FREE=1, TRAJ_MODE_COORD=2, TRAJ_MODE_TELEOP=3
-const motionMode = computed(() => st.value.motion_mode ?? 1);
-const isTeleop = computed(() => motionMode.value === 3);
+const motionMode = computed(() => st.value.motion_mode ?? TRAJ_MODE_FREE);
+const isTeleop = computed(() => motionMode.value === TRAJ_MODE_TELEOP);
 
-// LinuxCNC interpreter states: IDLE=1, READING=2, PAUSED=3, WAITING=4
-const interpState = computed(() => st.value.interp_state ?? 1);
-const isPaused = computed(() => interpState.value === 3); // INTERP_PAUSED
-const isRunning = computed(() => interpState.value === 2 || interpState.value === 4); // INTERP_READING or INTERP_WAITING
-const isIdle = computed(() => interpState.value === 1); // INTERP_IDLE
+const interpState = computed(() => st.value.interp_state ?? INTERP_IDLE);
+const isPaused = computed(() => interpState.value === INTERP_PAUSED);
+const isRunning = computed(() => interpState.value === INTERP_READING || interpState.value === INTERP_WAITING);
+const isIdle = computed(() => interpState.value === INTERP_IDLE);
 
 /** ---------- display helpers for machine states ---------- */
 // G5x work coordinate system (G54, G55, etc.)
@@ -215,12 +203,11 @@ const g5xLabel = computed(() => {
   return `G5x[${idx}]`;
 });
 
-// Task mode: MANUAL=1, AUTO=2, MDI=3
 const taskModeLabel = computed(() => {
   const mode = st.value.task_mode;
-  if (mode === 1) return "MANUAL";
-  if (mode === 2) return "AUTO";
-  if (mode === 3) return "MDI";
+  if (mode === TASK_MODE_MANUAL) return "MANUAL";
+  if (mode === TASK_MODE_AUTO) return "AUTO";
+  if (mode === TASK_MODE_MDI) return "MDI";
   return "-";
 });
 

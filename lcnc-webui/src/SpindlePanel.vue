@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, computed } from "vue";
 import { usePermissions } from "./permissions";
+import { SPINDLE_FORWARD, SPINDLE_REVERSE } from "./lcnc";
 
 const props = defineProps<{
   spindleSpeed: number | null;
@@ -21,8 +22,8 @@ const emit = defineEmits<{
 const rpmInput = ref(1000);
 
 // Direction state from props
-const isForward = computed(() => props.spindleDirection === 1);
-const isReverse = computed(() => props.spindleDirection === -1);
+const isForward = computed(() => props.spindleDirection === SPINDLE_FORWARD);
+const isReverse = computed(() => props.spindleDirection === SPINDLE_REVERSE);
 const isStopped = computed(() => !isForward.value && !isReverse.value);
 const isSpinning = computed(() => isForward.value || isReverse.value);
 

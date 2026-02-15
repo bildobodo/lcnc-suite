@@ -37,15 +37,17 @@ export function loadMachineAssets(init: any): Promise<void> {
 
   _loadPromise = (async () => {
     const base = init.stl_base_url;
-    for (const p of init.parts ?? []) {
-      if (_geometryCache.has(p.id)) continue;
+    const toFetch = (init.parts ?? []).filter((p: any) => !_geometryCache.has(p.id));
+
+    await Promise.all(toFetch.map(async (p: any) => {
       const url = base.endsWith("/") ? `${base}${p.file}` : `${base}/${p.file}`;
       console.log(`[loader] fetching ${p.id}: ${url}`);
       const geom = await fetchAndParseStl(url);
       geom.computeVertexNormals();
       geom.userData._shared = true;
       _geometryCache.set(p.id, geom);
-    }
+    }));
+
     machineReady.value = true;
     console.log(`[loader] all assets ready (${_geometryCache.size} geometries)`);
   })();
@@ -90,8 +92,6 @@ type ViewerInit = {
   };
 };
 
-type Vec3N = [number, number, number];
-
 type ViewPreset = "top" | "bottom" | "left" | "right" | "front" | "back" | "iso" | "dimetric" | "reset";
 
 
@@ -112,7 +112,7 @@ type ViewerState = {
   tool_diameter?: number | null;
   tool_length?: number | null;
 
-  work_pos?: Vec3N; // <-- stricter
+  work_pos?: Vec3;
 
   current_vel?: number | null;
   spindle_speed?: number | null;

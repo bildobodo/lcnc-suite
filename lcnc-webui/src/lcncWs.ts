@@ -1,8 +1,9 @@
 import { ref, shallowRef } from "vue";
+import { type WsCommand, OPERATOR_ERROR } from "./lcnc";
 
 export interface LcncMessage {
   id: number;
-  kind: number;     // 1=NML_ERROR, 2=OPERATOR_ERROR, 3=NML_TEXT, 4=OPERATOR_TEXT, 5=NML_DISPLAY, 6=OPERATOR_DISPLAY
+  kind: number;     // See NML_ERROR..OPERATOR_DISPLAY constants in lcnc.ts
   text: string;
   ts: number;       // Date.now() when received
 }
@@ -34,8 +35,8 @@ export function connectWs() {
   }
   if (_heartbeatInterval) { clearInterval(_heartbeatInterval); _heartbeatInterval = null; }
 
-  const host = (location.hostname === "localhost") ? "127.0.0.1" : location.hostname;
-  const wsUrl = `ws://${host}:8000/ws`;
+  const wsProto = location.protocol === "https:" ? "wss:" : "ws:";
+  const wsUrl = `${wsProto}//${location.host}/ws`;
   ws = new WebSocket(wsUrl);
 
   ws.onopen = () => {
@@ -60,7 +61,13 @@ export function connectWs() {
   let _flushScheduled = false;
 
   ws.onmessage = (ev) => {
-    const msg = JSON.parse(ev.data);
+    let msg: any;
+    try {
+      msg = JSON.parse(ev.data);
+    } catch {
+      console.error("WS: invalid JSON", ev.data);
+      return;
+    }
 
     if (msg.type === "status") {
       // Measure heartbeat round-trip latency
@@ -101,7 +108,7 @@ export function connectWs() {
     } else if (msg.type === "reply") {
       lastReply.value = msg;
       if (msg.ok === false && msg.error) {
-        messages.value = [...messages.value, { id: _nextMsgId++, kind: 2, text: `Command: ${msg.error}`, ts: Date.now() }];
+        messages.value = [...messages.value, { id: _nextMsgId++, kind: OPERATOR_ERROR, text: `Command: ${msg.error}`, ts: Date.now() }];
         unreadCount.value++;
       }
     } else if (msg.type === "viewer_init") {
@@ -120,7 +127,7 @@ export function connectWs() {
   };
 }
 
-export function send(obj: any) {
+export function send(obj: WsCommand) {
   if (ws && ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify(obj));
   }

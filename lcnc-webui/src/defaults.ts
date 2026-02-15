@@ -137,3 +137,26 @@ export function loadViewerDefaults(): ViewerDefaults {
 export function saveViewerDefaults(data: ViewerDefaults): void {
   saveSection("viewer", data);
 }
+
+// ─── Panels section ─────────────────────────────────────────────
+
+export interface PanelsDefaults {
+  tabs: string[];
+}
+
+registerSection<PanelsDefaults>("panels", { tabs: ["viewer", "dro"] }, (saved, fb) => {
+  if (!saved) return { ...fb };
+  const tabs = saved.tabs;
+  if (Array.isArray(tabs) && tabs.length > 0) return { tabs: tabs.slice(0, 3) };
+  return { ...fb };
+});
+
+/** Load panels defaults (typed convenience wrapper). */
+export function loadPanelsDefaults(): PanelsDefaults {
+  return loadSection<PanelsDefaults>("panels");
+}
+
+/** Save panels defaults (typed convenience wrapper). */
+export function savePanelsDefaults(data: PanelsDefaults): void {
+  saveSection("panels", data);
+}
