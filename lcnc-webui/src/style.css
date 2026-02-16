@@ -41,6 +41,19 @@ html, body {
   color: var(--fg);
 }
 
+html {
+  height: 100%;
+  overflow: auto;
+}
+
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  min-width: 760px;
+  min-height: 600px;
+}
+
 a {
   font-weight: 500;
   color: #646cff;
@@ -48,12 +61,6 @@ a {
 }
 a:hover {
   color: #535bf2;
-}
-
-body {
-  margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
 }
 
 h1 {
@@ -196,6 +203,7 @@ input[type="checkbox"]:disabled {
 
 #app {
   width: 100%;
+  height: 100%;
   margin: 0;
   padding: 0;
   text-align: left;

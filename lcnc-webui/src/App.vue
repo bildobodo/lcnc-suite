@@ -792,8 +792,11 @@ watch(isHomed, (nowHomed, wasHomed) => {
 
 <style scoped>
 .wrap {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
   padding: 16px;
-  margin: 0 auto;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
 }
 
@@ -801,6 +804,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-shrink: 0;
   margin-bottom: 14px;
   gap: 12px;
 }
@@ -847,9 +851,11 @@ watch(isHomed, (nowHomed, wasHomed) => {
   display: flex;
   gap: 12px;
   margin-bottom: 12px;
+  overflow: hidden;
 }
 
 .panel {
+  box-sizing: border-box;
   min-width: 0;
   min-height: 0;
   position: relative;
@@ -884,17 +890,17 @@ watch(isHomed, (nowHomed, wasHomed) => {
 
 .bodyLayout {
   display: flex;
+  flex: 1;
+  min-height: 0;
   gap: 12px;
-  align-items: flex-start;
 }
 
 .mainCol {
   flex: 1;
   min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 86px);
-  overflow: hidden;
 }
 
 .topRow {
@@ -903,9 +909,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
   flex-shrink: 0;
   width: 150px;
   gap: 12px;
-  margin-bottom: 0;
-  position: sticky;
-  top: 8px;
+  overflow-y: auto;
   z-index: 50;
 }
 
@@ -1160,56 +1164,21 @@ watch(isHomed, (nowHomed, wasHomed) => {
 
 /* ---- Landscape layout — panels side by side ---- */
 @media (orientation: landscape) {
-  .panels          { align-items: stretch; flex: 1; min-height: 0; }
-  .panel           { flex: 0 0 auto; }   /* width = content */
+  .panels          { align-items: stretch; flex: 1; min-height: 0; overflow-x: auto; overflow-y: hidden; }
+  .panel           { flex: 0 0 auto; min-height: 400px; }   /* width = content, can't crush vertically */
   .panel-viewer    { flex: 1; overflow: hidden; } /* fills remaining width */
   .panel-gcode     { flex: 0.5; }        /* medium width priority */
 }
 
 /* ---- Portrait layout — panels stacked vertically ---- */
 @media (orientation: portrait) {
-  .mainCol         { overflow-y: auto; } /* scroll when panels exceed viewport */
-  .panels          { flex-direction: column; flex: 1; min-height: 0; }
+  .panels          { flex-direction: column; flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; }
   .panel           { flex: 0 0 auto; }   /* height = content */
   .panel-viewer    { flex: 1; min-height: 500px; overflow: hidden; } /* fills remaining height, can't be crushed */
   .panel-gcode     { flex: 0 0 350px; }  /* fixed height, includes program control row */
   .panel-settings  { flex: 0 0 350px; }  /* fixed height, content scrolls */
   .panel-mdi       { flex: 0 0 350px; }  /* fixed height, history scrolls */
   .addPanel        { flex: 0 0 auto; width: 100%; height: 36px; }
-}
-
-/* ---- Responsive: narrow — icon-only sidebar ---- */
-@media (max-width: 500px) {
-  .topRow {
-    width: 52px;
-  }
-  .topRow .card {
-    padding: 6px;
-  }
-  .topRow .sub {
-    display: none;
-  }
-  .topRow .safetyLabel {
-    display: none;
-  }
-  .topRow .safetyBtn {
-    padding: 8px 0;
-    justify-content: center;
-    width: 100%;
-    box-sizing: border-box;
-  }
-  .topRow .chipLabel,
-  .topRow .chipValue {
-    display: none;
-  }
-  .topRow .chipIcon {
-    display: block;
-    text-align: center;
-  }
-  .topRow .statusChip {
-    padding: 8px 0;
-    justify-content: center;
-  }
 }
 
 /* ---- Responsive: tablet landscape / narrow desktop (768–1199px) ---- */
