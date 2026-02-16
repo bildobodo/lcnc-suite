@@ -117,19 +117,21 @@ def _nml_connectable() -> bool:
 
 # ---- NML poisoning detection ----
 _reconnect_fails = 0
+_ever_connected = False     # set True on first successful connection
 _NML_POISON_THRESHOLD = 5  # consecutive probe-pass + main-fail = poisoned
 
 
 def _self_restart():
-    """Replace the current process with a fresh one. Last resort for NML poisoning."""
+    """Spawn a fresh gateway process and exit. Last resort for NML poisoning."""
     print("NML POISONED: self-restarting gateway process", flush=True)
     _hal_disconnect()
-    os.execv(sys.executable, [sys.executable] + sys.argv)
+    subprocess.Popen([sys.executable] + sys.argv)
+    os._exit(1)
 
 
 def try_connect_lcnc() -> bool:
     """Attempt to connect to LinuxCNC. Returns True on success."""
-    global STAT, CMD, ERR, lcnc_connected, _lcnc_pid, _nc_files_dir, _max_jog_velocity
+    global STAT, CMD, ERR, lcnc_connected, _lcnc_pid, _nc_files_dir, _max_jog_velocity, _ever_connected
     _nc_files_dir = None        # re-resolve on reconnect
     _max_jog_velocity = None    # re-read from INI on reconnect
     if not _nml_connectable():
@@ -140,6 +142,7 @@ def try_connect_lcnc() -> bool:
         ERR = linuxcnc.error_channel()
         STAT.poll()  # verify it actually works
         lcnc_connected = True
+        _ever_connected = True
         _lcnc_pid = _get_lcnc_pid()
         return True
     except Exception as e:
@@ -1422,7 +1425,7 @@ async def ws_endpoint(ws: WebSocket):
                             pass
                         last_file = None
                     else:
-                        if pid is not None:
+                        if pid is not None and _ever_connected:
                             _reconnect_fails += 1
                             if _reconnect_fails >= _NML_POISON_THRESHOLD:
                                 print(f"NML reconnect failed {_reconnect_fails} times with linuxcncsvr alive — restarting gateway")

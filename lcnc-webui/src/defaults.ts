@@ -140,6 +140,8 @@ export function saveViewerDefaults(data: ViewerDefaults): void {
 
 // ─── Panels section ─────────────────────────────────────────────
 
+export const MAX_PANELS = 3;
+
 export interface PanelsDefaults {
   tabs: string[];
 }
@@ -147,7 +149,7 @@ export interface PanelsDefaults {
 registerSection<PanelsDefaults>("panels", { tabs: ["viewer", "dro"] }, (saved, fb) => {
   if (!saved) return { ...fb };
   const tabs = saved.tabs;
-  if (Array.isArray(tabs) && tabs.length > 0) return { tabs: tabs.slice(0, 3) };
+  if (Array.isArray(tabs) && tabs.length > 0) return { tabs: tabs.slice(0, MAX_PANELS) };
   return { ...fb };
 });
 

@@ -14,7 +14,7 @@ import SettingsPanel from "./SettingsPanel.vue";
 import SpindlePanel from "./SpindlePanel.vue";
 import MessagesPanel from "./MessagesPanel.vue";
 
-import { loadViewerDefaults, loadPanelsDefaults, savePanelsDefaults } from "./defaults";
+import { loadViewerDefaults, loadPanelsDefaults, savePanelsDefaults, MAX_PANELS } from "./defaults";
 import {
   INTERP_IDLE, INTERP_READING, INTERP_PAUSED, INTERP_WAITING,
   TRAJ_MODE_FREE, TRAJ_MODE_TELEOP,
@@ -38,13 +38,11 @@ const tabs = [
   { id: "settings", label: "Settings" },
 ];
 
-/** ---------- dynamic panels (1–3) ---------- */
-const maxPanels = 3;
-
+/** ---------- dynamic panels ---------- */
 let _nextPanelId = 0;
 
 const _pd = loadPanelsDefaults();
-const panels = ref(_pd.tabs.slice(0, maxPanels).map(tab => ({ id: _nextPanelId++, tab })));
+const panels = ref(_pd.tabs.slice(0, MAX_PANELS).map(tab => ({ id: _nextPanelId++, tab })));
 
 
 const viewerRefs = new Map<number, any>();
@@ -55,7 +53,7 @@ function setViewerRef(panelId: number, el: any) {
 }
 
 function addPanel() {
-  if (panels.value.length >= maxPanels) return;
+  if (panels.value.length >= MAX_PANELS) return;
   panels.value.push({ id: _nextPanelId++, tab: "dro" });
 }
 
@@ -66,7 +64,7 @@ function removePanel(panelId: number) {
 }
 
 function panelMinWidth(tab: string): string {
-  if (tab === "viewer" || tab === "dro") return "420px";
+  if (tab === "viewer" || tab === "dro") return "560px";
   return "320px";
 }
 
@@ -780,7 +778,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
       </div>
 
       <button
-        v-if="panels.length < maxPanels"
+        v-if="panels.length < MAX_PANELS"
         class="addPanel"
         @click="addPanel"
       >+</button>
