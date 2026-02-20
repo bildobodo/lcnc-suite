@@ -2,6 +2,27 @@
 
 A modern, UI-agnostic WebSocket gateway for LinuxCNC with a reference Vue 3 web interface.
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Safety and Liability Disclaimer](#%EF%B8%8F-safety-and-liability-disclaimer)
+- [Features](#features)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [WebSocket API](#websocket-api)
+  - [Connection](#connection)
+  - [Server Messages](#server-messages)
+  - [Client Commands](#client-commands)
+  - [Error Handling](#error-handling)
+  - [Safety System](#safety-system)
+- [Building Your Own UI](#building-your-own-ui)
+- [Development](#development)
+- [Configuration](#configuration)
+- [Project Structure](#project-structure)
+- [Contributing](#contributing)
+- [License](#license)
+
 ## Overview
 
 **lcnc-suite** provides a real-time WebSocket API for controlling and monitoring LinuxCNC machines. The architecture separates machine control (backend) from user interface (frontend), allowing you to build custom UIs for web, mobile, desktop, or embedded applications.
@@ -111,8 +132,8 @@ BY USING THIS SOFTWARE, YOU EXPRESSLY ACKNOWLEDGE AND ASSUME ALL RISKS ASSOCIATE
 - Real-time DRO with G5x work coordinate selector and DTG display
 - XY + Z jogging with diagonal support and World/Joint mode toggle
 - Keyboard jog with visual key highlights and incremental jog mode
-- Spindle control panel (FWD/REV/STOP, RPM input, live actual speed)
-- Feed, spindle, and rapid override sliders with presets
+- Sidebar spindle popover (FWD/REV/STOP, RPM input, live actual speed, override slider)
+- Feed, spindle, and rapid override popovers with sliders and presets
 - MDI command interface with history
 - G-code file browser with drag-and-drop upload
 - G-code viewer with syntax highlighting, program controls, and progress bar
@@ -556,20 +577,19 @@ lcnc-suite/
 │   └── machine/               # STL machine models (Git LFS)
 ├── lcnc-webui/                # Reference Vue 3 UI
 │   ├── src/
-│   │   ├── App.vue            # Root component, state, layout, permission provider
+│   │   ├── App.vue            # Root component, state, layout, sidebar popovers
 │   │   ├── permissions.ts     # Centralized button permission system
+│   │   ├── defaults.ts        # Persistent settings (sections, localStorage)
+│   │   ├── lcnc.ts            # LinuxCNC constants
 │   │   ├── lcncWs.ts          # WebSocket client
 │   │   ├── lcncApi.ts         # REST API helpers (file ops)
 │   │   ├── Toolbar.vue        # Top toolbar with status + controls
-│   │   ├── TabPanel.vue       # Tab selector for side panels
+│   │   ├── TabPanel.vue       # Tab selector for content panels
 │   │   ├── ThreeViewer.vue    # 3D machine visualization
-│   │   ├── DroPanel.vue       # Digital readout
-│   │   ├── JogPanel.vue       # Axis jogging controls
+│   │   ├── ManualPanel.vue    # DRO + jogging + MDI (consolidated)
 │   │   ├── JogButton.vue      # Reusable jog button
-│   │   ├── MdiPanel.vue       # Manual data input
 │   │   ├── GcodePanel.vue     # G-code viewer + program controls
-│   │   ├── SpindlePanel.vue   # Spindle control
-│   │   ├── OverridePanel.vue  # Feed/spindle/rapid overrides
+│   │   ├── ToolTablePanel.vue # Tool table editor
 │   │   ├── SettingsPanel.vue  # Application settings
 │   │   ├── MessagesPanel.vue  # Error/message log
 │   │   ├── JogHUD.vue         # Jog overlay pill
