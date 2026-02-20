@@ -7,7 +7,6 @@ import Toolbar from "./Toolbar.vue";
 import TabPanel from "./TabPanel.vue";
 import ManualPanel from "./ManualPanel.vue";
 import GcodePanel from "./GcodePanel.vue";
-import OverridePanel from "./OverridePanel.vue";
 import SettingsPanel from "./SettingsPanel.vue";
 import SpindlePanel from "./SpindlePanel.vue";
 import MessagesPanel from "./MessagesPanel.vue";
@@ -35,7 +34,6 @@ function reloadPage() { location.reload(); }
 const tabs = [
   { id: "viewer", label: "3D Viewer" },
   { id: "manual", label: "Manual" },
-  { id: "overrides", label: "Overrides" },
   { id: "spindle", label: "Spindle" },
   { id: "gcode", label: "Program" },
   { id: "tools", label: "Tools" },
@@ -257,6 +255,36 @@ const overridesActive = computed(() =>
   feedOverrideValue.value !== 1.0 || spindleOverrideValue.value !== 1.0 || rapidOverrideValue.value !== 1.0
 );
 
+// Status chip popovers (click-to-toggle, only one open at a time)
+const openChip = ref<string | null>(null);
+const feedSlider = ref(100);
+const spindleSlider = ref(100);
+const rapidSlider = ref(100);
+
+watch(feedOverrideValue, (val) => { if (Number.isFinite(val)) feedSlider.value = Math.round(val * 100); });
+watch(spindleOverrideValue, (val) => { if (Number.isFinite(val)) spindleSlider.value = Math.round(val * 100); });
+watch(rapidOverrideValue, (val) => { if (Number.isFinite(val)) rapidSlider.value = Math.round(val * 100); });
+
+function toggleChip(chip: string) { openChip.value = openChip.value === chip ? null : chip; }
+function onFeedChange() { setFeedOverride(feedSlider.value / 100); }
+function onSpindleSliderChange() { setSpindleOverride(spindleSlider.value / 100); }
+function onRapidChange() { setRapidOverride(rapidSlider.value / 100); }
+function setOverridePreset(type: "feed" | "spindle" | "rapid", percent: number) {
+  if (type === "feed") { feedSlider.value = percent; onFeedChange(); }
+  else if (type === "spindle") { spindleSlider.value = percent; onSpindleSliderChange(); }
+  else { rapidSlider.value = percent; onRapidChange(); }
+}
+function resetAllOverrides() {
+  feedSlider.value = 100; onFeedChange();
+  spindleSlider.value = 100; onSpindleSliderChange();
+  rapidSlider.value = 100; onRapidChange();
+}
+
+function onDocClick(e: MouseEvent) {
+  if (!openChip.value) return;
+  const el = document.querySelector('.compactStatus');
+  if (el && !el.contains(e.target as Node)) openChip.value = null;
+}
 
 // Active modal codes
 const activeGcodes = computed(() => {
@@ -488,12 +516,14 @@ onMounted(() => {
   window.addEventListener("keydown", onKeyDown);
   window.addEventListener("keyup", onKeyUp);
   document.addEventListener("visibilitychange", visHandler);
+  document.addEventListener("click", onDocClick);
 });
 
 onUnmounted(() => {
   window.removeEventListener("blur", stopAllJog);
   window.removeEventListener("keydown", onKeyDown);
   window.removeEventListener("keyup", onKeyUp);
+  document.removeEventListener("click", onDocClick);
   document.removeEventListener("visibilitychange", visHandler);
 });
 
@@ -597,11 +627,11 @@ watch(isHomed, (nowHomed, wasHomed) => {
       <div class="sub">Machine Status</div>
 
       <div class="compactStatus">
-        <div class="statusChip" :class="isEstop ? 'bad' : (isEnabled && isHomed ? 'ok' : '')">
+        <div class="statusChip" :class="isEstop ? 'bad' : (isEnabled && isHomed ? 'ok' : '')" @click.stop="toggleChip('machine')">
           <span class="chipIcon">&#x2699;</span>
           <span class="chipLabel">Machine</span>
           <span class="chipValue">{{ isEstop ? 'E-STOP' : (!isEnabled ? 'OFF' : (!isHomed ? 'NOT HOMED' : 'READY')) }}</span>
-          <div class="popover chipPopover">
+          <div class="popover chipPopover" :class="{ open: openChip === 'machine' }">
             <div class="statusRow"><div class="k">E-Stop</div><div class="v" :class="isEstop ? 'badText' : 'okText'">{{ isEstop ? 'TRUE' : 'FALSE' }}</div></div>
             <div class="statusRow"><div class="k">Enabled</div><div class="v" :class="isEnabled ? 'okText' : 'mutedText'">{{ isEnabled ? 'TRUE' : 'FALSE' }}</div></div>
             <div class="statusRow"><div class="k">Homed</div><div class="v" :class="isHomed ? 'okText' : 'badText'">{{ isHomed ? 'TRUE' : 'FALSE' }}</div></div>
@@ -609,11 +639,11 @@ watch(isHomed, (nowHomed, wasHomed) => {
           </div>
         </div>
 
-        <div class="statusChip" :class="isRunning ? 'ok' : (isPaused ? 'warn' : '')">
+        <div class="statusChip" :class="isRunning ? 'ok' : (isPaused ? 'warn' : '')" @click.stop="toggleChip('program')">
           <span class="chipIcon">&#x25B6;</span>
           <span class="chipLabel">Program</span>
           <span class="chipValue">{{ isRunning ? 'RUNNING' : (isPaused ? 'PAUSED' : 'IDLE') }}</span>
-          <div class="popover chipPopover">
+          <div class="popover chipPopover programPopover" :class="{ open: openChip === 'program' }">
             <div class="statusRow"><div class="k">Task Mode</div><div class="v">{{ taskModeLabel }}</div></div>
             <div class="statusRow"><div class="k">Interpreter</div><div class="v">{{ interpStateLabel }}</div></div>
             <div class="statusRow"><div class="k">Work Coord</div><div class="v">{{ g5xLabel }}</div></div>
@@ -622,14 +652,36 @@ watch(isHomed, (nowHomed, wasHomed) => {
           </div>
         </div>
 
-        <div class="statusChip" :class="{ warn: overridesActive }">
+        <div class="statusChip overridesChip" :class="{ warn: overridesActive }" @click.stop="toggleChip('overrides')">
           <span class="chipIcon">%</span>
           <span class="chipLabel">Overrides</span>
           <span class="chipValue">{{ overridesActive ? 'ACTIVE' : 'DEFAULT' }}</span>
-          <div class="popover chipPopover">
-            <div class="statusRow"><div class="k">Feed</div><div class="v" :class="{ warn: feedOverrideValue !== 1.0 }">{{ feedOverride }}</div></div>
-            <div class="statusRow"><div class="k">Spindle</div><div class="v" :class="{ warn: spindleOverrideValue !== 1.0 }">{{ spindleOverride }}</div></div>
-            <div class="statusRow"><div class="k">Rapid</div><div class="v" :class="{ warn: rapidOverrideValue !== 1.0 }">{{ rapidOverride }}</div></div>
+          <div class="popover chipPopover overridesPopover" :class="{ open: openChip === 'overrides' }" @click.stop>
+            <div class="ovrRow">
+              <span class="ovrLabel">Feed</span>
+              <input type="range" v-model.number="feedSlider" @change="onFeedChange" min="0" max="200" step="5" :disabled="!permissions.override" />
+              <span class="ovrVal" :class="{ warn: feedSlider !== 100 }">{{ feedSlider }}%</span>
+            </div>
+            <div class="ovrPresets">
+              <button v-for="p in [50, 100, 150, 200]" :key="'f'+p" class="ovrPresetBtn" :disabled="!permissions.override" @click="setOverridePreset('feed', p)">{{ p }}%</button>
+            </div>
+            <div class="ovrRow">
+              <span class="ovrLabel">Spindle</span>
+              <input type="range" v-model.number="spindleSlider" @change="onSpindleSliderChange" min="50" max="200" step="5" :disabled="!permissions.override" />
+              <span class="ovrVal" :class="{ warn: spindleSlider !== 100 }">{{ spindleSlider }}%</span>
+            </div>
+            <div class="ovrPresets">
+              <button v-for="p in [50, 100, 150, 200]" :key="'s'+p" class="ovrPresetBtn" :disabled="!permissions.override" @click="setOverridePreset('spindle', p)">{{ p }}%</button>
+            </div>
+            <div class="ovrRow">
+              <span class="ovrLabel">Rapid</span>
+              <input type="range" v-model.number="rapidSlider" @change="onRapidChange" min="25" max="100" step="25" :disabled="!permissions.override" />
+              <span class="ovrVal" :class="{ warn: rapidSlider !== 100 }">{{ rapidSlider }}%</span>
+            </div>
+            <div class="ovrPresets">
+              <button v-for="p in [25, 50, 75, 100]" :key="'r'+p" class="ovrPresetBtn" :disabled="!permissions.override" @click="setOverridePreset('rapid', p)">{{ p }}%</button>
+            </div>
+            <button class="ovrResetBtn" :disabled="!permissions.override" @click="resetAllOverrides">Reset All</button>
           </div>
         </div>
       </div>
@@ -720,17 +772,6 @@ watch(isHomed, (nowHomed, wasHomed) => {
               @toggleTeleop="toggleTeleop"
               @update:mdiText="mdiText = $event"
               @sendMdi="sendMdi"
-            />
-          </template>
-
-          <template #overrides>
-            <OverridePanel
-              :feedOverride="feedOverrideValue"
-              :spindleOverride="spindleOverrideValue"
-              :rapidOverride="rapidOverrideValue"
-              @setFeedOverride="setFeedOverride"
-              @setSpindleOverride="setSpindleOverride"
-              @setRapidOverride="setRapidOverride"
             />
           </template>
 
@@ -1105,10 +1146,70 @@ watch(isHomed, (nowHomed, wasHomed) => {
   min-width: 200px;
 }
 
-.statusChip:hover > .chipPopover {
-  display: flex;
+/* All status chip popovers: click-to-toggle */
+.statusChip { cursor: pointer; }
+.chipPopover.open {
+  display: flex !important;
   flex-direction: column;
   gap: 6px;
+}
+
+.programPopover {
+  min-width: 300px;
+}
+
+.overridesPopover {
+  min-width: 260px;
+  cursor: default;
+  gap: 8px;
+}
+
+.ovrRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ovrLabel {
+  font-size: 12px;
+  font-weight: 500;
+  opacity: 0.7;
+  min-width: 48px;
+}
+
+.ovrRow input[type="range"] {
+  flex: 1;
+  min-width: 0;
+}
+
+.ovrVal {
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  min-width: 40px;
+  text-align: right;
+}
+
+.ovrPresets {
+  display: flex;
+  gap: 4px;
+  padding-left: 56px;
+  margin-bottom: 4px;
+}
+
+.ovrPresetBtn {
+  padding: 2px 8px;
+  font-size: 10px;
+  border-radius: 4px;
+}
+
+.ovrResetBtn {
+  margin-top: 4px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 6px;
+  width: 100%;
 }
 
 .btnrow {

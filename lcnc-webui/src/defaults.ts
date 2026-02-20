@@ -152,7 +152,7 @@ registerSection<PanelsDefaults>("panels", { tabs: ["viewer", "manual"] }, (saved
   if (!Array.isArray(tabs) || tabs.length === 0) return { ...fb };
 
   // Migration: replace old dro/jog/mdi tabs with "manual"
-  const OLD_TABS = new Set(["dro", "jog", "mdi"]);
+  const OLD_TABS = new Set(["dro", "jog", "mdi", "overrides"]);
   let migrated = false;
   const result: string[] = [];
   for (const t of tabs) {
