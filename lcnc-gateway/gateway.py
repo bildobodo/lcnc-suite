@@ -922,6 +922,14 @@ def reject_if_auto_running() -> Optional[Dict[str, Any]]:
             "task_mode": mode,
             "interp_state": interp,
         }
+    # MDI commands are fire-and-forget — guard against overlapping commands
+    if mode == linuxcnc.MODE_MDI and interp != linuxcnc.INTERP_IDLE:
+        return {
+            "ok": False,
+            "error": "MDI command in progress — command rejected",
+            "task_mode": mode,
+            "interp_state": interp,
+        }
     return None
 
 
@@ -1019,7 +1027,6 @@ def handle_command(msg: Dict[str, Any], armed: bool):
                 return {"ok": False, "error": "Missing text"}
             set_mode(linuxcnc.MODE_MDI)
             CMD.mdi(text)
-            CMD.wait_complete()
             return {"ok": True}
 
         if cmd == "save_tool":
