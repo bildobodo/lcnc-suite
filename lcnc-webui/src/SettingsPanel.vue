@@ -97,7 +97,7 @@ const opacityFields: { key: keyof OpacityDefaults; label: string }[] = [
       <template #viewer>
         <div class="scrollContent scroll-thin">
         <div class="section">
-          <div class="sectionTitle">Workpiece Defaults <span class="unitBadge">{{ props.linearUnit ?? 'mm' }}</span></div>
+          <div class="sectionTitle">Workpiece Defaults</div>
           <div class="wpColumns">
             <div class="fieldGroup">
               <div class="inputRow" v-for="(label, i) in ['Size X', 'Size Y', 'Size Z']" :key="'s'+i">
@@ -269,13 +269,6 @@ const opacityFields: { key: keyof OpacityDefaults; label: string }[] = [
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 12px;
-}
-
-.unitBadge {
-  font-size: 10px;
-  font-weight: 500;
-  opacity: 0.7;
-  margin-left: 6px;
 }
 
 .wpColumns {

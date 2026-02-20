@@ -180,7 +180,7 @@ function onVelInput(ev: Event) {
         :disabled="disabled"
         @input="onVelInput"
       />
-      <span class="velLabel">{{ (jogVel * 60).toFixed(0) }} {{ linearUnit }}/min</span>
+      <span class="velLabel">{{ (jogVel * 60).toFixed(0) }}/min</span>
     </div>
 
     <!-- Wheel + Z column -->

@@ -1214,14 +1214,14 @@ defineExpose({
         <div class="hudLabel">Tool</div>
         <div class="hudCoords">
           <div class="hudCoord"><span class="hudAxis">T</span> {{ vst?.tool_number ?? '-' }}</div>
-          <div class="hudCoord"><span class="hudAxis">Ø</span> {{ formatCoord(vst?.tool_diameter) }} {{ props.linearUnit || 'mm' }}</div>
-          <div class="hudCoord"><span class="hudAxis">L</span> {{ formatCoord(vst?.tool_length) }} {{ props.linearUnit || 'mm' }}</div>
+          <div class="hudCoord"><span class="hudAxis">Ø</span> {{ formatCoord(vst?.tool_diameter) }}</div>
+          <div class="hudCoord"><span class="hudAxis">L</span> {{ formatCoord(vst?.tool_length) }}</div>
         </div>
       </div>
 
       <div class="hudSection">
         <div class="hudLabel">Feed</div>
-        <div class="hudValue">{{ vst?.current_vel != null ? (vst.current_vel * 60).toFixed(1) : '---' }} {{ props.linearUnit || 'mm' }}/min</div>
+        <div class="hudValue">{{ vst?.current_vel != null ? (vst.current_vel * 60).toFixed(1) : '---' }}/min</div>
       </div>
 
       <div class="hudSection">

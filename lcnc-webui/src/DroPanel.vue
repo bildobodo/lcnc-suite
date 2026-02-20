@@ -42,7 +42,7 @@ function fmt(n: any) {
     </div>
 
     <div class="section">
-      <div class="sub">Work Position ({{ g5xLabel }}) [{{ linearUnit }}]</div>
+      <div class="sub">Work Position ({{ g5xLabel }})</div>
       <div class="grid">
         <div class="axis"><span>X</span><b>{{ fmt(workPos[0]) }}</b></div>
         <div class="dtg"><span>DTG</span>{{ fmt(dtg[0]) }}</div>
@@ -60,7 +60,7 @@ function fmt(n: any) {
     <div class="sep"></div>
 
     <div class="section">
-      <div class="sub">Machine Position [{{ linearUnit }}]</div>
+      <div class="sub">Machine Position</div>
       <div class="grid machineGrid">
         <div class="axis"><span>X</span><b>{{ fmt(machinePos[0]) }}</b></div>
         <div class="axis"><span>Y</span><b>{{ fmt(machinePos[1]) }}</b></div>

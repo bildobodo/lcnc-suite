@@ -28,7 +28,6 @@ interface Tool {
 const tools = ref<Tool[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
-const units = ref("mm");
 const confirmTool = ref<number | null>(null);
 const filterType = ref("");
 const sortKey = ref<"T" | "D" | "Z">("T");
@@ -82,7 +81,6 @@ watch(lastReply, (reply) => {
   if (!reply) return;
   if (reply.tools !== undefined && reply.ok) {
     tools.value = reply.tools;
-    if (reply.units) units.value = reply.units;
     loading.value = false;
   }
   if (reply.ok === false && reply.error && loading.value) {
@@ -270,11 +268,11 @@ function fmtNum(n: any, decimals = 4) {
             <input class="editInput" v-model="editForm.description" />
           </label>
           <label class="editLabel">
-            <span class="editLabelText">Diameter ({{ units }})</span>
+            <span class="editLabelText">Diameter</span>
             <input class="editInput editInputNum" type="number" step="0.001" v-model.number="editForm.D" />
           </label>
           <label class="editLabel">
-            <span class="editLabelText">Z Offset ({{ units }})</span>
+            <span class="editLabelText">Z Offset</span>
             <input class="editInput editInputNum" type="number" step="0.0001" v-model.number="editForm.Z" />
           </label>
           <label class="editLabel">
@@ -304,10 +302,10 @@ function fmtNum(n: any, decimals = 4) {
         </div>
         <div class="tcell tcellDesc">Description</div>
         <div class="tcell tcellNum sortHeader" @click="toggleSort('D')">
-          Ø ({{ units }}) {{ sortKey === 'D' ? (sortAsc ? '▲' : '▼') : '' }}
+          Ø {{ sortKey === 'D' ? (sortAsc ? '▲' : '▼') : '' }}
         </div>
         <div class="tcell tcellNum sortHeader" @click="toggleSort('Z')">
-          Z ({{ units }}) {{ sortKey === 'Z' ? (sortAsc ? '▲' : '▼') : '' }}
+          Z Offset {{ sortKey === 'Z' ? (sortAsc ? '▲' : '▼') : '' }}
         </div>
         <div class="tcell tcellSm">Flutes</div>
         <div class="tcell tcellAction"></div>

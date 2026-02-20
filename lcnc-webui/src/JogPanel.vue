@@ -207,7 +207,7 @@ function stopJog(s: Sector, e?: PointerEvent) {
         @input="onInput"
         :disabled="!can.jog"
       />
-      <div class="pill">{{ (jogVel * 60).toFixed(0) }} {{ linearUnit }}/min</div>
+      <div class="pill">{{ (jogVel * 60).toFixed(0) }}/min</div>
     </div>
 
     <div class="btnrow" style="margin-bottom: 10px; justify-content: center">
@@ -222,7 +222,7 @@ function stopJog(s: Sector, e?: PointerEvent) {
           :disabled="!can.jog"
         >{{ opt.label }}</button>
       </div>
-      <div class="pill" v-if="jogIncrement > 0">{{ jogIncrement }} {{ linearUnit }}/click</div>
+      <div class="pill" v-if="jogIncrement > 0">{{ jogIncrement }}/click</div>
       <div class="pill" v-else>Hold to jog</div>
     </div>
 

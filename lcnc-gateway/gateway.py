@@ -962,7 +962,7 @@ def handle_command(msg: Dict[str, Any], armed: bool):
                     current_tool = int(raw) if raw is not None else None
             except Exception:
                 pass
-            return {"ok": True, "tools": merged, "current_tool": current_tool, "units": get_machine_units()}
+            return {"ok": True, "tools": merged, "current_tool": current_tool}
     except Exception as e:
         return {"ok": False, "error": f"{type(e).__name__}: {e}"}
 
