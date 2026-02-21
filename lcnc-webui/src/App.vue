@@ -27,6 +27,20 @@ watch(lcncError, (newVal, oldVal) => {
   if (oldVal && !newVal) needsRefresh.value = true;
 });
 
+type BannerLevel = "none" | "error" | "refresh";
+const bannerLevel = computed<BannerLevel>(() => {
+  if (!connected.value) return "error";
+  if (lcncError.value) return "error";
+  if (needsRefresh.value) return "refresh";
+  return "none";
+});
+const bannerText = computed(() => {
+  if (!connected.value) return "Gateway disconnected — reconnecting…";
+  if (lcncError.value) return `LinuxCNC: ${lcncError.value}`;
+  if (needsRefresh.value) return "LinuxCNC reconnected — data may be stale";
+  return "";
+});
+
 function reloadPage() { location.reload(); }
 
 /** ---------- tab definitions ---------- */
@@ -683,9 +697,9 @@ watch(isHomed, (nowHomed, wasHomed) => {
       </div>
     </header>
 
-    <div v-if="needsRefresh" class="refreshBanner">
-      LinuxCNC reconnected
-      <button class="btn" @click="reloadPage">Refresh</button>
+    <div v-if="bannerLevel !== 'none'" class="statusBanner" :class="bannerLevel">
+      {{ bannerText }}
+      <button v-if="bannerLevel === 'refresh'" class="btn" @click="reloadPage">Refresh</button>
     </div>
 
     <!-- Body: sidebar (safety+status) + main content -->
@@ -829,6 +843,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
         <button
           class="btn controlBtn"
           :class="{ active: isSpinning }"
+          :disabled="!permissions.ready"
           @click.stop="toggleChip('spindle')"
         >
           <span class="controlIcon">&#x2699;</span>
@@ -930,6 +945,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
         <button
           class="btn controlBtn"
           :class="{ active: coolantActive }"
+          :disabled="!permissions.ready"
           @click.stop="toggleChip('coolant')"
         >
           <span class="controlIcon">&#x1F4A7;</span>
@@ -1183,17 +1199,25 @@ watch(isHomed, (nowHomed, wasHomed) => {
   background: color-mix(in oklab, var(--panel) 50%, transparent);
 }
 
-.refreshBanner {
+.statusBanner {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 12px;
   padding: 8px 16px;
-  background: color-mix(in oklab, #ffdd00 20%, var(--panel));
+  min-height: 40px;
   color: var(--fg);
   font-size: 13px;
   font-weight: 500;
   flex-shrink: 0;
+}
+
+.statusBanner.error {
+  background: color-mix(in oklab, var(--danger) 25%, var(--panel));
+}
+
+.statusBanner.refresh {
+  background: color-mix(in oklab, #ffdd00 20%, var(--panel));
 }
 
 .bodyLayout {
