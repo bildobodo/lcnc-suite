@@ -298,6 +298,7 @@ const activeGcodes = computed(() => {
   const raw = st.value.gcodes;
   if (!Array.isArray(raw)) return "-";
   return raw
+    .slice(1)  // index 0 is N-word sequence number, not a G-code
     .filter((v: number) => v >= 0)
     .sort((a: number, b: number) => a - b)
     .map((v: number) => `G${(v / 10).toFixed(v % 10 ? 1 : 0)}`)
@@ -308,19 +309,15 @@ const activeMcodes = computed(() => {
   const raw = st.value.mcodes;
   if (!Array.isArray(raw)) return "-";
   return raw
+    .slice(1)  // index 0 is N-word sequence number, not an M-code
     .filter((v: number) => v >= 0)
     .sort((a: number, b: number) => a - b)
     .map((v: number) => `M${v}`)
     .join(" ") || "-";
 });
 
-// Linear unit system (derived from active G20/G21)
-const linearUnit = computed(() => {
-  const raw = st.value.gcodes;
-  if (!Array.isArray(raw)) return "mm";
-  if (raw.includes(200)) return "in";   // G20 = inches
-  return "mm";                           // G21 (210) or default
-});
+// Machine native unit (from INI [TRAJ]LINEAR_UNITS — static, not affected by G20/G21)
+const linearUnit = computed(() => st.value.linear_units ?? "mm");
 
 // Max jog velocity from INI [DISPLAY]MAX_LINEAR_VELOCITY (u/s)
 const maxJogVel = computed(() => {
@@ -1084,7 +1081,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 
 
           <template #settings>
-            <SettingsPanel :lastReply="lastReply" :status="status" :linearUnit="linearUnit" />
+            <SettingsPanel :lastReply="lastReply" :status="status" />
           </template>
         </TabPanel>
       </div>

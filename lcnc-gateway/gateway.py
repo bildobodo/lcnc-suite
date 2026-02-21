@@ -238,6 +238,9 @@ def get_ini_config() -> dict:
         config["default_jog_velocity"] = (disp_default / vel_divisor) if disp_default else None
         config["min_jog_velocity"] = (disp_min / vel_divisor) if disp_min else None
 
+        # Machine native unit (for DRO labels, jog increments, etc.)
+        config["linear_units"] = "in" if linear_unit in ("inch", "in", "imperial") else "mm"
+
         # Jog increments [DISPLAY]
         raw_incr = ini.find("DISPLAY", "INCREMENTS")
         config["increments"] = _parse_increments(raw_incr, linear_unit) if raw_incr else None
@@ -505,6 +508,12 @@ class StatusPayload:
     interp_state: Optional[int]
     state: Optional[int]
     motion_mode: Optional[int]  # TRAJ_MODE_FREE=1, TRAJ_MODE_COORD=2, TRAJ_MODE_TELEOP=3
+    inpos: Optional[bool]       # machine is at commanded position
+    axis_mask: Optional[int]    # bitmask of configured axes (bit0=X, bit1=Y, bit2=Z, …)
+    program_units: Optional[int]  # 1=inch, 2=mm, 3=cm
+    current_line: Optional[int]   # interpreter line (read-ahead, ahead of motion_line)
+    read_line: Optional[int]      # line being parsed
+    call_level: Optional[int]     # subroutine nesting depth
 
     # offsets and positions
     g5x_index: Optional[int]  # 0=G54, 1=G55, 2=G56, etc.
@@ -522,6 +531,10 @@ class StatusPayload:
     rapid_override: Optional[float]
     feed_override_enabled: Optional[bool]
     spindle_override_enabled: Optional[bool]
+    block_delete: Optional[bool]           # block delete (/) switch
+    optional_stop: Optional[bool]          # optional stop (M1) switch
+    feed_hold_enabled: Optional[bool]      # feed hold allowed
+    adaptive_feed_enabled: Optional[bool]  # adaptive feed active
     max_velocity: Optional[float]
     max_jog_velocity: Optional[float]
     current_vel: Optional[float]
@@ -541,11 +554,17 @@ class StatusPayload:
     tool_diameter: Optional[float]
     tool_length: Optional[float]   # Z length offset (positive magnitude)
 
+    # probing
+    probe_tripped: Optional[bool]
+    probing: Optional[bool]
+    probed_position: Optional[List[float]]
+
     # coolant
     flood: Optional[bool]
     mist: Optional[bool]
 
     # INI config (static, cached)
+    linear_units: Optional[str] = None  # "mm" or "in" — machine native units from [TRAJ]LINEAR_UNITS
     default_jog_velocity: Optional[float] = None
     min_jog_velocity: Optional[float] = None
     increments: Optional[List[float]] = None
@@ -985,6 +1004,12 @@ def poll_status() -> StatusPayload:
         interp_state=safe_get("interp_state", None),
         state=safe_get("state", None),
         motion_mode=safe_get("motion_mode", None),
+        inpos=bool(safe_get("inpos", 0)),
+        axis_mask=safe_get("axis_mask", None),
+        program_units=safe_get("program_units", None),
+        current_line=safe_get("current_line", None),
+        read_line=safe_get("read_line", None),
+        call_level=safe_get("call_level", None),
         g5x_index=g5x_index,
         g5x_offset=g5x,
         g92_offset=g92,
@@ -998,6 +1023,10 @@ def poll_status() -> StatusPayload:
         rapid_override=safe_get("rapidrate", None),
         feed_override_enabled=bool(safe_get("feed_override_enabled", True)),
         spindle_override_enabled=bool(safe_get("spindle_override_enabled", True)),
+        block_delete=bool(safe_get("block_delete", 0)),
+        optional_stop=bool(safe_get("optional_stop", 0)),
+        feed_hold_enabled=bool(safe_get("feed_hold_enabled", 0)),
+        adaptive_feed_enabled=bool(safe_get("adaptive_feed_enabled", 0)),
         max_velocity=safe_get("max_velocity", None),
         max_jog_velocity=get_max_jog_velocity(),
         current_vel=current_vel,
@@ -1012,8 +1041,12 @@ def poll_status() -> StatusPayload:
         tool_number=tool_number,
         tool_diameter=tool_diameter,
         tool_length=tool_length,
+        probe_tripped=bool(safe_get("probe_tripped", 0)),
+        probing=bool(safe_get("probing", 0)),
+        probed_position=to_float_list(safe_get("probed_position", None)),
         flood=bool(safe_get("flood", 0)),
         mist=bool(safe_get("mist", 0)),
+        linear_units=ini_cfg.get("linear_units"),
         default_jog_velocity=ini_cfg.get("default_jog_velocity"),
         min_jog_velocity=ini_cfg.get("min_jog_velocity"),
         increments=ini_cfg.get("increments"),

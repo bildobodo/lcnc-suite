@@ -104,7 +104,6 @@ function onMdiKeydown(e: KeyboardEvent) {
       :machinePos="machinePos"
       :dtg="dtg"
       :g5xLabel="g5xLabel"
-      :linearUnit="linearUnit"
       :homed="homed"
       :homedJoints="homedJoints"
       @zeroAxis="emit('zeroAxis', $event)"

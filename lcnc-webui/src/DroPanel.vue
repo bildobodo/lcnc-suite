@@ -6,7 +6,6 @@ const props = defineProps<{
   machinePos: number[];
   dtg: number[];
   g5xLabel: string;
-  linearUnit: string;
   homed: boolean;
   homedJoints: boolean[];
 }>();

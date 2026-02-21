@@ -10,7 +10,6 @@ import {
 const props = defineProps<{
   lastReply?: unknown;
   status?: unknown;
-  linearUnit?: string;
 }>();
 
 function save() {
