@@ -21,7 +21,7 @@ export type Permissions = {
   jog: boolean;
   /** override: can adjust feed/spindle/rapid overrides (works during execution) */
   override: boolean;
-  /** ready: idle + homed (MDI, cycle start, spindle direction) */
+  /** ready: idle + homed (MDI, cycle start, spindle direction, coolant) */
   ready: boolean;
   /** pause: can pause a running program */
   pause: boolean;

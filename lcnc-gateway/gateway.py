@@ -487,6 +487,10 @@ class StatusPayload:
     tool_diameter: Optional[float]
     tool_length: Optional[float]   # Z length offset (positive magnitude)
 
+    # coolant
+    flood: Optional[bool]
+    mist: Optional[bool]
+
 
 
 
@@ -878,6 +882,8 @@ def poll_status() -> StatusPayload:
         tool_number=tool_number,
         tool_diameter=tool_diameter,
         tool_length=tool_length,
+        flood=bool(safe_get("flood", 0)),
+        mist=bool(safe_get("mist", 0)),
     )
 
 
@@ -1314,6 +1320,30 @@ def handle_command(msg: Dict[str, Any], armed: bool):
             require_armed(armed)
             set_mode(linuxcnc.MODE_MANUAL)
             CMD.spindle(linuxcnc.SPINDLE_OFF)
+            return {"ok": True}
+
+        if cmd == "flood_on":
+            require_armed(armed)
+            set_mode(linuxcnc.MODE_MANUAL)
+            CMD.flood(linuxcnc.FLOOD_ON)
+            return {"ok": True}
+
+        if cmd == "flood_off":
+            require_armed(armed)
+            set_mode(linuxcnc.MODE_MANUAL)
+            CMD.flood(linuxcnc.FLOOD_OFF)
+            return {"ok": True}
+
+        if cmd == "mist_on":
+            require_armed(armed)
+            set_mode(linuxcnc.MODE_MANUAL)
+            CMD.mist(linuxcnc.MIST_ON)
+            return {"ok": True}
+
+        if cmd == "mist_off":
+            require_armed(armed)
+            set_mode(linuxcnc.MODE_MANUAL)
+            CMD.mist(linuxcnc.MIST_OFF)
             return {"ok": True}
 
         if cmd == "set_rapid_override":

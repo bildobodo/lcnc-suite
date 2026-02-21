@@ -333,6 +333,18 @@ function setSpindleOvrPreset(percent: number) {
   onSpindleOvrChange();
 }
 
+// Coolant state
+const floodOn = computed(() => !!st.value.flood);
+const mistOn = computed(() => !!st.value.mist);
+const coolantActive = computed(() => floodOn.value || mistOn.value);
+
+function toggleFlood() {
+  fire({ cmd: floodOn.value ? "flood_off" : "flood_on" });
+}
+function toggleMist() {
+  fire({ cmd: mistOn.value ? "mist_off" : "mist_on" });
+}
+
 function formatRpm(val: number | null): string {
   if (val == null || !Number.isFinite(val)) return "\u2014";
   return Math.round(val).toLocaleString();
@@ -667,6 +679,12 @@ watch(isHomed, (nowHomed, wasHomed) => {
             <div class="statusRow"><div class="k">Enabled</div><div class="v" :class="isEnabled ? 'okText' : 'mutedText'">{{ isEnabled ? 'TRUE' : 'FALSE' }}</div></div>
             <div class="statusRow"><div class="k">Homed</div><div class="v" :class="isHomed ? 'okText' : 'badText'">{{ isHomed ? 'TRUE' : 'FALSE' }}</div></div>
             <div class="statusRow"><div class="k">Motion</div><div class="v">{{ isTeleop ? 'WORLD' : 'JOINT' }}</div></div>
+            <button
+              class="btn popoverAction"
+              :class="{ primary: !isHomed }"
+              :disabled="!permissions.idle"
+              @click="isHomed ? unhomeAll() : homeAll()"
+            >{{ isHomed ? 'Unhome' : 'Home All' }}</button>
           </div>
         </div>
 
@@ -746,6 +764,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
     <section class="card">
       <div class="sub">Controls</div>
       <div class="controlBtns">
+        <div class="controlGroup">
         <button
           class="btn controlBtn"
           :class="{ active: isSpinning }"
@@ -843,6 +862,39 @@ watch(isHomed, (nowHomed, wasHomed) => {
               <button v-for="p in [50, 100, 150, 200]" :key="'sp'+p" class="ovrPresetBtn" :disabled="!permissions.override" @click="setSpindleOvrPreset(p)">{{ p }}%</button>
             </div>
           </div>
+        </div>
+        </div>
+
+        <div class="controlGroup">
+        <button
+          class="btn controlBtn"
+          :class="{ active: coolantActive }"
+          @click.stop="toggleChip('coolant')"
+        >
+          <span class="controlIcon">&#x1F4A7;</span>
+          <span class="controlLabel">Coolant</span>
+          <span class="controlStatus">{{ coolantActive ? (floodOn && mistOn ? 'BOTH' : (floodOn ? 'FLOOD' : 'MIST')) : 'OFF' }}</span>
+        </button>
+        <div class="popover coolantPopover" :class="{ open: openChip === 'coolant' }" @click.stop>
+          <div class="coolantRow">
+            <span class="coolantLabel">Flood</span>
+            <button
+              class="btn coolantToggle"
+              :class="floodOn ? 'active' : ''"
+              :disabled="!permissions.ready"
+              @click="toggleFlood"
+            >{{ floodOn ? 'ON' : 'OFF' }}</button>
+          </div>
+          <div class="coolantRow">
+            <span class="coolantLabel">Mist</span>
+            <button
+              class="btn coolantToggle"
+              :class="mistOn ? 'active' : ''"
+              :disabled="!permissions.ready"
+              @click="toggleMist"
+            >{{ mistOn ? 'ON' : 'OFF' }}</button>
+          </div>
+        </div>
         </div>
       </div>
     </section>
@@ -1151,20 +1203,6 @@ watch(isHomed, (nowHomed, wasHomed) => {
   color: var(--fg);
 }
 
-.controlGroups {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 10px;
-}
-
-.controlGroup {
-  flex: 1;
-  padding: 12px;
-  border: 1px solid color-mix(in oklab, var(--border) 50%, transparent);
-  border-radius: 8px;
-  background: color-mix(in oklab, var(--panel) 30%, transparent);
-}
-
 .groupTitle {
   font-size: 11px;
   font-weight: 600;
@@ -1260,19 +1298,24 @@ watch(isHomed, (nowHomed, wasHomed) => {
   padding: 8px 14px;
   border-radius: 8px;
   border: 1px solid var(--border);
-  background: color-mix(in oklab, var(--panel) 30%, transparent);
+  background: var(--button-bg);
   cursor: default;
   flex: 1;
   min-width: 100px;
+  transition: background 0.12s, border-color 0.12s;
 }
 
-.statusChip.ok { border-color: color-mix(in srgb, var(--ok) 50%, transparent); background: color-mix(in oklab, var(--ok) 20%, var(--panel)); }
-.statusChip.bad { border-color: color-mix(in srgb, var(--danger) 50%, transparent); background: color-mix(in oklab, var(--danger) 20%, var(--panel)); }
+.statusChip:hover {
+  background: color-mix(in oklab, var(--fg) 12%, var(--button-bg));
+}
+
+.statusChip.ok { border-color: color-mix(in srgb, var(--ok) 50%, transparent); background: color-mix(in oklab, var(--ok) 20%, var(--button-bg)); }
+.statusChip.bad { border-color: color-mix(in srgb, var(--danger) 50%, transparent); background: color-mix(in oklab, var(--danger) 20%, var(--button-bg)); }
 .statusChip.warn { border-color: #b8860b80; animation: flash-chip-warn 1.2s ease-in-out infinite; }
 
 @keyframes flash-chip-warn {
-  0%, 100% { background: color-mix(in oklab, #b8860b 25%, var(--panel)); }
-  50% { background: color-mix(in oklab, #b8860b 10%, var(--panel)); }
+  0%, 100% { background: color-mix(in oklab, #b8860b 25%, var(--button-bg)); }
+  50% { background: color-mix(in oklab, #b8860b 10%, var(--button-bg)); }
 }
 
 .chipIcon { display: none; font-size: 16px; }
@@ -1292,6 +1335,17 @@ watch(isHomed, (nowHomed, wasHomed) => {
   display: flex !important;
   flex-direction: column;
   gap: 6px;
+}
+
+.popoverAction {
+  margin-top: 4px;
+  width: 100%;
+  padding: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.popoverAction.primary {
+  background: color-mix(in oklab, var(--ok) 20%, var(--button-bg));
 }
 
 .programPopover {
@@ -1353,7 +1407,8 @@ watch(isHomed, (nowHomed, wasHomed) => {
 }
 
 /* ---- Controls section (Spindle button + popover) ---- */
-.controlBtns { position: relative; }
+.controlBtns { display: flex; flex-direction: column; gap: 8px; }
+.controlGroup { position: relative; }
 
 .controlBtn {
   width: 100%;
@@ -1507,6 +1562,40 @@ watch(isHomed, (nowHomed, wasHomed) => {
   flex-wrap: wrap;
 }
 
+/* ---- Coolant popover ---- */
+.coolantPopover {
+  top: 0;
+  left: 100%;
+  margin-left: 6px;
+  min-width: 200px;
+}
+.coolantPopover.open {
+  display: flex !important;
+  flex-direction: column;
+  gap: 10px;
+}
+.coolantRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.coolantLabel {
+  font-size: 13px;
+  font-weight: 600;
+}
+.coolantToggle {
+  min-width: 60px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 8px;
+}
+.coolantToggle.active {
+  border-color: color-mix(in srgb, var(--ok) 50%, transparent);
+  background: color-mix(in oklab, var(--ok) 25%, var(--button-bg));
+}
+
 /* ---- Messages popover ---- */
 .messagesPopover { min-width: 320px; max-height: 400px; }
 .msgPopHeader { display: flex; justify-content: space-between; align-items: center; }
@@ -1643,10 +1732,10 @@ watch(isHomed, (nowHomed, wasHomed) => {
 
 /* ---- Responsive: tablet landscape / narrow desktop (768–1199px) ---- */
 @media (max-width: 1199px) and (min-width: 768px) {
-  .statusGroups, .controlGroups {
+  .statusGroups {
     flex-wrap: wrap;
   }
-  .statusGroup, .controlGroup {
+  .statusGroup {
     min-width: calc(50% - 6px);
   }
 }
