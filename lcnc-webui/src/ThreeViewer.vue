@@ -88,8 +88,6 @@ import { loadViewerDefaults, ALL_LAYERS, type Vec3, type ColorDefaults, type Opa
 import JogHUD from "./JogHUD.vue";
 import GcodeHUD from "./GcodeHUD.vue";
 import SetupHUD from "./SetupHUD.vue";
-import SpindleHUD from "./SpindleHUD.vue";
-import OverrideHUD from "./OverrideHUD.vue";
 
 const viewerDefaults = loadViewerDefaults();
 
@@ -158,11 +156,6 @@ const props = defineProps<{
   jogIncrement?: number;
   minJogVel?: number;
   iniIncrements?: number[] | null;
-  minSpindleSpeed?: number;
-  maxSpindleSpeed?: number;
-  minSpindleOverride?: number;
-  maxSpindleOverride?: number;
-  maxFeedOverride?: number;
   gcodeContent?: string | null;
   currentLine?: number | null;
   isPaused?: boolean;
@@ -170,9 +163,6 @@ const props = defineProps<{
   spindleSpeed?: number | null;
   spindleActual?: number | null;
   spindleDirection?: number | null;
-  spindleOverride?: number | null;
-  feedOverride?: number | null;
-  rapidOverride?: number | null;
 }>();
 
 const emit = defineEmits<{
@@ -186,27 +176,15 @@ const emit = defineEmits<{
   (e: "unhomeAll"): void;
   (e: "zeroAxis", axis: number): void;
   (e: "zeroAll"): void;
-  (e: "spindleForward", speed: number): void;
-  (e: "spindleReverse", speed: number): void;
-  (e: "spindleStop"): void;
-  (e: "setSpindleOverride", scale: number): void;
-  (e: "setFeedOverride", scale: number): void;
-  (e: "setRapidOverride", scale: number): void;
 }>();
 
 // HUD data (read from status for template)
 const vst = computed(() => status.value?.data ?? null);
 
-const overridesActive = computed(() =>
-  (props.feedOverride != null && props.feedOverride !== 1.0) ||
-  (props.spindleOverride != null && props.spindleOverride !== 1.0) ||
-  (props.rapidOverride != null && props.rapidOverride !== 1.0)
-);
-
 // ---------- DOM ----------
 const host = ref<HTMLDivElement | null>(null);
 const hudVisible = ref(true);
-type HudPanel = "none" | "jog" | "gcode" | "setup" | "spindle" | "overrides";
+type HudPanel = "none" | "jog" | "gcode" | "setup";
 const activeHudPanel = ref<HudPanel>("none");
 function toggleHud(panel: HudPanel) { activeHudPanel.value = activeHudPanel.value === panel ? "none" : panel; }
 
@@ -1243,8 +1221,6 @@ defineExpose({
         <button class="hudPill" :class="{ active: activeHudPanel === 'jog' }" @click="toggleHud('jog')">Jog</button>
         <button class="hudPill" :class="{ active: activeHudPanel === 'gcode' }" @click="toggleHud('gcode')">Program</button>
         <button class="hudPill" :class="{ active: activeHudPanel === 'setup' }" @click="toggleHud('setup')">Setup</button>
-        <button class="hudPill" :class="{ active: activeHudPanel === 'spindle' }" @click="toggleHud('spindle')">Spindle</button>
-        <button class="hudPill" :class="{ active: activeHudPanel === 'overrides', warn: overridesActive }" @click="toggleHud('overrides')">Overrides</button>
       </div>
 
       <div v-show="activeHudPanel === 'jog'">
@@ -1279,37 +1255,6 @@ defineExpose({
           @unhomeAll="emit('unhomeAll')"
           @zeroAxis="emit('zeroAxis', $event)"
           @zeroAll="emit('zeroAll')"
-        />
-      </div>
-
-      <div v-show="activeHudPanel === 'spindle'">
-        <SpindleHUD
-          :spindleSpeed="props.spindleSpeed ?? null"
-          :spindleActual="props.spindleActual ?? null"
-          :spindleDirection="props.spindleDirection ?? null"
-          :spindleOverride="props.spindleOverride ?? null"
-          :minSpindleSpeed="props.minSpindleSpeed ?? 0"
-          :maxSpindleSpeed="props.maxSpindleSpeed ?? 99999"
-          :minSpindleOverride="props.minSpindleOverride ?? 50"
-          :maxSpindleOverride="props.maxSpindleOverride ?? 200"
-          @spindleForward="emit('spindleForward', $event)"
-          @spindleReverse="emit('spindleReverse', $event)"
-          @spindleStop="emit('spindleStop')"
-          @setSpindleOverride="emit('setSpindleOverride', $event)"
-        />
-      </div>
-
-      <div v-show="activeHudPanel === 'overrides'">
-        <OverrideHUD
-          :feedOverride="props.feedOverride ?? null"
-          :spindleOverride="props.spindleOverride ?? null"
-          :rapidOverride="props.rapidOverride ?? null"
-          :maxFeedOverride="props.maxFeedOverride ?? 200"
-          :minSpindleOverride="props.minSpindleOverride ?? 50"
-          :maxSpindleOverride="props.maxSpindleOverride ?? 200"
-          @setFeedOverride="emit('setFeedOverride', $event)"
-          @setSpindleOverride="emit('setSpindleOverride', $event)"
-          @setRapidOverride="emit('setRapidOverride', $event)"
         />
       </div>
     </div>
