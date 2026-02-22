@@ -109,7 +109,7 @@ BY USING THIS SOFTWARE, YOU EXPRESSLY ACKNOWLEDGE AND ASSUME ALL RISKS ASSOCIATE
 
 ### Gateway (lcnc-gateway)
 
-- **Real-time Status**: 10 Hz machine state updates via WebSocket
+- **Real-time Status**: 30 Hz machine state updates via WebSocket
 - **Full Machine Control**: E-stop, enable, jog, MDI, auto run
 - **Three-Layer Safety System**:
   - Connection-level arming to prevent accidental commands
@@ -123,6 +123,7 @@ BY USING THIS SOFTWARE, YOU EXPRESSLY ACKNOWLEDGE AND ASSUME ALL RISKS ASSOCIATE
 - **Tool Management**: Tool number, diameter, and length offset tracking
 - **G-code Parser**: Preview generator for feed and rapid moves (G0/G1/G2/G3)
 - **G-code File Management**: Upload, browse, and load G-code files via REST API
+- **Probe Support**: 1 Hz polling of probe variables (#3032 cal offset) and probe result HAL pins (M68 analog outputs E0-E11)
 - **Error Channel**: Real-time LinuxCNC error/message forwarding
 - **STL Model Serving**: Static file server for 3D machine models
 
@@ -138,6 +139,9 @@ BY USING THIS SOFTWARE, YOU EXPRESSLY ACKNOWLEDGE AND ASSUME ALL RISKS ASSOCIATE
 - G-code file browser with drag-and-drop upload
 - G-code viewer with syntax highlighting, program controls, and progress bar
 - 3D machine visualization with Three.js (colorized toolpath, backplot, HUD overlays)
+- Probe panel with 6 views: Outside/Inside Corners (3x3 grid), Boss/Pocket, Ridge/Valley, Edge Angle, and Calibrate (round/rect)
+- Probe results grid (X/Y/Z probed, diameter, width, center, edge angle) from HAL analog output pins
+- Calibration offset display with reset in always-visible control bar
 - HUD overlay pills on 3D viewer: jog, gcode, spindle, override, and setup controls
 - Centralized permission system via Vue provide/inject — all button enable/disable logic defined once:
 
@@ -146,7 +150,7 @@ BY USING THIS SOFTWARE, YOU EXPRESSLY ACKNOWLEDGE AND ASSUME ALL RISKS ASSOCIATE
 | `idle` | base, idle, not busy | Home All, Unhome, Zero X/Y/Z, Zero All, G5x select, file Reload/Unload/Browse/Upload |
 | `jog` | base, idle, homed | Jog X+/X-/Y+/Y-/Z+/Z-, speed slider, increment select, teleop toggle, keyboard jog |
 | `override` | base, not busy | Feed/Spindle/Rapid override sliders + presets, Reset All |
-| `ready` | base, idle, not busy, homed | MDI input + Send, Cycle Start, Spindle FWD/REV/STOP, RPM input, Flood/Mist toggle |
+| `ready` | base, idle, not busy, homed | MDI input + Send, Cycle Start, Spindle FWD/REV/STOP, RPM input, Flood/Mist toggle, all probe buttons + inputs |
 | `pause` | base, running, not paused | Pause |
 | `resume` | base, paused | Resume |
 | `abort` | armed | Abort |
@@ -263,7 +267,7 @@ Machine model configuration (sent once per connection):
 ```
 
 #### `status`
-Full machine status (10 Hz):
+Full machine status (30 Hz):
 ```json
 {
   "type": "status",
@@ -294,29 +298,26 @@ Full machine status (10 Hz):
     "motion_line": 42,
     "tool_number": 1,
     "tool_diameter": 6.0,
-    "tool_length": 50.0
+    "tool_length": 50.0,
+    "flood": false,
+    "mist": false,
+    "probe_tripped": false,
+    "probing": false,
+    "probed_position": [0.0, 0.0, 0.0]
   },
   "errors": [],
   "clients": [
     {"ip": "192.168.1.42", "armed": true},
     {"ip": "192.168.1.10", "armed": false}
-  ]
-}
-```
-
-#### `viewer_state`
-Lightweight state for 3D rendering (10 Hz):
-```json
-{
-  "type": "viewer_state",
-  "data": {
-    "ts": 1234567890.123,
-    "machine_pos": [10.5, 20.3, 5.0],
-    "joint_pos": [10.5, 20.3, 5.0],
-    "work_pos": [0.0, 0.0, 0.0],
-    "tool_number": 1,
-    "tool_diameter": 6.0,
-    "tool_length": 50.0
+  ],
+  "probe_vars": {"3032": 0.0123},
+  "probe_results": {
+    "x_minus": 10.5, "x_plus": 20.3,
+    "y_minus": 5.0, "y_plus": 15.2,
+    "z_minus": -3.5,
+    "diameter": 25.4, "x_width": 50.0, "y_width": 30.0,
+    "x_center": 15.4, "y_center": 10.1,
+    "edge_angle": 0.0, "edge_delta": 0.0
   }
 }
 ```
@@ -423,6 +424,24 @@ Clients should send a heartbeat every 1 second. If the gateway doesn't receive a
 - Spindle: 0.5-2.0 (50-200%)
 - Rapid: 0.0-1.0 (0-100%)
 
+#### Coolant
+```json
+{"cmd": "flood_on"}
+{"cmd": "flood_off"}
+{"cmd": "mist_on"}
+{"cmd": "mist_off"}
+```
+
+#### Probing
+```json
+{"cmd": "set_probe_vars", "vars": {"3014": 50.0, "3015": 5.0}}
+{"cmd": "get_probe_vars", "nums": ["3014", "3015", "3032"]}
+{"cmd": "list_probe_macros"}
+{"cmd": "simulate_probe_trip"}
+```
+
+`set_probe_vars` writes variables to the LinuxCNC parameter file and sets them via MDI. `probe_vars` (#3032 cal offset) and `probe_results` (HAL analog output pins from probe subroutines) are polled at 1 Hz and included in `status` messages automatically.
+
 ### Error Handling
 
 All commands return a reply:
@@ -493,7 +512,7 @@ The gateway is completely UI-agnostic. To build your own interface:
 
 1. **Connect to WebSocket**: `ws://<gateway-host>:8000/ws`
 2. **Receive `viewer_init`**: Get machine configuration
-3. **Receive `status` messages**: Update your UI @ 10 Hz
+3. **Receive `status` messages**: Update your UI @ 30 Hz
 4. **Send commands**: Control the machine via JSON messages
 5. **Handle replies**: Process command responses and errors
 
@@ -563,7 +582,7 @@ Edit the `build_viewer_init()` function in `gateway.py` to match your machine's 
 
 ### Polling Rate
 
-Adjust `POLL_HZ` in `gateway.py` (default: 10 Hz).
+Adjust `POLL_HZ` in `gateway.py` (default: 30 Hz).
 
 ## Project Structure
 
@@ -587,11 +606,13 @@ lcnc-suite/
 │   │   ├── TabPanel.vue       # Tab selector for content panels
 │   │   ├── ThreeViewer.vue    # 3D machine visualization
 │   │   ├── ManualPanel.vue    # DRO + jogging + MDI (consolidated)
+│   │   ├── DroPanel.vue       # Digital readout with G5x, zero, home
+│   │   ├── JogPanel.vue       # Jog wheel + speed/increment controls
 │   │   ├── JogButton.vue      # Reusable jog button
 │   │   ├── GcodePanel.vue     # G-code viewer + program controls
+│   │   ├── ProbePanel.vue     # Probe operations + calibration + results
 │   │   ├── ToolTablePanel.vue # Tool table editor
 │   │   ├── SettingsPanel.vue  # Application settings
-│   │   ├── MessagesPanel.vue  # Error/message log
 │   │   ├── JogHUD.vue         # Jog overlay pill
 │   │   ├── GcodeHUD.vue       # G-code overlay pill
 │   │   ├── SpindleHUD.vue     # Spindle overlay pill

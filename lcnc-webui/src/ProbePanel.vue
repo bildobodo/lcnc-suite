@@ -200,6 +200,7 @@ const statusClass = computed(() => {
 
 // ─── Run probe ────────────────────────────────────────────────────
 function runGridProbe(op: GridOp) {
+  if (!can.ready || props.probing) return;
   activeGridOp.value = op.id;
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...params.value, autoZero: autoZero.value }));
   const vars = buildVarMap(autoZero.value ? 0 : 1);
@@ -209,6 +210,7 @@ function runGridProbe(op: GridOp) {
 }
 
 function runBossProbe(op: GridOp) {
+  if (!can.ready || props.probing) return;
   activeBossOp.value = op.id;
   activeGridOp.value = op.id;
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...params.value, autoZero: autoZero.value }));
@@ -219,6 +221,7 @@ function runBossProbe(op: GridOp) {
 }
 
 function runRidgeProbe(op: GridOp) {
+  if (!can.ready || props.probing) return;
   activeGridOp.value = op.id;
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...params.value, autoZero: autoZero.value }));
   const vars = buildVarMap(autoZero.value ? 0 : 1);
@@ -228,6 +231,7 @@ function runRidgeProbe(op: GridOp) {
 }
 
 function runAngleProbe(op: GridOp) {
+  if (!can.ready || props.probing) return;
   activeGridOp.value = op.id;
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...params.value, autoZero: autoZero.value }));
   const vars = buildVarMap(autoZero.value ? 0 : 1);
@@ -237,6 +241,7 @@ function runAngleProbe(op: GridOp) {
 }
 
 function runCalProbe(macro: string) {
+  if (!can.ready || props.probing) return;
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...params.value, autoZero: autoZero.value }));
   const vars = buildVarMap(autoZero.value ? 0 : 1);
   vars["3036"] = calAxis.value;
@@ -246,6 +251,7 @@ function runCalProbe(macro: string) {
 }
 
 function resetCal() {
+  if (!can.ready || props.probing) return;
   emit("mdi", `O<probe_cal_reset> CALL`);
 }
 
@@ -276,7 +282,7 @@ function fmtR(key: string): string {
     <!-- Control bar -->
     <div class="controlBar">
       <label class="checkRow">
-        <input type="checkbox" v-model="autoZero" @change="saveParams" />
+        <input type="checkbox" v-model="autoZero" :disabled="!can.ready" @change="saveParams" />
         Auto Zero
       </label>
       <span class="calOffsetGroup">
@@ -556,11 +562,11 @@ function fmtR(key: string): string {
       <!-- Hint parameters (inline) -->
       <div class="inlineParams">
         <label>Diameter <span class="varNum">#3025</span></label>
-        <input type="number" v-model.number="params.diameterHint" min="0" step="0.5" @change="saveParams" />
+        <input type="number" v-model.number="params.diameterHint" min="0" step="0.5" :disabled="!can.ready" @change="saveParams" />
         <label>X Hint <span class="varNum">#3026</span></label>
-        <input type="number" v-model.number="params.xHintBP" min="0" step="0.5" @change="saveParams" />
+        <input type="number" v-model.number="params.xHintBP" min="0" step="0.5" :disabled="!can.ready" @change="saveParams" />
         <label>Y Hint <span class="varNum">#3027</span></label>
-        <input type="number" v-model.number="params.yHintBP" min="0" step="0.5" @change="saveParams" />
+        <input type="number" v-model.number="params.yHintBP" min="0" step="0.5" :disabled="!can.ready" @change="saveParams" />
       </div>
     </template>
 
@@ -660,9 +666,9 @@ function fmtR(key: string): string {
       <!-- Angle parameters (inline) -->
       <div class="inlineParams">
         <label>Edge Width <span class="varNum">#3024</span></label>
-        <input type="number" v-model.number="params.edgeWidth" min="0.1" step="0.1" @change="saveParams" />
+        <input type="number" v-model.number="params.edgeWidth" min="0.1" step="0.1" :disabled="!can.ready" @change="saveParams" />
         <label class="checkRow">
-          <input type="checkbox" :checked="params.wcoRotation === 1" @change="params.wcoRotation = ($event.target as HTMLInputElement).checked ? 1 : 0; saveParams()" />
+          <input type="checkbox" :checked="params.wcoRotation === 1" :disabled="!can.ready" @change="params.wcoRotation = ($event.target as HTMLInputElement).checked ? 1 : 0; saveParams()" />
           Set Rotation WCO
         </label>
       </div>
@@ -701,7 +707,7 @@ function fmtR(key: string): string {
           <div class="calParamStacked">
             <div class="calParamRow">
               <label>Diameter <span class="varNum">#3033</span></label>
-              <input type="number" v-model.number="params.calDiameter" min="0" step="0.001" @change="saveParams" />
+              <input type="number" v-model.number="params.calDiameter" min="0" step="0.001" :disabled="!can.ready" @change="saveParams" />
             </div>
           </div>
         </div>
@@ -738,11 +744,11 @@ function fmtR(key: string): string {
           <div class="calParamStacked">
             <div class="calParamRow">
               <label>X Width <span class="varNum">#3034</span></label>
-              <input type="number" v-model.number="params.xCalWidth" min="0" step="0.001" @change="saveParams" />
+              <input type="number" v-model.number="params.xCalWidth" min="0" step="0.001" :disabled="!can.ready" @change="saveParams" />
             </div>
             <div class="calParamRow">
               <label>Y Width <span class="varNum">#3035</span></label>
-              <input type="number" v-model.number="params.yCalWidth" min="0" step="0.001" @change="saveParams" />
+              <input type="number" v-model.number="params.yCalWidth" min="0" step="0.001" :disabled="!can.ready" @change="saveParams" />
             </div>
           </div>
         </div>
@@ -752,9 +758,9 @@ function fmtR(key: string): string {
       <div class="section">
         <div class="calParamTitle">Calibrate on:</div>
         <div class="calAxisRow">
-          <button class="calAxisBtn" :class="{ active: calAxis === 0 }" @click="calAxis = 0">Avg XY</button>
-          <button class="calAxisBtn" :class="{ active: calAxis === 1 }" @click="calAxis = 1">X Error</button>
-          <button class="calAxisBtn" :class="{ active: calAxis === 2 }" @click="calAxis = 2">Y Error</button>
+          <button class="calAxisBtn" :class="{ active: calAxis === 0 }" :disabled="!can.ready" @click="calAxis = 0">Avg XY</button>
+          <button class="calAxisBtn" :class="{ active: calAxis === 1 }" :disabled="!can.ready" @click="calAxis = 1">X Error</button>
+          <button class="calAxisBtn" :class="{ active: calAxis === 2 }" :disabled="!can.ready" @click="calAxis = 2">Y Error</button>
         </div>
       </div>
     </template>
@@ -832,9 +838,9 @@ function fmtR(key: string): string {
       <!-- Hint parameters (inline) -->
       <div class="inlineParams">
         <label>X Hint <span class="varNum">#3028</span></label>
-        <input type="number" v-model.number="params.xHintRV" min="0" step="0.5" @change="saveParams" />
+        <input type="number" v-model.number="params.xHintRV" min="0" step="0.5" :disabled="!can.ready" @change="saveParams" />
         <label>Y Hint <span class="varNum">#3029</span></label>
-        <input type="number" v-model.number="params.yHintRV" min="0" step="0.5" @change="saveParams" />
+        <input type="number" v-model.number="params.yHintRV" min="0" step="0.5" :disabled="!can.ready" @change="saveParams" />
       </div>
     </template>
 
@@ -845,34 +851,34 @@ function fmtR(key: string): string {
       <div class="sub">Parameters</div>
       <div class="paramGrid twoCol">
         <label>Probe Tool # <span class="varNum">#3014</span></label>
-        <input type="number" v-model.number="params.probeTool" min="1" step="1" @change="saveParams" />
+        <input type="number" v-model.number="params.probeTool" min="1" step="1" :disabled="!can.ready" @change="saveParams" />
 
         <label>Probe Slow FRate <span class="varNum">#3015</span></label>
-        <input type="number" v-model.number="params.slowFr" min="0" step="1" @change="saveParams" />
+        <input type="number" v-model.number="params.slowFr" min="0" step="1" :disabled="!can.ready" @change="saveParams" />
 
         <label>Probe Traverse FR <span class="varNum">#3017</span></label>
-        <input type="number" v-model.number="params.traverseFr" min="1" step="100" @change="saveParams" />
+        <input type="number" v-model.number="params.traverseFr" min="1" step="100" :disabled="!can.ready" @change="saveParams" />
 
         <label>Probe Fast FRate <span class="varNum">#3016</span></label>
-        <input type="number" v-model.number="params.fastFr" min="1" step="10" @change="saveParams" />
+        <input type="number" v-model.number="params.fastFr" min="1" step="10" :disabled="!can.ready" @change="saveParams" />
 
         <label>Max X/Y Distance <span class="varNum">#3018</span></label>
-        <input type="number" v-model.number="params.maxXYDistance" min="0" step="0.5" @change="saveParams" />
+        <input type="number" v-model.number="params.maxXYDistance" min="0" step="0.5" :disabled="!can.ready" @change="saveParams" />
 
         <label>X/Y Clearance <span class="varNum">#3019</span></label>
-        <input type="number" v-model.number="params.xyClearance" min="0" step="0.1" @change="saveParams" />
+        <input type="number" v-model.number="params.xyClearance" min="0" step="0.1" :disabled="!can.ready" @change="saveParams" />
 
         <label>Max Z Distance <span class="varNum">#3020</span></label>
-        <input type="number" v-model.number="params.maxZDistance" min="0" step="0.5" @change="saveParams" />
+        <input type="number" v-model.number="params.maxZDistance" min="0" step="0.5" :disabled="!can.ready" @change="saveParams" />
 
         <label>Z Clearance <span class="varNum">#3021</span></label>
-        <input type="number" v-model.number="params.zClearance" min="0" step="0.1" @change="saveParams" />
+        <input type="number" v-model.number="params.zClearance" min="0" step="0.1" :disabled="!can.ready" @change="saveParams" />
 
         <label>Extra Probe Depth <span class="varNum">#3022</span></label>
-        <input type="number" v-model.number="params.extraProbeDepth" min="0" step="0.1" @change="saveParams" />
+        <input type="number" v-model.number="params.extraProbeDepth" min="0" step="0.1" :disabled="!can.ready" @change="saveParams" />
 
         <label>Step Off Width <span class="varNum">#3023</span></label>
-        <input type="number" v-model.number="params.stepOffWidth" min="0.1" step="0.5" @change="saveParams" />
+        <input type="number" v-model.number="params.stepOffWidth" min="0.1" step="0.5" :disabled="!can.ready" @change="saveParams" />
       </div>
     </div>
 
