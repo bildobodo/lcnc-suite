@@ -24,30 +24,9 @@ const emit = defineEmits<{
 const can = usePermissions();
 
 // ─── Sub-view navigation ──────────────────────────────────────────
-const probeView = ref<"edge" | "outside" | "inside" | "boss" | "ridge">("outside");
+const probeView = ref<"outside" | "inside" | "boss" | "ridge" | "angle">("outside");
 
-// ─── Edge probe operations (single-axis) ──────────────────────────
-type ProbeOp = {
-  id: string;
-  label: string;
-  macro: string;
-  wcoMacro: string;
-  axisIdx: number;      // 0=X, 1=Y, 2=Z
-  description: string;
-};
-
-const operations: ProbeOp[] = [
-  { id: "x+", label: "X+", macro: "probe_x_plus",  wcoMacro: "probe_x_plus_wco",  axisIdx: 0, description: "Place probe left of workpiece face" },
-  { id: "x-", label: "X−", macro: "probe_x_minus", wcoMacro: "probe_x_minus_wco", axisIdx: 0, description: "Place probe right of workpiece face" },
-  { id: "y+", label: "Y+", macro: "probe_y_plus",  wcoMacro: "probe_y_plus_wco",  axisIdx: 1, description: "Place probe in front of workpiece face" },
-  { id: "y-", label: "Y−", macro: "probe_y_minus", wcoMacro: "probe_y_minus_wco", axisIdx: 1, description: "Place probe behind workpiece face" },
-  { id: "z-", label: "Z−", macro: "probe_z_minus", wcoMacro: "probe_z_minus_wco", axisIdx: 2, description: "Place probe above workpiece surface" },
-];
-
-const selectedOp = ref<string>("x+");
-const currentOp = computed(() => operations.find(o => o.id === selectedOp.value)!);
-
-// ─── Outside corners 3x3 grid ─────────────────────────────────────
+// ─── Grid probe operations ────────────────────────────────────────
 type GridOp = {
   id: string;
   label: string;
@@ -97,9 +76,20 @@ const ridgeGrid: GridOp[] = [
   { id: "vyc", label: "Valley Y C", macro: "probe_valley_y_center_start",  description: "Probe valley in Y axis (center start)" },
 ];
 
+const angleGrid: GridOp[] = [
+  { id: "cx+", label: "BL",  macro: "probe_corner_x_plus_edge_angle",  description: "Back-left corner angle" },
+  { id: "tb",  label: "B",   macro: "probe_top_back_edge_angle",       description: "Back edge angle" },
+  { id: "cy-", label: "BR",  macro: "probe_corner_y_minus_edge_angle", description: "Back-right corner angle" },
+  { id: "tl",  label: "L",   macro: "probe_top_left_edge_angle",       description: "Left edge angle" },
+  { id: "z",   label: "Z",   macro: "probe_z_minus_wco",              description: "Z surface" },
+  { id: "tr",  label: "R",   macro: "probe_top_right_edge_angle",      description: "Right edge angle" },
+  { id: "cy+", label: "FL",  macro: "probe_corner_y_plus_edge_angle",  description: "Front-left corner angle" },
+  { id: "tf",  label: "F",   macro: "probe_top_front_edge_angle",      description: "Front edge angle" },
+  { id: "cx-", label: "FR",  macro: "probe_corner_x_minus_edge_angle", description: "Front-right corner angle" },
+];
+
 const activeGridOp = ref<string | null>(null);
 const activeBossOp = ref<string>("rb");
-const bossOpIsRound = computed(() => ["rb", "rp", "rpc"].includes(activeBossOp.value));
 
 // ─── Parameters ───────────────────────────────────────────────────
 // Parameter order matches config v0.2 subroutines:
@@ -120,6 +110,7 @@ const params = ref({
   yHintBP: 0.0,
   xHintRV: 0.0,
   yHintRV: 0.0,
+  wcoRotation: 0,
 });
 
 const autoZero = ref(false);
@@ -145,6 +136,7 @@ function buildVarMap(probeMode: number): Record<string, number> {
     "3028": p.xHintRV,
     "3029": p.yHintRV,
     "3030": probeMode,       // 0 = set WCO, 1 = measure only
+    "3031": p.wcoRotation,
     "3032": p.calOffset,
   };
 }
@@ -188,6 +180,7 @@ watch(() => props.initialVars, (vars) => {
   if (vars["3027"] != null) p.yHintBP = vars["3027"];
   if (vars["3028"] != null) p.xHintRV = vars["3028"];
   if (vars["3029"] != null) p.yHintRV = vars["3029"];
+  if (vars["3031"] != null) p.wcoRotation = vars["3031"];
   if (vars["3032"] != null) p.calOffset = vars["3032"];
   // Persist to localStorage
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...params.value, autoZero: autoZero.value }));
@@ -209,17 +202,6 @@ const statusClass = computed(() => {
 });
 
 // ─── Run probe ────────────────────────────────────────────────────
-function runProbe() {
-  const op = currentOp.value;
-  // Save to localStorage (don't use saveParams() to avoid double setProbeVars emit)
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...params.value, autoZero: autoZero.value }));
-  // Always use _wco macro — #3030 controls whether WCS is set (0) or measure-only (1)
-  // setProbeVars writes to var file AND sets in-memory vars via MDI, then we call the macro
-  const vars = buildVarMap(autoZero.value ? 0 : 1);
-  emit("setProbeVars", vars);
-  emit("mdi", `O<${op.wcoMacro}> CALL`);
-}
-
 function runGridProbe(op: GridOp) {
   activeGridOp.value = op.id;
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...params.value, autoZero: autoZero.value }));
@@ -245,6 +227,14 @@ function runRidgeProbe(op: GridOp) {
   emit("mdi", `O<${op.macro}> CALL`);
 }
 
+function runAngleProbe(op: GridOp) {
+  activeGridOp.value = op.id;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...params.value, autoZero: autoZero.value }));
+  const vars = buildVarMap(autoZero.value ? 0 : 1);
+  emit("setProbeVars", vars);
+  emit("mdi", `O<${op.macro}> CALL`);
+}
+
 function fmt(n: number | undefined): string {
   if (n == null || !Number.isFinite(n)) return "---";
   return n.toFixed(4);
@@ -259,7 +249,7 @@ function fmt(n: number | undefined): string {
       <button class="viewTab" :class="{ active: probeView === 'inside' }" @click="probeView = 'inside'">Inside</button>
       <button class="viewTab" :class="{ active: probeView === 'boss' }" @click="probeView = 'boss'">Boss/Pocket</button>
       <button class="viewTab" :class="{ active: probeView === 'ridge' }" @click="probeView = 'ridge'">Ridge/Valley</button>
-      <button class="viewTab" :class="{ active: probeView === 'edge' }" @click="probeView = 'edge'">Edge</button>
+      <button class="viewTab" :class="{ active: probeView === 'angle' }" @click="probeView = 'angle'">Angle</button>
     </div>
 
     <!-- ═══ OUTSIDE CORNERS VIEW ═══ -->
@@ -526,8 +516,115 @@ function fmt(n: number | undefined): string {
       </div>
     </template>
 
+    <!-- ═══ EDGE ANGLE VIEW ═══ -->
+    <template v-else-if="probeView === 'angle'">
+      <div class="section">
+        <div class="sub">Probe Operation</div>
+        <div class="gridWrap angleGrid">
+          <button
+            v-for="op in angleGrid"
+            :key="op.id"
+            class="gridCell"
+            :class="{ probing: probing && activeGridOp === op.id }"
+            :disabled="!can.ready || probing"
+            :title="op.description"
+            @click="runAngleProbe(op)"
+          >
+            <!-- Top Front (F): 56×56 square, arrows ↑ from below, crosshair on bottom edge -->
+            <svg v-if="op.id === 'tf'" viewBox="0 0 80 80" class="gridIcon">
+              <rect x="12" y="2" width="56" height="56" class="workpiece" transform="rotate(-4, 40, 30)" />
+              <circle cx="30" cy="38" r="4" class="probeTip" />
+              <polygon points="30,58 25,69 35,69" class="arrowHead" />
+              <polygon points="52,58 47,69 57,69" class="arrowHead" />
+              <circle cx="30" cy="58" r="2.5" class="crosshair" />
+            </svg>
+            <!-- Top Back (B): 56×56 square, arrows ↓ from above, crosshair on top edge -->
+            <svg v-else-if="op.id === 'tb'" viewBox="0 0 80 80" class="gridIcon">
+              <rect x="12" y="22" width="56" height="56" class="workpiece" transform="rotate(-4, 40, 50)" />
+              <circle cx="50" cy="42" r="4" class="probeTip" />
+              <polygon points="50,22 45,11 55,11" class="arrowHead" />
+              <polygon points="28,22 23,11 33,11" class="arrowHead" />
+              <circle cx="50" cy="22" r="2.5" class="crosshair" />
+            </svg>
+            <!-- Top Left (L): 56×56 square, arrows → from left, crosshair on left edge -->
+            <svg v-else-if="op.id === 'tl'" viewBox="0 0 80 80" class="gridIcon">
+              <rect x="22" y="12" width="56" height="56" class="workpiece" transform="rotate(-4, 50, 40)" />
+              <circle cx="42" cy="30" r="4" class="probeTip" />
+              <polygon points="22,30 11,25 11,35" class="arrowHead" />
+              <polygon points="22,52 11,47 11,57" class="arrowHead" />
+              <circle cx="22" cy="30" r="2.5" class="crosshair" />
+            </svg>
+            <!-- Top Right (R): 56×56 square, arrows ← from right, crosshair on right edge -->
+            <svg v-else-if="op.id === 'tr'" viewBox="0 0 80 80" class="gridIcon">
+              <rect x="2" y="12" width="56" height="56" class="workpiece" transform="rotate(-4, 30, 40)" />
+              <circle cx="38" cy="50" r="4" class="probeTip" />
+              <polygon points="58,50 69,45 69,55" class="arrowHead" />
+              <polygon points="58,28 69,23 69,33" class="arrowHead" />
+              <circle cx="58" cy="50" r="2.5" class="crosshair" />
+            </svg>
+            <!-- Z surface: rotated workpiece centered, crosshair+probe center -->
+            <svg v-else-if="op.id === 'z'" viewBox="0 0 80 80" class="gridIcon">
+              <rect x="10" y="10" width="60" height="60" rx="3" class="workpiece" transform="rotate(-4, 40, 40)" />
+              <circle cx="40" cy="40" r="9" class="crosshair" />
+              <circle cx="40" cy="40" r="5" class="probeTip" />
+              <text x="40" y="60" class="gridZLabel">Z</text>
+            </svg>
+            <!-- Corner X+ (BL): 1×↓ + 2×→, two arrows cross at probe dot -->
+            <svg v-else-if="op.id === 'cx+'" viewBox="0 0 80 80" class="gridIcon">
+              <rect x="22" y="22" width="56" height="56" class="workpiece" transform="rotate(-4, 50, 50)" />
+              <circle cx="42" cy="42" r="4" class="probeTip" />
+              <polygon points="42,22 37,11 47,11" class="arrowHead" />
+              <polygon points="22,42 11,37 11,47" class="arrowHead" />
+              <polygon points="22,64 11,59 11,69" class="arrowHead" />
+              <circle cx="22" cy="22" r="2.5" class="crosshair" transform="rotate(-4, 50, 50)" />
+            </svg>
+            <!-- Corner X− (FR): 1×↑ + 2×←, two arrows cross at probe dot -->
+            <svg v-else-if="op.id === 'cx-'" viewBox="0 0 80 80" class="gridIcon">
+              <rect x="2" y="2" width="56" height="56" class="workpiece" transform="rotate(-4, 30, 30)" />
+              <circle cx="38" cy="38" r="4" class="probeTip" />
+              <polygon points="38,58 33,69 43,69" class="arrowHead" />
+              <polygon points="58,38 69,33 69,43" class="arrowHead" />
+              <polygon points="58,16 69,11 69,21" class="arrowHead" />
+              <circle cx="58" cy="58" r="2.5" class="crosshair" transform="rotate(-4, 30, 30)" />
+            </svg>
+            <!-- Corner Y+ (FL): 1×→ + 2×↑, two arrows cross at probe dot -->
+            <svg v-else-if="op.id === 'cy+'" viewBox="0 0 80 80" class="gridIcon">
+              <rect x="22" y="2" width="56" height="56" class="workpiece" transform="rotate(-4, 50, 30)" />
+              <circle cx="42" cy="38" r="4" class="probeTip" />
+              <polygon points="22,38 11,33 11,43" class="arrowHead" />
+              <polygon points="42,58 37,69 47,69" class="arrowHead" />
+              <polygon points="64,58 59,69 69,69" class="arrowHead" />
+              <circle cx="22" cy="58" r="2.5" class="crosshair" transform="rotate(-4, 50, 30)" />
+            </svg>
+            <!-- Corner Y− (BR): 1×← + 2×↓, two arrows cross at probe dot -->
+            <svg v-else-if="op.id === 'cy-'" viewBox="0 0 80 80" class="gridIcon">
+              <rect x="2" y="22" width="56" height="56" class="workpiece" transform="rotate(-4, 30, 50)" />
+              <circle cx="38" cy="42" r="4" class="probeTip" />
+              <polygon points="58,42 69,37 69,47" class="arrowHead" />
+              <polygon points="38,22 33,11 43,11" class="arrowHead" />
+              <polygon points="16,22 11,11 21,11" class="arrowHead" />
+              <circle cx="58" cy="22" r="2.5" class="crosshair" transform="rotate(-4, 30, 50)" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Angle parameters -->
+      <div class="section">
+        <div class="sub">Angle Parameters</div>
+        <div class="paramGrid">
+          <label>Edge Width</label>
+          <input type="number" v-model.number="params.edgeWidth" min="0.1" step="0.1" @change="saveParams" />
+        </div>
+        <label class="checkRow">
+          <input type="checkbox" :checked="params.wcoRotation === 1" @change="params.wcoRotation = ($event.target as HTMLInputElement).checked ? 1 : 0; saveParams()" />
+          Set Rotation WCO
+        </label>
+      </div>
+    </template>
+
     <!-- ═══ RIDGE / VALLEY VIEW ═══ -->
-    <template v-else-if="probeView === 'ridge'">
+    <template v-else>
       <div class="section">
         <div class="sub">Probe Operation</div>
         <div class="gridWrap bossGrid">
@@ -608,73 +705,6 @@ function fmt(n: number | undefined): string {
       </div>
     </template>
 
-    <!-- ═══ EDGE VIEW (existing single-axis) ═══ -->
-    <template v-else>
-      <div class="section">
-        <div class="sub">Probe Operation</div>
-        <div class="opRow">
-          <div class="opButtons">
-            <button
-              v-for="op in operations"
-              :key="op.id"
-              class="opBtn"
-              :class="{ active: selectedOp === op.id }"
-              @click="selectedOp = op.id"
-            >{{ op.label }}</button>
-          </div>
-          <div class="diagramWrap">
-            <svg v-if="selectedOp === 'x+'" viewBox="0 0 160 120" class="diagram">
-              <rect x="70" y="20" width="70" height="80" rx="3" class="workpiece" />
-              <text x="105" y="65" class="wpLabel">W</text>
-              <line x1="20" y1="60" x2="52" y2="60" class="stylus" />
-              <circle cx="56" cy="60" r="4" class="probeTip" />
-              <line x1="30" y1="45" x2="50" y2="45" class="arrow" />
-              <polygon points="50,41 58,45 50,49" class="arrowHead" />
-              <text x="80" y="112" class="dirLabel">X+</text>
-            </svg>
-            <svg v-else-if="selectedOp === 'x-'" viewBox="0 0 160 120" class="diagram">
-              <rect x="20" y="20" width="70" height="80" rx="3" class="workpiece" />
-              <text x="55" y="65" class="wpLabel">W</text>
-              <line x1="140" y1="60" x2="108" y2="60" class="stylus" />
-              <circle cx="104" cy="60" r="4" class="probeTip" />
-              <line x1="130" y1="45" x2="110" y2="45" class="arrow" />
-              <polygon points="110,41 102,45 110,49" class="arrowHead" />
-              <text x="80" y="112" class="dirLabel">X−</text>
-            </svg>
-            <svg v-else-if="selectedOp === 'y+'" viewBox="0 0 160 120" class="diagram">
-              <rect x="30" y="10" width="100" height="50" rx="3" class="workpiece" />
-              <text x="80" y="40" class="wpLabel">W</text>
-              <line x1="80" y1="100" x2="80" y2="78" class="stylus" />
-              <circle cx="80" cy="74" r="4" class="probeTip" />
-              <line x1="65" y1="95" x2="65" y2="78" class="arrow" />
-              <polygon points="61,78 65,70 69,78" class="arrowHead" />
-              <text x="80" y="115" class="dirLabel">Y+</text>
-            </svg>
-            <svg v-else-if="selectedOp === 'y-'" viewBox="0 0 160 120" class="diagram">
-              <rect x="30" y="60" width="100" height="50" rx="3" class="workpiece" />
-              <text x="80" y="90" class="wpLabel">W</text>
-              <line x1="80" y1="20" x2="80" y2="42" class="stylus" />
-              <circle cx="80" cy="46" r="4" class="probeTip" />
-              <line x1="65" y1="25" x2="65" y2="42" class="arrow" />
-              <polygon points="61,42 65,50 69,42" class="arrowHead" />
-              <text x="80" y="115" class="dirLabel">Y−</text>
-            </svg>
-            <svg v-else-if="selectedOp === 'z-'" viewBox="0 0 160 120" class="diagram">
-              <rect x="20" y="70" width="120" height="30" rx="3" class="workpiece" />
-              <text x="80" y="90" class="wpLabel">W</text>
-              <line x1="80" y1="10" x2="80" y2="48" class="stylus" />
-              <circle cx="80" cy="52" r="4" class="probeTip" />
-              <line x1="65" y1="18" x2="65" y2="45" class="arrow" />
-              <polygon points="61,45 65,53 69,45" class="arrowHead" />
-              <text x="15" y="115" class="viewLabel">side view</text>
-              <text x="80" y="115" class="dirLabel">Z−</text>
-            </svg>
-          </div>
-        </div>
-        <div class="opHint">{{ currentOp.description }}</div>
-      </div>
-    </template>
-
     <div class="sep"></div>
 
     <!-- Parameters (shared across views) -->
@@ -716,19 +746,9 @@ function fmt(n: number | undefined): string {
 
     <div class="sep"></div>
 
-    <!-- Run / Abort + status (Edge view only has the Run button; Outside view runs from grid) -->
+    <!-- Abort + status -->
     <div class="section">
       <div class="btnRow">
-        <button
-          v-if="probeView === 'edge'"
-          class="runBtn"
-          :class="statusClass"
-          :disabled="!can.ready || probing"
-          @click="runProbe"
-        >
-          <span v-if="probing">Probing {{ currentOp.label }}…</span>
-          <span v-else>Probe {{ currentOp.label }}</span>
-        </button>
         <button
           class="abortBtn"
           :disabled="!probing"
@@ -802,74 +822,11 @@ function fmt(n: number | undefined): string {
   opacity: 0.3;
 }
 
-/* Operation row: buttons left, diagram right */
-.opRow {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-}
-
-.opButtons {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex-shrink: 0;
-}
-
-.opBtn {
-  padding: 6px 14px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  min-width: 48px;
-  text-align: center;
-}
-
-.opBtn.active {
-  background: color-mix(in oklab, var(--fg) 15%, var(--button-bg));
-  border-color: color-mix(in oklab, var(--fg) 30%, var(--border));
-}
-
-.opHint {
-  font-size: 11px;
-  opacity: 0.5;
-  font-style: italic;
-}
-
-/* Diagram */
-.diagramWrap {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  min-height: 100px;
-}
-
-.diagram {
-  width: 100%;
-  max-width: 180px;
-  height: auto;
-}
-
 .workpiece {
   fill: color-mix(in oklab, var(--fg) 12%, var(--bg));
   stroke: var(--fg);
   stroke-width: 1.5;
   stroke-opacity: 0.5;
-}
-
-.wpLabel {
-  fill: var(--fg);
-  opacity: 0.3;
-  font-size: 14px;
-  font-weight: 700;
-  text-anchor: middle;
-  dominant-baseline: central;
-}
-
-.stylus {
-  stroke: var(--fg);
-  stroke-width: 2;
-  stroke-opacity: 0.8;
 }
 
 .probeTip {
@@ -879,31 +836,9 @@ function fmt(n: number | undefined): string {
   stroke-opacity: 0.5;
 }
 
-.arrow {
-  stroke: var(--ok);
-  stroke-width: 1.5;
-  stroke-opacity: 0.8;
-}
-
 .arrowHead {
   fill: var(--ok);
   opacity: 0.8;
-}
-
-.dirLabel {
-  fill: var(--fg);
-  opacity: 0.5;
-  font-size: 11px;
-  font-weight: 600;
-  text-anchor: middle;
-}
-
-.viewLabel {
-  fill: var(--fg);
-  opacity: 0.3;
-  font-size: 9px;
-  font-style: italic;
-  text-anchor: start;
 }
 
 /* View tabs */
@@ -937,6 +872,10 @@ function fmt(n: number | undefined): string {
 }
 
 .gridWrap.bossGrid {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.gridWrap.angleGrid {
   grid-template-columns: repeat(3, 1fr);
 }
 
@@ -1029,14 +968,6 @@ function fmt(n: number | undefined): string {
   gap: 6px;
 }
 
-.runBtn {
-  flex: 1;
-  padding: 10px 16px;
-  font-size: 13px;
-  font-weight: 600;
-  border-radius: 8px;
-}
-
 .abortBtn {
   padding: 10px 14px;
   font-size: 13px;
@@ -1071,16 +1002,6 @@ function fmt(n: number | undefined): string {
   background: var(--button-bg);
   border-color: var(--border);
   font-style: normal;
-}
-
-.runBtn.probing {
-  background: color-mix(in oklab, var(--warn) 25%, var(--button-bg));
-  border-color: color-mix(in oklab, var(--warn) 40%, var(--border));
-}
-
-.runBtn.tripped {
-  background: color-mix(in oklab, var(--ok) 25%, var(--button-bg));
-  border-color: color-mix(in oklab, var(--ok) 40%, var(--border));
 }
 
 /* Status */
