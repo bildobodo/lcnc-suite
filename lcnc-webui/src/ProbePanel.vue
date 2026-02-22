@@ -24,7 +24,7 @@ const emit = defineEmits<{
 const can = usePermissions();
 
 // ─── Sub-view navigation ──────────────────────────────────────────
-const probeView = ref<"edge" | "outside" | "inside">("outside");
+const probeView = ref<"edge" | "outside" | "inside" | "boss">("outside");
 
 // ─── Edge probe operations (single-axis) ──────────────────────────
 type ProbeOp = {
@@ -79,7 +79,18 @@ const insideGrid: GridOp[] = [
   { id: "fr", label: "FR",  macro: "probe_front_right_inside_corner", description: "Front-right inside corner" },
 ];
 
+const bossGrid: GridOp[] = [
+  { id: "rb",  label: "Round Boss",     macro: "probe_round_boss",                description: "Probe outside of round feature" },
+  { id: "rp",  label: "Round Pocket",   macro: "probe_round_pocket",              description: "Probe inside of round hole (edge start)" },
+  { id: "rpc", label: "Round Pocket C", macro: "probe_round_pocket_center_start", description: "Probe inside of round hole (center start)" },
+  { id: "xb",  label: "Rect Boss",      macro: "probe_rect_boss",                 description: "Probe outside of rectangular feature" },
+  { id: "xp",  label: "Rect Pocket",    macro: "probe_rect_pocket",               description: "Probe inside of rectangular pocket (edge start)" },
+  { id: "xpc", label: "Rect Pocket C",  macro: "probe_rect_pocket_center_start",  description: "Probe inside of rectangular pocket (center start)" },
+];
+
 const activeGridOp = ref<string | null>(null);
+const activeBossOp = ref<string>("rb");
+const bossOpIsRound = computed(() => ["rb", "rp", "rpc"].includes(activeBossOp.value));
 
 // ─── Parameters ───────────────────────────────────────────────────
 // Parameter order matches config v0.2 subroutines:
@@ -94,6 +105,10 @@ const params = ref({
   calOffset: 0.0,
   stepOffWidth: 5.0,
   extraProbeDepth: 0.0,
+  edgeWidth: 0.5,
+  diameterHint: 0.0,
+  xHintBP: 0.0,
+  yHintBP: 0.0,
 });
 
 const autoZero = ref(false);
@@ -112,6 +127,10 @@ function buildVarMap(probeMode: number): Record<string, number> {
     "3021": p.clearance,     // Z clearance (same value)
     "3022": p.extraProbeDepth,
     "3023": p.stepOffWidth,
+    "3024": p.edgeWidth,
+    "3025": p.diameterHint,
+    "3026": p.xHintBP,
+    "3027": p.yHintBP,
     "3030": probeMode,       // 0 = set WCO, 1 = measure only
     "3032": p.calOffset,
   };
@@ -150,6 +169,10 @@ watch(() => props.initialVars, (vars) => {
   if (vars["3019"] != null) p.clearance = vars["3019"];
   if (vars["3022"] != null) p.extraProbeDepth = vars["3022"];
   if (vars["3023"] != null) p.stepOffWidth = vars["3023"];
+  if (vars["3024"] != null) p.edgeWidth = vars["3024"];
+  if (vars["3025"] != null) p.diameterHint = vars["3025"];
+  if (vars["3026"] != null) p.xHintBP = vars["3026"];
+  if (vars["3027"] != null) p.yHintBP = vars["3027"];
   if (vars["3032"] != null) p.calOffset = vars["3032"];
   // Persist to localStorage
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...params.value, autoZero: autoZero.value }));
@@ -190,6 +213,15 @@ function runGridProbe(op: GridOp) {
   emit("mdi", `O<${op.macro}> CALL`);
 }
 
+function runBossProbe(op: GridOp) {
+  activeBossOp.value = op.id;
+  activeGridOp.value = op.id;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...params.value, autoZero: autoZero.value }));
+  const vars = buildVarMap(autoZero.value ? 0 : 1);
+  emit("setProbeVars", vars);
+  emit("mdi", `O<${op.macro}> CALL`);
+}
+
 function fmt(n: number | undefined): string {
   if (n == null || !Number.isFinite(n)) return "---";
   return n.toFixed(4);
@@ -202,6 +234,7 @@ function fmt(n: number | undefined): string {
     <div class="viewTabs">
       <button class="viewTab" :class="{ active: probeView === 'outside' }" @click="probeView = 'outside'">Outside</button>
       <button class="viewTab" :class="{ active: probeView === 'inside' }" @click="probeView = 'inside'">Inside</button>
+      <button class="viewTab" :class="{ active: probeView === 'boss' }" @click="probeView = 'boss'">Boss/Pocket</button>
       <button class="viewTab" :class="{ active: probeView === 'edge' }" @click="probeView = 'edge'">Edge</button>
     </div>
 
@@ -373,6 +406,98 @@ function fmt(n: number | undefined): string {
               <circle cx="45" cy="45" r="2.5" class="crosshair" />
             </svg>
           </button>
+        </div>
+      </div>
+    </template>
+
+    <!-- ═══ BOSS / POCKET VIEW ═══ -->
+    <template v-else-if="probeView === 'boss'">
+      <div class="section">
+        <div class="sub">Probe Operation</div>
+        <div class="gridWrap bossGrid">
+          <button
+            v-for="op in bossGrid"
+            :key="op.id"
+            class="gridCell"
+            :class="{ probing: probing && activeGridOp === op.id, active: activeBossOp === op.id }"
+            :disabled="!can.ready || probing"
+            :title="op.description"
+            @click="runBossProbe(op)"
+          >
+            <!-- Round Boss: solid circle workpiece, probe at CENTER, arrows inward tips at surface -->
+            <svg v-if="op.id === 'rb'" viewBox="0 0 80 80" class="gridIcon">
+              <circle cx="40" cy="40" r="22" class="workpiece" />
+              <polygon points="40,18 35,9 45,9" class="arrowHead" />
+              <polygon points="40,62 35,71 45,71" class="arrowHead" />
+              <polygon points="18,40 9,35 9,45" class="arrowHead" />
+              <polygon points="62,40 71,35 71,45" class="arrowHead" />
+              <circle cx="40" cy="40" r="8" class="crosshair" />
+              <circle cx="40" cy="40" r="4" class="probeTip" />
+            </svg>
+            <!-- Round Pocket: ring workpiece, probe OUTSIDE left, arrows outward tips at walls -->
+            <svg v-else-if="op.id === 'rp'" viewBox="0 0 80 80" class="gridIcon">
+              <path d="M0 0H80V80H0Z M40 18a22 22 0 1 0 0 44a22 22 0 1 0 0-44Z" fill-rule="evenodd" class="workpiece" />
+              <circle cx="5" cy="40" r="3" class="probeTip" />
+              <polygon points="40,18 35,27 45,27" class="arrowHead" />
+              <polygon points="40,62 35,53 45,53" class="arrowHead" />
+              <polygon points="18,40 27,35 27,45" class="arrowHead" />
+              <polygon points="62,40 53,35 53,45" class="arrowHead" />
+              <circle cx="40" cy="40" r="2.5" class="crosshair" />
+            </svg>
+            <!-- Round Pocket Center Start: ring workpiece, probe at CENTER, arrows outward tips at walls -->
+            <svg v-else-if="op.id === 'rpc'" viewBox="0 0 80 80" class="gridIcon">
+              <path d="M0 0H80V80H0Z M40 18a22 22 0 1 0 0 44a22 22 0 1 0 0-44Z" fill-rule="evenodd" class="workpiece" />
+              <polygon points="40,18 35,27 45,27" class="arrowHead" />
+              <polygon points="40,62 35,53 45,53" class="arrowHead" />
+              <polygon points="18,40 27,35 27,45" class="arrowHead" />
+              <polygon points="62,40 53,35 53,45" class="arrowHead" />
+              <circle cx="40" cy="40" r="8" class="crosshair" />
+              <circle cx="40" cy="40" r="4" class="probeTip" />
+            </svg>
+            <!-- Rect Boss: solid rect workpiece, probe at CENTER, arrows inward -->
+            <svg v-else-if="op.id === 'xb'" viewBox="0 0 80 80" class="gridIcon">
+              <rect x="15" y="15" width="50" height="50" rx="2" class="workpiece" />
+              <polygon points="40,15 35,6 45,6" class="arrowHead" />
+              <polygon points="40,65 35,74 45,74" class="arrowHead" />
+              <polygon points="15,40 6,35 6,45" class="arrowHead" />
+              <polygon points="65,40 74,35 74,45" class="arrowHead" />
+              <circle cx="40" cy="40" r="8" class="crosshair" />
+              <circle cx="40" cy="40" r="4" class="probeTip" />
+            </svg>
+            <!-- Rect Pocket: ring workpiece (rect hole), probe OUTSIDE left, arrows outward tips at walls -->
+            <svg v-else-if="op.id === 'xp'" viewBox="0 0 80 80" class="gridIcon">
+              <path d="M0 0H80V80H0Z M15 15H65V65H15Z" fill-rule="evenodd" class="workpiece" />
+              <circle cx="5" cy="40" r="3" class="probeTip" />
+              <polygon points="40,15 35,24 45,24" class="arrowHead" />
+              <polygon points="40,65 35,56 45,56" class="arrowHead" />
+              <polygon points="15,40 24,35 24,45" class="arrowHead" />
+              <polygon points="65,40 56,35 56,45" class="arrowHead" />
+              <circle cx="40" cy="40" r="2.5" class="crosshair" />
+            </svg>
+            <!-- Rect Pocket Center Start: ring workpiece (rect hole), probe at CENTER, arrows outward tips at walls -->
+            <svg v-else-if="op.id === 'xpc'" viewBox="0 0 80 80" class="gridIcon">
+              <path d="M0 0H80V80H0Z M15 15H65V65H15Z" fill-rule="evenodd" class="workpiece" />
+              <polygon points="40,15 35,24 45,24" class="arrowHead" />
+              <polygon points="40,65 35,56 45,56" class="arrowHead" />
+              <polygon points="15,40 24,35 24,45" class="arrowHead" />
+              <polygon points="65,40 56,35 56,45" class="arrowHead" />
+              <circle cx="40" cy="40" r="8" class="crosshair" />
+              <circle cx="40" cy="40" r="4" class="probeTip" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Hint parameters (contextual) -->
+      <div class="section">
+        <div class="sub">Dimensional Hints</div>
+        <div class="paramGrid">
+          <label>Diameter</label>
+          <input type="number" v-model.number="params.diameterHint" min="0" step="0.5" @change="saveParams" />
+          <label>X Hint</label>
+          <input type="number" v-model.number="params.xHintBP" min="0" step="0.5" @change="saveParams" />
+          <label>Y Hint</label>
+          <input type="number" v-model.number="params.yHintBP" min="0" step="0.5" @change="saveParams" />
         </div>
       </div>
     </template>
@@ -703,6 +828,10 @@ function fmt(n: number | undefined): string {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 6px;
+}
+
+.gridWrap.bossGrid {
+  grid-template-columns: repeat(3, 1fr);
 }
 
 .gridCell {

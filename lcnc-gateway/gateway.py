@@ -126,7 +126,7 @@ def _self_restart():
     """Spawn a fresh gateway process and exit. Last resort for NML poisoning."""
     print("NML POISONED: self-restarting gateway process", flush=True)
     _hal_disconnect()
-    subprocess.Popen([sys.executable] + sys.argv)
+    subprocess.Popen([sys.executable, "-m", "uvicorn"] + sys.argv[1:])
     os._exit(1)
 
 
