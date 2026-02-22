@@ -649,7 +649,7 @@ onUnmounted(() => {
 
 /** ---------- Probe var file sync ---------- */
 const probeVarsFromFile = ref<Record<string, number> | null>(null);
-const PROBE_VAR_NUMS = [3014, 3015, 3016, 3017, 3018, 3019, 3020, 3021, 3022, 3023, 3024, 3025, 3026, 3027, 3028, 3029, 3030, 3031, 3032];
+const PROBE_VAR_NUMS = [3014, 3015, 3016, 3017, 3018, 3019, 3020, 3021, 3022, 3023, 3024, 3025, 3026, 3027, 3028, 3029, 3030, 3031, 3032, 3033, 3034, 3035, 3036];
 
 function requestProbeVars() {
   send({ cmd: "get_probe_vars", vars: PROBE_VAR_NUMS });

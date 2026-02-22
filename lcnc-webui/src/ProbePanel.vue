@@ -24,7 +24,7 @@ const emit = defineEmits<{
 const can = usePermissions();
 
 // ─── Sub-view navigation ──────────────────────────────────────────
-const probeView = ref<"outside" | "inside" | "boss" | "ridge" | "angle">("outside");
+const probeView = ref<"outside" | "inside" | "boss" | "ridge" | "angle" | "cal">("outside");
 
 // ─── Grid probe operations ────────────────────────────────────────
 type GridOp = {
@@ -90,6 +90,7 @@ const angleGrid: GridOp[] = [
 
 const activeGridOp = ref<string | null>(null);
 const activeBossOp = ref<string>("rb");
+const calAxis = ref(0); // 0=avg XY, 1=X only, 2=Y only
 
 // ─── Parameters ───────────────────────────────────────────────────
 // Parameter order matches config v0.2 subroutines:
@@ -111,6 +112,9 @@ const params = ref({
   xHintRV: 0.0,
   yHintRV: 0.0,
   wcoRotation: 0,
+  calDiameter: 0.0,
+  xCalWidth: 0.0,
+  yCalWidth: 0.0,
 });
 
 const autoZero = ref(false);
@@ -138,6 +142,9 @@ function buildVarMap(probeMode: number): Record<string, number> {
     "3030": probeMode,       // 0 = set WCO, 1 = measure only
     "3031": p.wcoRotation,
     "3032": p.calOffset,
+    "3033": p.calDiameter,
+    "3034": p.xCalWidth,
+    "3035": p.yCalWidth,
   };
 }
 
@@ -182,6 +189,9 @@ watch(() => props.initialVars, (vars) => {
   if (vars["3029"] != null) p.yHintRV = vars["3029"];
   if (vars["3031"] != null) p.wcoRotation = vars["3031"];
   if (vars["3032"] != null) p.calOffset = vars["3032"];
+  if (vars["3033"] != null) p.calDiameter = vars["3033"];
+  if (vars["3034"] != null) p.xCalWidth = vars["3034"];
+  if (vars["3035"] != null) p.yCalWidth = vars["3035"];
   // Persist to localStorage
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...params.value, autoZero: autoZero.value }));
 });
@@ -235,6 +245,18 @@ function runAngleProbe(op: GridOp) {
   emit("mdi", `O<${op.macro}> CALL`);
 }
 
+function runCalProbe(macro: string) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...params.value, autoZero: autoZero.value }));
+  const vars = buildVarMap(autoZero.value ? 0 : 1);
+  vars["3036"] = calAxis.value;
+  emit("setProbeVars", vars);
+  emit("mdi", `O<${macro}> CALL`);
+}
+
+function resetCal() {
+  emit("mdi", `O<probe_cal_reset> CALL`);
+}
+
 function fmt(n: number | undefined): string {
   if (n == null || !Number.isFinite(n)) return "---";
   return n.toFixed(4);
@@ -250,6 +272,7 @@ function fmt(n: number | undefined): string {
       <button class="viewTab" :class="{ active: probeView === 'boss' }" @click="probeView = 'boss'">Boss/Pocket</button>
       <button class="viewTab" :class="{ active: probeView === 'ridge' }" @click="probeView = 'ridge'">Ridge/Valley</button>
       <button class="viewTab" :class="{ active: probeView === 'angle' }" @click="probeView = 'angle'">Angle</button>
+      <button class="viewTab" :class="{ active: probeView === 'cal' }" @click="probeView = 'cal'">Calibrate</button>
     </div>
 
     <!-- ═══ OUTSIDE CORNERS VIEW ═══ -->
@@ -623,6 +646,101 @@ function fmt(n: number | undefined): string {
       </div>
     </template>
 
+    <!-- ═══ CALIBRATE VIEW ═══ -->
+    <template v-else-if="probeView === 'cal'">
+      <!-- Cal offset display + reset -->
+      <div class="section">
+        <div class="calOffsetRow">
+          <span class="calOffsetLabel">Probe Cal Offset:</span>
+          <span class="calOffsetVal">{{ fmt(params.calOffset) }}</span>
+          <button class="calResetBtn" :disabled="!can.ready || probing" @click="resetCal">Reset</button>
+        </div>
+      </div>
+
+      <!-- Round hole calibration -->
+      <div class="section">
+        <div class="sub">Round Hole Calibration</div>
+        <div class="calRow">
+          <div class="calGrid">
+            <button class="gridCell" :disabled="!can.ready || probing" title="Round hole — edge start" @click="runCalProbe('probe_cal_round_pocket')">
+              <svg viewBox="0 0 80 80" class="gridIcon">
+                <path d="M0 0H80V80H0Z M40 18a22 22 0 1 0 0 44a22 22 0 1 0 0-44Z" fill-rule="evenodd" class="workpiece" />
+                <circle cx="5" cy="40" r="3" class="probeTip" />
+                <polygon points="40,18 35,27 45,27" class="arrowHead" />
+                <polygon points="40,62 35,53 45,53" class="arrowHead" />
+                <polygon points="18,40 27,35 27,45" class="arrowHead" />
+                <polygon points="62,40 53,35 53,45" class="arrowHead" />
+                <circle cx="40" cy="40" r="2.5" class="crosshair" />
+              </svg>
+            </button>
+            <button class="gridCell" :disabled="!can.ready || probing" title="Round hole — center start" @click="runCalProbe('probe_cal_round_boss')">
+              <svg viewBox="0 0 80 80" class="gridIcon">
+                <path d="M0 0H80V80H0Z M40 18a22 22 0 1 0 0 44a22 22 0 1 0 0-44Z" fill-rule="evenodd" class="workpiece" />
+                <polygon points="40,18 35,27 45,27" class="arrowHead" />
+                <polygon points="40,62 35,53 45,53" class="arrowHead" />
+                <polygon points="18,40 27,35 27,45" class="arrowHead" />
+                <polygon points="62,40 53,35 53,45" class="arrowHead" />
+                <circle cx="40" cy="40" r="8" class="crosshair" />
+                <circle cx="40" cy="40" r="4" class="probeTip" />
+              </svg>
+            </button>
+          </div>
+          <div class="calParamsStacked">
+            <div class="calParamTitle">Cal Diameter</div>
+            <input type="number" v-model.number="params.calDiameter" min="0" step="0.001" @change="saveParams" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Rectangular pocket calibration -->
+      <div class="section">
+        <div class="sub">Rectangular Pocket Calibration</div>
+        <div class="calRow">
+          <div class="calGrid">
+            <button class="gridCell" :disabled="!can.ready || probing" title="Rect pocket — edge start" @click="runCalProbe('probe_cal_square_pocket')">
+              <svg viewBox="0 0 80 80" class="gridIcon">
+                <path d="M0 0H80V80H0Z M15 15H65V65H15Z" fill-rule="evenodd" class="workpiece" />
+                <circle cx="5" cy="40" r="3" class="probeTip" />
+                <polygon points="40,15 35,24 45,24" class="arrowHead" />
+                <polygon points="40,65 35,56 45,56" class="arrowHead" />
+                <polygon points="15,40 24,35 24,45" class="arrowHead" />
+                <polygon points="65,40 56,35 56,45" class="arrowHead" />
+                <circle cx="40" cy="40" r="2.5" class="crosshair" />
+              </svg>
+            </button>
+            <button class="gridCell" :disabled="!can.ready || probing" title="Rect pocket — center start" @click="runCalProbe('probe_cal_square_boss')">
+              <svg viewBox="0 0 80 80" class="gridIcon">
+                <path d="M0 0H80V80H0Z M15 15H65V65H15Z" fill-rule="evenodd" class="workpiece" />
+                <polygon points="40,15 35,24 45,24" class="arrowHead" />
+                <polygon points="40,65 35,56 45,56" class="arrowHead" />
+                <polygon points="15,40 24,35 24,45" class="arrowHead" />
+                <polygon points="65,40 56,35 56,45" class="arrowHead" />
+                <circle cx="40" cy="40" r="8" class="crosshair" />
+                <circle cx="40" cy="40" r="4" class="probeTip" />
+              </svg>
+            </button>
+          </div>
+          <div class="calParamsStacked">
+            <div class="calParamTitle">Cal Width</div>
+            <div class="calWidthRow">
+              <label>X</label>
+              <input type="number" v-model.number="params.xCalWidth" min="0" step="0.001" @change="saveParams" />
+            </div>
+            <div class="calWidthRow">
+              <label>Y</label>
+              <input type="number" v-model.number="params.yCalWidth" min="0" step="0.001" @change="saveParams" />
+            </div>
+          </div>
+        </div>
+        <div class="calParamTitle">Calibrate on:</div>
+        <div class="calAxisRow">
+          <button class="calAxisBtn" :class="{ active: calAxis === 0 }" @click="calAxis = 0">Avg XY</button>
+          <button class="calAxisBtn" :class="{ active: calAxis === 1 }" @click="calAxis = 1">X Error</button>
+          <button class="calAxisBtn" :class="{ active: calAxis === 2 }" @click="calAxis = 2">Y Error</button>
+        </div>
+      </div>
+    </template>
+
     <!-- ═══ RIDGE / VALLEY VIEW ═══ -->
     <template v-else>
       <div class="section">
@@ -877,6 +995,102 @@ function fmt(n: number | undefined): string {
 
 .gridWrap.angleGrid {
   grid-template-columns: repeat(3, 1fr);
+}
+
+/* Calibration layout */
+.calOffsetRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.calOffsetLabel {
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.7;
+}
+
+.calOffsetVal {
+  font-size: 13px;
+  font-weight: 700;
+  font-family: monospace;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: color-mix(in oklab, var(--fg) 6%, var(--bg));
+  border: 1px solid var(--border);
+}
+
+.calResetBtn {
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 6px;
+  margin-left: auto;
+}
+
+.calRow {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.calGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  flex-shrink: 0;
+  width: 140px;
+}
+
+.calParamsStacked {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-self: center;
+  flex: 1;
+}
+
+.calParamTitle {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.6;
+}
+
+.calWidthRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.calWidthRow label {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.6;
+  min-width: 12px;
+}
+
+.calWidthRow input,
+.calParamsStacked > input {
+  width: 100%;
+}
+
+.calAxisRow {
+  display: flex;
+  gap: 4px;
+}
+
+.calAxisBtn {
+  flex: 1;
+  padding: 6px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 6px;
+  text-align: center;
+}
+
+.calAxisBtn.active {
+  background: color-mix(in oklab, var(--fg) 15%, var(--button-bg));
+  border-color: color-mix(in oklab, var(--fg) 30%, var(--border));
 }
 
 .gridCell {
