@@ -21,6 +21,7 @@ try:
     comp = hal.component(COMP_NAME)
     comp.newpin("heartbeat", hal.HAL_BIT, hal.HAL_OUT)
     comp.newpin("connected", hal.HAL_BIT, hal.HAL_OUT)
+    comp.newpin("tool-changed", hal.HAL_BIT, hal.HAL_OUT)
     comp.ready()
 except Exception as e:
     print(f"HAL component '{COMP_NAME}' failed: {e}", file=sys.stderr, flush=True)
@@ -61,6 +62,7 @@ try:
                 # Reset pins until new gateway proves itself
                 comp["connected"] = False
                 comp["heartbeat"] = False
+                comp["tool-changed"] = False
                 client = new_client
                 buf = ""
             elif sock is client:
@@ -70,6 +72,7 @@ try:
                         # Gateway disconnected — force pins LOW for safety
                         comp["connected"] = False
                         comp["heartbeat"] = False
+                        comp["tool-changed"] = False
                         client.close()
                         client = None
                         buf = ""
@@ -85,10 +88,13 @@ try:
                             comp["heartbeat"] = bool(msg["heartbeat"])
                         if "connected" in msg:
                             comp["connected"] = bool(msg["connected"])
+                        if "tool_changed" in msg:
+                            comp["tool-changed"] = bool(msg["tool_changed"])
                 except Exception:
                     # Socket error — force pins LOW for safety
                     comp["connected"] = False
                     comp["heartbeat"] = False
+                    comp["tool-changed"] = False
                     try:
                         client.close()
                     except Exception:

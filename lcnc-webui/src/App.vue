@@ -10,6 +10,7 @@ import GcodePanel from "./GcodePanel.vue";
 import SettingsPanel from "./SettingsPanel.vue";
 import ToolTablePanel from "./ToolTablePanel.vue";
 import ProbePanel from "./ProbePanel.vue";
+import ToolsetterPanel from "./ToolsetterPanel.vue";
 
 import { loadViewerDefaults, loadPanelsDefaults, savePanelsDefaults, MAX_PANELS } from "./defaults";
 import {
@@ -51,6 +52,7 @@ const tabs = [
   { id: "gcode", label: "Program" },
   { id: "tools", label: "Tools" },
   { id: "probe", label: "Probe" },
+  { id: "toolsetter", label: "Toolsetter" },
   { id: "settings", label: "Settings" },
 ];
 
@@ -328,6 +330,11 @@ const overridesActive = computed(() =>
 const feedOvrEnabled = computed(() => st.value.feed_override_enabled !== false);
 const spindleOvrEnabled = computed(() => st.value.spindle_override_enabled !== false);
 const overridesDisabled = computed(() => !feedOvrEnabled.value || !spindleOvrEnabled.value);
+
+// Tool change dialog (global — tool changes can happen from any context)
+const toolChangeRequested = computed(() => !!st.value.tool_change_requested);
+const toolChangeTool = computed(() => st.value.tool_change_tool ?? null);
+function confirmToolChange() { send({ cmd: "confirm_tool_change" }); }
 
 // Status chip popovers (click-to-toggle, only one open at a time)
 const openChip = ref<string | null>(null);
@@ -1212,6 +1219,20 @@ watch(isHomed, (nowHomed, wasHomed) => {
             />
           </template>
 
+          <template #toolsetter>
+            <ToolsetterPanel
+              :probing="st.probing === true"
+              :probeTripped="st.probe_tripped === true"
+              :currentTool="st.tool_number ?? null"
+              :machinePos="machinePos"
+              :isHomed="isHomed"
+              @mdi="send({ cmd: 'mdi', text: $event })"
+              @abort="send({ cmd: 'abort' })"
+              @simulateProbeTrip="send({ cmd: 'simulate_probe_trip' })"
+              @setProbeVars="send({ cmd: 'set_probe_vars', vars: $event })"
+            />
+          </template>
+
           <template #settings>
             <SettingsPanel :lastReply="lastReply" :status="status" />
           </template>
@@ -1228,6 +1249,22 @@ watch(isHomed, (nowHomed, wasHomed) => {
 
     </div><!-- /mainCol -->
     </div><!-- /bodyLayout -->
+
+    <!-- Global tool change dialog -->
+    <div v-if="toolChangeRequested" class="toolChangeOverlay">
+      <div class="toolChangeDialog">
+        <div class="toolChangeTitle">Tool Change Required</div>
+        <div class="toolChangeBody">
+          Please insert tool <strong>T{{ toolChangeTool }}</strong> and press Confirm
+        </div>
+        <div class="toolChangeActions">
+          <button class="btn primary" :disabled="!armed" @click="confirmToolChange">
+            Confirm Tool Loaded
+          </button>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -1936,7 +1973,8 @@ watch(isHomed, (nowHomed, wasHomed) => {
   .panel           { flex: 0 0 var(--panel-min-w); min-height: var(--panel-min-h); }
   .panel-viewer    { flex: 1; min-width: var(--panel-min-w-wide); overflow: hidden; }
   .panel-manual,
-  .panel-probe     { min-width: var(--panel-min-w-wide); }
+  .panel-probe,
+  .panel-toolsetter { min-width: var(--panel-min-w-wide); }
   .panel-gcode,
   .panel-tools,
   .panel-messages,
@@ -1962,5 +2000,40 @@ watch(isHomed, (nowHomed, wasHomed) => {
   .statusGroup {
     min-width: calc(50% - 6px);
   }
+}
+
+/* ---- Tool change dialog ---- */
+.toolChangeOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.toolChangeDialog {
+  background: var(--panel, #1e1e1e);
+  border: 2px solid var(--accent, #4fc3f7);
+  border-radius: 16px;
+  padding: 32px 40px;
+  min-width: 320px;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+.toolChangeTitle {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--accent, #4fc3f7);
+}
+.toolChangeBody {
+  font-size: 15px;
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+.toolChangeActions {
+  display: flex;
+  justify-content: center;
 }
 </style>

@@ -346,14 +346,8 @@ TOOL_LIBRARY_PATH = BASE_DIR / "tool_library.json"
 _tool_tbl_path: Optional[str] = None
 _tool_tbl_ini: Optional[str] = None
 
-_TOOL_LINE_RE = re.compile(
-    r"T(\d+)\s+P(\d+)"
-    r"(?:\s+X([+-]?[\d.]+))?"
-    r"(?:\s+Y([+-]?[\d.]+))?"
-    r"\s+Z([+-]?[\d.]+)"
-    r"\s+D([+-]?[\d.]+)"
-    r"(?:\s*;\s*(.*))?"
-)
+_TOOL_TP_RE = re.compile(r"T(\d+)\s+P(\d+)")
+_TOOL_FIELD_RE = re.compile(r"([XYZD])([+-]?[\d.]+)")
 
 
 def get_tool_tbl_path() -> Optional[str]:
@@ -391,24 +385,37 @@ def get_tool_tbl_path() -> Optional[str]:
 
 
 def parse_tool_table(path: str) -> list:
-    """Parse a LinuxCNC tool.tbl file → list of dicts."""
+    """Parse a LinuxCNC tool.tbl file → list of dicts.
+
+    Handles both column orders: Z before D and D before Z,
+    since LinuxCNC may rewrite the file in either order.
+    """
     tools = []
     with open(path, "r") as f:
         for line in f:
             line = line.strip()
             if not line or line.startswith(";") or line.startswith("#"):
                 continue
-            m = _TOOL_LINE_RE.match(line)
-            if not m:
+            tp = _TOOL_TP_RE.match(line)
+            if not tp:
                 continue
+            # Split off remark (everything after ';')
+            remark = ""
+            if ";" in line:
+                data_part, remark = line.split(";", 1)
+                remark = remark.strip()
+            else:
+                data_part = line
+            # Extract X/Y/Z/D fields in any order
+            fields = {m.group(1): float(m.group(2)) for m in _TOOL_FIELD_RE.finditer(data_part)}
             tools.append({
-                "T": int(m.group(1)),
-                "P": int(m.group(2)),
-                "X": float(m.group(3)) if m.group(3) else 0.0,
-                "Y": float(m.group(4)) if m.group(4) else 0.0,
-                "Z": float(m.group(5)),
-                "D": float(m.group(6)),
-                "remark": (m.group(7) or "").strip(),
+                "T": int(tp.group(1)),
+                "P": int(tp.group(2)),
+                "X": fields.get("X", 0.0),
+                "Y": fields.get("Y", 0.0),
+                "Z": fields.get("Z", 0.0),
+                "D": fields.get("D", 0.0),
+                "remark": remark,
             })
     return tools
 
@@ -597,6 +604,10 @@ class StatusPayload:
     tool_diameter: Optional[float]
     tool_length: Optional[float]   # Z length offset (positive magnitude)
 
+    # tool change (HAL iocontrol)
+    tool_change_requested: Optional[bool]
+    tool_change_tool: Optional[int]
+
     # probing
     probe_tripped: Optional[bool]
     probing: Optional[bool]
@@ -634,7 +645,12 @@ def hal_get(pin: str, default=None):
             capture_output=True, text=True, timeout=1
         )
         if result.returncode == 0:
-            return float(result.stdout.strip())
+            raw = result.stdout.strip()
+            if raw == "TRUE":
+                return 1
+            if raw == "FALSE":
+                return 0
+            return float(raw)
     except Exception:
         pass
     return default
@@ -1076,6 +1092,14 @@ def poll_status() -> StatusPayload:
                 pass
 
 
+    # Tool change request from HAL iocontrol
+    _tc_req = hal_get('iocontrol.0.tool-change', 0)
+    tool_change_requested = bool(_tc_req) if _tc_req else False
+    tool_change_tool = None
+    if tool_change_requested:
+        _tc_num = hal_get('iocontrol.0.tool-prep-number', 0)
+        tool_change_tool = int(_tc_num) if _tc_num else None
+
     spindle_ovr = get_spindle_override()
     ini_cfg = get_ini_config()
 
@@ -1127,6 +1151,8 @@ def poll_status() -> StatusPayload:
         tool_number=tool_number,
         tool_diameter=tool_diameter,
         tool_length=tool_length,
+        tool_change_requested=tool_change_requested,
+        tool_change_tool=tool_change_tool,
         probe_tripped=bool(safe_get("probe_tripped", 0)),
         probing=bool(safe_get("probing", 0)),
         probed_position=to_float_list(safe_get("probed_position", None)),
@@ -1686,10 +1712,21 @@ def handle_command(msg: Dict[str, Any], armed: bool):
                     str_vars = {str(k): float(v) for k, v in vars_to_set.items()}
                     print(f"[probe] set_probe_vars: {str_vars}", flush=True)
                     lines = open(var_file).readlines()
+                    found = set()
                     for i, line in enumerate(lines):
                         parts = line.split()
                         if len(parts) >= 2 and parts[0] in str_vars:
                             lines[i] = f"{parts[0]}\t{str_vars[parts[0]]:.6f}\n"
+                            found.add(parts[0])
+                    # Insert missing vars and re-sort by var number
+                    missing = {k: v for k, v in str_vars.items() if k not in found}
+                    if missing:
+                        for k, v in missing.items():
+                            lines.append(f"{k}\t{v:.6f}\n")
+                        def _var_key(line):
+                            try: return int(line.split()[0])
+                            except Exception: return 999999
+                        lines.sort(key=_var_key)
                     open(var_file, "w").writelines(lines)
                     file_ok = True
             # 2) Best-effort: set in interpreter memory via MDI (requires armed + idle)
@@ -2201,10 +2238,11 @@ async def ws_endpoint(ws: WebSocket):
     viewer_init_sent = False
     _poll_fails = 0  # consecutive poll failures (tolerates NML startup transient)
     _probe_results: dict = {}  # populated from DEBUG EVAL messages in real-time
+    _prev_tc_req = False  # previous tool-change-requested state for edge detection
 
 
     async def status_loop():
-        nonlocal last_file, armed, viewer_init_sent, _poll_fails, _probe_results
+        nonlocal last_file, armed, viewer_init_sent, _poll_fails, _probe_results, _prev_tc_req
         global lcnc_connected, STAT, CMD, ERR, _hal_last_hb, _reconnect_fails
         loop = asyncio.get_event_loop()
         while True:
@@ -2304,6 +2342,11 @@ async def ws_endpoint(ws: WebSocket):
                 if _probe_results:
                     status_msg["probe_results"] = _probe_results
                 await ws_send_json(ws, status_msg)
+
+                # Tool change: auto-deassert when request clears
+                if _prev_tc_req and not st.tool_change_requested:
+                    await loop.run_in_executor(None, _hal_send, {"tool_changed": False})
+                _prev_tc_req = st.tool_change_requested
 
                 # HAL watchdog: send pin updates to subprocess
                 has_armed = any(c["armed"] for c in _clients.values())
@@ -2456,6 +2499,18 @@ async def ws_endpoint(ws: WebSocket):
                     await ws_send_json(ws, {"type": "reply", "ok": True})
                 except Exception as e:
                     await ws_send_json(ws, {"type": "reply", "ok": False, "error": f"simulate_probe_trip: {e}"})
+                continue
+
+            if msg.get("cmd") == "confirm_tool_change":
+                if not armed:
+                    await ws_send_json(ws, {"type": "reply", "ok": False, "error": "Not armed"})
+                    continue
+                if not lcnc_connected:
+                    await ws_send_json(ws, {"type": "reply", "ok": False, "error": "LinuxCNC not connected"})
+                    continue
+                _loop = asyncio.get_event_loop()
+                await _loop.run_in_executor(None, _hal_send, {"tool_changed": True})
+                await ws_send_json(ws, {"type": "reply", "ok": True})
                 continue
 
             reply = handle_command(msg, armed)
