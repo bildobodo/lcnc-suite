@@ -14,28 +14,93 @@ Gateway connects to LinuxCNC via Python bindings (`linuxcnc.stat`, `linuxcnc.com
 
 ## Frontend Structure (lcnc-webui/src/)
 
-- `App.vue` — Root component, dual-panel tab layout with pinned status/safety cards
-- `TabPanel.vue` — Reusable tab-panel (props: tabs, modelValue; uses v-show + min-height: 660px)
+- `App.vue` — Root component, sidebar + multi-panel tab layout, state management
+- `TabPanel.vue` — Reusable tab-panel (props: tabs, modelValue; uses v-show)
 - `ThreeViewer.vue` — Three.js 3D viewer (Z-up, OrbitControls, ResizeObserver)
 - `Toolbar.vue` — View preset buttons and layer toggles
 - `DroPanel.vue` — Position/DRO display with work/machine coordinate toggle
 - `JogPanel.vue` — Jog grid + speed slider
 - `JogButton.vue` — Press-and-hold jog button with pointer capture
 - `MdiPanel.vue` — MDI input + send button
+- `ManualPanel.vue` — DRO + jogging + MDI (consolidated)
 - `ProbePanel.vue` — Probe operations grid, calls `O<probe_*> CALL` via MDI
 - `ToolTablePanel.vue` — Tool table with load/delete dialogs
-- `ToolsetterPanel.vue` — Toolsetter config, M600/M601 measurement
-- `SettingsPanel.vue` — Sub-tabbed settings (3D Viewer, Machine, Jogging, Debug)
+- `SettingsPanel.vue` — Sub-tabbed settings (3D Viewer | Machine | Toolsetter | Jogging | Debug)
+- `permissions.ts` — Centralized button permission system (evaluatePermissions + provide/inject)
+- `lcncWs.ts` — WebSocket client, heartbeat, server-authoritative armed state
+- `lcncApi.ts` — REST helpers for file listing and upload
 - `defaults.ts` — localStorage defaults with section registry pattern
 - `style.css` — Global styles/theme vars, button.primary/button.danger
 
+### Main Tabs
+
+`3D Viewer | Manual Control | Program | Tool Table | Probing | Settings`
+
+### Sidebar
+
+Left column (150px) with three sections:
+
+1. **Machine Safety** — Arm/Disarm, E-Stop, Machine On/Off
+2. **Machine Status** — Click-to-toggle popovers for Machine, Program, Overrides
+3. **Controls** — Spindle, Coolant, Tool button+popover groups
+   - Spindle: FWD/REV/STOP, RPM input, actual speed, override slider
+   - Coolant: Flood/Mist toggles
+   - Tool: Tool # input, Measure/Manual/Load/Abort buttons, probe status, tool context (T# D# Z#)
+
+## Safety System — Three Layers
+
+See `README.md` Safety System section for full details including HAL setup.
+
+| Layer | Mechanism | Timeout | Effect |
+|-------|-----------|---------|--------|
+| **1. Disconnect** | Armed client disconnects | Immediate | `jog_stop` all axes + `abort` |
+| **2. Heartbeat** | Client sends every 1s; server checks | 3.0s | Auto-disarm + abort + stop jogs |
+| **3. HAL Watchdog** | `hal_watchdog.py` pins: `heartbeat`, `connected` | External HAL | Pins go LOW → hardware e-stop chain |
+
+Additional safety mechanisms:
+- **Client-local arming**: Each WebSocket client independently armed/disarmed (server-authoritative)
+- **Backend `require_armed()`**: Every motion command in gateway.py checks armed before executing
+- **Busy gate**: `fire()` 200ms anti-spam cooldown prevents double-execution
+- **Focus loss**: Auto-stop jogs on window blur / tab hidden
+
+## Permission System
+
+**File**: `permissions.ts` — single source of truth for all button enable/disable logic.
+
+**Rule: Every button must be assigned to a permission gate.** Components never compute their own disable conditions — they reference a permission class.
+
+```
+base = armed && !estop && enabled
+```
+
+| Class | Rule | Buttons / Actions |
+|-------|------|-------------------|
+| `idle` | base, idle, !busy | Home, Unhome, Zero, G5x select, file ops |
+| `jog` | base, idle, homed | Jog buttons, speed slider, keyboard jog |
+| `override` | base, !busy | Feed/Spindle/Rapid override sliders + presets |
+| `ready` | base, idle, !busy, homed | MDI, Cycle Start, Spindle, Coolant, Probe, Tool measure/load |
+| `pause` | base, running, !paused | Pause |
+| `resume` | base, paused | Resume |
+| `abort` | armed | Abort |
+
+### Usage in App.vue (direct)
+```vue
+<button :disabled="!permissions.ready" @click="...">Send MDI</button>
+```
+
+### Usage in child components (inject)
+```vue
+const can = usePermissions();
+<button :disabled="!can.idle">Zero All</button>
+```
+
 ## Layout Architecture
 
-- Two side-by-side TabPanels (`.panels { display: flex; gap: 12px }`)
-- Each panel independently selects tabs (3D Viewer, Position, Jogging, MDI, etc.)
-- Same tab can appear in both panels (e.g. two 3D Viewers with separate refs)
+- Sidebar (150px) + main content column with horizontally scrollable panels
+- Each panel independently selects tabs via TabPanel component
+- Same tab can appear in multiple panels (e.g. two 3D Viewers with separate refs)
 - Shared state: coordMode, jogVel, mdiText, armed, busy
-- Pinned below panels: Machine Status card, Safety card
+- Responsive: landscape (side-by-side panels) and portrait (stacked panels)
 
 ## Key Patterns
 
@@ -45,6 +110,7 @@ Gateway connects to LinuxCNC via Python bindings (`linuxcnc.stat`, `linuxcnc.com
 - ThreeViewer uses ResizeObserver (not window resize) to handle v-show tab switching
 - Dialog overlays use `position: fixed; z-index: 1000` with global `button.primary`/`button.danger` styles
 - Gateway `tool_change` handler is fire-and-forget (no `CMD.wait_complete()` — blocks heartbeat loop)
+- Toolsetter settings live in SettingsPanel (Toolsetter sub-tab), tool actions in sidebar Tool popover
 
 ## Toolsetter Var-File Mapping (#3100–#3115)
 
@@ -90,5 +156,3 @@ LinuxCNC can launch lcnc-suite as its native display:
 5. LinuxCNC blocks on display, cleans up when it exits
 
 For headless/no-UI: `DISPLAY = dummy` (zero overhead, gateway connects separately).
-
-See `.claude/projects/.../memory/display-integration.md` for full implementation notes.

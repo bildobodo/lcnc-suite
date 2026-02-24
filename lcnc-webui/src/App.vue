@@ -46,10 +46,10 @@ function reloadPage() { location.reload(); }
 /** ---------- tab definitions ---------- */
 const tabs = [
   { id: "viewer", label: "3D Viewer" },
-  { id: "manual", label: "Manual" },
+  { id: "manual", label: "Manual Control" },
   { id: "gcode", label: "Program" },
-  { id: "tools", label: "Tools" },
-  { id: "probe", label: "Probe" },
+  { id: "tools", label: "Tool Table" },
+  { id: "probe", label: "Probing" },
   { id: "settings", label: "Settings" },
 ];
 
@@ -1158,7 +1158,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
         >
           <span class="controlIcon">&#x1F527;</span>
           <span class="controlLabel">Tool</span>
-          <span class="controlStatus">{{ st.tool_number != null ? `T${st.tool_number}` : '---' }}</span>
+          <span class="controlStatus">{{ st.tool_number != null ? `T${st.tool_number}` : '---' }}{{ st.tool_diameter != null ? ` D${st.tool_diameter.toFixed(3)}` : '' }}{{ st.tool_offset?.[2] ? ` Z${st.tool_offset[2].toFixed(3)}` : '' }}</span>
         </button>
         <div class="popover toolPopover" :class="{ open: openChip === 'tool' }" @click.stop>
           <div class="toolInputRow">
@@ -1185,7 +1185,6 @@ watch(isHomed, (nowHomed, wasHomed) => {
           <div class="toolStatusRow">
             <span class="toolStatusDot" :class="probeStatusClass"></span>
             <span class="toolStatusText">{{ probeStatus }}</span>
-            <span class="toolLoadedInfo" v-if="st.tool_number != null">Loaded: <b>T{{ st.tool_number }}</b></span>
           </div>
         </div>
         </div>
@@ -2029,14 +2028,6 @@ watch(isHomed, (nowHomed, wasHomed) => {
   font-size: 11px;
   font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
   opacity: 0.7;
-}
-.toolLoadedInfo {
-  margin-left: auto;
-  font-size: 12px;
-  opacity: 0.7;
-}
-.toolLoadedInfo b {
-  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
 }
 
 /* ---- Messages popover ---- */

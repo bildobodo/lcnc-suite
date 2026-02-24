@@ -337,7 +337,7 @@ function fmtR(key: string): string {
           >
             <!-- BL corner: triangles pointing ↓ and → from outside -->
             <svg v-if="op.id === 'bl'" viewBox="0 0 80 80" class="gridIcon">
-              <rect x="10" y="10" width="60" height="60" rx="3" class="workpiece" />
+              <rect x="10" y="10" width="60" height="60" class="workpiece" />
               <circle cx="28" cy="28" r="4" class="probeTip" />
               <polygon points="28,10 23,1 33,1" class="arrowHead" />
               <polygon points="10,28 1,23 1,33" class="arrowHead" />
@@ -345,14 +345,14 @@ function fmtR(key: string): string {
             </svg>
             <!-- Back edge: triangle pointing ↓ from outside, circle at vertex -->
             <svg v-else-if="op.id === 'b'" viewBox="0 0 80 80" class="gridIcon">
-              <rect x="10" y="10" width="60" height="60" rx="3" class="workpiece" />
+              <rect x="10" y="10" width="60" height="60" class="workpiece" />
               <circle cx="40" cy="28" r="4" class="probeTip" />
               <polygon points="40,10 35,1 45,1" class="arrowHead" />
               <circle cx="40" cy="10" r="2.5" class="crosshair" />
             </svg>
             <!-- BR corner: triangles pointing ↓ and ← from outside -->
             <svg v-else-if="op.id === 'br'" viewBox="0 0 80 80" class="gridIcon">
-              <rect x="10" y="10" width="60" height="60" rx="3" class="workpiece" />
+              <rect x="10" y="10" width="60" height="60" class="workpiece" />
               <circle cx="52" cy="28" r="4" class="probeTip" />
               <polygon points="52,10 47,1 57,1" class="arrowHead" />
               <polygon points="70,28 79,23 79,33" class="arrowHead" />
@@ -360,28 +360,28 @@ function fmtR(key: string): string {
             </svg>
             <!-- Left edge: triangle pointing → from outside, circle at vertex -->
             <svg v-else-if="op.id === 'l'" viewBox="0 0 80 80" class="gridIcon">
-              <rect x="10" y="10" width="60" height="60" rx="3" class="workpiece" />
+              <rect x="10" y="10" width="60" height="60" class="workpiece" />
               <circle cx="28" cy="40" r="4" class="probeTip" />
               <polygon points="10,40 1,35 1,45" class="arrowHead" />
               <circle cx="10" cy="40" r="2.5" class="crosshair" />
             </svg>
             <!-- Z center: probe centered, green crosshair circle around probe tip -->
             <svg v-else-if="op.id === 'z'" viewBox="0 0 80 80" class="gridIcon">
-              <rect x="10" y="10" width="60" height="60" rx="3" class="workpiece" />
+              <rect x="10" y="10" width="60" height="60" class="workpiece" />
               <circle cx="40" cy="40" r="9" class="crosshair" />
               <circle cx="40" cy="40" r="5" class="probeTip" />
               <text x="40" y="60" class="gridZLabel">Z</text>
             </svg>
             <!-- Right edge: triangle pointing ← from outside, circle at vertex -->
             <svg v-else-if="op.id === 'r'" viewBox="0 0 80 80" class="gridIcon">
-              <rect x="10" y="10" width="60" height="60" rx="3" class="workpiece" />
+              <rect x="10" y="10" width="60" height="60" class="workpiece" />
               <circle cx="52" cy="40" r="4" class="probeTip" />
               <polygon points="70,40 79,35 79,45" class="arrowHead" />
               <circle cx="70" cy="40" r="2.5" class="crosshair" />
             </svg>
             <!-- FL corner: triangles pointing ↑ and → from outside -->
             <svg v-else-if="op.id === 'fl'" viewBox="0 0 80 80" class="gridIcon">
-              <rect x="10" y="10" width="60" height="60" rx="3" class="workpiece" />
+              <rect x="10" y="10" width="60" height="60" class="workpiece" />
               <circle cx="28" cy="52" r="4" class="probeTip" />
               <polygon points="28,70 23,79 33,79" class="arrowHead" />
               <polygon points="10,52 1,47 1,57" class="arrowHead" />
@@ -389,14 +389,14 @@ function fmtR(key: string): string {
             </svg>
             <!-- Front edge: triangle pointing ↑ from outside, circle at vertex -->
             <svg v-else-if="op.id === 'f'" viewBox="0 0 80 80" class="gridIcon">
-              <rect x="10" y="10" width="60" height="60" rx="3" class="workpiece" />
+              <rect x="10" y="10" width="60" height="60" class="workpiece" />
               <circle cx="40" cy="52" r="4" class="probeTip" />
               <polygon points="40,70 35,79 45,79" class="arrowHead" />
               <circle cx="40" cy="70" r="2.5" class="crosshair" />
             </svg>
             <!-- FR corner: triangles pointing ↑ and ← from outside -->
             <svg v-else-if="op.id === 'fr'" viewBox="0 0 80 80" class="gridIcon">
-              <rect x="10" y="10" width="60" height="60" rx="3" class="workpiece" />
+              <rect x="10" y="10" width="60" height="60" class="workpiece" />
               <circle cx="52" cy="52" r="4" class="probeTip" />
               <polygon points="52,70 47,79 57,79" class="arrowHead" />
               <polygon points="70,52 79,47 79,57" class="arrowHead" />
@@ -455,7 +455,7 @@ function fmtR(key: string): string {
             </svg>
             <!-- Z center: full workpiece -->
             <svg v-else-if="op.id === 'z'" viewBox="0 0 80 80" class="gridIcon">
-              <rect x="0" y="0" width="80" height="80" rx="3" class="workpiece" />
+              <rect x="0" y="0" width="80" height="80" class="workpiece" />
               <circle cx="40" cy="40" r="9" class="crosshair" />
               <circle cx="40" cy="40" r="5" class="probeTip" />
               <text x="40" y="60" class="gridZLabel">Z</text>
@@ -636,7 +636,7 @@ function fmtR(key: string): string {
             </svg>
             <!-- Z surface: rotated workpiece centered, crosshair+probe center -->
             <svg v-else-if="op.id === 'z'" viewBox="0 0 80 80" class="gridIcon">
-              <rect x="10" y="10" width="60" height="60" rx="3" class="workpiece" transform="rotate(-4, 40, 40)" />
+              <rect x="10" y="10" width="60" height="60" class="workpiece" transform="rotate(-4, 40, 40)" />
               <circle cx="40" cy="40" r="9" class="crosshair" />
               <circle cx="40" cy="40" r="5" class="probeTip" />
               <text x="40" y="60" class="gridZLabel">Z</text>
@@ -1116,6 +1116,7 @@ function fmtR(key: string): string {
 .inlineParams {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   flex-wrap: wrap;
 }
