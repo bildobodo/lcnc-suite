@@ -2,3 +2,6 @@
 	path = subroutines/tool_length_probe
 	url = https://github.com/bildobodo/tool_length_probe.git
 	branch = lcnc-suite-mods
+[submodule "subroutines/probe_basic"]
+	path = subroutines/probe_basic
+	url = https://github.com/bildobodo/probe_basic.git
