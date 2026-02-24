@@ -1,0 +1,58 @@
+( author: Chris P / TooTall18 )
+( file: unload_tool.ngc )
+( purpose: Manually release/unload tool using the M6 T0 handshake )
+( version: 1.0 )
+( date: 2026-01-07 )
+
+( Behavior:)
+    (- Moves to safe Z G53 Z0, stops spindle)
+    (- Moves to the defined tool-change position using #5181/#5182/#5183)
+    (- Calls M6 T0 GUI/HAL shows the tool-change dialog; pneumatic clamp unlocks)
+    (- Waits for operator confirmation via M6 handshake, then exits without probing)
+    (- Cancels tool-length comp and clears logical tool state)
+
+o<unload_tool> sub
+
+    (---- configuration / conventions ----)
+    ( Uses the same parameter conventions as tool_touch_off.ngc )
+    #<traverse_fr> = #3006         ( traverse feed from probe screen / your .var file )
+
+    ( Change position coordinates are read from the machine registers )
+    ( #5181 -> X, #5182 -> Y, #5183 -> Z-above-change position )
+    #<chg_x> = #5181
+    #<chg_y> = #5182
+    #<chg_z> = #5183
+
+    (---- safety prelude ----)
+    G92.1                      ( cancel any G92 offset )
+    M50 P0                     ( lock feed override during safety moves )
+    G40                        ( cancel diameter comp just in case )
+    G49                        ( cancel length comp )
+
+    (---- go safe Z and stop spindle ----)
+    G90
+    G53 G1 F#<traverse_fr> Z0  ( safe Z first )
+    M5                         ( stop spindle; if you use a different M, set via remap or edit here )
+    M9                         ( coolant OFF if applicable )
+
+    (---- move to tool-change position ----)
+    G53 G1 F#<traverse_fr> X#<chg_x> Y#<chg_y>
+    G53 G1 F#<traverse_fr> Z#<chg_z>
+
+    ( Optional explicit hint; GUI will still show its own popup at M6 )
+    (MSG, Remove tool from spindle)
+
+    (---- request "no tool" using standard tool-change handshake ----)
+    ( This triggers the pneumatic clamp unlock and waits for operator confirmation )
+    M6 T0
+
+    (---- cleanup / logical state ----)
+    G49                        ( ensure no length comp active )
+    M61 Q0                     ( set logical “no tool in spindle” )
+    ; #3991 = 0               ( if your ATC/GUI uses this flag, uncomment to keep states consistent )
+
+    M50 P1                     ( restore feed override behavior )
+
+o<unload_tool> endsub
+
+M2 ( end program )

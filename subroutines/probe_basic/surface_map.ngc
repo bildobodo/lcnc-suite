@@ -1,0 +1,6 @@
+o<surface_map> sub
+    ( launch python surface map )
+    M64 P0
+    M123
+o<surface_map> endsub
+M2

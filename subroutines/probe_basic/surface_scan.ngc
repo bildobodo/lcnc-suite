@@ -1,0 +1,172 @@
+o<surface_scan> sub
+  ; ============================================================
+  ; Read parameters from userspace variables
+  ; ============================================================
+  #<x0> = #3050           (Lower X coordinate of grid)
+  #<x1> = #3051           (Upper X coordinate of grid)
+  #<y0> = #3052           (Lower Y coordinate of grid)
+  #<y1> = #3053           (Upper Y coordinate of grid)
+  #<xprobes> = #3054      (Number of probe points in X direction)
+  #<yprobes> = #3055      (Number of probe points in Y direction)
+  #<fast_fr> = #3056      (Fast probe feedrate)
+  #<slow_fr> = #3057      (Slow probe feedrate)
+  #<safez> = #3058        (Safe/traverse Z height in current WCS)
+  #<depthz> = #3059       (Maximum search depth - positive value, distance to probe down)
+  
+  ; ============================================================
+  ; Configuration constants
+  ; ============================================================
+  #<slow_retract> = 0.1   (Retract distance before slow probe pass)
+  
+  ; ============================================================
+  ; Get into predictable state
+  ; ============================================================
+  M64 P0                  (Disable compensation)
+  G90                     (Absolute positioning)
+  G94                     (Feed per minute mode)
+  G40                     (Cancel cutter compensation)
+  G80                     (Cancel canned cycles)
+  ; Note: G49 NOT used - tool length offset must remain active for probe
+  
+  ; ============================================================
+  ; Validate parameters and calculate probe point spacing
+  ; ============================================================
+  ; Validate probe counts - must be at least 2 for a grid
+  o100 if [#<xprobes> LT 2]
+    (MSG, ERROR: Number of X probes must be at least 2)
+    (ABORT, Invalid xprobes parameter - minimum is 2)
+  o100 endif
+  
+  o101 if [#<yprobes> LT 2]
+    (MSG, ERROR: Number of Y probes must be at least 2)
+    (ABORT, Invalid yprobes parameter - minimum is 2)
+  o101 endif
+  
+  ; Validate probe counts are integers (check for fractional part)
+  o102 if [#<xprobes> NE FIX[#<xprobes>]]
+    (MSG, ERROR: Number of X probes must be an integer)
+    (ABORT, Invalid xprobes parameter - must be whole number)
+  o102 endif
+  
+  o103 if [#<yprobes> NE FIX[#<yprobes>]]
+    (MSG, ERROR: Number of Y probes must be an integer)
+    (ABORT, Invalid yprobes parameter - must be whole number)
+  o103 endif
+  
+  ; Validate grid bounds
+  o104 if [#<x1> LE #<x0>]
+    (MSG, ERROR: X1 must be greater than X0)
+    (ABORT, Invalid grid bounds - X1 <= X0)
+  o104 endif
+  
+  o105 if [#<y1> LE #<y0>]
+    (MSG, ERROR: Y1 must be greater than Y0)
+    (ABORT, Invalid grid bounds - Y1 <= Y0)
+  o105 endif
+  
+  ; Validate feedrates
+  o106 if [#<fast_fr> LE 0]
+    (MSG, ERROR: Fast feedrate must be greater than 0)
+    (ABORT, Invalid fast_fr parameter)
+  o106 endif
+  
+  o107 if [#<slow_fr> LT 0]
+    (MSG, ERROR: Slow feedrate must be 0 or positive)
+    (ABORT, Invalid slow_fr parameter)
+  o107 endif
+  
+  ; Validate depth is positive (distance to probe down)
+  o108 if [#<depthz> LE 0]
+    (MSG, ERROR: Search depth must be positive)
+    (ABORT, Invalid depthz parameter - must be greater than 0)
+  o108 endif
+  
+  ; Calculate distance between probe points
+  ; For N points, we have N-1 intervals
+  #<x_range> = [#<x1> - #<x0>]
+  #<y_range> = [#<y1> - #<y0>]
+  #<x_spacing> = [#<x_range> / [#<xprobes> - 1]]
+  #<y_spacing> = [#<y_range> / [#<yprobes> - 1]]
+  
+  (DEBUG, Grid: X[#<x0> to #<x1>] Y[#<y0> to #<y1>], Spacing: X#<x_spacing> Y#<y_spacing>)
+  
+  ; ============================================================
+  ; Open probe results file (no header for np.loadtxt compatibility)
+  ; ============================================================
+  (LOGOPEN,probe-results.txt)
+  
+  ; ============================================================
+  ; Move to safe position
+  ; ============================================================
+  G0 G53 Z0               (Move to machine Z0 for safety)
+  G0 X#<x0> Y#<y0>        (Move to starting XY position in current WCS)
+  G0 Z#<safez>            (Move to safe Z in current WCS)
+  
+  ; Calculate probe target Z (current Z minus search depth)
+  #<probe_target_z> = [#<_z> - #<depthz>]
+  
+  ; ============================================================
+  ; Probe grid with snaking pattern
+  ; ============================================================
+  #<row> = 0
+  #<direction> = 1        (1 = left to right, -1 = right to left)
+  
+  o200 while [#<row> LT #<yprobes>]
+    ; Calculate current Y position
+    #<current_y> = [#<y0> + [#<row> * #<y_spacing>]]
+    
+    ; Determine starting column based on direction
+    o210 if [#<direction> EQ 1]
+      #<col> = 0
+      #<col_end> = #<xprobes>
+    o210 else
+      #<col> = [#<xprobes> - 1]
+      #<col_end> = -1
+    o210 endif
+    
+    ; Probe all points in this row
+    o220 while [[#<direction> EQ 1 AND #<col> LT #<col_end>] OR [#<direction> EQ -1 AND #<col> GT #<col_end>]]
+      ; Calculate current X position
+      #<current_x> = [#<x0> + [#<col> * #<x_spacing>]]
+      
+      ; Move to XY position
+      G0 X#<current_x> Y#<current_y>
+      
+      ; Probe downward with fast feedrate
+      G38.2 Z#<probe_target_z> F#<fast_fr>
+      
+      ; If slow feedrate is enabled, retract slightly and probe again slowly
+      o230 if [#<slow_fr> GT 0]
+        G0 Z[#5063 + #<slow_retract>]    (Retract for slow probe pass)
+        G38.2 Z#<probe_target_z> F#<slow_fr>
+      o230 endif
+      
+      ; Log the probed point (machine coordinates)
+      (LOG,#5061 #5062 #5063)
+      
+      ; Retract to safe Z
+      G0 Z#<safez>
+      
+      ; Move to next column
+      #<col> = [#<col> + #<direction>]
+    o220 endwhile
+    
+    ; Toggle direction for next row (snake pattern)
+    #<direction> = [0 - #<direction>]
+    
+    ; Move to next row
+    #<row> = [#<row> + 1]
+  o200 endwhile
+  
+  ; ============================================================
+  ; Clean up and finish
+  ; ============================================================
+  (LOGCLOSE)
+  G0 G53 Z0               (Return to machine Z0)
+  G0 X#<x0> Y#<y0>        (Return to start position)
+  
+  (MSG, Surface scan complete. Results saved to probe-results.txt)
+  
+o<surface_scan> endsub
+
+M2
