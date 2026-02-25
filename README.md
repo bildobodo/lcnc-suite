@@ -178,8 +178,14 @@ BY USING THIS SOFTWARE, YOU EXPRESSLY ACKNOWLEDGE AND ASSUME ALL RISKS ASSOCIATE
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/lcnc-suite.git
+git clone --recursive https://github.com/bildobodo/lcnc-suite.git
 cd lcnc-suite
+```
+
+If you already cloned without `--recursive`, initialize the submodules:
+
+```bash
+git submodule update --init --recursive
 ```
 
 ### 2. Setup Gateway
@@ -618,6 +624,10 @@ lcnc-suite/
 │   │   ├── OverrideHUD.vue    # Override overlay pill
 │   │   └── SetupHUD.vue       # Setup overlay pill
 │   └── package.json
+├── subroutines/               # G-code subroutines (git submodules + bundled)
+│   ├── probe_basic/           # Probing routines (bundled from kcjengr/probe_basic, GPL v3)
+│   ├── tool_length_probe/     # Tool measurement (submodule: bildobodo/tool_length_probe)
+│   └── surfacemap/            # Surface scanning + compensation (submodule: bildobodo/surfacemap_usertab)
 ├── restart.sh                 # Start/restart gateway + web UI
 ├── kill.sh                    # Stop gateway + web UI
 ├── runlogs/                   # Application logs
@@ -640,7 +650,9 @@ See the [LICENSE](LICENSE) file for the full text.
 
 This project uses subroutines from [ProbeBasic](https://github.com/kcjengr/probe_basic)
 (Chris P / kcjengr) and [tool_length_probe](https://github.com/TooTall18T/tool_length_probe)
-(TooTall18T), both licensed under GPL v3. See [NOTICE](NOTICE) for full attribution.
+(TooTall18T), both licensed under GPL v3, and the surface compensation component from
+[LinuxCNC-3D-Printing](https://github.com/scottalford75/LinuxCNC-3D-Printing) (Scott Alford),
+licensed under GPL v2. See [NOTICE](NOTICE) for full attribution.
 
 **THIS SOFTWARE IS PROVIDED WITHOUT WARRANTY OF ANY KIND. THIS SOFTWARE IS
 INTENDED FOR USE WITH POTENTIALLY DANGEROUS EQUIPMENT. BY USING THIS SOFTWARE,

@@ -8,6 +8,7 @@ lcnc-gateway/       Python FastAPI + WebSocket backend (uvicorn, port 8000)
 subroutines/        G-code subroutines shipped with the project
   probe_basic/      44 probing .ngc files (bundled from kcjengr/probe_basic, GPL v3)
   tool_length_probe/ git submodule → bildobodo/tool_length_probe@lcnc-suite-mods
+  surfacemap/       git submodule → bildobodo/surfacemap_usertab@lcnc-suite-mods
 ```
 
 Gateway connects to LinuxCNC via Python bindings (`linuxcnc.stat`, `linuxcnc.command`, `linuxcnc.error_channel`). WebUI connects to gateway via WebSocket at `/ws`.

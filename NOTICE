@@ -2,7 +2,7 @@ NOTICE — Third-Party Code and Attribution
 =========================================
 
 This project incorporates and depends on code from the following
-GPL v3-licensed projects. Their original authors retain copyright
+GPL-licensed projects. Their original authors retain copyright
 over their respective contributions.
 
 
@@ -11,8 +11,7 @@ over their respective contributions.
    License:   GPL v3
    Source:    https://github.com/kcjengr/probe_basic
 
-   Used subroutines (located in the LinuxCNC config's subroutines/
-   directory, not bundled in this repository):
+   Used subroutines (bundled in subroutines/probe_basic/):
    - All probe_*.ngc subroutines (~60 files)
    - ATC subroutines: toolchange.ngc, load_spindle_safety*.ngc,
      m6_tool_call_*.ngc, m10-m26.ngc, clamptool.ngc, unclamptool.ngc,
@@ -36,7 +35,18 @@ over their respective contributions.
    - m601.ngc — manual tool measurement
 
 
-3. LinuxCNC
+3. LinuxCNC-3D-Printing (Surface Compensation)
+   Author:    Scott Alford (scottalford75)
+   License:   GPL v2
+   Source:    https://github.com/scottalford75/LinuxCNC-3D-Printing
+   Fork:      https://github.com/bildobodo/surfacemap_usertab
+
+   Used components (bundled as submodule in subroutines/surfacemap/):
+   - compensation.py — HAL userspace component for real-time Z external
+     offset compensation using scipy griddata interpolation
+
+
+4. LinuxCNC
    License:   LGPL v3 / GPL v2 (mixed)
    Source:    https://github.com/LinuxCNC/linuxcnc
    Website:   https://linuxcnc.org
