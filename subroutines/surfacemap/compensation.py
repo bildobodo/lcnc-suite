@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# Origin: https://github.com/scottalford75/LinuxCNC-3D-Printing
+# Fork:   https://github.com/bildobodo/surfacemap_usertab
 """Copyright (C) 2020 Scott Alford, scottalford75@gmail.com
 
 This program is free software; you can redistribute it and/or modify
