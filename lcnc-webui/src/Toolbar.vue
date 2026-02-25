@@ -40,6 +40,7 @@
           <label><input type="checkbox" v-model="local.bounds" @change="emitToggle('bounds')" /> Bounds</label>
           <label><input type="checkbox" v-model="local.workzero" @change="emitToggle('workzero')" /> Work Zero</label>
           <label><input type="checkbox" v-model="local.hud" @change="emitToggle('hud')" /> HUD</label>
+          <label><input type="checkbox" v-model="local.surface" @change="emitToggle('surface')" /> Surface</label>
         </div>
       </div>
 

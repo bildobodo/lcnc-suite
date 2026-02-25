@@ -1261,6 +1261,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
                 :spindleSpeed="spindleSpeed"
                 :spindleActual="spindleActual"
                 :spindleDirection="spindleDirection"
+                :surfacePoints="surfacePoints"
                 @update:jogVel="jogVel = $event"
                 @update:jogIncrement="jogIncrement = $event"
                 @cycleStart="cycleStart"

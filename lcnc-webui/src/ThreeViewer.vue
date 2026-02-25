@@ -163,6 +163,7 @@ const props = defineProps<{
   spindleSpeed?: number | null;
   spindleActual?: number | null;
   spindleDirection?: number | null;
+  surfacePoints?: number[][] | null;
 }>();
 
 const emit = defineEmits<{
@@ -208,6 +209,7 @@ let feedLine: THREE.Line | null = null;
 let rapidLine: THREE.Line | null = null;
 let highlightLine: THREE.Line | null = null;
 let workAxes: THREE.AxesHelper | null = null;
+let surfaceGroup: THREE.Group | null = null;
 
 // Map g-code line number → { start, end } point-index range in feed arrays
 let feedPtsCache: number[][] = [];
@@ -388,6 +390,9 @@ function setLayerVisible(layer: Layer | string, on: boolean) {
       break;
     case "hud":
       hudVisible.value = on;
+      break;
+    case "surface":
+      if (surfaceGroup) surfaceGroup.visible = on;
       break;
   }
 }
@@ -1157,6 +1162,112 @@ function formatCoord(val: number | null | undefined): string {
   if (val == null) return '---';
   return val.toFixed(3);
 }
+
+// ─── Surface map layer ──────────────────────────────────────────
+
+function viridis(t: number): [number, number, number] {
+  t = Math.max(0, Math.min(1, t));
+  const c = [[68,1,84],[59,82,139],[33,145,140],[94,201,98],[253,231,37]];
+  const idx = t * (c.length - 1);
+  const i = Math.floor(idx);
+  const f = idx - i;
+  const a = c[Math.min(i, c.length - 1)];
+  const b = c[Math.min(i + 1, c.length - 1)];
+  return [
+    Math.round(a[0] + (b[0] - a[0]) * f),
+    Math.round(a[1] + (b[1] - a[1]) * f),
+    Math.round(a[2] + (b[2] - a[2]) * f),
+  ];
+}
+
+function idwInterp(px: number, py: number, points: number[][], power = 2): number {
+  let wSum = 0, vSum = 0;
+  for (const p of points) {
+    const dx = px - p[0], dy = py - p[1];
+    const d2 = dx * dx + dy * dy;
+    if (d2 < 1e-10) return p[2];
+    const w = 1 / Math.pow(Math.sqrt(d2), power);
+    wSum += w;
+    vSum += w * p[2];
+  }
+  return wSum > 0 ? vSum / wSum : 0;
+}
+
+function buildSurfaceLayer(pts: number[][]) {
+  if (!scene || !workOrigin) return;
+
+  // Remove previous
+  if (surfaceGroup) {
+    surfaceGroup.parent?.remove(surfaceGroup);
+    surfaceGroup.traverse((o: any) => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
+    surfaceGroup = null;
+  }
+
+  if (!pts || pts.length < 3) return;
+
+  surfaceGroup = new THREE.Group();
+
+  // Compute bounds
+  let xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity, zMin = Infinity, zMax = -Infinity;
+  for (const p of pts) {
+    if (p[0] < xMin) xMin = p[0]; if (p[0] > xMax) xMax = p[0];
+    if (p[1] < yMin) yMin = p[1]; if (p[1] > yMax) yMax = p[1];
+    if (p[2] < zMin) zMin = p[2]; if (p[2] > zMax) zMax = p[2];
+  }
+  const xRange = xMax - xMin || 1, yRange = yMax - yMin || 1, zRange = zMax - zMin || 0.001;
+
+  // Create interpolated grid at 1:1 WCS scale
+  const res = 30;
+  const geom = new THREE.PlaneGeometry(xRange, yRange, res - 1, res - 1);
+  const colors: number[] = [];
+  const posArr = geom.attributes.position;
+  for (let i = 0; i < posArr.count; i++) {
+    // PlaneGeometry vertices are in local space centered at origin
+    const gx = posArr.getX(i) + xRange / 2 + xMin;
+    const gy = posArr.getY(i) + yRange / 2 + yMin;
+    const gz = idwInterp(gx, gy, pts);
+    // Set Z at real WCS height (1:1 scale)
+    posArr.setZ(i, gz);
+    // Set XY at real WCS positions
+    posArr.setX(i, gx);
+    posArr.setY(i, gy);
+    const t = (gz - zMin) / zRange;
+    const [r, g, b] = viridis(t);
+    colors.push(r / 255, g / 255, b / 255);
+  }
+  geom.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+  geom.computeVertexNormals();
+
+  const mat = new THREE.MeshLambertMaterial({
+    vertexColors: true,
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0.85,
+  });
+  surfaceGroup.add(new THREE.Mesh(geom, mat));
+
+  // Add probe point dots
+  const dotR = Math.min(xRange, yRange) * 0.012;
+  const dotGeom = new THREE.SphereGeometry(dotR, 8, 8);
+  const dotMat = new THREE.MeshBasicMaterial({ color: 0xff3333 });
+  for (const p of pts) {
+    const dot = new THREE.Mesh(dotGeom, dotMat);
+    dot.position.set(p[0], p[1], p[2]);
+    surfaceGroup.add(dot);
+  }
+
+  // Add to work coordinate origin (same parent as workpiece/backplot)
+  workOrigin.add(surfaceGroup);
+
+  // Respect current layer visibility
+  if (pendingLayers?.has("surface")) {
+    surfaceGroup.visible = pendingLayers.get("surface")!;
+  }
+}
+
+watch(() => props.surfacePoints, (pts) => {
+  if (pts && pts.length >= 3) buildSurfaceLayer(pts);
+});
 
 defineExpose({
   resetBackplot,
