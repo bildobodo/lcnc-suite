@@ -208,7 +208,7 @@ let toolMarker: THREE.Object3D | null = null;
 let feedLine: THREE.Line | null = null;
 let rapidLine: THREE.Line | null = null;
 let highlightLine: THREE.Line | null = null;
-let workAxes: THREE.AxesHelper | null = null;
+let workAxes: THREE.Group | null = null;
 let surfaceGroup: THREE.Group | null = null;
 
 // Map g-code line number → { start, end } point-index range in feed arrays
@@ -241,6 +241,7 @@ let lastBackplotFile: string | null = null;
 let lastBackplotMotionLine: number | null = null;
 
 let machineBoundsMesh: THREE.Mesh | null = null;
+let boundsLabels: THREE.Group | null = null;
 let workpieceMesh: THREE.Mesh | null = null;
 let machineMeshes: THREE.Mesh[] = [];
 
@@ -381,6 +382,7 @@ function setLayerVisible(layer: Layer | string, on: boolean) {
       break;
     case "bounds":
       if (machineBoundsMesh) machineBoundsMesh.visible = on;
+      if (boundsLabels) boundsLabels.visible = on;
       break;
     case "tool":
       if (toolMarker) toolMarker.visible = on;
@@ -593,8 +595,34 @@ function ensureCoreGroups() {
   workOrigin = new THREE.Group();
   groups.x.add(workOrigin);
 
-  // Work/DRO axes helper (the one you kept)
-  workAxes = new THREE.AxesHelper(120 * _unitScale);
+  // Work zero XYZ arrows with labels
+  workAxes = new THREE.Group();
+  const _al = 60 * _unitScale;
+  const _ah = _al * 0.15, _aw = _al * 0.08;
+  workAxes.add(new THREE.ArrowHelper(new THREE.Vector3(1,0,0), new THREE.Vector3(), _al, 0xff4444, _ah, _aw));
+  workAxes.add(new THREE.ArrowHelper(new THREE.Vector3(0,1,0), new THREE.Vector3(), _al, 0x44ff44, _ah, _aw));
+  workAxes.add(new THREE.ArrowHelper(new THREE.Vector3(0,0,1), new THREE.Vector3(), _al, 0x4488ff, _ah, _aw));
+
+  function _mkAxisLabel(text: string, color: string): THREE.Sprite {
+    const c = document.createElement("canvas");
+    c.width = 64; c.height = 64;
+    const cx = c.getContext("2d")!;
+    cx.font = "bold 48px sans-serif";
+    cx.fillStyle = color;
+    cx.textAlign = "center";
+    cx.textBaseline = "middle";
+    cx.fillText(text, 32, 32);
+    const m = new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthTest: false });
+    const s = new THREE.Sprite(m);
+    const ls = _al * 0.5;
+    s.scale.set(ls, ls, 1);
+    return s;
+  }
+  const _lblOff = _al * 1.15;
+  const xLbl = _mkAxisLabel("X", "#ff4444"); xLbl.position.set(_lblOff, 0, 0); workAxes.add(xLbl);
+  const yLbl = _mkAxisLabel("Y", "#44ff44"); yLbl.position.set(0, _lblOff, 0); workAxes.add(yLbl);
+  const zLbl = _mkAxisLabel("Z", "#4488ff"); zLbl.position.set(0, 0, _lblOff); workAxes.add(zLbl);
+
   workOrigin.add(workAxes);
 
   // ---- Backplot line (tool history in WORK coordinates) ----
@@ -729,6 +757,39 @@ async function buildFromInit(init: ViewerInit) {
     const mb = (init as any).machine_bounds;
     if (machineBoundsMesh && mb?.size && mb?.origin) {
       applyBox(machineBoundsMesh, mb.size as Vec3, mb.origin as Vec3);
+
+      // Dimension labels along bottom edges
+      if (boundsLabels) { groups.x.remove(boundsLabels); boundsLabels = null; }
+      boundsLabels = new THREE.Group();
+      const [sx, sy, sz] = mb.size as Vec3;
+      const [ox, oy, oz] = mb.origin as Vec3;
+      const unit = (init.units === "in" || init.units === "inch") ? "in" : "mm";
+      const axes: [string, number, THREE.Vector3, number][] = [
+        ["X", sx, new THREE.Vector3(ox + sx / 2, oy, oz), 0xff4444],
+        ["Y", sy, new THREE.Vector3(ox, oy + sy / 2, oz), 0x44ff44],
+        ["Z", sz, new THREE.Vector3(ox, oy, oz + sz / 2), 0x4488ff],
+      ];
+      for (const [name, size, pos, color] of axes) {
+        const c = document.createElement("canvas");
+        c.width = 256; c.height = 48;
+        const cx = c.getContext("2d")!;
+        cx.font = "bold 32px monospace";
+        cx.fillStyle = `#${color.toString(16).padStart(6, "0")}`;
+        cx.strokeStyle = "#000000";
+        cx.lineWidth = 3;
+        cx.textAlign = "center";
+        cx.textBaseline = "middle";
+        const text = `${name}: ${size.toFixed(0)} ${unit}`;
+        cx.strokeText(text, 128, 24);
+        cx.fillText(text, 128, 24);
+        const mat = new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthTest: false });
+        const sprite = new THREE.Sprite(mat);
+        const ls = Math.max(sx, sy) * 0.25;
+        sprite.scale.set(ls, ls * (48 / 256), 1);
+        sprite.position.copy(pos);
+        boundsLabels.add(sprite);
+      }
+      groups.x.add(boundsLabels);
     } else {
       console.warn("No machine_bounds in viewer_init; bounds box will remain default");
     }
@@ -771,7 +832,9 @@ async function buildFromInit(init: ViewerInit) {
       } else if (machineMeshes.length > 0) {
         for (const m of machineMeshes) autoBox.expandByObject(m);
       }
+      _iniBox = autoBox.clone();
       frameToBounds(autoBox);
+      _needsReframe = true;
 
       (window as any).__viewerDiag = {
         ready: true,
@@ -995,6 +1058,8 @@ function resize() {
 }
 
 let pendingState: any = null;
+let _needsReframe = false;
+let _iniBox: THREE.Box3 | null = null;
 
 function animate() {
   if (props.active === false) return; // paused — don't schedule next frame
@@ -1005,6 +1070,13 @@ function animate() {
   if (pendingState && viewerInit.value) {
     applyState(viewerInit.value as ViewerInit, pendingState as ViewerState);
     pendingState = null;
+
+    // Re-frame after first status update so camera accounts for actual axis positions
+    if (_needsReframe && _iniBox && groups?.x) {
+      _needsReframe = false;
+      const box = _iniBox.clone().translate(groups.x.position);
+      frameToBounds(box);
+    }
   }
 
   // Camera tracking — move both target and camera to maintain viewing angle
