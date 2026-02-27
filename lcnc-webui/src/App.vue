@@ -212,11 +212,12 @@ const hasRotation = computed(() => {
   return rot != null && rot !== 0;
 });
 
-// Cycle chip value: "G54" → "ROT 45.0" → "G54" when rotation is active
+// Cycle chip value: "G54" → "ROT 45.0" / "Z 0.050" → "G54" when rotation or eoffset is active
 const offsetCyclePhase = ref(false);
 let _offsetCycleTimer: ReturnType<typeof setInterval> | null = null;
+const hasOffsetWarning = computed(() => hasRotation.value || !!st.value.eoffset_enabled);
 
-watch(hasRotation, (active) => {
+watch(hasOffsetWarning, (active) => {
   if (active && !_offsetCycleTimer) {
     _offsetCycleTimer = setInterval(() => { offsetCyclePhase.value = !offsetCyclePhase.value; }, 2000);
   } else if (!active) {
@@ -227,7 +228,8 @@ watch(hasRotation, (active) => {
 
 const offsetChipValue = computed(() => {
   if (st.value.eoffset_enabled && offsetCyclePhase.value) {
-    return "COMP";
+    const z = st.value.eoffset_z;
+    return z != null ? `Z ${z.toFixed(3)}` : "COMP";
   }
   if (hasRotation.value && offsetCyclePhase.value) {
     return `ROT ${st.value.rotation_xy!.toFixed(1)}`;
@@ -336,6 +338,17 @@ const overridesDisabled = computed(() => !feedOvrEnabled.value || !spindleOvrEna
 const toolChangeRequested = computed(() => !!st.value.tool_change_requested);
 const toolChangeTool = computed(() => st.value.tool_change_tool ?? null);
 function confirmToolChange() { send({ cmd: "confirm_tool_change" }); }
+
+// Compensation confirmation dialog
+const compConfirmPending = ref<boolean | null>(null);
+function requestCompToggle(enable: boolean) { compConfirmPending.value = enable; }
+function confirmCompToggle() {
+  if (compConfirmPending.value !== null) {
+    send({ cmd: 'set_compensation', enable: compConfirmPending.value });
+    compConfirmPending.value = null;
+  }
+}
+function cancelCompToggle() { compConfirmPending.value = null; }
 
 // Status chip popovers (click-to-toggle, only one open at a time)
 const openChip = ref<string | null>(null);
@@ -932,7 +945,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
           </div>
         </div>
 
-        <div class="statusChip" :class="{ warn: hasRotation || st.eoffset_enabled }" @click.stop="openOffsetsPopover()">
+        <div class="statusChip" :class="{ warn: hasOffsetWarning }" @click.stop="openOffsetsPopover()">
           <span class="chipLabel">Offsets</span>
           <span class="chipValue">{{ offsetChipValue }}</span>
           <div class="popover chipPopover offsetsPopover" :class="{ open: openChip === 'offsets' }" @click.stop>
@@ -1342,7 +1355,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
               @setProbeVars="send({ cmd: 'set_probe_vars', vars: $event })"
               @setG5x="setG5x"
               @getProbeResults="requestProbeResults"
-              @setCompensation="send({ cmd: 'set_compensation', enable: $event })"
+              @setCompensation="requestCompToggle"
               @setCompMethod="send({ cmd: 'set_compensation_method', method: $event })"
             />
           </template>
@@ -1376,6 +1389,27 @@ watch(isHomed, (nowHomed, wasHomed) => {
           <button class="btn primary" :disabled="!armed" @click="confirmToolChange">
             Confirm
           </button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="compConfirmPending !== null" class="toolChangeOverlay">
+      <div class="toolChangeDialog">
+        <div class="toolChangeTitle">{{ compConfirmPending ? 'Enable' : 'Disable' }} Compensation</div>
+        <div class="toolChangeBody">
+          <template v-if="compConfirmPending">
+            Z axis will move based on the surface compensation map.<br>
+            Ensure tool is clear of the workpiece.
+          </template>
+          <template v-else>
+            Z axis will move by approximately
+            <strong>{{ ((st.eoffset_z ?? 0) * -1).toFixed(4) }}</strong> mm.<br>
+            Ensure tool is clear of the workpiece.
+          </template>
+        </div>
+        <div class="toolChangeActions">
+          <button class="btn danger" @click="cancelCompToggle">Cancel</button>
+          <button class="btn primary" @click="confirmCompToggle">Confirm</button>
         </div>
       </div>
     </div>

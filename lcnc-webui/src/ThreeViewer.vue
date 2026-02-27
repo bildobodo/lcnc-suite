@@ -1324,6 +1324,16 @@ defineExpose({
         <div class="hudLabel">Spindle</div>
         <div class="hudValue">{{ formatCoord(vst?.spindle_speed_actual) }} RPM</div>
       </div>
+
+      <div v-if="vst?.eoffset_enabled" class="hudSection hudWarn">
+        <div class="hudLabel">Compensation</div>
+        <div class="hudValue">Z {{ vst.eoffset_z != null ? vst.eoffset_z.toFixed(3) : '---' }}</div>
+      </div>
+
+      <div v-if="vst?.rotation_xy" class="hudSection hudWarn">
+        <div class="hudLabel">Rotation</div>
+        <div class="hudValue">{{ vst.rotation_xy.toFixed(1) }}°</div>
+      </div>
     </div>
 
     <!-- HUD pills (top-left) -->
@@ -1489,6 +1499,10 @@ defineExpose({
   color: var(--fg);
   opacity: 0.5;
   margin-right: 4px;
+}
+.hudWarn .hudLabel,
+.hudWarn .hudValue {
+  color: var(--warn, #f5a623);
 }
 
 </style>
