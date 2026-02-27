@@ -48,7 +48,6 @@ const tabs = [
   { id: "viewer", label: "3D Viewer" },
   { id: "manual", label: "Manual Control" },
   { id: "gcode", label: "Program" },
-  { id: "tools", label: "Tool Table" },
   { id: "probe", label: "Probing" },
   { id: "settings", label: "Settings" },
 ];
@@ -1304,13 +1303,6 @@ watch(isHomed, (nowHomed, wasHomed) => {
             />
           </template>
 
-          <template #tools>
-            <ToolTablePanel
-              :currentTool="st.tool_number ?? null"
-              :iniFilename="st.ini_filename ?? null"
-            />
-          </template>
-
 
           <template #probe>
             <ProbePanel
@@ -2260,7 +2252,6 @@ watch(isHomed, (nowHomed, wasHomed) => {
   .panel-manual,
   .panel-probe { min-width: var(--panel-min-w-wide); }
   .panel-gcode,
-  .panel-tools,
   .panel-messages,
   .panel-settings  { flex: 0.5; }
 }
@@ -2271,7 +2262,6 @@ watch(isHomed, (nowHomed, wasHomed) => {
   .panel           { flex: 0 0 auto; min-width: var(--panel-min-w-wide); }
   .panel-viewer    { flex: 1; min-height: var(--viewer-min-h-portrait); overflow: hidden; }
   .panel-gcode,
-  .panel-tools,
   .panel-messages  { flex: 0 0 var(--panel-h-portrait); }
   .addPanel        { flex: 0 0 auto; width: 100%; height: 36px; }
 }

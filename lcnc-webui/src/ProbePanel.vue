@@ -1167,8 +1167,8 @@ function fmtR(key: string): string {
       <div class="surfaceActions">
         <button class="btn" :disabled="!can.probe || probing" @click="runSurfaceScan">Start Scan</button>
         <button v-if="!surfacePoints?.length" class="btn" :disabled="!can.idle" @click="loadSurfaceMap">Load Map</button>
-        <button v-else class="btn" @click="emit('clearSurfaceMap')">Unload Map</button>
-        <button class="btn" @click="if (!surfacePoints?.length) emit('getProbeResults'); mapDialogOpen = true">3D Inspect</button>
+        <button v-else class="btn" :disabled="!can.idle" @click="emit('clearSurfaceMap')">Unload Map</button>
+        <button class="btn" :disabled="!can.idle" @click="if (!surfacePoints?.length) emit('getProbeResults'); mapDialogOpen = true">3D Inspect</button>
         <button class="btn" :class="{ active: eoffsetEnabled }" :disabled="!can.ready || probing" @click="toggleComp">{{ eoffsetEnabled ? 'Disable Comp' : 'Enable Comp' }}</button>
       </div>
 
