@@ -490,6 +490,8 @@ function toggleMist() {
 }
 
 // Tool sidebar state
+const toolDialogOpen = ref(false);
+const toolTableRef = ref<InstanceType<typeof ToolTablePanel> | null>(null);
 const toolNumber = ref(1);
 const TS_TOOL_KEY = "lcnc-tool-number";
 
@@ -1193,39 +1195,12 @@ watch(isHomed, (nowHomed, wasHomed) => {
         <button
           class="btn controlBtn"
           :class="{ active: !!st.probing }"
-          @click.stop="toggleChip('tool')"
+          @click.stop="toolDialogOpen = true"
         >
           <span class="controlIcon">&#x1F527;</span>
           <span class="controlLabel">Tool</span>
           <span class="controlStatus">{{ st.tool_number != null ? `T${st.tool_number}` : '---' }}{{ st.tool_diameter != null ? ` D${st.tool_diameter.toFixed(3)}` : '' }}{{ st.tool_offset?.[2] ? ` Z${st.tool_offset[2].toFixed(3)}` : '' }}</span>
         </button>
-        <div class="popover toolPopover" :class="{ open: openChip === 'tool' }" @click.stop>
-          <div class="toolInputRow">
-            <span class="toolFieldLabel">Tool #</span>
-            <input
-              type="number"
-              class="toolNumInput"
-              v-model.number="toolNumber"
-              min="1"
-              step="1"
-              :disabled="!permissions.ready || !!st.probing"
-              @change="saveToolNumber"
-            />
-          </div>
-          <div class="toolActions">
-            <button class="btn toolActionBtn measure" :disabled="!permissions.ready || !!st.probing" @click="measureAuto">Measure</button>
-            <button class="btn toolActionBtn" :disabled="!permissions.ready || !!st.probing" @click="measureManual">Manual</button>
-            <button class="btn toolActionBtn load" :disabled="!permissions.ready || !!st.probing" @click="loadTool">Load</button>
-          </div>
-          <div class="toolActions">
-            <button class="btn toolActionBtn abort" :disabled="!st.probing" @click="fire({ cmd: 'abort' })">Abort</button>
-            <button class="btn toolActionBtn simtrip" :disabled="!st.probing" @click="send({ cmd: 'simulate_probe_trip' })" title="Simulate probe contact (sim/debug)">Sim Trip</button>
-          </div>
-          <div class="toolStatusRow">
-            <span class="toolStatusDot" :class="probeStatusClass"></span>
-            <span class="toolStatusText">{{ probeStatus }}</span>
-          </div>
-        </div>
         </div>
       </div>
     </section>
@@ -1411,6 +1386,48 @@ watch(isHomed, (nowHomed, wasHomed) => {
         <div class="toolChangeActions">
           <button class="btn danger" @click="cancelCompToggle">Cancel</button>
           <button class="btn primary" @click="confirmCompToggle">Confirm</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tool table dialog -->
+    <div v-if="toolDialogOpen" class="toolDialogOverlay" @click.self="toolDialogOpen = false">
+      <div class="toolDialog">
+        <div class="toolDialogHeader">
+          <span class="toolDialogTitle">Tool Table</span>
+          <button class="btn" @click="toolDialogOpen = false">Close</button>
+        </div>
+        <div class="toolDialogActions">
+          <div class="toolInputRow">
+            <span class="toolFieldLabel">Tool #</span>
+            <input
+              type="number"
+              class="toolNumInput"
+              v-model.number="toolNumber"
+              min="1"
+              step="1"
+              :disabled="!permissions.ready || !!st.probing"
+              @change="saveToolNumber"
+            />
+          </div>
+          <div class="toolActions">
+            <button class="btn toolActionBtn measure" :disabled="!permissions.ready || !!st.probing" @click="measureAuto">Measure</button>
+            <button class="btn toolActionBtn" :disabled="!permissions.ready || !!st.probing" @click="measureManual">Manual</button>
+            <button class="btn toolActionBtn load" :disabled="!permissions.ready || !!st.probing" @click="loadTool">Load</button>
+            <button class="btn toolActionBtn abort" :disabled="!st.probing" @click="fire({ cmd: 'abort' })">Abort</button>
+            <button class="btn toolActionBtn simtrip" :disabled="!st.probing" @click="send({ cmd: 'simulate_probe_trip' })" title="Simulate probe contact (sim/debug)">Sim Trip</button>
+          </div>
+          <div class="toolActions">
+            <button class="btn toolActionBtn" :disabled="!permissions.idle" @click="toolTableRef?.openAdd()">+ Add</button>
+            <button class="btn toolActionBtn" :disabled="!permissions.idle" @click="toolTableRef?.fetchTools()">Refresh</button>
+          </div>
+          <div class="toolStatusRow">
+            <span class="toolStatusDot" :class="probeStatusClass"></span>
+            <span class="toolStatusText">{{ probeStatus }}</span>
+          </div>
+        </div>
+        <div class="toolDialogBody">
+          <ToolTablePanel ref="toolTableRef" :currentTool="st.tool_number ?? null" :iniFilename="st.ini_filename ?? null" hideHeader />
         </div>
       </div>
     </div>
@@ -2006,17 +2023,51 @@ watch(isHomed, (nowHomed, wasHomed) => {
   background: color-mix(in oklab, var(--ok) 25%, var(--button-bg));
 }
 
-/* ---- Tool popover ---- */
-.toolPopover {
-  top: 0;
-  left: 100%;
-  margin-left: 6px;
-  min-width: 240px;
+/* ---- Tool dialog ---- */
+.toolDialogOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
 }
-.toolPopover.open {
-  display: flex !important;
+.toolDialog {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  width: 70vw;
+  height: 75vh;
+  display: flex;
   flex-direction: column;
-  gap: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+}
+.toolDialogHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.toolDialogTitle {
+  font-weight: 600;
+  font-size: 14px;
+}
+.toolDialogActions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.toolDialogBody {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0 12px 12px;
 }
 .toolInputRow {
   display: flex;
@@ -2041,10 +2092,10 @@ watch(isHomed, (nowHomed, wasHomed) => {
 }
 .toolActions {
   display: flex;
+  align-items: center;
   gap: 6px;
 }
 .toolActionBtn {
-  flex: 1;
   padding: 7px 10px;
   font-size: 12px;
   font-weight: 600;

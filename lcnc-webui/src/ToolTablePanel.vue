@@ -7,6 +7,7 @@ import { loadMachineDefaults, type ToolChangeMode } from "./defaults";
 const props = defineProps<{
   currentTool: number | null;
   iniFilename: string | null;
+  hideHeader?: boolean;
 }>();
 
 const can = usePermissions();
@@ -238,12 +239,14 @@ function fmtNum(n: any, decimals = 4) {
   const x = Number(n);
   return Number.isFinite(x) ? x.toFixed(decimals) : "-";
 }
+
+defineExpose({ openAdd, fetchTools });
 </script>
 
 <template>
   <div class="container">
     <!-- Header -->
-    <div class="header">
+    <div v-if="!hideHeader" class="header">
       <div class="sub">Tool Table</div>
       <div class="actions">
         <button class="btn" @click="openAdd" :disabled="!can.idle">+ Add</button>
@@ -640,7 +643,7 @@ function fmtNum(n: any, decimals = 4) {
 }
 
 .tcellAction {
-  width: 30px;
+  width: 42px;
   text-align: center;
 }
 
