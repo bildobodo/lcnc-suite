@@ -11,3 +11,4 @@ G40       (cancel cutter comp)
 G49       (cancel tool length comp)
 G80       (cancel canned cycles)
 o<on_abort> endsub
+m2

@@ -8,13 +8,17 @@ const props = defineProps<{
   g5xLabel: string;
   homed: boolean;
   homedJoints: boolean[];
+  touchoff: [number, number, number];
 }>();
+
+import { computed } from "vue";
 
 const can = usePermissions();
 
 const emit = defineEmits<{
-  (e: "zeroAxis", axis: number): void;
-  (e: "zeroAll"): void;
+  (e: "setAxis", axis: number, value: number): void;
+  (e: "setAll", values: [number, number, number]): void;
+  (e: "update:touchoff", values: [number, number, number]): void;
   (e: "homeAll"): void;
   (e: "unhomeAll"): void;
   (e: "homeAxis", joint: number): void;
@@ -23,6 +27,20 @@ const emit = defineEmits<{
 }>();
 
 const g5xOptions = ["G54", "G55", "G56", "G57", "G58", "G59", "G59.1", "G59.2", "G59.3"];
+
+function updateTouchoff(axis: number, val: number) {
+  const copy: [number, number, number] = [...props.touchoff];
+  copy[axis] = val;
+  emit("update:touchoff", copy);
+}
+
+function setAxis(axis: number) {
+  emit("setAxis", axis, props.touchoff[axis] ?? 0);
+}
+
+function setAll() {
+  emit("setAll", [...props.touchoff]);
+}
 
 function fmt(n: any) {
   const x = Number(n);
@@ -47,15 +65,15 @@ function fmt(n: any) {
       <div class="sub">Work Position ({{ g5xLabel }})</div>
       <div class="grid">
         <div class="axis"><span>X</span><b>{{ fmt(workPos[0]) }}</b></div>
-        <div></div>
-        <button class="zeroBtn" @click="emit('zeroAxis', 0)" :disabled="!can.zero">Zero X</button>
-        <button class="homeBtn spanBtn" style="grid-column: 4" @click="emit('zeroAll')" :disabled="!can.zero">Zero All</button>
+        <input type="number" step="0.001" :value="touchoff[0]" @input="updateTouchoff(0, +($event.target as HTMLInputElement).value)" :disabled="!can.zero" @keydown.enter="setAxis(0)" />
+        <button class="zeroBtn" @click="setAxis(0)" :disabled="!can.zero">Set X</button>
+        <button class="homeBtn spanBtn" style="grid-column: 4" @click="setAll()" :disabled="!can.zero">Set All</button>
         <div class="axis"><span>Y</span><b>{{ fmt(workPos[1]) }}</b></div>
-        <div></div>
-        <button class="zeroBtn" @click="emit('zeroAxis', 1)" :disabled="!can.zero">Zero Y</button>
+        <input type="number" step="0.001" :value="touchoff[1]" @input="updateTouchoff(1, +($event.target as HTMLInputElement).value)" :disabled="!can.zero" @keydown.enter="setAxis(1)" />
+        <button class="zeroBtn" @click="setAxis(1)" :disabled="!can.zero">Set Y</button>
         <div class="axis"><span>Z</span><b>{{ fmt(workPos[2]) }}</b></div>
-        <div></div>
-        <button class="zeroBtn" @click="emit('zeroAxis', 2)" :disabled="!can.zero">Zero Z</button>
+        <input type="number" step="0.001" :value="touchoff[2]" @input="updateTouchoff(2, +($event.target as HTMLInputElement).value)" :disabled="!can.zero" @keydown.enter="setAxis(2)" />
+        <button class="zeroBtn" @click="setAxis(2)" :disabled="!can.zero">Set Z</button>
       </div>
     </div>
 

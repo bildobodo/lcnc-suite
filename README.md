@@ -18,7 +18,7 @@ A modern, UI-agnostic WebSocket gateway for LinuxCNC with a reference Vue 3 web 
   - [Safety System](#safety-system)
 - [Building Your Own UI](#building-your-own-ui)
 - [Development](#development)
-- [Configuration](#configuration)
+- [LinuxCNC Configuration](#linuxcnc-configuration)
 - [Project Structure](#project-structure)
 - [Contributing](#contributing)
 - [License](#license)
@@ -601,7 +601,134 @@ npm run dev
 
 The Vite dev server provides hot module replacement for rapid development.
 
-## Configuration
+## LinuxCNC Configuration
+
+The gateway reads settings from the active LinuxCNC INI file at runtime. This section documents all the INI keys, HAL wiring, and subroutine paths needed for full functionality.
+
+### INI Settings
+
+All velocity values are in **machine units per second** (mm/s or in/s). The gateway auto-detects configs that accidentally use units/minute and converts them.
+
+#### `[TRAJ]`
+
+| Key | Required | Description |
+|-----|----------|-------------|
+| `LINEAR_UNITS` | yes | Machine units: `mm` or `inch` |
+| `MAX_LINEAR_VELOCITY` | yes | Trajectory planner max velocity (used as jog limit fallback) |
+
+#### `[DISPLAY]`
+
+| Key | Required | Description |
+|-----|----------|-------------|
+| `DEFAULT_LINEAR_VELOCITY` | recommended | Default jog speed |
+| `MAX_LINEAR_VELOCITY` | recommended | Maximum jog speed (slider upper bound) |
+| `MIN_LINEAR_VELOCITY` | recommended | Minimum jog speed (slider lower bound) |
+| `INCREMENTS` | recommended | Jog increment steps (e.g. `5mm 1mm .5mm .1mm .05mm .01mm .005mm`) |
+| `DEFAULT_SPINDLE_SPEED` | recommended | Default RPM for spindle input |
+| `MAX_FEED_OVERRIDE` | recommended | Feed override upper limit (e.g. `2.0` = 200%) |
+| `MIN_SPINDLE_OVERRIDE` | recommended | Spindle override lower limit (e.g. `0.5` = 50%) |
+| `MAX_SPINDLE_OVERRIDE` | recommended | Spindle override upper limit (e.g. `2.0` = 200%) |
+| `PROGRAM_PREFIX` | recommended | Root directory for the G-code file browser |
+
+#### `[SPINDLE_0]`
+
+| Key | Required | Description |
+|-----|----------|-------------|
+| `MAX_FORWARD_VELOCITY` | recommended | Maximum spindle RPM (slider upper bound) |
+| `MIN_FORWARD_VELOCITY` | optional | Minimum spindle RPM |
+
+The gateway checks `SPINDLE_0` through `SPINDLE_9` and uses the first section found.
+
+#### `[AXIS_X]`, `[AXIS_Y]`, `[AXIS_Z]`
+
+| Key | Required | Description |
+|-----|----------|-------------|
+| `MIN_LIMIT` | yes | Axis minimum travel — used for 3D viewer machine bounds |
+| `MAX_LIMIT` | yes | Axis maximum travel — used for 3D viewer machine bounds |
+
+Falls back to `[JOINT_N]` limits if `[AXIS_*]` is not present.
+
+#### `[EMCIO]`
+
+| Key | Required | Description |
+|-----|----------|-------------|
+| `TOOL_TABLE` | yes | Path to tool table file (e.g. `tool.tbl`) |
+
+#### `[RS274NGC]`
+
+| Key | Required | Description |
+|-----|----------|-------------|
+| `PARAMETER_FILE` | yes | Var file for WCS offsets, probe variables (#3000+), and toolsetter settings (#3100–#3115) |
+| `SUBROUTINE_PATH` | yes (for probing) | Colon-separated paths — gateway scans these for `probe_*.ngc` macros |
+| `ON_ABORT_COMMAND` | recommended | `O<on_abort> call` — required by probe_basic to re-enable overrides after abort |
+| `REMAP=M600` | for tool change | `modalgroup=6 ngc=m600` — manual tool change via web UI |
+| `REMAP=M601` | for tool change | `modalgroup=6 ngc=m601` — tool unload via web UI |
+| `FEATURES` | recommended | `12` enables `#<named>` parameters and expression evaluation |
+
+Example `[RS274NGC]` section:
+
+```ini
+[RS274NGC]
+RS274NGC_STARTUP_CODE = F100 S50 G21 G17 G40 G49 G54 G64 P0.001 G80 G90 G91.1 G92.1 G94 G97 G98
+PARAMETER_FILE = sim.var
+OWORD_NARGS = 1
+NO_DOWNCASE_OWORD = 1
+SUBROUTINE_PATH = /path/to/lcnc-suite/subroutines/probe_basic:/path/to/lcnc-suite/subroutines/tool_length_probe:/path/to/lcnc-suite/subroutines/surfacemap
+ON_ABORT_COMMAND = O<on_abort> call
+REMAP=M600 modalgroup=6 ngc=m600
+REMAP=M601 modalgroup=6 ngc=m601
+USER_M_PATH = ./
+FEATURES = 12
+```
+
+### HAL Configuration
+
+The gateway communicates with LinuxCNC through a HAL watchdog component. See [Setting Up the HAL Watchdog](#setting-up-the-hal-watchdog) above for the e-stop AND gate wiring.
+
+Additional HAL signals used by the gateway:
+
+```hal
+# Tool change confirmation (web UI manual tool change dialog)
+net tool-change-confirmed <= webui-safety.tool-changed
+
+# Surface compensation (optional — requires surfacemap subroutine)
+net compensation-on  webui-safety.compensation-enable => compensation.enable-in
+net comp-method      webui-safety.compensation-method => compensation.method
+
+# Program elapsed timer (optional)
+loadrt time
+loadrt not
+addf time.0 servo-thread
+addf not.0 servo-thread
+net prog-running not.0.in <= halui.program.is-idle
+net prog-paused halui.program.is-paused => time.0.pause
+net cycle-timer time.0.start <= not.0.out
+```
+
+The HAL pins the gateway reads at runtime via `hal_get()`:
+
+| Pin | Description |
+|-----|-------------|
+| `spindle.0.speed-in` | Actual spindle RPM (from encoder or VFD feedback) |
+| `iocontrol.0.tool-change` | Tool change request from interpreter |
+| `iocontrol.0.tool-prep-number` | Requested tool number during tool change |
+| `axis.z.eoffset` | Current Z external offset (surface compensation) |
+| `axis.z.eoffset-enable` | Whether compensation is active |
+| `compensation.method` | Active interpolation method (0=nearest, 1=linear, 2=cubic) |
+
+A complete working example is in the sim config at `hallib/lcnc_webui.hal` (referenced by the sim INI).
+
+### Subroutines
+
+The `[RS274NGC] SUBROUTINE_PATH` must include paths to the subroutine directories you use:
+
+| Directory | Contents | Required |
+|-----------|----------|----------|
+| `subroutines/probe_basic/` | 44 probing macros + `on_abort.ngc` | yes (for probing) |
+| `subroutines/tool_length_probe/` | Tool length measurement (`m600.ngc`, `m601.ngc`, `tool_touch_off.ngc`) | for toolsetter |
+| `subroutines/surfacemap/` | Surface scanning + `compensation.py` | for surface compensation |
+
+`on_abort.ngc` ships in `subroutines/probe_basic/` and handles cleanup on program abort (spindle off, coolant off, re-enable overrides). It is called by the `ON_ABORT_COMMAND` INI setting.
 
 ### Machine Models
 

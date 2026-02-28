@@ -26,12 +26,15 @@ const props = defineProps<{
   iniIncrements: number[] | null;
   // MDI props
   mdiText: string;
+  // Touchoff (shared)
+  touchoff: [number, number, number];
 }>();
 
 const emit = defineEmits<{
   // DRO emits
-  (e: "zeroAxis", axis: number): void;
-  (e: "zeroAll"): void;
+  (e: "setAxis", axis: number, value: number): void;
+  (e: "setAll", values: [number, number, number]): void;
+  (e: "update:touchoff", values: [number, number, number]): void;
   (e: "homeAll"): void;
   (e: "unhomeAll"): void;
   (e: "homeAxis", joint: number): void;
@@ -106,8 +109,10 @@ function onMdiKeydown(e: KeyboardEvent) {
       :g5xLabel="g5xLabel"
       :homed="homed"
       :homedJoints="homedJoints"
-      @zeroAxis="emit('zeroAxis', $event)"
-      @zeroAll="emit('zeroAll')"
+      :touchoff="touchoff"
+      @update:touchoff="emit('update:touchoff', $event)"
+      @setAxis="(axis: number, val: number) => emit('setAxis', axis, val)"
+      @setAll="(vals: [number, number, number]) => emit('setAll', vals)"
       @setG5x="emit('setG5x', $event)"
       @homeAll="emit('homeAll')"
       @unhomeAll="emit('unhomeAll')"

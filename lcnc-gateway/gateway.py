@@ -1844,6 +1844,32 @@ def handle_command(msg: Dict[str, Any], armed: bool):
                     _wcs_cache[ci] = {"name": _WCS_NAMES[ci], "x": 0.0, "y": 0.0, "z": 0.0, "r": 0.0}
             return {"ok": True, "table": [row.copy() for row in _wcs_cache]}
 
+        if cmd == "set_wcs":
+            require_armed(armed)
+            blocked = reject_if_auto_running()
+            if blocked:
+                return blocked
+            target = msg.get("target")
+            if target not in _G5X_MAP:
+                return {"ok": False, "error": f"Invalid WCS: {target}"}
+            p = _G5X_MAP[target]
+            parts = []
+            for axis in ("x", "y", "z", "r"):
+                val = msg.get(axis)
+                if val is not None:
+                    parts.append(f"{axis.upper()}{float(val)}")
+            if not parts:
+                return {"ok": False, "error": "No axis values provided"}
+            set_mode(linuxcnc.MODE_MDI)
+            CMD.mdi(f"G10 L2 P{p} {' '.join(parts)}")
+            CMD.wait_complete(5)
+            ci = p - 1
+            for axis in ("x", "y", "z", "r"):
+                val = msg.get(axis)
+                if val is not None:
+                    _wcs_cache[ci][axis] = float(val)
+            return {"ok": True, "table": [row.copy() for row in _wcs_cache]}
+
         return {"ok": False, "error": f"Unknown cmd: {cmd}"}
 
     except PermissionError as pe:

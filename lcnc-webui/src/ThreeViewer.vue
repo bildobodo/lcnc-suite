@@ -165,19 +165,21 @@ const props = defineProps<{
   spindleActual?: number | null;
   spindleDirection?: number | null;
   surfacePoints?: number[][] | null;
+  touchoff?: [number, number, number];
 }>();
 
 const emit = defineEmits<{
   (e: "update:jogVel", vel: number): void;
   (e: "update:jogIncrement", val: number): void;
+  (e: "update:touchoff", values: [number, number, number]): void;
   (e: "cycleStart"): void;
   (e: "cyclePause"): void;
   (e: "cycleResume"): void;
   (e: "abort"): void;
   (e: "homeAll"): void;
   (e: "unhomeAll"): void;
-  (e: "zeroAxis", axis: number): void;
-  (e: "zeroAll"): void;
+  (e: "setAxis", axis: number, value: number): void;
+  (e: "setAll", values: [number, number, number]): void;
 }>();
 
 // HUD data (read from status for template)
@@ -1449,10 +1451,12 @@ defineExpose({
       <div v-show="activeHudPanel === 'setup'">
         <SetupHUD
           :homed="props.isHomed ?? false"
+          :touchoff="props.touchoff ?? [0, 0, 0]"
+          @update:touchoff="emit('update:touchoff', $event)"
           @homeAll="emit('homeAll')"
           @unhomeAll="emit('unhomeAll')"
-          @zeroAxis="emit('zeroAxis', $event)"
-          @zeroAll="emit('zeroAll')"
+          @setAxis="(axis: number, val: number) => emit('setAxis', axis, val)"
+          @setAll="(vals: [number, number, number]) => emit('setAll', vals)"
         />
       </div>
     </div>

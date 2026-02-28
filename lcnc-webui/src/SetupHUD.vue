@@ -4,13 +4,15 @@ import { usePermissions } from "./permissions";
 
 const props = defineProps<{
   homed: boolean;
+  touchoff: [number, number, number];
 }>();
 
 const emit = defineEmits<{
   (e: "homeAll"): void;
   (e: "unhomeAll"): void;
-  (e: "zeroAxis", axis: number): void;
-  (e: "zeroAll"): void;
+  (e: "setAxis", axis: number, value: number): void;
+  (e: "setAll", values: [number, number, number]): void;
+  (e: "update:touchoff", values: [number, number, number]): void;
 }>();
 
 const can = usePermissions();
@@ -18,6 +20,12 @@ const can = usePermissions();
 const homeDisabled = computed(() => !can.value.idle || props.homed);
 const unhomeDisabled = computed(() => !can.value.idle || !props.homed);
 const zeroDisabled = computed(() => !can.value.zero);
+
+function updateTouchoff(axis: number, val: number) {
+  const copy: [number, number, number] = [...props.touchoff];
+  copy[axis] = val;
+  emit("update:touchoff", copy);
+}
 </script>
 
 <template>
@@ -38,16 +46,15 @@ const zeroDisabled = computed(() => !can.value.zero);
       >Unhome</button>
     </div>
 
-    <!-- Zero individual axes -->
-    <div class="row">
-      <button class="btn" :disabled="zeroDisabled" @click="emit('zeroAxis', 0)">Zero X</button>
-      <button class="btn" :disabled="zeroDisabled" @click="emit('zeroAxis', 1)">Zero Y</button>
-      <button class="btn" :disabled="zeroDisabled" @click="emit('zeroAxis', 2)">Zero Z</button>
+    <!-- Set individual axes -->
+    <div class="axisRow" v-for="(axis, i) in (['X', 'Y', 'Z'] as const)" :key="axis">
+      <input type="number" step="0.001" :value="touchoff[i]" @input="updateTouchoff(i, +($event.target as HTMLInputElement).value)" :disabled="zeroDisabled" @keydown.enter="emit('setAxis', i, touchoff[i] ?? 0)" />
+      <button class="btn" :disabled="zeroDisabled" @click="emit('setAxis', i, touchoff[i] ?? 0)">Set {{ axis }}</button>
     </div>
 
-    <!-- Zero all -->
+    <!-- Set all -->
     <div class="row">
-      <button class="btn wide" :disabled="zeroDisabled" @click="emit('zeroAll')">Zero All</button>
+      <button class="btn wide" :disabled="zeroDisabled" @click="emit('setAll', [...touchoff])">Set All</button>
     </div>
   </div>
 </template>
@@ -82,5 +89,17 @@ const zeroDisabled = computed(() => !can.value.zero);
 
 .btn.wide {
   width: 100%;
+}
+
+.axisRow {
+  display: flex;
+  gap: 4px;
+}
+
+.axisRow input {
+  width: 60px;
+  text-align: right;
+  font-size: 11px;
+  padding: 3px 6px;
 }
 </style>

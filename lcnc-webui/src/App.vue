@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, provide, reactive, ref, watch } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, provide, reactive, ref, watch } from "vue";
 import { evaluatePermissions, PERMISSIONS_KEY } from "./permissions";
 import { connectWs, connected, status, send, armed, lastReply, viewerGcode, lcncError, latency, networkLatency, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead } from "./lcncWs";
 import ThreeViewer from "./ThreeViewer.vue";
@@ -325,6 +325,30 @@ function clearWcs(target: string) {
   }
 }
 
+// Inline cell editing
+const editingCell = ref<{ wcs: string; axis: string } | null>(null);
+const editValue = ref("");
+const offsetInputRef = ref<HTMLInputElement | null>(null);
+
+function startEditCell(wcs: string, axis: string, current: number) {
+  if (!permissions.value.idle) return;
+  editingCell.value = { wcs, axis };
+  editValue.value = current.toFixed(4);
+  nextTick(() => { offsetInputRef.value?.select(); });
+}
+
+function commitCell(wcs: string, axis: string) {
+  if (!editingCell.value) return;
+  const val = parseFloat(editValue.value);
+  editingCell.value = null;
+  if (isNaN(val)) return;
+  send({ cmd: "set_wcs", target: wcs, [axis]: val });
+  const row = wcsTable.value.find(r => r.name === wcs);
+  if (row) (row as any)[axis] = val;
+}
+
+function cancelEdit() { editingCell.value = null; }
+
 // Capture WCS table replies (sync flush to avoid missing rapid updates)
 watch(lastReply, (r) => {
   if (r?.ok && r.table) wcsTable.value = r.table;
@@ -638,6 +662,7 @@ function arm(v: boolean) {
 /** ---------- local UI jog ---------- */
 const jogVel = ref(10);
 const jogIncrement = ref(0); // 0 = continuous, >0 = increment distance in machine units
+const touchoff = ref<[number, number, number]>([0, 0, 0]);
 
 // Initialize defaults from INI (once, when first non-fallback value arrives)
 let _jogVelInit = false;
@@ -662,20 +687,20 @@ function sendMdi() {
   fire({ cmd: "mdi", text: mdiText.value });
 }
 
-function zeroAxis(axis: number) {
+function setAxis(axis: number, value: number = 0) {
   const axisNames = ['X', 'Y', 'Z'];
   const axisName = axisNames[axis];
   if (!axisName) return;
 
   // For Z: subtract current eoffset so G5x doesn't absorb it
-  // (eoffset_z is 0 when comp is off, so this degenerates to Z0)
-  const offset = (axis === 2 && st.value.eoffset_z) ? st.value.eoffset_z : 0;
-  fire({ cmd: "mdi", text: `G10 L20 P0 ${axisName}${offset}` });
+  let val = value;
+  if (axis === 2 && st.value.eoffset_z) val += st.value.eoffset_z;
+  fire({ cmd: "mdi", text: `G10 L20 P0 ${axisName}${val}` });
 }
 
-function zeroAll() {
+function setAll(values: [number, number, number] = [0, 0, 0]) {
   const eoffsetZ = st.value.eoffset_z ?? 0;
-  fire({ cmd: "mdi", text: `G10 L20 P0 X0 Y0 Z${eoffsetZ}` });
+  fire({ cmd: "mdi", text: `G10 L20 P0 X${values[0]} Y${values[1]} Z${values[2] + eoffsetZ}` });
 }
 
 function setG5x(gcode: string) {
@@ -1017,10 +1042,19 @@ watch(isHomed, (nowHomed, wasHomed) => {
                     :class="{ activeRow: row.name === g5xLabel, selectedRow: row.name === selectedWcs }"
                     @click="selectedWcs = row.name">
                   <td class="offLabel">{{ row.name }}</td>
-                  <td>{{ fmtOff(row.x) }}</td>
-                  <td>{{ fmtOff(row.y) }}</td>
-                  <td>{{ fmtOff(row.z) }}</td>
-                  <td :class="{ warn: row.r !== 0 }">{{ fmtOff(row.r) }}</td>
+                  <td v-for="axis in (['x','y','z','r'] as const)" :key="axis"
+                      :class="{ warn: axis === 'r' && row[axis] !== 0, editableCell: permissions.idle }"
+                      @dblclick.stop="startEditCell(row.name, axis, row[axis])">
+                    <input v-if="editingCell?.wcs === row.name && editingCell?.axis === axis"
+                           ref="offsetInputRef"
+                           v-model="editValue"
+                           class="offsetInput"
+                           @keydown.enter.prevent="commitCell(row.name, axis)"
+                           @keydown.escape.prevent="cancelEdit()"
+                           @blur="commitCell(row.name, axis)"
+                           @click.stop />
+                    <span v-else>{{ fmtOff(row[axis]) }}</span>
+                  </td>
                 </tr>
                 <tr v-if="st.g92_offset?.some((v: number) => v !== 0)" class="g92Row">
                   <td class="offLabel">G92</td>
@@ -1312,6 +1346,8 @@ watch(isHomed, (nowHomed, wasHomed) => {
                 :spindleActual="spindleActual"
                 :spindleDirection="spindleDirection"
                 :surfacePoints="surfacePoints"
+                :touchoff="touchoff"
+                @update:touchoff="touchoff = $event"
                 @update:jogVel="jogVel = $event"
                 @update:jogIncrement="jogIncrement = $event"
                 @cycleStart="cycleStart"
@@ -1320,8 +1356,8 @@ watch(isHomed, (nowHomed, wasHomed) => {
                 @abort="fire({ cmd: 'abort' })"
                 @homeAll="homeAll"
                 @unhomeAll="unhomeAll"
-                @zeroAxis="zeroAxis"
-                @zeroAll="zeroAll"
+                @setAxis="setAxis"
+                @setAll="setAll"
               />
             </Toolbar>
           </template>
@@ -1336,7 +1372,9 @@ watch(isHomed, (nowHomed, wasHomed) => {
               :jogIncrement="jogIncrement"
               :minJogVel="minJogVel" :iniIncrements="iniIncrements"
               :mdiText="mdiText"
-              @zeroAxis="zeroAxis" @zeroAll="zeroAll" @setG5x="setG5x"
+              :touchoff="touchoff"
+              @update:touchoff="touchoff = $event"
+              @setAxis="setAxis" @setAll="setAll" @setG5x="setG5x"
               @homeAll="homeAll" @unhomeAll="unhomeAll" @homeAxis="homeAxis" @unhomeAxis="unhomeAxis"
               @update:jogVel="jogVel = $event"
               @update:jogIncrement="jogIncrement = $event"
@@ -1832,6 +1870,14 @@ watch(isHomed, (nowHomed, wasHomed) => {
 .offsetTable .selectedRow { background: rgba(74, 144, 226, 0.15); outline: 1px solid rgba(74, 144, 226, 0.4); }
 .offsetTable .g92Row, .offsetTable .toolRow { border-top: 1px solid rgba(255,255,255,0.1); cursor: default; }
 .offsetTable .warn { color: #f0ad4e; }
+.offsetTable .editableCell { cursor: cell; }
+.offsetTable .editableCell:hover { background: rgba(74, 144, 226, 0.1); }
+.offsetInput {
+  width: 100%; box-sizing: border-box;
+  background: var(--input-bg, #1a1a2e); border: 1px solid var(--accent, #4a90e2);
+  color: var(--text, #eee); text-align: right; font: inherit; padding: 0 4px;
+  outline: none;
+}
 .offsetActions { display: flex; gap: 6px; margin-top: 8px; justify-content: flex-end; }
 
 .overridesPopover {

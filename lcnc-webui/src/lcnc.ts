@@ -87,5 +87,6 @@ export type WsCommand =
   // Offsets
   | { cmd: "get_wcs_table" }
   | { cmd: "clear_wcs"; target: string }
+  | { cmd: "set_wcs"; target: string; x?: number; y?: number; z?: number; r?: number }
   // Heartbeat
   | { cmd: "heartbeat" };
