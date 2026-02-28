@@ -1,5 +1,7 @@
-%
 o<on_abort> sub
+; Stop spindle and coolant
+M5        (spindle off)
+M9        (coolant off)
 ; Re-enable overrides (probing routines disable them with M50/M51 P0)
 M50 P1    (re-enable feed override)
 M51 P1    (re-enable spindle override)
@@ -9,4 +11,3 @@ G40       (cancel cutter comp)
 G49       (cancel tool length comp)
 G80       (cancel canned cycles)
 o<on_abort> endsub
-%

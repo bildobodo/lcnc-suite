@@ -518,6 +518,9 @@ const rpmInput = ref(1000);
 const isForward = computed(() => spindleDirection.value === SPINDLE_FORWARD);
 const isReverse = computed(() => spindleDirection.value === SPINDLE_REVERSE);
 const isSpinning = computed(() => isForward.value || isReverse.value);
+const spindleMismatch = computed(() =>
+  !isSpinning.value && Math.abs(spindleActual.value ?? 0) > 1
+);
 
 // Spindle override slider (synced from status)
 const spindleOvrSlider = ref(100);
@@ -1115,12 +1118,12 @@ watch(isHomed, (nowHomed, wasHomed) => {
         <div class="controlGroup">
         <button
           class="btn controlBtn"
-          :class="{ active: isSpinning }"
+          :class="{ active: isSpinning, warn: spindleMismatch }"
           @click.stop="toggleChip('spindle')"
         >
           <span class="controlIcon">&#x2699;</span>
           <span class="controlLabel">Spindle</span>
-          <span class="controlStatus">{{ isSpinning ? ((isForward ? '+' : '-') + Math.round(Math.abs(spindleActual ?? 0)) + ' RPM') : 'OFF' }}</span>
+          <span class="controlStatus">{{ isSpinning ? ((isForward ? '+' : '-') + Math.round(Math.abs(spindleActual ?? 0)) + ' RPM') : spindleMismatch ? (Math.round(Math.abs(spindleActual ?? 0)) + ' RPM!') : 'OFF' }}</span>
         </button>
         <div class="popover spindlePopover" :class="{ open: openChip === 'spindle' }" @click.stop>
           <!-- Direction controls -->
@@ -1901,6 +1904,15 @@ watch(isHomed, (nowHomed, wasHomed) => {
 .controlBtn.active {
   border-color: color-mix(in srgb, var(--ok) 50%, transparent);
   background: color-mix(in oklab, var(--ok) 20%, var(--button-bg));
+}
+.controlBtn.warn {
+  border-color: color-mix(in srgb, var(--danger) 50%, transparent);
+  background: color-mix(in oklab, var(--danger) 20%, var(--button-bg));
+  animation: pulse-warn 1s ease-in-out infinite;
+}
+@keyframes pulse-warn {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 .controlIcon { font-size: 20px; }
