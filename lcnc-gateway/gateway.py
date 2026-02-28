@@ -608,6 +608,7 @@ class StatusPayload:
     # tool change (HAL iocontrol)
     tool_change_requested: Optional[bool]
     tool_change_tool: Optional[int]
+    tool_change_info: Optional[dict]
 
     # probing
     probe_tripped: Optional[bool]
@@ -1101,9 +1102,21 @@ def poll_status() -> StatusPayload:
     _tc_req = hal_get('iocontrol.0.tool-change', 0)
     tool_change_requested = bool(_tc_req) if _tc_req else False
     tool_change_tool = None
+    tool_change_info = None
     if tool_change_requested:
         _tc_num = hal_get('iocontrol.0.tool-prep-number', 0)
         tool_change_tool = int(_tc_num) if _tc_num else None
+        if tool_change_tool is not None:
+            try:
+                tbl_path = get_tool_tbl_path()
+                tbl_tools = parse_tool_table(tbl_path)
+                library = load_tool_library()
+                merged = _merge_tool_data(tbl_tools, library)
+                entry = next((t for t in merged if t["T"] == tool_change_tool), None)
+                if entry:
+                    tool_change_info = {"D": entry["D"], "Z": entry["Z"], "description": entry.get("description", "")}
+            except Exception:
+                pass
 
     spindle_ovr = get_spindle_override()
     ini_cfg = get_ini_config()
@@ -1158,6 +1171,7 @@ def poll_status() -> StatusPayload:
         tool_length=tool_length,
         tool_change_requested=tool_change_requested,
         tool_change_tool=tool_change_tool,
+        tool_change_info=tool_change_info,
         probe_tripped=bool(safe_get("probe_tripped", 0)),
         probing=bool(safe_get("probing", 0)),
         probed_position=to_float_list(safe_get("probed_position", None)),

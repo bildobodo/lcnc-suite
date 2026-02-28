@@ -1407,7 +1407,9 @@ watch(isHomed, (nowHomed, wasHomed) => {
       <div class="toolChangeDialog">
         <div class="toolChangeTitle">Load Tool into Spindle</div>
         <div class="toolChangeBody">
-          Insert tool <strong>T{{ toolChangeTool }}</strong> and press Confirm
+          <strong>T{{ toolChangeTool }}</strong><template v-if="st.tool_change_info"> D{{ st.tool_change_info.D.toFixed(3) }} Z{{ st.tool_change_info.Z.toFixed(3) }}</template><br>
+          <template v-if="st.tool_change_info?.description">{{ st.tool_change_info.description }}<br></template>
+          Insert tool and press Confirm
         </div>
         <div class="toolChangeActions">
           <button class="btn danger" @click="send({ cmd: 'abort' })">Cancel</button>
@@ -2082,7 +2084,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 999;
 }
 .toolDialog {
   background: var(--panel);

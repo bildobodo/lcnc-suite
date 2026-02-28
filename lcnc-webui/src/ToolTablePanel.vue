@@ -31,7 +31,6 @@ interface Tool {
 const tools = ref<Tool[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
-const confirmTool = ref<number | null>(null);
 const filterType = ref("");
 const sortKey = ref<"T" | "D" | "Z">("T");
 const sortAsc = ref(true);
@@ -197,23 +196,12 @@ function cancelEditModal() {
 
 // ---- Tool change ----
 function requestToolChange(toolNum: number) {
-  // Re-read setting each time in case user changed it in Settings tab
   toolChangeMode.value = loadMachineDefaults().toolChangeMode;
-  confirmTool.value = toolNum;
-}
-
-function confirmToolChange() {
-  if (confirmTool.value == null) return;
   if (toolChangeMode.value === "m600") {
-    send({ cmd: "mdi", text: `T${confirmTool.value} M600` });
+    send({ cmd: "mdi", text: `T${toolNum} M600` });
   } else {
-    send({ cmd: "tool_change", tool_number: confirmTool.value });
+    send({ cmd: "tool_change", tool_number: toolNum });
   }
-  confirmTool.value = null;
-}
-
-function cancelToolChange() {
-  confirmTool.value = null;
 }
 
 // ---- Delete ----
@@ -257,24 +245,6 @@ defineExpose({ openAdd, fetchTools });
     <!-- Error banner -->
     <div v-if="error" class="errorBanner">{{ error }}</div>
 
-    <!-- Tool change confirm dialog -->
-    <div v-if="confirmTool != null" class="dialogOverlay" @click.self="cancelToolChange">
-      <div class="dialog">
-        <div class="dialogTitle">Load Tool into Spindle</div>
-        <div class="dialogBody">
-          Load tool <strong>T{{ confirmTool }}</strong>?
-        </div>
-        <div class="dialogHint">
-          {{ toolChangeMode === 'm600'
-            ? `T${confirmTool} M600 (toolsetter cycle)`
-            : `T${confirmTool} M6 G43` }}
-        </div>
-        <div class="dialogActions">
-          <button class="btn" @click="cancelToolChange">Cancel</button>
-          <button class="btn primary" @click="confirmToolChange">Confirm</button>
-        </div>
-      </div>
-    </div>
 
     <!-- Delete confirm dialog -->
     <div v-if="deletingTool != null" class="dialogOverlay" @click.self="cancelDelete">
