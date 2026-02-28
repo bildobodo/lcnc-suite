@@ -569,6 +569,17 @@ function toggleMist() {
   fire({ cmd: mistOn.value ? "mist_off" : "mist_on" });
 }
 
+// Program switches
+const optionalStopOn = computed(() => !!st.value.optional_stop);
+const blockDeleteOn = computed(() => !!st.value.block_delete);
+
+function toggleOptionalStop() {
+  send({ cmd: "set_optional_stop", value: !optionalStopOn.value });
+}
+function toggleBlockDelete() {
+  send({ cmd: "set_block_delete", value: !blockDeleteOn.value });
+}
+
 // Tool sidebar state
 const toolDialogOpen = ref(false);
 const toolTableRef = ref<InstanceType<typeof ToolTablePanel> | null>(null);
@@ -1347,6 +1358,8 @@ watch(isHomed, (nowHomed, wasHomed) => {
                 :spindleDirection="spindleDirection"
                 :surfacePoints="surfacePoints"
                 :touchoff="touchoff"
+                :optionalStop="optionalStopOn"
+                :blockDelete="blockDeleteOn"
                 @update:touchoff="touchoff = $event"
                 @update:jogVel="jogVel = $event"
                 @update:jogIncrement="jogIncrement = $event"
@@ -1358,6 +1371,8 @@ watch(isHomed, (nowHomed, wasHomed) => {
                 @unhomeAll="unhomeAll"
                 @setAxis="setAxis"
                 @setAll="setAll"
+                @toggleOptionalStop="toggleOptionalStop"
+                @toggleBlockDelete="toggleBlockDelete"
               />
             </Toolbar>
           </template>
@@ -1392,12 +1407,16 @@ watch(isHomed, (nowHomed, wasHomed) => {
               :currentLine="currentLine"
               :isPaused="isPaused"
               :elapsed="elapsedDisplay"
+              :optionalStop="optionalStopOn"
+              :blockDelete="blockDeleteOn"
               @loadFile="loadFile"
               @unloadFile="unloadFile"
               @cycleStart="cycleStart"
               @cyclePause="cyclePause"
               @cycleResume="cycleResume"
               @abort="fire({ cmd: 'abort' })"
+              @toggleOptionalStop="toggleOptionalStop"
+              @toggleBlockDelete="toggleBlockDelete"
             />
           </template>
 

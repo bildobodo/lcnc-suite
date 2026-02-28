@@ -7,6 +7,8 @@ const props = defineProps<{
   currentLine: number | null;
   isPaused: boolean;
   elapsed: string;
+  optionalStop: boolean;
+  blockDelete: boolean;
 }>();
 
 const can = usePermissions();
@@ -16,6 +18,8 @@ const emit = defineEmits<{
   (e: "cyclePause"): void;
   (e: "cycleResume"): void;
   (e: "abort"): void;
+  (e: "toggleOptionalStop"): void;
+  (e: "toggleBlockDelete"): void;
 }>();
 
 const VISIBLE_LINES = 7;
@@ -91,13 +95,19 @@ function tokenizeCode(code: string, tokens: Token[]) {
   <div class="gcodeHud hud-panel">
     <!-- Program controls -->
     <div class="ctrlRow">
-      <button class="ctrlBtn primary" :disabled="!can.ready || !gcodeContent" @click="emit('cycleStart')">&#9654;</button>
-      <button
-        class="ctrlBtn"
-        :disabled="!can.pause && !can.resume"
-        @click="isPaused ? emit('cycleResume') : emit('cyclePause')"
-      >{{ isPaused ? '&#9654;' : '&#9646;&#9646;' }}</button>
-      <button class="ctrlBtn danger" :disabled="!can.abort" @click="emit('abort')">&#9632;</button>
+      <div class="ctrlGroup">
+        <button class="ctrlBtn primary" :disabled="!can.ready || !gcodeContent" @click="emit('cycleStart')">&#9654;</button>
+        <button
+          class="ctrlBtn"
+          :disabled="!can.pause && !can.resume"
+          @click="isPaused ? emit('cycleResume') : emit('cyclePause')"
+        >{{ isPaused ? '&#9654;' : '&#9646;&#9646;' }}</button>
+        <button class="ctrlBtn danger" :disabled="!can.abort" @click="emit('abort')">&#9632;</button>
+      </div>
+      <div class="switchGroup">
+        <button class="ctrlBtn switchBtn" :class="{ active: optionalStop }" :disabled="!can.override" @click="emit('toggleOptionalStop')">M01</button>
+        <button class="ctrlBtn switchBtn" :class="{ active: blockDelete }" :disabled="!can.override" @click="emit('toggleBlockDelete')">/BD</button>
+      </div>
     </div>
 
     <!-- Progress bar -->
@@ -238,4 +248,25 @@ function tokenizeCode(code: string, tokens: Token[]) {
   text-overflow: ellipsis;
 }
 
+.ctrlGroup {
+  display: flex;
+  gap: 4px;
+  flex: 3;
+}
+
+.switchGroup {
+  display: flex;
+  gap: 4px;
+  flex: 2;
+}
+
+.switchBtn {
+  opacity: 0.5;
+}
+
+.switchBtn.active:not(:disabled) {
+  opacity: 1;
+  background: color-mix(in oklab, var(--ok) 25%, var(--button-bg));
+  border-color: color-mix(in srgb, var(--ok) 50%, transparent);
+}
 </style>

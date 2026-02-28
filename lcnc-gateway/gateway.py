@@ -1685,6 +1685,18 @@ def handle_command(msg: Dict[str, Any], armed: bool):
             CMD.rapidrate(scale)
             return {"ok": True, "scale": scale}
 
+        if cmd == "set_optional_stop":
+            require_armed(armed)
+            value = bool(msg.get("value", False))
+            CMD.set_optional_stop(value)
+            return {"ok": True}
+
+        if cmd == "set_block_delete":
+            require_armed(armed)
+            value = bool(msg.get("value", False))
+            CMD.set_block_delete(value)
+            return {"ok": True}
+
         if cmd == "set_max_velocity":
             require_armed(armed)
             velocity = float(msg.get("velocity", 0.0))

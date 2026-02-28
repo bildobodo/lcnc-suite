@@ -131,6 +131,7 @@ const can = usePermissions();
 
 ## Key Patterns
 
+- **No hardcoded visual styles** — never invent custom font-size, padding, border-radius, colors, or font-family for new elements. Always inherit from the nearest parent class or global base styles in `style.css`. New CSS should only override layout properties (flex, width, text-align, opacity). If a visual style doesn't exist, extend the existing class hierarchy or global base — never create one-off overrides. For color semantics: active/on toggles use `--ok`, danger/abort uses `--danger`, warnings use `--warn`. Always match existing patterns (e.g. `.controlBtn.active`, `.coolantToggle.active` in App.vue).
 - `defaults.ts` section registry: `registerSection<T>(name, fallback, migrateFn)` + `loadSection`/`saveSection` with localStorage
 - ViewPreset type is duplicated in ThreeViewer.vue and Toolbar.vue — update both when adding presets
 - Camera Z-up: `camera.up.set(0, 0, 1)`, except top view uses `(0, 1, 0)` to avoid gimbal lock

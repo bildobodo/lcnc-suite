@@ -9,6 +9,8 @@ const props = defineProps<{
   currentLine: number | null;
   isPaused: boolean;
   elapsed: string;
+  optionalStop: boolean;
+  blockDelete: boolean;
 }>();
 
 const can = usePermissions();
@@ -20,6 +22,8 @@ const emit = defineEmits<{
   (e: "cyclePause"): void;
   (e: "cycleResume"): void;
   (e: "abort"): void;
+  (e: "toggleOptionalStop"): void;
+  (e: "toggleBlockDelete"): void;
 }>();
 
 const codeViewerRef = ref<HTMLDivElement | null>(null);
@@ -271,6 +275,8 @@ function formatSize(bytes: number): string {
       <button class="ctrlBtn danger" @click="emit('abort')" :disabled="!can.abort">
         <span class="ctrlIcon">&#x23F9;</span> Abort
       </button>
+      <button class="ctrlBtn switchBtn" :class="{ active: optionalStop }" :disabled="!can.override" @click="emit('toggleOptionalStop')">M01</button>
+      <button class="ctrlBtn switchBtn" :class="{ active: blockDelete }" :disabled="!can.override" @click="emit('toggleBlockDelete')">/BD</button>
     </div>
 
     <!-- Progress bar -->
@@ -404,6 +410,17 @@ function formatSize(bytes: number): string {
 .ctrlBtn.danger {
   background: color-mix(in oklab, var(--danger) 25%, var(--button-bg));
   border-color: color-mix(in srgb, var(--danger) 50%, transparent);
+}
+
+.switchBtn {
+  flex: 0 0 auto;
+  opacity: 0.5;
+}
+
+.switchBtn.active:not(:disabled) {
+  opacity: 1;
+  background: color-mix(in oklab, var(--ok) 25%, var(--button-bg));
+  border-color: color-mix(in srgb, var(--ok) 50%, transparent);
 }
 
 .ctrlIcon {

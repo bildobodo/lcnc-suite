@@ -66,6 +66,9 @@ export type WsCommand =
   | { cmd: "set_feed_override"; scale: number }
   | { cmd: "set_spindle_override"; scale: number }
   | { cmd: "set_rapid_override"; scale: number }
+  // Program switches
+  | { cmd: "set_optional_stop"; value: boolean }
+  | { cmd: "set_block_delete"; value: boolean }
   // Tool table
   | { cmd: "get_tool_table" }
   | { cmd: "save_tool"; tool_number: number; [key: string]: any }

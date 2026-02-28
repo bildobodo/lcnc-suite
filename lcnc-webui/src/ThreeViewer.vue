@@ -166,6 +166,8 @@ const props = defineProps<{
   spindleDirection?: number | null;
   surfacePoints?: number[][] | null;
   touchoff?: [number, number, number];
+  optionalStop?: boolean;
+  blockDelete?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -180,6 +182,8 @@ const emit = defineEmits<{
   (e: "unhomeAll"): void;
   (e: "setAxis", axis: number, value: number): void;
   (e: "setAll", values: [number, number, number]): void;
+  (e: "toggleOptionalStop"): void;
+  (e: "toggleBlockDelete"): void;
 }>();
 
 // HUD data (read from status for template)
@@ -1441,10 +1445,14 @@ defineExpose({
           :currentLine="props.currentLine ?? null"
           :isPaused="props.isPaused ?? false"
           :elapsed="props.elapsed ?? '00:00'"
+          :optionalStop="props.optionalStop ?? false"
+          :blockDelete="props.blockDelete ?? false"
           @cycleStart="emit('cycleStart')"
           @cyclePause="emit('cyclePause')"
           @cycleResume="emit('cycleResume')"
           @abort="emit('abort')"
+          @toggleOptionalStop="emit('toggleOptionalStop')"
+          @toggleBlockDelete="emit('toggleBlockDelete')"
         />
       </div>
 
