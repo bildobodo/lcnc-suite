@@ -13,8 +13,25 @@ export const status = shallowRef<any>(null);
 export const lastReply = ref<any>(null);
 export const lcncError = ref<string | null>(null);
 export const armed = ref(false);        // server-authoritative — driven by gateway messages
-export const messages = ref<LcncMessage[]>([]);
-export const unreadCount = ref(0);
+const MSG_STORAGE_KEY = "lcnc-messages";
+const MSG_MAX = 200;
+
+function loadStoredMessages(): LcncMessage[] {
+  try {
+    const raw = localStorage.getItem(MSG_STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch { /* ignore */ }
+  return [];
+}
+
+function persistMessages(msgs: LcncMessage[]) {
+  const trimmed = msgs.slice(-MSG_MAX);
+  try { localStorage.setItem(MSG_STORAGE_KEY, JSON.stringify(trimmed)); } catch { /* ignore */ }
+}
+
+const _stored = loadStoredMessages();
+export const messages = ref<LcncMessage[]>(_stored);
+export const unreadCount = ref(_stored.length);
 
 export const latency = ref<number | null>(null);        // round-trip: heartbeat → next status
 export const networkLatency = ref<number | null>(null);  // pure network: heartbeat → pong
@@ -22,7 +39,7 @@ export const networkLatency = ref<number | null>(null);  // pure network: heartb
 export const viewerInit = ref<any>(null);
 export const viewerGcode = ref<any>(null);
 
-let _nextMsgId = 1;
+let _nextMsgId = _stored.length > 0 ? Math.max(..._stored.map(m => m.id)) + 1 : 1;
 
 
 let ws: WebSocket | null = null;
@@ -101,6 +118,7 @@ export function connectWs() {
           messages.value = [...messages.value, { id: _nextMsgId++, kind, text, ts: Date.now() }];
           unreadCount.value++;
         }
+        persistMessages(messages.value);
       }
 
       // Buffer status as plain data — flush to reactive ref once per rAF.
@@ -127,6 +145,7 @@ export function connectWs() {
       if (msg.ok === false && msg.error) {
         messages.value = [...messages.value, { id: _nextMsgId++, kind: OPERATOR_ERROR, text: `Command: ${msg.error}`, ts: Date.now() }];
         unreadCount.value++;
+        persistMessages(messages.value);
       }
     } else if (msg.type === "viewer_init") {
       console.log("viewer_init", msg.data);
@@ -152,11 +171,13 @@ export function send(obj: WsCommand) {
 
 export function dismissMessage(id: number) {
   messages.value = messages.value.filter(m => m.id !== id);
+  persistMessages(messages.value);
 }
 
 export function clearAllMessages() {
   messages.value = [];
   unreadCount.value = 0;
+  persistMessages(messages.value);
 }
 
 export function markMessagesRead() {
