@@ -747,6 +747,15 @@ function cycleStart() {
   fire({ cmd: "cycle_start" });
 }
 
+function runFromLine(line: number, spindleDir: "off" | "forward" | "reverse", spindleSpeed: number) {
+  fire({
+    cmd: "auto_run",
+    line,
+    spindle_dir: spindleDir !== "off" ? spindleDir : undefined,
+    spindle_speed: spindleDir !== "off" ? spindleSpeed : undefined,
+  });
+}
+
 function cyclePause() {
   fire({ cmd: "cycle_pause" });
 }
@@ -1364,6 +1373,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
                 @update:jogVel="jogVel = $event"
                 @update:jogIncrement="jogIncrement = $event"
                 @cycleStart="cycleStart"
+                @runFromLine="runFromLine"
                 @cyclePause="cyclePause"
                 @cycleResume="cycleResume"
                 @abort="fire({ cmd: 'abort' })"
@@ -1412,6 +1422,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
               @loadFile="loadFile"
               @unloadFile="unloadFile"
               @cycleStart="cycleStart"
+              @runFromLine="runFromLine"
               @cyclePause="cyclePause"
               @cycleResume="cycleResume"
               @abort="fire({ cmd: 'abort' })"

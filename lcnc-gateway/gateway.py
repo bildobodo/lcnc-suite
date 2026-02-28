@@ -1472,6 +1472,14 @@ def handle_command(msg: Dict[str, Any], armed: bool):
 
         if cmd == "auto_run":
             require_armed(armed)
+            spindle_dir = msg.get("spindle_dir")
+            spindle_speed = int(msg.get("spindle_speed", 0))
+            if spindle_dir and spindle_speed > 0:
+                set_mode(linuxcnc.MODE_MANUAL)
+                if spindle_dir == "forward":
+                    CMD.spindle(linuxcnc.SPINDLE_FORWARD, spindle_speed)
+                elif spindle_dir == "reverse":
+                    CMD.spindle(linuxcnc.SPINDLE_REVERSE, spindle_speed)
             set_mode(linuxcnc.MODE_AUTO)
             start_line = int(msg.get("line", 0))
             CMD.auto(linuxcnc.AUTO_RUN, start_line)

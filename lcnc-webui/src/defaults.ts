@@ -142,18 +142,30 @@ export function saveViewerDefaults(data: ViewerDefaults): void {
 
 export type ToolChangeMode = "m6g43" | "m600";
 
+export type SpindleDir = "off" | "forward" | "reverse";
+
 export interface MachineDefaults {
   toolChangeMode: ToolChangeMode;
+  runFromLine: boolean;
+  rflSpindleDir: SpindleDir;
+  rflSpindleRpm: number;
 }
 
 const MACHINE_FALLBACK: MachineDefaults = {
   toolChangeMode: "m6g43",
+  runFromLine: false,
+  rflSpindleDir: "forward",
+  rflSpindleRpm: 10000,
 };
 
 registerSection<MachineDefaults>("machine", MACHINE_FALLBACK, (saved, fb) => {
   if (!saved) return { ...fb };
+  const dir = saved.rflSpindleDir;
   return {
     toolChangeMode: (saved.toolChangeMode === "m600" ? "m600" : "m6g43") as ToolChangeMode,
+    runFromLine: saved.runFromLine ?? fb.runFromLine,
+    rflSpindleDir: (dir === "off" || dir === "forward" || dir === "reverse" ? dir : fb.rflSpindleDir) as SpindleDir,
+    rflSpindleRpm: typeof saved.rflSpindleRpm === "number" ? saved.rflSpindleRpm : fb.rflSpindleRpm,
   };
 });
 

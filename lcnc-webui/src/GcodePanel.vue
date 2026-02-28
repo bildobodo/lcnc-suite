@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { listFiles, uploadFile, type FileEntry } from "./lcncApi";
 import { usePermissions } from "./permissions";
+import { loadMachineDefaults } from "./defaults";
 
 const props = defineProps<{
   activeFile: string | null;
@@ -24,6 +25,7 @@ const emit = defineEmits<{
   (e: "abort"): void;
   (e: "toggleOptionalStop"): void;
   (e: "toggleBlockDelete"): void;
+  (e: "runFromLine", line: number, spindleDir: "off" | "forward" | "reverse", spindleSpeed: number): void;
 }>();
 
 const codeViewerRef = ref<HTMLDivElement | null>(null);
@@ -234,6 +236,40 @@ function formatSize(bytes: number): string {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
+
+/** ---------- Run from line ---------- */
+const runFromLineEnabled = ref(false);
+const selectedLine = ref<number | null>(null);
+const showRunDialog = ref(false);
+const dialogSpindleDir = ref<"off" | "forward" | "reverse">("forward");
+const dialogSpindleSpeed = ref(10000);
+
+onMounted(() => {
+  const mach = loadMachineDefaults();
+  runFromLineEnabled.value = mach.runFromLine;
+  dialogSpindleDir.value = mach.rflSpindleDir;
+  dialogSpindleSpeed.value = mach.rflSpindleRpm;
+});
+
+function onLineClick(lineNum: number) {
+  if (!runFromLineEnabled.value || !props.gcodeContent) return;
+  selectedLine.value = selectedLine.value === lineNum ? null : lineNum;
+}
+
+function onStartClick() {
+  if (selectedLine.value && selectedLine.value > 1) {
+    showRunDialog.value = true;
+  } else {
+    emit("cycleStart");
+  }
+}
+
+function confirmRunFromLine() {
+  if (!selectedLine.value) return;
+  emit("runFromLine", selectedLine.value, dialogSpindleDir.value, dialogSpindleSpeed.value);
+  showRunDialog.value = false;
+  selectedLine.value = null;
+}
 </script>
 
 <template>
@@ -263,8 +299,8 @@ function formatSize(bytes: number): string {
 
     <!-- Program control -->
     <div class="controlRow">
-      <button class="ctrlBtn primary" @click="emit('cycleStart')" :disabled="!can.ready || !activeFile">
-        <span class="ctrlIcon">&#x25B6;</span> Start
+      <button class="ctrlBtn primary" @click="onStartClick" :disabled="!can.ready || !activeFile">
+        <span class="ctrlIcon">&#x25B6;</span> {{ selectedLine && selectedLine > 1 ? `Start L${selectedLine}` : 'Start' }}
       </button>
       <button class="ctrlBtn"
         @click="isPaused ? emit('cycleResume') : emit('cyclePause')"
@@ -339,7 +375,12 @@ function formatSize(bytes: number): string {
             <div class="codeLine"
                  v-for="item in visibleLines"
                  :key="item.lineNum"
-                 :class="{ active: currentLine === item.lineNum }">
+                 :class="{
+                   active: currentLine === item.lineNum,
+                   selected: selectedLine === item.lineNum,
+                   selectable: runFromLineEnabled && gcodeContent
+                 }"
+                 @click="onLineClick(item.lineNum)">
               <span class="lineNumber">{{ item.lineNum }}</span>
               <span class="lineContent">
                 <span
@@ -362,6 +403,40 @@ function formatSize(bytes: number): string {
         </svg>
         <div class="emptyText">No program loaded</div>
         <div class="emptyHint">Drag &amp; drop a file here, or use Upload / Browse above</div>
+      </div>
+    </div>
+
+    <!-- Run from line confirmation dialog -->
+    <div v-if="showRunDialog" class="dialogOverlay" @click.self="showRunDialog = false">
+      <div class="dialog runDialog">
+        <div class="dialogTitle">Run from Line {{ selectedLine }}</div>
+        <div class="dialogBody">
+          Lines 1–{{ (selectedLine ?? 1) - 1 }} will be interpreted but motion suppressed.
+          Arc commands (G2/G3) before the start line may cause
+          radius errors and abort the run.
+        </div>
+
+        <div class="dialogSection">
+          <div class="sub">Spindle Preset</div>
+          <div class="spindleBtnRow">
+            <button class="optBtn" :class="{ active: dialogSpindleDir === 'off' }"
+                    @click="dialogSpindleDir = 'off'">Off</button>
+            <button class="optBtn" :class="{ active: dialogSpindleDir === 'forward' }"
+                    @click="dialogSpindleDir = 'forward'">FWD</button>
+            <button class="optBtn" :class="{ active: dialogSpindleDir === 'reverse' }"
+                    @click="dialogSpindleDir = 'reverse'">REV</button>
+          </div>
+          <div v-if="dialogSpindleDir !== 'off'" class="rpmRow">
+            <label>RPM</label>
+            <input type="number" v-model.number="dialogSpindleSpeed" min="0" step="100" />
+          </div>
+        </div>
+
+        <div class="dialogActions">
+          <button class="btn" @click="showRunDialog = false">Cancel</button>
+          <button class="btn primary" @click="confirmRunFromLine"
+                  :disabled="!can.ready">Run from Line {{ selectedLine }}</button>
+        </div>
       </div>
     </div>
   </div>
@@ -764,6 +839,88 @@ function formatSize(bytes: number): string {
 .emptyHint {
   font-size: 13px;
   opacity: 0.7;
+}
+
+/* Run from line */
+.codeLine.selectable {
+  cursor: pointer;
+}
+
+.codeLine.selected {
+  background: color-mix(in oklab, var(--info) 20%, transparent);
+  border-left: 2px solid var(--info);
+  padding-left: 10px;
+}
+
+/* Dialog */
+.dialogOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.dialog {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px 32px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+}
+
+.runDialog {
+  text-align: left;
+  min-width: 320px;
+}
+
+.dialogTitle {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.dialogBody {
+  font-size: 13px;
+  margin-bottom: 8px;
+  line-height: 1.5;
+  opacity: 0.8;
+}
+
+.dialogSection {
+  margin: 12px 0;
+}
+
+.optBtn.active {
+  background: color-mix(in oklab, var(--fg) 15%, var(--button-bg));
+  font-weight: 600;
+  border-color: color-mix(in oklab, var(--fg) 30%, var(--border));
+}
+
+.spindleBtnRow {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.rpmRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.rpmRow input {
+  width: 100px;
+}
+
+.dialogActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
 }
 
 </style>

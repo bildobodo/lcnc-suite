@@ -43,6 +43,7 @@ export type WsCommand =
   | { cmd: "teleop_disable" }
   // Program execution
   | { cmd: "cycle_start" }
+  | { cmd: "auto_run"; line: number; spindle_dir?: string; spindle_speed?: number }
   | { cmd: "cycle_pause" }
   | { cmd: "cycle_resume" }
   | { cmd: "abort" }

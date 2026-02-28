@@ -5,7 +5,7 @@ import {
   loadViewerDefaults, saveViewerDefaults,
   loadMachineDefaults, saveMachineDefaults,
   type Vec3, type Layer, type ColorDefaults, type OpacityDefaults,
-  type TrackMode, type Projection, type ToolChangeMode,
+  type TrackMode, type Projection, type ToolChangeMode, type SpindleDir,
 } from "./defaults";
 
 const TS_STORAGE_KEY = "lcnc-toolsetter-params";
@@ -46,9 +46,17 @@ const projection = ref<Projection>(saved.projection);
 // ─── Machine defaults ──────────────────────
 const machSaved = loadMachineDefaults();
 const toolChangeMode = ref<ToolChangeMode>(machSaved.toolChangeMode);
+const runFromLine = ref(machSaved.runFromLine);
+const rflSpindleDir = ref<SpindleDir>(machSaved.rflSpindleDir);
+const rflSpindleRpm = ref(machSaved.rflSpindleRpm);
 
 function saveMachine() {
-  saveMachineDefaults({ toolChangeMode: toolChangeMode.value });
+  saveMachineDefaults({
+    toolChangeMode: toolChangeMode.value,
+    runFromLine: runFromLine.value,
+    rflSpindleDir: rflSpindleDir.value,
+    rflSpindleRpm: rflSpindleRpm.value,
+  });
 }
 
 // ─── Toolsetter params ─────────────────────
@@ -320,6 +328,45 @@ const opacityFields: { key: keyof OpacityDefaults; label: string }[] = [
                 <span class="modeName">M600</span>
                 <span class="modeDesc">Load tool, measure with toolsetter, save offset</span>
               </button>
+            </div>
+          </div>
+          <div class="section">
+            <div class="sectionTitle">Run from Line</div>
+            <div class="settingDesc">Allow starting program execution from a selected line in the code viewer.</div>
+            <div class="btnGroup modeGroup">
+              <button
+                class="optBtn modeBtn"
+                :class="{ active: !runFromLine }"
+                @click="runFromLine = false; saveMachine()"
+              >
+                <span class="modeName">Disabled</span>
+                <span class="modeDesc">Always start from beginning</span>
+              </button>
+              <button
+                class="optBtn modeBtn"
+                :class="{ active: runFromLine }"
+                @click="runFromLine = true; saveMachine()"
+              >
+                <span class="modeName">Enabled</span>
+                <span class="modeDesc">Click a line in code viewer to start from it</span>
+              </button>
+            </div>
+            <div v-if="runFromLine" class="rflDefaults">
+              <div class="settingDesc">Default spindle preset for run-from-line dialog.</div>
+              <div class="rflRow">
+                <div class="btnGroup">
+                  <button class="optBtn" :class="{ active: rflSpindleDir === 'off' }"
+                          @click="rflSpindleDir = 'off'; saveMachine()">Off</button>
+                  <button class="optBtn" :class="{ active: rflSpindleDir === 'forward' }"
+                          @click="rflSpindleDir = 'forward'; saveMachine()">FWD</button>
+                  <button class="optBtn" :class="{ active: rflSpindleDir === 'reverse' }"
+                          @click="rflSpindleDir = 'reverse'; saveMachine()">REV</button>
+                </div>
+                <div v-if="rflSpindleDir !== 'off'" class="rflRpm">
+                  <label>RPM</label>
+                  <input type="number" v-model.number="rflSpindleRpm" min="0" step="100" @change="saveMachine()" />
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -660,6 +707,27 @@ const opacityFields: { key: keyof OpacityDefaults; label: string }[] = [
 .modeDesc {
   font-size: 11px;
   opacity: 0.5;
+}
+
+.rflDefaults {
+  margin-top: 10px;
+}
+
+.rflRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.rflRpm {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rflRpm input {
+  width: 90px;
 }
 
 .placeholder {
