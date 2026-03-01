@@ -2,17 +2,21 @@
 import { computed } from "vue";
 import { usePermissions } from "./permissions";
 
+const ROTARY = new Set(["A", "B", "C", "U", "V", "W"]);
+const AXIS_LETTERS = "XYZABCUVW";
+
 const props = defineProps<{
   homed: boolean;
-  touchoff: [number, number, number];
+  touchoff: number[];
+  axes?: string[];
 }>();
 
 const emit = defineEmits<{
   (e: "homeAll"): void;
   (e: "unhomeAll"): void;
   (e: "setAxis", axis: number, value: number): void;
-  (e: "setAll", values: [number, number, number]): void;
-  (e: "update:touchoff", values: [number, number, number]): void;
+  (e: "setAll", values: number[]): void;
+  (e: "update:touchoff", values: number[]): void;
   (e: "goToG30"): void;
   (e: "goToHome"): void;
   (e: "goToZero"): void;
@@ -20,14 +24,20 @@ const emit = defineEmits<{
 
 const can = usePermissions();
 
+const axesList = computed(() => props.axes ?? ["X", "Y", "Z"]);
+
 const homeDisabled = computed(() => !can.value.idle || props.homed);
 const unhomeDisabled = computed(() => !can.value.idle || !props.homed);
 const zeroDisabled = computed(() => !can.value.zero);
 
 function updateTouchoff(axis: number, val: number) {
-  const copy: [number, number, number] = [...props.touchoff];
+  const copy = [...props.touchoff];
   copy[axis] = val;
   emit("update:touchoff", copy);
+}
+
+function touchoffStep(letter: string) {
+  return ROTARY.has(letter) ? "0.01" : "0.001";
 }
 </script>
 
@@ -50,9 +60,9 @@ function updateTouchoff(axis: number, val: number) {
     </div>
 
     <!-- Set individual axes -->
-    <div class="axisRow" v-for="(axis, i) in (['X', 'Y', 'Z'] as const)" :key="axis">
-      <input type="number" step="0.001" :value="touchoff[i]" @input="updateTouchoff(i, +($event.target as HTMLInputElement).value)" :disabled="zeroDisabled" @keydown.enter="emit('setAxis', i, touchoff[i] ?? 0)" />
-      <button class="btn" :disabled="zeroDisabled" @click="emit('setAxis', i, touchoff[i] ?? 0)">Set {{ axis }}</button>
+    <div class="axisRow" v-for="(letter, i) in axesList" :key="letter">
+      <input type="number" :step="touchoffStep(letter)" :value="touchoff[i]" @input="updateTouchoff(i, +($event.target as HTMLInputElement).value)" :disabled="zeroDisabled" @keydown.enter="emit('setAxis', i, touchoff[i] ?? 0)" />
+      <button class="btn" :disabled="zeroDisabled" @click="emit('setAxis', i, touchoff[i] ?? 0)">Set {{ letter }}</button>
     </div>
 
     <!-- Set all -->

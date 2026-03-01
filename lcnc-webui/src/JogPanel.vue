@@ -5,7 +5,11 @@ import JogButton from "./JogButton.vue";
 
 import { usePermissions } from "./permissions";
 
+const ROTARY = new Set(["A", "B", "C", "U", "V", "W"]);
+const AXIS_LETTERS = "XYZABCUVW";
+
 const props = defineProps<{
+  axes?: string[];
   jogVel: number;
   isTeleop: boolean;
   isHomed: boolean;
@@ -16,6 +20,13 @@ const props = defineProps<{
   minJogVel: number;
   iniIncrements: number[] | null;
 }>();
+
+const rotaryAxes = computed(() => {
+  if (!props.axes) return [];
+  return props.axes
+    .map((letter, i) => ({ letter, index: i }))
+    .filter(a => ROTARY.has(a.letter));
+});
 
 const can = usePermissions();
 
@@ -270,6 +281,14 @@ function stopJog(s: Sector, e?: PointerEvent) {
       </div>
     </div>
 
+    <!-- Rotary axis buttons -->
+    <div v-if="rotaryAxes.length > 0" class="rotaryRow">
+      <div v-for="ra in rotaryAxes" :key="ra.letter" class="rotaryPair">
+        <JogButton :axis="ra.index" :dir="-1" :label="ra.letter + '-'" :vel="jogVel" :disabled="!can.jog" :jogIncrement="jogIncrement" />
+        <JogButton :axis="ra.index" :dir="1" :label="ra.letter + '+'" :vel="jogVel" :disabled="!can.jog" :jogIncrement="jogIncrement" />
+      </div>
+    </div>
+
     <div class="hint">
       {{ jogIncrement > 0 ? 'Click to jog one step.' : 'Press and hold to jog.' }} {{ isTeleop ? 'World mode: coordinated Cartesian movement.' : 'Joint mode: individual axis control.' }}
     </div>
@@ -391,6 +410,24 @@ function stopJog(s: Sector, e?: PointerEvent) {
 .zcol :deep(button) {
   width: 80px;
   height: 80px;
+}
+
+/* ---- Rotary axis buttons ---- */
+.rotaryRow {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.rotaryPair {
+  display: flex;
+  gap: 6px;
+}
+
+.rotaryPair :deep(button) {
+  width: 60px;
+  height: 44px;
 }
 
 /* ---- Mode row ---- */

@@ -176,7 +176,8 @@ const props = defineProps<{
   spindleActual?: number | null;
   spindleDirection?: number | null;
   surfacePoints?: number[][] | null;
-  touchoff?: [number, number, number];
+  axes?: string[];
+  touchoff?: number[];
   optionalStop?: boolean;
   blockDelete?: boolean;
 }>();
@@ -184,7 +185,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: "update:jogVel", vel: number): void;
   (e: "update:jogIncrement", val: number): void;
-  (e: "update:touchoff", values: [number, number, number]): void;
+  (e: "update:touchoff", values: number[]): void;
   (e: "cycleStart"): void;
   (e: "cycleStep"): void;
   (e: "cyclePause"): void;
@@ -193,7 +194,7 @@ const emit = defineEmits<{
   (e: "homeAll"): void;
   (e: "unhomeAll"): void;
   (e: "setAxis", axis: number, value: number): void;
-  (e: "setAll", values: [number, number, number]): void;
+  (e: "setAll", values: number[]): void;
   (e: "toggleOptionalStop"): void;
   (e: "toggleBlockDelete"): void;
   (e: "goToG30"): void;
@@ -1530,13 +1531,14 @@ defineExpose({
 
       <div v-show="activeHudPanel === 'setup'">
         <SetupHUD
+          :axes="props.axes"
           :homed="props.isHomed ?? false"
-          :touchoff="props.touchoff ?? [0, 0, 0]"
+          :touchoff="props.touchoff ?? []"
           @update:touchoff="emit('update:touchoff', $event)"
           @homeAll="emit('homeAll')"
           @unhomeAll="emit('unhomeAll')"
           @setAxis="(axis: number, val: number) => emit('setAxis', axis, val)"
-          @setAll="(vals: [number, number, number]) => emit('setAll', vals)"
+          @setAll="(vals: number[]) => emit('setAll', vals)"
           @goToG30="emit('goToG30')"
           @goToHome="emit('goToHome')"
           @goToZero="emit('goToZero')"

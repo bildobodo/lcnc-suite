@@ -2004,6 +2004,14 @@ def _stl_versioned(filename: str) -> str:
     return f"{filename}?v={mtime}"
 
 
+_AXIS_LETTERS = "XYZABCUVW"
+
+
+def _axes_from_mask(mask: int) -> List[str]:
+    """Derive axis letter list from LinuxCNC axis_mask bitmask."""
+    return [_AXIS_LETTERS[i] for i in range(9) if mask & (1 << i)]
+
+
 def build_viewer_init(stl_base_url: str) -> Dict[str, Any]:
     """Build viewer init payload from machine.json config + INI-derived bounds."""
     print(f"[VINIT] build_viewer_init called, STAT={'OK' if STAT else 'None'}, lcnc_connected={lcnc_connected}", flush=True)
@@ -2015,6 +2023,16 @@ def build_viewer_init(stl_base_url: str) -> Dict[str, Any]:
         bounds_origin, bounds_size = [0, 0, 0], [0, 0, 0]
 
     units = get_machine_units()
+
+    # Axis letters from axis_mask (e.g. XYZ=7, XYZAC=39)
+    axis_mask = 7  # default XYZ
+    if STAT:
+        try:
+            STAT.poll()
+            axis_mask = getattr(STAT, "axis_mask", 7)
+        except Exception:
+            pass
+    axes = _axes_from_mask(axis_mask)
 
     # Build parts with cache-busted filenames
     parts = []
@@ -2030,6 +2048,7 @@ def build_viewer_init(stl_base_url: str) -> Dict[str, Any]:
     return {
         "units": units,
         "stl_base_url": stl_base_url,
+        "axes": axes,
         "machine_bounds": {
             "origin": bounds_origin,
             "size": bounds_size,
@@ -2748,7 +2767,8 @@ async def ws_endpoint(ws: WebSocket):
                                     else:
                                         set_mode(linuxcnc.MODE_MANUAL)
                                         jf = _jog_joint_flag()
-                                        for ax in range(3):
+                                        _nj = getattr(STAT, "joints", 3) if STAT else 3
+                                        for ax in range(_nj):
                                             CMD.jog(linuxcnc.JOG_STOP, jf, ax)
                                         CMD.abort()
                             except Exception:
@@ -2897,7 +2917,8 @@ async def ws_endpoint(ws: WebSocket):
                     else:
                         set_mode(linuxcnc.MODE_MANUAL)
                         jf = _jog_joint_flag()
-                        for ax in range(3):
+                        _nj = getattr(STAT, "joints", 3) if STAT else 3
+                        for ax in range(_nj):
                             CMD.jog(linuxcnc.JOG_STOP, jf, ax)
                         CMD.abort()
             except Exception:

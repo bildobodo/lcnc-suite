@@ -1,24 +1,27 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import { usePermissions } from "./permissions";
 
+const ROTARY = new Set(["A", "B", "C", "U", "V", "W"]);
+
 const props = defineProps<{
+  axes: string[];
   workPos: number[];
   machinePos: number[];
   dtg: number[];
   g5xLabel: string;
+  linearUnit: string;
   homed: boolean;
   homedJoints: boolean[];
-  touchoff: [number, number, number];
+  touchoff: number[];
 }>();
-
-import { computed } from "vue";
 
 const can = usePermissions();
 
 const emit = defineEmits<{
   (e: "setAxis", axis: number, value: number): void;
-  (e: "setAll", values: [number, number, number]): void;
-  (e: "update:touchoff", values: [number, number, number]): void;
+  (e: "setAll", values: number[]): void;
+  (e: "update:touchoff", values: number[]): void;
   (e: "homeAll"): void;
   (e: "unhomeAll"): void;
   (e: "homeAxis", joint: number): void;
@@ -28,8 +31,11 @@ const emit = defineEmits<{
 
 const g5xOptions = ["G54", "G55", "G56", "G57", "G58", "G59", "G59.1", "G59.2", "G59.3"];
 
+// Dynamic grid-row span for the "Set All" / "Home All" button
+const spanRows = computed(() => `1 / ${props.axes.length + 1}`);
+
 function updateTouchoff(axis: number, val: number) {
-  const copy: [number, number, number] = [...props.touchoff];
+  const copy = [...props.touchoff];
   copy[axis] = val;
   emit("update:touchoff", copy);
 }
@@ -42,9 +48,15 @@ function setAll() {
   emit("setAll", [...props.touchoff]);
 }
 
-function fmt(n: any) {
+function fmt(n: any, letter?: string) {
   const x = Number(n);
-  return Number.isFinite(x) ? x.toFixed(3) : "-";
+  if (!Number.isFinite(x)) return "-";
+  if (letter && ROTARY.has(letter)) return x.toFixed(2) + "°";
+  return x.toFixed(3);
+}
+
+function touchoffStep(letter: string) {
+  return ROTARY.has(letter) ? "0.01" : "0.001";
 }
 </script>
 
@@ -64,16 +76,12 @@ function fmt(n: any) {
     <div class="section">
       <div class="sub">Work Position ({{ g5xLabel }})</div>
       <div class="grid">
-        <div class="axis"><span>X</span><b>{{ fmt(workPos[0]) }}</b></div>
-        <input type="number" step="0.001" :value="touchoff[0]" @input="updateTouchoff(0, +($event.target as HTMLInputElement).value)" :disabled="!can.zero" @keydown.enter="setAxis(0)" />
-        <button class="zeroBtn" @click="setAxis(0)" :disabled="!can.zero">Set X</button>
-        <button class="homeBtn spanBtn" style="grid-column: 4" @click="setAll()" :disabled="!can.zero">Set All</button>
-        <div class="axis"><span>Y</span><b>{{ fmt(workPos[1]) }}</b></div>
-        <input type="number" step="0.001" :value="touchoff[1]" @input="updateTouchoff(1, +($event.target as HTMLInputElement).value)" :disabled="!can.zero" @keydown.enter="setAxis(1)" />
-        <button class="zeroBtn" @click="setAxis(1)" :disabled="!can.zero">Set Y</button>
-        <div class="axis"><span>Z</span><b>{{ fmt(workPos[2]) }}</b></div>
-        <input type="number" step="0.001" :value="touchoff[2]" @input="updateTouchoff(2, +($event.target as HTMLInputElement).value)" :disabled="!can.zero" @keydown.enter="setAxis(2)" />
-        <button class="zeroBtn" @click="setAxis(2)" :disabled="!can.zero">Set Z</button>
+        <template v-for="(letter, i) in axes" :key="'w' + letter">
+          <div class="axis"><span>{{ letter }}</span><b>{{ fmt(workPos[i], letter) }}</b></div>
+          <input type="number" :step="touchoffStep(letter)" :value="touchoff[i]" @input="updateTouchoff(i, +($event.target as HTMLInputElement).value)" :disabled="!can.zero" @keydown.enter="setAxis(i)" />
+          <button class="zeroBtn" @click="setAxis(i)" :disabled="!can.zero">Set {{ letter }}</button>
+        </template>
+        <button class="homeBtn spanBtn" :style="{ gridColumn: 4, gridRow: spanRows }" @click="setAll()" :disabled="!can.zero">Set All</button>
       </div>
     </div>
 
@@ -82,16 +90,12 @@ function fmt(n: any) {
     <div class="section">
       <div class="sub">Machine Position</div>
       <div class="grid">
-        <div class="axis"><span>X</span><b>{{ fmt(machinePos[0]) }}</b></div>
-        <div></div>
-        <button class="zeroBtn" :disabled="!can.idle" @click="homedJoints[0] ? emit('unhomeAxis', 0) : emit('homeAxis', 0)">{{ homedJoints[0] ? 'Unhome X' : 'Home X' }}</button>
-        <button class="homeBtn spanBtn" style="grid-column: 4" :disabled="!can.idle" @click="homed ? emit('unhomeAll') : emit('homeAll')">{{ homed ? 'Unhome' : 'Home All' }}</button>
-        <div class="axis"><span>Y</span><b>{{ fmt(machinePos[1]) }}</b></div>
-        <div></div>
-        <button class="zeroBtn" :disabled="!can.idle" @click="homedJoints[1] ? emit('unhomeAxis', 1) : emit('homeAxis', 1)">{{ homedJoints[1] ? 'Unhome Y' : 'Home Y' }}</button>
-        <div class="axis"><span>Z</span><b>{{ fmt(machinePos[2]) }}</b></div>
-        <div></div>
-        <button class="zeroBtn" :disabled="!can.idle" @click="homedJoints[2] ? emit('unhomeAxis', 2) : emit('homeAxis', 2)">{{ homedJoints[2] ? 'Unhome Z' : 'Home Z' }}</button>
+        <template v-for="(letter, i) in axes" :key="'m' + letter">
+          <div class="axis"><span>{{ letter }}</span><b>{{ fmt(machinePos[i], letter) }}</b></div>
+          <div></div>
+          <button class="zeroBtn" :disabled="!can.idle" @click="homedJoints[i] ? emit('unhomeAxis', i) : emit('homeAxis', i)">{{ homedJoints[i] ? `Unhome ${letter}` : `Home ${letter}` }}</button>
+        </template>
+        <button class="homeBtn spanBtn" :style="{ gridColumn: 4, gridRow: spanRows }" :disabled="!can.idle" @click="homed ? emit('unhomeAll') : emit('homeAll')">{{ homed ? 'Unhome' : 'Home All' }}</button>
       </div>
     </div>
   </div>
@@ -119,11 +123,8 @@ function fmt(n: any) {
 }
 
 .spanBtn {
-  grid-row: 1 / 4;
   align-self: stretch;
 }
-
-
 
 .axis {
   display: flex;
@@ -175,5 +176,4 @@ function fmt(n: any) {
   font-weight: 700;
   border-color: var(--fg);
 }
-
 </style>

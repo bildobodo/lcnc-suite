@@ -9,6 +9,7 @@ const can = usePermissions();
 
 const props = defineProps<{
   // DRO props
+  axes: string[];
   workPos: number[];
   machinePos: number[];
   dtg: number[];
@@ -28,14 +29,14 @@ const props = defineProps<{
   // MDI props
   mdiText: string;
   // Touchoff (shared)
-  touchoff: [number, number, number];
+  touchoff: number[];
 }>();
 
 const emit = defineEmits<{
   // DRO emits
   (e: "setAxis", axis: number, value: number): void;
-  (e: "setAll", values: [number, number, number]): void;
-  (e: "update:touchoff", values: [number, number, number]): void;
+  (e: "setAll", values: number[]): void;
+  (e: "update:touchoff", values: number[]): void;
   (e: "homeAll"): void;
   (e: "unhomeAll"): void;
   (e: "homeAxis", joint: number): void;
@@ -138,16 +139,18 @@ function onMdiKeydown(e: KeyboardEvent) {
   <div class="manualPanel scroll-thin">
     <!-- DRO section -->
     <DroPanel
+      :axes="axes"
       :workPos="workPos"
       :machinePos="machinePos"
       :dtg="dtg"
       :g5xLabel="g5xLabel"
+      :linearUnit="linearUnit"
       :homed="homed"
       :homedJoints="homedJoints"
       :touchoff="touchoff"
       @update:touchoff="emit('update:touchoff', $event)"
       @setAxis="(axis: number, val: number) => emit('setAxis', axis, val)"
-      @setAll="(vals: [number, number, number]) => emit('setAll', vals)"
+      @setAll="(vals: number[]) => emit('setAll', vals)"
       @setG5x="emit('setG5x', $event)"
       @homeAll="emit('homeAll')"
       @unhomeAll="emit('unhomeAll')"
@@ -159,6 +162,7 @@ function onMdiKeydown(e: KeyboardEvent) {
 
     <!-- Jog section -->
     <JogPanel
+      :axes="axes"
       :jogVel="jogVel"
       :isTeleop="isTeleop"
       :isHomed="isHomed"

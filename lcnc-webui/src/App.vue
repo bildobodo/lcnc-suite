@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, provide, reactive, ref, watch } from "vue";
 import { evaluatePermissions, PERMISSIONS_KEY } from "./permissions";
-import { connectWs, connected, status, send, armed, lastReply, viewerGcode, lcncError, latency, networkLatency, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead } from "./lcncWs";
+import { connectWs, connected, status, send, armed, lastReply, viewerGcode, viewerInit, lcncError, latency, networkLatency, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead } from "./lcncWs";
 import ThreeViewer from "./ThreeViewer.vue";
 import Toolbar from "./Toolbar.vue";
 import TabPanel from "./TabPanel.vue";
@@ -673,7 +673,28 @@ function arm(v: boolean) {
 /** ---------- local UI jog ---------- */
 const jogVel = ref(10);
 const jogIncrement = ref(0); // 0 = continuous, >0 = increment distance in machine units
-const touchoff = ref<[number, number, number]>([0, 0, 0]);
+const AXIS_LETTERS = "XYZABCUVW";
+
+// Axis list from viewer_init (gateway derives from axis_mask), fallback to XYZ
+const axes = computed<string[]>(() => {
+  const vi = viewerInit.value;
+  if (vi?.axes && Array.isArray(vi.axes)) return vi.axes;
+  // Fallback: derive from axis_mask in status
+  const mask = st.value?.axis_mask ?? 7;
+  return [...AXIS_LETTERS].filter((_, i) => mask & (1 << i));
+});
+
+const touchoff = ref<number[]>([0, 0, 0]);
+
+// Resize touchoff when axes change (e.g. 3→5 axes on reconnect)
+watch(axes, (a) => {
+  if (touchoff.value.length !== a.length) {
+    const copy = [...touchoff.value];
+    copy.length = a.length;
+    for (let i = 0; i < a.length; i++) if (copy[i] == null) copy[i] = 0;
+    touchoff.value = copy;
+  }
+});
 
 // Initialize defaults from INI (once, when first non-fallback value arrives)
 let _jogVelInit = false;
@@ -699,8 +720,7 @@ function sendMdi() {
 }
 
 function setAxis(axis: number, value: number = 0) {
-  const axisNames = ['X', 'Y', 'Z'];
-  const axisName = axisNames[axis];
+  const axisName = AXIS_LETTERS[axis];
   if (!axisName) return;
 
   // For Z: subtract current eoffset so G5x doesn't absorb it
@@ -709,9 +729,14 @@ function setAxis(axis: number, value: number = 0) {
   fire({ cmd: "mdi", text: `G10 L20 P0 ${axisName}${val}` });
 }
 
-function setAll(values: [number, number, number] = [0, 0, 0]) {
+function setAll(values: number[] = []) {
   const eoffsetZ = st.value.eoffset_z ?? 0;
-  fire({ cmd: "mdi", text: `G10 L20 P0 X${values[0]} Y${values[1]} Z${values[2] + eoffsetZ}` });
+  const parts = axes.value.map((letter, i) => {
+    let val = values[i] ?? 0;
+    if (letter === "Z") val += eoffsetZ;
+    return `${letter}${val}`;
+  });
+  fire({ cmd: "mdi", text: `G10 L20 P0 ${parts.join(" ")}` });
 }
 
 function setG5x(gcode: string) {
@@ -876,9 +901,9 @@ function stopAllJog() {
   jogKeys.clear();
   if (!permissions.value.jog) return; // no jog possible unless armed + enabled + homed
   if (isRunning.value || isPaused.value) return; // no jog during program execution
-  send({ cmd: "jog_stop", axis: 0 });
-  send({ cmd: "jog_stop", axis: 1 });
-  send({ cmd: "jog_stop", axis: 2 });
+  for (let i = 0; i < axes.value.length; i++) {
+    send({ cmd: "jog_stop", axis: i });
+  }
 }
 
 function visHandler() {
@@ -1370,6 +1395,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
                 :spindleActual="spindleActual"
                 :spindleDirection="spindleDirection"
                 :surfacePoints="surfacePoints"
+                :axes="axes"
                 :touchoff="touchoff"
                 :optionalStop="optionalStopOn"
                 :blockDelete="blockDeleteOn"
@@ -1397,6 +1423,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 
           <template #manual>
             <ManualPanel
+              :axes="axes"
               :workPos="workPos" :machinePos="machinePos" :dtg="dtg"
               :g5xLabel="g5xLabel" :linearUnit="linearUnit" :homed="isHomed"
               :homedJoints="homedJoints"
