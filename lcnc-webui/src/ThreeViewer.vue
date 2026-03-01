@@ -1325,6 +1325,22 @@ function formatCoord(val: number | null | undefined, axisLetter?: string): strin
 
 const hudAxes = computed(() => props.axes ?? ["X", "Y", "Z"]);
 
+const PRIMARY = new Set(["X", "Y", "Z"]);
+const ABC = new Set(["A", "B", "C"]);
+const UVW = new Set(["U", "V", "W"]);
+
+interface HudAxisEntry { letter: string; index: number }
+
+const hudPrimary = computed<HudAxisEntry[]>(() =>
+  hudAxes.value.map((l, i) => ({ letter: l, index: i })).filter(a => PRIMARY.has(a.letter))
+);
+const hudAbc = computed<HudAxisEntry[]>(() =>
+  hudAxes.value.map((l, i) => ({ letter: l, index: i })).filter(a => ABC.has(a.letter))
+);
+const hudUvw = computed<HudAxisEntry[]>(() =>
+  hudAxes.value.map((l, i) => ({ letter: l, index: i })).filter(a => UVW.has(a.letter))
+);
+
 // ─── Surface map layer ──────────────────────────────────────────
 
 function viridis(t: number): [number, number, number] {
@@ -1453,8 +1469,20 @@ defineExpose({
       <div class="hudSection">
         <div class="hudLabel">Machine Position</div>
         <div class="hudCoords">
-          <div v-for="(letter, i) in hudAxes" :key="'m'+letter" class="hudCoord">
-            <span class="hudAxis">{{ letter }}</span> {{ formatCoord(vst?.machine_pos?.[i], letter) }}
+          <div class="hudCol">
+            <div v-for="a in hudPrimary" :key="'m'+a.letter" class="hudCoord">
+              <span class="hudAxis">{{ a.letter }}</span> {{ formatCoord(vst?.machine_pos?.[a.index], a.letter) }}
+            </div>
+          </div>
+          <div v-if="hudAbc.length" class="hudCol">
+            <div v-for="a in hudAbc" :key="'m'+a.letter" class="hudCoord">
+              <span class="hudAxis">{{ a.letter }}</span> {{ formatCoord(vst?.machine_pos?.[a.index], a.letter) }}
+            </div>
+          </div>
+          <div v-if="hudUvw.length" class="hudCol">
+            <div v-for="a in hudUvw" :key="'m'+a.letter" class="hudCoord">
+              <span class="hudAxis">{{ a.letter }}</span> {{ formatCoord(vst?.machine_pos?.[a.index], a.letter) }}
+            </div>
           </div>
         </div>
       </div>
@@ -1462,8 +1490,20 @@ defineExpose({
       <div class="hudSection">
         <div class="hudLabel">Work Position ({{ props.g5xLabel || '-' }})</div>
         <div class="hudCoords">
-          <div v-for="(letter, i) in hudAxes" :key="'w'+letter" class="hudCoord">
-            <span class="hudAxis">{{ letter }}</span> {{ formatCoord(vst?.work_pos?.[i], letter) }}
+          <div class="hudCol">
+            <div v-for="a in hudPrimary" :key="'w'+a.letter" class="hudCoord">
+              <span class="hudAxis">{{ a.letter }}</span> {{ formatCoord(vst?.work_pos?.[a.index], a.letter) }}
+            </div>
+          </div>
+          <div v-if="hudAbc.length" class="hudCol">
+            <div v-for="a in hudAbc" :key="'w'+a.letter" class="hudCoord">
+              <span class="hudAxis">{{ a.letter }}</span> {{ formatCoord(vst?.work_pos?.[a.index], a.letter) }}
+            </div>
+          </div>
+          <div v-if="hudUvw.length" class="hudCol">
+            <div v-for="a in hudUvw" :key="'w'+a.letter" class="hudCoord">
+              <span class="hudAxis">{{ a.letter }}</span> {{ formatCoord(vst?.work_pos?.[a.index], a.letter) }}
+            </div>
           </div>
         </div>
       </div>
@@ -1670,12 +1710,17 @@ defineExpose({
 
 .hudCoords {
   display: flex;
+  gap: 12px;
+}
+.hudCol {
+  display: flex;
   flex-direction: column;
   gap: 2px;
 }
 .hudCoord {
   color: var(--fg);
   font-weight: 500;
+  white-space: nowrap;
 }
 .hudAxis {
   color: var(--fg);

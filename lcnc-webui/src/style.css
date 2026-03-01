@@ -21,7 +21,7 @@
 
   /* Panel sizing */
   --panel-min-w: 320px;
-  --panel-min-w-wide: 560px;
+  --panel-min-w-wide: 720px;
   --panel-min-h: 400px;
   --panel-h-portrait: 500px;
   --viewer-min-h-portrait: 500px;
@@ -57,8 +57,8 @@ body {
   margin: 0;
   height: 100%;
   overflow: hidden;
-  min-width: 760px;
-  min-height: 600px;
+  min-width: 0;
+  min-height: 0;
 }
 
 a {

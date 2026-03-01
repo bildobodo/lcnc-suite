@@ -2481,7 +2481,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 
 /* ---- Portrait layout — panels stacked vertically ---- */
 @media (orientation: portrait) {
-  .panels          { flex-direction: column; flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; }
+  .panels          { flex-direction: column; flex: 1; min-width: 0; min-height: 0; overflow: auto; }
   .panel           { flex: 0 0 auto; min-width: var(--panel-min-w-wide); }
   .panel-viewer    { flex: 1; min-height: var(--viewer-min-h-portrait); overflow: hidden; }
   .panel-gcode,
