@@ -185,6 +185,9 @@ const emit = defineEmits<{
   (e: "setAll", values: [number, number, number]): void;
   (e: "toggleOptionalStop"): void;
   (e: "toggleBlockDelete"): void;
+  (e: "goToG30"): void;
+  (e: "goToHome"): void;
+  (e: "goToZero"): void;
 }>();
 
 // HUD data (read from status for template)
@@ -1467,6 +1470,9 @@ defineExpose({
           @unhomeAll="emit('unhomeAll')"
           @setAxis="(axis: number, val: number) => emit('setAxis', axis, val)"
           @setAll="(vals: [number, number, number]) => emit('setAll', vals)"
+          @goToG30="emit('goToG30')"
+          @goToHome="emit('goToHome')"
+          @goToZero="emit('goToZero')"
         />
       </div>
     </div>

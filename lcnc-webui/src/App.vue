@@ -1388,6 +1388,9 @@ watch(isHomed, (nowHomed, wasHomed) => {
                 @setAll="setAll"
                 @toggleOptionalStop="toggleOptionalStop"
                 @toggleBlockDelete="toggleBlockDelete"
+                @goToG30="fire({ cmd: 'mdi', text: 'O<go_to_g30> CALL' })"
+                @goToHome="fire({ cmd: 'mdi', text: 'O<go_to_home> CALL' })"
+                @goToZero="fire({ cmd: 'mdi', text: 'O<go_to_zero> CALL' })"
               />
             </Toolbar>
           </template>
@@ -1411,6 +1414,9 @@ watch(isHomed, (nowHomed, wasHomed) => {
               @toggleTeleop="toggleTeleop"
               @update:mdiText="mdiText = $event"
               @sendMdi="sendMdi"
+              @goToG30="fire({ cmd: 'mdi', text: 'O<go_to_g30> CALL' })"
+              @goToHome="fire({ cmd: 'mdi', text: 'O<go_to_home> CALL' })"
+              @goToZero="fire({ cmd: 'mdi', text: 'O<go_to_zero> CALL' })"
             />
           </template>
 

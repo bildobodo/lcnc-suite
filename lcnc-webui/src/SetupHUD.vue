@@ -13,6 +13,9 @@ const emit = defineEmits<{
   (e: "setAxis", axis: number, value: number): void;
   (e: "setAll", values: [number, number, number]): void;
   (e: "update:touchoff", values: [number, number, number]): void;
+  (e: "goToG30"): void;
+  (e: "goToHome"): void;
+  (e: "goToZero"): void;
 }>();
 
 const can = usePermissions();
@@ -55,6 +58,13 @@ function updateTouchoff(axis: number, val: number) {
     <!-- Set all -->
     <div class="row">
       <button class="btn wide" :disabled="zeroDisabled" @click="emit('setAll', [...touchoff])">Set All</button>
+    </div>
+
+    <!-- Go-to navigation -->
+    <div class="row">
+      <button class="btn" :disabled="!can.ready" @click="emit('goToG30')">G30</button>
+      <button class="btn" :disabled="!can.ready" @click="emit('goToHome')">Home</button>
+      <button class="btn" :disabled="!can.ready" @click="emit('goToZero')">Zero</button>
     </div>
   </div>
 </template>

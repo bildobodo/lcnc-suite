@@ -48,6 +48,10 @@ const emit = defineEmits<{
   // MDI emits
   (e: "update:mdiText", text: string): void;
   (e: "sendMdi"): void;
+  // Navigation
+  (e: "goToG30"): void;
+  (e: "goToHome"): void;
+  (e: "goToZero"): void;
 }>();
 
 // ---- MDI history (up-arrow recall + localStorage persistence) ----
@@ -202,6 +206,15 @@ function onMdiKeydown(e: KeyboardEvent) {
         </div>
       </div>
     </div>
+
+    <div class="sep"></div>
+
+    <!-- Go-to navigation -->
+    <div class="gotoRow">
+      <button class="btn" :disabled="!can.ready" @click="emit('goToG30')">Go to G30</button>
+      <button class="btn" :disabled="!can.ready" @click="emit('goToHome')">Go to Home</button>
+      <button class="btn" :disabled="!can.ready" @click="emit('goToZero')">Go to Zero</button>
+    </div>
   </div>
 </template>
 
@@ -281,5 +294,14 @@ function onMdiKeydown(e: KeyboardEvent) {
   padding: 12px;
   text-align: center;
   opacity: 0.5;
+}
+
+.gotoRow {
+  display: flex;
+  gap: 10px;
+}
+
+.gotoRow .btn {
+  flex: 1;
 }
 </style>

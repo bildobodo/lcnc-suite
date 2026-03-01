@@ -1,0 +1,385 @@
+;Subprogram for manual tool change with measurement of the tool.
+;Version date: 2025-03-08
+;Version: 5.0.2
+;https://github.com/TooTall18T/tool_length_probe
+
+;This subprogram is based on the original subprogram "tool_touch_off.ngc" that came with Probe Basic.
+
+;For Probe Basic
+;The parameters 3004 till 3013 must be in the .var-file which is registered under "PARAMETER_FILE" in the machine .ini-file.
+
+;For non Probe Basic use
+;replace the parameters #3004 till #3013 with valid values.
+
+
+o<tool_touch_off> sub
+;Ensures that the routine is not run when checking the CNC program. 
+;This can sometimes lead to unjustified errors.
+o<400> if [#<_task> EQ 1]
+
+;-1- Fixed parameters (read from var file #3100-#3116, set via web UI)
+;-MAIN-
+#<debug_mode> = 0                           ;Debug mode stays hardcoded. 0=OFF, 1=log file in config folder.
+#<tool_touch_x_coords> = #3100             ;Position of the length button in X
+#<tool_touch_y_coords> = #3101             ;Position of the length button in Y
+#<tool_touch_z_coords> = #3102             ;Position above the length button in Z
+#<use_tool_table> = #3103                  ;If "1" use tool table for positioning
+#<tool_min_dis> = #3104                    ;Min distance between touch plate and known tool
+
+;-OPTIONS-
+;--Generally--
+#<brake_after_M600> = #3105                ;0=none, 1=M00, 2=M01
+#<go_back_to_start_pos> = #3106            ;If "1" return to start position
+#<spindle_stop_m> = #3107                  ;M-Code to stop spindle (5 or 500)
+#<disable_pre_pos> = #3108                 ;Disable G30 pre-change positioning
+#<addreps> = #3109                         ;Extra retry count
+#<lasttry> = #3110                         ;If "1" last retry without tool table
+
+;--Tool diameter--
+#<offset_diameter> = #3111                 ;Tool diameter threshold for offset. 0=OFF
+;Direction of the offset will be set in Probe Basic (#<tool_setter_offset_direction>).
+#<offset_value> = #3112                    ;Offset percentage of tool diameter
+
+;--Tool edge-finder--
+#<finder_number> = #3014                   ;Shared with probe tab (probe tool number)
+#<finder_touch_x_coords> = #3113           ;Edge-finder X reference (G53)
+#<finder_touch_y_coords> = #3114           ;Edge-finder Y reference (G53)
+#<finder_diff_z> = #3115                   ;Height diff between probe and reference surface
+
+
+;-2- Transfer parameters
+;Adding and changing the variables and transfer parameters leads to the routine not being executed (LinuxCNC/Probe Basic).
+#<mode> = #2000                           (Modes: 0=manual, 1=automatic, 2=check)
+#2000 = 0
+#<fast_probe_fr> = #3004                 (set from probe screen fast probe feed rate)
+#<slow_probe_fr> = #3005                 (set from probe screen slow probe feedrate)
+#<traverse_fr> = #3006                   (set from probe screen traverse probe feedrate)
+#<z_max_travel> = #3007                  (max z distance the tool travels before erroring out if not contact is made)
+#<xy_max_travel> = #3008                 (max xy distance the tool travels before erroring out if not contact is made)
+#<retract_distance> = #3009              (distance the tool retracts after making contact during fast feed mode)
+#<spindle_zero_height> = #3010           (G53 distance from spindle nose triggering point on touch plate up for tools with zero length)
+
+#<tool_diameter_probe_mode> = #3011      (not in use, activates the tool diameter probe subroutine section)
+#<tool_diameter_offset_mode> = #3012     (not in use, activates the tool diameter offset position for probe subroutine section)
+#<tool_setter_offset_direction> = #3013  (sets tool setter offset direction to move tool)
+
+
+;-3- Create debug mode log file
+o<10> if [#<debug_mode> GT 0]
+  (DEBUG, "logfile.txt" created in the configuration folder.)
+  ;(DEBUG, "logfile.txt" im Konfigurationsordner erstellt.)
+  (LOGOPEN,logfile.txt)
+  (LOG, Log file for the subroutine "tool_touch_off.ngc" Version 5.0.0 from TooTall18T)
+  (LOG, Mode: #<mode>)
+  (LOG, Fast: #<fast_probe_fr>)
+  (LOG, Slow: #<slow_probe_fr>)
+  (LOG, Travel: #<traverse_fr>)
+  (LOG, Zmax travel: #<z_max_travel>)
+  (LOG, XY max travel: #<xy_max_travel>)
+  (LOG, Retract: #<retract_distance>)
+  (LOG, spindle_zero_height: #<spindle_zero_height>)
+  (LOG, ===)
+  (LOG, tool touch x coodrs: #<tool_touch_x_coords>)
+  (LOG, tool touch y coodrs: #<tool_touch_y_coords>)
+  (LOG, tool touch z coodrs: #<tool_touch_z_coords>)
+  (LOG, Min XYZ: #<_ini[AXIS_X]MIN_LIMIT> #<_ini[AXIS_Y]MIN_LIMIT> #<_ini[AXIS_Z]MIN_LIMIT>)
+  (LOG, Max XYZ: #<_ini[AXIS_X]MAX_LIMIT> #<_ini[AXIS_Y]MAX_LIMIT> #<_ini[AXIS_Z]MAX_LIMIT>)
+  (LOG, Pos XYZ: #5420 #5421 #5422)
+  (LOG, === MAIN ===)
+  (LOG, No Probe Basic: #<no_pb>)
+  (LOG, tool table: #<use_tool_table>)
+  (LOG, tool min dis: #<tool_min_dis>)
+  (LOG, === OPTION Generally ===)
+  (LOG, Brake: #<brake_after_M600>)
+  (LOG, Back: #<go_back_to_start_pos>)
+  (LOG, Spindel stop: #<spindle_stop_m>)
+  (LOG, disable g30 pos: #<disable_pre_pos>)
+  (LOG, Additional reps: #<addreps>)
+  (LOG, Last try: #<lasttry>)
+  (LOG, === OPTION Tool diameter ===)
+  (LOG, offset_diameter: #<offset_diameter>)
+  (LOG, offset_direction: #<tool_setter_offset_direction>)
+  (LOG, offset_value: #<offset_value>)
+  (LOG, === OPTION Tool edge-finder ===)
+  (LOG, Finder No: #<finder_number>)
+  (LOG, Finder X: #<finder_touch_x_coords> )
+  (LOG, Finder Y: #<finder_touch_y_coords> )
+  (LOG, Finder diff: #<finder_diff_z>)
+  (LOG, === OPTION Pre change pos ===)
+  (LOG, ============================)
+o<10>endif
+
+
+
+
+
+
+;-10- Check for manual tool calibration and new parameters
+M50 P0
+
+
+
+;-20- Save the stop position in the current coordinate system
+#<stop_position_x> = #5420          ;current X position in the current coordinate system
+#<stop_position_y> = #5421          ;current Y position in the current coordinate system
+#<stop_position_z> = #5422          ;current Z position in the current coordinate system
+#<offset_z> = 0                     ;Stores the current Z position in the current coordinate system, will be set later
+
+
+;-30- Save tool number of old and new tool
+#<tool_in_spindle> = #<_current_tool>   ;Value from system variable
+#<tool_selected> = #<_selected_tool>    ;Value from system variable
+(LOG, Old tool: #<tool_in_spindle> / New tool: #<tool_selected>)
+
+
+;-40- Compare new and old tool numbers
+;If the tool in the spindle is the same as the one selected, no change is made. Except for manual measurement.
+;o<90> if [#<mode> EQ 1]
+;  o<92> if [#<tool_in_spindle> EQ #<tool_selected>]
+;    G43
+;    (DEBUG, Same tool)
+;    ;(DEBUG, Selbes Werkzeug)
+;    o<94> if [ #<brake_after_M600> EQ 1]
+;	    M00					;Interrupts the program flow until you press Start again
+;    o<94> elseif [#<brake_after_M600> EQ 2]
+;      M01			    ;If option is selected and [M01 BREAK] is selected in the interface, the machine pauses.
+;    o<94> endif
+;    M50 P1
+;    (LOG, END same tool)
+;    (LOGCLOSE)
+;    o<tool_touch_off> return
+;  o<92> endif
+;o<90> endif
+
+
+;-50- Change to T0
+;A change at the end of the CNC program using "M600 T0" can cause LinuxCNC to switch from G43 to G49 if the program aborts!
+;If the program is restarted, it may not switch back to G43. Danger of collision!
+;The case only serves to ensure that a measurement is not accidentally started with tool 0.
+o<100> if [#<tool_selected> EQ 0]
+  G90
+  G53 G1 F#<traverse_fr> Z0
+  M6 T#<tool_selected> 
+  G49
+  M50 P1
+  (LOG, END M6 T0)
+  (LOGCLOSE)
+  o<tool_touch_off> return
+o<100> endif
+(LOG, ============================)
+
+;-60- Start of loop, fast measurement
+;If #<addreps> is higher than "0" and fast probe failed, the routine does loops to refit the tool and probe again.
+;If #<lasttry> is set to "1" and #<addreps> ist higher than "0", at the last repetition the machine does a measurement without the tool table.
+#<fastprobefailed> = 0
+#<addreps> = [#<addreps> + 1]
+o<200> do
+
+
+  ;-70- Positioning over tool length sensor / change position / edge-finder position
+  ;Turn off spindle befor the machine moves to probe / change  / edge-finder position.
+  G49
+  G90             (set absolute coordinates)
+  G53 G1 F#<traverse_fr> Z0       (move to z0 home position)
+  #<offset_z> = #5422         ;Stores the offset of the current Z coordinate at G53 Z0 without tool offset.
+  M#<spindle_stop_m>
+
+  o<106> if [#<disable_pre_pos> EQ 0 AND [[#<mode> EQ 1 AND #<fastprobefailed> NE 2] OR #<fastprobefailed> EQ 1]] 
+    ;Change position
+    G53 G1 F#<traverse_fr> X#5181 Y#5182
+    G53 G1 F#<traverse_fr> Z#5183
+  o<106> elseif [#<fastprobefailed> EQ 0 AND #<finder_number> GT 0 AND #<tool_selected> EQ #<finder_number>]
+    ;Edge-finder position
+    G53 G1 F#<traverse_fr> X#<finder_touch_x_coords> Y#<finder_touch_y_coords>
+  o<106> elseif [#<fastprobefailed> EQ 0]
+    ;Tool touch position
+    G53 G1 F#<traverse_fr> X#<tool_touch_x_coords> Y#<tool_touch_y_coords>
+  o<106> endif
+  (LOG, Offset_Z: #<offset_z>)
+
+
+  ;-80- Stops at probe failed
+  ;If last probe failed, machine stops to reposition the tool. 
+  ;Switch to T0 to switch to the right tool in the next step.
+  o<204> if [#<fastprobefailed> NE 0 ]
+    o<205> if [#<addreps> EQ 1 AND #<lasttry> EQ 1]
+      #<use_tool_table> = 0
+      (DEBUG, Tool length offset probe failed! Last try without tool table.)
+      ;(DEBUG, Werkzeugvermessung fehlgeschlagen! Letzter Versuch ohne Werkzeugtabelle.)
+      (LOG, === Probe failed, Without tool table ===)
+    o<205> else
+      M61 Q0
+      (DEBUG, Tool length offset probe failed! Attempts left: #<addreps> Reposition tool or cancel.)
+      ;(DEBUG, Werkzeugvermessung fehlgeschlagen! Versuche übrig: #<addreps> Werkzeug neu positionieren oder abbrechen.)
+      (LOG, === Probe failed, Attempts left: #<addreps> ===)
+    o<205> endif
+  o<204> endif
+
+
+  ;-90- Tool change
+  M6 T#<tool_selected> 
+  #<tool_length_old> = #5403                  ;Old tool length of the tool selected by T
+  (LOG, Old tool length: #<tool_length_old>)
+
+
+  ;-100- Positioning for measuring
+  G53 G1 F#<traverse_fr> Z0       (move to z0 home position)
+  o<160> if [#<finder_number> GT 0 AND #<tool_selected> EQ #<finder_number>] 
+    ;Edge-finder position
+    G53 G1 F#<traverse_fr> X#<finder_touch_x_coords> Y#<finder_touch_y_coords>
+  o<160> else                                                   
+    o<107> if [#<offset_diameter> GT 0 AND #<offset_diameter> LE #5410]
+      ;Tool diameter correction
+      #<offset_distance> = [[#5410 * #<offset_value>]/100]
+      (LOG, Offset_dis: #<offset_distance>)
+      o<108> if [#<tool_setter_offset_direction> EQ 0]
+        ;Offset X-
+        G53 G1 F#<traverse_fr> X[#<tool_touch_x_coords>-#<offset_distance>] Y#<tool_touch_y_coords>
+      o<108> elseif [#<tool_setter_offset_direction> EQ 1]
+        ;Offset X+
+        G53 G1 F#<traverse_fr> X[#<tool_touch_x_coords>+#<offset_distance>] Y#<tool_touch_y_coords>
+      o<108> elseif [#<tool_setter_offset_direction> EQ 2]
+        ;Offset Y-
+        G53 G1 F#<traverse_fr> X#<tool_touch_x_coords> Y[#<tool_touch_y_coords>-#<offset_distance>]
+      o<108> elseif [#<tool_setter_offset_direction> EQ 3]
+        ;Offset Y+
+        G53 G1 F#<traverse_fr> X#<tool_touch_x_coords> Y[#<tool_touch_y_coords>+#<offset_distance>]     
+      o<108> endif
+    o<107> else
+      ;Tool touch position
+      G53 G1 F#<traverse_fr> X#<tool_touch_x_coords> Y#<tool_touch_y_coords>
+    o<107> endif 
+  o<160> endif
+
+
+  ;-110- Determination of the Z starting position for G38
+  o<110> if [#<use_tool_table> EQ 1 AND #<tool_length_old> GT 0]
+    ;If the machine uses the tool table and the tool length ist greater than "0" .
+    #<probe_start_pos_z> = [#<tool_touch_z_coords> + #<tool_length_old> + #<tool_min_dis>]
+    (LOG, Old tool)
+  o<110> else
+    ;If the machine doesn't use the tool table or for tools with a unknown length (<=0).
+    #<probe_start_pos_z> = [#<tool_touch_z_coords> + #<spindle_zero_height>]
+    #<z_max_travel> = #<spindle_zero_height>
+    (LOG, New tool)
+  o<110> endif
+  o<111> if [#<tool_selected> EQ #<finder_number>]
+    ;Correction of the edge-finder height.
+    #<probe_start_pos_z> = [#<probe_start_pos_z> + #<finder_diff_z>]
+  o<111>endif
+  (LOG, Probe start pos: #<probe_start_pos_z>)
+  (LOG, max travel: #<z_max_travel>)
+
+
+  ;-120- Move to Z start position for length measurement
+  G53 G1 F#<traverse_fr> Z#<probe_start_pos_z>
+
+  
+  ;-130- Fast probe
+  G91
+  o<190> if [#<_task> EQ 1]
+    F #<fast_probe_fr>
+  o<190> endif
+  G38.3 Z-[#<z_max_travel>]    (fast tool probe)
+  G1 F#<traverse_fr> Z[#<retract_distance>]    (retract tool retract distance amount)
+  G90
+  #<addreps> = [#<addreps> - 1]
+  (LOG, Fast probe: #5063)
+  
+
+  ;-140- Verify fast probe event was succesful
+  o<201> if [#5070 NE 1 AND #<_task> EQ 1]
+    o<202> if [#<addreps> EQ 0]
+      G90
+      (ABORT, Tool length offset probe failed!)
+      ;(ABORT, Werkzeugvermessung fehlgeschlagen!)
+    o<202> else
+      o<206> if [#<addreps> EQ 1 AND #<lasttry> EQ 1]
+        #<fastprobefailed> = 2
+      o<206> else
+        #<fastprobefailed> = 1
+      o<206> endif
+    o<202> endif
+  o<201> else
+    #<addreps> = 0
+  o<201> endif
+
+
+;-150- End of loop
+o<200> while [#<addreps> GT 0]
+(LOG, ============================)
+
+
+
+;-160- Slow probe
+(Slow Probe Rule, if Slow Probe FR is set to 0, Slow Probe is Bypassed)
+o<120> if [#<slow_probe_fr> GT 0]
+  (Initiate Slow Z- Probe)
+  G91
+  o<125> if [#<_task> EQ 1]
+    F[#<slow_probe_fr>]    (set probe slow feedrate)
+  o<125> endif
+  G38.2 Z-[#<retract_distance> * 2]    (slow tool probe)
+  ;#<z_slow_probe> = #5063
+  G1 F#<traverse_fr> Z[#<retract_distance>]
+  G90
+  (LOG, Slow probe: #5063)
+
+  ;Check for a successful measurement result
+  o<130> if [#5070 NE 1 AND #<_task> EQ 1]    (verify probe event was not succesful)
+    (LOG, Slow Tool Length Offset Probe Failed!)
+    (ABORT, Slow Tool Length Offset Probe Failed!)
+    ;(ABORT, Langsame Werkzeugvermessung fehlgeschlagen!)
+  o<130> endif
+
+o<120> endif
+
+
+;-170- Define new tool length
+(define new tool length offset parameters)
+o<131> if [#<tool_selected> EQ #<finder_number>]
+  #<new_tool_length_offset> = [[ABS[#<tool_touch_z_coords>] + #5063 - #<offset_z>] - #<finder_diff_z>]
+o<131> else
+  #<new_tool_length_offset> = [ABS[#<tool_touch_z_coords>] + #5063 - #<offset_z>]
+o<131>endif
+(LOG, New tool length: #<new_tool_length_offset>)
+
+
+;-180- Save new tool length
+G10 L1 P #5400 Z [#<new_tool_length_offset>]  (5400 = tool number)
+
+
+;-190- Activate new tool and calculate offset
+T #5400 G43  H #5400    (enable tool length offset)
+
+
+;-200- Drive the tool free
+G90    (set absolute coordinates)
+G53 G1 F#<traverse_fr> Z0 (Send spindle to home zero position)
+
+
+;-210- Return to hold position and choose pause
+;Runs only in automatic mode.
+o<140> if [#<mode> EQ 1]
+  o<141> if [#<go_back_to_start_pos> EQ 1]
+    G1 F#<traverse_fr> X[#<stop_position_x>] Y[#<stop_position_y>]
+    G1 F#<traverse_fr> Z[#<stop_position_z>]
+  o<141> endif
+  
+  ;Selects the type of pause after the survey.
+  o<142> if [ #<brake_after_M600> EQ 1]
+    M00			;Interrupts the program flow until you press Start again
+  o<142> elseif [#<brake_after_M600> EQ 2]
+    M01			;If option is selected and [M01 BREAK] is selected in the interface, the machine pauses.
+  o<142> endif
+
+o<140> endif
+
+M50 P1
+
+(LOG, END)
+(LOGCLOSE)
+o<400> endif
+o<tool_touch_off> endsub
+
+M2 (end program)
