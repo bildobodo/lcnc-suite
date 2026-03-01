@@ -4,7 +4,9 @@ import { send } from "./lcncWs";
 import { usePermissions } from "./permissions";
 import JogButton from "./JogButton.vue";
 
-const ROTARY = new Set(["A", "B", "C", "U", "V", "W"]);
+const ABC = new Set(["A", "B", "C"]);
+const UVW = new Set(["U", "V", "W"]);
+const EXTRA = new Set([...ABC, ...UVW]);
 
 const props = defineProps<{
   axes?: string[];
@@ -25,18 +27,15 @@ const emit = defineEmits<{
   (e: "update:jogIncrement", val: number): void;
 }>();
 
-const ABC = new Set(["A", "B", "C"]);
-const UVW = new Set(["U", "V", "W"]);
-
-const rotaryAxes = computed(() => {
+const extraAxes = computed(() => {
   if (!props.axes) return [];
   return props.axes
     .map((letter, i) => ({ letter, index: i }))
-    .filter(a => ROTARY.has(a.letter));
+    .filter(a => EXTRA.has(a.letter));
 });
 
-const abcAxes = computed(() => rotaryAxes.value.filter(a => ABC.has(a.letter)));
-const uvwAxes = computed(() => rotaryAxes.value.filter(a => UVW.has(a.letter)));
+const abcAxes = computed(() => extraAxes.value.filter(a => ABC.has(a.letter)));
+const uvwAxes = computed(() => extraAxes.value.filter(a => UVW.has(a.letter)));
 
 const can = usePermissions();
 
@@ -215,7 +214,7 @@ function onAngularVelInput(ev: Event) {
       />
       <span class="velLabel">{{ (jogVel * 60).toFixed(0) }} {{ linearUnit }}/min</span>
     </div>
-    <div v-if="rotaryAxes.length > 0" class="velRow">
+    <div v-if="abcAxes.length > 0" class="velRow">
       <input
         type="range"
         class="velSlider"
@@ -272,8 +271,8 @@ function onAngularVelInput(ev: Event) {
       </div>
       <div v-if="uvwAxes.length > 0" class="rotaryCol">
         <div v-for="ra in uvwAxes" :key="ra.letter" class="rotaryPair">
-          <JogButton :axis="ra.index" :dir="-1" :label="ra.letter + '-'" :vel="angularJogVel" :disabled="disabled" direction="left" :jogIncrement="jogIncrement" />
-          <JogButton :axis="ra.index" :dir="1" :label="ra.letter + '+'" :vel="angularJogVel" :disabled="disabled" direction="right" :jogIncrement="jogIncrement" />
+          <JogButton :axis="ra.index" :dir="-1" :label="ra.letter + '-'" :vel="jogVel" :disabled="disabled" direction="left" :jogIncrement="jogIncrement" />
+          <JogButton :axis="ra.index" :dir="1" :label="ra.letter + '+'" :vel="jogVel" :disabled="disabled" direction="right" :jogIncrement="jogIncrement" />
         </div>
       </div>
     </div>

@@ -179,14 +179,8 @@ BY USING THIS SOFTWARE, YOU EXPRESSLY ACKNOWLEDGE AND ASSUME ALL RISKS ASSOCIATE
 ### 1. Clone the Repository
 
 ```bash
-git clone --recursive https://github.com/bildobodo/lcnc-suite.git
+git clone https://github.com/bildobodo/lcnc-suite.git
 cd lcnc-suite
-```
-
-If you already cloned without `--recursive`, initialize the submodules:
-
-```bash
-git submodule update --init --recursive
 ```
 
 ### 2. Setup Gateway
@@ -256,19 +250,32 @@ const ws = new WebSocket('ws://localhost:8000/ws');
 The gateway sends these message types:
 
 #### `viewer_init`
-Machine model configuration (sent once per connection):
+Machine model configuration (sent once per connection). See [Machine Model](#machine-model-machinejson) for the full schema.
 ```json
 {
   "type": "viewer_init",
   "data": {
     "units": "mm",
+    "axes": ["X", "Y", "Z"],
     "stl_base_url": "http://localhost:8000/assets/",
     "machine_bounds": {
       "origin": [0, 0, 0],
       "size": [300, 200, 100]
     },
-    "parts": [...],
-    "kinematics": {...}
+    "groups": [
+      { "id": "x", "parent": "root" },
+      { "id": "y", "parent": "root" },
+      { "id": "z", "parent": "y" },
+      { "id": "tool", "parent": "z" }
+    ],
+    "parts": [
+      { "id": "frame", "file": "frame.stl?v=1234", "group": null, "translate": [-760, -122, -294] }
+    ],
+    "kinematics": [
+      { "group": "x", "joint": 0, "direction": "x", "sign": -1 }
+    ],
+    "workGroup": "x",
+    "toolGroup": "tool"
   }
 }
 ```
@@ -730,19 +737,110 @@ The `[RS274NGC] SUBROUTINE_PATH` must include paths to the subroutine directorie
 
 `on_abort.ngc` ships in `subroutines/probe_basic/` and handles cleanup on program abort (spindle off, coolant off, re-enable overrides). It is called by the `ON_ABORT_COMMAND` INI setting.
 
-### Machine Models
+### Machine Model (`machine.json`)
 
-STL models are stored in `lcnc-gateway/machine/`:
-- `frame.stl` - Machine base/frame
-- `x_axis.stl` - X-axis assembly
-- `y_axis.stl` - Y-axis assembly
-- `z_axis.stl` - Z-axis assembly
+The 3D viewer loads a machine model defined in `lcnc-gateway/machine/machine.json`. This file describes the kinematic hierarchy, STL parts, and how joints drive the model.
 
-Models are tracked with Git LFS (see `.gitattributes`).
+STL files are stored alongside `machine.json` in `lcnc-gateway/machine/` and tracked with Git LFS (see `.gitattributes`).
 
-### Kinematics
+#### Schema
 
-Edit the `build_viewer_init()` function in `gateway.py` to match your machine's kinematics and model transforms.
+```json
+{
+  "name": "Machine display name",
+  "groups": [
+    { "id": "group_id", "parent": "root", "translate": [x, y, z] }
+  ],
+  "parts": [
+    { "id": "part_id", "file": "model.stl", "group": "group_id", "translate": [x, y, z], "rotate": [rx, ry, rz] }
+  ],
+  "kinematics": [
+    { "group": "group_id", "joint": 0, "type": "translate", "direction": "x", "sign": 1 }
+  ],
+  "workGroup": "group_id",
+  "toolGroup": "group_id"
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `name` | Display name for the machine |
+| `groups` | Hierarchical assembly tree. Each group has an `id` and `parent` (use `"root"` for the top level). Optional `translate` sets a static pivot offset (e.g., rotary axis center). |
+| `parts` | STL meshes. `file` is relative to `machine/`. `group` assigns the part to a group (`null` = fixed frame). `translate` and `rotate` (Euler angles) are optional static offsets. |
+| `kinematics` | Maps LinuxCNC joints to group transforms. `joint` is the joint index from `joint_pos`. `type` is `"translate"` (default) or `"rotate"`. `direction` is `"x"`, `"y"`, or `"z"`. `sign` flips the direction (1 or -1). For arbitrary rotation axes, use `"axis": [x, y, z]` instead of `direction`. |
+| `workGroup` | Which group represents the workpiece/bed. DRO origin, backplot, and toolpath attach here. |
+| `toolGroup` | Which group represents the tool holder. Tool offset compensation is applied here. |
+
+Parent-child relationships in `groups` create a scene graph — transforms cascade automatically. A child group inherits all parent transforms, so a tool mounted on a Z carriage that rides on a Y saddle moves correctly without manual composition.
+
+#### Example: 3-Axis Mill
+
+```json
+{
+  "name": "3-Axis Mill",
+  "groups": [
+    { "id": "x", "parent": "root" },
+    { "id": "y", "parent": "root" },
+    { "id": "z", "parent": "y" },
+    { "id": "tool", "parent": "z" }
+  ],
+  "parts": [
+    { "id": "frame",  "file": "frame.stl",  "group": null, "translate": [-760, -122, -294] },
+    { "id": "x_axis", "file": "x_axis.stl", "group": "x",  "translate": [319, 398, -244] },
+    { "id": "y_axis", "file": "y_axis.stl", "group": "y",  "translate": [-140, 0, 21] },
+    { "id": "z_axis", "file": "z_axis.stl", "group": "z",  "translate": [0, 0, 0] }
+  ],
+  "kinematics": [
+    { "group": "x", "joint": 0, "direction": "x", "sign": -1 },
+    { "group": "y", "joint": 1, "direction": "y", "sign":  1 },
+    { "group": "z", "joint": 2, "direction": "z", "sign":  1 }
+  ],
+  "workGroup": "x",
+  "toolGroup": "tool"
+}
+```
+
+Hierarchy: `root → x` (bed moves in X), `root → y → z → tool` (column moves in Y, head in Z, tool at tip). The `workGroup` is `"x"` because the workpiece sits on the X table.
+
+#### Example: 5-Axis Mill with Trunnion Table (A+C)
+
+```json
+{
+  "name": "5-Axis Trunnion Mill",
+  "groups": [
+    { "id": "y", "parent": "root" },
+    { "id": "z", "parent": "y" },
+    { "id": "tool", "parent": "z" },
+    { "id": "a_trunnion", "parent": "root", "translate": [150, 200, 50] },
+    { "id": "c_table", "parent": "a_trunnion" }
+  ],
+  "parts": [
+    { "id": "frame",    "file": "frame.stl",    "group": null },
+    { "id": "y_saddle", "file": "y_saddle.stl", "group": "y" },
+    { "id": "z_head",   "file": "z_head.stl",   "group": "z" },
+    { "id": "trunnion", "file": "trunnion.stl",  "group": "a_trunnion" },
+    { "id": "rotary",   "file": "c_table.stl",   "group": "c_table" }
+  ],
+  "kinematics": [
+    { "group": "y", "joint": 1, "direction": "y", "sign": 1 },
+    { "group": "z", "joint": 2, "direction": "z", "sign": 1 },
+    { "group": "a_trunnion", "joint": 3, "type": "rotate", "direction": "x", "sign": 1 },
+    { "group": "c_table",    "joint": 4, "type": "rotate", "direction": "z", "sign": 1 }
+  ],
+  "workGroup": "c_table",
+  "toolGroup": "tool"
+}
+```
+
+The trunnion's `translate` positions the A-axis rotation center. The C table is a child of the A trunnion, so it inherits the tilt — no manual rotation composition needed. `workGroup` is `"c_table"` because the workpiece sits on the rotating table.
+
+#### Kinematics Types
+
+| Type | Description | Example |
+|------|-------------|---------|
+| `translate` (default) | Drives `group.position[direction]` | Linear axes X, Y, Z, U, V, W |
+| `rotate` with `direction` | Drives `group.rotation[direction]` (degrees) | A rotates around X, B around Y, C around Z |
+| `rotate` with `axis` | Drives rotation around arbitrary vector | `"axis": [0, 0.707, 0.707]` for a 45° tilted axis |
 
 ### Polling Rate
 
@@ -757,7 +855,9 @@ lcnc-suite/
 │   ├── hal_watchdog.py        # HAL safety component (loaded by LinuxCNC)
 │   ├── requirements.txt       # Python dependencies
 │   ├── setup-venv.sh          # Virtual environment setup
-│   └── machine/               # STL machine models (Git LFS)
+│   └── machine/               # Machine model config + STL files (Git LFS)
+│       ├── machine.json       # Kinematic hierarchy and part definitions
+│       └── *.stl              # STL mesh files for machine components
 ├── lcnc-webui/                # Reference Vue 3 UI
 │   ├── src/
 │   │   ├── App.vue            # Root component, state, layout, sidebar popovers
@@ -766,27 +866,27 @@ lcnc-suite/
 │   │   ├── lcnc.ts            # LinuxCNC constants
 │   │   ├── lcncWs.ts          # WebSocket client
 │   │   ├── lcncApi.ts         # REST API helpers (file ops)
-│   │   ├── Toolbar.vue        # Top toolbar with status + controls
 │   │   ├── TabPanel.vue       # Tab selector for content panels
-│   │   ├── ThreeViewer.vue    # 3D machine visualization
+│   │   ├── Toolbar.vue        # 3D viewer toolbar (view presets, layer toggles)
+│   │   ├── ThreeViewer.vue    # 3D machine visualization (Three.js)
 │   │   ├── ManualPanel.vue    # DRO + jogging + MDI (consolidated)
 │   │   ├── DroPanel.vue       # Digital readout with G5x, zero, home
 │   │   ├── JogPanel.vue       # Jog wheel + speed/increment controls
-│   │   ├── JogButton.vue      # Reusable jog button
-│   │   ├── GcodePanel.vue     # G-code viewer + program controls
+│   │   ├── JogButton.vue      # Press-and-hold jog button with pointer capture
+│   │   ├── GcodePanel.vue     # G-code viewer + editor + program controls
 │   │   ├── ProbePanel.vue     # Probe operations + calibration + results
 │   │   ├── ToolTablePanel.vue # Tool table editor
-│   │   ├── SettingsPanel.vue  # Application settings
-│   │   ├── JogHUD.vue         # Jog overlay pill
-│   │   ├── GcodeHUD.vue       # G-code overlay pill
-│   │   ├── SpindleHUD.vue     # Spindle overlay pill
-│   │   ├── OverrideHUD.vue    # Override overlay pill
-│   │   └── SetupHUD.vue       # Setup overlay pill
+│   │   ├── SettingsPanel.vue  # Application settings (sub-tabbed)
+│   │   ├── JogHUD.vue         # Jog overlay on 3D viewer
+│   │   ├── GcodeHUD.vue       # G-code overlay on 3D viewer
+│   │   ├── SpindleHUD.vue     # Spindle overlay on 3D viewer
+│   │   ├── OverrideHUD.vue    # Override overlay on 3D viewer
+│   │   └── SetupHUD.vue       # Setup/homing overlay on 3D viewer
 │   └── package.json
-├── subroutines/               # G-code subroutines (git submodules + bundled)
-│   ├── probe_basic/           # Probing routines (bundled from kcjengr/probe_basic, GPL v3)
-│   ├── tool_length_probe/     # Tool measurement (submodule: bildobodo/tool_length_probe)
-│   └── surfacemap/            # Surface scanning + compensation (submodule: bildobodo/surfacemap_usertab)
+├── subroutines/               # G-code subroutines (bundled)
+│   ├── probe_basic/           # Probing routines (from kcjengr/probe_basic, GPL v3)
+│   ├── tool_length_probe/     # Tool measurement (from TooTall18T, GPL v3)
+│   └── surfacemap/            # Surface scanning + compensation (from mhubig/surfacemap_usertab, GPL v2+)
 ├── restart.sh                 # Start/restart gateway + web UI
 ├── kill.sh                    # Stop gateway + web UI
 ├── runlogs/                   # Application logs

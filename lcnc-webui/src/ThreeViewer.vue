@@ -1316,7 +1316,7 @@ watch(
 
 
 // Format coordinate for HUD display
-const HUD_ROTARY = new Set(["A", "B", "C", "U", "V", "W"]);
+const HUD_ROTARY = new Set(["A", "B", "C"]);
 function formatCoord(val: number | null | undefined, axisLetter?: string): string {
   if (val == null) return '---';
   if (axisLetter && HUD_ROTARY.has(axisLetter)) return val.toFixed(2) + "°";

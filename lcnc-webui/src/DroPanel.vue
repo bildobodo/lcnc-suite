@@ -2,7 +2,7 @@
 import { computed } from "vue";
 import { usePermissions } from "./permissions";
 
-const ROTARY = new Set(["A", "B", "C", "U", "V", "W"]);
+const ROTARY = new Set(["A", "B", "C"]);
 
 const props = defineProps<{
   axes: string[];

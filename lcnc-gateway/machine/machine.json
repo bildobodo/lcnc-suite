@@ -1,5 +1,5 @@
 {
-  "name": "PM-25MV Mill",
+  "name": "3-Axis Mill",
   "groups": [
     { "id": "x", "parent": "root" },
     { "id": "y", "parent": "root" },

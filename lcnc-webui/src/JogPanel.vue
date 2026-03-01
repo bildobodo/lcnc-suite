@@ -5,7 +5,9 @@ import JogButton from "./JogButton.vue";
 
 import { usePermissions } from "./permissions";
 
-const ROTARY = new Set(["A", "B", "C", "U", "V", "W"]);
+const ABC = new Set(["A", "B", "C"]);
+const UVW = new Set(["U", "V", "W"]);
+const EXTRA = new Set([...ABC, ...UVW]);
 const AXIS_LETTERS = "XYZABCUVW";
 
 const props = defineProps<{
@@ -24,24 +26,21 @@ const props = defineProps<{
   iniIncrements: number[] | null;
 }>();
 
-const ABC = new Set(["A", "B", "C"]);
-const UVW = new Set(["U", "V", "W"]);
-
-const rotaryAxes = computed(() => {
+const extraAxes = computed(() => {
   if (!props.axes) return [];
   return props.axes
     .map((letter, i) => ({ letter, index: i }))
-    .filter(a => ROTARY.has(a.letter));
+    .filter(a => EXTRA.has(a.letter));
 });
 
-const abcAxes = computed(() => rotaryAxes.value.filter(a => ABC.has(a.letter)));
-const uvwAxes = computed(() => rotaryAxes.value.filter(a => UVW.has(a.letter)));
+const abcAxes = computed(() => extraAxes.value.filter(a => ABC.has(a.letter)));
+const uvwAxes = computed(() => extraAxes.value.filter(a => UVW.has(a.letter)));
 
 // Keyboard key pairs for rotary axes: [ ] for first, ; ' for second
 const ROTARY_KEY_PAIRS: [string, string][] = [["[", "]"], [";", "'"]];
 const rotaryKeyMap = computed(() => {
   const map: Record<number, { neg: string; pos: string }> = {};
-  const ra = rotaryAxes.value;
+  const ra = extraAxes.value;
   for (let r = 0; r < Math.min(ra.length, ROTARY_KEY_PAIRS.length); r++) {
     map[ra[r].index] = { neg: ROTARY_KEY_PAIRS[r][0], pos: ROTARY_KEY_PAIRS[r][1] };
   }
@@ -240,7 +239,7 @@ function stopJog(s: Sector, e?: PointerEvent) {
     </div>
 
     <div class="btnrow" style="margin-bottom: 10px">
-      <div class="k" style="min-width: 90px">{{ rotaryAxes.length > 0 ? 'Linear' : 'Speed' }}</div>
+      <div class="k" style="min-width: 90px">{{ abcAxes.length > 0 ? 'Linear' : 'Speed' }}</div>
 
       <input
         class="inp"
@@ -255,7 +254,7 @@ function stopJog(s: Sector, e?: PointerEvent) {
       <div class="pill">{{ (jogVel * 60).toFixed(0) }} {{ linearUnit }}/min</div>
     </div>
 
-    <div v-if="rotaryAxes.length > 0" class="btnrow" style="margin-bottom: 10px">
+    <div v-if="abcAxes.length > 0" class="btnrow" style="margin-bottom: 10px">
       <div class="k" style="min-width: 90px">Rotary</div>
       <input
         class="inp"
@@ -282,7 +281,7 @@ function stopJog(s: Sector, e?: PointerEvent) {
           :disabled="!can.jog"
         >{{ opt.label }}</button>
       </div>
-      <div class="pill" v-if="jogIncrement > 0">{{ jogIncrement }} {{ linearUnit }}{{ rotaryAxes.length > 0 ? ' · °' : '' }} /click</div>
+      <div class="pill" v-if="jogIncrement > 0">{{ jogIncrement }} {{ linearUnit }}{{ abcAxes.length > 0 ? ' · °' : '' }} /click</div>
       <div class="pill" v-else>Hold to jog</div>
     </div>
 
@@ -330,15 +329,15 @@ function stopJog(s: Sector, e?: PointerEvent) {
       </div>
       <div v-if="uvwAxes.length > 0" class="rotaryCol">
         <div v-for="ra in uvwAxes" :key="ra.letter" class="rotaryPair">
-          <JogButton :axis="ra.index" :dir="-1" :label="ra.letter + '-'" :vel="angularJogVel" :disabled="!can.jog" direction="left" :jogIncrement="jogIncrement" :active="activeJogKeys?.has(rotaryKeyMap[ra.index]?.neg)" />
-          <JogButton :axis="ra.index" :dir="1" :label="ra.letter + '+'" :vel="angularJogVel" :disabled="!can.jog" direction="right" :jogIncrement="jogIncrement" :active="activeJogKeys?.has(rotaryKeyMap[ra.index]?.pos)" />
+          <JogButton :axis="ra.index" :dir="-1" :label="ra.letter + '-'" :vel="jogVel" :disabled="!can.jog" direction="left" :jogIncrement="jogIncrement" :active="activeJogKeys?.has(rotaryKeyMap[ra.index]?.neg)" />
+          <JogButton :axis="ra.index" :dir="1" :label="ra.letter + '+'" :vel="jogVel" :disabled="!can.jog" direction="right" :jogIncrement="jogIncrement" :active="activeJogKeys?.has(rotaryKeyMap[ra.index]?.pos)" />
         </div>
       </div>
     </div>
 
     <div class="hint">
       {{ jogIncrement > 0 ? 'Click to jog one step.' : 'Press and hold to jog.' }} {{ isTeleop ? 'World mode: coordinated Cartesian movement.' : 'Joint mode: individual axis control.' }}
-      <template v-if="rotaryAxes.length > 0"><br/>Keys: Arrows XY, PgUp/Dn Z<template v-for="(ra, r) in rotaryAxes" :key="ra.letter"><template v-if="r < ROTARY_KEY_PAIRS.length">, {{ ROTARY_KEY_PAIRS[r][0] }}/{{ ROTARY_KEY_PAIRS[r][1] }} {{ ra.letter }}</template></template></template>
+      <template v-if="extraAxes.length > 0"><br/>Keys: Arrows XY, PgUp/Dn Z<template v-for="(ra, r) in extraAxes" :key="ra.letter"><template v-if="r < ROTARY_KEY_PAIRS.length">, {{ ROTARY_KEY_PAIRS[r][0] }}/{{ ROTARY_KEY_PAIRS[r][1] }} {{ ra.letter }}</template></template></template>
     </div>
   </div>
 </template>
