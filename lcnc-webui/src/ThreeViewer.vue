@@ -94,7 +94,7 @@ const viewerDefaults = loadViewerDefaults();
 type ViewerInit = {
   units?: "mm" | "inch" | string;
   stl_base_url: string;
-  groups?: Array<{ id: string; parent: string }>;
+  groups?: Array<{ id: string; parent: string; translate?: Vec3 }>;
   parts: Array<{
     id: string;
     file: string;
@@ -109,7 +109,9 @@ type ViewerInit = {
   kinematics: Array<{
     group: string;
     joint: number;
-    direction: "x" | "y" | "z";
+    type?: "translate" | "rotate";     // default: "translate"
+    direction?: "x" | "y" | "z";      // standard axis (required unless axis[] provided)
+    axis?: [number, number, number];   // arbitrary rotation axis vector (Phase 2)
     sign: number;
   }> | Record<string, { axis: number; sign: number }>;  // accept legacy object form
   workGroup?: string;
@@ -226,13 +228,21 @@ let _workGrp: THREE.Group | null = null;   // resolved from init.workGroup
 let _toolGrp: THREE.Group | null = null;   // resolved from init.toolGroup
 
 // Normalize kinematics: accept legacy object form or new array form
-type KinEntry = { group: string; joint: number; direction: "x" | "y" | "z"; sign: number };
+type KinEntry = {
+  group: string;
+  joint: number;
+  type?: "translate" | "rotate";
+  direction?: "x" | "y" | "z";
+  axis?: [number, number, number];
+  sign: number;
+};
 function normalizeKinematics(kin: ViewerInit["kinematics"]): KinEntry[] {
   if (Array.isArray(kin)) return kin;
   // Legacy object form: { x: { axis: 0, sign: -1 }, ... }
   return Object.entries(kin).map(([key, v]) => ({
     group: key,
     joint: v.axis,
+    type: "translate" as const,
     direction: key as "x" | "y" | "z",
     sign: v.sign,
   }));
@@ -623,6 +633,11 @@ function ensureCoreGroups(init: ViewerInit) {
   ];
   for (const g of grpDefs) {
     groups[g.id] = new THREE.Group();
+    // Static pivot offset (e.g. rotary axis center not at parent origin)
+    if (g.translate) {
+      const [x, y, z] = g.translate;
+      groups[g.id].position.set(x * _unitScale, y * _unitScale, z * _unitScale);
+    }
   }
   for (const g of grpDefs) {
     const parent = g.parent === "root" ? groups.root : groups[g.parent];
@@ -847,7 +862,7 @@ async function buildFromInit(init: ViewerInit) {
     const kinEntries = normalizeKinematics(init.kinematics);
     const dirMat: Record<string, THREE.MeshStandardMaterial> = { x: MAT.axisX, y: MAT.axisY, z: MAT.axisZ };
     const groupMat: Record<string, THREE.MeshStandardMaterial> = {};
-    for (const k of kinEntries) groupMat[k.group] = dirMat[k.direction] ?? MAT.frame;
+    for (const k of kinEntries) groupMat[k.group] = (k.direction ? dirMat[k.direction] : null) ?? MAT.frame;
 
     const parts = init.parts ?? [];
     for (const p of parts) {
@@ -919,10 +934,25 @@ function applyState(init: ViewerInit, st: ViewerState) {
   const kinEntries = normalizeKinematics(init.kinematics);
   const ax = (idx: number) => (idx >= 0 && idx < jp.length ? jp[idx] : 0);
 
-  // Apply kinematics: each entry drives a group's position component
+  // Apply kinematics: each entry drives a group's position or rotation
   for (const k of kinEntries) {
     const g = groups[k.group];
-    if (g) g.position[k.direction] = ax(k.joint) * (k.sign ?? 1);
+    if (!g) continue;
+    const val = ax(k.joint) * (k.sign ?? 1);
+    if (k.type === "rotate") {
+      const rad = THREE.MathUtils.degToRad(val);
+      if (k.axis) {
+        // Arbitrary rotation axis (Phase 2: nutating spindles, etc.)
+        const axisVec = new THREE.Vector3(...k.axis).normalize();
+        g.quaternion.setFromAxisAngle(axisVec, rad);
+      } else if (k.direction) {
+        // Standard rotation around cartesian axis (A/B/C)
+        g.rotation[k.direction] = rad;
+      }
+    } else {
+      // Translation (default)
+      if (k.direction) g.position[k.direction] = val;
+    }
   }
 
   // Tool spatial compensation:
