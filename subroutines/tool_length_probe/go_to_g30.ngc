@@ -1,3 +1,5 @@
+; Origin: https://github.com/TooTall18T/tool_length_probe
+; License: GPL-3.0
 o<go_to_g30> sub
 ;Version date: 2024-01-14
 ;The machine moves the Z-axis free and moves only the X- and Y-axis to its coordinates. At that position the Z-axis moves to its coordinate.

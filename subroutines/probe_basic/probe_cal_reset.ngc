@@ -1,3 +1,5 @@
+; Origin: https://github.com/kcjengr/probe_basic
+; License: GPL-3.0
 o<probe_cal_reset> sub
 
   #3032 = 0

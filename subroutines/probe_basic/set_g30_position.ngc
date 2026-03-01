@@ -1,3 +1,5 @@
+; Origin: https://github.com/kcjengr/probe_basic
+; License: GPL-3.0
 o<set_g30_position> sub
 
 o100 if [1 EQ 1]

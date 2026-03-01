@@ -16,5 +16,5 @@
 ## surfacemap/
 - Origin: https://github.com/mhubig/surfacemap_usertab
 - Fork: https://github.com/bildobodo/surfacemap_usertab
-- License: GPL-3.0
+- License: GPL-2.0+ (compensation.py by Scott Alford)
 - Notes: Surface compensation with scipy griddata interpolation.

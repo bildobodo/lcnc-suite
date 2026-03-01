@@ -1,3 +1,5 @@
+; Origin: https://github.com/mhubig/surfacemap_usertab
+; License: GPL-2.0+
 o<surface_scan> sub
   ; ============================================================
   ; Read parameters from userspace variables

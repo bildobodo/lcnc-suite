@@ -1,3 +1,5 @@
+; Origin: https://github.com/kcjengr/probe_basic
+; License: GPL-3.0
 o<tool_setter_param_update> sub
 
   #<fast_probe_fr_3004> = #1
