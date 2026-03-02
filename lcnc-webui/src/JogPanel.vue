@@ -351,14 +351,14 @@ function stopJog(s: Sector, e?: PointerEvent) {
 }
 
 .k {
-  font-size: 12px;
+  font-size: var(--fs-base);
   opacity: 0.7;
 }
 
 .pill {
   padding: 6px 10px;
-  border-radius: 999px;
-  font-size: 12px;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-base);
   border: 1px solid var(--border);
   user-select: none;
   background: color-mix(in oklab, var(--panel) 80%, transparent);
@@ -372,7 +372,7 @@ function stopJog(s: Sector, e?: PointerEvent) {
 
 .hint {
   margin-top: 10px;
-  font-size: 12px;
+  font-size: var(--fs-base);
   opacity: 0.65;
   text-align: center;
 }
@@ -424,7 +424,7 @@ function stopJog(s: Sector, e?: PointerEvent) {
 .hubLabel {
   text-anchor: middle;
   dominant-baseline: central;
-  font-size: 13px;
+  font-size: var(--fs-md);
   font-weight: 600;
   fill: var(--fg);
   opacity: 0.6;
@@ -435,7 +435,7 @@ function stopJog(s: Sector, e?: PointerEvent) {
 .sectorLabel {
   text-anchor: middle;
   dominant-baseline: central;
-  font-size: 12px;
+  font-size: var(--fs-base);
   font-weight: 600;
   fill: var(--fg);
   pointer-events: none;
@@ -443,7 +443,7 @@ function stopJog(s: Sector, e?: PointerEvent) {
 }
 
 .sectorLabel.small {
-  font-size: 9px;
+  font-size: var(--fs-2xs);
 }
 
 /* ---- Z column ---- */
@@ -488,8 +488,8 @@ function stopJog(s: Sector, e?: PointerEvent) {
 
 .modePill {
   padding: 6px 14px;
-  border-radius: 999px;
-  font-size: 12px;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-base);
   font-weight: 600;
   user-select: none;
   text-transform: uppercase;
@@ -506,7 +506,7 @@ function stopJog(s: Sector, e?: PointerEvent) {
 }
 
 .modeHint {
-  font-size: 11px;
+  font-size: var(--fs-sm);
   opacity: 0.5;
 }
 
@@ -518,9 +518,9 @@ function stopJog(s: Sector, e?: PointerEvent) {
 
 .incrBtn {
   padding: 6px 10px;
-  border-radius: 8px;
-  font-size: 11px;
-  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  border-radius: var(--radius-xl);
+  font-size: var(--fs-sm);
+  font-family: var(--font-mono);
   user-select: none;
 }
 

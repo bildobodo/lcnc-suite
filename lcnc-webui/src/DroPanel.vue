@@ -134,23 +134,23 @@ function touchoffStep(letter: string) {
 }
 
 .axis span {
-  font-size: 12px;
+  font-size: var(--fs-base);
   opacity: 0.7;
   width: 14px;
 }
 
 .zeroBtn {
   padding: 6px 12px;
-  font-size: 12px;
-  border-radius: 6px;
+  font-size: var(--fs-base);
+  border-radius: var(--radius-lg);
   white-space: nowrap;
 }
 
 .homeBtn {
   padding: 10px 14px;
-  font-size: 13px;
+  font-size: var(--fs-md);
   font-weight: 600;
-  border-radius: 8px;
+  border-radius: var(--radius-xl);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -165,9 +165,9 @@ function touchoffStep(letter: string) {
 
 .g5xBtn {
   padding: 4px 10px;
-  font-size: 11px;
+  font-size: var(--fs-sm);
   font-weight: 500;
-  border-radius: 6px;
+  border-radius: var(--radius-lg);
   opacity: 0.6;
 }
 

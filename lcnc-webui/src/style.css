@@ -1,5 +1,5 @@
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: var(--font-sans);
   line-height: 1.5;
   font-weight: 400;
 
@@ -25,6 +25,30 @@
   --panel-min-h: 400px;
   --panel-h-portrait: 500px;
   --viewer-min-h-portrait: 500px;
+
+  /* Font stacks */
+  --font-sans: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: 'SF Mono', 'Monaco', 'Consolas', monospace;
+
+  /* Type scale */
+  --fs-2xs: 9px;
+  --fs-xs: 10px;
+  --fs-sm: 11px;
+  --fs-base: 12px;
+  --fs-md: 13px;
+  --fs-lg: 14px;
+  --fs-xl: 16px;
+  --fs-2xl: 20px;
+
+  /* Radius scale */
+  --radius-sm: 3px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-xl: 8px;
+  --radius-2xl: 12px;
+  --radius-3xl: 14px;
+  --radius-pill: 999px;
+  --radius-round: 50%;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -76,7 +100,7 @@ h1 {
 }
 
 button {
-  border-radius: 8px;
+  border-radius: var(--radius-xl);
   border: 1px solid var(--border);
   padding: 0.6em 1.2em;
   font-size: 1em;
@@ -116,7 +140,7 @@ input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
   height: 6px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   background: color-mix(in oklab, var(--panel) 90%, var(--fg));
   outline: none;
   cursor: pointer;
@@ -161,10 +185,10 @@ input[type="text"] {
   border: 1px solid var(--border);
   background: var(--button-bg);
   color: var(--fg);
-  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-base);
   padding: 4px 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   outline: none;
 }
 
@@ -196,7 +220,7 @@ input[type="checkbox"]:disabled {
   color: inherit;
   opacity: 0.5;
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   transition: opacity 0.15s, background 0.15s;
 }
 
@@ -230,7 +254,7 @@ input[type="checkbox"]:disabled {
 .hud-panel {
   background: color-mix(in oklab, var(--panel) 85%, transparent);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-xl);
   padding: 8px;
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
@@ -242,11 +266,11 @@ input[type="checkbox"]:disabled {
 }
 .scroll-thin::-webkit-scrollbar { width: 8px; }
 .scroll-thin::-webkit-scrollbar-track { background: transparent; }
-.scroll-thin::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+.scroll-thin::-webkit-scrollbar-thumb { background: var(--border); border-radius: var(--radius-md); }
 .scroll-thin::-webkit-scrollbar-thumb:hover { background: color-mix(in oklab, var(--border) 80%, var(--fg)); }
 
 .sub {
-  font-size: 12px;
+  font-size: var(--fs-base);
   font-weight: 600;
   opacity: 0.65;
   margin-bottom: 8px;
@@ -264,7 +288,7 @@ input[type="checkbox"]:disabled {
   display: none;
   position: absolute;
   padding: 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-xl);
   background: var(--panel);
   border: 1px solid var(--border);
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);

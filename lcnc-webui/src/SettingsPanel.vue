@@ -791,7 +791,7 @@ const halStats = computed(() => ({
 }
 
 .hint {
-  font-size: 11px;
+  font-size: var(--fs-sm);
   opacity: 0.45;
   margin-bottom: 12px;
   flex-shrink: 0;
@@ -804,8 +804,8 @@ const halStats = computed(() => ({
 
 .subTabs :deep(.tab-btn) {
   padding: 6px 12px;
-  font-size: 12px;
-  border-radius: 8px 8px 3px 3px;
+  font-size: var(--fs-base);
+  border-radius: var(--radius-xl) var(--radius-xl) var(--radius-sm) var(--radius-sm);
 }
 
 .section {
@@ -813,7 +813,7 @@ const halStats = computed(() => ({
 }
 
 .sectionTitle {
-  font-size: 11px;
+  font-size: var(--fs-sm);
   font-weight: 600;
   opacity: 0.6;
   text-transform: uppercase;
@@ -845,15 +845,15 @@ const halStats = computed(() => ({
 }
 
 .inputLabel {
-  font-size: 12px;
+  font-size: var(--fs-base);
   opacity: 0.8;
   min-width: 60px;
 }
 
 .numInput {
   padding: 4px 8px;
-  font-size: 12px;
-  border-radius: 4px;
+  font-size: var(--fs-base);
+  border-radius: var(--radius-md);
   width: 80px;
 }
 
@@ -867,7 +867,7 @@ const halStats = computed(() => ({
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: var(--fs-md);
   cursor: pointer;
   user-select: none;
 }
@@ -888,7 +888,7 @@ const halStats = computed(() => ({
   width: 32px;
   height: 24px;
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   background: none;
   cursor: pointer;
   padding: 0;
@@ -900,11 +900,11 @@ const halStats = computed(() => ({
 
 .colorInput::-webkit-color-swatch {
   border: none;
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
 }
 
 .colorLabel {
-  font-size: 12px;
+  font-size: var(--fs-base);
   opacity: 0.8;
 }
 
@@ -921,7 +921,7 @@ const halStats = computed(() => ({
 }
 
 .opacityLabel {
-  font-size: 12px;
+  font-size: var(--fs-base);
   opacity: 0.8;
   min-width: 100px;
 }
@@ -931,8 +931,8 @@ const halStats = computed(() => ({
 }
 
 .opacityValue {
-  font-size: 11px;
-  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-size: var(--fs-sm);
+  font-family: var(--font-mono);
   opacity: 0.6;
   min-width: 32px;
   text-align: right;
@@ -945,8 +945,8 @@ const halStats = computed(() => ({
 
 .optBtn {
   padding: 5px 10px;
-  font-size: 12px;
-  border-radius: 4px;
+  font-size: var(--fs-base);
+  border-radius: var(--radius-md);
 }
 
 .optBtn.active {
@@ -959,13 +959,13 @@ const halStats = computed(() => ({
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: var(--fs-md);
   cursor: pointer;
   user-select: none;
 }
 
 .settingDesc {
-  font-size: 12px;
+  font-size: var(--fs-base);
   opacity: 0.5;
   margin-bottom: 12px;
 }
@@ -985,13 +985,13 @@ const halStats = computed(() => ({
 }
 
 .modeName {
-  font-size: 13px;
+  font-size: var(--fs-md);
   font-weight: 600;
-  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-family: var(--font-mono);
 }
 
 .modeDesc {
-  font-size: 11px;
+  font-size: var(--fs-sm);
   opacity: 0.5;
 }
 
@@ -1022,12 +1022,12 @@ const halStats = computed(() => ({
 }
 
 .placeholderText {
-  font-size: 13px;
+  font-size: var(--fs-md);
   opacity: 0.4;
 }
 
 .debugPre {
-  font-size: 11px;
+  font-size: var(--fs-sm);
   white-space: pre-wrap;
   word-break: break-all;
   max-height: 300px;
@@ -1035,7 +1035,7 @@ const halStats = computed(() => ({
   margin: 0;
   padding: 6px;
   background: color-mix(in oklab, var(--fg) 5%, var(--bg));
-  border-radius: 4px;
+  border-radius: var(--radius-md);
 }
 
 /* ─── Toolsetter sub-tab ───── */
@@ -1047,26 +1047,26 @@ const halStats = computed(() => ({
 }
 
 .tsGrid label {
-  font-size: 11px;
+  font-size: var(--fs-sm);
   opacity: 0.7;
 }
 
 .tsGrid input {
   padding: 4px 8px;
-  font-size: 12px;
-  border-radius: 4px;
+  font-size: var(--fs-base);
+  border-radius: var(--radius-md);
   max-width: 100px;
 }
 
 .varNum {
   opacity: 0.4;
-  font-size: 10px;
-  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-size: var(--fs-xs);
+  font-family: var(--font-mono);
 }
 
 .readonlyVal {
-  font-size: 12px;
-  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-size: var(--fs-base);
+  font-family: var(--font-mono);
   font-weight: 600;
   opacity: 0.7;
 }
@@ -1084,7 +1084,7 @@ const halStats = computed(() => ({
 
 .tsToggle {
   padding: 4px 8px;
-  font-size: 11px;
+  font-size: var(--fs-sm);
   font-weight: 600;
   opacity: 0.6;
 }
@@ -1116,7 +1116,7 @@ const halStats = computed(() => ({
 .halError {
   padding: 6px 10px;
   margin-bottom: 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   background: color-mix(in oklab, var(--danger) 15%, var(--bg));
   opacity: 0.9;
 }

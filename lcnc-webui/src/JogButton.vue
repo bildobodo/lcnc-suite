@@ -128,7 +128,7 @@ function stopJog(e?: PointerEvent) {
   user-select: none;
   touch-action: none; /* prevents touch scrolling from interrupting hold */
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--fs-md);
   position: relative;
   padding: 0;
   transition: opacity 0.15s ease;
@@ -163,7 +163,7 @@ function stopJog(e?: PointerEvent) {
 }
 
 .jlabel.small {
-  font-size: 10px;
+  font-size: var(--fs-xs);
 }
 
 /* Cardinal: label at centroid (1/3 from base) */

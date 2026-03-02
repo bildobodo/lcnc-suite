@@ -1639,7 +1639,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
   flex-direction: column;
   box-sizing: border-box;
   padding: 16px;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  font-family: var(--font-sans);
 }
 
 .hdr {
@@ -1658,14 +1658,14 @@ watch(isHomed, (nowHomed, wasHomed) => {
 }
 
 .title {
-  font-size: 20px;
+  font-size: var(--fs-2xl);
   font-weight: 700;
 }
 
 .pill {
   padding: 6px 10px;
-  border-radius: 999px;
-  font-size: 12px;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-base);
   border: 1px solid var(--border);
   user-select: none;
   background: color-mix(in oklab, var(--panel) 80%, transparent);
@@ -1702,7 +1702,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
   min-height: 0;
   position: relative;
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius-3xl);
   padding: 12px;
   background: var(--panel);
   color: var(--fg);
@@ -1716,7 +1716,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
   align-items: center;
   justify-content: center;
   padding: 0;
-  border-radius: 14px;
+  border-radius: var(--radius-3xl);
   border: 1px dashed var(--border);
   background: transparent;
   color: var(--fg);
@@ -1738,7 +1738,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
   padding: 8px 16px;
   min-height: 40px;
   color: var(--fg);
-  font-size: 13px;
+  font-size: var(--fs-md);
   font-weight: 500;
   flex-shrink: 0;
 }
@@ -1807,7 +1807,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 
 .card {
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius-3xl);
   padding: 12px;
   margin-bottom: 12px;
   background: var(--panel);
@@ -1815,7 +1815,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 }
 
 .groupTitle {
-  font-size: 11px;
+  font-size: var(--fs-sm);
   font-weight: 600;
   opacity: 0.7;
   text-transform: uppercase;
@@ -1833,7 +1833,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
   flex: 1;
   padding: 12px;
   border: 1px solid color-mix(in oklab, var(--border) 50%, transparent);
-  border-radius: 8px;
+  border-radius: var(--radius-xl);
   background: color-mix(in oklab, var(--panel) 30%, transparent);
   display: flex;
   flex-direction: column;
@@ -1855,7 +1855,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 }
 
 .k {
-  font-size: 12px;
+  font-size: var(--fs-base);
   opacity: 0.7;
 }
 
@@ -1907,7 +1907,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
   align-items: center;
   gap: 2px;
   padding: 8px 14px;
-  border-radius: 8px;
+  border-radius: var(--radius-xl);
   border: 1px solid var(--border);
   background: var(--button-bg);
   cursor: default;
@@ -1929,9 +1929,9 @@ watch(isHomed, (nowHomed, wasHomed) => {
   50% { background: color-mix(in oklab, #b8860b 10%, var(--button-bg)); }
 }
 
-.chipIcon { display: none; font-size: 16px; }
-.chipLabel { font-size: 10px; opacity: 0.6; text-transform: uppercase; letter-spacing: 0.5px; }
-.chipValue { font-size: 13px; font-weight: 600; }
+.chipIcon { display: none; font-size: var(--fs-xl); }
+.chipLabel { font-size: var(--fs-xs); opacity: 0.6; text-transform: uppercase; letter-spacing: 0.5px; }
+.chipValue { font-size: var(--fs-md); font-weight: 600; }
 
 .chipPopover {
   top: 0;
@@ -1952,7 +1952,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
   margin-top: 4px;
   width: 100%;
   padding: 8px;
-  font-size: 12px;
+  font-size: var(--fs-base);
   font-weight: 600;
 }
 .popoverAction.primary {
@@ -1964,22 +1964,22 @@ watch(isHomed, (nowHomed, wasHomed) => {
 }
 
 .offsetsPopover { min-width: 300px; }
-.offsetTable { width: 100%; border-collapse: collapse; font-size: 11px; font-variant-numeric: tabular-nums; }
-.offsetTable th { text-align: right; padding: 2px 6px; color: #999; font-weight: 500; }
-.offsetTable td { text-align: right; padding: 2px 6px; font-family: 'JetBrains Mono', monospace; }
-.offsetTable .offLabel { text-align: left; font-weight: 600; color: #ccc; }
+.offsetTable { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
+.offsetTable th { text-align: right; padding: 2px 6px; color: color-mix(in oklab, var(--fg) 55%, transparent); font-weight: 500; }
+.offsetTable td { text-align: right; padding: 2px 6px; font-family: var(--font-mono); }
+.offsetTable .offLabel { text-align: left; font-weight: 600; color: color-mix(in oklab, var(--fg) 80%, transparent); }
 .offsetTable tbody tr { cursor: pointer; }
-.offsetTable tbody tr:hover { background: rgba(255,255,255,0.05); }
-.offsetTable .activeRow .offLabel { color: #4a90e2; }
-.offsetTable .selectedRow { background: rgba(74, 144, 226, 0.15); outline: 1px solid rgba(74, 144, 226, 0.4); }
-.offsetTable .g92Row, .offsetTable .toolRow { border-top: 1px solid rgba(255,255,255,0.1); cursor: default; }
-.offsetTable .warn { color: #f0ad4e; }
+.offsetTable tbody tr:hover { background: color-mix(in oklab, var(--fg) 5%, transparent); }
+.offsetTable .activeRow .offLabel { color: var(--info); }
+.offsetTable .selectedRow { background: color-mix(in oklab, var(--info) 15%, transparent); outline: 1px solid color-mix(in oklab, var(--info) 40%, transparent); }
+.offsetTable .g92Row, .offsetTable .toolRow { border-top: 1px solid color-mix(in oklab, var(--fg) 10%, transparent); cursor: default; }
+.offsetTable .warn { color: var(--warn); }
 .offsetTable .editableCell { cursor: cell; }
-.offsetTable .editableCell:hover { background: rgba(74, 144, 226, 0.1); }
+.offsetTable .editableCell:hover { background: color-mix(in oklab, var(--info) 10%, transparent); }
 .offsetInput {
   width: 100%; box-sizing: border-box;
-  background: var(--input-bg, #1a1a2e); border: 1px solid var(--accent, #4a90e2);
-  color: var(--text, #eee); text-align: right; font: inherit; padding: 0 4px;
+  background: var(--button-bg); border: 1px solid var(--info);
+  color: var(--fg); text-align: right; font: inherit; padding: 0 4px;
   outline: none;
 }
 .offsetActions { display: flex; gap: 6px; margin-top: 8px; justify-content: flex-end; }
@@ -1997,7 +1997,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 }
 
 .ovrLabel {
-  font-size: 12px;
+  font-size: var(--fs-base);
   font-weight: 500;
   opacity: 0.7;
   min-width: 48px;
@@ -2009,8 +2009,8 @@ watch(isHomed, (nowHomed, wasHomed) => {
 }
 
 .ovrVal {
-  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-base);
   font-weight: 600;
   min-width: 40px;
   text-align: right;
@@ -2025,16 +2025,16 @@ watch(isHomed, (nowHomed, wasHomed) => {
 
 .ovrPresetBtn {
   padding: 2px 8px;
-  font-size: 10px;
-  border-radius: 4px;
+  font-size: var(--fs-xs);
+  border-radius: var(--radius-md);
 }
 
 .ovrResetBtn {
   margin-top: 4px;
   padding: 4px 10px;
-  font-size: 11px;
+  font-size: var(--fs-sm);
   font-weight: 600;
-  border-radius: 6px;
+  border-radius: var(--radius-lg);
   width: 100%;
 }
 
@@ -2065,9 +2065,9 @@ watch(isHomed, (nowHomed, wasHomed) => {
   50% { opacity: 0.5; }
 }
 
-.controlIcon { font-size: 20px; }
-.controlLabel { font-size: 10px; opacity: 0.6; text-transform: uppercase; letter-spacing: 0.5px; }
-.controlStatus { font-size: 12px; font-weight: 600; }
+.controlIcon { font-size: var(--fs-2xl); }
+.controlLabel { font-size: var(--fs-xs); opacity: 0.6; text-transform: uppercase; letter-spacing: 0.5px; }
+.controlStatus { font-size: var(--fs-base); font-weight: 600; }
 
 .spindlePopover {
   top: 0;
@@ -2094,7 +2094,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
   align-items: center;
   gap: 4px;
   padding: 10px 16px;
-  border-radius: 10px;
+  border-radius: var(--radius-xl);
   min-width: 64px;
 }
 
@@ -2109,8 +2109,8 @@ watch(isHomed, (nowHomed, wasHomed) => {
 }
 
 .spDirIcon { font-size: 22px; line-height: 1; }
-.spStopIcon { font-size: 16px; line-height: 1.4; }
-.spDirLabel { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.spStopIcon { font-size: var(--fs-xl); line-height: 1.4; }
+.spDirLabel { font-size: var(--fs-xs); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
 
 .spRpmRow {
   display: flex;
@@ -2119,7 +2119,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 }
 
 .spFieldLabel {
-  font-size: 12px;
+  font-size: var(--fs-base);
   font-weight: 500;
   opacity: 0.8;
   min-width: 72px;
@@ -2128,14 +2128,14 @@ watch(isHomed, (nowHomed, wasHomed) => {
 .spRpmInput {
   flex: 1;
   padding: 6px 10px;
-  border-radius: 8px;
-  font-size: 13px;
+  border-radius: var(--radius-xl);
+  font-size: var(--fs-md);
   font-weight: 600;
   max-width: 120px;
 }
 
 .spUnit {
-  font-size: 10px;
+  font-size: var(--fs-xs);
   font-weight: 400;
   opacity: 0.6;
 }
@@ -2153,20 +2153,20 @@ watch(isHomed, (nowHomed, wasHomed) => {
 }
 
 .spActualValue {
-  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
-  font-size: 16px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xl);
   font-weight: 700;
 }
 
 .spCommandedValue {
-  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
-  font-size: 13px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-md);
   font-weight: 600;
   opacity: 0.7;
 }
 
 .spDirValue {
-  font-size: 12px;
+  font-size: var(--fs-base);
   font-weight: 600;
   opacity: 0.7;
 }
@@ -2181,7 +2181,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 12px;
+  font-size: var(--fs-base);
 }
 
 .spOvrHeader span:first-child {
@@ -2190,8 +2190,8 @@ watch(isHomed, (nowHomed, wasHomed) => {
 }
 
 .spOvrValue {
-  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
-  font-size: 13px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-md);
   font-weight: 600;
 }
 
@@ -2222,15 +2222,15 @@ watch(isHomed, (nowHomed, wasHomed) => {
   gap: 12px;
 }
 .coolantLabel {
-  font-size: 13px;
+  font-size: var(--fs-md);
   font-weight: 600;
 }
 .coolantToggle {
   min-width: 60px;
   padding: 6px 14px;
-  font-size: 12px;
+  font-size: var(--fs-base);
   font-weight: 600;
-  border-radius: 8px;
+  border-radius: var(--radius-xl);
 }
 .coolantToggle.active {
   border-color: color-mix(in srgb, var(--ok) 50%, transparent);
@@ -2251,7 +2251,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 .toolDialog {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-2xl);
   width: 70vw;
   height: 75vh;
   display: flex;
@@ -2268,7 +2268,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 }
 .toolDialogTitle {
   font-weight: 600;
-  font-size: 14px;
+  font-size: var(--fs-lg);
 }
 .toolDialogActions {
   display: flex;
@@ -2290,7 +2290,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
   gap: 8px;
 }
 .toolFieldLabel {
-  font-size: 12px;
+  font-size: var(--fs-base);
   font-weight: 500;
   opacity: 0.8;
   min-width: 48px;
@@ -2298,10 +2298,10 @@ watch(isHomed, (nowHomed, wasHomed) => {
 .toolNumInput {
   flex: 1;
   padding: 6px 10px;
-  border-radius: 8px;
-  font-size: 14px;
+  border-radius: var(--radius-xl);
+  font-size: var(--fs-lg);
   font-weight: 600;
-  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-family: var(--font-mono);
   max-width: 80px;
   text-align: center;
 }
@@ -2312,9 +2312,9 @@ watch(isHomed, (nowHomed, wasHomed) => {
 }
 .toolActionBtn {
   padding: 7px 10px;
-  font-size: 12px;
+  font-size: var(--fs-base);
   font-weight: 600;
-  border-radius: 8px;
+  border-radius: var(--radius-xl);
 }
 .toolActionBtn.measure {
   background: color-mix(in oklab, var(--ok) 20%, var(--button-bg));
@@ -2323,9 +2323,9 @@ watch(isHomed, (nowHomed, wasHomed) => {
 }
 .toolActionBtn.measure:disabled { color: var(--fg); background: var(--button-bg); border-color: var(--border); }
 .toolActionBtn.load {
-  background: color-mix(in oklab, #4a90e2 20%, var(--button-bg));
-  border-color: color-mix(in oklab, #4a90e2 30%, var(--border));
-  color: #4a90e2;
+  background: color-mix(in oklab, var(--info) 20%, var(--button-bg));
+  border-color: color-mix(in oklab, var(--info) 30%, var(--border));
+  color: var(--info);
 }
 .toolActionBtn.load:disabled { color: var(--fg); background: var(--button-bg); border-color: var(--border); }
 .toolActionBtn.abort {
@@ -2349,7 +2349,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 .toolStatusDot {
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   background: var(--border);
 }
 .toolStatusDot.probing {
@@ -2360,16 +2360,16 @@ watch(isHomed, (nowHomed, wasHomed) => {
   background: var(--ok);
 }
 .toolStatusText {
-  font-size: 11px;
-  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-size: var(--fs-sm);
+  font-family: var(--font-mono);
   opacity: 0.7;
 }
 
 /* ---- Messages popover ---- */
 .messagesPopover { min-width: 320px; max-height: 400px; }
 .msgPopHeader { display: flex; justify-content: space-between; align-items: center; }
-.msgPopTitle { font-weight: 600; font-size: 13px; }
-.msgPopEmpty { padding: 20px 0; text-align: center; font-size: 12px; opacity: 0.4; }
+.msgPopTitle { font-weight: 600; font-size: var(--fs-md); }
+.msgPopEmpty { padding: 20px 0; text-align: center; font-size: var(--fs-base); opacity: 0.4; }
 
 .msgPopList {
   display: flex;
@@ -2384,26 +2384,26 @@ watch(isHomed, (nowHomed, wasHomed) => {
   align-items: stretch;
   gap: 8px;
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-xl);
   border: 1px solid var(--border);
   background: var(--button-bg);
 }
 
-.msgPopIndicator { width: 3px; border-radius: 2px; flex-shrink: 0; }
+.msgPopIndicator { width: 3px; border-radius: var(--radius-sm); flex-shrink: 0; }
 .msgPopItem.error .msgPopIndicator { background: var(--err); }
 .msgPopItem.info .msgPopIndicator { background: var(--fg); opacity: 0.4; }
 .msgPopItem.display .msgPopIndicator { background: #22b8cf; }
 
 .msgPopBody { flex: 1; min-width: 0; }
 .msgPopMeta { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
-.msgPopBadge { font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px; letter-spacing: 0.5px; }
+.msgPopBadge { font-size: var(--fs-2xs); font-weight: 700; padding: 1px 5px; border-radius: var(--radius-sm); letter-spacing: 0.5px; }
 .msgPopBadge.error { background: color-mix(in oklab, var(--err) 20%, var(--panel)); color: #e05555; }
 .msgPopBadge.info { background: color-mix(in oklab, var(--fg) 10%, var(--panel)); color: var(--fg); opacity: 0.7; }
 .msgPopBadge.display { background: color-mix(in oklab, #22b8cf 20%, var(--panel)); color: #22b8cf; }
 
-.msgPopTime { font-size: 10px; font-family: 'SF Mono', 'Monaco', 'Consolas', monospace; opacity: 0.5; }
-.msgPopText { font-size: 12px; line-height: 1.3; word-break: break-word; }
-.msgPopDismiss { align-self: flex-start; font-size: 16px; line-height: 1; background: none; border: none; color: var(--fg); opacity: 0.4; cursor: pointer; padding: 0 2px; }
+.msgPopTime { font-size: var(--fs-xs); font-family: var(--font-mono); opacity: 0.5; }
+.msgPopText { font-size: var(--fs-base); line-height: 1.3; word-break: break-word; }
+.msgPopDismiss { align-self: flex-start; font-size: var(--fs-xl); line-height: 1; background: none; border: none; color: var(--fg); opacity: 0.4; cursor: pointer; padding: 0 2px; }
 .msgPopDismiss:hover { opacity: 1; }
 
 .btnrow {
@@ -2422,7 +2422,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 
 .btn {
   padding: 10px 12px;
-  border-radius: 12px;
+  border-radius: var(--radius-2xl);
 }
 
 /* .btn.primary and .btn.danger are in style.css (global) */
@@ -2442,7 +2442,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 }
 
 .safetyLabel {
-  font-size: 11px;
+  font-size: var(--fs-sm);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -2450,7 +2450,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 
 .hint {
   margin-top: 10px;
-  font-size: 12px;
+  font-size: var(--fs-base);
   opacity: 0.65;
 }
 
@@ -2461,9 +2461,9 @@ watch(isHomed, (nowHomed, wasHomed) => {
 .pre {
   background: color-mix(in oklab, var(--panel) 50%, transparent);
   padding: 10px;
-  border-radius: 12px;
+  border-radius: var(--radius-2xl);
   overflow: auto;
-  font-size: 11px;
+  font-size: var(--fs-sm);
   max-height: 400px;
 }
 
@@ -2513,19 +2513,19 @@ watch(isHomed, (nowHomed, wasHomed) => {
 .toolChangeDialog {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-2xl);
   padding: 24px 32px;
   min-width: 280px;
   text-align: center;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
 }
 .toolChangeTitle {
-  font-size: 16px;
+  font-size: var(--fs-xl);
   font-weight: 600;
   margin-bottom: 10px;
 }
 .toolChangeBody {
-  font-size: 14px;
+  font-size: var(--fs-lg);
   margin-bottom: 16px;
   line-height: 1.5;
   opacity: 0.8;

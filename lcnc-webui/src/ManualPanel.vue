@@ -268,7 +268,7 @@ function onMdiKeydown(e: KeyboardEvent) {
   margin-bottom: 4px;
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-xl);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   z-index: 100;
   display: flex;
@@ -292,7 +292,7 @@ function onMdiKeydown(e: KeyboardEvent) {
 .mdiHistoryItem {
   padding: 6px 10px;
   cursor: pointer;
-  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-family: var(--font-mono);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

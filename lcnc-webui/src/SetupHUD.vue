@@ -94,9 +94,9 @@ function touchoffStep(letter: string) {
 .btn {
   flex: 1;
   padding: 6px 10px;
-  font-size: 11px;
+  font-size: var(--fs-sm);
   font-weight: 600;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
 }
 
 .btn.primary {
@@ -119,7 +119,7 @@ function touchoffStep(letter: string) {
 .axisRow input {
   width: 60px;
   text-align: right;
-  font-size: 11px;
+  font-size: var(--fs-sm);
   padding: 3px 6px;
 }
 </style>

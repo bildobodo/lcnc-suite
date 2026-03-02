@@ -80,11 +80,11 @@ const totalBadge = computed(() => {
 .pillLabel {
   display: block;
   padding: 5px 10px;
-  font-size: 11px;
+  font-size: var(--fs-sm);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  border-radius: 6px;
+  border-radius: var(--radius-lg);
   background: var(--button-bg);
   color: var(--fg);
   border: 1px solid var(--border);
@@ -113,8 +113,8 @@ const totalBadge = computed(() => {
 /* ---- Tab options ---- */
 .tabOption {
   padding: 6px 10px;
-  font-size: 12px;
-  border-radius: 4px;
+  font-size: var(--fs-base);
+  border-radius: var(--radius-md);
   white-space: nowrap;
   text-align: left;
 }
@@ -128,11 +128,11 @@ const totalBadge = computed(() => {
 .panelClose {
   flex-shrink: 0;
   padding: 5px 10px;
-  border-radius: 6px;
+  border-radius: var(--radius-lg);
   border: 1px solid color-mix(in srgb, var(--danger) 50%, transparent);
   background: color-mix(in oklab, var(--danger) 25%, var(--button-bg));
   color: var(--fg);
-  font-size: 14px;
+  font-size: var(--fs-lg);
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -160,8 +160,8 @@ const totalBadge = computed(() => {
   height: 16px;
   padding: 0 4px;
   margin-left: 5px;
-  border-radius: 8px;
-  font-size: 9px;
+  border-radius: var(--radius-xl);
+  font-size: var(--fs-2xs);
   font-weight: 700;
   background: var(--err);
   color: #fff;
@@ -176,8 +176,8 @@ const totalBadge = computed(() => {
   height: 18px;
   padding: 0 5px;
   margin-left: 6px;
-  border-radius: 9px;
-  font-size: 10px;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-xs);
   font-weight: 700;
   background: var(--err);
   color: #fff;

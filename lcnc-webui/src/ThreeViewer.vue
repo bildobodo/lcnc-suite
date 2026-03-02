@@ -1622,11 +1622,11 @@ defineExpose({
 
 .hudPill {
   padding: 4px 12px;
-  font-size: 11px;
+  font-size: var(--fs-sm);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  border-radius: 12px;
+  border-radius: var(--radius-2xl);
   border: 1px solid var(--border);
   background: color-mix(in oklab, var(--panel) 85%, transparent);
   opacity: 0.75;
@@ -1665,7 +1665,7 @@ defineExpose({
 .viewerHost {
   width: 100%;
   height: 100%;
-  border-radius: 14px;
+  border-radius: var(--radius-3xl);
   overflow: hidden;
   border: 1px solid var(--border);
   background: color-mix(in oklab, var(--panel) 70%, transparent);
@@ -1685,19 +1685,19 @@ defineExpose({
 .hudSection {
   background: color-mix(in oklab, var(--panel) 85%, transparent);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-xl);
   padding: 8px 12px;
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
-  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-base);
   line-height: 1.4;
 }
 
 .hudLabel {
   color: var(--fg);
   opacity: 0.6;
-  font-size: 10px;
+  font-size: var(--fs-xs);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 4px;

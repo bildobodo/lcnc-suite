@@ -107,7 +107,7 @@ function resetAll() {
 }
 
 .ovLabel {
-  font-size: 10px;
+  font-size: var(--fs-xs);
   opacity: 0.6;
   min-width: 42px;
   text-transform: uppercase;
@@ -119,8 +119,8 @@ function resetAll() {
 }
 
 .ovValue {
-  font-size: 10px;
-  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-size: var(--fs-xs);
+  font-family: var(--font-mono);
   font-weight: 600;
   color: var(--fg);
   opacity: 0.7;
@@ -135,8 +135,8 @@ function resetAll() {
 
 .resetBtn {
   padding: 4px 0;
-  font-size: 10px;
+  font-size: var(--fs-xs);
   font-weight: 600;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
 }
 </style>

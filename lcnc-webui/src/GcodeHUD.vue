@@ -157,8 +157,8 @@ function tokenizeCode(code: string, tokens: Token[]) {
 .ctrlBtn {
   flex: 1;
   padding: 4px 0;
-  font-size: 12px;
-  border-radius: 4px;
+  font-size: var(--fs-base);
+  border-radius: var(--radius-md);
 }
 
 .ctrlBtn.primary {
@@ -188,7 +188,7 @@ function tokenizeCode(code: string, tokens: Token[]) {
   flex: 1;
   height: 4px;
   background: color-mix(in oklab, var(--fg) 10%, var(--bg));
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
@@ -199,16 +199,16 @@ function tokenizeCode(code: string, tokens: Token[]) {
 }
 
 .progressLabel {
-  font-size: 9px;
-  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-size: var(--fs-2xs);
+  font-family: var(--font-mono);
   color: var(--fg);
   opacity: 0.6;
   white-space: nowrap;
 }
 
 .elapsedLabel {
-  font-size: 9px;
-  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-size: var(--fs-2xs);
+  font-family: var(--font-mono);
   color: var(--fg);
   opacity: 0.6;
   white-space: nowrap;
@@ -225,8 +225,8 @@ function tokenizeCode(code: string, tokens: Token[]) {
   display: flex;
   gap: 8px;
   padding: 2px 8px 2px 8px;
-  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
   line-height: 1.5;
   border-left: 3px solid transparent;
 }

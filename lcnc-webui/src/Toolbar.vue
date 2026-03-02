@@ -209,11 +209,11 @@ function updateOffset(axis: number, value: number) {
 .pillLabel {
   display: block;
   padding: 5px 10px;
-  font-size: 11px;
+  font-size: var(--fs-sm);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  border-radius: 6px;
+  border-radius: var(--radius-lg);
   background: var(--button-bg);
   color: var(--fg);
   border: 1px solid var(--border);
@@ -248,8 +248,8 @@ function updateOffset(axis: number, value: number) {
 
 .viewBtn {
   padding: 6px 10px;
-  font-size: 12px;
-  border-radius: 4px;
+  font-size: var(--fs-base);
+  border-radius: var(--radius-md);
   white-space: nowrap;
 }
 
@@ -274,12 +274,12 @@ function updateOffset(axis: number, value: number) {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: var(--fs-base);
   color: var(--fg);
   cursor: pointer;
   user-select: none;
   padding: 3px 4px;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
 }
 
 .pillPopover label:hover {
@@ -299,7 +299,7 @@ function updateOffset(axis: number, value: number) {
 }
 
 .inputLabel {
-  font-size: 11px;
+  font-size: var(--fs-sm);
   color: var(--fg);
   opacity: 0.6;
   min-width: 52px;
@@ -308,8 +308,8 @@ function updateOffset(axis: number, value: number) {
 .numInput {
   flex: 1;
   padding: 4px 6px;
-  font-size: 11px;
-  border-radius: 4px;
+  font-size: var(--fs-sm);
+  border-radius: var(--radius-md);
   max-width: 72px;
 }
 

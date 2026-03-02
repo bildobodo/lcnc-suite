@@ -413,8 +413,8 @@ defineExpose({ openAdd, fetchTools });
   background: color-mix(in oklab, #e55 30%, var(--bg));
   color: #e55;
   padding: 6px 10px;
-  border-radius: 8px;
-  font-size: 12px;
+  border-radius: var(--radius-xl);
+  font-size: var(--fs-base);
   margin-bottom: 6px;
   flex-shrink: 0;
 }
@@ -433,7 +433,7 @@ defineExpose({ openAdd, fetchTools });
 .dialog {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-2xl);
   padding: 24px 32px;
   min-width: 280px;
   text-align: center;
@@ -447,7 +447,7 @@ defineExpose({ openAdd, fetchTools });
 }
 
 .dialogTitle {
-  font-size: 16px;
+  font-size: var(--fs-xl);
   font-weight: 600;
   margin-bottom: 10px;
 }
@@ -457,16 +457,16 @@ defineExpose({ openAdd, fetchTools });
 }
 
 .dialogBody {
-  font-size: 14px;
+  font-size: var(--fs-lg);
   margin-bottom: 8px;
   line-height: 1.5;
   opacity: 0.8;
 }
 
 .dialogHint {
-  font-size: 12px;
+  font-size: var(--fs-base);
   opacity: 0.5;
-  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-family: var(--font-mono);
   margin-bottom: 8px;
 }
 
@@ -491,7 +491,7 @@ defineExpose({ openAdd, fetchTools });
 }
 
 .editLabelText {
-  font-size: 12px;
+  font-size: var(--fs-base);
   font-weight: 600;
   min-width: 75px;
   flex-shrink: 0;
@@ -500,8 +500,8 @@ defineExpose({ openAdd, fetchTools });
 .editInput {
   flex: 1;
   padding: 6px 8px;
-  font-size: 12px;
-  border-radius: 6px;
+  font-size: var(--fs-base);
+  border-radius: var(--radius-lg);
   border: 1px solid var(--border);
   background: var(--bg);
   color: var(--fg);
@@ -510,7 +510,7 @@ defineExpose({ openAdd, fetchTools });
 }
 
 .editInputNum {
-  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-family: var(--font-mono);
   text-align: right;
 }
 
@@ -539,7 +539,7 @@ defineExpose({ openAdd, fetchTools });
   top: 0;
   z-index: 1;
   background: var(--panel);
-  font-size: 11px;
+  font-size: var(--fs-sm);
   font-weight: 600;
   color: color-mix(in oklab, var(--fg) 60%, transparent);
   text-transform: uppercase;
@@ -556,7 +556,7 @@ defineExpose({ openAdd, fetchTools });
 
 .tcell {
   padding: 4px 6px;
-  font-size: 12px;
+  font-size: var(--fs-base);
   flex-shrink: 0;
   min-width: 0;
   border-right: 1px solid color-mix(in oklab, var(--border) 30%, transparent);
@@ -569,7 +569,7 @@ defineExpose({ openAdd, fetchTools });
 .tcellT {
   width: 50px;
   font-weight: 600;
-  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-family: var(--font-mono);
 }
 
 .sortHeader {
@@ -629,7 +629,7 @@ defineExpose({ openAdd, fetchTools });
 }
 
 .mono {
-  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-family: var(--font-mono);
 }
 
 .dim { opacity: 0.5; }
@@ -638,6 +638,6 @@ defineExpose({ openAdd, fetchTools });
   padding: 24px;
   text-align: center;
   opacity: 0.5;
-  font-size: 13px;
+  font-size: var(--fs-md);
 }
 </style>

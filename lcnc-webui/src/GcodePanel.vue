@@ -510,7 +510,7 @@ async function saveEdit() {
   padding: 8px 12px;
   background: color-mix(in oklab, var(--panel) 50%, transparent);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-xl);
 }
 
 .controlRow {
@@ -525,8 +525,8 @@ async function saveEdit() {
   justify-content: center;
   gap: 6px;
   padding: 8px 12px;
-  border-radius: 8px;
-  font-size: 12px;
+  border-radius: var(--radius-xl);
+  font-size: var(--fs-base);
   font-weight: 600;
 }
 
@@ -552,7 +552,7 @@ async function saveEdit() {
 }
 
 .ctrlIcon {
-  font-size: 14px;
+  font-size: var(--fs-lg);
 }
 
 .progressRow {
@@ -564,21 +564,21 @@ async function saveEdit() {
 .progressTrack {
   flex: 1;
   height: 6px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   background: color-mix(in oklab, var(--panel) 90%, var(--fg));
   overflow: hidden;
 }
 
 .progressFill {
   height: 100%;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   background: var(--info);
   transition: width 0.3s ease;
 }
 
 .progressLabel {
-  font-size: 11px;
-  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-size: var(--fs-sm);
+  font-family: var(--font-mono);
   opacity: 0.7;
   white-space: nowrap;
   flex-shrink: 0;
@@ -589,8 +589,8 @@ async function saveEdit() {
 }
 
 .elapsedLabel {
-  font-size: 11px;
-  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-size: var(--fs-sm);
+  font-family: var(--font-mono);
   opacity: 0.7;
   white-space: nowrap;
   flex-shrink: 0;
@@ -605,7 +605,7 @@ async function saveEdit() {
 }
 
 .label {
-  font-size: 11px;
+  font-size: var(--fs-sm);
   font-weight: 600;
   opacity: 0.6;
   text-transform: uppercase;
@@ -613,8 +613,8 @@ async function saveEdit() {
 }
 
 .fileName {
-  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
-  font-size: 13px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-md);
   font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
@@ -629,15 +629,15 @@ async function saveEdit() {
 }
 
 .stats {
-  font-size: 12px;
+  font-size: var(--fs-base);
   opacity: 0.7;
   white-space: nowrap;
 }
 
 .actionBtn {
-  font-size: 11px;
+  font-size: var(--fs-sm);
   padding: 4px 10px;
-  border-radius: 6px;
+  border-radius: var(--radius-lg);
   white-space: nowrap;
 }
 
@@ -667,15 +667,15 @@ async function saveEdit() {
   padding: 6px 10px;
   background: color-mix(in oklab, var(--err) 15%, var(--panel));
   border: 1px solid color-mix(in srgb, var(--err) 25%, transparent);
-  border-radius: 6px;
-  font-size: 12px;
+  border-radius: var(--radius-lg);
+  font-size: var(--fs-base);
   color: #ff6b6b;
 }
 
 /* File browser */
 .fileBrowser {
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-xl);
   background: color-mix(in oklab, var(--panel) 70%, transparent);
   max-height: 200px;
   display: flex;
@@ -688,15 +688,15 @@ async function saveEdit() {
   gap: 8px;
   padding: 6px 10px;
   border-bottom: 1px solid var(--border);
-  font-size: 11px;
+  font-size: var(--fs-sm);
   opacity: 0.7;
 }
 
 .backBtn {
-  font-size: 11px;
+  font-size: var(--fs-sm);
   padding: 2px 8px;
-  border-radius: 4px;
-  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
 }
 
 .backBtn:hover {
@@ -704,8 +704,8 @@ async function saveEdit() {
 }
 
 .browserPath {
-  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
 }
 
 .fileList {
@@ -719,7 +719,7 @@ async function saveEdit() {
   gap: 8px;
   padding: 5px 10px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--fs-base);
   transition: background 0.1s;
 }
 
@@ -736,7 +736,7 @@ async function saveEdit() {
 }
 
 .fileIcon {
-  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-family: var(--font-mono);
   opacity: 0.5;
   width: 10px;
   text-align: center;
@@ -750,7 +750,7 @@ async function saveEdit() {
 }
 
 .fileSize {
-  font-size: 11px;
+  font-size: var(--fs-sm);
   opacity: 0.5;
   flex-shrink: 0;
 }
@@ -758,7 +758,7 @@ async function saveEdit() {
 .emptyBrowser {
   padding: 12px;
   text-align: center;
-  font-size: 12px;
+  font-size: var(--fs-base);
   opacity: 0.5;
 }
 
@@ -781,7 +781,7 @@ async function saveEdit() {
   justify-content: center;
   gap: 12px;
   border: 2px dashed var(--info);
-  border-radius: 8px;
+  border-radius: var(--radius-xl);
   background: color-mix(in oklab, var(--info) 10%, var(--panel) 90%);
   pointer-events: none;
 }
@@ -803,7 +803,7 @@ async function saveEdit() {
 }
 
 .dropText {
-  font-size: 14px;
+  font-size: var(--fs-lg);
   font-weight: 600;
   color: var(--info);
   opacity: 0.9;
@@ -817,7 +817,7 @@ async function saveEdit() {
   flex: 1;
   min-height: 0;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-xl);
   background: color-mix(in oklab, var(--panel) 70%, transparent);
   overflow: auto;
   padding: 8px 0;
@@ -825,8 +825,8 @@ async function saveEdit() {
 
 .codeLine {
   display: flex;
-  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-base);
   line-height: 1.6;
   padding: 2px 12px;
   height: 23px;
@@ -868,7 +868,7 @@ async function saveEdit() {
   gap: 12px;
   opacity: 0.6;
   border: 2px dashed var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-xl);
   transition: border-color 0.2s, background 0.2s, opacity 0.2s;
 }
 
@@ -885,12 +885,12 @@ async function saveEdit() {
 }
 
 .emptyText {
-  font-size: 16px;
+  font-size: var(--fs-xl);
   font-weight: 600;
 }
 
 .emptyHint {
-  font-size: 13px;
+  font-size: var(--fs-md);
   opacity: 0.7;
 }
 
@@ -907,7 +907,7 @@ async function saveEdit() {
   flex: 1;
   min-height: 0;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-xl);
   background: color-mix(in oklab, var(--panel) 70%, transparent);
   padding: 8px 12px;
   resize: none;
@@ -947,7 +947,7 @@ async function saveEdit() {
 .dialog {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-2xl);
   padding: 24px 32px;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
 }
@@ -958,13 +958,13 @@ async function saveEdit() {
 }
 
 .dialogTitle {
-  font-size: 16px;
+  font-size: var(--fs-xl);
   font-weight: 600;
   margin-bottom: 10px;
 }
 
 .dialogBody {
-  font-size: 13px;
+  font-size: var(--fs-md);
   margin-bottom: 8px;
   line-height: 1.5;
   opacity: 0.8;

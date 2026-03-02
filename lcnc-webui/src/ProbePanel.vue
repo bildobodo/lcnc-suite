@@ -1296,7 +1296,7 @@ function fmtR(key: string): string {
 }
 
 .sub {
-  font-size: 11px;
+  font-size: var(--fs-sm);
   font-weight: 600;
   opacity: 0.6;
   text-transform: uppercase;
@@ -1337,9 +1337,9 @@ function fmtR(key: string): string {
 
 .g5xBtn {
   padding: 4px 10px;
-  font-size: 11px;
+  font-size: var(--fs-sm);
   font-weight: 500;
-  border-radius: 6px;
+  border-radius: var(--radius-lg);
   opacity: 0.6;
 }
 
@@ -1359,9 +1359,9 @@ function fmtR(key: string): string {
 .viewTab {
   flex: 1;
   padding: 6px 10px;
-  font-size: 11px;
+  font-size: var(--fs-sm);
   font-weight: 600;
-  border-radius: 6px;
+  border-radius: var(--radius-lg);
   text-align: center;
   opacity: 0.6;
 }
@@ -1433,15 +1433,15 @@ function fmtR(key: string): string {
 }
 
 .calParamRow label {
-  font-size: 11px;
+  font-size: var(--fs-sm);
   opacity: 0.7;
   white-space: nowrap;
 }
 
 .calParamRow input {
   padding: 4px 8px;
-  font-size: 12px;
-  border-radius: 4px;
+  font-size: var(--fs-base);
+  border-radius: var(--radius-md);
   width: 100%;
   box-sizing: border-box;
 }
@@ -1456,15 +1456,15 @@ function fmtR(key: string): string {
 }
 
 .inlineParams label {
-  font-size: 11px;
+  font-size: var(--fs-sm);
   opacity: 0.7;
   white-space: nowrap;
 }
 
 .inlineParams input {
   padding: 4px 8px;
-  font-size: 12px;
-  border-radius: 4px;
+  font-size: var(--fs-base);
+  border-radius: var(--radius-md);
   width: 80px;
 }
 
@@ -1473,19 +1473,19 @@ function fmtR(key: string): string {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
-  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--fs-base);
+  font-family: var(--font-mono);
 }
 
 .calResetBtn {
   padding: 2px 8px;
-  font-size: 10px;
+  font-size: var(--fs-xs);
   font-weight: 600;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
 }
 
 .calParamTitle {
-  font-size: 11px;
+  font-size: var(--fs-sm);
   font-weight: 600;
   opacity: 0.6;
 }
@@ -1499,9 +1499,9 @@ function fmtR(key: string): string {
 .calAxisBtn {
   flex: 1;
   padding: 6px 8px;
-  font-size: 11px;
+  font-size: var(--fs-sm);
   font-weight: 600;
-  border-radius: 6px;
+  border-radius: var(--radius-lg);
   text-align: center;
 }
 
@@ -1515,7 +1515,7 @@ function fmtR(key: string): string {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  border-radius: var(--radius-xl);
   padding: 4px;
   transition: background 0.12s, border-color 0.12s;
 }
@@ -1545,7 +1545,7 @@ function fmtR(key: string): string {
 .gridZLabel {
   fill: var(--fg);
   opacity: 0.5;
-  font-size: 14px;
+  font-size: var(--fs-lg);
   font-weight: 700;
   text-anchor: middle;
   dominant-baseline: central;
@@ -1576,20 +1576,20 @@ function fmtR(key: string): string {
 }
 
 .paramGrid label {
-  font-size: 11px;
+  font-size: var(--fs-sm);
   opacity: 0.7;
 }
 
 .varNum {
   opacity: 0.4;
-  font-size: 10px;
-  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-size: var(--fs-xs);
+  font-family: var(--font-mono);
 }
 
 .paramGrid input {
   padding: 4px 8px;
-  font-size: 12px;
-  border-radius: 4px;
+  font-size: var(--fs-base);
+  border-radius: var(--radius-md);
   max-width: 100px;
 }
 
@@ -1597,7 +1597,7 @@ function fmtR(key: string): string {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: var(--fs-base);
   cursor: pointer;
   user-select: none;
 }
@@ -1610,9 +1610,9 @@ function fmtR(key: string): string {
 
 .abortBtn {
   padding: 10px 14px;
-  font-size: 13px;
+  font-size: var(--fs-md);
   font-weight: 600;
-  border-radius: 8px;
+  border-radius: var(--radius-xl);
   background: color-mix(in oklab, var(--danger) 20%, var(--button-bg));
   border-color: color-mix(in oklab, var(--danger) 30%, var(--border));
   color: var(--danger);
@@ -1621,8 +1621,8 @@ function fmtR(key: string): string {
 .abortBtn.compact,
 .simTripBtn.compact {
   padding: 5px 10px;
-  font-size: 11px;
-  border-radius: 6px;
+  font-size: var(--fs-sm);
+  border-radius: var(--radius-lg);
 }
 
 .abortBtn:disabled {
@@ -1634,9 +1634,9 @@ function fmtR(key: string): string {
 
 .simTripBtn {
   padding: 10px 14px;
-  font-size: 13px;
+  font-size: var(--fs-md);
   font-weight: 600;
-  border-radius: 8px;
+  border-radius: var(--radius-xl);
   background: color-mix(in oklab, #6c63ff 15%, var(--button-bg));
   border-color: color-mix(in oklab, #6c63ff 30%, var(--border));
   color: #6c63ff;
@@ -1661,7 +1661,7 @@ function fmtR(key: string): string {
 .statusDot {
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   background: var(--border);
 }
 
@@ -1680,8 +1680,8 @@ function fmtR(key: string): string {
 }
 
 .statusText {
-  font-size: 11px;
-  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-size: var(--fs-sm);
+  font-family: var(--font-mono);
   opacity: 0.7;
 }
 
@@ -1696,13 +1696,13 @@ function fmtR(key: string): string {
   display: flex;
   flex-direction: column;
   padding: 4px 6px;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   background: color-mix(in oklab, var(--fg) 4%, var(--bg));
   border: 1px solid var(--border);
 }
 
 .prLabel {
-  font-size: 10px;
+  font-size: var(--fs-xs);
   font-weight: 600;
   opacity: 0.5;
   text-transform: uppercase;
@@ -1710,8 +1710,8 @@ function fmtR(key: string): string {
 }
 
 .prVal {
-  font-size: 13px;
-  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-size: var(--fs-md);
+  font-family: var(--font-mono);
   font-weight: 600;
 }
 
@@ -1733,13 +1733,13 @@ function fmtR(key: string): string {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
-  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-size: var(--fs-base);
+  font-family: var(--font-mono);
 }
 .compDot {
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   background: var(--border);
 }
 .compDot.on {
@@ -1758,9 +1758,9 @@ function fmtR(key: string): string {
 }
 .methodBtn {
   padding: 1px 6px;
-  font-size: 11px;
+  font-size: var(--fs-sm);
   border: 1px solid var(--border);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   background: var(--bg);
   color: var(--fg);
   cursor: pointer;
@@ -1783,7 +1783,7 @@ function fmtR(key: string): string {
 .mapDialog {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-2xl);
   width: 70vw;
   height: 65vh;
   display: flex;
@@ -1800,12 +1800,12 @@ function fmtR(key: string): string {
 }
 .mapTitle {
   font-weight: 600;
-  font-size: 14px;
+  font-size: var(--fs-lg);
 }
 .surface3d {
   flex: 1;
   min-height: 0;
-  border-radius: 0 0 12px 12px;
+  border-radius: 0 0 var(--radius-2xl) var(--radius-2xl);
   overflow: hidden;
 }
 

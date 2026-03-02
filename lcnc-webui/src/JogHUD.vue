@@ -295,8 +295,8 @@ function onAngularVelInput(ev: Event) {
 .incBtn {
   flex: 1;
   padding: 3px 0;
-  font-size: 10px;
-  border-radius: 4px;
+  font-size: var(--fs-xs);
+  border-radius: var(--radius-md);
 }
 
 .incBtn.active {
@@ -317,12 +317,12 @@ function onAngularVelInput(ev: Event) {
 }
 
 .velLabel {
-  font-size: 10px;
+  font-size: var(--fs-xs);
   color: var(--fg);
   opacity: 0.7;
   white-space: nowrap;
   text-align: right;
-  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-family: var(--font-mono);
 }
 
 /* Wheel + Z layout */
@@ -374,7 +374,7 @@ function onAngularVelInput(ev: Event) {
 .hubLabel {
   text-anchor: middle;
   dominant-baseline: central;
-  font-size: 14px;
+  font-size: var(--fs-lg);
   font-weight: 600;
   fill: var(--fg);
   opacity: 0.6;
@@ -385,7 +385,7 @@ function onAngularVelInput(ev: Event) {
 .sectorLabel {
   text-anchor: middle;
   dominant-baseline: central;
-  font-size: 12px;
+  font-size: var(--fs-base);
   font-weight: 600;
   fill: var(--fg);
   pointer-events: none;
@@ -393,7 +393,7 @@ function onAngularVelInput(ev: Event) {
 }
 
 .sectorLabel.small {
-  font-size: 9px;
+  font-size: var(--fs-2xs);
 }
 
 /* Z column */

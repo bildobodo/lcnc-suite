@@ -126,9 +126,9 @@ function formatRpm(val: number | null): string {
 .dirBtn {
   flex: 1;
   padding: 5px 0;
-  font-size: 10px;
+  font-size: var(--fs-xs);
   font-weight: 600;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
 }
 
 .dirBtn.active {
@@ -149,7 +149,7 @@ function formatRpm(val: number | null): string {
 }
 
 .label {
-  font-size: 10px;
+  font-size: var(--fs-xs);
   opacity: 0.6;
   min-width: 42px;
   text-transform: uppercase;
@@ -159,9 +159,9 @@ function formatRpm(val: number | null): string {
 .rpmInput {
   flex: 1;
   padding: 3px 6px;
-  font-size: 11px;
+  font-size: var(--fs-sm);
   font-weight: 600;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   max-width: 90px;
 }
 
@@ -173,8 +173,8 @@ function formatRpm(val: number | null): string {
 }
 
 .infoValue {
-  font-size: 11px;
-  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-size: var(--fs-sm);
+  font-family: var(--font-mono);
   font-weight: 600;
   color: var(--fg);
 }
@@ -191,8 +191,8 @@ function formatRpm(val: number | null): string {
 }
 
 .overrideLabel {
-  font-size: 10px;
-  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-size: var(--fs-xs);
+  font-family: var(--font-mono);
   color: var(--fg);
   opacity: 0.7;
   min-width: 32px;
