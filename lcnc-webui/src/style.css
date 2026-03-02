@@ -326,7 +326,7 @@ input[type="checkbox"]:disabled {
   height: 70vh;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: clip;
 }
 
 .dialogHeader {
@@ -360,7 +360,7 @@ input[type="checkbox"]:disabled {
 .dialogActions {
   display: flex;
   gap: 8px;
-  justify-content: flex-end;
+  justify-content: center;
   margin-top: 16px;
 }
 

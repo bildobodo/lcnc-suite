@@ -227,8 +227,8 @@ function stopJog(s: Sector, e?: PointerEvent) {
 
     <div class="modeRow">
       <button
-        class="modePill"
-        :class="isTeleop ? 'teleop' : 'joint'"
+        class="modeBtn"
+        :class="isTeleop ? 'teleop' : ''"
         :disabled="!can.jog"
         @click="emit('toggleTeleop')"
         :title="isTeleop ? 'Switch to Joint mode' : (isHomed ? 'Switch to World mode' : 'Home all axes first')"
@@ -486,23 +486,14 @@ function stopJog(s: Sector, e?: PointerEvent) {
   margin-bottom: 10px;
 }
 
-.modePill {
-  padding: 6px 14px;
-  border-radius: var(--radius-pill);
+.modeBtn {
   font-size: var(--fs-base);
   font-weight: 600;
-  user-select: none;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
-.modePill.teleop {
-  background: color-mix(in oklab, var(--ok) 15%, var(--panel));
+.modeBtn.teleop:not(:disabled) {
+  background: color-mix(in oklab, var(--ok) 15%, var(--button-bg));
   border-color: color-mix(in srgb, var(--ok) 25%, transparent);
-}
-
-.modePill.joint {
-  background: color-mix(in oklab, var(--panel) 80%, transparent);
 }
 
 .modeHint {

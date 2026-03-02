@@ -1214,7 +1214,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
                   </div>
                   <div class="msgPopText">{{ msg.text }}</div>
                 </div>
-                <button class="msgPopDismiss" @click="dismissMessage(msg.id)">&times;</button>
+                <button class="btn-icon" @click="dismissMessage(msg.id)">&times;</button>
               </div>
             </div>
           </div>
@@ -1547,51 +1547,12 @@ watch(isHomed, (nowHomed, wasHomed) => {
     </div><!-- /mainCol -->
     </div><!-- /bodyLayout -->
 
-    <!-- Global tool change dialog -->
-    <div v-if="toolChangeRequested" class="dialogOverlay">
-      <div class="dialog">
-        <div class="dialogTitle">Load Tool into Spindle</div>
-        <div class="dialogBody">
-          <strong>T{{ toolChangeTool }}</strong><template v-if="st.tool_change_info"> D{{ st.tool_change_info.D.toFixed(3) }} Z{{ st.tool_change_info.Z.toFixed(3) }}</template><br>
-          <template v-if="st.tool_change_info?.description">{{ st.tool_change_info.description }}<br></template>
-          Insert tool and press Confirm
-        </div>
-        <div class="dialogActions">
-          <button class="btn danger" @click="send({ cmd: 'abort' })">Cancel</button>
-          <button class="btn primary" :disabled="!armed" @click="confirmToolChange">
-            Confirm
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <div v-if="compConfirmPending !== null" class="dialogOverlay">
-      <div class="dialog">
-        <div class="dialogTitle">{{ compConfirmPending ? 'Enable' : 'Disable' }} Compensation</div>
-        <div class="dialogBody">
-          <template v-if="compConfirmPending">
-            Z axis will move based on the surface compensation map.<br>
-            Ensure tool is clear of the workpiece.
-          </template>
-          <template v-else>
-            Z axis will move by approximately
-            <strong>{{ ((st.eoffset_z ?? 0) * -1).toFixed(4) }}</strong> mm.<br>
-            Ensure tool is clear of the workpiece.
-          </template>
-        </div>
-        <div class="dialogActions">
-          <button class="btn danger" @click="cancelCompToggle">Cancel</button>
-          <button class="btn primary" @click="confirmCompToggle">Confirm</button>
-        </div>
-      </div>
-    </div>
-
     <!-- Tool table dialog -->
     <div v-if="toolDialogOpen" class="dialogOverlay" @click.self="toolDialogOpen = false">
       <div class="dialog lg toolDialogSize">
         <div class="dialogHeader">
           <span class="dialogTitle">Tool Table</span>
-          <button class="btn" @click="toolDialogOpen = false">Close</button>
+          <button class="btn-icon" @click="toolDialogOpen = false">&times;</button>
         </div>
         <div class="toolDialogActions">
           <div class="toolInputRow">
@@ -1624,6 +1585,45 @@ watch(isHomed, (nowHomed, wasHomed) => {
         </div>
         <div class="toolDialogBody">
           <ToolTablePanel ref="toolTableRef" :currentTool="st.tool_number ?? null" :iniFilename="st.ini_filename ?? null" hideHeader />
+        </div>
+      </div>
+    </div>
+
+    <!-- Safety confirmation dialogs — z-index 1010 to always appear above other dialogs -->
+    <div v-if="toolChangeRequested" class="dialogOverlay safetyDialog">
+      <div class="dialog">
+        <div class="dialogTitle">Load Tool into Spindle</div>
+        <div class="dialogBody">
+          <strong>T{{ toolChangeTool }}</strong><template v-if="st.tool_change_info"> D{{ st.tool_change_info.D.toFixed(3) }} Z{{ st.tool_change_info.Z.toFixed(3) }}</template><br>
+          <template v-if="st.tool_change_info?.description">{{ st.tool_change_info.description }}<br></template>
+          Insert tool and press Confirm
+        </div>
+        <div class="dialogActions">
+          <button class="btn danger" @click="send({ cmd: 'abort' })">Cancel</button>
+          <button class="btn primary" :disabled="!armed" @click="confirmToolChange">
+            Confirm
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="compConfirmPending !== null" class="dialogOverlay safetyDialog">
+      <div class="dialog">
+        <div class="dialogTitle">{{ compConfirmPending ? 'Enable' : 'Disable' }} Compensation</div>
+        <div class="dialogBody">
+          <template v-if="compConfirmPending">
+            Z axis will move based on the surface compensation map.<br>
+            Ensure tool is clear of the workpiece.
+          </template>
+          <template v-else>
+            Z axis will move by approximately
+            <strong>{{ ((st.eoffset_z ?? 0) * -1).toFixed(4) }}</strong> mm.<br>
+            Ensure tool is clear of the workpiece.
+          </template>
+        </div>
+        <div class="dialogActions">
+          <button class="btn danger" @click="cancelCompToggle">Cancel</button>
+          <button class="btn primary" @click="confirmCompToggle">Confirm</button>
         </div>
       </div>
     </div>
@@ -2372,8 +2372,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 
 .msgPopTime { font-size: var(--fs-xs); font-family: var(--font-mono); opacity: 0.5; }
 .msgPopText { font-size: var(--fs-base); line-height: 1.3; word-break: break-word; }
-.msgPopDismiss { align-self: flex-start; font-size: var(--fs-xl); line-height: 1; background: none; border: none; color: var(--fg); opacity: 0.4; cursor: pointer; padding: 0 2px; }
-.msgPopDismiss:hover { opacity: 1; }
+.msgPopItem .btn-icon { align-self: flex-start; font-size: var(--fs-xl); }
 
 .btnrow {
   display: flex;
@@ -2435,6 +2434,8 @@ watch(isHomed, (nowHomed, wasHomed) => {
   font-size: var(--fs-sm);
   max-height: 400px;
 }
+
+.safetyDialog { z-index: 1010; }
 
 /* ---- Landscape layout — panels side by side ---- */
 @media (orientation: landscape) {

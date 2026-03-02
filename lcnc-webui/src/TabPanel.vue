@@ -27,7 +27,7 @@ const emit = defineEmits<{
           <span v-if="badges?.[tab.id]" class="badge">{{ badges[tab.id]! > 99 ? '99+' : badges[tab.id] }}</span>
         </button>
       </div>
-      <button v-if="closable" class="panelClose" @click="emit('close')">&times;</button>
+      <button v-if="closable" class="btn-icon" @click="emit('close')">&times;</button>
     </div>
 
     <div class="tab-content">
@@ -65,8 +65,7 @@ const emit = defineEmits<{
 }
 
 .tab-btn {
-  flex: 1;
-  padding: 5px 10px;
+  padding: 5px 8px;
   font-size: var(--fs-sm);
   font-weight: 600;
   border-radius: var(--radius-lg);
@@ -83,21 +82,6 @@ const emit = defineEmits<{
   opacity: 1;
   background: color-mix(in oklab, var(--fg) 15%, var(--button-bg));
   border-color: color-mix(in oklab, var(--fg) 30%, var(--border));
-}
-
-/* ---- Close button ---- */
-.panelClose {
-  flex-shrink: 0;
-  padding: 5px 10px;
-  border-radius: var(--radius-lg);
-  border: 1px solid color-mix(in srgb, var(--danger) 50%, transparent);
-  background: color-mix(in oklab, var(--danger) 25%, var(--button-bg));
-  color: var(--fg);
-  font-size: var(--fs-lg);
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 /* ---- Content ---- */

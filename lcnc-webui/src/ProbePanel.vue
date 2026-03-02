@@ -1258,7 +1258,7 @@ function fmtR(key: string): string {
     <div class="dialog lg mapDialogSize">
       <div class="dialogHeader">
         <span class="dialogTitle">Surface Compensation Map</span>
-        <button class="btn" @click="mapDialogOpen = false">Close</button>
+        <button class="btn-icon" @click="mapDialogOpen = false">&times;</button>
       </div>
       <div ref="surfaceContainer" class="surface3d"></div>
     </div>

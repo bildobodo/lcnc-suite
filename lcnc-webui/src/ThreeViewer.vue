@@ -1538,12 +1538,12 @@ defineExpose({
       </div>
     </div>
 
-    <!-- HUD pills (top-left) -->
+    <!-- HUD toggle buttons (top-left) -->
     <div class="hudOverlay">
-      <div class="hudPills">
-        <button class="hudPill" :class="{ active: activeHudPanel === 'jog' }" @click="toggleHud('jog')">Jog</button>
-        <button class="hudPill" :class="{ active: activeHudPanel === 'gcode' }" @click="toggleHud('gcode')">Program</button>
-        <button class="hudPill" :class="{ active: activeHudPanel === 'setup' }" @click="toggleHud('setup')">Setup</button>
+      <div class="hudBtnRow">
+        <button class="hudBtn" :class="{ active: activeHudPanel === 'jog' }" @click="toggleHud('jog')">Jog</button>
+        <button class="hudBtn" :class="{ active: activeHudPanel === 'gcode' }" @click="toggleHud('gcode')">Program</button>
+        <button class="hudBtn" :class="{ active: activeHudPanel === 'setup' }" @click="toggleHud('setup')">Setup</button>
       </div>
 
       <div v-show="activeHudPanel === 'jog'">
@@ -1615,45 +1615,37 @@ defineExpose({
   overflow-y: auto;
 }
 
-.hudPills {
+.hudBtnRow {
   display: flex;
   gap: 4px;
 }
 
-.hudPill {
-  padding: 5px 12px;
+.hudBtn {
   font-size: var(--fs-sm);
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  border-radius: var(--radius-2xl);
-  border: 1px solid var(--border);
-  background: color-mix(in oklab, var(--panel) 85%, transparent);
+  padding: 5px 10px;
   opacity: 0.75;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  transition: opacity 0.12s, background 0.12s;
 }
 
-.hudPill:hover {
+.hudBtn:hover {
   opacity: 1;
 }
 
-.hudPill.active {
+.hudBtn.active {
   opacity: 1;
-  background: color-mix(in oklab, var(--fg) 15%, var(--panel));
+  background: color-mix(in oklab, var(--fg) 15%, var(--button-bg));
   border-color: color-mix(in oklab, var(--fg) 30%, var(--border));
 }
 
-.hudPill.warn {
+.hudBtn.warn {
   opacity: 1;
-  border-color: #b8860b80;
-  animation: flash-pill-warn 1.2s ease-in-out infinite;
+  border-color: color-mix(in srgb, var(--warn) 50%, transparent);
+  animation: flash-btn-warn 1.2s ease-in-out infinite;
 }
 
-@keyframes flash-pill-warn {
-  0%, 100% { background: color-mix(in oklab, #b8860b 25%, var(--panel)); }
-  50% { background: color-mix(in oklab, #b8860b 10%, var(--panel)); }
+@keyframes flash-btn-warn {
+  0%, 100% { background: color-mix(in oklab, var(--warn) 25%, var(--button-bg)); }
+  50% { background: color-mix(in oklab, var(--warn) 10%, var(--button-bg)); }
 }
 
 .viewerWrapper {

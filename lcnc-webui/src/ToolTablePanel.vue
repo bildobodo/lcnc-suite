@@ -246,59 +246,63 @@ defineExpose({ openAdd, fetchTools });
     <div v-if="error" class="errorBanner">{{ error }}</div>
 
 
-    <!-- Delete confirm dialog -->
-    <div v-if="deletingTool != null" class="dialogOverlay" @click.self="cancelDelete">
-      <div class="dialog">
-        <div class="dialogTitle danger">Delete Tool</div>
-        <div class="dialogBody">
-          Remove tool <strong>T{{ deletingTool }}</strong> from the tool table?
-        </div>
-        <div class="dialogActions">
-          <button class="btn" @click="cancelDelete">Cancel</button>
-          <button class="btn danger" @click="confirmDelete">Delete</button>
+    <!-- Delete confirm dialog (teleported to escape tool dialog stacking context) -->
+    <Teleport to="body">
+      <div v-if="deletingTool != null" class="dialogOverlay" @click.self="cancelDelete">
+        <div class="dialog">
+          <div class="dialogTitle danger">Delete Tool</div>
+          <div class="dialogBody">
+            Remove tool <strong>T{{ deletingTool }}</strong> from the tool table?
+          </div>
+          <div class="dialogActions">
+            <button class="btn" @click="cancelDelete">Cancel</button>
+            <button class="btn danger" @click="confirmDelete">Delete</button>
+          </div>
         </div>
       </div>
-    </div>
+    </Teleport>
 
-    <!-- Edit / Add modal -->
-    <div v-if="editTool" class="dialogOverlay" @click.self="cancelEditModal">
-      <div class="dialog editDialog">
-        <div class="dialogTitle">{{ isNewTool ? "Add Tool" : `Edit Tool T${editTool.T}` }}</div>
-        <div class="editFields">
-          <label class="editLabel">
-            <span class="editLabelText">Tool #</span>
-            <input class="editInput editInputNum" type="number" v-model.number="editForm.T" min="1" />
-          </label>
-          <label class="editLabel">
-            <span class="editLabelText">Type</span>
-            <select class="editInput" v-model="editForm.type">
-              <option value="">-</option>
-              <option v-for="tt in TOOL_TYPES" :key="tt" :value="tt">{{ typeLabel(tt) }}</option>
-            </select>
-          </label>
-          <label class="editLabel">
-            <span class="editLabelText">Description</span>
-            <input class="editInput" v-model="editForm.description" />
-          </label>
-          <label class="editLabel">
-            <span class="editLabelText">Diameter</span>
-            <input class="editInput editInputNum" type="number" step="0.001" v-model.number="editForm.D" />
-          </label>
-          <label class="editLabel">
-            <span class="editLabelText">Z Offset</span>
-            <input class="editInput editInputNum" type="number" step="0.0001" v-model.number="editForm.Z" />
-          </label>
-          <label class="editLabel">
-            <span class="editLabelText">Flutes</span>
-            <input class="editInput editInputNum" type="number" step="1" v-model.number="editForm.flutes" />
-          </label>
-        </div>
-        <div class="dialogActions">
-          <button class="btn" @click="cancelEditModal">Cancel</button>
-          <button class="btn primary" @click="saveEdit">{{ isNewTool ? "Add" : "Save" }}</button>
+    <!-- Edit / Add modal (teleported to escape tool dialog stacking context) -->
+    <Teleport to="body">
+      <div v-if="editTool" class="dialogOverlay" @click.self="cancelEditModal">
+        <div class="dialog editDialog">
+          <div class="dialogTitle">{{ isNewTool ? "Add Tool" : `Edit Tool T${editTool.T}` }}</div>
+          <div class="editFields">
+            <label class="editLabel">
+              <span class="editLabelText">Tool #</span>
+              <input class="editInput editInputNum" type="number" v-model.number="editForm.T" min="1" />
+            </label>
+            <label class="editLabel">
+              <span class="editLabelText">Type</span>
+              <select class="editInput" v-model="editForm.type">
+                <option value="">-</option>
+                <option v-for="tt in TOOL_TYPES" :key="tt" :value="tt">{{ typeLabel(tt) }}</option>
+              </select>
+            </label>
+            <label class="editLabel">
+              <span class="editLabelText">Description</span>
+              <input class="editInput" v-model="editForm.description" />
+            </label>
+            <label class="editLabel">
+              <span class="editLabelText">Diameter</span>
+              <input class="editInput editInputNum" type="number" step="0.001" v-model.number="editForm.D" />
+            </label>
+            <label class="editLabel">
+              <span class="editLabelText">Z Offset</span>
+              <input class="editInput editInputNum" type="number" step="0.0001" v-model.number="editForm.Z" />
+            </label>
+            <label class="editLabel">
+              <span class="editLabelText">Flutes</span>
+              <input class="editInput editInputNum" type="number" step="1" v-model.number="editForm.flutes" />
+            </label>
+          </div>
+          <div class="dialogActions">
+            <button class="btn" @click="cancelEditModal">Cancel</button>
+            <button class="btn primary" @click="saveEdit">{{ isNewTool ? "Add" : "Save" }}</button>
+          </div>
         </div>
       </div>
-    </div>
+    </Teleport>
 
     <!-- Table -->
     <div class="tableWrap scroll-thin">
@@ -377,7 +381,7 @@ defineExpose({ openAdd, fetchTools });
             @click.stop="requestDelete(tool.T)"
             :disabled="!can.idle"
             title="Delete tool"
-          >&times;</button>
+          >&#128465;</button>
         </div>
       </div>
 
