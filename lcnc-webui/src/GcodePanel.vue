@@ -310,7 +310,7 @@ async function saveEdit() {
   <div class="container" @dragover.prevent="onDragOver" @dragleave="onDragLeave" @drop.prevent="onDrop">
     <div class="header">
       <div class="fileInfo">
-        <div class="sub">File:</div>
+        <span class="label">File:</span>
         <div class="fileName">{{ fileName }}</div>
       </div>
       <div class="headerActions">
@@ -507,6 +507,8 @@ async function saveEdit() {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
   padding: 8px 12px;
   background: color-mix(in oklab, var(--panel) 50%, transparent);
   border: 1px solid var(--border);
@@ -603,6 +605,7 @@ async function saveEdit() {
   gap: 8px;
   min-width: 0;
 }
+
 
 .fileName {
   font-family: var(--font-mono);
