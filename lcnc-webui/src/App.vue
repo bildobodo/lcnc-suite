@@ -2434,8 +2434,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
   .panel-manual,
   .panel-probe { min-width: var(--panel-min-w-wide); }
   .panel-gcode,
-  .panel-messages,
-  .panel-settings  { flex: 0.5; }
+  .panel-settings  { flex: 0.5; min-width: var(--panel-min-w); }
 }
 
 /* ---- Portrait layout — panels stacked vertically ---- */
@@ -2443,8 +2442,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
   .panels          { flex-direction: column; flex: 1; min-width: 0; min-height: 0; overflow: auto; }
   .panel           { flex: 0 0 auto; min-width: var(--panel-min-w-wide); }
   .panel-viewer    { flex: 1; min-height: var(--viewer-min-h-portrait); overflow: hidden; }
-  .panel-gcode,
-  .panel-messages  { flex: 0 0 var(--panel-h-portrait); }
+  .panel-gcode     { flex: 0 0 var(--panel-h-portrait); }
   .addPanel        { flex: 0 0 auto; width: 100%; height: 36px; }
 }
 

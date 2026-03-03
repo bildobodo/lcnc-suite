@@ -970,7 +970,6 @@ const halStats = computed(() => ({
 .modeName {
   font-size: var(--fs-md);
   font-weight: 600;
-  font-family: var(--font-mono);
 }
 
 .modeDesc {
