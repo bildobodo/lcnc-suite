@@ -664,7 +664,7 @@ async function saveEdit() {
   border: 1px solid color-mix(in srgb, var(--err) 25%, transparent);
   border-radius: var(--radius-lg);
   font-size: var(--fs-base);
-  color: #ff6b6b;
+  color: var(--danger);
 }
 
 /* File browser */
@@ -695,7 +695,7 @@ async function saveEdit() {
 }
 
 .backBtn:hover {
-  border-color: #646cff;
+  border-color: var(--accent);
 }
 
 .browserPath {
@@ -833,8 +833,8 @@ async function saveEdit() {
 }
 
 .codeLine.active {
-  background: color-mix(in oklab, #ffa500 20%, var(--panel));
-  border-left: 3px solid #ffa500;
+  background: color-mix(in oklab, var(--highlight) 20%, var(--panel));
+  border-left: 3px solid var(--highlight);
   padding-left: 9px;
 }
 

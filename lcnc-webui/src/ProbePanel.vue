@@ -1295,11 +1295,6 @@ function fmtR(key: string): string {
   gap: 8px;
 }
 
-.sep {
-  border-top: 1px solid var(--border);
-  opacity: 0.3;
-}
-
 .workpiece {
   fill: color-mix(in oklab, var(--fg) 12%, var(--bg));
   stroke: var(--fg);
@@ -1325,20 +1320,6 @@ function fmtR(key: string): string {
   gap: 6px;
   flex-wrap: wrap;
   margin-top: 8px;
-}
-
-.g5xBtn {
-  padding: 5px 10px;
-  font-size: var(--fs-sm);
-  font-weight: 500;
-  border-radius: var(--radius-lg);
-  opacity: 0.6;
-}
-
-.g5xBtn.active {
-  opacity: 1;
-  font-weight: 700;
-  border-color: var(--fg);
 }
 
 /* View tabs */
@@ -1501,7 +1482,7 @@ function fmtR(key: string): string {
 }
 
 .gridCell:disabled {
-  opacity: 0.35;
+  opacity: 0.4;
 }
 
 .gridCell.probing {
@@ -1601,7 +1582,7 @@ function fmtR(key: string): string {
 }
 
 .abortBtn:disabled {
-  opacity: 0.3;
+  opacity: 0.4;
   color: var(--fg);
   background: var(--button-bg);
   border-color: var(--border);
@@ -1612,14 +1593,14 @@ function fmtR(key: string): string {
   font-size: var(--fs-md);
   font-weight: 600;
   border-radius: var(--radius-xl);
-  background: color-mix(in oklab, #6c63ff 15%, var(--button-bg));
-  border-color: color-mix(in oklab, #6c63ff 30%, var(--border));
-  color: #6c63ff;
+  background: color-mix(in oklab, var(--accent) 15%, var(--button-bg));
+  border-color: color-mix(in oklab, var(--accent) 30%, var(--border));
+  color: var(--accent);
   font-style: italic;
 }
 
 .simTripBtn:disabled {
-  opacity: 0.3;
+  opacity: 0.4;
   color: var(--fg);
   background: var(--button-bg);
   border-color: var(--border);

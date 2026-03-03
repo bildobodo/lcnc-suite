@@ -18,6 +18,9 @@
   --danger: #cc3333;
   --warn: #f5a623;
   --info: #569cd6;
+  --accent: #6c63ff;
+  --highlight: #ffa500;
+  --display: #22b8cf;
 
   /* Panel sizing */
   --panel-min-w: 460px;
@@ -356,7 +359,7 @@ input[type="checkbox"]:disabled {
   margin-bottom: 0;
 }
 
-.dialogTitle.danger { color: #e55; }
+.dialogTitle.danger { color: var(--danger); }
 
 .dialogBody {
   font-size: var(--fs-lg);
@@ -399,6 +402,21 @@ input[type="checkbox"]:disabled {
   opacity: 1;
   background: color-mix(in oklab, var(--fg) 15%, var(--button-bg));
   border-color: color-mix(in oklab, var(--fg) 30%, var(--border));
+}
+
+/* ---- G5x coordinate system buttons ---- */
+.g5xBtn {
+  padding: 5px 10px;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  border-radius: var(--radius-lg);
+  opacity: 0.6;
+}
+
+.g5xBtn.active {
+  opacity: 1;
+  font-weight: 700;
+  border-color: var(--fg);
 }
 
 .pill {

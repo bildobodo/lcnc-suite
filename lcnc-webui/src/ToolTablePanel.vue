@@ -308,15 +308,15 @@ defineExpose({ openAdd, fetchTools });
     <div class="tableWrap scroll-thin">
       <!-- Table header -->
       <div class="trow theader">
-        <div class="tcell tcellT sortHeader" @click="toggleSort('T')">
+        <button class="tcell tcellT sortHeader" @click="toggleSort('T')">
           T# {{ sortKey === 'T' ? (sortAsc ? '▲' : '▼') : '' }}
-        </div>
-        <div class="tcell tcellNum sortHeader" @click="toggleSort('D')">
+        </button>
+        <button class="tcell tcellNum sortHeader" @click="toggleSort('D')">
           Ø {{ sortKey === 'D' ? (sortAsc ? '▲' : '▼') : '' }}
-        </div>
-        <div class="tcell tcellNum sortHeader" @click="toggleSort('Z')">
+        </button>
+        <button class="tcell tcellNum sortHeader" @click="toggleSort('Z')">
           Z Offset {{ sortKey === 'Z' ? (sortAsc ? '▲' : '▼') : '' }}
-        </div>
+        </button>
         <div class="tcell tcellType">
           <select class="filterSelect" v-model="filterType">
             <option value="">Type</option>
@@ -414,8 +414,8 @@ defineExpose({ openAdd, fetchTools });
 }
 
 .errorBanner {
-  background: color-mix(in oklab, #e55 30%, var(--bg));
-  color: #e55;
+  background: color-mix(in oklab, var(--danger) 30%, var(--bg));
+  color: var(--danger);
   padding: 6px 10px;
   border-radius: var(--radius-xl);
   font-size: var(--fs-base);
@@ -533,11 +533,23 @@ defineExpose({ openAdd, fetchTools });
 }
 
 .sortHeader {
+  background: none;
+  border: none;
+  border-right: 1px solid color-mix(in oklab, var(--border) 30%, transparent);
+  border-radius: 0;
+  color: inherit;
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
   cursor: pointer;
   user-select: none;
+  padding: 4px 6px;
 }
 .sortHeader:hover {
   opacity: 1;
+  background: none;
 }
 
 .filterSelect {

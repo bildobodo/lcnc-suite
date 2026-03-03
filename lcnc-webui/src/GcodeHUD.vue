@@ -232,8 +232,8 @@ function tokenizeCode(code: string, tokens: Token[]) {
 }
 
 .codeLine.active {
-  background: color-mix(in oklab, #ffa500 20%, transparent);
-  border-left-color: #ffa500;
+  background: color-mix(in oklab, var(--highlight) 20%, transparent);
+  border-left-color: var(--highlight);
   padding-left: 5px;
 }
 

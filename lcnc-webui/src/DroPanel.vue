@@ -162,18 +162,4 @@ function touchoffStep(letter: string) {
   flex-wrap: wrap;
   margin-top: 8px;
 }
-
-.g5xBtn {
-  padding: 5px 10px;
-  font-size: var(--fs-sm);
-  font-weight: 500;
-  border-radius: var(--radius-lg);
-  opacity: 0.6;
-}
-
-.g5xBtn.active {
-  opacity: 1;
-  font-weight: 700;
-  border-color: var(--fg);
-}
 </style>

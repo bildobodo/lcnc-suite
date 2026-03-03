@@ -674,11 +674,11 @@ const halStats = computed(() => ({
             <!-- Tree view -->
             <template v-if="!halSearch.trim()">
               <div v-for="[group, pins] of pinGroups" :key="group" class="halGroup">
-                <div class="halGroupHeader" @click="toggleHalGroup(group)">
+                <button class="halGroupHeader" @click="toggleHalGroup(group)">
                   <span class="halChevron">{{ halExpanded.has(group) ? '\u25BC' : '\u25B6' }}</span>
                   <span class="halGroupName">{{ group }}</span>
                   <span class="halGroupCount">({{ pins.length }})</span>
-                </div>
+                </button>
                 <div v-if="halExpanded.has(group)" class="halGroupBody">
                   <div class="halRow" v-for="pin in pins" :key="pin.name">
                     <span class="halName" :title="pin.name">{{ pin.name }}</span>
@@ -730,11 +730,11 @@ const halStats = computed(() => ({
 
             <template v-if="!halSearch.trim()">
               <div v-for="[group, params] of paramGroups" :key="group" class="halGroup">
-                <div class="halGroupHeader" @click="toggleHalGroup(group)">
+                <button class="halGroupHeader" @click="toggleHalGroup(group)">
                   <span class="halChevron">{{ halExpanded.has(group) ? '\u25BC' : '\u25B6' }}</span>
                   <span class="halGroupName">{{ group }}</span>
                   <span class="halGroupCount">({{ params.length }})</span>
-                </div>
+                </button>
                 <div v-if="halExpanded.has(group)" class="halGroupBody">
                   <div class="halRow" v-for="param in params" :key="param.name">
                     <span class="halName" :title="param.name">{{ param.name }}</span>
@@ -1124,12 +1124,20 @@ const halStats = computed(() => ({
   align-items: center;
   gap: 6px;
   padding: 3px 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+  color: inherit;
+  font: inherit;
+  width: 100%;
+  text-align: left;
   cursor: pointer;
   user-select: none;
 }
 
 .halGroupHeader:hover {
   opacity: 0.8;
+  background: none;
 }
 
 .halChevron {

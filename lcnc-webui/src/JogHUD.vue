@@ -361,7 +361,7 @@ function onAngularVelInput(ev: Event) {
 }
 
 .jogwheel.disabled {
-  opacity: 0.35;
+  opacity: 0.4;
 }
 
 .hub {

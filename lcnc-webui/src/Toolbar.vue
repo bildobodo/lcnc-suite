@@ -9,7 +9,7 @@
 
       <!-- Views pill -->
       <div class="toolPill">
-        <span class="pillLabel">Views</span>
+        <button class="pillLabel">Views</button>
         <div class="popover pillPopover">
           <div class="viewGrid">
             <button class="viewBtn" @click="$emit('setView', 'top')">Top</button>
@@ -31,7 +31,7 @@
 
       <!-- Layers pill -->
       <div class="toolPill">
-        <span class="pillLabel">Layers</span>
+        <button class="pillLabel">Layers</button>
         <div class="popover pillPopover">
           <label><input type="checkbox" v-model="local.backplot" @change="emitToggle('backplot')" /> Backplot</label>
           <label><input type="checkbox" v-model="local.toolpath" @change="emitToggle('toolpath')" /> Toolpath</label>
@@ -46,7 +46,7 @@
 
       <!-- Toolpath pill -->
       <div class="toolPill">
-        <span class="pillLabel">Toolpath</span>
+        <button class="pillLabel">Toolpath</button>
         <div class="popover pillPopover">
           <button class="viewBtn" @click="$emit('resetBackplot')">Clear Backplot</button>
           <div class="sep"></div>
@@ -56,7 +56,7 @@
 
       <!-- Tracking pill -->
       <div class="toolPill">
-        <span class="pillLabel">Tracking</span>
+        <button class="pillLabel">Tracking</button>
         <div class="popover pillPopover">
           <button class="viewBtn" :class="{ active: trackMode === 'none' }" @click="setTrack('none')">None</button>
           <button class="viewBtn" :class="{ active: trackMode === 'tool' }" @click="setTrack('tool')">Tool</button>
@@ -66,7 +66,7 @@
 
       <!-- Workpiece pill -->
       <div class="toolPill">
-        <span class="pillLabel">Workpiece</span>
+        <button class="pillLabel">Workpiece</button>
         <div class="popover pillPopover wpPopover">
           <div class="inputRow">
             <label class="inputLabel">Size X</label>
@@ -211,12 +211,6 @@ function updateOffset(axis: number, value: number) {
   padding: 5px 10px;
   font-size: var(--fs-sm);
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  border-radius: var(--radius-lg);
-  background: var(--button-bg);
-  color: var(--fg);
-  border: 1px solid var(--border);
   user-select: none;
   opacity: 0.75;
 }

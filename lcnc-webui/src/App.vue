@@ -1879,7 +1879,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 }
 
 .warnText {
-  color: #ffa500;
+  color: var(--warn);
 }
 
 .mutedText {
@@ -1914,11 +1914,11 @@ watch(isHomed, (nowHomed, wasHomed) => {
 
 .statusChip.ok { border-color: color-mix(in srgb, var(--ok) 50%, transparent); background: color-mix(in oklab, var(--ok) 20%, var(--button-bg)); }
 .statusChip.bad { border-color: color-mix(in srgb, var(--danger) 50%, transparent); background: color-mix(in oklab, var(--danger) 20%, var(--button-bg)); }
-.statusChip.warn { border-color: #b8860b80; animation: flash-chip-warn 1.2s ease-in-out infinite; }
+.statusChip.warn { border-color: color-mix(in srgb, var(--warn) 50%, transparent); animation: flash-chip-warn 1.2s ease-in-out infinite; }
 
 @keyframes flash-chip-warn {
-  0%, 100% { background: color-mix(in oklab, #b8860b 25%, var(--button-bg)); }
-  50% { background: color-mix(in oklab, #b8860b 10%, var(--button-bg)); }
+  0%, 100% { background: color-mix(in oklab, var(--warn) 25%, var(--button-bg)); }
+  50% { background: color-mix(in oklab, var(--warn) 10%, var(--button-bg)); }
 }
 
 .chipIcon { display: none; font-size: var(--fs-xl); }
@@ -2293,9 +2293,9 @@ watch(isHomed, (nowHomed, wasHomed) => {
 }
 .toolActionBtn.abort:disabled { color: var(--fg); background: var(--button-bg); border-color: var(--border); }
 .toolActionBtn.simtrip {
-  background: color-mix(in oklab, #6c63ff 15%, var(--button-bg));
-  border-color: color-mix(in oklab, #6c63ff 30%, var(--border));
-  color: #6c63ff;
+  background: color-mix(in oklab, var(--accent) 15%, var(--button-bg));
+  border-color: color-mix(in oklab, var(--accent) 30%, var(--border));
+  color: var(--accent);
   font-style: italic;
 }
 .toolActionBtn.simtrip:disabled { color: var(--fg); background: var(--button-bg); border-color: var(--border); font-style: normal; }
@@ -2350,14 +2350,14 @@ watch(isHomed, (nowHomed, wasHomed) => {
 .msgPopIndicator { width: 3px; border-radius: var(--radius-sm); flex-shrink: 0; }
 .msgPopItem.error .msgPopIndicator { background: var(--err); }
 .msgPopItem.info .msgPopIndicator { background: var(--fg); opacity: 0.4; }
-.msgPopItem.display .msgPopIndicator { background: #22b8cf; }
+.msgPopItem.display .msgPopIndicator { background: var(--display); }
 
 .msgPopBody { flex: 1; min-width: 0; }
 .msgPopMeta { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
 .msgPopBadge { font-size: var(--fs-2xs); font-weight: 700; padding: 1px 5px; border-radius: var(--radius-sm); letter-spacing: 0.5px; }
-.msgPopBadge.error { background: color-mix(in oklab, var(--err) 20%, var(--panel)); color: #e05555; }
+.msgPopBadge.error { background: color-mix(in oklab, var(--err) 20%, var(--panel)); color: var(--danger); }
 .msgPopBadge.info { background: color-mix(in oklab, var(--fg) 10%, var(--panel)); color: var(--fg); opacity: 0.7; }
-.msgPopBadge.display { background: color-mix(in oklab, #22b8cf 20%, var(--panel)); color: #22b8cf; }
+.msgPopBadge.display { background: color-mix(in oklab, var(--display) 20%, var(--panel)); color: var(--display); }
 
 .msgPopTime { font-size: var(--fs-xs); font-family: var(--font-mono); opacity: 0.5; }
 .msgPopText { font-size: var(--fs-base); line-height: 1.3; word-break: break-word; }
