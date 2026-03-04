@@ -741,8 +741,14 @@ function setMachinePartColor(partId: string, color: string | null) {
   for (const v of viewerRefs.values()) v?.setMachinePartColor?.(partId, color);
 }
 
+// Broadcast setMachineEdges to all ThreeViewer instances
+function setMachineEdges(on: boolean) {
+  for (const v of viewerRefs.values()) v?.setMachineEdges?.(on);
+}
+
 provide("machineParts", machineParts);
 provide("setMachinePartColor", setMachinePartColor);
+provide("setMachineEdges", setMachineEdges);
 
 const touchoff = ref<number[]>([0, 0, 0]);
 

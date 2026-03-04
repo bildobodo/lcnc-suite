@@ -293,6 +293,8 @@ let machineBoundsMesh: THREE.Mesh | null = null;
 let boundsLabels: THREE.Group | null = null;
 let workpieceMesh: THREE.Mesh | null = null;
 let machineMeshes: THREE.Mesh[] = [];
+let _machineEdgeLines: THREE.LineSegments[] = [];
+let machineEdges = false;
 let _groupDirMap: Record<string, string | null> = {};  // group → direction (x/y/z/null)
 let _partGroupMap: Record<string, string | null> = {};  // partId → group
 
@@ -427,6 +429,7 @@ function setLayerVisible(layer: Layer, on: boolean) {
       break;
     case "machine":
       for (const m of machineMeshes) m.visible = on;
+      for (const e of _machineEdgeLines) e.visible = on && machineEdges;
       break;
     case "workpiece":
       if (workpieceMesh) workpieceMesh.visible = on;
@@ -623,6 +626,9 @@ function ensureCoreGroups(init: ViewerInit) {
   machineBoundsMesh = null;
   workpieceMesh = null;
   machineMeshes = [];
+  _machineEdgeLines = [];
+  _edgesBuilt = false;
+  _edgeBuildToken++;
 
   // Clear old group references
   for (const key of Object.keys(groups)) delete groups[key];
@@ -938,6 +944,9 @@ async function buildFromInit(init: ViewerInit) {
       pendingLayers = null;
     }
 
+    // If edge mode is active, lazily build edges now that meshes exist
+    if (machineEdges) buildEdgesLazy();
+
   } catch (err) {
     console.error("buildFromInit failed:", err);
     (window as any).__viewerDiag = { ready: false, error: (err as Error).message };
@@ -1241,6 +1250,7 @@ onMounted(() => {
   for (const layer of ALL_LAYERS) setLayerVisible(layer, viewerDefaults.layers[layer]);
   setTrackingMode(viewerDefaults.trackingMode);
   setPathAlwaysOnTop(viewerDefaults.pathOnTop);
+  machineEdges = viewerDefaults.machineEdges;  // set flag; lazy build triggers in buildFromInit
   if (viewerDefaults.projection === "parallel") switchProjection();
 });
 
@@ -1456,11 +1466,14 @@ watch(() => props.surfacePoints, (pts) => {
  *  Pass `null` as color to revert to the built-in default. */
 function setMachinePartColor(partId: string, color: string | null) {
   const dirColorMap: Record<string, number> = { x: 0x9b4a4a, y: 0x4a8f5a, z: 0x4a6f9b };
+  const grp = _partGroupMap[partId];
+  const dir = grp ? _groupDirMap[grp] : null;
+  const defaultHex = (dir ? dirColorMap[dir] : null) ?? 0xbfbfbf;
+
   for (const mesh of machineMeshes) {
     if (mesh.userData.partId !== partId) continue;
     const mat = (mesh.material as THREE.MeshStandardMaterial);
     if (color) {
-      // Clone shared material if needed so we don't mutate the shared MAT.*
       if (!mat.userData._clonedFor || mat.userData._clonedFor !== partId) {
         const cloned = mat.clone();
         cloned.userData._clonedFor = partId;
@@ -1469,15 +1482,85 @@ function setMachinePartColor(partId: string, color: string | null) {
       } else {
         mat.color.set(color);
       }
-    } else {
-      // Reset to default: look up group direction for this part
-      const grp = _partGroupMap[partId];
-      const dir = grp ? _groupDirMap[grp] : null;
-      const defaultHex = (dir ? dirColorMap[dir] : null) ?? 0xbfbfbf;
-      if (mat.userData._clonedFor) {
-        mat.color.setHex(defaultHex);
-      }
+    } else if (mat.userData._clonedFor) {
+      mat.color.setHex(defaultHex);
     }
+  }
+  // Sync edge line colors
+  for (const edge of _machineEdgeLines) {
+    if (edge.userData.partId !== partId) continue;
+    (edge.material as THREE.LineBasicMaterial).color.set(color ?? defaultHex);
+  }
+}
+
+/** Build edge lines off-thread via Web Worker to avoid blocking the UI. */
+let _edgeBuildToken = 0;
+let _edgesBuilt = false;
+let _edgeWorker: Worker | null = null;
+
+function getEdgeWorker(): Worker {
+  if (!_edgeWorker) {
+    _edgeWorker = new Worker(new URL("./edgeWorker.ts", import.meta.url), { type: "module" });
+  }
+  return _edgeWorker;
+}
+
+function computeEdgesOffThread(geom: THREE.BufferGeometry, partId: string): Promise<Float32Array> {
+  return new Promise((resolve) => {
+    const worker = getEdgeWorker();
+    const handler = (e: MessageEvent) => {
+      if (e.data.id === partId) {
+        worker.removeEventListener("message", handler);
+        resolve(new Float32Array(e.data.positions));
+      }
+    };
+    worker.addEventListener("message", handler);
+
+    const srcPos = geom.attributes.position!.array as Float32Array;
+    const srcIdx = geom.index?.array as Uint32Array | undefined;
+    const posCopy = new Float32Array(srcPos);
+    const idxCopy = srcIdx ? new Uint32Array(srcIdx) : null;
+    const transfer: ArrayBuffer[] = [posCopy.buffer];
+    if (idxCopy) transfer.push(idxCopy.buffer);
+
+    worker.postMessage({ id: partId, positions: posCopy, index: idxCopy, threshold: 30 }, transfer);
+  });
+}
+
+async function buildEdgesLazy() {
+  if (_edgesBuilt) return;
+  const token = ++_edgeBuildToken;
+
+  for (const mesh of machineMeshes) {
+    if (token !== _edgeBuildToken) return;
+    const partId = mesh.userData.partId as string;
+
+    const edgePositions = await computeEdgesOffThread(mesh.geometry, partId);
+    if (token !== _edgeBuildToken) return;
+
+    const edgesGeom = new THREE.BufferGeometry();
+    edgesGeom.setAttribute("position", new THREE.Float32BufferAttribute(edgePositions, 3));
+    const mat = mesh.material as THREE.MeshStandardMaterial;
+    const edgeMat = new THREE.LineBasicMaterial({ color: mat.color.clone() });
+    const edgeLine = new THREE.LineSegments(edgesGeom, edgeMat);
+    edgeLine.position.copy(mesh.position);
+    edgeLine.rotation.copy(mesh.rotation);
+    edgeLine.scale.copy(mesh.scale);
+    edgeLine.userData.partId = partId;
+    edgeLine.visible = machineEdges;
+    mesh.parent?.add(edgeLine);
+    _machineEdgeLines.push(edgeLine);
+  }
+  if (token === _edgeBuildToken) _edgesBuilt = true;
+}
+
+/** Toggle CAD-like edge outline mode for machine STLs. */
+function setMachineEdges(on: boolean) {
+  machineEdges = on;
+  if (on && !_edgesBuilt) {
+    buildEdgesLazy();
+  } else {
+    for (const e of _machineEdgeLines) e.visible = on;
   }
 }
 
@@ -1490,6 +1573,7 @@ defineExpose({
   switchProjection,
   isOrtho,
   setMachinePartColor,
+  setMachineEdges,
 });
 
 

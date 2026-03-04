@@ -16,6 +16,7 @@ const themeMode = inject<Ref<ThemeMode>>("themeMode", ref("auto") as Ref<ThemeMo
 const setTheme = inject<(mode: ThemeMode) => void>("setTheme", () => {});
 const machineParts = inject<ComputedRef<Array<{ id: string; group: string | null; direction: string | null }>>>("machineParts", computed(() => []));
 const setMachinePartColor = inject<(id: string, color: string | null) => void>("setMachinePartColor", () => {});
+const setMachineEdges = inject<(on: boolean) => void>("setMachineEdges", () => {});
 
 const props = defineProps<{
   lastReply?: unknown;
@@ -37,6 +38,7 @@ const opacities = reactive<OpacityDefaults>({ ...saved.opacities });
 const machineColors = reactive<Record<string, string>>({ ...saved.machineColors });
 const trackingMode = ref<TrackMode>(saved.trackingMode);
 const pathOnTop = ref(saved.pathOnTop);
+const machineEdgesOn = ref(saved.machineEdges);
 const projection = ref<Projection>(saved.projection);
 
 function save() {
@@ -47,6 +49,7 @@ function save() {
     colors: { ...colors },
     opacities: { ...opacities },
     machineColors: { ...machineColors },
+    machineEdges: machineEdgesOn.value,
     trackingMode: trackingMode.value,
     pathOnTop: pathOnTop.value,
     projection: projection.value,
@@ -473,6 +476,10 @@ const halStats = computed(() => ({
             <label class="checkRow">
               <input type="checkbox" v-model="pathOnTop" @change="save()" />
               Toolpath always on top
+            </label>
+            <label class="checkRow">
+              <input type="checkbox" v-model="machineEdgesOn" @change="setMachineEdges(machineEdgesOn); save()" />
+              Machine edge outline
             </label>
             <div class="inputRow">
               <label class="inputLabel">Projection</label>
