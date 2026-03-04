@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, watch, nextTick, onMounted, onUnmounted } from "vue";
 import DroPanel from "./DroPanel.vue";
 import JogPanel from "./JogPanel.vue";
 import { usePermissions } from "./permissions";
@@ -66,6 +66,12 @@ const savedInput = ref("");   // stash current input when browsing history
 const maxHistory = 50;
 const mdiPopoverOpen = ref(false);
 const mdiSectionRef = ref<HTMLElement | null>(null);
+const mdiInputRef = ref<HTMLInputElement | null>(null);
+
+// Re-focus MDI input when it becomes enabled again after a command
+watch(() => can.value.ready, (ready, was) => {
+  if (ready && !was) nextTick(() => mdiInputRef.value?.focus());
+});
 
 onMounted(() => {
   history.value = loadMdiHistory();
@@ -201,6 +207,7 @@ function onMdiKeydown(e: KeyboardEvent) {
       <div class="sub">MDI</div>
       <div class="mdiRow">
         <input
+          ref="mdiInputRef"
           type="text"
           class="mdiInput"
           :value="mdiText"
@@ -211,17 +218,17 @@ function onMdiKeydown(e: KeyboardEvent) {
           :disabled="!can.ready"
           placeholder="G-code command (↑↓ history)"
         />
-        <button class="btn" @click="handleSend" :disabled="!can.ready">
+        <button class="btn-inline" @click="handleSend" :disabled="!can.ready">
           Send
         </button>
       </div>
       <div v-if="mdiPopoverOpen" class="mdiPopover" @click.stop>
         <div class="mdiPopoverHeader">
           <span class="sub">History</span>
-          <button class="btn" @click="clearHistory" :disabled="!can.ready || history.length === 0">Clear</button>
+          <button class="btn-inline" @click="clearHistory" :disabled="!can.ready || history.length === 0">Clear</button>
         </div>
         <div class="mdiHistoryList scroll-thin">
-          <div v-for="(cmd, i) in history" :key="i" class="mdiHistoryItem"
+          <div v-for="(cmd, i) in [...history].reverse()" :key="i" class="mdiHistoryItem"
                @click="selectHistory(cmd)">{{ cmd }}</div>
           <div v-if="history.length === 0" class="mdiHistoryEmpty">No history</div>
         </div>
@@ -293,13 +300,14 @@ function onMdiKeydown(e: KeyboardEvent) {
   padding: 6px 10px;
   cursor: pointer;
   font-family: var(--font-mono);
+  font-size: var(--fs-base);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .mdiHistoryItem:hover {
-  background: color-mix(in oklab, var(--panel) 90%, var(--fg) 5%);
+  background: var(--hl-hover);
 }
 
 .mdiHistoryEmpty {

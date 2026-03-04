@@ -304,6 +304,12 @@ input[type="checkbox"]:disabled {
   cursor: not-allowed;
 }
 
+.btn-inline {
+  padding: 4px 10px;
+  border-radius: var(--radius-md);
+  font-size: var(--fs-base);
+}
+
 .card {
   padding: 2em;
   background: var(--panel);
