@@ -802,6 +802,35 @@ Parent-child relationships in `groups` create a scene graph — transforms casca
 
 Hierarchy: `root → x` (bed moves in X), `root → y → z → tool` (column moves in Y, head in Z, tool at tip). The `workGroup` is `"x"` because the workpiece sits on the X table.
 
+#### Example: Cross-Table Mill (X+Y table, Z spindle)
+
+```json
+{
+  "name": "Cross-Table Mill",
+  "groups": [
+    { "id": "x", "parent": "root" },
+    { "id": "y", "parent": "x" },
+    { "id": "z", "parent": "root" },
+    { "id": "tool", "parent": "z" }
+  ],
+  "parts": [
+    { "id": "frame",   "file": "frame.stl",   "group": null },
+    { "id": "x_table", "file": "x_table.stl", "group": "x" },
+    { "id": "y_table", "file": "y_table.stl", "group": "y" },
+    { "id": "z_head",  "file": "z_head.stl",  "group": "z" }
+  ],
+  "kinematics": [
+    { "group": "x", "joint": 0, "direction": "x", "sign": 1 },
+    { "group": "y", "joint": 1, "direction": "y", "sign": 1 },
+    { "group": "z", "joint": 2, "direction": "z", "sign": 1 }
+  ],
+  "workGroup": "y",
+  "toolGroup": "tool"
+}
+```
+
+Hierarchy: `root → x → y` (table moves in X, then Y on top of X), `root → z → tool` (spindle only moves in Z). The `workGroup` is `"y"` because the workpiece sits on the Y table — the innermost table group that carries the work.
+
 #### Example: 5-Axis Mill with Trunnion Table (A+C)
 
 ```json
