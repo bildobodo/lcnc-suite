@@ -292,6 +292,9 @@ let lastBackplotPt: THREE.Vector3 | null = null;
 let machineBoundsMesh: THREE.Mesh | null = null;
 let boundsLabels: THREE.Group | null = null;
 let workpieceMesh: THREE.Mesh | null = null;
+let overflowEdges: THREE.LineSegments | null = null;
+const boundsClipPlanes: THREE.Plane[] = [];
+const _localBoundsPlanes: THREE.Plane[] = [];
 let machineMeshes: THREE.Mesh[] = [];
 let _machineEdgeLines: THREE.LineSegments[] = [];
 let machineEdges = false;
@@ -433,6 +436,7 @@ function setLayerVisible(layer: Layer, on: boolean) {
       break;
     case "workpiece":
       if (workpieceMesh) workpieceMesh.visible = on;
+      if (overflowEdges) overflowEdges.visible = on;
       break;
     case "bounds":
       if (machineBoundsMesh) machineBoundsMesh.visible = on;
@@ -580,6 +584,27 @@ function applyBox(mesh: THREE.Mesh, size: Vec3, origin: Vec3) {
   mesh.position.set(ox + sx / 2, oy + sy / 2, oz + sz / 2);
 }
 
+function rebuildOverflowEdges(size: Vec3, offset: Vec3): THREE.LineSegments | null {
+  if (boundsClipPlanes.length === 0) return null;
+  const [sx, sy, sz] = size;
+  if (sx <= 0 || sy <= 0 || sz <= 0) return null;
+  const [ox, oy, oz] = offset;
+  const geom = new THREE.EdgesGeometry(new THREE.BoxGeometry(sx, sy, sz));
+  const mat = new THREE.LineDashedMaterial({
+    color: 0xff4444,
+    dashSize: 3,
+    gapSize: 2,
+    transparent: true,
+    opacity: 0.8,
+    clipIntersection: true,
+    clippingPlanes: boundsClipPlanes,
+  });
+  const lines = new THREE.LineSegments(geom, mat);
+  lines.computeLineDistances();
+  lines.position.set(ox + sx / 2, oy + sy / 2, oz + sz / 2);
+  return lines;
+}
+
 function makeLine(points: number[][], colorHex: number | string, dashed = false, opacity = 1.0) {
   const geom = new THREE.BufferGeometry();
   const flat = new Float32Array(points.flat());
@@ -625,6 +650,7 @@ function ensureCoreGroups(init: ViewerInit) {
   workAxes = null;
   machineBoundsMesh = null;
   workpieceMesh = null;
+  overflowEdges = null;
   machineMeshes = [];
   _machineEdgeLines = [];
   _edgesBuilt = false;
@@ -789,6 +815,7 @@ resetBackplot();
 
     workOrigin.add(workpieceMesh);
     applyBox(workpieceMesh, props.workpieceSize, props.workpieceOffset);
+
   }
 
   // Apply machine STL opacity
@@ -826,9 +853,31 @@ async function buildFromInit(init: ViewerInit) {
 
     ensureCoreGroups(init);
     // Apply machine bounds from viewer_init (INI-derived)
-    const mb = (init as any).machine_bounds;
+    const mb = init.machine_bounds;
     if (machineBoundsMesh && mb?.size && mb?.origin) {
       applyBox(machineBoundsMesh, mb.size as Vec3, mb.origin as Vec3);
+
+      // Build clipping planes for overflow visualization (normals point outward)
+      // Stored in _workGrp local space; transformed to world space each frame in animate()
+      const [bx, by, bz] = mb.origin as Vec3;
+      const [bsx, bsy, bsz] = mb.size as Vec3;
+      if (bsx > 0 && bsy > 0 && bsz > 0) {
+        _localBoundsPlanes.length = 0;
+        _localBoundsPlanes.push(
+          new THREE.Plane(new THREE.Vector3(-1, 0, 0),  bx),
+          new THREE.Plane(new THREE.Vector3( 1, 0, 0), -(bx + bsx)),
+          new THREE.Plane(new THREE.Vector3(0, -1, 0),  by),
+          new THREE.Plane(new THREE.Vector3(0,  1, 0), -(by + bsy)),
+          new THREE.Plane(new THREE.Vector3(0, 0, -1),  bz),
+          new THREE.Plane(new THREE.Vector3(0, 0,  1), -(bz + bsz)),
+        );
+        boundsClipPlanes.length = 0;
+        for (const p of _localBoundsPlanes) boundsClipPlanes.push(p.clone());
+
+        // Overflow outline (workpiece parts outside machine bounds)
+        overflowEdges = rebuildOverflowEdges(props.workpieceSize, props.workpieceOffset);
+        if (overflowEdges && workOrigin) workOrigin.add(overflowEdges);
+      }
 
       // Dimension labels along bottom edges
       if (boundsLabels) { _workGrp!.remove(boundsLabels); boundsLabels = null; }
@@ -915,7 +964,7 @@ async function buildFromInit(init: ViewerInit) {
     // Falls back to STL mesh world bounds if no bounds data present.
     {
       let autoBox = new THREE.Box3();
-      const mb = (init as any).machine_bounds;
+      const mb = init.machine_bounds;
       if (mb?.size && mb?.origin) {
         const [ox, oy, oz] = mb.origin as [number, number, number];
         const [sx, sy, sz] = mb.size as [number, number, number];
@@ -1196,6 +1245,15 @@ function animate() {
     camera.position.add(delta);
   }
 
+  // Update overflow clipping planes to track _workGrp world transform
+  if (_localBoundsPlanes.length > 0 && _localBoundsPlanes.length === boundsClipPlanes.length && _workGrp) {
+    _workGrp.updateMatrixWorld();
+    for (let i = 0; i < _localBoundsPlanes.length; i++) {
+      boundsClipPlanes[i]!.copy(_localBoundsPlanes[i]!);
+      boundsClipPlanes[i]!.applyMatrix4(_workGrp.matrixWorld);
+    }
+  }
+
   controls?.update();
   renderer?.render(scene!, camera!);
 }
@@ -1221,6 +1279,7 @@ onMounted(() => {
 
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.localClippingEnabled = true;
 
   if (host.value) {
     host.value.appendChild(renderer.domElement);
@@ -1325,6 +1384,12 @@ watch(
   () => [props.workpieceSize, props.workpieceOffset] as const,
   () => {
     if (workpieceMesh) applyBox(workpieceMesh, props.workpieceSize, props.workpieceOffset);
+    if (overflowEdges && workOrigin) {
+      workOrigin.remove(overflowEdges);
+      disposeObject(overflowEdges);
+    }
+    overflowEdges = rebuildOverflowEdges(props.workpieceSize, props.workpieceOffset);
+    if (overflowEdges && workOrigin) workOrigin.add(overflowEdges);
   },
   { deep: true }
 );
