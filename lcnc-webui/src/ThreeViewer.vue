@@ -271,6 +271,9 @@ let feedLineMap: Map<number, { start: number; end: number }> = new Map();
 // Pending layer visibility: stores calls made before scene objects exist
 let pendingLayers: Map<Layer, boolean> | null = new Map();
 let toolpathVisible = true;
+const toolpathOverflow = ref(false);
+// Toolpath bounding box in work coordinates (set by applyGcode, used by updateOverflowCheck)
+let toolpathBBox: { min: [number, number, number]; max: [number, number, number] } | null = null;
 
 // ---- Camera tracking ----
 let trackingMode: "none" | "tool" | "workpiece" = "none";
@@ -1084,7 +1087,10 @@ function applyState(init: ViewerInit, st: ViewerState) {
   const oy = (g5x[1] ?? 0) + (g92[1] ?? 0);
   const oz = (g5x[2] ?? 0) + (g92[2] ?? 0);
 
-  if (workOrigin) workOrigin.position.set(ox, oy, oz);
+  if (workOrigin) {
+    workOrigin.position.set(ox, oy, oz);
+    updateOverflowCheck();
+  }
 
   // ---- Tool visual: diameter + length (TIP stays at local z=0) ----
   if (toolMarker && (toolMarker as any).geometry) {
@@ -1149,7 +1155,22 @@ function applyState(init: ViewerInit, st: ViewerState) {
   }
 }
 
-
+/** Check if stored toolpath bbox exceeds machine bounds (in current WCS). */
+function updateOverflowCheck() {
+  toolpathOverflow.value = false;
+  if (!toolpathBBox || !workOrigin) return;
+  const mb = (viewerInit.value as ViewerInit | null)?.machine_bounds;
+  if (!mb) return;
+  const wo = workOrigin.position;
+  // Machine bounds converted to work coordinates
+  const bMin0 = mb.origin[0] - wo.x, bMin1 = mb.origin[1] - wo.y, bMin2 = mb.origin[2] - wo.z;
+  const bMax0 = bMin0 + mb.size[0], bMax1 = bMin1 + mb.size[1], bMax2 = bMin2 + mb.size[2];
+  // Any part of toolpath bbox outside machine bounds?
+  toolpathOverflow.value =
+    toolpathBBox.min[0] < bMin0 || toolpathBBox.max[0] > bMax0 ||
+    toolpathBBox.min[1] < bMin1 || toolpathBBox.max[1] > bMax1 ||
+    toolpathBBox.min[2] < bMin2 || toolpathBBox.max[2] > bMax2;
+}
 
 function applyGcode(g: ViewerGcode) {
   if (!scene || !workOrigin) return;
@@ -1208,6 +1229,21 @@ function applyGcode(g: ViewerGcode) {
     workOrigin.add(highlightLine);
 
   }
+
+  // Compute toolpath bounding box (work coordinates) for overflow detection
+  toolpathBBox = null;
+  const allPts = [...feedPts, ...rapidPts];
+  if (allPts.length > 0) {
+    const mn: [number, number, number] = [Infinity, Infinity, Infinity];
+    const mx: [number, number, number] = [-Infinity, -Infinity, -Infinity];
+    for (const p of allPts) {
+      if (p[0]! < mn[0]) mn[0] = p[0]!; if (p[0]! > mx[0]) mx[0] = p[0]!;
+      if (p[1]! < mn[1]) mn[1] = p[1]!; if (p[1]! > mx[1]) mx[1] = p[1]!;
+      if (p[2]! < mn[2]) mn[2] = p[2]!; if (p[2]! > mx[2]) mx[2] = p[2]!;
+    }
+    toolpathBBox = { min: mn, max: mx };
+  }
+  updateOverflowCheck();
 
   // Apply stored toolpath visibility (may have been set before lines existed)
   if (!toolpathVisible) {
@@ -1748,6 +1784,11 @@ defineExpose({
       <div v-if="vst?.rotation_xy" class="hudSection hudWarn">
         <div class="label">Rotation</div>
         <div class="hudValue">{{ vst.rotation_xy.toFixed(1) }}°</div>
+      </div>
+
+      <div v-if="toolpathOverflow" class="hudSection hudWarn">
+        <div class="label">Toolpath</div>
+        <div class="hudValue">Exceeds bounds</div>
       </div>
     </div>
 
