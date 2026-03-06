@@ -1757,15 +1757,15 @@ def handle_command(msg: Dict[str, Any], armed: bool):
             if not path or not isinstance(path, str):
                 return {"ok": False, "error": "Missing path"}
 
-            real_path = os.path.realpath(path)
-            if not os.path.isfile(real_path):
+            abs_path = os.path.abspath(path)
+            if not os.path.isfile(abs_path):
                 return {"ok": False, "error": "File not found"}
 
             nc_dir = get_nc_files_dir()
-            if not validate_path_within(real_path, nc_dir):
+            if not validate_path_within(abs_path, nc_dir):
                 return {"ok": False, "error": "File not in NC files directory"}
 
-            if not validate_extension(real_path):
+            if not validate_extension(abs_path):
                 return {"ok": False, "error": "Invalid file extension"}
 
             blocked = reject_if_auto_running()
@@ -1773,9 +1773,9 @@ def handle_command(msg: Dict[str, Any], armed: bool):
                 return blocked
 
             set_mode(linuxcnc.MODE_AUTO)
-            CMD.program_open(real_path)
+            CMD.program_open(abs_path)
             CMD.wait_complete()
-            return {"ok": True, "path": real_path}
+            return {"ok": True, "path": abs_path}
 
         if cmd == "unload_file":
             require_armed(armed)
@@ -2309,18 +2309,18 @@ async def upload_gcode(file: UploadFile = File(...)):
 async def save_gcode(path: str = Body(...), content: str = Body(...)):
     """Save edited G-code content back to an existing file."""
     nc_dir = get_nc_files_dir()
-    real_path = os.path.realpath(path)
+    abs_path = os.path.abspath(path)
 
-    if not validate_path_within(real_path, nc_dir):
+    if not validate_path_within(abs_path, nc_dir):
         raise HTTPException(status_code=400, detail="Path outside NC files directory")
 
-    if not validate_extension(real_path):
+    if not validate_extension(abs_path):
         raise HTTPException(
             status_code=400,
             detail=f"Invalid file extension. Allowed: {', '.join(sorted(ALLOWED_EXTENSIONS))}"
         )
 
-    if not os.path.isfile(real_path):
+    if not os.path.isfile(abs_path):
         raise HTTPException(status_code=404, detail="File not found")
 
     encoded = content.encode("utf-8")
@@ -2328,10 +2328,10 @@ async def save_gcode(path: str = Body(...), content: str = Body(...)):
         raise HTTPException(status_code=413, detail="File too large (max 50 MB)")
 
     try:
-        fd, tmp_path = tempfile.mkstemp(dir=os.path.dirname(real_path), suffix=".tmp")
+        fd, tmp_path = tempfile.mkstemp(dir=os.path.dirname(abs_path), suffix=".tmp")
         with os.fdopen(fd, "wb") as f:
             f.write(encoded)
-        os.rename(tmp_path, real_path)
+        os.rename(tmp_path, abs_path)
     except Exception as e:
         try:
             os.unlink(tmp_path)
@@ -2339,7 +2339,7 @@ async def save_gcode(path: str = Body(...), content: str = Body(...)):
             pass
         raise HTTPException(status_code=500, detail=f"Failed to save file: {e}")
 
-    return {"ok": True, "path": real_path, "size": len(encoded)}
+    return {"ok": True, "path": abs_path, "size": len(encoded)}
 
 
 @app.get("/files")
