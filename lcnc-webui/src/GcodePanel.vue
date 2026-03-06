@@ -309,12 +309,7 @@ async function saveEdit() {
 <template>
   <div class="container" @dragover.prevent="onDragOver" @dragleave="onDragLeave" @drop.prevent="onDrop">
     <div class="header">
-      <div class="fileInfo">
-        <span class="label">File:</span>
-        <div class="fileName">{{ fileName }}</div>
-      </div>
       <div class="headerActions">
-        <span class="stats" v-if="gcodeContent">{{ lineCount }} lines</span>
         <button class="actionBtn" @click="enterEdit" :disabled="!activeFile || !can.idle || editing">
           Edit
         </button>
@@ -331,6 +326,11 @@ async function saveEdit() {
           Upload
           <input type="file" accept=".ngc,.nc,.gcode,.tap,.txt" @change="onFileSelect" hidden :disabled="!can.idle" />
         </label>
+      </div>
+      <div class="fileInfo">
+        <span class="label">File:</span>
+        <div class="fileName">{{ fileName }}</div>
+        <span class="stats" v-if="gcodeContent">{{ lineCount }} lines</span>
       </div>
     </div>
 
@@ -505,9 +505,7 @@ async function saveEdit() {
 
 .header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 6px;
   padding: 8px 12px;
   background: color-mix(in oklab, var(--panel) 50%, transparent);
@@ -627,6 +625,7 @@ async function saveEdit() {
   font-size: var(--fs-base);
   opacity: 0.7;
   white-space: nowrap;
+  margin-left: auto;
 }
 
 .actionBtn {

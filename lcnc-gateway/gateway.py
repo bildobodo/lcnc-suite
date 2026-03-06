@@ -550,9 +550,10 @@ def validate_extension(filename: str) -> bool:
 
 
 def validate_path_within(path: str, root: str) -> bool:
-    real_path = os.path.realpath(path)
-    real_root = os.path.realpath(root)
-    return real_path.startswith(real_root + os.sep) or real_path == real_root
+    # Use abspath (not realpath) so symlinked subdirectories are allowed
+    abs_path = os.path.abspath(path)
+    abs_root = os.path.abspath(root)
+    return abs_path.startswith(abs_root + os.sep) or abs_path == abs_root
 
 
 @dataclass
@@ -2898,9 +2899,15 @@ async def ws_endpoint(ws: WebSocket):
                 continue
 
             reply = handle_command(msg, armed)
-            # Force status_loop to re-read g-code when file is (re)loaded
-            if msg.get("cmd") in ("load_file", "unload_file") and reply.get("ok"):
-                last_file = None
+            if msg.get("cmd") == "load_file" and reply.get("ok"):
+                last_file = None  # force status_loop to re-read on next poll
+            elif msg.get("cmd") == "unload_file" and reply.get("ok"):
+                # Clear viewer immediately — reset_interpreter doesn't clear stat.file,
+                # so the status loop would otherwise re-read the same file.
+                await ws_send_json(ws, {
+                    "type": "viewer_gcode",
+                    "data": {"file": None, "feed": [], "feed_lines": [], "rapid": [], "content": None},
+                })
             await ws_send_json(ws, {"type": "reply", **reply})
 
     except WebSocketDisconnect:
