@@ -1435,6 +1435,9 @@ watch(isHomed, (nowHomed, wasHomed) => {
           <span class="controlStatus">{{ st.tool_number != null ? `T${st.tool_number}` : '---' }}{{ st.tool_diameter != null ? ` D${st.tool_diameter.toFixed(3)}` : '' }}{{ st.tool_offset?.[2] ? ` Z${st.tool_offset[2].toFixed(3)}` : '' }}</span>
         </button>
         </div>
+        <div class="controlGroup">
+        <button class="btn controlBtn simtrip" :disabled="!st.probing" @click.stop="send({ cmd: 'simulate_probe_trip' })" title="Simulate probe contact (sim/debug)">Sim Trip</button>
+        </div>
       </div>
     </section>
     </div>
@@ -1586,7 +1589,6 @@ watch(isHomed, (nowHomed, wasHomed) => {
               :surfacePoints="surfacePoints"
               @mdi="send({ cmd: 'mdi', text: $event })"
               @abort="send({ cmd: 'abort' })"
-              @simulateProbeTrip="send({ cmd: 'simulate_probe_trip' })"
               @setProbeVars="send({ cmd: 'set_probe_vars', vars: $event })"
               @setG5x="setG5x"
               @getProbeResults="requestProbeResults"
@@ -1638,7 +1640,6 @@ watch(isHomed, (nowHomed, wasHomed) => {
             <button class="btn toolActionBtn" :disabled="!permissions.ready || !!st.probing" @click="measureManual">Manual</button>
             <button class="btn toolActionBtn load" :disabled="!permissions.ready || !!st.probing" @click="loadTool">Load</button>
             <button class="btn toolActionBtn abort" :disabled="!st.probing" @click="fire({ cmd: 'abort' })">Abort</button>
-            <button class="btn toolActionBtn simtrip" :disabled="!st.probing" @click="send({ cmd: 'simulate_probe_trip' })" title="Simulate probe contact (sim/debug)">Sim Trip</button>
           </div>
           <div class="toolActions">
             <button class="btn toolActionBtn" :disabled="!permissions.idle" @click="toolTableRef?.openAdd()">+ Add</button>
@@ -2359,13 +2360,13 @@ watch(isHomed, (nowHomed, wasHomed) => {
   color: var(--danger);
 }
 .toolActionBtn.abort:disabled { color: var(--fg); background: var(--button-bg); border-color: var(--border); }
-.toolActionBtn.simtrip {
+.controlBtn.simtrip {
   background: color-mix(in oklab, var(--accent) 15%, var(--button-bg));
   border-color: color-mix(in oklab, var(--accent) 30%, var(--border));
   color: var(--accent);
   font-style: italic;
 }
-.toolActionBtn.simtrip:disabled { color: var(--fg); background: var(--button-bg); border-color: var(--border); font-style: normal; }
+.controlBtn.simtrip:disabled { color: var(--fg); background: var(--button-bg); border-color: var(--border); font-style: normal; }
 .toolStatusRow {
   display: flex;
   align-items: center;

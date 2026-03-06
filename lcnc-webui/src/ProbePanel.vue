@@ -22,7 +22,6 @@ const emit = defineEmits<{
   (e: "mdi", text: string): void;
   (e: "abort"): void;
   (e: "listProbeMacros"): void;
-  (e: "simulateProbeTrip"): void;
   (e: "setProbeVars", vars: Record<string, number>): void;
   (e: "setG5x", gcode: string): void;
   (e: "getProbeResults"): void;
@@ -633,12 +632,6 @@ function fmtR(key: string): string {
           :disabled="!probing"
           @click="emit('abort')"
         >Abort</button>
-        <button
-          class="simTripBtn compact"
-          :disabled="!probing"
-          @click="emit('simulateProbeTrip')"
-          title="Simulate probe contact (sim/debug only)"
-        >Sim Trip</button>
       </div>
     </div>
 
@@ -1619,8 +1612,7 @@ function fmtR(key: string): string {
   color: var(--danger);
 }
 
-.abortBtn.compact,
-.simTripBtn.compact {
+.abortBtn.compact {
   padding: 5px 10px;
   font-size: var(--fs-sm);
   border-radius: var(--radius-lg);
@@ -1633,24 +1625,6 @@ function fmtR(key: string): string {
   border-color: var(--border);
 }
 
-.simTripBtn {
-  padding: 10px 14px;
-  font-size: var(--fs-md);
-  font-weight: 600;
-  border-radius: var(--radius-xl);
-  background: color-mix(in oklab, var(--accent) 15%, var(--button-bg));
-  border-color: color-mix(in oklab, var(--accent) 30%, var(--border));
-  color: var(--accent);
-  font-style: italic;
-}
-
-.simTripBtn:disabled {
-  opacity: var(--opacity-disabled);
-  color: var(--fg);
-  background: var(--button-bg);
-  border-color: var(--border);
-  font-style: normal;
-}
 
 /* Status */
 .statusRow {

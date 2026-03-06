@@ -267,6 +267,14 @@ o<200> do
     ;Correction of the edge-finder height.
     #<probe_start_pos_z> = [#<probe_start_pos_z> + #<finder_diff_z>]
   o<111>endif
+
+  ;-115- Clamp z_max_travel to stay within axis Z limit
+  #<max_safe_travel> = [#<probe_start_pos_z> - #<_ini[AXIS_Z]MIN_LIMIT> - 2]
+  o<112> if [#<z_max_travel> GT #<max_safe_travel>]
+    #<z_max_travel> = #<max_safe_travel>
+    (LOG, CLAMPED z_max_travel to #<z_max_travel> for axis limit safety)
+  o<112> endif
+
   (LOG, Probe start pos: #<probe_start_pos_z>)
   (LOG, max travel: #<z_max_travel>)
 
@@ -274,7 +282,7 @@ o<200> do
   ;-120- Move to Z start position for length measurement
   G53 G1 F#<traverse_fr> Z#<probe_start_pos_z>
 
-  
+
   ;-130- Fast probe
   G91
   o<190> if [#<_task> EQ 1]
