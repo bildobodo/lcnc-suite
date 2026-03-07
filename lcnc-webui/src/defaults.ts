@@ -15,6 +15,7 @@ export interface ColorDefaults {
   bounds: string;
   workpiece: string;
   tool: string;
+  cutter: string;
 }
 
 export interface OpacityDefaults {
@@ -109,7 +110,7 @@ const VIEWER_FALLBACK: ViewerDefaults = {
   workpieceSize: [100, 100, 20],
   workpieceOffset: [0, 0, -20],
   layers: { backplot: true, toolpath: true, machine: true, workpiece: true, bounds: true, workzero: true, hud: true, surface: true, tool: true },
-  colors: { feed: "#22b8cf", rapid: "#f5a623", backplot: "#ff00ff", bounds: "#ffffff", workpiece: "#ffffff", tool: "#ffdd00" },
+  colors: { feed: "#22b8cf", rapid: "#f5a623", backplot: "#ff00ff", bounds: "#ffffff", workpiece: "#ffffff", tool: "#c0c0c0", cutter: "#ffdd00" },
   opacities: { workpiece: 0.16, bounds: 0.10, machine: 1.0, toolpath: 1.0, backplot: 0.55, hud: 1.0 },
   machineColors: {},
   machineEdges: false,

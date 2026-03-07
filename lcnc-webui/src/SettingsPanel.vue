@@ -17,6 +17,7 @@ const setTheme = inject<(mode: ThemeMode) => void>("setTheme", () => {});
 const machineParts = inject<ComputedRef<Array<{ id: string; group: string | null; direction: string | null }>>>("machineParts", computed(() => []));
 const setMachinePartColor = inject<(id: string, color: string | null) => void>("setMachinePartColor", () => {});
 const setMachineEdges = inject<(on: boolean) => void>("setMachineEdges", () => {});
+const setToolColors = inject<(toolColor: string | null, cutterColor: string | null) => void>("setToolColors", () => {});
 
 const props = defineProps<{
   lastReply?: unknown;
@@ -250,6 +251,9 @@ function onLayerChange() {
 function onColorChange(key: keyof ColorDefaults, value: string) {
   colors[key] = value;
   save();
+  if (key === "tool" || key === "cutter") {
+    setToolColors(colors.tool, colors.cutter);
+  }
 }
 
 const colorFields: { key: keyof ColorDefaults; label: string }[] = [
@@ -258,7 +262,8 @@ const colorFields: { key: keyof ColorDefaults; label: string }[] = [
   { key: "backplot", label: "Backplot" },
   { key: "bounds", label: "Machine Bounds" },
   { key: "workpiece", label: "Workpiece" },
-  { key: "tool", label: "Tool" },
+  { key: "tool", label: "Tool Shaft" },
+  { key: "cutter", label: "Tool Cutter" },
 ];
 
 function onOpacityChange(key: keyof OpacityDefaults, value: number) {

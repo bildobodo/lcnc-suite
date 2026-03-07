@@ -759,9 +759,15 @@ function setMachineEdges(on: boolean) {
   for (const v of viewerRefs.values()) v?.setMachineEdges?.(on);
 }
 
+// Broadcast setToolColors to all ThreeViewer instances
+function setToolColors(toolColor: string | null, cutterColor: string | null) {
+  for (const v of viewerRefs.values()) v?.setToolColors?.(toolColor, cutterColor);
+}
+
 provide("machineParts", machineParts);
 provide("setMachinePartColor", setMachinePartColor);
 provide("setMachineEdges", setMachineEdges);
+provide("setToolColors", setToolColors);
 
 const touchoff = ref<number[]>([0, 0, 0]);
 

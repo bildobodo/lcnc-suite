@@ -515,7 +515,7 @@ _TOOL_META_FIELDS = (
     "type", "description", "flutes", "oal", "flute_length", "corner_radius",
     "body_length", "shaft_diameter", "taper_angle", "point_angle",
     "tip_diameter", "material", "holder", "holder_segments",
-    "assembly_gauge_length",
+    "assembly_gauge_length", "profile",
 )
 
 
@@ -2416,6 +2416,11 @@ def _parse_fusion_library(data: dict) -> list:
                  "upper_diameter": s["upper-diameter"]}
                 for s in holder_segs if "height" in s
             ]
+        # Preserve form mill profile (2D outline segments) for 3D rendering
+        if our_type == "formmill":
+            raw_profile = geom.get("profile")
+            if raw_profile and isinstance(raw_profile, list):
+                tool["profile"] = raw_profile
         # Preserve raw presets (speeds/feeds per material) for sidecar
         if presets:
             tool["presets"] = presets
@@ -2882,6 +2887,7 @@ async def ws_endpoint(ws: WebSocket):
                                     "type", "oal", "flute_length", "body_length",
                                     "shaft_diameter", "taper_angle", "point_angle",
                                     "tip_diameter", "corner_radius", "holder_segments",
+                                    "profile",
                                 ) if k in _meta}
                                 if _tm:
                                     status_msg["data"]["tool_meta"] = _tm

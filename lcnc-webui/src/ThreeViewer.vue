@@ -130,6 +130,13 @@ interface HolderSegment {
   upper_diameter: number;
 }
 
+interface ProfileSegment {
+  end: [number, number];
+  arc?: boolean;
+  ccw?: boolean;
+  center?: [number, number];
+}
+
 interface ToolMeta {
   type?: string;
   oal?: number;
@@ -141,6 +148,7 @@ interface ToolMeta {
   tip_diameter?: number;
   corner_radius?: number;
   holder_segments?: HolderSegment[];
+  profile?: ProfileSegment[];
 }
 
 type ViewerState = {
@@ -277,6 +285,7 @@ function normalizeKinematics(kin: ViewerInit["kinematics"]): KinEntry[] {
 
 // Visual objects
 let toolMarker: THREE.Group | null = null;
+let toolCutterMesh: THREE.Mesh | null = null;
 let toolBodyMesh: THREE.Mesh | null = null;
 let holderMesh: THREE.Mesh | null = null;
 let _currentToolNum: number | null = null;
@@ -573,6 +582,7 @@ let buildToken = 0;
 // ---------- Materials (muted colors requested) ----------
 const MAT = {
   tool: new THREE.MeshStandardMaterial({ metalness: 0.2, roughness: 0.4 }),
+  cutter: new THREE.MeshStandardMaterial({ metalness: 0.2, roughness: 0.4 }),
   holder: new THREE.MeshStandardMaterial({ metalness: 0.7, roughness: 0.3 }),
   frame: new THREE.MeshStandardMaterial({ metalness: 0.1, roughness: 0.8 }),
   axisX: new THREE.MeshStandardMaterial({ metalness: 0.1, roughness: 0.7 }),
@@ -586,7 +596,8 @@ MAT.frame.color.setHex(0xbfbfbf);
 MAT.axisX.color.setHex(0x9b4a4a); // X muted red
 MAT.axisY.color.setHex(0x4a8f5a); // Y muted green
 MAT.axisZ.color.setHex(0x4a6f9b); // Z muted blue
-MAT.tool.color.setHex(0xf5f5f5);  // near-white tool
+MAT.tool.color.setHex(0xc0c0c0);  // silver shaft
+MAT.cutter.color.setHex(0xffdd00); // gold cutter
 MAT.holder.color.setHex(0x888888); // steel gray holder
 
 /** Apply machine STL opacity to all MAT materials */
@@ -868,16 +879,18 @@ resetBackplot();
   // Apply machine STL opacity
   applyMachineOpacity(viewerDefaults.opacities.machine ?? 1.0);
 
-  // Apply tool color
-  MAT.tool.color.set(viewerDefaults.colors.tool ?? "#ffdd00");
+  // Apply tool colors
+  MAT.tool.color.set(viewerDefaults.colors.tool ?? "#c0c0c0");
+  MAT.cutter.color.set(viewerDefaults.colors.cutter ?? "#ffdd00");
 }
 
 // ---- Parametric tool profile generation ----
 // Builds 2D outline (radius vs height) for THREE.LatheGeometry.
 // Tip at Y=0, extends upward. LatheGeometry revolves around Y axis.
+// Returns profile points and fluteY (Y coordinate where cutting flutes end).
 function buildToolProfile(
   diam: number, len: number, meta: ToolMeta | null
-): THREE.Vector2[] {
+): { pts: THREE.Vector2[], fluteY: number } {
   const r = Math.max(0.2, diam * 0.5);
   const type = meta?.type ?? "other";
   const fluteLen = meta?.flute_length ?? len * 0.6;
@@ -913,17 +926,34 @@ function buildToolProfile(
       pts.push(V(shaftR, oal), V(0, oal));
       break;
     }
-    case "bullnose":
-    case "radiusmill": {
+    case "bullnose": {
       const cr = Math.min(cornerR || r * 0.2, r);
       const arcN = 8;
+      const cylTop = Math.max(cr, bodyLen);
       pts.push(V(0, 0), V(r - cr, 0));
       for (let i = 1; i <= arcN; i++) {
         const a = (Math.PI / 2) * (i / arcN);
         pts.push(V(r - cr + cr * Math.sin(a), cr - cr * Math.cos(a)));
       }
-      pts.push(V(r, fluteLen));
-      if (Math.abs(shaftR - r) > 0.01) pts.push(V(shaftR, fluteLen));
+      pts.push(V(r, cylTop));
+      if (Math.abs(shaftR - r) > 0.01) pts.push(V(shaftR, cylTop));
+      pts.push(V(shaftR, oal), V(0, oal));
+      break;
+    }
+    case "radiusmill": {
+      const cr = cornerR || r * 0.2;
+      const arcN = 8;
+      const arcTop = r + cr; // arc endpoint radius = shaftR for standard radius mills
+      const cylTop = Math.max(cr, bodyLen);
+      // Narrow flat bottom at DC/2, concave 90° arc out to shaft
+      pts.push(V(0, 0), V(r, 0));
+      for (let i = 1; i <= arcN; i++) {
+        const a = (Math.PI / 2) * (i / arcN);
+        pts.push(V(r + cr * (1 - Math.cos(a)), cr * Math.sin(a)));
+      }
+      // Arc ends at (r+cr, cr) — continue shaft
+      if (Math.abs(shaftR - arcTop) > 0.01) pts.push(V(shaftR, cr));
+      pts.push(V(shaftR, cylTop));
       pts.push(V(shaftR, oal), V(0, oal));
       break;
     }
@@ -990,12 +1020,86 @@ function buildToolProfile(
       pts.push(V(shaftR || r, probeLen), V(shaftR || r, oal), V(0, oal));
       break;
     }
+    case "formmill": {
+      const profile = meta?.profile;
+      if (profile && profile.length >= 2) {
+        let px = 0, py = 0;
+        for (const seg of profile) {
+          const [ex, ey] = seg.end;
+          if (seg.arc && seg.center) {
+            const [cx, cy] = seg.center;
+            const arcR = Math.sqrt((px - cx) ** 2 + (py - cy) ** 2);
+            const startA = Math.atan2(py - cy, px - cx);
+            const endA = Math.atan2(ey - cy, ex - cx);
+            let sweep = endA - startA;
+            if (seg.ccw && sweep < 0) sweep += 2 * Math.PI;
+            if (!seg.ccw && sweep > 0) sweep -= 2 * Math.PI;
+            const steps = Math.max(8, Math.ceil(Math.abs(sweep) / (Math.PI / 12)));
+            for (let i = 1; i <= steps; i++) {
+              const a = startA + sweep * (i / steps);
+              pts.push(V(cx + arcR * Math.cos(a), cy + arcR * Math.sin(a)));
+            }
+          } else {
+            const dx = ex - px, dy = ey - py;
+            if (dx * dx + dy * dy > 0.001) pts.push(V(ex, ey));
+          }
+          px = ex; py = ey;
+        }
+      } else {
+        pts.push(V(0, 0), V(r, 0), V(r, oal), V(0, oal));
+      }
+      break;
+    }
     default: {
       pts.push(V(0, 0), V(r, 0), V(r, oal), V(0, oal));
       break;
     }
   }
-  return pts;
+  return { pts, fluteY: fluteLen };
+}
+
+/** Split a profile at the given Y coordinate into cutter (below) and shaft (above) sub-profiles */
+function splitProfileAt(pts: THREE.Vector2[], splitY: number): { cutter: THREE.Vector2[], shaft: THREE.Vector2[] } {
+  const eps = 0.01;
+  const below: THREE.Vector2[] = [];
+  const atBound: THREE.Vector2[] = [];
+  const above: THREE.Vector2[] = [];
+  let interpPt: THREE.Vector2 | null = null;
+
+  for (let i = 0; i < pts.length; i++) {
+    const p = pts[i]!;
+    if (p.y < splitY - eps) {
+      below.push(p.clone());
+      const next = pts[i + 1];
+      if (next && next.y > splitY + eps) {
+        const t = (splitY - p.y) / (next.y - p.y);
+        interpPt = new THREE.Vector2(Math.max(0, p.x + t * (next.x - p.x)), splitY);
+      }
+    } else if (Math.abs(p.y - splitY) <= eps) {
+      atBound.push(p.clone());
+    } else {
+      above.push(p.clone());
+    }
+  }
+
+  // Cutter: below + interpolated boundary + first boundary point + close at axis
+  const cutter = [...below];
+  if (interpPt) cutter.push(interpPt);
+  if (atBound.length > 0) cutter.push(atBound[0]!);
+  const edgeR = cutter.length > 0 ? cutter[cutter.length - 1]!.x : 0;
+  if (edgeR > eps) cutter.push(new THREE.Vector2(0, splitY));
+
+  // Shaft: axis at splitY + remaining boundary points + above
+  const shaft: THREE.Vector2[] = [new THREE.Vector2(0, splitY)];
+  if (atBound.length > 1) {
+    for (let i = 1; i < atBound.length; i++) shaft.push(atBound[i]!);
+  } else if (above.length > 0) {
+    const r = interpPt ? interpPt.x : edgeR;
+    if (r > eps) shaft.push(new THREE.Vector2(r, splitY));
+  }
+  shaft.push(...above);
+
+  return { cutter, shaft };
 }
 
 /** Build LatheGeometry from 2D profile, rotated to Z-up with tip at Z=0 */
@@ -1024,13 +1128,22 @@ function buildHolderGeometry(
   return geom;
 }
 
-/** Build full tool group (body + optional holder) */
+/** Build full tool group (cutter + shaft + optional holder) */
 function buildToolGroup(diam: number, len: number, meta: ToolMeta | null): THREE.Group {
   const grp = new THREE.Group();
-  const profile = buildToolProfile(diam, len, meta);
-  const geom = buildToolGeometry(profile);
-  toolBodyMesh = new THREE.Mesh(geom, MAT.tool);
-  grp.add(toolBodyMesh);
+  const { pts, fluteY } = buildToolProfile(diam, len, meta);
+  const { cutter, shaft } = splitProfileAt(pts, fluteY);
+
+  toolCutterMesh = null;
+  if (cutter.length >= 3) {
+    toolCutterMesh = new THREE.Mesh(buildToolGeometry(cutter), MAT.cutter);
+    grp.add(toolCutterMesh);
+  }
+  toolBodyMesh = null;
+  if (shaft.length >= 3) {
+    toolBodyMesh = new THREE.Mesh(buildToolGeometry(shaft), MAT.tool);
+    grp.add(toolBodyMesh);
+  }
 
   holderMesh = null;
   if (meta?.holder_segments?.length) {
@@ -1292,25 +1405,35 @@ function applyState(init: ViewerInit, st: ViewerState) {
       if (toolMarker) {
         _toolGrp.remove(toolMarker);
         disposeObject(toolMarker);
+        toolCutterMesh = null;
         toolBodyMesh = null;
         holderMesh = null;
       }
       toolMarker = buildToolGroup(diam, visLen, _lastToolMeta);
       _toolGrp.add(toolMarker);
-      if (toolBodyMesh) toolBodyMesh.userData.toolVis = { r: diam * 0.5, L: visLen };
-      console.log("[TOOL] rebuild:", { toolNum, diam, visLen, type: _lastToolMeta?.type, children: toolMarker.children.length, bodyVerts: toolBodyMesh?.geometry?.attributes?.position?.count });
+      const visMesh = toolBodyMesh ?? toolCutterMesh;
+      if (visMesh) visMesh.userData.toolVis = { r: diam * 0.5, L: visLen };
+      console.log("[TOOL] rebuild:", { toolNum, diam, visLen, type: _lastToolMeta?.type, children: toolMarker.children.length });
 
-    } else if (toolBodyMesh) {
-      // Same tool — rebuild body geometry only if diam/length changed
+    } else if (toolBodyMesh || toolCutterMesh) {
+      // Same tool — rebuild geometry only if diam/length changed
       const r = Math.max(0.2, diam * 0.5);
-      const prev = (toolBodyMesh.userData.toolVis as any) || {};
+      const visMesh = toolBodyMesh ?? toolCutterMesh;
+      const prev = (visMesh!.userData.toolVis as any) || {};
       const changed = Math.abs((prev.r ?? 0) - r) > 0.01
                    || Math.abs((prev.L ?? 0) - visLen) > 0.5;
       if (changed) {
-        toolBodyMesh.geometry.dispose();
-        const profile = buildToolProfile(diam, visLen, _lastToolMeta);
-        toolBodyMesh.geometry = buildToolGeometry(profile);
-        toolBodyMesh.userData.toolVis = { r, L: visLen };
+        const { pts, fluteY } = buildToolProfile(diam, visLen, _lastToolMeta);
+        const { cutter, shaft } = splitProfileAt(pts, fluteY);
+        if (toolCutterMesh && cutter.length >= 3) {
+          toolCutterMesh.geometry.dispose();
+          toolCutterMesh.geometry = buildToolGeometry(cutter);
+        }
+        if (toolBodyMesh && shaft.length >= 3) {
+          toolBodyMesh.geometry.dispose();
+          toolBodyMesh.geometry = buildToolGeometry(shaft);
+        }
+        visMesh!.userData.toolVis = { r, L: visLen };
       }
     }
   }
@@ -1885,6 +2008,11 @@ function setMachineEdges(on: boolean) {
   }
 }
 
+function setToolColors(toolColor: string | null, cutterColor: string | null) {
+  if (toolColor) MAT.tool.color.set(toolColor);
+  if (cutterColor) MAT.cutter.color.set(cutterColor);
+}
+
 defineExpose({
   resetBackplot,
   setView,
@@ -1895,6 +2023,7 @@ defineExpose({
   isOrtho,
   setMachinePartColor,
   setMachineEdges,
+  setToolColors,
 });
 
 
