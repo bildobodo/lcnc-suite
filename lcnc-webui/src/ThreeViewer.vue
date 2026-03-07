@@ -83,6 +83,7 @@ export function getCachedGeometry(id: string): THREE.BufferGeometry | undefined 
 import { computed, inject, onMounted, onUnmounted, ref, watch, type ComputedRef } from "vue";
 
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { CSS2DRenderer, CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 
 import { viewerInit, viewerGcode, status } from "./lcncWs";
 import { loadViewerDefaults, ALL_LAYERS, type Vec3, type Layer } from "./defaults";
@@ -249,6 +250,7 @@ function toggleHud(panel: HudPanel) { activeHudPanel.value = activeHudPanel.valu
 
 // ---------- Three globals ----------
 let renderer: THREE.WebGLRenderer | null = null;
+let css2dRenderer: CSS2DRenderer | null = null;
 let scene: THREE.Scene | null = null;
 let camera: THREE.PerspectiveCamera | THREE.OrthographicCamera | null = null;
 let perspCam: THREE.PerspectiveCamera | null = null;
@@ -773,23 +775,12 @@ function ensureCoreGroups(init: ViewerInit) {
   workAxes.add(new THREE.ArrowHelper(new THREE.Vector3(0,1,0), new THREE.Vector3(), _al, 0x44ff44, _ah, _aw));
   workAxes.add(new THREE.ArrowHelper(new THREE.Vector3(0,0,1), new THREE.Vector3(), _al, 0x4488ff, _ah, _aw));
 
-  function _mkAxisLabel(text: string, color: string): THREE.Sprite {
-    const c = document.createElement("canvas");
-    c.width = 64; c.height = 64;
-    const cx = c.getContext("2d")!;
-    cx.font = "bold 48px sans-serif";
-    cx.fillStyle = color;
-    cx.strokeStyle = "#000000";
-    cx.lineWidth = 4;
-    cx.textAlign = "center";
-    cx.textBaseline = "middle";
-    cx.strokeText(text, 32, 32);
-    cx.fillText(text, 32, 32);
-    const m = new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthTest: false });
-    const s = new THREE.Sprite(m);
-    const ls = _al * 0.5;
-    s.scale.set(ls, ls, 1);
-    return s;
+  function _mkAxisLabel(text: string, color: string): CSS2DObject {
+    const el = document.createElement("span");
+    el.textContent = text;
+    el.className = "css2d-label axis-label";
+    el.style.color = color;
+    return new CSS2DObject(el);
   }
   const _lblOff = _al * 1.15;
   const xLbl = _mkAxisLabel("X", "#ff4444"); xLbl.position.set(_lblOff, 0, 0); workAxes.add(xLbl);
@@ -1227,24 +1218,13 @@ async function buildFromInit(init: ViewerInit) {
         ["Z", sz, new THREE.Vector3(ox, oy, oz + sz / 2), 0x4488ff],
       ];
       for (const [name, size, pos, color] of axes) {
-        const c = document.createElement("canvas");
-        c.width = 256; c.height = 48;
-        const cx = c.getContext("2d")!;
-        cx.font = "bold 32px monospace";
-        cx.fillStyle = `#${color.toString(16).padStart(6, "0")}`;
-        cx.strokeStyle = "#000000";
-        cx.lineWidth = 3;
-        cx.textAlign = "center";
-        cx.textBaseline = "middle";
-        const text = `${name}: ${size.toFixed(0)} ${unit}`;
-        cx.strokeText(text, 128, 24);
-        cx.fillText(text, 128, 24);
-        const mat = new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthTest: false });
-        const sprite = new THREE.Sprite(mat);
-        const ls = Math.max(sx, sy) * 0.25;
-        sprite.scale.set(ls, ls * (48 / 256), 1);
-        sprite.position.copy(pos);
-        boundsLabels.add(sprite);
+        const el = document.createElement("span");
+        el.textContent = `${name}: ${size.toFixed(0)} ${unit}`;
+        el.className = "css2d-label bounds-label";
+        el.style.color = `#${color.toString(16).padStart(6, "0")}`;
+        const obj = new CSS2DObject(el);
+        obj.position.copy(pos);
+        boundsLabels.add(obj);
       }
       _workGrp!.add(boundsLabels);
     } else {
@@ -1598,6 +1578,7 @@ function resize() {
   }
   camera.updateProjectionMatrix();
   renderer.setSize(w, h);
+  css2dRenderer?.setSize(w, h);
 }
 
 let pendingState: any = null;
@@ -1646,6 +1627,7 @@ function animate() {
 
   controls?.update();
   renderer?.render(scene!, camera!);
+  css2dRenderer?.render(scene!, camera!);
 }
 
 watch(isDark, () => {
@@ -1671,8 +1653,15 @@ onMounted(() => {
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.localClippingEnabled = true;
 
+  css2dRenderer = new CSS2DRenderer();
+  css2dRenderer.domElement.style.position = "absolute";
+  css2dRenderer.domElement.style.top = "0";
+  css2dRenderer.domElement.style.left = "0";
+  css2dRenderer.domElement.style.pointerEvents = "none";
+
   if (host.value) {
     host.value.appendChild(renderer.domElement);
+    host.value.appendChild(css2dRenderer.domElement);
   }
 
   controls = new OrbitControls(camera, renderer.domElement);
@@ -1720,10 +1709,14 @@ onUnmounted(() => {
       renderer.domElement.parentElement.removeChild(renderer.domElement);
     }
   }
+  if (css2dRenderer?.domElement.parentElement) {
+    css2dRenderer.domElement.parentElement.removeChild(css2dRenderer.domElement);
+  }
 
   if (scene) clearScene();
 
   renderer = null;
+  css2dRenderer = null;
   scene = null;
   camera = null;
   controls = null;
@@ -2251,12 +2244,31 @@ defineExpose({
 }
 
 .viewerHost {
+  position: relative;
   width: 100%;
   height: 100%;
   border-radius: var(--radius-3xl);
   overflow: hidden;
   border: 1px solid var(--border);
   background: color-mix(in oklab, var(--panel) 70%, transparent);
+}
+
+:deep(.css2d-label) {
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+  text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+}
+
+:deep(.axis-label) {
+  font-size: var(--fs-2xl);
+}
+
+:deep(.bounds-label) {
+  font-size: var(--fs-lg);
 }
 
 .hud {
