@@ -3,8 +3,9 @@ import { ref as _ref } from "vue";
 import * as THREE from "three";
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
 
-// ---- Central asset cache (shared across ALL ThreeViewer instances) ----
+// ---- Central caches (shared across ALL ThreeViewer instances) ----
 const _geometryCache = new Map<string, THREE.BufferGeometry>();
+const _toolMetaCache = new Map<number, any>();  // tool_number → ToolMeta, populated on first sight
 let _loadPromise: Promise<void> | null = null;
 let _loadedInitJson: string | null = null;
 export const machineReady = _ref(false);
@@ -1400,7 +1401,14 @@ function applyState(init: ViewerInit, st: ViewerState) {
     if (toolNum !== _currentToolNum && _toolGrp) {
       // Tool number changed — full rebuild with metadata
       _currentToolNum = toolNum;
-      if (meta) _lastToolMeta = meta;
+      if (meta) {
+        _lastToolMeta = meta;
+        if (toolNum != null) _toolMetaCache.set(toolNum, meta);
+      } else if (toolNum != null) {
+        // Status didn't include tool_meta (only sent on tool change);
+        // fall back to the shared cache populated by another viewer instance.
+        _lastToolMeta = _toolMetaCache.get(toolNum) ?? null;
+      }
 
       if (toolMarker) {
         _toolGrp.remove(toolMarker);
@@ -1681,7 +1689,11 @@ onMounted(() => {
   resize();
   animate();
 
-  // viewerGcode may already be set before this component mounted
+  // viewerInit / viewerGcode may already be set before this component mounted
+  // (e.g. dynamically-added panels after WebSocket connected).
+  // The immediate watcher fires during setup (before scene exists) and bails,
+  // so we must call buildFromInit here now that scene is ready.
+  if (viewerInit.value) buildFromInit(viewerInit.value as ViewerInit);
   if (viewerGcode.value) applyGcode(viewerGcode.value as ViewerGcode);
 
   // Apply saved defaults (self-contained — no external wiring needed)
@@ -1731,6 +1743,7 @@ watch(
 );
 
 // Pause/resume RAF loop when active prop changes
+// flush: 'post' ensures DOM (v-show) has updated before we resize
 watch(() => props.active, (now) => {
   if (now !== false && renderer) {
     resize();
@@ -1738,13 +1751,13 @@ watch(() => props.active, (now) => {
   } else {
     cancelAnimationFrame(raf);
   }
-});
+}, { flush: 'post' });
 
 // Buffer latest status for rAF consumption (frame dropping)
+// Always buffer even when hidden so state is ready when viewer becomes active
 watch(
   () => status.value,
   (msg) => {
-    if (props.active === false) return; // skip when hidden
     if (msg?.data) pendingState = msg.data;
   },
 );
