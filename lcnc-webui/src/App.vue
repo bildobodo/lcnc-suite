@@ -1231,7 +1231,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
                 </tr>
               </tbody>
             </table>
-            <div class="offsetActions">
+            <div class="offsetActions" :style="{ opacity: permissions.idle ? 1 : 'var(--opacity-disabled)' }">
               <button class="ovrPresetBtn" :disabled="!permissions.idle || !selectedWcs" @click="clearWcs(selectedWcs!)">Clear {{ selectedWcs }}</button>
               <button class="ovrPresetBtn" :disabled="!permissions.idle" @click="clearWcs('all')">Clear All</button>
             </div>
@@ -1243,6 +1243,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
           <span class="label">Overrides</span>
           <span class="chipValue">{{ overridesDisabled ? 'DISABLED' : (overridesActive ? 'ACTIVE' : 'DEFAULT') }}</span>
           <div class="popover chipPopover overridesPopover" :class="{ open: openChip === 'overrides' }" @click.stop>
+            <fieldset :disabled="!permissions.override" class="fs-reset">
             <div class="ovrRow">
               <span class="ovrLabel">Feed</span>
               <input type="range" v-model.number="feedSlider" @change="onFeedChange" min="0" :max="maxFeedOverride" step="5" :disabled="!permissions.override || !feedOvrEnabled" />
@@ -1268,6 +1269,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
               <button v-for="p in [25, 50, 75, 100]" :key="'r'+p" class="ovrPresetBtn" :disabled="!permissions.override" @click="setOverridePreset('rapid', p)">{{ p }}%</button>
             </div>
             <button class="ovrResetBtn" :disabled="!permissions.override" @click="resetAllOverrides">Reset All</button>
+            </fieldset>
           </div>
         </div>
 
@@ -1311,6 +1313,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
           <span class="controlIcon">&#x21BB;</span>
         </button>
         <div class="popover spindlePopover" :class="{ open: openChip === 'spindle' }" @click.stop>
+          <fieldset :disabled="!permissions.ready" class="fs-reset">
           <!-- Direction controls -->
           <div class="spDirRow">
             <button
@@ -1398,6 +1401,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
               <button v-for="p in [50, 100, 150, 200]" :key="'sp'+p" class="ovrPresetBtn" :disabled="!permissions.override || !spindleOvrEnabled" @click="setSpindleOvrPreset(p)">{{ p }}%</button>
             </div>
           </div>
+          </fieldset>
         </div>
         </div>
 
@@ -1411,6 +1415,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
           <span class="controlIcon">&#x1F4A7;</span>
         </button>
         <div class="popover coolantPopover" :class="{ open: openChip === 'coolant' }" @click.stop>
+          <fieldset :disabled="!permissions.ready" class="fs-reset">
           <div class="coolantRow">
             <span class="coolantLabel">Flood</span>
             <button
@@ -1429,6 +1434,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
               @click="toggleMist"
             >{{ mistOn ? 'ON' : 'OFF' }}</button>
           </div>
+          </fieldset>
         </div>
         </div>
 
@@ -1630,7 +1636,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
           <span class="dialogTitle">Tool Table</span>
           <button class="btn-icon" @click="toolDialogOpen = false">&times;</button>
         </div>
-        <div class="toolDialogActions">
+        <div class="toolDialogActions" :style="{ opacity: permissions.ready ? 1 : 'var(--opacity-disabled)' }">
           <div class="toolInputRow">
             <span class="toolFieldLabel">Tool #</span>
             <input
@@ -1651,7 +1657,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
           </div>
           <div class="toolActions">
             <button class="btn toolActionBtn" :disabled="!permissions.idle" @click="toolTableRef?.openAdd()">+ Add</button>
-            <button class="btn toolActionBtn" @click="toolTableRef?.triggerImport()">Import</button>
+            <button class="btn toolActionBtn" :disabled="!permissions.idle" @click="toolTableRef?.triggerImport()">Import</button>
             <button class="btn toolActionBtn" :disabled="!permissions.idle" @click="toolTableRef?.fetchTools()">Refresh</button>
           </div>
           <div class="toolStatusRow">

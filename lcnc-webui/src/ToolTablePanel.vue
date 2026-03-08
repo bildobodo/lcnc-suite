@@ -357,7 +357,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
 </script>
 
 <template>
-  <div class="container">
+  <div class="container" :style="{ opacity: can.idle ? 1 : 'var(--opacity-disabled)' }">
     <!-- Hidden file input for import (works via triggerImport / header button) -->
     <input ref="importInputRef" type="file" accept=".json" @change="onImportFileSelect" hidden />
 
@@ -366,7 +366,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
       <div class="sub">Tool Table</div>
       <div class="actions">
         <button class="btn" @click="openAdd" :disabled="!can.idle">+ Add</button>
-        <button class="btn" @click="triggerImport">Import</button>
+        <button class="btn" @click="triggerImport" :disabled="!can.idle">Import</button>
         <button class="btn" @click="fetchTools" :disabled="loading || !can.idle">Refresh</button>
       </div>
     </div>

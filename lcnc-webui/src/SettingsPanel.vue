@@ -9,6 +9,9 @@ import {
   type ThemeMode,
 } from "./defaults";
 import { fetchHal, fetchG30, type HalPin, type HalSignal, type HalParam } from "./lcncApi";
+import { usePermissions } from "./permissions";
+
+const can = usePermissions();
 
 const TS_STORAGE_KEY = "lcnc-toolsetter-params";
 
@@ -417,6 +420,7 @@ const halStats = computed(() => ({
     <TabPanel :tabs="subTabs" v-model="activeTab" class="subTabs">
       <template #viewer>
         <div class="scrollContent scroll-thin">
+        <fieldset :disabled="!can.idle" class="fs-reset">
         <div class="section">
           <div class="sub">Workpiece Defaults</div>
           <div class="wpColumns">
@@ -555,11 +559,13 @@ const halStats = computed(() => ({
           </div>
         </div>
 
+        </fieldset>
         </div>
       </template>
 
       <template #machine>
         <div class="scrollContent scroll-thin">
+          <fieldset :disabled="!can.idle" class="fs-reset">
           <div class="section">
             <div class="sub">Tool Load Behavior</div>
             <div class="settingDesc">Controls what happens when you load a tool from the Tool Table.</div>
@@ -645,11 +651,13 @@ const halStats = computed(() => ({
               </button>
             </div>
           </div>
+          </fieldset>
         </div>
       </template>
 
       <template #toolsetter>
         <div class="scrollContent scroll-thin">
+          <fieldset :disabled="!can.idle" class="fs-reset">
           <div class="section">
             <div class="sub">Toolsetter Position (G53)</div>
             <div class="tsGrid">
@@ -675,7 +683,7 @@ const halStats = computed(() => ({
               <span class="readonlyVal">{{ g30Z != null ? g30Z.toFixed(3) : '—' }}</span>
             </div>
             <div class="tsBtnRow" style="margin-top: 8px;">
-              <button class="optBtn" @click="setG30">Set Current Position</button>
+              <button class="optBtn" :disabled="!can.idle" @click="setG30">Set Current Position</button>
               <button class="optBtn" @click="loadG30" :disabled="g30Loading">Refresh</button>
             </div>
           </div>
@@ -782,11 +790,13 @@ const halStats = computed(() => ({
               <span class="varRef">{{ tipDesc[activeTip]?.var }}</span>
             </div>
           </template>
+          </fieldset>
         </div>
       </template>
 
       <template #display>
         <div class="scrollContent scroll-thin">
+          <fieldset :disabled="!can.idle" class="fs-reset">
           <div class="section">
             <div class="sub">Theme</div>
             <div class="btnGroup">
@@ -799,6 +809,7 @@ const halStats = computed(() => ({
               <button class="optBtn" :class="{ active: themeMode === 'hc-dark' }" @click="setTheme('hc-dark')">HC Dark</button>
             </div>
           </div>
+          </fieldset>
         </div>
       </template>
 

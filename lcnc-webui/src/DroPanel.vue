@@ -58,7 +58,7 @@ function touchoffStep(letter: string) {
 </script>
 
 <template>
-  <div class="container">
+  <div class="container" :style="{ opacity: can.idle ? 1 : 'var(--opacity-disabled)' }">
     <div class="section">
       <div class="sub">Work Position ({{ g5xLabel }})</div>
       <div class="grid">

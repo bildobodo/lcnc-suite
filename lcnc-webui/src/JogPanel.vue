@@ -222,7 +222,7 @@ function stopJog(s: Sector, e?: PointerEvent) {
 </script>
 
 <template>
-  <div>
+  <div :style="{ opacity: can.jog ? 1 : 'var(--opacity-disabled)' }">
     <div class="sub">Jog</div>
 
     <div class="controlGrid">

@@ -592,7 +592,7 @@ function fmtR(key: string): string {
     </div>
 
     <!-- WCS selector -->
-    <div class="g5xRow">
+    <div class="g5xRow" :style="{ opacity: can.idle ? 1 : 'var(--opacity-disabled)' }">
       <button
         v-for="g in g5xOptions"
         :key="g"
@@ -604,7 +604,7 @@ function fmtR(key: string): string {
     </div>
 
     <!-- Control bar -->
-    <div class="controlBar">
+    <div class="controlBar" :style="{ opacity: can.ready ? 1 : 'var(--opacity-disabled)' }">
       <label class="checkRow">
         <input type="checkbox" v-model="autoZero" :disabled="!can.ready" @change="saveParams" />
         Auto Zero
@@ -628,7 +628,7 @@ function fmtR(key: string): string {
 
     <!-- ═══ OUTSIDE CORNERS VIEW ═══ -->
     <template v-if="probeView === 'outside'">
-      <div class="gridSection">
+      <div class="gridSection" :style="{ opacity: can.probe ? 1 : 'var(--opacity-disabled)' }">
       <div class="section">
         <div class="sub">Probe Operation</div>
         <div class="gridWrap">
@@ -716,7 +716,7 @@ function fmtR(key: string): string {
 
     <!-- ═══ INSIDE CORNERS VIEW ═══ -->
     <template v-else-if="probeView === 'inside'">
-      <div class="gridSection">
+      <div class="gridSection" :style="{ opacity: can.probe ? 1 : 'var(--opacity-disabled)' }">
       <div class="section">
         <div class="sub">Probe Operation</div>
         <div class="gridWrap">
@@ -804,7 +804,7 @@ function fmtR(key: string): string {
 
     <!-- ═══ BOSS / POCKET VIEW ═══ -->
     <template v-else-if="probeView === 'boss'">
-      <div class="gridSection">
+      <div class="gridSection" :style="{ opacity: can.probe ? 1 : 'var(--opacity-disabled)' }">
       <div class="section">
         <div class="sub">Probe Operation</div>
         <div class="gridWrap bossGrid">
@@ -895,7 +895,7 @@ function fmtR(key: string): string {
 
     <!-- ═══ EDGE ANGLE VIEW ═══ -->
     <template v-else-if="probeView === 'angle'">
-      <div class="gridSection">
+      <div class="gridSection" :style="{ opacity: can.probe ? 1 : 'var(--opacity-disabled)' }">
       <div class="section">
         <div class="sub">Probe Operation</div>
         <div class="gridWrap angleGrid">
@@ -997,7 +997,7 @@ function fmtR(key: string): string {
 
     <!-- ═══ CALIBRATE VIEW ═══ -->
     <template v-else-if="probeView === 'cal'">
-      <div class="gridSection">
+      <div class="gridSection" :style="{ opacity: can.probe ? 1 : 'var(--opacity-disabled)' }">
       <!-- Round calibration: buttons + diameter -->
       <div class="calSection">
         <div class="sub">Round Hole</div>
@@ -1090,7 +1090,7 @@ function fmtR(key: string): string {
 
     <!-- ═══ RIDGE / VALLEY VIEW ═══ -->
     <template v-else-if="probeView === 'ridge'">
-      <div class="gridSection">
+      <div class="gridSection" :style="{ opacity: can.probe ? 1 : 'var(--opacity-disabled)' }">
       <div class="section">
         <div class="sub">Probe Operation</div>
         <div class="gridWrap bossGrid">
@@ -1171,7 +1171,7 @@ function fmtR(key: string): string {
 
     <!-- ─── Surface Map ─── -->
     <template v-else>
-      <div class="section">
+      <div class="section" :style="{ opacity: can.ready ? 1 : 'var(--opacity-disabled)' }">
         <div class="sub">Scan Grid</div>
         <div class="paramGrid twoCol">
           <label>X0 <span class="tip" @click.stop="toggleTip('scanX0')">?</span></label>
@@ -1193,7 +1193,7 @@ function fmtR(key: string): string {
         </div>
       </div>
 
-      <div class="surfaceActions">
+      <div class="surfaceActions" :style="{ opacity: can.ready ? 1 : 'var(--opacity-disabled)' }">
         <button class="btn" :disabled="!can.probe || probing" @click="runSurfaceScan">Start Scan</button>
         <button v-if="!surfacePoints?.length" class="btn" :disabled="!can.idle" @click="loadSurfaceMap">Load Map</button>
         <button v-else class="btn" :disabled="!can.idle" @click="emit('clearSurfaceMap')">Unload Map</button>
@@ -1201,7 +1201,7 @@ function fmtR(key: string): string {
         <button class="btn" :class="{ active: eoffsetEnabled }" :disabled="!can.ready || probing" @click="toggleComp">{{ eoffsetEnabled ? 'Disable Comp' : 'Enable Comp' }}</button>
       </div>
 
-      <div class="compStatus">
+      <div class="compStatus" :style="{ opacity: can.ready ? 1 : 'var(--opacity-disabled)' }">
         <span class="compDot" :class="{ on: eoffsetEnabled }"></span>
         <span>Compensation: <b>{{ eoffsetEnabled ? 'ON' : 'OFF' }}</b></span>
         <span v-if="eoffsetZ != null" class="compValue">Z: {{ eoffsetZ.toFixed(4) }}</span>
@@ -1218,7 +1218,7 @@ function fmtR(key: string): string {
     <div class="sep"></div>
 
     <!-- Parameters (shared across views) -->
-    <div class="section">
+    <div class="section" :style="{ opacity: can.ready ? 1 : 'var(--opacity-disabled)' }">
       <div class="sub">Parameters</div>
       <div class="paramGrid twoCol">
         <label>Probe Tool # <span class="tip" @click.stop="toggleTip('probeTool')">?</span></label>
@@ -1259,7 +1259,7 @@ function fmtR(key: string): string {
     <div class="sep"></div>
 
     <!-- Probe Results (PB-style feedback) -->
-    <div class="section">
+    <div class="section" :style="{ opacity: can.ready ? 1 : 'var(--opacity-disabled)' }">
       <div class="sub">Probe Results</div>
       <div class="probeResultsGrid">
         <div class="prCell"><span class="label">X-</span><span class="prVal">{{ fmtR("x_minus") }}</span></div>

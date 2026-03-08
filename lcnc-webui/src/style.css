@@ -284,6 +284,25 @@ input[type="checkbox"]:disabled {
   opacity: var(--opacity-disabled);
 }
 
+label:has(input:disabled, select:disabled) {
+  opacity: var(--opacity-disabled);
+  pointer-events: none;
+}
+
+.fs-reset {
+  border: none;
+  padding: 0;
+  margin: 0;
+  min-inline-size: 0;
+  display: flex;
+  flex-direction: column;
+  gap: inherit;
+}
+
+.fs-reset:disabled {
+  opacity: var(--opacity-disabled);
+}
+
 .btn-icon {
   background: none;
   border: none;

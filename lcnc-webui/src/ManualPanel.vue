@@ -141,7 +141,7 @@ function onMdiKeydown(e: KeyboardEvent) {
     </div>
 
     <!-- WCS selector -->
-    <div class="g5xRow">
+    <div class="g5xRow" :style="{ opacity: can.idle ? 1 : 'var(--opacity-disabled)' }">
       <button
         v-for="g in g5xOptions"
         :key="g"
@@ -173,7 +173,7 @@ function onMdiKeydown(e: KeyboardEvent) {
         @unhomeAxis="emit('unhomeAxis', $event)"
       />
       <div class="sep"></div>
-      <div class="gotoRow">
+      <div class="gotoRow" :style="{ opacity: can.ready ? 1 : 'var(--opacity-disabled)' }">
         <button class="btn" :disabled="!can.ready" @click="emit('goToG30')">Go to G30</button>
         <button class="btn" :disabled="!can.ready" @click="emit('goToHome')">Go to Home</button>
         <button class="btn" :disabled="!can.ready" @click="emit('goToZero')">Go to Zero</button>
@@ -204,7 +204,7 @@ function onMdiKeydown(e: KeyboardEvent) {
     </div>
 
     <!-- ═══ MDI VIEW ═══ -->
-    <div v-if="manualView === 'mdi'" class="mdiSection">
+    <div v-if="manualView === 'mdi'" class="mdiSection" :style="{ opacity: can.ready ? 1 : 'var(--opacity-disabled)' }">
       <div class="mdiRow">
         <input
           ref="mdiInputRef"
