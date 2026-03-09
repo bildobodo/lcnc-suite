@@ -3,7 +3,7 @@ import { ref, reactive, computed, inject, onMounted, onUnmounted, type Ref, type
 import TabPanel from "./TabPanel.vue";
 import {
   loadViewerDefaults, saveViewerDefaults,
-  loadMachineDefaults, saveMachineDefaults,
+  loadMachineDefaults, saveMachineDefaults, resetAllDefaults,
   type Vec3, type Layer, type ColorDefaults, type OpacityDefaults,
   type TrackMode, type Projection, type ToolChangeMode, type SpindleDir,
   type ThemeMode,
@@ -30,7 +30,60 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: "setProbeVars", vars: Record<string, number>): void;
   (e: "mdi", text: string): void;
+  (e: "setPathOnTop", on: boolean): void;
+  (e: "setProjection", proj: Projection): void;
+  (e: "setKeyboardJog", on: boolean): void;
+  (e: "setRunFromLine", on: boolean): void;
 }>();
+
+const showResetConfirm = ref(false);
+function confirmReset() {
+  showResetConfirm.value = false;
+  resetAllDefaults();
+
+  // Reload viewer defaults from fresh fallbacks
+  const vd = loadViewerDefaults();
+  wpSize.splice(0, 3, ...vd.workpieceSize);
+  wpOffset.splice(0, 3, ...vd.workpieceOffset);
+  Object.assign(layers, vd.layers);
+  Object.assign(colors, vd.colors);
+  Object.assign(opacities, vd.opacities);
+  // Clear custom machine colors — reset to empty
+  for (const k of Object.keys(machineColors)) delete machineColors[k];
+  Object.assign(machineColors, vd.machineColors);
+  trackingMode.value = vd.trackingMode;
+  pathOnTop.value = vd.pathOnTop;
+  machineEdgesOn.value = vd.machineEdges;
+  projection.value = vd.projection;
+
+  // Reload machine defaults
+  const md = loadMachineDefaults();
+  toolChangeMode.value = md.toolChangeMode;
+  runFromLine.value = md.runFromLine;
+  rflSpindleDir.value = md.rflSpindleDir;
+  rflSpindleRpm.value = md.rflSpindleRpm;
+  keyboardJog.value = md.keyboardJog;
+
+  // Reset toolsetter params
+  Object.assign(tsParams.value, {
+    fastFeed: 500, slowFeed: 50, traverseFeed: 6000, maxZTravel: 150,
+    retractDist: 2, spindleZeroHeight: 180, offsetDirection: 0,
+    touchX: 0, touchY: 0, touchZ: 0, useToolTable: 0, toolMinDis: 10,
+    brakeAfter: 0, goBackToStart: 0, spindleStopM: 5, disablePrePos: 1,
+    addReps: 0, lastTry: 0, offsetDiameter: 0, offsetValue: 50,
+    finderTouchX: 0, finderTouchY: 0, finderDiffZ: 0,
+  });
+
+  // Push changes to live components
+  emit("setPathOnTop", vd.pathOnTop);
+  emit("setProjection", vd.projection);
+  emit("setKeyboardJog", md.keyboardJog);
+  emit("setRunFromLine", md.runFromLine);
+  setMachineEdges(vd.machineEdges);
+  setToolColors(null, null);
+  for (const p of machineParts.value) setMachinePartColor(p.id, null);
+  setTheme("auto");
+}
 
 // ─── Viewer defaults ───────────────────────
 const saved = loadViewerDefaults();
@@ -541,7 +594,7 @@ const halStats = computed(() => ({
               </div>
             </div>
             <label class="checkRow">
-              <input type="checkbox" v-model="pathOnTop" @change="save()" />
+              <input type="checkbox" v-model="pathOnTop" @change="emit('setPathOnTop', pathOnTop); save()" />
               Toolpath always on top
             </label>
             <div class="inputRow">
@@ -552,7 +605,7 @@ const halStats = computed(() => ({
                   :key="p"
                   class="optBtn"
                   :class="{ active: projection === p }"
-                  @click="projection = p; save()"
+                  @click="projection = p; emit('setProjection', p); save()"
                 >{{ p.charAt(0).toUpperCase() + p.slice(1) }}</button>
               </div>
             </div>
@@ -596,7 +649,7 @@ const halStats = computed(() => ({
               <button
                 class="optBtn modeBtn"
                 :class="{ active: !runFromLine }"
-                @click="runFromLine = false; saveMachine()"
+                @click="runFromLine = false; emit('setRunFromLine', false); saveMachine()"
               >
                 <span class="modeName">Disabled</span>
                 <span class="modeDesc">Always start from beginning</span>
@@ -604,7 +657,7 @@ const halStats = computed(() => ({
               <button
                 class="optBtn modeBtn"
                 :class="{ active: runFromLine }"
-                @click="runFromLine = true; saveMachine()"
+                @click="runFromLine = true; emit('setRunFromLine', true); saveMachine()"
               >
                 <span class="modeName">Enabled</span>
                 <span class="modeDesc">Click a line in code viewer to start from it</span>
@@ -635,19 +688,19 @@ const halStats = computed(() => ({
             <div class="btnGroup modeGroup">
               <button
                 class="optBtn modeBtn"
-                :class="{ active: keyboardJog }"
-                @click="keyboardJog = true; saveMachine()"
-              >
-                <span class="modeName">Enabled</span>
-                <span class="modeDesc">Arrow/Page/bracket keys jog the machine</span>
-              </button>
-              <button
-                class="optBtn modeBtn"
                 :class="{ active: !keyboardJog }"
-                @click="keyboardJog = false; saveMachine()"
+                @click="keyboardJog = false; emit('setKeyboardJog', false); saveMachine()"
               >
                 <span class="modeName">Disabled</span>
                 <span class="modeDesc">Keyboard jog keys are ignored</span>
+              </button>
+              <button
+                class="optBtn modeBtn"
+                :class="{ active: keyboardJog }"
+                @click="keyboardJog = true; emit('setKeyboardJog', true); saveMachine()"
+              >
+                <span class="modeName">Enabled</span>
+                <span class="modeDesc">Arrow/Page/bracket keys jog the machine</span>
               </button>
             </div>
           </div>
@@ -957,6 +1010,23 @@ const halStats = computed(() => ({
         </div>
       </template>
     </TabPanel>
+
+    <div class="resetRow">
+      <button class="danger" :disabled="!can.idle" @click="showResetConfirm = true">Reset All Settings</button>
+    </div>
+
+    <Teleport to="body">
+      <div v-if="showResetConfirm" class="dialogOverlay" @click.self="showResetConfirm = false">
+        <div class="dialog">
+          <div class="dialogTitle danger">Reset All Settings</div>
+          <div class="dialogBody">Restore all settings to factory defaults? This cannot be undone.</div>
+          <div class="dialogActions">
+            <button @click="showResetConfirm = false">Cancel</button>
+            <button class="danger" @click="confirmReset">Reset</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -973,6 +1043,13 @@ const halStats = computed(() => ({
   opacity: 0.45;
   margin-bottom: 12px;
   flex-shrink: 0;
+}
+
+.resetRow {
+  flex-shrink: 0;
+  padding-top: var(--gap-section);
+  display: flex;
+  justify-content: flex-end;
 }
 
 .scrollContent {

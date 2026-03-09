@@ -113,10 +113,10 @@ const VIEWER_FALLBACK: ViewerDefaults = {
   colors: { feed: "#22b8cf", rapid: "#f5a623", backplot: "#ff00ff", bounds: "#ffffff", workpiece: "#ffffff", tool: "#c0c0c0", cutter: "#ffdd00" },
   opacities: { workpiece: 0.16, bounds: 0.10, machine: 1.0, toolpath: 1.0, backplot: 0.55, hud: 1.0 },
   machineColors: {},
-  machineEdges: false,
+  machineEdges: true,
   trackingMode: "none",
-  pathOnTop: true,
-  projection: "perspective",
+  pathOnTop: false,
+  projection: "parallel",
 };
 
 registerSection<ViewerDefaults>("viewer", VIEWER_FALLBACK, (saved, fb) => {
@@ -164,7 +164,7 @@ const MACHINE_FALLBACK: MachineDefaults = {
   runFromLine: false,
   rflSpindleDir: "forward",
   rflSpindleRpm: 10000,
-  keyboardJog: true,
+  keyboardJog: false,
 };
 
 registerSection<MachineDefaults>("machine", MACHINE_FALLBACK, (saved, fb) => {
@@ -272,4 +272,11 @@ export function loadDisplayDefaults(): DisplayDefaults {
 
 export function saveDisplayDefaults(data: DisplayDefaults): void {
   saveSection("display", data);
+}
+
+/** Clear all persisted settings so next load returns factory defaults. */
+export function resetAllDefaults(): void {
+  localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem("lcnc-toolsetter-params");
+  _cache = null;
 }

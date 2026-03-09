@@ -770,6 +770,19 @@ provide("setMachinePartColor", setMachinePartColor);
 provide("setMachineEdges", setMachineEdges);
 provide("setToolColors", setToolColors);
 
+// Broadcast viewer settings to all ThreeViewer instances
+function setPathOnTop(on: boolean) {
+  for (const v of viewerRefs.values()) v?.setPathAlwaysOnTop?.(on);
+}
+function setProjection(proj: "perspective" | "parallel") {
+  const wantOrtho = proj === "parallel";
+  for (const v of viewerRefs.values()) {
+    if (v?.isOrtho?.value !== wantOrtho) v?.switchProjection?.();
+  }
+}
+
+const runFromLineEnabled = ref(loadMachineDefaults().runFromLine);
+
 const touchoff = ref<number[]>([0, 0, 0]);
 
 // Resize touchoff when axes change (e.g. 3→5 axes on reconnect)
@@ -915,9 +928,6 @@ function unloadFile() {
 
 /** ---------- keyboard shortcuts ---------- */
 const keyboardJogEnabled = ref(loadMachineDefaults().keyboardJog);
-watch(settingsDialogOpen, (open) => {
-  if (!open) keyboardJogEnabled.value = loadMachineDefaults().keyboardJog;
-});
 const JOG_KEY_MAP: Record<string, { axis: number; dir: 1 | -1 }> = {
   ArrowLeft:  { axis: 0, dir: -1 },
   ArrowRight: { axis: 0, dir:  1 },
@@ -1582,6 +1592,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
               :elapsed="elapsedDisplay"
               :optionalStop="optionalStopOn"
               :blockDelete="blockDeleteOn"
+              :runFromLine="runFromLineEnabled"
               @loadFile="loadFile"
               @unloadFile="unloadFile"
               @cycleStart="cycleStart"
@@ -1684,7 +1695,11 @@ watch(isHomed, (nowHomed, wasHomed) => {
         <div class="settingsDialogBody">
           <SettingsPanel :lastReply="lastReply" :status="status"
             @setProbeVars="send({ cmd: 'set_probe_vars', vars: $event })"
-            @mdi="send({ cmd: 'mdi', text: $event })" />
+            @mdi="send({ cmd: 'mdi', text: $event })"
+            @setPathOnTop="setPathOnTop"
+            @setProjection="setProjection"
+            @setKeyboardJog="keyboardJogEnabled = $event"
+            @setRunFromLine="runFromLineEnabled = $event" />
         </div>
       </div>
     </div>

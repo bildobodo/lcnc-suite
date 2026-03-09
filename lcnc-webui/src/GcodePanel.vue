@@ -32,6 +32,7 @@ const props = defineProps<{
   elapsed: string;
   optionalStop: boolean;
   blockDelete: boolean;
+  runFromLine: boolean;
 }>();
 
 const can = usePermissions();
@@ -312,7 +313,6 @@ function formatSize(bytes: number): string {
 }
 
 /** ---------- Run from line ---------- */
-const runFromLineEnabled = ref(false);
 const selectedLine = ref<number | null>(null);
 const showRunDialog = ref(false);
 const dialogSpindleDir = ref<"off" | "forward" | "reverse">("forward");
@@ -322,7 +322,6 @@ function dismissStats() { showStats.value = false; }
 
 onMounted(() => {
   const mach = loadMachineDefaults();
-  runFromLineEnabled.value = mach.runFromLine;
   dialogSpindleDir.value = mach.rflSpindleDir;
   dialogSpindleSpeed.value = mach.rflSpindleRpm;
   document.addEventListener("click", dismissStats);
@@ -333,7 +332,7 @@ onUnmounted(() => {
 });
 
 function onLineClick(lineNum: number) {
-  if (!runFromLineEnabled.value || !props.gcodeContent) return;
+  if (!props.runFromLine || !props.gcodeContent) return;
   selectedLine.value = selectedLine.value === lineNum ? null : lineNum;
 }
 
@@ -580,7 +579,7 @@ async function saveEdit() {
                  :class="{
                    active: currentLine === item.lineNum,
                    selected: selectedLine === item.lineNum,
-                   selectable: runFromLineEnabled && gcodeContent
+                   selectable: runFromLine && gcodeContent
                  }"
                  @click="onLineClick(item.lineNum)">
               <span class="lineNumber">{{ item.lineNum }}</span>
