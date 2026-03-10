@@ -15,6 +15,7 @@ const props = defineProps<{
   eoffsetEnabled: boolean;
   compMethod: number | null;  // 0=nearest, 1=linear, 2=cubic
   surfacePoints: [number, number, number][] | null;
+  surfaceInViewer: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -24,6 +25,7 @@ const emit = defineEmits<{
   (e: "setProbeVars", vars: Record<string, number>): void;
   (e: "setG5x", gcode: string): void;
   (e: "getProbeResults"): void;
+  (e: "loadSurfaceToViewer"): void;
   (e: "setCompensation", enable: boolean): void;
   (e: "setCompMethod", method: number): void;
   (e: "clearSurfaceMap"): void;
@@ -340,7 +342,7 @@ function setMethod(m: number) {
 }
 
 function loadSurfaceMap() {
-  emit("getProbeResults");
+  emit("loadSurfaceToViewer");
 }
 
 // ─── 3D surface popout dialog ────────────────────────────────────
@@ -495,9 +497,12 @@ function render3DSurface(pts: [number, number, number][]) {
         c.width = 64; c.height = 64;
         const cx = c.getContext("2d")!;
         cx.font = "bold 48px sans-serif";
-        cx.fillStyle = color;
         cx.textAlign = "center";
         cx.textBaseline = "middle";
+        cx.strokeStyle = "#000000";
+        cx.lineWidth = 5;
+        cx.strokeText(text, 32, 32);
+        cx.fillStyle = color;
         cx.fillText(text, 32, 32);
         const t = new THREE.CanvasTexture(c);
         const m = new THREE.SpriteMaterial({ map: t, transparent: true, depthTest: false });
@@ -587,8 +592,8 @@ function fmtR(key: string): string {
       <button class="tab-btn" :class="{ active: probeView === 'boss' }" @click="probeView = 'boss'">Boss/Pocket</button>
       <button class="tab-btn" :class="{ active: probeView === 'ridge' }" @click="probeView = 'ridge'">Ridge/Valley</button>
       <button class="tab-btn" :class="{ active: probeView === 'angle' }" @click="probeView = 'angle'">Angle</button>
-      <button class="tab-btn" :class="{ active: probeView === 'cal' }" @click="probeView = 'cal'">Calibrate</button>
       <button class="tab-btn" :class="{ active: probeView === 'surface' }" @click="probeView = 'surface'">Surface</button>
+      <button class="tab-btn" :class="{ active: probeView === 'cal' }" @click="probeView = 'cal'">Calibrate</button>
     </div>
 
     <!-- WCS selector -->
@@ -1195,7 +1200,7 @@ function fmtR(key: string): string {
 
       <div class="surfaceActions" :style="{ opacity: can.ready ? 1 : 'var(--opacity-disabled)' }">
         <button class="btn" :disabled="!can.probe || probing" @click="runSurfaceScan">Start Scan</button>
-        <button v-if="!surfacePoints?.length" class="btn" :disabled="!can.idle" @click="loadSurfaceMap">Load Map</button>
+        <button v-if="!surfaceInViewer" class="btn" :disabled="!can.idle" @click="loadSurfaceMap">Load Map</button>
         <button v-else class="btn" :disabled="!can.idle" @click="emit('clearSurfaceMap')">Unload Map</button>
         <button class="btn" :disabled="!can.idle" @click="if (!surfacePoints?.length) emit('getProbeResults'); mapDialogOpen = true">3D Inspect</button>
         <button class="btn" :class="{ active: eoffsetEnabled }" :disabled="!can.ready || probing" @click="toggleComp">{{ eoffsetEnabled ? 'Disable Comp' : 'Enable Comp' }}</button>

@@ -1061,9 +1061,15 @@ watch(status, (st) => {
 
 /** ---------- Surface map probe results ---------- */
 const surfacePoints = ref<[number, number, number][] | null>(null);
+const surfaceLoadedToViewer = ref(false);
 
 function requestProbeResults() {
   send({ cmd: "get_probe_results" });
+}
+
+function loadSurfaceToViewer() {
+  surfaceLoadedToViewer.value = true;
+  requestProbeResults();
 }
 
 // Listen for get_probe_results reply
@@ -1523,7 +1529,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
                 :spindleSpeed="spindleSpeed"
                 :spindleActual="spindleActual"
                 :spindleDirection="spindleDirection"
-                :surfacePoints="surfacePoints"
+                :surfacePoints="surfaceLoadedToViewer ? surfacePoints : null"
                 :axes="axes"
                 :touchoff="touchoff"
                 :optionalStop="optionalStopOn"
@@ -1619,14 +1625,16 @@ watch(isHomed, (nowHomed, wasHomed) => {
               :eoffsetEnabled="!!st.eoffset_enabled"
               :compMethod="st.comp_method ?? null"
               :surfacePoints="surfacePoints"
+              :surfaceInViewer="surfaceLoadedToViewer"
               @mdi="send({ cmd: 'mdi', text: $event })"
               @abort="send({ cmd: 'abort' })"
               @setProbeVars="send({ cmd: 'set_probe_vars', vars: $event })"
               @setG5x="setG5x"
               @getProbeResults="requestProbeResults"
+              @loadSurfaceToViewer="loadSurfaceToViewer"
               @setCompensation="requestCompToggle"
               @setCompMethod="send({ cmd: 'set_compensation_method', method: $event })"
-              @clearSurfaceMap="surfacePoints = null"
+              @clearSurfaceMap="surfacePoints = null; surfaceLoadedToViewer = false"
             />
           </template>
         </TabPanel>
