@@ -5,6 +5,7 @@ import {
   loadViewerDefaults, saveViewerDefaults,
   loadMachineDefaults, saveMachineDefaults, resetAllDefaults,
   loadMacrosDefaults, saveMacrosDefaults, extractParams,
+  loadCameraDefaults, saveCameraDefaults, type CameraDefaults,
   type Vec3, type Layer, type ColorDefaults, type OpacityDefaults,
   type TrackMode, type Projection, type ToolChangeMode, type SpindleDir,
   type ThemeMode, type MacroDef, type MacroParam,
@@ -342,12 +343,17 @@ onUnmounted(() => document.removeEventListener("click", dismissTip));
 
 function dismissTip() { activeTip.value = null; }
 
+// ─── Camera overlay ──────────────────────────────────────────
+const cam = reactive<CameraDefaults>(loadCameraDefaults());
+function saveCam() { saveCameraDefaults({ ...cam }); }
+
 // ─── Sub-tabs ──────────────────────────────
 const subTabs = [
   { id: "viewer", label: "3D Viewer" },
   { id: "machine", label: "Machine" },
   { id: "toolsetter", label: "Toolsetter" },
   { id: "display", label: "Display" },
+  { id: "camera", label: "Camera" },
   { id: "macros", label: "Macros" },
   { id: "hal", label: "HAL" },
   { id: "debug", label: "Debug" },
@@ -925,6 +931,55 @@ const halStats = computed(() => ({
             <div class="btnGroup" style="margin-top: 8px;">
               <button class="optBtn" :class="{ active: themeMode === 'hc-light' }" @click="setTheme('hc-light')">HC Light</button>
               <button class="optBtn" :class="{ active: themeMode === 'hc-dark' }" @click="setTheme('hc-dark')">HC Dark</button>
+            </div>
+          </div>
+          </fieldset>
+        </div>
+      </template>
+
+      <template #camera>
+        <div class="scrollContent scroll-thin">
+          <fieldset :disabled="!can.idle" class="fs-reset">
+          <div class="section">
+            <div class="sub">Overlay Toggles</div>
+            <div class="layerGrid">
+              <label><input type="checkbox" v-model="cam.showCrosshair" @change="saveCam" /> Crosshair</label>
+              <label><input type="checkbox" v-model="cam.showCircle" @change="saveCam" /> Circle</label>
+              <label><input type="checkbox" v-model="cam.showGrid" @change="saveCam" /> Grid</label>
+            </div>
+          </div>
+
+          <div class="sep"></div>
+
+          <div class="section">
+            <div class="sub">Overlay Dimensions</div>
+            <div class="tsGrid">
+              <label>Circle Radius</label>
+              <input type="number" v-model.number="cam.circleRadius" min="10" max="300" :step="1" @change="saveCam" />
+              <label>Grid Spacing</label>
+              <input type="number" v-model.number="cam.gridSpacing" min="10" max="200" :step="1" @change="saveCam" />
+            </div>
+          </div>
+
+          <div class="sep"></div>
+
+          <div class="section">
+            <div class="sub">Overlay Appearance</div>
+            <div class="opacityList">
+              <div class="opacityRow">
+                <span class="opacityLabel">Opacity</span>
+                <input type="range" class="opacitySlider" min="0" max="1" step="0.05"
+                  :value="cam.overlayOpacity"
+                  @input="cam.overlayOpacity = parseFloat(($event.target as HTMLInputElement).value); saveCam()" />
+                <span class="opacityValue">{{ Math.round(cam.overlayOpacity * 100) }}%</span>
+              </div>
+            </div>
+            <div class="colorGrid" style="margin-top: var(--gap-controls)">
+              <div class="colorRow">
+                <input type="color" class="colorInput" :value="cam.overlayColor"
+                  @input="cam.overlayColor = ($event.target as HTMLInputElement).value; saveCam()" />
+                <span class="colorLabel">Overlay Color</span>
+              </div>
             </div>
           </div>
           </fieldset>
