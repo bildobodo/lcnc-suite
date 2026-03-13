@@ -26,7 +26,8 @@ Gateway connects to LinuxCNC via Python bindings (`linuxcnc.stat`, `linuxcnc.com
 - `ManualPanel.vue` — DRO + jogging + MDI (consolidated)
 - `ProbePanel.vue` — Probe operations grid, calls `O<probe_*> CALL` via MDI
 - `ToolTablePanel.vue` — Tool table with load/delete dialogs
-- `SettingsPanel.vue` — Sub-tabbed settings (3D Viewer | Machine | Toolsetter | Jogging | Debug)
+- `CameraViewer.vue` — Camera tab with MJPEG feed, SVG crosshair/circle/grid overlay, floating toolbar
+- `SettingsPanel.vue` — Sub-tabbed settings (3D Viewer | Machine | Toolsetter | Jogging | Macros | Debug)
 - `permissions.ts` — Centralized button permission system (evaluatePermissions + provide/inject)
 - `lcncWs.ts` — WebSocket client, heartbeat, server-authoritative armed state
 - `lcncApi.ts` — REST helpers for file listing and upload
@@ -35,7 +36,7 @@ Gateway connects to LinuxCNC via Python bindings (`linuxcnc.stat`, `linuxcnc.com
 
 ### Main Tabs
 
-`3D Viewer | Manual Control | Program | Tool Table | Probing | Settings`
+`3D Viewer | Manual Control | Program | Tool Table | Probing | Camera | Settings`
 
 ### Sidebar
 
@@ -43,10 +44,11 @@ Left column (150px) with three sections:
 
 1. **Machine Safety** — Arm/Disarm, E-Stop, Machine On/Off
 2. **Machine Status** — Click-to-toggle popovers for Machine, Program, Overrides
-3. **Controls** — Spindle, Coolant, Tool button+popover groups
+3. **Controls** — Spindle, Coolant, Tool, Macros button+popover groups
    - Spindle: FWD/REV/STOP, RPM input, actual speed, override slider
    - Coolant: Flood/Mist toggles
    - Tool: Tool # input, Measure/Manual/Load/Abort buttons, probe status, tool context (T# D# Z#)
+   - Macros: User-configurable MDI command buttons with `{param}` prompt support (configured in Settings > Macros)
 
 ## Safety System — Three Layers
 
@@ -216,8 +218,11 @@ which lcnc-suite    # should print ~/.local/bin/lcnc-suite
 | `WEBUI_PORT` | `8000` | HTTP/WebSocket port |
 | `WEBUI_BROWSER` | `1` | Auto-open browser on start |
 | `WEBUI_DEV` | `0` | `1` = Vite dev server on :5173 (hot-reload) |
+| `CAMERA_SOURCE` | *(disabled)* | USB device index (`0`, `1`) or URL (`rtsp://host/live`, `http://host/mjpeg`) |
+| `CAMERA_RESOLUTION` | `1280x720` | Capture resolution `WxH` (USB cameras only) |
+| `CAMERA_FPS` | `15` | MJPEG stream frame rate |
 
-Environment variables `LCNC_WEBUI_HOST`, `LCNC_WEBUI_PORT`, `LCNC_WEBUI_BROWSER`, `LCNC_WEBUI_DEV` override INI values.
+Environment variables `LCNC_WEBUI_HOST`, `LCNC_WEBUI_PORT`, `LCNC_WEBUI_BROWSER`, `LCNC_WEBUI_DEV` override INI values. Camera variables: `LCNC_CAMERA_SOURCE`, `LCNC_CAMERA_RESOLUTION`, `LCNC_CAMERA_FPS`.
 
 **Development mode:** Set `WEBUI_DEV = 1` — launcher starts Vite on :5173 (hot-reload) alongside the gateway on :8000. Browser opens to :5173 where Vite proxies API/WS to the gateway.
 

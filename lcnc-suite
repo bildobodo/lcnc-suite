@@ -30,11 +30,17 @@ if [[ -n "$INI_FILE" ]]; then
   PORT="${LCNC_WEBUI_PORT:-$(ini_get WEBUI_PORT)}"
   BROWSER="${LCNC_WEBUI_BROWSER:-$(ini_get WEBUI_BROWSER)}"
   DEV="${LCNC_WEBUI_DEV:-$(ini_get WEBUI_DEV)}"
+  CAM_SOURCE="${LCNC_CAMERA_SOURCE:-$(ini_get CAMERA_SOURCE)}"
+  CAM_RES="${LCNC_CAMERA_RESOLUTION:-$(ini_get CAMERA_RESOLUTION)}"
+  CAM_FPS="${LCNC_CAMERA_FPS:-$(ini_get CAMERA_FPS)}"
 else
   HOST="${LCNC_WEBUI_HOST:-}"
   PORT="${LCNC_WEBUI_PORT:-}"
   BROWSER="${LCNC_WEBUI_BROWSER:-}"
   DEV="${LCNC_WEBUI_DEV:-}"
+  CAM_SOURCE="${LCNC_CAMERA_SOURCE:-}"
+  CAM_RES="${LCNC_CAMERA_RESOLUTION:-}"
+  CAM_FPS="${LCNC_CAMERA_FPS:-}"
 fi
 
 # Apply defaults
@@ -47,6 +53,11 @@ VITE_PORT="5173"
 
 # Pass INI path if available
 [[ -n "$INI_FILE" ]] && export LCNC_INI_FILE="$INI_FILE"
+
+# Camera (optional — empty means disabled)
+[[ -n "$CAM_SOURCE" ]] && export LCNC_CAMERA_SOURCE="$CAM_SOURCE"
+[[ -n "$CAM_RES" ]] && export LCNC_CAMERA_RESOLUTION="$CAM_RES"
+[[ -n "$CAM_FPS" ]] && export LCNC_CAMERA_FPS="$CAM_FPS"
 
 # ── Ensure NVM Node is on PATH (LinuxCNC may launch with minimal PATH) ──
 if [[ -s "$HOME/.nvm/nvm.sh" ]]; then

@@ -342,6 +342,49 @@ export function extractParams(command: string): string[] {
   return result;
 }
 
+// ─── Camera section ─────────────────────────────────────────────
+
+export interface CameraDefaults {
+  showCrosshair: boolean;
+  showCircle: boolean;
+  showGrid: boolean;
+  circleRadius: number;
+  gridSpacing: number;
+  overlayOpacity: number;
+  overlayColor: string;
+}
+
+const CAMERA_FALLBACK: CameraDefaults = {
+  showCrosshair: true,
+  showCircle: true,
+  showGrid: false,
+  circleRadius: 50,
+  gridSpacing: 50,
+  overlayOpacity: 0.8,
+  overlayColor: "#00ff00",
+};
+
+registerSection<CameraDefaults>("camera", CAMERA_FALLBACK, (saved, fb) => {
+  if (!saved) return { ...fb };
+  return {
+    showCrosshair: saved.showCrosshair ?? fb.showCrosshair,
+    showCircle: saved.showCircle ?? fb.showCircle,
+    showGrid: saved.showGrid ?? fb.showGrid,
+    circleRadius: typeof saved.circleRadius === "number" ? saved.circleRadius : fb.circleRadius,
+    gridSpacing: typeof saved.gridSpacing === "number" ? saved.gridSpacing : fb.gridSpacing,
+    overlayOpacity: typeof saved.overlayOpacity === "number" ? saved.overlayOpacity : fb.overlayOpacity,
+    overlayColor: typeof saved.overlayColor === "string" ? saved.overlayColor : fb.overlayColor,
+  };
+});
+
+export function loadCameraDefaults(): CameraDefaults {
+  return loadSection<CameraDefaults>("camera");
+}
+
+export function saveCameraDefaults(data: CameraDefaults): void {
+  saveSection("camera", data);
+}
+
 /** Clear all persisted settings so next load returns factory defaults. */
 export function resetAllDefaults(): void {
   localStorage.removeItem(STORAGE_KEY);

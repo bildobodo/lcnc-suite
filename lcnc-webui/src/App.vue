@@ -10,6 +10,7 @@ import GcodePanel from "./GcodePanel.vue";
 import SettingsPanel from "./SettingsPanel.vue";
 import ToolTablePanel from "./ToolTablePanel.vue";
 import ProbePanel from "./ProbePanel.vue";
+import CameraViewer from "./CameraViewer.vue";
 import { loadViewerDefaults, loadPanelsDefaults, savePanelsDefaults, MAX_PANELS, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadMacrosDefaults, type ThemeMode, type MacroDef, STEP_DEFAULT, STEP_RPM, STEP_OVERRIDE, STEP_RAPID_OVERRIDE } from "./defaults";
 import {
   INTERP_IDLE, INTERP_READING, INTERP_PAUSED, INTERP_WAITING,
@@ -92,6 +93,7 @@ const tabs = [
   { id: "viewer", label: "3D Viewer" },
   { id: "manual", label: "Manual Control" },
   { id: "gcode", label: "Program" },
+  { id: "camera", label: "Camera" },
   { id: "probe", label: "Probing" },
 ];
 
@@ -1680,6 +1682,10 @@ watch(isHomed, (nowHomed, wasHomed) => {
             />
           </template>
 
+
+          <template #camera>
+            <CameraViewer :active="panel.tab === 'camera'" />
+          </template>
 
           <template #probe>
             <ProbePanel

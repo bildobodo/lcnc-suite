@@ -125,6 +125,7 @@ BY USING THIS SOFTWARE, YOU EXPRESSLY ACKNOWLEDGE AND ASSUME ALL RISKS ASSOCIATE
 - **G-code Parser**: Preview generator for feed and rapid moves (G0/G1/G2/G3)
 - **G-code File Management**: Upload, browse, and load G-code files via REST API
 - **Probe Support**: Real-time probe results and calibration offset parsed from DEBUG EVAL messages on the error channel
+- **Camera Streaming**: MJPEG stream from USB or network cameras (OpenCV) via `GET /camera/stream`
 - **Error Channel**: Real-time LinuxCNC error/message forwarding
 - **STL Model Serving**: Static file server for 3D machine models
 
@@ -158,6 +159,8 @@ BY USING THIS SOFTWARE, YOU EXPRESSLY ACKNOWLEDGE AND ASSUME ALL RISKS ASSOCIATE
 
 `base` = armed, not estopped, enabled
 
+- Camera tab with MJPEG feed, configurable crosshair/circle/grid SVG overlay (USB and IP cameras)
+- User-configurable macro buttons with `{param}` parameter prompts (sidebar popover + Settings editor)
 - Persistent settings (colors, opacities, layers, workpiece defaults)
 - Responsive auto-layout (1–4 panels based on viewport) with portrait and landscape modes
 - Connected clients display with IP and armed status
@@ -245,8 +248,11 @@ WEBUI_DEV = 0
 | `WEBUI_PORT` | `8000` | HTTP and WebSocket port |
 | `WEBUI_BROWSER` | `1` | Auto-open browser on start (`0` to disable) |
 | `WEBUI_DEV` | `0` | `1` = Vite dev server on :5173 with hot-reload |
+| `CAMERA_SOURCE` | *(disabled)* | USB device index (`0`, `1`) or URL (`rtsp://host/live`, `http://host/mjpeg`) |
+| `CAMERA_RESOLUTION` | `1280x720` | Capture resolution `WxH` (USB cameras only) |
+| `CAMERA_FPS` | `15` | MJPEG stream frame rate |
 
-Environment variables `LCNC_WEBUI_HOST`, `LCNC_WEBUI_PORT`, `LCNC_WEBUI_BROWSER`, `LCNC_WEBUI_DEV` override INI values.
+Environment variables `LCNC_WEBUI_HOST`, `LCNC_WEBUI_PORT`, `LCNC_WEBUI_BROWSER`, `LCNC_WEBUI_DEV` override INI values. Camera variables: `LCNC_CAMERA_SOURCE`, `LCNC_CAMERA_RESOLUTION`, `LCNC_CAMERA_FPS`.
 
 #### 3. HAL safety chain
 
@@ -717,6 +723,9 @@ All velocity values are in **machine units per second** (mm/s or in/s). The gate
 | `MIN_SPINDLE_OVERRIDE` | recommended | Spindle override lower limit (e.g. `0.5` = 50%) |
 | `MAX_SPINDLE_OVERRIDE` | recommended | Spindle override upper limit (e.g. `2.0` = 200%) |
 | `PROGRAM_PREFIX` | recommended | Root directory for the G-code file browser |
+| `CAMERA_SOURCE` | optional | USB device index (`0`, `1`) or URL (`rtsp://host/live`) — empty = disabled |
+| `CAMERA_RESOLUTION` | optional | Capture resolution `WxH` (default: `1280x720`, USB only) |
+| `CAMERA_FPS` | optional | MJPEG stream frame rate (default: `15`) |
 
 #### `[SPINDLE_0]`
 
@@ -986,6 +995,7 @@ lcnc-suite/
 │   │   ├── GcodePanel.vue     # G-code viewer + editor + program controls
 │   │   ├── ProbePanel.vue     # Probe operations + calibration + results
 │   │   ├── ToolTablePanel.vue # Tool table editor
+│   │   ├── CameraViewer.vue   # Camera feed with SVG overlay (MJPEG)
 │   │   ├── SettingsPanel.vue  # Application settings (sub-tabbed)
 │   │   ├── JogHUD.vue         # Jog overlay on 3D viewer
 │   │   ├── GcodeHUD.vue       # G-code overlay on 3D viewer

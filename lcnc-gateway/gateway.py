@@ -4,6 +4,7 @@ import json
 import time
 import os
 import subprocess
+import threading
 from pathlib import Path
 import linuxcnc
 import gcode
@@ -84,6 +85,7 @@ def _shutdown_signal_handler(signum, frame):
     """Handle SIGTERM/SIGINT: disconnect from HAL watchdog before exit."""
     print(f"Gateway received signal {signum}", flush=True)
     _hal_disconnect()
+    _camera_release()
     signal.signal(signum, signal.SIG_DFL)
     os.kill(os.getpid(), signum)
 
@@ -1401,6 +1403,7 @@ def handle_command(msg: Dict[str, Any], armed: bool):
             # No require_armed — confirmation dialog is the safety gate
             print("Shutdown requested via web UI", flush=True)
             _hal_disconnect()
+            _camera_release()
             os._exit(0)
 
         if cmd == "abort":
@@ -3256,6 +3259,90 @@ async def ws_endpoint(ws: WebSocket):
         else:
             # Grace period: delay dropping connected pin to allow page refresh
             _start_disconnect_grace()
+
+
+# ── Camera streaming (optional — requires LCNC_CAMERA_SOURCE env var) ────
+try:
+    import cv2
+except ImportError:
+    cv2 = None  # type: ignore[assignment]
+
+_camera: Any = None  # cv2.VideoCapture or None
+_camera_lock = threading.Lock()
+
+def _camera_init() -> bool:
+    """Lazy-init camera from env var. Returns True if available."""
+    global _camera
+    if cv2 is None:
+        return False
+    if _camera is not None:
+        return _camera.isOpened()
+    source = os.environ.get("LCNC_CAMERA_SOURCE", "")
+    if not source:
+        return False
+    try:
+        src: Any = int(source)
+    except ValueError:
+        src = source
+    _camera = cv2.VideoCapture(src)
+    res = os.environ.get("LCNC_CAMERA_RESOLUTION", "1280x720")
+    try:
+        w, h = (int(x) for x in res.split("x"))
+        _camera.set(cv2.CAP_PROP_FRAME_WIDTH, w)
+        _camera.set(cv2.CAP_PROP_FRAME_HEIGHT, h)
+    except ValueError:
+        pass
+    return _camera.isOpened()
+
+def _camera_grab_jpeg(quality: int = 80) -> Optional[bytes]:
+    """Grab one frame, return JPEG bytes or None."""
+    with _camera_lock:
+        if not _camera or not _camera.isOpened():
+            return None
+        ok, frame = _camera.read()
+        if not ok:
+            return None
+        _, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, quality])
+        return buf.tobytes()
+
+def _camera_release():
+    global _camera
+    with _camera_lock:
+        if _camera is not None:
+            _camera.release()
+            _camera = None
+
+from starlette.responses import StreamingResponse, JSONResponse
+
+@app.get("/camera/stream")
+async def camera_stream():
+    loop = asyncio.get_event_loop()
+    ok = await loop.run_in_executor(None, _camera_init)
+    if not ok:
+        return JSONResponse({"error": "No camera configured"}, status_code=503)
+    fps = int(os.environ.get("LCNC_CAMERA_FPS", "15"))
+    delay = 1.0 / fps
+
+    async def generate():
+        while True:
+            jpeg = await loop.run_in_executor(None, _camera_grab_jpeg)
+            if jpeg is None:
+                await asyncio.sleep(delay)
+                continue
+            yield (b"--frame\r\n"
+                   b"Content-Type: image/jpeg\r\n\r\n" + jpeg + b"\r\n")
+            await asyncio.sleep(delay)
+
+    return StreamingResponse(
+        generate(),
+        media_type="multipart/x-mixed-replace; boundary=frame",
+    )
+
+@app.get("/camera/status")
+async def camera_status():
+    loop = asyncio.get_event_loop()
+    ok = await loop.run_in_executor(None, _camera_init)
+    return {"available": ok, "source": os.environ.get("LCNC_CAMERA_SOURCE", "")}
 
 
 # ── Production SPA mount (only when LCNC_WEBUI_DIST_DIR is set) ──────────
