@@ -15,6 +15,7 @@ import {
 import { fetchHal, fetchG30, type HalPin, type HalSignal, type HalParam } from "./lcncApi";
 import { timingStats, resetTimingStats, getTimingCsv, send, type TimingComponentStats } from "./lcncWs";
 import { usePermissions } from "./permissions";
+import { ChevronUp, ChevronDown, Pencil, Trash2 } from "lucide-vue-next";
 
 const can = usePermissions();
 
@@ -1042,10 +1043,10 @@ const halStats = computed(() => ({
                   <code class="macroSettingsCmd">{{ m.command }}</code>
                 </div>
                 <div class="macroSettingsActions">
-                  <button class="btn-icon" :disabled="idx === 0" @click="moveMacro(idx, -1)" title="Move up">&#x25B2;</button>
-                  <button class="btn-icon" :disabled="idx === macros.length - 1" @click="moveMacro(idx, 1)" title="Move down">&#x25BC;</button>
-                  <button class="btn-icon" @click="editMacro(m)" title="Edit">&#x270E;</button>
-                  <button class="btn-icon" @click="deleteMacro(m.id)" title="Delete">&times;</button>
+                  <button class="btn-icon" :disabled="idx === 0" @click="moveMacro(idx, -1)" title="Move up"><ChevronUp :size="14" /></button>
+                  <button class="btn-icon" :disabled="idx === macros.length - 1" @click="moveMacro(idx, 1)" title="Move down"><ChevronDown :size="14" /></button>
+                  <button class="btn-icon" @click="editMacro(m)" title="Edit"><Pencil :size="14" /></button>
+                  <button class="btn-icon" @click="deleteMacro(m.id)" title="Delete"><Trash2 :size="14" /></button>
                 </div>
               </div>
             </div>

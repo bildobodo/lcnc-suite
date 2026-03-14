@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { usePermissions } from "./permissions";
+import { Play, SkipForward, Pause, Square } from "lucide-vue-next";
 
 const props = defineProps<{
   gcodeContent: string | null;
@@ -97,14 +98,14 @@ function tokenizeCode(code: string, tokens: Token[]) {
     <!-- Program controls -->
     <div class="ctrlRow">
       <div class="ctrlGroup">
-        <button class="ctrlBtn primary" :disabled="!can.ready || !gcodeContent" @click="emit('cycleStart')">&#9654;</button>
-        <button class="ctrlBtn" :disabled="!((can.ready && gcodeContent) || can.resume)" @click="emit('cycleStep')">&#x23ED;</button>
+        <button class="ctrlBtn primary" :disabled="!can.ready || !gcodeContent" @click="emit('cycleStart')"><Play :size="16" /></button>
+        <button class="ctrlBtn" :disabled="!((can.ready && gcodeContent) || can.resume)" @click="emit('cycleStep')"><SkipForward :size="16" /></button>
         <button
           class="ctrlBtn"
           :disabled="!can.pause && !can.resume"
           @click="isPaused ? emit('cycleResume') : emit('cyclePause')"
-        >{{ isPaused ? '&#9654;' : '&#9646;&#9646;' }}</button>
-        <button class="ctrlBtn danger" :disabled="!can.abort" @click="emit('abort')">&#9632;</button>
+        ><component :is="isPaused ? Play : Pause" :size="16" /></button>
+        <button class="ctrlBtn danger" :disabled="!can.abort" @click="emit('abort')"><Square :size="16" /></button>
       </div>
       <div class="switchGroup">
         <button class="ctrlBtn switchBtn" :class="{ active: optionalStop }" :disabled="!can.override" @click="emit('toggleOptionalStop')">M01</button>

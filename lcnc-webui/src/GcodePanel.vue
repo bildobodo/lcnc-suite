@@ -3,6 +3,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { listFiles, uploadFile, saveFile, type FileEntry } from "./lcncApi";
 import { usePermissions } from "./permissions";
 import { loadMachineDefaults, STEP_RPM } from "./defaults";
+import { Play, SkipForward, Pause, Square } from "lucide-vue-next";
 
 export interface GcodeStats {
   feedMoves: number;
@@ -485,19 +486,19 @@ async function saveEdit() {
     <!-- Program control -->
     <div class="controlRow">
       <button class="ctrlBtn primary" @click="onStartClick" :disabled="!can.ready || !activeFile || editing">
-        <span class="ctrlIcon">&#x25B6;</span> {{ selectedLine && selectedLine > 1 ? `Start L${selectedLine}` : 'Start' }}
+        <Play :size="14" class="ctrlIcon" /> {{ selectedLine && selectedLine > 1 ? `Start L${selectedLine}` : 'Start' }}
       </button>
       <button class="ctrlBtn" @click="emit('cycleStep')" :disabled="!((can.ready && activeFile) || can.resume) || editing">
-        <span class="ctrlIcon">&#x23ED;</span> Step
+        <SkipForward :size="14" class="ctrlIcon" /> Step
       </button>
       <button class="ctrlBtn"
         @click="isPaused ? emit('cycleResume') : emit('cyclePause')"
         :disabled="!(can.pause || can.resume)">
-        <span class="ctrlIcon">{{ isPaused ? '&#x25B6;' : '&#x23F8;' }}</span>
+        <component :is="isPaused ? Play : Pause" :size="14" class="ctrlIcon" />
         {{ isPaused ? 'Resume' : 'Pause' }}
       </button>
       <button class="ctrlBtn danger" @click="emit('abort')" :disabled="!can.abort">
-        <span class="ctrlIcon">&#x23F9;</span> Abort
+        <Square :size="14" class="ctrlIcon" /> Abort
       </button>
       <button class="ctrlBtn switchBtn" :class="{ active: optionalStop }" :disabled="!can.override" @click="emit('toggleOptionalStop')">M01</button>
       <button class="ctrlBtn switchBtn" :class="{ active: blockDelete }" :disabled="!can.override" @click="emit('toggleBlockDelete')">/BD</button>

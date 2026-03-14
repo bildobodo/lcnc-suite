@@ -3,6 +3,7 @@ import { ref, watch, computed } from "vue";
 import { usePermissions } from "./permissions";
 import { SPINDLE_FORWARD, SPINDLE_REVERSE } from "./lcnc";
 import { STEP_RPM, STEP_OVERRIDE } from "./defaults";
+import { RotateCcw, RotateCw, Square } from "lucide-vue-next";
 
 const props = defineProps<{
   spindleSpeed: number | null;
@@ -55,21 +56,21 @@ function formatRpm(val: number | null): string {
         :disabled="!can.ready"
         @click="emit('spindleReverse', rpmInput)"
         title="Reverse (CCW)"
-      >&#x21BA; REV</button>
+      ><RotateCcw :size="12" /> REV</button>
       <button
         class="dirBtn stop"
         :class="{ active: isForward || isReverse }"
         :disabled="!can.ready"
         @click="emit('spindleStop')"
         title="Stop"
-      >&#x25A0; STOP</button>
+      ><Square :size="12" /> STOP</button>
       <button
         class="dirBtn"
         :class="{ active: isForward }"
         :disabled="!can.ready"
         @click="emit('spindleForward', rpmInput)"
         title="Forward (CW)"
-      >&#x21BB; FWD</button>
+      ><RotateCw :size="12" /> FWD</button>
     </div>
 
     <!-- RPM input -->

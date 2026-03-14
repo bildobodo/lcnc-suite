@@ -11,7 +11,7 @@ import SettingsPanel from "./SettingsPanel.vue";
 import ToolTablePanel from "./ToolTablePanel.vue";
 import ProbePanel from "./ProbePanel.vue";
 import CameraViewer from "./CameraViewer.vue";
-import { HeartPulse, Info, LocateFixed, SlidersHorizontal, Gauge, MessageSquare, RotateCw, Droplets, Drill, CodeXml, Lock, LockOpen, TriangleAlert, Power, PowerOff } from "lucide-vue-next";
+import { HeartPulse, Info, LocateFixed, SlidersHorizontal, Gauge, MessageSquare, RotateCw, RotateCcw, Square, Droplets, Drill, CodeXml, Lock, LockOpen, TriangleAlert, Power, PowerOff } from "lucide-vue-next";
 import { loadViewerDefaults, loadPanelsDefaults, savePanelsDefaults, MAX_PANELS, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadMacrosDefaults, type ThemeMode, type MacroDef, STEP_DEFAULT, STEP_RPM, STEP_OVERRIDE, STEP_RAPID_OVERRIDE } from "./defaults";
 import {
   INTERP_IDLE, INTERP_READING, INTERP_PAUSED, INTERP_WAITING,
@@ -1185,7 +1185,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
     <section class="card">
       <div class="sub">Machine Safety</div>
       <div class="btnrow">
-        <button class="btn safetyBtn" :class="{ ok: armed }" @click="arm(!armed)" :disabled="busy">
+        <button class="btn safetyBtn" :class="{ ok: armed }" @click="arm(!armed)" :disabled="busy" :title="armed ? 'Disarm' : 'Arm'">
           <component :is="armed ? LockOpen : Lock" class="safetyIcon" />
         </button>
 
@@ -1208,6 +1208,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
           :class="{ ok: isEnabled }"
           @click="fire({ cmd: isEnabled ? 'machine_off' : 'machine_on' })"
           :disabled="!(isEnabled ? canMachineOff : canMachineOn) || busy"
+          :title="isEnabled ? 'Machine Off' : 'Machine On'"
         >
           <Power class="safetyIcon" />
         </button>
@@ -1219,9 +1220,9 @@ watch(isHomed, (nowHomed, wasHomed) => {
       <div class="sub">Machine Status</div>
 
       <div class="compactStatus">
-        <div class="statusChip" :class="isEstop ? 'bad' : (isEnabled && isHomed ? 'ok' : '')" @click.stop="toggleChip('machine')" title="Machine">
+        <div class="statusChip" :class="isEstop ? 'bad' : (isEnabled && isHomed ? 'ok' : '')" @click.stop="toggleChip('machine')" title="Machine State">
           <HeartPulse class="chipIcon" />
-          <span class="label">Machine</span>
+          <span class="label">Machine State</span>
           <span class="chipValue">{{ isEstop ? 'E-STOP' : (!isEnabled ? 'OFF' : (!isHomed ? 'NOT HOMED' : 'READY')) }}</span>
           <div class="popover chipPopover" :class="{ open: openChip === 'machine' }">
             <div class="statusRow"><div class="k">E-Stop</div><div class="v" :class="isEstop ? 'badText' : 'okText'">{{ isEstop ? 'TRUE' : 'FALSE' }}</div></div>
@@ -1237,9 +1238,9 @@ watch(isHomed, (nowHomed, wasHomed) => {
           </div>
         </div>
 
-        <div class="statusChip" :class="isRunning ? 'ok' : (isPaused ? 'warn' : '')" @click.stop="toggleChip('program')" title="Program">
+        <div class="statusChip" :class="isRunning ? 'ok' : (isPaused ? 'warn' : '')" @click.stop="toggleChip('program')" title="Task Mode">
           <Info class="chipIcon" />
-          <span class="label">Program</span>
+          <span class="label">Task Mode</span>
           <span class="chipValue">{{ isRunning ? 'RUNNING' : (isPaused ? 'PAUSED' : 'IDLE') }}</span>
           <div class="popover chipPopover programPopover" :class="{ open: openChip === 'program' }">
             <div class="statusRow"><div class="k">Task Mode</div><div class="v">{{ taskModeLabel }}</div></div>
@@ -1385,7 +1386,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
               @click="spindleReverse(rpmInput)"
               title="Spindle Reverse (CCW)"
             >
-              <span class="spDirIcon">&#x21BA;</span>
+              <RotateCcw :size="14" />
               <span class="label">Rev</span>
             </button>
             <button
@@ -1395,7 +1396,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
               @click="spindleStop()"
               title="Spindle Stop"
             >
-              <span class="spStopIcon">&#x25A0;</span>
+              <Square :size="14" />
               <span class="label">Stop</span>
             </button>
             <button
@@ -1405,7 +1406,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
               @click="spindleForward(rpmInput)"
               title="Spindle Forward (CW)"
             >
-              <span class="spDirIcon">&#x21BB;</span>
+              <RotateCw :size="14" />
               <span class="label">Fwd</span>
             </button>
           </div>

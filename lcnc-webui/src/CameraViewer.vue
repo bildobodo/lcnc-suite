@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { loadCameraDefaults, saveCameraDefaults } from "./defaults";
+import { Crosshair, Circle, Grid3x3 } from "lucide-vue-next";
 
 const props = defineProps<{ active?: boolean }>();
 
@@ -142,17 +143,17 @@ CAMERA_SOURCE = rtsp://&lt;host&gt;/live      # IP camera</pre>
       <!-- Floating toolbar -->
       <div class="cameraToolbar">
         <button class="btn camToolBtn" :class="{ active: showCrosshair }"
-                @click="showCrosshair = !showCrosshair" title="Crosshair">+</button>
+                @click="showCrosshair = !showCrosshair" title="Crosshair"><Crosshair :size="14" /></button>
         <button class="btn camToolBtn" :class="{ active: showCircle }"
-                @click="showCircle = !showCircle" title="Circle">&#x25CB;</button>
+                @click="showCircle = !showCircle" title="Circle"><Circle :size="14" /></button>
         <button class="btn camToolBtn" :class="{ active: showGrid }"
-                @click="showGrid = !showGrid" title="Grid">#</button>
+                @click="showGrid = !showGrid" title="Grid"><Grid3x3 :size="14" /></button>
         <div class="camSliderGroup">
-          <span class="camSliderLabel">&#x25CB;</span>
+          <Circle :size="12" class="camSliderLabel" />
           <input type="range" min="10" max="300" v-model.number="circleRadius" class="camSlider" />
         </div>
         <div class="camSliderGroup">
-          <span class="camSliderLabel">#</span>
+          <Grid3x3 :size="12" class="camSliderLabel" />
           <input type="range" min="10" max="200" v-model.number="gridSpacing" class="camSlider" />
         </div>
         <div class="camSliderGroup">

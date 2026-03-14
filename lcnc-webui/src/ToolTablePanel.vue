@@ -3,6 +3,7 @@ import { ref, computed, watch, onMounted } from "vue";
 import { send, lastReply, connected } from "./lcncWs";
 import { usePermissions } from "./permissions";
 import { loadMachineDefaults, STEP_DEFAULT, type ToolChangeMode } from "./defaults";
+import { Pencil, Trash2 } from "lucide-vue-next";
 
 const FETCH_DELAY_MS = 500;
 const REFETCH_AFTER_SAVE_MS = 400;
@@ -570,7 +571,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
           <span class="cellText cellDesc" :title="tool.description">{{ tool.description || tool.remark || "-" }}</span>
         </div>
         <div class="tcell tcellAction">
-          <button class="btn" :disabled="!can.idle" @click="openEdit(tool)" title="Edit tool">✎</button>
+          <button class="btn" :disabled="!can.idle" @click="openEdit(tool)" title="Edit tool"><Pencil :size="14" /></button>
         </div>
         <div class="tcell tcellAction">
           <button
@@ -579,7 +580,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
             @click.stop="requestDelete(tool.T)"
             :disabled="!can.idle"
             title="Delete tool"
-          >&#128465;</button>
+          ><Trash2 :size="14" /></button>
         </div>
       </div>
 
