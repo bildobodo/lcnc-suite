@@ -433,6 +433,43 @@ export function saveCameraDefaults(data: CameraDefaults): void {
   saveSection("camera", data);
 }
 
+// ─── Gamepad section ─────────────────────────────────────────────
+
+export interface GamepadDefaults {
+  enabled: boolean;
+  deadZone: number;
+  invertX: boolean;
+  invertY: boolean;
+  invertZ: boolean;
+}
+
+const GAMEPAD_FALLBACK: GamepadDefaults = {
+  enabled: false,
+  deadZone: 0.15,
+  invertX: false,
+  invertY: false,
+  invertZ: false,
+};
+
+registerSection<GamepadDefaults>("gamepad", GAMEPAD_FALLBACK, (saved, fb) => {
+  if (!saved) return { ...fb };
+  return {
+    enabled: saved.enabled ?? fb.enabled,
+    deadZone: typeof saved.deadZone === "number" ? saved.deadZone : fb.deadZone,
+    invertX: saved.invertX ?? fb.invertX,
+    invertY: saved.invertY ?? fb.invertY,
+    invertZ: saved.invertZ ?? fb.invertZ,
+  };
+});
+
+export function loadGamepadDefaults(): GamepadDefaults {
+  return loadSection<GamepadDefaults>("gamepad");
+}
+
+export function saveGamepadDefaults(data: GamepadDefaults): void {
+  saveSection("gamepad", data);
+}
+
 /** Clear all persisted settings so next load returns factory defaults. */
 export function resetAllDefaults(): void {
   localStorage.removeItem(STORAGE_KEY);

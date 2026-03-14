@@ -11,8 +11,9 @@ import SettingsPanel from "./SettingsPanel.vue";
 import ToolTablePanel from "./ToolTablePanel.vue";
 import ProbePanel from "./ProbePanel.vue";
 import CameraViewer from "./CameraViewer.vue";
-import { HeartPulse, Info, LocateFixed, SlidersHorizontal, Gauge, MessageSquare, RotateCw, RotateCcw, Square, Droplets, Drill, CodeXml, Lock, LockOpen, TriangleAlert, Power, PowerOff } from "lucide-vue-next";
-import { loadViewerDefaults, loadPanelsDefaults, savePanelsDefaults, MAX_PANELS, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadMacrosDefaults, type ThemeMode, type MacroDef, STEP_DEFAULT, STEP_RPM, STEP_OVERRIDE, STEP_RAPID_OVERRIDE } from "./defaults";
+import { HeartPulse, Info, LocateFixed, SlidersHorizontal, Gauge, MessageSquare, RotateCw, RotateCcw, Square, Droplets, Drill, CodeXml, Lock, LockOpen, TriangleAlert, Power, PowerOff, Gamepad2 } from "lucide-vue-next";
+import { loadViewerDefaults, loadPanelsDefaults, savePanelsDefaults, MAX_PANELS, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadMacrosDefaults, loadGamepadDefaults, saveGamepadDefaults, type ThemeMode, type MacroDef, type GamepadDefaults, STEP_DEFAULT, STEP_RPM, STEP_OVERRIDE, STEP_RAPID_OVERRIDE } from "./defaults";
+import { useGamepad } from "./useGamepad";
 import {
   INTERP_IDLE, INTERP_READING, INTERP_PAUSED, INTERP_WAITING,
   TRAJ_MODE_FREE, TRAJ_MODE_TELEOP,
@@ -1058,9 +1059,29 @@ function onKeyUp(e: KeyboardEvent) {
   }
 }
 
+/** ---------- gamepad jogging ---------- */
+const gamepadConfig = ref<GamepadDefaults>(loadGamepadDefaults());
+const gamepad = useGamepad({
+  jogVel,
+  angularJogVel,
+  jogIncrement,
+  permissions,
+  send,
+  fire,
+  activeFile: computed(() => activeFile.value),
+  config: gamepadConfig,
+  axisCount: computed(() => axes.value.length),
+});
+
+function setGamepadConfig(cfg: GamepadDefaults) {
+  gamepadConfig.value = cfg;
+  saveGamepadDefaults(cfg);
+}
+
 /** ---------- safety: stop jog on focus loss ---------- */
 function stopAllJog() {
   jogKeys.clear();
+  gamepad.stopAllJog();
   if (!permissions.value.jog) return; // no jog possible unless armed + enabled + homed
   if (isRunning.value || isPaused.value) return; // no jog during program execution
   for (let i = 0; i < axes.value.length; i++) {
@@ -1078,6 +1099,7 @@ onMounted(() => {
   window.addEventListener("keyup", onKeyUp);
   document.addEventListener("visibilitychange", visHandler);
   document.addEventListener("click", onDocClick);
+  gamepad.start();
 });
 
 onUnmounted(() => {
@@ -1087,6 +1109,7 @@ onUnmounted(() => {
   document.removeEventListener("click", onDocClick);
   document.removeEventListener("visibilitychange", visHandler);
   themeMql.removeEventListener("change", onOsThemeChange);
+  gamepad.stop();
 });
 
 /** ---------- Probe results from DEBUG EVAL messages ---------- */
@@ -1164,6 +1187,10 @@ watch(isHomed, (nowHomed, wasHomed) => {
 
         <div class="pill" :class="armed ? 'armed' : 'disarmed'">
           {{ armed ? "ARMED" : "DISARMED" }}
+        </div>
+
+        <div v-if="gamepad.gamepadConnected.value" class="pill ok" :title="gamepad.gamepadName.value">
+          <Gamepad2 :size="14" />
         </div>
 
         <button class="btn btn-icon hdrShutdown" title="Shut Down LinuxCNC" @click="showShutdownConfirm = true">
@@ -1778,12 +1805,18 @@ watch(isHomed, (nowHomed, wasHomed) => {
         </div>
         <div class="settingsDialogBody">
           <SettingsPanel :lastReply="lastReply" :status="status"
+            :gamepadConnected="gamepad.gamepadConnected.value"
+            :gamepadName="gamepad.gamepadName.value"
+            :gamepadConfig="gamepadConfig"
+            :gamepadAxes="gamepad.gamepadAxesState.value"
+            :gamepadButtons="gamepad.gamepadButtonsState.value"
             @setProbeVars="send({ cmd: 'set_probe_vars', vars: $event })"
             @mdi="send({ cmd: 'mdi', text: $event })"
             @setPathOnTop="setPathOnTop"
             @setProjection="setProjection"
             @setKeyboardJog="keyboardJogEnabled = $event"
-            @setRunFromLine="runFromLineEnabled = $event" />
+            @setRunFromLine="runFromLineEnabled = $event"
+            @setGamepadConfig="setGamepadConfig" />
         </div>
       </div>
     </div>

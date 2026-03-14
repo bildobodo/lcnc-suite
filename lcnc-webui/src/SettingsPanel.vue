@@ -9,7 +9,7 @@ import {
   saveDisplayDefaults,
   type Vec3, type Layer, type ColorDefaults, type OpacityDefaults,
   type TrackMode, type Projection, type ToolChangeMode, type SpindleDir,
-  type ThemeMode, type MacroDef, type MacroParam,
+  type ThemeMode, type MacroDef, type MacroParam, type GamepadDefaults,
   STEP_DEFAULT, STEP_FEED, STEP_RPM,
 } from "./defaults";
 import { fetchHal, fetchG30, type HalPin, type HalSignal, type HalParam } from "./lcncApi";
@@ -93,6 +93,11 @@ function persistMacros() {
 const props = defineProps<{
   lastReply?: unknown;
   status?: unknown;
+  gamepadConnected?: boolean;
+  gamepadName?: string;
+  gamepadConfig?: GamepadDefaults;
+  gamepadAxes?: number[];
+  gamepadButtons?: boolean[];
 }>();
 
 const emit = defineEmits<{
@@ -102,6 +107,7 @@ const emit = defineEmits<{
   (e: "setProjection", proj: Projection): void;
   (e: "setKeyboardJog", on: boolean): void;
   (e: "setRunFromLine", on: boolean): void;
+  (e: "setGamepadConfig", cfg: GamepadDefaults): void;
 }>();
 
 // ─── Per-tab reset ──────────────────────────────────────────────
@@ -357,6 +363,7 @@ const subTabs = [
   { id: "display", label: "Display" },
   { id: "camera", label: "Camera" },
   { id: "macros", label: "Macros" },
+  { id: "gamepad", label: "Gamepad" },
   { id: "hal", label: "HAL" },
   { id: "debug", label: "Debug" },
 ];
@@ -1082,6 +1089,101 @@ const halStats = computed(() => ({
             </div>
 
             <button v-if="!editingMacro && macros.length < 20" class="btn primary" @click="addMacro" style="margin-top: var(--gap-section);">Add Macro</button>
+          </div>
+        </div>
+      </template>
+
+      <template #gamepad>
+        <div class="scrollContent scroll-thin">
+          <div class="section">
+            <div class="sub">Gamepad Jogging</div>
+            <div class="settingDesc">Use an Xbox, PlayStation, or standard gamepad to jog the machine.</div>
+            <div class="btnGroup modeGroup">
+              <button
+                class="optBtn modeBtn"
+                :class="{ active: !props.gamepadConfig?.enabled }"
+                @click="emit('setGamepadConfig', { ...props.gamepadConfig!, enabled: false })"
+              >
+                <span class="modeName">Disabled</span>
+                <span class="modeDesc">Gamepad input is ignored</span>
+              </button>
+              <button
+                class="optBtn modeBtn"
+                :class="{ active: props.gamepadConfig?.enabled }"
+                @click="emit('setGamepadConfig', { ...props.gamepadConfig!, enabled: true })"
+              >
+                <span class="modeName">Enabled</span>
+                <span class="modeDesc">Sticks and D-pad jog the machine</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="sub">Connection</div>
+            <div class="settingDesc" :class="{ okText: props.gamepadConnected }">
+              {{ props.gamepadConnected ? props.gamepadName : 'No gamepad detected — connect one and press a button' }}
+            </div>
+          </div>
+
+          <div v-if="props.gamepadConfig?.enabled" class="section">
+            <div class="sub">Dead Zone</div>
+            <div class="settingDesc">Ignore stick deflection below this threshold to prevent drift.</div>
+            <div class="sliderRow">
+              <input
+                type="range" min="0.05" max="0.50" step="0.01"
+                :value="props.gamepadConfig?.deadZone ?? 0.15"
+                @input="emit('setGamepadConfig', { ...props.gamepadConfig!, deadZone: parseFloat(($event.target as HTMLInputElement).value) })"
+              />
+              <span class="sliderVal">{{ Math.round((props.gamepadConfig?.deadZone ?? 0.15) * 100) }}%</span>
+            </div>
+          </div>
+
+          <div v-if="props.gamepadConfig?.enabled" class="section">
+            <div class="sub">Axis Inversion</div>
+            <div class="settingDesc">Flip axis direction if your gamepad moves the wrong way.</div>
+            <label class="checkRow"><input type="checkbox" :checked="props.gamepadConfig?.invertX" @change="emit('setGamepadConfig', { ...props.gamepadConfig!, invertX: ($event.target as HTMLInputElement).checked })" /> Invert X</label>
+            <label class="checkRow"><input type="checkbox" :checked="props.gamepadConfig?.invertY" @change="emit('setGamepadConfig', { ...props.gamepadConfig!, invertY: ($event.target as HTMLInputElement).checked })" /> Invert Y</label>
+            <label class="checkRow"><input type="checkbox" :checked="props.gamepadConfig?.invertZ" @change="emit('setGamepadConfig', { ...props.gamepadConfig!, invertZ: ($event.target as HTMLInputElement).checked })" /> Invert Z</label>
+          </div>
+
+          <div v-if="props.gamepadConfig?.enabled && props.gamepadConnected" class="section">
+            <div class="sub">Live Input</div>
+            <div class="settingDesc">Move sticks and press buttons to verify mapping.</div>
+            <div class="gpLive">
+              <div class="gpStick">
+                <div class="gpStickLabel">Left Stick (XY)</div>
+                <div class="gpStickBox">
+                  <div class="gpDot" :style="{ left: `${50 + (props.gamepadAxes?.[0] ?? 0) * 40}%`, top: `${50 + (props.gamepadAxes?.[1] ?? 0) * 40}%` }"></div>
+                </div>
+              </div>
+              <div class="gpStick">
+                <div class="gpStickLabel">Right Stick (Z)</div>
+                <div class="gpStickBox">
+                  <div class="gpDot" :style="{ left: '50%', top: `${50 + (props.gamepadAxes?.[3] ?? 0) * 40}%` }"></div>
+                </div>
+              </div>
+              <div class="gpButtons">
+                <div class="gpStickLabel">Buttons</div>
+                <div class="gpBtnGrid">
+                  <span v-for="(label, i) in ['A','B','X','Y','LB','RB','LT','RT','Back','Start','LS','RS','▲','▼','◄','►']" :key="i"
+                    class="gpBtn" :class="{ active: props.gamepadButtons?.[i] }">{{ label }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="props.gamepadConfig?.enabled" class="section">
+            <div class="sub">Button Mapping</div>
+            <table class="gpMapTable">
+              <tr><td class="gpMapKey">Left Stick</td><td>XY continuous jog (proportional)</td></tr>
+              <tr><td class="gpMapKey">Right Stick Y</td><td>Z continuous jog (proportional)</td></tr>
+              <tr><td class="gpMapKey">D-pad</td><td>XY discrete jog (full speed)</td></tr>
+              <tr><td class="gpMapKey">LB + D-pad ▲▼</td><td>Z discrete jog</td></tr>
+              <tr><td class="gpMapKey">A</td><td>Cycle Start / Resume</td></tr>
+              <tr><td class="gpMapKey">B</td><td>Abort</td></tr>
+              <tr><td class="gpMapKey">X</td><td>Pause</td></tr>
+              <tr><td class="gpMapKey">Y</td><td>Resume</td></tr>
+            </table>
           </div>
         </div>
       </template>
@@ -1873,5 +1975,92 @@ const halStats = computed(() => ({
   justify-content: flex-end;
   gap: var(--gap-controls);
   margin-top: var(--gap-section);
+}
+
+/* ── Gamepad settings ─────────────────────────────────────────── */
+.checkRow {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-controls);
+  padding: 4px 0;
+  cursor: pointer;
+}
+
+.gpLive {
+  display: flex;
+  gap: var(--gap-panel);
+  flex-wrap: wrap;
+}
+
+.gpStick {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--gap-tight);
+}
+
+.gpStickLabel {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  opacity: 0.7;
+}
+
+.gpStickBox {
+  width: 80px;
+  height: 80px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--button-bg);
+  position: relative;
+}
+
+.gpDot {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--ok);
+  transform: translate(-50%, -50%);
+  transition: left 0.05s, top 0.05s;
+}
+
+.gpBtnGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px;
+}
+
+.gpBtn {
+  padding: 2px 4px;
+  font-size: var(--fs-xs);
+  font-family: var(--font-mono);
+  text-align: center;
+  border-radius: var(--radius-sm);
+  background: var(--button-bg);
+  border: 1px solid var(--border);
+  opacity: 0.5;
+}
+
+.gpBtn.active {
+  background: color-mix(in oklab, var(--ok) 25%, var(--button-bg));
+  border-color: color-mix(in srgb, var(--ok) 50%, transparent);
+  opacity: 1;
+}
+
+.gpMapTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.gpMapTable td {
+  padding: 4px 8px;
+  font-size: var(--fs-sm);
+  border-bottom: 1px solid var(--border);
+}
+
+.gpMapKey {
+  font-weight: 600;
+  white-space: nowrap;
+  width: 1%;
 }
 </style>
