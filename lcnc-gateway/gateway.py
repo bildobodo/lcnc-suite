@@ -1104,9 +1104,15 @@ def poll_status() -> StatusPayload:
             _wcs_cache[ci]["r"] = rotation_xy if rotation_xy is not None else 0.0
 
     # ---- positions ----
-    machine_pos = to_float_list(safe_get("actual_position", None))
+    # Prefer joint_actual_position (live encoder feedback, updates even when
+    # machine is off/ESTOP) over actual_position (motion controller output,
+    # stops updating when servo loop is disabled).  For trivkins machines
+    # joint positions are identical to Cartesian axis positions.
+    machine_pos = to_float_list(safe_get("joint_actual_position", None))
     if machine_pos is None:
-        machine_pos = to_float_list(safe_get("position", None))  # fallback
+        machine_pos = to_float_list(safe_get("actual_position", None))
+    if machine_pos is None:
+        machine_pos = to_float_list(safe_get("position", None))
 
     # Tool offset vector (active tool length comp)
     tool_offset = to_float_list(safe_get("tool_offset", None))
