@@ -612,7 +612,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
 
 .actions {
   display: flex;
-  gap: 6px;
+  gap: var(--gap-tight);
 }
 
 .errorBanner {
@@ -621,20 +621,20 @@ defineExpose({ openAdd, fetchTools, triggerImport });
   padding: 6px 10px;
   border-radius: var(--radius-xl);
   font-size: var(--fs-base);
-  margin-bottom: 6px;
+  margin-bottom: var(--gap-tight);
   flex-shrink: 0;
 }
 
 .importBanner {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--gap-controls);
   background: color-mix(in oklab, var(--ok) 20%, var(--bg));
   color: var(--ok);
   padding: 6px 10px;
   border-radius: var(--radius-xl);
   font-size: var(--fs-base);
-  margin-bottom: 6px;
+  margin-bottom: var(--gap-tight);
   flex-shrink: 0;
 }
 
@@ -650,14 +650,14 @@ defineExpose({ openAdd, fetchTools, triggerImport });
 .editFields {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-top: 12px;
+  gap: var(--gap-controls);
+  margin-top: var(--gap-section);
 }
 
 .editLabel {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--gap-controls);
 }
 
 .editLabelText {
@@ -710,15 +710,15 @@ defineExpose({ openAdd, fetchTools, triggerImport });
 .importStats {
   font-size: var(--fs-base);
   opacity: 0.7;
-  margin-bottom: 8px;
+  margin-bottom: var(--gap-controls);
 }
 
 .importOption {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--gap-tight);
   font-size: var(--fs-base);
-  margin-bottom: 8px;
+  margin-bottom: var(--gap-controls);
   cursor: pointer;
 }
 
@@ -732,7 +732,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
 .importRow {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--gap-controls);
   padding: 4px 8px;
   font-size: var(--fs-base);
   border-bottom: 1px solid color-mix(in oklab, var(--border) 30%, transparent);

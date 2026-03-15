@@ -256,7 +256,7 @@ CAMERA_SOURCE = rtsp://&lt;host&gt;/live      # IP camera</pre>
 .camSliderGroup {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--gap-tight);
 }
 
 .camSliderLabel {

@@ -174,6 +174,24 @@ const can = usePermissions();
 - Gateway `tool_change` handler is fire-and-forget (no `CMD.wait_complete()` — blocks heartbeat loop)
 - Toolsetter settings live in SettingsPanel (Toolsetter sub-tab), tool actions in sidebar Tool popover
 
+## Pre-Flight Checklist — MANDATORY for every CSS/UI edit
+
+Before writing or modifying ANY CSS or interactive element, verify ALL items:
+
+**Spacing** — `gap`/`row-gap`/`column-gap`/`margin` between siblings MUST use tokens: `--gap-tight` (4px), `--gap-controls` (8px), `--gap-section` (12px), `--gap-panel` (20px). Never hardcode. No double-layer padding (parent + child both adding padding).
+
+**Typography** — `font-size` → `--fs-*` tokens. `border-radius` → `--radius-*` tokens. `font-family` → `var(--font-mono)` or `var(--font-sans)`. Never hardcode any of these.
+
+**Colors** — Use semantic CSS variables (`--ok`, `--danger`, `--warn`, `--accent`, `--fg`, `--bg`, etc.) with `color-mix()`. Never raw hex. Hover tiers: `--hl-hover` (12%), `--hl-selected` (15%), `--hl-pressed` (18%), `--hl-active` (20%) — no other percentages.
+
+**Permission gates** — Every button/input/select gets `:disabled="!can.<class>"`. Only exception: pure navigation (sidebar, tabs). Inactive sections use `:class="{ inactive: !can.X }"` — never inline `:style` opacity.
+
+**Global patterns** — Form elements inherit from `style.css` base (component CSS only adds layout). Tables → `.dataTable`. Dialogs → `.dialogOverlay` + `.dialog` + `.dialog-full`. Close buttons → `.btn-icon`. Check existing components before creating new CSS.
+
+**New patterns** — If the needed style doesn't exist globally, STOP and tell the user: "This pattern doesn't exist in our global styles. We should add it to style.css first." Never create one-off scoped styles for reusable patterns.
+
+**Enforcement** — A `PreToolUse` hook (`.claude/hooks/style-check.sh`) fires before every Edit/Write to `.vue`/`.css` files, injecting a reminder. This ensures mid-conversation adherence.
+
 ## Toolsetter Var-File Mapping (#3100–#3115)
 
 The `tool_touch_off.ngc` subroutine reads parameters from the LinuxCNC var file so the web UI can configure them:

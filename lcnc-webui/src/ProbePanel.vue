@@ -557,7 +557,7 @@ function fmtR(key: string): string {
     </div>
 
     <!-- WCS selector -->
-    <div class="g5xRow" :style="{ opacity: can.idle ? 1 : 'var(--opacity-disabled)' }">
+    <div class="g5xRow" :class="{ inactive: !can.idle }">
       <button
         v-for="g in g5xOptions"
         :key="g"
@@ -569,7 +569,7 @@ function fmtR(key: string): string {
     </div>
 
     <!-- Control bar -->
-    <div class="controlBar" :style="{ opacity: can.ready ? 1 : 'var(--opacity-disabled)' }">
+    <div class="controlBar" :class="{ inactive: !can.ready }">
       <label class="checkRow">
         <input type="checkbox" v-model="autoZero" :disabled="!can.ready" @change="saveParams" />
         Auto Zero
@@ -593,7 +593,7 @@ function fmtR(key: string): string {
 
     <!-- ═══ OUTSIDE CORNERS VIEW ═══ -->
     <template v-if="probeView === 'outside'">
-      <div class="gridSection" :style="{ opacity: can.probe ? 1 : 'var(--opacity-disabled)' }">
+      <div class="gridSection" :class="{ inactive: !can.probe }">
       <div class="section">
         <div class="sub">Probe Operation</div>
         <div class="gridWrap">
@@ -681,7 +681,7 @@ function fmtR(key: string): string {
 
     <!-- ═══ INSIDE CORNERS VIEW ═══ -->
     <template v-else-if="probeView === 'inside'">
-      <div class="gridSection" :style="{ opacity: can.probe ? 1 : 'var(--opacity-disabled)' }">
+      <div class="gridSection" :class="{ inactive: !can.probe }">
       <div class="section">
         <div class="sub">Probe Operation</div>
         <div class="gridWrap">
@@ -769,7 +769,7 @@ function fmtR(key: string): string {
 
     <!-- ═══ BOSS / POCKET VIEW ═══ -->
     <template v-else-if="probeView === 'boss'">
-      <div class="gridSection" :style="{ opacity: can.probe ? 1 : 'var(--opacity-disabled)' }">
+      <div class="gridSection" :class="{ inactive: !can.probe }">
       <div class="section">
         <div class="sub">Probe Operation</div>
         <div class="gridWrap bossGrid">
@@ -860,7 +860,7 @@ function fmtR(key: string): string {
 
     <!-- ═══ EDGE ANGLE VIEW ═══ -->
     <template v-else-if="probeView === 'angle'">
-      <div class="gridSection" :style="{ opacity: can.probe ? 1 : 'var(--opacity-disabled)' }">
+      <div class="gridSection" :class="{ inactive: !can.probe }">
       <div class="section">
         <div class="sub">Probe Operation</div>
         <div class="gridWrap angleGrid">
@@ -962,7 +962,7 @@ function fmtR(key: string): string {
 
     <!-- ═══ CALIBRATE VIEW ═══ -->
     <template v-else-if="probeView === 'cal'">
-      <div class="gridSection" :style="{ opacity: can.probe ? 1 : 'var(--opacity-disabled)' }">
+      <div class="gridSection" :class="{ inactive: !can.probe }">
       <!-- Round calibration: buttons + diameter -->
       <div class="calSection">
         <div class="sub">Round Hole</div>
@@ -1055,7 +1055,7 @@ function fmtR(key: string): string {
 
     <!-- ═══ RIDGE / VALLEY VIEW ═══ -->
     <template v-else-if="probeView === 'ridge'">
-      <div class="gridSection" :style="{ opacity: can.probe ? 1 : 'var(--opacity-disabled)' }">
+      <div class="gridSection" :class="{ inactive: !can.probe }">
       <div class="section">
         <div class="sub">Probe Operation</div>
         <div class="gridWrap bossGrid">
@@ -1136,7 +1136,7 @@ function fmtR(key: string): string {
 
     <!-- ─── Surface Map ─── -->
     <template v-else>
-      <div class="section" :style="{ opacity: can.ready ? 1 : 'var(--opacity-disabled)' }">
+      <div class="section" :class="{ inactive: !can.ready }">
         <div class="sub">Scan Grid</div>
         <div class="paramGrid twoCol">
           <label title="Scan grid minimum X bound in work coordinates. Must be less than X Max. Defines the left edge of the probing area. (#3050)">X0</label>
@@ -1158,7 +1158,7 @@ function fmtR(key: string): string {
         </div>
       </div>
 
-      <div class="surfaceActions" :style="{ opacity: can.ready ? 1 : 'var(--opacity-disabled)' }">
+      <div class="surfaceActions" :class="{ inactive: !can.ready }">
         <button class="btn" :disabled="!can.probe || probing" @click="runSurfaceScan">Start Scan</button>
         <button v-if="!surfaceInViewer" class="btn" :disabled="!can.idle" @click="loadSurfaceMap">Load Map</button>
         <button v-else class="btn" :disabled="!can.idle" @click="emit('clearSurfaceMap')">Unload Map</button>
@@ -1166,7 +1166,7 @@ function fmtR(key: string): string {
         <button class="btn" :class="{ active: eoffsetEnabled }" :disabled="!can.ready || probing" @click="toggleComp">{{ eoffsetEnabled ? 'Disable Comp' : 'Enable Comp' }}</button>
       </div>
 
-      <div class="compStatus" :style="{ opacity: can.ready ? 1 : 'var(--opacity-disabled)' }">
+      <div class="compStatus" :class="{ inactive: !can.ready }">
         <span class="compDot" :class="{ on: eoffsetEnabled }"></span>
         <span>Compensation: <b>{{ eoffsetEnabled ? 'ON' : 'OFF' }}</b></span>
         <span v-if="eoffsetZ != null" class="compValue">Z: {{ eoffsetZ.toFixed(4) }}</span>
@@ -1183,7 +1183,7 @@ function fmtR(key: string): string {
     <div class="sep"></div>
 
     <!-- Parameters (shared across views) -->
-    <div class="section" :style="{ opacity: can.ready ? 1 : 'var(--opacity-disabled)' }">
+    <div class="section" :class="{ inactive: !can.ready }">
       <div class="sub">Parameters</div>
       <div class="paramGrid twoCol">
         <label title="Tool number of the probe. Must match the tool loaded in the spindle before any probing operation. (#3014)">Probe Tool #</label>
@@ -1224,7 +1224,7 @@ function fmtR(key: string): string {
     <div class="sep"></div>
 
     <!-- Probe Results (PB-style feedback) -->
-    <div class="section" :style="{ opacity: can.ready ? 1 : 'var(--opacity-disabled)' }">
+    <div class="section" :class="{ inactive: !can.ready }">
       <div class="sub">Probe Results</div>
       <div class="probeResultsGrid">
         <div class="prCell"><span class="label">X-</span><span class="prVal">{{ fmtR("x_minus") }}</span></div>
@@ -1273,21 +1273,21 @@ function fmtR(key: string): string {
 .controlBar {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--gap-controls);
   padding: 6px 0;
 }
 
 .controlBarRight {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--gap-controls);
   margin-left: auto;
 }
 
 .section {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--gap-controls);
 }
 
 .workpiece {
@@ -1312,7 +1312,7 @@ function fmtR(key: string): string {
 /* WCS selector row */
 .g5xRow {
   display: flex;
-  gap: 6px;
+  gap: var(--gap-tight);
   flex-wrap: wrap;
 }
 
@@ -1321,14 +1321,14 @@ function fmtR(key: string): string {
   height: 360px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--gap-section);
 }
 
 /* Grids (centered) */
 .gridWrap {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
+  gap: var(--gap-tight);
   max-width: 294px;
   margin: 0 auto;
 }
@@ -1345,19 +1345,19 @@ function fmtR(key: string): string {
 .calSection {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--gap-tight);
 }
 
 .calRow {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--gap-section);
 }
 
 .calBtnPair {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 6px;
+  gap: var(--gap-tight);
   width: 196px;
   flex-shrink: 0;
 }
@@ -1365,7 +1365,7 @@ function fmtR(key: string): string {
 .calParamStacked {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--gap-tight);
   align-self: center;
 }
 
@@ -1373,7 +1373,7 @@ function fmtR(key: string): string {
   display: grid;
   grid-template-columns: 100px 80px;
   align-items: center;
-  gap: 6px;
+  gap: var(--gap-tight);
 }
 
 .calParamRow label {
@@ -1395,7 +1395,7 @@ function fmtR(key: string): string {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: var(--gap-tight);
   flex-wrap: wrap;
 }
 
@@ -1416,7 +1416,7 @@ function fmtR(key: string): string {
 .calOffsetReadonly {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--gap-controls);
   font-size: var(--fs-base);
   font-family: var(--font-mono);
 }
@@ -1436,7 +1436,7 @@ function fmtR(key: string): string {
 
 .calAxisRow {
   display: flex;
-  gap: 4px;
+  gap: var(--gap-tight);
   max-width: 294px;
 }
 
@@ -1509,7 +1509,7 @@ function fmtR(key: string): string {
 .paramGrid {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 6px 10px;
+  gap: var(--gap-tight) var(--gap-controls);
   align-items: center;
 }
 
@@ -1532,7 +1532,7 @@ function fmtR(key: string): string {
 .checkRow {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--gap-tight);
   font-size: var(--fs-base);
   cursor: pointer;
   user-select: none;
@@ -1541,7 +1541,7 @@ function fmtR(key: string): string {
 /* Run / Abort buttons */
 .btnRow {
   display: flex;
-  gap: 6px;
+  gap: var(--gap-tight);
 }
 
 .abortBtn {
@@ -1572,7 +1572,7 @@ function fmtR(key: string): string {
 .statusRow {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--gap-tight);
 }
 
 .statusDot {
@@ -1606,7 +1606,7 @@ function fmtR(key: string): string {
 .probeResultsGrid {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  gap: 4px;
+  gap: var(--gap-tight);
 }
 
 .prCell {
@@ -1628,7 +1628,7 @@ function fmtR(key: string): string {
 /* ─── Surface Map ─── */
 .surfaceActions {
   display: flex;
-  gap: 6px;
+  gap: var(--gap-tight);
   flex-wrap: wrap;
 }
 .surfaceActions .btn {
@@ -1641,7 +1641,7 @@ function fmtR(key: string): string {
 .compStatus {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--gap-controls);
   font-size: var(--fs-base);
   font-family: var(--font-mono);
 }
@@ -1660,10 +1660,10 @@ function fmtR(key: string): string {
   opacity: 0.7;
 }
 .compMethod {
-  margin-left: 12px;
+  margin-left: var(--gap-section);
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--gap-tight);
 }
 .methodBtn {
   padding: 1px 6px;

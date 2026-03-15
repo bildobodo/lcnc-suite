@@ -474,7 +474,7 @@ label:has(input:disabled, select:disabled) {
 .dialogTitle {
   font-size: var(--fs-xl);
   font-weight: 600;
-  margin-bottom: 10px;
+  margin-bottom: var(--gap-controls);
 }
 
 .dialogHeader .dialogTitle {
@@ -486,16 +486,16 @@ label:has(input:disabled, select:disabled) {
 
 .dialogBody {
   font-size: var(--fs-lg);
-  margin-bottom: 8px;
+  margin-bottom: var(--gap-controls);
   line-height: 1.5;
   opacity: 0.8;
 }
 
 .dialogActions {
   display: flex;
-  gap: 8px;
+  gap: var(--gap-controls);
   justify-content: center;
-  margin-top: 16px;
+  margin-top: var(--gap-section);
 }
 
 /* G-code syntax highlighting tokens */

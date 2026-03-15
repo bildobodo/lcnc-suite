@@ -222,7 +222,7 @@ function stopJog(s: Sector, e?: PointerEvent) {
 </script>
 
 <template>
-  <div :style="{ opacity: can.jog ? 1 : 'var(--opacity-disabled)' }">
+  <div :class="{ inactive: !can.jog }">
     <div class="sub">Jog</div>
 
     <div class="controlGrid">
@@ -370,7 +370,7 @@ function stopJog(s: Sector, e?: PointerEvent) {
 }
 
 .hint {
-  margin-top: 10px;
+  margin-top: var(--gap-controls);
   font-size: var(--fs-base);
   opacity: 0.65;
   text-align: center;
@@ -387,12 +387,12 @@ function stopJog(s: Sector, e?: PointerEvent) {
 .jogMain {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--gap-section);
 }
 
 .extraAxesRow {
   display: flex;
-  gap: 6px;
+  gap: var(--gap-tight);
   justify-content: center;
 }
 
@@ -475,7 +475,7 @@ function stopJog(s: Sector, e?: PointerEvent) {
 .zcol {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: var(--gap-panel);
   align-items: center;
 }
 
@@ -488,7 +488,7 @@ function stopJog(s: Sector, e?: PointerEvent) {
 .rotaryCol {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--gap-tight);
   justify-content: center;
 }
 
@@ -521,7 +521,7 @@ function stopJog(s: Sector, e?: PointerEvent) {
 /* ---- Increment buttons ---- */
 .incrGroup {
   display: flex;
-  gap: 4px;
+  gap: var(--gap-tight);
 }
 
 .incrBtn {

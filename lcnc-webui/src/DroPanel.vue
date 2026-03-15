@@ -56,7 +56,7 @@ function fmt(n: any, letter?: string) {
 </script>
 
 <template>
-  <div class="container" :style="{ opacity: can.idle ? 1 : 'var(--opacity-disabled)' }">
+  <div class="container" :class="{ inactive: !can.idle }">
     <div class="section">
       <div class="sub">Work Position ({{ g5xLabel }})</div>
       <div class="grid">
@@ -95,14 +95,14 @@ function fmt(n: any, letter?: string) {
 .section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--gap-section);
 }
 
 .grid {
   display: grid;
   grid-template-columns: 1fr 90px minmax(70px, 110px) minmax(70px, 110px);
-  column-gap: 12px;
-  row-gap: 12px;
+  column-gap: var(--gap-section);
+  row-gap: var(--gap-section);
   align-items: center;
 }
 
@@ -113,7 +113,7 @@ function fmt(n: any, letter?: string) {
 .axis {
   display: flex;
   align-items: baseline;
-  gap: 10px;
+  gap: var(--gap-controls);
   font-size: var(--fs-3xl);
 }
 

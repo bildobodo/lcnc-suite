@@ -79,12 +79,12 @@ function updateTouchoff(axis: number, val: number) {
 .setupHud {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--gap-tight);
 }
 
 .row {
   display: flex;
-  gap: 4px;
+  gap: var(--gap-tight);
 }
 
 .btn {
@@ -109,7 +109,7 @@ function updateTouchoff(axis: number, val: number) {
 
 .axisRow {
   display: flex;
-  gap: 4px;
+  gap: var(--gap-tight);
 }
 
 .axisRow input {

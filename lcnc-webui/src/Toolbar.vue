@@ -212,7 +212,7 @@ onUnmounted(() => document.removeEventListener("click", onClickOutside));
   bottom: 12px;
   left: 12px;
   display: flex;
-  gap: 6px;
+  gap: var(--gap-tight);
   z-index: 20;
 }
 
@@ -239,21 +239,21 @@ onUnmounted(() => document.removeEventListener("click", onClickOutside));
 .pillPopover {
   bottom: 100%;
   left: 0;
-  margin-bottom: 6px;
+  margin-bottom: var(--gap-tight);
   padding: 8px 8px 14px 8px;
 }
 
 .pillPopover.open {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--gap-tight);
 }
 
 /* ---- View buttons grid ---- */
 .viewGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 4px;
+  gap: var(--gap-tight);
 }
 
 .viewBtn {
@@ -276,14 +276,14 @@ onUnmounted(() => document.removeEventListener("click", onClickOutside));
 .projRow {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 4px;
+  gap: var(--gap-tight);
 }
 
 /* ---- Layer checkboxes ---- */
 .pillPopover label {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--gap-tight);
   font-size: var(--fs-base);
   color: var(--fg);
   cursor: pointer;
@@ -304,7 +304,7 @@ onUnmounted(() => document.removeEventListener("click", onClickOutside));
 .inputRow {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--gap-controls);
   justify-content: space-between;
 }
 

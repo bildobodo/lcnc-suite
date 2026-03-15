@@ -2292,7 +2292,7 @@ defineExpose({
   pointer-events: auto;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--gap-tight);
   min-width: 240px;
   max-height: calc(100% - 24px);
   overflow-y: auto;
@@ -2300,7 +2300,7 @@ defineExpose({
 
 .hudBtnRow {
   display: flex;
-  gap: 4px;
+  gap: var(--gap-tight);
 }
 
 .hudBtn {
@@ -2355,7 +2355,7 @@ defineExpose({
   right: 12px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--gap-controls);
   pointer-events: none;
   user-select: none;
 }
@@ -2373,7 +2373,7 @@ defineExpose({
 }
 
 .label {
-  margin-bottom: 4px;
+  margin-bottom: var(--gap-tight);
 }
 
 .hudValue {
@@ -2383,7 +2383,7 @@ defineExpose({
 
 .hudCoords {
   display: flex;
-  gap: 12px;
+  gap: var(--gap-section);
 }
 .hudCol {
   display: flex;

@@ -1333,7 +1333,7 @@ const halStats = computed(() => ({
 
 <style scoped>
 .settings {
-  padding: 4px 0;
+  padding: var(--gap-section) 14px 14px;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -1342,7 +1342,7 @@ const halStats = computed(() => ({
 .hint {
   font-size: var(--fs-sm);
   opacity: 0.45;
-  margin-bottom: 12px;
+  margin-bottom: var(--gap-section);
   flex-shrink: 0;
 }
 
@@ -1367,12 +1367,12 @@ const halStats = computed(() => ({
 }
 
 .sub {
-  margin-bottom: 12px;
+  margin-bottom: var(--gap-section);
 }
 
 .wpColumns {
   display: flex;
-  gap: 24px;
+  gap: var(--gap-panel);
 }
 
 .wpColumns .fieldGroup {
@@ -1383,14 +1383,14 @@ const halStats = computed(() => ({
 .fieldGroup {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: var(--gap-controls);
+  margin-bottom: var(--gap-section);
 }
 
 .inputRow {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--gap-controls);
 }
 
 .inputRow input[type="text"] {
@@ -1414,13 +1414,13 @@ const halStats = computed(() => ({
 .layerGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: var(--gap-controls);
 }
 
 .layerGrid label {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--gap-tight);
   font-size: var(--fs-md);
   cursor: pointer;
   user-select: none;
@@ -1429,13 +1429,13 @@ const halStats = computed(() => ({
 .colorGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: var(--gap-controls);
 }
 
 .colorRow {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--gap-controls);
 }
 
 .colorInput {
@@ -1465,13 +1465,13 @@ const halStats = computed(() => ({
 .opacityList {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--gap-controls);
 }
 
 .opacityRow {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--gap-controls);
 }
 
 .opacityLabel {
@@ -1494,7 +1494,7 @@ const halStats = computed(() => ({
 
 .btnGroup {
   display: flex;
-  gap: 4px;
+  gap: var(--gap-tight);
 }
 
 .optBtn {
@@ -1512,7 +1512,7 @@ const halStats = computed(() => ({
 .checkRow {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--gap-tight);
   font-size: var(--fs-md);
   cursor: pointer;
   user-select: none;
@@ -1521,12 +1521,12 @@ const halStats = computed(() => ({
 .settingDesc {
   font-size: var(--fs-base);
   opacity: 0.5;
-  margin-bottom: 12px;
+  margin-bottom: var(--gap-section);
 }
 
 .modeGroup {
   flex-direction: column;
-  gap: 8px;
+  gap: var(--gap-controls);
 }
 
 .modeBtn {
@@ -1549,20 +1549,20 @@ const halStats = computed(() => ({
 }
 
 .rflDefaults {
-  margin-top: 10px;
+  margin-top: var(--gap-controls);
 }
 
 .rflRow {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-top: 6px;
+  gap: var(--gap-section);
+  margin-top: var(--gap-tight);
 }
 
 .rflRpm {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--gap-tight);
 }
 
 .rflRpm input {
@@ -1573,7 +1573,7 @@ const halStats = computed(() => ({
 .tsGrid {
   display: grid;
   grid-template-columns: auto 1fr auto 1fr;
-  gap: 6px 10px;
+  gap: var(--gap-tight) var(--gap-controls);
   align-items: center;
 }
 
@@ -1599,7 +1599,7 @@ const halStats = computed(() => ({
 .tsCheckGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 6px 10px;
+  gap: var(--gap-tight) var(--gap-controls);
 }
 
 .tsBtnRow {
@@ -1630,8 +1630,8 @@ const halStats = computed(() => ({
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: var(--gap-controls);
+  margin-bottom: var(--gap-section);
   flex-wrap: wrap;
   flex-shrink: 0;
 }
@@ -1639,7 +1639,7 @@ const halStats = computed(() => ({
 .halActions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--gap-tight);
 }
 
 .halSearchInput {
@@ -1648,7 +1648,7 @@ const halStats = computed(() => ({
 
 .halError {
   padding: 6px 10px;
-  margin-bottom: 8px;
+  margin-bottom: var(--gap-controls);
   border-radius: var(--radius-md);
   background: color-mix(in oklab, var(--danger) 15%, var(--bg));
   opacity: 0.9;
@@ -1663,8 +1663,8 @@ const halStats = computed(() => ({
 .halTreeControls {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 8px;
+  gap: var(--gap-tight);
+  margin-bottom: var(--gap-controls);
   flex-shrink: 0;
 }
 
@@ -1674,7 +1674,7 @@ const halStats = computed(() => ({
 
 .halFilterInfo {
   opacity: 0.5;
-  margin-bottom: 6px;
+  margin-bottom: var(--gap-tight);
 }
 
 .halGroup {
@@ -1684,7 +1684,7 @@ const halStats = computed(() => ({
 .halGroupHeader {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--gap-tight);
   padding: 3px 0;
   background: none;
   border: none;
@@ -1723,7 +1723,7 @@ const halStats = computed(() => ({
 .halRow {
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: var(--gap-controls);
   padding: 1px 0;
 }
 
@@ -1789,7 +1789,7 @@ const halStats = computed(() => ({
 .halSigHeader {
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: var(--gap-controls);
 }
 
 .halSigName {
@@ -1801,7 +1801,7 @@ const halStats = computed(() => ({
 .halSigPins {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 12px;
+  gap: var(--gap-tight) var(--gap-section);
   padding-left: 12px;
   padding-top: 2px;
   opacity: 0.6;

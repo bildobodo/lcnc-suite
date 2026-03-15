@@ -115,7 +115,7 @@ function formatRpm(val: number | null): string {
 .spindleHud {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--gap-tight);
   min-width: 200px;
 }
 
@@ -147,7 +147,7 @@ function formatRpm(val: number | null): string {
 .rpmRow {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--gap-tight);
 }
 
 .label {
@@ -167,7 +167,7 @@ function formatRpm(val: number | null): string {
 .infoRow {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--gap-tight);
 }
 
 
@@ -175,7 +175,7 @@ function formatRpm(val: number | null): string {
 .overrideRow {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--gap-tight);
 }
 
 .overrideSlider {

@@ -648,13 +648,13 @@ async function saveEdit() {
   display: flex;
   flex-direction: column;
   height: 100%;
-  gap: 8px;
+  gap: var(--gap-controls);
 }
 
 .header {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--gap-tight);
   padding: 8px 12px;
   background: color-mix(in oklab, var(--panel) 50%, transparent);
   border: 1px solid var(--border);
@@ -663,7 +663,7 @@ async function saveEdit() {
 
 .controlRow {
   display: flex;
-  gap: 8px;
+  gap: var(--gap-controls);
 }
 
 .ctrlBtn {
@@ -671,7 +671,7 @@ async function saveEdit() {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: var(--gap-tight);
   padding: 8px 12px;
   border-radius: var(--radius-xl);
   font-size: var(--fs-base);
@@ -706,7 +706,7 @@ async function saveEdit() {
 .progressRow {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--gap-controls);
 }
 
 .progressTrack {
@@ -748,7 +748,7 @@ async function saveEdit() {
 .fileInfo {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--gap-controls);
   min-width: 0;
 }
 
@@ -765,7 +765,7 @@ async function saveEdit() {
 .headerActions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--gap-controls);
   flex-shrink: 0;
 }
 
@@ -786,14 +786,14 @@ async function saveEdit() {
   gap: var(--gap-controls);
   right: 0;
   top: 100%;
-  margin-top: 6px;
+  margin-top: var(--gap-tight);
   min-width: 260px;
 }
 
 .statsGrid {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 4px var(--gap-controls);
+  gap: var(--gap-tight) var(--gap-controls);
   font-size: var(--fs-base);
 }
 
@@ -827,14 +827,14 @@ async function saveEdit() {
 .donutLegend {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--gap-tight);
   font-size: var(--fs-sm);
 }
 
 .legendItem {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--gap-tight);
 }
 
 .legendDot {
@@ -879,7 +879,7 @@ async function saveEdit() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--gap-controls);
   padding: 6px 10px;
   background: color-mix(in oklab, var(--err) 15%, var(--panel));
   border: 1px solid color-mix(in srgb, var(--err) 25%, transparent);
@@ -901,7 +901,7 @@ async function saveEdit() {
 .browserHeader {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--gap-controls);
   padding: 6px 10px;
   border-bottom: 1px solid var(--border);
   font-size: var(--fs-sm);
@@ -932,7 +932,7 @@ async function saveEdit() {
 .fileItem {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--gap-controls);
   padding: 5px 10px;
   cursor: pointer;
   font-size: var(--fs-base);
@@ -995,7 +995,7 @@ async function saveEdit() {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: var(--gap-section);
   border: 2px dashed var(--info);
   border-radius: var(--radius-xl);
   background: color-mix(in oklab, var(--info) 10%, var(--panel) 90%);
@@ -1081,7 +1081,7 @@ async function saveEdit() {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: var(--gap-section);
   opacity: 0.6;
   border: 2px dashed var(--border);
   border-radius: var(--radius-xl);
@@ -1116,7 +1116,7 @@ async function saveEdit() {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--gap-controls);
 }
 
 .editTextarea {
@@ -1134,7 +1134,7 @@ async function saveEdit() {
 
 .editActions {
   display: flex;
-  gap: 8px;
+  gap: var(--gap-controls);
   justify-content: flex-end;
 }
 
@@ -1156,7 +1156,7 @@ async function saveEdit() {
 }
 
 .dialogSection {
-  margin: 12px 0;
+  margin: var(--gap-section) 0;
 }
 
 .optBtn.active {
@@ -1167,15 +1167,15 @@ async function saveEdit() {
 
 .spindleBtnRow {
   display: flex;
-  gap: 6px;
-  margin-top: 6px;
+  gap: var(--gap-tight);
+  margin-top: var(--gap-tight);
 }
 
 .rpmRow {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 8px;
+  gap: var(--gap-controls);
+  margin-top: var(--gap-controls);
 }
 
 .rpmRow input {

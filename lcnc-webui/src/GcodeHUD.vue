@@ -145,14 +145,14 @@ function tokenizeCode(code: string, tokens: Token[]) {
 .gcodeHud {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--gap-tight);
   min-width: 240px;
 }
 
 /* Controls */
 .ctrlRow {
   display: flex;
-  gap: 4px;
+  gap: var(--gap-tight);
 }
 
 .ctrlBtn {
@@ -182,7 +182,7 @@ function tokenizeCode(code: string, tokens: Token[]) {
 .progressRow {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--gap-tight);
 }
 
 .progressBar {
@@ -224,7 +224,7 @@ function tokenizeCode(code: string, tokens: Token[]) {
 
 .codeLine {
   display: flex;
-  gap: 8px;
+  gap: var(--gap-controls);
   padding: 2px 8px 2px 8px;
   font-family: var(--font-mono);
   font-size: var(--fs-sm);
@@ -253,13 +253,13 @@ function tokenizeCode(code: string, tokens: Token[]) {
 
 .ctrlGroup {
   display: flex;
-  gap: 4px;
+  gap: var(--gap-tight);
   flex: 3;
 }
 
 .switchGroup {
   display: flex;
-  gap: 4px;
+  gap: var(--gap-tight);
   flex: 2;
 }
 

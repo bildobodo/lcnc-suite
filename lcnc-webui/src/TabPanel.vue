@@ -53,13 +53,13 @@ const emit = defineEmits<{
 .topBar {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 6px;
+  gap: var(--gap-tight);
+  margin-bottom: var(--gap-tight);
 }
 
 .tabRow {
   display: flex;
-  gap: 4px;
+  gap: var(--gap-tight);
   flex: 1;
   min-width: 0;
 }
@@ -83,7 +83,7 @@ const emit = defineEmits<{
   min-width: 16px;
   height: 16px;
   padding: 0 4px;
-  margin-left: 5px;
+  margin-left: var(--gap-tight);
   border-radius: var(--radius-xl);
   font-size: var(--fs-2xs);
   font-weight: 700;

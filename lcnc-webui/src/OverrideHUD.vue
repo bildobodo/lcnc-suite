@@ -97,14 +97,14 @@ function resetAll() {
 .overrideHud {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--gap-tight);
   min-width: 200px;
 }
 
 .ovRow {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--gap-tight);
 }
 
 .label {

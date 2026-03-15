@@ -311,7 +311,7 @@ function onAngularVelInput(ev: Event) {
 .jogHud {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--gap-tight);
 }
 
 /* ---- Control grid (label | slider/buttons | readout) ---- */
@@ -381,12 +381,12 @@ function onAngularVelInput(ev: Event) {
 .jogMain {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: var(--gap-section);
 }
 
 .extraAxesRow {
   display: flex;
-  gap: 5px;
+  gap: var(--gap-tight);
   justify-content: center;
 }
 
@@ -472,7 +472,7 @@ function onAngularVelInput(ev: Event) {
 .zCol {
   display: flex;
   flex-direction: column;
-  gap: 17px;
+  gap: var(--gap-section);
   align-items: center;
 }
 
@@ -485,7 +485,7 @@ function onAngularVelInput(ev: Event) {
 .rotaryCol {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: var(--gap-tight);
   justify-content: center;
 }
 

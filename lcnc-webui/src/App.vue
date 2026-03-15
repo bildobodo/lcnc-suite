@@ -1336,7 +1336,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
                 </tr>
               </tbody>
             </table>
-            <div class="offsetActions" :style="{ opacity: permissions.idle ? 1 : 'var(--opacity-disabled)' }">
+            <div class="offsetActions" :class="{ inactive: !permissions.idle }">
               <button class="ovrPresetBtn" :disabled="!permissions.idle || !selectedWcs" @click="clearWcs(selectedWcs!)">Clear {{ selectedWcs }}</button>
               <button class="ovrPresetBtn" :disabled="!permissions.idle" @click="clearWcs('all')">Clear All</button>
             </div>
@@ -1782,7 +1782,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
           <span class="dialogTitle">Tool Table</span>
           <button class="btn-icon" @click="toolDialogOpen = false">&times;</button>
         </div>
-        <div class="toolDialogActions" :style="{ opacity: permissions.ready ? 1 : 'var(--opacity-disabled)' }">
+        <div class="toolDialogActions" :class="{ inactive: !permissions.ready }">
           <div class="toolInputRow">
             <span class="toolFieldLabel">Tool #</span>
             <input
@@ -1935,13 +1935,13 @@ watch(isHomed, (nowHomed, wasHomed) => {
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
-  margin-bottom: 14px;
-  gap: 12px;
+  margin-bottom: var(--gap-section);
+  gap: var(--gap-section);
 }
 
 .hdrRight {
   display: flex;
-  gap: 10px;
+  gap: var(--gap-controls);
   align-items: center;
 }
 
@@ -1979,8 +1979,8 @@ watch(isHomed, (nowHomed, wasHomed) => {
 /* ---- Shared panel styles (visual, no layout) ---- */
 .panels {
   display: flex;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: var(--gap-section);
+  margin-bottom: var(--gap-section);
   overflow: hidden;
 }
 
@@ -2022,7 +2022,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: var(--gap-section);
   padding: 8px 14px;
   min-height: 40px;
   color: var(--fg);
@@ -2043,7 +2043,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
   display: flex;
   flex: 1;
   min-height: 0;
-  gap: 12px;
+  gap: var(--gap-section);
 }
 
 .mainCol {
@@ -2059,7 +2059,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
   flex-direction: column;
   flex-shrink: 0;
   width: 150px;
-  gap: 12px;
+  gap: var(--gap-section);
   position: relative;
   z-index: 1001;  /* above dialog overlays (z-index: 1000) so safety buttons stay accessible */
 }
@@ -2070,7 +2070,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 
 .topRow .btnrow {
   flex-direction: column;
-  gap: 8px;
+  gap: var(--gap-controls);
 }
 
 .topRow .safetyBtn {
@@ -2095,7 +2095,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
   border: 1px solid var(--border);
   border-radius: var(--radius-3xl);
   padding: 12px;
-  margin-bottom: 12px;
+  margin-bottom: var(--gap-section);
   background: var(--panel);
   color: var(--fg);
 }
@@ -2103,8 +2103,8 @@ watch(isHomed, (nowHomed, wasHomed) => {
 
 .statusGroups {
   display: flex;
-  gap: 12px;
-  margin-bottom: 10px;
+  gap: var(--gap-section);
+  margin-bottom: var(--gap-controls);
 }
 
 .statusGroup {
@@ -2115,20 +2115,20 @@ watch(isHomed, (nowHomed, wasHomed) => {
   background: color-mix(in oklab, var(--panel) 30%, transparent);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--gap-controls);
 }
 
 .statusRow {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
+  gap: var(--gap-section);
 }
 
 .row {
   display: grid;
   grid-template-columns: 90px 1fr 90px 1fr 90px 1fr;
-  gap: 8px;
+  gap: var(--gap-controls);
   align-items: center;
 }
 
@@ -2174,7 +2174,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 
 .compactStatus {
   display: flex;
-  gap: 8px;
+  gap: var(--gap-controls);
   flex-wrap: wrap;
 }
 
@@ -2222,11 +2222,11 @@ watch(isHomed, (nowHomed, wasHomed) => {
 .chipPopover.open {
   display: flex !important;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--gap-tight);
 }
 
 .popoverAction {
-  margin-top: 4px;
+  margin-top: var(--gap-tight);
   width: 100%;
   padding: 8px;
   font-size: var(--fs-base);
@@ -2259,18 +2259,18 @@ watch(isHomed, (nowHomed, wasHomed) => {
   color: var(--fg); text-align: right; font: inherit; padding: 0 4px;
   outline: none;
 }
-.offsetActions { display: flex; gap: 6px; margin-top: 8px; justify-content: flex-end; }
+.offsetActions { display: flex; gap: var(--gap-tight); margin-top: var(--gap-controls); justify-content: flex-end; }
 
 .overridesPopover {
   min-width: 260px;
   cursor: default;
-  gap: 8px;
+  gap: var(--gap-controls);
 }
 
 .ovrRow {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--gap-controls);
 }
 
 .ovrLabel {
@@ -2289,9 +2289,9 @@ watch(isHomed, (nowHomed, wasHomed) => {
 
 .ovrPresets {
   display: flex;
-  gap: 4px;
+  gap: var(--gap-tight);
   padding-left: 56px;
-  margin-bottom: 4px;
+  margin-bottom: var(--gap-tight);
 }
 
 .ovrPresetBtn {
@@ -2301,7 +2301,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 }
 
 .ovrResetBtn {
-  margin-top: 4px;
+  margin-top: var(--gap-tight);
   padding: 5px 10px;
   font-size: var(--fs-sm);
   font-weight: 600;
@@ -2347,12 +2347,12 @@ watch(isHomed, (nowHomed, wasHomed) => {
 .spindlePopover.open {
   display: flex !important;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--gap-section);
 }
 
 .spDirRow {
   display: flex;
-  gap: 8px;
+  gap: var(--gap-controls);
   justify-content: center;
 }
 
@@ -2360,7 +2360,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: var(--gap-tight);
   padding: 10px 14px;
   border-radius: var(--radius-xl);
   min-width: 64px;
@@ -2382,7 +2382,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 .spRpmRow {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--gap-controls);
 }
 
 .spFieldLabel {
@@ -2410,7 +2410,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 .spActualGroup {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--gap-tight);
 }
 
 .spActualRow {
@@ -2441,7 +2441,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 .spOvrGroup {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--gap-tight);
 }
 
 .spOvrHeader {
@@ -2461,7 +2461,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 
 .spOvrPresets {
   display: flex;
-  gap: 4px;
+  gap: var(--gap-tight);
   flex-wrap: wrap;
 }
 
@@ -2517,13 +2517,13 @@ watch(isHomed, (nowHomed, wasHomed) => {
 .coolantPopover.open {
   display: flex !important;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--gap-controls);
 }
 .coolantRow {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
+  gap: var(--gap-section);
 }
 .coolantLabel {
   font-size: var(--fs-md);
@@ -2545,7 +2545,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px 12px;
+  gap: var(--gap-controls) var(--gap-section);
   padding: 10px 14px;
   border-bottom: 1px solid var(--border);
 }
@@ -2557,7 +2557,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 .toolInputRow {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--gap-controls);
 }
 .toolFieldLabel {
   font-size: var(--fs-base);
@@ -2578,7 +2578,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 .toolActions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--gap-tight);
 }
 .toolActionBtn {
   padding: 7px 10px;
@@ -2617,13 +2617,12 @@ watch(isHomed, (nowHomed, wasHomed) => {
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  padding: 0 12px 12px;
 }
 
 .toolStatusRow {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--gap-tight);
 }
 .toolStatusDot {
   width: 8px;
@@ -2653,7 +2652,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 .msgPopList {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--gap-tight);
   max-height: 320px;
   overflow-y: auto;
 }
@@ -2661,7 +2660,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 .msgPopItem {
   display: flex;
   align-items: stretch;
-  gap: 8px;
+  gap: var(--gap-controls);
   padding: 8px 10px;
   border-radius: var(--radius-xl);
   border: 1px solid var(--border);
@@ -2674,7 +2673,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 .msgPopItem.display .msgPopIndicator { background: var(--display); }
 
 .msgPopBody { flex: 1; min-width: 0; }
-.msgPopMeta { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
+.msgPopMeta { display: flex; align-items: center; gap: var(--gap-tight); margin-bottom: 2px; }
 .msgPopBadge { font-size: var(--fs-2xs); font-weight: 700; padding: 1px 5px; border-radius: var(--radius-sm); letter-spacing: 0.5px; }
 .msgPopBadge.error { background: color-mix(in oklab, var(--err) 20%, var(--panel)); color: var(--danger); }
 .msgPopBadge.info { background: color-mix(in oklab, var(--fg) 10%, var(--panel)); color: var(--fg); opacity: 0.7; }
@@ -2686,7 +2685,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 
 .btnrow {
   display: flex;
-  gap: 10px;
+  gap: var(--gap-controls);
   flex-wrap: wrap;
   align-items: center;
 }
@@ -2709,7 +2708,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: var(--gap-tight);
   padding: 12px 20px;
   min-width: 80px;
   font-size: var(--fs-xl);
@@ -2731,13 +2730,13 @@ watch(isHomed, (nowHomed, wasHomed) => {
 
 
 .hint {
-  margin-top: 10px;
+  margin-top: var(--gap-controls);
   font-size: var(--fs-base);
   opacity: 0.65;
 }
 
 .debugSection {
-  margin-top: 8px;
+  margin-top: var(--gap-controls);
 }
 
 .pre {
