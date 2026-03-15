@@ -12,11 +12,11 @@ import {
   type Vec3, type Layer, type ColorDefaults, type OpacityDefaults,
   type TrackMode, type Projection, type ToolChangeMode, type SpindleDir,
   type ThemeMode, type MacroDef, type MacroParam, type GamepadDefaults,
-  type GamepadMapping, type GamepadAction, GAMEPAD_ACTIONS, DEFAULT_MAPPING, GAMEPAD_FALLBACK,
+  type GamepadMapping, GAMEPAD_ACTIONS, DEFAULT_MAPPING, GAMEPAD_FALLBACK,
   STEP_DEFAULT, STEP_FEED, STEP_RPM,
 } from "./defaults";
 import { fetchHal, fetchG30, type HalPin, type HalSignal, type HalParam } from "./lcncApi";
-import { send, status } from "./lcncWs";
+import { status } from "./lcncWs";
 import { usePermissions } from "./permissions";
 import { ChevronUp, ChevronDown, Pencil, Trash2 } from "lucide-vue-next";
 import GamepadLiveInput from "./GamepadLiveInput.vue";

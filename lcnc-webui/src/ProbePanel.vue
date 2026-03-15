@@ -228,7 +228,7 @@ const statusClass = computed(() => {
 function runGridProbe(op: GridOp) {
   if (!can.value.ready || props.probing) return;
   activeGridOp.value = op.id;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...params.value, autoZero: autoZero.value }));
+  saveProbeDefaults({ ...params.value, autoZero: autoZero.value });
   const vars = buildVarMap(autoZero.value ? 0 : 1);
   emit("setProbeVars", vars);
   emit("mdi", `O<${op.macro}> CALL`);
@@ -238,7 +238,7 @@ function runBossProbe(op: GridOp) {
   if (!can.value.ready || props.probing) return;
   activeBossOp.value = op.id;
   activeGridOp.value = op.id;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...params.value, autoZero: autoZero.value }));
+  saveProbeDefaults({ ...params.value, autoZero: autoZero.value });
   const vars = buildVarMap(autoZero.value ? 0 : 1);
   emit("setProbeVars", vars);
   emit("mdi", `O<${op.macro}> CALL`);
@@ -247,7 +247,7 @@ function runBossProbe(op: GridOp) {
 function runRidgeProbe(op: GridOp) {
   if (!can.value.ready || props.probing) return;
   activeGridOp.value = op.id;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...params.value, autoZero: autoZero.value }));
+  saveProbeDefaults({ ...params.value, autoZero: autoZero.value });
   const vars = buildVarMap(autoZero.value ? 0 : 1);
   emit("setProbeVars", vars);
   emit("mdi", `O<${op.macro}> CALL`);
@@ -256,7 +256,7 @@ function runRidgeProbe(op: GridOp) {
 function runAngleProbe(op: GridOp) {
   if (!can.value.ready || props.probing) return;
   activeGridOp.value = op.id;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...params.value, autoZero: autoZero.value }));
+  saveProbeDefaults({ ...params.value, autoZero: autoZero.value });
   const vars = buildVarMap(autoZero.value ? 0 : 1);
   emit("setProbeVars", vars);
   emit("mdi", `O<${op.macro}> CALL`);
@@ -264,7 +264,7 @@ function runAngleProbe(op: GridOp) {
 
 function runCalProbe(macro: string) {
   if (!can.value.ready || props.probing) return;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...params.value, autoZero: autoZero.value }));
+  saveProbeDefaults({ ...params.value, autoZero: autoZero.value });
   const vars = buildVarMap(autoZero.value ? 0 : 1);
   vars["3036"] = calAxis.value;
   emit("setProbeVars", vars);
@@ -279,7 +279,7 @@ function resetCal() {
 // ─── Surface map ──────────────────────────────────────────────────
 function runSurfaceScan() {
   if (!can.value.ready || props.probing) return;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...params.value, autoZero: autoZero.value }));
+  saveProbeDefaults({ ...params.value, autoZero: autoZero.value });
   const vars = buildVarMap(autoZero.value ? 0 : 1);
   emit("setProbeVars", vars);
   emit("mdi", "O<surface_scan> CALL");

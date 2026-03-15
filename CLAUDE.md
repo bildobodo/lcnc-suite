@@ -216,6 +216,10 @@ The `tool_touch_off.ngc` subroutine reads parameters from the LinuxCNC var file 
 | #3115  | finder_diff_z          | Height diff probe vs reference        |
 | #3014  | finder_number          | Probe tool number (shared with probe tab) |
 
+## Build Verification
+
+**ALWAYS run `npm run build` (in `lcnc-webui/`) after any TypeScript/Vue change.** This uses `vue-tsc -b` which is stricter than `vue-tsc --noEmit` — it catches unused imports (TS6133) and declaration emit issues that `--noEmit` misses. Zero TS errors is a hard requirement. Never use `vue-tsc --noEmit` as the sole verification step.
+
 ## Lessons Learned
 
 - Normalize camera direction vectors before scaling by distance — non-unit vectors (iso, dimetric) cause distance drift on repeated clicks
