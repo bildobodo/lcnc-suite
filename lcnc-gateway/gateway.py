@@ -3510,11 +3510,13 @@ async def ws_endpoint(ws: WebSocket):
                                     if mode == linuxcnc.MODE_AUTO and interp != linuxcnc.INTERP_IDLE:
                                         CMD.abort()
                                     else:
-                                        set_mode(linuxcnc.MODE_MANUAL)
-                                        jf = _jog_joint_flag()
-                                        _nj = getattr(STAT, "joints", 3) if STAT else 3
-                                        for ax in range(_nj):
-                                            CMD.jog(linuxcnc.JOG_STOP, jf, ax)
+                                        homed = normalize_homed(safe_get("homed", None))
+                                        if homed:
+                                            set_mode(linuxcnc.MODE_MANUAL)
+                                            jf = _jog_joint_flag()
+                                            _nj = getattr(STAT, "joints", 3) if STAT else 3
+                                            for ax in range(_nj):
+                                                CMD.jog(linuxcnc.JOG_STOP, jf, ax)
                                         CMD.abort()
                             except Exception:
                                 pass
@@ -3677,11 +3679,13 @@ async def ws_endpoint(ws: WebSocket):
                     if mode == linuxcnc.MODE_AUTO and interp != linuxcnc.INTERP_IDLE:
                         CMD.abort()
                     else:
-                        set_mode(linuxcnc.MODE_MANUAL)
-                        jf = _jog_joint_flag()
-                        _nj = getattr(STAT, "joints", 3) if STAT else 3
-                        for ax in range(_nj):
-                            CMD.jog(linuxcnc.JOG_STOP, jf, ax)
+                        homed = normalize_homed(safe_get("homed", None))
+                        if homed:
+                            set_mode(linuxcnc.MODE_MANUAL)
+                            jf = _jog_joint_flag()
+                            _nj = getattr(STAT, "joints", 3) if STAT else 3
+                            for ax in range(_nj):
+                                CMD.jog(linuxcnc.JOG_STOP, jf, ax)
                         CMD.abort()
             except Exception:
                 pass

@@ -11,7 +11,7 @@ import SettingsPanel from "./SettingsPanel.vue";
 import ToolTablePanel from "./ToolTablePanel.vue";
 import ProbePanel from "./ProbePanel.vue";
 import CameraViewer from "./CameraViewer.vue";
-import { HeartPulse, Info, LocateFixed, SlidersHorizontal, Gauge, MessageSquare, RotateCw, RotateCcw, Square, Droplets, Drill, CodeXml, Lock, LockOpen, TriangleAlert, Power, PowerOff, Gamepad2, BookOpen } from "lucide-vue-next";
+import { HeartPulse, Info, LocateFixed, SlidersHorizontal, Gauge, MessageSquare, RotateCw, RotateCcw, Square, Droplets, Drill, CodeXml, Lock, LockOpen, TriangleAlert, Power, PowerOff, Gamepad2, BookOpen, ClipboardCopy } from "lucide-vue-next";
 import GcodeReferenceDialog from "./GcodeReferenceDialog.vue";
 import { loadViewerDefaults, loadPanelsDefaults, savePanelsDefaults, MAX_PANELS, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadMacrosDefaults, loadGamepadDefaults, saveGamepadDefaults, settingsVersion, type ThemeMode, type MacroDef, type GamepadDefaults, STEP_DEFAULT, STEP_RPM, STEP_OVERRIDE, STEP_RAPID_OVERRIDE } from "./defaults";
 import { useGamepad } from "./useGamepad";
@@ -755,7 +755,38 @@ function msgKindLabel(kind: number): string {
   return "DISPLAY";
 }
 function msgFormatTime(ts: number): string {
-  return new Date(ts).toLocaleTimeString();
+  const d = new Date(ts);
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) + " " + d.toLocaleTimeString();
+}
+
+function copyToClipboard(text: string) {
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+  } else {
+    fallbackCopy(text);
+  }
+}
+
+function fallbackCopy(text: string) {
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.position = "fixed";
+  ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand("copy");
+  document.body.removeChild(ta);
+}
+
+function copyMessage(msg: LcncMessage) {
+  copyToClipboard(`[${msgKindLabel(msg.kind)}] ${msgFormatTime(msg.ts)} — ${msg.text}`);
+}
+
+function copyAllMessages() {
+  const text = [...messages.value].reverse().map(m =>
+    `[${msgKindLabel(m.kind)}] ${msgFormatTime(m.ts)} — ${m.text}`
+  ).join("\n");
+  copyToClipboard(text);
 }
 
 watch(openChip, (chip) => {
@@ -1394,7 +1425,10 @@ watch(isHomed, (nowHomed, wasHomed) => {
           <div class="popover chipPopover messagesPopover" :class="{ open: openChip === 'messages' }" @click.stop>
             <div class="msgPopHeader">
               <span class="msgPopTitle">Messages</span>
-              <button v-if="messages.length > 0" class="ovrPresetBtn" @click="clearAllMessages">Clear All</button>
+              <div v-if="messages.length > 0" style="display:flex;gap:var(--gap-tight)">
+                <button class="ovrPresetBtn" @click="copyAllMessages">Copy All</button>
+                <button class="ovrPresetBtn" @click="clearAllMessages">Clear All</button>
+              </div>
             </div>
             <div v-if="messages.length === 0" class="msgPopEmpty">No messages</div>
             <div v-else class="msgPopList">
@@ -1407,6 +1441,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
                   </div>
                   <div class="msgPopText">{{ msg.text }}</div>
                 </div>
+                <button class="btn-icon" title="Copy" @click="copyMessage(msg)"><ClipboardCopy :size="12" /></button>
                 <button class="btn-icon" @click="dismissMessage(msg.id)">&times;</button>
               </div>
             </div>
