@@ -225,9 +225,9 @@ onUnmounted(() => document.removeEventListener("click", onClickOutside));
   display: block;
   padding: 5px 10px;
   font-size: var(--fs-sm);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   user-select: none;
-  opacity: 0.75;
+  opacity: var(--opacity-muted);
 }
 
 .pillLabel.active {
@@ -265,7 +265,7 @@ onUnmounted(() => document.removeEventListener("click", onClickOutside));
 
 .viewBtn.active {
   background: var(--hl-selected);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   border-color: color-mix(in oklab, var(--fg) 30%, var(--border));
 }
 
@@ -311,7 +311,7 @@ onUnmounted(() => document.removeEventListener("click", onClickOutside));
 .inputLabel {
   font-size: var(--fs-sm);
   color: var(--fg);
-  opacity: 0.6;
+  opacity: var(--opacity-muted);
   min-width: 52px;
 }
 

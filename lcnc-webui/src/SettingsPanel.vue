@@ -1383,7 +1383,7 @@ const halStats = computed(() => ({
 
 .hint {
   font-size: var(--fs-sm);
-  opacity: 0.45;
+  opacity: var(--opacity-disabled);
   margin-bottom: var(--gap-section);
   flex-shrink: 0;
 }
@@ -1529,7 +1529,7 @@ const halStats = computed(() => ({
 .opacityValue {
   font-size: var(--fs-sm);
   font-family: var(--font-mono);
-  opacity: 0.6;
+  opacity: var(--opacity-muted);
   min-width: 32px;
   text-align: right;
 }
@@ -1547,7 +1547,7 @@ const halStats = computed(() => ({
 
 .optBtn.active {
   background: var(--hl-selected);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   border-color: color-mix(in oklab, var(--fg) 30%, var(--border));
 }
 
@@ -1562,7 +1562,7 @@ const halStats = computed(() => ({
 
 .settingDesc {
   font-size: var(--fs-base);
-  opacity: 0.5;
+  opacity: var(--opacity-muted);
   margin-bottom: var(--gap-section);
 }
 
@@ -1582,12 +1582,12 @@ const halStats = computed(() => ({
 
 .modeName {
   font-size: var(--fs-md);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 
 .modeDesc {
   font-size: var(--fs-sm);
-  opacity: 0.5;
+  opacity: var(--opacity-muted);
 }
 
 .rflDefaults {
@@ -1621,7 +1621,7 @@ const halStats = computed(() => ({
 
 .tsGrid label {
   font-size: var(--fs-sm);
-  opacity: 0.7;
+  opacity: var(--opacity-muted);
 }
 
 .tsGrid input {
@@ -1634,8 +1634,8 @@ const halStats = computed(() => ({
 .readonlyVal {
   font-size: var(--fs-base);
   font-family: var(--font-mono);
-  font-weight: 600;
-  opacity: 0.7;
+  font-weight: var(--fw-semibold);
+  opacity: var(--opacity-muted);
 }
 
 .tsCheckGrid {
@@ -1652,8 +1652,8 @@ const halStats = computed(() => ({
 .tsToggle {
   padding: 5px 8px;
   font-size: var(--fs-sm);
-  font-weight: 600;
-  opacity: 0.6;
+  font-weight: var(--fw-semibold);
+  opacity: var(--opacity-muted);
 }
 
 .tsToggle.active {
@@ -1698,7 +1698,7 @@ const halStats = computed(() => ({
 
 .halEmpty {
   text-align: center;
-  opacity: 0.4;
+  opacity: var(--opacity-disabled);
   padding: 40px 0;
 }
 
@@ -1711,11 +1711,11 @@ const halStats = computed(() => ({
 }
 
 .halCount {
-  opacity: 0.5;
+  opacity: var(--opacity-muted);
 }
 
 .halFilterInfo {
-  opacity: 0.5;
+  opacity: var(--opacity-muted);
   margin-bottom: var(--gap-tight);
 }
 
@@ -1751,11 +1751,11 @@ const halStats = computed(() => ({
 }
 
 .halGroupName {
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 
 .halGroupCount {
-  opacity: 0.4;
+  opacity: var(--opacity-disabled);
 }
 
 .halGroupBody {
@@ -1785,14 +1785,14 @@ const halStats = computed(() => ({
   width: 36px;
   flex-shrink: 0;
   text-align: center;
-  opacity: 0.5;
+  opacity: var(--opacity-muted);
 }
 
 .halDir {
   width: 24px;
   flex-shrink: 0;
   text-align: center;
-  opacity: 0.5;
+  opacity: var(--opacity-muted);
 }
 
 .halValue {
@@ -1807,13 +1807,13 @@ const halStats = computed(() => ({
 }
 
 .halFalse {
-  opacity: 0.4;
+  opacity: var(--opacity-disabled);
 }
 
 .halSignal {
   flex: 1;
   min-width: 60px;
-  opacity: 0.6;
+  opacity: var(--opacity-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1835,7 +1835,7 @@ const halStats = computed(() => ({
 }
 
 .halSigName {
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   flex: 1;
   min-width: 0;
 }
@@ -1846,7 +1846,7 @@ const halStats = computed(() => ({
   gap: var(--gap-tight) var(--gap-section);
   padding-left: 12px;
   padding-top: 2px;
-  opacity: 0.6;
+  opacity: var(--opacity-muted);
 }
 
 .halSigPin {
@@ -1880,12 +1880,12 @@ const halStats = computed(() => ({
   gap: var(--gap-micro);
 }
 .macroSettingsName {
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 .macroSettingsCmd {
   font-family: var(--font-mono);
   font-size: var(--fs-sm);
-  opacity: 0.6;
+  opacity: var(--opacity-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1903,7 +1903,7 @@ const halStats = computed(() => ({
 }
 .macroParamHint {
   font-size: var(--fs-sm);
-  opacity: 0.6;
+  opacity: var(--opacity-muted);
 }
 .macroParamEditor {
   margin-top: var(--gap-controls);
@@ -1948,7 +1948,7 @@ const halStats = computed(() => ({
 }
 
 .gpMapKey {
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   white-space: nowrap;
   width: 1%;
 }

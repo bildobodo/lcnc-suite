@@ -119,7 +119,7 @@ function fmt(n: any, letter?: string) {
 
 .axis span {
   font-size: var(--fs-base);
-  opacity: 0.7;
+  opacity: var(--opacity-muted);
   width: 14px;
 }
 
@@ -131,7 +131,7 @@ function fmt(n: any, letter?: string) {
 
 .homeBtn {
   padding: 10px 14px;
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   border-radius: var(--radius-xl);
   display: flex;
   align-items: center;

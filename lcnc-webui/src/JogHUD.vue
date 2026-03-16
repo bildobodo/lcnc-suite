@@ -324,7 +324,7 @@ function onAngularVelInput(ev: Event) {
 
 .k {
   font-size: var(--fs-xs);
-  opacity: 0.7;
+  opacity: var(--opacity-muted);
   white-space: nowrap;
 }
 
@@ -336,7 +336,7 @@ function onAngularVelInput(ev: Event) {
 /* ---- Mode button ---- */
 .modeBtn {
   font-size: var(--fs-xs);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 
 .modeBtn.teleop:not(:disabled) {
@@ -346,7 +346,7 @@ function onAngularVelInput(ev: Event) {
 
 .modeHint {
   font-size: var(--fs-2xs);
-  opacity: 0.5;
+  opacity: var(--opacity-muted);
 }
 
 /* ---- Increment buttons ---- */
@@ -366,7 +366,7 @@ function onAngularVelInput(ev: Event) {
 
 .incrBtn.active {
   background: var(--hl-selected);
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   border-color: color-mix(in oklab, var(--fg) 30%, var(--border));
 }
 
@@ -443,9 +443,9 @@ function onAngularVelInput(ev: Event) {
   text-anchor: middle;
   dominant-baseline: central;
   font-size: var(--fs-lg);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   fill: var(--fg);
-  opacity: 0.6;
+  opacity: var(--opacity-muted);
   user-select: none;
   pointer-events: none;
 }
@@ -454,7 +454,7 @@ function onAngularVelInput(ev: Event) {
   text-anchor: middle;
   dominant-baseline: central;
   font-size: var(--fs-base);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   fill: var(--fg);
   pointer-events: none;
   user-select: none;

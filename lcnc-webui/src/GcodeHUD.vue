@@ -203,7 +203,7 @@ function tokenizeCode(code: string, tokens: Token[]) {
   font-size: var(--fs-2xs);
   font-family: var(--font-mono);
   color: var(--fg);
-  opacity: 0.6;
+  opacity: var(--opacity-muted);
   white-space: nowrap;
 }
 
@@ -211,7 +211,7 @@ function tokenizeCode(code: string, tokens: Token[]) {
   font-size: var(--fs-2xs);
   font-family: var(--font-mono);
   color: var(--fg);
-  opacity: 0.6;
+  opacity: var(--opacity-muted);
   white-space: nowrap;
   margin-left: auto;
 }
@@ -241,7 +241,7 @@ function tokenizeCode(code: string, tokens: Token[]) {
 .lineNum {
   min-width: 28px;
   text-align: right;
-  opacity: 0.4;
+  opacity: var(--opacity-disabled);
   user-select: none;
 }
 
@@ -264,7 +264,7 @@ function tokenizeCode(code: string, tokens: Token[]) {
 }
 
 .switchBtn {
-  opacity: 0.5;
+  opacity: var(--opacity-muted);
 }
 
 .switchBtn.active:not(:disabled) {

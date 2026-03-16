@@ -147,24 +147,24 @@ function toggleSort(key: "code" | "name") {
 
 .refCode {
   font-family: var(--font-mono);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--accent);
 }
 
 .refSyntax {
   font-family: var(--font-mono);
-  opacity: 0.7;
+  opacity: var(--opacity-muted);
 }
 
 .refEmpty {
   text-align: center;
-  opacity: 0.5;
+  opacity: var(--opacity-muted);
   padding: var(--gap-panel) !important;
 }
 
 .refFooter {
   font-size: var(--fs-xs);
-  opacity: 0.5;
+  opacity: var(--opacity-muted);
   text-align: right;
 }
 

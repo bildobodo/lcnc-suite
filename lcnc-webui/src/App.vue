@@ -1997,7 +1997,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 
 .title {
   font-size: var(--fs-2xl);
-  font-weight: 700;
+  font-weight: var(--fw-bold);
 }
 
 .pill {
@@ -2040,7 +2040,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
   min-height: 0;
   position: relative;
   border: 1px solid var(--border);
-  border-radius: var(--radius-3xl);
+  border-radius: var(--radius-2xl);
   padding: 12px;
   background: var(--panel);
   color: var(--fg);
@@ -2054,12 +2054,12 @@ watch(isHomed, (nowHomed, wasHomed) => {
   align-items: center;
   justify-content: center;
   padding: 0;
-  border-radius: var(--radius-3xl);
+  border-radius: var(--radius-2xl);
   border: 1px dashed var(--border);
   background: transparent;
   color: var(--fg);
   font-size: var(--fs-2xl);
-  opacity: 0.4;
+  opacity: var(--opacity-disabled);
   transition: opacity 0.15s, background 0.15s;
 }
 
@@ -2077,7 +2077,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
   min-height: 40px;
   color: var(--fg);
   font-size: var(--fs-md);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   flex-shrink: 0;
 }
 
@@ -2143,7 +2143,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 
 .card {
   border: 1px solid var(--border);
-  border-radius: var(--radius-3xl);
+  border-radius: var(--radius-2xl);
   padding: 12px;
   margin-bottom: var(--gap-section);
   background: var(--panel);
@@ -2184,11 +2184,11 @@ watch(isHomed, (nowHomed, wasHomed) => {
 
 .k {
   font-size: var(--fs-base);
-  opacity: 0.7;
+  opacity: var(--opacity-muted);
 }
 
 .v {
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 
 .v.codes {
@@ -2219,7 +2219,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 }
 
 .mutedText {
-  opacity: 0.7;
+  opacity: var(--opacity-muted);
 }
 
 .compactStatus {
@@ -2256,7 +2256,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 }
 
 .chipIcon { width: var(--fs-2xl); height: var(--fs-2xl); }
-.chipValue { font-size: var(--fs-md); font-weight: 600; }
+.chipValue { font-size: var(--fs-md); font-weight: var(--fw-semibold); }
 .topRow .statusChip .label,
 .topRow .statusChip .chipValue { display: none; }
 
@@ -2280,7 +2280,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
   width: 100%;
   padding: 8px;
   font-size: var(--fs-base);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 .popoverAction.primary {
   background: color-mix(in oklab, var(--ok) 20%, var(--button-bg));
@@ -2292,9 +2292,9 @@ watch(isHomed, (nowHomed, wasHomed) => {
 
 .offsetsPopover { min-width: 300px; }
 .offsetTable { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
-.offsetTable th { text-align: right; padding: 2px 6px; color: color-mix(in oklab, var(--fg) 55%, transparent); font-weight: 500; }
+.offsetTable th { text-align: right; padding: 2px 6px; color: color-mix(in oklab, var(--fg) 55%, transparent); font-weight: var(--fw-medium); }
 .offsetTable td { text-align: right; padding: 2px 6px; font-family: var(--font-mono); }
-.offsetTable .offLabel { text-align: left; font-weight: 600; color: color-mix(in oklab, var(--fg) 80%, transparent); }
+.offsetTable .offLabel { text-align: left; font-weight: var(--fw-semibold); color: color-mix(in oklab, var(--fg) 80%, transparent); }
 .offsetTable tbody tr { cursor: pointer; }
 .offsetTable tbody tr:hover { background: color-mix(in oklab, var(--fg) 5%, transparent); }
 .offsetTable .activeRow .offLabel { color: var(--info); }
@@ -2325,8 +2325,8 @@ watch(isHomed, (nowHomed, wasHomed) => {
 
 .ovrLabel {
   font-size: var(--fs-base);
-  font-weight: 500;
-  opacity: 0.7;
+  font-weight: var(--fw-medium);
+  opacity: var(--opacity-muted);
   min-width: 48px;
 }
 
@@ -2354,7 +2354,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
   margin-top: var(--gap-tight);
   padding: 5px 10px;
   font-size: var(--fs-sm);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   border-radius: var(--radius-lg);
   width: 100%;
 }
@@ -2437,7 +2437,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 
 .spFieldLabel {
   font-size: var(--fs-base);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   opacity: 0.8;
   min-width: 72px;
 }
@@ -2447,14 +2447,14 @@ watch(isHomed, (nowHomed, wasHomed) => {
   padding: 6px 10px;
   border-radius: var(--radius-xl);
   font-size: var(--fs-md);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   max-width: 120px;
 }
 
 .spUnit {
   font-size: var(--fs-xs);
   font-weight: 400;
-  opacity: 0.6;
+  opacity: var(--opacity-muted);
 }
 
 .spActualGroup {
@@ -2472,20 +2472,20 @@ watch(isHomed, (nowHomed, wasHomed) => {
 .spActualValue {
   font-family: var(--font-mono);
   font-size: var(--fs-xl);
-  font-weight: 700;
+  font-weight: var(--fw-bold);
 }
 
 .spCommandedValue {
   font-family: var(--font-mono);
   font-size: var(--fs-md);
-  font-weight: 600;
-  opacity: 0.7;
+  font-weight: var(--fw-semibold);
+  opacity: var(--opacity-muted);
 }
 
 .spDirValue {
   font-size: var(--fs-base);
-  font-weight: 600;
-  opacity: 0.7;
+  font-weight: var(--fw-semibold);
+  opacity: var(--opacity-muted);
 }
 
 .spOvrGroup {
@@ -2502,7 +2502,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 }
 
 .spOvrHeader span:first-child {
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   opacity: 0.8;
 }
 
@@ -2555,7 +2555,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
   margin-top: var(--gap-section);
   font-family: var(--font-mono);
   font-size: var(--fs-sm);
-  opacity: 0.6;
+  opacity: var(--opacity-muted);
 }
 
 .coolantPopover {
@@ -2577,12 +2577,12 @@ watch(isHomed, (nowHomed, wasHomed) => {
 }
 .coolantLabel {
   font-size: var(--fs-md);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 .coolantToggle {
   min-width: 60px;
   padding: 6px 14px;
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   border-radius: var(--radius-xl);
 }
 .coolantToggle.active {
@@ -2611,7 +2611,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 }
 .toolFieldLabel {
   font-size: var(--fs-base);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   opacity: 0.8;
   min-width: 48px;
 }
@@ -2620,7 +2620,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
   padding: 6px 10px;
   border-radius: var(--radius-xl);
   font-size: var(--fs-lg);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   font-family: var(--font-mono);
   max-width: 80px;
   text-align: center;
@@ -2632,7 +2632,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 }
 .toolActionBtn {
   padding: 7px 10px;
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   border-radius: var(--radius-xl);
 }
 .toolActionBtn.measure {
@@ -2690,14 +2690,14 @@ watch(isHomed, (nowHomed, wasHomed) => {
 .toolStatusText {
   font-size: var(--fs-sm);
   font-family: var(--font-mono);
-  opacity: 0.7;
+  opacity: var(--opacity-muted);
 }
 
 /* ---- Messages popover ---- */
 .messagesPopover { min-width: 320px; max-height: 400px; }
 .msgPopHeader { display: flex; justify-content: space-between; align-items: center; }
-.msgPopTitle { font-weight: 600; font-size: var(--fs-md); }
-.msgPopEmpty { padding: 20px 0; text-align: center; font-size: var(--fs-base); opacity: 0.4; }
+.msgPopTitle { font-weight: var(--fw-semibold); font-size: var(--fs-md); }
+.msgPopEmpty { padding: 20px 0; text-align: center; font-size: var(--fs-base); opacity: var(--opacity-disabled); }
 
 .msgPopList {
   display: flex;
@@ -2719,17 +2719,17 @@ watch(isHomed, (nowHomed, wasHomed) => {
 
 .msgPopIndicator { width: 3px; border-radius: var(--radius-sm); flex-shrink: 0; }
 .msgPopItem.error .msgPopIndicator { background: var(--err); }
-.msgPopItem.info .msgPopIndicator { background: var(--fg); opacity: 0.4; }
+.msgPopItem.info .msgPopIndicator { background: var(--fg); opacity: var(--opacity-disabled); }
 .msgPopItem.display .msgPopIndicator { background: var(--display); }
 
 .msgPopBody { flex: 1; min-width: 0; }
 .msgPopMeta { display: flex; align-items: center; gap: var(--gap-tight); margin-bottom: 2px; }
-.msgPopBadge { font-size: var(--fs-2xs); font-weight: 700; padding: 1px 5px; border-radius: var(--radius-sm); letter-spacing: 0.5px; }
+.msgPopBadge { font-size: var(--fs-2xs); font-weight: var(--fw-bold); padding: 1px 5px; border-radius: var(--radius-sm); letter-spacing: 0.5px; }
 .msgPopBadge.error { background: color-mix(in oklab, var(--err) 20%, var(--panel)); color: var(--danger); }
-.msgPopBadge.info { background: color-mix(in oklab, var(--fg) 10%, var(--panel)); color: var(--fg); opacity: 0.7; }
+.msgPopBadge.info { background: color-mix(in oklab, var(--fg) 10%, var(--panel)); color: var(--fg); opacity: var(--opacity-muted); }
 .msgPopBadge.display { background: color-mix(in oklab, var(--display) 20%, var(--panel)); color: var(--display); }
 
-.msgPopTime { font-size: var(--fs-xs); font-family: var(--font-mono); opacity: 0.5; }
+.msgPopTime { font-size: var(--fs-xs); font-family: var(--font-mono); opacity: var(--opacity-muted); }
 .msgPopText { font-size: var(--fs-base); line-height: 1.3; word-break: break-word; }
 .msgPopItem .btn-icon { align-self: flex-start; font-size: var(--fs-xl); }
 
@@ -2773,7 +2773,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 
 .safetyLabel {
   font-size: var(--fs-sm);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -2782,7 +2782,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 .hint {
   margin-top: var(--gap-controls);
   font-size: var(--fs-base);
-  opacity: 0.65;
+  opacity: var(--opacity-muted);
 }
 
 .debugSection {

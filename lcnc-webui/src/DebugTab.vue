@@ -89,8 +89,8 @@ const timingComponents: { key: keyof Omit<import("./lcncWs").TimingStats, "count
 }
 
 .timingHeader {
-  opacity: 0.6;
-  font-weight: 600;
+  opacity: var(--opacity-muted);
+  font-weight: var(--fw-semibold);
   border-bottom: 1px solid currentColor;
   padding-bottom: 2px;
   margin-bottom: 2px;
@@ -100,7 +100,7 @@ const timingComponents: { key: keyof Omit<import("./lcncWs").TimingStats, "count
   border-bottom: 1px solid currentColor;
   padding-bottom: 4px;
   margin-bottom: 2px;
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 
 .timingTotal + .timingRow:not(.timingTotal) ~ .timingTotal {

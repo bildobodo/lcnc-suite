@@ -662,7 +662,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
 
 .editLabelText {
   font-size: var(--fs-base);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   min-width: 75px;
   flex-shrink: 0;
 }
@@ -690,7 +690,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
   border-radius: 0;
   color: color-mix(in oklab, var(--fg) 60%, transparent);
   font-size: var(--fs-base);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   cursor: pointer;
   padding: 4px 0;
   text-align: left;
@@ -709,7 +709,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
 
 .importStats {
   font-size: var(--fs-base);
-  opacity: 0.7;
+  opacity: var(--opacity-muted);
   margin-bottom: var(--gap-controls);
 }
 
@@ -740,10 +740,10 @@ defineExpose({ openAdd, fetchTools, triggerImport });
 .importRow:last-child { border-bottom: none; }
 
 .importExists {
-  opacity: 0.5;
+  opacity: var(--opacity-muted);
 }
 
-.importT { min-width: 40px; font-weight: 600; }
+.importT { min-width: 40px; font-weight: var(--fw-semibold); }
 .importType { min-width: 70px; }
 .importDia { min-width: 55px; }
 .importDesc {
@@ -754,7 +754,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
 }
 .importTag {
   font-size: var(--fs-sm);
-  opacity: 0.6;
+  opacity: var(--opacity-muted);
   font-style: italic;
 }
 
@@ -785,7 +785,7 @@ td .btn {
 .colT {
   width: 50px;
   white-space: nowrap;
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   font-family: var(--font-mono);
 }
 
@@ -816,7 +816,7 @@ td .btn {
 .emptyState {
   padding: 24px;
   text-align: center;
-  opacity: 0.5;
+  opacity: var(--opacity-muted);
   font-size: var(--fs-md);
 }
 </style>

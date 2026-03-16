@@ -2306,9 +2306,9 @@ defineExpose({
 
 .hudBtn {
   font-size: var(--fs-sm);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   padding: 5px 10px;
-  opacity: 0.75;
+  opacity: var(--opacity-muted);
 }
 
 .hudBtn:hover {
@@ -2343,7 +2343,7 @@ defineExpose({
   z-index: 0;
   width: 100%;
   height: 100%;
-  border-radius: var(--radius-3xl);
+  border-radius: var(--radius-2xl);
   overflow: hidden;
   border: 1px solid var(--border);
   background: color-mix(in oklab, var(--panel) 70%, transparent);
@@ -2379,7 +2379,7 @@ defineExpose({
 
 .hudValue {
   color: var(--fg);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
 }
 
 .hudCoords {
@@ -2393,12 +2393,12 @@ defineExpose({
 }
 .hudCoord {
   color: var(--fg);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   white-space: nowrap;
 }
 .hudAxis {
   color: var(--fg);
-  opacity: 0.5;
+  opacity: var(--opacity-muted);
   margin-right: 4px;
 }
 .hudWarn .hudLabel,

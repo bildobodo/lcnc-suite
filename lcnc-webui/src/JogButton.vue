@@ -127,7 +127,7 @@ function stopJog(e?: PointerEvent) {
   background: transparent;
   user-select: none;
   touch-action: none; /* prevents touch scrolling from interrupting hold */
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   font-size: var(--fs-md);
   position: relative;
   padding: 0;
@@ -147,7 +147,7 @@ function stopJog(e?: PointerEvent) {
 }
 
 .jbtn:active:not(:disabled) .tri polygon {
-  fill: var(--hl-pressed);
+  fill: var(--hl-active);
 }
 
 .jbtn.active:not(:disabled) .tri polygon {

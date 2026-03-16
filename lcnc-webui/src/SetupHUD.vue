@@ -91,7 +91,7 @@ function updateTouchoff(axis: number, val: number) {
   flex: 1;
   padding: 6px 10px;
   font-size: var(--fs-sm);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   border-radius: var(--radius-md);
 }
 

@@ -727,7 +727,7 @@ async function saveEdit() {
   padding: 8px 12px;
   border-radius: var(--radius-xl);
   font-size: var(--fs-base);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 
 .ctrlBtn.primary {
@@ -742,7 +742,7 @@ async function saveEdit() {
 
 .switchBtn {
   flex: 0 0 auto;
-  opacity: 0.5;
+  opacity: var(--opacity-muted);
 }
 
 .switchBtn.active:not(:disabled) {
@@ -779,19 +779,19 @@ async function saveEdit() {
 .progressLabel {
   font-size: var(--fs-sm);
   font-family: var(--font-mono);
-  opacity: 0.7;
+  opacity: var(--opacity-muted);
   white-space: nowrap;
   flex-shrink: 0;
 }
 
 .progressPct {
-  opacity: 0.6;
+  opacity: var(--opacity-muted);
 }
 
 .elapsedLabel {
   font-size: var(--fs-sm);
   font-family: var(--font-mono);
-  opacity: 0.7;
+  opacity: var(--opacity-muted);
   white-space: nowrap;
   flex-shrink: 0;
   margin-left: auto;
@@ -808,7 +808,7 @@ async function saveEdit() {
 .fileName {
   font-family: var(--font-mono);
   font-size: var(--fs-md);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -823,7 +823,7 @@ async function saveEdit() {
 
 .fileMeta {
   font-size: var(--fs-base);
-  opacity: 0.7;
+  opacity: var(--opacity-muted);
   white-space: nowrap;
 }
 
@@ -850,7 +850,7 @@ async function saveEdit() {
 }
 
 .statsLabel {
-  opacity: 0.6;
+  opacity: var(--opacity-muted);
 }
 
 .statsValue {
@@ -898,7 +898,7 @@ async function saveEdit() {
 
 .legendPct {
   font-family: var(--font-mono);
-  opacity: 0.6;
+  opacity: var(--opacity-muted);
   margin-left: auto;
 }
 
@@ -914,7 +914,7 @@ async function saveEdit() {
   border: 1px solid var(--border);
   background-color: var(--button-bg);
   color: var(--fg);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   font-family: inherit;
   cursor: pointer;
   transition: background 0.12s, border-color 0.12s, opacity 0.15s;
@@ -957,7 +957,7 @@ async function saveEdit() {
   padding: 6px 10px;
   border-bottom: 1px solid var(--border);
   font-size: var(--fs-sm);
-  opacity: 0.7;
+  opacity: var(--opacity-muted);
 }
 
 .backBtn {
@@ -1000,12 +1000,12 @@ async function saveEdit() {
 }
 
 .fileItem.directory .fileEntryName {
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 
 .fileIcon {
   font-family: var(--font-mono);
-  opacity: 0.5;
+  opacity: var(--opacity-muted);
   width: 10px;
   text-align: center;
 }
@@ -1019,7 +1019,7 @@ async function saveEdit() {
 
 .fileSize {
   font-size: var(--fs-sm);
-  opacity: 0.5;
+  opacity: var(--opacity-muted);
   flex-shrink: 0;
 }
 
@@ -1027,7 +1027,7 @@ async function saveEdit() {
   padding: 12px;
   text-align: center;
   font-size: var(--fs-base);
-  opacity: 0.5;
+  opacity: var(--opacity-muted);
 }
 
 /* Code area wrapper */
@@ -1072,7 +1072,7 @@ async function saveEdit() {
 
 .dropText {
   font-size: var(--fs-lg);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--info);
   opacity: 0.9;
 }
@@ -1116,7 +1116,7 @@ async function saveEdit() {
   min-width: 40px;
   text-align: right;
   margin-right: 16px;
-  opacity: 0.5;
+  opacity: var(--opacity-muted);
   user-select: none;
   flex-shrink: 0;
 }
@@ -1134,7 +1134,7 @@ async function saveEdit() {
   align-items: center;
   justify-content: center;
   gap: var(--gap-section);
-  opacity: 0.6;
+  opacity: var(--opacity-muted);
   border: 2px dashed var(--border);
   border-radius: var(--radius-xl);
   transition: border-color 0.2s, background 0.2s, opacity 0.2s;
@@ -1149,17 +1149,17 @@ async function saveEdit() {
 .uploadIcon {
   width: 40px;
   height: 40px;
-  opacity: 0.4;
+  opacity: var(--opacity-disabled);
 }
 
 .emptyText {
   font-size: var(--fs-xl);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 
 .emptyHint {
   font-size: var(--fs-md);
-  opacity: 0.7;
+  opacity: var(--opacity-muted);
 }
 
 /* Edit mode */
@@ -1213,7 +1213,7 @@ async function saveEdit() {
 
 .optBtn.active {
   background: var(--hl-selected);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   border-color: color-mix(in oklab, var(--fg) 30%, var(--border));
 }
 
@@ -1263,7 +1263,7 @@ async function saveEdit() {
 
 .gcodeTooltipCode {
   font-family: var(--font-mono);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--accent);
 }
 

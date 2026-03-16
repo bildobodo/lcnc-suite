@@ -182,7 +182,7 @@ Before writing or modifying ANY CSS or interactive element, verify ALL items:
 
 **Typography** — `font-size` → `--fs-*` tokens. `border-radius` → `--radius-*` tokens. `font-family` → `var(--font-mono)` or `var(--font-sans)`. Never hardcode any of these.
 
-**Colors** — Use semantic CSS variables (`--ok`, `--danger`, `--warn`, `--accent`, `--fg`, `--bg`, etc.) with `color-mix()`. Never raw hex. Hover tiers: `--hl-hover` (12%), `--hl-selected` (15%), `--hl-pressed` (18%), `--hl-active` (20%) — no other percentages.
+**Colors** — Use semantic CSS variables (`--ok`, `--danger`, `--warn`, `--accent`, `--fg`, `--bg`, etc.) with `color-mix()`. Never raw hex. Hover tiers: `--hl-hover` (12%), `--hl-selected` (15%), `--hl-active` (20%) — no other percentages.
 
 **Permission gates** — Every button/input/select gets `:disabled="!can.<class>"`. Only exception: pure navigation (sidebar, tabs). Inactive sections use `:class="{ inactive: !can.X }"` — never inline `:style` opacity.
 

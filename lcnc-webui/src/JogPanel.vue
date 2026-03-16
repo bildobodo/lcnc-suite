@@ -359,7 +359,7 @@ function stopJog(s: Sector, e?: PointerEvent) {
 
 .k {
   font-size: var(--fs-base);
-  opacity: 0.7;
+  opacity: var(--opacity-muted);
   white-space: nowrap;
 }
 
@@ -372,7 +372,7 @@ function stopJog(s: Sector, e?: PointerEvent) {
 .hint {
   margin-top: var(--gap-controls);
   font-size: var(--fs-base);
-  opacity: 0.65;
+  opacity: var(--opacity-muted);
   text-align: center;
 }
 
@@ -446,9 +446,9 @@ function stopJog(s: Sector, e?: PointerEvent) {
   text-anchor: middle;
   dominant-baseline: central;
   font-size: var(--fs-md);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   fill: var(--fg);
-  opacity: 0.6;
+  opacity: var(--opacity-muted);
   user-select: none;
   pointer-events: none;
 }
@@ -457,7 +457,7 @@ function stopJog(s: Sector, e?: PointerEvent) {
   text-anchor: middle;
   dominant-baseline: central;
   font-size: var(--fs-base);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   fill: var(--fg);
   pointer-events: none;
   user-select: none;
@@ -505,7 +505,7 @@ function stopJog(s: Sector, e?: PointerEvent) {
 /* ---- Mode button ---- */
 .modeBtn {
   font-size: var(--fs-base);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 
 .modeBtn.teleop:not(:disabled) {
@@ -515,7 +515,7 @@ function stopJog(s: Sector, e?: PointerEvent) {
 
 .modeHint {
   font-size: var(--fs-sm);
-  opacity: 0.5;
+  opacity: var(--opacity-muted);
 }
 
 /* ---- Increment buttons ---- */
@@ -534,7 +534,7 @@ function stopJog(s: Sector, e?: PointerEvent) {
 
 .incrBtn.active {
   background: var(--hl-selected);
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   border-color: color-mix(in oklab, var(--fg) 30%, var(--border));
 }
 

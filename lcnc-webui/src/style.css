@@ -46,6 +46,11 @@
   --fs-2xl: 20px;
   --fs-3xl: 24px;
 
+  /* Font weight */
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+
   /* Opacity */
   --opacity-muted: 0.6;   /* secondary/dimmed text, sample counts, waiting states */
   --opacity-disabled: 0.4;
@@ -53,7 +58,6 @@
   /* Highlight tiers (fg mixed into button-bg) */
   --hl-hover: color-mix(in oklab, var(--fg) 12%, var(--button-bg));
   --hl-selected: color-mix(in oklab, var(--fg) 15%, var(--button-bg));
-  --hl-pressed: color-mix(in oklab, var(--fg) 18%, var(--button-bg));
   --hl-active: color-mix(in oklab, var(--fg) 20%, var(--button-bg));
 
   /* Radius scale */
@@ -62,7 +66,6 @@
   --radius-lg: 6px;
   --radius-xl: 8px;
   --radius-2xl: 12px;
-  --radius-3xl: 14px;
   --radius-pill: 999px;
   --radius-round: 50%;
 
@@ -169,7 +172,7 @@ button {
   border: 1px solid var(--border);
   padding: 0.6em 1.2em;
   font-size: var(--fs-base);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   font-family: inherit;
   background-color: var(--button-bg);
   color: var(--fg);
@@ -182,7 +185,7 @@ button:hover:not(:disabled) {
 }
 
 button:active:not(:disabled) {
-  background: var(--hl-pressed);
+  background: var(--hl-active);
 }
 
 button:disabled {
@@ -193,7 +196,7 @@ button:disabled {
 button.primary {
   border-color: color-mix(in srgb, var(--ok) 50%, transparent);
   background: color-mix(in oklab, var(--ok) 25%, var(--button-bg));
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 
 button.ok {
@@ -324,7 +327,7 @@ label:has(input:disabled, select:disabled) {
   padding: 2px 6px;
   font-size: inherit;
   color: inherit;
-  opacity: 0.5;
+  opacity: var(--opacity-muted);
   cursor: pointer;
   border-radius: var(--radius-md);
   transition: opacity 0.15s, background 0.15s;
@@ -383,8 +386,8 @@ label:has(input:disabled, select:disabled) {
 
 .sub {
   font-size: var(--fs-sm);
-  font-weight: 600;
-  opacity: 0.6;
+  font-weight: var(--fw-semibold);
+  opacity: var(--opacity-muted);
   margin-bottom: 8px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -392,8 +395,8 @@ label:has(input:disabled, select:disabled) {
 
 .label {
   font-size: var(--fs-xs);
-  font-weight: 600;
-  opacity: 0.6;
+  font-weight: var(--fw-semibold);
+  opacity: var(--opacity-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -462,7 +465,7 @@ label:has(input:disabled, select:disabled) {
 
 .dialogTitle {
   font-size: var(--fs-xl);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   margin-bottom: var(--gap-controls);
 }
 
@@ -488,8 +491,8 @@ label:has(input:disabled, select:disabled) {
 }
 
 /* G-code syntax highlighting tokens */
-.token-gcode, .tok-gcode { color: var(--info); font-weight: 600; }
-.token-mcode, .tok-mcode { color: #c586c0; font-weight: 600; }
+.token-gcode, .tok-gcode { color: var(--info); font-weight: var(--fw-semibold); }
+.token-mcode, .tok-mcode { color: #c586c0; font-weight: var(--fw-semibold); }
 .token-coord, .tok-coord { color: #4ec9b0; }
 .token-param, .tok-param { color: #9cdcfe; }
 .token-comment, .tok-comment { color: #6a9955; opacity: 0.8; }
@@ -499,11 +502,11 @@ label:has(input:disabled, select:disabled) {
 .tab-btn {
   padding: 5px 8px;
   font-size: var(--fs-sm);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   border-radius: var(--radius-lg);
   text-align: center;
   white-space: nowrap;
-  opacity: 0.6;
+  opacity: var(--opacity-muted);
 }
 
 .tab-btn:hover {
@@ -526,14 +529,14 @@ label:has(input:disabled, select:disabled) {
 .g5xBtn {
   padding: 5px 10px;
   font-size: var(--fs-sm);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   border-radius: var(--radius-lg);
-  opacity: 0.6;
+  opacity: var(--opacity-muted);
 }
 
 .g5xBtn.active {
   opacity: 1;
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   border-color: var(--fg);
 }
 
@@ -545,7 +548,7 @@ label:has(input:disabled, select:disabled) {
 .sliderVal {
   font-size: var(--fs-base);
   font-family: var(--font-mono);
-  opacity: 0.7;
+  opacity: var(--opacity-muted);
   white-space: nowrap;
   text-align: right;
   overflow: hidden;
@@ -573,8 +576,8 @@ label:has(input:disabled, select:disabled) {
 .dataTable th {
   text-align: left;
   font-size: var(--fs-sm);
-  font-weight: 600;
-  opacity: 0.6;
+  font-weight: var(--fw-semibold);
+  opacity: var(--opacity-muted);
   padding: 4px 8px;
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
@@ -598,7 +601,7 @@ label:has(input:disabled, select:disabled) {
   color: inherit;
   font: inherit;
   font-size: var(--fs-sm);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   cursor: pointer;
   user-select: none;
   padding: 0;

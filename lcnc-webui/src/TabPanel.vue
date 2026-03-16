@@ -86,7 +86,7 @@ const emit = defineEmits<{
   margin-left: var(--gap-tight);
   border-radius: var(--radius-xl);
   font-size: var(--fs-2xs);
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   background: var(--err);
   color: var(--fg-on-accent);
   line-height: 1;

@@ -257,7 +257,7 @@ CAMERA_SOURCE = rtsp://&lt;host&gt;/live      # IP camera</pre>
   min-width: 32px;
   padding: 4px 8px;
   font-size: var(--fs-lg);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 
 .camToolBtn.active {
@@ -273,7 +273,7 @@ CAMERA_SOURCE = rtsp://&lt;host&gt;/live      # IP camera</pre>
 
 .camSliderLabel {
   font-size: var(--fs-sm);
-  opacity: 0.6;
+  opacity: var(--opacity-muted);
 }
 
 .camSlider {

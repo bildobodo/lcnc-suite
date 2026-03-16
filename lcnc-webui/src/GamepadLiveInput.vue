@@ -53,8 +53,8 @@ const buttons = inject<Ref<boolean[]>>("gamepadButtons", ref([]));
 
 .gpStickLabel {
   font-size: var(--fs-xs);
-  font-weight: 600;
-  opacity: 0.7;
+  font-weight: var(--fw-semibold);
+  opacity: var(--opacity-muted);
 }
 
 .gpStickBox {
@@ -104,7 +104,7 @@ const buttons = inject<Ref<boolean[]>>("gamepadButtons", ref([]));
   border-radius: var(--radius-sm);
   background: var(--button-bg);
   border: 1px solid var(--border);
-  opacity: 0.5;
+  opacity: var(--opacity-muted);
 }
 
 .gpBtn.active {

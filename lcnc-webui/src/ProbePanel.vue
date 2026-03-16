@@ -1374,7 +1374,7 @@ function fmtR(key: string): string {
 
 .calParamRow label {
   font-size: var(--fs-sm);
-  opacity: 0.7;
+  opacity: var(--opacity-muted);
   white-space: nowrap;
 }
 
@@ -1397,7 +1397,7 @@ function fmtR(key: string): string {
 
 .inlineParams label {
   font-size: var(--fs-sm);
-  opacity: 0.7;
+  opacity: var(--opacity-muted);
   white-space: nowrap;
 }
 
@@ -1420,14 +1420,14 @@ function fmtR(key: string): string {
 .calResetBtn {
   padding: 2px 8px;
   font-size: var(--fs-xs);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   border-radius: var(--radius-md);
 }
 
 .calParamTitle {
   font-size: var(--fs-sm);
-  font-weight: 600;
-  opacity: 0.6;
+  font-weight: var(--fw-semibold);
+  opacity: var(--opacity-muted);
 }
 
 .calAxisRow {
@@ -1440,7 +1440,7 @@ function fmtR(key: string): string {
   flex: 1;
   padding: 6px 10px;
   font-size: var(--fs-sm);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   border-radius: var(--radius-lg);
   text-align: center;
 }
@@ -1484,7 +1484,7 @@ function fmtR(key: string): string {
 .gridZLabel {
   fill: var(--fg);
   font-size: var(--fs-lg);
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   text-anchor: middle;
   dominant-baseline: central;
 }
@@ -1515,7 +1515,7 @@ function fmtR(key: string): string {
 
 .paramGrid label {
   font-size: var(--fs-sm);
-  opacity: 0.7;
+  opacity: var(--opacity-muted);
 }
 
 .paramGrid input {
@@ -1543,7 +1543,7 @@ function fmtR(key: string): string {
 .abortBtn {
   padding: 10px 14px;
   font-size: var(--fs-md);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   border-radius: var(--radius-xl);
   background: color-mix(in oklab, var(--danger) 20%, var(--button-bg));
   border-color: color-mix(in oklab, var(--danger) 30%, var(--border));
@@ -1595,7 +1595,7 @@ function fmtR(key: string): string {
 .statusText {
   font-size: var(--fs-sm);
   font-family: var(--font-mono);
-  opacity: 0.7;
+  opacity: var(--opacity-muted);
 }
 
 /* Probe results (PB-style 3×4 grid) */
@@ -1618,7 +1618,7 @@ function fmtR(key: string): string {
 .prVal {
   font-size: var(--fs-md);
   font-family: var(--font-mono);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 
 /* ─── Surface Map ─── */
@@ -1653,7 +1653,7 @@ function fmtR(key: string): string {
 }
 .compValue {
   margin-left: auto;
-  opacity: 0.7;
+  opacity: var(--opacity-muted);
 }
 .compMethod {
   margin-left: var(--gap-section);
