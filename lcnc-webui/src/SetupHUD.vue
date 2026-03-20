@@ -97,6 +97,10 @@ function updateTouchoff(axis: number, val: number) {
   gap: var(--gap-tight);
 }
 
+.axisRow :deep(.b) {
+  flex: 1;
+}
+
 .axisRow input {
   width: 60px;
   text-align: right;

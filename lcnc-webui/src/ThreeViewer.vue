@@ -2210,7 +2210,7 @@ defineExpose({
     <div class="hudOverlay">
       <div class="row-tight hudBtnRow">
         <Btn size="sm" muted :selected="activeHudPanel === 'jog'" @click="toggleHud('jog')">Jog</Btn>
-        <Btn size="sm" muted :selected="activeHudPanel === 'setup'" @click="toggleHud('setup')">Setup</Btn>
+        <Btn size="sm" muted :selected="activeHudPanel === 'setup'" @click="toggleHud('setup')">Quick Setup</Btn>
       </div>
 
       <div v-show="activeHudPanel === 'jog'">
