@@ -39,7 +39,7 @@ function updateTouchoff(axis: number, val: number) {
 </script>
 
 <template>
-  <div class="setupHud hud-panel">
+  <div class="setupHud">
     <!-- Homing -->
     <div class="row">
       <Btn

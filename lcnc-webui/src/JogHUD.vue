@@ -192,7 +192,7 @@ function onAngularVelInput(ev: Event) {
 </script>
 
 <template>
-  <div class="jogHud hud-panel">
+  <div class="jogHud">
     <div class="controlGrid">
       <!-- Mode row -->
       <div class="k">Mode</div>

@@ -479,12 +479,6 @@ function resetAllOverrides() {
   rapidSlider.value = 100; onRapidChange();
 }
 
-function onDocClick(e: MouseEvent) {
-  if (!openChip.value) return;
-  const el = document.querySelector('.topRow');
-  if (el && !el.contains(e.target as Node)) openChip.value = null;
-}
-
 // Active modal codes
 const activeGcodes = computed(() => {
   const raw = st.value.gcodes;
@@ -1135,7 +1129,6 @@ onMounted(() => {
   window.addEventListener("keydown", onKeyDown);
   window.addEventListener("keyup", onKeyUp);
   document.addEventListener("visibilitychange", visHandler);
-  document.addEventListener("click", onDocClick);
   gamepad.start();
 });
 
@@ -1143,7 +1136,6 @@ onUnmounted(() => {
   window.removeEventListener("blur", stopAllJog);
   window.removeEventListener("keydown", onKeyDown);
   window.removeEventListener("keyup", onKeyUp);
-  document.removeEventListener("click", onDocClick);
   document.removeEventListener("visibilitychange", visHandler);
   document.removeEventListener("focusin", onNumFocus);
   themeMql.removeEventListener("change", onOsThemeChange);
@@ -1322,6 +1314,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
           <RotateCw class="controlIcon" />
         </Btn>
         <div class="popover spindlePopover" :class="{ open: openChip === 'spindle' }" @click.stop>
+          <div class="popHeader"><span class="popTitle">Spindle</span><Btn icon @click="openChip = null">&times;</Btn></div>
           <fieldset :disabled="!permissions.ready" class="fs-reset">
           <!-- Direction controls -->
           <div class="spDirRow">
@@ -1409,6 +1402,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
           <Droplets class="controlIcon" />
         </Btn>
         <div class="popover coolantPopover" :class="{ open: openChip === 'coolant' }" @click.stop>
+          <div class="popHeader"><span class="popTitle">Coolant</span><Btn icon @click="openChip = null">&times;</Btn></div>
           <fieldset :disabled="!permissions.ready" class="fs-reset">
           <div class="coolantRow">
             <span class="coolantLabel">Flood</span>
@@ -1453,6 +1447,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
           <CodeXml class="controlIcon" />
         </Btn>
         <div class="popover macroPopover" :class="{ open: openChip === 'macros' }" @click.stop>
+          <div class="popHeader"><span class="popTitle">Macros</span><Btn icon @click="openChip = null">&times;</Btn></div>
           <div v-if="userMacros.length === 0" class="macroEmpty">
             No macros configured.<br>Add macros in Settings.
           </div>
@@ -1481,6 +1476,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
           <Gauge class="controlIcon" />
         </Btn>
         <div class="popover overridesPopover" :class="{ open: openChip === 'overrides' }" @click.stop>
+          <div class="popHeader"><span class="popTitle">Overrides</span><Btn icon @click="openChip = null">&times;</Btn></div>
           <fieldset :disabled="!permissions.override" class="fs-reset">
           <div class="ovrRow">
             <span class="ovrLabel">Feed</span>
@@ -1523,6 +1519,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
           <LocateFixed class="controlIcon" />
         </Btn>
         <div class="popover offsetsPopover" :class="{ open: openChip === 'offsets' }" @click.stop>
+          <div class="popHeader"><span class="popTitle">Work Offsets</span><Btn icon @click="openChip = null">&times;</Btn></div>
           <table class="offsetTable" :class="{ inactive: !permissions.ready }">
             <thead>
               <tr><th></th><th v-for="col in offsetColumns" :key="col">{{ col.toUpperCase() }}</th></tr>
@@ -1581,11 +1578,14 @@ watch(isHomed, (nowHomed, wasHomed) => {
           <MessageSquare class="controlIcon" />
         </Btn>
         <div class="popover messagesPopover" :class="{ open: openChip === 'messages' }" @click.stop>
-          <div class="msgPopHeader">
-            <span class="msgPopTitle">Messages</span>
-            <div v-if="messages.length > 0" style="display:flex;gap:var(--gap-tight)">
-              <Btn size="xs" @click="copyAllMessages">Copy All</Btn>
-              <Btn size="xs" @click="clearAllMessages">Clear All</Btn>
+          <div class="popHeader">
+            <span class="popTitle">Messages</span>
+            <div class="row-tight">
+              <template v-if="messages.length > 0">
+                <Btn size="xs" @click="copyAllMessages">Copy All</Btn>
+                <Btn size="xs" @click="clearAllMessages">Clear All</Btn>
+              </template>
+              <Btn icon @click="openChip = null">&times;</Btn>
             </div>
           </div>
           <div v-if="messages.length === 0" class="msgPopEmpty">No messages</div>
@@ -2551,8 +2551,6 @@ watch(isHomed, (nowHomed, wasHomed) => {
   flex-direction: column;
   gap: var(--gap-controls);
 }
-.msgPopHeader { display: flex; justify-content: space-between; align-items: center; }
-.msgPopTitle { font-weight: var(--fw-semibold); font-size: var(--fs-md); }
 .msgPopEmpty { padding: 20px 0; text-align: center; font-size: var(--fs-base); opacity: var(--opacity-disabled); }
 
 .msgPopList {

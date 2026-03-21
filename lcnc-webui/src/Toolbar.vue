@@ -11,6 +11,7 @@
       <div class="toolPill">
         <Btn size="sm" muted :selected="openPill === 'views'" @click.stop="togglePill('views')">Views</Btn>
         <div class="popover pillPopover" :class="{ open: openPill === 'views' }" @click.stop>
+          <div class="popHeader"><span class="popTitle">Views</span><Btn icon @click="openPill = null">&times;</Btn></div>
           <div class="viewGrid">
             <Btn size="sm" @click="$emit('setView', 'top')">Top</Btn>
             <Btn size="sm" @click="$emit('setView', 'bottom')">Bottom</Btn>
@@ -33,6 +34,7 @@
       <div class="toolPill">
         <Btn size="sm" muted :selected="openPill === 'layers'" @click.stop="togglePill('layers')">Layers</Btn>
         <div class="popover pillPopover" :class="{ open: openPill === 'layers' }" @click.stop>
+          <div class="popHeader"><span class="popTitle">Layers</span><Btn icon @click="openPill = null">&times;</Btn></div>
           <label><input type="checkbox" v-model="local.backplot" @change="emitToggle('backplot')" /> Backplot</label>
           <label><input type="checkbox" v-model="local.toolpath" @change="emitToggle('toolpath')" /> Toolpath</label>
           <label><input type="checkbox" v-model="local.machine"  @change="emitToggle('machine')"  /> Machine</label>
@@ -48,6 +50,7 @@
       <div class="toolPill">
         <Btn size="sm" muted :selected="openPill === 'toolpath'" @click.stop="togglePill('toolpath')">Toolpath</Btn>
         <div class="popover pillPopover" :class="{ open: openPill === 'toolpath' }" @click.stop>
+          <div class="popHeader"><span class="popTitle">Toolpath</span><Btn icon @click="openPill = null">&times;</Btn></div>
           <Btn size="sm" @click="$emit('resetBackplot')">Clear Backplot</Btn>
           <div class="sep"></div>
           <label><input type="checkbox" v-model="pathOnTop" @change="$emit('setPathOnTop', pathOnTop)" /> Always on top</label>
@@ -58,6 +61,7 @@
       <div class="toolPill">
         <Btn size="sm" muted :selected="openPill === 'tracking'" @click.stop="togglePill('tracking')">Tracking</Btn>
         <div class="popover pillPopover" :class="{ open: openPill === 'tracking' }" @click.stop>
+          <div class="popHeader"><span class="popTitle">Tracking</span><Btn icon @click="openPill = null">&times;</Btn></div>
           <Btn size="sm" :selected="trackMode === 'none'" @click="setTrack('none')">None</Btn>
           <Btn size="sm" :selected="trackMode === 'tool'" @click="setTrack('tool')">Tool</Btn>
           <Btn size="sm" :selected="trackMode === 'workpiece'" @click="setTrack('workpiece')">Workpiece</Btn>
@@ -68,6 +72,7 @@
       <div class="toolPill">
         <Btn size="sm" muted :selected="openPill === 'workpiece'" @click.stop="togglePill('workpiece')">Workpiece</Btn>
         <div class="popover pillPopover wpPopover" :class="{ open: openPill === 'workpiece' }" @click.stop>
+          <div class="popHeader"><span class="popTitle">Workpiece</span><Btn icon @click="openPill = null">&times;</Btn></div>
           <div class="inputRow">
             <label class="inputLabel">Size X</label>
             <input type="number" class="numInput" v-model.number="localSize[0]"
@@ -107,7 +112,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, reactive, ref, watch } from "vue";
+import { reactive, ref, watch } from "vue";
 import Btn from "./Btn.vue";
 import { loadViewerDefaults, STEP_DEFAULT, type Vec3, type Layer, type TrackMode } from "./defaults";
 
@@ -181,13 +186,7 @@ function togglePill(name: string) {
   openPill.value = openPill.value === name ? null : name;
 }
 
-function onClickOutside(e: MouseEvent) {
-  const bar = document.querySelector(".floatingBar");
-  if (bar && !bar.contains(e.target as Node)) openPill.value = null;
-}
 
-onMounted(() => document.addEventListener("click", onClickOutside));
-onUnmounted(() => document.removeEventListener("click", onClickOutside));
 </script>
 
 <style scoped>

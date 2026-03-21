@@ -355,19 +355,15 @@ const showRunDialog = ref(false);
 const dialogSpindleDir = ref<"off" | "forward" | "reverse">("forward");
 const dialogSpindleSpeed = ref(10000);
 
-function dismissStats() { showStats.value = false; }
-
 onMounted(() => {
   const mach = loadMachineDefaults();
   dialogSpindleDir.value = mach.rflSpindleDir;
   dialogSpindleSpeed.value = mach.rflSpindleRpm;
-  document.addEventListener("click", dismissStats);
   window.addEventListener("blur", dismissTooltip);
   window.addEventListener("resize", dismissTooltip);
 });
 
 onUnmounted(() => {
-  document.removeEventListener("click", dismissStats);
   window.removeEventListener("blur", dismissTooltip);
   window.removeEventListener("resize", dismissTooltip);
 });
@@ -454,6 +450,7 @@ async function saveEdit() {
         <div v-if="gcodeStats" class="statsAnchor">
           <Btn class="actionBtn" size="sm" @click.stop="showStats = !showStats">Stats</Btn>
           <div class="popover statsPopover" :class="{ open: showStats }" @click.stop>
+            <div class="popHeader"><span class="popTitle">Program Stats</span><Btn icon @click="showStats = false">&times;</Btn></div>
             <!-- Donut chart -->
             <div class="donutRow" v-if="donutSegments.length > 0">
               <svg class="donut" viewBox="0 0 100 100">

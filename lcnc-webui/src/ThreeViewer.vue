@@ -2214,7 +2214,8 @@ defineExpose({
         <Btn size="sm" muted :selected="activeHudPanel === 'setup'" @click="toggleHud('setup')">Quick Setup</Btn>
       </div>
 
-      <div v-show="activeHudPanel === 'jog'">
+      <div v-show="activeHudPanel === 'jog'" class="hud-panel">
+        <div class="popHeader"><span class="popTitle">Jog</span><Btn icon @click="activeHudPanel = 'none'">&times;</Btn></div>
         <JogHUD
           :axes="props.axes"
           :jogVel="props.jogVel ?? 10"
@@ -2236,7 +2237,8 @@ defineExpose({
         />
       </div>
 
-      <div v-show="activeHudPanel === 'setup'">
+      <div v-show="activeHudPanel === 'setup'" class="hud-panel">
+        <div class="popHeader"><span class="popTitle">Quick Setup</span><Btn icon @click="activeHudPanel = 'none'">&times;</Btn></div>
         <SetupHUD
           :axes="props.axes"
           :homed="props.isHomed ?? false"

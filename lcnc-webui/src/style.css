@@ -359,6 +359,21 @@ label:has(input:disabled, select:disabled) {
   min-width: 140px;
   z-index: 1000;
 }
+.popHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-controls);
+  padding: 2px 2px 2px 0;
+  margin-bottom: var(--gap-tight);
+  border-bottom: 1px solid var(--border);
+}
+
+.popHeader .popTitle {
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-md);
+  white-space: nowrap;
+}
 
 /* ---- Dialogs ---- */
 .dialogOverlay {
