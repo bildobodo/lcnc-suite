@@ -715,10 +715,6 @@ const halStats = computed(() => ({
                 </label>
               </div>
             </div>
-            <label class="toggleRow">
-              <input type="checkbox" class="toggle" v-model="pathOnTop" @change="emit('setPathOnTop', pathOnTop); save()" />
-              Toolpath always on top
-            </label>
             <div class="inputRow">
               <label class="inputLabel">Projection</label>
               <div class="radioGroup inline">
@@ -728,6 +724,10 @@ const halStats = computed(() => ({
                 </label>
               </div>
             </div>
+            <label class="toggleRow">
+              <input type="checkbox" class="toggle" v-model="pathOnTop" @change="emit('setPathOnTop', pathOnTop); save()" />
+              Toolpath always on top
+            </label>
           </div>
         </div>
 
@@ -754,6 +754,33 @@ const halStats = computed(() => ({
                 <span><span class="radioLabel">M600</span><br><span class="radioDesc">Load tool, measure with toolsetter, save offset</span></span>
               </label>
             </div>
+          </div>
+          <div class="sep"></div>
+          <div class="section">
+            <div class="sub">Spindle Feedback Unit</div>
+            <div class="settingDesc">What unit does your spindle encoder / VFD driver output on the speed-in HAL pin? Simulators use RPS; most real VFDs output RPM directly.</div>
+            <div class="radioGroup">
+              <label>
+                <input type="radio" v-model="spindleFeedbackUnit" value="rps" @change="saveMachine()" />
+                <span><span class="radioLabel">RPS (default)</span><br><span class="radioDesc">Pin outputs revolutions per second (×60 for display)</span></span>
+              </label>
+              <label>
+                <input type="radio" v-model="spindleFeedbackUnit" value="rpm" @change="saveMachine()" />
+                <span><span class="radioLabel">RPM</span><br><span class="radioDesc">Pin outputs RPM directly (most VFDs)</span></span>
+              </label>
+            </div>
+          </div>
+          <div class="sep"></div>
+          <div class="section">
+            <div class="sub">Spindle Load HAL Pin</div>
+            <div class="settingDesc">HAL pin that outputs spindle load percentage (e.g. <code>spindle-load-conv.load-percentage</code>). Leave empty to disable.</div>
+            <input
+              type="text"
+              v-model="spindleLoadPin"
+              @change="saveMachine()"
+              placeholder="e.g. spindle-load-conv.load-percentage"
+              style="width: 100%"
+            />
           </div>
           <div class="sep"></div>
           <div class="section">
@@ -786,33 +813,6 @@ const halStats = computed(() => ({
               <input type="checkbox" class="toggle" v-model="keyboardJog" @change="emit('setKeyboardJog', keyboardJog); saveMachine()" />
               Enable keyboard jogging
             </label>
-          </div>
-          <div class="sep"></div>
-          <div class="section">
-            <div class="sub">Spindle Feedback Unit</div>
-            <div class="settingDesc">What unit does your spindle encoder / VFD driver output on the speed-in HAL pin? Simulators use RPS; most real VFDs output RPM directly.</div>
-            <div class="radioGroup">
-              <label>
-                <input type="radio" v-model="spindleFeedbackUnit" value="rps" @change="saveMachine()" />
-                <span><span class="radioLabel">RPS (default)</span><br><span class="radioDesc">Pin outputs revolutions per second (×60 for display)</span></span>
-              </label>
-              <label>
-                <input type="radio" v-model="spindleFeedbackUnit" value="rpm" @change="saveMachine()" />
-                <span><span class="radioLabel">RPM</span><br><span class="radioDesc">Pin outputs RPM directly (most VFDs)</span></span>
-              </label>
-            </div>
-          </div>
-          <div class="sep"></div>
-          <div class="section">
-            <div class="sub">Spindle Load HAL Pin</div>
-            <div class="settingDesc">HAL pin that outputs spindle load percentage (e.g. <code>spindle-load-conv.load-percentage</code>). Leave empty to disable.</div>
-            <input
-              type="text"
-              v-model="spindleLoadPin"
-              @change="saveMachine()"
-              placeholder="e.g. spindle-load-conv.load-percentage"
-              style="width: 100%"
-            />
           </div>
           <div class="resetRow">
             <Btn variant="danger" :disabled="!can.idle" @click="resetTarget = 'machine'">Reset Machine</Btn>
@@ -1118,34 +1118,11 @@ const halStats = computed(() => ({
           <div class="sep" v-if="props.gamepadConfig?.enabled"></div>
 
           <div v-if="props.gamepadConfig?.enabled" class="section">
-            <div class="sub">Dead Zone</div>
-            <div class="settingDesc">Ignore stick deflection below this threshold to prevent drift.</div>
-            <div class="sliderRow">
-              <input
-                type="range" min="0.05" max="0.50" step="0.01"
-                :value="props.gamepadConfig?.deadZone ?? 0.15"
-                @input="emit('setGamepadConfig', { ...props.gamepadConfig!, deadZone: parseFloat(($event.target as HTMLInputElement).value) })"
-              />
-              <span class="sliderVal">{{ Math.round((props.gamepadConfig?.deadZone ?? 0.15) * 100) }}%</span>
-            </div>
-          </div>
-
-          <div class="sep" v-if="props.gamepadConfig?.enabled"></div>
-
-          <div v-if="props.gamepadConfig?.enabled" class="section">
             <div class="sub">Axis Inversion</div>
             <div class="settingDesc">Flip axis direction if your gamepad moves the wrong way.</div>
             <label class="toggleRow"><input type="checkbox" class="toggle" :checked="props.gamepadConfig?.invertX" @change="emit('setGamepadConfig', { ...props.gamepadConfig!, invertX: ($event.target as HTMLInputElement).checked })" /> Invert X</label>
             <label class="toggleRow"><input type="checkbox" class="toggle" :checked="props.gamepadConfig?.invertY" @change="emit('setGamepadConfig', { ...props.gamepadConfig!, invertY: ($event.target as HTMLInputElement).checked })" /> Invert Y</label>
             <label class="toggleRow"><input type="checkbox" class="toggle" :checked="props.gamepadConfig?.invertZ" @change="emit('setGamepadConfig', { ...props.gamepadConfig!, invertZ: ($event.target as HTMLInputElement).checked })" /> Invert Z</label>
-          </div>
-
-          <div class="sep" v-if="props.gamepadConfig?.enabled && props.gamepadConnected"></div>
-
-          <div v-if="props.gamepadConfig?.enabled && props.gamepadConnected" class="section">
-            <div class="sub">Live Input</div>
-            <div class="settingDesc">Move sticks and press buttons to verify mapping.</div>
-            <GamepadLiveInput :deadZone="props.gamepadConfig?.deadZone ?? 0.15" />
           </div>
 
           <div class="sep" v-if="props.gamepadConfig?.enabled"></div>
@@ -1171,6 +1148,25 @@ const halStats = computed(() => ({
                 </tr>
               </tbody>
             </table>
+          </div>
+
+          <div class="sep" v-if="props.gamepadConfig?.enabled"></div>
+
+          <div v-if="props.gamepadConfig?.enabled" class="section">
+            <div class="sub">Dead Zone & Live Input</div>
+            <div class="settingDesc">Ignore stick deflection below this threshold to prevent drift.</div>
+            <div class="sliderRow">
+              <input
+                type="range" min="0.05" max="0.50" step="0.01"
+                :value="props.gamepadConfig?.deadZone ?? 0.15"
+                @input="emit('setGamepadConfig', { ...props.gamepadConfig!, deadZone: parseFloat(($event.target as HTMLInputElement).value) })"
+              />
+              <span class="sliderVal">{{ Math.round((props.gamepadConfig?.deadZone ?? 0.15) * 100) }}%</span>
+            </div>
+            <div v-if="props.gamepadConnected" style="margin-top: var(--gap-section);">
+              <div class="settingDesc">Move sticks and press buttons to verify mapping.</div>
+              <GamepadLiveInput :deadZone="props.gamepadConfig?.deadZone ?? 0.15" />
+            </div>
           </div>
 
           <div class="resetRow">
