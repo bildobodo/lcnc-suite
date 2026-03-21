@@ -22,6 +22,7 @@ const props = defineProps<{
   iniIncrements: number[] | null;
   isTeleop: boolean;
   isHomed: boolean;
+  disabled?: boolean;
 }>();
 
 const emit = defineEmits<{

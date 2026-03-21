@@ -369,7 +369,7 @@ const editValue = ref("");
 const offsetInputRef = ref<HTMLInputElement | null>(null);
 
 function startEditCell(wcs: string, axis: string, current: number) {
-  if (!permissions.value.idle) return;
+  if (!permissions.value.ready) return;
   editingCell.value = { wcs, axis };
   editValue.value = current.toFixed(4);
   nextTick(() => { offsetInputRef.value?.select(); });
@@ -1512,7 +1512,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
           <LocateFixed class="controlIcon" />
         </Btn>
         <div class="popover offsetsPopover" :class="{ open: openChip === 'offsets' }" @click.stop>
-          <table class="offsetTable">
+          <table class="offsetTable" :class="{ inactive: !permissions.ready }">
             <thead>
               <tr><th></th><th v-for="col in offsetColumns" :key="col">{{ col.toUpperCase() }}</th></tr>
             </thead>
@@ -1522,12 +1522,13 @@ watch(isHomed, (nowHomed, wasHomed) => {
                   @click="selectedWcs = row.name">
                 <td class="offLabel">{{ row.name }}</td>
                 <td v-for="axis in offsetColumns" :key="axis"
-                    :class="{ warn: axis === 'r' && row[axis] !== 0, editableCell: permissions.idle }"
+                    :class="{ warn: axis === 'r' && row[axis] !== 0, editableCell: permissions.ready }"
                     @dblclick.stop="startEditCell(row.name, axis, Number(row[axis]) || 0)">
                   <input v-if="editingCell?.wcs === row.name && editingCell?.axis === axis"
                          ref="offsetInputRef"
                          v-model="editValue"
                          class="offsetInput"
+                         :disabled="!permissions.ready"
                          @keydown.enter.prevent="commitCell(row.name, axis)"
                          @keydown.escape.prevent="cancelEdit()"
                          @blur="commitCell(row.name, axis)"
@@ -1549,9 +1550,9 @@ watch(isHomed, (nowHomed, wasHomed) => {
               </tr>
             </tbody>
           </table>
-          <div class="offsetActions" :class="{ inactive: !permissions.idle }">
-            <Btn size="xs" :disabled="!permissions.idle || !selectedWcs" @click="clearWcs(selectedWcs!)">Clear {{ selectedWcs }}</Btn>
-            <Btn size="xs" :disabled="!permissions.idle" @click="clearWcs('all')">Clear All</Btn>
+          <div class="offsetActions" :class="{ inactive: !permissions.ready }">
+            <Btn size="xs" :disabled="!permissions.ready || !selectedWcs" @click="clearWcs(selectedWcs!)">Clear {{ selectedWcs }}</Btn>
+            <Btn size="xs" :disabled="!permissions.ready" @click="clearWcs('all')">Clear All</Btn>
           </div>
         </div>
         </div>
@@ -1662,6 +1663,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
                 :surfacePoints="surfaceLoadedToViewer ? surfacePoints : null"
                 :axes="axes"
                 :touchoff="touchoff"
+                :jogDisabled="!permissions.jog"
                 @update:touchoff="touchoff = $event"
                 @update:jogVel="jogVel = $event"
                 @update:angularJogVel="angularJogVel = $event"

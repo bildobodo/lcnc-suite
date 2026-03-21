@@ -209,6 +209,7 @@ const props = defineProps<{
   surfacePoints?: [number, number, number][] | null;
   axes?: string[];
   touchoff?: number[];
+  jogDisabled?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -2227,6 +2228,7 @@ defineExpose({
           :iniIncrements="props.iniIncrements ?? null"
           :isTeleop="props.isTeleop ?? false"
           :isHomed="props.isHomed ?? false"
+          :disabled="props.jogDisabled"
           @update:jogVel="emit('update:jogVel', $event)"
           @update:angularJogVel="emit('update:angularJogVel', $event)"
           @update:jogIncrement="emit('update:jogIncrement', $event)"
