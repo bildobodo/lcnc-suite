@@ -787,7 +787,8 @@ const halStats = computed(() => ({
               Enable keyboard jogging
             </label>
           </div>
-          <div>
+          <div class="sep"></div>
+          <div class="section">
             <div class="sub">Spindle Feedback Unit</div>
             <div class="settingDesc">What unit does your spindle encoder / VFD driver output on the speed-in HAL pin? Simulators use RPS; most real VFDs output RPM directly.</div>
             <div class="radioGroup">
@@ -801,7 +802,8 @@ const halStats = computed(() => ({
               </label>
             </div>
           </div>
-          <div>
+          <div class="sep"></div>
+          <div class="section">
             <div class="sub">Spindle Load HAL Pin</div>
             <div class="settingDesc">HAL pin that outputs spindle load percentage (e.g. <code>spindle-load-conv.load-percentage</code>). Leave empty to disable.</div>
             <input
@@ -966,6 +968,7 @@ const halStats = computed(() => ({
               <label><input type="radio" name="theme" :checked="themeMode === 'hc-dark'" @change="setTheme('hc-dark')" /> High Contrast Dark</label>
             </div>
           </div>
+          <div class="sep"></div>
           <div class="section">
             <div class="sub">Fullscreen</div>
             <label class="toggleRow">
@@ -1103,12 +1106,16 @@ const halStats = computed(() => ({
             </label>
           </div>
 
+          <div class="sep"></div>
+
           <div class="section">
             <div class="sub">Connection</div>
             <div class="settingDesc" :class="{ okText: props.gamepadConnected }">
               {{ props.gamepadConnected ? props.gamepadName : 'No gamepad detected — connect one and press a button' }}
             </div>
           </div>
+
+          <div class="sep" v-if="props.gamepadConfig?.enabled"></div>
 
           <div v-if="props.gamepadConfig?.enabled" class="section">
             <div class="sub">Dead Zone</div>
@@ -1123,6 +1130,8 @@ const halStats = computed(() => ({
             </div>
           </div>
 
+          <div class="sep" v-if="props.gamepadConfig?.enabled"></div>
+
           <div v-if="props.gamepadConfig?.enabled" class="section">
             <div class="sub">Axis Inversion</div>
             <div class="settingDesc">Flip axis direction if your gamepad moves the wrong way.</div>
@@ -1131,11 +1140,15 @@ const halStats = computed(() => ({
             <label class="toggleRow"><input type="checkbox" class="toggle" :checked="props.gamepadConfig?.invertZ" @change="emit('setGamepadConfig', { ...props.gamepadConfig!, invertZ: ($event.target as HTMLInputElement).checked })" /> Invert Z</label>
           </div>
 
+          <div class="sep" v-if="props.gamepadConfig?.enabled && props.gamepadConnected"></div>
+
           <div v-if="props.gamepadConfig?.enabled && props.gamepadConnected" class="section">
             <div class="sub">Live Input</div>
             <div class="settingDesc">Move sticks and press buttons to verify mapping.</div>
             <GamepadLiveInput :deadZone="props.gamepadConfig?.deadZone ?? 0.15" />
           </div>
+
+          <div class="sep" v-if="props.gamepadConfig?.enabled"></div>
 
           <div v-if="props.gamepadConfig?.enabled" class="section">
             <div class="sub">Button Mapping</div>
@@ -1511,7 +1524,7 @@ const halStats = computed(() => ({
   align-items: center;
 }
 
-.tsGrid label {
+.tsGrid > label {
   font-size: var(--fs-sm);
   opacity: var(--opacity-muted);
 }

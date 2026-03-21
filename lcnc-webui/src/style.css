@@ -265,6 +265,7 @@ select:disabled {
 
 input[type="checkbox"] {
   cursor: pointer;
+  accent-color: var(--info);
 }
 
 input[type="checkbox"]:disabled {
@@ -301,7 +302,7 @@ input.toggle::after {
 }
 
 input.toggle:checked {
-  background: var(--ok);
+  background: var(--info);
 }
 
 input.toggle:checked::after {
@@ -316,7 +317,7 @@ input.toggle:disabled {
 /* Radio buttons */
 input[type="radio"] {
   cursor: pointer;
-  accent-color: var(--ok);
+  accent-color: var(--info);
 }
 
 input[type="radio"]:disabled {
