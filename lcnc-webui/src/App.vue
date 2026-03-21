@@ -1344,7 +1344,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
             <Btn
               size="lg" variant="danger" class="spDirBtn"
               :active="isSpinning"
-              :disabled="!permissions.ready"
+              :disabled="!permissions.ready || !isSpinning"
               @click="spindleStop()"
               title="Spindle Stop"
             >
