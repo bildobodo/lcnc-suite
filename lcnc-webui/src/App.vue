@@ -1298,6 +1298,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
         <div class="statusRow"><div class="k">Mode</div><div class="v">{{ taskModeLabel }}</div></div>
         <div class="statusRow"><div class="k">Interp</div><div class="v">{{ interpStateLabel }}</div></div>
         <div class="statusRow"><div class="k">Elapsed</div><div class="v mono">{{ elapsedDisplay }}</div></div>
+        <div class="statusRow"><div class="k">Overrides</div><div class="v" :class="overridesActive ? 'warnText' : ''">{{ overridesActive ? 'ACTIVE' : 'INACTIVE' }}</div></div>
         <div class="statusRow codesRow">
           <div class="k">Codes</div>
           <div class="v mono codesShort">{{ activeGcodes }}</div>
@@ -2409,8 +2410,6 @@ watch(isHomed, (nowHomed, wasHomed) => {
   left: 100%;
   margin-left: 6px;
   min-width: 180px;
-  max-height: 300px;
-  overflow-y: auto;
 }
 .macroPopover.open {
   display: flex !important;
@@ -2557,7 +2556,6 @@ watch(isHomed, (nowHomed, wasHomed) => {
   left: 100%;
   margin-left: 6px;
   min-width: 320px;
-  max-height: 400px;
 }
 .messagesPopover.open {
   display: flex !important;

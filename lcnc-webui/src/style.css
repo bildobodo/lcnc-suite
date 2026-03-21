@@ -357,6 +357,8 @@ label:has(input:disabled, select:disabled) {
   border: 1px solid var(--border);
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   min-width: 140px;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
   z-index: 1000;
 }
 .popHeader {
