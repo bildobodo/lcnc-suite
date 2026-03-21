@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted, watch, nextTick } from "vue";
 import Btn from "./Btn.vue";
 import { usePermissions } from "./permissions";
 import { STEP_DEFAULT, STEP_FEED, loadProbeDefaults, saveProbeDefaults, settingsVersion } from "./defaults";
+import { idwInterp } from "./interpolation";
 
 const props = defineProps<{
   probing: boolean;
@@ -324,19 +325,6 @@ function viridis(t: number): [number, number, number] {
   ];
 }
 
-/** Inverse-distance weighted interpolation for a single point */
-function idwInterp(px: number, py: number, points: [number, number, number][], power = 2): number {
-  let wSum = 0, vSum = 0;
-  for (const p of points) {
-    const dx = px - p[0], dy = py - p[1];
-    const d2 = dx * dx + dy * dy;
-    if (d2 < 1e-10) return p[2];
-    const w = 1 / Math.pow(Math.sqrt(d2), power);
-    wSum += w;
-    vSum += w * p[2];
-  }
-  return wSum > 0 ? vSum / wSum : 0;
-}
 
 let _threeCleanup: (() => void) | null = null;
 

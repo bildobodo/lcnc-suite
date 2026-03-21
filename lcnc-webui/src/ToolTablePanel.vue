@@ -543,9 +543,9 @@ defineExpose({ openAdd, fetchTools, triggerImport });
       <table>
         <thead>
           <tr>
-            <th class="colT"><button class="sortHeader" @click="toggleSort('T')">T# {{ sortKey === 'T' ? (sortAsc ? '▲' : '▼') : '' }}</button></th>
-            <th class="colNum"><button class="sortHeader" @click="toggleSort('D')">Ø {{ sortKey === 'D' ? (sortAsc ? '▲' : '▼') : '' }}</button></th>
-            <th class="colNum"><button class="sortHeader" @click="toggleSort('Z')">Z Offset {{ sortKey === 'Z' ? (sortAsc ? '▲' : '▼') : '' }}</button></th>
+            <th class="colT"><button class="sortHeader" :disabled="!can.idle" @click="toggleSort('T')">T# {{ sortKey === 'T' ? (sortAsc ? '▲' : '▼') : '' }}</button></th>
+            <th class="colNum"><button class="sortHeader" :disabled="!can.idle" @click="toggleSort('D')">Ø {{ sortKey === 'D' ? (sortAsc ? '▲' : '▼') : '' }}</button></th>
+            <th class="colNum"><button class="sortHeader" :disabled="!can.idle" @click="toggleSort('Z')">Z Offset {{ sortKey === 'Z' ? (sortAsc ? '▲' : '▼') : '' }}</button></th>
             <th class="colType">
               <select class="filterSelect" v-model="filterType">
                 <option value="">Type</option>

@@ -903,7 +903,7 @@ const halStats = computed(() => ({
               <label>Z</label>
               <span class="readonlyVal">{{ g30Z != null ? g30Z.toFixed(3) : '—' }}</span>
             </div>
-            <div class="tsBtnRow" style="margin-top: 8px;">
+            <div class="tsBtnRow" style="margin-top: var(--gap-controls);">
               <Btn size="sm" class="optBtn" :disabled="!can.idle" @click="setG30">Set Current Position</Btn>
               <Btn size="sm" class="optBtn" @click="loadG30" :disabled="g30Loading">Refresh</Btn>
             </div>
@@ -951,7 +951,7 @@ const halStats = computed(() => ({
                 Last Try w/o Table
               </label>
             </div>
-            <div class="tsGrid" style="margin-top: 12px;">
+            <div class="tsGrid" style="margin-top: var(--gap-section);">
               <label title="Safety clearance between the expected tool tip position and the touch plate when using tool table pre-positioning. Increase for widely varying tool lengths. (#3104)">Tool Min Dist</label>
               <input type="number" v-model.number="tsParams.toolMinDis" min="0" :step="STEP_DEFAULT" @change="saveTsParams" />
               <label title="Number of extra retry attempts if probe contact fails. Each failure pauses for operator correction before retrying. Set to 0 for ATC. (#3109)">Extra Retries</label>
@@ -1020,7 +1020,7 @@ const halStats = computed(() => ({
               <Btn size="sm" :selected="themeMode === 'light'" class="optBtn" @click="setTheme('light')">Light</Btn>
               <Btn size="sm" :selected="themeMode === 'dark'" class="optBtn" @click="setTheme('dark')">Dark</Btn>
             </div>
-            <div class="btnGroup" style="margin-top: 8px;">
+            <div class="btnGroup" style="margin-top: var(--gap-controls);">
               <Btn size="sm" :selected="themeMode === 'hc-light'" class="optBtn" @click="setTheme('hc-light')">HC Light</Btn>
               <Btn size="sm" :selected="themeMode === 'hc-dark'" class="optBtn" @click="setTheme('hc-dark')">HC Dark</Btn>
             </div>

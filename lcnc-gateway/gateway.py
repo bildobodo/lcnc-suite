@@ -69,7 +69,8 @@ def _hal_connect():
         _hal_sock = _socket.socket(_socket.AF_UNIX, _socket.SOCK_STREAM)
         _hal_sock.connect(_HAL_SOCK_PATH)
         print("Connected to HAL watchdog socket")
-    except Exception:
+    except Exception as e:
+        print(f"[HAL] socket connect failed: {e}", flush=True)
         _hal_sock = None
 
 def _hal_disconnect():
@@ -85,6 +86,11 @@ def _hal_disconnect():
 def _shutdown_signal_handler(signum, frame):
     """Handle SIGTERM/SIGINT: disconnect from HAL watchdog before exit."""
     print(f"Gateway received signal {signum}", flush=True)
+    if _timing_log is not None:
+        try:
+            _timing_log.close()
+        except Exception:
+            pass
     _hal_disconnect()
     _camera_release()
     signal.signal(signum, signal.SIG_DFL)
@@ -138,23 +144,6 @@ def _init_hal_monitor():
     for source_pin, local_pin, _ in _HAL_MONITOR_PINS:
         _hal_connect_monitor_pin(source_pin, local_pin)
 
-    # Benchmark: compare hal.get_value() vs component pin read
-    if _hal_comp is not None:
-        _n = 50
-        t0 = time.monotonic()
-        for _ in range(_n):
-            try:
-                hal.get_value("iocontrol.0.tool-change")
-            except Exception:
-                break
-        t_get = (time.monotonic() - t0) * 1000
-        t0 = time.monotonic()
-        for _ in range(_n):
-            _v = _hal_comp["tool-change"]
-        t_comp = (time.monotonic() - t0) * 1000
-        print(f"[BENCH] hal.get_value() {_n}x: {t_get:.1f}ms  "
-              f"comp['pin'] {_n}x: {t_comp:.3f}ms  "
-              f"speedup: {t_get / max(t_comp, 0.001):.0f}x", flush=True)
 
 
 def _hal_connect_monitor_pin(source_pin: str, local_pin: str):
@@ -520,19 +509,6 @@ def try_connect_lcnc() -> bool:
         lcnc_connected = True
         _ever_connected = True
         _lcnc_pid = _get_lcnc_pid()
-        # Benchmark STAT.poll() isolation cost (NML semaphore + ~170KB memcpy)
-        _bench_n = 20
-        _bench_times = []
-        for _ in range(_bench_n):
-            _bt0 = time.monotonic()
-            STAT.poll()
-            _bench_times.append((time.monotonic() - _bt0) * 1000)
-        _bench_times.sort()
-        _bp50 = _bench_times[_bench_n // 2]
-        _bp95 = _bench_times[int(_bench_n * 0.95)]
-        _bmax = _bench_times[-1]
-        print(f"[BENCH] STAT.poll() isolation ({_bench_n} samples): "
-              f"p50={_bp50:.2f}ms  p95={_bp95:.2f}ms  max={_bmax:.2f}ms", flush=True)
         # Create HAL monitor component for fast pin reads (once)
         _init_hal_monitor()
         print(f"[VINIT] try_connect_lcnc OK, pid={_lcnc_pid}", flush=True)
@@ -1366,6 +1342,17 @@ def get_spindle_override() -> Optional[float]:
     return None
 
 
+def _read_var_file(path: str, wanted: set) -> Dict[str, float]:
+    """Read var file, return {var_number_str: float_value} for wanted keys."""
+    result: Dict[str, float] = {}
+    with open(path) as f:
+        for line in f:
+            parts = line.split()
+            if len(parts) >= 2 and parts[0] in wanted:
+                result[parts[0]] = float(parts[1])
+    return result
+
+
 def _seed_wcs_cache():
     """One-time seed of _wcs_cache from the var file (correct at startup)."""
     global _wcs_cache_seeded
@@ -1379,16 +1366,15 @@ def _seed_wcs_cache():
             return
         if not os.path.isabs(var_file):
             var_file = os.path.join(os.path.dirname(ini_path), var_file)
-        wanted = {}
+        var_map = {}
         for i, base in enumerate(_WCS_BASES):
             for j, key in enumerate(_WCS_AXIS_KEYS):
-                wanted[str(base + 1 + j)] = (i, key)
-            wanted[str(base + 10)] = (i, "r")
-        for line in open(var_file):
-            parts = line.split()
-            if len(parts) >= 2 and parts[0] in wanted:
-                idx, field = wanted[parts[0]]
-                _wcs_cache[idx][field] = float(parts[1])
+                var_map[str(base + 1 + j)] = (i, key)
+            var_map[str(base + 10)] = (i, "r")
+        raw = _read_var_file(var_file, set(var_map))
+        for var_key, value in raw.items():
+            idx, field = var_map[var_key]
+            _wcs_cache[idx][field] = value
         _wcs_cache_seeded = True
         print("[wcs] cache seeded from var file", flush=True)
     except Exception as e:
@@ -2361,12 +2347,7 @@ def handle_command(msg: Dict[str, Any], armed: bool):
                 return {"ok": False, "error": "No PARAMETER_FILE in INI"}
             if not os.path.isabs(var_file):
                 var_file = os.path.join(os.path.dirname(ini_path), var_file)
-            wanted = {str(v) for v in var_nums}
-            result = {}
-            for line in open(var_file):
-                parts = line.split()
-                if len(parts) >= 2 and parts[0] in wanted:
-                    result[parts[0]] = float(parts[1])
+            result = _read_var_file(var_file, {str(v) for v in var_nums})
             print(f"[probe] get_probe_vars: {result}", flush=True)
             return {"ok": True, "vars": result}
 
@@ -3280,13 +3261,8 @@ def _read_g30_vars():
         return {"ok": False, "error": "No PARAMETER_FILE in INI"}
     if not os.path.isabs(var_file):
         var_file = os.path.join(os.path.dirname(ini_path), var_file)
-    wanted = {"5181", "5182", "5183"}
-    result = {}
     try:
-        for line in open(var_file):
-            parts = line.split()
-            if len(parts) >= 2 and parts[0] in wanted:
-                result[parts[0]] = float(parts[1])
+        result = _read_var_file(var_file, {"5181", "5182", "5183"})
     except Exception as e:
         return {"ok": False, "error": str(e)}
     return {"ok": True, "x": result.get("5181", 0.0), "y": result.get("5182", 0.0), "z": result.get("5183", 0.0)}

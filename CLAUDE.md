@@ -173,6 +173,7 @@ const can = usePermissions();
 - Dialog overlays use `position: fixed; z-index: 1000` with global `button.primary`/`button.danger` styles
 - Gateway `tool_change` handler is fire-and-forget (no `CMD.wait_complete()` — blocks heartbeat loop)
 - Toolsetter settings live in SettingsPanel (Toolsetter sub-tab), tool actions in sidebar Tool popover
+- **No `:deep()` visual overrides** — scoped CSS may use `:deep()` for layout properties (flex, width, height, padding) but NEVER for visual properties (background, color, border, box-shadow). Visual overrides bypass Btn.vue's state system. If a button state looks wrong, fix it in Btn.vue.
 
 ## Pre-Flight Checklist — MANDATORY for every CSS/UI edit
 
@@ -230,6 +231,10 @@ The `tool_touch_off.ngc` subroutine reads parameters from the LinuxCNC var file 
 - `CMD.wait_complete()` in gateway blocks the WebSocket receive loop → heartbeat timeout → disarm. Use fire-and-forget instead.
 - Scoped CSS styles (e.g. `button.primary` in App.vue) don't apply in child components — put shared button styles in global `style.css`
 - `hal.get_value(name)` takes ~6-8ms (mutex + linear search). Use HAL component input pins (`comp['pin']`) for hot-path reads (<1μs)
+- Never use `:deep()` to override visual CSS properties (background, color, border) in scoped styles — it bypasses Btn.vue's design system. Layout overrides (flex, width, padding) are acceptable.
+- Always use `with open()` for file I/O in Python — bare `open()` in loops leaks handles until GC
+- `.get()` is a dict method — calling it on a list silently raises AttributeError. Use `[index]` for list access.
+- Read the actual CSS before speculating about visual bugs — the override might be setting the value to match the background, not just being "too subtle"
 
 ## Production DISPLAY Integration
 
