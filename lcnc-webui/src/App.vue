@@ -372,7 +372,11 @@ function startEditCell(wcs: string, axis: string, current: number) {
   if (!permissions.value.ready) return;
   editingCell.value = { wcs, axis };
   editValue.value = current.toFixed(4);
-  nextTick(() => { offsetInputRef.value?.select(); });
+  nextTick(() => {
+    const el = Array.isArray(offsetInputRef.value) ? offsetInputRef.value[0] : offsetInputRef.value;
+    el?.focus();
+    el?.select();
+  });
 }
 
 function commitCell(wcs: string, axis: string) {
