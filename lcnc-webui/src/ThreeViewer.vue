@@ -2294,19 +2294,6 @@ defineExpose({
   overflow-y: auto;
 }
 
-.hudBtnRow {
-}
-
-.hudBtnRow :deep(.b.warn) {
-  opacity: 1;
-  border-color: color-mix(in srgb, var(--warn) 50%, transparent);
-  animation: flash-btn-warn 1.2s ease-in-out infinite;
-}
-
-@keyframes flash-btn-warn {
-  0%, 100% { background: color-mix(in oklab, var(--warn) 25%, var(--button-bg)); }
-  50% { background: color-mix(in oklab, var(--warn) 10%, var(--button-bg)); }
-}
 
 .viewerWrapper {
   position: relative;

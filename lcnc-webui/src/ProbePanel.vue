@@ -1581,10 +1581,6 @@ function fmtR(key: string): string {
 .surfaceActions :deep(.b) {
   flex: 1;
 }
-.surfaceActions :deep(.active) {
-  background: var(--ok);
-  color: var(--fg-on-accent);
-}
 .compStatus {
   display: flex;
   align-items: center;
