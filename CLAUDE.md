@@ -27,7 +27,7 @@ Gateway connects to LinuxCNC via Python bindings (`linuxcnc.stat`, `linuxcnc.com
 - `ProbePanel.vue` — Probe operations grid, calls `O<probe_*> CALL` via MDI
 - `ToolTablePanel.vue` — Tool table with load/delete dialogs
 - `CameraViewer.vue` — Camera tab with MJPEG feed, SVG crosshair/circle/grid overlay, floating toolbar
-- `SettingsPanel.vue` — Sub-tabbed settings (3D Viewer | Machine | Toolsetter | Jogging | Macros | Debug)
+- `SettingsPanel.vue` — Sub-tabbed settings (3D Viewer | Machine | Toolsetter | Display | Camera | Macros | Gamepad | Keyboard | HAL | Debug)
 - `permissions.ts` — Centralized button permission system (evaluatePermissions + provide/inject)
 - `lcncWs.ts` — WebSocket client, heartbeat, server-authoritative armed state
 - `lcncApi.ts` — REST helpers for file listing and upload
@@ -138,7 +138,7 @@ base = armed && !estop && enabled
 | `idle` | base, idle, !busy | Home, Unhome, Zero, G5x select, file ops |
 | `jog` | base, idle, homed | Jog buttons, speed slider, keyboard jog |
 | `override` | base, !busy | Feed/Spindle/Rapid override sliders + presets |
-| `ready` | base, idle, !busy, homed | MDI, Cycle Start, Spindle, Coolant, Probe, Tool measure/load |
+| `ready` | base, idle, !busy, homed | MDI, Cycle Start, Spindle, Coolant, Probe, Tool measure/load, Toolsetter settings |
 | `pause` | base, running, !paused | Pause |
 | `resume` | base, paused | Resume |
 | `abort` | base | Abort |
@@ -166,7 +166,7 @@ const can = usePermissions();
 
 - **No hardcoded visual styles** — never invent custom font-size, padding, border-radius, colors, or font-family for new elements. Always inherit from the nearest parent class or global base styles in `style.css`. New CSS should only override layout properties (flex, width, text-align, opacity). If a visual style doesn't exist, extend the existing class hierarchy or global base — never create one-off overrides. For color semantics: machine active states use `--ok` (green), form controls (toggles, radios, checkboxes) use `--info` (blue), danger/abort uses `--danger`, warnings use `--warn`. Always match existing patterns (e.g. `.controlBtn.active`, `.coolantToggle.active` in App.vue).
 - **Spacing tokens** — use `--gap-tight` (4px, grouped toggles), `--gap-controls` (8px, button rows/form fields), `--gap-section` (12px, between sections), `--gap-panel` (20px, major divisions) for all layout gaps. Never hardcode gap/margin values for spacing between elements. Padding inside buttons/inputs is visual and stays hardcoded. Minimum gap between any clickable elements: `--gap-tight` (4px).
-- `defaults.ts` section registry: `registerSection<T>(name, fallback, migrateFn)` + `loadSection`/`saveSection` with localStorage
+- `defaults.ts` section registry: `registerSection<T>(name, fallback, migrateFn)` + `loadSection`/`saveSection` with localStorage. Server-synced sections must be added to `SERVER_SECTIONS` in **three** places: `defaults.ts` (Set), `main.ts` (array), and `gateway.py` (`_VALID_SETTINGS_SECTIONS` Set).
 - ViewPreset type is duplicated in ThreeViewer.vue and Toolbar.vue — update both when adding presets
 - Camera Z-up: `camera.up.set(0, 0, 1)`, except top view uses `(0, 1, 0)` to avoid gimbal lock
 - ThreeViewer uses ResizeObserver (not window resize) to handle v-show tab switching
@@ -236,6 +236,9 @@ The `tool_touch_off.ngc` subroutine reads parameters from the LinuxCNC var file 
 - `.get()` is a dict method — calling it on a list silently raises AttributeError. Use `[index]` for list access.
 - Read the actual CSS before speculating about visual bugs — the override might be setting the value to match the background, not just being "too subtle"
 - Use direct child selectors (`.grid > label`) not descendant selectors (`.grid label`) when styling grid/container labels — descendant selectors mute nested form controls (radios, checkboxes) inside those containers
+- When adding server-synced settings sections, update `_VALID_SETTINGS_SECTIONS` in `gateway.py` — the gateway rejects unknown sections with "Unknown settings section" error
+- Don't hack around permission issues in the backend — use the proper frontend permission gate so the UI reflects machine state (dimming). The gate IS the fix, not a workaround.
+- Any component that emits MDI commands (e.g. `setProbeVars`) must gate those emissions behind `can.ready` — MDI requires homed. Settings persistence (`saveDefaults`) is separate and always works.
 
 ## Production DISPLAY Integration
 

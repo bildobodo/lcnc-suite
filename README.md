@@ -136,7 +136,7 @@ BY USING THIS SOFTWARE, YOU EXPRESSLY ACKNOWLEDGE AND ASSUME ALL RISKS ASSOCIATE
 - Real-time DRO with G5x work coordinate selector, touch-off to value, and DTG display
 - Offset table editor (G54–G59.3) with direct value editing
 - XY + Z jogging with diagonal support and World/Joint mode toggle
-- Keyboard jog with visual key highlights and incremental jog mode
+- Configurable keyboard shortcuts with dedicated Settings tab: master enable/disable toggle, jog sub-toggle, click-to-capture rebindable key bindings for all actions (jog, E-Stop, cycle start, abort), duplicate detection, visual key highlights
 - Gamepad jogging (Xbox/PS/standard) with proportional analog sticks, D-pad discrete jog, dead man switch, 12 configurable button actions, deadzone visualization
 - Sidebar spindle popover (FWD/REV/STOP, RPM input, live actual speed, override slider)
 - Feed, spindle, and rapid override popovers with sliders and presets
@@ -159,7 +159,7 @@ BY USING THIS SOFTWARE, YOU EXPRESSLY ACKNOWLEDGE AND ASSUME ALL RISKS ASSOCIATE
 - Camera tab with MJPEG feed, configurable crosshair/circle/grid SVG overlay (USB and IP cameras)
 - User-configurable macro buttons with `{param}` parameter prompts (sidebar popover + Settings editor)
 - HAL inspector built into Settings tab (tree view with search, live pin values)
-- Server-authoritative settings with multi-client sync (probe, toolsetter, gamepad, macros, machine, camera, MDI settings shared across all connected UIs)
+- Server-authoritative settings with multi-client sync (probe, toolsetter, gamepad, keyboard, macros, machine, camera, MDI settings shared across all connected UIs)
 - 5 theme modes (auto/light/dark/high-contrast light/high-contrast dark)
 - Responsive auto-layout (1–4 panels based on viewport) with portrait and landscape modes
 - Connected clients display with IP and armed status
@@ -173,7 +173,7 @@ BY USING THIS SOFTWARE, YOU EXPRESSLY ACKNOWLEDGE AND ASSUME ALL RISKS ASSOCIATE
 | `idle` | base, idle, not busy | Home All, Unhome, Zero X/Y/Z, Zero All, G5x select, file Reload/Unload/Browse/Upload |
 | `jog` | base, idle, homed | Jog X+/X-/Y+/Y-/Z+/Z-, speed slider, increment select, teleop toggle, keyboard jog |
 | `override` | base, not busy | Feed/Spindle/Rapid override sliders + presets, Reset All |
-| `ready` | base, idle, not busy, homed | MDI input + Send, Cycle Start, Spindle FWD/REV/STOP, RPM input, Flood/Mist toggle, all probe buttons + inputs |
+| `ready` | base, idle, not busy, homed | MDI input + Send, Cycle Start, Spindle FWD/REV/STOP, RPM input, Flood/Mist toggle, all probe buttons + inputs, Toolsetter settings |
 | `pause` | base, running, not paused | Pause |
 | `resume` | base, paused | Resume |
 | `abort` | armed | Abort |
