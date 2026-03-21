@@ -4,7 +4,7 @@ import App from './App.vue'
 import { fetchSettings, saveSettingsSection } from './lcncApi'
 import { initServerDefaults } from './defaults'
 
-const SERVER_SECTIONS = ["macros", "machine", "camera", "mdi", "gamepad", "probe", "toolsetter"];
+const SERVER_SECTIONS = ["macros", "machine", "camera", "mdi", "gamepad", "keyboard", "probe", "toolsetter"];
 
 async function bootstrap() {
   let serverSettings: Record<string, any> = {};

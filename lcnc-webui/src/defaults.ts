@@ -71,7 +71,7 @@ export function registerSection<T>(key: string, fallback: T, merge: (saved: any,
 // ─── Storage I/O ─────────────────────────────────────────────────
 
 /** Sections stored on the server (shared across all clients). */
-const SERVER_SECTIONS = new Set(["macros", "machine", "camera", "mdi", "gamepad", "probe", "toolsetter"]);
+const SERVER_SECTIONS = new Set(["macros", "machine", "camera", "mdi", "gamepad", "keyboard", "probe", "toolsetter"]);
 
 /** Reactive version counter — incremented on every server settings update.
  *  Components watch this to re-read their section when another client saves. */
@@ -582,6 +582,89 @@ export function loadGamepadDefaults(): GamepadDefaults {
 
 export function saveGamepadDefaults(data: GamepadDefaults): void {
   saveSection("gamepad", data);
+}
+
+// ── Keyboard shortcuts ──────────────────────────────────────────
+
+export type KeyboardAction =
+  | "jog_x+" | "jog_x-" | "jog_y+" | "jog_y-" | "jog_z+" | "jog_z-"
+  | "jog_a+" | "jog_a-" | "jog_b+" | "jog_b-"
+  | "estop" | "cycle" | "abort";
+
+export const KEYBOARD_ACTION_LABELS: Record<KeyboardAction, string> = {
+  "jog_x+": "Jog X+", "jog_x-": "Jog X-",
+  "jog_y+": "Jog Y+", "jog_y-": "Jog Y-",
+  "jog_z+": "Jog Z+", "jog_z-": "Jog Z-",
+  "jog_a+": "Jog A+", "jog_a-": "Jog A-",
+  "jog_b+": "Jog B+", "jog_b-": "Jog B-",
+  estop: "E-Stop",
+  cycle: "Cycle Start / Pause / Resume",
+  abort: "Abort",
+};
+
+const ALL_KB_ACTIONS = Object.keys(KEYBOARD_ACTION_LABELS) as KeyboardAction[];
+
+export const DEFAULT_KB_MAPPING: Record<KeyboardAction, string> = {
+  "jog_x+": "ArrowRight", "jog_x-": "ArrowLeft",
+  "jog_y+": "ArrowUp",    "jog_y-": "ArrowDown",
+  "jog_z+": "PageUp",     "jog_z-": "PageDown",
+  "jog_a+": "]",           "jog_a-": "[",
+  "jog_b+": "'",           "jog_b-": ";",
+  estop: "Escape",
+  cycle: " ",
+  abort: "Backspace",
+};
+
+export interface KeyboardDefaults {
+  enabled: boolean;
+  jogEnabled: boolean;
+  mapping: Record<KeyboardAction, string>;
+}
+
+const KEYBOARD_FALLBACK: KeyboardDefaults = {
+  enabled: true,
+  jogEnabled: false,
+  mapping: { ...DEFAULT_KB_MAPPING },
+};
+
+const KEY_DISPLAY: Record<string, string> = {
+  ArrowRight: "→", ArrowLeft: "←", ArrowUp: "↑", ArrowDown: "↓",
+  " ": "Space", Escape: "Esc", Backspace: "⌫",
+  PageUp: "PgUp", PageDown: "PgDn",
+  Delete: "Del", Insert: "Ins",
+  Enter: "Enter", Home: "Home", End: "End",
+};
+
+export function formatKeyName(key: string): string {
+  if (!key) return "None";
+  if (KEY_DISPLAY[key]) return KEY_DISPLAY[key];
+  if (key.length === 1) return key.toUpperCase();
+  return key;
+}
+
+registerSection<KeyboardDefaults>("keyboard", KEYBOARD_FALLBACK, (saved, fb) => {
+  if (!saved) return { ...fb, mapping: { ...fb.mapping } };
+  const mapping = { ...fb.mapping };
+  if (saved.mapping && typeof saved.mapping === "object") {
+    for (const action of ALL_KB_ACTIONS) {
+      if (typeof saved.mapping[action] === "string") {
+        mapping[action] = saved.mapping[action];
+      }
+    }
+  }
+  return {
+    enabled: saved.enabled ?? fb.enabled,
+    jogEnabled: saved.jogEnabled ?? fb.jogEnabled,
+    mapping,
+  };
+});
+
+export function loadKeyboardDefaults(): KeyboardDefaults {
+  return loadSection<KeyboardDefaults>("keyboard");
+}
+
+export function saveKeyboardDefaults(data: KeyboardDefaults): void {
+  saveSection("keyboard", data);
 }
 
 // ─── Probe section ──────────────────────────────────────────────
