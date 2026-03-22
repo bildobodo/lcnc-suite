@@ -731,12 +731,6 @@ function measureAuto() {
   fire({ cmd: "mdi", text: `T${toolNumber.value} M600` });
 }
 
-function measureManual() {
-  if (!permissions.value.ready || st.value.probing) return;
-  saveToolNumber();
-  fire({ cmd: "mdi", text: `T${toolNumber.value} M601` });
-}
-
 function loadTool() {
   if (!permissions.value.ready || st.value.probing) return;
   saveToolNumber();
@@ -746,6 +740,16 @@ function loadTool() {
     fire({ cmd: "mdi", text: `T${n} M600` });
   } else {
     fire({ cmd: "mdi", text: `T${n} M6 G43 H${n}` });
+  }
+}
+
+function unloadTool() {
+  if (!permissions.value.ready) return;
+  const mode = loadMachineDefaults().toolChangeMode;
+  if (mode === "m600") {
+    fire({ cmd: "mdi", text: "T0 M600" });
+  } else {
+    fire({ cmd: "mdi", text: "T0 M6 G49" });
   }
 }
 
@@ -1868,8 +1872,8 @@ watch(isHomed, (nowHomed, wasHomed) => {
           </div>
           <div class="toolActions">
             <Btn variant="ok" :disabled="!permissions.ready || !!st.probing" @click="measureAuto">Measure</Btn>
-            <Btn :disabled="!permissions.ready || !!st.probing" @click="measureManual">Manual</Btn>
             <Btn variant="primary" :disabled="!permissions.ready || !!st.probing" @click="loadTool">Load</Btn>
+            <Btn :disabled="!permissions.ready || !!st.probing || st.tool_number === 0" @click="unloadTool">Unload</Btn>
             <Btn variant="danger" :disabled="!st.probing" @click="fire({ cmd: 'abort' })">Abort</Btn>
           </div>
           <div class="toolActions">
@@ -1918,11 +1922,16 @@ watch(isHomed, (nowHomed, wasHomed) => {
     <!-- Safety confirmation dialogs — z-index 1010 to always appear above other dialogs -->
     <div v-if="toolChangeRequested" class="dialogOverlay safetyDialog">
       <div class="dialog">
-        <div class="dialogTitle">Load Tool into Spindle</div>
+        <div class="dialogTitle">{{ !toolChangeTool ? 'Remove Tool from Spindle' : 'Load Tool into Spindle' }}</div>
         <div class="dialogBody">
-          <strong>T{{ toolChangeTool }}</strong><template v-if="st.tool_change_info"> D{{ st.tool_change_info.D.toFixed(3) }} Z{{ st.tool_change_info.Z.toFixed(3) }}</template><br>
-          <template v-if="st.tool_change_info?.description">{{ st.tool_change_info.description }}<br></template>
-          Insert tool and press Confirm
+          <template v-if="toolChangeTool">
+            <strong>T{{ toolChangeTool }}</strong><template v-if="st.tool_change_info"> D{{ st.tool_change_info.D.toFixed(3) }} Z{{ st.tool_change_info.Z.toFixed(3) }}</template><br>
+            <template v-if="st.tool_change_info?.description">{{ st.tool_change_info.description }}<br></template>
+            Insert tool and press Confirm
+          </template>
+          <template v-else>
+            Remove tool and press Confirm
+          </template>
         </div>
         <div class="dialogActions">
           <Btn variant="danger" @click="send({ cmd: 'abort' })">Cancel</Btn>
