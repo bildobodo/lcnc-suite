@@ -1874,7 +1874,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
             <Btn variant="ok" :disabled="!permissions.ready || !!st.probing" @click="measureAuto">Measure</Btn>
             <Btn variant="primary" :disabled="!permissions.ready || !!st.probing" @click="loadTool">Load</Btn>
             <Btn :disabled="!permissions.ready || !!st.probing || st.tool_number === 0" @click="unloadTool">Unload</Btn>
-            <Btn variant="danger" :disabled="!st.probing" @click="fire({ cmd: 'abort' })">Abort</Btn>
+            <Btn variant="danger" :disabled="!permissions.abort" @click="fire({ cmd: 'abort' })">Abort</Btn>
           </div>
           <div class="toolActions">
             <Btn :disabled="!permissions.idle" @click="toolTableRef?.openAdd()">+ Add</Btn>

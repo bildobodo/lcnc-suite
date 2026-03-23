@@ -3379,6 +3379,13 @@ async def ws_endpoint(ws: WebSocket):
     except Exception as e:
         print(f"[VINIT] client#{client_id} connect-time viewer_init FAILED: {e}", flush=True)
 
+    # Send initial settings snapshot (part of WS handshake)
+    try:
+        _init_settings = await asyncio.get_event_loop().run_in_executor(None, load_settings)
+        await ws_send_json(ws, {"type": "settings_init", "settings": _init_settings, "armed": armed})
+    except Exception as e:
+        print(f"[SETTINGS] client#{client_id} settings_init FAILED: {e}", flush=True)
+
     # Send initial G-code if a file is already loaded
     try:
         if STAT is not None:
@@ -3682,6 +3689,12 @@ async def ws_endpoint(ws: WebSocket):
                 await ws_send_json(ws, {"type": "reply", "ok": True, "armed": armed})
                 continue
 
+            if msg.get("cmd") == "get_settings":
+                _loop = asyncio.get_event_loop()
+                _ss = await _loop.run_in_executor(None, load_settings)
+                await ws_send_json(ws, {"type": "settings_init", "settings": _ss, "armed": armed})
+                continue
+
             if msg.get("cmd") == "save_settings":
                 section = msg.get("section", "")
                 if section not in _VALID_SETTINGS_SECTIONS:
@@ -3882,6 +3895,7 @@ async def get_settings():
 
 
 @app.put("/settings/{section}")
+@app.post("/settings/{section}")  # POST used by sendBeacon on page exit
 async def put_settings_section(section: str, request: Request):
     if section not in _VALID_SETTINGS_SECTIONS:
         return {"ok": False, "error": f"Unknown section: {section}"}

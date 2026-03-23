@@ -251,7 +251,7 @@ export function connectWs() {
       viewerInit.value = msg.data;
     } else if (msg.type === "viewer_gcode") {
       viewerGcode.value = msg.data;
-    } else if (msg.type === "settings_changed") {
+    } else if (msg.type === "settings_changed" || msg.type === "settings_init") {
       updateServerCache(msg.settings);
     }
   };

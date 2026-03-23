@@ -8,16 +8,19 @@ const SERVER_SECTIONS = ["macros", "machine", "camera", "mdi", "gamepad", "keybo
 
 async function bootstrap() {
   let serverSettings: Record<string, any> = {};
+  let fetchOk = false;
   try {
     serverSettings = await fetchSettings();
+    fetchOk = true;
   } catch {
-    // Gateway unreachable — app still loads with fallback defaults
+    // Gateway unreachable — WS handshake will deliver settings later
   }
 
   const migrations: Promise<void>[] = [];
 
   // One-time migration: lcnc-defaults localStorage → server for server sections
-  try {
+  // Only run if REST fetch succeeded (otherwise we'd migrate stale data)
+  if (fetchOk) try {
     const raw = localStorage.getItem("lcnc-defaults");
     if (raw) {
       const local = JSON.parse(raw);
@@ -37,7 +40,7 @@ async function bootstrap() {
   } catch { /* ignore corrupt localStorage */ }
 
   // One-time migration: legacy lcnc-probe-params → server "probe" section
-  try {
+  if (fetchOk) try {
     const probeRaw = localStorage.getItem("lcnc-probe-params");
     if (probeRaw && !serverSettings.probe) {
       const probeLocal = JSON.parse(probeRaw);
@@ -48,7 +51,7 @@ async function bootstrap() {
   } catch { /* ignore */ }
 
   // One-time migration: legacy lcnc-toolsetter-params → server "toolsetter" section
-  try {
+  if (fetchOk) try {
     const tsRaw = localStorage.getItem("lcnc-toolsetter-params");
     if (tsRaw && !serverSettings.toolsetter) {
       const tsLocal = JSON.parse(tsRaw);
@@ -61,7 +64,7 @@ async function bootstrap() {
 
   if (migrations.length) await Promise.all(migrations);
 
-  initServerDefaults(serverSettings);
+  initServerDefaults(serverSettings, fetchOk);
   createApp(App).mount('#app');
 }
 

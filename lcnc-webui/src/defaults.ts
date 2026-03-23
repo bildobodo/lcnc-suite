@@ -83,27 +83,54 @@ let _cache: Record<string, any> | null = null;
 /** Server-side data populated before app mount. */
 let _serverData: Record<string, any> = {};
 
+/** True once server settings have been confirmed (REST fetch or WS delivery). */
+export const serverSettingsReady = ref(false);
+
 /** Debounce timers for server saves. */
 const _saveTimers: Record<string, ReturnType<typeof setTimeout>> = {};
 
+/** Pending saves awaiting debounce flush — used by sendBeacon on page exit. */
+const _pendingSaves = new Map<string, any>();
+
 /** Called once from main.ts before createApp().mount(). */
-export function initServerDefaults(data: Record<string, any>): void {
+export function initServerDefaults(data: Record<string, any>, fetchOk: boolean): void {
   _serverData = data;
   if (!_cache) _cache = {};
   for (const [key, val] of Object.entries(data)) {
     _cache[key] = val;
   }
+  if (fetchOk) serverSettingsReady.value = true;
 }
 
-/** Called from lcncWs.ts when another client changes settings. */
+/** Called from lcncWs.ts on settings_init (connect) or settings_changed (broadcast). */
 export function updateServerCache(data: Record<string, any>): void {
   _serverData = data;
   if (!_cache) _cache = {};
   for (const [key, val] of Object.entries(data)) {
     _cache[key] = val;
   }
+  serverSettingsReady.value = true;
   settingsVersion.value++;
 }
+
+/** Flush pending debounced saves via sendBeacon (called on page hide). */
+function flushPendingSaves(): void {
+  for (const [section, data] of _pendingSaves) {
+    navigator.sendBeacon(
+      `/settings/${section}`,
+      new Blob([JSON.stringify({ data })], { type: "application/json" }),
+    );
+  }
+  _pendingSaves.clear();
+  for (const key of Object.keys(_saveTimers)) {
+    clearTimeout(_saveTimers[key]);
+    delete _saveTimers[key];
+  }
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") flushPendingSaves();
+});
 
 function readAll(): Record<string, any> {
   if (_cache) return _cache;
@@ -145,14 +172,20 @@ export function loadSection<T>(key: string): T {
 
 /** Save a section. Routes server sections through WS, local sections to localStorage. */
 export function saveSection(key: string, data: any): void {
+  // Block server section saves until server data is confirmed
+  if (SERVER_SECTIONS.has(key) && !serverSettingsReady.value) return;
+
   const all = readAll();
   all[key] = data;
   _cache = all;
 
   if (SERVER_SECTIONS.has(key)) {
+    // Track pending save for sendBeacon flush on page exit
+    _pendingSaves.set(key, data);
     // Debounce server saves (camera sliders fire rapidly)
     clearTimeout(_saveTimers[key]);
     _saveTimers[key] = setTimeout(() => {
+      _pendingSaves.delete(key);
       // Dynamic import to avoid circular dependency at module load time
       import("./lcncWs").then(({ saveSettings }) => saveSettings(key, data));
     }, 300);
@@ -766,12 +799,12 @@ export interface ToolsetterDefaults {
   finderDiffZ: number;
 }
 
-const TOOLSETTER_FALLBACK: ToolsetterDefaults = {
-  fastFeed: 500, slowFeed: 50, traverseFeed: 6000, maxZTravel: 150,
-  retractDist: 2, spindleZeroHeight: 180, offsetDirection: 0,
-  touchX: 0, touchY: 0, touchZ: 0, useToolTable: 0, toolMinDis: 10,
-  brakeAfter: 0, goBackToStart: 0, spindleStopM: 5, disablePrePos: 1,
-  addReps: 0, lastTry: 0, offsetDiameter: 0, offsetValue: 50,
+export const TOOLSETTER_FALLBACK: ToolsetterDefaults = {
+  fastFeed: 0, slowFeed: 0, traverseFeed: 0, maxZTravel: 0,
+  retractDist: 0, spindleZeroHeight: 0, offsetDirection: 0,
+  touchX: 0, touchY: 0, touchZ: 0, useToolTable: 0, toolMinDis: 0,
+  brakeAfter: 0, goBackToStart: 0, spindleStopM: 5, disablePrePos: 0,
+  addReps: 0, lastTry: 0, offsetDiameter: 0, offsetValue: 0,
   finderTouchX: 0, finderTouchY: 0, finderDiffZ: 0,
 };
 

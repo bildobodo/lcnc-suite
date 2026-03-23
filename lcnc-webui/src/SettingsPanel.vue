@@ -7,9 +7,9 @@ import {
   loadMachineDefaults, saveMachineDefaults,
   loadMacrosDefaults, saveMacrosDefaults, extractParams,
   loadCameraDefaults, saveCameraDefaults, type CameraDefaults,
-  loadToolsetterDefaults, saveToolsetterDefaults,
+  loadToolsetterDefaults, saveToolsetterDefaults, TOOLSETTER_FALLBACK,
   loadProbeDefaults,
-  loadDisplayDefaults, saveDisplayDefaults, settingsVersion,
+  loadDisplayDefaults, saveDisplayDefaults, settingsVersion, serverSettingsReady,
   type Vec3, type Layer, type ColorDefaults, type OpacityDefaults,
   type TrackMode, type Projection, type ToolChangeMode, type SpindleDir, type SpindleFeedbackUnit,
   type ThemeMode, type MacroDef, type MacroParam, type GamepadDefaults,
@@ -166,14 +166,7 @@ function resetMachine() {
 }
 
 function resetToolsetter() {
-  Object.assign(tsParams.value, {
-    fastFeed: 500, slowFeed: 50, traverseFeed: 6000, maxZTravel: 150,
-    retractDist: 2, spindleZeroHeight: 180, offsetDirection: 0,
-    touchX: 0, touchY: 0, touchZ: 0, useToolTable: 0, toolMinDis: 10,
-    brakeAfter: 0, goBackToStart: 0, spindleStopM: 5, disablePrePos: 1,
-    addReps: 0, lastTry: 0, offsetDiameter: 0, offsetValue: 50,
-    finderTouchX: 0, finderTouchY: 0, finderDiffZ: 0,
-  });
+  Object.assign(tsParams.value, { ...TOOLSETTER_FALLBACK });
   saveTsParams();
 }
 
@@ -351,7 +344,6 @@ function setG30() {
 
 onMounted(() => {
   loadTsParams();
-  if (can.value.ready) emit("setProbeVars", buildVarMap());
   loadG30();
 });
 
@@ -842,7 +834,8 @@ const halStats = computed(() => ({
       </template>
 
       <template #machine>
-        <div class="stack-panel scrollContent scroll-thin">
+        <div v-if="!serverSettingsReady" class="settingsLoading">Waiting for server settings…</div>
+        <div v-else class="stack-panel scrollContent scroll-thin">
           <fieldset :disabled="!can.idle" class="fs-reset">
           <div class="section">
             <div class="sub">Tool Load Behavior</div>
@@ -916,7 +909,8 @@ const halStats = computed(() => ({
       </template>
 
       <template #toolsetter>
-        <div class="stack-panel scrollContent scroll-thin">
+        <div v-if="!serverSettingsReady" class="settingsLoading">Waiting for server settings…</div>
+        <div v-else class="stack-panel scrollContent scroll-thin">
           <fieldset :disabled="!can.ready" class="fs-reset">
           <div class="section">
             <div class="sub">Toolsetter Position (G53)</div>
@@ -1078,7 +1072,8 @@ const halStats = computed(() => ({
       </template>
 
       <template #camera>
-        <div class="stack-panel scrollContent scroll-thin">
+        <div v-if="!serverSettingsReady" class="settingsLoading">Waiting for server settings…</div>
+        <div v-else class="stack-panel scrollContent scroll-thin">
           <fieldset :disabled="!can.idle" class="fs-reset">
           <div class="section">
             <div class="sub">Overlay Toggles</div>
@@ -1130,7 +1125,8 @@ const halStats = computed(() => ({
       </template>
 
       <template #macros>
-        <div class="stack-panel scrollContent scroll-thin">
+        <div v-if="!serverSettingsReady" class="settingsLoading">Waiting for server settings…</div>
+        <div v-else class="stack-panel scrollContent scroll-thin">
           <div class="section">
             <div class="sub">User Macros</div>
 
@@ -1189,7 +1185,8 @@ const halStats = computed(() => ({
       </template>
 
       <template #gamepad>
-        <div class="stack-panel scrollContent scroll-thin">
+        <div v-if="!serverSettingsReady" class="settingsLoading">Waiting for server settings…</div>
+        <div v-else class="stack-panel scrollContent scroll-thin">
         <fieldset :disabled="!can.idle" class="fs-reset">
           <div class="section">
             <div class="sub">Gamepad Jogging</div>
@@ -1271,7 +1268,8 @@ const halStats = computed(() => ({
       </template>
 
       <template #keyboard>
-        <div class="stack-panel scrollContent scroll-thin">
+        <div v-if="!serverSettingsReady" class="settingsLoading">Waiting for server settings…</div>
+        <div v-else class="stack-panel scrollContent scroll-thin">
           <fieldset :disabled="!can.idle" class="fs-reset">
             <div class="section">
               <div class="sub">Keyboard Shortcuts</div>
@@ -1501,6 +1499,10 @@ const halStats = computed(() => ({
 </template>
 
 <style scoped>
+.settingsLoading {
+  padding: var(--gap-panel);
+  opacity: var(--opacity-disabled);
+}
 .settings {
   padding: var(--gap-section) 14px 14px;
   height: 100%;

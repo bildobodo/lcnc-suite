@@ -19,7 +19,7 @@ o<400> if [#<_task> EQ 1]
 
 ;-1- Fixed parameters (read from var file #3100-#3116, set via web UI)
 ;-MAIN-
-#<debug_mode> = 0                           ;Debug mode stays hardcoded. 0=OFF, 1=log file in config folder.
+#<debug_mode> = #<_ini[DISPLAY]DEBUG>        ;Read from INI [DISPLAY] DEBUG. 0=OFF, 1=log file in config folder.
 #<tool_touch_x_coords> = #3100             ;Position of the length button in X
 #<tool_touch_y_coords> = #3101             ;Position of the length button in Y
 #<tool_touch_z_coords> = #3102             ;Position above the length button in Z
