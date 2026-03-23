@@ -114,7 +114,7 @@
 <script setup lang="ts">
 import { reactive, ref, watch } from "vue";
 import Btn from "./Btn.vue";
-import { loadViewerDefaults, STEP_DEFAULT, type Vec3, type Layer, type TrackMode } from "./defaults";
+import { loadViewerDefaults, settingsVersion, STEP_DEFAULT, type Vec3, type Layer, type TrackMode } from "./defaults";
 
 type ViewPreset = "top" | "bottom" | "left" | "right" | "front" | "back" | "iso" | "dimetric" | "reset";
 
@@ -156,6 +156,15 @@ const local = reactive<Record<Layer, boolean>>({ ...vd.layers });
 function emitToggle(layer: Layer) {
   emit("toggleLayer", layer, local[layer]);
 }
+
+// Re-sync local state when server settings change (multi-client or page refresh)
+watch(settingsVersion, () => {
+  const fresh = loadViewerDefaults();
+  Object.assign(local, fresh.layers);
+  pathOnTop.value = fresh.pathOnTop;
+  isOrtho.value = fresh.projection === "parallel";
+  trackMode.value = fresh.trackingMode;
+});
 
 // Local copies so inputs aren't overwritten mid-typing by prop updates
 const localSize = reactive([...props.workpieceSize]) as [number, number, number];

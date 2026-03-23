@@ -108,7 +108,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { Text } from "troika-three-text";
 
 import { viewerInit, viewerGcode, status } from "./lcncWs";
-import { loadViewerDefaults, ALL_LAYERS, type Vec3, type Layer } from "./defaults";
+import { loadViewerDefaults, ALL_LAYERS, settingsVersion, type Vec3, type Layer } from "./defaults";
 import JogHUD from "./JogHUD.vue";
 
 import SetupHUD from "./SetupHUD.vue";
@@ -1173,6 +1173,10 @@ async function buildFromInit(init: ViewerInit) {
     // If edge mode is active, lazily build edges now that meshes exist
     if (machineEdges) buildEdgesLazy();
 
+    // Re-apply saved layer visibility (objects just created default to visible)
+    const _freshVd = loadViewerDefaults();
+    for (const layer of ALL_LAYERS) setLayerVisible(layer, _freshVd.layers[layer]);
+
   } catch (err) {
     console.error("buildFromInit failed:", err);
     (window as any).__viewerDiag = { ready: false, error: (err as Error).message };
@@ -1635,6 +1639,12 @@ watch(
   },
   { immediate: true }
 );
+
+// Re-apply viewer defaults when server settings arrive or another client changes them
+watch(settingsVersion, () => {
+  const vd = loadViewerDefaults();
+  for (const layer of ALL_LAYERS) setLayerVisible(layer, vd.layers[layer]);
+});
 
 // Pause/resume RAF loop when active prop changes
 // flush: 'post' ensures DOM (v-show) has updated before we resize

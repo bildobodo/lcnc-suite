@@ -14,7 +14,7 @@ import CameraViewer from "./CameraViewer.vue";
 import Btn from "./Btn.vue";
 import { LocateFixed, SlidersHorizontal, Gauge, MessageSquare, RotateCw, RotateCcw, Square, Droplets, Drill, CodeXml, Lock, LockOpen, TriangleAlert, Power, PowerOff, Gamepad2, BookOpen, ClipboardCopy, Expand, Shrink } from "lucide-vue-next";
 import GcodeReferenceDialog from "./GcodeReferenceDialog.vue";
-import { loadViewerDefaults, loadPanelsDefaults, savePanelsDefaults, MAX_PANELS, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadMacrosDefaults, loadGamepadDefaults, saveGamepadDefaults, loadKeyboardDefaults, saveKeyboardDefaults, settingsVersion, type ThemeMode, type MacroDef, type GamepadDefaults, type KeyboardDefaults, type KeyboardAction, STEP_DEFAULT, STEP_RPM, STEP_OVERRIDE, STEP_RAPID_OVERRIDE } from "./defaults";
+import { loadViewerDefaults, saveViewerDefaults, loadPanelsDefaults, savePanelsDefaults, MAX_PANELS, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadMacrosDefaults, loadGamepadDefaults, saveGamepadDefaults, loadKeyboardDefaults, saveKeyboardDefaults, settingsVersion, type ThemeMode, type MacroDef, type GamepadDefaults, type KeyboardDefaults, type KeyboardAction, type Layer, type TrackMode, type Projection, type Vec3, STEP_DEFAULT, STEP_RPM, STEP_OVERRIDE, STEP_RAPID_OVERRIDE } from "./defaults";
 import { useGamepad } from "./useGamepad";
 import {
   INTERP_IDLE, INTERP_READING, INTERP_PAUSED, INTERP_WAITING,
@@ -169,9 +169,26 @@ const connLabel = computed(() => {
 const mdiText = ref("G0 X0 Y0");
 const busy = ref(false);
 
-// Workpiece configuration (initialized from saved defaults)
+// Viewer state (initialized from saved defaults, persisted on every change)
 const workpieceSize = ref<[number, number, number]>(_vd.workpieceSize);
 const workpieceOffset = ref<[number, number, number]>(_vd.workpieceOffset);
+const viewerLayers = reactive<Record<Layer, boolean>>({ ..._vd.layers });
+const viewerTrackMode = ref<TrackMode>(_vd.trackingMode);
+const viewerPathOnTop = ref(_vd.pathOnTop);
+const viewerProjection = ref<Projection>(_vd.projection);
+
+function saveViewerState() {
+  const current = loadViewerDefaults();
+  saveViewerDefaults({
+    ...current,
+    layers: { ...viewerLayers },
+    workpieceSize: [...workpieceSize.value] as Vec3,
+    workpieceOffset: [...workpieceOffset.value] as Vec3,
+    trackingMode: viewerTrackMode.value,
+    pathOnTop: viewerPathOnTop.value,
+    projection: viewerProjection.value,
+  });
+}
 
 // G-code viewer
 const gcodeContent = ref<string | null>(null);
@@ -1167,6 +1184,13 @@ watch(settingsVersion, () => {
     themeMode.value = disp.theme;
     applyTheme(disp.theme);
   }
+  const vd = loadViewerDefaults();
+  workpieceSize.value = vd.workpieceSize;
+  workpieceOffset.value = vd.workpieceOffset;
+  Object.assign(viewerLayers, vd.layers);
+  viewerTrackMode.value = vd.trackingMode;
+  viewerPathOnTop.value = vd.pathOnTop;
+  viewerProjection.value = vd.projection;
 });
 
 /** ---------- safety: stop jog on focus loss ---------- */
@@ -1706,14 +1730,14 @@ watch(isHomed, (nowHomed, wasHomed) => {
             <Toolbar
               @resetBackplot="viewerRefs.get(panel.id)?.resetBackplot?.()"
               @setView="(p: any) => viewerRefs.get(panel.id)?.setView?.(p)"
-              @toggleLayer="(l: string, on: boolean) => viewerRefs.get(panel.id)?.setLayerVisible?.(l, on)"
-              @setPathOnTop="(on: boolean) => viewerRefs.get(panel.id)?.setPathAlwaysOnTop?.(on)"
-              @setTrackMode="(m: string) => viewerRefs.get(panel.id)?.setTrackingMode?.(m)"
-              @toggleProjection="viewerRefs.get(panel.id)?.switchProjection?.()"
+              @toggleLayer="(l: Layer, on: boolean) => { viewerLayers[l] = on; for (const v of viewerRefs.values()) v?.setLayerVisible?.(l, on); saveViewerState(); }"
+              @setPathOnTop="(on: boolean) => { viewerPathOnTop = on; for (const v of viewerRefs.values()) v?.setPathAlwaysOnTop?.(on); saveViewerState(); }"
+              @setTrackMode="(m: string) => { viewerTrackMode = m as TrackMode; for (const v of viewerRefs.values()) v?.setTrackingMode?.(m); saveViewerState(); }"
+              @toggleProjection="() => { viewerProjection = viewerProjection === 'parallel' ? 'perspective' : 'parallel'; viewerRefs.get(panel.id)?.switchProjection?.(); saveViewerState(); }"
               :workpieceSize="workpieceSize"
               :workpieceOffset="workpieceOffset"
-              @update:workpieceSize="workpieceSize = $event"
-              @update:workpieceOffset="workpieceOffset = $event"
+              @update:workpieceSize="workpieceSize = $event; saveViewerState()"
+              @update:workpieceOffset="workpieceOffset = $event; saveViewerState()"
             >
               <ThreeViewer
                 :ref="(el: any) => setViewerRef(panel.id, el)"

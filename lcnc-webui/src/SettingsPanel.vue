@@ -360,6 +360,17 @@ watch(settingsVersion, () => {
   spindleFeedbackUnit.value = md.spindleFeedbackUnit;
   spindleLoadPin.value = md.spindleLoadPin;
   emit("setRunFromLine", md.runFromLine);
+  const vd = loadViewerDefaults();
+  Object.assign(layers, vd.layers);
+  Object.assign(colors, vd.colors);
+  Object.assign(opacities, vd.opacities);
+  Object.assign(machineColors, vd.machineColors);
+  wpSize.splice(0, 3, ...vd.workpieceSize);
+  wpOffset.splice(0, 3, ...vd.workpieceOffset);
+  trackingMode.value = vd.trackingMode;
+  pathOnTop.value = vd.pathOnTop;
+  machineEdgesOn.value = vd.machineEdges;
+  projection.value = vd.projection;
 });
 
 // ─── Camera overlay ──────────────────────────────────────────
@@ -488,22 +499,6 @@ const subTabs = [
 const activeTab = ref("viewer");
 
 
-function updateSize(axis: number, value: number) {
-  if (isNaN(value) || value < 0) return;
-  wpSize[axis] = value;
-  if (axis === 2) wpOffset[2] = -value;
-  save();
-}
-
-function updateOffset(axis: number, value: number) {
-  if (isNaN(value)) return;
-  wpOffset[axis] = value;
-  save();
-}
-
-function onLayerChange() {
-  save();
-}
 
 function onColorChange(key: keyof ColorDefaults, value: string) {
   colors[key] = value;
@@ -689,58 +684,14 @@ const halStats = computed(() => ({
 
 <template>
   <div class="settings">
-    <div class="hint">Changes here set startup defaults. They take effect on next page load.</div>
+    <div class="hint">Settings are saved automatically and shared across all connected clients.</div>
     <TabPanel :tabs="subTabs" v-model="activeTab" class="subTabs">
       <template #viewer>
         <div v-if="!serverSettingsReady" class="settingsLoading">Waiting for server settings…</div>
         <div v-else class="stack-panel scrollContent scroll-thin">
         <fieldset :disabled="!can.idle" class="fs-reset">
         <div class="section">
-          <div class="sub">Workpiece Defaults</div>
-          <div class="wpColumns">
-            <div class="stack-controls fieldGroup">
-              <div class="inputRow" v-for="(label, i) in ['Size X', 'Size Y', 'Size Z']" :key="'s'+i">
-                <label class="inputLabel">{{ label }}</label>
-                <input
-                  type="number"
-                  class="numInput"
-                  :value="wpSize[i]"
-                  @input="updateSize(i, parseFloat(($event.target as HTMLInputElement).value))"
-                  :step="STEP_DEFAULT" min="0" max="9999"
-                />
-              </div>
-            </div>
-            <div class="stack-controls fieldGroup">
-              <div class="inputRow" v-for="(label, i) in ['Offset X', 'Offset Y', 'Offset Z']" :key="'o'+i">
-                <label class="inputLabel">{{ label }}</label>
-                <input
-                  type="number"
-                  class="numInput"
-                  :value="wpOffset[i]"
-                  @input="updateOffset(i, parseFloat(($event.target as HTMLInputElement).value))"
-                  :step="STEP_DEFAULT" min="-9999" max="9999"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="sep"></div>
-
-        <div class="section">
-          <div class="sub">Layer Defaults</div>
-          <div class="layerGrid">
-            <label v-for="layer in (['backplot', 'toolpath', 'machine', 'workpiece', 'bounds', 'workzero', 'hud'] as Layer[])" :key="layer">
-              <input type="checkbox" v-model="layers[layer]" @change="onLayerChange" />
-              {{ layer === 'hud' ? 'HUD' : layer === 'workzero' ? 'Work Zero' : layer.charAt(0).toUpperCase() + layer.slice(1) }}
-            </label>
-          </div>
-        </div>
-
-        <div class="sep"></div>
-
-        <div class="section">
-          <div class="sub">Color Defaults</div>
+          <div class="sub">Colors</div>
           <div class="colorGrid">
             <div class="colorRow" v-for="cf in colorFields" :key="cf.key">
               <input
@@ -757,7 +708,7 @@ const halStats = computed(() => ({
         <div class="sep"></div>
 
         <div class="section">
-          <div class="sub">Opacity Defaults</div>
+          <div class="sub">Opacity</div>
           <div class="stack-controls opacityList">
             <div class="opacityRow" v-for="of_ in opacityFields" :key="of_.key">
               <span class="opacityLabel">{{ of_.label }}</span>
@@ -793,36 +744,6 @@ const halStats = computed(() => ({
             <label class="toggleRow">
               <input type="checkbox" class="toggle" v-model="machineEdgesOn" @change="setMachineEdges(machineEdgesOn); save()" />
               Edge outline
-            </label>
-          </div>
-        </div>
-
-        <div class="sep"></div>
-
-        <div class="section">
-          <div class="sub">Viewer Behavior</div>
-          <div class="stack-controls fieldGroup">
-            <div class="inputRow">
-              <label class="inputLabel">Tracking</label>
-              <div class="radioGroup inline">
-                <label v-for="m in (['none', 'tool', 'workpiece'] as TrackMode[])" :key="m">
-                  <input type="radio" v-model="trackingMode" :value="m" @change="save()" />
-                  {{ m.charAt(0).toUpperCase() + m.slice(1) }}
-                </label>
-              </div>
-            </div>
-            <div class="inputRow">
-              <label class="inputLabel">Projection</label>
-              <div class="radioGroup inline">
-                <label v-for="p in (['perspective', 'parallel'] as Projection[])" :key="p">
-                  <input type="radio" v-model="projection" :value="p" @change="emit('setProjection', projection); save()" />
-                  {{ p.charAt(0).toUpperCase() + p.slice(1) }}
-                </label>
-              </div>
-            </div>
-            <label class="toggleRow">
-              <input type="checkbox" class="toggle" v-model="pathOnTop" @change="emit('setPathOnTop', pathOnTop); save()" />
-              Toolpath always on top
             </label>
           </div>
         </div>
