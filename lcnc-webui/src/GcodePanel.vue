@@ -448,7 +448,7 @@ async function saveEdit() {
         <span class="label">File:</span>
         <div class="fileName">{{ fileName }}</div>
         <span class="fileMeta" v-if="gcodeContent">{{ lineCount }} lines</span>
-        <div v-if="gcodeStats" class="statsAnchor">
+        <div v-if="gcodeStats" class="statsAnchor" data-gate-exempt>
           <Btn class="actionBtn" size="sm" @click.stop="showStats = !showStats">Stats</Btn>
           <div class="popover statsPopover" :class="{ open: showStats }" @click.stop>
             <div class="popHeader"><span class="popTitle">Program Stats</span><Btn icon @click="showStats = false">&times;</Btn></div>
@@ -522,7 +522,7 @@ async function saveEdit() {
     </div>
 
     <!-- Program control -->
-    <div class="controlRow">
+    <div class="controlRow" data-gate-exempt>
       <Btn class="ctrlBtn" variant="primary" @click="onStartClick" :disabled="!can.ready || !activeFile || editing">
         <Play :size="14" class="ctrlIcon" /> {{ selectedLine && selectedLine > 1 ? `Start L${selectedLine}` : 'Start' }}
       </Btn>
@@ -555,13 +555,13 @@ async function saveEdit() {
     </div>
 
     <!-- Error banner -->
-    <div v-if="uploadError" class="errorBanner">
+    <div v-if="uploadError" class="errorBanner" data-gate-exempt>
       <span>{{ uploadError }}</span>
       <Btn icon @click="uploadError = null">&times;</Btn>
     </div>
 
     <!-- File browser (collapsible) -->
-    <div v-if="showBrowser" class="fileBrowser">
+    <div v-if="showBrowser" class="fileBrowser" data-gate-exempt>
       <div class="browserHeader">
         <Btn v-if="currentSubdir" class="backBtn" size="xs" @click="navigateUp">..</Btn>
         <span class="browserPath">{{ currentSubdir || '/' }}</span>
@@ -596,7 +596,7 @@ async function saveEdit() {
       </div>
 
       <!-- Edit mode -->
-      <div v-if="editing" class="stack-controls editArea">
+      <div v-if="editing" class="stack-controls editArea" data-gate-exempt>
         <div v-if="saveError" class="errorBanner">
           <span>{{ saveError }}</span>
           <Btn icon @click="saveError = null">&times;</Btn>
@@ -652,7 +652,7 @@ async function saveEdit() {
     </div>
 
     <!-- Run from line confirmation dialog -->
-    <div v-if="showRunDialog" class="dialogOverlay" @click.self="showRunDialog = false">
+    <div v-if="showRunDialog" class="dialogOverlay" data-gate-exempt @click.self="showRunDialog = false">
       <div class="dialog runDialog">
         <div class="dialogTitle">Run from Line {{ selectedLine }}</div>
         <div class="dialogBody">

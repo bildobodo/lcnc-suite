@@ -66,6 +66,30 @@ async function bootstrap() {
 
   initServerDefaults(serverSettings, fetchOk);
   createApp(App).mount('#app');
+
+  if (import.meta.env.DEV) {
+    // After initial mount, watch for elements added outside a Gate (<fieldset>).
+    // Exempt elements must have data-gate-exempt on themselves or an ancestor.
+    setTimeout(() => {
+      const observer = new MutationObserver((mutations) => {
+        for (const m of mutations) {
+          for (const node of m.addedNodes) {
+            if (!(node instanceof HTMLElement)) continue;
+            const els = [
+              ...(node.matches('button, input, select, textarea') ? [node] : []),
+              ...node.querySelectorAll('button, input, select, textarea'),
+            ] as HTMLElement[];
+            for (const el of els) {
+              if (!el.closest('fieldset') && !el.closest('[data-gate-exempt]')) {
+                console.warn('[Gate audit] Element outside fieldset:', el);
+              }
+            }
+          }
+        }
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+    }, 0);
+  }
 }
 
 bootstrap();

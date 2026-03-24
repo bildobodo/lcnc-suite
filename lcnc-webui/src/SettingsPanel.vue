@@ -1408,7 +1408,7 @@ const halStats = computed(() => ({
     </TabPanel>
 
     <Teleport to="body">
-      <div v-if="resetTarget" class="dialogOverlay" @click.self="resetTarget = null">
+      <div v-if="resetTarget" class="dialogOverlay" data-gate-exempt @click.self="resetTarget = null">
         <div class="dialog">
           <div class="dialogTitle danger">Reset {{ resetLabels[resetTarget] }}</div>
           <div class="dialogBody">Restore {{ resetLabels[resetTarget] }} settings to defaults? This cannot be undone.</div>

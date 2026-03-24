@@ -426,7 +426,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
 
     <!-- Delete confirm dialog -->
     <Teleport to="body">
-      <div v-if="deletingTool != null" class="dialogOverlay" @click.self="cancelDelete">
+      <div v-if="deletingTool != null" class="dialogOverlay" data-gate-exempt @click.self="cancelDelete">
         <div class="dialog">
           <div class="dialogTitle danger">Delete Tool</div>
           <div class="dialogBody">
@@ -442,7 +442,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
 
     <!-- Edit / Add modal -->
     <Teleport to="body">
-      <div v-if="editTool" class="dialogOverlay" @click.self="cancelEditModal">
+      <div v-if="editTool" class="dialogOverlay" data-gate-exempt @click.self="cancelEditModal">
         <div class="dialog lg editDialog">
           <!-- Header -->
           <div class="dialogHeader">
@@ -535,7 +535,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
 
     <!-- Import preview dialog -->
     <Teleport to="body">
-      <div v-if="importPreview" class="dialogOverlay" @click.self="cancelImport">
+      <div v-if="importPreview" class="dialogOverlay" data-gate-exempt @click.self="cancelImport">
         <div class="dialog importDialog">
           <div class="dialogTitle">Import Tool Library</div>
           <div class="dialogBody">

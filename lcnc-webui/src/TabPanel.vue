@@ -16,7 +16,7 @@ const emit = defineEmits<{
 
 <template>
   <div class="tab-panel">
-    <div class="topBar">
+    <div class="topBar" data-gate-exempt>
       <div class="tabRow">
         <Btn
           v-for="tab in tabs"

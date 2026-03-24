@@ -2036,7 +2036,7 @@ defineExpose({
     </div>
 
     <!-- HUD toggle buttons (top-left) -->
-    <div class="hudOverlay">
+    <div class="hudOverlay" data-gate-exempt>
       <div class="row-tight hudBtnRow">
         <Btn size="sm" muted :selected="activeHudPanel === 'jog'" @click="toggleHud('jog')">Jog</Btn>
         <Btn size="sm" muted :selected="activeHudPanel === 'setup'" @click="toggleHud('setup')">Quick Setup</Btn>

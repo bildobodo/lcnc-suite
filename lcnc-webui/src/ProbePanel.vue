@@ -532,7 +532,7 @@ function fmtR(key: string): string {
 <template>
   <div class="stack-sections probePanel scroll-thin">
     <!-- Sub-view tabs -->
-    <div class="row-tight viewTabs">
+    <div class="row-tight viewTabs" data-gate-exempt>
       <Btn size="sm" muted :selected="probeView === 'outside'" @click="probeView = 'outside'">Outside</Btn>
       <Btn size="sm" muted :selected="probeView === 'inside'" @click="probeView = 'inside'">Inside</Btn>
       <Btn size="sm" muted :selected="probeView === 'boss'" @click="probeView = 'boss'">Boss/Pocket</Btn>

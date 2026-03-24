@@ -1276,7 +1276,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
     <header class="hdr">
       <div class="title">LinuxCNC WebUI ({{ connLabel }})</div>
 
-      <div class="hdrRight">
+      <div class="hdrRight" data-gate-exempt>
         <div
           class="pill"
           :title="connectedClients.map(c => c.ip + (c.armed ? ' (armed)' : '')).join('\n')"
@@ -1319,7 +1319,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
       </div>
     </header>
 
-    <div v-if="bannerLevel !== 'none'" class="statusBanner" :class="bannerLevel">
+    <div v-if="bannerLevel !== 'none'" class="statusBanner" :class="bannerLevel" data-gate-exempt>
       {{ bannerText }}
       <Btn v-if="bannerLevel === 'refresh'" @click="reloadPage">Refresh</Btn>
     </div>
@@ -1329,7 +1329,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 
     <!-- Machine Safety + Status -->
     <div class="topRow">
-    <section class="card">
+    <section class="card" data-gate-exempt>
       <div class="sub">Machine Safety</div>
       <div class="btnrow">
         <Btn size="lg" :variant="armed ? 'ok' : 'default'" class="safetyBtn" @click="arm(!armed)" :disabled="busy" :title="armed ? 'Disarm' : 'Arm'" block>
@@ -1390,7 +1390,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 
     <section class="card">
       <div class="sub">Controls</div>
-      <div class="controlBtns">
+      <div class="controlBtns" data-gate-exempt>
         <div class="controlGroup">
         <Btn
           size="lg" class="controlBtn"
@@ -1868,6 +1868,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
       <button
         v-if="panels.length < MAX_PANELS"
         class="addPanel"
+        data-gate-exempt
         @click="addPanel"
       >+</button>
     </div>
@@ -1877,7 +1878,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
     </div><!-- /bodyLayout -->
 
     <!-- Tool table dialog -->
-    <div v-if="toolDialogOpen" class="dialogOverlay">
+    <div v-if="toolDialogOpen" class="dialogOverlay" data-gate-exempt>
       <div class="dialog lg dialog-full">
         <div class="dialogHeader">
           <span class="dialogTitle">Tool Table</span>
@@ -1927,7 +1928,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
     </div>
 
     <!-- Settings dialog -->
-    <div v-if="settingsDialogOpen" class="dialogOverlay">
+    <div v-if="settingsDialogOpen" class="dialogOverlay" data-gate-exempt>
       <div class="dialog lg dialog-full">
         <div class="dialogHeader">
           <span class="dialogTitle">Settings</span>
@@ -1954,7 +1955,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
     <GcodeReferenceDialog :open="gcodeRefOpen" :initialSearch="gcodeRefInitialSearch" @close="gcodeRefOpen = false" />
 
     <!-- Safety confirmation dialogs — z-index 1010 to always appear above other dialogs -->
-    <div v-if="toolChangeRequested" class="dialogOverlay safetyDialog">
+    <div v-if="toolChangeRequested" class="dialogOverlay safetyDialog" data-gate-exempt>
       <div class="dialog">
         <div class="dialogTitle">{{ !toolChangeTool ? 'Remove Tool from Spindle' : 'Load Tool into Spindle' }}</div>
         <div class="dialogBody">
@@ -1977,7 +1978,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
     </div>
 
     <Teleport to="body">
-    <div v-if="macroParamDialog" class="dialogOverlay" @click.self="macroParamDialog = null">
+    <div v-if="macroParamDialog" class="dialogOverlay" data-gate-exempt @click.self="macroParamDialog = null">
       <div class="dialog">
         <div class="dialogTitle">{{ macroParamDialog.macro.name }}</div>
         <div class="dialogBody">
@@ -2001,7 +2002,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
     </div>
     </Teleport>
 
-    <div v-if="showShutdownConfirm" class="dialogOverlay safetyDialog">
+    <div v-if="showShutdownConfirm" class="dialogOverlay safetyDialog" data-gate-exempt>
       <div class="dialog">
         <div class="dialogTitle danger">Shut Down LinuxCNC?</div>
         <div class="dialogBody">This will stop all motion and exit LinuxCNC.</div>
@@ -2012,7 +2013,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
       </div>
     </div>
 
-    <div v-if="compConfirmPending !== null" class="dialogOverlay safetyDialog">
+    <div v-if="compConfirmPending !== null" class="dialogOverlay safetyDialog" data-gate-exempt>
       <div class="dialog">
         <div class="dialogTitle">{{ compConfirmPending ? 'Enable' : 'Disable' }} Compensation</div>
         <div class="dialogBody">

@@ -51,7 +51,7 @@ const timingComponents: { key: keyof Omit<import("./lcncWs").TimingStats, "count
         </div>
       </div>
       <div v-else class="muted">Waiting for data…</div>
-      <div class="row" style="gap: var(--gap-controls); margin-top: var(--gap-section)">
+      <div class="row" style="gap: var(--gap-controls); margin-top: var(--gap-section)" data-gate-exempt>
         <Btn @click="toggleTimingLog">{{ timingLogActive ? 'Stop Log' : 'Start Log' }}</Btn>
         <Btn @click="resetTimingStats">Reset</Btn>
         <Btn @click="downloadTimingCsv" :disabled="!timingStats">Download CSV</Btn>
