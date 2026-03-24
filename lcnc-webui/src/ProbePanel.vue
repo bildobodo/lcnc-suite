@@ -1166,9 +1166,9 @@ function fmtR(key: string): string {
       <Gate :allow="can.ready">
       <div class="surfaceActions">
         <Btn :disabled="!can.probe || probing" @click="runSurfaceScan">Start Scan</Btn>
-        <Btn v-if="!surfaceInViewer" :disabled="!can.idle" @click="loadSurfaceMap">Load Map</Btn>
-        <Btn v-else :disabled="!can.idle" @click="emit('clearSurfaceMap')">Unload Map</Btn>
-        <Btn :disabled="!can.idle" @click="if (!surfacePoints?.length) emit('getProbeResults'); mapDialogOpen = true">3D Inspect</Btn>
+        <Btn v-if="!surfaceInViewer" @click="loadSurfaceMap">Load Map</Btn>
+        <Btn v-else @click="emit('clearSurfaceMap')">Unload Map</Btn>
+        <Btn @click="if (!surfacePoints?.length) emit('getProbeResults'); mapDialogOpen = true">3D Inspect</Btn>
         <Btn :active="eoffsetEnabled" :disabled="probing" @click="toggleComp">{{ eoffsetEnabled ? 'Disable Comp' : 'Enable Comp' }}</Btn>
       </div>
       </Gate>

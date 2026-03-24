@@ -1051,6 +1051,7 @@ const halStats = computed(() => ({
       <template #macros>
         <div v-if="!serverSettingsReady" class="settingsLoading">Waiting for server settings…</div>
         <div v-else class="stack-panel scrollContent scroll-thin">
+        <Gate :allow="can.idle">
           <div class="section">
             <div class="sub">User Macros</div>
 
@@ -1065,10 +1066,10 @@ const halStats = computed(() => ({
                   <code class="macroSettingsCmd">{{ m.command }}</code>
                 </div>
                 <div class="macroSettingsActions">
-                  <Btn icon :disabled="idx === 0 || !can.idle" @click="moveMacro(idx, -1)" title="Move up"><ChevronUp :size="14" /></Btn>
-                  <Btn icon :disabled="idx === macros.length - 1 || !can.idle" @click="moveMacro(idx, 1)" title="Move down"><ChevronDown :size="14" /></Btn>
-                  <Btn icon :disabled="!can.idle" @click="editMacro(m)" title="Edit"><Pencil :size="14" /></Btn>
-                  <Btn icon :disabled="!can.idle" @click="deleteMacro(m.id)" title="Delete"><Trash2 :size="14" /></Btn>
+                  <Btn icon :disabled="idx === 0" @click="moveMacro(idx, -1)" title="Move up"><ChevronUp :size="14" /></Btn>
+                  <Btn icon :disabled="idx === macros.length - 1" @click="moveMacro(idx, 1)" title="Move down"><ChevronDown :size="14" /></Btn>
+                  <Btn icon @click="editMacro(m)" title="Edit"><Pencil :size="14" /></Btn>
+                  <Btn icon @click="deleteMacro(m.id)" title="Delete"><Trash2 :size="14" /></Btn>
                 </div>
               </div>
             </div>
@@ -1103,8 +1104,9 @@ const halStats = computed(() => ({
               </div>
             </div>
 
-            <Btn v-if="!editingMacro && macros.length < 20" variant="primary" :disabled="!can.idle" @click="addMacro" style="margin-top: var(--gap-section);">Add Macro</Btn>
+            <Btn v-if="!editingMacro && macros.length < 20" variant="primary" @click="addMacro" style="margin-top: var(--gap-section);">Add Macro</Btn>
           </div>
+        </Gate>
         </div>
       </template>
 
