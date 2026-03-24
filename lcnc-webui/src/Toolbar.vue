@@ -5,7 +5,7 @@
     </div>
 
     <!-- Floating toolbar overlay (bottom-left) -->
-    <div class="floatingBar">
+    <Gate :allow="can.idle" class="floatingBar">
 
       <!-- Views pill -->
       <div class="toolPill">
@@ -107,14 +107,18 @@
         </div>
       </div>
 
-    </div>
+    </Gate>
   </div>
 </template>
 
 <script setup lang="ts">
 import { reactive, ref, watch } from "vue";
 import Btn from "./Btn.vue";
+import Gate from "./Gate.vue";
+import { usePermissions } from "./permissions";
 import { loadViewerDefaults, settingsVersion, STEP_DEFAULT, type Vec3, type Layer, type TrackMode } from "./defaults";
+
+const can = usePermissions();
 
 type ViewPreset = "top" | "bottom" | "left" | "right" | "front" | "back" | "iso" | "dimetric" | "reset";
 
@@ -216,6 +220,7 @@ function togglePill(name: string) {
   bottom: 12px;
   left: 12px;
   display: flex;
+  flex-direction: row;
   gap: var(--gap-tight);
   z-index: 20;
 }
