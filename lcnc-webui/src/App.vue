@@ -12,6 +12,7 @@ import ToolTablePanel from "./ToolTablePanel.vue";
 import ProbePanel from "./ProbePanel.vue";
 import CameraViewer from "./CameraViewer.vue";
 import Btn from "./Btn.vue";
+import Gate from "./Gate.vue";
 import { LocateFixed, SlidersHorizontal, Gauge, MessageSquare, RotateCw, RotateCcw, Square, Droplets, Drill, CodeXml, Lock, LockOpen, TriangleAlert, Power, PowerOff, Gamepad2, BookOpen, ClipboardCopy, Expand, Shrink } from "lucide-vue-next";
 import GcodeReferenceDialog from "./GcodeReferenceDialog.vue";
 import { loadViewerDefaults, saveViewerDefaults, loadPanelsDefaults, savePanelsDefaults, MAX_PANELS, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadMacrosDefaults, loadGamepadDefaults, saveGamepadDefaults, loadKeyboardDefaults, saveKeyboardDefaults, settingsVersion, type ThemeMode, type MacroDef, type GamepadDefaults, type KeyboardDefaults, type KeyboardAction, type Layer, type TrackMode, type Projection, type Vec3, STEP_DEFAULT, STEP_RPM, STEP_OVERRIDE, STEP_RAPID_OVERRIDE } from "./defaults";
@@ -1403,13 +1404,12 @@ watch(isHomed, (nowHomed, wasHomed) => {
         </Btn>
         <div class="popover spindlePopover" :class="{ open: openChip === 'spindle' }" @click.stop>
           <div class="popHeader"><span class="popTitle">Spindle</span><Btn icon @click="openChip = null">&times;</Btn></div>
-          <fieldset :disabled="!permissions.ready" class="fs-reset">
+          <Gate :allow="permissions.ready">
           <!-- Direction controls -->
           <div class="spDirRow">
             <Btn
               size="lg" class="spDirBtn"
               :active="isReverse"
-              :disabled="!permissions.ready"
               @click="spindleReverse(rpmInput)"
               title="Spindle Reverse (CCW)"
             >
@@ -1419,7 +1419,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
             <Btn
               size="lg" variant="danger" class="spDirBtn"
               :active="isSpinning"
-              :disabled="!permissions.ready || !isSpinning"
+              :disabled="!isSpinning"
               @click="spindleStop()"
               title="Spindle Stop"
             >
@@ -1429,7 +1429,6 @@ watch(isHomed, (nowHomed, wasHomed) => {
             <Btn
               size="lg" class="spDirBtn"
               :active="isForward"
-              :disabled="!permissions.ready"
               @click="spindleForward(rpmInput)"
               title="Spindle Forward (CW)"
             >
@@ -1448,7 +1447,6 @@ watch(isHomed, (nowHomed, wasHomed) => {
               :min="minSpindleSpeed"
               :max="maxSpindleSpeed"
               :step="STEP_RPM"
-              :disabled="!permissions.ready"
             />
             <span class="spUnit">RPM</span>
           </div>
@@ -1475,7 +1473,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
             </div>
           </div>
 
-          </fieldset>
+          </Gate>
         </div>
         </div>
 
@@ -1491,13 +1489,12 @@ watch(isHomed, (nowHomed, wasHomed) => {
         </Btn>
         <div class="popover coolantPopover" :class="{ open: openChip === 'coolant' }" @click.stop>
           <div class="popHeader"><span class="popTitle">Coolant</span><Btn icon @click="openChip = null">&times;</Btn></div>
-          <fieldset :disabled="!permissions.ready" class="fs-reset">
+          <Gate :allow="permissions.ready">
           <div class="coolantRow">
             <span class="coolantLabel">Flood</span>
             <Btn
               class="coolantToggle"
               :active="floodOn"
-              :disabled="!permissions.override"
               @click="toggleFlood"
             >{{ floodOn ? 'ON' : 'OFF' }}</Btn>
           </div>
@@ -1506,11 +1503,10 @@ watch(isHomed, (nowHomed, wasHomed) => {
             <Btn
               class="coolantToggle"
               :active="mistOn"
-              :disabled="!permissions.override"
               @click="toggleMist"
             >{{ mistOn ? 'ON' : 'OFF' }}</Btn>
           </div>
-          </fieldset>
+          </Gate>
         </div>
         </div>
 
@@ -1565,33 +1561,33 @@ watch(isHomed, (nowHomed, wasHomed) => {
         </Btn>
         <div class="popover overridesPopover" :class="{ open: openChip === 'overrides' }" @click.stop>
           <div class="popHeader"><span class="popTitle">Overrides</span><Btn icon @click="openChip = null">&times;</Btn></div>
-          <fieldset :disabled="!permissions.override" class="fs-reset">
+          <Gate :allow="permissions.override">
           <div class="ovrRow">
             <span class="ovrLabel">Feed</span>
-            <input type="range" v-model.number="feedSlider" @change="onFeedChange" min="0" :max="maxFeedOverride" :step="STEP_OVERRIDE" :disabled="!permissions.override || !feedOvrEnabled" />
+            <input type="range" v-model.number="feedSlider" @change="onFeedChange" min="0" :max="maxFeedOverride" :step="STEP_OVERRIDE" :disabled="!feedOvrEnabled" />
             <span class="sliderVal" :class="{ warn: feedSlider !== 100 }">{{ feedSlider }}%</span>
           </div>
           <div class="ovrPresets">
-            <Btn v-for="p in [50, 100, 150, 200]" :key="'f'+p" size="xs" :disabled="!permissions.override || !feedOvrEnabled" @click="setOverridePreset('feed', p)">{{ p }}%</Btn>
+            <Btn v-for="p in [50, 100, 150, 200]" :key="'f'+p" size="xs" :disabled="!feedOvrEnabled" @click="setOverridePreset('feed', p)">{{ p }}%</Btn>
           </div>
           <div class="ovrRow">
             <span class="ovrLabel">Spindle</span>
-            <input type="range" v-model.number="spindleSlider" @change="onSpindleSliderChange" :min="minSpindleOverride" :max="maxSpindleOverride" :step="STEP_OVERRIDE" :disabled="!permissions.override || !spindleOvrEnabled" />
+            <input type="range" v-model.number="spindleSlider" @change="onSpindleSliderChange" :min="minSpindleOverride" :max="maxSpindleOverride" :step="STEP_OVERRIDE" :disabled="!spindleOvrEnabled" />
             <span class="sliderVal" :class="{ warn: spindleSlider !== 100 }">{{ spindleSlider }}%</span>
           </div>
           <div class="ovrPresets">
-            <Btn v-for="p in [50, 100, 150, 200]" :key="'s'+p" size="xs" :disabled="!permissions.override || !spindleOvrEnabled" @click="setOverridePreset('spindle', p)">{{ p }}%</Btn>
+            <Btn v-for="p in [50, 100, 150, 200]" :key="'s'+p" size="xs" :disabled="!spindleOvrEnabled" @click="setOverridePreset('spindle', p)">{{ p }}%</Btn>
           </div>
           <div class="ovrRow">
             <span class="ovrLabel">Rapid</span>
-            <input type="range" v-model.number="rapidSlider" @change="onRapidChange" min="25" max="100" :step="STEP_RAPID_OVERRIDE" :disabled="!permissions.override" />
+            <input type="range" v-model.number="rapidSlider" @change="onRapidChange" min="25" max="100" :step="STEP_RAPID_OVERRIDE" />
             <span class="sliderVal" :class="{ warn: rapidSlider !== 100 }">{{ rapidSlider }}%</span>
           </div>
           <div class="ovrPresets">
-            <Btn v-for="p in [25, 50, 75, 100]" :key="'r'+p" size="xs" :disabled="!permissions.override" @click="setOverridePreset('rapid', p)">{{ p }}%</Btn>
+            <Btn v-for="p in [25, 50, 75, 100]" :key="'r'+p" size="xs" @click="setOverridePreset('rapid', p)">{{ p }}%</Btn>
           </div>
-          <Btn size="sm" class="ovrResetBtn" :disabled="!permissions.override" @click="resetAllOverrides" block>Reset All</Btn>
-          </fieldset>
+          <Btn size="sm" class="ovrResetBtn" @click="resetAllOverrides" block>Reset All</Btn>
+          </Gate>
         </div>
         </div>
 
@@ -1608,7 +1604,8 @@ watch(isHomed, (nowHomed, wasHomed) => {
         </Btn>
         <div class="popover offsetsPopover" :class="{ open: openChip === 'offsets' }" @click.stop>
           <div class="popHeader"><span class="popTitle">Work Offsets</span><Btn icon @click="openChip = null">&times;</Btn></div>
-          <table class="offsetTable" :class="{ inactive: !permissions.ready }">
+          <Gate :allow="permissions.ready">
+          <table class="offsetTable">
             <thead>
               <tr><th></th><th v-for="col in offsetColumns" :key="col">{{ col.toUpperCase() }}</th></tr>
             </thead>
@@ -1625,7 +1622,6 @@ watch(isHomed, (nowHomed, wasHomed) => {
                          v-model="editValue"
                          type="number"
                          class="offsetInput"
-                         :disabled="!permissions.ready"
                          @keydown.enter.prevent="commitCell(row.name, axis)"
                          @keydown.escape.prevent="cancelEdit()"
                          @blur="commitCell(row.name, axis)"
@@ -1647,10 +1643,11 @@ watch(isHomed, (nowHomed, wasHomed) => {
               </tr>
             </tbody>
           </table>
-          <div class="offsetActions" :class="{ inactive: !permissions.ready }">
-            <Btn size="xs" :disabled="!permissions.ready || !selectedWcs" @click="clearWcs(selectedWcs!)">Clear {{ selectedWcs }}</Btn>
-            <Btn size="xs" :disabled="!permissions.ready" @click="clearWcs('all')">Clear All</Btn>
+          <div class="offsetActions">
+            <Btn size="xs" :disabled="!selectedWcs" @click="clearWcs(selectedWcs!)">Clear {{ selectedWcs }}</Btn>
+            <Btn size="xs" @click="clearWcs('all')">Clear All</Btn>
           </div>
+          </Gate>
         </div>
         </div>
 
@@ -1886,30 +1883,38 @@ watch(isHomed, (nowHomed, wasHomed) => {
           <span class="dialogTitle">Tool Table</span>
           <Btn icon @click="toolDialogOpen = false">&times;</Btn>
         </div>
-        <div class="toolDialogActions" :class="{ inactive: !permissions.ready }">
-          <div class="toolInputRow">
-            <span class="toolFieldLabel">Tool #</span>
-            <input
-              type="number"
-              class="toolNumInput"
-              v-model.number="toolNumber"
-              min="1"
-              :step="STEP_DEFAULT"
-              :disabled="!permissions.ready || !!st.probing"
-              @change="saveToolNumber"
-            />
-          </div>
-          <div class="toolActions">
-            <Btn variant="ok" :disabled="!permissions.ready || !!st.probing" @click="measureAuto">Measure</Btn>
-            <Btn variant="primary" :disabled="!permissions.ready || !!st.probing" @click="loadTool">Load</Btn>
-            <Btn :disabled="!permissions.ready || !!st.probing || st.tool_number === 0" @click="unloadTool">Unload</Btn>
-            <Btn variant="danger" :disabled="!permissions.abort" @click="fire({ cmd: 'abort' })">Abort</Btn>
-          </div>
-          <div class="toolActions">
-            <Btn :disabled="!permissions.idle" @click="toolTableRef?.openAdd()">+ Add</Btn>
-            <Btn :disabled="!permissions.idle" @click="toolTableRef?.triggerImport()">Import</Btn>
-            <Btn :disabled="!permissions.idle" @click="toolTableRef?.fetchTools()">Refresh</Btn>
-          </div>
+        <div class="toolDialogActions">
+          <Gate :allow="permissions.ready">
+            <template #exempt>
+              <div class="toolActions">
+                <Btn variant="danger" :disabled="!permissions.abort" @click="fire({ cmd: 'abort' })">Abort</Btn>
+              </div>
+            </template>
+            <div class="toolInputRow">
+              <span class="toolFieldLabel">Tool #</span>
+              <input
+                type="number"
+                class="toolNumInput"
+                v-model.number="toolNumber"
+                min="1"
+                :step="STEP_DEFAULT"
+                :disabled="!!st.probing"
+                @change="saveToolNumber"
+              />
+            </div>
+            <div class="toolActions">
+              <Btn variant="ok" :disabled="!!st.probing" @click="measureAuto">Measure</Btn>
+              <Btn variant="primary" :disabled="!!st.probing" @click="loadTool">Load</Btn>
+              <Btn :disabled="!!st.probing || st.tool_number === 0" @click="unloadTool">Unload</Btn>
+            </div>
+          </Gate>
+          <Gate :allow="permissions.idle">
+            <div class="toolActions">
+              <Btn @click="toolTableRef?.openAdd()">+ Add</Btn>
+              <Btn @click="toolTableRef?.triggerImport()">Import</Btn>
+              <Btn @click="toolTableRef?.fetchTools()">Refresh</Btn>
+            </div>
+          </Gate>
           <div class="toolStatusRow">
             <span class="toolStatusDot" :class="probeStatusClass"></span>
             <span class="toolStatusText">{{ probeStatus }}</span>
@@ -1971,6 +1976,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
       </div>
     </div>
 
+    <Teleport to="body">
     <div v-if="macroParamDialog" class="dialogOverlay" @click.self="macroParamDialog = null">
       <div class="dialog">
         <div class="dialogTitle">{{ macroParamDialog.macro.name }}</div>
@@ -1993,6 +1999,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
         </div>
       </div>
     </div>
+    </Teleport>
 
     <div v-if="showShutdownConfirm" class="dialogOverlay safetyDialog">
       <div class="dialog">
