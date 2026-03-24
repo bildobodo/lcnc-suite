@@ -6,6 +6,7 @@ import { loadMachineDefaults, STEP_RPM } from "./defaults";
 import { GCODE_LOOKUP, GCODE_REFERENCE } from "./gcodeReference";
 import { Play, SkipForward, Pause, Square } from "lucide-vue-next";
 import Btn from "./Btn.vue";
+import Gate from "./Gate.vue";
 export interface GcodeStats {
   feedMoves: number;
   rapidMoves: number;
@@ -425,24 +426,24 @@ async function saveEdit() {
 <template>
   <div class="container" @dragover.prevent="onDragOver" @dragleave="onDragLeave" @drop.prevent="onDrop">
     <div class="header">
-      <div class="headerActions">
-        <Btn class="actionBtn" size="sm" @click="enterEdit" :disabled="!activeFile || !can.idle || editing">
+      <Gate :allow="can.idle" class="headerActions">
+        <Btn class="actionBtn" size="sm" @click="enterEdit" :disabled="!activeFile || editing">
           Edit
         </Btn>
-        <Btn class="actionBtn" size="sm" @click="reloadFile" :disabled="!activeFile || loading || !can.idle || editing">
+        <Btn class="actionBtn" size="sm" @click="reloadFile" :disabled="!activeFile || loading || editing">
           Reload
         </Btn>
-        <Btn class="actionBtn" size="sm" @click="unloadFile" :disabled="!activeFile || loading || !can.idle">
+        <Btn class="actionBtn" size="sm" @click="unloadFile" :disabled="!activeFile || loading">
           Unload
         </Btn>
-        <Btn class="actionBtn" size="sm" @click="toggleBrowser" :disabled="loading || !can.idle">
+        <Btn class="actionBtn" size="sm" @click="toggleBrowser" :disabled="loading">
           {{ showBrowser ? 'Hide Files' : 'Browse' }}
         </Btn>
-        <Btn class="actionBtn" size="sm" :disabled="!can.idle" @click="($refs.fileInput as HTMLInputElement).click()">
+        <Btn class="actionBtn" size="sm" @click="($refs.fileInput as HTMLInputElement).click()">
           Upload
         </Btn>
         <input ref="fileInput" type="file" accept=".ngc,.nc,.gcode,.tap,.txt" @change="onFileSelect" hidden />
-      </div>
+      </Gate>
       <div class="fileInfo">
         <span class="label">File:</span>
         <div class="fileName">{{ fileName }}</div>
