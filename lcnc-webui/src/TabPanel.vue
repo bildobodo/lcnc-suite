@@ -17,21 +17,23 @@ const emit = defineEmits<{
 
 <template>
   <div class="tab-panel">
-    <Gate :allow="true" class="topBar">
-      <div class="tabRow">
-        <Btn
-          v-for="tab in tabs"
-          :key="tab.id"
-          size="sm"
-          muted
-          :selected="modelValue === tab.id"
-          @click="emit('update:modelValue', tab.id)"
-        >
-          {{ tab.label }}
-          <span v-if="badges?.[tab.id]" class="badge">{{ badges[tab.id]! > 99 ? '99+' : badges[tab.id] }}</span>
-        </Btn>
+    <Gate :allow="true">
+      <div class="topBar">
+        <div class="tabRow">
+          <Btn
+            v-for="tab in tabs"
+            :key="tab.id"
+            size="sm"
+            muted
+            :selected="modelValue === tab.id"
+            @click="emit('update:modelValue', tab.id)"
+          >
+            {{ tab.label }}
+            <span v-if="badges?.[tab.id]" class="badge">{{ badges[tab.id]! > 99 ? '99+' : badges[tab.id] }}</span>
+          </Btn>
+        </div>
+        <Btn v-if="closable" icon @click="emit('close')">&times;</Btn>
       </div>
-      <Btn v-if="closable" icon @click="emit('close')">&times;</Btn>
     </Gate>
 
     <div class="tab-content">

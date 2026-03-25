@@ -158,23 +158,25 @@ CAMERA_SOURCE = rtsp://&lt;host&gt;/live      # IP camera</pre>
       </svg>
 
       <!-- Floating toolbar -->
-      <Gate :allow="can.idle" class="cameraToolbar">
-        <Btn size="xs" :active="showCrosshair"
-                @click="showCrosshair = !showCrosshair" title="Crosshair"><Crosshair :size="14" /></Btn>
-        <Btn size="xs" :active="showCircle"
-                @click="showCircle = !showCircle" title="Circle"><Circle :size="14" /></Btn>
-        <Btn size="xs" :active="showGrid"
-                @click="showGrid = !showGrid" title="Grid"><Grid3x3 :size="14" /></Btn>
-        <div class="camSliderGroup">
-          <Circle :size="12" class="camSliderLabel" />
-          <input type="range" min="10" max="300" v-model.number="circleRadius" class="camSlider" />
-        </div>
-        <div class="camSliderGroup">
-          <Grid3x3 :size="12" class="camSliderLabel" />
-          <input type="range" min="10" max="200" v-model.number="gridSpacing" class="camSlider" />
-        </div>
-        <div class="camSliderGroup">
-          <input type="color" v-model="overlayColor" class="camColorPicker" title="Overlay color" />
+      <Gate :allow="can.idle">
+        <div class="cameraToolbar">
+          <Btn size="xs" :active="showCrosshair"
+                  @click="showCrosshair = !showCrosshair" title="Crosshair"><Crosshair :size="14" /></Btn>
+          <Btn size="xs" :active="showCircle"
+                  @click="showCircle = !showCircle" title="Circle"><Circle :size="14" /></Btn>
+          <Btn size="xs" :active="showGrid"
+                  @click="showGrid = !showGrid" title="Grid"><Grid3x3 :size="14" /></Btn>
+          <div class="camSliderGroup">
+            <Circle :size="12" class="camSliderLabel" />
+            <input type="range" min="10" max="300" v-model.number="circleRadius" class="camSlider" />
+          </div>
+          <div class="camSliderGroup">
+            <Grid3x3 :size="12" class="camSliderLabel" />
+            <input type="range" min="10" max="200" v-model.number="gridSpacing" class="camSlider" />
+          </div>
+          <div class="camSliderGroup">
+            <input type="color" v-model="overlayColor" class="camColorPicker" title="Overlay color" />
+          </div>
         </div>
       </Gate>
     </template>

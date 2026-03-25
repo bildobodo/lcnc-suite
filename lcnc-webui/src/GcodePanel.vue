@@ -426,29 +426,32 @@ async function saveEdit() {
 <template>
   <div class="container" @dragover.prevent="onDragOver" @dragleave="onDragLeave" @drop.prevent="onDrop">
     <div class="header">
-      <Gate :allow="can.idle" class="headerActions">
-        <Btn class="actionBtn" size="sm" @click="enterEdit" :disabled="!activeFile || editing">
-          Edit
-        </Btn>
-        <Btn class="actionBtn" size="sm" @click="reloadFile" :disabled="!activeFile || loading || editing">
-          Reload
-        </Btn>
-        <Btn class="actionBtn" size="sm" @click="unloadFile" :disabled="!activeFile || loading">
-          Unload
-        </Btn>
-        <Btn class="actionBtn" size="sm" @click="toggleBrowser" :disabled="loading">
-          {{ showBrowser ? 'Hide Files' : 'Browse' }}
-        </Btn>
-        <Btn class="actionBtn" size="sm" @click="($refs.fileInput as HTMLInputElement).click()">
-          Upload
-        </Btn>
-        <input ref="fileInput" type="file" accept=".ngc,.nc,.gcode,.tap,.txt" @change="onFileSelect" hidden />
+      <Gate :allow="can.idle">
+        <div class="headerActions">
+          <Btn class="actionBtn" size="sm" @click="enterEdit" :disabled="!activeFile || editing">
+            Edit
+          </Btn>
+          <Btn class="actionBtn" size="sm" @click="reloadFile" :disabled="!activeFile || loading || editing">
+            Reload
+          </Btn>
+          <Btn class="actionBtn" size="sm" @click="unloadFile" :disabled="!activeFile || loading">
+            Unload
+          </Btn>
+          <Btn class="actionBtn" size="sm" @click="toggleBrowser" :disabled="loading">
+            {{ showBrowser ? 'Hide Files' : 'Browse' }}
+          </Btn>
+          <Btn class="actionBtn" size="sm" @click="($refs.fileInput as HTMLInputElement).click()">
+            Upload
+          </Btn>
+          <input ref="fileInput" type="file" accept=".ngc,.nc,.gcode,.tap,.txt" @change="onFileSelect" hidden />
+        </div>
       </Gate>
       <div class="fileInfo">
         <span class="label">File:</span>
         <div class="fileName">{{ fileName }}</div>
         <span class="fileMeta" v-if="gcodeContent">{{ lineCount }} lines</span>
-        <Gate v-if="gcodeStats" :allow="true" class="statsAnchor">
+        <Gate v-if="gcodeStats" :allow="true">
+          <div class="statsAnchor">
           <Btn class="actionBtn" size="sm" @click.stop="showStats = !showStats">Stats</Btn>
           <div class="popover statsPopover" :class="{ open: showStats }" @click.stop>
             <div class="popHeader"><span class="popTitle">Program Stats</span><Btn icon @click="showStats = false">&times;</Btn></div>
@@ -517,31 +520,34 @@ async function saveEdit() {
               <span class="statsValue">{{ fmtSize(gcodeStats.fileSize) }}</span>
             </div>
           </div>
+          </div>
         </Gate>
       </div>
     </div>
 
     <!-- Program control -->
-    <Gate :allow="can.abort" class="controlRow">
+    <Gate :allow="can.abort">
       <template #exempt>
         <Btn class="ctrlBtn" variant="danger" @click="emit('abort')">
           <Square :size="14" class="ctrlIcon" /> Abort
         </Btn>
       </template>
-      <Btn class="ctrlBtn" variant="primary" @click="onStartClick" :disabled="!can.ready || !activeFile || editing">
-        <Play :size="14" class="ctrlIcon" /> {{ selectedLine && selectedLine > 1 ? `Start L${selectedLine}` : 'Start' }}
-      </Btn>
-      <Btn class="ctrlBtn" @click="emit('cycleStep')" :disabled="!((can.ready && activeFile) || can.resume) || editing">
-        <SkipForward :size="14" class="ctrlIcon" /> Step
-      </Btn>
-      <Btn class="ctrlBtn"
-        @click="isPaused ? emit('cycleResume') : emit('cyclePause')"
-        :disabled="!(can.pause || can.resume)">
-        <component :is="isPaused ? Play : Pause" :size="14" class="ctrlIcon" />
-        {{ isPaused ? 'Resume' : 'Pause' }}
-      </Btn>
-      <Btn class="ctrlBtn switchBtn" :active="optionalStop" :disabled="!can.override" @click="emit('toggleOptionalStop')">M01</Btn>
-      <Btn class="ctrlBtn switchBtn" :active="blockDelete" :disabled="!can.override" @click="emit('toggleBlockDelete')">/BD</Btn>
+      <div class="controlRow">
+        <Btn class="ctrlBtn" variant="primary" @click="onStartClick" :disabled="!can.ready || !activeFile || editing">
+          <Play :size="14" class="ctrlIcon" /> {{ selectedLine && selectedLine > 1 ? `Start L${selectedLine}` : 'Start' }}
+        </Btn>
+        <Btn class="ctrlBtn" @click="emit('cycleStep')" :disabled="!((can.ready && activeFile) || can.resume) || editing">
+          <SkipForward :size="14" class="ctrlIcon" /> Step
+        </Btn>
+        <Btn class="ctrlBtn"
+          @click="isPaused ? emit('cycleResume') : emit('cyclePause')"
+          :disabled="!(can.pause || can.resume)">
+          <component :is="isPaused ? Play : Pause" :size="14" class="ctrlIcon" />
+          {{ isPaused ? 'Resume' : 'Pause' }}
+        </Btn>
+        <Btn class="ctrlBtn switchBtn" :active="optionalStop" :disabled="!can.override" @click="emit('toggleOptionalStop')">M01</Btn>
+        <Btn class="ctrlBtn switchBtn" :active="blockDelete" :disabled="!can.override" @click="emit('toggleBlockDelete')">/BD</Btn>
+      </div>
     </Gate>
 
     <!-- Progress bar -->
@@ -557,27 +563,31 @@ async function saveEdit() {
     </div>
 
     <!-- Error banner -->
-    <Gate v-if="uploadError" :allow="true" class="errorBanner">
-      <span>{{ uploadError }}</span>
-      <Btn icon @click="uploadError = null">&times;</Btn>
+    <Gate v-if="uploadError" :allow="true">
+      <div class="errorBanner">
+        <span>{{ uploadError }}</span>
+        <Btn icon @click="uploadError = null">&times;</Btn>
+      </div>
     </Gate>
 
     <!-- File browser (collapsible) -->
-    <Gate v-if="showBrowser" :allow="can.idle" class="fileBrowser">
-      <div class="browserHeader">
-        <Btn v-if="currentSubdir" class="backBtn" size="xs" @click="navigateUp">..</Btn>
-        <span class="browserPath">{{ currentSubdir || '/' }}</span>
-      </div>
-      <div class="fileList">
-        <div v-for="entry in files" :key="entry.name" class="fileItem"
-             :class="{ directory: entry.type === 'directory', activeItem: entry.type === 'file' && entry.path === activeFile }"
-             @click="entry.type === 'directory' ? navigateInto(entry) : selectFile(entry)">
-          <span class="fileIcon">{{ entry.type === 'directory' ? '/' : '' }}</span>
-          <span class="fileEntryName">{{ entry.name }}</span>
-          <span v-if="entry.size != null" class="fileSize">{{ formatSize(entry.size) }}</span>
+    <Gate v-if="showBrowser" :allow="can.idle">
+      <div class="fileBrowser">
+        <div class="browserHeader">
+          <Btn v-if="currentSubdir" class="backBtn" size="xs" @click="navigateUp">..</Btn>
+          <span class="browserPath">{{ currentSubdir || '/' }}</span>
         </div>
-        <div v-if="files.length === 0 && !loading" class="emptyBrowser">No program files found</div>
-        <div v-if="loading" class="emptyBrowser">Loading...</div>
+        <div class="fileList">
+          <div v-for="entry in files" :key="entry.name" class="fileItem"
+               :class="{ directory: entry.type === 'directory', activeItem: entry.type === 'file' && entry.path === activeFile }"
+               @click="entry.type === 'directory' ? navigateInto(entry) : selectFile(entry)">
+            <span class="fileIcon">{{ entry.type === 'directory' ? '/' : '' }}</span>
+            <span class="fileEntryName">{{ entry.name }}</span>
+            <span v-if="entry.size != null" class="fileSize">{{ formatSize(entry.size) }}</span>
+          </div>
+          <div v-if="files.length === 0 && !loading" class="emptyBrowser">No program files found</div>
+          <div v-if="loading" class="emptyBrowser">Loading...</div>
+        </div>
       </div>
     </Gate>
 

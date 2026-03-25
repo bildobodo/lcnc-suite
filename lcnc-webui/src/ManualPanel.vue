@@ -136,10 +136,12 @@ function onMdiKeydown(e: KeyboardEvent) {
 <template>
   <div class="stack-sections manualPanel">
     <!-- Sub-view tabs -->
-    <Gate :allow="true" class="row-tight viewTabs">
-      <Btn size="sm" muted :selected="manualView === 'dro'" @click="manualView = 'dro'">DRO</Btn>
-      <Btn size="sm" muted :selected="manualView === 'jogging'" @click="manualView = 'jogging'">Jog</Btn>
-      <Btn size="sm" muted :selected="manualView === 'mdi'" @click="manualView = 'mdi'">MDI</Btn>
+    <Gate :allow="true">
+      <div class="row-tight viewTabs">
+        <Btn size="sm" muted :selected="manualView === 'dro'" @click="manualView = 'dro'">DRO</Btn>
+        <Btn size="sm" muted :selected="manualView === 'jogging'" @click="manualView = 'jogging'">Jog</Btn>
+        <Btn size="sm" muted :selected="manualView === 'mdi'" @click="manualView = 'mdi'">MDI</Btn>
+      </div>
     </Gate>
 
     <!-- WCS selector -->
@@ -177,10 +179,12 @@ function onMdiKeydown(e: KeyboardEvent) {
         @unhomeAxis="emit('unhomeAxis', $event)"
       />
       <div class="sep"></div>
-      <Gate :allow="can.ready" class="gotoRow">
-        <Btn @click="emit('goToG30')">Go to G30</Btn>
-        <Btn @click="emit('goToHome')">Go to Home</Btn>
-        <Btn @click="emit('goToZero')">Go to Zero</Btn>
+      <Gate :allow="can.ready">
+        <div class="gotoRow">
+          <Btn @click="emit('goToG30')">Go to G30</Btn>
+          <Btn @click="emit('goToHome')">Go to Home</Btn>
+          <Btn @click="emit('goToZero')">Go to Zero</Btn>
+        </div>
       </Gate>
     </div>
 

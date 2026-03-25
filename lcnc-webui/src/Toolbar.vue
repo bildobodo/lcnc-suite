@@ -5,7 +5,8 @@
     </div>
 
     <!-- Floating toolbar overlay (bottom-left) -->
-    <Gate :allow="can.idle" class="floatingBar">
+    <Gate :allow="can.idle">
+      <div class="floatingBar">
 
       <!-- Views pill -->
       <div class="toolPill">
@@ -107,6 +108,7 @@
         </div>
       </div>
 
+      </div>
     </Gate>
   </div>
 </template>

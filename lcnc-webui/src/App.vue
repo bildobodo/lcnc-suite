@@ -1276,54 +1276,58 @@ watch(isHomed, (nowHomed, wasHomed) => {
     <header class="hdr">
       <div class="title">LinuxCNC WebUI ({{ connLabel }})</div>
 
-      <Gate :allow="connected" class="hdrRight">
+      <Gate :allow="connected">
         <template #exempt>
           <Btn icon :title="isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'" @click="toggleFullscreen">
             <Shrink v-if="isFullscreen" :size="16" />
             <Expand v-else :size="16" />
           </Btn>
         </template>
-        <div
-          class="pill"
-          :title="connectedClients.map(c => c.ip + (c.armed ? ' (armed)' : '')).join('\n')"
-        >
-          {{ connectedClients.length }} client{{ connectedClients.length !== 1 ? 's' : '' }}
-        </div>
+        <div class="hdrRight">
+          <div
+            class="pill"
+            :title="connectedClients.map(c => c.ip + (c.armed ? ' (armed)' : '')).join('\n')"
+          >
+            {{ connectedClients.length }} client{{ connectedClients.length !== 1 ? 's' : '' }}
+          </div>
 
-        <div class="pill" :class="connected ? 'ok' : 'bad'">
-          {{ connected ? "WS connected" : "WS disconnected" }}
-        </div>
+          <div class="pill" :class="connected ? 'ok' : 'bad'">
+            {{ connected ? "WS connected" : "WS disconnected" }}
+          </div>
 
-        <div v-if="connected && networkLatency != null" class="pill"
-             title="Network latency: WebSocket ping/pong transit time between browser and gateway">
-          Net {{ networkLatency }}ms
-        </div>
-        <div v-if="connected && latency != null" class="pill"
-             title="Round-trip latency: full cycle from browser → gateway status poll → browser, includes network + server processing">
-          Ping {{ latency }}ms
-        </div>
+          <div v-if="connected && networkLatency != null" class="pill"
+               title="Network latency: WebSocket ping/pong transit time between browser and gateway">
+            Net {{ networkLatency }}ms
+          </div>
+          <div v-if="connected && latency != null" class="pill"
+               title="Round-trip latency: full cycle from browser → gateway status poll → browser, includes network + server processing">
+            Ping {{ latency }}ms
+          </div>
 
-        <div class="pill" :class="lcncError ? 'bad' : (configName ? 'ok' : '')">
-          {{ lcncLabel }}
-        </div>
+          <div class="pill" :class="lcncError ? 'bad' : (configName ? 'ok' : '')">
+            {{ lcncLabel }}
+          </div>
 
-        <div class="pill" :class="armed ? 'armed' : 'disarmed'">
-          {{ armed ? "ARMED" : "DISARMED" }}
-        </div>
+          <div class="pill" :class="armed ? 'armed' : 'disarmed'">
+            {{ armed ? "ARMED" : "DISARMED" }}
+          </div>
 
-        <div v-if="gamepad.gamepadConnected.value" class="pill ok" :title="gamepad.gamepadName.value">
-          <Gamepad2 :size="14" />
-        </div>
+          <div v-if="gamepad.gamepadConnected.value" class="pill ok" :title="gamepad.gamepadName.value">
+            <Gamepad2 :size="14" />
+          </div>
 
-        <Btn icon class="hdrShutdown" title="Shut Down LinuxCNC" @click="showShutdownConfirm = true">
-          <PowerOff :size="16" />
-        </Btn>
+          <Btn icon class="hdrShutdown" title="Shut Down LinuxCNC" @click="showShutdownConfirm = true">
+            <PowerOff :size="16" />
+          </Btn>
+        </div>
       </Gate>
     </header>
 
-    <Gate v-if="bannerLevel !== 'none'" :allow="true" class="statusBanner" :class="bannerLevel">
-      {{ bannerText }}
-      <Btn v-if="bannerLevel === 'refresh'" @click="reloadPage">Refresh</Btn>
+    <Gate v-if="bannerLevel !== 'none'" :allow="true">
+      <div class="statusBanner" :class="bannerLevel">
+        {{ bannerText }}
+        <Btn v-if="bannerLevel === 'refresh'" @click="reloadPage">Refresh</Btn>
+      </div>
     </Gate>
 
     <!-- Body: sidebar (safety+status) + main content -->
@@ -1391,7 +1395,8 @@ watch(isHomed, (nowHomed, wasHomed) => {
 
     <section class="card">
       <div class="sub">Controls</div>
-      <Gate :allow="permissions.abort" class="controlBtns">
+      <Gate :allow="permissions.abort">
+        <div class="controlBtns">
         <div class="controlGroup">
         <Btn
           size="lg" class="controlBtn"
@@ -1705,7 +1710,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
         <div v-if="st.debug" class="controlGroup simtripGroup">
         <Btn class="controlBtn simtrip" :disabled="!st.probing" @click.stop="send({ cmd: 'simulate_probe_trip' })" title="Simulate probe contact (sim/debug)" block>Sim Trip</Btn>
         </div>
-
+        </div>
       </Gate>
     </section>
     </div>
