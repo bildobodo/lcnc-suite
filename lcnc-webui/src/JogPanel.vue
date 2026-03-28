@@ -2,10 +2,11 @@
 import { computed, reactive } from "vue";
 import { send } from "./lcncWs";
 import JogButton from "./JogButton.vue";
-import Btn from "./Btn.vue";
+import MachineBtn from "./MachineBtn.vue";
+import MachineSlider from "./MachineSlider.vue";
 
 import { usePermissions } from "./permissions";
-import Gate from "./Gate.vue";
+import { INPUT_GATES } from "./machineControls";
 
 const ABC = new Set(["A", "B", "C"]);
 const UVW = new Set(["U", "V", "W"]);
@@ -55,11 +56,6 @@ const emit = defineEmits<{
   (e: "toggleTeleop"): void;
 }>();
 
-function onAngularInput(ev: Event) {
-  const val = parseFloat((ev.target as HTMLInputElement).value);
-  if (Number.isFinite(val)) emit("update:angularJogVel", val);
-}
-
 const incrementOptions = computed(() => {
   if (props.iniIncrements && props.iniIncrements.length > 0) {
     return [
@@ -84,11 +80,6 @@ const incrementOptions = computed(() => {
     { label: "1.0", value: 1.0 },
   ];
 });
-
-function onInput(ev: Event) {
-  const val = parseFloat((ev.target as HTMLInputElement).value);
-  if (Number.isFinite(val)) emit("update:jogVel", val);
-}
 
 // ---- Wheel geometry ----
 const CX = 100, CY = 100, R = 94, r = 34;
@@ -152,7 +143,7 @@ function isSectorActive(id: string): boolean {
 }
 
 function startJog(s: Sector, e: PointerEvent) {
-  if (!can.value.jog || !Number.isFinite(props.jogVel) || props.jogVel <= 0) return;
+  if (!can.value[INPUT_GATES.jogWheel] || !Number.isFinite(props.jogVel) || props.jogVel <= 0) return;
 
   try { (e.currentTarget as Element)?.setPointerCapture?.(e.pointerId); } catch {}
 
@@ -213,47 +204,48 @@ function stopJog(s: Sector, e?: PointerEvent) {
 </script>
 
 <template>
-  <Gate :allow="can.jog">
+  <div>
     <div class="sub">Jog</div>
 
     <div class="controlGrid">
       <!-- Mode row -->
       <div class="k">Mode</div>
-      <Btn
+      <MachineBtn
+        type="manage"
         size="sm"
         :active="isTeleop"
         @click="emit('toggleTeleop')"
         :title="isTeleop ? 'Switch to Joint mode' : (isHomed ? 'Switch to World mode' : 'Home all axes first')"
       >
         {{ isTeleop ? "World" : "Joint" }}
-      </Btn>
+      </MachineBtn>
       <span v-if="!isHomed" class="modeHint">Home first</span>
       <span v-else></span>
 
       <!-- Linear speed row -->
       <div class="k">{{ abcAxes.length > 0 ? 'Linear' : 'Speed' }}</div>
-      <input
+      <MachineSlider
+        gate="jogSpeed"
         class="inp"
-        type="range"
         :min="minJogVel"
         :max="maxJogVel"
-        step="0.1"
-        :value="jogVel"
-        @input="onInput"
+        :step="0.1"
+        :modelValue="jogVel"
+        @update:modelValue="(v: number | undefined) => { if (v != null) emit('update:jogVel', v) }"
       />
       <span class="sliderVal">{{ (jogVel * 60).toFixed(0) }} {{ linearUnit }}/min</span>
 
       <!-- Rotary speed row -->
       <template v-if="abcAxes.length > 0">
         <div class="k">Rotary</div>
-        <input
+        <MachineSlider
+          gate="jogSpeed"
           class="inp"
-          type="range"
           :min="minAngularJogVel"
           :max="maxAngularJogVel"
-          step="0.1"
-          :value="angularJogVel"
-          @input="onAngularInput"
+          :step="0.1"
+          :modelValue="angularJogVel"
+          @update:modelValue="(v: number | undefined) => { if (v != null) emit('update:angularJogVel', v) }"
         />
         <span class="sliderVal">{{ (angularJogVel * 60).toFixed(0) }} °/min</span>
       </template>
@@ -261,14 +253,15 @@ function stopJog(s: Sector, e?: PointerEvent) {
       <!-- Step row -->
       <div class="k">Step</div>
       <div class="row-tight incrGroup">
-        <Btn
+        <MachineBtn
           v-for="opt in incrementOptions"
           :key="opt.value"
+          type="manage"
           size="sm"
           mono
           :selected="jogIncrement === opt.value"
           @click="emit('update:jogIncrement', opt.value)"
-        >{{ opt.label }}</Btn>
+        >{{ opt.label }}</MachineBtn>
       </div>
       <span class="sliderVal" v-if="jogIncrement > 0">{{ jogIncrement }} {{ linearUnit }}{{ abcAxes.length > 0 ? ' · °' : '' }} /click</span>
       <span class="sliderVal" v-else>Hold to jog</span>
@@ -282,7 +275,7 @@ function stopJog(s: Sector, e?: PointerEvent) {
             v-for="s in sectors"
             :key="s.id"
             class="sector"
-            :class="{ active: isSectorActive(s.id), disabled: !can.jog }"
+            :class="{ active: isSectorActive(s.id), disabled: !can[INPUT_GATES.jogWheel] }"
             :d="s.path"
             @pointerdown.prevent="startJog(s, $event)"
             @pointerup.prevent="stopJog(s, $event)"
@@ -300,14 +293,14 @@ function stopJog(s: Sector, e?: PointerEvent) {
             :x="s.labelX"
             :y="s.labelY"
             class="sectorLabel"
-            :class="{ small: s.axis2 != null, disabled: !can.jog }"
+            :class="{ small: s.axis2 != null, disabled: !can[INPUT_GATES.jogWheel] }"
           >{{ s.label }}</text>
         </svg>
 
         <!-- Z column -->
         <div class="zcol">
-          <JogButton :axis="2" :dir="1" label="Z+" :vel="jogVel" :disabled="!can.jog" direction="up" :active="activeJogActions?.has('jog_z+')" :jogIncrement="jogIncrement" />
-          <JogButton :axis="2" :dir="-1" label="Z-" :vel="jogVel" :disabled="!can.jog" direction="down" :active="activeJogActions?.has('jog_z-')" :jogIncrement="jogIncrement" />
+          <JogButton :axis="2" :dir="1" label="Z+" :vel="jogVel" direction="up" :active="activeJogActions?.has('jog_z+')" :jogIncrement="jogIncrement" />
+          <JogButton :axis="2" :dir="-1" label="Z-" :vel="jogVel" direction="down" :active="activeJogActions?.has('jog_z-')" :jogIncrement="jogIncrement" />
         </div>
       </div>
 
@@ -315,14 +308,14 @@ function stopJog(s: Sector, e?: PointerEvent) {
       <div v-if="extraAxes.length > 0" class="extraAxesRow">
         <div v-if="abcAxes.length > 0" class="rotaryCol">
           <div v-for="ra in abcAxes" :key="ra.letter" class="rotaryPair">
-            <JogButton :axis="ra.index" :dir="-1" :label="ra.letter + '-'" :vel="angularJogVel" :disabled="!can.jog" direction="left" :jogIncrement="jogIncrement" :active="activeJogActions?.has('jog_' + ra.letter.toLowerCase() + '-')" />
-            <JogButton :axis="ra.index" :dir="1" :label="ra.letter + '+'" :vel="angularJogVel" :disabled="!can.jog" direction="right" :jogIncrement="jogIncrement" :active="activeJogActions?.has('jog_' + ra.letter.toLowerCase() + '+')" />
+            <JogButton :axis="ra.index" :dir="-1" :label="ra.letter + '-'" :vel="angularJogVel" direction="left" :jogIncrement="jogIncrement" :active="activeJogActions?.has('jog_' + ra.letter.toLowerCase() + '-')" />
+            <JogButton :axis="ra.index" :dir="1" :label="ra.letter + '+'" :vel="angularJogVel" direction="right" :jogIncrement="jogIncrement" :active="activeJogActions?.has('jog_' + ra.letter.toLowerCase() + '+')" />
           </div>
         </div>
         <div v-if="uvwAxes.length > 0" class="rotaryCol">
           <div v-for="ra in uvwAxes" :key="ra.letter" class="rotaryPair">
-            <JogButton :axis="ra.index" :dir="-1" :label="ra.letter + '-'" :vel="jogVel" :disabled="!can.jog" direction="left" :jogIncrement="jogIncrement" :active="activeJogActions?.has('jog_' + ra.letter.toLowerCase() + '-')" />
-            <JogButton :axis="ra.index" :dir="1" :label="ra.letter + '+'" :vel="jogVel" :disabled="!can.jog" direction="right" :jogIncrement="jogIncrement" :active="activeJogActions?.has('jog_' + ra.letter.toLowerCase() + '+')" />
+            <JogButton :axis="ra.index" :dir="-1" :label="ra.letter + '-'" :vel="jogVel" direction="left" :jogIncrement="jogIncrement" :active="activeJogActions?.has('jog_' + ra.letter.toLowerCase() + '-')" />
+            <JogButton :axis="ra.index" :dir="1" :label="ra.letter + '+'" :vel="jogVel" direction="right" :jogIncrement="jogIncrement" :active="activeJogActions?.has('jog_' + ra.letter.toLowerCase() + '+')" />
           </div>
         </div>
       </div>
@@ -331,7 +324,7 @@ function stopJog(s: Sector, e?: PointerEvent) {
     <div class="hint">
       {{ jogIncrement > 0 ? 'Click to jog one step.' : 'Press and hold to jog.' }} {{ isTeleop ? 'World mode: coordinated Cartesian movement.' : 'Joint mode: individual axis control.' }}
     </div>
-  </Gate>
+  </div>
 </template>
 
 <style scoped>
