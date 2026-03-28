@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import Btn from "./Btn.vue";
-import Gate from "./Gate.vue";
-import { usePermissions } from "./permissions";
+import MachineBtn from "./MachineBtn.vue";
+import MachineInput from "./MachineInput.vue";
 import { STEP_DEFAULT } from "./defaults";
 
 const ROTARY = new Set(["A", "B", "C"]);
@@ -18,8 +17,6 @@ const props = defineProps<{
   homedJoints: boolean[];
   touchoff: number[];
 }>();
-
-const can = usePermissions();
 
 const emit = defineEmits<{
   (e: "setAxis", axis: number, value: number): void;
@@ -58,19 +55,17 @@ function fmt(n: any, letter?: string) {
 </script>
 
 <template>
-  <Gate :allow="can.idle" class="stack-sections container">
+  <div class="stack-sections container">
     <div class="section">
       <div class="sub">Work Position ({{ g5xLabel }})</div>
-      <Gate :allow="can.zero">
-        <div class="grid">
-          <template v-for="(letter, i) in axes" :key="'w' + letter">
-            <div class="axis"><span>{{ letter }}</span><b>{{ fmt(workPos[i], letter) }}</b></div>
-            <input type="number" :step="STEP_DEFAULT" :value="touchoff[i]" @input="updateTouchoff(i, +($event.target as HTMLInputElement).value)" @keydown.enter="setAxis(i)" />
-            <Btn class="zeroBtn" size="sm" @click="setAxis(i)">Set {{ letter }}</Btn>
-          </template>
-          <Btn class="homeBtn spanBtn" size="lg" @click="setAll()" :style="{ gridColumn: 4, gridRow: spanRows }">Set All</Btn>
-        </div>
-      </Gate>
+      <div class="grid">
+        <template v-for="(letter, i) in axes" :key="'w' + letter">
+          <div class="axis"><span>{{ letter }}</span><b>{{ fmt(workPos[i], letter) }}</b></div>
+          <MachineInput gate="touchoff" type="number" :step="STEP_DEFAULT" :value="touchoff[i]" @input="updateTouchoff(i, +($event.target as HTMLInputElement).value)" @keydown.enter="setAxis(i)" />
+          <MachineBtn type="zero" class="zeroBtn" @click="setAxis(i)">Set {{ letter }}</MachineBtn>
+        </template>
+        <MachineBtn type="zero" class="homeBtn spanBtn" @click="setAll()" :style="{ gridColumn: 4, gridRow: spanRows }">Set All</MachineBtn>
+      </div>
     </div>
 
     <div class="sep"></div>
@@ -81,12 +76,12 @@ function fmt(n: any, letter?: string) {
         <template v-for="(letter, i) in axes" :key="'m' + letter">
           <div class="axis"><span>{{ letter }}</span><b>{{ fmt(machinePos[i], letter) }}</b></div>
           <div></div>
-          <Btn class="zeroBtn" size="sm" @click="homedJoints[i] ? emit('unhomeAxis', i) : emit('homeAxis', i)">{{ homedJoints[i] ? `Unhome ${letter}` : `Home ${letter}` }}</Btn>
+          <MachineBtn :type="homedJoints[i] ? 'unhome' : 'home'" class="zeroBtn" @click="homedJoints[i] ? emit('unhomeAxis', i) : emit('homeAxis', i)">{{ homedJoints[i] ? `Unhome ${letter}` : `Home ${letter}` }}</MachineBtn>
         </template>
-        <Btn class="homeBtn spanBtn" size="lg" :style="{ gridColumn: 4, gridRow: spanRows }" @click="homed ? emit('unhomeAll') : emit('homeAll')">{{ homed ? 'Unhome' : 'Home All' }}</Btn>
+        <MachineBtn :type="homed ? 'unhome' : 'home'" class="homeBtn spanBtn" :style="{ gridColumn: 4, gridRow: spanRows }" @click="homed ? emit('unhomeAll') : emit('homeAll')">{{ homed ? 'Unhome' : 'Home All' }}</MachineBtn>
       </div>
     </div>
-  </Gate>
+  </div>
 </template>
 
 <style scoped>
