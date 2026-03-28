@@ -7,6 +7,8 @@ import { GCODE_LOOKUP, GCODE_REFERENCE } from "./gcodeReference";
 import { Play, SkipForward, Pause, Square } from "lucide-vue-next";
 import Btn from "./Btn.vue";
 import Gate from "./Gate.vue";
+import MachineBtn from "./MachineBtn.vue";
+import MachineToggle from "./MachineToggle.vue";
 export interface GcodeStats {
   feedMoves: number;
   rapidMoves: number;
@@ -53,6 +55,15 @@ const emit = defineEmits<{
   (e: "runFromLine", line: number, spindleDir: "off" | "forward" | "reverse", spindleSpeed: number): void;
   (e: "openGcodeRef", code: string): void;
 }>();
+
+const optionalStopModel = computed({
+  get: () => props.optionalStop,
+  set: () => emit("toggleOptionalStop"),
+});
+const blockDeleteModel = computed({
+  get: () => props.blockDelete,
+  set: () => emit("toggleBlockDelete"),
+});
 
 const codeViewerRef = ref<HTMLDivElement | null>(null);
 const showStats = ref(false);
@@ -426,26 +437,24 @@ async function saveEdit() {
 <template>
   <div class="container" @dragover.prevent="onDragOver" @dragleave="onDragLeave" @drop.prevent="onDrop">
     <div class="header">
-      <Gate :allow="can.idle">
-        <div class="headerActions">
-          <Btn class="actionBtn" size="sm" @click="enterEdit" :disabled="!activeFile || editing">
+      <div class="headerActions">
+          <MachineBtn type="fileOp" class="actionBtn" @click="enterEdit" :disabled="!activeFile || editing">
             Edit
-          </Btn>
-          <Btn class="actionBtn" size="sm" @click="reloadFile" :disabled="!activeFile || loading || editing">
+          </MachineBtn>
+          <MachineBtn type="fileOp" class="actionBtn" @click="reloadFile" :disabled="!activeFile || loading || editing">
             Reload
-          </Btn>
-          <Btn class="actionBtn" size="sm" @click="unloadFile" :disabled="!activeFile || loading">
+          </MachineBtn>
+          <MachineBtn type="fileOp" class="actionBtn" @click="unloadFile" :disabled="!activeFile || loading">
             Unload
-          </Btn>
-          <Btn class="actionBtn" size="sm" @click="toggleBrowser" :disabled="loading">
+          </MachineBtn>
+          <MachineBtn type="fileOp" class="actionBtn" @click="toggleBrowser" :disabled="loading">
             {{ showBrowser ? 'Hide Files' : 'Browse' }}
-          </Btn>
-          <Btn class="actionBtn" size="sm" @click="($refs.fileInput as HTMLInputElement).click()">
+          </MachineBtn>
+          <MachineBtn type="fileOp" class="actionBtn" @click="($refs.fileInput as HTMLInputElement).click()">
             Upload
-          </Btn>
+          </MachineBtn>
           <input ref="fileInput" type="file" accept=".ngc,.nc,.gcode,.tap,.txt" @change="onFileSelect" hidden />
         </div>
-      </Gate>
       <div class="fileInfo">
         <span class="label">File:</span>
         <div class="fileName">{{ fileName }}</div>
@@ -527,31 +536,26 @@ async function saveEdit() {
 
     <!-- Program control -->
     <div class="controlRow">
-      <Gate :allow="can.ready" class="row-tight">
-        <Btn class="ctrlBtn" variant="primary" @click="onStartClick" :disabled="!activeFile || editing">
+      <div class="row-tight">
+        <MachineBtn type="start" class="ctrlBtn" @click="onStartClick" :disabled="!activeFile || editing">
           <Play :size="14" class="ctrlIcon" /> {{ selectedLine && selectedLine > 1 ? `Start L${selectedLine}` : 'Start' }}
-        </Btn>
-        <Btn class="ctrlBtn" @click="emit('cycleStep')" :disabled="!(activeFile || can.resume) || editing">
+        </MachineBtn>
+        <MachineBtn type="step" class="ctrlBtn" @click="emit('cycleStep')" :disabled="!activeFile || editing">
           <SkipForward :size="14" class="ctrlIcon" /> Step
-        </Btn>
-      </Gate>
-      <Gate :allow="can.pause || can.resume">
-        <Btn class="ctrlBtn"
-          @click="isPaused ? emit('cycleResume') : emit('cyclePause')"
-          :disabled="!(can.pause || can.resume)">
-          <component :is="isPaused ? Play : Pause" :size="14" class="ctrlIcon" />
-          {{ isPaused ? 'Resume' : 'Pause' }}
-        </Btn>
-      </Gate>
-      <Gate :allow="can.abort">
-        <Btn class="ctrlBtn" variant="danger" @click="emit('abort')">
-          <Square :size="14" class="ctrlIcon" /> Abort
-        </Btn>
-      </Gate>
-      <Gate :allow="can.override" class="row-tight switchToggles">
-        <label class="toggleRow"><input type="checkbox" class="toggle" :checked="optionalStop" @change="emit('toggleOptionalStop')"> M01</label>
-        <label class="toggleRow"><input type="checkbox" class="toggle" :checked="blockDelete" @change="emit('toggleBlockDelete')"> /BD</label>
-      </Gate>
+        </MachineBtn>
+      </div>
+      <MachineBtn :type="isPaused ? 'resume' : 'pause'" class="ctrlBtn"
+        @click="isPaused ? emit('cycleResume') : emit('cyclePause')">
+        <component :is="isPaused ? Play : Pause" :size="14" class="ctrlIcon" />
+        {{ isPaused ? 'Resume' : 'Pause' }}
+      </MachineBtn>
+      <MachineBtn type="abort" class="ctrlBtn" @click="emit('abort')">
+        <Square :size="14" class="ctrlIcon" /> Abort
+      </MachineBtn>
+      <div class="row-tight switchToggles">
+        <MachineToggle gate="optionalStop" v-model="optionalStopModel" label="M01" />
+        <MachineToggle gate="blockDelete" v-model="blockDeleteModel" label="/BD" />
+      </div>
     </div>
 
     <!-- Progress bar -->
@@ -608,17 +612,17 @@ async function saveEdit() {
       </div>
 
       <!-- Edit mode -->
-      <Gate v-if="editing" :allow="can.idle" class="stack-controls editArea">
+      <div v-if="editing" class="stack-controls editArea">
         <div v-if="saveError" class="errorBanner">
           <span>{{ saveError }}</span>
           <Btn icon @click="saveError = null">&times;</Btn>
         </div>
         <textarea class="editTextarea" v-model="editBuffer" spellcheck="false"></textarea>
         <div class="editActions">
-          <Btn class="actionBtn" size="sm" variant="primary" @click="saveEdit" :disabled="saving">{{ saving ? 'Saving...' : 'Save' }}</Btn>
-          <Btn class="actionBtn" size="sm" @click="discardEdit" :disabled="saving">Discard</Btn>
+          <MachineBtn type="fileSave" class="actionBtn" @click="saveEdit" :disabled="saving">{{ saving ? 'Saving...' : 'Save' }}</MachineBtn>
+          <MachineBtn type="fileOp" class="actionBtn" @click="discardEdit" :disabled="saving">Discard</MachineBtn>
         </div>
-      </Gate>
+      </div>
 
       <!-- Code viewer (virtual scroll) -->
       <div class="codeViewer" v-else-if="gcodeContent" ref="codeViewerRef" @scroll="onCodeScroll">
