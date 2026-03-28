@@ -65,8 +65,18 @@ export const BUTTON_TYPES = {
   // Macros
   macro:          { gate: 'ready',    variant: 'default', size: 'lg' },
 
+  // Safety (sidebar)
+  arm:            { gate: 'always',   variant: 'default', size: 'lg' },
+  estop:          { gate: 'always',   variant: 'estop',   size: 'lg' },
+  machineOn:      { gate: 'always',   variant: 'default', size: 'lg' },
+
   // Shutdown
   shutdown:       { gate: 'abort',    variant: 'danger',  size: 'md' },
+
+  // Sidebar chips (popover toggles)
+  sidebarChip:    { gate: 'always',   variant: 'default', size: 'lg' },
+  sidebarNav:     { gate: 'always',   variant: 'default', size: 'lg' },
+  simTrip:        { gate: 'always',   variant: 'default', size: 'md' },
 
   // ── UI buttons (gate: always — no permission, styling only) ──
   close:          { gate: 'always',  variant: 'default', size: 'md',  icon: true },
@@ -78,6 +88,8 @@ export const BUTTON_TYPES = {
   dialogDanger:   { gate: 'always',  variant: 'danger',  size: 'md' },
   listAction:     { gate: 'always',  variant: 'default', size: 'md',  icon: true },
   inline:         { gate: 'always',  variant: 'default', size: 'sm' },
+  inlineXs:       { gate: 'always',  variant: 'default', size: 'xs' },
+  bannerAction:   { gate: 'always',  variant: 'default', size: 'sm' },
   headerIcon:     { gate: 'always',  variant: 'default', size: 'md',  icon: true },
 } as const satisfies Record<string, ButtonDef>;
 

@@ -8,6 +8,7 @@ defineOptions({ inheritAttrs: true });
 
 const props = defineProps<{
   type: ButtonType;
+  variant?: 'default' | 'primary' | 'ok' | 'danger' | 'estop';
   disabled?: boolean;
   active?: boolean;
   selected?: boolean;
@@ -23,6 +24,7 @@ const props = defineProps<{
 const can = usePermissions();
 const def = computed(() => BUTTON_TYPES[props.type] as ButtonDef);
 const isDisabled = computed(() => !can.value[def.value.gate] || props.disabled);
+const resolvedVariant = computed(() => props.variant ?? def.value.variant);
 const resolvedIcon = computed(() => props.icon ?? def.value.icon);
 const resolvedMuted = computed(() => props.muted ?? def.value.muted);
 const resolvedInline = computed(() => props.inline ?? def.value.inline);
@@ -30,7 +32,7 @@ const resolvedInline = computed(() => props.inline ?? def.value.inline);
 
 <template>
   <Btn
-    :variant="def.variant"
+    :variant="resolvedVariant"
     :size="def.size"
     :icon="resolvedIcon"
     :muted="resolvedMuted"

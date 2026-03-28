@@ -11,7 +11,6 @@ import SettingsPanel from "./SettingsPanel.vue";
 import ToolTablePanel from "./ToolTablePanel.vue";
 import ProbePanel from "./ProbePanel.vue";
 import CameraViewer from "./CameraViewer.vue";
-import Btn from "./Btn.vue";
 import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineInput from "./MachineInput.vue";
@@ -1275,34 +1274,34 @@ watch(isHomed, (nowHomed, wasHomed) => {
     <Gate :allow="permissions.always" class="card">
       <div class="sub">Machine Safety</div>
       <div class="btnrow">
-        <Btn size="lg" :variant="armed ? 'ok' : 'default'" class="safetyBtn" @click="arm(!armed)" :disabled="busy" :title="armed ? 'Disarm' : 'Arm'" block>
+        <MachineBtn type="arm" :variant="armed ? 'ok' : 'default'" class="safetyBtn" @click="arm(!armed)" :disabled="busy" :title="armed ? 'Disarm' : 'Arm'" block>
           <component :is="armed ? LockOpen : Lock" class="safetyIcon" />
-        </Btn>
+        </MachineBtn>
 
         <div class="vsep"></div>
 
-        <Btn
-          size="lg" variant="estop" class="safetyBtn"
+        <MachineBtn
+          type="estop" class="safetyBtn"
           :flashing="isEstop"
           @click="send({ cmd: isEstop ? 'estop_reset' : 'estop' })"
           :disabled="!(isEstop ? canResetEstop : canEstop)"
         >
           <TriangleAlert class="safetyIcon" />
           <span class="safetyLabel">{{ isEstop ? "Reset" : "E-Stop" }}</span>
-        </Btn>
+        </MachineBtn>
 
         <div class="vsep"></div>
 
         <Gate :allow="permissions.safety">
-          <Btn
-            size="lg" :variant="isEnabled ? 'ok' : 'default'" class="safetyBtn"
+          <MachineBtn
+            type="machineOn" :variant="isEnabled ? 'ok' : 'default'" class="safetyBtn"
             @click="fire({ cmd: isEnabled ? 'machine_off' : 'machine_on' })"
             :disabled="busy"
             :title="isEnabled ? 'Machine Off' : 'Machine On'"
             block
           >
             <Power class="safetyIcon" />
-          </Btn>
+          </MachineBtn>
         </Gate>
       </div>
     </Gate>
@@ -1337,8 +1336,8 @@ watch(isHomed, (nowHomed, wasHomed) => {
       <Gate :allow="permissions.abort">
         <div class="controlBtns">
         <div class="controlGroup">
-        <Btn
-          size="lg" class="controlBtn"
+        <MachineBtn
+          type="sidebarChip" class="controlBtn"
           :active="isSpinning"
           :warning="spindleMismatch"
           @click.stop="toggleChip('spindle')"
@@ -1346,9 +1345,9 @@ watch(isHomed, (nowHomed, wasHomed) => {
           block
         >
           <RotateCw class="controlIcon" />
-        </Btn>
+        </MachineBtn>
         <div class="popover spindlePopover" :class="{ open: openChip === 'spindle' }" @click.stop>
-          <div class="popHeader"><span class="popTitle">Spindle</span><Btn icon @click="openChip = null">&times;</Btn></div>
+          <div class="popHeader"><span class="popTitle">Spindle</span><MachineBtn type="close" @click="openChip = null">&times;</MachineBtn></div>
           <!-- Direction controls -->
           <div class="spDirRow">
             <MachineBtn
@@ -1421,17 +1420,17 @@ watch(isHomed, (nowHomed, wasHomed) => {
         </div>
 
         <div class="controlGroup">
-        <Btn
-          size="lg" class="controlBtn"
+        <MachineBtn
+          type="sidebarChip" class="controlBtn"
           :active="coolantActive"
           @click.stop="toggleChip('coolant')"
           title="Coolant"
           block
         >
           <Droplets class="controlIcon" />
-        </Btn>
+        </MachineBtn>
         <div class="popover coolantPopover" :class="{ open: openChip === 'coolant' }" @click.stop>
-          <div class="popHeader"><span class="popTitle">Coolant</span><Btn icon @click="openChip = null">&times;</Btn></div>
+          <div class="popHeader"><span class="popTitle">Coolant</span><MachineBtn type="close" @click="openChip = null">&times;</MachineBtn></div>
           <div class="coolantRow">
             <span class="coolantLabel">Flood</span>
             <MachineBtn
@@ -1454,27 +1453,27 @@ watch(isHomed, (nowHomed, wasHomed) => {
         </div>
 
         <div class="controlGroup">
-        <Btn
-          size="lg" class="controlBtn"
+        <MachineBtn
+          type="sidebarChip" class="controlBtn"
           :active="!!st.probing"
           @click.stop="openDialog('tool')"
           title="Tool"
           block
         >
           <Drill class="controlIcon" />
-        </Btn>
+        </MachineBtn>
         </div>
         <div class="controlGroup">
-        <Btn
-          size="lg" class="controlBtn"
+        <MachineBtn
+          type="sidebarChip" class="controlBtn"
           @click.stop="toggleChip('macros')"
           title="Macros"
           block
         >
           <CodeXml class="controlIcon" />
-        </Btn>
+        </MachineBtn>
         <div class="popover macroPopover" :class="{ open: openChip === 'macros' }" @click.stop>
-          <div class="popHeader"><span class="popTitle">Macros</span><Btn icon @click="openChip = null">&times;</Btn></div>
+          <div class="popHeader"><span class="popTitle">Macros</span><MachineBtn type="close" @click="openChip = null">&times;</MachineBtn></div>
           <div v-if="userMacros.length === 0" class="macroEmpty">
             No macros configured.<br>Add macros in Settings.
           </div>
@@ -1493,17 +1492,17 @@ watch(isHomed, (nowHomed, wasHomed) => {
 
         <!-- Overrides -->
         <div class="controlGroup">
-        <Btn
-          size="lg" class="controlBtn"
+        <MachineBtn
+          type="sidebarChip" class="controlBtn"
           :warning="overridesActive || overridesDisabled"
           @click.stop="toggleChip('overrides')"
           title="Overrides"
           block
         >
           <Gauge class="controlIcon" />
-        </Btn>
+        </MachineBtn>
         <div class="popover overridesPopover" :class="{ open: openChip === 'overrides' }" @click.stop>
-          <div class="popHeader"><span class="popTitle">Overrides</span><Btn icon @click="openChip = null">&times;</Btn></div>
+          <div class="popHeader"><span class="popTitle">Overrides</span><MachineBtn type="close" @click="openChip = null">&times;</MachineBtn></div>
           <div class="ovrRow">
             <span class="ovrLabel">Feed</span>
             <MachineSlider gate="feedOverride" v-model="feedSlider" @change="onFeedChange" :min="0" :max="maxFeedOverride" :step="STEP_OVERRIDE" :disabled="!feedOvrEnabled" />
@@ -1534,17 +1533,17 @@ watch(isHomed, (nowHomed, wasHomed) => {
 
         <!-- Offsets -->
         <div class="controlGroup">
-        <Btn
-          size="lg" class="controlBtn"
+        <MachineBtn
+          type="sidebarChip" class="controlBtn"
           :warning="hasOffsetWarning"
           @click.stop="openOffsetsPopover()"
           title="Offsets"
           block
         >
           <LocateFixed class="controlIcon" />
-        </Btn>
+        </MachineBtn>
         <div class="popover offsetsPopover" :class="{ open: openChip === 'offsets' }" @click.stop>
-          <div class="popHeader"><span class="popTitle">Work Offsets</span><Btn icon @click="openChip = null">&times;</Btn></div>
+          <div class="popHeader"><span class="popTitle">Work Offsets</span><MachineBtn type="close" @click="openChip = null">&times;</MachineBtn></div>
           <table class="offsetTable">
             <thead>
               <tr><th></th><th v-for="col in offsetColumns" :key="col">{{ col.toUpperCase() }}</th></tr>
@@ -1593,24 +1592,24 @@ watch(isHomed, (nowHomed, wasHomed) => {
 
         <!-- Messages -->
         <div class="controlGroup">
-        <Btn
-          size="lg" class="controlBtn"
+        <MachineBtn
+          type="sidebarChip" class="controlBtn"
           :warning="unreadCount > 0"
           @click.stop="toggleChip('messages')"
           title="Messages"
           block
         >
           <MessageSquare class="controlIcon" />
-        </Btn>
+        </MachineBtn>
         <div class="popover messagesPopover" :class="{ open: openChip === 'messages' }" @click.stop>
           <div class="popHeader">
             <span class="popTitle">Messages</span>
             <div class="row-tight">
               <template v-if="messages.length > 0">
-                <Btn size="xs" @click="copyAllMessages">Copy All</Btn>
-                <Btn size="xs" @click="clearAllMessages">Clear All</Btn>
+                <MachineBtn type="inlineXs" @click="copyAllMessages">Copy All</MachineBtn>
+                <MachineBtn type="inlineXs" @click="clearAllMessages">Clear All</MachineBtn>
               </template>
-              <Btn icon @click="openChip = null">&times;</Btn>
+              <MachineBtn type="close" @click="openChip = null">&times;</MachineBtn>
             </div>
           </div>
           <div v-if="messages.length === 0" class="msgPopEmpty">No messages</div>
@@ -1624,25 +1623,25 @@ watch(isHomed, (nowHomed, wasHomed) => {
                 </div>
                 <div class="msgPopText">{{ msg.text }}</div>
               </div>
-              <Btn icon title="Copy" @click="copyMessage(msg)"><ClipboardCopy :size="12" /></Btn>
-              <Btn icon @click="dismissMessage(msg.id)">&times;</Btn>
+              <MachineBtn type="listAction" title="Copy" @click="copyMessage(msg)"><ClipboardCopy :size="12" /></MachineBtn>
+              <MachineBtn type="close" @click="dismissMessage(msg.id)">&times;</MachineBtn>
             </div>
           </div>
         </div>
         </div>
 
         <div class="controlGroup">
-        <Btn size="lg" class="controlBtn" @click.stop="openGcodeRef()" title="G-code Reference" block>
+        <MachineBtn type="sidebarNav" class="controlBtn" @click.stop="openGcodeRef()" title="G-code Reference" block>
           <BookOpen class="controlIcon" />
-        </Btn>
+        </MachineBtn>
         </div>
         <div class="controlGroup">
-        <Btn size="lg" class="controlBtn" @click.stop="openDialog('settings')" title="Settings" block>
+        <MachineBtn type="sidebarNav" class="controlBtn" @click.stop="openDialog('settings')" title="Settings" block>
           <SlidersHorizontal class="controlIcon" />
-        </Btn>
+        </MachineBtn>
         </div>
         <div v-if="st.debug" class="controlGroup simtripGroup">
-        <Btn class="controlBtn simtrip" :disabled="!st.probing" @click.stop="send({ cmd: 'simulate_probe_trip' })" title="Simulate probe contact (sim/debug)" block>Sim Trip</Btn>
+        <MachineBtn type="simTrip" class="controlBtn simtrip" :disabled="!st.probing" @click.stop="send({ cmd: 'simulate_probe_trip' })" title="Simulate probe contact (sim/debug)" block>Sim Trip</MachineBtn>
         </div>
         </div>
       </Gate>
@@ -1688,20 +1687,20 @@ watch(isHomed, (nowHomed, wasHomed) => {
             <Gamepad2 :size="14" />
           </div>
 
-        <Btn icon :title="isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'" @click="toggleFullscreen">
+        <MachineBtn type="headerIcon" :title="isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'" @click="toggleFullscreen">
           <Shrink v-if="isFullscreen" :size="16" />
           <Expand v-else :size="16" />
-        </Btn>
-        <Btn icon class="hdrShutdown" title="Shut Down LinuxCNC" @click="showShutdownConfirm = true">
+        </MachineBtn>
+        <MachineBtn type="headerIcon" class="hdrShutdown" title="Shut Down LinuxCNC" @click="showShutdownConfirm = true">
           <PowerOff :size="16" />
-        </Btn>
+        </MachineBtn>
       </div>
     </header>
 
     <div v-if="bannerLevel !== 'none'">
       <div class="statusBanner" :class="bannerLevel">
         {{ bannerText }}
-        <Btn v-if="bannerLevel === 'refresh'" @click="reloadPage">Refresh</Btn>
+        <MachineBtn v-if="bannerLevel === 'refresh'" type="bannerAction" @click="reloadPage">Refresh</MachineBtn>
       </div>
     </div>
 
@@ -1871,7 +1870,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
       <div class="dialog lg dialog-full">
         <div class="dialogHeader">
           <span class="dialogTitle">Tool Table</span>
-          <Btn icon @click="toolDialogOpen = false">&times;</Btn>
+          <MachineBtn type="close" @click="toolDialogOpen = false">&times;</MachineBtn>
         </div>
         <div class="toolDialogActions">
             <div class="toolInputRow">
@@ -1916,7 +1915,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
       <div class="dialog lg dialog-full">
         <div class="dialogHeader">
           <span class="dialogTitle">Settings</span>
-          <Btn icon @click="settingsDialogOpen = false">&times;</Btn>
+          <MachineBtn type="close" @click="settingsDialogOpen = false">&times;</MachineBtn>
         </div>
         <div class="settingsDialogBody">
           <SettingsPanel
@@ -1953,8 +1952,8 @@ watch(isHomed, (nowHomed, wasHomed) => {
           </template>
         </div>
         <Gate :allow="permissions.abort" class="dialogActions">
-          <Btn variant="danger" @click="send({ cmd: 'abort' })">Cancel</Btn>
-          <Btn variant="primary" @click="confirmToolChange">Confirm</Btn>
+          <MachineBtn type="dialogDanger" @click="send({ cmd: 'abort' })">Cancel</MachineBtn>
+          <MachineBtn type="dialogConfirm" @click="confirmToolChange">Confirm</MachineBtn>
         </Gate>
       </div>
     </div>
@@ -1976,8 +1975,8 @@ watch(isHomed, (nowHomed, wasHomed) => {
           <code class="macroPreview">{{ macroPreview() }}</code>
         </div>
         <Gate :allow="permissions.ready" class="dialogActions">
-          <Btn @click="macroParamDialog = null">Cancel</Btn>
-          <Btn variant="primary" @click="confirmMacroParams">Execute</Btn>
+          <MachineBtn type="dialogCancel" @click="macroParamDialog = null">Cancel</MachineBtn>
+          <MachineBtn type="dialogConfirm" @click="confirmMacroParams">Execute</MachineBtn>
         </Gate>
       </div>
     </div>
@@ -1987,8 +1986,8 @@ watch(isHomed, (nowHomed, wasHomed) => {
         <div class="dialogTitle danger">Shut Down LinuxCNC?</div>
         <div class="dialogBody">This will stop all motion and exit LinuxCNC.</div>
         <Gate :allow="permissions.abort" class="dialogActions">
-          <Btn @click="showShutdownConfirm = false">Cancel</Btn>
-          <Btn variant="danger" @click="send({ cmd: 'shutdown' }); showShutdownConfirm = false">Shut Down</Btn>
+          <MachineBtn type="dialogCancel" @click="showShutdownConfirm = false">Cancel</MachineBtn>
+          <MachineBtn type="dialogDanger" @click="send({ cmd: 'shutdown' }); showShutdownConfirm = false">Shut Down</MachineBtn>
         </Gate>
       </div>
     </div>
@@ -2008,8 +2007,8 @@ watch(isHomed, (nowHomed, wasHomed) => {
           </template>
         </div>
         <Gate :allow="permissions.ready" class="dialogActions">
-          <Btn variant="danger" @click="cancelCompToggle">Cancel</Btn>
-          <Btn variant="primary" @click="confirmCompToggle">Confirm</Btn>
+          <MachineBtn type="dialogDanger" @click="cancelCompToggle">Cancel</MachineBtn>
+          <MachineBtn type="dialogConfirm" @click="confirmCompToggle">Confirm</MachineBtn>
         </Gate>
       </div>
     </div>
