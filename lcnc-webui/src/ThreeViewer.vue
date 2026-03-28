@@ -3,29 +3,8 @@ import { ref as _ref } from "vue";
 import * as THREE from "three";
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
 import { idwInterp } from "./interpolation";
-import { applyToolVertexColors, buildFallbackCylinder } from "./toolGeometry";
+import { buildToolProfile, splitProfileAt, buildToolGeometry, buildHolderGeometry, type ToolMeta } from "./toolGeometry";
 
-interface HolderSegment {
-  height: number;
-  lower_diameter: number;
-  upper_diameter: number;
-}
-
-interface ToolMeta {
-  type?: string;
-  oal?: number;
-  flute_length?: number;
-  shoulder_length?: number;
-  shoulder_diameter?: number;
-  body_length?: number;
-  shaft_diameter?: number;
-  taper_angle?: number;
-  point_angle?: number;
-  tip_diameter?: number;
-  corner_radius?: number;
-  holder_segments?: HolderSegment[];
-  stl_file?: string;
-}
 
 // ---- Central caches (shared across ALL ThreeViewer instances) ----
 const _geometryCache = new Map<string, THREE.BufferGeometry>();
@@ -284,9 +263,7 @@ let toolCutterMesh: THREE.Mesh | null = null;
 let toolBodyMesh: THREE.Mesh | null = null;
 let holderMesh: THREE.Mesh | null = null;
 let _currentToolNum: number | null = null;
-let _currentToolLen = 0;
 let _lastToolMeta: ToolMeta | null = null;
-let _stlBaseUrl = "";
 let feedLine: THREE.Line | null = null;
 let rapidLine: THREE.Line | null = null;
 let feedOverflow: THREE.Line | null = null;
@@ -636,12 +613,6 @@ MAT.tool.color.setHex(0xc0c0c0);  // silver shaft
 MAT.cutter.color.setHex(0xffdd00); // gold cutter
 MAT.holder.color.setHex(0x888888); // steel gray holder
 
-const MAT_TOOL_STL = new THREE.MeshStandardMaterial({
-  vertexColors: true,
-  metalness: 0.2,
-  roughness: 0.4,
-});
-
 /** Apply machine STL opacity to all MAT materials */
 function applyMachineOpacity(op: number) {
   for (const mat of [MAT.frame, MAT.axisX, MAT.axisY, MAT.axisZ]) {
@@ -867,17 +838,8 @@ resetBackplot();
   // Default tool until viewer_state arrives — but skip if applyState already
   // built the real tool during the async gap (loadMachineAssets yield).
   if (_currentToolNum == null) {
-    const gen = ++_toolBuildGen;
-    const capturedToolGrp = _toolGrp;
-    (async () => {
-      const grp = await buildToolGroup(6 * _unitScale, 60 * _unitScale, null);
-      if (gen !== _toolBuildGen) {
-        grp.traverse((c: any) => { if (c.geometry) c.geometry.dispose(); });
-        return;
-      }
-      toolMarker = grp;
-      capturedToolGrp?.add(toolMarker);
-    })();
+    toolMarker = buildToolGroup(6 * _unitScale, 60 * _unitScale, null);
+    _toolGrp?.add(toolMarker);
   }
 
 
@@ -936,78 +898,33 @@ resetBackplot();
   MAT.cutter.color.set(viewerDefaults.colors.cutter ?? "#ffdd00");
 }
 
-// ---- Tool STL loading + fallback cylinder ----
+/** Build full tool group (cutter + shaft + optional holder) */
+function buildToolGroup(diam: number, len: number, meta: ToolMeta | null): THREE.Group {
+  const grp = new THREE.Group();
+  const { pts, fluteY } = buildToolProfile(diam, len, meta);
+  const { cutter, shaft } = splitProfileAt(pts, fluteY);
 
-async function loadToolSTL(
-  stlFile: string, fluteLen: number, shoulderLen: number
-): Promise<THREE.BufferGeometry> {
-  const url = `${_stlBaseUrl}tools/${stlFile}`;
-  const geo = await fetchAndParseStl(url);
-  applyToolVertexColors(geo, fluteLen, shoulderLen, MAT.cutter.color, MAT.tool.color);
-  return geo;
-}
-
-let _toolBuildGen = 0;
-
-async function buildToolGroup(
-  diam: number, len: number, meta: ToolMeta | null
-): Promise<THREE.Group> {
-  const group = new THREE.Group();
-  const fluteLen = meta?.flute_length ?? len * 0.6;
-  const shoulderLen = meta?.shoulder_length ?? fluteLen;
-
-  if (meta?.stl_file) {
-    try {
-      const geo = await loadToolSTL(meta.stl_file, fluteLen, shoulderLen);
-      const mesh = new THREE.Mesh(geo, MAT_TOOL_STL);
-      group.add(mesh);
-      toolBodyMesh = mesh;
-      toolCutterMesh = null;
-    } catch (e) {
-      console.warn("Failed to load tool STL, falling back to cylinder:", e);
-      addFallbackCylinderToGroup(group, diam, len, fluteLen, meta?.shaft_diameter);
-    }
-  } else {
-    addFallbackCylinderToGroup(group, diam, len, fluteLen, meta?.shaft_diameter);
+  toolCutterMesh = null;
+  if (cutter.length >= 3) {
+    toolCutterMesh = new THREE.Mesh(buildToolGeometry(cutter), MAT.cutter);
+    grp.add(toolCutterMesh);
+  }
+  toolBodyMesh = null;
+  if (shaft.length >= 3) {
+    toolBodyMesh = new THREE.Mesh(buildToolGeometry(shaft), MAT.tool);
+    grp.add(toolBodyMesh);
   }
 
+  holderMesh = null;
   if (meta?.holder_segments?.length) {
-    const holderGeo = buildHolderGeometry(meta.holder_segments, meta.oal ?? len);
-    if (holderGeo) {
-      holderMesh = new THREE.Mesh(holderGeo, MAT.holder);
-      group.add(holderMesh);
+    const oal = meta.oal ?? len;
+    const hGeom = buildHolderGeometry(meta.holder_segments, oal);
+    if (hGeom) {
+      holderMesh = new THREE.Mesh(hGeom, MAT.holder);
+      grp.add(holderMesh);
     }
   }
-  return group;
-}
-
-function addFallbackCylinderToGroup(
-  group: THREE.Group, diam: number, len: number,
-  fluteLen: number, shaftDiam?: number
-): void {
-  const { cutter, shaft } = buildFallbackCylinder(diam, len, fluteLen, shaftDiam);
-  toolCutterMesh = new THREE.Mesh(cutter, MAT.cutter);
-  toolBodyMesh = new THREE.Mesh(shaft, MAT.tool);
-  group.add(toolCutterMesh, toolBodyMesh);
-}
-
-/** Build holder geometry from stacked frustum segments, starting at Z=toolOAL */
-function buildHolderGeometry(
-  segments: HolderSegment[], toolOAL: number, latheSegments = 24
-): THREE.LatheGeometry | null {
-  if (!segments.length) return null;
-  const pts: THREE.Vector2[] = [];
-  let z = toolOAL;
-  pts.push(new THREE.Vector2(0, z));
-  for (const seg of segments) {
-    pts.push(new THREE.Vector2(seg.lower_diameter * 0.5, z));
-    z += seg.height;
-    pts.push(new THREE.Vector2(seg.upper_diameter * 0.5, z));
-  }
-  pts.push(new THREE.Vector2(0, z));
-  const geom = new THREE.LatheGeometry(pts, latheSegments);
-  geom.rotateX(Math.PI / 2);
-  return geom;
+  return grp;
 }
 
 function sceneBgFromTheme(): THREE.Color {
@@ -1026,7 +943,6 @@ async function buildFromInit(init: ViewerInit) {
 
   try {
     _unitScale = (init.units === "in" || init.units === "inch") ? 1 / 25.4 : 1;
-    _stlBaseUrl = init.stl_base_url.endsWith("/") ? init.stl_base_url : `${init.stl_base_url}/`;
 
     scene.background = sceneBgFromTheme();
 
@@ -1249,9 +1165,7 @@ function applyState(init: ViewerInit, st: ViewerState) {
     const minVisualLen = 40 * _unitScale;
     const visLen = Math.max(minVisualLen, rawLen + sinkIntoHolder);
 
-    _currentToolLen = visLen;
-
-    // Determine if we need a full async rebuild
+    // Determine if we need a rebuild
     const needsRebuild = (toolNum !== _currentToolNum && _toolGrp)
       || (meta && JSON.stringify(meta) !== JSON.stringify(_lastToolMeta))
       || (() => {
@@ -1275,23 +1189,15 @@ function applyState(init: ViewerInit, st: ViewerState) {
         _lastToolMeta = _toolMetaCache.get(toolNum) ?? null;
       }
 
-      const gen = ++_toolBuildGen;
-      const capturedToolGrp = _toolGrp;
-      (async () => {
-        const newGroup = await buildToolGroup(diam, visLen, _lastToolMeta);
-        if (gen !== _toolBuildGen) {
-          newGroup.traverse((c: any) => { if (c.geometry) c.geometry.dispose(); });
-          return;
-        }
-        if (toolMarker && capturedToolGrp) {
-          capturedToolGrp.remove(toolMarker);
-          disposeObject(toolMarker);
-        }
-        toolMarker = newGroup;
-        capturedToolGrp?.add(toolMarker);
-        const visMesh = toolBodyMesh ?? toolCutterMesh;
-        if (visMesh) visMesh.userData.toolVis = { r: diam * 0.5, L: visLen };
-      })();
+      const newGroup = buildToolGroup(diam, visLen, _lastToolMeta);
+      if (toolMarker && _toolGrp) {
+        _toolGrp.remove(toolMarker);
+        disposeObject(toolMarker);
+      }
+      toolMarker = newGroup;
+      _toolGrp?.add(toolMarker);
+      const visMesh = toolBodyMesh ?? toolCutterMesh;
+      if (visMesh) visMesh.userData.toolVis = { r: diam * 0.5, L: visLen };
     }
   }
 
@@ -1922,17 +1828,6 @@ function setMachineEdges(on: boolean) {
 function setToolColors(toolColor: string | null, cutterColor: string | null) {
   if (toolColor) MAT.tool.color.set(toolColor);
   if (cutterColor) MAT.cutter.color.set(cutterColor);
-
-  // Re-color STL mesh if it uses vertex colors
-  if (toolBodyMesh?.geometry?.getAttribute("color")) {
-    const meta = _toolMetaCache.get(_currentToolNum!) ?? null;
-    const fluteLen = meta?.flute_length ?? _currentToolLen * 0.6;
-    const shoulderLen = meta?.shoulder_length ?? fluteLen;
-    applyToolVertexColors(
-      toolBodyMesh.geometry, fluteLen, shoulderLen,
-      MAT.cutter.color, MAT.tool.color
-    );
-  }
 }
 
 defineExpose({

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue";
 import { send, lastReply, connected } from "./lcncWs";
-import { usePermissions } from "./permissions";
 import { loadMachineDefaults, STEP_DEFAULT, type ToolChangeMode } from "./defaults";
 import { Pencil, Trash2 } from "lucide-vue-next";
 import MachineBtn from "./MachineBtn.vue";
@@ -20,7 +19,6 @@ const props = defineProps<{
   hideHeader?: boolean;
 }>();
 
-const can = usePermissions();
 const toolChangeMode = ref<ToolChangeMode>(loadMachineDefaults().toolChangeMode);
 
 interface Tool {
@@ -42,7 +40,6 @@ interface Tool {
   tip_diameter: number | null;
   material: string | null;
   holder: string | null;
-  stl_file: string | null;
   unit: string;
 }
 
@@ -163,7 +160,6 @@ const editForm = ref({
   tip_diameter: null as number | null,
   material: "",
   holder: "",
-  stl_file: null as string | null,
 });
 const isNewTool = ref(false);
 
@@ -186,7 +182,6 @@ function openEdit(tool: Tool) {
     tip_diameter: tool.tip_diameter,
     material: tool.material || "",
     holder: tool.holder || "",
-    stl_file: tool.stl_file ?? null,
   };
   isNewTool.value = false;
 }
@@ -196,12 +191,12 @@ function openAdd() {
   editTool.value = { T: 0, P: 0, Z: 0, D: 0, remark: "", type: "", description: "",
     flutes: null, oal: null, flute_length: null, corner_radius: null,
     body_length: null, shaft_diameter: null, taper_angle: null, point_angle: null,
-    tip_diameter: null, material: null, holder: null, stl_file: null, unit: "" };
+    tip_diameter: null, material: null, holder: null, unit: "" };
   editForm.value = {
     T: maxT + 1, type: "", description: "", D: 0, Z: 0,
     flutes: null, oal: null, flute_length: null, corner_radius: null,
     body_length: null, shaft_diameter: null, taper_angle: null, point_angle: null,
-    tip_diameter: null, material: "", holder: "", stl_file: null,
+    tip_diameter: null, material: "", holder: "",
   };
   isNewTool.value = true;
 }
@@ -366,31 +361,6 @@ function triggerImport() {
   importInputRef.value?.click();
 }
 
-// ---- STL upload ----
-const stlInput = ref<HTMLInputElement | null>(null);
-
-async function onStlUpload(e: Event) {
-  if (!can.value.idle) return;
-  const file = (e.target as HTMLInputElement).files?.[0];
-  if (!file || !editForm.value) return;
-  const form = new FormData();
-  form.append("file", file);
-  const toolNum = editForm.value.T;
-  const resp = await fetch(`/tool-stl/${toolNum}`, { method: "POST", body: form });
-  const data = await resp.json();
-  if (data.ok) {
-    editForm.value.stl_file = data.stl_file;
-  }
-  (e.target as HTMLInputElement).value = "";
-}
-
-async function removeStl() {
-  if (!editForm.value || !can.value.idle) return;
-  const toolNum = editForm.value.T;
-  await fetch(`/tool-stl/${toolNum}`, { method: "DELETE" });
-  editForm.value.stl_file = null;
-}
-
 defineExpose({ openAdd, fetchTools, triggerImport });
 </script>
 
@@ -495,30 +465,23 @@ defineExpose({ openAdd, fetchTools, triggerImport });
               </div>
             </div>
 
-            <!-- Right column: preview + model -->
+            <!-- Right column: parametric preview -->
             <div class="editPreviewCol">
               <div class="editPreviewCanvas">
                 <ToolPreview
                   :diameter="editForm.D || 6"
                   :length="editForm.oal || Math.abs(editForm.Z) || 50"
                   :flute-length="editForm.flute_length || (editForm.oal || 50) * 0.6"
-                  :shoulder-length="editForm.body_length || editForm.flute_length || (editForm.oal || 50) * 0.6"
                   :shaft-diameter="editForm.shaft_diameter ?? undefined"
-                  :stl-file="editForm.stl_file"
+                  :tool-type="editForm.type || 'other'"
+                  :corner-radius="editForm.corner_radius ?? undefined"
+                  :taper-angle="editForm.taper_angle ?? undefined"
+                  :point-angle="editForm.point_angle ?? undefined"
+                  :tip-diameter="editForm.tip_diameter ?? undefined"
+                  :body-length="editForm.body_length ?? undefined"
                   :width="160"
                   :height="280"
                 />
-              </div>
-
-              <div class="sub">3D Model</div>
-              <div class="stack-controls">
-                <input ref="stlInput" type="file" accept=".stl" @change="onStlUpload" hidden>
-                <MachineBtn type="manage" class="stlUploadBtn" @click="stlInput?.click()">Upload STL</MachineBtn>
-                <div v-if="editForm.stl_file" class="row-tight stlInfo">
-                  <span>{{ editForm.stl_file }}</span>
-                  <button class="btn-icon" @click="removeStl">&times;</button>
-                </div>
-                <span v-else class="stlHint">No STL — using fallback cylinder</span>
               </div>
             </div>
           </div>
@@ -727,20 +690,6 @@ defineExpose({ openAdd, fetchTools, triggerImport });
   border-radius: var(--radius-lg);
   padding: var(--gap-controls);
   margin-bottom: var(--gap-section);
-}
-
-.stlUploadBtn {
-  width: 100%;
-}
-
-.stlHint {
-  opacity: var(--opacity-disabled);
-  font-size: var(--fs-sm);
-}
-
-.stlInfo {
-  align-items: center;
-  font-size: var(--fs-sm);
 }
 
 .editFooter {

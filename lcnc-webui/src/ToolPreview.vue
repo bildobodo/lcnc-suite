@@ -1,25 +1,29 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onBeforeUnmount, toRefs } from "vue";
 import * as THREE from "three";
-import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
-import { applyToolVertexColors, buildFallbackCylinder } from "./toolGeometry";
+import { buildToolProfile, splitProfileAt, buildToolGeometry, type ToolMeta } from "./toolGeometry";
 
 const props = withDefaults(
   defineProps<{
     diameter: number;
     length: number;
     fluteLength: number;
-    shoulderLength: number;
     shaftDiameter?: number;
-    stlFile: string | null;
+    toolType?: string;
+    cornerRadius?: number;
+    taperAngle?: number;
+    pointAngle?: number;
+    tipDiameter?: number;
+    bodyLength?: number;
     width?: number;
     height?: number;
   }>(),
   { width: 80, height: 120 }
 );
 
-const { diameter, length, fluteLength, shoulderLength, shaftDiameter, stlFile, width, height } =
-  toRefs(props);
+const { diameter, length, fluteLength, shaftDiameter, toolType,
+        cornerRadius, taperAngle, pointAngle, tipDiameter, bodyLength,
+        width, height } = toRefs(props);
 
 const container = ref<HTMLDivElement | null>(null);
 
@@ -80,8 +84,6 @@ function fitCamera(group: THREE.Group) {
     halfH = worldH / 2;
     halfW = halfH * aspect;
   }
-  // Frustum is in camera-local space — camera is positioned at center,
-  // so the frustum is symmetric around 0
   camera.left = -halfW;
   camera.right = halfW;
   camera.bottom = -halfH;
@@ -91,36 +93,39 @@ function fitCamera(group: THREE.Group) {
   camera.updateProjectionMatrix();
 }
 
-async function buildPreview() {
+function buildPreview() {
   if (!scene || !camera || !renderer) return;
   clearMesh();
 
   const group = new THREE.Group();
 
-  if (stlFile.value) {
-    try {
-      const resp = await fetch(`/assets/tools/${stlFile.value}`);
-      const buf = await resp.arrayBuffer();
-      const geo = new STLLoader().parse(buf);
-      applyToolVertexColors(
-        geo,
-        fluteLength.value,
-        shoulderLength.value,
-        cutterColor,
-        shaftColor
-      );
-      const mat = new THREE.MeshStandardMaterial({
-        vertexColors: true,
-        metalness: 0.2,
-        roughness: 0.4,
-      });
-      group.add(new THREE.Mesh(geo, mat));
-    } catch {
-      // STL load failed — fall through to fallback
-      buildFallbackMeshes(group);
-    }
-  } else {
-    buildFallbackMeshes(group);
+  const meta: ToolMeta = {
+    type: toolType?.value ?? "other",
+    oal: length.value,
+    flute_length: fluteLength.value,
+    body_length: bodyLength?.value ?? undefined,
+    shaft_diameter: shaftDiameter?.value ?? undefined,
+    corner_radius: cornerRadius?.value ?? undefined,
+    taper_angle: taperAngle?.value ?? undefined,
+    point_angle: pointAngle?.value ?? undefined,
+    tip_diameter: tipDiameter?.value ?? undefined,
+  };
+
+  const { pts, fluteY } = buildToolProfile(diameter.value, length.value, meta);
+  const { cutter, shaft } = splitProfileAt(pts, fluteY);
+
+  const cutterMat = new THREE.MeshStandardMaterial({
+    color: cutterColor, metalness: 0.1, roughness: 0.5,
+  });
+  const shaftMat = new THREE.MeshStandardMaterial({
+    color: shaftColor, metalness: 0.1, roughness: 0.5,
+  });
+
+  if (cutter.length >= 3) {
+    group.add(new THREE.Mesh(buildToolGeometry(cutter), cutterMat));
+  }
+  if (shaft.length >= 3) {
+    group.add(new THREE.Mesh(buildToolGeometry(shaft), shaftMat));
   }
 
   scene.add(group);
@@ -129,27 +134,6 @@ async function buildPreview() {
 
   renderer.setSize(width.value, height.value);
   renderer.render(scene, camera);
-}
-
-function buildFallbackMeshes(group: THREE.Group) {
-  const { cutter, shaft } = buildFallbackCylinder(
-    diameter.value,
-    length.value,
-    fluteLength.value,
-    shaftDiameter.value
-  );
-  const cutterMat = new THREE.MeshStandardMaterial({
-    color: cutterColor,
-    metalness: 0.1,
-    roughness: 0.5,
-  });
-  const shaftMat = new THREE.MeshStandardMaterial({
-    color: shaftColor,
-    metalness: 0.1,
-    roughness: 0.5,
-  });
-  group.add(new THREE.Mesh(cutter, cutterMat));
-  group.add(new THREE.Mesh(shaft, shaftMat));
 }
 
 function dispose() {
@@ -171,7 +155,9 @@ onMounted(() => {
 onBeforeUnmount(dispose);
 
 watch(
-  [diameter, length, fluteLength, shoulderLength, shaftDiameter, stlFile, width, height],
+  [diameter, length, fluteLength, shaftDiameter, toolType,
+   cornerRadius, taperAngle, pointAngle, tipDiameter, bodyLength,
+   width, height],
   () => {
     buildPreview();
   }
