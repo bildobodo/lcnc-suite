@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { usePermissions } from "./permissions";
 import { STEP_DEFAULT } from "./defaults";
-import Btn from "./Btn.vue";
-import Gate from "./Gate.vue";
+import MachineBtn from "./MachineBtn.vue";
+import MachineInput from "./MachineInput.vue";
 
 
 const props = defineProps<{
@@ -23,14 +22,7 @@ const emit = defineEmits<{
   (e: "goToZero"): void;
 }>();
 
-const can = usePermissions();
-
 const axesList = computed(() => props.axes ?? ["X", "Y", "Z"]);
-
-// Gate guarantees can.idle; these only guard the homed state condition
-const homeDisabled = computed(() => props.homed);
-const unhomeDisabled = computed(() => !props.homed);
-const zeroDisabled = computed(() => !can.value.zero);
 
 function updateTouchoff(axis: number, val: number) {
   const copy = [...props.touchoff];
@@ -41,43 +33,41 @@ function updateTouchoff(axis: number, val: number) {
 </script>
 
 <template>
-  <Gate :allow="can.idle">
   <div class="setupHud">
     <!-- Homing -->
     <div class="row">
-      <Btn
+      <MachineBtn
         v-if="!homed"
-        variant="primary" block
-        :disabled="homeDisabled"
-        @click="emit('homeAll')"
-      >Home All</Btn>
-      <Btn
-        v-else
+        type="home"
         block
-        :disabled="unhomeDisabled"
+        @click="emit('homeAll')"
+      >Home All</MachineBtn>
+      <MachineBtn
+        v-else
+        type="unhome"
+        block
         @click="emit('unhomeAll')"
-      >Unhome</Btn>
+      >Unhome</MachineBtn>
     </div>
 
     <!-- Set individual axes -->
     <div class="axisRow" v-for="(letter, i) in axesList" :key="letter">
-      <input type="number" :step="STEP_DEFAULT" :value="touchoff[i]" @input="updateTouchoff(i, +($event.target as HTMLInputElement).value)" :disabled="zeroDisabled" @keydown.enter="emit('setAxis', i, touchoff[i] ?? 0)" />
-      <Btn :disabled="zeroDisabled" @click="emit('setAxis', i, touchoff[i] ?? 0)">Set {{ letter }}</Btn>
+      <MachineInput gate="touchoff" type="number" :step="STEP_DEFAULT" :value="touchoff[i]" @input="updateTouchoff(i, +($event.target as HTMLInputElement).value)" @keydown.enter="emit('setAxis', i, touchoff[i] ?? 0)" />
+      <MachineBtn type="zero" @click="emit('setAxis', i, touchoff[i] ?? 0)">Set {{ letter }}</MachineBtn>
     </div>
 
     <!-- Set all -->
     <div class="row">
-      <Btn block :disabled="zeroDisabled" @click="emit('setAll', [...touchoff])">Set All</Btn>
+      <MachineBtn type="zero" block @click="emit('setAll', [...touchoff])">Set All</MachineBtn>
     </div>
 
     <!-- Go-to navigation -->
     <div class="row">
-      <Btn :disabled="!can.ready" @click="emit('goToG30')">Go to G30</Btn>
-      <Btn :disabled="!can.ready" @click="emit('goToHome')">Go to Home</Btn>
-      <Btn :disabled="!can.ready" @click="emit('goToZero')">Go to Zero</Btn>
+      <MachineBtn type="goTo" @click="emit('goToG30')">Go to G30</MachineBtn>
+      <MachineBtn type="goTo" @click="emit('goToHome')">Go to Home</MachineBtn>
+      <MachineBtn type="goTo" @click="emit('goToZero')">Go to Zero</MachineBtn>
     </div>
   </div>
-  </Gate>
 </template>
 
 <style scoped>
