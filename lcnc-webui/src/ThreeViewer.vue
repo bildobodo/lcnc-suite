@@ -102,7 +102,7 @@ export function getCachedGeometry(id: string): THREE.BufferGeometry | undefined 
 </script>
 
 <script setup lang="ts">
-import { computed, inject, onMounted, onUnmounted, ref, watch, type ComputedRef } from "vue";
+import { computed, inject, onMounted, onUnmounted, ref, watch, type Ref } from "vue";
 
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { Text } from "troika-three-text";
@@ -114,7 +114,7 @@ import JogHUD from "./JogHUD.vue";
 import SetupHUD from "./SetupHUD.vue";
 import MachineBtn from "./MachineBtn.vue";
 
-const isDark = inject<ComputedRef<boolean>>("isDark", computed(() => window.matchMedia("(prefers-color-scheme: dark)").matches));
+const themeMode = inject<Ref<string>>("themeMode", ref("auto"));
 
 const viewerDefaults = loadViewerDefaults();
 
@@ -1531,7 +1531,7 @@ function animate() {
   }
 }
 
-watch(isDark, () => {
+watch(themeMode, () => {
   if (scene) scene.background = sceneBgFromTheme();
 });
 
