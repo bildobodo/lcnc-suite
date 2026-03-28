@@ -5,7 +5,9 @@ import { usePermissions } from "./permissions";
 import { loadMachineDefaults, STEP_DEFAULT, type ToolChangeMode } from "./defaults";
 import { Pencil, Trash2 } from "lucide-vue-next";
 import Btn from "./Btn.vue";
-import Gate from "./Gate.vue";
+import MachineBtn from "./MachineBtn.vue";
+import MachineInput from "./MachineInput.vue";
+import MachineSelect from "./MachineSelect.vue";
 import ToolPreview from "./ToolPreview.vue";
 
 const FETCH_DELAY_MS = 500;
@@ -394,7 +396,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
 </script>
 
 <template>
-  <Gate :allow="can.idle" class="container">
+  <div class="container">
     <!-- Hidden file input for import (works via triggerImport / header button) -->
     <input ref="importInputRef" type="file" accept=".json" @change="onImportFileSelect" hidden />
 
@@ -402,13 +404,14 @@ defineExpose({ openAdd, fetchTools, triggerImport });
     <div v-if="!hideHeader" class="header">
       <div class="sub">Tool Table</div>
       <div class="actions">
-        <Btn @click="openAdd">+ Add</Btn>
-        <Btn @click="triggerImport">Import</Btn>
-        <Btn @click="fetchTools" :disabled="loading">Refresh</Btn>
+        <MachineBtn type="manage" @click="openAdd">+ Add</MachineBtn>
+        <MachineBtn type="manage" @click="triggerImport">Import</MachineBtn>
+        <MachineBtn type="manage" @click="fetchTools" :disabled="loading">Refresh</MachineBtn>
       </div>
     </div>
 
-    <input
+    <MachineInput
+      gate="toolSearch"
       type="text"
       v-model="searchText"
       placeholder="Search tools…"
@@ -431,10 +434,10 @@ defineExpose({ openAdd, fetchTools, triggerImport });
           <div class="dialogBody">
             Remove tool <strong>T{{ deletingTool }}</strong> from the tool table?
           </div>
-          <Gate :allow="can.idle" class="dialogActions">
+          <div class="dialogActions">
             <Btn @click="cancelDelete">Cancel</Btn>
-            <Btn variant="danger" @click="confirmDelete">Delete</Btn>
-          </Gate>
+            <MachineBtn type="reset" @click="confirmDelete">Delete</MachineBtn>
+          </div>
         </div>
       </div>
 
@@ -454,42 +457,42 @@ defineExpose({ openAdd, fetchTools, triggerImport });
               <div class="editGrid">
                 <div class="sub">General</div>
                 <label>Tool #</label>
-                <input class="editInput editInputNum" type="number" v-model.number="editForm.T" min="1" />
+                <MachineInput gate="toolEdit" class="editInput editInputNum" type="number" v-model.number="editForm.T" min="1" />
                 <label>Type</label>
-                <select class="editInput" v-model="editForm.type">
+                <MachineSelect gate="toolEdit" class="editInput" v-model="editForm.type">
                   <option value="">-</option>
                   <option v-for="tt in TOOL_TYPES" :key="tt" :value="tt">{{ typeLabel(tt) }}</option>
-                </select>
+                </MachineSelect>
                 <label>Description</label>
-                <input class="editInput" type="text" v-model="editForm.description" />
+                <MachineInput gate="toolEdit" class="editInput" type="text" v-model="editForm.description" />
                 <label>Diameter</label>
-                <input class="editInput editInputNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.D" />
+                <MachineInput gate="toolEdit" class="editInput editInputNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.D" />
                 <label>Z Offset</label>
-                <input class="editInput editInputNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.Z" />
+                <MachineInput gate="toolEdit" class="editInput editInputNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.Z" />
                 <label>Flutes</label>
-                <input class="editInput editInputNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.flutes" />
+                <MachineInput gate="toolEdit" class="editInput editInputNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.flutes" />
                 <label>Material</label>
-                <input class="editInput" type="text" v-model="editForm.material" placeholder="hss, carbide..." />
+                <MachineInput gate="toolEdit" class="editInput" type="text" v-model="editForm.material" placeholder="hss, carbide..." />
 
                 <div class="sub">Dimensions</div>
                 <label>Total Length</label>
-                <input class="editInput editInputNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.oal" placeholder="mm" />
+                <MachineInput gate="toolEdit" class="editInput editInputNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.oal" placeholder="mm" />
                 <label>Shoulder Len</label>
-                <input class="editInput editInputNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.body_length" placeholder="mm" />
+                <MachineInput gate="toolEdit" class="editInput editInputNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.body_length" placeholder="mm" />
                 <label>Flute Len</label>
-                <input class="editInput editInputNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.flute_length" placeholder="mm" />
+                <MachineInput gate="toolEdit" class="editInput editInputNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.flute_length" placeholder="mm" />
                 <label>Shaft Ø</label>
-                <input class="editInput editInputNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.shaft_diameter" placeholder="mm" />
+                <MachineInput gate="toolEdit" class="editInput editInputNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.shaft_diameter" placeholder="mm" />
                 <label>Corner R</label>
-                <input class="editInput editInputNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.corner_radius" placeholder="mm" />
+                <MachineInput gate="toolEdit" class="editInput editInputNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.corner_radius" placeholder="mm" />
                 <label>Tip Ø</label>
-                <input class="editInput editInputNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.tip_diameter" placeholder="mm" />
+                <MachineInput gate="toolEdit" class="editInput editInputNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.tip_diameter" placeholder="mm" />
                 <label>Taper °</label>
-                <input class="editInput editInputNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.taper_angle" placeholder="deg" />
+                <MachineInput gate="toolEdit" class="editInput editInputNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.taper_angle" placeholder="deg" />
                 <label>Point °</label>
-                <input class="editInput editInputNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.point_angle" placeholder="deg" />
+                <MachineInput gate="toolEdit" class="editInput editInputNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.point_angle" placeholder="deg" />
                 <label>Holder</label>
-                <input class="editInput" type="text" v-model="editForm.holder" placeholder="Holder name" />
+                <MachineInput gate="toolEdit" class="editInput" type="text" v-model="editForm.holder" placeholder="Holder name" />
               </div>
             </div>
 
@@ -511,7 +514,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
               <div class="sub">3D Model</div>
               <div class="stack-controls">
                 <input ref="stlInput" type="file" accept=".stl" @change="onStlUpload" hidden>
-                <Btn class="stlUploadBtn" @click="stlInput?.click()">Upload STL</Btn>
+                <MachineBtn type="manage" class="stlUploadBtn" @click="stlInput?.click()">Upload STL</MachineBtn>
                 <div v-if="editForm.stl_file" class="row-tight stlInfo">
                   <span>{{ editForm.stl_file }}</span>
                   <button class="btn-icon" @click="removeStl">&times;</button>
@@ -522,10 +525,10 @@ defineExpose({ openAdd, fetchTools, triggerImport });
           </div>
 
           <!-- Footer -->
-          <Gate :allow="can.idle" class="editFooter">
+          <div class="editFooter">
             <Btn @click="cancelEditModal">Cancel</Btn>
-            <Btn variant="primary" @click="saveEdit">{{ isNewTool ? "Add" : "Save" }}</Btn>
-          </Gate>
+            <MachineBtn type="fileSave" @click="saveEdit">{{ isNewTool ? "Add" : "Save" }}</MachineBtn>
+          </div>
         </div>
       </div>
 
@@ -550,12 +553,12 @@ defineExpose({ openAdd, fetchTools, triggerImport });
               </div>
             </div>
           </div>
-          <Gate :allow="can.idle" class="dialogActions">
+          <div class="dialogActions">
             <Btn @click="cancelImport">Cancel</Btn>
-            <Btn variant="primary" @click="confirmImport" :disabled="importBusy">
+            <MachineBtn type="fileSave" @click="confirmImport" :disabled="importBusy">
               {{ importBusy ? 'Importing...' : 'Import' }}
-            </Btn>
-          </Gate>
+            </MachineBtn>
+          </div>
         </div>
       </div>
 
@@ -568,10 +571,10 @@ defineExpose({ openAdd, fetchTools, triggerImport });
             <th class="colNum"><button class="sortHeader" @click="toggleSort('D')">Ø {{ sortKey === 'D' ? (sortAsc ? '▲' : '▼') : '' }}</button></th>
             <th class="colNum"><button class="sortHeader" @click="toggleSort('Z')">Z Offset {{ sortKey === 'Z' ? (sortAsc ? '▲' : '▼') : '' }}</button></th>
             <th class="colType">
-              <select class="filterSelect" v-model="filterType">
+              <MachineSelect gate="toolSearch" class="filterSelect" v-model="filterType">
                 <option value="">Type</option>
                 <option v-for="tt in TOOL_TYPES" :key="tt" :value="tt">{{ typeLabel(tt) }}</option>
-              </select>
+              </MachineSelect>
             </th>
             <th class="colSm">Flutes</th>
             <th class="colDesc">Description</th>
@@ -586,7 +589,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
             :class="{ activeTool: tool.T === currentTool }"
           >
             <td class="colT">
-              <Btn :disabled="!can.ready" @click="requestToolChange(tool.T)">T{{ tool.T }}</Btn>
+              <MachineBtn type="toolLoad" @click="requestToolChange(tool.T)">T{{ tool.T }}</MachineBtn>
             </td>
             <td class="colNum mono">{{ fmtNum(tool.D) }}</td>
             <td class="colNum mono">{{ fmtNum(tool.Z, 6) }}</td>
@@ -594,15 +597,15 @@ defineExpose({ openAdd, fetchTools, triggerImport });
             <td class="colSm mono">{{ tool.flutes ?? "-" }}</td>
             <td class="colDesc" :title="tool.description">{{ tool.description || tool.remark || "-" }}</td>
             <td class="colAction">
-              <Btn @click="openEdit(tool)" title="Edit tool"><Pencil :size="14" /></Btn>
+              <MachineBtn type="manage" @click="openEdit(tool)" title="Edit tool"><Pencil :size="14" /></MachineBtn>
             </td>
             <td class="colAction">
-              <Btn
+              <MachineBtn
                 v-if="tool.T !== currentTool"
-                variant="danger"
+                type="reset"
                 @click.stop="requestDelete(tool.T)"
                 title="Delete tool"
-              ><Trash2 :size="14" /></Btn>
+              ><Trash2 :size="14" /></MachineBtn>
             </td>
           </tr>
           <tr v-if="!loading && filteredTools.length === 0">
@@ -611,7 +614,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
         </tbody>
       </table>
     </div>
-  </Gate>
+  </div>
 </template>
 
 <style scoped>
