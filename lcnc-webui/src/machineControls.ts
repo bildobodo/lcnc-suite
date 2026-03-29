@@ -31,8 +31,8 @@ export const BUTTON_TYPES = {
   probe:          { gate: 'probe',    variant: 'default', size: 'md' },
 
   // Tool
-  toolLoad:       { gate: 'ready',    variant: 'primary', size: 'md' },
-  toolMeasure:    { gate: 'ready',    variant: 'ok',      size: 'md' },
+  toolLoad:       { gate: 'ready',    variant: 'default', size: 'md' },
+  toolMeasure:    { gate: 'ready',    variant: 'default', size: 'md' },
   toolUnload:     { gate: 'ready',    variant: 'default', size: 'md' },
 
   // Spindle

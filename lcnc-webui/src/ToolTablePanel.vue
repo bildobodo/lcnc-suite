@@ -771,10 +771,10 @@ defineExpose({ openAdd, fetchTools, triggerImport });
 }
 
 .activeTool {
-  background: color-mix(in oklab, var(--active-tool) 12%, transparent);
+  background: var(--hl-selected);
 }
 .activeTool:hover {
-  background: color-mix(in oklab, var(--active-tool) 18%, transparent);
+  background: var(--hl-active);
 }
 
 .colT {
