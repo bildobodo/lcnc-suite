@@ -2307,7 +2307,6 @@ watch(isHomed, (nowHomed, wasHomed) => {
 .offsetTable .editableCell:hover { background: color-mix(in oklab, var(--info) 10%, transparent); }
 .offsetInput {
   width: 100%; box-sizing: border-box;
-  text-align: right; font: inherit; padding: 0 4px;
 }
 .offsetActions { display: flex; gap: var(--gap-tight); margin-top: var(--gap-controls); justify-content: flex-end; }
 

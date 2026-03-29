@@ -165,7 +165,8 @@ export const INPUT_DEFS = {
 
 export type InputType = keyof typeof INPUT_DEFS;
 
-// Backward-compatible gate-only map
-export const INPUT_GATES = Object.fromEntries(
-  Object.entries(INPUT_DEFS).map(([k, v]) => [k, v.gate])
-) as Record<InputType, ControlGate>;
+// Size tier inline styles — shared by MachineInput, MachineSelect
+export const INPUT_SIZE_STYLES: Record<string, Record<string, string>> = {
+  sm: { padding: '3px 6px', fontSize: 'var(--fs-sm)' },
+  lg: { padding: '6px 10px', fontSize: 'var(--fs-md)' },
+};

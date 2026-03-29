@@ -273,6 +273,7 @@ select:disabled {
   cursor: not-allowed;
 }
 
+
 input[type="checkbox"] {
   cursor: pointer;
   accent-color: var(--info);
@@ -366,6 +367,53 @@ input[type="radio"]:disabled {
 
 .radioGroup.inline label input[type="radio"] {
   margin-top: 0;
+}
+
+/* ── Color input base ── */
+input[type="color"] {
+  width: 32px;
+  height: 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+input[type="color"]:disabled {
+  opacity: var(--opacity-disabled);
+  cursor: not-allowed;
+}
+
+input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 2px;
+}
+
+input[type="color"]::-webkit-color-swatch {
+  border: none;
+  border-radius: var(--radius-sm);
+}
+
+/* ── Textarea base ── */
+textarea {
+  border: 1px solid var(--border);
+  background: color-mix(in oklab, var(--panel) 70%, transparent);
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: var(--fs-base);
+  padding: 8px 12px;
+  border-radius: var(--radius-xl);
+  outline: none;
+  resize: none;
+}
+
+textarea:focus {
+  border-color: color-mix(in oklab, var(--fg) 40%, var(--border));
+}
+
+textarea:disabled {
+  opacity: var(--opacity-disabled);
+  cursor: not-allowed;
 }
 
 .radioLabel {
