@@ -2307,9 +2307,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 .offsetTable .editableCell:hover { background: color-mix(in oklab, var(--info) 10%, transparent); }
 .offsetInput {
   width: 100%; box-sizing: border-box;
-  background: var(--button-bg); border: 1px solid var(--info);
-  color: var(--fg); text-align: right; font: inherit; padding: 0 4px;
-  outline: none;
+  text-align: right; font: inherit; padding: 0 4px;
 }
 .offsetActions { display: flex; gap: var(--gap-tight); margin-top: var(--gap-controls); justify-content: flex-end; }
 
@@ -2441,10 +2439,6 @@ watch(isHomed, (nowHomed, wasHomed) => {
 
 .spRpmInput {
   flex: 1;
-  padding: 6px 10px;
-  border-radius: var(--radius-xl);
-  font-size: var(--fs-md);
-  font-weight: var(--fw-semibold);
   max-width: 120px;
 }
 
@@ -2579,13 +2573,7 @@ watch(isHomed, (nowHomed, wasHomed) => {
 }
 .toolNumInput {
   flex: 1;
-  padding: 6px 10px;
-  border-radius: var(--radius-xl);
-  font-size: var(--fs-lg);
-  font-weight: var(--fw-semibold);
-  font-family: var(--font-mono);
   max-width: 80px;
-  text-align: center;
 }
 .toolActions {
   display: flex;

@@ -7,6 +7,7 @@ import { GCODE_LOOKUP, GCODE_REFERENCE } from "./gcodeReference";
 import { Play, SkipForward, Pause, Square } from "lucide-vue-next";
 import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
+import MachineInput from "./MachineInput.vue";
 import MachineToggle from "./MachineToggle.vue";
 export interface GcodeStats {
   feedMoves: number;
@@ -688,7 +689,7 @@ async function saveEdit() {
           </div>
           <div v-if="dialogSpindleDir !== 'off'" class="rpmRow">
             <label>RPM</label>
-            <input type="number" v-model.number="dialogSpindleSpeed" min="0" :step="STEP_RPM" />
+            <MachineInput gate="displaySettingNum" type="number" v-model.number="dialogSpindleSpeed" min="0" :step="STEP_RPM" />
           </div>
         </div>
 
@@ -1149,10 +1150,6 @@ async function saveEdit() {
 .editTextarea {
   flex: 1;
   min-height: 0;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  background: color-mix(in oklab, var(--panel) 70%, transparent);
-  padding: 8px 12px;
   resize: none;
   white-space: pre;
   tab-size: 4;

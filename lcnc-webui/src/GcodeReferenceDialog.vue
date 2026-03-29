@@ -3,6 +3,8 @@ import { ref, computed, watch } from "vue";
 import { GCODE_REFERENCE, GCODE_GROUPS, type GcodeEntry } from "./gcodeReference";
 import { usePermissions } from "./permissions";
 import MachineBtn from "./MachineBtn.vue";
+import MachineInput from "./MachineInput.vue";
+import MachineSelect from "./MachineSelect.vue";
 import Gate from "./Gate.vue";
 
 const props = defineProps<{ open: boolean; initialSearch?: string }>();
@@ -53,7 +55,8 @@ function toggleSort(key: "code" | "name") {
         <MachineBtn type="close" @click="emit('close')">&times;</MachineBtn>
       </div>
       <Gate :allow="can.idle" class="stack-controls refContent">
-        <input
+        <MachineInput
+          gate="search"
           type="text"
           v-model="search"
           placeholder="Search codes, names, descriptions…"
@@ -72,10 +75,10 @@ function toggleSort(key: "code" | "name") {
                 <th class="colDesc">Description</th>
                 <th class="colSyntax">Syntax</th>
                 <th class="colGroup">
-                  <select class="filterSelect" v-model="filterGroup">
+                  <MachineSelect gate="filter" class="filterSelect" v-model="filterGroup">
                     <option value="">Group</option>
                     <option v-for="g in GCODE_GROUPS" :key="g" :value="g">{{ g }}</option>
-                  </select>
+                  </MachineSelect>
                 </th>
               </tr>
             </thead>
