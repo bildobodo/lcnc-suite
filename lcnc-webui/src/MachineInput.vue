@@ -10,10 +10,11 @@ const props = defineProps<{
   disabled?: boolean;
 }>();
 
+const model = defineModel<string | number | null>();
 const can = usePermissions();
 const isDisabled = computed(() => !can.value[INPUT_GATES[props.gate]] || props.disabled);
 </script>
 
 <template>
-  <input v-bind="$attrs" :disabled="isDisabled">
+  <input v-bind="$attrs" v-model="model" :disabled="isDisabled">
 </template>
