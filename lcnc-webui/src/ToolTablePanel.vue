@@ -426,42 +426,42 @@ defineExpose({ openAdd, fetchTools, triggerImport });
               <div class="editGrid">
                 <div class="sub">General</div>
                 <label>Tool #</label>
-                <MachineInput gate="toolEdit" class="editInput editInputNum" type="number" v-model.number="editForm.T" min="1" />
+                <MachineInput gate="toolEditNum" type="number" v-model.number="editForm.T" min="1" />
                 <label>Type</label>
-                <MachineSelect gate="toolEdit" class="editInput" v-model="editForm.type">
+                <MachineSelect gate="toolEdit" v-model="editForm.type">
                   <option value="">-</option>
                   <option v-for="tt in TOOL_TYPES" :key="tt" :value="tt">{{ typeLabel(tt) }}</option>
                 </MachineSelect>
                 <label>Description</label>
-                <MachineInput gate="toolEdit" class="editInput" type="text" v-model="editForm.description" />
+                <MachineInput gate="toolEdit" type="text" v-model="editForm.description" />
                 <label>Diameter</label>
-                <MachineInput gate="toolEdit" class="editInput editInputNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.D" />
+                <MachineInput gate="toolEditNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.D" />
                 <label>Z Offset</label>
-                <MachineInput gate="toolEdit" class="editInput editInputNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.Z" />
+                <MachineInput gate="toolEditNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.Z" />
                 <label>Flutes</label>
-                <MachineInput gate="toolEdit" class="editInput editInputNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.flutes" />
+                <MachineInput gate="toolEditNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.flutes" />
                 <label>Material</label>
-                <MachineInput gate="toolEdit" class="editInput" type="text" v-model="editForm.material" placeholder="hss, carbide..." />
+                <MachineInput gate="toolEdit" type="text" v-model="editForm.material" placeholder="hss, carbide..." />
 
                 <div class="sub">Dimensions</div>
                 <label>Total Length</label>
-                <MachineInput gate="toolEdit" class="editInput editInputNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.oal" placeholder="mm" />
+                <MachineInput gate="toolEditNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.oal" placeholder="mm" />
                 <label>Shoulder Len</label>
-                <MachineInput gate="toolEdit" class="editInput editInputNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.body_length" placeholder="mm" />
+                <MachineInput gate="toolEditNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.body_length" placeholder="mm" />
                 <label>Flute Len</label>
-                <MachineInput gate="toolEdit" class="editInput editInputNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.flute_length" placeholder="mm" />
+                <MachineInput gate="toolEditNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.flute_length" placeholder="mm" />
                 <label>Shaft Ø</label>
-                <MachineInput gate="toolEdit" class="editInput editInputNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.shaft_diameter" placeholder="mm" />
+                <MachineInput gate="toolEditNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.shaft_diameter" placeholder="mm" />
                 <label>Corner R</label>
-                <MachineInput gate="toolEdit" class="editInput editInputNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.corner_radius" placeholder="mm" />
+                <MachineInput gate="toolEditNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.corner_radius" placeholder="mm" />
                 <label>Tip Ø</label>
-                <MachineInput gate="toolEdit" class="editInput editInputNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.tip_diameter" placeholder="mm" />
+                <MachineInput gate="toolEditNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.tip_diameter" placeholder="mm" />
                 <label>Taper °</label>
-                <MachineInput gate="toolEdit" class="editInput editInputNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.taper_angle" placeholder="deg" />
+                <MachineInput gate="toolEditNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.taper_angle" placeholder="deg" />
                 <label>Point °</label>
-                <MachineInput gate="toolEdit" class="editInput editInputNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.point_angle" placeholder="deg" />
+                <MachineInput gate="toolEditNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.point_angle" placeholder="deg" />
                 <label>Holder</label>
-                <MachineInput gate="toolEdit" class="editInput" type="text" v-model="editForm.holder" placeholder="Holder name" />
+                <MachineInput gate="toolEdit" type="text" v-model="editForm.holder" placeholder="Holder name" />
               </div>
             </div>
 
@@ -663,19 +663,6 @@ defineExpose({ openAdd, fetchTools, triggerImport });
 
 .editGrid > .sub + label {
   /* no extra top margin on first label after sub */
-}
-
-.editInput {
-  outline: none;
-}
-
-.editInput:focus {
-  border-color: color-mix(in oklab, var(--fg) 40%, var(--border));
-}
-
-.editInputNum {
-  font-family: var(--font-mono);
-  text-align: right;
 }
 
 .editPreviewCol {
