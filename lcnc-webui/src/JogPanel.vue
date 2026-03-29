@@ -6,7 +6,7 @@ import MachineBtn from "./MachineBtn.vue";
 import MachineSlider from "./MachineSlider.vue";
 
 import { usePermissions } from "./permissions";
-import { INPUT_GATES } from "./machineControls";
+import { INPUT_DEFS } from "./machineControls";
 
 const ABC = new Set(["A", "B", "C"]);
 const UVW = new Set(["U", "V", "W"]);
@@ -143,7 +143,7 @@ function isSectorActive(id: string): boolean {
 }
 
 function startJog(s: Sector, e: PointerEvent) {
-  if (!can.value[INPUT_GATES.jogWheel] || !Number.isFinite(props.jogVel) || props.jogVel <= 0) return;
+  if (!can.value[INPUT_DEFS.jogWheel.gate] || !Number.isFinite(props.jogVel) || props.jogVel <= 0) return;
 
   try { (e.currentTarget as Element)?.setPointerCapture?.(e.pointerId); } catch {}
 
@@ -275,7 +275,7 @@ function stopJog(s: Sector, e?: PointerEvent) {
             v-for="s in sectors"
             :key="s.id"
             class="sector"
-            :class="{ active: isSectorActive(s.id), disabled: !can[INPUT_GATES.jogWheel] }"
+            :class="{ active: isSectorActive(s.id), disabled: !can[INPUT_DEFS.jogWheel.gate] }"
             :d="s.path"
             @pointerdown.prevent="startJog(s, $event)"
             @pointerup.prevent="stopJog(s, $event)"
@@ -293,7 +293,7 @@ function stopJog(s: Sector, e?: PointerEvent) {
             :x="s.labelX"
             :y="s.labelY"
             class="sectorLabel"
-            :class="{ small: s.axis2 != null, disabled: !can[INPUT_GATES.jogWheel] }"
+            :class="{ small: s.axis2 != null, disabled: !can[INPUT_DEFS.jogWheel.gate] }"
           >{{ s.label }}</text>
         </svg>
 

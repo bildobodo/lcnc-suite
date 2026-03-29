@@ -2,7 +2,7 @@
 import { computed, reactive } from "vue";
 import { send } from "./lcncWs";
 import { usePermissions } from "./permissions";
-import { INPUT_GATES } from "./machineControls";
+import { INPUT_DEFS } from "./machineControls";
 import JogButton from "./JogButton.vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineSlider from "./MachineSlider.vue";
@@ -71,7 +71,7 @@ const incrementOptions = computed(() => {
   ];
 });
 
-const jogDisabled = computed(() => !can.value[INPUT_GATES.jogWheel]);
+const jogDisabled = computed(() => !can.value[INPUT_DEFS.jogWheel.gate]);
 
 // ---- Wheel geometry (same as JogPanel) ----
 const CX = 100, CY = 100, R = 94, r = 34;
