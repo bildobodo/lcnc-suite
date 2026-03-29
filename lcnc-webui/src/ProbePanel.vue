@@ -1368,9 +1368,6 @@ function fmtR(key: string): string {
 }
 
 .calParamRow input {
-  padding: 4px 8px;
-  font-size: var(--fs-base);
-  border-radius: var(--radius-md);
   width: 100%;
   box-sizing: border-box;
 }
@@ -1391,9 +1388,6 @@ function fmtR(key: string): string {
 }
 
 .inlineParams input {
-  padding: 4px 8px;
-  font-size: var(--fs-base);
-  border-radius: var(--radius-md);
   width: 80px;
 }
 
