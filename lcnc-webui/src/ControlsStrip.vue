@@ -3,11 +3,10 @@ import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineSlider from "./MachineSlider.vue";
 import MachineInput from "./MachineInput.vue";
-import { RotateCw, RotateCcw, Square } from "lucide-vue-next";
+import { RotateCw, RotateCcw, CircleStop } from "lucide-vue-next";
 import { STEP_RPM, STEP_OVERRIDE, STEP_RAPID_OVERRIDE, STEP_DEFAULT, type MacroDef } from "./defaults";
 
 const props = defineProps<{
-  // Overrides
   feedSlider: number;
   spindleSlider: number;
   rapidSlider: number;
@@ -16,7 +15,6 @@ const props = defineProps<{
   maxFeedOverride: number;
   minSpindleOverride: number;
   maxSpindleOverride: number;
-  // Spindle
   isForward: boolean;
   isReverse: boolean;
   isSpinning: boolean;
@@ -26,14 +24,11 @@ const props = defineProps<{
   spindleLoad: number | null;
   minSpindleSpeed: number;
   maxSpindleSpeed: number;
-  // Coolant
   floodOn: boolean;
   mistOn: boolean;
-  // Tool
   toolNumber: number;
   currentTool: number;
   probing: boolean;
-  // Macros
   userMacros: MacroDef[];
 }>();
 
@@ -73,83 +68,80 @@ function onRapidSlider(v: number) { emit('update:rapidSlider', v); }
 
 <template>
   <div class="controlsStrip">
-    <!-- LEFT COLUMN: Overrides (top) + Spindle (bottom) -->
-    <div class="leftCol">
-      <!-- Overrides -->
-      <Gate gate="override" class="section">
-        <div class="colLabel">Overrides</div>
-        <div class="ovrGrid">
-          <span class="ovrName">F</span>
-          <MachineSlider gate="feedOverride" :modelValue="feedSlider" @update:model-value="onFeedSlider(Number($event))" @change="emit('feedChange')" :min="0" :max="maxFeedOverride" :step="STEP_OVERRIDE" :disabled="!feedOvrEnabled" />
-          <span class="ovrVal" :class="{ warn: feedSlider !== 100 }">{{ feedSlider }}%</span>
+    <!-- LEFT: Overrides -->
+    <Gate gate="override" class="ovrSection">
+      <div class="sectionHeader">
+        <span class="sectionLabel">Overrides</span>
+      </div>
 
-          <span class="ovrName">S</span>
-          <MachineSlider gate="spindleOverride" :modelValue="spindleSlider" @update:model-value="onSpindleSlider(Number($event))" @change="emit('spindleSliderChange')" :min="minSpindleOverride" :max="maxSpindleOverride" :step="STEP_OVERRIDE" :disabled="!spindleOvrEnabled" />
-          <span class="ovrVal" :class="{ warn: spindleSlider !== 100 }">{{ spindleSlider }}%</span>
-
-          <span class="ovrName">R</span>
-          <MachineSlider gate="rapidOverride" :modelValue="rapidSlider" @update:model-value="onRapidSlider(Number($event))" @change="emit('rapidChange')" :min="25" :max="100" :step="STEP_RAPID_OVERRIDE" />
-          <span class="ovrVal" :class="{ warn: rapidSlider !== 100 }">{{ rapidSlider }}%</span>
+      <div class="ovrList">
+        <div class="ovrItem">
+          <div class="ovrHead">
+            <span class="ovrName">FEED (F)</span>
+            <span class="ovrVal" :class="{ warn: feedSlider !== 100 }">{{ feedSlider }}%</span>
+          </div>
+          <MachineSlider gate="feedOverride" :modelValue="feedSlider" @update:model-value="onFeedSlider(Number($event))" @change="emit('feedChange')" :min="0" :max="maxFeedOverride" :step="STEP_OVERRIDE" :disabled="!feedOvrEnabled" class="ovrSlider" />
         </div>
-        <MachineBtn type="overrideReset" @click="emit('resetAllOverrides')" block>Reset All</MachineBtn>
+
+        <div class="ovrItem">
+          <div class="ovrHead">
+            <span class="ovrName">SPINDLE (S)</span>
+            <span class="ovrVal" :class="{ warn: spindleSlider !== 100 }">{{ spindleSlider }}%</span>
+          </div>
+          <MachineSlider gate="spindleOverride" :modelValue="spindleSlider" @update:model-value="onSpindleSlider(Number($event))" @change="emit('spindleSliderChange')" :min="minSpindleOverride" :max="maxSpindleOverride" :step="STEP_OVERRIDE" :disabled="!spindleOvrEnabled" class="ovrSlider" />
+        </div>
+
+        <div class="ovrItem">
+          <div class="ovrHead">
+            <span class="ovrName">RAPID (R)</span>
+            <span class="ovrVal" :class="{ warn: rapidSlider !== 100 }">{{ rapidSlider }}%</span>
+          </div>
+          <MachineSlider gate="rapidOverride" :modelValue="rapidSlider" @update:model-value="onRapidSlider(Number($event))" @change="emit('rapidChange')" :min="25" :max="100" :step="STEP_RAPID_OVERRIDE" class="ovrSlider" />
+        </div>
+      </div>
+    </Gate>
+
+    <!-- RIGHT: Tool + Spindle + Coolant -->
+    <div class="rightSection">
+      <!-- Tool display -->
+      <Gate gate="ready" class="toolBlock">
+        <div class="toolHead">
+          <span class="toolLabel">TOOL</span>
+          <span class="toolCurrent">T{{ currentTool }}</span>
+        </div>
       </Gate>
 
-      <!-- Spindle -->
-      <Gate gate="ready" class="section">
-        <div class="colLabel">Spindle</div>
+      <!-- Spindle controls -->
+      <Gate gate="ready" class="spnBlock">
         <div class="spnDir">
-          <MachineBtn type="spindleRev" :active="isReverse" @click="emit('spindleRev', rpmInput)" title="Reverse (CCW)">
-            <RotateCcw :size="16" /> Rev
+          <MachineBtn type="spindleFwd" :active="isForward" @click="emit('spindleFwd', rpmInput)" title="Forward (CW)" class="spnBtn">
+            <RotateCw :size="18" />
           </MachineBtn>
-          <MachineBtn type="spindleStop" :active="isSpinning" :disabled="!isSpinning" @click="emit('spindleStop')" title="Stop">
-            <Square :size="16" /> Stop
+          <MachineBtn type="spindleStop" :active="isSpinning" :disabled="!isSpinning" @click="emit('spindleStop')" title="Stop" class="spnBtn spnStopBtn">
+            <CircleStop :size="18" />
           </MachineBtn>
-          <MachineBtn type="spindleFwd" :active="isForward" @click="emit('spindleFwd', rpmInput)" title="Forward (CW)">
-            <RotateCw :size="16" /> Fwd
+          <MachineBtn type="spindleRev" :active="isReverse" @click="emit('spindleRev', rpmInput)" title="Reverse (CCW)" class="spnBtn">
+            <RotateCcw :size="18" />
           </MachineBtn>
         </div>
-        <div class="spnRpm">
-          <MachineInput gate="rpmInput" type="number" :modelValue="rpmInput" @update:modelValue="emit('update:rpmInput', Number($event))" :min="minSpindleSpeed" :max="maxSpindleSpeed" :step="STEP_RPM" class="rpmInput" />
-          <span class="spnUnit">RPM</span>
-        </div>
-        <div class="spnReadout">
-          <span>{{ formatRpm(spindleActual) }} <span class="spnUnit">actual</span></span>
-          <span v-if="spindleLoad != null">{{ Math.round(spindleLoad) }}% <span class="spnUnit">load</span></span>
+
+        <div class="rpmBlock">
+          <div class="rpmRow">
+            <span class="rpmLabel">RPM</span>
+            <span class="rpmValue">{{ formatRpm(spindleActual) }}</span>
+          </div>
+          <div class="rpmRow rpmCmd">
+            <span class="rpmLabel">CMD</span>
+            <span class="rpmValueSm">{{ formatRpm(spindleSpeed) }}</span>
+          </div>
         </div>
       </Gate>
-    </div>
 
-    <!-- RIGHT COLUMN: Coolant (top) + Tool (bottom) -->
-    <div class="rightCol">
       <!-- Coolant -->
-      <Gate gate="ready" class="section">
-        <div class="colLabel">Coolant</div>
-        <MachineBtn type="flood" :active="floodOn" @click="emit('toggleFlood')" block>
-          Flood {{ floodOn ? 'ON' : 'OFF' }}
-        </MachineBtn>
-        <MachineBtn type="mist" :active="mistOn" @click="emit('toggleMist')" block>
-          Mist {{ mistOn ? 'ON' : 'OFF' }}
-        </MachineBtn>
-      </Gate>
-
-      <!-- Tool -->
-      <Gate gate="ready" class="section">
-        <div class="colLabel">Tool</div>
-        <div class="toolCurrent">T{{ currentTool }}</div>
-        <div class="toolRow">
-          <MachineInput gate="toolEdit" type="number" :modelValue="toolNumber" @update:modelValue="emit('update:toolNumber', Number($event))" @change="emit('saveToolNumber')" :min="1" :step="STEP_DEFAULT" :disabled="probing" class="toolInput" />
-        </div>
-        <div class="toolBtns">
-          <MachineBtn type="toolMeasure" :disabled="probing" @click="emit('measureAuto')" block>Meas</MachineBtn>
-          <MachineBtn type="toolLoad" :disabled="probing" @click="emit('loadTool')" block>Load</MachineBtn>
-        </div>
-      </Gate>
-
-      <!-- Macros -->
-      <Gate gate="ready" class="section" v-if="userMacros.length > 0">
-        <div class="colLabel">Macros</div>
-        <div class="macroBtns">
-          <MachineBtn v-for="m in userMacros" :key="m.id" type="macro" @click="emit('executeMacro', m)" block>{{ m.name }}</MachineBtn>
+      <Gate gate="ready" class="coolBlock">
+        <div class="coolBtns">
+          <MachineBtn type="flood" :active="floodOn" @click="emit('toggleFlood')" class="coolBtn">FLOOD</MachineBtn>
+          <MachineBtn type="mist" :active="mistOn" @click="emit('toggleMist')" class="coolBtn">MIST</MachineBtn>
         </div>
       </Gate>
     </div>
@@ -158,112 +150,160 @@ function onRapidSlider(v: number) { emit('update:rapidSlider', v); }
 
 <style scoped>
 .controlsStrip {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  height: 100%;
+  overflow: hidden;
+}
+
+.sectionHeader {
   display: flex;
-  gap: var(--gap-section);
-  align-items: flex-start;
-  flex-shrink: 0;
-}
-
-.leftCol, .rightCol {
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-controls);
-}
-
-.leftCol {
-  min-width: 220px;
-}
-
-.rightCol {
-  min-width: 120px;
-}
-
-.section {
-  display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: var(--gap-tight);
 }
-
-.colLabel {
+.sectionLabel {
   font-size: var(--fs-2xs);
-  opacity: var(--opacity-muted);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  white-space: nowrap;
-  padding-bottom: var(--gap-micro);
-  border-bottom: 1px solid var(--border);
+  letter-spacing: 0.08em;
+  font-weight: var(--fw-bold);
+  opacity: var(--opacity-muted);
 }
 
 /* ── Overrides ── */
-.ovrGrid {
-  display: grid;
-  grid-template-columns: 14px 1fr 48px;
-  gap: var(--gap-tight) var(--gap-controls);
-  align-items: center;
+.ovrSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-controls);
+  padding: var(--gap-controls);
+  border-right: 1px solid color-mix(in oklab, var(--border) 50%, transparent);
+}
+.ovrList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-controls);
+  flex: 1;
+  justify-content: center;
+}
+.ovrItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-micro);
+}
+.ovrHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
 }
 .ovrName {
-  font-size: var(--fs-md);
-  font-weight: var(--fw-bold);
-  text-align: center;
+  font-size: var(--fs-2xs);
+  font-family: var(--font-mono);
+  opacity: var(--opacity-muted);
 }
 .ovrVal {
   font-size: var(--fs-sm);
   font-family: var(--font-mono);
-  text-align: right;
+  font-weight: var(--fw-bold);
 }
 .ovrVal.warn {
   color: var(--warn);
 }
+.ovrSlider {
+  width: 100%;
+}
 
-/* ── Spindle ── */
-.spnDir {
+/* ── Right column: Tool + Spindle + Coolant stacked ── */
+.rightSection {
   display: flex;
+  flex-direction: column;
+  padding: var(--gap-controls);
   gap: var(--gap-tight);
 }
-.spnRpm {
+
+/* Tool */
+.toolBlock {
+  flex-shrink: 0;
+}
+.toolHead {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: var(--gap-tight);
+  padding: var(--gap-tight) var(--gap-controls);
+  background: color-mix(in oklab, var(--bg) 80%, transparent);
+  border-radius: var(--radius-lg);
 }
-.rpmInput {
-  width: 80px;
-}
-.spnUnit {
+.toolLabel {
   font-size: var(--fs-2xs);
+  font-family: var(--font-mono);
   opacity: var(--opacity-muted);
 }
-.spnReadout {
-  font-family: var(--font-mono);
-  font-size: var(--fs-sm);
-  display: flex;
-  gap: var(--gap-section);
-}
-
-/* ── Tool ── */
 .toolCurrent {
   font-family: var(--font-mono);
-  font-size: var(--fs-xl);
+  font-size: var(--fs-2xl);
   font-weight: var(--fw-bold);
   color: var(--active-tool);
 }
-.toolRow {
-  display: flex;
-  gap: var(--gap-tight);
-}
-.toolInput {
-  width: 60px;
-}
-.toolBtns {
-  display: flex;
-  gap: var(--gap-tight);
-}
 
-/* ── Macros ── */
-.macroBtns {
+/* Spindle */
+.spnBlock {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: var(--gap-tight);
-  max-height: 80px;
-  overflow-y: auto;
+}
+.spnDir {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1px;
+}
+.spnBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--gap-controls);
+}
+.rpmBlock {
+  padding: var(--gap-tight) var(--gap-controls);
+  background: color-mix(in oklab, var(--bg) 80%, transparent);
+  border-radius: var(--radius-lg);
+}
+.rpmRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.rpmLabel {
+  font-size: var(--fs-2xs);
+  font-family: var(--font-mono);
+  opacity: var(--opacity-muted);
+}
+.rpmValue {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-bold);
+}
+.rpmCmd {
+  border-top: 1px solid color-mix(in oklab, var(--border) 30%, transparent);
+  padding-top: var(--gap-micro);
+  margin-top: var(--gap-micro);
+}
+.rpmValueSm {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  opacity: var(--opacity-muted);
+}
+
+/* Coolant */
+.coolBlock {
+  flex-shrink: 0;
+}
+.coolBtns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+}
+.coolBtn {
+  font-size: var(--fs-2xs);
+  font-family: var(--font-mono);
+  text-align: center;
 }
 </style>

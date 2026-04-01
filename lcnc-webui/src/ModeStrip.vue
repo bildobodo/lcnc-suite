@@ -3,6 +3,7 @@ import { ref, computed } from "vue";
 import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineInput from "./MachineInput.vue";
+import MachineSlider from "./MachineSlider.vue";
 import MachineToggle from "./MachineToggle.vue";
 import JogHUD from "./JogHUD.vue";
 
@@ -10,7 +11,6 @@ type StripMode = "jog" | "mdi" | "program";
 const mode = ref<StripMode>("jog");
 
 const props = defineProps<{
-  // Jog
   axes: string[];
   jogVel: number;
   angularJogVel: number;
@@ -24,9 +24,7 @@ const props = defineProps<{
   isTeleop: boolean;
   isHomed: boolean;
   jogDisabled: boolean;
-  // MDI
   mdiText: string;
-  // Program
   activeFile: string | null;
   isPaused: boolean;
   isRunning: boolean;
@@ -36,17 +34,14 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  // Jog
   (e: "update:jogVel", v: number): void;
   (e: "update:angularJogVel", v: number): void;
   (e: "update:jogIncrement", v: number): void;
   (e: "toggleTeleop"): void;
   (e: "homeAll"): void;
   (e: "unhomeAll"): void;
-  // MDI
   (e: "update:mdiText", text: string): void;
   (e: "sendMdi"): void;
-  // Program
   (e: "cycleStart"): void;
   (e: "cyclePause"): void;
   (e: "cycleResume"): void;
@@ -54,8 +49,6 @@ const emit = defineEmits<{
   (e: "abort"): void;
   (e: "toggleOptionalStop"): void;
   (e: "toggleBlockDelete"): void;
-  (e: "loadFile", path: string): void;
-  (e: "unloadFile"): void;
 }>();
 
 // ─── MDI History ─────────────────────────────────────────────
@@ -80,9 +73,7 @@ function onMdiKeydown(e: KeyboardEvent) {
   if (e.key === "ArrowUp") {
     e.preventDefault();
     if (history.value.length === 0) return;
-    if (historyIndex.value === -1) {
-      savedInput.value = props.mdiText;
-    }
+    if (historyIndex.value === -1) savedInput.value = props.mdiText;
     if (historyIndex.value < history.value.length - 1) {
       historyIndex.value++;
       emit("update:mdiText", history.value[historyIndex.value] ?? "");
@@ -93,21 +84,13 @@ function onMdiKeydown(e: KeyboardEvent) {
     e.preventDefault();
     if (historyIndex.value === -1) return;
     historyIndex.value--;
-    if (historyIndex.value === -1) {
-      emit("update:mdiText", savedInput.value);
-    } else {
-      emit("update:mdiText", history.value[historyIndex.value] ?? "");
-    }
+    emit("update:mdiText", historyIndex.value === -1 ? savedInput.value : (history.value[historyIndex.value] ?? ""));
     return;
   }
 }
 
-function clearHistory() {
-  history.value = [];
-  historyIndex.value = -1;
-}
+function clearHistory() { history.value = []; historyIndex.value = -1; }
 
-// ─── Program helpers ─────────────────────────────────────────
 const fileName = computed(() => {
   if (!props.activeFile) return "No file loaded";
   const parts = props.activeFile.split("/");
@@ -120,46 +103,49 @@ const hasFile = computed(() => !!props.activeFile);
 <template>
   <div class="modeStrip">
     <!-- Mode tabs -->
-    <div class="row-tight modeTabs">
-      <MachineBtn type="tab" :selected="mode === 'jog'" @click="mode = 'jog'">Jog</MachineBtn>
-      <MachineBtn type="tab" :selected="mode === 'mdi'" @click="mode = 'mdi'">MDI</MachineBtn>
-      <MachineBtn type="tab" :selected="mode === 'program'" @click="mode = 'program'">Program</MachineBtn>
+    <div class="modeTabs">
+      <button class="modeTab" :class="{ active: mode === 'jog' }" @click="mode = 'jog'">Jog</button>
+      <button class="modeTab" :class="{ active: mode === 'mdi' }" @click="mode = 'mdi'">MDI</button>
+      <button class="modeTab" :class="{ active: mode === 'program' }" @click="mode = 'program'">Program</button>
     </div>
 
     <!-- ═══ JOG VIEW ═══ -->
     <div v-show="mode === 'jog'" class="modeContent">
-      <JogHUD
-        :axes="axes"
-        :jogVel="jogVel"
-        :angularJogVel="angularJogVel"
-        :linearUnit="linearUnit"
-        :maxJogVel="maxJogVel"
-        :maxAngularJogVel="maxAngularJogVel"
-        :minAngularJogVel="minAngularJogVel"
-        :jogIncrement="jogIncrement"
-        :minJogVel="minJogVel"
-        :iniIncrements="iniIncrements"
-        :isTeleop="isTeleop"
-        :isHomed="isHomed"
-        :disabled="jogDisabled"
-        @update:jogVel="emit('update:jogVel', $event)"
-        @update:angularJogVel="emit('update:angularJogVel', $event)"
-        @update:jogIncrement="emit('update:jogIncrement', $event)"
-        @toggleTeleop="emit('toggleTeleop')"
-      />
+      <div class="jogLayout">
+        <!-- Jog wheel + Z (takes available height) -->
+        <div class="jogWheelArea">
+          <JogHUD
+            :axes="axes"
+            :jogVel="jogVel"
+            :angularJogVel="angularJogVel"
+            :linearUnit="linearUnit"
+            :maxJogVel="maxJogVel"
+            :maxAngularJogVel="maxAngularJogVel"
+            :minAngularJogVel="minAngularJogVel"
+            :jogIncrement="jogIncrement"
+            :minJogVel="minJogVel"
+            :iniIncrements="iniIncrements"
+            :isTeleop="isTeleop"
+            :isHomed="isHomed"
+            :disabled="jogDisabled"
+            @update:jogVel="emit('update:jogVel', $event)"
+            @update:angularJogVel="emit('update:angularJogVel', $event)"
+            @update:jogIncrement="emit('update:jogIncrement', $event)"
+            @toggleTeleop="emit('toggleTeleop')"
+          />
+        </div>
+      </div>
     </div>
 
     <!-- ═══ MDI VIEW ═══ -->
-    <div v-show="mode === 'mdi'" class="modeContent mdiContent">
+    <div v-show="mode === 'mdi'" class="modeContent">
       <Gate gate="ready" class="mdiLayout">
-        <!-- History above -->
         <div class="mdiHistoryList scroll-thin">
           <button v-for="(cmd, i) in history" :key="i" class="mdiHistoryItem"
                :class="{ active: historyIndex === i }"
                @click="emit('update:mdiText', cmd)">{{ cmd }}</button>
           <div v-if="history.length === 0" class="mdiHistoryEmpty">Type a G-code command below</div>
         </div>
-        <!-- Input at bottom -->
         <div class="mdiBottom">
           <div class="mdiRow">
             <MachineInput
@@ -173,9 +159,7 @@ const hasFile = computed(() => !!props.activeFile);
               placeholder="G-code command..."
             />
             <MachineBtn type="mdi" @click="handleSend">Send</MachineBtn>
-          </div>
-          <div class="mdiActions">
-            <MachineBtn type="inline" @click="clearHistory" :disabled="history.length === 0">Clear History</MachineBtn>
+            <MachineBtn type="inline" @click="clearHistory" :disabled="history.length === 0">Clear</MachineBtn>
           </div>
         </div>
       </Gate>
@@ -184,40 +168,30 @@ const hasFile = computed(() => !!props.activeFile);
     <!-- ═══ PROGRAM VIEW ═══ -->
     <div v-show="mode === 'program'" class="modeContent">
       <Gate gate="safety" class="prgLayout">
-        <!-- File info -->
         <div class="prgFileRow">
           <span class="prgFile" :title="activeFile ?? ''">{{ fileName }}</span>
           <span v-if="hasFile" class="prgElapsed">{{ elapsed }}</span>
         </div>
 
-        <!-- Main controls -->
         <div class="prgBtns">
-          <MachineBtn type="start" @click="emit('cycleStart')" :disabled="!hasFile" block>
-            Start
-          </MachineBtn>
-          <MachineBtn type="step" @click="emit('cycleStep')" :disabled="!hasFile" block>
-            Step
-          </MachineBtn>
+          <MachineBtn type="start" @click="emit('cycleStart')" :disabled="!hasFile" block>Start</MachineBtn>
+          <MachineBtn type="step" @click="emit('cycleStep')" :disabled="!hasFile" block>Step</MachineBtn>
           <MachineBtn
             :type="isPaused ? 'resume' : 'pause'"
             @click="isPaused ? emit('cycleResume') : emit('cyclePause')"
             :disabled="!isRunning && !isPaused"
             block
           >{{ isPaused ? 'Resume' : 'Pause' }}</MachineBtn>
-          <MachineBtn type="abort" @click="emit('abort')" block>
-            Stop
-          </MachineBtn>
+          <MachineBtn type="abort" @click="emit('abort')" block>Stop</MachineBtn>
         </div>
 
-        <!-- Toggles -->
         <div class="prgToggles">
           <MachineToggle gate="optionalStop" :modelValue="optionalStop" @update:modelValue="emit('toggleOptionalStop')" label="Opt Stop" />
           <MachineToggle gate="blockDelete" :modelValue="blockDelete" @update:modelValue="emit('toggleBlockDelete')" label="Blk Del" />
         </div>
 
-        <!-- Home if needed -->
         <div v-if="!isHomed" class="prgHome">
-          <MachineBtn type="home" @click="emit('homeAll')" block>Home All</MachineBtn>
+          <MachineBtn type="home" @click="emit('homeAll')" block>Home All Axes</MachineBtn>
         </div>
       </Gate>
     </div>
@@ -226,25 +200,61 @@ const hasFile = computed(() => !!props.activeFile);
 
 <style scoped>
 .modeStrip {
-  flex: 1;
-  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--gap-tight);
+  height: 100%;
   overflow: hidden;
 }
+
+/* ── Mode tabs (full width, edge-to-edge) ── */
 .modeTabs {
+  display: flex;
   flex-shrink: 0;
+  background: color-mix(in oklab, var(--bg) 80%, transparent);
 }
+.modeTab {
+  flex: 1;
+  padding: var(--gap-controls) var(--gap-section);
+  font-size: var(--fs-2xs);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: var(--fw-bold);
+  border: none;
+  background: none;
+  color: var(--fg);
+  opacity: var(--opacity-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: opacity 0.1s, border-color 0.1s;
+}
+.modeTab:hover {
+  opacity: 0.8;
+}
+.modeTab.active {
+  opacity: 1;
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  background: color-mix(in oklab, var(--accent) 5%, transparent);
+}
+
+/* ── Content area ── */
 .modeContent {
   flex: 1;
   min-height: 0;
   overflow: hidden;
 }
 
-/* MDI needs fixed height so it doesn't collapse when empty */
-.mdiContent {
-  min-height: 180px;
+/* ── Jog ── */
+.jogLayout {
+  height: 100%;
+  display: flex;
+}
+.jogWheelArea {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--gap-controls);
 }
 
 /* ── MDI ── */
@@ -257,6 +267,7 @@ const hasFile = computed(() => !!props.activeFile);
   overflow-y: auto;
   flex: 1;
   min-height: 0;
+  padding: var(--gap-tight);
 }
 .mdiHistoryItem {
   display: block;
@@ -269,10 +280,11 @@ const hasFile = computed(() => !!props.activeFile);
   background: none;
   color: inherit;
   cursor: pointer;
+  border-radius: var(--radius-sm);
 }
 .mdiHistoryItem:hover,
 .mdiHistoryItem.active {
-  background: var(--hl-hover);
+  background: color-mix(in oklab, var(--fg) var(--hl-hover), transparent);
 }
 .mdiHistoryEmpty {
   padding: var(--gap-panel);
@@ -282,11 +294,8 @@ const hasFile = computed(() => !!props.activeFile);
 }
 .mdiBottom {
   flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-tight);
-  padding-top: var(--gap-tight);
-  border-top: 1px solid var(--border);
+  padding: var(--gap-controls);
+  border-top: 1px solid color-mix(in oklab, var(--border) 50%, transparent);
 }
 .mdiRow {
   display: flex;
@@ -296,22 +305,22 @@ const hasFile = computed(() => !!props.activeFile);
   flex: 1;
   font-family: var(--font-mono);
 }
-.mdiActions {
-  display: flex;
-  justify-content: flex-end;
-}
 
 /* ── Program ── */
 .prgLayout {
   display: flex;
   flex-direction: column;
   gap: var(--gap-controls);
+  padding: var(--gap-controls);
 }
 .prgFileRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--gap-controls);
+  padding: var(--gap-tight) var(--gap-controls);
+  background: color-mix(in oklab, var(--bg) 80%, transparent);
+  border-radius: var(--radius-lg);
 }
 .prgFile {
   font-family: var(--font-mono);

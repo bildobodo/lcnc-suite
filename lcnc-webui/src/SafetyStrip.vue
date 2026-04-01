@@ -27,50 +27,73 @@ const estopLabel = computed(() => props.isEstop ? "Reset" : "E-Stop");
 
 <template>
   <div class="safetyStrip">
-    <Gate gate="always" class="safetyGate">
-      <MachineBtn
-        type="arm"
-        :variant="armed ? 'ok' : 'default'"
-        :disabled="busy"
-        :title="armed ? 'Disarm' : 'Arm'"
-        @click="emit('arm', !armed)"
-        block
-      >
-        <component :is="armed ? LockOpen : Lock" class="safetyIcon" />
-      </MachineBtn>
+    <div class="safetyHeader">
+      <Power :size="14" class="headerIcon" />
+      <span class="headerLabel">Safety &amp; Power</span>
+    </div>
 
-      <div class="safetySep"></div>
+    <Gate gate="always" class="safetyBtnsGate">
+      <div class="safetyBtns">
+        <MachineBtn
+          type="arm"
+          :variant="armed ? 'ok' : 'default'"
+          :disabled="busy"
+          :title="armed ? 'Disarm' : 'Arm'"
+          @click="emit('arm', !armed)"
+          class="safetyBtn"
+          block
+        >
+          <component :is="armed ? LockOpen : Lock" :size="20" />
+          <span class="btnLabel">{{ armed ? 'Armed' : 'Arm System' }}</span>
+        </MachineBtn>
 
-      <MachineBtn
-        type="estop"
-        :flashing="isEstop"
-        :disabled="!(isEstop ? canResetEstop : canEstop)"
-        @click="isEstop ? emit('estopReset') : emit('estop')"
-        block
-      >
-        <TriangleAlert class="safetyIcon" />
-        <span class="safetyLabel">{{ estopLabel }}</span>
-      </MachineBtn>
-
-      <div class="safetySep"></div>
+        <MachineBtn
+          type="estop"
+          :flashing="isEstop"
+          :disabled="!(isEstop ? canResetEstop : canEstop)"
+          @click="isEstop ? emit('estopReset') : emit('estop')"
+          class="safetyBtn"
+          block
+        >
+          <TriangleAlert :size="20" />
+          <span class="btnLabel">{{ estopLabel }}</span>
+        </MachineBtn>
+      </div>
     </Gate>
 
-    <Gate gate="safety" class="safetyGate">
-      <MachineBtn
-        type="machineOn"
-        :variant="isEnabled ? 'ok' : 'default'"
-        @click="isEnabled ? emit('machineOff') : emit('machineOn')"
-        block
-      >
-        <Power class="safetyIcon" />
-        <span class="safetyLabel">{{ isEnabled ? "On" : "Off" }}</span>
-      </MachineBtn>
-    </Gate>
-
-    <div class="stripStatus">
-      <span class="statusDot" :class="{ on: !isEstop }" title="E-Stop clear"></span>
-      <span class="statusDot" :class="{ on: isEnabled }" title="Machine enabled"></span>
-      <span class="statusDot" :class="{ on: isHomed }" title="All homed"></span>
+    <div class="statusBar">
+      <div class="statusDots">
+        <div class="statusItem">
+          <span class="statusDot" :class="{ on: !isEstop }"></span>
+          <span class="statusLabel">READY</span>
+        </div>
+        <div class="statusItem">
+          <span class="statusDot" :class="{ on: isHomed }"></span>
+          <span class="statusLabel">HOMED</span>
+        </div>
+        <div class="statusItem">
+          <span class="statusDot" :class="{ on: isEnabled }"></span>
+          <span class="statusLabel">ENABLED</span>
+        </div>
+      </div>
+      <Gate gate="safety" class="machOnGate">
+        <div class="machOnBtns">
+          <MachineBtn
+            type="machineOn"
+            :variant="!isEnabled ? 'default' : 'default'"
+            :disabled="isEnabled"
+            @click="emit('machineOff')"
+            class="machOnBtn"
+          >OFF</MachineBtn>
+          <MachineBtn
+            type="machineOn"
+            :variant="isEnabled ? 'ok' : 'default'"
+            :disabled="!isEnabled && false"
+            @click="emit('machineOn')"
+            class="machOnBtn"
+          >ON</MachineBtn>
+        </div>
+      </Gate>
     </div>
   </div>
 </template>
@@ -80,40 +103,93 @@ const estopLabel = computed(() => props.isEstop ? "Reset" : "E-Stop");
   display: flex;
   flex-direction: column;
   gap: var(--gap-controls);
-  align-items: stretch;
-  width: 120px;
-  flex-shrink: 0;
+  padding: var(--gap-controls);
+  height: 100%;
 }
-.safetyGate {
+
+.safetyHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-tight);
+}
+.headerIcon {
+  opacity: var(--opacity-muted);
+}
+.headerLabel {
+  font-size: var(--fs-2xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: var(--fw-bold);
+  opacity: var(--opacity-muted);
+}
+
+.safetyBtnsGate {
+  flex: 1;
+}
+.safetyBtns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--gap-controls);
+  height: 100%;
+}
+.safetyBtn {
   display: flex;
   flex-direction: column;
-  gap: var(--gap-controls);
-}
-.safetySep {
-  height: 1px;
-  background: var(--border);
-}
-.safetyIcon {
-  width: 20px;
-  height: 20px;
-}
-.safetyLabel {
-  font-size: var(--fs-sm);
-}
-.stripStatus {
-  display: flex;
-  gap: var(--gap-controls);
+  align-items: center;
   justify-content: center;
-  padding-top: var(--gap-tight);
-  border-top: 1px solid var(--border);
+  gap: var(--gap-tight);
+  min-height: 80px;
+}
+.btnLabel {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  text-transform: uppercase;
+}
+
+.statusBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--gap-controls);
+  border-radius: var(--radius-lg);
+  background: color-mix(in oklab, var(--bg) 80%, transparent);
+}
+.statusDots {
+  display: flex;
+  gap: var(--gap-section);
+}
+.statusItem {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-tight);
 }
 .statusDot {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: var(--radius-pill);
-  background: var(--danger);
+  background: color-mix(in oklab, var(--fg) 20%, transparent);
+  border: 1px solid color-mix(in oklab, var(--border) 50%, transparent);
 }
 .statusDot.on {
   background: var(--ok);
+  border-color: transparent;
+  box-shadow: 0 0 8px color-mix(in oklab, var(--ok) 50%, transparent);
+}
+.statusLabel {
+  font-size: var(--fs-2xs);
+  font-family: var(--font-mono);
+  opacity: var(--opacity-muted);
+}
+
+.machOnGate {
+  flex-shrink: 0;
+}
+.machOnBtns {
+  display: flex;
+  gap: 1px;
+}
+.machOnBtn {
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-bold);
 }
 </style>

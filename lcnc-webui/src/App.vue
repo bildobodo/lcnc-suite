@@ -1398,7 +1398,6 @@ watch(isHomed, (nowHomed, wasHomed) => {
         @machine-off="fire({ cmd: 'machine_off' })"
       />
 
-      <div class="stripSep"></div>
 
       <ModeStrip
         :axes="axes"
@@ -1438,7 +1437,6 @@ watch(isHomed, (nowHomed, wasHomed) => {
         @toggleBlockDelete="toggleBlockDelete"
       />
 
-      <div class="stripSep"></div>
 
       <ControlsStrip
         :feedSlider="feedSlider"
@@ -1511,23 +1509,20 @@ watch(isHomed, (nowHomed, wasHomed) => {
 }
 
 .strip {
-  display: flex;
-  gap: var(--gap-section);
-  padding: var(--gap-controls);
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  height: 250px;
   border-top: 1px solid var(--border);
   background: var(--panel);
-  border-radius: var(--radius-xl);
   flex-shrink: 0;
-  overflow-x: auto;
-  overflow-y: hidden;
-  max-height: 50vh;
+  overflow: hidden;
 }
 
-.stripSep {
-  width: 1px;
-  align-self: stretch;
-  background: var(--border);
-  flex-shrink: 0;
+.strip > * {
+  border-right: 1px solid color-mix(in oklab, var(--border) 50%, transparent);
+}
+.strip > *:last-child {
+  border-right: none;
 }
 
 .hdr {
