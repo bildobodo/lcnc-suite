@@ -38,6 +38,7 @@ const estopLabel = computed(() => props.isEstop ? "Reset" : "E-Stop");
           block
         >
           <component :is="armed ? LockOpen : Lock" class="safetyIcon" />
+          <span class="safetyLabel">{{ armed ? 'Armed' : 'Disarmed' }}</span>
         </MachineBtn>
 
         <MachineBtn
@@ -45,6 +46,7 @@ const estopLabel = computed(() => props.isEstop ? "Reset" : "E-Stop");
           :flashing="isEstop"
           :disabled="!(isEstop ? canResetEstop : canEstop)"
           @click="isEstop ? emit('estopReset') : emit('estop')"
+          block
         >
           <TriangleAlert class="safetyIcon" />
           <span class="safetyLabel">{{ estopLabel }}</span>
@@ -65,18 +67,9 @@ const estopLabel = computed(() => props.isEstop ? "Reset" : "E-Stop");
     </Gate>
 
     <div class="stripStatus">
-      <div class="statusItem">
-        <span class="statusDot" :class="{ on: !isEstop }"></span>
-        <span class="statusLabel">E-Stop</span>
-      </div>
-      <div class="statusItem">
-        <span class="statusDot" :class="{ on: isEnabled }"></span>
-        <span class="statusLabel">Enabled</span>
-      </div>
-      <div class="statusItem">
-        <span class="statusDot" :class="{ on: isHomed }"></span>
-        <span class="statusLabel">Homed</span>
-      </div>
+      <span class="statusDot" :class="{ on: !isEstop }" title="E-Stop"></span>
+      <span class="statusDot" :class="{ on: isEnabled }" title="Enabled"></span>
+      <span class="statusDot" :class="{ on: isHomed }" title="Homed"></span>
     </div>
   </div>
 </template>
@@ -85,15 +78,16 @@ const estopLabel = computed(() => props.isEstop ? "Reset" : "E-Stop");
 .safetyStrip {
   display: flex;
   flex-direction: column;
-  gap: var(--gap-controls);
+  gap: var(--gap-tight);
   align-items: stretch;
-  min-width: 80px;
-  max-width: 100px;
+  width: 90px;
+  flex-shrink: 0;
 }
 .safetyBtns {
   display: flex;
   flex-direction: column;
   gap: var(--gap-tight);
+  flex: 1;
 }
 .safetyIcon {
   width: var(--fs-xl);
@@ -104,29 +98,18 @@ const estopLabel = computed(() => props.isEstop ? "Reset" : "E-Stop");
 }
 .stripStatus {
   display: flex;
-  flex-direction: column;
-  gap: var(--gap-micro);
+  gap: var(--gap-controls);
+  justify-content: center;
   padding-top: var(--gap-tight);
   border-top: 1px solid var(--border);
 }
-.statusItem {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-tight);
-}
 .statusDot {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
   border-radius: var(--radius-pill);
   background: var(--danger);
-  flex-shrink: 0;
 }
 .statusDot.on {
   background: var(--ok);
-}
-.statusLabel {
-  font-size: var(--fs-2xs);
-  opacity: var(--opacity-muted);
-  white-space: nowrap;
 }
 </style>

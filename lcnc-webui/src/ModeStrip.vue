@@ -24,8 +24,6 @@ const props = defineProps<{
   isHomed: boolean;
   homedJoints: boolean[];
   jogDisabled: boolean;
-  touchoff: number[];
-  g5xLabel: string;
   // MDI
   mdiText: string;
   // Program
@@ -45,13 +43,6 @@ const emit = defineEmits<{
   (e: "toggleTeleop"): void;
   (e: "homeAll"): void;
   (e: "unhomeAll"): void;
-  (e: "setAxis", axis: number, value: number): void;
-  (e: "setAll", values: number[]): void;
-  (e: "update:touchoff", values: number[]): void;
-  (e: "setG5x", gcode: string): void;
-  (e: "goToG30"): void;
-  (e: "goToHome"): void;
-  (e: "goToZero"): void;
   // MDI
   (e: "update:mdiText", text: string): void;
   (e: "sendMdi"): void;
@@ -114,23 +105,6 @@ function clearHistory() {
   historyIndex.value = -1;
 }
 
-// ─── WCS options ─────────────────────────────────────────────
-const g5xOptions = ["G54", "G55", "G56", "G57", "G58", "G59", "G59.1", "G59.2", "G59.3"];
-
-// ─── Touchoff helpers ────────────────────────────────────────
-const primaryAxes = computed(() => {
-  const PRIMARY = new Set(["X", "Y", "Z"]);
-  return props.axes
-    .map((l, i) => ({ letter: l, index: i }))
-    .filter(a => PRIMARY.has(a.letter));
-});
-
-function updateTouchoff(axis: number, val: number) {
-  const copy = [...props.touchoff];
-  copy[axis] = val;
-  emit("update:touchoff", copy);
-}
-
 // ─── Program helpers ─────────────────────────────────────────
 const fileName = computed(() => {
   if (!props.activeFile) return "No file loaded";
@@ -150,61 +124,25 @@ const fileName = computed(() => {
 
     <!-- ═══ JOG VIEW ═══ -->
     <div v-show="mode === 'jog'" class="modeContent">
-      <div class="jogLayout">
-        <JogHUD
-          :axes="axes"
-          :jogVel="jogVel"
-          :angularJogVel="angularJogVel"
-          :linearUnit="linearUnit"
-          :maxJogVel="maxJogVel"
-          :maxAngularJogVel="maxAngularJogVel"
-          :minAngularJogVel="minAngularJogVel"
-          :jogIncrement="jogIncrement"
-          :minJogVel="minJogVel"
-          :iniIncrements="iniIncrements"
-          :isTeleop="isTeleop"
-          :isHomed="isHomed"
-          :disabled="jogDisabled"
-          @update:jogVel="emit('update:jogVel', $event)"
-          @update:angularJogVel="emit('update:angularJogVel', $event)"
-          @update:jogIncrement="emit('update:jogIncrement', $event)"
-          @toggleTeleop="emit('toggleTeleop')"
-        />
-
-        <!-- Touchoff + WCS (compact) -->
-        <div class="jogSide">
-          <div class="row-tight wcsRow">
-            <MachineBtn
-              v-for="g in g5xOptions.slice(0, 6)"
-              :key="g"
-              type="wcs"
-              muted
-              :selected="g === g5xLabel"
-              @click="emit('setG5x', g)"
-            >{{ g.replace('G', '') }}</MachineBtn>
-          </div>
-
-          <Gate gate="zero" class="touchoffGrid">
-            <template v-for="a in primaryAxes" :key="a.letter">
-              <span class="axLetter">{{ a.letter }}</span>
-              <MachineInput
-                gate="touchoff"
-                type="number"
-                :modelValue="touchoff[a.index]"
-                @update:modelValue="updateTouchoff(a.index, Number($event))"
-                class="touchInput"
-              />
-              <MachineBtn type="zero" @click="emit('setAxis', a.index, touchoff[a.index] ?? 0)">Set</MachineBtn>
-            </template>
-          </Gate>
-
-          <div class="row-tight goRow">
-            <MachineBtn type="goTo" @click="emit('goToG30')">G30</MachineBtn>
-            <MachineBtn type="goTo" @click="emit('goToZero')">Zero</MachineBtn>
-            <MachineBtn v-if="!isHomed" type="home" @click="emit('homeAll')" block>Home All</MachineBtn>
-          </div>
-        </div>
-      </div>
+      <JogHUD
+        :axes="axes"
+        :jogVel="jogVel"
+        :angularJogVel="angularJogVel"
+        :linearUnit="linearUnit"
+        :maxJogVel="maxJogVel"
+        :maxAngularJogVel="maxAngularJogVel"
+        :minAngularJogVel="minAngularJogVel"
+        :jogIncrement="jogIncrement"
+        :minJogVel="minJogVel"
+        :iniIncrements="iniIncrements"
+        :isTeleop="isTeleop"
+        :isHomed="isHomed"
+        :disabled="jogDisabled"
+        @update:jogVel="emit('update:jogVel', $event)"
+        @update:angularJogVel="emit('update:angularJogVel', $event)"
+        @update:jogIncrement="emit('update:jogIncrement', $event)"
+        @toggleTeleop="emit('toggleTeleop')"
+      />
     </div>
 
     <!-- ═══ MDI VIEW ═══ -->
@@ -223,15 +161,14 @@ const fileName = computed(() => {
           />
           <MachineBtn type="mdi" @click="handleSend">Send</MachineBtn>
         </div>
-        <div class="mdiHistoryHeader">
-          <span class="mdiHistLabel">History</span>
-          <MachineBtn type="inline" @click="clearHistory" :disabled="history.length === 0">Clear</MachineBtn>
-        </div>
         <div class="mdiHistoryList scroll-thin">
           <button v-for="(cmd, i) in history" :key="i" class="mdiHistoryItem"
                :class="{ active: historyIndex === i }"
                @click="emit('update:mdiText', cmd)">{{ cmd }}</button>
-          <div v-if="history.length === 0" class="mdiHistoryEmpty">No history</div>
+          <div v-if="history.length === 0" class="mdiHistoryEmpty">No history yet</div>
+        </div>
+        <div class="mdiFooter">
+          <MachineBtn type="inline" @click="clearHistory" :disabled="history.length === 0">Clear History</MachineBtn>
         </div>
       </Gate>
     </div>
@@ -250,8 +187,18 @@ const fileName = computed(() => {
           >{{ isPaused ? 'Resume' : 'Pause' }}</MachineBtn>
           <MachineBtn type="abort" @click="emit('abort')">Stop</MachineBtn>
         </div>
-        <div class="prgStatus">
+        <div class="prgInfo">
           <span class="prgElapsed">{{ elapsed }}</span>
+        </div>
+        <div class="prgToggles">
+          <label class="prgToggle">
+            <input type="checkbox" :checked="optionalStop" @change="emit('toggleOptionalStop')" />
+            Opt Stop
+          </label>
+          <label class="prgToggle">
+            <input type="checkbox" :checked="blockDelete" @change="emit('toggleBlockDelete')" />
+            Blk Delete
+          </label>
         </div>
       </Gate>
     </div>
@@ -265,6 +212,7 @@ const fileName = computed(() => {
   display: flex;
   flex-direction: column;
   gap: var(--gap-tight);
+  overflow: hidden;
 }
 .modeTabs {
   flex-shrink: 0;
@@ -274,59 +222,22 @@ const fileName = computed(() => {
   min-height: 0;
   overflow: hidden;
 }
-/* ── Jog ── */
-.jogLayout {
-  display: flex;
-  gap: var(--gap-section);
-  height: 100%;
-}
-.jogSide {
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-controls);
-  min-width: 160px;
-}
-.wcsRow {
-  flex-wrap: wrap;
-}
-.touchoffGrid {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: var(--gap-tight);
-  align-items: center;
-}
-.axLetter {
-  font-weight: var(--fw-bold);
-  font-size: var(--fs-sm);
-}
-.touchInput {
-  width: 70px;
-}
-.goRow {
-  flex-wrap: wrap;
-}
+
 /* ── MDI ── */
 .mdiLayout {
   display: flex;
   flex-direction: column;
-  gap: var(--gap-controls);
+  gap: var(--gap-tight);
   height: 100%;
 }
 .mdiRow {
   display: flex;
   gap: var(--gap-tight);
+  flex-shrink: 0;
 }
 .mdiInput {
   flex: 1;
-}
-.mdiHistLabel {
-  font-size: var(--fs-sm);
-  opacity: var(--opacity-muted);
-}
-.mdiHistoryHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  font-family: var(--font-mono);
 }
 .mdiHistoryList {
   overflow-y: auto;
@@ -350,11 +261,17 @@ const fileName = computed(() => {
   background: var(--hl-hover);
 }
 .mdiHistoryEmpty {
-  padding: var(--gap-section);
+  padding: var(--gap-controls);
   text-align: center;
   opacity: var(--opacity-muted);
   font-size: var(--fs-sm);
 }
+.mdiFooter {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+}
+
 /* ── Program ── */
 .prgLayout {
   display: flex;
@@ -374,13 +291,24 @@ const fileName = computed(() => {
   gap: var(--gap-tight);
   flex-wrap: wrap;
 }
-.prgStatus {
+.prgInfo {
   display: flex;
   gap: var(--gap-controls);
   align-items: center;
 }
 .prgElapsed {
   font-family: var(--font-mono);
+  font-size: var(--fs-md);
+}
+.prgToggles {
+  display: flex;
+  gap: var(--gap-section);
+}
+.prgToggle {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-tight);
   font-size: var(--fs-sm);
+  cursor: pointer;
 }
 </style>
