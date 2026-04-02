@@ -11,6 +11,7 @@ export interface ButtonDef {
   icon?: boolean;
   muted?: boolean;
   inline?: boolean;
+  mono?: boolean;
 }
 
 export const BUTTON_TYPES = {
@@ -43,6 +44,9 @@ export const BUTTON_TYPES = {
   // Coolant
   flood:          { gate: 'ready',    variant: 'default', size: 'md' },
   mist:           { gate: 'ready',    variant: 'default', size: 'md' },
+
+  // Jog
+  jog:            { gate: 'jog',      variant: 'default', size: 'sm', mono: true },
 
   // Overrides
   overridePreset: { gate: 'override', variant: 'default', size: 'xs' },

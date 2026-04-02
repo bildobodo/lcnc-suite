@@ -13,7 +13,7 @@ const props = withDefaults(defineProps<{
   active?: boolean;
   selected?: boolean;
   muted?: boolean;
-  mono?: boolean;
+  mono?: boolean | undefined;
   block?: boolean;
   flashing?: boolean;
   warning?: boolean;
@@ -25,6 +25,7 @@ const props = withDefaults(defineProps<{
   icon: undefined,
   muted: undefined,
   inline: undefined,
+  mono: undefined,
   variant: undefined,
 });
 
@@ -35,6 +36,7 @@ const resolvedVariant = computed(() => props.variant ?? def.value.variant);
 const resolvedIcon = computed(() => props.icon ?? def.value.icon);
 const resolvedMuted = computed(() => props.muted ?? def.value.muted);
 const resolvedInline = computed(() => props.inline ?? def.value.inline);
+const resolvedMono = computed(() => props.mono ?? def.value.mono);
 </script>
 
 <template>
@@ -48,7 +50,7 @@ const resolvedInline = computed(() => props.inline ?? def.value.inline);
     :disabled="isDisabled"
     :active="active"
     :selected="selected"
-    :mono="mono"
+    :mono="resolvedMono"
     :block="block"
     :flashing="flashing"
     :warning="warning"

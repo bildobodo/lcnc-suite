@@ -1,14 +1,10 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
-import Gate from "./Gate.vue";
+import { computed, reactive } from "vue";
+import { send } from "./lcncWs";
+import { usePermissions } from "./permissions";
+import { INPUT_DEFS } from "./machineControls";
 import MachineBtn from "./MachineBtn.vue";
-import MachineInput from "./MachineInput.vue";
 import MachineSlider from "./MachineSlider.vue";
-import MachineToggle from "./MachineToggle.vue";
-import JogHUD from "./JogHUD.vue";
-
-type StripMode = "jog" | "mdi" | "program";
-const mode = ref<StripMode>("jog");
 
 const props = defineProps<{
   axes: string[];
@@ -24,13 +20,6 @@ const props = defineProps<{
   isTeleop: boolean;
   isHomed: boolean;
   jogDisabled: boolean;
-  mdiText: string;
-  activeFile: string | null;
-  isPaused: boolean;
-  isRunning: boolean;
-  elapsed: string;
-  optionalStop: boolean;
-  blockDelete: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -40,313 +29,284 @@ const emit = defineEmits<{
   (e: "toggleTeleop"): void;
   (e: "homeAll"): void;
   (e: "unhomeAll"): void;
-  (e: "update:mdiText", text: string): void;
-  (e: "sendMdi"): void;
-  (e: "cycleStart"): void;
-  (e: "cyclePause"): void;
-  (e: "cycleResume"): void;
-  (e: "cycleStep"): void;
-  (e: "abort"): void;
-  (e: "toggleOptionalStop"): void;
-  (e: "toggleBlockDelete"): void;
 }>();
 
-// ─── MDI History ─────────────────────────────────────────────
-const history = ref<string[]>([]);
-const historyIndex = ref(-1);
-const savedInput = ref("");
+const can = usePermissions();
+const isDisabled = computed(() => !can.value[INPUT_DEFS.jogWheel.gate] || props.jogDisabled);
 
-function handleSend() {
-  const cmd = props.mdiText.trim();
-  if (cmd) {
-    if (history.value[0] !== cmd) {
-      history.value.unshift(cmd);
-      if (history.value.length > 50) history.value.length = 50;
-    }
+const ABC = new Set(["A", "B", "C"]);
+const hasAbc = computed(() => props.axes.some(a => ABC.has(a)));
+
+const incrementOptions = computed(() => {
+  if (props.iniIncrements && props.iniIncrements.length > 0) {
+    return [
+      { label: "Cont", value: 0 },
+      ...props.iniIncrements.map(v => ({ label: String(v), value: v })),
+    ];
   }
-  historyIndex.value = -1;
-  savedInput.value = "";
-  emit("sendMdi");
-}
-
-function onMdiKeydown(e: KeyboardEvent) {
-  if (e.key === "ArrowUp") {
-    e.preventDefault();
-    if (history.value.length === 0) return;
-    if (historyIndex.value === -1) savedInput.value = props.mdiText;
-    if (historyIndex.value < history.value.length - 1) {
-      historyIndex.value++;
-      emit("update:mdiText", history.value[historyIndex.value] ?? "");
-    }
-    return;
+  if (props.linearUnit === "in") {
+    return [
+      { label: "Cont", value: 0 },
+      { label: ".0001", value: 0.0001 },
+      { label: ".001", value: 0.001 },
+      { label: ".01", value: 0.01 },
+      { label: ".1", value: 0.1 },
+    ];
   }
-  if (e.key === "ArrowDown") {
-    e.preventDefault();
-    if (historyIndex.value === -1) return;
-    historyIndex.value--;
-    emit("update:mdiText", historyIndex.value === -1 ? savedInput.value : (history.value[historyIndex.value] ?? ""));
-    return;
-  }
-}
-
-function clearHistory() { history.value = []; historyIndex.value = -1; }
-
-const fileName = computed(() => {
-  if (!props.activeFile) return "No file loaded";
-  const parts = props.activeFile.split("/");
-  return parts[parts.length - 1] ?? props.activeFile;
+  return [
+    { label: "Cont", value: 0 },
+    { label: ".001", value: 0.001 },
+    { label: ".01", value: 0.01 },
+    { label: ".1", value: 0.1 },
+    { label: "1", value: 1.0 },
+  ];
 });
 
-const hasFile = computed(() => !!props.activeFile);
+// ─── Jog logic (press-and-hold) ─────────────────────────────
+interface JogDef {
+  label: string;
+  axis: number;
+  dir: 1 | -1;
+  axis2?: number;
+  dir2?: 1 | -1;
+}
+
+const xyBtns: JogDef[] = [
+  { label: "X-Y+", axis: 0, dir: -1, axis2: 1, dir2: 1 },
+  { label: "Y+",   axis: 1, dir: 1 },
+  { label: "X+Y+", axis: 0, dir: 1, axis2: 1, dir2: 1 },
+  { label: "X-",   axis: 0, dir: -1 },
+  { label: "XY",   axis: -1, dir: 1 },  // center, no-op
+  { label: "X+",   axis: 0, dir: 1 },
+  { label: "X-Y-", axis: 0, dir: -1, axis2: 1, dir2: -1 },
+  { label: "Y-",   axis: 1, dir: -1 },
+  { label: "X+Y-", axis: 0, dir: 1, axis2: 1, dir2: -1 },
+];
+
+const active = reactive(new Set<string>());
+
+function startJog(btn: JogDef, e: PointerEvent) {
+  if (isDisabled.value || btn.axis < 0) return;
+  try { (e.currentTarget as Element)?.setPointerCapture?.(e.pointerId); } catch {}
+  if (active.has(btn.label)) return;
+  active.add(btn.label);
+
+  const isDiag = btn.axis2 != null && btn.dir2 != null;
+  const v = isDiag ? props.jogVel * 0.7071 : props.jogVel;
+
+  if (props.jogIncrement > 0) {
+    const dist = isDiag ? props.jogIncrement * 0.7071 : props.jogIncrement;
+    if (isDiag) {
+      send({ cmd: "jog_incr_multi", axes: [
+        { axis: btn.axis, vel: v * btn.dir, distance: dist * btn.dir },
+        { axis: btn.axis2!, vel: v * btn.dir2!, distance: dist * btn.dir2! },
+      ]});
+    } else {
+      send({ cmd: "jog_incr", axis: btn.axis, vel: v * btn.dir, distance: props.jogIncrement * btn.dir });
+    }
+  } else {
+    if (isDiag) {
+      send({ cmd: "jog_cont_multi", axes: [
+        { axis: btn.axis, vel: v * btn.dir },
+        { axis: btn.axis2!, vel: v * btn.dir2! },
+      ]});
+    } else {
+      send({ cmd: "jog_cont", axis: btn.axis, vel: v * btn.dir });
+    }
+  }
+}
+
+function stopJog(btn: JogDef, e: PointerEvent) {
+  if (!active.has(btn.label)) return;
+  active.delete(btn.label);
+  try { (e.currentTarget as HTMLElement)?.releasePointerCapture?.(e.pointerId); } catch {}
+
+  if (props.jogIncrement > 0) return; // incremental jog stops itself
+
+  const isDiag = btn.axis2 != null;
+  if (isDiag) {
+    send({ cmd: "jog_stop_multi", axes: [btn.axis, btn.axis2!] });
+  } else {
+    send({ cmd: "jog_stop", axis: btn.axis });
+  }
+}
+
+function startZJog(dir: 1 | -1, e: PointerEvent) {
+  const key = dir > 0 ? "Z+" : "Z-";
+  if (isDisabled.value || active.has(key)) return;
+  try { (e.currentTarget as Element)?.setPointerCapture?.(e.pointerId); } catch {}
+  active.add(key);
+  if (props.jogIncrement > 0) {
+    send({ cmd: "jog_incr", axis: 2, vel: props.jogVel * dir, distance: props.jogIncrement * dir });
+  } else {
+    send({ cmd: "jog_cont", axis: 2, vel: props.jogVel * dir });
+  }
+}
+
+function stopZJog(dir: 1 | -1, e: PointerEvent) {
+  const key = dir > 0 ? "Z+" : "Z-";
+  if (!active.has(key)) return;
+  active.delete(key);
+  try { (e.currentTarget as HTMLElement)?.releasePointerCapture?.(e.pointerId); } catch {}
+  if (props.jogIncrement > 0) return;
+  send({ cmd: "jog_stop", axis: 2 });
+}
 </script>
 
 <template>
   <div class="modeStrip">
-    <!-- Mode tabs -->
-    <div class="modeTabs">
-      <button class="modeTab" :class="{ active: mode === 'jog' }" @click="mode = 'jog'">Jog</button>
-      <button class="modeTab" :class="{ active: mode === 'mdi' }" @click="mode = 'mdi'">MDI</button>
-      <button class="modeTab" :class="{ active: mode === 'program' }" @click="mode = 'program'">Program</button>
-    </div>
+    <div class="jogContent">
+      <!-- LEFT: XY grid + Z column -->
+      <div class="jogBtns">
+        <div class="xyGrid">
+          <MachineBtn
+            v-for="btn in xyBtns"
+            :key="btn.label"
+            type="jog"
+            class="jogBtn"
+            :disabled="btn.axis < 0 || undefined"
+            :active="active.has(btn.label)"
+            @pointerdown.prevent="startJog(btn, $event)"
+            @pointerup.prevent="stopJog(btn, $event)"
+            @pointercancel.prevent="stopJog(btn, $event)"
+            @pointerleave.prevent="stopJog(btn, $event)"
+            @contextmenu.prevent
+          >{{ btn.label }}</MachineBtn>
+        </div>
 
-    <!-- ═══ JOG VIEW ═══ -->
-    <div v-show="mode === 'jog'" class="modeContent">
-      <div class="jogLayout">
-        <!-- Jog wheel + Z (takes available height) -->
-        <div class="jogWheelArea">
-          <JogHUD
-            :axes="axes"
-            :jogVel="jogVel"
-            :angularJogVel="angularJogVel"
-            :linearUnit="linearUnit"
-            :maxJogVel="maxJogVel"
-            :maxAngularJogVel="maxAngularJogVel"
-            :minAngularJogVel="minAngularJogVel"
-            :jogIncrement="jogIncrement"
-            :minJogVel="minJogVel"
-            :iniIncrements="iniIncrements"
-            :isTeleop="isTeleop"
-            :isHomed="isHomed"
-            :disabled="jogDisabled"
-            @update:jogVel="emit('update:jogVel', $event)"
-            @update:angularJogVel="emit('update:angularJogVel', $event)"
-            @update:jogIncrement="emit('update:jogIncrement', $event)"
-            @toggleTeleop="emit('toggleTeleop')"
-          />
+        <div class="zGrid">
+          <MachineBtn
+            type="jog"
+            class="jogBtn"
+            :active="active.has('Z+')"
+            @pointerdown.prevent="startZJog(1, $event)"
+            @pointerup.prevent="stopZJog(1, $event)"
+            @pointercancel.prevent="stopZJog(1, $event)"
+            @pointerleave.prevent="stopZJog(1, $event)"
+            @contextmenu.prevent
+          >Z+</MachineBtn>
+          <MachineBtn
+            type="jog"
+            class="jogBtn"
+            :active="active.has('Z-')"
+            @pointerdown.prevent="startZJog(-1, $event)"
+            @pointerup.prevent="stopZJog(-1, $event)"
+            @pointercancel.prevent="stopZJog(-1, $event)"
+            @pointerleave.prevent="stopZJog(-1, $event)"
+            @contextmenu.prevent
+          >Z-</MachineBtn>
         </div>
       </div>
-    </div>
 
-    <!-- ═══ MDI VIEW ═══ -->
-    <div v-show="mode === 'mdi'" class="modeContent">
-      <Gate gate="ready" class="mdiLayout">
-        <div class="mdiHistoryList scroll-thin">
-          <button v-for="(cmd, i) in history" :key="i" class="mdiHistoryItem"
-               :class="{ active: historyIndex === i }"
-               @click="emit('update:mdiText', cmd)">{{ cmd }}</button>
-          <div v-if="history.length === 0" class="mdiHistoryEmpty">Type a G-code command below</div>
+      <!-- RIGHT: Speed, step, mode controls -->
+      <div class="jogControls">
+        <div class="ctrlRow">
+          <span class="ctrlLabel">Mode</span>
+          <MachineBtn type="manage" size="xs" :disabled="isDisabled" :active="isTeleop" @click="emit('toggleTeleop')">
+            {{ isTeleop ? "World" : "Joint" }}
+          </MachineBtn>
         </div>
-        <div class="mdiBottom">
-          <div class="mdiRow">
-            <MachineInput
-              gate="mdiText"
-              type="text"
-              class="mdiInput"
-              :value="mdiText"
-              @input="emit('update:mdiText', ($event.target as HTMLInputElement).value)"
-              @keyup.enter="handleSend"
-              @keydown="onMdiKeydown"
-              placeholder="G-code command..."
-            />
-            <MachineBtn type="mdi" @click="handleSend">Send</MachineBtn>
-            <MachineBtn type="inline" @click="clearHistory" :disabled="history.length === 0">Clear</MachineBtn>
+
+        <div class="ctrlRow">
+          <span class="ctrlLabel">{{ hasAbc ? 'Linear' : 'Speed' }}</span>
+          <MachineSlider gate="jogSpeed" :disabled="isDisabled" :min="minJogVel" :max="maxJogVel" :step="0.1" :modelValue="jogVel" @update:modelValue="(v: number | undefined) => { if (v != null) emit('update:jogVel', v) }" class="ctrlSlider" />
+          <span class="ctrlVal">{{ (jogVel * 60).toFixed(0) }} {{ linearUnit }}/min</span>
+        </div>
+
+        <div class="ctrlRow">
+          <span class="ctrlLabel">Step</span>
+          <div class="row-tight incrGroup">
+            <MachineBtn v-for="opt in incrementOptions" :key="opt.value" type="manage" size="xs" :disabled="isDisabled" mono :selected="jogIncrement === opt.value" @click="emit('update:jogIncrement', opt.value)">{{ opt.label }}</MachineBtn>
           </div>
         </div>
-      </Gate>
-    </div>
-
-    <!-- ═══ PROGRAM VIEW ═══ -->
-    <div v-show="mode === 'program'" class="modeContent">
-      <Gate gate="safety" class="prgLayout">
-        <div class="prgFileRow">
-          <span class="prgFile" :title="activeFile ?? ''">{{ fileName }}</span>
-          <span v-if="hasFile" class="prgElapsed">{{ elapsed }}</span>
-        </div>
-
-        <div class="prgBtns">
-          <MachineBtn type="start" @click="emit('cycleStart')" :disabled="!hasFile" block>Start</MachineBtn>
-          <MachineBtn type="step" @click="emit('cycleStep')" :disabled="!hasFile" block>Step</MachineBtn>
-          <MachineBtn
-            :type="isPaused ? 'resume' : 'pause'"
-            @click="isPaused ? emit('cycleResume') : emit('cyclePause')"
-            :disabled="!isRunning && !isPaused"
-            block
-          >{{ isPaused ? 'Resume' : 'Pause' }}</MachineBtn>
-          <MachineBtn type="abort" @click="emit('abort')" block>Stop</MachineBtn>
-        </div>
-
-        <div class="prgToggles">
-          <MachineToggle gate="optionalStop" :modelValue="optionalStop" @update:modelValue="emit('toggleOptionalStop')" label="Opt Stop" />
-          <MachineToggle gate="blockDelete" :modelValue="blockDelete" @update:modelValue="emit('toggleBlockDelete')" label="Blk Del" />
-        </div>
-
-        <div v-if="!isHomed" class="prgHome">
-          <MachineBtn type="home" @click="emit('homeAll')" block>Home All Axes</MachineBtn>
-        </div>
-      </Gate>
+        <span class="stepHint">{{ jogIncrement > 0 ? jogIncrement + ' ' + linearUnit + ' /click' : 'Hold to jog' }}</span>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
 .modeStrip {
-  display: flex;
-  flex-direction: column;
   height: 100%;
   overflow: hidden;
 }
-
-/* ── Mode tabs (full width, edge-to-edge) ── */
-.modeTabs {
+.jogContent {
   display: flex;
-  flex-shrink: 0;
-  background: color-mix(in oklab, var(--bg) 80%, transparent);
-}
-.modeTab {
-  flex: 1;
-  padding: var(--gap-controls) var(--gap-section);
-  font-size: var(--fs-2xs);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  font-weight: var(--fw-bold);
-  border: none;
-  background: none;
-  color: var(--fg);
-  opacity: var(--opacity-muted);
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  transition: opacity 0.1s, border-color 0.1s;
-}
-.modeTab:hover {
-  opacity: 0.8;
-}
-.modeTab.active {
-  opacity: 1;
-  color: var(--accent);
-  border-bottom-color: var(--accent);
-  background: color-mix(in oklab, var(--accent) 5%, transparent);
-}
-
-/* ── Content area ── */
-.modeContent {
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-}
-
-/* ── Jog ── */
-.jogLayout {
-  height: 100%;
-  display: flex;
-}
-.jogWheelArea {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--gap-controls);
-}
-
-/* ── MDI ── */
-.mdiLayout {
-  display: flex;
-  flex-direction: column;
+  gap: var(--gap-section);
   height: 100%;
 }
-.mdiHistoryList {
-  overflow-y: auto;
-  flex: 1;
-  min-height: 0;
-  padding: var(--gap-tight);
-}
-.mdiHistoryItem {
-  display: block;
-  width: 100%;
-  text-align: left;
-  padding: var(--gap-tight) var(--gap-controls);
-  font-family: var(--font-mono);
-  font-size: var(--fs-sm);
-  border: none;
-  background: none;
-  color: inherit;
-  cursor: pointer;
-  border-radius: var(--radius-sm);
-}
-.mdiHistoryItem:hover,
-.mdiHistoryItem.active {
-  background: color-mix(in oklab, var(--fg) var(--hl-hover), transparent);
-}
-.mdiHistoryEmpty {
-  padding: var(--gap-panel);
-  text-align: center;
-  opacity: var(--opacity-muted);
-  font-size: var(--fs-sm);
-}
-.mdiBottom {
-  flex-shrink: 0;
-  padding: var(--gap-controls);
-  border-top: 1px solid color-mix(in oklab, var(--border) 50%, transparent);
-}
-.mdiRow {
+
+/* ── Left: XY grid + Z ── */
+.jogBtns {
   display: flex;
+  gap: var(--gap-section);
+  flex-shrink: 0;
+  align-self: stretch;
+}
+
+.xyGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
   gap: var(--gap-tight);
-}
-.mdiInput {
-  flex: 1;
-  font-family: var(--font-mono);
+  aspect-ratio: 1;
+  height: 100%;
 }
 
-/* ── Program ── */
-.prgLayout {
+.zGrid {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  gap: var(--gap-tight);
+  height: 100%;
+  min-width: 50px;
+}
+.jogBtn {
+  touch-action: none;
+  user-select: none;
+  aspect-ratio: 1;
+}
+.zGrid .jogBtn {
+  aspect-ratio: auto;
+}
+
+/* ── Right: controls ── */
+.jogControls {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: var(--gap-controls);
-  padding: var(--gap-controls);
+  justify-content: center;
+  min-width: 0;
 }
-.prgFileRow {
+.ctrlRow {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: var(--gap-controls);
-  padding: var(--gap-tight) var(--gap-controls);
-  background: color-mix(in oklab, var(--bg) 80%, transparent);
-  border-radius: var(--radius-lg);
 }
-.prgFile {
-  font-family: var(--font-mono);
+.ctrlLabel {
   font-size: var(--fs-sm);
   opacity: var(--opacity-muted);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  min-width: 45px;
+}
+.ctrlSlider {
+  flex: 1;
   min-width: 0;
 }
-.prgElapsed {
+.ctrlVal {
+  font-size: var(--fs-sm);
   font-family: var(--font-mono);
-  font-size: var(--fs-lg);
-  font-weight: var(--fw-bold);
-  flex-shrink: 0;
+  white-space: nowrap;
 }
-.prgBtns {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--gap-tight);
+.incrGroup {
+  flex-wrap: wrap;
 }
-.prgToggles {
-  display: flex;
-  gap: var(--gap-section);
+.incrGroup :deep(.b) {
+  flex: 1;
 }
-.prgHome {
-  margin-top: var(--gap-tight);
+.stepHint {
+  font-size: var(--fs-2xs);
+  opacity: var(--opacity-muted);
+  text-align: right;
 }
 </style>
