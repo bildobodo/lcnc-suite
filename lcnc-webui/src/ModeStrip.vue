@@ -3,7 +3,10 @@ import { computed, reactive } from "vue";
 import { send } from "./lcncWs";
 import { usePermissions } from "./permissions";
 import { INPUT_DEFS } from "./machineControls";
+import { STEP_DEFAULT } from "./defaults";
 import MachineBtn from "./MachineBtn.vue";
+import MachineInput from "./MachineInput.vue";
+import MachineRadio from "./MachineRadio.vue";
 import MachineSlider from "./MachineSlider.vue";
 
 const props = defineProps<{
@@ -20,6 +23,9 @@ const props = defineProps<{
   isTeleop: boolean;
   isHomed: boolean;
   jogDisabled: boolean;
+  touchoff: number[];
+  homedJoints: boolean[];
+  g5xLabel: string;
 }>();
 
 const emit = defineEmits<{
@@ -29,13 +35,27 @@ const emit = defineEmits<{
   (e: "toggleTeleop"): void;
   (e: "homeAll"): void;
   (e: "unhomeAll"): void;
+  (e: "homeAxis", joint: number): void;
+  (e: "unhomeAxis", joint: number): void;
+  (e: "setAxis", axis: number, value: number): void;
+  (e: "setAll", values: number[]): void;
+  (e: "update:touchoff", values: number[]): void;
+  (e: "setG5x", gcode: string): void;
+  (e: "goToG30"): void;
+  (e: "goToHome"): void;
+  (e: "goToZero"): void;
 }>();
 
 const can = usePermissions();
 const isDisabled = computed(() => !can.value[INPUT_DEFS.jogWheel.gate] || props.jogDisabled);
 
-const ABC = new Set(["A", "B", "C"]);
-const hasAbc = computed(() => props.axes.some(a => ABC.has(a)));
+const g5xOptions = ["G54", "G55", "G56", "G57", "G58", "G59", "G59.1", "G59.2", "G59.3"];
+
+function updateTouchoff(axis: number, val: number) {
+  const copy = [...props.touchoff];
+  copy[axis] = val;
+  emit("update:touchoff", copy);
+}
 
 const incrementOptions = computed(() => {
   if (props.iniIncrements && props.iniIncrements.length > 0) {
@@ -198,28 +218,44 @@ function stopZJog(dir: 1 | -1, e: PointerEvent) {
         </div>
       </div>
 
-      <!-- RIGHT: Speed, step, mode controls -->
-      <div class="jogControls">
-        <div class="ctrlRow">
-          <span class="ctrlLabel">Mode</span>
-          <MachineBtn type="manage" size="xs" :disabled="isDisabled" :active="isTeleop" @click="emit('toggleTeleop')">
-            {{ isTeleop ? "World" : "Joint" }}
-          </MachineBtn>
-        </div>
+      <!-- Speed (vertical slider) -->
+      <div class="speedCol">
+        <span class="colVal">{{ (jogVel * 60).toFixed(0) }}</span>
+        <MachineSlider gate="jogSpeed" :disabled="isDisabled" :min="minJogVel" :max="maxJogVel" :step="0.1" :modelValue="jogVel" @update:modelValue="(v: number | undefined) => { if (v != null) emit('update:jogVel', v) }" class="vSlider" />
+        <span class="colLabel">{{ linearUnit }}/min</span>
+      </div>
 
-        <div class="ctrlRow">
-          <span class="ctrlLabel">{{ hasAbc ? 'Linear' : 'Speed' }}</span>
-          <MachineSlider gate="jogSpeed" :disabled="isDisabled" :min="minJogVel" :max="maxJogVel" :step="0.1" :modelValue="jogVel" @update:modelValue="(v: number | undefined) => { if (v != null) emit('update:jogVel', v) }" class="ctrlSlider" />
-          <span class="ctrlVal">{{ (jogVel * 60).toFixed(0) }} {{ linearUnit }}/min</span>
-        </div>
+      <!-- Step increments + mode -->
+      <div class="stepCol">
+        <label v-for="opt in incrementOptions" :key="opt.value" class="stepRadio">
+          <MachineRadio gate="jogIncrement" name="jogStep" :value="opt.value" :modelValue="jogIncrement" @update:modelValue="(v: string | number | undefined) => { if (v != null) emit('update:jogIncrement', Number(v)) }" />
+          <span>{{ opt.label }}</span>
+        </label>
+        <MachineBtn type="manage" size="xs" :disabled="isDisabled" :active="isTeleop" @click="emit('toggleTeleop')">
+          {{ isTeleop ? "World" : "Joint" }}
+        </MachineBtn>
+      </div>
 
-        <div class="ctrlRow">
-          <span class="ctrlLabel">Step</span>
-          <div class="row-tight incrGroup">
-            <MachineBtn v-for="opt in incrementOptions" :key="opt.value" type="manage" size="xs" :disabled="isDisabled" mono :selected="jogIncrement === opt.value" @click="emit('update:jogIncrement', opt.value)">{{ opt.label }}</MachineBtn>
-          </div>
-        </div>
-        <span class="stepHint">{{ jogIncrement > 0 ? jogIncrement + ' ' + linearUnit + ' /click' : 'Hold to jog' }}</span>
+      <!-- Setup: touch-off + homing + go-to -->
+      <div class="setupGrid">
+        <template v-for="(letter, i) in axes" :key="letter">
+          <MachineInput gate="touchoff" type="number" :step="STEP_DEFAULT" :value="touchoff[i]" @input="updateTouchoff(i, +($event.target as HTMLInputElement).value)" @keydown.enter="emit('setAxis', i, touchoff[i] ?? 0)" class="setupInput" />
+          <MachineBtn type="zero" size="xs" @click="emit('setAxis', i, touchoff[i] ?? 0)">Set {{ letter }}</MachineBtn>
+          <MachineBtn :type="homedJoints[i] ? 'unhome' : 'home'" size="xs" @click="homedJoints[i] ? emit('unhomeAxis', i) : emit('homeAxis', i)">{{ homedJoints[i] ? 'Unhome' : 'Home' }} {{ letter }}</MachineBtn>
+        </template>
+        <MachineBtn type="zero" size="xs" class="spanAll" @click="emit('setAll', [...touchoff])">Set All</MachineBtn>
+        <MachineBtn :type="isHomed ? 'unhome' : 'home'" size="xs" class="spanAll" @click="isHomed ? emit('unhomeAll') : emit('homeAll')">{{ isHomed ? 'Unhome' : 'Home All' }}</MachineBtn>
+        <MachineBtn type="goTo" size="xs" @click="emit('goToG30')">G30</MachineBtn>
+        <MachineBtn type="goTo" size="xs" @click="emit('goToHome')">Home Pos</MachineBtn>
+        <MachineBtn type="goTo" size="xs" @click="emit('goToZero')">Zero</MachineBtn>
+      </div>
+
+      <!-- WCS selector -->
+      <div class="wcsCol">
+        <label v-for="g in g5xOptions" :key="g" class="wcsRadio">
+          <MachineRadio gate="touchoff" name="wcs" :value="g" :modelValue="g5xLabel" @update:modelValue="(v: string | number | undefined) => { if (v != null) emit('setG5x', String(v)) }" />
+          <span>{{ g }}</span>
+        </label>
       </div>
     </div>
   </div>
@@ -269,44 +305,63 @@ function stopZJog(dir: 1 | -1, e: PointerEvent) {
   aspect-ratio: auto;
 }
 
-/* ── Right: controls ── */
-.jogControls {
-  flex: 1;
+/* ── Vertical columns ── */
+.speedCol, .stepCol, .wcsCol {
   display: flex;
   flex-direction: column;
-  gap: var(--gap-controls);
-  justify-content: center;
-  min-width: 0;
+  gap: var(--gap-tight);
+  height: 100%;
 }
-.ctrlRow {
-  display: flex;
+.speedCol {
   align-items: center;
-  gap: var(--gap-controls);
 }
-.ctrlLabel {
-  font-size: var(--fs-sm);
-  opacity: var(--opacity-muted);
-  white-space: nowrap;
-  min-width: 45px;
+.speedCol {
+  justify-content: center;
 }
-.ctrlSlider {
+.vSlider {
+  writing-mode: vertical-lr;
+  direction: rtl; /* high values at top */
   flex: 1;
-  min-width: 0;
+  min-height: 0;
 }
-.ctrlVal {
-  font-size: var(--fs-sm);
+.colVal {
   font-family: var(--font-mono);
-  white-space: nowrap;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
 }
-.incrGroup {
-  flex-wrap: wrap;
-}
-.incrGroup :deep(.b) {
-  flex: 1;
-}
-.stepHint {
+.colLabel {
   font-size: var(--fs-2xs);
   opacity: var(--opacity-muted);
-  text-align: right;
+  white-space: nowrap;
+}
+.stepCol, .wcsCol {
+  justify-content: flex-start;
+}
+.wcsRadio {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-tight);
+  font-family: var(--font-mono);
+  font-size: var(--fs-base);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.setupGrid {
+  display: grid;
+  grid-template-columns: 60px 1fr 1fr;
+  gap: var(--gap-tight);
+  align-content: center;
+  height: 100%;
+}
+.setupInput { width: 100%; }
+.spanAll { grid-column: 1 / -1; }
+.stepRadio {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-tight);
+  font-family: var(--font-mono);
+  font-size: var(--fs-base);
+  cursor: pointer;
+  white-space: nowrap;
 }
 </style>

@@ -1435,28 +1435,24 @@ watch(isHomed, (nowHomed, wasHomed) => {
         :isTeleop="isTeleop"
         :isHomed="isHomed"
         :jogDisabled="!permissions.jog"
-        :mdiText="mdiText"
-        :activeFile="activeFile"
-        :isPaused="isPaused"
-        :isRunning="isRunning"
-        :elapsed="elapsedDisplay"
-        :optionalStop="optionalStopOn"
-        :blockDelete="blockDeleteOn"
+        :touchoff="touchoff"
+        :homedJoints="homedJoints"
+        :g5xLabel="g5xLabel"
         @update:jogVel="jogVel = $event"
         @update:angularJogVel="angularJogVel = $event"
         @update:jogIncrement="jogIncrement = $event"
         @toggleTeleop="toggleTeleop"
         @homeAll="homeAll"
         @unhomeAll="unhomeAll"
-        @update:mdiText="mdiText = $event"
-        @sendMdi="sendMdi"
-        @cycleStart="cycleStart"
-        @cyclePause="cyclePause"
-        @cycleResume="cycleResume"
-        @cycleStep="cycleStep"
-        @abort="fire({ cmd: 'abort' })"
-        @toggleOptionalStop="toggleOptionalStop"
-        @toggleBlockDelete="toggleBlockDelete"
+        @homeAxis="homeAxis"
+        @unhomeAxis="unhomeAxis"
+        @setAxis="setAxis"
+        @setAll="setAll"
+        @update:touchoff="touchoff = $event"
+        @setG5x="setG5x"
+        @goToG30="fire({ cmd: 'mdi', text: 'O<go_to_g30> CALL' })"
+        @goToHome="fire({ cmd: 'mdi', text: 'O<go_to_home> CALL' })"
+        @goToZero="fire({ cmd: 'mdi', text: 'O<go_to_zero> CALL' })"
       />
 
 
@@ -1534,17 +1530,13 @@ watch(isHomed, (nowHomed, wasHomed) => {
   display: grid;
   grid-template-columns: 1fr 2fr 1fr;
   height: 250px;
-  border-top: 1px solid var(--border);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
   background: var(--panel);
   flex-shrink: 0;
   overflow: hidden;
-}
-
-.strip > * {
-  border-right: 1px solid color-mix(in oklab, var(--border) 50%, transparent);
-}
-.strip > *:last-child {
-  border-right: none;
+  padding: var(--gap-controls);
+  gap: var(--gap-controls);
 }
 
 .hdr {

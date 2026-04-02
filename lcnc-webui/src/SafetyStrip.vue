@@ -67,11 +67,6 @@ const overridesActive = computed(() =>
 
 <template>
   <div class="safetyStrip">
-    <div class="safetyHeader">
-      <Power :size="14" class="headerIcon" />
-      <span class="headerLabel">Safety &amp; Power</span>
-    </div>
-
     <div class="safetyBtns">
       <Gate gate="always" class="btnGate">
         <MachineBtn
@@ -144,37 +139,21 @@ const overridesActive = computed(() =>
 .safetyStrip {
   display: flex;
   flex-direction: column;
-  gap: var(--gap-tight);
-  padding: var(--gap-controls);
+  gap: var(--gap-controls);
   height: 100%;
-  overflow-y: auto;
-}
-
-.safetyHeader {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-tight);
-  flex-shrink: 0;
-}
-.headerIcon {
-  opacity: var(--opacity-muted);
-}
-.headerLabel {
-  font-size: var(--fs-2xs);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-weight: var(--fw-bold);
-  opacity: var(--opacity-muted);
+  overflow: hidden;
 }
 
 .safetyBtns {
   display: flex;
   gap: var(--gap-controls);
   flex-shrink: 0;
+  flex-shrink: 0;
 }
 .btnGate {
   flex: 1;
   display: flex;
+  min-width: 0;
 }
 .safetyBtn {
   display: flex;
@@ -183,7 +162,6 @@ const overridesActive = computed(() =>
   justify-content: center;
   gap: var(--gap-tight);
   flex: 1;
-  padding: var(--gap-controls) var(--gap-tight);
 }
 .btnLabel {
   font-size: var(--fs-xs);
@@ -208,7 +186,7 @@ const overridesActive = computed(() =>
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: var(--gap-tight);
 }
 .statusCol + .statusCol {
   border-left: 1px solid color-mix(in oklab, var(--border) 50%, transparent);

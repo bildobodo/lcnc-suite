@@ -70,10 +70,6 @@ function onRapidSlider(v: number) { emit('update:rapidSlider', v); }
   <div class="controlsStrip">
     <!-- LEFT: Overrides -->
     <Gate gate="override" class="ovrSection">
-      <div class="sectionHeader">
-        <span class="sectionLabel">Overrides</span>
-      </div>
-
       <div class="ovrList">
         <div class="ovrItem">
           <div class="ovrHead">
@@ -156,26 +152,11 @@ function onRapidSlider(v: number) { emit('update:rapidSlider', v); }
   overflow: hidden;
 }
 
-.sectionHeader {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-tight);
-}
-.sectionLabel {
-  font-size: var(--fs-2xs);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-weight: var(--fw-bold);
-  opacity: var(--opacity-muted);
-}
-
 /* ── Overrides ── */
 .ovrSection {
   display: flex;
   flex-direction: column;
   gap: var(--gap-controls);
-  padding: var(--gap-controls);
-  border-right: 1px solid color-mix(in oklab, var(--border) 50%, transparent);
 }
 .ovrList {
   display: flex;
@@ -215,7 +196,6 @@ function onRapidSlider(v: number) { emit('update:rapidSlider', v); }
 .rightSection {
   display: flex;
   flex-direction: column;
-  padding: var(--gap-controls);
   gap: var(--gap-tight);
 }
 
@@ -253,7 +233,7 @@ function onRapidSlider(v: number) { emit('update:rapidSlider', v); }
 .spnDir {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  gap: 1px;
+  gap: var(--gap-tight);
 }
 .spnBtn {
   display: flex;
@@ -299,7 +279,7 @@ function onRapidSlider(v: number) { emit('update:rapidSlider', v); }
 .coolBtns {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1px;
+  gap: var(--gap-tight);
 }
 .coolBtn {
   font-size: var(--fs-2xs);
