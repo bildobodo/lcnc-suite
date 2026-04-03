@@ -3,6 +3,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { listFiles, uploadFile, saveFile, type FileEntry } from "./lcncApi";
 import { usePermissions } from "./permissions";
 import { loadMachineDefaults, STEP_RPM } from "./defaults";
+import { highlightGcode, type Token } from "./gcodeHighlight";
 import { GCODE_LOOKUP, GCODE_REFERENCE } from "./gcodeReference";
 import { Play, SkipForward, Pause, Square } from "lucide-vue-next";
 import Gate from "./Gate.vue";
@@ -170,60 +171,7 @@ const progressPercent = computed(() => {
   return Math.min(100, (props.currentLine / lineCount.value) * 100);
 });
 
-type Token = {
-  type: 'gcode' | 'mcode' | 'coord' | 'param' | 'comment' | 'text';
-  text: string;
-};
-
-// Syntax highlighter for G-code
-function highlightGcode(line: string): Token[] {
-  const tokens: Token[] = [];
-
-  // Check for comment (everything after semicolon or inside parentheses)
-  const commentMatch = line.match(/^([^;(]*)(;.*|(\(.*\).*)?)$/);
-  if (commentMatch) {
-    const [, code, comment] = commentMatch;
-
-    // Process the code part
-    if (code) {
-      tokenizeCode(code, tokens);
-    }
-
-    // Add comment
-    if (comment) {
-      tokens.push({ type: 'comment', text: comment });
-    }
-  } else {
-    tokenizeCode(line, tokens);
-  }
-
-  return tokens;
-}
-
-function tokenizeCode(code: string, tokens: Token[]) {
-  // Regex to match G-code tokens
-  const pattern = /([GM]\d+(?:\.\d+)?)|([XYZIJKABC][-+]?\d+(?:\.\d+)?)|([FSTPQRHDL]\d+(?:\.\d+)?)|([N]\d+)|(\s+)|([^\s]+)/gi;
-
-  let match;
-  while ((match = pattern.exec(code)) !== null) {
-    const [, gcode, coord, param, lineNum, space, other] = match;
-
-    if (gcode) {
-      const isG = gcode.toUpperCase().startsWith('G');
-      tokens.push({ type: isG ? 'gcode' : 'mcode', text: gcode });
-    } else if (coord) {
-      tokens.push({ type: 'coord', text: coord });
-    } else if (param) {
-      tokens.push({ type: 'param', text: param });
-    } else if (lineNum) {
-      tokens.push({ type: 'comment', text: lineNum });
-    } else if (space) {
-      tokens.push({ type: 'text', text: space });
-    } else if (other) {
-      tokens.push({ type: 'text', text: other });
-    }
-  }
-}
+// Token type + highlightGcode() imported from gcodeHighlight.ts
 
 // ---------- Virtual scroll ----------
 const LINE_HEIGHT = 23; // px — matches .codeLine (12px × 1.6 + 4px padding)
@@ -1051,51 +999,7 @@ async function saveEdit() {
   color: var(--danger);
 }
 
-.codeViewer {
-  flex: 1;
-  min-height: 0;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  background: color-mix(in oklab, var(--panel) 70%, transparent);
-  overflow: auto;
-  padding: 8px 0;
-}
-
-.codeLine {
-  display: flex;
-  font-family: var(--font-mono);
-  font-size: var(--fs-base);
-  line-height: 1.6;
-  padding: 2px 12px;
-  height: 23px;
-  box-sizing: border-box;
-}
-
-.codeLine:hover {
-  background: color-mix(in oklab, var(--panel) 90%, var(--fg) 5%);
-}
-
-.codeLine.active {
-  background: color-mix(in oklab, var(--highlight) 20%, var(--panel));
-  border-left: 3px solid var(--highlight);
-  padding-left: 9px;
-}
-
-.lineNumber {
-  display: inline-block;
-  min-width: 40px;
-  text-align: right;
-  margin-right: 16px;
-  opacity: var(--opacity-muted);
-  user-select: none;
-  flex-shrink: 0;
-}
-
-.lineContent {
-  color: var(--fg);
-  white-space: pre;
-  flex: 1;
-}
+/* .codeViewer, .codeLine, .lineNumber, .lineContent — global in style.css */
 
 .emptyState {
   flex: 1;
@@ -1158,11 +1062,7 @@ async function saveEdit() {
   cursor: pointer;
 }
 
-.codeLine.selected {
-  background: color-mix(in oklab, var(--info) 20%, transparent);
-  border-left: 2px solid var(--info);
-  padding-left: 10px;
-}
+/* .codeLine.selected — global in style.css */
 
 /* Dialog */
 .runDialog {

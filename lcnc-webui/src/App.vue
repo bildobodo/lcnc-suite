@@ -14,9 +14,11 @@ import ToolTablePanel from "./ToolTablePanel.vue";
 import ProbePanel from "./ProbePanel.vue";
 import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
+import MachineInput from "./MachineInput.vue";
+import { highlightGcode } from "./gcodeHighlight";
 import { SlidersHorizontal, MessageSquare, PowerOff, Gamepad2, BookOpen, ClipboardCopy, Expand, Shrink } from "lucide-vue-next";
 import GcodeReferenceDialog from "./GcodeReferenceDialog.vue";
-import { loadViewerDefaults, saveViewerDefaults, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadMacrosDefaults, loadGamepadDefaults, saveGamepadDefaults, loadKeyboardDefaults, saveKeyboardDefaults, settingsVersion, type ThemeMode, type MacroDef, type GamepadDefaults, type KeyboardDefaults, type KeyboardAction, type Layer, type TrackMode, type Projection, type Vec3 } from "./defaults";
+import { loadViewerDefaults, saveViewerDefaults, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadMacrosDefaults, loadGamepadDefaults, saveGamepadDefaults, loadKeyboardDefaults, saveKeyboardDefaults, loadMdiHistory, saveMdiHistory, settingsVersion, type ThemeMode, type MacroDef, type GamepadDefaults, type KeyboardDefaults, type KeyboardAction, type Layer, type TrackMode, type Projection, type Vec3 } from "./defaults";
 import { useGamepad } from "./useGamepad";
 import {
   INTERP_IDLE, INTERP_READING, INTERP_PAUSED, INTERP_WAITING,
@@ -116,6 +118,7 @@ onMounted(() => {
   document.addEventListener("focusin", onNumFocus);
   document.addEventListener("fullscreenchange", onFullscreenChange);
   if (loadDisplayDefaults().startFullscreen) armStartFullscreen();
+  mdiHistory.value = loadMdiHistory();
 });
 
 watch(lcncError, (newVal, oldVal) => {
@@ -142,6 +145,7 @@ function reloadPage() { location.reload(); }
 const contentTabs = [
   { id: "gcode", label: "Program" },
   { id: "probe", label: "Probing" },
+  { id: "mdi", label: "MDI" },
 ];
 
 const activeTab = ref("gcode");
@@ -153,9 +157,65 @@ const connLabel = computed(() => {
   const h = location.hostname;
   return (h === "localhost" || h === "127.0.0.1") ? "local" : h;
 });
-// @ts-expect-error TS6133 — mdiText will be wired to MDI panel in strip
-const mdiText = ref("G0 X0 Y0");
+const mdiText = ref("");
 const busy = ref(false);
+
+// ─── MDI history ──────────────────────────────────────────────────
+const mdiHistory = ref<string[]>([]);
+const mdiHistoryIndex = ref(-1);
+const mdiSavedInput = ref("");
+const MDI_MAX_HISTORY = 50;
+
+function handleMdiSend() {
+  const cmd = mdiText.value.trim();
+  if (!cmd) return;
+  if (mdiHistory.value[0] !== cmd) {
+    mdiHistory.value.unshift(cmd);
+    if (mdiHistory.value.length > MDI_MAX_HISTORY) {
+      mdiHistory.value = mdiHistory.value.slice(0, MDI_MAX_HISTORY);
+    }
+  }
+  saveMdiHistory(mdiHistory.value);
+  mdiHistoryIndex.value = -1;
+  mdiSavedInput.value = "";
+  send({ cmd: "mdi", text: cmd });
+  mdiText.value = "";
+}
+
+function clearMdiHistory() {
+  mdiHistory.value = [];
+  saveMdiHistory([]);
+  mdiHistoryIndex.value = -1;
+  mdiSavedInput.value = "";
+}
+
+function onMdiKeydown(e: KeyboardEvent) {
+  if (e.key === "ArrowDown") {
+    e.preventDefault();
+    e.stopPropagation();
+    if (mdiHistory.value.length === 0) return;
+    if (mdiHistoryIndex.value === -1) {
+      mdiSavedInput.value = mdiText.value;
+    }
+    if (mdiHistoryIndex.value < mdiHistory.value.length - 1) {
+      mdiHistoryIndex.value++;
+      mdiText.value = mdiHistory.value[mdiHistoryIndex.value] ?? "";
+    }
+    return;
+  }
+  if (e.key === "ArrowUp") {
+    e.preventDefault();
+    e.stopPropagation();
+    if (mdiHistoryIndex.value < 0) return;
+    mdiHistoryIndex.value--;
+    if (mdiHistoryIndex.value === -1) {
+      mdiText.value = mdiSavedInput.value;
+    } else {
+      mdiText.value = mdiHistory.value[mdiHistoryIndex.value] ?? "";
+    }
+    return;
+  }
+}
 
 // Viewer state (initialized from saved defaults, persisted on every change)
 const workpieceSize = ref<[number, number, number]>(_vd.workpieceSize);
@@ -1223,6 +1283,41 @@ watch(viewerGcode, (newGcode) => {
               @clearSurfaceMap="surfacePoints = null; surfaceLoadedToViewer = false"
             />
           </template>
+
+          <template #mdi>
+            <div class="mdiTab">
+              <div class="mdiRow">
+                <MachineInput
+                  gate="mdiText"
+                  type="text"
+                  class="mdiInput"
+                  :value="mdiText"
+                  @input="mdiText = ($event.target as HTMLInputElement).value"
+                  @keyup.enter="handleMdiSend"
+                  @keydown="onMdiKeydown"
+                  placeholder="G-code command (↑↓ history)"
+                />
+                <MachineBtn type="mdi" inline @click="handleMdiSend">
+                  Send
+                </MachineBtn>
+              </div>
+              <div class="mdiHistoryHeader">
+                <span class="sub">History</span>
+                <MachineBtn type="inline" @click="clearMdiHistory" :disabled="mdiHistory.length === 0">Clear</MachineBtn>
+              </div>
+              <div class="codeViewer mdiHistoryList scroll-thin">
+                <div v-for="(cmd, i) in mdiHistory" :key="i"
+                     class="codeLine"
+                     :class="{ active: mdiHistoryIndex === i }"
+                     @click="mdiText = cmd">
+                  <span class="lineContent"><span
+                    v-for="(token, ti) in highlightGcode(cmd)" :key="ti"
+                    :class="'token-' + token.type">{{ token.text }}</span></span>
+                </div>
+                <div v-if="mdiHistory.length === 0" class="mdiHistoryEmpty">No history</div>
+              </div>
+            </div>
+          </template>
         </TabPanel>
       </div>
 
@@ -1707,5 +1802,45 @@ watch(viewerGcode, (newGcode) => {
 }
 
 .safetyDialog { z-index: 1010; }
+
+/* ─── MDI tab ─── */
+.mdiTab {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  gap: var(--gap-controls);
+}
+
+.mdiRow {
+  display: flex;
+  gap: var(--gap-controls);
+  align-items: center;
+}
+
+.mdiInput {
+  flex: 1;
+  min-width: 0;
+}
+
+.mdiHistoryHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mdiHistoryList {
+  min-height: 0;
+}
+
+.mdiHistoryList .codeLine {
+  cursor: pointer;
+}
+
+.mdiHistoryEmpty {
+  padding: var(--gap-section);
+  text-align: center;
+  opacity: var(--opacity-muted);
+}
 
 </style>

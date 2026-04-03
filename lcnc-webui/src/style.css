@@ -634,6 +634,59 @@ label:has(input:disabled, select:disabled) {
 .token-comment, .tok-comment { color: #6a9955; opacity: 0.8; }
 .token-text, .tok-text { color: var(--fg); }
 
+/* ---- Code viewer (shared by GcodePanel, MDI history) ---- */
+.codeViewer {
+  flex: 1;
+  min-height: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: color-mix(in oklab, var(--panel) 70%, transparent);
+  overflow: auto;
+  padding: var(--gap-controls) 0;
+}
+
+.codeLine {
+  display: flex;
+  font-family: var(--font-mono);
+  font-size: var(--fs-base);
+  line-height: 1.6;
+  padding: 2px 12px;
+  height: 23px;
+  box-sizing: border-box;
+}
+
+.codeLine:hover {
+  background: color-mix(in oklab, var(--panel) 90%, var(--fg) 5%);
+}
+
+.codeLine.active {
+  background: color-mix(in oklab, var(--highlight) 20%, var(--panel));
+  border-left: 3px solid var(--highlight);
+  padding-left: 9px;
+}
+
+.codeLine.selected {
+  background: color-mix(in oklab, var(--info) 20%, transparent);
+  border-left: 2px solid var(--info);
+  padding-left: 10px;
+}
+
+.lineNumber {
+  display: inline-block;
+  min-width: 40px;
+  text-align: right;
+  margin-right: 16px;
+  opacity: var(--opacity-muted);
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.lineContent {
+  color: var(--fg);
+  white-space: pre;
+  flex: 1;
+}
+
 /* ---- Layout utilities ---- */
 .stack-panel    { display: flex; flex-direction: column; gap: var(--gap-panel); }
 .stack-sections { display: flex; flex-direction: column; gap: var(--gap-section); }

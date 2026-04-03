@@ -23,7 +23,7 @@ export const BUTTON_TYPES = {
   abort:          { gate: 'abort',    variant: 'danger',  size: 'md' },
 
   // MDI / motion
-  mdi:            { gate: 'ready',    variant: 'default', size: 'md' },
+  mdi:            { gate: 'ready',    variant: 'primary', size: 'md' },
   goTo:           { gate: 'ready',    variant: 'default', size: 'md' },
   home:           { gate: 'idle',     variant: 'default', size: 'md' },
   unhome:         { gate: 'idle',     variant: 'default', size: 'md' },
