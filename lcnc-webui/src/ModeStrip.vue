@@ -92,6 +92,7 @@ const incrementOptions = computed(() => {
 interface JogDef {
   label: string;
   shortLabel: string;
+  dir_class: string;
   icon: Component;
   axis: number;
   dir: 1 | -1;
@@ -100,15 +101,15 @@ interface JogDef {
 }
 
 const xyBtns: JogDef[] = [
-  { label: "X-Y+", shortLabel: "",     icon: ArrowUpLeft,    axis: 0, dir: -1, axis2: 1, dir2: 1 },
-  { label: "Y+",   shortLabel: "Y+",   icon: ArrowUp,        axis: 1, dir: 1 },
-  { label: "X+Y+", shortLabel: "",     icon: ArrowUpRight,   axis: 0, dir: 1, axis2: 1, dir2: 1 },
-  { label: "X-",   shortLabel: "X-",   icon: ArrowLeft,      axis: 0, dir: -1 },
-  { label: "Jog Stop", shortLabel: "Stop", icon: CircleStop,  axis: -1, dir: 1 },
-  { label: "X+",   shortLabel: "X+",   icon: ArrowRight,     axis: 0, dir: 1 },
-  { label: "X-Y-", shortLabel: "",     icon: ArrowDownLeft,  axis: 0, dir: -1, axis2: 1, dir2: -1 },
-  { label: "Y-",   shortLabel: "Y-",   icon: ArrowDown,      axis: 1, dir: -1 },
-  { label: "X+Y-", shortLabel: "",     icon: ArrowDownRight, axis: 0, dir: 1, axis2: 1, dir2: -1 },
+  { label: "X-Y+", shortLabel: "",     icon: ArrowUpLeft,    axis: 0, dir: -1, axis2: 1, dir2: 1, dir_class: "" },
+  { label: "Y+",   shortLabel: "Y+",   icon: ArrowUp,        axis: 1, dir: 1, dir_class: "jogV" },
+  { label: "X+Y+", shortLabel: "",     icon: ArrowUpRight,   axis: 0, dir: 1, axis2: 1, dir2: 1, dir_class: "" },
+  { label: "X-",   shortLabel: "X-",   icon: ArrowLeft,      axis: 0, dir: -1, dir_class: "jogH" },
+  { label: "Jog Stop", shortLabel: "Stop", icon: CircleStop,  axis: -1, dir: 1, dir_class: "" },
+  { label: "X+",   shortLabel: "X+",   icon: ArrowRight,     axis: 0, dir: 1, dir_class: "jogH" },
+  { label: "X-Y-", shortLabel: "",     icon: ArrowDownLeft,  axis: 0, dir: -1, axis2: 1, dir2: -1, dir_class: "" },
+  { label: "Y-",   shortLabel: "Y-",   icon: ArrowDown,      axis: 1, dir: -1, dir_class: "jogV" },
+  { label: "X+Y-", shortLabel: "",     icon: ArrowDownRight, axis: 0, dir: 1, axis2: 1, dir2: -1, dir_class: "" },
 ];
 
 const active = reactive(new Set<string>());
@@ -207,7 +208,7 @@ function stopZJog(dir: 1 | -1, e: PointerEvent) {
             @pointercancel.prevent="stopJog(btn, $event)"
             @pointerleave.prevent="stopJog(btn, $event)"
             @contextmenu.prevent
-          ><div class="jogInner"><component :is="btn.icon" class="jogIcon" /><span v-if="btn.shortLabel" class="jogLabel">{{ btn.shortLabel }}</span></div></MachineBtn>
+          ><div :class="['jogInner', btn.dir_class]"><component :is="btn.icon" class="jogIcon" /><span v-if="btn.shortLabel" class="jogLabel">{{ btn.shortLabel }}</span></div></MachineBtn>
         </div>
 
         <div class="zGrid">
@@ -220,7 +221,7 @@ function stopZJog(dir: 1 | -1, e: PointerEvent) {
             @pointercancel.prevent="stopZJog(1, $event)"
             @pointerleave.prevent="stopZJog(1, $event)"
             @contextmenu.prevent
-          ><div class="jogInner"><ArrowUp class="jogIcon" /><span class="jogLabel">Z+</span></div></MachineBtn>
+          ><div class="jogInner jogV"><ArrowUp class="jogIcon" /><span class="jogLabel">Z+</span></div></MachineBtn>
           <MachineBtn
             type="jog"
             class="jogBtn"
@@ -230,7 +231,7 @@ function stopZJog(dir: 1 | -1, e: PointerEvent) {
             @pointercancel.prevent="stopZJog(-1, $event)"
             @pointerleave.prevent="stopZJog(-1, $event)"
             @contextmenu.prevent
-          ><div class="jogInner"><ArrowDown class="jogIcon" /><span class="jogLabel">Z-</span></div></MachineBtn>
+          ><div class="jogInner jogV"><ArrowDown class="jogIcon" /><span class="jogLabel">Z-</span></div></MachineBtn>
         </div>
       </div>
 
@@ -323,7 +324,16 @@ function stopZJog(dir: 1 | -1, e: PointerEvent) {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 2px;
   pointer-events: none;
+}
+/* Vertical arrows (Y+/Y-/Z): icon left, label right */
+.jogInner.jogV {
+  flex-direction: row;
+}
+/* Horizontal arrows (X-/X+): label top, icon bottom */
+.jogInner.jogH {
+  flex-direction: column-reverse;
 }
 .jogIcon { flex-shrink: 0; }
 .jogLabel {
