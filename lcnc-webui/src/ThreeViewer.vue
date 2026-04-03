@@ -88,10 +88,6 @@ import { Text } from "troika-three-text";
 
 import { viewerInit, viewerGcode, status } from "./lcncWs";
 import { loadViewerDefaults, ALL_LAYERS, settingsVersion, type Vec3, type Layer } from "./defaults";
-import JogHUD from "./JogHUD.vue";
-
-import SetupHUD from "./SetupHUD.vue";
-import MachineBtn from "./MachineBtn.vue";
 
 const themeMode = inject<Ref<string>>("themeMode", ref("auto"));
 
@@ -169,38 +165,15 @@ const props = defineProps<{
   g5xLabel?: string;
   linearUnit?: string;
   active?: boolean;
-  jogVel?: number;
-  angularJogVel?: number;
-  isHomed?: boolean;
-  maxJogVel?: number;
-  maxAngularJogVel?: number;
-  minAngularJogVel?: number;
-  jogIncrement?: number;
-  minJogVel?: number;
-  iniIncrements?: number[] | null;
   activeFile?: string | null;
   spindleSpeed?: number | null;
   spindleActual?: number | null;
   spindleDirection?: number | null;
   surfacePoints?: [number, number, number][] | null;
   axes?: string[];
-  touchoff?: number[];
-  jogDisabled?: boolean;
 }>();
 
 const emit = defineEmits<{
-  (e: "update:jogVel", vel: number): void;
-  (e: "update:angularJogVel", vel: number): void;
-  (e: "update:jogIncrement", val: number): void;
-  (e: "update:touchoff", values: number[]): void;
-  (e: "homeAll"): void;
-  (e: "unhomeAll"): void;
-  (e: "setAxis", axis: number, value: number): void;
-  (e: "setAll", values: number[]): void;
-  (e: "goToG30"): void;
-  (e: "goToHome"): void;
-  (e: "goToZero"): void;
-
 }>();
 
 // HUD data (read from status for template)
@@ -209,9 +182,6 @@ const vst = computed(() => status.value?.data ?? null);
 // ---------- DOM ----------
 const host = ref<HTMLDivElement | null>(null);
 const hudVisible = ref(true);
-type HudPanel = "none" | "jog" | "setup";
-const activeHudPanel = ref<HudPanel>("none");
-function toggleHud(panel: HudPanel) { activeHudPanel.value = activeHudPanel.value === panel ? "none" : panel; }
 
 // ---------- Three globals ----------
 let renderer: THREE.WebGLRenderer | null = null;
@@ -1929,70 +1899,10 @@ defineExpose({
       </div>
     </div>
 
-    <!-- HUD toggle buttons (top-left) -->
-    <div class="hudOverlay">
-      <div class="row-tight hudBtnRow">
-        <MachineBtn type="tab" :selected="activeHudPanel === 'jog'" @click="toggleHud('jog')">Jog</MachineBtn>
-        <MachineBtn type="tab" :selected="activeHudPanel === 'setup'" @click="toggleHud('setup')">Quick Setup</MachineBtn>
-      </div>
-
-      <div v-show="activeHudPanel === 'jog'" class="hud-panel">
-        <div class="popHeader"><span class="popTitle">Jog</span><MachineBtn type="close" @click="activeHudPanel = 'none'">&times;</MachineBtn></div>
-        <JogHUD
-          :axes="props.axes"
-          :jogVel="props.jogVel ?? 10"
-          :angularJogVel="props.angularJogVel ?? 10"
-          :linearUnit="props.linearUnit ?? 'mm'"
-          :maxJogVel="props.maxJogVel ?? 100"
-          :maxAngularJogVel="props.maxAngularJogVel ?? 60"
-          :minAngularJogVel="props.minAngularJogVel ?? 0.1"
-          :jogIncrement="props.jogIncrement ?? 0"
-          :minJogVel="props.minJogVel ?? 0.1"
-          :iniIncrements="props.iniIncrements ?? null"
-          :isHomed="props.isHomed ?? false"
-          :disabled="props.jogDisabled"
-          @update:jogVel="emit('update:jogVel', $event)"
-          @update:angularJogVel="emit('update:angularJogVel', $event)"
-          @update:jogIncrement="emit('update:jogIncrement', $event)"
-        />
-      </div>
-
-      <div v-show="activeHudPanel === 'setup'" class="hud-panel">
-        <div class="popHeader"><span class="popTitle">Quick Setup</span><MachineBtn type="close" @click="activeHudPanel = 'none'">&times;</MachineBtn></div>
-        <SetupHUD
-          :axes="props.axes"
-          :homed="props.isHomed ?? false"
-          :touchoff="props.touchoff ?? []"
-          @update:touchoff="emit('update:touchoff', $event)"
-          @homeAll="emit('homeAll')"
-          @unhomeAll="emit('unhomeAll')"
-          @setAxis="(axis: number, val: number) => emit('setAxis', axis, val)"
-          @setAll="(vals: number[]) => emit('setAll', vals)"
-          @goToG30="emit('goToG30')"
-          @goToHome="emit('goToHome')"
-          @goToZero="emit('goToZero')"
-        />
-      </div>
-    </div>
   </div>
 </template>
 
 <style scoped>
-.hudOverlay {
-  position: absolute;
-  z-index: 1;
-  top: 12px;
-  left: 12px;
-  pointer-events: auto;
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-tight);
-  min-width: 240px;
-  max-height: calc(100% - 24px);
-  overflow-y: auto;
-}
-
-
 .viewerWrapper {
   position: relative;
   width: 100%;
