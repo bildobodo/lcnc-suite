@@ -660,7 +660,7 @@ async function saveEdit() {
 }
 
 .header {
-  padding: 8px 12px;
+  padding: var(--gap-controls) var(--gap-section);
   background: color-mix(in oklab, var(--panel) 50%, transparent);
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
@@ -835,7 +835,7 @@ async function saveEdit() {
   align-items: center;
   justify-content: space-between;
   gap: var(--gap-controls);
-  padding: 6px 10px;
+  padding: var(--gap-tight) var(--gap-controls);
   background: color-mix(in oklab, var(--err) 15%, var(--panel));
   border: 1px solid color-mix(in srgb, var(--err) 25%, transparent);
   border-radius: var(--radius-lg);
@@ -857,7 +857,7 @@ async function saveEdit() {
   display: flex;
   align-items: center;
   gap: var(--gap-controls);
-  padding: 6px 10px;
+  padding: var(--gap-tight) var(--gap-controls);
   border-bottom: 1px solid var(--border);
   font-size: var(--fs-sm);
   opacity: var(--opacity-muted);
@@ -888,7 +888,7 @@ async function saveEdit() {
   display: flex;
   align-items: center;
   gap: var(--gap-controls);
-  padding: 5px 10px;
+  padding: var(--gap-tight) var(--gap-controls);
   cursor: pointer;
   font-size: var(--fs-base);
   transition: background 0.1s;
@@ -927,7 +927,7 @@ async function saveEdit() {
 }
 
 .emptyBrowser {
-  padding: 12px;
+  padding: var(--gap-section);
   text-align: center;
   font-size: var(--fs-base);
   opacity: var(--opacity-muted);
@@ -1092,7 +1092,7 @@ async function saveEdit() {
   transform: translate(-50%, -100%) translateY(-6px);
   z-index: 1000;
   max-width: 320px;
-  padding: 6px 10px;
+  padding: var(--gap-tight) var(--gap-controls);
   border-radius: var(--radius-lg);
   background: var(--panel);
   border: 1px solid var(--border);

@@ -78,7 +78,7 @@ const timingComponents: { key: keyof Omit<import("./lcncWs").TimingStats, "count
   display: grid;
   grid-template-columns: 100px repeat(5, 1fr);
   gap: var(--gap-tight);
-  padding: 2px 0;
+  padding: var(--gap-micro) 0;
 }
 
 .timingRow span {
@@ -93,20 +93,20 @@ const timingComponents: { key: keyof Omit<import("./lcncWs").TimingStats, "count
   opacity: var(--opacity-muted);
   font-weight: var(--fw-semibold);
   border-bottom: 1px solid currentColor;
-  padding-bottom: 2px;
-  margin-bottom: 2px;
+  padding-bottom: var(--gap-micro);
+  margin-bottom: var(--gap-micro);
 }
 
 .timingTotal {
   border-bottom: 1px solid currentColor;
-  padding-bottom: 4px;
-  margin-bottom: 2px;
+  padding-bottom: var(--gap-tight);
+  margin-bottom: var(--gap-micro);
   font-weight: var(--fw-semibold);
 }
 
 .timingTotal + .timingRow:not(.timingTotal) ~ .timingTotal {
   border-top: 1px solid currentColor;
-  padding-top: 4px;
+  padding-top: var(--gap-tight);
   margin-top: var(--gap-controls);
 }
 
@@ -120,7 +120,7 @@ const timingComponents: { key: keyof Omit<import("./lcncWs").TimingStats, "count
   max-height: 300px;
   overflow: auto;
   margin: 0;
-  padding: 6px;
+  padding: var(--gap-tight);
   background: color-mix(in oklab, var(--fg) 5%, var(--bg));
   border-radius: var(--radius-md);
 }

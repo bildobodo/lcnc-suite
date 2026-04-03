@@ -321,7 +321,7 @@ function stopZJog(dir: 1 | -1, e: PointerEvent) {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: var(--gap-micro);
   pointer-events: none;
 }
 /* Vertical arrows (Y+/Y-/Z): icon left, label right */

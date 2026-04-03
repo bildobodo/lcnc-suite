@@ -282,7 +282,7 @@ function togglePill(name: string) {
   color: var(--fg);
   cursor: pointer;
   user-select: none;
-  padding: 3px 4px;
+  padding: var(--gap-tight);
   border-radius: var(--radius-md);
 }
 

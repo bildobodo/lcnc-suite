@@ -1633,7 +1633,7 @@ const halStats = computed(() => ({
 }
 
 .halError {
-  padding: 6px 10px;
+  padding: var(--gap-tight) var(--gap-controls);
   margin-bottom: var(--gap-controls);
   border-radius: var(--radius-md);
   background: color-mix(in oklab, var(--danger) 15%, var(--bg));
@@ -1664,14 +1664,14 @@ const halStats = computed(() => ({
 }
 
 .halGroup {
-  margin-bottom: 2px;
+  margin-bottom: var(--gap-micro);
 }
 
 .halGroupHeader {
   display: flex;
   align-items: center;
   gap: var(--gap-tight);
-  padding: 3px 0;
+  padding: var(--gap-tight) 0;
   background: none;
   border: none;
   border-radius: 0;
@@ -1707,7 +1707,7 @@ const halStats = computed(() => ({
   display: flex;
   align-items: baseline;
   gap: var(--gap-controls);
-  padding: 1px 0;
+  padding: var(--gap-micro) 0;
 }
 
 .halRow:hover {
@@ -1785,8 +1785,8 @@ const halStats = computed(() => ({
   display: flex;
   flex-wrap: wrap;
   gap: var(--gap-tight) var(--gap-section);
-  padding-left: 12px;
-  padding-top: 2px;
+  padding-left: var(--gap-section);
+  padding-top: var(--gap-micro);
   opacity: var(--opacity-muted);
 }
 

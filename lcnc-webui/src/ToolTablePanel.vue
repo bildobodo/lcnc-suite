@@ -633,7 +633,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
 .errorBanner {
   background: color-mix(in oklab, var(--danger) 30%, var(--bg));
   color: var(--danger);
-  padding: 6px 10px;
+  padding: var(--gap-tight) var(--gap-controls);
   border-radius: var(--radius-xl);
   font-size: var(--fs-base);
   margin-bottom: var(--gap-tight);
@@ -646,7 +646,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
   gap: var(--gap-controls);
   background: color-mix(in oklab, var(--ok) 20%, var(--bg));
   color: var(--ok);
-  padding: 6px 10px;
+  padding: var(--gap-tight) var(--gap-controls);
   border-radius: var(--radius-xl);
   font-size: var(--fs-base);
   margin-bottom: var(--gap-tight);

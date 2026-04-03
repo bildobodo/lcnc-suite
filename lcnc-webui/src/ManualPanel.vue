@@ -301,7 +301,7 @@ function onMdiKeydown(e: KeyboardEvent) {
 }
 
 .mdiHistoryEmpty {
-  padding: 12px;
+  padding: var(--gap-section);
   text-align: center;
   opacity: var(--opacity-muted);
 }

@@ -1934,7 +1934,7 @@ defineExpose({
   background: color-mix(in oklab, var(--panel) 85%, transparent);
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
-  padding: 8px 12px;
+  padding: var(--gap-controls) var(--gap-section);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   font-family: var(--font-mono);
@@ -1968,7 +1968,7 @@ defineExpose({
 .hudAxis {
   color: var(--fg);
   opacity: var(--opacity-muted);
-  margin-right: 4px;
+  margin-right: var(--gap-tight);
 }
 .hudWarn .hudLabel,
 .hudWarn .hudValue {
