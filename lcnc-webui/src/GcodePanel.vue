@@ -4,6 +4,7 @@ import { listFiles, uploadFile, saveFile, type FileEntry } from "./lcncApi";
 import { usePermissions } from "./permissions";
 import { loadMachineDefaults, STEP_RPM } from "./defaults";
 import { highlightGcode, type Token } from "./gcodeHighlight";
+import { fmtDuration, fmtDist, fmtSize } from "./format";
 import { GCODE_LOOKUP, GCODE_REFERENCE } from "./gcodeReference";
 import { Play, SkipForward, Pause, Square } from "lucide-vue-next";
 import Gate from "./Gate.vue";
@@ -102,24 +103,7 @@ function onTokenClick(ev: MouseEvent, token: Token) {
 
 function dismissTooltip() { tooltip.value = null; }
 
-function fmtTime(secs: number): string {
-  if (secs < 60) return `${Math.round(secs)}s`;
-  const m = Math.floor(secs / 60);
-  const s = Math.round(secs % 60);
-  if (m < 60) return `${m}m ${s}s`;
-  const h = Math.floor(m / 60);
-  return `${h}h ${m % 60}m`;
-}
-
-function fmtDist(val: number, unit: string): string {
-  return `${val.toFixed(1)} ${unit}`;
-}
-
-function fmtSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
+// fmtTime/fmtDist/fmtSize → imported from format.ts
 
 // SVG donut chart segments (distance breakdown: rapid / linear / arc)
 const DONUT_R = 40;
@@ -439,13 +423,13 @@ async function saveEdit() {
 
             <div class="statsGrid">
               <span class="statsLabel">Estimated time</span>
-              <span class="statsValue">{{ fmtTime(gcodeStats.totalTime) }}</span>
+              <span class="statsValue">{{ fmtDuration(gcodeStats.totalTime) }}</span>
 
               <span class="statsLabel">Feed time</span>
-              <span class="statsValue">{{ fmtTime(gcodeStats.feedTime) }}</span>
+              <span class="statsValue">{{ fmtDuration(gcodeStats.feedTime) }}</span>
 
               <span class="statsLabel">Rapid time</span>
-              <span class="statsValue">{{ fmtTime(gcodeStats.rapidTime) }}</span>
+              <span class="statsValue">{{ fmtDuration(gcodeStats.rapidTime) }}</span>
             </div>
 
             <div class="sep"></div>

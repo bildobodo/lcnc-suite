@@ -3,8 +3,7 @@ import { computed } from "vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineInput from "./MachineInput.vue";
 import { STEP_DEFAULT } from "./defaults";
-
-const ROTARY = new Set(["A", "B", "C"]);
+import { fmtCoord } from "./format";
 
 const props = defineProps<{
   axes: string[];
@@ -45,12 +44,7 @@ function setAll() {
   emit("setAll", [...props.touchoff]);
 }
 
-function fmt(n: any, letter?: string) {
-  const x = Number(n);
-  if (!Number.isFinite(x)) return "-";
-  if (letter && ROTARY.has(letter)) return x.toFixed(2) + "°";
-  return x.toFixed(3);
-}
+// fmt → fmtCoord imported from format.ts
 
 </script>
 
@@ -60,7 +54,7 @@ function fmt(n: any, letter?: string) {
       <div class="sub">Work Position ({{ g5xLabel }})</div>
       <div class="grid">
         <template v-for="(letter, i) in axes" :key="'w' + letter">
-          <div class="axis"><span>{{ letter }}</span><b>{{ fmt(workPos[i], letter) }}</b></div>
+          <div class="axis"><span>{{ letter }}</span><b>{{ fmtCoord(workPos[i], letter) }}</b></div>
           <MachineInput gate="touchoff" type="number" :step="STEP_DEFAULT" :value="touchoff[i]" @input="updateTouchoff(i, +($event.target as HTMLInputElement).value)" @keydown.enter="setAxis(i)" />
           <MachineBtn type="zero" class="zeroBtn" @click="setAxis(i)">Set {{ letter }}</MachineBtn>
         </template>
@@ -74,7 +68,7 @@ function fmt(n: any, letter?: string) {
       <div class="sub">Machine Position</div>
       <div class="grid">
         <template v-for="(letter, i) in axes" :key="'m' + letter">
-          <div class="axis"><span>{{ letter }}</span><b>{{ fmt(machinePos[i], letter) }}</b></div>
+          <div class="axis"><span>{{ letter }}</span><b>{{ fmtCoord(machinePos[i], letter) }}</b></div>
           <div></div>
           <MachineBtn :type="homedJoints[i] ? 'unhome' : 'home'" class="zeroBtn" @click="homedJoints[i] ? emit('unhomeAxis', i) : emit('homeAxis', i)"><span class="stable-width"><span :class="{ alt: homedJoints[i] }">Home {{ letter }}</span><span :class="{ alt: !homedJoints[i] }">Unhome {{ letter }}</span></span></MachineBtn>
         </template>

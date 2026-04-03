@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from "vue";
 import MachineBtn from "./MachineBtn.vue";
+import { fmtNum } from "./format";
 import MachineInput from "./MachineInput.vue";
 import MachineToggle from "./MachineToggle.vue";
 import { usePermissions } from "./permissions";
@@ -519,15 +520,10 @@ onUnmounted(() => {
   if (_threeCleanup) { _threeCleanup(); _threeCleanup = null; }
 });
 
-function fmt(n: number | undefined): string {
-  if (n == null || !Number.isFinite(n)) return "---";
-  return n.toFixed(4);
-}
+// fmt → fmtNum imported from format.ts
 
 function fmtR(key: string): string {
-  const v = props.probeResults?.[key];
-  if (v == null || !Number.isFinite(v)) return "---";
-  return v.toFixed(4);
+  return fmtNum(props.probeResults?.[key]);
 }
 </script>
 
@@ -1192,7 +1188,7 @@ function fmtR(key: string): string {
         <MachineInput gate="probeParam" type="number" v-model.number="params.stepOffWidth" min="0.1" :step="STEP_DEFAULT" @change="saveParams" />
 
         <label title="Probe tip radius calibration offset. Compensates for the difference between electrical trigger point and true tip center. Set via calibration routines — do not guess. (#3032)">Cal Offset</label>
-        <span class="calOffsetReadonly">{{ fmt(params.calOffset) }} <MachineBtn type="probe" :disabled="probing" @click="resetCal">Reset</MachineBtn></span>
+        <span class="calOffsetReadonly">{{ fmtNum(params.calOffset) }} <MachineBtn type="probe" :disabled="probing" @click="resetCal">Reset</MachineBtn></span>
       </div>
     </div>
 

@@ -2,6 +2,7 @@
 import { ref, computed, watch, onMounted, nextTick } from "vue";
 import { lastReply, connected, send } from "./lcncWs";
 import { usePermissions } from "./permissions";
+import { fmtOffset } from "./format";
 import MachineBtn from "./MachineBtn.vue";
 
 import Gate from "./Gate.vue";
@@ -47,11 +48,7 @@ watch(connected, (val) => {
   if (val) setTimeout(fetchTable, 300);
 });
 
-// ─── Formatting ──────────────────────────────────────────────
-function fmtOff(v: number | undefined): string {
-  if (v == null || !Number.isFinite(v)) return "0.0000";
-  return v.toFixed(4);
-}
+// Formatting imported from format.ts (fmtOffset)
 
 // ─── Auxiliary row visibility ────────────────────────────────
 const hasG92 = computed(() => props.g92Offset?.some(v => v !== 0) ?? false);
@@ -158,7 +155,7 @@ function clearAll() {
                 @blur="commitCell(row.name as string, axis)"
                 @click.stop
               />
-              <span v-else class="cellValue">{{ fmtOff(Number(row[axis])) }}</span>
+              <span v-else class="cellValue">{{ fmtOffset(Number(row[axis])) }}</span>
             </td>
           </tr>
 
@@ -166,7 +163,7 @@ function clearAll() {
           <tr v-if="hasG92" class="auxRow">
             <td class="offLabel auxLabel">G92</td>
             <td v-for="(col, i) in offsetColumns" :key="col">
-              {{ col === 'r' ? '' : fmtOff(g92Offset?.[i]) }}
+              {{ col === 'r' ? '' : fmtOffset(g92Offset?.[i]) }}
             </td>
           </tr>
 
@@ -174,7 +171,7 @@ function clearAll() {
           <tr v-if="hasTool" class="auxRow">
             <td class="offLabel auxLabel">Tool</td>
             <td v-for="(col, i) in offsetColumns" :key="col">
-              {{ col === 'r' ? '' : fmtOff(toolOffset?.[i]) }}
+              {{ col === 'r' ? '' : fmtOffset(toolOffset?.[i]) }}
             </td>
           </tr>
 
@@ -182,7 +179,7 @@ function clearAll() {
           <tr v-if="hasComp" class="auxRow">
             <td class="offLabel auxLabel">Comp</td>
             <td v-for="col in offsetColumns" :key="col">
-              {{ col === 'z' ? fmtOff(eoffsetZ ?? undefined) : '' }}
+              {{ col === 'z' ? fmtOffset(eoffsetZ ?? undefined) : '' }}
             </td>
           </tr>
         </tbody>

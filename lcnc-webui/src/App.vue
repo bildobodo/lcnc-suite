@@ -17,6 +17,7 @@ import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineInput from "./MachineInput.vue";
 import { highlightGcode } from "./gcodeHighlight";
+import { fmtElapsed } from "./format";
 import { SlidersHorizontal, MessageSquare, PowerOff, Gamepad2, BookOpen, ClipboardCopy, Expand, Shrink } from "lucide-vue-next";
 import GcodeReferenceDialog from "./GcodeReferenceDialog.vue";
 import { loadViewerDefaults, saveViewerDefaults, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadMacrosDefaults, loadGamepadDefaults, saveGamepadDefaults, loadKeyboardDefaults, saveKeyboardDefaults, loadMdiHistory, saveMdiHistory, settingsVersion, type ThemeMode, type MacroDef, type GamepadDefaults, type KeyboardDefaults, type KeyboardAction, type Layer, type TrackMode, type Projection, type Vec3 } from "./defaults";
@@ -383,16 +384,7 @@ watch([isRunning, isPaused], ([running, paused], [wasRunning, wasPaused]) => {
 
 onUnmounted(() => _stopTimer());
 
-function formatElapsed(s: number): string {
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  const sec = s % 60;
-  const mm = String(m).padStart(2, "0");
-  const ss = String(sec).padStart(2, "0");
-  return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
-}
-
-const elapsedDisplay = computed(() => formatElapsed(programElapsed.value));
+const elapsedDisplay = computed(() => fmtElapsed(programElapsed.value));
 
 /** ---------- display helpers for machine states ---------- */
 // G5x work coordinate system (G54, G55, etc.)

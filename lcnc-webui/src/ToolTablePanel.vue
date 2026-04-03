@@ -3,6 +3,7 @@ import { ref, computed, watch, onMounted } from "vue";
 import { send, lastReply, connected } from "./lcncWs";
 import { loadMachineDefaults, STEP_DEFAULT, type ToolChangeMode } from "./defaults";
 import { TOOL_TYPE_LABELS, toolTypeLabel } from "./toolTypes";
+import { fmtCell } from "./format";
 import { Pencil, Trash2 } from "lucide-vue-next";
 import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
@@ -331,11 +332,7 @@ function cancelImport() {
   importResult.value = null;
 }
 
-function fmtNum(n: any, decimals = 4) {
-  if (n == null || n === "") return "-";
-  const x = Number(n);
-  return Number.isFinite(x) ? x.toFixed(decimals) : "-";
-}
+// fmtNum → fmtCell imported from format.ts
 
 const importInputRef = ref<HTMLInputElement | null>(null);
 function triggerImport() {
@@ -517,7 +514,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
               <div v-for="t in importPreview" :key="t.T" class="importRow">
                 <span class="importT mono">T{{ t.T }}</span>
                 <span class="importType">{{ toolTypeLabel(t.type) }}</span>
-                <span class="importDia mono">Ø{{ fmtNum(t.D, 2) }}</span>
+                <span class="importDia mono">Ø{{ fmtCell(t.D, 2) }}</span>
                 <span class="importDesc">{{ t.description || '-' }}</span>
               </div>
             </div>
@@ -564,8 +561,8 @@ defineExpose({ openAdd, fetchTools, triggerImport });
               <MachineBtn type="toolLoad" @click="requestToolChange(tool.T)">T{{ tool.T }}</MachineBtn>
             </td>
             <td class="colSm mono">{{ tool.P }}</td>
-            <td class="colNum mono">{{ fmtNum(tool.D) }}</td>
-            <td class="colNum mono">{{ fmtNum(tool.Z, 6) }}</td>
+            <td class="colNum mono">{{ fmtCell(tool.D) }}</td>
+            <td class="colNum mono">{{ fmtCell(tool.Z, 6) }}</td>
             <td class="colType">{{ toolTypeLabel(tool.type) }}</td>
             <td class="colSm mono">{{ tool.flutes ?? "-" }}</td>
             <td class="colDesc" :title="tool.description">{{ tool.description || tool.remark || "-" }}</td>

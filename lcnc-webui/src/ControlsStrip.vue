@@ -10,6 +10,7 @@ import { RotateCw, RotateCcw, Square } from "lucide-vue-next";
 import { STEP_RPM, STEP_OVERRIDE, STEP_RAPID_OVERRIDE, type MacroDef } from "./defaults";
 import { send, lastReply, connected } from "./lcncWs";
 import { toolTypeLabel } from "./toolTypes";
+import { fmtRpm } from "./format";
 
 const props = defineProps<{
   feedSlider: number;
@@ -63,10 +64,7 @@ const emit = defineEmits<{
   (e: "executeMacro", m: MacroDef): void;
 }>();
 
-function formatRpm(val: number | null): string {
-  if (val == null) return "---";
-  return Math.round(val).toLocaleString();
-}
+// formatRpm → fmtRpm imported from format.ts
 
 function onFeedSlider(v: number) { emit('update:feedSlider', v); }
 function onSpindleSlider(v: number) { emit('update:spindleSlider', v); }
@@ -164,11 +162,11 @@ onBeforeUnmount(() => _previewRo?.disconnect());
         <div class="spActualGroup">
           <div class="spActualRow">
             <span class="label-muted md">Actual</span>
-            <span class="val-status md mono">{{ formatRpm(spindleActual) }}</span>
+            <span class="val-status md mono">{{ fmtRpm(spindleActual) }}</span>
           </div>
           <div class="spActualRow">
             <span class="label-muted md">Cmd</span>
-            <span class="val-status md mono muted">{{ formatRpm(spindleSpeed) }}</span>
+            <span class="val-status md mono muted">{{ fmtRpm(spindleSpeed) }}</span>
           </div>
           <div class="spActualRow">
             <span class="label-muted md">Dir</span>

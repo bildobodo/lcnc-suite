@@ -88,6 +88,7 @@ import { Text } from "troika-three-text";
 
 import { viewerInit, viewerGcode, status } from "./lcncWs";
 import { loadViewerDefaults, ALL_LAYERS, settingsVersion, type Vec3, type Layer } from "./defaults";
+import { fmtCoord } from "./format";
 
 const themeMode = inject<Ref<string>>("themeMode", ref("auto"));
 
@@ -1573,12 +1574,7 @@ watch(
 
 
 // Format coordinate for HUD display
-const HUD_ROTARY = new Set(["A", "B", "C"]);
-function formatCoord(val: number | null | undefined, axisLetter?: string): string {
-  if (val == null) return '---';
-  if (axisLetter && HUD_ROTARY.has(axisLetter)) return val.toFixed(2) + "°";
-  return val.toFixed(3);
-}
+// formatCoord → fmtCoord imported from format.ts
 
 const hudAxes = computed(() => props.axes ?? ["X", "Y", "Z"]);
 
@@ -1826,17 +1822,17 @@ defineExpose({
         <div class="hudCoords">
           <div class="hudCol">
             <div v-for="a in hudPrimary" :key="'w'+a.letter" class="hudCoord">
-              <span class="hudAxis">{{ a.letter }}</span> {{ formatCoord(vst?.work_pos?.[a.index], a.letter) }}
+              <span class="hudAxis">{{ a.letter }}</span> {{ fmtCoord(vst?.work_pos?.[a.index], a.letter) }}
             </div>
           </div>
           <div v-if="hudAbc.length" class="hudCol">
             <div v-for="a in hudAbc" :key="'w'+a.letter" class="hudCoord">
-              <span class="hudAxis">{{ a.letter }}</span> {{ formatCoord(vst?.work_pos?.[a.index], a.letter) }}
+              <span class="hudAxis">{{ a.letter }}</span> {{ fmtCoord(vst?.work_pos?.[a.index], a.letter) }}
             </div>
           </div>
           <div v-if="hudUvw.length" class="hudCol">
             <div v-for="a in hudUvw" :key="'w'+a.letter" class="hudCoord">
-              <span class="hudAxis">{{ a.letter }}</span> {{ formatCoord(vst?.work_pos?.[a.index], a.letter) }}
+              <span class="hudAxis">{{ a.letter }}</span> {{ fmtCoord(vst?.work_pos?.[a.index], a.letter) }}
             </div>
           </div>
         </div>
@@ -1847,17 +1843,17 @@ defineExpose({
         <div class="hudCoords">
           <div class="hudCol">
             <div v-for="a in hudPrimary" :key="'m'+a.letter" class="hudCoord">
-              <span class="hudAxis">{{ a.letter }}</span> {{ formatCoord(vst?.machine_pos?.[a.index], a.letter) }}
+              <span class="hudAxis">{{ a.letter }}</span> {{ fmtCoord(vst?.machine_pos?.[a.index], a.letter) }}
             </div>
           </div>
           <div v-if="hudAbc.length" class="hudCol">
             <div v-for="a in hudAbc" :key="'m'+a.letter" class="hudCoord">
-              <span class="hudAxis">{{ a.letter }}</span> {{ formatCoord(vst?.machine_pos?.[a.index], a.letter) }}
+              <span class="hudAxis">{{ a.letter }}</span> {{ fmtCoord(vst?.machine_pos?.[a.index], a.letter) }}
             </div>
           </div>
           <div v-if="hudUvw.length" class="hudCol">
             <div v-for="a in hudUvw" :key="'m'+a.letter" class="hudCoord">
-              <span class="hudAxis">{{ a.letter }}</span> {{ formatCoord(vst?.machine_pos?.[a.index], a.letter) }}
+              <span class="hudAxis">{{ a.letter }}</span> {{ fmtCoord(vst?.machine_pos?.[a.index], a.letter) }}
             </div>
           </div>
         </div>
@@ -1867,8 +1863,8 @@ defineExpose({
         <div class="label">Tool</div>
         <div class="hudCoords">
           <div class="hudCoord"><span class="hudAxis">T</span> {{ vst?.tool_number ?? '-' }}</div>
-          <div class="hudCoord"><span class="hudAxis">Ø</span> {{ formatCoord(vst?.tool_diameter) }}</div>
-          <div class="hudCoord"><span class="hudAxis">L</span> {{ formatCoord(vst?.tool_length) }}</div>
+          <div class="hudCoord"><span class="hudAxis">Ø</span> {{ fmtCoord(vst?.tool_diameter) }}</div>
+          <div class="hudCoord"><span class="hudAxis">L</span> {{ fmtCoord(vst?.tool_length) }}</div>
         </div>
       </div>
 
@@ -1879,7 +1875,7 @@ defineExpose({
 
       <div class="hudSection">
         <div class="label">Spindle</div>
-        <div class="hudValue">{{ formatCoord(vst?.spindle_speed_actual) }} RPM</div>
+        <div class="hudValue">{{ fmtCoord(vst?.spindle_speed_actual) }} RPM</div>
         <div v-if="vst?.spindle_load != null" class="hudValue">Load {{ Math.round(vst.spindle_load) }}%</div>
       </div>
 
