@@ -1561,6 +1561,8 @@ watch(viewerGcode, (newGcode) => {
         :mistOn="mistOn"
         :toolNumber="toolNumber"
         :currentTool="st.tool_number ?? 0"
+        :toolDiameter="st.tool_diameter ?? null"
+        :toolLength="st.tool_length ?? null"
         :probing="!!st.probing"
         :userMacros="userMacros"
         @update:feedSlider="feedSlider = $event"

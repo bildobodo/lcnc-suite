@@ -29,6 +29,8 @@ const props = defineProps<{
   mistOn: boolean;
   toolNumber: number;
   currentTool: number;
+  toolDiameter: number | null;
+  toolLength: number | null;
   probing: boolean;
   userMacros: MacroDef[];
 }>();
@@ -138,6 +140,40 @@ function onRapidSlider(v: number) { emit('update:rapidSlider', v); }
         <MachineToggle gate="coolant" :modelValue="mistOn" @update:modelValue="emit('toggleMist')" label="Mist" />
       </div>
     </div>
+
+    <!-- RIGHT-MOST: Tool -->
+    <div class="toolBlock">
+      <div class="toolInputRow">
+        <span class="label-muted md">Tool #</span>
+        <MachineInput gate="rpmInput" type="number" class="toolNumInput"
+          :value="toolNumber"
+          @input="emit('update:toolNumber', +($event.target as HTMLInputElement).value)"
+          @change="emit('saveToolNumber')"
+          :min="1" />
+        <MachineBtn type="mdi" :disabled="probing" @click="emit('loadTool')">Load</MachineBtn>
+        <MachineBtn type="toolUnload" :disabled="probing" @click="emit('unloadTool')">Unload</MachineBtn>
+      </div>
+
+      <div class="toolActionRow">
+        <MachineBtn type="mdi" :disabled="probing" @click="emit('measureAuto')">Measure</MachineBtn>
+        <MachineBtn type="manage" @click="emit('openToolTable')">Table</MachineBtn>
+      </div>
+
+      <div class="toolStats">
+        <div class="spActualRow">
+          <span class="label-muted md">Current Tool</span>
+          <span class="val-status md mono">T{{ currentTool }}</span>
+        </div>
+        <div class="spActualRow">
+          <span class="label-muted md">Diameter</span>
+          <span class="val-status md mono">{{ toolDiameter != null ? toolDiameter.toFixed(3) : '---' }}</span>
+        </div>
+        <div class="spActualRow">
+          <span class="label-muted md">Z Offset</span>
+          <span class="val-status md mono">{{ toolLength != null ? toolLength.toFixed(3) : '---' }}</span>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -209,5 +245,39 @@ function onRapidSlider(v: number) { emit('update:rapidSlider', v); }
   display: flex;
   gap: var(--gap-section);
   flex-shrink: 0;
+}
+
+/* ── Tool ── */
+.toolBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-controls);
+  border-left: 1px solid var(--border-subtle);
+  padding-left: var(--gap-controls);
+}
+
+.toolInputRow {
+  display: flex;
+  align-items: stretch;
+  gap: var(--gap-tight);
+}
+
+.toolNumInput {
+  width: 60px;
+}
+
+.toolActionRow {
+  display: flex;
+  gap: var(--gap-tight);
+}
+
+.toolActionRow :deep(.b) {
+  flex: 1;
+}
+
+.toolStats {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-tight);
 }
 </style>
