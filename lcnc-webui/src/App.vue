@@ -1297,13 +1297,12 @@ watch(viewerGcode, (newGcode) => {
                   @keydown="onMdiKeydown"
                   placeholder="G-code command (↑↓ history)"
                 />
-                <MachineBtn type="mdi" inline @click="handleMdiSend">
-                  Send
-                </MachineBtn>
+                <MachineBtn type="mdi" @click="handleMdiSend">Send</MachineBtn>
+                <MachineBtn type="abort" @click="send({ cmd: 'abort' })">Abort</MachineBtn>
               </div>
               <div class="mdiHistoryHeader">
                 <span class="sub">History</span>
-                <MachineBtn type="inline" @click="clearMdiHistory" :disabled="mdiHistory.length === 0">Clear</MachineBtn>
+                <MachineBtn type="dialogCancel" @click="clearMdiHistory" :disabled="mdiHistory.length === 0">Clear</MachineBtn>
               </div>
               <div class="codeViewer mdiHistoryList scroll-thin">
                 <div v-for="(cmd, i) in mdiHistory" :key="i"
@@ -1815,7 +1814,7 @@ watch(viewerGcode, (newGcode) => {
 .mdiRow {
   display: flex;
   gap: var(--gap-controls);
-  align-items: center;
+  align-items: stretch;
 }
 
 .mdiInput {
