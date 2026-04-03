@@ -747,6 +747,15 @@ label:has(input:disabled, select:disabled) {
 /* Safety button label */
 .btn-label-sm   { font-size: var(--fs-xs); font-weight: var(--fw-semibold); text-transform: uppercase; }
 
+/* Empty state (no data / drag target) */
+.emptyState { text-align: center; opacity: var(--opacity-muted); font-size: var(--fs-md); }
+
+/* Status indicator dot */
+.statusDot { width: 8px; height: 8px; border-radius: var(--radius-round); background: var(--border); }
+.statusDot.probing { background: var(--warn); animation: statusPulse 0.8s ease-in-out infinite alternate; }
+.statusDot.tripped { background: var(--ok); }
+@keyframes statusPulse { from { opacity: 0.4; } to { opacity: 1; } }
+
 /* Active G/M code display */
 .codes-value    { font-size: var(--fs-sm); font-family: var(--font-mono); word-break: break-all; line-height: 1.4; min-height: calc(2 * 1.4em); }
 

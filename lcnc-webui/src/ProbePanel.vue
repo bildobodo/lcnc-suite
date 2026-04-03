@@ -1469,27 +1469,6 @@ function fmtR(key: string): string {
   gap: var(--gap-tight);
 }
 
-.statusDot {
-  width: 8px;
-  height: 8px;
-  border-radius: var(--radius-round);
-  background: var(--border);
-}
-
-.statusDot.probing {
-  background: var(--warn);
-  animation: pulse 0.8s ease-in-out infinite alternate;
-}
-
-.statusDot.tripped {
-  background: var(--ok);
-}
-
-@keyframes pulse {
-  from { opacity: 0.4; }
-  to { opacity: 1; }
-}
-
 .statusText {
   font-size: var(--fs-sm);
   font-family: var(--font-mono);

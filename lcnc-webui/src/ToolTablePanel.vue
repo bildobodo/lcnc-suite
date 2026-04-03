@@ -824,10 +824,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
 }
 
 .emptyState {
-  padding: 24px;
-  text-align: center;
-  opacity: var(--opacity-muted);
-  font-size: var(--fs-md);
+  padding: var(--gap-panel);
 }
 </style>
 

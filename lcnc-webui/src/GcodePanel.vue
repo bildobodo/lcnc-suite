@@ -977,7 +977,6 @@ async function saveEdit() {
   align-items: center;
   justify-content: center;
   gap: var(--gap-section);
-  opacity: var(--opacity-muted);
   border: 2px dashed var(--border);
   border-radius: var(--radius-xl);
   transition: border-color 0.2s, background 0.2s, opacity 0.2s;
