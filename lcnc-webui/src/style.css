@@ -660,9 +660,11 @@ label:has(input:disabled, select:disabled) {
 
 /* Muted label (section headers, units, field labels) */
 .label-muted    { font-size: var(--fs-2xs); opacity: var(--opacity-muted); white-space: nowrap; }
+.label-muted.md { font-size: var(--fs-md); }
 
 /* Status key/value pairs (safety detail, spindle readouts) */
 .val-status        { font-size: var(--fs-sm); font-weight: var(--fw-semibold); text-align: right; }
+.val-status.md     { font-size: var(--fs-md); }
 .val-status.ok     { color: var(--ok); }
 .val-status.bad    { color: var(--danger); }
 .val-status.warn   { color: var(--warn); }
@@ -679,7 +681,7 @@ label:has(input:disabled, select:disabled) {
 .btn-label-sm   { font-size: var(--fs-xs); font-weight: var(--fw-semibold); text-transform: uppercase; }
 
 /* Active G/M code display */
-.codes-value    { font-size: var(--fs-2xs); font-family: var(--font-mono); opacity: var(--opacity-muted); word-break: break-all; line-height: 1.4; }
+.codes-value    { font-size: var(--fs-sm); font-family: var(--font-mono); opacity: var(--opacity-muted); word-break: break-all; line-height: 1.4; }
 
 .viewTabs {
   flex-wrap: wrap;

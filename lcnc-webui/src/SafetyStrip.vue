@@ -114,16 +114,16 @@ const overridesActive = computed(() =>
     <div class="statusDetail">
       <div class="statusCols">
         <div class="statusCol">
-          <div class="statusRow"><span class="label-muted">E-Stop</span><span class="val-status" :class="isEstop ? 'bad' : 'ok'">{{ isEstop ? 'TRUE' : 'FALSE' }}</span></div>
-          <div class="statusRow"><span class="label-muted">Enabled</span><span class="val-status" :class="isEnabled ? 'ok' : 'muted'">{{ isEnabled ? 'TRUE' : 'FALSE' }}</span></div>
-          <div class="statusRow"><span class="label-muted">Homed</span><span class="val-status" :class="isHomed ? 'ok' : 'bad'">{{ isHomed ? 'TRUE' : 'FALSE' }}</span></div>
-          <div class="statusRow"><span class="label-muted">Overrides</span><span class="val-status" :class="overridesActive ? 'warn' : ''">{{ overridesActive ? 'ACTIVE' : '---' }}</span></div>
+          <div class="statusRow"><span class="label-muted md">E-Stop</span><span class="val-status md" :class="isEstop ? 'bad' : 'ok'">{{ isEstop ? 'TRUE' : 'FALSE' }}</span></div>
+          <div class="statusRow"><span class="label-muted md">Enabled</span><span class="val-status md" :class="isEnabled ? 'ok' : 'muted'">{{ isEnabled ? 'TRUE' : 'FALSE' }}</span></div>
+          <div class="statusRow"><span class="label-muted md">Homed</span><span class="val-status md" :class="isHomed ? 'ok' : 'bad'">{{ isHomed ? 'TRUE' : 'FALSE' }}</span></div>
+          <div class="statusRow"><span class="label-muted md">Overrides</span><span class="val-status md" :class="overridesActive ? 'warn' : ''">{{ overridesActive ? 'ACTIVE' : '---' }}</span></div>
         </div>
         <div class="statusCol">
-          <div class="statusRow"><span class="label-muted">Mode</span><span class="val-status">{{ modeLabel }}</span></div>
-          <div class="statusRow"><span class="label-muted">Interp</span><span class="val-status">{{ interpLabel }}</span></div>
-          <div class="statusRow"><span class="label-muted">Motion</span><span class="val-status">{{ isTeleop ? 'WORLD' : 'JOINT' }}</span></div>
-          <div class="statusRow"><span class="label-muted">Elapsed</span><span class="v mono">{{ elapsed }}</span></div>
+          <div class="statusRow"><span class="label-muted md">Mode</span><span class="val-status md">{{ modeLabel }}</span></div>
+          <div class="statusRow"><span class="label-muted md">Interp</span><span class="val-status md">{{ interpLabel }}</span></div>
+          <div class="statusRow"><span class="label-muted md">Motion</span><span class="val-status md">{{ isTeleop ? 'WORLD' : 'JOINT' }}</span></div>
+          <div class="statusRow"><span class="label-muted md">Elapsed</span><span class="val-status md mono">{{ elapsed }}</span></div>
         </div>
       </div>
       <div class="codesRow">
@@ -165,7 +165,8 @@ const overridesActive = computed(() =>
 .statusDetail {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
+  min-width: 0;
+  overflow: auto;
   background: color-mix(in oklab, var(--bg) 80%, transparent);
   border-radius: var(--radius-lg);
   padding: var(--gap-tight) var(--gap-controls);

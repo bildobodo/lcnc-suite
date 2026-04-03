@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive } from "vue";
+import { computed, reactive, type Component } from "vue";
 import { send } from "./lcncWs";
 import { usePermissions } from "./permissions";
 import { INPUT_DEFS } from "./machineControls";
@@ -8,6 +8,11 @@ import MachineBtn from "./MachineBtn.vue";
 import MachineInput from "./MachineInput.vue";
 import MachineRadio from "./MachineRadio.vue";
 import MachineSlider from "./MachineSlider.vue";
+import {
+  ArrowUp, ArrowDown, ArrowLeft, ArrowRight,
+  ArrowUpLeft, ArrowUpRight, ArrowDownLeft, ArrowDownRight,
+  CircleStop,
+} from "lucide-vue-next";
 
 const props = defineProps<{
   axes: string[];
@@ -86,6 +91,8 @@ const incrementOptions = computed(() => {
 // ─── Jog logic (press-and-hold) ─────────────────────────────
 interface JogDef {
   label: string;
+  shortLabel: string;
+  icon: Component;
   axis: number;
   dir: 1 | -1;
   axis2?: number;
@@ -93,21 +100,29 @@ interface JogDef {
 }
 
 const xyBtns: JogDef[] = [
-  { label: "X-Y+", axis: 0, dir: -1, axis2: 1, dir2: 1 },
-  { label: "Y+",   axis: 1, dir: 1 },
-  { label: "X+Y+", axis: 0, dir: 1, axis2: 1, dir2: 1 },
-  { label: "X-",   axis: 0, dir: -1 },
-  { label: "XY",   axis: -1, dir: 1 },  // center, no-op
-  { label: "X+",   axis: 0, dir: 1 },
-  { label: "X-Y-", axis: 0, dir: -1, axis2: 1, dir2: -1 },
-  { label: "Y-",   axis: 1, dir: -1 },
-  { label: "X+Y-", axis: 0, dir: 1, axis2: 1, dir2: -1 },
+  { label: "X-Y+", shortLabel: "",     icon: ArrowUpLeft,    axis: 0, dir: -1, axis2: 1, dir2: 1 },
+  { label: "Y+",   shortLabel: "Y+",   icon: ArrowUp,        axis: 1, dir: 1 },
+  { label: "X+Y+", shortLabel: "",     icon: ArrowUpRight,   axis: 0, dir: 1, axis2: 1, dir2: 1 },
+  { label: "X-",   shortLabel: "X-",   icon: ArrowLeft,      axis: 0, dir: -1 },
+  { label: "Jog Stop", shortLabel: "Stop", icon: CircleStop,  axis: -1, dir: 1 },
+  { label: "X+",   shortLabel: "X+",   icon: ArrowRight,     axis: 0, dir: 1 },
+  { label: "X-Y-", shortLabel: "",     icon: ArrowDownLeft,  axis: 0, dir: -1, axis2: 1, dir2: -1 },
+  { label: "Y-",   shortLabel: "Y-",   icon: ArrowDown,      axis: 1, dir: -1 },
+  { label: "X+Y-", shortLabel: "",     icon: ArrowDownRight, axis: 0, dir: 1, axis2: 1, dir2: -1 },
 ];
 
 const active = reactive(new Set<string>());
 
+function stopAllJog() {
+  for (let i = 0; i < props.axes.length; i++) {
+    send({ cmd: "jog_stop", axis: i });
+  }
+  active.clear();
+}
+
 function startJog(btn: JogDef, e: PointerEvent) {
-  if (isDisabled.value || btn.axis < 0) return;
+  if (isDisabled.value) return;
+  if (btn.axis < 0) { stopAllJog(); return; }
   try { (e.currentTarget as Element)?.setPointerCapture?.(e.pointerId); } catch {}
   if (active.has(btn.label)) return;
   active.add(btn.label);
@@ -185,14 +200,14 @@ function stopZJog(dir: 1 | -1, e: PointerEvent) {
             :key="btn.label"
             type="jog"
             class="jogBtn"
-            :disabled="btn.axis < 0 || undefined"
+            :variant="btn.axis < 0 ? 'danger' : undefined"
             :active="active.has(btn.label)"
             @pointerdown.prevent="startJog(btn, $event)"
             @pointerup.prevent="stopJog(btn, $event)"
             @pointercancel.prevent="stopJog(btn, $event)"
             @pointerleave.prevent="stopJog(btn, $event)"
             @contextmenu.prevent
-          >{{ btn.label }}</MachineBtn>
+          ><div class="jogInner"><component :is="btn.icon" class="jogIcon" /><span v-if="btn.shortLabel" class="jogLabel">{{ btn.shortLabel }}</span></div></MachineBtn>
         </div>
 
         <div class="zGrid">
@@ -205,7 +220,7 @@ function stopZJog(dir: 1 | -1, e: PointerEvent) {
             @pointercancel.prevent="stopZJog(1, $event)"
             @pointerleave.prevent="stopZJog(1, $event)"
             @contextmenu.prevent
-          >Z+</MachineBtn>
+          ><div class="jogInner"><ArrowUp class="jogIcon" /><span class="jogLabel">Z+</span></div></MachineBtn>
           <MachineBtn
             type="jog"
             class="jogBtn"
@@ -215,7 +230,7 @@ function stopZJog(dir: 1 | -1, e: PointerEvent) {
             @pointercancel.prevent="stopZJog(-1, $event)"
             @pointerleave.prevent="stopZJog(-1, $event)"
             @contextmenu.prevent
-          >Z-</MachineBtn>
+          ><div class="jogInner"><ArrowDown class="jogIcon" /><span class="jogLabel">Z-</span></div></MachineBtn>
         </div>
       </div>
 
@@ -302,6 +317,20 @@ function stopZJog(dir: 1 | -1, e: PointerEvent) {
   touch-action: none;
   user-select: none;
   aspect-ratio: 1;
+}
+.jogInner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.jogIcon { flex-shrink: 0; }
+.jogLabel {
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-bold);
+  font-family: var(--font-mono);
+  line-height: 1;
 }
 .zGrid .jogBtn {
   aspect-ratio: auto;
