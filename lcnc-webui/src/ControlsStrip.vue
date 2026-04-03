@@ -123,9 +123,7 @@ function onRapidSlider(v: number) { emit('update:rapidSlider', v); }
           </div>
           <div class="spActualRow">
             <span class="label-muted md">Dir</span>
-            <span class="val-status md" :class="{ ok: isSpinning }">
-              {{ isForward ? "FWD" : isReverse ? "REV" : "OFF" }}
-            </span>
+            <span class="val-status md" :class="{ ok: isSpinning }"><span class="stable-width"><span :class="{ alt: !isForward }">FWD</span><span :class="{ alt: !isReverse }">REV</span><span :class="{ alt: isForward || isReverse }">OFF</span></span></span>
           </div>
           <div v-if="spindleLoad != null" class="spActualRow">
             <span class="label-muted md">Load</span>

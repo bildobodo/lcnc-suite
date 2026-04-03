@@ -36,8 +36,6 @@ const emit = defineEmits<{
   (e: "machineOff"): void;
 }>();
 
-const estopLabel = computed(() => props.isEstop ? "Reset" : "E-Stop");
-
 const modeLabel = computed(() => {
   switch (props.taskMode) {
     case TASK_MODE_MANUAL: return "MANUAL";
@@ -78,7 +76,7 @@ const overridesActive = computed(() =>
           block
         >
           <component :is="armed ? LockOpen : Lock" :size="18" />
-          <span class="btn-label-sm">{{ armed ? 'Armed' : 'Arm' }}</span>
+          <span class="btn-label-sm stable-width"><span :class="{ alt: !armed }">Armed</span><span :class="{ alt: armed }">Arm</span></span>
         </MachineBtn>
       </Gate>
 
@@ -92,7 +90,7 @@ const overridesActive = computed(() =>
           block
         >
           <TriangleAlert :size="18" />
-          <span class="btn-label-sm">{{ estopLabel }}</span>
+          <span class="btn-label-sm stable-width"><span :class="{ alt: isEstop }">E-Stop</span><span :class="{ alt: !isEstop }">Reset</span></span>
         </MachineBtn>
       </Gate>
 
@@ -105,7 +103,7 @@ const overridesActive = computed(() =>
           block
         >
           <Power :size="18" />
-          <span class="btn-label-sm">{{ isEnabled ? 'On' : 'Off' }}</span>
+          <span class="btn-label-sm stable-width"><span :class="{ alt: !isEnabled }">On</span><span :class="{ alt: isEnabled }">Off</span></span>
         </MachineBtn>
       </Gate>
     </div>
@@ -114,20 +112,21 @@ const overridesActive = computed(() =>
     <div class="statusDetail">
       <div class="statusCols">
         <div class="statusCol">
-          <div class="statusRow"><span class="label-muted md">E-Stop</span><span class="val-status md" :class="isEstop ? 'bad' : 'ok'">{{ isEstop ? 'TRUE' : 'FALSE' }}</span></div>
-          <div class="statusRow"><span class="label-muted md">Enabled</span><span class="val-status md" :class="isEnabled ? 'ok' : 'muted'">{{ isEnabled ? 'TRUE' : 'FALSE' }}</span></div>
-          <div class="statusRow"><span class="label-muted md">Homed</span><span class="val-status md" :class="isHomed ? 'ok' : 'bad'">{{ isHomed ? 'TRUE' : 'FALSE' }}</span></div>
-          <div class="statusRow"><span class="label-muted md">Overrides</span><span class="val-status md" :class="overridesActive ? 'warn' : ''">{{ overridesActive ? 'ACTIVE' : '---' }}</span></div>
+          <div class="statusRow"><span class="label-muted md">E-Stop</span><span class="val-status md" :class="isEstop ? 'bad' : 'ok'"><span class="stable-width"><span :class="{ alt: !isEstop }">TRUE</span><span :class="{ alt: isEstop }">FALSE</span></span></span></div>
+          <div class="statusRow"><span class="label-muted md">Enabled</span><span class="val-status md" :class="isEnabled ? 'ok' : 'muted'"><span class="stable-width"><span :class="{ alt: !isEnabled }">TRUE</span><span :class="{ alt: isEnabled }">FALSE</span></span></span></div>
+          <div class="statusRow"><span class="label-muted md">Homed</span><span class="val-status md" :class="isHomed ? 'ok' : 'bad'"><span class="stable-width"><span :class="{ alt: !isHomed }">TRUE</span><span :class="{ alt: isHomed }">FALSE</span></span></span></div>
+          <div class="statusRow"><span class="label-muted md">Overrides</span><span class="val-status md" :class="overridesActive ? 'warn' : ''"><span class="stable-width"><span :class="{ alt: !overridesActive }">ACTIVE</span><span :class="{ alt: overridesActive }">---</span></span></span></div>
         </div>
         <div class="statusCol">
-          <div class="statusRow"><span class="label-muted md">Mode</span><span class="val-status md">{{ modeLabel }}</span></div>
-          <div class="statusRow"><span class="label-muted md">Interp</span><span class="val-status md">{{ interpLabel }}</span></div>
-          <div class="statusRow"><span class="label-muted md">Motion</span><span class="val-status md">{{ isTeleop ? 'WORLD' : 'JOINT' }}</span></div>
+          <div class="statusRow"><span class="label-muted md">Mode</span><span class="val-status md"><span class="stable-width"><span :class="{ alt: modeLabel !== 'MANUAL' }">MANUAL</span><span :class="{ alt: modeLabel !== 'AUTO' }">AUTO</span><span :class="{ alt: modeLabel !== 'MDI' }">MDI</span><span :class="{ alt: modeLabel !== '---' }">---</span></span></span></div>
+          <div class="statusRow"><span class="label-muted md">Interp</span><span class="val-status md"><span class="stable-width"><span :class="{ alt: interpLabel !== 'IDLE' }">IDLE</span><span :class="{ alt: interpLabel !== 'RUNNING' }">RUNNING</span><span :class="{ alt: interpLabel !== 'PAUSED' }">PAUSED</span><span :class="{ alt: interpLabel !== 'WAITING' }">WAITING</span><span :class="{ alt: interpLabel !== '---' }">---</span></span></span></div>
+          <div class="statusRow"><span class="label-muted md">Motion</span><span class="val-status md"><span class="stable-width"><span :class="{ alt: !isTeleop }">WORLD</span><span :class="{ alt: isTeleop }">JOINT</span></span></span></div>
           <div class="statusRow"><span class="label-muted md">Elapsed</span><span class="val-status md mono">{{ elapsed }}</span></div>
         </div>
       </div>
       <div class="codesRow">
         <span class="codes-value">{{ gcodes }}</span>
+        <div class="sep"></div>
         <span class="codes-value">{{ mcodes }}</span>
       </div>
     </div>
@@ -140,6 +139,8 @@ const overridesActive = computed(() =>
   flex-direction: column;
   gap: var(--gap-controls);
   height: 100%;
+  min-width: 280px;
+  flex-shrink: 0;
   overflow: hidden;
 }
 
@@ -199,5 +200,8 @@ const overridesActive = computed(() =>
   margin-top: var(--gap-tight);
   padding-top: var(--gap-tight);
   border-top: 1px solid color-mix(in oklab, var(--border) 30%, transparent);
+  /* Prevent codes from widening the strip — wrap within status column width */
+  width: 0;
+  min-width: 100%;
 }
 </style>

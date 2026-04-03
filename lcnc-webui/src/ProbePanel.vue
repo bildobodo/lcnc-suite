@@ -1144,7 +1144,7 @@ function fmtR(key: string): string {
 
       <div class="compStatus">
         <span class="compDot" :class="{ on: eoffsetEnabled }"></span>
-        <span>Compensation: <b>{{ eoffsetEnabled ? 'ON' : 'OFF' }}</b></span>
+        <span>Compensation: <b class="stable-width"><span :class="{ alt: !eoffsetEnabled }">ON</span><span :class="{ alt: eoffsetEnabled }">OFF</span></b></span>
         <span v-if="eoffsetZ != null" class="compValue">Z: {{ eoffsetZ.toFixed(4) }}</span>
         <span class="compMethod">
           Method:

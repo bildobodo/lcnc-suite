@@ -448,7 +448,7 @@ async function saveEdit() {
             Unload
           </MachineBtn>
           <MachineBtn type="fileOp" class="actionBtn" @click="toggleBrowser" :disabled="loading">
-            {{ showBrowser ? 'Hide Files' : 'Browse' }}
+            <span class="stable-width"><span :class="{ alt: !showBrowser }">Hide Files</span><span :class="{ alt: showBrowser }">Browse</span></span>
           </MachineBtn>
           <MachineBtn type="fileOp" class="actionBtn" @click="($refs.fileInput as HTMLInputElement).click()">
             Upload

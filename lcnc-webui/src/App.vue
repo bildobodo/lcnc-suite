@@ -1106,12 +1106,12 @@ watch(viewerGcode, (newGcode) => {
           {{ connectedClients.length }} client{{ connectedClients.length !== 1 ? 's' : '' }}
         </div>
         <div class="pill" :class="connected ? 'ok' : 'bad'">
-          {{ connected ? "WS connected" : "WS disconnected" }}
+          <span class="stable-width"><span :class="{ alt: !connected }">WS connected</span><span :class="{ alt: connected }">WS disconnected</span></span>
         </div>
         <div v-if="connected && networkLatency != null" class="pill" title="Network latency">Net {{ networkLatency }}ms</div>
         <div v-if="connected && latency != null" class="pill" title="Round-trip latency">Ping {{ latency }}ms</div>
         <div class="pill" :class="lcncError ? 'bad' : (configName ? 'ok' : '')">{{ lcncLabel }}</div>
-        <div class="pill" :class="armed ? 'armed' : 'disarmed'">{{ armed ? "ARMED" : "DISARMED" }}</div>
+        <div class="pill" :class="armed ? 'armed' : 'disarmed'"><span class="stable-width"><span :class="{ alt: !armed }">ARMED</span><span :class="{ alt: armed }">DISARMED</span></span></div>
         <div v-if="gamepad.gamepadConnected.value" class="pill ok" :title="gamepad.gamepadName.value"><Gamepad2 :size="14" /></div>
 
         <MachineBtn type="headerIcon" :warning="unreadCount > 0" :title="'Messages (' + unreadCount + ')'" @click="openDialog('messages')">
@@ -1529,6 +1529,7 @@ watch(viewerGcode, (newGcode) => {
   flex-shrink: 0;
   padding: var(--gap-controls);
   gap: var(--gap-controls);
+  overflow-x: auto;
 }
 .strip > * + * {
   border-left: 1px solid var(--border-subtle);
