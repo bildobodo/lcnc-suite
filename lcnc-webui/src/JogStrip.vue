@@ -190,7 +190,7 @@ function stopZJog(dir: 1 | -1, e: PointerEvent) {
 </script>
 
 <template>
-  <div class="modeStrip">
+  <div class="jogStrip">
     <div class="jogContent">
       <!-- LEFT: XY grid + Z column -->
       <div class="jogBtns">
@@ -276,7 +276,7 @@ function stopZJog(dir: 1 | -1, e: PointerEvent) {
 </template>
 
 <style scoped>
-.modeStrip {
+.jogStrip {
   height: 100%;
   flex-shrink: 0;
   overflow: hidden;

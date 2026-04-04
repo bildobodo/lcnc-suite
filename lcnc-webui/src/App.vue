@@ -8,7 +8,7 @@ import TabPanel from "./TabPanel.vue";
 import GcodePanel from "./GcodePanel.vue";
 import SafetyStrip from "./SafetyStrip.vue";
 import ControlsStrip from "./ControlsStrip.vue";
-import ModeStrip from "./ModeStrip.vue";
+import JogStrip from "./JogStrip.vue";
 import SettingsPanel from "./SettingsPanel.vue";
 import ToolTablePanel from "./ToolTablePanel.vue";
 import ProbePanel from "./ProbePanel.vue";
@@ -1609,7 +1609,7 @@ watch(viewerGcode, (newGcode) => {
       />
       </template>
 
-      <ModeStrip
+      <JogStrip
         :axes="axes"
         :jogVel="jogVel"
         :angularJogVel="angularJogVel"
