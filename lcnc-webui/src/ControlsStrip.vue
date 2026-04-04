@@ -165,11 +165,11 @@ onBeforeUnmount(() => _previewRo?.disconnect());
             <span class="val-status md mono">{{ fmtRpm(spindleActual) }}</span>
           </div>
           <div class="spActualRow">
-            <span class="label-muted md">Cmd</span>
+            <span class="label-muted md">Commanded</span>
             <span class="val-status md mono muted">{{ fmtRpm(spindleSpeed) }}</span>
           </div>
           <div class="spActualRow">
-            <span class="label-muted md">Dir</span>
+            <span class="label-muted md">Direction</span>
             <span class="val-status md" :class="{ ok: isSpinning }"><span class="stable-width"><span :class="{ alt: !isForward }">FWD</span><span :class="{ alt: !isReverse }">REV</span><span :class="{ alt: isForward || isReverse }">OFF</span></span></span>
           </div>
           <div v-if="spindleLoad != null" class="spActualRow">
@@ -257,8 +257,7 @@ onBeforeUnmount(() => _previewRo?.disconnect());
   display: flex;
   gap: var(--gap-controls);
   height: 100%;
-  flex: 1;
-  min-width: 0;
+  flex-shrink: 0;
   overflow: hidden;
 }
 
