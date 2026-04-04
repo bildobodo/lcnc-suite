@@ -37,6 +37,7 @@ const props = defineProps<{
   toolDiameter: number | null;
   toolLength: number | null;
   probing: boolean;
+  probeInput: boolean;
   userMacros: MacroDef[];
 }>();
 
@@ -61,10 +62,18 @@ const emit = defineEmits<{
   (e: "loadTool"): void;
   (e: "unloadTool"): void;
   (e: "openToolTable"): void;
+  (e: "abort"): void;
+  (e: "simTrip"): void;
   (e: "executeMacro", m: MacroDef): void;
 }>();
 
-// formatRpm → fmtRpm imported from format.ts
+const isDev = import.meta.env.DEV;
+
+const probeIndicatorClass = computed(() => {
+  if (props.probeInput) return "tripped";
+  if (props.probing) return "probing";
+  return "";
+});
 
 function onFeedSlider(v: number) { emit('update:feedSlider', v); }
 function onSpindleSlider(v: number) { emit('update:spindleSlider', v); }
@@ -205,7 +214,13 @@ onBeforeUnmount(() => _previewRo?.disconnect());
           <MachineBtn type="manage" @click="emit('openToolTable')">Table</MachineBtn>
         </div>
 
-        <div class="toolStats inset-panel">
+        <div class="toolStatusRow">
+          <span class="statusDot" :class="probeIndicatorClass" title="Probe input"></span>
+          <MachineBtn v-if="isDev" type="simTrip" @click="emit('simTrip')">Sim Trip</MachineBtn>
+          <MachineBtn type="abort" :disabled="!probing" @click="emit('abort')">Abort</MachineBtn>
+        </div>
+
+        <div class="toolStats inset-panel scroll-thin">
           <div class="spActualRow">
             <span class="label-muted md">Current Tool</span>
             <span class="val-status md mono">T{{ currentTool }}</span>
@@ -344,11 +359,20 @@ onBeforeUnmount(() => _previewRo?.disconnect());
   flex: 1;
 }
 
+.toolStatusRow {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-controls);
+  flex-shrink: 0;
+}
+
 .toolStats {
   display: flex;
   flex-direction: column;
   gap: var(--gap-tight);
   flex: 1;
+  min-height: 0;
+  overflow: auto;
 }
 
 .toolDesc {

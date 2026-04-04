@@ -116,6 +116,7 @@ _HAL_MONITOR_PINS = [
     ("axis.z.eoffset",               "z-eoffset",        hal.HAL_FLOAT),
     ("axis.z.eoffset-enable",        "z-eoffset-enable", hal.HAL_BIT),
     ("compensation.method",          "comp-method",       hal.HAL_U32),
+    ("motion.probe-input",           "probe-input",       hal.HAL_BIT),
 ]
 
 
@@ -1069,6 +1070,7 @@ class StatusPayload:
 
     # probing
     probe_tripped: Optional[bool]
+    probe_input: Optional[bool]
     probing: Optional[bool]
     probed_position: Optional[List[float]]
 
@@ -1650,6 +1652,7 @@ def poll_status() -> StatusPayload:
         tool_change_tool=tool_change_tool,
         tool_change_info=tool_change_info,
         probe_tripped=bool(safe_get("probe_tripped", 0)),
+        probe_input=bool(_hal_fast("probe-input", False)),
         probing=bool(safe_get("probing", 0)),
         probed_position=to_float_list(safe_get("probed_position", None)),
         flood=bool(safe_get("flood", 0)),

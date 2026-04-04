@@ -1668,6 +1668,7 @@ watch(viewerGcode, (newGcode) => {
         :toolDiameter="st.tool_diameter ?? null"
         :toolLength="st.tool_length ?? null"
         :probing="!!st.probing"
+        :probeInput="st.probe_input === true"
         :userMacros="userMacros"
         @update:feedSlider="feedSlider = $event"
         @update:spindleSlider="spindleSlider = $event"
@@ -1688,6 +1689,8 @@ watch(viewerGcode, (newGcode) => {
         @measureAuto="measureAuto"
         @loadTool="loadTool"
         @unloadTool="unloadTool"
+        @abort="send({ cmd: 'abort' })"
+        @simTrip="send({ cmd: 'simulate_probe_trip' })"
         @openToolTable="toolTableDialogOpen = true"
         @executeMacro="executeMacro"
       />
