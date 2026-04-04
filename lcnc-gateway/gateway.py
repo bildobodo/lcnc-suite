@@ -1787,6 +1787,19 @@ def handle_command(msg: Dict[str, Any], armed: bool):
                             except ValueError:
                                 pass
             return {"ok": True, "points": points}
+
+        if cmd == "get_comp_grid":
+            ini_path = getattr(STAT, "ini_filename", None)
+            config_dir = os.path.dirname(ini_path) if ini_path else ""
+            path = os.path.join(config_dir, "probe-results-grid.json")
+            if os.path.isfile(path):
+                with open(path, "r") as f:
+                    try:
+                        grid = json.load(f)
+                        return {"ok": True, "comp_grid": grid}
+                    except Exception:
+                        return {"ok": False, "error": "Invalid grid file"}
+            return {"ok": False, "error": "No grid file"}
     except Exception as e:
         return {"ok": False, "error": f"{type(e).__name__}: {e}"}
 

@@ -85,6 +85,7 @@ export type WsCommand =
   | { cmd: "set_probe_vars"; vars: Record<string, number> }
   | { cmd: "get_probe_vars"; vars: number[] }
   | { cmd: "get_probe_results" }
+  | { cmd: "get_comp_grid" }
   // Surface compensation
   | { cmd: "set_compensation"; enable: boolean }
   | { cmd: "set_compensation_method"; method: number }

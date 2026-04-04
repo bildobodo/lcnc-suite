@@ -4,8 +4,8 @@
 loadrt time
 loadrt not
 
-# Surface compensation (optional — remove if not using)
-# loadusr -Wn compensation python3 ~/lcnc-suite/subroutines/surfacemap/compensation.py probe-results.txt cubic
+# Surface compensation
+loadusr -Wn compensation python3 ~/lcnc-suite/subroutines/surfacemap/compensation.py probe-results.txt cubic
 
 # Web UI safety watchdog
 loadusr -Wn webui-safety ~/lcnc-suite/lcnc-gateway/hal_watchdog.py
@@ -47,15 +47,15 @@ net cycle-timer time.0.start <= not.0.out
 # ---- Manual tool change (web UI via webui-safety HAL component) ----
 net tool-change-confirmed <= webui-safety.tool-changed
 
-# ---- Surface compensation wiring (optional — remove if not using) ----
-# net eoffset-xpos   <= halui.axis.x.pos-relative => compensation.x-pos
-# net eoffset-ypos   <= halui.axis.y.pos-relative => compensation.y-pos
-# net eoffset-zpos   <= halui.axis.z.pos-relative => compensation.z-pos
-# net eoffset-value  <= axis.z.eoffset            => compensation.eoffset
-# net eoffset-limited <= motion.eoffset-limited   => compensation.eoffset-limited
-# net eoffset-enable <= compensation.enable-out   => axis.z.eoffset-enable
-# net eoffset-scale  <= compensation.scale        => axis.z.eoffset-scale
-# net eoffset-counts <= compensation.counts       => axis.z.eoffset-counts
-# net eoffset-clear  <= compensation.clear        => axis.z.eoffset-clear
-# net compensation-on  webui-safety.compensation-enable => compensation.enable-in
-# net comp-method      webui-safety.compensation-method => compensation.method
+# ---- Surface compensation wiring ----
+net eoffset-xpos   <= halui.axis.x.pos-relative => compensation.x-pos
+net eoffset-ypos   <= halui.axis.y.pos-relative => compensation.y-pos
+net eoffset-zpos   <= halui.axis.z.pos-relative => compensation.z-pos
+net eoffset-value  <= axis.z.eoffset            => compensation.eoffset
+net eoffset-limited <= motion.eoffset-limited   => compensation.eoffset-limited
+net eoffset-enable <= compensation.enable-out   => axis.z.eoffset-enable
+net eoffset-scale  <= compensation.scale        => axis.z.eoffset-scale
+net eoffset-counts <= compensation.counts       => axis.z.eoffset-counts
+net eoffset-clear  <= compensation.clear        => axis.z.eoffset-clear
+net compensation-on  webui-safety.compensation-enable => compensation.enable-in
+net comp-method      webui-safety.compensation-method => compensation.method

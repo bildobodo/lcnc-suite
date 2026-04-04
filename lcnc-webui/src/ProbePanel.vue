@@ -20,6 +20,7 @@ const props = defineProps<{
   compMethod: number | null;  // 0=nearest, 1=linear, 2=cubic
   surfacePoints: [number, number, number][] | null;
   surfaceInViewer: boolean;
+  compGrid: { x: number[]; y: number[]; zi: number[][]; method: number } | null;
 }>();
 
 const emit = defineEmits<{
@@ -29,6 +30,7 @@ const emit = defineEmits<{
   (e: "listProbeMacros"): void;
   (e: "setProbeVars", vars: Record<string, number>): void;
   (e: "getProbeResults"): void;
+  (e: "getCompGrid"): void;
   (e: "loadSurfaceToViewer"): void;
   (e: "setCompensation", enable: boolean): void;
   (e: "setCompMethod", method: number): void;
@@ -370,32 +372,88 @@ function render3DSurface(pts: [number, number, number][]) {
       controls.enablePan = true;
       controls.screenSpacePanning = true;
 
-      // Compute bounds
+      // Compute bounds from raw points (for dot placement + fallback)
       let xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity, zMin = Infinity, zMax = -Infinity;
       for (const p of pts) {
         if (p[0] < xMin) xMin = p[0]; if (p[0] > xMax) xMax = p[0];
         if (p[1] < yMin) yMin = p[1]; if (p[1] > yMax) yMax = p[1];
         if (p[2] < zMin) zMin = p[2]; if (p[2] > zMax) zMax = p[2];
       }
-      const xRange = xMax - xMin || 1, yRange = yMax - yMin || 1, zRange = zMax - zMin || 0.001;
+      let xRange = xMax - xMin || 1, yRange = yMax - yMin || 1, zRange = zMax - zMin || 0.001;
 
-      // Create interpolated grid surface
-      const res = 30;
-      const geom = new THREE.PlaneGeometry(xRange, yRange, res - 1, res - 1);
-      const colors: number[] = [];
-      const posArr = geom.attributes.position!;
-      for (let i = 0; i < posArr.count; i++) {
-        const gx = posArr.getX(i) + xRange / 2 + xMin;
-        const gy = posArr.getY(i) + yRange / 2 + yMin;
-        const gz = idwInterp(gx, gy, pts);
-        posArr.setZ(i, (gz - zMin) / zRange * Math.min(xRange, yRange) * 0.3);
-        const t = (gz - zMin) / zRange;
-        const [r, g, b] = viridis(t);
-        colors.push(r / 255, g / 255, b / 255);
+      // Build surface mesh from comp grid or fall back to IDW
+      const grid = props.compGrid;
+      let geom: InstanceType<typeof THREE.PlaneGeometry>;
+
+      if (grid && grid.x.length >= 2 && grid.y.length >= 2) {
+        // Use exact grid from compensation.py
+        const nx = grid.x.length, ny = grid.y.length;
+        const gxRange = grid.x[nx - 1]! - grid.x[0]!;
+        const gyRange = grid.y[ny - 1]! - grid.y[0]!;
+        geom = new THREE.PlaneGeometry(gxRange || 1, gyRange || 1, nx - 1, ny - 1);
+        const posArr = geom.attributes.position!;
+
+        // First pass: set XY positions and collect Z values (handle NaN/null from scipy)
+        let gridZMin = Infinity, gridZMax = -Infinity;
+        for (let iy = 0; iy < ny; iy++) {
+          for (let ix = 0; ix < nx; ix++) {
+            const vi = iy * nx + ix;
+            let z = grid.zi[ix]?.[iy];
+            if (z == null || !isFinite(z)) {
+              // Outside convex hull — nearest raw point as fallback
+              const gx = grid.x[ix]!, gy = grid.y[iy]!;
+              let bestD2 = Infinity, bestZ = 0;
+              for (const p of pts) {
+                const d2 = (gx - p[0]) ** 2 + (gy - p[1]) ** 2;
+                if (d2 < bestD2) { bestD2 = d2; bestZ = p[2]; }
+              }
+              z = bestZ;
+            }
+            if (z < gridZMin) gridZMin = z;
+            if (z > gridZMax) gridZMax = z;
+            posArr.setX(vi, grid.x[ix]! - grid.x[0]! - (gxRange / 2));
+            posArr.setY(vi, grid.y[iy]! - grid.y[0]! - (gyRange / 2));
+            posArr.setZ(vi, z); // raw Z, scaled below
+          }
+        }
+
+        // Second pass: scale Z for visualization and apply colors
+        const gzRange = gridZMax - gridZMin || 0.001;
+        const gzScale = Math.min(gxRange || 1, gyRange || 1) * 0.3;
+        const colors: number[] = [];
+        for (let i = 0; i < posArr.count; i++) {
+          const z = posArr.getZ(i);
+          const t = (z - gridZMin) / gzRange;
+          posArr.setZ(i, t * gzScale);
+          const [r, g, b] = viridis(t);
+          colors.push(r / 255, g / 255, b / 255);
+        }
+        geom.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+
+        // Update bounds for dot placement to match grid
+        xMin = grid.x[0]!; xMax = grid.x[nx - 1]!;
+        yMin = grid.y[0]!; yMax = grid.y[ny - 1]!;
+        xRange = gxRange || 1; yRange = gyRange || 1;
+        zMin = gridZMin; zMax = gridZMax; zRange = gzRange;
+      } else {
+        // Fallback: IDW interpolation from raw points (no comp grid available)
+        const res = 30;
+        geom = new THREE.PlaneGeometry(xRange, yRange, res - 1, res - 1);
+        const posArr = geom.attributes.position!;
+        const colors: number[] = [];
+        for (let i = 0; i < posArr.count; i++) {
+          const gx = posArr.getX(i) + xRange / 2 + xMin;
+          const gy = posArr.getY(i) + yRange / 2 + yMin;
+          const gz = idwInterp(gx, gy, pts);
+          posArr.setZ(i, (gz - zMin) / zRange * Math.min(xRange, yRange) * 0.3);
+          const t = (gz - zMin) / zRange;
+          const [r, g, b] = viridis(t);
+          colors.push(r / 255, g / 255, b / 255);
+        }
+        geom.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
       }
-      geom.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
-      geom.computeVertexNormals();
 
+      geom.computeVertexNormals();
       const mat = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide });
       const mesh = new THREE.Mesh(geom, mat);
       scene.add(mesh);
@@ -518,10 +576,27 @@ function render3DSurface(pts: [number, number, number][]) {
 // Render into dialog when it opens or points change
 watch([mapDialogOpen, () => props.surfacePoints], ([open, pts]) => {
   if (open && pts && pts.length > 0) {
+    emit("getCompGrid");
     nextTick(() => render3DSurface(pts));
   } else if (!open) {
     if (_threeCleanup) { _threeCleanup(); _threeCleanup = null; }
   }
+});
+
+// Re-render when comp grid arrives while dialog is open
+watch(() => props.compGrid, () => {
+  if (mapDialogOpen.value && props.surfacePoints && props.surfacePoints.length > 0) {
+    nextTick(() => render3DSurface(props.surfacePoints!));
+  }
+});
+
+// Re-fetch grid when compensation method changes
+// (compensation.py rewrites JSON on method change in both IDLE and RUNNING states,
+// delay to let it finish the 50ms poll cycle + loadMap + file write)
+let _methodFetchTimer = 0;
+watch(() => props.compMethod, () => {
+  clearTimeout(_methodFetchTimer);
+  _methodFetchTimer = window.setTimeout(() => emit("getCompGrid"), 300);
 });
 
 onUnmounted(() => {
@@ -1148,7 +1223,7 @@ function fmtR(key: string): string {
         <MachineBtn type="probe" v-if="!surfaceInViewer" @click="loadSurfaceMap">Load Map</MachineBtn>
         <MachineBtn type="probe" v-else @click="emit('clearSurfaceMap')">Unload Map</MachineBtn>
         <MachineBtn type="probe" @click="if (!surfacePoints?.length) emit('getProbeResults'); mapDialogOpen = true">3D Inspect</MachineBtn>
-        <MachineBtn type="probe" :active="eoffsetEnabled" :disabled="probing" @click="toggleComp"><span class="stable-width"><span :class="{ alt: eoffsetEnabled }">Enable Comp</span><span :class="{ alt: !eoffsetEnabled }">Disable Comp</span></span></MachineBtn>
+        <MachineBtn type="compToggle" :active="eoffsetEnabled" :disabled="probing" @click="toggleComp"><span class="stable-width"><span :class="{ alt: eoffsetEnabled }">Enable Comp</span><span :class="{ alt: !eoffsetEnabled }">Disable Comp</span></span></MachineBtn>
       </div>
 
       <div class="compStatus">

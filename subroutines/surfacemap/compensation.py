@@ -21,7 +21,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 update = 0.05	# this is how often the z external offset value is updated based on current x & y position 
 
 import sys
-import os.path, time
+import os.path, time, json
 import numpy as np
 from scipy.interpolate import griddata
 from enum import Enum, unique
@@ -86,7 +86,20 @@ class Compensation :
 		# interpolate the higher res copy, zi has all the offset values but need to be transposed
 		self.zi = griddata((self.x_data,self.y_data),self.z_data,(self.xi,self.yi),method=method)
 		self.zi = np.transpose(self.zi)
-	
+
+		# Write interpolated grid for UI visualization
+		grid_path = os.path.splitext(self.filename)[0] + "-grid.json"
+		try:
+			with open(grid_path, "w") as f:
+				json.dump({
+					"x": self.x.tolist(),
+					"y": self.y.tolist(),
+					"zi": self.zi.tolist(),
+					"method": int(self.h['method']),
+				}, f)
+		except Exception as e:
+			print(f" Grid write failed: {e}")
+
 
 	def compensate(self) :
 		# pass the full resolution
@@ -166,6 +179,14 @@ class Compensation :
 						print("\nCompensation entering IDLE state")
 						prevState = currentState
 						
+					# Recompute grid preview when method changes while idle
+					# (safe: loadMap only updates self.zi and writes JSON, no HAL outputs)
+					currentMethod = self.h["method"]
+					if currentMethod != prevMethod and os.path.isfile(self.filename):
+						self.loadMap()
+						print("	Grid recomputed for preview (method changed while idle)")
+						prevMethod = currentMethod
+
 					# stay in IDLE state until compensation is enabled
 					if self.h["enable-in"] :
 						currentState = States.LOADMAP

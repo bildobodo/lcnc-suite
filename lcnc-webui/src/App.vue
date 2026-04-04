@@ -1158,8 +1158,15 @@ watch(status, (st) => {
 const surfacePoints = ref<[number, number, number][] | null>(null);
 const surfaceLoadedToViewer = ref(false);
 
+/** ---------- Compensation grid (from compensation.py) ---------- */
+const compGrid = ref<{ x: number[]; y: number[]; zi: number[][]; method: number } | null>(null);
+
 function requestProbeResults() {
   send({ cmd: "get_probe_results" });
+}
+
+function requestCompGrid() {
+  send({ cmd: "get_comp_grid" });
 }
 
 function loadSurfaceToViewer() {
@@ -1167,9 +1174,10 @@ function loadSurfaceToViewer() {
   requestProbeResults();
 }
 
-// Listen for get_probe_results reply
+// Listen for get_probe_results / get_comp_grid replies
 watch(lastReply, (r: any) => {
   if (r?.ok && r.points) surfacePoints.value = r.points;
+  if (r?.ok && r.comp_grid) compGrid.value = r.comp_grid;
 }, { flush: "sync" });
 
 /** ---------- G-code content watcher ---------- */
@@ -1303,11 +1311,13 @@ watch(viewerGcode, (newGcode) => {
               :compMethod="st.comp_method ?? null"
               :surfacePoints="surfacePoints"
               :surfaceInViewer="surfaceLoadedToViewer"
+              :compGrid="compGrid"
               @mdi="send({ cmd: 'mdi', text: $event })"
               @abort="send({ cmd: 'abort' })"
               @simTrip="send({ cmd: 'simulate_probe_trip' })"
               @setProbeVars="send({ cmd: 'set_probe_vars', vars: $event })"
               @getProbeResults="requestProbeResults"
+              @getCompGrid="requestCompGrid"
               @loadSurfaceToViewer="loadSurfaceToViewer"
               @setCompensation="requestCompToggle"
               @setCompMethod="send({ cmd: 'set_compensation_method', method: $event })"

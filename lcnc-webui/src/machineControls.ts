@@ -30,6 +30,7 @@ export const BUTTON_TYPES = {
 
   // Probe
   probe:          { gate: 'probe',    variant: 'default', size: 'md' },
+  compToggle:     { gate: 'ready',    variant: 'default', size: 'md' },
 
   // Tool
   toolLoad:       { gate: 'ready',    variant: 'default', size: 'md' },
