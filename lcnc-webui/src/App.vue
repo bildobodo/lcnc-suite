@@ -147,8 +147,8 @@ function reloadPage() { location.reload(); }
 /** ---------- content tab definitions ---------- */
 const contentTabs = [
   { id: "gcode", label: "Program" },
-  { id: "probe", label: "Probing" },
   { id: "mdi", label: "MDI" },
+  { id: "probe", label: "Probing" },
   { id: "offsets", label: "Offsets" },
 ];
 
