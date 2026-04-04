@@ -257,7 +257,7 @@ onBeforeUnmount(() => _previewRo?.disconnect());
   display: flex;
   gap: var(--gap-controls);
   height: 100%;
-  flex: 1 0 auto;
+  flex-shrink: 0;
   overflow: hidden;
 }
 
@@ -310,8 +310,6 @@ onBeforeUnmount(() => _previewRo?.disconnect());
 /* ── Tool ── */
 .toolBlock {
   display: flex;
-  flex: 1;
-  min-width: 0;
   gap: var(--gap-controls);
   border-left: 1px solid var(--border-subtle);
   padding-left: var(--gap-controls);
@@ -319,9 +317,8 @@ onBeforeUnmount(() => _previewRo?.disconnect());
 }
 
 .toolPreviewFrame {
-  align-self: stretch;
-  flex: 1;
-  min-width: 0;
+  width: 120px;
+  flex-shrink: 0;
   display: flex;
   justify-content: center;
   align-items: center;
