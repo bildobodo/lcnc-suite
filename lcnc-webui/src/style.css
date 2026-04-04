@@ -429,7 +429,7 @@ input[type="color"]::-webkit-color-swatch {
 /* ── Textarea base ── */
 textarea {
   border: 1px solid var(--border);
-  background: color-mix(in oklab, var(--panel) 70%, transparent);
+  background: color-mix(in oklab, var(--bg) 80%, transparent);
   color: var(--fg);
   font-family: var(--font-mono);
   font-size: var(--fs-base);
@@ -675,7 +675,7 @@ label:has(input:disabled, select:disabled) {
   min-height: 0;
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
-  background: color-mix(in oklab, var(--panel) 70%, transparent);
+  background: color-mix(in oklab, var(--bg) 80%, transparent);
   overflow: auto;
   padding: var(--gap-controls) 0;
 }

@@ -466,7 +466,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
 
             <!-- Right column: parametric preview -->
             <div class="editPreviewCol">
-              <div class="editPreviewCanvas">
+              <div class="editPreviewCanvas inset-panel">
                 <ToolPreview
                   :diameter="editForm.D || 6"
                   :length="editForm.oal || Math.abs(editForm.Z) || 50"
@@ -702,8 +702,6 @@ defineExpose({ openAdd, fetchTools, triggerImport });
 .editPreviewCanvas {
   display: flex;
   justify-content: center;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
   padding: var(--gap-controls);
   margin-bottom: var(--gap-section);
 }

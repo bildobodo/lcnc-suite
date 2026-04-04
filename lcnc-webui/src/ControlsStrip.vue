@@ -233,7 +233,7 @@ onBeforeUnmount(() => _previewRo?.disconnect());
         </div>
       </div>
 
-      <div v-if="currentToolData && currentTool > 0" ref="previewFrameRef" class="toolPreviewFrame">
+      <div v-if="currentToolData && currentTool > 0" ref="previewFrameRef" class="toolPreviewFrame inset-panel">
         <ToolPreview v-if="previewSize.w > 0"
           :diameter="currentToolData.D || 0"
           :length="Math.abs(currentToolData.Z) || 0"
@@ -326,8 +326,6 @@ onBeforeUnmount(() => _previewRo?.disconnect());
   display: flex;
   justify-content: center;
   align-items: center;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
   padding: var(--gap-controls);
 }
 
