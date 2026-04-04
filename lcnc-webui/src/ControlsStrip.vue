@@ -257,8 +257,7 @@ onBeforeUnmount(() => _previewRo?.disconnect());
   display: flex;
   gap: var(--gap-controls);
   height: 100%;
-  flex: 1;
-  min-width: 0;
+  flex: 1 0 auto;
   overflow: hidden;
 }
 
