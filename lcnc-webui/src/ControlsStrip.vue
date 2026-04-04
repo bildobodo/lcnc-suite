@@ -159,7 +159,7 @@ onBeforeUnmount(() => _previewRo?.disconnect());
           <MachineInput gate="rpmInput" type="number" class="spRpmInput" :value="rpmInput" @input="emit('update:rpmInput', +($event.target as HTMLInputElement).value)" :min="minSpindleSpeed" :max="maxSpindleSpeed" :step="STEP_RPM" />
         </div>
 
-        <div class="spActualGroup stack-tight">
+        <div class="spActualGroup inset-panel stack-tight">
           <div class="spActualRow">
             <span class="label-muted md">Actual</span>
             <span class="val-status md mono">{{ fmtRpm(spindleActual) }}</span>
@@ -205,7 +205,7 @@ onBeforeUnmount(() => _previewRo?.disconnect());
           <MachineBtn type="manage" @click="emit('openToolTable')">Table</MachineBtn>
         </div>
 
-        <div class="toolStats">
+        <div class="toolStats inset-panel">
           <div class="spActualRow">
             <span class="label-muted md">Current Tool</span>
             <span class="val-status md mono">T{{ currentTool }}</span>

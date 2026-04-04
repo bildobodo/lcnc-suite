@@ -109,7 +109,7 @@ const overridesActive = computed(() =>
     </div>
 
     <!-- Machine Status Detail -->
-    <div class="statusDetail scroll-thin">
+    <div class="statusDetail inset-panel scroll-thin">
       <div class="statusCols">
         <div class="statusCol">
           <div class="statusRow"><span class="label-muted md">E-Stop</span><span class="val-status md" :class="isEstop ? 'bad' : 'ok'"><span class="stable-width"><span :class="{ alt: !isEstop }">TRUE</span><span :class="{ alt: isEstop }">FALSE</span></span></span></div>
@@ -163,9 +163,6 @@ const overridesActive = computed(() =>
   min-height: 0;
   min-width: 0;
   overflow: auto;
-  background: color-mix(in oklab, var(--bg) 80%, transparent);
-  border-radius: var(--radius-lg);
-  padding: var(--gap-tight) var(--gap-controls);
 }
 .statusCols {
   display: flex;

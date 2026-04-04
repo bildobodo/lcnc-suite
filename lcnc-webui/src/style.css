@@ -533,6 +533,12 @@ label:has(input:disabled, select:disabled) {
   flex-shrink: 0;
 }
 
+.inset-panel {
+  background: color-mix(in oklab, var(--bg) 80%, transparent);
+  border-radius: var(--radius-lg);
+  padding: var(--gap-tight) var(--gap-controls);
+}
+
 .popover {
   display: none;
   position: absolute;
