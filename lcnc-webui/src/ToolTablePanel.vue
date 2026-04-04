@@ -495,7 +495,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
 
     <!-- Import preview dialog -->
       <div v-if="importPreview" class="dialogOverlay" @click.self="cancelImport">
-        <div class="dialog importDialog">
+        <div class="dialog md importDialog">
           <div class="dialogTitle">Import Tool Library</div>
           <div class="dialogBody">
             <div class="importStats">
@@ -715,9 +715,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
 
 /* ---- Import dialog ---- */
 .importDialog {
-  min-width: 400px;
   max-width: 600px;
-  text-align: left;
 }
 
 .importStats {
