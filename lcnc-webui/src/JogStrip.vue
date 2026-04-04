@@ -220,7 +220,7 @@ function stopZJog(dir: 1 | -1, e: PointerEvent) {
             @pointercancel.prevent="stopZJog(1, $event)"
             @pointerleave.prevent="stopZJog(1, $event)"
             @contextmenu.prevent
-          ><div class="jogInner jogV"><ArrowUp class="jogIcon" /><span class="jogLabel">Z+</span></div></MachineBtn>
+          ><div class="jogInner jogZUp"><ArrowUp class="jogIcon" /><span class="jogLabel">Z+</span></div></MachineBtn>
           <MachineBtn
             type="jog"
             class="jogBtn"
@@ -230,7 +230,7 @@ function stopZJog(dir: 1 | -1, e: PointerEvent) {
             @pointercancel.prevent="stopZJog(-1, $event)"
             @pointerleave.prevent="stopZJog(-1, $event)"
             @contextmenu.prevent
-          ><div class="jogInner jogV"><ArrowDown class="jogIcon" /><span class="jogLabel">Z-</span></div></MachineBtn>
+          ><div class="jogInner jogZDown"><ArrowDown class="jogIcon" /><span class="jogLabel">Z-</span></div></MachineBtn>
         </div>
       </div>
 
@@ -238,7 +238,7 @@ function stopZJog(dir: 1 | -1, e: PointerEvent) {
       <div class="speedCol">
         <span class="val-mono">{{ (jogVel * 60).toFixed(0) }}</span>
         <MachineSlider gate="jogSpeed" :disabled="isDisabled" :min="minJogVel" :max="maxJogVel" :step="0.1" :modelValue="jogVel" @update:modelValue="(v: number | undefined) => { if (v != null) emit('update:jogVel', v) }" class="vSlider" />
-        <span class="label-muted">{{ linearUnit }}/min</span>
+        <span class="label-muted">Speed</span>
         <MachineBtn type="overrideReset" @click="emit('resetJogVel')">Reset</MachineBtn>
       </div>
 
@@ -330,6 +330,14 @@ function stopZJog(dir: 1 | -1, e: PointerEvent) {
 }
 /* Horizontal arrows (X-/X+): label top, icon bottom */
 .jogInner.jogH {
+  flex-direction: column-reverse;
+}
+/* Z+ arrow: icon on top, label below */
+.jogInner.jogZUp {
+  flex-direction: column;
+}
+/* Z- arrow: label on top, icon below */
+.jogInner.jogZDown {
   flex-direction: column-reverse;
 }
 .jogIcon { flex-shrink: 0; }
