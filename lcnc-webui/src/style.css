@@ -579,8 +579,17 @@ label:has(input:disabled, select:disabled) {
   border-radius: var(--radius-2xl);
   padding: var(--gap-panel);
   min-width: 280px;
+  font-size: var(--fs-base);
   text-align: center;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+}
+
+.dialog.md {
+  text-align: left;
+  max-height: calc(100% - 2 * var(--gap-panel));
+  display: flex;
+  flex-direction: column;
+  overflow: clip;
 }
 
 .dialog.lg {
@@ -631,6 +640,13 @@ label:has(input:disabled, select:disabled) {
   gap: var(--gap-controls);
   justify-content: center;
   margin-top: var(--gap-section);
+}
+
+.dialogContent {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--gap-section);
 }
 
 /* G-code syntax highlighting tokens */
