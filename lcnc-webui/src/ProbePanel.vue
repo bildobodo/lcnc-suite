@@ -638,7 +638,6 @@ function fmtR(key: string): string {
         <MachineBtn v-if="isDev" type="simTrip" @click="emit('simTrip')">Sim Trip</MachineBtn>
         <MachineBtn
           type="abort"
-          :disabled="!probing"
           @click="emit('abort')"
         >Abort</MachineBtn>
       </div>

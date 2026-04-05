@@ -226,7 +226,7 @@ onBeforeUnmount(() => _previewRo?.disconnect());
           <MachineBtn type="manage" @click="emit('openToolTable')">Table</MachineBtn>
         </div>
 
-        <MachineBtn type="abort" :disabled="!probing" @click="emit('abort')" block>Abort</MachineBtn>
+        <MachineBtn type="abort" @click="emit('abort')" block>Abort</MachineBtn>
 
         <div class="toolStatusRow">
           <div class="row-tight">
