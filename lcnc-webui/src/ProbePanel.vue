@@ -4,6 +4,7 @@ import MachineBtn from "./MachineBtn.vue";
 import { fmtNum } from "./format";
 import MachineInput from "./MachineInput.vue";
 import MachineToggle from "./MachineToggle.vue";
+import MachineRadio from "./MachineRadio.vue";
 import { usePermissions } from "./permissions";
 import { STEP_DEFAULT, STEP_FEED, loadProbeDefaults, saveProbeDefaults, settingsVersion, serverSettingsReady, saveToolsetterDefaults, TOOLSETTER_FALLBACK } from "./defaults";
 import ToolsetterSettings from "./ToolsetterSettings.vue";
@@ -1202,46 +1203,80 @@ function fmtR(key: string): string {
 
     <!-- ─── Surface Map ─── -->
     <template v-else-if="probeView === 'surface'">
-      <div class="stack-controls">
-        <div class="sub">Scan Grid</div>
-        <div class="paramGrid twoCol">
-          <label title="Scan grid minimum X bound in work coordinates. Must be less than X Max. Defines the left edge of the probing area. (#3050)">X0</label>
-          <MachineInput gate="scanParam" type="number" v-model.number="params.scanX0" :step="STEP_DEFAULT" @change="saveParams" />
-          <label title="Scan grid maximum X bound in work coordinates. Must be greater than X Min. Defines the right edge of the probing area. (#3051)">X1</label>
-          <MachineInput gate="scanParam" type="number" v-model.number="params.scanX1" :step="STEP_DEFAULT" @change="saveParams" />
-          <label title="Scan grid minimum Y bound in work coordinates. Must be less than Y Max. Defines the front edge of the probing area. (#3052)">Y0</label>
-          <MachineInput gate="scanParam" type="number" v-model.number="params.scanY0" :step="STEP_DEFAULT" @change="saveParams" />
-          <label title="Scan grid maximum Y bound in work coordinates. Must be greater than Y Min. Defines the back edge of the probing area. (#3053)">Y1</label>
-          <MachineInput gate="scanParam" type="number" v-model.number="params.scanY1" :step="STEP_DEFAULT" @change="saveParams" />
-          <label title="Number of probe points along X. Minimum 2. Point spacing = (X Max - X Min) / (count - 1). (#3054)">X Probes</label>
-          <MachineInput gate="scanParam" type="number" v-model.number="params.scanXProbes" min="2" :step="STEP_DEFAULT" @change="saveParams" />
-          <label title="Number of probe points along Y. Minimum 2. Point spacing = (Y Max - Y Min) / (count - 1). (#3055)">Y Probes</label>
-          <MachineInput gate="scanParam" type="number" v-model.number="params.scanYProbes" min="2" :step="STEP_DEFAULT" @change="saveParams" />
-          <label title="Safe Z height in work coordinates for retraction between scan probe points. Set above the highest point of the workpiece plus clearance for clamps. (#3058)">Safe Z</label>
-          <MachineInput gate="scanParam" type="number" v-model.number="params.scanSafeZ" :step="STEP_DEFAULT" @change="saveParams" />
-          <label title="Maximum downward probe distance from current Z. Always positive. Set larger than the deepest surface valley expected. (#3059)">Probe Depth</label>
-          <MachineInput gate="scanParam" type="number" v-model.number="params.scanDepthZ" min="0.1" :step="STEP_DEFAULT" @change="saveParams" />
+      <div class="paramGrid twoCol surfaceGrid">
+        <div class="sub span">Scan Grid</div>
+        <label title="Scan grid minimum X bound in work coordinates. Must be less than X Max. Defines the left edge of the probing area. (#3050)">X0</label>
+        <MachineInput gate="scanParam" type="number" v-model.number="params.scanX0" :step="STEP_DEFAULT" @change="saveParams" />
+        <label title="Scan grid maximum X bound in work coordinates. Must be greater than X Min. Defines the right edge of the probing area. (#3051)">X1</label>
+        <MachineInput gate="scanParam" type="number" v-model.number="params.scanX1" :step="STEP_DEFAULT" @change="saveParams" />
+        <label title="Scan grid minimum Y bound in work coordinates. Must be less than Y Max. Defines the front edge of the probing area. (#3052)">Y0</label>
+        <MachineInput gate="scanParam" type="number" v-model.number="params.scanY0" :step="STEP_DEFAULT" @change="saveParams" />
+        <label title="Scan grid maximum Y bound in work coordinates. Must be greater than Y Min. Defines the back edge of the probing area. (#3053)">Y1</label>
+        <MachineInput gate="scanParam" type="number" v-model.number="params.scanY1" :step="STEP_DEFAULT" @change="saveParams" />
+        <label title="Number of probe points along X. Minimum 2. Point spacing = (X Max - X Min) / (count - 1). (#3054)">X Probes</label>
+        <MachineInput gate="scanParam" type="number" v-model.number="params.scanXProbes" min="2" :step="STEP_DEFAULT" @change="saveParams" />
+        <label title="Number of probe points along Y. Minimum 2. Point spacing = (Y Max - Y Min) / (count - 1). (#3055)">Y Probes</label>
+        <MachineInput gate="scanParam" type="number" v-model.number="params.scanYProbes" min="2" :step="STEP_DEFAULT" @change="saveParams" />
+        <label title="Safe Z height in work coordinates for retraction between scan probe points. Set above the highest point of the workpiece plus clearance for clamps. (#3058)">Safe Z</label>
+        <MachineInput gate="scanParam" type="number" v-model.number="params.scanSafeZ" :step="STEP_DEFAULT" @change="saveParams" />
+        <label title="Maximum downward probe distance from current Z. Always positive. Set larger than the deepest surface valley expected. (#3059)">Probe Depth</label>
+        <MachineInput gate="scanParam" type="number" v-model.number="params.scanDepthZ" min="0.1" :step="STEP_DEFAULT" @change="saveParams" />
+
+        <div class="sep span"></div>
+
+        <div class="surfaceActions span">
+          <MachineBtn type="probe" :disabled="probing" @click="runSurfaceScan">Start Scan</MachineBtn>
+          <MachineBtn type="probe" v-if="!surfaceInViewer" @click="loadSurfaceMap">Load Map</MachineBtn>
+          <MachineBtn type="probe" v-else @click="emit('clearSurfaceMap')">Unload Map</MachineBtn>
+          <MachineBtn type="probe" @click="if (!surfacePoints?.length) emit('getProbeResults'); mapDialogOpen = true">3D Inspect</MachineBtn>
+          <MachineBtn type="compToggle" :active="eoffsetEnabled" :disabled="probing" @click="toggleComp"><span class="stable-width"><span :class="{ alt: eoffsetEnabled }">Enable Comp</span><span :class="{ alt: !eoffsetEnabled }">Disable Comp</span></span></MachineBtn>
         </div>
-      </div>
 
-      <div class="surfaceActions">
-        <MachineBtn type="probe" :disabled="probing" @click="runSurfaceScan">Start Scan</MachineBtn>
-        <MachineBtn type="probe" v-if="!surfaceInViewer" @click="loadSurfaceMap">Load Map</MachineBtn>
-        <MachineBtn type="probe" v-else @click="emit('clearSurfaceMap')">Unload Map</MachineBtn>
-        <MachineBtn type="probe" @click="if (!surfacePoints?.length) emit('getProbeResults'); mapDialogOpen = true">3D Inspect</MachineBtn>
-        <MachineBtn type="compToggle" :active="eoffsetEnabled" :disabled="probing" @click="toggleComp"><span class="stable-width"><span :class="{ alt: eoffsetEnabled }">Enable Comp</span><span :class="{ alt: !eoffsetEnabled }">Disable Comp</span></span></MachineBtn>
-      </div>
+        <div class="compStatus span">
+          <span class="compDot" :class="{ on: eoffsetEnabled }"></span>
+          <span>Compensation: <b class="stable-width"><span :class="{ alt: !eoffsetEnabled }">ON</span><span :class="{ alt: eoffsetEnabled }">OFF</span></b></span>
+          <span v-if="eoffsetZ != null" class="compValue">Z: {{ eoffsetZ.toFixed(4) }}</span>
+          <span class="compMethod radioGroup inline">
+            Method:
+            <label v-for="(label, id) in METHOD_LABELS" :key="id"><MachineRadio gate="scanParam" name="compMethod" :value="Number(id)" :modelValue="compMethod ?? 2" @update:modelValue="setMethod(Number(id))" /> {{ label }}</label>
+          </span>
+        </div>
 
-      <div class="compStatus">
-        <span class="compDot" :class="{ on: eoffsetEnabled }"></span>
-        <span>Compensation: <b class="stable-width"><span :class="{ alt: !eoffsetEnabled }">ON</span><span :class="{ alt: eoffsetEnabled }">OFF</span></b></span>
-        <span v-if="eoffsetZ != null" class="compValue">Z: {{ eoffsetZ.toFixed(4) }}</span>
-        <span class="compMethod">
-          Method:
-          <MachineBtn v-for="(label, id) in METHOD_LABELS" :key="id"
-            type="probe" class="methodBtn" muted :selected="compMethod === Number(id)"
-            @click="setMethod(Number(id))">{{ label }}</MachineBtn>
-        </span>
+        <div class="sep span"></div>
+
+        <div class="sub span">Parameters</div>
+        <label title="Tool number of the probe. Must match the tool loaded in the spindle before any probing operation. (#3014)">Probe Tool #</label>
+        <MachineInput gate="probeParam" type="number" v-model.number="params.probeTool" min="1" :step="STEP_DEFAULT" @change="saveParams" />
+
+        <label title="Feed rate for the refined slow probe pass. Set to 0 to skip the slow pass entirely — faster but less accurate. (#3015)">Probe Slow FRate</label>
+        <MachineInput gate="probeParam" type="number" v-model.number="params.slowFr" min="0" :step="STEP_FEED" @change="saveParams" />
+
+        <label title="Feed rate for non-probing positioning moves between probe points. Does not affect probe accuracy. (#3017)">Probe Traverse FR</label>
+        <MachineInput gate="probeParam" type="number" v-model.number="params.traverseFr" min="1" :step="STEP_FEED" @change="saveParams" />
+
+        <label title="Feed rate for initial fast probe contact. Higher values are faster but reduce repeatability. (#3016)">Probe Fast FRate</label>
+        <MachineInput gate="probeParam" type="number" v-model.number="params.fastFr" min="1" :step="STEP_FEED" @change="saveParams" />
+
+        <label title="Maximum lateral travel before probe aborts if no contact is made. Safety limit — set slightly larger than the expected edge distance. (#3018)">Max X/Y Distance</label>
+        <MachineInput gate="probeParam" type="number" v-model.number="params.maxXYDistance" min="0" :step="STEP_DEFAULT" @change="saveParams" />
+
+        <label title="Retract distance in X/Y after each edge contact before the next move. Prevents the probe tip from scraping the feature wall. (#3019)">X/Y Clearance</label>
+        <MachineInput gate="probeParam" type="number" v-model.number="params.xyClearance" min="0" :step="STEP_DEFAULT" @change="saveParams" />
+
+        <label title="Maximum downward travel before probe aborts if no contact. Safety limit to prevent crashes. Set slightly larger than expected distance to surface. (#3020)">Max Z Distance</label>
+        <MachineInput gate="probeParam" type="number" v-model.number="params.maxZDistance" min="0" :step="STEP_DEFAULT" @change="saveParams" />
+
+        <label title="Retract height above the workpiece between Z probe passes. Also controls slow probe depth (2x this value). (#3021)">Z Clearance</label>
+        <MachineInput gate="probeParam" type="number" v-model.number="params.zClearance" min="0" :step="STEP_DEFAULT" @change="saveParams" />
+
+        <label title="Additional depth added to the slow probe pass beyond Z clearance. Ensures solid re-contact on rough surfaces. Increase if slow probe misses contact. (#3022)">Extra Probe Depth</label>
+        <MachineInput gate="probeParam" type="number" v-model.number="params.extraProbeDepth" min="0" :step="STEP_DEFAULT" @change="saveParams" />
+
+        <label title="Distance the probe steps away from an edge before approaching perpendicular for measurement. Ensures a clean, straight-on contact. (#3023)">Step Off Width</label>
+        <MachineInput gate="probeParam" type="number" v-model.number="params.stepOffWidth" min="0.1" :step="STEP_DEFAULT" @change="saveParams" />
+
+        <label title="Probe tip radius calibration offset. Compensates for the difference between electrical trigger point and true tip center. Set via calibration routines — do not guess. (#3032)">Cal Offset</label>
+        <span class="calOffsetReadonly">{{ fmtNum(params.calOffset) }} <MachineBtn type="probe" :disabled="probing" @click="resetCal">Reset</MachineBtn></span>
       </div>
     </template>
 
@@ -1256,10 +1291,10 @@ function fmtR(key: string): string {
       />
     </template>
 
-    <template v-if="probeView !== 'toolsetter'">
+    <template v-if="probeView !== 'toolsetter' && probeView !== 'surface'">
     <div class="sep"></div>
 
-    <!-- Parameters (shared across views) -->
+    <!-- Parameters (shared across non-surface views) -->
     <div class="stack-controls">
       <div class="sub">Parameters</div>
       <div class="paramGrid twoCol">
@@ -1297,10 +1332,12 @@ function fmtR(key: string): string {
         <span class="calOffsetReadonly">{{ fmtNum(params.calOffset) }} <MachineBtn type="probe" :disabled="probing" @click="resetCal">Reset</MachineBtn></span>
       </div>
     </div>
+    </template>
 
+    <template v-if="probeView !== 'toolsetter'">
     <div class="sep"></div>
 
-    <!-- Probe Results (PB-style feedback) -->
+    <!-- Probe Results (shared across all probe views) -->
     <div class="stack-controls">
       <div class="sub">Probe Results</div>
       <div class="probeResultsGrid">
@@ -1589,6 +1626,9 @@ function fmtR(key: string): string {
 }
 
 /* ─── Surface Map ─── */
+.span { grid-column: 1 / -1; }
+.surfaceGrid > .sep { margin: var(--gap-controls) 0; }
+.surfaceGrid > .sub { margin-top: var(--gap-tight); }
 .surfaceActions {
   display: flex;
   gap: var(--gap-tight);
@@ -1623,9 +1663,6 @@ function fmtR(key: string): string {
   display: flex;
   align-items: center;
   gap: var(--gap-tight);
-}
-.methodBtn {
-  font-size: var(--fs-sm);
 }
 .surface3d {
   flex: 1;
