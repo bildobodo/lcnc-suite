@@ -40,6 +40,7 @@ defineProps<{
   font-family: inherit;
   background-color: var(--button-bg);
   color: var(--fg);
+  white-space: nowrap;
   cursor: pointer;
   transition: background 0.12s, border-color 0.12s, opacity 0.15s;
   overflow: hidden;

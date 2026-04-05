@@ -1754,7 +1754,7 @@ watch(viewerGcode, (newGcode) => {
 
 .strip {
   display: flex;
-  height: 250px;
+  height: 280px;
   flex-shrink: 0;
   padding: var(--gap-controls);
   gap: var(--gap-controls);

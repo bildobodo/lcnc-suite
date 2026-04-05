@@ -63,7 +63,8 @@ const overridesActive = computed(() =>
 </script>
 
 <template>
-  <div class="safetyStrip stack-controls">
+  <div class="safetyStrip stripSection">
+    <div class="sub">Safety</div>
     <div class="safetyBtns row-controls">
       <Gate gate="always" class="btnGate">
         <MachineBtn
@@ -135,10 +136,8 @@ const overridesActive = computed(() =>
 
 <style scoped>
 .safetyStrip {
-  height: 100%;
   width: 280px;
   flex-shrink: 0;
-  overflow: hidden;
 }
 
 .safetyBtns {

@@ -38,9 +38,9 @@ export const BUTTON_TYPES = {
   toolUnload:     { gate: 'ready',    variant: 'default', size: 'md' },
 
   // Spindle
-  spindleFwd:     { gate: 'ready',    variant: 'default', size: 'lg' },
-  spindleRev:     { gate: 'ready',    variant: 'default', size: 'lg' },
-  spindleStop:    { gate: 'ready',    variant: 'danger',  size: 'lg' },
+  spindleFwd:     { gate: 'ready',    variant: 'default', size: 'md' },
+  spindleRev:     { gate: 'ready',    variant: 'default', size: 'md' },
+  spindleStop:    { gate: 'ready',    variant: 'danger',  size: 'md' },
 
   // Coolant
   flood:          { gate: 'ready',    variant: 'default', size: 'md' },
@@ -70,17 +70,13 @@ export const BUTTON_TYPES = {
   // Macros
   macro:          { gate: 'ready',    variant: 'default', size: 'lg' },
 
-  // Safety (sidebar)
+  // Safety
   arm:            { gate: 'always',   variant: 'default', size: 'lg' },
   estop:          { gate: 'always',   variant: 'estop',   size: 'lg' },
   machineOn:      { gate: 'always',   variant: 'default', size: 'lg' },
 
   // Shutdown
   shutdown:       { gate: 'abort',    variant: 'danger',  size: 'md' },
-
-  // Sidebar chips (popover toggles)
-  sidebarChip:    { gate: 'always',   variant: 'default', size: 'lg' },
-  sidebarNav:     { gate: 'always',   variant: 'default', size: 'lg' },
   simTrip:        { gate: 'always',   variant: 'default', size: 'md' },
 
   // ── Gated dialog actions (confirm/danger that require machine state) ──
@@ -122,8 +118,8 @@ export const INPUT_DEFS = {
   jogWheel:        { gate: 'jog' },
   jogAxis:         { gate: 'jog' },
   mdiText:         { gate: 'ready' },
-  touchoff:        { gate: 'zero',     mono: true, align: 'right' },
-  rpmInput:        { gate: 'always',   mono: true, align: 'right' },
+  touchoff:        { gate: 'zero',     mono: true, align: 'right', size: 'md' },
+  stripInput:      { gate: 'always',   mono: true, align: 'right', size: 'md' },
   coolant:         { gate: 'ready' },
 
   // Override sliders
@@ -179,5 +175,6 @@ export type InputType = keyof typeof INPUT_DEFS;
 // Size tier inline styles — shared by MachineInput, MachineSelect
 export const INPUT_SIZE_STYLES: Record<string, Record<string, string>> = {
   sm: { padding: '3px 6px', fontSize: 'var(--fs-sm)' },
+  md: { padding: '8px 12px', fontSize: 'var(--fs-base)' },
   lg: { padding: '6px 10px', fontSize: 'var(--fs-md)' },
 };

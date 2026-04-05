@@ -191,67 +191,71 @@ function stopZJog(dir: 1 | -1, e: PointerEvent) {
 
 <template>
   <div class="jogStrip">
-    <div class="jogContent">
-      <!-- LEFT: XY grid + Z column -->
-      <div class="jogBtns">
-        <div class="xyGrid">
-          <MachineBtn
-            v-for="btn in xyBtns"
-            :key="btn.label"
-            type="jog"
-            class="jogBtn"
-            :variant="btn.axis < 0 ? 'danger' : undefined"
-            :active="active.has(btn.label)"
-            @pointerdown.prevent="startJog(btn, $event)"
-            @pointerup.prevent="stopJog(btn, $event)"
-            @pointercancel.prevent="stopJog(btn, $event)"
-            @pointerleave.prevent="stopJog(btn, $event)"
-            @contextmenu.prevent
-          ><div :class="['jogInner', btn.dir_class]"><component :is="btn.icon" class="jogIcon" /><span v-if="btn.shortLabel" class="jogLabel">{{ btn.shortLabel }}</span></div></MachineBtn>
+    <!-- Jog section -->
+    <div class="stripSection">
+      <div class="sub">Jog</div>
+      <div class="jogContent">
+        <div class="jogBtns">
+          <div class="xyGrid">
+            <MachineBtn
+              v-for="btn in xyBtns"
+              :key="btn.label"
+              type="jog"
+              class="jogBtn"
+              :variant="btn.axis < 0 ? 'danger' : undefined"
+              :active="active.has(btn.label)"
+              @pointerdown.prevent="startJog(btn, $event)"
+              @pointerup.prevent="stopJog(btn, $event)"
+              @pointercancel.prevent="stopJog(btn, $event)"
+              @pointerleave.prevent="stopJog(btn, $event)"
+              @contextmenu.prevent
+            ><div :class="['jogInner', btn.dir_class]"><component :is="btn.icon" class="jogIcon" /><span v-if="btn.shortLabel" class="jogLabel">{{ btn.shortLabel }}</span></div></MachineBtn>
+          </div>
+
+          <div class="zGrid">
+            <MachineBtn
+              type="jog"
+              class="jogBtn"
+              :active="active.has('Z+')"
+              @pointerdown.prevent="startZJog(1, $event)"
+              @pointerup.prevent="stopZJog(1, $event)"
+              @pointercancel.prevent="stopZJog(1, $event)"
+              @pointerleave.prevent="stopZJog(1, $event)"
+              @contextmenu.prevent
+            ><div class="jogInner jogZUp"><ArrowUp class="jogIcon" /><span class="jogLabel">Z+</span></div></MachineBtn>
+            <MachineBtn
+              type="jog"
+              class="jogBtn"
+              :active="active.has('Z-')"
+              @pointerdown.prevent="startZJog(-1, $event)"
+              @pointerup.prevent="stopZJog(-1, $event)"
+              @pointercancel.prevent="stopZJog(-1, $event)"
+              @pointerleave.prevent="stopZJog(-1, $event)"
+              @contextmenu.prevent
+            ><div class="jogInner jogZDown"><ArrowDown class="jogIcon" /><span class="jogLabel">Z-</span></div></MachineBtn>
+          </div>
         </div>
 
-        <div class="zGrid">
-          <MachineBtn
-            type="jog"
-            class="jogBtn"
-            :active="active.has('Z+')"
-            @pointerdown.prevent="startZJog(1, $event)"
-            @pointerup.prevent="stopZJog(1, $event)"
-            @pointercancel.prevent="stopZJog(1, $event)"
-            @pointerleave.prevent="stopZJog(1, $event)"
-            @contextmenu.prevent
-          ><div class="jogInner jogZUp"><ArrowUp class="jogIcon" /><span class="jogLabel">Z+</span></div></MachineBtn>
-          <MachineBtn
-            type="jog"
-            class="jogBtn"
-            :active="active.has('Z-')"
-            @pointerdown.prevent="startZJog(-1, $event)"
-            @pointerup.prevent="stopZJog(-1, $event)"
-            @pointercancel.prevent="stopZJog(-1, $event)"
-            @pointerleave.prevent="stopZJog(-1, $event)"
-            @contextmenu.prevent
-          ><div class="jogInner jogZDown"><ArrowDown class="jogIcon" /><span class="jogLabel">Z-</span></div></MachineBtn>
+        <div class="speedCol">
+          <span class="val-mono">{{ (jogVel * 60).toFixed(0) }}</span>
+          <MachineSlider gate="jogSpeed" :disabled="isDisabled" :min="minJogVel" :max="maxJogVel" :step="0.1" :modelValue="jogVel" @update:modelValue="(v: number | undefined) => { if (v != null) emit('update:jogVel', v) }" class="vSlider" />
+          <span class="label-muted">Speed</span>
+          <MachineBtn type="overrideReset" @click="emit('resetJogVel')">Reset</MachineBtn>
+        </div>
+
+        <div class="stepCol">
+          <label v-for="opt in incrementOptions" :key="opt.value" class="radio-label">
+            <MachineRadio gate="jogIncrement" name="jogStep" :value="opt.value" :modelValue="jogIncrement" @update:modelValue="(v: string | number | undefined) => { if (v != null) emit('update:jogIncrement', Number(v)) }" />
+            <span>{{ opt.label }}</span>
+          </label>
         </div>
       </div>
+    </div>
 
-      <!-- Speed (vertical slider) -->
-      <div class="speedCol">
-        <span class="val-mono">{{ (jogVel * 60).toFixed(0) }}</span>
-        <MachineSlider gate="jogSpeed" :disabled="isDisabled" :min="minJogVel" :max="maxJogVel" :step="0.1" :modelValue="jogVel" @update:modelValue="(v: number | undefined) => { if (v != null) emit('update:jogVel', v) }" class="vSlider" />
-        <span class="label-muted">Speed</span>
-        <MachineBtn type="overrideReset" @click="emit('resetJogVel')">Reset</MachineBtn>
-      </div>
-
-      <!-- Step increments + mode -->
-      <div class="stepCol">
-        <label v-for="opt in incrementOptions" :key="opt.value" class="radio-label">
-          <MachineRadio gate="jogIncrement" name="jogStep" :value="opt.value" :modelValue="jogIncrement" @update:modelValue="(v: string | number | undefined) => { if (v != null) emit('update:jogIncrement', Number(v)) }" />
-          <span>{{ opt.label }}</span>
-        </label>
-      </div>
-
-      <!-- Setup section: WCS + touch-off + homing + go-to -->
-      <div class="setupSection">
+    <!-- Setup section: WCS + touch-off + homing + go-to -->
+    <div class="stripSection setupDivider">
+      <div class="sub">Setup</div>
+      <div class="setupContent">
         <div class="setupGrid">
           <template v-for="(letter, i) in axes" :key="letter">
             <MachineInput gate="touchoff" type="number" :step="STEP_DEFAULT" :value="touchoff[i]" @input="updateTouchoff(i, +($event.target as HTMLInputElement).value)" @keydown.enter="emit('setAxis', i, touchoff[i] ?? 0)" class="setupInput" />
@@ -277,14 +281,18 @@ function stopZJog(dir: 1 | -1, e: PointerEvent) {
 
 <style scoped>
 .jogStrip {
+  display: flex;
+  gap: var(--gap-controls);
   height: 100%;
-  flex-shrink: 0;
   overflow: hidden;
 }
-.jogContent {
+.setupDivider {
+  border-left: 1px solid var(--border-subtle);
+  padding-left: var(--gap-controls);
+}
+.jogContent, .setupContent {
   display: flex;
   gap: var(--gap-section);
-  height: 100%;
 }
 
 /* ── Left: XY grid + Z ── */
@@ -369,19 +377,13 @@ function stopZJog(dir: 1 | -1, e: PointerEvent) {
 .stepCol, .wcsCol {
   justify-content: flex-start;
 }
-.setupSection {
-  display: flex;
-  gap: var(--gap-section);
-  height: 100%;
-  border-left: 1px solid var(--border-subtle);
-  padding-left: var(--gap-controls);
-}
 .setupGrid {
   display: grid;
   grid-template-columns: 80px 1fr 1fr;
   gap: var(--gap-tight);
   align-content: center;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
 }
 .setupInput { width: 100%; }
 .spanAll { grid-column: 1 / -1; }

@@ -732,6 +732,18 @@ label:has(input:disabled, select:disabled) {
 .row-controls   { display: flex; gap: var(--gap-controls); align-items: center; }
 .row-tight      { display: flex; gap: var(--gap-tight); align-items: center; }
 
+/* Strip section — title (.sub) on top, content below.
+   Used by every section in the bottom action strip. */
+.stripSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-controls);
+  height: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+.stripSection > :last-child { flex: 1; min-height: 0; }
+
 .bordered-panel {
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);

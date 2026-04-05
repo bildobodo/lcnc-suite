@@ -138,7 +138,9 @@ onBeforeUnmount(() => _previewRo?.disconnect());
 <template>
   <div class="controlsStrip">
     <!-- LEFT: Overrides -->
-    <Gate gate="override" class="ovrSection">
+    <div class="stripSection">
+      <div class="sub">Overrides</div>
+      <Gate gate="override" class="ovrSection">
       <div class="ovrCol">
         <span class="val-mono" :class="{ warn: feedSlider !== 100 }">{{ feedSlider }}%</span>
         <MachineSlider gate="feedOverride" :modelValue="feedSlider" @update:model-value="onFeedSlider(Number($event))" @change="emit('feedChange')" :min="0" :max="maxFeedOverride" :step="STEP_OVERRIDE" :disabled="!feedOvrEnabled" class="vSlider" />
@@ -157,11 +159,12 @@ onBeforeUnmount(() => _previewRo?.disconnect());
         <span class="label-muted">Rapid</span>
         <MachineBtn type="overrideReset" @click="emit('overridePreset', 'rapid', 100)">Reset</MachineBtn>
       </div>
-    </Gate>
+      </Gate>
+    </div>
 
-    <!-- RIGHT: Tool + Spindle + Coolant -->
-    <div class="rightSection stack-tight">
-      <!-- Spindle -->
+    <!-- Spindle -->
+    <div class="stripSection">
+      <div class="sub">Spindle</div>
       <Gate gate="ready" class="spnBlock stack-controls">
         <div class="spDirRow row-tight">
           <MachineBtn type="spindleRev" :active="isReverse" @click="emit('spindleRev', rpmInput)">
@@ -177,7 +180,7 @@ onBeforeUnmount(() => _previewRo?.disconnect());
 
         <div class="spRpmRow">
           <span class="label-muted md">Speed</span>
-          <MachineInput gate="rpmInput" type="number" class="spRpmInput" :value="rpmInput" @input="emit('update:rpmInput', +($event.target as HTMLInputElement).value)" :min="minSpindleSpeed" :max="maxSpindleSpeed" :step="STEP_RPM" />
+          <MachineInput gate="stripInput" type="number" class="spRpmInput" :value="rpmInput" @input="emit('update:rpmInput', +($event.target as HTMLInputElement).value)" :min="minSpindleSpeed" :max="maxSpindleSpeed" :step="STEP_RPM" />
         </div>
 
         <div class="spActualGroup inset-panel stack-tight">
@@ -202,17 +205,21 @@ onBeforeUnmount(() => _previewRo?.disconnect());
 
       <!-- Coolant -->
       <div class="coolBlock">
-        <MachineToggle gate="coolant" :modelValue="floodOn" @update:modelValue="emit('toggleFlood')" label="Flood" />
-        <MachineToggle gate="coolant" :modelValue="mistOn" @update:modelValue="emit('toggleMist')" label="Mist" />
+        <div class="sub">Coolant</div>
+        <div class="coolToggles">
+          <MachineToggle gate="coolant" :modelValue="floodOn" @update:modelValue="emit('toggleFlood')" label="Flood" />
+          <MachineToggle gate="coolant" :modelValue="mistOn" @update:modelValue="emit('toggleMist')" label="Mist" />
+        </div>
       </div>
     </div>
 
     <!-- RIGHT-MOST: Tool -->
     <div class="toolBlock">
-      <div class="toolControls stack-controls">
+      <div class="stripSection toolControls">
+        <div class="sub">Tool</div>
         <div class="toolInputRow row-tight">
           <span class="label-muted md toolLabel">Tool #</span>
-          <MachineInput gate="rpmInput" type="number" class="toolNumInput"
+          <MachineInput gate="stripInput" type="number" class="toolNumInput"
             :value="toolNumber"
             @input="emit('update:toolNumber', +($event.target as HTMLInputElement).value)"
             @change="emit('saveToolNumber')"
@@ -292,8 +299,11 @@ onBeforeUnmount(() => _previewRo?.disconnect());
   display: flex;
   gap: var(--gap-controls);
   height: 100%;
-  flex-shrink: 0;
   overflow: hidden;
+}
+.controlsStrip > * + * {
+  border-left: 1px solid var(--border-subtle);
+  padding-left: var(--gap-controls);
 }
 
 /* ── Overrides ── */
@@ -314,12 +324,6 @@ onBeforeUnmount(() => _previewRo?.disconnect());
   min-height: 0;
 }
 
-/* ── Right column: Tool + Spindle + Coolant stacked ── */
-.rightSection {
-  border-left: 1px solid var(--border-subtle);
-  padding-left: var(--gap-controls);
-}
-
 /* Spindle */
 .spnBlock {
   flex: 1;
@@ -338,16 +342,19 @@ onBeforeUnmount(() => _previewRo?.disconnect());
 /* Coolant */
 .coolBlock {
   display: flex;
-  gap: var(--gap-section);
+  flex-direction: column;
+  gap: var(--gap-tight);
   flex-shrink: 0;
+}
+.coolToggles {
+  display: flex;
+  gap: var(--gap-section);
 }
 
 /* ── Tool ── */
 .toolBlock {
   display: flex;
   gap: var(--gap-controls);
-  border-left: 1px solid var(--border-subtle);
-  padding-left: var(--gap-controls);
   align-items: stretch;
 }
 
