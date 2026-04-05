@@ -73,7 +73,7 @@ function updateTouchoff(axis: number, val: number) {
   display: grid;
   grid-template-columns: 80px 1fr 1fr;
   gap: var(--gap-tight);
-  align-content: center;
+  align-content: start;
 }
 .setupInput { width: 100%; }
 .spanAll { grid-column: 1 / -1; }
