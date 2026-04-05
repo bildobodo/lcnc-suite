@@ -619,8 +619,8 @@ function fmtR(key: string): string {
 </script>
 
 <template>
-  <div class="stack-sections probePanel scroll-thin">
-    <!-- Sub-view tabs -->
+  <div class="probePanelWrap">
+    <!-- Sub-view tabs (pinned) -->
     <div class="row-tight viewTabs">
         <MachineBtn type="tab" :selected="probeView === 'outside'" @click="probeView = 'outside'">Outside</MachineBtn>
         <MachineBtn type="tab" :selected="probeView === 'inside'" @click="probeView = 'inside'">Inside</MachineBtn>
@@ -632,6 +632,7 @@ function fmtR(key: string): string {
         <MachineBtn type="tab" :selected="probeView === 'toolsetter'" @click="probeView = 'toolsetter'">Toolsetter</MachineBtn>
     </div>
 
+    <div class="stack-sections probePanel scroll-thin">
     <!-- Control bar (hidden for toolsetter view) -->
     <div v-if="probeView !== 'toolsetter'" class="controlBar">
       <MachineToggle gate="probeParam" v-model="autoZero" label="Auto Zero" @update:model-value="saveParams" />
@@ -1346,12 +1347,19 @@ function fmtR(key: string): string {
         <div ref="surfaceContainer" class="surface3d"></div>
       </div>
     </div>
+  </div>
 </template>
 
 <style scoped>
+.probePanelWrap {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
 .probePanel {
   overflow-y: auto;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   position: relative;
 }
 
@@ -1539,29 +1547,6 @@ function fmtR(key: string): string {
   opacity: 0.8;
 }
 
-/* Parameters */
-.paramGrid {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: var(--gap-tight) var(--gap-controls);
-  align-items: center;
-}
-
-.paramGrid.twoCol {
-  grid-template-columns: auto 1fr auto 1fr;
-}
-
-.paramGrid label {
-  font-size: var(--fs-sm);
-  opacity: var(--opacity-muted);
-}
-
-.paramGrid input {
-  padding: 4px 8px;
-  font-size: var(--fs-base);
-  border-radius: var(--radius-md);
-  max-width: 100px;
-}
 
 .checkRow {
   display: flex;

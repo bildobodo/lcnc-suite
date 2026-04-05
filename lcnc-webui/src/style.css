@@ -534,6 +534,17 @@ label:has(input:disabled, select:disabled) {
   flex-shrink: 0;
 }
 
+/* Label + input grid — 2-col (auto 1fr) or 4-col (.twoCol) */
+.paramGrid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--gap-tight) var(--gap-controls);
+  align-items: center;
+}
+.paramGrid.twoCol { grid-template-columns: auto 1fr auto 1fr; }
+.paramGrid > label { font-size: var(--fs-sm); opacity: var(--opacity-muted); }
+.paramGrid input { max-width: 100px; }
+
 .inset-panel {
   background: color-mix(in oklab, var(--bg) 80%, transparent);
   border-radius: var(--radius-lg);
