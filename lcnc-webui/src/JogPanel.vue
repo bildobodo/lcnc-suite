@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive } from "vue";
+import { computed } from "vue";
 import { send } from "./lcncWs";
 import JogButton from "./JogButton.vue";
 import MachineBtn from "./MachineBtn.vue";
@@ -7,6 +7,7 @@ import MachineSlider from "./MachineSlider.vue";
 
 import { usePermissions } from "./permissions";
 import { INPUT_DEFS } from "./machineControls";
+import { registerJog, unregisterJog, activeJogKeys } from "./useJogPointers";
 
 const ABC = new Set(["A", "B", "C"]);
 const UVW = new Set(["U", "V", "W"]);
@@ -130,11 +131,10 @@ function spread(deg: number) {
   return { path: arcPath(deg), labelX: lp.x, labelY: lp.y };
 }
 
-// ---- Jog logic (mirrors JogButton.vue) ----
-const activeSectors = reactive(new Set<string>());
+// ---- Jog logic (uses centralized pointer registry) ----
 
 function isSectorActive(id: string): boolean {
-  if (activeSectors.has(id)) return true;
+  if (activeJogKeys.has(id)) return true;
   if (!props.activeJogActions) return false;
   for (const [action, sectorId] of Object.entries(ACTION_SECTOR_MAP)) {
     if (sectorId === id && props.activeJogActions.has(action)) return true;
@@ -142,19 +142,24 @@ function isSectorActive(id: string): boolean {
   return false;
 }
 
+function makeSectorStopFn(s: Sector): () => void {
+  if (props.jogIncrement > 0) return () => {};
+  const isDiag = s.axis2 != null && s.dir2 != null;
+  if (isDiag) return () => send({ cmd: "jog_stop_multi", axes: [s.axis, s.axis2!] });
+  return () => send({ cmd: "jog_stop", axis: s.axis });
+}
+
 function startJog(s: Sector, e: PointerEvent) {
   if (!can.value[INPUT_DEFS.jogWheel.gate] || !Number.isFinite(props.jogVel) || props.jogVel <= 0) return;
+  if (activeJogKeys.has(s.id)) return;
 
-  try { (e.currentTarget as Element)?.setPointerCapture?.(e.pointerId); } catch {}
-
-  if (activeSectors.has(s.id)) return;
-  activeSectors.add(s.id);
+  const el = e.currentTarget as Element;
+  try { el?.setPointerCapture?.(e.pointerId); } catch {}
 
   const isDiag = s.axis2 != null && s.dir2 != null;
   const v = isDiag ? props.jogVel * 0.7071 : props.jogVel;
 
   if (props.jogIncrement > 0) {
-    // Incremental jog
     const dist = isDiag ? props.jogIncrement * 0.7071 : props.jogIncrement;
     if (isDiag) {
       send({
@@ -168,7 +173,6 @@ function startJog(s: Sector, e: PointerEvent) {
       send({ cmd: "jog_incr", axis: s.axis, vel: v * s.dir, distance: props.jogIncrement * s.dir });
     }
   } else {
-    // Continuous jog
     if (isDiag) {
       send({
         cmd: "jog_cont_multi",
@@ -181,14 +185,15 @@ function startJog(s: Sector, e: PointerEvent) {
       send({ cmd: "jog_cont", axis: s.axis, vel: v * s.dir });
     }
   }
+
+  registerJog(e.pointerId, s.id, makeSectorStopFn(s), el);
 }
 
 function stopJog(s: Sector, e?: PointerEvent) {
-  if (!activeSectors.has(s.id)) return;
-  activeSectors.delete(s.id);
+  if (!activeJogKeys.has(s.id)) return;
+  if (!e) return;
 
   if (props.jogIncrement <= 0) {
-    // Only send stop for continuous mode
     const isDiag = s.axis2 != null && s.dir2 != null;
     if (isDiag) {
       send({ cmd: "jog_stop_multi", axes: [s.axis, s.axis2!] });
@@ -197,9 +202,8 @@ function stopJog(s: Sector, e?: PointerEvent) {
     }
   }
 
-  if (e) {
-    try { (e.currentTarget as Element)?.releasePointerCapture?.(e.pointerId); } catch {}
-  }
+  unregisterJog(e.pointerId);
+  try { (e.currentTarget as Element)?.releasePointerCapture?.(e.pointerId); } catch {}
 }
 </script>
 

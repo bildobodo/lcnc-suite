@@ -3,6 +3,7 @@ import { computed } from "vue";
 import { send } from "./lcncWs";
 import { INPUT_DEFS } from "./machineControls";
 import { usePermissions } from "./permissions";
+import { registerJog, unregisterJog, activeJogKeys } from "./useJogPointers";
 
 type Direction = 'up' | 'down' | 'left' | 'right' | 'up-left' | 'up-right' | 'down-left' | 'down-right';
 
@@ -37,24 +38,27 @@ const points = computed(() => {
   }
 });
 
-let jogging = false;
+function sendStop() {
+  if (!props.jogIncrement || props.jogIncrement <= 0) {
+    if (isDiagonal.value) {
+      send({ cmd: "jog_stop_multi", axes: [props.axis, props.axis2!] });
+    } else {
+      send({ cmd: "jog_stop", axis: props.axis });
+    }
+  }
+}
 
 function startJog(e: PointerEvent) {
   if (isDisabled.value) return;
+  if (activeJogKeys.has(props.label)) return;
 
-  // capture pointer so we always get pointerup even if user drags off the button
-  try {
-    (e.currentTarget as HTMLElement)?.setPointerCapture?.(e.pointerId);
-  } catch {}
-
-  if (jogging) return;
-  jogging = true;
+  const el = e.currentTarget as HTMLElement;
+  try { el?.setPointerCapture?.(e.pointerId); } catch {}
 
   // Scale velocity by 1/sqrt(2) for diagonal so resultant speed matches
   const v = isDiagonal.value ? props.vel * 0.7071 : props.vel;
 
   if (props.jogIncrement && props.jogIncrement > 0) {
-    // Incremental jog
     if (isDiagonal.value) {
       const dist = props.jogIncrement * 0.7071;
       send({
@@ -68,7 +72,6 @@ function startJog(e: PointerEvent) {
       send({ cmd: "jog_incr", axis: props.axis, vel: v * props.dir, distance: props.jogIncrement * props.dir });
     }
   } else {
-    // Continuous jog
     if (isDiagonal.value) {
       send({
         cmd: "jog_cont_multi",
@@ -81,33 +84,27 @@ function startJog(e: PointerEvent) {
       send({ cmd: "jog_cont", axis: props.axis, vel: v * props.dir });
     }
   }
+
+  registerJog(e.pointerId, props.label, sendStop, el);
 }
 
 function stopJog(e?: PointerEvent) {
-  if (!jogging) return;
-  jogging = false;
+  if (!e) return;
+  if (!activeJogKeys.has(props.label)) return;
 
-  if (!props.jogIncrement || props.jogIncrement <= 0) {
-    // Only send stop for continuous mode
-    if (isDiagonal.value) {
-      send({ cmd: "jog_stop_multi", axes: [props.axis, props.axis2!] });
-    } else {
-      send({ cmd: "jog_stop", axis: props.axis });
-    }
-  }
+  sendStop();
+  unregisterJog(e.pointerId);
 
-  if (e) {
-    try {
-      (e.currentTarget as HTMLElement)?.releasePointerCapture?.(e.pointerId);
-    } catch {}
-  }
+  try {
+    (e.currentTarget as HTMLElement)?.releasePointerCapture?.(e.pointerId);
+  } catch {}
 }
 </script>
 
 <template>
   <button
     class="jbtn"
-    :class="[direction, { disabled: isDisabled, active: active }]"
+    :class="[direction, { disabled: isDisabled, active: activeJogKeys.has(label) || active }]"
     :disabled="isDisabled"
     @pointerdown.prevent="startJog"
     @pointerup.prevent="stopJog"

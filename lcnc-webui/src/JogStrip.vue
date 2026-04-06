@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, reactive, ref, onMounted, onUnmounted, type Component } from "vue";
+import { computed, ref, onMounted, onUnmounted, type Component } from "vue";
 import { send } from "./lcncWs";
 import { usePermissions } from "./permissions";
 import { INPUT_DEFS } from "./machineControls";
+import { registerJog, unregisterJog, activeJogKeys, forceStopAllJogs } from "./useJogPointers";
 import MachineBtn from "./MachineBtn.vue";
 import MachineRadio from "./MachineRadio.vue";
 import MachineSlider from "./MachineSlider.vue";
@@ -91,21 +92,28 @@ const xyBtns: JogDef[] = [
   { label: "X+Y-", shortLabel: "",     icon: ArrowDownRight, axis: 0, dir: 1, axis2: 1, dir2: -1, dir_class: "" },
 ];
 
-const active = reactive(new Set<string>());
-
 function stopAllJog() {
+  forceStopAllJogs();
+  // Belt-and-suspenders: stop all axes at backend level
   for (let i = 0; i < props.axes.length; i++) {
     send({ cmd: "jog_stop", axis: i });
   }
-  active.clear();
+}
+
+function makeBtnStopFn(btn: JogDef): () => void {
+  const isDiag = btn.axis2 != null;
+  if (props.jogIncrement > 0) return () => {};
+  if (isDiag) return () => send({ cmd: "jog_stop_multi", axes: [btn.axis, btn.axis2!] });
+  return () => send({ cmd: "jog_stop", axis: btn.axis });
 }
 
 function startJog(btn: JogDef, e: PointerEvent) {
   if (isDisabled.value) return;
   if (btn.axis < 0) { stopAllJog(); return; }
-  try { (e.currentTarget as Element)?.setPointerCapture?.(e.pointerId); } catch {}
-  if (active.has(btn.label)) return;
-  active.add(btn.label);
+  if (activeJogKeys.has(btn.label)) return;
+
+  const el = e.currentTarget as Element;
+  try { el?.setPointerCapture?.(e.pointerId); } catch {}
 
   const isDiag = btn.axis2 != null && btn.dir2 != null;
   const v = isDiag ? props.jogVel * 0.7071 : props.jogVel;
@@ -130,42 +138,53 @@ function startJog(btn: JogDef, e: PointerEvent) {
       send({ cmd: "jog_cont", axis: btn.axis, vel: v * btn.dir });
     }
   }
+
+  registerJog(e.pointerId, btn.label, makeBtnStopFn(btn), el);
 }
 
 function stopJog(btn: JogDef, e: PointerEvent) {
-  if (!active.has(btn.label)) return;
-  active.delete(btn.label);
-  try { (e.currentTarget as HTMLElement)?.releasePointerCapture?.(e.pointerId); } catch {}
+  if (!activeJogKeys.has(btn.label)) return;
 
-  if (props.jogIncrement > 0) return; // incremental jog stops itself
-
-  const isDiag = btn.axis2 != null;
-  if (isDiag) {
-    send({ cmd: "jog_stop_multi", axes: [btn.axis, btn.axis2!] });
-  } else {
-    send({ cmd: "jog_stop", axis: btn.axis });
+  if (props.jogIncrement <= 0) {
+    const isDiag = btn.axis2 != null;
+    if (isDiag) {
+      send({ cmd: "jog_stop_multi", axes: [btn.axis, btn.axis2!] });
+    } else {
+      send({ cmd: "jog_stop", axis: btn.axis });
+    }
   }
+
+  unregisterJog(e.pointerId);
+  try { (e.currentTarget as HTMLElement)?.releasePointerCapture?.(e.pointerId); } catch {}
 }
 
 function startZJog(dir: 1 | -1, e: PointerEvent) {
   const key = dir > 0 ? "Z+" : "Z-";
-  if (isDisabled.value || active.has(key)) return;
-  try { (e.currentTarget as Element)?.setPointerCapture?.(e.pointerId); } catch {}
-  active.add(key);
+  if (isDisabled.value || activeJogKeys.has(key)) return;
+
+  const el = e.currentTarget as Element;
+  try { el?.setPointerCapture?.(e.pointerId); } catch {}
+
   if (props.jogIncrement > 0) {
     send({ cmd: "jog_incr", axis: 2, vel: props.jogVel * dir, distance: props.jogIncrement * dir });
   } else {
     send({ cmd: "jog_cont", axis: 2, vel: props.jogVel * dir });
   }
+
+  const stopFn = props.jogIncrement > 0 ? () => {} : () => send({ cmd: "jog_stop", axis: 2 });
+  registerJog(e.pointerId, key, stopFn, el);
 }
 
 function stopZJog(dir: 1 | -1, e: PointerEvent) {
   const key = dir > 0 ? "Z+" : "Z-";
-  if (!active.has(key)) return;
-  active.delete(key);
+  if (!activeJogKeys.has(key)) return;
+
+  if (props.jogIncrement <= 0) {
+    send({ cmd: "jog_stop", axis: 2 });
+  }
+
+  unregisterJog(e.pointerId);
   try { (e.currentTarget as HTMLElement)?.releasePointerCapture?.(e.pointerId); } catch {}
-  if (props.jogIncrement > 0) return;
-  send({ cmd: "jog_stop", axis: 2 });
 }
 </script>
 
@@ -182,7 +201,7 @@ function stopZJog(dir: 1 | -1, e: PointerEvent) {
               type="jog"
               class="jogBtn"
               :variant="btn.axis < 0 ? 'danger' : undefined"
-              :active="active.has(btn.label)"
+              :active="activeJogKeys.has(btn.label)"
               @pointerdown.prevent="startJog(btn, $event)"
               @pointerup.prevent="stopJog(btn, $event)"
               @pointercancel.prevent="stopJog(btn, $event)"
@@ -196,7 +215,7 @@ function stopZJog(dir: 1 | -1, e: PointerEvent) {
           <MachineBtn
             type="jog"
             class="jogBtn"
-            :active="active.has('Z+')"
+            :active="activeJogKeys.has('Z+')"
             @pointerdown.prevent="startZJog(1, $event)"
             @pointerup.prevent="stopZJog(1, $event)"
             @pointercancel.prevent="stopZJog(1, $event)"
@@ -206,7 +225,7 @@ function stopZJog(dir: 1 | -1, e: PointerEvent) {
           <MachineBtn
             type="jog"
             class="jogBtn"
-            :active="active.has('Z-')"
+            :active="activeJogKeys.has('Z-')"
             @pointerdown.prevent="startZJog(-1, $event)"
             @pointerup.prevent="stopZJog(-1, $event)"
             @pointercancel.prevent="stopZJog(-1, $event)"

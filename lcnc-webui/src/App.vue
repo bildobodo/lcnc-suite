@@ -27,6 +27,7 @@ import GcodeReferenceDialog from "./GcodeReferenceDialog.vue";
 import { loadViewerDefaults, saveViewerDefaults, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadMacrosDefaults, loadGamepadDefaults, saveGamepadDefaults, loadKeyboardDefaults, saveKeyboardDefaults, loadMdiHistory, saveMdiHistory, settingsVersion, type ThemeMode, type MacroDef, type GamepadDefaults, type KeyboardDefaults, type KeyboardAction, type Layer, type TrackMode, type Projection, type Vec3 } from "./defaults";
 import { buildToolsetterVarMap } from "./toolsetterVars";
 import { useGamepad } from "./useGamepad";
+import { forceStopAllJogs, initJogPointerSafety, destroyJogPointerSafety } from "./useJogPointers";
 import {
   INTERP_IDLE, INTERP_READING, INTERP_PAUSED, INTERP_WAITING,
   TRAJ_MODE_FREE, TRAJ_MODE_TELEOP,
@@ -1086,6 +1087,7 @@ watch(settingsVersion, () => {
 
 /** ---------- safety: stop jog on focus loss ---------- */
 function stopAllJog() {
+  forceStopAllJogs(); // clear all pointer-based jog state + send stops
   jogActions.clear();
   gamepad.stopAllJog();
   if (!permissions.value.jog) return; // no jog possible unless armed + enabled + homed
@@ -1100,6 +1102,7 @@ function visHandler() {
 }
 
 onMounted(() => {
+  initJogPointerSafety();
   window.addEventListener("blur", stopAllJog);
   window.addEventListener("keydown", onKeyDown);
   window.addEventListener("keyup", onKeyUp);
@@ -1108,6 +1111,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  destroyJogPointerSafety();
   window.removeEventListener("blur", stopAllJog);
   window.removeEventListener("keydown", onKeyDown);
   window.removeEventListener("keyup", onKeyUp);
