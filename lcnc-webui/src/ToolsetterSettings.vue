@@ -173,11 +173,6 @@ watch(settingsVersion, () => { loadTsParams(); });
       <label><MachineRadio gate="toolsetterParam" name="spindleStopM" :value="5" v-model.number="tsParams.spindleStopM" @update:modelValue="saveTsParams()" /> M5</label>
       <label><MachineRadio gate="toolsetterParam" name="spindleStopM" :value="500" v-model.number="tsParams.spindleStopM" @update:modelValue="saveTsParams()" /> M500</label>
     </div>
-    <label title="Axis direction to offset the probe position for large tools: X−, X+, Y−, or Y+. Choose based on your machine layout to avoid clamp or fixture collisions. (#3013)">Offset Dir</label>
-    <div class="radioGroup inline spanRow">
-      <label v-for="d in [0, 1, 2, 3]" :key="d"><MachineRadio gate="toolsetterParam" name="offsetDirection" :value="d" v-model.number="tsParams.offsetDirection" @update:modelValue="saveTsParams()" /> {{ OFFSET_DIR_LABELS[d] }}</label>
-    </div>
-
     <div class="sep span"></div>
 
     <!-- Diameter Offset -->
@@ -186,6 +181,10 @@ watch(settingsVersion, () => { loadTsParams(); });
     <MachineInput gate="toolsetterParam" type="number" v-model.number="tsParams.offsetDiameter" min="0" :step="STEP_DEFAULT" @change="saveTsParams" />
     <label title="Percentage of tool diameter to offset the probe position. Example: 20% on a large tool offsets the probe position by 20% of the diameter from center. (#3112)">Offset %</label>
     <MachineInput gate="toolsetterParam" type="number" v-model.number="tsParams.offsetValue" min="0" max="100" :step="STEP_DEFAULT" @change="saveTsParams" />
+    <label title="Axis direction to offset the probe position for large tools: X−, X+, Y−, or Y+. Choose based on your machine layout to avoid clamp or fixture collisions. (#3013)">Offset Dir</label>
+    <div class="radioGroup inline spanRow">
+      <label v-for="d in [0, 1, 2, 3]" :key="d"><MachineRadio gate="toolsetterParam" name="offsetDirection" :value="d" v-model.number="tsParams.offsetDirection" @update:modelValue="saveTsParams()" /> {{ OFFSET_DIR_LABELS[d] }}</label>
+    </div>
 
     <div class="sep span"></div>
 
