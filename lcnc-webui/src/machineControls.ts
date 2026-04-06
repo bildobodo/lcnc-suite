@@ -76,7 +76,7 @@ export const BUTTON_TYPES = {
   machineOn:      { gate: 'always',   variant: 'default', size: 'lg' },
 
   // Shutdown
-  shutdown:       { gate: 'abort',    variant: 'danger',  size: 'md' },
+  shutdown:       { gate: 'safety',   variant: 'danger',  size: 'md' },
   simTrip:        { gate: 'always',   variant: 'default', size: 'md' },
 
   // ── Gated dialog actions (confirm/danger that require machine state) ──
