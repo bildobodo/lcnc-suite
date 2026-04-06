@@ -3,6 +3,7 @@ export const TOOL_TYPE_LABELS: Record<string, string> = {
   ball: "Ball",
   bullnose: "Bull Nose",
   drill: "Drill",
+  centerdrill: "Center Drill",
   chamfer: "Chamfer",
   countersink: "C/Sink",
   dovetail: "Dovetail",

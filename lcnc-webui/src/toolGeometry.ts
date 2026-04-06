@@ -52,9 +52,26 @@ export function buildToolProfile(
 
   switch (type) {
     case "endmill":
-    case "slotmill":
     case "threadmill": {
       pts.push(V(0, 0), V(r, 0), V(r, fluteLen));
+      if (Math.abs(shaftR - r) > 0.01) pts.push(V(shaftR, fluteLen));
+      pts.push(V(shaftR, oal), V(0, oal));
+      break;
+    }
+    case "slotmill": {
+      // Slot mills may have corner radius (RE) — render like bullnose when present
+      if (cornerR > 0.01) {
+        const cr = Math.min(cornerR, r);
+        const arcN = 8;
+        pts.push(V(0, 0), V(r - cr, 0));
+        for (let i = 1; i <= arcN; i++) {
+          const a = (Math.PI / 2) * (i / arcN);
+          pts.push(V(r - cr + cr * Math.sin(a), cr - cr * Math.cos(a)));
+        }
+        pts.push(V(r, fluteLen));
+      } else {
+        pts.push(V(0, 0), V(r, 0), V(r, fluteLen));
+      }
       if (Math.abs(shaftR - r) > 0.01) pts.push(V(shaftR, fluteLen));
       pts.push(V(shaftR, oal), V(0, oal));
       break;
@@ -102,19 +119,47 @@ export function buildToolProfile(
     }
     case "drill": {
       const halfA = (pointAngle / 2) * (Math.PI / 180);
-      const tipH = r / Math.tan(halfA);
-      pts.push(V(0, 0), V(r, tipH), V(r, fluteLen));
+      // Support flat tip (spot drills have tip_diameter > 0)
+      const tipH = (r - tipR) / Math.tan(halfA || 1);
+      pts.push(V(0, 0));
+      if (tipR > 0.01) pts.push(V(tipR, 0));
+      pts.push(V(r, tipH), V(r, fluteLen));
       if (Math.abs(shaftR - r) > 0.01) pts.push(V(shaftR, fluteLen));
       pts.push(V(shaftR, oal), V(0, oal));
       break;
     }
-    case "chamfer":
-    case "countersink": {
-      const chamA = taperAngle * (Math.PI / 180);
+    case "centerdrill": {
+      // Center drill: small pilot point tip, then wider countersink body
+      // point_angle = full included tip angle, taper_angle = full included body angle
+      const tipHalfA = (pointAngle / 2) * (Math.PI / 180);
+      const bodyHalfA = (taperAngle / 2) * (Math.PI / 180);
+      const pilotR = tipR > 0.01 ? tipR : r * 0.3;
+      const pilotH = pilotR / Math.tan(tipHalfA || 1);
+      const bodyH = (r - pilotR) / Math.tan(bodyHalfA || 1);
+      pts.push(V(0, 0), V(pilotR, pilotH), V(r, pilotH + bodyH), V(r, fluteLen));
+      if (Math.abs(shaftR - r) > 0.01) pts.push(V(shaftR, fluteLen));
+      pts.push(V(shaftR, oal), V(0, oal));
+      break;
+    }
+    case "chamfer": {
+      // taper_angle is full included angle (gateway doubled TA) — halve for slope
+      const chamA = (taperAngle / 2) * (Math.PI / 180);
       const chamH = (r - tipR) / Math.tan(chamA || 1);
       pts.push(V(0, 0));
       if (tipR > 0.01) pts.push(V(tipR, 0));
       pts.push(V(r, chamH), V(r, fluteLen));
+      if (Math.abs(shaftR - r) > 0.01) pts.push(V(shaftR, fluteLen));
+      pts.push(V(shaftR, oal), V(0, oal));
+      break;
+    }
+    case "countersink": {
+      // Countersink cone angle comes from SIG (point_angle), not TA
+      // point_angle is full included angle (gateway doubled SIG) — halve for slope
+      const coneA = (pointAngle / 2) * (Math.PI / 180);
+      const coneH = (r - tipR) / Math.tan(coneA || 1);
+      pts.push(V(0, 0));
+      if (tipR > 0.01) pts.push(V(tipR, 0));
+      pts.push(V(r, coneH), V(r, fluteLen));
       if (Math.abs(shaftR - r) > 0.01) pts.push(V(shaftR, fluteLen));
       pts.push(V(shaftR, oal), V(0, oal));
       break;
@@ -149,10 +194,13 @@ export function buildToolProfile(
       break;
     }
     case "dovetail": {
-      const wideR = tipR > r ? tipR : r * 1.5;
-      const neckR = Math.min(r, shaftR) * 0.5;
-      pts.push(V(0, 0), V(wideR, 0), V(neckR, fluteLen));
-      pts.push(V(shaftR, bodyLen), V(shaftR, oal), V(0, oal));
+      // DC = max cutting diameter (wide bottom). TA = cutting angle (full included,
+      // gateway doubled). Neck narrows above based on angle and flute length.
+      const doveHalfA = (taperAngle / 2) * (Math.PI / 180);
+      const neckR = Math.max(0.5, r - fluteLen * Math.tan(doveHalfA || 0.3));
+      pts.push(V(0, 0), V(r, 0), V(neckR, fluteLen));
+      if (Math.abs(shaftR - neckR) > 0.01) pts.push(V(shaftR, fluteLen));
+      pts.push(V(shaftR, oal), V(0, oal));
       break;
     }
     case "lollipop": {

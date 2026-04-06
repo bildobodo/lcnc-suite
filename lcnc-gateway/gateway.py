@@ -2958,9 +2958,10 @@ _FUSION_TYPE_MAP = {
     "chamfer mill": "chamfer",
     "drill": "drill",
     "spot drill": "drill",
-    "counter bore": "drill",
-    "reamer": "drill",
-    "boring bar": "drill",
+    "counter bore": "endmill",
+    "reamer": "endmill",
+    "boring bar": "endmill",
+    "center drill": "centerdrill",
     "counter sink": "countersink",
     "dovetail mill": "dovetail",
     "face mill": "facemill",
@@ -3023,12 +3024,12 @@ def _parse_fusion_library(data: dict) -> tuple[list, list]:
         }
         # ---- Per-type angle normalization (Fusion stores half-angles for some types) ----
         # Source: FreeCAD Better Tool Library reverse-engineering of Fusion 360 geometry keys
-        if our_type in ("chamfer", "countersink"):
+        if our_type in ("chamfer", "countersink", "centerdrill"):
             # Fusion TA is half-angle for chamfer/countersink — double to get included angle
             if tool.get("taper_angle"):
                 tool["taper_angle"] *= 2
-        if our_type == "countersink":
-            # Fusion SIG is half-angle for countersink — double to get included angle
+        if our_type in ("countersink", "centerdrill"):
+            # Fusion SIG is half-angle for countersink/centerdrill — double to get included angle
             if tool.get("point_angle"):
                 tool["point_angle"] *= 2
         # (drill/spot drill SIG is already the full included angle — no adjustment needed)
