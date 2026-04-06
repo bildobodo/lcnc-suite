@@ -22,7 +22,7 @@ import MachineInput from "./MachineInput.vue";
 import { highlightGcode } from "./gcodeHighlight";
 import { fmtElapsed, fmtDuration, fmtDist, fmtSize } from "./format";
 import type { GcodeStats } from "./GcodePanel.vue";
-import { SlidersHorizontal, MessageSquare, PowerOff, Gamepad2, BookOpen, ClipboardCopy, Expand, Shrink } from "lucide-vue-next";
+import { Settings, MessageSquare, PowerOff, Gamepad2, BookOpen, ClipboardCopy, Expand, Shrink } from "lucide-vue-next";
 import GcodeReferenceDialog from "./GcodeReferenceDialog.vue";
 import { loadViewerDefaults, saveViewerDefaults, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadMacrosDefaults, loadGamepadDefaults, saveGamepadDefaults, loadKeyboardDefaults, saveKeyboardDefaults, loadMdiHistory, saveMdiHistory, settingsVersion, type ThemeMode, type MacroDef, type GamepadDefaults, type KeyboardDefaults, type KeyboardAction, type Layer, type TrackMode, type Projection, type Vec3 } from "./defaults";
 import { buildToolsetterVarMap } from "./toolsetterVars";
@@ -1195,20 +1195,20 @@ watch(viewerGcode, (newGcode) => {
         <div v-if="gamepad.gamepadConnected.value" class="pill ok" :title="gamepad.gamepadName.value"><Gamepad2 :size="14" /></div>
 
         <MachineBtn type="headerIcon" :warning="unreadCount > 0" :title="'Messages (' + unreadCount + ')'" @click="openDialog('messages')">
-          <MessageSquare :size="16" />
+          <MessageSquare :size="22" />
         </MachineBtn>
         <MachineBtn type="headerIcon" title="G-code Reference" @click="openGcodeRef()">
-          <BookOpen :size="16" />
+          <BookOpen :size="22" />
         </MachineBtn>
         <MachineBtn type="headerIcon" title="Settings" @click="openDialog('settings')">
-          <SlidersHorizontal :size="16" />
+          <Settings :size="22" />
         </MachineBtn>
         <MachineBtn type="headerIcon" :title="isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'" @click="toggleFullscreen">
-          <Shrink v-if="isFullscreen" :size="16" />
-          <Expand v-else :size="16" />
+          <Shrink v-if="isFullscreen" :size="22" />
+          <Expand v-else :size="22" />
         </MachineBtn>
         <MachineBtn type="headerIcon" class="hdrShutdown" title="Shut Down LinuxCNC" @click="showShutdownConfirm = true">
-          <PowerOff :size="16" />
+          <PowerOff :size="22" />
         </MachineBtn>
       </div>
     </header>

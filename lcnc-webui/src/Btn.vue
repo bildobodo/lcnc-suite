@@ -114,6 +114,12 @@ defineProps<{
   background: color-mix(in oklab, var(--warn) 20%, var(--button-bg));
   animation: pulse-warn 1s ease-in-out infinite;
 }
+.b-icon.warning {
+  color: var(--warn);
+  background: color-mix(in oklab, var(--warn) 20%, transparent);
+  border-radius: var(--radius-md);
+  animation: pulse-warn 1s ease-in-out infinite;
+}
 @keyframes pulse-warn {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
@@ -135,7 +141,7 @@ defineProps<{
 .b-icon {
   background: none;
   border: none;
-  padding: 2px 6px;
+  padding: 6px 8px;
   font-size: inherit;
   color: inherit;
   opacity: var(--opacity-muted);
