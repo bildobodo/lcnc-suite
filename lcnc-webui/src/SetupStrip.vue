@@ -52,6 +52,7 @@ function updateTouchoff(axis: number, val: number) {
         <MachineBtn type="goTo" size="xs" @click="emit('goToZero')">Zero</MachineBtn>
       </div>
       <div class="wcsCol">
+        <span class="label-muted">WCS</span>
         <label v-for="g in g5xOptions" :key="g" class="radio-label">
           <MachineRadio gate="touchoff" name="wcs" :value="g" :modelValue="g5xLabel" @update:modelValue="(v: string | number | undefined) => { if (v != null) emit('setG5x', String(v)) }" />
           <span>{{ g }}</span>

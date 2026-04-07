@@ -239,13 +239,14 @@ function stopZJog(dir: 1 | -1, e: PointerEvent) {
       </div>
 
       <div class="speedCol">
+        <span class="label-muted">Speed</span>
         <span class="val-mono">{{ (jogVel * 60).toFixed(0) }}</span>
         <MachineSlider gate="jogSpeed" :disabled="isDisabled" :min="minJogVel" :max="maxJogVel" :step="0.1" :modelValue="jogVel" @update:modelValue="(v: number | undefined) => { if (v != null) emit('update:jogVel', v) }" class="vSlider" />
-        <span class="label-muted">Speed</span>
         <MachineBtn type="overrideReset" @click="emit('resetJogVel')">Reset</MachineBtn>
       </div>
 
       <div class="stepCol">
+        <span class="label-muted">Step</span>
         <label v-for="opt in incrementOptions" :key="opt.value" class="radio-label">
           <MachineRadio gate="jogIncrement" name="jogStep" :value="opt.value" :modelValue="jogIncrement" @update:modelValue="(v: string | number | undefined) => { if (v != null) emit('update:jogIncrement', Number(v)) }" />
           <span>{{ opt.label }}</span>
