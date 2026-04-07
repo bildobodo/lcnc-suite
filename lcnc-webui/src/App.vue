@@ -1538,8 +1538,8 @@ watch(viewerGcode, (newGcode) => {
             <div class="stack-controls">
               <div v-for="p in macroParamDialog.macro.params" :key="p.name" class="macroParamRow">
                 <label class="macroParamLabel">{{ p.label || p.name }}</label>
-                <input
-                  type="text"
+                <MachineInput
+                  gate="macroParam"
                   v-model="macroParamDialog.values[p.name]"
                   @keydown.enter="confirmMacroParams"
                 />

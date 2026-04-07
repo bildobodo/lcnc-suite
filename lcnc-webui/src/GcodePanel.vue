@@ -401,6 +401,7 @@ async function saveEdit() {
           <MachineBtn v-if="currentSubdir" type="inline" class="backBtn" @click="navigateUp">..</MachineBtn>
           <span class="browserPath">{{ currentSubdir || '/' }}</span>
         </div>
+        <div class="sep"></div>
         <div class="fileList scroll-thin">
           <div v-for="entry in files" :key="entry.name" class="fileItem"
                :class="{ directory: entry.type === 'directory', activeItem: entry.type === 'file' && entry.path === activeFile }"
@@ -668,7 +669,6 @@ async function saveEdit() {
   align-items: center;
   gap: var(--gap-controls);
   padding: var(--gap-tight) var(--gap-controls);
-  border-bottom: 1px solid var(--border);
   font-size: var(--fs-sm);
   opacity: var(--opacity-muted);
 }

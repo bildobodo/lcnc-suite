@@ -4,6 +4,7 @@ import { lastReply, connected, send } from "./lcncWs";
 import { usePermissions } from "./permissions";
 import { fmtOffset } from "./format";
 import MachineBtn from "./MachineBtn.vue";
+import MachineInput from "./MachineInput.vue";
 
 import Gate from "./Gate.vue";
 
@@ -145,9 +146,10 @@ function clearAll() {
                   editableCell: can.zero
                 }"
                 @dblclick.stop="startEditCell(row.name as string, axis, Number(row[axis]) || 0)">
-              <input
+              <MachineInput
                 v-if="editingCell?.wcs === row.name && editingCell?.axis === axis"
                 ref="offsetInputRef"
+                gate="offsetEdit"
                 v-model="editValue"
                 class="cellInput"
                 @keydown.enter.prevent="commitCell(row.name as string, axis)"

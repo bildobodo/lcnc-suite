@@ -154,6 +154,7 @@ export const INPUT_DEFS = {
 
   // Macro editing
   macroEdit:       { gate: 'always' },
+  macroParam:      { gate: 'ready' },
 
   // Keyboard/gamepad config
   inputConfig:     { gate: 'always' },

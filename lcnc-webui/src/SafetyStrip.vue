@@ -125,6 +125,7 @@ const overridesActive = computed(() =>
           <div class="statusRow"><span class="label-muted md">Elapsed</span><span class="val-status md mono">{{ elapsed }}</span></div>
         </div>
       </div>
+      <div class="sep"></div>
       <div class="codesRow">
         <span class="codes-value">{{ gcodes }}</span>
         <div class="sep"></div>
@@ -188,9 +189,6 @@ const overridesActive = computed(() =>
   display: flex;
   flex-direction: column;
   gap: var(--gap-micro);
-  margin-top: var(--gap-tight);
-  padding-top: var(--gap-tight);
-  border-top: 1px solid color-mix(in oklab, var(--border) 30%, transparent);
   /* Prevent codes from widening the strip — wrap within status column width */
   width: 0;
   min-width: 100%;

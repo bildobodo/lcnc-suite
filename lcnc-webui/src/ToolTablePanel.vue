@@ -486,6 +486,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
           </div>
 
           <!-- Footer -->
+          <div class="sep"></div>
           <Gate gate="idle" class="editFooter">
             <MachineBtn type="dialogCancel" @click="cancelEditModal">Cancel</MachineBtn>
             <MachineBtn type="fileSave" @click="saveEdit">{{ isNewTool ? "Add" : "Save" }}</MachineBtn>
@@ -711,7 +712,6 @@ defineExpose({ openAdd, fetchTools, triggerImport });
   gap: var(--gap-controls);
   justify-content: flex-end;
   padding: var(--gap-section) var(--gap-panel);
-  border-top: 1px solid var(--border);
 }
 
 /* ---- Import dialog ---- */
