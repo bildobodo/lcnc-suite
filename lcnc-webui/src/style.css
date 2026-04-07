@@ -362,6 +362,7 @@ input.toggle:disabled {
 input[type="radio"] {
   cursor: pointer;
   accent-color: var(--info);
+  order: -1; /* force radio before text in flex labels (Firefox HMR race) */
 }
 
 input[type="radio"]:disabled {
