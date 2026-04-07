@@ -171,6 +171,7 @@ const props = defineProps<{
   spindleActual?: number | null;
   spindleDirection?: number | null;
   surfacePoints?: [number, number, number][] | null;
+  compGrid?: { x: number[]; y: number[]; zi: number[][]; method: number } | null;
   axes?: string[];
 }>();
 
@@ -1636,25 +1637,60 @@ function buildSurfaceLayer(pts: [number, number, number][]) {
   const xRange = xMax - xMin || 1, yRange = yMax - yMin || 1, zRange = zMax - zMin || 0.001;
 
   // Create interpolated grid at 1:1 WCS scale
-  const res = 30;
-  const geom = new THREE.PlaneGeometry(xRange, yRange, res - 1, res - 1);
-  const colors: number[] = [];
-  const posArr = geom.attributes.position!;
-  for (let i = 0; i < posArr.count; i++) {
-    // PlaneGeometry vertices are in local space centered at origin
-    const gx = posArr.getX(i) + xRange / 2 + xMin;
-    const gy = posArr.getY(i) + yRange / 2 + yMin;
-    const gz = idwInterp(gx, gy, pts);
-    // Set Z at real WCS height (1:1 scale)
-    posArr.setZ(i, gz);
-    // Set XY at real WCS positions
-    posArr.setX(i, gx);
-    posArr.setY(i, gy);
-    const t = (gz - zMin) / zRange;
-    const [r, g, b] = viridis(t);
-    colors.push(r / 255, g / 255, b / 255);
+  const grid = props.compGrid;
+  let geom: THREE.PlaneGeometry;
+
+  if (grid && grid.x.length >= 2 && grid.y.length >= 2) {
+    // Use exact grid from compensation.py (scipy interpolation)
+    const nx = grid.x.length, ny = grid.y.length;
+    const gxRange = grid.x[nx - 1]! - grid.x[0]!;
+    const gyRange = grid.y[ny - 1]! - grid.y[0]!;
+    geom = new THREE.PlaneGeometry(gxRange || 1, gyRange || 1, nx - 1, ny - 1);
+    const posArr = geom.attributes.position!;
+    const colors: number[] = [];
+
+    for (let iy = 0; iy < ny; iy++) {
+      for (let ix = 0; ix < nx; ix++) {
+        const vi = iy * nx + ix;
+        const gx = grid.x[ix]!, gy = grid.y[iy]!;
+        let z = grid.zi[ix]?.[iy];
+        if (z == null || !isFinite(z)) {
+          // Outside convex hull — nearest raw point as fallback
+          let bestD2 = Infinity, bestZ = 0;
+          for (const p of pts) {
+            const d2 = (gx - p[0]) ** 2 + (gy - p[1]) ** 2;
+            if (d2 < bestD2) { bestD2 = d2; bestZ = p[2]; }
+          }
+          z = bestZ;
+        }
+        posArr.setX(vi, gx);
+        posArr.setY(vi, gy);
+        posArr.setZ(vi, z);
+        const t = (z - zMin) / zRange;
+        const [r, g, b] = viridis(t);
+        colors.push(r / 255, g / 255, b / 255);
+      }
+    }
+    geom.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+  } else {
+    // Fallback: IDW interpolation from raw points
+    const res = 30;
+    geom = new THREE.PlaneGeometry(xRange, yRange, res - 1, res - 1);
+    const posArr = geom.attributes.position!;
+    const colors: number[] = [];
+    for (let i = 0; i < posArr.count; i++) {
+      const gx = posArr.getX(i) + xRange / 2 + xMin;
+      const gy = posArr.getY(i) + yRange / 2 + yMin;
+      const gz = idwInterp(gx, gy, pts);
+      posArr.setZ(i, gz);
+      posArr.setX(i, gx);
+      posArr.setY(i, gy);
+      const t = (gz - zMin) / zRange;
+      const [r, g, b] = viridis(t);
+      colors.push(r / 255, g / 255, b / 255);
+    }
+    geom.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
   }
-  geom.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
   geom.computeVertexNormals();
 
   const mat = new THREE.MeshLambertMaterial({
@@ -1686,6 +1722,10 @@ function buildSurfaceLayer(pts: [number, number, number][]) {
 
 watch(() => props.surfacePoints, (pts) => {
   buildSurfaceLayer(pts ?? []);
+});
+
+watch(() => props.compGrid, () => {
+  if (props.surfacePoints?.length) buildSurfaceLayer(props.surfacePoints);
 });
 
 /** Live-update a machine part's color without rebuilding the scene.

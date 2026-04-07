@@ -1240,6 +1240,7 @@ watch(viewerGcode, (newGcode) => {
             :spindleActual="spindleActual"
             :spindleDirection="spindleDirection"
             :surfacePoints="surfaceLoadedToViewer ? surfacePoints : null"
+            :compGrid="surfaceLoadedToViewer ? compGrid : null"
             :axes="axes"
           />
         </Toolbar>
