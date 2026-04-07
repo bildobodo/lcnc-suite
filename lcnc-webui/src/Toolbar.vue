@@ -62,9 +62,11 @@
         <MachineBtn type="tab" :selected="openPill === 'tracking'" @click.stop="togglePill('tracking')">Tracking</MachineBtn>
         <div class="popover pillPopover" :class="{ open: openPill === 'tracking' }" @click.stop>
           <div class="popHeader"><span class="popTitle">Tracking</span><MachineBtn type="close" @click="openPill = null">&times;</MachineBtn></div>
-          <label><MachineRadio gate="viewerSetting" name="tracking" value="none" v-model="trackMode" /> None</label>
-          <label><MachineRadio gate="viewerSetting" name="tracking" value="tool" v-model="trackMode" /> Tool</label>
-          <label><MachineRadio gate="viewerSetting" name="tracking" value="workpiece" v-model="trackMode" /> Workpiece</label>
+          <div class="radioGroup">
+            <label><MachineRadio gate="viewerSetting" name="tracking" value="none" v-model="trackMode" /> None</label>
+            <label><MachineRadio gate="viewerSetting" name="tracking" value="tool" v-model="trackMode" /> Tool</label>
+            <label><MachineRadio gate="viewerSetting" name="tracking" value="workpiece" v-model="trackMode" /> Workpiece</label>
+          </div>
         </div>
       </div>
 
