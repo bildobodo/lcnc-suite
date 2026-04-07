@@ -1240,7 +1240,7 @@ function fmtR(key: string): string {
           <span v-if="eoffsetZ != null" class="compValue">Z: {{ eoffsetZ.toFixed(4) }}</span>
           <span class="compMethod radioGroup inline">
             Method:
-            <label v-for="(label, id) in METHOD_LABELS" :key="id"><MachineRadio gate="scanParam" name="compMethod" :value="Number(id)" :modelValue="compMethod ?? 2" @update:modelValue="setMethod(Number(id))" /> {{ label }}</label>
+            <label v-for="(label, id) in METHOD_LABELS" :key="id"><MachineRadio gate="compMethod" name="compMethod" :value="Number(id)" :modelValue="compMethod ?? 2" @update:modelValue="setMethod(Number(id))" /> {{ label }}</label>
           </span>
         </div>
 

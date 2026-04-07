@@ -25,17 +25,17 @@ export const BUTTON_TYPES = {
   // MDI / motion
   mdi:            { gate: 'ready',    variant: 'primary', size: 'md' },
   goTo:           { gate: 'ready',    variant: 'default', size: 'md' },
-  home:           { gate: 'idle',     variant: 'default', size: 'md' },
-  unhome:         { gate: 'idle',     variant: 'default', size: 'md' },
+  home:           { gate: 'zero',     variant: 'default', size: 'md' },
+  unhome:         { gate: 'zero',     variant: 'default', size: 'md' },
 
   // Probe
   probe:          { gate: 'probe',    variant: 'default', size: 'md' },
   compToggle:     { gate: 'ready',    variant: 'default', size: 'md' },
 
   // Tool
-  toolLoad:       { gate: 'ready',    variant: 'default', size: 'md' },
-  toolMeasure:    { gate: 'ready',    variant: 'default', size: 'md' },
-  toolUnload:     { gate: 'ready',    variant: 'default', size: 'md' },
+  toolLoad:       { gate: 'probe',    variant: 'default', size: 'md' },
+  toolMeasure:    { gate: 'probe',    variant: 'default', size: 'md' },
+  toolUnload:     { gate: 'probe',    variant: 'default', size: 'md' },
 
   // Spindle
   spindleFwd:     { gate: 'ready',    variant: 'default', size: 'md' },
@@ -62,13 +62,13 @@ export const BUTTON_TYPES = {
   reset:          { gate: 'idle',     variant: 'danger',  size: 'md' },
 
   // WCS selection
-  wcs:            { gate: 'ready',    variant: 'default', size: 'sm' },
+  wcs:            { gate: 'probe',    variant: 'default', size: 'sm' },
 
   // Zero / touchoff
   zero:           { gate: 'zero',     variant: 'default', size: 'md' },
 
   // Macros
-  macro:          { gate: 'ready',    variant: 'default', size: 'lg' },
+  macro:          { gate: 'probe',    variant: 'default', size: 'lg' },
 
   // Safety
   arm:            { gate: 'always',   variant: 'default', size: 'lg' },
@@ -134,6 +134,7 @@ export const INPUT_DEFS = {
   // Probe parameters
   probeParam:      { gate: 'always',   mono: true, align: 'right' },
   scanParam:       { gate: 'always',   mono: true, align: 'right' },
+  compMethod:      { gate: 'probe' },
 
   // Toolsetter parameters
   toolsetterParam: { gate: 'always',   mono: true, align: 'right' },
