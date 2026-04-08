@@ -11,7 +11,7 @@
       <div class="toolPill">
         <MachineBtn type="tab" :selected="openPill === 'views'" @click.stop="togglePill('views')">Views</MachineBtn>
         <div class="popover pillPopover" :class="{ open: openPill === 'views' }" @click.stop>
-          <div class="popHeader"><span class="popTitle">Views</span><MachineBtn type="close" @click="openPill = null">&times;</MachineBtn></div>
+          <div class="popTitle">Views</div>
           <div class="viewGrid">
             <MachineBtn type="viewPreset" @click="$emit('setView', 'top')">Top</MachineBtn>
             <MachineBtn type="viewPreset" @click="$emit('setView', 'bottom')">Bottom</MachineBtn>
@@ -34,7 +34,7 @@
       <div class="toolPill">
         <MachineBtn type="tab" :selected="openPill === 'layers'" @click.stop="togglePill('layers')">Layers</MachineBtn>
         <div class="popover pillPopover" :class="{ open: openPill === 'layers' }" @click.stop>
-          <div class="popHeader"><span class="popTitle">Layers</span><MachineBtn type="close" @click="openPill = null">&times;</MachineBtn></div>
+          <div class="popTitle">Layers</div>
           <MachineToggle gate="viewerSetting" v-model="local.backplot" label="Backplot" />
           <MachineToggle gate="viewerSetting" v-model="local.toolpath" label="Toolpath" />
           <MachineToggle gate="viewerSetting" v-model="local.machine" label="Machine" />
@@ -50,7 +50,7 @@
       <div class="toolPill">
         <MachineBtn type="tab" :selected="openPill === 'toolpath'" @click.stop="togglePill('toolpath')">Toolpath</MachineBtn>
         <div class="popover pillPopover" :class="{ open: openPill === 'toolpath' }" @click.stop>
-          <div class="popHeader"><span class="popTitle">Toolpath</span><MachineBtn type="close" @click="openPill = null">&times;</MachineBtn></div>
+          <div class="popTitle">Toolpath</div>
           <MachineBtn type="viewPreset" @click="$emit('resetBackplot')">Clear Backplot</MachineBtn>
           <div class="sep"></div>
           <MachineToggle gate="viewerSetting" v-model="pathOnTop" label="Always on top" />
@@ -61,7 +61,7 @@
       <div class="toolPill">
         <MachineBtn type="tab" :selected="openPill === 'tracking'" @click.stop="togglePill('tracking')">Tracking</MachineBtn>
         <div class="popover pillPopover" :class="{ open: openPill === 'tracking' }" @click.stop>
-          <div class="popHeader"><span class="popTitle">Tracking</span><MachineBtn type="close" @click="openPill = null">&times;</MachineBtn></div>
+          <div class="popTitle">Tracking</div>
           <div class="radioGroup">
             <label><MachineRadio gate="viewerSetting" name="tracking" value="none" v-model="trackMode" /> None</label>
             <label><MachineRadio gate="viewerSetting" name="tracking" value="tool" v-model="trackMode" /> Tool</label>
@@ -74,7 +74,7 @@
       <div class="toolPill">
         <MachineBtn type="tab" :selected="openPill === 'workpiece'" @click.stop="togglePill('workpiece')">Workpiece</MachineBtn>
         <div class="popover pillPopover wpPopover" :class="{ open: openPill === 'workpiece' }" @click.stop>
-          <div class="popHeader"><span class="popTitle">Workpiece</span><MachineBtn type="close" @click="openPill = null">&times;</MachineBtn></div>
+          <div class="popTitle">Workpiece</div>
           <div class="inputRow">
             <label class="inputLabel">Size X</label>
             <MachineInput gate="viewerSettingNum" type="number" class="numInput" v-model.number="localSize[0]"
@@ -114,7 +114,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch } from "vue";
+import { onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineInput from "./MachineInput.vue";
 import MachineRadio from "./MachineRadio.vue";
@@ -217,6 +217,11 @@ const openPill = ref<string | null>(null);
 function togglePill(name: string) {
   openPill.value = openPill.value === name ? null : name;
 }
+
+// Close popover on click outside
+function onDocClick() { openPill.value = null; }
+onMounted(() => document.addEventListener("click", onDocClick));
+onBeforeUnmount(() => document.removeEventListener("click", onDocClick));
 
 
 </script>

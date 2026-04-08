@@ -565,20 +565,13 @@ label:has(input:disabled, select:disabled) {
   overflow-y: auto;
   z-index: 1000;
 }
-.popHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--gap-controls);
-  padding: 2px 2px 2px 0;
-  margin-bottom: var(--gap-tight);
-  border-bottom: 1px solid var(--border);
-}
-
-.popHeader .popTitle {
+.popTitle {
   font-weight: var(--fw-semibold);
   font-size: var(--fs-md);
   white-space: nowrap;
+  padding-bottom: var(--gap-tight);
+  margin-bottom: var(--gap-tight);
+  border-bottom: 1px solid var(--border);
 }
 
 /* ---- Dialogs ---- */

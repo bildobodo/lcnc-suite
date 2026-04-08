@@ -364,8 +364,12 @@ function render3DSurface(pts: [number, number, number][]) {
       const w = container.clientWidth || 300;
       const h = container.clientHeight || 200;
 
+      const style = getComputedStyle(document.documentElement);
+      const bgColor = style.getPropertyValue('--bg').trim();
+      const fgColor = style.getPropertyValue('--fg').trim();
+
       const scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x1a1a2e);
+      scene.background = new THREE.Color(bgColor);
       const camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 10000);
       camera.up.set(0, 0, 1); // Z-up before OrbitControls construction
       const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -484,8 +488,8 @@ function render3DSurface(pts: [number, number, number][]) {
         canvas.width = 256; canvas.height = 64;
         const ctx = canvas.getContext("2d")!;
         ctx.font = "bold 48px monospace";
-        ctx.fillStyle = "#ffffff";
-        ctx.strokeStyle = "#000000";
+        ctx.fillStyle = fgColor;
+        ctx.strokeStyle = bgColor;
         ctx.lineWidth = 3;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
@@ -523,7 +527,7 @@ function render3DSurface(pts: [number, number, number][]) {
         cx.font = "bold 48px sans-serif";
         cx.textAlign = "center";
         cx.textBaseline = "middle";
-        cx.strokeStyle = "#000000";
+        cx.strokeStyle = bgColor;
         cx.lineWidth = 5;
         cx.strokeText(text, 32, 32);
         cx.fillStyle = color;
