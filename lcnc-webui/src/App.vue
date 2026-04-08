@@ -1352,8 +1352,8 @@ watch(viewerGcode, (newGcode) => {
 
           <template #tools>
             <div class="toolsTab">
-              <Gate gate="ready" class="toolTabActions stack-controls">
-                <div class="toolTabRow">
+              <div class="toolTabActions stack-controls">
+                <Gate gate="ready" class="toolTabRow">
                   <div class="row-tight">
                     <MachineBtn type="toolMeasure" :disabled="!!st.probing" @click="measureAuto">Measure Current</MachineBtn>
                     <MachineBtn type="toolUnload" :disabled="!!st.probing" @click="unloadTool">Unload</MachineBtn>
@@ -1364,7 +1364,7 @@ watch(viewerGcode, (newGcode) => {
                     <MachineBtn type="manage" @click="toolTableRef?.triggerImport()">Import</MachineBtn>
                     <MachineBtn type="manage" @click="toolTableRef?.fetchTools()">Refresh</MachineBtn>
                   </div>
-                </div>
+                </Gate>
                 <div class="row-tight">
                   <span class="statusDot" :class="probeIndicatorClass"></span>
                   <span class="label-muted md">Probe</span>
@@ -1372,7 +1372,7 @@ watch(viewerGcode, (newGcode) => {
                   <span class="label-muted md mono">{{ probeStatus }}</span>
                   <MachineBtn v-if="isDev" type="simTrip" @click="send({ cmd: 'simulate_probe_trip' })">Sim Trip</MachineBtn>
                 </div>
-              </Gate>
+              </div>
               <ToolTablePanel
                 ref="toolTableRef"
                 :currentTool="st.tool_number ?? null"
