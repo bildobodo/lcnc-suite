@@ -1379,6 +1379,83 @@ watch(viewerGcode, (newGcode) => {
             </div>
           </template>
         </TabPanel>
+
+        <!-- Program stats dialog -->
+        <div v-if="statsDialogOpen && gcodeStats" class="dialogOverlay" @click.self="statsDialogOpen = false">
+          <div class="dialog md statsDialog">
+            <div class="dialogHeader">
+              <span class="dialogTitle">Program Stats</span>
+              <MachineBtn type="close" @click="statsDialogOpen = false">&times;</MachineBtn>
+            </div>
+            <div class="dialogContent stack-sections scroll-thin">
+              <div v-if="donutSegments.length > 0" class="donutRow">
+                <svg class="donut" viewBox="0 0 100 100">
+                  <circle class="donutBg" cx="50" cy="50" r="40" />
+                  <circle v-for="(seg, i) in donutSegments" :key="i"
+                    cx="50" cy="50" r="40"
+                    fill="none"
+                    :stroke="seg.color"
+                    stroke-width="12"
+                    :stroke-dasharray="seg.dasharray"
+                    :stroke-dashoffset="seg.dashoffset"
+                    transform="rotate(-90 50 50)"
+                  />
+                </svg>
+                <div class="donutLegend stack-tight">
+                  <div v-for="seg in donutSegments" :key="seg.label" class="legendItem">
+                    <span class="legendDot" :style="{ background: seg.color }"></span>
+                    <span>{{ seg.label }}</span>
+                    <span class="legendPct mono">{{ seg.pct }}%</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="sep"></div>
+
+              <div class="stack-controls">
+                <div class="sub">Time</div>
+                <div class="statsGrid">
+                  <span class="statsLabel">Estimated</span>
+                  <span class="statsValue mono">{{ fmtDuration(gcodeStats.totalTime) }}</span>
+                  <span class="statsLabel">Feed</span>
+                  <span class="statsValue mono">{{ fmtDuration(gcodeStats.feedTime) }}</span>
+                  <span class="statsLabel">Rapid</span>
+                  <span class="statsValue mono">{{ fmtDuration(gcodeStats.rapidTime) }}</span>
+                </div>
+              </div>
+
+              <div class="sep"></div>
+
+              <div class="stack-controls">
+                <div class="sub">Distance</div>
+                <div class="statsGrid">
+                  <span class="statsLabel">Rapid</span>
+                  <span class="statsValue mono">{{ fmtDist(gcodeStats.rapidDist, gcodeStats.unit) }} ({{ gcodeStats.rapidMoves }})</span>
+                  <span class="statsLabel">Linear</span>
+                  <span class="statsValue mono">{{ fmtDist(gcodeStats.linearDist, gcodeStats.unit) }} ({{ gcodeStats.linearMoves }})</span>
+                  <span class="statsLabel">Arc</span>
+                  <span class="statsValue mono">{{ fmtDist(gcodeStats.arcDist, gcodeStats.unit) }} ({{ gcodeStats.arcMoves }})</span>
+                </div>
+              </div>
+
+              <div class="sep"></div>
+
+              <div class="stack-controls">
+                <div class="sub">Tools &amp; Feeds</div>
+                <div class="statsGrid">
+                  <span class="statsLabel">Tool changes</span>
+                  <span class="statsValue mono">{{ gcodeStats.toolChanges }}</span>
+                  <span class="statsLabel">Tools used</span>
+                  <span class="statsValue mono">{{ gcodeStats.toolsUsed.length ? gcodeStats.toolsUsed.map(t => 'T' + t).join(', ') : 'None' }}</span>
+                  <span class="statsLabel">Feed rates</span>
+                  <span class="statsValue mono">{{ gcodeStats.feedRates.length ? gcodeStats.feedRates.join(', ') : '-' }}</span>
+                  <span class="statsLabel">File size</span>
+                  <span class="statsValue mono">{{ fmtSize(gcodeStats.fileSize) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Dialogs — inside content area so strip stays accessible beneath -->
@@ -1407,83 +1484,6 @@ watch(viewerGcode, (newGcode) => {
 
       <!-- G-code reference dialog -->
       <GcodeReferenceDialog :open="gcodeRefOpen" :initialSearch="gcodeRefInitialSearch" @close="gcodeRefOpen = false" />
-
-      <!-- Program stats dialog -->
-      <div v-if="statsDialogOpen && gcodeStats" class="dialogOverlay" @click.self="statsDialogOpen = false">
-        <div class="dialog md statsDialog">
-          <div class="dialogHeader">
-            <span class="dialogTitle">Program Stats</span>
-            <MachineBtn type="close" @click="statsDialogOpen = false">&times;</MachineBtn>
-          </div>
-          <div class="dialogContent stack-sections scroll-thin">
-            <div v-if="donutSegments.length > 0" class="donutRow">
-              <svg class="donut" viewBox="0 0 100 100">
-                <circle class="donutBg" cx="50" cy="50" r="40" />
-                <circle v-for="(seg, i) in donutSegments" :key="i"
-                  cx="50" cy="50" r="40"
-                  fill="none"
-                  :stroke="seg.color"
-                  stroke-width="12"
-                  :stroke-dasharray="seg.dasharray"
-                  :stroke-dashoffset="seg.dashoffset"
-                  transform="rotate(-90 50 50)"
-                />
-              </svg>
-              <div class="donutLegend stack-tight">
-                <div v-for="seg in donutSegments" :key="seg.label" class="legendItem">
-                  <span class="legendDot" :style="{ background: seg.color }"></span>
-                  <span>{{ seg.label }}</span>
-                  <span class="legendPct mono">{{ seg.pct }}%</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="sep"></div>
-
-            <div class="stack-controls">
-              <div class="sub">Time</div>
-              <div class="statsGrid">
-                <span class="statsLabel">Estimated</span>
-                <span class="statsValue mono">{{ fmtDuration(gcodeStats.totalTime) }}</span>
-                <span class="statsLabel">Feed</span>
-                <span class="statsValue mono">{{ fmtDuration(gcodeStats.feedTime) }}</span>
-                <span class="statsLabel">Rapid</span>
-                <span class="statsValue mono">{{ fmtDuration(gcodeStats.rapidTime) }}</span>
-              </div>
-            </div>
-
-            <div class="sep"></div>
-
-            <div class="stack-controls">
-              <div class="sub">Distance</div>
-              <div class="statsGrid">
-                <span class="statsLabel">Rapid</span>
-                <span class="statsValue mono">{{ fmtDist(gcodeStats.rapidDist, gcodeStats.unit) }} ({{ gcodeStats.rapidMoves }})</span>
-                <span class="statsLabel">Linear</span>
-                <span class="statsValue mono">{{ fmtDist(gcodeStats.linearDist, gcodeStats.unit) }} ({{ gcodeStats.linearMoves }})</span>
-                <span class="statsLabel">Arc</span>
-                <span class="statsValue mono">{{ fmtDist(gcodeStats.arcDist, gcodeStats.unit) }} ({{ gcodeStats.arcMoves }})</span>
-              </div>
-            </div>
-
-            <div class="sep"></div>
-
-            <div class="stack-controls">
-              <div class="sub">Tools &amp; Feeds</div>
-              <div class="statsGrid">
-                <span class="statsLabel">Tool changes</span>
-                <span class="statsValue mono">{{ gcodeStats.toolChanges }}</span>
-                <span class="statsLabel">Tools used</span>
-                <span class="statsValue mono">{{ gcodeStats.toolsUsed.length ? gcodeStats.toolsUsed.map(t => 'T' + t).join(', ') : 'None' }}</span>
-                <span class="statsLabel">Feed rates</span>
-                <span class="statsValue mono">{{ gcodeStats.feedRates.length ? gcodeStats.feedRates.join(', ') : '-' }}</span>
-                <span class="statsLabel">File size</span>
-                <span class="statsValue mono">{{ fmtSize(gcodeStats.fileSize) }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
 
       <!-- Messages dialog -->
       <div v-if="messagesDialogOpen" class="dialogOverlay" @click.self="messagesDialogOpen = false">
@@ -1727,6 +1727,7 @@ watch(viewerGcode, (newGcode) => {
   min-height: 0;
   display: flex;
   flex-direction: column;
+  position: relative;
   padding: var(--gap-controls);
 }
 
