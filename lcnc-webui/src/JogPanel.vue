@@ -260,8 +260,7 @@ function stopJog(s: Sector, e?: PointerEvent) {
         <MachineBtn
           v-for="opt in incrementOptions"
           :key="opt.value"
-          type="manage"
-          size="sm"
+          type="inline"
           mono
           :selected="jogIncrement === opt.value"
           @click="emit('update:jogIncrement', opt.value)"

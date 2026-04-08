@@ -47,7 +47,7 @@ const currentToolData = computed(() =>
   <div class="toolStrip">
     <div class="stripSection">
       <div class="sub">Tool</div>
-      <MachineBtn type="manage" @click="emit('openToolTable')" block>Tool Table</MachineBtn>
+      <MachineBtn type="nav" @click="emit('openToolTable')" block>Tool Table</MachineBtn>
 
       <div v-if="currentTool > 0" class="toolInfo inset-panel stack-tight">
         <div class="statusRow"><span class="label-muted md">Tool</span><span class="val-status md mono">T{{ currentTool }}</span></div>

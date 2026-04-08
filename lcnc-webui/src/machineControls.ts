@@ -94,6 +94,7 @@ export const BUTTON_TYPES = {
   dialogConfirm:  { gate: 'always',  variant: 'primary', size: 'md' },
   dialogDanger:   { gate: 'always',  variant: 'danger',  size: 'md' },
   listAction:     { gate: 'always',  variant: 'default', size: 'md',  icon: true },
+  nav:            { gate: 'always',  variant: 'default', size: 'md' },
   inline:         { gate: 'always',  variant: 'default', size: 'sm' },
   inlineXs:       { gate: 'always',  variant: 'default', size: 'xs' },
   bannerAction:   { gate: 'always',  variant: 'default', size: 'sm' },
