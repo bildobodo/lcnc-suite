@@ -549,7 +549,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
             </th>
             <th class="colSm">Flutes</th>
             <th class="colDesc">Description</th>
-            <th class="colAction"></th>
+            <th class="colAction colEdit"></th>
             <th class="colAction"></th>
           </tr>
         </thead>
@@ -570,7 +570,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
             <td class="colType">{{ toolTypeLabel(tool.type) }}</td>
             <td class="colSm mono">{{ tool.flutes ?? "-" }}</td>
             <td class="colDesc" :title="tool.description">{{ tool.description || tool.remark || "-" }}</td>
-            <td class="colAction">
+            <td class="colAction colEdit">
               <MachineBtn type="manage" @click="openEdit(tool)" title="Edit tool"><Pencil :size="14" /></MachineBtn>
             </td>
             <td class="colAction">
@@ -795,6 +795,9 @@ defineExpose({ openAdd, fetchTools, triggerImport });
 .activeTool {
   background: var(--hl-selected);
 }
+.activeTool td {
+  background: inherit;
+}
 .activeTool:hover {
   background: var(--hl-active);
 }
@@ -804,6 +807,10 @@ defineExpose({ openAdd, fetchTools, triggerImport });
   white-space: nowrap;
   font-weight: var(--fw-semibold);
   font-family: var(--font-mono);
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--panel);
 }
 
 .colNum {
@@ -824,6 +831,14 @@ defineExpose({ openAdd, fetchTools, triggerImport });
 .colAction {
   width: 42px;
   text-align: center;
+  position: sticky;
+  z-index: 1;
+  background: var(--panel);
+  right: 0;
+}
+
+.colEdit {
+  right: 58px;
 }
 
 .emptyState {
