@@ -97,9 +97,9 @@ export const BUTTON_TYPES = {
   nav:            { gate: 'always',  variant: 'default', size: 'md' },
   inline:         { gate: 'always',  variant: 'default', size: 'sm' },
   inlineXs:       { gate: 'always',  variant: 'default', size: 'xs' },
-  bannerAction:   { gate: 'always',  variant: 'default', size: 'sm' },
+  bannerAction:   { gate: 'always',  variant: 'default', size: 'md' },
   bannerAbort:    { gate: 'abort',   variant: 'danger',  size: 'md' },
-  bannerHome:     { gate: 'idle',    variant: 'default', size: 'sm' },
+  bannerHome:     { gate: 'idle',    variant: 'default', size: 'md' },
   headerIcon:     { gate: 'always',  variant: 'default', size: 'md',  icon: true },
 } as const satisfies Record<string, ButtonDef>;
 

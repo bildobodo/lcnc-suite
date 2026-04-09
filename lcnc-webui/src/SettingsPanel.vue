@@ -900,6 +900,26 @@ const halStats = computed(() => ({
             <MachineToggle gate="inputConfig" v-model="gpInvertZ" label="Invert Z" />
           </div>
 
+          <div class="sep" v-if="props.gamepadConfig?.jogEnabled"></div>
+
+          <div v-if="props.gamepadConfig?.jogEnabled" class="section">
+            <div class="sub">Dead Zone & Live Input</div>
+            <div class="settingDesc">Ignore stick deflection below this threshold to prevent drift.</div>
+            <div class="sliderRow">
+              <MachineSlider
+                gate="inputConfig"
+                :min="0.05" :max="0.50" :step="0.01"
+                :modelValue="props.gamepadConfig?.deadZone ?? 0.15"
+                @update:modelValue="(v: number | undefined) => emit('setGamepadConfig', { ...props.gamepadConfig!, deadZone: v ?? 0.15 })"
+              />
+              <span class="sliderVal">{{ Math.round((props.gamepadConfig?.deadZone ?? 0.15) * 100) }}%</span>
+            </div>
+            <div v-if="props.gamepadConnected">
+              <div class="settingDesc">Move sticks and press buttons to verify mapping.</div>
+              <GamepadLiveInput :deadZone="props.gamepadConfig?.deadZone ?? 0.15" />
+            </div>
+          </div>
+
           <div class="sep" v-if="props.gamepadConfig?.buttonsEnabled"></div>
 
           <div v-if="props.gamepadConfig?.buttonsEnabled" class="section">
@@ -924,26 +944,6 @@ const halStats = computed(() => ({
                 </tr>
               </tbody>
             </table>
-          </div>
-
-          <div class="sep" v-if="props.gamepadConfig?.jogEnabled"></div>
-
-          <div v-if="props.gamepadConfig?.jogEnabled" class="section">
-            <div class="sub">Dead Zone & Live Input</div>
-            <div class="settingDesc">Ignore stick deflection below this threshold to prevent drift.</div>
-            <div class="sliderRow">
-              <MachineSlider
-                gate="inputConfig"
-                :min="0.05" :max="0.50" :step="0.01"
-                :modelValue="props.gamepadConfig?.deadZone ?? 0.15"
-                @update:modelValue="(v: number | undefined) => emit('setGamepadConfig', { ...props.gamepadConfig!, deadZone: v ?? 0.15 })"
-              />
-              <span class="sliderVal">{{ Math.round((props.gamepadConfig?.deadZone ?? 0.15) * 100) }}%</span>
-            </div>
-            <div v-if="props.gamepadConnected">
-              <div class="settingDesc">Move sticks and press buttons to verify mapping.</div>
-              <GamepadLiveInput :deadZone="props.gamepadConfig?.deadZone ?? 0.15" />
-            </div>
           </div>
 
           <div class="resetRow">
