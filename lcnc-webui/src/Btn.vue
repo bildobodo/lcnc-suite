@@ -100,7 +100,7 @@ defineProps<{
 
 /* ---- Flashing (E-Stop) ---- */
 .flashing {
-  animation: flash-estop 0.6s step-start infinite;
+  animation: flash-estop var(--flash-duration) step-start infinite;
 }
 
 @keyframes flash-estop {

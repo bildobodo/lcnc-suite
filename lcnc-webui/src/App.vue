@@ -152,14 +152,14 @@ const machineState = computed<MachineStateKey>(() => {
 });
 
 const STATE_COLORS: Record<MachineStateKey, string> = {
-  disconnected: '--danger',
-  estop: '--danger',
-  off: '--warn',
-  unhomed: '--active-tool',
-  toolchange: '--active-tool',
-  running: '--ok',
-  paused: '--warn',
-  idle: '--info',
+  disconnected: '--state-danger',
+  estop: '--state-danger',
+  off: '--state-warn',
+  unhomed: '--state-warn',
+  toolchange: '--state-warn',
+  running: '--state-ok',
+  paused: '--state-warn',
+  idle: '--state-ok',
 };
 const machineStateColor = computed(() => STATE_COLORS[machineState.value]);
 
@@ -195,6 +195,13 @@ const machineStateLabel = computed(() => {
 });
 
 const bannerShowAbort = computed(() => isRunning.value || isPaused.value);
+
+const bannerFlashMode = computed<'none' | 'pulse' | 'flash'>(() => {
+  const s = machineState.value;
+  if (s === 'estop' || s === 'disconnected') return 'flash';
+  if (s === 'unhomed' || s === 'toolchange' || s === 'idle') return 'pulse';
+  return 'none';
+});
 
 const bannerMessage = ref<string | null>(null);
 const bannerMessageKind = ref(0);
@@ -1268,7 +1275,7 @@ watch(viewerGcode, (newGcode) => {
       </div>
     </header>
 
-    <div class="statusBanner" :style="{ '--state-color': `var(${machineStateColor})` }">
+    <div class="statusBanner" :class="{ 'banner-pulse': bannerFlashMode === 'pulse', 'banner-flash': bannerFlashMode === 'flash' }" :style="{ '--state-color': `var(${machineStateColor})` }">
       <div class="bannerContent" @click="messagesDialogOpen = true; markMessagesRead()">
         <Transition name="banner-fade" mode="out-in">
           <span v-if="bannerMessage && !bannerShowAbort" :key="'msg'" :class="{ bannerError: bannerMessageKind <= 2 }">
@@ -1923,6 +1930,24 @@ watch(viewerGcode, (newGcode) => {
 .banner-fade-enter-from,
 .banner-fade-leave-to {
   opacity: 0;
+}
+
+.statusBanner.banner-pulse {
+  animation: banner-pulse var(--pulse-duration) ease-in-out infinite;
+}
+
+@keyframes banner-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.statusBanner.banner-flash {
+  animation: flash-danger var(--flash-duration) step-start infinite;
+}
+
+@keyframes flash-danger {
+  0%, 100% { background: color-mix(in oklab, var(--state-color) 40%, var(--panel)); }
+  50% { background: var(--panel); }
 }
 
 @keyframes flash-warn {

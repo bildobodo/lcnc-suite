@@ -78,6 +78,15 @@
   --radius-pill: 999px;
   --radius-round: 50%;
 
+  /* Stack light state colors (IEC 60073) */
+  --state-danger: var(--danger);      /* E-Stop, disconnected */
+  --state-warn: var(--warn);          /* machine off, unhomed, tool change, paused */
+  --state-ok: var(--ok);              /* running, idle */
+
+  /* Animation timing */
+  --flash-duration: 0.6s;  /* hard on/off (E-Stop) — step-start, ~100 flashes/min */
+  --pulse-duration: 1.5s;  /* gentle pulse (idle, unhomed) — ease-in-out */
+
   /* Spacing scale */
   --gap-micro:    2px;   /* ultra-tight: HUD columns, chip internals, dense grids */
   --gap-tight:    4px;   /* tightly grouped toggles, icon grids, increment buttons */
