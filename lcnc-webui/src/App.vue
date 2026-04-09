@@ -1249,8 +1249,8 @@ watch(viewerGcode, (newGcode) => {
         <div class="pill" :class="connected ? 'ok' : 'bad'">
           <span class="stable-width"><span :class="{ alt: !connected }">WS connected</span><span :class="{ alt: connected }">WS disconnected</span></span>
         </div>
-        <div v-if="connected && networkLatency != null" class="pill" title="Network latency">Net {{ networkLatency }}ms</div>
-        <div v-if="connected && latency != null" class="pill" title="Round-trip latency">Ping {{ latency }}ms</div>
+        <div v-if="connected && networkLatency != null" class="pill" title="Network latency">Net <span class="mono pill-ms">{{ networkLatency }}</span>ms</div>
+        <div v-if="connected && latency != null" class="pill" title="Round-trip latency">Ping <span class="mono pill-ms">{{ latency }}</span>ms</div>
         <div class="pill" :class="lcncError ? 'bad' : (configName ? 'ok' : '')">{{ lcncLabel }}</div>
         <div class="pill" :class="armed ? 'armed' : 'disarmed'"><span class="stable-width"><span :class="{ alt: !armed }">ARMED</span><span :class="{ alt: armed }">DISARMED</span></span></div>
         <div v-if="gamepad.gamepadConnected.value" class="pill ok" :title="gamepad.gamepadName.value"><Gamepad2 :size="14" /></div>
@@ -1877,6 +1877,12 @@ watch(viewerGcode, (newGcode) => {
 
 .pill.bad {
   background: color-mix(in oklab, var(--danger) 25%, var(--panel));
+}
+
+.pill-ms {
+  display: inline-block;
+  min-width: 3ch;
+  text-align: right;
 }
 
 .pill.armed {
