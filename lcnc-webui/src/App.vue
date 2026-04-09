@@ -1814,6 +1814,7 @@ watch(viewerGcode, (newGcode) => {
   flex-direction: column;
   position: relative;
   padding: var(--gap-controls);
+  border-radius: var(--radius-container);
 }
 
 
@@ -1825,6 +1826,7 @@ watch(viewerGcode, (newGcode) => {
   gap: var(--gap-controls);
   overflow-x: auto;
   overflow-y: hidden;
+  border-radius: var(--radius-container);
 }
 /* Center all sections when space allows; collapse to 0 on overflow */
 .strip::before,
@@ -1898,6 +1900,7 @@ watch(viewerGcode, (newGcode) => {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   flex-shrink: 0;
+  border-radius: var(--radius-container);
   background: color-mix(in oklab, var(--state-color, var(--info)) 25%, var(--panel));
   transition: background 0.4s ease;
 }

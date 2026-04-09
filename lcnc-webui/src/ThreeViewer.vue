@@ -1950,7 +1950,7 @@ defineExpose({
   z-index: 0;
   width: 100%;
   height: 100%;
-  border-radius: var(--radius-2xl);
+  border-radius: var(--radius-container);
   background: color-mix(in oklab, var(--panel) 70%, transparent);
 }
 

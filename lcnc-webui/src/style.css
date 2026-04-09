@@ -75,6 +75,7 @@
   --radius-lg: 6px;
   --radius-xl: 8px;
   --radius-2xl: 12px;
+  --radius-container: var(--radius-2xl); /* panels, strips, banner, viewer */
   --radius-pill: 999px;
   --radius-round: 50%;
 
