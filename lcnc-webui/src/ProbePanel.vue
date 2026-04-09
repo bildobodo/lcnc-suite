@@ -118,7 +118,6 @@ const angleGrid: GridOp[] = [
 ];
 
 const activeGridOp = ref<string | null>(null);
-const activeBossOp = ref<string>("rb");
 const calAxis = ref(0); // 0=avg XY, 1=X only, 2=Y only
 
 // ─── Parameters ───────────────────────────────────────────────────
@@ -262,7 +261,6 @@ function runGridProbe(op: GridOp) {
 
 function runBossProbe(op: GridOp) {
   if (!can.value.ready || props.probing) return;
-  activeBossOp.value = op.id;
   activeGridOp.value = op.id;
   saveProbeDefaults({ ...params.value, autoZero: autoZero.value });
   const vars = buildVarMap(autoZero.value ? 0 : 1);
@@ -860,7 +858,6 @@ function fmtR(key: string): string {
             type="probe"
             class="gridCell"
             :class="{ probing: probing && activeGridOp === op.id }"
-            :active="activeBossOp === op.id"
             :disabled="probing"
             :title="op.description"
             @click="runBossProbe(op)"
