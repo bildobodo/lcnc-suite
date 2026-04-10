@@ -114,31 +114,29 @@
         <MachineBtn type="tab" :selected="showCamera || openPill === 'camera'" @click.stop="togglePill('camera')">Camera</MachineBtn>
         <div class="popover pillPopover camPopover" :class="{ open: openPill === 'camera' }" @click.stop>
           <div class="popTitle">Camera</div>
-          <MachineBtn type="overlayToggle" :active="showCamera" @click="toggleCamera">
-            {{ showCamera ? 'Hide PIP' : 'Show PIP' }}
-          </MachineBtn>
+          <MachineToggle gate="cameraSetting" v-model="showCamera" @update:modelValue="onToggleCamera" label="Show PIP" />
           <div class="sep"></div>
           <div class="popTitle">Overlays</div>
-          <MachineToggle gate="cameraSetting" v-model="camShowCrosshair" label="Crosshair" />
-          <MachineToggle gate="cameraSetting" v-model="camShowCircle" label="Circle" />
-          <MachineToggle gate="cameraSetting" v-model="camShowGrid" label="Grid" />
+          <MachineToggle gate="cameraSetting" v-model="camShowCrosshair" @update:modelValue="saveCamTracked" label="Crosshair" />
+          <MachineToggle gate="cameraSetting" v-model="camShowCircle" @update:modelValue="saveCamTracked" label="Circle" />
+          <MachineToggle gate="cameraSetting" v-model="camShowGrid" @update:modelValue="saveCamTracked" label="Grid" />
           <div class="sep"></div>
           <div class="inputRow">
             <span class="inputLabel">Radius</span>
-            <MachineInput gate="cameraSetting" type="number" class="numInput" v-model.number="camCircleRadius" min="10" max="300" :step="1" @change="saveCam" />
+            <MachineInput gate="cameraSetting" type="number" class="numInput" v-model.number="camCircleRadius" min="10" max="300" :step="1" @change="saveCamTracked" />
           </div>
           <div class="inputRow">
             <span class="inputLabel">Grid</span>
-            <MachineInput gate="cameraSetting" type="number" class="numInput" v-model.number="camGridSpacing" min="10" max="200" :step="1" @change="saveCam" />
+            <MachineInput gate="cameraSetting" type="number" class="numInput" v-model.number="camGridSpacing" min="10" max="200" :step="1" @change="saveCamTracked" />
           </div>
           <div class="sep"></div>
           <div class="inputRow">
             <span class="inputLabel">Opacity</span>
-            <MachineSlider gate="cameraSetting" class="camSlider" :min="0" :max="1" :step="0.05" v-model="camOverlayOpacity" />
+            <MachineSlider gate="cameraSetting" class="camSlider" :min="0" :max="1" :step="0.05" v-model="camOverlayOpacity" @update:modelValue="saveCamTracked" />
           </div>
           <div class="inputRow">
             <span class="inputLabel">Color</span>
-            <MachineColor gate="cameraSetting" v-model="camOverlayColor" class="camColor" />
+            <MachineColor gate="cameraSetting" v-model="camOverlayColor" @update:modelValue="saveCamTracked" class="camColor" />
           </div>
         </div>
       </div>
@@ -291,10 +289,17 @@ function saveCam() {
   });
 }
 
-watch([camShowCrosshair, camShowCircle, camShowGrid, camCircleRadius, camGridSpacing, camOverlayOpacity, camOverlayColor], saveCam);
+// Re-sync camera overlay settings from server (multi-client only).
+// Skip settingsVersion bumps caused by our own saves to avoid reset loops.
+let _camSkipNext = 0;
 
-// Re-sync camera overlay settings from server
+function saveCamTracked() {
+  _camSkipNext++;
+  saveCam();
+}
+
 watch(settingsVersion, () => {
+  if (_camSkipNext > 0) { _camSkipNext--; return; }
   const u = loadCameraDefaults();
   camShowCrosshair.value = u.showCrosshair;
   camShowCircle.value = u.showCircle;
@@ -306,14 +311,15 @@ watch(settingsVersion, () => {
   showCamera.value = u.pipVisible;
 });
 
-function toggleCamera() {
-  showCamera.value = !showCamera.value;
+function onToggleCamera() {
+  _camSkipNext++;
   const cur = loadCameraDefaults();
   saveCameraDefaults({ ...cur, pipVisible: showCamera.value });
 }
 
 function closeCamera() {
   showCamera.value = false;
+  _camSkipNext++;
   const cur = loadCameraDefaults();
   saveCameraDefaults({ ...cur, pipVisible: false });
 }
