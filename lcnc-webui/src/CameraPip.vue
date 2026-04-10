@@ -261,8 +261,7 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: var(--gap-micro) var(--gap-controls);
-  background: color-mix(in srgb, var(--panel) 90%, transparent);
-  backdrop-filter: blur(4px);
+  border-bottom: 1px solid var(--border);
   cursor: grab;
   touch-action: none;
   user-select: none;
