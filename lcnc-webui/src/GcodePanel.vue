@@ -904,7 +904,7 @@ async function saveEdit() {
   border-radius: var(--radius-lg);
   background: var(--panel);
   border: 1px solid var(--border);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-sm);
   pointer-events: none;
   font-family: var(--font-sans);
   font-size: var(--fs-sm);

@@ -18,7 +18,7 @@ defineProps<{
   <button
     :class="[
       icon ? 'b-icon' : inline ? 'b-inline' : 'b',
-      !icon && !inline && (size ?? 'md'),
+      !inline && (size ?? 'md'),
       !icon && !inline && (variant ?? 'default'),
       { active, selected, flashing, warning, block, muted, mono },
     ]"
@@ -152,6 +152,8 @@ defineProps<{
   border-radius: var(--radius-md);
   transition: opacity 0.15s, background 0.15s;
 }
+.b-icon.xs { padding: 2px 4px; font-size: var(--fs-xs); }
+.b-icon.sm { padding: 3px 6px; font-size: var(--fs-sm); }
 .b-icon:hover:not(:disabled) { opacity: var(--opacity-secondary); background: color-mix(in oklab, var(--fg) 10%, transparent); }
 .b-icon:active:not(:disabled) { opacity: 1; }
 .b-icon:disabled { opacity: var(--opacity-disabled); cursor: not-allowed; }

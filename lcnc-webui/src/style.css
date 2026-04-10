@@ -95,6 +95,10 @@
   --gap-section:  12px;  /* between sections within a panel, card gaps */
   --gap-panel:    20px;  /* major layout divisions, top-level section breaks */
 
+  /* Shadows */
+  --shadow-sm:  0 4px 12px rgba(0, 0, 0, 0.15);  /* popovers, floating panels, PIP */
+  --shadow-md:  0 4px 24px rgba(0, 0, 0, 0.35);  /* dialogs */
+
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -569,7 +573,7 @@ label:has(input:disabled, select:disabled) {
   border-radius: var(--radius-xl);
   background: var(--panel);
   border: 1px solid var(--border);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  box-shadow: var(--shadow-sm);
   min-width: 140px;
   max-height: calc(100vh - 32px);
   overflow-y: auto;
@@ -603,7 +607,7 @@ label:has(input:disabled, select:disabled) {
   min-width: 280px;
   font-size: var(--fs-base);
   text-align: center;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--shadow-md);
 }
 
 .dialog.md {

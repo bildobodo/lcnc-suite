@@ -857,6 +857,6 @@ defineExpose({ openAdd, fetchTools, triggerImport });
   border-radius: var(--radius-lg);
   padding: var(--gap-controls);
   pointer-events: none;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-sm);
 }
 </style>

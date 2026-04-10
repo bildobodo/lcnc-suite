@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
 import { loadCameraDefaults, saveCameraDefaults, settingsVersion } from "./defaults";
+import MachineBtn from "./MachineBtn.vue";
 
 const props = defineProps<{ visible: boolean }>();
 const emit = defineEmits<{ (e: "close"): void }>();
@@ -60,10 +61,12 @@ function initPosition() {
 
 // ─── Stream control ──────────────────────────────────────────
 const streamActive = ref(false);
+const streamError = ref(false);
 const streamUrl = computed(() => streamActive.value ? "/camera/stream" : "");
 
 watch(() => props.visible, (vis) => {
   if (vis) {
+    streamError.value = false;
     streamActive.value = true;
     initPosition();
   } else {
@@ -202,16 +205,16 @@ onMounted(() => {
     <div class="pipTitleBar" @pointerdown="onDragStart">
       <span class="pipTitle">Camera</span>
       <div class="pipControls">
-        <button class="pipBtn" @click.stop="toggleMinimize" :title="minimized ? 'Expand' : 'Minimize'">
-          {{ minimized ? '▢' : '─' }}
-        </button>
-        <button class="pipBtn pipBtnClose" @click.stop="close" title="Close">×</button>
+        <MachineBtn type="pipMinimize" @click.stop="toggleMinimize" :title="minimized ? 'Expand' : 'Minimize'">
+          {{ minimized ? '□' : '−' }}
+        </MachineBtn>
+        <MachineBtn type="pipClose" @click.stop="close" title="Close">×</MachineBtn>
       </div>
     </div>
 
     <!-- Content area -->
     <div v-show="!minimized" class="pipContent" :style="{ height: pipH + 'px' }">
-      <img v-if="streamUrl" :src="streamUrl" class="pipFeed" />
+      <img v-if="streamUrl && !streamError" :src="streamUrl" class="pipFeed" @error="streamError = true" @load="streamError = false" />
       <div v-else class="pipPlaceholder">No stream</div>
 
       <!-- SVG Overlay -->
@@ -246,10 +249,11 @@ onMounted(() => {
 .cameraPip {
   position: absolute;
   z-index: 10;
-  border: 1px solid color-mix(in srgb, var(--fg) 20%, transparent);
-  border-radius: var(--radius-lg);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-2xl);
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-sm);
 }
 
 .pipTitleBar {
@@ -275,34 +279,13 @@ onMounted(() => {
 
 .pipControls {
   display: flex;
+  align-items: center;
   gap: var(--gap-micro);
 }
 
-.pipBtn {
-  background: none;
-  border: none;
-  color: var(--fg);
-  opacity: var(--opacity-muted);
-  cursor: pointer;
-  font-size: var(--fs-sm);
-  padding: 0 var(--gap-tight);
-  line-height: 1;
-  border-radius: var(--radius-sm);
-}
-
-.pipBtn:hover {
-  opacity: 1;
-  background: var(--hl-hover);
-}
-
-.pipBtnClose:hover {
-  background: color-mix(in srgb, var(--danger) 20%, transparent);
-  color: var(--danger);
-}
 
 .pipContent {
   position: relative;
-  background: var(--bg);
   overflow: hidden;
 }
 
@@ -311,6 +294,7 @@ onMounted(() => {
   height: 100%;
   object-fit: contain;
   display: block;
+  border: none;
 }
 
 .pipPlaceholder {
@@ -330,6 +314,8 @@ onMounted(() => {
   width: 100%;
   height: 100%;
   pointer-events: none;
+  border: none;
+  outline: none;
 }
 
 .pipResize {
@@ -345,12 +331,12 @@ onMounted(() => {
 .pipResize::after {
   content: "";
   position: absolute;
-  bottom: 3px;
-  right: 3px;
-  width: 8px;
-  height: 8px;
-  border-right: 2px solid var(--fg);
-  border-bottom: 2px solid var(--fg);
+  bottom: 4px;
+  right: 4px;
+  width: 6px;
+  height: 6px;
+  border-right: 1px solid var(--fg);
+  border-bottom: 1px solid var(--fg);
   opacity: var(--opacity-muted);
 }
 </style>
