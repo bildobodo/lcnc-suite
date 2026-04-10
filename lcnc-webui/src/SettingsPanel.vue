@@ -13,7 +13,6 @@ import {
   loadViewerDefaults, saveViewerDefaults,
   loadMachineDefaults, saveMachineDefaults,
   loadMacrosDefaults, saveMacrosDefaults, extractParams,
-  loadCameraDefaults, saveCameraDefaults, type CameraDefaults,
   loadDisplayDefaults, saveDisplayDefaults, settingsVersion, serverSettingsReady,
   type Vec3, type Layer, type ColorDefaults, type OpacityDefaults,
   type TrackMode, type Projection, type ToolChangeMode, type SpindleDir, type SpindleFeedbackUnit,
@@ -119,7 +118,7 @@ const resetTarget = ref<string | null>(null);
 
 const resetLabels: Record<string, string> = {
   viewer: "3D Viewer", machine: "Machine",
-  display: "Display", camera: "Camera", gamepad: "Gamepad", keyboard: "Keyboard",
+  display: "Display", gamepad: "Gamepad", keyboard: "Keyboard",
 };
 
 function resetViewer() {
@@ -175,15 +174,6 @@ function resetDisplay() {
   saveDisplayDefaults({ theme: "auto", startFullscreen: false });
 }
 
-function resetCamera() {
-  saveCameraDefaults({
-    showCrosshair: true, showCircle: true, showGrid: false,
-    circleRadius: 50, gridSpacing: 50, overlayOpacity: 0.8, overlayColor: "#00ff00",
-  });
-  const cd = loadCameraDefaults();
-  Object.assign(cam, cd);
-}
-
 function resetGamepad() {
   const fb = { ...GAMEPAD_FALLBACK, mapping: { ...GAMEPAD_FALLBACK.mapping } };
   for (const k of Object.keys(gpMapping) as (keyof GamepadMapping)[]) {
@@ -194,7 +184,7 @@ function resetGamepad() {
 
 const resetActions: Record<string, () => void> = {
   viewer: resetViewer, machine: resetMachine,
-  display: resetDisplay, camera: resetCamera, gamepad: resetGamepad, keyboard: resetKeyboard,
+  display: resetDisplay, gamepad: resetGamepad, keyboard: resetKeyboard,
 };
 
 function confirmReset() {
@@ -254,7 +244,6 @@ function saveMachine() {
 // Re-read when another client changes settings
 watch(settingsVersion, () => {
   macros.value = loadMacrosDefaults().macros;
-  Object.assign(cam, loadCameraDefaults());
   const md = loadMachineDefaults();
   toolChangeMode.value = md.toolChangeMode;
   runFromLine.value = md.runFromLine;
@@ -275,10 +264,6 @@ watch(settingsVersion, () => {
   machineEdgesOn.value = vd.machineEdges;
   projection.value = vd.projection;
 });
-
-// ─── Camera overlay ──────────────────────────────────────────
-const cam = reactive<CameraDefaults>(loadCameraDefaults());
-function saveCam() { saveCameraDefaults({ ...cam }); }
 
 // ── Keyboard tab state ──
 const kbConfig = ref<KeyboardDefaults>(props.keyboardConfig ?? loadKeyboardDefaults());
@@ -391,7 +376,6 @@ const subTabs = [
   { id: "viewer", label: "3D Viewer" },
   { id: "machine", label: "Machine" },
   { id: "display", label: "Display" },
-  { id: "camera", label: "Camera" },
   { id: "macros", label: "Macros" },
   { id: "gamepad", label: "Gamepad" },
   { id: "keyboard", label: "Keyboard" },
@@ -748,64 +732,6 @@ const halStats = computed(() => ({
           </div>
           <div class="resetRow">
             <MachineBtn type="reset" @click="resetTarget = 'display'">Reset Display</MachineBtn>
-          </div>
-        </div>
-      </template>
-
-      <template #camera>
-        <div v-if="!serverSettingsReady" class="settingsLoading">Waiting for server settings…</div>
-        <div v-else class="stack-panel scrollContent scroll-thin">
-          <div class="section">
-            <div class="sub">Overlay Toggles</div>
-            <div class="stack-controls">
-              <MachineToggle gate="cameraSetting" v-model="cam.showCrosshair" @update:modelValue="saveCam" label="Crosshair" />
-              <MachineToggle gate="cameraSetting" v-model="cam.showCircle" @update:modelValue="saveCam" label="Circle" />
-              <MachineToggle gate="cameraSetting" v-model="cam.showGrid" @update:modelValue="saveCam" label="Grid" />
-            </div>
-          </div>
-
-          <div class="sep"></div>
-
-          <div class="section">
-            <div class="sub">Overlay Dimensions</div>
-            <div class="tsGrid">
-              <label>Circle Radius</label>
-              <MachineInput gate="cameraSetting" type="number" v-model.number="cam.circleRadius" min="10" max="300" :step="1" @change="saveCam" />
-              <label>Grid Spacing</label>
-              <MachineInput gate="cameraSetting" type="number" v-model.number="cam.gridSpacing" min="10" max="200" :step="1" @change="saveCam" />
-            </div>
-          </div>
-
-          <div class="sep"></div>
-
-          <div class="section">
-            <div class="sub">Overlay Appearance</div>
-            <div class="stack-controls opacityList">
-              <div class="opacityRow">
-                <span class="opacityLabel">Opacity</span>
-                <MachineSlider
-                  gate="cameraSetting"
-                  class="opacitySlider"
-                  :min="0" :max="1" :step="0.05"
-                  :modelValue="cam.overlayOpacity"
-                  @update:modelValue="cam.overlayOpacity = $event!; saveCam()"
-                />
-                <span class="opacityValue">{{ Math.round(cam.overlayOpacity * 100) }}%</span>
-              </div>
-            </div>
-            <div class="colorGrid">
-              <div class="colorRow">
-                <MachineColor
-                  gate="cameraSetting"
-                    :modelValue="cam.overlayColor"
-                  @update:modelValue="cam.overlayColor = $event!; saveCam()"
-                />
-                <span class="colorLabel">Overlay Color</span>
-              </div>
-            </div>
-          </div>
-          <div class="resetRow">
-            <MachineBtn type="reset" @click="resetTarget = 'camera'">Reset Camera</MachineBtn>
           </div>
         </div>
       </template>

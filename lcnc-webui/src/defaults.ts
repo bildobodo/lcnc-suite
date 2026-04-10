@@ -401,6 +401,11 @@ export interface CameraDefaults {
   gridSpacing: number;
   overlayOpacity: number;
   overlayColor: string;
+  pipX: number;
+  pipY: number;
+  pipWidth: number;
+  pipHeight: number;
+  pipVisible: boolean;
 }
 
 const CAMERA_FALLBACK: CameraDefaults = {
@@ -411,6 +416,11 @@ const CAMERA_FALLBACK: CameraDefaults = {
   gridSpacing: 50,
   overlayOpacity: 0.8,
   overlayColor: "#00ff00",
+  pipX: -1,
+  pipY: -1,
+  pipWidth: 320,
+  pipHeight: 240,
+  pipVisible: false,
 };
 
 registerSection<CameraDefaults>("camera", CAMERA_FALLBACK, (saved, fb) => {
@@ -423,6 +433,11 @@ registerSection<CameraDefaults>("camera", CAMERA_FALLBACK, (saved, fb) => {
     gridSpacing: typeof saved.gridSpacing === "number" ? saved.gridSpacing : fb.gridSpacing,
     overlayOpacity: typeof saved.overlayOpacity === "number" ? saved.overlayOpacity : fb.overlayOpacity,
     overlayColor: typeof saved.overlayColor === "string" ? saved.overlayColor : fb.overlayColor,
+    pipX: typeof saved.pipX === "number" ? saved.pipX : fb.pipX,
+    pipY: typeof saved.pipY === "number" ? saved.pipY : fb.pipY,
+    pipWidth: typeof saved.pipWidth === "number" ? saved.pipWidth : fb.pipWidth,
+    pipHeight: typeof saved.pipHeight === "number" ? saved.pipHeight : fb.pipHeight,
+    pipVisible: saved.pipVisible ?? fb.pipVisible,
   };
 });
 

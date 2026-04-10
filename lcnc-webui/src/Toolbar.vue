@@ -109,7 +109,44 @@
         </div>
       </div>
 
+      <!-- Camera pill -->
+      <div class="toolPill">
+        <MachineBtn type="tab" :selected="showCamera || openPill === 'camera'" @click.stop="togglePill('camera')">Camera</MachineBtn>
+        <div class="popover pillPopover camPopover" :class="{ open: openPill === 'camera' }" @click.stop>
+          <div class="popTitle">Camera</div>
+          <MachineBtn type="overlayToggle" :active="showCamera" @click="toggleCamera">
+            {{ showCamera ? 'Hide PIP' : 'Show PIP' }}
+          </MachineBtn>
+          <div class="sep"></div>
+          <div class="popTitle">Overlays</div>
+          <MachineToggle gate="cameraSetting" v-model="camShowCrosshair" label="Crosshair" />
+          <MachineToggle gate="cameraSetting" v-model="camShowCircle" label="Circle" />
+          <MachineToggle gate="cameraSetting" v-model="camShowGrid" label="Grid" />
+          <div class="sep"></div>
+          <div class="inputRow">
+            <span class="inputLabel">Radius</span>
+            <MachineInput gate="cameraSetting" type="number" class="numInput" v-model.number="camCircleRadius" min="10" max="300" :step="1" @change="saveCam" />
+          </div>
+          <div class="inputRow">
+            <span class="inputLabel">Grid</span>
+            <MachineInput gate="cameraSetting" type="number" class="numInput" v-model.number="camGridSpacing" min="10" max="200" :step="1" @change="saveCam" />
+          </div>
+          <div class="sep"></div>
+          <div class="inputRow">
+            <span class="inputLabel">Opacity</span>
+            <MachineSlider gate="cameraSetting" class="camSlider" :min="0" :max="1" :step="0.05" v-model="camOverlayOpacity" />
+          </div>
+          <div class="inputRow">
+            <span class="inputLabel">Color</span>
+            <MachineColor gate="cameraSetting" v-model="camOverlayColor" class="camColor" />
+          </div>
+        </div>
+      </div>
+
     </div>
+
+    <!-- Camera PIP window -->
+    <CameraPip :visible="showCamera" @close="closeCamera" />
   </div>
 </template>
 
@@ -119,7 +156,10 @@ import MachineBtn from "./MachineBtn.vue";
 import MachineInput from "./MachineInput.vue";
 import MachineRadio from "./MachineRadio.vue";
 import MachineToggle from "./MachineToggle.vue";
-import { loadViewerDefaults, settingsVersion, STEP_DEFAULT, type Vec3, type Layer, type TrackMode } from "./defaults";
+import MachineSlider from "./MachineSlider.vue";
+import MachineColor from "./MachineColor.vue";
+import CameraPip from "./CameraPip.vue";
+import { loadViewerDefaults, loadCameraDefaults, saveCameraDefaults, settingsVersion, STEP_DEFAULT, type Vec3, type Layer, type TrackMode } from "./defaults";
 
 type ViewPreset = "top" | "bottom" | "left" | "right" | "front" | "back" | "iso" | "dimetric" | "reset";
 
@@ -223,7 +263,70 @@ function onDocClick() { openPill.value = null; }
 onMounted(() => document.addEventListener("click", onDocClick));
 onBeforeUnmount(() => document.removeEventListener("click", onDocClick));
 
+// ─── Camera PIP ──────────────────────────────────────────────
+const cameraAvailable = ref(false);
+const showCamera = ref(loadCameraDefaults().pipVisible);
 
+// Camera overlay settings (managed in Camera pill popover)
+const camDefs = loadCameraDefaults();
+const camShowCrosshair = ref(camDefs.showCrosshair);
+const camShowCircle = ref(camDefs.showCircle);
+const camShowGrid = ref(camDefs.showGrid);
+const camCircleRadius = ref(camDefs.circleRadius);
+const camGridSpacing = ref(camDefs.gridSpacing);
+const camOverlayOpacity = ref(camDefs.overlayOpacity);
+const camOverlayColor = ref(camDefs.overlayColor);
+
+function saveCam() {
+  const cur = loadCameraDefaults();
+  saveCameraDefaults({
+    ...cur,
+    showCrosshair: camShowCrosshair.value,
+    showCircle: camShowCircle.value,
+    showGrid: camShowGrid.value,
+    circleRadius: camCircleRadius.value,
+    gridSpacing: camGridSpacing.value,
+    overlayOpacity: camOverlayOpacity.value,
+    overlayColor: camOverlayColor.value,
+  });
+}
+
+watch([camShowCrosshair, camShowCircle, camShowGrid, camCircleRadius, camGridSpacing, camOverlayOpacity, camOverlayColor], saveCam);
+
+// Re-sync camera overlay settings from server
+watch(settingsVersion, () => {
+  const u = loadCameraDefaults();
+  camShowCrosshair.value = u.showCrosshair;
+  camShowCircle.value = u.showCircle;
+  camShowGrid.value = u.showGrid;
+  camCircleRadius.value = u.circleRadius;
+  camGridSpacing.value = u.gridSpacing;
+  camOverlayOpacity.value = u.overlayOpacity;
+  camOverlayColor.value = u.overlayColor;
+  showCamera.value = u.pipVisible;
+});
+
+function toggleCamera() {
+  showCamera.value = !showCamera.value;
+  const cur = loadCameraDefaults();
+  saveCameraDefaults({ ...cur, pipVisible: showCamera.value });
+}
+
+function closeCamera() {
+  showCamera.value = false;
+  const cur = loadCameraDefaults();
+  saveCameraDefaults({ ...cur, pipVisible: false });
+}
+
+onMounted(async () => {
+  try {
+    const res = await fetch("/camera/status");
+    const data = await res.json();
+    cameraAvailable.value = data.available === true;
+  } catch {
+    cameraAvailable.value = false;
+  }
+});
 </script>
 
 <style scoped>
@@ -323,5 +426,20 @@ onBeforeUnmount(() => document.removeEventListener("click", onDocClick));
 
 .sep {
   margin: var(--gap-tight) 0;
+}
+
+/* ---- Camera pill ---- */
+.camPopover {
+  min-width: 180px;
+}
+
+.camSlider {
+  flex: 1;
+  max-width: 80px;
+}
+
+.camColor {
+  width: 28px;
+  height: 28px;
 }
 </style>
