@@ -202,13 +202,13 @@ onMounted(() => {
     }"
   >
     <!-- Title bar (drag handle) -->
-    <div class="pipTitleBar" @pointerdown="onDragStart">
-      <span class="pipTitle">Camera</span>
-      <div class="pipControls">
-        <MachineBtn type="pipMinimize" @click.stop="toggleMinimize" :title="minimized ? 'Expand' : 'Minimize'">
+    <div class="dialogHeader pipDragHandle" @pointerdown="onDragStart">
+      <span class="dialogTitle">Camera</span>
+      <div class="row-tight">
+        <MachineBtn type="close" @click.stop="toggleMinimize" :title="minimized ? 'Expand' : 'Minimize'">
           {{ minimized ? '□' : '−' }}
         </MachineBtn>
-        <MachineBtn type="pipClose" @click.stop="close" title="Close">×</MachineBtn>
+        <MachineBtn type="close" @click.stop="close" title="Close">&times;</MachineBtn>
       </div>
     </div>
 
@@ -256,30 +256,15 @@ onMounted(() => {
   box-shadow: var(--shadow-sm);
 }
 
-.pipTitleBar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--gap-micro) var(--gap-controls);
-  border-bottom: 1px solid var(--border);
+.pipDragHandle {
+  padding: var(--gap-tight) var(--gap-controls);
   cursor: grab;
   touch-action: none;
   user-select: none;
 }
 
-.pipTitleBar:active {
+.pipDragHandle:active {
   cursor: grabbing;
-}
-
-.pipTitle {
-  font-size: var(--fs-sm);
-  opacity: var(--opacity-muted);
-}
-
-.pipControls {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-micro);
 }
 
 

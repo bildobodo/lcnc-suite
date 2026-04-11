@@ -87,8 +87,6 @@ export const BUTTON_TYPES = {
 
   // ── UI buttons (gate: always — no permission, styling only) ──
   close:          { gate: 'always',  variant: 'default', size: 'md',  icon: true },
-  pipClose:       { gate: 'always',  variant: 'default', size: 'xs',  icon: true },
-  pipMinimize:    { gate: 'always',  variant: 'default', size: 'xs',  icon: true },
   tab:            { gate: 'always',  variant: 'default', size: 'sm',  muted: true },
   viewPreset:     { gate: 'always',  variant: 'default', size: 'sm' },
   overlayToggle:  { gate: 'always',  variant: 'default', size: 'xs' },
