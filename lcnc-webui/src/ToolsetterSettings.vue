@@ -89,6 +89,7 @@ async function loadG30() {
 }
 
 function setG30() {
+  if (!can.value.ready) return;
   emit("mdi", "G30.1");
   // After G30.1 saves current position, read back from machine position
   const st = status.value as any;
@@ -129,7 +130,7 @@ watch(settingsVersion, () => { loadTsParams(); });
     <label>Z</label>
     <span class="mono">{{ g30Z != null ? g30Z.toFixed(3) : '—' }}</span>
     <div class="row-tight span">
-      <MachineBtn type="inline" @click="setG30">Set Current Position</MachineBtn>
+      <MachineBtn type="probe" @click="setG30">Set Current Position</MachineBtn>
       <MachineBtn type="inline" @click="loadG30" :disabled="g30Loading">Refresh</MachineBtn>
     </div>
 
