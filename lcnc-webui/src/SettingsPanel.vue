@@ -1083,7 +1083,7 @@ const halStats = computed(() => ({
         <div class="dialog">
           <div class="dialogTitle danger">Reset {{ resetLabels[resetTarget] }}</div>
           <div class="dialogBody">Restore {{ resetLabels[resetTarget] }} settings to defaults? This cannot be undone.</div>
-          <Gate gate="idle" class="dialogActions">
+          <Gate gate="safety" class="dialogActions">
             <MachineBtn type="dialogCancel" @click="resetTarget = null">Cancel</MachineBtn>
             <MachineBtn type="dialogDanger" @click="confirmReset">Reset</MachineBtn>
           </Gate>

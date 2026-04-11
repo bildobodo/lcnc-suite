@@ -400,7 +400,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
           <div class="dialogBody">
             Remove tool <strong>T{{ deletingTool }}</strong> from the tool table?
           </div>
-          <Gate gate="idle" class="dialogActions">
+          <Gate gate="safety" class="dialogActions">
             <MachineBtn type="dialogCancel" @click="cancelDelete">Cancel</MachineBtn>
             <MachineBtn type="reset" @click="confirmDelete">Delete</MachineBtn>
           </Gate>
@@ -487,7 +487,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
 
           <!-- Footer -->
           <div class="sep"></div>
-          <Gate gate="idle" class="editFooter">
+          <Gate gate="safety" class="editFooter">
             <MachineBtn type="dialogCancel" @click="cancelEditModal">Cancel</MachineBtn>
             <MachineBtn type="fileSave" @click="saveEdit">{{ isNewTool ? "Add" : "Save" }}</MachineBtn>
           </Gate>
@@ -523,7 +523,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
               </div>
             </div>
           </div>
-          <Gate gate="idle" class="dialogActions">
+          <Gate gate="safety" class="dialogActions">
             <MachineBtn type="dialogCancel" @click="cancelImport">Cancel</MachineBtn>
             <MachineBtn type="fileSave" @click="confirmImport" :disabled="importBusy">
               {{ importBusy ? 'Importing...' : 'Import' }}

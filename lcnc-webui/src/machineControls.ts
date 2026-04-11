@@ -54,12 +54,12 @@ export const BUTTON_TYPES = {
   overrideReset:  { gate: 'override', variant: 'default', size: 'xs' },
 
   // File operations
-  fileOp:         { gate: 'idle',     variant: 'default', size: 'md' },
-  fileSave:       { gate: 'idle',     variant: 'primary', size: 'md' },
+  fileOp:         { gate: 'safety',   variant: 'default', size: 'md' },
+  fileSave:       { gate: 'safety',   variant: 'primary', size: 'md' },
 
   // Settings / tool table management
-  manage:         { gate: 'idle',     variant: 'default', size: 'md' },
-  reset:          { gate: 'idle',     variant: 'danger',  size: 'md' },
+  manage:         { gate: 'safety',   variant: 'default', size: 'md' },
+  reset:          { gate: 'safety',   variant: 'danger',  size: 'md' },
 
   // WCS selection
   wcs:            { gate: 'probe',    variant: 'default', size: 'sm' },
@@ -143,8 +143,8 @@ export const INPUT_DEFS = {
   toolsetterParam: { gate: 'always',   mono: true, align: 'right' },
 
   // Tool table editing
-  toolEdit:        { gate: 'idle' },
-  toolEditNum:     { gate: 'idle',     mono: true, align: 'right' },
+  toolEdit:        { gate: 'safety' },
+  toolEditNum:     { gate: 'safety',   mono: true, align: 'right' },
   toolSearch:      { gate: 'always' },
 
   // 3D Viewer settings

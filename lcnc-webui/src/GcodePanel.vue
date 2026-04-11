@@ -396,7 +396,7 @@ async function saveEdit() {
     </div>
 
     <!-- File browser (collapsible) -->
-    <Gate v-if="showBrowser" gate="idle" class="fileBrowser">
+    <Gate v-if="showBrowser" gate="safety" class="fileBrowser">
         <div class="browserHeader">
           <MachineBtn v-if="currentSubdir" type="inline" class="backBtn" @click="navigateUp">..</MachineBtn>
           <span class="browserPath">{{ currentSubdir || '/' }}</span>
