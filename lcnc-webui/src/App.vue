@@ -1319,7 +1319,7 @@ watch(viewerGcode, (newGcode) => {
     </div>
 
     <!-- ══ Content area — outer Gate wraps tabs ══ -->
-    <Gate gate="safety" class="content">
+    <Gate gate="armed" class="content">
       <!-- ══ Left pane — 3D Viewer (always visible) ══ -->
       <div class="viewerPane">
         <Toolbar
@@ -1694,12 +1694,12 @@ watch(viewerGcode, (newGcode) => {
     </Gate><!-- /content (outer gate) -->
 
     <!-- ══ Macro Bar — thin row of user macro buttons ══ -->
-    <Gate v-if="userMacros.length" gate="safety" class="macroBar bordered-panel row-controls scroll-thin">
+    <Gate v-if="userMacros.length" gate="armed" class="macroBar bordered-panel row-controls scroll-thin">
       <MachineBtn v-for="m in userMacros" :key="m.id" type="macro" @click="runMacro(m)">{{ m.name }}</MachineBtn>
     </Gate>
 
     <!-- ══ Bottom Action Strip — default-deny Gate, SafetyStrip exempt + sticky ══ -->
-    <Gate gate="safety" class="strip bordered-panel scroll-thin">
+    <Gate gate="armed" class="strip bordered-panel scroll-thin">
       <template #exempt>
       <SafetyStrip
         :armed="armed"

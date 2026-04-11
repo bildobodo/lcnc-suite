@@ -38,6 +38,8 @@ export type Permissions = {
   zero: boolean;
   /** safety: armed + estop cleared — for Machine On/Off (doesn't require enabled) */
   safety: boolean;
+  /** armed: client is armed — outer content gate, allows navigation during E-Stop */
+  armed: boolean;
   /** always: unconditional — only for Arm and E-Stop */
   always: boolean;
 };
@@ -57,6 +59,7 @@ export function evaluatePermissions(s: MachineState): Permissions {
     probe:    base && s.isIdle && !s.busy && s.isHomed && !s.eoffsetEnabled,
     zero:     base && s.isIdle && !s.busy && !s.eoffsetEnabled,
     safety:   s.armed && !s.isEstop,
+    armed:    s.armed,
     always:   true,
   };
 }
