@@ -202,7 +202,7 @@ onMounted(() => {
     }"
   >
     <!-- Title bar (drag handle) -->
-    <div class="dialogHeader pipDragHandle" @pointerdown="onDragStart">
+    <div class="dialogHeader compact pipDragHandle" @pointerdown="onDragStart">
       <span class="dialogTitle">Camera</span>
       <div class="row-tight">
         <MachineBtn type="close" @click.stop="toggleMinimize" :title="minimized ? 'Expand' : 'Minimize'">
@@ -257,7 +257,6 @@ onMounted(() => {
 }
 
 .pipDragHandle {
-  padding: var(--gap-tight) var(--gap-controls);
   cursor: grab;
   touch-action: none;
   user-select: none;
