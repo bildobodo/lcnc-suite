@@ -1134,7 +1134,7 @@ function fmtR(key: string): string {
             <label><MachineRadio gate="probeParam" name="calAxis" :value="2" v-model.number="calAxis" /> Y Error</label>
           </div>
         </div>
-        <MachineBtn type="reset" :disabled="probing" @click="resetCal">Reset Calibration</MachineBtn>
+        <MachineBtn type="probeReset" :disabled="probing" @click="resetCal">Reset Calibration</MachineBtn>
       </div>
       </div>
     </template>
