@@ -14,11 +14,18 @@ import {
   Square,
 } from "lucide-vue-next";
 
+const ABC = new Set(["A", "B", "C"]);
+const UVW = new Set(["U", "V", "W"]);
+const EXTRA = new Set([...ABC, ...UVW]);
+
 const props = defineProps<{
   axes: string[];
   jogVel: number;
+  angularJogVel: number;
   linearUnit: string;
   maxJogVel: number;
+  maxAngularJogVel: number;
+  minAngularJogVel: number;
   jogIncrement: number;
   minJogVel: number;
   iniIncrements: number[] | null;
@@ -28,6 +35,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: "update:jogVel", v: number): void;
+  (e: "update:angularJogVel", v: number): void;
   (e: "update:jogIncrement", v: number): void;
   (e: "resetJogVel"): void;
   (e: "modeChange", mode: number): void;
@@ -35,6 +43,13 @@ const emit = defineEmits<{
 
 const can = usePermissions();
 const isDisabled = computed(() => !can.value[INPUT_DEFS.jogWheel.gate] || props.jogDisabled);
+
+// ─── Extra axes (beyond XYZ) ────────────────────────────────
+const extraAxes = computed(() =>
+  props.axes.map((letter, i) => ({ letter, index: i })).filter(a => EXTRA.has(a.letter))
+);
+const abcAxes = computed(() => extraAxes.value.filter(a => ABC.has(a.letter)));
+const uvwAxes = computed(() => extraAxes.value.filter(a => UVW.has(a.letter)));
 
 const incrementOptions = computed(() => {
   if (props.iniIncrements && props.iniIncrements.length > 0) {
@@ -161,29 +176,32 @@ function stopJog(btn: JogDef, e: PointerEvent) {
   try { (e.currentTarget as HTMLElement)?.releasePointerCapture?.(e.pointerId); } catch {}
 }
 
-function startZJog(dir: 1 | -1, e: PointerEvent) {
-  const key = dir > 0 ? "Z+" : "Z-";
+// ─── Generic single-axis jog (Z, A, B, C, U, V, W) ─────────
+function startAxisJog(axisIndex: number, dir: 1 | -1, vel: number, e: PointerEvent) {
+  const letter = props.axes[axisIndex]!;
+  const key = `${letter}${dir > 0 ? "+" : "-"}`;
   if (isDisabled.value || activeJogKeys.has(key)) return;
 
   const el = e.currentTarget as Element;
   try { el?.setPointerCapture?.(e.pointerId); } catch {}
 
   if (props.jogIncrement > 0) {
-    send({ cmd: "jog_incr", axis: 2, vel: props.jogVel * dir, distance: props.jogIncrement * dir });
+    send({ cmd: "jog_incr", axis: axisIndex, vel: vel * dir, distance: props.jogIncrement * dir });
   } else {
-    send({ cmd: "jog_cont", axis: 2, vel: props.jogVel * dir });
+    send({ cmd: "jog_cont", axis: axisIndex, vel: vel * dir });
   }
 
-  const stopFn = props.jogIncrement > 0 ? () => {} : () => send({ cmd: "jog_stop", axis: 2 });
+  const stopFn = props.jogIncrement > 0 ? () => {} : () => send({ cmd: "jog_stop", axis: axisIndex });
   registerJog(e.pointerId, key, stopFn, el);
 }
 
-function stopZJog(dir: 1 | -1, e: PointerEvent) {
-  const key = dir > 0 ? "Z+" : "Z-";
+function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
+  const letter = props.axes[axisIndex]!;
+  const key = `${letter}${dir > 0 ? "+" : "-"}`;
   if (!activeJogKeys.has(key)) return;
 
   if (props.jogIncrement <= 0) {
-    send({ cmd: "jog_stop", axis: 2 });
+    send({ cmd: "jog_stop", axis: axisIndex });
   }
 
   unregisterJog(e.pointerId);
@@ -214,36 +232,96 @@ function stopZJog(dir: 1 | -1, e: PointerEvent) {
           </div>
         </div>
 
-        <div class="zGrid">
+        <div class="axisCol">
           <MachineBtn
             type="jog"
             class="jogBtn"
             :active="activeJogKeys.has('Z+')"
-            @pointerdown.prevent="startZJog(1, $event)"
-            @pointerup.prevent="stopZJog(1, $event)"
-            @pointercancel.prevent="stopZJog(1, $event)"
-            @pointerleave.prevent="stopZJog(1, $event)"
+            @pointerdown.prevent="startAxisJog(2, 1, jogVel, $event)"
+            @pointerup.prevent="stopAxisJog(2, 1, $event)"
+            @pointercancel.prevent="stopAxisJog(2, 1, $event)"
+            @pointerleave.prevent="stopAxisJog(2, 1, $event)"
             @contextmenu.prevent
           ><div class="jogInner jogZUp"><ArrowUp class="jogIcon" /><span class="jogLabel">Z+</span></div></MachineBtn>
           <MachineBtn
             type="jog"
             class="jogBtn"
             :active="activeJogKeys.has('Z-')"
-            @pointerdown.prevent="startZJog(-1, $event)"
-            @pointerup.prevent="stopZJog(-1, $event)"
-            @pointercancel.prevent="stopZJog(-1, $event)"
-            @pointerleave.prevent="stopZJog(-1, $event)"
+            @pointerdown.prevent="startAxisJog(2, -1, jogVel, $event)"
+            @pointerup.prevent="stopAxisJog(2, -1, $event)"
+            @pointercancel.prevent="stopAxisJog(2, -1, $event)"
+            @pointerleave.prevent="stopAxisJog(2, -1, $event)"
             @contextmenu.prevent
           ><div class="jogInner jogZDown"><ArrowDown class="jogIcon" /><span class="jogLabel">Z-</span></div></MachineBtn>
         </div>
+
+        <!-- ABC axes (rotary — use angularJogVel) -->
+        <template v-if="abcAxes.length > 0">
+          <div v-for="ra in abcAxes" :key="ra.letter" class="axisCol">
+            <MachineBtn
+              type="jog"
+              class="jogBtn"
+              :active="activeJogKeys.has(ra.letter + '+')"
+              @pointerdown.prevent="startAxisJog(ra.index, 1, angularJogVel, $event)"
+              @pointerup.prevent="stopAxisJog(ra.index, 1, $event)"
+              @pointercancel.prevent="stopAxisJog(ra.index, 1, $event)"
+              @pointerleave.prevent="stopAxisJog(ra.index, 1, $event)"
+              @contextmenu.prevent
+            ><div class="jogInner jogZUp"><ArrowUp class="jogIcon" /><span class="jogLabel">{{ ra.letter }}+</span></div></MachineBtn>
+            <MachineBtn
+              type="jog"
+              class="jogBtn"
+              :active="activeJogKeys.has(ra.letter + '-')"
+              @pointerdown.prevent="startAxisJog(ra.index, -1, angularJogVel, $event)"
+              @pointerup.prevent="stopAxisJog(ra.index, -1, $event)"
+              @pointercancel.prevent="stopAxisJog(ra.index, -1, $event)"
+              @pointerleave.prevent="stopAxisJog(ra.index, -1, $event)"
+              @contextmenu.prevent
+            ><div class="jogInner jogZDown"><ArrowDown class="jogIcon" /><span class="jogLabel">{{ ra.letter }}-</span></div></MachineBtn>
+          </div>
+        </template>
+
+        <!-- UVW axes (secondary linear — use jogVel) -->
+        <template v-if="uvwAxes.length > 0">
+          <div v-for="ra in uvwAxes" :key="ra.letter" class="axisCol">
+            <MachineBtn
+              type="jog"
+              class="jogBtn"
+              :active="activeJogKeys.has(ra.letter + '+')"
+              @pointerdown.prevent="startAxisJog(ra.index, 1, jogVel, $event)"
+              @pointerup.prevent="stopAxisJog(ra.index, 1, $event)"
+              @pointercancel.prevent="stopAxisJog(ra.index, 1, $event)"
+              @pointerleave.prevent="stopAxisJog(ra.index, 1, $event)"
+              @contextmenu.prevent
+            ><div class="jogInner jogZUp"><ArrowUp class="jogIcon" /><span class="jogLabel">{{ ra.letter }}+</span></div></MachineBtn>
+            <MachineBtn
+              type="jog"
+              class="jogBtn"
+              :active="activeJogKeys.has(ra.letter + '-')"
+              @pointerdown.prevent="startAxisJog(ra.index, -1, jogVel, $event)"
+              @pointerup.prevent="stopAxisJog(ra.index, -1, $event)"
+              @pointercancel.prevent="stopAxisJog(ra.index, -1, $event)"
+              @pointerleave.prevent="stopAxisJog(ra.index, -1, $event)"
+              @contextmenu.prevent
+            ><div class="jogInner jogZDown"><ArrowDown class="jogIcon" /><span class="jogLabel">{{ ra.letter }}-</span></div></MachineBtn>
+          </div>
+        </template>
       </div>
 
       <div class="speedCol">
-        <span class="label-muted">Speed</span>
+        <span class="label-muted">{{ abcAxes.length > 0 ? 'Linear' : 'Speed' }}</span>
         <span class="val-mono">{{ (jogVel * 60).toFixed(0) }}</span>
         <MachineSlider gate="jogSpeed" :disabled="isDisabled" :min="minJogVel" :max="maxJogVel" :step="0.1" :modelValue="jogVel" @update:modelValue="(v: number | undefined) => { if (v != null) emit('update:jogVel', v) }" class="vSlider" />
         <MachineBtn type="overrideReset" @click="emit('resetJogVel')">Reset</MachineBtn>
       </div>
+
+      <template v-if="abcAxes.length > 0">
+        <div class="speedCol">
+          <span class="label-muted">Rotary</span>
+          <span class="val-mono">{{ (angularJogVel * 60).toFixed(0) }}°</span>
+          <MachineSlider gate="jogSpeed" :disabled="isDisabled" :min="minAngularJogVel" :max="maxAngularJogVel" :step="0.1" :modelValue="angularJogVel" @update:modelValue="(v: number | undefined) => { if (v != null) emit('update:angularJogVel', v) }" class="vSlider" />
+        </div>
+      </template>
 
       <div class="stepCol">
         <span class="label-muted">Step</span>
@@ -274,7 +352,7 @@ function stopZJog(dir: 1 | -1, e: PointerEvent) {
   flex-shrink: 0;
 }
 
-/* ── Left: XY grid + Z ── */
+/* ── Left: XY grid + Z + extra axes ── */
 .jogBtns {
   display: flex;
   gap: var(--gap-section);
@@ -295,7 +373,7 @@ function stopZJog(dir: 1 | -1, e: PointerEvent) {
   height: 100%;
 }
 
-.zGrid {
+.axisCol {
   display: grid;
   grid-template-rows: 1fr 1fr;
   gap: var(--gap-tight);
@@ -306,6 +384,9 @@ function stopZJog(dir: 1 | -1, e: PointerEvent) {
   touch-action: none;
   user-select: none;
   aspect-ratio: 1;
+}
+.axisCol .jogBtn {
+  aspect-ratio: auto;
 }
 .jogInner {
   display: flex;
@@ -323,11 +404,11 @@ function stopZJog(dir: 1 | -1, e: PointerEvent) {
 .jogInner.jogH {
   flex-direction: column-reverse;
 }
-/* Z+ arrow: icon on top, label below */
+/* Up arrow: icon on top, label below */
 .jogInner.jogZUp {
   flex-direction: column;
 }
-/* Z- arrow: label on top, icon below */
+/* Down arrow: label on top, icon below */
 .jogInner.jogZDown {
   flex-direction: column-reverse;
 }
@@ -338,11 +419,8 @@ function stopZJog(dir: 1 | -1, e: PointerEvent) {
   font-family: var(--font-mono);
   line-height: 1;
 }
-.zGrid .jogBtn {
-  aspect-ratio: auto;
-}
 
-/* ── Vertical columns ��─ */
+/* ── Vertical columns ── */
 .speedCol, .stepCol {
   display: flex;
   flex-direction: column;

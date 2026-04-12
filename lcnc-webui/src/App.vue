@@ -602,6 +602,14 @@ const defaultAngularJogVel = computed(() => {
   const v = st.value.default_angular_jog_velocity;
   return (v != null && Number.isFinite(v) && v > 0) ? v : 10;
 });
+const maxAngularJogVel = computed(() => {
+  const v = st.value.max_angular_jog_velocity;
+  return (v != null && Number.isFinite(v) && v > 0) ? v : 50;
+});
+const minAngularJogVel = computed(() => {
+  const v = st.value.min_angular_jog_velocity;
+  return (v != null && Number.isFinite(v) && v > 0) ? v : 0.1;
+});
 
 const iniIncrements = computed<number[] | null>(() => {
   const v = st.value.increments;
@@ -1732,14 +1740,18 @@ watch(viewerGcode, (newGcode) => {
       <JogStrip
         :axes="axes"
         :jogVel="jogVel"
+        :angularJogVel="angularJogVel"
         :linearUnit="linearUnit"
         :maxJogVel="maxJogVel"
+        :maxAngularJogVel="maxAngularJogVel"
+        :minAngularJogVel="minAngularJogVel"
         :jogIncrement="jogIncrement"
         :minJogVel="minJogVel"
         :iniIncrements="iniIncrements"
         :jogDisabled="!permissions.jog"
         :taskMode="taskMode"
         @update:jogVel="jogVel = $event"
+        @update:angularJogVel="angularJogVel = $event"
         @update:jogIncrement="jogIncrement = $event"
         @resetJogVel="jogVel = defaultJogVel"
         @modeChange="send({ cmd: 'set_mode', mode: $event })"
