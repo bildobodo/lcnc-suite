@@ -173,7 +173,10 @@ class Compensation :
 						prevState = currentState
 						
 					# do start-up tasks
-					print(" %s last modified: %s" % (self.filename, time.ctime(os.path.getmtime(self.filename))))
+					if os.path.isfile(self.filename):
+						print(" %s last modified: %s" % (self.filename, time.ctime(os.path.getmtime(self.filename))))
+					else:
+						print(" %s not found -- waiting for probe data" % self.filename)
 					
 					prevMapTime = 0
 					prevMethod = self.h['method']
@@ -205,7 +208,13 @@ class Compensation :
 					if currentState != prevState :
 						print("\nCompensation entering LOADMAP state")
 						prevState = currentState
-			
+
+					if not os.path.isfile(self.filename):
+						# File doesn't exist yet -- stay here or return to IDLE if disabled
+						if not self.h["enable-in"]:
+							currentState = States.IDLE
+						continue
+
 					mapTime = os.path.getmtime(self.filename)
 					currentMethod = self.h['method']
 
