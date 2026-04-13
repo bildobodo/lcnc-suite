@@ -756,6 +756,7 @@ label:has(input:disabled, select:disabled) {
 .stack-tight    { display: flex; flex-direction: column; gap: var(--gap-tight); }
 .stack-micro    { display: flex; flex-direction: column; gap: var(--gap-micro); }
 
+.row-sections   { display: flex; gap: var(--gap-section); }
 .row-controls   { display: flex; gap: var(--gap-controls); align-items: center; }
 .row-tight      { display: flex; gap: var(--gap-tight); align-items: center; }
 
@@ -775,6 +776,75 @@ label:has(input:disabled, select:disabled) {
   .stripSection { height: auto; }
   /* SafetyStrip: sticky at top of vertical scroll instead of left */
   .safetyStrip  { top: 0; left: auto; }
+}
+
+/* ─── Portrait strip layout utilities ─────────────────────────────────────
+   Classes applied in templates. Activate only in portrait orientation.
+   Child-targeting selectors beat component-scoped landscape rules.
+   ───────────────────────────────────────────────────────────────────────── */
+@media (orientation: portrait) {
+
+  /* Single horizontal slider row.
+     Parent container must set flex-direction:row in portrait (component CSS).
+     Specificity [0,2,0] beats global landscape .vSlider [0,1,0]. */
+  .strip-slider-row > .vSlider {
+    writing-mode: horizontal-tb;
+    direction: ltr;
+    width: auto;
+    height: 6px;
+    min-height: unset;
+  }
+
+  /* Multi-row equal-width slider grid.
+     Apply to wrapper; each child uses display:contents so all rows share one
+     4-column grid → every slider the same 1fr width.
+     display:grid here means components don't need a scoped override. */
+  .strip-slider-group {
+    display: grid;
+    grid-template-columns: max-content max-content 1fr auto;
+    gap: var(--gap-controls);
+    align-items: center;
+  }
+  /* Slider inside a grid row: fill the 1fr column (not flex, so width:100%) */
+  .strip-slider-group .vSlider {
+    writing-mode: horizontal-tb;
+    direction: ltr;
+    width: 100%;
+    height: 6px;
+    min-height: unset;
+  }
+
+  /* Radio section: flip to horizontal row in portrait.
+     Apply .strip-radio-group to the section container (e.g. .stepCol, .wcsCol).
+     Wrap the radio <label> elements in a .strip-radio-options child div.
+     Eliminates per-component scoped flex-direction overrides. */
+  .strip-radio-group {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: var(--gap-controls);
+  }
+  .strip-radio-group > .label-muted {
+    flex-shrink: 0;
+    align-self: flex-start;
+  }
+  .strip-radio-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--gap-tight);
+    flex: 1;
+  }
+
+  /* Multi-row radio grid: shared 2-column layout (label | options) across rows.
+     Apply .strip-radio-grid to a wrapper; each .strip-radio-group child uses
+     display:contents so their label + options become direct grid children.
+     In landscape: row-sections (display:flex) wins; in portrait this wins (later in file). */
+  .strip-radio-grid {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: var(--gap-controls);
+    align-items: start;
+  }
+  .strip-radio-grid > .strip-radio-group { display: contents; }
 }
 
 /* SafetyStrip stays visible when strip scrolls */

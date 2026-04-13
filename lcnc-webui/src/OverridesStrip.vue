@@ -33,20 +33,20 @@ function onRapidSlider(v: number) { emit('update:rapidSlider', v); }
 <template>
   <Gate gate="override" class="stripSection">
     <div class="sub">Overrides</div>
-    <div class="ovrSection">
-      <div class="ovrCol">
+    <div class="ovrSection row-sections strip-slider-group">
+      <div class="ovrCol stack-tight strip-slider-row">
         <span class="label-muted">Feed</span>
         <span class="val-mono" :class="{ warn: feedSlider !== 100 }">{{ feedSlider }}%</span>
         <MachineSlider gate="feedOverride" :modelValue="feedSlider" @update:model-value="onFeedSlider(Number($event))" @change="emit('feedChange')" :min="0" :max="maxFeedOverride" :step="STEP_OVERRIDE" :disabled="!feedOvrEnabled" class="vSlider" />
         <MachineBtn type="overrideReset" @click="emit('overridePreset', 'feed', 100)">Reset</MachineBtn>
       </div>
-      <div class="ovrCol">
+      <div class="ovrCol stack-tight strip-slider-row">
         <span class="label-muted">Spindle</span>
         <span class="val-mono" :class="{ warn: spindleSlider !== 100 }">{{ spindleSlider }}%</span>
         <MachineSlider gate="spindleOverride" :modelValue="spindleSlider" @update:model-value="onSpindleSlider(Number($event))" @change="emit('spindleSliderChange')" :min="minSpindleOverride" :max="maxSpindleOverride" :step="STEP_OVERRIDE" :disabled="!spindleOvrEnabled" class="vSlider" />
         <MachineBtn type="overrideReset" @click="emit('overridePreset', 'spindle', 100)">Reset</MachineBtn>
       </div>
-      <div class="ovrCol">
+      <div class="ovrCol stack-tight strip-slider-row">
         <span class="label-muted">Rapid</span>
         <span class="val-mono" :class="{ warn: rapidSlider !== 100 }">{{ rapidSlider }}%</span>
         <MachineSlider gate="rapidOverride" :modelValue="rapidSlider" @update:model-value="onRapidSlider(Number($event))" @change="emit('rapidChange')" :min="25" :max="100" :step="STEP_RAPID_OVERRIDE" class="vSlider" />
@@ -57,18 +57,9 @@ function onRapidSlider(v: number) { emit('update:rapidSlider', v); }
 </template>
 
 <style scoped>
-.ovrSection {
-  display: flex;
-  gap: var(--gap-section);
-}
-.ovrSection > * {
-  flex-shrink: 0;
-}
+.ovrSection > * { flex-shrink: 0; }
 .ovrCol {
-  display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: var(--gap-tight);
   height: 100%;
   justify-content: center;
 }
@@ -78,17 +69,8 @@ function onRapidSlider(v: number) { emit('update:rapidSlider', v); }
 }
 
 @media (orientation: portrait) {
-  /* Stack the three override rows vertically */
-  .ovrSection { flex-direction: column; gap: var(--gap-controls); }
-  /* Each row: label + value + slider + reset in a horizontal line */
-  .ovrCol {
-    height: auto;
-    flex-direction: row;
-    align-items: center;
-    justify-content: flex-start;
-    gap: var(--gap-controls);
-  }
-  /* Slider fills remaining width */
-  .vSlider { writing-mode: horizontal-tb; direction: ltr; flex: 1; min-width: 0; height: 6px; min-height: unset; }
+  /* dissolve into ovrSection's shared 4-column grid
+     (global strip-slider-group activates display:grid in portrait) */
+  .ovrCol { display: contents; }
 }
 </style>

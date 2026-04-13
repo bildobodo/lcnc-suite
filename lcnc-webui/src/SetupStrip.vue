@@ -49,7 +49,7 @@ function updateTouchoff(axis: number, val: number) {
 <template>
   <div class="stripSection">
     <div class="sub">Setup</div>
-    <div class="setupContent">
+    <div class="setupContent row-sections">
       <!-- Column 1: primary axes (XYZABC) + actions when no second column -->
       <div class="setupGrid">
         <template v-for="a in primaryAxes" :key="a.letter">
@@ -80,25 +80,21 @@ function updateTouchoff(axis: number, val: number) {
         <MachineBtn type="goTo" @click="emit('goToZero')">Zero</MachineBtn>
       </div>
 
-      <div class="wcsCol">
+      <div class="wcsCol stack-tight strip-radio-group">
         <span class="label-muted">WCS</span>
-        <label v-for="g in g5xOptions" :key="g" class="radio-label">
-          <MachineRadio gate="touchoff" name="wcs" :value="g" :modelValue="g5xLabel" @update:modelValue="(v: string | number | undefined) => { if (v != null) emit('setG5x', String(v)) }" />
-          <span>{{ g }}</span>
-        </label>
+        <div class="strip-radio-options">
+          <label v-for="g in g5xOptions" :key="g" class="radio-label">
+            <MachineRadio gate="touchoff" name="wcs" :value="g" :modelValue="g5xLabel" @update:modelValue="(v: string | number | undefined) => { if (v != null) emit('setG5x', String(v)) }" />
+            <span>{{ g }}</span>
+          </label>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.setupContent {
-  display: flex;
-  gap: var(--gap-section);
-}
-.setupContent > * {
-  flex-shrink: 0;
-}
+.setupContent > * { flex-shrink: 0; }
 .setupGrid {
   display: grid;
   grid-template-columns: 80px 1fr 1fr;
@@ -107,18 +103,11 @@ function updateTouchoff(axis: number, val: number) {
 }
 .setupInput { width: 100%; }
 .spanAll { grid-column: 1 / -1; }
-.wcsCol {
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-tight);
-  justify-content: flex-start;
-}
+.wcsCol { justify-content: flex-start; }
 
 @media (orientation: portrait) {
   .setupContent { flex-direction: column; }
   /* Narrow input column to fit 280px strip width */
-  .setupGrid    { grid-template-columns: 70px 1fr 1fr; }
-  /* WCS options wrap into compact rows instead of a tall column */
-  .wcsCol       { flex-direction: row; flex-wrap: wrap; }
+  .setupGrid { grid-template-columns: 70px 1fr 1fr; }
 }
 </style>

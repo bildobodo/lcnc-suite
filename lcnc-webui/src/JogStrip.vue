@@ -219,8 +219,8 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
 <template>
   <div class="stripSection">
     <div class="sub">Jog</div>
-    <div class="jogContent">
-      <div class="jogBtns">
+    <div class="jogContent row-sections">
+      <div class="jogBtns row-sections">
         <div ref="xyWrapRef" class="xyWrap" :style="xySize ? { width: xySize + 'px' } : undefined">
           <div class="xyGrid">
             <MachineBtn
@@ -315,55 +315,52 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
         </template>
       </div>
 
-      <div class="speedCol">
-        <span class="label-muted">{{ abcAxes.length > 0 ? 'Linear' : 'Speed' }}</span>
-        <span class="val-mono">{{ (jogVel * 60).toFixed(0) }}</span>
-        <MachineSlider gate="jogSpeed" :disabled="isDisabled" :min="minJogVel" :max="maxJogVel" :step="0.1" :modelValue="jogVel" @update:modelValue="(v: number | undefined) => { if (v != null) emit('update:jogVel', v) }" class="vSlider" />
-        <MachineBtn type="overrideReset" @click="emit('resetJogVel')">Reset</MachineBtn>
-      </div>
-
-      <template v-if="abcAxes.length > 0">
-        <div class="speedCol">
+      <div class="speedGroup row-sections strip-slider-group">
+        <div class="speedCol stack-tight">
+          <span class="label-muted">{{ abcAxes.length > 0 ? 'Linear' : 'Speed' }}</span>
+          <span class="val-mono">{{ (jogVel * 60).toFixed(0) }}</span>
+          <MachineSlider gate="jogSpeed" :disabled="isDisabled" :min="minJogVel" :max="maxJogVel" :step="0.1" :modelValue="jogVel" @update:modelValue="(v: number | undefined) => { if (v != null) emit('update:jogVel', v) }" class="vSlider" />
+          <MachineBtn type="overrideReset" @click="emit('resetJogVel')">Reset</MachineBtn>
+        </div>
+        <div v-if="abcAxes.length > 0" class="speedCol stack-tight">
           <span class="label-muted">Rotary</span>
           <span class="val-mono">{{ (angularJogVel * 60).toFixed(0) }}°</span>
           <MachineSlider gate="jogSpeed" :disabled="isDisabled" :min="minAngularJogVel" :max="maxAngularJogVel" :step="0.1" :modelValue="angularJogVel" @update:modelValue="(v: number | undefined) => { if (v != null) emit('update:angularJogVel', v) }" class="vSlider" />
           <MachineBtn type="overrideReset" @click="emit('resetAngularJogVel')">Reset</MachineBtn>
         </div>
-      </template>
-
-      <div class="stepCol">
-        <span class="label-muted">Step</span>
-        <label v-for="opt in incrementOptions" :key="opt.value" class="radio-label">
-          <MachineRadio gate="jogIncrement" name="jogStep" :value="opt.value" :modelValue="jogIncrement" @update:modelValue="(v: string | number | undefined) => { if (v != null) emit('update:jogIncrement', Number(v)) }" />
-          <span>{{ opt.label }}</span>
-        </label>
       </div>
 
-      <div class="sep modeColSep"></div>
+      <div class="radioGrid row-sections strip-radio-grid">
+        <div class="stepCol stack-tight strip-radio-group">
+          <span class="label-muted">Step</span>
+          <div class="strip-radio-options">
+            <label v-for="opt in incrementOptions" :key="opt.value" class="radio-label">
+              <MachineRadio gate="jogIncrement" name="jogStep" :value="opt.value" :modelValue="jogIncrement" @update:modelValue="(v: string | number | undefined) => { if (v != null) emit('update:jogIncrement', Number(v)) }" />
+              <span>{{ opt.label }}</span>
+            </label>
+          </div>
+        </div>
 
-      <div class="modeCol">
-        <span class="label-muted">Mode</span>
-        <label class="radio-label"><MachineRadio gate="modeSelect" name="taskMode" :modelValue="taskMode" :value="TASK_MODE_MANUAL" @update:modelValue="emit('modeChange', TASK_MODE_MANUAL)" /> Manual</label>
-        <label class="radio-label"><MachineRadio gate="modeSelect" name="taskMode" :modelValue="taskMode" :value="TASK_MODE_MDI" @update:modelValue="emit('modeChange', TASK_MODE_MDI)" /> MDI</label>
-        <label class="radio-label"><MachineRadio gate="modeSelect" name="taskMode" :modelValue="taskMode" :value="TASK_MODE_AUTO" @update:modelValue="emit('modeChange', TASK_MODE_AUTO)" /> Auto</label>
+        <div class="sep modeColSep"></div>
+
+        <div class="modeCol stack-tight strip-radio-group">
+          <span class="label-muted">Mode</span>
+          <div class="strip-radio-options">
+            <label class="radio-label"><MachineRadio gate="modeSelect" name="taskMode" :modelValue="taskMode" :value="TASK_MODE_MANUAL" @update:modelValue="emit('modeChange', TASK_MODE_MANUAL)" /> Manual</label>
+            <label class="radio-label"><MachineRadio gate="modeSelect" name="taskMode" :modelValue="taskMode" :value="TASK_MODE_MDI" @update:modelValue="emit('modeChange', TASK_MODE_MDI)" /> MDI</label>
+            <label class="radio-label"><MachineRadio gate="modeSelect" name="taskMode" :modelValue="taskMode" :value="TASK_MODE_AUTO" @update:modelValue="emit('modeChange', TASK_MODE_AUTO)" /> Auto</label>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.jogContent {
-  display: flex;
-  gap: var(--gap-section);
-}
-.jogContent > * {
-  flex-shrink: 0;
-}
+.jogContent > * { flex-shrink: 0; }
 
 /* ── Left: XY grid + Z + extra axes ── */
 .jogBtns {
-  display: flex;
-  gap: var(--gap-section);
   flex-shrink: 0;
   align-self: stretch;
 }
@@ -428,12 +425,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
   line-height: 1;
 }
 
-/* ── Vertical columns ── */
-.speedCol, .stepCol {
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-tight);
-}
+/* ── Speed + step columns ── */
 .speedCol {
   align-items: center;
   justify-content: center;
@@ -442,26 +434,17 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
   flex: 1;
   min-height: 0;
 }
-.stepCol {
-  justify-content: flex-start;
-}
 
-/* ── Mode column ── */
+/* ── Mode column separator ── */
 .modeColSep {
   align-self: stretch;
   width: 0;
   border-left: 1px solid var(--border-subtle);
 }
-.modeCol {
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-tight);
-  justify-content: flex-start;
-}
 
 /* ── Portrait layout ── */
 @media (orientation: portrait) {
-  .jogContent { flex-direction: column; gap: var(--gap-controls); }
+  .jogContent { flex-direction: column; }
 
   /* XY grid: full width, square via aspect-ratio */
   .jogBtns  { flex-wrap: wrap; align-self: auto; gap: var(--gap-controls); }
@@ -470,14 +453,10 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
   /* Z/extra axis cols appear in a row below the XY grid */
   .axisCol  { height: auto; grid-template-rows: 48px 48px; }
 
-  /* Speed slider: horizontal */
-  .speedCol { flex-direction: row; flex-wrap: wrap; align-items: center; }
-  .vSlider  { writing-mode: horizontal-tb; direction: ltr; flex: 1; min-width: 60px; height: 6px; min-height: unset; }
+  /* Speed sliders: dissolve into speedGroup's shared grid */
+  .speedCol { display: contents; }
 
-  /* Step + Mode: horizontal rows */
-  .stepCol, .modeCol { flex-direction: row; flex-wrap: wrap; align-items: center; }
-
-  /* Hide the vertical divider between step/mode sections */
+  /* Hide the vertical divider between step/mode (modeColSep is inside strip-radio-grid) */
   .modeColSep { display: none; }
 }
 </style>
