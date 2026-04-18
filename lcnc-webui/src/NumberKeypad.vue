@@ -129,6 +129,7 @@ function onKeydown(e: KeyboardEvent) {
           {{ previewText }}&nbsp;
         </div>
       </div>
+      <div class="sep"></div>
 
       <!-- Button grid: 5 columns × 4 rows -->
       <div class="keypad-grid">
@@ -177,7 +178,6 @@ function onKeydown(e: KeyboardEvent) {
 .keypad-display {
   padding: var(--gap-controls) var(--gap-section);
   text-align: right;
-  border-bottom: 1px solid var(--border);
 }
 
 .keypad-expr {
