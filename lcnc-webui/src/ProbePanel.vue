@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, inject, onMounted, onUnmounted, watch, nextTick, type Ref } from "vue";
+import { ref, computed, inject, onMounted, onUnmounted, watch, type Ref } from "vue";
 import MachineBtn from "./MachineBtn.vue";
 import { fmtNum } from "./format";
 import MachineInput from "./MachineInput.vue";
@@ -345,44 +345,113 @@ function viridis(t: number): [number, number, number] {
 }
 
 
+// Persistent surface viewer state — lives for the duration of surfaceViewerActive.
+// Splitting setup (renderer/camera/controls) from rebuild (geometry/mesh/labels)
+// avoids re-creating the WebGL context on every data update, which was blocking
+// the JS main thread for 300ms–1500ms per call on slow hardware (Intel N100).
+let _svRenderer: any = null;
+let _svScene: any = null;
+let _svCamera: any = null;
+let _svControls: any = null;
+let _svLabels: any[] = [];    // Text objects — disposed on rebuild
+let _svItems: any[] = [];     // all scene children added during rebuild
+let _svAnimId = 0;
+let _svRo: ResizeObserver | null = null;
 let _threeCleanup: (() => void) | null = null;
+let _renderTimer: ReturnType<typeof setTimeout> | null = null;
+
+function scheduleRender() {
+  if (_renderTimer) clearTimeout(_renderTimer);
+  _renderTimer = setTimeout(() => {
+    _renderTimer = null;
+    if (surfaceViewerActive.value && props.surfacePoints?.length) {
+      render3DSurface(props.surfacePoints!);
+    }
+  }, 150);
+}
 
 function render3DSurface(pts: [number, number, number][]) {
   if (!surfaceContainer.value || pts.length < 3) return;
 
-  // Dynamic import Three.js (already bundled)
+  // Dynamic import Three.js (already bundled, cached after first load)
   Promise.all([
     import("three"),
     import("three/examples/jsm/controls/OrbitControls.js"),
     import("troika-three-text"),
   ]).then(([THREE, { OrbitControls }, { Text }]) => {
-      // Clean up previous
-      if (_threeCleanup) { _threeCleanup(); _threeCleanup = null; }
-
       const container = surfaceContainer.value!;
-      const w = container.clientWidth || 300;
-      const h = container.clientHeight || 200;
-
       const style = getComputedStyle(document.documentElement);
       const bgColor = style.getPropertyValue('--bg').trim();
       const fgColor = style.getPropertyValue('--fg').trim();
 
-      const scene = new THREE.Scene();
-      scene.background = new THREE.Color(bgColor);
-      const camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 10000);
-      camera.up.set(0, 0, 1); // Z-up before OrbitControls construction
-      const renderer = new THREE.WebGLRenderer({ antialias: true });
-      renderer.setSize(w, h);
-      container.innerHTML = "";
-      container.appendChild(renderer.domElement);
+      // ── One-time setup: create renderer/scene/camera only on first render ─────
+      // On subsequent renders (new data, theme change) we reuse the existing
+      // context — no WebGL re-initialisation, no shader recompilation.
+      if (!_svRenderer) {
+        const w = container.clientWidth || 300;
+        const h = container.clientHeight || 200;
 
-      const controls = new OrbitControls(camera, renderer.domElement);
-      controls.enableDamping = false;
-      controls.rotateSpeed = 0.6;
-      controls.zoomSpeed = 1.2;
-      controls.panSpeed = 0.8;
-      controls.enablePan = true;
-      controls.screenSpacePanning = true;
+        _svScene = new THREE.Scene();
+        _svCamera = new THREE.PerspectiveCamera(45, w / h, 0.1, 10000);
+        _svCamera.up.set(0, 0, 1); // Z-up before OrbitControls construction
+        _svRenderer = new THREE.WebGLRenderer({ antialias: true });
+        _svRenderer.setSize(w, h);
+        container.innerHTML = "";
+        container.appendChild(_svRenderer.domElement);
+
+        _svControls = new OrbitControls(_svCamera, _svRenderer.domElement);
+        _svControls.enableDamping = false;
+        _svControls.rotateSpeed = 0.6;
+        _svControls.zoomSpeed = 1.2;
+        _svControls.panSpeed = 0.8;
+        _svControls.enablePan = true;
+        _svControls.screenSpacePanning = true;
+
+        function animate() {
+          _svAnimId = requestAnimationFrame(animate);
+          for (const lbl of _svLabels) lbl.quaternion.copy(_svCamera!.quaternion);
+          _svControls!.update();
+          _svRenderer!.render(_svScene, _svCamera);
+        }
+        animate();
+
+        _svRo = new ResizeObserver(() => {
+          const cw = container.clientWidth || 1;
+          const ch = container.clientHeight || 1;
+          if (cw === 0 || ch === 0) return;
+          _svCamera!.aspect = cw / ch;
+          _svCamera!.updateProjectionMatrix();
+          _svRenderer!.setSize(cw, ch);
+        });
+        _svRo.observe(container);
+
+        _threeCleanup = () => {
+          cancelAnimationFrame(_svAnimId);
+          _svRo?.disconnect(); _svRo = null;
+          for (const lbl of _svLabels) lbl.dispose();
+          _svLabels = [];
+          _svItems = [];
+          _svRenderer?.dispose(); _svRenderer = null;
+          _svScene = null; _svCamera = null; _svControls = null;
+          container.innerHTML = "";
+        };
+      }
+
+      // ── Rebuild: remove previous scene items, build from current data ─────────
+      // Remove all data-specific objects (mesh, dots, labels, lights, arrows)
+      for (const obj of _svItems) {
+        _svScene.remove(obj);
+        if (obj.geometry) obj.geometry.dispose();
+        if (obj.material) {
+          if (Array.isArray(obj.material)) obj.material.forEach((m: any) => m.dispose());
+          else obj.material.dispose();
+        }
+      }
+      for (const lbl of _svLabels) lbl.dispose();
+      _svLabels = [];
+      _svItems = [];
+
+      _svScene.background = new THREE.Color(bgColor);
 
       // Compute bounds from raw points (for dot placement + fallback)
       let xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity, zMin = Infinity, zMax = -Infinity;
@@ -468,13 +537,13 @@ function render3DSurface(pts: [number, number, number][]) {
       geom.computeVertexNormals();
       const mat = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide });
       const mesh = new THREE.Mesh(geom, mat);
-      scene.add(mesh);
+      _svScene.add(mesh);
+      _svItems.push(mesh);
 
       // Add measured points as red spheres + Z value labels
       const dotGeom = new THREE.SphereGeometry(Math.min(xRange, yRange) * 0.015, 8, 8);
       const dotMat = new THREE.MeshBasicMaterial({ color: 0xff3333 });
       const zScale = Math.min(xRange, yRange) * 0.3;
-      const labels: InstanceType<typeof Text>[] = [];
       const labelFs = Math.max(xRange, yRange) * 0.03;
       for (const p of pts) {
         const sx = p[0] - xMin - xRange / 2;
@@ -482,7 +551,8 @@ function render3DSurface(pts: [number, number, number][]) {
         const sz = (p[2] - zMin) / zRange * zScale;
         const dot = new THREE.Mesh(dotGeom, dotMat);
         dot.position.set(sx, sy, sz);
-        scene.add(dot);
+        _svScene.add(dot);
+        _svItems.push(dot);
 
         const lbl = new Text();
         lbl.text = p[2].toFixed(3);
@@ -495,25 +565,28 @@ function render3DSurface(pts: [number, number, number][]) {
         lbl.depthWrite = false;
         lbl.position.set(sx, sy, sz + zScale * 0.08 + Math.min(xRange, yRange) * 0.025);
         lbl.sync();
-        scene.add(lbl);
-        labels.push(lbl);
+        _svScene.add(lbl);
+        _svLabels.push(lbl);
       }
+      // dotGeom/dotMat are shared across all dots; push sentinel so rebuild disposes them
+      _svItems.push({ geometry: dotGeom, material: dotMat });
 
       // Lighting
-      scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+      const ambient = new THREE.AmbientLight(0xffffff, 0.5);
       const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
       dirLight.position.set(1, 1, 2);
-      scene.add(dirLight);
+      _svScene.add(ambient);
+      _svScene.add(dirLight);
+      _svItems.push(ambient, dirLight);
 
-      // X/Y axis arrows with labels
+      // X/Y/Z axis arrows with labels
       const arrowLen = Math.max(xRange, yRange) * 0.18;
       const arrowOrigin = new THREE.Vector3(-xRange / 2 - arrowLen * 0.3, -yRange / 2 - arrowLen * 0.3, 0);
       const xArrow = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), arrowOrigin, arrowLen, 0xff4444, arrowLen * 0.15, arrowLen * 0.08);
       const yArrow = new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), arrowOrigin, arrowLen, 0x44ff44, arrowLen * 0.15, arrowLen * 0.08);
       const zArrow = new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1), arrowOrigin, arrowLen, 0x4488ff, arrowLen * 0.15, arrowLen * 0.08);
-      scene.add(xArrow);
-      scene.add(yArrow);
-      scene.add(zArrow);
+      _svScene.add(xArrow, yArrow, zArrow);
+      _svItems.push(xArrow, yArrow, zArrow);
 
       const axisFs = arrowLen * 0.35;
       for (const [text, color, offset] of [
@@ -532,50 +605,20 @@ function render3DSurface(pts: [number, number, number][]) {
         lbl.depthWrite = false;
         lbl.position.copy(arrowOrigin).add(offset);
         lbl.sync();
-        scene.add(lbl);
-        labels.push(lbl);
+        _svScene.add(lbl);
+        _svLabels.push(lbl);
       }
 
       // Zoom to fit — compute bounding box of all scene objects
-      const box = new THREE.Box3().setFromObject(scene);
+      const box = new THREE.Box3().setFromObject(_svScene);
       const center = box.getCenter(new THREE.Vector3());
       const sphere = box.getBoundingSphere(new THREE.Sphere());
-      const fov = camera.fov * (Math.PI / 180);
+      const fov = _svCamera.fov * (Math.PI / 180);
       const dist = sphere.radius / Math.sin(fov / 2) * 1.1;
       const dir = new THREE.Vector3(1, -1, 1).normalize();
-      camera.position.copy(center).addScaledVector(dir, dist);
-      controls.target.copy(center);
-      controls.update();
-
-      let animId = 0;
-      function animate() {
-        animId = requestAnimationFrame(animate);
-        for (const lbl of labels) lbl.quaternion.copy(camera.quaternion);
-        controls.update();
-        renderer.render(scene, camera);
-      }
-      animate();
-
-      // Resize observer
-      const ro = new ResizeObserver(() => {
-        const cw = container.clientWidth || 1;
-        const ch = container.clientHeight || 1;
-        if (cw === 0 || ch === 0) return;
-        camera.aspect = cw / ch;
-        camera.updateProjectionMatrix();
-        renderer.setSize(cw, ch);
-      });
-      ro.observe(container);
-
-      _threeCleanup = () => {
-        cancelAnimationFrame(animId);
-        ro.disconnect();
-        for (const lbl of labels) lbl.dispose();
-        renderer.dispose();
-        geom.dispose();
-        mat.dispose();
-        container.innerHTML = "";
-      };
+      _svCamera.position.copy(center).addScaledVector(dir, dist);
+      _svControls.target.copy(center);
+      _svControls.update();
     });
 }
 
@@ -586,28 +629,33 @@ watch(probeView, (view) => {
   }
 });
 
-// Render inline viewer when active (surface tab + points exist)
+// Render inline viewer when active (surface tab + points exist).
+// scheduleRender() debounces all triggers into a single 150ms-delayed render,
+// preventing double WebGL-context creation (tab-switch + compGrid reply) that
+// would block the JS main thread for 600ms–3s and miss client heartbeats.
 watch(surfaceViewerActive, (active) => {
   if (active) {
     emit("getCompGrid");
-    nextTick(() => render3DSurface(props.surfacePoints!));
+    scheduleRender();
   } else {
+    if (_renderTimer) { clearTimeout(_renderTimer); _renderTimer = null; }
     if (_threeCleanup) { _threeCleanup(); _threeCleanup = null; }
   }
 });
 
 // Re-render when comp grid arrives while viewer is active
 watch(() => props.compGrid, () => {
-  if (surfaceViewerActive.value) {
-    nextTick(() => render3DSurface(props.surfacePoints!));
-  }
+  if (surfaceViewerActive.value) scheduleRender();
+});
+
+// Re-render when surface points arrive (first visit or new scan)
+watch(() => props.surfacePoints, (pts) => {
+  if (surfaceViewerActive.value && pts?.length) scheduleRender();
 });
 
 // Re-render when theme changes while viewer is active
 watch(themeMode, () => {
-  if (surfaceViewerActive.value) {
-    nextTick(() => render3DSurface(props.surfacePoints!));
-  }
+  if (surfaceViewerActive.value) scheduleRender();
 });
 
 // Fetch grid when compensation.py increments the version counter (loadMap done)

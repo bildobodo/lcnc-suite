@@ -1778,8 +1778,14 @@ def read_errors_nonblocking() -> list:
 
 async def ws_send_json(ws: WebSocket, obj: Dict[str, Any]):
     # default=str prevents weird types from killing the WS during development
+    # json.dumps runs in executor: prevents large payloads (e.g. comp_grid) from
+    # blocking the event loop and starving _heartbeat_loop → HAL watchdog ESTOP.
     try:
-        await ws.send_text(json.dumps(obj, separators=(",", ":"), default=str))
+        loop = asyncio.get_event_loop()
+        text = await loop.run_in_executor(
+            None, lambda: json.dumps(obj, separators=(",", ":"), default=str)
+        )
+        await ws.send_text(text)
     except RuntimeError:
         pass  # client already disconnected — cleanup handled in finally block
 
