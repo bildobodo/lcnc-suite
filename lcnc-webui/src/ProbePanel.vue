@@ -433,7 +433,7 @@ function render3DSurface(pts: [number, number, number][]) {
         _threeCleanup = () => {
           cancelAnimationFrame(_svAnimId);
           _svRo?.disconnect(); _svRo = null;
-          for (const lbl of _svLabels) lbl.dispose();
+          for (const lbl of _svLabels) { _svScene?.remove(lbl); lbl.dispose(); }
           _svLabels = [];
           _svItems = [];
           _svRenderer?.dispose(); _svRenderer = null;
@@ -452,7 +452,7 @@ function render3DSurface(pts: [number, number, number][]) {
           else obj.material.dispose();
         }
       }
-      for (const lbl of _svLabels) lbl.dispose();
+      for (const lbl of _svLabels) { _svScene.remove(lbl); lbl.dispose(); }
       _svLabels = [];
       _svItems = [];
 
