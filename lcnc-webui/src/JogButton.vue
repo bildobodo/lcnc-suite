@@ -105,9 +105,10 @@ function stopJog(e?: PointerEvent) {
   sendStop();
   unregisterJog(e.pointerId);
 
-  try {
-    (e.currentTarget as HTMLElement)?.releasePointerCapture?.(e.pointerId);
-  } catch {}
+  const el = e.currentTarget as HTMLElement;
+  try { el?.releasePointerCapture?.(e.pointerId); } catch {}
+  // Blur clears sticky CSS :active state on touch browsers that report hover:hover
+  if (e.pointerType !== "mouse") el?.blur?.();
 }
 </script>
 
