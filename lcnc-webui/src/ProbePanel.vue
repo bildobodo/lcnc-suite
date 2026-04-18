@@ -309,6 +309,11 @@ function runSurfaceScan() {
   emit("mdi", "O<surface_scan> CALL");
 }
 
+function refreshSurface() {
+  emit("getProbeResults");
+  emit("getCompGrid");
+}
+
 
 const METHOD_LABELS: Record<number, string> = { 0: "Nearest", 1: "Linear", 2: "Cubic" };
 
@@ -1288,6 +1293,7 @@ function fmtR(key: string): string {
         </div>
         <div class="compPanel stack-controls">
           <MachineBtn type="probe" :disabled="probing" @click="runSurfaceScan">Start Scan</MachineBtn>
+          <MachineBtn type="surfaceRefresh" @click="refreshSurface">Reload Data</MachineBtn>
           <div class="sep"></div>
           <div class="row-tight">
             <span class="compDot" :class="{ on: eoffsetEnabled }"></span>
