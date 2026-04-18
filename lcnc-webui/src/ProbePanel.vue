@@ -23,7 +23,6 @@ const props = defineProps<{
   compMethod: number | null;  // 0=nearest, 1=linear, 2=cubic
   compGridVersion: number;
   surfacePoints: [number, number, number][] | null;
-  surfaceInViewer: boolean;
   compGrid: { x: number[]; y: number[]; zi: number[][]; method: number } | null;
 }>();
 
@@ -35,10 +34,8 @@ const emit = defineEmits<{
   (e: "setProbeVars", vars: Record<string, number>): void;
   (e: "getProbeResults"): void;
   (e: "getCompGrid"): void;
-  (e: "loadSurfaceToViewer"): void;
   (e: "setCompensation", enable: boolean): void;
   (e: "setCompMethod", method: number): void;
-  (e: "clearSurfaceMap"): void;
 }>();
 
 
@@ -1233,31 +1230,39 @@ function fmtR(key: string): string {
         <MachineInput gate="scanParam" type="number" v-model.number="params.scanSafeZ" :step="STEP_DEFAULT" @change="saveParams" />
         <label title="Maximum downward probe distance from current Z. Always positive. Set larger than the deepest surface valley expected. (#3059)">Probe Depth</label>
         <MachineInput gate="scanParam" type="number" v-model.number="params.scanDepthZ" min="0.1" :step="STEP_DEFAULT" @change="saveParams" />
+      </div>
 
-        <div class="sep span"></div>
+      <div class="sep"></div>
 
-        <div class="surfaceActions span">
+      <div class="row-sections">
+        <div ref="surfaceContainer" class="surface3d no-drag-scroll">
+          <div v-if="!surfacePoints?.length" class="emptyState">No scan data</div>
+        </div>
+        <div class="compPanel stack-controls">
           <MachineBtn type="probe" :disabled="probing" @click="runSurfaceScan">Start Scan</MachineBtn>
-          <MachineToggle gate="mapToggle" :modelValue="surfaceInViewer" @update:modelValue="$event ? emit('loadSurfaceToViewer') : emit('clearSurfaceMap')" label="Load Map to 3D Viewer" />
-          <MachineToggle gate="compToggle" :modelValue="eoffsetEnabled" :disabled="probing" @update:modelValue="onCompToggle" label="Enable Comp" />
+          <div class="sep"></div>
+          <div class="row-tight">
+            <span class="compDot" :class="{ on: eoffsetEnabled }"></span>
+            <span>Compensation: <b class="stable-width"><span :class="{ alt: !eoffsetEnabled }">ON</span><span :class="{ alt: eoffsetEnabled }">OFF</span></b></span>
+          </div>
+          <span v-if="eoffsetZ != null" class="compValue mono">Z: {{ eoffsetZ.toFixed(4) }}</span>
+          <div class="sep"></div>
+          <div class="sub">Method</div>
+          <div class="radioGroup">
+            <label v-for="(label, id) in METHOD_LABELS" :key="id">
+              <MachineRadio gate="compMethod" name="compMethod" :value="Number(id)"
+                :modelValue="compMethod ?? 2" @update:modelValue="setMethod(Number(id))" /> {{ label }}
+            </label>
+          </div>
+          <div class="sep"></div>
+          <MachineToggle gate="compToggle" :modelValue="eoffsetEnabled" :disabled="probing"
+            @update:modelValue="onCompToggle" label="Enable Comp" />
         </div>
+      </div>
 
-        <div class="sep span"></div>
+      <div class="sep"></div>
 
-        <div class="compStatus span">
-          <span class="compDot" :class="{ on: eoffsetEnabled }"></span>
-          <span>Compensation: <b class="stable-width"><span :class="{ alt: !eoffsetEnabled }">ON</span><span :class="{ alt: eoffsetEnabled }">OFF</span></b></span>
-          <span v-if="eoffsetZ != null" class="compValue">Z: {{ eoffsetZ.toFixed(4) }}</span>
-          <span class="compMethod radioGroup inline">
-            Method:
-            <label v-for="(label, id) in METHOD_LABELS" :key="id"><MachineRadio gate="compMethod" name="compMethod" :value="Number(id)" :modelValue="compMethod ?? 2" @update:modelValue="setMethod(Number(id))" /> {{ label }}</label>
-          </span>
-        </div>
-
-        <div v-if="surfacePoints?.length" ref="surfaceContainer" class="surface3d span no-drag-scroll"></div>
-
-        <div class="sep span"></div>
-
+      <div class="paramGrid twoCol surfaceGrid">
         <div class="sub span">Parameters</div>
         <label title="Tool number of the probe. Must match the tool loaded in the spindle before any probing operation. (#3014)">Probe Tool #</label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.probeTool" min="1" :step="STEP_DEFAULT" @change="saveParams" />
@@ -1618,46 +1623,32 @@ function fmtR(key: string): string {
 .span { grid-column: 1 / -1; }
 .surfaceGrid > .sep { margin: var(--gap-controls) 0; }
 .surfaceGrid > .sub { margin-top: var(--gap-tight); }
-.surfaceActions {
-  display: flex;
-  gap: var(--gap-tight);
-  flex-wrap: wrap;
-}
-.surfaceActions :deep(.b) {
-  flex: 1;
-}
-.compStatus {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-controls);
-  font-size: var(--fs-base);
-  font-family: var(--font-mono);
+.compPanel {
+  flex-shrink: 0;
+  min-width: 140px;
 }
 .compDot {
   width: 8px;
   height: 8px;
   border-radius: var(--radius-round);
   background: var(--border);
+  flex-shrink: 0;
 }
 .compDot.on {
   background: var(--ok);
   box-shadow: 0 0 6px var(--ok);
 }
 .compValue {
-  margin-left: auto;
   opacity: var(--opacity-muted);
 }
-.compMethod {
-  margin-left: var(--gap-section);
-  display: flex;
-  align-items: center;
-  gap: var(--gap-tight);
-}
 .surface3d {
+  flex: 1;
+  min-width: 0;
   height: 350px;
   border-radius: var(--radius-lg);
   overflow: hidden;
   touch-action: none;
+  position: relative;
 }
 
 </style>

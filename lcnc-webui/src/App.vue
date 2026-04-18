@@ -1246,8 +1246,6 @@ watch(status, (st) => {
 
 /** ---------- Surface map probe results ---------- */
 const surfacePoints = ref<[number, number, number][] | null>(null);
-const surfaceInViewer = ref(false);
-
 /** ---------- Compensation grid (from compensation.py) ---------- */
 const compGrid = ref<{ x: number[]; y: number[]; zi: number[][]; method: number } | null>(null);
 
@@ -1257,10 +1255,6 @@ function requestProbeResults() {
 
 function requestCompGrid() {
   send({ cmd: "get_comp_grid" });
-}
-
-function loadSurfaceToViewer() {
-  surfaceInViewer.value = true;
 }
 
 // Listen for get_probe_results / get_comp_grid replies
@@ -1370,8 +1364,8 @@ watch(viewerGcode, (newGcode) => {
             :spindleSpeed="spindleSpeed"
             :spindleActual="spindleActual"
             :spindleDirection="spindleDirection"
-            :surfacePoints="surfaceInViewer ? surfacePoints : null"
-            :compGrid="surfaceInViewer ? compGrid : null"
+            :surfacePoints="surfacePoints"
+            :compGrid="compGrid"
             :axes="axes"
           />
         </Toolbar>
@@ -1419,7 +1413,6 @@ watch(viewerGcode, (newGcode) => {
               :compMethod="st.comp_method ?? null"
               :compGridVersion="st.comp_grid_version ?? 0"
               :surfacePoints="surfacePoints"
-              :surfaceInViewer="surfaceInViewer"
               :compGrid="compGrid"
               @mdi="fire({ cmd: 'mdi', text: $event }, 'ready')"
               @abort="fire({ cmd: 'abort' }, 'abort')"
@@ -1427,10 +1420,8 @@ watch(viewerGcode, (newGcode) => {
               @setProbeVars="send({ cmd: 'set_probe_vars', vars: $event })"
               @getProbeResults="requestProbeResults"
               @getCompGrid="requestCompGrid"
-              @loadSurfaceToViewer="loadSurfaceToViewer"
               @setCompensation="requestCompToggle"
               @setCompMethod="send({ cmd: 'set_compensation_method', method: $event })"
-              @clearSurfaceMap="surfaceInViewer = false"
             />
           </template>
 

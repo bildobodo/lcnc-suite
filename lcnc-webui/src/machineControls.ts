@@ -138,7 +138,6 @@ export const INPUT_DEFS = {
   // Probe parameters
   probeParam:      { gate: 'always',   mono: true, align: 'right' },
   scanParam:       { gate: 'always',   mono: true, align: 'right' },
-  mapToggle:       { gate: 'always' },
   compToggle:      { gate: 'ready' },
   compMethod:      { gate: 'probe' },
 
