@@ -312,10 +312,6 @@ function runSurfaceScan() {
   emit("mdi", "O<surface_scan> CALL");
 }
 
-function toggleComp() {
-  if (!can.value.ready) return;
-  emit("setCompensation", !props.eoffsetEnabled);
-}
 
 const METHOD_LABELS: Record<number, string> = { 0: "Nearest", 1: "Linear", 2: "Cubic" };
 
@@ -324,9 +320,8 @@ function setMethod(m: number) {
   emit("setCompMethod", m);
 }
 
-function loadSurfaceMap() {
-  emit("loadSurfaceToViewer");
-}
+function onCompToggle(v: boolean | undefined) { if (v !== undefined) emit("setCompensation", v); }
+
 
 // ─── Inline 3D surface viewer ────────────────────────────────────
 const surfaceContainer = ref<HTMLDivElement | null>(null);
@@ -1243,10 +1238,11 @@ function fmtR(key: string): string {
 
         <div class="surfaceActions span">
           <MachineBtn type="probe" :disabled="probing" @click="runSurfaceScan">Start Scan</MachineBtn>
-          <MachineBtn type="probe" v-if="!surfaceInViewer" @click="loadSurfaceMap">Load Map</MachineBtn>
-          <MachineBtn type="probe" v-else @click="emit('clearSurfaceMap')">Unload Map</MachineBtn>
-          <MachineBtn type="compToggle" :active="eoffsetEnabled" :disabled="probing" @click="toggleComp"><span class="stable-width"><span :class="{ alt: eoffsetEnabled }">Enable Comp</span><span :class="{ alt: !eoffsetEnabled }">Disable Comp</span></span></MachineBtn>
+          <MachineToggle gate="mapToggle" :modelValue="surfaceInViewer" @update:modelValue="$event ? emit('loadSurfaceToViewer') : emit('clearSurfaceMap')" label="Load Map to 3D Viewer" />
+          <MachineToggle gate="compToggle" :modelValue="eoffsetEnabled" :disabled="probing" @update:modelValue="onCompToggle" label="Enable Comp" />
         </div>
+
+        <div class="sep span"></div>
 
         <div class="compStatus span">
           <span class="compDot" :class="{ on: eoffsetEnabled }"></span>

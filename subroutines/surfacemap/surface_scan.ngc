@@ -182,6 +182,7 @@ o<surface_scan> sub
   G0 G53 Z0               (Return to machine Z0)
   G0 X#<x0> Y#<y0>        (Return to start position)
 
+  (DEBUG, LCNC_SURFACE_SCAN_DONE)
   (MSG, Surface scan complete. Results saved to probe-results.txt)
 
 o<surface_scan> endsub

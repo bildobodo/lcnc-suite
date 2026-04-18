@@ -31,7 +31,6 @@ export const BUTTON_TYPES = {
   // Probe
   probe:          { gate: 'probe',    variant: 'default', size: 'md' },
   probeReset:     { gate: 'probe',    variant: 'danger',  size: 'md' },
-  compToggle:     { gate: 'ready',    variant: 'default', size: 'md' },
 
   // Tool
   toolLoad:       { gate: 'probe',    variant: 'default', size: 'md' },
@@ -139,6 +138,8 @@ export const INPUT_DEFS = {
   // Probe parameters
   probeParam:      { gate: 'always',   mono: true, align: 'right' },
   scanParam:       { gate: 'always',   mono: true, align: 'right' },
+  mapToggle:       { gate: 'always' },
+  compToggle:      { gate: 'ready' },
   compMethod:      { gate: 'probe' },
 
   // Toolsetter parameters

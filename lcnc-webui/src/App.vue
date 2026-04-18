@@ -1236,11 +1236,14 @@ watch(status, (st) => {
   if (st?.probe_results && typeof st.probe_results === "object") {
     probeResults.value = st.probe_results;
   }
+  if (Array.isArray(st?.surface_points) && st.surface_points.length) {
+    surfacePoints.value = st.surface_points;
+  }
 });
 
 /** ---------- Surface map probe results ---------- */
 const surfacePoints = ref<[number, number, number][] | null>(null);
-const surfaceLoadedToViewer = ref(false);
+const surfaceInViewer = ref(false);
 
 /** ---------- Compensation grid (from compensation.py) ---------- */
 const compGrid = ref<{ x: number[]; y: number[]; zi: number[][]; method: number } | null>(null);
@@ -1254,8 +1257,7 @@ function requestCompGrid() {
 }
 
 function loadSurfaceToViewer() {
-  surfaceLoadedToViewer.value = true;
-  requestProbeResults();
+  surfaceInViewer.value = true;
 }
 
 // Listen for get_probe_results / get_comp_grid replies
@@ -1365,8 +1367,8 @@ watch(viewerGcode, (newGcode) => {
             :spindleSpeed="spindleSpeed"
             :spindleActual="spindleActual"
             :spindleDirection="spindleDirection"
-            :surfacePoints="surfaceLoadedToViewer ? surfacePoints : null"
-            :compGrid="surfaceLoadedToViewer ? compGrid : null"
+            :surfacePoints="surfaceInViewer ? surfacePoints : null"
+            :compGrid="surfaceInViewer ? compGrid : null"
             :axes="axes"
           />
         </Toolbar>
@@ -1414,7 +1416,7 @@ watch(viewerGcode, (newGcode) => {
               :compMethod="st.comp_method ?? null"
               :compGridVersion="st.comp_grid_version ?? 0"
               :surfacePoints="surfacePoints"
-              :surfaceInViewer="surfaceLoadedToViewer"
+              :surfaceInViewer="surfaceInViewer"
               :compGrid="compGrid"
               @mdi="fire({ cmd: 'mdi', text: $event }, 'ready')"
               @abort="fire({ cmd: 'abort' }, 'abort')"
@@ -1425,7 +1427,7 @@ watch(viewerGcode, (newGcode) => {
               @loadSurfaceToViewer="loadSurfaceToViewer"
               @setCompensation="requestCompToggle"
               @setCompMethod="send({ cmd: 'set_compensation_method', method: $event })"
-              @clearSurfaceMap="surfacePoints = null; surfaceLoadedToViewer = false"
+              @clearSurfaceMap="surfaceInViewer = false"
             />
           </template>
 

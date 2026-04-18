@@ -292,6 +292,9 @@ _shared_status_dict: Optional[dict] = None  # cached asdict(_shared_status)
 _shared_errors: list = []
 _shared_probe_updates: dict = {}
 _shared_timing: dict = {}  # poll_ms, errors_ms, parse_ms, poller_ts
+_surface_points_pending: list | None = None  # latest surface scan points; None = never scanned
+_surface_points_version: int = 0             # bumped each time new data is ready
+_surface_initialized: bool = False           # True after startup file-read attempted
 _status_gen = 0  # incremented each poll; clients compare to skip redundant sends
 _status_poller_task: Optional[asyncio.Task] = None
 
@@ -319,6 +322,25 @@ def _log_timing(timing: dict):
 _PID_CHECK_INTERVAL = 5.0  # seconds between pgrep PID checks
 
 
+def _read_probe_results_file() -> list:
+    """Read probe-results.txt and return list of [x, y, z] triples."""
+    ini_path = getattr(STAT, "ini_filename", None)
+    if not ini_path:
+        return []
+    path = os.path.join(os.path.dirname(ini_path), "probe-results.txt")
+    points = []
+    if os.path.isfile(path):
+        with open(path) as f:
+            for line in f:
+                parts = line.strip().split()
+                if len(parts) >= 3:
+                    try:
+                        points.append([float(parts[0]), float(parts[1]), float(parts[2])])
+                    except ValueError:
+                        pass
+    return points
+
+
 async def _status_poller():
     """Single global poller — polls LinuxCNC once per cycle for all clients.
 
@@ -331,6 +353,7 @@ async def _status_poller():
     """
     global _shared_status, _shared_status_dict, _shared_errors, _shared_probe_updates
     global _status_gen, lcnc_connected, STAT, CMD, ERR, _reconnect_fails, _shared_timing
+    global _surface_points_pending, _surface_points_version, _surface_initialized
     loop = asyncio.get_event_loop()
     _poll_fails = 0
     _last_pid_check = 0.0
@@ -385,9 +408,10 @@ async def _status_poller():
             t2 = time.monotonic()
             _poll_fails = 0
 
-            # Parse probe results from DEBUG EVAL messages
+            # Parse probe results from DEBUG EVAL messages; detect surface scan completion
             errs = []
             probe_updates = {}
+            surface_scan_done = False
             OPERATOR_DISPLAY = 13
             for kind, text in raw_errs:
                 if kind == OPERATOR_DISPLAY:
@@ -400,7 +424,25 @@ async def _status_poller():
                             except ValueError:
                                 pass
                             continue
+                    elif "LCNC_SURFACE_SCAN_DONE" in text:
+                        surface_scan_done = True
+                        continue  # consume — don't forward to frontend as an error
                 errs.append((kind, text))
+
+            # Startup init: push existing probe-results.txt to new clients on first connect
+            if not _surface_initialized and getattr(STAT, "ini_filename", None):
+                pts = _read_probe_results_file()
+                if pts:
+                    _surface_points_pending = pts
+                    _surface_points_version += 1
+                _surface_initialized = True
+
+            # Scan completion: re-read file and push updated data to all clients
+            if surface_scan_done:
+                pts = _read_probe_results_file()
+                if pts:
+                    _surface_points_pending = pts
+                    _surface_points_version += 1
 
             # Cache results for per-client loops
             _shared_status = st
@@ -1776,20 +1818,7 @@ def handle_command(msg: Dict[str, Any], armed: bool):
             return {"ok": True, "tools": merged, "current_tool": current_tool}
 
         if cmd == "get_probe_results":
-            ini_path = getattr(STAT, "ini_filename", None)
-            config_dir = os.path.dirname(ini_path) if ini_path else ""
-            path = os.path.join(config_dir, "probe-results.txt")
-            points = []
-            if os.path.isfile(path):
-                with open(path, "r") as f:
-                    for line in f:
-                        parts = line.strip().split()
-                        if len(parts) >= 3:
-                            try:
-                                points.append([float(parts[0]), float(parts[1]), float(parts[2])])
-                            except ValueError:
-                                pass
-            return {"ok": True, "points": points}
+            return {"ok": True, "points": _read_probe_results_file()}
 
         if cmd == "get_comp_grid":
             ini_path = getattr(STAT, "ini_filename", None)
@@ -3443,6 +3472,7 @@ async def ws_endpoint(ws: WebSocket):
         _slp = _machine_s.get("spindleLoadPin", "")
         _spindle_load_pin = _slp if isinstance(_slp, str) and _HAL_PIN_RE.match(_slp) else ""
         _prev_send_ms = 0.0  # send_ms from previous cycle (sent in next message)
+        _last_surface_version = 0  # tracks which _surface_points_version was last sent to this client
         while True:
             try:
                 # Not connected — disarm and send error to this client
@@ -3503,6 +3533,10 @@ async def ws_endpoint(ws: WebSocket):
                 }
                 if _probe_results:
                     status_msg["probe_results"] = _probe_results
+                if _surface_points_version != _last_surface_version:
+                    if _surface_points_pending:
+                        status_msg["surface_points"] = _surface_points_pending
+                    _last_surface_version = _surface_points_version
 
                 # Inject tool_meta on tool_number change or library edit (for 3D rendering)
                 if st.tool_number != _prev_tool_num or _tool_meta_dirty:
