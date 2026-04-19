@@ -21,8 +21,15 @@ done
 
 # ── Read optional config from INI [DISPLAY] section ──
 ini_get() {
-  # Returns value or empty string if not found
-  inivar -ini "$INI_FILE" -sec DISPLAY -var "$1" 2>/dev/null || true
+  # Returns value or empty string if not found.
+  # inivar returns the rest of the line verbatim, so inline "# comment"
+  # text leaks into the value — strip it and trim surrounding whitespace.
+  local v
+  v="$(inivar -ini "$INI_FILE" -sec DISPLAY -var "$1" 2>/dev/null || true)"
+  v="${v%%#*}"
+  v="${v#"${v%%[![:space:]]*}"}"
+  v="${v%"${v##*[![:space:]]}"}"
+  printf '%s' "$v"
 }
 
 if [[ -n "$INI_FILE" ]]; then
