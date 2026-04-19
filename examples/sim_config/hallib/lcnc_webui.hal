@@ -10,18 +10,24 @@ loadusr -Wn compensation python3 ~/lcnc-suite/subroutines/surfacemap/compensatio
 # Web UI safety watchdog
 loadusr -Wn webui-safety ~/lcnc-suite/lcnc-gateway/hal_watchdog.py
 
-# Heartbeat watchdog: trips if gateway stops toggling heartbeat (freeze detection)
-loadrt watchdog num_inputs=1
-addf watchdog.set-timeouts servo-thread
-addf watchdog.process servo-thread
-setp watchdog.timeout-0 0.5
-net webui-connected => watchdog.enable-in
-net webui-heartbeat webui-safety.heartbeat => watchdog.input-0
+# Heartbeat watchdog: trips if gateway stops toggling heartbeat (freeze detection).
+# Uses retriggerable oneshot — each heartbeat edge restarts the 0.5s pulse.
+# Self-healing: when edges resume after a trip, out returns HIGH on the next edge.
+# (The stock `watchdog` comp latches on trip and requires a FALSE→TRUE edge on
+# enable-in to clear, which is fragile across reconnects.)
+loadrt oneshot count=1
+addf oneshot.0 servo-thread
+setp oneshot.0.width 0.5
+setp oneshot.0.retriggerable 1
+setp oneshot.0.rising 1
+setp oneshot.0.falling 1
+net webui-heartbeat webui-safety.heartbeat => oneshot.0.in
 
 # ---- Web UI safety: require armed client to operate ----
-loadrt and2 count=2
+loadrt and2 count=3
 addf and2.0 servo-thread
 addf and2.1 servo-thread
+addf and2.2 servo-thread
 
 # Break the direct estop loopback (adjust if your config uses a different signal)
 unlinkp iocontrol.0.emc-enable-in
@@ -29,12 +35,20 @@ unlinkp iocontrol.0.emc-enable-in
 # Safety chain: machine runs only when ALL conditions are true:
 #   1. User has not pressed e-stop (estop-loop = TRUE)
 #   2. A web client is connected (webui-safety.connected = TRUE)
-#   3. Gateway heartbeat is alive (watchdog.ok-out = TRUE)
+#   3. Gateway heartbeat is alive (oneshot.0.out = TRUE)
+#   4. Trip latch is clear (webui-safety.trip-latch = TRUE) — stays FALSE
+#      after a watchdog trip until operator clicks E-Stop Reset, keeping
+#      LinuxCNC in real ESTOP even after oneshot auto-heals.
 net estop-loop                    => and2.0.in0
 net webui-connected webui-safety.connected => and2.0.in1
 net estop-connected and2.0.out    => and2.1.in0
-net webui-hb-ok watchdog.ok-out => and2.1.in1
-net webui-estop-final and2.1.out  => iocontrol.0.emc-enable-in
+net webui-hb-ok oneshot.0.out   => and2.1.in1
+# Feed the same signal to webui-safety so the independent userspace process
+# can edge-detect FALSE trips even when the gateway itself is frozen.
+net webui-hb-ok                 => webui-safety.hb-ok-in
+net hb-chain-ok and2.1.out        => and2.2.in0
+net webui-trip-latch webui-safety.trip-latch => and2.2.in1
+net webui-estop-final and2.2.out  => iocontrol.0.emc-enable-in
 
 addf time.0 servo-thread
 addf not.0 servo-thread

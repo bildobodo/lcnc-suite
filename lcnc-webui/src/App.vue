@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, provide, reactive, ref, watch } from "vue";
 import { evaluatePermissions, PERMISSIONS_KEY, type Permissions } from "./permissions";
-import { connectWs, connected, status, send, armed, lastReply, viewerGcode, viewerInit, lcncError, latency, networkLatency, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead, type LcncMessage } from "./lcncWs";
+import { connectWs, connected, status, send, armed, lastReply, viewerGcode, viewerInit, lcncError, latency, networkLatency, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead, safetyTrip, acknowledgeSafetyTrip, type LcncMessage } from "./lcncWs";
 import ThreeViewer from "./ThreeViewer.vue";
 import Toolbar from "./Toolbar.vue";
 import TabPanel from "./TabPanel.vue";
@@ -20,7 +20,7 @@ import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineInput from "./MachineInput.vue";
 import { highlightGcode } from "./gcodeHighlight";
-import { fmtElapsed, fmtDuration, fmtDist, fmtSize } from "./format";
+import { fmtElapsed, fmtDuration, fmtDist, fmtSize, fmtTimestamp } from "./format";
 import type { GcodeStats } from "./GcodePanel.vue";
 import { Settings, MessageSquare, PowerOff, Gamepad2, Keyboard, BookOpen, ClipboardCopy, Expand, Shrink } from "lucide-vue-next";
 import GcodeReferenceDialog from "./GcodeReferenceDialog.vue";
@@ -159,7 +159,9 @@ const STATE_COLORS: Record<MachineStateKey, string> = {
   paused: '--state-warn',
   idle: '--state-ok',
 };
-const machineStateColor = computed(() => STATE_COLORS[machineState.value]);
+const machineStateColor = computed(() =>
+  safetyTrip.value ? '--state-danger' : STATE_COLORS[machineState.value],
+);
 
 const STATE_LABELS: Record<MachineStateKey, string> = {
   disconnected: 'DISCONNECTED',
@@ -195,6 +197,7 @@ const machineStateLabel = computed(() => {
 const bannerShowAbort = computed(() => isRunning.value || isPaused.value);
 
 const bannerFlashMode = computed<'none' | 'pulse' | 'flash'>(() => {
+  if (safetyTrip.value) return 'flash';
   const s = machineState.value;
   if (s === 'estop' || s === 'disconnected') return 'flash';
   if (s === 'unhomed' || s === 'toolchange' || s === 'idle') return 'pulse';
@@ -1303,7 +1306,11 @@ watch(viewerGcode, (newGcode) => {
     <div class="statusBanner" :class="{ 'banner-pulse': bannerFlashMode === 'pulse', 'banner-flash': bannerFlashMode === 'flash' }" :style="{ '--state-color': `var(${machineStateColor})` }">
       <div class="bannerContent" @click="messagesDialogOpen = true; markMessagesRead()">
         <Transition name="banner-fade" mode="out-in">
-          <span v-if="bannerMessage && !bannerShowAbort" :key="'msg'" :class="{ bannerError: bannerMessageKind <= 2 }">
+          <span v-if="safetyTrip" :key="'safety'" class="bannerError">
+            SAFETY TRIPPED at <span class="mono">{{ fmtTimestamp(safetyTrip.ts) }}</span>
+            — press E-Stop Reset, then Acknowledge
+          </span>
+          <span v-else-if="bannerMessage && !bannerShowAbort" :key="'msg'" :class="{ bannerError: bannerMessageKind <= 2 }">
             {{ bannerMessage }}
           </span>
           <span v-else :key="machineState">
@@ -1312,6 +1319,7 @@ watch(viewerGcode, (newGcode) => {
         </Transition>
       </div>
       <div class="bannerActions row-controls">
+        <MachineBtn v-if="safetyTrip" type="dialogConfirm" @click="acknowledgeSafetyTrip">Acknowledge</MachineBtn>
         <MachineBtn v-if="bannerShowAbort" type="bannerAbort" @click="send({ cmd: 'abort' })">ABORT</MachineBtn>
         <MachineBtn v-if="machineState === 'unhomed'" type="bannerHome" @click="homeAll">Home All</MachineBtn>
         <MachineBtn v-if="unreadCount > 0" type="bannerAction" @click="messagesDialogOpen = true; markMessagesRead()">

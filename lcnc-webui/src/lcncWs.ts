@@ -15,6 +15,11 @@ export const status = shallowRef<any>(null);
 export const lastReply = ref<any>(null);
 export const lcncError = ref<string | null>(null);
 export const armed = ref(false);        // server-authoritative — driven by gateway messages
+// Sticky safety trip: populated when the gateway includes a `safety_trip`
+// field in a status message, cleared when the operator acknowledges. Survives
+// reload + multi-tab because the gateway re-broadcasts it on every status
+// until acknowledged. While non-null, the server rejects {cmd:"arm",armed:true}.
+export const safetyTrip = ref<{ ts: number; reason: string } | null>(null);
 // Message history is intentionally per-tab (localStorage, not server-synced).
 // Rationale: different tabs/browsers represent different user sessions;
 // federating error/status messages across sessions would cause confusing
@@ -129,9 +134,20 @@ let _nextMsgId = _stored.length > 0 ? Math.max(..._stored.map(m => m.id)) + 1 : 
 
 
 let ws: WebSocket | null = null;
-let _heartbeatInterval: ReturnType<typeof setInterval> | null = null;
+// Heartbeat runs inside a dedicated Worker so its interval isn't throttled
+// when the tab is backgrounded (Firefox/Chrome throttle main-thread
+// setInterval to ~1/min after ~5min hidden; Worker timers are exempt).
+let _hbWorker: Worker | null = null;
 let _heartbeatSentAt = 0;   // used for network latency (pong)
 let _rtSentAt = 0;           // used for round-trip latency (next status)
+
+function _stopHeartbeatWorker() {
+  if (_hbWorker) {
+    try { _hbWorker.postMessage({ cmd: "stop" }); } catch { /* ignore */ }
+    _hbWorker.terminate();
+    _hbWorker = null;
+  }
+}
 
 export function connectWs() {
   // Close previous connection if any (prevents leaks during HMR)
@@ -139,7 +155,7 @@ export function connectWs() {
     ws.onclose = null; // prevent auto-reconnect from the old socket
     ws.close();
   }
-  if (_heartbeatInterval) { clearInterval(_heartbeatInterval); _heartbeatInterval = null; }
+  _stopHeartbeatWorker();
 
   const wsProto = location.protocol === "https:" ? "wss:" : "ws:";
   const wsUrl = `${wsProto}//${location.host}/ws`;
@@ -150,12 +166,14 @@ export function connectWs() {
 
   ws.onopen = () => {
     connected.value = true;
-    _heartbeatInterval = setInterval(() => {
+    _hbWorker = new Worker(new URL("./heartbeatWorker.ts", import.meta.url), { type: "module" });
+    _hbWorker.onmessage = (ev: MessageEvent<{ tick: number }>) => {
       if (ws && ws.readyState === WebSocket.OPEN) {
-        _heartbeatSentAt = _rtSentAt = performance.now();
+        _heartbeatSentAt = _rtSentAt = ev.data.tick;
         ws.send('{"cmd":"heartbeat"}');
       }
-    }, 1000);
+    };
+    _hbWorker.postMessage({ cmd: "start" });
   };
 
   ws.onclose = () => {
@@ -164,7 +182,7 @@ export function connectWs() {
     latency.value = null;
     networkLatency.value = null;
     _heartbeatSentAt = _rtSentAt = 0;
-    if (_heartbeatInterval) { clearInterval(_heartbeatInterval); _heartbeatInterval = null; }
+    _stopHeartbeatWorker();
     setTimeout(() => connectWs(), 2000);
   };
 
@@ -255,6 +273,16 @@ export function connectWs() {
         msg.data.tool_meta = _lastToolMeta.meta;
       }
 
+      // Sync sticky safety-trip state from every status message. Gateway
+      // includes the field while _unacked_trip is set; absence = no trip.
+      // Update synchronously (not via the rAF buffer) so the dialog opens
+      // on the first status after a trip without a frame of delay.
+      if (msg.safety_trip) {
+        safetyTrip.value = { ts: msg.safety_trip.ts, reason: msg.safety_trip.reason };
+      } else if (safetyTrip.value !== null) {
+        safetyTrip.value = null;
+      }
+
       // Buffer status as plain data — flush to reactive ref once per rAF.
       // When messages queue up, only the latest triggers Vue reactivity.
       _pendingStatus = msg;
@@ -306,6 +334,14 @@ export function saveSettings(section: string, data: any) {
   send({ cmd: "save_settings", section, data });
 }
 
+export function acknowledgeSafetyTrip() {
+  // Optimistic clear — gateway will also stop broadcasting safety_trip on the
+  // next status cycle, so status-driven sync backs this up. If the send fails
+  // (WS closed), the local value will repopulate from the next status.
+  safetyTrip.value = null;
+  send({ cmd: "safety_trip_ack" });
+}
+
 export function dismissMessage(id: number) {
   messages.value = messages.value.filter(m => m.id !== id);
   persistMessages(messages.value);
@@ -321,10 +357,21 @@ export function markMessagesRead() {
   unreadCount.value = 0;
 }
 
+// Fire a heartbeat immediately when the tab becomes visible again — avoids
+// waiting up to 1s for the next Worker tick so last_hb is fresh right away.
+if (typeof document !== "undefined") {
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && ws?.readyState === WebSocket.OPEN) {
+      _heartbeatSentAt = _rtSentAt = performance.now();
+      ws.send('{"cmd":"heartbeat"}');
+    }
+  });
+}
+
 // Clean up WebSocket on Vite HMR to prevent ghost clients
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {
     if (ws) { ws.onclose = null; ws.close(); ws = null; }
-    if (_heartbeatInterval) { clearInterval(_heartbeatInterval); _heartbeatInterval = null; }
+    _stopHeartbeatWorker();
   });
 }

@@ -84,9 +84,11 @@ Horizontally scrollable strip with six components (wrapped in `<Gate gate="armed
 
 1. **Disconnect handler** — armed client disconnects → immediate `jog_stop` + `abort`
 2. **Heartbeat watchdog** — client heartbeat timeout (3s) → auto-disarm + abort
-3. **HAL watchdog** — `lcnc_webui.hal` AND gates + watchdog (0.5s timeout) → ESTOP
+3. **HAL watchdog** — retriggerable `oneshot` (0.5s, self-healing) + `trip-latch` (operator-cleared) in a three-stage AND chain → latched ESTOP
 
-HAL heartbeat runs in an independent asyncio task (`_heartbeat_loop`), decoupled from status processing. Two concurrent paths per client: command path (always responsive) and status path (can be slow without affecting safety). Additional: server-authoritative arming, backend `require_armed()`, `fire()` 200ms anti-spam, auto-stop jogs on focus loss. Recovery: clear E-Stop → Machine On.
+HAL heartbeat runs in an independent asyncio task (`_heartbeat_loop`), decoupled from status processing. Two concurrent paths per client: command path (always responsive) and status path (can be slow without affecting safety). Additional: server-authoritative arming, backend `require_armed()`, `fire()` 200ms anti-spam, auto-stop jogs on focus loss.
+
+**Trip latching.** `oneshot.0.out` self-heals when heartbeats resume, but `webui-safety.trip-latch` falls FALSE on every `oneshot.0.out` falling edge and stays FALSE until the operator clicks E-Stop Reset — so brief gateway stalls become real latched ESTOPs instead of silent auto-recovery. Edge detection runs inside `hal_watchdog.py` (independent userspace process, 100 ms select loop), so trips survive gateway freezes. The gateway polls `webui-safety.trip-count` via `webui-monitor`, sets an `_unacked_trip` dict, and broadcasts it as `status_msg.safety_trip` so the frontend shows the safety state in the existing `.statusBanner` (text + Acknowledge button; flash-danger while `safetyTrip` is set). Arm is rejected while `_unacked_trip is not None`. Recovery: E-Stop Reset button sends `{"trip_reset": true}` IPC to `hal_watchdog.py` → `trip-latch` TRUE → 20 ms later `CMD.state(STATE_ESTOP_RESET)` → banner-Acknowledge clears `_unacked_trip` → Arm → Machine On.
 
 Full layer behavior tables, pin semantics, and failure mode coverage in `safety-permissions.md` memory file.
 

@@ -116,7 +116,7 @@ BY USING THIS SOFTWARE, YOU EXPRESSLY ACKNOWLEDGE AND ASSUME ALL RISKS ASSOCIATE
   - Connection-level arming to prevent accidental commands (`require_armed()` gates all motion)
   - Disconnect handler: stops all motion when an armed client disconnects
   - Heartbeat watchdog: client sends 1 s heartbeat; gateway disarms after 3 s timeout
-  - HAL watchdog: `webui-safety` HAL component — `connected` pin in e-stop AND gate, machine enters ESTOP when all clients disconnect or gateway crashes
+  - HAL watchdog: `webui-safety` HAL component + retriggerable `oneshot` monostable — machine enters ESTOP when all clients disconnect, the gateway crashes, or the gateway stalls ≥ 0.5 s. A `trip-latch` pin latches the ESTOP (independent edge counter inside `hal_watchdog.py`, so trips survive gateway freezes) until the operator clicks E-Stop Reset and acknowledges the sticky safety-trip banner
   - E-Stop button forces HAL pin LOW for defense-in-depth alongside software command
 - **Client Tracking**: Connected clients with IP and armed state, visible to all sessions
 - **Auto-Reconnect**: Detects LinuxCNC restart and reconnects without gateway restart
@@ -644,16 +644,17 @@ The gateway implements three layers of safety to handle connection loss during m
 
 #### HAL E-Stop Chain
 
-The HAL config inserts two AND gates and a heartbeat watchdog into the e-stop loop:
+The HAL config inserts three AND gates, a retriggerable `oneshot` monostable, and a trip-latch pin into the e-stop loop:
 
 ```
 user-enable-out ──┐
                   AND2.0 ──┐
-connected ────────┘        AND2.1 ──► emc-enable-in
-watchdog.ok ───────────────┘
+connected ────────┘        AND2.1 ──┐
+oneshot.0.out ─────────────┘        AND2.2 ──► emc-enable-in
+trip-latch ─────────────────────────┘
 ```
 
-Machine stays enabled only when ALL THREE: user hasn't pressed e-stop, at least one web client is connected, AND the gateway heartbeat is alive (watchdog hasn't tripped).
+Machine stays enabled only when ALL FOUR: user hasn't pressed e-stop, at least one web client is connected, the gateway heartbeat is alive (`oneshot.0.out` TRUE), AND no watchdog trip is latched (`trip-latch` TRUE). `oneshot` is retriggerable — each heartbeat edge restarts its 0.5 s pulse, so it self-heals when edges resume; `trip-latch` is the operator-cleared latch that turns a transient stall into a real ESTOP.
 
 #### Layer Behavior
 
@@ -666,75 +667,91 @@ Machine stays enabled only when ALL THREE: user hasn't pressed e-stop, at least 
 | Page refresh (reconnect within 3s) | grace cancelled on reconnect | TRUE | **ON** |
 | Heartbeat timeout (armed), other clients exist | force-disarm + `abort()` + `jog_stop()` | TRUE | ON |
 | Heartbeat timeout (armed), last client | force-disarm + `abort()` + `jog_stop()` → grace starts | TRUE (grace) | ON |
-| Gateway crashes | watchdog detects socket close → resets all pins | FALSE | **ESTOP** |
-| Gateway freezes | heartbeat stops → HAL watchdog trips after 0.5s | TRUE | **ESTOP** |
+| Gateway crashes | `hal_watchdog.py` detects socket close → resets all pins | FALSE | **ESTOP** |
+| Gateway freezes or stalls (≥0.5 s) | heartbeat stops → `oneshot.0.out` drops FALSE → `trip-latch` drops FALSE (independent edge counter in `hal_watchdog.py`) | TRUE | **ESTOP (latched)** |
 | User presses E-Stop | `CMD.state(ESTOP)` + forces `connected: false` | FALSE (transient) | **ESTOP** |
 
-Recovery: clear E-Stop → Machine On. Motion commands still require `require_armed()`.
+Recovery: clear E-Stop → (`estop_reset` also sends `trip_reset` IPC, releasing `trip-latch`) → Acknowledge the safety-trip banner → Arm → Machine On. Motion commands still require `require_armed()`. The banner persists across reloads and multiple clients — cleared server-side by `safety_trip_ack`.
 
 **Layer 1 — Disconnect Handler**: When an armed WebSocket client disconnects (browser closed, network drop), the gateway immediately sends `jog_stop` for all axes and `abort` to halt any running program.
 
 **Layer 2 — Heartbeat Watchdog**: The client sends `{"cmd": "heartbeat"}` every 1 second. If the gateway doesn't receive a heartbeat from an armed client within 3 seconds (e.g., browser freeze, WiFi stall), it stops all motion and disarms the connection. The client receives an error message: `"Heartbeat timeout — disarmed for safety"`.
 
-**Layer 3 — HAL Watchdog**: A standalone `hal_watchdog.py` component is loaded by LinuxCNC via the HAL config (not spawned by the gateway). It creates HAL pins and listens on a Unix socket (`/tmp/webui-safety.sock`). The gateway connects to this socket as a client and sends pin updates. A LinuxCNC `watchdog` component monitors the heartbeat pin — if the gateway freezes (socket stays open but stops sending), the watchdog trips after 0.5s.
+**Layer 3 — HAL Watchdog**: A standalone `hal_watchdog.py` component is loaded by LinuxCNC via the HAL config (not spawned by the gateway). It creates HAL pins and listens on a Unix socket (`/tmp/webui-safety.sock`). The gateway connects to this socket as a client and sends pin updates. A retriggerable `oneshot` comp monitors the heartbeat pin — each heartbeat edge restarts its 0.5 s pulse, so it self-heals when edges resume (unlike the stock `watchdog` component, which latches on trip and requires a FALSE→TRUE edge on `enable-in` to clear — fragile across gateway reconnects).
+
+`hal_watchdog.py` also runs an independent 100 ms polling loop that edge-detects `oneshot.0.out` falling edges via its own `hb-ok-in` pin. Because it runs in a separate userspace process, it captures trip edges even when the gateway itself is frozen during the FALSE window. On every falling edge it increments `trip-count` and drops `trip-latch` FALSE — the latter is gated into the safety chain so LinuxCNC stays in ESTOP even after `oneshot.0.out` auto-heals. `trip-latch` is released only when the operator clicks E-Stop Reset (the gateway's `estop_reset` handler sends a `{"trip_reset": true}` IPC message to `hal_watchdog.py` before running `CMD.state(STATE_ESTOP_RESET)`).
 
 | Pin | Type | Description |
 |---|---|---|
-| `webui-safety.heartbeat` | BIT OUT | Toggles at 30Hz; monitored by `watchdog` component (0.5s timeout) |
-| `webui-safety.connected` | BIT OUT | TRUE when any web client is connected (or during 3s grace period) |
+| `webui-safety.heartbeat` | BIT OUT | Toggles at 30 Hz; drives `oneshot.0.in` (0.5 s retriggerable pulse) |
+| `webui-safety.connected` | BIT OUT | TRUE when any web client is connected (or during 3 s grace period) |
+| `webui-safety.hb-ok-in` | BIT IN | Fed from `oneshot.0.out`; falling edge detected inside `hal_watchdog.py` |
+| `webui-safety.trip-count` | U32 OUT | Monotonic count of `oneshot.0.out` FALSE edges; gateway polls via `webui-monitor` |
+| `webui-safety.trip-latch` | BIT OUT | Starts TRUE; falls FALSE on watchdog trip; released by `trip_reset` IPC (operator E-Stop Reset) |
 | `webui-safety.compensation-enable` | BIT OUT | Enables surface compensation Z offsets |
 | `webui-safety.compensation-method` | U32 OUT | Interpolation method (0=nearest, 1=linear, 2=cubic) |
 | `webui-safety.tool-changed` | BIT OUT | Tool change confirmation from web UI |
-| `watchdog.ok-out` | BIT OUT | TRUE while heartbeat toggles within timeout; FALSE on gateway freeze |
+| `oneshot.0.out` | BIT OUT | TRUE while heartbeat edges keep retriggering the 0.5 s pulse; FALSE on stall |
 
-Because the watchdog is owned by LinuxCNC, the HAL pins survive gateway restarts. If the gateway crashes or disconnects, the watchdog immediately forces all pins LOW, triggering e-stop through the safety chain. If the gateway freezes, the heartbeat watchdog trips independently.
+Because `hal_watchdog.py` and `oneshot` are owned by LinuxCNC, the HAL pins (and `trip-latch` state) survive gateway restarts. If the gateway crashes or disconnects, `hal_watchdog.py` forces `connected`/`heartbeat` pins LOW, triggering ESTOP through the safety chain. If the gateway stalls, `oneshot.0.out` drops FALSE and the edge counter latches `trip-latch` FALSE independently.
 
 #### Setting Up the HAL Watchdog
 
 Add the following to a **HALFILE** in your LinuxCNC config (runs after the core HAL config that creates the e-stop loopback):
 
 ```hal
-# 1. Load the watchdog component (owned by LinuxCNC)
+# 1. Load the hal_watchdog userspace component (owned by LinuxCNC)
 loadusr -Wn webui-safety /path/to/lcnc-suite/lcnc-gateway/hal_watchdog.py
 
-# 2. Heartbeat watchdog: trips if gateway stops toggling (freeze detection)
-loadrt watchdog num_inputs=1
-addf watchdog.set-timeouts servo-thread
-addf watchdog.process servo-thread
-setp watchdog.timeout-0 0.5
-net webui-connected => watchdog.enable-in        # disable watchdog when no client connected; rising edge resets ok-out after a trip
-net webui-heartbeat webui-safety.heartbeat => watchdog.input-0
+# 2. Heartbeat monostable: trips if gateway stops toggling heartbeat (freeze detection).
+#    Retriggerable — each edge restarts the 0.5s pulse. Self-healing: when edges
+#    resume after a stall, out returns HIGH on the next edge.
+loadrt oneshot count=1
+addf oneshot.0 servo-thread
+setp oneshot.0.width 0.5
+setp oneshot.0.retriggerable 1
+setp oneshot.0.rising 1
+setp oneshot.0.falling 1
+net webui-heartbeat webui-safety.heartbeat => oneshot.0.in
 
-# 3. Create two AND gates for the e-stop chain
-loadrt and2 count=2
+# 3. Create three AND gates for the e-stop chain (oneshot self-heals, trip-latch latches)
+loadrt and2 count=3
 addf and2.0 servo-thread
 addf and2.1 servo-thread
+addf and2.2 servo-thread
 
 # 4. Break the existing e-stop loopback (adapt to your config)
 #    For sim configs this is typically:
 #      net estop-loop iocontrol.0.user-enable-out iocontrol.0.emc-enable-in
 unlinkp iocontrol.0.emc-enable-in
 
-# 5. Wire the safety chain: ALL conditions must be TRUE
+# 5. Wire the safety chain: ALL FOUR conditions must be TRUE
 #    - AND2.0: e-stop clear + client connected
-#    - AND2.1: AND2.0 output + heartbeat alive
-net estop-loop                    => and2.0.in0
-net webui-connected webui-safety.connected => and2.0.in1
-net estop-connected and2.0.out    => and2.1.in0
-net webui-hb-ok watchdog.ok-out   => and2.1.in1
-net webui-estop-final and2.1.out  => iocontrol.0.emc-enable-in
+#    - AND2.1: AND2.0 output + heartbeat alive (oneshot.0.out)
+#    - AND2.2: AND2.1 output + trip-latch (operator-cleared latch)
+net estop-loop                              => and2.0.in0
+net webui-connected webui-safety.connected  => and2.0.in1
+net estop-connected and2.0.out              => and2.1.in0
+net webui-hb-ok oneshot.0.out               => and2.1.in1
+# Feed oneshot.0.out into webui-safety so the independent userspace process
+# can edge-detect FALSE trips even when the gateway itself is frozen.
+net webui-hb-ok                             => webui-safety.hb-ok-in
+net hb-chain-ok and2.1.out                  => and2.2.in0
+net webui-trip-latch webui-safety.trip-latch => and2.2.in1
+net webui-estop-final and2.2.out            => iocontrol.0.emc-enable-in
 ```
 
-**Notes for non-sim configs**: The `unlinkp` + AND2 approach above works for simple e-stop loopbacks (sim configs). On real machines, the e-stop chain is typically already a multi-input gate (e.g., `lut5` or `logic` component with personality bits). The preferred approach is to **expand the existing gate** by adding `webui-safety.connected` and `watchdog.ok-out` as additional inputs — no `unlinkp`, no extra AND2 components. For example, if your e-stop uses a `logic` component with personality `0x106` (6 inputs), change it to `0x108` (8 inputs) and wire the two webui conditions as inputs 6 and 7.
+**Notes for non-sim configs**: The `unlinkp` + AND2 approach above works for simple e-stop loopbacks (sim configs). On real machines, the e-stop chain is typically already a multi-input gate (e.g., `lut5` or `logic` component with personality bits). The preferred approach is to **expand the existing gate** by adding `webui-safety.connected`, `oneshot.0.out`, and `webui-safety.trip-latch` as additional inputs — no `unlinkp`, no extra AND2 components. For example, if your e-stop uses a `logic` component with personality `0x106` (6 inputs), change it to `0x109` (9 inputs) and wire the three webui conditions as inputs 6, 7, and 8.
 
-**Startup order does not matter**: The gateway and LinuxCNC can start in any order. The gateway retries the watchdog socket connection automatically, and the watchdog defaults both pins to FALSE until the gateway connects and reports an armed client.
+**Startup order does not matter**: The gateway and LinuxCNC can start in any order. The gateway retries the webui-safety socket connection automatically. `trip-latch` defaults TRUE at component creation, `connected`/`heartbeat` default FALSE until the gateway connects and reports an armed client. `hal_watchdog.py` initializes its edge detector to skip the first read so the initial FALSE state of `oneshot.0.out` (before the first heartbeat) does not register as a phantom trip.
 
 **Monitoring**: Use `halcmd` to inspect the safety pins at runtime:
 ```bash
 halcmd show pin webui-safety
-halcmd show pin watchdog
+halcmd show pin oneshot
 halcmd show sig webui-connected
 halcmd show sig webui-hb-ok
+halcmd show sig webui-trip-latch
 halcmd show sig webui-estop-final
 ```
 

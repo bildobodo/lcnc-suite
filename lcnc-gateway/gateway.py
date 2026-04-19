@@ -166,6 +166,8 @@ _HAL_MONITOR_PINS = [
     ("compensation.method",          "comp-method",       hal.HAL_U32),
     ("compensation.grid-version",    "comp-grid-ver",     hal.HAL_U32),
     ("motion.probe-input",           "probe-input",       hal.HAL_BIT),
+    ("oneshot.0.out",                "webui-hb-ok",       hal.HAL_BIT),
+    ("webui-safety.trip-count",      "safety-trip-count", hal.HAL_U32),
 ]
 
 
@@ -352,6 +354,14 @@ _comp_grid_pending: dict | None = None       # latest parsed probe-results-grid.
 _comp_grid_version: int = 0                  # bumped each time new grid is ready
 _comp_grid_initialized: bool = False         # True after startup file-read attempted
 _last_comp_hal_ver: int | None = None        # last seen compensation.grid-version HAL value
+
+# Safety-trip sticky notification: populated when _status_poller() detects a
+# TRUE→FALSE edge on oneshot.0.out (HAL heartbeat watchdog). Broadcast to all
+# clients in every status message until a client sends {cmd:"safety_trip_ack"}.
+# Lives server-side (not per-client) so reload / multi-tab all see the same trip.
+_unacked_trip: Optional[dict] = None  # {"ts": unix_ms, "reason": str}
+_last_trip_count: Optional[int] = None  # webui-safety.trip-count at last poll
+
 _status_gen = 0  # incremented each poll; clients compare to skip redundant sends
 _status_poller_task: Optional[asyncio.Task] = None
 # Broadcast event replaced on every poll cycle. Per-client loops snapshot the
@@ -555,6 +565,25 @@ async def _status_poller():
                     _comp_grid_pending = grid
                     _comp_grid_version += 1
                 _last_comp_hal_ver = st.comp_grid_version
+
+            # Safety-trip detection via webui-safety.trip-count. The counter is
+            # incremented by the independent hal_watchdog.py process on every
+            # oneshot.0.out TRUE→FALSE edge. Reading it here survives gateway
+            # stalls: even if the poller was frozen during the FALSE window,
+            # the counter records the trip for us to observe on resume.
+            global _last_trip_count, _unacked_trip
+            trip_count = _hal_fast("safety-trip-count", None)
+            if trip_count is not None:
+                if _last_trip_count is None:
+                    _last_trip_count = trip_count  # sync on first poll
+                elif trip_count > _last_trip_count:
+                    if _unacked_trip is None:
+                        _unacked_trip = {
+                            "ts": int(time.time() * 1000),
+                            "reason": "hal_heartbeat_timeout",
+                        }
+                        print(f"[SAFETY] HAL heartbeat watchdog tripped at {_unacked_trip['ts']} (trip-count {trip_count})", flush=True)
+                    _last_trip_count = trip_count
 
             # Cache results for per-client loops
             _shared_status = st
@@ -2067,6 +2096,12 @@ def handle_command(msg: Dict[str, Any], armed: bool):
 
         if cmd == "estop_reset":
             require_armed(armed)
+            # Release hal_watchdog's trip-latch first so the safety chain
+            # can come back up when LinuxCNC transitions out of ESTOP.
+            # 20ms sleep ≈ 2× hal_watchdog select slice, enough for the
+            # pin write to land before STATE_ESTOP_RESET is evaluated.
+            _hal_send({"trip_reset": True})
+            time.sleep(0.02)
             CMD.state(linuxcnc.STATE_ESTOP_RESET)
             _estop_hold = False
             _hal_send({"connected": True})
@@ -3590,7 +3625,7 @@ async def ws_endpoint(ws: WebSocket):
     await ws.accept()
     armed = False  # connection-local arming
 
-    global _next_client_id, _estop_hold
+    global _next_client_id, _estop_hold, _unacked_trip
     client_id = _next_client_id
     _next_client_id += 1
     client_ip = ws.client.host if ws.client else "unknown"
@@ -3768,6 +3803,8 @@ async def ws_endpoint(ws: WebSocket):
                     "clients": _shared_clients_list,
                     "armed": armed,
                 }
+                if _unacked_trip is not None:
+                    status_msg["safety_trip"] = _unacked_trip
                 if _probe_results:
                     status_msg["probe_results"] = _probe_results
                 if _surface_points_version != _last_surface_version:
@@ -3992,11 +4029,27 @@ async def ws_endpoint(ws: WebSocket):
                 continue
 
             if msg.get("cmd") == "arm":
-                armed = bool(msg.get("armed", False))
+                want_armed = bool(msg.get("armed", False))
+                # Re-arm gate: operator must acknowledge a sticky safety trip
+                # before the machine can come back up. Disarming is always
+                # allowed.
+                if want_armed and _unacked_trip is not None:
+                    await ws_send_json(ws, {
+                        "type": "reply",
+                        "ok": False,
+                        "error": "Safety trip not acknowledged",
+                    })
+                    continue
+                armed = want_armed
                 if client_id in _clients:
                     _clients[client_id]["armed"] = armed
                     _clients[client_id]["last_hb"] = time.time()  # reset on arm change
                 await ws_send_json(ws, {"type": "reply", "ok": True, "armed": armed})
+                continue
+
+            if msg.get("cmd") == "safety_trip_ack":
+                _unacked_trip = None
+                await ws_send_json(ws, {"type": "reply", "ok": True})
                 continue
 
             if msg.get("cmd") == "get_settings":

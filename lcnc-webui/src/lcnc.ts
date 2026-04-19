@@ -103,4 +103,6 @@ export type WsCommand =
   // Settings
   | { cmd: "save_settings"; section: string; data: any }
   // Timing
-  | { cmd: "timing_log"; enable: boolean };
+  | { cmd: "timing_log"; enable: boolean }
+  // Safety trip acknowledgment (clears sticky trip, re-allows arming)
+  | { cmd: "safety_trip_ack" };
