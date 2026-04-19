@@ -91,10 +91,19 @@ GW_LOG="$LOG_DIR/gateway_$(ts).log"
     RELOAD_FLAG="--reload"
   fi
 
+  # Experiment 3: explicit loop selection so uvicorn doesn't silently auto-pick
+  # uvloop (installed in the venv) — keeps A/B measurements clean.
+  if [[ "${WEBUI_UVLOOP:-}" == "1" ]]; then
+    LOOP_FLAG="--loop uvloop"
+  else
+    LOOP_FLAG="--loop asyncio"
+  fi
+
   exec python3 -m uvicorn gateway:app \
     --host "$GATEWAY_HOST" \
     --port "$GATEWAY_PORT" \
-    $RELOAD_FLAG
+    $RELOAD_FLAG \
+    $LOOP_FLAG
 ) >"$GW_LOG" 2>&1 &
 
 GW_PID=$!

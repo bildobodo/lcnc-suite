@@ -33,6 +33,7 @@ if [[ -n "$INI_FILE" ]]; then
   CAM_SOURCE="${LCNC_CAMERA_SOURCE:-$(ini_get CAMERA_SOURCE)}"
   CAM_RES="${LCNC_CAMERA_RESOLUTION:-$(ini_get CAMERA_RESOLUTION)}"
   CAM_FPS="${LCNC_CAMERA_FPS:-$(ini_get CAMERA_FPS)}"
+  UVLOOP_ON="${WEBUI_UVLOOP:-$(ini_get WEBUI_UVLOOP)}"
 else
   HOST="${LCNC_WEBUI_HOST:-}"
   PORT="${LCNC_WEBUI_PORT:-}"
@@ -41,6 +42,7 @@ else
   CAM_SOURCE="${LCNC_CAMERA_SOURCE:-}"
   CAM_RES="${LCNC_CAMERA_RESOLUTION:-}"
   CAM_FPS="${LCNC_CAMERA_FPS:-}"
+  UVLOOP_ON="${WEBUI_UVLOOP:-}"
 fi
 
 # Apply defaults
@@ -59,6 +61,9 @@ VITE_PORT="5173"
 [[ -n "$CAM_RES" ]] && export LCNC_CAMERA_RESOLUTION="$CAM_RES"
 [[ -n "$CAM_FPS" ]] && export LCNC_CAMERA_FPS="$CAM_FPS"
 
+# Perf experiment flags (all optional — unset = default OFF)
+[[ -n "$UVLOOP_ON"     ]] && export WEBUI_UVLOOP="$UVLOOP_ON"
+
 # ── Ensure NVM Node is on PATH (LinuxCNC may launch with minimal PATH) ──
 if [[ -s "$HOME/.nvm/nvm.sh" ]]; then
   source "$HOME/.nvm/nvm.sh"
@@ -66,6 +71,16 @@ fi
 
 # ── Activate Python venv ──
 source "$GATEWAY_DIR/.venv/bin/activate"
+
+# ── uvicorn loop selection (Experiment 3: uvloop opt-in) ──
+# Force --loop asyncio unless WEBUI_UVLOOP=1, so A/B comparisons aren't
+# muddied by uvicorn auto-detecting uvloop on hosts that happen to have it
+# installed. When the flag is on, uvloop is explicitly selected.
+if [[ "${UVLOOP_ON:-}" == "1" ]]; then
+  UVICORN_LOOP=(--loop uvloop)
+else
+  UVICORN_LOOP=(--loop asyncio)
+fi
 
 # ── Dev mode: Vite hot-reload + gateway ──
 if [[ "$DEV" == "1" ]]; then
@@ -90,7 +105,7 @@ if [[ "$DEV" == "1" ]]; then
   fi
 
   # Run gateway in foreground (no DIST_DIR — Vite serves frontend)
-  python3 -m uvicorn gateway:app --host "$HOST" --port "$PORT" --app-dir "$GATEWAY_DIR"
+  python3 -m uvicorn gateway:app --host "$HOST" --port "$PORT" --app-dir "$GATEWAY_DIR" "${UVICORN_LOOP[@]}"
   exit $?
 fi
 
@@ -110,4 +125,4 @@ fi
 echo "lcnc-suite: serving on http://$HOST:$PORT"
 
 # exec replaces shell — signals go directly to uvicorn for clean shutdown
-exec python3 -m uvicorn gateway:app --host "$HOST" --port "$PORT" --app-dir "$GATEWAY_DIR"
+exec python3 -m uvicorn gateway:app --host "$HOST" --port "$PORT" --app-dir "$GATEWAY_DIR" "${UVICORN_LOOP[@]}"
