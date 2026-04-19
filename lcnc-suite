@@ -34,6 +34,8 @@ if [[ -n "$INI_FILE" ]]; then
   CAM_RES="${LCNC_CAMERA_RESOLUTION:-$(ini_get CAMERA_RESOLUTION)}"
   CAM_FPS="${LCNC_CAMERA_FPS:-$(ini_get CAMERA_FPS)}"
   UVLOOP_ON="${WEBUI_UVLOOP:-$(ini_get WEBUI_UVLOOP)}"
+  ADAPTIVE_POLL="${WEBUI_ADAPTIVE_POLL:-$(ini_get WEBUI_ADAPTIVE_POLL)}"
+  IDLE_POLL_HZ="${WEBUI_IDLE_POLL_HZ:-$(ini_get WEBUI_IDLE_POLL_HZ)}"
 else
   HOST="${LCNC_WEBUI_HOST:-}"
   PORT="${LCNC_WEBUI_PORT:-}"
@@ -43,6 +45,8 @@ else
   CAM_RES="${LCNC_CAMERA_RESOLUTION:-}"
   CAM_FPS="${LCNC_CAMERA_FPS:-}"
   UVLOOP_ON="${WEBUI_UVLOOP:-}"
+  ADAPTIVE_POLL="${WEBUI_ADAPTIVE_POLL:-}"
+  IDLE_POLL_HZ="${WEBUI_IDLE_POLL_HZ:-}"
 fi
 
 # Apply defaults
@@ -63,6 +67,8 @@ VITE_PORT="5173"
 
 # Perf experiment flags (all optional — unset = default OFF)
 [[ -n "$UVLOOP_ON"     ]] && export WEBUI_UVLOOP="$UVLOOP_ON"
+[[ -n "$ADAPTIVE_POLL" ]] && export WEBUI_ADAPTIVE_POLL="$ADAPTIVE_POLL"
+[[ -n "$IDLE_POLL_HZ"  ]] && export WEBUI_IDLE_POLL_HZ="$IDLE_POLL_HZ"
 
 # ── Ensure NVM Node is on PATH (LinuxCNC may launch with minimal PATH) ──
 if [[ -s "$HOME/.nvm/nvm.sh" ]]; then

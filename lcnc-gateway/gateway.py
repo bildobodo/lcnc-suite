@@ -27,6 +27,14 @@ POLL_HZ = 30  # status update rate
 BASE_DIR = Path(__file__).resolve().parent
 MACHINE_DIR = BASE_DIR / "machine"
 
+# ---- Perf experiment flags (INI-sourced via lcnc-suite launcher) ----
+# All flags default OFF. Each is an independent opt-in for A/B measurement.
+_ADAPTIVE_POLL_ENABLED = os.environ.get("WEBUI_ADAPTIVE_POLL") == "1"
+try:
+    _IDLE_POLL_HZ = max(1, int(os.environ.get("WEBUI_IDLE_POLL_HZ") or "5"))
+except ValueError:
+    _IDLE_POLL_HZ = 5
+
 # ---- LinuxCNC handles (nullable for auto-reconnect) ----
 STAT: Optional[linuxcnc.stat] = None
 CMD: Optional[linuxcnc.command] = None
@@ -403,6 +411,7 @@ async def _status_poller():
     _poll_fails = 0
     _last_pid_check = 0.0
     _cycle_start = time.monotonic()
+    _was_active = True  # Experiment 4: track active/idle edge for instant wake-up
     while True:
         try:
             _cycle_start = time.monotonic()
@@ -552,7 +561,30 @@ async def _status_poller():
 
         # Adaptive sleep: subtract time already spent polling this cycle
         elapsed = time.monotonic() - _cycle_start
-        await asyncio.sleep(max(0, (1.0 / POLL_HZ) - elapsed))
+
+        # Experiment 4: adaptive poll rate — poll at IDLE_POLL_HZ when the
+        # machine is idle (interp idle, not moving, no motion mode); full
+        # POLL_HZ otherwise. Instant wake-up on idle→active transition keeps
+        # first-motion latency at most one poll cycle, not one idle cycle.
+        if _ADAPTIVE_POLL_ENABLED and _shared_status is not None:
+            st = _shared_status
+            _is_active = (
+                (st.interp_state is not None and st.interp_state != linuxcnc.INTERP_IDLE)
+                or (st.task_mode in (linuxcnc.MODE_AUTO, linuxcnc.MODE_MDI))
+                or (st.current_vel is not None and abs(st.current_vel) > 0.001)
+                or (st.inpos is False)
+                or (st.tool_change_requested is True)
+            )
+            if _is_active and not _was_active:
+                # idle → active: skip the sleep, tick immediately
+                _was_active = True
+                continue
+            _was_active = _is_active
+            target_hz = POLL_HZ if _is_active else _IDLE_POLL_HZ
+        else:
+            target_hz = POLL_HZ
+
+        await asyncio.sleep(max(0, (1.0 / target_hz) - elapsed))
 
 
 def _start_status_poller():
