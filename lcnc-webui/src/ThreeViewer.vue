@@ -251,6 +251,7 @@ let feedLineMap: Map<number, { start: number; end: number }> = new Map();
 // Pending layer visibility: stores calls made before scene objects exist
 let pendingLayers: Map<Layer, boolean> | null = new Map();
 let toolpathVisible = true;
+let surfaceVisible = true;
 const toolpathOverflow = ref(false);
 // Toolpath bounding box in work coordinates (set by applyGcode, used by updateOverflowCheck)
 let toolpathBBox: { min: [number, number, number]; max: [number, number, number] } | null = null;
@@ -478,6 +479,7 @@ function setLayerVisible(layer: Layer, on: boolean) {
       hudVisible.value = on;
       break;
     case "surface":
+      surfaceVisible = on;
       if (surfaceGroup) surfaceGroup.visible = on;
       break;
   }
@@ -1748,10 +1750,7 @@ function buildSurfaceLayer(pts: [number, number, number][]) {
   // Add to rotated sub-group (same parent as workpiece)
   workRotGroup!.add(surfaceGroup);
 
-  // Respect current layer visibility
-  if (pendingLayers?.has("surface")) {
-    surfaceGroup.visible = pendingLayers.get("surface")!;
-  }
+  surfaceGroup.visible = surfaceVisible;
 }
 
 watch(() => props.surfacePoints, (pts) => {
