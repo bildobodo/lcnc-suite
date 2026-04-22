@@ -108,6 +108,11 @@ else
   UVICORN_LOOP=(--loop asyncio)
 fi
 
+# Force colored output even though stdout is piped through tee above —
+# uvicorn/Click auto-disable ANSI codes on non-TTY, which swallows the
+# INFO/URL highlighting in the launching terminal.
+UVICORN_COLOR=(--use-colors)
+
 # ── Dev mode: Vite hot-reload + gateway ──
 if [[ "$DEV" == "1" ]]; then
   echo "lcnc-suite: DEV mode — Vite on :$VITE_PORT, gateway on :$PORT"
@@ -121,8 +126,10 @@ if [[ "$DEV" == "1" ]]; then
   }
   trap cleanup EXIT INT TERM
 
-  # Start Vite in its own session so we can kill the whole process tree
-  setsid bash -c "cd '$WEBUI_DIR' && exec npm run dev -- --host '$HOST' --port '$VITE_PORT' --strictPort" &
+  # Start Vite in its own session so we can kill the whole process tree.
+  # FORCE_COLOR=1 keeps chalk's ANSI output alive through the tee pipe above
+  # (otherwise Vite detects non-TTY and prints its banner plain).
+  setsid bash -c "cd '$WEBUI_DIR' && FORCE_COLOR=1 exec npm run dev -- --host '$HOST' --port '$VITE_PORT' --strictPort" &
   VITE_PGID=$!
 
   # Open browser to Vite port
@@ -131,7 +138,7 @@ if [[ "$DEV" == "1" ]]; then
   fi
 
   # Run gateway in foreground (no DIST_DIR — Vite serves frontend)
-  python3 -m uvicorn gateway:app --host "$HOST" --port "$PORT" --app-dir "$GATEWAY_DIR" "${UVICORN_LOOP[@]}"
+  python3 -m uvicorn gateway:app --host "$HOST" --port "$PORT" --app-dir "$GATEWAY_DIR" "${UVICORN_LOOP[@]}" "${UVICORN_COLOR[@]}"
   exit $?
 fi
 
@@ -151,4 +158,4 @@ fi
 echo "lcnc-suite: serving on http://$HOST:$PORT"
 
 # exec replaces shell — signals go directly to uvicorn for clean shutdown
-exec python3 -m uvicorn gateway:app --host "$HOST" --port "$PORT" --app-dir "$GATEWAY_DIR" "${UVICORN_LOOP[@]}"
+exec python3 -m uvicorn gateway:app --host "$HOST" --port "$PORT" --app-dir "$GATEWAY_DIR" "${UVICORN_LOOP[@]}" "${UVICORN_COLOR[@]}"

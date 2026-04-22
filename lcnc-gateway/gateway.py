@@ -19,6 +19,27 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File, H
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import StreamingResponse, JSONResponse, FileResponse, Response
 
+import logging
+import click
+
+
+class _UvicornUrlColorFilter(logging.Filter):
+    """Tint the URL in uvicorn's startup log cyan instead of plain bold."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        msg = record.__dict__.get("color_message")
+        if isinstance(msg, str) and msg.startswith("Uvicorn running on "):
+            record.__dict__["color_message"] = (
+                "Uvicorn running on "
+                + click.style("%s://%s:%d", fg="cyan", bold=True)
+                + " (Press CTRL+C to quit)"
+            )
+        return True
+
+
+logging.getLogger("uvicorn").addFilter(_UvicornUrlColorFilter())
+logging.getLogger("uvicorn.error").addFilter(_UvicornUrlColorFilter())
+
 
 # ---- Config ----
 POLL_HZ = 30  # status update rate
@@ -406,9 +427,8 @@ _last_comp_hal_ver: int | None = None        # last seen compensation.grid-versi
 # them via GET /preview (uvicorn streamed response runs off the WS writer),
 # and broadcast a tiny JSON ping per version so clients know to fetch.
 _gcode_preview_pending: Optional[dict] = None   # {"file","feed","feed_lines","rapid","stats"}
-_gcode_preview_version: int = int(time.time()) # bumps on file OR rotation change; seeded from startup so ?v= URLs don't collide across restarts
+_gcode_preview_version: int = int(time.time()) # bumps on file change (or unload); seeded from startup so ?v= URLs don't collide across restarts
 _gcode_last_file: Optional[str] = None          # edge detection in poller
-_gcode_last_rotation: Optional[tuple] = None    # edge detection: 9-tuple of WCS rotations
 _gcode_refresh_running: bool = False            # single-flight guard
 # Pre-encoded msgpack bytes of _gcode_preview_pending. Served over HTTP by
 # GET /preview so the 2.7 MB polyline payload never touches the WS writer.
@@ -541,7 +561,7 @@ async def _status_poller():
     global _comp_grid_pending, _comp_grid_version, _comp_grid_initialized, _last_comp_hal_ver
     global _status_event, _shared_clients_list
     global _gcode_preview_pending, _gcode_preview_version
-    global _gcode_last_file, _gcode_last_rotation, _gcode_refresh_running
+    global _gcode_last_file, _gcode_refresh_running
     global _gcode_preview_bytes
     global _surface_points_bytes, _comp_grid_bytes
     loop = asyncio.get_event_loop()
@@ -667,33 +687,22 @@ async def _status_poller():
                     _comp_grid_version += 1
                 _last_comp_hal_ver = st.comp_grid_version
 
-            # Gcode preview: parse once (in subprocess) on file/rotation/WCS-switch
-            # change, share to all clients via version counter. Single-flight
-            # via _gcode_refresh_running so rapid-fire loads don't stack
-            # subprocesses. Fingerprint = (active_wcs_index, rotation of each
-            # of 9 WCSes). Watching st.rotation_xy alone misses non-active WCS
-            # edits and plain WCS switches between equal-rotation systems.
-            cur_wcs_idx = st.g5x_index if st.g5x_index is not None else 1
-            cur_rot_fp = (cur_wcs_idx,) + tuple(
-                float(row.get("r", 0.0)) for row in _wcs_cache
-            )
+            # Gcode preview: parse once (in subprocess) on file change, share
+            # to all clients via version counter. Single-flight via
+            # _gcode_refresh_running so rapid-fire loads don't stack
+            # subprocesses. Parse output is WCS-invariant (worker un-rotates
+            # and un-offsets), so rotation edits and WCS switches never
+            # trigger a re-parse — frontend re-applies LIVE origin+rotation
+            # as scene-graph updates.
             file_changed = bool(st.active_file) and st.active_file != _gcode_last_file
-            rot_changed = (
-                _gcode_last_file is not None
-                and bool(st.active_file)
-                and cur_rot_fp != _gcode_last_rotation
-            )
-            if (file_changed or rot_changed) and not _gcode_refresh_running:
+            if file_changed and not _gcode_refresh_running:
                 _gcode_refresh_running = True
-                asyncio.create_task(
-                    _refresh_gcode_preview(st.active_file, cur_rot_fp)
-                )
+                asyncio.create_task(_refresh_gcode_preview(st.active_file))
             elif not st.active_file and _gcode_last_file is not None:
                 _gcode_preview_pending = None
                 _gcode_preview_bytes = None
                 _gcode_preview_version += 1
                 _gcode_last_file = None
-                _gcode_last_rotation = None
 
             # Safety-trip detection via webui-safety.trip-count. The counter is
             # incremented by the independent hal_watchdog.py process on every
@@ -3035,17 +3044,17 @@ def _build_wcs_rotation_patches() -> Dict[str, str]:
     return patches
 
 
-async def _refresh_gcode_preview(filepath: str, rotation: tuple):
+async def _refresh_gcode_preview(filepath: str):
     """Parse filepath in an isolated subprocess and publish the result.
 
-    Called from _status_poller on file/rotation change. Single-flight via
+    Called from _status_poller on file change. Single-flight via
     _gcode_refresh_running — the caller sets the flag before scheduling, this
     coroutine clears it on exit. The subprocess has its own Python interpreter
     and its own GIL, so _heartbeat_loop keeps ticking through the parse even
     for multi-second programs.
     """
     global _gcode_preview_pending, _gcode_preview_version
-    global _gcode_last_file, _gcode_last_rotation, _gcode_refresh_running
+    global _gcode_last_file, _gcode_refresh_running
     global _gcode_preview_bytes
     t_start = time.monotonic()
     try:
@@ -3062,7 +3071,7 @@ async def _refresh_gcode_preview(filepath: str, rotation: tuple):
             "g5x_index": active_idx if isinstance(active_idx, int) else 1,
         }
         ctx_bytes = _msgpack_encoder.encode(ctx) if _msgpack_encoder else json.dumps(ctx).encode()
-        print(f"[GCODE] spawn start file={os.path.basename(filepath)} rotations={rotation} active_idx={active_idx}", flush=True)
+        print(f"[GCODE] spawn start file={os.path.basename(filepath)} active_idx={active_idx}", flush=True)
 
         t_spawn = time.monotonic()
         proc = await asyncio.create_subprocess_exec(
@@ -3121,7 +3130,6 @@ async def _refresh_gcode_preview(filepath: str, rotation: tuple):
         _gcode_preview_bytes = preview_bytes
         _gcode_preview_version += 1
         _gcode_last_file = filepath
-        _gcode_last_rotation = rotation
         print(
             f"[GCODE] publish v={_gcode_preview_version} "
             f"decode_ms={(t_dec_done - t_dec)*1000:.0f} "
@@ -3718,7 +3726,7 @@ async def ws_endpoint(ws: WebSocket):
 
     global _next_client_id, _estop_hold, _unacked_trip
     global _gcode_preview_pending, _gcode_preview_version
-    global _gcode_last_file, _gcode_last_rotation
+    global _gcode_last_file
     global _gcode_preview_bytes, _gcode_refresh_running
     client_id = _next_client_id
     _next_client_id += 1
@@ -3792,8 +3800,7 @@ async def ws_endpoint(ws: WebSocket):
                 })
             elif not _gcode_refresh_running:
                 _gcode_refresh_running = True
-                cur_rot = safe_get("rotation_xy", 0.0) or 0.0
-                asyncio.create_task(_refresh_gcode_preview(initial_file, cur_rot))
+                asyncio.create_task(_refresh_gcode_preview(initial_file))
     except Exception as e:
         print(f"Error loading initial G-code: {e}")
 
@@ -4231,7 +4238,6 @@ async def ws_endpoint(ws: WebSocket):
                 _gcode_preview_bytes = None
                 _gcode_preview_version += 1
                 _gcode_last_file = None
-                _gcode_last_rotation = None
             await ws_send_json(ws, {"type": "reply", **reply})
 
     except (WebSocketDisconnect, RuntimeError):

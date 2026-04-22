@@ -28,6 +28,7 @@ Result shape (msgpack dict):
                  fileSize }  or None
 """
 
+import math
 import os
 import shutil
 import sys
@@ -99,38 +100,81 @@ def parse(ctx: dict) -> dict:
     finally:
         shutil.rmtree(td, ignore_errors=True)
 
-    # Canon outputs in inches (LinuxCNC internal) in translated coords.
-    # Subtract WCS offsets then scale to machine units.
+    # Canon outputs in inches (LinuxCNC internal) in translated+rotated coords.
+    # Subtract WCS origin AND un-rotate so the polyline is in raw program
+    # coords — frontend re-applies LIVE origin (workOrigin.position) and LIVE
+    # rotation (workRotGroup.rotation.z) from STAT. Symmetric with XYZ.
     unit_scale = 25.4 if machine_units == "mm" else 1.0
     ox = canon.g5x_offset_x + canon.g92_offset_x
     oy = canon.g5x_offset_y + canon.g92_offset_y
     oz = canon.g5x_offset_z + canon.g92_offset_z
+    theta = canon.rotation_xy or 0.0
+    if theta:
+        rad = math.radians(theta)
+        ca = math.cos(rad)
+        sa = math.sin(rad)
+    else:
+        ca = 1.0
+        sa = 0.0
 
     feed = []
     feed_lines = []
     total_feed_dist = 0.0
     total_feed_time = 0.0
     feed_rates = set()
-    for lineno, start, end, rate, _tlo in canon.feed:
-        feed.append([(end[0] - ox) * unit_scale, (end[1] - oy) * unit_scale, (end[2] - oz) * unit_scale])
-        feed_lines.append(lineno)
-        dx = (end[0] - start[0]) * unit_scale
-        dy = (end[1] - start[1]) * unit_scale
-        dz = (end[2] - start[2]) * unit_scale
-        dist = (dx * dx + dy * dy + dz * dz) ** 0.5
-        total_feed_dist += dist
-        if rate > 0:
-            total_feed_time += dist / (rate * unit_scale)
-            feed_rates.add(round(rate * unit_scale * 60.0, 1))
+    if theta:
+        for lineno, start, end, rate, _tlo in canon.feed:
+            dx = end[0] - ox
+            dy = end[1] - oy
+            feed.append([
+                (dx * ca + dy * sa) * unit_scale,
+                (-dx * sa + dy * ca) * unit_scale,
+                (end[2] - oz) * unit_scale,
+            ])
+            feed_lines.append(lineno)
+            sdx = (end[0] - start[0]) * unit_scale
+            sdy = (end[1] - start[1]) * unit_scale
+            sdz = (end[2] - start[2]) * unit_scale
+            dist = (sdx * sdx + sdy * sdy + sdz * sdz) ** 0.5
+            total_feed_dist += dist
+            if rate > 0:
+                total_feed_time += dist / (rate * unit_scale)
+                feed_rates.add(round(rate * unit_scale * 60.0, 1))
+    else:
+        for lineno, start, end, rate, _tlo in canon.feed:
+            feed.append([(end[0] - ox) * unit_scale, (end[1] - oy) * unit_scale, (end[2] - oz) * unit_scale])
+            feed_lines.append(lineno)
+            dx = (end[0] - start[0]) * unit_scale
+            dy = (end[1] - start[1]) * unit_scale
+            dz = (end[2] - start[2]) * unit_scale
+            dist = (dx * dx + dy * dy + dz * dz) ** 0.5
+            total_feed_dist += dist
+            if rate > 0:
+                total_feed_time += dist / (rate * unit_scale)
+                feed_rates.add(round(rate * unit_scale * 60.0, 1))
 
     rapid = []
     total_rapid_dist = 0.0
-    for _lineno, start, end, _tlo in canon.rapid:
-        rapid.append([(end[0] - ox) * unit_scale, (end[1] - oy) * unit_scale, (end[2] - oz) * unit_scale])
-        dx = (end[0] - start[0]) * unit_scale
-        dy = (end[1] - start[1]) * unit_scale
-        dz = (end[2] - start[2]) * unit_scale
-        total_rapid_dist += (dx * dx + dy * dy + dz * dz) ** 0.5
+    if theta:
+        for _lineno, start, end, _tlo in canon.rapid:
+            dx = end[0] - ox
+            dy = end[1] - oy
+            rapid.append([
+                (dx * ca + dy * sa) * unit_scale,
+                (-dx * sa + dy * ca) * unit_scale,
+                (end[2] - oz) * unit_scale,
+            ])
+            sdx = (end[0] - start[0]) * unit_scale
+            sdy = (end[1] - start[1]) * unit_scale
+            sdz = (end[2] - start[2]) * unit_scale
+            total_rapid_dist += (sdx * sdx + sdy * sdy + sdz * sdz) ** 0.5
+    else:
+        for _lineno, start, end, _tlo in canon.rapid:
+            rapid.append([(end[0] - ox) * unit_scale, (end[1] - oy) * unit_scale, (end[2] - oz) * unit_scale])
+            dx = (end[0] - start[0]) * unit_scale
+            dy = (end[1] - start[1]) * unit_scale
+            dz = (end[2] - start[2]) * unit_scale
+            total_rapid_dist += (dx * dx + dy * dy + dz * dz) ** 0.5
 
     rapid_vel = None
     try:

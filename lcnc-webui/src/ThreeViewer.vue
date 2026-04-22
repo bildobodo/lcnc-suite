@@ -768,8 +768,9 @@ function ensureCoreGroups(init: ViewerInit) {
   workOrigin = new THREE.Group();
   _workGrp.add(workOrigin);
 
-  // Rotated sub-group: stock, axes, overflow, surface rotate with WCS R value.
-  // Toolpath stays on workOrigin (interpreter already bakes rotation into coords).
+  // Rotated sub-group: stock, axes, overflow, surface, toolpath all rotate
+  // with the live WCS R value. Worker un-rotates vertices at parse time so
+  // the toolpath is in raw program coords — rotation is applied here.
   workRotGroup = new THREE.Group();
   workOrigin.add(workRotGroup);
 
@@ -1242,7 +1243,7 @@ function applyGcode(g: ViewerGcode) {
 
   // Remove old lines
   for (const old of [feedLine, rapidLine, feedOverflow, rapidOverflow, highlightLine]) {
-    if (old) { workOrigin.remove(old); disposeObject(old); }
+    if (old) { workRotGroup?.remove(old); disposeObject(old); }
   }
   feedLine = rapidLine = feedOverflow = rapidOverflow = highlightLine = null;
   feedLineMap = new Map();
@@ -1268,15 +1269,15 @@ function applyGcode(g: ViewerGcode) {
   const toolpathOp = viewerDefaults.opacities.toolpath ?? 1.0;
   if (feedPts.length >= 2) {
     feedLine = makeLine(feedPts, feedColor, false, toolpathOp);
-    workOrigin.add(feedLine);
+    workRotGroup!.add(feedLine);
     feedOverflow = makeOverflowLine(feedLine);
-    if (feedOverflow) workOrigin.add(feedOverflow);
+    if (feedOverflow) workRotGroup!.add(feedOverflow);
   }
   if (rapidPts.length >= 2) {
     rapidLine = makeLine(rapidPts, rapidColor, true, toolpathOp);
-    workOrigin.add(rapidLine);
+    workRotGroup!.add(rapidLine);
     rapidOverflow = makeOverflowLine(rapidLine);
-    if (rapidOverflow) workOrigin.add(rapidOverflow);
+    if (rapidOverflow) workRotGroup!.add(rapidOverflow);
   }
 
   // Prepare highlight line (reuses feed geometry, drawn on top with bright color)
@@ -1291,7 +1292,7 @@ function applyGcode(g: ViewerGcode) {
     highlightLine = new THREE.Line(hlGeom, hlMat);
     highlightLine.renderOrder = 11;
     highlightLine.frustumCulled = false;
-    workOrigin.add(highlightLine);
+    workRotGroup!.add(highlightLine);
 
   }
 
@@ -1977,7 +1978,8 @@ defineExpose({
 
       <div v-if="filePinnedWcs && filePinnedWcs !== props.g5xLabel" class="hudSection hudWarn">
         <div class="label">File WCS</div>
-        <div class="hudValue">{{ filePinnedWcs }} — preview rotates with {{ filePinnedWcs }}</div>
+        <div class="hudValue">WARNING: {{ props.g5xLabel }} currently active</div>
+        <div class="hudValue">Program contains {{ filePinnedWcs }}</div>
       </div>
 
       <div v-if="toolpathOverflow" class="hudSection hudWarn">
