@@ -64,7 +64,13 @@ async function bootstrap() {
     if (tsRaw) localStorage.removeItem("lcnc-toolsetter-params");
   } catch { /* ignore */ }
 
-  if (migrations.length) await Promise.all(migrations);
+  if (migrations.length) {
+    try {
+      await Promise.all(migrations);
+    } catch (e) {
+      console.error("[settings] migration failed — some local data may not have reached the server:", e);
+    }
+  }
 
   initServerDefaults(serverSettings, fetchOk);
   createApp(App).mount('#app');

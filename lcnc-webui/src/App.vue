@@ -786,34 +786,15 @@ function msgFormatTime(ts: number): string {
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) + " " + d.toLocaleTimeString();
 }
 
-function copyToClipboard(text: string) {
-  if (navigator.clipboard?.writeText) {
-    navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
-  } else {
-    fallbackCopy(text);
-  }
-}
-
-function fallbackCopy(text: string) {
-  const ta = document.createElement("textarea");
-  ta.value = text;
-  ta.style.position = "fixed";
-  ta.style.opacity = "0";
-  document.body.appendChild(ta);
-  ta.select();
-  document.execCommand("copy");
-  document.body.removeChild(ta);
-}
-
 function copyMessage(msg: LcncMessage) {
-  copyToClipboard(`[${msgKindLabel(msg.kind)}] ${msgFormatTime(msg.ts)} — ${msg.text}`);
+  navigator.clipboard.writeText(`[${msgKindLabel(msg.kind)}] ${msgFormatTime(msg.ts)} — ${msg.text}`);
 }
 
 function copyAllMessages() {
   const text = [...messages.value].reverse().map(m =>
     `[${msgKindLabel(m.kind)}] ${msgFormatTime(m.ts)} — ${m.text}`
   ).join("\n");
-  copyToClipboard(text);
+  navigator.clipboard.writeText(text);
 }
 
 /** ---------- actions ---------- */
@@ -828,14 +809,9 @@ const angularJogVel = ref(10); // deg/s for rotary axes
 const jogIncrement = ref(0); // 0 = continuous, >0 = increment distance in machine units
 const AXIS_LETTERS = "XYZABCUVW";
 
-// Axis list from viewer_init (gateway derives from axis_mask), fallback to XYZ
-const axes = computed<string[]>(() => {
-  const vi = viewerInit.value;
-  if (vi?.axes && Array.isArray(vi.axes)) return vi.axes;
-  // Fallback: derive from axis_mask in status
-  const mask = st.value?.axis_mask ?? 7;
-  return [...AXIS_LETTERS].filter((_, i) => mask & (1 << i));
-});
+// Axis list from viewer_init (gateway derives from axis_mask). Empty until
+// viewer_init arrives — axis-dependent UI is gated behind `armed` anyway.
+const axes = computed<string[]>(() => viewerInit.value?.axes ?? []);
 
 // Machine STL parts list (for dynamic color pickers in Settings)
 const machineParts = computed<Array<{ id: string; group: string | null; direction: string | null }>>(() => {

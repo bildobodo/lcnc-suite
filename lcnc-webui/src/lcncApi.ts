@@ -7,6 +7,11 @@ function getBaseUrl(): string {
   return location.origin;
 }
 
+async function throwHttpError(resp: Response): Promise<never> {
+  const body = await resp.json();
+  throw new Error(body.detail || `HTTP ${resp.status}`);
+}
+
 export interface FileEntry {
   name: string;
   type: "file" | "directory";
@@ -33,10 +38,7 @@ export async function listFiles(subdir: string = ""): Promise<FilesResponse> {
   const url = new URL(`${getBaseUrl()}/files`);
   if (subdir) url.searchParams.set("subdir", subdir);
   const resp = await fetch(url.toString());
-  if (!resp.ok) {
-    const body = await resp.json().catch(() => ({}));
-    throw new Error(body.detail || `HTTP ${resp.status}`);
-  }
+  if (!resp.ok) await throwHttpError(resp);
   return resp.json();
 }
 
@@ -52,10 +54,7 @@ export async function saveFile(path: string, content: string): Promise<SaveRespo
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ path, content }),
   });
-  if (!resp.ok) {
-    const body = await resp.json().catch(() => ({}));
-    throw new Error(body.detail || `HTTP ${resp.status}`);
-  }
+  if (!resp.ok) await throwHttpError(resp);
   return resp.json();
 }
 
@@ -99,10 +98,7 @@ export interface HalResponse {
 
 export async function fetchHal(): Promise<HalResponse> {
   const resp = await fetch(`${getBaseUrl()}/hal`);
-  if (!resp.ok) {
-    const body = await resp.json().catch(() => ({}));
-    throw new Error(body.detail || `HTTP ${resp.status}`);
-  }
+  if (!resp.ok) await throwHttpError(resp);
   return resp.json();
 }
 
@@ -118,10 +114,7 @@ export interface G30Response {
 
 export async function fetchG30(): Promise<G30Response> {
   const resp = await fetch(`${getBaseUrl()}/g30`);
-  if (!resp.ok) {
-    const body = await resp.json().catch(() => ({}));
-    throw new Error(body.detail || `HTTP ${resp.status}`);
-  }
+  if (!resp.ok) await throwHttpError(resp);
   return resp.json();
 }
 
@@ -135,15 +128,17 @@ export async function fetchSettings(): Promise<Record<string, any>> {
 }
 
 export async function saveSettingsSection(section: string, data: any): Promise<void> {
-  await fetch(`${getBaseUrl()}/settings/${section}`, {
+  const resp = await fetch(`${getBaseUrl()}/settings/${section}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ data }),
-  }).catch(() => {});
+  });
+  if (!resp.ok) await throwHttpError(resp);
 }
 
 export async function resetServerSettings(): Promise<void> {
-  await fetch(`${getBaseUrl()}/settings`, { method: "DELETE" }).catch(() => {});
+  const resp = await fetch(`${getBaseUrl()}/settings`, { method: "DELETE" });
+  if (!resp.ok) await throwHttpError(resp);
 }
 
 export async function uploadFile(file: File): Promise<UploadResponse> {
@@ -153,9 +148,6 @@ export async function uploadFile(file: File): Promise<UploadResponse> {
     method: "POST",
     body: formData,
   });
-  if (!resp.ok) {
-    const body = await resp.json().catch(() => ({}));
-    throw new Error(body.detail || `HTTP ${resp.status}`);
-  }
+  if (!resp.ok) await throwHttpError(resp);
   return resp.json();
 }

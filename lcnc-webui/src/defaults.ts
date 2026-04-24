@@ -171,16 +171,14 @@ const VIEWER_FALLBACK: ViewerDefaults = {
 registerSection<ViewerDefaults>("viewer", VIEWER_FALLBACK, (saved, fb) => {
   if (!saved) return JSON.parse(JSON.stringify(fb));
   return {
+    ...fb,
+    ...saved,
     workpieceSize: (saved.workpieceSize ?? [...fb.workpieceSize]) as Vec3,
     workpieceOffset: (saved.workpieceOffset ?? [...fb.workpieceOffset]) as Vec3,
     layers: { ...fb.layers, ...saved.layers } as Record<Layer, boolean>,
     colors: { ...fb.colors, ...saved.colors },
     opacities: { ...fb.opacities, ...saved.opacities },
     machineColors: { ...fb.machineColors, ...saved.machineColors },
-    machineEdges: saved.machineEdges ?? fb.machineEdges,
-    trackingMode: (saved.trackingMode ?? fb.trackingMode) as TrackMode,
-    pathOnTop: saved.pathOnTop ?? fb.pathOnTop,
-    projection: (saved.projection ?? fb.projection) as Projection,
   };
 });
 
@@ -816,6 +814,9 @@ export function resetAllDefaults(): void {
   localStorage.removeItem("lcnc-toolsetter-params");
   localStorage.removeItem("lcnc-probe-params");
   _cache = null;
-  // Fire-and-forget server reset
-  import("./lcncApi").then(({ resetServerSettings }) => resetServerSettings());
+  import("./lcncApi").then(({ resetServerSettings }) =>
+    resetServerSettings().catch((e) =>
+      console.error("[settings] server reset failed:", e),
+    ),
+  );
 }

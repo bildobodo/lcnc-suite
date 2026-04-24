@@ -61,36 +61,25 @@ except ValueError:
 # any drift-bug self-heals within ~3s at 30 Hz.
 _DELTA_FULL_INTERVAL = 100
 
-# ---- Wire-format encoders (msgspec, lazy-initialised) ----
-# msgspec.json is used in place of stdlib json.dumps to avoid the per-call
-# Encoder setup cost. msgspec.msgpack produces compact binary frames for
-# float-heavy StatusPayload. Both encoders are thread-safe for reuse.
+# ---- Wire-format encoders ----
+# msgspec.json avoids per-call Encoder setup cost; msgspec.msgpack produces
+# compact binary frames for float-heavy StatusPayload. Both encoders are
+# thread-safe for reuse. msgspec is a hard dep (see requirements.txt).
+import msgspec as _msgspec
+
+
 def _wire_enc_hook(obj):
-    # Matches the prior json.dumps(..., default=str) behaviour: any object
-    # msgspec doesn't know how to encode gets stringified. Covers Path, datetime,
-    # and defensive stringification of stray non-primitive payloads.
+    # Any object msgspec doesn't know how to encode gets stringified
+    # (covers Path, datetime, and stray non-primitive payloads).
     return str(obj)
 
-try:
-    import msgspec as _msgspec
-    _json_encoder = _msgspec.json.Encoder(enc_hook=_wire_enc_hook)
-    _msgpack_encoder = _msgspec.msgpack.Encoder(enc_hook=_wire_enc_hook)
 
-    def _json_encoder_encode(obj):
-        return _json_encoder.encode(obj)  # returns bytes
-except Exception:
-    _msgspec = None
-    _msgpack_encoder = None
+_json_encoder = _msgspec.json.Encoder(enc_hook=_wire_enc_hook)
+_msgpack_encoder = _msgspec.msgpack.Encoder(enc_hook=_wire_enc_hook)
 
-    def _json_encoder_encode(obj):
-        # Fallback: stdlib json. default=str matches prior ws_send_json behaviour.
-        return json.dumps(obj, separators=(",", ":"), default=str)
 
-# If msgspec isn't installed, force-downgrade to JSON even if the operator
-# set WEBUI_WIRE_FORMAT=msgpack — msgpack requires msgspec.
-if _WIRE_FORMAT == "msgpack" and _msgpack_encoder is None:
-    print("[WIRE] msgspec not installed — WEBUI_WIRE_FORMAT=msgpack ignored, falling back to JSON", flush=True)
-    _WIRE_FORMAT = "json"
+def _json_encoder_encode(obj):
+    return _json_encoder.encode(obj)  # returns bytes
 
 
 def _encode_ws_frame(obj):
@@ -100,8 +89,7 @@ def _encode_ws_frame(obj):
     encoded once and broadcast verbatim to every client."""
     if _WIRE_FORMAT == "msgpack":
         return _msgpack_encoder.encode(obj)
-    data = _json_encoder_encode(obj)
-    return data.decode("utf-8") if isinstance(data, (bytes, bytearray)) else data
+    return _json_encoder_encode(obj).decode("utf-8")
 
 # ---- LinuxCNC handles (nullable for auto-reconnect) ----
 STAT: Optional[linuxcnc.stat] = None
@@ -1483,26 +1471,10 @@ class StatusPayload:
 
 
 def hal_get(pin: str, default=None):
-    """Read a HAL pin value. Tries hal module first, falls back to halcmd."""
     try:
         return hal.get_value(pin)
     except Exception:
-        pass
-    try:
-        result = subprocess.run(
-            ['halcmd', '-s', 'getp', pin],
-            capture_output=True, text=True, timeout=1
-        )
-        if result.returncode == 0:
-            raw = result.stdout.strip()
-            if raw == "TRUE":
-                return 1
-            if raw == "FALSE":
-                return 0
-            return float(raw)
-    except Exception:
-        pass
-    return default
+        return default
 
 
 def safe_get(attr: str, default=None):
@@ -1666,45 +1638,7 @@ def read_machine_limits_from_ini(stat_obj):
 
 
 def get_spindle_override() -> Optional[float]:
-    """
-    Get spindle override with fallbacks for different LinuxCNC versions.
-    Returns the override scale factor (1.0 = 100%).
-    """
-    # Try 1: Direct spindle_override attribute
     val = safe_get("spindle_override", None)
-    if val is not None:
-        try:
-            result = float(val)
-            if result > 0:  # Sanity check
-                return result
-        except (TypeError, ValueError):
-            pass
-
-    # Try 2: spindle array with override (multi-spindle configs)
-    spindles = safe_get("spindle", None)
-    if spindles is not None:
-        try:
-            # If it's an array/list, get first spindle's override
-            if hasattr(spindles, '__getitem__'):
-                s0 = spindles[0]
-                if hasattr(s0, 'override'):
-                    return float(s0.override)
-                # Also try as dict
-                if isinstance(s0, dict) and 'override' in s0:
-                    return float(s0['override'])
-        except (IndexError, AttributeError, TypeError, ValueError, KeyError):
-            pass
-
-    # Try 3: Check if spindle itself has override (single spindle)
-    if spindles is not None:
-        try:
-            if hasattr(spindles, 'override'):
-                return float(spindles.override)
-        except (AttributeError, TypeError, ValueError):
-            pass
-
-    # Try 4: spindlerate (some versions)
-    val = safe_get("spindlerate", None)
     if val is not None:
         try:
             result = float(val)
@@ -1713,13 +1647,15 @@ def get_spindle_override() -> Optional[float]:
         except (TypeError, ValueError):
             pass
 
-    # Try 5: Check spindle_0 specifically
-    val = safe_get("spindle_0", None)
-    if val is not None:
+    spindles = safe_get("spindle", None)
+    if spindles is not None:
         try:
-            if hasattr(val, 'override'):
-                return float(val.override)
-        except (AttributeError, TypeError, ValueError):
+            s0 = spindles[0]
+            if hasattr(s0, 'override'):
+                return float(s0.override)
+            if isinstance(s0, dict) and 'override' in s0:
+                return float(s0['override'])
+        except (IndexError, AttributeError, TypeError, ValueError, KeyError):
             pass
 
     return None
@@ -2863,7 +2799,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 return {"ok": False, "error": f"Invalid target: {target}"}
             await set_mode(linuxcnc.MODE_MDI)
             STAT.poll()
-            machine_axes = [a.lower() for a in _axes_from_mask(getattr(STAT, "axis_mask", 7))]
+            machine_axes = [a.lower() for a in _axes_from_mask(STAT.axis_mask)]
             zero_parts = " ".join(f"{k.upper()}0" for k in machine_axes) + " R0"
             for p in indices:
                 await _cmd_blocking(CMD.mdi, f"G10 L2 P{p} {zero_parts}", wait=5)
@@ -3013,15 +2949,14 @@ def build_viewer_init(stl_base_url: str) -> Dict[str, Any]:
 
     units = get_machine_units()
 
-    # Axis letters from axis_mask (e.g. XYZ=7, XYZAC=39)
-    axis_mask = 7  # default XYZ
+    # Axis letters from axis_mask (e.g. XYZ=7, XYZAC=39). If LinuxCNC hasn't
+    # connected yet, we ship no axes — the client waits for viewer_init before
+    # rendering axis-dependent UI.
     if STAT:
-        try:
-            STAT.poll()
-            axis_mask = getattr(STAT, "axis_mask", 7)
-        except (AttributeError, linuxcnc.error) as e:
-            print(f"[INIT] axis_mask poll failed — defaulting to XYZ: {type(e).__name__}: {e}", flush=True)
-    axes = _axes_from_mask(axis_mask)
+        STAT.poll()
+        axes = _axes_from_mask(STAT.axis_mask)
+    else:
+        axes = []
 
     # Build parts with cache-busted filenames
     parts = []
@@ -3095,7 +3030,7 @@ async def _refresh_gcode_preview(filepath: str):
             "var_patches": patches,
             "g5x_index": active_idx if isinstance(active_idx, int) else 1,
         }
-        ctx_bytes = _msgpack_encoder.encode(ctx) if _msgpack_encoder else json.dumps(ctx).encode()
+        ctx_bytes = _msgpack_encoder.encode(ctx)
         print(f"[GCODE] spawn start file={os.path.basename(filepath)} active_idx={active_idx}", flush=True)
 
         t_spawn = time.monotonic()
@@ -3130,9 +3065,6 @@ async def _refresh_gcode_preview(filepath: str):
                     print(f"[WORKER] {ln}", flush=True)
         print(f"[GCODE] worker done parse_ms={(t_communicated - t_spawned)*1000:.0f} stdout={len(stdout)}B", flush=True)
 
-        if not _msgpack_encoder:
-            print("[GCODE] msgspec not installed — cannot decode worker result", flush=True)
-            return
         t_dec = time.monotonic()
         preview = await asyncio.to_thread(_msgspec.msgpack.decode, stdout)
         t_dec_done = time.monotonic()

@@ -22,7 +22,7 @@ import {
   loadKeyboardDefaults, type KeyboardDefaults, type KeyboardAction, KEYBOARD_ACTION_LABELS, DEFAULT_KB_MAPPING, formatKeyName,
 } from "./defaults";
 import { fetchHal, type HalPin, type HalSignal, type HalParam } from "./lcncApi";
-import { status } from "./lcncWs";
+import { viewerInit } from "./lcncWs";
 import { keypadMode } from "./useNumberKeypad";
 import { ChevronUp, ChevronDown, Pencil, Trash2 } from "lucide-vue-next";
 import GamepadLiveInput from "./GamepadLiveInput.vue";
@@ -296,8 +296,11 @@ const COMMAND_ACTIONS: KeyboardAction[] = ["estop", "cycle", "abort"];
 const LINEAR_JOG_ACTIONS: KeyboardAction[] = ["jog_x+", "jog_x-", "jog_y+", "jog_y-", "jog_z+", "jog_z-"];
 const ROTARY_JOG_ACTIONS: KeyboardAction[] = ["jog_a+", "jog_a-", "jog_b+", "jog_b-"];
 
-// Show rotary rows only if machine has axes beyond XYZ (bits 3+ in axis_mask)
-const hasRotaryAxes = computed(() => ((status.value?.axis_mask ?? 7) >> 3) !== 0);
+// Show rotary rows only if machine has axes beyond XYZ
+const hasRotaryAxes = computed(() => {
+  const axes = viewerInit.value?.axes;
+  return Array.isArray(axes) && axes.some((a: string) => !"XYZ".includes(a.toUpperCase()));
+});
 
 // Modifier keys to reject
 const MODIFIER_KEYS = new Set(["Shift", "Control", "Alt", "Meta"]);
