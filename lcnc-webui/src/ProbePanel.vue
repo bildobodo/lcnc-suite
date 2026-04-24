@@ -680,9 +680,9 @@ function fmtR(key: string): string {
     <div class="row-tight viewTabs">
         <MachineBtn type="tab" :selected="probeView === 'outside'" @click="probeView = 'outside'">Outside</MachineBtn>
         <MachineBtn type="tab" :selected="probeView === 'inside'" @click="probeView = 'inside'">Inside</MachineBtn>
+        <MachineBtn type="tab" :selected="probeView === 'angle'" @click="probeView = 'angle'">Angle</MachineBtn>
         <MachineBtn type="tab" :selected="probeView === 'boss'" @click="probeView = 'boss'">Boss/Pocket</MachineBtn>
         <MachineBtn type="tab" :selected="probeView === 'ridge'" @click="probeView = 'ridge'">Ridge/Valley</MachineBtn>
-        <MachineBtn type="tab" :selected="probeView === 'angle'" @click="probeView = 'angle'">Angle</MachineBtn>
         <MachineBtn type="tab" :selected="probeView === 'surface'" @click="probeView = 'surface'">Surface</MachineBtn>
         <MachineBtn type="tab" :selected="probeView === 'cal'" @click="probeView = 'cal'">Calibrate</MachineBtn>
         <MachineBtn type="tab" :selected="probeView === 'toolsetter'" @click="probeView = 'toolsetter'">Toolsetter</MachineBtn>
