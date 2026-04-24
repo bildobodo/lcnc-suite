@@ -1671,7 +1671,6 @@ function fmtR(key: string): string {
 /* ─── Surface Map ─── */
 .span { grid-column: 1 / -1; }
 .surfaceGrid > .sep { margin: var(--gap-controls) 0; }
-.surfaceGrid > .sub { margin-top: var(--gap-tight); }
 .compPanel {
   flex-shrink: 0;
   min-width: 140px;
