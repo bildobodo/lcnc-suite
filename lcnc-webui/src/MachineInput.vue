@@ -64,6 +64,7 @@ function openKeypadFromInput() {
     :disabled="isDisabled"
     readonly
     inputmode="none"
+    lang="en"
     class="keypad-input"
     @click="openKeypadFromInput"
     @keydown.enter.prevent="openKeypadFromInput"
@@ -76,6 +77,7 @@ function openKeypadFromInput() {
     :style="catalogStyle"
     v-model="model"
     :disabled="isDisabled"
+    lang="en"
   >
 </template>
 
