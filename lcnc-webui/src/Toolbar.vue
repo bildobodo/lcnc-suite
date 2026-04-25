@@ -7,22 +7,11 @@
     <!-- Floating toolbar overlay (bottom-left) -->
     <div class="floatingBar">
 
-      <!-- Views pill -->
+      <!-- Projection pill -->
       <div class="toolPill">
-        <MachineBtn type="tab" :selected="openPill === 'views'" @click.stop="togglePill('views')">Views</MachineBtn>
-        <div class="popover pillPopover" :class="{ open: openPill === 'views' }" @click.stop>
-          <div class="popTitle">Views</div>
-          <div class="viewGrid">
-            <MachineBtn type="viewPreset" @click="$emit('setView', 'top')">Top</MachineBtn>
-            <MachineBtn type="viewPreset" @click="$emit('setView', 'bottom')">Bottom</MachineBtn>
-            <MachineBtn type="viewPreset" @click="$emit('setView', 'front')">Front</MachineBtn>
-            <MachineBtn type="viewPreset" @click="$emit('setView', 'back')">Back</MachineBtn>
-            <MachineBtn type="viewPreset" @click="$emit('setView', 'left')">Left</MachineBtn>
-            <MachineBtn type="viewPreset" @click="$emit('setView', 'right')">Right</MachineBtn>
-            <MachineBtn type="viewPreset" class="wide" @click="$emit('setView', 'dimetric')">Dimetric</MachineBtn>
-            <MachineBtn type="viewPreset" class="wide" @click="$emit('setView', 'reset')">Reset</MachineBtn>
-          </div>
-          <div class="sep"></div>
+        <MachineBtn type="tab" :selected="openPill === 'projection'" @click.stop="togglePill('projection')">Projection</MachineBtn>
+        <div class="popover pillPopover" :class="{ open: openPill === 'projection' }" @click.stop>
+          <div class="popTitle">Projection</div>
           <div class="radioGroup inline">
             <label><MachineRadio gate="viewerSetting" name="projection" value="perspective" v-model="projectionModel" /> Perspective</label>
             <label><MachineRadio gate="viewerSetting" name="projection" value="parallel" v-model="projectionModel" /> Parallel</label>
@@ -162,8 +151,6 @@ import MachineColor from "./MachineColor.vue";
 import CameraPip from "./CameraPip.vue";
 import { loadViewerDefaults, loadCameraDefaults, saveCameraDefaults, settingsVersion, STEP_DEFAULT, type Vec3, type Layer, type TrackMode } from "./defaults";
 
-type ViewPreset = "top" | "bottom" | "left" | "right" | "front" | "back" | "iso" | "dimetric" | "reset";
-
 const vd = loadViewerDefaults();
 
 const props = defineProps<{
@@ -173,7 +160,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: "resetBackplot"): void;
-  (e: "setView", preset: ViewPreset): void;
   (e: "toggleLayer", layer: Layer, on: boolean): void;
   (e: "update:workpieceSize", value: Vec3): void;
   (e: "update:workpieceOffset", value: Vec3): void;
@@ -379,17 +365,6 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: var(--gap-tight);
-}
-
-/* ---- View buttons grid ---- */
-.viewGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--gap-tight);
-}
-
-.wide {
-  grid-column: 1 / -1;
 }
 
 /* ---- Layers popover: 2-column grid ---- */

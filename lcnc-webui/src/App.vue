@@ -1321,7 +1321,6 @@ watch(viewerGcode, (newGcode) => {
       <div class="viewerPane">
         <Toolbar
           @resetBackplot="viewerRef?.resetBackplot?.()"
-          @setView="(p: any) => viewerRef?.setView?.(p)"
           @toggleLayer="(l: Layer, on: boolean) => { viewerLayers[l] = on; viewerRef?.setLayerVisible?.(l, on); saveViewerState(); }"
           @setPathOnTop="(on: boolean) => { viewerPathOnTop = on; viewerRef?.setPathAlwaysOnTop?.(on); saveViewerState(); }"
           @setTrackMode="(m: string) => { viewerTrackMode = m as TrackMode; viewerRef?.setTrackingMode?.(m); saveViewerState(); }"

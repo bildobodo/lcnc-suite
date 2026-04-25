@@ -89,6 +89,7 @@ import { viewerInit, viewerGcode, gcodeContent, status } from "./lcncWs";
 import { loadViewerDefaults, ALL_LAYERS, settingsVersion, type Vec3, type Layer } from "./defaults";
 import { fmtCoord } from "./format";
 import ViewCube from "./ViewCube.vue";
+import MachineBtn from "./MachineBtn.vue";
 
 const themeMode = inject<Ref<string>>("themeMode", ref("auto"));
 
@@ -2097,6 +2098,11 @@ defineExpose({
       @view-change="applyViewDirection"
     />
 
+    <!-- Reset icon — auto-frame to scene bounds, sits under the cube -->
+    <div class="resetBtn">
+      <MachineBtn type="viewPreset" @click="setView('reset')">Reset</MachineBtn>
+    </div>
+
   </div>
 </template>
 
@@ -2105,6 +2111,18 @@ defineExpose({
   position: relative;
   width: 100%;
   height: 100%;
+}
+
+/* Reset icon under the ViewCube (cube is 140px tall at top:12px right:12px,
+   so its bottom edge is at 152px — leave a tight gap below it). */
+.resetBtn {
+  position: absolute;
+  z-index: 1;
+  top: 156px;
+  right: 12px;
+  display: flex;
+  justify-content: flex-end;
+  width: 140px;
 }
 
 .viewerHost {
