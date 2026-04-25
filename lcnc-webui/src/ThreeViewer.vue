@@ -88,6 +88,7 @@ import { Text } from "troika-three-text";
 import { viewerInit, viewerGcode, gcodeContent, status } from "./lcncWs";
 import { loadViewerDefaults, ALL_LAYERS, settingsVersion, type Vec3, type Layer } from "./defaults";
 import { fmtCoord } from "./format";
+import ViewCube from "./ViewCube.vue";
 
 const themeMode = inject<Ref<string>>("themeMode", ref("auto"));
 
@@ -1963,6 +1964,12 @@ function setToolColors(toolColor: string | null, cutterColor: string | null) {
   if (cutterColor) MAT.cutter.color.set(cutterColor);
 }
 
+// Getter passed to ViewCube — runs every frame so it tracks camera replacement
+// (perspective ↔ ortho swap re-binds the local `camera` variable).
+function getMainCameraQuaternion(): THREE.Quaternion | null {
+  return camera?.quaternion ?? null;
+}
+
 defineExpose({
   resetBackplot,
   setView,
@@ -2072,6 +2079,9 @@ defineExpose({
         <div class="hudValue">Exceeds bounds</div>
       </div>
     </div>
+
+    <!-- View navigation cube (top-right) -->
+    <ViewCube :get-camera-quaternion="getMainCameraQuaternion" />
 
   </div>
 </template>
