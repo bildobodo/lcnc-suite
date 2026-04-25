@@ -1,9 +1,6 @@
 // Module-level singleton — shared across all components that import this.
 // No provide/inject needed: the module itself is the shared instance.
-import { reactive, ref } from 'vue';
-
-/** When true, all type="number" MachineInputs show a ⊞ keypad trigger automatically. */
-export const keypadMode = ref(false);
+import { reactive } from 'vue';
 
 export interface KeypadOpts {
   value: string | number | null;

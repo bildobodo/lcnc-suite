@@ -181,9 +181,6 @@ export const INPUT_DEFS = {
   viewerColor:     { gate: 'always' },
   cameraColor:     { gate: 'always' },
 
-  // Offset editing
-  offsetEdit:      { gate: 'probe',    mono: true, align: 'right' },
-
   // UI-only (always enabled)
   search:          { gate: 'always' },
   filter:          { gate: 'always' },

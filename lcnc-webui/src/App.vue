@@ -25,7 +25,7 @@ import type { GcodeStats } from "./GcodePanel.vue";
 import { Settings, MessageSquare, PowerOff, Gamepad2, Keyboard, BookOpen, ClipboardCopy, Expand, Shrink } from "lucide-vue-next";
 import GcodeReferenceDialog from "./GcodeReferenceDialog.vue";
 import NumberKeypad from "./NumberKeypad.vue";
-import { keypadState, keypadMode } from "./useNumberKeypad";
+import { keypadState } from "./useNumberKeypad";
 import { loadViewerDefaults, saveViewerDefaults, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadMacrosDefaults, loadGamepadDefaults, saveGamepadDefaults, loadKeyboardDefaults, saveKeyboardDefaults, loadMdiHistory, saveMdiHistory, settingsVersion, type ThemeMode, type MacroDef, type GamepadDefaults, type KeyboardDefaults, type KeyboardAction, type Layer, type TrackMode, type Projection, type Vec3 } from "./defaults";
 import { buildToolsetterVarMap } from "./toolsetterVars";
 import { useGamepad } from "./useGamepad";
@@ -1159,7 +1159,6 @@ watch(settingsVersion, () => {
     applyTheme(disp.theme);
   }
   if (disp.startFullscreen) armStartFullscreen();
-  keypadMode.value = disp.keypadMode;
   const vd = loadViewerDefaults();
   workpieceSize.value = vd.workpieceSize;
   workpieceOffset.value = vd.workpieceOffset;

@@ -298,11 +298,9 @@ input[type="range"]::-moz-range-thumb:hover {
   width: 6px;
 }
 
-input[type="number"],
-input[type="text"],
-select {
+.inputField {
   border: 1px solid var(--border);
-  background: var(--button-bg);
+  background: var(--bg);
   color: var(--fg);
   font-family: var(--font-mono);
   font-size: var(--fs-base);
@@ -312,17 +310,17 @@ select {
   outline: none;
 }
 
-input[type="number"]:focus,
-input[type="text"]:focus,
-select:focus {
+.inputField:focus {
   border-color: color-mix(in oklab, var(--fg) 40%, var(--border));
 }
 
-input[type="number"]:disabled,
-input[type="text"]:disabled,
-select:disabled {
+.inputField:disabled {
   opacity: var(--opacity-disabled);
   cursor: not-allowed;
+}
+
+.inputField[readonly] {
+  cursor: pointer;
 }
 
 

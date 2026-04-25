@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { send } from "./lcncWs";
 import { usePermissions } from "./permissions";
 import { fmtOffset } from "./format";
-import { openKeypad, keypadMode } from "./useNumberKeypad";
+import { openKeypad } from "./useNumberKeypad";
 import MachineBtn from "./MachineBtn.vue";
-import MachineInput from "./MachineInput.vue";
 
 import Gate from "./Gate.vue";
 
@@ -47,44 +46,14 @@ const hasRotation = computed(() => {
 });
 
 // ─── Cell editing ────────────────────────────────────────────
-const editingCell = ref<{ wcs: string; axis: string } | null>(null);
-const editValue = ref("");
-const offsetInputRef = ref<HTMLInputElement | null>(null);
-
-function applyEdit(wcs: string, axis: string, v: number) {
-  send({ cmd: "set_wcs", target: wcs, [axis]: v });
-}
-
 function startEditCell(wcs: string, axis: string, current: number) {
   if (!can.value.zero) return;
-  // Keypad mode on: skip inline input, open the dialog directly.
-  if (keypadMode.value) {
-    openKeypad({
-      value: current,
-      label: `${wcs} ${axis.toUpperCase()}`,
-      onConfirm: (v) => applyEdit(wcs, axis, v),
-    });
-    return;
-  }
-  // Otherwise fall back to inline editing.
-  editingCell.value = { wcs, axis };
-  editValue.value = current.toFixed(4);
-  nextTick(() => {
-    const el = Array.isArray(offsetInputRef.value) ? offsetInputRef.value[0] : offsetInputRef.value;
-    el?.focus();
-    el?.select();
+  openKeypad({
+    value: current,
+    label: `${wcs} ${axis.toUpperCase()}`,
+    onConfirm: (v) => send({ cmd: "set_wcs", target: wcs, [axis]: v }),
   });
 }
-
-function commitCell(wcs: string, axis: string) {
-  if (!editingCell.value) return;
-  const val = parseFloat(editValue.value);
-  editingCell.value = null;
-  if (isNaN(val)) return;
-  applyEdit(wcs, axis, val);
-}
-
-function cancelEdit() { editingCell.value = null; }
 
 // ─── Clear actions ───────────────────────────────────────────
 function clearSelected() {
@@ -135,18 +104,7 @@ function clearAll() {
                   editableCell: can.zero
                 }"
                 @dblclick.stop="startEditCell(row.name as string, axis, Number(row[axis]) || 0)">
-              <MachineInput
-                v-if="editingCell?.wcs === row.name && editingCell?.axis === axis"
-                ref="offsetInputRef"
-                gate="offsetEdit"
-                v-model="editValue"
-                class="cellInput"
-                @keydown.enter.prevent="commitCell(row.name as string, axis)"
-                @keydown.escape.prevent="cancelEdit()"
-                @blur="commitCell(row.name as string, axis)"
-                @click.stop
-              />
-              <span v-else class="cellValue">{{ fmtOffset(Number(row[axis])) }}</span>
+              <span class="cellValue">{{ fmtOffset(Number(row[axis])) }}</span>
             </td>
           </tr>
 
@@ -250,20 +208,6 @@ tbody tr.auxRow {
 
 .editableCell:hover {
   background: color-mix(in oklab, var(--info) 10%, transparent);
-}
-
-.cellInput {
-  width: 100%;
-  box-sizing: border-box;
-  text-align: right;
-  padding: 0 var(--gap-tight);
-  -moz-appearance: textfield;
-}
-
-.cellInput::-webkit-inner-spin-button,
-.cellInput::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
 }
 
 .cellValue {

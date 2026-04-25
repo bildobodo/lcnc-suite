@@ -307,10 +307,9 @@ const VALID_THEMES = new Set<string>(["auto", "light", "dark", "hc-light", "hc-d
 export interface DisplayDefaults {
   theme: ThemeMode;
   startFullscreen: boolean;
-  keypadMode: boolean;
 }
 
-const DISPLAY_FALLBACK: DisplayDefaults = { theme: "auto", startFullscreen: false, keypadMode: false };
+const DISPLAY_FALLBACK: DisplayDefaults = { theme: "auto", startFullscreen: false };
 
 registerSection<DisplayDefaults>("display", DISPLAY_FALLBACK, (saved, fb) => {
   if (!saved) return { ...fb };

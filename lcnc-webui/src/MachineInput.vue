@@ -2,15 +2,13 @@
 import { computed, useAttrs } from 'vue';
 import { usePermissions } from './permissions';
 import { INPUT_DEFS, INPUT_SIZE_STYLES, type InputType, type InputDef } from './machineControls';
-import { openKeypad, keypadMode } from './useNumberKeypad';
+import { openKeypad } from './useNumberKeypad';
 
 defineOptions({ inheritAttrs: false });
 
 const props = defineProps<{
   gate: InputType;
   disabled?: boolean;
-  /** Explicitly opt this input into keypad mode regardless of the global setting. */
-  keypad?: boolean;
   /** Label shown in the keypad dialog header. */
   label?: string;
 }>();
@@ -20,8 +18,7 @@ const model = defineModel<string | number | null>();
 const can = usePermissions();
 const def = computed((): InputDef => INPUT_DEFS[props.gate]);
 const isDisabled = computed(() => !can.value[def.value.gate] || props.disabled);
-// Show keypad if explicitly requested, or if global keypad mode is on and this is a number input.
-const showKeypad = computed(() => props.keypad || (keypadMode.value && attrs.type === 'number'));
+const isNumber = computed(() => attrs.type === 'number');
 
 const catalogStyle = computed(() => {
   const d = def.value;
@@ -33,8 +30,6 @@ const catalogStyle = computed(() => {
   return Object.keys(s).length ? s : undefined;
 });
 
-// Merge both binding patterns: v-model parents supply model.value, :value+@input parents
-// supply attrs.value. Avoids overriding attrs.value with undefined for the latter.
 const keypadDisplayValue = computed(() =>
   model.value != null ? model.value : (attrs.value as string | number | undefined)
 );
@@ -45,32 +40,38 @@ function openKeypadFromInput() {
     value: keypadDisplayValue.value ?? null,
     label: props.label,
     onConfirm: (v) => {
-      model.value = v; // v-model parents
-      // Also trigger @input for :value+@input parents (SetupStrip, SpindleStrip, DroPanel).
-      const onInput = attrs.onInput as ((e: { target: { value: string } }) => void) | undefined;
-      if (typeof onInput === 'function') onInput({ target: { value: String(v) } } as unknown as { target: { value: string } });
+      model.value = v;
+      // Native input/change events don't fire for keypad confirms — synthesize them
+      // so :value+@input parents (SetupStrip, SpindleStrip, DroPanel) and v-model+@change
+      // parents (Toolbar workpiece, ProbePanel, ToolsetterSettings, SettingsPanel) both react.
+      const evt = { target: { value: String(v) } } as unknown as Event;
+      const onInput = attrs.onInput as ((e: Event) => void) | undefined;
+      if (typeof onInput === 'function') onInput(evt);
+      const onChange = attrs.onChange as ((e: Event) => void) | undefined;
+      if (typeof onChange === 'function') onChange(evt);
     },
   });
 }
 </script>
 
 <template>
-  <!-- Keypad mode: read-only display that opens the keypad on click/Enter/Space. -->
+  <!-- Number inputs: read-only display field that opens the keypad on click/Enter/Space. -->
   <input
-    v-if="showKeypad"
+    v-if="isNumber"
     v-bind="attrs"
+    type="text"
     :style="catalogStyle"
     :value="keypadDisplayValue"
     :disabled="isDisabled"
     readonly
     inputmode="none"
     lang="en"
-    class="keypad-input"
+    class="inputField"
     @click="openKeypadFromInput"
     @keydown.enter.prevent="openKeypadFromInput"
     @keydown.space.prevent="openKeypadFromInput"
   >
-  <!-- Normal mode: standard editable input. -->
+  <!-- Text-like inputs: standard editable field. -->
   <input
     v-else
     v-bind="attrs"
@@ -78,11 +79,6 @@ function openKeypadFromInput() {
     v-model="model"
     :disabled="isDisabled"
     lang="en"
+    class="inputField"
   >
 </template>
-
-<style scoped>
-.keypad-input {
-  cursor: pointer;
-}
-</style>
