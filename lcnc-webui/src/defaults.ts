@@ -11,8 +11,8 @@ export const STEP_RAPID_OVERRIDE = 25;
 
 export type Vec3 = [number, number, number];
 
-export type Layer = "backplot" | "toolpath" | "machine" | "workpiece" | "bounds" | "workzero" | "hud" | "surface" | "tool";
-export const ALL_LAYERS: Layer[] = ["backplot", "toolpath", "machine", "workpiece", "bounds", "workzero", "hud", "surface", "tool"];
+export type Layer = "backplot" | "toolpath" | "machine" | "workpiece" | "bounds" | "toolpathBounds" | "workzero" | "hud" | "surface" | "tool";
+export const ALL_LAYERS: Layer[] = ["backplot", "toolpath", "machine", "workpiece", "bounds", "toolpathBounds", "workzero", "hud", "surface", "tool"];
 
 export type TrackMode = "none" | "tool" | "workpiece";
 export type Projection = "perspective" | "parallel";
@@ -22,6 +22,7 @@ export interface ColorDefaults {
   rapid: string;
   backplot: string;
   bounds: string;
+  toolpathBounds: string;
   workpiece: string;
   tool: string;
   cutter: string;
@@ -158,8 +159,8 @@ export function saveSection(key: string, data: any): void {
 const VIEWER_FALLBACK: ViewerDefaults = {
   workpieceSize: [100, 100, 20],
   workpieceOffset: [0, 0, -20],
-  layers: { backplot: true, toolpath: true, machine: true, workpiece: true, bounds: true, workzero: true, hud: true, surface: true, tool: true },
-  colors: { feed: "#22b8cf", rapid: "#f5a623", backplot: "#ff00ff", bounds: "#ffffff", workpiece: "#ffffff", tool: "#c0c0c0", cutter: "#ffdd00" },
+  layers: { backplot: true, toolpath: true, machine: true, workpiece: true, bounds: true, toolpathBounds: false, workzero: true, hud: true, surface: true, tool: true },
+  colors: { feed: "#22b8cf", rapid: "#f5a623", backplot: "#ff00ff", bounds: "#ffffff", toolpathBounds: "#f5a623", workpiece: "#ffffff", tool: "#c0c0c0", cutter: "#ffdd00" },
   opacities: { workpiece: 0.16, bounds: 0.10, machine: 1.0, toolpath: 1.0, backplot: 0.55, hud: 1.0 },
   machineColors: {},
   machineEdges: true,

@@ -40,6 +40,7 @@
           <MachineToggle gate="viewerSetting" v-model="local.machine" label="Machine" />
           <MachineToggle gate="viewerSetting" v-model="local.workpiece" label="Workpiece" />
           <MachineToggle gate="viewerSetting" v-model="local.bounds" label="Bounds" />
+          <MachineToggle gate="viewerSetting" v-model="local.toolpathBounds" label="Toolpath Bounds" />
           <MachineToggle gate="viewerSetting" v-model="local.workzero" label="Work Zero" />
           <MachineToggle gate="viewerSetting" v-model="local.hud" label="HUD" />
           <MachineToggle gate="viewerSetting" v-model="local.surface" label="Surface" />

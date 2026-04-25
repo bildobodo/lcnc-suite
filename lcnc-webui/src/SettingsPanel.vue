@@ -125,8 +125,8 @@ const resetLabels: Record<string, string> = {
 function resetViewer() {
   saveViewerDefaults({
     workpieceSize: [100, 100, 20], workpieceOffset: [0, 0, -20],
-    layers: { backplot: true, toolpath: true, machine: true, workpiece: true, bounds: true, workzero: true, hud: true, surface: true, tool: true },
-    colors: { feed: "#22b8cf", rapid: "#f5a623", backplot: "#ff00ff", bounds: "#ffffff", workpiece: "#ffffff", tool: "#c0c0c0", cutter: "#ffdd00" },
+    layers: { backplot: true, toolpath: true, machine: true, workpiece: true, bounds: true, toolpathBounds: false, workzero: true, hud: true, surface: true, tool: true },
+    colors: { feed: "#22b8cf", rapid: "#f5a623", backplot: "#ff00ff", bounds: "#ffffff", toolpathBounds: "#f5a623", workpiece: "#ffffff", tool: "#c0c0c0", cutter: "#ffdd00" },
     opacities: { workpiece: 0.16, bounds: 0.10, machine: 1.0, toolpath: 1.0, backplot: 0.55, hud: 1.0 },
     machineColors: {}, machineEdges: true, trackingMode: "none", pathOnTop: false, projection: "parallel",
   });
@@ -412,6 +412,7 @@ const colorFields: { key: keyof ColorDefaults; label: string }[] = [
   { key: "rapid", label: "Fast Feed" },
   { key: "backplot", label: "Backplot" },
   { key: "bounds", label: "Machine Bounds" },
+  { key: "toolpathBounds", label: "Toolpath Bounds" },
   { key: "workpiece", label: "Workpiece" },
   { key: "tool", label: "Tool Shaft" },
   { key: "cutter", label: "Tool Cutter" },

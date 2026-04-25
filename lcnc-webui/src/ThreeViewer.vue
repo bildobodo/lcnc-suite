@@ -290,6 +290,9 @@ let lastBackplotPt: THREE.Vector3 | null = null;
 
 let machineBoundsMesh: THREE.Mesh | null = null;
 let boundsLabels: THREE.Group | null = null;
+let toolpathBoundsBox: THREE.LineSegments | null = null;
+let toolpathBoundsLabels: THREE.Group | null = null;
+let toolpathBoundsVisible = false;
 const _billboardLabels: Text[] = [];
 const _bbQ = new THREE.Quaternion();  // reused for billboard parent compensation
 let workpieceMesh: THREE.Mesh | null = null;
@@ -481,6 +484,11 @@ function setLayerVisible(layer: Layer, on: boolean) {
     case "bounds":
       if (machineBoundsMesh) machineBoundsMesh.visible = on;
       if (boundsLabels) boundsLabels.visible = on;
+      break;
+    case "toolpathBounds":
+      toolpathBoundsVisible = on;
+      if (toolpathBoundsBox) toolpathBoundsBox.visible = on;
+      if (toolpathBoundsLabels) toolpathBoundsLabels.visible = on;
       break;
     case "tool":
       if (toolMarker) toolMarker.visible = on;
@@ -1238,6 +1246,66 @@ function updateOverflowCheck() {
     toolpathBBox.min[2] < bMin2 || toolpathBBox.max[2] > bMax2;
 }
 
+function rebuildToolpathBounds() {
+  if (toolpathBoundsBox) {
+    workRotGroup?.remove(toolpathBoundsBox);
+    disposeObject(toolpathBoundsBox);
+    toolpathBoundsBox = null;
+  }
+  if (toolpathBoundsLabels) {
+    toolpathBoundsLabels.traverse((c: any) => {
+      if (c.dispose) {
+        c.dispose();
+        const i = _billboardLabels.indexOf(c);
+        if (i >= 0) _billboardLabels.splice(i, 1);
+      }
+    });
+    workRotGroup?.remove(toolpathBoundsLabels);
+    toolpathBoundsLabels = null;
+  }
+  if (!toolpathBBox || !workRotGroup) return;
+
+  const sx = toolpathBBox.max[0] - toolpathBBox.min[0];
+  const sy = toolpathBBox.max[1] - toolpathBBox.min[1];
+  const sz = toolpathBBox.max[2] - toolpathBBox.min[2];
+  if (sx <= 0 && sy <= 0 && sz <= 0) return;
+
+  const cx = (toolpathBBox.min[0] + toolpathBBox.max[0]) / 2;
+  const cy = (toolpathBBox.min[1] + toolpathBBox.max[1]) / 2;
+  const cz = (toolpathBBox.min[2] + toolpathBBox.max[2]) / 2;
+
+  const color = viewerDefaults.colors.toolpathBounds ?? "#f5a623";
+  const boxGeom = new THREE.BoxGeometry(Math.max(sx, 0.001), Math.max(sy, 0.001), Math.max(sz, 0.001));
+  const edgeGeom = new THREE.EdgesGeometry(boxGeom);
+  boxGeom.dispose();
+  toolpathBoundsBox = new THREE.LineSegments(
+    edgeGeom,
+    new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.9 })
+  );
+  toolpathBoundsBox.position.set(cx, cy, cz);
+  toolpathBoundsBox.visible = toolpathBoundsVisible;
+  workRotGroup.add(toolpathBoundsBox);
+
+  toolpathBoundsLabels = new THREE.Group();
+  const fs = Math.max(sx, sy, sz) * 0.05;
+  const unit = (viewerInit.value as ViewerInit | null)?.units === "in" ||
+               (viewerInit.value as ViewerInit | null)?.units === "inch" ? "in" : "mm";
+  const ox = toolpathBBox.min[0], oy = toolpathBBox.min[1], oz = toolpathBBox.min[2];
+  const axes: [string, number, THREE.Vector3, string][] = [
+    ["X", sx, new THREE.Vector3(ox + sx / 2, oy, oz), "#ff4444"],
+    ["Y", sy, new THREE.Vector3(ox, oy + sy / 2, oz), "#44ff44"],
+    ["Z", sz, new THREE.Vector3(ox, oy, oz + sz / 2), "#4488ff"],
+  ];
+  for (const [name, size, pos, c] of axes) {
+    const lbl = mkTextLabel(`${name}: ${size.toFixed(0)} ${unit}`, c, fs);
+    lbl.position.copy(pos);
+    toolpathBoundsLabels.add(lbl);
+    _billboardLabels.push(lbl);
+  }
+  toolpathBoundsLabels.visible = toolpathBoundsVisible;
+  workRotGroup.add(toolpathBoundsLabels);
+}
+
 function applyGcode(g: ViewerGcode) {
   if (!scene || !workOrigin) return;
 
@@ -1310,6 +1378,7 @@ function applyGcode(g: ViewerGcode) {
     toolpathBBox = { min: mn, max: mx };
   }
   updateOverflowCheck();
+  rebuildToolpathBounds();
 
   // Apply stored toolpath visibility (may have been set before lines existed)
   if (!toolpathVisible) {
