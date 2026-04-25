@@ -392,7 +392,20 @@ function frameToBounds(box: THREE.Box3) {
 // camera.lookAt() inside controls.update() is degenerate — and OrbitControls
 // also can't compute azimuth, so subsequent dragging snaps. Tilting the
 // position by ~0.06° off-pole sidesteps both issues without visible offset.
-function applyViewDirection(dir: THREE.Vector3, up: THREE.Vector3) {
+const TWEEN_MS = 300;
+const _qStart = new THREE.Quaternion();
+const _qEnd = new THREE.Quaternion();
+const _qNow = new THREE.Quaternion();
+const _backUnit = new THREE.Vector3(0, 0, 1); // camera local +Z (back direction)
+let _tweenRaf = 0;
+let _tweenStart = 0;
+let _tweenDist = 0;
+
+function easeInOutCubic(t: number): number {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+function applyViewDirection(dir: THREE.Vector3, up: THREE.Vector3, animate = true) {
   if (!camera || !controls) return;
   const target = controls.target;
   const dist = camera.position.distanceTo(target);
@@ -403,10 +416,47 @@ function applyViewDirection(dir: THREE.Vector3, up: THREE.Vector3) {
     const perp = perpSeed.cross(upN).normalize();
     dirN.addScaledVector(perp, 0.001).normalize();
   }
-  camera.position.copy(target).addScaledVector(dirN, dist);
+  if (!animate) {
+    camera.position.copy(target).addScaledVector(dirN, dist);
+    camera.up.copy(upN);
+    camera.updateProjectionMatrix();
+    controls.update();
+    return;
+  }
+  // Snap up immediately so OrbitControls' polar axis is consistent during the
+  // tween. Capturing _qStart from the live camera quaternion lets a new tween
+  // pick up smoothly from wherever the in-flight tween currently sits.
   camera.up.copy(upN);
-  camera.updateProjectionMatrix();
-  controls.update();
+  _qStart.copy(camera.quaternion);
+  const endPos = target.clone().addScaledVector(dirN, dist);
+  _qEnd.setFromRotationMatrix(new THREE.Matrix4().lookAt(endPos, target, upN));
+  _tweenStart = performance.now();
+  _tweenDist = dist;
+  controls.enabled = false;
+  if (_tweenRaf) cancelAnimationFrame(_tweenRaf);
+  _tweenRaf = requestAnimationFrame(_tweenStep);
+}
+
+function _tweenStep() {
+  if (!camera || !controls) {
+    _tweenRaf = 0;
+    return;
+  }
+  const t = Math.min(1, (performance.now() - _tweenStart) / TWEEN_MS);
+  _qNow.copy(_qStart).slerp(_qEnd, easeInOutCubic(t));
+  // Position derived from orientation around the orbit target: camera local +Z
+  // (rotated by qNow) is the world-space "back" direction; the camera sits one
+  // distance back from the target.
+  const back = _backUnit.clone().applyQuaternion(_qNow);
+  camera.position.copy(controls.target).addScaledVector(back, _tweenDist);
+  camera.quaternion.copy(_qNow);
+  if (t < 1) {
+    _tweenRaf = requestAnimationFrame(_tweenStep);
+  } else {
+    _tweenRaf = 0;
+    controls.enabled = true;
+    controls.update();
+  }
 }
 
 function setView(p: ViewPreset) {
@@ -1506,7 +1556,12 @@ function animate() {
     }
   }
 
-  controls?.update();
+  // Skip controls.update() while the view tween is in flight: it calls
+  // spherical.makeSafe() which clamps the polar angle, freezing the vertical
+  // component of the rotation before the azimuth finishes — visible at top/
+  // bottom transitions. The tween writes camera.position/quaternion directly
+  // each frame; controls.update() runs once at tween completion to re-sync.
+  if (!_tweenRaf) controls?.update();
   renderer?.render(scene!, camera!);
 
   // Orientation gizmo — always ortho, render into bottom-left viewport
@@ -1627,6 +1682,8 @@ onUnmounted(() => {
   resizeObs?.disconnect();
   resizeObs = null;
   cancelAnimationFrame(raf);
+  if (_tweenRaf) cancelAnimationFrame(_tweenRaf);
+  _tweenRaf = 0;
 
   controls?.dispose();
 
