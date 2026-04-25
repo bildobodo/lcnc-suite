@@ -33,7 +33,7 @@
       <!-- Layers pill -->
       <div class="toolPill">
         <MachineBtn type="tab" :selected="openPill === 'layers'" @click.stop="togglePill('layers')">Layers</MachineBtn>
-        <div class="popover pillPopover" :class="{ open: openPill === 'layers' }" @click.stop>
+        <div class="popover pillPopover layersPopover" :class="{ open: openPill === 'layers' }" @click.stop>
           <div class="popTitle">Layers</div>
           <MachineToggle gate="viewerSetting" v-model="local.backplot" label="Backplot" />
           <MachineToggle gate="viewerSetting" v-model="local.toolpath" label="Toolpath" />
@@ -389,6 +389,18 @@ onMounted(async () => {
 }
 
 .wide {
+  grid-column: 1 / -1;
+}
+
+/* ---- Layers popover: 2-column grid ---- */
+.layersPopover.open {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: var(--gap-controls);
+  row-gap: var(--gap-tight);
+}
+.layersPopover .popTitle,
+.layersPopover .sep {
   grid-column: 1 / -1;
 }
 
