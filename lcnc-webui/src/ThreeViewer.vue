@@ -384,15 +384,26 @@ function frameToBounds(box: THREE.Box3) {
 
 // Generic view-direction setter — places the camera along `dir` from the orbit
 // target at the current distance, with the given `up` vector. Used by both the
-// named-preset setView() wrapper and (later) the ViewCube overlay, which passes
+// named-preset setView() wrapper and the ViewCube overlay, which passes
 // arbitrary directions for edges and corners.
+//
+// Pole nudge: when `dir` is parallel to `up` (e.g. top/bottom view with up=+Z),
+// camera.lookAt() inside controls.update() is degenerate — and OrbitControls
+// also can't compute azimuth, so subsequent dragging snaps. Tilting the
+// position by ~0.06° off-pole sidesteps both issues without visible offset.
 function applyViewDirection(dir: THREE.Vector3, up: THREE.Vector3) {
   if (!camera || !controls) return;
   const target = controls.target;
   const dist = camera.position.distanceTo(target);
-  const offset = dir.clone().normalize().multiplyScalar(dist);
-  camera.position.copy(target).add(offset);
-  camera.up.copy(up);
+  const dirN = dir.clone().normalize();
+  const upN = up.clone().normalize();
+  if (Math.abs(dirN.dot(upN)) > 0.9999) {
+    const perpSeed = Math.abs(upN.x) < 0.9 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0);
+    const perp = perpSeed.cross(upN).normalize();
+    dirN.addScaledVector(perp, 0.001).normalize();
+  }
+  camera.position.copy(target).addScaledVector(dirN, dist);
+  camera.up.copy(upN);
   camera.updateProjectionMatrix();
   controls.update();
 }
@@ -410,8 +421,8 @@ function setView(p: ViewPreset) {
   const up = new THREE.Vector3(0, 0, 1);
 
   switch (p) {
-    case "top":      dir.set(0, 0, 1);      up.set(0, 1, 0); break;
-    case "bottom":   dir.set(0, 0, -1);     up.set(0, -1, 0); break;
+    case "top":      dir.set(0, 0, 1);      break;
+    case "bottom":   dir.set(0, 0, -1);     break;
     case "front":    dir.set(1, 0, 0);      break;
     case "back":     dir.set(-1, 0, 0);     break;
     case "left":     dir.set(0, -1, 0);     break;
@@ -2081,7 +2092,10 @@ defineExpose({
     </div>
 
     <!-- View navigation cube (top-right) -->
-    <ViewCube :get-camera-quaternion="getMainCameraQuaternion" />
+    <ViewCube
+      :get-camera-quaternion="getMainCameraQuaternion"
+      @view-change="applyViewDirection"
+    />
 
   </div>
 </template>

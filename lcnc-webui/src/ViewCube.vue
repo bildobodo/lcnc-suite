@@ -7,6 +7,10 @@ const props = defineProps<{
   getCameraQuaternion: () => THREE.Quaternion | null;
 }>();
 
+const emit = defineEmits<{
+  viewChange: [dir: THREE.Vector3, up: THREE.Vector3];
+}>();
+
 const CANVAS_PX = 140;
 const CUBE_SIZE = 1;
 const CUBE_CAM_DIST = 2.5;
@@ -50,21 +54,27 @@ function makeFaceTexture(label: string): THREE.CanvasTexture {
 function buildCube(): THREE.Group {
   const g = new THREE.Group();
   const half = CUBE_SIZE / 2;
-  const faces: Array<{ label: string; pos: THREE.Vector3; up: THREE.Vector3 }> = [
-    { label: "FRONT",  pos: new THREE.Vector3(+half, 0, 0), up: new THREE.Vector3(0, 0, 1) },
-    { label: "BACK",   pos: new THREE.Vector3(-half, 0, 0), up: new THREE.Vector3(0, 0, 1) },
-    { label: "RIGHT",  pos: new THREE.Vector3(0, +half, 0), up: new THREE.Vector3(0, 0, 1) },
-    { label: "LEFT",   pos: new THREE.Vector3(0, -half, 0), up: new THREE.Vector3(0, 0, 1) },
-    { label: "TOP",    pos: new THREE.Vector3(0, 0, +half), up: new THREE.Vector3(0, 1, 0) },
-    { label: "BOTTOM", pos: new THREE.Vector3(0, 0, -half), up: new THREE.Vector3(0, -1, 0) },
+  // Visual `up` (per-face, used to orient the texture) vs. camera `up` after
+  // the click (always world-Z so OrbitControls keeps the natural CNC turntable
+  // axis; the parent's applyViewDirection nudges off-pole to dodge gimbal lock).
+  const VIEW_UP = new THREE.Vector3(0, 0, 1);
+  const faces: Array<{ label: string; pos: THREE.Vector3; visualUp: THREE.Vector3 }> = [
+    { label: "FRONT",  pos: new THREE.Vector3(+half, 0, 0), visualUp: new THREE.Vector3(0, 0, 1) },
+    { label: "BACK",   pos: new THREE.Vector3(-half, 0, 0), visualUp: new THREE.Vector3(0, 0, 1) },
+    { label: "RIGHT",  pos: new THREE.Vector3(0, +half, 0), visualUp: new THREE.Vector3(0, 0, 1) },
+    { label: "LEFT",   pos: new THREE.Vector3(0, -half, 0), visualUp: new THREE.Vector3(0, 0, 1) },
+    { label: "TOP",    pos: new THREE.Vector3(0, 0, +half), visualUp: new THREE.Vector3(0, 1, 0) },
+    { label: "BOTTOM", pos: new THREE.Vector3(0, 0, -half), visualUp: new THREE.Vector3(0, -1, 0) },
   ];
   for (const f of faces) {
     const geom = new THREE.PlaneGeometry(CUBE_SIZE * 0.96, CUBE_SIZE * 0.96);
     const mat = new THREE.MeshBasicMaterial({ map: makeFaceTexture(f.label) });
     const m = new THREE.Mesh(geom, mat);
     m.position.copy(f.pos);
-    m.up.copy(f.up);
+    m.up.copy(f.visualUp);
     m.lookAt(f.pos.clone().multiplyScalar(2));
+    m.userData.viewDir = f.pos.clone().normalize();
+    m.userData.viewUp = VIEW_UP.clone();
     g.add(m);
   }
   const wire = new THREE.LineSegments(
@@ -73,6 +83,25 @@ function buildCube(): THREE.Group {
   );
   g.add(wire);
   return g;
+}
+
+const raycaster = new THREE.Raycaster();
+const pointerNDC = new THREE.Vector2();
+
+function onClick(e: MouseEvent) {
+  if (!cam || !cubeRoot || !canvasRef.value) return;
+  const rect = canvasRef.value.getBoundingClientRect();
+  pointerNDC.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  pointerNDC.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(pointerNDC, cam);
+  const hits = raycaster.intersectObjects(cubeRoot.children, false);
+  for (const hit of hits) {
+    const ud = hit.object.userData as { viewDir?: THREE.Vector3; viewUp?: THREE.Vector3 };
+    if (ud.viewDir && ud.viewUp) {
+      emit("viewChange", ud.viewDir.clone(), ud.viewUp.clone());
+      return;
+    }
+  }
 }
 
 function tick() {
@@ -128,7 +157,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <canvas ref="canvasRef" class="viewCube" />
+  <canvas ref="canvasRef" class="viewCube" @click="onClick" />
 </template>
 
 <style scoped>
@@ -139,6 +168,6 @@ onBeforeUnmount(() => {
   right: 12px;
   width: 140px;
   height: 140px;
-  pointer-events: none;
+  cursor: pointer;
 }
 </style>
