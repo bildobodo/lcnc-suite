@@ -62,6 +62,7 @@ export interface TimingStats {
   parse: TimingComponentStats;
   overhead: TimingComponentStats;
   encode: TimingComponentStats;   // server: wire-format encode time per status msg
+  sharedEncode: TimingComponentStats; // server: one-per-tick shared msgpack encode (fan-out optimization)
   decode: TimingComponentStats;   // client: JSON.parse / msgpack.decode per message
   ws_bytes: TimingComponentStats; // server: encoded payload size (bytes)
   count: number;
@@ -71,10 +72,10 @@ export const timingStats = ref<TimingStats | null>(null);
 
 const TIMING_MAX_SAMPLES = 300;
 
-type TimingKey = "rt" | "network" | "server" | "cycle" | "poll" | "errors" | "parse" | "overhead" | "encode" | "decode" | "ws_bytes";
+type TimingKey = "rt" | "network" | "server" | "cycle" | "poll" | "errors" | "parse" | "overhead" | "encode" | "sharedEncode" | "decode" | "ws_bytes";
 const _timingSamples: Record<TimingKey, number[]> = {
   rt: [], network: [], server: [], cycle: [], poll: [], errors: [], parse: [], overhead: [],
-  encode: [], decode: [], ws_bytes: [],
+  encode: [], sharedEncode: [], decode: [], ws_bytes: [],
 };
 
 function _computeComponentStats(arr: number[]): TimingComponentStats {
@@ -106,7 +107,7 @@ function _pushSample(key: TimingKey, value: number) {
 }
 
 function _recomputeTimingStats() {
-  const keys: TimingKey[] = ["rt", "network", "server", "cycle", "poll", "errors", "parse", "overhead", "encode", "decode", "ws_bytes"];
+  const keys: TimingKey[] = ["rt", "network", "server", "cycle", "poll", "errors", "parse", "overhead", "encode", "sharedEncode", "decode", "ws_bytes"];
   const stats = {} as Record<TimingKey, TimingComponentStats>;
   for (const k of keys) stats[k] = _computeComponentStats(_timingSamples[k]);
   timingStats.value = { ...stats, count: _timingSamples.rt.length };
@@ -118,7 +119,7 @@ export function resetTimingStats() {
 }
 
 export function getTimingCsv(): string {
-  const keys: TimingKey[] = ["rt", "network", "server", "cycle", "poll", "errors", "parse", "overhead", "encode", "decode", "ws_bytes"];
+  const keys: TimingKey[] = ["rt", "network", "server", "cycle", "poll", "errors", "parse", "overhead", "encode", "sharedEncode", "decode", "ws_bytes"];
   const maxLen = Math.max(...keys.map(k => _timingSamples[k].length));
   const lines = [keys.join(",")];
   for (let i = 0; i < maxLen; i++) {
@@ -352,6 +353,7 @@ export function connectWs() {
         if (t.parse_ms != null) _pushSample("parse", t.parse_ms);
         if (t.overhead_ms != null) _pushSample("overhead", t.overhead_ms);
         if (t.encode_ms != null) _pushSample("encode", t.encode_ms);
+        if (t.shared_encode_ms != null) _pushSample("sharedEncode", t.shared_encode_ms);
         _recomputeTimingStats();
       }
 

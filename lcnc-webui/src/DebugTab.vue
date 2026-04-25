@@ -30,9 +30,10 @@ const timingComponents: { key: keyof Omit<import("./lcncWs").TimingStats, "count
   { key: "errors",    label: "\u2003Errors" },
   { key: "parse",     label: "\u2003Parse" },
   { key: "overhead",  label: "\u2003Overhead" },
-  { key: "encode",    label: "Encode (server)" },
-  { key: "decode",    label: "Decode (client)" },
-  { key: "ws_bytes",  label: "WS bytes",      unit: "" },
+  { key: "encode",       label: "Encode (server)" },
+  { key: "sharedEncode", label: " Shared" },
+  { key: "decode",       label: "Decode (client)" },
+  { key: "ws_bytes",     label: "WS bytes",      unit: "" },
 ];
 </script>
 

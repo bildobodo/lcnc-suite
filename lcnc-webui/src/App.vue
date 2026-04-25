@@ -368,11 +368,14 @@ const st = computed<Record<string, any>>(() => {
 });
 const connectedClients = computed<{ip: string, armed: boolean}[]>(() => status.value?.clients ?? []);
 
+// INI/static machine config — delivered once in viewer_init, not per-tick.
+const ini = computed<Record<string, any>>(() => viewerInit.value?.ini_config ?? {});
+
 // LinuxCNC config name from INI path (e.g. "/home/cnc/.../my-mill/my-mill.ini" → "my-mill")
 const configName = computed(() => {
-  const ini = st.value.ini_filename;
-  if (!ini) return null;
-  const parts = ini.replace(/\\/g, "/").split("/");
+  const iniFile = ini.value.ini_filename;
+  if (!iniFile) return null;
+  const parts = iniFile.replace(/\\/g, "/").split("/");
   // Use parent folder name (the config directory)
   return parts.length >= 2 ? parts[parts.length - 2] : parts[parts.length - 1];
 });
@@ -576,67 +579,67 @@ function setOverridePreset(type: "feed" | "spindle" | "rapid", percent: number) 
 }
 
 // Machine native unit (from INI [TRAJ]LINEAR_UNITS — static, not affected by G20/G21)
-const linearUnit = computed(() => st.value.linear_units ?? "mm");
+const linearUnit = computed(() => ini.value.linear_units ?? "mm");
 
 // Max jog velocity from INI [DISPLAY]MAX_LINEAR_VELOCITY (u/s)
 const maxJogVel = computed(() => {
-  const v = st.value.max_jog_velocity ?? st.value.max_velocity;
+  const v = ini.value.max_jog_velocity ?? ini.value.max_velocity;
   return (v != null && Number.isFinite(v) && v > 0) ? v : 50;
 });
 
 // INI config: jog
 const defaultJogVel = computed(() => {
-  const v = st.value.default_jog_velocity;
+  const v = ini.value.default_jog_velocity;
   return (v != null && Number.isFinite(v) && v > 0) ? v : 10;
 });
 const minJogVel = computed(() => {
-  const v = st.value.min_jog_velocity;
+  const v = ini.value.min_jog_velocity;
   return (v != null && Number.isFinite(v) && v > 0) ? v : 0.1;
 });
 // Angular (rotary) jog velocity from INI [DISPLAY]
 const defaultAngularJogVel = computed(() => {
-  const v = st.value.default_angular_jog_velocity;
+  const v = ini.value.default_angular_jog_velocity;
   return (v != null && Number.isFinite(v) && v > 0) ? v : 10;
 });
 const maxAngularJogVel = computed(() => {
-  const v = st.value.max_angular_jog_velocity;
+  const v = ini.value.max_angular_jog_velocity;
   return (v != null && Number.isFinite(v) && v > 0) ? v : 50;
 });
 const minAngularJogVel = computed(() => {
-  const v = st.value.min_angular_jog_velocity;
+  const v = ini.value.min_angular_jog_velocity;
   return (v != null && Number.isFinite(v) && v > 0) ? v : 0.1;
 });
 
 const iniIncrements = computed<number[] | null>(() => {
-  const v = st.value.increments;
+  const v = ini.value.increments;
   return Array.isArray(v) && v.length > 0 ? v : null;
 });
 
 // INI config: spindle
 const defaultSpindleSpeed = computed(() => {
-  const v = st.value.default_spindle_speed;
+  const v = ini.value.default_spindle_speed;
   return (v != null && Number.isFinite(v) && v > 0) ? v : 1000;
 });
 const minSpindleSpeed = computed(() => {
-  const v = st.value.min_spindle_speed;
+  const v = ini.value.min_spindle_speed;
   return (v != null && Number.isFinite(v) && v >= 0) ? v : 0;
 });
 const maxSpindleSpeed = computed(() => {
-  const v = st.value.max_spindle_speed;
+  const v = ini.value.max_spindle_speed;
   return (v != null && Number.isFinite(v) && v > 0) ? v : 99999;
 });
 
 // INI config: overrides (INI 0-1 fractions → percentage integers)
 const minSpindleOverride = computed(() => {
-  const v = st.value.min_spindle_override;
+  const v = ini.value.min_spindle_override;
   return (v != null && Number.isFinite(v)) ? Math.round(v * 100) : 50;
 });
 const maxSpindleOverride = computed(() => {
-  const v = st.value.max_spindle_override;
+  const v = ini.value.max_spindle_override;
   return (v != null && Number.isFinite(v)) ? Math.round(v * 100) : 200;
 });
 const maxFeedOverride = computed(() => {
-  const v = st.value.max_feed_override;
+  const v = ini.value.max_feed_override;
   return (v != null && Number.isFinite(v)) ? Math.round(v * 100) : 200;
 });
 
@@ -1475,7 +1478,7 @@ watch(viewerGcode, (newGcode) => {
               <ToolTablePanel
                 ref="toolTableRef"
                 :currentTool="st.tool_number ?? null"
-                :iniFilename="st.ini_filename ?? null"
+                :iniFilename="ini.ini_filename ?? null"
                 hideHeader
               />
             </div>

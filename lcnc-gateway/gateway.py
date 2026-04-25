@@ -392,6 +392,12 @@ def _start_heartbeat():
 
 _shared_status: Optional["StatusPayload"] = None
 _shared_status_dict: Optional[dict] = None  # cached asdict(_shared_status)
+# Pre-encoded msgpack bytes of _shared_status_dict. When the wire format is
+# msgpack and no per-client mutation applies (tool_meta injection, delta), each
+# client's envelope encode splices these bytes verbatim via msgspec.Raw — one
+# encode per tick instead of one per client. None when JSON wire format or
+# when the poller has not run yet.
+_shared_status_data_msgpack: Optional[bytes] = None
 _shared_errors: list = []
 _shared_probe_updates: dict = {}
 _shared_timing: dict = {}  # poll_ms, errors_ms, parse_ms, poller_ts
@@ -454,7 +460,6 @@ _status_tick_stats: Dict[str, Any] = {
     "gen": 0, "tick_start": 0.0, "expected": 0, "done": 0,
     "encode_sum": 0.0, "send_sum": 0.0, "send_max": 0.0,
 }
-_status_tick_ctr: int = 0  # log every N ticks even when not tripping threshold
 
 # Serializes all CMD.* access. The LinuxCNC NML command channel is not
 # thread-safe; concurrent handle_command coroutines with >=2 clients
@@ -746,6 +751,17 @@ async def _status_poller():
             # Cache results for per-client loops
             _shared_status = st
             _shared_status_dict = status_dict
+            # Pre-encode the shared `data` dict into msgpack bytes once per
+            # tick so each client's envelope encode can splice via msgspec.Raw
+            # instead of re-encoding the identical payload N times. JSON wire
+            # format has no Raw-splice primitive, so we skip there.
+            if _WIRE_FORMAT == "msgpack":
+                _t_enc = time.monotonic()
+                _shared_status_data_msgpack = _msgpack_encoder.encode(status_dict)
+                shared_encode_ms = round((time.monotonic() - _t_enc) * 1000, 2)
+            else:
+                _shared_status_data_msgpack = None
+                shared_encode_ms = 0.0
             _shared_clients_list = [
                 {"ip": c["ip"], "armed": c["armed"]} for c in _clients.values()
             ]
@@ -764,21 +780,15 @@ async def _status_poller():
                 "poll_ms": poll_ms,
                 "errors_ms": errors_ms,
                 "parse_ms": parse_ms,
+                "shared_encode_ms": shared_encode_ms,
                 "poller_ts": t3,
             }
-            # Snapshot prior tick's aggregate before rolling gen. Log when
-            # wall or send time is interesting, or every ~2s baseline.
-            global _status_tick_ctr
+            # Snapshot prior tick's aggregate before rolling gen. Silent under
+            # normal load — only logs when a tick looks stall-adjacent.
             _s = _status_tick_stats
             if _s["expected"] > 0:
                 _wall_ms = (time.monotonic() - _s["tick_start"]) * 1000
-                _status_tick_ctr += 1
-                if (
-                    _wall_ms > 50
-                    or _s["send_max"] > 20
-                    or _status_tick_ctr >= 60
-                ):
-                    _status_tick_ctr = 0
+                if _wall_ms > 50 or _s["send_max"] > 20:
                     print(
                         f"[STATUS] tick gen={_s['gen']} "
                         f"clients={_s['done']}/{_s['expected']} "
@@ -1471,8 +1481,6 @@ class StatusPayload:
     optional_stop: Optional[bool]          # optional stop (M1) switch
     feed_hold_enabled: Optional[bool]      # feed hold allowed
     adaptive_feed_enabled: Optional[bool]  # adaptive feed active
-    max_velocity: Optional[float]
-    max_jog_velocity: Optional[float]
     current_vel: Optional[float]
     spindle_speed: Optional[float]       # commanded (S word)
     spindle_speed_actual: Optional[float] # after override
@@ -1480,7 +1488,6 @@ class StatusPayload:
     spindle_direction: Optional[int]
     active_file: Optional[str]
     motion_line: Optional[int]
-    ini_filename: Optional[str]
 
     # active modal codes
     gcodes: Optional[List[int]]
@@ -1511,22 +1518,6 @@ class StatusPayload:
     # coolant
     flood: Optional[bool]
     mist: Optional[bool]
-
-    # INI config (static, cached)
-    linear_units: Optional[str] = None  # "mm" or "in" — machine native units from [TRAJ]LINEAR_UNITS
-    default_jog_velocity: Optional[float] = None
-    min_jog_velocity: Optional[float] = None
-    max_angular_jog_velocity: Optional[float] = None
-    default_angular_jog_velocity: Optional[float] = None
-    min_angular_jog_velocity: Optional[float] = None
-    increments: Optional[List[float]] = None
-    default_spindle_speed: Optional[float] = None
-    min_spindle_override: Optional[float] = None
-    max_spindle_override: Optional[float] = None
-    max_feed_override: Optional[float] = None
-    max_spindle_speed: Optional[float] = None
-    min_spindle_speed: Optional[float] = None
-    debug: Optional[bool] = None
 
 
 
@@ -2000,7 +1991,6 @@ def poll_status() -> StatusPayload:
                 print(f"[TOOLCHANGE] info lookup failed for T{tool_change_tool}: {type(e).__name__}: {e}", flush=True)
 
     spindle_ovr = get_spindle_override()
-    ini_cfg = get_ini_config()
 
     return StatusPayload(
         ts=time.time(),
@@ -2038,8 +2028,6 @@ def poll_status() -> StatusPayload:
         optional_stop=bool(safe_get("optional_stop", 0)),
         feed_hold_enabled=bool(safe_get("feed_hold_enabled", 0)),
         adaptive_feed_enabled=bool(safe_get("adaptive_feed_enabled", 0)),
-        max_velocity=safe_get("max_velocity", None),
-        max_jog_velocity=get_max_jog_velocity(),
         current_vel=current_vel,
         spindle_speed=spindle_speed,
         spindle_speed_actual=_hal_fast('spindle-speed-in', 0) * _fb_scale,
@@ -2047,7 +2035,6 @@ def poll_status() -> StatusPayload:
         spindle_direction=spindle_direction,
         active_file=safe_get("file", None),
         motion_line=safe_get("motion_line", None),
-        ini_filename=safe_get("ini_filename", None),
         gcodes=to_float_list(safe_get("gcodes", None)),
         mcodes=to_float_list(safe_get("mcodes", None)),
         tool_number=tool_number,
@@ -2066,20 +2053,6 @@ def poll_status() -> StatusPayload:
         eoffset_enabled=bool(_hal_fast("z-eoffset-enable", False)),
         comp_method=_hal_fast("comp-method", None),
         comp_grid_version=_hal_fast("comp-grid-ver", None),
-        linear_units=ini_cfg.get("linear_units"),
-        default_jog_velocity=ini_cfg.get("default_jog_velocity"),
-        min_jog_velocity=ini_cfg.get("min_jog_velocity"),
-        max_angular_jog_velocity=ini_cfg.get("max_angular_jog_velocity"),
-        default_angular_jog_velocity=ini_cfg.get("default_angular_jog_velocity"),
-        min_angular_jog_velocity=ini_cfg.get("min_angular_jog_velocity"),
-        increments=ini_cfg.get("increments"),
-        default_spindle_speed=ini_cfg.get("default_spindle_speed"),
-        min_spindle_override=ini_cfg.get("min_spindle_override"),
-        max_spindle_override=ini_cfg.get("max_spindle_override"),
-        max_feed_override=ini_cfg.get("max_feed_override"),
-        max_spindle_speed=ini_cfg.get("max_spindle_speed"),
-        min_spindle_speed=ini_cfg.get("min_spindle_speed"),
-        debug=ini_cfg.get("debug", False),
     )
 
 
@@ -3037,6 +3010,30 @@ def build_viewer_init(stl_base_url: str) -> Dict[str, Any]:
             "rotate": p.get("rotate"),
         })
 
+    # INI/static fields — delivered once per connect so the per-tick status
+    # payload doesn't re-ship them to every client every cycle.
+    ini_cfg = get_ini_config()
+    ini_filename = getattr(STAT, "ini_filename", None) if STAT else None
+    ini_config = {
+        "ini_filename": ini_filename,
+        "linear_units": ini_cfg.get("linear_units"),
+        "max_velocity": safe_get("max_velocity", None),
+        "max_jog_velocity": get_max_jog_velocity(),
+        "default_jog_velocity": ini_cfg.get("default_jog_velocity"),
+        "min_jog_velocity": ini_cfg.get("min_jog_velocity"),
+        "max_angular_jog_velocity": ini_cfg.get("max_angular_jog_velocity"),
+        "default_angular_jog_velocity": ini_cfg.get("default_angular_jog_velocity"),
+        "min_angular_jog_velocity": ini_cfg.get("min_angular_jog_velocity"),
+        "increments": ini_cfg.get("increments"),
+        "default_spindle_speed": ini_cfg.get("default_spindle_speed"),
+        "min_spindle_speed": ini_cfg.get("min_spindle_speed"),
+        "max_spindle_speed": ini_cfg.get("max_spindle_speed"),
+        "min_spindle_override": ini_cfg.get("min_spindle_override"),
+        "max_spindle_override": ini_cfg.get("max_spindle_override"),
+        "max_feed_override": ini_cfg.get("max_feed_override"),
+        "debug": ini_cfg.get("debug", False),
+    }
+
     return {
         "units": units,
         "stl_base_url": stl_base_url,
@@ -3050,6 +3047,7 @@ def build_viewer_init(stl_base_url: str) -> Dict[str, Any]:
         "kinematics": MACHINE_CFG.get("kinematics", []),
         "workGroup": MACHINE_CFG.get("workGroup"),
         "toolGroup": MACHINE_CFG.get("toolGroup"),
+        "ini_config": ini_config,
     }
 
 
@@ -3606,18 +3604,18 @@ def get_gcode(path: str):
     if ext.lower() not in ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=400, detail="Invalid extension")
     t_start = time.monotonic()
-    inflight = _fanout_enter("gcode")
+    peak = _fanout_enter("gcode")
     try:
-        size = os.path.getsize(abs_path)
-        print(f"[FANOUT] gcode start inflight={inflight} bytes={size}B file={os.path.basename(abs_path)}", flush=True)
         return FileResponse(abs_path, media_type="text/plain")
     finally:
-        remaining = _fanout_exit("gcode")
-        print(
-            f"[FANOUT] gcode done handler_ms={(time.monotonic() - t_start)*1000:.0f} "
-            f"inflight={remaining}",
-            flush=True,
-        )
+        _fanout_exit("gcode")
+        handler_ms = (time.monotonic() - t_start) * 1000
+        if peak > 1 or handler_ms > 50:
+            print(
+                f"[FANOUT] gcode peak={peak} handler_ms={handler_ms:.0f} "
+                f"bytes={os.path.getsize(abs_path)}B file={os.path.basename(abs_path)}",
+                flush=True,
+            )
 
 
 @app.get("/preview")
@@ -3632,9 +3630,8 @@ def get_preview(v: Optional[int] = None):
     if _gcode_preview_bytes is None:
         raise HTTPException(status_code=404, detail="No preview cached")
     t_start = time.monotonic()
-    inflight = _fanout_enter("preview")
+    peak = _fanout_enter("preview")
     try:
-        print(f"[FANOUT] preview start inflight={inflight} bytes={len(_gcode_preview_bytes)}B v={_gcode_preview_version}", flush=True)
         return Response(
             content=_gcode_preview_bytes,
             media_type="application/x-msgpack",
@@ -3644,12 +3641,14 @@ def get_preview(v: Optional[int] = None):
             },
         )
     finally:
-        remaining = _fanout_exit("preview")
-        print(
-            f"[FANOUT] preview done handler_ms={(time.monotonic() - t_start)*1000:.0f} "
-            f"inflight={remaining}",
-            flush=True,
-        )
+        _fanout_exit("preview")
+        handler_ms = (time.monotonic() - t_start) * 1000
+        if peak > 1 or handler_ms > 50:
+            print(
+                f"[FANOUT] preview peak={peak} handler_ms={handler_ms:.0f} "
+                f"bytes={len(_gcode_preview_bytes)}B v={_gcode_preview_version}",
+                flush=True,
+            )
 
 
 @app.get("/surface_points")
@@ -3663,9 +3662,8 @@ def get_surface_points(v: Optional[int] = None):
     if _surface_points_bytes is None:
         raise HTTPException(status_code=404, detail="No surface data")
     t_start = time.monotonic()
-    inflight = _fanout_enter("surface_points")
+    peak = _fanout_enter("surface_points")
     try:
-        print(f"[FANOUT] surface_points start inflight={inflight} bytes={len(_surface_points_bytes)}B v={_surface_points_version}", flush=True)
         return Response(
             content=_surface_points_bytes,
             media_type="application/x-msgpack",
@@ -3675,12 +3673,14 @@ def get_surface_points(v: Optional[int] = None):
             },
         )
     finally:
-        remaining = _fanout_exit("surface_points")
-        print(
-            f"[FANOUT] surface_points done handler_ms={(time.monotonic() - t_start)*1000:.0f} "
-            f"inflight={remaining}",
-            flush=True,
-        )
+        _fanout_exit("surface_points")
+        handler_ms = (time.monotonic() - t_start) * 1000
+        if peak > 1 or handler_ms > 50:
+            print(
+                f"[FANOUT] surface_points peak={peak} handler_ms={handler_ms:.0f} "
+                f"bytes={len(_surface_points_bytes)}B v={_surface_points_version}",
+                flush=True,
+            )
 
 
 @app.get("/comp_grid")
@@ -3693,9 +3693,8 @@ def get_comp_grid(v: Optional[int] = None):
     if _comp_grid_bytes is None:
         raise HTTPException(status_code=404, detail="No comp grid")
     t_start = time.monotonic()
-    inflight = _fanout_enter("comp_grid")
+    peak = _fanout_enter("comp_grid")
     try:
-        print(f"[FANOUT] comp_grid start inflight={inflight} bytes={len(_comp_grid_bytes)}B v={_comp_grid_version}", flush=True)
         return Response(
             content=_comp_grid_bytes,
             media_type="application/x-msgpack",
@@ -3705,12 +3704,14 @@ def get_comp_grid(v: Optional[int] = None):
             },
         )
     finally:
-        remaining = _fanout_exit("comp_grid")
-        print(
-            f"[FANOUT] comp_grid done handler_ms={(time.monotonic() - t_start)*1000:.0f} "
-            f"inflight={remaining}",
-            flush=True,
-        )
+        _fanout_exit("comp_grid")
+        handler_ms = (time.monotonic() - t_start) * 1000
+        if peak > 1 or handler_ms > 50:
+            print(
+                f"[FANOUT] comp_grid peak={peak} handler_ms={handler_ms:.0f} "
+                f"bytes={len(_comp_grid_bytes)}B v={_comp_grid_version}",
+                flush=True,
+            )
 
 
 # ---------- HAL viewer ----------
@@ -4013,9 +4014,24 @@ async def ws_endpoint(ws: WebSocket):
                 if _shared_probe_updates:
                     _probe_results.update(_shared_probe_updates)
 
-                # Build status message — use cached asdict + clients snapshot
-                # from poller (O(1) ref copy vs. rebuilding per client).
-                status_data = _shared_status_dict.copy() if _shared_status_dict else asdict(st)
+                # Build status message. When the wire format is msgpack, no
+                # delta is active, and this tick has no per-client data
+                # mutation (tool_meta), splice the poller's pre-encoded bytes
+                # via msgspec.Raw instead of re-encoding an identical dict for
+                # each client. Otherwise fall back to the legacy path — copy
+                # the shared dict, optionally mutate, and let ws_send_measured
+                # encode per client.
+                _tool_meta_tick = (st.tool_number != _prev_tool_num or _tool_meta_dirty)
+                _use_shared = (
+                    _WIRE_FORMAT == "msgpack"
+                    and not _STATUS_DELTA_ENABLED
+                    and not _tool_meta_tick
+                    and _shared_status_data_msgpack is not None
+                )
+                if _use_shared:
+                    status_data: Any = _msgspec.Raw(_shared_status_data_msgpack)
+                else:
+                    status_data = _shared_status_dict.copy() if _shared_status_dict else asdict(st)
                 status_msg: dict = {
                     "type": "status",
                     "data": status_data,
@@ -4028,8 +4044,10 @@ async def ws_endpoint(ws: WebSocket):
                 if _probe_results:
                     status_msg["probe_results"] = _probe_results
 
-                # Inject tool_meta on tool_number change or library edit (for 3D rendering)
-                if st.tool_number != _prev_tool_num or _tool_meta_dirty:
+                # Inject tool_meta on tool_number change or library edit (for
+                # 3D rendering). status_msg["data"] is guaranteed to be a dict
+                # here — shared-encode path excludes tool_meta ticks.
+                if _tool_meta_tick:
                     _prev_tool_num = st.tool_number
                     _tool_meta_dirty = False
                     if st.tool_number is not None:
@@ -4080,6 +4098,12 @@ async def ws_endpoint(ws: WebSocket):
                         "errors_ms": _shared_timing.get("errors_ms", 0),
                         "parse_ms": _shared_timing.get("parse_ms", 0),
                         "overhead_ms": _shared_timing.get("overhead_ms", 0),
+                        # shared_encode_ms: cost of the poller's one-per-tick
+                        # msgpack pre-encode that each client's envelope
+                        # splices via msgspec.Raw. Keeps the Debug tab honest
+                        # — per-client encode_ms drops to envelope-only when
+                        # shared-encode is active, masking the shared cost.
+                        "shared_encode_ms": _shared_timing.get("shared_encode_ms", 0),
                         # Prior-cycle encode time (status_msg built before the
                         # encode happens → we attach the last known value).
                         # ws_bytes is measured client-side from the received frame.
