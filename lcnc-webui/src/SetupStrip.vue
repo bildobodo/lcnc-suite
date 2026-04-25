@@ -60,9 +60,9 @@ function updateTouchoff(axis: number, val: number) {
         <template v-if="!hasSecondCol">
           <MachineBtn type="zero" class="spanAll" @click="emit('setAll', [...touchoff])">Set All</MachineBtn>
           <MachineBtn :type="isHomed ? 'unhome' : 'home'" class="spanAll" @click="isHomed ? emit('unhomeAll') : emit('homeAll')"><span class="stable-width"><span :class="{ alt: isHomed }">Home All</span><span :class="{ alt: !isHomed }">Unhome</span></span></MachineBtn>
-          <MachineBtn type="goTo" @click="emit('goToG30')">G30</MachineBtn>
-          <MachineBtn type="goTo" @click="emit('goToHome')">Home Pos</MachineBtn>
-          <MachineBtn type="goTo" @click="emit('goToZero')">Zero</MachineBtn>
+          <MachineBtn type="goTo" @click="emit('goToG30')">→ G30</MachineBtn>
+          <MachineBtn type="goTo" @click="emit('goToHome')">→ Home</MachineBtn>
+          <MachineBtn type="goTo" @click="emit('goToZero')">→ Zero</MachineBtn>
         </template>
       </div>
 
@@ -75,9 +75,9 @@ function updateTouchoff(axis: number, val: number) {
         </template>
         <MachineBtn type="zero" class="spanAll" @click="emit('setAll', [...touchoff])">Set All</MachineBtn>
         <MachineBtn :type="isHomed ? 'unhome' : 'home'" class="spanAll" @click="isHomed ? emit('unhomeAll') : emit('homeAll')"><span class="stable-width"><span :class="{ alt: isHomed }">Home All</span><span :class="{ alt: !isHomed }">Unhome</span></span></MachineBtn>
-        <MachineBtn type="goTo" @click="emit('goToG30')">G30</MachineBtn>
-        <MachineBtn type="goTo" @click="emit('goToHome')">Home Pos</MachineBtn>
-        <MachineBtn type="goTo" @click="emit('goToZero')">Zero</MachineBtn>
+        <MachineBtn type="goTo" @click="emit('goToG30')">→ G30</MachineBtn>
+        <MachineBtn type="goTo" @click="emit('goToHome')">→ Home</MachineBtn>
+        <MachineBtn type="goTo" @click="emit('goToZero')">→ Zero</MachineBtn>
       </div>
 
       <div class="wcsCol stack-tight strip-radio-group">
