@@ -61,7 +61,7 @@ function addMacro() {
 }
 
 function editMacro(m: MacroDef) {
-  editingMacro.value = JSON.parse(JSON.stringify(m));
+  editingMacro.value = { ...m, params: m.params.map(p => ({ ...p })) };
 }
 
 function saveMacro() {

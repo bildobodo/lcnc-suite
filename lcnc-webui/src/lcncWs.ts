@@ -11,7 +11,17 @@ export interface LcncMessage {
 }
 
 export const connected = ref(false);
-export const status = shallowRef<any>(null);
+
+export interface WsStatus {
+  data?: Record<string, any>;
+  clients?: { ip: string; armed: boolean }[];
+  surface_points?: [number, number, number][];
+  comp_grid?: any;
+  probe_results?: Record<string, number>;
+  type?: string;
+  timing?: any;
+}
+export const status = shallowRef<WsStatus | null>(null);
 export const lastReply = ref<any>(null);
 export const lcncError = ref<string | null>(null);
 export const armed = ref(false);        // server-authoritative — driven by gateway messages
@@ -195,7 +205,6 @@ function _fetchBulk(
   getAbort: () => AbortController | null,
   setAbort: (ac: AbortController | null) => void,
   apply: (data: any) => void,
-  label: string,
 ) {
   if (version === getLast()) return;
   setLast(version);
@@ -216,7 +225,6 @@ function _fetchBulk(
         if (getLast() === version) setLast(-1);  // let next bump retry
       }
     });
-  void label;
 }
 
 function _applyGcodeFile(nextFile: string | null) {
@@ -243,7 +251,7 @@ function _applyGcodeFile(nextFile: string | null) {
     });
 }
 
-function _fetchPreview(version: number, file: string | null) {
+function _fetchPreview(version: number) {
   if (version === _previewLastVersion) return;
   _previewLastVersion = version;
   if (_previewFetchAbort) { _previewFetchAbort.abort(); _previewFetchAbort = null; }
@@ -263,8 +271,6 @@ function _fetchPreview(version: number, file: string | null) {
         if (_previewLastVersion === version) _previewLastVersion = -1;
       }
     });
-  // file param kept for forward-compat / debugging; not used for path choice.
-  void file;
 }
 
 let _nextMsgId = _stored.length > 0 ? Math.max(..._stored.map(m => m.id)) + 1 : 1;
@@ -462,7 +468,7 @@ export function connectWs() {
       // writer and stall the heartbeat loop. `version` is a cache-buster.
       const version: number = msg.version ?? 0;
       const file: string | null = msg.file ?? null;
-      _fetchPreview(version, file);
+      _fetchPreview(version);
       _applyGcodeFile(file);
     } else if (msg.type === "surface_points_ready") {
       _fetchBulk(
@@ -470,7 +476,6 @@ export function connectWs() {
         () => _surfaceLastVersion, v => { _surfaceLastVersion = v; },
         () => _surfaceFetchAbort, ac => { _surfaceFetchAbort = ac; },
         data => { status.value = { ...(status.value ?? {}), surface_points: data }; },
-        "surface_points",
       );
     } else if (msg.type === "comp_grid_ready") {
       _fetchBulk(
@@ -478,7 +483,6 @@ export function connectWs() {
         () => _compGridLastVersion, v => { _compGridLastVersion = v; },
         () => _compGridFetchAbort, ac => { _compGridFetchAbort = ac; },
         data => { status.value = { ...(status.value ?? {}), comp_grid: data }; },
-        "comp_grid",
       );
     } else if (msg.type === "settings_changed" || msg.type === "settings_init") {
       updateServerCache(msg.settings);

@@ -282,10 +282,7 @@ def _hal_connect_monitor_pin(source_pin: str, local_pin: str):
 def _hal_fast(local_pin: str, default=None):
     """Read HAL pin from webui-monitor component. Returns default if not wired."""
     if _hal_comp is not None and local_pin in _hal_connected_pins:
-        try:
-            return _hal_comp[local_pin]
-        except Exception:
-            pass
+        return _hal_comp[local_pin]
     return default
 
 
@@ -297,7 +294,7 @@ def _hal_send(msg: dict):
     if _hal_sock is not None:
         try:
             _hal_sock.sendall((json.dumps(msg) + "\n").encode())
-        except Exception:
+        except (OSError, BrokenPipeError):
             _hal_sock = None  # will reconnect on next send
 
 
@@ -543,7 +540,8 @@ def _read_comp_grid_file() -> "dict | None":
     with open(path) as f:
         try:
             return json.load(f)
-        except Exception:
+        except json.JSONDecodeError as e:
+            print(f"[gateway] probe-results-grid.json corrupted: {e}", flush=True)
             return None
 
 
@@ -1557,10 +1555,7 @@ def hal_get(pin: str, default=None):
 def safe_get(attr: str, default=None):
     if STAT is None:
         return default
-    try:
-        return getattr(STAT, attr)
-    except Exception:
-        return default
+    return getattr(STAT, attr, default)
 
 
 def to_float_list(x) -> Optional[List[float]]:
@@ -1573,39 +1568,15 @@ def to_float_list(x) -> Optional[List[float]]:
 
 
 def normalize_homed(homed_val) -> Optional[bool]:
-    """
-    LinuxCNC-native homed confirmation (stat-only), using only configured joints.
-
-    Why: STAT.homed can be a fixed-length mask (e.g. 9 entries). Unused joints stay False.
-    If we all() the whole mask, homed may remain False even when the machine is homed.
-    """
-    # Scalar case (some builds)
-    if isinstance(homed_val, (int, bool)):
-        return bool(homed_val)
-
-    # Mask case
-    if isinstance(homed_val, (list, tuple)):
-        if len(homed_val) == 0:
-            return None
-
-        # Prefer STAT.joints if available
-        nj = safe_get("joints", None)
-        if isinstance(nj, int) and nj > 0:
-            mask = homed_val[:nj]
-        else:
-            # Fallback: infer from STAT.joint list length if available
-            jlist = safe_get("joint", None)
-            if jlist is not None:
-                try:
-                    mask = homed_val[:len(jlist)]
-                except Exception:
-                    mask = homed_val
-            else:
-                mask = homed_val
-
-        return all(bool(x) for x in mask)
-
-    return None
+    """LinuxCNC homed confirmation. STAT.homed is a fixed-length tuple of int
+    (one slot per possible joint, e.g. length 16); STAT.joints is the configured
+    joint count. Slice to that count so unused slots don't drag homed False."""
+    if not homed_val:
+        return None
+    nj = safe_get("joints", 0)
+    if not nj:
+        return None
+    return all(bool(x) for x in homed_val[:nj])
 
 def _ini_float(ini, section: str, key: str):
     v = ini.find(section, key)
@@ -1613,7 +1584,7 @@ def _ini_float(ini, section: str, key: str):
         return None
     try:
         return float(v)
-    except Exception:
+    except ValueError:
         return None
 
 
@@ -1803,13 +1774,8 @@ def poll_status() -> StatusPayload:
     homed_val = safe_get("homed", None)
     homed = normalize_homed(homed_val)
 
-    homed_joints = None
-    if isinstance(homed_val, (list, tuple)):
-        nj = safe_get("joints", None)
-        if isinstance(nj, int) and nj > 0:
-            homed_joints = [bool(x) for x in homed_val[:nj]]
-        else:
-            homed_joints = [bool(x) for x in homed_val]
+    nj = safe_get("joints", 0)
+    homed_joints = [bool(x) for x in homed_val[:nj]] if homed_val and nj else None
 
     # ---- offsets ----
     g5x_index = safe_get("g5x_index", None)
@@ -1883,112 +1849,39 @@ def poll_status() -> StatusPayload:
     except Exception:
         current_vel = None
 
-    # Spindle speed and direction
+    # Spindle speed and direction. STAT.spindle is a tuple of dicts; entry [0]
+    # carries 'speed' (float) and 'direction' (int) for the primary spindle.
     spindle_speed = None
     spindle_direction = None
     spindles = safe_get("spindle", None)
-    if spindles is not None:
-        try:
-            if hasattr(spindles, '__getitem__'):
-                s0 = spindles[0]
-                # Try attribute access
-                for attr in ('speed', 'Speed'):
-                    v = getattr(s0, attr, None)
-                    if v is not None:
-                        spindle_speed = float(v)
-                        break
-                # Try dict access
-                if spindle_speed is None and isinstance(s0, dict):
-                    spindle_speed = float(s0.get('speed', s0.get('Speed', 0)))
-                for attr in ('direction', 'Direction'):
-                    v = getattr(s0, attr, None)
-                    if v is not None:
-                        spindle_direction = int(v)
-                        break
-                if spindle_direction is None and isinstance(s0, dict):
-                    spindle_direction = int(s0.get('direction', s0.get('Direction', 0)))
-        except (AttributeError, ValueError, TypeError, IndexError, KeyError):
-            pass  # spindle[0] shape varies across linuxcnc versions — fall through to legacy paths
-    # Fallback: direct stat attributes
-    if spindle_speed is None:
-        val = safe_get("spindle_speed", None)
-        if val is not None:
-            try:
-                spindle_speed = float(val)
-            except (ValueError, TypeError):
-                pass
-    # Fallback: settings[2] holds the commanded S word
-    if spindle_speed is None:
-        settings = safe_get("settings", None)
-        if settings is not None:
-            try:
-                spindle_speed = float(settings[2])
-            except (ValueError, TypeError, IndexError):
-                pass
-    if spindle_direction is None:
-        val = safe_get("spindle_direction", None)
-        if val is not None:
-            try:
-                spindle_direction = int(val)
-            except (ValueError, TypeError):
-                pass
+    if spindles:
+        s0 = spindles[0]
+        spindle_speed = float(s0['speed'])
+        spindle_direction = int(s0['direction'])
 
 
 
 
     # ---- tool (stat-only) ----
+    # STAT.tool_table is a tuple of tool_result named tuples (id, xoffset..woffset,
+    # diameter, frontangle, backangle, orientation). STAT.tool_offset is a 9-tuple
+    # of floats holding the active G43 offset (Z at index 2).
     tool_number = safe_get("tool_in_spindle", None)
-    try:
-        tool_number = int(tool_number) if tool_number is not None else None
-    except (ValueError, TypeError):
-        tool_number = None
-
     tool_diameter = None
     tool_length = None
 
-    # Try STAT.tool_table (if present)
     tt = safe_get("tool_table", None)
     if tool_number is not None and tt:
-        try:
-            for t in tt:
-                # tool id varies by build
-                tnum = getattr(t, "id", None)
-                if tnum is None:
-                    tnum = getattr(t, "toolno", None)
-                if tnum is None:
-                    tnum = getattr(t, "tool", None)
-                if tnum is None:
-                    continue
-                if int(tnum) != int(tool_number):
-                    continue
-
-                d = getattr(t, "diameter", None)
-                if d is None:
-                    d = getattr(t, "dia", None)
-                if d is not None:
-                    tool_diameter = float(d)
-
-                z = getattr(t, "zoffset", None)
-                if z is None:
-                    # sometimes offset is a tuple/struct with .z
-                    off = getattr(t, "offset", None)
-                    if off is not None:
-                        z = getattr(off, "z", None)
-                if z is not None:
-                    tool_length = abs(float(z))
-
+        for t in tt:
+            if t.id == tool_number:
+                tool_diameter = float(t.diameter)
+                tool_length = abs(float(t.zoffset))
                 break
-        except (AttributeError, ValueError, TypeError):
-            pass  # tool_table shape varies by linuxcnc version — leave tool_diameter/length as None
 
-    # Fallback: STAT.tool_offset vector (if present)
     if tool_length is None:
         tofs = safe_get("tool_offset", None)
-        if tofs is not None:
-            try:
-                tool_length = abs(float(tofs[2]))
-            except (ValueError, TypeError, IndexError):
-                pass
+        if tofs:
+            tool_length = abs(float(tofs[2]))
 
 
     # Tool change request from HAL iocontrol
@@ -2303,7 +2196,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             require_armed(armed)
             # Optional but nice: avoid guaranteed-fail calls
             STAT.poll()
-            if bool(safe_get("estop", True)):
+            if safe_get("estop", True):
                 return {"ok": False, "error": "Cannot Machine On while in E-stop"}
             CMD.state(linuxcnc.STATE_ON)
             return {"ok": True}

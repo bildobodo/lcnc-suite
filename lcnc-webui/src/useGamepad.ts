@@ -148,13 +148,13 @@ export function useGamepad(deps: {
         break;
       case "flood_toggle": {
         if (!perms.ready) break;
-        const floodOn = !!status.value?.flood;
+        const floodOn = !!status.value?.data?.flood;
         deps.fire({ cmd: floodOn ? "flood_off" : "flood_on" }, 'ready');
         break;
       }
       case "mist_toggle": {
         if (!perms.ready) break;
-        const mistOn = !!status.value?.mist;
+        const mistOn = !!status.value?.data?.mist;
         deps.fire({ cmd: mistOn ? "mist_off" : "mist_on" }, 'ready');
         break;
       }

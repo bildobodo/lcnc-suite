@@ -223,12 +223,11 @@ registerSection<MachineDefaults>("machine", MACHINE_FALLBACK, (saved, fb) => {
   if (!saved) return { ...fb };
   const dir = saved.rflSpindleDir;
   return {
+    ...fb,
+    ...saved,
     toolChangeMode: (saved.toolChangeMode === "m600" ? "m600" : "m6g43") as ToolChangeMode,
-    runFromLine: saved.runFromLine ?? fb.runFromLine,
     rflSpindleDir: (dir === "off" || dir === "forward" || dir === "reverse" ? dir : fb.rflSpindleDir) as SpindleDir,
-    rflSpindleRpm: typeof saved.rflSpindleRpm === "number" ? saved.rflSpindleRpm : fb.rflSpindleRpm,
     spindleFeedbackUnit: (saved.spindleFeedbackUnit === "rpm" ? "rpm" : "rps") as SpindleFeedbackUnit,
-    spindleLoadPin: typeof saved.spindleLoadPin === "string" ? saved.spindleLoadPin : fb.spindleLoadPin,
   };
 });
 
@@ -317,9 +316,9 @@ registerSection<DisplayDefaults>("display", DISPLAY_FALLBACK, (saved, fb) => {
   if (!saved) return { ...fb };
   const t = saved.theme;
   return {
+    ...fb,
+    ...saved,
     theme: (VALID_THEMES.has(t) ? t : fb.theme) as ThemeMode,
-    startFullscreen: typeof saved.startFullscreen === "boolean" ? saved.startFullscreen : fb.startFullscreen,
-    keypadMode: typeof saved.keypadMode === "boolean" ? saved.keypadMode : fb.keypadMode,
   };
 });
 
@@ -353,21 +352,14 @@ export interface MacrosDefaults {
 const MACROS_FALLBACK: MacrosDefaults = { macros: [] };
 
 registerSection<MacrosDefaults>("macros", MACROS_FALLBACK, (saved, fb) => {
-  if (!saved) return { ...fb };
-  if (!Array.isArray(saved.macros)) return { ...fb };
-  const macros = saved.macros
+  if (!saved || !Array.isArray(saved.macros)) return { ...fb };
+  const macros: MacroDef[] = saved.macros
     .filter((m: any) => m && typeof m.id === "string" && typeof m.name === "string" && typeof m.command === "string")
     .map((m: any) => ({
       id: m.id,
       name: m.name,
       command: m.command,
-      params: Array.isArray(m.params) ? m.params
-        .filter((p: any) => p && typeof p.name === "string")
-        .map((p: any) => ({
-          name: p.name,
-          label: typeof p.label === "string" ? p.label : p.name,
-          default: typeof p.default === "string" ? p.default : "",
-        })) : [],
+      params: Array.isArray(m.params) ? m.params : [],
     }))
     .slice(0, 20);
   return { macros };
@@ -426,20 +418,7 @@ const CAMERA_FALLBACK: CameraDefaults = {
 
 registerSection<CameraDefaults>("camera", CAMERA_FALLBACK, (saved, fb) => {
   if (!saved) return { ...fb };
-  return {
-    showCrosshair: saved.showCrosshair ?? fb.showCrosshair,
-    showCircle: saved.showCircle ?? fb.showCircle,
-    showGrid: saved.showGrid ?? fb.showGrid,
-    circleRadius: typeof saved.circleRadius === "number" ? saved.circleRadius : fb.circleRadius,
-    gridSpacing: typeof saved.gridSpacing === "number" ? saved.gridSpacing : fb.gridSpacing,
-    overlayOpacity: typeof saved.overlayOpacity === "number" ? saved.overlayOpacity : fb.overlayOpacity,
-    overlayColor: typeof saved.overlayColor === "string" ? saved.overlayColor : fb.overlayColor,
-    pipX: typeof saved.pipX === "number" ? saved.pipX : fb.pipX,
-    pipY: typeof saved.pipY === "number" ? saved.pipY : fb.pipY,
-    pipWidth: typeof saved.pipWidth === "number" ? saved.pipWidth : fb.pipWidth,
-    pipHeight: typeof saved.pipHeight === "number" ? saved.pipHeight : fb.pipHeight,
-    pipVisible: saved.pipVisible ?? fb.pipVisible,
-  };
+  return { ...fb, ...saved };
 });
 
 export function loadCameraDefaults(): CameraDefaults {
@@ -729,18 +708,9 @@ const PROBE_FALLBACK: ProbeDefaults = {
   autoZero: false,
 };
 
-function mergeNumField(saved: any, key: string, fb: number): number {
-  return typeof saved?.[key] === "number" ? saved[key] : fb;
-}
-
 registerSection<ProbeDefaults>("probe", PROBE_FALLBACK, (saved, fb) => {
   if (!saved) return { ...fb };
-  const r: any = {};
-  for (const [k, v] of Object.entries(fb)) {
-    if (typeof v === "boolean") r[k] = saved[k] ?? v;
-    else r[k] = mergeNumField(saved, k, v as number);
-  }
-  return r as ProbeDefaults;
+  return { ...fb, ...saved };
 });
 
 export function loadProbeDefaults(): ProbeDefaults {
@@ -790,11 +760,7 @@ export const TOOLSETTER_FALLBACK: ToolsetterDefaults = {
 
 registerSection<ToolsetterDefaults>("toolsetter", TOOLSETTER_FALLBACK, (saved, fb) => {
   if (!saved) return { ...fb };
-  const r: any = {};
-  for (const [k, v] of Object.entries(fb)) {
-    r[k] = mergeNumField(saved, k, v as number);
-  }
-  return r as ToolsetterDefaults;
+  return { ...fb, ...saved };
 });
 
 export function loadToolsetterDefaults(): ToolsetterDefaults {

@@ -112,7 +112,7 @@ class Compensation :
 					"method": int(self.h['method']),
 				}, f)
 			os.rename(tmp_path, grid_path)
-		except Exception as e:
+		except OSError as e:
 			print(f" Grid write failed: {e}")
 			try:
 				os.unlink(tmp_path)
