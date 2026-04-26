@@ -1845,8 +1845,8 @@ watch(
   () => [props.workpieceSize, props.workpieceOffset] as const,
   () => {
     if (workpieceMesh) applyBox(workpieceMesh, props.workpieceSize, props.workpieceOffset);
-    if (overflowEdges && workOrigin) {
-      workOrigin.remove(overflowEdges);
+    if (overflowEdges && workRotGroup) {
+      workRotGroup.remove(overflowEdges);
       disposeObject(overflowEdges);
     }
     overflowEdges = rebuildOverflowEdges(props.workpieceSize, props.workpieceOffset);
