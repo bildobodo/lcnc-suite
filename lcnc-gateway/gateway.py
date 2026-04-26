@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import asyncio
 import json
+import math
 import time
 import os
 import subprocess
@@ -1817,7 +1818,12 @@ def poll_status() -> StatusPayload:
     # Tool offset vector (active tool length comp)
     tool_offset = to_float_list(safe_get("tool_offset", None))
 
-    # Work position (AXIS "G54 WORK"): WORK = MACHINE - G5X - G92 - TOOL_OFFSET
+    # Work position (matches AXIS / GMOCCAPY / QtPyVCP convention):
+    #   rel = machine_pos − g5x − tool_offset
+    #   rotate (rel.x, rel.y) by −rotation_xy
+    #   work_pos = rel − g92
+    # G92 is applied AFTER rotation per LinuxCNC coordinate-system spec, so a
+    # G92 offset typed in the rotated WCS frame stays aligned with that frame.
     work_pos = None
     if machine_pos is not None:
         work_pos = machine_pos.copy()
@@ -1826,13 +1832,20 @@ def poll_status() -> StatusPayload:
             for i in range(min(len(work_pos), len(g5x))):
                 work_pos[i] -= g5x[i]
 
-        if g92 is not None:
-            for i in range(min(len(work_pos), len(g92))):
-                work_pos[i] -= g92[i]
-
         if tool_offset is not None:
             for i in range(min(len(work_pos), len(tool_offset))):
                 work_pos[i] -= tool_offset[i]
+
+        if rotation_xy and len(work_pos) >= 2:
+            t = -math.radians(rotation_xy)
+            c, s = math.cos(t), math.sin(t)
+            x, y = work_pos[0], work_pos[1]
+            work_pos[0] = x * c - y * s
+            work_pos[1] = x * s + y * c
+
+        if g92 is not None:
+            for i in range(min(len(work_pos), len(g92))):
+                work_pos[i] -= g92[i]
 
     # RAW joint positions (for driving the machine model / spindle nose)
     jpos = safe_get("joint_actual_position", None)

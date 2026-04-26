@@ -1736,11 +1736,10 @@ watch(viewerGcode, (newGcode) => {
 
       <SetupStrip
         :axes="axes"
-        :touchoff="touchoff"
+        :workPos="workPos"
         :homedJoints="homedJoints"
         :isHomed="isHomed"
         :g5xLabel="g5xLabel"
-        @update:touchoff="touchoff = $event"
         @homeAll="homeAll"
         @unhomeAll="unhomeAll"
         @homeAxis="homeAxis"

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { STEP_DEFAULT } from "./defaults";
 import MachineBtn from "./MachineBtn.vue";
 import MachineInput from "./MachineInput.vue";
 import MachineRadio from "./MachineRadio.vue";
@@ -9,14 +8,13 @@ const UVW = new Set(["U", "V", "W"]);
 
 const props = defineProps<{
   axes: string[];
-  touchoff: number[];
+  workPos: number[];
   homedJoints: boolean[];
   isHomed: boolean;
   g5xLabel: string;
 }>();
 
 const emit = defineEmits<{
-  (e: "update:touchoff", values: number[]): void;
   (e: "homeAll"): void;
   (e: "unhomeAll"): void;
   (e: "homeAxis", joint: number): void;
@@ -39,10 +37,8 @@ const hasSecondCol = computed(() => uvwAxes.value.length > 0);
 
 const g5xOptions = ["G54", "G55", "G56", "G57", "G58", "G59", "G59.1", "G59.2", "G59.3"];
 
-function updateTouchoff(axis: number, val: number) {
-  const copy = [...props.touchoff];
-  copy[axis] = val;
-  emit("update:touchoff", copy);
+function zeroAll() {
+  emit("setAll", new Array(props.axes.length).fill(0));
 }
 </script>
 
@@ -53,13 +49,13 @@ function updateTouchoff(axis: number, val: number) {
       <!-- Column 1: primary axes (XYZABC) + actions when no second column -->
       <div class="setupGrid">
         <template v-for="a in primaryAxes" :key="a.letter">
-          <MachineInput gate="touchoff" type="number" :step="STEP_DEFAULT" :value="touchoff[a.index]" @input="updateTouchoff(a.index, +($event.target as HTMLInputElement).value)" @keydown.enter="emit('setAxis', a.index, touchoff[a.index] ?? 0)" class="setupInput" />
-          <MachineBtn type="zero" @click="emit('setAxis', a.index, touchoff[a.index] ?? 0)">Set {{ a.letter }}</MachineBtn>
+          <MachineInput gate="touchoff" type="number" :label="a.letter" :value="workPos[a.index]" @input="emit('setAxis', a.index, +($event.target as HTMLInputElement).value)" class="setupInput" />
+          <MachineBtn type="zero" @click="emit('setAxis', a.index, 0)">Zero {{ a.letter }}</MachineBtn>
           <MachineBtn :type="homedJoints[a.index] ? 'unhome' : 'home'" @click="homedJoints[a.index] ? emit('unhomeAxis', a.index) : emit('homeAxis', a.index)"><span class="stable-width"><span :class="{ alt: homedJoints[a.index] }">Home {{ a.letter }}</span><span :class="{ alt: !homedJoints[a.index] }">Unhome {{ a.letter }}</span></span></MachineBtn>
         </template>
         <template v-if="!hasSecondCol">
-          <MachineBtn type="zero" class="spanAll" @click="emit('setAll', [...touchoff])">Set All</MachineBtn>
-          <MachineBtn :type="isHomed ? 'unhome' : 'home'" class="spanAll" @click="isHomed ? emit('unhomeAll') : emit('homeAll')"><span class="stable-width"><span :class="{ alt: isHomed }">Home All</span><span :class="{ alt: !isHomed }">Unhome</span></span></MachineBtn>
+          <MachineBtn type="zero" class="spanAll" @click="zeroAll()">Zero All</MachineBtn>
+          <MachineBtn :type="isHomed ? 'unhome' : 'home'" class="spanAll" @click="isHomed ? emit('unhomeAll') : emit('homeAll')"><span class="stable-width"><span :class="{ alt: isHomed }">Home All</span><span :class="{ alt: !isHomed }">Unhome All</span></span></MachineBtn>
           <MachineBtn type="goTo" @click="emit('goToG30')">→ G30</MachineBtn>
           <MachineBtn type="goTo" @click="emit('goToHome')">→ Home</MachineBtn>
           <MachineBtn type="goTo" @click="emit('goToZero')">→ Zero</MachineBtn>
@@ -69,12 +65,12 @@ function updateTouchoff(axis: number, val: number) {
       <!-- Column 2: UVW axes + actions (only when UVW axes exist) -->
       <div v-if="hasSecondCol" class="setupGrid">
         <template v-for="a in uvwAxes" :key="a.letter">
-          <MachineInput gate="touchoff" type="number" :step="STEP_DEFAULT" :value="touchoff[a.index]" @input="updateTouchoff(a.index, +($event.target as HTMLInputElement).value)" @keydown.enter="emit('setAxis', a.index, touchoff[a.index] ?? 0)" class="setupInput" />
-          <MachineBtn type="zero" @click="emit('setAxis', a.index, touchoff[a.index] ?? 0)">Set {{ a.letter }}</MachineBtn>
+          <MachineInput gate="touchoff" type="number" :label="a.letter" :value="workPos[a.index]" @input="emit('setAxis', a.index, +($event.target as HTMLInputElement).value)" class="setupInput" />
+          <MachineBtn type="zero" @click="emit('setAxis', a.index, 0)">Zero {{ a.letter }}</MachineBtn>
           <MachineBtn :type="homedJoints[a.index] ? 'unhome' : 'home'" @click="homedJoints[a.index] ? emit('unhomeAxis', a.index) : emit('homeAxis', a.index)"><span class="stable-width"><span :class="{ alt: homedJoints[a.index] }">Home {{ a.letter }}</span><span :class="{ alt: !homedJoints[a.index] }">Unhome {{ a.letter }}</span></span></MachineBtn>
         </template>
-        <MachineBtn type="zero" class="spanAll" @click="emit('setAll', [...touchoff])">Set All</MachineBtn>
-        <MachineBtn :type="isHomed ? 'unhome' : 'home'" class="spanAll" @click="isHomed ? emit('unhomeAll') : emit('homeAll')"><span class="stable-width"><span :class="{ alt: isHomed }">Home All</span><span :class="{ alt: !isHomed }">Unhome</span></span></MachineBtn>
+        <MachineBtn type="zero" class="spanAll" @click="zeroAll()">Zero All</MachineBtn>
+        <MachineBtn :type="isHomed ? 'unhome' : 'home'" class="spanAll" @click="isHomed ? emit('unhomeAll') : emit('homeAll')"><span class="stable-width"><span :class="{ alt: isHomed }">Home All</span><span :class="{ alt: !isHomed }">Unhome All</span></span></MachineBtn>
         <MachineBtn type="goTo" @click="emit('goToG30')">→ G30</MachineBtn>
         <MachineBtn type="goTo" @click="emit('goToHome')">→ Home</MachineBtn>
         <MachineBtn type="goTo" @click="emit('goToZero')">→ Zero</MachineBtn>
