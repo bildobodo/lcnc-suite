@@ -102,12 +102,6 @@ function buildCube(): THREE.Group {
     m.userData.faceLabel = f.label;
     g.add(m);
   }
-  const wire = new THREE.LineSegments(
-    new THREE.EdgesGeometry(new THREE.BoxGeometry(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE)),
-    new THREE.LineBasicMaterial({ color: palette.edge }),
-  );
-  wire.userData.isCubeWire = true;
-  g.add(wire);
   return g;
 }
 
@@ -243,16 +237,12 @@ function rebuildPalette() {
   if (cubeRoot) {
     cubeRoot.traverse((obj) => {
       const label = obj.userData.faceLabel as string | undefined;
-      if (label) {
-        const mesh = obj as THREE.Mesh;
-        const mat = mesh.material as THREE.MeshBasicMaterial;
-        mat.map?.dispose();
-        mat.map = makeFaceTexture(label, palette);
-        mat.needsUpdate = true;
-      } else if (obj.userData.isCubeWire) {
-        const wire = obj as THREE.LineSegments;
-        (wire.material as THREE.LineBasicMaterial).color.set(palette.edge);
-      }
+      if (!label) return;
+      const mesh = obj as THREE.Mesh;
+      const mat = mesh.material as THREE.MeshBasicMaterial;
+      mat.map?.dispose();
+      mat.map = makeFaceTexture(label, palette);
+      mat.needsUpdate = true;
     });
   }
   if (hitGrid) {
