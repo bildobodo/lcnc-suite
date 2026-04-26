@@ -5,6 +5,14 @@ import MachineInput from "./MachineInput.vue";
 import MachineRadio from "./MachineRadio.vue";
 
 const UVW = new Set(["U", "V", "W"]);
+const ROTARY = new Set(["A", "B", "C"]);
+
+// Match HUD precision (3 decimals linear, 2 rotary) without the unit suffix
+// so the keypad parser still receives a clean numeric string.
+function fmtAxisInput(val: number | undefined, letter: string): string {
+  if (val == null || !Number.isFinite(val)) return "";
+  return ROTARY.has(letter) ? val.toFixed(2) : val.toFixed(3);
+}
 
 const props = defineProps<{
   axes: string[];
@@ -49,7 +57,7 @@ function zeroAll() {
       <!-- Column 1: primary axes (XYZABC) + actions when no second column -->
       <div class="setupGrid">
         <template v-for="a in primaryAxes" :key="a.letter">
-          <MachineInput gate="touchoff" type="number" :label="a.letter" :value="workPos[a.index]" @input="emit('setAxis', a.index, +($event.target as HTMLInputElement).value)" class="setupInput" />
+          <MachineInput gate="touchoff" type="number" :label="a.letter" :value="fmtAxisInput(workPos[a.index], a.letter)" @input="emit('setAxis', a.index, +($event.target as HTMLInputElement).value)" class="setupInput" />
           <MachineBtn type="zero" @click="emit('setAxis', a.index, 0)">Zero {{ a.letter }}</MachineBtn>
           <MachineBtn :type="homedJoints[a.index] ? 'unhome' : 'home'" @click="homedJoints[a.index] ? emit('unhomeAxis', a.index) : emit('homeAxis', a.index)"><span class="stable-width"><span :class="{ alt: homedJoints[a.index] }">Home {{ a.letter }}</span><span :class="{ alt: !homedJoints[a.index] }">Unhome {{ a.letter }}</span></span></MachineBtn>
         </template>
@@ -65,7 +73,7 @@ function zeroAll() {
       <!-- Column 2: UVW axes + actions (only when UVW axes exist) -->
       <div v-if="hasSecondCol" class="setupGrid">
         <template v-for="a in uvwAxes" :key="a.letter">
-          <MachineInput gate="touchoff" type="number" :label="a.letter" :value="workPos[a.index]" @input="emit('setAxis', a.index, +($event.target as HTMLInputElement).value)" class="setupInput" />
+          <MachineInput gate="touchoff" type="number" :label="a.letter" :value="fmtAxisInput(workPos[a.index], a.letter)" @input="emit('setAxis', a.index, +($event.target as HTMLInputElement).value)" class="setupInput" />
           <MachineBtn type="zero" @click="emit('setAxis', a.index, 0)">Zero {{ a.letter }}</MachineBtn>
           <MachineBtn :type="homedJoints[a.index] ? 'unhome' : 'home'" @click="homedJoints[a.index] ? emit('unhomeAxis', a.index) : emit('homeAxis', a.index)"><span class="stable-width"><span :class="{ alt: homedJoints[a.index] }">Home {{ a.letter }}</span><span :class="{ alt: !homedJoints[a.index] }">Unhome {{ a.letter }}</span></span></MachineBtn>
         </template>

@@ -31,7 +31,7 @@ const catalogStyle = computed(() => {
 });
 
 const keypadDisplayValue = computed(() =>
-  model.value != null ? model.value : (attrs.value as string | number | undefined)
+  attrs.value !== undefined ? (attrs.value as string | number | undefined) : model.value
 );
 
 function openKeypadFromInput() {
