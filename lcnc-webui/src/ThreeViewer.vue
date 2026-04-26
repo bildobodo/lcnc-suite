@@ -2275,7 +2275,7 @@ defineExpose({
       <MachineBtn type="viewerQuickToggle" :selected="pipVisible" @click="togglePip" title="Show/hide camera">
         <Camera :size="14" />
       </MachineBtn>
-      <MachineBtn type="headerIcon" @click="emit('open-settings', 'viewer')" title="3D Viewer settings">
+      <MachineBtn type="viewerQuickToggle" @click="emit('open-settings', 'viewer')" title="3D Viewer settings">
         <Settings :size="14" />
       </MachineBtn>
     </div>
