@@ -89,6 +89,7 @@ export const BUTTON_TYPES = {
   close:          { gate: 'always',  variant: 'default', size: 'md',  icon: true },
   tab:            { gate: 'always',  variant: 'default', size: 'sm',  muted: true },
   viewPreset:     { gate: 'always',  variant: 'default', size: 'sm' },
+  viewerQuickToggle: { gate: 'always', variant: 'default', size: 'sm', icon: true },
   overlayToggle:  { gate: 'always',  variant: 'default', size: 'xs' },
   dialogCancel:   { gate: 'always',  variant: 'default', size: 'md' },
   dialogConfirm:  { gate: 'always',  variant: 'primary', size: 'md' },

@@ -42,8 +42,7 @@ function openKeypadFromInput() {
     onConfirm: (v) => {
       model.value = v;
       // Native input/change events don't fire for keypad confirms — synthesize them
-      // so :value+@input parents (SetupStrip, SpindleStrip, DroPanel) and v-model+@change
-      // parents (Toolbar workpiece, ProbePanel, ToolsetterSettings, SettingsPanel) both react.
+      // so both :value+@input parents and v-model+@change parents react.
       const evt = { target: { value: String(v) } } as unknown as Event;
       const onInput = attrs.onInput as ((e: Event) => void) | undefined;
       if (typeof onInput === 'function') onInput(evt);

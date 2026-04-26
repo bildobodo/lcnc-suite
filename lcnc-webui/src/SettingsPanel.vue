@@ -14,6 +14,8 @@ import {
   loadMachineDefaults, saveMachineDefaults,
   loadMacrosDefaults, saveMacrosDefaults, extractParams,
   loadDisplayDefaults, saveDisplayDefaults, settingsVersion, serverSettingsReady,
+  loadCameraDefaults, saveCameraDefaults,
+  STEP_DEFAULT,
   type Vec3, type Layer, type ColorDefaults, type OpacityDefaults,
   type TrackMode, type Projection, type ToolChangeMode, type SpindleDir, type SpindleFeedbackUnit,
   type ThemeMode, type MacroDef, type MacroParam, type GamepadDefaults,
@@ -102,11 +104,16 @@ const props = defineProps<{
   gamepadName?: string;
   gamepadConfig?: GamepadDefaults;
   keyboardConfig?: KeyboardDefaults;
+  initialTab?: string | null;
 }>();
 
 const emit = defineEmits<{
   (e: "setPathOnTop", on: boolean): void;
   (e: "setProjection", proj: Projection): void;
+  (e: "setTrackMode", mode: TrackMode): void;
+  (e: "toggleLayer", layer: Layer, on: boolean): void;
+  (e: "update:workpieceSize", value: Vec3): void;
+  (e: "update:workpieceOffset", value: Vec3): void;
   (e: "setRunFromLine", on: boolean): void;
   (e: "setGamepadConfig", cfg: GamepadDefaults): void;
   (e: "setKeyboardConfig", cfg: KeyboardDefaults): void;
@@ -220,6 +227,88 @@ function save() {
   });
 }
 
+// ─── Viewer setting handlers (emit to App.vue → ThreeViewer) ──────
+const LAYER_LABELS: { key: Layer; label: string }[] = [
+  { key: "backplot", label: "Backplot" },
+  { key: "toolpath", label: "Toolpath" },
+  { key: "workzero", label: "Work Zero" },
+  { key: "surface", label: "Surface" },
+  { key: "toolpathBounds", label: "Toolpath Bounds" },
+  { key: "workpiece", label: "Stock Bounds" },
+  { key: "bounds", label: "Machine Bounds" },
+  { key: "machine", label: "Machine" },
+  { key: "hud", label: "HUD" },
+];
+
+function onLayerChange(layer: Layer, on: boolean) {
+  layers[layer] = on;
+  save();
+  emit("toggleLayer", layer, on);
+}
+
+function onPathOnTopChange(on: boolean) {
+  pathOnTop.value = on;
+  save();
+  emit("setPathOnTop", on);
+}
+
+function onTrackModeChange(mode: TrackMode) {
+  trackingMode.value = mode;
+  save();
+  emit("setTrackMode", mode);
+}
+
+function onProjectionChange(proj: Projection) {
+  projection.value = proj;
+  save();
+  emit("setProjection", proj);
+}
+
+function onWpSizeChange(axis: number) {
+  const value = wpSize[axis]!;
+  if (isNaN(value) || value < 0) return;
+  save();
+  emit("update:workpieceSize", [...wpSize] as Vec3);
+  if (axis === 2) {
+    wpOffset[2] = -value;
+    save();
+    emit("update:workpieceOffset", [...wpOffset] as Vec3);
+  }
+}
+
+function onWpOffsetChange(axis: number) {
+  if (isNaN(wpOffset[axis]!)) return;
+  save();
+  emit("update:workpieceOffset", [...wpOffset] as Vec3);
+}
+
+// ─── Camera overlay state ─────────────────────────────────────────
+const camDefs = loadCameraDefaults();
+const camShowCrosshair = ref(camDefs.showCrosshair);
+const camShowCircle = ref(camDefs.showCircle);
+const camShowGrid = ref(camDefs.showGrid);
+const camCircleRadius = ref(camDefs.circleRadius);
+const camGridSpacing = ref(camDefs.gridSpacing);
+const camOverlayOpacity = ref(camDefs.overlayOpacity);
+const camOverlayColor = ref(camDefs.overlayColor);
+
+let _camSkipNext = 0;
+
+function saveCamTracked() {
+  _camSkipNext++;
+  const cur = loadCameraDefaults();
+  saveCameraDefaults({
+    ...cur,
+    showCrosshair: camShowCrosshair.value,
+    showCircle: camShowCircle.value,
+    showGrid: camShowGrid.value,
+    circleRadius: camCircleRadius.value,
+    gridSpacing: camGridSpacing.value,
+    overlayOpacity: camOverlayOpacity.value,
+    overlayColor: camOverlayColor.value,
+  });
+}
+
 // ─── Machine defaults ──────────────────────
 const machSaved = loadMachineDefaults();
 const toolChangeMode = ref<ToolChangeMode>(machSaved.toolChangeMode);
@@ -264,6 +353,17 @@ watch(settingsVersion, () => {
   projection.value = vd.projection;
   const dd = loadDisplayDefaults();
   startFullscreen.value = dd.startFullscreen;
+  if (_camSkipNext > 0) { _camSkipNext--; }
+  else {
+    const cd = loadCameraDefaults();
+    camShowCrosshair.value = cd.showCrosshair;
+    camShowCircle.value = cd.showCircle;
+    camShowGrid.value = cd.showGrid;
+    camCircleRadius.value = cd.circleRadius;
+    camGridSpacing.value = cd.gridSpacing;
+    camOverlayOpacity.value = cd.overlayOpacity;
+    camOverlayColor.value = cd.overlayColor;
+  }
 });
 
 // ── Keyboard tab state ──
@@ -387,6 +487,8 @@ const subTabs = [
   { id: "debug", label: "Debug" },
 ];
 const activeTab = ref("viewer");
+
+watch(() => props.initialTab, (t) => { if (t) activeTab.value = t; }, { immediate: true });
 
 
 
@@ -584,6 +686,111 @@ const halStats = computed(() => ({
       <template #viewer>
         <div v-if="!serverSettingsReady" class="settingsLoading">Waiting for server settings…</div>
         <div v-else class="stack-panel scrollContent scroll-thin">
+        <div class="section">
+          <div class="sub">View</div>
+          <div class="settingDesc">Projection mode for the 3D viewport.</div>
+          <div class="radioGroup inline">
+            <label><MachineRadio gate="viewerSetting" name="projection" :modelValue="projection" value="perspective" @update:modelValue="onProjectionChange('perspective')" /> Perspective</label>
+            <label><MachineRadio gate="viewerSetting" name="projection" :modelValue="projection" value="parallel" @update:modelValue="onProjectionChange('parallel')" /> Parallel</label>
+          </div>
+          <div class="settingDesc">Camera tracking — keep the tool or workpiece centered while it moves.</div>
+          <div class="radioGroup inline">
+            <label><MachineRadio gate="viewerSetting" name="tracking" :modelValue="trackingMode" value="none" @update:modelValue="onTrackModeChange('none')" /> None</label>
+            <label><MachineRadio gate="viewerSetting" name="tracking" :modelValue="trackingMode" value="tool" @update:modelValue="onTrackModeChange('tool')" /> Tool</label>
+            <label><MachineRadio gate="viewerSetting" name="tracking" :modelValue="trackingMode" value="workpiece" @update:modelValue="onTrackModeChange('workpiece')" /> Workpiece</label>
+          </div>
+        </div>
+
+        <div class="sep"></div>
+
+        <div class="section">
+          <div class="sub">Layers</div>
+          <div class="layerGrid">
+            <MachineToggle
+              v-for="lf in LAYER_LABELS" :key="lf.key"
+              gate="viewerSetting"
+              :modelValue="layers[lf.key]"
+              @update:modelValue="onLayerChange(lf.key, $event!)"
+              :label="lf.label"
+            />
+          </div>
+        </div>
+
+        <div class="sep"></div>
+
+        <div class="section">
+          <div class="sub">Toolpath</div>
+          <MachineToggle
+            gate="viewerSetting"
+            :modelValue="pathOnTop"
+            @update:modelValue="onPathOnTopChange($event!)"
+            label="Always on top"
+          />
+        </div>
+
+        <div class="sep"></div>
+
+        <div class="section">
+          <div class="sub">Workpiece</div>
+          <div class="wpGrid">
+            <div class="inputRow">
+              <span class="inputLabel">Size X</span>
+              <MachineInput gate="viewerSettingNum" type="number" v-model.number="wpSize[0]" @change="onWpSizeChange(0)" :step="STEP_DEFAULT" min="0" max="9999" />
+            </div>
+            <div class="inputRow">
+              <span class="inputLabel">Size Y</span>
+              <MachineInput gate="viewerSettingNum" type="number" v-model.number="wpSize[1]" @change="onWpSizeChange(1)" :step="STEP_DEFAULT" min="0" max="9999" />
+            </div>
+            <div class="inputRow">
+              <span class="inputLabel">Size Z</span>
+              <MachineInput gate="viewerSettingNum" type="number" v-model.number="wpSize[2]" @change="onWpSizeChange(2)" :step="STEP_DEFAULT" min="0" max="9999" />
+            </div>
+            <div class="inputRow">
+              <span class="inputLabel">Offset X</span>
+              <MachineInput gate="viewerSettingNum" type="number" v-model.number="wpOffset[0]" @change="onWpOffsetChange(0)" :step="STEP_DEFAULT" min="-9999" max="9999" />
+            </div>
+            <div class="inputRow">
+              <span class="inputLabel">Offset Y</span>
+              <MachineInput gate="viewerSettingNum" type="number" v-model.number="wpOffset[1]" @change="onWpOffsetChange(1)" :step="STEP_DEFAULT" min="-9999" max="9999" />
+            </div>
+            <div class="inputRow">
+              <span class="inputLabel">Offset Z</span>
+              <MachineInput gate="viewerSettingNum" type="number" v-model.number="wpOffset[2]" @change="onWpOffsetChange(2)" :step="STEP_DEFAULT" min="-9999" max="9999" />
+            </div>
+          </div>
+        </div>
+
+        <div class="sep"></div>
+
+        <div class="section">
+          <div class="sub">Camera Overlay</div>
+          <div class="settingDesc">Overlays drawn on top of the camera PIP feed.</div>
+          <div class="row-controls">
+            <MachineToggle gate="cameraSetting" v-model="camShowCrosshair" @update:modelValue="saveCamTracked" label="Crosshair" />
+            <MachineToggle gate="cameraSetting" v-model="camShowCircle" @update:modelValue="saveCamTracked" label="Circle" />
+            <MachineToggle gate="cameraSetting" v-model="camShowGrid" @update:modelValue="saveCamTracked" label="Grid" />
+          </div>
+          <div class="inputRow">
+            <span class="inputLabel">Radius</span>
+            <MachineInput gate="cameraSetting" type="number" v-model.number="camCircleRadius" min="10" max="300" :step="1" @change="saveCamTracked" />
+          </div>
+          <div class="inputRow">
+            <span class="inputLabel">Grid</span>
+            <MachineInput gate="cameraSetting" type="number" v-model.number="camGridSpacing" min="10" max="200" :step="1" @change="saveCamTracked" />
+          </div>
+          <div class="opacityRow">
+            <span class="opacityLabel">Opacity</span>
+            <MachineSlider gate="cameraSetting" class="opacitySlider" :min="0" :max="1" :step="0.05" v-model="camOverlayOpacity" @update:modelValue="saveCamTracked" />
+            <span class="opacityValue">{{ Math.round(camOverlayOpacity * 100) }}%</span>
+          </div>
+          <div class="inputRow">
+            <span class="inputLabel">Color</span>
+            <MachineColor gate="cameraSetting" v-model="camOverlayColor" @update:modelValue="saveCamTracked" />
+          </div>
+        </div>
+
+        <div class="sep"></div>
+
         <div class="section">
           <div class="sub">Colors</div>
           <div class="colorGrid">
@@ -1162,6 +1369,14 @@ const halStats = computed(() => ({
 .layerGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  gap: var(--gap-controls);
+}
+
+.wpGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: repeat(3, auto);
+  grid-auto-flow: column;
   gap: var(--gap-controls);
 }
 

@@ -86,16 +86,36 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { Text } from "troika-three-text";
 
 import { viewerInit, viewerGcode, gcodeContent, status } from "./lcncWs";
-import { loadViewerDefaults, ALL_LAYERS, settingsVersion, type Vec3, type Layer } from "./defaults";
+import { loadViewerDefaults, loadCameraDefaults, saveCameraDefaults, ALL_LAYERS, settingsVersion, type Vec3, type Layer } from "./defaults";
 import { fmtCoord } from "./format";
 import ViewCube from "./ViewCube.vue";
 import MachineBtn from "./MachineBtn.vue";
+import CameraPip from "./CameraPip.vue";
+import { Camera, Settings } from "lucide-vue-next";
 
 const themeMode = inject<Ref<string>>("themeMode", ref("auto"));
 
 // Deep-reactive so template bindings (e.g. HUD opacity) update when the
 // settingsVersion watcher refreshes the values from the server.
 const viewerDefaults = reactive(loadViewerDefaults());
+
+// ─── Camera PIP visibility ───────────────────────────────────────
+const pipVisible = ref(loadCameraDefaults().pipVisible);
+let _pipSkipNext = 0;
+
+function togglePip() {
+  pipVisible.value = !pipVisible.value;
+  _pipSkipNext++;
+  const cur = loadCameraDefaults();
+  saveCameraDefaults({ ...cur, pipVisible: pipVisible.value });
+}
+
+function closePip() {
+  pipVisible.value = false;
+  _pipSkipNext++;
+  const cur = loadCameraDefaults();
+  saveCameraDefaults({ ...cur, pipVisible: false });
+}
 
 type ViewerInit = {
   units?: "mm" | "inch" | string;
@@ -179,6 +199,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
+  (e: "open-settings", tab: string): void;
 }>();
 
 // HUD data (read from status for template)
@@ -1824,6 +1845,8 @@ watch(
 watch(settingsVersion, () => {
   Object.assign(viewerDefaults, loadViewerDefaults());
   applyViewerDefaults();
+  if (_pipSkipNext > 0) { _pipSkipNext--; }
+  else { pipVisible.value = loadCameraDefaults().pipVisible; }
 });
 
 // Pause/resume RAF loop when active prop changes
@@ -2245,10 +2268,20 @@ defineExpose({
       @view-change="applyViewDirection"
     />
 
-    <!-- Reset icon — auto-frame to scene bounds, sits under the cube -->
-    <div class="resetBtn">
+    <!-- Quick-access grid under the ViewCube: Reset, Clear, PIP, Settings -->
+    <div class="viewerQuickGrid">
       <MachineBtn type="viewPreset" @click="setView('reset')">Reset</MachineBtn>
+      <MachineBtn type="viewPreset" @click="resetBackplot">Clear</MachineBtn>
+      <MachineBtn type="viewerQuickToggle" :selected="pipVisible" @click="togglePip" title="Show/hide camera">
+        <Camera :size="14" />
+      </MachineBtn>
+      <MachineBtn type="headerIcon" @click="emit('open-settings', 'viewer')" title="3D Viewer settings">
+        <Settings :size="14" />
+      </MachineBtn>
     </div>
+
+    <!-- Camera PIP overlay -->
+    <CameraPip :visible="pipVisible" @close="closePip" />
 
   </div>
 </template>
@@ -2260,16 +2293,16 @@ defineExpose({
   height: 100%;
 }
 
-/* Reset icon under the ViewCube (cube is 140px tall at top:12px right:12px,
-   so its bottom edge is at 152px — leave a tight gap below it). */
-.resetBtn {
+/* Quick-access 2×2 grid under the ViewCube (cube bottom edge ≈ 152px). */
+.viewerQuickGrid {
   position: absolute;
   z-index: 1;
   top: 156px;
   right: 12px;
-  display: flex;
-  justify-content: flex-end;
   width: 140px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--gap-tight);
 }
 
 .viewerHost {

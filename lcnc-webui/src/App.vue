@@ -3,7 +3,6 @@ import { computed, onMounted, onUnmounted, provide, reactive, ref, watch } from 
 import { evaluatePermissions, PERMISSIONS_KEY, type Permissions } from "./permissions";
 import { connectWs, connected, status, send, armed, lastReply, viewerGcode, viewerInit, gcodeContent, lcncError, latency, networkLatency, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead, safetyTrip, acknowledgeSafetyTrip, type LcncMessage } from "./lcncWs";
 import ThreeViewer from "./ThreeViewer.vue";
-import Toolbar from "./Toolbar.vue";
 import TabPanel from "./TabPanel.vue";
 import GcodePanel from "./GcodePanel.vue";
 import SafetyStrip from "./SafetyStrip.vue";
@@ -26,7 +25,7 @@ import { Settings, MessageSquare, PowerOff, Gamepad2, Keyboard, BookOpen, Clipbo
 import GcodeReferenceDialog from "./GcodeReferenceDialog.vue";
 import NumberKeypad from "./NumberKeypad.vue";
 import { keypadState } from "./useNumberKeypad";
-import { loadViewerDefaults, saveViewerDefaults, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadMacrosDefaults, loadGamepadDefaults, saveGamepadDefaults, loadKeyboardDefaults, saveKeyboardDefaults, loadMdiHistory, saveMdiHistory, settingsVersion, type ThemeMode, type MacroDef, type GamepadDefaults, type KeyboardDefaults, type KeyboardAction, type Layer, type TrackMode, type Projection, type Vec3 } from "./defaults";
+import { loadViewerDefaults, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadMacrosDefaults, loadGamepadDefaults, saveGamepadDefaults, loadKeyboardDefaults, saveKeyboardDefaults, loadMdiHistory, saveMdiHistory, settingsVersion, type ThemeMode, type MacroDef, type GamepadDefaults, type KeyboardDefaults, type KeyboardAction, type Layer, type TrackMode, type Projection } from "./defaults";
 import { buildToolsetterVarMap } from "./toolsetterVars";
 import { useGamepad } from "./useGamepad";
 import { useMediaMql } from "./useMediaMql";
@@ -311,19 +310,6 @@ const viewerLayers = reactive<Record<Layer, boolean>>({ ..._vd.layers });
 const viewerTrackMode = ref<TrackMode>(_vd.trackingMode);
 const viewerPathOnTop = ref(_vd.pathOnTop);
 const viewerProjection = ref<Projection>(_vd.projection);
-
-function saveViewerState() {
-  const current = loadViewerDefaults();
-  saveViewerDefaults({
-    ...current,
-    layers: { ...viewerLayers },
-    workpieceSize: [...workpieceSize.value] as Vec3,
-    workpieceOffset: [...workpieceOffset.value] as Vec3,
-    trackingMode: viewerTrackMode.value,
-    pathOnTop: viewerPathOnTop.value,
-    projection: viewerProjection.value,
-  });
-}
 
 // G-code viewer — gcodeContent is fetched via HTTP by lcncWs on viewer_gcode
 const gcodeStats = ref<GcodeStats | null>(null);
@@ -677,6 +663,7 @@ function toggleBlockDelete() {
 
 // Dialog state
 const settingsDialogOpen = ref(false);
+const settingsInitialTab = ref<string | null>(null);
 const gcodeRefOpen = ref(false);
 const gcodeRefInitialSearch = ref("");
 const messagesDialogOpen = ref(false);
@@ -698,6 +685,15 @@ function openDialog(name: "settings" | "gcodeRef" | "messages") {
     else if (name === "messages") { messagesDialogOpen.value = true; markMessagesRead(); }
   }
 }
+
+function openSettingsTab(tab: string) {
+  settingsInitialTab.value = tab;
+  settingsDialogOpen.value = true;
+}
+
+watch(settingsDialogOpen, (open) => {
+  if (!open) settingsInitialTab.value = null;
+});
 
 function openGcodeRef(code?: string) {
   gcodeRefInitialSearch.value = code ?? "";
@@ -851,10 +847,6 @@ provide("setMachinePartColor", setMachinePartColor);
 provide("setMachineEdges", setMachineEdges);
 provide("setToolColors", setToolColors);
 
-// Broadcast viewer settings to all ThreeViewer instances
-function setPathOnTop(on: boolean) {
-  viewerRef.value?.setPathAlwaysOnTop?.(on);
-}
 function setProjection(proj: "perspective" | "parallel") {
   const wantOrtho = proj === "parallel";
   const v = viewerRef.value;
@@ -1319,33 +1311,22 @@ watch(viewerGcode, (newGcode) => {
     <Gate gate="armed" class="content">
       <!-- ══ Left pane — 3D Viewer (always visible) ══ -->
       <div class="viewerPane">
-        <Toolbar
-          @resetBackplot="viewerRef?.resetBackplot?.()"
-          @toggleLayer="(l: Layer, on: boolean) => { viewerLayers[l] = on; viewerRef?.setLayerVisible?.(l, on); saveViewerState(); }"
-          @setPathOnTop="(on: boolean) => { viewerPathOnTop = on; viewerRef?.setPathAlwaysOnTop?.(on); saveViewerState(); }"
-          @setTrackMode="(m: string) => { viewerTrackMode = m as TrackMode; viewerRef?.setTrackingMode?.(m); saveViewerState(); }"
-          @toggleProjection="() => { viewerProjection = viewerProjection === 'parallel' ? 'perspective' : 'parallel'; viewerRef?.switchProjection?.(); saveViewerState(); }"
+        <ThreeViewer
+          ref="viewerRef"
+          :active="true"
           :workpieceSize="workpieceSize"
           :workpieceOffset="workpieceOffset"
-          @update:workpieceSize="workpieceSize = $event; saveViewerState()"
-          @update:workpieceOffset="workpieceOffset = $event; saveViewerState()"
-        >
-          <ThreeViewer
-            ref="viewerRef"
-            :active="true"
-            :workpieceSize="workpieceSize"
-            :workpieceOffset="workpieceOffset"
-            :g5xLabel="g5xLabel"
-            :linearUnit="linearUnit"
-            :activeFile="activeFile"
-            :spindleSpeed="spindleSpeed"
-            :spindleActual="spindleActual"
-            :spindleDirection="spindleDirection"
-            :surfacePoints="surfacePoints"
-            :compGrid="compGrid"
-            :axes="axes"
-          />
-        </Toolbar>
+          :g5xLabel="g5xLabel"
+          :linearUnit="linearUnit"
+          :activeFile="activeFile"
+          :spindleSpeed="spindleSpeed"
+          :spindleActual="spindleActual"
+          :spindleDirection="spindleDirection"
+          :surfacePoints="surfacePoints"
+          :compGrid="compGrid"
+          :axes="axes"
+          @open-settings="openSettingsTab"
+        />
       </div>
 
       <!-- ══ Right pane — Program / Probing tabs ══ -->
@@ -1572,11 +1553,16 @@ watch(viewerGcode, (newGcode) => {
           </div>
           <div class="dialogContent">
             <SettingsPanel
+              :initialTab="settingsInitialTab"
               :gamepadConnected="gamepad.gamepadConnected.value"
               :gamepadName="gamepad.gamepadName.value"
               :gamepadConfig="gamepadConfig"
-              @setPathOnTop="setPathOnTop"
-              @setProjection="setProjection"
+              @setPathOnTop="(on: boolean) => { viewerPathOnTop = on; viewerRef?.setPathAlwaysOnTop?.(on); }"
+              @setProjection="(p: Projection) => { viewerProjection = p; setProjection(p); }"
+              @setTrackMode="(m: TrackMode) => { viewerTrackMode = m; viewerRef?.setTrackingMode?.(m); }"
+              @toggleLayer="(l: Layer, on: boolean) => { viewerLayers[l] = on; viewerRef?.setLayerVisible?.(l, on); }"
+              @update:workpieceSize="workpieceSize = $event"
+              @update:workpieceOffset="workpieceOffset = $event"
               :keyboardConfig="keyboardConfig"
               @setKeyboardConfig="setKeyboardConfig"
               @setRunFromLine="runFromLineEnabled = $event"
