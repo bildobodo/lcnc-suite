@@ -566,7 +566,13 @@ label:has(input:disabled, select:disabled) {
   align-items: center;
 }
 .paramGrid.twoCol { grid-template-columns: auto 1fr auto 1fr; }
-.paramGrid > label { font-size: var(--fs-sm); opacity: var(--opacity-muted); }
+.paramGrid > label {
+  font-size: var(--fs-sm);
+  opacity: var(--opacity-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gap-tight);
+}
 .paramGrid input { max-width: 100px; }
 
 .inset-panel {
@@ -587,6 +593,46 @@ label:has(input:disabled, select:disabled) {
   max-height: calc(100vh - 32px);
   overflow-y: auto;
   z-index: 1000;
+}
+
+.helpIcon {
+  appearance: none;
+  background: color-mix(in oklab, var(--info) 22%, transparent);
+  border: 1px solid color-mix(in oklab, var(--info) 60%, transparent);
+  border-radius: var(--radius-round);
+  color: var(--info);
+  font-family: var(--font-sans);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  line-height: 1;
+  width: 1.3em;
+  height: 1.3em;
+  flex: 0 0 auto;
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.helpIcon:hover,
+.helpIcon:focus-visible {
+  background: color-mix(in oklab, var(--info) 35%, transparent);
+  border-color: var(--info);
+}
+.helpIcon:focus-visible { outline: 2px solid var(--info); outline-offset: 1px; }
+.helpPopover {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  padding: var(--gap-controls) var(--gap-section);
+  border-radius: var(--radius-lg);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-md);
+  color: var(--fg);
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+  max-width: min(28rem, calc(100vw - var(--gap-panel)));
 }
 .popTitle {
   font-weight: var(--fw-semibold);
