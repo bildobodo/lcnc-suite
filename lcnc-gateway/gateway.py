@@ -2467,11 +2467,24 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
 
         if cmd == "shutdown":
             # No require_armed — confirmation dialog is the safety gate.
-            # Raise SIGTERM so uvicorn runs the lifespan shutdown path
-            # (drains tasks, closes WS, sends final HAL state, releases
-            # camera). os._exit() bypassed all of that.
+            # Signal the LAUNCHER (parent), not ourselves, so the UI
+            # shutdown path goes through the same _term trap as Ctrl-C.
+            # Self-signaling SIGTERM makes uvicorn run lifespan teardown
+            # but the gateway then exits with status 143 (128 + SIGTERM);
+            # the launcher's `wait` captures 143 → LinuxCNC sees DISPLAY
+            # exit non-zero → "terminated with an error" even though
+            # everything ran cleanly. Signaling the launcher routes
+            # through its `_term` trap, which forwards SIGTERM to the
+            # gateway (lifespan still runs end-to-end) and then `exit 0`s
+            # explicitly — identical end state as Ctrl-C.
             print("Shutdown requested via web UI", flush=True)
-            signal.raise_signal(signal.SIGTERM)
+            try:
+                os.kill(os.getppid(), signal.SIGTERM)
+            except (ProcessLookupError, PermissionError) as e:
+                # Launcher already gone — fall back to self-signal so we
+                # at least exit cleanly via uvicorn's lifespan path.
+                print(f"Shutdown: launcher signal failed ({e}); self-signaling", flush=True)
+                signal.raise_signal(signal.SIGTERM)
             return {"ok": True}
 
         if cmd == "abort":
