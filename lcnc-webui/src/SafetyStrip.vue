@@ -20,9 +20,9 @@ const props = defineProps<{
   isTeleop: boolean;
   taskMode: number;
   interpState: number;
-  feedOverride: number;
-  spindleOverride: number;
-  rapidOverride: number;
+  feedOverride: number | null;
+  spindleOverride: number | null;
+  rapidOverride: number | null;
   gcodes: string;
   mcodes: string;
   elapsed: string;
@@ -56,9 +56,9 @@ const interpLabel = computed(() => {
 });
 
 const overridesActive = computed(() =>
-  Math.round(props.feedOverride * 100) !== 100
-  || Math.round(props.spindleOverride * 100) !== 100
-  || Math.round(props.rapidOverride * 100) !== 100
+  (props.feedOverride != null && Math.round(props.feedOverride * 100) !== 100)
+  || (props.spindleOverride != null && Math.round(props.spindleOverride * 100) !== 100)
+  || (props.rapidOverride != null && Math.round(props.rapidOverride * 100) !== 100)
 );
 </script>
 
@@ -66,7 +66,7 @@ const overridesActive = computed(() =>
   <div class="safetyStrip stripSection">
     <div class="sub">Safety</div>
     <div class="safetyBtns row-controls">
-      <Gate gate="always" class="btnGate">
+      <div class="btnGate">
         <MachineBtn
           type="arm"
           :variant="armed ? 'ok' : 'default'"
@@ -79,9 +79,9 @@ const overridesActive = computed(() =>
           <component :is="armed ? LockOpen : Lock" :size="18" />
           <span class="btn-label-sm stable-width"><span :class="{ alt: !armed }">Armed</span><span :class="{ alt: armed }">Arm</span></span>
         </MachineBtn>
-      </Gate>
+      </div>
 
-      <Gate gate="always" class="btnGate">
+      <div class="btnGate">
         <MachineBtn
           type="estop"
           :flashing="isEstop"
@@ -93,7 +93,7 @@ const overridesActive = computed(() =>
           <TriangleAlert :size="18" />
           <span class="btn-label-sm stable-width"><span :class="{ alt: isEstop }">E-Stop</span><span :class="{ alt: !isEstop }">Reset</span></span>
         </MachineBtn>
-      </Gate>
+      </div>
 
       <Gate gate="safety" class="btnGate">
         <MachineBtn

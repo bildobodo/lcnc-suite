@@ -508,21 +508,32 @@ const g5xLabel = computed(() => {
   return `G5x[${idx}]`;
 });
 
-// Override values (raw 0.0-2.0 scale) - with NaN handling
-const feedOverrideValue = computed(() => {
+// Override values (raw 0.0-2.0 scale). Returns null until status delivers a
+// real value — never synthesise a default. The watchers below guard with
+// Number.isFinite so null never writes to the local slider state, and the
+// override sliders stay disabled until the first real value arrives. Without
+// this, a cold-start tab would show a synthesised 100% and a user drag
+// would send a set_*_override based on a value the machine never reported.
+const feedOverrideValue = computed<number | null>(() => {
   const val = st.value.feed_override;
-  return (val != null && Number.isFinite(val)) ? val : 1.0;
+  return (val != null && Number.isFinite(val)) ? val : null;
 });
-const spindleOverrideValue = computed(() => {
+const spindleOverrideValue = computed<number | null>(() => {
   const val = st.value.spindle_override;
-  return (val != null && Number.isFinite(val)) ? val : 1.0;
+  return (val != null && Number.isFinite(val)) ? val : null;
 });
-const rapidOverrideValue = computed(() => {
+const rapidOverrideValue = computed<number | null>(() => {
   const val = st.value.rapid_override;
-  return (val != null && Number.isFinite(val)) ? val : 1.0;
+  return (val != null && Number.isFinite(val)) ? val : null;
 });
-const feedOvrEnabled = computed(() => st.value.feed_override_enabled !== false);
-const spindleOvrEnabled = computed(() => st.value.spindle_override_enabled !== false);
+// `*_enabled === true` (not `!== false`) so missing data → disabled, not enabled.
+const feedOvrEnabled = computed(() =>
+  feedOverrideValue.value !== null && st.value.feed_override_enabled === true
+);
+const spindleOvrEnabled = computed(() =>
+  spindleOverrideValue.value !== null && st.value.spindle_override_enabled === true
+);
+const rapidOvrAvailable = computed(() => rapidOverrideValue.value !== null);
 
 const taskMode = computed(() => st.value.task_mode ?? 0);
 const activeGcodes = computed(() => {
@@ -556,9 +567,9 @@ const feedSlider = ref(100);
 const spindleSlider = ref(100);
 const rapidSlider = ref(100);
 
-watch(feedOverrideValue, (val) => { if (Number.isFinite(val)) feedSlider.value = Math.round(val * 100); });
-watch(spindleOverrideValue, (val) => { if (Number.isFinite(val)) spindleSlider.value = Math.round(val * 100); });
-watch(rapidOverrideValue, (val) => { if (Number.isFinite(val)) rapidSlider.value = Math.round(val * 100); });
+watch(feedOverrideValue, (val) => { if (val != null && Number.isFinite(val)) feedSlider.value = Math.round(val * 100); });
+watch(spindleOverrideValue, (val) => { if (val != null && Number.isFinite(val)) spindleSlider.value = Math.round(val * 100); });
+watch(rapidOverrideValue, (val) => { if (val != null && Number.isFinite(val)) rapidSlider.value = Math.round(val * 100); });
 
 function onFeedChange() { setFeedOverride(feedSlider.value / 100); }
 function onSpindleSliderChange() { setSpindleOverride(spindleSlider.value / 100); }
@@ -921,18 +932,43 @@ function onRunProbe({ vars, macro }: { vars: Record<string, number>; macro: stri
   }
 }
 
+// Z touchoff has to add the current external Z offset back into the G5x value
+// so the WCS doesn't absorb the comp eoffset. If eoffset_z hasn't yet been
+// delivered by status (cold start, reader stale), treating it as 0 silently
+// corrupts the WCS Z. Refuse to fire and let the readerStale banner explain
+// the wait. Only block when the value is genuinely missing — a real 0 is fine.
+function _eoffsetZForTouchoff(): number | null {
+  const v = st.value.eoffset_z;
+  return (typeof v === "number" && Number.isFinite(v)) ? v : null;
+}
+
 function setAxis(axis: number, value: number = 0) {
   const axisName = AXIS_LETTERS[axis];
   if (!axisName) return;
 
-  // For Z: subtract current eoffset so G5x doesn't absorb it
   let val = value;
-  if (axis === 2 && st.value.eoffset_z) val += st.value.eoffset_z;
+  if (axis === 2) {
+    const eoffsetZ = _eoffsetZForTouchoff();
+    if (eoffsetZ === null) {
+      console.warn("touchoff Z refused: eoffset_z not yet delivered by gateway");
+      return;
+    }
+    val += eoffsetZ;
+  }
   fire({ cmd: "mdi", text: `G10 L20 P0 ${axisName}${val.toFixed(6)}` }, 'probe');
 }
 
 function setAll(values: number[] = []) {
-  const eoffsetZ = st.value.eoffset_z ?? 0;
+  const needsZ = axes.value.some(letter => letter === "Z");
+  let eoffsetZ = 0;
+  if (needsZ) {
+    const v = _eoffsetZForTouchoff();
+    if (v === null) {
+      console.warn("touchoff (all axes) refused: eoffset_z not yet delivered by gateway");
+      return;
+    }
+    eoffsetZ = v;
+  }
   const parts = axes.value.map((letter, i) => {
     let val = values[i] ?? 0;
     if (letter === "Z") val += eoffsetZ;
@@ -1799,6 +1835,7 @@ watch(viewerGcode, (newGcode) => {
         :rapidSlider="rapidSlider"
         :feedOvrEnabled="feedOvrEnabled"
         :spindleOvrEnabled="spindleOvrEnabled"
+        :rapidOvrAvailable="rapidOvrAvailable"
         :maxFeedOverride="maxFeedOverride"
         :minSpindleOverride="minSpindleOverride"
         :maxSpindleOverride="maxSpindleOverride"

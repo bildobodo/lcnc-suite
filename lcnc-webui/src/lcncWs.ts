@@ -607,6 +607,14 @@ export function connectWs() {
     networkLatency.value = null;
     _heartbeatSentAt = _rtSentAt = 0;
     _stopHeartbeatWorker();
+    // The server forgets per-client halshow subscription on disconnect, so
+    // any cached pin/signal/param values are stale snapshots that can shadow
+    // real values until the operator switches tabs. Clear them here so the
+    // halshow panel honestly shows "no data" until the next snapshot arrives.
+    halPins.value = [];
+    halSignals.value = [];
+    halParams.value = [];
+    halInitialized.value = false;
     _wsProbe(`scheduling reconnect in 2000ms`);
     setTimeout(() => connectWs(), 2000);
   };
@@ -790,6 +798,10 @@ export function connectWs() {
       const pinDelta = msg.pins ?? {};
       const sigDelta = msg.signals ?? {};
       const paramDelta = msg.params ?? {};
+      const knownPins = new Set(halPins.value.map(p => p.name));
+      const knownSigs = new Set(halSignals.value.map(s => s.name));
+      const knownParams = new Set(halParams.value.map(p => p.name));
+      let unknownCount = 0;
       for (const p of halPins.value) {
         const v = pinDelta[p.name];
         if (v !== undefined) p.value = v;
@@ -802,12 +814,18 @@ export function connectWs() {
         const v = paramDelta[p.name];
         if (v !== undefined) p.value = v;
       }
+      for (const k of Object.keys(pinDelta)) if (!knownPins.has(k)) unknownCount++;
+      for (const k of Object.keys(sigDelta)) if (!knownSigs.has(k)) unknownCount++;
+      for (const k of Object.keys(paramDelta)) if (!knownParams.has(k)) unknownCount++;
+      // Unknown keys mean the local snapshot is out of sync with the server
+      // (HAL graph rebuilt, or we missed a snapshot). Mark uninitialised so
+      // the panel can ask the user to reload — silent shadowing would let the
+      // user act on values that no longer match reality.
+      if (unknownCount > 0 && halInitialized.value) {
+        console.warn(`halshow_update: ${unknownCount} unknown key(s); snapshot is stale`);
+        halInitialized.value = false;
+      }
     }
-  };
-
-
-  ws.onerror = (e) => {
-    console.error("WS error", e);
   };
 }
 

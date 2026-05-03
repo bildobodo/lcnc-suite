@@ -10,6 +10,7 @@ const props = defineProps<{
   rapidSlider: number;
   feedOvrEnabled: boolean;
   spindleOvrEnabled: boolean;
+  rapidOvrAvailable: boolean;
   maxFeedOverride: number;
   minSpindleOverride: number;
   maxSpindleOverride: number;
@@ -49,7 +50,7 @@ function onRapidSlider(v: number) { emit('update:rapidSlider', v); }
       <div class="ovrCol stack-tight strip-slider-row">
         <span class="label-muted">Rapid</span>
         <span class="val-mono" :class="{ warn: rapidSlider !== 100 }">{{ rapidSlider }}%</span>
-        <MachineSlider gate="rapidOverride" :modelValue="rapidSlider" @update:model-value="onRapidSlider(Number($event))" @change="emit('rapidChange')" :min="25" :max="100" :step="STEP_RAPID_OVERRIDE" class="vSlider" />
+        <MachineSlider gate="rapidOverride" :modelValue="rapidSlider" @update:model-value="onRapidSlider(Number($event))" @change="emit('rapidChange')" :min="25" :max="100" :step="STEP_RAPID_OVERRIDE" :disabled="!rapidOvrAvailable" class="vSlider" />
         <MachineBtn type="overrideReset" @click="emit('overridePreset', 'rapid', 100)">Reset</MachineBtn>
       </div>
     </div>

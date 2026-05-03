@@ -84,80 +84,6 @@ for _logger_name in ("uvicorn", "uvicorn.error", "uvicorn.access"):
     logging.getLogger(_logger_name).addFilter(_uv_timing_filter)
 
 
-def _format_conn_state(c) -> str:
-    """One-line per-connection diagnostic for HttpToolsProtocol shutdown probe."""
-    try:
-        peer = c.transport.get_extra_info("peername")
-        peer_str = f"{peer[0]}:{peer[1]}" if peer else "?"
-    except Exception:
-        peer_str = "?"
-    cycle_str = "none"
-    cycle = getattr(c, "cycle", None)
-    if cycle is not None:
-        cycle_str = "complete" if getattr(cycle, "response_complete", False) else "in-flight"
-    try:
-        is_closing = c.transport.is_closing()
-    except Exception:
-        is_closing = "?"
-    try:
-        write_buf = c.transport.get_write_buffer_size()
-    except Exception:
-        write_buf = "?"
-    keep_alive = getattr(cycle, "keep_alive", "?") if cycle is not None else "?"
-    return (
-        f"peer={peer_str} cycle={cycle_str} keep_alive={keep_alive} "
-        f"is_closing={is_closing} write_buf={write_buf}"
-    )
-
-
-def _install_shutdown_probe():
-    """Tick every 500 ms during uvicorn's task-wait phase, dumping per-connection
-    state. The smoking-gun field is `write_buf` — non-zero means asyncio is
-    waiting for the kernel TCP send buffer to drain before completing
-    transport.close(), which is the suspected cause of the 66 s shutdown
-    hang seen with Range-streamed STL responses."""
-    import uvicorn.server as _uv_server
-    _orig = _uv_server.Server._wait_tasks_to_complete
-
-    async def _patched(self):
-        async def _ticker():
-            while True:
-                conns = list(self.server_state.connections)
-                tasks = list(self.server_state.tasks)
-                ct = {}
-                for c in conns:
-                    n = type(c).__name__
-                    ct[n] = ct.get(n, 0) + 1
-                pending_tasks = sum(1 for t in tasks if not t.done())
-                _dbg(
-                    "SHUTDOWN-PROBE",
-                    f"summary connections={len(conns)} {ct} server_tasks_pending={pending_tasks}",
-                )
-                for i, c in enumerate(conns):
-                    _dbg("SHUTDOWN-PROBE", f"  conn[{i}] type={type(c).__name__} {_format_conn_state(c)}")
-                await asyncio.sleep(0.5)
-        _t = asyncio.create_task(_ticker())
-        try:
-            return await _orig(self)
-        finally:
-            _t.cancel()
-            try:
-                await _t
-            except (Exception, asyncio.CancelledError):
-                # CancelledError is BaseException-derived in Py3.8+, so a
-                # bare `except Exception` lets it escape — bubbling out of
-                # wait_for and skipping uvicorn's lifespan.shutdown() when
-                # there are no in-flight connections to wait on. Catch it
-                # explicitly here since we just initiated it ourselves.
-                # KeyboardInterrupt / SystemExit are intentionally NOT
-                # caught — those must propagate.
-                pass
-
-    _uv_server.Server._wait_tasks_to_complete = _patched
-
-_install_shutdown_probe()
-
-
 # === TEMP GC-PROBE === log generation-0/1/2 garbage-collector events
 # with duration. Python GC mark-sweep can stall the main thread for
 # hundreds of ms on a large object graph (e.g. accumulated msgpack
@@ -696,11 +622,28 @@ def _start_disconnect_grace():
     _disconnect_grace_task = register_bg_task(asyncio.get_event_loop().create_task(_disconnect_grace()))
 
 
-def _cancel_disconnect_grace():
+async def _cancel_disconnect_grace():
+    """Cancel and await the grace task before returning.
+
+    Both _disconnect_grace and _heartbeat_loop toggle _hal_last_hb. If we
+    only call .cancel() (returns immediately), the grace task can still run
+    one more tick and flip the heartbeat pin while the new heartbeat loop
+    is also flipping it — three flips in two ticks can trip oneshot.0.out.
+    Awaiting the cancellation guarantees the grace task is done before the
+    heartbeat loop starts.
+    """
     global _disconnect_grace_task
-    if _disconnect_grace_task and not _disconnect_grace_task.done():
-        _disconnect_grace_task.cancel()
+    task = _disconnect_grace_task
     _disconnect_grace_task = None
+    if task and not task.done():
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            _trace.emit("disconnect_grace.cancel_error", level="warn",
+                        error=f"{type(e).__name__}: {e}")
 
 
 _heartbeat_task: Optional[asyncio.Task] = None
@@ -1298,9 +1241,13 @@ async def _status_poller():
                 continue
 
             # ---- Reconnection logic (moved from per-client status_loop) ----
+            # _get_lcnc_pid + try_connect_lcnc spawn subprocesses (pgrep,
+            # 1 s timeout; _nml_connectable, 5 s timeout). Running them on
+            # the event loop stalls poll_status long enough to flap the
+            # HAL heartbeat and trip oneshot.0.out. Offload to a worker.
             if not lcnc_connected:
-                pid = _get_lcnc_pid()
-                if pid is not None and try_connect_lcnc():
+                pid = await asyncio.to_thread(_get_lcnc_pid)
+                if pid is not None and await asyncio.to_thread(try_connect_lcnc):
                     _reconnect_fails = 0
                     _hal_connect()
                     _poll_fails = 0
@@ -1319,9 +1266,9 @@ async def _status_poller():
             now = time.monotonic()
             if now - _last_pid_check >= _PID_CHECK_INTERVAL:
                 _last_pid_check = now
-                if check_lcnc_instance():
+                if await asyncio.to_thread(check_lcnc_instance):
                     if _lcnc_pid is not None:
-                        if try_connect_lcnc():
+                        if await asyncio.to_thread(try_connect_lcnc):
                             _reconnect_fails = 0
                             _hal_connect()
                     else:
@@ -2049,7 +1996,7 @@ async def _reload_tool_table_and_bump():
     """
     global _tool_table_version
     if CMD:
-        await asyncio.to_thread(CMD.load_tool_table)
+        await _cmd_blocking(CMD.load_tool_table, wait=None)
     _tool_table_version += 1
 
 
@@ -2120,8 +2067,24 @@ def load_tool_library() -> dict:
 
 
 def save_tool_library(library: dict):
-    """Write tool metadata for the current INI config."""
-    all_data = _load_tool_library_all()
+    """Write tool metadata for the current INI config.
+
+    The cached read in _load_tool_library_all() returns {} on transient stat
+    or read failures — fine for read paths but catastrophic for the write
+    path: a stale {} would overwrite tool_library.json and wipe entries for
+    every other INI config. Do a strict re-read here that raises on any I/O
+    or parse failure; let the save fail loudly instead of silently corrupting.
+    """
+    if TOOL_LIBRARY_PATH.exists():
+        with open(TOOL_LIBRARY_PATH, "r") as f:
+            all_data = json.load(f)
+        if not isinstance(all_data, dict):
+            raise RuntimeError(
+                f"{TOOL_LIBRARY_PATH} top-level is {type(all_data).__name__}, "
+                "expected dict — refusing to overwrite"
+            )
+    else:
+        all_data = {}
     all_data[_current_ini_path()] = library
     _save_tool_library_all(all_data)
 
@@ -3074,6 +3037,34 @@ def _jog_joint_flag() -> int:
     return 1
 
 
+async def _disarm_safety_sequence() -> None:
+    """Stop motion + abort interpreter as part of a disarm. Caller must hold _cmd_lock.
+
+    Used by both the heartbeat-timeout path in status_loop and the ws-close
+    path in ws_endpoint's finally block — they were two near-identical copies.
+    Behaviour:
+      - if AUTO + interpreter not idle: abort (program-running case)
+      - else if homed: switch to MANUAL, jog_stop every joint, then abort
+    All CMD.* calls offload via _cmd_blocking so a slow GIL section can't
+    starve the heartbeat task.
+    """
+    if not bool(safe_get("enabled", False)):
+        return
+    mode = safe_get("task_mode", None)
+    interp = safe_get("interp_state", None)
+    if mode == linuxcnc.MODE_AUTO and interp != linuxcnc.INTERP_IDLE:
+        await _cmd_blocking(CMD.abort, wait=None)
+        return
+    homed = normalize_homed(safe_get("homed", None))
+    if homed:
+        await set_mode(linuxcnc.MODE_MANUAL)
+        jf = _jog_joint_flag()
+        _nj = getattr(STAT, "joints", 3) if STAT else 3
+        for ax in range(_nj):
+            await _cmd_blocking(CMD.jog, linuxcnc.JOG_STOP, jf, ax, wait=None)
+    await _cmd_blocking(CMD.abort, wait=None)
+
+
 def require_armed(armed: bool):
     if not armed:
         raise PermissionError("Not armed")
@@ -3144,7 +3135,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             return {"ok": True}
 
         if cmd == "estop":
-            CMD.state(linuxcnc.STATE_ESTOP)
+            await _cmd_blocking(CMD.state, linuxcnc.STATE_ESTOP, wait=None)
             _estop_hold = True
             _hal_send({"connected": False})  # hold via _estop_hold
             return {"ok": True}
@@ -3156,8 +3147,8 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             # 20ms sleep ≈ 2× hal_watchdog select slice, enough for the
             # pin write to land before STATE_ESTOP_RESET is evaluated.
             _hal_send({"trip_reset": True})
-            time.sleep(0.02)
-            CMD.state(linuxcnc.STATE_ESTOP_RESET)
+            await asyncio.sleep(0.02)
+            await _cmd_blocking(CMD.state, linuxcnc.STATE_ESTOP_RESET, wait=None)
             _estop_hold = False
             _hal_send({"connected": True})
             return {"ok": True}
@@ -3168,12 +3159,12 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             STAT.poll()
             if safe_get("estop", True):
                 return {"ok": False, "error": "Cannot Machine On while in E-stop"}
-            CMD.state(linuxcnc.STATE_ON)
+            await _cmd_blocking(CMD.state, linuxcnc.STATE_ON, wait=None)
             return {"ok": True}
 
         if cmd == "machine_off":
             require_armed(armed)
-            CMD.state(linuxcnc.STATE_OFF)
+            await _cmd_blocking(CMD.state, linuxcnc.STATE_OFF, wait=None)
             return {"ok": True}
 
         if cmd == "set_mode":
@@ -3211,7 +3202,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
 
         if cmd == "abort":
             require_armed(armed)
-            CMD.abort()
+            await _cmd_blocking(CMD.abort, wait=None)
             return {"ok": True}
 
         if cmd == "mdi":
@@ -3226,7 +3217,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             if not isinstance(text, str) or not text.strip():
                 return {"ok": False, "error": "Missing text"}
             await set_mode(linuxcnc.MODE_MDI)
-            CMD.mdi(text)
+            await _cmd_blocking(CMD.mdi, text, wait=None)
             return {"ok": True}
 
         if cmd == "save_tool":
@@ -3341,7 +3332,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 return blocked
             tool_num = int(msg["tool_number"])
             await set_mode(linuxcnc.MODE_MDI)
-            CMD.mdi(f"T{tool_num} M6 G43")
+            await _cmd_blocking(CMD.mdi, f"T{tool_num} M6 G43", wait=None)
             return {"ok": True}
 
         if cmd == "auto_step":
@@ -3353,14 +3344,14 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
 
             if paused:
                 # Already paused → advance one block (no mode change)
-                CMD.auto(linuxcnc.AUTO_STEP)
+                await _cmd_blocking(CMD.auto, linuxcnc.AUTO_STEP, wait=None)
             elif mode == linuxcnc.MODE_AUTO and interp != linuxcnc.INTERP_IDLE:
                 # Running (not paused) → pause first, next click will step
-                CMD.auto(linuxcnc.AUTO_PAUSE)
+                await _cmd_blocking(CMD.auto, linuxcnc.AUTO_PAUSE, wait=None)
             else:
                 # Idle → start program and step
                 await set_mode(linuxcnc.MODE_AUTO)
-                CMD.auto(linuxcnc.AUTO_STEP)
+                await _cmd_blocking(CMD.auto, linuxcnc.AUTO_STEP, wait=None)
             return {"ok": True}
 
         if cmd == "auto_run":
@@ -3370,12 +3361,12 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             if spindle_dir and spindle_speed > 0:
                 await set_mode(linuxcnc.MODE_MANUAL)
                 if spindle_dir == "forward":
-                    CMD.spindle(linuxcnc.SPINDLE_FORWARD, spindle_speed)
+                    await _cmd_blocking(CMD.spindle, linuxcnc.SPINDLE_FORWARD, spindle_speed, wait=None)
                 elif spindle_dir == "reverse":
-                    CMD.spindle(linuxcnc.SPINDLE_REVERSE, spindle_speed)
+                    await _cmd_blocking(CMD.spindle, linuxcnc.SPINDLE_REVERSE, spindle_speed, wait=None)
             await set_mode(linuxcnc.MODE_AUTO)
             start_line = int(msg.get("line", 0))
-            CMD.auto(linuxcnc.AUTO_RUN, start_line)
+            await _cmd_blocking(CMD.auto, linuxcnc.AUTO_RUN, start_line, wait=None)
             return {"ok": True}
 
         # jog left intact (even if you're not using it right now)
@@ -3390,7 +3381,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             vel = float(msg.get("vel", 0.0))
             await set_mode(linuxcnc.MODE_MANUAL)
             jf = _jog_joint_flag()
-            CMD.jog(linuxcnc.JOG_CONTINUOUS, jf, axis, vel)
+            await _cmd_blocking(CMD.jog, linuxcnc.JOG_CONTINUOUS, jf, axis, vel, wait=None)
             return {"ok": True}
 
         if cmd == "jog_stop":
@@ -3404,7 +3395,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             axis = int(msg.get("axis"))
             await set_mode(linuxcnc.MODE_MANUAL)
             jf = _jog_joint_flag()
-            CMD.jog(linuxcnc.JOG_STOP, jf, axis)
+            await _cmd_blocking(CMD.jog, linuxcnc.JOG_STOP, jf, axis, wait=None)
             return {"ok": True}
 
         if cmd == "jog_cont_multi":
@@ -3418,7 +3409,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             await set_mode(linuxcnc.MODE_MANUAL)
             jf = _jog_joint_flag()
             for entry in axes:
-                CMD.jog(linuxcnc.JOG_CONTINUOUS, jf, int(entry["axis"]), float(entry["vel"]))
+                await _cmd_blocking(CMD.jog, linuxcnc.JOG_CONTINUOUS, jf, int(entry["axis"]), float(entry["vel"]), wait=None)
             return {"ok": True}
 
         if cmd == "jog_stop_multi":
@@ -3433,7 +3424,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             await set_mode(linuxcnc.MODE_MANUAL)
             jf = _jog_joint_flag()
             for a in axes:
-                CMD.jog(linuxcnc.JOG_STOP, jf, int(a))
+                await _cmd_blocking(CMD.jog, linuxcnc.JOG_STOP, jf, int(a), wait=None)
             return {"ok": True}
 
         if cmd == "jog_incr":
@@ -3448,7 +3439,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             dist = float(msg.get("distance", 0.0))
             await set_mode(linuxcnc.MODE_MANUAL)
             jf = _jog_joint_flag()
-            CMD.jog(linuxcnc.JOG_INCREMENT, jf, axis, vel, dist)
+            await _cmd_blocking(CMD.jog, linuxcnc.JOG_INCREMENT, jf, axis, vel, dist, wait=None)
             return {"ok": True}
 
         if cmd == "jog_incr_multi":
@@ -3462,27 +3453,27 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             await set_mode(linuxcnc.MODE_MANUAL)
             jf = _jog_joint_flag()
             for entry in axes:
-                CMD.jog(linuxcnc.JOG_INCREMENT, jf, int(entry["axis"]), abs(float(entry["vel"])), float(entry["distance"]))
+                await _cmd_blocking(CMD.jog, linuxcnc.JOG_INCREMENT, jf, int(entry["axis"]), abs(float(entry["vel"])), float(entry["distance"]), wait=None)
             return {"ok": True}
 
         if cmd == "home_all":
             require_armed(armed)
             await set_mode(linuxcnc.MODE_MANUAL)
-            CMD.home(-1)  # -1 homes all axes
+            await _cmd_blocking(CMD.home, -1, wait=None)  # -1 homes all axes
             return {"ok": True}
 
         if cmd == "unhome_all":
             require_armed(armed)
             await set_mode(linuxcnc.MODE_MANUAL)
             await _cmd_blocking(CMD.teleop_enable, 0)  # unhome requires joint mode
-            CMD.unhome(-1)  # -1 unhomes all axes
+            await _cmd_blocking(CMD.unhome, -1, wait=None)  # -1 unhomes all axes
             return {"ok": True}
 
         if cmd == "home":
             require_armed(armed)
             joint = int(msg.get("joint", -1))
             await set_mode(linuxcnc.MODE_MANUAL)
-            CMD.home(joint)
+            await _cmd_blocking(CMD.home, joint, wait=None)
             return {"ok": True}
 
         if cmd == "unhome":
@@ -3490,24 +3481,24 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             joint = int(msg.get("joint", -1))
             await set_mode(linuxcnc.MODE_MANUAL)
             await _cmd_blocking(CMD.teleop_enable, 0)  # unhome requires joint mode
-            CMD.unhome(joint)
+            await _cmd_blocking(CMD.unhome, joint, wait=None)
             return {"ok": True}
 
         if cmd == "cycle_start":
             require_armed(armed)
             await set_mode(linuxcnc.MODE_AUTO)
-            CMD.auto(linuxcnc.AUTO_RUN, 0)  # Start from beginning
+            await _cmd_blocking(CMD.auto, linuxcnc.AUTO_RUN, 0, wait=None)  # Start from beginning
             return {"ok": True}
 
         if cmd == "cycle_pause":
             require_armed(armed)
-            CMD.auto(linuxcnc.AUTO_PAUSE)
+            await _cmd_blocking(CMD.auto, linuxcnc.AUTO_PAUSE, wait=None)
             return {"ok": True}
 
         if cmd == "cycle_resume":
             require_armed(armed)
             # Don't call set_mode - already in AUTO mode when paused
-            CMD.auto(linuxcnc.AUTO_RESUME)
+            await _cmd_blocking(CMD.auto, linuxcnc.AUTO_RESUME, wait=None)
             return {"ok": True}
 
         if cmd == "set_feed_override":
@@ -3515,7 +3506,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             scale = float(msg.get("scale", 1.0))
             # Clamp to reasonable range (0-200%)
             scale = max(0.0, min(2.0, scale))
-            CMD.feedrate(scale)
+            await _cmd_blocking(CMD.feedrate, scale, wait=None)
             return {"ok": True, "scale": scale}
 
         if cmd == "set_spindle_override":
@@ -3523,59 +3514,59 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             scale = float(msg.get("scale", 1.0))
             # Clamp to reasonable range (50-200%)
             scale = max(0.5, min(2.0, scale))
-            CMD.spindleoverride(scale)
+            await _cmd_blocking(CMD.spindleoverride, scale, wait=None)
             return {"ok": True, "scale": scale}
 
         if cmd == "spindle_forward":
             require_armed(armed)
             speed = float(msg.get("speed", 0))
             await set_mode(linuxcnc.MODE_MANUAL)
-            CMD.spindle(linuxcnc.SPINDLE_FORWARD, speed)
+            await _cmd_blocking(CMD.spindle, linuxcnc.SPINDLE_FORWARD, speed, wait=None)
             return {"ok": True}
 
         if cmd == "spindle_reverse":
             require_armed(armed)
             speed = float(msg.get("speed", 0))
             await set_mode(linuxcnc.MODE_MANUAL)
-            CMD.spindle(linuxcnc.SPINDLE_REVERSE, speed)
+            await _cmd_blocking(CMD.spindle, linuxcnc.SPINDLE_REVERSE, speed, wait=None)
             return {"ok": True}
 
         if cmd == "spindle_stop":
             require_armed(armed)
             await set_mode(linuxcnc.MODE_MANUAL)
-            CMD.spindle(linuxcnc.SPINDLE_OFF)
+            await _cmd_blocking(CMD.spindle, linuxcnc.SPINDLE_OFF, wait=None)
             return {"ok": True}
 
         if cmd == "spindle_increase":
             require_armed(armed)
             await set_mode(linuxcnc.MODE_MANUAL)
-            CMD.spindle(linuxcnc.SPINDLE_INCREASE)
+            await _cmd_blocking(CMD.spindle, linuxcnc.SPINDLE_INCREASE, wait=None)
             return {"ok": True}
 
         if cmd == "spindle_decrease":
             require_armed(armed)
             await set_mode(linuxcnc.MODE_MANUAL)
-            CMD.spindle(linuxcnc.SPINDLE_DECREASE)
+            await _cmd_blocking(CMD.spindle, linuxcnc.SPINDLE_DECREASE, wait=None)
             return {"ok": True}
 
         if cmd == "flood_on":
             require_armed(armed)
-            CMD.flood(linuxcnc.FLOOD_ON)
+            await _cmd_blocking(CMD.flood, linuxcnc.FLOOD_ON, wait=None)
             return {"ok": True}
 
         if cmd == "flood_off":
             require_armed(armed)
-            CMD.flood(linuxcnc.FLOOD_OFF)
+            await _cmd_blocking(CMD.flood, linuxcnc.FLOOD_OFF, wait=None)
             return {"ok": True}
 
         if cmd == "mist_on":
             require_armed(armed)
-            CMD.mist(linuxcnc.MIST_ON)
+            await _cmd_blocking(CMD.mist, linuxcnc.MIST_ON, wait=None)
             return {"ok": True}
 
         if cmd == "mist_off":
             require_armed(armed)
-            CMD.mist(linuxcnc.MIST_OFF)
+            await _cmd_blocking(CMD.mist, linuxcnc.MIST_OFF, wait=None)
             return {"ok": True}
 
         if cmd == "set_rapid_override":
@@ -3583,19 +3574,19 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             scale = float(msg.get("scale", 1.0))
             # Clamp to 0-100%
             scale = max(0.0, min(1.0, scale))
-            CMD.rapidrate(scale)
+            await _cmd_blocking(CMD.rapidrate, scale, wait=None)
             return {"ok": True, "scale": scale}
 
         if cmd == "set_optional_stop":
             require_armed(armed)
             value = bool(msg.get("value", False))
-            CMD.set_optional_stop(value)
+            await _cmd_blocking(CMD.set_optional_stop, value, wait=None)
             return {"ok": True}
 
         if cmd == "set_block_delete":
             require_armed(armed)
             value = bool(msg.get("value", False))
-            CMD.set_block_delete(value)
+            await _cmd_blocking(CMD.set_block_delete, value, wait=None)
             return {"ok": True}
 
         if cmd == "set_max_velocity":
@@ -3603,7 +3594,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             velocity = float(msg.get("velocity", 0.0))
             # Clamp to positive values
             velocity = max(0.0, velocity)
-            CMD.maxvel(velocity)
+            await _cmd_blocking(CMD.maxvel, velocity, wait=None)
             return {"ok": True, "velocity": velocity}
 
         if cmd == "load_file":
@@ -5158,7 +5149,7 @@ async def ws_endpoint(ws: WebSocket):
         await ws.accept()
         armed = False  # connection-local arming
 
-        global _next_client_id, _estop_hold, _unacked_trip
+        global _next_client_id, _estop_hold, _unacked_trip, _last_trip_count
         global _gcode_preview_pending, _gcode_preview_version
         global _gcode_last_file
         global _gcode_preview_bytes, _gcode_refresh_running
@@ -5170,7 +5161,7 @@ async def ws_endpoint(ws: WebSocket):
             ws=ws,
             last_hb=time.time(),
         )
-        _cancel_disconnect_grace()
+        await _cancel_disconnect_grace()
         _start_heartbeat()
         _start_status_poller()
         _start_reader_recv_loop()
@@ -5188,14 +5179,14 @@ async def ws_endpoint(ws: WebSocket):
         if not lcnc_connected:
             if STAT is not None:
                 try:
-                    STAT.poll()
+                    await asyncio.to_thread(STAT.poll)
                     lcnc_connected = True
                     _stat_path = "stat-poll"
                 except Exception:
-                    try_connect_lcnc()
+                    await asyncio.to_thread(try_connect_lcnc)
                     _stat_path = "stat-fail-reconnect"
             else:
-                try_connect_lcnc()
+                await asyncio.to_thread(try_connect_lcnc)
                 _stat_path = "reconnect"
         _dbg("CONN", f"client#{client_id} lcnc-restored dt={(time.monotonic()-_t)*1000:.0f}ms path={_stat_path} connected={lcnc_connected}")
 
@@ -5620,20 +5611,7 @@ async def ws_endpoint(ws: WebSocket):
                                 _clients[client_id].armed = False
                                 try:
                                     async with _get_cmd_lock():
-                                        if bool(safe_get("enabled", False)):
-                                            mode = safe_get("task_mode", None)
-                                            interp = safe_get("interp_state", None)
-                                            if mode == linuxcnc.MODE_AUTO and interp != linuxcnc.INTERP_IDLE:
-                                                CMD.abort()
-                                            else:
-                                                homed = normalize_homed(safe_get("homed", None))
-                                                if homed:
-                                                    await set_mode(linuxcnc.MODE_MANUAL)
-                                                    jf = _jog_joint_flag()
-                                                    _nj = getattr(STAT, "joints", 3) if STAT else 3
-                                                    for ax in range(_nj):
-                                                        CMD.jog(linuxcnc.JOG_STOP, jf, ax)
-                                                CMD.abort()
+                                        await _disarm_safety_sequence()
                                 except Exception:
                                     pass
                                 try:
@@ -5740,6 +5718,16 @@ async def ws_endpoint(ws: WebSocket):
 
             if msg.get("cmd") == "safety_trip_ack":
                 _unacked_trip = None
+                # If trip-count advanced between the original trip and this
+                # ack (additional trips fired while the banner was up), the
+                # next status_poller tick would see trip_count > _last_trip_count
+                # and re-set _unacked_trip immediately. Sync _last_trip_count
+                # to the reader's current value so the ack actually clears.
+                # A genuinely-new trip after this ack will still fire because
+                # the reader counter will increment past this value.
+                _current_trip_count = _reader_get("trip_count")
+                if _current_trip_count is not None:
+                    _last_trip_count = _current_trip_count
                 await ws_send_json(ws, {"type": "reply", "ok": True})
                 continue
 
@@ -5905,20 +5893,7 @@ async def ws_endpoint(ws: WebSocket):
                 async with _get_cmd_lock():
                     _set_phase(f"ws_endpoint.finally.armed_abort.cmd_lock_held client#{client_id}")
                     STAT.poll()
-                    if bool(safe_get("enabled", False)):
-                        mode = safe_get("task_mode", None)
-                        interp = safe_get("interp_state", None)
-                        if mode == linuxcnc.MODE_AUTO and interp != linuxcnc.INTERP_IDLE:
-                            CMD.abort()
-                        else:
-                            homed = normalize_homed(safe_get("homed", None))
-                            if homed:
-                                await set_mode(linuxcnc.MODE_MANUAL)
-                                jf = _jog_joint_flag()
-                                _nj = getattr(STAT, "joints", 3) if STAT else 3
-                                for ax in range(_nj):
-                                    CMD.jog(linuxcnc.JOG_STOP, jf, ax)
-                            CMD.abort()
+                    await _disarm_safety_sequence()
             except Exception:
                 pass
         _set_phase(f"ws_endpoint.finally.cancel_status_task client#{client_id}")
