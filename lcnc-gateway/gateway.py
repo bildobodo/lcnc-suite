@@ -550,6 +550,11 @@ async def _reader_recv_loop():
             continue
         _reader_writer = writer
         print("Connected to HAL reader socket", flush=True)
+        # Push extra-pin config (e.g. user-configured spindle load pin) so the
+        # reader includes it in subsequent snapshots. Spawned as a separate
+        # task because this loop dispatches the reply — awaiting here would
+        # deadlock.
+        asyncio.create_task(_reader_configure_extra_pins())
         try:
             while True:
                 _set_phase("reader_recv.readline")
@@ -585,6 +590,28 @@ async def _reader_recv_loop():
                     fut.set_exception(ConnectionError("HAL reader disconnected"))
             _reader_pending.clear()
         await asyncio.sleep(1.0)
+
+
+async def _reader_configure_extra_pins() -> None:
+    """Push the current extra-pin config to the reader.
+
+    Called on reader reconnect and when settings change. Reads settings
+    directly so it's correct regardless of whether status_loop has run yet
+    (race-free at startup). Fire-and-forget; failures log but don't propagate.
+    """
+    if _reader_writer is None:
+        return
+    pins: Dict[str, str] = {}
+    try:
+        slp = load_settings().get("machine", {}).get("spindleLoadPin", "")
+    except Exception:
+        slp = ""
+    if isinstance(slp, str) and _HAL_PIN_RE.match(slp):
+        pins["spindle_load"] = slp
+    try:
+        await _reader_request("set_extra_pins", pins=pins)
+    except Exception as e:
+        print(f"[READER] configure_extra_pins failed: {type(e).__name__}: {e}", flush=True)
 
 
 async def _reader_request(req: str, timeout: float = 2.0, **kwargs) -> dict:
@@ -2762,7 +2789,7 @@ def poll_status() -> StatusPayload:
         current_vel=current_vel,
         spindle_speed=spindle_speed,
         spindle_speed_actual=spindle_speed_actual,
-        spindle_load=None,  # TODO: configurable extra pin via reader configure protocol
+        spindle_load=_reader_get("spindle_load"),
         spindle_direction=spindle_direction,
         active_file=safe_get("file", None),
         motion_line=safe_get("motion_line", None),
@@ -5504,7 +5531,10 @@ async def ws_endpoint(ws: WebSocket):
                             _machine_s = _ss.get("machine", {})
                             _fb_scale = 1 if _machine_s.get("spindleFeedbackUnit") == "rpm" else 60
                             _slp = _machine_s.get("spindleLoadPin", "")
-                            _spindle_load_pin = _slp if isinstance(_slp, str) and _HAL_PIN_RE.match(_slp) else ""
+                            _new_load_pin = _slp if isinstance(_slp, str) and _HAL_PIN_RE.match(_slp) else ""
+                            if _new_load_pin != _spindle_load_pin:
+                                _spindle_load_pin = _new_load_pin
+                                asyncio.create_task(_reader_configure_extra_pins())
                             await ws_send_json(ws, {
                                 "type": "settings_changed",
                                 "settings": _ss,

@@ -54,6 +54,11 @@ SNAPSHOT_PINS = [
     ("webui-safety.trip-count",      "trip_count",        int),
 ]
 
+# Gateway-configurable extra pins, keyed by snapshot field name. Always
+# coerced to float (current sole consumer is spindle_load %). Replaced
+# wholesale by the gateway via the `set_extra_pins` RPC.
+_extra_pins: dict = {}
+
 # ---- Create HAL component ----
 try:
     comp = hal.component(COMP_NAME)
@@ -119,6 +124,17 @@ def _handle_request(msg: dict) -> dict:
             reply = {"type": "reply", "id": req_id, "ok": True}
         elif req == "halshow_dump":
             reply = {"type": "reply", "id": req_id, "ok": True, "result": _halshow_dump()}
+        elif req == "set_extra_pins":
+            pins = msg.get("pins") or {}
+            if not isinstance(pins, dict):
+                reply = {"type": "reply", "id": req_id, "ok": False, "error": "pins must be a dict"}
+            else:
+                new_extras = {field: pin for field, pin in pins.items()
+                              if isinstance(pin, str) and pin}
+                _extra_pins.clear()
+                _extra_pins.update(new_extras)
+                print(f"[READER] extra pins configured: {new_extras}", flush=True)
+                reply = {"type": "reply", "id": req_id, "ok": True}
         else:
             reply = {"type": "reply", "id": req_id, "ok": False, "error": f"unknown req '{req}'"}
     except Exception as e:
@@ -145,6 +161,11 @@ def _build_snapshot() -> dict:
             # Pin missing right now — log every tick. The gateway will see
             # the field absent from the snapshot and surface that honestly.
             print(f"[READER] read '{source}' failed: {e}", flush=True)
+    for field, pin in _extra_pins.items():
+        try:
+            snap[field] = float(hal.get_value(pin))
+        except Exception as e:
+            print(f"[READER] read extra pin '{pin}' (field={field}) failed: {e}", flush=True)
     return snap
 
 
