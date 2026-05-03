@@ -38,13 +38,6 @@ const hasG92 = computed(() => props.g92Offset?.some(v => v !== 0) ?? false);
 const hasTool = computed(() => props.toolOffset?.some(v => v !== 0) ?? false);
 const hasComp = computed(() => props.eoffsetZ != null && props.eoffsetZ !== 0);
 
-// @ts-expect-error TS6133 — hasRotation will be used for warning badge
-const hasRotation = computed(() => {
-  if (props.rotationXy != null && props.rotationXy !== 0) return true;
-  const activeRow = props.wcsTable.find(r => r.name === props.g5xLabel);
-  return activeRow != null && activeRow.r !== 0;
-});
-
 // ─── Cell editing ────────────────────────────────────────────
 function startEditCell(wcs: string, axis: string, current: number) {
   if (!can.value.zero) return;

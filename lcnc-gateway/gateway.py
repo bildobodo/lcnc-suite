@@ -1635,14 +1635,20 @@ _NML_POISON_THRESHOLD = 60  # consecutive probe-pass + main-fail = poisoned NML 
 
 
 def _self_restart():
-    """Spawn a fresh gateway process and exit. Last resort for NML poisoning."""
+    """Replace this process with a fresh gateway. Last resort for NML poisoning.
+
+    os.execv atomically swaps the process image — no parent/child handoff
+    window, no stale PID, file descriptors that aren't FD_CLOEXEC are
+    inherited but the gateway re-opens its own HAL/socket state. Falls back
+    to os._exit so the launcher can respawn if execv fails.
+    """
     print("NML POISONED: self-restarting gateway process", flush=True)
     _hal_disconnect()
     try:
-        subprocess.Popen([sys.executable, "-m", "uvicorn"] + sys.argv[1:])
+        os.execv(sys.executable, [sys.executable, "-m", "uvicorn"] + sys.argv[1:])
     except Exception as e:
-        print(f"[RESTART] Popen failed ({type(e).__name__}: {e}) — exiting; launcher will respawn", flush=True)
-    os._exit(1)
+        print(f"[RESTART] execv failed ({type(e).__name__}: {e}) — exiting; launcher will respawn", flush=True)
+        os._exit(1)
 
 
 def try_connect_lcnc() -> bool:
@@ -1960,6 +1966,28 @@ def parse_tool_table(path: str) -> list:
     return tools
 
 
+def atomic_write_bytes(path: str, data: bytes) -> None:
+    """Atomically write `data` to `path` via tempfile + os.replace.
+
+    Cleans up the temp file if anything fails. Used everywhere we persist
+    user data — six near-identical copies were extracted into this helper.
+    Caller-side text/JSON encoding goes through this so the atomic primitive
+    stays single-purpose.
+    """
+    dir_name = os.path.dirname(path) or "."
+    fd, tmp = tempfile.mkstemp(dir=dir_name, suffix=".tmp")
+    try:
+        with os.fdopen(fd, "wb") as f:
+            f.write(data)
+        os.replace(tmp, path)
+    except Exception:
+        try:
+            os.unlink(tmp)
+        except FileNotFoundError:
+            pass
+        raise
+
+
 def write_tool_table(path: str, tools: list):
     """Write tools to a LinuxCNC tool.tbl file atomically."""
     lines = [";Tool  Pocket Z Offset     Diameter     Remark\n"]
@@ -1973,18 +2001,7 @@ def write_tool_table(path: str, tools: list):
         if remark:
             line += f"   ; {remark}"
         lines.append(line + "\n")
-    dir_name = os.path.dirname(path)
-    fd, tmp = tempfile.mkstemp(dir=dir_name, suffix=".tmp")
-    try:
-        with os.fdopen(fd, "w") as f:
-            f.writelines(lines)
-        os.rename(tmp, path)
-    except Exception:
-        try:
-            os.unlink(tmp)
-        except Exception:
-            pass
-        raise
+    atomic_write_bytes(path, "".join(lines).encode("utf-8"))
 
 
 async def _reload_tool_table_and_bump():
@@ -2041,17 +2058,7 @@ def _load_tool_library_all() -> dict:
 def _save_tool_library_all(all_data: dict):
     """Write tool_library.json atomically."""
     global _tool_lib_cache
-    fd, tmp = tempfile.mkstemp(dir=str(TOOL_LIBRARY_PATH.parent), suffix=".tmp")
-    try:
-        with os.fdopen(fd, "w") as f:
-            json.dump(all_data, f, indent=2)
-        os.rename(tmp, str(TOOL_LIBRARY_PATH))
-    except Exception:
-        try:
-            os.unlink(tmp)
-        except Exception:
-            pass
-        raise
+    atomic_write_bytes(str(TOOL_LIBRARY_PATH), json.dumps(all_data, indent=2).encode("utf-8"))
     _tool_lib_cache = None  # invalidate; next read re-loads with fresh mtime
 
 
@@ -2127,18 +2134,8 @@ def _load_settings_all() -> dict:
 def _save_settings_all(all_data: dict):
     """Write settings.json atomically."""
     global _settings_cache
-    fd, tmp = tempfile.mkstemp(dir=str(SETTINGS_PATH.parent), suffix=".tmp")
-    try:
-        with os.fdopen(fd, "w") as f:
-            json.dump(all_data, f, indent=2)
-        os.rename(tmp, str(SETTINGS_PATH))
-        _settings_cache = all_data
-    except Exception:
-        try:
-            os.unlink(tmp)
-        except Exception:
-            pass
-        raise
+    atomic_write_bytes(str(SETTINGS_PATH), json.dumps(all_data, indent=2).encode("utf-8"))
+    _settings_cache = all_data
 
 
 def load_settings() -> dict:
@@ -2469,6 +2466,31 @@ def _read_var_file(path: str, wanted: set) -> Dict[str, float]:
             if len(parts) >= 2 and parts[0] in wanted:
                 result[parts[0]] = float(parts[1])
     return result
+
+
+def _write_var_file_updates(var_file: str, str_vars: Dict[str, float]) -> None:
+    """Read var_file, replace/insert each {var: value}, atomically write back.
+
+    Sync helper — call via asyncio.to_thread from async handlers so the
+    blocking I/O can't stall the event loop.
+    """
+    with open(var_file) as f:
+        lines = f.readlines()
+    found = set()
+    for i, line in enumerate(lines):
+        parts = line.split()
+        if len(parts) >= 2 and parts[0] in str_vars:
+            lines[i] = f"{parts[0]}\t{str_vars[parts[0]]:.6f}\n"
+            found.add(parts[0])
+    missing = {k: v for k, v in str_vars.items() if k not in found}
+    if missing:
+        for k, v in missing.items():
+            lines.append(f"{k}\t{v:.6f}\n")
+        def _var_key(line):
+            try: return int(line.split()[0])
+            except (ValueError, IndexError): return 999999
+        lines.sort(key=_var_key)
+    atomic_write_bytes(var_file, "".join(lines).encode("utf-8"))
 
 
 def _resolve_var_file_path() -> Optional[str]:
@@ -3652,32 +3674,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                         var_file = os.path.join(os.path.dirname(ini_path), var_file)
                     str_vars = {str(k): float(v) for k, v in vars_to_set.items()}
                     print(f"[probe] set_probe_vars: {str_vars}", flush=True)
-                    with open(var_file) as f:
-                        lines = f.readlines()
-                    found = set()
-                    for i, line in enumerate(lines):
-                        parts = line.split()
-                        if len(parts) >= 2 and parts[0] in str_vars:
-                            lines[i] = f"{parts[0]}\t{str_vars[parts[0]]:.6f}\n"
-                            found.add(parts[0])
-                    # Insert missing vars and re-sort by var number
-                    missing = {k: v for k, v in str_vars.items() if k not in found}
-                    if missing:
-                        for k, v in missing.items():
-                            lines.append(f"{k}\t{v:.6f}\n")
-                        def _var_key(line):
-                            try: return int(line.split()[0])
-                            except Exception: return 999999
-                        lines.sort(key=_var_key)
-                    # Atomic write: tempfile + rename prevents corruption on crash
-                    fd, tmp_path = tempfile.mkstemp(dir=os.path.dirname(var_file), suffix=".tmp")
-                    try:
-                        with os.fdopen(fd, "w") as f:
-                            f.writelines(lines)
-                        os.replace(tmp_path, var_file)
-                    except Exception:
-                        os.unlink(tmp_path)
-                        raise
+                    await asyncio.to_thread(_write_var_file_updates, var_file, str_vars)
                     file_ok = True
             # 2) Best-effort: set in interpreter memory via MDI (requires armed + machine on + idle)
             # Split into chunks ≤250 chars to fit LinuxCNC's 256-char MDI buffer
@@ -3719,7 +3716,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 return {"ok": False, "error": "No PARAMETER_FILE in INI"}
             if not os.path.isabs(var_file):
                 var_file = os.path.join(os.path.dirname(ini_path), var_file)
-            result = _read_var_file(var_file, {str(v) for v in var_nums})
+            result = await asyncio.to_thread(_read_var_file, var_file, {str(v) for v in var_nums})
             print(f"[probe] get_probe_vars: {result}", flush=True)
             return {"ok": True, "vars": result}
 
@@ -4450,15 +4447,8 @@ async def upload_gcode(file: UploadFile = File(...)):
         raise HTTPException(status_code=413, detail="File too large (max 50 MB)")
 
     try:
-        fd, tmp_path = tempfile.mkstemp(dir=nc_dir, suffix=".tmp")
-        with os.fdopen(fd, "wb") as f:
-            f.write(content)
-        os.rename(tmp_path, dest_path)
+        atomic_write_bytes(dest_path, content)
     except Exception as e:
-        try:
-            os.unlink(tmp_path)
-        except Exception:
-            pass
         raise HTTPException(status_code=500, detail=f"Failed to save file: {e}")
 
     return {"ok": True, "path": dest_path, "filename": safe_name, "size": len(content)}
@@ -4487,15 +4477,8 @@ async def save_gcode(path: str = Body(...), content: str = Body(...)):
         raise HTTPException(status_code=413, detail="File too large (max 50 MB)")
 
     try:
-        fd, tmp_path = tempfile.mkstemp(dir=os.path.dirname(abs_path), suffix=".tmp")
-        with os.fdopen(fd, "wb") as f:
-            f.write(encoded)
-        os.rename(tmp_path, abs_path)
+        atomic_write_bytes(abs_path, encoded)
     except Exception as e:
-        try:
-            os.unlink(tmp_path)
-        except Exception:
-            pass
         raise HTTPException(status_code=500, detail=f"Failed to save file: {e}")
 
     return {"ok": True, "path": abs_path, "size": len(encoded)}

@@ -185,7 +185,9 @@ const machineStateLabel = computed(() => {
   }
   if (state === 'running' || state === 'paused') {
     const file = activeFile.value;
-    const name = file ? file.split('/').pop() : null;
+    // Normalize Windows-style backslashes (some LinuxCNC builds return them)
+    // before basename — same shape as configName at L369.
+    const name = file ? file.replace(/\\/g, "/").split('/').pop() : null;
     const parts = [label];
     if (name) parts.push(name);
     if (elapsedDisplay.value) parts.push(elapsedDisplay.value);

@@ -1075,7 +1075,7 @@ async function buildFromInit(init: ViewerInit) {
   const myToken = buildToken;
 
   clearScene();
-  (window as any).__viewerDiag = { ready: false };
+  window.__viewerDiag = { ready: false };
 
   try {
     _unitScale = (init.units === "in" || init.units === "inch") ? 1 / 25.4 : 1;
@@ -1183,7 +1183,7 @@ async function buildFromInit(init: ViewerInit) {
       frameToBounds(autoBox);
       _needsReframe = true;
 
-      (window as any).__viewerDiag = {
+      window.__viewerDiag = {
         ready: true,
         meshCount: machineMeshes.length,
         boundsValid: !autoBox.isEmpty(),
@@ -1214,7 +1214,7 @@ async function buildFromInit(init: ViewerInit) {
 
   } catch (err) {
     console.error("buildFromInit failed:", err);
-    (window as any).__viewerDiag = { ready: false, error: (err as Error).message };
+    window.__viewerDiag = { ready: false, error: (err as Error).message };
   }
 }
 

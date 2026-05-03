@@ -75,18 +75,25 @@ const g30X = ref<number | null>(null);
 const g30Y = ref<number | null>(null);
 const g30Z = ref<number | null>(null);
 const g30Loading = ref(false);
+const g30Error = ref<string | null>(null);
 
 async function loadG30() {
   g30Loading.value = true;
+  g30Error.value = null;
   try {
     const data = await fetchG30();
     if (data.ok) {
       g30X.value = data.x;
       g30Y.value = data.y;
       g30Z.value = data.z;
+    } else {
+      g30Error.value = data.error || "G30 read failed";
     }
-  } catch { /* ignore */ }
-  g30Loading.value = false;
+  } catch (e: any) {
+    g30Error.value = e?.message ?? String(e);
+  } finally {
+    g30Loading.value = false;
+  }
 }
 
 function setG30() {
@@ -134,6 +141,7 @@ watch(settingsVersion, () => { loadTsParams(); });
       <MachineBtn type="probe" @click="setG30">Set Current Position</MachineBtn>
       <MachineBtn type="inlineMd" @click="loadG30" :disabled="g30Loading">Refresh</MachineBtn>
     </div>
+    <div v-if="g30Error" class="span errorText">G30 read failed: {{ g30Error }}</div>
 
     <div class="sep span"></div>
 
@@ -217,5 +225,9 @@ watch(settingsVersion, () => { loadTsParams(); });
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--gap-controls);
+}
+.errorText {
+  color: var(--danger);
+  font-size: var(--fs-sm);
 }
 </style>
