@@ -174,7 +174,12 @@ class Aggregator:
 
     def record(self, **measurements: float) -> None:
         """Add one observation. Triggers an emit + reset every
-        ``every`` calls. Never raises."""
+        ``every`` calls. Doesn't propagate exceptions to the caller
+        (telemetry must never crash production paths) but does NOT
+        swallow them silently — failures emit a `trace.aggregator_error`
+        event so a buggy caller (NaN measurement, non-numeric value,
+        thread-safety issue) is visible in the trace bus instead of
+        being hidden behind dropped data."""
         try:
             for k, v in measurements.items():
                 fv = float(v)
@@ -184,8 +189,14 @@ class Aggregator:
             self._count += 1
             if self._count >= self._every:
                 self._emit()
-        except Exception:
-            # Telemetry must never break the caller; drop on error.
+        except Exception as e:
+            emit(
+                "trace.aggregator_error", level="error",
+                agg_tag=self._tag,
+                phase="record",
+                exc=type(e).__name__, err=str(e),
+                metric_keys=list(measurements.keys()),
+            )
             self._reset()
 
     def _emit(self) -> None:
@@ -200,6 +211,10 @@ class Aggregator:
         # Static or computed extras. Computed lets callers attach
         # point-in-time state (current pin values, kernel buffer
         # depth) without having to record them every observation.
+        # If the callable raises, surface as `trace.aggregator_error`
+        # rather than silently emitting the summary without extras —
+        # otherwise a buggy extras callable produces summaries that
+        # *look* fine but are missing the expected fields.
         try:
             if callable(self._extra_fields):
                 extras = self._extra_fields() or {}
@@ -208,8 +223,13 @@ class Aggregator:
             else:
                 extras = {}
             fields.update(extras)
-        except Exception:
-            pass
+        except Exception as e:
+            emit(
+                "trace.aggregator_error", level="error",
+                agg_tag=self._tag,
+                phase="extra_fields",
+                exc=type(e).__name__, err=str(e),
+            )
         emit(self._tag, level=self._level, **fields)
         self._reset()
 

@@ -2814,13 +2814,17 @@ def _ws_hidden_flag(ws: WebSocket) -> bool:
     Used by the slow-send probes so a single trace event tells us whether
     the slow consumer was a backgrounded tab (hidden-tab gating should
     have caught it) or a genuinely-visible peer (separate problem).
-    O(n) over _clients but bounded by tab count and only on warn paths."""
-    try:
-        for c in _clients.values():
-            if c.ws is ws:
-                return c.hidden
-    except Exception:
-        pass
+
+    Iterates over a snapshot (`list(...)`) to avoid the only realistic
+    failure mode (`RuntimeError: dictionary changed size during iteration`)
+    when another coroutine adds or removes a client mid-call. Any other
+    exception is a real bug and is allowed to propagate — better to
+    surface a crash than to silently report `hidden=False` on a corrupted
+    state and mislead the trace consumer.
+    """
+    for c in list(_clients.values()):
+        if c.ws is ws:
+            return c.hidden
     return False
 
 
