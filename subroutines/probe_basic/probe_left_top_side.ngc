@@ -77,7 +77,7 @@ o<Probe_left_top_side> sub
   (probe mode rules for WCO or probe position measuring only)
   o120 if [#<probe_mode> EQ 0]
       (Record Zero in selected axes and WCO)
-      G10 L2 P#5220 X[#<x_plus_zero_edge> + #<workspace_x>]
+      o<probe_set_wco> call [#<x_plus_zero_edge>] [0]
   o120 endif
 
   (Reinstate Feedrate Override)

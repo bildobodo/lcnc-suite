@@ -210,7 +210,7 @@ o<probe_cal_square_boss> sub
   (probe mode rules for WCO or probe position measuring only)
   o140 if [#<probe_mode> EQ 0]
       (Record XY Zero in selected WCO)
-      G10 L2 P#5220 X[#<x_zero>] Y[#<y_zero>]
+      o<probe_set_wco> call [#<x_center_probed>] [#<y_center_probed>]
       (Probe Completion Move to Z Clearance Plane, and X Zero, Y Zero)
   o140 endif
 

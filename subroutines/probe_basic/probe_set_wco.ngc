@@ -1,0 +1,23 @@
+(probe_set_wco — set current WCS origin from probed XY values)
+(Accounts for active WCS rotation R so the new origin lands correctly)
+(in rotated frames. With R=0 this is identical to the legacy form)
+(  G10 L2 P#5220 X[x_p + workspace_x] Y[y_p + workspace_y].)
+(For rotated frames it shifts the origin along the rotated WCS axes:)
+(  new_X = workspace_x + x_p*COS[R] - y_p*SIN[R])
+(  new_Y = workspace_y + x_p*SIN[R] + y_p*COS[R])
+(Args: 1 = x probed value in current rotated WCS)
+(      2 = y probed value in current rotated WCS)
+(Pass 0 for axes that should not move. Z is unaffected by XY rotation —)
+(use plain G10 L2 for Z-only writes.)
+
+o<probe_set_wco> sub
+  #<x_p> = #1
+  #<y_p> = #2
+  #<wcs> = #5220
+  #<wsx> = #[5201 + [20 * #<wcs>]]
+  #<wsy> = #[5202 + [20 * #<wcs>]]
+  #<rot> = #[5210 + [20 * #<wcs>]]
+  G10 L2 P#<wcs> X[#<wsx> + #<x_p> * COS[#<rot>] - #<y_p> * SIN[#<rot>]] Y[#<wsy> + #<x_p> * SIN[#<rot>] + #<y_p> * COS[#<rot>]]
+o<probe_set_wco> endsub
+
+M2
