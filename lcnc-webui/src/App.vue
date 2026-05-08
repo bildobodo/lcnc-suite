@@ -25,7 +25,7 @@ import { Settings, MessageSquare, PowerOff, Gamepad2, Keyboard, BookOpen, Clipbo
 import GcodeReferenceDialog from "./GcodeReferenceDialog.vue";
 import NumberKeypad from "./NumberKeypad.vue";
 import { keypadState } from "./useNumberKeypad";
-import { loadViewerDefaults, saveViewerDefaults, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadGamepadDefaults, saveGamepadDefaults, loadKeyboardDefaults, saveKeyboardDefaults, settingsVersion, type ThemeMode, type GamepadDefaults, type KeyboardDefaults, type KeyboardAction, type Layer, type TrackMode, type Projection } from "./defaults";
+import { loadViewerDefaults, saveViewerDefaults, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadGamepadDefaults, saveGamepadDefaults, settingsVersion, type ThemeMode, type GamepadDefaults, type Layer, type TrackMode, type Projection } from "./defaults";
 import { buildToolsetterVarMap } from "./toolsetterVars";
 import { useGamepad } from "./useGamepad";
 import { useMediaMql } from "./useMediaMql";
@@ -33,6 +33,7 @@ import { useDialogState } from "./useDialogState";
 import { useMdiHistory } from "./useMdiHistory";
 import { useTouchoffMath } from "./useTouchoffMath";
 import { useMacros } from "./useMacros";
+import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
 import { forceStopAllJogs, initJogPointerSafety, destroyJogPointerSafety } from "./useJogPointers";
 import {
   INTERP_IDLE, INTERP_READING, INTERP_PAUSED, INTERP_WAITING,
@@ -934,100 +935,25 @@ function unloadFile() {
 }
 
 /** ---------- keyboard shortcuts ---------- */
-const keyboardConfig = ref<KeyboardDefaults>(loadKeyboardDefaults());
-
-const reverseKeyMap = computed(() => {
-  const map = new Map<string, KeyboardAction>();
-  for (const [action, key] of Object.entries(keyboardConfig.value.mapping)) {
-    if (key) map.set(key, action as KeyboardAction);
-  }
-  return map;
+// See useKeyboardShortcuts.ts. Owns config, reverseKeyMap, jogActions,
+// onKeyDown/onKeyUp, and the keydown/keyup window listeners. Cross-client
+// sync (settingsVersion → re-read loadKeyboardDefaults) lives inside.
+const {
+  keyboardConfig,
+  setKeyboardConfig,
+  clearJogState: clearKeyboardJogState,
+} = useKeyboardShortcuts({
+  jogVel,
+  angularJogVel,
+  jogIncrement,
+  axes,
+  permissions,
+  canEstop,
+  canResetEstop,
+  activeFile,
+  send,
+  fire,
 });
-
-const jogActions = reactive(new Set<string>());
-
-const ANGULAR_LETTERS = new Set(["A", "B", "C"]);
-
-function jogActionToAxis(action: string): { axis: number; dir: 1 | -1; isAngular: boolean } | null {
-  const match = action.match(/^jog_([a-z])([+-])$/);
-  if (!match) return null;
-  const letter = match[1]!.toUpperCase();
-  const dir = match[2] === "+" ? 1 : -1;
-  const idx = axes.value.indexOf(letter);
-  if (idx < 0) return null;
-  return { axis: idx, dir, isAngular: ANGULAR_LETTERS.has(letter) };
-}
-
-function isInputFocused(): boolean {
-  const el = document.activeElement;
-  if (!el) return false;
-  const tag = el.tagName;
-  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || !!(el as HTMLElement).isContentEditable;
-}
-
-function onKeyDown(e: KeyboardEvent) {
-  const action = reverseKeyMap.value.get(e.key);
-  if (!action) return;
-
-  // E-Stop always fires — bypasses master toggle and input focus
-  if (action === "estop") {
-    e.preventDefault();
-    if (canEstop.value) send({ cmd: "estop" });
-    else if (canResetEstop.value) send({ cmd: "estop_reset" });
-    return;
-  }
-
-  if (isInputFocused()) return;
-
-  // Jog actions — gated by jogEnabled independently
-  if (action.startsWith("jog_")) {
-    if (!keyboardConfig.value.jogEnabled) return;
-    e.preventDefault();
-    if (e.repeat || jogActions.has(action)) return;
-    if (!permissions.value.jog) return;
-    const jog = jogActionToAxis(action);
-    if (!jog) return;
-    jogActions.add(action);
-    const vel = (jog.isAngular ? angularJogVel.value : jogVel.value) * jog.dir;
-    if (jogIncrement.value > 0) {
-      send({ cmd: "jog_incr", axis: jog.axis, vel, distance: jogIncrement.value * jog.dir });
-    } else {
-      send({ cmd: "jog_cont", axis: jog.axis, vel });
-    }
-    return;
-  }
-
-  // Command shortcuts — gated by buttonsEnabled independently
-  if (!keyboardConfig.value.buttonsEnabled) return;
-
-  // Cycle start / pause / resume
-  if (action === "cycle") {
-    e.preventDefault();
-    if (permissions.value.resume) fire({ cmd: "cycle_resume" }, 'resume');
-    else if (permissions.value.pause) fire({ cmd: "cycle_pause" }, 'pause');
-    else if (permissions.value.ready && !!activeFile.value) fire({ cmd: "cycle_start" }, 'ready');
-    return;
-  }
-
-  // Abort
-  if (action === "abort") {
-    e.preventDefault();
-    if (permissions.value.abort) fire({ cmd: "abort" }, 'abort');
-    return;
-  }
-}
-
-function onKeyUp(e: KeyboardEvent) {
-  const action = reverseKeyMap.value.get(e.key);
-  if (!action || !action.startsWith("jog_")) return;
-  if (jogActions.has(action)) {
-    jogActions.delete(action);
-    if (jogIncrement.value <= 0) {
-      const jog = jogActionToAxis(action);
-      if (jog) send({ cmd: "jog_stop", axis: jog.axis });
-    }
-  }
-}
 
 /** ---------- gamepad jogging ---------- */
 const gamepadConfig = ref<GamepadDefaults>(loadGamepadDefaults());
@@ -1050,11 +976,6 @@ function setGamepadConfig(cfg: GamepadDefaults) {
   saveGamepadDefaults(cfg);
 }
 
-function setKeyboardConfig(cfg: KeyboardDefaults) {
-  keyboardConfig.value = cfg;
-  saveKeyboardDefaults(cfg);
-}
-
 watch(() => keyboardConfig.value.jogEnabled, (curr, prev) => {
   if (!curr && prev) stopAllJog();
 });
@@ -1067,11 +988,10 @@ provide("gamepadAxes", gamepad.gamepadAxesState);
 provide("gamepadButtons", gamepad.gamepadButtonsState);
 
 // Re-read server-synced settings when another client saves.
-// (userMacros is refreshed by its own watcher inside useMacros.)
+// (userMacros + keyboardConfig refresh via their own composable watchers.)
 watch(settingsVersion, () => {
   const mach = loadMachineDefaults();
   runFromLineEnabled.value = mach.runFromLine;
-  keyboardConfig.value = loadKeyboardDefaults();
   gamepadConfig.value = loadGamepadDefaults();
   const disp = loadDisplayDefaults();
   if (disp.theme !== themeMode.value) {
@@ -1088,8 +1008,8 @@ watch(settingsVersion, () => {
 
 /** ---------- safety: stop jog on focus loss ---------- */
 function stopAllJog() {
-  forceStopAllJogs(); // clear all pointer-based jog state + send stops
-  jogActions.clear();
+  forceStopAllJogs();          // clear pointer-based jog state + send stops
+  clearKeyboardJogState();     // clear active keyboard-jog action set
   gamepad.stopAllJog();
   if (!permissions.value.jog) return; // no jog possible unless armed + enabled + homed
   if (isRunning.value || isPaused.value) return; // no jog during program execution
@@ -1102,11 +1022,10 @@ function visHandler() {
   if (document.hidden) stopAllJog();
 }
 
+// useKeyboardShortcuts owns its own keydown/keyup window listeners.
 onMounted(() => {
   initJogPointerSafety();
   window.addEventListener("blur", stopAllJog);
-  window.addEventListener("keydown", onKeyDown);
-  window.addEventListener("keyup", onKeyUp);
   document.addEventListener("visibilitychange", visHandler);
   gamepad.start();
 });
@@ -1114,8 +1033,6 @@ onMounted(() => {
 onUnmounted(() => {
   destroyJogPointerSafety();
   window.removeEventListener("blur", stopAllJog);
-  window.removeEventListener("keydown", onKeyDown);
-  window.removeEventListener("keyup", onKeyUp);
   document.removeEventListener("visibilitychange", visHandler);
   document.removeEventListener("focusin", onNumFocus);
   gamepad.stop();
