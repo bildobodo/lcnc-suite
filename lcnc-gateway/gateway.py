@@ -5192,7 +5192,6 @@ async def ws_endpoint(ws: WebSocket):
             _set_phase(f"build_viewer_init client#{client_id}")
             await ws_send_json(ws, {"type": "viewer_init", "data": build_viewer_init(stl_base_url)})
             viewer_init_sent = True  # prevents status_loop re-send; reset on LinuxCNC reconnect
-            print(f"[VINIT] client#{client_id} connect-time viewer_init SENT OK", flush=True)
             _trace.emit(
                 "ws.connect.viewer_init",
                 client_id=client_id,
@@ -5200,7 +5199,6 @@ async def ws_endpoint(ws: WebSocket):
                 since_accept_ms=round((time.monotonic() - _conn_t0) * 1000, 1),
             )
         except Exception as e:
-            print(f"[VINIT] client#{client_id} connect-time viewer_init FAILED: {e}", flush=True)
             _trace.emit(
                 "ws.connect.viewer_init", level="error",
                 client_id=client_id, exc=type(e).__name__, msg=str(e),
@@ -5219,7 +5217,6 @@ async def ws_endpoint(ws: WebSocket):
                 settings_ms=round((time.monotonic() - _t) * 1000, 1),
             )
         except Exception as e:
-            print(f"[SETTINGS] client#{client_id} settings_init FAILED: {e}", flush=True)
             _trace.emit(
                 "ws.connect.settings", level="error",
                 client_id=client_id, exc=type(e).__name__, msg=str(e),
