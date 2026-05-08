@@ -56,11 +56,10 @@ _trace.init("gateway")
 _T0 = time.monotonic()
 
 
-def _dbg(tag: str, msg: str) -> None:
-    print(f"[{tag}] +{(time.monotonic() - _T0) * 1000:.0f}ms {msg}", flush=True)
-
-
-_dbg("BOOT", f"gateway start pid={os.getpid()}")
+# Boot start emitted to trace bus only — gateway terminal already shows
+# uvicorn's own startup banner. lcnc_trace.py records monotonic_ms so
+# subsequent boot.* events can be plotted on a shared timeline.
+_trace.emit("boot.start", pid=os.getpid())
 
 
 class _UvicornTimingFilter(logging.Filter):
@@ -1736,17 +1735,25 @@ def check_lcnc_instance() -> bool:
 
 
 # Best-effort connection at startup (gateway still runs if LinuxCNC isn't up yet)
-_dbg("BOOT", "module-level lcnc connect start")
+_trace.emit("boot.lcnc_connect_start")
 if _get_lcnc_pid() is not None:
     _bt = time.monotonic()
     try_connect_lcnc()
-    _dbg("BOOT", f"try_connect_lcnc dt={(time.monotonic()-_bt)*1000:.0f}ms connected={lcnc_connected}")
+    _trace.emit(
+        "boot.lcnc_connect",
+        dt_ms=round((time.monotonic() - _bt) * 1000, 1),
+        connected=lcnc_connected,
+    )
     if lcnc_connected:
         _bt = time.monotonic()
         _hal_connect()
-        _dbg("BOOT", f"_hal_connect dt={(time.monotonic()-_bt)*1000:.0f}ms sock={'ok' if _hal_sock else 'fail'}")
+        _trace.emit(
+            "boot.hal_connect",
+            dt_ms=round((time.monotonic() - _bt) * 1000, 1),
+            sock_ok=_hal_sock is not None,
+        )
 else:
-    _dbg("BOOT", "lcnc pid=None — skipped try_connect_lcnc")
+    _trace.emit("boot.lcnc_skip", reason="no linuxcncsvr pid")
 
 
 # ---- NC files directory ----
@@ -3865,7 +3872,11 @@ def _load_machine_config() -> dict:
 
 _bt = time.monotonic()
 MACHINE_CFG = _load_machine_config()
-_dbg("BOOT", f"_load_machine_config dt={(time.monotonic()-_bt)*1000:.0f}ms name={MACHINE_CFG.get('name','?')!r}")
+_trace.emit(
+    "boot.machine_config",
+    dt_ms=round((time.monotonic() - _bt) * 1000, 1),
+    name=MACHINE_CFG.get("name", "?"),
+)
 
 
 def _stl_versioned(filename: str) -> str:
@@ -3932,7 +3943,7 @@ def build_viewer_init(stl_base_url: str) -> Dict[str, Any]:
     _cache_key = _viewer_init_cache_key(stl_base_url)
     _cached = _viewer_init_cache.get(_cache_key)
     if _cached is not None:
-        _dbg("VINIT-T", "build_viewer_init total=0ms (cache hit)")
+        _trace.emit("viewer_init.cache_hit", dt_ms=0)
         return _cached
 
     # Per-step timing collected for [CONN] probe; survives normal startup with
@@ -4019,10 +4030,10 @@ def build_viewer_init(stl_base_url: str) -> Dict[str, Any]:
         "ini_config": ini_config,
     }
     _bvi_total = (time.monotonic() - _bvi_t0) * 1000
-    _dbg(
-        "VINIT-T",
-        f"build_viewer_init total={_bvi_total:.0f}ms "
-        + " ".join(f"{k}={v:.0f}ms" for k, v in _bvi_steps.items()),
+    _trace.emit(
+        "viewer_init.timing",
+        total_ms=round(_bvi_total, 1),
+        steps={k: round(v, 1) for k, v in _bvi_steps.items()},
     )
     # Store under the same key we looked up with at the top.
     _viewer_init_cache[_cache_key] = out
@@ -4169,7 +4180,7 @@ def register_bg_task(t: asyncio.Task) -> asyncio.Task:
 
 @asynccontextmanager
 async def lifespan(app: "FastAPI"):
-    _dbg("BOOT", "lifespan startup yield (app ready)")
+    _trace.emit("boot.lifespan_ready")
     # === TEMP IDLE-GATEWAY PROBE === start the status poller from lifespan
     # rather than waiting for the first WS connect, so the [IDLE] log fires
     # during the pre-first-client window. The poller's `if not _clients`
@@ -4290,7 +4301,7 @@ async def lifespan(app: "FastAPI"):
 
 
 app = FastAPI(lifespan=lifespan)
-_dbg("BOOT", "FastAPI app instantiated")
+_trace.emit("boot.app_instantiated")
 
 app.add_middleware(
     CORSMiddleware,
@@ -5174,7 +5185,13 @@ async def ws_endpoint(ws: WebSocket):
             else:
                 await asyncio.to_thread(try_connect_lcnc)
                 _stat_path = "reconnect"
-        _dbg("CONN", f"client#{client_id} lcnc-restored dt={(time.monotonic()-_t)*1000:.0f}ms path={_stat_path} connected={lcnc_connected}")
+        _trace.emit(
+            "ws.conn.lcnc_restored",
+            client_id=client_id,
+            dt_ms=round((time.monotonic() - _t) * 1000, 1),
+            path=_stat_path,
+            connected=lcnc_connected,
+        )
 
         # Viewer: send static model/init once per connection
         host = ws.headers.get("host", "127.0.0.1:8000")  # includes port
@@ -5257,8 +5274,17 @@ async def ws_endpoint(ws: WebSocket):
                     _gcode_path = "refresh-already-running"
         except Exception as e:
             print(f"Error loading initial G-code: {e}")
-        _dbg("CONN", f"client#{client_id} gcode-ping dt={(time.monotonic()-_t)*1000:.0f}ms path={_gcode_path}")
-        _dbg("CONN", f"client#{client_id} ready (total since accept={(time.monotonic()-_conn_t0)*1000:.0f}ms)")
+        _trace.emit(
+            "ws.conn.gcode_ping_sent",
+            client_id=client_id,
+            dt_ms=round((time.monotonic() - _t) * 1000, 1),
+            path=_gcode_path,
+        )
+        _trace.emit(
+            "ws.conn.ready",
+            client_id=client_id,
+            total_ms=round((time.monotonic() - _conn_t0) * 1000, 1),
+        )
 
         viewer_init_sent = False
         _probe_results: dict = {}  # populated from shared poller probe updates
@@ -5355,10 +5381,17 @@ async def ws_endpoint(ws: WebSocket):
                         try:
                             await ws_send_json(ws, {"type": "viewer_init", "data": build_viewer_init(stl_base_url)})
                             viewer_init_sent = True
-                            print(f"[VINIT] client#{client_id} viewer_init SENT OK", flush=True)
-                            _dbg("CONN", f"client#{client_id} viewer-init-sent (post-poll) dt={(time.monotonic()-_t)*1000:.0f}ms (since-accept={(time.monotonic()-_conn_t0)*1000:.0f}ms)")
+                            _trace.emit(
+                                "ws.conn.viewer_init_late",
+                                client_id=client_id,
+                                dt_ms=round((time.monotonic() - _t) * 1000, 1),
+                                since_accept_ms=round((time.monotonic() - _conn_t0) * 1000, 1),
+                            )
                         except Exception as e:
-                            print(f"[VINIT] client#{client_id} viewer_init FAILED: {e}", flush=True)
+                            _trace.emit(
+                                "ws.conn.viewer_init_late", level="error",
+                                client_id=client_id, exc=type(e).__name__, msg=str(e),
+                            )
 
                     # Merge shared probe updates into per-client results
                     if _shared_probe_updates:
