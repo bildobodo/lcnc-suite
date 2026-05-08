@@ -31,6 +31,7 @@ import { useGamepad } from "./useGamepad";
 import { useMediaMql } from "./useMediaMql";
 import { useDialogState } from "./useDialogState";
 import { useMdiHistory } from "./useMdiHistory";
+import { useTouchoffMath } from "./useTouchoffMath";
 import { forceStopAllJogs, initJogPointerSafety, destroyJogPointerSafety } from "./useJogPointers";
 import {
   INTERP_IDLE, INTERP_READING, INTERP_PAUSED, INTERP_WAITING,
@@ -748,7 +749,6 @@ function arm(v: boolean) {
 const jogVel = ref(10);
 const angularJogVel = ref(10); // deg/s for rotary axes
 const jogIncrement = ref(0); // 0 = continuous, >0 = increment distance in machine units
-const AXIS_LETTERS = "XYZABCUVW";
 
 // Axis list from viewer_init (gateway derives from axis_mask). Empty until
 // viewer_init arrives — axis-dependent UI is gated behind `armed` anyway.
@@ -852,54 +852,8 @@ function onRunProbe({ vars, macro }: { vars: Record<string, number>; macro: stri
   }
 }
 
-// Z touchoff has to add the current external Z offset back into the G5x value
-// so the WCS doesn't absorb the comp eoffset. If eoffset_z hasn't yet been
-// delivered by status (cold start, reader stale), treating it as 0 silently
-// corrupts the WCS Z. Refuse to fire and let the readerStale banner explain
-// the wait. Only block when the value is genuinely missing — a real 0 is fine.
-function _eoffsetZForTouchoff(): number | null {
-  const v = st.value.eoffset_z;
-  return (typeof v === "number" && Number.isFinite(v)) ? v : null;
-}
-
-function setAxis(axis: number, value: number = 0) {
-  const axisName = AXIS_LETTERS[axis];
-  if (!axisName) return;
-
-  let val = value;
-  if (axis === 2) {
-    const eoffsetZ = _eoffsetZForTouchoff();
-    if (eoffsetZ === null) {
-      console.warn("touchoff Z refused: eoffset_z not yet delivered by gateway");
-      return;
-    }
-    val += eoffsetZ;
-  }
-  fire({ cmd: "mdi", text: `G10 L20 P0 ${axisName}${val.toFixed(6)}` }, 'probe');
-}
-
-function setAll(values: number[] = []) {
-  const needsZ = axes.value.some(letter => letter === "Z");
-  let eoffsetZ = 0;
-  if (needsZ) {
-    const v = _eoffsetZForTouchoff();
-    if (v === null) {
-      console.warn("touchoff (all axes) refused: eoffset_z not yet delivered by gateway");
-      return;
-    }
-    eoffsetZ = v;
-  }
-  const parts = axes.value.map((letter, i) => {
-    let val = values[i] ?? 0;
-    if (letter === "Z") val += eoffsetZ;
-    return `${letter}${val.toFixed(6)}`;
-  });
-  fire({ cmd: "mdi", text: `G10 L20 P0 ${parts.join(" ")}` }, 'probe');
-}
-
-function setG5x(gcode: string) {
-  fire({ cmd: "mdi", text: gcode }, 'probe');
-}
+// Touch-off math + Z-eoffset compensation. See useTouchoffMath.ts.
+const { setAxis, setAll, setG5x } = useTouchoffMath({ axes, st, fire });
 
 function homeAll() {
   fire({ cmd: "home_all" }, 'idle');
