@@ -18,6 +18,39 @@ Format example:
      "proc": "gateway", "pid": 1234,
      "tag": "lag", "level": "warn", "msg": "loop stalled",
      "drift_ms": 646}
+
+────────────────────────────────────────────────────────────────────────────
+Logging-bucket policy (the contract for choosing print vs _trace.emit):
+
+  Operational events  →  _trace.emit only
+    ws connect/disconnect, hal connect, state changes, settings reload,
+    tool-table edits, safety trips, reader stale, NML poison, self-restart,
+    rare-fault error paths. These are queryable, structured, aggregatable.
+    Tag style: dot-namespaced (e.g. "ws.connect.viewer_init",
+    "hal.send_timeout"). level= info | warn | error.
+
+  Lifecycle markers   →  _trace.emit only
+    BOOT, VINIT, SHUTDOWN — singular events with timing. The bundler
+    reconstructs cross-process timelines from these.
+
+  User-facing console →  print(...) only
+    The small set of messages the operator must see in the gateway terminal
+    (uvicorn's own startup banner, deliberate machine-state announcements,
+    user-typed shutdown confirmations). Keep these terse — one line each.
+
+  TEMP probes         →  print(...), marked with `# TEMP`
+    [HB-STALL], [LAG], [GC], [HB-WAKE], [HB-TRACE]. These exist to chase a
+    specific bug; once the root cause is fixed and the probe code is
+    removed, the print goes with it. Don't pollute the trace bus.
+
+  Per-tick spam       →  _trace.emit warn, rate-limit if needed
+    Poller errors, missing-field warns. _trace's structured form lets a
+    bundler aggregate (e.g. "10× poller.no_machine_pos in 60 s").
+
+NEVER emit the same event through both channels — pick one. Dual-emit
+fragments diagnostic search and was the highest-priority cleanup in
+Initiative E. See ws.connect.viewer_init / ws.connect.settings for the
+canonical patterns.
 """
 from __future__ import annotations
 
