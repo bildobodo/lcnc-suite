@@ -309,9 +309,10 @@ def _hal_connect():
         _hal_sock = _socket.socket(_socket.AF_UNIX, _socket.SOCK_STREAM)
         _hal_sock.connect(_HAL_SOCK_PATH)
         _hal_sock.settimeout(0.05)
-        print("Connected to HAL watchdog socket")
+        _trace.emit("hal.socket_connected")
     except Exception as e:
-        print(f"[HAL] socket connect failed: {e}", flush=True)
+        _trace.emit("hal.socket_connect_failed", level="error",
+                    exc=type(e).__name__, msg=str(e))
         _hal_sock = None
 
 def _hal_disconnect():
@@ -400,7 +401,8 @@ def _snapshot_trip(trip_ts_ns: int) -> None:
     try:
         os.makedirs(out_dir, exist_ok=True)
     except Exception as e:
-        print(f"[SAFETY] snapshot mkdir failed: {e}", flush=True)
+        _trace.emit("safety.snapshot_mkdir_failed", level="error",
+                    out_dir=out_dir, exc=type(e).__name__, msg=str(e))
         return
     try:
         # The bundler is best-effort: 10 s timeout protects against the
@@ -416,14 +418,14 @@ def _snapshot_trip(trip_ts_ns: int) -> None:
             capture_output=True,
             check=False,
         )
-        print(
-            f"[SAFETY] trip snapshot → {out_dir} rc={rc.returncode}",
-            flush=True,
-        )
+        _trace.emit("safety.trip_snapshot_done",
+                    out_dir=out_dir, rc=rc.returncode)
     except subprocess.TimeoutExpired:
-        print(f"[SAFETY] trip snapshot timed out (>10s) → {out_dir}", flush=True)
+        _trace.emit("safety.trip_snapshot_timeout", level="warn",
+                    out_dir=out_dir, timeout_s=10)
     except Exception as e:
-        print(f"[SAFETY] trip snapshot failed: {type(e).__name__}: {e}", flush=True)
+        _trace.emit("safety.trip_snapshot_failed", level="warn",
+                    out_dir=out_dir, exc=type(e).__name__, msg=str(e))
 
 
 def _hal_tcp_outq() -> int:
@@ -470,11 +472,12 @@ async def _reader_recv_loop():
         try:
             reader, writer = await asyncio.open_unix_connection(_READER_SOCK_PATH)
         except Exception as e:
-            print(f"[READER] connect failed: {e}", flush=True)
+            _trace.emit("reader.connect_failed", level="warn",
+                        exc=type(e).__name__, msg=str(e))
             await asyncio.sleep(1.0)
             continue
         _reader_writer = writer
-        print("Connected to HAL reader socket", flush=True)
+        _trace.emit("reader.connected")
         # Push extra-pin config (e.g. user-configured spindle load pin) so the
         # reader includes it in subsequent snapshots. Spawned as a separate
         # task because this loop dispatches the reply — awaiting here would
@@ -490,7 +493,8 @@ async def _reader_recv_loop():
                 try:
                     msg = json.loads(line.decode())
                 except Exception as e:
-                    print(f"[READER] bad json from reader: {e}", flush=True)
+                    _trace.emit("reader.bad_json", level="warn",
+                                exc=type(e).__name__, msg=str(e))
                     continue
                 mtype = msg.get("type")
                 if mtype == "snapshot":
@@ -500,7 +504,8 @@ async def _reader_recv_loop():
                     if fut is not None and not fut.done():
                         fut.set_result(msg)
         except Exception as e:
-            print(f"[READER] recv loop error: {type(e).__name__}: {e}", flush=True)
+            _trace.emit("reader.recv_loop_error", level="warn",
+                        exc=type(e).__name__, msg=str(e))
         finally:
             _set_phase("reader_recv.cleanup")
             try:
@@ -536,7 +541,8 @@ async def _reader_configure_extra_pins() -> None:
     try:
         await _reader_request("set_extra_pins", pins=pins)
     except Exception as e:
-        print(f"[READER] configure_extra_pins failed: {type(e).__name__}: {e}", flush=True)
+        _trace.emit("reader.configure_extra_pins_failed", level="warn",
+                    exc=type(e).__name__, msg=str(e))
 
 
 async def _reader_request(req: str, timeout: float = 2.0, **kwargs) -> dict:
@@ -1115,7 +1121,8 @@ def _log_timing(timing: dict):
         with open(_timing_log_path, "a") as f:
             f.write(json.dumps(timing) + "\n")
     except OSError as e:
-        print(f"[TIMING] log write failed: {e}", flush=True)
+        _trace.emit("timing.log_write_failed", level="warn",
+                    exc=type(e).__name__, msg=str(e))
 
 
 _PID_CHECK_INTERVAL = 5.0  # seconds between pgrep PID checks
@@ -1152,7 +1159,8 @@ def _read_comp_grid_file() -> "dict | None":
         try:
             return json.load(f)
         except json.JSONDecodeError as e:
-            print(f"[gateway] probe-results-grid.json corrupted: {e}", flush=True)
+            _trace.emit("probe.results_grid_corrupt", level="warn",
+                        exc=type(e).__name__, msg=str(e))
             return None
 
 
@@ -1365,7 +1373,9 @@ async def _status_poller():
                 try:
                     await _reader_request("set_p", pin="compensation.reload-req", value=str(int(time.time())))
                 except Exception as e:
-                    print(f"[COMP] reload-req set failed (compensation.py not loaded?): {e}", flush=True)
+                    _trace.emit("comp.reload_req_failed", level="warn",
+                                exc=type(e).__name__, msg=str(e),
+                                hint="compensation.py not loaded?")
 
             # Comp grid startup init: push existing probe-results-grid.json on first connect
             if not _comp_grid_initialized and getattr(STAT, "ini_filename", None):
@@ -1559,7 +1569,8 @@ async def _status_poller():
                 lcnc_connected = False
                 STAT = CMD = ERR = None
                 _poll_fails = 0
-                print(f"[POLLER] persistent poll failure: {type(e).__name__}: {e}", flush=True)
+                _trace.emit("poller.persistent_failure", level="warn",
+                            exc=type(e).__name__, msg=str(e))
 
         # Adaptive sleep: subtract time already spent polling this cycle
         elapsed = time.monotonic() - _cycle_start
@@ -1621,7 +1632,8 @@ def _get_lcnc_pid() -> Optional[int]:
         except OSError as e:
             # ENOENT is "process gone" (legit). Anything else (EACCES, EIO)
             # is unexpected on /proc and worth surfacing.
-            print(f"[PID] /proc/{_lcnc_pid}/comm read failed: {type(e).__name__}: {e}", flush=True)
+            _trace.emit("pid.proc_comm_read_failed", level="warn",
+                        pid=_lcnc_pid, exc=type(e).__name__, msg=str(e))
     # Slow path: discover PID via pgrep (only when PID unknown or stale)
     try:
         result = subprocess.run(
@@ -1634,7 +1646,8 @@ def _get_lcnc_pid() -> Optional[int]:
         # rc != 0 from pgrep = "no match" (legit, returns None below). This
         # except catches subprocess raising (timeout, OSError, ValueError on
         # parse) — all worth surfacing.
-        print(f"[PID] pgrep linuxcncsvr failed: {type(e).__name__}: {e}", flush=True)
+        _trace.emit("pid.pgrep_failed", level="warn",
+                    exc=type(e).__name__, msg=str(e))
     return None
 
 
@@ -1671,7 +1684,9 @@ def _self_restart():
     try:
         os.execv(sys.executable, [sys.executable, "-m", "uvicorn"] + sys.argv[1:])
     except Exception as e:
-        print(f"[RESTART] execv failed ({type(e).__name__}: {e}) — exiting; launcher will respawn", flush=True)
+        _trace.emit("restart.execv_failed", level="error",
+                    exc=type(e).__name__, msg=str(e),
+                    hint="exiting; launcher will respawn")
         os._exit(1)
 
 
@@ -1862,7 +1877,8 @@ def get_ini_config() -> dict:
 
         _ini_config = config
     except Exception as e:
-        print(f"[INI] config parse failed: {type(e).__name__}: {e}", flush=True)
+        _trace.emit("ini.parse_failed", level="warn",
+                    exc=type(e).__name__, msg=str(e))
 
     return config
 
@@ -2070,7 +2086,8 @@ def _load_tool_library_all() -> dict:
     try:
         mtime = TOOL_LIBRARY_PATH.stat().st_mtime
     except OSError as e:
-        print(f"[TOOL_LIB] stat failed on {TOOL_LIBRARY_PATH}: {e}", flush=True)
+        _trace.emit("tool_lib.stat_failed", level="warn",
+                    path=str(TOOL_LIBRARY_PATH), exc=type(e).__name__, msg=str(e))
         return _tool_lib_cache[1] if _tool_lib_cache else {}
     if _tool_lib_cache is not None and _tool_lib_cache[0] == mtime:
         return _tool_lib_cache[1]
@@ -2078,10 +2095,12 @@ def _load_tool_library_all() -> dict:
         with open(TOOL_LIBRARY_PATH, "r") as f:
             data = json.load(f)
     except json.JSONDecodeError as e:
-        print(f"[TOOL_LIB] {TOOL_LIBRARY_PATH} is corrupt: {e}", flush=True)
+        _trace.emit("tool_lib.corrupt", level="error",
+                    path=str(TOOL_LIBRARY_PATH), exc=type(e).__name__, msg=str(e))
         return _tool_lib_cache[1] if _tool_lib_cache else {}
     except OSError as e:
-        print(f"[TOOL_LIB] read failed on {TOOL_LIBRARY_PATH}: {e}", flush=True)
+        _trace.emit("tool_lib.read_failed", level="warn",
+                    path=str(TOOL_LIBRARY_PATH), exc=type(e).__name__, msg=str(e))
         return _tool_lib_cache[1] if _tool_lib_cache else {}
     _tool_lib_cache = (mtime, data)
     return data
@@ -2158,7 +2177,8 @@ def _load_settings_all() -> dict:
                 _settings_cache = json.load(f)
                 return _settings_cache
         except Exception as e:
-            print(f"[SETTINGS] load failed on {SETTINGS_PATH}: {type(e).__name__}: {e}", flush=True)
+            _trace.emit("settings.load_failed", level="warn",
+                        path=str(SETTINGS_PATH), exc=type(e).__name__, msg=str(e))
     _settings_cache = {}
     return _settings_cache
 
@@ -2563,7 +2583,8 @@ def _seed_wcs_cache():
         except OSError:
             _wcs_var_file_mtime = None
     except Exception as e:
-        print(f"[wcs] seed cache failed: {e}", flush=True)
+        _trace.emit("wcs.seed_cache_failed", level="warn",
+                    exc=type(e).__name__, msg=str(e))
 
 
 def _stat_poll_timed(caller: str = "?") -> None:
@@ -2646,7 +2667,8 @@ def poll_status() -> StatusPayload:
     if machine_pos is None:
         global _machine_pos_warned
         if not _machine_pos_warned:
-            print("[POLLER] STAT exposes no joint_actual_position / actual_position / position — DRO blank", flush=True)
+            _trace.emit("poller.no_machine_pos", level="warn",
+                        msg="STAT exposes no joint_actual_position / actual_position / position — DRO blank")
             _machine_pos_warned = True
 
     # Tool offset vector (active tool length comp)
@@ -2708,7 +2730,8 @@ def poll_status() -> StatusPayload:
     else:
         global _spindle_warned
         if not _spindle_warned:
-            print("[POLLER] STAT.spindle empty/missing — commanded spindle speed unavailable", flush=True)
+            _trace.emit("poller.no_spindle_data", level="warn",
+                        msg="STAT.spindle empty/missing — commanded spindle speed unavailable")
             _spindle_warned = True
 
 
@@ -2758,7 +2781,8 @@ def poll_status() -> StatusPayload:
                 if entry:
                     tool_change_info = {"D": entry["D"], "Z": entry["Z"], "description": entry.get("description", "")}
             except (OSError, KeyError, ValueError, TypeError) as e:
-                print(f"[TOOLCHANGE] info lookup failed for T{tool_change_tool}: {type(e).__name__}: {e}", flush=True)
+                _trace.emit("toolchange.info_lookup_failed", level="warn",
+                            tool=tool_change_tool, exc=type(e).__name__, msg=str(e))
 
     spindle_ovr = get_spindle_override()
 
@@ -2848,7 +2872,8 @@ def read_errors_nonblocking() -> list:
         # failure per reconnect window so a persistent issue surfaces; reset
         # in try_connect_lcnc() so each reconnect gets one log line max.
         if not _err_poll_warned:
-            print(f"[ERR-CHAN] poll failed: {type(e).__name__}: {e}", flush=True)
+            _trace.emit("err_chan.poll_failed", level="warn",
+                        exc=type(e).__name__, msg=str(e))
             _err_poll_warned = True
     return out
 
@@ -3153,7 +3178,8 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                     raw = safe_get("tool_in_spindle", None)
                     current_tool = int(raw) if raw is not None else None
             except (AttributeError, ValueError, TypeError, linuxcnc.error) as e:
-                print(f"[TOOLS] current_tool poll failed: {type(e).__name__}: {e}", flush=True)
+                _trace.emit("tools.current_tool_poll_failed", level="warn",
+                            exc=type(e).__name__, msg=str(e))
             return {"ok": True, "tools": merged, "current_tool": current_tool}
 
         if cmd == "get_probe_results":
@@ -3705,7 +3731,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                     if not os.path.isabs(var_file):
                         var_file = os.path.join(os.path.dirname(ini_path), var_file)
                     str_vars = {str(k): float(v) for k, v in vars_to_set.items()}
-                    print(f"[probe] set_probe_vars: {str_vars}", flush=True)
+                    _trace.emit("probe.set_vars", vars=str_vars)
                     await asyncio.to_thread(_write_var_file_updates, var_file, str_vars)
                     file_ok = True
             # 2) Best-effort: set in interpreter memory via MDI (requires armed + machine on + idle)
@@ -3731,8 +3757,10 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                         if ret != 0:
                             mdi_ok = False
                 except Exception as e:
-                    print(f"[probe] MDI set failed: {e}", flush=True)
-            print(f"[probe] set_probe_vars result: file_saved={file_ok} mdi_set={mdi_ok}", flush=True)
+                    _trace.emit("probe.mdi_set_failed", level="warn",
+                                exc=type(e).__name__, msg=str(e))
+            _trace.emit("probe.set_vars_result",
+                        file_saved=file_ok, mdi_set=mdi_ok)
             return {"ok": True, "file_saved": file_ok, "mdi_set": mdi_ok}
 
         if cmd == "get_probe_vars":
@@ -3749,7 +3777,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             if not os.path.isabs(var_file):
                 var_file = os.path.join(os.path.dirname(ini_path), var_file)
             result = await asyncio.to_thread(_read_var_file, var_file, {str(v) for v in var_nums})
-            print(f"[probe] get_probe_vars: {result}", flush=True)
+            _trace.emit("probe.get_vars", vars=result)
             return {"ok": True, "vars": result}
 
         if cmd == "get_wcs_table":
@@ -4092,7 +4120,8 @@ async def _refresh_gcode_preview(filepath: str):
             "g5x_index": active_idx if isinstance(active_idx, int) else 1,
         }
         ctx_bytes = _msgpack_encoder.encode(ctx)
-        print(f"[GCODE] spawn start file={os.path.basename(filepath)} active_idx={active_idx}", flush=True)
+        _trace.emit("gcode.spawn_start",
+                    file=os.path.basename(filepath), active_idx=active_idx)
 
         t_spawn = time.monotonic()
         proc = await asyncio.create_subprocess_exec(
@@ -4103,7 +4132,8 @@ async def _refresh_gcode_preview(filepath: str):
         )
         _gcode_parse_proc = proc
         t_spawned = time.monotonic()
-        print(f"[GCODE] spawn ok pid={proc.pid} fork_ms={(t_spawned - t_spawn)*1000:.0f}", flush=True)
+        _trace.emit("gcode.spawn_ok",
+                    pid=proc.pid, fork_ms=round((t_spawned - t_spawn) * 1000, 1))
 
         try:
             stdout, stderr = await asyncio.wait_for(
@@ -4113,19 +4143,22 @@ async def _refresh_gcode_preview(filepath: str):
         except asyncio.TimeoutError:
             proc.kill()
             await proc.wait()
-            print(f"[GCODE] parse timeout for {filepath}", flush=True)
+            _trace.emit("gcode.parse_timeout", level="warn", file=filepath)
             return
         t_communicated = time.monotonic()
         if proc.returncode != 0:
             err_tail = stderr.decode(errors="replace")[:500] if stderr else ""
-            print(f"[GCODE] parse worker exit {proc.returncode}: {err_tail}", flush=True)
+            _trace.emit("gcode.parse_worker_failed", level="warn",
+                        rc=proc.returncode, stderr_tail=err_tail)
             return
         # Surface worker-side timing (printed to stderr by the worker).
         if stderr:
             for ln in stderr.decode(errors="replace").splitlines():
                 if ln.strip():
-                    print(f"[WORKER] {ln}", flush=True)
-        print(f"[GCODE] worker done parse_ms={(t_communicated - t_spawned)*1000:.0f} stdout={len(stdout)}B", flush=True)
+                    _trace.emit("gcode.worker_log", line=ln)
+        _trace.emit("gcode.worker_done",
+                    parse_ms=round((t_communicated - t_spawned) * 1000, 1),
+                    stdout_bytes=len(stdout))
 
         t_dec = time.monotonic()
         preview = await asyncio.to_thread(_msgspec.msgpack.decode, stdout)
@@ -4149,16 +4182,15 @@ async def _refresh_gcode_preview(filepath: str):
         _gcode_preview_bytes = preview_bytes
         _gcode_preview_version += 1
         _gcode_last_file = filepath
-        print(
-            f"[GCODE] publish v={_gcode_preview_version} "
-            f"decode_ms={(t_dec_done - t_dec)*1000:.0f} "
-            f"encode_ms={(t_enc_done - t_dec_done)*1000:.0f} "
-            f"bytes={len(preview_bytes)}B "
-            f"total_ms={(t_enc_done - t_start)*1000:.0f}",
-            flush=True,
-        )
+        _trace.emit("gcode.publish",
+                    version=_gcode_preview_version,
+                    decode_ms=round((t_dec_done - t_dec) * 1000, 1),
+                    encode_ms=round((t_enc_done - t_dec_done) * 1000, 1),
+                    bytes=len(preview_bytes),
+                    total_ms=round((t_enc_done - t_start) * 1000, 1))
     except Exception as e:
-        print(f"[GCODE] preview refresh failed for {filepath}: {type(e).__name__}: {e}", flush=True)
+        _trace.emit("gcode.preview_refresh_failed", level="warn",
+                    file=filepath, exc=type(e).__name__, msg=str(e))
     finally:
         _gcode_refresh_running = False
         _gcode_parse_proc = None
@@ -4934,10 +4966,12 @@ def _parse_hal_pins() -> list:
             capture_output=True, text=True, timeout=5,
         )
         if result.returncode != 0:
-            print(f"[HALCMD] show pin failed (rc={result.returncode}): {result.stderr.strip()}", flush=True)
+            _trace.emit("halcmd.show_pin_failed", level="warn",
+                        rc=result.returncode, stderr=result.stderr.strip())
             return []
     except Exception as e:
-        print(f"[HALCMD] show pin raised: {type(e).__name__}: {e}", flush=True)
+        _trace.emit("halcmd.show_pin_raised", level="warn",
+                    exc=type(e).__name__, msg=str(e))
         return []
     pins = []
     for line in result.stdout.splitlines():
@@ -4966,10 +5000,12 @@ def _parse_hal_signals() -> list:
             capture_output=True, text=True, timeout=5,
         )
         if result.returncode != 0:
-            print(f"[HALCMD] show sig failed (rc={result.returncode}): {result.stderr.strip()}", flush=True)
+            _trace.emit("halcmd.show_sig_failed", level="warn",
+                        rc=result.returncode, stderr=result.stderr.strip())
             return []
     except Exception as e:
-        print(f"[HALCMD] show sig raised: {type(e).__name__}: {e}", flush=True)
+        _trace.emit("halcmd.show_sig_raised", level="warn",
+                    exc=type(e).__name__, msg=str(e))
         return []
     signals = []
     for line in result.stdout.splitlines():
@@ -5001,10 +5037,12 @@ def _parse_hal_params() -> list:
             capture_output=True, text=True, timeout=5,
         )
         if result.returncode != 0:
-            print(f"[HALCMD] show param failed (rc={result.returncode}): {result.stderr.strip()}", flush=True)
+            _trace.emit("halcmd.show_param_failed", level="warn",
+                        rc=result.returncode, stderr=result.stderr.strip())
             return []
     except Exception as e:
-        print(f"[HALCMD] show param raised: {type(e).__name__}: {e}", flush=True)
+        _trace.emit("halcmd.show_param_raised", level="warn",
+                    exc=type(e).__name__, msg=str(e))
         return []
     params = []
     for line in result.stdout.splitlines():
@@ -5047,7 +5085,8 @@ async def _halshow_value_snapshot() -> dict:
         for name, value in result.get("params", {}).items():
             out[f"params/{name}"] = value
     except Exception as e:
-        print(f"[HALSHOW] value snapshot failed: {type(e).__name__}: {e}", flush=True)
+        _trace.emit("halshow.value_snapshot_failed", level="warn",
+                    exc=type(e).__name__, msg=str(e))
     return out
 
 
@@ -5077,7 +5116,8 @@ async def _halshow_loop() -> None:
                     await ws_send_json(ws, {"type": "halshow_snapshot", **topology})
                     _halshow_topology_sent[cid] = True
                 except Exception as e:
-                    print(f"[HALSHOW] snapshot send failed: {type(e).__name__}: {e}", flush=True)
+                    _trace.emit("halshow.snapshot_send_failed", level="warn",
+                                client_id=cid, exc=type(e).__name__, msg=str(e))
 
             # Value diff for everyone with topology already in hand
             new_values = await _halshow_value_snapshot()
@@ -5448,7 +5488,8 @@ async def ws_endpoint(ws: WebSocket):
                                     if _tm:
                                         status_msg["tool_meta"] = _tm
                             except (KeyError, TypeError, OSError) as e:
-                                print(f"[STATUS] tool_meta build failed for T{st.tool_number}: {type(e).__name__}: {e}", flush=True)
+                                _trace.emit("status.tool_meta_failed", level="warn",
+                                            tool=st.tool_number, exc=type(e).__name__, msg=str(e))
 
                     # Experiment 2: delta encoding of the `data` field.
                     # After all mutations to status_msg["data"] are done, compare
@@ -5548,7 +5589,8 @@ async def ws_endpoint(ws: WebSocket):
                                 "armed": armed,
                             })
                         except (OSError, json.JSONDecodeError, ValueError) as e:
-                            print(f"[STATUS] settings_changed broadcast failed: {type(e).__name__}: {e}", flush=True)
+                            _trace.emit("status.settings_changed_broadcast_failed", level="warn",
+                                        exc=type(e).__name__, msg=str(e))
 
                     # Tool change: auto-deassert when request clears
                     if _prev_tc_req and not st.tool_change_requested:
@@ -5652,9 +5694,13 @@ async def ws_endpoint(ws: WebSocket):
                 except Exception as e:
                     _set_phase(f"status_loop.exception client#{client_id} type={type(e).__name__}")
                     _consec_fails += 1
-                    print(f"[STATUS] client#{client_id} status_loop exception ({_consec_fails}/10): {type(e).__name__}: {e}", flush=True)
+                    _trace.emit("status.loop_exception", level="warn",
+                                client_id=client_id, fails=_consec_fails, max_fails=10,
+                                exc=type(e).__name__, msg=str(e))
                     if _consec_fails >= 10:
-                        print(f"[STATUS] client#{client_id} aborting status loop after 10 consecutive failures", flush=True)
+                        _trace.emit("status.loop_abort", level="error",
+                                    client_id=client_id,
+                                    msg="aborting status loop after 10 consecutive failures")
                         break
                     await asyncio.sleep(0.5)
             _set_phase(f"status_loop.exit client#{client_id}")
@@ -5737,10 +5783,10 @@ async def ws_endpoint(ws: WebSocket):
                     from datetime import datetime
                     stamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
                     _timing_log_path = f"/tmp/lcnc-timing-{stamp}.jsonl"
-                    print(f"[TIMING] Log started: {_timing_log_path}", flush=True)
+                    _trace.emit("timing.log_started", path=_timing_log_path)
                 else:
                     if _timing_log_path:
-                        print(f"[TIMING] Log stopped: {_timing_log_path}", flush=True)
+                        _trace.emit("timing.log_stopped", path=_timing_log_path)
                 await ws_send_json(ws, {"type": "reply", "ok": True, "enabled": _timing_log_enabled})
                 continue
 
@@ -5799,7 +5845,9 @@ async def ws_endpoint(ws: WebSocket):
                     if _unlink_res.returncode != 0:
                         _err = (_unlink_res.stderr or "").strip()
                         if _err and "does not exist" not in _err and "no such" not in _err.lower():
-                            print(f"[HALCMD] unlinkp qtpyvcp.probe-in.out failed (rc={_unlink_res.returncode}): {_err}", flush=True)
+                            _trace.emit("halcmd.unlinkp_failed", level="warn",
+                                        pin="qtpyvcp.probe-in.out",
+                                        rc=_unlink_res.returncode, stderr=_err)
                     await _loop.run_in_executor(None, lambda: subprocess.run(
                         ['halcmd', 'sets', 'probe-in', '1'],
                         capture_output=True, text=True, timeout=2, check=True))
