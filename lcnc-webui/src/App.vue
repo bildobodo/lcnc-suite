@@ -25,11 +25,12 @@ import { Settings, MessageSquare, PowerOff, Gamepad2, Keyboard, BookOpen, Clipbo
 import GcodeReferenceDialog from "./GcodeReferenceDialog.vue";
 import NumberKeypad from "./NumberKeypad.vue";
 import { keypadState } from "./useNumberKeypad";
-import { loadViewerDefaults, saveViewerDefaults, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadMacrosDefaults, loadGamepadDefaults, saveGamepadDefaults, loadKeyboardDefaults, saveKeyboardDefaults, loadMdiHistory, saveMdiHistory, settingsVersion, type ThemeMode, type MacroDef, type GamepadDefaults, type KeyboardDefaults, type KeyboardAction, type Layer, type TrackMode, type Projection } from "./defaults";
+import { loadViewerDefaults, saveViewerDefaults, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadMacrosDefaults, loadGamepadDefaults, saveGamepadDefaults, loadKeyboardDefaults, saveKeyboardDefaults, settingsVersion, type ThemeMode, type MacroDef, type GamepadDefaults, type KeyboardDefaults, type KeyboardAction, type Layer, type TrackMode, type Projection } from "./defaults";
 import { buildToolsetterVarMap } from "./toolsetterVars";
 import { useGamepad } from "./useGamepad";
 import { useMediaMql } from "./useMediaMql";
 import { useDialogState } from "./useDialogState";
+import { useMdiHistory } from "./useMdiHistory";
 import { forceStopAllJogs, initJogPointerSafety, destroyJogPointerSafety } from "./useJogPointers";
 import {
   INTERP_IDLE, INTERP_READING, INTERP_PAUSED, INTERP_WAITING,
@@ -126,7 +127,6 @@ onMounted(() => {
   document.addEventListener("focusin", onNumFocus);
   document.addEventListener("fullscreenchange", onFullscreenChange);
   if (loadDisplayDefaults().startFullscreen) armStartFullscreen();
-  mdiHistory.value = loadMdiHistory().map(text => ({ id: _mdiNextId++, text }));
 });
 
 watch(lcncError, (newVal, oldVal) => {
@@ -245,73 +245,17 @@ const connLabel = computed(() => {
   const h = location.hostname;
   return (h === "localhost" || h === "127.0.0.1") ? "local" : h;
 });
-const mdiText = ref("");
 const busy = ref(false);
 
-// ─── MDI history ──────────────────────────────────────────────────
-// In-memory entries carry a monotonic id so templates can use a stable :key
-// when the list is mutated (unshift/slice). Persisted form stays as string[].
-interface MdiEntry { id: number; text: string }
-let _mdiNextId = 0;
-const mdiHistory = ref<MdiEntry[]>([]);
-const mdiHistoryIndex = ref(-1);
-const mdiSavedInput = ref("");
-const MDI_MAX_HISTORY = 50;
-
-function persistMdiHistory() {
-  saveMdiHistory(mdiHistory.value.map(e => e.text));
-}
-
-function handleMdiSend() {
-  const cmd = mdiText.value.trim();
-  if (!cmd) return;
-  if (mdiHistory.value[0]?.text !== cmd) {
-    mdiHistory.value.unshift({ id: _mdiNextId++, text: cmd });
-    if (mdiHistory.value.length > MDI_MAX_HISTORY) {
-      mdiHistory.value = mdiHistory.value.slice(0, MDI_MAX_HISTORY);
-    }
-  }
-  persistMdiHistory();
-  mdiHistoryIndex.value = -1;
-  mdiSavedInput.value = "";
-  send({ cmd: "mdi", text: cmd });
-  mdiText.value = "";
-}
-
-function clearMdiHistory() {
-  mdiHistory.value = [];
-  persistMdiHistory();
-  mdiHistoryIndex.value = -1;
-  mdiSavedInput.value = "";
-}
-
-function onMdiKeydown(e: KeyboardEvent) {
-  if (e.key === "ArrowDown") {
-    e.preventDefault();
-    e.stopPropagation();
-    if (mdiHistory.value.length === 0) return;
-    if (mdiHistoryIndex.value === -1) {
-      mdiSavedInput.value = mdiText.value;
-    }
-    if (mdiHistoryIndex.value < mdiHistory.value.length - 1) {
-      mdiHistoryIndex.value++;
-      mdiText.value = mdiHistory.value[mdiHistoryIndex.value]?.text ?? "";
-    }
-    return;
-  }
-  if (e.key === "ArrowUp") {
-    e.preventDefault();
-    e.stopPropagation();
-    if (mdiHistoryIndex.value < 0) return;
-    mdiHistoryIndex.value--;
-    if (mdiHistoryIndex.value === -1) {
-      mdiText.value = mdiSavedInput.value;
-    } else {
-      mdiText.value = mdiHistory.value[mdiHistoryIndex.value]?.text ?? "";
-    }
-    return;
-  }
-}
+// MDI input + send-history navigation. See useMdiHistory.ts.
+const {
+  mdiText,
+  mdiHistory,
+  mdiHistoryIndex,
+  handleMdiSend,
+  clearMdiHistory,
+  onMdiKeydown,
+} = useMdiHistory({ send });
 
 // Viewer state (initialized from saved defaults, persisted on every change)
 const viewerLayers = reactive<Record<Layer, boolean>>({ ..._vd.layers });
