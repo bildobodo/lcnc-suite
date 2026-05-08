@@ -1561,7 +1561,7 @@ watch(viewerGcode, (newGcode) => {
               <MachineBtn type="close" @click="statsDialogOpen = false">&times;</MachineBtn>
             </div>
             <div class="dialogContent stack-sections scroll-thin">
-              <div v-if="donutSegments.length > 0" class="donutRow">
+              <div v-if="donutSegments.length > 0" class="row-sections">
                 <svg class="donut" viewBox="0 0 100 100">
                   <circle class="donutBg" cx="50" cy="50" r="40" />
                   <circle v-for="(seg, i) in donutSegments" :key="i"
@@ -1575,7 +1575,7 @@ watch(viewerGcode, (newGcode) => {
                   />
                 </svg>
                 <div class="donutLegend stack-tight">
-                  <div v-for="seg in donutSegments" :key="seg.label" class="legendItem">
+                  <div v-for="seg in donutSegments" :key="seg.label" class="row-tight">
                     <span class="legendDot" :style="{ background: seg.color }"></span>
                     <span>{{ seg.label }}</span>
                     <span class="legendPct mono">{{ seg.pct }}%</span>
@@ -1711,7 +1711,7 @@ watch(viewerGcode, (newGcode) => {
           <div class="dialogTitle">{{ macroParamDialog.macro.name }}</div>
           <div class="dialogBody">
             <div class="stack-controls">
-              <div v-for="p in macroParamDialog.macro.params" :key="p.name" class="macroParamRow">
+              <div v-for="p in macroParamDialog.macro.params" :key="p.name" class="row-controls">
                 <label class="macroParamLabel">{{ p.label || p.name }}</label>
                 <MachineInput
                   gate="macroParam"
@@ -2097,11 +2097,7 @@ watch(viewerGcode, (newGcode) => {
 
 /* ---- Macro param dialog ---- */
 /* .macroParamFields — uses stack-controls utility */
-.macroParamRow {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-controls);
-}
+/* .macroParamRow — replaced by row-controls utility (same shape) */
 .macroParamLabel {
   min-width: 100px;
 }
@@ -2134,11 +2130,7 @@ watch(viewerGcode, (newGcode) => {
   text-align: right;
 }
 
-.donutRow {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-section);
-}
+/* .donutRow — replaced by row-sections utility (same shape) */
 
 .donut {
   width: 80px;
@@ -2152,11 +2144,7 @@ watch(viewerGcode, (newGcode) => {
   stroke-width: 12;
 }
 
-.legendItem {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-tight);
-}
+/* .legendItem — replaced by row-tight utility (same shape) */
 
 .legendDot {
   width: 8px;

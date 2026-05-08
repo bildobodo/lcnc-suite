@@ -536,7 +536,7 @@ function onGpMappingChanged() {
       <template #viewer>
         <div v-if="!serverSettingsReady" class="settingsLoading">Waiting for server settings…</div>
         <div v-else class="stack-panel scrollContent scroll-thin">
-        <div class="section">
+        <div class="stack-controls">
           <div class="sub">View</div>
           <div class="settingDesc">Projection mode for the 3D viewport.</div>
           <div class="radioGroup inline">
@@ -553,7 +553,7 @@ function onGpMappingChanged() {
 
         <div class="sep"></div>
 
-        <div class="section">
+        <div class="stack-controls">
           <div class="sub">Layers</div>
           <div class="layerGrid">
             <MachineToggle
@@ -568,7 +568,7 @@ function onGpMappingChanged() {
 
         <div class="sep"></div>
 
-        <div class="section">
+        <div class="stack-controls">
           <div class="sub">Toolpath</div>
           <MachineToggle
             gate="viewerSetting"
@@ -580,7 +580,7 @@ function onGpMappingChanged() {
 
         <div class="sep"></div>
 
-        <div class="section">
+        <div class="stack-controls">
           <div class="sub">Camera Overlay</div>
           <div class="settingDesc">Overlays drawn on top of the camera PIP feed.</div>
           <div class="row-controls">
@@ -588,20 +588,20 @@ function onGpMappingChanged() {
             <MachineToggle gate="cameraSetting" v-model="camShowCircle" @update:modelValue="saveCamTracked" label="Circle" />
             <MachineToggle gate="cameraSetting" v-model="camShowGrid" @update:modelValue="saveCamTracked" label="Grid" />
           </div>
-          <div class="inputRow">
+          <div class="row-controls">
             <span class="inputLabel">Radius</span>
             <MachineInput gate="cameraSetting" type="number" v-model.number="camCircleRadius" min="10" max="300" :step="1" @change="saveCamTracked" />
           </div>
-          <div class="inputRow">
+          <div class="row-controls">
             <span class="inputLabel">Grid</span>
             <MachineInput gate="cameraSetting" type="number" v-model.number="camGridSpacing" min="10" max="200" :step="1" @change="saveCamTracked" />
           </div>
-          <div class="camOverlayRow">
+          <div class="row-controls">
             <span class="camOverlayLabel">Opacity</span>
             <MachineSlider gate="cameraSetting" class="camOverlaySlider" :min="0" :max="1" :step="0.05" v-model="camOverlayOpacity" @update:modelValue="saveCamTracked" />
             <span class="camOverlayValue">{{ Math.round(camOverlayOpacity * 100) }}%</span>
           </div>
-          <div class="inputRow">
+          <div class="row-controls">
             <span class="inputLabel">Color</span>
             <MachineColor gate="cameraSetting" v-model="camOverlayColor" @update:modelValue="saveCamTracked" />
           </div>
@@ -609,10 +609,10 @@ function onGpMappingChanged() {
 
         <div class="sep"></div>
 
-        <div class="section">
+        <div class="stack-controls">
           <div class="sub">Colors</div>
           <div class="colorGrid">
-            <div class="colorRow" v-for="cf in colorFields" :key="cf.key">
+            <div class="row-controls" v-for="cf in colorFields" :key="cf.key">
               <MachineColor
                 gate="viewerSetting"
                 :modelValue="colors[cf.key]"
@@ -625,11 +625,11 @@ function onGpMappingChanged() {
 
         <div class="sep"></div>
 
-        <div class="section" v-if="machineParts.length > 0">
+        <div class="stack-controls" v-if="machineParts.length > 0">
           <div class="sub">Machine Colors</div>
           <div class="stack-controls fieldGroup">
             <div class="colorGrid">
-              <div class="colorRow" v-for="part in machineParts" :key="part.id">
+              <div class="row-controls" v-for="part in machineParts" :key="part.id">
                 <MachineColor
                   gate="viewerSetting"
                     :modelValue="machineColors[part.id] ?? defaultMachineColor(part)"
@@ -652,7 +652,7 @@ function onGpMappingChanged() {
       <template #machine>
         <div v-if="!serverSettingsReady" class="settingsLoading">Waiting for server settings…</div>
         <div v-else class="stack-panel scrollContent scroll-thin">
-          <div class="section">
+          <div class="stack-controls">
             <div class="sub">Tool Load Behavior</div>
             <div class="settingDesc">Controls what happens when you load a tool from the Tool Table.</div>
             <div class="radioGroup">
@@ -667,7 +667,7 @@ function onGpMappingChanged() {
             </div>
           </div>
           <div class="sep"></div>
-          <div class="section">
+          <div class="stack-controls">
             <div class="sub">Spindle Feedback Unit</div>
             <div class="settingDesc">What unit does your spindle encoder / VFD driver output on the speed-in HAL pin? Simulators use RPS; most real VFDs output RPM directly.</div>
             <div class="radioGroup">
@@ -682,7 +682,7 @@ function onGpMappingChanged() {
             </div>
           </div>
           <div class="sep"></div>
-          <div class="section">
+          <div class="stack-controls">
             <div class="sub">Spindle Load HAL Pin</div>
             <div class="settingDesc">HAL pin that outputs spindle load percentage (e.g. <code>spindle-load-conv.load-percentage</code>). Leave empty to disable.</div>
             <MachineInput
@@ -695,7 +695,7 @@ function onGpMappingChanged() {
             />
           </div>
           <div class="sep"></div>
-          <div class="section">
+          <div class="stack-controls">
             <div class="sub">Run from Line</div>
             <div class="settingDesc">Allow starting program execution from a selected line in the code viewer.</div>
             <MachineToggle gate="displaySetting" v-model="runFromLine" @update:modelValue="emit('setRunFromLine', runFromLine); saveMachine()" label="Enable run from line" />
@@ -707,7 +707,7 @@ function onGpMappingChanged() {
                   <label><MachineRadio gate="displaySetting" name="rflSpindleDir" v-model="rflSpindleDir" value="forward" @update:modelValue="saveMachine()" /> FWD</label>
                   <label><MachineRadio gate="displaySetting" name="rflSpindleDir" v-model="rflSpindleDir" value="reverse" @update:modelValue="saveMachine()" /> REV</label>
                 </div>
-                <div v-if="rflSpindleDir !== 'off'" class="rflRpm">
+                <div v-if="rflSpindleDir !== 'off'" class="row-tight rflRpm">
                   <label>RPM</label>
                   <MachineInput gate="displaySetting" type="number" v-model.number="rflSpindleRpm" min="0" :step="STEP_RPM" @change="saveMachine()" />
                 </div>
@@ -723,7 +723,7 @@ function onGpMappingChanged() {
       <template #display>
         <div v-if="!serverSettingsReady" class="settingsLoading">Waiting for server settings…</div>
         <div v-else class="stack-panel scrollContent scroll-thin">
-          <div class="section">
+          <div class="stack-controls">
             <div class="sub">Theme</div>
             <div class="radioGroup">
               <label><MachineRadio gate="displaySetting" name="theme" v-model="themeMode" value="auto" @update:modelValue="setTheme('auto')" /> Auto</label>
@@ -734,7 +734,7 @@ function onGpMappingChanged() {
             </div>
           </div>
           <div class="sep"></div>
-          <div class="section">
+          <div class="stack-controls">
             <div class="sub">Fullscreen</div>
             <MachineToggle gate="displaySetting" v-model="startFullscreen" @update:modelValue="saveStartFullscreen" label="Start in fullscreen mode" />
           </div>
@@ -747,7 +747,7 @@ function onGpMappingChanged() {
       <template #macros>
         <div v-if="!serverSettingsReady" class="settingsLoading">Waiting for server settings…</div>
         <div v-else class="stack-panel scrollContent scroll-thin">
-          <div class="section">
+          <div class="stack-controls">
             <div class="sub">User Macros</div>
 
             <div v-if="macros.length === 0 && !editingMacro" class="macroSettingsEmpty">
@@ -772,11 +772,11 @@ function onGpMappingChanged() {
             <div v-if="editingMacro" class="macroEditForm">
               <div class="sub">{{ macros.some(m => m.id === editingMacro!.id) ? 'Edit' : 'New' }} Macro</div>
               <div class="stack-controls fieldGroup">
-                <div class="inputRow">
+                <div class="row-controls inputRow">
                   <span class="inputLabel">Name</span>
                   <MachineInput gate="macroEdit" type="text" v-model="editingMacro.name" placeholder="e.g. Face Top" />
                 </div>
-                <div class="inputRow">
+                <div class="row-controls inputRow">
                   <span class="inputLabel">Command</span>
                   <MachineInput gate="macroEdit" type="text" v-model="editingMacro.command" placeholder="e.g. G0 Z{depth} F{feed}" />
                 </div>
@@ -808,7 +808,7 @@ function onGpMappingChanged() {
       <template #gamepad>
         <div v-if="!serverSettingsReady" class="settingsLoading">Waiting for server settings…</div>
         <div v-else class="stack-panel scrollContent scroll-thin">
-          <div class="section">
+          <div class="stack-controls">
             <div class="sub">Gamepad</div>
             <div class="settingDesc">Use an Xbox, PlayStation, or standard gamepad to control the machine.</div>
             <MachineToggle gate="inputConfig" v-model="gpJogEnabled" label="Enable gamepad jogging" />
@@ -817,7 +817,7 @@ function onGpMappingChanged() {
 
           <div class="sep"></div>
 
-          <div class="section">
+          <div class="stack-controls">
             <div class="sub">Connection</div>
             <div class="settingDesc" :class="{ okText: props.gamepadConnected }">
               {{ props.gamepadConnected ? props.gamepadName : 'No gamepad detected — connect one and press a button' }}
@@ -826,7 +826,7 @@ function onGpMappingChanged() {
 
           <div class="sep" v-if="props.gamepadConfig?.jogEnabled"></div>
 
-          <div v-if="props.gamepadConfig?.jogEnabled" class="section">
+          <div v-if="props.gamepadConfig?.jogEnabled" class="stack-controls">
             <div class="sub">Axis Inversion</div>
             <div class="settingDesc">Flip axis direction if your gamepad moves the wrong way.</div>
             <MachineToggle gate="inputConfig" v-model="gpInvertX" label="Invert X" />
@@ -836,7 +836,7 @@ function onGpMappingChanged() {
 
           <div class="sep" v-if="props.gamepadConfig?.jogEnabled"></div>
 
-          <div v-if="props.gamepadConfig?.jogEnabled" class="section">
+          <div v-if="props.gamepadConfig?.jogEnabled" class="stack-controls">
             <div class="sub">Dead Zone & Live Input</div>
             <div class="settingDesc">Ignore stick deflection below this threshold to prevent drift.</div>
             <div class="sliderRow">
@@ -856,7 +856,7 @@ function onGpMappingChanged() {
 
           <div class="sep" v-if="props.gamepadConfig?.buttonsEnabled"></div>
 
-          <div v-if="props.gamepadConfig?.buttonsEnabled" class="section">
+          <div v-if="props.gamepadConfig?.buttonsEnabled" class="stack-controls">
             <div class="sub">Button Mapping</div>
             <table class="gpMapTable">
               <tbody>
@@ -889,7 +889,7 @@ function onGpMappingChanged() {
       <template #keyboard>
         <div v-if="!serverSettingsReady" class="settingsLoading">Waiting for server settings…</div>
         <div v-else class="stack-panel scrollContent scroll-thin">
-            <div class="section">
+            <div class="stack-controls">
               <div class="sub">Keyboard</div>
               <div class="settingDesc">Allow keyboard keys to control the machine. E-Stop is always active regardless of these settings.</div>
               <MachineToggle gate="inputConfig" v-model="kbConfig.jogEnabled" @update:modelValue="saveKb()" label="Enable keyboard jogging" />
@@ -899,7 +899,7 @@ function onGpMappingChanged() {
             <template v-if="kbConfig.jogEnabled || kbConfig.buttonsEnabled">
               <div class="sep"></div>
 
-              <div class="section">
+              <div class="stack-controls">
                 <div class="sub">Key Bindings</div>
                 <table class="kbMapTable">
                   <tbody>
@@ -1007,11 +1007,7 @@ function onGpMappingChanged() {
 }
 
 
-.section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-controls);
-}
+/* .section — replaced by stack-controls utility (same shape) */
 
 .wpColumns {
   display: flex;
@@ -1027,12 +1023,8 @@ function onGpMappingChanged() {
   margin-bottom: var(--gap-section);
 }
 
-.inputRow {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-controls);
-}
-
+/* .inputRow layout replaced by row-controls utility on the template element.
+   The .inputRow class is retained as a hook for the descendant rule below. */
 .inputRow input[type="text"] {
   flex: 1;
   min-width: 0;
@@ -1066,23 +1058,14 @@ function onGpMappingChanged() {
   gap: var(--gap-controls);
 }
 
-.colorRow {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-controls);
-}
-
+/* .colorRow — replaced by row-controls utility (same shape) */
 
 .colorLabel {
   font-size: var(--fs-base);
   opacity: var(--opacity-secondary);
 }
 
-.camOverlayRow {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-controls);
-}
+/* .camOverlayRow — replaced by row-controls utility (same shape) */
 
 .camOverlayLabel {
   font-size: var(--fs-base);
@@ -1120,12 +1103,8 @@ function onGpMappingChanged() {
   margin-top: var(--gap-tight);
 }
 
-.rflRpm {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-tight);
-}
-
+/* .rflRpm layout replaced by row-tight utility on the template element.
+   The .rflRpm class is retained as a hook for the descendant rule below. */
 .rflRpm input {
   width: 90px;
 }

@@ -62,7 +62,7 @@ const emit = defineEmits<{
 
     <div class="coolBlock">
       <div class="sub">Coolant</div>
-      <div class="coolToggles">
+      <div class="row-sections">
         <MachineToggle gate="coolant" :modelValue="floodOn" @update:modelValue="emit('toggleFlood')" label="Flood" />
         <MachineToggle gate="coolant" :modelValue="mistOn" @update:modelValue="emit('toggleMist')" label="Mist" />
       </div>
@@ -84,10 +84,7 @@ const emit = defineEmits<{
   gap: var(--gap-tight);
   flex-shrink: 0;
 }
-.coolToggles {
-  display: flex;
-  gap: var(--gap-section);
-}
+/* .coolToggles — replaced by row-sections utility (same shape) */
 
 @media (orientation: portrait) {
   .spDirRow > * { flex: 1; }

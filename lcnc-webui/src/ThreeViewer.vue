@@ -2086,18 +2086,18 @@ defineExpose({
     <div v-show="hudVisible" class="hud">
       <div class="hudSection">
         <div class="label">Work Position ({{ props.g5xLabel || '-' }})</div>
-        <div class="hudCoords">
-          <div class="hudCol">
+        <div class="row-sections">
+          <div class="stack-micro">
             <div v-for="a in hudPrimary" :key="'w'+a.letter" class="hudCoord">
               <span class="hudAxis">{{ a.letter }}</span> {{ fmtCoord(vst?.work_pos?.[a.index], a.letter) }}
             </div>
           </div>
-          <div v-if="hudAbc.length" class="hudCol">
+          <div v-if="hudAbc.length" class="stack-micro">
             <div v-for="a in hudAbc" :key="'w'+a.letter" class="hudCoord">
               <span class="hudAxis">{{ a.letter }}</span> {{ fmtCoord(vst?.work_pos?.[a.index], a.letter) }}
             </div>
           </div>
-          <div v-if="hudUvw.length" class="hudCol">
+          <div v-if="hudUvw.length" class="stack-micro">
             <div v-for="a in hudUvw" :key="'w'+a.letter" class="hudCoord">
               <span class="hudAxis">{{ a.letter }}</span> {{ fmtCoord(vst?.work_pos?.[a.index], a.letter) }}
             </div>
@@ -2107,18 +2107,18 @@ defineExpose({
 
       <div class="hudSection">
         <div class="label">Machine Position</div>
-        <div class="hudCoords">
-          <div class="hudCol">
+        <div class="row-sections">
+          <div class="stack-micro">
             <div v-for="a in hudPrimary" :key="'m'+a.letter" class="hudCoord">
               <span class="hudAxis">{{ a.letter }}</span> {{ fmtCoord(vst?.machine_pos?.[a.index], a.letter) }}
             </div>
           </div>
-          <div v-if="hudAbc.length" class="hudCol">
+          <div v-if="hudAbc.length" class="stack-micro">
             <div v-for="a in hudAbc" :key="'m'+a.letter" class="hudCoord">
               <span class="hudAxis">{{ a.letter }}</span> {{ fmtCoord(vst?.machine_pos?.[a.index], a.letter) }}
             </div>
           </div>
-          <div v-if="hudUvw.length" class="hudCol">
+          <div v-if="hudUvw.length" class="stack-micro">
             <div v-for="a in hudUvw" :key="'m'+a.letter" class="hudCoord">
               <span class="hudAxis">{{ a.letter }}</span> {{ fmtCoord(vst?.machine_pos?.[a.index], a.letter) }}
             </div>
@@ -2128,7 +2128,7 @@ defineExpose({
 
       <div class="hudSection">
         <div class="label">Tool</div>
-        <div class="hudCoords">
+        <div class="row-sections">
           <div class="hudCoord"><span class="hudAxis">T</span> {{ vst?.tool_number ?? '-' }}</div>
           <div class="hudCoord"><span class="hudAxis">Ø</span> {{ fmtCoord(vst?.tool_diameter) }}</div>
           <div class="hudCoord"><span class="hudAxis">L</span> {{ fmtCoord(vst?.tool_length) }}</div>
@@ -2276,15 +2276,8 @@ defineExpose({
   font-weight: var(--fw-medium);
 }
 
-.hudCoords {
-  display: flex;
-  gap: var(--gap-section);
-}
-.hudCol {
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-micro);
-}
+/* .hudCoords — replaced by row-sections utility (same shape) */
+/* .hudCol — replaced by stack-micro utility (same shape) */
 .hudCoord {
   color: var(--fg);
   font-weight: var(--fw-medium);

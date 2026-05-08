@@ -281,7 +281,7 @@ function stopJog(s: Sector, e?: PointerEvent) {
     </div>
 
     <div class="jogArea">
-      <div class="jogMain">
+      <div class="row-sections">
         <!-- XY wheel -->
         <svg class="jogwheel" viewBox="0 0 200 200">
           <path
@@ -376,11 +376,7 @@ function stopJog(s: Sector, e?: PointerEvent) {
   gap: var(--gap-section);
 }
 
-.jogMain {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-section);
-}
+/* .jogMain — replaced by row-sections utility (same shape) */
 
 .extraAxesRow {
   display: flex;

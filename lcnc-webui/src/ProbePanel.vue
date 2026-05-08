@@ -926,7 +926,7 @@ function fmtR(key: string): string {
       <!-- Round calibration: buttons + diameter -->
       <div class="stack-tight">
         <div class="sub">Round Hole</div>
-        <div class="calRow">
+        <div class="row-sections">
           <div class="calBtnPair">
             <MachineBtn type="probe" class="gridCell" title="Round hole — edge start" @click="runCalProbe('probe_cal_round_pocket')">
               <svg viewBox="0 0 80 80" class="gridIcon">
@@ -963,7 +963,7 @@ function fmtR(key: string): string {
       <!-- Rect calibration: buttons + x/y width -->
       <div class="stack-tight">
         <div class="sub">Rectangular Pocket</div>
-        <div class="calRow">
+        <div class="row-sections">
           <div class="calBtnPair">
             <MachineBtn type="probe" class="gridCell" title="Rect pocket — edge start" @click="runCalProbe('probe_cal_square_pocket')">
               <svg viewBox="0 0 80 80" class="gridIcon">
@@ -1344,11 +1344,7 @@ function fmtR(key: string): string {
 /* Calibration rows */
 /* .calSection — uses stack-tight utility */
 
-.calRow {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-section);
-}
+/* .calRow — replaced by row-sections utility (same shape) */
 
 .calBtnPair {
   display: grid;
@@ -1433,11 +1429,6 @@ function fmtR(key: string): string {
   user-select: none;
 }
 
-/* Run / Abort buttons */
-.btnRow {
-  display: flex;
-  gap: var(--gap-tight);
-}
 
 
 

@@ -382,7 +382,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
     <!-- Header -->
     <div v-if="!hideHeader" class="header">
       <div class="sub">Tool Table</div>
-      <div class="actions">
+      <div class="row-tight">
         <MachineBtn type="manage" @click="openAdd">+ Add</MachineBtn>
         <MachineBtn type="manage" @click="triggerImport">Import</MachineBtn>
         <MachineBtn type="manage" @click="fetchTools" :disabled="loading">Refresh</MachineBtn>
@@ -650,10 +650,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
   flex-shrink: 0;
 }
 
-.actions {
-  display: flex;
-  gap: var(--gap-tight);
-}
+/* .actions — replaced by row-tight utility (same shape) */
 
 .errorBanner {
   background: color-mix(in oklab, var(--danger) 30%, var(--bg));

@@ -183,7 +183,7 @@ function onMdiKeydown(e: KeyboardEvent) {
         @unhomeAxis="emit('unhomeAxis', $event)"
       />
       <div class="sep"></div>
-      <div class="gotoRow">
+      <div class="gotoRow row-controls">
           <MachineBtn type="goTo" @click="emit('goToG30')">Go to G30</MachineBtn>
           <MachineBtn type="goTo" @click="emit('goToHome')">Go to Home</MachineBtn>
           <MachineBtn type="goTo" @click="emit('goToZero')">Go to Zero</MachineBtn>
@@ -215,7 +215,7 @@ function onMdiKeydown(e: KeyboardEvent) {
 
     <!-- ═══ MDI VIEW ═══ -->
     <div v-if="manualView === 'mdi'" class="mdiSection">
-      <div class="mdiRow">
+      <div class="row-controls">
         <MachineInput
           gate="mdiText"
           ref="mdiInputRef"
@@ -268,11 +268,7 @@ function onMdiKeydown(e: KeyboardEvent) {
   gap: var(--gap-controls);
 }
 
-.mdiRow {
-  display: flex;
-  gap: var(--gap-controls);
-  align-items: center;
-}
+/* .mdiRow — replaced by row-controls utility (same shape) */
 
 .mdiInput {
   flex: 1;
@@ -318,11 +314,9 @@ function onMdiKeydown(e: KeyboardEvent) {
   flex-wrap: wrap;
 }
 
-.gotoRow {
-  display: flex;
-  gap: var(--gap-controls);
-}
-
+/* .gotoRow layout replaced by row-controls utility on the template element.
+   The .gotoRow class is retained as a hook for the :deep(.b) descendant rule
+   below — Vue's :deep() needs a real selector to anchor on. */
 .gotoRow :deep(.b) {
   flex: 1;
 }

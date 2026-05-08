@@ -39,7 +39,7 @@ const timingComponents: { key: keyof Omit<import("./lcncWs").TimingStats, "count
 
 <template>
   <div class="scrollContent scroll-thin">
-    <div class="section">
+    <div class="stack-controls">
       <div class="sub">Latency Breakdown <span v-if="timingStats" class="muted">({{ timingStats.count }} samples)</span></div>
       <div v-if="timingStats" class="timingTable">
         <div class="timingRow timingHeader">
@@ -61,11 +61,11 @@ const timingComponents: { key: keyof Omit<import("./lcncWs").TimingStats, "count
           <MachineBtn type="inline" @click="downloadTimingCsv" :disabled="!timingStats">Download CSV</MachineBtn>
       </div>
     </div>
-    <div class="section">
+    <div class="stack-controls">
       <div class="sub">Last reply</div>
       <pre class="debugPre">{{ lastReply }}</pre>
     </div>
-    <div class="section">
+    <div class="stack-controls">
       <div class="sub">Raw status</div>
       <pre class="debugPre">{{ status }}</pre>
     </div>

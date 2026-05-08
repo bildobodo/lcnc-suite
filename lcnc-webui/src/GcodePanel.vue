@@ -378,7 +378,7 @@ async function saveEdit() {
     </div>
 
     <!-- Progress bar -->
-    <div class="progressRow" v-if="gcodeContent">
+    <div class="row-controls" v-if="gcodeContent">
       <div class="progressTrack">
         <div class="progressFill" :style="{ width: progressPercent + '%' }"></div>
       </div>
@@ -569,11 +569,7 @@ async function saveEdit() {
   font-size: var(--fs-lg);
 }
 
-.progressRow {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-controls);
-}
+/* .progressRow — replaced by row-controls utility (same shape) */
 
 .progressTrack {
   flex: 1;
