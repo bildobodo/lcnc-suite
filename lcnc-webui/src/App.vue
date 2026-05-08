@@ -25,13 +25,14 @@ import { Settings, MessageSquare, PowerOff, Gamepad2, Keyboard, BookOpen, Clipbo
 import GcodeReferenceDialog from "./GcodeReferenceDialog.vue";
 import NumberKeypad from "./NumberKeypad.vue";
 import { keypadState } from "./useNumberKeypad";
-import { loadViewerDefaults, saveViewerDefaults, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadMacrosDefaults, loadGamepadDefaults, saveGamepadDefaults, loadKeyboardDefaults, saveKeyboardDefaults, settingsVersion, type ThemeMode, type MacroDef, type GamepadDefaults, type KeyboardDefaults, type KeyboardAction, type Layer, type TrackMode, type Projection } from "./defaults";
+import { loadViewerDefaults, saveViewerDefaults, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadGamepadDefaults, saveGamepadDefaults, loadKeyboardDefaults, saveKeyboardDefaults, settingsVersion, type ThemeMode, type GamepadDefaults, type KeyboardDefaults, type KeyboardAction, type Layer, type TrackMode, type Projection } from "./defaults";
 import { buildToolsetterVarMap } from "./toolsetterVars";
 import { useGamepad } from "./useGamepad";
 import { useMediaMql } from "./useMediaMql";
 import { useDialogState } from "./useDialogState";
 import { useMdiHistory } from "./useMdiHistory";
 import { useTouchoffMath } from "./useTouchoffMath";
+import { useMacros } from "./useMacros";
 import { forceStopAllJogs, initJogPointerSafety, destroyJogPointerSafety } from "./useJogPointers";
 import {
   INTERP_IDLE, INTERP_READING, INTERP_PAUSED, INTERP_WAITING,
@@ -644,39 +645,18 @@ const {
   cancelCompToggle,
 } = useDialogState({ markMessagesRead, send });
 
-// Macro state
-const userMacros = ref<MacroDef[]>(loadMacrosDefaults().macros);
-const macroParamDialog = ref<{ macro: MacroDef; values: Record<string, string> } | null>(null);
-
-provide("updateMacros", (macros: MacroDef[]) => { userMacros.value = macros; });
-
-
-function substituteMacro(command: string, values: Record<string, string>): string {
-  let cmd = command;
-  for (const [key, val] of Object.entries(values)) cmd = cmd.split(`{${key}}`).join(val);
-  return cmd;
-}
-
-function confirmMacroParams() {
-  if (!macroParamDialog.value) return;
-  fire({ cmd: "mdi", text: substituteMacro(macroParamDialog.value.macro.command, macroParamDialog.value.values) }, 'ready');
-  macroParamDialog.value = null;
-}
-
-function macroPreview(): string {
-  if (!macroParamDialog.value) return "";
-  return substituteMacro(macroParamDialog.value.macro.command, macroParamDialog.value.values);
-}
-
-function runMacro(macro: MacroDef) {
-  if (macro.params.length > 0) {
-    const values: Record<string, string> = {};
-    for (const p of macro.params) values[p.name] = p.default;
-    macroParamDialog.value = { macro, values };
-  } else {
-    fire({ cmd: "mdi", text: macro.command }, 'ready');
-  }
-}
+// Macro state + execution. See useMacros.ts. The provide() call below has
+// to run here in App.vue's setup so SettingsPanel (the consumer) sees it
+// before mount.
+const {
+  userMacros,
+  macroParamDialog,
+  updateMacros,
+  runMacro,
+  confirmMacroParams,
+  macroPreview,
+} = useMacros({ fire });
+provide("updateMacros", updateMacros);
 const toolTableRef = ref<InstanceType<typeof ToolTablePanel> | null>(null);
 function measureAuto() {
   const t = st.value.tool_number;
@@ -1086,9 +1066,9 @@ watch(() => gamepadConfig.value.jogEnabled, (curr, prev) => {
 provide("gamepadAxes", gamepad.gamepadAxesState);
 provide("gamepadButtons", gamepad.gamepadButtonsState);
 
-// Re-read server-synced settings when another client saves
+// Re-read server-synced settings when another client saves.
+// (userMacros is refreshed by its own watcher inside useMacros.)
 watch(settingsVersion, () => {
-  userMacros.value = loadMacrosDefaults().macros;
   const mach = loadMachineDefaults();
   runFromLineEnabled.value = mach.runFromLine;
   keyboardConfig.value = loadKeyboardDefaults();
