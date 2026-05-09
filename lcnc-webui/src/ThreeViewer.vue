@@ -878,8 +878,10 @@ function makeLine(points: number[][], colorHex: number | string, dashed = false,
   const line = new THREE.Line(geom, mat);
   line.renderOrder = 10;
 
-  // Important: prevent disappearing when workOrigin shifts / bounds get odd
-  line.frustumCulled = false;
+  // Bounding sphere is computed above; parent (workRotGroup) transforms apply
+  // to it via matrixWorld at cull time, so workOrigin/WCS-rotation changes
+  // don't require recomputation. Culling skips draw work when zoomed in.
+  line.frustumCulled = true;
 
   if (dashed) (line as any).computeLineDistances?.();
   return line;
@@ -901,7 +903,7 @@ function makeOverflowLine(geom: THREE.BufferGeometry): THREE.Line | null {
   });
   const line = new THREE.Line(geom, mat);
   line.renderOrder = 10;
-  line.frustumCulled = false;
+  line.frustumCulled = true;
   // Idempotent: rapid channel already has lineDistance from rapidLine; feed channel doesn't.
   if (!geom.attributes.lineDistance) line.computeLineDistances();
   return line;
@@ -1520,17 +1522,20 @@ function applyGcode(g: ViewerGcode) {
   }
 
   // Highlight line — shares feed's position attribute; independent drawRange.
+  // Reuses the feed bounding sphere so frustum culling matches the full toolpath
+  // extents (conservative: drawn subset is always inside the full bounds).
   if (feedSharedGeom) {
     highlightGeom = new THREE.BufferGeometry();
     highlightGeom.userData._shared = true;
     highlightGeom.setAttribute("position", feedSharedGeom.attributes.position!);
+    highlightGeom.boundingSphere = feedSharedGeom.boundingSphere;
     highlightGeom.setDrawRange(0, 0); // hidden until motion_line updates
     const hlMat = new THREE.LineBasicMaterial({ color: 0xff3333 });
     hlMat.depthTest = !pathAlwaysOnTop;
     hlMat.depthWrite = false;
     highlightLine = new THREE.Line(highlightGeom, hlMat);
     highlightLine.renderOrder = 12;
-    highlightLine.frustumCulled = false;
+    highlightLine.frustumCulled = true;
     workRotGroup!.add(highlightLine);
   }
 
