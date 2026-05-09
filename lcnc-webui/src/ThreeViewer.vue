@@ -296,6 +296,16 @@ let toolpathBBox: { min: [number, number, number]; max: [number, number, number]
 // ---- Camera tracking ----
 let trackingMode: "none" | "tool" | "wcs" = "none";
 
+// ---- Render-on-demand ----
+// _needsRender is set by anything that changes visible scene state (camera move,
+// joint motion via applyState signature diff, layer toggle, theme change, etc.).
+// animate() skips renderer.render() (and the prep work that feeds it — clipping
+// plane transforms, billboard quaternion updates) when no flag set. Tween in
+// flight and tracking mode force every frame.
+let _needsRender = true;
+function requestRender() { _needsRender = true; }
+let _lastStateSig = "";
+
 // ---- Path rendering ----
 let pathAlwaysOnTop = true; // default; overridden by setPathAlwaysOnTop()
 
@@ -681,6 +691,7 @@ function setLayerVisible(layer: Layer, on: boolean) {
       if (surfaceGroup) surfaceGroup.visible = on;
       break;
   }
+  requestRender();
 }
 
 function setPathAlwaysOnTop(on: boolean) {
@@ -719,10 +730,12 @@ function setPathAlwaysOnTop(on: boolean) {
     m.depthWrite = false;
     m.needsUpdate = true;
   }
+  requestRender();
 }
 
 function setTrackingMode(mode: "none" | "tool" | "wcs") {
   trackingMode = mode;
+  requestRender();
 }
 
 function pushBackplotPoint(p: [number, number, number]) {
@@ -1326,6 +1339,28 @@ function applyState(init: ViewerInit, st: ViewerState) {
   } else {
     if (highlightLine) highlightLine.geometry.setDrawRange(0, 0);
   }
+
+  // Render-on-demand: detect whether anything visually changed since the last
+  // applied state. Status broadcasts arrive at ~30 Hz; without this diff we'd
+  // render every status arrival even when joints are still and motion_line is
+  // unchanged. Fields included cover everything applyState mutates visually.
+  const sig = JSON.stringify([
+    st.joint_pos,
+    st.machine_pos,
+    st.g5x_offset,
+    st.g92_offset,
+    st.tool_offset,
+    st.tool_number,
+    st.tool_diameter,
+    st.tool_length,
+    st.tool_meta,
+    st.motion_line,
+    st.rotation_xy,
+  ]);
+  if (sig !== _lastStateSig) {
+    _lastStateSig = sig;
+    _needsRender = true;
+  }
 }
 
 /** Check if stored toolpath bbox exceeds machine bounds (in current WCS). */
@@ -1523,10 +1558,25 @@ function applyGcode(g: ViewerGcode) {
     if (rapidOverflow) rapidOverflow.visible = false;
     if (highlightLine) highlightLine.visible = false;
   }
+
+  requestRender();
 }
 
 // ---------- lifecycle ----------
 let resizeObs: ResizeObserver | null = null;
+
+// Pause RAF while the document is hidden; resume on focus. Independent of
+// props.active (Vue tab). Cancel inside the handler so we don't leak frames
+// while the OS deprioritizes the tab.
+function _onVisibilityChange() {
+  if (document.hidden) {
+    if (raf) cancelAnimationFrame(raf);
+    raf = 0;
+  } else if (props.active !== false && raf === 0) {
+    requestRender();
+    animate();
+  }
+}
 
 function resize() {
   if (!renderer || !camera || !host.value) return;
@@ -1543,6 +1593,7 @@ function resize() {
   }
   camera.updateProjectionMatrix();
   renderer.setSize(w, h);
+  requestRender();
 }
 
 let pendingState: any = null;
@@ -1554,7 +1605,10 @@ function animate() {
   raf = requestAnimationFrame(animate);
 
   // Apply pending state before render (natural frame dropping —
-  // if multiple status updates arrive between frames, only the latest is used)
+  // if multiple status updates arrive between frames, only the latest is used).
+  // applyState diffs key fields and sets _needsRender only when the visible
+  // state changes — so a steady 30 Hz status flood with no joint motion does
+  // not force a render.
   if (pendingState && viewerInit.value) {
     applyState(viewerInit.value, pendingState as ViewerState);
     pendingState = null;
@@ -1567,7 +1621,9 @@ function animate() {
     }
   }
 
-  // Camera tracking — move both target and camera to maintain viewing angle
+  // Camera tracking — move both target and camera to maintain viewing angle.
+  // While tracking is active every frame is rendered; the tracking calculation
+  // mutates camera state so flag a render explicitly.
   if (trackingMode !== "none" && controls && camera) {
     const target = new THREE.Vector3();
     if (trackingMode === "tool" && toolMarker) {
@@ -1578,9 +1634,16 @@ function animate() {
     const delta = target.sub(controls.target);
     controls.target.add(delta);
     camera.position.add(delta);
+    _needsRender = true;
   }
 
+  // Render-on-demand gate. Tween in flight (`_tweenRaf`) and active tracking
+  // mode force a render every frame; otherwise we wait for an explicit
+  // requestRender() (controls 'change', state diff, layer toggle, etc.).
+  if (!_needsRender && !_tweenRaf && trackingMode === "none") return;
+
   // Update overflow clipping planes to track _workGrp world transform
+  // (only runs when we're actually rendering — C4 lazy clip planes).
   if (_localBoundsPlanes.length > 0 && _localBoundsPlanes.length === boundsClipPlanes.length && _workGrp) {
     _workGrp.updateMatrixWorld();
     for (let i = 0; i < _localBoundsPlanes.length; i++) {
@@ -1636,10 +1699,13 @@ function animate() {
     renderer.autoClear = true;
     renderer.setViewport(0, 0, el.width, el.height);
   }
+
+  _needsRender = false;
 }
 
 watch(themeMode, () => {
   if (scene) scene.background = sceneBgFromTheme();
+  requestRender();
 });
 
 onMounted(() => {
@@ -1675,6 +1741,13 @@ onMounted(() => {
 
   controls.enablePan = true;
   controls.screenSpacePanning = true;
+
+  // Render-on-demand: any user-initiated camera move flags a render.
+  controls.addEventListener("change", requestRender);
+
+  // Pause RAF when the document is hidden (browser tab switch / system sleep).
+  // Independent of props.active, which gates Vue tab visibility within the SPA.
+  document.addEventListener("visibilitychange", _onVisibilityChange);
 
   resizeObs = new ResizeObserver(() => resize());
   resizeObs.observe(host.value!);
@@ -1727,6 +1800,7 @@ function applyViewerDefaults(opts: { initialMount?: boolean } = {}) {
 }
 
 onUnmounted(() => {
+  document.removeEventListener("visibilitychange", _onVisibilityChange);
   resizeObs?.disconnect();
   resizeObs = null;
   cancelAnimationFrame(raf);
@@ -1790,6 +1864,7 @@ watch(settingsVersion, () => {
 // flush: 'post' ensures DOM (v-show) has updated before we resize
 watch(() => props.active, (now) => {
   if (now !== false && renderer) {
+    requestRender(); // force one render on resume
     resize();
     animate();
   } else {
@@ -1953,6 +2028,7 @@ function buildSurfaceLayer(pts: [number, number, number][]) {
 
   workRotGroup!.add(surfaceGroup);
   surfaceGroup.visible = surfaceVisible;
+  requestRender();
 }
 
 watch(() => props.surfacePoints, (pts) => {
@@ -2053,6 +2129,7 @@ async function buildEdgesLazy() {
     _machineEdgeLines.push(edgeLine);
   }
   if (token === _edgeBuildToken) _edgesBuilt = true;
+  requestRender();
 }
 
 /** Toggle CAD-like edge outline mode for machine STLs. */
@@ -2063,11 +2140,13 @@ function setMachineEdges(on: boolean) {
   } else {
     for (const e of _machineEdgeLines) e.visible = on;
   }
+  requestRender();
 }
 
 function setToolColors(toolColor: string | null, cutterColor: string | null) {
   if (toolColor) MAT.tool.color.set(toolColor);
   if (cutterColor) MAT.cutter.color.set(cutterColor);
+  requestRender();
 }
 
 // Getter passed to ViewCube — runs every frame so it tracks camera replacement
