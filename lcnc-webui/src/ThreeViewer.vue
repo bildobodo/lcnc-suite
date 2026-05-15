@@ -1699,10 +1699,13 @@ function animate() {
     // Billboard gizmo labels
     _gizmoScene.traverse((c: any) => { if (c instanceof Text) c.quaternion.copy(_gizmoCam!.quaternion); });
 
+    // setViewport/setScissor take CSS pixels — three.js multiplies by pixelRatio
+    // internally. Passing framebuffer pixels (el.width) double-multiplies on
+    // Retina (DPR=2), pushing the scene off the upper-right corner.
     const el = renderer.domElement;
-    const px = renderer.getPixelRatio();
-    const gs = GIZMO_SIZE * px;
-    const gx = el.width - gs - 8 * px, gy = 8 * px;
+    const w = el.clientWidth, h = el.clientHeight;
+    const gs = GIZMO_SIZE;
+    const gx = w - gs - 8, gy = 8;
     renderer.setViewport(gx, gy, gs, gs);
     renderer.setScissor(gx, gy, gs, gs);
     renderer.setScissorTest(true);
@@ -1711,7 +1714,7 @@ function animate() {
     renderer.render(_gizmoScene, _gizmoCam);
     renderer.setScissorTest(false);
     renderer.autoClear = true;
-    renderer.setViewport(0, 0, el.width, el.height);
+    renderer.setViewport(0, 0, w, h);
   }
 
   _needsRender = false;
