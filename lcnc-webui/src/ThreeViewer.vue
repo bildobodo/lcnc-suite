@@ -384,6 +384,7 @@ function resetBackplot() {
     backplotGeom.setDrawRange(0, 0);
     backplotGeom.attributes.position!.needsUpdate = true;
   }
+  requestRender();
 }
 
 // Frame camera to show the given bounding box.
