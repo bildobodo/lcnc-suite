@@ -143,6 +143,15 @@ else
   fail "linuxcnc python bindings (requires LinuxCNC)"
 fi
 
+# --- scipy (system Python — compensation.py runs under halcmd before the
+#     launcher activates the venv, so this must be on the system path)
+if python3 -c "import scipy" 2>/dev/null; then
+  ok "scipy"
+else
+  APT_PACKAGES+=(python3-scipy)
+  fail "scipy — will install (python3-scipy)"
+fi
+
 # ============================================================
 # Step 2: Install missing dependencies
 # ============================================================

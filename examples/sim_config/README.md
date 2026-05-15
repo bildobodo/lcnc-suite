@@ -9,12 +9,12 @@ cp -r examples/sim_config ~/linuxcnc/configs/lcnc_suite_sim
 ```
 
 Edit `lcnc_suite_sim.ini`:
-- Set `SUBROUTINE_PATH` to your lcnc-suite clone location
+- Set `SUBROUTINE_PATH` to your lcnc-suite clone location (LinuxCNC's INI parser expands `~`, so `~/lcnc-suite/...` is fine if you cloned there).
 
 Edit `hallib/lcnc_webui.hal`:
-- Set path to `hal_watchdog.py`
-- Uncomment surface compensation if needed
-- Adjust the estop unlinkp if your config uses a different signal name
+- Replace `~/lcnc-suite/` with your absolute clone path in every `loadusr` line — halcmd does **not** expand `~`.
+- Surface compensation is enabled by default and requires `python3-scipy` (auto-installed by `install.sh`). Comment out the `loadusr ... compensation.py` line and the `net eoffset-*` / `net compensation-*` block at the bottom of the file if you don't need it.
+- Adjust the `unlinkp iocontrol.0.emc-enable-in` line if your config uses a different e-stop signal name.
 
 ## Key files
 
