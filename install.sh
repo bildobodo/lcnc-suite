@@ -5,10 +5,17 @@ set -euo pipefail
 # lcnc-suite installer
 #
 # Checks for missing system dependencies, offers to install them
-# via apt, then sets up the Python venv and Node.js packages.
+# via apt, then clones the repo (if needed), sets up the Python
+# venv and Node.js packages, and drops a sample sim config into
+# ~/linuxcnc/configs/lcnc_suite_sim/ so you can boot LinuxCNC
+# immediately.
 #
 # Usage:
-#   ./install.sh [target-dir]   # default: current directory or ~/lcnc-suite
+#   # From a fresh machine (no clone yet) — one-line bootstrap:
+#   wget -O install.sh https://raw.githubusercontent.com/bildobodo/lcnc-suite/main/install.sh && bash install.sh
+#
+#   # Or inside an existing clone:
+#   ./install.sh [target-dir]   # default: current dir if a clone, else ~/lcnc-suite
 #
 # The script will prompt for sudo when system packages are needed.
 # ============================================================
@@ -23,8 +30,13 @@ fi
 
 NODE_MAJOR_MIN=18
 PY_MINOR_MIN=9
+REPO_URL="https://github.com/bildobodo/lcnc-suite.git"
+SIM_CONFIG_DIR="$HOME/linuxcnc/configs/lcnc_suite_sim"
 
-# If run from inside the repo, use that as target; otherwise default to ~/lcnc-suite
+# Resolve TARGET_DIR:
+#   1. If running from inside an existing clone, use it.
+#   2. Else use the first positional arg, defaulting to ~/lcnc-suite.
+# If TARGET_DIR is not yet a clone, step 3 will git-clone into it.
 if [[ -f "$(pwd)/restart.sh" && -d "$(pwd)/lcnc-gateway" ]]; then
   TARGET_DIR="$(pwd)"
 else
@@ -44,7 +56,7 @@ warn() { echo -e "  ${YELLOW}!${NC} $*"; }
 info() { echo -e "  ${YELLOW}→${NC} $*"; }
 step() { echo -e "\n${BOLD}[$1/$TOTAL_STEPS] $2${NC}"; }
 
-TOTAL_STEPS=4
+TOTAL_STEPS=6
 
 # ============================================================
 # Step 1: Check system dependencies
@@ -221,18 +233,34 @@ else
 fi
 
 # ============================================================
-# Step 3: Setup project dependencies
+# Step 3: Clone repo if needed (bootstrap mode)
 # ============================================================
-step 3 "Setting up project dependencies"
+step 3 "Fetching lcnc-suite source"
 
-if [[ ! -d "$TARGET_DIR/lcnc-gateway" ]]; then
-  fail "lcnc-suite not found at $TARGET_DIR"
-  echo -e "  Clone the repository first:"
-  echo -e "    git clone <repo-url> $TARGET_DIR"
-  exit 1
+if [[ -d "$TARGET_DIR/lcnc-gateway" ]]; then
+  ok "lcnc-suite already present at $TARGET_DIR"
+else
+  # Refuse to clone into a non-empty directory that isn't a clone — protects
+  # the user from a half-populated TARGET_DIR (e.g. they ran the installer
+  # from a dir holding unrelated files).
+  if [[ -d "$TARGET_DIR" ]] && [[ -n "$(ls -A "$TARGET_DIR" 2>/dev/null)" ]]; then
+    fail "$TARGET_DIR exists and is not empty — refusing to clone over it"
+    echo -e "  Either remove the directory, choose a different target,"
+    echo -e "    or run the installer from inside an existing clone."
+    exit 1
+  fi
+
+  info "Cloning $REPO_URL → $TARGET_DIR"
+  git clone "$REPO_URL" "$TARGET_DIR"
+  ok "Repo cloned"
 fi
 
 cd "$TARGET_DIR"
+
+# ============================================================
+# Step 4: Setup project dependencies
+# ============================================================
+step 4 "Setting up project dependencies"
 
 # Fetch LFS objects if in a git repo
 if [[ -d ".git" ]]; then
@@ -299,33 +327,42 @@ case ":$PATH:" in
 esac
 
 # ============================================================
-# Step 4: Done
+# Step 5: Install sample sim config
 # ============================================================
-step 4 "Installation complete"
+step 5 "Installing sample sim config"
+
+if [[ -d "$SIM_CONFIG_DIR" ]]; then
+  ok "Sim config already present at $SIM_CONFIG_DIR — skipping (delete to reinstall)"
+else
+  info "Copying sample sim config → $SIM_CONFIG_DIR"
+  mkdir -p "$(dirname "$SIM_CONFIG_DIR")"
+  cp -r "$TARGET_DIR/examples/sim_config" "$SIM_CONFIG_DIR"
+  ok "Sim config installed (INI, HAL files, seeded sim.var)"
+fi
+
+# ============================================================
+# Step 6: Done
+# ============================================================
+step 6 "Installation complete"
 
 echo -e "
   ${GREEN}${BOLD}lcnc-suite installed successfully!${NC}
 
-  ${BOLD}Location:${NC}  $TARGET_DIR
+  ${BOLD}Location:${NC}    $TARGET_DIR
+  ${BOLD}Sim config:${NC}  $SIM_CONFIG_DIR
 
   ${BOLD}Next steps:${NC}
 
     1. Build the frontend:
        cd $TARGET_DIR/lcnc-webui && npm run build
 
-    2. Add to your INI [DISPLAY] section:
-       DISPLAY = lcnc-suite
-       WEBUI_HOST = 0.0.0.0
-       WEBUI_PORT = 8000
-       WEBUI_BROWSER = 1
-       WEBUI_DEV = 0
+    2. Try the sim:
+       linuxcnc $SIM_CONFIG_DIR/lcnc_suite_sim.ini
 
-    3. Add HAL safety chain (copy + add to INI [HAL]):
-       cp $TARGET_DIR/examples/sim_config/hallib/lcnc_webui.hal /your/config/hallib/
-       # Add to INI: HALFILE = hallib/lcnc_webui.hal
-
-    4. Start:
-       linuxcnc your_machine.ini
+    3. Adjust the sample config for your real machine:
+       - Copy $SIM_CONFIG_DIR/ to a new dir under ~/linuxcnc/configs/
+       - Edit lcnc_suite_sim.ini (axis limits, kinematics, HAL files)
+       - Keep the [DISPLAY] WEBUI_* lines and the lcnc_webui.hal include
 
   ${BOLD}See README.md for full configuration details.${NC}
 "
