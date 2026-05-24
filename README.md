@@ -340,27 +340,41 @@ cd ..
 cp -r examples/sim_config ~/linuxcnc/configs/lcnc_suite_sim
 ```
 
-### Configure LinuxCNC
+### Run the sim
 
-If you used Option A or B, the sample sim config is already in place at
-`~/linuxcnc/configs/lcnc_suite_sim/` — start with
-`linuxcnc ~/linuxcnc/configs/lcnc_suite_sim/lcnc_suite_sim.ini` and edit
-the INI / HAL files there to fit your real machine.
+If you used Option A or B, **everything is already wired** — INI,
+`lcnc_webui.hal` (with the HAL heartbeat / e-stop safety chain), seeded
+`sim.var`, plus `~/.local/bin/` symlinks for the launcher and HAL helpers
+(`hal_watchdog.py`, `hal_reader.py`, `compensation.py`) so LinuxCNC's
+DISPLAY launcher and halcmd/haltcl find them via PATH. No further
+configuration needed:
 
-`install.sh` symlinks the launcher and the three HAL helpers
-(`hal_watchdog.py`, `hal_reader.py`, `compensation.py`) into
-`~/.local/bin/` so that LinuxCNC's DISPLAY launcher and halcmd/haltcl find
-them via PATH — no path substitution in HAL files. Make sure
-`~/.local/bin` is on your `$PATH` (most shells include it by default; if
-not, add `export PATH="$HOME/.local/bin:$PATH"` to your shell rc).
+```bash
+linuxcnc ~/linuxcnc/configs/lcnc_suite_sim/lcnc_suite_sim.ini
+```
+
+Sanity check the PATH symlink (most shells include `~/.local/bin` by
+default; if not, add `export PATH="$HOME/.local/bin:$PATH"` to your shell
+rc):
 
 ```bash
 which lcnc-suite    # should print ~/.local/bin/lcnc-suite
 ```
 
-The sections below describe the INI `[DISPLAY]` keys and HAL safety
-chain — useful if you're integrating into an existing machine config
-rather than starting from the sample.
+### Adapting the sample for a real machine
+
+To use lcnc-suite with your own machine config, copy the sample as a
+starting point and edit axis limits, kinematics, and HAL files:
+
+```bash
+cp -r ~/linuxcnc/configs/lcnc_suite_sim ~/linuxcnc/configs/my_machine
+# then edit my_machine/lcnc_suite_sim.ini (rename if you like)
+```
+
+The two reference sections below describe what the `[DISPLAY]` keys do
+and how the HAL safety chain is wired — both are already present in the
+sample, so you only need them if you're tearing the config apart or
+integrating into a pre-existing custom INI/HAL setup.
 
 #### 1. INI `[DISPLAY]` section
 
@@ -442,7 +456,11 @@ All three must be TRUE for the machine to stay enabled. See [Setting Up the HAL 
 ### Production
 
 ```bash
-linuxcnc your_machine.ini    # single command — starts everything
+# Sim (installed by install.sh)
+linuxcnc ~/linuxcnc/configs/lcnc_suite_sim/lcnc_suite_sim.ini
+
+# Or your own machine
+linuxcnc your_machine.ini
 ```
 
 The launcher serves the built frontend at `http://localhost:8000` (or your configured port). Other devices on the LAN can connect at `http://<machine-ip>:8000`.
