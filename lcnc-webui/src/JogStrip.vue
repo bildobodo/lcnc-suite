@@ -421,7 +421,6 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
 .jogLabel {
   font-size: var(--fs-xl);
   font-weight: var(--fw-bold);
-  font-family: var(--font-mono);
   line-height: 1;
 }
 

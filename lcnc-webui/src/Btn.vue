@@ -131,8 +131,8 @@ html:not(.touch-device) .b.muted:hover:not(:disabled) { opacity: 1; }
 .b.muted.active,
 .b.muted.selected { opacity: 1; }
 
-/* ---- Mono (monospace font) ---- */
-.b.mono { font-family: var(--font-mono); }
+/* ---- Mono — tabular-nums (digit column alignment, sans font) ---- */
+.b.mono { font-variant-numeric: tabular-nums; }
 
 /* ---- Block ---- */
 .block { width: 100%; }

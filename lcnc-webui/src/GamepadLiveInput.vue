@@ -99,7 +99,6 @@ const buttons = inject<Ref<boolean[]>>("gamepadButtons", ref([]));
 .gpBtn {
   padding: 2px 4px;
   font-size: var(--fs-xs);
-  font-family: var(--font-mono);
   text-align: center;
   border-radius: var(--radius-sm);
   background: var(--button-bg);

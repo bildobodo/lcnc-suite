@@ -160,7 +160,6 @@ function clearAll() {
 .tableWrap td {
   text-align: right;
   padding: var(--gap-tight) var(--gap-controls);
-  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 
@@ -170,7 +169,6 @@ function clearAll() {
   text-align: left;
   font-weight: var(--fw-semibold);
   color: color-mix(in oklab, var(--fg) 80%, transparent);
-  font-family: var(--font-sans);
 }
 
 .activeRow .offLabel {

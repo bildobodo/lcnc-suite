@@ -854,7 +854,7 @@ function resetMachineColor(id: string) {
 
 .camOverlayValue {
   font-size: var(--fs-sm);
-  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   opacity: var(--opacity-muted);
   min-width: 32px;
   text-align: right;
@@ -908,7 +908,6 @@ function resetMachineColor(id: string) {
   font-weight: var(--fw-semibold);
 }
 .macroSettingsCmd {
-  font-family: var(--font-mono);
   font-size: var(--fs-sm);
   opacity: var(--opacity-muted);
   overflow: hidden;
@@ -940,7 +939,6 @@ function resetMachineColor(id: string) {
   margin-top: var(--gap-tight);
 }
 .macroParamBadge {
-  font-family: var(--font-mono);
   font-size: var(--fs-sm);
   min-width: 70px;
   flex-shrink: 0;

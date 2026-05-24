@@ -33,9 +33,15 @@
   --panel-h-portrait: 500px;
   --viewer-min-h-portrait: 500px;
 
-  /* Font stacks */
+  /* Font stacks
+   * --font-sans is the UI default — every interactive element inherits this.
+   * --font-mono is reserved for code surfaces (G-code program viewer/editor,
+   * G-code reference dialog, debug timing dumps, keyboard chord cells).
+   * For numeric column alignment elsewhere, use `font-variant-numeric: tabular-nums`
+   * (or the `.mono` / `.val-mono` utility classes) — sans + tabular-nums keeps
+   * digits aligned without breaking visual cohesion. */
   --font-sans: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-  --font-mono: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', 'Liberation Mono', monospace;
 
   /* Type scale */
   --fs-2xs: 9px;
@@ -316,7 +322,8 @@ input[type="range"]::-moz-range-thumb:hover {
   border: 1px solid var(--border);
   background: var(--bg);
   color: var(--fg);
-  font-family: var(--font-mono);
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
   font-size: var(--fs-base);
   line-height: 1.5;
   padding: 4px 8px;
@@ -928,8 +935,9 @@ label:has(input:disabled, select:disabled) {
 
 /* ── Display utilities ── */
 
-/* Monospace value (slider readouts, override %, RPM) */
-.val-mono       { font-family: var(--font-mono); font-size: var(--fs-sm); font-weight: var(--fw-semibold); }
+/* Tabular numeric value (slider readouts, override %, RPM, durations).
+ * Sans font + tabular-nums keeps digit columns aligned without monospace. */
+.val-mono       { font-variant-numeric: tabular-nums; font-size: var(--fs-sm); font-weight: var(--fw-semibold); }
 .val-mono.lg    { font-size: var(--fs-xl); font-weight: var(--fw-bold); }
 .val-mono.warn  { color: var(--warn); }
 
@@ -944,11 +952,12 @@ label:has(input:disabled, select:disabled) {
 .val-status.bad    { color: var(--danger); }
 .val-status.warn   { color: var(--warn); }
 .val-status.muted  { opacity: var(--opacity-muted); }
-.val-status.mono   { font-family: var(--font-mono); }
-.mono { font-family: var(--font-mono); }
+.val-status.mono   { font-variant-numeric: tabular-nums; }
+/* Tabular-nums utility — keeps digit columns aligned in proportional text */
+.mono { font-variant-numeric: tabular-nums; }
 
 /* Radio button label row (jog increments, WCS selector) */
-.radio-label    { display: flex; align-items: center; gap: var(--gap-tight); font-family: var(--font-mono); font-size: var(--fs-base); cursor: pointer; white-space: nowrap; }
+.radio-label    { display: flex; align-items: center; gap: var(--gap-tight); font-size: var(--fs-base); cursor: pointer; white-space: nowrap; }
 
 /* Stable-width toggle: both labels overlap in same grid cell; hidden one sizes but doesn't show */
 .stable-width   { display: inline-grid; }
@@ -993,7 +1002,7 @@ label:has(input:disabled, select:disabled) {
 .loadBar.zone-danger > .loadBarFill { background: var(--danger); }
 
 /* Active G/M code display */
-.codes-value    { font-size: var(--fs-sm); font-family: var(--font-mono); word-break: break-all; line-height: 1.4; min-height: calc(2 * 1.4em); }
+.codes-value    { font-size: var(--fs-sm); font-variant-numeric: tabular-nums; word-break: break-all; line-height: 1.4; min-height: calc(2 * 1.4em); }
 
 .viewTabs {
   flex-wrap: wrap;
@@ -1006,7 +1015,7 @@ label:has(input:disabled, select:disabled) {
 
 .sliderVal {
   font-size: var(--fs-base);
-  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   opacity: var(--opacity-muted);
   white-space: nowrap;
   text-align: right;

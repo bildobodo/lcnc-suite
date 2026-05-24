@@ -292,7 +292,6 @@ function onMdiKeydown(e: KeyboardEvent) {
   text-align: left;
   padding: 6px 10px;
   cursor: pointer;
-  font-family: var(--font-mono);
   font-size: var(--fs-base);
   white-space: nowrap;
   overflow: hidden;

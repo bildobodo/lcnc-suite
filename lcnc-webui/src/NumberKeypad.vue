@@ -183,14 +183,14 @@ function onKeydown(e: KeyboardEvent) {
 }
 
 .keypad-expr {
-  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: var(--fs-xl);
   word-break: break-all;
   min-height: 1.4em;
 }
 
 .keypad-preview {
-  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: var(--fs-sm);
   opacity: var(--opacity-muted);
   min-height: 1.4em;

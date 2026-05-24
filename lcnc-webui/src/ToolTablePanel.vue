@@ -823,7 +823,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
   width: 50px;
   white-space: nowrap;
   font-weight: var(--fw-semibold);
-  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   position: sticky;
   left: 0;
   z-index: 1;

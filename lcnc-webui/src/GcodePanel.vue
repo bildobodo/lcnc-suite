@@ -588,14 +588,14 @@ async function saveEdit() {
 
 .progressLabel {
   font-size: var(--fs-md);
-  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
 .elapsedLabel {
   font-size: var(--fs-md);
-  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
   flex-shrink: 0;
   margin-left: auto;
@@ -610,7 +610,6 @@ async function saveEdit() {
 
 
 .fileName {
-  font-family: var(--font-mono);
   font-size: var(--fs-md);
   font-weight: var(--fw-medium);
   white-space: nowrap;
@@ -673,7 +672,6 @@ async function saveEdit() {
   font-size: var(--fs-sm);
   padding: 2px 8px;
   border-radius: var(--radius-md);
-  font-family: var(--font-mono);
 }
 
 .backBtn:hover {
@@ -681,7 +679,6 @@ async function saveEdit() {
 }
 
 .browserPath {
-  font-family: var(--font-mono);
   font-size: var(--fs-sm);
 }
 
@@ -713,7 +710,6 @@ async function saveEdit() {
 }
 
 .fileIcon {
-  font-family: var(--font-mono);
   opacity: var(--opacity-muted);
   width: 10px;
   text-align: center;

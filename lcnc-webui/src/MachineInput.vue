@@ -25,7 +25,7 @@ const catalogStyle = computed(() => {
   const s: Record<string, string> = {};
   if (d.align) s.textAlign = d.align;
   if (d.width) s.width = d.width;
-  if (d.mono) s.fontFamily = 'var(--font-mono)';
+  if (d.mono) s.fontVariantNumeric = 'tabular-nums';
   if (d.size && INPUT_SIZE_STYLES[d.size]) Object.assign(s, INPUT_SIZE_STYLES[d.size]);
   return Object.keys(s).length ? s : undefined;
 });

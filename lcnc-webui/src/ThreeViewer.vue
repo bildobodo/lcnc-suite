@@ -2360,7 +2360,6 @@ defineExpose({
   background: color-mix(in oklab, var(--warn) 20%, var(--panel));
   border: 1px solid var(--warn);
   color: var(--warn);
-  font-family: var(--font-mono);
   font-size: var(--fs-base);
   pointer-events: auto;
 }
@@ -2393,7 +2392,7 @@ defineExpose({
   padding: var(--gap-controls) var(--gap-section);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
-  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: var(--fs-base);
   line-height: 1.4;
 }

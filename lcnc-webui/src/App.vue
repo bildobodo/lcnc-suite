@@ -1901,7 +1901,6 @@ watch(viewerGcode, (newGcode) => {
 .macroPreview {
   display: block;
   margin-top: var(--gap-section);
-  font-family: var(--font-mono);
   font-size: var(--fs-sm);
   opacity: var(--opacity-muted);
 }
@@ -1968,7 +1967,7 @@ watch(viewerGcode, (newGcode) => {
 .msgItem.display { border-color: color-mix(in oklab, var(--display) 40%, var(--border)); }
 .msgTime {
   font-size: var(--fs-2xs);
-  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   opacity: var(--opacity-muted);
   flex-shrink: 0;
 }

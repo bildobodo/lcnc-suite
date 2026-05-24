@@ -95,6 +95,7 @@ function setAll() {
   align-items: baseline;
   gap: var(--gap-controls);
   font-size: var(--fs-3xl);
+  font-variant-numeric: tabular-nums;
 }
 
 .axis span {

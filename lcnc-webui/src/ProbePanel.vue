@@ -1401,7 +1401,7 @@ function fmtR(key: string): string {
   align-items: center;
   gap: var(--gap-controls);
   font-size: var(--fs-base);
-  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
 
@@ -1451,7 +1451,7 @@ function fmtR(key: string): string {
 
 .prVal {
   font-size: var(--fs-md);
-  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-weight: var(--fw-semibold);
 }
 
