@@ -5757,15 +5757,32 @@ async def ws_endpoint(ws: WebSocket):
                                     )
                                 try:
                                     await ws_send_json(ws, {"type": "reply", "ok": False, "error": "Heartbeat timeout \u2014 disarmed for safety", "armed": False})
-                                except Exception:
-                                    pass
+                                except Exception as _e:
+                                    # Server-side disarm already happened; the
+                                    # notification just didn't reach the client.
+                                    # UI may show stale armed state until the
+                                    # next status frame. Logged so the missed
+                                    # signal is auditable rather than silently
+                                    # lost.
+                                    _trace.emit(
+                                        "safety.disarm_notify_failed", level="warn",
+                                        client_id=client_id, exc=type(_e).__name__, err=str(_e),
+                                    )
                             else:
                                 # Non-armed client stalled — evict to keep _clients accurate
                                 # Closing WS triggers finally block → removes from _clients → updates HAL pins
                                 try:
                                     await ws.close(code=1000, reason="Heartbeat timeout")
-                                except Exception:
-                                    pass
+                                except Exception as _e:
+                                    # Close failure is recoverable (finally block
+                                    # still runs cleanup) but worth surfacing —
+                                    # repeated occurrences indicate the WS layer
+                                    # is unhealthy.
+                                    _trace.emit(
+                                        "ws.close_failed", level="warn",
+                                        client_id=client_id, reason="hb_stall_nonarmed",
+                                        exc=type(_e).__name__, err=str(_e),
+                                    )
                                 return  # exit status_loop; finally block handles cleanup
 
                     # Full iteration completed without exception — reset failure counter.
