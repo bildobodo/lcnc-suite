@@ -593,7 +593,15 @@ export function connectWs() {
           session: _sessionId,
           resume_armed: _prevArmed,
         }));
-      } catch { /* ignored */ }
+      } catch (e) {
+        // Hello is the foundation of session-id resume — losing it means
+        // the gateway never associates this connection with the prior
+        // tab's armed-resume hold. Surface to telemetry rather than
+        // swallowing, per [[no-silent-fallbacks]]. (Phase 2 / E5.)
+        emitTelemetry("ws.hello_send_failed", {
+          error: String((e as Error)?.message ?? e),
+        });
+      }
       _prevArmed = false;
     }
     // Acquire screen wake-lock if the user has it enabled. Releases on

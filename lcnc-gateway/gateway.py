@@ -314,19 +314,30 @@ def _register_armed_resume_hold(session_id: Optional[str], client_id: int) -> No
     )
 
 
-def _consume_armed_resume_hold(session_id: Optional[str]) -> bool:
-    """Return True if a valid armed-resume hold exists for this session_id.
-    Consumes the hold on success (single-use). Returns False on no-match or
-    expired. Caller emits the appropriate trace event with context."""
+def _peek_armed_resume_hold(session_id: Optional[str]) -> str:
+    """Inspect a session_id without consuming. Returns one of:
+      "granted" — hold exists and within grace window
+      "expired" — hold exists but past expiry
+      "no_match" — no hold registered for this session_id (or no id at all)
+    Used by the hello handler to decide which trace event to emit before
+    actually consuming the hold via _consume_armed_resume_hold."""
     if not session_id:
-        return False
-    _prune_armed_resume_holds()
-    expiry = _armed_resume_holds.pop(session_id, None)
+        return "no_match"
+    expiry = _armed_resume_holds.get(session_id)
     if expiry is None:
-        return False
+        return "no_match"
     if time.monotonic() > expiry:
-        return False
-    return True
+        return "expired"
+    return "granted"
+
+
+def _consume_armed_resume_hold(session_id: Optional[str]) -> None:
+    """Remove the hold for this session_id (single-use). Caller should have
+    already peeked to decide whether to grant. Safe to call even if no hold
+    exists — pops with default."""
+    if not session_id:
+        return
+    _armed_resume_holds.pop(session_id, None)
 
 
 def _prune_armed_resume_holds() -> None:
@@ -3572,13 +3583,18 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             return {"ok": True}
 
         if cmd == "jog_stop":
-            if not armed:
-                return {"ok": True}  # safety no-op — stopping is always safe
-
-            blocked = reject_if_auto_running()
-            if blocked:
-                return blocked
-
+            # Stopping motion is always allowed — gateway must NOT silently
+            # drop a stop request, even from a disarmed client. The previous
+            # `if not armed: return ok` short-circuit caused a real safety
+            # gap: operator holds jog, disarms, releases → client's jog_stop
+            # was accepted as no-op and the machine kept moving. Audit Phase
+            # 2 / Issue E1. In AUTO+running a jog cannot be in flight
+            # (jogging requires MANUAL/TELEOP) and a forced mode switch
+            # would interrupt the program — skip that case explicitly.
+            mode = safe_get("task_mode", None)
+            interp = safe_get("interp_state", None)
+            if mode == linuxcnc.MODE_AUTO and interp != linuxcnc.INTERP_IDLE:
+                return {"ok": True}
             axis = int(msg.get("axis"))
             await set_mode(linuxcnc.MODE_MANUAL)
             jf = _jog_joint_flag()
@@ -3600,13 +3616,13 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             return {"ok": True}
 
         if cmd == "jog_stop_multi":
-            if not armed:
-                return {"ok": True}  # safety no-op — stopping is always safe
-
-            blocked = reject_if_auto_running()
-            if blocked:
-                return blocked
-
+            # Stopping motion is always allowed — see jog_stop above for the
+            # same audit rationale (Phase 2 / Issue E1). In AUTO+running we
+            # have no jog in flight and must not switch modes.
+            mode = safe_get("task_mode", None)
+            interp = safe_get("interp_state", None)
+            if mode == linuxcnc.MODE_AUTO and interp != linuxcnc.INTERP_IDLE:
+                return {"ok": True}
             axes = msg.get("axes", [])
             await set_mode(linuxcnc.MODE_MANUAL)
             jf = _jog_joint_flag()
@@ -5893,6 +5909,13 @@ async def ws_endpoint(ws: WebSocket):
                 # Tab handshake: captures session_id for armed-resume across
                 # brief reconnects (Ctrl-R, Wi-Fi blip, screen-lock close).
                 # Decision tree, each branch traced — no silent fallbacks.
+                #
+                # Phase 2 / E4: peek first so denial events distinguish
+                # "no hold ever existed" from "hold expired" from "hold
+                # would have granted but a safety trip is pending". The
+                # previous ordering (unacked-trip-before-peek) emitted
+                # `resume_denied_unacked_trip` for fresh tabs that never
+                # had a hold — misleading.
                 _sid = msg.get("session")
                 if isinstance(_sid, str) and _sid:
                     _disc_session_id = _sid
@@ -5900,32 +5923,50 @@ async def ws_endpoint(ws: WebSocket):
                         _clients[client_id].session_id = _sid
                 want_resume = bool(msg.get("resume_armed", False))
                 if want_resume:
-                    if _unacked_trip is not None:
-                        _trace.emit(
-                            "session.resume_denied_unacked_trip",
-                            client_id=client_id, session_id=_sid,
-                        )
-                    elif _consume_armed_resume_hold(_sid):
-                        armed = True
-                        if client_id in _clients:
-                            _clients[client_id].armed = True
-                            _clients[client_id].last_hb = time.time()
-                        _trace.emit(
-                            "session.resume_granted",
-                            client_id=client_id, session_id=_sid,
-                        )
-                    elif _sid:
-                        # Either no hold registered (no match) or hold expired
-                        # (pruned/missed). _consume returned False either way.
-                        _trace.emit(
-                            "session.resume_denied_no_match",
-                            client_id=client_id, session_id=_sid,
-                        )
-                    else:
+                    if not _sid:
                         _trace.emit(
                             "session.hello_missing",
                             client_id=client_id, reason="resume_requested_without_session_id",
                         )
+                    else:
+                        _hold_state = _peek_armed_resume_hold(_sid)
+                        if _hold_state == "no_match":
+                            _trace.emit(
+                                "session.resume_denied_no_match",
+                                client_id=client_id, session_id=_sid,
+                            )
+                        elif _hold_state == "expired":
+                            # Consume the stale hold so it doesn't linger.
+                            _consume_armed_resume_hold(_sid)
+                            _trace.emit(
+                                "session.resume_denied_expired",
+                                client_id=client_id, session_id=_sid,
+                            )
+                        elif _hold_state == "granted":
+                            # Within grace. Trip check applies here, not earlier:
+                            # an unacked trip blocks a real resume, but it should
+                            # not poison the trace for a fresh tab with no hold.
+                            if _unacked_trip is not None:
+                                # Don't consume — once the operator acks the
+                                # trip and reconnects again (still within
+                                # original window), they should still resume.
+                                # Note: in practice the grace window is short
+                                # so this is unlikely to matter; the choice
+                                # here favours operator-friendly behaviour.
+                                _trace.emit(
+                                    "session.resume_denied_unacked_trip",
+                                    client_id=client_id, session_id=_sid,
+                                )
+                            else:
+                                _consume_armed_resume_hold(_sid)
+                                armed = True
+                                if client_id in _clients:
+                                    _clients[client_id].armed = True
+                                    _clients[client_id].last_hb = time.time()
+                                _trace.emit(
+                                    "session.resume_granted",
+                                    client_id=client_id, session_id=_sid,
+                                )
                 await ws_send_json(ws, {"type": "reply", "ok": True, "armed": armed})
                 continue
 
@@ -5941,10 +5982,37 @@ async def ws_endpoint(ws: WebSocket):
                         "error": "Safety trip not acknowledged",
                     })
                     continue
+                _was_armed = armed
                 armed = want_armed
                 if client_id in _clients:
                     _clients[client_id].armed = armed
                     _clients[client_id].last_hb = time.time()  # reset on arm change
+                # Symmetry with auto-disarm paths (Phase 2 / E1.2 + E2):
+                # explicit disarm must jog-stop any in-flight jog from this
+                # client AND register an armed-resume hold (so a deliberate
+                # disarm-then-Ctrl-R can still restore armed state). Closes
+                # the released-jog-button hazard and matches the "all paths
+                # to disarmed do the same thing" principle.
+                if _was_armed and not armed:
+                    if CMD is not None and not _shutting_down:
+                        try:
+                            async with _get_cmd_lock():
+                                await _jog_stop_for_client()
+                        except Exception as _e:
+                            _trace.emit(
+                                "safety.explicit_disarm_jog_stop_failed", level="error",
+                                client_id=client_id, exc=type(_e).__name__, err=str(_e),
+                            )
+                    _register_armed_resume_hold(_disc_session_id, client_id)
+                    _trace.emit(
+                        "safety.explicit_disarmed",
+                        client_id=client_id,
+                    )
+                elif not _was_armed and armed:
+                    _trace.emit(
+                        "safety.explicit_armed",
+                        client_id=client_id,
+                    )
                 await ws_send_json(ws, {"type": "reply", "ok": True, "armed": armed})
                 continue
 
