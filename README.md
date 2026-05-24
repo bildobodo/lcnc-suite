@@ -280,16 +280,39 @@ The message panel shows a persistent log of all LinuxCNC errors and operator mes
 
 ## Installation
 
-### Option A: Automated
+### Option A: One-line bootstrap (recommended)
+
+Run this on a fresh machine — no prior clone needed. The installer fetches
+dependencies, clones the repo into `~/lcnc-suite/`, sets up the Python venv
+and npm packages, and drops a sample sim config into
+`~/linuxcnc/configs/lcnc_suite_sim/` so you can boot LinuxCNC immediately.
+
+```bash
+wget -O install.sh https://raw.githubusercontent.com/bildobodo/lcnc-suite/main/install.sh && bash install.sh
+```
+
+After it finishes:
+
+```bash
+cd ~/lcnc-suite/lcnc-webui && npm run build       # build frontend for production
+linuxcnc ~/linuxcnc/configs/lcnc_suite_sim/lcnc_suite_sim.ini   # try the sim
+```
+
+Pass a positional arg to override the clone location:
+`bash install.sh /opt/lcnc-suite`.
+
+### Option B: Inside an existing clone
+
+If you've already cloned the repo, run the installer from inside it:
 
 ```bash
 git clone https://github.com/bildobodo/lcnc-suite.git
 cd lcnc-suite
-./install.sh          # checks dependencies, creates venv, installs npm packages
-cd lcnc-webui && npm run build && cd ..   # build frontend for production
+./install.sh          # detects the clone, skips git-clone, sets up venv + npm + sim config
+cd lcnc-webui && npm run build && cd ..
 ```
 
-### Option B: Manual
+### Option C: Manual
 
 **Prerequisites:** LinuxCNC 2.8+ with Python bindings, Python 3.9+, Node.js 18+ (22.x LTS recommended), npm, git-lfs
 
@@ -312,20 +335,32 @@ npm install
 # 4. Build frontend for production
 npm run build
 cd ..
+
+# 5. (Optional) Drop the sample sim config so you can boot LinuxCNC immediately
+cp -r examples/sim_config ~/linuxcnc/configs/lcnc_suite_sim
 ```
 
 ### Configure LinuxCNC
 
-After installing (either option), configure your machine. `install.sh`
-already symlinks the launcher and the three HAL helpers (`hal_watchdog.py`,
-`hal_reader.py`, `compensation.py`) into `~/.local/bin/` so that LinuxCNC's
-DISPLAY launcher and halcmd/haltcl find them via PATH — no path
-substitution in HAL files. Make sure `~/.local/bin` is on your `$PATH`
-(most shells include it by default; if not, add `export PATH="$HOME/.local/bin:$PATH"` to your shell rc).
+If you used Option A or B, the sample sim config is already in place at
+`~/linuxcnc/configs/lcnc_suite_sim/` — start with
+`linuxcnc ~/linuxcnc/configs/lcnc_suite_sim/lcnc_suite_sim.ini` and edit
+the INI / HAL files there to fit your real machine.
+
+`install.sh` symlinks the launcher and the three HAL helpers
+(`hal_watchdog.py`, `hal_reader.py`, `compensation.py`) into
+`~/.local/bin/` so that LinuxCNC's DISPLAY launcher and halcmd/haltcl find
+them via PATH — no path substitution in HAL files. Make sure
+`~/.local/bin` is on your `$PATH` (most shells include it by default; if
+not, add `export PATH="$HOME/.local/bin:$PATH"` to your shell rc).
 
 ```bash
 which lcnc-suite    # should print ~/.local/bin/lcnc-suite
 ```
+
+The sections below describe the INI `[DISPLAY]` keys and HAL safety
+chain — useful if you're integrating into an existing machine config
+rather than starting from the sample.
 
 #### 1. INI `[DISPLAY]` section
 
