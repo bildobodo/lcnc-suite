@@ -40,6 +40,9 @@ import numpy as np
 import linuxcnc
 import gcode
 
+import lcnc_trace as _trace
+_trace.init("gcode_parse_worker")
+
 # Ensure local-dir imports resolve when invoked from anywhere
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from gcode_canon import PreviewCanon, apply_var_patches
@@ -243,8 +246,8 @@ def parse(ctx: dict) -> dict:
                 v_scaled = float(v)
                 if rapid_vel is None or v_scaled < rapid_vel:
                     rapid_vel = v_scaled
-    except (ValueError, TypeError):
-        pass
+    except (ValueError, TypeError) as e:
+        _trace.emit_exc("ini.axis_max_vel_parse_failed", e)
     total_rapid_time = (total_rapid_dist / rapid_vel) if rapid_vel else 0.0
 
     arc_dist_scaled = canon.arc_dist * unit_scale

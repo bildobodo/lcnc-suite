@@ -113,7 +113,7 @@ def _hb_recv_print(line: str) -> None:
         try:
             _hb_recv_log.write(line + "\n")
         except OSError:
-            pass
+            pass  # safe-silent: instrumentation log; failure must not destabilize the watchdog
 
 
 _hb_recv_print(f"[HB-RECV] +{(time.monotonic() - _T0) * 1000:.0f}ms watchdog ready, instrumentation active")
@@ -191,7 +191,7 @@ try:
                     try:
                         client.close()
                     except Exception:
-                        pass
+                        pass  # safe-silent: socket close in error/cleanup path
                 # Reset pins until new gateway proves itself
                 comp["connected"] = False
                 comp["heartbeat"] = False
@@ -276,7 +276,7 @@ try:
                     try:
                         client.close()
                     except Exception:
-                        pass
+                        pass  # safe-silent: socket close in error/cleanup path
                     client = None
                     buf = ""
 
@@ -284,13 +284,13 @@ try:
         # recordings; nothing to do here. msgs counter is consumed
         # by `_wd_extras` at flush time.
 except KeyboardInterrupt:
-    pass
+    pass  # safe-silent: Ctrl-C → graceful shutdown via finally
 finally:
     if client:
         try:
             client.close()
         except Exception:
-            pass
+            pass  # safe-silent: socket close in shutdown finally
     server.close()
     if os.path.exists(SOCK_PATH):
         os.unlink(SOCK_PATH)

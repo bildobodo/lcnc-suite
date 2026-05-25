@@ -404,7 +404,7 @@ def _hal_disconnect():
         try:
             _hal_sock.close()
         except Exception:
-            pass
+            pass  # safe-silent: socket cleanup, already-closed is fine
         _hal_sock = None
 
 # hal.send_summary is emitted once per N sends (N=30 ≈ 1 s at heartbeat
@@ -594,7 +594,7 @@ async def _reader_recv_loop():
                 writer.close()
                 await writer.wait_closed()
             except Exception:
-                pass
+                pass  # safe-silent: async socket cleanup, peer may have vanished
             _reader_writer = None
             # Fail any pending requests so callers don't hang.
             for fut in _reader_pending.values():
@@ -727,7 +727,7 @@ async def _cancel_disconnect_grace():
         try:
             await task
         except asyncio.CancelledError:
-            pass
+            pass  # safe-silent: we just cancelled it, CancelledError is the success signal
         except Exception as e:
             _trace.emit("disconnect_grace.cancel_error", level="warn",
                         error=f"{type(e).__name__}: {e}")
@@ -929,9 +929,13 @@ _lag_monitor_task: Optional[asyncio.Task] = None
 _loop_tick_task: Optional[asyncio.Task] = None
 
 
+_rss_read_warned = False
+
+
 def _read_rss_kb() -> int:
     """Read VmRSS from /proc/self/status. Returns 0 on any failure (Linux-
     only path; harmless on other OSes since the gateway runs on Linux)."""
+    global _rss_read_warned
     try:
         with open("/proc/self/status") as f:
             for line in f:
@@ -939,8 +943,13 @@ def _read_rss_kb() -> int:
                     parts = line.split()
                     if len(parts) >= 2:
                         return int(parts[1])
-    except Exception:
-        pass
+    except Exception as e:
+        # One-shot warn — /proc failure is a fundamental OS issue, not
+        # a transient. Rate-limited at one event per process lifetime so
+        # the poll loop doesn't spam.
+        if not _rss_read_warned:
+            _rss_read_warned = True
+            _trace.emit_exc("proc.vmrss_read_failed", e)
     return 0
 
 
@@ -1244,6 +1253,8 @@ def _read_probe_results_file() -> list:
         return []
     path = os.path.join(os.path.dirname(ini_path), "probe-results.txt")
     points = []
+    skipped = 0
+    sample_err: Optional[str] = None
     if os.path.isfile(path):
         with open(path) as f:
             for line in f:
@@ -1251,8 +1262,14 @@ def _read_probe_results_file() -> list:
                 if len(parts) >= 3:
                     try:
                         points.append([float(parts[0]), float(parts[1]), float(parts[2])])
-                    except ValueError:
-                        pass
+                    except ValueError as e:
+                        skipped += 1
+                        if sample_err is None:
+                            sample_err = str(e)[:200]
+    if skipped:
+        _trace.emit("surface.point_parse_failed", level="warn",
+                    path=path, skipped=skipped, sample_err=sample_err,
+                    parsed=len(points))
     return points
 
 
@@ -1449,8 +1466,11 @@ async def _status_poller():
                         if key:
                             try:
                                 probe_updates[key] = float(m.group(2))
-                            except ValueError:
-                                pass
+                            except ValueError as e:
+                                _trace.emit_exc(
+                                    "probe.widget_value_parse_failed", e,
+                                    widget=m.group(1), raw=m.group(2)[:80],
+                                )
                             continue
                     elif "LCNC_SURFACE_SCAN_DONE" in text:
                         surface_scan_done = True
@@ -2026,6 +2046,7 @@ def get_nc_files_dir() -> str:
     fallback = os.path.expanduser("~/linuxcnc/nc_files")
 
     if STAT is not None:
+        ini_path = None
         try:
             STAT.poll()
             ini_path = getattr(STAT, "ini_filename", None)
@@ -2039,8 +2060,8 @@ def get_nc_files_dir() -> str:
                     if os.path.isdir(prefix):
                         _nc_files_dir = prefix
                         return _nc_files_dir
-        except Exception:
-            pass
+        except Exception as e:
+            _trace.emit_exc("ini.nc_files_parse_failed", e, ini_path=ini_path)
 
     _nc_files_dir = fallback
     os.makedirs(_nc_files_dir, exist_ok=True)
@@ -2090,8 +2111,8 @@ def get_tool_tbl_path() -> Optional[str]:
             _tool_tbl_path = tbl
             _tool_tbl_ini = ini_path
             return _tool_tbl_path
-    except Exception:
-        pass
+    except Exception as e:
+        _trace.emit_exc("tool_tbl.path_resolve_failed", e, ini_path=ini_path)
     return None
 
 
@@ -2149,7 +2170,7 @@ def atomic_write_bytes(path: str, data: bytes) -> None:
         try:
             os.unlink(tmp)
         except FileNotFoundError:
-            pass
+            pass  # safe-silent: best-effort temp cleanup, already-gone is fine
         raise
 
 
@@ -2619,7 +2640,7 @@ def get_spindle_override() -> Optional[float]:
             if result > 0:
                 return result
         except (TypeError, ValueError):
-            pass
+            pass  # safe-silent: fallback chain handles below
 
     spindles = safe_get("spindle", None)
     if spindles is not None:
@@ -2630,7 +2651,7 @@ def get_spindle_override() -> Optional[float]:
             if isinstance(s0, dict) and 'override' in s0:
                 return float(s0['override'])
         except (IndexError, AttributeError, TypeError, ValueError, KeyError):
-            pass
+            pass  # safe-silent: last fallback, caller handles None
 
     return None
 
@@ -3091,7 +3112,7 @@ async def _safe_ws_close(ws: WebSocket, peer: str) -> None:
     try:
         await asyncio.wait_for(ws.close(code=1001), timeout=0.5)
     except Exception:
-        pass
+        pass  # safe-silent: WS close is best-effort during shutdown
 
 
 async def ws_send_json(ws: WebSocket, obj: Dict[str, Any]):
@@ -4602,7 +4623,7 @@ async def trace_http(request: Request, call_next):
         if request.client is not None:
             peer = f"{request.client.host}:{request.client.port}"
     except Exception:
-        pass
+        pass  # safe-silent: peer label is cosmetic, "?" is a fine fallback
     # Skip /assets and /static (served by StaticFiles, no instrumentation
     # value, and they fan out a lot during cold-load).
     if path.startswith("/assets/") or path.startswith("/static/"):
@@ -4666,7 +4687,7 @@ async def telemetry(request: Request):
         if request.client is not None:
             peer = f"{request.client.host}:{request.client.port}"
     except Exception:
-        pass
+        pass  # safe-silent: peer label is cosmetic, "?" is a fine fallback
     accepted = 0
     rejected = 0
     for line in raw.splitlines():
@@ -4929,8 +4950,8 @@ async def import_tool_library(file: UploadFile = File(...)):
     if tbl_path:
         try:
             existing_count = len(parse_tool_table(tbl_path))
-        except Exception:
-            pass
+        except Exception as e:
+            _trace.emit_exc("tool_tbl.recount_failed", e, tbl_path=tbl_path)
 
     preview = [{**t} for t in parsed]
     skipped_preview = [{"T": t["T"], "description": t.get("description", ""),
@@ -5370,8 +5391,9 @@ async def _halshow_loop() -> None:
                             continue
                         try:
                             await ws_send_json(ws, msg)
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            _trace.emit_exc("ws.halshow_send_failed", e,
+                                            client_id=cid)
             _halshow_last_values = new_values
 
             await asyncio.sleep(0.2)  # 5 Hz
@@ -5846,7 +5868,7 @@ async def ws_endpoint(ws: WebSocket):
                                     "file": pending.get("file"),
                                 })
                             except RuntimeError:
-                                pass
+                                pass  # safe-silent: WS closed between iteration start and send
                         else:
                             await ws_send_json(ws, {
                                 "type": "viewer_gcode",
@@ -5865,7 +5887,7 @@ async def ws_endpoint(ws: WebSocket):
                                     "version": _surface_points_version,
                                 })
                             except RuntimeError:
-                                pass
+                                pass  # safe-silent: WS closed between iteration start and send
 
                     # Compensation grid: same pattern — fetch via GET /comp_grid.
                     if _comp_grid_version != _last_comp_grid_version:
@@ -5877,7 +5899,7 @@ async def ws_endpoint(ws: WebSocket):
                                     "version": _comp_grid_version,
                                 })
                             except RuntimeError:
-                                pass
+                                pass  # safe-silent: WS closed between iteration start and send
 
                     # Tool table: ping clients to refetch via WS RPC `get_tool_table`.
                     # Bumped by _reload_tool_table_and_bump() after every save/add/
@@ -5890,7 +5912,7 @@ async def ws_endpoint(ws: WebSocket):
                                 "version": _tool_table_version,
                             })
                         except RuntimeError:
-                            pass
+                            pass  # safe-silent: WS closed between iteration start and send
 
                     # Heartbeat timeout — per-client liveness signal.
                     #
@@ -6376,7 +6398,7 @@ def _camera_init() -> bool:
         _camera.set(cv2.CAP_PROP_FRAME_WIDTH, w)
         _camera.set(cv2.CAP_PROP_FRAME_HEIGHT, h)
     except ValueError:
-        pass
+        pass  # safe-silent: malformed resolution string, camera keeps default
     return _camera.isOpened()
 
 def _camera_grab_jpeg(quality: int = 80) -> Optional[bytes]:

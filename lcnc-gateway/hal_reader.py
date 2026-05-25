@@ -104,7 +104,7 @@ def _drop_client(c) -> None:
     try:
         c.close()
     except Exception:
-        pass
+        pass  # safe-silent: socket close, already-broken pipe is the common case
 
 
 def _halshow_dump():
@@ -267,7 +267,7 @@ try:
                         send_ms=round(send_ms, 2),
                     )
 except KeyboardInterrupt:
-    pass
+    pass  # safe-silent: Ctrl-C → graceful shutdown via finally
 finally:
     if client:
         _drop_client(client)
