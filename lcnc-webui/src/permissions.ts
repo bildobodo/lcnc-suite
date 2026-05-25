@@ -1,5 +1,27 @@
 import { inject, type ComputedRef } from "vue";
 
+/**
+ * Anti-desync principle for `isEstop` / `isEnabled`:
+ *
+ *   These two MachineState booleans must come from the MERGED truth of
+ *   LinuxCNC's task state AND the HAL safety chain (iocontrol.0.emc-enable-in).
+ *   `STAT.estop` / `STAT.enabled` alone can lie: iocontrol drives task_state
+ *   transitions via EDGE detection on emc-enable-in, so a chain that was
+ *   already LOW at command time is silently missed (issue #14) — task ends
+ *   up in STATE_ESTOP_RESET / STATE_ON with the machine still HAL-locked.
+ *
+ *   Every other STAT boolean (inpos, probing, probe_tripped, flood, mist,
+ *   homed, …) is either level-polled by the motion controller, has no HAL
+ *   counterpart, or is an output command — none of them have the iocontrol
+ *   edge-detection failure mode and STAT alone is safe.
+ *
+ *   The rule for any future STAT-derived boolean: if its value is gated by
+ *   a HAL input pin via iocontrol's NML pump, it needs the same merged-
+ *   truth treatment. If not, STAT is fine. The merge happens at the
+ *   App.vue computed seam (isEstop / isEnabled); this layer just consumes
+ *   the sharpened booleans, no special-casing here.
+ */
+
 /** Machine state inputs for permission evaluation */
 export type MachineState = {
   armed: boolean;

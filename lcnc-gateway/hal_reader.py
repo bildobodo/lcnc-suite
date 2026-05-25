@@ -53,6 +53,10 @@ SNAPSHOT_PINS = [
     ("compensation.method",          "comp_method",       int),
     ("compensation.grid-version",    "comp_grid_version", int),
     ("webui-safety.trip-count",      "trip_count",        int),
+    # Safety-chain truth — STAT.estop / STAT.enabled go through iocontrol's
+    # edge-triggered NML pump and can silently disagree with the actual pin
+    # level (issue #14). Sole HAL input that gates task_state transitions.
+    ("iocontrol.0.emc-enable-in",    "emc_enable_in",     bool),
 ]
 
 # Gateway-configurable extra pins, keyed by snapshot field name. Always

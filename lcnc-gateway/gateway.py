@@ -2390,6 +2390,12 @@ class StatusPayload:
     # safety / state
     estop: bool
     enabled: bool
+    # HAL safety-chain truth. STAT.estop and STAT.enabled are derived from
+    # task_state, which iocontrol drives via *edge* detection on this pin.
+    # A chain that was already LOW at the time of an estop_reset / machine_on
+    # command is silently missed (issue #14). None ⇒ reader snapshot stale
+    # or pin unavailable; the existing reader_stale banner surfaces that.
+    emc_enable_in: Optional[bool]
     homed: Optional[bool]  # LinuxCNC stat truth (normalized)
     homed_joints: Optional[list]  # per-joint homed mask (configured joints only)
 
@@ -2968,6 +2974,7 @@ def poll_status() -> StatusPayload:
         ts=time.time(),
         estop=estop,
         enabled=enabled,
+        emc_enable_in=_reader_get("emc_enable_in"),
         homed=homed,
         homed_joints=homed_joints,
         task_mode=safe_get("task_mode", None),
@@ -3410,6 +3417,13 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
 
         if cmd == "estop_reset":
             require_armed(armed)
+            # Refuse cleanly if the HAL safety chain is held LOW — iocontrol's
+            # edge detector would otherwise miss the "already-LOW" case and
+            # let task_state slip to STATE_ESTOP_RESET while motion is still
+            # HAL-locked (issue #14). `is False` (not falsy) so reader-stale
+            # (None) doesn't double-block on top of the reader_stale banner.
+            if _reader_get("emc_enable_in") is False:
+                return {"ok": False, "error": "Safety chain is open — cannot reset E-Stop"}
             # Release hal_watchdog's trip-latch first so the safety chain
             # can come back up when LinuxCNC transitions out of ESTOP.
             # 20ms sleep ≈ 2× hal_watchdog select slice, enough for the
@@ -3427,6 +3441,9 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             STAT.poll()
             if safe_get("estop", True):
                 return {"ok": False, "error": "Cannot Machine On while in E-stop"}
+            # Same edge-detection defense as estop_reset (issue #14).
+            if _reader_get("emc_enable_in") is False:
+                return {"ok": False, "error": "Safety chain is open — cannot turn machine on"}
             await _cmd_blocking(CMD.state, linuxcnc.STATE_ON, wait=None)
             return {"ok": True}
 

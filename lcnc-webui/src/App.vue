@@ -187,6 +187,13 @@ const machineStateLabel = computed(() => {
   if (state === 'disconnected') {
     return lcncError.value ? `${label} — ${lcncError.value}` : `${label} — reconnecting…`;
   }
+  // Distinguish "operator pressed E-Stop" (STAT.estop true) from "HAL chain
+  // open while STAT thinks we're cleared" (issue #14). The operator already
+  // knows why if STAT.estop is the visible cause; the chain-open subtitle
+  // only adds noise in that case.
+  if (state === 'estop' && !st.value.estop && safetyChainOpen.value) {
+    return `${label} — Safety chain open`;
+  }
   if (state === 'running' || state === 'paused') {
     const file = activeFile.value;
     // Normalize Windows-style backslashes (some LinuxCNC builds return them)
@@ -326,8 +333,14 @@ const lcncLabel = computed(() => {
   return "LCNC: -";
 });
 
-const isEstop = computed(() => !!st.value.estop);
-const isEnabled = computed(() => !!st.value.enabled);
+// HAL safety chain (iocontrol.0.emc-enable-in) is the *truth* about whether the
+// machine can move; STAT.estop / STAT.enabled go through iocontrol's edge-
+// triggered NML pump and can lie when the chain was already LOW at command
+// time (issue #14). `=== false` (not falsy) so reader-stale (null/undefined)
+// is treated as "unknown" and falls back to STAT, matching backend semantics.
+const safetyChainOpen = computed(() => st.value.emc_enable_in === false);
+const isEstop = computed(() => !!st.value.estop || safetyChainOpen.value);
+const isEnabled = computed(() => !!st.value.enabled && st.value.emc_enable_in !== false);
 
 
 
