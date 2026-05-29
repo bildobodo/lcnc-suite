@@ -3438,13 +3438,17 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
 
         if cmd == "estop_reset":
             require_armed(armed)
-            # Refuse cleanly if the HAL safety chain is held LOW — iocontrol's
-            # edge detector would otherwise miss the "already-LOW" case and
-            # let task_state slip to STATE_ESTOP_RESET while motion is still
-            # HAL-locked (issue #14). `is False` (not falsy) so reader-stale
-            # (None) doesn't double-block on top of the reader_stale banner.
-            if _reader_get("emc_enable_in") is False:
-                return {"ok": False, "error": "Safety chain is open — cannot reset E-Stop"}
+            # Do NOT pre-check emc_enable_in here. Standard LinuxCNC safety
+            # chains feed iocontrol.0.user-enable-out back into the AND that
+            # drives emc-enable-in (the operator-acknowledgement latch).
+            # user-enable-out is LOW by design while task is in STATE_ESTOP,
+            # so emc-enable-in is *always* FALSE at the moment of reset —
+            # checking it deadlocks the only command that can escape ESTOP.
+            # machine_on is the correct gate: by then user-enable-out is
+            # TRUE and emc-enable-in reflects only hardware conditions.
+            # UI's safetyChainOpen still keeps the estop indicator visible
+            # if the chain is hardware-open post-reset, so the operator is
+            # not misled. Issues #14 (problem) and #15 (this regression).
             # Release hal_watchdog's trip-latch first so the safety chain
             # can come back up when LinuxCNC transitions out of ESTOP.
             # 20ms sleep ≈ 2× hal_watchdog select slice, enough for the
