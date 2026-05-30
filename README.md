@@ -23,6 +23,7 @@ A modern, UI-agnostic WebSocket gateway for LinuxCNC with a reference Vue 3 web 
 - [Development](#development)
 - [LinuxCNC Configuration](#linuxcnc-configuration)
 - [Project Structure](#project-structure)
+- [Changelog](#changelog)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -1252,6 +1253,12 @@ lcnc-suite/
 ├── runlogs/                   # Application logs
 └── README.md
 ```
+
+## Changelog
+
+Notable changes — including **breaking** changes that need action on upgrade —
+are recorded in [CHANGELOG.md](CHANGELOG.md). Check it before updating a
+configured machine.
 
 ## Contributing
 
