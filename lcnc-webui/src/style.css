@@ -272,6 +272,13 @@ input[type="range"] {
   background: color-mix(in oklab, var(--panel) 90%, var(--fg));
   outline: none;
   cursor: pointer;
+  /* Touch: drag the thumb, never text-select ("lasso") or pop the
+     long-press callout. touch-action: none keeps the drag from being
+     stolen as a page/strip scroll gesture. Mirrors the jog controls. */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 input[type="range"]:disabled {
