@@ -47,7 +47,7 @@ the snapshot, never accidents.
 | Item | State | Notes |
 |---|---|---|
 | A0.1 ledger file | done | this file |
-| A0.2 export-surface snapshot test | pending | + `src/testGlobals.ts` (defaults.ts touches `document` at import — node env needs stubs) |
+| A0.2 export-surface snapshot test | done | `src/lcncWs.exports.test.ts` (33 value exports: 23 refs + 10 fns; 12 type exports compile-guarded) + `src/testGlobals.ts` (defaults.ts touches `document` at import; vue runtime-dom probes `createElement` once `document` exists) |
 | A0.3 e2e liveness guards (frames.spec.ts, scripted mock-gateway) | pending | status_delta→DRO text change; halshow snapshot+update; pong. Green on monolith BEFORE split. |
 
 ### A1 — lcncWs split (5 commits, easy→hard)
@@ -102,4 +102,5 @@ Tracked when reached. WS-B is the only gateway-touching phase (full perf-matrix 
 
 | Guard | Broken how | Red observed | Restored |
 |---|---|---|---|
-| (record each proof here) | | | |
+| lcncWs.exports.test.ts (runtime) | renamed `markMessagesRead`→`markMessagesReadX` in lcncWs.ts | 2 failures: name-set diff + fn-typeof undefined | git checkout |
+| lcncWs.exports.test.ts (compile) | removed `export` from `interface HalSignalPin` | `vue-tsc -b` TS2724 no exported member (vitest alone canNOT catch — esbuild erases type imports; build gate is mandatory) | git checkout + tsbuildinfo purge |
