@@ -54,8 +54,8 @@ the snapshot, never accidents.
 
 | Module | State | Notes |
 |---|---|---|
-| eslint `export let` ban | pending | lands with commit 1 |
-| src/ws/halshowStore.ts | pending | |
+| eslint `export let` ban | done | `no-restricted-syntax` on export let/var, all src |
+| src/ws/halshowStore.ts | done | 6 unit tests; halshow e2e liveness green through the new module |
 | src/ws/bulkData.ts | pending | worker URL becomes `new URL("../previewWorker.ts", …)`; verify worker chunk in build output |
 | src/ws/telemetry.ts | pending | `_onVisibility` stays in lcncWs (orchestrator) |
 | src/ws/wsTransport.ts | pending | RTT anchor crossed via `statusStore.noteHeartbeatSent()` function call only |
@@ -105,4 +105,5 @@ Tracked when reached. WS-B is the only gateway-touching phase (full perf-matrix 
 | lcncWs.exports.test.ts (runtime) | renamed `markMessagesRead`→`markMessagesReadX` in lcncWs.ts | 2 failures: name-set diff + fn-typeof undefined | git checkout |
 | lcncWs.exports.test.ts (compile) | removed `export` from `interface HalSignalPin` | `vue-tsc -b` TS2724 no exported member (vitest alone canNOT catch — esbuild erases type imports; build gate is mandatory) | git checkout + tsbuildinfo purge |
 | frames.spec halshow guard | killed `halshow_update` dispatch case in onFrame | halshow spec red (value stuck at "0") | git checkout + rebuild |
+| eslint export-let ban | appended `export let _banProbe = 1` to halshowStore.ts | lint error no-restricted-syntax at the exact line | line removed |
 | frames.spec status_delta guard | killed `status_delta` dispatch case | FIRST attempt stayed GREEN — mock folded the delta into state, and the next 1 Hz full-status echo delivered the same value (a masking path in the GUARD itself). Added `/ctl` `quiet` op; spec silences status echoes around the delta assert. Re-broke: delta spec red, others green. | git checkout + rebuild |

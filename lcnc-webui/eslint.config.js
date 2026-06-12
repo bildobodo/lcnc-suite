@@ -46,6 +46,22 @@ export default tseslint.config(
       // double-reporting here just adds noise.
       "@typescript-eslint/no-unused-vars": "off",
       "no-empty": ["warn", { allowEmptyCatch: true }],
+      // Ban re-assignable exports (frontend split program, A1). A consumer
+      // imports the BINDING; when the owning module later reassigns it, peer
+      // modules and barrels can end up holding the stale value — the exact
+      // aliasing class behind the backend M4 dead-fanout regression. Export
+      // const refs or accessor functions instead.
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "ExportNamedDeclaration > VariableDeclaration[kind='let']",
+          message: "No `export let` — reassignment goes stale/aliased across modules (backend M4 class). Export a const ref or an accessor function.",
+        },
+        {
+          selector: "ExportNamedDeclaration > VariableDeclaration[kind='var']",
+          message: "No `export var` — same aliasing hazard as `export let`.",
+        },
+      ],
     },
   },
   {
