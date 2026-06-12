@@ -3,42 +3,16 @@ import { decode as msgpackDecode } from "@msgpack/msgpack";
 import { type WsCommand, OPERATOR_ERROR, OPERATOR_DISPLAY, isQueueSafe } from "./lcnc";
 import { updateServerCache, loadDisplayDefaults, registerSettingsSaver } from "./defaults";
 import { enableWakeLock, disableWakeLock } from "./wakeLock";
-import { withToken } from "./auth";
 import { applyHalshowSnapshot, applyHalshowUpdate, resetHalshow } from "./ws/halshowStore";
 import { emitTelemetry } from "./ws/telemetry";
+import {
+  buildWsUrl, captureArmedForResume, connectTransport,
+  postWorkerConfig, sendCommand, terminateTransport,
+} from "./ws/wsTransport";
 import {
   fetchCompGrid, fetchSurfacePoints,
   handleToolTableChanged, handleViewerGcode, handleViewerGcodeReady, handleViewerInit,
 } from "./ws/bulkData";
-
-// ---- Session id (per-tab, for armed-resume across brief reconnects) ----
-// Persisted in sessionStorage so Ctrl-R keeps the same id; tab close clears
-// it (intentional: a new tab means a fresh arming session). The gateway
-// matches this id against an armed-resume hold registered on disconnect;
-// if it matches within ~10 s, the new connection silently inherits
-// armed=true. See gateway.py _armed_resume_holds.
-const SESSION_STORAGE_KEY = "lcnc-session-id";
-function _initSessionId(): string {
-  try {
-    const existing = sessionStorage.getItem(SESSION_STORAGE_KEY);
-    if (existing) return existing;
-    const fresh = (typeof crypto !== "undefined" && "randomUUID" in crypto)
-      ? crypto.randomUUID()
-      : `s-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-    sessionStorage.setItem(SESSION_STORAGE_KEY, fresh);
-    return fresh;
-  } catch {
-    // sessionStorage unavailable (Safari private mode etc.) — generate a
-    // per-page-load id; resume won't survive a reconnect but everything
-    // else still works.
-    return `s-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-  }
-}
-const _sessionId = _initSessionId();
-// Tracks whether this tab was armed at the time its WS last closed. On the
-// next WS open, we send {resume_armed: _prevArmed} so the gateway can decide
-// whether to inherit armed state from the prior connection. Reset after use.
-let _prevArmed = false;
 
 export interface LcncMessage {
   id: number;
@@ -122,11 +96,7 @@ const _onVisibility = () => {
   });
   // Relay to the worker, which owns the socket. When becoming visible, also
   // request an immediate heartbeat so the gateway's last_hb is fresh at once.
-  if (wsWorker) {
-    try {
-      wsWorker.postMessage({ type: "updateConfig", hidden, fireHeartbeat: !hidden });
-    } catch { /* ignored */ }
-  }
+  postWorkerConfig({ hidden, fireHeartbeat: !hidden });
 };
 if (typeof window !== "undefined") {
   document.addEventListener("visibilitychange", _onVisibility);
@@ -258,12 +228,9 @@ export function getTimingCsv(): string {
 let _nextMsgId = _stored.length > 0 ? Math.max(..._stored.map(m => m.id)) + 1 : 1;
 
 
-// The WebSocket now lives inside a dedicated Worker (wsWorker.ts) so the 1 Hz
-// heartbeat is generated AND sent off the main thread — immune to main-thread
-// jank (fast editor typing, heavy 30 Hz reactive updates) that previously
-// starved the send and caused spurious disarms. The worker is a transparent
-// transport proxy; all message interpretation + reactive state stay here.
-let wsWorker: Worker | null = null;
+// The WS worker plumbing lives in ws/wsTransport.ts (split out, A1.4); all
+// message interpretation + reactive state stay here in the orchestrator,
+// fed through onWorkerMessage.
 let _heartbeatSentAt = 0;   // used for network latency (pong)
 let _rtSentAt = 0;           // used for round-trip latency (next status)
 
@@ -274,49 +241,16 @@ let _lastRflTs = 0;   // dedupe for rfl_status frames (same phase repeats per ti
 let _flushScheduled = false;
 let _lastToolMeta: { num: number; meta: any } | null = null;
 
-function _terminateWsWorker() {
-  if (wsWorker) {
-    try { wsWorker.postMessage({ type: "close" }); } catch { /* ignore */ }
-    wsWorker.terminate();
-    wsWorker = null;
-  }
-}
-
 export function connectWs() {
   // The worker owns reconnect; connectWs is only called for the initial
-  // connection and on HMR. Tear down any prior worker first (HMR safety).
-  _terminateWsWorker();
-
-  const wsProto = location.protocol === "https:" ? "wss:" : "ws:";
-  // In dev the page is served by Vite (:5173), and a proxied /ws would relay the
-  // client heartbeat through the single-threaded node dev server. That proxy hop
-  // caused false disarms: a page-reload transform storm delayed relayed WS frames
-  // > 3 s while browser AND gateway were demonstrably healthy (worker hb_slip=0,
-  // no buffer pressure, no gateway HB-WAKE — the frames sat in node). The deadman
-  // heartbeat must not ride a dev-only proxy: connect the WS straight to the
-  // gateway. The gateway's dev origin rule explicitly admits :5173 origins for
-  // this. Production builds (import.meta.env.DEV=false) keep location.host —
-  // there the gateway serves the page itself and there is no proxy.
-  const wsHost = import.meta.env.DEV
-    ? `${location.hostname}:${import.meta.env.VITE_GATEWAY_PORT ?? 8000}`
-    : location.host;
-  // Token rides in the URL so the worker replays it for free on every
-  // reconnect (browsers can't set WS headers). Empty token ⇒ unchanged URL.
-  const wsUrl = withToken(`${wsProto}//${wsHost}/ws`);
+  // connection and on HMR (connectTransport tears down any prior worker).
+  const wsUrl = buildWsUrl();
   // Identify the browser engine in the trace: WS-delivery behavior differs per
   // engine (WebKit proxies worker WebSocket I/O via the main thread; Chromium
   // uses a separate network process), which matters for hb-stall attribution.
-  emitTelemetry("ws.client_env", { ua: navigator.userAgent, ws_host: wsHost });
-  wsWorker = new Worker(new URL("./wsWorker.ts", import.meta.url), { type: "module" });
-  wsWorker.onmessage = (ev: MessageEvent) => onWorkerMessage(ev.data);
-  wsWorker.postMessage({
-    type: "connect",
-    url: wsUrl,
-    session: _sessionId,
-    resumeArmed: _prevArmed,
-    hidden: typeof document !== "undefined" ? document.hidden : false,
-  });
-  _prevArmed = false; // handed to the worker; reset for the next close→open
+  // Host only — the URL may carry the auth token, which must not hit the trace.
+  emitTelemetry("ws.client_env", { ua: navigator.userAgent, ws_host: new URL(wsUrl).host });
+  connectTransport(wsUrl, onWorkerMessage);
 }
 
 // Relay of worker → main events. Reactive ref updates that used to live in
@@ -341,7 +275,7 @@ function onWorkerMessage(m: any) {
       connected.value = false;
       // Capture armed state so the worker's NEXT reconnect hello can ask the
       // gateway to restore armed=true via a still-valid armed-resume hold.
-      _prevArmed = armed.value;
+      captureArmedForResume(armed.value);
       armed.value = false;     // new connection starts disarmed
       try { disableWakeLock(); } catch { /* ignored */ }
       latency.value = null;
@@ -350,11 +284,6 @@ function onWorkerMessage(m: any) {
       // Server forgets per-client halshow subscription on disconnect — clear
       // so the panel honestly shows "no data" (see halshowStore.resetHalshow).
       resetHalshow();
-      // Hand the freshly-captured armed state to the worker for its reconnect.
-      if (wsWorker) {
-        try { wsWorker.postMessage({ type: "updateConfig", resumeArmed: _prevArmed }); } catch { /* ignore */ }
-      }
-      _prevArmed = false;
       break;
 
     case "attempt":
@@ -629,17 +558,10 @@ function onFrame(data: string | ArrayBuffer) {
 }
 
 export function send(obj: WsCommand) {
-  if (wsWorker) {
-    // Classify here (main thread) where the structured command is visible.
-    // Mutating/motion commands must not be queued+replayed across a reconnect
-    // (issue #18); the worker drops them if the socket is closed.
-    wsWorker.postMessage({
-      type: "send",
-      payload: JSON.stringify(obj),
-      cmd: obj.cmd,
-      dropIfClosed: !isQueueSafe(obj.cmd),
-    });
-  }
+  // Classify here (main thread) where the structured command is visible.
+  // Mutating/motion commands must not be queued+replayed across a reconnect
+  // (issue #18); the worker drops them if the socket is closed.
+  sendCommand(JSON.stringify(obj), obj.cmd, !isQueueSafe(obj.cmd));
 }
 
 export function saveSettings(section: string, data: any) {
@@ -678,7 +600,7 @@ export function markMessagesRead() {
 // Clean up the WS worker on Vite HMR to prevent ghost clients.
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {
-    _terminateWsWorker();
+    terminateTransport();
     // Remove module-level listeners so a hot reload doesn't stack them (#32).
     // ws/telemetry.ts disposes its own four lifecycle/error listeners.
     if (typeof window !== "undefined") {

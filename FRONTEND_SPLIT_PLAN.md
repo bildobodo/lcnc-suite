@@ -58,7 +58,7 @@ the snapshot, never accidents.
 | src/ws/halshowStore.ts | done | 6 unit tests; halshow e2e liveness green through the new module |
 | src/ws/bulkData.ts | done | 9 unit tests (stubbed fetch + FakeWorker); previewWorker chunk verified in build output; full e2e green. Test lesson: undici Response bodies settle across MACROtasks — flush with setTimeout(0), not Promise.resolve() |
 | src/ws/telemetry.ts | done | 4 unit tests (fake timers); `_onVisibility` stayed in lcncWs; telemetry owns its 4 listeners + own HMR dispose; wakeLock.ts now imports emitTelemetry from the leaf (breaks the lcncWs↔wakeLock cycle — the one intentional consumer edit) |
-| src/ws/wsTransport.ts | pending | RTT anchor crossed via `statusStore.noteHeartbeatSent()` function call only |
+| src/ws/wsTransport.ts | done | 7 unit tests (FakeWorker lifecycle, buildWsUrl, session stability); wsWorker chunk verified; e2e connects through the real transport. RTT anchors still in lcncWs until A1.5 (then crossed via noteHeartbeatSent() only) |
 | src/ws/statusStore.ts | pending | hardest; `registerSettingsSaver` wiring stays in lcncWs body |
 
 ### A2 — Viewer disposal hazards (fixed BEFORE the A3 split)
