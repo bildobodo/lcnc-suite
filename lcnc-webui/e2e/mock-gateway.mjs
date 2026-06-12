@@ -114,14 +114,27 @@ function broadcast(frame) {
 // necessary adversarially: with echoes on, a killed delta case still passed
 // because the next heartbeat reply delivered the folded value as full status.
 let quiet = false;
+// lifecycle.spec.ts (A1.6): record hellos so specs can assert the
+// resume_armed contract; refuse mode keeps closing reconnects with 1001 so
+// the shutdown banner has a stable window to assert against. lifecycle runs
+// in its own SERIAL playwright project (dependencies) — these globals would
+// otherwise interfere with parallel specs.
+const hellos = [];
+let refuseWs = false;
 
 wss.on("connection", (ws) => {
   ws.on("error", () => {}); // page teardown mid-write is routine in e2e
   ws.send(JSON.stringify(state));
   ws.send(JSON.stringify(VIEWER_INIT));
   ws.on("message", (buf) => {
-    let cmd = null;
-    try { cmd = JSON.parse(String(buf))?.cmd ?? null; } catch { /* non-JSON — fall through */ }
+    let msg = null;
+    try { msg = JSON.parse(String(buf)); } catch { /* non-JSON — fall through */ }
+    const cmd = msg?.cmd ?? null;
+    if (cmd === "hello") {
+      hellos.push(msg);
+      if (hellos.length > 50) hellos.shift();
+      if (refuseWs) { try { ws.close(1001, "server shutdown"); } catch { /* ignore */ } return; }
+    }
     if (cmd === "heartbeat") ws.send(JSON.stringify({ type: "pong" }));
     if (cmd === "halshow_live") ws.send(JSON.stringify(HALSHOW_SNAPSHOT));
     if (!quiet) ws.send(JSON.stringify(state)); // answer everything -> stay connected & armed
@@ -144,6 +157,17 @@ ctlWss.on("connection", (ws) => {
       quiet = m.on === true;
     } else if (m.op === "raw") {
       broadcast(m.frame);
+    } else if (m.op === "lastHellos") {
+      ws.send(JSON.stringify({ ok: true, op: m.op, hellos }));
+      return;
+    } else if (m.op === "refuseWs") {
+      refuseWs = m.on === true;
+    } else if (m.op === "shutdownClose") {
+      // Server-going-away: close every app client like the gateway's
+      // lifespan path does (1001).
+      for (const client of wss.clients) {
+        try { client.close(1001, "server shutdown"); } catch { /* ignore */ }
+      }
     } else {
       ws.send(JSON.stringify({ ok: false, error: `unknown op ${m.op}` }));
       return;

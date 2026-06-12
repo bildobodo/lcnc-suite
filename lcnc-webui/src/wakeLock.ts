@@ -12,7 +12,7 @@
 // got the API path vs the video fallback vs unavailable. No silent
 // fallbacks.
 
-import { emitTelemetry } from "./lcncWs";
+import { emitTelemetry } from "./ws/telemetry";
 
 type Tier = "api" | "video" | "unavailable";
 

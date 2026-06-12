@@ -16,7 +16,21 @@ export default defineConfig({
     baseURL: "http://localhost:4173",
     headless: true,
   },
-  projects: [{ name: "chromium", use: { browserName: "chromium" } }],
+  projects: [
+    { name: "chromium", use: { browserName: "chromium" }, testIgnore: /lifecycle\.spec\.ts/ },
+    {
+      // lifecycle.spec.ts drives mock-GLOBAL state (refuseWs, shutdownClose),
+      // so it runs strictly AFTER the parallel project, never alongside it —
+      // and serially WITHIN itself: a sibling's shutdownClose would trigger a
+      // same-page reconnect whose hello carries resume_armed=true, masking a
+      // broken reload-boot path (caught when proving the guard adversarially).
+      name: "lifecycle",
+      use: { browserName: "chromium" },
+      dependencies: ["chromium"],
+      testMatch: /lifecycle\.spec\.ts/,
+      fullyParallel: false,
+    },
+  ],
   webServer: [
     {
       // Disconnected smoke tests (smoke.spec.ts) — plain built app, no gateway.

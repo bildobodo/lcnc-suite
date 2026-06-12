@@ -54,12 +54,19 @@ the snapshot, never accidents.
 
 | Module | State | Notes |
 |---|---|---|
-| eslint `export let` ban | pending | lands with commit 1 |
-| src/ws/halshowStore.ts | pending | |
-| src/ws/bulkData.ts | pending | worker URL becomes `new URL("../previewWorker.ts", …)`; verify worker chunk in build output |
-| src/ws/telemetry.ts | pending | `_onVisibility` stays in lcncWs (orchestrator) |
-| src/ws/wsTransport.ts | pending | RTT anchor crossed via `statusStore.noteHeartbeatSent()` function call only |
-| src/ws/statusStore.ts | pending | hardest; `registerSettingsSaver` wiring stays in lcncWs body |
+| eslint `export let` ban | done | `no-restricted-syntax` on export let/var, all src |
+| src/ws/halshowStore.ts | done | 6 unit tests; halshow e2e liveness green through the new module |
+| src/ws/bulkData.ts | done | 9 unit tests (stubbed fetch + FakeWorker); previewWorker chunk verified in build output; full e2e green. Test lesson: undici Response bodies settle across MACROtasks — flush with setTimeout(0), not Promise.resolve() |
+| src/ws/telemetry.ts | done | 4 unit tests (fake timers); `_onVisibility` stayed in lcncWs; telemetry owns its 4 listeners + own HMR dispose; wakeLock.ts now imports emitTelemetry from the leaf (breaks the lcncWs↔wakeLock cycle — the one intentional consumer edit) |
+| src/ws/wsTransport.ts | done | 7 unit tests (FakeWorker lifecycle, buildWsUrl, session stability); wsWorker chunk verified; e2e connects through the real transport. RTT anchors still in lcncWs until A1.5 (then crossed via noteHeartbeatSent() only) |
+| src/ws/statusStore.ts | done | 18 unit tests incl. F1 pinned byte-for-byte; RTT anchors crossed via noteHeartbeatSent()/notePong() only; `registerSettingsSaver` wiring stayed in lcncWs body. Final lcncWs = 314 ln (from 1,096). Test lessons: drain fake timers BEFORE useRealTimers (else the module's _flushScheduled flag deadlocks — destroyed timer, surviving flag); fake clock starts performance.now() at 0, which defeats `> 0` anchor guards |
+
+### A1.6 — Smoke findings (both PRE-EXISTING, not split regressions; trace-proven)
+
+| Finding | Evidence | Fix |
+|---|---|---|
+| Reload-disarm: a reloaded page never REQUESTS armed-resume (gateway checks its hold only when hello carries resume_armed=true; holds were registered, requests never sent) | trace: `session.resume_hold_registered` with no `session.resume_*` after reload | frontend: wsTransport persists server-confirmed armed in sessionStorage (change-only writes), boots the resume request from it; gateway hold/trip gates stay authoritative. e2e lifecycle.spec asserts the hello contract |
+| No shutdown banner: uvicorn cancels WS tasks BEFORE lifespan shutdown → `_clients` empty → broadcast silently skipped (`if snapshot:`) → browser saw bare close 1006 | gateway.log: no `broadcast server_shutdown` line; trace: `browser.ws.close code:1006` | frontend belt-and-braces NOW: close codes 1001/1012 → shutdown banner. Gateway-side fix (shielded server_shutdown send + close(1001) on task-cancel) → **WS-B** (perf-matrix gated) |
 
 ### A2 — Viewer disposal hazards (fixed BEFORE the A3 split)
 
@@ -97,6 +104,7 @@ Tracked when reached. WS-B is the only gateway-touching phase (full perf-matrix 
 |---|---|---|---|
 | F1 | lcncWs.ts `_fetchBulk` sinks | `surface_points`/`comp_grid` merged into `status.value` are WIPED by the next full status frame (rAF flush replaces the whole object) | assert current behavior byte-for-byte in statusStore tests; decide fix separately |
 | F2 | gateway ws_endpoint | viewer_init double-send per connect (inline NOTE marks both sites) | WS-B fixes on backend (user decision) |
+| F3 | ws/telemetry.ts | 200-event queue cap is unreachable via the public API (the >=32 early flush is synchronous, so the queue never exceeds one batch) — defensive invariant only | documented in telemetry.test.ts; keep |
 
 ## Adversarial proofs log
 
@@ -105,4 +113,6 @@ Tracked when reached. WS-B is the only gateway-touching phase (full perf-matrix 
 | lcncWs.exports.test.ts (runtime) | renamed `markMessagesRead`→`markMessagesReadX` in lcncWs.ts | 2 failures: name-set diff + fn-typeof undefined | git checkout |
 | lcncWs.exports.test.ts (compile) | removed `export` from `interface HalSignalPin` | `vue-tsc -b` TS2724 no exported member (vitest alone canNOT catch — esbuild erases type imports; build gate is mandatory) | git checkout + tsbuildinfo purge |
 | frames.spec halshow guard | killed `halshow_update` dispatch case in onFrame | halshow spec red (value stuck at "0") | git checkout + rebuild |
+| eslint export-let ban | appended `export let _banProbe = 1` to halshowStore.ts | lint error no-restricted-syntax at the exact line | line removed |
+| lifecycle reload-resume guard | `_prevArmed = false` (boot-from-storage dead) | FIRST run stayed GREEN — fullyParallel ran the sibling shutdownClose test concurrently, whose global close triggered a same-page reconnect hello with resume_armed=true (masking). Set lifecycle project fullyParallel:false; re-broke: exactly the reload spec red | sed restore + rebuild |
 | frames.spec status_delta guard | killed `status_delta` dispatch case | FIRST attempt stayed GREEN — mock folded the delta into state, and the next 1 Hz full-status echo delivered the same value (a masking path in the GUARD itself). Added `/ctl` `quiet` op; spec silences status echoes around the delta assert. Re-broke: delta spec red, others green. | git checkout + rebuild |
