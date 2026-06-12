@@ -56,7 +56,7 @@ the snapshot, never accidents.
 |---|---|---|
 | eslint `export let` ban | done | `no-restricted-syntax` on export let/var, all src |
 | src/ws/halshowStore.ts | done | 6 unit tests; halshow e2e liveness green through the new module |
-| src/ws/bulkData.ts | pending | worker URL becomes `new URL("../previewWorker.ts", …)`; verify worker chunk in build output |
+| src/ws/bulkData.ts | done | 9 unit tests (stubbed fetch + FakeWorker); previewWorker chunk verified in build output; full e2e green. Test lesson: undici Response bodies settle across MACROtasks — flush with setTimeout(0), not Promise.resolve() |
 | src/ws/telemetry.ts | pending | `_onVisibility` stays in lcncWs (orchestrator) |
 | src/ws/wsTransport.ts | pending | RTT anchor crossed via `statusStore.noteHeartbeatSent()` function call only |
 | src/ws/statusStore.ts | pending | hardest; `registerSettingsSaver` wiring stays in lcncWs body |
