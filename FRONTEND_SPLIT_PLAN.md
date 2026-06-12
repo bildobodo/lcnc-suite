@@ -59,7 +59,7 @@ the snapshot, never accidents.
 | src/ws/bulkData.ts | done | 9 unit tests (stubbed fetch + FakeWorker); previewWorker chunk verified in build output; full e2e green. Test lesson: undici Response bodies settle across MACROtasks — flush with setTimeout(0), not Promise.resolve() |
 | src/ws/telemetry.ts | done | 4 unit tests (fake timers); `_onVisibility` stayed in lcncWs; telemetry owns its 4 listeners + own HMR dispose; wakeLock.ts now imports emitTelemetry from the leaf (breaks the lcncWs↔wakeLock cycle — the one intentional consumer edit) |
 | src/ws/wsTransport.ts | done | 7 unit tests (FakeWorker lifecycle, buildWsUrl, session stability); wsWorker chunk verified; e2e connects through the real transport. RTT anchors still in lcncWs until A1.5 (then crossed via noteHeartbeatSent() only) |
-| src/ws/statusStore.ts | pending | hardest; `registerSettingsSaver` wiring stays in lcncWs body |
+| src/ws/statusStore.ts | done | 18 unit tests incl. F1 pinned byte-for-byte; RTT anchors crossed via noteHeartbeatSent()/notePong() only; `registerSettingsSaver` wiring stayed in lcncWs body. Final lcncWs = 314 ln (from 1,096). Test lessons: drain fake timers BEFORE useRealTimers (else the module's _flushScheduled flag deadlocks — destroyed timer, surviving flag); fake clock starts performance.now() at 0, which defeats `> 0` anchor guards |
 
 ### A2 — Viewer disposal hazards (fixed BEFORE the A3 split)
 
