@@ -21,7 +21,7 @@ import { applyHalshowSnapshot, applyHalshowUpdate, resetHalshow } from "./ws/hal
 import { emitTelemetry } from "./ws/telemetry";
 import {
   buildWsUrl, captureArmedForResume, connectTransport,
-  postWorkerConfig, sendCommand, terminateTransport,
+  persistArmedForReload, postWorkerConfig, sendCommand, terminateTransport,
 } from "./ws/wsTransport";
 import {
   fetchCompGrid, fetchSurfacePoints,
@@ -121,6 +121,14 @@ function onWorkerMessage(m: any) {
         code: m.code, reason: m.reason, clean: m.wasClean, since_attempt_ms: m.sinceAttemptMs,
       });
       connected.value = false;
+      // Server-going-away close codes double as a shutdown signal: the
+      // gateway closes 1001 on lifespan teardown, uvicorn closes 1012 on
+      // graceful restart. The explicit server_shutdown frame is the richer
+      // path, but it cannot arrive when uvicorn cancels WS tasks before
+      // lifespan runs (A1 smoke: browser saw the close with no frame) —
+      // the code is then the only signal that does. 1006 (process died
+      // mid-flight) is indistinguishable from a network blip by design.
+      if (m.code === 1001 || m.code === 1012) serverShuttingDown.value = true;
       // Capture armed state so the worker's NEXT reconnect hello can ask the
       // gateway to restore armed=true via a still-valid armed-resume hold.
       captureArmedForResume(armed.value);
@@ -221,8 +229,13 @@ function onFrame(data: string | ArrayBuffer) {
     }
     noteFrameSample("decode", performance.now() - _t0);
 
-    // Server-authoritative armed state — update from every message that carries it
-    if (msg.armed !== undefined) armed.value = msg.armed;
+    // Server-authoritative armed state — update from every message that carries
+    // it, and mirror to sessionStorage (change-only) so a page reload can
+    // request armed-resume against the gateway's hold.
+    if (msg.armed !== undefined) {
+      armed.value = msg.armed;
+      persistArmedForReload(msg.armed === true);
+    }
 
     if (msg.type === "server_shutdown") {
       // Lifespan broadcast immediately before WS close. Mark explicit so the

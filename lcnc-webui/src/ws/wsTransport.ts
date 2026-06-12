@@ -42,7 +42,36 @@ const _sessionId = _initSessionId();
 // next WS open, the worker sends {resume_armed: _prevArmed} so the gateway
 // can decide whether to inherit armed state from the prior connection.
 // Reset after use.
-let _prevArmed = false;
+//
+// Boot value comes from sessionStorage: a page RELOAD destroys this module's
+// state, so without persistence a reloaded tab could never REQUEST resume —
+// the gateway only checks its hold when hello carries resume_armed=true
+// (holds were registered, requests never sent; found in A1 smoke). The
+// gateway stays fully authoritative: a stale "1" just asks, and the hold
+// grace window + unacked-trip gate decide. Tab close clears sessionStorage
+// (intentional: a new tab is a fresh arming session).
+const ARMED_STORAGE_KEY = "lcnc-armed";
+function _initPrevArmed(): boolean {
+  try { return sessionStorage.getItem(ARMED_STORAGE_KEY) === "1"; } catch { return false; }
+}
+let _prevArmed = _initPrevArmed();
+
+// Mirror of the last value written, so the 5–30 Hz status path only touches
+// sessionStorage on an actual armed-state CHANGE (sync storage writes are
+// not free on the hot path).
+let _lastPersistedArmed: boolean | null = null;
+
+/**
+ * Mirror the server-confirmed armed state for reload-resume. Called by the
+ * orchestrator on every armed-bearing frame; writes only on change.
+ */
+export function persistArmedForReload(armedNow: boolean): void {
+  if (armedNow === _lastPersistedArmed) return;
+  _lastPersistedArmed = armedNow;
+  try {
+    sessionStorage.setItem(ARMED_STORAGE_KEY, armedNow ? "1" : "0");
+  } catch { /* private mode — resume degrades to same-page reconnects only */ }
+}
 
 let wsWorker: Worker | null = null;
 
