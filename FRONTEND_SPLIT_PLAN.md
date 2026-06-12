@@ -48,7 +48,7 @@ the snapshot, never accidents.
 |---|---|---|
 | A0.1 ledger file | done | this file |
 | A0.2 export-surface snapshot test | done | `src/lcncWs.exports.test.ts` (33 value exports: 23 refs + 10 fns; 12 type exports compile-guarded) + `src/testGlobals.ts` (defaults.ts touches `document` at import; vue runtime-dom probes `createElement` once `document` exists) |
-| A0.3 e2e liveness guards (frames.spec.ts, scripted mock-gateway) | pending | status_delta→DRO text change; halshow snapshot+update; pong. Green on monolith BEFORE split. |
+| A0.3 e2e liveness guards (frames.spec.ts, scripted mock-gateway) | done | mock got mutable state + `/ctl` scripting channel + viewer_init/halshow fixtures + `quiet` op; specs pin status / status_delta / pong / halshow_snapshot / halshow_update → rendered DOM. Green on monolith. |
 
 ### A1 — lcncWs split (5 commits, easy→hard)
 
@@ -104,3 +104,5 @@ Tracked when reached. WS-B is the only gateway-touching phase (full perf-matrix 
 |---|---|---|---|
 | lcncWs.exports.test.ts (runtime) | renamed `markMessagesRead`→`markMessagesReadX` in lcncWs.ts | 2 failures: name-set diff + fn-typeof undefined | git checkout |
 | lcncWs.exports.test.ts (compile) | removed `export` from `interface HalSignalPin` | `vue-tsc -b` TS2724 no exported member (vitest alone canNOT catch — esbuild erases type imports; build gate is mandatory) | git checkout + tsbuildinfo purge |
+| frames.spec halshow guard | killed `halshow_update` dispatch case in onFrame | halshow spec red (value stuck at "0") | git checkout + rebuild |
+| frames.spec status_delta guard | killed `status_delta` dispatch case | FIRST attempt stayed GREEN — mock folded the delta into state, and the next 1 Hz full-status echo delivered the same value (a masking path in the GUARD itself). Added `/ctl` `quiet` op; spec silences status echoes around the delta assert. Re-broke: delta spec red, others green. | git checkout + rebuild |
