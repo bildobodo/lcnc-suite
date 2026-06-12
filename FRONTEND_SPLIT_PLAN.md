@@ -57,7 +57,7 @@ the snapshot, never accidents.
 | eslint `export let` ban | done | `no-restricted-syntax` on export let/var, all src |
 | src/ws/halshowStore.ts | done | 6 unit tests; halshow e2e liveness green through the new module |
 | src/ws/bulkData.ts | done | 9 unit tests (stubbed fetch + FakeWorker); previewWorker chunk verified in build output; full e2e green. Test lesson: undici Response bodies settle across MACROtasks — flush with setTimeout(0), not Promise.resolve() |
-| src/ws/telemetry.ts | pending | `_onVisibility` stays in lcncWs (orchestrator) |
+| src/ws/telemetry.ts | done | 4 unit tests (fake timers); `_onVisibility` stayed in lcncWs; telemetry owns its 4 listeners + own HMR dispose; wakeLock.ts now imports emitTelemetry from the leaf (breaks the lcncWs↔wakeLock cycle — the one intentional consumer edit) |
 | src/ws/wsTransport.ts | pending | RTT anchor crossed via `statusStore.noteHeartbeatSent()` function call only |
 | src/ws/statusStore.ts | pending | hardest; `registerSettingsSaver` wiring stays in lcncWs body |
 
@@ -97,6 +97,7 @@ Tracked when reached. WS-B is the only gateway-touching phase (full perf-matrix 
 |---|---|---|---|
 | F1 | lcncWs.ts `_fetchBulk` sinks | `surface_points`/`comp_grid` merged into `status.value` are WIPED by the next full status frame (rAF flush replaces the whole object) | assert current behavior byte-for-byte in statusStore tests; decide fix separately |
 | F2 | gateway ws_endpoint | viewer_init double-send per connect (inline NOTE marks both sites) | WS-B fixes on backend (user decision) |
+| F3 | ws/telemetry.ts | 200-event queue cap is unreachable via the public API (the >=32 early flush is synchronous, so the queue never exceeds one batch) — defensive invariant only | documented in telemetry.test.ts; keep |
 
 ## Adversarial proofs log
 
