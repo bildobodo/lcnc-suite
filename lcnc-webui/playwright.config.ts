@@ -17,17 +17,20 @@ export default defineConfig({
     headless: true,
   },
   projects: [
-    { name: "chromium", use: { browserName: "chromium" }, testIgnore: /lifecycle\.spec\.ts/ },
+    { name: "chromium", use: { browserName: "chromium" }, testIgnore: /(lifecycle|viewer)\.spec\.ts/ },
     {
-      // lifecycle.spec.ts drives mock-GLOBAL state (refuseWs, shutdownClose),
-      // so it runs strictly AFTER the parallel project, never alongside it —
-      // and serially WITHIN itself: a sibling's shutdownClose would trigger a
-      // same-page reconnect whose hello carries resume_armed=true, masking a
-      // broken reload-boot path (caught when proving the guard adversarially).
-      name: "lifecycle",
+      // Serial project, runs strictly AFTER the parallel one. Specs here drive
+      // mock-GLOBAL state (refuseWs/shutdownClose/rebuildInit/loadGcode) and/or
+      // need a contention-free, settled renderer to read stable counts —
+      // neither survives parallel execution:
+      //  • lifecycle.spec.ts — reconnect/shutdown banner; a sibling's
+      //    shutdownClose would mask a broken reload-boot path (proven so).
+      //  • viewer.spec.ts — renderer.info leak probe; parallel rebuilds would
+      //    perturb the geometry counts it asserts on.
+      name: "serial",
       use: { browserName: "chromium" },
       dependencies: ["chromium"],
-      testMatch: /lifecycle\.spec\.ts/,
+      testMatch: /(lifecycle|viewer)\.spec\.ts/,
       fullyParallel: false,
     },
   ],

@@ -21,6 +21,7 @@ import { readFile } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import { WebSocketServer } from "ws";
+import { encode as msgpackEncode } from "@msgpack/msgpack";
 
 const DIST = fileURLToPath(new URL("../dist/", import.meta.url));
 const PORT = Number(process.env.MOCK_PORT) || 4174;
@@ -31,8 +32,24 @@ const MIME = {
   ".woff2": "font/woff2", ".png": "image/png", ".wasm": "application/wasm",
 };
 
+// A tiny toolpath preview (viewer.spec.ts, A2). previewWorker fetches
+// GET /preview, msgpack-decodes it, and ThreeViewer.applyGcode builds feed /
+// rapid / highlight geometries from it — the per-program geometry whose
+// disposal-on-rebuild the leak probe checks.
+const PREVIEW = msgpackEncode({
+  file: "/leak.ngc",
+  feed: [[0, 0, 0], [10, 0, 0], [10, 10, 0], [0, 10, 0]],
+  rapid: [[0, 0, 5], [0, 0, 0]],
+  feed_lines: [1, 2, 3, 4],
+});
+
 const server = createServer(async (req, res) => {
   const path = decodeURIComponent((req.url || "/").split("?")[0]);
+  if (path === "/preview") {
+    res.writeHead(200, { "content-type": "application/octet-stream" });
+    res.end(Buffer.from(PREVIEW));
+    return;
+  }
   const rel = path === "/" ? "index.html" : path.replace(/^\/+/, "");
   const file = normalize(join(DIST, rel));
   const send = async (f, code = 200) => {
@@ -77,8 +94,16 @@ const VIEWER_INIT = {
     parts: [],
     kinematics: [],
     axes: ["X", "Y", "Z"],
+    machine_bounds: { origin: [0, 0, 0], size: [100, 100, 100] },
   },
 };
+
+// viewer.spec.ts forces in-session scene rebuilds: ThreeViewer dedups
+// viewer_init by content, so a monotonic _rev busts the dedup and drives a
+// real buildFromInit (clearScene + rebuild) without a page reload. A
+// monotonic gcode version drives applyGcode (new toolpath geometry).
+let _initRev = 0;
+let _gcodeVer = 0;
 
 const HALSHOW_SNAPSHOT = {
   type: "halshow_snapshot",
@@ -155,6 +180,16 @@ ctlWss.on("connection", (ws) => {
       broadcast({ type: "status_delta", armed: true, data: m.data });
     } else if (m.op === "quiet") {
       quiet = m.on === true;
+    } else if (m.op === "rebuildInit") {
+      // Force a real in-session scene rebuild: _rev busts ThreeViewer's
+      // content-dedup so buildFromInit (clearScene + rebuild) actually runs.
+      _initRev++;
+      broadcast({ ...VIEWER_INIT, data: { ...VIEWER_INIT.data, _rev: _initRev } });
+    } else if (m.op === "loadGcode") {
+      // viewer_gcode_ready → frontend fetches GET /preview?v=N → applyGcode
+      // builds fresh feed/rapid/highlight geometry.
+      _gcodeVer++;
+      broadcast({ type: "viewer_gcode_ready", version: _gcodeVer, file: "/leak.ngc" });
     } else if (m.op === "raw") {
       broadcast(m.frame);
     } else if (m.op === "lastHellos") {

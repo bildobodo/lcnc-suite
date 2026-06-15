@@ -37,6 +37,19 @@ interface ViewerDiag {
   } | null;
 }
 
+// Leak probe (frontend split, A2): live THREE.WebGLRenderer.info counts plus
+// our own backplot/toolpath instance tallies, available whenever the renderer
+// exists (unlike __viewerDiag.getRenderInfo, which is gated on a successful
+// build). e2e/viewer.spec.ts polls this across reconnect/reload cycles to
+// assert resource counts return to a stable baseline — a monotonic climb is a
+// disposal leak (the "~1 hr in" stutter class).
+interface ViewerLeakProbe {
+  geometries: number;   // renderer.info.memory.geometries
+  textures: number;     // renderer.info.memory.textures
+  programs: number;     // renderer.info.programs.length (unique shaders)
+}
+
 interface Window {
   __viewerDiag?: ViewerDiag;
+  __viewerLeakProbe?: () => ViewerLeakProbe | null;
 }

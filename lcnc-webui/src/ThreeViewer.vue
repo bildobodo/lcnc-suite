@@ -118,6 +118,7 @@ import { viewerInit, viewerGcode, gcodeContent, status, type ViewerInit, type Vi
 import { loadViewerDefaults, loadCameraDefaults, saveCameraDefaults, ALL_LAYERS, settingsVersion, type Vec3, type Layer } from "./defaults";
 import { fmtCoord } from "./format";
 import { recordApply, recordRender, setViewerPerfContext } from "./viewerPerf";
+import { disposeObject } from "./viewer/disposal";
 import ViewCube from "./ViewCube.vue";
 import MachineBtn from "./MachineBtn.vue";
 import CameraPip from "./CameraPip.vue";
@@ -841,15 +842,19 @@ MAT.tool.color.setHex(0xc0c0c0);  // silver shaft
 MAT.cutter.color.setHex(0xffdd00); // gold cutter
 MAT.holder.color.setHex(0x888888); // steel gray holder
 
+// Mark every shared MAT.* instance so disposeObject (viewer/disposal.ts) never
+// frees them: one instance is reused across every rebuild and across machine
+// part groups (groupMat/dirMat reference these), so disposing one on scene
+// teardown would black out the next scene. Private clones (per-part color
+// overrides, settings clones) are NOT marked and ARE disposed.
+for (const m of Object.values(MAT)) m.userData._shared = true;
+
 // ---------- helpers ----------
-function disposeObject(obj: THREE.Object3D) {
-  obj.traverse((child: any) => {
-    // Skip shared geometries from the central cache — they're reused across viewers
-    if (child.geometry && !child.geometry.userData?._shared) child.geometry.dispose?.();
-    // IMPORTANT: don't dispose shared MAT.* materials
-    // so we intentionally skip disposing child.material here.
-  });
-}
+// disposeObject lives in viewer/disposal.ts (A2): it disposes private geometry
+// AND private materials, skipping anything marked userData._shared (the STL
+// cache geometries + the MAT.* materials, both reused across rebuilds). The
+// old in-file version never disposed materials, so per-program/per-part
+// materials leaked on every reconnect rebuild.
 
 function clearScene() {
   if (!scene) return;
@@ -890,9 +895,11 @@ function rebuildOverflowEdges(size: Vec3, offset: Vec3): THREE.LineSegments | nu
 
 function makeLine(points: number[][] | Float32Array, colorHex: number | string, dashed = false, opacity = 1.0, lineDist?: Float32Array) {
   const geom = new THREE.BufferGeometry();
-  // Shared with overflow (and position-attr shared with highlight).
-  // Disposal is owned by applyGcode; disposeObject() skips _shared geometries.
-  geom.userData._shared = true;
+  // This geometry is reused by the overflow line (same object) and its position
+  // attribute by the highlight line — but it is PER-PROGRAM, not externally
+  // owned: applyGcode disposes it on program change, and disposeObject frees it
+  // on scene teardown. So it is deliberately NOT marked userData._shared (that
+  // flag is only for the STL cache + MAT.*, which must survive a rebuild).
   // Prefer the flat Float32Array produced off-thread by previewWorker (P4.1);
   // fall back to flattening nested points (WS path / older payloads).
   const flat = points instanceof Float32Array ? points : new Float32Array(points.flat());
@@ -1643,7 +1650,8 @@ function applyGcode(g: ViewerGcode) {
   // extents (conservative: drawn subset is always inside the full bounds).
   if (feedSharedGeom) {
     highlightGeom = new THREE.BufferGeometry();
-    highlightGeom.userData._shared = true;
+    // Per-program (not externally owned): disposed by applyGcode on program
+    // change and by disposeObject on teardown — deliberately not _shared.
     highlightGeom.setAttribute("position", feedSharedGeom.attributes.position!);
     highlightGeom.boundingSphere = feedSharedGeom.boundingSphere;
     highlightGeom.setDrawRange(0, 0); // hidden until motion_line updates
@@ -1886,6 +1894,18 @@ onMounted(() => {
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.localClippingEnabled = true;
 
+  // Leak probe (A2): live renderer resource counts for e2e/viewer.spec.ts.
+  // Read straight off renderer.info so it reflects actual GPU-tracked
+  // geometries/textures/programs at the moment of the call.
+  window.__viewerLeakProbe = () => {
+    if (!renderer) return null;
+    return {
+      geometries: renderer.info.memory.geometries,
+      textures: renderer.info.memory.textures,
+      programs: renderer.info.programs?.length ?? 0,
+    };
+  };
+
   if (host.value) {
     host.value.appendChild(renderer.domElement);
   }
@@ -1969,6 +1989,7 @@ onUnmounted(() => {
 
   controls?.dispose();
 
+  window.__viewerLeakProbe = undefined;
   if (renderer) {
     renderer.dispose();
     if (renderer.domElement.parentElement) {
