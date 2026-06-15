@@ -36,6 +36,13 @@ function ctlQuery(op: Record<string, unknown>): Promise<any> {
 const armedGate = (page: import("@playwright/test").Page) =>
   page.locator('fieldset[data-gate="armed"]').first();
 
+// The mock-gateway is ONE process shared by every spec; frames.spec mutates its
+// state.data and other specs flip quiet/refuseWs. Reset to pristine before each
+// serial test so ordering across the suite can't bleed in.
+test.beforeEach(async () => {
+  await ctlQuery({ op: "reset" });
+});
+
 test("reload while armed requests armed-resume with the same session id", async ({ page }) => {
   await page.goto(MOCK);
   await expect(armedGate(page)).not.toBeDisabled();
@@ -58,8 +65,16 @@ test("reload while armed requests armed-resume with the same session id", async 
 test("explicit server_shutdown frame shows the shutdown banner", async ({ page }) => {
   await page.goto(MOCK);
   await expect(armedGate(page)).not.toBeDisabled();
-  await ctlQuery({ op: "raw", frame: { type: "server_shutdown" } });
-  await expect(page.getByText("Server shutting down")).toBeVisible();
+  // Poll-retry the broadcast: a single fire can race the page's WS readiness in
+  // the shared mock (intermittently dropped). Re-sending until the banner shows
+  // is delivery-robust yet still RED if the banner logic is broken (the poll
+  // times out because the text never appears).
+  const banner = page.getByText("Server shutting down");
+  await expect.poll(async () => {
+    await ctlQuery({ op: "raw", frame: { type: "server_shutdown" } });
+    return banner.isVisible();
+  }, { timeout: 10000, intervals: [200] }).toBe(true);
+  await expect(banner).toBeVisible();
 });
 
 test("server-going-away close (1001) shows the shutdown banner without any frame", async ({ page }) => {

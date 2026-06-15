@@ -180,6 +180,14 @@ ctlWss.on("connection", (ws) => {
       broadcast({ type: "status_delta", armed: true, data: m.data });
     } else if (m.op === "quiet") {
       quiet = m.on === true;
+    } else if (m.op === "reset") {
+      // Restore pristine state between tests. The mock is ONE process shared by
+      // every spec (and frames.spec mutates state.data.work_pos via status_delta),
+      // so serial specs call this in beforeEach to avoid order-dependent bleed.
+      quiet = false;
+      refuseWs = false;
+      state.data.work_pos = [12.345, 1.0, -5.5];
+      broadcast(state);
     } else if (m.op === "rebuildInit") {
       // Force a real in-session scene rebuild: _rev busts ThreeViewer's
       // content-dedup so buildFromInit (clearScene + rebuild) actually runs.

@@ -88,10 +88,18 @@ private materials too.
 | disposal.ts extraction + unit tests | done | 5 dispose-spy tests, proven RED (old behavior fails 4/5) |
 | H1 backplot geom/material on teardown | done | not _shared → disposeObject frees geom; material now freed too |
 | H2 clearScene skipped toolpath `_shared` geoms | done | toolpath geoms un-tagged; disposeObject frees them on rebuild |
-| H3 toolMarker dual ownership | A2.2 | single-owner `replaceToolMarker()` |
+| H3 toolMarker dual ownership | done | single-owner `replaceToolMarker()` (parent?.remove + disposeObject prior); both sites routed through it; `toolMarker` nulled on rebuild. NOT e2e-guarded — renderer.info can't see tool-marker geom (visibility/upload-dependent; verified count held flat even with dispose removed). Covered by disposal.test.ts + structural single-owner + A3 toolController units + manual smoke |
 | H4 material clones never disposed | partial | teardown clones freed by new disposeObject; in-session setMachinePartColor replace-dispose → A2.3 |
 | H5 `_machineEdgeLines` materials accumulate | partial | teardown edge materials freed by new disposeObject; array reset → A2.3 |
-| H6 surfaceGroup orphan parent assumption | A2.2 | |
+| H6 surfaceGroup orphan parent assumption | done | `surfaceGroup` nulled on rebuild (clearScene already disposed it) so buildSurfaceLayer can't double-dispose a freed stale ref; build path uses parent?.remove |
+
+**e2e flakiness (A2.2):** the single shared mock-gateway process + per-test
+broadcasts caused intermittent serial-project failures (viewer toolpath delta;
+lifecycle shutdown banner) — a one-shot `ctl` broadcast can race page WS
+readiness. Fixes: a `reset` ctl op + `beforeEach` in both serial specs (kills
+state bleed — frames.spec's status_delta had been mutating shared work_pos);
+broadcast-driven assertions now POLL-RETRY the send (delivery-robust, still RED
+if the UI logic is broken). 10/10 full runs green after.
 
 ### A3 — ThreeViewer split (4 commits)
 

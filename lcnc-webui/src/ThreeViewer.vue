@@ -984,6 +984,13 @@ function ensureCoreGroups(init: ViewerInit) {
   _machineEdgeLines = [];
   _edgesBuilt = false;
   _edgeBuildToken++;
+  // clearScene (run by buildFromInit before this) already disposed the old
+  // tool marker and surface group via the scene graph; null the dangling refs
+  // so replaceToolMarker / buildSurfaceLayer don't operate on freed objects
+  // (H3/H6 — a stale surfaceGroup would otherwise be double-disposed and a
+  // stale toolMarker removed from the wrong parent).
+  toolMarker = null;
+  surfaceGroup = null;
 
   // Clear old group references
   for (const key of Object.keys(groups)) delete groups[key];
@@ -1063,8 +1070,7 @@ resetBackplot();
   // Default tool until viewer_state arrives — but skip if applyState already
   // built the real tool during the async gap (loadMachineAssets yield).
   if (_currentToolNum == null) {
-    toolMarker = buildToolGroup(6 * _unitScale, 60 * _unitScale, null);
-    _toolGrp?.add(toolMarker);
+    replaceToolMarker(buildToolGroup(6 * _unitScale, 60 * _unitScale, null));
   }
 
 
@@ -1085,6 +1091,25 @@ resetBackplot();
   // Apply tool colors
   MAT.tool.color.set(viewerDefaults.colors.tool ?? "#c0c0c0");
   MAT.cutter.color.set(viewerDefaults.colors.cutter ?? "#ffdd00");
+}
+
+/**
+ * Single owner of the tool marker (H3). Both the default-marker site
+ * (ensureCoreGroups) and the live tool-change site (applyState) route through
+ * here, so _toolGrp can never accumulate two markers: any prior one is removed
+ * from its actual parent and disposed before the new one is added. Without this,
+ * a tool-change landing during buildFromInit's async loadMachineAssets gap could
+ * add a second marker, orphaning the first (its buildToolGeometry leaked).
+ * disposeObject skips the shared MAT.tool/cutter/holder; only the per-marker
+ * geometry is freed.
+ */
+function replaceToolMarker(newGroup: THREE.Group) {
+  if (toolMarker) {
+    toolMarker.parent?.remove(toolMarker);
+    disposeObject(toolMarker);
+  }
+  toolMarker = newGroup;
+  _toolGrp?.add(toolMarker);
 }
 
 /** Build full tool group (cutter + shaft + optional holder) */
@@ -1399,13 +1424,10 @@ function applyState(init: ViewerInit, st: ViewerState) {
         _lastToolMeta = _toolMetaCache.get(toolNum) ?? null;
       }
 
-      const newGroup = buildToolGroup(diam, visLen, _lastToolMeta);
-      if (toolMarker && _toolGrp) {
-        _toolGrp.remove(toolMarker);
-        disposeObject(toolMarker);
-      }
-      toolMarker = newGroup;
-      _toolGrp?.add(toolMarker);
+      // buildToolGroup sets the toolCutterMesh/toolBodyMesh module refs as a
+      // side effect, so build BEFORE swapping in (replaceToolMarker disposes
+      // the prior marker — never the shared MAT.*).
+      replaceToolMarker(buildToolGroup(diam, visLen, _lastToolMeta));
       const visMesh = toolBodyMesh ?? toolCutterMesh;
       if (visMesh) visMesh.userData.toolVis = { r: diam * 0.5, L: visLen };
     }

@@ -48,6 +48,11 @@ async function settledGeometries(page: Page): Promise<number> {
   return last;
 }
 
+// The mock-gateway is shared by every spec; reset to pristine before each test.
+test.beforeEach(async () => {
+  await ctl({ op: "reset" });
+});
+
 test("a clean rebuild frees the loaded program's toolpath geometry", async ({ page }) => {
   await page.goto(MOCK);
   await expect.poll(() => page.evaluate(() => !!window.__viewerLeakProbe)).toBe(true);
@@ -76,16 +81,20 @@ test("a clean rebuild frees the loaded program's toolpath geometry", async ({ pa
       .toBeGreaterThan(before + 1);
     const loaded = await settledGeometries(page);
 
-    await ctl({ op: "rebuildInit" });
     // Core invariant: the clean rebuild disposes the per-program toolpath
     // geometry (feed/rapid/highlight ≈ 3), so the count drops back to ~before.
-    // POLL for it rather than a single read — buildFromInit's clearScene runs a
-    // Vue-tick + WS-hop after the broadcast, and that latency varies under
-    // full-suite load (the source of an earlier intermittent flake). With the
-    // old leak the toolpath was userData._shared and survived clearScene, so
-    // the count never drops and this poll times out → RED.
-    await expect.poll(() => geometries(page), {
-      timeout: 8000, intervals: [150],
+    // POLL while RE-SENDING rebuildInit — buildFromInit's clearScene runs a
+    // Vue-tick + WS-hop after the broadcast, and a single broadcast can race the
+    // page's WS readiness under full-suite load (the earlier intermittent
+    // flake). Re-firing each poll tick is delivery-robust; each rebuildInit
+    // bumps _rev so it always forces a real rebuild. With the old leak the
+    // toolpath was userData._shared and survived clearScene, so the count never
+    // drops and this poll times out → RED.
+    await expect.poll(async () => {
+      await ctl({ op: "rebuildInit" });
+      return geometries(page);
+    }, {
+      timeout: 8000, intervals: [200],
       message: `cycle ${i}: clean rebuild did not free the loaded toolpath geometry`,
     }).toBeLessThanOrEqual(loaded - 2);
     rebuilt = await settledGeometries(page);
@@ -94,3 +103,13 @@ test("a clean rebuild frees the loaded program's toolpath geometry", async ({ pa
     expect(rebuilt, `cycle ${i}: post-rebuild geometry grew`).toBeLessThanOrEqual(before + 1);
   }
 });
+
+// NOTE: H3 (tool-marker single-owner) is NOT guarded here. renderer.info only
+// counts GPU-uploaded geometry, and a leaked tool marker's geometry stays flat
+// in the probe (tool geometry is small / visibility- and render-on-demand-
+// dependent, so it is not reliably resident) — an e2e assertion would be
+// non-discriminating theater (verified: the count held at baseline even with
+// replaceToolMarker's dispose removed). H3 is covered by the structural
+// single-owner guarantee + disposal.test.ts (the dispose itself) + the A3
+// toolController unit tests (precise, once the controller is extractable) +
+// the phase-end manual smoke (tool change rebuilds the marker once).
