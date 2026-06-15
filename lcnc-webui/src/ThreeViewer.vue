@@ -1227,6 +1227,10 @@ async function buildFromInit(init: ViewerInit) {
       const customColor = viewerDefaults.machineColors[p.id];
       if (customColor) {
         mat = mat.clone();
+        // clone() deep-copies userData, so this inherited the shared MAT.*'s
+        // _shared=true — clear it: this is a PRIVATE per-part clone that
+        // disposeObject must free on teardown (else it leaks per rebuild).
+        mat.userData._shared = false;
         mat.color.set(customColor);
       }
 
@@ -2263,9 +2267,18 @@ function setMachinePartColor(partId: string, color: string | null) {
     if (color) {
       if (!mat.userData._clonedFor || mat.userData._clonedFor !== partId) {
         const cloned = mat.clone();
+        // Private clone — clear the _shared inherited from MAT.* via clone()
+        // so teardown frees it (H4); tag it so a repeat colour reuses it.
+        cloned.userData._shared = false;
         cloned.userData._clonedFor = partId;
+        // Free the material we're replacing IF it was private (a prior
+        // settings/colour clone). The base shared MAT.* (groupMat/MAT.frame) is
+        // still used by other meshes — never dispose it (H4 leak: the replaced
+        // private clone was orphaned and never freed).
+        const prev = mesh.material as THREE.Material;
         mesh.material = cloned;
         cloned.color.set(color);
+        if (prev !== cloned && prev.userData._shared !== true) prev.dispose();
       } else {
         mat.color.set(color);
       }

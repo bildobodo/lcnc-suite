@@ -89,8 +89,8 @@ private materials too.
 | H1 backplot geom/material on teardown | done | not _shared → disposeObject frees geom; material now freed too |
 | H2 clearScene skipped toolpath `_shared` geoms | done | toolpath geoms un-tagged; disposeObject frees them on rebuild |
 | H3 toolMarker dual ownership | done | single-owner `replaceToolMarker()` (parent?.remove + disposeObject prior); both sites routed through it; `toolMarker` nulled on rebuild. NOT e2e-guarded — renderer.info can't see tool-marker geom (visibility/upload-dependent; verified count held flat even with dispose removed). Covered by disposal.test.ts + structural single-owner + A3 toolController units + manual smoke |
-| H4 material clones never disposed | partial | teardown clones freed by new disposeObject; in-session setMachinePartColor replace-dispose → A2.3 |
-| H5 `_machineEdgeLines` materials accumulate | partial | teardown edge materials freed by new disposeObject; array reset → A2.3 |
+| H4 material clones never disposed | done | both clone sites (buildFromInit per-part colour + setMachinePartColor) clear the `_shared` that clone() copied from MAT.* so disposeObject frees them on teardown (latent A2.1 hole: custom-coloured parts would have leaked per rebuild); setMachinePartColor now disposes the replaced private clone (skips shared base). disposal.test.ts pins the clone gotcha. Material leaks aren't renderer.info-visible → precise per-site guard deferred to A3 parts controller |
+| H5 `_machineEdgeLines` materials accumulate | done | covered by A2.1 (disposeObject frees edge geom+material on teardown) + array reset in ensureCoreGroups + `_edgesBuilt`-guarded buildEdgesLazy (no in-session accumulation). No new code needed |
 | H6 surfaceGroup orphan parent assumption | done | `surfaceGroup` nulled on rebuild (clearScene already disposed it) so buildSurfaceLayer can't double-dispose a freed stale ref; build path uses parent?.remove |
 
 **e2e flakiness (A2.2):** the single shared mock-gateway process + per-test

@@ -73,6 +73,34 @@ describe("disposeObject", () => {
     for (const s of spies) expect(s).toHaveBeenCalledOnce();
   });
 
+  it("a private clone of a shared material IS disposed once _shared is cleared (H4 gotcha)", () => {
+    // THREE.Material.clone() deep-copies userData, so a clone of a _shared MAT.*
+    // inherits _shared=true and would wrongly survive teardown. The per-part
+    // colour clones (buildFromInit + setMachinePartColor) clear it to false;
+    // this pins that disposeObject then frees them. The raw-inherited case is
+    // the bug, shown alongside so the requirement is explicit.
+    const base = new THREE.MeshStandardMaterial();
+    base.userData._shared = true;
+
+    const inheritedClone = base.clone();          // still _shared=true (the trap)
+    expect(inheritedClone.userData._shared).toBe(true);
+
+    const privateClone = base.clone();
+    privateClone.userData._shared = false;        // what the fix does
+
+    const root = new THREE.Group();
+    const g1 = new THREE.BufferGeometry(), g2 = new THREE.BufferGeometry();
+    root.add(new THREE.Mesh(g1, inheritedClone));
+    root.add(new THREE.Mesh(g2, privateClone));
+    const inheritedSpy = vi.spyOn(inheritedClone, "dispose");
+    const privateSpy = vi.spyOn(privateClone, "dispose");
+
+    disposeObject(root);
+    expect(privateSpy, "private clone must be freed").toHaveBeenCalledOnce();
+    expect(inheritedSpy, "an un-cleared clone would leak — that's why the fix clears _shared")
+      .not.toHaveBeenCalled();
+  });
+
   it("calls InstancedMesh.dispose() to free its instanceMatrix (surface probe dots)", () => {
     const geom = new THREE.BufferGeometry();
     const mat = new THREE.MeshBasicMaterial();
