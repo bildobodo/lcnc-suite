@@ -1,124 +1,23 @@
-<script lang="ts">
-import { ref as _ref } from "vue";
-import * as THREE from "three";
-import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
-import { buildToolProfile, splitProfileAt, buildToolGeometry, buildHolderGeometry, type ToolMeta } from "./toolGeometry";
-import { loadGeometryFromIDB, storeGeometryInIDB, pruneStaleVersions } from "./geometryCache";
-import { AXIS_HEX, AXIS_CSS } from "./axisColors";
-
-
-// ---- Central caches (shared across ALL ThreeViewer instances) ----
-const _geometryCache = new Map<string, THREE.BufferGeometry>();
-const _toolMetaCache = new Map<number, ToolMeta>();  // tool_number → ToolMeta, populated on first sight
-let _loadPromise: Promise<void> | null = null;
-let _loadedInitJson: string | null = null;
-export const machineReady = _ref(false);
-export const failedParts = _ref<string[]>([]);
-
-async function fetchAndParseStl(url: string, signal?: AbortSignal): Promise<THREE.BufferGeometry> {
-  const res = await fetch(url, { signal });
-  if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
-  const buf = await res.arrayBuffer();
-  const bytes = new Uint8Array(buf);
-  const head = new TextDecoder("utf-8", { fatal: false }).decode(bytes.slice(0, 200)).toLowerCase();
-  if (head.includes("<!doctype") || head.includes("<html")) throw new Error(`Not an STL from ${url}`);
-  const loader = new STLLoader();
-  const looksAscii = head.startsWith("solid") && head.includes("facet");
-  if (looksAscii) return loader.parse(new TextDecoder().decode(bytes));
-  if (buf.byteLength >= 84) {
-    const dv = new DataView(buf);
-    const triCount = dv.getUint32(80, true);
-    if (84 + triCount * 50 <= buf.byteLength && triCount < 50_000_000) return loader.parse(buf);
-    return loader.parse(new TextDecoder().decode(bytes));
-  }
-  throw new Error(`STL too small / invalid: ${url}`);
-}
-
-export function loadMachineAssets(init: any, onProgress?: (msg: string) => void): Promise<void> {
-  const json = JSON.stringify({ base: init.stl_base_url, parts: init.parts });
-  // Return in-progress OR completed promise (true deduplication).
-  // Rejected promises clear _loadPromise in the catch below so the next call retries.
-  if (_loadPromise && json === _loadedInitJson) return _loadPromise;
-
-  _loadedInitJson = json;
-  machineReady.value = false;
-  failedParts.value = [];
-
-  _loadPromise = (async () => {
-    const abort = new AbortController();
-    const timer = setTimeout(() => abort.abort(new DOMException("STL fetch timed out after 120s", "TimeoutError")), 120_000);
-    try {
-      const base = init.stl_base_url;
-      const parts = init.parts ?? [];
-      const urlFor = (file: string) => base.endsWith("/") ? `${base}${file}` : `${base}/${file}`;
-      const toFetch = parts.filter((p: any) => !_geometryCache.has(p.id));
-
-      // Drop IndexedDB entries whose ?v= no longer matches the active set.
-      // Bounds the cache as users update STLs (?v=mtime changes → new key).
-      pruneStaleVersions(new Set(parts.map((p: any) => urlFor(p.file)))).catch(() => {});
-
-      if (toFetch.length === 0) {
-        onProgress?.("All STLs already cached");
-      }
-
-      const results = await Promise.allSettled(toFetch.map(async (p: any) => {
-        const url = urlFor(p.file);
-        const t0 = performance.now();
-        // L2: parsed geometry from IndexedDB. Same-version key (?v=mtime)
-        // means no re-fetch + no re-parse on reconnect / reload.
-        let geom = await loadGeometryFromIDB(url);
-        if (geom) {
-          onProgress?.(`✓ ${p.id} (cache, ${((performance.now() - t0) / 1000).toFixed(2)}s)`);
-        } else {
-          onProgress?.(`Fetching ${p.id}…`);
-          geom = await fetchAndParseStl(url, abort.signal);
-          geom.computeVertexNormals();
-          // Fire-and-forget: don't block first paint on the IDB write.
-          storeGeometryInIDB(url, geom).catch(e => console.warn("[idb] store", e));
-          onProgress?.(`✓ ${p.id} (${((performance.now() - t0) / 1000).toFixed(1)}s)`);
-        }
-        geom.userData._shared = true;
-        _geometryCache.set(p.id, geom);
-      }));
-
-      const failed: string[] = [];
-      results.forEach((r, i) => {
-        if (r.status === "rejected") {
-          const id = toFetch[i].id;
-          failed.push(id);
-          console.error(`[STL] failed to load ${id}:`, r.reason);
-        }
-      });
-      failedParts.value = failed;
-
-      machineReady.value = true;
-    } catch (err) {
-      _loadPromise = null; // clear so the next buildFromInit call retries fresh
-      throw err;
-    } finally {
-      clearTimeout(timer);
-    }
-  })();
-
-  return _loadPromise;
-}
-
-export function getCachedGeometry(id: string): THREE.BufferGeometry | undefined {
-  return _geometryCache.get(id);
-}
-</script>
-
 <script setup lang="ts">
 import { computed, inject, onMounted, onUnmounted, reactive, ref, watch, type Ref } from "vue";
 
+import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { Text } from "troika-three-text";
+import { buildToolProfile, splitProfileAt, buildToolGeometry, buildHolderGeometry, type ToolMeta } from "./toolGeometry";
+import { AXIS_HEX, AXIS_CSS } from "./axisColors";
+import {
+  failedParts, loadMachineAssets, getCachedGeometry, getToolMeta, setToolMeta,
+} from "./viewer/machineAssetCache";
 
 import { viewerInit, viewerGcode, gcodeContent, status, type ViewerInit, type ViewerGcode } from "./lcncWs";
 import { loadViewerDefaults, loadCameraDefaults, saveCameraDefaults, ALL_LAYERS, settingsVersion, type Vec3, type Layer } from "./defaults";
 import { fmtCoord } from "./format";
 import { recordApply, recordRender, setViewerPerfContext } from "./viewerPerf";
 import { disposeObject } from "./viewer/disposal";
+import { createBackplotController } from "./viewer/backplotController";
+import { createSurfaceController } from "./viewer/surfaceController";
+import type { ViewerCtx } from "./viewer/viewerContext";
 import ViewCube from "./ViewCube.vue";
 import MachineBtn from "./MachineBtn.vue";
 import CameraPip from "./CameraPip.vue";
@@ -295,7 +194,8 @@ let feedSharedGeom: THREE.BufferGeometry | null = null;
 let rapidSharedGeom: THREE.BufferGeometry | null = null;
 let highlightGeom: THREE.BufferGeometry | null = null;
 let workAxes: THREE.Group | null = null;
-let surfaceGroup: THREE.Group | null = null;
+// Surface map (probe heightmap) — owned by surfaceController.
+const surface = createSurfaceController();
 
 // Map g-code line number → { start, end } point-index range in feed arrays
 let feedLineMap: Map<number, { start: number; end: number }> = new Map();
@@ -303,7 +203,6 @@ let feedLineMap: Map<number, { start: number; end: number }> = new Map();
 // Pending layer visibility: stores calls made before scene objects exist
 let pendingLayers: Map<Layer, boolean> | null = new Map();
 let toolpathVisible = true;
-let surfaceVisible = true;
 const toolpathOverflow = ref(false);
 // Toolpath bounding box in work coordinates (set by applyGcode, used by updateOverflowCheck)
 let toolpathBBox: { min: [number, number, number]; max: [number, number, number] } | null = null;
@@ -319,6 +218,12 @@ let trackingMode: "none" | "tool" | "wcs" = "none";
 // flight and a non-zero tracking delta force a frame.
 let _needsRender = true;
 function requestRender() { _needsRender = true; }
+
+// Fresh per-call snapshot of the reassigned scene-graph pointers for the viewer
+// controllers (they must never cache these — see viewer/viewerContext.ts).
+function viewerCtx(): ViewerCtx {
+  return { scene, workRotGroup, workOrigin, requestRender };
+}
 
 // Render-on-demand change detection. Replaces a per-tick JSON.stringify of all
 // visually-relevant fields (~30 Hz) with cheap field-wise comparison against
@@ -350,18 +255,12 @@ let pathAlwaysOnTop = true; // default; overridden by setPathAlwaysOnTop()
 // 1 for mm machines, 1/25.4 for inch machines. Set in buildFromInit() from viewer_init.units.
 let _unitScale = 1;
 
-// ---- Backplot (live toolpath history) ----
-let backplotLine: THREE.Line | null = null;
-let backplotGeom: THREE.BufferGeometry | null = null;
-let backplotPos: Float32Array | null = null;
-let backplotCount = 0;            // valid points in the window, 0..BACKPLOT_MAX
-let backplotHead = 0;             // next write slot, 0..BACKPLOT_MAX-1
-const BACKPLOT_MAX = 20000;   // points (10 Hz -> ~33 min)
-const BACKPLOT_EPS = 0.01;    // mm; min distance before adding a point
-// Scalar dedup anchor (no retained Vector3 → no per-point allocation).
-let lastBx = 0, lastBy = 0, lastBz = 0, hasLastBackplotPt = false;
+// ---- Backplot (live toolpath history) — owned by backplotController ----
+const backplot = createBackplotController(requestRender);
 // Reused scratch vectors for the per-tick backplot append — avoids allocating
-// two Vector3 every status tick (GC churn → motion-animation hiccups).
+// two Vector3 every status tick (GC churn → motion-animation hiccups). The
+// tool-tip world→work-local conversion (toolMarker/_workGrp) stays here in the
+// orchestrator; only the ring-buffer push moved to the controller.
 const _bpWorld = new THREE.Vector3();
 const _bpLocal = new THREE.Vector3();
 // Reused scratch for camera tracking — runs every rAF frame while tracking.
@@ -421,16 +320,7 @@ function buildGizmo() {
 }
 
 function resetBackplot() {
-  backplotCount = 0;
-  backplotHead = 0;
-  hasLastBackplotPt = false;
-
-  if (backplotGeom && backplotPos) {
-    // Keep allocation, just “empty” it
-    backplotGeom.setDrawRange(0, 0);
-    backplotGeom.attributes.position!.needsUpdate = true;
-  }
-  requestRender();
+  backplot.reset();
 }
 
 // Frame camera to show the given bounding box.
@@ -701,7 +591,7 @@ function setLayerVisible(layer: Layer, on: boolean) {
   }
   switch (layer) {
     case "backplot":
-      if (backplotLine) backplotLine.visible = on;
+      backplot.setVisible(on);
       break;
     case "toolpath":
       toolpathVisible = on;
@@ -734,8 +624,7 @@ function setLayerVisible(layer: Layer, on: boolean) {
       hudVisible.value = on;
       break;
     case "surface":
-      surfaceVisible = on;
-      if (surfaceGroup) surfaceGroup.visible = on;
+      surface.setVisible(on);
       break;
   }
   requestRender();
@@ -745,12 +634,7 @@ function setPathAlwaysOnTop(on: boolean) {
   pathAlwaysOnTop = on;
   const dt = !on; // depthTest: false = always on top
 
-  if (backplotLine) {
-    const m = backplotLine.material as THREE.LineBasicMaterial;
-    m.depthTest = dt;
-    m.depthWrite = false; // backplot is transparent, never write depth
-    m.needsUpdate = true;
-  }
+  backplot.setDepthTest(dt);
   if (feedLine) {
     const m = feedLine.material as THREE.LineBasicMaterial;
     m.depthTest = dt;
@@ -784,39 +668,6 @@ function setTrackingMode(mode: "none" | "tool" | "wcs") {
   trackingMode = mode;
   requestRender();
 }
-
-function pushBackplotPoint(x: number, y: number, z: number) {
-  if (!backplotGeom || !backplotPos || !backplotLine) return;
-
-  if (hasLastBackplotPt) {
-    const dx = x - lastBx, dy = y - lastBy, dz = z - lastBz;
-    if (dx * dx + dy * dy + dz * dz < BACKPLOT_EPS * BACKPLOT_EPS) return;
-  }
-
-  // Linearized circular buffer: the backing array is 2×BACKPLOT_MAX long, and
-  // every point is written to BOTH `slot` and `slot+BACKPLOT_MAX`. That keeps
-  // the most-recent BACKPLOT_MAX points contiguous and in chronological order
-  // at indices [head, head+BACKPLOT_MAX) once full — a single setDrawRange with
-  // zero per-point memmove (the old copyWithin shifted ~60 KB on every point).
-  const N = BACKPLOT_MAX;
-  const slot = backplotHead;
-  const a = slot * 3;
-  const b = (slot + N) * 3;
-  backplotPos[a + 0] = x; backplotPos[a + 1] = y; backplotPos[a + 2] = z;
-  backplotPos[b + 0] = x; backplotPos[b + 1] = y; backplotPos[b + 2] = z;
-
-  backplotHead = (slot + 1) % N;
-  if (backplotCount < N) backplotCount++;
-
-  lastBx = x; lastBy = y; lastBz = z; hasLastBackplotPt = true;
-
-  // Not yet wrapped: points fill [0, count). Full: window starts at head.
-  const start = backplotCount < N ? 0 : backplotHead;
-  backplotGeom.setDrawRange(start, backplotCount);
-  backplotGeom.attributes.position!.needsUpdate = true;
-}
-
-
 
 // Used to ignore late async loads after rebuild
 let buildToken = 0;
@@ -985,12 +836,12 @@ function ensureCoreGroups(init: ViewerInit) {
   _edgesBuilt = false;
   _edgeBuildToken++;
   // clearScene (run by buildFromInit before this) already disposed the old
-  // tool marker and surface group via the scene graph; null the dangling refs
-  // so replaceToolMarker / buildSurfaceLayer don't operate on freed objects
-  // (H3/H6 — a stale surfaceGroup would otherwise be double-disposed and a
-  // stale toolMarker removed from the wrong parent).
+  // tool marker and surface group via the scene graph; drop the dangling refs
+  // so replaceToolMarker / surface.build don't operate on freed objects
+  // (H3/H6 — a stale group would otherwise be double-disposed and a stale
+  // toolMarker removed from the wrong parent).
   toolMarker = null;
-  surfaceGroup = null;
+  surface.forgetAfterSceneClear();
 
   // Clear old group references
   for (const key of Object.keys(groups)) delete groups[key];
@@ -1043,29 +894,9 @@ function ensureCoreGroups(init: ViewerInit) {
   workRotGroup.add(workAxes);
 
   // ---- Backplot line (tool history in WORK coordinates) ----
-{
-  backplotGeom = new THREE.BufferGeometry();
-  // 2× length: linearized circular buffer (see pushBackplotPoint). +480 KB.
-  backplotPos = new Float32Array(BACKPLOT_MAX * 2 * 3);
-  backplotGeom.setAttribute("position", new THREE.BufferAttribute(backplotPos, 3));
-  backplotGeom.setDrawRange(0, 0);
-
-  const bpColor = viewerDefaults.colors.backplot ?? "#ff00ff";
-  const mat = new THREE.LineBasicMaterial({
-    color: bpColor,
-    depthTest: !pathAlwaysOnTop,
-    depthWrite: false,
-  });
-
-  backplotLine = new THREE.Line(backplotGeom, mat);
-  backplotLine.renderOrder = 11;
-  backplotLine.frustumCulled = false;   // ✅ prevents disappearing when origin is off-screen
-  _workGrp!.add(backplotLine);
-
-resetBackplot();
-
-
-}
+  // Rebuild under the fresh _workGrp (reassigned each rebuild); the controller
+  // replaces its prior line (clearScene already disposed the old one).
+  backplot.build(_workGrp!, viewerDefaults.colors.backplot ?? "#ff00ff", !pathAlwaysOnTop);
 
   // Default tool until viewer_state arrives — but skip if applyState already
   // built the real tool during the async gap (loadMachineAssets yield).
@@ -1292,8 +1123,8 @@ async function buildFromInit(init: ViewerInit) {
     setViewerPerfContext(() => ({
       feed_segs: feedSharedGeom?.getAttribute("position")?.count ?? 0,
       rapid_segs: rapidSharedGeom?.getAttribute("position")?.count ?? 0,
-      backplot_pts: backplotCount,
-      backplot_full: backplotCount >= BACKPLOT_MAX,
+      backplot_pts: backplot.count,
+      backplot_full: backplot.isFull,
       // Three.js resource counts — monotonic growth over a long run is a
       // geometry/texture leak (the "~1 hr in" stutter suspect). Ride the 3 s
       // probe so leak detection shares one event line with heap + gap.
@@ -1316,11 +1147,11 @@ async function buildFromInit(init: ViewerInit) {
     const _freshVd = loadViewerDefaults();
     for (const layer of ALL_LAYERS) setLayerVisible(layer, _freshVd.layers[layer]);
 
-    // Re-attach surface mesh: ensureCoreGroups() orphans the old surfaceGroup
+    // Re-attach surface mesh: ensureCoreGroups() orphans the old surface group
     // (it lived under the previous workRotGroup), and the prop watcher only
     // fires on prop change — not on viewer rebuilds. Also covers the race
     // where surface_points arrived before scene/workOrigin existed.
-    if (props.surfacePoints?.length) buildSurfaceLayer(props.surfacePoints);
+    if (props.surfacePoints?.length) surface.build(viewerCtx(), props.surfacePoints, props.compGrid);
 
     // Pre-compile every material's shader now that all geometry is in the
     // scene. Without this, the FIRST interactive frame does the compilation
@@ -1423,9 +1254,9 @@ function applyState(init: ViewerInit, st: ViewerState) {
       }
       if (meta) {
         _lastToolMeta = meta;
-        if (toolNum != null) _toolMetaCache.set(toolNum, meta);
+        if (toolNum != null) setToolMeta(toolNum, meta);
       } else if (toolNum != null) {
-        _lastToolMeta = _toolMetaCache.get(toolNum) ?? null;
+        _lastToolMeta = getToolMeta(toolNum) ?? null;
       }
 
       // buildToolGroup sets the toolCutterMesh/toolBodyMesh module refs as a
@@ -1449,7 +1280,7 @@ function applyState(init: ViewerInit, st: ViewerState) {
     // worldToLocal mutates its argument in place, so convert a copy.
     _bpLocal.copy(_bpWorld);
     _workGrp.worldToLocal(_bpLocal);
-    pushBackplotPoint(_bpLocal.x, _bpLocal.y, _bpLocal.z);
+    backplot.push(_bpLocal.x, _bpLocal.y, _bpLocal.z);
   }
 
   // ---- Highlight current motion line in toolpath ----
@@ -2099,7 +1930,7 @@ watch(
     const tm: ToolMeta | null = msg.tool_meta ?? null;
     pendingState = tm ? { ...msg.data, tool_meta: tm } : msg.data;
     if (tm && msg.data.tool_number != null) {
-      _toolMetaCache.set(msg.data.tool_number, tm);
+      setToolMeta(msg.data.tool_number, tm);
     }
   },
 );
@@ -2149,115 +1980,12 @@ const spindleLoadFillPct = computed(() => {
 
 // ─── Surface map layer ──────────────────────────────────────────
 
-function viridis(t: number): [number, number, number] {
-  t = Math.max(0, Math.min(1, t));
-  const c: [number, number, number][] = [[68,1,84],[59,82,139],[33,145,140],[94,201,98],[253,231,37]];
-  const idx = t * (c.length - 1);
-  const i = Math.floor(idx);
-  const f = idx - i;
-  const a = c[Math.min(i, c.length - 1)]!;
-  const b = c[Math.min(i + 1, c.length - 1)]!;
-  return [
-    Math.round(a[0] + (b[0] - a[0]) * f),
-    Math.round(a[1] + (b[1] - a[1]) * f),
-    Math.round(a[2] + (b[2] - a[2]) * f),
-  ];
-}
-
-
-function buildSurfaceLayer(pts: [number, number, number][]) {
-  if (!scene || !workOrigin) return;
-
-  // Remove previous
-  if (surfaceGroup) {
-    surfaceGroup.parent?.remove(surfaceGroup);
-    surfaceGroup.traverse((o: any) => {
-      if (o.geometry) o.geometry.dispose();
-      if (o.material) o.material.dispose();
-      if (typeof o.dispose === "function") o.dispose();  // InstancedMesh.instanceMatrix
-    });
-    surfaceGroup = null;
-  }
-
-  // Atomic render: both surface points AND scipy comp grid required, or nothing
-  const grid = props.compGrid;
-  if (!pts || pts.length < 3) return;
-  if (!grid || grid.x.length < 2 || grid.y.length < 2) return;
-
-  surfaceGroup = new THREE.Group();
-
-  // Z-bounds for color mapping (taken from raw points)
-  let zMin = Infinity, zMax = -Infinity;
-  for (const p of pts) {
-    if (p[2] < zMin) zMin = p[2]; if (p[2] > zMax) zMax = p[2];
-  }
-  const zRange = zMax - zMin || 0.001;
-
-  // Build mesh from scipy-interpolated grid at 1:1 WCS scale
-  const nx = grid.x.length, ny = grid.y.length;
-  const gxRange = grid.x[nx - 1]! - grid.x[0]!;
-  const gyRange = grid.y[ny - 1]! - grid.y[0]!;
-  const geom = new THREE.PlaneGeometry(gxRange || 1, gyRange || 1, nx - 1, ny - 1);
-  const posArr = geom.attributes.position!;
-  const colors = new Float32Array(nx * ny * 3);  // pre-allocated, set by vertex index (P4.2)
-
-  for (let iy = 0; iy < ny; iy++) {
-    for (let ix = 0; ix < nx; ix++) {
-      const vi = iy * nx + ix;
-      const gx = grid.x[ix]!, gy = grid.y[iy]!;
-      let z = grid.zi[ix]?.[iy];
-      // Complete grid expected — out-of-hull cells are filled server-side now
-      // (compensation.py nearest backfill; a95fc7d "no IDW fallback"). A residual
-      // null only means a stale/pre-fix grid file → render flat, no main-thread scan.
-      if (z == null || !isFinite(z)) z = 0;
-      posArr.setX(vi, gx);
-      posArr.setY(vi, gy);
-      posArr.setZ(vi, z);
-      const t = (z - zMin) / zRange;
-      const [r, g, b] = viridis(t);
-      colors[vi * 3] = r / 255;
-      colors[vi * 3 + 1] = g / 255;
-      colors[vi * 3 + 2] = b / 255;
-    }
-  }
-  geom.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
-  geom.computeVertexNormals();
-
-  const mat = new THREE.MeshLambertMaterial({
-    vertexColors: true,
-    side: THREE.DoubleSide,
-    transparent: true,
-    opacity: 0.85,
-  });
-  surfaceGroup.add(new THREE.Mesh(geom, mat));
-
-  // Probe-point dots as a single InstancedMesh (P4.2): one geometry + one draw call
-  // instead of N separate Mesh objects, which each added scene-graph + per-frame
-  // cull/draw overhead for as long as the surface stayed visible.
-  const dotR = Math.min(gxRange || 1, gyRange || 1) * 0.012;
-  const dotGeom = new THREE.SphereGeometry(dotR, 8, 8);
-  const dotMat = new THREE.MeshBasicMaterial({ color: 0xff3333 });
-  const dots = new THREE.InstancedMesh(dotGeom, dotMat, pts.length);
-  const _dotM = new THREE.Matrix4();
-  for (let i = 0; i < pts.length; i++) {
-    const p = pts[i]!;
-    _dotM.makeTranslation(p[0], p[1], p[2]);
-    dots.setMatrixAt(i, _dotM);
-  }
-  dots.instanceMatrix.needsUpdate = true;
-  surfaceGroup.add(dots);
-
-  workRotGroup!.add(surfaceGroup);
-  surfaceGroup.visible = surfaceVisible;
-  requestRender();
-}
-
 watch(() => props.surfacePoints, (pts) => {
-  buildSurfaceLayer(pts ?? []);
+  surface.build(viewerCtx(), pts ?? [], props.compGrid);
 });
 
 watch(() => props.compGrid, () => {
-  if (props.surfacePoints?.length) buildSurfaceLayer(props.surfacePoints);
+  if (props.surfacePoints?.length) surface.build(viewerCtx(), props.surfacePoints, props.compGrid);
 });
 
 /** Live-update a machine part's color without rebuilding the scene.
@@ -2386,7 +2114,7 @@ type PathColors = { feed?: string; rapid?: string; backplot?: string; bounds?: s
 function applyPathColors(c: PathColors) {
   if (feedLine && c.feed) (feedLine.material as THREE.LineBasicMaterial).color.set(c.feed);
   if (rapidLine && c.rapid) (rapidLine.material as THREE.LineDashedMaterial).color.set(c.rapid);
-  if (backplotLine && c.backplot) (backplotLine.material as THREE.LineBasicMaterial).color.set(c.backplot);
+  if (c.backplot) backplot.setColor(c.backplot);
   if (machineBoundsMesh && c.bounds) (machineBoundsMesh.material as THREE.LineBasicMaterial).color.set(c.bounds);
   if (toolpathBoundsBox && c.toolpathBounds) (toolpathBoundsBox.material as THREE.LineBasicMaterial).color.set(c.toolpathBounds);
 }
