@@ -70,15 +70,36 @@ the snapshot, never accidents.
 
 ### A2 — Viewer disposal hazards (fixed BEFORE the A3 split)
 
+**Key finding (A2.0):** the overloaded `userData._shared` flag meant two things —
+(a) STL-cache geometries reused across viewer instances (must survive), and
+(b) per-program toolpath geometries (must die on rebuild). And `disposeObject`
+NEVER disposed materials at all. So the genuinely UNBOUNDED leaks are MATERIALS
+(edge materials, colour clones orphaned per reconnect) — and `renderer.info` does
+NOT count material instances. Therefore: the e2e probe guards the geometry class
+(H2 toolpath); `src/viewer/disposal.test.ts` (dispose spies, headless THREE)
+guards the material class. The unifying fix makes `_shared` mean uniformly
+"externally owned — never dispose here" (applied to the 7 MAT.* + cache geoms),
+removes it from per-program toolpath geoms, and makes `disposeObject` dispose
+private materials too.
+
 | Item | State | Notes |
 |---|---|---|
-| Leak probe + viewer.spec.ts (RED first) | pending | `window.__viewerLeakProbe`; spec lands `test.fixme` proving it catches H1/H2 |
-| H1 backplotGeom not disposed on applyGcode | pending | |
-| H2 clearScene skips `userData._shared` geoms | pending | |
-| H3 toolMarker dual ownership | pending | single-owner `replaceToolMarker()` |
-| H4 material clones never disposed | pending | |
-| H5 `_machineEdgeLines` accumulate | pending | |
-| H6 surfaceGroup orphan parent assumption | pending | |
+| Leak probe + viewer.spec.ts | done | `window.__viewerLeakProbe` (renderer.info); delta-based spec (load→rebuild must free toolpath geom) — troika global glyph atlas (+3 geoms/+1 tex, once) cancels in the delta. Race-hardened (poll-for-rise after async load). Proven RED adversarially (re-tag toolpath `_shared` → delta collapses to 1). Serial `serial` project. |
+| disposal.ts extraction + unit tests | done | 5 dispose-spy tests, proven RED (old behavior fails 4/5) |
+| H1 backplot geom/material on teardown | done | not _shared → disposeObject frees geom; material now freed too |
+| H2 clearScene skipped toolpath `_shared` geoms | done | toolpath geoms un-tagged; disposeObject frees them on rebuild |
+| H3 toolMarker dual ownership | done | single-owner `replaceToolMarker()` (parent?.remove + disposeObject prior); both sites routed through it; `toolMarker` nulled on rebuild. NOT e2e-guarded — renderer.info can't see tool-marker geom (visibility/upload-dependent; verified count held flat even with dispose removed). Covered by disposal.test.ts + structural single-owner + A3 toolController units + manual smoke |
+| H4 material clones never disposed | done | both clone sites (buildFromInit per-part colour + setMachinePartColor) clear the `_shared` that clone() copied from MAT.* so disposeObject frees them on teardown (latent A2.1 hole: custom-coloured parts would have leaked per rebuild); setMachinePartColor now disposes the replaced private clone (skips shared base). disposal.test.ts pins the clone gotcha. Material leaks aren't renderer.info-visible → precise per-site guard deferred to A3 parts controller |
+| H5 `_machineEdgeLines` materials accumulate | done | covered by A2.1 (disposeObject frees edge geom+material on teardown) + array reset in ensureCoreGroups + `_edgesBuilt`-guarded buildEdgesLazy (no in-session accumulation). No new code needed |
+| H6 surfaceGroup orphan parent assumption | done | `surfaceGroup` nulled on rebuild (clearScene already disposed it) so buildSurfaceLayer can't double-dispose a freed stale ref; build path uses parent?.remove |
+
+**e2e flakiness (A2.2):** the single shared mock-gateway process + per-test
+broadcasts caused intermittent serial-project failures (viewer toolpath delta;
+lifecycle shutdown banner) — a one-shot `ctl` broadcast can race page WS
+readiness. Fixes: a `reset` ctl op + `beforeEach` in both serial specs (kills
+state bleed — frames.spec's status_delta had been mutating shared work_pos);
+broadcast-driven assertions now POLL-RETRY the send (delivery-robust, still RED
+if the UI logic is broken). 10/10 full runs green after.
 
 ### A3 — ThreeViewer split (4 commits)
 
@@ -115,4 +136,6 @@ Tracked when reached. WS-B is the only gateway-touching phase (full perf-matrix 
 | frames.spec halshow guard | killed `halshow_update` dispatch case in onFrame | halshow spec red (value stuck at "0") | git checkout + rebuild |
 | eslint export-let ban | appended `export let _banProbe = 1` to halshowStore.ts | lint error no-restricted-syntax at the exact line | line removed |
 | lifecycle reload-resume guard | `_prevArmed = false` (boot-from-storage dead) | FIRST run stayed GREEN — fullyParallel ran the sibling shutdownClose test concurrently, whose global close triggered a same-page reconnect hello with resume_armed=true (masking). Set lifecycle project fullyParallel:false; re-broke: exactly the reload spec red | sed restore + rebuild |
+| disposal.test.ts (A2) | reverted disposeObject to old (skip _shared geom, never dispose materials) | 4/5 RED (private material + array + recursion + instanced) | restore |
+| viewer.spec.ts geom probe (A2) | re-tagged toolpath geom `userData._shared` (reproduces H2) | load→rebuild delta collapsed 3→1 (<2) → RED; GREEN restored, stable ×3 full-suite runs | sed delete + rebuild |
 | frames.spec status_delta guard | killed `status_delta` dispatch case | FIRST attempt stayed GREEN — mock folded the delta into state, and the next 1 Hz full-status echo delivered the same value (a masking path in the GUARD itself). Added `/ctl` `quiet` op; spec silences status echoes around the delta assert. Re-broke: delta spec red, others green. | git checkout + rebuild |
