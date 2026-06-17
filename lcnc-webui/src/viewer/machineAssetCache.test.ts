@@ -9,7 +9,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as THREE from "three";
 
 const idb = vi.hoisted(() => ({
-  loadGeometryFromIDB: vi.fn(async (_url: string) => new THREE.BufferGeometry()),
+  loadGeometryFromIDB: vi.fn<(url: string) => Promise<THREE.BufferGeometry | null>>(
+    async () => new THREE.BufferGeometry()),
   storeGeometryInIDB: vi.fn(async () => {}),
   pruneStaleVersions: vi.fn(async () => {}),
 }));

@@ -15,6 +15,7 @@ import { loadViewerDefaults, loadCameraDefaults, saveCameraDefaults, ALL_LAYERS,
 import { fmtCoord } from "./format";
 import { recordApply, recordRender, setViewerPerfContext } from "./viewerPerf";
 import { disposeObject } from "./viewer/disposal";
+import { createBackplotController } from "./viewer/backplotController";
 import ViewCube from "./ViewCube.vue";
 import MachineBtn from "./MachineBtn.vue";
 import CameraPip from "./CameraPip.vue";
@@ -246,18 +247,12 @@ let pathAlwaysOnTop = true; // default; overridden by setPathAlwaysOnTop()
 // 1 for mm machines, 1/25.4 for inch machines. Set in buildFromInit() from viewer_init.units.
 let _unitScale = 1;
 
-// ---- Backplot (live toolpath history) ----
-let backplotLine: THREE.Line | null = null;
-let backplotGeom: THREE.BufferGeometry | null = null;
-let backplotPos: Float32Array | null = null;
-let backplotCount = 0;            // valid points in the window, 0..BACKPLOT_MAX
-let backplotHead = 0;             // next write slot, 0..BACKPLOT_MAX-1
-const BACKPLOT_MAX = 20000;   // points (10 Hz -> ~33 min)
-const BACKPLOT_EPS = 0.01;    // mm; min distance before adding a point
-// Scalar dedup anchor (no retained Vector3 → no per-point allocation).
-let lastBx = 0, lastBy = 0, lastBz = 0, hasLastBackplotPt = false;
+// ---- Backplot (live toolpath history) — owned by backplotController ----
+const backplot = createBackplotController(requestRender);
 // Reused scratch vectors for the per-tick backplot append — avoids allocating
-// two Vector3 every status tick (GC churn → motion-animation hiccups).
+// two Vector3 every status tick (GC churn → motion-animation hiccups). The
+// tool-tip world→work-local conversion (toolMarker/_workGrp) stays here in the
+// orchestrator; only the ring-buffer push moved to the controller.
 const _bpWorld = new THREE.Vector3();
 const _bpLocal = new THREE.Vector3();
 // Reused scratch for camera tracking — runs every rAF frame while tracking.
@@ -317,16 +312,7 @@ function buildGizmo() {
 }
 
 function resetBackplot() {
-  backplotCount = 0;
-  backplotHead = 0;
-  hasLastBackplotPt = false;
-
-  if (backplotGeom && backplotPos) {
-    // Keep allocation, just “empty” it
-    backplotGeom.setDrawRange(0, 0);
-    backplotGeom.attributes.position!.needsUpdate = true;
-  }
-  requestRender();
+  backplot.reset();
 }
 
 // Frame camera to show the given bounding box.
@@ -597,7 +583,7 @@ function setLayerVisible(layer: Layer, on: boolean) {
   }
   switch (layer) {
     case "backplot":
-      if (backplotLine) backplotLine.visible = on;
+      backplot.setVisible(on);
       break;
     case "toolpath":
       toolpathVisible = on;
@@ -641,12 +627,7 @@ function setPathAlwaysOnTop(on: boolean) {
   pathAlwaysOnTop = on;
   const dt = !on; // depthTest: false = always on top
 
-  if (backplotLine) {
-    const m = backplotLine.material as THREE.LineBasicMaterial;
-    m.depthTest = dt;
-    m.depthWrite = false; // backplot is transparent, never write depth
-    m.needsUpdate = true;
-  }
+  backplot.setDepthTest(dt);
   if (feedLine) {
     const m = feedLine.material as THREE.LineBasicMaterial;
     m.depthTest = dt;
@@ -680,39 +661,6 @@ function setTrackingMode(mode: "none" | "tool" | "wcs") {
   trackingMode = mode;
   requestRender();
 }
-
-function pushBackplotPoint(x: number, y: number, z: number) {
-  if (!backplotGeom || !backplotPos || !backplotLine) return;
-
-  if (hasLastBackplotPt) {
-    const dx = x - lastBx, dy = y - lastBy, dz = z - lastBz;
-    if (dx * dx + dy * dy + dz * dz < BACKPLOT_EPS * BACKPLOT_EPS) return;
-  }
-
-  // Linearized circular buffer: the backing array is 2×BACKPLOT_MAX long, and
-  // every point is written to BOTH `slot` and `slot+BACKPLOT_MAX`. That keeps
-  // the most-recent BACKPLOT_MAX points contiguous and in chronological order
-  // at indices [head, head+BACKPLOT_MAX) once full — a single setDrawRange with
-  // zero per-point memmove (the old copyWithin shifted ~60 KB on every point).
-  const N = BACKPLOT_MAX;
-  const slot = backplotHead;
-  const a = slot * 3;
-  const b = (slot + N) * 3;
-  backplotPos[a + 0] = x; backplotPos[a + 1] = y; backplotPos[a + 2] = z;
-  backplotPos[b + 0] = x; backplotPos[b + 1] = y; backplotPos[b + 2] = z;
-
-  backplotHead = (slot + 1) % N;
-  if (backplotCount < N) backplotCount++;
-
-  lastBx = x; lastBy = y; lastBz = z; hasLastBackplotPt = true;
-
-  // Not yet wrapped: points fill [0, count). Full: window starts at head.
-  const start = backplotCount < N ? 0 : backplotHead;
-  backplotGeom.setDrawRange(start, backplotCount);
-  backplotGeom.attributes.position!.needsUpdate = true;
-}
-
-
 
 // Used to ignore late async loads after rebuild
 let buildToken = 0;
@@ -939,29 +887,9 @@ function ensureCoreGroups(init: ViewerInit) {
   workRotGroup.add(workAxes);
 
   // ---- Backplot line (tool history in WORK coordinates) ----
-{
-  backplotGeom = new THREE.BufferGeometry();
-  // 2× length: linearized circular buffer (see pushBackplotPoint). +480 KB.
-  backplotPos = new Float32Array(BACKPLOT_MAX * 2 * 3);
-  backplotGeom.setAttribute("position", new THREE.BufferAttribute(backplotPos, 3));
-  backplotGeom.setDrawRange(0, 0);
-
-  const bpColor = viewerDefaults.colors.backplot ?? "#ff00ff";
-  const mat = new THREE.LineBasicMaterial({
-    color: bpColor,
-    depthTest: !pathAlwaysOnTop,
-    depthWrite: false,
-  });
-
-  backplotLine = new THREE.Line(backplotGeom, mat);
-  backplotLine.renderOrder = 11;
-  backplotLine.frustumCulled = false;   // ✅ prevents disappearing when origin is off-screen
-  _workGrp!.add(backplotLine);
-
-resetBackplot();
-
-
-}
+  // Rebuild under the fresh _workGrp (reassigned each rebuild); the controller
+  // replaces its prior line (clearScene already disposed the old one).
+  backplot.build(_workGrp!, viewerDefaults.colors.backplot ?? "#ff00ff", !pathAlwaysOnTop);
 
   // Default tool until viewer_state arrives — but skip if applyState already
   // built the real tool during the async gap (loadMachineAssets yield).
@@ -1188,8 +1116,8 @@ async function buildFromInit(init: ViewerInit) {
     setViewerPerfContext(() => ({
       feed_segs: feedSharedGeom?.getAttribute("position")?.count ?? 0,
       rapid_segs: rapidSharedGeom?.getAttribute("position")?.count ?? 0,
-      backplot_pts: backplotCount,
-      backplot_full: backplotCount >= BACKPLOT_MAX,
+      backplot_pts: backplot.count,
+      backplot_full: backplot.isFull,
       // Three.js resource counts — monotonic growth over a long run is a
       // geometry/texture leak (the "~1 hr in" stutter suspect). Ride the 3 s
       // probe so leak detection shares one event line with heap + gap.
@@ -1345,7 +1273,7 @@ function applyState(init: ViewerInit, st: ViewerState) {
     // worldToLocal mutates its argument in place, so convert a copy.
     _bpLocal.copy(_bpWorld);
     _workGrp.worldToLocal(_bpLocal);
-    pushBackplotPoint(_bpLocal.x, _bpLocal.y, _bpLocal.z);
+    backplot.push(_bpLocal.x, _bpLocal.y, _bpLocal.z);
   }
 
   // ---- Highlight current motion line in toolpath ----
@@ -2282,7 +2210,7 @@ type PathColors = { feed?: string; rapid?: string; backplot?: string; bounds?: s
 function applyPathColors(c: PathColors) {
   if (feedLine && c.feed) (feedLine.material as THREE.LineBasicMaterial).color.set(c.feed);
   if (rapidLine && c.rapid) (rapidLine.material as THREE.LineDashedMaterial).color.set(c.rapid);
-  if (backplotLine && c.backplot) (backplotLine.material as THREE.LineBasicMaterial).color.set(c.backplot);
+  if (c.backplot) backplot.setColor(c.backplot);
   if (machineBoundsMesh && c.bounds) (machineBoundsMesh.material as THREE.LineBasicMaterial).color.set(c.bounds);
   if (toolpathBoundsBox && c.toolpathBounds) (toolpathBoundsBox.material as THREE.LineBasicMaterial).color.set(c.toolpathBounds);
 }
