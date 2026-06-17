@@ -16,6 +16,8 @@ import { fmtCoord } from "./format";
 import { recordApply, recordRender, setViewerPerfContext } from "./viewerPerf";
 import { disposeObject } from "./viewer/disposal";
 import { createBackplotController } from "./viewer/backplotController";
+import { createSurfaceController } from "./viewer/surfaceController";
+import type { ViewerCtx } from "./viewer/viewerContext";
 import ViewCube from "./ViewCube.vue";
 import MachineBtn from "./MachineBtn.vue";
 import CameraPip from "./CameraPip.vue";
@@ -192,7 +194,8 @@ let feedSharedGeom: THREE.BufferGeometry | null = null;
 let rapidSharedGeom: THREE.BufferGeometry | null = null;
 let highlightGeom: THREE.BufferGeometry | null = null;
 let workAxes: THREE.Group | null = null;
-let surfaceGroup: THREE.Group | null = null;
+// Surface map (probe heightmap) — owned by surfaceController.
+const surface = createSurfaceController();
 
 // Map g-code line number → { start, end } point-index range in feed arrays
 let feedLineMap: Map<number, { start: number; end: number }> = new Map();
@@ -200,7 +203,6 @@ let feedLineMap: Map<number, { start: number; end: number }> = new Map();
 // Pending layer visibility: stores calls made before scene objects exist
 let pendingLayers: Map<Layer, boolean> | null = new Map();
 let toolpathVisible = true;
-let surfaceVisible = true;
 const toolpathOverflow = ref(false);
 // Toolpath bounding box in work coordinates (set by applyGcode, used by updateOverflowCheck)
 let toolpathBBox: { min: [number, number, number]; max: [number, number, number] } | null = null;
@@ -216,6 +218,12 @@ let trackingMode: "none" | "tool" | "wcs" = "none";
 // flight and a non-zero tracking delta force a frame.
 let _needsRender = true;
 function requestRender() { _needsRender = true; }
+
+// Fresh per-call snapshot of the reassigned scene-graph pointers for the viewer
+// controllers (they must never cache these — see viewer/viewerContext.ts).
+function viewerCtx(): ViewerCtx {
+  return { scene, workRotGroup, workOrigin, requestRender };
+}
 
 // Render-on-demand change detection. Replaces a per-tick JSON.stringify of all
 // visually-relevant fields (~30 Hz) with cheap field-wise comparison against
@@ -616,8 +624,7 @@ function setLayerVisible(layer: Layer, on: boolean) {
       hudVisible.value = on;
       break;
     case "surface":
-      surfaceVisible = on;
-      if (surfaceGroup) surfaceGroup.visible = on;
+      surface.setVisible(on);
       break;
   }
   requestRender();
@@ -829,12 +836,12 @@ function ensureCoreGroups(init: ViewerInit) {
   _edgesBuilt = false;
   _edgeBuildToken++;
   // clearScene (run by buildFromInit before this) already disposed the old
-  // tool marker and surface group via the scene graph; null the dangling refs
-  // so replaceToolMarker / buildSurfaceLayer don't operate on freed objects
-  // (H3/H6 — a stale surfaceGroup would otherwise be double-disposed and a
-  // stale toolMarker removed from the wrong parent).
+  // tool marker and surface group via the scene graph; drop the dangling refs
+  // so replaceToolMarker / surface.build don't operate on freed objects
+  // (H3/H6 — a stale group would otherwise be double-disposed and a stale
+  // toolMarker removed from the wrong parent).
   toolMarker = null;
-  surfaceGroup = null;
+  surface.forgetAfterSceneClear();
 
   // Clear old group references
   for (const key of Object.keys(groups)) delete groups[key];
@@ -1140,11 +1147,11 @@ async function buildFromInit(init: ViewerInit) {
     const _freshVd = loadViewerDefaults();
     for (const layer of ALL_LAYERS) setLayerVisible(layer, _freshVd.layers[layer]);
 
-    // Re-attach surface mesh: ensureCoreGroups() orphans the old surfaceGroup
+    // Re-attach surface mesh: ensureCoreGroups() orphans the old surface group
     // (it lived under the previous workRotGroup), and the prop watcher only
     // fires on prop change — not on viewer rebuilds. Also covers the race
     // where surface_points arrived before scene/workOrigin existed.
-    if (props.surfacePoints?.length) buildSurfaceLayer(props.surfacePoints);
+    if (props.surfacePoints?.length) surface.build(viewerCtx(), props.surfacePoints, props.compGrid);
 
     // Pre-compile every material's shader now that all geometry is in the
     // scene. Without this, the FIRST interactive frame does the compilation
@@ -1973,115 +1980,12 @@ const spindleLoadFillPct = computed(() => {
 
 // ─── Surface map layer ──────────────────────────────────────────
 
-function viridis(t: number): [number, number, number] {
-  t = Math.max(0, Math.min(1, t));
-  const c: [number, number, number][] = [[68,1,84],[59,82,139],[33,145,140],[94,201,98],[253,231,37]];
-  const idx = t * (c.length - 1);
-  const i = Math.floor(idx);
-  const f = idx - i;
-  const a = c[Math.min(i, c.length - 1)]!;
-  const b = c[Math.min(i + 1, c.length - 1)]!;
-  return [
-    Math.round(a[0] + (b[0] - a[0]) * f),
-    Math.round(a[1] + (b[1] - a[1]) * f),
-    Math.round(a[2] + (b[2] - a[2]) * f),
-  ];
-}
-
-
-function buildSurfaceLayer(pts: [number, number, number][]) {
-  if (!scene || !workOrigin) return;
-
-  // Remove previous
-  if (surfaceGroup) {
-    surfaceGroup.parent?.remove(surfaceGroup);
-    surfaceGroup.traverse((o: any) => {
-      if (o.geometry) o.geometry.dispose();
-      if (o.material) o.material.dispose();
-      if (typeof o.dispose === "function") o.dispose();  // InstancedMesh.instanceMatrix
-    });
-    surfaceGroup = null;
-  }
-
-  // Atomic render: both surface points AND scipy comp grid required, or nothing
-  const grid = props.compGrid;
-  if (!pts || pts.length < 3) return;
-  if (!grid || grid.x.length < 2 || grid.y.length < 2) return;
-
-  surfaceGroup = new THREE.Group();
-
-  // Z-bounds for color mapping (taken from raw points)
-  let zMin = Infinity, zMax = -Infinity;
-  for (const p of pts) {
-    if (p[2] < zMin) zMin = p[2]; if (p[2] > zMax) zMax = p[2];
-  }
-  const zRange = zMax - zMin || 0.001;
-
-  // Build mesh from scipy-interpolated grid at 1:1 WCS scale
-  const nx = grid.x.length, ny = grid.y.length;
-  const gxRange = grid.x[nx - 1]! - grid.x[0]!;
-  const gyRange = grid.y[ny - 1]! - grid.y[0]!;
-  const geom = new THREE.PlaneGeometry(gxRange || 1, gyRange || 1, nx - 1, ny - 1);
-  const posArr = geom.attributes.position!;
-  const colors = new Float32Array(nx * ny * 3);  // pre-allocated, set by vertex index (P4.2)
-
-  for (let iy = 0; iy < ny; iy++) {
-    for (let ix = 0; ix < nx; ix++) {
-      const vi = iy * nx + ix;
-      const gx = grid.x[ix]!, gy = grid.y[iy]!;
-      let z = grid.zi[ix]?.[iy];
-      // Complete grid expected — out-of-hull cells are filled server-side now
-      // (compensation.py nearest backfill; a95fc7d "no IDW fallback"). A residual
-      // null only means a stale/pre-fix grid file → render flat, no main-thread scan.
-      if (z == null || !isFinite(z)) z = 0;
-      posArr.setX(vi, gx);
-      posArr.setY(vi, gy);
-      posArr.setZ(vi, z);
-      const t = (z - zMin) / zRange;
-      const [r, g, b] = viridis(t);
-      colors[vi * 3] = r / 255;
-      colors[vi * 3 + 1] = g / 255;
-      colors[vi * 3 + 2] = b / 255;
-    }
-  }
-  geom.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
-  geom.computeVertexNormals();
-
-  const mat = new THREE.MeshLambertMaterial({
-    vertexColors: true,
-    side: THREE.DoubleSide,
-    transparent: true,
-    opacity: 0.85,
-  });
-  surfaceGroup.add(new THREE.Mesh(geom, mat));
-
-  // Probe-point dots as a single InstancedMesh (P4.2): one geometry + one draw call
-  // instead of N separate Mesh objects, which each added scene-graph + per-frame
-  // cull/draw overhead for as long as the surface stayed visible.
-  const dotR = Math.min(gxRange || 1, gyRange || 1) * 0.012;
-  const dotGeom = new THREE.SphereGeometry(dotR, 8, 8);
-  const dotMat = new THREE.MeshBasicMaterial({ color: 0xff3333 });
-  const dots = new THREE.InstancedMesh(dotGeom, dotMat, pts.length);
-  const _dotM = new THREE.Matrix4();
-  for (let i = 0; i < pts.length; i++) {
-    const p = pts[i]!;
-    _dotM.makeTranslation(p[0], p[1], p[2]);
-    dots.setMatrixAt(i, _dotM);
-  }
-  dots.instanceMatrix.needsUpdate = true;
-  surfaceGroup.add(dots);
-
-  workRotGroup!.add(surfaceGroup);
-  surfaceGroup.visible = surfaceVisible;
-  requestRender();
-}
-
 watch(() => props.surfacePoints, (pts) => {
-  buildSurfaceLayer(pts ?? []);
+  surface.build(viewerCtx(), pts ?? [], props.compGrid);
 });
 
 watch(() => props.compGrid, () => {
-  if (props.surfacePoints?.length) buildSurfaceLayer(props.surfacePoints);
+  if (props.surfacePoints?.length) surface.build(viewerCtx(), props.surfacePoints, props.compGrid);
 });
 
 /** Live-update a machine part's color without rebuilding the scene.
