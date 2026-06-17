@@ -37,6 +37,7 @@ const machineParts = inject<ComputedRef<Array<{ id: string; group: string | null
 const setMachinePartColor = inject<(id: string, color: string | null) => void>("setMachinePartColor", () => {});
 const setMachineEdges = inject<(on: boolean) => void>("setMachineEdges", () => {});
 const setToolColors = inject<(toolColor: string | null, cutterColor: string | null) => void>("setToolColors", () => {});
+const setPathColors = inject<(c: { feed?: string; rapid?: string; backplot?: string; bounds?: string; toolpathBounds?: string }) => void>("setPathColors", () => {});
 const updateMacros = inject<(macros: MacroDef[]) => void>("updateMacros", () => {});
 
 // ─── Macros CRUD ────────────────────────────────────────────────
@@ -387,6 +388,10 @@ function onColorChange(key: keyof ColorDefaults, value: string) {
   save();
   if (key === "tool" || key === "cutter") {
     setToolColors(colors.tool, colors.cutter);
+  } else {
+    // feed / rapid / backplot / bounds / toolpathBounds — live-update the
+    // existing lines (they used to apply only on the next program load).
+    setPathColors({ ...colors });
   }
 }
 

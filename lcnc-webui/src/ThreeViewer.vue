@@ -1970,26 +1970,33 @@ onMounted(() => {
   if (viewerGcode.value) applyGcode(viewerGcode.value);
 
   // Apply saved defaults (self-contained — no external wiring needed)
-  applyViewerDefaults({ initialMount: true });
+  applyViewerDefaults();
 });
 
 // Idempotent re-apply of viewer defaults — called on mount and from the
 // settingsVersion watcher when server settings arrive or another tab edits them.
-function applyViewerDefaults(opts: { initialMount?: boolean } = {}) {
+function applyViewerDefaults() {
   // Layer visibility, tracking, path-on-top, machine edges
   for (const layer of ALL_LAYERS) setLayerVisible(layer, viewerDefaults.layers[layer]);
   setTrackingMode(viewerDefaults.trackingMode);
   setPathAlwaysOnTop(viewerDefaults.pathOnTop);
   machineEdges = viewerDefaults.machineEdges;
 
-  // Projection: only toggle on initial mount (to honor persisted setting).
-  // On subsequent setting changes we leave the current projection alone — the
-  // user can still toggle manually and we avoid fighting their active view.
-  if (opts.initialMount && viewerDefaults.projection === "parallel") switchProjection();
+  // Projection: sync to the persisted value on EVERY apply (mount, settings
+  // change, reset) — absolute set, not a blind toggle. Manual changes are
+  // already persisted (SettingsPanel.onProjectionChange saves), so this can't
+  // fight the user: when they match it's a no-op; on a reset it restores the
+  // default. (Previously initialMount-gated, so a reset-to-parallel never took
+  // until a browser reload.)
+  const wantOrtho = viewerDefaults.projection === "parallel";
+  if (isOrtho.value !== wantOrtho) switchProjection();
 
   // Live-updatable materials: colors on shared MAT instances propagate immediately.
   MAT.tool.color.set(viewerDefaults.colors.tool ?? "#c0c0c0");
   MAT.cutter.color.set(viewerDefaults.colors.cutter ?? "#ffdd00");
+  // Toolpath/backplot/bounds line colors live too (they used to apply only at
+  // line-creation time, so a colour change needed a program reload).
+  applyPathColors(viewerDefaults.colors);
 
   // Per-part color overrides — re-apply to any existing machine meshes.
   // Meshes built after this point pick up the new values from viewerDefaults
@@ -2372,6 +2379,24 @@ function setToolColors(toolColor: string | null, cutterColor: string | null) {
   requestRender();
 }
 
+// Live-update the per-program toolpath/backplot/bounds line colors on whatever
+// lines currently exist (null-guarded; lines built later read the saved value
+// at creation). Overflow/highlight lines keep their fixed warning colors.
+type PathColors = { feed?: string; rapid?: string; backplot?: string; bounds?: string; toolpathBounds?: string };
+function applyPathColors(c: PathColors) {
+  if (feedLine && c.feed) (feedLine.material as THREE.LineBasicMaterial).color.set(c.feed);
+  if (rapidLine && c.rapid) (rapidLine.material as THREE.LineDashedMaterial).color.set(c.rapid);
+  if (backplotLine && c.backplot) (backplotLine.material as THREE.LineBasicMaterial).color.set(c.backplot);
+  if (machineBoundsMesh && c.bounds) (machineBoundsMesh.material as THREE.LineBasicMaterial).color.set(c.bounds);
+  if (toolpathBoundsBox && c.toolpathBounds) (toolpathBoundsBox.material as THREE.LineBasicMaterial).color.set(c.toolpathBounds);
+}
+
+/** Exposed instant path-colour update (parity with setToolColors). */
+function setPathColors(c: PathColors) {
+  applyPathColors(c);
+  requestRender();
+}
+
 // Getter passed to ViewCube — runs every frame so it tracks camera replacement
 // (perspective ↔ ortho swap re-binds the local `camera` variable).
 function getMainCameraQuaternion(): THREE.Quaternion | null {
@@ -2390,6 +2415,7 @@ defineExpose({
   setMachinePartColor,
   setMachineEdges,
   setToolColors,
+  setPathColors,
 });
 
 

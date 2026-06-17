@@ -781,10 +781,15 @@ function setToolColors(toolColor: string | null, cutterColor: string | null) {
   viewerRef.value?.setToolColors?.(toolColor, cutterColor);
 }
 
+function setPathColors(c: { feed?: string; rapid?: string; backplot?: string; bounds?: string; toolpathBounds?: string }) {
+  viewerRef.value?.setPathColors?.(c);
+}
+
 provide("machineParts", machineParts);
 provide("setMachinePartColor", setMachinePartColor);
 provide("setMachineEdges", setMachineEdges);
 provide("setToolColors", setToolColors);
+provide("setPathColors", setPathColors);
 
 function setProjection(proj: "perspective" | "parallel") {
   const wantOrtho = proj === "parallel";
