@@ -1,118 +1,14 @@
-<script lang="ts">
-import { ref as _ref } from "vue";
-import * as THREE from "three";
-import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
-import { buildToolProfile, splitProfileAt, buildToolGeometry, buildHolderGeometry, type ToolMeta } from "./toolGeometry";
-import { loadGeometryFromIDB, storeGeometryInIDB, pruneStaleVersions } from "./geometryCache";
-import { AXIS_HEX, AXIS_CSS } from "./axisColors";
-
-
-// ---- Central caches (shared across ALL ThreeViewer instances) ----
-const _geometryCache = new Map<string, THREE.BufferGeometry>();
-const _toolMetaCache = new Map<number, ToolMeta>();  // tool_number → ToolMeta, populated on first sight
-let _loadPromise: Promise<void> | null = null;
-let _loadedInitJson: string | null = null;
-export const machineReady = _ref(false);
-export const failedParts = _ref<string[]>([]);
-
-async function fetchAndParseStl(url: string, signal?: AbortSignal): Promise<THREE.BufferGeometry> {
-  const res = await fetch(url, { signal });
-  if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
-  const buf = await res.arrayBuffer();
-  const bytes = new Uint8Array(buf);
-  const head = new TextDecoder("utf-8", { fatal: false }).decode(bytes.slice(0, 200)).toLowerCase();
-  if (head.includes("<!doctype") || head.includes("<html")) throw new Error(`Not an STL from ${url}`);
-  const loader = new STLLoader();
-  const looksAscii = head.startsWith("solid") && head.includes("facet");
-  if (looksAscii) return loader.parse(new TextDecoder().decode(bytes));
-  if (buf.byteLength >= 84) {
-    const dv = new DataView(buf);
-    const triCount = dv.getUint32(80, true);
-    if (84 + triCount * 50 <= buf.byteLength && triCount < 50_000_000) return loader.parse(buf);
-    return loader.parse(new TextDecoder().decode(bytes));
-  }
-  throw new Error(`STL too small / invalid: ${url}`);
-}
-
-export function loadMachineAssets(init: any, onProgress?: (msg: string) => void): Promise<void> {
-  const json = JSON.stringify({ base: init.stl_base_url, parts: init.parts });
-  // Return in-progress OR completed promise (true deduplication).
-  // Rejected promises clear _loadPromise in the catch below so the next call retries.
-  if (_loadPromise && json === _loadedInitJson) return _loadPromise;
-
-  _loadedInitJson = json;
-  machineReady.value = false;
-  failedParts.value = [];
-
-  _loadPromise = (async () => {
-    const abort = new AbortController();
-    const timer = setTimeout(() => abort.abort(new DOMException("STL fetch timed out after 120s", "TimeoutError")), 120_000);
-    try {
-      const base = init.stl_base_url;
-      const parts = init.parts ?? [];
-      const urlFor = (file: string) => base.endsWith("/") ? `${base}${file}` : `${base}/${file}`;
-      const toFetch = parts.filter((p: any) => !_geometryCache.has(p.id));
-
-      // Drop IndexedDB entries whose ?v= no longer matches the active set.
-      // Bounds the cache as users update STLs (?v=mtime changes → new key).
-      pruneStaleVersions(new Set(parts.map((p: any) => urlFor(p.file)))).catch(() => {});
-
-      if (toFetch.length === 0) {
-        onProgress?.("All STLs already cached");
-      }
-
-      const results = await Promise.allSettled(toFetch.map(async (p: any) => {
-        const url = urlFor(p.file);
-        const t0 = performance.now();
-        // L2: parsed geometry from IndexedDB. Same-version key (?v=mtime)
-        // means no re-fetch + no re-parse on reconnect / reload.
-        let geom = await loadGeometryFromIDB(url);
-        if (geom) {
-          onProgress?.(`✓ ${p.id} (cache, ${((performance.now() - t0) / 1000).toFixed(2)}s)`);
-        } else {
-          onProgress?.(`Fetching ${p.id}…`);
-          geom = await fetchAndParseStl(url, abort.signal);
-          geom.computeVertexNormals();
-          // Fire-and-forget: don't block first paint on the IDB write.
-          storeGeometryInIDB(url, geom).catch(e => console.warn("[idb] store", e));
-          onProgress?.(`✓ ${p.id} (${((performance.now() - t0) / 1000).toFixed(1)}s)`);
-        }
-        geom.userData._shared = true;
-        _geometryCache.set(p.id, geom);
-      }));
-
-      const failed: string[] = [];
-      results.forEach((r, i) => {
-        if (r.status === "rejected") {
-          const id = toFetch[i].id;
-          failed.push(id);
-          console.error(`[STL] failed to load ${id}:`, r.reason);
-        }
-      });
-      failedParts.value = failed;
-
-      machineReady.value = true;
-    } catch (err) {
-      _loadPromise = null; // clear so the next buildFromInit call retries fresh
-      throw err;
-    } finally {
-      clearTimeout(timer);
-    }
-  })();
-
-  return _loadPromise;
-}
-
-export function getCachedGeometry(id: string): THREE.BufferGeometry | undefined {
-  return _geometryCache.get(id);
-}
-</script>
-
 <script setup lang="ts">
 import { computed, inject, onMounted, onUnmounted, reactive, ref, watch, type Ref } from "vue";
 
+import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { Text } from "troika-three-text";
+import { buildToolProfile, splitProfileAt, buildToolGeometry, buildHolderGeometry, type ToolMeta } from "./toolGeometry";
+import { AXIS_HEX, AXIS_CSS } from "./axisColors";
+import {
+  failedParts, loadMachineAssets, getCachedGeometry, getToolMeta, setToolMeta,
+} from "./viewer/machineAssetCache";
 
 import { viewerInit, viewerGcode, gcodeContent, status, type ViewerInit, type ViewerGcode } from "./lcncWs";
 import { loadViewerDefaults, loadCameraDefaults, saveCameraDefaults, ALL_LAYERS, settingsVersion, type Vec3, type Layer } from "./defaults";
@@ -1423,9 +1319,9 @@ function applyState(init: ViewerInit, st: ViewerState) {
       }
       if (meta) {
         _lastToolMeta = meta;
-        if (toolNum != null) _toolMetaCache.set(toolNum, meta);
+        if (toolNum != null) setToolMeta(toolNum, meta);
       } else if (toolNum != null) {
-        _lastToolMeta = _toolMetaCache.get(toolNum) ?? null;
+        _lastToolMeta = getToolMeta(toolNum) ?? null;
       }
 
       // buildToolGroup sets the toolCutterMesh/toolBodyMesh module refs as a
@@ -2099,7 +1995,7 @@ watch(
     const tm: ToolMeta | null = msg.tool_meta ?? null;
     pendingState = tm ? { ...msg.data, tool_meta: tm } : msg.data;
     if (tm && msg.data.tool_number != null) {
-      _toolMetaCache.set(msg.data.tool_number, tm);
+      setToolMeta(msg.data.tool_number, tm);
     }
   },
 );
