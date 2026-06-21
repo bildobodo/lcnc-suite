@@ -49,6 +49,7 @@ export interface WsStatus {
   surface_points?: [number, number, number][];
   comp_grid?: any;
   probe_results?: Record<string, number>;
+  disable_reason?: Record<string, any>;
   type?: string;
   timing?: any;
   // Sibling of `data` — gateway injects on tool change / library edit.
@@ -99,6 +100,132 @@ const _compGridErr = ref<string | null>(null);
 export const previewLoadError = computed<string | null>(
   () => _previewErr.value ?? _surfaceErr.value ?? _compGridErr.value,
 );
+
+type StatusSummary = {
+  enabled: boolean;
+  estop: boolean;
+  homed: boolean;
+  emcEnableIn: boolean | null;
+  taskMode: number | null;
+  motionMode: number | null;
+  interpState: number | null;
+  jointDiagnostics: Array<Record<string, any>>;
+};
+
+let _lastStatusSummary: StatusSummary | null = null;
+let _lastSentCommand: { cmd: string; ts: number } | null = null;
+
+function _pushMessage(kind: number, text: string, unread = true): void {
+  messages.value = [...messages.value, { id: _nextMsgId++, kind, text, ts: Date.now() }];
+  if (unread) unreadCount.value++;
+  persistMessages(messages.value);
+}
+
+function _numericOrNull(value: unknown): number | null {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function _summarizeStatusData(data: Record<string, any> | undefined): StatusSummary {
+  const safeData = data ?? {};
+  return {
+    enabled: Boolean(safeData.is_enabled ?? safeData.enabled),
+    estop: Boolean(safeData.is_estop ?? safeData.estop),
+    homed: Boolean(safeData.homed),
+    emcEnableIn: safeData.emc_enable_in == null ? null : Boolean(safeData.emc_enable_in),
+    taskMode: Number.isInteger(safeData.task_mode) ? safeData.task_mode : null,
+    motionMode: Number.isInteger(safeData.motion_mode) ? safeData.motion_mode : null,
+    interpState: Number.isInteger(safeData.interp_state) ? safeData.interp_state : null,
+    jointDiagnostics: Array.isArray(safeData.joint_diagnostics) ? safeData.joint_diagnostics : [],
+  };
+}
+
+function _jointName(index: number): string {
+  return `joint${index}`;
+}
+
+function _followingErrorMessages(jointDiagnostics: Array<Record<string, any>>): string[] {
+  const messages: string[] = [];
+  for (const joint of jointDiagnostics) {
+    const index = Number.isInteger(joint?.index) ? joint.index : 0;
+    const current = _numericOrNull(joint?.ferror_current);
+    const highmark = _numericOrNull(joint?.ferror_highmark);
+    const limit = _numericOrNull(joint?.max_ferror);
+    if (limit == null || !(limit > 0)) {
+      continue;
+    }
+    if (current != null && Math.abs(current) >= limit) {
+      messages.push(`${_jointName(index)} following error ${current.toFixed(4)} (limit ${limit.toFixed(4)})`);
+      continue;
+    }
+    if (highmark != null && Math.abs(highmark) >= limit) {
+      messages.push(`${_jointName(index)} following error peak ${highmark.toFixed(4)} (limit ${limit.toFixed(4)})`);
+    }
+  }
+  return messages;
+}
+
+function _recentCommandWas(cmd: string, withinMs: number): boolean {
+  return _lastSentCommand?.cmd === cmd && (Date.now() - _lastSentCommand.ts) < withinMs;
+}
+
+function _emitTransitionMessages(next: StatusSummary, msgErrors: Array<[number, string]> | undefined): void {
+  const prev = _lastStatusSummary;
+  if (!prev) {
+    _lastStatusSummary = next;
+    return;
+  }
+
+  const errorTexts = Array.isArray(msgErrors)
+    ? msgErrors.map((entry) => Array.isArray(entry) ? String(entry[1] ?? "") : "").filter(Boolean)
+    : [];
+  const followingErrors = _followingErrorMessages(next.jointDiagnostics);
+  const followingText = followingErrors[0] ?? "";
+  const disabledTransition = prev.enabled && !next.enabled && !_recentCommandWas("machine_off", 2000);
+  const estopTransition = !prev.estop && next.estop && !_recentCommandWas("estop", 2000);
+
+  if (disabledTransition) {
+    const detail = followingText || errorTexts[0] || "Machine disabled unexpectedly.";
+    _pushMessage(OPERATOR_ERROR, `Machine disabled unexpectedly: ${detail}`);
+  }
+
+  if (estopTransition) {
+    const detail = followingText || errorTexts[0] || "E-stop asserted by LinuxCNC or the safety chain.";
+    _pushMessage(OPERATOR_ERROR, `E-stop asserted: ${detail}`);
+  }
+
+  if (prev.homed && !next.homed) {
+    _pushMessage(OPERATOR_ERROR, "Machine lost homed state.");
+  }
+
+  if (followingErrors.length > 0 && !disabledTransition && !estopTransition) {
+    const newErrors = followingErrors.filter((text) => !_followingErrorMessages(prev.jointDiagnostics).includes(text));
+    for (const text of newErrors) {
+      _pushMessage(OPERATOR_ERROR, text);
+    }
+  }
+
+  _lastStatusSummary = next;
+}
+
+function _disableReasonMessage(disableReason: Record<string, any> | undefined): string | null {
+  if (!disableReason || disableReason.kind !== "machine_disabled") {
+    return null;
+  }
+  const currentErrors = Array.isArray(disableReason.recent_errors) ? disableReason.recent_errors : [];
+  const previousErrors = Array.isArray(disableReason.previous_recent_errors) ? disableReason.previous_recent_errors : [];
+  const firstError = [...currentErrors, ...previousErrors].find((entry: any) => Array.isArray(entry) && entry[1]);
+  if (firstError) {
+    return `Machine disabled unexpectedly: ${String(firstError[1])}`;
+  }
+  const currentCauses = Array.isArray(disableReason.likely_causes) ? disableReason.likely_causes : [];
+  const previousCauses = Array.isArray(disableReason.previous_likely_causes) ? disableReason.previous_likely_causes : [];
+  const firstCause = [...currentCauses, ...previousCauses].find(Boolean);
+  if (firstCause) {
+    return `Machine disabled unexpectedly: ${String(firstCause)}`;
+  }
+  return null;
+}
 // ---------- Browser → server telemetry batcher ----------
 // Posts NDJSON batches to POST /telemetry where the gateway forwards each
 // event to the suite-wide trace bus tagged `browser.<kind>`. Catches the
@@ -692,6 +819,7 @@ function onWorkerMessage(m: any) {
       emitTelemetry("ws.open", { dt_ms: m.dtMs, attempt: m.attempt });
       connected.value = true;
       serverShuttingDown.value = false;
+      _lastStatusSummary = null;
       // Acquire screen wake-lock if enabled (not gated on armed, so passive
       // viewer tabs stay awake too). Released on close.
       try {
@@ -703,6 +831,7 @@ function onWorkerMessage(m: any) {
       emitTelemetry("ws.close", {
         code: m.code, reason: m.reason, clean: m.wasClean, since_attempt_ms: m.sinceAttemptMs,
       });
+      _lastStatusSummary = null;
       connected.value = false;
       // Capture armed state so the worker's NEXT reconnect hello can ask the
       // gateway to restore armed=true via a still-valid armed-resume hold.
@@ -850,6 +979,11 @@ function onFrame(data: string | ArrayBuffer) {
     }
 
     if (msg.type === "status") {
+      const latchedDisableMessage = _disableReasonMessage(msg.disable_reason);
+      if (latchedDisableMessage) {
+        _pushMessage(OPERATOR_ERROR, latchedDisableMessage);
+      }
+
       // Only act on status messages that carry timing (heartbeat-triggered).
       // Plain status messages arrive first and must NOT consume _rtSentAt.
       if (msg.timing) {
@@ -877,10 +1011,12 @@ function onFrame(data: string | ArrayBuffer) {
       const errs: [number, string][] = msg.errors;
       if (Array.isArray(errs) && errs.length > 0) {
         for (const [kind, text] of errs) {
-          messages.value = [...messages.value, { id: _nextMsgId++, kind, text, ts: Date.now() }];
-          unreadCount.value++;
+          _pushMessage(kind, text);
         }
-        persistMessages(messages.value);
+      }
+
+      if (!latchedDisableMessage) {
+        _emitTransitionMessages(_summarizeStatusData(msg.data), errs);
       }
 
       // Preserve tool_meta across batched messages — gateway sends it only
@@ -925,14 +1061,9 @@ function onFrame(data: string | ArrayBuffer) {
           starting: "Run-from-line: starting program…",
         };
         if (rfl.ok === false) {
-          messages.value = [...messages.value, { id: _nextMsgId++, kind: OPERATOR_ERROR,
-            text: `Run-from-line ${rfl.phase}: ${rfl.error || "failed"}`, ts: Date.now() }];
-          unreadCount.value++;
-          persistMessages(messages.value);
+          _pushMessage(OPERATOR_ERROR, `Run-from-line ${rfl.phase}: ${rfl.error || "failed"}`);
         } else if (phaseText[rfl.phase]) {
-          messages.value = [...messages.value, { id: _nextMsgId++, kind: OPERATOR_DISPLAY,
-            text: phaseText[rfl.phase]!, ts: Date.now() }];
-          persistMessages(messages.value);
+          _pushMessage(OPERATOR_DISPLAY, phaseText[rfl.phase]!, false);
         }
       }
 
@@ -968,9 +1099,7 @@ function onFrame(data: string | ArrayBuffer) {
     } else if (msg.type === "reply") {
       lastReply.value = msg;
       if (msg.ok === false && msg.error) {
-        messages.value = [...messages.value, { id: _nextMsgId++, kind: OPERATOR_ERROR, text: `Command: ${msg.error}`, ts: Date.now() }];
-        unreadCount.value++;
-        persistMessages(messages.value);
+        _pushMessage(OPERATOR_ERROR, `Command: ${msg.error}`);
       }
     } else if (msg.type === "viewer_init") {
       viewerInit.value = msg.data;
@@ -1034,6 +1163,7 @@ function onFrame(data: string | ArrayBuffer) {
 }
 
 export function send(obj: WsCommand) {
+  _lastSentCommand = { cmd: obj.cmd, ts: Date.now() };
   if (wsWorker) {
     // Classify here (main thread) where the structured command is visible.
     // Mutating/motion commands must not be queued+replayed across a reconnect

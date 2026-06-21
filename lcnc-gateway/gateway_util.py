@@ -88,6 +88,7 @@ def origin_allowed(
       This is the gateway's own served page on whatever LAN IP was browsed to,
       and needs no configuration.
     - Origin listed in the explicit allowlist or dev extras → allow.
+    - A literal `*` in either list → allow any browser origin.
     - Otherwise → reject.
 
     The explicit allowlist ADDS to the same-host default rather than replacing
@@ -97,10 +98,14 @@ def origin_allowed(
         return True
     if _origin_host_matches(origin, host):
         return True
-    if allowlist and origin in set(allowlist):
-        return True
-    if extra_allowed and origin in set(extra_allowed):
-        return True
+    if allowlist:
+        allowset = set(allowlist)
+        if "*" in allowset or origin in allowset:
+            return True
+    if extra_allowed:
+        extraset = set(extra_allowed)
+        if "*" in extraset or origin in extraset:
+            return True
     return False
 
 

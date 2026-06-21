@@ -145,6 +145,7 @@ def build_status_envelope(
     clients_list: Any,
     armed: bool,
     safety_trip: Optional[dict] = None,
+    disable_reason: Optional[dict] = None,
     reader_stale: bool = False,
     config_warning: Optional[dict] = None,
     probe_results: Optional[dict] = None,
@@ -167,6 +168,8 @@ def build_status_envelope(
     }
     if safety_trip is not None:
         msg["safety_trip"] = safety_trip
+    if disable_reason is not None:
+        msg["disable_reason"] = disable_reason
     if reader_stale:
         msg["reader_stale"] = True
     if config_warning is not None:

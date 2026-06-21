@@ -106,6 +106,7 @@ class StatusPayload:
     # command is silently missed (issue #14). None ⇒ reader snapshot stale
     # or pin unavailable; the existing reader_stale banner surfaces that.
     emc_enable_in: Optional[bool]
+    hal_diag: Optional[Dict[str, Any]]
     homed: Optional[bool]  # LinuxCNC stat truth (normalized)
     homed_joints: Optional[list]  # per-joint homed mask (configured joints only)
 
@@ -129,6 +130,7 @@ class StatusPayload:
     rotation_xy: Optional[float]
     wcs_table: Optional[List[Dict[str, Any]]]  # all 9 WCS slots (G54–G59.3) w/ per-axis + rotation
     joint_pos: Optional[List[float]]
+    joint_diagnostics: Optional[List[Dict[str, Any]]]
     tool_offset: Optional[List[float]]
     machine_pos: Optional[List[float]]
     work_pos: Optional[List[float]]
@@ -229,6 +231,20 @@ def policy_state_from_payload(p: "StatusPayload", armed: bool) -> _PolicyMachine
     )
 
 
+def _finite_or_none(value) -> Optional[float]:
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        return None
+    return parsed if math.isfinite(parsed) else None
+
+
+def _bool_or_none(value) -> Optional[bool]:
+    if value is None:
+        return None
+    return bool(value)
+
+
 class StatusRuntime:
     def __init__(
         self,
@@ -239,10 +255,12 @@ class StatusRuntime:
         get_tool_tbl_path: Callable[[], Optional[str]],
         load_tool_library: Callable[[], dict],
         get_fb_scale: Callable[[], float],
+        get_hal_diag_fields: Optional[Callable[[], List[str]]] = None,
     ) -> None:
         self._get_stat = get_stat
         self._get_err = get_err
         self._reader_get = reader_get
+        self._get_hal_diag_fields = get_hal_diag_fields or (lambda: [])
         self._get_tool_tbl_path = get_tool_tbl_path
         self._load_tool_library = load_tool_library
         self._get_fb_scale = get_fb_scale
@@ -601,6 +619,39 @@ class StatusRuntime:
             jpos = safe_get("joint_position", None)
         joint_pos = to_float_list(jpos)
 
+        joint_diagnostics = None
+        joint_rows = safe_get("joint", None)
+        if joint_rows is not None:
+            try:
+                joint_diagnostics = []
+                for index, joint in enumerate(joint_rows[:nj] if nj else joint_rows):
+                    if joint is None:
+                        joint_diagnostics.append({"index": index})
+                        continue
+                    get = joint.get if isinstance(joint, dict) else lambda key, default=None: getattr(joint, key, default)
+                    joint_diagnostics.append({
+                        "index": index,
+                        "type": get("jointType", None),
+                        "enabled": _bool_or_none(get("enabled", None)),
+                        "homed": _bool_or_none(get("homed", None)),
+                        "homing": _bool_or_none(get("homing", None)),
+                        "inpos": _bool_or_none(get("inpos", None)),
+                        "fault": _bool_or_none(get("fault", None)),
+                        "min_soft_limit": _bool_or_none(get("min_soft_limit", None)),
+                        "max_soft_limit": _bool_or_none(get("max_soft_limit", None)),
+                        "min_hard_limit": _bool_or_none(get("min_hard_limit", None)),
+                        "max_hard_limit": _bool_or_none(get("max_hard_limit", None)),
+                        "ferror_current": _finite_or_none(get("ferror_current", None)),
+                        "ferror_highmark": _finite_or_none(get("ferror_highmark", None)),
+                        "min_ferror": _finite_or_none(get("min_ferror", None)),
+                        "max_ferror": _finite_or_none(get("max_ferror", None)),
+                        "input": _finite_or_none(get("input", None)),
+                    })
+            except Exception as e:
+                _trace.emit("joint_diag.collect_failed", level="warn",
+                            exc=type(e).__name__, msg=str(e))
+                joint_diagnostics = None
+
         dtg = to_float_list(safe_get("dtg", None))
 
         # ---- velocity & spindle ----
@@ -685,11 +736,15 @@ class StatusRuntime:
             bool(safe_get("paused", False)),
         )
 
+        hal_diag_fields = self._get_hal_diag_fields()
+        hal_diag = {field: reader_get(field) for field in hal_diag_fields}
+
         payload = StatusPayload(
             ts=time.time(),
             estop=estop,
             enabled=enabled,
             emc_enable_in=reader_get("emc_enable_in"),
+            hal_diag=hal_diag,
             homed=homed,
             homed_joints=homed_joints,
             task_mode=safe_get("task_mode", None),
@@ -709,6 +764,7 @@ class StatusRuntime:
             rotation_xy=rotation_xy,
             wcs_table=[row.copy() for row in self.wcs_cache],
             joint_pos=joint_pos,
+            joint_diagnostics=joint_diagnostics,
             tool_offset=tool_offset,
             machine_pos=machine_pos,
             work_pos=work_pos,       # <-- tool-tip work coords

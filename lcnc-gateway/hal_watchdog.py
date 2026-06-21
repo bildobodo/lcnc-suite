@@ -2,8 +2,9 @@
 """HAL watchdog for webui-safety.
 
 Loaded by LinuxCNC HAL config:  loadusr -W hal_watchdog.py
-Listens for gateway heartbeat updates on a Unix socket.
-When gateway disconnects, heartbeat stops toggling → downstream watchdog trips.
+Listens for gateway freshness updates on a Unix socket.
+When gateway disconnects or stops refreshing this process, the local heartbeat
+stops toggling → downstream watchdog trips.
 Pins survive gateway restart because this component is owned by LinuxCNC.
 """
 import os
@@ -171,6 +172,30 @@ def _stop(*_):
 signal.signal(signal.SIGTERM, _stop)
 signal.signal(signal.SIGINT, _stop)
 
+
+def _env_float(name: str, default: float, lo: float, hi: float) -> float:
+    try:
+        value = float(os.environ.get(name, default))
+    except (TypeError, ValueError):
+        return default
+    return max(lo, min(hi, value))
+
+
+_LOCAL_HEARTBEAT_HZ = _env_float("LCNC_WATCHDOG_LOCAL_HEARTBEAT_HZ", 30.0, 2.0, 100.0)
+_LOCAL_HEARTBEAT_PERIOD_S = 1.0 / _LOCAL_HEARTBEAT_HZ
+# LinuxCNC NML calls can occasionally hold the gateway interpreter long enough
+# to miss the old 500ms HAL heartbeat window. The separate watchdog process now
+# absorbs those short gateway stalls, but still trips if the gateway really stops
+# refreshing it. Keep this above observed multi-second STAT.poll stalls; override
+# with LCNC_WATCHDOG_GATEWAY_TIMEOUT_S for stricter deployments.
+_GATEWAY_FRESH_TIMEOUT_S = _env_float("LCNC_WATCHDOG_GATEWAY_TIMEOUT_S", 5.0, 1.0, 30.0)
+_SELECT_TIMEOUT_S = min(0.1, _LOCAL_HEARTBEAT_PERIOD_S)
+_gateway_fresh_at = None
+_gateway_requested_connected = False
+_gateway_stale_reported = False
+_local_heartbeat = False
+_local_heartbeat_at = time.monotonic()
+
 # wd.tick_summary is emitted once per N ticks (~1 s at 10 Hz select
 # cadence) by the shared Aggregator. `msgs`/`client_inq`/`reset_out`/
 # `hb_ok` are point-in-time at emit (extras callback resets msgs).
@@ -195,14 +220,44 @@ _wd_tick_agg = _trace.Aggregator(
 
 try:
     while _running:
+        now = time.monotonic()
+        gateway_fresh = (
+            client is not None
+            and _gateway_requested_connected
+            and _gateway_fresh_at is not None
+            and now - _gateway_fresh_at <= _GATEWAY_FRESH_TIMEOUT_S
+        )
+        if gateway_fresh:
+            _gateway_stale_reported = False
+            comp["connected"] = True
+            if now - _local_heartbeat_at >= _LOCAL_HEARTBEAT_PERIOD_S:
+                _local_heartbeat = not _local_heartbeat
+                comp["heartbeat"] = _local_heartbeat
+                _local_heartbeat_at = now
+        else:
+            if (_gateway_requested_connected and client is not None
+                    and _gateway_fresh_at is not None and not _gateway_stale_reported):
+                stale_ms = int((now - _gateway_fresh_at) * 1000)
+                print(f"[WD-STALE] gateway freshness timeout {stale_ms}ms", flush=True)
+                _trace.emit("wd.gateway_stale", level="error", stale_ms=stale_ms,
+                            timeout_ms=int(_GATEWAY_FRESH_TIMEOUT_S * 1000))
+                _gateway_stale_reported = True
+            if comp["heartbeat"]:
+                comp["heartbeat"] = False
+            _local_heartbeat = False
+            _local_heartbeat_at = now
+            if _gateway_requested_connected and client is not None and _gateway_fresh_at is not None:
+                comp["connected"] = False
+
         socks = [server]
         if client is not None:
             socks.append(client)
 
-        # 100ms select timeout → edge polling at ~10Hz. oneshot width is 500ms,
-        # so a trip window is always ≥500ms wide; 100ms resolution never misses.
+        # The watchdog process owns the HAL heartbeat cadence. The timeout is
+        # therefore bounded by the local heartbeat period, not by gateway event
+        # loop scheduling. oneshot width is 500ms, so 30Hz leaves ample margin.
         _select_t0 = time.monotonic()
-        readable, _, _ = select.select(socks, [], [], 0.1)
+        readable, _, _ = select.select(socks, [], [], _SELECT_TIMEOUT_S)
         _select_dt = (time.monotonic() - _select_t0) * 1000
         _wd_tick_agg.record(select_ms=_select_dt)
 
@@ -245,6 +300,11 @@ try:
                 comp["heartbeat"] = False
                 comp["tool-changed"] = False
                 comp["compensation-enable"] = False
+                _gateway_requested_connected = False
+                _gateway_stale_reported = False
+                _gateway_fresh_at = None
+                _local_heartbeat = False
+                _local_heartbeat_at = time.monotonic()
                 client = new_client
                 buf = ""
             elif sock is client:
@@ -256,6 +316,11 @@ try:
                         comp["heartbeat"] = False
                         comp["tool-changed"] = False
                         comp["compensation-enable"] = False
+                        _gateway_requested_connected = False
+                        _gateway_stale_reported = False
+                        _gateway_fresh_at = None
+                        _local_heartbeat = False
+                        _local_heartbeat_at = time.monotonic()
                         client.close()
                         client = None
                         buf = ""
@@ -311,9 +376,20 @@ try:
                                             _hb_recv_flush(f"gap_{rising_gap_ms}ms")
                                 _last_hb_recv_true = _now
                             _last_hb_recv = _now
-                            comp["heartbeat"] = _new_val
+                            _gateway_fresh_at = _now
+                            _gateway_stale_reported = False
                         if "connected" in msg:
-                            comp["connected"] = bool(msg["connected"])
+                            _gateway_requested_connected = bool(msg["connected"])
+                            if _gateway_requested_connected:
+                                _gateway_fresh_at = time.monotonic()
+                                _gateway_stale_reported = False
+                            else:
+                                comp["connected"] = False
+                                comp["heartbeat"] = False
+                                _gateway_fresh_at = None
+                                _gateway_stale_reported = False
+                                _local_heartbeat = False
+                                _local_heartbeat_at = time.monotonic()
                         if "tool_changed" in msg:
                             comp["tool-changed"] = bool(msg["tool_changed"])
                         if "compensation_enable" in msg:
@@ -336,6 +412,11 @@ try:
                     comp["heartbeat"] = False
                     comp["tool-changed"] = False
                     comp["compensation-enable"] = False
+                    _gateway_requested_connected = False
+                    _gateway_stale_reported = False
+                    _gateway_fresh_at = None
+                    _local_heartbeat = False
+                    _local_heartbeat_at = time.monotonic()
                     try:
                         client.close()
                     except Exception:

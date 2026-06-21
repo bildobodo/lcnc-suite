@@ -13,7 +13,7 @@ from pathlib import Path
 import linuxcnc
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional, List, Tuple
+from typing import Any, Dict, Optional, List, Set, Tuple
 from fastapi.staticfiles import StaticFiles
 import re
 import shutil
@@ -455,12 +455,16 @@ async def _reader_configure_extra_pins() -> None:
     """
     if not _hal_bridge.reader_connected:
         return
+    global _hal_diag_fields
     pins: Dict[str, str] = {}
     try:
         _settings = await asyncio.to_thread(load_settings)  # file read off the loop (B3)
+        pins.update(_settings_hal_diagnostic_pins(_settings))
+        _hal_diag_fields = list(pins.keys())
         slp = _settings.get("machine", {}).get("spindleLoadPin", "")
     except Exception:
         slp = ""
+        _hal_diag_fields = []
     if isinstance(slp, str) and _HAL_PIN_RE.match(slp):
         pins["spindle_load"] = slp
     try:
@@ -956,6 +960,9 @@ _halshow_topology_cache: Optional[dict] = None  # built-once HAL graph (P5); HAL
 _unacked_trip: Optional[dict] = None  # {"reason": str}
 _last_fault_latched: Optional[bool] = None  # webui-hb-latch.fault-out at last poll
 _trip_baseline_seen: bool = False  # have we ever seen the latch clear (FALSE)?
+_disable_reason: Optional[dict] = None
+_disable_history: list = []
+_DISABLE_HISTORY_MAX = 6
 
 # Warn-once flags for STAT field absence — the cascade itself is correct (different
 # LinuxCNC versions expose different fields), but exhausting all candidates without
@@ -976,6 +983,8 @@ _status_event: Optional[asyncio.Event] = None
 # asyncio.to_thread. Non-reentrant: helpers (_cmd_blocking, set_mode) assume
 # the caller already holds the lock.
 _cmd_lock: Optional[asyncio.Lock] = None
+_active_jog_axes: Set[Tuple[int, int]] = set()
+_JOG_STATUS_HZ = 8.0
 
 
 def _get_cmd_lock() -> asyncio.Lock:
@@ -984,9 +993,67 @@ def _get_cmd_lock() -> asyncio.Lock:
         _cmd_lock = asyncio.Lock()
     return _cmd_lock
 
+
+def _mark_jog_started(joint_flag: int, axis: int) -> None:
+    _active_jog_axes.add((int(joint_flag), int(axis)))
+
+
+def _mark_jog_stopped(joint_flag: int, axis: int) -> None:
+    _active_jog_axes.discard((int(joint_flag), int(axis)))
+
+
+def _mark_all_jogs_stopped() -> None:
+    _active_jog_axes.clear()
+
 # Timing log (toggled via "timing_log" WS command from Debug tab)
 _timing_log_enabled = False
 _timing_log_path: Optional[str] = None
+
+
+def _trim_disable_snapshot(status_dict: Optional[dict], errors: Optional[list], hal_diag: Optional[dict]) -> dict:
+    status_dict = status_dict or {}
+    work_pos = status_dict.get("work_pos") if isinstance(status_dict.get("work_pos"), list) else []
+    return {
+        "ts_ms": int(time.time() * 1000),
+        "task_mode": status_dict.get("task_mode"),
+        "motion_mode": status_dict.get("motion_mode"),
+        "interp_state": status_dict.get("interp_state"),
+        "emc_enable_in": status_dict.get("emc_enable_in"),
+        "joint_diagnostics": status_dict.get("joint_diagnostics") or [],
+        "recent_errors": list(errors or [])[-5:],
+        "hal_diag": hal_diag or {},
+        "positions": {
+            "x": work_pos[0] if len(work_pos) > 0 else None,
+            "y": work_pos[1] if len(work_pos) > 1 else None,
+            "z": work_pos[2] if len(work_pos) > 2 else None,
+            "a": work_pos[3] if len(work_pos) > 3 else None,
+            "b": work_pos[4] if len(work_pos) > 4 else None,
+            "c": work_pos[5] if len(work_pos) > 5 else None,
+        },
+    }
+
+
+def _record_disable_history(status_dict: Optional[dict], errors: Optional[list], hal_diag: Optional[dict]) -> None:
+    global _disable_history
+    _disable_history.append(_trim_disable_snapshot(status_dict, errors, hal_diag))
+    if len(_disable_history) > _DISABLE_HISTORY_MAX:
+        _disable_history = _disable_history[-_DISABLE_HISTORY_MAX:]
+
+
+def _build_disable_reason(*, changed: dict, current_status: dict, current_errors: list,
+                          current_hal_diag: Optional[dict], previous_hal_diag: Optional[dict]) -> dict:
+    previous_snapshot = _disable_history[-1] if _disable_history else None
+    return {
+        "kind": "machine_disabled",
+        "ts_ms": int(time.time() * 1000),
+        "changed": changed,
+        "recent_errors": list(current_errors or [])[-5:],
+        "previous_recent_errors": list(previous_snapshot.get("recent_errors", [])) if previous_snapshot else [],
+        "status": _trim_disable_snapshot(current_status, current_errors, current_hal_diag),
+        "previous_status": previous_snapshot,
+        "likely_causes": _hal_diag_likely_causes(current_hal_diag),
+        "previous_likely_causes": _hal_diag_likely_causes(previous_hal_diag),
+    }
 
 
 def _log_timing(timing: dict):
@@ -1036,6 +1103,35 @@ _PROBE_EVAL_RE = re.compile(
 )
 
 
+def _hal_diag_likely_causes(hal_diag: Optional[Dict[str, Any]]) -> List[str]:
+    if not isinstance(hal_diag, dict):
+        return []
+    causes: List[str] = []
+    false_is_bad = ("ok", "ready", "closed", "enable", "connected", "chain", "latch", "allowed")
+    true_is_bad = ("fault", "error", "trip", "tripped", "errored", "faulted")
+
+    for key, value in hal_diag.items():
+        lower_key = key.lower()
+        if "amp_enable" in lower_key:
+            continue
+        if value in (False, 0, 0.0) and any(token in lower_key for token in false_is_bad):
+            causes.append(f"{key} is false")
+        elif value in (True, 1, 1.0) and any(token in lower_key for token in true_is_bad):
+            causes.append(f"{key} is true")
+
+    for index in range(9):
+        cmd = hal_diag.get(f"joint{index}_cmd")
+        fb = hal_diag.get(f"joint{index}_fb")
+        if cmd is not None and fb is not None:
+            try:
+                delta = float(cmd) - float(fb)
+            except (TypeError, ValueError):
+                continue
+            if abs(delta) > 0.05:
+                causes.append(f"joint{index} following-error candidate: cmd/fb delta {delta:.4f}")
+    return causes
+
+
 async def _status_poller():
     """Single global poller — polls LinuxCNC once per cycle for all clients.
 
@@ -1054,6 +1150,10 @@ async def _status_poller():
     _last_pid_check = 0.0
     _cycle_start = time.monotonic()
     _was_active = True  # Experiment 4: track active/idle edge for instant wake-up
+    _last_safety_diag: Optional[Dict[str, Any]] = None
+    _last_hal_diag: Optional[Dict[str, Any]] = None
+    _last_jog_skip_log = 0.0
+    _last_jog_status_poll = 0.0
     # === IDLE-GATEWAY DIAGNOSTICS (permanent) === log when the gateway is up but no
     # clients are connected. Helps tell "all tabs reconnected fast" from
     # "tabs are stuck somewhere and never reaching us" in the log alone.
@@ -1113,6 +1213,25 @@ async def _status_poller():
                         lcnc_connected = False
                         continue
 
+            active_jog_poll = False
+            if _active_jog_axes:
+                jog_interval = 1.0 / _JOG_STATUS_HZ
+                if now - _last_jog_status_poll < jog_interval:
+                    if now - _last_jog_skip_log >= 1.0:
+                        _trace.emit("status.poll_throttled_for_jog",
+                                    active_jogs=sorted(_active_jog_axes),
+                                    target_hz=_JOG_STATUS_HZ)
+                        _last_jog_skip_log = now
+                    await asyncio.sleep(0.02)
+                    continue
+                _last_jog_status_poll = now
+                active_jog_poll = True
+                if now - _last_jog_skip_log >= 1.0:
+                    _trace.emit("status.poll_light_for_jog",
+                                active_jogs=sorted(_active_jog_axes),
+                                target_hz=_JOG_STATUS_HZ)
+                    _last_jog_skip_log = now
+
             # poll_status() blocks ~40ms (GIL held by C extensions).
             # run_in_executor lets the event loop serve HTTP (STL files)
             # between GIL switches during that time. asdict() runs in the
@@ -1122,13 +1241,17 @@ async def _status_poller():
             _set_phase("status_poller.poll_and_serialize")
             st, status_dict = await loop.run_in_executor(None, _poll_and_serialize)
             t1 = time.monotonic()
-            _set_phase("status_poller.read_errors")
-            # ERR.poll() is a C-extension call that holds the GIL for its
-            # NML read; running it inline on the main thread blocks the
-            # event loop in the same way STAT.poll does. Move it to the
-            # default executor so heartbeat / WS sends can interleave.
-            raw_errs = await loop.run_in_executor(None, read_errors_nonblocking)
-            t2 = time.monotonic()
+            if active_jog_poll:
+                raw_errs = []
+                t2 = t1
+            else:
+                _set_phase("status_poller.read_errors")
+                # ERR.poll() is a C-extension call that holds the GIL for its
+                # NML read; running it inline on the main thread blocks the
+                # event loop in the same way STAT.poll does. Move it to the
+                # default executor so heartbeat / WS sends can interleave.
+                raw_errs = await loop.run_in_executor(None, read_errors_nonblocking)
+                t2 = time.monotonic()
             _set_phase("status_poller.post_poll")
             _poll_fails = 0
 
@@ -1203,6 +1326,57 @@ async def _status_poller():
                     _trace.emit("comp.reload_req_failed", level="warn",
                                 exc=type(e).__name__, msg=str(e),
                                 hint="compensation.py not loaded?")
+
+            hal_diag = status_dict.get("hal_diag") if isinstance(status_dict, dict) else None
+            safety_diag = {
+                "stat_estop": bool(st.estop),
+                "stat_enabled": bool(st.enabled),
+                "merged_estop": bool(st.is_estop),
+                "merged_enabled": bool(st.is_enabled),
+                "emc_enable_in": st.emc_enable_in,
+                "trip_latched": _reader_get("trip_latched"),
+            }
+            machine_disabled = False
+            if _last_safety_diag is None:
+                _last_safety_diag = safety_diag
+                _last_hal_diag = hal_diag if isinstance(hal_diag, dict) else None
+            elif safety_diag != _last_safety_diag:
+                changed = {
+                    key: {"from": _last_safety_diag.get(key), "to": value}
+                    for key, value in safety_diag.items()
+                    if _last_safety_diag.get(key) != value
+                }
+                previous_causes = _hal_diag_likely_causes(_last_hal_diag)
+                current_causes = _hal_diag_likely_causes(hal_diag)
+                machine_disabled = _last_safety_diag.get("stat_enabled") is True and safety_diag.get("stat_enabled") is False
+                if machine_disabled:
+                    _disable_reason = _build_disable_reason(
+                        changed=changed,
+                        current_status=status_dict,
+                        current_errors=errs,
+                        current_hal_diag=hal_diag if isinstance(hal_diag, dict) else None,
+                        previous_hal_diag=_last_hal_diag,
+                    )
+                print(
+                    "[HAL-DIAG] safety transition " + json.dumps({
+                        "changed": changed,
+                        "likely_causes": current_causes,
+                        "previous_likely_causes": previous_causes if machine_disabled else [],
+                        "safety": safety_diag,
+                        "hal_diag": hal_diag,
+                        "previous_hal_diag": _last_hal_diag if machine_disabled else None,
+                    }, sort_keys=True, default=str),
+                    flush=True,
+                )
+                _last_safety_diag = safety_diag
+                _last_hal_diag = hal_diag if isinstance(hal_diag, dict) else None
+            else:
+                _last_hal_diag = hal_diag if isinstance(hal_diag, dict) else None
+
+            if not machine_disabled:
+                _record_disable_history(status_dict, errs, hal_diag if isinstance(hal_diag, dict) else None)
+            if safety_diag.get("stat_enabled") is True:
+                _disable_reason = None
 
             # Comp grid startup init: push existing probe-results-grid.json on first connect
             if not _bulk.grid_initialized and getattr(STAT, "ini_filename", None):
@@ -1607,6 +1781,7 @@ _status_runtime = _status_runtime_mod.StatusRuntime(
     get_stat=lambda: STAT,
     get_err=lambda: ERR,
     reader_get=_hal_bridge.reader_get,
+    get_hal_diag_fields=lambda: list(_hal_diag_fields),
     get_tool_tbl_path=lambda: get_tool_tbl_path(),
     load_tool_library=lambda: load_tool_library(),
     get_fb_scale=lambda: _fb_scale,
@@ -1936,6 +2111,24 @@ SETTINGS_PATH = BASE_DIR / "settings.json"
 _fb_scale = 60  # spindle feedback scale: 60 (RPS→RPM) or 1 (already RPM)
 _spindle_load_pin = ""  # HAL pin for spindle load %, empty = disabled
 _HAL_PIN_RE = re.compile(r'^[a-zA-Z0-9_][a-zA-Z0-9_.:-]*$')
+_HAL_FIELD_RE = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*$')
+_hal_diag_fields: List[str] = []
+
+
+def _get_hal_diag_fields() -> List[str]:
+    return list(_hal_diag_fields)
+
+
+def _settings_hal_diagnostic_pins(settings: dict) -> Dict[str, str]:
+    raw = settings.get("machine", {}).get("halDiagnosticPins", {})
+    if not isinstance(raw, dict):
+        return {}
+    pins: Dict[str, str] = {}
+    for field, pin in raw.items():
+        if isinstance(field, str) and isinstance(pin, str) \
+                and _HAL_FIELD_RE.match(field) and _HAL_PIN_RE.match(pin):
+            pins[field] = pin
+    return pins
 
 
 def _settings_load_error(e: Exception) -> None:
@@ -2140,6 +2333,19 @@ def _jog_joint_flag() -> int:
     return 1
 
 
+def _jog_joint_flag_for_msg(msg: dict) -> int:
+    if bool(msg.get("joint", False)):
+        return 1
+    return _jog_joint_flag()
+
+
+async def _prepare_jog_mode(msg: dict) -> int:
+    await set_mode(linuxcnc.MODE_MANUAL)
+    joint_jog = bool(msg.get("joint", False))
+    await _cmd_blocking(CMD.teleop_enable, 0 if joint_jog else 1)
+    return 1 if joint_jog else 0
+
+
 async def _jog_stop_for_client() -> None:
     """Jog-stop every joint as part of a client disarm. Caller must hold _cmd_lock.
 
@@ -2176,10 +2382,12 @@ async def _jog_stop_for_client() -> None:
     if not homed:
         return  # nothing to jog-stop if not homed
     await set_mode(linuxcnc.MODE_MANUAL)
-    jf = _jog_joint_flag()
+    await _cmd_blocking(CMD.teleop_enable, 0)
+    jf = 1
     _nj = getattr(STAT, "joints", 3) if STAT else 3
     for ax in range(_nj):
         await _cmd_blocking(CMD.jog, linuxcnc.JOG_STOP, jf, ax, wait=None)
+    _mark_all_jogs_stopped()
 
 
 def require_armed(armed: bool):
@@ -2827,9 +3035,9 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
 
             axis = finite_int(msg.get("axis"), lo=0)
             vel = finite_float(msg.get("vel", 0.0))
-            await set_mode(linuxcnc.MODE_MANUAL)
-            jf = _jog_joint_flag()
+            jf = await _prepare_jog_mode(msg)
             await _cmd_blocking(CMD.jog, linuxcnc.JOG_CONTINUOUS, jf, axis, vel, wait=None)
+            _mark_jog_started(jf, axis)
             return {"ok": True}
 
         if cmd == "jog_stop":
@@ -2846,9 +3054,11 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             if mode == linuxcnc.MODE_AUTO and interp != linuxcnc.INTERP_IDLE:
                 return {"ok": True}
             axis = finite_int(msg.get("axis"), lo=0)
-            await set_mode(linuxcnc.MODE_MANUAL)
-            jf = _jog_joint_flag()
-            await _cmd_blocking(CMD.jog, linuxcnc.JOG_STOP, jf, axis, wait=None)
+            jf = 1 if bool(msg.get("joint", False)) else 0
+            try:
+                await _cmd_blocking(CMD.jog, linuxcnc.JOG_STOP, jf, axis, wait=None)
+            finally:
+                _mark_jog_stopped(jf, axis)
             return {"ok": True}
 
         if cmd == "jog_cont_multi":
@@ -2859,10 +3069,11 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 return blocked
 
             axes = msg.get("axes", [])
-            await set_mode(linuxcnc.MODE_MANUAL)
-            jf = _jog_joint_flag()
+            jf = await _prepare_jog_mode(msg)
             for entry in axes:
-                await _cmd_blocking(CMD.jog, linuxcnc.JOG_CONTINUOUS, jf, finite_int(entry["axis"], lo=0), finite_float(entry["vel"]), wait=None)
+                axis = finite_int(entry["axis"], lo=0)
+                await _cmd_blocking(CMD.jog, linuxcnc.JOG_CONTINUOUS, jf, axis, finite_float(entry["vel"]), wait=None)
+                _mark_jog_started(jf, axis)
             return {"ok": True}
 
         if cmd == "jog_stop_multi":
@@ -2874,10 +3085,13 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             if mode == linuxcnc.MODE_AUTO and interp != linuxcnc.INTERP_IDLE:
                 return {"ok": True}
             axes = msg.get("axes", [])
-            await set_mode(linuxcnc.MODE_MANUAL)
-            jf = _jog_joint_flag()
+            jf = 1 if bool(msg.get("joint", False)) else 0
             for a in axes:
-                await _cmd_blocking(CMD.jog, linuxcnc.JOG_STOP, jf, finite_int(a, lo=0), wait=None)
+                axis = finite_int(a, lo=0)
+                try:
+                    await _cmd_blocking(CMD.jog, linuxcnc.JOG_STOP, jf, axis, wait=None)
+                finally:
+                    _mark_jog_stopped(jf, axis)
             return {"ok": True}
 
         if cmd == "jog_incr":
@@ -2890,8 +3104,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             axis = finite_int(msg.get("axis"), lo=0)
             vel = abs(finite_float(msg.get("vel", 0.0)))  # speed only; distance carries direction
             dist = finite_float(msg.get("distance", 0.0))
-            await set_mode(linuxcnc.MODE_MANUAL)
-            jf = _jog_joint_flag()
+            jf = await _prepare_jog_mode(msg)
             await _cmd_blocking(CMD.jog, linuxcnc.JOG_INCREMENT, jf, axis, vel, dist, wait=None)
             return {"ok": True}
 
@@ -2903,8 +3116,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 return blocked
 
             axes = msg.get("axes", [])
-            await set_mode(linuxcnc.MODE_MANUAL)
-            jf = _jog_joint_flag()
+            jf = await _prepare_jog_mode(msg)
             for entry in axes:
                 await _cmd_blocking(CMD.jog, linuxcnc.JOG_INCREMENT, jf, finite_int(entry["axis"], lo=0), abs(finite_float(entry["vel"])), finite_float(entry["distance"]), wait=None)
             return {"ok": True}
@@ -4827,6 +5039,7 @@ async def ws_endpoint(ws: WebSocket):
                         clients_list=_shared_clients_list,
                         armed=client.armed,
                         safety_trip=_unacked_trip,
+                        disable_reason=_disable_reason,
                         reader_stale=_reader_is_stale(),
                         config_warning=(
                             {
@@ -4958,7 +5171,7 @@ async def ws_endpoint(ws: WebSocket):
                             _new_load_pin = _slp if isinstance(_slp, str) and _HAL_PIN_RE.match(_slp) else ""
                             if _new_load_pin != _spindle_load_pin:
                                 _spindle_load_pin = _new_load_pin
-                                asyncio.create_task(_reader_configure_extra_pins())
+                            asyncio.create_task(_reader_configure_extra_pins())
                             await ws_send_json(ws, {
                                 "type": "settings_changed",
                                 "settings": _ss,

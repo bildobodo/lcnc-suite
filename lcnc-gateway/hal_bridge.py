@@ -4,18 +4,20 @@ Owns the two Unix-socket clients connecting the gateway to its HAL sibling
 processes (the gateway never imports `hal` — see GitHub issue #9):
 
 - **watchdog socket** (`hal_watchdog.py`, default ``/tmp/webui-safety.sock``):
-  bounded sends of pin-update messages (heartbeat / connected / trip_reset /
-  tool_changed). The socket carries a tight 50 ms sendall timeout so a
+    bounded sends of freshness and pin-update messages (heartbeat / connected /
+    trip_reset / tool_changed). The watchdog process owns the short-period HAL
+    heartbeat generation; gateway heartbeat messages refresh its liveness window.
+    The socket carries a tight 50 ms sendall timeout so a
   scheduling-delayed watchdog can never stall the event loop — a timed-out
-  send is a *dropped* message, and the HAL oneshot trips correctly on its own
-  if heartbeats truly stop arriving.
+    send is a *dropped* refresh, and the HAL oneshot trips correctly on its own
+    if gateway freshness updates truly stop arriving.
 - **reader socket** (`hal_reader.py`, default ``/tmp/webui-reader.sock``):
   30 Hz pin-snapshot push plus request/reply RPC (set_p, halshow_dump,
   set_extra_pins), and snapshot freshness (`reader_is_stale`).
 
-IMPORTANT BOUNDARY (modularization plan, M6): the gateway heartbeat coroutine
-stays in gateway.py. This module *transports* heartbeat values handed to
-``watchdog_send`` but must never produce one.
+IMPORTANT BOUNDARY (modularization plan, M6): this module transports watchdog
+messages handed to ``watchdog_send`` but must never generate HAL heartbeat
+edges itself.
 
 Gateway-side dependencies are injected (``set_phase`` for stall forensics,
 ``on_reader_connect`` for the extra-pin push policy) so this module has no

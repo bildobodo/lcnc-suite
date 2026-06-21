@@ -37,6 +37,9 @@ if [[ -n "$INI_FILE" ]]; then
   PORT="${LCNC_WEBUI_PORT:-$(ini_get WEBUI_PORT)}"
   BROWSER="${LCNC_WEBUI_BROWSER:-$(ini_get WEBUI_BROWSER)}"
   DEV="${LCNC_WEBUI_DEV:-$(ini_get WEBUI_DEV)}"
+  FRONTEND="${LCNC_WEBUI_FRONTEND:-$(ini_get WEBUI_FRONTEND)}"
+  FRONTEND_HOST="${LCNC_WEBUI_FRONTEND_HOST:-$(ini_get WEBUI_FRONTEND_HOST)}"
+  FRONTEND_PORT="${LCNC_WEBUI_FRONTEND_PORT:-$(ini_get WEBUI_FRONTEND_PORT)}"
   CAM_SOURCE="${LCNC_CAMERA_SOURCE:-$(ini_get CAMERA_SOURCE)}"
   CAM_RES="${LCNC_CAMERA_RESOLUTION:-$(ini_get CAMERA_RESOLUTION)}"
   CAM_FPS="${LCNC_CAMERA_FPS:-$(ini_get CAMERA_FPS)}"
@@ -54,6 +57,9 @@ else
   PORT="${LCNC_WEBUI_PORT:-}"
   BROWSER="${LCNC_WEBUI_BROWSER:-}"
   DEV="${LCNC_WEBUI_DEV:-}"
+  FRONTEND="${LCNC_WEBUI_FRONTEND:-}"
+  FRONTEND_HOST="${LCNC_WEBUI_FRONTEND_HOST:-}"
+  FRONTEND_PORT="${LCNC_WEBUI_FRONTEND_PORT:-}"
   CAM_SOURCE="${LCNC_CAMERA_SOURCE:-}"
   CAM_RES="${LCNC_CAMERA_RESOLUTION:-}"
   CAM_FPS="${LCNC_CAMERA_FPS:-}"
@@ -73,20 +79,77 @@ HOST="${HOST:-0.0.0.0}"
 PORT="${PORT:-8000}"
 BROWSER="${BROWSER:-1}"
 DEV="${DEV:-0}"
+FRONTEND="${FRONTEND:-1}"
+FRONTEND_HOST="${FRONTEND_HOST:-$HOST}"
+FRONTEND_PORT="${FRONTEND_PORT:-8081}"
 
 VITE_PORT="5173"
+
+_is_falsey() {
+  case "${1,,}" in
+    ""|0|false|no|off|none)
+      return 0
+      ;;
+  esac
+  return 1
+}
+
+_is_builtin_frontend() {
+  case "${1,,}" in
+    1|true|yes|on|builtin|dist|default)
+      return 0
+      ;;
+  esac
+  return 1
+}
+
+_resolve_frontend_path() {
+  local value="$1"
+  local base_dir=""
+  if [[ -n "$INI_FILE" ]]; then
+    base_dir="$(dirname "$INI_FILE")"
+  fi
+
+  if [[ "$value" = /* ]]; then
+    printf '%s' "$value"
+  elif [[ -n "$base_dir" ]]; then
+    printf '%s/%s' "$base_dir" "$value"
+  else
+    printf '%s/%s' "$PWD" "$value"
+  fi
+}
+
+FRONTEND_MODE=""
+FRONTEND_PATH=""
+if _is_builtin_frontend "$FRONTEND"; then
+  FRONTEND_MODE="builtin"
+elif _is_falsey "$FRONTEND"; then
+  FRONTEND_MODE="none"
+else
+  FRONTEND_PATH="$(_resolve_frontend_path "$FRONTEND")"
+  if [[ -d "$FRONTEND_PATH" ]]; then
+    FRONTEND_MODE="static"
+  elif [[ -f "$FRONTEND_PATH" ]]; then
+    FRONTEND_MODE="command"
+  else
+    echo "ERROR: WEBUI_FRONTEND path not found: $FRONTEND_PATH" >&2
+    exit 1
+  fi
+fi
 
 # ── Fail closed: refuse to expose the control plane on a non-loopback
 # interface without an auth token (issue #17). A LAN-reachable gateway with
 # no token is an unauthenticated machine-control surface. Loopback-only
 # (127.0.0.1 / ::1 / localhost) needs no token — single-operator/dev kiosk.
+INSECURE_TEST_MODE="${LCNC_WEBUI_INSECURE:-0}"
 case "$HOST" in
   127.0.0.1|::1|localhost) ;;  # loopback — token optional
   *)
-    if [[ -z "$TOKEN" ]]; then
+    if [[ -z "$TOKEN" && "$INSECURE_TEST_MODE" != "1" ]]; then
       echo "ERROR: WEBUI_HOST='$HOST' exposes the gateway on the network but no WEBUI_TOKEN is set." >&2
       echo "Set WEBUI_TOKEN in the INI [DISPLAY] section (or the LCNC_WEBUI_TOKEN env) to a shared" >&2
       echo "secret, or bind WEBUI_HOST to 127.0.0.1 for a local-only kiosk." >&2
+      echo "For Docker-only test setups, set LCNC_WEBUI_INSECURE=1 to bypass this guard intentionally." >&2
       echo "Refusing to start an unauthenticated machine-control surface." >&2
       exit 1
     fi
@@ -259,17 +322,76 @@ UVICORN_WS=(--ws-per-message-deflate false)
 # means the HAL components shut down cleanly even when the gateway
 # is killed mid-flight.
 _wait_or_kill() {
-    local pid="$1" tag="$2"
+  local pid="$1" tag="$2" proc_name="${3:-process}"
     local i
     for i in {1..20}; do
         kill -0 "$pid" 2>/dev/null || break
         sleep 0.1
     done
     if kill -0 "$pid" 2>/dev/null; then
-        _log "$tag _term: gateway pid=$pid did not exit in 2s, SIGKILL"
+    _log "$tag _term: $proc_name pid=$pid did not exit in 2s, SIGKILL"
         kill -KILL "$pid" 2>/dev/null
     fi
     wait "$pid" 2>/dev/null || true
+}
+
+FRONTEND_PID=""
+FRONTEND_URL=""
+
+_start_frontend_host() {
+  local gateway_host="127.0.0.1"
+  local browser_host="$FRONTEND_HOST"
+
+  if [[ "$browser_host" == "0.0.0.0" ]]; then
+    browser_host="localhost"
+  fi
+  FRONTEND_URL="http://$browser_host:$FRONTEND_PORT/"
+
+  case "$FRONTEND_MODE" in
+    command)
+      if [[ "$FRONTEND_PATH" == *.js || "$FRONTEND_PATH" == *.mjs || "$FRONTEND_PATH" == *.cjs ]]; then
+        if ! command -v node >/dev/null 2>&1; then
+          echo "ERROR: node is required to run WEBUI_FRONTEND=$FRONTEND_PATH" >&2
+          return 1
+        fi
+        setsid env \
+          PORT="$FRONTEND_PORT" \
+          HOST="$FRONTEND_HOST" \
+          LCNC_INTERNAL_HOST="$gateway_host" \
+          LCNC_INTERNAL_PORT="$PORT" \
+          LCNC_WEBUI_TOKEN="$TOKEN" \
+          node "$FRONTEND_PATH" &
+      elif [[ -x "$FRONTEND_PATH" ]]; then
+        setsid env \
+          PORT="$FRONTEND_PORT" \
+          HOST="$FRONTEND_HOST" \
+          LCNC_INTERNAL_HOST="$gateway_host" \
+          LCNC_INTERNAL_PORT="$PORT" \
+          LCNC_WEBUI_TOKEN="$TOKEN" \
+          "$FRONTEND_PATH" &
+      else
+        echo "ERROR: WEBUI_FRONTEND file is not executable: $FRONTEND_PATH" >&2
+        echo "Make it executable or point WEBUI_FRONTEND at a directory for static hosting." >&2
+        return 1
+      fi
+      FRONTEND_PID=$!
+      _log "PROD frontend command started pid=$FRONTEND_PID path=$FRONTEND_PATH url=$FRONTEND_URL"
+      ;;
+    static)
+      setsid python3 -m http.server "$FRONTEND_PORT" --bind "$FRONTEND_HOST" --directory "$FRONTEND_PATH" &
+      FRONTEND_PID=$!
+      _log "PROD frontend static host started pid=$FRONTEND_PID dir=$FRONTEND_PATH url=$FRONTEND_URL"
+      ;;
+  esac
+}
+
+_stop_frontend_host() {
+  if [[ -n "$FRONTEND_PID" ]]; then
+    _log "PROD _term: SIGTERM → frontend pgid=$FRONTEND_PID"
+    kill -TERM -- -"$FRONTEND_PID" 2>/dev/null || true
+    _wait_or_kill "$FRONTEND_PID" "PROD" "frontend"
+    FRONTEND_PID=""
+  fi
 }
 
 # === TEMP HAL-SAMPLE PROBE === capture every servo-cycle value of the
@@ -346,21 +468,25 @@ _start_proc_status_loop() {
         while kill -0 "$gw_pid" 2>/dev/null; do
             if [[ -r "/proc/$gw_pid/status" ]]; then
                 local rss="0" thr="0" vol="0" nvol="0"
-                while IFS= read -r line; do
+            while IFS= read -r line; do
                     case "$line" in
                         VmRSS:*)             rss=$(echo "$line"          | awk '{print $2}') ;;
                         Threads:*)           thr=$(echo "$line"          | awk '{print $2}') ;;
                         voluntary_ctxt*)     vol=$(echo "$line"          | awk '{print $2}') ;;
                         nonvoluntary_ctxt*)  nvol=$(echo "$line"         | awk '{print $2}') ;;
                     esac
-                done < "/proc/$gw_pid/status"
+            done < <(cat "/proc/$gw_pid/status" 2>/dev/null || true)
                 # schedstat field 2 = cumulative ns the gateway was runnable
                 # but waiting for a CPU (run-queue wait). Rising fast between
                 # samples = CPU starvation — the direct signal behind the
                 # event-loop stalls that lag.window catches only after the fact.
                 local rq_wait_ns="0"
                 if [[ -r "/proc/$gw_pid/schedstat" ]]; then
-                    read -r _ss_oncpu rq_wait_ns _ss_slices < "/proc/$gw_pid/schedstat" 2>/dev/null || rq_wait_ns="0"
+              local schedstat_line=""
+              schedstat_line="$(cat "/proc/$gw_pid/schedstat" 2>/dev/null || true)"
+              if [[ -n "$schedstat_line" ]]; then
+                read -r _ss_oncpu rq_wait_ns _ss_slices <<< "$schedstat_line" || rq_wait_ns="0"
+              fi
                 fi
                 # NDJSON line — same schema as gateway/hal_reader emit.
                 # Atomic O_APPEND under PIPE_BUF (4 KB) so this can't tear.
@@ -455,40 +581,51 @@ if [[ "$DEV" == "1" ]]; then
   exit "$status"
 fi
 
-# ── Production mode: gateway serves built frontend ──
-if [[ ! -f "$DIST_DIR/index.html" ]]; then
-  echo "ERROR: Built frontend not found at $DIST_DIR" >&2
-  echo "Run:  cd $WEBUI_DIR && npm run build" >&2
-  exit 1
-fi
-
-export LCNC_WEBUI_DIST_DIR="$DIST_DIR"
-
-if [[ "$BROWSER" == "1" ]]; then
-  ( sleep 1.5 && xdg-open "http://localhost:$PORT" 2>/dev/null ) &
-fi
-
-# Print Vite-style banner so the operator sees the LAN URL too. ANSI
-# escapes match Vite's chalk output (green ➜, bold label, cyan URL) so
-# the production startup looks consistent with dev. When HOST=0.0.0.0
-# (default), enumerate both loopback and the first non-loopback IPv4
-# so a remote browser knows what to connect to. When HOST is an
-# explicit IP, print just that.
-_C_GREEN=$'\033[32m'; _C_BOLD=$'\033[1m'; _C_CYAN=$'\033[36m'; _C_RESET=$'\033[0m'
-printf '\n  %slcnc-suite%s %sPROD%s mode\n\n' "$_C_GREEN$_C_BOLD" "$_C_RESET" "$_C_BOLD" "$_C_RESET"
-if [[ "$HOST" == "0.0.0.0" ]]; then
-  printf '  %s➜%s  %sLocal%s:   %shttp://localhost:%s/%s\n' \
-    "$_C_GREEN" "$_C_RESET" "$_C_BOLD" "$_C_RESET" "$_C_CYAN" "$PORT" "$_C_RESET"
-  _LAN_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
-  if [[ -n "$_LAN_IP" ]]; then
-    printf '  %s➜%s  %sNetwork%s: %shttp://%s:%s/%s\n' \
-      "$_C_GREEN" "$_C_RESET" "$_C_BOLD" "$_C_RESET" "$_C_CYAN" "$_LAN_IP" "$PORT" "$_C_RESET"
+# ── Production mode: gateway + selectable frontend host ──
+if [[ "$FRONTEND_MODE" == "builtin" ]]; then
+  if [[ ! -f "$DIST_DIR/index.html" ]]; then
+    echo "ERROR: Built frontend not found at $DIST_DIR" >&2
+    echo "Run:  cd $WEBUI_DIR && npm run build" >&2
+    echo "Or set [DISPLAY] WEBUI_FRONTEND to 0, a frontend launcher file, or a static directory." >&2
+    exit 1
   fi
+
+  export LCNC_WEBUI_DIST_DIR="$DIST_DIR"
+
+  if [[ "$BROWSER" == "1" ]]; then
+    ( sleep 1.5 && xdg-open "http://localhost:$PORT" 2>/dev/null ) &
+  fi
+
+  # Print Vite-style banner so the operator sees the LAN URL too. ANSI
+  # escapes match Vite's chalk output (green ➜, bold label, cyan URL) so
+  # the production startup looks consistent with dev. When HOST=0.0.0.0
+  # (default), enumerate both loopback and the first non-loopback IPv4
+  # so a remote browser knows what to connect to. When HOST is an
+  # explicit IP, print just that.
+  _C_GREEN=$'\033[32m'; _C_BOLD=$'\033[1m'; _C_CYAN=$'\033[36m'; _C_RESET=$'\033[0m'
+  printf '\n  %slcnc-suite%s %sPROD%s mode\n\n' "$_C_GREEN$_C_BOLD" "$_C_RESET" "$_C_BOLD" "$_C_RESET"
+  if [[ "$HOST" == "0.0.0.0" ]]; then
+    printf '  %s➜%s  %sLocal%s:   %shttp://localhost:%s/%s\n' \
+      "$_C_GREEN" "$_C_RESET" "$_C_BOLD" "$_C_RESET" "$_C_CYAN" "$PORT" "$_C_RESET"
+    _LAN_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
+    if [[ -n "$_LAN_IP" ]]; then
+      printf '  %s➜%s  %sNetwork%s: %shttp://%s:%s/%s\n' \
+        "$_C_GREEN" "$_C_RESET" "$_C_BOLD" "$_C_RESET" "$_C_CYAN" "$_LAN_IP" "$PORT" "$_C_RESET"
+    fi
+  else
+    printf '  %s➜%s  %shttp://%s:%s/%s\n' \
+      "$_C_GREEN" "$_C_RESET" "$_C_CYAN" "$HOST" "$PORT" "$_C_RESET"
+  fi
+  echo
+elif [[ "$FRONTEND_MODE" == "none" ]]; then
+  unset LCNC_WEBUI_DIST_DIR
+  echo "lcnc-suite: gateway/API-only mode (WEBUI_FRONTEND=0)"
 else
-  printf '  %s➜%s  %shttp://%s:%s/%s\n' \
-    "$_C_GREEN" "$_C_RESET" "$_C_CYAN" "$HOST" "$PORT" "$_C_RESET"
+  unset LCNC_WEBUI_DIST_DIR
+  echo "lcnc-suite: external frontend mode ($FRONTEND_MODE)"
+  echo "  frontend source: $FRONTEND_PATH"
+  echo "  frontend url:    http://${FRONTEND_HOST}:${FRONTEND_PORT}/"
 fi
-echo
 
 # Single signal authority: terminal signals reach the launcher only;
 # the trap is the only path that signals the gateway. Trap forwards
@@ -498,12 +635,13 @@ GATEWAY_PID=""
 _term() {
   trap '' INT TERM
   _log "PROD _term: signal received"
+  _stop_frontend_host
   if [[ -n "$GATEWAY_PID" ]]; then
     _log "PROD _term: SIGTERM → gateway pid=$GATEWAY_PID"
     kill -TERM "$GATEWAY_PID" 2>/dev/null
   fi
   _log "PROD _term: waiting for gateway pid=$GATEWAY_PID (≤2s, then SIGKILL)"
-  _wait_or_kill "$GATEWAY_PID" "PROD"
+  _wait_or_kill "$GATEWAY_PID" "PROD" "gateway"
   _stop_hal_sampler
   _stop_proc_status_loop
   _log "PROD _term: gateway reaped, exit 0"
@@ -519,12 +657,37 @@ trap _term INT TERM
 setsid python3 -m uvicorn gateway:app --host "$HOST" --port "$PORT" --app-dir "$GATEWAY_DIR" "${UVICORN_LOOP[@]}" "${UVICORN_COLOR[@]}" "${UVICORN_GRACEFUL[@]}" "${UVICORN_WS[@]}" &
 GATEWAY_PID=$!
 _log "PROD gateway started pid=$GATEWAY_PID"
+if [[ "$FRONTEND_MODE" == "command" || "$FRONTEND_MODE" == "static" ]]; then
+  _start_frontend_host
+  if [[ "$BROWSER" == "1" ]]; then
+    ( sleep 1.5 && xdg-open "$FRONTEND_URL" 2>/dev/null ) &
+  fi
+fi
 _start_hal_sampler "PROD"
 _start_proc_status_loop "$GATEWAY_PID" "PROD"
 # `|| status=$?` keeps set -e from killing us when the gateway exits
 # non-zero (e.g. status=143 after SIGTERM). We need to propagate the
 # status to LinuxCNC's Cleanup via `exit "$status"` below.
 status=0
-wait "$GATEWAY_PID" || status=$?
+if [[ -n "$FRONTEND_PID" ]]; then
+  finished_pid=""
+  wait -n -p finished_pid "$GATEWAY_PID" "$FRONTEND_PID" || status=$?
+  _log "PROD main wait returned status=$status finished_pid=$finished_pid"
+  if [[ "$finished_pid" == "$FRONTEND_PID" ]]; then
+    if [[ "$status" -eq 0 ]]; then
+      status=1
+    fi
+    _log "PROD main: frontend exited first, stopping gateway pid=$GATEWAY_PID"
+    kill -TERM "$GATEWAY_PID" 2>/dev/null || true
+    _wait_or_kill "$GATEWAY_PID" "PROD" "gateway"
+  else
+    _stop_frontend_host
+  fi
+else
+  wait "$GATEWAY_PID" || status=$?
+  _log "PROD main wait returned status=$status"
+fi
+_stop_hal_sampler
+_stop_proc_status_loop
 _log "PROD main wait returned status=$status, exit $status"
 exit "$status"

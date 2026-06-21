@@ -16,8 +16,9 @@ Two responsibilities, both over a single Unix socket:
      - "halshow_dump"   → hal.get_info_pins/signals/params for the diag tab
 
 Why split this from hal_watchdog.py?  hal_watchdog is the safety-supervisor
-process — it generates the gateway heartbeat and pulses the HAL trip-latch's
-reset (the latch itself is a servo-thread estop_latch, webui-hb-latch, #34).
+process — it generates the local HAL heartbeat from gateway freshness updates
+and pulses the HAL trip-latch's reset (the latch itself is a servo-thread
+estop_latch, webui-hb-latch, #34).
 Keeping it small and single-purpose makes it easier to audit.  hal_reader is
 pure observation
 (plus a couple of writes); its failure mode is "display values stale, comp

@@ -32,6 +32,12 @@ class TestBuildStatusEnvelope(unittest.TestCase):
         self.assertIs(msg["safety_trip"], trip)
         self.assertNotIn("safety_trip", build_status_envelope(**self.BASE))
 
+    def test_disable_reason_attached_only_when_present(self):
+        reason = {"kind": "machine_disabled", "message": "disabled unexpectedly"}
+        msg = build_status_envelope(**self.BASE, disable_reason=reason)
+        self.assertIs(msg["disable_reason"], reason)
+        self.assertNotIn("disable_reason", build_status_envelope(**self.BASE))
+
     def test_reader_stale_flag(self):
         self.assertTrue(
             build_status_envelope(**self.BASE, reader_stale=True)["reader_stale"])
