@@ -17,6 +17,7 @@ import { recordApply, recordRender, setViewerPerfContext } from "./viewerPerf";
 import { disposeObject } from "./viewer/disposal";
 import { createBackplotController } from "./viewer/backplotController";
 import { createSurfaceController } from "./viewer/surfaceController";
+import { createToolpathController, type ToolpathCtx } from "./viewer/toolpathController";
 import type { ViewerCtx } from "./viewer/viewerContext";
 import ViewCube from "./ViewCube.vue";
 import MachineBtn from "./MachineBtn.vue";
@@ -182,30 +183,15 @@ let toolBodyMesh: THREE.Mesh | null = null;
 let holderMesh: THREE.Mesh | null = null;
 let _currentToolNum: number | null = null;
 let _lastToolMeta: ToolMeta | null = null;
-let feedLine: THREE.Line | null = null;
-let rapidLine: THREE.Line | null = null;
-let feedOverflow: THREE.Line | null = null;
-let rapidOverflow: THREE.Line | null = null;
-let highlightLine: THREE.Line | null = null;
-// Shared BufferGeometries — one per channel — so feed/overflow/highlight don't
-// each carry their own copy of the position buffer. Disposed explicitly in
-// applyGcode (disposeObject skips _shared geometries).
-let feedSharedGeom: THREE.BufferGeometry | null = null;
-let rapidSharedGeom: THREE.BufferGeometry | null = null;
-let highlightGeom: THREE.BufferGeometry | null = null;
 let workAxes: THREE.Group | null = null;
 // Surface map (probe heightmap) — owned by surfaceController.
 const surface = createSurfaceController();
-
-// Map g-code line number → { start, end } point-index range in feed arrays
-let feedLineMap: Map<number, { start: number; end: number }> = new Map();
+// Toolpath preview (feed/rapid/highlight lines, bounds box/labels/overflow) —
+// owned by toolpathController. The HUD overflow flag stays here for the template.
+const toolpathOverflow = ref(false);
 
 // Pending layer visibility: stores calls made before scene objects exist
 let pendingLayers: Map<Layer, boolean> | null = new Map();
-let toolpathVisible = true;
-const toolpathOverflow = ref(false);
-// Toolpath bounding box in work coordinates (set by applyGcode, used by updateOverflowCheck)
-let toolpathBBox: { min: [number, number, number]; max: [number, number, number] } | null = null;
 
 // ---- Camera tracking ----
 let trackingMode: "none" | "tool" | "wcs" = "none";
@@ -267,16 +253,36 @@ const _bpLocal = new THREE.Vector3();
 const _trackTarget = new THREE.Vector3();
 
 let machineBoundsMesh: THREE.LineSegments | null = null;
-let toolpathBoundsBox: THREE.LineSegments | null = null;
-let toolpathBoundsLabels: THREE.Group | null = null;
-let toolpathOverflowEdges: THREE.LineSegments | null = null;
-let toolpathBoundsVisible = false;
 const _billboardLabels: Text[] = [];
 const _bbQ = new THREE.Quaternion();  // reused for billboard parent compensation
 const boundsClipPlanes: THREE.Plane[] = [];
 const insideBoundsClipPlanes: THREE.Plane[] = [];
 const _localBoundsPlanes: THREE.Plane[] = [];
 let machineMeshes: THREE.Mesh[] = [];
+
+// Toolpath preview controller. Stable deps (clip-plane arrays mutated in place,
+// the billboard registry, mkTextLabel, disposeObject, the live colour getter,
+// the HUD overflow ref) are bound once; apply()/updateOverflow() take a fresh
+// ToolpathCtx with the reassigned scene-graph pointers (never cached).
+const toolpath = createToolpathController({
+  requestRender,
+  boundsClipPlanes,
+  insideBoundsClipPlanes,
+  billboardLabels: _billboardLabels,
+  makeLabel: mkTextLabel,
+  disposeObject,
+  colors: () => viewerDefaults.colors,
+  axisCss: AXIS_CSS,
+  overflow: toolpathOverflow,
+});
+function toolpathCtx(): ToolpathCtx {
+  return {
+    scene, workOrigin, workRotGroup,
+    pathAlwaysOnTop,
+    machineBounds: viewerInit.value?.machine_bounds,
+    units: viewerInit.value?.units,
+  };
+}
 let _machineEdgeLines: THREE.LineSegments[] = [];
 let machineEdges = false;
 let _groupDirMap: Record<string, string | null> = {};  // group → direction (x/y/z/null)
@@ -594,12 +600,7 @@ function setLayerVisible(layer: Layer, on: boolean) {
       backplot.setVisible(on);
       break;
     case "toolpath":
-      toolpathVisible = on;
-      if (feedLine) feedLine.visible = on;
-      if (rapidLine) rapidLine.visible = on;
-      if (feedOverflow) feedOverflow.visible = on;
-      if (rapidOverflow) rapidOverflow.visible = on;
-      if (highlightLine) highlightLine.visible = on;
+      toolpath.setVisible(on);
       break;
     case "machine":
       for (const m of machineMeshes) m.visible = on;
@@ -609,10 +610,7 @@ function setLayerVisible(layer: Layer, on: boolean) {
       if (machineBoundsMesh) machineBoundsMesh.visible = on;
       break;
     case "toolpathBounds":
-      toolpathBoundsVisible = on;
-      if (toolpathBoundsBox) toolpathBoundsBox.visible = on;
-      if (toolpathBoundsLabels) toolpathBoundsLabels.visible = on;
-      if (toolpathOverflowEdges) toolpathOverflowEdges.visible = on;
+      toolpath.setBoundsVisible(on);
       break;
     case "tool":
       if (toolMarker) toolMarker.visible = on;
@@ -633,34 +631,8 @@ function setLayerVisible(layer: Layer, on: boolean) {
 function setPathAlwaysOnTop(on: boolean) {
   pathAlwaysOnTop = on;
   const dt = !on; // depthTest: false = always on top
-
   backplot.setDepthTest(dt);
-  if (feedLine) {
-    const m = feedLine.material as THREE.LineBasicMaterial;
-    m.depthTest = dt;
-    m.depthWrite = false;
-    m.needsUpdate = true;
-  }
-  if (rapidLine) {
-    const m = rapidLine.material as THREE.LineDashedMaterial;
-    m.depthTest = dt;
-    m.depthWrite = false;
-    m.needsUpdate = true;
-  }
-  for (const ol of [feedOverflow, rapidOverflow]) {
-    if (ol) {
-      const m = ol.material as THREE.LineDashedMaterial;
-      m.depthTest = dt;
-      m.depthWrite = false;
-      m.needsUpdate = true;
-    }
-  }
-  if (highlightLine) {
-    const m = highlightLine.material as THREE.LineBasicMaterial;
-    m.depthTest = dt;
-    m.depthWrite = false;
-    m.needsUpdate = true;
-  }
+  toolpath.setAlwaysOnTop(on);
   requestRender();
 }
 
@@ -722,104 +694,6 @@ function applyBox(mesh: THREE.Object3D, size: Vec3, origin: Vec3) {
   mesh.scale.set(Math.max(0.001, sx), Math.max(0.001, sy), Math.max(0.001, sz));
   mesh.position.set(ox + sx / 2, oy + sy / 2, oz + sz / 2);
 }
-
-function rebuildOverflowEdges(size: Vec3, offset: Vec3): THREE.LineSegments | null {
-  if (boundsClipPlanes.length === 0) return null;
-  const [sx, sy, sz] = size;
-  if (sx <= 0 || sy <= 0 || sz <= 0) return null;
-  const [ox, oy, oz] = offset;
-  const geom = new THREE.EdgesGeometry(new THREE.BoxGeometry(sx, sy, sz));
-  const mat = new THREE.LineDashedMaterial({
-    color: 0xff4444,
-    dashSize: 3,
-    gapSize: 2,
-    transparent: true,
-    opacity: 0.8,
-    clipIntersection: true,
-    clippingPlanes: boundsClipPlanes,
-  });
-  const lines = new THREE.LineSegments(geom, mat);
-  lines.computeLineDistances();
-  lines.position.set(ox + sx / 2, oy + sy / 2, oz + sz / 2);
-  return lines;
-}
-
-function makeLine(points: number[][] | Float32Array, colorHex: number | string, dashed = false, opacity = 1.0, lineDist?: Float32Array) {
-  const geom = new THREE.BufferGeometry();
-  // This geometry is reused by the overflow line (same object) and its position
-  // attribute by the highlight line — but it is PER-PROGRAM, not externally
-  // owned: applyGcode disposes it on program change, and disposeObject frees it
-  // on scene teardown. So it is deliberately NOT marked userData._shared (that
-  // flag is only for the STL cache + MAT.*, which must survive a rebuild).
-  // Prefer the flat Float32Array produced off-thread by previewWorker (P4.1);
-  // fall back to flattening nested points (WS path / older payloads).
-  const flat = points instanceof Float32Array ? points : new Float32Array(points.flat());
-  geom.setAttribute("position", new THREE.BufferAttribute(flat, 3));
-
-  // Important: stable bounds so Three doesn't cull it incorrectly
-  geom.computeBoundingSphere();
-
-  let mat: THREE.LineBasicMaterial | THREE.LineDashedMaterial;
-
-  if (dashed) {
-    mat = new THREE.LineDashedMaterial({
-      color: colorHex,
-      dashSize: 10,
-      gapSize: 6,
-      transparent: opacity < 1,
-      opacity,
-    });
-    mat.depthTest = !pathAlwaysOnTop;
-    mat.depthWrite = false;
-  } else {
-    mat = new THREE.LineBasicMaterial({ color: colorHex, transparent: opacity < 1, opacity });
-    mat.depthTest = !pathAlwaysOnTop;
-    mat.depthWrite = false;
-  }
-
-  const line = new THREE.Line(geom, mat);
-  line.renderOrder = 10;
-
-  // Bounding sphere is computed above; parent (workRotGroup) transforms apply
-  // to it via matrixWorld at cull time, so workOrigin/WCS-rotation changes
-  // don't require recomputation. Culling skips draw work when zoomed in.
-  line.frustumCulled = true;
-
-  if (dashed) {
-    if (lineDist) {
-      // Worker-precomputed (P4.1) — set the attribute directly instead of scanning
-      // every point on the main thread. The overflow line shares this geometry, so
-      // it reuses the attribute too (see makeOverflowLine).
-      geom.setAttribute("lineDistance", new THREE.Float32BufferAttribute(lineDist, 1));
-    } else {
-      (line as any).computeLineDistances?.();
-    }
-  }
-  return line;
-}
-
-/** Yellow dashed overlay sharing geometry with a toolpath line, clipped to show only outside machine bounds. */
-function makeOverflowLine(geom: THREE.BufferGeometry): THREE.Line | null {
-  if (boundsClipPlanes.length === 0) return null;
-  const mat = new THREE.LineDashedMaterial({
-    color: 0xffcc00,
-    dashSize: 3,
-    gapSize: 2,
-    transparent: true,
-    opacity: 0.9,
-    depthTest: !pathAlwaysOnTop,
-    depthWrite: false,
-    clipIntersection: true,
-    clippingPlanes: boundsClipPlanes,
-  });
-  const line = new THREE.Line(geom, mat);
-  line.renderOrder = 10;
-  line.frustumCulled = true;
-  // Idempotent: rapid channel already has lineDistance from rapidLine; feed channel doesn't.
-  if (!geom.attributes.lineDistance) line.computeLineDistances();
-  return line;
-}
-
 
 function ensureCoreGroups(init: ViewerInit) {
   if (!scene) return;
@@ -1121,8 +995,8 @@ async function buildFromInit(init: ViewerInit) {
     // summary window, not per frame. Lets the trace correlate hiccups with
     // toolpath size and the backplot-ring-full memmove regime.
     setViewerPerfContext(() => ({
-      feed_segs: feedSharedGeom?.getAttribute("position")?.count ?? 0,
-      rapid_segs: rapidSharedGeom?.getAttribute("position")?.count ?? 0,
+      feed_segs: toolpath.feedSegs,
+      rapid_segs: toolpath.rapidSegs,
       backplot_pts: backplot.count,
       backplot_full: backplot.isFull,
       // Three.js resource counts — monotonic growth over a long run is a
@@ -1216,7 +1090,7 @@ function applyState(init: ViewerInit, st: ViewerState) {
 
   if (workOrigin) {
     workOrigin.position.set(ox, oy, oz);
-    updateOverflowCheck();
+    toolpath.updateOverflow(toolpathCtx());
   }
   if (workRotGroup) {
     workRotGroup.rotation.z = (st.rotation_xy ?? 0) * Math.PI / 180;
@@ -1284,19 +1158,7 @@ function applyState(init: ViewerInit, st: ViewerState) {
   }
 
   // ---- Highlight current motion line in toolpath ----
-  // motion_line can be ~1 line ahead during G64 blending; try previous line first
-  if (highlightLine && curLine != null) {
-    const effectiveLine = feedLineMap.has(curLine - 1) ? curLine - 1 : curLine;
-    const range = feedLineMap.get(effectiveLine);
-    if (range) {
-      const s = Math.max(0, range.start - 1);
-      highlightLine.geometry.setDrawRange(s, range.end - s + 1);
-    } else {
-      highlightLine.geometry.setDrawRange(0, 0);
-    }
-  } else {
-    if (highlightLine) highlightLine.geometry.setDrawRange(0, 0);
-  }
+  toolpath.setHighlight(curLine);
 
   // Render-on-demand: detect whether anything visually changed since the last
   // applied state. Status broadcasts arrive at ~30 Hz; without this diff we'd
@@ -1326,251 +1188,10 @@ function applyState(init: ViewerInit, st: ViewerState) {
   if (changed) _needsRender = true;
 }
 
-/** Check if stored toolpath bbox exceeds machine bounds (in current WCS). */
-function updateOverflowCheck() {
-  toolpathOverflow.value = false;
-  if (!toolpathBBox || !workOrigin) return;
-  const mb = viewerInit.value?.machine_bounds;
-  if (!mb) return;
-  const wo = workOrigin.position;
-  // Machine bounds converted to work coordinates
-  const bMin0 = mb.origin[0] - wo.x, bMin1 = mb.origin[1] - wo.y, bMin2 = mb.origin[2] - wo.z;
-  const bMax0 = bMin0 + mb.size[0], bMax1 = bMin1 + mb.size[1], bMax2 = bMin2 + mb.size[2];
-  // toolpathBBox is in pre-rotation work coords; rotate the 4 XY corners by
-  // workRotGroup.rotation.z to get the rendered AABB. Z is unaffected.
-  const theta = workRotGroup?.rotation.z ?? 0;
-  const ca = Math.cos(theta), sa = Math.sin(theta);
-  let mnX = Infinity, mxX = -Infinity, mnY = Infinity, mxY = -Infinity;
-  for (const x of [toolpathBBox.min[0], toolpathBBox.max[0]]) {
-    for (const y of [toolpathBBox.min[1], toolpathBBox.max[1]]) {
-      const rx = x * ca - y * sa;
-      const ry = x * sa + y * ca;
-      if (rx < mnX) mnX = rx; if (rx > mxX) mxX = rx;
-      if (ry < mnY) mnY = ry; if (ry > mxY) mxY = ry;
-    }
-  }
-  toolpathOverflow.value =
-    mnX < bMin0 || mxX > bMax0 ||
-    mnY < bMin1 || mxY > bMax1 ||
-    toolpathBBox.min[2] < bMin2 || toolpathBBox.max[2] > bMax2;
-}
-
-function rebuildToolpathBounds() {
-  if (toolpathBoundsBox) {
-    workRotGroup?.remove(toolpathBoundsBox);
-    disposeObject(toolpathBoundsBox);
-    toolpathBoundsBox = null;
-  }
-  if (toolpathBoundsLabels) {
-    toolpathBoundsLabels.traverse((c: any) => {
-      if (c.dispose) {
-        c.dispose();
-        const i = _billboardLabels.indexOf(c);
-        if (i >= 0) _billboardLabels.splice(i, 1);
-      }
-    });
-    workRotGroup?.remove(toolpathBoundsLabels);
-    toolpathBoundsLabels = null;
-  }
-  if (toolpathOverflowEdges) {
-    workRotGroup?.remove(toolpathOverflowEdges);
-    disposeObject(toolpathOverflowEdges);
-    toolpathOverflowEdges = null;
-  }
-  if (!toolpathBBox || !workRotGroup) return;
-
-  const sx = toolpathBBox.max[0] - toolpathBBox.min[0];
-  const sy = toolpathBBox.max[1] - toolpathBBox.min[1];
-  const sz = toolpathBBox.max[2] - toolpathBBox.min[2];
-  if (sx <= 0 && sy <= 0 && sz <= 0) return;
-
-  const cx = (toolpathBBox.min[0] + toolpathBBox.max[0]) / 2;
-  const cy = (toolpathBBox.min[1] + toolpathBBox.max[1]) / 2;
-  const cz = (toolpathBBox.min[2] + toolpathBBox.max[2]) / 2;
-
-  const color = viewerDefaults.colors.toolpathBounds ?? "#f5a623";
-  const boxGeom = new THREE.BoxGeometry(Math.max(sx, 0.001), Math.max(sy, 0.001), Math.max(sz, 0.001));
-  const edgeGeom = new THREE.EdgesGeometry(boxGeom);
-  boxGeom.dispose();
-  toolpathBoundsBox = new THREE.LineSegments(
-    edgeGeom,
-    new THREE.LineBasicMaterial({
-      color,
-      transparent: true,
-      opacity: 0.9,
-      clippingPlanes: insideBoundsClipPlanes,
-    })
-  );
-  toolpathBoundsBox.position.set(cx, cy, cz);
-  toolpathBoundsBox.visible = toolpathBoundsVisible;
-  workRotGroup.add(toolpathBoundsBox);
-
-  toolpathOverflowEdges = rebuildOverflowEdges(
-    [sx, sy, sz],
-    [toolpathBBox.min[0], toolpathBBox.min[1], toolpathBBox.min[2]],
-  );
-  if (toolpathOverflowEdges) {
-    toolpathOverflowEdges.visible = toolpathBoundsVisible;
-    workRotGroup.add(toolpathOverflowEdges);
-  }
-
-  toolpathBoundsLabels = new THREE.Group();
-  const fs = Math.max(sx, sy, sz) * 0.05;
-  const unit = viewerInit.value?.units === "in" ||
-               viewerInit.value?.units === "inch" ? "in" : "mm";
-  const ox = toolpathBBox.min[0], oy = toolpathBBox.min[1], oz = toolpathBBox.min[2];
-  const axes: [string, number, THREE.Vector3, string][] = [
-    ["X", sx, new THREE.Vector3(ox + sx / 2, oy, oz), AXIS_CSS.x],
-    ["Y", sy, new THREE.Vector3(ox, oy + sy / 2, oz), AXIS_CSS.y],
-    ["Z", sz, new THREE.Vector3(ox, oy, oz + sz / 2), AXIS_CSS.z],
-  ];
-  for (const [name, size, pos, c] of axes) {
-    const lbl = mkTextLabel(`${name}: ${size.toFixed(0)} ${unit}`, c, fs);
-    lbl.position.copy(pos);
-    toolpathBoundsLabels.add(lbl);
-    _billboardLabels.push(lbl);
-  }
-  toolpathBoundsLabels.visible = toolpathBoundsVisible;
-  workRotGroup.add(toolpathBoundsLabels);
-}
-
 function applyGcode(g: ViewerGcode) {
-  if (!scene || !workOrigin) return;
-
-  // Remove old lines from scene graph and dispose their per-line materials.
-  // disposeObject() intentionally skips materials (to protect shared MAT.*),
-  // so ad-hoc materials created in makeLine/makeOverflowLine + the highlight
-  // material below must be released here or they accumulate in GPU memory.
-  for (const old of [feedLine, rapidLine, feedOverflow, rapidOverflow, highlightLine]) {
-    if (!old) continue;
-    workRotGroup?.remove(old);
-    const m = old.material as THREE.Material | THREE.Material[] | undefined;
-    if (Array.isArray(m)) m.forEach((mm) => mm.dispose());
-    else m?.dispose();
-  }
-  // Dispose shared geometries explicitly (disposeObject skips _shared)
-  if (feedSharedGeom) feedSharedGeom.dispose();
-  if (rapidSharedGeom) rapidSharedGeom.dispose();
-  if (highlightGeom) highlightGeom.dispose();
-  feedLine = rapidLine = feedOverflow = rapidOverflow = highlightLine = null;
-  feedSharedGeom = rapidSharedGeom = highlightGeom = null;
-
-  // Prefer the flat Float32Array buffers from previewWorker (P4.1); fall back to
-  // the nested arrays (WS path / older payloads). The wire's raw Uint8Array form
-  // never reaches here — previewWorker always converts it to feedPos/rapidPos —
-  // so the fallback accepts only the nested-list shape. feed_lines is
-  // index-aligned to the point index either way.
-  const _legacyPts = (v: unknown): number[][] => (Array.isArray(v) ? (v as number[][]) : []);
-  const feedData: number[][] | Float32Array = g.feedPos ?? _legacyPts(g.feed);
-  const rapidData: number[][] | Float32Array = g.rapidPos ?? _legacyPts(g.rapid);
-  const feedLines = (Array.isArray(g.feed_lines) || g.feed_lines instanceof Uint32Array) ? g.feed_lines : [];
-  const _pointCount = (d: number[][] | Float32Array) =>
-    d instanceof Float32Array ? d.length / 3 : d.length;
-
-  // Prefer the line→point-range map built off-thread by previewWorker (P4.1); fall
-  // back to building it here for the WS/legacy path that carries no worker map.
-  if (g.feedLineMap instanceof Map) {
-    feedLineMap = g.feedLineMap;
-  } else {
-    feedLineMap = new Map();
-    for (let i = 0; i < feedLines.length; i++) {
-      const ln = feedLines[i]!;
-      const entry = feedLineMap.get(ln);
-      if (entry) entry.end = i;
-      else feedLineMap.set(ln, { start: i, end: i });
-    }
-  }
-
-  // Feed + Rapid toolpath lines — geometry is shared with the overflow overlay.
-  const feedColor = viewerDefaults.colors.feed ?? "#22b8cf";
-  const rapidColor = viewerDefaults.colors.rapid ?? "#f5a623";
-  if (_pointCount(feedData) >= 2) {
-    feedLine = makeLine(feedData, feedColor, false);
-    feedSharedGeom = feedLine.geometry as THREE.BufferGeometry;
-    workRotGroup!.add(feedLine);
-    feedOverflow = makeOverflowLine(feedSharedGeom);
-    if (feedOverflow) workRotGroup!.add(feedOverflow);
-  }
-  if (_pointCount(rapidData) >= 2) {
-    // Pass the worker-precomputed lineDistance when the flat buffer is in use (P4.1);
-    // undefined on the WS/legacy path → makeLine falls back to computeLineDistances.
-    const _rapidDist = rapidData === g.rapidPos ? g.rapidDist : undefined;
-    rapidLine = makeLine(rapidData, rapidColor, true, 1.0, _rapidDist);
-    rapidSharedGeom = rapidLine.geometry as THREE.BufferGeometry;
-    workRotGroup!.add(rapidLine);
-    rapidOverflow = makeOverflowLine(rapidSharedGeom);
-    if (rapidOverflow) workRotGroup!.add(rapidOverflow);
-  }
-
-  // Highlight line — shares feed's position attribute; independent drawRange.
-  // Reuses the feed bounding sphere so frustum culling matches the full toolpath
-  // extents (conservative: drawn subset is always inside the full bounds).
-  if (feedSharedGeom) {
-    highlightGeom = new THREE.BufferGeometry();
-    // Per-program (not externally owned): disposed by applyGcode on program
-    // change and by disposeObject on teardown — deliberately not _shared.
-    highlightGeom.setAttribute("position", feedSharedGeom.attributes.position!);
-    highlightGeom.boundingSphere = feedSharedGeom.boundingSphere;
-    highlightGeom.setDrawRange(0, 0); // hidden until motion_line updates
-    const hlMat = new THREE.LineBasicMaterial({ color: 0xff3333 });
-    hlMat.depthTest = !pathAlwaysOnTop;
-    hlMat.depthWrite = false;
-    highlightLine = new THREE.Line(highlightGeom, hlMat);
-    highlightLine.renderOrder = 12;
-    highlightLine.frustumCulled = true;
-    workRotGroup!.add(highlightLine);
-  }
-
-  // Toolpath bounding box (work coordinates) for overflow detection. Prefer the
-  // bounds the parse worker computed over the same decimated polyline (P4.1) so we
-  // don't re-scan every point on the UI thread; fall back to a main-thread pass for
-  // the WS/legacy path that carries no bounds.
-  toolpathBBox = null;
-  const _wb = g.bounds;
-  if (_wb && Array.isArray(_wb.min) && Array.isArray(_wb.max) && _wb.min.length === 3) {
-    toolpathBBox = {
-      min: [_wb.min[0]!, _wb.min[1]!, _wb.min[2]!],
-      max: [_wb.max[0]!, _wb.max[1]!, _wb.max[2]!],
-    };
-  } else {
-    const mn: [number, number, number] = [Infinity, Infinity, Infinity];
-    const mx: [number, number, number] = [-Infinity, -Infinity, -Infinity];
-    let _bboxAny = false;
-    const _scanBBox = (d: number[][] | Float32Array) => {
-      if (d instanceof Float32Array) {
-        for (let i = 0; i + 2 < d.length; i += 3) {
-          _bboxAny = true;
-          const x = d[i]!, y = d[i + 1]!, z = d[i + 2]!;
-          if (x < mn[0]) mn[0] = x; if (x > mx[0]) mx[0] = x;
-          if (y < mn[1]) mn[1] = y; if (y > mx[1]) mx[1] = y;
-          if (z < mn[2]) mn[2] = z; if (z > mx[2]) mx[2] = z;
-        }
-      } else {
-        for (const p of d) {
-          _bboxAny = true;
-          if (p[0]! < mn[0]) mn[0] = p[0]!; if (p[0]! > mx[0]) mx[0] = p[0]!;
-          if (p[1]! < mn[1]) mn[1] = p[1]!; if (p[1]! > mx[1]) mx[1] = p[1]!;
-          if (p[2]! < mn[2]) mn[2] = p[2]!; if (p[2]! > mx[2]) mx[2] = p[2]!;
-        }
-      }
-    };
-    _scanBBox(feedData);
-    _scanBBox(rapidData);
-    if (_bboxAny) toolpathBBox = { min: mn, max: mx };
-  }
-  updateOverflowCheck();
-  rebuildToolpathBounds();
-
-  // Apply stored toolpath visibility (may have been set before lines existed)
-  if (!toolpathVisible) {
-    if (feedLine) feedLine.visible = false;
-    if (rapidLine) rapidLine.visible = false;
-    if (feedOverflow) feedOverflow.visible = false;
-    if (rapidOverflow) rapidOverflow.visible = false;
-    if (highlightLine) highlightLine.visible = false;
-  }
-
-  requestRender();
+  // Owned by toolpathController; pass a fresh ctx with the reassigned
+  // scene-graph pointers + per-program machine bounds/units.
+  toolpath.apply(toolpathCtx(), g);
 }
 
 // ---------- lifecycle ----------
@@ -2112,11 +1733,9 @@ function setToolColors(toolColor: string | null, cutterColor: string | null) {
 // at creation). Overflow/highlight lines keep their fixed warning colors.
 type PathColors = { feed?: string; rapid?: string; backplot?: string; bounds?: string; toolpathBounds?: string };
 function applyPathColors(c: PathColors) {
-  if (feedLine && c.feed) (feedLine.material as THREE.LineBasicMaterial).color.set(c.feed);
-  if (rapidLine && c.rapid) (rapidLine.material as THREE.LineDashedMaterial).color.set(c.rapid);
+  toolpath.setColors({ feed: c.feed, rapid: c.rapid, toolpathBounds: c.toolpathBounds });
   if (c.backplot) backplot.setColor(c.backplot);
   if (machineBoundsMesh && c.bounds) (machineBoundsMesh.material as THREE.LineBasicMaterial).color.set(c.bounds);
-  if (toolpathBoundsBox && c.toolpathBounds) (toolpathBoundsBox.material as THREE.LineBasicMaterial).color.set(c.toolpathBounds);
 }
 
 /** Exposed instant path-colour update (parity with setToolColors). */
