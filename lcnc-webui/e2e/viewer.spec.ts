@@ -3,11 +3,13 @@ import WebSocket from "ws";
 
 // Viewer GPU-resource leak probe (A2). window.__viewerLeakProbe reports live
 // THREE.WebGLRenderer.info counts. A program's feed/rapid/highlight geometry is
-// PER-PROGRAM: a scene rebuild (clearScene) must dispose it. The old
-// disposeObject skipped it (it was wrongly tagged userData._shared), so it
-// survived every reconnect rebuild — a geometry leak. This spec loads programs,
-// forces clean in-session rebuilds, and asserts the renderer-tracked geometry
-// count converges back to the no-program baseline.
+// PER-PROGRAM: a scene rebuild (clearScene) must dispose it — and (review-fix
+// batch) buildFromInit then RE-APPLIES the current program, so the preview
+// survives a mid-session rebuild. This spec loads a program, forces clean
+// in-session rebuilds, and asserts the renderer-tracked geometry count returns
+// to the loaded level every cycle: a disposal leak (the old userData._shared
+// mis-tag survived clearScene) ADDS ~3 geoms per cycle and fails the upper
+// bound; a missing re-apply drops the count and fails the lower bound.
 //
 // Scope: renderer.info tracks geometries/textures/programs but NOT material
 // instances, so the material-leak half of A2 (edge materials, colour clones) is
@@ -53,54 +55,48 @@ test.beforeEach(async () => {
   await ctl({ op: "reset" });
 });
 
-test("a clean rebuild frees the loaded program's toolpath geometry", async ({ page }) => {
+test("a clean rebuild frees AND re-applies the loaded program's toolpath geometry", async ({ page }) => {
   await page.goto(MOCK);
   await expect.poll(() => page.evaluate(() => !!window.__viewerLeakProbe)).toBe(true);
+  const empty = await settledGeometries(page);
 
-  // Prime once so troika's GLOBAL glyph atlas (created lazily on the first
-  // toolpath-bounds label, ~3 geoms + 1 texture, then permanently resident) is
-  // already counted in every reading below — otherwise it would masquerade as a
-  // first-cycle "leak". This is why the test compares a DELTA, not an absolute
-  // baseline: the atlas is present in both `loaded` and `rebuilt`, so it cancels.
+  // Load once. This also creates troika's GLOBAL glyph atlas (lazily on the
+  // first toolpath-bounds label, ~3 geoms + 1 texture, permanently resident) —
+  // it is counted in `loaded` and in every `rebuilt` below, so it cancels out
+  // of the comparison. loadGcode is async (preview-worker round-trip): wait for
+  // the toolpath geometry to actually APPEAR before settling.
   await ctl({ op: "loadGcode" });
-  await settledGeometries(page);
-  await ctl({ op: "rebuildInit" });
-  await settledGeometries(page);
+  await expect.poll(() => geometries(page), { timeout: 8000, intervals: [150] })
+    .toBeGreaterThan(empty + 1);
+  const loaded = await settledGeometries(page);
 
-  // Repeat several cycles: the freed-delta must hold every time (a per-cycle
-  // leak that survived clearScene would shrink the delta toward zero) and the
-  // post-rebuild count must not climb (no accumulation).
-  let rebuilt = await settledGeometries(page);
+  // Repeat several clean rebuilds. Steady-state invariant: the count returns
+  // to `loaded` every cycle — the rebuild disposed the old per-program
+  // geometry (feed/rapid/highlight ≈ 3) AND re-applied the program preview.
+  //  * A leak that survives clearScene (the old userData._shared mis-tag)
+  //    accumulates ~3/cycle → upper bound goes RED by cycle 1-2.
+  //  * A rebuild that loses the preview (no re-apply after
+  //    toolpath.forgetAfterSceneClear) settles at ~loaded-3 → lower bound RED.
   for (let i = 0; i < 4; i++) {
-    const before = rebuilt;
-    await ctl({ op: "loadGcode" });
-    // loadGcode is async (preview-worker round-trip): wait for the toolpath
-    // geometry to actually APPEAR before settling, or a premature "stable" read
-    // at the pre-load count makes the delta below collapse under CPU load.
-    await expect.poll(() => geometries(page), { timeout: 8000, intervals: [150] })
-      .toBeGreaterThan(before + 1);
-    const loaded = await settledGeometries(page);
-
-    // Core invariant: the clean rebuild disposes the per-program toolpath
-    // geometry (feed/rapid/highlight ≈ 3), so the count drops back to ~before.
-    // POLL while RE-SENDING rebuildInit — buildFromInit's clearScene runs a
-    // Vue-tick + WS-hop after the broadcast, and a single broadcast can race the
+    // POLL while RE-SENDING rebuildInit — a single broadcast can race the
     // page's WS readiness under full-suite load (the earlier intermittent
-    // flake). Re-firing each poll tick is delivery-robust; each rebuildInit
-    // bumps _rev so it always forces a real rebuild. With the old leak the
-    // toolpath was userData._shared and survived clearScene, so the count never
-    // drops and this poll times out → RED.
+    // flake); each rebuildInit bumps _rev so it always forces a real rebuild.
+    // Completion signal: buildFromInit stamps a fresh __viewerDiag.timestamp.
+    const prevTs = await page.evaluate(() => window.__viewerDiag?.timestamp ?? 0);
     await expect.poll(async () => {
       await ctl({ op: "rebuildInit" });
-      return geometries(page);
+      return page.evaluate(() =>
+        (window.__viewerDiag?.ready && window.__viewerDiag?.timestamp) || 0);
     }, {
       timeout: 8000, intervals: [200],
-      message: `cycle ${i}: clean rebuild did not free the loaded toolpath geometry`,
-    }).toBeLessThanOrEqual(loaded - 2);
-    rebuilt = await settledGeometries(page);
+      message: `cycle ${i}: rebuildInit never completed a rebuild`,
+    }).toBeGreaterThan(prevTs);
+    const rebuilt = await settledGeometries(page);
 
-    // No accumulation across cycles (troika atlas aside, the steady state is flat).
-    expect(rebuilt, `cycle ${i}: post-rebuild geometry grew`).toBeLessThanOrEqual(before + 1);
+    expect(rebuilt, `cycle ${i}: rebuild lost the program preview (re-apply missing)`)
+      .toBeGreaterThanOrEqual(loaded - 1);
+    expect(rebuilt, `cycle ${i}: geometry accumulated across rebuild (clearScene leak)`)
+      .toBeLessThanOrEqual(loaded + 1);
   }
 });
 

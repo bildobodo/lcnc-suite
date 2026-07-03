@@ -52,6 +52,11 @@ export interface ToolpathController {
   setAlwaysOnTop(on: boolean): void;
   /** Live-update feed/rapid/toolpath-bounds colours on existing lines. */
   setColors(c: { feed?: string; rapid?: string; toolpathBounds?: string }): void;
+  /** Drop all refs WITHOUT disposing — clearScene already freed the objects.
+   *  Parallel to surfaceController.forgetAfterSceneClear (H6): stale refs
+   *  would keep feedSegs/updateOverflow reporting the disposed program and
+   *  double-dispose on the next apply(). Call from ensureCoreGroups. */
+  forgetAfterSceneClear(): void;
   dispose(): void;
   readonly feedSegs: number;
   readonly rapidSegs: number;
@@ -175,10 +180,25 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     return lines;
   }
 
-  function rebuildToolpathBounds(ctx: ToolpathCtx) {
-    const workRotGroup = ctx.workRotGroup;
+  /** Detach + free the five toolpath lines. deps.disposeObject frees private
+   *  geometry AND materials (A2); the shared feed/rapid/highlight geoms are
+   *  deliberately not _shared, so one pass releases everything (a second
+   *  visit via the geometry-sharing overflow lines is idempotent). */
+  function teardownLines() {
+    for (const old of [feedLine, rapidLine, feedOverflow, rapidOverflow, highlightLine]) {
+      if (!old) continue;
+      old.parent?.remove(old);
+      deps.disposeObject(old);
+    }
+    feedLine = rapidLine = feedOverflow = rapidOverflow = highlightLine = null;
+    feedSharedGeom = rapidSharedGeom = highlightGeom = null;
+  }
+
+  /** Detach + free the bounds box, its labels, and the overflow edges.
+   *  Removes from the object's ACTUAL parent (may be an older workRotGroup). */
+  function teardownBounds() {
     if (toolpathBoundsBox) {
-      workRotGroup?.remove(toolpathBoundsBox);
+      toolpathBoundsBox.parent?.remove(toolpathBoundsBox);
       deps.disposeObject(toolpathBoundsBox);
       toolpathBoundsBox = null;
     }
@@ -190,14 +210,19 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
           if (i >= 0) deps.billboardLabels.splice(i, 1);
         }
       });
-      workRotGroup?.remove(toolpathBoundsLabels);
+      toolpathBoundsLabels.parent?.remove(toolpathBoundsLabels);
       toolpathBoundsLabels = null;
     }
     if (toolpathOverflowEdges) {
-      workRotGroup?.remove(toolpathOverflowEdges);
+      toolpathOverflowEdges.parent?.remove(toolpathOverflowEdges);
       deps.disposeObject(toolpathOverflowEdges);
       toolpathOverflowEdges = null;
     }
+  }
+
+  function rebuildToolpathBounds(ctx: ToolpathCtx) {
+    const workRotGroup = ctx.workRotGroup;
+    teardownBounds();
     if (!toolpathBBox || !workRotGroup) return;
 
     const sx = toolpathBBox.max[0] - toolpathBBox.min[0];
@@ -289,23 +314,8 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       pathAlwaysOnTop = ctx.pathAlwaysOnTop;
       const workRotGroup = ctx.workRotGroup;
 
-      // Remove old lines from scene graph and dispose their per-line materials.
-      // disposeObject() intentionally skips materials (to protect shared MAT.*),
-      // so ad-hoc materials created in makeLine/makeOverflowLine + the highlight
-      // material below must be released here or they accumulate in GPU memory.
-      for (const old of [feedLine, rapidLine, feedOverflow, rapidOverflow, highlightLine]) {
-        if (!old) continue;
-        workRotGroup?.remove(old);
-        const m = old.material as THREE.Material | THREE.Material[] | undefined;
-        if (Array.isArray(m)) m.forEach((mm) => mm.dispose());
-        else m?.dispose();
-      }
-      // Dispose shared geometries explicitly (disposeObject skips _shared)
-      if (feedSharedGeom) feedSharedGeom.dispose();
-      if (rapidSharedGeom) rapidSharedGeom.dispose();
-      if (highlightGeom) highlightGeom.dispose();
-      feedLine = rapidLine = feedOverflow = rapidOverflow = highlightLine = null;
-      feedSharedGeom = rapidSharedGeom = highlightGeom = null;
+      // Program change: free every replaced line (geometry + material).
+      teardownLines();
 
       // Prefer the flat Float32Array buffers from previewWorker (P4.1); fall back to
       // the nested arrays (WS path / older payloads). The wire's raw Uint8Array form
@@ -488,33 +498,22 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       if (toolpathBoundsBox && c.toolpathBounds) (toolpathBoundsBox.material as THREE.LineBasicMaterial).color.set(c.toolpathBounds);
     },
 
-    dispose() {
-      for (const old of [feedLine, rapidLine, feedOverflow, rapidOverflow, highlightLine,
-                         toolpathBoundsBox, toolpathOverflowEdges]) {
-        if (!old) continue;
-        old.parent?.remove(old);
-        const m = old.material as THREE.Material | THREE.Material[] | undefined;
-        if (Array.isArray(m)) m.forEach((mm) => mm.dispose());
-        else m?.dispose();
-      }
-      if (toolpathBoundsLabels) {
-        toolpathBoundsLabels.traverse((c: any) => {
-          if (c.dispose) {
-            c.dispose();
-            const i = deps.billboardLabels.indexOf(c);
-            if (i >= 0) deps.billboardLabels.splice(i, 1);
-          }
-        });
-        toolpathBoundsLabels.parent?.remove(toolpathBoundsLabels);
-      }
-      feedSharedGeom?.dispose();
-      rapidSharedGeom?.dispose();
-      highlightGeom?.dispose();
+    forgetAfterSceneClear() {
       feedLine = rapidLine = feedOverflow = rapidOverflow = highlightLine = null;
       feedSharedGeom = rapidSharedGeom = highlightGeom = null;
       toolpathBoundsBox = toolpathOverflowEdges = null;
       toolpathBoundsLabels = null;
       toolpathBBox = null;
+      feedLineMap = new Map();
+      deps.overflow.value = false;
+    },
+
+    dispose() {
+      teardownLines();
+      teardownBounds();
+      toolpathBBox = null;
+      feedLineMap = new Map();
+      deps.overflow.value = false;
     },
 
     get feedSegs() { return feedSharedGeom?.getAttribute("position")?.count ?? 0; },

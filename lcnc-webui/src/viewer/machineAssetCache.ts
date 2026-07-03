@@ -5,7 +5,11 @@
 // per-tool ToolMeta. Shared across ALL ThreeViewer instances and persisted for
 // the page lifetime, so a reconnect / tab re-mount reuses already-parsed
 // geometry instead of re-fetching. loadMachineAssets is single-flight
-// (deduplicates concurrent + repeat calls for the same init).
+// (deduplicates concurrent + repeat calls for the same init) — but a load
+// that threw, or fulfilled with failedParts (Promise.allSettled means part
+// failures still FULFIL the outer promise), clears the dedup slot so the
+// next call retries the missing parts instead of pinning the failure for
+// the whole page session.
 //
 // The geometries are tagged userData._shared so viewer/disposal.ts never frees
 // them on a scene teardown — they outlive any single viewer.
@@ -44,8 +48,9 @@ async function fetchAndParseStl(url: string, signal?: AbortSignal): Promise<THRE
 
 export function loadMachineAssets(init: any, onProgress?: (msg: string) => void): Promise<void> {
   const json = JSON.stringify({ base: init.stl_base_url, parts: init.parts });
-  // Return in-progress OR completed promise (true deduplication).
-  // Rejected promises clear _loadPromise in the catch below so the next call retries.
+  // Return in-progress OR completed promise (true deduplication). Loads that
+  // threw OR completed with failedParts clear _loadPromise below, so the next
+  // call retries the missing parts (cached successes skip straight through).
   if (_loadPromise && json === _loadedInitJson) return _loadPromise;
 
   _loadedInitJson = json;
@@ -98,10 +103,19 @@ export function loadMachineAssets(init: any, onProgress?: (msg: string) => void)
         }
       });
       failedParts.value = failed;
+      if (failed.length > 0 && _loadedInitJson === json) {
+        // Partial failure still FULFILS (allSettled) — without this the dedup
+        // guard would return the failed load for the whole page session.
+        // Guarded on _loadedInitJson so a newer, different load that started
+        // meanwhile keeps its own dedup slot.
+        _loadPromise = null;
+      }
 
       machineReady.value = true;
     } catch (err) {
-      _loadPromise = null; // clear so the next buildFromInit call retries fresh
+      // Clear so the next buildFromInit call retries fresh — but only if no
+      // newer load superseded this one (don't clobber its dedup slot).
+      if (_loadedInitJson === json) _loadPromise = null;
       throw err;
     } finally {
       clearTimeout(timer);

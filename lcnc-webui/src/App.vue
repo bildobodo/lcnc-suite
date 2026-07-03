@@ -794,7 +794,9 @@ provide("setPathColors", setPathColors);
 function setProjection(proj: "perspective" | "parallel") {
   const wantOrtho = proj === "parallel";
   const v = viewerRef.value;
-  if (v?.isOrtho?.value !== wantOrtho) v?.switchProjection?.();
+  // defineExpose unwraps refs: v.isOrtho is a plain boolean on the exposed
+  // instance (a `.value` read here was undefined → every call blind-toggled).
+  if (v && v.isOrtho !== wantOrtho) v.switchProjection?.();
 }
 
 const runFromLineEnabled = ref(loadMachineDefaults().runFromLine);

@@ -77,6 +77,24 @@ describe("loadMachineAssets", () => {
     expect(machineReady.value).toBe(true);   // a failed part doesn't block readiness
   });
 
+  it("retries after a PARTIAL failure (allSettled fulfils, but the dedup slot is cleared)", async () => {
+    // First load: the part's IDB miss + fetch both fail → failedParts.
+    idb.loadGeometryFromIDB.mockResolvedValue(null);
+    vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("network blip"); }));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const init = { stl_base_url: "/m6/", parts: [{ id: "m6-flaky", file: "flaky.stl" }] };
+    await loadMachineAssets(init);
+    expect(failedParts.value).toContain("m6-flaky");
+    expect(getCachedGeometry("m6-flaky")).toBeUndefined();
+
+    // Second load with the SAME init must NOT return the pinned failed
+    // promise — the network is back (IDB hit) and the part loads.
+    idb.loadGeometryFromIDB.mockImplementation(async () => new THREE.BufferGeometry());
+    await loadMachineAssets(init);
+    expect(getCachedGeometry("m6-flaky")).toBeInstanceOf(THREE.BufferGeometry);
+    expect(failedParts.value).toEqual([]);
+  });
+
   it("retries after a fully-rejected load (the _loadPromise=null path)", async () => {
     // Make the load throw synchronously inside the async IIFE by handing it a
     // parts value that isn't array-like; the outer try rethrows + clears

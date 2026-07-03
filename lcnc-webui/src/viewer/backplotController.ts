@@ -112,7 +112,10 @@ export function createBackplotController(requestRender: () => void): BackplotCon
     },
 
     dispose() {
-      line?.parent?.remove(line);
+      if (line) {
+        line.parent?.remove(line);
+        (line.material as THREE.Material).dispose();  // created in build(), owned here
+      }
       geom?.dispose();
       line = null; geom = null; pos = null;
     },
