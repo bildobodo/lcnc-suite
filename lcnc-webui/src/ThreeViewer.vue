@@ -1717,7 +1717,23 @@ function computeEdgesOffThread(geom: THREE.BufferGeometry, partId: string): Prom
 
 async function buildEdgesLazy() {
   if (_edgesBuilt) return;
+  // No meshes yet → nothing to build, and CRITICALLY do not mark _edgesBuilt:
+  // applyViewerDefaults calls setMachineEdges during buildFromInit's STL-await
+  // window (onMounted + settings echoes), when machineMeshes is still empty.
+  // An empty run completing synchronously here poisoned the flag, so the real
+  // build at the end of buildFromInit early-returned — no outlines until the
+  // next scene rebuild, and toggle/reset couldn't recover (empty line array).
+  if (machineMeshes.length === 0) return;
   const token = ++_edgeBuildToken;
+
+  // Sweep partial output of an aborted prior run (the token bump above kills
+  // it; its post-await token check means it adds nothing after this point).
+  // Without this, a second call mid-build duplicated already-built edge lines.
+  for (const e of _machineEdgeLines) {
+    e.parent?.remove(e);
+    disposeObject(e);
+  }
+  _machineEdgeLines = [];
 
   for (const mesh of machineMeshes) {
     if (token !== _edgeBuildToken) return;
