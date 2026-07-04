@@ -215,8 +215,27 @@ the by-letter fix now, full stick→any-axis remap model DEFERRED (→ F7).
 - D6 `06213ed` — examples/sim_config 5-axis (XYZAC) + 9-axis (XYZABCUVW)
   INI/HAL variants, instant-homing extra joints.
 
-Pending: user visual smoke on the sim variants (SetupStrip 6-row column,
-OffsetPanel 10-column scroll, portrait/landscape) → merge.
+Smoke (4 rounds, all user-driven on the real 5/9-axis sims):
+- R1 `a6169ca` — jog pad flex regression (WS-C stack conversion missed the
+  DYNAMIC :class site; .jogInner direction varies per modifier — never a
+  stack-* candidate) + SetupStrip >3-axis overflow → chunked grids.
+- R2 `86a3905` — jog ABC/UVW tight clusters; setup 6-row packing;
+  OffsetPanel --val-cols min-width (10 columns scroll, don't collide);
+  portrait axis grid. Mock setAxes now ships wcs_table/g92/tool_offset.
+- R3 `e312441` — uniform 32px setup rows (catalog touchoff input md→sm —
+  measured, the md INLINE size style beat scoped CSS); portrait single
+  setup grid (isPortrait inject); portrait big-Z zone.
+- R4 `f9ffc44` — portrait Z column width = other axis columns.
+- R5 `b9c3a18` — GATEWAY BUG user-caught on XYZAC: teleop CMD.jog wants
+  CANONICAL axis numbers (X=0…W=8), wire sends machine-list indices — C
+  (list 4) jogged nonexistent B → silent no-motion, and the disarm
+  jog-stop sweep missed C identically. _jog_axis_arg translates at all 7
+  jog sites (jf==1 passes through). Gap-free axis sets (XYZ, 9-axis)
+  masked the class entirely. Dispatch tests + adversarial proof.
+Perf-matrix gate (gateway change): `20260704T134452Z-b9c3a18` vs baseline
+— all load scenarios 0 lag (fusion 2→0), sigstop_trip full pristine-latch
+trip signature, RSS below baseline; single 107.8ms idle receive blip, far
+under budget, command-path-unrelated. C jog user-verified on 5-axis.
 
 | F7 | useGamepad.ts | Stick/D-pad→machine-axis mapping is fixed XY/Z semantics; machines wanting rotary jog on a stick need a real remap model (settings UI: per stick axis/D-pad pair → any machine axis, per-axis invert, config migration) | deferred by user decision (WS-D scope call) |
 
