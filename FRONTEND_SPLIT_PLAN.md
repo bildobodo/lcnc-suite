@@ -239,7 +239,43 @@ under budget, command-path-unrelated. C jog user-verified on 5-axis.
 
 | F7 | useGamepad.ts | Stick/D-pad→machine-axis mapping is fixed XY/Z semantics; machines wanting rotary jog on a stick need a real remap model (settings UI: per stick axis/D-pad pair → any machine axis, per-axis invert, config migration) | deferred by user decision (WS-D scope call) |
 
-### WS-E / WS-F
+### WS-E — performance verify-and-finish (branch `perf/fe-ws-e-finish`)
+
+1. `e8e85a1` — F10 FINISH: the async-ThreeViewer + manual three chunk had
+   landed earlier but the payoff never materialized — ToolTablePanel's
+   static ToolPreview import kept a static edge from the entry chunk to
+   the 865.7 kB (237.9 kB gzip) three chunk, and index.html modulepreloaded
+   it on every first paint. ToolPreview is now async; NO index chunk
+   imports three statically, no modulepreload — three/ThreeViewer/
+   ToolPreview/toolGeometry all load post-paint. Entry 404.4 → 397.6 kB;
+   critical path −237.9 kB gzip.
+2. statusStore rAF-path allocation review (M2-style, by-construction):
+   delta rebase allocates ONE merged object per tick — inherent to
+   rebasing (in-place mutation of the live reactive object would corrupt
+   Vue change tracking); timing samples ride only 1 Hz heartbeat frames;
+   safetyTrip/readerStale/configWarning already change-only (P4.3). One
+   micro-fix applied: the per-flush rAF closure hoisted to a module fn.
+   No other per-frame allocations introduced by the A1 split — verdict:
+   already performant by construction, no manufactured churn.
+3. viewerPerf evidence record (live sim, Firefox on host, 1.18M-feed-seg
+   program loaded; 200 consecutive 3 s windows): 30 Hz steady (gap p50
+   33 ms, p95 ≤51 ms, absolute worst 84 ms), jank frames ≈1.5/window (50 ms
+   threshold), applyState mean 0.08 ms / max 2 ms, renders 0 while idle
+   (render-on-demand holding), geometries flat at 21 (no growth).
+
+4. e2e flake ROOT-CAUSED and fixed (was misdiagnosed as a post-build
+   dist-swap race): the `serial` playwright project's fullyParallel:false
+   only serializes WITHIN a file — lifecycle/nine-axis/viewer still ran on
+   parallel workers, and nine-axis's mock-global setAxes/reset broadcasts
+   swapped the axis set mid-assertion in sibling specs (HUD A-row vanished
+   under the °-check; leak-probe geometry counts perturbed — the source of
+   every intermittent 13/14). Latent since A2 with two files; nine-axis
+   made it frequent. Fix: three dependency-CHAINED single-file projects
+   (lifecycle → nine-axis → viewer). 4 consecutive full-suite runs 14/14.
+   Viewer-spec poll budgets also widened 8→15 s (async three shifts the
+   first geometry rise later — correct hardening, but not the flake).
+
+### WS-F
 
 Tracked when reached.
 

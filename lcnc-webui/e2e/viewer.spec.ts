@@ -35,7 +35,7 @@ async function settledGeometries(page: Page): Promise<number> {
     const stable = now >= 0 && now === last;
     last = now;
     return stable;
-  }, { timeout: 8000, intervals: [250] }).toBe(true);
+  }, { timeout: 15000, intervals: [250] }).toBe(true);
   return last;
 }
 
@@ -45,8 +45,13 @@ test.beforeEach(async () => {
 });
 
 test("a clean rebuild frees AND re-applies the loaded program's toolpath geometry", async ({ page }) => {
+  // 4 rebuild iterations × widened poll budgets: give the whole spec room
+  // under full-suite contention on the 4-core VM (typical run stays ~5 s).
+  test.setTimeout(120_000);
   await page.goto(MOCK);
-  await expect.poll(() => page.evaluate(() => !!window.__viewerLeakProbe)).toBe(true);
+  // Probe appears only after the async three/ThreeViewer chunks resolve
+  // (WS-E moved them off the critical path) — allow for contention.
+  await expect.poll(() => page.evaluate(() => !!window.__viewerLeakProbe), { timeout: 15000 }).toBe(true);
   const empty = await settledGeometries(page);
 
   // Load once. This also creates troika's GLOBAL glyph atlas (lazily on the
@@ -55,7 +60,7 @@ test("a clean rebuild frees AND re-applies the loaded program's toolpath geometr
   // of the comparison. loadGcode is async (preview-worker round-trip): wait for
   // the toolpath geometry to actually APPEAR before settling.
   await ctl({ op: "loadGcode" });
-  await expect.poll(() => geometries(page), { timeout: 8000, intervals: [150] })
+  await expect.poll(() => geometries(page), { timeout: 15000, intervals: [150] })
     .toBeGreaterThan(empty + 1);
   const loaded = await settledGeometries(page);
 
@@ -77,7 +82,7 @@ test("a clean rebuild frees AND re-applies the loaded program's toolpath geometr
       return page.evaluate(() =>
         (window.__viewerDiag?.ready && window.__viewerDiag?.timestamp) || 0);
     }, {
-      timeout: 8000, intervals: [200],
+      timeout: 15000, intervals: [200],
       message: `cycle ${i}: rebuildInit never completed a rebuild`,
     }).toBeGreaterThan(prevTs);
     const rebuilt = await settledGeometries(page);

@@ -344,13 +344,17 @@ export function handleStatusMessage(msg: any): void {
   lcncError.value = null;
   if (!_flushScheduled) {
     _flushScheduled = true;
-    requestAnimationFrame(() => {
-      _flushScheduled = false;
-      if (_pendingStatus) {
-        status.value = _pendingStatus;
-        _pendingStatus = null;
-      }
-    });
+    requestAnimationFrame(_flushPending);
+  }
+}
+
+// Hoisted rAF callback (WS-E): one module-level function instead of a fresh
+// closure per scheduled flush on the 30 Hz status path.
+function _flushPending(): void {
+  _flushScheduled = false;
+  if (_pendingStatus) {
+    status.value = _pendingStatus;
+    _pendingStatus = null;
   }
 }
 
