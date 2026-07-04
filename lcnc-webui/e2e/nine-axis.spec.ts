@@ -44,18 +44,29 @@ test("9-axis machine: SetupStrip renders a zero/home group per axis, HUD shows a
   // Rotary axes format in degrees — the A row carries the ° suffix.
   await expect(hud.locator(".hudCoord", { hasText: "A" }).first()).toContainText("°");
 
-  // Bounding-box check: the 6 primary-column rows (XYZABC) stack without
-  // overlap — each row's top edge sits at-or-below the previous row's bottom
-  // (1px tolerance for rounding).
-  const zeroBtns = page.getByRole("button", { name: /^Zero [XYZABC]$/ });
-  const boxes = [];
-  for (let i = 0; i < 6; i++) {
-    const b = await zeroBtns.nth(i).boundingBox();
-    expect(b).not.toBeNull();
-    boxes.push(b!);
+  // Bounding-box check for the chunked layout (axes grids of ≤3, growing
+  // HORIZONTALLY into the strip's scroll): rows stack without overlap
+  // WITHIN a chunk (1px rounding tolerance), and each next chunk's column
+  // starts to the right of the previous chunk's.
+  const zeroBox = async (l: string) => {
+    const b = await page.getByRole("button", { name: `Zero ${l}`, exact: true }).boundingBox();
+    expect(b, `Zero ${l} has a box`).not.toBeNull();
+    return b!;
+  };
+  const chunks = [["X", "Y", "Z"], ["A", "B", "C"], ["U", "V", "W"]];
+  const firstBoxes = [];
+  for (const chunk of chunks) {
+    let prev = await zeroBox(chunk[0]!);
+    firstBoxes.push(prev);
+    for (const l of chunk.slice(1)) {
+      const b = await zeroBox(l);
+      expect(b.y, `Zero ${l} below Zero ${chunks.flat()[chunks.flat().indexOf(l) - 1]}`)
+        .toBeGreaterThanOrEqual(prev.y + prev.height - 1);
+      prev = b;
+    }
   }
-  for (let i = 1; i < boxes.length; i++) {
-    expect(boxes[i]!.y).toBeGreaterThanOrEqual(boxes[i - 1]!.y + boxes[i - 1]!.height - 1);
+  for (let i = 1; i < firstBoxes.length; i++) {
+    expect(firstBoxes[i]!.x).toBeGreaterThan(firstBoxes[i - 1]!.x);
   }
 });
 
