@@ -322,6 +322,23 @@ DRO readouts — the HUD DRO uses fmtCoord honest-null), empty-collection
 inits, version cache-busters, bounded-index defensives, IDB catches already
 console-surfaced with honest cache-miss returns.
 
+**Batch 3 — ws data path** (lcncWs, wsWorker, wsTransport, telemetry,
+statusStore, bulkData, halshowStore, lcncApi, defaults, main): 57 sites.
+Fixes, all (b): wsWorker OPEN-socket send swallowed a throw — a mutating/
+motion command could vanish with zero trace while the sibling dropIfClosed
+branch surfaced (`dropped_command`); now posts `send_failed` → lcncWs gives
+it the same operator-message + telemetry treatment as dropped_command.
+wsWorker pre-open queue flush likewise swallowed send throws — now posts
+`queued_send_failed` once and breaks, keeping the rest queued for the next
+connection. lcncWs frame-decode failure was console-only — a corrupt frame
+is a protocol fault; now also `ws.decode_failed` on the trace bus. (c)
+safe-silent comments added: 2× tab_visibility advisory sends,
+postWorkerConfig relay. Everything else already compliant: hello/heartbeat
+send failures surface loudly, telemetry.ts self-failure paths are inherently
+silent (can't recurse), sessionStorage private-mode degradations documented,
+statusStore/bulkData catches console+UI-ref surfaced, halshow `?? []`/`?? {}`
+are honest empty renders, version `?? 0` are cache-busters not data.
+
 ## Flagged pre-existing oddities (flag-don't-fix; fixes get dedicated commits)
 
 | # | Where | Oddity | Disposition |

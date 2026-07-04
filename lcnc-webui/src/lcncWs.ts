@@ -194,6 +194,11 @@ function onWorkerMessage(m: any) {
         // (issue #18). Surface to the operator and the telemetry timeline.
         emitTelemetry("ws.dropped_command", { cmd: m.msg });
         pushMessage(OPERATOR_ERROR, `Command dropped — not connected: ${m.msg}`);
+      } else if (m.kind === "send_failed") {
+        // send() threw on an OPEN socket (died mid-send) — the command is
+        // as lost as a dropped one; give it the same operator visibility.
+        emitTelemetry("ws.send_failed", { cmd: m.msg });
+        pushMessage(OPERATOR_ERROR, `Command send failed — connection lost: ${m.msg}`);
       } else {
         emitTelemetry("ws.worker_error", { kind: m.kind, msg: m.msg });
       }
@@ -224,7 +229,14 @@ function onFrame(data: string | ArrayBuffer) {
         noteFrameSample("ws_bytes", buf.byteLength);
       }
     } catch (e) {
+      // A frame the gateway sent but we can't decode is a protocol fault,
+      // not a display concern — put it on the trace bus, not just the console.
       console.error("WS: decode failed", e);
+      emitTelemetry("ws.decode_failed", {
+        error: String(e),
+        binary: typeof data !== "string",
+        bytes: typeof data === "string" ? data.length : data.byteLength,
+      });
       return;
     }
     noteFrameSample("decode", performance.now() - _t0);

@@ -188,11 +188,18 @@ function openSocket() {
     cfg!.resumeArmed = false; // consumed
     try {
       ws!.send(JSON.stringify({ cmd: "tab_visibility", hidden: cfg!.hidden }));
-    } catch { /* ignore */ }
+    } catch { /* safe-silent: advisory hint; a throw means the socket is dying and onclose recovers */ }
     // Flush queued user commands AFTER the handshake.
     while (preOpenQueue.length) {
       const p = preOpenQueue.shift()!;
-      try { ws!.send(p); } catch { /* ignore */ }
+      try {
+        ws!.send(p);
+      } catch (e) {
+        // Socket died mid-flush: this command is lost — surface it, keep the
+        // rest queued for the next connection (onclose → reconnect refires).
+        post({ type: "error", kind: "queued_send_failed", msg: String((e as Error)?.message ?? e) });
+        break;
+      }
     }
     startHeartbeat();
     startBufferSampler();
@@ -261,7 +268,13 @@ self.onmessage = (ev: MessageEvent<MainMsg>) => {
 
     case "send":
       if (ws && ws.readyState === WebSocket.OPEN) {
-        try { ws.send(msg.payload); } catch { /* ignore */ }
+        try {
+          ws.send(msg.payload);
+        } catch {
+          // Socket died between the OPEN check and the send — the command is
+          // lost. Surface it like dropped_command; onclose drives reconnect.
+          post({ type: "error", kind: "send_failed", msg: String(msg.cmd ?? "?") });
+        }
       } else if (msg.dropIfClosed) {
         // Mutating/motion command issued while the socket is closed — DROP it
         // rather than replay a stale operator action into a fresh connection
@@ -283,7 +296,7 @@ self.onmessage = (ev: MessageEvent<MainMsg>) => {
         if (msg.hidden !== undefined) {
           cfg.hidden = msg.hidden;
           if (ws && ws.readyState === WebSocket.OPEN) {
-            try { ws.send(JSON.stringify({ cmd: "tab_visibility", hidden: cfg.hidden })); } catch { /* ignore */ }
+            try { ws.send(JSON.stringify({ cmd: "tab_visibility", hidden: cfg.hidden })); } catch { /* safe-silent: advisory hint; a throw means the socket is dying and onclose recovers */ }
           }
         }
       }
