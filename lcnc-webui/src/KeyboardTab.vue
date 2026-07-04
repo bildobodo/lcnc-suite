@@ -37,16 +37,24 @@ function saveKb() {
   emit("setKeyboardConfig", { ...kbConfig.value, mapping: { ...kbConfig.value.mapping } });
 }
 
-// Actions to show in the key binding table
+// Actions to show in the key binding table. Jog rows are GENERATED from the
+// machine's axis list (WS-D): only present axes get binding rows, in machine
+// order; before viewer_init arrives we fall back to XYZ so the tab isn't
+// empty while disconnected. Bindings stored for absent axes stay saved but
+// inert (the runtime resolver ignores letters not in the axis list).
 const COMMAND_ACTIONS: KeyboardAction[] = ["estop", "cycle", "abort"];
-const LINEAR_JOG_ACTIONS: KeyboardAction[] = ["jog_x+", "jog_x-", "jog_y+", "jog_y-", "jog_z+", "jog_z-"];
-const ROTARY_JOG_ACTIONS: KeyboardAction[] = ["jog_a+", "jog_a-", "jog_b+", "jog_b-"];
-
-// Show rotary rows only if machine has axes beyond XYZ
-const hasRotaryAxes = computed(() => {
+const machineAxes = computed<string[]>(() => {
   const axes = viewerInit.value?.axes;
-  return Array.isArray(axes) && axes.some((a: string) => isRotaryAxis(a.toUpperCase()));
+  return Array.isArray(axes) && axes.length ? axes : ["X", "Y", "Z"];
 });
+function jogActionsFor(letters: string[]): KeyboardAction[] {
+  return letters.flatMap(l => [`jog_${l.toLowerCase()}+`, `jog_${l.toLowerCase()}-`] as KeyboardAction[]);
+}
+const LINEAR_JOG_ACTIONS = computed<KeyboardAction[]>(() =>
+  jogActionsFor(machineAxes.value.filter(a => !isRotaryAxis(a.toUpperCase()))));
+const ROTARY_JOG_ACTIONS = computed<KeyboardAction[]>(() =>
+  jogActionsFor(machineAxes.value.filter(a => isRotaryAxis(a.toUpperCase()))));
+const hasRotaryAxes = computed(() => ROTARY_JOG_ACTIONS.value.length > 0);
 
 // Modifier keys to reject
 const MODIFIER_KEYS = new Set(["Shift", "Control", "Alt", "Meta"]);
