@@ -143,8 +143,18 @@ session's own portal task; wire delivery is covered by lifecycle.spec.ts frame
 build_viewer_init raised every tick and NO viewer_init was ever deliverable in
 the test harness (pre-existing; hid the double-send from tests).
 
-Gate: 236 backend ✓, 11 e2e ✓; suite restart + full perf_matrix vs latest
-clean artifact pending (user-assisted).
+Gate: 236 backend ✓, 11 e2e ✓, suite restart + full perf_matrix ✓
+(`20260704T080619Z-081e2f6` vs baseline `20260612T190402Z-0d36338`: all
+steady scenarios 0 lag windows, fusion_near_limit improved 2→0, RSS well
+under baseline). First run's sigstop_trip had `latch_before=TRUE` (boot-
+faulted latch after restart — first-sight fault, audited not bannered) →
+sticky evidence inconclusive; single-scenario rerun with pristine latch
+(`20260704T080726Z-081e2f6`) reproduced the full baseline trip signature:
+FALSE → trip → sticky TRUE → reset FALSE, safety.tripped +
+trip_snapshot_done on trace. Live-trace check: every ws.connect.accept has
+exactly ONE ws.conn.viewer_init (incl. the reconnect-storm clients — the
+path where the double-send used to fire). User smoke pending: UI shutdown
+→ banner (not bare disconnect).
 
 ### WS-C / WS-D / WS-E / WS-F
 
