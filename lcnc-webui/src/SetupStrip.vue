@@ -35,16 +35,20 @@ const emit = defineEmits<{
 }>();
 
 const { entries } = useAxes(computed(() => props.axes));
-// The strip's height fits at most 6 grid rows (3 axis rows + Zero All +
-// Home All + the goto row — the classic 3-axis layout). More axes must grow
-// HORIZONTALLY (the bottom strip already scrolls): chunk the axes into
-// grids of ≤3 in machine order and append the action rows to the last
-// chunk. 3-axis machines render pixel-identical to the pre-9-axis layout;
-// 9-axis yields XYZ | ABC | UVW+actions.
-const axisChunks = computed(() => {
-  const chunks: (typeof entries.value)[] = [];
-  for (let i = 0; i < entries.value.length; i += 3) chunks.push(entries.value.slice(i, i + 3));
-  return chunks.length ? chunks : [[]]; // no axes yet → still render the action grid
+// The strip's height fits 6 grid rows. Pack each column FULL (6 axis rows)
+// before starting the next; the 3 action rows (Zero All / Home All / goto)
+// ride the last column when ≤3 axis rows remain there, else get their own.
+// 3-axis: XYZ+actions in one column (pixel-identical to the classic
+// layout); 9-axis: XYZABC | UVW+actions.
+interface SetupChunk { axes: typeof entries.value; actions: boolean }
+const axisChunks = computed<SetupChunk[]>(() => {
+  const out: SetupChunk[] = [];
+  const e = entries.value;
+  for (let i = 0; i < e.length; i += 6) out.push({ axes: e.slice(i, i + 6), actions: false });
+  const last = out[out.length - 1];
+  if (last && last.axes.length <= 3) last.actions = true;
+  else out.push({ axes: [], actions: true }); // no axes yet, or a full last column
+  return out;
 });
 
 const g5xOptions = ["G54", "G55", "G56", "G57", "G58", "G59", "G59.1", "G59.2", "G59.3"];
@@ -58,14 +62,14 @@ function zeroAll() {
   <div class="stripSection">
     <div class="sub">Setup</div>
     <div class="setupContent row-sections">
-      <!-- Axis grids: ≤3 axes each (machine order); actions ride the last grid -->
+      <!-- Axis grids: 6 axis rows per column (machine order); actions fill the tail -->
       <div v-for="(chunk, ci) in axisChunks" :key="ci" class="setupGrid">
-        <template v-for="a in chunk" :key="a.letter">
+        <template v-for="a in chunk.axes" :key="a.letter">
           <MachineInput gate="touchoff" type="number" :label="a.letter" :value="fmtAxisInput(workPos[a.index], a.letter)" @input="emit('setAxis', a.index, +($event.target as HTMLInputElement).value)" class="setupInput" />
           <MachineBtn type="zero" @click="emit('setAxis', a.index, 0)">Zero {{ a.letter }}</MachineBtn>
           <MachineBtn :type="homedJoints[a.index] ? 'unhome' : 'home'" @click="homedJoints[a.index] ? emit('unhomeAxis', a.index) : emit('homeAxis', a.index)"><span class="stable-width"><span :class="{ alt: homedJoints[a.index] }">Home {{ a.letter }}</span><span :class="{ alt: !homedJoints[a.index] }">Unhome {{ a.letter }}</span></span></MachineBtn>
         </template>
-        <template v-if="ci === axisChunks.length - 1">
+        <template v-if="chunk.actions">
           <MachineBtn type="zero" class="spanAll" @click="zeroAll()">Zero All</MachineBtn>
           <MachineBtn :type="isHomed ? 'unhome' : 'home'" class="spanAll" @click="isHomed ? emit('unhomeAll') : emit('homeAll')"><span class="stable-width"><span :class="{ alt: isHomed }">Home All</span><span :class="{ alt: !isHomed }">Unhome All</span></span></MachineBtn>
           <MachineBtn type="goTo" @click="emit('goToG30')">→ G30</MachineBtn>

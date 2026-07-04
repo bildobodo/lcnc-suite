@@ -267,8 +267,8 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
           ><div class="jogInner jogZDown"><ArrowDown class="jogIcon" /><span class="jogLabel">Z-</span></div></MachineBtn>
         </div>
 
-        <!-- ABC axes (rotary — use angularJogVel) -->
-        <template v-if="abcAxes.length > 0">
+        <!-- ABC axes (rotary — use angularJogVel), tight cluster -->
+        <div v-if="abcAxes.length > 0" class="axisCluster">
           <div v-for="ra in abcAxes" :key="ra.letter" class="axisCol">
             <MachineBtn
               type="jog"
@@ -291,10 +291,10 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               @contextmenu.prevent
             ><div class="jogInner jogZDown"><ArrowDown class="jogIcon" /><span class="jogLabel">{{ ra.letter }}-</span></div></MachineBtn>
           </div>
-        </template>
+        </div>
 
-        <!-- UVW axes (secondary linear — use jogVel) -->
-        <template v-if="uvwAxes.length > 0">
+        <!-- UVW axes (secondary linear — use jogVel), tight cluster -->
+        <div v-if="uvwAxes.length > 0" class="axisCluster">
           <div v-for="ra in uvwAxes" :key="ra.letter" class="axisCol">
             <MachineBtn
               type="jog"
@@ -317,7 +317,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               @contextmenu.prevent
             ><div class="jogInner jogZDown"><ArrowDown class="jogIcon" /><span class="jogLabel">{{ ra.letter }}-</span></div></MachineBtn>
           </div>
-        </template>
+        </div>
       </div>
 
       <div class="speedGroup row-sections strip-slider-group">
@@ -390,6 +390,14 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
   height: 100%;
   min-width: 50px;
 }
+/* Axis columns inside one cluster (ABC / UVW) sit tight — matching the
+   vertical gap between their +/- buttons; the wider row-sections gap of
+   .jogBtns separates pad | Z | ABC | UVW. Not row-tight: that utility
+   centers items, these must stretch. */
+.axisCluster {
+  display: flex;
+  gap: var(--gap-tight);
+}
 .jogBtn {
   touch-action: none;
   user-select: none;
@@ -457,8 +465,13 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
   .jogBtns  { flex-wrap: wrap; align-self: auto; gap: var(--gap-controls); }
   .xyWrap   { flex: 0 0 100%; width: 100% !important; aspect-ratio: 1; height: auto; }
 
-  /* Z/extra axis cols appear in a row below the XY grid */
-  .axisCol  { height: auto; grid-template-rows: 48px 48px; }
+  /* Z/extra axis cols: uniform 4-per-row grid spanning the pad's full
+     width (no ragged leftover). Clusters dissolve so every axisCol places
+     into the shared grid. */
+  .jogBtns  { display: grid; grid-template-columns: repeat(4, 1fr); }
+  .xyWrap   { grid-column: 1 / -1; }
+  .axisCluster { display: contents; }
+  .axisCol  { height: auto; grid-template-rows: 48px 48px; min-width: 0; }
 
   /* Speed sliders: dissolve into speedGroup's shared grid */
   .speedCol { display: contents; }
