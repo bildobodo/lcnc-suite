@@ -339,6 +339,24 @@ silent (can't recurse), sessionStorage private-mode degradations documented,
 statusStore/bulkData catches console+UI-ref surfaced, halshow `?? []`/`?? {}`
 are honest empty renders, version `?? 0` are cache-busters not data.
 
+**Batch 4 — panels family** (App, ToolTablePanel, GcodePanel, ProbePanel,
+OffsetPanel, SettingsPanel, ToolsetterSettings, gcodeRfl, format): 53 sites.
+Fixes: (a) compensation-DISABLE confirmation dialog rendered
+`(st.eoffset_z ?? 0)` as "will move by 0.0000 mm" when eoffset_z hadn't been
+delivered — a synthetic "no move" claim at a machine-move confirmation; now
+branches to "will move by an UNKNOWN amount — Z offset not reported" (confirm
+stays available: blocking could trap the operator, honesty is the fix).
+(a, low) `program_elapsed_ms ?? 0` froze the elapsed readout at a synthetic
+00:00 when absent; programElapsed now propagates null → "--:--" in
+GcodePanel/SafetyStrip, omitted from the title bar. (b→parity) GcodePanel
+saveEdit failure now also emits `edit.save_failed` (banner-only before;
+editor-load path already had telemetry). Everything else already compliant:
+every panel catch surfaces to a visible banner (error/uploadError/saveError/
+g30Error), OffsetPanel renders absence via fmtOffset "—" (its docstring
+records the old 0.0000 mask as a fixed bug), ProbePanel/three.js sizing `||`
+are degenerate-geometry guards, task_mode ?? 0 is a non-enum sentinel,
+tool_number ?? 0 = T0 is genuine LinuxCNC "no tool".
+
 ## Flagged pre-existing oddities (flag-don't-fix; fixes get dedicated commits)
 
 | # | Where | Oddity | Disposition |
