@@ -465,18 +465,17 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
   .jogBtns  { flex-wrap: wrap; align-self: auto; gap: var(--gap-controls); }
   .xyWrap   { flex: 0 0 100%; width: 100% !important; aspect-ratio: 1; height: auto; }
 
-  /* Axis area below the pad: Z is the workhorse — it takes the LEFT 2 of
-     5 grid columns at full height of the extra-axis band(s); ABC / UVW
-     pairs fill the right 3 columns (one band row per cluster; clusters
-     dissolve via display:contents). Full width used, no ragged leftover. */
-  .jogBtns  { display: grid; grid-template-columns: repeat(5, 1fr); }
+  /* Axis area below the pad: 4 equal columns — Z leftmost at the same
+     width as the others, ABC / UVW pairs fill columns 2-4 (one band row
+     per cluster; clusters dissolve via display:contents). Full width
+     used, no ragged leftover. */
+  .jogBtns  { display: grid; grid-template-columns: repeat(4, 1fr); }
   .xyWrap   { grid-column: 1 / -1; }
   .axisCluster { display: contents; }
   .axisCol  { height: auto; grid-template-rows: 48px 48px; min-width: 0; }
-  .zCol     { grid-column: 1 / span 2; }
   /* Both ABC and UVW present → Z spans both band rows (Z+ / Z- each get
-     a full band) */
-  .zCol.zTall { grid-row: 2 / span 2; grid-template-rows: 1fr 1fr; }
+     a full band, single-column width) */
+  .zCol.zTall { grid-column: 1; grid-row: 2 / span 2; grid-template-rows: 1fr 1fr; }
   /* No extra axes at all → Z pair spans the full width */
   .zCol.zOnly { grid-column: 1 / -1; }
 
