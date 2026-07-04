@@ -19,5 +19,9 @@ Edit `hallib/lcnc_webui.hal`:
 ## Key files
 
 - `lcnc_suite_sim.ini` — INI with all required RS274NGC, HAL, and display settings
+- `lcnc_suite_sim_5axis.ini` / `lcnc_suite_sim_9axis.ini` — WS-D axis-layout
+  verification variants (XYZAC / XYZABCUVW). Extra joints home instantly
+  (no simulated switch) and loop back via `hallib/core_sim_5.hal` /
+  `core_sim_9.hal`. Same subroutines/var file as the base sim.
 - `hallib/lcnc_webui.hal` — HAL wiring for safety watchdog, e-stop chain, tool change, compensation
 - Other HAL files — sim-specific (homing, spindle, etc.)

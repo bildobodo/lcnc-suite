@@ -10,8 +10,6 @@
 import type { ComputedRef, Ref } from "vue";
 import type { Permissions } from "./permissions";
 
-const AXIS_LETTERS = "XYZABCUVW";
-
 interface UseTouchoffMathOptions {
   /** Axis letters in motion-controller order (e.g. ["X","Y","Z"]). */
   axes: ComputedRef<string[]>;
@@ -28,11 +26,16 @@ export function useTouchoffMath(opts: UseTouchoffMathOptions) {
   }
 
   function setAxis(axis: number, value: number = 0) {
-    const axisName = AXIS_LETTERS[axis];
+    // Resolve through the MACHINE's axis list, not the canonical letter
+    // string: on a lathe ["X","Z"], index 1 is Z — the old canonical lookup
+    // emitted Y here and hardcoded the eoffset guard to index 2 (both wrong
+    // whenever axes aren't XYZ… in canonical order). setAll below was
+    // already letter-based; the two paths now agree.
+    const axisName = opts.axes.value[axis];
     if (!axisName) return;
 
     let val = value;
-    if (axis === 2) {
+    if (axisName === "Z") {
       const eoffsetZ = _eoffsetZForTouchoff();
       if (eoffsetZ === null) {
         console.warn("touchoff Z refused: eoffset_z not yet delivered by gateway");

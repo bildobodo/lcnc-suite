@@ -46,7 +46,8 @@ export function useGamepad(deps: {
   fire: (cmd: WsCommand, gate?: GateKey) => void;
   activeFile: ComputedRef<string | null>;
   config: Ref<GamepadDefaults>;
-  axisCount: ComputedRef<number>;
+  /** Machine axis letters (viewer_init.axes) — X/Y/Z resolved by letter. */
+  axes: ComputedRef<string[]>;
   gated: Ref<boolean>;
 }) {
   const gamepadConnected = ref(false);
@@ -71,7 +72,7 @@ export function useGamepad(deps: {
   }
 
   function stopAllJog() {
-    const n = deps.axisCount.value || 3;
+    const n = deps.axes.value.length || 3;
     for (let i = 0; i < n; i++) {
       if (lastSentVel[i] !== 0 && lastSentVel[i] !== undefined) {
         deps.send({ cmd: "jog_stop", axis: i });
@@ -232,10 +233,18 @@ export function useGamepad(deps: {
     const canJogNow = canJog && deadManOk && cfg.jogEnabled;
 
     // ── Analog sticks → continuous jog ──
-    // Left stick: axes 0 (X), 1 (Y)
+    // Stick semantics stay XY/Z, but MACHINE indices are resolved by letter
+    // (WS-D): the old hardcoded 0/1/2 jogged whatever joints happened to sit
+    // at those indices on non-XYZ-first machines. Machines lacking X/Y/Z
+    // simply get no gamepad jog on the missing axis. A full stick→any-axis
+    // remap model is a flagged follow-up (ledger).
+    const xi = deps.axes.value.indexOf("X");
+    const yi = deps.axes.value.indexOf("Y");
+    const zi = deps.axes.value.indexOf("Z");
+    // Left stick: gamepad axes 0/1 → machine X/Y
     const rawLX = gp.axes[0] ?? 0;
     const rawLY = gp.axes[1] ?? 0;
-    // Right stick: axes 2 (unused), 3 (Z)
+    // Right stick: gamepad axis 2 unused, 3 → machine Z
     const rawRY = gp.axes[3] ?? 0;
 
     const lx = applyDeadZone(rawLX, cfg.deadZone) * (cfg.invertX ? -1 : 1);
@@ -244,11 +253,9 @@ export function useGamepad(deps: {
 
     if (canJogNow) {
       const maxVel = deps.jogVel.value;
-      sendJog(0, lx * maxVel, now); // X
-      sendJog(1, ly * maxVel, now); // Y
-      if (deps.axisCount.value >= 3) {
-        sendJog(2, rz * maxVel, now); // Z
-      }
+      if (xi >= 0) sendJog(xi, lx * maxVel, now);
+      if (yi >= 0) sendJog(yi, ly * maxVel, now);
+      if (zi >= 0) sendJog(zi, rz * maxVel, now);
     } else if (!deadManOk || !canJog || !cfg.jogEnabled) {
       // Lost permission, dead man released, or jog disabled — stop everything
       stopAllJog();
@@ -256,13 +263,11 @@ export function useGamepad(deps: {
 
     // ── D-pad → discrete jog ──
     if (canJogNow) {
-      // D-pad: full-speed jog or incremental
-      const dpadAxes: [number, number, number][] = [
-        [DPAD_RIGHT, 0, 1],   // Right → X+
-        [DPAD_LEFT, 0, -1],   // Left → X-
-        [DPAD_UP, 1, 1],      // Up → Y+
-        [DPAD_DOWN, 1, -1],   // Down → Y-
-      ];
+      // D-pad: full-speed jog or incremental (machine indices by letter,
+      // pairs dropped when the machine lacks the axis)
+      const dpadAxes: [number, number, number][] = [];
+      if (xi >= 0) dpadAxes.push([DPAD_RIGHT, xi, 1], [DPAD_LEFT, xi, -1]);
+      if (yi >= 0) dpadAxes.push([DPAD_UP, yi, 1], [DPAD_DOWN, yi, -1]);
 
       // Check if z_mod button is held
       const zModHeld = isActionHeld(currButtons, "z_mod");
@@ -273,18 +278,18 @@ export function useGamepad(deps: {
 
         if (zModHeld && (btnIdx === DPAD_UP || btnIdx === DPAD_DOWN)) {
           // Z axis via D-pad + z_mod
-          if (pressed && !wasPressed && deps.axisCount.value >= 3) {
+          if (pressed && !wasPressed && zi >= 0) {
             const zDir = btnIdx === DPAD_UP ? 1 : -1;
             const vel = deps.jogVel.value * zDir;
             if (deps.jogIncrement.value > 0) {
-              deps.send({ cmd: "jog_incr", axis: 2, vel, distance: deps.jogIncrement.value * zDir });
+              deps.send({ cmd: "jog_incr", axis: zi, vel, distance: deps.jogIncrement.value * zDir });
             } else {
-              deps.send({ cmd: "jog_cont", axis: 2, vel });
-              lastSentVel[2] = vel;
+              deps.send({ cmd: "jog_cont", axis: zi, vel });
+              lastSentVel[zi] = vel;
             }
-          } else if (!pressed && wasPressed && deps.jogIncrement.value <= 0) {
-            deps.send({ cmd: "jog_stop", axis: 2 });
-            lastSentVel[2] = 0;
+          } else if (!pressed && wasPressed && deps.jogIncrement.value <= 0 && zi >= 0) {
+            deps.send({ cmd: "jog_stop", axis: zi });
+            lastSentVel[zi] = 0;
           }
           continue;
         }

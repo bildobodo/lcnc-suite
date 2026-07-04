@@ -81,7 +81,7 @@ function clearAll() {
     </div>
 
     <!-- Table -->
-    <div class="tableWrap dataTable scroll-thin">
+    <div class="tableWrap dataTable scroll-thin" :style="{ '--val-cols': String(offsetColumns.length) }">
       <table>
         <thead>
           <tr>
@@ -153,6 +153,11 @@ function clearAll() {
 
 .tableWrap table {
   table-layout: fixed;
+  /* Fixed layout divides width evenly — at 9 axes (10 value columns) the
+     cells compressed until digits collided. Give each value column a
+     usable minimum and let the .scroll-thin wrap scroll horizontally;
+     3-axis tables stay narrower than the pane and render as before. */
+  min-width: calc(60px + var(--val-cols, 4) * 76px);
 }
 
 /* Override global dataTable sizing for larger tab layout */

@@ -3,12 +3,12 @@
 //   "-"   for table cells (compact)
 //   "0.0000" for editable offset values (must show a number)
 
-const ROTARY = new Set(["A", "B", "C"]);
+import { isRotaryAxis } from "./useAxes";
 
 /** Coordinate display — 3 decimals linear, 2° rotary */
 export function fmtCoord(val: number | null | undefined, axis?: string): string {
   if (val == null || !Number.isFinite(val)) return "---";
-  if (axis && ROTARY.has(axis)) return val.toFixed(2) + "°";
+  if (axis && isRotaryAxis(axis)) return val.toFixed(2) + "°";
   return val.toFixed(3);
 }
 

@@ -183,7 +183,63 @@ User visual check pending (see smoke list in the WS-C merge notes).
 Deferred to later phases: per-panel label/value column-width alignment
 (fold into WS-D — the 9-axis grid rework touches those layouts anyway).
 
-### WS-D / WS-E / WS-F
+### WS-D — dynamic 9-axis layouts (branch `refactor/fe-ws-d-9axis`)
+
+Discovery (Explore pass): canonical source already existed (viewer_init.axes
+→ App.axes computed) but grouping logic was copy-pasted in 5+ files, three
+positional bugs, keyboard type-capped at x/y/z/a/b, gamepad XYZ-only.
+User decisions: DELETE the unused ManualPanel/DroPanel/JogPanel/JogButton
+cluster (superseded by strips since Feb 2026, zero importers); gamepad gets
+the by-letter fix now, full stick→any-axis remap model DEFERRED (→ F7).
+
+- D1 `651886e` — dead cluster deleted (4 files, ~1500 ln) + CLAUDE.md.
+- D2 `f5ef4c7` — src/useAxes.ts (entries/groups/by-letter resolvers,
+  isRotaryAxis) subsumes the 5 copies; POSITIONAL BUGS FIXED: JogStrip XY
+  pad axis 0/1 + Z column index 2 → by letter (pad/column hidden when the
+  machine lacks the axis); useTouchoffMath.setAxis mapped through canonical
+  "XYZABCUVW" (lathe [X,Z]: setAxis(1) emitted G10 … Y!) + eoffset guard on
+  index===2 → machine list + letter; ToolsetterSettings G30 position[0/1/2]
+  → by letter. Tests: useAxes.test.ts + useTouchoffMath.test.ts; proof:
+  reverting setAxis → 3 red.
+- D3 `9665d7f` — KeyboardAction = template-literal union over all 9 axes;
+  labels/defaults generated (c/u/v/w unbound); KeyboardTab jog rows
+  generated from machine axes (XYZ fallback disconnected).
+- D4 `4a4469b` — gamepad resolves X/Y/Z machine indices by letter; missing
+  axes drop their stick/D-pad pair; App passes axes not axisCount.
+- D5 `0e17553` — mock setAxes op + nine-axis.spec.ts (9-axis grid rows +
+  HUD letters + ° on rotary + non-overlap bounding boxes; lathe no-phantom-Y;
+  reset baseline). F6 done (shared e2e/ctl.ts). Proof: SetupStrip
+  re-hardcoded to XYZ → 2 red — first attempt was INVALID (break didn't
+  compile → playwright ran stale dist → green); e2e proofs must verify the
+  break built.
+- D6 `06213ed` — examples/sim_config 5-axis (XYZAC) + 9-axis (XYZABCUVW)
+  INI/HAL variants, instant-homing extra joints.
+
+Smoke (4 rounds, all user-driven on the real 5/9-axis sims):
+- R1 `a6169ca` — jog pad flex regression (WS-C stack conversion missed the
+  DYNAMIC :class site; .jogInner direction varies per modifier — never a
+  stack-* candidate) + SetupStrip >3-axis overflow → chunked grids.
+- R2 `86a3905` — jog ABC/UVW tight clusters; setup 6-row packing;
+  OffsetPanel --val-cols min-width (10 columns scroll, don't collide);
+  portrait axis grid. Mock setAxes now ships wcs_table/g92/tool_offset.
+- R3 `e312441` — uniform 32px setup rows (catalog touchoff input md→sm —
+  measured, the md INLINE size style beat scoped CSS); portrait single
+  setup grid (isPortrait inject); portrait big-Z zone.
+- R4 `f9ffc44` — portrait Z column width = other axis columns.
+- R5 `b9c3a18` — GATEWAY BUG user-caught on XYZAC: teleop CMD.jog wants
+  CANONICAL axis numbers (X=0…W=8), wire sends machine-list indices — C
+  (list 4) jogged nonexistent B → silent no-motion, and the disarm
+  jog-stop sweep missed C identically. _jog_axis_arg translates at all 7
+  jog sites (jf==1 passes through). Gap-free axis sets (XYZ, 9-axis)
+  masked the class entirely. Dispatch tests + adversarial proof.
+Perf-matrix gate (gateway change): `20260704T134452Z-b9c3a18` vs baseline
+— all load scenarios 0 lag (fusion 2→0), sigstop_trip full pristine-latch
+trip signature, RSS below baseline; single 107.8ms idle receive blip, far
+under budget, command-path-unrelated. C jog user-verified on 5-axis.
+
+| F7 | useGamepad.ts | Stick/D-pad→machine-axis mapping is fixed XY/Z semantics; machines wanting rotary jog on a stick need a real remap model (settings UI: per stick axis/D-pad pair → any machine axis, per-axis invert, config migration) | deferred by user decision (WS-D scope call) |
+
+### WS-E / WS-F
 
 Tracked when reached.
 
@@ -195,7 +251,7 @@ Tracked when reached.
 | F2 | gateway ws_endpoint | viewer_init double-send per connect (inline NOTE marks both sites) | **FIXED in WS-B** — post-poll send is the single send; guarded by test_ws_lifecycle.py |
 | F3 | ws/telemetry.ts | 200-event queue cap is unreachable via the public API (the >=32 early flush is synchronous, so the queue never exceeds one batch) — defensive invariant only | documented in telemetry.test.ts; keep |
 | F4 | viewer/machineAssetCache.ts | No load-generation token: a superseded slow load's late completion can race duplicate STL fetches/IDB writes against a newer load, overwrite `failedParts` with the OLD load's failures, and last-writer-win the geometry cache per part id. Scene staleness IS guarded (caller buildToken); this is cache-level only. Review finding #7 (PLAUSIBLE). | deferred — needs a generation-token design, not a fix-commit patch. The `_loadedInitJson === json` guards added in fix/fe-review-findings stop the *dedup-slot clobber* half; fetch/failedParts races remain |
-| F5 | e2e/mock-gateway.mjs | `reset` op restores only quiet/refuseWs/work_pos while `status_delta` can Object.assign arbitrary fields; `hellos[]` never cleared. Latent (only work_pos is delta'd today). | flagged for next e2e-touching change |
+| F5 | e2e/mock-gateway.mjs | `reset` op restores only quiet/refuseWs/work_pos while `status_delta` can Object.assign arbitrary fields; `hellos[]` never cleared. Latent (only work_pos is delta'd today). | PARTIAL in D5: reset now also restores the axis baseline; arbitrary-field restore + hellos[] still open |
 | F6 | e2e specs | `ctl`/`ctlSend`/`ctlQuery` helper triplicated across frames/lifecycle/viewer specs; poll-retry-broadcast pattern papers over an undiagnosed one-shot mock delivery race (idempotent frames only) | consolidate on next e2e-touching change |
 
 ## Post-WS-A review fix batch (fix/fe-review-findings)

@@ -589,25 +589,38 @@ export function saveGamepadDefaults(data: GamepadDefaults): void {
 
 // ── Keyboard shortcuts ──────────────────────────────────────────
 
+// All 9 axes are bindable (WS-D). Axes the machine lacks simply don't get
+// a binding row in KeyboardTab; stored bindings for absent axes are inert
+// (jogActionToAxis returns null when the letter isn't in viewer_init.axes).
+export const KB_AXIS_LETTERS = ["x", "y", "z", "a", "b", "c", "u", "v", "w"] as const;
+type KbAxisLetter = (typeof KB_AXIS_LETTERS)[number];
+
 export type KeyboardAction =
-  | "jog_x+" | "jog_x-" | "jog_y+" | "jog_y-" | "jog_z+" | "jog_z-"
-  | "jog_a+" | "jog_a-" | "jog_b+" | "jog_b-"
+  | `jog_${KbAxisLetter}${"+" | "-"}`
   | "estop" | "cycle" | "abort";
 
+function _jogEntries(value: (l: KbAxisLetter, dir: "+" | "-") => string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const l of KB_AXIS_LETTERS) {
+    out[`jog_${l}+`] = value(l, "+");
+    out[`jog_${l}-`] = value(l, "-");
+  }
+  return out;
+}
+
 export const KEYBOARD_ACTION_LABELS: Record<KeyboardAction, string> = {
-  "jog_x+": "Jog X+", "jog_x-": "Jog X-",
-  "jog_y+": "Jog Y+", "jog_y-": "Jog Y-",
-  "jog_z+": "Jog Z+", "jog_z-": "Jog Z-",
-  "jog_a+": "Jog A+", "jog_a-": "Jog A-",
-  "jog_b+": "Jog B+", "jog_b-": "Jog B-",
+  ..._jogEntries((l, d) => `Jog ${l.toUpperCase()}${d}`),
   estop: "E-Stop",
   cycle: "Cycle Start / Pause / Resume",
   abort: "Abort",
-};
+} as Record<KeyboardAction, string>;
 
 const ALL_KB_ACTIONS = Object.keys(KEYBOARD_ACTION_LABELS) as KeyboardAction[];
 
+// C/U/V/W ship unbound ("" never matches a KeyboardEvent.key) — the historic
+// x/y/z/a/b defaults are preserved for existing users.
 export const DEFAULT_KB_MAPPING: Record<KeyboardAction, string> = {
+  ..._jogEntries(() => ""),
   "jog_x+": "ArrowRight", "jog_x-": "ArrowLeft",
   "jog_y+": "ArrowUp",    "jog_y-": "ArrowDown",
   "jog_z+": "PageUp",     "jog_z-": "PageDown",
@@ -616,7 +629,7 @@ export const DEFAULT_KB_MAPPING: Record<KeyboardAction, string> = {
   estop: "Escape",
   cycle: " ",
   abort: "Backspace",
-};
+} as Record<KeyboardAction, string>;
 
 export interface KeyboardDefaults {
   jogEnabled: boolean;

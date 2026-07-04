@@ -1,7 +1,7 @@
 /**
  * Centralized jog pointer safety registry.
  *
- * All jog components (JogButton, JogPanel, JogStrip) register their active
+ * All jog surfaces (JogStrip wheel, Z/rotary columns) register their active
  * pointers here. Document-level listeners act as a safety net for missed
  * pointerup/pointercancel events — critical on touchscreens where the browser
  * may swallow pointer events during gesture detection.

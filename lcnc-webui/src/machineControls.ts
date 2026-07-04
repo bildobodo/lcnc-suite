@@ -139,7 +139,7 @@ export const INPUT_DEFS = {
   jogWheel:        { gate: 'jog' },
   jogAxis:         { gate: 'jog' },
   mdiText:         { gate: 'ready' },
-  touchoff:        { gate: 'probe',    mono: true, align: 'right', size: 'md' },
+  touchoff:        { gate: 'probe',    mono: true, align: 'right', size: 'sm' },
   stripInput:      { gate: 'always',   mono: true, align: 'right', size: 'md' },
   coolant:         { gate: 'ready' },
 

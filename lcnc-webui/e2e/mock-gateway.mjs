@@ -182,11 +182,32 @@ ctlWss.on("connection", (ws) => {
       quiet = m.on === true;
     } else if (m.op === "reset") {
       // Restore pristine state between tests. The mock is ONE process shared by
-      // every spec (and frames.spec mutates state.data.work_pos via status_delta),
-      // so serial specs call this in beforeEach to avoid order-dependent bleed.
+      // every spec (and frames.spec mutates state.data.work_pos via status_delta,
+      // nine-axis.spec swaps the axis set), so serial specs call this in
+      // beforeEach to avoid order-dependent bleed.
       quiet = false;
       refuseWs = false;
       state.data.work_pos = [12.345, 1.0, -5.5];
+      _initRev++;
+      broadcast({ ...VIEWER_INIT, data: { ...VIEWER_INIT.data, _rev: _initRev } });
+      broadcast(state);
+    } else if (m.op === "setAxes") {
+      // WS-D 9-axis fixture: re-ship viewer_init with the given axis letters
+      // and size every per-axis status field to match, so every axis-driven
+      // surface (SetupStrip grid, viewer HUD DRO, OffsetPanel table) renders
+      // one row/column per axis.
+      const axes = Array.isArray(m.axes) && m.axes.length ? m.axes : ["X", "Y", "Z"];
+      _initRev++;
+      state.data.work_pos = axes.map((_, i) => (i + 1) * 1.111);
+      state.data.g92_offset = axes.map(() => 0);
+      state.data.tool_offset = axes.map(() => 0);
+      state.data.wcs_table = ["G54", "G55", "G56", "G57", "G58", "G59", "G59.1", "G59.2", "G59.3"]
+        .map((name, r) => Object.fromEntries([
+          ["name", name],
+          ...axes.map((l, i) => [l.toLowerCase(), r === 0 ? (i + 1) * 10.123 : 0]),
+          ["r", 0],
+        ]));
+      broadcast({ ...VIEWER_INIT, data: { ...VIEWER_INIT.data, axes, _rev: _initRev } });
       broadcast(state);
     } else if (m.op === "rebuildInit") {
       // Force a real in-session scene rebuild: _rev busts ThreeViewer's

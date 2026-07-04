@@ -20,7 +20,7 @@ import {
 import type { Permissions } from "./permissions";
 import type { WsCommand } from "./lcnc";
 
-const ANGULAR_LETTERS = new Set(["A", "B", "C"]);
+import { isRotaryAxis } from "./useAxes";
 
 interface UseKeyboardShortcutsOptions {
   jogVel: Ref<number>;
@@ -55,7 +55,7 @@ export function useKeyboardShortcuts(opts: UseKeyboardShortcutsOptions) {
     const dir = match[2] === "+" ? 1 : -1;
     const idx = opts.axes.value.indexOf(letter);
     if (idx < 0) return null;
-    return { axis: idx, dir, isAngular: ANGULAR_LETTERS.has(letter) };
+    return { axis: idx, dir, isAngular: isRotaryAxis(letter) };
   }
 
   function isInputFocused(): boolean {

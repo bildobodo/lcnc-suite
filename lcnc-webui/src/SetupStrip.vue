@@ -1,17 +1,16 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, inject, ref, type Ref } from "vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineInput from "./MachineInput.vue";
 import MachineRadio from "./MachineRadio.vue";
-
-const UVW = new Set(["U", "V", "W"]);
-const ROTARY = new Set(["A", "B", "C"]);
+import { useAxes, isRotaryAxis } from "./useAxes";
 
 // Match HUD precision (3 decimals linear, 2 rotary) without the unit suffix
-// so the keypad parser still receives a clean numeric string.
+// so the keypad parser still receives a clean numeric string. (Deliberately
+// NOT fmtCoord: no ° suffix here.)
 function fmtAxisInput(val: number | undefined, letter: string): string {
   if (val == null || !Number.isFinite(val)) return "";
-  return ROTARY.has(letter) ? val.toFixed(2) : val.toFixed(3);
+  return isRotaryAxis(letter) ? val.toFixed(2) : val.toFixed(3);
 }
 
 const props = defineProps<{
@@ -35,13 +34,28 @@ const emit = defineEmits<{
   (e: "goToZero"): void;
 }>();
 
-const primaryAxes = computed(() =>
-  props.axes.map((l, i) => ({ letter: l, index: i })).filter(a => !UVW.has(a.letter))
-);
-const uvwAxes = computed(() =>
-  props.axes.map((l, i) => ({ letter: l, index: i })).filter(a => UVW.has(a.letter))
-);
-const hasSecondCol = computed(() => uvwAxes.value.length > 0);
+const { entries } = useAxes(computed(() => props.axes));
+// The strip's height fits 6 grid rows. Pack each column FULL (6 axis rows)
+// before starting the next; the 3 action rows (Zero All / Home All / goto)
+// ride the last column when ≤3 axis rows remain there, else get their own.
+// 3-axis: XYZ+actions in one column (pixel-identical to the classic
+// layout); 9-axis: XYZABC | UVW+actions.
+// Portrait stacks the grids vertically, where a column split just reads as
+// an odd gap mid-list — so portrait renders ONE grid with all axes and the
+// actions at its tail (vertical space is plentiful there; width is the
+// constraint, and one grid keeps a single uniform rhythm).
+const isPortrait = inject<Ref<boolean>>("isPortrait", ref(false));
+interface SetupChunk { axes: typeof entries.value; actions: boolean }
+const axisChunks = computed<SetupChunk[]>(() => {
+  const e = entries.value;
+  if (isPortrait.value) return [{ axes: e, actions: true }];
+  const out: SetupChunk[] = [];
+  for (let i = 0; i < e.length; i += 6) out.push({ axes: e.slice(i, i + 6), actions: false });
+  const last = out[out.length - 1];
+  if (last && last.axes.length <= 3) last.actions = true;
+  else out.push({ axes: [], actions: true }); // no axes yet, or a full last column
+  return out;
+});
 
 const g5xOptions = ["G54", "G55", "G56", "G57", "G58", "G59", "G59.1", "G59.2", "G59.3"];
 
@@ -54,34 +68,20 @@ function zeroAll() {
   <div class="stripSection">
     <div class="sub">Setup</div>
     <div class="setupContent row-sections">
-      <!-- Column 1: primary axes (XYZABC) + actions when no second column -->
-      <div class="setupGrid">
-        <template v-for="a in primaryAxes" :key="a.letter">
+      <!-- Axis grids: 6 axis rows per column (machine order); actions fill the tail -->
+      <div v-for="(chunk, ci) in axisChunks" :key="ci" class="setupGrid">
+        <template v-for="a in chunk.axes" :key="a.letter">
           <MachineInput gate="touchoff" type="number" :label="a.letter" :value="fmtAxisInput(workPos[a.index], a.letter)" @input="emit('setAxis', a.index, +($event.target as HTMLInputElement).value)" class="setupInput" />
           <MachineBtn type="zero" @click="emit('setAxis', a.index, 0)">Zero {{ a.letter }}</MachineBtn>
           <MachineBtn :type="homedJoints[a.index] ? 'unhome' : 'home'" @click="homedJoints[a.index] ? emit('unhomeAxis', a.index) : emit('homeAxis', a.index)"><span class="stable-width"><span :class="{ alt: homedJoints[a.index] }">Home {{ a.letter }}</span><span :class="{ alt: !homedJoints[a.index] }">Unhome {{ a.letter }}</span></span></MachineBtn>
         </template>
-        <template v-if="!hasSecondCol">
+        <template v-if="chunk.actions">
           <MachineBtn type="zero" class="spanAll" @click="zeroAll()">Zero All</MachineBtn>
           <MachineBtn :type="isHomed ? 'unhome' : 'home'" class="spanAll" @click="isHomed ? emit('unhomeAll') : emit('homeAll')"><span class="stable-width"><span :class="{ alt: isHomed }">Home All</span><span :class="{ alt: !isHomed }">Unhome All</span></span></MachineBtn>
           <MachineBtn type="goTo" @click="emit('goToG30')">→ G30</MachineBtn>
           <MachineBtn type="goTo" @click="emit('goToHome')">→ Home</MachineBtn>
           <MachineBtn type="goTo" @click="emit('goToZero')">→ Zero</MachineBtn>
         </template>
-      </div>
-
-      <!-- Column 2: UVW axes + actions (only when UVW axes exist) -->
-      <div v-if="hasSecondCol" class="setupGrid">
-        <template v-for="a in uvwAxes" :key="a.letter">
-          <MachineInput gate="touchoff" type="number" :label="a.letter" :value="fmtAxisInput(workPos[a.index], a.letter)" @input="emit('setAxis', a.index, +($event.target as HTMLInputElement).value)" class="setupInput" />
-          <MachineBtn type="zero" @click="emit('setAxis', a.index, 0)">Zero {{ a.letter }}</MachineBtn>
-          <MachineBtn :type="homedJoints[a.index] ? 'unhome' : 'home'" @click="homedJoints[a.index] ? emit('unhomeAxis', a.index) : emit('homeAxis', a.index)"><span class="stable-width"><span :class="{ alt: homedJoints[a.index] }">Home {{ a.letter }}</span><span :class="{ alt: !homedJoints[a.index] }">Unhome {{ a.letter }}</span></span></MachineBtn>
-        </template>
-        <MachineBtn type="zero" class="spanAll" @click="zeroAll()">Zero All</MachineBtn>
-        <MachineBtn :type="isHomed ? 'unhome' : 'home'" class="spanAll" @click="isHomed ? emit('unhomeAll') : emit('homeAll')"><span class="stable-width"><span :class="{ alt: isHomed }">Home All</span><span :class="{ alt: !isHomed }">Unhome All</span></span></MachineBtn>
-        <MachineBtn type="goTo" @click="emit('goToG30')">→ G30</MachineBtn>
-        <MachineBtn type="goTo" @click="emit('goToHome')">→ Home</MachineBtn>
-        <MachineBtn type="goTo" @click="emit('goToZero')">→ Zero</MachineBtn>
       </div>
 
       <div class="wcsCol stack-tight strip-radio-group">
@@ -105,6 +105,9 @@ function zeroAll() {
   gap: var(--gap-tight);
   align-content: start;
 }
+/* Uniform rows: the touchoff input is catalog size 'sm' (machineControls),
+   so the md buttons define the 32px track and the input stretches to it —
+   axis rows and the action rows in the neighbouring column now match. */
 .setupInput { width: 100%; }
 .spanAll { grid-column: 1 / -1; }
 .wcsCol { justify-content: flex-start; }

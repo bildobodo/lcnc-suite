@@ -17,7 +17,7 @@ export default defineConfig({
     headless: true,
   },
   projects: [
-    { name: "chromium", use: { browserName: "chromium" }, testIgnore: /(lifecycle|viewer)\.spec\.ts/ },
+    { name: "chromium", use: { browserName: "chromium" }, testIgnore: /(lifecycle|viewer|nine-axis)\.spec\.ts/ },
     {
       // Serial project, runs strictly AFTER the parallel one. Specs here drive
       // mock-GLOBAL state (refuseWs/shutdownClose/rebuildInit/loadGcode) and/or
@@ -27,10 +27,11 @@ export default defineConfig({
       //    shutdownClose would mask a broken reload-boot path (proven so).
       //  • viewer.spec.ts — renderer.info leak probe; parallel rebuilds would
       //    perturb the geometry counts it asserts on.
+      //  • nine-axis.spec.ts — setAxes swaps the mock-global axis set.
       name: "serial",
       use: { browserName: "chromium" },
       dependencies: ["chromium"],
-      testMatch: /(lifecycle|viewer)\.spec\.ts/,
+      testMatch: /(lifecycle|viewer|nine-axis)\.spec\.ts/,
       fullyParallel: false,
     },
   ],

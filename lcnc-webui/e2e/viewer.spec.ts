@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import WebSocket from "ws";
+import { ctl, MOCK } from "./ctl";
 
 // Viewer GPU-resource leak probe (A2). window.__viewerLeakProbe reports live
 // THREE.WebGLRenderer.info counts. A program's feed/rapid/highlight geometry is
@@ -20,17 +20,6 @@ import WebSocket from "ws";
 // fixed wait — fixed settles raced the worker when both serial specs ran under
 // load. Runs in the serial `serial` project: a contention-free, settled
 // renderer, and it drives mock-global rebuild/load state.
-const MOCK = "http://localhost:4174/";
-const CTL = "ws://localhost:4174/ctl";
-
-function ctl(op: Record<string, unknown>): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const c = new WebSocket(CTL);
-    c.once("open", () => c.send(JSON.stringify(op)));
-    c.once("message", () => { c.close(); resolve(); });
-    c.once("error", reject);
-  });
-}
 
 type Page = import("@playwright/test").Page;
 

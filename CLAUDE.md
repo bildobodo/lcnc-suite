@@ -19,9 +19,6 @@ Gateway connects to LinuxCNC via Python bindings (`linuxcnc.stat`, `linuxcnc.com
 - `TabPanel.vue` — Reusable tab-panel (props: tabs, modelValue; uses v-show)
 - `ThreeViewer.vue` — Three.js 3D viewer (Z-up, OrbitControls, ResizeObserver)
 - `Toolbar.vue` — View preset buttons and layer toggles
-- `DroPanel.vue` — Position/DRO display with work/machine coordinate toggle
-- `JogPanel.vue` — Jog grid + speed slider
-- `JogButton.vue` — Press-and-hold jog button with pointer capture
 - `GcodePanel.vue` — G-code viewer with syntax highlighting, inline editor, program controls, run-from-line
 - `GcodeReferenceDialog.vue` — Searchable G/M-code reference dialog
 - `ProbePanel.vue` — Probe operations grid, calls `O<probe_*> CALL` via MDI
@@ -60,7 +57,8 @@ Gateway connects to LinuxCNC via Python bindings (`linuxcnc.stat`, `linuxcnc.com
 - `toolsetterVars.ts` — Toolsetter variable mapping utilities
 - `dragScroll.ts` — Drag-to-scroll handler for touch/mouse on `.scroll-thin` containers
 - `edgeWorker.ts` — Web Worker for Three.js edge geometry computation
-- `useGamepad.ts` — Gamepad polling composable (analog sticks + buttons)
+- `useAxes.ts` — Single source for the machine's axis set (from `viewer_init.axes`): entries {letter,index,kind}, primary/abc/uvw groups, by-letter index resolvers. Never hardcode axis positions or letter sets in components.
+- `useGamepad.ts` — Gamepad polling composable (analog sticks + buttons; X/Y/Z resolved by letter)
 - `useJogPointers.ts` — Jogging pointer event management composable
 
 ### Main Tabs
@@ -225,8 +223,6 @@ Four layers enforce permissions:
 
 ### When individual `:disabled` is still correct
 ```vue
-<!-- JogButton: internal JS guard needs its own :disabled prop -->
-<JogButton :disabled="!can.jog" ... />
 <!-- Tighter permission than parent Gate -->
 <Gate gate="idle">
   <MachineBtn type="mdi" :disabled="!can.ready">Needs ready inside idle Gate</MachineBtn>
@@ -282,7 +278,7 @@ Before writing or modifying ANY CSS or interactive element, verify ALL items:
 
 **Colors** — Use semantic CSS variables (`--ok`, `--danger`, `--warn`, `--accent`, `--fg`, `--bg`, etc.) with `color-mix()`. Never raw hex. Hover tiers: `--hl-hover` (12%), `--hl-selected` (15%), `--hl-active` (20%) — no other percentages.
 
-**Permission gates** — Use `MachineBtn`/`MachineInput`/etc. catalog components for all interactive elements — they self-gate from the catalog. Wrap sections in `<Gate :allow="can.X">` for fieldset-level gating. Never use `<Btn>` directly in templates. Individual `:disabled="!can.X"` is only correct for: JogButton props (internal JS guard) and elements with tighter permissions than the parent Gate. Never use `:class="{ inactive: !can.X }"` for permission gating.
+**Permission gates** — Use `MachineBtn`/`MachineInput`/etc. catalog components for all interactive elements — they self-gate from the catalog. Wrap sections in `<Gate :allow="can.X">` for fieldset-level gating. Never use `<Btn>` directly in templates. Individual `:disabled="!can.X"` is only correct for elements with tighter permissions than the parent Gate. Never use `:class="{ inactive: !can.X }"` for permission gating.
 
 **Global patterns** — Form elements inherit from `style.css` base (component CSS only adds layout). Tables → `.dataTable`. Dialogs → `.dialogOverlay` + `.dialog` + `.dialog-full`. Close buttons → `<MachineBtn type="close">`. Empty states → `.emptyState`. Status dots → `.statusDot`. Section headings → `.sub`. Horizontal dividers → `<div class="sep">`. Monospace → `.mono`. Scrollable containers → add `.scroll-thin`. Check existing components before creating new CSS.
 
