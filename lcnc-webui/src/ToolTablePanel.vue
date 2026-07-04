@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from "vue";
+import { ref, computed, watch, onMounted, defineAsyncComponent } from "vue";
 import { send, lastReply, connected, toolTableVersion } from "./lcncWs";
 import { loadMachineDefaults, STEP_DEFAULT, type ToolChangeMode } from "./defaults";
 import { TOOL_TYPE_LABELS, toolTypeLabel } from "./toolTypes";
@@ -10,7 +10,12 @@ import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineInput from "./MachineInput.vue";
 import MachineSelect from "./MachineSelect.vue";
-import ToolPreview from "./ToolPreview.vue";
+// Async on purpose (WS-E / F10-finish): ToolPreview is the ONLY statically
+// eager three.js importer left — this edge alone kept the 866 kB three
+// chunk in the entry graph (static import + modulepreload in index.html),
+// defeating the ThreeViewer async split. ProbePanel already dynamic-imports
+// three; with this async too, three loads only via async graphs.
+const ToolPreview = defineAsyncComponent(() => import("./ToolPreview.vue"));
 
 const FETCH_DELAY_MS = 500;
 const REFETCH_AFTER_SAVE_MS = 400;
