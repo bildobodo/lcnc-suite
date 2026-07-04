@@ -30,7 +30,14 @@ _CONSTANTS = [
 
 class _Stat:
     """stat: poll() is a no-op. Tests set machine state via the gateway's own
-    globals (e.g. _shared_status), never via this object."""
+    globals (e.g. _shared_status), never via this object.
+
+    axis_mask is the one stat attribute the viewer_init build path reads
+    directly (build_viewer_init → _axes_from_mask); without it the send
+    raises every tick and no viewer_init frame ever reaches a test client
+    (the WS-B lifecycle tests assert delivery). 7 = XYZ."""
+    axis_mask = 7
+
     def poll(self):
         pass
 

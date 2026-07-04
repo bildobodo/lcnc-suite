@@ -13,10 +13,12 @@ import WebSocket from "ws";
 //
 // 2. Shutdown banner: uvicorn cancels WS tasks before lifespan shutdown runs,
 //    so the gateway's server_shutdown broadcast saw zero clients and the
-//    browser got a bare close. Frontend now also maps the going-away close
-//    codes (1001/1012) to the banner; the frame path is asserted too. (The
-//    gateway-side fix — getting a frame/1001 out at task-cancel time — is
-//    WS-B, perf-matrix gated.)
+//    browser got a bare close. Frontend maps the going-away close codes
+//    (1001/1012) to the banner; the frame path is asserted too. The gateway
+//    side now also sends the frame + a 1001 close from ws_endpoint's
+//    CancelledError handler (WS-B; test_ws_lifecycle.py guards it), so both
+//    signals arrive on a real shutdown — this spec keeps the frontend
+//    honest for either one alone.
 //
 // This file runs in the SERIAL `lifecycle` playwright project (dependencies)
 // because refuseWs/shutdownClose are mock-global and would break parallel
