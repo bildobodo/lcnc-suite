@@ -249,7 +249,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
             @pointercancel.prevent="stopAxisJog(2, 1, $event)"
             @pointerleave.prevent="stopAxisJog(2, 1, $event)"
             @contextmenu.prevent
-          ><div class="jogInner jogZUp"><ArrowUp class="jogIcon" /><span class="jogLabel">Z+</span></div></MachineBtn>
+          ><div class="jogInner stack-micro jogZUp"><ArrowUp class="jogIcon" /><span class="jogLabel">Z+</span></div></MachineBtn>
           <MachineBtn
             type="jog"
             class="jogBtn"
@@ -259,7 +259,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
             @pointercancel.prevent="stopAxisJog(2, -1, $event)"
             @pointerleave.prevent="stopAxisJog(2, -1, $event)"
             @contextmenu.prevent
-          ><div class="jogInner jogZDown"><ArrowDown class="jogIcon" /><span class="jogLabel">Z-</span></div></MachineBtn>
+          ><div class="jogInner stack-micro jogZDown"><ArrowDown class="jogIcon" /><span class="jogLabel">Z-</span></div></MachineBtn>
         </div>
 
         <!-- ABC axes (rotary — use angularJogVel) -->
@@ -274,7 +274,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               @pointercancel.prevent="stopAxisJog(ra.index, 1, $event)"
               @pointerleave.prevent="stopAxisJog(ra.index, 1, $event)"
               @contextmenu.prevent
-            ><div class="jogInner jogZUp"><ArrowUp class="jogIcon" /><span class="jogLabel">{{ ra.letter }}+</span></div></MachineBtn>
+            ><div class="jogInner stack-micro jogZUp"><ArrowUp class="jogIcon" /><span class="jogLabel">{{ ra.letter }}+</span></div></MachineBtn>
             <MachineBtn
               type="jog"
               class="jogBtn"
@@ -284,7 +284,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               @pointercancel.prevent="stopAxisJog(ra.index, -1, $event)"
               @pointerleave.prevent="stopAxisJog(ra.index, -1, $event)"
               @contextmenu.prevent
-            ><div class="jogInner jogZDown"><ArrowDown class="jogIcon" /><span class="jogLabel">{{ ra.letter }}-</span></div></MachineBtn>
+            ><div class="jogInner stack-micro jogZDown"><ArrowDown class="jogIcon" /><span class="jogLabel">{{ ra.letter }}-</span></div></MachineBtn>
           </div>
         </template>
 
@@ -300,7 +300,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               @pointercancel.prevent="stopAxisJog(ra.index, 1, $event)"
               @pointerleave.prevent="stopAxisJog(ra.index, 1, $event)"
               @contextmenu.prevent
-            ><div class="jogInner jogZUp"><ArrowUp class="jogIcon" /><span class="jogLabel">{{ ra.letter }}+</span></div></MachineBtn>
+            ><div class="jogInner stack-micro jogZUp"><ArrowUp class="jogIcon" /><span class="jogLabel">{{ ra.letter }}+</span></div></MachineBtn>
             <MachineBtn
               type="jog"
               class="jogBtn"
@@ -310,7 +310,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               @pointercancel.prevent="stopAxisJog(ra.index, -1, $event)"
               @pointerleave.prevent="stopAxisJog(ra.index, -1, $event)"
               @contextmenu.prevent
-            ><div class="jogInner jogZDown"><ArrowDown class="jogIcon" /><span class="jogLabel">{{ ra.letter }}-</span></div></MachineBtn>
+            ><div class="jogInner stack-micro jogZDown"><ArrowDown class="jogIcon" /><span class="jogLabel">{{ ra.letter }}-</span></div></MachineBtn>
           </div>
         </template>
       </div>
@@ -394,11 +394,8 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
   aspect-ratio: auto;
 }
 .jogInner {
-  display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--gap-micro);
   pointer-events: none;
 }
 /* Vertical arrows (Y+/Y-/Z): icon left, label right */

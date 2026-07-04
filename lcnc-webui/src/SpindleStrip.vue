@@ -60,7 +60,7 @@ const emit = defineEmits<{
 
     <div class="sep"></div>
 
-    <div class="coolBlock">
+    <div class="coolBlock stack-tight">
       <div class="sub">Coolant</div>
       <div class="row-sections">
         <MachineToggle gate="coolant" :modelValue="floodOn" @update:modelValue="emit('toggleFlood')" label="Flood" />
@@ -79,9 +79,6 @@ const emit = defineEmits<{
 }
 .spRpmInput { flex: 1; min-width: 0; width: 0; }
 .coolBlock {
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-tight);
   flex-shrink: 0;
 }
 /* .coolToggles — replaced by row-sections utility (same shape) */

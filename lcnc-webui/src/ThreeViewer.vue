@@ -1821,7 +1821,7 @@ defineExpose({
     <div ref="host" class="viewerHost bordered-panel" />
 
     <!-- HUD Overlay -->
-    <div v-show="hudVisible" class="hud">
+    <div v-show="hudVisible" class="hud stack-controls">
       <div class="hudSection">
         <div class="label">Work Position ({{ props.g5xLabel || '-' }})</div>
         <div class="row-sections">
@@ -1985,9 +1985,6 @@ defineExpose({
   z-index: 1;
   top: 12px;
   left: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-controls);
   pointer-events: none;
   user-select: none;
 }

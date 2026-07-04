@@ -587,7 +587,7 @@ async function saveEdit() {
     <!-- Code area wrapper (drop overlay target) -->
     <div class="codeArea">
       <!-- Drop overlay -->
-      <div v-if="dragOver" class="dropOverlay" :class="{ denied: !can.setup }">
+      <div v-if="dragOver" class="dropOverlay stack-sections" :class="{ denied: !can.setup }">
         <svg v-if="can.setup" class="dropIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
           <polyline points="7 10 12 15 17 10"/>
@@ -645,7 +645,7 @@ async function saveEdit() {
       </div>
 
       <!-- Empty state / drop zone -->
-      <div class="emptyState dropTarget" v-else :class="{ dragOver }">
+      <div class="emptyState dropTarget stack-sections" v-else :class="{ dragOver }">
         <svg class="uploadIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
           <polyline points="17 8 12 3 7 8"/>
@@ -960,11 +960,8 @@ async function saveEdit() {
   position: absolute;
   inset: 0;
   z-index: 5;
-  display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--gap-section);
   border: 2px dashed var(--info);
   border-radius: var(--radius-xl);
   background: color-mix(in oklab, var(--info) 10%, var(--panel) 90%);
@@ -1002,11 +999,8 @@ async function saveEdit() {
 
 .dropTarget {
   flex: 1;
-  display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--gap-section);
   border: 2px dashed var(--border);
   border-radius: var(--radius-xl);
   transition: border-color 0.2s, background 0.2s, opacity 0.2s;
