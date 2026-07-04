@@ -15,6 +15,7 @@ import {
   KEYBOARD_ACTION_LABELS, formatKeyName,
 } from "./defaults";
 import { viewerInit } from "./lcncWs";
+import { isRotaryAxis } from "./useAxes";
 import MachineBtn from "./MachineBtn.vue";
 import MachineToggle from "./MachineToggle.vue";
 
@@ -44,7 +45,7 @@ const ROTARY_JOG_ACTIONS: KeyboardAction[] = ["jog_a+", "jog_a-", "jog_b+", "jog
 // Show rotary rows only if machine has axes beyond XYZ
 const hasRotaryAxes = computed(() => {
   const axes = viewerInit.value?.axes;
-  return Array.isArray(axes) && axes.some((a: string) => !"XYZ".includes(a.toUpperCase()));
+  return Array.isArray(axes) && axes.some((a: string) => isRotaryAxis(a.toUpperCase()));
 });
 
 // Modifier keys to reject

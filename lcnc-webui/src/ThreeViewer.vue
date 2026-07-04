@@ -13,6 +13,7 @@ import {
 import { viewerInit, viewerGcode, gcodeContent, status, type ViewerInit, type ViewerGcode } from "./lcncWs";
 import { loadViewerDefaults, loadCameraDefaults, saveCameraDefaults, ALL_LAYERS, settingsVersion, type Vec3, type Layer } from "./defaults";
 import { fmtCoord } from "./format";
+import { useAxes } from "./useAxes";
 import { recordApply, recordRender, setViewerPerfContext } from "./viewerPerf";
 import { disposeObject } from "./viewer/disposal";
 import { createBackplotController } from "./viewer/backplotController";
@@ -1601,22 +1602,7 @@ watch(
 // formatCoord → fmtCoord imported from format.ts
 
 const hudAxes = computed(() => props.axes ?? ["X", "Y", "Z"]);
-
-const PRIMARY = new Set(["X", "Y", "Z"]);
-const ABC = new Set(["A", "B", "C"]);
-const UVW = new Set(["U", "V", "W"]);
-
-interface HudAxisEntry { letter: string; index: number }
-
-const hudPrimary = computed<HudAxisEntry[]>(() =>
-  hudAxes.value.map((l, i) => ({ letter: l, index: i })).filter(a => PRIMARY.has(a.letter))
-);
-const hudAbc = computed<HudAxisEntry[]>(() =>
-  hudAxes.value.map((l, i) => ({ letter: l, index: i })).filter(a => ABC.has(a.letter))
-);
-const hudUvw = computed<HudAxisEntry[]>(() =>
-  hudAxes.value.map((l, i) => ({ letter: l, index: i })).filter(a => UVW.has(a.letter))
-);
+const { primary: hudPrimary, abc: hudAbc, uvw: hudUvw } = useAxes(hudAxes);
 
 const spindleLoadZone = computed(() => {
   const v = vst.value?.spindle_load;

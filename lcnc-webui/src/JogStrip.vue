@@ -4,6 +4,7 @@ import { send } from "./lcncWs";
 import { usePermissions } from "./permissions";
 import { INPUT_DEFS } from "./machineControls";
 import { registerJog, unregisterJog, activeJogKeys, forceStopAllJogs } from "./useJogPointers";
+import { useAxes } from "./useAxes";
 import MachineBtn from "./MachineBtn.vue";
 import MachineRadio from "./MachineRadio.vue";
 import MachineSlider from "./MachineSlider.vue";
@@ -14,9 +15,6 @@ import {
   Square,
 } from "lucide-vue-next";
 
-const ABC = new Set(["A", "B", "C"]);
-const UVW = new Set(["U", "V", "W"]);
-const EXTRA = new Set([...ABC, ...UVW]);
 
 const props = defineProps<{
   axes: string[];
@@ -47,12 +45,15 @@ const isDisabled = computed(() => !can.value[INPUT_DEFS.jogWheel.gate] || props.
 
 const isPortrait = inject<Ref<boolean>>("isPortrait", ref(false));
 
-// ─── Extra axes (beyond XYZ) ────────────────────────────────
-const extraAxes = computed(() =>
-  props.axes.map((letter, i) => ({ letter, index: i })).filter(a => EXTRA.has(a.letter))
-);
-const abcAxes = computed(() => extraAxes.value.filter(a => ABC.has(a.letter)));
-const uvwAxes = computed(() => extraAxes.value.filter(a => UVW.has(a.letter)));
+// ─── Axis groups from the shared source (WS-D) ─────────────
+// X/Y/Z indices are resolved BY LETTER: the old code hardcoded X=0/Y=1 in
+// the pad and Z=2 in the Z column, which jogs the wrong joint on any
+// machine whose axes aren't XYZ-first (e.g. lathe ["X","Z"]).
+const { abc: abcAxes, uvw: uvwAxes, find: findAxis } = useAxes(computed(() => props.axes));
+const xAxis = computed(() => findAxis("X"));
+const yAxis = computed(() => findAxis("Y"));
+const zAxis = computed(() => findAxis("Z"));
+const hasXyPad = computed(() => xAxis.value != null && yAxis.value != null);
 
 const incrementOptions = computed(() => {
   if (props.iniIncrements && props.iniIncrements.length > 0) {
@@ -105,17 +106,21 @@ interface JogDef {
   dir2?: 1 | -1;
 }
 
-const xyBtns: JogDef[] = [
-  { label: "X-Y+", shortLabel: "",     icon: ArrowUpLeft,    axis: 0, dir: -1, axis2: 1, dir2: 1, dir_class: "" },
-  { label: "Y+",   shortLabel: "Y+",   icon: ArrowUp,        axis: 1, dir: 1, dir_class: "jogV" },
-  { label: "X+Y+", shortLabel: "",     icon: ArrowUpRight,   axis: 0, dir: 1, axis2: 1, dir2: 1, dir_class: "" },
-  { label: "X-",   shortLabel: "X-",   icon: ArrowLeft,      axis: 0, dir: -1, dir_class: "jogH" },
-  { label: "Jog Stop", shortLabel: "Stop", icon: Square,      axis: -1, dir: 1, dir_class: "" },
-  { label: "X+",   shortLabel: "X+",   icon: ArrowRight,     axis: 0, dir: 1, dir_class: "jogH" },
-  { label: "X-Y-", shortLabel: "",     icon: ArrowDownLeft,  axis: 0, dir: -1, axis2: 1, dir2: -1, dir_class: "" },
-  { label: "Y-",   shortLabel: "Y-",   icon: ArrowDown,      axis: 1, dir: -1, dir_class: "jogV" },
-  { label: "X+Y-", shortLabel: "",     icon: ArrowDownRight, axis: 0, dir: 1, axis2: 1, dir2: -1, dir_class: "" },
-];
+const xyBtns = computed<JogDef[]>(() => {
+  const xi = xAxis.value?.index ?? -1;
+  const yi = yAxis.value?.index ?? -1;
+  return [
+    { label: "X-Y+", shortLabel: "",     icon: ArrowUpLeft,    axis: xi, dir: -1, axis2: yi, dir2: 1, dir_class: "" },
+    { label: "Y+",   shortLabel: "Y+",   icon: ArrowUp,        axis: yi, dir: 1, dir_class: "jogV" },
+    { label: "X+Y+", shortLabel: "",     icon: ArrowUpRight,   axis: xi, dir: 1, axis2: yi, dir2: 1, dir_class: "" },
+    { label: "X-",   shortLabel: "X-",   icon: ArrowLeft,      axis: xi, dir: -1, dir_class: "jogH" },
+    { label: "Jog Stop", shortLabel: "Stop", icon: Square,      axis: -1, dir: 1, dir_class: "" },
+    { label: "X+",   shortLabel: "X+",   icon: ArrowRight,     axis: xi, dir: 1, dir_class: "jogH" },
+    { label: "X-Y-", shortLabel: "",     icon: ArrowDownLeft,  axis: xi, dir: -1, axis2: yi, dir2: -1, dir_class: "" },
+    { label: "Y-",   shortLabel: "Y-",   icon: ArrowDown,      axis: yi, dir: -1, dir_class: "jogV" },
+    { label: "X+Y-", shortLabel: "",     icon: ArrowDownRight, axis: xi, dir: 1, axis2: yi, dir2: -1, dir_class: "" },
+  ];
+});
 
 function stopAllJog() {
   forceStopAllJogs();
@@ -221,7 +226,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
     <div class="sub">Jog</div>
     <div class="jogContent row-sections">
       <div class="jogBtns row-sections">
-        <div ref="xyWrapRef" class="xyWrap" :style="xySize ? { width: xySize + 'px' } : undefined">
+        <div v-if="hasXyPad" ref="xyWrapRef" class="xyWrap" :style="xySize ? { width: xySize + 'px' } : undefined">
           <div class="xyGrid">
             <MachineBtn
               v-for="btn in xyBtns"
@@ -239,25 +244,25 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
           </div>
         </div>
 
-        <div class="axisCol">
+        <div v-if="zAxis" class="axisCol">
           <MachineBtn
             type="jog"
             class="jogBtn"
             :active="activeJogKeys.has('Z+')"
-            @pointerdown.prevent="startAxisJog(2, 1, jogVel, $event)"
-            @pointerup.prevent="stopAxisJog(2, 1, $event)"
-            @pointercancel.prevent="stopAxisJog(2, 1, $event)"
-            @pointerleave.prevent="stopAxisJog(2, 1, $event)"
+            @pointerdown.prevent="startAxisJog(zAxis.index, 1, jogVel, $event)"
+            @pointerup.prevent="stopAxisJog(zAxis.index, 1, $event)"
+            @pointercancel.prevent="stopAxisJog(zAxis.index, 1, $event)"
+            @pointerleave.prevent="stopAxisJog(zAxis.index, 1, $event)"
             @contextmenu.prevent
           ><div class="jogInner stack-micro jogZUp"><ArrowUp class="jogIcon" /><span class="jogLabel">Z+</span></div></MachineBtn>
           <MachineBtn
             type="jog"
             class="jogBtn"
             :active="activeJogKeys.has('Z-')"
-            @pointerdown.prevent="startAxisJog(2, -1, jogVel, $event)"
-            @pointerup.prevent="stopAxisJog(2, -1, $event)"
-            @pointercancel.prevent="stopAxisJog(2, -1, $event)"
-            @pointerleave.prevent="stopAxisJog(2, -1, $event)"
+            @pointerdown.prevent="startAxisJog(zAxis.index, -1, jogVel, $event)"
+            @pointerup.prevent="stopAxisJog(zAxis.index, -1, $event)"
+            @pointercancel.prevent="stopAxisJog(zAxis.index, -1, $event)"
+            @pointerleave.prevent="stopAxisJog(zAxis.index, -1, $event)"
             @contextmenu.prevent
           ><div class="jogInner stack-micro jogZDown"><ArrowDown class="jogIcon" /><span class="jogLabel">Z-</span></div></MachineBtn>
         </div>

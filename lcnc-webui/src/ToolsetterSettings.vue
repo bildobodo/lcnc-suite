@@ -8,7 +8,7 @@ import {
 } from "./defaults";
 import { buildToolsetterVarMap } from "./toolsetterVars";
 import { fetchG30 } from "./lcncApi";
-import { status } from "./lcncWs";
+import { status, viewerInit } from "./lcncWs";
 import MachineInput from "./MachineInput.vue";
 import MachineToggle from "./MachineToggle.vue";
 import MachineRadio from "./MachineRadio.vue";
@@ -100,11 +100,16 @@ function setG30() {
   if (!can.value.ready) return;
   emit("mdi", "G30.1");
   // After G30.1 saves current position, read back from machine position
+  // Read back BY LETTER via the machine's axis order (viewer_init.axes) —
+  // st.position is index-aligned to it; positional [0/1/2] broke on any
+  // machine whose axes aren't XYZ-first.
   const st = status.value as any;
-  if (st?.position) {
-    g30X.value = st.position[0];
-    g30Y.value = st.position[1];
-    g30Z.value = st.position[2];
+  const axes: string[] = viewerInit.value?.axes ?? [];
+  if (st?.position && axes.length) {
+    const at = (l: string) => { const i = axes.indexOf(l); return i >= 0 ? st.position[i] : undefined; };
+    g30X.value = at("X");
+    g30Y.value = at("Y");
+    g30Z.value = at("Z");
   }
 }
 

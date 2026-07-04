@@ -3,15 +3,14 @@ import { computed } from "vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineInput from "./MachineInput.vue";
 import MachineRadio from "./MachineRadio.vue";
-
-const UVW = new Set(["U", "V", "W"]);
-const ROTARY = new Set(["A", "B", "C"]);
+import { useAxes, isRotaryAxis, UVW_LETTERS } from "./useAxes";
 
 // Match HUD precision (3 decimals linear, 2 rotary) without the unit suffix
-// so the keypad parser still receives a clean numeric string.
+// so the keypad parser still receives a clean numeric string. (Deliberately
+// NOT fmtCoord: no ° suffix here.)
 function fmtAxisInput(val: number | undefined, letter: string): string {
   if (val == null || !Number.isFinite(val)) return "";
-  return ROTARY.has(letter) ? val.toFixed(2) : val.toFixed(3);
+  return isRotaryAxis(letter) ? val.toFixed(2) : val.toFixed(3);
 }
 
 const props = defineProps<{
@@ -35,12 +34,9 @@ const emit = defineEmits<{
   (e: "goToZero"): void;
 }>();
 
-const primaryAxes = computed(() =>
-  props.axes.map((l, i) => ({ letter: l, index: i })).filter(a => !UVW.has(a.letter))
-);
-const uvwAxes = computed(() =>
-  props.axes.map((l, i) => ({ letter: l, index: i })).filter(a => UVW.has(a.letter))
-);
+const { entries, uvw: uvwAxes } = useAxes(computed(() => props.axes));
+// Column 1 = everything non-UVW (XYZ + ABC, machine order); column 2 = UVW.
+const primaryAxes = computed(() => entries.value.filter(a => !UVW_LETTERS.has(a.letter)));
 const hasSecondCol = computed(() => uvwAxes.value.length > 0);
 
 const g5xOptions = ["G54", "G55", "G56", "G57", "G58", "G59", "G59.1", "G59.2", "G59.3"];
