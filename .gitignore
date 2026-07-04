@@ -25,3 +25,8 @@ build/
 rs274ngc.var
 *.dsc
 runlogs/
+
+node_modules/
+runlogs/
+test-results/
+playwright-report/
