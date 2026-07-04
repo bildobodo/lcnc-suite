@@ -211,6 +211,40 @@ class TestHandlerExecution(unittest.TestCase):
         self.assertEqual(args[2], 2)      # axis (jf is args[1])
         self.assertEqual(args[3], 3.5)    # velocity
 
+    def test_teleop_jog_translates_list_index_to_canonical_axis(self):
+        # XYZAC machine (axis_mask 0b101111): the wire index is the position
+        # in the machine's axis list; teleop CMD.jog wants the CANONICAL
+        # axis number. C = list index 4 but canonical 5 — untranslated, the
+        # gateway jogged nonexistent B and the machine silently sat still
+        # (WS-D 5-axis user smoke).
+        gateway.STAT.axis_mask = 0b101111
+        gateway.STAT.motion_mode = linuxcnc.TRAJ_MODE_TELEOP
+        r = self._send({"cmd": "jog_cont", "axis": 4, "vel": 2.0})
+        self.assertTrue(r["ok"])
+        args = self.cmd.args_of("jog")
+        self.assertEqual(args[1], 0)      # jf: teleop -> Cartesian axis jog
+        self.assertEqual(args[2], 5)      # canonical C, not list index 4
+        # jog_stop for the same axis must translate identically (a stop
+        # aimed at the wrong axis leaves the real one moving).
+        self.cmd.calls.clear()
+        r = self._send({"cmd": "jog_stop", "axis": 4})
+        self.assertTrue(r["ok"])
+        args = self.cmd.args_of("jog")
+        self.assertEqual(args[0], linuxcnc.JOG_STOP)
+        self.assertEqual(args[2], 5)
+
+    def test_joint_mode_jog_passes_list_index_through(self):
+        # No motion_mode attr -> _jog_joint_flag defaults to joint jog (1):
+        # the list index IS the joint number (trivkins follows COORDINATES).
+        gateway.STAT.axis_mask = 0b101111
+        if hasattr(gateway.STAT, "motion_mode"):
+            del gateway.STAT.motion_mode
+        r = self._send({"cmd": "jog_cont", "axis": 4, "vel": 2.0})
+        self.assertTrue(r["ok"])
+        args = self.cmd.args_of("jog")
+        self.assertEqual(args[1], 1)      # joint jog
+        self.assertEqual(args[2], 4)      # joint number untouched
+
     def test_mdi_reaches_cmd_mdi_with_text(self):
         r = self._send({"cmd": "mdi", "text": "G0 X1"})
         self.assertTrue(r["ok"])

@@ -2140,6 +2140,28 @@ def _jog_joint_flag() -> int:
     return 1
 
 
+def _jog_axis_arg(idx: int, jf: int) -> int:
+    """Translate a wire jog index into what CMD.jog expects for joint_flag jf.
+
+    The wire index is the position in the machine's axis list — the same
+    index viewer_init.axes and every per-axis status array use. For jf==1
+    (joint jog) that IS the joint number (trivkins joints follow the
+    COORDINATES order). For jf==0 (teleop) LinuxCNC wants the CANONICAL
+    axis number (X=0 … W=8) — a different space whenever the machine's
+    axis set has gaps: on XYZAC, C is list index 4 but canonical 5, so the
+    untranslated index jogged nonexistent B and silently moved nothing
+    (WS-D 5-axis user smoke; the disarm jog-stop missed C the same way).
+    Out-of-range indices pass through — CMD.jog rejects them itself."""
+    if jf != 0:
+        return idx
+    letters = _axes_from_mask(int(safe_get("axis_mask", 0) or 0))
+    if 0 <= idx < len(letters):
+        canonical = _AXIS_LETTERS.find(letters[idx])
+        if canonical >= 0:
+            return canonical
+    return idx
+
+
 async def _jog_stop_for_client() -> None:
     """Jog-stop every joint as part of a client disarm. Caller must hold _cmd_lock.
 
@@ -2179,7 +2201,7 @@ async def _jog_stop_for_client() -> None:
     jf = _jog_joint_flag()
     _nj = getattr(STAT, "joints", 3) if STAT else 3
     for ax in range(_nj):
-        await _cmd_blocking(CMD.jog, linuxcnc.JOG_STOP, jf, ax, wait=None)
+        await _cmd_blocking(CMD.jog, linuxcnc.JOG_STOP, jf, _jog_axis_arg(ax, jf), wait=None)
 
 
 def require_armed(armed: bool):
@@ -2829,7 +2851,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             vel = finite_float(msg.get("vel", 0.0))
             await set_mode(linuxcnc.MODE_MANUAL)
             jf = _jog_joint_flag()
-            await _cmd_blocking(CMD.jog, linuxcnc.JOG_CONTINUOUS, jf, axis, vel, wait=None)
+            await _cmd_blocking(CMD.jog, linuxcnc.JOG_CONTINUOUS, jf, _jog_axis_arg(axis, jf), vel, wait=None)
             return {"ok": True}
 
         if cmd == "jog_stop":
@@ -2848,7 +2870,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             axis = finite_int(msg.get("axis"), lo=0)
             await set_mode(linuxcnc.MODE_MANUAL)
             jf = _jog_joint_flag()
-            await _cmd_blocking(CMD.jog, linuxcnc.JOG_STOP, jf, axis, wait=None)
+            await _cmd_blocking(CMD.jog, linuxcnc.JOG_STOP, jf, _jog_axis_arg(axis, jf), wait=None)
             return {"ok": True}
 
         if cmd == "jog_cont_multi":
@@ -2862,7 +2884,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             await set_mode(linuxcnc.MODE_MANUAL)
             jf = _jog_joint_flag()
             for entry in axes:
-                await _cmd_blocking(CMD.jog, linuxcnc.JOG_CONTINUOUS, jf, finite_int(entry["axis"], lo=0), finite_float(entry["vel"]), wait=None)
+                await _cmd_blocking(CMD.jog, linuxcnc.JOG_CONTINUOUS, jf, _jog_axis_arg(finite_int(entry["axis"], lo=0), jf), finite_float(entry["vel"]), wait=None)
             return {"ok": True}
 
         if cmd == "jog_stop_multi":
@@ -2877,7 +2899,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             await set_mode(linuxcnc.MODE_MANUAL)
             jf = _jog_joint_flag()
             for a in axes:
-                await _cmd_blocking(CMD.jog, linuxcnc.JOG_STOP, jf, finite_int(a, lo=0), wait=None)
+                await _cmd_blocking(CMD.jog, linuxcnc.JOG_STOP, jf, _jog_axis_arg(finite_int(a, lo=0), jf), wait=None)
             return {"ok": True}
 
         if cmd == "jog_incr":
@@ -2892,7 +2914,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             dist = finite_float(msg.get("distance", 0.0))
             await set_mode(linuxcnc.MODE_MANUAL)
             jf = _jog_joint_flag()
-            await _cmd_blocking(CMD.jog, linuxcnc.JOG_INCREMENT, jf, axis, vel, dist, wait=None)
+            await _cmd_blocking(CMD.jog, linuxcnc.JOG_INCREMENT, jf, _jog_axis_arg(axis, jf), vel, dist, wait=None)
             return {"ok": True}
 
         if cmd == "jog_incr_multi":
@@ -2906,7 +2928,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             await set_mode(linuxcnc.MODE_MANUAL)
             jf = _jog_joint_flag()
             for entry in axes:
-                await _cmd_blocking(CMD.jog, linuxcnc.JOG_INCREMENT, jf, finite_int(entry["axis"], lo=0), abs(finite_float(entry["vel"])), finite_float(entry["distance"]), wait=None)
+                await _cmd_blocking(CMD.jog, linuxcnc.JOG_INCREMENT, jf, _jog_axis_arg(finite_int(entry["axis"], lo=0), jf), abs(finite_float(entry["vel"])), finite_float(entry["distance"]), wait=None)
             return {"ok": True}
 
         if cmd == "home_all":
