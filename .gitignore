@@ -30,3 +30,9 @@ node_modules/
 runlogs/
 test-results/
 playwright-report/
+
+# Untracked working docs (swept in by an over-broad git add during WS-D; user-decided untracked)
+ARCHITECTURE_HANDOFF.md
+ISSUE_35_HANDOFF.md
+PERFORMANCE_MODULARIZATION_HANDOFF.md
+examples/sim_config/probe-results-interptest.txt
