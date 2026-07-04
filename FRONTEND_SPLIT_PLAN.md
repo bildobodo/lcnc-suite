@@ -144,6 +144,15 @@ teardown unified on disposeObject (stale comment gone, dispose() now frees
 bounds EdgesGeometry); backplot dispose frees its material; toolpathCtx
 reuses one object (per-tick alloc).
 
+Follow-up 2ff5484: the batch's setMachineEdges-in-applyViewerDefaults ran
+during buildFromInit's STL-await window (machineMeshes empty) → the empty
+buildEdgesLazy run marked _edgesBuilt=true → outlines never built and
+toggle/reset were dead (user-caught in smoke). Fixed: empty-mesh bail
+(no mark) + sweep of aborted-run partial lines. NOT e2e-coverable (mock
+ships parts:[]) — guarded by user smoke only. Smoke sign-off: outlines from
+boot + toggle + reset ✓, projection reset stays parallel ✓, part colour
+set/reset live ✓, reconnect with loaded program re-renders preview ✓.
+
 ## Adversarial proofs log
 
 | Guard | Broken how | Red observed | Restored |
