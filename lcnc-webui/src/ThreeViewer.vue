@@ -10,7 +10,7 @@ import {
   failedParts, loadMachineAssets, getCachedGeometry, getToolMeta, setToolMeta,
 } from "./viewer/machineAssetCache";
 
-import { viewerInit, viewerGcode, gcodeContent, status, type ViewerInit, type ViewerGcode } from "./lcncWs";
+import { viewerInit, viewerGcode, gcodeContent, status, emitTelemetry, type ViewerInit, type ViewerGcode } from "./lcncWs";
 import { loadViewerDefaults, loadCameraDefaults, saveCameraDefaults, ALL_LAYERS, settingsVersion, type Vec3, type Layer } from "./defaults";
 import { fmtCoord } from "./format";
 import { useAxes } from "./useAxes";
@@ -1065,6 +1065,7 @@ async function buildFromInit(init: ViewerInit) {
 
   } catch (err) {
     console.error("buildFromInit failed:", err);
+    emitTelemetry("viewer.build_failed", { error: String(err) });
     window.__viewerDiag = { ready: false, error: (err as Error).message };
   }
 }
@@ -1129,6 +1130,8 @@ function applyState(init: ViewerInit, st: ViewerState) {
   {
     const toolNum = st.tool_number ?? null;
     const meta: ToolMeta | null = st.tool_meta ?? null;
+    // Design default: absent tool dimensions draw a generic 6×60 mm placeholder
+    // marker — a viewer position cue, not a claim about the real tool geometry.
     const diam = st.tool_diameter ?? 6.0 * _unitScale;
     const rawLen = st.tool_length ?? 60.0 * _unitScale;
     const sinkIntoHolder = 20 * _unitScale;
@@ -1680,12 +1683,13 @@ function getEdgeWorker(): Worker {
 }
 
 function computeEdgesOffThread(geom: THREE.BufferGeometry, partId: string): Promise<Float32Array> {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const worker = getEdgeWorker();
     const handler = (e: MessageEvent) => {
       if (e.data.id === partId) {
         worker.removeEventListener("message", handler);
-        resolve(new Float32Array(e.data.positions));
+        if (e.data.error) reject(new Error(e.data.error));
+        else resolve(new Float32Array(e.data.positions));
       }
     };
     worker.addEventListener("message", handler);
@@ -1725,7 +1729,15 @@ async function buildEdgesLazy() {
     if (token !== _edgeBuildToken) return;
     const partId = mesh.userData.partId as string;
 
-    const edgePositions = await computeEdgesOffThread(mesh.geometry, partId);
+    let edgePositions: Float32Array;
+    try {
+      edgePositions = await computeEdgesOffThread(mesh.geometry, partId);
+    } catch (err) {
+      // One malformed part must not kill outlines for every other part.
+      console.warn(`edge build failed for part ${partId}:`, err);
+      emitTelemetry("viewer.edge_build_failed", { part: partId, error: String(err) });
+      continue;
+    }
     if (token !== _edgeBuildToken) return;
 
     const edgesGeom = new THREE.BufferGeometry();

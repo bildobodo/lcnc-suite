@@ -57,6 +57,7 @@ export function forceStopJog(pointerId: number): void {
   activePointers.delete(pointerId);
   entry.stopFn();
   if (entry.element) {
+    // safe-silent: releasing an already-released pointer throws harmlessly
     try { entry.element.releasePointerCapture(pointerId); } catch {}
   }
 }
@@ -68,6 +69,7 @@ export function forceStopAllJogs(): void {
   for (const [pointerId, entry] of activePointers) {
     entry.stopFn();
     if (entry.element) {
+      // safe-silent: releasing an already-released pointer throws harmlessly
       try { entry.element.releasePointerCapture(pointerId); } catch {}
     }
   }

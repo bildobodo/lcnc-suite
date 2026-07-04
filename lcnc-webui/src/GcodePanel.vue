@@ -492,6 +492,7 @@ async function saveEdit() {
     emit("loadFile", props.activeFile);
   } catch (e: any) {
     saveError.value = `Save failed: ${e.message}`;
+    emitTelemetry("edit.save_failed", { file: props.activeFile, msg: String(e?.message ?? e) });
   } finally {
     saving.value = false;
   }

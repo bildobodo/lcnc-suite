@@ -205,7 +205,7 @@ const machineStateLabel = computed(() => {
     const name = file ? file.replace(/\\/g, "/").split('/').pop() : null;
     const parts = [label];
     if (name) parts.push(name);
-    if (elapsedDisplay.value) parts.push(elapsedDisplay.value);
+    if (programElapsed.value != null) parts.push(elapsedDisplay.value);
     return parts.join('  ·  ');
   }
   if (state === 'toolchange' && toolChangeTool.value != null) {
@@ -411,8 +411,13 @@ const isRunning = computed(() => !isPaused.value && (interpState.value === INTER
  * broadcasts the accumulated elapsed time each status tick. Mid-program
  * reconnects see the true value because the first status snapshot already
  * carries it. */
-const programElapsed = computed(() => Math.floor((st.value.program_elapsed_ms ?? 0) / 1000));
-const elapsedDisplay = computed(() => fmtElapsed(programElapsed.value));
+const programElapsed = computed(() => {
+  const ms = st.value.program_elapsed_ms;
+  // Absent ≠ zero: a synthetic 00:00 would read as "just started" when the
+  // field simply hasn't been delivered. Render honest-absent instead.
+  return ms == null ? null : Math.floor(ms / 1000);
+});
+const elapsedDisplay = computed(() => programElapsed.value == null ? "--:--" : fmtElapsed(programElapsed.value));
 
 /** ---------- system clock ---------- */
 const clockTime = ref('');
@@ -1545,9 +1550,17 @@ watch(viewerGcode, (newGcode) => {
               Z axis will move based on the surface compensation map.<br>
               Ensure tool is clear of the workpiece.
             </template>
-            <template v-else>
+            <template v-else-if="st.eoffset_z != null">
               Z axis will move by approximately
-              <strong>{{ ((st.eoffset_z ?? 0) * -1).toFixed(4) }}</strong> mm.<br>
+              <strong>{{ (st.eoffset_z * -1).toFixed(4) }}</strong> mm.<br>
+              Ensure tool is clear of the workpiece.
+            </template>
+            <template v-else>
+              <!-- eoffset_z not yet delivered (cold start / reader stale): a
+                   synthetic 0.0000 here would tell the operator "no move"
+                   right before a real Z move. Say we don't know instead. -->
+              Z axis will move by an <strong>unknown</strong> amount — the
+              current Z offset has not been reported by the gateway.<br>
               Ensure tool is clear of the workpiece.
             </template>
           </div>

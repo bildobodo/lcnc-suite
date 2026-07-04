@@ -132,7 +132,7 @@ export function sendCommand(payload: string, cmd: string, dropIfClosed: boolean)
 /** Relay config to the worker (hidden state, immediate heartbeat, resume). */
 export function postWorkerConfig(cfg: Record<string, unknown>): void {
   if (wsWorker) {
-    try { wsWorker.postMessage({ type: "updateConfig", ...cfg }); } catch { /* ignored */ }
+    try { wsWorker.postMessage({ type: "updateConfig", ...cfg }); } catch { /* safe-silent: worker mid-teardown; next connect re-sends full config */ }
   }
 }
 

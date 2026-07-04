@@ -143,6 +143,7 @@ function startJog(btn: JogDef, e: PointerEvent) {
   if (activeJogKeys.has(btn.label)) return;
 
   const el = e.currentTarget as Element;
+  // safe-silent: pointer capture is a best-effort UX aid; throws if the pointer is already gone
   try { el?.setPointerCapture?.(e.pointerId); } catch {}
 
   const isDiag = btn.axis2 != null && btn.dir2 != null;
@@ -185,6 +186,7 @@ function stopJog(btn: JogDef, e: PointerEvent) {
   }
 
   unregisterJog(e.pointerId);
+  // safe-silent: releasing an already-released pointer throws harmlessly
   try { (e.currentTarget as HTMLElement)?.releasePointerCapture?.(e.pointerId); } catch {}
 }
 
@@ -195,6 +197,7 @@ function startAxisJog(axisIndex: number, dir: 1 | -1, vel: number, e: PointerEve
   if (isDisabled.value || activeJogKeys.has(key)) return;
 
   const el = e.currentTarget as Element;
+  // safe-silent: pointer capture is a best-effort UX aid; throws if the pointer is already gone
   try { el?.setPointerCapture?.(e.pointerId); } catch {}
 
   if (props.jogIncrement > 0) {
@@ -217,6 +220,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
   }
 
   unregisterJog(e.pointerId);
+  // safe-silent: releasing an already-released pointer throws harmlessly
   try { (e.currentTarget as HTMLElement)?.releasePointerCapture?.(e.pointerId); } catch {}
 }
 </script>

@@ -275,9 +275,87 @@ under budget, command-path-unrelated. C jog user-verified on 5-axis.
    Viewer-spec poll budgets also widened 8→15 s (async three shifts the
    first geometry rise later — correct hardening, but not the flake).
 
-### WS-F
+### WS-F — silent-fallback visibility sweep (branch `refactor/fe-ws-f-silent-fallbacks`)
 
-Tracked when reached.
+Scope: every `catch` and `?? 0 / "" / [] / {}` (+ `||` equivalents) site in src/,
+classified per the backend no-silent-fallback rule:
+(a) DATA-MASK → render honest-absent (—/n-a) or propagate null;
+(b) SWALLOWED-ERROR → surface via emitTelemetry/message center;
+(c) SAFE-SILENT → keep with `// safe-silent:` reason where non-obvious;
+(ok) DESIGN-DEFAULT → intentional default, no change.
+
+Site-by-site dispositions recorded below per commit as fix batches land.
+
+**Batch 1 — input/misc family** (JogStrip, useJogPointers, useGamepad,
+GamepadLiveInput, useMdiHistory, useTouchoffMath, useDialogState, wakeLock,
+mathEval, dragScroll, useAxes): 27 sites, ZERO (a)/(b) violations — this
+family was already compliant. wakeLock routes every failure through
+emitTelemetry; mathEval returns honest null (documented contract); touchoff Z
+already REFUSES (console.warn + return) when eoffset_z is absent rather than
+masking with 0. Dispositions: 6× (c) bare pointer-capture `catch {}`
+(JogStrip 146/189/200/222, useJogPointers 60/72) → `// safe-silent:` comments
+added; 5× (c) gamepad `gp.axes[i] ?? 0` = absent stick reads centered → no
+jog (safe by construction, display-only in GamepadLiveInput); 5× (c) wakeLock
+catches already telemetry-surfaced; 1× (c) mathEval null-on-parse-error;
+10× (ok) design defaults (deadzone prop, throttle-state init,
+bounded-index defensives, optional-arg ""). Note verified: useTouchoffMath
+`values[i] ?? 0` in setAll is unreachable-defensive — the only caller
+(SetupStrip Zero-all) always sends `new Array(axes.length).fill(0)`.
+
+**Batch 2 — viewer family** (ThreeViewer, viewer/*, geometryCache,
+toolGeometry, edgeWorker, previewWorker, viewerPerf): 34 sites + 1 structural.
+Fixes: (b) edgeWorker had NO catch — a throw (malformed positions) never
+postMessage'd, so the main-thread promise in computeEdgesOffThread hung
+forever and buildEdgesLazy silently stalled at that part, skipping all later
+parts too. Worker now always replies ({id, error} on throw, mirroring
+previewWorker), computeEdgesOffThread rejects on it, buildEdgesLazy catches
+per-mesh → console.warn + `viewer.edge_build_failed` telemetry + continue
+(one bad part no longer kills every outline). (b→surfaced) buildFromInit
+catch now also emits `viewer.build_failed` telemetry (was console+diag only —
+invisible to trace.ndjson). (c) safe-silent comments: machineAssetCache prune
+catch, geometryCache openDB retry-reset. Design-default comment on the 6×60mm
+placeholder tool marker. REFUTED classifier flag: spindle_load "?? 0 mask" —
+the template gates BOTH load readouts on `spindle_load != null`, so the
+computed's 0 branch never renders; honest-absent already holds. Remaining
+sites (ok): geometry-transform `?? 0` (g5x/g92/rotation → 3D positioning, not
+DRO readouts — the HUD DRO uses fmtCoord honest-null), empty-collection
+inits, version cache-busters, bounded-index defensives, IDB catches already
+console-surfaced with honest cache-miss returns.
+
+**Batch 3 — ws data path** (lcncWs, wsWorker, wsTransport, telemetry,
+statusStore, bulkData, halshowStore, lcncApi, defaults, main): 57 sites.
+Fixes, all (b): wsWorker OPEN-socket send swallowed a throw — a mutating/
+motion command could vanish with zero trace while the sibling dropIfClosed
+branch surfaced (`dropped_command`); now posts `send_failed` → lcncWs gives
+it the same operator-message + telemetry treatment as dropped_command.
+wsWorker pre-open queue flush likewise swallowed send throws — now posts
+`queued_send_failed` once and breaks, keeping the rest queued for the next
+connection. lcncWs frame-decode failure was console-only — a corrupt frame
+is a protocol fault; now also `ws.decode_failed` on the trace bus. (c)
+safe-silent comments added: 2× tab_visibility advisory sends,
+postWorkerConfig relay. Everything else already compliant: hello/heartbeat
+send failures surface loudly, telemetry.ts self-failure paths are inherently
+silent (can't recurse), sessionStorage private-mode degradations documented,
+statusStore/bulkData catches console+UI-ref surfaced, halshow `?? []`/`?? {}`
+are honest empty renders, version `?? 0` are cache-busters not data.
+
+**Batch 4 — panels family** (App, ToolTablePanel, GcodePanel, ProbePanel,
+OffsetPanel, SettingsPanel, ToolsetterSettings, gcodeRfl, format): 53 sites.
+Fixes: (a) compensation-DISABLE confirmation dialog rendered
+`(st.eoffset_z ?? 0)` as "will move by 0.0000 mm" when eoffset_z hadn't been
+delivered — a synthetic "no move" claim at a machine-move confirmation; now
+branches to "will move by an UNKNOWN amount — Z offset not reported" (confirm
+stays available: blocking could trap the operator, honesty is the fix).
+(a, low) `program_elapsed_ms ?? 0` froze the elapsed readout at a synthetic
+00:00 when absent; programElapsed now propagates null → "--:--" in
+GcodePanel/SafetyStrip, omitted from the title bar. (b→parity) GcodePanel
+saveEdit failure now also emits `edit.save_failed` (banner-only before;
+editor-load path already had telemetry). Everything else already compliant:
+every panel catch surfaces to a visible banner (error/uploadError/saveError/
+g30Error), OffsetPanel renders absence via fmtOffset "—" (its docstring
+records the old 0.0000 mask as a fixed bug), ProbePanel/three.js sizing `||`
+are degenerate-geometry guards, task_mode ?? 0 is a non-enum sentinel,
+tool_number ?? 0 = T0 is genuine LinuxCNC "no tool".
 
 ## Flagged pre-existing oddities (flag-don't-fix; fixes get dedicated commits)
 

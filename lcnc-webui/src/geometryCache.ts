@@ -31,7 +31,8 @@ function openDB(): Promise<IDBDatabase> {
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
   });
-  // On open failure, clear the cached promise so a retry can re-open.
+  // safe-silent: retry-reset only — the rejection still propagates to awaiters,
+  // who log it; clearing the cached promise lets a later call re-open.
   p.catch(() => { _dbPromise = null; });
   _dbPromise = p;
   return p;
