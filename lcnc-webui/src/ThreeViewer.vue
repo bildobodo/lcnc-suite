@@ -275,13 +275,23 @@ const toolpath = createToolpathController({
   axisCss: AXIS_CSS,
   overflow: toolpathOverflow,
 });
+// Reused ctx object: applyState calls updateOverflow(toolpathCtx()) on every
+// status tick (≤30 Hz), and a fresh 6-field object per tick is avoidable gen-0
+// churn (GC pauses here are object-count driven). Safe to mutate in place —
+// controllers read ctx fields synchronously and never retain it (contract in
+// viewerContext.ts).
+const _toolpathCtx: ToolpathCtx = {
+  scene: null, workOrigin: null, workRotGroup: null,
+  pathAlwaysOnTop: false, machineBounds: undefined, units: undefined,
+};
 function toolpathCtx(): ToolpathCtx {
-  return {
-    scene, workOrigin, workRotGroup,
-    pathAlwaysOnTop,
-    machineBounds: viewerInit.value?.machine_bounds,
-    units: viewerInit.value?.units,
-  };
+  _toolpathCtx.scene = scene;
+  _toolpathCtx.workOrigin = workOrigin;
+  _toolpathCtx.workRotGroup = workRotGroup;
+  _toolpathCtx.pathAlwaysOnTop = pathAlwaysOnTop;
+  _toolpathCtx.machineBounds = viewerInit.value?.machine_bounds;
+  _toolpathCtx.units = viewerInit.value?.units;
+  return _toolpathCtx;
 }
 let _machineEdgeLines: THREE.LineSegments[] = [];
 let machineEdges = false;
@@ -715,7 +725,16 @@ function ensureCoreGroups(init: ViewerInit) {
   // (H3/H6 — a stale group would otherwise be double-disposed and a stale
   // toolMarker removed from the wrong parent).
   toolMarker = null;
+  // Also drop the tool change-detection anchors: with them kept, needsRebuild
+  // never fires for an unchanged tool, so after a mid-session rebuild the
+  // (freed) marker was never recreated — invisible tool + dead backplot gate
+  // until a real tool change. Nulling _currentToolNum builds the default
+  // marker below; the next applyState tick rebuilds the real one from
+  // status + the ToolMeta cache.
+  _currentToolNum = null;
+  _lastToolMeta = null;
   surface.forgetAfterSceneClear();
+  toolpath.forgetAfterSceneClear();
 
   // Clear old group references
   for (const key of Object.keys(groups)) delete groups[key];
@@ -772,8 +791,8 @@ function ensureCoreGroups(init: ViewerInit) {
   // replaces its prior line (clearScene already disposed the old one).
   backplot.build(_workGrp!, viewerDefaults.colors.backplot ?? "#ff00ff", !pathAlwaysOnTop);
 
-  // Default tool until viewer_state arrives — but skip if applyState already
-  // built the real tool during the async gap (loadMachineAssets yield).
+  // Default tool until the next viewer_state tick rebuilds the real one
+  // (_currentToolNum was reset above, so a loaded tool re-triggers needsRebuild).
   if (_currentToolNum == null) {
     replaceToolMarker(buildToolGroup(6 * _unitScale, 60 * _unitScale, null));
   }
@@ -936,6 +955,9 @@ async function buildFromInit(init: ViewerInit) {
         // _shared=true — clear it: this is a PRIVATE per-part clone that
         // disposeObject must free on teardown (else it leaks per rebuild).
         mat.userData._shared = false;
+        // Tag like setMachinePartColor's clones so its revert/reuse paths
+        // treat this clone identically (null → revert to default colour).
+        mat.userData._clonedFor = p.id;
         mat.color.set(customColor);
       }
 
@@ -1026,6 +1048,12 @@ async function buildFromInit(init: ViewerInit) {
     // fires on prop change — not on viewer rebuilds. Also covers the race
     // where surface_points arrived before scene/workOrigin existed.
     if (props.surfacePoints?.length) surface.build(viewerCtx(), props.surfacePoints, props.compGrid);
+
+    // Re-apply the current program for the same reason: ensureCoreGroups reset
+    // the toolpath controller (its lines lived under the previous workRotGroup)
+    // and the viewerGcode watcher only fires on ref change — bulkData version-
+    // dedupes, so a reconnect with an unchanged program never reassigns the ref.
+    if (viewerGcode.value) applyGcode(viewerGcode.value);
 
     // Pre-compile every material's shader now that all geometry is in the
     // scene. Without this, the FIRST interactive frame does the compilation
@@ -1428,11 +1456,14 @@ onMounted(() => {
 // Idempotent re-apply of viewer defaults — called on mount and from the
 // settingsVersion watcher when server settings arrive or another tab edits them.
 function applyViewerDefaults() {
-  // Layer visibility, tracking, path-on-top, machine edges
+  // Machine edges FIRST: setMachineEdges (not a bare flag write — that never
+  // built/hid the actual edge lines on a settings echo), and before the layer
+  // loop because setLayerVisible('machine') reads the machineEdges flag.
+  setMachineEdges(viewerDefaults.machineEdges);
+  // Layer visibility, tracking, path-on-top
   for (const layer of ALL_LAYERS) setLayerVisible(layer, viewerDefaults.layers[layer]);
   setTrackingMode(viewerDefaults.trackingMode);
   setPathAlwaysOnTop(viewerDefaults.pathOnTop);
-  machineEdges = viewerDefaults.machineEdges;
 
   // Projection: sync to the persisted value on EVERY apply (mount, settings
   // change, reset) — absolute set, not a blind toggle. Manual changes are
@@ -1450,16 +1481,17 @@ function applyViewerDefaults() {
   // line-creation time, so a colour change needed a program reload).
   applyPathColors(viewerDefaults.colors);
 
-  // Per-part color overrides — re-apply to any existing machine meshes.
-  // Meshes built after this point pick up the new values from viewerDefaults
-  // directly during buildFromInit (line 1007).
+  // Per-part color overrides — re-apply via setMachinePartColor, which clones
+  // on write (a direct mat.color.set here tinted the shared MAT.axis*/frame
+  // instances session-permanently — no restore path exists for those). Passing
+  // null reverts parts whose override was cleared in another tab. Meshes built
+  // later read viewerDefaults directly during buildFromInit (clone-safe there).
+  const _seenParts = new Set<string>();
   for (const mesh of machineMeshes) {
     const partId = mesh.userData.partId as string | undefined;
-    if (!partId) continue;
-    const customColor = viewerDefaults.machineColors[partId];
-    if (!customColor) continue;
-    const mat = mesh.material as THREE.MeshStandardMaterial;
-    if (mat?.color) mat.color.set(customColor);
+    if (!partId || _seenParts.has(partId)) continue;
+    _seenParts.add(partId);
+    setMachinePartColor(partId, viewerDefaults.machineColors[partId] ?? null);
   }
 }
 
@@ -1685,7 +1717,23 @@ function computeEdgesOffThread(geom: THREE.BufferGeometry, partId: string): Prom
 
 async function buildEdgesLazy() {
   if (_edgesBuilt) return;
+  // No meshes yet → nothing to build, and CRITICALLY do not mark _edgesBuilt:
+  // applyViewerDefaults calls setMachineEdges during buildFromInit's STL-await
+  // window (onMounted + settings echoes), when machineMeshes is still empty.
+  // An empty run completing synchronously here poisoned the flag, so the real
+  // build at the end of buildFromInit early-returned — no outlines until the
+  // next scene rebuild, and toggle/reset couldn't recover (empty line array).
+  if (machineMeshes.length === 0) return;
   const token = ++_edgeBuildToken;
+
+  // Sweep partial output of an aborted prior run (the token bump above kills
+  // it; its post-await token check means it adds nothing after this point).
+  // Without this, a second call mid-build duplicated already-built edge lines.
+  for (const e of _machineEdgeLines) {
+    e.parent?.remove(e);
+    disposeObject(e);
+  }
+  _machineEdgeLines = [];
 
   for (const mesh of machineMeshes) {
     if (token !== _edgeBuildToken) return;

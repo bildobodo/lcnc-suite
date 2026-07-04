@@ -126,6 +126,32 @@ Tracked when reached. WS-B is the only gateway-touching phase (full perf-matrix 
 | F1 | lcncWs.ts `_fetchBulk` sinks | `surface_points`/`comp_grid` merged into `status.value` are WIPED by the next full status frame (rAF flush replaces the whole object) | assert current behavior byte-for-byte in statusStore tests; decide fix separately |
 | F2 | gateway ws_endpoint | viewer_init double-send per connect (inline NOTE marks both sites) | WS-B fixes on backend (user decision) |
 | F3 | ws/telemetry.ts | 200-event queue cap is unreachable via the public API (the >=32 early flush is synchronous, so the queue never exceeds one batch) — defensive invariant only | documented in telemetry.test.ts; keep |
+| F4 | viewer/machineAssetCache.ts | No load-generation token: a superseded slow load's late completion can race duplicate STL fetches/IDB writes against a newer load, overwrite `failedParts` with the OLD load's failures, and last-writer-win the geometry cache per part id. Scene staleness IS guarded (caller buildToken); this is cache-level only. Review finding #7 (PLAUSIBLE). | deferred — needs a generation-token design, not a fix-commit patch. The `_loadedInitJson === json` guards added in fix/fe-review-findings stop the *dedup-slot clobber* half; fetch/failedParts races remain |
+| F5 | e2e/mock-gateway.mjs | `reset` op restores only quiet/refuseWs/work_pos while `status_delta` can Object.assign arbitrary fields; `hellos[]` never cleared. Latent (only work_pos is delta'd today). | flagged for next e2e-touching change |
+| F6 | e2e specs | `ctl`/`ctlSend`/`ctlQuery` helper triplicated across frames/lifecycle/viewer specs; poll-retry-broadcast pattern papers over an undiagnosed one-shot mock delivery race (idempotent frames only) | consolidate on next e2e-touching change |
+
+## Post-WS-A review fix batch (fix/fe-review-findings)
+
+Code review of 439847d..5ab5c92 → 10 findings; 9 fixed here, F4 deferred:
+machineEdges live-apply via setMachineEdges (ordered before layer loop);
+isOrtho defineExpose-unwrap blind toggle (App.vue); shared MAT.* tint →
+setMachinePartColor clone-on-write (+ buildFromInit clone tagged _clonedFor,
+cleared overrides now revert); toolpath.forgetAfterSceneClear() in
+ensureCoreGroups + gcode re-apply at end of buildFromInit; tool anchors
+(_currentToolNum/_lastToolMeta) reset on rebuild so the marker recreates;
+assetCache partial-failure retry (+ guarded catch); toolpathController
+teardown unified on disposeObject (stale comment gone, dispose() now frees
+bounds EdgesGeometry); backplot dispose frees its material; toolpathCtx
+reuses one object (per-tick alloc).
+
+Follow-up 2ff5484: the batch's setMachineEdges-in-applyViewerDefaults ran
+during buildFromInit's STL-await window (machineMeshes empty) → the empty
+buildEdgesLazy run marked _edgesBuilt=true → outlines never built and
+toggle/reset were dead (user-caught in smoke). Fixed: empty-mesh bail
+(no mark) + sweep of aborted-run partial lines. NOT e2e-coverable (mock
+ships parts:[]) — guarded by user smoke only. Smoke sign-off: outlines from
+boot + toggle + reset ✓, projection reset stays parallel ✓, part colour
+set/reset live ✓, reconnect with loaded program re-renders preview ✓.
 
 ## Adversarial proofs log
 

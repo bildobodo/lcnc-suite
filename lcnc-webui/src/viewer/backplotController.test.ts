@@ -107,8 +107,10 @@ describe("backplotController", () => {
 
     const geom = line.geometry as THREE.BufferGeometry;
     const disposeSpy = vi.spyOn(geom, "dispose");
+    const matSpy = vi.spyOn(mat, "dispose");
     c.dispose();
     expect(disposeSpy).toHaveBeenCalledOnce();
+    expect(matSpy).toHaveBeenCalledOnce();     // build()-created material freed too
     expect(parent.children).toHaveLength(0);   // removed from the graph
   });
 });

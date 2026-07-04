@@ -164,9 +164,34 @@ describe("overflow / visibility / colours", () => {
     c.apply(ctx, GCODE);
     const feed = feedLineOf(ctx.workRotGroup);
     const geomSpy = vi.spyOn(feed.geometry as THREE.BufferGeometry, "dispose");
+    // Bounds box is the only LineSegments here (overflow edges need clip planes);
+    // its EdgesGeometry was previously missed by dispose().
+    const boundsBox = ctx.workRotGroup.children.find(o => (o as any).isLineSegments) as THREE.LineSegments;
+    const boundsGeomSpy = vi.spyOn(boundsBox.geometry as THREE.BufferGeometry, "dispose");
     c.dispose();
     expect(geomSpy).toHaveBeenCalled();
+    expect(boundsGeomSpy).toHaveBeenCalled();
     expect(deps.billboardLabels).toHaveLength(0);
     expect(c.feedSegs).toBe(0);
+  });
+
+  it("forgetAfterSceneClear drops refs without disposing (scene-cleared contract, H6 parallel)", () => {
+    const ctx = makeCtx();
+    c.apply(ctx, GCODE);
+    const feed = feedLineOf(ctx.workRotGroup);
+    const geomSpy = vi.spyOn(feed.geometry as THREE.BufferGeometry, "dispose");
+
+    overflow.value = true;               // pretend the old program overflowed
+    c.forgetAfterSceneClear();
+    expect(geomSpy).not.toHaveBeenCalled();  // clearScene owns the freeing
+    expect(c.feedSegs).toBe(0);              // telemetry stops reporting the dead program
+    expect(overflow.value).toBe(false);      // stale HUD warning cleared
+
+    // Next apply builds fresh under a NEW group and doesn't touch the forgotten line.
+    const ctx2 = makeCtx();
+    c.apply(ctx2, GCODE);
+    expect(geomSpy).not.toHaveBeenCalled();
+    expect(feedLineOf(ctx2.workRotGroup)).toBeTruthy();
+    expect(c.feedSegs).toBe(3);
   });
 });
