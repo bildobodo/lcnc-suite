@@ -244,7 +244,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
           </div>
         </div>
 
-        <div v-if="zAxis" class="axisCol">
+        <div v-if="zAxis" class="axisCol zCol" :class="{ zTall: abcAxes.length > 0 && uvwAxes.length > 0, zOnly: abcAxes.length === 0 && uvwAxes.length === 0 }">
           <MachineBtn
             type="jog"
             class="jogBtn"
@@ -465,13 +465,20 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
   .jogBtns  { flex-wrap: wrap; align-self: auto; gap: var(--gap-controls); }
   .xyWrap   { flex: 0 0 100%; width: 100% !important; aspect-ratio: 1; height: auto; }
 
-  /* Z/extra axis cols: uniform 4-per-row grid spanning the pad's full
-     width (no ragged leftover). Clusters dissolve so every axisCol places
-     into the shared grid. */
-  .jogBtns  { display: grid; grid-template-columns: repeat(4, 1fr); }
+  /* Axis area below the pad: Z is the workhorse — it takes the LEFT 2 of
+     5 grid columns at full height of the extra-axis band(s); ABC / UVW
+     pairs fill the right 3 columns (one band row per cluster; clusters
+     dissolve via display:contents). Full width used, no ragged leftover. */
+  .jogBtns  { display: grid; grid-template-columns: repeat(5, 1fr); }
   .xyWrap   { grid-column: 1 / -1; }
   .axisCluster { display: contents; }
   .axisCol  { height: auto; grid-template-rows: 48px 48px; min-width: 0; }
+  .zCol     { grid-column: 1 / span 2; }
+  /* Both ABC and UVW present → Z spans both band rows (Z+ / Z- each get
+     a full band) */
+  .zCol.zTall { grid-row: 2 / span 2; grid-template-rows: 1fr 1fr; }
+  /* No extra axes at all → Z pair spans the full width */
+  .zCol.zOnly { grid-column: 1 / -1; }
 
   /* Speed sliders: dissolve into speedGroup's shared grid */
   .speedCol { display: contents; }

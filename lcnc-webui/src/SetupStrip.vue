@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, inject, ref, type Ref } from "vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineInput from "./MachineInput.vue";
 import MachineRadio from "./MachineRadio.vue";
@@ -40,10 +40,16 @@ const { entries } = useAxes(computed(() => props.axes));
 // ride the last column when ≤3 axis rows remain there, else get their own.
 // 3-axis: XYZ+actions in one column (pixel-identical to the classic
 // layout); 9-axis: XYZABC | UVW+actions.
+// Portrait stacks the grids vertically, where a column split just reads as
+// an odd gap mid-list — so portrait renders ONE grid with all axes and the
+// actions at its tail (vertical space is plentiful there; width is the
+// constraint, and one grid keeps a single uniform rhythm).
+const isPortrait = inject<Ref<boolean>>("isPortrait", ref(false));
 interface SetupChunk { axes: typeof entries.value; actions: boolean }
 const axisChunks = computed<SetupChunk[]>(() => {
-  const out: SetupChunk[] = [];
   const e = entries.value;
+  if (isPortrait.value) return [{ axes: e, actions: true }];
+  const out: SetupChunk[] = [];
   for (let i = 0; i < e.length; i += 6) out.push({ axes: e.slice(i, i + 6), actions: false });
   const last = out[out.length - 1];
   if (last && last.axes.length <= 3) last.actions = true;
@@ -99,6 +105,9 @@ function zeroAll() {
   gap: var(--gap-tight);
   align-content: start;
 }
+/* Uniform rows: the touchoff input is catalog size 'sm' (machineControls),
+   so the md buttons define the 32px track and the input stretches to it —
+   axis rows and the action rows in the neighbouring column now match. */
 .setupInput { width: 100%; }
 .spanAll { grid-column: 1 / -1; }
 .wcsCol { justify-content: flex-start; }
