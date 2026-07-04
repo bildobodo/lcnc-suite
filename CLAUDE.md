@@ -57,7 +57,8 @@ Gateway connects to LinuxCNC via Python bindings (`linuxcnc.stat`, `linuxcnc.com
 - `toolsetterVars.ts` — Toolsetter variable mapping utilities
 - `dragScroll.ts` — Drag-to-scroll handler for touch/mouse on `.scroll-thin` containers
 - `edgeWorker.ts` — Web Worker for Three.js edge geometry computation
-- `useGamepad.ts` — Gamepad polling composable (analog sticks + buttons)
+- `useAxes.ts` — Single source for the machine's axis set (from `viewer_init.axes`): entries {letter,index,kind}, primary/abc/uvw groups, by-letter index resolvers. Never hardcode axis positions or letter sets in components.
+- `useGamepad.ts` — Gamepad polling composable (analog sticks + buttons; X/Y/Z resolved by letter)
 - `useJogPointers.ts` — Jogging pointer event management composable
 
 ### Main Tabs
