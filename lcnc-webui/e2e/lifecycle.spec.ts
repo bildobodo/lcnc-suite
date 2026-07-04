@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import WebSocket from "ws";
+import { ctl as ctlQuery, MOCK } from "./ctl";
 
 // Connection-lifecycle guards (A1.6) — born from the A1 manual smoke:
 //
@@ -23,17 +23,6 @@ import WebSocket from "ws";
 // This file runs in the SERIAL `lifecycle` playwright project (dependencies)
 // because refuseWs/shutdownClose are mock-global and would break parallel
 // specs mid-flight.
-const MOCK = "http://localhost:4174/";
-const CTL = "ws://localhost:4174/ctl";
-
-function ctlQuery(op: Record<string, unknown>): Promise<any> {
-  return new Promise((resolve, reject) => {
-    const c = new WebSocket(CTL);
-    c.once("open", () => c.send(JSON.stringify(op)));
-    c.once("message", (d) => { c.close(); resolve(JSON.parse(String(d))); });
-    c.once("error", reject);
-  });
-}
 
 const armedGate = (page: import("@playwright/test").Page) =>
   page.locator('fieldset[data-gate="armed"]').first();

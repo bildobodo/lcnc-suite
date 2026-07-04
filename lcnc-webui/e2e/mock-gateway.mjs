@@ -182,11 +182,23 @@ ctlWss.on("connection", (ws) => {
       quiet = m.on === true;
     } else if (m.op === "reset") {
       // Restore pristine state between tests. The mock is ONE process shared by
-      // every spec (and frames.spec mutates state.data.work_pos via status_delta),
-      // so serial specs call this in beforeEach to avoid order-dependent bleed.
+      // every spec (and frames.spec mutates state.data.work_pos via status_delta,
+      // nine-axis.spec swaps the axis set), so serial specs call this in
+      // beforeEach to avoid order-dependent bleed.
       quiet = false;
       refuseWs = false;
       state.data.work_pos = [12.345, 1.0, -5.5];
+      _initRev++;
+      broadcast({ ...VIEWER_INIT, data: { ...VIEWER_INIT.data, _rev: _initRev } });
+      broadcast(state);
+    } else if (m.op === "setAxes") {
+      // WS-D 9-axis fixture: re-ship viewer_init with the given axis letters
+      // and size work_pos to match, so every axis-driven surface (SetupStrip
+      // grid, viewer HUD DRO) renders one row per axis.
+      const axes = Array.isArray(m.axes) && m.axes.length ? m.axes : ["X", "Y", "Z"];
+      _initRev++;
+      state.data.work_pos = axes.map((_, i) => (i + 1) * 1.111);
+      broadcast({ ...VIEWER_INIT, data: { ...VIEWER_INIT.data, axes, _rev: _initRev } });
       broadcast(state);
     } else if (m.op === "rebuildInit") {
       // Force a real in-session scene rebuild: _rev busts ThreeViewer's

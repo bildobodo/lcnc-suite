@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import WebSocket from "ws";
+import { ctl as ctlSend, MOCK } from "./ctl";
 
 // Frame-type liveness guards (frontend split program, A0.3).
 //
@@ -17,17 +17,6 @@ import WebSocket from "ws";
 //
 // The mock gateway exposes ws://…/ctl so the spec scripts frames mid-test:
 // assert the BEFORE state, broadcast, assert the AFTER state — no races.
-const MOCK = "http://localhost:4174/";
-const CTL = "ws://localhost:4174/ctl";
-
-function ctlSend(op: Record<string, unknown>): Promise<void> {
-  return new Promise<void>((resolve, reject) => {
-    const c = new WebSocket(CTL);
-    c.once("open", () => c.send(JSON.stringify(op)));
-    c.once("message", () => { c.close(); resolve(); });
-    c.once("error", reject);
-  });
-}
 
 test("status_delta merges onto prior status and updates the rendered DRO", async ({ page }) => {
   await page.goto(MOCK);
