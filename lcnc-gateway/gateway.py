@@ -4597,7 +4597,12 @@ async def ws_endpoint(ws: WebSocket):
             connected=lcnc_connected,
         )
 
-        # Viewer: send static model/init once per connection
+        # Viewer init URL base. The viewer_init frame itself is sent ONCE per
+        # connection, from status_loop's first successful poll (WS-B): the
+        # post-poll send is the one guaranteed to carry live axis data, and
+        # viewer_init_sent defaults False on ClientState. (Previously an
+        # additional connect-time send fired here and the flag was then
+        # unconditionally reset, so every connect double-sent viewer_init.)
         host = ws.headers.get("host", "127.0.0.1:8000")  # includes port
         # Use the gateway's own port (8000) for STL assets rather than the
         # client-facing port.  In dev the client connects via Vite:5173 whose
@@ -4606,24 +4611,6 @@ async def ws_endpoint(ws: WebSocket):
         # cross-origin fetch from :5173 → :8000 works fine.
         host_only = host.split(":")[0]
         stl_base_url = f"http://{host_only}:8000/assets/"
-
-        print(f"[VINIT] client#{client_id} connect-time viewer_init: lcnc_connected={lcnc_connected}, STAT={'OK' if STAT else 'None'}", flush=True)
-        _t = time.monotonic()
-        try:
-            _set_phase(f"build_viewer_init client#{client_id}")
-            await ws_send_json(ws, {"type": "viewer_init", "data": build_viewer_init(stl_base_url)})
-            client.viewer_init_sent = True  # NOTE: dead in practice — unconditionally reset to False below (pre-existing; post-poll re-send always fires)
-            _trace.emit(
-                "ws.connect.viewer_init",
-                client_id=client_id,
-                viewer_init_ms=round((time.monotonic() - _t) * 1000, 1),
-                since_accept_ms=round((time.monotonic() - _conn_t0) * 1000, 1),
-            )
-        except Exception as e:
-            _trace.emit(
-                "ws.connect.viewer_init", level="error",
-                client_id=client_id, exc=type(e).__name__, msg=str(e),
-            )
 
         # Send initial settings snapshot (part of WS handshake)
         _t = time.monotonic()
@@ -4689,8 +4676,6 @@ async def ws_endpoint(ws: WebSocket):
             client_id=client_id,
             total_ms=round((time.monotonic() - _conn_t0) * 1000, 1),
         )
-
-        client.viewer_init_sent = False  # force the post-poll viewer_init (see NOTE above)
 
         async def status_loop():
             _set_phase(f"status_loop.entry client#{client_id}")
@@ -4778,22 +4763,26 @@ async def ws_endpoint(ws: WebSocket):
                         await asyncio.sleep(0.5)
                         continue
 
-                    # Send viewer_init on first successful poll for this client
+                    # The ONE viewer_init per connection (WS-B): sent on the first
+                    # successful poll, so it always carries live axis data. Also
+                    # re-fires after a LinuxCNC reconnect (the not-connected branch
+                    # above resets viewer_init_sent).
                     if not client.viewer_init_sent:
                         print(f"[VINIT] client#{client_id} sending viewer_init (post-poll), STAT={'OK' if STAT else 'None'}", flush=True)
                         _t = time.monotonic()
                         try:
+                            _set_phase(f"build_viewer_init client#{client_id}")
                             await ws_send_json(ws, {"type": "viewer_init", "data": build_viewer_init(stl_base_url)})
                             client.viewer_init_sent = True
                             _trace.emit(
-                                "ws.conn.viewer_init_late",
+                                "ws.conn.viewer_init",
                                 client_id=client_id,
                                 dt_ms=round((time.monotonic() - _t) * 1000, 1),
                                 since_accept_ms=round((time.monotonic() - _conn_t0) * 1000, 1),
                             )
                         except Exception as e:
                             _trace.emit(
-                                "ws.conn.viewer_init_late", level="error",
+                                "ws.conn.viewer_init", level="error",
                                 client_id=client_id, exc=type(e).__name__, msg=str(e),
                             )
 
@@ -5477,6 +5466,34 @@ async def ws_endpoint(ws: WebSocket):
     except (WebSocketDisconnect, RuntimeError) as _disc_e:
         _set_phase(f"ws_endpoint.WebSocketDisconnect_caught client#{client_id}")
         _disc_reason = type(_disc_e).__name__
+    except asyncio.CancelledError:
+        # Server going down (WS-B). uvicorn cancels live WS handler tasks
+        # BEFORE lifespan shutdown runs, so by the time the lifespan
+        # server_shutdown broadcast executes, every handler's finally has
+        # already popped its client and the broadcast sees zero clients —
+        # the browser historically got a bare 1006 with no frame. This is
+        # the only window where a goodbye can still reach the client:
+        # best-effort server_shutdown frame + going-away close (1001 — the
+        # frontend maps both the frame and the 1001/1012 close codes to the
+        # shutdown banner). Each await is hard-bounded so a stuck peer can't
+        # stretch the graceful-shutdown window, and the CancelledError is
+        # re-raised — the task must still report cancelled to uvicorn.
+        _set_phase(f"ws_endpoint.cancelled client#{client_id}")
+        _disc_reason = "CancelledError"
+        try:
+            await asyncio.wait_for(
+                ws_send_json(ws, {"type": "server_shutdown"}), timeout=0.25)
+            await asyncio.wait_for(ws.close(code=1001), timeout=0.25)
+            _trace.emit("ws.shutdown_goodbye_sent", client_id=client_id)
+        except (Exception, asyncio.CancelledError) as _bye_e:
+            # Socket may already be torn down, or a second cancel arrived
+            # mid-send — the goodbye is best-effort, but trace the miss so
+            # a silent-1006 regression stays auditable.
+            _trace.emit(
+                "ws.shutdown_goodbye_failed", level="warn",
+                client_id=client_id, exc=type(_bye_e).__name__,
+            )
+        raise
     finally:
         _finally_t0 = time.monotonic()
         _set_phase(f"ws_endpoint.finally.entry client#{client_id}")

@@ -66,7 +66,7 @@ the snapshot, never accidents.
 | Finding | Evidence | Fix |
 |---|---|---|
 | Reload-disarm: a reloaded page never REQUESTS armed-resume (gateway checks its hold only when hello carries resume_armed=true; holds were registered, requests never sent) | trace: `session.resume_hold_registered` with no `session.resume_*` after reload | frontend: wsTransport persists server-confirmed armed in sessionStorage (change-only writes), boots the resume request from it; gateway hold/trip gates stay authoritative. e2e lifecycle.spec asserts the hello contract |
-| No shutdown banner: uvicorn cancels WS tasks BEFORE lifespan shutdown → `_clients` empty → broadcast silently skipped (`if snapshot:`) → browser saw bare close 1006 | gateway.log: no `broadcast server_shutdown` line; trace: `browser.ws.close code:1006` | frontend belt-and-braces NOW: close codes 1001/1012 → shutdown banner. Gateway-side fix (shielded server_shutdown send + close(1001) on task-cancel) → **WS-B** (perf-matrix gated) |
+| No shutdown banner: uvicorn cancels WS tasks BEFORE lifespan shutdown → `_clients` empty → broadcast silently skipped (`if snapshot:`) → browser saw bare close 1006 | gateway.log: no `broadcast server_shutdown` line; trace: `browser.ws.close code:1006` | frontend belt-and-braces NOW: close codes 1001/1012 → shutdown banner. Gateway-side fix (server_shutdown send + close(1001) on task-cancel) → **DONE in WS-B** |
 
 ### A2 — Viewer disposal hazards (fixed BEFORE the A3 split)
 
@@ -115,16 +115,57 @@ Stays in ThreeViewer BY DESIGN: MAT shared materials; kinematics groups +
 ensureCoreGroups + buildFromInit/applyState orchestration; scene/camera/controls
 lifecycle; layer-visibility orchestration; view/tween/gizmo.
 
-### WS-B / WS-C / WS-D / WS-E / WS-F
+### WS-B — gateway ws_endpoint lifecycle (branch `fix/be-ws-b-viewer-init`)
 
-Tracked when reached. WS-B is the only gateway-touching phase (full perf-matrix gate).
+The only gateway-touching phase (full perf-matrix gate). Two fixes, one commit:
+
+1. **viewer_init single-send (F2).** Connect-time send + dead `viewer_init_sent
+   = True` + unconditional `= False` reset removed; the post-poll send in
+   status_loop is THE one send per connect (fires on first successful poll →
+   always carries live axis data; `viewer_init_sent` defaults False on
+   ClientState). The not-connected reset stays → re-send after LinuxCNC
+   reconnect. Both sends called the same `build_viewer_init(stl_base_url)`, so
+   the surviving payload is identical to the removed one. Trace tag renamed
+   `ws.conn.viewer_init_late` → `ws.conn.viewer_init` (no tooling consumed it).
+2. **server_shutdown at task-cancel (A1.6 smoke finding #2).** ws_endpoint
+   gains an `except asyncio.CancelledError` handler: best-effort
+   `server_shutdown` frame + `close(1001)`, each `wait_for`-bounded to 0.25 s,
+   `ws.shutdown_goodbye_sent/_failed` traced, CancelledError re-raised. This is
+   the only window a goodbye can reach clients — uvicorn cancels WS handler
+   tasks BEFORE lifespan runs, so the lifespan broadcast always saw zero
+   clients (browser got bare 1006).
+
+Tests: new `test_ws_lifecycle.py` (viewer_init exactly-once over a pumped
+session; cancel → server_shutdown recorded at the ws_send_json seam — client-
+side receipt is untestable under TestClient because the cancel tears down the
+session's own portal task; wire delivery is covered by lifecycle.spec.ts frame
++ 1001 paths). `fake_linuxcnc._Stat` gained `axis_mask = 7` — without it
+build_viewer_init raised every tick and NO viewer_init was ever deliverable in
+the test harness (pre-existing; hid the double-send from tests).
+
+Gate: 236 backend ✓, 11 e2e ✓, suite restart + full perf_matrix ✓
+(`20260704T080619Z-081e2f6` vs baseline `20260612T190402Z-0d36338`: all
+steady scenarios 0 lag windows, fusion_near_limit improved 2→0, RSS well
+under baseline). First run's sigstop_trip had `latch_before=TRUE` (boot-
+faulted latch after restart — first-sight fault, audited not bannered) →
+sticky evidence inconclusive; single-scenario rerun with pristine latch
+(`20260704T080726Z-081e2f6`) reproduced the full baseline trip signature:
+FALSE → trip → sticky TRUE → reset FALSE, safety.tripped +
+trip_snapshot_done on trace. Live-trace check: every ws.connect.accept has
+exactly ONE ws.conn.viewer_init (incl. the reconnect-storm clients — the
+path where the double-send used to fire). User smoke pending: UI shutdown
+→ banner (not bare disconnect).
+
+### WS-C / WS-D / WS-E / WS-F
+
+Tracked when reached.
 
 ## Flagged pre-existing oddities (flag-don't-fix; fixes get dedicated commits)
 
 | # | Where | Oddity | Disposition |
 |---|---|---|---|
 | F1 | lcncWs.ts `_fetchBulk` sinks | `surface_points`/`comp_grid` merged into `status.value` are WIPED by the next full status frame (rAF flush replaces the whole object) | assert current behavior byte-for-byte in statusStore tests; decide fix separately |
-| F2 | gateway ws_endpoint | viewer_init double-send per connect (inline NOTE marks both sites) | WS-B fixes on backend (user decision) |
+| F2 | gateway ws_endpoint | viewer_init double-send per connect (inline NOTE marks both sites) | **FIXED in WS-B** — post-poll send is the single send; guarded by test_ws_lifecycle.py |
 | F3 | ws/telemetry.ts | 200-event queue cap is unreachable via the public API (the >=32 early flush is synchronous, so the queue never exceeds one batch) — defensive invariant only | documented in telemetry.test.ts; keep |
 | F4 | viewer/machineAssetCache.ts | No load-generation token: a superseded slow load's late completion can race duplicate STL fetches/IDB writes against a newer load, overwrite `failedParts` with the OLD load's failures, and last-writer-win the geometry cache per part id. Scene staleness IS guarded (caller buildToken); this is cache-level only. Review finding #7 (PLAUSIBLE). | deferred — needs a generation-token design, not a fix-commit patch. The `_loadedInitJson === json` guards added in fix/fe-review-findings stop the *dedup-slot clobber* half; fetch/failedParts races remain |
 | F5 | e2e/mock-gateway.mjs | `reset` op restores only quiet/refuseWs/work_pos while `status_delta` can Object.assign arbitrary fields; `hellos[]` never cleared. Latent (only work_pos is delta'd today). | flagged for next e2e-touching change |
@@ -165,3 +206,5 @@ set/reset live ✓, reconnect with loaded program re-renders preview ✓.
 | disposal.test.ts (A2) | reverted disposeObject to old (skip _shared geom, never dispose materials) | 4/5 RED (private material + array + recursion + instanced) | restore |
 | viewer.spec.ts geom probe (A2) | re-tagged toolpath geom `userData._shared` (reproduces H2) | load→rebuild delta collapsed 3→1 (<2) → RED; GREEN restored, stable ×3 full-suite runs | sed delete + rebuild |
 | frames.spec status_delta guard | killed `status_delta` dispatch case | FIRST attempt stayed GREEN — mock folded the delta into state, and the next 1 Hz full-status echo delivered the same value (a masking path in the GUARD itself). Added `/ctl` `quiet` op; spec silences status echoes around the delta assert. Re-broke: delta spec red, others green. | git checkout + rebuild |
+| test_ws_lifecycle viewer_init exactly-once (WS-B) | re-added a connect-time `ws_send_json(viewer_init)` before status_loop (the old double-send) | assertEqual 2 != 1 red | cp-restore from scratchpad backup |
+| test_ws_lifecycle cancel-goodbye (WS-B) | replaced the CancelledError handler's frame+close sends with `pass` | assertIn "server_shutdown" red | cp-restore from scratchpad backup |
