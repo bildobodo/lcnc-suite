@@ -18,20 +18,36 @@ export default defineConfig({
   },
   projects: [
     { name: "chromium", use: { browserName: "chromium" }, testIgnore: /(lifecycle|viewer|nine-axis)\.spec\.ts/ },
+    // Mock-global-state specs run strictly ONE FILE AT A TIME via project
+    // dependency CHAINING. fullyParallel:false alone is NOT enough — it only
+    // serializes tests within a file; separate files still land on parallel
+    // workers, and nine-axis's setAxes/reset broadcasts then swap the axis
+    // set mid-assertion in lifecycle/viewer (observed: HUD A-row vanishing
+    // under the °-suffix check, leak-probe geometry counts perturbed).
+    //  • lifecycle.spec.ts — reconnect/shutdown banner windows (refuseWs/
+    //    shutdownClose are mock-global).
+    //  • nine-axis.spec.ts — setAxes swaps the mock-global axis set.
+    //  • viewer.spec.ts — renderer.info leak probe needs a settled renderer;
+    //    runs LAST, after all axis churn.
     {
-      // Serial project, runs strictly AFTER the parallel one. Specs here drive
-      // mock-GLOBAL state (refuseWs/shutdownClose/rebuildInit/loadGcode) and/or
-      // need a contention-free, settled renderer to read stable counts —
-      // neither survives parallel execution:
-      //  • lifecycle.spec.ts — reconnect/shutdown banner; a sibling's
-      //    shutdownClose would mask a broken reload-boot path (proven so).
-      //  • viewer.spec.ts — renderer.info leak probe; parallel rebuilds would
-      //    perturb the geometry counts it asserts on.
-      //  • nine-axis.spec.ts — setAxes swaps the mock-global axis set.
-      name: "serial",
+      name: "serial-lifecycle",
       use: { browserName: "chromium" },
       dependencies: ["chromium"],
-      testMatch: /(lifecycle|viewer|nine-axis)\.spec\.ts/,
+      testMatch: /lifecycle\.spec\.ts/,
+      fullyParallel: false,
+    },
+    {
+      name: "serial-nine-axis",
+      use: { browserName: "chromium" },
+      dependencies: ["serial-lifecycle"],
+      testMatch: /nine-axis\.spec\.ts/,
+      fullyParallel: false,
+    },
+    {
+      name: "serial-viewer",
+      use: { browserName: "chromium" },
+      dependencies: ["serial-nine-axis"],
+      testMatch: /viewer\.spec\.ts/,
       fullyParallel: false,
     },
   ],
