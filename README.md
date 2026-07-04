@@ -385,6 +385,9 @@ Add these to your machine's INI file:
 [DISPLAY]
 DISPLAY = lcnc-suite
 WEBUI_HOST = 0.0.0.0
+# REQUIRED with a non-loopback WEBUI_HOST — generate with:
+#   python3 -c "import secrets; print(secrets.token_urlsafe(32))"
+WEBUI_TOKEN = <your-generated-token>
 WEBUI_PORT = 8000
 WEBUI_BROWSER = 1
 WEBUI_DEV = 0
@@ -407,6 +410,8 @@ WEBUI_WS_INIT_CONCURRENCY = 20
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `WEBUI_HOST` | `0.0.0.0` | `127.0.0.1` = localhost only, `0.0.0.0` = LAN accessible |
+| `WEBUI_TOKEN` | *(none)* | Pre-shared auth token. **Required whenever `WEBUI_HOST` is non-loopback** — the launcher refuses to start an unauthenticated machine-control surface on the network. Auto-injected into served pages, so browsers keep working without manual entry. Unset = auth disabled (loopback/dev only) |
+| `WEBUI_ALLOWED_ORIGINS` | *(same-host)* | Comma/space-separated WS/CORS Origin allow-list. Unset = same-host origins only (works for any LAN IP) |
 | `WEBUI_PORT` | `8000` | HTTP and WebSocket port |
 | `WEBUI_BROWSER` | `1` | Auto-open browser on start (`0` to disable) |
 | `WEBUI_DEV` | `0` | `1` = Vite dev server on :5173 with hot-reload |
@@ -427,7 +432,7 @@ WEBUI_WS_INIT_CONCURRENCY = 20
 | `WEBUI_WIRE_FORMAT` | `msgpack` | WS encoding. `msgpack` (default) sends binary frames via `msgspec` — smaller payloads, C-accelerated encode, and when `WEBUI_STATUS_DELTA=0` unlocks a one-encode-per-tick fan-out path (each client splices the shared bytes via `msgspec.Raw`). `json` produces text frames readable directly in browser DevTools. | Set to `json` only when actively debugging status frames in DevTools. |
 | `WEBUI_WS_INIT_CONCURRENCY` | `20` | Caps the number of WebSocket clients allowed to run their initialization handshake (`ws.accept` + viewer_init send + settings load) in parallel. The lever for cold-start CPU smoothing in multi-tab setups: each handshake is ~30 ms of work, so without a cap N=12 simultaneous tabs can spike the asyncio loop into kernel-TCP saturation and starve the heartbeat task → HAL safety chain trips on a healthy gateway. | Lower (typical: `2`–`4`) when expecting 5+ tabs to cold-start in lockstep — multi-monitor deployments, shop-floor kiosks, automated test scenarios. Trade-off: ~30 ms per queued tab; at concurrency=2 the 12th tab is fully ready ~300 ms after the 1st. |
 
-Environment variables `LCNC_WEBUI_HOST`, `LCNC_WEBUI_PORT`, `LCNC_WEBUI_BROWSER`, `LCNC_WEBUI_DEV` override INI values. `WEBUI_*` flags can also be set as environment variables (same name) and take precedence over the INI. Log directory: `LCNC_LOG_DIR` (env) overrides `LOG_DIR` (INI), both default to `<install-dir>/runlogs`. Camera variables: `LCNC_CAMERA_SOURCE`, `LCNC_CAMERA_RESOLUTION`, `LCNC_CAMERA_FPS`.
+Environment variables `LCNC_WEBUI_HOST`, `LCNC_WEBUI_PORT`, `LCNC_WEBUI_BROWSER`, `LCNC_WEBUI_DEV`, `LCNC_WEBUI_TOKEN`, `LCNC_WEBUI_ALLOWED_ORIGINS` override INI values. `WEBUI_*` flags can also be set as environment variables (same name) and take precedence over the INI. Log directory: `LCNC_LOG_DIR` (env) overrides `LOG_DIR` (INI), both default to `<install-dir>/runlogs`. Camera variables: `LCNC_CAMERA_SOURCE`, `LCNC_CAMERA_RESOLUTION`, `LCNC_CAMERA_FPS`.
 
 #### 2. HAL safety chain
 

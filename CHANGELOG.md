@@ -10,6 +10,22 @@ deploying an update to a configured machine.
 
 ## [Unreleased]
 
+### Security
+
+- **BREAKING — `WEBUI_TOKEN` required for LAN-bound installs** ([#17]). Any
+  install with `WEBUI_HOST` set to a non-loopback address (e.g. `0.0.0.0`)
+  must now set `WEBUI_TOKEN` in the INI `[DISPLAY]` section or via the
+  `LCNC_WEBUI_TOKEN` env var. The launcher refuses to start without it
+  ("Refusing to start an unauthenticated machine-control surface").
+  - **Action:** generate a token
+    (`python3 -c "import secrets; print(secrets.token_urlsafe(32))"`) and add
+    `WEBUI_TOKEN = <token>` to the `[DISPLAY]` section of your machine INI.
+  - Loopback-only installs (`WEBUI_HOST=127.0.0.1`) are unaffected.
+  - The token is auto-injected into pages the gateway serves, so browsers
+    pointed at the gateway keep working without manual entry; it gates the
+    WebSocket and REST mutation routes against cross-origin/unauthenticated
+    access on the LAN.
+
 ### Changed
 
 - **BREAKING — log directory consolidation** ([#16]). All suite processes
@@ -44,3 +60,4 @@ deploying an update to a configured machine.
 
 [Unreleased]: https://github.com/bildobodo/lcnc-suite/compare/main...development
 [#16]: https://github.com/bildobodo/lcnc-suite/issues/16
+[#17]: https://github.com/bildobodo/lcnc-suite/issues/17
