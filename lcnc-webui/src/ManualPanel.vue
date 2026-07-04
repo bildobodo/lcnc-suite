@@ -163,7 +163,7 @@ function onMdiKeydown(e: KeyboardEvent) {
     </div>
 
     <!-- ═══ DRO VIEW ═══ -->
-    <div v-if="manualView === 'dro'" class="subView scroll-thin">
+    <div v-if="manualView === 'dro'" class="subView stack-sections scroll-thin">
       <DroPanel
         :axes="axes"
         :workPos="workPos"
@@ -191,7 +191,7 @@ function onMdiKeydown(e: KeyboardEvent) {
     </div>
 
     <!-- ═══ JOGGING VIEW ═══ -->
-    <div v-if="manualView === 'jogging'" class="subView scroll-thin">
+    <div v-if="manualView === 'jogging'" class="subView stack-sections scroll-thin">
       <JogPanel
         :axes="axes"
         :jogVel="jogVel"
@@ -214,7 +214,7 @@ function onMdiKeydown(e: KeyboardEvent) {
     </div>
 
     <!-- ═══ MDI VIEW ═══ -->
-    <div v-if="manualView === 'mdi'" class="mdiSection">
+    <div v-if="manualView === 'mdi'" class="mdiSection stack-controls">
       <div class="row-controls">
         <MachineInput
           gate="mdiText"
@@ -255,17 +255,11 @@ function onMdiKeydown(e: KeyboardEvent) {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-section);
 }
 
 .mdiSection {
-  display: flex;
-  flex-direction: column;
   flex: 1;
   min-height: 0;
-  gap: var(--gap-controls);
 }
 
 /* .mdiRow — replaced by row-controls utility (same shape) */

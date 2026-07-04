@@ -9,7 +9,7 @@ const buttons = inject<Ref<boolean[]>>("gamepadButtons", ref([]));
 
 <template>
   <div class="gpLive">
-    <div class="gpStick">
+    <div class="gpStick stack-tight">
       <div class="gpStickLabel">Left Stick (XY)</div>
       <div class="gpStickBox">
         <div class="gpDeadZone" :style="{ width: `${(deadZone ?? 0.15) * 80}%`, height: `${(deadZone ?? 0.15) * 80}%` }"></div>
@@ -18,7 +18,7 @@ const buttons = inject<Ref<boolean[]>>("gamepadButtons", ref([]));
           :style="{ left: `${50 + (axes[0] ?? 0) * 40}%`, top: `${50 + (axes[1] ?? 0) * 40}%` }"></div>
       </div>
     </div>
-    <div class="gpStick">
+    <div class="gpStick stack-tight">
       <div class="gpStickLabel">Right Stick (Z)</div>
       <div class="gpStickBox">
         <div class="gpDeadZone" :style="{ width: `${(deadZone ?? 0.15) * 80}%`, height: `${(deadZone ?? 0.15) * 80}%` }"></div>
@@ -45,10 +45,7 @@ const buttons = inject<Ref<boolean[]>>("gamepadButtons", ref([]));
 }
 
 .gpStick {
-  display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: var(--gap-tight);
 }
 
 .gpStickLabel {

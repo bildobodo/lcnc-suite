@@ -202,7 +202,7 @@ tbody tr.auxRow {
 }
 
 .editableCell:hover {
-  background: color-mix(in oklab, var(--info) 10%, transparent);
+  background: var(--hl-surface-info);
 }
 
 .cellValue {

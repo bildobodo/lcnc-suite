@@ -1116,7 +1116,7 @@ watch(viewerGcode, (newGcode) => {
 </script>
 
 <template>
-  <div class="wrap">
+  <div class="wrap stack-controls">
     <!-- ══ Header ══ -->
     <header class="hdr">
       <div class="title">LinuxCNC WebUI ({{ connLabel }})</div>
@@ -1271,7 +1271,7 @@ watch(viewerGcode, (newGcode) => {
           </template>
 
           <template #mdi>
-            <div class="mdiTab">
+            <div class="mdiTab stack-controls">
               <div class="mdiRow">
                 <MachineInput
                   gate="mdiText"
@@ -1686,11 +1686,8 @@ watch(viewerGcode, (newGcode) => {
 <style scoped>
 .wrap {
   height: 100%;
-  display: flex;
-  flex-direction: column;
   box-sizing: border-box;
   padding: var(--gap-controls);
-  gap: var(--gap-controls);
   font-family: var(--font-sans);
 }
 
@@ -1996,11 +1993,8 @@ watch(viewerGcode, (newGcode) => {
 
 /* ─── MDI tab ─── */
 .mdiTab {
-  display: flex;
-  flex-direction: column;
   flex: 1;
   min-height: 0;
-  gap: var(--gap-controls);
 }
 
 .mdiRow {

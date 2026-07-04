@@ -156,7 +156,34 @@ exactly ONE ws.conn.viewer_init (incl. the reconnect-storm clients — the
 path where the double-send used to fire). User smoke pending: UI shutdown
 → banner (not bare disconnect).
 
-### WS-C / WS-D / WS-E / WS-F
+### WS-C — consistency audit (branch `audit/fe-ws-c-consistency`)
+
+Discovery: codebase largely compliant already (zero hardcoded spacing/
+opacity/fs/radius tokens, no raw hex in CSS, no raw <Btn>, no permission
+:class antipattern — KeyboardTab .inactive is the documented non-permission
+case; native inputs are hidden file pickers; dialogs conform to tiers; all
+:deep() layout-only). Three real drift families, three commits:
+
+1. `ee183ba` — audit-scoped-css.py token-drift checks (TOKEN/HOVER/DEEP/
+   STACK categories, brace/segment parser, audit-ok escape hatch). Proven
+   adversarially: planted 7 TOKEN + 2 DEEP violations in a scratch style
+   block — the FIRST parser (line-based) missed ALL single-line planted
+   rules; rewritten segment-driven, all flagged, keyframes/audit-ok/deep-
+   layout exemptions verified. NOT wired into lint in this commit.
+2. `a651150` — 14 scoped stack-trio rules → stack-* utility classes across
+   9 files (visual-neutral by construction; SafetyStrip.safetyBtn kept
+   scoped + audit-ok: lands on a MachineBtn root where Btn.vue's scoped .b
+   would beat a global utility).
+3. `79e896f` — user-approved: new --hl-surface/--hl-surface-info tokens
+   (surface hovers where button-bg --hl-* tiers can't apply; 5 sites
+   converged), GamepadTab/KeyboardTab map tables → .dataTable, and
+   `npm run lint` now chains lint:css → drift fails the gate from here on.
+
+User visual check pending (see smoke list in the WS-C merge notes).
+Deferred to later phases: per-panel label/value column-width alignment
+(fold into WS-D — the 9-axis grid rework touches those layouts anyway).
+
+### WS-D / WS-E / WS-F
 
 Tracked when reached.
 

@@ -134,7 +134,8 @@ onUnmounted(() => {
 
       <div class="stack-controls">
         <div class="sub">Key Bindings</div>
-        <table class="kbMapTable">
+        <div class="dataTable">
+        <table>
           <tbody>
             <tr v-for="action in LINEAR_JOG_ACTIONS" :key="action" :class="{ inactive: !kbConfig.jogEnabled }">
               <td class="kbMapAction">{{ KEYBOARD_ACTION_LABELS[action] }}</td>
@@ -177,6 +178,7 @@ onUnmounted(() => {
             </tr>
           </tbody>
         </table>
+        </div>
         <div v-if="captureError" class="kbCaptureError">{{ captureError }}</div>
       </div>
     </template>
@@ -184,17 +186,6 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.kbMapTable {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.kbMapTable td {
-  padding: 4px 8px;
-  font-size: var(--fs-sm);
-  border-bottom: 1px solid var(--border);
-}
-
 .kbAlways {
   opacity: var(--opacity-muted);
 }

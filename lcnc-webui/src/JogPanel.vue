@@ -312,7 +312,7 @@ function stopJog(s: Sector, e?: PointerEvent) {
         </svg>
 
         <!-- Z column -->
-        <div class="zcol">
+        <div class="zcol stack-panel">
           <JogButton :axis="2" :dir="1" label="Z+" :vel="jogVel" direction="up" :active="activeJogActions?.has('jog_z+')" :jogIncrement="jogIncrement" />
           <JogButton :axis="2" :dir="-1" label="Z-" :vel="jogVel" direction="down" :active="activeJogActions?.has('jog_z-')" :jogIncrement="jogIncrement" />
         </div>
@@ -320,13 +320,13 @@ function stopJog(s: Sector, e?: PointerEvent) {
 
       <!-- Rotary columns: ABC | UVW -->
       <div v-if="extraAxes.length > 0" class="extraAxesRow">
-        <div v-if="abcAxes.length > 0" class="rotaryCol">
+        <div v-if="abcAxes.length > 0" class="rotaryCol stack-tight">
           <div v-for="ra in abcAxes" :key="ra.letter" class="rotaryPair">
             <JogButton :axis="ra.index" :dir="-1" :label="ra.letter + '-'" :vel="angularJogVel" direction="left" :jogIncrement="jogIncrement" :active="activeJogActions?.has('jog_' + ra.letter.toLowerCase() + '-')" />
             <JogButton :axis="ra.index" :dir="1" :label="ra.letter + '+'" :vel="angularJogVel" direction="right" :jogIncrement="jogIncrement" :active="activeJogActions?.has('jog_' + ra.letter.toLowerCase() + '+')" />
           </div>
         </div>
-        <div v-if="uvwAxes.length > 0" class="rotaryCol">
+        <div v-if="uvwAxes.length > 0" class="rotaryCol stack-tight">
           <div v-for="ra in uvwAxes" :key="ra.letter" class="rotaryPair">
             <JogButton :axis="ra.index" :dir="-1" :label="ra.letter + '-'" :vel="jogVel" direction="left" :jogIncrement="jogIncrement" :active="activeJogActions?.has('jog_' + ra.letter.toLowerCase() + '-')" />
             <JogButton :axis="ra.index" :dir="1" :label="ra.letter + '+'" :vel="jogVel" direction="right" :jogIncrement="jogIncrement" :active="activeJogActions?.has('jog_' + ra.letter.toLowerCase() + '+')" />
@@ -461,9 +461,6 @@ function stopJog(s: Sector, e?: PointerEvent) {
 
 /* ---- Z column ---- */
 .zcol {
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-panel);
   align-items: center;
 }
 
@@ -474,9 +471,6 @@ function stopJog(s: Sector, e?: PointerEvent) {
 
 /* ---- Rotary axis columns (beside Z) ---- */
 .rotaryCol {
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-tight);
   justify-content: center;
 }
 
