@@ -125,7 +125,8 @@ function onGpMappingChanged() {
 
     <div v-if="gamepadConfig?.buttonsEnabled" class="stack-controls">
       <div class="sub">Button Mapping</div>
-      <table class="gpMapTable">
+      <div class="dataTable">
+      <table>
         <tbody>
           <tr><td class="gpMapKey">Left Stick</td><td>XY continuous jog (proportional)</td></tr>
           <tr><td class="gpMapKey">Right Stick Y</td><td>Z continuous jog (proportional)</td></tr>
@@ -145,6 +146,7 @@ function onGpMappingChanged() {
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
   </div>
 </template>
@@ -165,17 +167,6 @@ function onGpMappingChanged() {
    children). Local definition fixes it. */
 .okText {
   color: var(--ok);
-}
-
-.gpMapTable {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.gpMapTable td {
-  padding: 4px 8px;
-  font-size: var(--fs-sm);
-  border-bottom: 1px solid var(--border);
 }
 
 .gpMapKey {

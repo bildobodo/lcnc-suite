@@ -331,7 +331,7 @@ const halStats = computed(() => ({
 }
 
 .halRow:hover {
-  background: color-mix(in oklab, var(--fg) 4%, transparent);
+  background: var(--hl-surface);
 }
 
 .halName {

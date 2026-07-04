@@ -75,6 +75,12 @@
   --hl-hover: color-mix(in oklab, var(--fg) 12%, var(--button-bg));
   --hl-selected: color-mix(in oklab, var(--fg) 15%, var(--button-bg));
   --hl-active: color-mix(in oklab, var(--fg) 20%, var(--button-bg));
+  /* Surface-hover tiers (WS-C): hovers on transparent/panel surfaces — table
+     rows, list items, icon buttons — where the button-bg tiers above can't
+     apply. Neutral fg tint; the -info variant keeps the form-control hue
+     (checklist: form interactions use --info). */
+  --hl-surface: color-mix(in oklab, var(--fg) 8%, transparent);
+  --hl-surface-info: color-mix(in oklab, var(--info) 10%, transparent);
 
   /* ViewCube palette — derived from theme tokens, auto-switches per data-theme */
   --viewcube-face:  color-mix(in oklab, var(--fg) 10%, var(--bg));
@@ -1072,7 +1078,7 @@ label:has(input:disabled, select:disabled) {
 }
 
 .dataTable tbody tr:hover {
-  background: color-mix(in oklab, var(--fg) 5%, transparent);
+  background: var(--hl-surface);
 }
 
 .sortHeader {

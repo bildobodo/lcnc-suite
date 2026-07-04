@@ -910,7 +910,7 @@ async function saveEdit() {
 }
 
 .fileItem:hover {
-  background: color-mix(in oklab, var(--panel) 90%, var(--fg) 5%);
+  background: var(--hl-surface);
 }
 
 .fileItem.activeItem {

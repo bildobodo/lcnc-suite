@@ -154,7 +154,7 @@ html:not(.touch-device) .b.muted:hover:not(:disabled) { opacity: 1; }
 }
 .b-icon.xs { padding: 2px 4px; font-size: var(--fs-xs); }
 .b-icon.sm { padding: 3px 6px; font-size: var(--fs-sm); }
-html:not(.touch-device) .b-icon:hover:not(:disabled) { opacity: var(--opacity-secondary); background: color-mix(in oklab, var(--fg) 10%, transparent); }
+html:not(.touch-device) .b-icon:hover:not(:disabled) { opacity: var(--opacity-secondary); background: var(--hl-surface); }
 html:not(.touch-device) .b-icon:active:not(:disabled) { opacity: 1; }
 .b-icon:disabled { opacity: var(--opacity-disabled); cursor: not-allowed; }
 
