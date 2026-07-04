@@ -998,7 +998,7 @@ const gamepad = useGamepad({
   fire,
   activeFile: computed(() => activeFile.value),
   config: gamepadConfig,
-  axisCount: computed(() => axes.value.length),
+  axes: computed(() => axes.value),
   gated: gamepadGated,
 });
 
