@@ -275,9 +275,32 @@ under budget, command-path-unrelated. C jog user-verified on 5-axis.
    Viewer-spec poll budgets also widened 8→15 s (async three shifts the
    first geometry rise later — correct hardening, but not the flake).
 
-### WS-F
+### WS-F — silent-fallback visibility sweep (branch `refactor/fe-ws-f-silent-fallbacks`)
 
-Tracked when reached.
+Scope: every `catch` and `?? 0 / "" / [] / {}` (+ `||` equivalents) site in src/,
+classified per the backend no-silent-fallback rule:
+(a) DATA-MASK → render honest-absent (—/n-a) or propagate null;
+(b) SWALLOWED-ERROR → surface via emitTelemetry/message center;
+(c) SAFE-SILENT → keep with `// safe-silent:` reason where non-obvious;
+(ok) DESIGN-DEFAULT → intentional default, no change.
+
+Site-by-site dispositions recorded below per commit as fix batches land.
+
+**Batch 1 — input/misc family** (JogStrip, useJogPointers, useGamepad,
+GamepadLiveInput, useMdiHistory, useTouchoffMath, useDialogState, wakeLock,
+mathEval, dragScroll, useAxes): 27 sites, ZERO (a)/(b) violations — this
+family was already compliant. wakeLock routes every failure through
+emitTelemetry; mathEval returns honest null (documented contract); touchoff Z
+already REFUSES (console.warn + return) when eoffset_z is absent rather than
+masking with 0. Dispositions: 6× (c) bare pointer-capture `catch {}`
+(JogStrip 146/189/200/222, useJogPointers 60/72) → `// safe-silent:` comments
+added; 5× (c) gamepad `gp.axes[i] ?? 0` = absent stick reads centered → no
+jog (safe by construction, display-only in GamepadLiveInput); 5× (c) wakeLock
+catches already telemetry-surfaced; 1× (c) mathEval null-on-parse-error;
+10× (ok) design defaults (deadzone prop, throttle-state init,
+bounded-index defensives, optional-arg ""). Note verified: useTouchoffMath
+`values[i] ?? 0` in setAll is unreachable-defensive — the only caller
+(SetupStrip Zero-all) always sends `new Array(axes.length).fill(0)`.
 
 ## Flagged pre-existing oddities (flag-don't-fix; fixes get dedicated commits)
 
