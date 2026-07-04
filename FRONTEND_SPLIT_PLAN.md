@@ -302,6 +302,26 @@ bounded-index defensives, optional-arg ""). Note verified: useTouchoffMath
 `values[i] ?? 0` in setAll is unreachable-defensive — the only caller
 (SetupStrip Zero-all) always sends `new Array(axes.length).fill(0)`.
 
+**Batch 2 — viewer family** (ThreeViewer, viewer/*, geometryCache,
+toolGeometry, edgeWorker, previewWorker, viewerPerf): 34 sites + 1 structural.
+Fixes: (b) edgeWorker had NO catch — a throw (malformed positions) never
+postMessage'd, so the main-thread promise in computeEdgesOffThread hung
+forever and buildEdgesLazy silently stalled at that part, skipping all later
+parts too. Worker now always replies ({id, error} on throw, mirroring
+previewWorker), computeEdgesOffThread rejects on it, buildEdgesLazy catches
+per-mesh → console.warn + `viewer.edge_build_failed` telemetry + continue
+(one bad part no longer kills every outline). (b→surfaced) buildFromInit
+catch now also emits `viewer.build_failed` telemetry (was console+diag only —
+invisible to trace.ndjson). (c) safe-silent comments: machineAssetCache prune
+catch, geometryCache openDB retry-reset. Design-default comment on the 6×60mm
+placeholder tool marker. REFUTED classifier flag: spindle_load "?? 0 mask" —
+the template gates BOTH load readouts on `spindle_load != null`, so the
+computed's 0 branch never renders; honest-absent already holds. Remaining
+sites (ok): geometry-transform `?? 0` (g5x/g92/rotation → 3D positioning, not
+DRO readouts — the HUD DRO uses fmtCoord honest-null), empty-collection
+inits, version cache-busters, bounded-index defensives, IDB catches already
+console-surfaced with honest cache-miss returns.
+
 ## Flagged pre-existing oddities (flag-don't-fix; fixes get dedicated commits)
 
 | # | Where | Oddity | Disposition |

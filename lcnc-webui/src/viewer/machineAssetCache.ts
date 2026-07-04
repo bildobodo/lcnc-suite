@@ -68,6 +68,7 @@ export function loadMachineAssets(init: any, onProgress?: (msg: string) => void)
 
       // Drop IndexedDB entries whose ?v= no longer matches the active set.
       // Bounds the cache as users update STLs (?v=mtime changes → new key).
+      // safe-silent: best-effort cache GC; pruneStaleVersions warns internally
       pruneStaleVersions(new Set(parts.map((p: any) => urlFor(p.file)))).catch(() => {});
 
       if (toFetch.length === 0) {
