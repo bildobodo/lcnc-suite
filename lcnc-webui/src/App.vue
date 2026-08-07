@@ -1744,7 +1744,9 @@ watch(viewerGcode, (newGcode) => {
   display: flex;
   height: 280px;
   flex-shrink: 0;
-  padding: var(--gap-controls);
+  /* no left padding: the sticky SafetyStrip carries it (see .safetyStrip) —
+     scroller padding would form a bleed-through gutter beside the stuck element */
+  padding: var(--gap-controls) var(--gap-controls) var(--gap-controls) 0;
   gap: var(--gap-controls);
   overflow-x: auto;
   overflow-y: hidden;
@@ -2091,6 +2093,9 @@ watch(viewerGcode, (newGcode) => {
     flex-direction: column;
     overflow-x: hidden;
     overflow-y: auto;
+    /* scroll axis is vertical here: top padding moves into the sticky
+       SafetyStrip, left padding is restored (no horizontal scroll) */
+    padding: 0 var(--gap-controls) var(--gap-controls) var(--gap-controls);
   }
   .wrap > .strip > * + * {
     border-left: none;
@@ -2121,11 +2126,12 @@ watch(viewerGcode, (newGcode) => {
     flex-direction: column;
   }
   .viewerPane {
-    flex: 0 0 var(--viewer-min-h-portrait);
+    flex: 1 1 0;
     min-width: 0;
+    min-height: var(--viewer-min-h-portrait);
   }
   .sidePane {
-    flex: 1;
+    flex: 1 1 0;
     width: auto;
     min-width: 0;
   }

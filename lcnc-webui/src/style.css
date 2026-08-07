@@ -864,8 +864,14 @@ label:has(input:disabled, select:disabled) {
 @media (orientation: portrait) {
   /* In portrait each section is auto-height (strip scrolls vertically) */
   .stripSection { height: auto; }
-  /* SafetyStrip: sticky at top of vertical scroll instead of left */
-  .safetyStrip  { top: 0; left: auto; }
+  /* SafetyStrip: sticky at top of vertical scroll instead of left;
+     the interior scroll-side padding moves to the top edge accordingly */
+  .safetyStrip {
+    top: 0;
+    left: auto;
+    padding-left: 0;
+    padding-top: var(--gap-controls);
+  }
 }
 
 /* ─── Portrait strip layout utilities ─────────────────────────────────────
@@ -937,12 +943,17 @@ label:has(input:disabled, select:disabled) {
   .strip-radio-grid > .strip-radio-group { display: contents; }
 }
 
-/* SafetyStrip stays visible when strip scrolls */
+/* SafetyStrip stays visible when strip scrolls.
+   The scroller's scroll-side padding lives INSIDE this element (the .strip
+   scroller sets that side to 0) — padding on the scroller itself would form
+   a gutter beside the stuck element that scrolled content bleeds through,
+   because sticky pins clamp at the scroller's content edge. */
 .safetyStrip {
   position: sticky;
   left: 0;
   z-index: 1;
   background: var(--panel);
+  padding-left: var(--gap-controls);
 }
 
 .bordered-panel {
