@@ -21,6 +21,7 @@ import {
   STEP_RPM,
   loadKeyboardDefaults, type KeyboardDefaults, DEFAULT_KB_MAPPING,
 } from "./defaults";
+import type { MappingSource } from "./gamepadProfile";
 import { enableWakeLock, disableWakeLock } from "./wakeLock";
 import { ChevronUp, ChevronDown, Pencil, Trash2 } from "lucide-vue-next";
 import DebugTab from "./DebugTab.vue";
@@ -113,6 +114,7 @@ const props = defineProps<{
   gamepadConnected?: boolean;
   gamepadName?: string;
   gamepadConfig?: GamepadDefaults;
+  gamepadMappingSource?: MappingSource | null;
   keyboardConfig?: KeyboardDefaults;
   initialTab?: string | null;
 }>();
@@ -726,6 +728,7 @@ function resetMachineColor(id: string) {
             :gamepad-config="props.gamepadConfig"
             :gamepad-connected="props.gamepadConnected"
             :gamepad-name="props.gamepadName"
+            :gamepad-mapping-source="props.gamepadMappingSource"
             @set-gamepad-config="emit('setGamepadConfig', $event)"
           />
           <div class="resetRow">

@@ -7,20 +7,24 @@
 //
 // The parent owns serverSettingsReady gating, the reset confirmation
 // dialog, and the chain to App.vue's settings update.
-import { reactive, computed, watch } from "vue";
+import { reactive, computed, watch, ref, inject, type Ref } from "vue";
 import {
   type GamepadDefaults, type GamepadMapping,
   GAMEPAD_ACTIONS, DEFAULT_MAPPING,
 } from "./defaults";
+import type { GamepadProfile, MappingSource } from "./gamepadProfile";
+import MachineBtn from "./MachineBtn.vue";
 import MachineToggle from "./MachineToggle.vue";
 import MachineSlider from "./MachineSlider.vue";
 import MachineSelect from "./MachineSelect.vue";
 import GamepadLiveInput from "./GamepadLiveInput.vue";
+import GamepadMapWizard from "./GamepadMapWizard.vue";
 
 const props = defineProps<{
   gamepadConfig: GamepadDefaults | undefined;
   gamepadConnected: boolean | undefined;
   gamepadName: string | undefined;
+  gamepadMappingSource: MappingSource | null | undefined;
 }>();
 
 const emit = defineEmits<{
@@ -71,6 +75,42 @@ function onGpMappingChanged() {
   if (!props.gamepadConfig) return;
   emit("setGamepadConfig", { ...props.gamepadConfig, mapping: { ...gpMapping } });
 }
+
+// ── Per-controller mapping profiles ──
+const showWizard = ref(false);
+const hasProfile = computed(() =>
+  !!(props.gamepadName && props.gamepadConfig?.profiles?.[props.gamepadName]));
+
+const MAPPING_STATUS: Record<MappingSource, string> = {
+  profile: "Custom profile active for this controller.",
+  standard: "Recognized by the browser — standard layout.",
+  assumed: "Layout NOT recognized by the browser — assuming the standard layout. If buttons don't match, run Map Buttons.",
+};
+
+function onWizardSave(p: GamepadProfile) {
+  showWizard.value = false;
+  if (!props.gamepadConfig) return;
+  const profiles = { ...(props.gamepadConfig.profiles ?? {}), [p.id]: p };
+  emit("setGamepadConfig", { ...props.gamepadConfig, profiles });
+}
+
+function removeProfile() {
+  if (!props.gamepadConfig || !props.gamepadName) return;
+  const profiles = { ...(props.gamepadConfig.profiles ?? {}) };
+  delete profiles[props.gamepadName];
+  emit("setGamepadConfig", { ...props.gamepadConfig, profiles });
+}
+
+// Raw diagnostics — proves whether the device delivers ANY data to the
+// browser (if this stays flat, the problem is below the web app: controller
+// mode / OS driver, not the mapping).
+const rawAxes = inject<Ref<number[]>>("gamepadAxes", ref([]));
+const rawButtons = inject<Ref<boolean[]>>("gamepadButtons", ref([]));
+const rawSummary = computed(() => {
+  const pressed = rawButtons.value.flatMap((p, i) => (p ? [i] : []));
+  const axes = rawAxes.value.map(v => v.toFixed(2)).join(" ");
+  return `buttons: ${pressed.length ? pressed.join(",") : "—"}  axes: ${axes || "—"}`;
+});
 </script>
 
 <template>
@@ -89,6 +129,16 @@ function onGpMappingChanged() {
       <div class="settingDesc" :class="{ okText: gamepadConnected }">
         {{ gamepadConnected ? gamepadName : 'No gamepad detected — connect one and press a button' }}
       </div>
+      <template v-if="gamepadConnected">
+        <div class="settingDesc" :class="{ okText: gamepadMappingSource === 'profile' }">
+          {{ gamepadMappingSource ? MAPPING_STATUS[gamepadMappingSource] : '' }}
+        </div>
+        <div class="row-controls">
+          <MachineBtn type="inlineMd" @click="showWizard = true">Map Buttons…</MachineBtn>
+          <MachineBtn v-if="hasProfile" type="dialogDanger" @click="removeProfile">Remove Profile</MachineBtn>
+        </div>
+        <div class="settingDesc mono">{{ rawSummary }}</div>
+      </template>
     </div>
 
     <div class="sep" v-if="gamepadConfig?.jogEnabled"></div>
@@ -148,6 +198,13 @@ function onGpMappingChanged() {
       </table>
       </div>
     </div>
+
+    <GamepadMapWizard
+      v-if="showWizard && gamepadName"
+      :gamepadName="gamepadName"
+      @save="onWizardSave"
+      @cancel="showWizard = false"
+    />
   </div>
 </template>
 

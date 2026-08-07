@@ -1022,6 +1022,8 @@ watch(() => gamepadConfig.value.jogEnabled, (curr, prev) => {
 
 provide("gamepadAxes", gamepad.gamepadAxesState);
 provide("gamepadButtons", gamepad.gamepadButtonsState);
+provide("gamepadLogicalButtons", gamepad.gamepadLogicalButtons);
+provide("gamepadLogicalSticks", gamepad.gamepadLogicalSticks);
 
 // Re-read server-synced settings when another client saves.
 // (userMacros + keyboardConfig refresh via their own composable watchers.)
@@ -1448,6 +1450,7 @@ watch(viewerGcode, (newGcode) => {
               :gamepadConnected="gamepad.gamepadConnected.value"
               :gamepadName="gamepad.gamepadName.value"
               :gamepadConfig="gamepadConfig"
+              :gamepadMappingSource="gamepad.gamepadMappingSource.value"
               @setPathOnTop="(on: boolean) => { viewerPathOnTop = on; viewerRef?.setPathAlwaysOnTop?.(on); }"
               @setProjection="(p: Projection) => { viewerProjection = p; setProjection(p); }"
               @setTrackMode="(m: TrackMode) => { viewerTrackMode = m; viewerRef?.setTrackingMode?.(m); }"

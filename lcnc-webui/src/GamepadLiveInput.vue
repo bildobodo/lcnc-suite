@@ -1,10 +1,24 @@
 <script setup lang="ts">
+// Shows LOGICAL (post-mapping) state — what jog/actions will actually see —
+// so a wrong profile is visible here even when the raw device "works".
 import { inject, ref, type Ref } from "vue";
+import { LOGICAL_BUTTONS, type LogicalButton, type LogicalStick } from "./gamepadProfile";
 
 defineProps<{ deadZone?: number }>();
 
-const axes = inject<Ref<number[]>>("gamepadAxes", ref([]));
-const buttons = inject<Ref<boolean[]>>("gamepadButtons", ref([]));
+const NO_BUTTONS = Object.fromEntries(LOGICAL_BUTTONS.map(k => [k, false])) as Record<LogicalButton, boolean>;
+
+const buttons = inject<Ref<Record<LogicalButton, boolean>>>(
+  "gamepadLogicalButtons", ref({ ...NO_BUTTONS }));
+const sticks = inject<Ref<Record<LogicalStick, number>>>(
+  "gamepadLogicalSticks", ref({ lx: 0, ly: 0, rz: 0 }));
+
+const BTN_LABELS: Record<LogicalButton, string> = {
+  btn_a: "A", btn_b: "B", btn_x: "X", btn_y: "Y",
+  btn_lb: "LB", btn_rb: "RB", btn_lt: "LT", btn_rt: "RT",
+  btn_back: "Back", btn_start: "Start", btn_ls: "LS", btn_rs: "RS",
+  dpad_up: "▲", dpad_down: "▼", dpad_left: "◄", dpad_right: "►",
+};
 </script>
 
 <template>
@@ -14,8 +28,8 @@ const buttons = inject<Ref<boolean[]>>("gamepadButtons", ref([]));
       <div class="gpStickBox">
         <div class="gpDeadZone" :style="{ width: `${(deadZone ?? 0.15) * 80}%`, height: `${(deadZone ?? 0.15) * 80}%` }"></div>
         <div class="gpDot"
-          :class="{ inside: Math.hypot(axes[0] ?? 0, axes[1] ?? 0) < (deadZone ?? 0.15) }"
-          :style="{ left: `${50 + (axes[0] ?? 0) * 40}%`, top: `${50 + (axes[1] ?? 0) * 40}%` }"></div>
+          :class="{ inside: Math.hypot(sticks.lx, sticks.ly) < (deadZone ?? 0.15) }"
+          :style="{ left: `${50 + sticks.lx * 40}%`, top: `${50 - sticks.ly * 40}%` }"></div>
       </div>
     </div>
     <div class="gpStick stack-tight">
@@ -23,15 +37,15 @@ const buttons = inject<Ref<boolean[]>>("gamepadButtons", ref([]));
       <div class="gpStickBox">
         <div class="gpDeadZone" :style="{ width: `${(deadZone ?? 0.15) * 80}%`, height: `${(deadZone ?? 0.15) * 80}%` }"></div>
         <div class="gpDot"
-          :class="{ inside: Math.abs(axes[3] ?? 0) < (deadZone ?? 0.15) }"
-          :style="{ left: '50%', top: `${50 + (axes[3] ?? 0) * 40}%` }"></div>
+          :class="{ inside: Math.abs(sticks.rz) < (deadZone ?? 0.15) }"
+          :style="{ left: '50%', top: `${50 - sticks.rz * 40}%` }"></div>
       </div>
     </div>
     <div class="gpButtons">
       <div class="gpStickLabel">Buttons</div>
       <div class="gpBtnGrid">
-        <span v-for="(label, i) in ['A','B','X','Y','LB','RB','LT','RT','Back','Start','LS','RS','▲','▼','◄','►']" :key="i"
-          class="gpBtn" :class="{ active: buttons[i] }">{{ label }}</span>
+        <span v-for="key in LOGICAL_BUTTONS" :key="key"
+          class="gpBtn" :class="{ active: buttons[key] }">{{ BTN_LABELS[key] }}</span>
       </div>
     </div>
   </div>

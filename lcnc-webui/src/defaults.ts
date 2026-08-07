@@ -1,6 +1,7 @@
 import { ref } from "vue";
 import { withToken } from "./auth";
 import { resetServerSettings } from "./lcncApi";
+import type { GamepadProfile } from "./gamepadProfile";
 
 // lcncWs registers its WS settings-saver here so this module can flush a save
 // WITHOUT importing lcncWs (which imports defaults) — removes the import cycle and
@@ -499,22 +500,6 @@ export const DEFAULT_MAPPING: GamepadMapping = {
   btn_rs: "none",
 };
 
-/** Map standard gamepad button index → mapping key. */
-export const BTN_INDEX_TO_KEY: Record<number, keyof GamepadMapping> = {
-  0: "btn_a",
-  1: "btn_b",
-  2: "btn_x",
-  3: "btn_y",
-  4: "btn_lb",
-  5: "btn_rb",
-  6: "btn_lt",
-  7: "btn_rt",
-  8: "btn_back",
-  9: "btn_start",
-  10: "btn_ls",
-  11: "btn_rs",
-};
-
 /** Short display labels for actions (used in diagram). */
 export const ACTION_LABELS: Record<GamepadAction, string> = {
   start: "Start",
@@ -539,6 +524,8 @@ export interface GamepadDefaults {
   invertY: boolean;
   invertZ: boolean;
   mapping: GamepadMapping;
+  /** Per-controller raw-binding profiles, keyed by gamepad.id. */
+  profiles: Record<string, GamepadProfile>;
 }
 
 export const GAMEPAD_FALLBACK: GamepadDefaults = {
@@ -549,7 +536,24 @@ export const GAMEPAD_FALLBACK: GamepadDefaults = {
   invertY: false,
   invertZ: false,
   mapping: { ...DEFAULT_MAPPING },
+  profiles: {},
 };
+
+/** Keep only entries shaped like profiles; binding internals are guarded at
+    resolve time (isBindingPressed treats unknown shapes as unpressed). */
+function mergeProfiles(saved: any): Record<string, GamepadProfile> {
+  if (!saved || typeof saved !== "object") return {};
+  const out: Record<string, GamepadProfile> = {};
+  for (const [key, p] of Object.entries<any>(saved)) {
+    if (p && typeof p === "object"
+        && typeof p.id === "string"
+        && p.buttons && typeof p.buttons === "object"
+        && p.sticks && typeof p.sticks === "object") {
+      out[key] = p as GamepadProfile;
+    }
+  }
+  return out;
+}
 
 function mergeMapping(saved: any, fb: GamepadMapping): GamepadMapping {
   if (!saved || typeof saved !== "object") return { ...fb };
@@ -576,6 +580,7 @@ registerSection<GamepadDefaults>("gamepad", GAMEPAD_FALLBACK, (saved, fb) => {
     invertY: saved.invertY ?? fb.invertY,
     invertZ: saved.invertZ ?? fb.invertZ,
     mapping: mergeMapping(saved.mapping, fb.mapping),
+    profiles: mergeProfiles(saved.profiles),
   };
 });
 
