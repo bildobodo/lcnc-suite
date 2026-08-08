@@ -629,6 +629,21 @@ html.touch-device .dataTable td {
   padding: var(--gap-controls);
 }
 
+/* Kill double-tap-zoom on tappables (a fast second tap on a control must
+   not zoom the page mid-operation) while keeping pan and pinch-zoom —
+   deliberately NOT user-scalable=no, which would break pinch as an
+   accessibility tool. Jog buttons and sliders keep their own
+   touch-action: none via higher-specificity rules. */
+html.touch-device button,
+html.touch-device select,
+html.touch-device label,
+html.touch-device .inputField,
+html.touch-device .codeLine,
+html.touch-device .dataTable th,
+html.touch-device .dataTable td {
+  touch-action: manipulation;
+}
+
 label:has(input:disabled, select:disabled) {
   opacity: var(--opacity-disabled);
   pointer-events: none;
