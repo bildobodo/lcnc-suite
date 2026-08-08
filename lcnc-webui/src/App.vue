@@ -781,6 +781,37 @@ onUnmounted(() => {
   clearInterval(autoDisarmTimer);
 });
 
+/** ---------- strip scroll-edge affordance ----------
+ * Toggles .strip-more on the strip while sections are scrolled out of
+ * view, fading in the .stripFade edge gradient. Children are observed
+ * (not just the strip) because scrollWidth grows when content arrives
+ * (axis chunks after viewer_init) without the strip itself resizing. */
+let stripEl: HTMLElement | null = null;
+let stripRo: ResizeObserver | null = null;
+function updateStripFade() {
+  const el = stripEl;
+  if (!el) return;
+  const more =
+    el.scrollLeft + el.clientWidth < el.scrollWidth - 1 ||
+    el.scrollTop + el.clientHeight < el.scrollHeight - 1;
+  el.classList.toggle("strip-more", more);
+}
+onMounted(() => {
+  stripEl = document.querySelector<HTMLElement>(".strip");
+  if (!stripEl) return;
+  stripEl.addEventListener("scroll", updateStripFade, { passive: true });
+  stripRo = new ResizeObserver(updateStripFade);
+  stripRo.observe(stripEl);
+  for (const c of stripEl.children) stripRo.observe(c);
+  updateStripFade();
+});
+onUnmounted(() => {
+  stripEl?.removeEventListener("scroll", updateStripFade);
+  stripRo?.disconnect();
+  stripRo = null;
+  stripEl = null;
+});
+
 /** ---------- local UI jog ---------- */
 const jogVel = ref(10);
 const angularJogVel = ref(10); // deg/s for rotary axes
@@ -1730,6 +1761,11 @@ watch(viewerGcode, (newGcode) => {
         :toolLength="st.tool_length ?? null"
         @openToolTable="activeTab = 'tools'"
       />
+
+      <!-- Scroll-edge affordance: fades in at the far edge while strip
+           sections are scrolled out of view (strip-more class, JS-toggled).
+           SafetyStrip pins the near edge, so only the far edge needs it. -->
+      <div class="stripFade" aria-hidden="true"></div>
     </Gate><!-- /strip -->
 
   </div>
@@ -1799,6 +1835,34 @@ watch(viewerGcode, (newGcode) => {
 .strip > * + * {
   border-left: 1px solid var(--border-subtle);
   padding-left: var(--gap-controls);
+}
+
+/* Scroll-edge fade — signals that more strip sections exist beyond the
+   far edge (SafetyStrip pins the near edge, so only one side is needed).
+   Zero-width sticky child; the gradient hangs inward over the content. */
+.strip > .stripFade {
+  position: sticky;
+  right: 0;
+  flex: 0 0 0px;
+  align-self: stretch;
+  border-left: none;   /* exempt from the .strip > * + * divider */
+  padding-left: 0;
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+  z-index: 1;
+}
+.strip > .stripFade::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: calc(2 * var(--gap-panel));
+  background: linear-gradient(to right, transparent, var(--panel));
+}
+.strip.strip-more > .stripFade {
+  opacity: 1;
 }
 
 .hdr {
@@ -2150,6 +2214,22 @@ watch(viewerGcode, (newGcode) => {
   .wrap > .strip::before,
   .wrap > .strip::after {
     display: none;
+  }
+  /* Vertical scroller: fade moves to the bottom edge */
+  .wrap > .strip > .stripFade {
+    right: auto;
+    bottom: 0;
+    border-top: none;
+    padding-top: 0;
+  }
+  .wrap > .strip > .stripFade::before {
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: auto;
+    height: calc(2 * var(--gap-panel));
+    background: linear-gradient(to bottom, transparent, var(--panel));
   }
 
   /* Macro bar: thin middle column, vertical (collapses when no macros) */
