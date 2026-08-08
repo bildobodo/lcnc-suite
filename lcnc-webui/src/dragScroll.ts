@@ -26,9 +26,14 @@ function attach(el: HTMLElement) {
   el.addEventListener('pointerdown', (e: PointerEvent) => {
     // Only primary button (touch or left-click)
     if (e.button !== 0) return
-    // Skip if target is interactive (buttons, inputs, etc.)
+    // Skip drag-native elements (sliders, selects, text fields) and jog
+    // buttons, which act on pointerdown and hold their own pointer capture
+    // (touch-action: none). Plain buttons are draggable-from on purpose:
+    // the strip is ~95% buttons, and they are safe because capture below
+    // retargets pointerup to the container once the threshold is passed,
+    // so the button's click never fires after a real drag.
     const tag = (e.target as HTMLElement).closest(
-      'button, input, select, textarea, a, [contenteditable], .no-drag-scroll'
+      'input, select, textarea, a, [contenteditable], .no-drag-scroll, .jogBtn'
     )
     if (tag) return
 
