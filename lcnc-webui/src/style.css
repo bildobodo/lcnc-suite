@@ -714,6 +714,11 @@ label:has(input:disabled, select:disabled) {
   left: 0;
   display: block;
   height: calc(2 * var(--gap-panel));
+  /* flex: none is load-bearing: in flex-column scrollers the pseudos are
+     flex items with min-content 0 — default flex-shrink squashes them to
+     0px the moment content overflows (i.e., exactly when a fade should
+     show). Block scrollers ignore this. */
+  flex: none;
   opacity: 0;
   transition: opacity 0.2s;
   pointer-events: none;
