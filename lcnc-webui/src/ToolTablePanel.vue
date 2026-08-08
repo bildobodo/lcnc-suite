@@ -476,7 +476,9 @@ defineExpose({ openAdd, fetchTools, triggerImport });
       </div>
 
     <!-- Edit / Add modal -->
-      <div v-if="editTool" class="dialogOverlay" @click.self="cancelEditModal">
+      <!-- No @click.self dismiss: this is a data-entry form — a mis-grab
+           on the overlay must not silently discard edits. Cancel/× only. -->
+      <div v-if="editTool" class="dialogOverlay">
         <div class="dialog lg editDialog">
           <!-- Header -->
           <div class="dialogHeader">

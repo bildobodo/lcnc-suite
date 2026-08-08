@@ -95,6 +95,14 @@ function cancel() {
   closeKeypad();
 }
 
+// Overlay tap dismisses only an UNTOUCHED keypad. Once the operator has
+// typed (replacing clears on the first keypad action), a mis-grab beside
+// the dialog must not silently discard the value — cancel is then
+// explicit: the × button or Escape.
+function onOverlayClick() {
+  if (replacing.value) cancel();
+}
+
 // Physical keyboard support while the dialog is focused.
 function onKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape') { e.preventDefault(); cancel(); return; }
@@ -111,7 +119,7 @@ function onKeydown(e: KeyboardEvent) {
 </script>
 
 <template>
-  <div class="dialogOverlay" @click.self="cancel">
+  <div class="dialogOverlay" @click.self="onOverlayClick">
     <div
       class="dialog md keypad-dialog"
       ref="dialogEl"
