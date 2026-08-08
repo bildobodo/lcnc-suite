@@ -462,6 +462,10 @@ async function enterEdit() {
       ".cm-scroller": { fontFamily: "var(--font-mono)", overflow: "auto" },
       ".cm-gutters": { backgroundColor: "var(--bg)", color: "var(--fg)", opacity: "var(--opacity-muted)", border: "none" },
       "&.cm-focused": { outline: "none" },
+      // The dark:true flag below makes CM's base theme paint a WHITE native
+      // caret — invisible on the light-mode --bg. Pin it to the theme token
+      // so it tracks light/dark like everything else.
+      ".cm-content": { caretColor: "var(--fg)" },
     }, { dark: true });
     _editorView = new EditorView({
       state: EditorState.create({
@@ -473,6 +477,9 @@ async function enterEdit() {
     // Touch: text entry comes from the G-code keypad strip — suppress the
     // OS keyboard the same way MachineInput does for number fields.
     if (isTouchDevice.value) _editorView.contentDOM.setAttribute("inputmode", "none");
+    // Focus on entry so the caret is visible immediately — without this
+    // there is no insertion-point indication until the first tap/click.
+    _editorView.focus();
   } catch (e: any) {
     // No silent empty editor: a failed chunk load (offline, stale deploy) left
     // edit mode open with nothing in it and no message. Surface in the banner.
