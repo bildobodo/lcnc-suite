@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { usePermissions } from './permissions';
 import { INPUT_DEFS, type InputType } from './machineControls';
+import HelpIcon from './HelpIcon.vue';
 
 defineOptions({ inheritAttrs: false });
 
@@ -10,6 +11,10 @@ const props = defineProps<{
   disabled?: boolean;
   label?: string;
   modelValue?: boolean;
+  /** Explanatory text rendered as a tap-friendly HelpIcon popover.
+      Use this instead of title= — title tooltips are hover-only and
+      unreachable on touch. */
+  help?: string;
 }>();
 
 const emit = defineEmits<{ 'update:modelValue': [boolean] }>();
@@ -36,6 +41,6 @@ function onChange(e: Event) {
       :checked="modelValue ?? false"
       @change="onChange"
       :disabled="isDisabled">
-    {{ label }}
+    {{ label }}<HelpIcon v-if="help">{{ help }}</HelpIcon>
   </label>
 </template>

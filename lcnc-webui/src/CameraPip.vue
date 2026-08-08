@@ -100,6 +100,10 @@ function onDragStart(e: PointerEvent) {
   dragOriginY = pipY.value;
   target.addEventListener("pointermove", onDragMove);
   target.addEventListener("pointerup", onDragEnd);
+  // pointercancel (palm rejection, browser gesture takeover) must run the
+  // same teardown — otherwise the move/up listeners leak and the layout
+  // is never persisted.
+  target.addEventListener("pointercancel", onDragEnd);
 }
 
 function onDragMove(e: PointerEvent) {
@@ -116,9 +120,11 @@ function onDragMove(e: PointerEvent) {
 
 function onDragEnd(e: PointerEvent) {
   const target = e.target as HTMLElement;
-  target.releasePointerCapture(e.pointerId);
+  // safe-silent: capture is already gone on pointercancel
+  try { target.releasePointerCapture(e.pointerId); } catch {}
   target.removeEventListener("pointermove", onDragMove);
   target.removeEventListener("pointerup", onDragEnd);
+  target.removeEventListener("pointercancel", onDragEnd);
   savePipLayout();
 }
 
@@ -139,6 +145,7 @@ function onResizeStart(e: PointerEvent) {
   resizeOriginH = pipH.value;
   target.addEventListener("pointermove", onResizeMove);
   target.addEventListener("pointerup", onResizeEnd);
+  target.addEventListener("pointercancel", onResizeEnd);
 }
 
 function onResizeMove(e: PointerEvent) {
@@ -158,9 +165,11 @@ function onResizeMove(e: PointerEvent) {
 
 function onResizeEnd(e: PointerEvent) {
   const target = e.target as HTMLElement;
-  target.releasePointerCapture(e.pointerId);
+  // safe-silent: capture is already gone on pointercancel
+  try { target.releasePointerCapture(e.pointerId); } catch {}
   target.removeEventListener("pointermove", onResizeMove);
   target.removeEventListener("pointerup", onResizeEnd);
+  target.removeEventListener("pointercancel", onResizeEnd);
   savePipLayout();
 }
 

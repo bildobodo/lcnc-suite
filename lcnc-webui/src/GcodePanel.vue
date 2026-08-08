@@ -96,6 +96,10 @@ function onTokenMouseLeave() { tooltip.value = null; }
 
 function onTokenClick(ev: MouseEvent, token: Token) {
   if (token.type !== 'gcode' && token.type !== 'mcode') return;
+  // Run-from-line selection owns line taps: G0/M3 are the widest targets
+  // on a line, so a tap there must bubble to onLineClick and select the
+  // line, not open the reference dialog.
+  if (props.runFromLine && props.gcodeContent) return;
   ev.stopPropagation();
   tooltip.value = null;
   emit("openGcodeRef", token.text.toUpperCase());
@@ -637,7 +641,7 @@ async function saveEdit() {
                   }]"
                   @mouseenter="interactive && onTokenMouseEnter($event, token)"
                   @mouseleave="interactive && onTokenMouseLeave()"
-                  @click.stop="interactive && onTokenClick($event, token)"
+                  @click="interactive && onTokenClick($event, token)"
                 >{{ token.text }}</span>
               </span>
             </div>
