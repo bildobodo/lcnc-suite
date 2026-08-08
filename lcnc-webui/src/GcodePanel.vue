@@ -59,6 +59,7 @@ const emit = defineEmits<{
   (e: "runFromLine", opts: RflRunOptions): void;
   (e: "openGcodeRef", code: string): void;
   (e: "showStats"): void;
+  (e: "editingChange", editing: boolean): void;
 }>();
 
 const optionalStopModel = computed({
@@ -432,6 +433,10 @@ const editorHost = ref<HTMLDivElement | null>(null);
 const saving = ref(false);
 const saveError = ref<string | null>(null);
 let _editorView: any = null;
+let _deleteCharBackward: any = null;
+
+// App swaps the bottom strip for the G-code keypad while the editor is open.
+watch(editing, (v) => emit("editingChange", v));
 
 async function enterEdit() {
   if (!props.gcodeContent || !props.activeFile) return;
@@ -443,13 +448,14 @@ async function enterEdit() {
   try {
     // Dynamic import: CM6 stays out of the initial bundle (P6 pattern) — it loads
     // only when someone actually edits.
-    const [{ EditorState }, { EditorView, keymap, lineNumbers }, { defaultKeymap, history, historyKeymap }, { gcodeEditorLanguage }] =
+    const [{ EditorState }, { EditorView, keymap, lineNumbers }, { defaultKeymap, history, historyKeymap, deleteCharBackward }, { gcodeEditorLanguage }] =
       await Promise.all([
         import("@codemirror/state"),
         import("@codemirror/view"),
         import("@codemirror/commands"),
         import("./gcodeCmLanguage"),
       ]);
+    _deleteCharBackward = deleteCharBackward;
     if (!editing.value || !editorHost.value || _editorView) return;  // discarded while loading
     const theme = EditorView.theme({
       "&": { backgroundColor: "var(--bg)", color: "var(--fg)", height: "100%" },
@@ -464,6 +470,9 @@ async function enterEdit() {
       }),
       parent: editorHost.value,
     });
+    // Touch: text entry comes from the G-code keypad strip — suppress the
+    // OS keyboard the same way MachineInput does for number fields.
+    if (isTouchDevice.value) _editorView.contentDOM.setAttribute("inputmode", "none");
   } catch (e: any) {
     // No silent empty editor: a failed chunk load (offline, stale deploy) left
     // edit mode open with nothing in it and no message. Surface in the banner.
@@ -479,6 +488,21 @@ function _destroyEditor() {
   _editorView?.destroy();
   _editorView = null;
 }
+
+// ── G-code keypad strip routing (App calls these while editing) ──
+function keypadInsert(text: string) {
+  const v = _editorView;
+  if (!v) return;
+  v.dispatch(v.state.replaceSelection(text));
+  v.focus();
+}
+function keypadBackspace() {
+  const v = _editorView;
+  if (!v || !_deleteCharBackward) return;
+  _deleteCharBackward(v);
+  v.focus();
+}
+defineExpose({ keypadInsert, keypadBackspace });
 
 function discardEdit() {
   editing.value = false;

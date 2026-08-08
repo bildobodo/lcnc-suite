@@ -11,6 +11,8 @@ import GcodePanel from "./GcodePanel.vue";
 import SafetyStrip from "./SafetyStrip.vue";
 import JogStrip from "./JogStrip.vue";
 import SetupStrip from "./SetupStrip.vue";
+import GcodeKeypadStrip from "./GcodeKeypadStrip.vue";
+import { isTouchDevice } from "./touchDetect";
 import OverridesStrip from "./OverridesStrip.vue";
 import SpindleStrip from "./SpindleStrip.vue";
 import ToolStrip from "./ToolStrip.vue";
@@ -276,6 +278,59 @@ const {
   clearMdiHistory,
   onMdiKeydown,
 } = useMdiHistory({ send });
+
+// ── G-code keypad strip (touch text entry for MDI + G-code editor) ──
+// Shown in the bottom strip in place of Jog/Overrides/Spindle/Tool while
+// the MDI field is focused or the editor is open; Safety and Setup stay.
+// Keypad keys fire on pointerdown.prevent, so pressing them never blurs
+// the MDI input. MDI focus wins over an open editor (last interaction).
+const mdiKeypadActive = ref(false);
+const gcodeEditActive = ref(false);
+const gcodeKeypadMode = computed<"mdi" | "editor" | null>(() =>
+  mdiKeypadActive.value ? "mdi" : gcodeEditActive.value ? "editor" : null
+);
+const mdiInputRef = ref<any>(null);
+const gcodePanelRef = ref<any>(null);
+
+function _mdiInputEl(): HTMLInputElement | null {
+  const el = mdiInputRef.value?.$el;
+  if (el instanceof HTMLInputElement) return el;
+  return el?.querySelector?.("input") ?? null;
+}
+
+function gkInsert(text: string) {
+  if (gcodeKeypadMode.value === "editor") { gcodePanelRef.value?.keypadInsert(text); return; }
+  const el = _mdiInputEl();
+  const cur = mdiText.value;
+  const start = el?.selectionStart ?? cur.length;
+  const end = el?.selectionEnd ?? cur.length;
+  mdiText.value = cur.slice(0, start) + text + cur.slice(end);
+  nextTick(() => {
+    const p = start + text.length;
+    el?.setSelectionRange(p, p);
+  });
+}
+
+function gkBackspace() {
+  if (gcodeKeypadMode.value === "editor") { gcodePanelRef.value?.keypadBackspace(); return; }
+  const el = _mdiInputEl();
+  const cur = mdiText.value;
+  let start = el?.selectionStart ?? cur.length;
+  const end = el?.selectionEnd ?? cur.length;
+  if (start === end && start > 0) start -= 1;
+  if (start === end) return;
+  mdiText.value = cur.slice(0, start) + cur.slice(end);
+  nextTick(() => el?.setSelectionRange(start, start));
+}
+
+function gkEnter() {
+  if (gcodeKeypadMode.value === "editor") { gcodePanelRef.value?.keypadInsert("\n"); return; }
+  handleMdiSend();
+}
+
+function gkClear() {
+  if (gcodeKeypadMode.value === "mdi") mdiText.value = "";
+}
 
 // Viewer state (initialized from saved defaults, persisted on every change)
 const viewerLayers = reactive<Record<Layer, boolean>>({ ..._vd.layers });
@@ -818,6 +873,9 @@ function attachScrollFades() {
 }
 onMounted(attachScrollFades);
 watch(() => userMacros.value.length, () => nextTick(attachScrollFades));
+// Strip content swaps (keypad in/out) change scrollWidth without resizing
+// the strip itself — re-check the edge fades.
+watch(gcodeKeypadMode, () => nextTick(attachScrollFades));
 onUnmounted(() => {
   fadeRo?.disconnect();
   fadeRo = null;
@@ -1306,6 +1364,7 @@ watch(viewerGcode, (newGcode) => {
         <TabPanel :tabs="contentTabs" :modelValue="activeTab" @update:modelValue="activeTab = $event">
           <template #gcode>
             <GcodePanel
+              ref="gcodePanelRef"
               :activeFile="activeFile"
               :gcodeContent="gcodeContent"
               :gcodeStats="gcodeStats"
@@ -1327,6 +1386,7 @@ watch(viewerGcode, (newGcode) => {
               @toggleBlockDelete="toggleBlockDelete"
               @openGcodeRef="openGcodeRef"
               @showStats="statsDialogOpen = true"
+              @editingChange="gcodeEditActive = $event"
             />
           </template>
 
@@ -1362,13 +1422,17 @@ watch(viewerGcode, (newGcode) => {
             <div class="mdiTab stack-controls">
               <div class="mdiRow">
                 <MachineInput
+                  ref="mdiInputRef"
                   gate="mdiText"
                   type="text"
                   class="mdiInput"
                   :value="mdiText"
+                  :inputmode="isTouchDevice ? 'none' : undefined"
                   @input="mdiText = ($event.target as HTMLInputElement).value"
                   @keyup.enter="handleMdiSend"
                   @keydown="onMdiKeydown"
+                  @focus="mdiKeypadActive = true"
+                  @blur="mdiKeypadActive = false"
                   placeholder="G-code command (↑↓ history)"
                 />
                 <MachineBtn type="mdi" @click="handleMdiSend">Send</MachineBtn>
@@ -1697,6 +1761,7 @@ watch(viewerGcode, (newGcode) => {
       </template>
 
       <JogStrip
+        v-show="!gcodeKeypadMode"
         :axes="axes"
         :jogVel="jogVel"
         :angularJogVel="angularJogVel"
@@ -1735,7 +1800,23 @@ watch(viewerGcode, (newGcode) => {
         @goToZero="fire({ cmd: 'mdi', text: 'O<go_to_zero> CALL' }, 'ready')"
       />
 
+      <!-- G-code keypad: replaces jog/overrides/spindle/tool sections while
+           the MDI field is focused or the G-code editor is open — none of
+           those are usable mid-typing, and this frees their width. Safety
+           and Setup (DRO) stay. Placed AFTER Setup so Setup's buttons don't
+           shift when the keypad appears/disappears. -->
+      <GcodeKeypadStrip
+        v-if="gcodeKeypadMode"
+        :axes="axes"
+        :mode="gcodeKeypadMode"
+        @key="gkInsert"
+        @backspace="gkBackspace"
+        @enter="gkEnter"
+        @clear="gkClear"
+      />
+
       <OverridesStrip
+        v-show="!gcodeKeypadMode"
         :feedSlider="feedSlider"
         :spindleSlider="spindleSlider"
         :rapidSlider="rapidSlider"
@@ -1755,6 +1836,7 @@ watch(viewerGcode, (newGcode) => {
       />
 
       <SpindleStrip
+        v-show="!gcodeKeypadMode"
         :isForward="isForward"
         :isReverse="isReverse"
         :isSpinning="isSpinning"
@@ -1775,6 +1857,7 @@ watch(viewerGcode, (newGcode) => {
       />
 
       <ToolStrip
+        v-show="!gcodeKeypadMode"
         :currentTool="st.tool_number ?? 0"
         :toolDiameter="st.tool_diameter ?? null"
         :toolLength="st.tool_length ?? null"

@@ -548,6 +548,15 @@ label:has(input.toggle:disabled) {
    where the 280px strip's vertical budget rules 44px out. Only min-* and
    hit-area properties belong here — no visual restyling. */
 
+/* Legibility: the two smallest type tokens are 9/10px — below comfortable
+   arm's-length reading on a shop floor (slider captions, button
+   sub-labels, badges). One step up on touch; everything using the tokens
+   follows. */
+html.touch-device {
+  --fs-2xs: 10px;
+  --fs-xs: 11px;
+}
+
 html.touch-device button,
 html.touch-device select {
   min-height: var(--touch-target-compact);
