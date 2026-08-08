@@ -100,7 +100,7 @@ function clearAll() {
                   warn: axis === 'r' && row[axis] !== 0,
                   editableCell: can.ready && Number.isFinite(Number(row[axis]))
                 }"
-                @dblclick.stop="startEditCell(row.name as string, axis, Number(row[axis]))">
+                @click="startEditCell(row.name as string, axis, Number(row[axis]))">
               <span class="cellValue">{{ fmtOffset(Number(row[axis])) }}</span>
             </td>
           </tr>
@@ -202,11 +202,10 @@ tbody tr.auxRow {
   color: var(--warn);
 }
 
+/* Persistent tint, not :hover — hover affordances are invisible on touch,
+   and this class only exists while the cell is actually editable (can.ready). */
 .editableCell {
   cursor: cell;
-}
-
-.editableCell:hover {
   background: var(--hl-surface-info);
 }
 
