@@ -42,8 +42,8 @@ export const BUTTON_TYPES = {
   // MDI / motion
   mdi:            { gate: 'ready',    variant: 'primary', size: 'md' },
   goTo:           { gate: 'ready',    variant: 'default', size: 'md', hold: true },
-  home:           { gate: 'zero',     variant: 'default', size: 'md' },
-  unhome:         { gate: 'zero',     variant: 'default', size: 'md' },
+  home:           { gate: 'zero',     variant: 'default', size: 'md', hold: true },
+  unhome:         { gate: 'zero',     variant: 'default', size: 'md', hold: true },
 
   // Probe
   probe:          { gate: 'probe',    variant: 'default', size: 'md', whileProbing: true, hold: true },
@@ -84,7 +84,7 @@ export const BUTTON_TYPES = {
   wcs:            { gate: 'probe',    variant: 'default', size: 'sm' },
 
   // Zero / touchoff (sends G10 L20 MDI — needs homed + !eoffset)
-  zero:           { gate: 'probe',    variant: 'default', size: 'md' },
+  zero:           { gate: 'probe',    variant: 'default', size: 'md', hold: true },
 
   // Macros
   macro:          { gate: 'probe',    variant: 'default', size: 'lg' },
@@ -121,7 +121,7 @@ export const BUTTON_TYPES = {
   inlineMd:       { gate: 'always',  variant: 'default', size: 'md' },
   bannerAction:   { gate: 'always',  variant: 'default', size: 'md' },
   bannerAbort:    { gate: 'abort',   variant: 'danger',  size: 'md' },
-  bannerHome:     { gate: 'idle',    variant: 'default', size: 'md' },
+  bannerHome:     { gate: 'idle',    variant: 'default', size: 'md', hold: true },
   headerIcon:     { gate: 'always',  variant: 'default', size: 'md',  icon: true },
 
   // ── Number keypad ──
