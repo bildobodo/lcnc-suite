@@ -237,8 +237,15 @@ html:not(.touch-device) button:hover:not(:disabled) {
   background: var(--hl-hover);
 }
 
-html:not(.touch-device) button:active:not(:disabled) {
+/* :active stays ungated (unlike :hover it cannot stick after a tap) —
+   it is the only press feedback on touch. Our own :active paint replaces
+   the UA gray tap flash, which double-flashes over variant colors. */
+button:active:not(:disabled) {
   background: var(--hl-active);
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
 }
 
 button:disabled {
