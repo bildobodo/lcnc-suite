@@ -190,7 +190,11 @@ const machineStateLabel = computed(() => {
   const label = STATE_LABELS[machineState.value];
   const state = machineState.value;
   if (state === 'disconnected') {
-    return lcncError.value ? `${label} — ${lcncError.value}` : `${label} — reconnecting…`;
+    // With an LCNC error the gateway is up but LinuxCNC is gone — waiting
+    // won't fix that; without one the WS retries on its own.
+    return lcncError.value
+      ? `${label} — ${lcncError.value} — restart the suite to recover`
+      : `${label} — reconnecting automatically…`;
   }
   // Distinguish "operator pressed E-Stop" (STAT.estop true) from "HAL chain
   // open while STAT thinks we're cleared" (issue #14). The operator already
@@ -1240,20 +1244,23 @@ watch(viewerGcode, (newGcode) => {
     <div class="statusBanner" :class="{ 'banner-pulse': bannerFlashMode === 'pulse', 'banner-flash': bannerFlashMode === 'flash' }" :style="{ '--state-color': `var(${machineStateColor})` }">
       <div class="bannerContent" @click="messagesDialogOpen = true; markMessagesRead()">
         <Transition name="banner-fade" mode="out-in">
+          <!-- Every banner carries its recovery path — an operator must
+               never have to guess whether waiting, a UI action, or a
+               suite restart is the way out (no auto-recovery implied). -->
           <span v-if="safetyTrip" :key="'safety'" class="bannerError">
-            SAFETY TRIPPED — press Acknowledge to recover
+            SAFETY TRIPPED — press E-Stop Reset, then Acknowledge, then re-Arm
           </span>
           <span v-else-if="serverShuttingDown" :key="'shutdown'" class="bannerError">
-            Server shutting down…
+            Server shutting down — start LinuxCNC again to reconnect
           </span>
           <span v-else-if="readerStale" :key="'reader-stale'" class="bannerError">
-            HAL reader stale — UI values may be out of date
+            HAL reader stale — UI values may be out of date. If this persists, restart the suite (the LinuxCNC session may have ended)
           </span>
           <span v-else-if="configWarning" :key="'config-warning'" class="bannerError">
-            Config fallback — {{ configWarning.reason }}
+            Config fallback — {{ configWarning.reason }} — fix the INI, then restart the suite
           </span>
           <span v-else-if="previewLoadError" :key="'preview-error'" class="bannerError">
-            3D preview load failed — toolpath may be stale or missing
+            3D preview load failed — reload the G-code file; restart the suite if it persists
           </span>
           <span v-else-if="bannerMessage && !bannerShowAbort" :key="'msg'" :class="{ bannerError: bannerMessageKind <= 2 }">
             {{ bannerMessage }}
