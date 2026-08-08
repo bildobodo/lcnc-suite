@@ -644,6 +644,14 @@ html.touch-device .dataTable td {
   touch-action: manipulation;
 }
 
+/* Run-from-line selection is a per-line tap — 23px rows are below any
+   touch minimum. MUST stay in sync with GcodePanel's LINE_HEIGHT
+   computed (virtual-scroll math): 23px desktop / 32px touch. */
+html.touch-device .codeLine {
+  height: 32px;
+  align-items: center;
+}
+
 label:has(input:disabled, select:disabled) {
   opacity: var(--opacity-disabled);
   pointer-events: none;

@@ -5,6 +5,7 @@ import { usePermissions } from "./permissions";
 import { loadMachineDefaults, saveMachineDefaults, STEP_RPM } from "./defaults";
 import { scanToolchangesBefore, scanEntryPositionBefore, type RflToolchangeScan, type RflEntryScan, type RflRunOptions } from "./gcodeRfl";
 import { highlightGcode, type Token } from "./gcodeHighlight";
+import { isTouchDevice } from "./touchDetect";
 import { emitTelemetry } from "./lcncWs";
 import { GCODE_LOOKUP, GCODE_REFERENCE } from "./gcodeReference";
 import { Play, SkipForward, Pause } from "lucide-vue-next";
@@ -152,7 +153,11 @@ const progressPercent = computed(() => {
 // Token type + highlightGcode() imported from gcodeHighlight.ts
 
 // ---------- Virtual scroll ----------
-const LINE_HEIGHT = 23; // px — matches .codeLine (12px × 1.6 + 4px padding)
+// px — MUST match the .codeLine CSS height (style.css): 23px desktop,
+// 32px under html.touch-device (run-from-line selection is a per-line
+// tap). Reactive because touch mode latches on the first touch input,
+// which can happen mid-session.
+const LINE_HEIGHT = computed(() => (isTouchDevice.value ? 32 : 23));
 const BUFFER = 10;
 
 const scrollTop = ref(0);
@@ -162,11 +167,11 @@ const scrollTop = ref(0);
 // currentLine advances 5–50×/s, each nudging scrollTop; keying retokenization
 // off the integer bounds avoids redundant work on every sub-LINE_HEIGHT delta.
 const rangeStart = computed(() =>
-  Math.max(0, Math.floor(_scrollToContent(scrollTop.value) / LINE_HEIGHT) - BUFFER)
+  Math.max(0, Math.floor(_scrollToContent(scrollTop.value) / LINE_HEIGHT.value) - BUFFER)
 );
 const rangeEnd = computed(() => {
   const viewportH = codeViewerRef.value?.clientHeight ?? 400;
-  const count = Math.ceil(viewportH / LINE_HEIGHT) + BUFFER * 2;
+  const count = Math.ceil(viewportH / LINE_HEIGHT.value) + BUFFER * 2;
   return Math.min(lineCount.value, rangeStart.value + count);
 });
 
@@ -188,7 +193,7 @@ const visibleLines = computed(() => {
 // content-space; at scale 1 (files under ~520k lines) every formula reduces
 // exactly to the unscaled originals.
 const SPACER_MAX_PX = 12_000_000;
-const contentHeight = computed(() => lineCount.value * LINE_HEIGHT);
+const contentHeight = computed(() => lineCount.value * LINE_HEIGHT.value);
 const totalHeight = computed(() => Math.min(contentHeight.value, SPACER_MAX_PX));
 
 function _viewH(): number {
@@ -212,7 +217,7 @@ function _contentToScroll(y: number): number {
 // viewport top. At scale 1 this is exactly rangeStart * LINE_HEIGHT.
 const offsetY = computed(() => {
   const y = _scrollToContent(scrollTop.value);
-  return Math.max(0, scrollTop.value + rangeStart.value * LINE_HEIGHT - y);
+  return Math.max(0, scrollTop.value + rangeStart.value * LINE_HEIGHT.value - y);
 });
 
 function onCodeScroll(ev: Event) {
@@ -224,7 +229,7 @@ function onCodeScroll(ev: Event) {
 // content space, then mapped to scrollbar space (identity at scale 1).
 watch(() => props.currentLine, (newLine) => {
   if (newLine != null && codeViewerRef.value) {
-    const targetY = (newLine - 1) * LINE_HEIGHT - codeViewerRef.value.clientHeight / 2 + LINE_HEIGHT / 2;
+    const targetY = (newLine - 1) * LINE_HEIGHT.value - codeViewerRef.value.clientHeight / 2 + LINE_HEIGHT.value / 2;
     codeViewerRef.value.scrollTop = Math.max(0, _contentToScroll(targetY));
   }
 });
