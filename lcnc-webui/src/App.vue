@@ -1142,7 +1142,7 @@ watch(viewerGcode, (newGcode) => {
         <div v-if="gamepad.gamepadConnected.value" class="pill ok" :title="gamepad.gamepadName.value"><Gamepad2 :size="14" /></div>
         <div v-if="keyboardConfig.jogEnabled || keyboardConfig.buttonsEnabled" class="pill ok" title="Keyboard shortcuts active"><Keyboard :size="14" /></div>
 
-        <div class="hdrBtns row-tight">
+        <div class="hdrBtns row-controls">
           <MachineBtn type="headerIcon" :warning="unreadCount > 0" :title="'Messages (' + unreadCount + ')'" @click="openDialog('messages')">
             <MessageSquare :size="22" />
           </MachineBtn>

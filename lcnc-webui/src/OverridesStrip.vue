@@ -35,19 +35,19 @@ function onRapidSlider(v: number) { emit('update:rapidSlider', v); }
   <Gate gate="override" class="stripSection">
     <div class="sub">Overrides</div>
     <div class="ovrSection row-sections strip-slider-group">
-      <div class="ovrCol stack-tight strip-slider-row">
+      <div class="ovrCol stack-controls strip-slider-row">
         <span class="label-muted">Feed</span>
         <span class="val-mono" :class="{ warn: feedSlider !== 100 }">{{ feedSlider }}%</span>
         <MachineSlider gate="feedOverride" :modelValue="feedSlider" @update:model-value="onFeedSlider(Number($event))" @change="emit('feedChange')" :min="0" :max="maxFeedOverride" :step="STEP_OVERRIDE" :disabled="!feedOvrEnabled" class="vSlider" />
         <MachineBtn type="overrideReset" @click="emit('overridePreset', 'feed', 100)">Reset</MachineBtn>
       </div>
-      <div class="ovrCol stack-tight strip-slider-row">
+      <div class="ovrCol stack-controls strip-slider-row">
         <span class="label-muted">Spindle</span>
         <span class="val-mono" :class="{ warn: spindleSlider !== 100 }">{{ spindleSlider }}%</span>
         <MachineSlider gate="spindleOverride" :modelValue="spindleSlider" @update:model-value="onSpindleSlider(Number($event))" @change="emit('spindleSliderChange')" :min="minSpindleOverride" :max="maxSpindleOverride" :step="STEP_OVERRIDE" :disabled="!spindleOvrEnabled" class="vSlider" />
         <MachineBtn type="overrideReset" @click="emit('overridePreset', 'spindle', 100)">Reset</MachineBtn>
       </div>
-      <div class="ovrCol stack-tight strip-slider-row">
+      <div class="ovrCol stack-controls strip-slider-row">
         <span class="label-muted">Rapid</span>
         <span class="val-mono" :class="{ warn: rapidSlider !== 100 }">{{ rapidSlider }}%</span>
         <MachineSlider gate="rapidOverride" :modelValue="rapidSlider" @update:model-value="onRapidSlider(Number($event))" @change="emit('rapidChange')" :min="25" :max="100" :step="STEP_RAPID_OVERRIDE" :disabled="!rapidOvrAvailable" class="vSlider" />

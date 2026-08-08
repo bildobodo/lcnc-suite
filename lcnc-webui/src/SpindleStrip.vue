@@ -34,7 +34,7 @@ const emit = defineEmits<{
   <div class="stripSection">
     <div class="sub">Spindle</div>
     <Gate gate="ready" class="spnBlock stack-controls">
-      <div class="spDirRow row-tight">
+      <div class="spDirRow row-controls">
         <MachineBtn type="spindleRev" :active="isReverse" @click="emit('spindleRev', rpmInput)">
           <span class="btn-label"><RotateCcw :size="14" /> Rev</span>
         </MachineBtn>
@@ -46,7 +46,7 @@ const emit = defineEmits<{
         </MachineBtn>
       </div>
 
-      <div class="spRpmRow row-tight">
+      <div class="spRpmRow row-controls">
         <MachineBtn type="spindleDecrease" @click="emit('spindleDecrease')">
           <Minus :size="14" />
         </MachineBtn>

@@ -325,13 +325,13 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
       </div>
 
       <div class="speedGroup row-sections strip-slider-group">
-        <div class="speedCol stack-tight">
+        <div class="speedCol stack-controls">
           <span class="label-muted">{{ abcAxes.length > 0 ? 'Linear' : 'Speed' }}</span>
           <span class="val-mono">{{ (jogVel * 60).toFixed(0) }}</span>
           <MachineSlider gate="jogSpeed" :disabled="isDisabled" :min="minJogVel" :max="maxJogVel" :step="0.1" :modelValue="jogVel" @update:modelValue="(v: number | undefined) => { if (v != null) emit('update:jogVel', v) }" class="vSlider" />
           <MachineBtn type="overrideReset" @click="emit('resetJogVel')">Reset</MachineBtn>
         </div>
-        <div v-if="abcAxes.length > 0" class="speedCol stack-tight">
+        <div v-if="abcAxes.length > 0" class="speedCol stack-controls">
           <span class="label-muted">Rotary</span>
           <span class="val-mono">{{ (angularJogVel * 60).toFixed(0) }}°</span>
           <MachineSlider gate="jogSpeed" :disabled="isDisabled" :min="minAngularJogVel" :max="maxAngularJogVel" :step="0.1" :modelValue="angularJogVel" @update:modelValue="(v: number | undefined) => { if (v != null) emit('update:angularJogVel', v) }" class="vSlider" />
@@ -382,7 +382,8 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(3, 1fr);
-  gap: var(--gap-tight);
+  /* --gap-controls: every neighbor pair here jogs a different direction */
+  gap: var(--gap-controls);
   width: 100%;
   height: 100%;
 }
@@ -390,7 +391,8 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
 .axisCol {
   display: grid;
   grid-template-rows: 1fr 1fr;
-  gap: var(--gap-tight);
+  /* --gap-controls: the two buttons drive the axis in OPPOSITE directions */
+  gap: var(--gap-controls);
   height: 100%;
   min-width: 50px;
 }
@@ -400,7 +402,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
    centers items, these must stretch. */
 .axisCluster {
   display: flex;
-  gap: var(--gap-tight);
+  gap: var(--gap-controls);
 }
 .jogBtn {
   touch-action: none;

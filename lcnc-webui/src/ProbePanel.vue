@@ -1348,7 +1348,9 @@ function fmtR(key: string): string {
 .gridWrap {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: var(--gap-tight);
+  /* --gap-controls: neighboring cells launch different probe cycles —
+     a mis-tap approaches the workpiece from the wrong side */
+  gap: var(--gap-controls);
   max-width: 294px;
   margin: 0 auto;
 }
