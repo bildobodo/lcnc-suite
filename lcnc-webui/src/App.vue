@@ -1192,6 +1192,7 @@ watch(viewerGcode, (newGcode) => {
           </MachineBtn>
           <MachineBtn type="headerIcon" class="hdrShutdown" title="Shut Down LinuxCNC" @click="showShutdownConfirm = true">
             <PowerOff :size="22" />
+            <span class="btn-label-sm">Shut Down</span>
           </MachineBtn>
         </div>
       </div>
@@ -1816,6 +1817,12 @@ watch(viewerGcode, (newGcode) => {
   justify-content: flex-end;
 }
 .hdrBtns { flex-shrink: 0; }
+/* Shutdown is the one destructive header action — icon alone (labeled only
+   by a hover title) is not identifiable on touch, so it carries a caption. */
+.hdrShutdown {
+  flex-direction: column;
+  gap: var(--gap-micro);
+}
 
 .title {
   font-size: var(--fs-2xl);

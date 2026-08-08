@@ -96,6 +96,15 @@ function deleteMacro(id: string) {
   persistMacros();
 }
 
+// Deletion is confirmed via dialog — the trash button is a ~30px icon
+// target and macro deletion is irreversible.
+const macroDeleteId = ref<string | null>(null);
+const macroDeleteName = computed(() => macros.value.find(m => m.id === macroDeleteId.value)?.name ?? "");
+function confirmMacroDelete() {
+  if (macroDeleteId.value) deleteMacro(macroDeleteId.value);
+  macroDeleteId.value = null;
+}
+
 function moveMacro(idx: number, dir: -1 | 1) {
   const target = idx + dir;
   if (target < 0 || target >= macros.value.length) return;
@@ -697,7 +706,7 @@ function resetMachineColor(id: string) {
                   <MachineBtn type="listAction" :disabled="idx === 0" @click="moveMacro(idx, -1)" title="Move up"><ChevronUp :size="14" /></MachineBtn>
                   <MachineBtn type="listAction" :disabled="idx === macros.length - 1" @click="moveMacro(idx, 1)" title="Move down"><ChevronDown :size="14" /></MachineBtn>
                   <MachineBtn type="listAction" @click="editMacro(m)" title="Edit"><Pencil :size="14" /></MachineBtn>
-                  <MachineBtn type="listAction" @click="deleteMacro(m.id)" title="Delete"><Trash2 :size="14" /></MachineBtn>
+                  <MachineBtn type="listAction" @click="macroDeleteId = m.id" title="Delete"><Trash2 :size="14" /></MachineBtn>
                 </div>
               </div>
             </div>
@@ -776,6 +785,17 @@ function resetMachineColor(id: string) {
         <DebugTab />
       </template>
     </TabPanel>
+
+      <div v-if="macroDeleteId" class="dialogOverlay" @click.self="macroDeleteId = null">
+        <div class="dialog">
+          <div class="dialogTitle danger">Delete Macro</div>
+          <div class="dialogBody">Delete "{{ macroDeleteName }}"? This cannot be undone.</div>
+          <div class="dialogActions">
+            <MachineBtn type="dialogCancel" @click="macroDeleteId = null">Cancel</MachineBtn>
+            <MachineBtn type="dialogDanger" @click="confirmMacroDelete">Delete</MachineBtn>
+          </div>
+        </div>
+      </div>
 
       <div v-if="resetTarget" class="dialogOverlay" @click.self="resetTarget = null">
         <div class="dialog">
