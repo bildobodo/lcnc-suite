@@ -712,16 +712,25 @@ label:has(input:disabled, select:disabled) {
 }
 .fade-scroll::before {
   top: 0;
-  margin-bottom: calc(-2 * var(--gap-panel));
+  margin-bottom: calc(-2 * var(--gap-panel) - var(--sf-gap, 0px));
   background: linear-gradient(to bottom, var(--scroll-fade-bg, var(--panel)), transparent);
 }
 .fade-scroll::after {
   bottom: 0;
-  margin-top: calc(-2 * var(--gap-panel));
+  margin-top: calc(-2 * var(--gap-panel) - var(--sf-gap, 0px));
   background: linear-gradient(to bottom, transparent, var(--scroll-fade-bg, var(--panel)));
 }
 .fade-scroll.sf-up::before { opacity: 1; }
 .fade-scroll.sf-down::after { opacity: 1; }
+
+/* Flex-stack scrollers: the fade pseudos become flex items and claim one
+   gap slot at each end — --sf-gap extends the layout-cancelling negative
+   margin by the container's own gap so content sits exactly where it did
+   without the fades. Keyed to the stack-* utility the scroller uses. */
+.stack-panel.fade-scroll    { --sf-gap: var(--gap-panel); }
+.stack-sections.fade-scroll { --sf-gap: var(--gap-section); }
+.stack-controls.fade-scroll { --sf-gap: var(--gap-controls); }
+.stack-tight.fade-scroll    { --sf-gap: var(--gap-tight); }
 
 .scrollContent {
   flex: 1;

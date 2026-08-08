@@ -144,7 +144,7 @@ const halStats = computed(() => ({
       </span>
     </div>
 
-    <div class="stack-panel scrollContent scroll-thin">
+    <div class="stack-panel scrollContent scroll-thin fade-scroll">
     <!-- Empty state (waiting for first snapshot) -->
     <div v-if="!halInitialized" class="halEmpty">
       Connecting…

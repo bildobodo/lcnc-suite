@@ -684,7 +684,7 @@ function fmtR(key: string): string {
         <MachineBtn type="tab" :selected="probeView === 'toolsetter'" @click="probeView = 'toolsetter'">Toolsetter</MachineBtn>
     </div>
 
-    <div class="stack-sections probePanel scroll-thin">
+    <div class="stack-sections probePanel scroll-thin fade-scroll">
     <!-- Control bar (hidden for toolsetter view) -->
     <div v-if="probeView !== 'toolsetter'" class="controlBar">
       <MachineToggle gate="probeParam" v-model="autoZero" label="Auto Zero" @update:model-value="saveParams" />

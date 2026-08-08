@@ -453,7 +453,7 @@ function resetMachineColor(id: string) {
     <TabPanel :tabs="subTabs" v-model="activeTab" class="subTabs">
       <template #viewer>
         <div v-if="!serverSettingsReady" class="settingsLoading">Waiting for server settings…</div>
-        <div v-else class="stack-panel scrollContent scroll-thin">
+        <div v-else class="stack-panel scrollContent scroll-thin fade-scroll">
         <div class="stack-controls">
           <div class="sub">View</div>
           <div class="settingDesc">Projection mode for the 3D viewport.</div>
@@ -569,7 +569,7 @@ function resetMachineColor(id: string) {
 
       <template #machine>
         <div v-if="!serverSettingsReady" class="settingsLoading">Waiting for server settings…</div>
-        <div v-else class="stack-panel scrollContent scroll-thin">
+        <div v-else class="stack-panel scrollContent scroll-thin fade-scroll">
           <div class="stack-controls">
             <div class="sub">Tool Load Behavior</div>
             <div class="settingDesc">Controls what happens when you load a tool from the Tool Table.</div>
@@ -659,7 +659,7 @@ function resetMachineColor(id: string) {
 
       <template #display>
         <div v-if="!serverSettingsReady" class="settingsLoading">Waiting for server settings…</div>
-        <div v-else class="stack-panel scrollContent scroll-thin">
+        <div v-else class="stack-panel scrollContent scroll-thin fade-scroll">
           <div class="stack-controls">
             <div class="sub">Theme</div>
             <div class="radioGroup">
@@ -688,7 +688,7 @@ function resetMachineColor(id: string) {
 
       <template #macros>
         <div v-if="!serverSettingsReady" class="settingsLoading">Waiting for server settings…</div>
-        <div v-else class="stack-panel scrollContent scroll-thin">
+        <div v-else class="stack-panel scrollContent scroll-thin fade-scroll">
           <div class="stack-controls">
             <div class="sub">User Macros</div>
 
@@ -749,7 +749,7 @@ function resetMachineColor(id: string) {
 
       <template #gamepad>
         <div v-if="!serverSettingsReady" class="settingsLoading">Waiting for server settings…</div>
-        <div v-else class="stack-panel scrollContent scroll-thin">
+        <div v-else class="stack-panel scrollContent scroll-thin fade-scroll">
           <GamepadTab
             :gamepad-config="props.gamepadConfig"
             :gamepad-connected="props.gamepadConnected"
@@ -765,7 +765,7 @@ function resetMachineColor(id: string) {
 
       <template #keyboard>
         <div v-if="!serverSettingsReady" class="settingsLoading">Waiting for server settings…</div>
-        <div v-else class="stack-panel scrollContent scroll-thin">
+        <div v-else class="stack-panel scrollContent scroll-thin fade-scroll">
           <KeyboardTab
             :kb-config="props.keyboardConfig ?? defaultKbConfig"
             @set-keyboard-config="emit('setKeyboardConfig', $event)"

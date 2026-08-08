@@ -38,7 +38,7 @@ const timingComponents: { key: keyof Omit<import("./lcncWs").TimingStats, "count
 </script>
 
 <template>
-  <div class="scrollContent scroll-thin">
+  <div class="scrollContent scroll-thin fade-scroll">
     <div class="stack-controls">
       <div class="sub">Latency Breakdown <span v-if="timingStats" class="muted">({{ timingStats.count }} samples)</span></div>
       <div v-if="timingStats" class="timingTable">

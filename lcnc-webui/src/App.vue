@@ -1445,7 +1445,7 @@ watch(viewerGcode, (newGcode) => {
               <span class="dialogTitle">Program Stats</span>
               <MachineBtn type="close" @click="statsDialogOpen = false">&times;</MachineBtn>
             </div>
-            <div class="dialogContent stack-sections scroll-thin">
+            <div class="dialogContent stack-sections scroll-thin fade-scroll">
               <div v-if="donutSegments.length > 0" class="row-sections">
                 <svg class="donut" viewBox="0 0 100 100">
                   <circle class="donutBg" cx="50" cy="50" r="40" />
@@ -1558,7 +1558,7 @@ watch(viewerGcode, (newGcode) => {
               <MachineBtn type="close" @click="messagesDialogOpen = false; markMessagesRead()">&times;</MachineBtn>
             </div>
           </div>
-          <div class="dialogContent stack-tight scroll-thin">
+          <div class="dialogContent stack-tight scroll-thin fade-scroll">
             <div v-for="msg in [...messages].reverse()" :key="msg.id" class="msgItem" :class="msgKindClass(msg.kind)">
               <span class="msgTime">{{ msgFormatTime(msg.ts) }}</span>
               <span class="msgKind">{{ msgKindLabel(msg.kind) }}</span>
