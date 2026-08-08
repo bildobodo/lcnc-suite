@@ -5,6 +5,7 @@ import { fetchSettings, saveSettingsSection } from './lcncApi'
 import { initServerDefaults } from './defaults'
 import { VALID_GATES } from './permissions'
 import { initDragScroll } from './dragScroll'
+import { initScrollFade } from './scrollFade'
 import { initTouchDetect } from './touchDetect'
 import { startClientDiag } from './clientDiag'
 
@@ -92,6 +93,7 @@ async function bootstrap() {
   initServerDefaults(serverSettings, fetchOk);
   createApp(App).mount('#app');
   initDragScroll();
+  initScrollFade();
   startClientDiag();
 
   if (import.meta.env.DEV) {

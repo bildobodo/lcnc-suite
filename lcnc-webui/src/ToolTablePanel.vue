@@ -585,7 +585,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
               (T{{ [...new Set(importSkipped.map(s => s.T))].join(', T') }}).
               Fix numbering in Fusion 360 and re-export.
             </div>
-            <div class="importList scroll-thin">
+            <div class="importList scroll-thin fade-scroll">
               <div v-for="t in importPreview" :key="t.T" class="importRow">
                 <span class="importT mono">T{{ t.T }}</span>
                 <span class="importType">{{ toolTypeLabel(t.type) }}</span>
@@ -604,7 +604,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
       </div>
 
     <!-- Table -->
-    <div class="tableWrap dataTable scroll-thin">
+    <div class="tableWrap dataTable scroll-thin fade-scroll">
       <table>
         <thead>
           <tr>

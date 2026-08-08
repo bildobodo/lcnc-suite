@@ -581,7 +581,7 @@ async function saveEdit() {
           <span class="browserPath">{{ currentSubdir || '/' }}</span>
         </div>
         <div class="sep"></div>
-        <div class="fileList scroll-thin">
+        <div class="fileList scroll-thin fade-scroll">
           <div v-for="entry in files" :key="entry.name" class="fileItem"
                :class="{ directory: entry.type === 'directory', activeItem: entry.type === 'file' && entry.path === activeFile }"
                @click="entry.type === 'directory' ? navigateInto(entry) : selectFile(entry)">
@@ -624,7 +624,7 @@ async function saveEdit() {
       </div>
 
       <!-- Code viewer (virtual scroll) -->
-      <div class="codeViewer scroll-thin" v-else-if="gcodeContent" ref="codeViewerRef" @scroll="onCodeScroll">
+      <div class="codeViewer scroll-thin fade-scroll" v-else-if="gcodeContent" ref="codeViewerRef" @scroll="onCodeScroll">
         <div :style="{ height: totalHeight + 'px', position: 'relative' }">
           <div :style="{ position: 'absolute', top: offsetY + 'px', left: 0, right: 0 }">
             <div class="codeLine"

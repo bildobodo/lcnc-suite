@@ -81,7 +81,7 @@ function clearAll() {
     </div>
 
     <!-- Table -->
-    <div class="tableWrap dataTable scroll-thin" :style="{ '--val-cols': String(offsetColumns.length) }">
+    <div class="tableWrap dataTable scroll-thin fade-scroll" :style="{ '--val-cols': String(offsetColumns.length) }">
       <table>
         <thead>
           <tr>

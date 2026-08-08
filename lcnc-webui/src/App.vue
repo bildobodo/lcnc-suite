@@ -1371,7 +1371,7 @@ watch(viewerGcode, (newGcode) => {
                 <span class="sub">History</span>
                 <MachineBtn type="dialogCancel" @click="clearMdiHistory" :disabled="mdiHistory.length === 0">Clear</MachineBtn>
               </div>
-              <div class="codeViewer mdiHistoryList scroll-thin">
+              <div class="codeViewer mdiHistoryList scroll-thin fade-scroll">
                 <div v-for="(entry, i) in mdiHistory" :key="entry.id"
                      class="codeLine"
                      :class="{ active: mdiHistoryIndex === i }"

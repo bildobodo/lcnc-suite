@@ -59,7 +59,7 @@ function toggleSort(key: "code" | "name") {
           placeholder="Search codes, names, descriptions…"
           class="refSearch"
         />
-        <div class="refTable dataTable scroll-thin">
+        <div class="refTable dataTable scroll-thin fade-scroll">
           <table>
             <thead>
               <tr>

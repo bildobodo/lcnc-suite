@@ -691,6 +691,38 @@ label:has(input:disabled, select:disabled) {
 .scroll-thin::-webkit-scrollbar-thumb { background: var(--border); border-radius: var(--radius-md); }
 .scroll-thin::-webkit-scrollbar-thumb:hover { background: color-mix(in oklab, var(--border) 80%, var(--fg)); }
 
+/* ─── Scroll-edge fades (.fade-scroll, driven by scrollFade.ts) ────────
+   Sticky ::before/::after gradients signal content hidden above/below.
+   Net-zero layout (height cancelled by negative margin) — but in a flex
+   container with gap they'd still claim a gap slot, so .fade-scroll is
+   OPT-IN for block-layout vertical scrollers only. Fade end color:
+   --scroll-fade-bg (default --panel) — must match the scroller's
+   background. sf-up/sf-down are toggled by scrollFade.ts. */
+.fade-scroll::before,
+.fade-scroll::after {
+  content: "";
+  position: sticky;
+  left: 0;
+  display: block;
+  height: calc(2 * var(--gap-panel));
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+  z-index: 2;
+}
+.fade-scroll::before {
+  top: 0;
+  margin-bottom: calc(-2 * var(--gap-panel));
+  background: linear-gradient(to bottom, var(--scroll-fade-bg, var(--panel)), transparent);
+}
+.fade-scroll::after {
+  bottom: 0;
+  margin-top: calc(-2 * var(--gap-panel));
+  background: linear-gradient(to bottom, transparent, var(--scroll-fade-bg, var(--panel)));
+}
+.fade-scroll.sf-up::before { opacity: 1; }
+.fade-scroll.sf-down::after { opacity: 1; }
+
 .scrollContent {
   flex: 1;
   min-height: 0;
@@ -920,6 +952,8 @@ label:has(input:disabled, select:disabled) {
   background: color-mix(in oklab, var(--bg) 80%, transparent);
   overflow: auto;
   padding: var(--gap-controls) 0;
+  /* fade-scroll end color matches this translucent background */
+  --scroll-fade-bg: color-mix(in oklab, var(--bg) 80%, transparent);
 }
 
 .codeLine {
