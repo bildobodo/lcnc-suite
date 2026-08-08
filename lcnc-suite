@@ -202,7 +202,26 @@ _log "tee started via FIFO=$LCNC_FIFO (setsid + reparented to init)"
 # Capture $? FIRST — must be the very first thing in the trap, before
 # any command that would clobber it. rc<128 = explicit exit; rc>=128
 # = killed by signal (rc-128 = signal number).
-trap '_EXIT_RC=$?; rm -f "$LCNC_FIFO" 2>/dev/null; _log "EXIT trap fired rc=$_EXIT_RC"' EXIT
+#
+# _reap_children: belt-and-suspenders child cleanup on EVERY exit path.
+# The dev-mode _term trap only covers INT/TERM — on 2026-08-08 the
+# launcher exited rc=0 via a path that bypassed it, orphaning the
+# gateway + vite (still serving a UI for a machine session that had
+# ended) and leaving linuxcncsvr/rtapi wedged behind the gateway's open
+# NML connections. Idempotent: pids already reaped by _term are skipped.
+_reap_children() {
+    if [[ -n "${GATEWAY_PID:-}" ]] && kill -0 "$GATEWAY_PID" 2>/dev/null; then
+        _log "EXIT reap: SIGTERM → gateway pid=$GATEWAY_PID"
+        kill -TERM "$GATEWAY_PID" 2>/dev/null || true
+    fi
+    if [[ -n "${VITE_PGID:-}" ]] && kill -0 "$VITE_PGID" 2>/dev/null; then
+        _log "EXIT reap: SIGTERM → vite pgid=$VITE_PGID"
+        kill -TERM -- -"$VITE_PGID" 2>/dev/null || true
+    fi
+    type _stop_hal_sampler >/dev/null 2>&1 && _stop_hal_sampler
+    type _stop_proc_status_loop >/dev/null 2>&1 && _stop_proc_status_loop
+}
+trap '_EXIT_RC=$?; rm -f "$LCNC_FIFO" 2>/dev/null; _reap_children; _log "EXIT trap fired rc=$_EXIT_RC"' EXIT
 
 # ── uvicorn loop: stdlib asyncio, pinned ──
 # uvloop was A/B-tested (Experiment 3) and REJECTED: it produced 600 ms–1.6 s
