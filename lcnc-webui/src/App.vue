@@ -795,6 +795,8 @@ function updateStripFade() {
     el.scrollLeft + el.clientWidth < el.scrollWidth - 1 ||
     el.scrollTop + el.clientHeight < el.scrollHeight - 1;
   el.classList.toggle("strip-more", more);
+  // Near edge: content is hidden under the pinned SafetyStrip
+  el.classList.toggle("strip-scrolled", el.scrollLeft > 1 || el.scrollTop > 1);
 }
 onMounted(() => {
   stripEl = document.querySelector<HTMLElement>(".strip");
@@ -1857,8 +1859,12 @@ watch(viewerGcode, (newGcode) => {
   position: absolute;
   top: 0;
   bottom: 0;
-  right: 0;
-  width: calc(2 * var(--gap-panel));
+  /* Hang past the sticky element by the scroller's right padding: sticky
+     is confined to the strip's CONTENT box, but scrolled content stays
+     visible through the padding and radius region — without this the
+     fade stops 8px short of the visible edge. */
+  right: calc(-1 * var(--gap-controls));
+  width: calc(2 * var(--gap-panel) + var(--gap-controls));
   background: linear-gradient(to right, transparent, var(--panel));
 }
 .strip.strip-more > .stripFade {
@@ -2225,10 +2231,11 @@ watch(viewerGcode, (newGcode) => {
   .wrap > .strip > .stripFade::before {
     top: auto;
     right: 0;
-    bottom: 0;
     left: 0;
+    /* Same content-box constraint as landscape, bottom padding here */
+    bottom: calc(-1 * var(--gap-controls));
     width: auto;
-    height: calc(2 * var(--gap-panel));
+    height: calc(2 * var(--gap-panel) + var(--gap-controls));
     background: linear-gradient(to bottom, transparent, var(--panel));
   }
 

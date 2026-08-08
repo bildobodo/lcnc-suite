@@ -997,6 +997,16 @@ label:has(input:disabled, select:disabled) {
     padding-left: 0;
     padding-top: var(--gap-controls);
   }
+  /* Vertical scroller: near-edge fade hangs below the pinned SafetyStrip */
+  .safetyStrip::after {
+    top: auto;
+    right: 0;
+    left: 0;
+    bottom: calc(-2 * var(--gap-panel));
+    width: auto;
+    height: calc(2 * var(--gap-panel));
+    background: linear-gradient(to bottom, var(--panel), transparent);
+  }
 }
 
 /* ─── Portrait strip layout utilities ─────────────────────────────────────
@@ -1079,6 +1089,26 @@ label:has(input:disabled, select:disabled) {
   z-index: 1;
   background: var(--panel);
   padding-left: var(--gap-controls);
+}
+
+/* Near-edge scroll fade: content slides UNDER the pinned SafetyStrip with
+   a hard cut — this gradient hangs off its trailing edge and fades in
+   (strip-scrolled, JS-toggled in App.vue) once the strip is scrolled away
+   from its start. Counterpart of .stripFade at the far edge. */
+.safetyStrip::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: calc(-2 * var(--gap-panel));
+  width: calc(2 * var(--gap-panel));
+  background: linear-gradient(to right, var(--panel), transparent);
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+.strip.strip-scrolled .safetyStrip::after {
+  opacity: 1;
 }
 
 .bordered-panel {
