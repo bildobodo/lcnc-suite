@@ -229,6 +229,7 @@ export interface MachineDefaults {
   rflSafeZ: boolean;          // retract to G53 Z0 before a run-from-line start
   spindleFeedbackUnit: SpindleFeedbackUnit;
   spindleLoadPin: string;
+  autoDisarmMin: number;      // idle auto-disarm timeout in minutes; 0 = off
 }
 
 const MACHINE_FALLBACK: MachineDefaults = {
@@ -239,6 +240,7 @@ const MACHINE_FALLBACK: MachineDefaults = {
   rflSafeZ: true,
   spindleFeedbackUnit: "rps",
   spindleLoadPin: "",
+  autoDisarmMin: 10,
 };
 
 registerSection<MachineDefaults>("machine", MACHINE_FALLBACK, (saved, fb) => {
@@ -251,6 +253,8 @@ registerSection<MachineDefaults>("machine", MACHINE_FALLBACK, (saved, fb) => {
     rflSpindleDir: (dir === "off" || dir === "forward" || dir === "reverse" ? dir : fb.rflSpindleDir) as SpindleDir,
     rflSafeZ: typeof (saved as any).rflSafeZ === "boolean" ? (saved as any).rflSafeZ : fb.rflSafeZ,
     spindleFeedbackUnit: (saved.spindleFeedbackUnit === "rpm" ? "rpm" : "rps") as SpindleFeedbackUnit,
+    autoDisarmMin: typeof (saved as any).autoDisarmMin === "number" && (saved as any).autoDisarmMin >= 0
+      ? (saved as any).autoDisarmMin : fb.autoDisarmMin,
   };
 });
 

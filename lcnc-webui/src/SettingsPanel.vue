@@ -164,6 +164,7 @@ function resetMachine() {
     toolChangeMode: "m6g43", runFromLine: false,
     rflSpindleDir: "forward", rflSpindleRpm: 10000, rflSafeZ: true,
     spindleFeedbackUnit: "rps", spindleLoadPin: "",
+    autoDisarmMin: 10,
   });
   const md = loadMachineDefaults();
   toolChangeMode.value = md.toolChangeMode;
@@ -172,6 +173,7 @@ function resetMachine() {
   rflSpindleRpm.value = md.rflSpindleRpm;
   spindleFeedbackUnit.value = md.spindleFeedbackUnit;
   spindleLoadPin.value = md.spindleLoadPin;
+  autoDisarmMin.value = md.autoDisarmMin;
   emit("setRunFromLine", md.runFromLine);
 }
 
@@ -305,6 +307,7 @@ const rflSpindleDir = ref<SpindleDir>(machSaved.rflSpindleDir);
 const rflSpindleRpm = ref(machSaved.rflSpindleRpm);
 const spindleFeedbackUnit = ref<SpindleFeedbackUnit>(machSaved.spindleFeedbackUnit);
 const spindleLoadPin = ref(machSaved.spindleLoadPin);
+const autoDisarmMin = ref(machSaved.autoDisarmMin);
 
 function saveMachine() {
   saveMachineDefaults({
@@ -315,6 +318,7 @@ function saveMachine() {
     rflSafeZ: loadMachineDefaults().rflSafeZ,  // managed from the RFL dialog, preserved here
     spindleFeedbackUnit: spindleFeedbackUnit.value,
     spindleLoadPin: spindleLoadPin.value,
+    autoDisarmMin: autoDisarmMin.value,
   });
 }
 
@@ -328,6 +332,7 @@ watch(settingsVersion, () => {
   rflSpindleRpm.value = md.rflSpindleRpm;
   spindleFeedbackUnit.value = md.spindleFeedbackUnit;
   spindleLoadPin.value = md.spindleLoadPin;
+  autoDisarmMin.value = md.autoDisarmMin;
   emit("setRunFromLine", md.runFromLine);
   const vd = loadViewerDefaults();
   Object.assign(layers, vd.layers);
@@ -570,6 +575,18 @@ function resetMachineColor(id: string) {
               </label>
             </div>
           </div>
+          <div class="sep"></div>
+          <div class="stack-controls">
+            <div class="sub">Idle Auto-Disarm</div>
+            <div class="settingDesc">Disarm this client after a period with no input while the machine is idle — protects an unattended touchscreen from stray taps. Never triggers while a program runs or is paused, while probing, or while a jog is held.</div>
+            <div class="radioGroup inline">
+              <label v-for="m in [0, 5, 10, 20, 30]" :key="m">
+                <MachineRadio gate="displaySetting" name="autoDisarmMin" v-model.number="autoDisarmMin" :value="m" @update:modelValue="saveMachine()" />
+                {{ m === 0 ? 'Off' : m + ' min' }}
+              </label>
+            </div>
+          </div>
+
           <div class="sep"></div>
           <div class="stack-controls">
             <div class="sub">Spindle Feedback Unit</div>

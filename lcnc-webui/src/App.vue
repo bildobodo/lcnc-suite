@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, onMounted, onUnmounted, provide, reactive, ref, watch } from "vue";
 import { applyClientOverlay, PERMISSIONS_KEY, type Permissions } from "./permissions";
-import { connectWs, connected, status, send, armed, lastReply, viewerGcode, viewerInit, gcodeContent, lcncError, latency, networkLatency, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead, safetyTrip, acknowledgeSafetyTrip, readerStale, configWarning, previewLoadError, serverShuttingDown, type LcncMessage } from "./lcncWs";
+import { connectWs, connected, status, send, armed, lastReply, viewerGcode, viewerInit, gcodeContent, lcncError, latency, networkLatency, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead, pushMessage, safetyTrip, acknowledgeSafetyTrip, readerStale, configWarning, previewLoadError, serverShuttingDown, type LcncMessage } from "./lcncWs";
 // Lazy-load the 3D viewer so Three.js (~866 KB) + troika load as a separate async
 // chunk after first paint instead of blocking the initial bundle (P6). The viewerRef
 // methods are all `?.`-guarded, so calls during the brief load gap safely no-op.
@@ -37,11 +37,12 @@ import { useMdiHistory } from "./useMdiHistory";
 import { useTouchoffMath } from "./useTouchoffMath";
 import { useMacros } from "./useMacros";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
-import { forceStopAllJogs, initJogPointerSafety, destroyJogPointerSafety } from "./useJogPointers";
+import { forceStopAllJogs, initJogPointerSafety, destroyJogPointerSafety, activeJogKeys } from "./useJogPointers";
 import {
   INTERP_IDLE, INTERP_READING, INTERP_PAUSED, INTERP_WAITING,
   TRAJ_MODE_FREE, TRAJ_MODE_TELEOP,
   SPINDLE_FORWARD, SPINDLE_REVERSE,
+  OPERATOR_DISPLAY,
 } from "./lcnc";
 
 const _vd = loadViewerDefaults();
@@ -746,6 +747,39 @@ function arm(v: boolean) {
   send({ cmd: "arm", armed: v });
   // armed.value updates when the gateway reply arrives (server-authoritative)
 }
+
+/** ---------- idle auto-disarm ----------
+ * Armed is pure command authorization (it never aborts motion — see the
+ * armed-is-authorization rule), so expiring it on an untouched client
+ * restores the accidental-tap protection when the operator walks away.
+ * Refuses to fire unless the interp is IDLE, nothing is probing, and no
+ * jog is held: while a program runs/pauses or a jog is live, Abort and
+ * jog_stop must stay one tap away without a re-arm.
+ * Activity = pointer/key input OR any command round-trip (lastReply),
+ * so gamepad-only operation counts as activity too. */
+let lastActivityTs = Date.now();
+function noteActivity() { lastActivityTs = Date.now(); }
+watch(lastReply, noteActivity);
+let autoDisarmTimer = 0;
+function checkAutoDisarm() {
+  const min = loadMachineDefaults().autoDisarmMin;
+  if (!min || !armed.value) return;
+  if (interpState.value !== INTERP_IDLE || st.value.probing) return;
+  if (activeJogKeys.size > 0) return;
+  if (Date.now() - lastActivityTs < min * 60_000) return;
+  arm(false);
+  pushMessage(OPERATOR_DISPLAY, `Auto-disarmed after ${min} min of inactivity (Settings → Machine → Idle Auto-Disarm).`);
+}
+onMounted(() => {
+  document.addEventListener("pointerdown", noteActivity, { capture: true, passive: true });
+  document.addEventListener("keydown", noteActivity, { capture: true, passive: true });
+  autoDisarmTimer = window.setInterval(checkAutoDisarm, 30_000);
+});
+onUnmounted(() => {
+  document.removeEventListener("pointerdown", noteActivity, true);
+  document.removeEventListener("keydown", noteActivity, true);
+  clearInterval(autoDisarmTimer);
+});
 
 /** ---------- local UI jog ---------- */
 const jogVel = ref(10);
