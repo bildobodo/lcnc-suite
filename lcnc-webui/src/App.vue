@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, onMounted, onUnmounted, provide, reactive, ref, watch } from "vue";
+import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, provide, reactive, ref, watch } from "vue";
 import { applyClientOverlay, PERMISSIONS_KEY, type Permissions } from "./permissions";
 import { connectWs, connected, status, send, armed, lastReply, viewerGcode, viewerInit, gcodeContent, lcncError, latency, networkLatency, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead, pushMessage, safetyTrip, acknowledgeSafetyTrip, readerStale, configWarning, previewLoadError, serverShuttingDown, type LcncMessage } from "./lcncWs";
 // Lazy-load the 3D viewer so Three.js (~866 KB) + troika load as a separate async
@@ -781,37 +781,43 @@ onUnmounted(() => {
   clearInterval(autoDisarmTimer);
 });
 
-/** ---------- strip scroll-edge affordance ----------
- * Toggles .strip-more on the strip while sections are scrolled out of
- * view, fading in the .stripFade edge gradient. Children are observed
- * (not just the strip) because scrollWidth grows when content arrives
- * (axis chunks after viewer_init) without the strip itself resizing. */
-let stripEl: HTMLElement | null = null;
-let stripRo: ResizeObserver | null = null;
-function updateStripFade() {
-  const el = stripEl;
-  if (!el) return;
-  const more =
-    el.scrollLeft + el.clientWidth < el.scrollWidth - 1 ||
-    el.scrollTop + el.clientHeight < el.scrollHeight - 1;
-  el.classList.toggle("strip-more", more);
-  // Near edge: content is hidden under the pinned SafetyStrip
-  el.classList.toggle("strip-scrolled", el.scrollLeft > 1 || el.scrollTop > 1);
+/** ---------- scroll-edge affordances (strip + macro bar) ----------
+ * Toggles .strip-more (content beyond the far edge) and .strip-scrolled
+ * (content hidden at the near edge) on each scroller, fading the
+ * .stripFade/.stripFadeStart gradients (strip's near edge is the pinned
+ * SafetyStrip's ::after instead). Children are observed too because
+ * scrollWidth grows when content arrives (axis chunks after viewer_init)
+ * without the scroller itself resizing. The macro bar is v-if-mounted,
+ * so attachment re-runs when the macro list changes. */
+const fadeEls = new Set<HTMLElement>();
+let fadeRo: ResizeObserver | null = null;
+function updateScrollFades() {
+  for (const el of fadeEls) {
+    if (!el.isConnected) { fadeEls.delete(el); continue; }
+    const more =
+      el.scrollLeft + el.clientWidth < el.scrollWidth - 1 ||
+      el.scrollTop + el.clientHeight < el.scrollHeight - 1;
+    el.classList.toggle("strip-more", more);
+    el.classList.toggle("strip-scrolled", el.scrollLeft > 1 || el.scrollTop > 1);
+  }
 }
-onMounted(() => {
-  stripEl = document.querySelector<HTMLElement>(".strip");
-  if (!stripEl) return;
-  stripEl.addEventListener("scroll", updateStripFade, { passive: true });
-  stripRo = new ResizeObserver(updateStripFade);
-  stripRo.observe(stripEl);
-  for (const c of stripEl.children) stripRo.observe(c);
-  updateStripFade();
-});
+function attachScrollFades() {
+  fadeRo ??= new ResizeObserver(updateScrollFades);
+  for (const el of document.querySelectorAll<HTMLElement>(".strip, .macroBar")) {
+    if (fadeEls.has(el)) continue;
+    fadeEls.add(el);
+    el.addEventListener("scroll", updateScrollFades, { passive: true });
+    fadeRo.observe(el);
+    for (const c of el.children) fadeRo.observe(c);
+  }
+  updateScrollFades();
+}
+onMounted(attachScrollFades);
+watch(() => userMacros.value.length, () => nextTick(attachScrollFades));
 onUnmounted(() => {
-  stripEl?.removeEventListener("scroll", updateStripFade);
-  stripRo?.disconnect();
-  stripRo = null;
-  stripEl = null;
+  fadeRo?.disconnect();
+  fadeRo = null;
+  fadeEls.clear();
 });
 
 /** ---------- local UI jog ---------- */
@@ -1648,7 +1654,11 @@ watch(viewerGcode, (newGcode) => {
 
     <!-- ══ Macro Bar — thin row of user macro buttons ══ -->
     <Gate v-if="userMacros.length" gate="armed" class="macroBar bordered-panel row-controls scroll-thin">
+      <!-- Scroll-edge affordances (see .stripFade) — the macro bar has no
+           pinned section, so both edges fade when content is hidden. -->
+      <div class="stripFadeStart" aria-hidden="true"></div>
       <MachineBtn v-for="m in userMacros" :key="m.id" type="macro" @click="runMacro(m)">{{ m.name }}</MachineBtn>
+      <div class="stripFade" aria-hidden="true"></div>
     </Gate>
 
     <!-- ══ Bottom Action Strip — default-deny Gate, SafetyStrip exempt + sticky ══ -->
@@ -1839,12 +1849,14 @@ watch(viewerGcode, (newGcode) => {
   padding-left: var(--gap-controls);
 }
 
-/* Scroll-edge fade — signals that more strip sections exist beyond the
-   far edge (SafetyStrip pins the near edge, so only one side is needed).
-   Zero-width sticky child; the gradient hangs inward over the content. */
-.strip > .stripFade {
+/* Scroll-edge fades — signal that more sections exist beyond an edge.
+   Zero-width sticky children; the gradient hangs inward over the content.
+   The strip needs only the far edge (SafetyStrip pins its near edge);
+   the macro bar has no pinned section and fades both edges. */
+.strip > .stripFade,
+.macroBar > .stripFade,
+.macroBar > .stripFadeStart {
   position: sticky;
-  right: 0;
   flex: 0 0 0px;
   align-self: stretch;
   border-left: none;   /* exempt from the .strip > * + * divider */
@@ -1854,20 +1866,34 @@ watch(viewerGcode, (newGcode) => {
   pointer-events: none;
   z-index: 1;
 }
-.strip > .stripFade::before {
+.strip > .stripFade,
+.macroBar > .stripFade { right: 0; }
+.macroBar > .stripFadeStart { left: 0; }
+.strip > .stripFade::before,
+.macroBar > .stripFade::before,
+.macroBar > .stripFadeStart::before {
   content: "";
   position: absolute;
   top: 0;
   bottom: 0;
-  /* Hang past the sticky element by the scroller's right padding: sticky
-     is confined to the strip's CONTENT box, but scrolled content stays
-     visible through the padding and radius region — without this the
-     fade stops 8px short of the visible edge. */
-  right: calc(-1 * var(--gap-controls));
   width: calc(2 * var(--gap-panel) + var(--gap-controls));
+}
+/* Hang past the sticky element by the scroller's edge padding: sticky is
+   confined to the CONTENT box, but scrolled content stays visible through
+   the padding and radius region — without this the fade stops 8px short
+   of the visible edge. */
+.strip > .stripFade::before,
+.macroBar > .stripFade::before {
+  right: calc(-1 * var(--gap-controls));
   background: linear-gradient(to right, transparent, var(--panel));
 }
-.strip.strip-more > .stripFade {
+.macroBar > .stripFadeStart::before {
+  left: calc(-1 * var(--gap-controls));
+  background: linear-gradient(to right, var(--panel), transparent);
+}
+.strip.strip-more > .stripFade,
+.macroBar.strip-more > .stripFade,
+.macroBar.strip-scrolled > .stripFadeStart {
   opacity: 1;
 }
 
@@ -2248,6 +2274,33 @@ watch(viewerGcode, (newGcode) => {
     overflow-y: auto;
     height: auto;
     width: auto;
+  }
+  /* Vertical scroller: fades move to top/bottom edges (scroll-axis
+     padding is --gap-tight here, not --gap-controls) */
+  .wrap > .macroBar > .stripFade {
+    right: auto;
+    bottom: 0;
+  }
+  .wrap > .macroBar > .stripFadeStart {
+    left: auto;
+    top: 0;
+  }
+  .wrap > .macroBar > .stripFade::before,
+  .wrap > .macroBar > .stripFadeStart::before {
+    right: 0;
+    left: 0;
+    width: auto;
+    height: calc(2 * var(--gap-panel) + var(--gap-tight));
+  }
+  .wrap > .macroBar > .stripFade::before {
+    top: auto;
+    bottom: calc(-1 * var(--gap-tight));
+    background: linear-gradient(to bottom, transparent, var(--panel));
+  }
+  .wrap > .macroBar > .stripFadeStart::before {
+    bottom: auto;
+    top: calc(-1 * var(--gap-tight));
+    background: linear-gradient(to bottom, var(--panel), transparent);
   }
 
   /* Content: right column, viewer on top / side panel below */
