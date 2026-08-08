@@ -60,6 +60,7 @@ const emit = defineEmits<{
 
 .tabRow {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--gap-tight);
   flex: 1;
   min-width: 0;

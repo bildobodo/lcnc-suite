@@ -55,6 +55,13 @@ html:not(.touch-device) .b:active:not(:disabled) { background: var(--hl-active);
 .md { padding: 8px 12px; font-size: var(--fs-base); }
 .lg { padding: 10px 14px; font-size: var(--fs-md); }
 
+/* Touch: min-heights come from the global button rule in style.css
+   (touch sizing layer); narrow variants additionally need a width floor
+   so xs/sm text buttons and icon glyphs aren't sub-fingertip wide. */
+html.touch-device .b.xs,
+html.touch-device .b.sm { min-width: var(--touch-target); }
+html.touch-device .b-icon { min-width: 40px; }
+
 /* ---- Variants ---- */
 .primary {
   border-color: color-mix(in srgb, var(--ok) 50%, transparent);

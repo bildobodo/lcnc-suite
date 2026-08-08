@@ -114,6 +114,13 @@
   --gap-section:  12px;  /* between sections within a panel, card gaps */
   --gap-panel:    20px;  /* major layout divisions, top-level section breaks */
 
+  /* Touch target floors — applied under html.touch-device (touchDetect.ts).
+     44px is the Apple/Material guideline; 36px is the compact floor forced
+     by the 280px bottom strip, whose stacked rows (SetupStrip axis rows,
+     jog step radios) cannot all reach 44px inside the fixed height. */
+  --touch-target:         44px;
+  --touch-target-compact: 36px;
+
   /* Shadows */
   --shadow-sm:  0 4px 12px rgba(0, 0, 0, 0.15);  /* popovers, floating panels, PIP */
   --shadow-md:  0 4px 24px rgba(0, 0, 0, 0.35);  /* dialogs */
@@ -525,6 +532,94 @@ textarea:disabled {
 label:has(input.toggle:disabled) {
   opacity: var(--opacity-disabled);
   pointer-events: none;
+}
+
+/* ═══ Touch sizing layer ═══════════════════════════════════════════════
+   html.touch-device is set on the first touch input (touchDetect.ts).
+   Desktop density is unchanged; on touch, hit targets are raised toward
+   --touch-target (44px), with --touch-target-compact (36px) as the floor
+   where the 280px strip's vertical budget rules 44px out. Only min-* and
+   hit-area properties belong here — no visual restyling. */
+
+html.touch-device button,
+html.touch-device select {
+  min-height: var(--touch-target-compact);
+}
+
+html.touch-device .inputField {
+  min-height: var(--touch-target-compact);
+}
+
+/* Native radios/checkboxes render at ~13px — scale the widget and give
+   the wrapping label rows a real hit strip. */
+html.touch-device input[type="radio"],
+html.touch-device input[type="checkbox"]:not(.toggle) {
+  width: 18px;
+  height: 18px;
+}
+
+html.touch-device .radio-label,
+html.touch-device .radioGroup label {
+  min-height: 28px;
+}
+
+html.touch-device .toggleRow {
+  min-height: 32px;
+}
+
+html.touch-device input.toggle {
+  width: 44px;
+  height: 24px;
+}
+html.touch-device input.toggle::after {
+  width: 20px;
+  height: 20px;
+}
+html.touch-device input.toggle:checked::after {
+  transform: translateX(20px);
+}
+
+html.touch-device input[type="color"] {
+  width: 44px;
+  height: 32px;
+}
+
+html.touch-device .helpIcon {
+  width: 20px;
+  height: 20px;
+}
+
+/* Range inputs: the track stays a 6px bar, but the element grows to a
+   28px hit box — padding takes the drag/tap slop, background-clip keeps
+   the paint on the content box so the visual is unchanged. */
+html.touch-device input[type="range"] {
+  height: 28px;
+  padding: 11px 0;
+  background-clip: content-box;
+}
+/* Landscape only: portrait rotates .vSlider back to horizontal
+   (.strip-slider-row/.strip-slider-group rules below) at lower
+   specificity — this rule must not override that with a 28px width. */
+@media (orientation: landscape) {
+  html.touch-device input[type="range"].vSlider {
+    height: auto;
+    width: 28px;
+    padding: 0 11px;
+  }
+}
+html.touch-device input[type="range"]::-webkit-slider-thumb {
+  width: 20px;
+  height: 20px;
+}
+html.touch-device input[type="range"]::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+}
+
+/* Table rows that are tap targets (offset cells, tool rows, file lists) */
+html.touch-device .dataTable th,
+html.touch-device .dataTable td {
+  padding: var(--gap-controls);
 }
 
 label:has(input:disabled, select:disabled) {
