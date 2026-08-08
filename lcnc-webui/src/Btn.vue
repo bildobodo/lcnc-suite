@@ -11,6 +11,8 @@ defineProps<{
   warning?: boolean;
   muted?: boolean;
   mono?: boolean;
+  /** Hold-to-fire press in progress (MachineBtn) — animates the fill. */
+  holding?: boolean;
 }>();
 </script>
 
@@ -20,7 +22,7 @@ defineProps<{
       icon ? 'b-icon' : inline ? 'b-inline' : 'b',
       !inline && (size ?? 'md'),
       !icon && !inline && (variant ?? 'default'),
-      { active, selected, flashing, warning, block, muted, mono },
+      { active, selected, flashing, warning, block, muted, mono, holding },
     ]"
   >
     <slot />
@@ -30,6 +32,7 @@ defineProps<{
 <style scoped>
 /* ---- Base ---- */
 .b {
+  position: relative; /* anchor for the .holding fill overlay */
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -146,6 +149,23 @@ html.touch-device .b.muted:active:not(:disabled) { opacity: 1; }
 
 /* ---- Mono — tabular-nums (digit column alignment, sans font) ---- */
 .b.mono { font-variant-numeric: tabular-nums; }
+
+/* ---- Hold-to-fire fill (MachineBtn hold behavior) ----
+   Left-to-right fill over --hold-duration; the action fires when the
+   JS timer (source of truth) completes — the animation is visual only. */
+.b.holding::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--hl-active);
+  transform-origin: left;
+  transform: scaleX(0);
+  animation: hold-fill var(--hold-duration, 500ms) linear forwards;
+  pointer-events: none;
+}
+@keyframes hold-fill {
+  to { transform: scaleX(1); }
+}
 
 /* ---- Block ---- */
 .block { width: 100%; }

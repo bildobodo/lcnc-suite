@@ -76,8 +76,8 @@ function zeroAll() {
           <MachineBtn :type="homedJoints[a.index] ? 'unhome' : 'home'" @click="homedJoints[a.index] ? emit('unhomeAxis', a.index) : emit('homeAxis', a.index)"><span class="stable-width"><span :class="{ alt: homedJoints[a.index] }">Home {{ a.letter }}</span><span :class="{ alt: !homedJoints[a.index] }">Unhome {{ a.letter }}</span></span></MachineBtn>
         </template>
         <template v-if="chunk.actions">
-          <MachineBtn type="zero" class="spanAll" @click="zeroAll()">Zero All</MachineBtn>
-          <MachineBtn :type="isHomed ? 'unhome' : 'home'" class="spanAll" @click="isHomed ? emit('unhomeAll') : emit('homeAll')"><span class="stable-width"><span :class="{ alt: isHomed }">Home All</span><span :class="{ alt: !isHomed }">Unhome All</span></span></MachineBtn>
+          <MachineBtn type="zero" class="spanAll" :hold="true" @click="zeroAll()">Zero All</MachineBtn>
+          <MachineBtn :type="isHomed ? 'unhome' : 'home'" class="spanAll" :hold="true" @click="isHomed ? emit('unhomeAll') : emit('homeAll')"><span class="stable-width"><span :class="{ alt: isHomed }">Home All</span><span :class="{ alt: !isHomed }">Unhome All</span></span></MachineBtn>
           <MachineBtn type="goTo" @click="emit('goToG30')">→ G30</MachineBtn>
           <MachineBtn type="goTo" @click="emit('goToHome')">→ Home</MachineBtn>
           <MachineBtn type="goTo" @click="emit('goToZero')">→ Zero</MachineBtn>

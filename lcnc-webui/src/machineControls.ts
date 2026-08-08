@@ -17,7 +17,19 @@ export interface ButtonDef {
   // ProbePanel and the tool actions in App.vue. MachineBtn injects the
   // 'probing' ref provided by App.vue and ANDs this flag into isDisabled.
   whileProbing?: boolean;
+  // Press-and-hold to fire instead of a plain click — accidental-tap
+  // protection for buttons where one touch starts machine motion (probe
+  // cycles, rapids, spindle start). MachineBtn swallows the native click
+  // and fires the @click handler after HOLD_FIRE_MS with a visual fill;
+  // releasing or sliding off early cancels. Note: this makes the button
+  // dead to keyboard Enter/Space — these ops have keyboard-shortcut and
+  // gamepad paths that bypass the button. Per-instance override via the
+  // MachineBtn `hold` prop.
+  hold?: boolean;
 }
+
+/** Press-and-hold duration for hold-to-fire buttons (ButtonDef.hold). */
+export const HOLD_FIRE_MS = 500;
 
 export const BUTTON_TYPES = {
   // Program control
@@ -29,22 +41,22 @@ export const BUTTON_TYPES = {
 
   // MDI / motion
   mdi:            { gate: 'ready',    variant: 'primary', size: 'md' },
-  goTo:           { gate: 'ready',    variant: 'default', size: 'md' },
+  goTo:           { gate: 'ready',    variant: 'default', size: 'md', hold: true },
   home:           { gate: 'zero',     variant: 'default', size: 'md' },
   unhome:         { gate: 'zero',     variant: 'default', size: 'md' },
 
   // Probe
-  probe:          { gate: 'probe',    variant: 'default', size: 'md', whileProbing: true },
+  probe:          { gate: 'probe',    variant: 'default', size: 'md', whileProbing: true, hold: true },
   probeReset:     { gate: 'probe',    variant: 'danger',  size: 'md', whileProbing: true },
 
   // Tool
   toolLoad:       { gate: 'ready',    variant: 'default', size: 'md' },
-  toolMeasure:    { gate: 'ready',    variant: 'default', size: 'md', whileProbing: true },
+  toolMeasure:    { gate: 'ready',    variant: 'default', size: 'md', whileProbing: true, hold: true },
   toolUnload:     { gate: 'ready',    variant: 'default', size: 'md', whileProbing: true },
 
   // Spindle
-  spindleFwd:      { gate: 'ready',    variant: 'default', size: 'md' },
-  spindleRev:      { gate: 'ready',    variant: 'default', size: 'md' },
+  spindleFwd:      { gate: 'ready',    variant: 'default', size: 'md', hold: true },
+  spindleRev:      { gate: 'ready',    variant: 'default', size: 'md', hold: true },
   spindleStop:     { gate: 'ready',    variant: 'danger',  size: 'md' },
   spindleIncrease: { gate: 'ready',    variant: 'default', size: 'md' },
   spindleDecrease: { gate: 'ready',    variant: 'default', size: 'md' },

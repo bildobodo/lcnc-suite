@@ -143,7 +143,8 @@ watch(settingsVersion, () => { loadTsParams(); });
     <label>Z</label>
     <span class="mono">{{ g30Z != null ? g30Z.toFixed(3) : '—' }}</span>
     <div class="row-tight span">
-      <MachineBtn type="probe" @click="setG30">Set Current Position</MachineBtn>
+      <!-- hold=false: records the current position (var write), no motion -->
+      <MachineBtn type="probe" :hold="false" @click="setG30">Set Current Position</MachineBtn>
       <MachineBtn type="inlineMd" @click="loadG30" :disabled="g30Loading">Refresh</MachineBtn>
     </div>
     <div v-if="g30Error" class="span errorText">G30 read failed: {{ g30Error }}</div>
