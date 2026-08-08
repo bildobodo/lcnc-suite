@@ -36,6 +36,17 @@ export function registerJog(
 }
 
 /**
+ * The jog key a pointer is registered under, or undefined.
+ * Stop handlers guard on this instead of the key set: the registry is
+ * keyed by pointerId, so a stop may only act for the pointer that owns
+ * the jog — a second finger tapping an already-held button must not
+ * stop (or desync) the first finger's jog.
+ */
+export function jogKeyFor(pointerId: number): string | undefined {
+  return activePointers.get(pointerId)?.key;
+}
+
+/**
  * Unregister a pointer (normal release path).
  * Does NOT call stopFn — the component handles its own stop command.
  */

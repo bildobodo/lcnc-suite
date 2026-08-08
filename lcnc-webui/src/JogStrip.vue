@@ -3,7 +3,7 @@ import { computed, inject, ref, watch, onMounted, onUnmounted, type Ref, type Co
 import { send } from "./lcncWs";
 import { usePermissions } from "./permissions";
 import { INPUT_DEFS } from "./machineControls";
-import { registerJog, unregisterJog, activeJogKeys, forceStopAllJogs } from "./useJogPointers";
+import { registerJog, unregisterJog, activeJogKeys, forceStopAllJogs, forceStopJog, jogKeyFor } from "./useJogPointers";
 import { useAxes } from "./useAxes";
 import MachineBtn from "./MachineBtn.vue";
 import MachineRadio from "./MachineRadio.vue";
@@ -174,7 +174,10 @@ function startJog(btn: JogDef, e: PointerEvent) {
 }
 
 function stopJog(btn: JogDef, e: PointerEvent) {
-  if (!activeJogKeys.has(btn.label)) return;
+  // Ownership guard, not a key-set guard: only the pointer that started
+  // this jog may stop it — a second finger tapping the held button must
+  // not send jog_stop for a jog it doesn't own (registry desync).
+  if (jogKeyFor(e.pointerId) !== btn.label) return;
 
   if (props.jogIncrement <= 0) {
     const isDiag = btn.axis2 != null;
@@ -188,6 +191,25 @@ function stopJog(btn: JogDef, e: PointerEvent) {
   unregisterJog(e.pointerId);
   // safe-silent: releasing an already-released pointer throws harmlessly
   try { (e.currentTarget as HTMLElement)?.releasePointerCapture?.(e.pointerId); } catch {}
+}
+
+/**
+ * Slide-off deadman: stop the jog when the pressing finger/cursor leaves
+ * the button. @pointerleave cannot do this — pointer capture retargets
+ * events to the captured button, so leave never fires mid-hold — hence
+ * an explicit bounds test on the captured pointermove stream. A small
+ * slack margin keeps edge jitter from dropping the jog.
+ */
+const SLIDE_OFF_SLACK = 8; // px
+function slideOffCheck(e: PointerEvent) {
+  if (jogKeyFor(e.pointerId) === undefined) return;
+  const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+  if (
+    e.clientX < r.left - SLIDE_OFF_SLACK || e.clientX > r.right + SLIDE_OFF_SLACK ||
+    e.clientY < r.top - SLIDE_OFF_SLACK || e.clientY > r.bottom + SLIDE_OFF_SLACK
+  ) {
+    forceStopJog(e.pointerId);
+  }
 }
 
 // ─── Generic single-axis jog (Z, A, B, C, U, V, W) ─────────
@@ -213,7 +235,8 @@ function startAxisJog(axisIndex: number, dir: 1 | -1, vel: number, e: PointerEve
 function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
   const letter = props.axes[axisIndex]!;
   const key = `${letter}${dir > 0 ? "+" : "-"}`;
-  if (!activeJogKeys.has(key)) return;
+  // Ownership guard — see stopJog.
+  if (jogKeyFor(e.pointerId) !== key) return;
 
   if (props.jogIncrement <= 0) {
     send({ cmd: "jog_stop", axis: axisIndex });
@@ -243,6 +266,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               @pointerup.prevent="stopJog(btn, $event)"
               @pointercancel.prevent="stopJog(btn, $event)"
               @pointerleave.prevent="stopJog(btn, $event)"
+              @pointermove="slideOffCheck"
               @contextmenu.prevent
             ><div :class="['jogInner', btn.dir_class]"><component :is="btn.icon" class="jogIcon" /><span v-if="btn.shortLabel" class="jogLabel">{{ btn.shortLabel }}</span></div></MachineBtn>
           </div>
@@ -257,6 +281,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
             @pointerup.prevent="stopAxisJog(zAxis.index, 1, $event)"
             @pointercancel.prevent="stopAxisJog(zAxis.index, 1, $event)"
             @pointerleave.prevent="stopAxisJog(zAxis.index, 1, $event)"
+            @pointermove="slideOffCheck"
             @contextmenu.prevent
           ><div class="jogInner jogZUp"><ArrowUp class="jogIcon" /><span class="jogLabel">Z+</span></div></MachineBtn>
           <MachineBtn
@@ -267,6 +292,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
             @pointerup.prevent="stopAxisJog(zAxis.index, -1, $event)"
             @pointercancel.prevent="stopAxisJog(zAxis.index, -1, $event)"
             @pointerleave.prevent="stopAxisJog(zAxis.index, -1, $event)"
+            @pointermove="slideOffCheck"
             @contextmenu.prevent
           ><div class="jogInner jogZDown"><ArrowDown class="jogIcon" /><span class="jogLabel">Z-</span></div></MachineBtn>
         </div>
@@ -282,6 +308,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               @pointerup.prevent="stopAxisJog(ra.index, 1, $event)"
               @pointercancel.prevent="stopAxisJog(ra.index, 1, $event)"
               @pointerleave.prevent="stopAxisJog(ra.index, 1, $event)"
+              @pointermove="slideOffCheck"
               @contextmenu.prevent
             ><div class="jogInner jogZUp"><ArrowUp class="jogIcon" /><span class="jogLabel">{{ ra.letter }}+</span></div></MachineBtn>
             <MachineBtn
@@ -292,6 +319,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               @pointerup.prevent="stopAxisJog(ra.index, -1, $event)"
               @pointercancel.prevent="stopAxisJog(ra.index, -1, $event)"
               @pointerleave.prevent="stopAxisJog(ra.index, -1, $event)"
+              @pointermove="slideOffCheck"
               @contextmenu.prevent
             ><div class="jogInner jogZDown"><ArrowDown class="jogIcon" /><span class="jogLabel">{{ ra.letter }}-</span></div></MachineBtn>
           </div>
@@ -308,6 +336,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               @pointerup.prevent="stopAxisJog(ra.index, 1, $event)"
               @pointercancel.prevent="stopAxisJog(ra.index, 1, $event)"
               @pointerleave.prevent="stopAxisJog(ra.index, 1, $event)"
+              @pointermove="slideOffCheck"
               @contextmenu.prevent
             ><div class="jogInner jogZUp"><ArrowUp class="jogIcon" /><span class="jogLabel">{{ ra.letter }}+</span></div></MachineBtn>
             <MachineBtn
@@ -318,6 +347,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               @pointerup.prevent="stopAxisJog(ra.index, -1, $event)"
               @pointercancel.prevent="stopAxisJog(ra.index, -1, $event)"
               @pointerleave.prevent="stopAxisJog(ra.index, -1, $event)"
+              @pointermove="slideOffCheck"
               @contextmenu.prevent
             ><div class="jogInner jogZDown"><ArrowDown class="jogIcon" /><span class="jogLabel">{{ ra.letter }}-</span></div></MachineBtn>
           </div>
