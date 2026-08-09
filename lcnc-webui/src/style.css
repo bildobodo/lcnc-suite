@@ -987,8 +987,14 @@ label:has(input:disabled, select:disabled) {
      rounded edge exactly. Line text starts 12px in, clear of the 8px
      corner radius. */
   padding: 0;
-  /* fade-scroll end color matches this translucent background */
-  --scroll-fade-bg: color-mix(in oklab, var(--bg) 80%, transparent);
+  /* Fade end color: the OPAQUE composite of this scroller's translucent
+     background over the --panel behind it. Fading to the translucent mix
+     itself left text ~20% visible at the very edge — the edge must reach
+     zero visibility. */
+  --scroll-fade-bg: color-mix(in oklab, var(--bg) 80%, var(--panel));
+  /* Native scrollbars ignore border-radius and square off the right
+     corners — clip ALL painting (scrollbar included) to the rounded rect. */
+  clip-path: inset(0 round var(--radius-xl));
 }
 
 .codeLine {
