@@ -713,7 +713,12 @@ label:has(input:disabled, select:disabled) {
   position: sticky;
   left: 0;
   display: block;
-  height: calc(2 * var(--gap-panel));
+  /* --sf-pad: the scroller's scroll-axis edge padding. Sticky pseudos pin
+     at the CONTENT box, but scrolled content stays visible through the
+     padding and radius region — the fade grows by the padding and the
+     negative sticky offset below pulls it over that band (same fix as the
+     strip's .stripFade overhang). */
+  height: calc(2 * var(--gap-panel) + var(--sf-pad, 0px));
   /* flex: none is load-bearing: in flex-column scrollers the pseudos are
      flex items with min-content 0 — default flex-shrink squashes them to
      0px the moment content overflows (i.e., exactly when a fade should
@@ -725,13 +730,13 @@ label:has(input:disabled, select:disabled) {
   z-index: 2;
 }
 .fade-scroll::before {
-  top: 0;
-  margin-bottom: calc(-2 * var(--gap-panel) - var(--sf-gap, 0px));
+  top: calc(-1 * var(--sf-pad, 0px));
+  margin-bottom: calc(-2 * var(--gap-panel) - var(--sf-pad, 0px) - var(--sf-gap, 0px));
   background: linear-gradient(to bottom, var(--scroll-fade-bg, var(--panel)), transparent);
 }
 .fade-scroll::after {
-  bottom: 0;
-  margin-top: calc(-2 * var(--gap-panel) - var(--sf-gap, 0px));
+  bottom: calc(-1 * var(--sf-pad, 0px));
+  margin-top: calc(-2 * var(--gap-panel) - var(--sf-pad, 0px) - var(--sf-gap, 0px));
   background: linear-gradient(to bottom, transparent, var(--scroll-fade-bg, var(--panel)));
 }
 .fade-scroll.sf-up::before { opacity: 1; }
@@ -956,6 +961,7 @@ label:has(input:disabled, select:disabled) {
   min-height: 0;
   overflow-y: auto;
   padding: var(--gap-section);
+  --sf-pad: var(--gap-section); /* fade-scroll overhang matches the padding */
 }
 
 /* G-code syntax highlighting tokens */
@@ -977,6 +983,7 @@ label:has(input:disabled, select:disabled) {
   padding: var(--gap-controls) 0;
   /* fade-scroll end color matches this translucent background */
   --scroll-fade-bg: color-mix(in oklab, var(--bg) 80%, transparent);
+  --sf-pad: var(--gap-controls); /* fade overhangs the vertical padding */
 }
 
 .codeLine {
