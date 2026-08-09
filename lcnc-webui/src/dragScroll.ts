@@ -58,6 +58,10 @@ function attach(el: HTMLElement) {
     if (!state.dragging) {
       if (Math.abs(dx) < DRAG_THRESHOLD && Math.abs(dy) < DRAG_THRESHOLD) return
       state.dragging = true
+      // A selection can anchor during the pre-threshold slop (the browser
+      // starts selecting at pointerdown, before we know it's a drag) —
+      // clear it, or it survives the whole drag as a lasso.
+      document.getSelection()?.removeAllRanges()
       // Capture now that we know this is a drag, not a scrollbar click
       el.setPointerCapture(e.pointerId)
       el.style.cursor = 'grabbing'
