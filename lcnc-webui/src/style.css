@@ -81,6 +81,7 @@
      (checklist: form interactions use --info). */
   --hl-surface: color-mix(in oklab, var(--fg) 8%, transparent);
   --hl-surface-info: color-mix(in oklab, var(--info) 10%, transparent);
+  --hl-surface-ok: color-mix(in oklab, var(--ok) 10%, transparent);
 
   /* ViewCube palette — derived from theme tokens, auto-switches per data-theme */
   --viewcube-face:  color-mix(in oklab, var(--fg) 10%, var(--bg));

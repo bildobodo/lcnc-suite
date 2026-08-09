@@ -176,13 +176,19 @@ function clearAll() {
   color: color-mix(in oklab, var(--fg) 80%, transparent);
 }
 
-.activeRow .offLabel {
-  color: var(--info);
-}
-
 .selectedRow {
   background: color-mix(in oklab, var(--info) 15%, transparent);
   outline: 1px solid color-mix(in oklab, var(--info) 40%, transparent);
+}
+
+/* Active WCS = machine state → --ok (selection stays --info). Declared after
+   .selectedRow so the machine-truth background wins when a row is both. */
+.activeRow {
+  background: var(--hl-surface-ok);
+}
+
+.activeRow .offLabel {
+  color: var(--ok);
 }
 
 tbody tr {
