@@ -48,19 +48,21 @@ function press(t: string, e: PointerEvent) {
           @pointerdown.prevent="press(l, $event)" @contextmenu.prevent
         >{{ l }}</MachineBtn>
       </div>
-      <div class="gkDigits">
+      <!-- Pad block: fixed 4×5 numpad-style grid, IDENTICAL in both
+           orientations — digits auto-place into the 3-wide block because
+           the explicitly-placed ops occupy the whole 4th column, space
+           bar spans the bottom row (physical-numpad layout). -->
+      <div class="gkPad" :class="mode">
         <MachineBtn
           v-for="d in digits" :key="d" type="numKey" class="gkKey"
           @pointerdown.prevent="press(d, $event)" @contextmenu.prevent
         >{{ d }}</MachineBtn>
-      </div>
-      <div class="gkOps">
-        <MachineBtn type="numOp" class="gkKey" @pointerdown.prevent="press(' ', $event)" @contextmenu.prevent>Space</MachineBtn>
-        <MachineBtn type="numOp" class="gkKey" @pointerdown.prevent="emit('backspace')" @contextmenu.prevent><Delete :size="16" /></MachineBtn>
-        <MachineBtn v-if="mode === 'mdi'" type="numOp" class="gkKey" @pointerdown.prevent="emit('clear')" @contextmenu.prevent>Clear</MachineBtn>
+        <MachineBtn type="numOp" class="gkKey gkBksp" @pointerdown.prevent="emit('backspace')" @contextmenu.prevent><Delete :size="16" /></MachineBtn>
+        <MachineBtn v-if="mode === 'mdi'" type="numOp" class="gkKey gkClear" @pointerdown.prevent="emit('clear')" @contextmenu.prevent>Clear</MachineBtn>
         <MachineBtn type="numKey" variant="primary" class="gkKey gkEnter" @pointerdown.prevent="emit('enter')" @contextmenu.prevent>
           {{ mode === "mdi" ? "Send" : "⏎" }}
         </MachineBtn>
+        <MachineBtn type="numOp" class="gkKey gkSpace" @pointerdown.prevent="press(' ', $event)" @contextmenu.prevent>Space</MachineBtn>
       </div>
     </div>
   </div>
@@ -73,27 +75,49 @@ function press(t: string, e: PointerEvent) {
   flex: 1;
   min-height: 0;
 }
-/* Same key-grid pattern as NumberKeypadStrip: tight gaps inside a key cluster,
-   1fr rows so the cluster fills the strip height. */
+/* Everything is a fixed --key-size square cell (shared token with
+   NumberKeypadStrip). The pad block never changes; only the letters grid
+   transforms: landscape is height-limited so letters flow column-wise
+   into 5 fixed rows (columns appear as needed), portrait is width-limited
+   so letters flow row-wise into as many columns as fit. */
 .gkLetters {
   display: grid;
-  grid-template-columns: repeat(4, minmax(44px, 1fr));
-  grid-auto-rows: 1fr;
+  grid-template-rows: repeat(5, var(--key-size));
+  grid-auto-flow: column;
+  grid-auto-columns: var(--key-size);
   gap: var(--gap-tight);
 }
-.gkDigits {
+.gkPad {
   display: grid;
-  grid-template-columns: repeat(3, minmax(44px, 1fr));
-  grid-auto-rows: 1fr;
+  grid-template-columns: repeat(4, var(--key-size));
+  grid-auto-rows: var(--key-size);
   gap: var(--gap-tight);
 }
-.gkOps {
-  display: grid;
-  grid-auto-rows: 1fr;
-  gap: var(--gap-tight);
-  min-width: 70px;
-}
+/* Ops occupy the 4th column + bottom row; digits auto-place around them.
+   Column 4 top-to-bottom: Clear, ⌫, Send (2 tall); the space bar takes
+   the whole bottom row. Editor mode has no Clear — ⌫ grows to 2 tall so
+   the column stays full. */
+.gkClear { grid-column: 4; grid-row: 1; }
+.gkBksp  { grid-column: 4; grid-row: 2; }
+.gkEnter { grid-column: 4; grid-row: 3 / 5; }
+.gkPad.editor .gkBksp { grid-row: 1 / 3; }
+.gkSpace { grid-column: 1 / 5; grid-row: 5; }
+/* Tall Send key: vertical label, it can't fit horizontally in one cell. */
+.gkPad.mdi .gkEnter { writing-mode: vertical-rl; }
 .gkKey {
   min-height: 0; /* grid rows own the height — override the touch layer's button floor */
+}
+
+@media (orientation: portrait) {
+  /* Width-limited: letters become a full-width top block flowing
+     row-wise; the pad wraps beneath it, unchanged. */
+  .gkRows { flex-wrap: wrap; }
+  .gkLetters {
+    width: 100%;
+    grid-template-rows: none;
+    grid-auto-flow: row;
+    grid-template-columns: repeat(auto-fill, var(--key-size));
+    grid-auto-rows: var(--key-size);
+  }
 }
 </style>

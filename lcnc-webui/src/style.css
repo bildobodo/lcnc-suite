@@ -121,6 +121,9 @@
      jog step radios) cannot all reach 44px inside the fixed height. */
   --touch-target:         44px;
   --touch-target-compact: 36px;
+  /* Square key size — one value for the strip keypad AND G-code keyboard,
+     identical in portrait and landscape so key muscle memory transfers. */
+  --key-size: var(--touch-target);
 
   /* Shadows */
   --shadow-sm:  0 4px 12px rgba(0, 0, 0, 0.15);  /* popovers, floating panels, PIP */
