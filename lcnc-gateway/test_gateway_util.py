@@ -333,3 +333,62 @@ class TestParseTelemetryBatch(unittest.TestCase):
 
     def test_empty(self):
         self.assertEqual(gateway_util.parse_telemetry_batch(b""), ([], 0))
+
+
+class TestScanToolStats(unittest.TestCase):
+    """Textual M6/M600/M601 scan for program stats — mirrors the word-matcher
+    semantics of the frontend scanToolchangesBefore (gcodeRfl.test.ts)."""
+
+    def scan(self, text):
+        return gateway_util.scan_tool_stats(text)
+
+    def test_plain_m6_with_t(self):
+        self.assertEqual(self.scan("G21\nT5 M6\nG0 X0\n"), (1, {5}))
+
+    def test_m600_remap_counts(self):
+        self.assertEqual(self.scan("T13 M600\nG0 X0\n"), (1, {13}))
+
+    def test_m601_counts(self):
+        self.assertEqual(self.scan("T2 M601\n"), (1, {2}))
+
+    def test_t_before_change_on_earlier_line(self):
+        # T is a modal prepare — a later bare M6 changes to it.
+        self.assertEqual(self.scan("T7\nG0 X0\nM6\n"), (1, {7}))
+
+    def test_modal_t_reused_for_second_change(self):
+        self.assertEqual(self.scan("T5 M600\nG1 X1\nM600\n"), (2, {5}))
+
+    def test_multiple_tools(self):
+        text = "T1 M6\nG1 X1\nT2 M600\nG1 X2\nT1 M6\n"
+        self.assertEqual(self.scan(text), (3, {1, 2}))
+
+    def test_ignores_comments(self):
+        text = "; T5 M6 in comment\n(T3 M600 inline)\nG0 X0 ; M6\n"
+        self.assertEqual(self.scan(text), (0, set()))
+
+    def test_no_false_match_m60_m66_m61(self):
+        # M60 (pallet change), M66 (wait input), M61 (set tool number),
+        # M602 (unknown) must not count.
+        self.assertEqual(self.scan("M60\nM66 P0\nM61 Q3\nM602\n"), (0, set()))
+
+    def test_leading_zeros(self):
+        self.assertEqual(self.scan("T05 M06\n"), (1, {5}))
+
+    def test_t0_unload_counts_change_not_tool(self):
+        self.assertEqual(self.scan("T0 M6\n"), (1, set()))
+
+    def test_unevaluable_t_expression_counts_change_only(self):
+        self.assertEqual(self.scan("T#100 M6\n"), (1, set()))
+
+    def test_case_insensitive(self):
+        self.assertEqual(self.scan("t3 m600\n"), (1, {3}))
+
+    def test_word_boundaries(self):
+        # Preceding word characters must not produce matches.
+        self.assertEqual(self.scan("G0 XM6\nO100 CALL [6]\n"), (0, set()))
+
+    def test_crlf_lines(self):
+        self.assertEqual(self.scan("T4 M6\r\nG0 X0\r\n"), (1, {4}))
+
+    def test_empty(self):
+        self.assertEqual(self.scan(""), (0, set()))

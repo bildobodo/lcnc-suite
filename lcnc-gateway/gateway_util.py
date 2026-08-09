@@ -12,6 +12,7 @@ Keep this file pure: stdlib only, no side effects at import time.
 import json
 import math
 import os
+import re
 import tempfile
 import hmac
 from urllib.parse import urlsplit
@@ -279,3 +280,49 @@ def parse_telemetry_batch(raw: bytes, max_events: int = TELEMETRY_EVENTS_MAX):
         fields = {k: v for k, v in evt.items() if k not in ("kind", "tag")}
         events.append((kind, fields))
     return events, rejected
+
+
+# ---- Textual tool-change scan (program stats) ----
+#
+# Python port of the frontend's scanToolchangesBefore word matchers
+# (lcnc-webui/src/gcodeRfl.ts) applied to the WHOLE program: M6, and this
+# machine's remapped M600/M601, all count as tool changes. M0*6 must not match
+# M60/M66/M600 — (?!\d) guards the tail; M600/M601 are removed before the M6
+# test so RE_M6 needs no lookahead gymnastics.
+
+_RE_TC_M600 = re.compile(r"(?<![A-Z0-9.])M0*60[01](?!\d)", re.IGNORECASE)
+_RE_TC_M6 = re.compile(r"(?<![A-Z0-9.])M0*6(?!\d)", re.IGNORECASE)
+_RE_TC_T = re.compile(r"(?<![A-Z0-9.])T0*(\d+)(?!\d)", re.IGNORECASE)
+_RE_TC_PAREN = re.compile(r"\([^)]*\)")
+
+
+def scan_tool_stats(text: str):
+    """Count tool-change statements (M6 / M600 / M601) in program text.
+
+    Returns ``(changes, tools)`` — total change count and the set of T numbers
+    in modal effect at each change (T0 = unload is counted as a change but not
+    a tool, matching PreviewCanon.change_tool). A change whose T number is
+    unknown (no T word yet, or a T[expr]/T#var the scanner can't evaluate)
+    still counts but contributes no tool.
+    """
+    changes = 0
+    tools = set()
+    pending = None  # last T word seen (modal prepare), None = unknown
+    for raw in text.splitlines():
+        if "T" not in raw and "t" not in raw and "M" not in raw and "m" not in raw:
+            continue
+        semi = raw.find(";")
+        line = raw if semi == -1 else raw[:semi]
+        line = _RE_TC_PAREN.sub(" ", line)
+        if not line.strip():
+            continue
+        t_words = _RE_TC_T.findall(line)
+        if t_words:
+            pending = int(t_words[-1])
+        hits = len(_RE_TC_M600.findall(line))
+        hits += len(_RE_TC_M6.findall(_RE_TC_M600.sub(" ", line)))
+        if hits:
+            changes += hits
+            if pending:
+                tools.add(pending)
+    return changes, tools

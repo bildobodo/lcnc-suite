@@ -49,6 +49,7 @@ _trace.init("gcode_parse_worker")
 # Ensure local-dir imports resolve when invoked from anywhere
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from gcode_canon import PreviewCanon, apply_var_patches
+from gateway_util import scan_tool_stats
 
 
 _EMPTY = {"feed": [], "feed_lines": [], "rapid": [], "stats": None,
@@ -352,6 +353,20 @@ def parse(ctx: dict) -> dict:
     except OSError:
         file_size = 0
 
+    # Tool stats need BOTH sources. The interpreter only fires change_tool on
+    # an executed M6 — this machine's M600/M601 remap reaches its inner M6 via
+    # tool_touch_off.ngc, whose body is skipped in preview (#<_task> guard), so
+    # the canon counts 0 for M600 programs. The textual scan sees M6/M600/M601
+    # in the program text but can't expand subroutine loops the interpreter
+    # does execute. Max/union of the two is the best honest estimate.
+    text_changes = 0
+    text_tools = set()
+    try:
+        with open(filename, "r", errors="replace") as f:
+            text_changes, text_tools = scan_tool_stats(f.read())
+    except OSError as e:
+        _trace.emit_exc("gcode.tool_scan_failed", e)
+
     stats = {
         "feedMoves": len(canon.feed),
         "rapidMoves": len(canon.rapid),
@@ -365,8 +380,8 @@ def parse(ctx: dict) -> dict:
         "rapidTime": round(total_rapid_time, 1),
         "totalTime": round(total_feed_time + total_rapid_time, 1),
         "feedRates": sorted(feed_rates),
-        "toolChanges": canon.tool_changes,
-        "toolsUsed": sorted(canon.tools_used),
+        "toolChanges": max(canon.tool_changes, text_changes),
+        "toolsUsed": sorted(canon.tools_used | text_tools),
         "unit": machine_units,
         "fileSize": file_size,
     }
