@@ -73,7 +73,7 @@ function press(t: string, e: PointerEvent) {
   flex: 1;
   min-height: 0;
 }
-/* Same key-grid pattern as NumberKeypad: tight gaps inside a key cluster,
+/* Same key-grid pattern as NumberKeypadStrip: tight gaps inside a key cluster,
    1fr rows so the cluster fills the strip height. */
 .gkLetters {
   display: grid;

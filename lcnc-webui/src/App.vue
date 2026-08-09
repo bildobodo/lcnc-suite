@@ -28,7 +28,7 @@ import { fmtElapsed, fmtDuration, fmtDist, fmtSize } from "./format";
 import type { GcodeStats } from "./GcodePanel.vue";
 import { Settings, MessageSquare, PowerOff, Gamepad2, Keyboard, BookOpen, ClipboardCopy, Expand, Shrink } from "lucide-vue-next";
 import GcodeReferenceDialog from "./GcodeReferenceDialog.vue";
-import NumberKeypad from "./NumberKeypad.vue";
+import NumberKeypadStrip from "./NumberKeypadStrip.vue";
 import { keypadState } from "./useNumberKeypad";
 import { loadViewerDefaults, saveViewerDefaults, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadGamepadDefaults, saveGamepadDefaults, settingsVersion, type ThemeMode, type GamepadDefaults, type Layer, type TrackMode, type Projection } from "./defaults";
 import { buildToolsetterVarMap } from "./toolsetterVars";
@@ -294,6 +294,25 @@ const gcodeKeypadMode = computed<"mdi" | "editor" | null>(() =>
   : gcodeEditActive.value && activeTab.value === "gcode" ? "editor"
   : null
 );
+
+// Number keypad swap-in: like the G-code keypad, it replaces the strip
+// sections — except the section that owns the trigger field (identified by
+// the data-strip attribute on each strip component), which stays visible so
+// the operator keeps context and can retarget between its fields. Sidepanel/
+// dialog triggers have no owning section → only SafetyStrip + keypad remain.
+const numKeypadOwner = computed(() =>
+  keypadState.open
+    ? keypadState.trigger?.closest("[data-strip]")?.getAttribute("data-strip") ?? null
+    : null
+);
+// The keypad section sits LAST in the strip DOM: with every non-owner
+// section hidden, it lands directly right of the owner (or of SafetyStrip)
+// without any reordering logic.
+function stripVis(section: string): boolean {
+  if (gcodeKeypadMode.value) return false;
+  if (!keypadState.open) return true;
+  return numKeypadOwner.value === section;
+}
 
 // MDI keypad dismissal: blur alone can't close it — tapping empty space
 // doesn't move focus off the input (only focusable targets do), so a
@@ -894,7 +913,7 @@ onMounted(attachScrollFades);
 watch(() => userMacros.value.length, () => nextTick(attachScrollFades));
 // Strip content swaps (keypad in/out) change scrollWidth without resizing
 // the strip itself — re-check the edge fades.
-watch(gcodeKeypadMode, () => nextTick(attachScrollFades));
+watch([gcodeKeypadMode, () => keypadState.open], () => nextTick(attachScrollFades));
 onUnmounted(() => {
   fadeRo?.disconnect();
   fadeRo = null;
@@ -1737,9 +1756,6 @@ watch(viewerGcode, (newGcode) => {
           </div>
         </div>
       </div>
-      <!-- Number keypad — inside the content Gate so fieldset:disabled applies when disarmed. -->
-      <NumberKeypad v-if="keypadState.open" />
-
     </Gate><!-- /content (outer gate) -->
 
     <!-- ══ Macro Bar — thin row of user macro buttons ══ -->
@@ -1780,7 +1796,8 @@ watch(viewerGcode, (newGcode) => {
       </template>
 
       <JogStrip
-        v-show="!gcodeKeypadMode"
+        v-show="stripVis('jog')"
+        data-strip="jog"
         :axes="axes"
         :jogVel="jogVel"
         :angularJogVel="angularJogVel"
@@ -1802,7 +1819,8 @@ watch(viewerGcode, (newGcode) => {
       />
 
       <SetupStrip
-        v-show="!gcodeKeypadMode"
+        v-show="stripVis('setup')"
+        data-strip="setup"
         :axes="axes"
         :workPos="workPos"
         :homedJoints="homedJoints"
@@ -1826,7 +1844,7 @@ watch(viewerGcode, (newGcode) => {
            visible in the HUD. SafetyStrip is pinned first, so nothing
            shifts when the keypad swaps in/out. -->
       <GcodeKeypadStrip
-        v-if="gcodeKeypadMode"
+        v-if="gcodeKeypadMode && !keypadState.open"
         :axes="axes"
         :mode="gcodeKeypadMode"
         @key="gkInsert"
@@ -1836,7 +1854,8 @@ watch(viewerGcode, (newGcode) => {
       />
 
       <OverridesStrip
-        v-show="!gcodeKeypadMode"
+        v-show="stripVis('overrides')"
+        data-strip="overrides"
         :feedSlider="feedSlider"
         :spindleSlider="spindleSlider"
         :rapidSlider="rapidSlider"
@@ -1856,7 +1875,8 @@ watch(viewerGcode, (newGcode) => {
       />
 
       <SpindleStrip
-        v-show="!gcodeKeypadMode"
+        v-show="stripVis('spindle')"
+        data-strip="spindle"
         :isForward="isForward"
         :isReverse="isReverse"
         :isSpinning="isSpinning"
@@ -1877,12 +1897,18 @@ watch(viewerGcode, (newGcode) => {
       />
 
       <ToolStrip
-        v-show="!gcodeKeypadMode"
+        v-show="stripVis('tool')"
+        data-strip="tool"
         :currentTool="st.tool_number ?? 0"
         :toolDiameter="st.tool_diameter ?? null"
         :toolLength="st.tool_length ?? null"
         @openToolTable="activeTab = 'tools'"
       />
+
+      <!-- Number keypad: swaps in like the G-code keypad, but keeps the
+           section that owns the edited field visible (see stripVis). Last in
+           DOM so it renders directly right of whichever section survives. -->
+      <NumberKeypadStrip v-if="keypadState.open" />
 
       <!-- Scroll-edge affordance: fades in at the far edge while strip
            sections are scrolled out of view (strip-more class, JS-toggled).
