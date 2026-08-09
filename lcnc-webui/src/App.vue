@@ -1349,7 +1349,7 @@ watch(viewerGcode, (newGcode) => {
       </div>
       <div class="bannerActions row-controls">
         <MachineBtn v-if="safetyTrip" type="dialogConfirm" @click="acknowledgeSafetyTrip">Acknowledge</MachineBtn>
-        <MachineBtn v-if="bannerShowAbort" type="bannerAbort" @click="send({ cmd: 'abort' })">ABORT</MachineBtn>
+        <MachineBtn v-if="bannerShowAbort" type="bannerAbort" @click="send({ cmd: 'abort' })" />
         <MachineBtn v-if="machineState === 'unhomed'" type="bannerHome" @click="homeAll">Home All</MachineBtn>
         <MachineBtn v-if="unreadCount > 0" type="bannerAction" @click="messagesDialogOpen = true; markMessagesRead()">
           {{ unreadCount }} message{{ unreadCount === 1 ? '' : 's' }}

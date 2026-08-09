@@ -99,7 +99,6 @@ export const BUTTON_TYPES = {
   simTrip:        { gate: 'always',   variant: 'default', size: 'md' },
 
   // ── Gated dialog actions (confirm/danger that require machine state) ──
-  dialogAbort:    { gate: 'abort',   variant: 'danger',  size: 'md' },
   dialogBase:     { gate: 'abort',   variant: 'primary', size: 'md' },
   dialogReady:    { gate: 'ready',   variant: 'primary', size: 'md' },
   dialogReadyDanger: { gate: 'ready', variant: 'danger', size: 'md' },

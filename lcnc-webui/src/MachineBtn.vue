@@ -45,7 +45,7 @@ const isDisabled = computed(() =>
   || props.disabled
   || (def.value.whileProbing === true && probing.value)
 );
-const useAbortDefault = computed(() => props.type === 'abort' && !slots.default);
+const useAbortDefault = computed(() => (props.type === 'abort' || props.type === 'bannerAbort') && !slots.default);
 const resolvedVariant = computed(() => props.variant ?? def.value.variant);
 const resolvedIcon = computed(() => props.icon ?? def.value.icon);
 const resolvedMuted = computed(() => props.muted ?? def.value.muted);
