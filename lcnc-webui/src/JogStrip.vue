@@ -357,13 +357,13 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
       <div class="speedGroup row-sections strip-slider-group">
         <div class="speedCol stack-controls">
           <span class="label-muted">{{ abcAxes.length > 0 ? 'Linear' : 'Speed' }}</span>
-          <span class="val-mono">{{ (jogVel * 60).toFixed(0) }}</span>
+          <span class="val-mono val-slot">{{ (jogVel * 60).toFixed(0) }}</span>
           <MachineSlider gate="jogSpeed" :disabled="isDisabled" :min="minJogVel" :max="maxJogVel" :step="0.1" :modelValue="jogVel" @update:modelValue="(v: number | undefined) => { if (v != null) emit('update:jogVel', v) }" class="vSlider" />
           <MachineBtn type="overrideReset" @click="emit('resetJogVel')">Reset</MachineBtn>
         </div>
         <div v-if="abcAxes.length > 0" class="speedCol stack-controls">
           <span class="label-muted">Rotary</span>
-          <span class="val-mono">{{ (angularJogVel * 60).toFixed(0) }}°</span>
+          <span class="val-mono val-slot">{{ (angularJogVel * 60).toFixed(0) }}°</span>
           <MachineSlider gate="jogSpeed" :disabled="isDisabled" :min="minAngularJogVel" :max="maxAngularJogVel" :step="0.1" :modelValue="angularJogVel" @update:modelValue="(v: number | undefined) => { if (v != null) emit('update:angularJogVel', v) }" class="vSlider" />
           <MachineBtn type="overrideReset" @click="emit('resetAngularJogVel')">Reset</MachineBtn>
         </div>
@@ -481,6 +481,9 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
   align-items: center;
   justify-content: center;
 }
+/* Jog speed ticks while dragging the slider — fixed slot ("10000" = 5ch,
+   rotary adds °) keeps the readout from re-centering per digit change. */
+.speedCol .val-slot { --slot-w: 5.5ch; }
 .vSlider {
   flex: 1;
   min-height: 0;

@@ -151,6 +151,10 @@ const progressPercent = computed(() => {
   return Math.min(100, (props.currentLine / lineCount.value) * 100);
 });
 
+// Slot floor for the running line number: as wide as the file's last line
+// number, so the "current / total" readout never shifts during a run.
+const lineDigits = computed(() => String(lineCount.value || 0).length);
+
 // Token type + highlightGcode() imported from gcodeHighlight.ts
 
 // ---------- Virtual scroll ----------
@@ -593,8 +597,8 @@ async function saveEdit() {
         <div class="progressFill" :style="{ width: progressPercent + '%' }"></div>
       </div>
       <span class="progressLabel">
-        {{ currentLine ?? 0 }} / {{ lineCount }}
-        <span class="progressPct">({{ progressPercent.toFixed(0) }}%)</span>
+        <span class="val-slot" :style="{ '--slot-w': lineDigits + 'ch' }">{{ currentLine ?? 0 }}</span> / {{ lineCount }}
+        <span class="progressPct">(<span class="val-slot pctSlot">{{ progressPercent.toFixed(0) }}</span>%)</span>
       </span>
       <span class="elapsedLabel">{{ elapsed }}</span>
     </div>
@@ -845,6 +849,7 @@ async function saveEdit() {
   white-space: nowrap;
   flex-shrink: 0;
 }
+.pctSlot { --slot-w: 3ch; }
 
 .elapsedLabel {
   font-size: var(--fs-md);

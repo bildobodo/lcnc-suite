@@ -1249,6 +1249,16 @@ label:has(input:disabled, select:disabled) {
 .val-mono       { font-variant-numeric: tabular-nums; font-size: var(--fs-sm); font-weight: var(--fw-semibold); }
 .val-mono.lg    { font-size: var(--fs-xl); font-weight: var(--fw-bold); }
 .val-mono.warn  { color: var(--warn); }
+/* Live numeric readouts: a fixed-width, right-aligned slot (floor set per
+   use via --slot-w, sized to the readout's realistic maximum) so digit-count
+   changes never shift neighboring content. ch units track the element's own
+   font size, so slots scale with it. */
+.val-slot {
+  display: inline-block;
+  min-width: var(--slot-w, 6ch);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
 
 /* Muted label (section headers, units, field labels) */
 .label-muted    { font-size: var(--fs-2xs); opacity: var(--opacity-muted); white-space: nowrap; }
