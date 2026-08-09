@@ -61,9 +61,9 @@ export const BUTTON_TYPES = {
   spindleIncrease: { gate: 'ready',    variant: 'default', size: 'md' },
   spindleDecrease: { gate: 'ready',    variant: 'default', size: 'md' },
 
-  // Coolant
-  flood:          { gate: 'ready',    variant: 'default', size: 'md' },
-  mist:           { gate: 'ready',    variant: 'default', size: 'md' },
+  // Coolant (override gate: toggleable during program execution, like overrides)
+  flood:          { gate: 'override', variant: 'default', size: 'md' },
+  mist:           { gate: 'override', variant: 'default', size: 'md' },
 
   // Jog
   jog:            { gate: 'jog',      variant: 'default', size: 'sm', mono: true },
@@ -71,6 +71,7 @@ export const BUTTON_TYPES = {
   // Overrides
   overridePreset: { gate: 'override', variant: 'default', size: 'xs' },
   overrideReset:  { gate: 'override', variant: 'default', size: 'xs' },
+  jogSpeedReset:  { gate: 'jog',      variant: 'default', size: 'xs' },
 
   // File operations
   fileOp:         { gate: 'setup',    variant: 'default', size: 'md' },
@@ -152,7 +153,7 @@ export const INPUT_DEFS = {
   mdiText:         { gate: 'ready' },
   touchoff:        { gate: 'probe',    mono: true, align: 'right', size: 'sm' },
   stripInput:      { gate: 'always',   mono: true, align: 'right', size: 'md' },
-  coolant:         { gate: 'ready' },
+  coolant:         { gate: 'override' },
 
   // Mode selection
   modeSelect:      { gate: 'idle' },

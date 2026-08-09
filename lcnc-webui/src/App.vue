@@ -669,10 +669,10 @@ const isSpinning = computed(() => isForward.value || isReverse.value);
 const floodOn = computed(() => !!st.value.flood);
 const mistOn = computed(() => !!st.value.mist);
 function toggleFlood() {
-  fire({ cmd: floodOn.value ? "flood_off" : "flood_on" }, 'ready');
+  fire({ cmd: floodOn.value ? "flood_off" : "flood_on" }, 'override');
 }
 function toggleMist() {
-  fire({ cmd: mistOn.value ? "mist_off" : "mist_on" }, 'ready');
+  fire({ cmd: mistOn.value ? "mist_off" : "mist_on" }, 'override');
 }
 
 // Program switches
