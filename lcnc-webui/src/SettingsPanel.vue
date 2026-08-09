@@ -14,7 +14,7 @@ import {
   loadMacrosDefaults, saveMacrosDefaults, syncMacroParams,
   loadDisplayDefaults, saveDisplayDefaults, settingsVersion, serverSettingsReady,
   loadCameraDefaults, saveCameraDefaults,
-  type Layer, type ColorDefaults,
+  type Layer, type ColorDefaults, type HudDefaults, type HudScale, HUD_FALLBACK,
   type TrackMode, type Projection, type ToolChangeMode, type SpindleDir, type SpindleFeedbackUnit,
   type ThemeMode, type MacroDef, type GamepadDefaults,
   GAMEPAD_FALLBACK,
@@ -151,10 +151,12 @@ function resetViewer() {
     layers: { backplot: true, toolpath: true, machine: true, bounds: true, toolpathBounds: false, workzero: true, hud: true, surface: true, tool: true },
     colors: { feed: "#22b8cf", rapid: "#f5a623", backplot: "#ff00ff", bounds: "#ffffff", toolpathBounds: "#f5a623", tool: "#c0c0c0", cutter: "#ffdd00" },
     machineColors: {}, machineEdges: true, trackingMode: "none", pathOnTop: false, projection: "parallel",
+    hud: { ...HUD_FALLBACK },
   });
   const vd = loadViewerDefaults();
   Object.assign(layers, vd.layers);
   Object.assign(colors, vd.colors);
+  Object.assign(hud, vd.hud);
   for (const k of Object.keys(machineColors)) delete machineColors[k];
   Object.assign(machineColors, vd.machineColors);
   trackingMode.value = vd.trackingMode;
@@ -232,6 +234,7 @@ const trackingMode = ref<TrackMode>(saved.trackingMode);
 const pathOnTop = ref(saved.pathOnTop);
 const machineEdgesOn = ref(saved.machineEdges);
 const projection = ref<Projection>(saved.projection);
+const hud = reactive<HudDefaults>({ ...saved.hud });
 
 function save() {
   saveViewerDefaults({
@@ -242,8 +245,23 @@ function save() {
     trackingMode: trackingMode.value,
     pathOnTop: pathOnTop.value,
     projection: projection.value,
+    hud: { ...hud },
   });
 }
+
+const HUD_SCALES: { value: HudScale; label: string }[] = [
+  { value: "sm", label: "Small" },
+  { value: "md", label: "Normal" },
+  { value: "lg", label: "Large" },
+  { value: "xl", label: "X-Large" },
+];
+
+const HUD_TOGGLES: { key: keyof Omit<HudDefaults, "scale">; label: string }[] = [
+  { key: "showMachine", label: "Machine position" },
+  { key: "showTool", label: "Tool context" },
+  { key: "showFeedSpindle", label: "Feed & spindle" },
+  { key: "showLoadBar", label: "Spindle load bar" },
+];
 
 // ─── Viewer setting handlers (emit to App.vue → ThreeViewer) ──────
 const LAYER_LABELS: { key: Layer; label: string }[] = [
@@ -351,6 +369,7 @@ watch(settingsVersion, () => {
   pathOnTop.value = vd.pathOnTop;
   machineEdgesOn.value = vd.machineEdges;
   projection.value = vd.projection;
+  Object.assign(hud, vd.hud);
   const dd = loadDisplayDefaults();
   startFullscreen.value = dd.startFullscreen;
   keepAwake.value = dd.keepAwake;
@@ -480,6 +499,28 @@ function resetMachineColor(id: string) {
               :modelValue="layers[lf.key]"
               @update:modelValue="onLayerChange(lf.key, $event!)"
               :label="lf.label"
+            />
+          </div>
+        </div>
+
+        <div class="sep"></div>
+
+        <div class="stack-controls">
+          <div class="sub">HUD</div>
+          <div class="settingDesc">Scale of the position readout overlay.</div>
+          <div class="radioGroup inline">
+            <label v-for="s in HUD_SCALES" :key="s.value">
+              <MachineRadio gate="viewerSetting" name="hudScale" :modelValue="hud.scale" :value="s.value" @update:modelValue="hud.scale = s.value; save()" /> {{ s.label }}
+            </label>
+          </div>
+          <div class="settingDesc">Sections shown on the HUD card. Warnings are always shown.</div>
+          <div class="layerGrid">
+            <MachineToggle
+              v-for="t in HUD_TOGGLES" :key="t.key"
+              gate="viewerSetting"
+              :modelValue="hud[t.key]"
+              @update:modelValue="hud[t.key] = $event!; save()"
+              :label="t.label"
             />
           </div>
         </div>

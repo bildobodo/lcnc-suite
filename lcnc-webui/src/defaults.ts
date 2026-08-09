@@ -39,6 +39,16 @@ export interface ColorDefaults {
   cutter: string;
 }
 
+export type HudScale = "sm" | "md" | "lg" | "xl";
+
+export interface HudDefaults {
+  scale: HudScale;
+  showMachine: boolean;      // machine-position column next to work position
+  showTool: boolean;         // T / Ø / L segment of the context line
+  showFeedSpindle: boolean;  // F / S segment of the context line
+  showLoadBar: boolean;      // spindle load bar under the context line
+}
+
 export interface ViewerDefaults {
   layers: Record<Layer, boolean>;
   colors: ColorDefaults;
@@ -47,6 +57,7 @@ export interface ViewerDefaults {
   trackingMode: TrackMode;
   pathOnTop: boolean;
   projection: Projection;
+  hud: HudDefaults;
 }
 
 // ─── Section registry ────────────────────────────────────────────
@@ -182,6 +193,14 @@ export function saveSection(key: string, data: any): void {
 
 // ─── Viewer section ──────────────────────────────────────────────
 
+export const HUD_FALLBACK: HudDefaults = {
+  scale: "md",
+  showMachine: true,
+  showTool: true,
+  showFeedSpindle: true,
+  showLoadBar: true,
+};
+
 const VIEWER_FALLBACK: ViewerDefaults = {
   layers: { backplot: true, toolpath: true, machine: true, bounds: true, toolpathBounds: false, workzero: true, hud: true, surface: true, tool: true },
   colors: { feed: "#22b8cf", rapid: "#f5a623", backplot: "#ff00ff", bounds: "#ffffff", toolpathBounds: "#f5a623", tool: "#c0c0c0", cutter: "#ffdd00" },
@@ -190,6 +209,7 @@ const VIEWER_FALLBACK: ViewerDefaults = {
   trackingMode: "none",
   pathOnTop: false,
   projection: "parallel",
+  hud: { ...HUD_FALLBACK },
 };
 
 registerSection<ViewerDefaults>("viewer", VIEWER_FALLBACK, (saved, fb) => {
@@ -200,6 +220,7 @@ registerSection<ViewerDefaults>("viewer", VIEWER_FALLBACK, (saved, fb) => {
     layers: { ...fb.layers, ...saved.layers } as Record<Layer, boolean>,
     colors: { ...fb.colors, ...saved.colors },
     machineColors: { ...fb.machineColors, ...saved.machineColors },
+    hud: { ...fb.hud, ...saved.hud },
   };
 });
 

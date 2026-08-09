@@ -12,7 +12,7 @@ import {
 
 import { viewerInit, viewerGcode, gcodeContent, status, emitTelemetry, type ViewerInit, type ViewerGcode } from "./lcncWs";
 import { loadViewerDefaults, loadCameraDefaults, saveCameraDefaults, ALL_LAYERS, settingsVersion, type Vec3, type Layer } from "./defaults";
-import { fmtCoord } from "./format";
+import { fmtCoord, fmtRpm } from "./format";
 import { useAxes } from "./useAxes";
 import { recordApply, recordRender, setViewerPerfContext } from "./viewerPerf";
 import { disposeObject } from "./viewer/disposal";
@@ -1605,7 +1605,10 @@ watch(
 // formatCoord → fmtCoord imported from format.ts
 
 const hudAxes = computed(() => props.axes ?? ["X", "Y", "Z"]);
-const { primary: hudPrimary, abc: hudAbc, uvw: hudUvw } = useAxes(hudAxes);
+// One grid row per axis in machine order — primary/abc/uvw grouping is not
+// needed in the tabular HUD, entries already carry letter + status index.
+const { entries: hudEntries } = useAxes(hudAxes);
+const hudCfg = computed(() => viewerDefaults.hud);
 
 const spindleLoadZone = computed(() => {
   const v = vst.value?.spindle_load;
@@ -1818,93 +1821,35 @@ defineExpose({
   <div class="viewerWrapper">
     <div ref="host" class="viewerHost bordered-panel" />
 
-    <!-- HUD Overlay -->
-    <div v-show="hudVisible" class="hud stack-controls">
-      <div class="hudSection">
-        <div class="label">Work Position ({{ props.g5xLabel || '-' }})</div>
-        <div class="row-sections">
-          <div class="stack-micro">
-            <div v-for="a in hudPrimary" :key="'w'+a.letter" class="hudCoord">
-              <span class="hudAxis">{{ a.letter }}</span> {{ fmtCoord(vst?.work_pos?.[a.index], a.letter) }}
-            </div>
-          </div>
-          <div v-if="hudAbc.length" class="stack-micro">
-            <div v-for="a in hudAbc" :key="'w'+a.letter" class="hudCoord">
-              <span class="hudAxis">{{ a.letter }}</span> {{ fmtCoord(vst?.work_pos?.[a.index], a.letter) }}
-            </div>
-          </div>
-          <div v-if="hudUvw.length" class="stack-micro">
-            <div v-for="a in hudUvw" :key="'w'+a.letter" class="hudCoord">
-              <span class="hudAxis">{{ a.letter }}</span> {{ fmtCoord(vst?.work_pos?.[a.index], a.letter) }}
-            </div>
-          </div>
-        </div>
+    <!-- HUD Overlay — one card: position grid, context line, warning rows.
+         All text sizes scale with --hud-scale (settings: HUD scale). -->
+    <div v-show="hudVisible" class="hud hudCard stack-tight" :class="`hudScale-${hudCfg.scale}`">
+      <div class="hudGrid" :class="{ noMach: !hudCfg.showMachine }">
+        <span class="hudHead"></span>
+        <span class="hudHead">Work · {{ props.g5xLabel || '-' }}</span>
+        <span v-if="hudCfg.showMachine" class="hudHead">Machine</span>
+        <template v-for="a in hudEntries" :key="a.letter">
+          <span class="hudAxis">{{ a.letter }}</span>
+          <span class="hudWork">{{ fmtCoord(vst?.work_pos?.[a.index], a.letter) }}</span>
+          <span v-if="hudCfg.showMachine" class="hudMach">{{ fmtCoord(vst?.machine_pos?.[a.index], a.letter) }}</span>
+        </template>
       </div>
 
-      <div class="hudSection">
-        <div class="label">Machine Position</div>
-        <div class="row-sections">
-          <div class="stack-micro">
-            <div v-for="a in hudPrimary" :key="'m'+a.letter" class="hudCoord">
-              <span class="hudAxis">{{ a.letter }}</span> {{ fmtCoord(vst?.machine_pos?.[a.index], a.letter) }}
-            </div>
-          </div>
-          <div v-if="hudAbc.length" class="stack-micro">
-            <div v-for="a in hudAbc" :key="'m'+a.letter" class="hudCoord">
-              <span class="hudAxis">{{ a.letter }}</span> {{ fmtCoord(vst?.machine_pos?.[a.index], a.letter) }}
-            </div>
-          </div>
-          <div v-if="hudUvw.length" class="stack-micro">
-            <div v-for="a in hudUvw" :key="'m'+a.letter" class="hudCoord">
-              <span class="hudAxis">{{ a.letter }}</span> {{ fmtCoord(vst?.machine_pos?.[a.index], a.letter) }}
-            </div>
-          </div>
-        </div>
+      <div v-if="hudCfg.showTool" class="hudCtx">
+        <span>T{{ vst?.tool_number ?? '–' }} Ø{{ fmtCoord(vst?.tool_diameter) }} L{{ fmtCoord(vst?.tool_length) }}</span>
+      </div>
+      <div v-if="hudCfg.showFeedSpindle" class="hudCtx">
+        <span>F<span class="val-slot slot-feed">{{ vst?.current_vel != null ? (vst.current_vel * 60).toFixed(1) : '---' }}</span></span>
+        <span>S<span class="val-slot slot-rpm">{{ fmtRpm(vst?.spindle_speed_actual ?? null) }}</span><span v-if="vst?.spindle_load != null" class="val-slot slot-load">{{ Math.round(vst.spindle_load) }}%</span></span>
+      </div>
+      <div v-if="hudCfg.showLoadBar && vst?.spindle_load != null" class="loadBar" :class="spindleLoadZone">
+        <div class="loadBarFill" :style="{ width: spindleLoadFillPct + '%' }"></div>
       </div>
 
-      <div class="hudSection">
-        <div class="label">Tool</div>
-        <div class="row-sections">
-          <div class="hudCoord"><span class="hudAxis">T</span> {{ vst?.tool_number ?? '-' }}</div>
-          <div class="hudCoord"><span class="hudAxis">Ø</span> {{ fmtCoord(vst?.tool_diameter) }}</div>
-          <div class="hudCoord"><span class="hudAxis">L</span> {{ fmtCoord(vst?.tool_length) }}</div>
-        </div>
-      </div>
-
-      <div class="hudSection">
-        <div class="label">Feed</div>
-        <div class="hudValue">{{ vst?.current_vel != null ? (vst.current_vel * 60).toFixed(1) : '---' }}/min</div>
-      </div>
-
-      <div class="hudSection">
-        <div class="label">Spindle</div>
-        <div class="hudValue">{{ fmtCoord(vst?.spindle_speed_actual) }} RPM</div>
-        <div v-if="vst?.spindle_load != null" class="hudValue">Load {{ Math.round(vst.spindle_load) }}%</div>
-        <div v-if="vst?.spindle_load != null" class="loadBar" :class="spindleLoadZone">
-          <div class="loadBarFill" :style="{ width: spindleLoadFillPct + '%' }"></div>
-        </div>
-      </div>
-
-      <div v-if="vst?.eoffset_enabled" class="hudSection hudWarn">
-        <div class="label">Compensation</div>
-        <div class="hudValue">Z {{ vst.eoffset_z != null ? vst.eoffset_z.toFixed(3) : '---' }}</div>
-      </div>
-
-      <div v-if="vst?.rotation_xy" class="hudSection hudWarn">
-        <div class="label">Rotation</div>
-        <div class="hudValue">{{ vst.rotation_xy.toFixed(1) }}°</div>
-      </div>
-
-      <div v-if="filePinnedWcs && filePinnedWcs !== props.g5xLabel" class="hudSection hudWarn">
-        <div class="label">File WCS</div>
-        <div class="hudValue">WARNING: {{ props.g5xLabel }} currently active</div>
-        <div class="hudValue">Program contains {{ filePinnedWcs }}</div>
-      </div>
-
-      <div v-if="toolpathOverflow" class="hudSection hudWarn">
-        <div class="label">Toolpath</div>
-        <div class="hudValue">Exceeds bounds</div>
-      </div>
+      <div v-if="vst?.eoffset_enabled" class="hudWarn">Comp Z {{ vst.eoffset_z != null ? vst.eoffset_z.toFixed(3) : '---' }}</div>
+      <div v-if="vst?.rotation_xy" class="hudWarn">Rotation {{ vst.rotation_xy.toFixed(1) }}°</div>
+      <div v-if="filePinnedWcs && filePinnedWcs !== props.g5xLabel" class="hudWarn">Program uses {{ filePinnedWcs }} — {{ props.g5xLabel }} active</div>
+      <div v-if="toolpathOverflow" class="hudWarn">Toolpath exceeds bounds</div>
     </div>
 
     <!-- View navigation cube (top-right) -->
@@ -1987,7 +1932,10 @@ defineExpose({
   user-select: none;
 }
 
-.hudSection {
+/* Single HUD card. Every font-size below multiplies a --fs-* token by
+   --hud-scale so the whole card scales coherently from one setting. */
+.hudCard {
+  --hud-scale: 1;
   background: color-mix(in oklab, var(--panel) 85%, transparent);
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
@@ -1995,34 +1943,72 @@ defineExpose({
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   font-variant-numeric: tabular-nums;
-  font-size: var(--fs-base);
-  line-height: 1.4;
+  line-height: 1.3;
 }
+.hudScale-sm { --hud-scale: 0.85; }
+.hudScale-lg { --hud-scale: 1.25; }
+.hudScale-xl { --hud-scale: 1.55; }
 
-.label {
-  margin-bottom: var(--gap-tight);
+/* Position table: axis | work | machine. Work is the distance-readable
+   hero; machine rides along smaller and muted. Baseline alignment keeps
+   the mixed sizes on one visual line per row. */
+.hudGrid {
+  display: grid;
+  grid-template-columns: auto auto auto;
+  column-gap: calc(var(--gap-section) * var(--hud-scale));
+  row-gap: var(--gap-micro);
+  align-items: baseline;
 }
+.hudGrid.noMach { grid-template-columns: auto auto; }
 
-.hudValue {
-  color: var(--fg);
-  font-weight: var(--fw-medium);
-}
-
-/* .hudCoords — replaced by row-sections utility (same shape) */
-/* .hudCol — replaced by stack-micro utility (same shape) */
-.hudCoord {
-  color: var(--fg);
-  font-weight: var(--fw-medium);
+.hudHead {
+  font-size: calc(var(--fs-sm) * var(--hud-scale));
+  opacity: var(--opacity-muted);
+  text-align: right;
   white-space: nowrap;
 }
 .hudAxis {
-  color: var(--fg);
+  font-size: calc(var(--fs-lg) * var(--hud-scale));
   opacity: var(--opacity-muted);
-  margin-right: var(--gap-tight);
 }
-.hudWarn .hudLabel,
-.hudWarn .hudValue {
-  color: var(--warn, #f5a623);
+.hudWork {
+  font-size: calc(var(--fs-2xl) * var(--hud-scale));
+  font-weight: var(--fw-semibold);
+  text-align: right;
+  white-space: nowrap;
+  /* Fixed floor ("-999.999" = 8ch) so sign flips and digit growth don't
+     resize the grid column — the card keeps constant width while moving.
+     Machines with >1m travel grow the column once, then it's stable. */
+  min-width: 8ch;
+}
+.hudMach {
+  font-size: calc(var(--fs-lg) * var(--hud-scale));
+  opacity: var(--opacity-muted);
+  text-align: right;
+  white-space: nowrap;
+  min-width: 8ch;
+}
+
+/* Context line: T/Ø/L · F · S in G-code notation — no word labels. */
+.hudCtx {
+  font-size: calc(var(--fs-md) * var(--hud-scale));
+  font-weight: var(--fw-medium);
+  white-space: nowrap;
+}
+.hudCtx > span + span::before {
+  content: "· ";
+  opacity: var(--opacity-subtle);
+}
+/* Feed/spindle slot floors (global .val-slot): sized to realistic maxima
+   (F 9999.0, S 24,000 rpm, 300% load); beyond that the slot grows once. */
+.slot-feed { --slot-w: 6.5ch; }
+.slot-rpm  { --slot-w: 6.5ch; }
+.slot-load { --slot-w: 4.5ch; }
+
+.hudWarn {
+  font-size: calc(var(--fs-md) * var(--hud-scale));
+  font-weight: var(--fw-medium);
+  color: var(--warn);
 }
 
 </style>
