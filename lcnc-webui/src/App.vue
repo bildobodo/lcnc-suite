@@ -286,9 +286,26 @@ const {
 // the MDI input. MDI focus wins over an open editor (last interaction).
 const mdiKeypadActive = ref(false);
 const gcodeEditActive = ref(false);
+// Editor mode requires the Program tab to be VISIBLE — an editor left open
+// in a background tab must not hold the strip hostage (operator-reported:
+// "setup does not come back"). It re-appears when the tab does.
 const gcodeKeypadMode = computed<"mdi" | "editor" | null>(() =>
-  mdiKeypadActive.value ? "mdi" : gcodeEditActive.value ? "editor" : null
+  mdiKeypadActive.value ? "mdi"
+  : gcodeEditActive.value && activeTab.value === "gcode" ? "editor"
+  : null
 );
+
+// MDI keypad dismissal: blur alone can't close it — tapping empty space
+// doesn't move focus off the input (only focusable targets do), so a
+// document-level tap anywhere outside the MDI tab and the keypad ends the
+// session explicitly.
+function onDocPointerDownDismissKeypad(e: PointerEvent) {
+  if (!mdiKeypadActive.value) return;
+  const t = e.target as HTMLElement | null;
+  if (t?.closest(".gkStrip, .mdiTab")) return;
+  mdiKeypadActive.value = false;
+  _mdiInputEl()?.blur();
+}
 const mdiInputRef = ref<any>(null);
 const gcodePanelRef = ref<any>(null);
 
@@ -832,11 +849,13 @@ function checkAutoDisarm() {
 onMounted(() => {
   document.addEventListener("pointerdown", noteActivity, { capture: true, passive: true });
   document.addEventListener("keydown", noteActivity, { capture: true, passive: true });
+  document.addEventListener("pointerdown", onDocPointerDownDismissKeypad, { capture: true, passive: true });
   autoDisarmTimer = window.setInterval(checkAutoDisarm, 30_000);
 });
 onUnmounted(() => {
   document.removeEventListener("pointerdown", noteActivity, true);
   document.removeEventListener("keydown", noteActivity, true);
+  document.removeEventListener("pointerdown", onDocPointerDownDismissKeypad, true);
   clearInterval(autoDisarmTimer);
 });
 
