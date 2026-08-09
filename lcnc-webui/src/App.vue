@@ -1987,6 +1987,10 @@ watch(viewerGcode, (newGcode) => {
   top: 0;
   bottom: 0;
   width: calc(2 * var(--gap-panel) + var(--gap-controls));
+  /* Solid paint + alpha mask with the same eased curve as .fade-scroll
+     (style.css) — NOT a color gradient; see the mask rationale there
+     (macOS Firefox color management renders gradient ramps unevenly). */
+  background: var(--panel);
 }
 /* Hang past the sticky element by the scroller's edge padding: sticky is
    confined to the CONTENT box, but scrolled content stays visible through
@@ -1995,11 +1999,21 @@ watch(viewerGcode, (newGcode) => {
 .strip > .stripFade::before,
 .macroBar > .stripFade::before {
   right: calc(-1 * var(--gap-controls));
-  background: linear-gradient(to right, transparent, var(--panel));
+  -webkit-mask-image: linear-gradient(to right,
+    transparent 0%, rgba(0, 0, 0, 0.15) 40%, rgba(0, 0, 0, 0.45) 70%,
+    rgba(0, 0, 0, 0.8) 88%, black 100%);
+  mask-image: linear-gradient(to right,
+    transparent 0%, rgba(0, 0, 0, 0.15) 40%, rgba(0, 0, 0, 0.45) 70%,
+    rgba(0, 0, 0, 0.8) 88%, black 100%);
 }
 .macroBar > .stripFadeStart::before {
   left: calc(-1 * var(--gap-controls));
-  background: linear-gradient(to right, var(--panel), transparent);
+  -webkit-mask-image: linear-gradient(to right,
+    black 0%, rgba(0, 0, 0, 0.8) 12%, rgba(0, 0, 0, 0.45) 30%,
+    rgba(0, 0, 0, 0.15) 60%, transparent 100%);
+  mask-image: linear-gradient(to right,
+    black 0%, rgba(0, 0, 0, 0.8) 12%, rgba(0, 0, 0, 0.45) 30%,
+    rgba(0, 0, 0, 0.15) 60%, transparent 100%);
 }
 .strip.strip-more > .stripFade,
 .macroBar.strip-more > .stripFade,
@@ -2372,7 +2386,12 @@ watch(viewerGcode, (newGcode) => {
     bottom: calc(-1 * var(--gap-controls));
     width: auto;
     height: calc(2 * var(--gap-panel) + var(--gap-controls));
-    background: linear-gradient(to bottom, transparent, var(--panel));
+    -webkit-mask-image: linear-gradient(to bottom,
+      transparent 0%, rgba(0, 0, 0, 0.15) 40%, rgba(0, 0, 0, 0.45) 70%,
+      rgba(0, 0, 0, 0.8) 88%, black 100%);
+    mask-image: linear-gradient(to bottom,
+      transparent 0%, rgba(0, 0, 0, 0.15) 40%, rgba(0, 0, 0, 0.45) 70%,
+      rgba(0, 0, 0, 0.8) 88%, black 100%);
   }
 
   /* Macro bar: thin middle column, vertical (collapses when no macros) */
@@ -2405,12 +2424,22 @@ watch(viewerGcode, (newGcode) => {
   .wrap > .macroBar > .stripFade::before {
     top: auto;
     bottom: calc(-1 * var(--gap-tight));
-    background: linear-gradient(to bottom, transparent, var(--panel));
+    -webkit-mask-image: linear-gradient(to bottom,
+      transparent 0%, rgba(0, 0, 0, 0.15) 40%, rgba(0, 0, 0, 0.45) 70%,
+      rgba(0, 0, 0, 0.8) 88%, black 100%);
+    mask-image: linear-gradient(to bottom,
+      transparent 0%, rgba(0, 0, 0, 0.15) 40%, rgba(0, 0, 0, 0.45) 70%,
+      rgba(0, 0, 0, 0.8) 88%, black 100%);
   }
   .wrap > .macroBar > .stripFadeStart::before {
     bottom: auto;
     top: calc(-1 * var(--gap-tight));
-    background: linear-gradient(to bottom, var(--panel), transparent);
+    -webkit-mask-image: linear-gradient(to bottom,
+      black 0%, rgba(0, 0, 0, 0.8) 12%, rgba(0, 0, 0, 0.45) 30%,
+      rgba(0, 0, 0, 0.15) 60%, transparent 100%);
+    mask-image: linear-gradient(to bottom,
+      black 0%, rgba(0, 0, 0, 0.8) 12%, rgba(0, 0, 0, 0.45) 30%,
+      rgba(0, 0, 0, 0.15) 60%, transparent 100%);
   }
 
   /* Content: right column, viewer on top / side panel below */

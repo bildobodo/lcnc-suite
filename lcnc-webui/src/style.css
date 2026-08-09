@@ -1101,7 +1101,12 @@ label:has(input:disabled, select:disabled) {
     bottom: calc(-2 * var(--gap-panel));
     width: auto;
     height: calc(2 * var(--gap-panel));
-    background: linear-gradient(to bottom, var(--panel), transparent);
+    -webkit-mask-image: linear-gradient(to bottom,
+      black 0%, rgba(0, 0, 0, 0.8) 12%, rgba(0, 0, 0, 0.45) 30%,
+      rgba(0, 0, 0, 0.15) 60%, transparent 100%);
+    mask-image: linear-gradient(to bottom,
+      black 0%, rgba(0, 0, 0, 0.8) 12%, rgba(0, 0, 0, 0.45) 30%,
+      rgba(0, 0, 0, 0.15) 60%, transparent 100%);
   }
 }
 
@@ -1198,7 +1203,15 @@ label:has(input:disabled, select:disabled) {
   bottom: 0;
   right: calc(-2 * var(--gap-panel));
   width: calc(2 * var(--gap-panel));
-  background: linear-gradient(to right, var(--panel), transparent);
+  /* Solid + alpha mask, same eased curve as .fade-scroll — see the mask
+     rationale there (macOS Firefox renders color-gradient ramps unevenly). */
+  background: var(--panel);
+  -webkit-mask-image: linear-gradient(to right,
+    black 0%, rgba(0, 0, 0, 0.8) 12%, rgba(0, 0, 0, 0.45) 30%,
+    rgba(0, 0, 0, 0.15) 60%, transparent 100%);
+  mask-image: linear-gradient(to right,
+    black 0%, rgba(0, 0, 0, 0.8) 12%, rgba(0, 0, 0, 0.45) 30%,
+    rgba(0, 0, 0, 0.15) 60%, transparent 100%);
   opacity: 0;
   transition: opacity 0.2s;
   pointer-events: none;
