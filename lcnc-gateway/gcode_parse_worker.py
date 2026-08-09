@@ -26,6 +26,9 @@ Result shape (msgpack dict):
                  rapidDist, linearDist, arcDist, feedTime, rapidTime,
                  totalTime, feedRates, toolChanges, toolsUsed, unit,
                  fileSize }  or None
+  bounds:      { min: [x,y,z], max: [x,y,z] }  or None — cut envelope
+               (X/Y over feed+rapid, Z over feed only)
+  motion_bounds: same shape or None — full feed+rapid envelope (overflow)
 """
 
 import math
@@ -294,23 +297,55 @@ def parse(ctx: dict) -> dict:
         file=sys.stderr, flush=True,
     )
 
-    # Bounding box over the rendered (post-RDP) polyline, in the same raw-program
-    # coords as the points — so the frontend uses it directly instead of re-scanning
-    # every point on the UI thread per load (P4.1). `null` when there are no points.
+    # Bounding boxes over the rendered (post-RDP) polylines, in the same
+    # raw-program coords as the points, computed here so the frontend skips an
+    # O(n) main-thread scan per load (P4.1). Two boxes with different jobs:
+    #
+    #   bounds        — the *cut envelope* shown as the toolpath bounds box.
+    #                   X/Y span feed + rapid (positioning moves belong to the
+    #                   footprint); Z spans feed only, so retract/safe-height
+    #                   rapids don't inflate the displayed Z extent.
+    #   motion_bounds — the *full* motion envelope (feed + rapid, all axes),
+    #                   used for the machine-limit overflow check: a rapid past
+    #                   the machine bounds must still flag.
+    #
+    # `null` when the respective source polylines are empty (a rapid-only
+    # program has a motion envelope but no cut envelope).
     bounds = None
+    motion_bounds = None
     _mn = [float("inf"), float("inf"), float("inf")]
     _mx = [float("-inf"), float("-inf"), float("-inf")]
-    _any = False
-    for _poly in (feed, rapid):
-        for _p in _poly:
-            _any = True
-            for _k in range(3):
-                if _p[_k] < _mn[_k]:
-                    _mn[_k] = _p[_k]
-                if _p[_k] > _mx[_k]:
-                    _mx[_k] = _p[_k]
-    if _any:
+    _mmn = [float("inf"), float("inf"), float("inf")]
+    _mmx = [float("-inf"), float("-inf"), float("-inf")]
+    _any_feed = False
+    _any_pt = False
+    for _p in feed:
+        _any_feed = _any_pt = True
+        for _k in range(3):
+            if _p[_k] < _mn[_k]:
+                _mn[_k] = _p[_k]
+            if _p[_k] > _mx[_k]:
+                _mx[_k] = _p[_k]
+            if _p[_k] < _mmn[_k]:
+                _mmn[_k] = _p[_k]
+            if _p[_k] > _mmx[_k]:
+                _mmx[_k] = _p[_k]
+    for _p in rapid:
+        _any_pt = True
+        for _k in range(2):
+            if _p[_k] < _mn[_k]:
+                _mn[_k] = _p[_k]
+            if _p[_k] > _mx[_k]:
+                _mx[_k] = _p[_k]
+        for _k in range(3):
+            if _p[_k] < _mmn[_k]:
+                _mmn[_k] = _p[_k]
+            if _p[_k] > _mmx[_k]:
+                _mmx[_k] = _p[_k]
+    if _any_feed:
         bounds = {"min": _mn, "max": _mx}
+    if _any_pt:
+        motion_bounds = {"min": _mmn, "max": _mmx}
 
     try:
         file_size = os.path.getsize(filename)
@@ -353,6 +388,7 @@ def parse(ctx: dict) -> dict:
     # event-loop process (mmw#4 GC pressure).
     return {"file": filename, "feed": feed_bin, "feed_lines": feed_lines_bin,
             "rapid": rapid_bin, "stats": stats, "bounds": bounds,
+            "motion_bounds": motion_bounds,
             "parse_error": parse_error, "error_line": error_line}
 
 
