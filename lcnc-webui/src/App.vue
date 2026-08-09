@@ -1783,6 +1783,7 @@ watch(viewerGcode, (newGcode) => {
       />
 
       <SetupStrip
+        v-show="!gcodeKeypadMode"
         :axes="axes"
         :workPos="workPos"
         :homedJoints="homedJoints"
@@ -1800,11 +1801,11 @@ watch(viewerGcode, (newGcode) => {
         @goToZero="fire({ cmd: 'mdi', text: 'O<go_to_zero> CALL' }, 'ready')"
       />
 
-      <!-- G-code keypad: replaces jog/overrides/spindle/tool sections while
-           the MDI field is focused or the G-code editor is open — none of
-           those are usable mid-typing, and this frees their width. Safety
-           and Setup (DRO) stay. Placed AFTER Setup so Setup's buttons don't
-           shift when the keypad appears/disappears. -->
+      <!-- G-code keypad: replaces every strip section except SafetyStrip
+           while the MDI field is focused or the G-code editor is open —
+           none of them are usable mid-typing, and the active WCS stays
+           visible in the HUD. SafetyStrip is pinned first, so nothing
+           shifts when the keypad swaps in/out. -->
       <GcodeKeypadStrip
         v-if="gcodeKeypadMode"
         :axes="axes"
