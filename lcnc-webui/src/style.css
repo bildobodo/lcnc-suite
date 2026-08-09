@@ -980,10 +980,15 @@ label:has(input:disabled, select:disabled) {
   border-radius: var(--radius-xl);
   background: color-mix(in oklab, var(--bg) 80%, transparent);
   overflow: auto;
-  padding: var(--gap-controls) 0;
+  /* No scroll-axis padding on purpose: sticky fade pseudos pin at the
+     content box and engines disagree on covering a padded band beyond it
+     (--sf-pad overhang didn't reach the radius here in practice). With
+     zero padding the content box IS the visible box — the fades meet the
+     rounded edge exactly. Line text starts 12px in, clear of the 8px
+     corner radius. */
+  padding: 0;
   /* fade-scroll end color matches this translucent background */
   --scroll-fade-bg: color-mix(in oklab, var(--bg) 80%, transparent);
-  --sf-pad: var(--gap-controls); /* fade overhangs the vertical padding */
 }
 
 .codeLine {
