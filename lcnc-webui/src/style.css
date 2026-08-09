@@ -906,6 +906,9 @@ label:has(input:disabled, select:disabled) {
   position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
+  /* Match the rounded outer corners of the panes underneath — a square
+     scrim pokes past them at the content area's four corners. */
+  border-radius: var(--radius-container);
   display: flex;
   align-items: center;
   justify-content: center;
