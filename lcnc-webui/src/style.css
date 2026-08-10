@@ -124,6 +124,9 @@
   /* Square key size — one value for the strip keypad AND G-code keyboard,
      identical in portrait and landscape so key muscle memory transfers. */
   --key-size: var(--touch-target);
+  /* Action-rail minimum width — the wider grid track holding word-labeled
+     keys (Send, Clear, Cancel, OK) beside the square character keys. */
+  --key-action-w: 70px;
 
   /* Shadows */
   --shadow-sm:  0 4px 12px rgba(0, 0, 0, 0.15);  /* popovers, floating panels, PIP */

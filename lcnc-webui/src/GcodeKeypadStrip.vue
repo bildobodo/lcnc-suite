@@ -48,9 +48,10 @@ function press(t: string, e: PointerEvent) {
           @pointerdown.prevent="press(l, $event)" @contextmenu.prevent
         >{{ l }}</MachineBtn>
       </div>
-      <!-- Pad block: fixed 4×5 numpad-style grid, IDENTICAL in both
+      <!-- Pad block: 3 square digit columns + a wider action rail (same
+           two-zone pattern as NumberKeypadStrip), IDENTICAL in both
            orientations — digits auto-place into the 3-wide block because
-           the explicitly-placed ops occupy the whole 4th column, space
+           the explicitly-placed ops occupy the whole rail column, space
            bar spans the bottom row (physical-numpad layout). -->
       <div class="gkPad" :class="mode">
         <MachineBtn
@@ -89,21 +90,20 @@ function press(t: string, e: PointerEvent) {
 }
 .gkPad {
   display: grid;
-  grid-template-columns: repeat(4, var(--key-size));
+  grid-template-columns: repeat(3, var(--key-size)) minmax(var(--key-action-w), auto);
   grid-auto-rows: var(--key-size);
   gap: var(--gap-tight);
 }
-/* Ops occupy the 4th column + bottom row; digits auto-place around them.
-   Column 4 top-to-bottom: Clear, ⌫, Send (2 tall); the space bar takes
-   the whole bottom row. Editor mode has no Clear — ⌫ grows to 2 tall so
-   the column stays full. */
+/* Ops occupy the action rail (column 4) + bottom row; digits auto-place
+   around them. Rail top-to-bottom: Clear, ⌫, Send (2 tall) — word labels
+   fit horizontally because the rail is wider than a key cell. The space
+   bar takes the whole bottom row. Editor mode has no Clear — ⌫ grows to
+   2 tall so the rail stays full. */
 .gkClear { grid-column: 4; grid-row: 1; }
 .gkBksp  { grid-column: 4; grid-row: 2; }
 .gkEnter { grid-column: 4; grid-row: 3 / 5; }
 .gkPad.editor .gkBksp { grid-row: 1 / 3; }
 .gkSpace { grid-column: 1 / 5; grid-row: 5; }
-/* Tall Send key: vertical label, it can't fit horizontally in one cell. */
-.gkPad.mdi .gkEnter { writing-mode: vertical-rl; }
 .gkKey {
   min-height: 0; /* grid rows own the height — override the touch layer's button floor */
 }

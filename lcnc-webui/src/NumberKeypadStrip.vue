@@ -201,7 +201,7 @@ function onKeydown(e: KeyboardEvent) {
    in a 6th column; keys auto-place around them. */
 .nkGrid {
   display: grid;
-  grid-template-columns: repeat(5, var(--key-size)) minmax(70px, auto);
+  grid-template-columns: repeat(5, var(--key-size)) minmax(var(--key-action-w), auto);
   grid-auto-rows: var(--key-size);
   gap: var(--gap-tight);
 }
