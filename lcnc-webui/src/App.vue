@@ -168,6 +168,14 @@ const STATE_COLORS: Record<MachineStateKey, string> = {
   paused: '--state-warn',
   idle: '--state-ok',
 };
+// Human labels for gateway trip reason codes (status_msg.safety_trip.reason).
+// Unknown codes fall through verbatim — never mask a reason we can't name.
+const TRIP_REASON_LABELS: Record<string, string> = {
+  hal_heartbeat_timeout: 'gateway heartbeat to HAL watchdog lost',
+};
+const safetyTripReasonLabel = computed(() =>
+  safetyTrip.value ? (TRIP_REASON_LABELS[safetyTrip.value.reason] ?? safetyTrip.value.reason) : '');
+
 const machineStateColor = computed(() => {
   if (safetyTrip.value) return '--state-danger';
   if (serverShuttingDown.value) return '--state-warn';
@@ -1344,7 +1352,7 @@ watch(viewerGcode, (newGcode) => {
                never have to guess whether waiting, a UI action, or a
                suite restart is the way out (no auto-recovery implied). -->
           <span v-if="safetyTrip" :key="'safety'" class="bannerError">
-            SAFETY TRIPPED — press E-Stop Reset, then Acknowledge, then re-Arm
+            SAFETY TRIPPED ({{ safetyTripReasonLabel }}) — press E-Stop Reset, then Acknowledge, then re-Arm
           </span>
           <span v-else-if="serverShuttingDown" :key="'shutdown'" class="bannerError">
             Server shutting down — start LinuxCNC again to reconnect
@@ -1773,6 +1781,7 @@ watch(viewerGcode, (newGcode) => {
       <SafetyStrip
         :armed="armed"
         :busy="busy"
+        :tripUnacked="safetyTrip !== null"
         :isEstop="isEstop"
         :isEnabled="isEnabled"
         :isHomed="isHomed"
