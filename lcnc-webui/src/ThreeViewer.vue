@@ -1920,6 +1920,12 @@ defineExpose({
   width: 100%;
   height: 100%;
   border-radius: var(--radius-container);
+  /* The WebGL canvas lives on its own GPU compositor layer, and some
+     browsers drop the overflow:hidden rounded clip for composited
+     children — the border paints rounded while the canvas escapes
+     square. clip-path is applied in the compositor and always holds
+     (same workaround as the codeViewer scrollbar clip in style.css). */
+  clip-path: inset(0 round var(--radius-container));
   background: color-mix(in oklab, var(--panel) 70%, transparent);
 }
 
