@@ -1610,6 +1610,14 @@ const hudAxes = computed(() => props.axes ?? ["X", "Y", "Z"]);
 const { entries: hudEntries } = useAxes(hudAxes);
 const hudCfg = computed(() => viewerDefaults.hud);
 
+// Feed/spindle grid-row values (current_vel is units/s → units/min)
+const hudFeed = computed(() =>
+  vst.value?.current_vel != null ? (vst.value.current_vel * 60).toFixed(1) : "---",
+);
+const hudLoad = computed(() =>
+  vst.value?.spindle_load != null ? `${Math.round(vst.value.spindle_load)}%` : "",
+);
+
 const spindleLoadZone = computed(() => {
   const v = vst.value?.spindle_load;
   if (v == null) return "";
@@ -1821,8 +1829,11 @@ defineExpose({
   <div class="viewerWrapper">
     <div ref="host" class="viewerHost bordered-panel" />
 
-    <!-- HUD Overlay — one card: position grid, context line, warning rows.
-         All text sizes scale with --hud-scale (settings: HUD scale). -->
+    <!-- HUD Overlay — one card, one visual language: every live value is a
+         grid row (muted letter label | right-aligned value), so feed and
+         spindle read exactly like the axis rows. Tool is static context and
+         stays a smaller single line. All text sizes scale with --hud-scale
+         (settings: HUD scale). -->
     <div v-show="hudVisible" class="hud hudCard stack-tight" :class="`hudScale-${hudCfg.scale}`">
       <div class="hudGrid" :class="{ noMach: !hudCfg.showMachine }">
         <span class="hudHead"></span>
@@ -1833,15 +1844,23 @@ defineExpose({
           <span class="hudWork">{{ fmtCoord(vst?.work_pos?.[a.index], a.letter) }}</span>
           <span v-if="hudCfg.showMachine" class="hudMach">{{ fmtCoord(vst?.machine_pos?.[a.index], a.letter) }}</span>
         </template>
+        <template v-if="hudCfg.showFeedSpindle">
+          <div class="sep"></div>
+          <span class="hudAxis">F</span>
+          <span class="hudWork">{{ hudFeed }}</span>
+          <span v-if="hudCfg.showMachine" class="hudMach"></span>
+          <span class="hudAxis">S</span>
+          <span class="hudWork">{{ fmtRpm(vst?.spindle_speed_actual ?? null) }}<span v-if="!hudCfg.showMachine && hudLoad" class="hudLoadInline"> {{ hudLoad }}</span></span>
+          <span v-if="hudCfg.showMachine" class="hudMach">{{ hudLoad }}</span>
+        </template>
       </div>
 
-      <div v-if="hudCfg.showTool" class="hudCtx">
-        <span>T{{ vst?.tool_number ?? '–' }} Ø{{ fmtCoord(vst?.tool_diameter) }} L{{ fmtCoord(vst?.tool_length) }}</span>
-      </div>
-      <div v-if="hudCfg.showFeedSpindle" class="hudCtx">
-        <span>F<span class="val-slot slot-feed">{{ vst?.current_vel != null ? (vst.current_vel * 60).toFixed(1) : '---' }}</span></span>
-        <span>S<span class="val-slot slot-rpm">{{ fmtRpm(vst?.spindle_speed_actual ?? null) }}</span><span v-if="vst?.spindle_load != null" class="val-slot slot-load">{{ Math.round(vst.spindle_load) }}%</span></span>
-      </div>
+      <template v-if="hudCfg.showTool">
+        <div class="sep"></div>
+        <div class="hudCtx">
+          <span>T{{ vst?.tool_number ?? '–' }}</span><span>Ø{{ fmtCoord(vst?.tool_diameter) }}</span><span>L{{ fmtCoord(vst?.tool_length) }}</span>
+        </div>
+      </template>
       <div v-if="hudCfg.showLoadBar && vst?.spindle_load != null" class="loadBar" :class="spindleLoadZone">
         <div class="loadBarFill" :style="{ width: spindleLoadFillPct + '%' }"></div>
       </div>
@@ -1966,6 +1985,9 @@ defineExpose({
   align-items: baseline;
 }
 .hudGrid.noMach { grid-template-columns: auto auto; }
+/* Divider row between axis block and F/S rows (layout-only override of
+   the global .sep divider so it spans the whole grid). */
+.hudGrid > .sep { grid-column: 1 / -1; align-self: center; }
 
 .hudHead {
   font-size: calc(var(--fs-sm) * var(--hud-scale));
@@ -1994,22 +2016,23 @@ defineExpose({
   white-space: nowrap;
   min-width: 8ch;
 }
+/* Spindle load riding inside the S value cell when the machine column
+   (its usual home) is hidden — machine-column styling, inline. */
+.hudLoadInline {
+  font-size: calc(var(--fs-lg) * var(--hud-scale));
+  opacity: var(--opacity-muted);
+}
 
-/* Context line: T/Ø/L · F · S in G-code notation — no word labels. */
+/* Tool context line: T · Ø · L in G-code notation — no word labels. */
 .hudCtx {
   font-size: calc(var(--fs-md) * var(--hud-scale));
   font-weight: var(--fw-medium);
   white-space: nowrap;
 }
 .hudCtx > span + span::before {
-  content: "· ";
+  content: " · ";
   opacity: var(--opacity-subtle);
 }
-/* Feed/spindle slot floors (global .val-slot): sized to realistic maxima
-   (F 9999.0, S 24,000 rpm, 300% load); beyond that the slot grows once. */
-.slot-feed { --slot-w: 6.5ch; }
-.slot-rpm  { --slot-w: 6.5ch; }
-.slot-load { --slot-w: 4.5ch; }
 
 .hudWarn {
   font-size: calc(var(--fs-md) * var(--hud-scale));

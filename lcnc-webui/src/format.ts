@@ -38,10 +38,11 @@ export function fmtOffset(val: number | null | undefined): string {
   return val.toFixed(4);
 }
 
-/** RPM display — rounded integer with locale thousands separator */
+/** RPM display — plain rounded integer. No locale grouping: thousands
+ *  separators (e.g. Swiss 1'400) appear nowhere else in the UI. */
 export function fmtRpm(val: number | null): string {
   if (val == null) return "---";
-  return Math.round(val).toLocaleString();
+  return String(Math.round(val));
 }
 
 /** Elapsed time — zero-padded mm:ss or h:mm:ss */
