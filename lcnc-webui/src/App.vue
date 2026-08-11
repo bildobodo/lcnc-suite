@@ -1331,7 +1331,7 @@ watch(viewerGcode, (newGcode) => {
                never have to guess whether waiting, a UI action, or a
                suite restart is the way out (no auto-recovery implied). -->
           <span v-if="safetyTrip" :key="'safety'" class="bannerError">
-            SAFETY TRIPPED ({{ safetyTripReasonLabel }}) — press E-Stop Reset, then Acknowledge, then re-Arm
+            SAFETY TRIPPED ({{ safetyTripReasonLabel }}) — Acknowledge, re-Arm if needed, then E-Stop Reset
           </span>
           <span v-else-if="serverShuttingDown" :key="'shutdown'" class="bannerError">
             Server shutting down — start LinuxCNC again to reconnect

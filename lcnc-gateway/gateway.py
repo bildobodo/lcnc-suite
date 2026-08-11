@@ -427,7 +427,11 @@ def _snapshot_trip(trip_ts_ns: int) -> None:
             [
                 "python3",
                 "/home/cnc/lcnc-suite/scripts/trace-bundle.py",
-                "--trip",
+                # Pass the exact trip timestamp: --trip's auto-detect anchors
+                # on wd.hb_edge, a best-effort 100 ms poller that misses short
+                # pin dips — it once re-bundled the PREVIOUS trip's window
+                # because the fresh trip never produced a falling edge.
+                "--trip-ns", str(trip_ts_ns),
                 "--out", out_dir,
             ],
             timeout=10,
@@ -2506,11 +2510,14 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             return {"ok": True}
 
         if cmd == "estop_reset":
-            # require_armed is safe here despite a trip auto-clearing nothing:
-            # the frontend gates its Reset button on canResetEstop (armed &&
-            # isEstop), and arm is rejected while _unacked_trip is set, so the
-            # operator-reachable recovery order is Acknowledge -> Arm -> Reset.
-            # By the time this command can be sent the client is armed.
+            # Trip-ack gate: a client that stayed armed through a trip (a trip
+            # revokes nothing — armed is authorization, not liveness) could
+            # otherwise Reset -> Machine On without ever confronting the
+            # banner; the ack gate on `arm` only bites for clients that lost
+            # armed. Enforced recovery order, matching the banner text:
+            # Acknowledge -> re-Arm if needed -> E-Stop Reset -> Machine On.
+            if _unacked_trip is not None:
+                return {"ok": False, "error": "Safety trip not acknowledged"}
             require_armed(armed)
             # Do NOT pre-check emc_enable_in here. Standard LinuxCNC safety
             # chains feed iocontrol.0.user-enable-out back into the AND that
