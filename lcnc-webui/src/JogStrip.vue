@@ -81,14 +81,20 @@ const incrementOptions = computed(() => {
 });
 
 // ─── XY grid square sizing (aspect-ratio unreliable in flex) ──
-const xyWrapRef = ref<HTMLElement>();
+// Measures the PARENT row (.jogBtns) and applies the same value to both
+// wrap dimensions. Observing the parent keeps the loop sound: the wrap's
+// inline size can never feed back into the measurement, and a stale or
+// dropped RO tick (Firefox defers notifications under same-frame layout
+// shifts) still yields a square pad — a size error stays a size error
+// instead of becoming uneven gaps / Z-column misalignment.
+const jogBtnsRef = ref<HTMLElement>();
 const xySize = ref(0);
 
 const ro = new ResizeObserver(entries => {
   if (isPortrait.value) return; // CSS aspect-ratio handles square sizing in portrait
   for (const e of entries) xySize.value = e.contentRect.height;
 });
-onMounted(() => { if (xyWrapRef.value) ro.observe(xyWrapRef.value); });
+onMounted(() => { if (jogBtnsRef.value) ro.observe(jogBtnsRef.value); });
 onUnmounted(() => ro.disconnect());
 
 // Reset inline size when switching to portrait so CSS aspect-ratio takes over
@@ -252,8 +258,8 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
   <div class="stripSection">
     <div class="sub">Jog</div>
     <div class="jogContent row-sections">
-      <div class="jogBtns row-sections">
-        <div v-if="hasXyPad" ref="xyWrapRef" class="xyWrap" :style="xySize ? { width: xySize + 'px' } : undefined">
+      <div ref="jogBtnsRef" class="jogBtns row-sections">
+        <div v-if="hasXyPad" class="xyWrap" :style="xySize ? { width: xySize + 'px', height: xySize + 'px' } : undefined">
           <div class="xyGrid">
             <MachineBtn
               v-for="btn in xyBtns"
@@ -406,6 +412,12 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
 
 .xyWrap {
   height: 100%;
+  /* Square by construction even before (or without) the JS measurement:
+     the height chain is definite now (--strip-section-h), so aspect-ratio
+     resolves the width from it. The JS inline size (both dimensions, same
+     value) overrides this for engines that mis-handle aspect-ratio in
+     flex — either path yields a square, so RO timing can't skew the pad. */
+  aspect-ratio: 1;
   flex-shrink: 0;
 }
 .xyGrid {
@@ -434,13 +446,15 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
   display: flex;
   gap: var(--gap-controls);
 }
+/* No aspect-ratio on the buttons: they fill their grid cells. The cells
+   are square because the WRAP is square (aspect-ratio / JS above) — a
+   button-level ratio would underfill any transiently non-square cell
+   (Firefox keeps ratio'd grid items square instead of stretching),
+   spreading the slack into visibly uneven gaps and breaking row
+   alignment with the free-stretching Z column. */
 .jogBtn {
   touch-action: none;
   user-select: none;
-  aspect-ratio: 1;
-}
-.axisCol .jogBtn {
-  aspect-ratio: auto;
 }
 /* Not a stack-* reimpl: direction VARIES per modifier below (jogV row,
    jogH/jogZDown column-reverse); default column for the Stop button. */

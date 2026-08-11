@@ -124,6 +124,14 @@
   /* Square key size — one value for the strip keypad AND G-code keyboard,
      identical in portrait and landscape so key muscle memory transfers. */
   --key-size: var(--touch-target);
+  /* Landscape strip-section height — the single content budget every strip
+     section is built against. Fixed here (not derived from the strip's
+     height) so it can never vary with the UA's scrollbar band: the strip
+     is auto-height around it and the viewer pane absorbs band differences.
+     Floor: the G-code keyboard, the tallest fixed content — .sub title
+     (11px × 1.5 line-height) + --gap-controls + 5 × --key-size rows with
+     4 × --gap-tight gaps = 260.5px, plus rounding margin. */
+  --strip-section-h: 264px;
   /* Action-rail minimum width — the wider grid track holding word-labeled
      keys (Send, Clear, Cancel, OK) beside the square character keys. */
   --key-action-w: 70px;
@@ -1096,12 +1104,14 @@ label:has(input:disabled, select:disabled) {
 .row-tight      { display: flex; gap: var(--gap-tight); align-items: center; }
 
 /* Strip section — title (.sub) on top, content below.
-   Used by every section in the bottom action strip. */
+   Used by every section in the bottom action strip. Fixed height (not
+   100%): the section is the strip's sizing anchor, so its content budget
+   is identical on every UA regardless of scrollbar-band height. */
 .stripSection {
   display: flex;
   flex-direction: column;
   gap: var(--gap-controls);
-  height: 100%;
+  height: var(--strip-section-h);
   flex-shrink: 0;
 }
 .stripSection > :last-child { flex: 1; min-height: 0; }
