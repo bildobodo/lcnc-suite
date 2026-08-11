@@ -20,6 +20,7 @@ from gateway_util import (
     finite_float,
     finite_int,
     evaluate_trip_latch,
+    resolve_loaded_file,
 )
 
 
@@ -299,6 +300,65 @@ class TestEvaluateTripLatch(unittest.TestCase):
         self.assertTrue(steps[0]["faulted_on_connect"])
         self.assertFalse(steps[0]["tripped"])
         self.assertTrue(steps[2]["tripped"])
+
+
+class TestResolveLoadedFile(unittest.TestCase):
+    """Loaded-program resolver: STAT.file flips to subroutine paths while the
+    interpreter executes (M6 remap, o-word CALLs); active_file must keep
+    meaning "loaded program" through those flips."""
+
+    MAIN = "/nc/main.ngc"
+    SUB = "/nc/subroutines/tool_touch_off.ngc"
+
+    def test_idle_load_adopts(self):
+        self.assertEqual(resolve_loaded_file(self.MAIN, True, None), (self.MAIN, None))
+
+    def test_idle_unload_adopts_none(self):
+        self.assertEqual(resolve_loaded_file(None, True, self.MAIN), (None, None))
+        # Empty string normalizes to None (STAT.file reads "" for "no file")
+        self.assertEqual(resolve_loaded_file("", True, self.MAIN), (None, None))
+
+    def test_midrun_sub_flip_held_and_reported(self):
+        # The bug: M6 remap opens tool_touch_off.ngc mid-run — hold the main
+        # program and surface the ignored raw value for tracing.
+        self.assertEqual(resolve_loaded_file(self.SUB, False, self.MAIN), (self.MAIN, self.SUB))
+
+    def test_midrun_same_file_not_reported(self):
+        self.assertEqual(resolve_loaded_file(self.MAIN, False, self.MAIN), (self.MAIN, None))
+
+    def test_midrun_transient_empty_held(self):
+        # A transiently empty STAT.file mid-run must not unload the program
+        # (raw "" would otherwise clear the shared preview cache).
+        loaded, flip = resolve_loaded_file("", False, self.MAIN)
+        self.assertEqual(loaded, self.MAIN)
+        self.assertIsNone(flip)  # "" normalizes to None; nothing adoptable to report
+
+    def test_mdi_sub_with_no_program_held(self):
+        # MDI `O<probe_x> CALL` with no program loaded: prev None is an honest
+        # "no file" baseline — do not adopt the probe sub.
+        self.assertEqual(resolve_loaded_file(self.SUB, False, None), (None, self.SUB))
+
+    def test_first_sight_midrun_adopts_raw(self):
+        # Gateway restarted under a running program: no baseline yet — adopt
+        # raw so the UI shows something; corrects itself at the next idle tick.
+        self.assertEqual(
+            resolve_loaded_file(self.SUB, False, None, prev_seen=False), (self.SUB, None)
+        )
+
+    def test_run_lifecycle(self):
+        # load → run → M6 flip → back to main → idle at program end.
+        prev, seen = None, False
+        for raw, idle, want in [
+            (self.MAIN, True, self.MAIN),   # operator loads
+            (self.MAIN, False, self.MAIN),  # running
+            (self.SUB, False, self.MAIN),   # M6 remap flips STAT.file
+            (self.MAIN, False, self.MAIN),  # sub returned
+            (self.MAIN, True, self.MAIN),   # program done
+            (None, True, None),             # unload
+        ]:
+            prev, _ = resolve_loaded_file(raw, idle, prev, seen)
+            seen = True
+            self.assertEqual(prev, want)
 
 
 if __name__ == "__main__":

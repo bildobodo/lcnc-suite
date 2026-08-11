@@ -212,6 +212,44 @@ def evaluate_trip_latch(fault_latched, last_latched, baseline_seen) -> dict:
     return out
 
 
+def resolve_loaded_file(raw_file, interp_idle: bool, prev, prev_seen: bool = True):
+    """Pure resolver for the "loaded program" the UI should report.
+
+    ``STAT.file`` follows the interpreter's *currently open* file, which flips
+    to subroutine paths mid-execution (M6 remap → tool_touch_off.ngc, o-word
+    CALLs into probe routines, …) and back again. Mirroring it raw made the
+    poller's file-change edge re-parse the subroutine as if the operator had
+    loaded it — replacing the preview, G-code text, and stats mid-run (the
+    "Stats button vanishes while running" bug) and paying two full re-parses
+    of the main program per tool change.
+
+    A file can only be legitimately (un)loaded while the interpreter is idle
+    (task + gateway both reject loads during AUTO), so: accept ``raw_file``
+    only when ``interp_idle`` — otherwise hold ``prev`` and report the ignored
+    flip so the caller can trace it (no silent decisions).
+
+    Args:
+        raw_file: current ``STAT.file`` ("" and None both mean "none").
+        interp_idle: interpreter is idle (a ``None`` interp_state should be
+            passed as idle — no data → keep the legit-load path open).
+        prev: previously resolved loaded file (``None`` = no file loaded).
+        prev_seen: whether ``prev`` is an established baseline. False only on
+            the very first poll (gateway restarted, possibly under a running
+            program): adopt raw rather than showing nothing; it self-corrects
+            to the main file at the next idle tick. Must be True afterwards —
+            ``prev is None`` then honestly means "no file loaded" and is held
+            through busy states like any other value (an MDI o-word probe with
+            no program loaded must not adopt the probe sub as loaded file).
+
+    Returns ``(loaded_file, flip_ignored)`` — ``flip_ignored`` is the raw
+    value we refused to adopt, or ``None`` when nothing was ignored.
+    """
+    f = raw_file or None
+    if interp_idle or not prev_seen:
+        return f, None
+    return prev, (f if f != prev else None)
+
+
 def atomic_write_bytes(path: str, data: bytes, fsync: bool = False) -> None:
     """Atomically write ``data`` to ``path`` via tempfile + os.replace.
 

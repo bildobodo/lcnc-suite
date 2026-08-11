@@ -40,7 +40,7 @@ from command_policy import (
     MachineState as _PolicyMachineState,
     evaluate_permissions,
 )
-from gateway_util import atomic_write_bytes
+from gateway_util import atomic_write_bytes, resolve_loaded_file
 from tool_table import parse_tool_table, _merge_tool_data
 
 WCS_BASES = [5220, 5240, 5260, 5280, 5300, 5320, 5340, 5360, 5380]
@@ -269,6 +269,14 @@ class StatusRuntime:
         # Tool-change info lookup cache: {(tool_num, tbl_mtime): merged_list},
         # one entry max.
         self._tc_info_cache: dict = {}
+        # Loaded-program resolver state: STAT.file flips to subroutine paths
+        # mid-execution (M6 remap, o-word CALLs); resolve_loaded_file holds the
+        # last idle-time value so active_file means "loaded program", not
+        # "interpreter's currently open file". _file_flip_traced dedupes the
+        # ignored-flip trace to one line per flip (not one per 30 Hz tick).
+        self._loaded_file: Optional[str] = None
+        self._loaded_file_seen = False
+        self._file_flip_traced: Optional[str] = None
         # Warn-once flags (re-armed on reconnect so a STAT field that
         # disappears across a reconnect produces a fresh log line)
         self._machine_pos_warned = False
@@ -685,6 +693,25 @@ class StatusRuntime:
             bool(safe_get("paused", False)),
         )
 
+        # Loaded program (see resolve_loaded_file): STAT.file follows the
+        # interpreter's open file, flipping to subroutine paths mid-execution.
+        # Adopt changes only while the interpreter is idle; trace ignored flips
+        # once each so the branch stays auditable without 30 Hz spam.
+        _interp = safe_get("interp_state", None)
+        _raw_file = safe_get("file", None)
+        active_file, _flip = resolve_loaded_file(
+            _raw_file,
+            _interp is None or _interp == linuxcnc.INTERP_IDLE,
+            self._loaded_file,
+            self._loaded_file_seen,
+        )
+        self._loaded_file = active_file
+        self._loaded_file_seen = True
+        if _flip is not None and _flip != self._file_flip_traced:
+            _trace.emit("status.file_flip_ignored", level="info",
+                        raw_file=os.path.basename(_flip), loaded=os.path.basename(active_file or ""))
+        self._file_flip_traced = _flip
+
         payload = StatusPayload(
             ts=time.time(),
             estop=estop,
@@ -727,7 +754,7 @@ class StatusRuntime:
             spindle_speed_actual=spindle_speed_actual,
             spindle_load=reader_get("spindle_load"),
             spindle_direction=spindle_direction,
-            active_file=safe_get("file", None),
+            active_file=active_file,
             motion_line=safe_get("motion_line", None),
             program_elapsed_ms=program_elapsed_ms,
             gcodes=to_float_list(safe_get("gcodes", None)),
