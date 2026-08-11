@@ -10,6 +10,7 @@ import TabPanel from "./TabPanel.vue";
 import GcodePanel from "./GcodePanel.vue";
 import SafetyStrip from "./SafetyStrip.vue";
 import JogStrip from "./JogStrip.vue";
+import StatsDonut from "./StatsDonut.vue";
 import SetupStrip from "./SetupStrip.vue";
 import GcodeKeypadStrip from "./GcodeKeypadStrip.vue";
 import { isTouchDevice } from "./touchDetect";
@@ -385,37 +386,7 @@ const viewerProjection = ref<Projection>(_vd.projection);
 // G-code viewer — gcodeContent is fetched via HTTP by lcncWs on viewer_gcode
 const gcodeStats = ref<GcodeStats | null>(null);
 
-// SVG donut chart segments (distance breakdown: rapid / linear / arc)
-const DONUT_R = 40;
-const DONUT_C = 2 * Math.PI * DONUT_R;
-const donutSegments = computed(() => {
-  const s = gcodeStats.value;
-  if (!s) return [];
-  const total = s.rapidDist + s.linearDist + s.arcDist;
-  if (total <= 0) return [];
-  const segs: { color: string; label: string; value: number; pct: number; dasharray: string; dashoffset: number }[] = [];
-  let offset = 0;
-  const items = [
-    { color: "var(--warn)", label: "Rapid", value: s.rapidDist },
-    { color: "var(--info)", label: "Linear", value: s.linearDist },
-    { color: "var(--ok)", label: "Arc", value: s.arcDist },
-  ];
-  for (const item of items) {
-    if (item.value <= 0) continue;
-    const pct = item.value / total;
-    const len = pct * DONUT_C;
-    segs.push({
-      color: item.color,
-      label: item.label,
-      value: item.value,
-      pct: Math.round(pct * 100),
-      dasharray: `${len} ${DONUT_C - len}`,
-      dashoffset: -offset,
-    });
-    offset += len;
-  }
-  return segs;
-});
+// Donut chart (distance breakdown) lives in StatsDonut.vue.
 
 /** ---------- status helpers ---------- */
 const st = computed<Record<string, any>>(() => {
@@ -1564,27 +1535,7 @@ watch(viewerGcode, (newGcode) => {
               <MachineBtn type="close" @click="statsDialogOpen = false">&times;</MachineBtn>
             </div>
             <div class="dialogContent stack-sections scroll-thin fade-scroll">
-              <div v-if="donutSegments.length > 0" class="row-sections">
-                <svg class="donut" viewBox="0 0 100 100">
-                  <circle class="donutBg" cx="50" cy="50" r="40" />
-                  <circle v-for="(seg, i) in donutSegments" :key="i"
-                    cx="50" cy="50" r="40"
-                    fill="none"
-                    :stroke="seg.color"
-                    stroke-width="12"
-                    :stroke-dasharray="seg.dasharray"
-                    :stroke-dashoffset="seg.dashoffset"
-                    transform="rotate(-90 50 50)"
-                  />
-                </svg>
-                <div class="donutLegend stack-tight">
-                  <div v-for="seg in donutSegments" :key="seg.label" class="row-tight">
-                    <span class="legendDot" :style="{ background: seg.color }"></span>
-                    <span>{{ seg.label }}</span>
-                    <span class="legendPct mono">{{ seg.pct }}%</span>
-                  </div>
-                </div>
-              </div>
+              <StatsDonut :stats="gcodeStats" />
 
               <div class="sep"></div>
 
@@ -2238,52 +2189,12 @@ watch(viewerGcode, (newGcode) => {
 }
 
 
-/* ---- Stats dialog ---- */
+/* ---- Stats dialog ----
+   (.statsGrid/.donut/.legendDot etc. are global — see style.css and
+    StatsDonut.vue) */
 .statsDialog {
   min-width: 340px;
   max-width: 480px;
-}
-
-.statsGrid {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: var(--gap-tight) var(--gap-controls);
-}
-
-.statsLabel {
-  opacity: var(--opacity-muted);
-}
-
-.statsValue {
-  text-align: right;
-}
-
-/* .donutRow — replaced by row-sections utility (same shape) */
-
-.donut {
-  width: 80px;
-  height: 80px;
-  flex-shrink: 0;
-}
-
-.donutBg {
-  fill: none;
-  stroke: color-mix(in oklab, var(--panel) 90%, var(--fg));
-  stroke-width: 12;
-}
-
-/* .legendItem — replaced by row-tight utility (same shape) */
-
-.legendDot {
-  width: 8px;
-  height: 8px;
-  border-radius: var(--radius-round);
-  flex-shrink: 0;
-}
-
-.legendPct {
-  opacity: var(--opacity-muted);
-  margin-left: auto;
 }
 
 /* ---- Messages dialog ---- */

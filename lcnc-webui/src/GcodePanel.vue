@@ -827,21 +827,7 @@ async function saveEdit() {
 }
 
 /* .progressRow — replaced by row-controls utility (same shape) */
-
-.progressTrack {
-  flex: 1;
-  height: 10px;
-  border-radius: var(--radius-sm);
-  background: color-mix(in oklab, var(--panel) 90%, var(--fg));
-  overflow: hidden;
-}
-
-.progressFill {
-  height: 100%;
-  border-radius: var(--radius-sm);
-  background: var(--info);
-  transition: width 0.3s ease;
-}
+/* .progressTrack/.progressFill — global (style.css) */
 
 .progressLabel {
   font-size: var(--fs-md);

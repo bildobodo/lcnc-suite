@@ -1273,6 +1273,29 @@ label:has(input:disabled, select:disabled) {
 .label-muted    { font-size: var(--fs-2xs); opacity: var(--opacity-muted); white-space: nowrap; }
 .label-muted.md { font-size: var(--fs-md); }
 
+/* Status key/value row — label left, value right (safety detail, tool
+   info). Pairs .label-muted with .val-status. */
+.statusRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--gap-controls);
+}
+/* Two-column status layout: equal columns split by a subtle rule
+   (safety detail) */
+.statusCols {
+  display: flex;
+  gap: 0;
+}
+.statusCol {
+  flex: 1;
+}
+.statusCol + .statusCol {
+  border-left: 1px solid var(--border-subtle);
+  padding-left: var(--gap-controls);
+  margin-left: var(--gap-controls);
+}
+
 /* Status key/value pairs (safety detail, spindle readouts) */
 .val-status        { font-size: var(--fs-sm); font-weight: var(--fw-semibold); text-align: right; }
 .val-status.md     { font-size: var(--fs-md); }
@@ -1292,6 +1315,55 @@ label:has(input:disabled, select:disabled) {
 .stable-width > * { grid-area: 1 / 1; display: flex; align-items: center; justify-content: center; }
 .stable-width > .alt { visibility: hidden; }
 .val-status .stable-width > * { justify-content: flex-end; }
+
+/* ---- Program stats display (stats dialog / StatsDonut) ---- */
+.statsGrid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--gap-tight) var(--gap-controls);
+}
+.statsLabel {
+  opacity: var(--opacity-muted);
+}
+.statsValue {
+  text-align: right;
+}
+.donut {
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+}
+.donutBg {
+  fill: none;
+  stroke: color-mix(in oklab, var(--panel) 90%, var(--fg));
+  stroke-width: 12;
+}
+.legendDot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-round);
+  flex-shrink: 0;
+}
+.legendPct {
+  opacity: var(--opacity-muted);
+  margin-left: auto;
+}
+
+/* Program progress bar (G-code panel). Track flexes to fill its row; fill
+   width is driven inline from progress %. */
+.progressTrack {
+  flex: 1;
+  height: 10px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in oklab, var(--panel) 90%, var(--fg));
+  overflow: hidden;
+}
+.progressFill {
+  height: 100%;
+  border-radius: var(--radius-sm);
+  background: var(--info);
+  transition: width 0.3s ease;
+}
 
 /* Button inner content (icon + text aligned) */
 .btn-label      { display: flex; align-items: center; gap: var(--gap-tight); }

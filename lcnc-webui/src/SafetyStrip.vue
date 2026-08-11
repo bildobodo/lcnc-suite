@@ -176,24 +176,6 @@ const overridesActive = computed(() =>
   min-width: 0;
   overflow: auto;
 }
-.statusCols {
-  display: flex;
-  gap: 0;
-}
-.statusCol {
-  flex: 1;
-}
-.statusCol + .statusCol {
-  border-left: 1px solid var(--border-subtle);
-  padding-left: var(--gap-controls);
-  margin-left: var(--gap-controls);
-}
-.statusRow {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: var(--gap-controls);
-}
 .codesRow {
   /* Prevent codes from widening the strip — wrap within status column width */
   width: 0;
