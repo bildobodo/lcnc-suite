@@ -904,6 +904,14 @@ function updateScrollFades() {
       el.scrollTop + el.clientHeight < el.scrollHeight - 1;
     el.classList.toggle("strip-more", more);
     el.classList.toggle("strip-scrolled", el.scrollLeft > 1 || el.scrollTop > 1);
+    // Overlay-scrollbar UAs (macOS default) reserve no scrollbar band, so
+    // the strip's bottom gap must come back as padding (see .strip). The
+    // delta is border (2px, .bordered-panel) + classic scrollbar height;
+    // re-checked here because macOS flips overlay→classic when a mouse is
+    // plugged in. Measurement is padding-independent — no feedback loop.
+    if (el.classList.contains("strip")) {
+      el.classList.toggle("overlay-scroll", el.offsetHeight - el.clientHeight <= 3);
+    }
   }
 }
 function attachScrollFades() {
@@ -1976,12 +1984,25 @@ watch(viewerGcode, (newGcode) => {
   height: 280px;
   flex-shrink: 0;
   /* no left padding: the sticky SafetyStrip carries it (see .safetyStrip) —
-     scroller padding would form a bleed-through gutter beside the stuck element */
-  padding: var(--gap-controls) var(--gap-controls) var(--gap-controls) 0;
+     scroller padding would form a bleed-through gutter beside the stuck
+     element. No bottom padding either: overflow-x: scroll always reserves
+     the thin 8px scrollbar band (.scroll-thin), which IS the bottom gap.
+     A sometimes-scrollbar (overflow-x: auto + bottom padding) is carved
+     out of the client box only when sections overflow, shrinking every
+     stripSection's fixed height budget — SafetyStrip's status panel then
+     grows a vertical scrollbar with the full section set but not with the
+     keypad swapped in. */
+  padding: var(--gap-controls) var(--gap-controls) 0 0;
   gap: var(--gap-controls);
-  overflow-x: auto;
+  overflow-x: scroll;
   overflow-y: hidden;
   border-radius: var(--radius-container);
+}
+/* Overlay-scrollbar UAs draw the bar over content instead of reserving
+   the band — restore the bottom gap as padding (JS-toggled, see
+   updateScrollFades). */
+.strip.overlay-scroll {
+  padding-bottom: var(--gap-controls);
 }
 /* Center all sections when space allows; collapse to 0 on overflow */
 .strip::before,

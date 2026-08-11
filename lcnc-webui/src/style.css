@@ -716,7 +716,7 @@ label:has(input:disabled, select:disabled) {
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;
 }
-.scroll-thin::-webkit-scrollbar { width: 8px; }
+.scroll-thin::-webkit-scrollbar { width: 8px; height: 8px; }
 .scroll-thin::-webkit-scrollbar-track { background: transparent; }
 .scroll-thin::-webkit-scrollbar-thumb { background: var(--border); border-radius: var(--radius-md); }
 .scroll-thin::-webkit-scrollbar-thumb:hover { background: color-mix(in oklab, var(--border) 80%, var(--fg)); }
