@@ -101,8 +101,12 @@ class ClientState:
     ws: "WebSocket"
     armed: bool = False
     halshow_live: bool = False
-    last_hb: float = 0.0       # wall-clock time of last heartbeat from this client
-    hb_mono: float = 0.0       # monotonic ts of last hb (0 = never seen)
+    last_hb: float = 0.0       # wall-clock time of last heartbeat from this client (forensics only — see last_hb_mono)
+    last_hb_mono: float = 0.0  # monotonic ts of last heartbeat (refreshed on connect/arm). Liveness aging
+                               # MUST use this, never last_hb: an NTP step of the wall clock (+2.9 s observed
+                               # on the QEMU VM) made time.time()-last_hb exceed the 3 s budget while
+                               # heartbeats were arriving on schedule → false hb-stall disarm.
+    hb_mono: float = 0.0       # monotonic ts of last hb, zeroed after timing attach (one-shot latency marker)
     send_pending: bool = False # status fan-out is in-flight to this client
     hidden: bool = False       # client tab is backgrounded (visibilityState)
     session_id: Optional[str] = None  # tab-scoped UUID; basis for armed-resume across brief reconnects

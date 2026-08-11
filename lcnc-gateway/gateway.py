@@ -4582,6 +4582,7 @@ async def ws_endpoint(ws: WebSocket):
             ip=client_ip,
             ws=ws,
             last_hb=time.time(),
+            last_hb_mono=time.monotonic(),
         )
         client = _clients[client_id]  # M3 de-closure: per-connection state object
         await _cancel_disconnect_grace()
@@ -5058,7 +5059,12 @@ async def ws_endpoint(ws: WebSocket):
                     # running program. So: disarm the client + jog-stop any
                     # in-flight jog from this client. No program abort.
                     if client_id in _clients:
-                        if time.time() - _clients[client_id].last_hb > 3.0:
+                        # Monotonic aging: an NTP wall-clock step (+2.9 s observed
+                        # on this VM, 2026-08-11) made time.time()-last_hb blow the
+                        # 3 s budget while heartbeats arrived on schedule → false
+                        # disarm. time.monotonic() is immune in both directions
+                        # (a backward step also can't keep a dead client "fresh").
+                        if time.monotonic() - _clients[client_id].last_hb_mono > 3.0:
                             if client.armed:
                                 client.armed = False
                                 try:
@@ -5085,7 +5091,10 @@ async def ws_endpoint(ws: WebSocket):
                                 _trace.emit(
                                     "safety.hb_stall_disarmed",
                                     client_id=client_id,
-                                    hb_age_ms=round((time.time() - _c.last_hb) * 1000),
+                                    hb_age_ms=round((_now_m - _c.last_hb_mono) * 1000),
+                                    # Wall-clock age kept alongside: divergence from
+                                    # hb_age_ms proves a clock step in the event itself.
+                                    hb_age_wall_ms=round((time.time() - _c.last_hb) * 1000),
                                     last_hb_arrival_ms_ago=round((_now_m - _ring[-1]) * 1000) if _ring else None,
                                     hb_arrival_gaps_ms=_gaps,
                                     frames_rx_total=_c.frames_rx,
@@ -5163,9 +5172,11 @@ async def ws_endpoint(ws: WebSocket):
 
             if msg.get("cmd") == "heartbeat":
                 if client_id in _clients:
+                    _now_mono = time.monotonic()
                     _clients[client_id].last_hb = time.time()
-                    _clients[client_id].hb_mono = time.monotonic()
-                    _clients[client_id].hb_ring.append(time.monotonic())
+                    _clients[client_id].last_hb_mono = _now_mono
+                    _clients[client_id].hb_mono = _now_mono
+                    _clients[client_id].hb_ring.append(_now_mono)
                 await ws_send_json(ws, {"type": "pong"})
                 continue
 
@@ -5225,6 +5236,7 @@ async def ws_endpoint(ws: WebSocket):
                                 _consume_armed_resume_hold(_sid)
                                 client.armed = True
                                 client.last_hb = time.time()
+                                client.last_hb_mono = time.monotonic()
                                 _trace.emit(
                                     "session.resume_granted",
                                     client_id=client_id, session_id=_sid,
@@ -5247,6 +5259,7 @@ async def ws_endpoint(ws: WebSocket):
                 _was_armed = client.armed
                 client.armed = want_armed
                 client.last_hb = time.time()  # reset on arm change
+                client.last_hb_mono = time.monotonic()
                 # Symmetry with auto-disarm paths (Phase 2 / E1.2 + E2):
                 # explicit disarm must jog-stop any in-flight jog from this
                 # client AND register an armed-resume hold (so a deliberate
@@ -5284,6 +5297,9 @@ async def ws_endpoint(ws: WebSocket):
                 # produces no edge and the ack sticks; a genuinely new trip
                 # (latch reset → FALSE, then TRUE again) still fires.
                 _unacked_trip = None
+                # Audit: without this, an acknowledged trip is invisible in the
+                # trace — an armed client after a trip looks like a gate bypass.
+                _trace.emit("safety.trip_acknowledged", client_id=client_id)
                 await ws_send_json(ws, {"type": "reply", "ok": True})
                 continue
 
@@ -5523,7 +5539,7 @@ async def ws_endpoint(ws: WebSocket):
         # resume-hold decision below needs it, and popping first made the later
         # lookup always miss → 1e9 → even a healthy Ctrl-R reconnect could never
         # register an armed-resume hold.
-        _last_hb_at_drop = _clients[client_id].last_hb if client_id in _clients else None
+        _last_hb_at_drop = _clients[client_id].last_hb_mono if client_id in _clients else None
         _clients.pop(client_id, None)
         _halshow_topology_sent.pop(client_id, None)
         # Disconnect of an armed client: jog-stop any in-flight jog this
@@ -5558,7 +5574,9 @@ async def ws_endpoint(ws: WebSocket):
             # drop (clean Ctrl-R / wifi blip). A client whose heartbeat was already
             # lagging was struggling/overloaded — don't silently auto-restore armed
             # on reconnect; the operator must explicitly re-arm (safety clarity).
-            _hb_age = (time.time() - _last_hb_at_drop) if _last_hb_at_drop is not None else 1e9
+            # Monotonic, same rationale as the hb-stall check: a wall-clock step
+            # must not veto (or wrongly grant) the armed-resume hold.
+            _hb_age = (time.monotonic() - _last_hb_at_drop) if _last_hb_at_drop is not None else 1e9
             if _hb_age <= _RESUME_MAX_HB_AGE:
                 _register_armed_resume_hold(_disc_session_id, client_id)
                 _trace.emit("safety.disconnect_disarmed", client_id=client_id)
