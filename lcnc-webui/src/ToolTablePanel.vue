@@ -395,7 +395,12 @@ const hoverTool = ref<Tool | null>(null);
 const hoverPos = ref({ x: 0, y: 0 });
 let hoverTimer = 0;
 
+const isTouchDevice = () => document.documentElement.classList.contains("touch-device");
+
 function onToolEnter(tool: Tool, e: MouseEvent) {
+  // Touch uses the tap path (onToolTap) — the emulated mouseenter that
+  // precedes a tap's click would race the 300ms timer against the toggle.
+  if (isTouchDevice()) return;
   clearTimeout(hoverTimer);
   const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
   hoverTimer = window.setTimeout(() => {
@@ -405,8 +410,20 @@ function onToolEnter(tool: Tool, e: MouseEvent) {
 }
 
 function onToolLeave() {
+  // Not touch-gated: the emulated mouseleave when tapping elsewhere is
+  // what dismisses a tap-pinned preview.
   clearTimeout(hoverTimer);
   hoverTool.value = null;
+}
+
+/** Touch equivalent of the hover preview: tap a row to pin it, re-tap to hide. */
+function onToolTap(tool: Tool, e: MouseEvent) {
+  if (!isTouchDevice()) return;
+  if (hoverTool.value?.T === tool.T) { hoverTool.value = null; return; }
+  const cell = (e.currentTarget as HTMLElement).querySelector("td");
+  const rect = (cell ?? (e.currentTarget as HTMLElement)).getBoundingClientRect();
+  hoverPos.value = { x: rect.right + 8, y: rect.top };
+  hoverTool.value = tool;
 }
 
 defineExpose({ openAdd, fetchTools, triggerImport });
@@ -459,7 +476,9 @@ defineExpose({ openAdd, fetchTools, triggerImport });
       </div>
 
     <!-- Edit / Add modal -->
-      <div v-if="editTool" class="dialogOverlay" @click.self="cancelEditModal">
+      <!-- No @click.self dismiss: this is a data-entry form — a mis-grab
+           on the overlay must not silently discard edits. Cancel/× only. -->
+      <div v-if="editTool" class="dialogOverlay">
         <div class="dialog lg editDialog">
           <!-- Header -->
           <div class="dialogHeader">
@@ -566,7 +585,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
               (T{{ [...new Set(importSkipped.map(s => s.T))].join(', T') }}).
               Fix numbering in Fusion 360 and re-export.
             </div>
-            <div class="importList scroll-thin">
+            <div class="importList scroll-thin fade-scroll">
               <div v-for="t in importPreview" :key="t.T" class="importRow">
                 <span class="importT mono">T{{ t.T }}</span>
                 <span class="importType">{{ toolTypeLabel(t.type) }}</span>
@@ -585,7 +604,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
       </div>
 
     <!-- Table -->
-    <div class="tableWrap dataTable scroll-thin">
+    <div class="tableWrap dataTable scroll-thin fade-scroll">
       <table>
         <thead>
           <tr>
@@ -610,11 +629,12 @@ defineExpose({ openAdd, fetchTools, triggerImport });
             v-for="tool in filteredTools"
             :key="tool.T"
             :class="{ activeTool: tool.T === currentTool }"
+            @click="onToolTap(tool, $event)"
           >
             <td class="colT"
                 @mouseenter="onToolEnter(tool, $event)"
                 @mouseleave="onToolLeave">
-              <MachineBtn type="toolLoad" @click="requestToolChange(tool.T)">T{{ tool.T }}</MachineBtn>
+              <MachineBtn type="toolLoad" @click.stop="requestToolChange(tool.T)">T{{ tool.T }}</MachineBtn>
             </td>
             <td class="colSm mono">{{ tool.P }}</td>
             <td class="colNum mono">{{ fmtCell(tool.D) }}</td>
@@ -623,7 +643,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
             <td class="colSm mono">{{ tool.flutes ?? "-" }}</td>
             <td class="colDesc" :title="tool.description">{{ tool.description || tool.remark || "-" }}</td>
             <td class="colAction colEdit">
-              <MachineBtn type="manage" @click="openEdit(tool)" title="Edit tool"><Pencil :size="14" /></MachineBtn>
+              <MachineBtn type="manage" @click.stop="openEdit(tool)" title="Edit tool"><Pencil :size="14" /></MachineBtn>
             </td>
             <td class="colAction">
               <MachineBtn

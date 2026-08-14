@@ -12,6 +12,7 @@ Keep this file pure: stdlib only, no side effects at import time.
 import json
 import math
 import os
+import re
 import tempfile
 import hmac
 from urllib.parse import urlsplit
@@ -211,6 +212,44 @@ def evaluate_trip_latch(fault_latched, last_latched, baseline_seen) -> dict:
     return out
 
 
+def resolve_loaded_file(raw_file, interp_idle: bool, prev, prev_seen: bool = True):
+    """Pure resolver for the "loaded program" the UI should report.
+
+    ``STAT.file`` follows the interpreter's *currently open* file, which flips
+    to subroutine paths mid-execution (M6 remap → tool_touch_off.ngc, o-word
+    CALLs into probe routines, …) and back again. Mirroring it raw made the
+    poller's file-change edge re-parse the subroutine as if the operator had
+    loaded it — replacing the preview, G-code text, and stats mid-run (the
+    "Stats button vanishes while running" bug) and paying two full re-parses
+    of the main program per tool change.
+
+    A file can only be legitimately (un)loaded while the interpreter is idle
+    (task + gateway both reject loads during AUTO), so: accept ``raw_file``
+    only when ``interp_idle`` — otherwise hold ``prev`` and report the ignored
+    flip so the caller can trace it (no silent decisions).
+
+    Args:
+        raw_file: current ``STAT.file`` ("" and None both mean "none").
+        interp_idle: interpreter is idle (a ``None`` interp_state should be
+            passed as idle — no data → keep the legit-load path open).
+        prev: previously resolved loaded file (``None`` = no file loaded).
+        prev_seen: whether ``prev`` is an established baseline. False only on
+            the very first poll (gateway restarted, possibly under a running
+            program): adopt raw rather than showing nothing; it self-corrects
+            to the main file at the next idle tick. Must be True afterwards —
+            ``prev is None`` then honestly means "no file loaded" and is held
+            through busy states like any other value (an MDI o-word probe with
+            no program loaded must not adopt the probe sub as loaded file).
+
+    Returns ``(loaded_file, flip_ignored)`` — ``flip_ignored`` is the raw
+    value we refused to adopt, or ``None`` when nothing was ignored.
+    """
+    f = raw_file or None
+    if interp_idle or not prev_seen:
+        return f, None
+    return prev, (f if f != prev else None)
+
+
 def atomic_write_bytes(path: str, data: bytes, fsync: bool = False) -> None:
     """Atomically write ``data`` to ``path`` via tempfile + os.replace.
 
@@ -279,3 +318,49 @@ def parse_telemetry_batch(raw: bytes, max_events: int = TELEMETRY_EVENTS_MAX):
         fields = {k: v for k, v in evt.items() if k not in ("kind", "tag")}
         events.append((kind, fields))
     return events, rejected
+
+
+# ---- Textual tool-change scan (program stats) ----
+#
+# Python port of the frontend's scanToolchangesBefore word matchers
+# (lcnc-webui/src/gcodeRfl.ts) applied to the WHOLE program: M6, and this
+# machine's remapped M600/M601, all count as tool changes. M0*6 must not match
+# M60/M66/M600 — (?!\d) guards the tail; M600/M601 are removed before the M6
+# test so RE_M6 needs no lookahead gymnastics.
+
+_RE_TC_M600 = re.compile(r"(?<![A-Z0-9.])M0*60[01](?!\d)", re.IGNORECASE)
+_RE_TC_M6 = re.compile(r"(?<![A-Z0-9.])M0*6(?!\d)", re.IGNORECASE)
+_RE_TC_T = re.compile(r"(?<![A-Z0-9.])T0*(\d+)(?!\d)", re.IGNORECASE)
+_RE_TC_PAREN = re.compile(r"\([^)]*\)")
+
+
+def scan_tool_stats(text: str):
+    """Count tool-change statements (M6 / M600 / M601) in program text.
+
+    Returns ``(changes, tools)`` — total change count and the set of T numbers
+    in modal effect at each change (T0 = unload is counted as a change but not
+    a tool, matching PreviewCanon.change_tool). A change whose T number is
+    unknown (no T word yet, or a T[expr]/T#var the scanner can't evaluate)
+    still counts but contributes no tool.
+    """
+    changes = 0
+    tools = set()
+    pending = None  # last T word seen (modal prepare), None = unknown
+    for raw in text.splitlines():
+        if "T" not in raw and "t" not in raw and "M" not in raw and "m" not in raw:
+            continue
+        semi = raw.find(";")
+        line = raw if semi == -1 else raw[:semi]
+        line = _RE_TC_PAREN.sub(" ", line)
+        if not line.strip():
+            continue
+        t_words = _RE_TC_T.findall(line)
+        if t_words:
+            pending = int(t_words[-1])
+        hits = len(_RE_TC_M600.findall(line))
+        hits += len(_RE_TC_M6.findall(_RE_TC_M600.sub(" ", line)))
+        if hits:
+            changes += hits
+            if pending:
+                tools.add(pending)
+    return changes, tools

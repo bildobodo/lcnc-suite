@@ -26,6 +26,9 @@ Result shape (msgpack dict):
                  rapidDist, linearDist, arcDist, feedTime, rapidTime,
                  totalTime, feedRates, toolChanges, toolsUsed, unit,
                  fileSize }  or None
+  bounds:      { min: [x,y,z], max: [x,y,z] }  or None — cut envelope
+               (X/Y over feed+rapid, Z over feed only)
+  motion_bounds: same shape or None — full feed+rapid envelope (overflow)
 """
 
 import math
@@ -46,6 +49,7 @@ _trace.init("gcode_parse_worker")
 # Ensure local-dir imports resolve when invoked from anywhere
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from gcode_canon import PreviewCanon, apply_var_patches
+from gateway_util import scan_tool_stats
 
 
 _EMPTY = {"feed": [], "feed_lines": [], "rapid": [], "stats": None,
@@ -294,28 +298,74 @@ def parse(ctx: dict) -> dict:
         file=sys.stderr, flush=True,
     )
 
-    # Bounding box over the rendered (post-RDP) polyline, in the same raw-program
-    # coords as the points — so the frontend uses it directly instead of re-scanning
-    # every point on the UI thread per load (P4.1). `null` when there are no points.
+    # Bounding boxes over the rendered (post-RDP) polylines, in the same
+    # raw-program coords as the points, computed here so the frontend skips an
+    # O(n) main-thread scan per load (P4.1). Two boxes with different jobs:
+    #
+    #   bounds        — the *cut envelope* shown as the toolpath bounds box.
+    #                   X/Y span feed + rapid (positioning moves belong to the
+    #                   footprint); Z spans feed only, so retract/safe-height
+    #                   rapids don't inflate the displayed Z extent.
+    #   motion_bounds — the *full* motion envelope (feed + rapid, all axes),
+    #                   used for the machine-limit overflow check: a rapid past
+    #                   the machine bounds must still flag.
+    #
+    # `null` when the respective source polylines are empty (a rapid-only
+    # program has a motion envelope but no cut envelope).
     bounds = None
+    motion_bounds = None
     _mn = [float("inf"), float("inf"), float("inf")]
     _mx = [float("-inf"), float("-inf"), float("-inf")]
-    _any = False
-    for _poly in (feed, rapid):
-        for _p in _poly:
-            _any = True
-            for _k in range(3):
-                if _p[_k] < _mn[_k]:
-                    _mn[_k] = _p[_k]
-                if _p[_k] > _mx[_k]:
-                    _mx[_k] = _p[_k]
-    if _any:
+    _mmn = [float("inf"), float("inf"), float("inf")]
+    _mmx = [float("-inf"), float("-inf"), float("-inf")]
+    _any_feed = False
+    _any_pt = False
+    for _p in feed:
+        _any_feed = _any_pt = True
+        for _k in range(3):
+            if _p[_k] < _mn[_k]:
+                _mn[_k] = _p[_k]
+            if _p[_k] > _mx[_k]:
+                _mx[_k] = _p[_k]
+            if _p[_k] < _mmn[_k]:
+                _mmn[_k] = _p[_k]
+            if _p[_k] > _mmx[_k]:
+                _mmx[_k] = _p[_k]
+    for _p in rapid:
+        _any_pt = True
+        for _k in range(2):
+            if _p[_k] < _mn[_k]:
+                _mn[_k] = _p[_k]
+            if _p[_k] > _mx[_k]:
+                _mx[_k] = _p[_k]
+        for _k in range(3):
+            if _p[_k] < _mmn[_k]:
+                _mmn[_k] = _p[_k]
+            if _p[_k] > _mmx[_k]:
+                _mmx[_k] = _p[_k]
+    if _any_feed:
         bounds = {"min": _mn, "max": _mx}
+    if _any_pt:
+        motion_bounds = {"min": _mmn, "max": _mmx}
 
     try:
         file_size = os.path.getsize(filename)
     except OSError:
         file_size = 0
+
+    # Tool stats need BOTH sources. The interpreter only fires change_tool on
+    # an executed M6 — this machine's M600/M601 remap reaches its inner M6 via
+    # tool_touch_off.ngc, whose body is skipped in preview (#<_task> guard), so
+    # the canon counts 0 for M600 programs. The textual scan sees M6/M600/M601
+    # in the program text but can't expand subroutine loops the interpreter
+    # does execute. Max/union of the two is the best honest estimate.
+    text_changes = 0
+    text_tools = set()
+    try:
+        with open(filename, "r", errors="replace") as f:
+            text_changes, text_tools = scan_tool_stats(f.read())
+    except OSError as e:
+        _trace.emit_exc("gcode.tool_scan_failed", e)
 
     stats = {
         "feedMoves": len(canon.feed),
@@ -330,8 +380,8 @@ def parse(ctx: dict) -> dict:
         "rapidTime": round(total_rapid_time, 1),
         "totalTime": round(total_feed_time + total_rapid_time, 1),
         "feedRates": sorted(feed_rates),
-        "toolChanges": canon.tool_changes,
-        "toolsUsed": sorted(canon.tools_used),
+        "toolChanges": max(canon.tool_changes, text_changes),
+        "toolsUsed": sorted(canon.tools_used | text_tools),
         "unit": machine_units,
         "fileSize": file_size,
     }
@@ -353,6 +403,7 @@ def parse(ctx: dict) -> dict:
     # event-loop process (mmw#4 GC pressure).
     return {"file": filename, "feed": feed_bin, "feed_lines": feed_lines_bin,
             "rapid": rapid_bin, "stats": stats, "bounds": bounds,
+            "motion_bounds": motion_bounds,
             "parse_error": parse_error, "error_line": error_line}
 
 

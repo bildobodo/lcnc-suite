@@ -26,6 +26,9 @@ export interface ViewerPart {
   group?: string | null;
   translate?: Vec3;
   rotate?: Vec3;
+  // Optional default color [r,g,b] 0–1 from machine.json (STL carries no
+  // color); per-part user overrides in settings still win.
+  color?: Vec3;
   // Legacy field names kept for backward compatibility with older payloads.
   parent?: string | null;
   t?: Vec3;
@@ -63,9 +66,14 @@ export interface ViewerGcode {
   // over the nested arrays — ThreeViewer builds BufferAttributes directly).
   feedPos?: Float32Array;          // flat [x,y,z, ...]
   rapidPos?: Float32Array;
-  // P4.1: bounding box of the rendered polyline, computed in the parse worker so
-  // ThreeViewer skips an O(n) main-thread scan per load.
+  // P4.1: bounding boxes of the rendered polylines, computed in the parse worker
+  // so ThreeViewer skips an O(n) main-thread scan per load. `bounds` is the cut
+  // envelope shown as the toolpath bounds box (X/Y over feed+rapid, Z over feed
+  // only — vertical rapids don't inflate the displayed Z extent);
+  // `motion_bounds` is the full feed+rapid envelope for the machine-limit
+  // overflow check.
   bounds?: { min: number[]; max: number[] } | null;
+  motion_bounds?: { min: number[]; max: number[] } | null;
   // P4.1: source-line → point-index range map, built off-thread by previewWorker
   // (Maps survive structured clone) so ThreeViewer skips the O(points) build.
   feedLineMap?: Map<number, { start: number; end: number }>;

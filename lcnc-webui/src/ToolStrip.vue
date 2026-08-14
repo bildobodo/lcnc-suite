@@ -72,13 +72,6 @@ const currentToolData = computed(() =>
   .toolStrip { width: 100%; }
 }
 
-.statusRow {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: var(--gap-controls);
-}
-
 .toolDesc {
   overflow: hidden;
   text-overflow: ellipsis;

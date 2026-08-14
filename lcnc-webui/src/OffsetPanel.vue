@@ -81,7 +81,7 @@ function clearAll() {
     </div>
 
     <!-- Table -->
-    <div class="tableWrap dataTable scroll-thin" :style="{ '--val-cols': String(offsetColumns.length) }">
+    <div class="tableWrap dataTable scroll-thin fade-scroll" :style="{ '--val-cols': String(offsetColumns.length) }">
       <table>
         <thead>
           <tr>
@@ -100,7 +100,7 @@ function clearAll() {
                   warn: axis === 'r' && row[axis] !== 0,
                   editableCell: can.ready && Number.isFinite(Number(row[axis]))
                 }"
-                @dblclick.stop="startEditCell(row.name as string, axis, Number(row[axis]))">
+                @click="startEditCell(row.name as string, axis, Number(row[axis]))">
               <span class="cellValue">{{ fmtOffset(Number(row[axis])) }}</span>
             </td>
           </tr>
@@ -176,13 +176,19 @@ function clearAll() {
   color: color-mix(in oklab, var(--fg) 80%, transparent);
 }
 
-.activeRow .offLabel {
-  color: var(--info);
-}
-
 .selectedRow {
   background: color-mix(in oklab, var(--info) 15%, transparent);
   outline: 1px solid color-mix(in oklab, var(--info) 40%, transparent);
+}
+
+/* Active WCS = machine state → --ok (selection stays --info). Declared after
+   .selectedRow so the machine-truth background wins when a row is both. */
+.activeRow {
+  background: var(--hl-surface-ok);
+}
+
+.activeRow .offLabel {
+  color: var(--ok);
 }
 
 tbody tr {
@@ -202,11 +208,10 @@ tbody tr.auxRow {
   color: var(--warn);
 }
 
+/* Persistent tint, not :hover — hover affordances are invisible on touch,
+   and this class only exists while the cell is actually editable (can.ready). */
 .editableCell {
   cursor: cell;
-}
-
-.editableCell:hover {
   background: var(--hl-surface-info);
 }
 

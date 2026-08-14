@@ -25,3 +25,28 @@ Edit `hallib/lcnc_webui.hal`:
   `core_sim_9.hal`. Same subroutines/var file as the base sim.
 - `hallib/lcnc_webui.hal` — HAL wiring for safety watchdog, e-stop chain, tool change, compensation
 - Other HAL files — sim-specific (homing, spindle, etc.)
+
+## 5-axis variant (XYZAC trunnion mill)
+
+`lcnc_suite_sim_5axis.ini` simulates an XYZAC trunnion machine (trivkins)
+and ships two visualizations of the same geometry:
+
+- **Web UI machine model** — `WEBUI_MACHINE_DIR` in `[DISPLAY]` points at
+  `machine-xyzac/` (machine.json + 11 STLs), an articulated model of
+  LinuxCNC's vismach `xyzac-trt-gui` Hermle-style knee mill (GPL v2+,
+  Rudy du Preez): the head/spindle is fixed to the column, Z lowers the
+  knee, X/Y move table/saddle (table-moving signs), A tilts the trunnion,
+  C spins the platter. The toolpath/backplot ride the platter
+  (`workGroup: c_platter`). Regenerate after editing the generator:
+  `python3 scripts/vismach_to_stl.py` (run from the repo root; the
+  gateway hot-reloads machine.json on the next client connect).
+- **Native vismach window** — `hallib/vismach_xyzac.hal` additionally
+  loads the original Tk `xyzac-trt-gui` viewer on the LinuxCNC host's X
+  display, driven by the same joint feedback (useful as a cross-check).
+  Remove that HALFILE line for headless hosts.
+
+The INI travel limits (X ±200, Y ±100, Z ±120, A −100…+50, C ±36000)
+deliberately match the sample config the model comes from — the model is
+desktop-scale (table ±150 mm, platter Ø100 mm), and larger travels make
+the viewer frame a huge envelope around a small machine and let jogs
+drive the table visually off its base.

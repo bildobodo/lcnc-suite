@@ -73,7 +73,10 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
   let highlightGeom: THREE.BufferGeometry | null = null;
   // g-code line number → { start, end } point-index range in feed arrays
   let feedLineMap: Map<number, { start: number; end: number }> = new Map();
+  // Cut envelope: X/Y over feed+rapid, Z over feed only (drawn bounds box).
   let toolpathBBox: BBox | null = null;
+  // Full feed+rapid envelope (machine-limit overflow check).
+  let motionBBox: BBox | null = null;
 
   let toolpathBoundsBox: THREE.LineSegments | null = null;
   let toolpathBoundsLabels: THREE.Group | null = null;
@@ -282,20 +285,23 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
   function updateOverflow(ctx: ToolpathCtx) {
     deps.overflow.value = false;
     const workOrigin = ctx.workOrigin;
-    if (!toolpathBBox || !workOrigin) return;
+    // Overflow checks the FULL motion envelope (feed + rapid, all axes) — a
+    // rapid past the machine bounds must flag even though the drawn cut-bounds
+    // box excludes rapid Z.
+    if (!motionBBox || !workOrigin) return;
     const mb = ctx.machineBounds;
     if (!mb) return;
     const wo = workOrigin.position;
     // Machine bounds converted to work coordinates
     const bMin0 = mb.origin[0] - wo.x, bMin1 = mb.origin[1] - wo.y, bMin2 = mb.origin[2] - wo.z;
     const bMax0 = bMin0 + mb.size[0], bMax1 = bMin1 + mb.size[1], bMax2 = bMin2 + mb.size[2];
-    // toolpathBBox is in pre-rotation work coords; rotate the 4 XY corners by
+    // motionBBox is in pre-rotation work coords; rotate the 4 XY corners by
     // workRotGroup.rotation.z to get the rendered AABB. Z is unaffected.
     const theta = ctx.workRotGroup?.rotation.z ?? 0;
     const ca = Math.cos(theta), sa = Math.sin(theta);
     let mnX = Infinity, mxX = -Infinity, mnY = Infinity, mxY = -Infinity;
-    for (const x of [toolpathBBox.min[0], toolpathBBox.max[0]]) {
-      for (const y of [toolpathBBox.min[1], toolpathBBox.max[1]]) {
+    for (const x of [motionBBox.min[0], motionBBox.max[0]]) {
+      for (const y of [motionBBox.min[1], motionBBox.max[1]]) {
         const rx = x * ca - y * sa;
         const ry = x * sa + y * ca;
         if (rx < mnX) mnX = rx; if (rx > mxX) mxX = rx;
@@ -305,7 +311,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     deps.overflow.value =
       mnX < bMin0 || mxX > bMax0 ||
       mnY < bMin1 || mxY > bMax1 ||
-      toolpathBBox.min[2] < bMin2 || toolpathBBox.max[2] > bMax2;
+      motionBBox.min[2] < bMin2 || motionBBox.max[2] > bMax2;
   }
 
   return {
@@ -383,42 +389,62 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
         workRotGroup!.add(highlightLine);
       }
 
-      // Toolpath bounding box (work coordinates) for overflow detection. Prefer the
-      // bounds the parse worker computed over the same decimated polyline (P4.1) so we
-      // don't re-scan every point on the UI thread; fall back to a main-thread pass for
-      // the WS/legacy path that carries no bounds.
+      // Toolpath bounding boxes (work coordinates). `toolpathBBox` is the cut
+      // envelope for the drawn bounds box: X/Y over feed+rapid, Z over feed only
+      // so vertical rapids (retracts, safe-height moves) don't inflate the
+      // displayed Z extent. `motionBBox` is the full feed+rapid envelope for the
+      // machine-limit overflow check. Prefer the boxes the parse worker computed
+      // over the same decimated polyline (P4.1) so we don't re-scan every point
+      // on the UI thread; fall back to a main-thread pass for the WS/legacy path
+      // that carries no bounds.
       toolpathBBox = null;
-      const _wb = g.bounds;
-      if (_wb && Array.isArray(_wb.min) && Array.isArray(_wb.max) && _wb.min.length === 3) {
-        toolpathBBox = {
-          min: [_wb.min[0]!, _wb.min[1]!, _wb.min[2]!],
-          max: [_wb.max[0]!, _wb.max[1]!, _wb.max[2]!],
-        };
-      } else {
+      motionBBox = null;
+      const _asBBox = (b: unknown): BBox | null => {
+        const w = b as { min?: number[]; max?: number[] } | null | undefined;
+        if (w && Array.isArray(w.min) && Array.isArray(w.max) && w.min.length === 3) {
+          return {
+            min: [w.min[0]!, w.min[1]!, w.min[2]!],
+            max: [w.max[0]!, w.max[1]!, w.max[2]!],
+          };
+        }
+        return null;
+      };
+      toolpathBBox = _asBBox(g.bounds);
+      motionBBox = _asBBox(g.motion_bounds);
+      if (!toolpathBBox || !motionBBox) {
         const mn: [number, number, number] = [Infinity, Infinity, Infinity];
         const mx: [number, number, number] = [-Infinity, -Infinity, -Infinity];
-        let _bboxAny = false;
-        const _scanBBox = (d: number[][] | Float32Array) => {
+        const mmn: [number, number, number] = [Infinity, Infinity, Infinity];
+        const mmx: [number, number, number] = [-Infinity, -Infinity, -Infinity];
+        let _anyFeed = false;
+        let _anyPt = false;
+        // axes: 3 = all (feed), 2 = X/Y only (rapid — Z excluded from the cut box)
+        const _scanBBox = (d: number[][] | Float32Array, axes: 2 | 3) => {
           if (d instanceof Float32Array) {
             for (let i = 0; i + 2 < d.length; i += 3) {
-              _bboxAny = true;
-              const x = d[i]!, y = d[i + 1]!, z = d[i + 2]!;
-              if (x < mn[0]) mn[0] = x; if (x > mx[0]) mx[0] = x;
-              if (y < mn[1]) mn[1] = y; if (y > mx[1]) mx[1] = y;
-              if (z < mn[2]) mn[2] = z; if (z > mx[2]) mx[2] = z;
+              _anyPt = true;
+              for (let k = 0; k < 3; k++) {
+                const v = d[i + k]!;
+                if (k < axes) { if (v < mn[k]!) mn[k] = v; if (v > mx[k]!) mx[k] = v; }
+                if (v < mmn[k]!) mmn[k] = v; if (v > mmx[k]!) mmx[k] = v;
+              }
             }
           } else {
             for (const p of d) {
-              _bboxAny = true;
-              if (p[0]! < mn[0]) mn[0] = p[0]!; if (p[0]! > mx[0]) mx[0] = p[0]!;
-              if (p[1]! < mn[1]) mn[1] = p[1]!; if (p[1]! > mx[1]) mx[1] = p[1]!;
-              if (p[2]! < mn[2]) mn[2] = p[2]!; if (p[2]! > mx[2]) mx[2] = p[2]!;
+              _anyPt = true;
+              for (let k = 0; k < 3; k++) {
+                const v = p[k]!;
+                if (k < axes) { if (v < mn[k]!) mn[k] = v; if (v > mx[k]!) mx[k] = v; }
+                if (v < mmn[k]!) mmn[k] = v; if (v > mmx[k]!) mmx[k] = v;
+              }
             }
           }
         };
-        _scanBBox(feedData);
-        _scanBBox(rapidData);
-        if (_bboxAny) toolpathBBox = { min: mn, max: mx };
+        _anyFeed = _pointCount(feedData) > 0;
+        _scanBBox(feedData, 3);
+        _scanBBox(rapidData, 2);
+        if (!toolpathBBox && _anyFeed) toolpathBBox = { min: mn, max: mx };
+        if (!motionBBox && _anyPt) motionBBox = { min: mmn, max: mmx };
       }
       updateOverflow(ctx);
       rebuildToolpathBounds(ctx);
@@ -504,6 +530,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       toolpathBoundsBox = toolpathOverflowEdges = null;
       toolpathBoundsLabels = null;
       toolpathBBox = null;
+      motionBBox = null;
       feedLineMap = new Map();
       deps.overflow.value = false;
     },
@@ -512,6 +539,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       teardownLines();
       teardownBounds();
       toolpathBBox = null;
+      motionBBox = null;
       feedLineMap = new Map();
       deps.overflow.value = false;
     },

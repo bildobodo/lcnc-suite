@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, onMounted, onUnmounted, provide, reactive, ref, watch } from "vue";
+import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, provide, reactive, ref, watch } from "vue";
 import { applyClientOverlay, PERMISSIONS_KEY, type Permissions } from "./permissions";
-import { connectWs, connected, status, send, armed, lastReply, viewerGcode, viewerInit, gcodeContent, lcncError, latency, networkLatency, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead, safetyTrip, acknowledgeSafetyTrip, readerStale, configWarning, previewLoadError, serverShuttingDown, type LcncMessage } from "./lcncWs";
+import { connectWs, connected, status, send, armed, lastReply, viewerGcode, viewerInit, gcodeContent, lcncError, latency, networkLatency, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead, pushMessage, safetyTrip, acknowledgeSafetyTrip, readerStale, configWarning, previewLoadError, serverShuttingDown, type LcncMessage } from "./lcncWs";
 // Lazy-load the 3D viewer so Three.js (~866 KB) + troika load as a separate async
 // chunk after first paint instead of blocking the initial bundle (P6). The viewerRef
 // methods are all `?.`-guarded, so calls during the brief load gap safely no-op.
@@ -10,7 +10,10 @@ import TabPanel from "./TabPanel.vue";
 import GcodePanel from "./GcodePanel.vue";
 import SafetyStrip from "./SafetyStrip.vue";
 import JogStrip from "./JogStrip.vue";
+import StatsDonut from "./StatsDonut.vue";
 import SetupStrip from "./SetupStrip.vue";
+import GcodeKeypadStrip from "./GcodeKeypadStrip.vue";
+import { isTouchDevice } from "./touchDetect";
 import OverridesStrip from "./OverridesStrip.vue";
 import SpindleStrip from "./SpindleStrip.vue";
 import ToolStrip from "./ToolStrip.vue";
@@ -26,7 +29,7 @@ import { fmtElapsed, fmtDuration, fmtDist, fmtSize } from "./format";
 import type { GcodeStats } from "./GcodePanel.vue";
 import { Settings, MessageSquare, PowerOff, Gamepad2, Keyboard, BookOpen, ClipboardCopy, Expand, Shrink } from "lucide-vue-next";
 import GcodeReferenceDialog from "./GcodeReferenceDialog.vue";
-import NumberKeypad from "./NumberKeypad.vue";
+import NumberKeypadStrip from "./NumberKeypadStrip.vue";
 import { keypadState } from "./useNumberKeypad";
 import { loadViewerDefaults, saveViewerDefaults, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadGamepadDefaults, saveGamepadDefaults, settingsVersion, type ThemeMode, type GamepadDefaults, type Layer, type TrackMode, type Projection } from "./defaults";
 import { buildToolsetterVarMap } from "./toolsetterVars";
@@ -37,11 +40,12 @@ import { useMdiHistory } from "./useMdiHistory";
 import { useTouchoffMath } from "./useTouchoffMath";
 import { useMacros } from "./useMacros";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
-import { forceStopAllJogs, initJogPointerSafety, destroyJogPointerSafety } from "./useJogPointers";
+import { forceStopAllJogs, initJogPointerSafety, destroyJogPointerSafety, activeJogKeys } from "./useJogPointers";
 import {
   INTERP_IDLE, INTERP_READING, INTERP_PAUSED, INTERP_WAITING,
   TRAJ_MODE_FREE, TRAJ_MODE_TELEOP,
   SPINDLE_FORWARD, SPINDLE_REVERSE,
+  OPERATOR_DISPLAY,
 } from "./lcnc";
 
 const _vd = loadViewerDefaults();
@@ -165,6 +169,14 @@ const STATE_COLORS: Record<MachineStateKey, string> = {
   paused: '--state-warn',
   idle: '--state-ok',
 };
+// Human labels for gateway trip reason codes (status_msg.safety_trip.reason).
+// Unknown codes fall through verbatim — never mask a reason we can't name.
+const TRIP_REASON_LABELS: Record<string, string> = {
+  hal_heartbeat_timeout: 'gateway heartbeat to HAL watchdog lost',
+};
+const safetyTripReasonLabel = computed(() =>
+  safetyTrip.value ? (TRIP_REASON_LABELS[safetyTrip.value.reason] ?? safetyTrip.value.reason) : '');
+
 const machineStateColor = computed(() => {
   if (safetyTrip.value) return '--state-danger';
   if (serverShuttingDown.value) return '--state-warn';
@@ -189,7 +201,11 @@ const machineStateLabel = computed(() => {
   const label = STATE_LABELS[machineState.value];
   const state = machineState.value;
   if (state === 'disconnected') {
-    return lcncError.value ? `${label} — ${lcncError.value}` : `${label} — reconnecting…`;
+    // With an LCNC error the gateway is up but LinuxCNC is gone — waiting
+    // won't fix that; without one the WS retries on its own.
+    return lcncError.value
+      ? `${label} — ${lcncError.value} — restart the suite to recover`
+      : `${label} — reconnecting automatically…`;
   }
   // Distinguish "operator pressed E-Stop" (STAT.estop true) from "HAL chain
   // open while STAT thinks we're cleared" (issue #14). The operator already
@@ -272,6 +288,95 @@ const {
   onMdiKeydown,
 } = useMdiHistory({ send });
 
+// ── G-code keypad strip (touch text entry for MDI + G-code editor) ──
+// Shown in the bottom strip in place of Jog/Overrides/Spindle/Tool while
+// the MDI field is focused or the editor is open; Safety and Setup stay.
+// Keypad keys fire on pointerdown.prevent, so pressing them never blurs
+// the MDI input. MDI focus wins over an open editor (last interaction).
+const mdiKeypadActive = ref(false);
+const gcodeEditActive = ref(false);
+// Editor mode requires the Program tab to be VISIBLE — an editor left open
+// in a background tab must not hold the strip hostage (operator-reported:
+// "setup does not come back"). It re-appears when the tab does.
+const gcodeKeypadMode = computed<"mdi" | "editor" | null>(() =>
+  mdiKeypadActive.value ? "mdi"
+  : gcodeEditActive.value && activeTab.value === "gcode" ? "editor"
+  : null
+);
+
+// Number keypad swap-in: like the G-code keypad, it replaces the strip
+// sections — except the section that owns the trigger field (identified by
+// the data-strip attribute on each strip component), which stays visible so
+// the operator keeps context and can retarget between its fields. Sidepanel/
+// dialog triggers have no owning section → only SafetyStrip + keypad remain.
+const numKeypadOwner = computed(() =>
+  keypadState.open
+    ? keypadState.trigger?.closest("[data-strip]")?.getAttribute("data-strip") ?? null
+    : null
+);
+// The keypad section sits LAST in the strip DOM: with every non-owner
+// section hidden, it lands directly right of the owner (or of SafetyStrip)
+// without any reordering logic.
+function stripVis(section: string): boolean {
+  if (gcodeKeypadMode.value) return false;
+  if (!keypadState.open) return true;
+  return numKeypadOwner.value === section;
+}
+
+// MDI keypad dismissal: blur alone can't close it — tapping empty space
+// doesn't move focus off the input (only focusable targets do), so a
+// document-level tap anywhere outside the MDI tab and the keypad ends the
+// session explicitly.
+function onDocPointerDownDismissKeypad(e: PointerEvent) {
+  if (!mdiKeypadActive.value) return;
+  const t = e.target as HTMLElement | null;
+  if (t?.closest(".gkStrip, .mdiTab")) return;
+  mdiKeypadActive.value = false;
+  _mdiInputEl()?.blur();
+}
+const mdiInputRef = ref<any>(null);
+const gcodePanelRef = ref<any>(null);
+
+function _mdiInputEl(): HTMLInputElement | null {
+  const el = mdiInputRef.value?.$el;
+  if (el instanceof HTMLInputElement) return el;
+  return el?.querySelector?.("input") ?? null;
+}
+
+function gkInsert(text: string) {
+  if (gcodeKeypadMode.value === "editor") { gcodePanelRef.value?.keypadInsert(text); return; }
+  const el = _mdiInputEl();
+  const cur = mdiText.value;
+  const start = el?.selectionStart ?? cur.length;
+  const end = el?.selectionEnd ?? cur.length;
+  mdiText.value = cur.slice(0, start) + text + cur.slice(end);
+  nextTick(() => {
+    const p = start + text.length;
+    el?.setSelectionRange(p, p);
+  });
+}
+
+function gkBackspace() {
+  if (gcodeKeypadMode.value === "editor") { gcodePanelRef.value?.keypadBackspace(); return; }
+  const el = _mdiInputEl();
+  const cur = mdiText.value;
+  let start = el?.selectionStart ?? cur.length;
+  const end = el?.selectionEnd ?? cur.length;
+  if (start === end && start > 0) start -= 1;
+  if (start === end) return;
+  mdiText.value = cur.slice(0, start) + cur.slice(end);
+  nextTick(() => el?.setSelectionRange(start, start));
+}
+
+function gkEnter() {
+  if (gcodeKeypadMode.value === "editor") { gcodePanelRef.value?.keypadInsert("\n"); return; }
+  handleMdiSend();
+}
+
+function gkClear() {
+  if (gcodeKeypadMode.value === "mdi") mdiText.value = "";
+}
+
 // Viewer state (initialized from saved defaults, persisted on every change)
 const viewerLayers = reactive<Record<Layer, boolean>>({ ..._vd.layers });
 const viewerTrackMode = ref<TrackMode>(_vd.trackingMode);
@@ -281,37 +386,7 @@ const viewerProjection = ref<Projection>(_vd.projection);
 // G-code viewer — gcodeContent is fetched via HTTP by lcncWs on viewer_gcode
 const gcodeStats = ref<GcodeStats | null>(null);
 
-// SVG donut chart segments (distance breakdown: rapid / linear / arc)
-const DONUT_R = 40;
-const DONUT_C = 2 * Math.PI * DONUT_R;
-const donutSegments = computed(() => {
-  const s = gcodeStats.value;
-  if (!s) return [];
-  const total = s.rapidDist + s.linearDist + s.arcDist;
-  if (total <= 0) return [];
-  const segs: { color: string; label: string; value: number; pct: number; dasharray: string; dashoffset: number }[] = [];
-  let offset = 0;
-  const items = [
-    { color: "var(--warn)", label: "Rapid", value: s.rapidDist },
-    { color: "var(--info)", label: "Linear", value: s.linearDist },
-    { color: "var(--ok)", label: "Arc", value: s.arcDist },
-  ];
-  for (const item of items) {
-    if (item.value <= 0) continue;
-    const pct = item.value / total;
-    const len = pct * DONUT_C;
-    segs.push({
-      color: item.color,
-      label: item.label,
-      value: item.value,
-      pct: Math.round(pct * 100),
-      dasharray: `${len} ${DONUT_C - len}`,
-      dashoffset: -offset,
-    });
-    offset += len;
-  }
-  return segs;
-});
+// Donut chart (distance breakdown) lives in StatsDonut.vue.
 
 /** ---------- status helpers ---------- */
 const st = computed<Record<string, any>>(() => {
@@ -592,10 +667,10 @@ const isSpinning = computed(() => isForward.value || isReverse.value);
 const floodOn = computed(() => !!st.value.flood);
 const mistOn = computed(() => !!st.value.mist);
 function toggleFlood() {
-  fire({ cmd: floodOn.value ? "flood_off" : "flood_on" }, 'ready');
+  fire({ cmd: floodOn.value ? "flood_off" : "flood_on" }, 'override');
 }
 function toggleMist() {
-  fire({ cmd: mistOn.value ? "mist_off" : "mist_on" }, 'ready');
+  fire({ cmd: mistOn.value ? "mist_off" : "mist_on" }, 'override');
 }
 
 // Program switches
@@ -747,6 +822,83 @@ function arm(v: boolean) {
   // armed.value updates when the gateway reply arrives (server-authoritative)
 }
 
+/** ---------- idle auto-disarm ----------
+ * Armed is pure command authorization (it never aborts motion — see the
+ * armed-is-authorization rule), so expiring it on an untouched client
+ * restores the accidental-tap protection when the operator walks away.
+ * Refuses to fire unless the interp is IDLE, nothing is probing, and no
+ * jog is held: while a program runs/pauses or a jog is live, Abort and
+ * jog_stop must stay one tap away without a re-arm.
+ * Activity = pointer/key input OR any command round-trip (lastReply),
+ * so gamepad-only operation counts as activity too. */
+let lastActivityTs = Date.now();
+function noteActivity() { lastActivityTs = Date.now(); }
+watch(lastReply, noteActivity);
+let autoDisarmTimer = 0;
+function checkAutoDisarm() {
+  const min = loadMachineDefaults().autoDisarmMin;
+  if (!min || !armed.value) return;
+  if (interpState.value !== INTERP_IDLE || st.value.probing) return;
+  if (activeJogKeys.size > 0) return;
+  if (Date.now() - lastActivityTs < min * 60_000) return;
+  arm(false);
+  pushMessage(OPERATOR_DISPLAY, `Auto-disarmed after ${min} min of inactivity (Settings → Machine → Idle Auto-Disarm).`);
+}
+onMounted(() => {
+  document.addEventListener("pointerdown", noteActivity, { capture: true, passive: true });
+  document.addEventListener("keydown", noteActivity, { capture: true, passive: true });
+  document.addEventListener("pointerdown", onDocPointerDownDismissKeypad, { capture: true, passive: true });
+  autoDisarmTimer = window.setInterval(checkAutoDisarm, 30_000);
+});
+onUnmounted(() => {
+  document.removeEventListener("pointerdown", noteActivity, true);
+  document.removeEventListener("keydown", noteActivity, true);
+  document.removeEventListener("pointerdown", onDocPointerDownDismissKeypad, true);
+  clearInterval(autoDisarmTimer);
+});
+
+/** ---------- scroll-edge affordances (strip + macro bar) ----------
+ * Toggles .strip-more (content beyond the far edge) and .strip-scrolled
+ * (content hidden at the near edge) on each scroller, fading the
+ * .stripFade/.stripFadeStart gradients (strip's near edge is the pinned
+ * SafetyStrip's ::after instead). Children are observed too because
+ * scrollWidth grows when content arrives (axis chunks after viewer_init)
+ * without the scroller itself resizing. The macro bar is v-if-mounted,
+ * so attachment re-runs when the macro list changes. */
+const fadeEls = new Set<HTMLElement>();
+let fadeRo: ResizeObserver | null = null;
+function updateScrollFades() {
+  for (const el of fadeEls) {
+    if (!el.isConnected) { fadeEls.delete(el); continue; }
+    const more =
+      el.scrollLeft + el.clientWidth < el.scrollWidth - 1 ||
+      el.scrollTop + el.clientHeight < el.scrollHeight - 1;
+    el.classList.toggle("strip-more", more);
+    el.classList.toggle("strip-scrolled", el.scrollLeft > 1 || el.scrollTop > 1);
+  }
+}
+function attachScrollFades() {
+  fadeRo ??= new ResizeObserver(updateScrollFades);
+  for (const el of document.querySelectorAll<HTMLElement>(".strip, .macroBar")) {
+    if (fadeEls.has(el)) continue;
+    fadeEls.add(el);
+    el.addEventListener("scroll", updateScrollFades, { passive: true });
+    fadeRo.observe(el);
+    for (const c of el.children) fadeRo.observe(c);
+  }
+  updateScrollFades();
+}
+onMounted(attachScrollFades);
+watch(() => userMacros.value.length, () => nextTick(attachScrollFades));
+// Strip content swaps (keypad in/out) change scrollWidth without resizing
+// the strip itself — re-check the edge fades.
+watch([gcodeKeypadMode, () => keypadState.open], () => nextTick(attachScrollFades));
+onUnmounted(() => {
+  fadeRo?.disconnect();
+  fadeRo = null;
+  fadeEls.clear();
+});
+
 /** ---------- local UI jog ---------- */
 const jogVel = ref(10);
 const angularJogVel = ref(10); // deg/s for rotary axes
@@ -757,20 +909,26 @@ const jogIncrement = ref(0); // 0 = continuous, >0 = increment distance in machi
 const axes = computed<string[]>(() => viewerInit.value?.axes ?? []);
 
 // Machine STL parts list (for dynamic color pickers in Settings)
-const machineParts = computed<Array<{ id: string; group: string | null; direction: string | null }>>(() => {
+const machineParts = computed<Array<{ id: string; group: string | null; direction: string | null; color: [number, number, number] | null }>>(() => {
   const vi = viewerInit.value;
   if (!vi?.parts) return [];
-  // Build group → direction map from kinematics
+  // Build group → direction map from kinematics. Axis colors mark LINEAR
+  // axes (matches ThreeViewer's material mapping) — rotary groups excluded.
   const groupDir: Record<string, string> = {};
   const kin = vi.kinematics;
   if (Array.isArray(kin)) {
-    for (const k of kin) if (k.direction) groupDir[k.group] = k.direction;
+    for (const k of kin) if (k.direction && k.type !== "rotate") groupDir[k.group] = k.direction;
   } else if (kin && typeof kin === "object") {
     for (const key of Object.keys(kin)) groupDir[key] = key;
   }
   return vi.parts.map(p => {
     const grp = p.group ?? p.parent ?? null;
-    return { id: p.id, group: grp, direction: grp ? (groupDir[grp] ?? null) : null };
+    return {
+      id: p.id,
+      group: grp,
+      direction: grp ? (groupDir[grp] ?? null) : null,
+      color: (p.color as [number, number, number] | undefined) ?? null,
+    };
   });
 });
 
@@ -1142,7 +1300,7 @@ watch(viewerGcode, (newGcode) => {
         <div v-if="gamepad.gamepadConnected.value" class="pill ok" :title="gamepad.gamepadName.value"><Gamepad2 :size="14" /></div>
         <div v-if="keyboardConfig.jogEnabled || keyboardConfig.buttonsEnabled" class="pill ok" title="Keyboard shortcuts active"><Keyboard :size="14" /></div>
 
-        <div class="hdrBtns row-tight">
+        <div class="hdrBtns row-controls">
           <MachineBtn type="headerIcon" :warning="unreadCount > 0" :title="'Messages (' + unreadCount + ')'" @click="openDialog('messages')">
             <MessageSquare :size="22" />
           </MachineBtn>
@@ -1158,6 +1316,7 @@ watch(viewerGcode, (newGcode) => {
           </MachineBtn>
           <MachineBtn type="headerIcon" class="hdrShutdown" title="Shut Down LinuxCNC" @click="showShutdownConfirm = true">
             <PowerOff :size="22" />
+            <span class="btn-label-sm">Shut Down</span>
           </MachineBtn>
         </div>
       </div>
@@ -1166,20 +1325,23 @@ watch(viewerGcode, (newGcode) => {
     <div class="statusBanner" :class="{ 'banner-pulse': bannerFlashMode === 'pulse', 'banner-flash': bannerFlashMode === 'flash' }" :style="{ '--state-color': `var(${machineStateColor})` }">
       <div class="bannerContent" @click="messagesDialogOpen = true; markMessagesRead()">
         <Transition name="banner-fade" mode="out-in">
+          <!-- Every banner carries its recovery path — an operator must
+               never have to guess whether waiting, a UI action, or a
+               suite restart is the way out (no auto-recovery implied). -->
           <span v-if="safetyTrip" :key="'safety'" class="bannerError">
-            SAFETY TRIPPED — press Acknowledge to recover
+            SAFETY TRIPPED ({{ safetyTripReasonLabel }}) — Acknowledge, re-Arm if needed, then E-Stop Reset
           </span>
           <span v-else-if="serverShuttingDown" :key="'shutdown'" class="bannerError">
-            Server shutting down…
+            Server shutting down — start LinuxCNC again to reconnect
           </span>
           <span v-else-if="readerStale" :key="'reader-stale'" class="bannerError">
-            HAL reader stale — UI values may be out of date
+            HAL reader stale — UI values may be out of date. If this persists, restart the suite (the LinuxCNC session may have ended)
           </span>
           <span v-else-if="configWarning" :key="'config-warning'" class="bannerError">
-            Config fallback — {{ configWarning.reason }}
+            Config fallback — {{ configWarning.reason }} — fix the INI, then restart the suite
           </span>
           <span v-else-if="previewLoadError" :key="'preview-error'" class="bannerError">
-            3D preview load failed — toolpath may be stale or missing
+            3D preview load failed — reload the G-code file; restart the suite if it persists
           </span>
           <span v-else-if="bannerMessage && !bannerShowAbort" :key="'msg'" :class="{ bannerError: bannerMessageKind <= 2 }">
             {{ bannerMessage }}
@@ -1191,7 +1353,7 @@ watch(viewerGcode, (newGcode) => {
       </div>
       <div class="bannerActions row-controls">
         <MachineBtn v-if="safetyTrip" type="dialogConfirm" @click="acknowledgeSafetyTrip">Acknowledge</MachineBtn>
-        <MachineBtn v-if="bannerShowAbort" type="bannerAbort" @click="send({ cmd: 'abort' })">ABORT</MachineBtn>
+        <MachineBtn v-if="bannerShowAbort" type="bannerAbort" @click="send({ cmd: 'abort' })" />
         <MachineBtn v-if="machineState === 'unhomed'" type="bannerHome" @click="homeAll">Home All</MachineBtn>
         <MachineBtn v-if="unreadCount > 0" type="bannerAction" @click="messagesDialogOpen = true; markMessagesRead()">
           {{ unreadCount }} message{{ unreadCount === 1 ? '' : 's' }}
@@ -1225,6 +1387,7 @@ watch(viewerGcode, (newGcode) => {
         <TabPanel :tabs="contentTabs" :modelValue="activeTab" @update:modelValue="activeTab = $event">
           <template #gcode>
             <GcodePanel
+              ref="gcodePanelRef"
               :activeFile="activeFile"
               :gcodeContent="gcodeContent"
               :gcodeStats="gcodeStats"
@@ -1246,6 +1409,7 @@ watch(viewerGcode, (newGcode) => {
               @toggleBlockDelete="toggleBlockDelete"
               @openGcodeRef="openGcodeRef"
               @showStats="statsDialogOpen = true"
+              @editingChange="gcodeEditActive = $event"
             />
           </template>
 
@@ -1281,13 +1445,17 @@ watch(viewerGcode, (newGcode) => {
             <div class="mdiTab stack-controls">
               <div class="mdiRow">
                 <MachineInput
+                  ref="mdiInputRef"
                   gate="mdiText"
                   type="text"
                   class="mdiInput"
                   :value="mdiText"
+                  :inputmode="isTouchDevice ? 'none' : undefined"
                   @input="mdiText = ($event.target as HTMLInputElement).value"
                   @keyup.enter="handleMdiSend"
                   @keydown="onMdiKeydown"
+                  @focus="mdiKeypadActive = true"
+                  @blur="mdiKeypadActive = false"
                   placeholder="G-code command (↑↓ history)"
                 />
                 <MachineBtn type="mdi" @click="handleMdiSend">Send</MachineBtn>
@@ -1297,7 +1465,7 @@ watch(viewerGcode, (newGcode) => {
                 <span class="sub">History</span>
                 <MachineBtn type="dialogCancel" @click="clearMdiHistory" :disabled="mdiHistory.length === 0">Clear</MachineBtn>
               </div>
-              <div class="codeViewer mdiHistoryList scroll-thin">
+              <div class="codeViewer mdiHistoryList scroll-thin fade-scroll">
                 <div v-for="(entry, i) in mdiHistory" :key="entry.id"
                      class="codeLine"
                      :class="{ active: mdiHistoryIndex === i }"
@@ -1364,28 +1532,8 @@ watch(viewerGcode, (newGcode) => {
               <span class="dialogTitle">Program Stats</span>
               <MachineBtn type="close" @click="statsDialogOpen = false">&times;</MachineBtn>
             </div>
-            <div class="dialogContent stack-sections scroll-thin">
-              <div v-if="donutSegments.length > 0" class="row-sections">
-                <svg class="donut" viewBox="0 0 100 100">
-                  <circle class="donutBg" cx="50" cy="50" r="40" />
-                  <circle v-for="(seg, i) in donutSegments" :key="i"
-                    cx="50" cy="50" r="40"
-                    fill="none"
-                    :stroke="seg.color"
-                    stroke-width="12"
-                    :stroke-dasharray="seg.dasharray"
-                    :stroke-dashoffset="seg.dashoffset"
-                    transform="rotate(-90 50 50)"
-                  />
-                </svg>
-                <div class="donutLegend stack-tight">
-                  <div v-for="seg in donutSegments" :key="seg.label" class="row-tight">
-                    <span class="legendDot" :style="{ background: seg.color }"></span>
-                    <span>{{ seg.label }}</span>
-                    <span class="legendPct mono">{{ seg.pct }}%</span>
-                  </div>
-                </div>
-              </div>
+            <div class="dialogContent stack-sections scroll-thin fade-scroll">
+              <StatsDonut :stats="gcodeStats" />
 
               <div class="sep"></div>
 
@@ -1477,7 +1625,7 @@ watch(viewerGcode, (newGcode) => {
               <MachineBtn type="close" @click="messagesDialogOpen = false; markMessagesRead()">&times;</MachineBtn>
             </div>
           </div>
-          <div class="dialogContent stack-tight scroll-thin">
+          <div class="dialogContent stack-tight scroll-thin fade-scroll">
             <div v-for="msg in [...messages].reverse()" :key="msg.id" class="msgItem" :class="msgKindClass(msg.kind)">
               <span class="msgTime">{{ msgFormatTime(msg.ts) }}</span>
               <span class="msgKind">{{ msgKindLabel(msg.kind) }}</span>
@@ -1573,14 +1721,15 @@ watch(viewerGcode, (newGcode) => {
           </div>
         </div>
       </div>
-      <!-- Number keypad — inside the content Gate so fieldset:disabled applies when disarmed. -->
-      <NumberKeypad v-if="keypadState.open" />
-
     </Gate><!-- /content (outer gate) -->
 
     <!-- ══ Macro Bar — thin row of user macro buttons ══ -->
     <Gate v-if="userMacros.length" gate="armed" class="macroBar bordered-panel row-controls scroll-thin">
+      <!-- Scroll-edge affordances (see .stripFade) — the macro bar has no
+           pinned section, so both edges fade when content is hidden. -->
+      <div class="stripFadeStart" aria-hidden="true"></div>
       <MachineBtn v-for="m in userMacros" :key="m.id" type="macro" @click="runMacro(m)">{{ m.name }}</MachineBtn>
+      <div class="stripFade" aria-hidden="true"></div>
     </Gate>
 
     <!-- ══ Bottom Action Strip — default-deny Gate, SafetyStrip exempt + sticky ══ -->
@@ -1589,6 +1738,7 @@ watch(viewerGcode, (newGcode) => {
       <SafetyStrip
         :armed="armed"
         :busy="busy"
+        :tripUnacked="safetyTrip !== null"
         :isEstop="isEstop"
         :isEnabled="isEnabled"
         :isHomed="isHomed"
@@ -1612,6 +1762,8 @@ watch(viewerGcode, (newGcode) => {
       </template>
 
       <JogStrip
+        v-show="stripVis('jog')"
+        data-strip="jog"
         :axes="axes"
         :jogVel="jogVel"
         :angularJogVel="angularJogVel"
@@ -1633,6 +1785,8 @@ watch(viewerGcode, (newGcode) => {
       />
 
       <SetupStrip
+        v-show="stripVis('setup')"
+        data-strip="setup"
         :axes="axes"
         :workPos="workPos"
         :homedJoints="homedJoints"
@@ -1650,7 +1804,24 @@ watch(viewerGcode, (newGcode) => {
         @goToZero="fire({ cmd: 'mdi', text: 'O<go_to_zero> CALL' }, 'ready')"
       />
 
+      <!-- G-code keypad: replaces every strip section except SafetyStrip
+           while the MDI field is focused or the G-code editor is open —
+           none of them are usable mid-typing, and the active WCS stays
+           visible in the HUD. SafetyStrip is pinned first, so nothing
+           shifts when the keypad swaps in/out. -->
+      <GcodeKeypadStrip
+        v-if="gcodeKeypadMode && !keypadState.open"
+        :axes="axes"
+        :mode="gcodeKeypadMode"
+        @key="gkInsert"
+        @backspace="gkBackspace"
+        @enter="gkEnter"
+        @clear="gkClear"
+      />
+
       <OverridesStrip
+        v-show="stripVis('overrides')"
+        data-strip="overrides"
         :feedSlider="feedSlider"
         :spindleSlider="spindleSlider"
         :rapidSlider="rapidSlider"
@@ -1670,6 +1841,8 @@ watch(viewerGcode, (newGcode) => {
       />
 
       <SpindleStrip
+        v-show="stripVis('spindle')"
+        data-strip="spindle"
         :isForward="isForward"
         :isReverse="isReverse"
         :isSpinning="isSpinning"
@@ -1690,11 +1863,23 @@ watch(viewerGcode, (newGcode) => {
       />
 
       <ToolStrip
+        v-show="stripVis('tool')"
+        data-strip="tool"
         :currentTool="st.tool_number ?? 0"
         :toolDiameter="st.tool_diameter ?? null"
         :toolLength="st.tool_length ?? null"
         @openToolTable="activeTab = 'tools'"
       />
+
+      <!-- Number keypad: swaps in like the G-code keypad, but keeps the
+           section that owns the edited field visible (see stripVis). Last in
+           DOM so it renders directly right of whichever section survives. -->
+      <NumberKeypadStrip v-if="keypadState.open" />
+
+      <!-- Scroll-edge affordance: fades in at the far edge while strip
+           sections are scrolled out of view (strip-more class, JS-toggled).
+           SafetyStrip pins the near edge, so only the far edge needs it. -->
+      <div class="stripFade" aria-hidden="true"></div>
     </Gate><!-- /strip -->
 
   </div>
@@ -1745,10 +1930,17 @@ watch(viewerGcode, (newGcode) => {
 
 .strip {
   display: flex;
-  height: 280px;
+  /* Auto height, sized by the fixed --strip-section-h sections: the
+     scrollbar band height is UA-defined (Chromium ignores
+     ::-webkit-scrollbar once scrollbar-width is set → ~10px; Firefox thin
+     ~12px; macOS overlay 0), so any layout that carves the section budget
+     out of a fixed strip height clips content on some engines. Here the
+     band (when reserved) grows the strip outward and the viewer pane
+     absorbs the difference — the content budget never varies. */
   flex-shrink: 0;
   /* no left padding: the sticky SafetyStrip carries it (see .safetyStrip) —
-     scroller padding would form a bleed-through gutter beside the stuck element */
+     scroller padding would form a bleed-through gutter beside the stuck
+     element */
   padding: var(--gap-controls) var(--gap-controls) var(--gap-controls) 0;
   gap: var(--gap-controls);
   overflow-x: auto;
@@ -1764,6 +1956,68 @@ watch(viewerGcode, (newGcode) => {
 .strip > * + * {
   border-left: 1px solid var(--border-subtle);
   padding-left: var(--gap-controls);
+}
+
+/* Scroll-edge fades — signal that more sections exist beyond an edge.
+   Zero-width sticky children; the gradient hangs inward over the content.
+   The strip needs only the far edge (SafetyStrip pins its near edge);
+   the macro bar has no pinned section and fades both edges. */
+.strip > .stripFade,
+.macroBar > .stripFade,
+.macroBar > .stripFadeStart {
+  position: sticky;
+  flex: 0 0 0px;
+  align-self: stretch;
+  border-left: none;   /* exempt from the .strip > * + * divider */
+  padding-left: 0;
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+  z-index: 1;
+}
+.strip > .stripFade,
+.macroBar > .stripFade { right: 0; }
+.macroBar > .stripFadeStart { left: 0; }
+.strip > .stripFade::before,
+.macroBar > .stripFade::before,
+.macroBar > .stripFadeStart::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: calc(2 * var(--gap-panel) + var(--gap-controls));
+  /* Solid paint + alpha mask with the same eased curve as .fade-scroll
+     (style.css) — NOT a color gradient; see the mask rationale there
+     (macOS Firefox color management renders gradient ramps unevenly). */
+  background: var(--panel);
+}
+/* Hang past the sticky element by the scroller's edge padding: sticky is
+   confined to the CONTENT box, but scrolled content stays visible through
+   the padding and radius region — without this the fade stops 8px short
+   of the visible edge. */
+.strip > .stripFade::before,
+.macroBar > .stripFade::before {
+  right: calc(-1 * var(--gap-controls));
+  -webkit-mask-image: linear-gradient(to right,
+    transparent 0%, rgba(0, 0, 0, 0.15) 40%, rgba(0, 0, 0, 0.45) 70%,
+    rgba(0, 0, 0, 0.8) 88%, black 100%);
+  mask-image: linear-gradient(to right,
+    transparent 0%, rgba(0, 0, 0, 0.15) 40%, rgba(0, 0, 0, 0.45) 70%,
+    rgba(0, 0, 0, 0.8) 88%, black 100%);
+}
+.macroBar > .stripFadeStart::before {
+  left: calc(-1 * var(--gap-controls));
+  -webkit-mask-image: linear-gradient(to right,
+    black 0%, rgba(0, 0, 0, 0.8) 12%, rgba(0, 0, 0, 0.45) 30%,
+    rgba(0, 0, 0, 0.15) 60%, transparent 100%);
+  mask-image: linear-gradient(to right,
+    black 0%, rgba(0, 0, 0, 0.8) 12%, rgba(0, 0, 0, 0.45) 30%,
+    rgba(0, 0, 0, 0.15) 60%, transparent 100%);
+}
+.strip.strip-more > .stripFade,
+.macroBar.strip-more > .stripFade,
+.macroBar.strip-scrolled > .stripFadeStart {
+  opacity: 1;
 }
 
 .hdr {
@@ -1782,6 +2036,12 @@ watch(viewerGcode, (newGcode) => {
   justify-content: flex-end;
 }
 .hdrBtns { flex-shrink: 0; }
+/* Shutdown is the one destructive header action — icon alone (labeled only
+   by a hover title) is not identifiable on touch, so it carries a caption. */
+.hdrShutdown {
+  flex-direction: column;
+  gap: var(--gap-micro);
+}
 
 .title {
   font-size: var(--fs-2xl);
@@ -1921,52 +2181,12 @@ watch(viewerGcode, (newGcode) => {
 }
 
 
-/* ---- Stats dialog ---- */
+/* ---- Stats dialog ----
+   (.statsGrid/.donut/.legendDot etc. are global — see style.css and
+    StatsDonut.vue) */
 .statsDialog {
   min-width: 340px;
   max-width: 480px;
-}
-
-.statsGrid {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: var(--gap-tight) var(--gap-controls);
-}
-
-.statsLabel {
-  opacity: var(--opacity-muted);
-}
-
-.statsValue {
-  text-align: right;
-}
-
-/* .donutRow — replaced by row-sections utility (same shape) */
-
-.donut {
-  width: 80px;
-  height: 80px;
-  flex-shrink: 0;
-}
-
-.donutBg {
-  fill: none;
-  stroke: color-mix(in oklab, var(--panel) 90%, var(--fg));
-  stroke-width: 12;
-}
-
-/* .legendItem — replaced by row-tight utility (same shape) */
-
-.legendDot {
-  width: 8px;
-  height: 8px;
-  border-radius: var(--radius-round);
-  flex-shrink: 0;
-}
-
-.legendPct {
-  opacity: var(--opacity-muted);
-  margin-left: auto;
 }
 
 /* ---- Messages dialog ---- */
@@ -2110,6 +2330,28 @@ watch(viewerGcode, (newGcode) => {
   .wrap > .strip::after {
     display: none;
   }
+  /* Vertical scroller: fade moves to the bottom edge */
+  .wrap > .strip > .stripFade {
+    right: auto;
+    bottom: 0;
+    border-top: none;
+    padding-top: 0;
+  }
+  .wrap > .strip > .stripFade::before {
+    top: auto;
+    right: 0;
+    left: 0;
+    /* Same content-box constraint as landscape, bottom padding here */
+    bottom: calc(-1 * var(--gap-controls));
+    width: auto;
+    height: calc(2 * var(--gap-panel) + var(--gap-controls));
+    -webkit-mask-image: linear-gradient(to bottom,
+      transparent 0%, rgba(0, 0, 0, 0.15) 40%, rgba(0, 0, 0, 0.45) 70%,
+      rgba(0, 0, 0, 0.8) 88%, black 100%);
+    mask-image: linear-gradient(to bottom,
+      transparent 0%, rgba(0, 0, 0, 0.15) 40%, rgba(0, 0, 0, 0.45) 70%,
+      rgba(0, 0, 0, 0.8) 88%, black 100%);
+  }
 
   /* Macro bar: thin middle column, vertical (collapses when no macros) */
   .wrap > .macroBar {
@@ -2120,6 +2362,43 @@ watch(viewerGcode, (newGcode) => {
     overflow-y: auto;
     height: auto;
     width: auto;
+  }
+  /* Vertical scroller: fades move to top/bottom edges (scroll-axis
+     padding is --gap-tight here, not --gap-controls) */
+  .wrap > .macroBar > .stripFade {
+    right: auto;
+    bottom: 0;
+  }
+  .wrap > .macroBar > .stripFadeStart {
+    left: auto;
+    top: 0;
+  }
+  .wrap > .macroBar > .stripFade::before,
+  .wrap > .macroBar > .stripFadeStart::before {
+    right: 0;
+    left: 0;
+    width: auto;
+    height: calc(2 * var(--gap-panel) + var(--gap-tight));
+  }
+  .wrap > .macroBar > .stripFade::before {
+    top: auto;
+    bottom: calc(-1 * var(--gap-tight));
+    -webkit-mask-image: linear-gradient(to bottom,
+      transparent 0%, rgba(0, 0, 0, 0.15) 40%, rgba(0, 0, 0, 0.45) 70%,
+      rgba(0, 0, 0, 0.8) 88%, black 100%);
+    mask-image: linear-gradient(to bottom,
+      transparent 0%, rgba(0, 0, 0, 0.15) 40%, rgba(0, 0, 0, 0.45) 70%,
+      rgba(0, 0, 0, 0.8) 88%, black 100%);
+  }
+  .wrap > .macroBar > .stripFadeStart::before {
+    bottom: auto;
+    top: calc(-1 * var(--gap-tight));
+    -webkit-mask-image: linear-gradient(to bottom,
+      black 0%, rgba(0, 0, 0, 0.8) 12%, rgba(0, 0, 0, 0.45) 30%,
+      rgba(0, 0, 0, 0.15) 60%, transparent 100%);
+    mask-image: linear-gradient(to bottom,
+      black 0%, rgba(0, 0, 0, 0.8) 12%, rgba(0, 0, 0, 0.45) 30%,
+      rgba(0, 0, 0, 0.15) 60%, transparent 100%);
   }
 
   /* Content: right column, viewer on top / side panel below */

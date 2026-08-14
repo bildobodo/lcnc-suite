@@ -11,6 +11,7 @@ import {
 const props = defineProps<{
   armed: boolean;
   busy: boolean;
+  tripUnacked: boolean;
   isEstop: boolean;
   isEnabled: boolean;
   isHomed: boolean;
@@ -67,11 +68,14 @@ const overridesActive = computed(() =>
     <div class="sub">Safety</div>
     <div class="safetyBtns row-controls">
       <div class="btnGate">
+        <!-- Gateway rejects arm while a safety trip is unacknowledged; mirror
+             that here so the greyed button points at the recovery path
+             (Acknowledge) instead of a rejected click. Disarm stays allowed. -->
         <MachineBtn
           type="arm"
           :variant="armed ? 'ok' : 'default'"
-          :disabled="busy"
-          :title="armed ? 'Disarm' : 'Arm'"
+          :disabled="busy || (!armed && tripUnacked)"
+          :title="armed ? 'Disarm' : (tripUnacked ? 'Acknowledge the safety trip first' : 'Arm')"
           @click="emit('arm', !armed)"
           class="safetyBtn"
           block
@@ -171,24 +175,6 @@ const overridesActive = computed(() =>
   min-height: 0;
   min-width: 0;
   overflow: auto;
-}
-.statusCols {
-  display: flex;
-  gap: 0;
-}
-.statusCol {
-  flex: 1;
-}
-.statusCol + .statusCol {
-  border-left: 1px solid var(--border-subtle);
-  padding-left: var(--gap-controls);
-  margin-left: var(--gap-controls);
-}
-.statusRow {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: var(--gap-controls);
 }
 .codesRow {
   /* Prevent codes from widening the strip — wrap within status column width */

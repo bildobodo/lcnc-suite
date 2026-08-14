@@ -136,10 +136,12 @@ COMMAND_GATES: Dict[str, str] = {
     "spindle_stop": "ready",
     "spindle_increase": "ready",
     "spindle_decrease": "ready",
-    "flood_on": "ready",
-    "flood_off": "ready",
-    "mist_on": "ready",
-    "mist_off": "ready",
+    # --- coolant (override gate: usable during execution, like overrides;
+    #     the program's own M7/M8/M9 still wins at its next coolant word) ---
+    "flood_on": "override",
+    "flood_off": "override",
+    "mist_on": "override",
+    "mist_off": "override",
     # --- overrides (intentionally usable during execution) ---
     "set_feed_override": "override",
     "set_spindle_override": "override",

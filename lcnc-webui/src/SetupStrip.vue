@@ -102,7 +102,11 @@ function zeroAll() {
 .setupGrid {
   display: grid;
   grid-template-columns: 80px 1fr 1fr;
-  gap: var(--gap-tight);
+  /* Columns get --gap-controls: Zero X and Home X are consequential
+     neighbors (fat-finger slip = unplanned homing move). Rows stay
+     --gap-tight — 6 axis rows at touch min-height already fill the
+     280px strip; 8px row gaps would overflow it. */
+  gap: var(--gap-tight) var(--gap-controls);
   align-content: start;
 }
 /* Uniform rows: the touchoff input is catalog size 'sm' (machineControls),

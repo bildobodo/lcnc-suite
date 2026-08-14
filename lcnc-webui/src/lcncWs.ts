@@ -50,6 +50,7 @@ export {
   status, lcncError, safetyTrip, readerStale, configWarning,
   latency, networkLatency, timingStats, messages, unreadCount,
   resetTimingStats, getTimingCsv, dismissMessage, clearAllMessages, markMessagesRead,
+  pushMessage,
   type LcncMessage, type WsStatus, type TimingComponentStats, type TimingStats,
 } from "./ws/statusStore";
 // Viewer payloads, preview worker, gcode text, surface/comp-grid (A1.2).

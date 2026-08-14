@@ -17,7 +17,19 @@ export interface ButtonDef {
   // ProbePanel and the tool actions in App.vue. MachineBtn injects the
   // 'probing' ref provided by App.vue and ANDs this flag into isDisabled.
   whileProbing?: boolean;
+  // Press-and-hold to fire instead of a plain click — accidental-tap
+  // protection for buttons where one touch starts machine motion (probe
+  // cycles, rapids, spindle start). MachineBtn swallows the native click
+  // and fires the @click handler after HOLD_FIRE_MS with a visual fill;
+  // releasing or sliding off early cancels. Note: this makes the button
+  // dead to keyboard Enter/Space — these ops have keyboard-shortcut and
+  // gamepad paths that bypass the button. Per-instance override via the
+  // MachineBtn `hold` prop.
+  hold?: boolean;
 }
+
+/** Press-and-hold duration for hold-to-fire buttons (ButtonDef.hold). */
+export const HOLD_FIRE_MS = 500;
 
 export const BUTTON_TYPES = {
   // Program control
@@ -29,29 +41,29 @@ export const BUTTON_TYPES = {
 
   // MDI / motion
   mdi:            { gate: 'ready',    variant: 'primary', size: 'md' },
-  goTo:           { gate: 'ready',    variant: 'default', size: 'md' },
-  home:           { gate: 'zero',     variant: 'default', size: 'md' },
-  unhome:         { gate: 'zero',     variant: 'default', size: 'md' },
+  goTo:           { gate: 'ready',    variant: 'default', size: 'md', hold: true },
+  home:           { gate: 'zero',     variant: 'default', size: 'md', hold: true },
+  unhome:         { gate: 'zero',     variant: 'default', size: 'md', hold: true },
 
   // Probe
-  probe:          { gate: 'probe',    variant: 'default', size: 'md', whileProbing: true },
+  probe:          { gate: 'probe',    variant: 'default', size: 'md', whileProbing: true, hold: true },
   probeReset:     { gate: 'probe',    variant: 'danger',  size: 'md', whileProbing: true },
 
   // Tool
   toolLoad:       { gate: 'ready',    variant: 'default', size: 'md' },
-  toolMeasure:    { gate: 'ready',    variant: 'default', size: 'md', whileProbing: true },
+  toolMeasure:    { gate: 'ready',    variant: 'default', size: 'md', whileProbing: true, hold: true },
   toolUnload:     { gate: 'ready',    variant: 'default', size: 'md', whileProbing: true },
 
   // Spindle
-  spindleFwd:      { gate: 'ready',    variant: 'default', size: 'md' },
-  spindleRev:      { gate: 'ready',    variant: 'default', size: 'md' },
+  spindleFwd:      { gate: 'ready',    variant: 'default', size: 'md', hold: true },
+  spindleRev:      { gate: 'ready',    variant: 'default', size: 'md', hold: true },
   spindleStop:     { gate: 'ready',    variant: 'danger',  size: 'md' },
   spindleIncrease: { gate: 'ready',    variant: 'default', size: 'md' },
   spindleDecrease: { gate: 'ready',    variant: 'default', size: 'md' },
 
-  // Coolant
-  flood:          { gate: 'ready',    variant: 'default', size: 'md' },
-  mist:           { gate: 'ready',    variant: 'default', size: 'md' },
+  // Coolant (override gate: toggleable during program execution, like overrides)
+  flood:          { gate: 'override', variant: 'default', size: 'md' },
+  mist:           { gate: 'override', variant: 'default', size: 'md' },
 
   // Jog
   jog:            { gate: 'jog',      variant: 'default', size: 'sm', mono: true },
@@ -59,6 +71,7 @@ export const BUTTON_TYPES = {
   // Overrides
   overridePreset: { gate: 'override', variant: 'default', size: 'xs' },
   overrideReset:  { gate: 'override', variant: 'default', size: 'xs' },
+  jogSpeedReset:  { gate: 'jog',      variant: 'default', size: 'xs' },
 
   // File operations
   fileOp:         { gate: 'setup',    variant: 'default', size: 'md' },
@@ -72,7 +85,7 @@ export const BUTTON_TYPES = {
   wcs:            { gate: 'probe',    variant: 'default', size: 'sm' },
 
   // Zero / touchoff (sends G10 L20 MDI — needs homed + !eoffset)
-  zero:           { gate: 'probe',    variant: 'default', size: 'md' },
+  zero:           { gate: 'probe',    variant: 'default', size: 'md', hold: true },
 
   // Macros
   macro:          { gate: 'probe',    variant: 'default', size: 'lg' },
@@ -87,7 +100,6 @@ export const BUTTON_TYPES = {
   simTrip:        { gate: 'always',   variant: 'default', size: 'md' },
 
   // ── Gated dialog actions (confirm/danger that require machine state) ──
-  dialogAbort:    { gate: 'abort',   variant: 'danger',  size: 'md' },
   dialogBase:     { gate: 'abort',   variant: 'primary', size: 'md' },
   dialogReady:    { gate: 'ready',   variant: 'primary', size: 'md' },
   dialogReadyDanger: { gate: 'ready', variant: 'danger', size: 'md' },
@@ -109,7 +121,7 @@ export const BUTTON_TYPES = {
   inlineMd:       { gate: 'always',  variant: 'default', size: 'md' },
   bannerAction:   { gate: 'always',  variant: 'default', size: 'md' },
   bannerAbort:    { gate: 'abort',   variant: 'danger',  size: 'md' },
-  bannerHome:     { gate: 'idle',    variant: 'default', size: 'md' },
+  bannerHome:     { gate: 'idle',    variant: 'default', size: 'md', hold: true },
   headerIcon:     { gate: 'always',  variant: 'default', size: 'md',  icon: true },
 
   // ── Number keypad ──
@@ -141,7 +153,7 @@ export const INPUT_DEFS = {
   mdiText:         { gate: 'ready' },
   touchoff:        { gate: 'probe',    mono: true, align: 'right', size: 'sm' },
   stripInput:      { gate: 'always',   mono: true, align: 'right', size: 'md' },
-  coolant:         { gate: 'ready' },
+  coolant:         { gate: 'override' },
 
   // Mode selection
   modeSelect:      { gate: 'idle' },

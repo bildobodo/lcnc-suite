@@ -9,12 +9,12 @@ import MachineSlider from "./MachineSlider.vue";
 import MachineRadio from "./MachineRadio.vue";
 import MachineColor from "./MachineColor.vue";
 import {
-  loadViewerDefaults, saveViewerDefaults,
+  loadViewerDefaults, saveViewerDefaults, viewerFallback,
   loadMachineDefaults, saveMachineDefaults,
   loadMacrosDefaults, saveMacrosDefaults, syncMacroParams,
   loadDisplayDefaults, saveDisplayDefaults, settingsVersion, serverSettingsReady,
   loadCameraDefaults, saveCameraDefaults,
-  type Layer, type ColorDefaults,
+  type Layer, type ColorDefaults, type HudDefaults, type HudScale,
   type TrackMode, type Projection, type ToolChangeMode, type SpindleDir, type SpindleFeedbackUnit,
   type ThemeMode, type MacroDef, type GamepadDefaults,
   GAMEPAD_FALLBACK,
@@ -34,7 +34,7 @@ const themeMode = inject<Ref<ThemeMode>>("themeMode", ref("auto") as Ref<ThemeMo
 const setTheme = inject<(mode: ThemeMode) => void>("setTheme", () => {});
 const startFullscreen = ref(loadDisplayDefaults().startFullscreen);
 const keepAwake = ref(loadDisplayDefaults().keepAwake);
-const machineParts = inject<ComputedRef<Array<{ id: string; group: string | null; direction: string | null }>>>("machineParts", computed(() => []));
+const machineParts = inject<ComputedRef<Array<{ id: string; group: string | null; direction: string | null; color: [number, number, number] | null }>>>("machineParts", computed(() => []));
 const setMachinePartColor = inject<(id: string, color: string | null) => void>("setMachinePartColor", () => {});
 const setMachineEdges = inject<(on: boolean) => void>("setMachineEdges", () => {});
 const setToolColors = inject<(toolColor: string | null, cutterColor: string | null) => void>("setToolColors", () => {});
@@ -96,6 +96,15 @@ function deleteMacro(id: string) {
   persistMacros();
 }
 
+// Deletion is confirmed via dialog — the trash button is a ~30px icon
+// target and macro deletion is irreversible.
+const macroDeleteId = ref<string | null>(null);
+const macroDeleteName = computed(() => macros.value.find(m => m.id === macroDeleteId.value)?.name ?? "");
+function confirmMacroDelete() {
+  if (macroDeleteId.value) deleteMacro(macroDeleteId.value);
+  macroDeleteId.value = null;
+}
+
 function moveMacro(idx: number, dir: -1 | 1) {
   const target = idx + dir;
   if (target < 0 || target >= macros.value.length) return;
@@ -138,14 +147,12 @@ const resetLabels: Record<string, string> = {
 };
 
 function resetViewer() {
-  saveViewerDefaults({
-    layers: { backplot: true, toolpath: true, machine: true, bounds: true, toolpathBounds: false, workzero: true, hud: true, surface: true, tool: true },
-    colors: { feed: "#22b8cf", rapid: "#f5a623", backplot: "#ff00ff", bounds: "#ffffff", toolpathBounds: "#f5a623", tool: "#c0c0c0", cutter: "#ffdd00" },
-    machineColors: {}, machineEdges: true, trackingMode: "none", pathOnTop: false, projection: "parallel",
-  });
+  // Single source: the registered viewer fallback in defaults.ts.
+  saveViewerDefaults(viewerFallback());
   const vd = loadViewerDefaults();
   Object.assign(layers, vd.layers);
   Object.assign(colors, vd.colors);
+  Object.assign(hud, vd.hud);
   for (const k of Object.keys(machineColors)) delete machineColors[k];
   Object.assign(machineColors, vd.machineColors);
   trackingMode.value = vd.trackingMode;
@@ -164,6 +171,7 @@ function resetMachine() {
     toolChangeMode: "m6g43", runFromLine: false,
     rflSpindleDir: "forward", rflSpindleRpm: 10000, rflSafeZ: true,
     spindleFeedbackUnit: "rps", spindleLoadPin: "",
+    autoDisarmMin: 10,
   });
   const md = loadMachineDefaults();
   toolChangeMode.value = md.toolChangeMode;
@@ -172,6 +180,7 @@ function resetMachine() {
   rflSpindleRpm.value = md.rflSpindleRpm;
   spindleFeedbackUnit.value = md.spindleFeedbackUnit;
   spindleLoadPin.value = md.spindleLoadPin;
+  autoDisarmMin.value = md.autoDisarmMin;
   emit("setRunFromLine", md.runFromLine);
 }
 
@@ -221,6 +230,7 @@ const trackingMode = ref<TrackMode>(saved.trackingMode);
 const pathOnTop = ref(saved.pathOnTop);
 const machineEdgesOn = ref(saved.machineEdges);
 const projection = ref<Projection>(saved.projection);
+const hud = reactive<HudDefaults>({ ...saved.hud });
 
 function save() {
   saveViewerDefaults({
@@ -231,8 +241,23 @@ function save() {
     trackingMode: trackingMode.value,
     pathOnTop: pathOnTop.value,
     projection: projection.value,
+    hud: { ...hud },
   });
 }
+
+const HUD_SCALES: { value: HudScale; label: string }[] = [
+  { value: "sm", label: "Small" },
+  { value: "md", label: "Normal" },
+  { value: "lg", label: "Large" },
+  { value: "xl", label: "X-Large" },
+];
+
+const HUD_TOGGLES: { key: keyof Omit<HudDefaults, "scale">; label: string }[] = [
+  { key: "showMachine", label: "Machine position" },
+  { key: "showTool", label: "Tool context" },
+  { key: "showFeedSpindle", label: "Feed & spindle" },
+  { key: "showLoadBar", label: "Spindle load bar" },
+];
 
 // ─── Viewer setting handlers (emit to App.vue → ThreeViewer) ──────
 const LAYER_LABELS: { key: Layer; label: string }[] = [
@@ -243,6 +268,7 @@ const LAYER_LABELS: { key: Layer; label: string }[] = [
   { key: "toolpathBounds", label: "Toolpath Bounds" },
   { key: "bounds", label: "Machine Bounds" },
   { key: "machine", label: "Machine" },
+  { key: "tool", label: "Tool" },
   { key: "hud", label: "HUD" },
 ];
 
@@ -305,6 +331,7 @@ const rflSpindleDir = ref<SpindleDir>(machSaved.rflSpindleDir);
 const rflSpindleRpm = ref(machSaved.rflSpindleRpm);
 const spindleFeedbackUnit = ref<SpindleFeedbackUnit>(machSaved.spindleFeedbackUnit);
 const spindleLoadPin = ref(machSaved.spindleLoadPin);
+const autoDisarmMin = ref(machSaved.autoDisarmMin);
 
 function saveMachine() {
   saveMachineDefaults({
@@ -315,6 +342,7 @@ function saveMachine() {
     rflSafeZ: loadMachineDefaults().rflSafeZ,  // managed from the RFL dialog, preserved here
     spindleFeedbackUnit: spindleFeedbackUnit.value,
     spindleLoadPin: spindleLoadPin.value,
+    autoDisarmMin: autoDisarmMin.value,
   });
 }
 
@@ -328,6 +356,7 @@ watch(settingsVersion, () => {
   rflSpindleRpm.value = md.rflSpindleRpm;
   spindleFeedbackUnit.value = md.spindleFeedbackUnit;
   spindleLoadPin.value = md.spindleLoadPin;
+  autoDisarmMin.value = md.autoDisarmMin;
   emit("setRunFromLine", md.runFromLine);
   const vd = loadViewerDefaults();
   Object.assign(layers, vd.layers);
@@ -337,6 +366,7 @@ watch(settingsVersion, () => {
   pathOnTop.value = vd.pathOnTop;
   machineEdgesOn.value = vd.machineEdges;
   projection.value = vd.projection;
+  Object.assign(hud, vd.hud);
   const dd = loadDisplayDefaults();
   startFullscreen.value = dd.startFullscreen;
   keepAwake.value = dd.keepAwake;
@@ -411,7 +441,12 @@ const colorFields: { key: keyof ColorDefaults; label: string }[] = [
 const DIR_DEFAULT_COLORS: Record<string, string> = { x: "#9b4a4a", y: "#4a8f5a", z: "#4a6f9b" };
 const FRAME_COLOR = "#bfbfbf";
 
-function defaultMachineColor(part: { direction: string | null }): string {
+function defaultMachineColor(part: { direction: string | null; color: [number, number, number] | null }): string {
+  // machine.json default color wins; then linear-axis color; then frame.
+  if (part.color) {
+    const hex = part.color.map(c => Math.round(Math.min(1, Math.max(0, c)) * 255).toString(16).padStart(2, "0")).join("");
+    return `#${hex}`;
+  }
   return (part.direction ? DIR_DEFAULT_COLORS[part.direction] : null) ?? FRAME_COLOR;
 }
 
@@ -439,7 +474,7 @@ function resetMachineColor(id: string) {
     <TabPanel :tabs="subTabs" v-model="activeTab" class="subTabs">
       <template #viewer>
         <div v-if="!serverSettingsReady" class="settingsLoading">Waiting for server settings…</div>
-        <div v-else class="stack-panel scrollContent scroll-thin">
+        <div v-else class="stack-panel scrollContent scroll-thin fade-scroll">
         <div class="stack-controls">
           <div class="sub">View</div>
           <div class="settingDesc">Projection mode for the 3D viewport.</div>
@@ -466,6 +501,28 @@ function resetMachineColor(id: string) {
               :modelValue="layers[lf.key]"
               @update:modelValue="onLayerChange(lf.key, $event!)"
               :label="lf.label"
+            />
+          </div>
+        </div>
+
+        <div class="sep"></div>
+
+        <div class="stack-controls">
+          <div class="sub">HUD</div>
+          <div class="settingDesc">Scale of the position readout overlay.</div>
+          <div class="radioGroup inline">
+            <label v-for="s in HUD_SCALES" :key="s.value">
+              <MachineRadio gate="viewerSetting" name="hudScale" :modelValue="hud.scale" :value="s.value" @update:modelValue="hud.scale = s.value; save()" /> {{ s.label }}
+            </label>
+          </div>
+          <div class="settingDesc">Sections shown on the HUD card. Warnings are always shown.</div>
+          <div class="layerGrid">
+            <MachineToggle
+              v-for="t in HUD_TOGGLES" :key="t.key"
+              gate="viewerSetting"
+              :modelValue="hud[t.key]"
+              @update:modelValue="hud[t.key] = $event!; save()"
+              :label="t.label"
             />
           </div>
         </div>
@@ -555,7 +612,7 @@ function resetMachineColor(id: string) {
 
       <template #machine>
         <div v-if="!serverSettingsReady" class="settingsLoading">Waiting for server settings…</div>
-        <div v-else class="stack-panel scrollContent scroll-thin">
+        <div v-else class="stack-panel scrollContent scroll-thin fade-scroll">
           <div class="stack-controls">
             <div class="sub">Tool Load Behavior</div>
             <div class="settingDesc">Controls what happens when you load a tool from the Tool Table.</div>
@@ -570,6 +627,18 @@ function resetMachineColor(id: string) {
               </label>
             </div>
           </div>
+          <div class="sep"></div>
+          <div class="stack-controls">
+            <div class="sub">Idle Auto-Disarm</div>
+            <div class="settingDesc">Disarm this client after a period with no input while the machine is idle — protects an unattended touchscreen from stray taps. Never triggers while a program runs or is paused, while probing, or while a jog is held.</div>
+            <div class="radioGroup inline">
+              <label v-for="m in [0, 5, 10, 20, 30]" :key="m">
+                <MachineRadio gate="displaySetting" name="autoDisarmMin" v-model.number="autoDisarmMin" :value="m" @update:modelValue="saveMachine()" />
+                {{ m === 0 ? 'Off' : m + ' min' }}
+              </label>
+            </div>
+          </div>
+
           <div class="sep"></div>
           <div class="stack-controls">
             <div class="sub">Spindle Feedback Unit</div>
@@ -633,7 +702,7 @@ function resetMachineColor(id: string) {
 
       <template #display>
         <div v-if="!serverSettingsReady" class="settingsLoading">Waiting for server settings…</div>
-        <div v-else class="stack-panel scrollContent scroll-thin">
+        <div v-else class="stack-panel scrollContent scroll-thin fade-scroll">
           <div class="stack-controls">
             <div class="sub">Theme</div>
             <div class="radioGroup">
@@ -662,7 +731,7 @@ function resetMachineColor(id: string) {
 
       <template #macros>
         <div v-if="!serverSettingsReady" class="settingsLoading">Waiting for server settings…</div>
-        <div v-else class="stack-panel scrollContent scroll-thin">
+        <div v-else class="stack-panel scrollContent scroll-thin fade-scroll">
           <div class="stack-controls">
             <div class="sub">User Macros</div>
 
@@ -680,7 +749,7 @@ function resetMachineColor(id: string) {
                   <MachineBtn type="listAction" :disabled="idx === 0" @click="moveMacro(idx, -1)" title="Move up"><ChevronUp :size="14" /></MachineBtn>
                   <MachineBtn type="listAction" :disabled="idx === macros.length - 1" @click="moveMacro(idx, 1)" title="Move down"><ChevronDown :size="14" /></MachineBtn>
                   <MachineBtn type="listAction" @click="editMacro(m)" title="Edit"><Pencil :size="14" /></MachineBtn>
-                  <MachineBtn type="listAction" @click="deleteMacro(m.id)" title="Delete"><Trash2 :size="14" /></MachineBtn>
+                  <MachineBtn type="listAction" @click="macroDeleteId = m.id" title="Delete"><Trash2 :size="14" /></MachineBtn>
                 </div>
               </div>
             </div>
@@ -723,7 +792,7 @@ function resetMachineColor(id: string) {
 
       <template #gamepad>
         <div v-if="!serverSettingsReady" class="settingsLoading">Waiting for server settings…</div>
-        <div v-else class="stack-panel scrollContent scroll-thin">
+        <div v-else class="stack-panel scrollContent scroll-thin fade-scroll">
           <GamepadTab
             :gamepad-config="props.gamepadConfig"
             :gamepad-connected="props.gamepadConnected"
@@ -739,7 +808,7 @@ function resetMachineColor(id: string) {
 
       <template #keyboard>
         <div v-if="!serverSettingsReady" class="settingsLoading">Waiting for server settings…</div>
-        <div v-else class="stack-panel scrollContent scroll-thin">
+        <div v-else class="stack-panel scrollContent scroll-thin fade-scroll">
           <KeyboardTab
             :kb-config="props.keyboardConfig ?? defaultKbConfig"
             @set-keyboard-config="emit('setKeyboardConfig', $event)"
@@ -759,6 +828,17 @@ function resetMachineColor(id: string) {
         <DebugTab />
       </template>
     </TabPanel>
+
+      <div v-if="macroDeleteId" class="dialogOverlay" @click.self="macroDeleteId = null">
+        <div class="dialog">
+          <div class="dialogTitle danger">Delete Macro</div>
+          <div class="dialogBody">Delete "{{ macroDeleteName }}"? This cannot be undone.</div>
+          <div class="dialogActions">
+            <MachineBtn type="dialogCancel" @click="macroDeleteId = null">Cancel</MachineBtn>
+            <MachineBtn type="dialogDanger" @click="confirmMacroDelete">Delete</MachineBtn>
+          </div>
+        </div>
+      </div>
 
       <div v-if="resetTarget" class="dialogOverlay" @click.self="resetTarget = null">
         <div class="dialog">

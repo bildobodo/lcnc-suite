@@ -60,6 +60,8 @@ Gateway connects to LinuxCNC via Python bindings (`linuxcnc.stat`, `linuxcnc.com
 - `useAxes.ts` — Single source for the machine's axis set (from `viewer_init.axes`): entries {letter,index,kind}, primary/abc/uvw groups, by-letter index resolvers. Never hardcode axis positions or letter sets in components.
 - `useGamepad.ts` — Gamepad polling composable (analog sticks + buttons; X/Y/Z resolved by letter)
 - `useJogPointers.ts` — Jogging pointer event management composable
+- `ws/bulkData.ts` — Shared wire types for `viewer_init` / `viewer_gcode` payloads (ViewerInit, ViewerPart, KinematicsList)
+- `viewer/` — ThreeViewer support modules: `machineAssetCache.ts` (machine STL fetch/parse with L1 in-memory + L2 IndexedDB caches, single-flight dedup, `failedParts` surface), `geometryCache.ts` (the IndexedDB layer), `disposal.ts` (scene teardown that skips `userData._shared`), `viewerContext.ts` (fresh-snapshot scene pointers), plus backplot/surface/toolpath controllers
 
 ### Main Tabs
 
@@ -86,7 +88,7 @@ Horizontally scrollable strip with six components (wrapped in `<Gate gate="armed
 
 HAL heartbeat runs in an independent asyncio task (`_heartbeat_loop`), decoupled from status processing. Two concurrent paths per client: command path (always responsive) and status path (can be slow without affecting safety). Additional: server-authoritative arming, backend `require_armed()`, `fire()` 200ms anti-spam, auto-stop jogs on focus loss.
 
-**Trip latching (issue #34).** `oneshot.0.out` self-heals when heartbeats resume, so the sticky latch lives in the HAL **servo thread** as an `estop_latch` (`webui-hb-latch`): its `ok-in` is `oneshot.0.out`, so it latches `ok-out` FALSE the instant the oneshot drops — in the *same ~1 ms cycle* — and stays FALSE until the operator clicks E-Stop Reset. This replaced an earlier `hal_watchdog.py` 100 ms Python edge-detector that **lost the race** against a ~1 ms oneshot re-arm (a heartbeat blip after a brief stall sampled `oneshot.0.out` already back TRUE → never saw the falling edge → silent auto-recovery from ESTOP). The latch is owned by HAL, so it survives both gateway *and* watchdog freezes/restarts. The gateway reads the sticky latch **level** `webui-hb-latch.fault-out` (snapshot field `trip_latched`) and runs `gateway_util.evaluate_trip_latch` (pure, unit-tested) — a clean FALSE→TRUE after a known-good baseline sets the `_unacked_trip` dict, broadcast as `status_msg.safety_trip` (a boot-faulted first-sight TRUE is audited as `safety.latch_faulted_on_connect`, not bannered). The frontend shows it in the existing `.statusBanner` (text + Acknowledge button; flash-danger while `safetyTrip` is set). Arm is rejected while `_unacked_trip is not None`. Recovery: E-Stop Reset sends `{"trip_reset": true}` IPC to `hal_watchdog.py`, which pulses `webui-safety.trip-reset-out` → `webui-hb-latch.reset` rising edge → latch clears → 20 ms later `CMD.state(STATE_ESTOP_RESET)` → banner-Acknowledge clears `_unacked_trip` → Arm → Machine On. (`hal_watchdog.py`'s `hb-ok-in` edge detection now only emits best-effort `wd.hb_edge`/`trip-count` forensics — no longer in the safety or banner path.)
+**Trip latching (issue #34).** `oneshot.0.out` self-heals when heartbeats resume, so the sticky latch lives in the HAL **servo thread** as an `estop_latch` (`webui-hb-latch`): its `ok-in` is `oneshot.0.out`, so it latches `ok-out` FALSE the instant the oneshot drops — in the *same ~1 ms cycle* — and stays FALSE until the operator clicks E-Stop Reset. This replaced an earlier `hal_watchdog.py` 100 ms Python edge-detector that **lost the race** against a ~1 ms oneshot re-arm (a heartbeat blip after a brief stall sampled `oneshot.0.out` already back TRUE → never saw the falling edge → silent auto-recovery from ESTOP). The latch is owned by HAL, so it survives both gateway *and* watchdog freezes/restarts. The gateway reads the sticky latch **level** `webui-hb-latch.fault-out` (snapshot field `trip_latched`) and runs `gateway_util.evaluate_trip_latch` (pure, unit-tested) — a clean FALSE→TRUE after a known-good baseline sets the `_unacked_trip` dict, broadcast as `status_msg.safety_trip` (a boot-faulted first-sight TRUE is audited as `safety.latch_faulted_on_connect`, not bannered). The frontend shows it in the existing `.statusBanner` (text + Acknowledge button; flash-danger while `safetyTrip` is set). Arm is rejected while `_unacked_trip is not None`. Recovery (enforced order): banner-Acknowledge clears `_unacked_trip` (both Arm and E-Stop Reset are rejected while it is set — a client that stayed armed through the trip must still acknowledge before it can leave ESTOP) → re-Arm if armed was lost → E-Stop Reset sends `{"trip_reset": true}` IPC to `hal_watchdog.py`, which pulses `webui-safety.trip-reset-out` → `webui-hb-latch.reset` rising edge → latch clears → 20 ms later `CMD.state(STATE_ESTOP_RESET)` → Machine On. (`hal_watchdog.py`'s `hb-ok-in` edge detection now only emits best-effort `wd.hb_edge`/`trip-count` forensics — no longer in the safety or banner path.)
 
 Full layer behavior tables, pin semantics, and failure mode coverage in `safety-permissions.md` memory file.
 
@@ -238,6 +240,54 @@ Four layers enforce permissions:
 - Shared state: coordMode, jogVel, mdiText, armed, busy
 - Responsive: landscape (side-by-side panels) and portrait (stacked panels)
 
+## 3D Machine Model (machine.json)
+
+ThreeViewer renders an articulated machine driven by live joint positions.
+The model is pure **data**: a directory containing `machine.json` + STL
+files. Default dir is `lcnc-gateway/machine/` (3-axis PM-25MV); override
+per-config with INI `[DISPLAY] WEBUI_MACHINE_DIR` (launcher exports it as
+`LCNC_WEBUI_MACHINE_DIR`; `~` is expanded). Example: the 5-axis sim uses
+`examples/sim_config/machine-xyzac/`, generated from LinuxCNC's vismach
+model by `scripts/vismach_to_stl.py`.
+
+**Schema** (`machine.json`):
+- `groups`: `[{id, parent, translate?}]` — transform tree under implicit
+  `root`. `translate` is a static base offset (pivot/home position), in mm.
+- `parts`: `[{id, file, group, translate?, rotate?, color?}]` — STL meshes
+  attached to groups. `color` is `[r,g,b]` 0–1 (STL has no color channel);
+  per-part user overrides from Settings still win. Parts get color pickers
+  in Settings automatically.
+- `kinematics`: `[{group, joint, type: translate|rotate, direction: x|y|z
+  or axis: [x,y,z], sign}]` — each entry drives one group from
+  `joint_pos[joint]` (**joint index, not axis letter** — trivkins:
+  identical; non-trivial kins: joint space). Rotations are degrees.
+- `workGroup` / `toolGroup`: group ids that carry the toolpath/backplot/
+  bounds (work) and tool marker + TCP offset (tool). On a moving-table
+  machine the work rides the table (e.g. the C platter on a trunnion).
+
+**Transform semantics — transforms COMPOSE** (`applyState` phases): driven
+groups reset to their static base each frame, then DOFs accumulate in
+`kinematics` list order (translations add along their unit axis, rotations
+right-multiply), then the TCP tool offset subtracts from the tool group's
+composed position. A group may therefore carry a static pivot translate
+plus any number of DOFs (compound slides, trunnions) — never rely on
+overwrite behavior. Axis unit vectors are precomputed at normalize time;
+the per-frame loop is allocation-free.
+
+**Serving & caching**: gateway mounts the model dir at `/assets/`
+(absolute URL to port 8000 — bypasses the Vite proxy; identical dev/prod).
+STL URLs carry `?v=<mtime>`. Client caches: L1 in-memory geometry by part
+id, L2 IndexedDB parsed geometry by URL, L3 HTTP. `machine.json` itself is
+mtime-cached in the gateway and hot-reloads on the next `viewer_init`
+build — no restart needed; a missing/broken file raises the operator
+config-warning banner (no silent fallback) and clears it on recovery.
+
+**Conventions**: STLs are authored in mm; the viewer scales by
+`_unitScale` for inch machines. Z-up. Auto-material mapping colors
+LINEAR-axis groups (x/y/z); rotary groups keep the frame material — use
+part `color` for rotary assemblies. The `machine` layer toggle shows/hides
+the whole model.
+
 ## Key Patterns
 
 - **No hardcoded visual styles** — never invent custom font-size, padding, border-radius, colors, opacity, or font-family for new elements. Always inherit from the nearest parent class or global base styles in `style.css`. New CSS should only override layout properties (flex, width, text-align). If a visual style doesn't exist, extend the existing class hierarchy or global base — never create one-off overrides. For color semantics: machine active states use `--ok` (green), form controls (toggles, radios, checkboxes) use `--info` (blue), danger/abort uses `--danger`, warnings use `--warn`.
@@ -383,6 +433,7 @@ which lcnc-suite    # should print ~/.local/bin/lcnc-suite
 | `CAMERA_SOURCE` | *(disabled)* | USB device index (`0`, `1`) or URL (`rtsp://host/live`, `http://host/mjpeg`) |
 | `CAMERA_RESOLUTION` | `1280x720` | Capture resolution `WxH` (USB cameras only) |
 | `CAMERA_FPS` | `15` | MJPEG stream frame rate |
+| `WEBUI_MACHINE_DIR` | *(gateway default)* | Machine viewer-model dir (`machine.json` + STLs) for the 3D machine model. Unset = `lcnc-gateway/machine/`. See "3D Machine Model". |
 
 Environment variables `LCNC_WEBUI_HOST`, `LCNC_WEBUI_PORT`, `LCNC_WEBUI_BROWSER`, `LCNC_WEBUI_DEV`, `LCNC_WEBUI_TOKEN`, `LCNC_WEBUI_ALLOWED_ORIGINS` override INI values. `LCNC_LOG_DIR` overrides `LOG_DIR`. Camera variables: `LCNC_CAMERA_SOURCE`, `LCNC_CAMERA_RESOLUTION`, `LCNC_CAMERA_FPS`.
 

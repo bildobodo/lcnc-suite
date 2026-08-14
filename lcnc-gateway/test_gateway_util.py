@@ -20,6 +20,7 @@ from gateway_util import (
     finite_float,
     finite_int,
     evaluate_trip_latch,
+    resolve_loaded_file,
 )
 
 
@@ -301,6 +302,65 @@ class TestEvaluateTripLatch(unittest.TestCase):
         self.assertTrue(steps[2]["tripped"])
 
 
+class TestResolveLoadedFile(unittest.TestCase):
+    """Loaded-program resolver: STAT.file flips to subroutine paths while the
+    interpreter executes (M6 remap, o-word CALLs); active_file must keep
+    meaning "loaded program" through those flips."""
+
+    MAIN = "/nc/main.ngc"
+    SUB = "/nc/subroutines/tool_touch_off.ngc"
+
+    def test_idle_load_adopts(self):
+        self.assertEqual(resolve_loaded_file(self.MAIN, True, None), (self.MAIN, None))
+
+    def test_idle_unload_adopts_none(self):
+        self.assertEqual(resolve_loaded_file(None, True, self.MAIN), (None, None))
+        # Empty string normalizes to None (STAT.file reads "" for "no file")
+        self.assertEqual(resolve_loaded_file("", True, self.MAIN), (None, None))
+
+    def test_midrun_sub_flip_held_and_reported(self):
+        # The bug: M6 remap opens tool_touch_off.ngc mid-run — hold the main
+        # program and surface the ignored raw value for tracing.
+        self.assertEqual(resolve_loaded_file(self.SUB, False, self.MAIN), (self.MAIN, self.SUB))
+
+    def test_midrun_same_file_not_reported(self):
+        self.assertEqual(resolve_loaded_file(self.MAIN, False, self.MAIN), (self.MAIN, None))
+
+    def test_midrun_transient_empty_held(self):
+        # A transiently empty STAT.file mid-run must not unload the program
+        # (raw "" would otherwise clear the shared preview cache).
+        loaded, flip = resolve_loaded_file("", False, self.MAIN)
+        self.assertEqual(loaded, self.MAIN)
+        self.assertIsNone(flip)  # "" normalizes to None; nothing adoptable to report
+
+    def test_mdi_sub_with_no_program_held(self):
+        # MDI `O<probe_x> CALL` with no program loaded: prev None is an honest
+        # "no file" baseline — do not adopt the probe sub.
+        self.assertEqual(resolve_loaded_file(self.SUB, False, None), (None, self.SUB))
+
+    def test_first_sight_midrun_adopts_raw(self):
+        # Gateway restarted under a running program: no baseline yet — adopt
+        # raw so the UI shows something; corrects itself at the next idle tick.
+        self.assertEqual(
+            resolve_loaded_file(self.SUB, False, None, prev_seen=False), (self.SUB, None)
+        )
+
+    def test_run_lifecycle(self):
+        # load → run → M6 flip → back to main → idle at program end.
+        prev, seen = None, False
+        for raw, idle, want in [
+            (self.MAIN, True, self.MAIN),   # operator loads
+            (self.MAIN, False, self.MAIN),  # running
+            (self.SUB, False, self.MAIN),   # M6 remap flips STAT.file
+            (self.MAIN, False, self.MAIN),  # sub returned
+            (self.MAIN, True, self.MAIN),   # program done
+            (None, True, None),             # unload
+        ]:
+            prev, _ = resolve_loaded_file(raw, idle, prev, seen)
+            seen = True
+            self.assertEqual(prev, want)
+
+
 if __name__ == "__main__":
     unittest.main()
 
@@ -333,3 +393,62 @@ class TestParseTelemetryBatch(unittest.TestCase):
 
     def test_empty(self):
         self.assertEqual(gateway_util.parse_telemetry_batch(b""), ([], 0))
+
+
+class TestScanToolStats(unittest.TestCase):
+    """Textual M6/M600/M601 scan for program stats — mirrors the word-matcher
+    semantics of the frontend scanToolchangesBefore (gcodeRfl.test.ts)."""
+
+    def scan(self, text):
+        return gateway_util.scan_tool_stats(text)
+
+    def test_plain_m6_with_t(self):
+        self.assertEqual(self.scan("G21\nT5 M6\nG0 X0\n"), (1, {5}))
+
+    def test_m600_remap_counts(self):
+        self.assertEqual(self.scan("T13 M600\nG0 X0\n"), (1, {13}))
+
+    def test_m601_counts(self):
+        self.assertEqual(self.scan("T2 M601\n"), (1, {2}))
+
+    def test_t_before_change_on_earlier_line(self):
+        # T is a modal prepare — a later bare M6 changes to it.
+        self.assertEqual(self.scan("T7\nG0 X0\nM6\n"), (1, {7}))
+
+    def test_modal_t_reused_for_second_change(self):
+        self.assertEqual(self.scan("T5 M600\nG1 X1\nM600\n"), (2, {5}))
+
+    def test_multiple_tools(self):
+        text = "T1 M6\nG1 X1\nT2 M600\nG1 X2\nT1 M6\n"
+        self.assertEqual(self.scan(text), (3, {1, 2}))
+
+    def test_ignores_comments(self):
+        text = "; T5 M6 in comment\n(T3 M600 inline)\nG0 X0 ; M6\n"
+        self.assertEqual(self.scan(text), (0, set()))
+
+    def test_no_false_match_m60_m66_m61(self):
+        # M60 (pallet change), M66 (wait input), M61 (set tool number),
+        # M602 (unknown) must not count.
+        self.assertEqual(self.scan("M60\nM66 P0\nM61 Q3\nM602\n"), (0, set()))
+
+    def test_leading_zeros(self):
+        self.assertEqual(self.scan("T05 M06\n"), (1, {5}))
+
+    def test_t0_unload_counts_change_not_tool(self):
+        self.assertEqual(self.scan("T0 M6\n"), (1, set()))
+
+    def test_unevaluable_t_expression_counts_change_only(self):
+        self.assertEqual(self.scan("T#100 M6\n"), (1, set()))
+
+    def test_case_insensitive(self):
+        self.assertEqual(self.scan("t3 m600\n"), (1, {3}))
+
+    def test_word_boundaries(self):
+        # Preceding word characters must not produce matches.
+        self.assertEqual(self.scan("G0 XM6\nO100 CALL [6]\n"), (0, set()))
+
+    def test_crlf_lines(self):
+        self.assertEqual(self.scan("T4 M6\r\nG0 X0\r\n"), (1, {4}))
+
+    def test_empty(self):
+        self.assertEqual(self.scan(""), (0, set()))

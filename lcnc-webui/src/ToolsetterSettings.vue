@@ -135,7 +135,7 @@ watch(settingsVersion, () => { loadTsParams(); });
     <div class="sep span"></div>
 
     <!-- Tool Change Position (G30) -->
-    <div class="sub span" title="G30 tool change position — where the machine moves before a tool change (M6). Read-only, set in the LinuxCNC var file. (#5181–#5183)">Tool Change Position (G30)</div>
+    <div class="sub span">Tool Change Position (G30)<HelpIcon>G30 tool change position — where the machine moves before a tool change (M6). Read-only, set in the LinuxCNC var file. (#5181–#5183)</HelpIcon></div>
     <label>X</label>
     <span class="mono">{{ g30X != null ? g30X.toFixed(3) : '—' }}</span>
     <label>Y</label>
@@ -143,7 +143,8 @@ watch(settingsVersion, () => { loadTsParams(); });
     <label>Z</label>
     <span class="mono">{{ g30Z != null ? g30Z.toFixed(3) : '—' }}</span>
     <div class="row-tight span">
-      <MachineBtn type="probe" @click="setG30">Set Current Position</MachineBtn>
+      <!-- hold=false: records the current position (var write), no motion -->
+      <MachineBtn type="probe" :hold="false" @click="setG30">Set Current Position</MachineBtn>
       <MachineBtn type="inlineMd" @click="loadG30" :disabled="g30Loading">Refresh</MachineBtn>
     </div>
     <div v-if="g30Error" class="span errorText">G30 read failed: {{ g30Error }}</div>
@@ -174,10 +175,10 @@ watch(settingsVersion, () => { loadTsParams(); });
     <label>Extra Retries<HelpIcon>Number of extra retry attempts if probe contact fails. Each failure pauses for operator correction before retrying. Set to 0 for ATC. (#3109)</HelpIcon></label>
     <MachineInput gate="toolsetterParam" type="number" v-model.number="tsParams.addReps" min="0" :step="STEP_DEFAULT" @change="saveTsParams" />
     <div class="toggleGrid span">
-      <MachineToggle gate="toolsetterParam" v-model="tsUseToolTable" label="Use Tool Table" title="When enabled, uses the tool table length to calculate a closer probe start height — faster for known tools. Disable during initial setup or if tool table data is unreliable. (#3103)" />
-      <MachineToggle gate="toolsetterParam" v-model="tsGoBackToStart" label="Return to Start" title="After measurement, return to the XYZ position where M600 was called. Disable only if the tool change is at the end of a program. (#3106)" />
-      <MachineToggle gate="toolsetterParam" v-model="tsDisablePrePos" label="Skip G30 Pre-Pos" title="Skip the G30 pre-positioning move before traveling to the touch plate. Faster, but risks collision with clamps or fixtures on uncluttered machines only. (#3108)" />
-      <MachineToggle gate="toolsetterParam" v-model="tsLastTry" label="Last Try w/o Table" title="On the final retry attempt, ignore tool table offsets and use spindle zero height instead. Provides a fallback for tools with incorrect table entries. (#3110)" />
+      <MachineToggle gate="toolsetterParam" v-model="tsUseToolTable" label="Use Tool Table" help="When enabled, uses the tool table length to calculate a closer probe start height — faster for known tools. Disable during initial setup or if tool table data is unreliable. (#3103)" />
+      <MachineToggle gate="toolsetterParam" v-model="tsGoBackToStart" label="Return to Start" help="After measurement, return to the XYZ position where M600 was called. Disable only if the tool change is at the end of a program. (#3106)" />
+      <MachineToggle gate="toolsetterParam" v-model="tsDisablePrePos" label="Skip G30 Pre-Pos" help="Skip the G30 pre-positioning move before traveling to the touch plate. Faster, but risks collision with clamps or fixtures on uncluttered machines only. (#3108)" />
+      <MachineToggle gate="toolsetterParam" v-model="tsLastTry" label="Last Try w/o Table" help="On the final retry attempt, ignore tool table offsets and use spindle zero height instead. Provides a fallback for tools with incorrect table entries. (#3110)" />
     </div>
     <label>Brake After<HelpIcon>Pause after tool measurement: None = continue immediately, M00 = mandatory stop (press Cycle Start to resume), M01 = optional stop (active only when block delete is off). (#3105)</HelpIcon></label>
     <div class="radioGroup inline spanRow">

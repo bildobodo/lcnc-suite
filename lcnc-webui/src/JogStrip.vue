@@ -3,7 +3,7 @@ import { computed, inject, ref, watch, onMounted, onUnmounted, type Ref, type Co
 import { send } from "./lcncWs";
 import { usePermissions } from "./permissions";
 import { INPUT_DEFS } from "./machineControls";
-import { registerJog, unregisterJog, activeJogKeys, forceStopAllJogs } from "./useJogPointers";
+import { registerJog, unregisterJog, activeJogKeys, forceStopAllJogs, forceStopJog, jogKeyFor } from "./useJogPointers";
 import { useAxes } from "./useAxes";
 import MachineBtn from "./MachineBtn.vue";
 import MachineRadio from "./MachineRadio.vue";
@@ -81,14 +81,20 @@ const incrementOptions = computed(() => {
 });
 
 // ─── XY grid square sizing (aspect-ratio unreliable in flex) ──
-const xyWrapRef = ref<HTMLElement>();
+// Measures the PARENT row (.jogBtns) and applies the same value to both
+// wrap dimensions. Observing the parent keeps the loop sound: the wrap's
+// inline size can never feed back into the measurement, and a stale or
+// dropped RO tick (Firefox defers notifications under same-frame layout
+// shifts) still yields a square pad — a size error stays a size error
+// instead of becoming uneven gaps / Z-column misalignment.
+const jogBtnsRef = ref<HTMLElement>();
 const xySize = ref(0);
 
 const ro = new ResizeObserver(entries => {
   if (isPortrait.value) return; // CSS aspect-ratio handles square sizing in portrait
   for (const e of entries) xySize.value = e.contentRect.height;
 });
-onMounted(() => { if (xyWrapRef.value) ro.observe(xyWrapRef.value); });
+onMounted(() => { if (jogBtnsRef.value) ro.observe(jogBtnsRef.value); });
 onUnmounted(() => ro.disconnect());
 
 // Reset inline size when switching to portrait so CSS aspect-ratio takes over
@@ -174,7 +180,10 @@ function startJog(btn: JogDef, e: PointerEvent) {
 }
 
 function stopJog(btn: JogDef, e: PointerEvent) {
-  if (!activeJogKeys.has(btn.label)) return;
+  // Ownership guard, not a key-set guard: only the pointer that started
+  // this jog may stop it — a second finger tapping the held button must
+  // not send jog_stop for a jog it doesn't own (registry desync).
+  if (jogKeyFor(e.pointerId) !== btn.label) return;
 
   if (props.jogIncrement <= 0) {
     const isDiag = btn.axis2 != null;
@@ -188,6 +197,25 @@ function stopJog(btn: JogDef, e: PointerEvent) {
   unregisterJog(e.pointerId);
   // safe-silent: releasing an already-released pointer throws harmlessly
   try { (e.currentTarget as HTMLElement)?.releasePointerCapture?.(e.pointerId); } catch {}
+}
+
+/**
+ * Slide-off deadman: stop the jog when the pressing finger/cursor leaves
+ * the button. @pointerleave cannot do this — pointer capture retargets
+ * events to the captured button, so leave never fires mid-hold — hence
+ * an explicit bounds test on the captured pointermove stream. A small
+ * slack margin keeps edge jitter from dropping the jog.
+ */
+const SLIDE_OFF_SLACK = 8; // px
+function slideOffCheck(e: PointerEvent) {
+  if (jogKeyFor(e.pointerId) === undefined) return;
+  const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+  if (
+    e.clientX < r.left - SLIDE_OFF_SLACK || e.clientX > r.right + SLIDE_OFF_SLACK ||
+    e.clientY < r.top - SLIDE_OFF_SLACK || e.clientY > r.bottom + SLIDE_OFF_SLACK
+  ) {
+    forceStopJog(e.pointerId);
+  }
 }
 
 // ─── Generic single-axis jog (Z, A, B, C, U, V, W) ─────────
@@ -213,7 +241,8 @@ function startAxisJog(axisIndex: number, dir: 1 | -1, vel: number, e: PointerEve
 function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
   const letter = props.axes[axisIndex]!;
   const key = `${letter}${dir > 0 ? "+" : "-"}`;
-  if (!activeJogKeys.has(key)) return;
+  // Ownership guard — see stopJog.
+  if (jogKeyFor(e.pointerId) !== key) return;
 
   if (props.jogIncrement <= 0) {
     send({ cmd: "jog_stop", axis: axisIndex });
@@ -229,8 +258,8 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
   <div class="stripSection">
     <div class="sub">Jog</div>
     <div class="jogContent row-sections">
-      <div class="jogBtns row-sections">
-        <div v-if="hasXyPad" ref="xyWrapRef" class="xyWrap" :style="xySize ? { width: xySize + 'px' } : undefined">
+      <div ref="jogBtnsRef" class="jogBtns row-sections">
+        <div v-if="hasXyPad" class="xyWrap" :style="xySize ? { width: xySize + 'px', height: xySize + 'px' } : undefined">
           <div class="xyGrid">
             <MachineBtn
               v-for="btn in xyBtns"
@@ -243,6 +272,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               @pointerup.prevent="stopJog(btn, $event)"
               @pointercancel.prevent="stopJog(btn, $event)"
               @pointerleave.prevent="stopJog(btn, $event)"
+              @pointermove="slideOffCheck"
               @contextmenu.prevent
             ><div :class="['jogInner', btn.dir_class]"><component :is="btn.icon" class="jogIcon" /><span v-if="btn.shortLabel" class="jogLabel">{{ btn.shortLabel }}</span></div></MachineBtn>
           </div>
@@ -257,6 +287,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
             @pointerup.prevent="stopAxisJog(zAxis.index, 1, $event)"
             @pointercancel.prevent="stopAxisJog(zAxis.index, 1, $event)"
             @pointerleave.prevent="stopAxisJog(zAxis.index, 1, $event)"
+            @pointermove="slideOffCheck"
             @contextmenu.prevent
           ><div class="jogInner jogZUp"><ArrowUp class="jogIcon" /><span class="jogLabel">Z+</span></div></MachineBtn>
           <MachineBtn
@@ -267,6 +298,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
             @pointerup.prevent="stopAxisJog(zAxis.index, -1, $event)"
             @pointercancel.prevent="stopAxisJog(zAxis.index, -1, $event)"
             @pointerleave.prevent="stopAxisJog(zAxis.index, -1, $event)"
+            @pointermove="slideOffCheck"
             @contextmenu.prevent
           ><div class="jogInner jogZDown"><ArrowDown class="jogIcon" /><span class="jogLabel">Z-</span></div></MachineBtn>
         </div>
@@ -282,6 +314,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               @pointerup.prevent="stopAxisJog(ra.index, 1, $event)"
               @pointercancel.prevent="stopAxisJog(ra.index, 1, $event)"
               @pointerleave.prevent="stopAxisJog(ra.index, 1, $event)"
+              @pointermove="slideOffCheck"
               @contextmenu.prevent
             ><div class="jogInner jogZUp"><ArrowUp class="jogIcon" /><span class="jogLabel">{{ ra.letter }}+</span></div></MachineBtn>
             <MachineBtn
@@ -292,6 +325,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               @pointerup.prevent="stopAxisJog(ra.index, -1, $event)"
               @pointercancel.prevent="stopAxisJog(ra.index, -1, $event)"
               @pointerleave.prevent="stopAxisJog(ra.index, -1, $event)"
+              @pointermove="slideOffCheck"
               @contextmenu.prevent
             ><div class="jogInner jogZDown"><ArrowDown class="jogIcon" /><span class="jogLabel">{{ ra.letter }}-</span></div></MachineBtn>
           </div>
@@ -308,6 +342,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               @pointerup.prevent="stopAxisJog(ra.index, 1, $event)"
               @pointercancel.prevent="stopAxisJog(ra.index, 1, $event)"
               @pointerleave.prevent="stopAxisJog(ra.index, 1, $event)"
+              @pointermove="slideOffCheck"
               @contextmenu.prevent
             ><div class="jogInner jogZUp"><ArrowUp class="jogIcon" /><span class="jogLabel">{{ ra.letter }}+</span></div></MachineBtn>
             <MachineBtn
@@ -318,6 +353,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               @pointerup.prevent="stopAxisJog(ra.index, -1, $event)"
               @pointercancel.prevent="stopAxisJog(ra.index, -1, $event)"
               @pointerleave.prevent="stopAxisJog(ra.index, -1, $event)"
+              @pointermove="slideOffCheck"
               @contextmenu.prevent
             ><div class="jogInner jogZDown"><ArrowDown class="jogIcon" /><span class="jogLabel">{{ ra.letter }}-</span></div></MachineBtn>
           </div>
@@ -325,17 +361,17 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
       </div>
 
       <div class="speedGroup row-sections strip-slider-group">
-        <div class="speedCol stack-tight">
+        <div class="speedCol stack-controls">
           <span class="label-muted">{{ abcAxes.length > 0 ? 'Linear' : 'Speed' }}</span>
-          <span class="val-mono">{{ (jogVel * 60).toFixed(0) }}</span>
+          <span class="val-mono val-slot">{{ (jogVel * 60).toFixed(0) }}</span>
           <MachineSlider gate="jogSpeed" :disabled="isDisabled" :min="minJogVel" :max="maxJogVel" :step="0.1" :modelValue="jogVel" @update:modelValue="(v: number | undefined) => { if (v != null) emit('update:jogVel', v) }" class="vSlider" />
-          <MachineBtn type="overrideReset" @click="emit('resetJogVel')">Reset</MachineBtn>
+          <MachineBtn type="jogSpeedReset" :disabled="isDisabled" @click="emit('resetJogVel')">Reset</MachineBtn>
         </div>
-        <div v-if="abcAxes.length > 0" class="speedCol stack-tight">
+        <div v-if="abcAxes.length > 0" class="speedCol stack-controls">
           <span class="label-muted">Rotary</span>
-          <span class="val-mono">{{ (angularJogVel * 60).toFixed(0) }}°</span>
+          <span class="val-mono val-slot">{{ (angularJogVel * 60).toFixed(0) }}°</span>
           <MachineSlider gate="jogSpeed" :disabled="isDisabled" :min="minAngularJogVel" :max="maxAngularJogVel" :step="0.1" :modelValue="angularJogVel" @update:modelValue="(v: number | undefined) => { if (v != null) emit('update:angularJogVel', v) }" class="vSlider" />
-          <MachineBtn type="overrideReset" @click="emit('resetAngularJogVel')">Reset</MachineBtn>
+          <MachineBtn type="jogSpeedReset" :disabled="isDisabled" @click="emit('resetAngularJogVel')">Reset</MachineBtn>
         </div>
       </div>
 
@@ -376,13 +412,20 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
 
 .xyWrap {
   height: 100%;
+  /* Square by construction even before (or without) the JS measurement:
+     the height chain is definite now (--strip-section-h), so aspect-ratio
+     resolves the width from it. The JS inline size (both dimensions, same
+     value) overrides this for engines that mis-handle aspect-ratio in
+     flex — either path yields a square, so RO timing can't skew the pad. */
+  aspect-ratio: 1;
   flex-shrink: 0;
 }
 .xyGrid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(3, 1fr);
-  gap: var(--gap-tight);
+  /* --gap-controls: every neighbor pair here jogs a different direction */
+  gap: var(--gap-controls);
   width: 100%;
   height: 100%;
 }
@@ -390,7 +433,8 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
 .axisCol {
   display: grid;
   grid-template-rows: 1fr 1fr;
-  gap: var(--gap-tight);
+  /* --gap-controls: the two buttons drive the axis in OPPOSITE directions */
+  gap: var(--gap-controls);
   height: 100%;
   min-width: 50px;
 }
@@ -400,15 +444,17 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
    centers items, these must stretch. */
 .axisCluster {
   display: flex;
-  gap: var(--gap-tight);
+  gap: var(--gap-controls);
 }
+/* No aspect-ratio on the buttons: they fill their grid cells. The cells
+   are square because the WRAP is square (aspect-ratio / JS above) — a
+   button-level ratio would underfill any transiently non-square cell
+   (Firefox keeps ratio'd grid items square instead of stretching),
+   spreading the slack into visibly uneven gaps and breaking row
+   alignment with the free-stretching Z column. */
 .jogBtn {
   touch-action: none;
   user-select: none;
-  aspect-ratio: 1;
-}
-.axisCol .jogBtn {
-  aspect-ratio: auto;
 }
 /* Not a stack-* reimpl: direction VARIES per modifier below (jogV row,
    jogH/jogZDown column-reverse); default column for the Stop button. */
@@ -449,6 +495,9 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
   align-items: center;
   justify-content: center;
 }
+/* Jog speed ticks while dragging the slider — fixed slot ("10000" = 5ch,
+   rotary adds °) keeps the readout from re-centering per digit change. */
+.speedCol .val-slot { --slot-w: 5.5ch; }
 .vSlider {
   flex: 1;
   min-height: 0;

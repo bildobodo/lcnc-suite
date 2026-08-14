@@ -5,6 +5,7 @@ import { usePermissions } from "./permissions";
 import { loadMachineDefaults, saveMachineDefaults, STEP_RPM } from "./defaults";
 import { scanToolchangesBefore, scanEntryPositionBefore, type RflToolchangeScan, type RflEntryScan, type RflRunOptions } from "./gcodeRfl";
 import { highlightGcode, type Token } from "./gcodeHighlight";
+import { isTouchDevice } from "./touchDetect";
 import { emitTelemetry } from "./lcncWs";
 import { GCODE_LOOKUP, GCODE_REFERENCE } from "./gcodeReference";
 import { Play, SkipForward, Pause } from "lucide-vue-next";
@@ -58,6 +59,7 @@ const emit = defineEmits<{
   (e: "runFromLine", opts: RflRunOptions): void;
   (e: "openGcodeRef", code: string): void;
   (e: "showStats"): void;
+  (e: "editingChange", editing: boolean): void;
 }>();
 
 const optionalStopModel = computed({
@@ -96,6 +98,10 @@ function onTokenMouseLeave() { tooltip.value = null; }
 
 function onTokenClick(ev: MouseEvent, token: Token) {
   if (token.type !== 'gcode' && token.type !== 'mcode') return;
+  // Run-from-line selection owns line taps: G0/M3 are the widest targets
+  // on a line, so a tap there must bubble to onLineClick and select the
+  // line, not open the reference dialog.
+  if (props.runFromLine && props.gcodeContent) return;
   ev.stopPropagation();
   tooltip.value = null;
   emit("openGcodeRef", token.text.toUpperCase());
@@ -145,10 +151,18 @@ const progressPercent = computed(() => {
   return Math.min(100, (props.currentLine / lineCount.value) * 100);
 });
 
+// Slot floor for the running line number: as wide as the file's last line
+// number, so the "current / total" readout never shifts during a run.
+const lineDigits = computed(() => String(lineCount.value || 0).length);
+
 // Token type + highlightGcode() imported from gcodeHighlight.ts
 
 // ---------- Virtual scroll ----------
-const LINE_HEIGHT = 23; // px — matches .codeLine (12px × 1.6 + 4px padding)
+// px — MUST match the .codeLine CSS height (style.css): 23px desktop,
+// 32px under html.touch-device (run-from-line selection is a per-line
+// tap). Reactive because touch mode latches on the first touch input,
+// which can happen mid-session.
+const LINE_HEIGHT = computed(() => (isTouchDevice.value ? 32 : 23));
 const BUFFER = 10;
 
 const scrollTop = ref(0);
@@ -158,11 +172,11 @@ const scrollTop = ref(0);
 // currentLine advances 5–50×/s, each nudging scrollTop; keying retokenization
 // off the integer bounds avoids redundant work on every sub-LINE_HEIGHT delta.
 const rangeStart = computed(() =>
-  Math.max(0, Math.floor(_scrollToContent(scrollTop.value) / LINE_HEIGHT) - BUFFER)
+  Math.max(0, Math.floor(_scrollToContent(scrollTop.value) / LINE_HEIGHT.value) - BUFFER)
 );
 const rangeEnd = computed(() => {
   const viewportH = codeViewerRef.value?.clientHeight ?? 400;
-  const count = Math.ceil(viewportH / LINE_HEIGHT) + BUFFER * 2;
+  const count = Math.ceil(viewportH / LINE_HEIGHT.value) + BUFFER * 2;
   return Math.min(lineCount.value, rangeStart.value + count);
 });
 
@@ -184,7 +198,7 @@ const visibleLines = computed(() => {
 // content-space; at scale 1 (files under ~520k lines) every formula reduces
 // exactly to the unscaled originals.
 const SPACER_MAX_PX = 12_000_000;
-const contentHeight = computed(() => lineCount.value * LINE_HEIGHT);
+const contentHeight = computed(() => lineCount.value * LINE_HEIGHT.value);
 const totalHeight = computed(() => Math.min(contentHeight.value, SPACER_MAX_PX));
 
 function _viewH(): number {
@@ -208,7 +222,7 @@ function _contentToScroll(y: number): number {
 // viewport top. At scale 1 this is exactly rangeStart * LINE_HEIGHT.
 const offsetY = computed(() => {
   const y = _scrollToContent(scrollTop.value);
-  return Math.max(0, scrollTop.value + rangeStart.value * LINE_HEIGHT - y);
+  return Math.max(0, scrollTop.value + rangeStart.value * LINE_HEIGHT.value - y);
 });
 
 function onCodeScroll(ev: Event) {
@@ -220,7 +234,7 @@ function onCodeScroll(ev: Event) {
 // content space, then mapped to scrollbar space (identity at scale 1).
 watch(() => props.currentLine, (newLine) => {
   if (newLine != null && codeViewerRef.value) {
-    const targetY = (newLine - 1) * LINE_HEIGHT - codeViewerRef.value.clientHeight / 2 + LINE_HEIGHT / 2;
+    const targetY = (newLine - 1) * LINE_HEIGHT.value - codeViewerRef.value.clientHeight / 2 + LINE_HEIGHT.value / 2;
     codeViewerRef.value.scrollTop = Math.max(0, _contentToScroll(targetY));
   }
 });
@@ -423,6 +437,10 @@ const editorHost = ref<HTMLDivElement | null>(null);
 const saving = ref(false);
 const saveError = ref<string | null>(null);
 let _editorView: any = null;
+let _deleteCharBackward: any = null;
+
+// App swaps the bottom strip for the G-code keypad while the editor is open.
+watch(editing, (v) => emit("editingChange", v));
 
 async function enterEdit() {
   if (!props.gcodeContent || !props.activeFile) return;
@@ -434,19 +452,24 @@ async function enterEdit() {
   try {
     // Dynamic import: CM6 stays out of the initial bundle (P6 pattern) — it loads
     // only when someone actually edits.
-    const [{ EditorState }, { EditorView, keymap, lineNumbers }, { defaultKeymap, history, historyKeymap }, { gcodeEditorLanguage }] =
+    const [{ EditorState }, { EditorView, keymap, lineNumbers }, { defaultKeymap, history, historyKeymap, deleteCharBackward }, { gcodeEditorLanguage }] =
       await Promise.all([
         import("@codemirror/state"),
         import("@codemirror/view"),
         import("@codemirror/commands"),
         import("./gcodeCmLanguage"),
       ]);
+    _deleteCharBackward = deleteCharBackward;
     if (!editing.value || !editorHost.value || _editorView) return;  // discarded while loading
     const theme = EditorView.theme({
       "&": { backgroundColor: "var(--bg)", color: "var(--fg)", height: "100%" },
       ".cm-scroller": { fontFamily: "var(--font-mono)", overflow: "auto" },
       ".cm-gutters": { backgroundColor: "var(--bg)", color: "var(--fg)", opacity: "var(--opacity-muted)", border: "none" },
       "&.cm-focused": { outline: "none" },
+      // The dark:true flag below makes CM's base theme paint a WHITE native
+      // caret — invisible on the light-mode --bg. Pin it to the theme token
+      // so it tracks light/dark like everything else.
+      ".cm-content": { caretColor: "var(--fg)" },
     }, { dark: true });
     _editorView = new EditorView({
       state: EditorState.create({
@@ -455,6 +478,12 @@ async function enterEdit() {
       }),
       parent: editorHost.value,
     });
+    // Touch: text entry comes from the G-code keypad strip — suppress the
+    // OS keyboard the same way MachineInput does for number fields.
+    if (isTouchDevice.value) _editorView.contentDOM.setAttribute("inputmode", "none");
+    // Focus on entry so the caret is visible immediately — without this
+    // there is no insertion-point indication until the first tap/click.
+    _editorView.focus();
   } catch (e: any) {
     // No silent empty editor: a failed chunk load (offline, stale deploy) left
     // edit mode open with nothing in it and no message. Surface in the banner.
@@ -470,6 +499,21 @@ function _destroyEditor() {
   _editorView?.destroy();
   _editorView = null;
 }
+
+// ── G-code keypad strip routing (App calls these while editing) ──
+function keypadInsert(text: string) {
+  const v = _editorView;
+  if (!v) return;
+  v.dispatch(v.state.replaceSelection(text));
+  v.focus();
+}
+function keypadBackspace() {
+  const v = _editorView;
+  if (!v || !_deleteCharBackward) return;
+  _deleteCharBackward(v);
+  v.focus();
+}
+defineExpose({ keypadInsert, keypadBackspace });
 
 function discardEdit() {
   editing.value = false;
@@ -553,8 +597,8 @@ async function saveEdit() {
         <div class="progressFill" :style="{ width: progressPercent + '%' }"></div>
       </div>
       <span class="progressLabel">
-        {{ currentLine ?? 0 }} / {{ lineCount }}
-        <span class="progressPct">({{ progressPercent.toFixed(0) }}%)</span>
+        <span class="val-slot" :style="{ '--slot-w': lineDigits + 'ch' }">{{ currentLine ?? 0 }}</span> / {{ lineCount }}
+        <span class="progressPct">(<span class="val-slot pctSlot">{{ progressPercent.toFixed(0) }}</span>%)</span>
       </span>
       <span class="elapsedLabel">{{ elapsed }}</span>
     </div>
@@ -572,7 +616,7 @@ async function saveEdit() {
           <span class="browserPath">{{ currentSubdir || '/' }}</span>
         </div>
         <div class="sep"></div>
-        <div class="fileList scroll-thin">
+        <div class="fileList scroll-thin fade-scroll">
           <div v-for="entry in files" :key="entry.name" class="fileItem"
                :class="{ directory: entry.type === 'directory', activeItem: entry.type === 'file' && entry.path === activeFile }"
                @click="entry.type === 'directory' ? navigateInto(entry) : selectFile(entry)">
@@ -615,7 +659,7 @@ async function saveEdit() {
       </div>
 
       <!-- Code viewer (virtual scroll) -->
-      <div class="codeViewer scroll-thin" v-else-if="gcodeContent" ref="codeViewerRef" @scroll="onCodeScroll">
+      <div class="codeViewer scroll-thin fade-scroll" v-else-if="gcodeContent" ref="codeViewerRef" @scroll="onCodeScroll">
         <div :style="{ height: totalHeight + 'px', position: 'relative' }">
           <div :style="{ position: 'absolute', top: offsetY + 'px', left: 0, right: 0 }">
             <div class="codeLine"
@@ -637,7 +681,7 @@ async function saveEdit() {
                   }]"
                   @mouseenter="interactive && onTokenMouseEnter($event, token)"
                   @mouseleave="interactive && onTokenMouseLeave()"
-                  @click.stop="interactive && onTokenClick($event, token)"
+                  @click="interactive && onTokenClick($event, token)"
                 >{{ token.text }}</span>
               </span>
             </div>
@@ -783,21 +827,7 @@ async function saveEdit() {
 }
 
 /* .progressRow — replaced by row-controls utility (same shape) */
-
-.progressTrack {
-  flex: 1;
-  height: 10px;
-  border-radius: var(--radius-sm);
-  background: color-mix(in oklab, var(--panel) 90%, var(--fg));
-  overflow: hidden;
-}
-
-.progressFill {
-  height: 100%;
-  border-radius: var(--radius-sm);
-  background: var(--info);
-  transition: width 0.3s ease;
-}
+/* .progressTrack/.progressFill — global (style.css) */
 
 .progressLabel {
   font-size: var(--fs-md);
@@ -805,6 +835,7 @@ async function saveEdit() {
   white-space: nowrap;
   flex-shrink: 0;
 }
+.pctSlot { --slot-w: 3ch; }
 
 .elapsedLabel {
   font-size: var(--fs-md);

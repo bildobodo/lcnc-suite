@@ -281,11 +281,16 @@ def parse_window(spec: str, all_events: List[dict]) -> Tuple[int, int]:
 
 
 def _last_trip_wall_ns(events: List[dict]) -> Optional[int]:
-    """Find the last `wd.hb_edge edge=falling` (the structured trip event)
-    or fall back to the legacy `[SAFETY] tripped` line."""
+    """Find the last trip anchor. `safety.tripped` (gateway, latch-level
+    FALSE→TRUE) is authoritative — `wd.hb_edge edge=falling` comes from a
+    best-effort 100 ms poller that misses short pin dips entirely (a trip
+    with no falling edge is exactly the case issue #34 exists for). The
+    legacy `[SAFETY] tripped` line is kept for old captures."""
     last: Optional[int] = None
     for e in events:
-        if e.get("tag") == "wd.hb_edge" and e.get("edge") == "falling":
+        if e.get("tag") == "safety.tripped":
+            last = max(last or 0, e["t_wall_ns"])
+        elif e.get("tag") == "wd.hb_edge" and e.get("edge") == "falling":
             last = max(last or 0, e["t_wall_ns"])
         elif e.get("tag") == "SAFETY" and "tripped" in str(e.get("msg", "")):
             last = max(last or 0, e["t_wall_ns"])
@@ -339,6 +344,10 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--trip", action="store_true",
                     help="auto-detect last safety trip, slice ±5 s/1 s")
+    ap.add_argument("--trip-ns", type=int, default=None,
+                    help="explicit trip anchor (wall ns) — the gateway passes "
+                         "its known trip timestamp so the window never depends "
+                         "on auto-detection; slices -5 s/+1 s around it")
     ap.add_argument("--window", type=str,
                     help="custom window: 'trip-5s..trip+1s' or 'A..B' (wall ns)")
     ap.add_argument("--phases-only", action="store_true",
@@ -358,8 +367,11 @@ def main() -> int:
     all_events = structured + legacy_gw + legacy_wd + legacy_l + sampler
     all_events.sort(key=lambda e: e["t_wall_ns"])
 
-    if args.trip:
-        trip = _last_trip_wall_ns(all_events)
+    if args.trip_ns is not None or args.trip:
+        if args.trip_ns is not None:
+            trip = args.trip_ns
+        else:
+            trip = _last_trip_wall_ns(all_events)
         if trip is None:
             sys.stderr.write("[bundler] --trip: no trip detected\n")
             return 2

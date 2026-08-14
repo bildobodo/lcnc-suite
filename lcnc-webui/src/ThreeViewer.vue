@@ -12,7 +12,7 @@ import {
 
 import { viewerInit, viewerGcode, gcodeContent, status, emitTelemetry, type ViewerInit, type ViewerGcode } from "./lcncWs";
 import { loadViewerDefaults, loadCameraDefaults, saveCameraDefaults, ALL_LAYERS, settingsVersion, type Vec3, type Layer } from "./defaults";
-import { fmtCoord } from "./format";
+import { fmtCoord, fmtRpm } from "./format";
 import { useAxes } from "./useAxes";
 import { recordApply, recordRender, setViewerPerfContext } from "./viewerPerf";
 import { disposeObject } from "./viewer/disposal";
@@ -144,7 +144,10 @@ let workRotGroup: THREE.Group | null = null;  // rotated sub-group for stock/axe
 let _workGrp: THREE.Group | null = null;   // resolved from init.workGroup
 let _toolGrp: THREE.Group | null = null;   // resolved from init.toolGroup
 
-// Normalize kinematics: accept legacy object form or new array form
+// Normalize kinematics: accept legacy object form or new array form.
+// Wire form (KinEntry) is normalized once per init into runtime entries with a
+// precomputed unit axis vector, so the per-frame applyState loop is pure
+// arithmetic — no allocations, no string dispatch.
 type KinEntry = {
   group: string;
   joint: number;
@@ -153,29 +156,73 @@ type KinEntry = {
   axis?: [number, number, number];
   sign: number;
 };
-function normalizeKinematics(kin: ViewerInit["kinematics"]): KinEntry[] {
-  if (Array.isArray(kin)) return kin;
-  // Legacy object form: { x: { axis: 0, sign: -1 }, ... }
-  return Object.entries(kin).map(([key, v]) => ({
-    group: key,
-    joint: v.axis,
-    type: "translate" as const,
-    direction: key as "x" | "y" | "z",
-    sign: v.sign,
-  }));
+type KinRuntime = {
+  group: string;
+  joint: number;
+  rotate: boolean;
+  /** Unit DOF axis, from `axis` (arbitrary) or `direction` (cartesian). */
+  axisVec: THREE.Vector3;
+  /** Cartesian direction if the entry used one (drives axis-color mapping). */
+  direction: "x" | "y" | "z" | null;
+  sign: number;
+};
+const DIR_VECTORS: Record<"x" | "y" | "z", [number, number, number]> = {
+  x: [1, 0, 0], y: [0, 1, 0], z: [0, 0, 1],
+};
+function normalizeKinematics(kin: ViewerInit["kinematics"]): KinRuntime[] {
+  const entries: KinEntry[] = Array.isArray(kin)
+    ? kin
+    // Legacy object form: { x: { axis: 0, sign: -1 }, ... }
+    : Object.entries(kin).map(([key, v]) => ({
+        group: key,
+        joint: v.axis,
+        type: "translate" as const,
+        direction: key as "x" | "y" | "z",
+        sign: v.sign,
+      }));
+  const out: KinRuntime[] = [];
+  for (const k of entries) {
+    const a = k.axis ?? (k.direction ? DIR_VECTORS[k.direction] : null);
+    if (!a) {
+      // An entry with neither axis nor direction can't drive anything —
+      // surface it (captured by error.console telemetry) instead of a
+      // silently dead joint.
+      console.error(`[kinematics] entry for group "${k.group}" has no axis/direction — ignored`);
+      continue;
+    }
+    out.push({
+      group: k.group,
+      joint: k.joint,
+      rotate: k.type === "rotate",
+      axisVec: new THREE.Vector3(a[0], a[1], a[2]).normalize(),
+      direction: k.direction ?? null,
+      sign: k.sign ?? 1,
+    });
+  }
+  return out;
 }
 
-// applyState() runs per animate frame; the legacy object-form path above allocated
-// a fresh array every call (P4.3). init.kinematics is stable across frames, so cache
-// the normalized result by source identity and recompute only when init changes.
+// applyState() runs per animate frame; init.kinematics is stable across frames,
+// so cache the normalized result by source identity and recompute only when
+// init changes.
 let _kinCacheSrc: ViewerInit["kinematics"] | null = null;
-let _kinCacheVal: KinEntry[] = [];
-function normalizeKinematicsCached(kin: ViewerInit["kinematics"]): KinEntry[] {
+let _kinCacheVal: KinRuntime[] = [];
+function normalizeKinematicsCached(kin: ViewerInit["kinematics"]): KinRuntime[] {
   if (kin === _kinCacheSrc) return _kinCacheVal;
   _kinCacheSrc = kin;
   _kinCacheVal = normalizeKinematics(kin);
   return _kinCacheVal;
 }
+
+// Static base position per group (the machine.json `translate`, unit-scaled),
+// captured at scene build. applyState resets driven groups to these bases and
+// composes DOFs on top, so a group can carry a static pivot offset AND any
+// number of translate/rotate DOFs without them overwriting each other.
+let _groupBase: Record<string, THREE.Vector3> = {};
+const _toolBase = new THREE.Vector3();
+// Reusable scratch — applyState is on the rAF hot path, keep it allocation-free.
+const _kinQuat = new THREE.Quaternion();
+const _tofsVec = new THREE.Vector3();
 
 // Visual objects
 let toolMarker: THREE.Group | null = null;
@@ -763,9 +810,16 @@ function ensureCoreGroups(init: ViewerInit) {
     (parent ?? groups.root).add(groups[g.id]!);
   }
 
+  // Capture each group's static base position (unit-scaled translate).
+  // applyState resets kinematics-driven groups to these and composes DOFs on
+  // top — static pivots survive translate DOFs on the same axis.
+  _groupBase = {};
+  for (const [id, g] of Object.entries(groups)) _groupBase[id] = g.position.clone();
+
   // Resolve work/tool group references
   _workGrp = groups[init.workGroup ?? grpDefs[0]?.id ?? "root"] ?? groups.root;
   _toolGrp = groups[init.toolGroup ?? "tool"] ?? groups.root;
+  _toolBase.copy(_toolGrp.position);
 
   // Work origin (DRO zero frame) — attached to the work/table group
   workOrigin = new THREE.Group();
@@ -928,15 +982,18 @@ async function buildFromInit(init: ViewerInit) {
     await loadMachineAssets(init);
     if (myToken !== buildToken) return;
 
-    // Build group → material map from kinematics direction
+    // Build group → material map from kinematics direction. Axis colors mark
+    // LINEAR axes; rotary groups keep the frame material (machine.json part
+    // colors are the intended way to distinguish rotary assemblies).
     const kinEntries = normalizeKinematicsCached(init.kinematics);
     const dirMat: Record<string, THREE.MeshStandardMaterial> = { x: MAT.axisX, y: MAT.axisY, z: MAT.axisZ };
     const groupMat: Record<string, THREE.MeshStandardMaterial> = {};
     _groupDirMap = {};
     _partGroupMap = {};
     for (const k of kinEntries) {
-      groupMat[k.group] = (k.direction ? dirMat[k.direction] : null) ?? MAT.frame;
-      _groupDirMap[k.group] = k.direction ?? null;
+      const lindir = !k.rotate ? k.direction : null;
+      groupMat[k.group] = (lindir ? dirMat[lindir] : null) ?? MAT.frame;
+      _groupDirMap[k.group] = lindir;
     }
 
     const parts = init.parts ?? [];
@@ -948,9 +1005,10 @@ async function buildFromInit(init: ViewerInit) {
       _partGroupMap[p.id] = grp;
       let mat: THREE.MeshStandardMaterial = (grp ? groupMat[grp] : null) ?? MAT.frame;
 
-      // Per-part color override from settings
+      // Per-part color override from settings; falls back to the optional
+      // machine.json default color ([r,g,b] 0–1) when no override is set.
       const customColor = viewerDefaults.machineColors[p.id];
-      if (customColor) {
+      if (customColor || p.color) {
         mat = mat.clone();
         // clone() deep-copies userData, so this inherited the shared MAT.*'s
         // _shared=true — clear it: this is a PRIVATE per-part clone that
@@ -959,7 +1017,8 @@ async function buildFromInit(init: ViewerInit) {
         // Tag like setMachinePartColor's clones so its revert/reuse paths
         // treat this clone identically (null → revert to default colour).
         mat.userData._clonedFor = p.id;
-        mat.color.set(customColor);
+        if (customColor) mat.color.set(customColor);
+        else mat.color.setRGB(p.color![0], p.color![1], p.color![2], THREE.SRGBColorSpace);
       }
 
       const mesh = new THREE.Mesh(geom, mat);
@@ -1080,34 +1139,43 @@ function applyState(init: ViewerInit, st: ViewerState) {
   const kinEntries = normalizeKinematicsCached(init.kinematics);
   const ax = (idx: number) => (idx >= 0 && idx < jp.length ? jp[idx]! : 0);
 
-  // Apply kinematics: each entry drives a group's position or rotation
+  // Apply kinematics in three phases so transforms COMPOSE instead of
+  // overwrite — a group may carry a static pivot translate plus any number of
+  // translate/rotate DOFs (compound slides, trunnions), in any machine layout.
+  //
+  // Phase 1 — reset every driven group (and the tool group, which phase 3
+  // composes onto) to its static base from machine.json.
+  _toolGrp.position.copy(_toolBase);
   for (const k of kinEntries) {
     const g = groups[k.group];
     if (!g) continue;
-    const val = ax(k.joint) * (k.sign ?? 1);
-    if (k.type === "rotate") {
-      const rad = THREE.MathUtils.degToRad(val);
-      if (k.axis) {
-        // Arbitrary rotation axis (Phase 2: nutating spindles, etc.)
-        const axisVec = new THREE.Vector3(...k.axis).normalize();
-        g.quaternion.setFromAxisAngle(axisVec, rad);
-      } else if (k.direction) {
-        // Standard rotation around cartesian axis (A/B/C)
-        g.rotation[k.direction] = rad;
-      }
+    const base = _groupBase[k.group];
+    if (base) g.position.copy(base);
+    else g.position.set(0, 0, 0);
+    g.quaternion.identity();
+  }
+
+  // Phase 2 — compose DOFs in machine.json order: translations accumulate
+  // along their (precomputed unit) axes, rotations right-multiply, so multiple
+  // entries per group are well-defined.
+  for (const k of kinEntries) {
+    const g = groups[k.group];
+    if (!g) continue;
+    const val = ax(k.joint) * k.sign;
+    if (k.rotate) {
+      _kinQuat.setFromAxisAngle(k.axisVec, THREE.MathUtils.degToRad(val));
+      g.quaternion.multiply(_kinQuat);
     } else {
-      // Translation (default)
-      if (k.direction) g.position[k.direction] = val;
+      g.position.addScaledVector(k.axisVec, val);
     }
   }
 
-  // Tool spatial compensation:
-  // Put the tool TIP at TCP by moving the tool group by -tool_offset relative to spindle nose.
+  // Phase 3 — tool spatial compensation: put the tool TIP at TCP by shifting
+  // the tool group by -tool_offset relative to its (base or DOF-composed)
+  // position.
   const tofs = st.tool_offset;
   if (tofs && tofs.length >= 3) {
-    _toolGrp.position.set(-(tofs[0] ?? 0), -(tofs[1] ?? 0), -(tofs[2] ?? 0));
-  } else {
-    _toolGrp.position.set(0, 0, 0);
+    _toolGrp.position.sub(_tofsVec.set(tofs[0] ?? 0, tofs[1] ?? 0, tofs[2] ?? 0));
   }
 
   // Work origin offset: place DRO/work zero in machine space.
@@ -1605,7 +1673,18 @@ watch(
 // formatCoord → fmtCoord imported from format.ts
 
 const hudAxes = computed(() => props.axes ?? ["X", "Y", "Z"]);
-const { primary: hudPrimary, abc: hudAbc, uvw: hudUvw } = useAxes(hudAxes);
+// One grid row per axis in machine order — primary/abc/uvw grouping is not
+// needed in the tabular HUD, entries already carry letter + status index.
+const { entries: hudEntries } = useAxes(hudAxes);
+const hudCfg = computed(() => viewerDefaults.hud);
+
+// Feed/spindle grid-row values (current_vel is units/s → units/min)
+const hudFeed = computed(() =>
+  vst.value?.current_vel != null ? (vst.value.current_vel * 60).toFixed(1) : "---",
+);
+const hudLoad = computed(() =>
+  vst.value?.spindle_load != null ? `${Math.round(vst.value.spindle_load)}%` : "",
+);
 
 const spindleLoadZone = computed(() => {
   const v = vst.value?.spindle_load;
@@ -1637,6 +1716,8 @@ function setMachinePartColor(partId: string, color: string | null) {
   const grp = _partGroupMap[partId];
   const dir = grp ? _groupDirMap[grp] : null;
   const defaultHex = (dir ? dirColorMap[dir] : null) ?? 0xbfbfbf;
+  // machine.json default color (if any) beats the direction-derived fallback
+  const partColor = viewerInit.value?.parts?.find((p) => p.id === partId)?.color;
 
   for (const mesh of machineMeshes) {
     if (mesh.userData.partId !== partId) continue;
@@ -1660,7 +1741,8 @@ function setMachinePartColor(partId: string, color: string | null) {
         mat.color.set(color);
       }
     } else if (mat.userData._clonedFor) {
-      mat.color.setHex(defaultHex);
+      if (partColor) mat.color.setRGB(partColor[0], partColor[1], partColor[2], THREE.SRGBColorSpace);
+      else mat.color.setHex(defaultHex);
     }
   }
   // Sync edge line colors
@@ -1668,6 +1750,10 @@ function setMachinePartColor(partId: string, color: string | null) {
     if (edge.userData.partId !== partId) continue;
     (edge.material as THREE.LineBasicMaterial).color.set(color ?? defaultHex);
   }
+  // Render-on-demand: an idle machine produces no status-diff renders, so the
+  // color change must request its own frame or it stays invisible until the
+  // camera moves.
+  requestRender();
 }
 
 /** Build edge lines off-thread via Web Worker to avoid blocking the UI. */
@@ -1818,93 +1904,46 @@ defineExpose({
   <div class="viewerWrapper">
     <div ref="host" class="viewerHost bordered-panel" />
 
-    <!-- HUD Overlay -->
-    <div v-show="hudVisible" class="hud stack-controls">
-      <div class="hudSection">
-        <div class="label">Work Position ({{ props.g5xLabel || '-' }})</div>
-        <div class="row-sections">
-          <div class="stack-micro">
-            <div v-for="a in hudPrimary" :key="'w'+a.letter" class="hudCoord">
-              <span class="hudAxis">{{ a.letter }}</span> {{ fmtCoord(vst?.work_pos?.[a.index], a.letter) }}
-            </div>
-          </div>
-          <div v-if="hudAbc.length" class="stack-micro">
-            <div v-for="a in hudAbc" :key="'w'+a.letter" class="hudCoord">
-              <span class="hudAxis">{{ a.letter }}</span> {{ fmtCoord(vst?.work_pos?.[a.index], a.letter) }}
-            </div>
-          </div>
-          <div v-if="hudUvw.length" class="stack-micro">
-            <div v-for="a in hudUvw" :key="'w'+a.letter" class="hudCoord">
-              <span class="hudAxis">{{ a.letter }}</span> {{ fmtCoord(vst?.work_pos?.[a.index], a.letter) }}
-            </div>
-          </div>
+    <!-- HUD Overlay — one card, one visual language: every live value is a
+         grid row (muted letter label | right-aligned value), so feed and
+         spindle read exactly like the axis rows. Tool is static context and
+         stays a smaller single line. All text sizes scale with --hud-scale
+         (settings: HUD scale). -->
+    <div v-show="hudVisible" class="hud hudCard stack-tight" :class="`hudScale-${hudCfg.scale}`">
+      <div class="hudGrid" :class="{ noMach: !hudCfg.showMachine }">
+        <span class="hudHead"></span>
+        <span class="hudHead">Work · {{ props.g5xLabel || '-' }}</span>
+        <span v-if="hudCfg.showMachine" class="hudHead">Machine</span>
+        <template v-for="a in hudEntries" :key="a.letter">
+          <span class="hudAxis">{{ a.letter }}</span>
+          <span class="hudWork">{{ fmtCoord(vst?.work_pos?.[a.index], a.letter) }}</span>
+          <span v-if="hudCfg.showMachine" class="hudMach">{{ fmtCoord(vst?.machine_pos?.[a.index], a.letter) }}</span>
+        </template>
+        <template v-if="hudCfg.showFeedSpindle">
+          <div class="sep"></div>
+          <span class="hudAxis">F</span>
+          <span class="hudWork">{{ hudFeed }}</span>
+          <span v-if="hudCfg.showMachine" class="hudMach"></span>
+          <span class="hudAxis">S</span>
+          <span class="hudWork">{{ fmtRpm(vst?.spindle_speed_actual ?? null) }}<span v-if="!hudCfg.showMachine && hudLoad" class="hudLoadInline"> {{ hudLoad }}</span></span>
+          <span v-if="hudCfg.showMachine" class="hudMach">{{ hudLoad }}</span>
+        </template>
+      </div>
+
+      <template v-if="hudCfg.showTool">
+        <div class="sep"></div>
+        <div class="hudCtx">
+          <span>T{{ vst?.tool_number ?? '–' }}</span><span>Ø{{ fmtCoord(vst?.tool_diameter) }}</span><span>L{{ fmtCoord(vst?.tool_length) }}</span>
         </div>
+      </template>
+      <div v-if="hudCfg.showLoadBar && vst?.spindle_load != null" class="loadBar" :class="spindleLoadZone">
+        <div class="loadBarFill" :style="{ width: spindleLoadFillPct + '%' }"></div>
       </div>
 
-      <div class="hudSection">
-        <div class="label">Machine Position</div>
-        <div class="row-sections">
-          <div class="stack-micro">
-            <div v-for="a in hudPrimary" :key="'m'+a.letter" class="hudCoord">
-              <span class="hudAxis">{{ a.letter }}</span> {{ fmtCoord(vst?.machine_pos?.[a.index], a.letter) }}
-            </div>
-          </div>
-          <div v-if="hudAbc.length" class="stack-micro">
-            <div v-for="a in hudAbc" :key="'m'+a.letter" class="hudCoord">
-              <span class="hudAxis">{{ a.letter }}</span> {{ fmtCoord(vst?.machine_pos?.[a.index], a.letter) }}
-            </div>
-          </div>
-          <div v-if="hudUvw.length" class="stack-micro">
-            <div v-for="a in hudUvw" :key="'m'+a.letter" class="hudCoord">
-              <span class="hudAxis">{{ a.letter }}</span> {{ fmtCoord(vst?.machine_pos?.[a.index], a.letter) }}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="hudSection">
-        <div class="label">Tool</div>
-        <div class="row-sections">
-          <div class="hudCoord"><span class="hudAxis">T</span> {{ vst?.tool_number ?? '-' }}</div>
-          <div class="hudCoord"><span class="hudAxis">Ø</span> {{ fmtCoord(vst?.tool_diameter) }}</div>
-          <div class="hudCoord"><span class="hudAxis">L</span> {{ fmtCoord(vst?.tool_length) }}</div>
-        </div>
-      </div>
-
-      <div class="hudSection">
-        <div class="label">Feed</div>
-        <div class="hudValue">{{ vst?.current_vel != null ? (vst.current_vel * 60).toFixed(1) : '---' }}/min</div>
-      </div>
-
-      <div class="hudSection">
-        <div class="label">Spindle</div>
-        <div class="hudValue">{{ fmtCoord(vst?.spindle_speed_actual) }} RPM</div>
-        <div v-if="vst?.spindle_load != null" class="hudValue">Load {{ Math.round(vst.spindle_load) }}%</div>
-        <div v-if="vst?.spindle_load != null" class="loadBar" :class="spindleLoadZone">
-          <div class="loadBarFill" :style="{ width: spindleLoadFillPct + '%' }"></div>
-        </div>
-      </div>
-
-      <div v-if="vst?.eoffset_enabled" class="hudSection hudWarn">
-        <div class="label">Compensation</div>
-        <div class="hudValue">Z {{ vst.eoffset_z != null ? vst.eoffset_z.toFixed(3) : '---' }}</div>
-      </div>
-
-      <div v-if="vst?.rotation_xy" class="hudSection hudWarn">
-        <div class="label">Rotation</div>
-        <div class="hudValue">{{ vst.rotation_xy.toFixed(1) }}°</div>
-      </div>
-
-      <div v-if="filePinnedWcs && filePinnedWcs !== props.g5xLabel" class="hudSection hudWarn">
-        <div class="label">File WCS</div>
-        <div class="hudValue">WARNING: {{ props.g5xLabel }} currently active</div>
-        <div class="hudValue">Program contains {{ filePinnedWcs }}</div>
-      </div>
-
-      <div v-if="toolpathOverflow" class="hudSection hudWarn">
-        <div class="label">Toolpath</div>
-        <div class="hudValue">Exceeds bounds</div>
-      </div>
+      <div v-if="vst?.eoffset_enabled" class="hudWarn">Comp Z {{ vst.eoffset_z != null ? vst.eoffset_z.toFixed(3) : '---' }}</div>
+      <div v-if="vst?.rotation_xy" class="hudWarn">Rotation {{ vst.rotation_xy.toFixed(1) }}°</div>
+      <div v-if="filePinnedWcs && filePinnedWcs !== props.g5xLabel" class="hudWarn">Program uses {{ filePinnedWcs }} — {{ props.g5xLabel }} active</div>
+      <div v-if="toolpathOverflow" class="hudWarn">Toolpath exceeds bounds</div>
     </div>
 
     <!-- View navigation cube (top-right) -->
@@ -1975,6 +2014,12 @@ defineExpose({
   width: 100%;
   height: 100%;
   border-radius: var(--radius-container);
+  /* The WebGL canvas lives on its own GPU compositor layer, and some
+     browsers drop the overflow:hidden rounded clip for composited
+     children — the border paints rounded while the canvas escapes
+     square. clip-path is applied in the compositor and always holds
+     (same workaround as the codeViewer scrollbar clip in style.css). */
+  clip-path: inset(0 round var(--radius-container));
   background: color-mix(in oklab, var(--panel) 70%, transparent);
 }
 
@@ -1987,7 +2032,10 @@ defineExpose({
   user-select: none;
 }
 
-.hudSection {
+/* Single HUD card. Every font-size below multiplies a --fs-* token by
+   --hud-scale so the whole card scales coherently from one setting. */
+.hudCard {
+  --hud-scale: 1;
   background: color-mix(in oklab, var(--panel) 85%, transparent);
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
@@ -1995,34 +2043,76 @@ defineExpose({
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   font-variant-numeric: tabular-nums;
-  font-size: var(--fs-base);
-  line-height: 1.4;
+  line-height: 1.3;
 }
+.hudScale-sm { --hud-scale: 0.85; }
+.hudScale-lg { --hud-scale: 1.25; }
+.hudScale-xl { --hud-scale: 1.55; }
 
-.label {
-  margin-bottom: var(--gap-tight);
+/* Position table: axis | work | machine. Work is the distance-readable
+   hero; machine rides along smaller and muted. Baseline alignment keeps
+   the mixed sizes on one visual line per row. */
+.hudGrid {
+  display: grid;
+  grid-template-columns: auto auto auto;
+  column-gap: calc(var(--gap-section) * var(--hud-scale));
+  row-gap: var(--gap-micro);
+  align-items: baseline;
 }
+.hudGrid.noMach { grid-template-columns: auto auto; }
+/* Divider row between axis block and F/S rows (layout-only override of
+   the global .sep divider so it spans the whole grid). */
+.hudGrid > .sep { grid-column: 1 / -1; align-self: center; }
 
-.hudValue {
-  color: var(--fg);
-  font-weight: var(--fw-medium);
-}
-
-/* .hudCoords — replaced by row-sections utility (same shape) */
-/* .hudCol — replaced by stack-micro utility (same shape) */
-.hudCoord {
-  color: var(--fg);
-  font-weight: var(--fw-medium);
+.hudHead {
+  font-size: calc(var(--fs-sm) * var(--hud-scale));
+  opacity: var(--opacity-muted);
+  text-align: right;
   white-space: nowrap;
 }
 .hudAxis {
-  color: var(--fg);
+  font-size: calc(var(--fs-lg) * var(--hud-scale));
   opacity: var(--opacity-muted);
-  margin-right: var(--gap-tight);
 }
-.hudWarn .hudLabel,
-.hudWarn .hudValue {
-  color: var(--warn, #f5a623);
+.hudWork {
+  font-size: calc(var(--fs-2xl) * var(--hud-scale));
+  font-weight: var(--fw-semibold);
+  text-align: right;
+  white-space: nowrap;
+  /* Fixed floor ("-999.999" = 8ch) so sign flips and digit growth don't
+     resize the grid column — the card keeps constant width while moving.
+     Machines with >1m travel grow the column once, then it's stable. */
+  min-width: 8ch;
+}
+.hudMach {
+  font-size: calc(var(--fs-lg) * var(--hud-scale));
+  opacity: var(--opacity-muted);
+  text-align: right;
+  white-space: nowrap;
+  min-width: 8ch;
+}
+/* Spindle load riding inside the S value cell when the machine column
+   (its usual home) is hidden — machine-column styling, inline. */
+.hudLoadInline {
+  font-size: calc(var(--fs-lg) * var(--hud-scale));
+  opacity: var(--opacity-muted);
+}
+
+/* Tool context line: T · Ø · L in G-code notation — no word labels. */
+.hudCtx {
+  font-size: calc(var(--fs-md) * var(--hud-scale));
+  font-weight: var(--fw-medium);
+  white-space: nowrap;
+}
+.hudCtx > span + span::before {
+  content: " · ";
+  opacity: var(--opacity-subtle);
+}
+
+.hudWarn {
+  font-size: calc(var(--fs-md) * var(--hud-scale));
+  font-weight: var(--fw-medium);
+  color: var(--warn);
 }
 
 </style>

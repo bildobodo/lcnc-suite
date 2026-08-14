@@ -39,6 +39,16 @@ export interface ColorDefaults {
   cutter: string;
 }
 
+export type HudScale = "sm" | "md" | "lg" | "xl";
+
+export interface HudDefaults {
+  scale: HudScale;
+  showMachine: boolean;      // machine-position column next to work position
+  showTool: boolean;         // T / Ø / L segment of the context line
+  showFeedSpindle: boolean;  // F / S segment of the context line
+  showLoadBar: boolean;      // spindle load bar under the context line
+}
+
 export interface ViewerDefaults {
   layers: Record<Layer, boolean>;
   colors: ColorDefaults;
@@ -47,6 +57,7 @@ export interface ViewerDefaults {
   trackingMode: TrackMode;
   pathOnTop: boolean;
   projection: Projection;
+  hud: HudDefaults;
 }
 
 // ─── Section registry ────────────────────────────────────────────
@@ -182,6 +193,14 @@ export function saveSection(key: string, data: any): void {
 
 // ─── Viewer section ──────────────────────────────────────────────
 
+export const HUD_FALLBACK: HudDefaults = {
+  scale: "md",
+  showMachine: true,
+  showTool: true,
+  showFeedSpindle: true,
+  showLoadBar: true,
+};
+
 const VIEWER_FALLBACK: ViewerDefaults = {
   layers: { backplot: true, toolpath: true, machine: true, bounds: true, toolpathBounds: false, workzero: true, hud: true, surface: true, tool: true },
   colors: { feed: "#22b8cf", rapid: "#f5a623", backplot: "#ff00ff", bounds: "#ffffff", toolpathBounds: "#f5a623", tool: "#c0c0c0", cutter: "#ffdd00" },
@@ -190,6 +209,7 @@ const VIEWER_FALLBACK: ViewerDefaults = {
   trackingMode: "none",
   pathOnTop: false,
   projection: "parallel",
+  hud: { ...HUD_FALLBACK },
 };
 
 registerSection<ViewerDefaults>("viewer", VIEWER_FALLBACK, (saved, fb) => {
@@ -200,12 +220,19 @@ registerSection<ViewerDefaults>("viewer", VIEWER_FALLBACK, (saved, fb) => {
     layers: { ...fb.layers, ...saved.layers } as Record<Layer, boolean>,
     colors: { ...fb.colors, ...saved.colors },
     machineColors: { ...fb.machineColors, ...saved.machineColors },
+    hud: { ...fb.hud, ...saved.hud },
   };
 });
 
 /** Load viewer defaults (typed convenience wrapper). */
 export function loadViewerDefaults(): ViewerDefaults {
   return loadSection<ViewerDefaults>("viewer");
+}
+
+/** Fresh deep copy of the viewer fallback — the single source for "factory
+ *  state" (used by the Settings reset; never hand-duplicate the literal). */
+export function viewerFallback(): ViewerDefaults {
+  return JSON.parse(JSON.stringify(VIEWER_FALLBACK));
 }
 
 /** Save viewer defaults (typed convenience wrapper). */
@@ -229,6 +256,7 @@ export interface MachineDefaults {
   rflSafeZ: boolean;          // retract to G53 Z0 before a run-from-line start
   spindleFeedbackUnit: SpindleFeedbackUnit;
   spindleLoadPin: string;
+  autoDisarmMin: number;      // idle auto-disarm timeout in minutes; 0 = off
 }
 
 const MACHINE_FALLBACK: MachineDefaults = {
@@ -239,6 +267,7 @@ const MACHINE_FALLBACK: MachineDefaults = {
   rflSafeZ: true,
   spindleFeedbackUnit: "rps",
   spindleLoadPin: "",
+  autoDisarmMin: 10,
 };
 
 registerSection<MachineDefaults>("machine", MACHINE_FALLBACK, (saved, fb) => {
@@ -251,6 +280,8 @@ registerSection<MachineDefaults>("machine", MACHINE_FALLBACK, (saved, fb) => {
     rflSpindleDir: (dir === "off" || dir === "forward" || dir === "reverse" ? dir : fb.rflSpindleDir) as SpindleDir,
     rflSafeZ: typeof (saved as any).rflSafeZ === "boolean" ? (saved as any).rflSafeZ : fb.rflSafeZ,
     spindleFeedbackUnit: (saved.spindleFeedbackUnit === "rpm" ? "rpm" : "rps") as SpindleFeedbackUnit,
+    autoDisarmMin: typeof (saved as any).autoDisarmMin === "number" && (saved as any).autoDisarmMin >= 0
+      ? (saved as any).autoDisarmMin : fb.autoDisarmMin,
   };
 });
 

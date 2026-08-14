@@ -11,6 +11,8 @@ defineProps<{
   warning?: boolean;
   muted?: boolean;
   mono?: boolean;
+  /** Hold-to-fire press in progress (MachineBtn) — animates the fill. */
+  holding?: boolean;
 }>();
 </script>
 
@@ -20,7 +22,7 @@ defineProps<{
       icon ? 'b-icon' : inline ? 'b-inline' : 'b',
       !inline && (size ?? 'md'),
       !icon && !inline && (variant ?? 'default'),
-      { active, selected, flashing, warning, block, muted, mono },
+      { active, selected, flashing, warning, block, muted, mono, holding },
     ]"
   >
     <slot />
@@ -30,6 +32,7 @@ defineProps<{
 <style scoped>
 /* ---- Base ---- */
 .b {
+  position: relative; /* anchor for the .holding fill overlay */
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -46,7 +49,9 @@ defineProps<{
   overflow: hidden;
 }
 html:not(.touch-device) .b:hover:not(:disabled) { background: var(--hl-hover); }
-html:not(.touch-device) .b:active:not(:disabled) { background: var(--hl-active); }
+/* :active is NOT hover-gated: unlike hover it cannot stick after a tap,
+   and it is the only "tap registered" feedback a touch operator gets. */
+.b:active:not(:disabled) { background: var(--hl-active); }
 .b:disabled { opacity: var(--opacity-disabled); cursor: not-allowed; }
 
 /* ---- Sizes ---- */
@@ -54,6 +59,13 @@ html:not(.touch-device) .b:active:not(:disabled) { background: var(--hl-active);
 .sm { padding: 5px 10px; font-size: var(--fs-sm); }
 .md { padding: 8px 12px; font-size: var(--fs-base); }
 .lg { padding: 10px 14px; font-size: var(--fs-md); }
+
+/* Touch: min-heights come from the global button rule in style.css
+   (touch sizing layer); narrow variants additionally need a width floor
+   so xs/sm text buttons and icon glyphs aren't sub-fingertip wide. */
+html.touch-device .b.xs,
+html.touch-device .b.sm { min-width: var(--touch-target); }
+html.touch-device .b-icon { min-width: 40px; }
 
 /* ---- Variants ---- */
 .primary {
@@ -128,11 +140,32 @@ html:not(.touch-device) .b:active:not(:disabled) { background: var(--hl-active);
 /* ---- Muted (dimmed until active/selected/hover) ---- */
 .b.muted { opacity: var(--opacity-muted); }
 html:not(.touch-device) .b.muted:hover:not(:disabled) { opacity: 1; }
+/* Touch has no hover-to-brighten path — rest muted tabs one tier up so
+   they stay readable, and let a press un-mute like hover does. */
+html.touch-device .b.muted { opacity: var(--opacity-secondary); }
+html.touch-device .b.muted:active:not(:disabled) { opacity: 1; }
 .b.muted.active,
 .b.muted.selected { opacity: 1; }
 
 /* ---- Mono — tabular-nums (digit column alignment, sans font) ---- */
 .b.mono { font-variant-numeric: tabular-nums; }
+
+/* ---- Hold-to-fire fill (MachineBtn hold behavior) ----
+   Left-to-right fill over --hold-duration; the action fires when the
+   JS timer (source of truth) completes — the animation is visual only. */
+.b.holding::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--hl-active);
+  transform-origin: left;
+  transform: scaleX(0);
+  animation: hold-fill var(--hold-duration, 500ms) linear forwards;
+  pointer-events: none;
+}
+@keyframes hold-fill {
+  to { transform: scaleX(1); }
+}
 
 /* ---- Block ---- */
 .block { width: 100%; }
@@ -155,7 +188,7 @@ html:not(.touch-device) .b.muted:hover:not(:disabled) { opacity: 1; }
 .b-icon.xs { padding: 2px 4px; font-size: var(--fs-xs); }
 .b-icon.sm { padding: 3px 6px; font-size: var(--fs-sm); }
 html:not(.touch-device) .b-icon:hover:not(:disabled) { opacity: var(--opacity-secondary); background: var(--hl-surface); }
-html:not(.touch-device) .b-icon:active:not(:disabled) { opacity: 1; }
+.b-icon:active:not(:disabled) { opacity: 1; background: var(--hl-surface); }
 .b-icon:disabled { opacity: var(--opacity-disabled); cursor: not-allowed; }
 
 /* ---- Inline button ---- */
@@ -172,6 +205,6 @@ html:not(.touch-device) .b-icon:active:not(:disabled) { opacity: 1; }
   transition: background 0.12s, border-color 0.12s, opacity 0.15s;
 }
 html:not(.touch-device) .b-inline:hover:not(:disabled) { background: var(--hl-hover); }
-html:not(.touch-device) .b-inline:active:not(:disabled) { background: var(--hl-active); }
+.b-inline:active:not(:disabled) { background: var(--hl-active); }
 .b-inline:disabled { opacity: var(--opacity-disabled); cursor: not-allowed; }
 </style>

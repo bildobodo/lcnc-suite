@@ -143,6 +143,38 @@ describe("overflow / visibility / colours", () => {
     expect(overflow.value).toBe(false);
   });
 
+  it("flags overflow from rapid Z even though the drawn cut box excludes it", () => {
+    // Machine Z envelope 3 mm; feed stays at Z0 (inside) but the rapid retract
+    // reaches Z5 (outside). The cut box must not flag it — the motion envelope must.
+    const ctx = makeCtx({ machineBounds: { origin: [0, 0, 0], size: [100, 100, 3] } });
+    c.apply(ctx, { ...GCODE, bounds: undefined });   // force the fallback scan
+    expect(overflow.value).toBe(true);
+  });
+
+  it("prefers worker-provided motion_bounds over rescanning", () => {
+    const ctx = makeCtx({ machineBounds: { origin: [0, 0, 0], size: [100, 100, 100] } });
+    // Worker says the motion envelope tops out at Z500 — trust it, don't rescan.
+    c.apply(ctx, {
+      ...GCODE,
+      motion_bounds: { min: [0, 0, 0], max: [10, 10, 500] },
+    });
+    expect(overflow.value).toBe(true);
+  });
+
+  it("fallback cut box takes X/Y from rapids but Z from feed only", () => {
+    const ctx = makeCtx();
+    // No worker bounds: rapid swings to X50/Z5, feed stays within X10/Z0.
+    c.apply(ctx, {
+      ...GCODE,
+      bounds: undefined,
+      rapidPos: new Float32Array([0, 0, 5, 50, 0, 5]),
+    });
+    // Labels render the cut box sizes: X spans rapids (50), Z ignores rapid Z (0).
+    const texts = (deps.makeLabel as any).mock.calls.map((args: any[]) => args[0]);
+    expect(texts).toContain("X: 50 mm");
+    expect(texts).toContain("Z: 0 mm");
+  });
+
   it("setVisible / setBoundsVisible toggle the live objects", () => {
     const ctx = makeCtx();
     c.apply(ctx, GCODE);

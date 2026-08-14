@@ -9,11 +9,19 @@
  * Once a session sees touch, it stays in touch mode — refresh to reset.
  */
 
+import { ref } from "vue";
+
 let installed = false;
+
+/** Reactive mirror of the html.touch-device class — for JS that must stay
+    in sync with the CSS touch layer (e.g. GcodePanel's virtual-scroll
+    line height matching the .codeLine CSS height). */
+export const isTouchDevice = ref(false);
 
 function onFirstTouch(e: PointerEvent): void {
   if (e.pointerType !== "touch") return;
   document.documentElement.classList.add("touch-device");
+  isTouchDevice.value = true;
   document.removeEventListener("pointerdown", onFirstTouch, true);
 }
 
