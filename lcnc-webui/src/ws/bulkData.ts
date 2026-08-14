@@ -57,6 +57,16 @@ export interface ViewerInit {
   ini_config?: Record<string, any>;
   [key: string]: any;  // gateway adds occasional extras (e.g. timestamp, git_sha)
 }
+// One per-line soft-limit overtravel record from the parse worker. `value`
+// and `limit` are machine units for linear axes, degrees for rotary.
+export interface LimitViolation {
+  line: number;
+  axis: string;
+  value: number;
+  limit: number;
+  kind: "min" | "max";
+}
+
 export interface ViewerGcode {
   file?: string | null;
   feed?: number[][] | Uint8Array;  // wire: LE float32 bin (preferred) | legacy nested
@@ -80,6 +90,13 @@ export interface ViewerGcode {
   // overflow check.
   bounds?: { min: number[]; max: number[] } | null;
   motion_bounds?: { min: number[]; max: number[] } | null;
+  // Offline dry run stage 1: per-line soft-limit overtravels from the parse
+  // worker (checked pre-decimation in the machine frame, joint-side w/ TLO,
+  // all axes incl. rotary). null = the INI had no MIN/MAX_LIMIT to check
+  // against (unchecked ≠ clean). List capped at 200 records; violations_total
+  // is the true distinct (line, axis) count.
+  violations?: LimitViolation[] | null;
+  violations_total?: number;
   // P4.1: source-line → point-index range map, built off-thread by previewWorker
   // (Maps survive structured clone) so ThreeViewer skips the O(points) build.
   feedLineMap?: Map<number, { start: number; end: number }>;

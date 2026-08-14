@@ -1076,6 +1076,14 @@ label:has(input:disabled, select:disabled) {
   padding-left: 10px;
 }
 
+/* Line flagged by offline validation (soft-limit overtravel; collision
+   results reuse this in later dry-run stages). Warn-tinted line number so
+   the marker survives next to active/selected backgrounds. */
+.codeLine.violation .lineNumber {
+  color: var(--warn);
+  opacity: 1;
+}
+
 .lineNumber {
   display: inline-block;
   min-width: 40px;

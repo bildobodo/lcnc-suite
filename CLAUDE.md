@@ -309,6 +309,24 @@ samples), and UVW joints evaluate as 0 in the preview transform (linear,
 virtually never in a work/tool chain; the live model still articulates
 them from joint_pos).
 
+**Per-line soft-limit validation (offline dry run, stage 1)**: the parse
+worker checks every canon segment — pre-RDP, since decimation can shave
+extremes — against per-axis INI limits. Pure helpers in `gateway_util.py`
+(`read_axis_limits`: `AXIS_<letter>` preferred, `JOINT_<n>` fallback in
+joint order; `check_limit_violations`: machine-frame, joint-side — TLO
+added back to XYZ — all axes incl. rotary; both unit-tested). Attribution
+rule: only a line that MOVES an axis while out of bounds is flagged; lines
+where the axis merely sits parked past a limit are not re-flagged, so the
+culprit line stands alone. Wire: `violations` (per-line records, capped at
+200) + `violations_total`; `null` means the INI had no MIN/MAX_LIMIT —
+unchecked ≠ clean, and the stats dialog says "Not validated". UI: warn
+banner in GcodePanel with a cycling jump-to-line button, warn-tinted line
+numbers (`.codeLine.violation`, global — later dry-run stages reuse it),
+and a Soft limits row in the program stats dialog. Limitation: validated
+against the parse-time WCS — touch-off after load requires a file reload
+to re-validate (the live overflow box remains the coarse always-current
+check).
+
 ## Key Patterns
 
 - **No hardcoded visual styles** — never invent custom font-size, padding, border-radius, colors, opacity, or font-family for new elements. Always inherit from the nearest parent class or global base styles in `style.css`. New CSS should only override layout properties (flex, width, text-align). If a visual style doesn't exist, extend the existing class hierarchy or global base — never create one-off overrides. For color semantics: machine active states use `--ok` (green), form controls (toggles, radios, checkboxes) use `--info` (blue), danger/abort uses `--danger`, warnings use `--warn`.

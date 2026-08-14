@@ -364,3 +364,133 @@ def scan_tool_stats(text: str):
             if pending:
                 tools.add(pending)
     return changes, tools
+
+
+# ---------------------------------------------------------------------------
+# Per-line soft-limit validation (Stage 1 of the offline dry run).
+#
+# Pure so it unit-tests without linuxcnc: the parse worker feeds it canon
+# segments + INI limits; the result rides the preview wire to the G-code
+# panel as line-anchored violation markers.
+# ---------------------------------------------------------------------------
+
+AXIS_LETTERS = "XYZABCUVW"
+_ROTARY_AXES = frozenset("ABC")
+
+# Float-noise guard in machine units (mm/inch for linear, degrees for rotary).
+# Canon trig can land ~1e-9 past an exactly-at-limit move; 1e-6 is far below
+# any physical resolution while never masking a real overtravel.
+_LIMIT_EPS = 1e-6
+
+
+def read_axis_limits(ini_find, axis_mask: int):
+    """Per-axis soft limits from the active INI, for every axis in the mask.
+
+    ini_find   -- callable(section, var) -> str | None (linuxcnc.ini().find)
+    axis_mask  -- STAT.axis_mask bitmask (bit i = AXIS_LETTERS[i])
+
+    Returns {letter: (min | None, max | None)} in INI machine units (linear
+    axes) / degrees (rotary). AXIS_<letter> is preferred, JOINT_<n> is the
+    fallback (n = the axis's position among the set mask bits — trivkins
+    joint order, same rule the viewer_init axes list uses). A bound absent
+    from both sections is None = unbounded (LinuxCNC's own default is
+    ±1e99); an axis with neither bound is omitted entirely.
+    """
+    letters = [AXIS_LETTERS[i] for i in range(9) if axis_mask & (1 << i)]
+    limits = {}
+    for joint_idx, letter in enumerate(letters):
+        def bound(var):
+            for section in (f"AXIS_{letter}", f"JOINT_{joint_idx}"):
+                raw = ini_find(section, var)
+                if raw is not None:
+                    try:
+                        return float(raw)
+                    except (TypeError, ValueError):
+                        continue
+            return None
+        mn = bound("MIN_LIMIT")
+        mx = bound("MAX_LIMIT")
+        if mn is not None or mx is not None:
+            limits[letter] = (mn, mx)
+    return limits
+
+
+def check_limit_violations(segments, limits, unit_scale: float = 1.0,
+                           max_report: int = 200):
+    """Check canon motion segments against per-axis soft limits.
+
+    segments   -- iterable of (lineno, start9, end9, tlo3): start9/end9 =
+                  canon tuples in canon linear units (inches) / degrees,
+                  machine frame (g5x + g92 + rotation applied); tlo3 =
+                  (xo, yo, zo) tool offset in effect, added back to X/Y/Z
+                  because soft limits act on the JOINT, not the tool tip
+                  (G43 Z joint = tip + length).
+
+    Attribution rule: a segment flags an axis only when that axis MOVES in
+    the segment (start != end in the machine frame) — the line that parks A
+    at -104 is the culprit; the 500 lines that follow with A still sitting
+    there are not re-flagged. Exact comparison is safe: parked axes pass
+    through rotate_and_translate deterministically, and under XY rotation a
+    "parked" program axis that still produces machine-frame motion is real
+    motion, correctly flagged.
+    limits     -- {letter: (min | None, max | None)} in machine units, from
+                  read_axis_limits(). Rotary bounds are degrees.
+    unit_scale -- canon → machine-unit factor for LINEAR axes (25.4 on a mm
+                  machine); rotary values are degrees on both sides.
+    max_report -- cap on returned records. Aggregation is per (line, axis):
+                  one record per source line per axis, keeping the worst
+                  excursion, so an arc tessellated into 64 segments reports
+                  once.
+
+    Returns (records, total): records sorted by line then axis order, each
+    {"line", "axis", "value", "limit", "kind": "min"|"max"} with values
+    rounded to 4 decimals; total = distinct (line, axis) pairs in violation,
+    which exceeds len(records) when max_report truncates.
+    """
+    if not limits:
+        return [], 0
+    # Dense per-axis plan so the inner loop does no dict/string work.
+    plan = []
+    for idx, letter in enumerate(AXIS_LETTERS):
+        bounds = limits.get(letter)
+        if bounds is None:
+            continue
+        mn, mx = bounds
+        scale = 1.0 if letter in _ROTARY_AXES else unit_scale
+        plan.append((idx, letter, scale,
+                     None if mn is None else mn - _LIMIT_EPS,
+                     None if mx is None else mx + _LIMIT_EPS,
+                     mn, mx))
+    worst = {}  # (line, axis_idx) -> [value, limit, kind, letter]
+    for lineno, start, end, tlo in segments:
+        n = len(end)
+        for idx, letter, scale, mn_eps, mx_eps, mn, mx in plan:
+            if idx >= n:
+                continue
+            v = end[idx]
+            if idx < len(start) and start[idx] == v:
+                continue  # axis parked this segment — culprit line already flagged
+            if idx < 3 and tlo is not None:
+                v += tlo[idx]
+            v *= scale
+            if mn_eps is not None and v < mn_eps:
+                key = (lineno, idx)
+                rec = worst.get(key)
+                if rec is None:
+                    worst[key] = [v, mn, "min", letter]
+                elif rec[2] == "min" and v < rec[0]:
+                    rec[0] = v
+            elif mx_eps is not None and v > mx_eps:
+                key = (lineno, idx)
+                rec = worst.get(key)
+                if rec is None:
+                    worst[key] = [v, mx, "max", letter]
+                elif rec[2] == "max" and v > rec[0]:
+                    rec[0] = v
+    total = len(worst)
+    records = [
+        {"line": line, "axis": rec[3], "value": round(rec[0], 4),
+         "limit": round(rec[1], 4), "kind": rec[2]}
+        for (line, _idx), rec in sorted(worst.items())
+    ]
+    return records[:max_report], total

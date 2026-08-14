@@ -452,3 +452,127 @@ class TestScanToolStats(unittest.TestCase):
 
     def test_empty(self):
         self.assertEqual(self.scan(""), (0, set()))
+
+
+class TestReadAxisLimits(unittest.TestCase):
+    """XYZAC mask (0b100111 | A bit) — C is joint 4 but letter index 5, the
+    exact joint↔axis divergence the JOINT_<n> fallback must respect."""
+
+    MASK_XYZAC = 0b101111  # X|Y|Z|A|C
+
+    def _ini(self, table):
+        return lambda section, var: table.get((section, var))
+
+    def test_axis_section_preferred_over_joint(self):
+        find = self._ini({
+            ("AXIS_X", "MIN_LIMIT"): "-200", ("AXIS_X", "MAX_LIMIT"): "200",
+            ("JOINT_0", "MIN_LIMIT"): "-999", ("JOINT_0", "MAX_LIMIT"): "999",
+        })
+        limits = gateway_util.read_axis_limits(find, 0b1)
+        self.assertEqual(limits, {"X": (-200.0, 200.0)})
+
+    def test_joint_fallback_uses_joint_order_not_letter_index(self):
+        # Only JOINT sections present: C (letter idx 5) must read JOINT_4.
+        find = self._ini({
+            ("JOINT_3", "MIN_LIMIT"): "-100", ("JOINT_3", "MAX_LIMIT"): "50",
+            ("JOINT_4", "MIN_LIMIT"): "-36000", ("JOINT_4", "MAX_LIMIT"): "36000",
+        })
+        limits = gateway_util.read_axis_limits(find, self.MASK_XYZAC)
+        self.assertEqual(limits, {"A": (-100.0, 50.0), "C": (-36000.0, 36000.0)})
+
+    def test_missing_bound_is_none_and_axis_without_bounds_omitted(self):
+        find = self._ini({("AXIS_Z", "MAX_LIMIT"): "0"})
+        limits = gateway_util.read_axis_limits(find, 0b111)
+        self.assertEqual(limits, {"Z": (None, 0.0)})
+
+    def test_unparseable_value_falls_through_to_joint(self):
+        find = self._ini({
+            ("AXIS_Y", "MIN_LIMIT"): "garbage",
+            ("JOINT_1", "MIN_LIMIT"): "-100",
+        })
+        limits = gateway_util.read_axis_limits(find, 0b11)
+        self.assertEqual(limits, {"Y": (-100.0, None)})
+
+
+class TestCheckLimitViolations(unittest.TestCase):
+    LIMITS = {"X": (-200.0, 200.0), "Z": (-120.0, 0.0), "A": (-100.0, 50.0)}
+    TLO0 = (0.0, 0.0, 0.0)
+
+    START0 = (0.0,) * 9
+
+    def _seg(self, line, x=0.0, z=-1.0, a=0.0, tlo=None, start=None):
+        # Canon tuples are inches; tests use unit_scale=25.4 (mm machine).
+        return (line, start or self.START0,
+                (x / 25.4, 0.0, z / 25.4, a, 0.0, 0.0, 0.0, 0.0, 0.0),
+                tlo or self.TLO0)
+
+    def test_clean_program_reports_nothing(self):
+        recs, total = gateway_util.check_limit_violations(
+            [self._seg(1, x=199.9), self._seg(2, z=-119.9, a=-99.9)],
+            self.LIMITS, 25.4)
+        self.assertEqual((recs, total), ([], 0))
+
+    def test_no_limits_means_unchecked_not_clean(self):
+        recs, total = gateway_util.check_limit_violations(
+            [self._seg(1, x=9999.0)], {}, 25.4)
+        self.assertEqual((recs, total), ([], 0))
+
+    def test_linear_scaled_and_rotary_unscaled(self):
+        recs, total = gateway_util.check_limit_violations(
+            [self._seg(3, x=250.0), self._seg(7, a=-104.2)],
+            self.LIMITS, 25.4)
+        self.assertEqual(total, 2)
+        self.assertEqual(recs[0], {"line": 3, "axis": "X", "value": 250.0,
+                                   "limit": 200.0, "kind": "max"})
+        self.assertEqual(recs[1], {"line": 7, "axis": "A", "value": -104.2,
+                                   "limit": -100.0, "kind": "min"})
+
+    def test_tool_offset_added_back_to_z(self):
+        # Tip at Z −10 is fine; with 120 mm of G43 length the JOINT sits at
+        # +110 — past Z max 0. The tip-only check would miss this.
+        recs, _ = gateway_util.check_limit_violations(
+            [self._seg(5, z=-10.0, tlo=(0.0, 0.0, 120.0 / 25.4))],
+            self.LIMITS, 25.4)
+        self.assertEqual(recs[0]["axis"], "Z")
+        self.assertEqual(recs[0]["kind"], "max")
+        self.assertAlmostEqual(recs[0]["value"], 110.0, places=3)
+
+    def test_aggregates_worst_per_line_axis(self):
+        # One source line, three tessellated segments — a single record with
+        # the worst excursion.
+        segs = [self._seg(9, x=210.0), self._seg(9, x=260.0), self._seg(9, x=220.0)]
+        recs, total = gateway_util.check_limit_violations(segs, self.LIMITS, 25.4)
+        self.assertEqual(total, 1)
+        self.assertEqual(recs[0]["value"], 260.0)
+
+    def test_exactly_at_limit_is_not_flagged(self):
+        recs, total = gateway_util.check_limit_violations(
+            [self._seg(1, x=200.0, z=-120.0, a=50.0)], self.LIMITS, 25.4)
+        self.assertEqual((recs, total), ([], 0))
+
+    def test_unbounded_side_never_fires(self):
+        recs, total = gateway_util.check_limit_violations(
+            [self._seg(1, x=-1e6)], {"X": (None, 200.0)}, 25.4)
+        self.assertEqual((recs, total), ([], 0))
+
+    def test_parked_axis_not_reflagged_on_later_lines(self):
+        # Line 12 moves A to -104 (flagged); line 14 moves Z while A sits
+        # parked at -104 — the culprit is line 12, line 14 stays quiet on A
+        # but still flags its own Z overtravel.
+        parked = (0.0, 0.0, 0.0, -104.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+        segs = [
+            self._seg(12, a=-104.0),
+            self._seg(14, z=-125.0, a=-104.0, start=parked),
+        ]
+        recs, total = gateway_util.check_limit_violations(segs, self.LIMITS, 25.4)
+        self.assertEqual(total, 2)
+        self.assertEqual([(r["line"], r["axis"]) for r in recs],
+                         [(12, "A"), (14, "Z")])
+
+    def test_max_report_caps_records_but_not_total(self):
+        segs = [self._seg(i, a=-101.0) for i in range(1, 12)]
+        recs, total = gateway_util.check_limit_violations(
+            segs, self.LIMITS, 25.4, max_report=5)
+        self.assertEqual(len(recs), 5)
+        self.assertEqual(total, 11)
+        self.assertEqual([r["line"] for r in recs], [1, 2, 3, 4, 5])
