@@ -16,6 +16,8 @@ import { fmtCoord, fmtRpm } from "./format";
 import { useAxes } from "./useAxes";
 import { recordApply, recordRender, setViewerPerfContext } from "./viewerPerf";
 import { disposeObject } from "./viewer/disposal";
+import { normalizeKinematics, type KinRuntime } from "./viewer/kinematics";
+import { chainsHaveRotary, type PartFrameMachine, type PartFrameWcs } from "./viewer/partFrame";
 import { createBackplotController } from "./viewer/backplotController";
 import { createSurfaceController } from "./viewer/surfaceController";
 import { createToolpathController, type ToolpathCtx } from "./viewer/toolpathController";
@@ -144,64 +146,8 @@ let workRotGroup: THREE.Group | null = null;  // rotated sub-group for stock/axe
 let _workGrp: THREE.Group | null = null;   // resolved from init.workGroup
 let _toolGrp: THREE.Group | null = null;   // resolved from init.toolGroup
 
-// Normalize kinematics: accept legacy object form or new array form.
-// Wire form (KinEntry) is normalized once per init into runtime entries with a
-// precomputed unit axis vector, so the per-frame applyState loop is pure
-// arithmetic — no allocations, no string dispatch.
-type KinEntry = {
-  group: string;
-  joint: number;
-  type?: "translate" | "rotate";
-  direction?: "x" | "y" | "z";
-  axis?: [number, number, number];
-  sign: number;
-};
-type KinRuntime = {
-  group: string;
-  joint: number;
-  rotate: boolean;
-  /** Unit DOF axis, from `axis` (arbitrary) or `direction` (cartesian). */
-  axisVec: THREE.Vector3;
-  /** Cartesian direction if the entry used one (drives axis-color mapping). */
-  direction: "x" | "y" | "z" | null;
-  sign: number;
-};
-const DIR_VECTORS: Record<"x" | "y" | "z", [number, number, number]> = {
-  x: [1, 0, 0], y: [0, 1, 0], z: [0, 0, 1],
-};
-function normalizeKinematics(kin: ViewerInit["kinematics"]): KinRuntime[] {
-  const entries: KinEntry[] = Array.isArray(kin)
-    ? kin
-    // Legacy object form: { x: { axis: 0, sign: -1 }, ... }
-    : Object.entries(kin).map(([key, v]) => ({
-        group: key,
-        joint: v.axis,
-        type: "translate" as const,
-        direction: key as "x" | "y" | "z",
-        sign: v.sign,
-      }));
-  const out: KinRuntime[] = [];
-  for (const k of entries) {
-    const a = k.axis ?? (k.direction ? DIR_VECTORS[k.direction] : null);
-    if (!a) {
-      // An entry with neither axis nor direction can't drive anything —
-      // surface it (captured by error.console telemetry) instead of a
-      // silently dead joint.
-      console.error(`[kinematics] entry for group "${k.group}" has no axis/direction — ignored`);
-      continue;
-    }
-    out.push({
-      group: k.group,
-      joint: k.joint,
-      rotate: k.type === "rotate",
-      axisVec: new THREE.Vector3(a[0], a[1], a[2]).normalize(),
-      direction: k.direction ?? null,
-      sign: k.sign ?? 1,
-    });
-  }
-  return out;
-}
-
+// Kinematics normalization lives in viewer/kinematics.ts — shared with the
+// part-frame preview transform so both interpret machine.json identically.
 // applyState() runs per animate frame; init.kinematics is stable across frames,
 // so cache the normalized result by source identity and recompute only when
 // init changes.
@@ -1274,24 +1220,133 @@ function applyState(init: ViewerInit, st: ViewerState) {
   let changed = false;
   if (_numArrChanged(_pv.jointPos, st.joint_pos)) { _pv.jointPos = st.joint_pos ? [...st.joint_pos] : null; changed = true; }
   if (_numArrChanged(_pv.machinePos, st.machine_pos)) { _pv.machinePos = st.machine_pos ? [...st.machine_pos] : null; changed = true; }
-  if (_numArrChanged(_pv.g5x, st.g5x_offset)) { _pv.g5x = st.g5x_offset ? [...st.g5x_offset] : null; changed = true; }
-  if (_numArrChanged(_pv.g92, st.g92_offset)) { _pv.g92 = st.g92_offset ? [...st.g92_offset] : null; changed = true; }
+  if (_numArrChanged(_pv.g5x, st.g5x_offset)) { _pv.g5x = st.g5x_offset ? [...st.g5x_offset] : null; changed = true; _pfScheduleWcsRefresh(); }
+  if (_numArrChanged(_pv.g92, st.g92_offset)) { _pv.g92 = st.g92_offset ? [...st.g92_offset] : null; changed = true; _pfScheduleWcsRefresh(); }
   if (_numArrChanged(_pv.toolOffset, st.tool_offset)) { _pv.toolOffset = st.tool_offset ? [...st.tool_offset] : null; changed = true; }
   if (toolNum !== _pv.toolNum) { _pv.toolNum = toolNum; changed = true; }
   if (toolDiam !== _pv.toolDiam) { _pv.toolDiam = toolDiam; changed = true; }
   if (toolLen !== _pv.toolLen) { _pv.toolLen = toolLen; changed = true; }
   if (motionLine !== _pv.motionLine) { _pv.motionLine = motionLine; changed = true; }
-  if (rotationXy !== _pv.rotationXy) { _pv.rotationXy = rotationXy; changed = true; }
+  if (rotationXy !== _pv.rotationXy) { _pv.rotationXy = rotationXy; changed = true; _pfScheduleWcsRefresh(); }
   // tool_meta is null on the vast majority of ticks; the gateway sends a fresh
   // object only on a real change, so a reference compare is sufficient + cheap.
   if (toolMeta !== _pv.toolMeta) { _pv.toolMeta = toolMeta; changed = true; }
   if (changed) _needsRender = true;
 }
 
+// ---- Part-frame ("path on part") preview — rotary-aware toolpath ----
+// When the program sweeps a rotary axis (viewerGcode carries feedAbc/rapidAbc)
+// and the machine's work/tool chain has a rotary DOF, the programmed XYZ
+// polyline is not the tool-versus-workpiece path. partFrameWorker resamples
+// and transforms it through the machine.json chain (same kinematic truth as
+// the live scene) so the preview overlays the backplot. The controller is
+// mode-blind: it just receives a derived ViewerGcode. Bounds/overflow stay in
+// programmed (machine) space — that is the correct space for machine limits.
+let _pfWorker: Worker | null = null;
+let _pfReqId = 0;
+let _pfAppliedMode: "part" | "programmed" | null = null;
+let _pfWcsTimer: ReturnType<typeof setTimeout> | undefined;
+
+function _pfGetWorker(): Worker {
+  if (!_pfWorker) {
+    _pfWorker = new Worker(new URL("./viewer/partFrameWorker.ts", import.meta.url), { type: "module" });
+    _pfWorker.onmessage = (ev: MessageEvent) => {
+      const m = ev.data as { id: number; error?: string; feedPos?: Float32Array; feedLines?: Uint32Array; feedLineMap?: Map<number, { start: number; end: number }>; rapidPos?: Float32Array; rapidDist?: Float32Array };
+      if (m.id !== _pfReqId) return;  // superseded
+      const g = viewerGcode.value;
+      if (!g) return;
+      if (m.error) {
+        console.error("[partFrame] transform failed — programmed preview used:", m.error);
+        toolpath.apply(toolpathCtx(), g);
+        requestRender();
+        return;
+      }
+      toolpath.apply(toolpathCtx(), {
+        ...g,
+        feedPos: m.feedPos, feed_lines: m.feedLines, feedLineMap: m.feedLineMap,
+        rapidPos: m.rapidPos, rapidDist: m.rapidDist,
+      });
+      requestRender();
+    };
+    _pfWorker.onerror = (ev) => {
+      console.error("[partFrame] worker error — programmed preview used:", ev.message);
+      if (viewerGcode.value) toolpath.apply(toolpathCtx(), viewerGcode.value);
+    };
+  }
+  return _pfWorker;
+}
+
+function _pfMachine(init: ViewerInit): PartFrameMachine {
+  // JSON round-trip: viewerInit is a deep-reactive Vue ref, and structured
+  // clone REFUSES Proxy objects (postMessage throws DataCloneError → no
+  // toolpath at all). The ctx is tiny; a plain deep copy is the robust fix.
+  return JSON.parse(JSON.stringify({
+    groups: init.groups ?? [],
+    kinematics: init.kinematics,
+    workGroup: init.workGroup ?? "",
+    toolGroup: init.toolGroup ?? "",
+    unitScale: _unitScale,
+    axes: init.axes ?? [],
+  }));
+}
+
+function _pfWcs(): PartFrameWcs {
+  return { g5x: _pv.g5x ?? [], g92: _pv.g92 ?? [], rotationDeg: _pv.rotationXy ?? 0 };
+}
+
+function _partFrameEligible(g: ViewerGcode): boolean {
+  const init = viewerInit.value;
+  if (!init) return false;
+  if (viewerDefaults.previewMode === "programmed") return false;
+  if (!(g.feedAbc?.length || g.rapidAbc?.length)) return false;  // no rotary sweep in program
+  return chainsHaveRotary(_pfMachine(init));
+}
+
 function applyGcode(g: ViewerGcode) {
+  if (_partFrameEligible(g)) {
+    _pfAppliedMode = "part";
+    const id = ++_pfReqId;
+    const fp = g.feedPos ?? new Float32Array(0);
+    const fa = g.feedAbc && g.feedAbc.length === fp.length ? g.feedAbc : new Float32Array(fp.length);
+    const fl = g.feed_lines instanceof Uint32Array ? g.feed_lines : undefined;
+    const rp = g.rapidPos ?? new Float32Array(0);
+    const ra = g.rapidAbc && g.rapidAbc.length === rp.length ? g.rapidAbc : new Float32Array(rp.length);
+    // Copies: the transfer must not detach viewerGcode's raw buffers — they
+    // are re-read on every WCS/mode change.
+    const feed = { pos: fp.slice(), abc: fa.slice(), lines: fl?.slice() };
+    const rapid = { pos: rp.slice(), abc: ra.slice() };
+    const transfer: Transferable[] = [
+      feed.pos.buffer as ArrayBuffer, feed.abc.buffer as ArrayBuffer,
+      rapid.pos.buffer as ArrayBuffer, rapid.abc.buffer as ArrayBuffer,
+    ];
+    if (feed.lines) transfer.push(feed.lines.buffer as ArrayBuffer);
+    try {
+      _pfGetWorker().postMessage({ id, machine: _pfMachine(viewerInit.value!), wcs: _pfWcs(), feed, rapid }, transfer);
+    } catch (err) {
+      // A failed post must NEVER leave the viewer with no toolpath — fall
+      // back to the programmed preview and say so.
+      console.error("[partFrame] postMessage failed — programmed preview used:", err);
+      _pfAppliedMode = "programmed";
+      toolpath.apply(toolpathCtx(), g);
+    }
+    return;
+  }
+  _pfAppliedMode = "programmed";
+  ++_pfReqId;  // invalidate any in-flight part-frame reply
   // Owned by toolpathController; pass a fresh ctx with the reassigned
   // scene-graph pointers + per-program machine bounds/units.
   toolpath.apply(toolpathCtx(), g);
+}
+
+// Part-frame vertices depend on the pivot position relative to the live work
+// origin, so a WCS change (touch-off, G10, G92, rotation) re-transforms —
+// debounced, these change rarely and never mid-cut at speed.
+function _pfScheduleWcsRefresh() {
+  if (_pfAppliedMode !== "part") return;
+  clearTimeout(_pfWcsTimer);
+  _pfWcsTimer = setTimeout(() => {
+    if (viewerGcode.value) applyGcode(viewerGcode.value);
+  }, 300);
 }
 
 // ---------- lifecycle ----------
@@ -1570,6 +1625,9 @@ function applyViewerDefaults() {
 onUnmounted(() => {
   document.removeEventListener("visibilitychange", _onVisibilityChange);
   setViewerPerfContext(null);
+  clearTimeout(_pfWcsTimer);
+  _pfWorker?.terminate();
+  _pfWorker = null;
   resizeObs?.disconnect();
   resizeObs = null;
   cancelAnimationFrame(raf);
@@ -1628,6 +1686,13 @@ watch(settingsVersion, () => {
   applyViewerDefaults();
   if (_pipSkipNext > 0) { _pipSkipNext--; }
   else { pipVisible.value = loadCameraDefaults().pipVisible; }
+  // Preview-mode change (this tab's Settings or another client's) rebuilds
+  // the toolpath in the newly selected frame.
+  const g = viewerGcode.value;
+  if (g && _pfAppliedMode) {
+    const desired = _partFrameEligible(g) ? "part" : "programmed";
+    if (desired !== _pfAppliedMode) applyGcode(g);
+  }
 });
 
 // Pause/resume RAF loop when active prop changes
