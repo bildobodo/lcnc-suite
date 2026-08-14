@@ -109,9 +109,10 @@ export const BUTTON_TYPES = {
   tab:            { gate: 'always',  variant: 'default', size: 'sm',  muted: true },
   viewPreset:     { gate: 'always',  variant: 'default', size: 'sm' },
   viewerQuickToggle: { gate: 'always', variant: 'default', size: 'sm' },
-  // Program-scrub bar (display-only pose of the machine model — read-only,
-  // deliberately usable while disarmed / in E-Stop).
+  // Program-scrub / simulation bar. `scrub` controls are display-only; the
+  // MODE itself is what gates machine actions (permissions.ts SIM_GATES).
   scrub:          { gate: 'always',  variant: 'default', size: 'sm' },
+  scrubExit:      { gate: 'always',  variant: 'primary', size: 'sm' },
   overlayToggle:  { gate: 'always',  variant: 'default', size: 'xs' },
   dialogCancel:   { gate: 'always',  variant: 'default', size: 'md' },
   dialogConfirm:  { gate: 'always',  variant: 'primary', size: 'md' },

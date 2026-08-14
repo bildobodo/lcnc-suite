@@ -61,3 +61,33 @@ describe("applyClientOverlay", () => {
     expect(p.jog).toBe(true);
   });
 });
+
+describe("simulation-mode overlay (client-local, simMode.ts)", () => {
+  it("closes every machine-action gate while sim is active", () => {
+    const p = applyClientOverlay(MACHINE_READY, true, false, true);
+    // The display is intentionally wrong in sim — acting on it is the hazard.
+    expect(p.jog).toBe(false);
+    expect(p.ready).toBe(false);
+    expect(p.probe).toBe(false);
+    expect(p.zero).toBe(false);
+    expect(p.idle).toBe(false);
+    expect(p.override).toBe(false);
+    expect(p.step).toBe(false);
+    expect(p.abort).toBe(false);
+    // Machine On needs a purposeful sim exit first.
+    expect(p.safety).toBe(false);
+  });
+
+  it("keeps always, armed, and setup open in sim", () => {
+    const p = applyClientOverlay(MACHINE_READY, true, false, true);
+    expect(p.always).toBe(true);   // Arm / E-Stop
+    expect(p.armed).toBe(true);    // navigation
+    expect(p.setup).toBe(true);    // file browsing (loading a file exits sim)
+  });
+
+  it("sim=false (default) changes nothing", () => {
+    const a = applyClientOverlay(MACHINE_READY, true, false);
+    const b = applyClientOverlay(MACHINE_READY, true, false, false);
+    expect(b).toEqual(a);
+  });
+});

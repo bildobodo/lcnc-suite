@@ -30,7 +30,7 @@ Gateway connects to LinuxCNC via Python bindings (`linuxcnc.stat`, `linuxcnc.com
 - `gcodeHighlight.ts` — G-code syntax tokenizer + highlighter (shared by GcodePanel + MDI history)
 - `OffsetPanel.vue` — WCS offset table editor (G54–G59.3), inline cell editing, auxiliary rows (G92, Tool, Comp)
 - `CameraPip.vue` — Picture-in-picture camera overlay with MJPEG feed, SVG crosshair/circle/grid overlay
-- `ScrubBar.vue` — Program-scrub timeline overlay (viewer-hosted): poses the machine model along the loaded program via `viewer/scrubTrack.ts` (see "Program scrub")
+- `ScrubBar.vue` — Program-scrub timeline overlay (viewer-hosted): poses the machine model along the loaded program via `viewer/scrubTrack.ts` (see "Program scrub"); also the control surface for the collision sweep (`viewer/collision.ts` + `collisionWorker.ts`, see "Collision sweep")
 - `SettingsPanel.vue` — Sub-tabbed settings (3D Viewer | Machine | Display | Macros | Gamepad | Keyboard | HAL | Debug)
 - `Gate.vue` — Permission gate wrapper: `<fieldset :disabled="!allow">` with `#exempt` slot
 - `permissions.ts` — Permission evaluation (evaluatePermissions + provide/inject)
@@ -172,6 +172,8 @@ Paused            → abort, override, resume, step remain; pause closes
 ```
 
 **LinuxCNC enforces very little** — mode sequence (MDI needs MODE_MDI) and state transitions only. Our gates enforce: armed state (web-safety invention), idle-vs-running checks, homing requirements, and eoffset contamination prevention. The `set_mode()` + `reject_if_auto_running()` functions in gateway.py are the real backend gatekeepers.
+
+**Client-local overlay terms** (`applyClientOverlay`): `armed` (per-client), `busy` (per-tab debounce), and `sim` (`simMode.ts` — viewer simulation mode: the model shows the program, not the machine, so all machine-action gates close except `always`/`armed`/`setup`; see "Program scrub").
 
 ### Machine Controls Catalog (`machineControls.ts`)
 
@@ -341,13 +343,49 @@ lerp adjacent program-space samples, program→machine via the same
 `wcsTerms`/`programToMachine` as the part-frame preview (exported from
 `viewer/partFrame.ts`), letters→joints via `viewer_init.axes`, then through
 the SAME `applyState` compose path as live motion (null joint entries — UVW
-— keep the live value). Display-only and deliberately usable while
-disarmed/E-Stop (`gate: 'always'`); hides while a program executes and the
-live pose always wins on run start. While scrubbing: backplot recording is
-suspended (never fabricate motion history), the toolpath highlight and
-GcodePanel follow the scrub line, and touch-off re-poses immediately (WCS
-watcher). A stale pre-seq cached payload yields `scrubTrack: null` — the
-bar simply doesn't offer itself (unchecked ≠ broken).
+— keep the live value). Scrubbing is an explicit **SIMULATION mode**
+(`simMode.ts`, client-local like `busy`): the posed model is an
+intentionally wrong display, so while active every machine-action gate is
+closed (`permissions.ts` SIM_GATES — only `always`/`armed`/`setup` stay
+open; `safety` is closed too, so Machine On requires a purposeful Exit
+first). Entry requires armed (outer Gate) + machine OFF + interpreter
+idle, via the bar's Simulate button (play and clash-jump also enter when
+eligible); a warn `.simBanner` overlays the viewer the whole time.
+Auto-exits: run start, program change, machine powered on by another
+client, real joint motion (0.05-unit backstop — above servo dither).
+While simulating: backplot recording is suspended (never fabricate motion
+history), the toolpath highlight and GcodePanel follow the scrub line, and
+touch-off re-poses immediately (WCS watcher). A stale pre-seq cached
+payload yields `scrubTrack: null` — the bar simply doesn't offer itself
+(unchecked ≠ broken).
+
+**Collision sweep (offline dry run, stage 3)**: the scrub bar's Check
+button sweeps the machine model through the scrub track off-thread
+(`viewer/collisionWorker.ts`) and reports tool-side vs work-side body
+pairs inside a 2 mm clearance margin. `viewer/collision.ts` (pure,
+unit-tested, incl. against the real machine-xyzac STLs during dev):
+full-group-tree pose evaluation (same compose semantics as
+applyState/partFrame), machine.json STL bodies + a parametric tool
+cylinder (the DISPLAYED marker dims — tip at origin, +Z), three-mesh-bvh
+`closestPointToGeometry` with margin early-out behind a bounding-sphere
+prescreen, linear (5 mm) + rotary (4°) subdivision so plunges and sweeps
+can't fly through bodies between endpoints, sample budget 60k (steps
+COARSEN to fit — result says `coarsened`, never silently truncates).
+Attribution: worst hit per (line, pair), first-deepest sample's `cum` is
+the scrub-to-hit target (clicking the clash button scrubs the model to
+the contact). Hits during RAPID segments are flagged `rapid` — always
+real. ThreeViewer owns the worker (geometry from machineAssetCache, tool
+dims from live status); cancel = worker terminate + lazy recreate (a sync
+sweep can't observe a cancel message). Results reflect check-time
+WCS/tool and clear on program change; GcodePanel reuses
+`.codeLine.violation` markers via `collisionLines`. SEMANTIC LIMIT (no
+stock model): a program cutting at the work surface reports tool-vs-
+platter contact — cutting and crashing are indistinguishable without
+stock; the high-value signals are non-platter pairs and any rapid-flagged
+hit. Pair scope v1: tool-side × work-side only (head-vs-column is
+travel-limit territory). Test fixture:
+`~/linuxcnc/nc_files/5axis_collision_test.ngc` — in-limits program whose
+low rapid traverse rams the trunnion (stage 1 quiet, stage 3 flags it).
 
 ## Key Patterns
 

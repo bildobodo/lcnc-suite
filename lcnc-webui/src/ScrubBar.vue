@@ -1,31 +1,47 @@
 <script setup lang="ts">
-// Program-scrub timeline (offline dry run, stage 2). Overlaid along the
-// bottom of the 3D viewer: drag (or play) to pose the articulated machine
-// model at any point of the loaded program WITHOUT running it. Display-only
-// — it never emits machine commands, so it is deliberately usable while
-// disarmed or in E-Stop (gate 'always'); it hides while a program executes
-// and the live pose always wins the moment one starts.
+// Program-scrub / SIMULATION bar (offline dry run, stages 2+3). Overlaid
+// along the bottom of the 3D viewer.
+//
+// Simulation is an EXPLICIT mode (simMode.ts): while active, the model poses
+// along the loaded program instead of the live machine — an intentionally
+// wrong display — so every machine-action gate is closed (permissions.ts
+// SIM_GATES), including Machine On. Entry requires the machine to be OFF and
+// the interpreter idle; exit is the Exit button or one of the auto-exits
+// (program run start, program change, machine powered on elsewhere, real
+// joint motion as a backstop). ThreeViewer shows the .simBanner while active.
 import { computed, onUnmounted, ref, watch } from "vue";
 import { status, viewerGcode, viewerInit } from "./lcncWs";
 import { INTERP_IDLE } from "./lcnc";
+import { simMode } from "./simMode";
 import { sampleTrack, jointsForSample, type ScrubSample } from "./viewer/scrubTrack";
+import type { CollisionResult } from "./viewer/collision";
 import { Play, Pause } from "lucide-vue-next";
 import MachineBtn from "./MachineBtn.vue";
 import MachineSlider from "./MachineSlider.vue";
+
+const props = defineProps<{
+  // Collision sweep state, owned by ThreeViewer (it holds the machine def
+  // and geometries); this bar is the control surface + scrub-to-hit.
+  collisionBusy: boolean;
+  collisionProgress: number;
+  collisionResult: CollisionResult | null;
+}>();
 
 const emit = defineEmits<{
   // joints: per-JOINT machine values (null entry = keep live joint), or null
   // to return the model to the live pose. line: source line at the sample.
   (e: "pose", joints: (number | null)[] | null, line: number | null): void;
+  (e: "check"): void;
+  (e: "cancel-check"): void;
 }>();
 
 const st = computed<Record<string, any>>(() => status.value?.data ?? {});
 const track = computed(() => viewerGcode.value?.scrubTrack ?? null);
 const running = computed(() => (st.value.interp_state ?? INTERP_IDLE) !== INTERP_IDLE);
+const machineOff = computed(() => !st.value.is_enabled);
 const visible = computed(() => !!track.value && !running.value);
 
 const sPos = ref(0);          // scrub parameter (track cum units)
-const engaged = ref(false);   // false = model follows live machine
 const playing = ref(false);
 const mult = ref(1);
 const MULTS = [1, 4, 16, 64];
@@ -45,7 +61,7 @@ const _joints: (number | null)[] = [];
 
 function applyPos() {
   const t = track.value;
-  if (!t || !engaged.value) return;
+  if (!t || !simMode.value) return;
   sampleTrack(t, sPos.value, _sample);
   curLine.value = _sample.line;
   curRapid.value = _sample.rapid;
@@ -59,19 +75,61 @@ function applyPos() {
   emit("pose", _joints.slice(), _sample.line);
 }
 
+/** ---------- explicit mode entry / exit ---------- */
+// Live-joint baseline at entry: real machine motion while simulating (only
+// possible from outside this tab — its own controls are gated) exits the
+// mode. 0.05 units/degrees: above servo dither, below any deliberate move.
+let _baseJoints: number[] = [];
+const MOTION_EXIT_THRESHOLD = 0.05;
+
+function enterSim(): boolean {
+  if (simMode.value) return true;
+  if (!track.value || running.value || !machineOff.value) return false;
+  simMode.value = true;
+  const jp = st.value.joint_pos;
+  _baseJoints = Array.isArray(jp) ? [...jp] : [];
+  applyPos();  // pose immediately — the mode announces itself
+  return true;
+}
+
+function exitSim() {
+  playing.value = false;
+  if (!simMode.value) return;
+  simMode.value = false;
+  emit("pose", null, null);
+}
+
+// Pose-only watcher: programmatic sPos writes never change the mode.
 watch(sPos, () => {
-  if (!engaged.value) engaged.value = true;
-  applyPos();
+  if (simMode.value) applyPos();
 });
 
-// The pose depends on the live WCS — touch-off while scrubbing must move the
-// posed model. Keyed on the actual offset values so idle status ticks don't
-// re-emit (render-on-demand stays effective).
+// The pose depends on the live WCS — touch-off from another client while
+// simulating must move the posed model. Keyed on values so idle status
+// ticks don't re-emit (render-on-demand stays effective).
 const _wcsKey = computed(() => {
   const d = st.value;
   return `${(d.g5x_offset ?? []).join()},${(d.g92_offset ?? []).join()},${d.rotation_xy ?? 0}`;
 });
 watch(_wcsKey, () => applyPos());
+
+// Auto-exits: execution starts, program changes, machine powered on
+// (another client — this tab's Machine On is gated), or real joint motion.
+watch(running, (r) => { if (r) exitSim(); });
+watch(track, () => { exitSim(); sPos.value = 0; });
+watch(machineOff, (off) => { if (!off) exitSim(); });
+watch(st, (d) => {
+  if (!simMode.value) return;
+  const jp = d.joint_pos;
+  if (!Array.isArray(jp)) return;
+  for (let i = 0; i < jp.length; i++) {
+    const base = _baseJoints[i];
+    if (base != null && Math.abs((jp[i] ?? 0) - base) > MOTION_EXIT_THRESHOLD) {
+      exitSim();
+      return;
+    }
+  }
+});
 
 /** ---------- playback (distance-proportional, v1) ---------- */
 let raf = 0;
@@ -93,9 +151,9 @@ function togglePlay() {
     playing.value = false;
     return;
   }
-  engaged.value = true;
+  if (!enterSim()) return;
   if (sPos.value >= cumMax.value) sPos.value = 0;
-  applyPos();  // engage even if sPos was already 0 (watcher won't fire on no-change)
+  applyPos();
   playing.value = true;
   lastT = performance.now();
   raf = requestAnimationFrame(tick);
@@ -105,37 +163,80 @@ function cycleSpeed() {
   mult.value = MULTS[(MULTS.indexOf(mult.value) + 1) % MULTS.length]!;
 }
 
-function exit() {
+/** ---------- collision results (stage 3) ---------- */
+const hits = computed(() => props.collisionResult?.hits ?? []);
+const hitIdx = ref(0);
+watch(() => props.collisionResult, () => { hitIdx.value = 0; });
+const nextHit = computed(() => (hits.value.length ? hits.value[hitIdx.value % hits.value.length]! : null));
+
+// Scrub straight to the clash — entering simulation if eligible (an
+// inspection click is a purposeful entry; the banner announces the mode).
+function jumpToHit() {
+  const h = nextHit.value;
+  if (!h || !enterSim()) return;
   playing.value = false;
-  if (!engaged.value) return;
-  engaged.value = false;
-  emit("pose", null, null);
+  sPos.value = Math.min(cumMax.value, Math.max(0, h.cum));
+  applyPos();
+  hitIdx.value++;
 }
 
-// A program starting to execute always wins; a new/unloaded program resets.
-watch(running, (r) => { if (r) exit(); });
-watch(track, () => { exit(); sPos.value = 0; });
+const checkLabel = computed(() => {
+  if (props.collisionBusy) return `${Math.round(props.collisionProgress * 100)}%`;
+  return "Check";
+});
 
 onUnmounted(() => {
   cancelAnimationFrame(raf);
-  exit();
+  exitSim();
 });
 </script>
 
 <template>
   <div v-if="visible" class="scrubBar bordered-panel row-controls">
-    <MachineBtn type="scrub" :title="playing ? 'Pause playback' : 'Play program through the machine model'" @click="togglePlay">
+    <!-- Tooltip on a wrapper: WebKit doesn't hover disabled buttons, and the
+         WHY-disabled hint (machine must be OFF) is exactly what matters. -->
+    <span v-if="!simMode" class="btnTip"
+          :title="machineOff
+            ? 'Enter simulation — pose the model along the program; machine controls lock until you exit'
+            : 'Turn the machine OFF first — simulation locks machine controls'">
+      <MachineBtn type="scrub" :disabled="!machineOff" @click="enterSim">Simulate</MachineBtn>
+    </span>
+    <MachineBtn v-else type="scrubExit"
+                title="Exit simulation — model returns to the live machine, controls unlock"
+                @click="exitSim">Exit sim</MachineBtn>
+
+    <MachineBtn type="scrub" :disabled="!simMode && !machineOff"
+                :title="playing ? 'Pause playback' : 'Play the program through the machine model'"
+                @click="togglePlay">
       <Pause v-if="playing" :size="14" />
       <Play v-else :size="14" />
     </MachineBtn>
     <MachineSlider gate="scrubPos" class="scrubSlider" :min="0" :max="cumMax"
-                   :step="cumMax / 2000 || 1" v-model="sPos"
+                   :step="cumMax / 2000 || 1" v-model="sPos" :disabled="!simMode"
                    title="Scrub the program — poses the machine model, nothing moves" />
-    <MachineBtn type="scrub" title="Playback speed" @click="cycleSpeed">&times;{{ mult }}</MachineBtn>
-    <span class="scrubStatus val-status mono" :class="{ muted: !engaged }">
-      {{ engaged ? `L${curLine}${curRapid ? " →" : ""} ${pct}%` : "live" }}
+    <MachineBtn type="scrub" :disabled="!simMode" title="Playback speed" @click="cycleSpeed">&times;{{ mult }}</MachineBtn>
+    <span class="scrubStatus val-status mono" :class="{ muted: !simMode }">
+      {{ simMode ? `L${curLine}${curRapid ? " →" : ""} ${pct}%` : "live" }}
     </span>
-    <MachineBtn type="scrub" :disabled="!engaged" title="Return the model to the live machine pose" @click="exit">Live</MachineBtn>
+
+    <div class="sep-v"></div>
+
+    <MachineBtn v-if="!collisionBusy" type="scrub"
+                title="Sweep the machine model through the program and check tool-side vs work-side clearance"
+                @click="emit('check')">{{ checkLabel }}</MachineBtn>
+    <MachineBtn v-else type="scrub" title="Cancel the collision check"
+                @click="emit('cancel-check')">{{ checkLabel }} &times;</MachineBtn>
+    <template v-if="collisionResult && !collisionBusy">
+      <span v-if="collisionResult.pairCount === 0" class="val-status muted" title="No machine bodies on the tool or work side — nothing to check">no bodies</span>
+      <span v-else-if="!hits.length" class="val-status ok" :title="`${collisionResult.samples} samples${collisionResult.coarsened ? ', coarsened to fit the sample budget' : ''}`">
+        clear{{ collisionResult.coarsened ? "*" : "" }}
+      </span>
+      <MachineBtn v-else type="scrub" :disabled="!simMode && !machineOff"
+                  :title="`${hits.length} clearance hit(s) — click to simulate the next one${!simMode && !machineOff ? ' (turn the machine OFF first)' : ''}`"
+                  @click="jumpToHit">
+        {{ hits.length }} clash{{ hits.length === 1 ? "" : "es" }} &rarr; L{{ nextHit!.line }}{{ nextHit!.rapid ? " (rapid)" : "" }}
+      </MachineBtn>
+    </template>
   </div>
 </template>
 
@@ -157,5 +258,9 @@ onUnmounted(() => {
 .scrubStatus {
   white-space: nowrap;
   min-width: 9ch;
+}
+/* Tooltip wrapper for a disabled button — layout-neutral flex item. */
+.btnTip {
+  display: inline-flex;
 }
 </style>

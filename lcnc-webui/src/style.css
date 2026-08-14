@@ -830,6 +830,35 @@ label:has(input:disabled, select:disabled) {
   flex-shrink: 0;
 }
 
+/* Vertical counterpart of .sep for flex rows */
+.sep-v {
+  width: 1px;
+  align-self: stretch;
+  background: var(--border);
+  opacity: var(--opacity-subtle);
+  flex-shrink: 0;
+}
+
+/* Simulation-mode banner (viewer overlay) — must be unmissable: while it
+   shows, the 3D model poses along the program, NOT the live machine, and
+   machine controls are locked (permissions.ts SIM_GATES). */
+.simBanner {
+  position: absolute;
+  top: var(--gap-controls);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 11;
+  padding: var(--gap-tight) var(--gap-panel);
+  background: color-mix(in oklab, var(--warn) 25%, var(--panel));
+  border: 1px solid var(--warn);
+  border-radius: var(--radius-lg);
+  color: var(--warn);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
 /* Label + input grid — 2-col (auto 1fr) or 4-col (.twoCol) */
 .paramGrid {
   display: grid;

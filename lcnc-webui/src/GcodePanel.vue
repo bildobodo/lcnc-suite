@@ -45,6 +45,9 @@ const props = defineProps<{
   // Source line at the viewer's scrub position (offline dry run stage 2).
   // Highlights + auto-scrolls like the run highlight; null = not scrubbing.
   scrubLine?: number | null;
+  // Lines flagged by the viewer's collision sweep (stage 3) — marked with
+  // the same warn-tinted line numbers as soft-limit violations.
+  collisionLines?: number[] | null;
   isPaused: boolean;
   elapsed: string;
   optionalStop: boolean;
@@ -262,6 +265,16 @@ const violationsByLine = computed(() => {
   }
   return m;
 });
+
+const collisionLineSet = computed(() => new Set(props.collisionLines ?? []));
+
+function lineMarkTitle(lineNum: number): string | undefined {
+  const parts: string[] = [];
+  const v = violationsByLine.value.get(lineNum);
+  if (v) parts.push(v.map(violationText).join("; "));
+  if (collisionLineSet.value.has(lineNum)) parts.push("collision clearance hit — see viewer Check results");
+  return parts.length ? parts.join(" · ") : undefined;
+}
 
 function violationText(v: LimitViolation): string {
   const unit = "ABC".includes(v.axis) ? "°" : ` ${props.gcodeStats?.unit ?? "mm"}`;
@@ -730,9 +743,9 @@ async function saveEdit() {
                    active: currentLine === item.lineNum || scrubLine === item.lineNum,
                    selected: selectedLine === item.lineNum,
                    selectable: runFromLine && gcodeContent,
-                   violation: violationsByLine.has(item.lineNum)
+                   violation: violationsByLine.has(item.lineNum) || collisionLineSet.has(item.lineNum)
                  }"
-                 :title="violationsByLine.get(item.lineNum)?.map(violationText).join('; ')"
+                 :title="lineMarkTitle(item.lineNum)"
                  @click="onLineClick(item.lineNum)">
               <span class="lineNumber">{{ item.lineNum }}</span>
               <span class="lineContent">

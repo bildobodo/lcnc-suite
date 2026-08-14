@@ -71,6 +71,18 @@ const BUSY_GATES: ReadonlySet<keyof Permissions> = new Set([
   "idle", "override", "ready", "probe", "zero", "setup",
 ]);
 
+/**
+ * Gates that stay open in SIMULATION mode (client-local, see simMode.ts).
+ * While the 3D model is posed along the program instead of the live machine,
+ * every machine-action gate must be closed — the display is intentionally
+ * wrong, so acting on it is the hazard. `always` keeps Arm/E-Stop, `armed`
+ * keeps navigation, `setup` keeps file browsing (loading a file exits sim).
+ * `safety` is deliberately NOT here: Machine On requires exiting sim first.
+ */
+const SIM_GATES: ReadonlySet<keyof Permissions> = new Set([
+  "always", "armed", "setup",
+]);
+
 /** The backend's machine-state permission dict (computed with `armed=true`). */
 export type MachinePermissions = Partial<Record<keyof Permissions, boolean>>;
 
@@ -84,11 +96,14 @@ export function applyClientOverlay(
   machine: MachinePermissions | null | undefined,
   armed: boolean,
   busy: boolean,
+  sim: boolean = false,
 ): Permissions {
   const out = {} as Permissions;
   for (const g of GATE_NAMES) {
     if (g === "always") { out[g] = true; continue; }
-    out[g] = !!machine?.[g] && armed && (BUSY_GATES.has(g) ? !busy : true);
+    out[g] = !!machine?.[g] && armed
+      && (BUSY_GATES.has(g) ? !busy : true)
+      && (sim ? SIM_GATES.has(g) : true);
   }
   return out;
 }

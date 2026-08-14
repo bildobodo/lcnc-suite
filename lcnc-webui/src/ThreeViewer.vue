@@ -18,6 +18,7 @@ import { recordApply, recordRender, setViewerPerfContext } from "./viewerPerf";
 import { disposeObject } from "./viewer/disposal";
 import { normalizeKinematics, type KinRuntime } from "./viewer/kinematics";
 import { chainsHaveRotary, type PartFrameMachine, type PartFrameWcs } from "./viewer/partFrame";
+import type { CollisionBody, CollisionResult } from "./viewer/collision";
 import { createBackplotController } from "./viewer/backplotController";
 import { createSurfaceController } from "./viewer/surfaceController";
 import { createToolpathController, type ToolpathCtx } from "./viewer/toolpathController";
@@ -26,6 +27,7 @@ import ViewCube from "./ViewCube.vue";
 import MachineBtn from "./MachineBtn.vue";
 import CameraPip from "./CameraPip.vue";
 import ScrubBar from "./ScrubBar.vue";
+import { simMode } from "./simMode";
 import { Camera, Settings } from "lucide-vue-next";
 
 const themeMode = inject<Ref<string>>("themeMode", ref("auto"));
@@ -106,6 +108,9 @@ const emit = defineEmits<{
   // Source line at the current scrub position (null = not scrubbing) — App
   // forwards it to GcodePanel for the code-view highlight.
   (e: "scrub-line", line: number | null): void;
+  // Source lines with collision hits after a sweep (null = no/stale results,
+  // [] = checked clean) — App forwards to GcodePanel for line markers.
+  (e: "collision-lines", lines: number[] | null): void;
 }>();
 
 // HUD data (read from status for template)
@@ -1312,6 +1317,111 @@ function _pfWcs(): PartFrameWcs {
   return { g5x: _pv.g5x ?? [], g92: _pv.g92 ?? [], rotationDeg: _pv.rotationXy ?? 0 };
 }
 
+// ---- Collision sweep (offline dry run, stage 3) ----
+// Sweeps the machine model through the scrub track off-thread and reports
+// tool-side vs work-side body pairs inside the clearance margin. Owned here
+// (not ScrubBar) because this component holds the machine def, the cached
+// STL geometries, and the live tool dims. Results reflect the CHECK-TIME
+// WCS and tool — a new program invalidates them; re-check after touch-off.
+const COLLISION_MARGIN_MM = 2;
+let _colWorker: Worker | null = null;
+let _colReqId = 0;
+const collisionBusy = ref(false);
+const collisionProgress = ref(0);
+const collisionResult = ref<CollisionResult | null>(null);
+
+function _colGetWorker(): Worker {
+  if (!_colWorker) {
+    _colWorker = new Worker(new URL("./viewer/collisionWorker.ts", import.meta.url), { type: "module" });
+    _colWorker.onmessage = (ev: MessageEvent) => {
+      const m = ev.data as { id: number; progress?: number; error?: string; result?: CollisionResult };
+      if (m.id !== _colReqId) return;  // superseded
+      if (m.progress != null && !m.result) {
+        collisionProgress.value = m.progress;
+        return;
+      }
+      collisionBusy.value = false;
+      if (m.error) {
+        console.error("[collision] sweep failed:", m.error);
+        emitTelemetry("collision.sweep_failed", { msg: m.error });
+        collisionResult.value = null;
+        emit("collision-lines", null);
+        return;
+      }
+      collisionResult.value = m.result!;
+      emit("collision-lines", m.result!.hits.map(h => h.line));
+    };
+  }
+  return _colWorker;
+}
+
+function cancelCollisionCheck() {
+  // The sweep is synchronous inside the worker — a cancel message would sit
+  // unread until it finished. Terminate + lazy recreate is the honest cancel.
+  if (_colWorker) {
+    _colWorker.terminate();
+    _colWorker = null;
+  }
+  _colReqId++;
+  collisionBusy.value = false;
+  collisionProgress.value = 0;
+}
+
+function runCollisionCheck() {
+  const init = viewerInit.value;
+  const track = viewerGcode.value?.scrubTrack;
+  if (!init || !track || collisionBusy.value) return;
+  const bodies: CollisionBody[] = [];
+  let skipped = 0;
+  for (const p of (init.parts ?? [])) {
+    const attr = getCachedGeometry(p.id)?.getAttribute("position");
+    if (!attr || !p.group) { skipped++; continue; }  // unloaded geometry / ungrouped part
+    bodies.push({
+      id: p.id,
+      group: p.group,
+      positions: new Float32Array(attr.array as Float32Array),  // copy → transferable
+      translate: p.translate ? [...p.translate] : undefined,
+      rotate: (p as any).rotate ? [...(p as any).rotate] : undefined,
+    });
+  }
+  if (skipped) console.warn(`[collision] ${skipped} machine part(s) not loaded — checked without them`);
+  const id = ++_colReqId;
+  collisionBusy.value = true;
+  collisionProgress.value = 0;
+  collisionResult.value = null;
+  // Track arrays are copied — transferring the originals would detach the
+  // buffers viewerGcode (and the scrub bar) still read.
+  const trackCopy = {
+    pos: track.pos.slice(), abc: track.abc.slice(), lines: track.lines.slice(),
+    rapid: track.rapid.slice(), cum: track.cum.slice(), count: track.count,
+  };
+  const transfer: Transferable[] = [
+    ...bodies.map(b => b.positions.buffer as ArrayBuffer),
+    trackCopy.pos.buffer as ArrayBuffer, trackCopy.abc.buffer as ArrayBuffer,
+    trackCopy.lines.buffer as ArrayBuffer, trackCopy.rapid.buffer as ArrayBuffer,
+    trackCopy.cum.buffer as ArrayBuffer,
+  ];
+  _colGetWorker().postMessage({
+    id,
+    machine: _pfMachine(init),           // same shape as CollisionMachine
+    bodies,
+    tool: {
+      diam: _pv.toolDiam || 6 * _unitScale,   // the DISPLAYED marker dims —
+      len: _pv.toolLen || 60 * _unitScale,    // absent tool = placeholder, as drawn
+    },
+    track: trackCopy,
+    wcs: _pfWcs(),
+    options: { margin: COLLISION_MARGIN_MM * _unitScale },
+  }, transfer);
+}
+
+// A new program (or unload) invalidates results — never show stale clashes.
+watch(viewerGcode, () => {
+  cancelCollisionCheck();
+  collisionResult.value = null;
+  emit("collision-lines", null);
+});
+
 function _partFrameEligible(g: ViewerGcode): boolean {
   const init = viewerInit.value;
   if (!init) return false;
@@ -1665,6 +1775,8 @@ onUnmounted(() => {
   clearTimeout(_pfWcsTimer);
   _pfWorker?.terminate();
   _pfWorker = null;
+  _colWorker?.terminate();
+  _colWorker = null;
   resizeObs?.disconnect();
   resizeObs = null;
   cancelAnimationFrame(raf);
@@ -2069,8 +2181,21 @@ defineExpose({
     <!-- Camera PIP overlay -->
     <CameraPip :visible="pipVisible" @close="closePip" />
 
-    <!-- Program-scrub timeline (offline dry run stage 2) -->
-    <ScrubBar @pose="onScrubPose" />
+    <!-- SIMULATION mode banner — unmissable: the model is posed along the
+         program, NOT the machine, and motion controls are locked. -->
+    <div v-if="simMode" class="simBanner">
+      SIMULATION &mdash; model shows the program, not the machine
+    </div>
+
+    <!-- Program-scrub timeline (stage 2) + collision check (stage 3) -->
+    <ScrubBar
+      :collisionBusy="collisionBusy"
+      :collisionProgress="collisionProgress"
+      :collisionResult="collisionResult"
+      @pose="onScrubPose"
+      @check="runCollisionCheck"
+      @cancel-check="cancelCollisionCheck"
+    />
 
     <!-- STL load failure chip (bottom-left, never blocks render) -->
     <div v-if="failedParts.length" class="stlFailedChip" :title="failedParts.join(', ')">

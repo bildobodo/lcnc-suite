@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, provide, reactive, ref, watch } from "vue";
 import { applyClientOverlay, PERMISSIONS_KEY, type Permissions } from "./permissions";
+import { simMode } from "./simMode";
 import { connectWs, connected, status, send, armed, lastReply, viewerGcode, viewerInit, gcodeContent, lcncError, latency, networkLatency, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead, pushMessage, safetyTrip, acknowledgeSafetyTrip, readerStale, configWarning, previewLoadError, serverShuttingDown, type LcncMessage } from "./lcncWs";
 // Lazy-load the 3D viewer so Three.js (~866 KB) + troika load as a separate async
 // chunk after first paint instead of blocking the initial bundle (P6). The viewerRef
@@ -392,6 +393,8 @@ const gcodeViolations = ref<LimitViolation[] | null>(null);
 const gcodeViolationsTotal = ref(0);
 // Source line at the viewer's scrub position (null = not scrubbing).
 const scrubLine = ref<number | null>(null);
+// Source lines with collision hits from the viewer's sweep (null = none run).
+const collisionLines = ref<number[] | null>(null);
 
 // Donut chart (distance breakdown) lives in StatsDonut.vue.
 
@@ -461,7 +464,7 @@ let _prevPerms: Permissions | null = null;
 const permissions = computed(() => {
   // Policy lives on the backend now (issue #19): consume the broadcast
   // permission classes and overlay only the client-local armed + busy terms.
-  const next = applyClientOverlay(st.value.permissions, armed.value, busy.value);
+  const next = applyClientOverlay(st.value.permissions, armed.value, busy.value, simMode.value);
   const keys = Object.keys(next) as (keyof typeof next)[];
   if (_prevPerms && keys.every(k => _prevPerms![k] === next[k])) return _prevPerms;
   _prevPerms = next;
@@ -1389,6 +1392,7 @@ watch(viewerGcode, (newGcode) => {
           :axes="axes"
           @open-settings="openSettingsTab"
           @scrub-line="scrubLine = $event"
+          @collision-lines="collisionLines = $event"
         />
       </div>
 
@@ -1405,6 +1409,7 @@ watch(viewerGcode, (newGcode) => {
               :violationsTotal="gcodeViolationsTotal"
               :currentLine="currentLine"
               :scrubLine="scrubLine"
+              :collisionLines="collisionLines"
               :isPaused="isPaused"
               :elapsed="elapsedDisplay"
               :optionalStop="optionalStopOn"
