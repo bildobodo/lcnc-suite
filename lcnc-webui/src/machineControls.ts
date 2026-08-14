@@ -109,6 +109,9 @@ export const BUTTON_TYPES = {
   tab:            { gate: 'always',  variant: 'default', size: 'sm',  muted: true },
   viewPreset:     { gate: 'always',  variant: 'default', size: 'sm' },
   viewerQuickToggle: { gate: 'always', variant: 'default', size: 'sm' },
+  // Program-scrub bar (display-only pose of the machine model — read-only,
+  // deliberately usable while disarmed / in E-Stop).
+  scrub:          { gate: 'always',  variant: 'default', size: 'sm' },
   overlayToggle:  { gate: 'always',  variant: 'default', size: 'xs' },
   dialogCancel:   { gate: 'always',  variant: 'default', size: 'md' },
   dialogConfirm:  { gate: 'always',  variant: 'primary', size: 'md' },
@@ -153,6 +156,7 @@ export const INPUT_DEFS = {
   mdiText:         { gate: 'ready' },
   touchoff:        { gate: 'probe',    mono: true, align: 'right', size: 'sm' },
   stripInput:      { gate: 'always',   mono: true, align: 'right', size: 'md' },
+  scrubPos:        { gate: 'always' },  // scrub timeline — display-only, see BUTTON_TYPES.scrub
   coolant:         { gate: 'override' },
 
   // Mode selection

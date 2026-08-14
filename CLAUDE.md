@@ -30,6 +30,7 @@ Gateway connects to LinuxCNC via Python bindings (`linuxcnc.stat`, `linuxcnc.com
 - `gcodeHighlight.ts` — G-code syntax tokenizer + highlighter (shared by GcodePanel + MDI history)
 - `OffsetPanel.vue` — WCS offset table editor (G54–G59.3), inline cell editing, auxiliary rows (G92, Tool, Comp)
 - `CameraPip.vue` — Picture-in-picture camera overlay with MJPEG feed, SVG crosshair/circle/grid overlay
+- `ScrubBar.vue` — Program-scrub timeline overlay (viewer-hosted): poses the machine model along the loaded program via `viewer/scrubTrack.ts` (see "Program scrub")
 - `SettingsPanel.vue` — Sub-tabbed settings (3D Viewer | Machine | Display | Macros | Gamepad | Keyboard | HAL | Debug)
 - `Gate.vue` — Permission gate wrapper: `<fieldset :disabled="!allow">` with `#exempt` slot
 - `permissions.ts` — Permission evaluation (evaluatePermissions + provide/inject)
@@ -326,6 +327,27 @@ and a Soft limits row in the program stats dialog. Limitation: validated
 against the parse-time WCS — touch-off after load requires a file reload
 to re-validate (the live overflow box remains the coarse always-current
 check).
+
+**Program scrub (offline dry run, stage 2)**: a timeline bar overlaid on
+the 3D viewer (`ScrubBar.vue`, hosted in ThreeViewer's overlay next to
+CameraPip) poses the articulated machine model at any point of the loaded
+program without running it — drag or play (×1/×4/×16/×64,
+distance-proportional v1). Execution order is reconstructed by merging the
+feed/rapid streams on per-point `feed_seq`/`rapid_seq` (global counter in
+`gcode_canon.py` — line numbers can't order subroutine loops);
+`previewWorker` builds the merged `scrubTrack` off-thread
+(`viewer/scrubTrack.ts`, pure, unit-tested). The pose is derived per frame:
+lerp adjacent program-space samples, program→machine via the same
+`wcsTerms`/`programToMachine` as the part-frame preview (exported from
+`viewer/partFrame.ts`), letters→joints via `viewer_init.axes`, then through
+the SAME `applyState` compose path as live motion (null joint entries — UVW
+— keep the live value). Display-only and deliberately usable while
+disarmed/E-Stop (`gate: 'always'`); hides while a program executes and the
+live pose always wins on run start. While scrubbing: backplot recording is
+suspended (never fabricate motion history), the toolpath highlight and
+GcodePanel follow the scrub line, and touch-off re-poses immediately (WCS
+watcher). A stale pre-seq cached payload yields `scrubTrack: null` — the
+bar simply doesn't offer itself (unchecked ≠ broken).
 
 ## Key Patterns
 

@@ -8,6 +8,7 @@
 // thread (ThreeViewer) builds BufferAttributes directly from them — no decode, no
 // points.flat(), no per-point allocation on the UI thread.
 import { decode as msgpackDecode } from "@msgpack/msgpack";
+import { buildScrubTrack } from "./viewer/scrubTrack";
 
 interface Req { version: number; url: string }
 
@@ -40,9 +41,19 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     const feedAbc = g.feed_abc != null ? _toF32(g.feed_abc) : undefined;
     const rapidAbc = g.rapid_abc != null ? _toF32(g.rapid_abc) : undefined;
 
+    // Scrub track (stage 2): merge feed+rapid into execution order off-thread —
+    // O(points), exactly the class of work that starved the heartbeat when it
+    // ran on the UI thread. null = unbuildable (empty, or a stale pre-seq
+    // cached payload) and the scrub bar simply doesn't offer itself.
+    const scrubTrack = buildScrubTrack(
+      { pos: feedPos, abc: feedAbc, lines: feedLines, seq: _toU32(g.feed_seq) },
+      { pos: rapidPos, abc: rapidAbc, lines: _toU32(g.rapid_lines), seq: _toU32(g.rapid_seq) },
+    );
+
     // Drop the nested arrays from the passthrough; the flat typed arrays replace
     // them. Everything else (file, stats fields) is small and cloned as-is.
-    const { feed: _f, rapid: _r, feed_lines: _fl, feed_abc: _fa, rapid_abc: _ra, ...rest } = g;
+    const { feed: _f, rapid: _r, feed_lines: _fl, feed_abc: _fa, rapid_abc: _ra,
+            feed_seq: _fs, rapid_seq: _rs, rapid_lines: _rl, ...rest } = g;
 
     const transfer: Transferable[] = [
       feedPos.buffer as ArrayBuffer,
@@ -52,9 +63,16 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     if (feedLines) transfer.push(feedLines.buffer as ArrayBuffer);
     if (feedAbc) transfer.push(feedAbc.buffer as ArrayBuffer);
     if (rapidAbc) transfer.push(rapidAbc.buffer as ArrayBuffer);
+    if (scrubTrack) {
+      transfer.push(
+        scrubTrack.pos.buffer as ArrayBuffer, scrubTrack.abc.buffer as ArrayBuffer,
+        scrubTrack.lines.buffer as ArrayBuffer, scrubTrack.rapid.buffer as ArrayBuffer,
+        scrubTrack.cum.buffer as ArrayBuffer,
+      );
+    }
 
     self.postMessage(
-      { version, gcode: { ...rest, feedPos, rapidPos, feed_lines: feedLines, feedLineMap, rapidDist, feedAbc, rapidAbc } },
+      { version, gcode: { ...rest, feedPos, rapidPos, feed_lines: feedLines, feedLineMap, rapidDist, feedAbc, rapidAbc, scrubTrack } },
       { transfer },
     );
   } catch (err) {

@@ -57,6 +57,18 @@ export interface ViewerInit {
   ini_config?: Record<string, any>;
   [key: string]: any;  // gateway adds occasional extras (e.g. timestamp, git_sha)
 }
+// Execution-ordered feed+rapid merge for the program scrub (stage 2), built
+// off-thread by previewWorker from the per-point seq wire data. Program-space
+// samples; the pose is derived per frame in viewer/scrubTrack.ts.
+export interface ScrubTrack {
+  pos: Float32Array;        // count*3 program XYZ, execution order
+  abc: Float32Array;        // count*3 degrees (zeros when the wire had no abc)
+  lines: Uint32Array;       // count — source line per point (0 = unknown)
+  rapid: Uint8Array;        // count — 1 when the segment ending here is a rapid
+  cum: Float32Array;        // count — monotonic scrub parameter (mm, 1° ≙ 1 mm)
+  count: number;
+}
+
 // One per-line soft-limit overtravel record from the parse worker. `value`
 // and `limit` are machine units for linear axes, degrees for rotary.
 export interface LimitViolation {
@@ -97,6 +109,10 @@ export interface ViewerGcode {
   // is the true distinct (line, axis) count.
   violations?: LimitViolation[] | null;
   violations_total?: number;
+  // Stage 2 (program scrub): execution-ordered feed+rapid merge built
+  // off-thread by previewWorker. null/absent = no track (no program, or a
+  // stale pre-seq payload) — the scrub bar doesn't offer itself.
+  scrubTrack?: ScrubTrack | null;
   // P4.1: source-line → point-index range map, built off-thread by previewWorker
   // (Maps survive structured clone) so ThreeViewer skips the O(points) build.
   feedLineMap?: Map<number, { start: number; end: number }>;

@@ -26,8 +26,14 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
 
     def __init__(self, s, random=0):
         StatMixin.__init__(self, s, random)
-        self.feed = []          # [(lineno, start_9, end_9, feedrate, tlo_3)]
-        self.rapid = []         # [(lineno, start_9, end_9, tlo_3)]
+        self.feed = []          # [(lineno, start_9, end_9, feedrate, tlo_3, seq)]
+        self.rapid = []         # [(lineno, start_9, end_9, tlo_3, seq)]
+        # Global segment sequence across feed AND rapid. The two lists are
+        # each in execution order, but interleaving between them is lost —
+        # seq restores it so the scrub track can replay segments in true
+        # program order (feed[i] before/after rapid[j] is undecidable from
+        # line numbers alone once subroutine loops revisit lines).
+        self.seq = 0
         self.lineno = -1
         self.feedrate = 1.0
         self.lo = (0,) * 9
@@ -77,18 +83,22 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     # rotate_and_translate keeps straight moves in the same translated frame
     # gcode.arc_to_segments produces for arcs; WCS offsets subtract once at
     # extraction time (not here).
+    def _next_seq(self):
+        self.seq += 1
+        return self.seq
+
     def straight_traverse(self, x, y, z, a, b, c, u, v, w):
         if self.suppress > 0: return
         l = self.rotate_and_translate(x, y, z, a, b, c, u, v, w)
         if not self.first_move:
-            self.rapid.append((self.lineno, self.lo, l, (self.xo, self.yo, self.zo)))
+            self.rapid.append((self.lineno, self.lo, l, (self.xo, self.yo, self.zo), self._next_seq()))
         self.lo = l
 
     def straight_feed(self, x, y, z, a, b, c, u, v, w):
         if self.suppress > 0: return
         self.first_move = False
         l = self.rotate_and_translate(x, y, z, a, b, c, u, v, w)
-        self.feed.append((self.lineno, self.lo, l, self.feedrate, (self.xo, self.yo, self.zo)))
+        self.feed.append((self.lineno, self.lo, l, self.feedrate, (self.xo, self.yo, self.zo), self._next_seq()))
         self.lo = l
 
     straight_probe = straight_feed
@@ -99,14 +109,14 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         l = self.rotate_and_translate(x, y, z, 0, 0, 0, 0, 0, 0)[:3]
         l += (self.lo[3], self.lo[4], self.lo[5],
               self.lo[6], self.lo[7], self.lo[8])
-        self.feed.append((self.lineno, self.lo, l, self.feedrate, (self.xo, self.yo, self.zo)))
-        self.feed.append((self.lineno, l, self.lo, self.feedrate, (self.xo, self.yo, self.zo)))
+        self.feed.append((self.lineno, self.lo, l, self.feedrate, (self.xo, self.yo, self.zo), self._next_seq()))
+        self.feed.append((self.lineno, l, self.lo, self.feedrate, (self.xo, self.yo, self.zo), self._next_seq()))
 
     def straight_arcsegments(self, segs):
         self.first_move = False
         lo = self.lo
         for l in segs:
-            self.feed.append((self.lineno, lo, l, self.feedrate, (self.xo, self.yo, self.zo)))
+            self.feed.append((self.lineno, lo, l, self.feedrate, (self.xo, self.yo, self.zo), self._next_seq()))
             dx, dy, dz = l[0] - lo[0], l[1] - lo[1], l[2] - lo[2]
             self.arc_dist += (dx * dx + dy * dy + dz * dz) ** 0.5
             self.arc_moves += 1

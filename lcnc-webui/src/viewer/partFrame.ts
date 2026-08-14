@@ -129,6 +129,43 @@ function buildChain(machine: PartFrameMachine): { nodes: Node[]; workIdx: number
   };
 }
 
+/** Precomputed live-WCS terms for program→machine conversion. Every element
+ *  defaulted — the WCS arrays can be empty before the first status tick. */
+export interface WcsTerms {
+  ox: number; oy: number; oz: number;
+  oa: number; ob: number; oc: number;
+  cth: number; sth: number;
+}
+
+export function wcsTerms(wcs: PartFrameWcs): WcsTerms {
+  const th = THREE.MathUtils.degToRad(wcs.rotationDeg || 0);
+  return {
+    ox: (wcs.g5x[0] ?? 0) + (wcs.g92[0] ?? 0),
+    oy: (wcs.g5x[1] ?? 0) + (wcs.g92[1] ?? 0),
+    oz: (wcs.g5x[2] ?? 0) + (wcs.g92[2] ?? 0),
+    oa: (wcs.g5x[3] ?? 0) + (wcs.g92[3] ?? 0),
+    ob: (wcs.g5x[4] ?? 0) + (wcs.g92[4] ?? 0),
+    oc: (wcs.g5x[5] ?? 0) + (wcs.g92[5] ?? 0),
+    cth: Math.cos(th), sth: Math.sin(th),
+  };
+}
+
+/** Program → machine axis values under the trivkins assumption: XY rotated by
+ *  the live rotation then offset, Z/ABC offset. Fills out[0..5] = X..C.
+ *  Single source of truth shared by the part-frame transform and the scrub
+ *  pose (viewer/scrubTrack.ts). */
+export function programToMachine(
+  px: number, py: number, pz: number, pa: number, pb: number, pc: number,
+  o: WcsTerms, out: number[],
+): void {
+  out[0] = px * o.cth - py * o.sth + o.ox;
+  out[1] = px * o.sth + py * o.cth + o.oy;
+  out[2] = pz + o.oz;
+  out[3] = pa + o.oa;
+  out[4] = pb + o.ob;
+  out[5] = pc + o.oc;
+}
+
 /** True when the transform can change anything: a rotary DOF sits on the
  *  work or tool chain. Pure translate chains reproduce the input exactly. */
 export function chainsHaveRotary(machine: PartFrameMachine): boolean {
@@ -153,19 +190,13 @@ export function transformToPartFrame(
     return { pos: input.pos.slice(), lines: input.lines?.slice() };
   }
 
-  // Every element defaulted: on a fresh page load the preview can arrive
-  // before the first status tick, so the live WCS may still be empty — the
-  // transform then runs offset-free and re-runs when g5x/g92 first arrive
-  // (ThreeViewer's WCS-change refresh). A bare [0]! here turned that race
-  // into NaN vertices — invisible geometry with no error.
-  const ox = (wcs.g5x[0] ?? 0) + (wcs.g92[0] ?? 0);
-  const oy = (wcs.g5x[1] ?? 0) + (wcs.g92[1] ?? 0);
-  const oz = (wcs.g5x[2] ?? 0) + (wcs.g92[2] ?? 0);
-  const oa = (wcs.g5x[3] ?? 0) + (wcs.g92[3] ?? 0);
-  const ob = (wcs.g5x[4] ?? 0) + (wcs.g92[4] ?? 0);
-  const oc = (wcs.g5x[5] ?? 0) + (wcs.g92[5] ?? 0);
-  const th = THREE.MathUtils.degToRad(wcs.rotationDeg || 0);
-  const cth = Math.cos(th), sth = Math.sin(th);
+  // Every element defaulted (inside wcsTerms): on a fresh page load the
+  // preview can arrive before the first status tick, so the live WCS may
+  // still be empty — the transform then runs offset-free and re-runs when
+  // g5x/g92 first arrive (ThreeViewer's WCS-change refresh). A bare [0]!
+  // here turned that race into NaN vertices — invisible geometry, no error.
+  const o = wcsTerms(wcs);
+  const { ox, oy, oz, cth, sth } = o;
 
   // Pass 1 — sample count (subdivide segments by their largest rotary delta).
   let total = 1;
@@ -200,12 +231,7 @@ export function transformToPartFrame(
   let out = 0;
   const emit = (px: number, py: number, pz: number, pa: number, pb: number, pc: number, line: number) => {
     // Program → machine coords (joints under the trivkins assumption).
-    machineVals[0] = px * cth - py * sth + ox;
-    machineVals[1] = px * sth + py * cth + oy;
-    machineVals[2] = pz + oz;
-    machineVals[3] = pa + oa;
-    machineVals[4] = pb + ob;
-    machineVals[5] = pc + oc;
+    programToMachine(px, py, pz, pa, pb, pc, o, machineVals);
     for (let ji = 0; ji < jointVals.length; ji++) {
       const slot = jointSlot[ji];
       jointVals[ji] = slot !== undefined && slot >= 0 ? machineVals[slot]! : 0;

@@ -21,7 +21,12 @@ Context shape (msgpack dict):
 Result shape (msgpack dict):
   feed:        [[x, y, z], ...]   work-coord polyline (feed moves)
   feed_lines:  [lineno, ...]      parallel line numbers for feed
+  feed_seq:    [seq, ...]         global execution-order sequence per point;
+               feed and rapid each ascending — merging the two streams on
+               seq reconstructs true program order (scrub track, stage 2)
   rapid:       [[x, y, z], ...]   work-coord polyline (rapid moves)
+  rapid_lines: [lineno, ...]      parallel line numbers for rapid
+  rapid_seq:   [seq, ...]         see feed_seq
   stats:       { feedMoves, rapidMoves, linearMoves, arcMoves, feedDist,
                  rapidDist, linearDist, arcDist, feedTime, rapidTime,
                  totalTime, feedRates, toolChanges, toolsUsed, unit,
@@ -206,9 +211,9 @@ def parse(ctx: dict) -> dict:
     axis_limits = read_axis_limits(ini.find, s.axis_mask)
     if axis_limits:
         def _limit_segs():
-            for _lineno, _start, _end, _rate, _tlo in canon.feed:
+            for _lineno, _start, _end, _rate, _tlo, _seq in canon.feed:
                 yield _lineno, _start, _end, _tlo
-            for _lineno, _start, _end, _tlo in canon.rapid:
+            for _lineno, _start, _end, _tlo, _seq in canon.rapid:
                 yield _lineno, _start, _end, _tlo
         violations, violations_total = check_limit_violations(
             _limit_segs(), axis_limits, unit_scale)
@@ -232,11 +237,12 @@ def parse(ctx: dict) -> dict:
     feed = []
     feed_lines = []
     feed_abc = []
+    feed_seq = []
     total_feed_dist = 0.0
     total_feed_time = 0.0
     feed_rates = set()
     if theta:
-        for lineno, start, end, rate, _tlo in canon.feed:
+        for lineno, start, end, rate, _tlo, seq in canon.feed:
             dx = end[0] - ox
             dy = end[1] - oy
             feed.append([
@@ -246,6 +252,7 @@ def parse(ctx: dict) -> dict:
             ])
             feed_abc.append([end[3] - oa, end[4] - ob, end[5] - oc])
             feed_lines.append(lineno)
+            feed_seq.append(seq)
             sdx = (end[0] - start[0]) * unit_scale
             sdy = (end[1] - start[1]) * unit_scale
             sdz = (end[2] - start[2]) * unit_scale
@@ -255,10 +262,11 @@ def parse(ctx: dict) -> dict:
                 total_feed_time += dist / (rate * unit_scale)
                 feed_rates.add(round(rate * unit_scale * 60.0, 1))
     else:
-        for lineno, start, end, rate, _tlo in canon.feed:
+        for lineno, start, end, rate, _tlo, seq in canon.feed:
             feed.append([(end[0] - ox) * unit_scale, (end[1] - oy) * unit_scale, (end[2] - oz) * unit_scale])
             feed_abc.append([end[3] - oa, end[4] - ob, end[5] - oc])
             feed_lines.append(lineno)
+            feed_seq.append(seq)
             dx = (end[0] - start[0]) * unit_scale
             dy = (end[1] - start[1]) * unit_scale
             dz = (end[2] - start[2]) * unit_scale
@@ -270,9 +278,11 @@ def parse(ctx: dict) -> dict:
 
     rapid = []
     rapid_abc = []
+    rapid_lines = []
+    rapid_seq = []
     total_rapid_dist = 0.0
     if theta:
-        for _lineno, start, end, _tlo in canon.rapid:
+        for lineno, start, end, _tlo, seq in canon.rapid:
             dx = end[0] - ox
             dy = end[1] - oy
             rapid.append([
@@ -281,14 +291,18 @@ def parse(ctx: dict) -> dict:
                 (end[2] - oz) * unit_scale,
             ])
             rapid_abc.append([end[3] - oa, end[4] - ob, end[5] - oc])
+            rapid_lines.append(lineno)
+            rapid_seq.append(seq)
             sdx = (end[0] - start[0]) * unit_scale
             sdy = (end[1] - start[1]) * unit_scale
             sdz = (end[2] - start[2]) * unit_scale
             total_rapid_dist += (sdx * sdx + sdy * sdy + sdz * sdz) ** 0.5
     else:
-        for _lineno, start, end, _tlo in canon.rapid:
+        for lineno, start, end, _tlo, seq in canon.rapid:
             rapid.append([(end[0] - ox) * unit_scale, (end[1] - oy) * unit_scale, (end[2] - oz) * unit_scale])
             rapid_abc.append([end[3] - oa, end[4] - ob, end[5] - oc])
+            rapid_lines.append(lineno)
+            rapid_seq.append(seq)
             dx = (end[0] - start[0]) * unit_scale
             dy = (end[1] - start[1]) * unit_scale
             dz = (end[2] - start[2]) * unit_scale
@@ -356,11 +370,14 @@ def parse(ctx: dict) -> dict:
             feed = [feed[i] for i in keep]
             feed_lines = [feed_lines[i] for i in keep]
             feed_abc = [feed_abc[i] for i in keep]
+            feed_seq = [feed_seq[i] for i in keep]
     if len(rapid) > 2:
         keep = _rdp_keep(_rdp_points(rapid, rapid_abc), [0, len(rapid) - 1], eps_sq)
         if len(keep) < len(rapid):
             rapid = [rapid[i] for i in keep]
             rapid_abc = [rapid_abc[i] for i in keep]
+            rapid_lines = [rapid_lines[i] for i in keep]
+            rapid_seq = [rapid_seq[i] for i in keep]
     print(
         f"rdp feed {pre_feed}->{len(feed)} rapid {pre_rapid}->{len(rapid)} eps={eps:.5f} rotary={has_rotary}",
         file=sys.stderr, flush=True,
@@ -464,12 +481,20 @@ def parse(ctx: dict) -> dict:
     feed_bin = np.asarray(feed, dtype="<f4").tobytes() if feed else b""
     rapid_bin = np.asarray(rapid, dtype="<f4").tobytes() if rapid else b""
     feed_lines_bin = np.asarray(feed_lines, dtype="<u4").tobytes() if feed_lines else b""
+    # Scrub-track ordering (stage 2): global execution-order sequence per point
+    # (feed and rapid each sorted, interleaving recoverable by merging on seq)
+    # + rapid source lines so the scrub can label rapids like feeds.
+    feed_seq_bin = np.asarray(feed_seq, dtype="<u4").tobytes() if feed_seq else b""
+    rapid_seq_bin = np.asarray(rapid_seq, dtype="<u4").tobytes() if rapid_seq else b""
+    rapid_lines_bin = np.asarray(rapid_lines, dtype="<u4").tobytes() if rapid_lines else b""
 
     # Include "file" so this dict is the EXACT GET /preview wire shape: the
     # gateway publishes these bytes verbatim (no decode + re-encode), which is
     # what keeps the multi-MB polyline from ever becoming Python objects on the
     # event-loop process (mmw#4 GC pressure).
     result = {"file": filename, "feed": feed_bin, "feed_lines": feed_lines_bin,
+              "feed_seq": feed_seq_bin, "rapid_seq": rapid_seq_bin,
+              "rapid_lines": rapid_lines_bin,
               "rapid": rapid_bin, "stats": stats, "bounds": bounds,
               "motion_bounds": motion_bounds,
               "violations": violations, "violations_total": violations_total,
