@@ -49,6 +49,11 @@ export interface HudDefaults {
   showLoadBar: boolean;      // spindle load bar under the context line
 }
 
+// Toolpath preview frame: "part" transforms rotary-swept moves into the
+// rotating work frame (matches the backplot); "programmed" plots raw XYZ.
+// Only differs on machines with rotary axes in the work/tool chain.
+export type PreviewMode = "part" | "programmed";
+
 export interface ViewerDefaults {
   layers: Record<Layer, boolean>;
   colors: ColorDefaults;
@@ -57,6 +62,7 @@ export interface ViewerDefaults {
   trackingMode: TrackMode;
   pathOnTop: boolean;
   projection: Projection;
+  previewMode: PreviewMode;
   hud: HudDefaults;
 }
 
@@ -209,6 +215,7 @@ const VIEWER_FALLBACK: ViewerDefaults = {
   trackingMode: "none",
   pathOnTop: false,
   projection: "parallel",
+  previewMode: "part",
   hud: { ...HUD_FALLBACK },
 };
 

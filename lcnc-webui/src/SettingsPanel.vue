@@ -15,7 +15,7 @@ import {
   loadDisplayDefaults, saveDisplayDefaults, settingsVersion, serverSettingsReady,
   loadCameraDefaults, saveCameraDefaults,
   type Layer, type ColorDefaults, type HudDefaults, type HudScale,
-  type TrackMode, type Projection, type ToolChangeMode, type SpindleDir, type SpindleFeedbackUnit,
+  type TrackMode, type Projection, type PreviewMode, type ToolChangeMode, type SpindleDir, type SpindleFeedbackUnit,
   type ThemeMode, type MacroDef, type GamepadDefaults,
   GAMEPAD_FALLBACK,
   STEP_RPM,
@@ -159,6 +159,7 @@ function resetViewer() {
   pathOnTop.value = vd.pathOnTop;
   machineEdgesOn.value = vd.machineEdges;
   projection.value = vd.projection;
+  previewMode.value = vd.previewMode;
   emit("setPathOnTop", vd.pathOnTop);
   emit("setProjection", vd.projection);
   setMachineEdges(vd.machineEdges);
@@ -230,6 +231,7 @@ const trackingMode = ref<TrackMode>(saved.trackingMode);
 const pathOnTop = ref(saved.pathOnTop);
 const machineEdgesOn = ref(saved.machineEdges);
 const projection = ref<Projection>(saved.projection);
+const previewMode = ref<PreviewMode>(saved.previewMode);
 const hud = reactive<HudDefaults>({ ...saved.hud });
 
 function save() {
@@ -241,6 +243,7 @@ function save() {
     trackingMode: trackingMode.value,
     pathOnTop: pathOnTop.value,
     projection: projection.value,
+    previewMode: previewMode.value,
     hud: { ...hud },
   });
 }
@@ -294,6 +297,13 @@ function onProjectionChange(proj: Projection) {
   projection.value = proj;
   save();
   emit("setProjection", proj);
+}
+
+function onPreviewModeChange(mode: PreviewMode) {
+  previewMode.value = mode;
+  // No direct emit: ThreeViewer rebuilds the toolpath from the settings echo
+  // (settingsVersion watcher) — one path for this tab and remote tabs alike.
+  save();
 }
 
 // ─── Camera overlay state ─────────────────────────────────────────
@@ -366,6 +376,7 @@ watch(settingsVersion, () => {
   pathOnTop.value = vd.pathOnTop;
   machineEdgesOn.value = vd.machineEdges;
   projection.value = vd.projection;
+  previewMode.value = vd.previewMode;
   Object.assign(hud, vd.hud);
   const dd = loadDisplayDefaults();
   startFullscreen.value = dd.startFullscreen;
@@ -487,6 +498,11 @@ function resetMachineColor(id: string) {
             <label><MachineRadio gate="viewerSetting" name="tracking" :modelValue="trackingMode" value="none" @update:modelValue="onTrackModeChange('none')" /> None</label>
             <label><MachineRadio gate="viewerSetting" name="tracking" :modelValue="trackingMode" value="tool" @update:modelValue="onTrackModeChange('tool')" /> Tool</label>
             <label><MachineRadio gate="viewerSetting" name="tracking" :modelValue="trackingMode" value="wcs" @update:modelValue="onTrackModeChange('wcs')" /> WCS</label>
+          </div>
+          <div class="settingDesc">Toolpath preview on rotary-axis machines — the path relative to the rotating workpiece (matches the backplot) or the programmed XYZ coordinates.</div>
+          <div class="radioGroup inline">
+            <label><MachineRadio gate="viewerSetting" name="previewMode" :modelValue="previewMode" value="part" @update:modelValue="onPreviewModeChange('part')" /> Path on part</label>
+            <label><MachineRadio gate="viewerSetting" name="previewMode" :modelValue="previewMode" value="programmed" @update:modelValue="onPreviewModeChange('programmed')" /> Programmed XYZ</label>
           </div>
         </div>
 

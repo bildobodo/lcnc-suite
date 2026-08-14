@@ -288,6 +288,27 @@ LINEAR-axis groups (x/y/z); rotary groups keep the frame material — use
 part `color` for rotary assemblies. The `machine` layer toggle shows/hides
 the whole model.
 
+**Toolpath preview modes (rotary-aware preview)**: on machines whose
+work/tool chain has a rotary DOF, the programmed XYZ polyline is not the
+tool-versus-workpiece path. The parse worker ships per-vertex A/B/C
+(`feed_abc`/`rapid_abc`, present ONLY when a rotary actually sweeps) and
+decimates in 6D so rotary sweeps survive RDP; `viewer/partFrame.ts`
+(pure, unit-tested; run off-thread by `partFrameWorker.ts`) subdivides
+rotary segments (~4°/sample) and transforms each sample into the work
+frame by evaluating the machine.json chain — same normalize code as the
+live scene (`viewer/kinematics.ts`), so the preview overlays the backplot
+by construction. Settings → 3D Viewer → "Path on part" (default) vs
+"Programmed XYZ". The transform re-runs on live WCS changes (debounced —
+part-frame vertices depend on pivot-vs-work-origin). Machine-limit
+overflow + bounds boxes stay in programmed/machine space (the correct
+space for limits). CRITICAL mapping: kinematics `joint` indices ↔ axis
+letters via `viewer_init.axes` (joint order) — on XYZAC, C is joint 4 but
+canonical axis 5; never index axis-lettered data by joint number. Known
+limits: trivkins assumption (non-trivial kins would need joint-space
+samples), and UVW joints evaluate as 0 in the preview transform (linear,
+virtually never in a work/tool chain; the live model still articulates
+them from joint_pos).
+
 ## Key Patterns
 
 - **No hardcoded visual styles** — never invent custom font-size, padding, border-radius, colors, opacity, or font-family for new elements. Always inherit from the nearest parent class or global base styles in `style.css`. New CSS should only override layout properties (flex, width, text-align). If a visual style doesn't exist, extend the existing class hierarchy or global base — never create one-off overrides. For color semantics: machine active states use `--ok` (green), form controls (toggles, radios, checkboxes) use `--info` (blue), danger/abort uses `--danger`, warnings use `--warn`.

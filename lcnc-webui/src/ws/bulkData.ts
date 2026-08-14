@@ -66,6 +66,12 @@ export interface ViewerGcode {
   // over the nested arrays — ThreeViewer builds BufferAttributes directly).
   feedPos?: Float32Array;          // flat [x,y,z, ...]
   rapidPos?: Float32Array;
+  // Rotary-aware preview: per-vertex A/B/C (degrees, raw program coords),
+  // index-aligned with feedPos/rapidPos. Present ONLY when the program
+  // actually sweeps a rotary axis — absence means the programmed polyline is
+  // already exact and no part-frame transform is needed.
+  feedAbc?: Float32Array;          // flat [a,b,c, ...]
+  rapidAbc?: Float32Array;
   // P4.1: bounding boxes of the rendered polylines, computed in the parse worker
   // so ThreeViewer skips an O(n) main-thread scan per load. `bounds` is the cut
   // envelope shown as the toolpath bounds box (X/Y over feed+rapid, Z over feed

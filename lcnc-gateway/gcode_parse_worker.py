@@ -185,6 +185,12 @@ def parse(ctx: dict) -> dict:
     ox = canon.g5x_offset_x + canon.g92_offset_x
     oy = canon.g5x_offset_y + canon.g92_offset_y
     oz = canon.g5x_offset_z + canon.g92_offset_z
+    # Rotary offsets — subtracted so abc is in raw program coords, symmetric
+    # with xyz (frontend re-applies LIVE offsets when evaluating the machine
+    # chain for the part-frame preview). Degrees; XY rotation never touches abc.
+    oa = canon.g5x_offset_a + canon.g92_offset_a
+    ob = canon.g5x_offset_b + canon.g92_offset_b
+    oc = canon.g5x_offset_c + canon.g92_offset_c
     theta = canon.rotation_xy or 0.0
     if theta:
         rad = math.radians(theta)
@@ -196,6 +202,7 @@ def parse(ctx: dict) -> dict:
 
     feed = []
     feed_lines = []
+    feed_abc = []
     total_feed_dist = 0.0
     total_feed_time = 0.0
     feed_rates = set()
@@ -208,6 +215,7 @@ def parse(ctx: dict) -> dict:
                 (-dx * sa + dy * ca) * unit_scale,
                 (end[2] - oz) * unit_scale,
             ])
+            feed_abc.append([end[3] - oa, end[4] - ob, end[5] - oc])
             feed_lines.append(lineno)
             sdx = (end[0] - start[0]) * unit_scale
             sdy = (end[1] - start[1]) * unit_scale
@@ -220,6 +228,7 @@ def parse(ctx: dict) -> dict:
     else:
         for lineno, start, end, rate, _tlo in canon.feed:
             feed.append([(end[0] - ox) * unit_scale, (end[1] - oy) * unit_scale, (end[2] - oz) * unit_scale])
+            feed_abc.append([end[3] - oa, end[4] - ob, end[5] - oc])
             feed_lines.append(lineno)
             dx = (end[0] - start[0]) * unit_scale
             dy = (end[1] - start[1]) * unit_scale
@@ -231,6 +240,7 @@ def parse(ctx: dict) -> dict:
                 feed_rates.add(round(rate * unit_scale * 60.0, 1))
 
     rapid = []
+    rapid_abc = []
     total_rapid_dist = 0.0
     if theta:
         for _lineno, start, end, _tlo in canon.rapid:
@@ -241,6 +251,7 @@ def parse(ctx: dict) -> dict:
                 (-dx * sa + dy * ca) * unit_scale,
                 (end[2] - oz) * unit_scale,
             ])
+            rapid_abc.append([end[3] - oa, end[4] - ob, end[5] - oc])
             sdx = (end[0] - start[0]) * unit_scale
             sdy = (end[1] - start[1]) * unit_scale
             sdz = (end[2] - start[2]) * unit_scale
@@ -248,6 +259,7 @@ def parse(ctx: dict) -> dict:
     else:
         for _lineno, start, end, _tlo in canon.rapid:
             rapid.append([(end[0] - ox) * unit_scale, (end[1] - oy) * unit_scale, (end[2] - oz) * unit_scale])
+            rapid_abc.append([end[3] - oa, end[4] - ob, end[5] - oc])
             dx = (end[0] - start[0]) * unit_scale
             dy = (end[1] - start[1]) * unit_scale
             dz = (end[2] - start[2]) * unit_scale
@@ -269,14 +281,39 @@ def parse(ctx: dict) -> dict:
     linear_dist = total_feed_dist - arc_dist_scaled
     linear_moves = len(canon.feed) - canon.arc_moves
 
+    # Rotary participation: constant abc (however nonzero) needs no wire data —
+    # the frontend's live parent transform poses the whole polyline; only abc
+    # DELTAS make "path on part" differ from the programmed polyline.
+    _abc_all = feed_abc + rapid_abc
+    if _abc_all:
+        _abc_np = np.asarray(_abc_all, dtype=np.float64)
+        has_rotary = bool(np.ptp(_abc_np, axis=0).max() > 1e-9)
+    else:
+        has_rotary = False
+
     # A2: lossless RDP decimation on the rendering polylines. Stats above
     # use the full canon.feed / canon.rapid counts so they remain accurate.
     # eps is in display units (mm or inches) — the polylines are already
     # converted by the unit_scale multiplication above.
+    #
+    # With rotary motion present, RDP runs in 6D (xyz + abc scaled by
+    # _DEG_TO_UNIT) so a straight-XYZ run with a rotary sweep only collapses
+    # when the sweep is LINEAR across the run — which is lossless, because the
+    # frontend re-subdivides rotary deltas by linear interpolation. _rdp_keep
+    # is dimension-agnostic.
     eps = _RDP_EPS_MM if machine_units == "mm" else _RDP_EPS_MM / 25.4
     eps_sq = eps * eps
+    deg_to_unit = 1.0 if machine_units == "mm" else 1.0 / 25.4  # 1° ≙ 1 mm
     pre_feed = len(feed)
     pre_rapid = len(rapid)
+
+    def _rdp_points(xyz_list, abc_list):
+        pts = np.asarray(xyz_list, dtype=np.float64)
+        if has_rotary:
+            abc = np.asarray(abc_list, dtype=np.float64) * deg_to_unit
+            pts = np.hstack([pts, abc])
+        return pts
+
     if len(feed) > 2:
         # Anchor every index where the source line number changes — that
         # preserves at least one rendered point per source line so the
@@ -285,16 +322,18 @@ def parse(ctx: dict) -> dict:
         for i in range(1, len(feed_lines)):
             if feed_lines[i] != feed_lines[i - 1]:
                 anchors.append(i)
-        keep = _rdp_keep(np.asarray(feed, dtype=np.float64), anchors, eps_sq)
+        keep = _rdp_keep(_rdp_points(feed, feed_abc), anchors, eps_sq)
         if len(keep) < len(feed):
             feed = [feed[i] for i in keep]
             feed_lines = [feed_lines[i] for i in keep]
+            feed_abc = [feed_abc[i] for i in keep]
     if len(rapid) > 2:
-        keep = _rdp_keep(np.asarray(rapid, dtype=np.float64), [0, len(rapid) - 1], eps_sq)
+        keep = _rdp_keep(_rdp_points(rapid, rapid_abc), [0, len(rapid) - 1], eps_sq)
         if len(keep) < len(rapid):
             rapid = [rapid[i] for i in keep]
+            rapid_abc = [rapid_abc[i] for i in keep]
     print(
-        f"rdp feed {pre_feed}->{len(feed)} rapid {pre_rapid}->{len(rapid)} eps={eps:.5f}",
+        f"rdp feed {pre_feed}->{len(feed)} rapid {pre_rapid}->{len(rapid)} eps={eps:.5f} rotary={has_rotary}",
         file=sys.stderr, flush=True,
     )
 
@@ -401,10 +440,17 @@ def parse(ctx: dict) -> dict:
     # gateway publishes these bytes verbatim (no decode + re-encode), which is
     # what keeps the multi-MB polyline from ever becoming Python objects on the
     # event-loop process (mmw#4 GC pressure).
-    return {"file": filename, "feed": feed_bin, "feed_lines": feed_lines_bin,
-            "rapid": rapid_bin, "stats": stats, "bounds": bounds,
-            "motion_bounds": motion_bounds,
-            "parse_error": parse_error, "error_line": error_line}
+    result = {"file": filename, "feed": feed_bin, "feed_lines": feed_lines_bin,
+              "rapid": rapid_bin, "stats": stats, "bounds": bounds,
+              "motion_bounds": motion_bounds,
+              "parse_error": parse_error, "error_line": error_line}
+    if has_rotary:
+        # Per-vertex abc (degrees, raw program coords), index-aligned with
+        # feed/rapid. Present ONLY when a rotary axis actually sweeps — the
+        # frontend uses absence as "programmed preview is already exact".
+        result["feed_abc"] = np.asarray(feed_abc, dtype="<f4").tobytes() if feed_abc else b""
+        result["rapid_abc"] = np.asarray(rapid_abc, dtype="<f4").tobytes() if rapid_abc else b""
+    return result
 
 
 def main() -> None:

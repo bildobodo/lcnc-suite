@@ -36,10 +36,13 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     const feedLines = _toU32(g.feed_lines);
     const feedLineMap = _buildFeedLineMap(feedLines ?? g.feed_lines);
     const rapidDist = _lineDistances(rapidPos);  // dashed rapid line's lineDistance (P4.1)
+    // Rotary-aware preview: per-vertex abc, present only when a rotary sweeps.
+    const feedAbc = g.feed_abc != null ? _toF32(g.feed_abc) : undefined;
+    const rapidAbc = g.rapid_abc != null ? _toF32(g.rapid_abc) : undefined;
 
     // Drop the nested arrays from the passthrough; the flat typed arrays replace
     // them. Everything else (file, stats fields) is small and cloned as-is.
-    const { feed: _f, rapid: _r, feed_lines: _fl, ...rest } = g;
+    const { feed: _f, rapid: _r, feed_lines: _fl, feed_abc: _fa, rapid_abc: _ra, ...rest } = g;
 
     const transfer: Transferable[] = [
       feedPos.buffer as ArrayBuffer,
@@ -47,9 +50,11 @@ self.onmessage = async (e: MessageEvent<Req>) => {
       rapidDist.buffer as ArrayBuffer,
     ];
     if (feedLines) transfer.push(feedLines.buffer as ArrayBuffer);
+    if (feedAbc) transfer.push(feedAbc.buffer as ArrayBuffer);
+    if (rapidAbc) transfer.push(rapidAbc.buffer as ArrayBuffer);
 
     self.postMessage(
-      { version, gcode: { ...rest, feedPos, rapidPos, feed_lines: feedLines, feedLineMap, rapidDist } },
+      { version, gcode: { ...rest, feedPos, rapidPos, feed_lines: feedLines, feedLineMap, rapidDist, feedAbc, rapidAbc } },
       { transfer },
     );
   } catch (err) {
