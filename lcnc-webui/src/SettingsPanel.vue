@@ -9,12 +9,12 @@ import MachineSlider from "./MachineSlider.vue";
 import MachineRadio from "./MachineRadio.vue";
 import MachineColor from "./MachineColor.vue";
 import {
-  loadViewerDefaults, saveViewerDefaults,
+  loadViewerDefaults, saveViewerDefaults, viewerFallback,
   loadMachineDefaults, saveMachineDefaults,
   loadMacrosDefaults, saveMacrosDefaults, syncMacroParams,
   loadDisplayDefaults, saveDisplayDefaults, settingsVersion, serverSettingsReady,
   loadCameraDefaults, saveCameraDefaults,
-  type Layer, type ColorDefaults, type HudDefaults, type HudScale, HUD_FALLBACK,
+  type Layer, type ColorDefaults, type HudDefaults, type HudScale,
   type TrackMode, type Projection, type ToolChangeMode, type SpindleDir, type SpindleFeedbackUnit,
   type ThemeMode, type MacroDef, type GamepadDefaults,
   GAMEPAD_FALLBACK,
@@ -34,7 +34,7 @@ const themeMode = inject<Ref<ThemeMode>>("themeMode", ref("auto") as Ref<ThemeMo
 const setTheme = inject<(mode: ThemeMode) => void>("setTheme", () => {});
 const startFullscreen = ref(loadDisplayDefaults().startFullscreen);
 const keepAwake = ref(loadDisplayDefaults().keepAwake);
-const machineParts = inject<ComputedRef<Array<{ id: string; group: string | null; direction: string | null }>>>("machineParts", computed(() => []));
+const machineParts = inject<ComputedRef<Array<{ id: string; group: string | null; direction: string | null; color: [number, number, number] | null }>>>("machineParts", computed(() => []));
 const setMachinePartColor = inject<(id: string, color: string | null) => void>("setMachinePartColor", () => {});
 const setMachineEdges = inject<(on: boolean) => void>("setMachineEdges", () => {});
 const setToolColors = inject<(toolColor: string | null, cutterColor: string | null) => void>("setToolColors", () => {});
@@ -147,12 +147,8 @@ const resetLabels: Record<string, string> = {
 };
 
 function resetViewer() {
-  saveViewerDefaults({
-    layers: { backplot: true, toolpath: true, machine: true, bounds: true, toolpathBounds: false, workzero: true, hud: true, surface: true, tool: true },
-    colors: { feed: "#22b8cf", rapid: "#f5a623", backplot: "#ff00ff", bounds: "#ffffff", toolpathBounds: "#f5a623", tool: "#c0c0c0", cutter: "#ffdd00" },
-    machineColors: {}, machineEdges: true, trackingMode: "none", pathOnTop: false, projection: "parallel",
-    hud: { ...HUD_FALLBACK },
-  });
+  // Single source: the registered viewer fallback in defaults.ts.
+  saveViewerDefaults(viewerFallback());
   const vd = loadViewerDefaults();
   Object.assign(layers, vd.layers);
   Object.assign(colors, vd.colors);
@@ -272,6 +268,7 @@ const LAYER_LABELS: { key: Layer; label: string }[] = [
   { key: "toolpathBounds", label: "Toolpath Bounds" },
   { key: "bounds", label: "Machine Bounds" },
   { key: "machine", label: "Machine" },
+  { key: "tool", label: "Tool" },
   { key: "hud", label: "HUD" },
 ];
 
@@ -444,7 +441,12 @@ const colorFields: { key: keyof ColorDefaults; label: string }[] = [
 const DIR_DEFAULT_COLORS: Record<string, string> = { x: "#9b4a4a", y: "#4a8f5a", z: "#4a6f9b" };
 const FRAME_COLOR = "#bfbfbf";
 
-function defaultMachineColor(part: { direction: string | null }): string {
+function defaultMachineColor(part: { direction: string | null; color: [number, number, number] | null }): string {
+  // machine.json default color wins; then linear-axis color; then frame.
+  if (part.color) {
+    const hex = part.color.map(c => Math.round(Math.min(1, Math.max(0, c)) * 255).toString(16).padStart(2, "0")).join("");
+    return `#${hex}`;
+  }
   return (part.direction ? DIR_DEFAULT_COLORS[part.direction] : null) ?? FRAME_COLOR;
 }
 

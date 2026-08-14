@@ -1,0 +1,24 @@
+# Vismach 3D model viewer for the 5-axis sim (XYZAC trunnion mill).
+# Loads the xyzac-trt-gui model that ships with LinuxCNC (from the
+# sim/axis/vismach/5axis/table-rotary-tilting sample) and drives it from
+# joint feedback. Viewer only — kinematics stay trivkins XYZAC; none of
+# the sample's switchable-kins machinery is used.
+#
+# Requires an X display on the LinuxCNC host. If there is none,
+# `loadusr -W` fails and startup aborts loudly (no silent fallback).
+
+loadusr -W xyzac-trt-gui
+
+net vismach-table-x   joint.0.pos-fb => xyzac-trt-gui.table-x
+net vismach-saddle-y  joint.1.pos-fb => xyzac-trt-gui.saddle-y
+net vismach-spindle-z joint.2.pos-fb => xyzac-trt-gui.spindle-z
+net vismach-tilt-a    joint.3.pos-fb => xyzac-trt-gui.tilt-a
+net vismach-rotate-c  joint.4.pos-fb => xyzac-trt-gui.rotate-c
+
+# Show the active tool's length in the model
+net vismach-tool-offset motion.tooloffset.z => xyzac-trt-gui.tool-offset
+
+# A-pivot position relative to the C rotary — purely visual with trivkins;
+# same values as the shipped sample so the model proportions match.
+setp xyzac-trt-gui.y-offset 20
+setp xyzac-trt-gui.z-offset 10

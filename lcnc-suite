@@ -49,6 +49,7 @@ if [[ -n "$INI_FILE" ]]; then
   GC_FREEZE="${WEBUI_GC_FREEZE:-$(ini_get WEBUI_GC_FREEZE)}"
   TOKEN="${LCNC_WEBUI_TOKEN:-$(ini_get WEBUI_TOKEN)}"
   ALLOWED_ORIGINS="${LCNC_WEBUI_ALLOWED_ORIGINS:-$(ini_get WEBUI_ALLOWED_ORIGINS)}"
+  MACHINE_MODEL_DIR="${LCNC_WEBUI_MACHINE_DIR:-$(ini_get WEBUI_MACHINE_DIR)}"
 else
   HOST="${LCNC_WEBUI_HOST:-}"
   PORT="${LCNC_WEBUI_PORT:-}"
@@ -66,6 +67,7 @@ else
   GC_FREEZE="${WEBUI_GC_FREEZE:-}"
   TOKEN="${LCNC_WEBUI_TOKEN:-}"
   ALLOWED_ORIGINS="${LCNC_WEBUI_ALLOWED_ORIGINS:-}"
+  MACHINE_MODEL_DIR="${LCNC_WEBUI_MACHINE_DIR:-}"
 fi
 
 # Apply defaults
@@ -95,6 +97,11 @@ esac
 
 # Pass INI path if available
 [[ -n "$INI_FILE" ]] && export LCNC_INI_FILE="$INI_FILE"
+
+# Machine viewer-model dir override (optional — empty means gateway default
+# lcnc-gateway/machine/). The gateway expands ~ and shows an operator-visible
+# config warning if the dir has no loadable machine.json.
+[[ -n "$MACHINE_MODEL_DIR" ]] && export LCNC_WEBUI_MACHINE_DIR="$MACHINE_MODEL_DIR"
 
 # Camera (optional — empty means disabled)
 [[ -n "$CAM_SOURCE" ]] && export LCNC_CAMERA_SOURCE="$CAM_SOURCE"

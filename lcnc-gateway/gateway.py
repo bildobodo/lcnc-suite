@@ -197,7 +197,13 @@ logging.getLogger("uvicorn.access").addFilter(_UvicornAccessTelemetryFilter())
 # ---- Config ----
 POLL_HZ = 30  # status update rate
 BASE_DIR = Path(__file__).resolve().parent
-MACHINE_DIR = BASE_DIR / "machine"
+# Machine viewer-model dir (machine.json + STLs). Overridable per-config via
+# INI [DISPLAY] WEBUI_MACHINE_DIR (exported by the launcher) so e.g. the
+# 5-axis sim can ship its own model without touching the default one. A
+# missing/broken dir is NOT silent: _load_machine_config() already raises the
+# operator-visible config warning banner in that case.
+_machine_dir_env = os.environ.get("LCNC_WEBUI_MACHINE_DIR", "").strip()
+MACHINE_DIR = Path(_machine_dir_env).expanduser() if _machine_dir_env else BASE_DIR / "machine"
 
 # ---- Perf experiment flags (INI-sourced via lcnc-suite launcher) ----
 # WIRE_FORMAT defaults to msgpack: smaller payload than JSON, faster
@@ -3317,6 +3323,10 @@ def _load_machine_config() -> dict:
             with open(cfg_path) as f:
                 cfg = json.load(f)
             print(f"[VINIT] Loaded machine config: {cfg.get('name', '?')}", flush=True)
+            # A successful (re)load clears any earlier machine.json warning —
+            # the operator fixed the file; don't keep bannering the old state.
+            _config_warning_active = False
+            _config_warning_reason = ""
             return cfg
         except Exception as e:
             # Wrong geometry is an operator-visible degraded state, not a silent
@@ -3353,12 +3363,35 @@ def _load_machine_config() -> dict:
     }
 
 
+# machine.json is mtime-cached: edits (or the file appearing/disappearing)
+# are picked up on the next viewer_init build — no gateway restart needed.
+# The viewer_init cache key includes the mtime so stale payloads can't serve.
+_machine_cfg: Dict[str, Any] = {}
+_machine_cfg_mtime: Optional[float] = None
+
+
+def _machine_json_mtime() -> float:
+    try:
+        return (MACHINE_DIR / "machine.json").stat().st_mtime
+    except OSError:
+        return 0.0
+
+
+def get_machine_cfg() -> Dict[str, Any]:
+    """Current machine model config, reloading machine.json when its mtime changes."""
+    global _machine_cfg, _machine_cfg_mtime
+    mtime = _machine_json_mtime()
+    if _machine_cfg_mtime is None or mtime != _machine_cfg_mtime:
+        _machine_cfg = _load_machine_config()
+        _machine_cfg_mtime = mtime
+    return _machine_cfg
+
+
 _bt = time.monotonic()
-MACHINE_CFG = _load_machine_config()
 _trace.emit(
     "boot.machine_config",
     dt_ms=round((time.monotonic() - _bt) * 1000, 1),
-    name=MACHINE_CFG.get("name", "?"),
+    name=get_machine_cfg().get("name", "?"),
 )
 
 
@@ -3388,7 +3421,7 @@ def _axes_from_mask(mask: int) -> List[str]:
 _viewer_init_cache: Dict[Tuple, Dict[str, Any]] = {}
 
 
-def _viewer_init_cache_key(stl_base_url: str) -> Tuple:
+def _viewer_init_cache_key(stl_base_url: str, cfg: Dict[str, Any], cfg_mtime: float) -> Tuple:
     ini_filename = getattr(STAT, "ini_filename", None) if STAT else None
     if ini_filename and os.path.exists(ini_filename):
         try:
@@ -3400,7 +3433,7 @@ def _viewer_init_cache_key(stl_base_url: str) -> Tuple:
     stl_mtimes: Tuple[int, ...] = tuple(
         int((MACHINE_DIR / p["file"]).stat().st_mtime)
         if (MACHINE_DIR / p["file"]).exists() else 0
-        for p in MACHINE_CFG.get("parts", [])
+        for p in cfg.get("parts", [])
     )
     axis_mask = getattr(STAT, "axis_mask", 0) if STAT else 0
     max_v = safe_get("max_velocity", 0.0) or 0.0
@@ -3408,6 +3441,7 @@ def _viewer_init_cache_key(stl_base_url: str) -> Tuple:
         stl_base_url,
         ini_filename or "",
         ini_mtime,
+        cfg_mtime,
         int(axis_mask),
         round(float(max_v), 3),
         stl_mtimes,
@@ -3423,7 +3457,8 @@ def build_viewer_init(stl_base_url: str) -> Dict[str, Any]:
     operator edits the INI, swaps a machine STL, or changes max_velocity
     via the UI."""
     # Cache lookup. Misses fall through to the existing build below.
-    _cache_key = _viewer_init_cache_key(stl_base_url)
+    cfg = get_machine_cfg()
+    _cache_key = _viewer_init_cache_key(stl_base_url, cfg, _machine_cfg_mtime or 0.0)
     _cached = _viewer_init_cache.get(_cache_key)
     if _cached is not None:
         _trace.emit("viewer_init.cache_hit", dt_ms=0)
@@ -3462,13 +3497,16 @@ def build_viewer_init(stl_base_url: str) -> Dict[str, Any]:
 
     # Build parts with cache-busted filenames
     parts = []
-    for p in MACHINE_CFG.get("parts", []):
+    for p in cfg.get("parts", []):
         parts.append({
             "id": p["id"],
             "file": _stl_versioned(p["file"]),
             "group": p.get("group"),
             "translate": p.get("translate"),
             "rotate": p.get("rotate"),
+            # Optional default color [r,g,b] 0–1 from machine.json (STL has no
+            # color channel); user per-part overrides still win client-side.
+            "color": p.get("color"),
         })
 
     # INI/static fields — delivered once per connect so the per-tick status
@@ -3505,11 +3543,11 @@ def build_viewer_init(stl_base_url: str) -> Dict[str, Any]:
             "origin": bounds_origin,
             "size": bounds_size,
         },
-        "groups": MACHINE_CFG.get("groups", []),
+        "groups": cfg.get("groups", []),
         "parts": parts,
-        "kinematics": MACHINE_CFG.get("kinematics", []),
-        "workGroup": MACHINE_CFG.get("workGroup"),
-        "toolGroup": MACHINE_CFG.get("toolGroup"),
+        "kinematics": cfg.get("kinematics", []),
+        "workGroup": cfg.get("workGroup"),
+        "toolGroup": cfg.get("toolGroup"),
         "ini_config": ini_config,
     }
     _bvi_total = (time.monotonic() - _bvi_t0) * 1000

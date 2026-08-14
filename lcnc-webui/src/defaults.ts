@@ -229,6 +229,12 @@ export function loadViewerDefaults(): ViewerDefaults {
   return loadSection<ViewerDefaults>("viewer");
 }
 
+/** Fresh deep copy of the viewer fallback — the single source for "factory
+ *  state" (used by the Settings reset; never hand-duplicate the literal). */
+export function viewerFallback(): ViewerDefaults {
+  return JSON.parse(JSON.stringify(VIEWER_FALLBACK));
+}
+
 /** Save viewer defaults (typed convenience wrapper). */
 export function saveViewerDefaults(data: ViewerDefaults): void {
   saveSection("viewer", data);

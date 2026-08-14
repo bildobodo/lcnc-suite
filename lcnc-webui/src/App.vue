@@ -909,20 +909,26 @@ const jogIncrement = ref(0); // 0 = continuous, >0 = increment distance in machi
 const axes = computed<string[]>(() => viewerInit.value?.axes ?? []);
 
 // Machine STL parts list (for dynamic color pickers in Settings)
-const machineParts = computed<Array<{ id: string; group: string | null; direction: string | null }>>(() => {
+const machineParts = computed<Array<{ id: string; group: string | null; direction: string | null; color: [number, number, number] | null }>>(() => {
   const vi = viewerInit.value;
   if (!vi?.parts) return [];
-  // Build group → direction map from kinematics
+  // Build group → direction map from kinematics. Axis colors mark LINEAR
+  // axes (matches ThreeViewer's material mapping) — rotary groups excluded.
   const groupDir: Record<string, string> = {};
   const kin = vi.kinematics;
   if (Array.isArray(kin)) {
-    for (const k of kin) if (k.direction) groupDir[k.group] = k.direction;
+    for (const k of kin) if (k.direction && k.type !== "rotate") groupDir[k.group] = k.direction;
   } else if (kin && typeof kin === "object") {
     for (const key of Object.keys(kin)) groupDir[key] = key;
   }
   return vi.parts.map(p => {
     const grp = p.group ?? p.parent ?? null;
-    return { id: p.id, group: grp, direction: grp ? (groupDir[grp] ?? null) : null };
+    return {
+      id: p.id,
+      group: grp,
+      direction: grp ? (groupDir[grp] ?? null) : null,
+      color: (p.color as [number, number, number] | undefined) ?? null,
+    };
   });
 });
 

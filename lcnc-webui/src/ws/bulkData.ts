@@ -26,6 +26,9 @@ export interface ViewerPart {
   group?: string | null;
   translate?: Vec3;
   rotate?: Vec3;
+  // Optional default color [r,g,b] 0–1 from machine.json (STL carries no
+  // color); per-part user overrides in settings still win.
+  color?: Vec3;
   // Legacy field names kept for backward compatibility with older payloads.
   parent?: string | null;
   t?: Vec3;

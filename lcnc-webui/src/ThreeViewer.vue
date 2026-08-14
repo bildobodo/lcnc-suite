@@ -144,7 +144,10 @@ let workRotGroup: THREE.Group | null = null;  // rotated sub-group for stock/axe
 let _workGrp: THREE.Group | null = null;   // resolved from init.workGroup
 let _toolGrp: THREE.Group | null = null;   // resolved from init.toolGroup
 
-// Normalize kinematics: accept legacy object form or new array form
+// Normalize kinematics: accept legacy object form or new array form.
+// Wire form (KinEntry) is normalized once per init into runtime entries with a
+// precomputed unit axis vector, so the per-frame applyState loop is pure
+// arithmetic — no allocations, no string dispatch.
 type KinEntry = {
   group: string;
   joint: number;
@@ -153,29 +156,73 @@ type KinEntry = {
   axis?: [number, number, number];
   sign: number;
 };
-function normalizeKinematics(kin: ViewerInit["kinematics"]): KinEntry[] {
-  if (Array.isArray(kin)) return kin;
-  // Legacy object form: { x: { axis: 0, sign: -1 }, ... }
-  return Object.entries(kin).map(([key, v]) => ({
-    group: key,
-    joint: v.axis,
-    type: "translate" as const,
-    direction: key as "x" | "y" | "z",
-    sign: v.sign,
-  }));
+type KinRuntime = {
+  group: string;
+  joint: number;
+  rotate: boolean;
+  /** Unit DOF axis, from `axis` (arbitrary) or `direction` (cartesian). */
+  axisVec: THREE.Vector3;
+  /** Cartesian direction if the entry used one (drives axis-color mapping). */
+  direction: "x" | "y" | "z" | null;
+  sign: number;
+};
+const DIR_VECTORS: Record<"x" | "y" | "z", [number, number, number]> = {
+  x: [1, 0, 0], y: [0, 1, 0], z: [0, 0, 1],
+};
+function normalizeKinematics(kin: ViewerInit["kinematics"]): KinRuntime[] {
+  const entries: KinEntry[] = Array.isArray(kin)
+    ? kin
+    // Legacy object form: { x: { axis: 0, sign: -1 }, ... }
+    : Object.entries(kin).map(([key, v]) => ({
+        group: key,
+        joint: v.axis,
+        type: "translate" as const,
+        direction: key as "x" | "y" | "z",
+        sign: v.sign,
+      }));
+  const out: KinRuntime[] = [];
+  for (const k of entries) {
+    const a = k.axis ?? (k.direction ? DIR_VECTORS[k.direction] : null);
+    if (!a) {
+      // An entry with neither axis nor direction can't drive anything —
+      // surface it (captured by error.console telemetry) instead of a
+      // silently dead joint.
+      console.error(`[kinematics] entry for group "${k.group}" has no axis/direction — ignored`);
+      continue;
+    }
+    out.push({
+      group: k.group,
+      joint: k.joint,
+      rotate: k.type === "rotate",
+      axisVec: new THREE.Vector3(a[0], a[1], a[2]).normalize(),
+      direction: k.direction ?? null,
+      sign: k.sign ?? 1,
+    });
+  }
+  return out;
 }
 
-// applyState() runs per animate frame; the legacy object-form path above allocated
-// a fresh array every call (P4.3). init.kinematics is stable across frames, so cache
-// the normalized result by source identity and recompute only when init changes.
+// applyState() runs per animate frame; init.kinematics is stable across frames,
+// so cache the normalized result by source identity and recompute only when
+// init changes.
 let _kinCacheSrc: ViewerInit["kinematics"] | null = null;
-let _kinCacheVal: KinEntry[] = [];
-function normalizeKinematicsCached(kin: ViewerInit["kinematics"]): KinEntry[] {
+let _kinCacheVal: KinRuntime[] = [];
+function normalizeKinematicsCached(kin: ViewerInit["kinematics"]): KinRuntime[] {
   if (kin === _kinCacheSrc) return _kinCacheVal;
   _kinCacheSrc = kin;
   _kinCacheVal = normalizeKinematics(kin);
   return _kinCacheVal;
 }
+
+// Static base position per group (the machine.json `translate`, unit-scaled),
+// captured at scene build. applyState resets driven groups to these bases and
+// composes DOFs on top, so a group can carry a static pivot offset AND any
+// number of translate/rotate DOFs without them overwriting each other.
+let _groupBase: Record<string, THREE.Vector3> = {};
+const _toolBase = new THREE.Vector3();
+// Reusable scratch — applyState is on the rAF hot path, keep it allocation-free.
+const _kinQuat = new THREE.Quaternion();
+const _tofsVec = new THREE.Vector3();
 
 // Visual objects
 let toolMarker: THREE.Group | null = null;
@@ -763,9 +810,16 @@ function ensureCoreGroups(init: ViewerInit) {
     (parent ?? groups.root).add(groups[g.id]!);
   }
 
+  // Capture each group's static base position (unit-scaled translate).
+  // applyState resets kinematics-driven groups to these and composes DOFs on
+  // top — static pivots survive translate DOFs on the same axis.
+  _groupBase = {};
+  for (const [id, g] of Object.entries(groups)) _groupBase[id] = g.position.clone();
+
   // Resolve work/tool group references
   _workGrp = groups[init.workGroup ?? grpDefs[0]?.id ?? "root"] ?? groups.root;
   _toolGrp = groups[init.toolGroup ?? "tool"] ?? groups.root;
+  _toolBase.copy(_toolGrp.position);
 
   // Work origin (DRO zero frame) — attached to the work/table group
   workOrigin = new THREE.Group();
@@ -928,15 +982,18 @@ async function buildFromInit(init: ViewerInit) {
     await loadMachineAssets(init);
     if (myToken !== buildToken) return;
 
-    // Build group → material map from kinematics direction
+    // Build group → material map from kinematics direction. Axis colors mark
+    // LINEAR axes; rotary groups keep the frame material (machine.json part
+    // colors are the intended way to distinguish rotary assemblies).
     const kinEntries = normalizeKinematicsCached(init.kinematics);
     const dirMat: Record<string, THREE.MeshStandardMaterial> = { x: MAT.axisX, y: MAT.axisY, z: MAT.axisZ };
     const groupMat: Record<string, THREE.MeshStandardMaterial> = {};
     _groupDirMap = {};
     _partGroupMap = {};
     for (const k of kinEntries) {
-      groupMat[k.group] = (k.direction ? dirMat[k.direction] : null) ?? MAT.frame;
-      _groupDirMap[k.group] = k.direction ?? null;
+      const lindir = !k.rotate ? k.direction : null;
+      groupMat[k.group] = (lindir ? dirMat[lindir] : null) ?? MAT.frame;
+      _groupDirMap[k.group] = lindir;
     }
 
     const parts = init.parts ?? [];
@@ -948,9 +1005,10 @@ async function buildFromInit(init: ViewerInit) {
       _partGroupMap[p.id] = grp;
       let mat: THREE.MeshStandardMaterial = (grp ? groupMat[grp] : null) ?? MAT.frame;
 
-      // Per-part color override from settings
+      // Per-part color override from settings; falls back to the optional
+      // machine.json default color ([r,g,b] 0–1) when no override is set.
       const customColor = viewerDefaults.machineColors[p.id];
-      if (customColor) {
+      if (customColor || p.color) {
         mat = mat.clone();
         // clone() deep-copies userData, so this inherited the shared MAT.*'s
         // _shared=true — clear it: this is a PRIVATE per-part clone that
@@ -959,7 +1017,8 @@ async function buildFromInit(init: ViewerInit) {
         // Tag like setMachinePartColor's clones so its revert/reuse paths
         // treat this clone identically (null → revert to default colour).
         mat.userData._clonedFor = p.id;
-        mat.color.set(customColor);
+        if (customColor) mat.color.set(customColor);
+        else mat.color.setRGB(p.color![0], p.color![1], p.color![2], THREE.SRGBColorSpace);
       }
 
       const mesh = new THREE.Mesh(geom, mat);
@@ -1080,34 +1139,43 @@ function applyState(init: ViewerInit, st: ViewerState) {
   const kinEntries = normalizeKinematicsCached(init.kinematics);
   const ax = (idx: number) => (idx >= 0 && idx < jp.length ? jp[idx]! : 0);
 
-  // Apply kinematics: each entry drives a group's position or rotation
+  // Apply kinematics in three phases so transforms COMPOSE instead of
+  // overwrite — a group may carry a static pivot translate plus any number of
+  // translate/rotate DOFs (compound slides, trunnions), in any machine layout.
+  //
+  // Phase 1 — reset every driven group (and the tool group, which phase 3
+  // composes onto) to its static base from machine.json.
+  _toolGrp.position.copy(_toolBase);
   for (const k of kinEntries) {
     const g = groups[k.group];
     if (!g) continue;
-    const val = ax(k.joint) * (k.sign ?? 1);
-    if (k.type === "rotate") {
-      const rad = THREE.MathUtils.degToRad(val);
-      if (k.axis) {
-        // Arbitrary rotation axis (Phase 2: nutating spindles, etc.)
-        const axisVec = new THREE.Vector3(...k.axis).normalize();
-        g.quaternion.setFromAxisAngle(axisVec, rad);
-      } else if (k.direction) {
-        // Standard rotation around cartesian axis (A/B/C)
-        g.rotation[k.direction] = rad;
-      }
+    const base = _groupBase[k.group];
+    if (base) g.position.copy(base);
+    else g.position.set(0, 0, 0);
+    g.quaternion.identity();
+  }
+
+  // Phase 2 — compose DOFs in machine.json order: translations accumulate
+  // along their (precomputed unit) axes, rotations right-multiply, so multiple
+  // entries per group are well-defined.
+  for (const k of kinEntries) {
+    const g = groups[k.group];
+    if (!g) continue;
+    const val = ax(k.joint) * k.sign;
+    if (k.rotate) {
+      _kinQuat.setFromAxisAngle(k.axisVec, THREE.MathUtils.degToRad(val));
+      g.quaternion.multiply(_kinQuat);
     } else {
-      // Translation (default)
-      if (k.direction) g.position[k.direction] = val;
+      g.position.addScaledVector(k.axisVec, val);
     }
   }
 
-  // Tool spatial compensation:
-  // Put the tool TIP at TCP by moving the tool group by -tool_offset relative to spindle nose.
+  // Phase 3 — tool spatial compensation: put the tool TIP at TCP by shifting
+  // the tool group by -tool_offset relative to its (base or DOF-composed)
+  // position.
   const tofs = st.tool_offset;
   if (tofs && tofs.length >= 3) {
-    _toolGrp.position.set(-(tofs[0] ?? 0), -(tofs[1] ?? 0), -(tofs[2] ?? 0));
-  } else {
-    _toolGrp.position.set(0, 0, 0);
+    _toolGrp.position.sub(_tofsVec.set(tofs[0] ?? 0, tofs[1] ?? 0, tofs[2] ?? 0));
   }
 
   // Work origin offset: place DRO/work zero in machine space.
@@ -1648,6 +1716,8 @@ function setMachinePartColor(partId: string, color: string | null) {
   const grp = _partGroupMap[partId];
   const dir = grp ? _groupDirMap[grp] : null;
   const defaultHex = (dir ? dirColorMap[dir] : null) ?? 0xbfbfbf;
+  // machine.json default color (if any) beats the direction-derived fallback
+  const partColor = viewerInit.value?.parts?.find((p) => p.id === partId)?.color;
 
   for (const mesh of machineMeshes) {
     if (mesh.userData.partId !== partId) continue;
@@ -1671,7 +1741,8 @@ function setMachinePartColor(partId: string, color: string | null) {
         mat.color.set(color);
       }
     } else if (mat.userData._clonedFor) {
-      mat.color.setHex(defaultHex);
+      if (partColor) mat.color.setRGB(partColor[0], partColor[1], partColor[2], THREE.SRGBColorSpace);
+      else mat.color.setHex(defaultHex);
     }
   }
   // Sync edge line colors
@@ -1679,6 +1750,10 @@ function setMachinePartColor(partId: string, color: string | null) {
     if (edge.userData.partId !== partId) continue;
     (edge.material as THREE.LineBasicMaterial).color.set(color ?? defaultHex);
   }
+  // Render-on-demand: an idle machine produces no status-diff renders, so the
+  // color change must request its own frame or it stays invisible until the
+  // camera moves.
+  requestRender();
 }
 
 /** Build edge lines off-thread via Web Worker to avoid blocking the UI. */
