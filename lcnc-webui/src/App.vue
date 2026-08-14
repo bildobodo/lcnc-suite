@@ -390,6 +390,8 @@ const gcodeStats = ref<GcodeStats | null>(null);
 // (no INI limits, or no program) — distinct from [] = checked clean.
 const gcodeViolations = ref<LimitViolation[] | null>(null);
 const gcodeViolationsTotal = ref(0);
+// Source line at the viewer's scrub position (null = not scrubbing).
+const scrubLine = ref<number | null>(null);
 
 // Donut chart (distance breakdown) lives in StatsDonut.vue.
 
@@ -1386,6 +1388,7 @@ watch(viewerGcode, (newGcode) => {
           :compGrid="compGrid"
           :axes="axes"
           @open-settings="openSettingsTab"
+          @scrub-line="scrubLine = $event"
         />
       </div>
 
@@ -1401,6 +1404,7 @@ watch(viewerGcode, (newGcode) => {
               :violations="gcodeViolations"
               :violationsTotal="gcodeViolationsTotal"
               :currentLine="currentLine"
+              :scrubLine="scrubLine"
               :isPaused="isPaused"
               :elapsed="elapsedDisplay"
               :optionalStop="optionalStopOn"

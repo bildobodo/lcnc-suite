@@ -42,6 +42,9 @@ const props = defineProps<{
   violations: LimitViolation[] | null;
   violationsTotal: number;
   currentLine: number | null;
+  // Source line at the viewer's scrub position (offline dry run stage 2).
+  // Highlights + auto-scrolls like the run highlight; null = not scrubbing.
+  scrubLine?: number | null;
   isPaused: boolean;
   elapsed: string;
   optionalStop: boolean;
@@ -244,6 +247,9 @@ function scrollToLine(line: number) {
 }
 watch(() => props.currentLine, (newLine) => {
   if (newLine != null) scrollToLine(newLine);
+});
+watch(() => props.scrubLine, (newLine) => {
+  if (newLine != null && !editing.value) scrollToLine(newLine);
 });
 
 /** ---------- Soft-limit violations (offline dry run stage 1) ---------- */
@@ -721,7 +727,7 @@ async function saveEdit() {
                  v-for="item in visibleLines"
                  :key="item.lineNum"
                  :class="{
-                   active: currentLine === item.lineNum,
+                   active: currentLine === item.lineNum || scrubLine === item.lineNum,
                    selected: selectedLine === item.lineNum,
                    selectable: runFromLine && gcodeContent,
                    violation: violationsByLine.has(item.lineNum)

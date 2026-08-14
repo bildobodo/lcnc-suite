@@ -25,6 +25,7 @@ import type { ViewerCtx } from "./viewer/viewerContext";
 import ViewCube from "./ViewCube.vue";
 import MachineBtn from "./MachineBtn.vue";
 import CameraPip from "./CameraPip.vue";
+import ScrubBar from "./ScrubBar.vue";
 import { Camera, Settings } from "lucide-vue-next";
 
 const themeMode = inject<Ref<string>>("themeMode", ref("auto"));
@@ -102,6 +103,9 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: "open-settings", tab: string): void;
+  // Source line at the current scrub position (null = not scrubbing) — App
+  // forwards it to GcodePanel for the code-view highlight.
+  (e: "scrub-line", line: number | null): void;
 }>();
 
 // HUD data (read from status for template)
@@ -1081,9 +1085,19 @@ function applyState(init: ViewerInit, st: ViewerState) {
   if (!jp) return;
 
   if (!_workGrp || !_toolGrp) return;
+  _lastState = st;
 
   const kinEntries = normalizeKinematicsCached(init.kinematics);
-  const ax = (idx: number) => (idx >= 0 && idx < jp.length ? jp[idx]! : 0);
+  // Scrub pose override: a non-null scrub value substitutes for the live
+  // joint; null entries (UVW) and out-of-range indices fall back to live.
+  const sj = _scrubJoints;
+  const ax = (idx: number) => {
+    if (sj && idx >= 0 && idx < sj.length) {
+      const v = sj[idx];
+      if (v != null) return v;
+    }
+    return idx >= 0 && idx < jp.length ? jp[idx]! : 0;
+  };
 
   // Apply kinematics in three phases so transforms COMPOSE instead of
   // overwrite — a group may carry a static pivot translate plus any number of
@@ -1195,7 +1209,9 @@ function applyState(init: ViewerInit, st: ViewerState) {
 
   // Append the actual rendered tool tip position, expressed in work group local space.
   // This guarantees the backplot starts exactly at the tooltip (independent of joint_pos vs machine_pos nuances).
-  if (toolMarker && _workGrp) {
+  // Never while scrubbing — the scrub pose is display-only and must not
+  // fabricate machine motion history in the backplot.
+  if (toolMarker && _workGrp && !_scrubJoints) {
     toolMarker.getWorldPosition(_bpWorld);
     // worldToLocal mutates its argument in place, so convert a copy.
     _bpLocal.copy(_bpWorld);
@@ -1204,7 +1220,9 @@ function applyState(init: ViewerInit, st: ViewerState) {
   }
 
   // ---- Highlight current motion line in toolpath ----
-  toolpath.setHighlight(curLine);
+  // While scrubbing, the scrub position's source line replaces the (idle)
+  // live motion line so the toolpath highlight tracks the slider.
+  toolpath.setHighlight(_scrubJoints ? _scrubLineNo : curLine);
 
   // Render-on-demand: detect whether anything visually changed since the last
   // applied state. Status broadcasts arrive at ~30 Hz; without this diff we'd
@@ -1384,6 +1402,25 @@ function resize() {
 }
 
 let pendingState: any = null;
+
+// ---- Program scrub (offline dry run, stage 2) ----
+// ScrubBar (hosted in this component's overlay) emits per-JOINT machine
+// values; applyState substitutes them for live joint_pos so the pose runs
+// through the exact same compose path as live motion — no second kinematics
+// implementation. null entries (UVW/unknown letters) keep the live joint.
+let _scrubJoints: (number | null)[] | null = null;
+let _scrubLineNo: number | null = null;
+// Last full status applied — requeued when the scrub pose changes so the
+// model re-poses immediately instead of waiting for the next status tick.
+let _lastState: ViewerState | null = null;
+
+function onScrubPose(joints: (number | null)[] | null, line: number | null) {
+  _scrubJoints = joints;
+  _scrubLineNo = joints ? line : null;
+  emit("scrub-line", _scrubLineNo);
+  if (_lastState && !pendingState) pendingState = _lastState;
+  requestRender();
+}
 let _needsReframe = false;
 let _iniBox: THREE.Box3 | null = null;
 
@@ -2031,6 +2068,9 @@ defineExpose({
 
     <!-- Camera PIP overlay -->
     <CameraPip :visible="pipVisible" @close="closePip" />
+
+    <!-- Program-scrub timeline (offline dry run stage 2) -->
+    <ScrubBar @pose="onScrubPose" />
 
     <!-- STL load failure chip (bottom-left, never blocks render) -->
     <div v-if="failedParts.length" class="stlFailedChip" :title="failedParts.join(', ')">
