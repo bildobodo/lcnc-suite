@@ -5,6 +5,7 @@ import { usePermissions } from "./permissions";
 import { loadMachineDefaults, saveMachineDefaults, STEP_RPM } from "./defaults";
 import { scanToolchangesBefore, scanEntryPositionBefore, type RflToolchangeScan, type RflEntryScan, type RflRunOptions } from "./gcodeRfl";
 import { highlightGcode, type Token } from "./gcodeHighlight";
+import type { LimitViolation } from "./ws/bulkData";
 import { isTouchDevice } from "./touchDetect";
 import { emitTelemetry } from "./lcncWs";
 import { GCODE_LOOKUP, GCODE_REFERENCE } from "./gcodeReference";
@@ -36,6 +37,10 @@ const props = defineProps<{
   activeFile: string | null;
   gcodeContent: string | null;
   gcodeStats: GcodeStats | null;
+  // Soft-limit violations from the parse worker (null = unchecked — the INI
+  // had no limits, or no program is loaded; [] = checked clean).
+  violations: LimitViolation[] | null;
+  violationsTotal: number;
   currentLine: number | null;
   isPaused: boolean;
   elapsed: string;
@@ -232,12 +237,54 @@ function onCodeScroll(ev: Event) {
 
 // Scroll to current line (mathematical — no DOM search). Target is computed in
 // content space, then mapped to scrollbar space (identity at scale 1).
+function scrollToLine(line: number) {
+  if (!codeViewerRef.value) return;
+  const targetY = (line - 1) * LINE_HEIGHT.value - codeViewerRef.value.clientHeight / 2 + LINE_HEIGHT.value / 2;
+  codeViewerRef.value.scrollTop = Math.max(0, _contentToScroll(targetY));
+}
 watch(() => props.currentLine, (newLine) => {
-  if (newLine != null && codeViewerRef.value) {
-    const targetY = (newLine - 1) * LINE_HEIGHT.value - codeViewerRef.value.clientHeight / 2 + LINE_HEIGHT.value / 2;
-    codeViewerRef.value.scrollTop = Math.max(0, _contentToScroll(targetY));
-  }
+  if (newLine != null) scrollToLine(newLine);
 });
+
+/** ---------- Soft-limit violations (offline dry run stage 1) ---------- */
+const violationsByLine = computed(() => {
+  const m = new Map<number, LimitViolation[]>();
+  for (const v of props.violations ?? []) {
+    const arr = m.get(v.line);
+    if (arr) arr.push(v);
+    else m.set(v.line, [v]);
+  }
+  return m;
+});
+
+function violationText(v: LimitViolation): string {
+  const unit = "ABC".includes(v.axis) ? "°" : ` ${props.gcodeStats?.unit ?? "mm"}`;
+  return v.kind === "min"
+    ? `${v.axis} ${v.value}${unit} < min ${v.limit}${unit}`
+    : `${v.axis} ${v.value}${unit} > max ${v.limit}${unit}`;
+}
+
+const violationSummary = computed(() => {
+  const total = props.violationsTotal;
+  const shown = props.violations?.length ?? 0;
+  if (!total) return "";
+  const s = `${total} soft-limit violation${total === 1 ? "" : "s"}`;
+  return total > shown ? `${s} (first ${shown} listed)` : s;
+});
+
+// Banner button cycles through the violation list; index resets on re-parse.
+const violationIdx = ref(0);
+watch(() => props.violations, () => { violationIdx.value = 0; });
+const nextViolation = computed(() => {
+  const list = props.violations ?? [];
+  return list.length ? list[violationIdx.value % list.length]! : null;
+});
+function jumpToViolation() {
+  const v = nextViolation.value;
+  if (!v) return;
+  scrollToLine(v.line);
+  violationIdx.value++;
+}
 
 /** ---------- File browser ---------- */
 const showBrowser = ref(false);
@@ -609,6 +656,14 @@ async function saveEdit() {
         <MachineBtn type="close" @click="uploadError = null">&times;</MachineBtn>
     </div>
 
+    <!-- Soft-limit violation banner (not dismissible — it names real overtravel) -->
+    <div v-if="gcodeContent && violations && violations.length" class="errorBanner warnTone">
+        <span>{{ violationSummary }}</span>
+        <MachineBtn v-if="nextViolation" type="inline" @click="jumpToViolation">
+          Line {{ nextViolation.line }}: {{ violationText(nextViolation) }} &rarr;
+        </MachineBtn>
+    </div>
+
     <!-- File browser (collapsible) -->
     <Gate v-if="showBrowser" gate="setup" class="fileBrowser">
         <div class="browserHeader">
@@ -668,8 +723,10 @@ async function saveEdit() {
                  :class="{
                    active: currentLine === item.lineNum,
                    selected: selectedLine === item.lineNum,
-                   selectable: runFromLine && gcodeContent
+                   selectable: runFromLine && gcodeContent,
+                   violation: violationsByLine.has(item.lineNum)
                  }"
+                 :title="violationsByLine.get(item.lineNum)?.map(violationText).join('; ')"
                  @click="onLineClick(item.lineNum)">
               <span class="lineNumber">{{ item.lineNum }}</span>
               <span class="lineContent">
@@ -891,6 +948,14 @@ async function saveEdit() {
   border-radius: var(--radius-lg);
   font-size: var(--fs-base);
   color: var(--danger);
+}
+
+/* Warn-tier banner (soft-limit violations): same chrome as .errorBanner
+   with the semantic color swapped to --warn. */
+.errorBanner.warnTone {
+  background: color-mix(in oklab, var(--warn) 15%, var(--panel));
+  border-color: color-mix(in srgb, var(--warn) 25%, transparent);
+  color: var(--warn);
 }
 
 /* File browser */

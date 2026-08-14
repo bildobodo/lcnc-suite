@@ -29,6 +29,11 @@ Result shape (msgpack dict):
   bounds:      { min: [x,y,z], max: [x,y,z] }  or None — cut envelope
                (X/Y over feed+rapid, Z over feed only)
   motion_bounds: same shape or None — full feed+rapid envelope (overflow)
+  violations:  [{line, axis, value, limit, kind}, ...] per-line soft-limit
+               overtravels (all axes incl. rotary, joint-side w/ TLO), capped
+               at 200 — or None when the INI has no MIN/MAX_LIMIT to check
+               against (unchecked ≠ clean)
+  violations_total: distinct (line, axis) violation count before the cap
 """
 
 import math
@@ -49,10 +54,11 @@ _trace.init("gcode_parse_worker")
 # Ensure local-dir imports resolve when invoked from anywhere
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from gcode_canon import PreviewCanon, apply_var_patches
-from gateway_util import scan_tool_stats
+from gateway_util import scan_tool_stats, read_axis_limits, check_limit_violations
 
 
 _EMPTY = {"feed": [], "feed_lines": [], "rapid": [], "stats": None,
+          "violations": None, "violations_total": 0,
           "parse_error": None, "error_line": None}
 
 # RDP decimation tolerance in machine units (mm or in — caller passes the
@@ -191,6 +197,29 @@ def parse(ctx: dict) -> dict:
     oa = canon.g5x_offset_a + canon.g92_offset_a
     ob = canon.g5x_offset_b + canon.g92_offset_b
     oc = canon.g5x_offset_c + canon.g92_offset_c
+    # Per-line soft-limit validation (offline dry run stage 1). Runs on the
+    # FULL canon segment list — the RDP decimation below can shave up to eps
+    # off an extreme excursion, so post-RDP data is not trustworthy for
+    # limits. Canon ends are machine-frame (g5x+g92+rotation applied at
+    # parse time): exactly the frame soft limits act in. Touch-off after
+    # load shifts that frame — the annotations refresh on the next re-parse.
+    axis_limits = read_axis_limits(ini.find, s.axis_mask)
+    if axis_limits:
+        def _limit_segs():
+            for _lineno, _start, _end, _rate, _tlo in canon.feed:
+                yield _lineno, _start, _end, _tlo
+            for _lineno, _start, _end, _tlo in canon.rapid:
+                yield _lineno, _start, _end, _tlo
+        violations, violations_total = check_limit_violations(
+            _limit_segs(), axis_limits, unit_scale)
+        print(f"limits axes={''.join(sorted(axis_limits))} violations={violations_total}",
+              file=sys.stderr, flush=True)
+    else:
+        # No MIN/MAX_LIMIT anywhere in the INI: unchecked, NOT clean — None
+        # (not []) so the UI can say "not validated" instead of implying a pass.
+        violations, violations_total = None, 0
+        print("limits UNCHECKED — no MIN/MAX_LIMIT in INI", file=sys.stderr, flush=True)
+
     theta = canon.rotation_xy or 0.0
     if theta:
         rad = math.radians(theta)
@@ -443,6 +472,7 @@ def parse(ctx: dict) -> dict:
     result = {"file": filename, "feed": feed_bin, "feed_lines": feed_lines_bin,
               "rapid": rapid_bin, "stats": stats, "bounds": bounds,
               "motion_bounds": motion_bounds,
+              "violations": violations, "violations_total": violations_total,
               "parse_error": parse_error, "error_line": error_line}
     if has_rotary:
         # Per-vertex abc (degrees, raw program coords), index-aligned with

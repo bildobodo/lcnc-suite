@@ -27,6 +27,7 @@ import MachineInput from "./MachineInput.vue";
 import { highlightGcode } from "./gcodeHighlight";
 import { fmtElapsed, fmtDuration, fmtDist, fmtSize } from "./format";
 import type { GcodeStats } from "./GcodePanel.vue";
+import type { LimitViolation } from "./ws/bulkData";
 import { Settings, MessageSquare, PowerOff, Gamepad2, Keyboard, BookOpen, ClipboardCopy, Expand, Shrink } from "lucide-vue-next";
 import GcodeReferenceDialog from "./GcodeReferenceDialog.vue";
 import NumberKeypadStrip from "./NumberKeypadStrip.vue";
@@ -385,6 +386,10 @@ const viewerProjection = ref<Projection>(_vd.projection);
 
 // G-code viewer — gcodeContent is fetched via HTTP by lcncWs on viewer_gcode
 const gcodeStats = ref<GcodeStats | null>(null);
+// Per-line soft-limit violations from the parse worker. null = unchecked
+// (no INI limits, or no program) — distinct from [] = checked clean.
+const gcodeViolations = ref<LimitViolation[] | null>(null);
+const gcodeViolationsTotal = ref(0);
 
 // Donut chart (distance breakdown) lives in StatsDonut.vue.
 
@@ -1275,6 +1280,8 @@ watch(lastReply, (r: any) => {
 // track the stats payload that still rides inside the viewer_gcode frame.
 watch(viewerGcode, (newGcode) => {
   gcodeStats.value = newGcode?.stats ?? null;
+  gcodeViolations.value = newGcode?.violations ?? null;
+  gcodeViolationsTotal.value = newGcode?.violations_total ?? 0;
 });
 
 
@@ -1391,6 +1398,8 @@ watch(viewerGcode, (newGcode) => {
               :activeFile="activeFile"
               :gcodeContent="gcodeContent"
               :gcodeStats="gcodeStats"
+              :violations="gcodeViolations"
+              :violationsTotal="gcodeViolationsTotal"
               :currentLine="currentLine"
               :isPaused="isPaused"
               :elapsed="elapsedDisplay"
@@ -1576,6 +1585,13 @@ watch(viewerGcode, (newGcode) => {
                   <span class="statsValue mono">{{ gcodeStats.feedRates.length ? gcodeStats.feedRates.join(', ') : '-' }}</span>
                   <span class="statsLabel">File size</span>
                   <span class="statsValue mono">{{ fmtSize(gcodeStats.fileSize) }}</span>
+                  <span class="statsLabel">Soft limits</span>
+                  <span class="statsValue val-status"
+                        :class="gcodeViolations === null ? 'muted' : (gcodeViolationsTotal ? 'warn' : 'ok')">
+                    {{ gcodeViolations === null ? 'Not validated (no INI limits)'
+                       : gcodeViolationsTotal ? gcodeViolationsTotal + ' violation' + (gcodeViolationsTotal === 1 ? '' : 's')
+                       : 'OK' }}
+                  </span>
                 </div>
               </div>
             </div>
