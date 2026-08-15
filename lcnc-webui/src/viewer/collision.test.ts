@@ -125,12 +125,15 @@ describe("sweepCollisions", () => {
     expect(r.hits[0]!.rapid).toBe(true);
   });
 
-  it("stays silent on a clear traverse", () => {
+  it("stays silent on a clear traverse — with big advancement strides", () => {
     const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
     const r = sweepCollisions(model, track(
       [[-100, 0, 0], [100, 0, 0]]), WCS0, { margin: 2 });
     expect(r.hits).toHaveLength(0);
-    expect(r.samples).toBeGreaterThan(10);  // linear subdivision actually ran
+    // Conservative advancement: distance-driven steps stride through clear
+    // space — far fewer samples than the old fixed 5 mm grid (200/5 = 40).
+    expect(r.samples).toBeGreaterThan(1);
+    expect(r.samples).toBeLessThan(30);
   });
 
   it("applies the live WCS offset to the pose", () => {
@@ -204,6 +207,53 @@ describe("sweepCollisions", () => {
     expect(r.hits.every(h => [h.a, h.b].sort().join("/") !== "drawbar/spindle")).toBe(true);
     // … while the genuine plunge hit is still attributed normally.
     expect(r.hits.some(h => [h.a, h.b].sort().join("/") === "spindle/vise")).toBe(true);
+  });
+
+  it("catches a graze narrower than the old fixed sample step", () => {
+    // 1 mm head cube passes a 1 mm plate offset 1.0 mm laterally: the
+    // below-margin window is ~2 mm of path — the old 5 mm grid (43/9 ≈
+    // 4.78 mm samples at Z ≈ -38.2 and -43) straddled it and reported
+    // clear. Conservative advancement must find it.
+    const bodies: CollisionBody[] = [
+      { id: "plate", group: "table", positions: boxPositions(1), translate: [2, 0, 10] },
+      { id: "probe", group: "head", positions: boxPositions(1) },
+    ];
+    const model = buildCollisionModel(PLUNGE, bodies);
+    const r = sweepCollisions(model, track(
+      [[0, 0, 0], [0, 0, -43]], undefined, [7, 8]), WCS0, { margin: 2 });
+    const graze = r.hits.find(h => [h.a, h.b].sort().join("/") === "plate/probe");
+    expect(graze).toBeTruthy();
+    expect(graze!.dist).toBeLessThanOrEqual(2);
+  });
+
+  it("adversarial rotary lever: catches a narrow-angle clash at large radius", () => {
+    // Pillar at radius 100 sweeping 180°; a small post sits on its circle.
+    // The below-margin window is only ~2.3° — under the old fixed 4° rotary
+    // step this could fall between samples. The lever-based bound must
+    // shrink steps near the post regardless of the radius.
+    const rotary: CollisionMachine = {
+      groups: [
+        { id: "platter", parent: "root" },
+        { id: "frame", parent: "root" },
+      ],
+      kinematics: [{ group: "platter", joint: 0, type: "rotate", direction: "z", sign: 1 }],
+      workGroup: "platter",
+      toolGroup: "frame",
+      unitScale: 1,
+      axes: ["C"],
+    };
+    const bodies: CollisionBody[] = [
+      { id: "pillar", group: "platter", positions: boxPositions(2), translate: [100, 0, 0] },
+      { id: "post", group: "frame", positions: boxPositions(2), translate: [0, 100, 0] },
+    ];
+    const model = buildCollisionModel(rotary, bodies);
+    const r = sweepCollisions(model, track(
+      [[0, 0, 0], [0, 0, 0]], [[0, 0, 0], [0, 0, 180]], [3, 4]), WCS0, { margin: 1 });
+    expect(r.hits).toHaveLength(1);
+    expect(r.hits[0]!.dist).toBeLessThanOrEqual(1);
+    // First contact ≈ 90° minus the small angular half-width of the boxes.
+    expect(r.hits[0]!.cum).toBeGreaterThan(85);
+    expect(r.hits[0]!.cum).toBeLessThan(91);
   });
 
   it("detects collisions with root-attached static frame bodies", () => {

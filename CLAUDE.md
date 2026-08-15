@@ -383,9 +383,16 @@ fully collidable; everything moves relative to the frame — + a
 parametric tool cylinder (the DISPLAYED marker dims — tip at origin,
 +Z), three-mesh-bvh
 `closestPointToGeometry` with margin early-out behind a bounding-sphere
-prescreen, linear (5 mm) + rotary (4°) subdivision so plunges and sweeps
-can't fly through bodies between endpoints, sample budget 60k (steps
-COARSEN to fit — result says `coarsened`, never silently truncates).
+prescreen, and CONSERVATIVE ADVANCEMENT stepping: every distance query
+certifies the pair can't reach the margin within (d − margin)/V of track
+parameter (V = provably conservative relative-speed bound from the
+pair's connecting DOFs — translations exact, rotations × endpoint levers
+with ×2 inflation, ≤22.5° chunks); pairs re-query only on certificate
+expiry. Guarantee: no margin crossing wider than 0.25 units of path is
+missed — clear programs stride in a handful of samples (adversarial
+tests: a 2 mm graze and a 2.3°-window large-radius rotary clash that
+fixed 5 mm/4° sampling provably missed). Sample budget 60k remains as a
+safety net (degrades to fixed explore steps, result says `coarsened`).
 Attribution: worst hit per (line, pair); penetrating hits are REFINED to
 first contact (walk back to the last clear parameter + bisect, ~30 pair
 probes per hit) so scrub-to-hit poses the model at first touch, never a

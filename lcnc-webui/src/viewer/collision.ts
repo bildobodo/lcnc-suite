@@ -7,14 +7,19 @@
 // only: machine.json STL bodies plus a parametric tool cylinder. No stock
 // model — the control-side gap is machine motion safety, not chip removal.
 //
-// Pipeline per sample: lerp the track segment (same subdivision idea as the
-// part-frame preview: rotary AND linear steps, since a straight plunge can
-// fly through a body between endpoints), program→machine via the shared
-// wcsTerms/programToMachine, letters→joints via viewer_init.axes, evaluate
-// the FULL group tree (not just the work/tool chains — every body needs its
-// world matrix), then pair-test tool-side bodies against work-side bodies:
-// bounding-sphere prescreen first, BVH closest-point only when spheres come
-// within the margin.
+// Stepping is CONSERVATIVE ADVANCEMENT, not fixed sampling: each distance
+// query yields a certificate — the pair cannot reach the margin within
+// (distance − margin) / V of track parameter, where V is a provably
+// conservative bound on the pair's relative surface speed (translations
+// exact; rotations × endpoint lever arms with documented inflation,
+// segments chunked ≤22.5° of rotary sweep so lever drift stays bounded).
+// Pairs are re-queried only when their certificate expires. Guarantee: no
+// margin crossing wider than MIN_ADV (0.25 units) of path is missed —
+// clear programs stride in a handful of samples, approaches tighten
+// automatically. Per sample: lerp the track segment, program→machine via
+// the shared wcsTerms/programToMachine, letters→joints via
+// viewer_init.axes, evaluate the FULL group tree (every body needs its
+// world matrix), bounding-sphere prescreen, then BVH closest-point.
 //
 // Pair derivation: any two bodies whose connecting path through the group
 // tree crosses at least one kinematic DOF have program-driven relative
@@ -73,12 +78,13 @@ export interface CollisionHit {
 export interface CollisionOptions {
   /** Clearance margin in machine units — pairs closer than this are hits. */
   margin: number;
-  /** Linear sample step in machine units. */
+  /** Re-probe cadence INSIDE contact regions + budget-fallback step (the
+   *  free-space step is distance-driven — conservative advancement). */
   linStepMm?: number;
-  /** Rotary sample step in degrees. */
+  /** Folded into the explore cadence (1° ≙ 1 mm); kept for callers. */
   rotStepDeg?: number;
-  /** Hard cap on total samples — the step sizes are COARSENED to fit (and
-   *  the result says so); never silently truncate the program. */
+  /** Safety budget on pose evaluations — on breach the sweep degrades to
+   *  fixed explore steps (result says `coarsened`); never truncates. */
   maxSamples?: number;
 }
 
@@ -194,10 +200,20 @@ export function toolCylinderPositions(diam: number, len: number, segments = 20):
   return pos;
 }
 
+/** A kinematic DOF on the path between a pair's bodies, with the node that
+ *  carries it — the inputs to the pair's relative-velocity bound. */
+interface PathDof {
+  nodeIdx: number;
+  dof: KinRuntime;
+}
+
 export interface CollisionModel {
   nodes: Node[];
   bodies: BuiltBody[];
-  pairs: Array<[number, number]>;  // indices into bodies: [tool-side, work-side]
+  pairs: Array<[number, number]>;  // indices into bodies (tool-side first when there is one)
+  /** Per pair: the DOFs strictly between the two bodies (below their LCA) —
+   *  exactly the motion that changes their relative pose. */
+  pairDofs: PathDof[][];
   machine: CollisionMachine;
   bvhMs: number;
 }
@@ -243,7 +259,8 @@ export function buildCollisionModel(machine: CollisionMachine, bodyDefs: Collisi
   // A pair is worth sweeping iff the two bodies MOVE relative to each other:
   // a DOF must sit strictly between them (below their lowest common
   // ancestor). DOFs on the LCA or above move both bodies rigidly together.
-  const pairHasRelativeMotion = (ia: number, ib: number): boolean => {
+  // Returns exactly those DOFs — they drive the pair's velocity bound.
+  const pathDofsBetween = (ia: number, ib: number): PathDof[] => {
     const pathA: number[] = [];
     for (let i = ia; i >= 0; i = nodes[i]!.parentIdx) pathA.push(i);
     const aSet = new Set(pathA);
@@ -257,21 +274,26 @@ export function buildCollisionModel(machine: CollisionMachine, bodyDefs: Collisi
       if (i === lca) break;
       rel.push(i);
     }
-    return rel.some(i => nodes[i]!.dofs.length > 0);
+    const out: PathDof[] = [];
+    for (const i of rel) for (const dof of nodes[i]!.dofs) out.push({ nodeIdx: i, dof });
+    return out;
   };
 
   const pairs: Array<[number, number]> = [];
+  const pairDofs: PathDof[][] = [];
   for (let a = 0; a < bodies.length; a++) {
     for (let b = a + 1; b < bodies.length; b++) {
       const A = bodies[a]!, B = bodies[b]!;
       if (A.nodeIdx === B.nodeIdx) continue;  // same group — rigid
-      if (!pairHasRelativeMotion(A.nodeIdx, B.nodeIdx)) continue;
+      const dofs = pathDofsBetween(A.nodeIdx, B.nodeIdx);
+      if (!dofs.length) continue;
       // Tool-side body first when there is one — hit messages read better.
       if (B.side === "tool" && A.side !== "tool") pairs.push([b, a]);
       else pairs.push([a, b]);
+      pairDofs.push(dofs);
     }
   }
-  return { nodes, bodies, pairs, machine, bvhMs: performance.now() - t0 };
+  return { nodes, bodies, pairs, pairDofs, machine, bvhMs: performance.now() - t0 };
 }
 
 /** One kinematic pose: evaluate every node's world matrix from joint values. */
@@ -306,44 +328,22 @@ export function sweepCollisions(
   onProgress?: (frac: number) => void,
   shouldAbort?: () => boolean,
 ): CollisionResult {
-  const { nodes, bodies, pairs, machine } = model;
-  const linStep0 = opts.linStepMm ?? DEFAULTS.linStepMm;
-  const rotStep0 = opts.rotStepDeg ?? DEFAULTS.rotStepDeg;
+  const { nodes, bodies, pairs, pairDofs, machine } = model;
   const maxSamples = opts.maxSamples ?? DEFAULTS.maxSamples;
   const t0 = performance.now();
-
-  // Pass 1 — sample counts at requested resolution; coarsen uniformly if over
-  // budget (never drop segments).
   const n = track.count;
-  const segSteps = new Uint16Array(Math.max(0, n - 1));
-  let total = 1;
-  const stepsFor = (i: number, linStep: number, rotStep: number) => {
-    const j = i * 3, k = j - 3;
-    const dx = track.pos[j]! - track.pos[k]!;
-    const dy = track.pos[j + 1]! - track.pos[k + 1]!;
-    const dz = track.pos[j + 2]! - track.pos[k + 2]!;
-    const lin = Math.sqrt(dx * dx + dy * dy + dz * dz);
-    const rot = Math.max(
-      Math.abs(track.abc[j]! - track.abc[k]!),
-      Math.abs(track.abc[j + 1]! - track.abc[k + 1]!),
-      Math.abs(track.abc[j + 2]! - track.abc[k + 2]!),
-    );
-    return Math.min(255, Math.max(1, Math.ceil(Math.max(lin / linStep, rot / rotStep))));
-  };
-  for (let i = 1; i < n; i++) {
-    segSteps[i - 1] = stepsFor(i, linStep0, rotStep0);
-    total += segSteps[i - 1]!;
-  }
+  const totalCum = n > 0 ? track.cum[n - 1]! : 0;
+
+  // Conservative advancement parameters. EXPLORE is the fixed step used
+  // INSIDE contact regions (the pair is already flagged there) and as the
+  // budget-exceeded fallback; MIN_ADV is the smallest advancement — a
+  // below-margin dip narrower than MIN_ADV of path is the residual
+  // detection epsilon (0.25 machine units, vs 5 mm fixed sampling before).
+  const EXPLORE = Math.max(opts.linStepMm ?? DEFAULTS.linStepMm, opts.rotStepDeg ?? DEFAULTS.rotStepDeg);
+  const MIN_ADV = 0.25;
+  const HORIZON = Math.max(20, opts.margin * 10);  // distance query cap — beyond it, advance HORIZON-based
+  const CHUNK_ROT_DEG = 22.5;  // lever bounds are computed per chunk; ≤22.5° keeps drift factors small
   let coarsened = false;
-  if (total > maxSamples) {
-    coarsened = true;
-    const f = total / maxSamples;
-    total = 1;
-    for (let i = 1; i < n; i++) {
-      segSteps[i - 1] = stepsFor(i, linStep0 * f, rotStep0 * f);
-      total += segSteps[i - 1]!;
-    }
-  }
 
   const o = wcsTerms(wcs);
   const machineVals: number[] = [0, 0, 0, 0, 0, 0];
@@ -376,16 +376,18 @@ export function sweepCollisions(
     }
   };
 
-  // Distance between two posed bodies, Infinity when provably beyond the
-  // margin (sphere prescreen, then BVH closest-point with margin early-out;
-  // the matrix maps B's geometry into A's local frame: A⁻¹ · B).
-  const pairDistance = (A: BuiltBody, B: BuiltBody): number => {
+  // Distance between two posed bodies, capped at `maxT`: returns Infinity
+  // when provably ≥ maxT (sphere prescreen — its slack also LOWER-bounds the
+  // true distance, so advancement can use it — then BVH closest-point with
+  // early-out; the matrix maps B's geometry into A's local frame: A⁻¹ · B).
+  const pairDistance = (A: BuiltBody, B: BuiltBody, maxT: number): number => {
     const centerDist = A.worldCenter.distanceTo(B.worldCenter);
-    if (centerDist - A.radius - B.radius > opts.margin) return Infinity;
+    const sphereGap = centerDist - A.radius - B.radius;
+    if (sphereGap > maxT) return sphereGap;  // valid LOWER bound on true distance
     invA.copy(A.world).invert();
     relMat.multiplyMatrices(invA, B.world);
-    const res = A.bvh.closestPointToGeometry(B.geom, relMat, target1, target2, 0, opts.margin);
-    return res ? target1.distance : Infinity;
+    const res = A.bvh.closestPointToGeometry(B.geom, relMat, target1, target2, 0, maxT);
+    return res ? target1.distance : Infinity;  // null: provably beyond maxT
   };
 
   // Baseline pass (first pose): pairs already inside the margin here are
@@ -397,7 +399,7 @@ export function sweepCollisions(
          track.abc[0]!, track.abc[1]!, track.abc[2]!);
   for (let pi = 0; pi < pairs.length; pi++) {
     const [ai, bi] = pairs[pi]!;
-    const dist = pairDistance(bodies[ai]!, bodies[bi]!);
+    const dist = pairDistance(bodies[ai]!, bodies[bi]!, opts.margin);
     if (dist <= opts.margin) {
       staticExcluded[pi] = 1;
       staticContacts.push({ a: bodies[ai]!.id, b: bodies[bi]!.id, dist });
@@ -405,23 +407,29 @@ export function sweepCollisions(
   }
   done++;
 
-  const testSample = (px: number, py: number, pz: number, pa: number, pb: number, pc: number, line: number, cum: number, rapid: boolean) => {
-    poseAt(px, py, pz, pa, pb, pc);
-    for (let pi = 0; pi < pairs.length; pi++) {
-      if (staticExcluded[pi]) continue;
-      const [ai, bi] = pairs[pi]!;
-      const A = bodies[ai]!, B = bodies[bi]!;
-      const dist = pairDistance(A, B);
-      if (dist <= opts.margin) {
-        const key = `${line}|${A.id}|${B.id}`;
-        const prev = worst.get(key);
-        if (!prev || dist < prev.dist) {
-          worst.set(key, { line, cum, a: A.id, b: B.id, dist, rapid, pi });
-        } else if (rapid && !prev.rapid) {
-          prev.rapid = true;  // any rapid contact on this (line, pair) marks it
-        }
-      }
+  const recordHit = (line: number, cum: number, rapid: boolean, pi: number, dist: number) => {
+    const [ai, bi] = pairs[pi]!;
+    const key = `${line}|${bodies[ai]!.id}|${bodies[bi]!.id}`;
+    const prev = worst.get(key);
+    if (!prev || dist < prev.dist) {
+      worst.set(key, { line, cum, a: bodies[ai]!.id, b: bodies[bi]!.id, dist, rapid, pi });
+    } else if (rapid && !prev.rapid) {
+      prev.rapid = true;  // any rapid contact on this (line, pair) marks it
     }
+  };
+
+  // Conservative lever arm of a rotary DOF for one body at the CURRENT pose:
+  // distance from the DOF's world axis line to the body's bounding sphere.
+  const _axisPos = new THREE.Vector3();
+  const _axisDir = new THREE.Vector3();
+  const _leverV = new THREE.Vector3();
+  const leverFor = (pd: PathDof, body: BuiltBody): number => {
+    const nw = nodes[pd.nodeIdx]!.world;
+    _axisPos.setFromMatrixPosition(nw);
+    _axisDir.copy(pd.dof.axisVec).transformDirection(nw);
+    _leverV.copy(body.worldCenter).sub(_axisPos);
+    const along = _leverV.dot(_axisDir);
+    return Math.sqrt(Math.max(0, _leverV.lengthSq() - along * along)) + body.radius;
   };
 
   // Pose the track at an arbitrary cum parameter and return one pair's
@@ -446,30 +454,144 @@ export function sweepCollisions(
       track.abc[k + 2]! + (track.abc[j + 2]! - track.abc[k + 2]!) * u,
     );
     const [ai, bi] = pairs[pi]!;
-    return pairDistance(bodies[ai]!, bodies[bi]!);
+    return pairDistance(bodies[ai]!, bodies[bi]!, opts.margin);
   };
 
+  // ---- Conservative advancement ----
+  // Instead of fixed-step sampling, each step is bounded by
+  // (distance − margin) / V, where V conservatively bounds the pair's
+  // relative surface speed per unit of track parameter: translations
+  // contribute their exact per-unit deltas; rotations contribute
+  // Δangle × lever, with levers measured at both chunk endpoints and
+  // inflated ×2 (+ the chunk's translation budget) to cover mid-chunk
+  // drift — sound for chunks ≤ CHUNK_ROT_DEG of rotary sweep. Guarantee:
+  // no margin crossing wider than MIN_ADV of path parameter is missed.
+  const inContact = new Uint8Array(pairs.length);
+  const pairV = new Float64Array(pairs.length);
+  const sSafe = new Float64Array(pairs.length);
+  const rotLever = pairDofs.map(list => new Float64Array(list.length));
+  const jv0: number[] = new Array(jointVals.length).fill(0);
+  const jv1: number[] = new Array(jointVals.length).fill(0);
+  let budgetExceeded = false;
+
+  const interpPose = (i: number, t: number) => {
+    const j = i * 3, k = j - 3;
+    poseAt(
+      track.pos[k]! + (track.pos[j]! - track.pos[k]!) * t,
+      track.pos[k + 1]! + (track.pos[j + 1]! - track.pos[k + 1]!) * t,
+      track.pos[k + 2]! + (track.pos[j + 2]! - track.pos[k + 2]!) * t,
+      track.abc[k]! + (track.abc[j]! - track.abc[k]!) * t,
+      track.abc[k + 1]! + (track.abc[j + 1]! - track.abc[k + 1]!) * t,
+      track.abc[k + 2]! + (track.abc[j + 2]! - track.abc[k + 2]!) * t,
+    );
+  };
+
+  outer:
   for (let i = 1; i < n; i++) {
     if (shouldAbort?.()) break;
-    const j = i * 3, k = j - 3;
-    const steps = segSteps[i - 1]!;
     const line = track.lines[i]!;
     const isRapid = track.rapid[i] === 1;
     const c0 = track.cum[i - 1]!, c1 = track.cum[i]!;
-    for (let s = 1; s <= steps; s++) {
-      const t = s / steps;
-      testSample(
-        track.pos[k]! + (track.pos[j]! - track.pos[k]!) * t,
-        track.pos[k + 1]! + (track.pos[j + 1]! - track.pos[k + 1]!) * t,
-        track.pos[k + 2]! + (track.pos[j + 2]! - track.pos[k + 2]!) * t,
-        track.abc[k]! + (track.abc[j]! - track.abc[k]!) * t,
-        track.abc[k + 1]! + (track.abc[j + 1]! - track.abc[k + 1]!) * t,
-        track.abc[k + 2]! + (track.abc[j + 2]! - track.abc[k + 2]!) * t,
-        line, c0 + (c1 - c0) * t, isRapid,
-      );
-      done++;
+    const L = c1 - c0;
+    if (L <= 1e-9) continue;
+    const j = i * 3, k = j - 3;
+    const rotDelta = Math.max(
+      Math.abs(track.abc[j]! - track.abc[k]!),
+      Math.abs(track.abc[j + 1]! - track.abc[k + 1]!),
+      Math.abs(track.abc[j + 2]! - track.abc[k + 2]!),
+    );
+    const chunks = Math.max(1, Math.ceil(rotDelta / CHUNK_ROT_DEG));
+
+    for (let ch = 0; ch < chunks; ch++) {
+      const s0 = c0 + (L * ch) / chunks;
+      const s1 = c0 + (L * (ch + 1)) / chunks;
+      const Lc = s1 - s0;
+
+      // Chunk endpoint joint values + start-pose rotary levers.
+      interpPose(i, (s0 - c0) / L);
+      for (let x = 0; x < jointVals.length; x++) jv0[x] = jointVals[x]!;
+      for (let pi = 0; pi < pairs.length; pi++) {
+        if (staticExcluded[pi]) continue;
+        const [ai, bi] = pairs[pi]!;
+        const list = pairDofs[pi]!;
+        const lev = rotLever[pi]!;
+        for (let di = 0; di < list.length; di++) {
+          const pd = list[di]!;
+          lev[di] = pd.dof.rotate
+            ? Math.max(leverFor(pd, bodies[ai]!), leverFor(pd, bodies[bi]!))
+            : 0;
+        }
+      }
+      interpPose(i, (s1 - c0) / L);
+      for (let x = 0; x < jointVals.length; x++) jv1[x] = jointVals[x]!;
+
+      for (let pi = 0; pi < pairs.length; pi++) {
+        if (staticExcluded[pi]) { pairV[pi] = 0; continue; }
+        const [ai, bi] = pairs[pi]!;
+        const A = bodies[ai]!, B = bodies[bi]!;
+        const list = pairDofs[pi]!;
+        let trans = 0;
+        let rotRadLever = 0;
+        for (let di = 0; di < list.length; di++) {
+          const pd = list[di]!;
+          const dJ = Math.abs((jv1[pd.dof.joint] ?? 0) - (jv0[pd.dof.joint] ?? 0));
+          if (!pd.dof.rotate) trans += dJ;
+          else {
+            const lever = Math.max(rotLever[pi]![di]!, leverFor(pd, A), leverFor(pd, B));
+            rotRadLever += (dJ * Math.PI / 180) * (lever + trans);
+          }
+        }
+        // Soundness: within the chunk, the true lever exceeds the endpoint
+        // lever by at most the chunk's own relative displacement — the
+        // recursion leverTrue ≤ (leverEnd + trans) / (1 − rotRad) with
+        // rotRad ≤ 0.4 (22.5° chunks) is bounded by ×1.65; ×2 gives slack.
+        pairV[pi] = (trans + rotRadLever * 2) / Lc;
+      }
+
+      // Certificates: a distance query at s proves the pair cannot reach
+      // the margin before sSafe = s + (d − margin)/V — no re-query needed
+      // until then (lazy conservative advancement). V changes per chunk, so
+      // certificates never carry across chunk boundaries.
+      sSafe.fill(s0);
+
+      let s = s0;
+      for (;;) {
+        interpPose(i, (s - c0) / L);
+        done++;
+        if (done > maxSamples && !budgetExceeded) {
+          budgetExceeded = true;
+          coarsened = true;  // honest: from here on, fixed EXPLORE steps
+        }
+        let step = s1 - s;
+        for (let pi = 0; pi < pairs.length; pi++) {
+          if (staticExcluded[pi]) continue;
+          if (sSafe[pi]! > s + 1e-9) {
+            const remain = sSafe[pi]! - s;
+            if (remain < step) step = remain;
+            continue;  // certificate still valid — skip the query
+          }
+          const [ai, bi] = pairs[pi]!;
+          const A = bodies[ai]!, B = bodies[bi]!;
+          const d = pairDistance(A, B, HORIZON);
+          if (d <= opts.margin) {
+            recordHit(line, s, isRapid, pi, d);
+            inContact[pi] = 1;
+            sSafe[pi] = s + EXPLORE;  // re-probe cadence inside the contact
+          } else {
+            if (inContact[pi] && d > opts.margin * 2) inContact[pi] = 0;
+            const bound = d === Infinity ? HORIZON : d;
+            sSafe[pi] = s + Math.max(MIN_ADV, (bound - opts.margin) / Math.max(pairV[pi]!, 1e-9));
+          }
+          const remain = sSafe[pi]! - s;
+          if (remain < step) step = remain;
+        }
+        if (budgetExceeded) step = Math.min(step, EXPLORE);
+        if (s >= s1 - 1e-9) break;
+        s = Math.min(s1, s + Math.max(step, MIN_ADV));
+        if (done > maxSamples * 4) break outer;  // hard runaway backstop
+      }
     }
-    if (onProgress && (i & 63) === 0) onProgress(done / total);
+    if (onProgress && (i & 15) === 0) onProgress(Math.min(1, c1 / (totalCum || 1)));
   }
   // Contact refinement: a penetrating hit's discovering sample can sit up
   // to one sample step PAST true contact — jumping to it would show the
@@ -485,15 +607,9 @@ export function sweepCollisions(
     let lo = hi;
     let guard = 0;
     let bracketed = false;
+    const back = Math.max(MIN_ADV, EXPLORE / 4);
     while (guard++ < 128 && lo > 0) {
-      let si = 1, sj = n - 1;
-      while (si < sj) {
-        const mid = (si + sj) >> 1;
-        if (track.cum[mid]! < lo) si = mid + 1;
-        else sj = mid;
-      }
-      const step = Math.max(1e-3, (track.cum[si]! - track.cum[si - 1]!) / (segSteps[si - 1] || 1));
-      lo = Math.max(0, lo - step);
+      lo = Math.max(0, lo - back);
       if (distAtCum(lo, h.pi) > CONTACT_EPS) { bracketed = true; break; }
       hi = lo;  // still in contact — earliest known contact moves back
     }
