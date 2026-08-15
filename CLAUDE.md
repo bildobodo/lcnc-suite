@@ -333,11 +333,21 @@ against the parse-time WCS — touch-off after load requires a file reload
 to re-validate (the live overflow box remains the coarse always-current
 check).
 
-**Program scrub (offline dry run, stage 2)**: a timeline bar overlaid on
-the 3D viewer (`ScrubBar.vue`, hosted in ThreeViewer's overlay next to
-CameraPip) poses the articulated machine model at any point of the loaded
-program without running it — drag or play (×1/×4/×16/×64,
-distance-proportional v1). Execution order is reconstructed by merging the
+**Program scrub (offline dry run, stage 2 + unified-timeline phase 1)**: a
+timeline bar overlaid on the 3D viewer (`ScrubBar.vue`, hosted in
+ThreeViewer's overlay next to CameraPip) poses the articulated machine
+model at any point of the loaded program without running it — drag or
+play with a continuous log-scale speed slider (×0.1–×100). The timeline
+axis is PROGRAM TIME (seconds; ×1 = real time; mm:ss readout): the parse
+worker ships per-stream cumulative seconds (`feed_tcum`/`rapid_tcum` —
+feeds from F with max(linear, rotary°) governing, rapids from
+TRAJ/AXIS MAX_VELOCITY; also `rapid_rate`/`rot_rapid_rate` for the
+client-built entry move) and the track merge diffs them per stream.
+`timeBased: false` (no INI velocity / legacy payload) falls back to the
+distance axis (1° ≙ 1 mm), honest not guessed. Tool-change events ride
+the wire as `tool_change_lines` (canon M6 only — preview-skipped M600
+remaps contribute none) and render as info-blue timeline marks.
+Execution order is reconstructed by merging the
 feed/rapid streams on per-point `feed_seq`/`rapid_seq` (global counter in
 `gcode_canon.py` — line numbers can't order subroutine loops);
 `previewWorker` builds the merged `scrubTrack` off-thread
@@ -388,8 +398,11 @@ parametric tool cylinder (the DISPLAYED marker dims — tip at origin,
 +Z), three-mesh-bvh
 `closestPointToGeometry` with margin early-out behind a bounding-sphere
 prescreen, and CONSERVATIVE ADVANCEMENT stepping: every distance query
-certifies the pair can't reach the margin within (d − margin)/V of track
-parameter (V = provably conservative relative-speed bound from the
+certifies the pair can't reach the margin within (d − margin)/V of
+sweep parameter — the sweep runs in its OWN distance parameterization
+(mm, 1° ≙ 1 mm), never the track's cum, which may be time: the guarantee
+constants are spatial; hits convert back to track-cum on report —
+(V = provably conservative relative-speed bound from the
 pair's connecting DOFs — translations exact, rotations × endpoint levers
 with ×2 inflation, ≤22.5° chunks); pairs re-query only on certificate
 expiry. Guarantee: no margin crossing wider than 0.25 units of path is

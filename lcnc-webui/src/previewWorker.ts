@@ -46,14 +46,15 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     // ran on the UI thread. null = unbuildable (empty, or a stale pre-seq
     // cached payload) and the scrub bar simply doesn't offer itself.
     const scrubTrack = buildScrubTrack(
-      { pos: feedPos, abc: feedAbc, lines: feedLines, seq: _toU32(g.feed_seq) },
-      { pos: rapidPos, abc: rapidAbc, lines: _toU32(g.rapid_lines), seq: _toU32(g.rapid_seq) },
+      { pos: feedPos, abc: feedAbc, lines: feedLines, seq: _toU32(g.feed_seq), tcum: g.feed_tcum != null && (g.feed_tcum as Uint8Array).length ? _toF32(g.feed_tcum) : undefined },
+      { pos: rapidPos, abc: rapidAbc, lines: _toU32(g.rapid_lines), seq: _toU32(g.rapid_seq), tcum: g.rapid_tcum != null && (g.rapid_tcum as Uint8Array).length ? _toF32(g.rapid_tcum) : undefined },
     );
 
     // Drop the nested arrays from the passthrough; the flat typed arrays replace
     // them. Everything else (file, stats fields) is small and cloned as-is.
     const { feed: _f, rapid: _r, feed_lines: _fl, feed_abc: _fa, rapid_abc: _ra,
-            feed_seq: _fs, rapid_seq: _rs, rapid_lines: _rl, ...rest } = g;
+            feed_seq: _fs, rapid_seq: _rs, rapid_lines: _rl,
+            feed_tcum: _ft, rapid_tcum: _rt, ...rest } = g;
 
     const transfer: Transferable[] = [
       feedPos.buffer as ArrayBuffer,

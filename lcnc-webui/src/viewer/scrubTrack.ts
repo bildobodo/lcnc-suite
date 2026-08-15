@@ -26,6 +26,9 @@ export interface ScrubStream {
   abc?: Float32Array;       // flat [a,b,c,...] degrees (absent on pure-linear programs)
   lines?: Uint32Array;      // per-point source line
   seq?: Uint32Array;        // per-point global execution sequence
+  /** Cumulative SECONDS within this stream (unified timeline phase 1).
+   *  Absent on legacy payloads / INIs without MAX_VELOCITY. */
+  tcum?: Float32Array;
 }
 
 // Scrub-parameter contribution of a pure rotary sweep: 1° ≙ 1 mm, the same
@@ -52,7 +55,11 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream): ScrubTra
   const rapidFlag = new Uint8Array(n);
   const cum = new Float32Array(n);
 
+  // Time axis available iff every non-empty stream carries tcum.
+  const timeBased = (nf === 0 || feed.tcum?.length === nf) && (nr === 0 || rapid.tcum?.length === nr);
+
   let fi = 0, ri = 0;
+  let prevFT = 0, prevRT = 0;   // per-stream previous cumulative time
   for (let i = 0; i < n; i++) {
     let takeFeed: boolean;
     if (fi >= nf) takeFeed = false;
@@ -72,20 +79,31 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream): ScrubTra
     }
     lines[i] = src.lines?.[si] ?? 0;
     rapidFlag[i] = takeFeed ? 0 : 1;
+    if (timeBased) {
+      // Duration of the segment ending here = this stream's cumulative
+      // delta (RDP-collapsed interiors are preserved by the cumulative).
+      const t = src.tcum![si]!;
+      const dur = Math.max(0, t - (takeFeed ? prevFT : prevRT));
+      if (takeFeed) prevFT = t; else prevRT = t;
+      if (i > 0) cum[i] = cum[i - 1]! + dur;   // point 0 anchors the axis at 0
+    }
   }
 
-  for (let i = 1; i < n; i++) {
-    const j = i * 3, k = j - 3;
-    const dx = pos[j]! - pos[k]!;
-    const dy = pos[j + 1]! - pos[k + 1]!;
-    const dz = pos[j + 2]! - pos[k + 2]!;
-    const linear = Math.sqrt(dx * dx + dy * dy + dz * dz);
-    const rot = Math.max(
-      Math.abs(abc[j]! - abc[k]!),
-      Math.abs(abc[j + 1]! - abc[k + 1]!),
-      Math.abs(abc[j + 2]! - abc[k + 2]!),
-    ) * DEG_AS_MM;
-    cum[i] = cum[i - 1]! + Math.max(linear, rot);
+  if (!timeBased) {
+    // Distance axis fallback (1° ≙ 1 mm) — legacy payloads / no INI velocity.
+    for (let i = 1; i < n; i++) {
+      const j = i * 3, k = j - 3;
+      const dx = pos[j]! - pos[k]!;
+      const dy = pos[j + 1]! - pos[k + 1]!;
+      const dz = pos[j + 2]! - pos[k + 2]!;
+      const linear = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      const rot = Math.max(
+        Math.abs(abc[j]! - abc[k]!),
+        Math.abs(abc[j + 1]! - abc[k + 1]!),
+        Math.abs(abc[j + 2]! - abc[k + 2]!),
+      ) * DEG_AS_MM;
+      cum[i] = cum[i - 1]! + Math.max(linear, rot);
+    }
   }
 
   const lineCum = new Map<number, number>();
@@ -94,7 +112,7 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream): ScrubTra
     if (ln && !lineCum.has(ln)) lineCum.set(ln, cum[i]!);
   }
 
-  return { pos, abc, lines, rapid: rapidFlag, cum, count: n, lineCum };
+  return { pos, abc, lines, rapid: rapidFlag, cum, count: n, lineCum, timeBased };
 }
 
 export interface ScrubSample {
@@ -166,20 +184,27 @@ export function machineJointsToProgram(
  *  from its live position (program coords) to the program's first point —
  *  run-time-only motion no parse can know, and the classic crash. The entry
  *  point gets line 0 ("entry" in the UI) and a rapid flag; cum and lineCum
- *  shift by the entry length. Returns the original track unchanged when the
- *  machine already sits at the first point. */
+ *  shift by the entry length (SECONDS on a time-based track, given rapid
+ *  `rates`; distance otherwise). Returns the original track unchanged when
+ *  the machine already sits at the first point. */
 export function prependEntry(
   t: ScrubTrack,
   entry: [number, number, number, number, number, number],
+  rates?: { linear?: number | null; rotary?: number | null },
 ): ScrubTrack {
   const dx = t.pos[0]! - entry[0], dy = t.pos[1]! - entry[1], dz = t.pos[2]! - entry[2];
   const linear = Math.sqrt(dx * dx + dy * dy + dz * dz);
-  const rot = Math.max(
+  const rotDeg = Math.max(
     Math.abs(t.abc[0]! - entry[3]),
     Math.abs(t.abc[1]! - entry[4]),
     Math.abs(t.abc[2]! - entry[5]),
-  ) * DEG_AS_MM;
-  const entryLen = Math.max(linear, rot);
+  );
+  let entryLen: number;
+  if (t.timeBased && rates?.linear) {
+    entryLen = Math.max(linear / rates.linear, rotDeg / (rates.rotary || rates.linear));
+  } else {
+    entryLen = Math.max(linear, rotDeg * DEG_AS_MM);
+  }
   if (entryLen < 1e-6) return t;
 
   const n = t.count + 1;
@@ -198,7 +223,7 @@ export function prependEntry(
   for (let i = 0; i < t.count; i++) cum[i + 1] = t.cum[i]! + entryLen;
   const lineCum = new Map<number, number>();
   for (const [ln, c] of t.lineCum) lineCum.set(ln, c + entryLen);
-  return { pos, abc, lines, rapid, cum, count: n, lineCum };
+  return { pos, abc, lines, rapid, cum, count: n, lineCum, timeBased: t.timeBased };
 }
 
 const _machineVals: number[] = [0, 0, 0, 0, 0, 0];

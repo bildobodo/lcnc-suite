@@ -65,7 +65,11 @@ export interface ScrubTrack {
   abc: Float32Array;        // count*3 degrees (zeros when the wire had no abc)
   lines: Uint32Array;       // count — source line per point (0 = unknown)
   rapid: Uint8Array;        // count — 1 when the segment ending here is a rapid
-  cum: Float32Array;        // count — monotonic scrub parameter (mm, 1° ≙ 1 mm)
+  /** Monotonic scrub parameter: SECONDS when `timeBased` (unified timeline
+   *  phase 1 — per-segment feed + INI rapid velocities), else distance
+   *  (mm, 1° ≙ 1 mm — legacy payloads / no INI MAX_VELOCITY). */
+  cum: Float32Array;
+  timeBased: boolean;
   count: number;
   /** Source line → cum of its first track point (built off-thread; Maps
    *  survive structured clone). Lets the UI place line-anchored marks —
@@ -126,6 +130,13 @@ export interface ViewerGcode {
   // off-thread by previewWorker. null/absent = no track (no program, or a
   // stale pre-seq payload) — the scrub bar doesn't offer itself.
   scrubTrack?: ScrubTrack | null;
+  // Unified timeline phase 1: INI rapid velocities (machine units/s, deg/s)
+  // for the client-built entry move's duration; null = INI didn't say.
+  rapid_rate?: number | null;
+  rot_rapid_rate?: number | null;
+  // Executed tool changes as [line, tool] in execution order (canon M6 only
+  // — a preview-skipped M600 remap contributes none, same as the stats).
+  tool_change_lines?: [number, number][];
   // P4.1: source-line → point-index range map, built off-thread by previewWorker
   // (Maps survive structured clone) so ThreeViewer skips the O(points) build.
   feedLineMap?: Map<number, { start: number; end: number }>;

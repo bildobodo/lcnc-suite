@@ -159,6 +159,7 @@ export const INPUT_DEFS = {
   stripInput:      { gate: 'always',   mono: true, align: 'right', size: 'md' },
   scrubPos:        { gate: 'always' },  // scrub timeline — display-only, see BUTTON_TYPES.scrub
   simToggle:       { gate: 'always' },  // simulation mode toggle — entry rules live in ScrubBar
+  simSpeed:        { gate: 'always' },  // sim playback speed — display-only
   coolant:         { gate: 'override' },
 
   // Mode selection

@@ -20,6 +20,7 @@ import {
 import type { ScrubTrack } from "./ws/bulkData";
 import type { CollisionResult } from "./viewer/collision";
 import { limitViolationText } from "./ws/bulkData";
+import { fmtElapsed } from "./format";
 import { Play, Pause } from "lucide-vue-next";
 import MachineBtn from "./MachineBtn.vue";
 import MachineSlider from "./MachineSlider.vue";
@@ -53,11 +54,18 @@ const running = computed(() => (st.value.interp_state ?? INTERP_IDLE) !== INTERP
 const machineOff = computed(() => !st.value.is_enabled);
 const visible = computed(() => !!track.value && !running.value);
 
-const sPos = ref(0);          // scrub parameter (track cum units)
+const sPos = ref(0);          // scrub parameter (seconds on a time-based track)
 const playing = ref(false);
-const mult = ref(1);
-const MULTS = [1, 4, 16, 64];
-const BASE_MM_S = 30;         // ×1 playback rate (distance-proportional, v1)
+// Continuous log-scale playback speed, ×0.1 … ×100 (Fusion-style). On a
+// time-based track ×1 is REAL TIME; on the distance fallback the base pace
+// is BASE_MM_S.
+const speedLog = ref(0);
+const speed = computed(() => Math.pow(10, speedLog.value));
+const speedLabel = computed(() => {
+  const s = speed.value;
+  return s >= 10 ? s.toFixed(0) : s >= 1 ? s.toFixed(1) : s.toFixed(2);
+});
+const BASE_MM_S = 30;
 
 const cumMax = computed(() => {
   const t = track.value;
@@ -106,7 +114,8 @@ function _buildEntryTrack() {
     return;
   }
   const entry = machineJointsToProgram(_baseJoints, viewerInit.value?.axes ?? [], _wcs());
-  const t = prependEntry(base, entry);
+  const g = viewerGcode.value;
+  const t = prependEntry(base, entry, { linear: g?.rapid_rate, rotary: g?.rot_rapid_rate });
   entryTrack.value = t === base ? null : t;
 }
 
@@ -185,7 +194,8 @@ function tick(t: number) {
   if (!playing.value) return;
   const dt = Math.min(0.1, (t - lastT) / 1000);
   lastT = t;
-  sPos.value = Math.min(cumMax.value, sPos.value + BASE_MM_S * mult.value * dt);
+  const rate = track.value?.timeBased ? speed.value : speed.value * BASE_MM_S;
+  sPos.value = Math.min(cumMax.value, sPos.value + rate * dt);
   if (sPos.value >= cumMax.value) {
     playing.value = false;
     return;
@@ -206,9 +216,14 @@ function togglePlay() {
   raf = requestAnimationFrame(tick);
 }
 
-function cycleSpeed() {
-  mult.value = MULTS[(MULTS.indexOf(mult.value) + 1) % MULTS.length]!;
-}
+// Position readout: elapsed/total time on a time-based track, percent on
+// the distance fallback.
+const posLabel = computed(() => {
+  if (track.value?.timeBased) {
+    return `${fmtElapsed(Math.floor(sPos.value))}/${fmtElapsed(Math.floor(cumMax.value))}`;
+  }
+  return `${pct.value}%`;
+});
 
 /** ---------- collision results (stage 3) ---------- */
 const checkLabel = computed(() => {
@@ -290,6 +305,19 @@ const hitMarks = computed(() =>
     : [],
 );
 
+// Tool-change event marks (info-blue) — phase 2 turns these into the
+// next-tool countdown.
+const toolChangeMarks = computed(() => {
+  const t = track.value;
+  if (!t || cumMax.value <= 0) return [];
+  const out: number[] = [];
+  for (const [line] of viewerGcode.value?.tool_change_lines ?? []) {
+    const cum = t.lineCum.get(line);
+    if (cum !== undefined) out.push(Math.min(100, (cum / cumMax.value) * 100));
+  }
+  return out;
+});
+
 // Soft-limit violations (stage 1) on the same timeline, warn-tinted —
 // line-anchored via the track's lineCum map. A violating line the track
 // doesn't know (comment-line attribution edge) simply has no mark; the
@@ -335,17 +363,25 @@ onUnmounted(() => {
         <MachineSlider gate="scrubPos" class="sliderInput" :min="0" :max="cumMax"
                        :step="cumMax / 2000 || 1" v-model="sPos" :disabled="!simMode"
                        title="Scrub the program — poses the machine model, nothing moves" />
-        <!-- Timeline markers, non-interactive (row 2 navigates): warn =
-             soft-limit violation, danger = collision hit (full-height =
-             rapid contact). -->
-        <div v-for="(pct, i) in violationMarks" :key="'v' + i" class="scrubMark limit"
-             :style="{ left: pct + '%' }"></div>
+        <!-- Timeline markers, non-interactive (row 2 navigates): info =
+             tool change, warn = soft-limit violation, danger = collision
+             hit (full-height = rapid contact). -->
+        <div v-for="(p, i) in toolChangeMarks" :key="'t' + i" class="scrubMark tool"
+             :style="{ left: p + '%' }"></div>
+        <div v-for="(p, i) in violationMarks" :key="'v' + i" class="scrubMark limit"
+             :style="{ left: p + '%' }"></div>
         <div v-for="(m, i) in hitMarks" :key="'c' + i" class="scrubMark"
              :class="{ rapid: m.rapid }" :style="{ left: m.pct + '%' }"></div>
       </div>
-      <MachineBtn type="scrub" :disabled="!simMode" title="Playback speed" @click="cycleSpeed">&times;{{ mult }}</MachineBtn>
+      <MachineSlider gate="simSpeed" class="speedSlider" :min="-1" :max="2" :step="0.01"
+                     v-model="speedLog" :disabled="!simMode"
+                     :title="`Playback speed ×0.1–×100${track?.timeBased ? ' of real time' : ''}`" />
+      <MachineBtn type="scrub" class="speedVal" :disabled="!simMode"
+                  title="Reset playback speed to ×1" @click="speedLog = 0">
+        &times;{{ speedLabel }}
+      </MachineBtn>
       <span class="scrubStatus val-status mono" :class="{ muted: !simMode }">
-        {{ simMode ? `${curLine ? "L" + curLine : "entry"}${curRapid ? " →" : ""} ${pct}%` : "live" }}
+        {{ simMode ? `${curLine ? "L" + curLine : "entry"}${curRapid ? " →" : ""} ${posLabel}` : "live" }}
       </span>
     </div>
 
@@ -437,13 +473,31 @@ onUnmounted(() => {
   transform: translateX(-50%);
   background: var(--danger);
   pointer-events: none;
+  /* Hairline bg-colored edge: separates adjacent ticks (time axis fuses
+     rapid-crash clusters) and crisps every tick against the track. */
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--bg) 90%, transparent);
 }
 .scrubMark.rapid {
   top: 0;
   bottom: 0;
 }
 .scrubMark.limit {
+  /* Full-strength warn: the hairline bg edge (above) carries the contrast
+     against bright backgrounds, so the tick keeps the bright yellow. */
   background: var(--warn);
+}
+.scrubMark.tool {
+  background: var(--info);
+  top: 35%;
+  bottom: 35%;
+}
+.speedSlider {
+  width: 72px;
+  flex-shrink: 0;
+}
+.speedVal {
+  min-width: 6ch;
+  white-space: nowrap;
 }
 .scrubStatus {
   white-space: nowrap;

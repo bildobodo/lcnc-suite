@@ -332,7 +332,41 @@ export function sweepCollisions(
   const maxSamples = opts.maxSamples ?? DEFAULTS.maxSamples;
   const t0 = performance.now();
   const n = track.count;
-  const totalCum = n > 0 ? track.cum[n - 1]! : 0;
+
+  // The sweep runs in its own DISTANCE parameterization (mm, 1° ≙ 1 mm) —
+  // never the track's cum, which may be TIME (unified timeline): the
+  // guarantee constants (MIN_ADV, EXPLORE, chunking) are spatial, and on a
+  // time axis a fast rapid would compress a 20 mm window into 0.25 s.
+  // Hits are converted back to track-cum at the end (scrub-to-hit target).
+  const dcum = new Float32Array(n);
+  for (let i = 1; i < n; i++) {
+    const j = i * 3, k = j - 3;
+    const dx = track.pos[j]! - track.pos[k]!;
+    const dy = track.pos[j + 1]! - track.pos[k + 1]!;
+    const dz = track.pos[j + 2]! - track.pos[k + 2]!;
+    const lin = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    const rot = Math.max(
+      Math.abs(track.abc[j]! - track.abc[k]!),
+      Math.abs(track.abc[j + 1]! - track.abc[k + 1]!),
+      Math.abs(track.abc[j + 2]! - track.abc[k + 2]!),
+    );
+    dcum[i] = dcum[i - 1]! + Math.max(lin, rot);
+  }
+  const totalCum = n > 0 ? dcum[n - 1]! : 0;
+
+  // Dist-parameter → track-cum (linear within a segment; monotonic).
+  const distToTrackCum = (s: number): number => {
+    if (n < 2) return 0;
+    let lo = 1, hi = n - 1;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (dcum[mid]! < s) lo = mid + 1;
+      else hi = mid;
+    }
+    const d0 = dcum[lo - 1]!, d1 = dcum[lo]!;
+    const u = d1 > d0 ? Math.min(1, Math.max(0, (s - d0) / (d1 - d0))) : 1;
+    return track.cum[lo - 1]! + u * (track.cum[lo]! - track.cum[lo - 1]!);
+  };
 
   // Conservative advancement parameters. EXPLORE is the fixed step used
   // INSIDE contact regions (the pair is already flagged there) and as the
@@ -439,10 +473,10 @@ export function sweepCollisions(
     let lo = 1, hi = n - 1;
     while (lo < hi) {
       const mid = (lo + hi) >> 1;
-      if (track.cum[mid]! < s) lo = mid + 1;
+      if (dcum[mid]! < s) lo = mid + 1;
       else hi = mid;
     }
-    const c0 = track.cum[lo - 1]!, c1 = track.cum[lo]!;
+    const c0 = dcum[lo - 1]!, c1 = dcum[lo]!;
     const u = c1 > c0 ? Math.min(1, Math.max(0, (s - c0) / (c1 - c0))) : 1;
     const j = lo * 3, k = j - 3;
     poseAt(
@@ -491,7 +525,7 @@ export function sweepCollisions(
     if (shouldAbort?.()) break;
     const line = track.lines[i]!;
     const isRapid = track.rapid[i] === 1;
-    const c0 = track.cum[i - 1]!, c1 = track.cum[i]!;
+    const c0 = dcum[i - 1]!, c1 = dcum[i]!;
     const L = c1 - c0;
     if (L <= 1e-9) continue;
     const j = i * 3, k = j - 3;
@@ -621,6 +655,9 @@ export function sweepCollisions(
     }
     h.cum = hi;
   }
+  // Hits leave the sweep in TRACK cum (time on a time-based track) — the
+  // scrub-to-hit target must live on the slider's axis.
+  for (const h of worst.values()) h.cum = distToTrackCum(h.cum);
   onProgress?.(1);
 
   const hits = [...worst.values()]

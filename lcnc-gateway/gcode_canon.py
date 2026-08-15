@@ -43,6 +43,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         self.arc_moves = 0
         self.tools_used = set()
         self.tool_changes = 0
+        self.tool_change_events = []   # [(lineno, tool_idx)] in execution order
         self.xo = self.yo = self.zo = 0.0
         self.ao = self.bo = self.co = 0.0
         self.uo = self.vo = self.wo = 0.0
@@ -67,6 +68,10 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         StatMixin.change_tool(self, idx)
         self.first_move = True
         self.tool_changes += 1
+        # (lineno, tool) per executed M6 — timeline event markers. NOTE: only
+        # canon-executed changes appear here (an M600 remap whose body is
+        # preview-skipped contributes none — same honesty rule as the stats).
+        self.tool_change_events.append((self.lineno, idx))
         if idx > 0:
             self.tools_used.add(idx)
 

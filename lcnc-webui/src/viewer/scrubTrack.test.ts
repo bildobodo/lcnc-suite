@@ -6,12 +6,13 @@ import {
   type ScrubSample, type ScrubStream, type ScrubTrack,
 } from "./scrubTrack";
 
-function stream(points: number[][], opts: { abc?: number[][]; lines?: number[]; seq?: number[] } = {}): ScrubStream {
+function stream(points: number[][], opts: { abc?: number[][]; lines?: number[]; seq?: number[]; tcum?: number[] } = {}): ScrubStream {
   return {
     pos: new Float32Array(points.flat()),
     abc: opts.abc ? new Float32Array(opts.abc.flat()) : undefined,
     lines: opts.lines ? new Uint32Array(opts.lines) : undefined,
     seq: opts.seq ? new Uint32Array(opts.seq) : undefined,
+    tcum: opts.tcum ? new Float32Array(opts.tcum) : undefined,
   };
 }
 
@@ -48,6 +49,25 @@ describe("buildScrubTrack", () => {
     const t = buildScrubTrack(
       stream([[0, 0, 0], [0, 0, 0]], { abc: [[0, 0, 0], [0, 0, 90]] }), EMPTY)!;
     expect(t.cum[1]).toBeCloseTo(90, 5);
+  });
+
+  it("builds a TIME axis from per-stream cumulative seconds", () => {
+    // Feed 2 segs (3s, 5s cumulative) interleaved with a rapid (0.5s):
+    // execution f(seq1) r(seq2) f(seq3) → durations: point0 anchor, 0.5, 2.
+    const t = buildScrubTrack(
+      stream([[10, 0, 0], [30, 0, 0]], { seq: [1, 3], lines: [5, 9], tcum: [3, 5] }),
+      stream([[20, 0, 0]], { seq: [2], lines: [7], tcum: [0.5] }))!;
+    expect(t.timeBased).toBe(true);
+    expect(Array.from(t.cum)).toEqual([0, 0.5, 2.5]);
+    expect(t.lineCum.get(9)).toBeCloseTo(2.5, 5);
+  });
+
+  it("falls back to the distance axis when a non-empty stream lacks tcum", () => {
+    const t = buildScrubTrack(
+      stream([[0, 0, 0], [10, 0, 0]], { seq: [1, 2], tcum: [1, 2] }),
+      stream([[5, 0, 0]], { seq: [3] }))!;   // rapid has no tcum
+    expect(t.timeBased).toBe(false);
+    expect(t.cum[1]).toBeCloseTo(10, 5);     // distance formula
   });
 
   it("maps each source line to the cum of its first track point", () => {
@@ -136,6 +156,16 @@ describe("prependEntry", () => {
     expect(rot.cum[1]).toBeCloseTo(45, 5);
     // Machine already at the first point → original track returned as-is.
     expect(prependEntry(base, [10, 0, 0, 0, 0, 0])).toBe(base);
+  });
+
+  it("computes the entry duration from rapid rates on a time-based track", () => {
+    const tb = buildScrubTrack(stream([[10, 0, 0], [20, 0, 0]], { lines: [5, 7], tcum: [0, 2] }), EMPTY)!;
+    expect(tb.timeBased).toBe(true);
+    // Entry 30 mm away at 100 mm/s → 0.3 s prepended to the time axis.
+    const t = prependEntry(tb, [10, -30, 0, 0, 0, 0], { linear: 100, rotary: 60 });
+    expect(t.cum[1]).toBeCloseTo(0.3, 5);
+    expect(t.cum[2]).toBeCloseTo(2.3, 5);
+    expect(t.timeBased).toBe(true);
   });
 });
 
