@@ -32,12 +32,18 @@ const props = defineProps<{
   collisionBusy: boolean;
   collisionProgress: number;
   collisionResult: CollisionResult | null;
+  // The exact track the current result was swept on. Hit cums only mean
+  // anything on THAT track — entering sim swaps in the entry-extended track
+  // (every cum shifts by the entry duration), so the clash UI trusts results
+  // only when this matches the displayed track (auto re-check covers the gap).
+  collisionTrack: ScrubTrack | null;
 }>();
 
 const emit = defineEmits<{
   // joints: per-JOINT machine values (null entry = keep live joint), or null
-  // to return the model to the live pose. line: source line at the sample.
-  (e: "pose", joints: (number | null)[] | null, line: number | null): void;
+  // to return the model to the live pose. line/cum: sample position; trk:
+  // the track the cum lives on (ThreeViewer gates the clash tint on it).
+  (e: "pose", joints: (number | null)[] | null, line: number | null, cum: number | null, trk: ScrubTrack | null): void;
   // The track to sweep — includes the entry move when one is known.
   (e: "check", track: ScrubTrack): void;
   (e: "cancel-check"): void;
@@ -88,14 +94,8 @@ function applyPos() {
   sampleTrack(t, sPos.value, _sample);
   curLine.value = _sample.line;
   curRapid.value = _sample.rapid;
-  const d = st.value;
-  jointsForSample(
-    _sample,
-    { g5x: d.g5x_offset ?? [], g92: d.g92_offset ?? [], rotationDeg: d.rotation_xy ?? 0 },
-    viewerInit.value?.axes ?? [],
-    _joints,
-  );
-  emit("pose", _joints.slice(), _sample.line);
+  jointsForSample(_sample, _wcs(), viewerInit.value?.axes ?? [], _joints);
+  emit("pose", _joints.slice(), _sample.line, sPos.value, t);
 }
 
 /** ---------- explicit mode entry / exit ---------- */
@@ -107,7 +107,13 @@ const MOTION_EXIT_THRESHOLD = 0.05;
 
 function _wcs() {
   const d = st.value;
-  return { g5x: d.g5x_offset ?? [], g92: d.g92_offset ?? [], rotationDeg: d.rotation_xy ?? 0 };
+  // tool_offset makes the derived joints TRUE joint-space (G43-inclusive)
+  // — required so applyState phase 3's marker shift lands the tip on the
+  // path, and so entry capture inverts TLO-inclusive live joints.
+  return {
+    g5x: d.g5x_offset ?? [], g92: d.g92_offset ?? [],
+    rotationDeg: d.rotation_xy ?? 0, tool: d.tool_offset ?? [],
+  };
 }
 
 function _buildEntryTrack() {
@@ -131,8 +137,12 @@ function enterSim(): boolean {
   _buildEntryTrack();
   sPos.value = 0;   // 0 = the machine's live position (entry-move start)
   applyPos();       // pose immediately — the mode announces itself
-  // Fresh entry position → fresh baseline: auto-run the collision check.
-  if (track.value && !props.collisionBusy) emit("check", track.value);
+  // Fresh entry position → fresh baseline: cancel any in-flight sweep (its
+  // result would be for the WRONG track) and re-run on the entry track.
+  if (track.value) {
+    emit("cancel-check");
+    emit("check", track.value);
+  }
   return true;
 }
 
@@ -140,7 +150,7 @@ function exitSim() {
   playing.value = false;
   if (!simMode.value) return;
   simMode.value = false;
-  emit("pose", null, null);
+  emit("pose", null, null, null, null);
 }
 
 // Pose-only watcher: programmatic sPos writes never change the mode.
@@ -149,11 +159,13 @@ watch(sPos, () => {
 });
 
 // The pose depends on the live WCS — touch-off from another client while
-// simulating must move the posed model. Keyed on values so idle status
+// simulating must move the posed model. tool_offset is a pose input too
+// (joint-space transform is G43-inclusive): a tool change / G43 while
+// simulating must re-pose and re-check. Keyed on values so idle status
 // ticks don't re-emit (render-on-demand stays effective).
 const _wcsKey = computed(() => {
   const d = st.value;
-  return `${(d.g5x_offset ?? []).join()},${(d.g92_offset ?? []).join()},${d.rotation_xy ?? 0}`;
+  return `${(d.g5x_offset ?? []).join()},${(d.g92_offset ?? []).join()},${d.rotation_xy ?? 0},${(d.tool_offset ?? []).join()}`;
 });
 // The pose (and the entry move's program coords) depend on the live WCS.
 // While simulating, a WCS change also re-runs the sweep with the rebuilt
@@ -165,7 +177,10 @@ watch(_wcsKey, () => {
   clearTimeout(_wcsCheckTimer);
   if (simMode.value) {
     _wcsCheckTimer = setTimeout(() => {
-      if (simMode.value && track.value) emit("check", track.value);
+      if (simMode.value && track.value) {
+        emit("cancel-check");
+        emit("check", track.value);
+      }
     }, 500);
   }
 });
@@ -310,7 +325,7 @@ const violationsTitle = computed(() => {
 // Targets are timeline positions; prev/next are relative to the CURRENT
 // scrub position, so scrubbing anywhere re-anchors the navigation. Both
 // wrap around at the ends.
-interface FindingTarget { cum: number; line: number; rapid?: boolean }
+interface FindingTarget { cum: number; line: number; rapid?: boolean; dist?: number }
 const NAV_EPS = 0.01;
 
 const violationTargets = computed<FindingTarget[]>(() => {
@@ -327,8 +342,10 @@ const violationTargets = computed<FindingTarget[]>(() => {
   return out.sort((a, b) => a.cum - b.cum);
 });
 
-// Hits are already cum-sorted by the sweep.
-const hits = computed(() => props.collisionResult?.hits ?? []);
+// Hits are already cum-sorted by the sweep — but only trusted when they
+// were swept on the DISPLAYED track (see collisionTrack prop).
+const resultCurrent = computed(() => props.collisionTrack === track.value);
+const hits = computed(() => (resultCurrent.value ? props.collisionResult?.hits ?? [] : []));
 const hitTargets = computed<FindingTarget[]>(() => hits.value);
 
 function targetAfter(list: FindingTarget[], s: number): FindingTarget | null {
@@ -349,14 +366,18 @@ const nextHitT = computed(() => targetAfter(hitTargets.value, sPos.value));
 function jumpTo(target: FindingTarget | null) {
   if (!target || !enterSim()) return;
   playing.value = false;
-  sPos.value = Math.min(cumMax.value, Math.max(0, target.cum));
+  // Nudge a hair PAST the target: a cum sitting exactly on a segment
+  // boundary samples the previous segment's line label, which would show
+  // the wrong line and suppress the contact tint right at the jump point.
+  sPos.value = Math.min(cumMax.value, Math.max(0, target.cum + 1e-3));
   applyPos();
 }
 
-// Timeline positions of the hits, as track percentages.
+// Timeline positions of the hits, as track percentages. `near` = within the
+// margin but never touching (clearance warning, not a contact).
 const hitMarks = computed(() =>
   cumMax.value > 0
-    ? hits.value.map(h => ({ pct: Math.min(100, (h.cum / cumMax.value) * 100), rapid: h.rapid }))
+    ? hits.value.map(h => ({ pct: Math.min(100, (h.cum / cumMax.value) * 100), rapid: h.rapid, near: h.dist > 1e-3 }))
     : [],
 );
 
@@ -435,12 +456,15 @@ onUnmounted(() => {
         <!-- Timeline markers, non-interactive (row 2 navigates): info =
              tool change, warn = soft-limit violation, danger = collision
              hit (full-height = rapid contact). -->
+        <!-- Marks live in the THUMB-TRAVEL span (input width − 16px thumb,
+             inset 8px each side) so ticks align with where the thumb can
+             actually sit — full-width percentages drift near the ends. -->
         <div v-for="(p, i) in toolChangeMarks" :key="'t' + i" class="scrubMark tool"
-             :style="{ left: p + '%' }"></div>
+             :style="{ left: `calc(8px + (100% - 16px) * ${p / 100})` }"></div>
         <div v-for="(p, i) in violationMarks" :key="'v' + i" class="scrubMark limit"
-             :style="{ left: p + '%' }"></div>
+             :style="{ left: `calc(8px + (100% - 16px) * ${p / 100})` }"></div>
         <div v-for="(m, i) in hitMarks" :key="'c' + i" class="scrubMark"
-             :class="{ rapid: m.rapid }" :style="{ left: m.pct + '%' }"></div>
+             :class="{ rapid: m.rapid, near: m.near }" :style="{ left: `calc(8px + (100% - 16px) * ${m.pct / 100})` }"></div>
       </div>
       <MachineSlider gate="simSpeed" class="speedSlider" :min="-1" :max="2" :step="0.01"
                      v-model="speedLog" :disabled="!simMode"
@@ -483,7 +507,7 @@ onUnmounted(() => {
 
       <MachineBtn v-if="collisionBusy" type="scrub" title="Collision check running — click to cancel"
                   @click="emit('cancel-check')">{{ checkLabel }} &times;</MachineBtn>
-      <template v-if="collisionResult && !collisionBusy">
+      <template v-if="collisionResult && !collisionBusy && resultCurrent">
         <span v-if="collisionResult.pairCount === 0" class="val-status muted" title="No body pair moves relative to another — nothing to check">no moving pairs</span>
         <span v-else-if="!hits.length" class="val-status ok" :title="`${collisionResult.samples} samples, ${collisionResult.pairCount} pairs${collisionResult.coarsened ? ', coarsened to fit the sample budget' : ''}${collisionResult.staticContacts.length ? `; in contact from the start (excluded): ${collisionResult.staticContacts.map(c => c.a + '/' + c.b).join(', ')}` : ''}`">
           clear{{ collisionResult.coarsened ? "*" : "" }}
@@ -504,7 +528,7 @@ onUnmounted(() => {
             <MachineBtn type="scrub" variant="danger" :disabled="!simMode && !machineOff"
                         @click="jumpTo(targetAfter(hitTargets, sPos))">&#9654;</MachineBtn>
           </span>
-          <span class="navTarget val-status mono">{{ nextHitT ? "→ " + (nextHitT.line ? "L" + nextHitT.line : "entry") + (nextHitT.rapid ? " (rapid)" : "") : "" }}</span>
+          <span class="navTarget val-status mono">{{ nextHitT ? "→ " + (nextHitT.line ? "L" + nextHitT.line : "entry") + (nextHitT.rapid ? " (rapid)" : "") + ((nextHitT.dist ?? 0) > 0.001 ? ` ~${nextHitT.dist!.toFixed(1)}mm` : "") : "" }}</span>
         </template>
       </template>
 
@@ -543,7 +567,10 @@ onUnmounted(() => {
   width: 100%;
 }
 /* Collision hit marker on the timeline — semantic danger red; rapid-contact
-   hits span full height, feed contacts are the shorter center band. */
+   hits span full height, feed contacts are the shorter center band.
+   Positioned in the THUMB-TRAVEL span, not the full input width: a range
+   thumb (16px) travels width−16px inset 8px each side, so un-inset marks
+   drift up to 8px off the thumb toward the ends. */
 .scrubMark {
   position: absolute;
   top: 25%;
@@ -564,6 +591,10 @@ onUnmounted(() => {
   /* Full-strength warn: the hairline bg edge (above) carries the contrast
      against bright backgrounds, so the tick keeps the bright yellow. */
   background: var(--warn);
+}
+.scrubMark.near {
+  /* Clearance warning (never touches) — muted vs a real contact tick. */
+  opacity: var(--opacity-muted);
 }
 .scrubMark.tool {
   background: var(--info);

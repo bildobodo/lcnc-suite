@@ -60,12 +60,21 @@ export interface CollisionBody {
   /** Static placement inside the group — mm and radians, as machine.json. */
   translate?: number[];
   rotate?: number[];
+  /** STOCK body: the one thing the tool may FEED into (cutting). Without a
+   *  stock body — the current default — the tool may touch NOTHING: real
+   *  programs cut stock sitting above the fixture, so tool contact with any
+   *  machine body is a crash by definition. */
+  stock?: boolean;
 }
 
 export interface CollisionHit {
   line: number;
-  /** Scrub-track cum parameter of the worst sample — scrub-to-hit target. */
+  /** Track-cum of FIRST TOUCH (refined) for contact hits; closest-approach
+   *  sample for near-misses — the scrub-to-hit target. */
   cum: number;
+  /** Track-cum where the contact ENDS (refined exit, clamped to the line) —
+   *  the tint window is [cum, cumEnd]. Equals `cum` for near-misses. */
+  cumEnd: number;
   a: string;               // tool-side body id
   b: string;               // work-side body id
   dist: number;            // machine units; 0 = contact/penetration
@@ -214,6 +223,10 @@ export interface CollisionModel {
   /** Per pair: the DOFs strictly between the two bodies (below their LCA) —
    *  exactly the motion that changes their relative pose. */
   pairDofs: PathDof[][];
+  /** Per pair: tool-side body × an explicit STOCK body. FEED contact on
+   *  these pairs is CUTTING — expected machining, not reported; contact
+   *  whose onset falls in a RAPID is a crash and reports normally. */
+  pairCutting: boolean[];
   machine: CollisionMachine;
   bvhMs: number;
 }
@@ -279,8 +292,14 @@ export function buildCollisionModel(machine: CollisionMachine, bodyDefs: Collisi
     return out;
   };
 
+  // Cutting pairs: tool-side body × an EXPLICIT stock body. No machine part
+  // is ever implicitly cuttable — the platter is workholding, not stock.
+  const stockIds = new Set(bodyDefs.filter(d => d.stock).map(d => d.id));
+  const isCuttingBody = (b: BuiltBody) => stockIds.has(b.id);
+
   const pairs: Array<[number, number]> = [];
   const pairDofs: PathDof[][] = [];
+  const pairCutting: boolean[] = [];
   for (let a = 0; a < bodies.length; a++) {
     for (let b = a + 1; b < bodies.length; b++) {
       const A = bodies[a]!, B = bodies[b]!;
@@ -291,9 +310,12 @@ export function buildCollisionModel(machine: CollisionMachine, bodyDefs: Collisi
       if (B.side === "tool" && A.side !== "tool") pairs.push([b, a]);
       else pairs.push([a, b]);
       pairDofs.push(dofs);
+      pairCutting.push(
+        (A.side === "tool" && isCuttingBody(B)) || (B.side === "tool" && isCuttingBody(A)),
+      );
     }
   }
-  return { nodes, bodies, pairs, pairDofs, machine, bvhMs: performance.now() - t0 };
+  return { nodes, bodies, pairs, pairDofs, pairCutting, machine, bvhMs: performance.now() - t0 };
 }
 
 /** One kinematic pose: evaluate every node's world matrix from joint values. */
@@ -328,7 +350,7 @@ export function sweepCollisions(
   onProgress?: (frac: number) => void,
   shouldAbort?: () => boolean,
 ): CollisionResult {
-  const { nodes, bodies, pairs, pairDofs, machine } = model;
+  const { nodes, bodies, pairs, pairDofs, pairCutting, machine } = model;
   const maxSamples = opts.maxSamples ?? DEFAULTS.maxSamples;
   const t0 = performance.now();
   const n = track.count;
@@ -427,7 +449,11 @@ export function sweepCollisions(
   // Baseline pass (first pose): pairs already inside the margin here are
   // mechanical-joint proximity (slides, bearings, trunnion mounts) — or a
   // program that starts in contact. Reported once, excluded from the sweep.
+  // CUTTING pairs are never baseline-excluded (a tool parked on the work is
+  // normal) — they instead seed the in-contact state for onset tracking.
   const staticExcluded = new Uint8Array(pairs.length);
+  const inContact = new Uint8Array(pairs.length);
+  const onsetRapid = new Uint8Array(pairs.length);
   const staticContacts: CollisionResult["staticContacts"] = [];
   poseAt(track.pos[0]!, track.pos[1]!, track.pos[2]!,
          track.abc[0]!, track.abc[1]!, track.abc[2]!);
@@ -435,8 +461,12 @@ export function sweepCollisions(
     const [ai, bi] = pairs[pi]!;
     const dist = pairDistance(bodies[ai]!, bodies[bi]!, opts.margin);
     if (dist <= opts.margin) {
-      staticExcluded[pi] = 1;
-      staticContacts.push({ a: bodies[ai]!.id, b: bodies[bi]!.id, dist });
+      if (pairCutting[pi]) {
+        inContact[pi] = 1;  // engaged from the start — a later retract is benign
+      } else {
+        staticExcluded[pi] = 1;
+        staticContacts.push({ a: bodies[ai]!.id, b: bodies[bi]!.id, dist });
+      }
     }
   }
   done++;
@@ -446,9 +476,12 @@ export function sweepCollisions(
     const key = `${line}|${bodies[ai]!.id}|${bodies[bi]!.id}`;
     const prev = worst.get(key);
     if (!prev || dist < prev.dist) {
-      worst.set(key, { line, cum, a: bodies[ai]!.id, b: bodies[bi]!.id, dist, rapid, pi });
-    } else if (rapid && !prev.rapid) {
-      prev.rapid = true;  // any rapid contact on this (line, pair) marks it
+      const rec = { line, cum, cumEnd: cum, a: bodies[ai]!.id, b: bodies[bi]!.id, dist, rapid, pi };
+      if (prev) rec.cumEnd = Math.max(prev.cumEnd, cum);
+      worst.set(key, rec);
+    } else {
+      if (cum > prev.cumEnd && dist <= 1e-4) prev.cumEnd = cum;  // last in-contact sample so far
+      if (rapid && !prev.rapid) prev.rapid = true;  // any rapid contact on this (line, pair) marks it
     }
   };
 
@@ -500,7 +533,6 @@ export function sweepCollisions(
   // inflated ×2 (+ the chunk's translation budget) to cover mid-chunk
   // drift — sound for chunks ≤ CHUNK_ROT_DEG of rotary sweep. Guarantee:
   // no margin crossing wider than MIN_ADV of path parameter is missed.
-  const inContact = new Uint8Array(pairs.length);
   const pairV = new Float64Array(pairs.length);
   const sSafe = new Float64Array(pairs.length);
   const rotLever = pairDofs.map(list => new Float64Array(list.length));
@@ -608,11 +640,26 @@ export function sweepCollisions(
           const A = bodies[ai]!, B = bodies[bi]!;
           const d = pairDistance(A, B, HORIZON);
           if (d <= opts.margin) {
-            recordHit(line, s, isRapid, pi, d);
-            inContact[pi] = 1;
+            if (!inContact[pi]) {
+              inContact[pi] = 1;
+              onsetRapid[pi] = isRapid ? 1 : 0;
+            }
+            if (pairCutting[pi]) {
+              // Cutting pair (tool × workGroup body): feed contact is
+              // MACHINING — never reported. A contact whose ONSET fell in a
+              // rapid is the gouge class and reports for that rapid; a
+              // retract leaving contact begun on a feed (or present from
+              // the program start) is benign.
+              if (isRapid && onsetRapid[pi]) recordHit(line, s, true, pi, d);
+            } else {
+              recordHit(line, s, isRapid, pi, d);
+            }
             sSafe[pi] = s + EXPLORE;  // re-probe cadence inside the contact
           } else {
-            if (inContact[pi] && d > opts.margin * 2) inContact[pi] = 0;
+            if (inContact[pi] && d > opts.margin * 2) {
+              inContact[pi] = 0;
+              onsetRapid[pi] = 0;
+            }
             const bound = d === Infinity ? HORIZON : d;
             sSafe[pi] = s + Math.max(MIN_ADV, (bound - opts.margin) / Math.max(pairV[pi]!, 1e-9));
           }
@@ -635,29 +682,86 @@ export function sweepCollisions(
   // "Contact" for the refinement probes: intersecting meshes report a
   // closest distance of ~1e-8 (float), never a clean 0.
   const CONTACT_EPS = 1e-4;
+  // Dist-cum where the hit's LINE begins — refinement must never walk back
+  // past it: through-contact across line boundaries (the pair never clears
+  // between lines) would collapse every following line's hit onto the first
+  // line's contact point (same jump target, wrong line label).
+  const segOfLine = (cum: number, line: number): number => {
+    let lo = 1, hi = n - 1;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (dcum[mid]! < cum) lo = mid + 1;
+      else hi = mid;
+    }
+    // A hit recorded exactly ON a boundary (chunk starts sit on dcum values)
+    // binary-searches into the PREVIOUS segment — step forward to the
+    // segment that actually carries the hit's line.
+    while (lo < n - 1 && track.lines[lo] !== line && track.lines[lo + 1] === line) lo++;
+    return lo;
+  };
+  const lineStartDist = (cum: number, line: number): number => {
+    let lo = segOfLine(cum, line);
+    while (lo > 1 && track.lines[lo - 1] === line) lo--;
+    return dcum[lo - 1]!;
+  };
+  const lineEndDist = (cum: number, line: number): number => {
+    let lo = segOfLine(cum, line);
+    while (lo < n - 1 && track.lines[lo + 1] === line) lo++;
+    return dcum[lo]!;
+  };
   for (const h of worst.values()) {
     if (h.dist > CONTACT_EPS || h.cum <= 0) continue;  // near-misses keep their closest-approach sample
+    const floor = lineStartDist(h.cum, h.line);
     let hi = h.cum;
     let lo = hi;
     let guard = 0;
     let bracketed = false;
     const back = Math.max(MIN_ADV, EXPLORE / 4);
-    while (guard++ < 128 && lo > 0) {
-      lo = Math.max(0, lo - back);
+    while (guard++ < 128 && lo > floor) {
+      lo = Math.max(floor, lo - back);
       if (distAtCum(lo, h.pi) > CONTACT_EPS) { bracketed = true; break; }
       hi = lo;  // still in contact — earliest known contact moves back
     }
-    if (!bracketed) { h.cum = hi; continue; }  // contact reaches the walk limit — keep the earliest probe
-    for (let it = 0; it < 24 && hi - lo > 1e-3; it++) {
-      const mid = (lo + hi) / 2;
-      if (distAtCum(mid, h.pi) <= CONTACT_EPS) hi = mid;
-      else lo = mid;
+    if (bracketed) {
+      for (let it = 0; it < 24 && hi - lo > 1e-3; it++) {
+        const mid = (lo + hi) / 2;
+        if (distAtCum(mid, h.pi) <= CONTACT_EPS) hi = mid;
+        else lo = mid;
+      }
+      h.cum = hi;
+    } else {
+      h.cum = hi;  // in contact from the line's start — that IS first touch here
     }
-    h.cum = hi;
+
+    // Exit refinement: the glow window must END where the parts separate —
+    // walk forward from the last in-contact sample, clamped to the line.
+    const ceil = lineEndDist(Math.max(h.cumEnd, h.cum), h.line);
+    let elo = Math.max(h.cumEnd, h.cum);
+    let ehi = elo;
+    guard = 0;
+    let exitBracketed = false;
+    while (guard++ < 128 && ehi < ceil) {
+      ehi = Math.min(ceil, ehi + back);
+      if (distAtCum(ehi, h.pi) > CONTACT_EPS) { exitBracketed = true; break; }
+      elo = ehi;
+    }
+    if (exitBracketed) {
+      for (let it = 0; it < 24 && ehi - elo > 1e-3; it++) {
+        const mid = (elo + ehi) / 2;
+        if (distAtCum(mid, h.pi) <= CONTACT_EPS) elo = mid;
+        else ehi = mid;
+      }
+      h.cumEnd = elo;
+    } else {
+      h.cumEnd = ehi;  // in contact to the line's end
+    }
   }
   // Hits leave the sweep in TRACK cum (time on a time-based track) — the
   // scrub-to-hit target must live on the slider's axis.
-  for (const h of worst.values()) h.cum = distToTrackCum(h.cum);
+  for (const h of worst.values()) {
+    h.cum = distToTrackCum(h.cum);
+    h.cumEnd = Math.max(h.cum, distToTrackCum(h.cumEnd));
+  }
   onProgress?.(1);
 
   const hits = [...worst.values()]

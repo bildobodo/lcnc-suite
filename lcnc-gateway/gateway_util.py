@@ -383,6 +383,33 @@ _ROTARY_AXES = frozenset("ABC")
 _LIMIT_EPS = 1e-6
 
 
+def rs274_effective_xy_offset(g5x_x, g5x_y, g92_x, g92_y, rotation_deg):
+    """Single post-rotation XY offset equivalent to RS274's offset order.
+
+    rs274.interpret.Translated.rotate_and_translate (the interpreter's own
+    preview canon, and the semantics the running interp applies) is:
+
+        machine = g5x + Rz(theta) . (program + g92)
+
+    i.e. g92 is applied BEFORE the rotation, g5x after. Folding that into a
+    single post-rotation offset gives  o = g5x + Rz(theta) . g92 , so that
+
+        machine = o + Rz(theta) . program
+        program = Rz(-theta) . (machine - o)
+
+    hold exactly. The naive o = g5x + g92 (what this codebase used before)
+    deviates by (Rz(theta) - I) . g92 whenever G92 and G10 L2 R rotation
+    are both active. Z and rotary axes are never rotated — plain sums stay
+    correct there. Pure; unit-tested against rotate_and_translate itself.
+
+    Returns (ox, oy) in the same units as the inputs.
+    """
+    th = math.radians(rotation_deg or 0.0)
+    c, s = math.cos(th), math.sin(th)
+    return (g5x_x + g92_x * c - g92_y * s,
+            g5x_y + g92_x * s + g92_y * c)
+
+
 def read_axis_limits(ini_find, axis_mask: int):
     """Per-axis soft limits from the active INI, for every axis in the mask.
 

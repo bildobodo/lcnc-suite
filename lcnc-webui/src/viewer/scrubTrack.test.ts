@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildScrubTrack, sampleTrack, jointsForSample,
-  machineJointsToProgram, prependEntry,
+  machineJointsToProgram, prependEntry, splitTrackStreams,
   type ScrubSample, type ScrubStream, type ScrubTrack,
 } from "./scrubTrack";
 
@@ -195,5 +195,62 @@ describe("jointsForSample", () => {
     const out: (number | null)[] = [];
     jointsForSample(s, { g5x: [], g92: [], rotationDeg: 0 }, AXES_XYZAC, out);
     for (const v of out) expect(Number.isFinite(v!)).toBe(true);
+  });
+});
+
+describe("splitTrackStreams", () => {
+  // The classic false-connector case: feed → rapid Z-lift → feed sweep.
+  // Drawn as strips, the second feed appeared to start at the PRE-lift
+  // position (the lift skipped); split into sections, each feed section
+  // opens at its true start (the rapid's end) and `breaks` marks the
+  // section starts so the renderer never draws the connector.
+  it("re-opens a feed section at the rapid's end position", () => {
+    // rapid(seq1)→(0,0,0); feed(seq2)→(10,0,0); rapid(seq3)→(10,0,60) LIFT;
+    // feed(seq4)→(30,0,60) post-lift sweep.
+    const feed = stream([[10, 0, 0], [30, 0, 60]], { seq: [2, 4], lines: [5, 9], abc: [[0, 0, 0], [0, 0, 90]] });
+    const rapid = stream([[0, 0, 0], [10, 0, 60]], { seq: [1, 3], lines: [3, 7], abc: [[0, 0, 0], [0, 0, 0]] });
+    const t = buildScrubTrack(feed, rapid)!;
+    const s = splitTrackStreams(t);
+
+    // Feed: section 1 = [track p0 (0,0,0) → p1 (10,0,0)], section 2 =
+    // [track p2 (10,0,60) → p3 (30,0,60)] — section 2 STARTS at the lift's
+    // end, not at (10,0,0).
+    expect(Array.from(s.feedPos)).toEqual([0, 0, 0, 10, 0, 0, 10, 0, 60, 30, 0, 60]);
+    expect(Array.from(s.feedBreaks)).toEqual([0, 2]);
+    // Section-start vertices carry the OPENING segment's line.
+    expect(Array.from(s.feedLines)).toEqual([5, 5, 9, 9]);
+    // abc rides along (section start inherits the rapid end's abc).
+    expect(Array.from(s.feedAbc)).toEqual([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 90]);
+
+    // Rapid: only ONE rapid SEGMENT exists — the lift (feed end → lift end).
+    // Track p0 is just the initial position; the segment into it was the
+    // suppressed unknown-start first move and is not drawable.
+    expect(Array.from(s.rapidPos)).toEqual([10, 0, 0, 10, 0, 60]);
+    expect(Array.from(s.rapidBreaks)).toEqual([0]);
+  });
+
+  it("contiguous single-stream track yields one section, break only at 0", () => {
+    const feed = stream([[0, 0, 0], [10, 0, 0], [20, 0, 0]], { seq: [1, 2, 3], lines: [1, 2, 3] });
+    const t = buildScrubTrack(feed, EMPTY)!;
+    const s = splitTrackStreams(t);
+    expect(Array.from(s.feedPos)).toEqual([0, 0, 0, 10, 0, 0, 20, 0, 0]);
+    expect(Array.from(s.feedBreaks)).toEqual([0]);
+    expect(s.rapidPos.length).toBe(0);
+    expect(s.rapidBreaks.length).toBe(0);
+  });
+
+  it("alternating streams duplicate every boundary vertex", () => {
+    // F R F R: every segment is its own section.
+    const feed = stream([[1, 0, 0], [3, 0, 0]], { seq: [1, 3], lines: [1, 3] });
+    const rapid = stream([[2, 0, 0], [4, 0, 0]], { seq: [2, 4], lines: [2, 4] });
+    const t = buildScrubTrack(feed, rapid)!;
+    const s = splitTrackStreams(t);
+    // The only feed SEGMENT is p1→p2 (p0 is the first rapid... no — p0 came
+    // from feed but the segment INTO p1 is rapid): feed = [(2), (3)].
+    expect(Array.from(s.feedPos)).toEqual([2, 0, 0, 3, 0, 0]);
+    expect(Array.from(s.feedBreaks)).toEqual([0]);
+    expect(Array.from(s.feedLines)).toEqual([3, 3]);
+    expect(Array.from(s.rapidPos)).toEqual([1, 0, 0, 2, 0, 0, 3, 0, 0, 4, 0, 0]);
+    expect(Array.from(s.rapidBreaks)).toEqual([0, 2]);
   });
 });

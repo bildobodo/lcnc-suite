@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, inject, onMounted, onUnmounted, reactive, ref, watch, type Ref } from "vue";
+import { computed, inject, onMounted, onUnmounted, reactive, ref, shallowRef, watch, type Ref } from "vue";
 
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
@@ -1145,12 +1145,19 @@ function applyState(init: ViewerInit, st: ViewerState) {
     _toolGrp.position.sub(_tofsVec.set(tofs[0] ?? 0, tofs[1] ?? 0, tofs[2] ?? 0));
   }
 
-  // Work origin offset: place DRO/work zero in machine space.
+  // Work origin offset: place DRO/work zero in machine space. RS274 order
+  // (rotate_and_translate): machine = g5x + Rz(θ)·(program + g92), so the
+  // effective origin is g5x + Rz(θ)·g92 — workRotGroup (child) applies the
+  // rotation to program coords AND the g92 vector's share lives here. A
+  // plain g5x+g92 sum deviates whenever G92 and G10 R are both active.
   const g5x = st.g5x_offset ?? [];
   const g92 = st.g92_offset ?? [];
+  const thRad = (st.rotation_xy ?? 0) * Math.PI / 180;
+  const cthW = Math.cos(thRad), sthW = Math.sin(thRad);
+  const g92x = g92[0] ?? 0, g92y = g92[1] ?? 0;
 
-  const ox = (g5x[0] ?? 0) + (g92[0] ?? 0);
-  const oy = (g5x[1] ?? 0) + (g92[1] ?? 0);
+  const ox = (g5x[0] ?? 0) + g92x * cthW - g92y * sthW;
+  const oy = (g5x[1] ?? 0) + g92x * sthW + g92y * cthW;
   const oz = (g5x[2] ?? 0) + (g92[2] ?? 0);
 
   if (workOrigin) {
@@ -1167,8 +1174,12 @@ function applyState(init: ViewerInit, st: ViewerState) {
     const meta: ToolMeta | null = st.tool_meta ?? null;
     // Design default: absent tool dimensions draw a generic 6×60 mm placeholder
     // marker — a viewer position cue, not a claim about the real tool geometry.
-    const diam = st.tool_diameter ?? 6.0 * _unitScale;
-    const rawLen = st.tool_length ?? 60.0 * _unitScale;
+    const diam = st.tool_diameter || 6.0 * _unitScale;
+    // `||`, not `??`: tool_length 0 (no tool / no offset) means "unknown",
+    // and a 0-length marker collapses to the 40 mm minimum — 15 mm short of
+    // the raised spindle nose, leaving the tool floating detached. The
+    // collision body already used `||`; display and check must agree.
+    const rawLen = st.tool_length || 60.0 * _unitScale;
     const sinkIntoHolder = 20 * _unitScale;
     const minVisualLen = 40 * _unitScale;
     const visLen = Math.max(minVisualLen, rawLen + sinkIntoHolder);
@@ -1247,7 +1258,9 @@ function applyState(init: ViewerInit, st: ViewerState) {
   if (_numArrChanged(_pv.machinePos, st.machine_pos)) { _pv.machinePos = st.machine_pos ? [...st.machine_pos] : null; changed = true; }
   if (_numArrChanged(_pv.g5x, st.g5x_offset)) { _pv.g5x = st.g5x_offset ? [...st.g5x_offset] : null; changed = true; _pfScheduleWcsRefresh(); _colOnInputChange(); }
   if (_numArrChanged(_pv.g92, st.g92_offset)) { _pv.g92 = st.g92_offset ? [...st.g92_offset] : null; changed = true; _pfScheduleWcsRefresh(); _colOnInputChange(); }
-  if (_numArrChanged(_pv.toolOffset, st.tool_offset)) { _pv.toolOffset = st.tool_offset ? [...st.tool_offset] : null; changed = true; }
+  // tool_offset is a transform input (joint-space math is G43-inclusive):
+  // refresh the part-frame preview and re-run the sweep like any WCS change.
+  if (_numArrChanged(_pv.toolOffset, st.tool_offset)) { _pv.toolOffset = st.tool_offset ? [...st.tool_offset] : null; changed = true; _pfScheduleWcsRefresh(); _colOnInputChange(); }
   if (toolNum !== _pv.toolNum) { _pv.toolNum = toolNum; changed = true; }
   if (toolDiam !== _pv.toolDiam) { _pv.toolDiam = toolDiam; changed = true; _colOnInputChange(); }
   if (toolLen !== _pv.toolLen) { _pv.toolLen = toolLen; changed = true; _colOnInputChange(); }
@@ -1276,7 +1289,7 @@ function _pfGetWorker(): Worker {
   if (!_pfWorker) {
     _pfWorker = new Worker(new URL("./viewer/partFrameWorker.ts", import.meta.url), { type: "module" });
     _pfWorker.onmessage = (ev: MessageEvent) => {
-      const m = ev.data as { id: number; error?: string; feedPos?: Float32Array; feedLines?: Uint32Array; feedLineMap?: Map<number, { start: number; end: number }>; rapidPos?: Float32Array; rapidDist?: Float32Array };
+      const m = ev.data as { id: number; error?: string; feedPos?: Float32Array; feedLines?: Uint32Array; feedLineMap?: Map<number, { start: number; end: number }>; rapidPos?: Float32Array; rapidDist?: Float32Array; feedBreaks?: Uint32Array; rapidBreaks?: Uint32Array };
       if (m.id !== _pfReqId) return;  // superseded
       const g = viewerGcode.value;
       if (!g) return;
@@ -1290,6 +1303,7 @@ function _pfGetWorker(): Worker {
         ...g,
         feedPos: m.feedPos, feed_lines: m.feedLines, feedLineMap: m.feedLineMap,
         rapidPos: m.rapidPos, rapidDist: m.rapidDist,
+        feedBreaks: m.feedBreaks, rapidBreaks: m.rapidBreaks,
       });
       requestRender();
     };
@@ -1316,7 +1330,14 @@ function _pfMachine(init: ViewerInit): PartFrameMachine {
 }
 
 function _pfWcs(): PartFrameWcs {
-  return { g5x: _pv.g5x ?? [], g92: _pv.g92 ?? [], rotationDeg: _pv.rotationXy ?? 0 };
+  // tool: live TCP offset — makes the transform joint-space-exact (G43).
+  // The part-frame tip peel and the collision worker's tool-body shift
+  // both subtract it back, so the drawn curve is unchanged; the posed
+  // BODIES (spindle housing at joint height) are what it corrects.
+  return {
+    g5x: _pv.g5x ?? [], g92: _pv.g92 ?? [],
+    rotationDeg: _pv.rotationXy ?? 0, tool: _pv.toolOffset ?? [],
+  };
 }
 
 // ---- Collision sweep (offline dry run, stage 3) ----
@@ -1331,6 +1352,10 @@ let _colReqId = 0;
 const collisionBusy = ref(false);
 const collisionProgress = ref(0);
 const collisionResult = ref<CollisionResult | null>(null);
+// The exact track the current result was swept on — hit cums are only
+// meaningful against it (shallowRef: tracks hold Maps + typed arrays).
+const collisionTrack = shallowRef<ScrubTrack | null>(null);
+let _colPendingTrack: ScrubTrack | null = null;
 
 function _colGetWorker(): Worker {
   if (!_colWorker) {
@@ -1347,10 +1372,12 @@ function _colGetWorker(): Worker {
         console.error("[collision] sweep failed:", m.error);
         emitTelemetry("collision.sweep_failed", { msg: m.error });
         collisionResult.value = null;
+        collisionTrack.value = null;
         emit("collision-lines", null);
         return;
       }
       collisionResult.value = m.result!;
+      collisionTrack.value = _colPendingTrack;
       emit("collision-lines", m.result!.hits.map(h => h.line));
     };
   }
@@ -1392,6 +1419,7 @@ function runCollisionCheck(trackOverride?: ScrubTrack) {
   }
   if (skipped) console.warn(`[collision] ${skipped} machine part(s) not loaded — checked without them`);
   const id = ++_colReqId;
+  _colPendingTrack = track;
   collisionBusy.value = true;
   collisionProgress.value = 0;
   collisionResult.value = null;
@@ -1453,8 +1481,9 @@ function _colOnInputChange() {
   if (!collisionResult.value && !collisionBusy.value) return;
   cancelCollisionCheck();
   collisionResult.value = null;
+  collisionTrack.value = null;
   emit("collision-lines", null);
-  _updateClashTint(null);
+  _updateClashTint(null, null);
   _colScheduleAuto();
 }
 
@@ -1462,8 +1491,9 @@ function _colOnInputChange() {
 watch(viewerGcode, () => {
   cancelCollisionCheck();
   collisionResult.value = null;
+  collisionTrack.value = null;
   emit("collision-lines", null);
-  _updateClashTint(null);
+  _updateClashTint(null, null);
   _colScheduleAuto();
 });
 watch(machineReady, (ready) => {
@@ -1489,13 +1519,15 @@ function applyGcode(g: ViewerGcode) {
     const ra = g.rapidAbc && g.rapidAbc.length === rp.length ? g.rapidAbc : new Float32Array(rp.length);
     // Copies: the transfer must not detach viewerGcode's raw buffers — they
     // are re-read on every WCS/mode change.
-    const feed = { pos: fp.slice(), abc: fa.slice(), lines: fl?.slice() };
-    const rapid = { pos: rp.slice(), abc: ra.slice() };
+    const feed = { pos: fp.slice(), abc: fa.slice(), lines: fl?.slice(), breaks: g.feedBreaks?.slice() };
+    const rapid = { pos: rp.slice(), abc: ra.slice(), breaks: g.rapidBreaks?.slice() };
     const transfer: Transferable[] = [
       feed.pos.buffer as ArrayBuffer, feed.abc.buffer as ArrayBuffer,
       rapid.pos.buffer as ArrayBuffer, rapid.abc.buffer as ArrayBuffer,
     ];
     if (feed.lines) transfer.push(feed.lines.buffer as ArrayBuffer);
+    if (feed.breaks) transfer.push(feed.breaks.buffer as ArrayBuffer);
+    if (rapid.breaks) transfer.push(rapid.breaks.buffer as ArrayBuffer);
     try {
       _pfGetWorker().postMessage({ id, machine: _pfMachine(viewerInit.value!), wcs: _pfWcs(), feed, rapid }, transfer);
     } catch (err) {
@@ -1572,14 +1604,16 @@ let _scrubLineNo: number | null = null;
 // model re-poses immediately instead of waiting for the next status tick.
 let _lastState: ViewerState | null = null;
 
-function onScrubPose(joints: (number | null)[] | null, line: number | null) {
+function onScrubPose(joints: (number | null)[] | null, line: number | null, cum: number | null, trk: ScrubTrack | null) {
   _scrubJoints = joints;
   _scrubLineNo = joints ? line : null;
+  _scrubTrackRef = joints ? trk : null;
   emit("scrub-line", _scrubLineNo);
-  _updateClashTint(_scrubLineNo);
+  _updateClashTint(_scrubLineNo, joints ? cum : null);
   if (_lastState && !pendingState) pendingState = _lastState;
   requestRender();
 }
+let _scrubTrackRef: ScrubTrack | null = null;
 
 // ---- Clash-pair tint: while the scrub sits on a line with a reported
 // collision, the involved bodies glow danger-red (emissive add — works on
@@ -1630,11 +1664,21 @@ function _tintMesh(mesh: THREE.Mesh, on: boolean) {
   }
 }
 
-function _updateClashTint(line: number | null) {
+// Contact-gated: the pair glows only from FIRST TOUCH (the refined contact
+// cum) onward on the flagged line, and only for genuinely penetrating hits
+// (dist ≈ 0 — near-misses never touch, so they never glow). The glow is the
+// visual proof the detection fired where the metal meets. Hit cums are only
+// meaningful on the track they were swept on — stale results never tint.
+const CONTACT_TINT_EPS = 1e-3;
+function _updateClashTint(line: number | null, cum: number | null) {
   const want = new Set<string>();
-  if (line != null) {
+  if (line != null && cum != null && _scrubTrackRef && _scrubTrackRef === collisionTrack.value) {
     for (const h of collisionResult.value?.hits ?? []) {
-      if (h.line === line) { want.add(h.a); want.add(h.b); }
+      if (h.line === line && h.dist <= CONTACT_TINT_EPS
+          && cum >= h.cum - CONTACT_TINT_EPS && cum <= h.cumEnd + CONTACT_TINT_EPS) {
+        want.add(h.a);
+        want.add(h.b);
+      }
     }
   }
   let changed = false;
@@ -2316,6 +2360,7 @@ defineExpose({
       :collisionBusy="collisionBusy"
       :collisionProgress="collisionProgress"
       :collisionResult="collisionResult"
+      :collisionTrack="collisionTrack"
       @pose="onScrubPose"
       @check="runCollisionCheck"
       @cancel-check="cancelCollisionCheck"

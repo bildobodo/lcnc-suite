@@ -59,7 +59,7 @@ _trace.init("gcode_parse_worker")
 # Ensure local-dir imports resolve when invoked from anywhere
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from gcode_canon import PreviewCanon, apply_var_patches
-from gateway_util import scan_tool_stats, read_axis_limits, check_limit_violations
+from gateway_util import scan_tool_stats, read_axis_limits, check_limit_violations, rs274_effective_xy_offset
 
 
 _EMPTY = {"feed": [], "feed_lines": [], "rapid": [], "stats": None,
@@ -192,9 +192,15 @@ def parse(ctx: dict) -> dict:
     # Subtract WCS origin AND un-rotate so the polyline is in raw program
     # coords — frontend re-applies LIVE origin (workOrigin.position) and LIVE
     # rotation (workRotGroup.rotation.z) from STAT. Symmetric with XYZ.
+    # RS274 order (rotate_and_translate): machine = g5x + Rz(θ)·(program+g92),
+    # so the single subtractable origin is g5x + Rz(θ)·g92 — NOT g5x+g92,
+    # which mis-places g92 under an active G10 R rotation. Z/rotary are never
+    # rotated; plain sums stay exact there.
     unit_scale = 25.4 if machine_units == "mm" else 1.0
-    ox = canon.g5x_offset_x + canon.g92_offset_x
-    oy = canon.g5x_offset_y + canon.g92_offset_y
+    theta_deg = canon.rotation_xy or 0.0
+    ox, oy = rs274_effective_xy_offset(
+        canon.g5x_offset_x, canon.g5x_offset_y,
+        canon.g92_offset_x, canon.g92_offset_y, theta_deg)
     oz = canon.g5x_offset_z + canon.g92_offset_z
     # Rotary offsets — subtracted so abc is in raw program coords, symmetric
     # with xyz (frontend re-applies LIVE offsets when evaluating the machine
@@ -225,7 +231,7 @@ def parse(ctx: dict) -> dict:
         violations, violations_total = None, 0
         print("limits UNCHECKED — no MIN/MAX_LIMIT in INI", file=sys.stderr, flush=True)
 
-    theta = canon.rotation_xy or 0.0
+    theta = theta_deg
     if theta:
         rad = math.radians(theta)
         ca = math.cos(rad)

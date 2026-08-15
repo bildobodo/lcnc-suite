@@ -44,13 +44,16 @@ function track(points: number[][], abc?: number[][], lines?: number[], rapid?: n
 const PLUNGE: CollisionMachine = {
   groups: [
     { id: "table", parent: "root" },
+    // workGroup is a LEAF under the table so the vise (group "table") is a
+    // fixture body, not a cutting body — cutting semantics get their own test.
+    { id: "platter", parent: "table" },
     { id: "head", parent: "root", translate: [0, 0, 50] },
   ],
   kinematics: [
     { group: "table", joint: 0, type: "translate", direction: "x", sign: 1 },
     { group: "head", joint: 2, type: "translate", direction: "z", sign: 1 },
   ],
-  workGroup: "table",
+  workGroup: "platter",
   toolGroup: "head",
   unitScale: 1,
   axes: ["X", "Y", "Z"],
@@ -159,10 +162,11 @@ describe("sweepCollisions", () => {
     const rotary: CollisionMachine = {
       groups: [
         { id: "platter", parent: "root" },
+        { id: "work", parent: "platter" },
         { id: "spindle", parent: "root", translate: [0, 20, 0] },
       ],
       kinematics: [{ group: "platter", joint: 0, type: "rotate", direction: "z", sign: 1 }],
-      workGroup: "platter",
+      workGroup: "work",
       toolGroup: "spindle",
       unitScale: 1,
       axes: ["C"],
@@ -234,10 +238,11 @@ describe("sweepCollisions", () => {
     const rotary: CollisionMachine = {
       groups: [
         { id: "platter", parent: "root" },
+        { id: "work", parent: "platter" },
         { id: "frame", parent: "root" },
       ],
       kinematics: [{ group: "platter", joint: 0, type: "rotate", direction: "z", sign: 1 }],
-      workGroup: "platter",
+      workGroup: "work",
       toolGroup: "frame",
       unitScale: 1,
       axes: ["C"],
@@ -254,6 +259,32 @@ describe("sweepCollisions", () => {
     // First contact ≈ 90° minus the small angular half-width of the boxes.
     expect(r.hits[0]!.cum).toBeGreaterThan(85);
     expect(r.hits[0]!.cum).toBeLessThan(91);
+  });
+
+  it("cutting semantics: feed contact with an EXPLICIT stock body is machining; rapid onset is a gouge", () => {
+    // Only a body flagged `stock` is cuttable — machine parts never are
+    // (without stock, the tool may touch nothing). On a FEED into stock:
+    // cutting — no report. On a RAPID whose onset enters contact: gouge,
+    // reported. A retract rapid leaving feed-begun contact stays benign.
+    const bodies: CollisionBody[] = [
+      { id: "stock", group: "platter", positions: boxPositions(10), stock: true },
+      { id: "spindle", group: "head", positions: boxPositions(10) },
+    ];
+    const model = buildCollisionModel(PLUNGE, bodies);
+    // Feed plunge into the stock, feed retract: pure cutting.
+    let r = sweepCollisions(model, track(
+      [[0, 0, 0], [0, 0, -43], [0, 0, 0]], undefined, [7, 8, 9], [0, 0, 0]), WCS0, { margin: 2 });
+    expect(r.hits).toEqual([]);
+    expect(r.staticContacts).toEqual([]);   // cutting pairs never go static
+    // Same plunge as a RAPID: onset in rapid → gouge.
+    r = sweepCollisions(model, track(
+      [[0, 0, 0], [0, 0, -43]], undefined, [7, 8], [0, 1]), WCS0, { margin: 2 });
+    expect(r.hits).toHaveLength(1);
+    expect(r.hits[0]!.rapid).toBe(true);
+    // Feed plunge, then RAPID retract out of contact: benign (onset was feed).
+    r = sweepCollisions(model, track(
+      [[0, 0, 0], [0, 0, -43], [0, 0, 0]], undefined, [7, 8, 9], [0, 0, 1]), WCS0, { margin: 2 });
+    expect(r.hits).toEqual([]);
   });
 
   it("detects collisions with root-attached static frame bodies", () => {

@@ -114,6 +114,14 @@ export interface ViewerGcode {
   // already exact and no part-frame transform is needed.
   feedAbc?: Float32Array;          // flat [a,b,c, ...]
   rapidAbc?: Float32Array;
+  // Section breaks for the drawn streams (previewWorker, track-derived):
+  // vertex indices that OPEN a section — no segment is drawn into them.
+  // The raw wire streams are endpoint lists that lose the feed/rapid
+  // interleaving; rendered as plain strips they draw FALSE connectors
+  // across every stream switch (a feed after a G0 lift appeared to start
+  // pre-lift). Absent on track-less legacy payloads → strip rendering.
+  feedBreaks?: Uint32Array;
+  rapidBreaks?: Uint32Array;
   // P4.1: bounding boxes of the rendered polylines, computed in the parse worker
   // so ThreeViewer skips an O(n) main-thread scan per load. `bounds` is the cut
   // envelope shown as the toolpath bounds box (X/Y over feed+rapid, Z over feed

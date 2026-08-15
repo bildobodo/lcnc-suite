@@ -8,7 +8,7 @@
 // thread (ThreeViewer) builds BufferAttributes directly from them — no decode, no
 // points.flat(), no per-point allocation on the UI thread.
 import { decode as msgpackDecode } from "@msgpack/msgpack";
-import { buildScrubTrack } from "./viewer/scrubTrack";
+import { buildScrubTrack, splitTrackStreams } from "./viewer/scrubTrack";
 
 interface Req { version: number; url: string }
 
@@ -32,14 +32,12 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     if (ac.signal.aborted) return;  // superseded during the read — skip the decode
     const g = msgpackDecode(new Uint8Array(buf)) as Record<string, any>;
 
-    const feedPos = _toF32(g.feed);
-    const rapidPos = _toF32(g.rapid);
-    const feedLines = _toU32(g.feed_lines);
-    const feedLineMap = _buildFeedLineMap(feedLines ?? g.feed_lines);
-    const rapidDist = _lineDistances(rapidPos);  // dashed rapid line's lineDistance (P4.1)
+    let feedPos = _toF32(g.feed);
+    let rapidPos = _toF32(g.rapid);
+    let feedLines = _toU32(g.feed_lines);
     // Rotary-aware preview: per-vertex abc, present only when a rotary sweeps.
-    const feedAbc = g.feed_abc != null ? _toF32(g.feed_abc) : undefined;
-    const rapidAbc = g.rapid_abc != null ? _toF32(g.rapid_abc) : undefined;
+    let feedAbc = g.feed_abc != null ? _toF32(g.feed_abc) : undefined;
+    let rapidAbc = g.rapid_abc != null ? _toF32(g.rapid_abc) : undefined;
 
     // Scrub track (stage 2): merge feed+rapid into execution order off-thread —
     // O(points), exactly the class of work that starved the heartbeat when it
@@ -49,6 +47,26 @@ self.onmessage = async (e: MessageEvent<Req>) => {
       { pos: feedPos, abc: feedAbc, lines: feedLines, seq: _toU32(g.feed_seq), tcum: g.feed_tcum != null && (g.feed_tcum as Uint8Array).length ? _toF32(g.feed_tcum) : undefined },
       { pos: rapidPos, abc: rapidAbc, lines: _toU32(g.rapid_lines), seq: _toU32(g.rapid_seq), tcum: g.rapid_tcum != null && (g.rapid_tcum as Uint8Array).length ? _toF32(g.rapid_tcum) : undefined },
     );
+
+    // Drawn-preview streams re-derived from the merged track (sectioned, with
+    // break indices) — the raw endpoint strips draw FALSE connectors across
+    // stream interleaves (a feed after a G0 lift appeared to start pre-lift;
+    // the lift itself was never drawn). Track-less legacy payloads keep the
+    // old strips: no seq → no honest interleaving, degrade like the scrub bar.
+    let feedBreaks: Uint32Array | undefined;
+    let rapidBreaks: Uint32Array | undefined;
+    if (scrubTrack) {
+      const hadAbc = feedAbc != null || rapidAbc != null;
+      const split = splitTrackStreams(scrubTrack);
+      feedPos = split.feedPos; feedLines = split.feedLines; feedBreaks = split.feedBreaks;
+      rapidPos = split.rapidPos; rapidBreaks = split.rapidBreaks;
+      // Section starts inherit the other stream's abc, so both rebuilt
+      // streams carry abc whenever either original did.
+      feedAbc = hadAbc ? split.feedAbc : undefined;
+      rapidAbc = hadAbc ? split.rapidAbc : undefined;
+    }
+    const feedLineMap = _buildFeedLineMap(feedLines ?? g.feed_lines);
+    const rapidDist = _lineDistances(rapidPos);  // dashed rapid line's lineDistance (P4.1)
 
     // Drop the nested arrays from the passthrough; the flat typed arrays replace
     // them. Everything else (file, stats fields) is small and cloned as-is.
@@ -64,6 +82,8 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     if (feedLines) transfer.push(feedLines.buffer as ArrayBuffer);
     if (feedAbc) transfer.push(feedAbc.buffer as ArrayBuffer);
     if (rapidAbc) transfer.push(rapidAbc.buffer as ArrayBuffer);
+    if (feedBreaks) transfer.push(feedBreaks.buffer as ArrayBuffer);
+    if (rapidBreaks) transfer.push(rapidBreaks.buffer as ArrayBuffer);
     if (scrubTrack) {
       transfer.push(
         scrubTrack.pos.buffer as ArrayBuffer, scrubTrack.abc.buffer as ArrayBuffer,
@@ -73,7 +93,7 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     }
 
     self.postMessage(
-      { version, gcode: { ...rest, feedPos, rapidPos, feed_lines: feedLines, feedLineMap, rapidDist, feedAbc, rapidAbc, scrubTrack } },
+      { version, gcode: { ...rest, feedPos, rapidPos, feed_lines: feedLines, feedLineMap, rapidDist, feedAbc, rapidAbc, feedBreaks, rapidBreaks, scrubTrack } },
       { transfer },
     );
   } catch (err) {

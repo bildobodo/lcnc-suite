@@ -115,6 +115,71 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream): ScrubTra
   return { pos, abc, lines, rapid: rapidFlag, cum, count: n, lineCum, lineSpan: buildLineMap(lines), timeBased };
 }
 
+/** Drawn-preview streams re-derived from the merged track.
+ *
+ *  The wire's feed/rapid endpoint lists lose the interleaving between the
+ *  two streams: rendered as connected strips, every rapid between two feeds
+ *  produced a FALSE feed connector that skipped the rapid (and vice versa)
+ *  — e.g. a feed after a G0 Z-lift drew as starting from the pre-lift
+ *  position, and the part-frame transform subdivided that phantom segment
+ *  into a long wrong curve (user-caught on a post-lift rotary sweep).
+ *
+ *  The merged track has the truth: segment (i-1 → i) belongs to the stream
+ *  point i came from. Each stream is rebuilt as SECTIONS — a section's
+ *  first vertex is the real start position (the other stream's last point)
+ *  — plus `breaks`: the vertex indices that OPEN a section, i.e. no
+ *  segment is drawn into them. Renderers turn breaks into an index buffer
+ *  (LineSegments) instead of a strip. */
+export interface SplitStreams {
+  feedPos: Float32Array; feedAbc: Float32Array;
+  feedLines: Uint32Array; feedBreaks: Uint32Array;
+  rapidPos: Float32Array; rapidAbc: Float32Array;
+  rapidBreaks: Uint32Array;
+}
+
+export function splitTrackStreams(t: ScrubTrack): SplitStreams {
+  const n = t.count;
+  const fPos: number[] = [], fAbc: number[] = [], fLines: number[] = [], fBreaks: number[] = [];
+  const rPos: number[] = [], rAbc: number[] = [], rBreaks: number[] = [];
+  let fLast = -2, rLast = -2;  // track index of each stream's last emitted point
+
+  const push = (pos: number[], abc: number[], i: number) => {
+    const j = i * 3;
+    pos.push(t.pos[j]!, t.pos[j + 1]!, t.pos[j + 2]!);
+    abc.push(t.abc[j]!, t.abc[j + 1]!, t.abc[j + 2]!);
+  };
+
+  for (let i = 1; i < n; i++) {
+    const ln = t.lines[i]!;  // segment belongs to its END point's line
+    if (t.rapid[i] === 1) {
+      if (rLast !== i - 1) {
+        rBreaks.push(rPos.length / 3);
+        push(rPos, rAbc, i - 1);
+      }
+      push(rPos, rAbc, i);
+      rLast = i;
+    } else {
+      if (fLast !== i - 1) {
+        fBreaks.push(fPos.length / 3);
+        // The section-start vertex carries the OPENING segment's line so a
+        // line highlight covers the move from its true start.
+        fLines.push(ln);
+        push(fPos, fAbc, i - 1);
+      }
+      fLines.push(ln);
+      push(fPos, fAbc, i);
+      fLast = i;
+    }
+  }
+
+  return {
+    feedPos: new Float32Array(fPos), feedAbc: new Float32Array(fAbc),
+    feedLines: new Uint32Array(fLines), feedBreaks: new Uint32Array(fBreaks),
+    rapidPos: new Float32Array(rPos), rapidAbc: new Float32Array(rAbc),
+    rapidBreaks: new Uint32Array(rBreaks),
+  };
+}
+
 export interface ScrubSample {
   px: number; py: number; pz: number;
   pa: number; pb: number; pc: number;
