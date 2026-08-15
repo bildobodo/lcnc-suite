@@ -49,6 +49,14 @@ describe("buildScrubTrack", () => {
     expect(t.cum[1]).toBeCloseTo(90, 5);
   });
 
+  it("maps each source line to the cum of its first track point", () => {
+    const t = buildScrubTrack(
+      stream([[0, 0, 0], [10, 0, 0], [20, 0, 0]], { lines: [4, 7, 7] }), EMPTY)!;
+    expect(t.lineCum.get(4)).toBe(0);
+    expect(t.lineCum.get(7)).toBe(10);   // first occurrence, not the last
+    expect(t.lineCum.has(0)).toBe(false); // 0 = unknown line, never mapped
+  });
+
   it("cum is monotonic and linear distance wins when larger", () => {
     const t = buildScrubTrack(
       stream([[0, 0, 0], [3, 4, 0], [3, 4, 0]], { abc: [[0, 0, 0], [0, 0, 2], [0, 0, 2]] }), EMPTY)!;

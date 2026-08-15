@@ -15,9 +15,11 @@ import { INTERP_IDLE } from "./lcnc";
 import { simMode } from "./simMode";
 import { sampleTrack, jointsForSample, type ScrubSample } from "./viewer/scrubTrack";
 import type { CollisionResult } from "./viewer/collision";
+import { limitViolationText } from "./ws/bulkData";
 import { Play, Pause } from "lucide-vue-next";
 import MachineBtn from "./MachineBtn.vue";
 import MachineSlider from "./MachineSlider.vue";
+import MachineToggle from "./MachineToggle.vue";
 
 const props = defineProps<{
   // Collision sweep state, owned by ThreeViewer (it holds the machine def
@@ -185,6 +187,76 @@ const checkLabel = computed(() => {
   return "Check";
 });
 
+// Sim toggle v-model: the parent-authoritative MachineToggle resets its DOM
+// checkbox when the model doesn't change — so a refused entry (machine on)
+// simply snaps the switch back.
+const simToggleModel = computed({
+  get: () => simMode.value,
+  set: (on: boolean) => { if (on) enterSim(); else exitSim(); },
+});
+
+/** ---------- soft-limit violations (stage 1) in the bar ---------- */
+const violations = computed(() => viewerGcode.value?.violations ?? null);
+const violationsTotal = computed(() => viewerGcode.value?.violations_total ?? 0);
+const linearUnit = computed(() => (viewerGcode.value?.stats?.unit as string) ?? "mm");
+const vIdx = ref(0);
+watch(violations, () => { vIdx.value = 0; });
+const nextViolation = computed(() => {
+  const list = violations.value ?? [];
+  return list.length ? list[vIdx.value % list.length]! : null;
+});
+const violationsTitle = computed(() => {
+  const list = violations.value ?? [];
+  if (!list.length) return "";
+  const shown = list.slice(0, 8).map(v => `L${v.line}: ${limitViolationText(v, linearUnit.value)}`).join("\n");
+  const more = violationsTotal.value > 8 ? `\n… ${violationsTotal.value - 8} more` : "";
+  return `Soft-limit violations — click to simulate the next one\n${shown}${more}`;
+});
+
+// Scrub to the next violating line (entering sim when eligible, like the
+// clash button). Lines the track doesn't know are skipped in the cycle.
+function jumpToViolation() {
+  const list = violations.value ?? [];
+  const t = track.value;
+  if (!list.length || !t || !enterSim()) return;
+  for (let tries = 0; tries < list.length; tries++) {
+    const v = list[vIdx.value % list.length]!;
+    vIdx.value++;
+    const cum = t.lineCum.get(v.line);
+    if (cum !== undefined) {
+      playing.value = false;
+      sPos.value = Math.min(cumMax.value, Math.max(0, cum));
+      applyPos();
+      return;
+    }
+  }
+}
+
+// Timeline positions of the hits, as track percentages.
+const hitMarks = computed(() =>
+  cumMax.value > 0
+    ? hits.value.map(h => ({ pct: Math.min(100, (h.cum / cumMax.value) * 100), rapid: h.rapid }))
+    : [],
+);
+
+// Soft-limit violations (stage 1) on the same timeline, warn-tinted —
+// line-anchored via the track's lineCum map. A violating line the track
+// doesn't know (comment-line attribution edge) simply has no mark; the
+// GcodePanel banner still lists it.
+const violationMarks = computed(() => {
+  const t = track.value;
+  if (!t || cumMax.value <= 0) return [];
+  const seen = new Set<number>();
+  const out: number[] = [];
+  for (const v of viewerGcode.value?.violations ?? []) {
+    if (seen.has(v.line)) continue;
+    seen.add(v.line);
+    const cum = t.lineCum.get(v.line);
+    if (cum !== undefined) out.push(Math.min(100, (cum / cumMax.value) * 100));
+  }
+  return out;
+});
+
 onUnmounted(() => {
   cancelAnimationFrame(raf);
   exitSim();
@@ -193,17 +265,11 @@ onUnmounted(() => {
 
 <template>
   <div v-if="visible" class="scrubBar bordered-panel row-controls">
-    <!-- Tooltip on a wrapper: WebKit doesn't hover disabled buttons, and the
-         WHY-disabled hint (machine must be OFF) is exactly what matters. -->
-    <span v-if="!simMode" class="btnTip"
-          :title="machineOff
-            ? 'Enter simulation — pose the model along the program; machine controls lock until you exit'
-            : 'Turn the machine OFF first — simulation locks machine controls'">
-      <MachineBtn type="scrub" :disabled="!machineOff" @click="enterSim">Simulate</MachineBtn>
-    </span>
-    <MachineBtn v-else type="scrubExit"
-                title="Exit simulation — model returns to the live machine, controls unlock"
-                @click="exitSim">Exit sim</MachineBtn>
+    <!-- Sim mode toggle — same switch as settings/coolant toggles. The
+         parent-authoritative model snaps it back if entry is refused. -->
+    <MachineToggle gate="simToggle" v-model="simToggleModel" label="Sim"
+                   :disabled="!simMode && !machineOff"
+                   help="Simulation poses the 3D model along the program instead of the live machine. Requires the machine to be OFF; while active, all machine controls are locked until you switch back." />
 
     <MachineBtn type="scrub" :disabled="!simMode && !machineOff"
                 :title="playing ? 'Pause playback' : 'Play the program through the machine model'"
@@ -211,9 +277,18 @@ onUnmounted(() => {
       <Pause v-if="playing" :size="14" />
       <Play v-else :size="14" />
     </MachineBtn>
-    <MachineSlider gate="scrubPos" class="scrubSlider" :min="0" :max="cumMax"
-                   :step="cumMax / 2000 || 1" v-model="sPos" :disabled="!simMode"
-                   title="Scrub the program — poses the machine model, nothing moves" />
+    <div class="sliderWrap">
+      <MachineSlider gate="scrubPos" class="sliderInput" :min="0" :max="cumMax"
+                     :step="cumMax / 2000 || 1" v-model="sPos" :disabled="!simMode"
+                     title="Scrub the program — poses the machine model, nothing moves" />
+      <!-- Timeline markers, non-interactive (the clash / banner buttons
+           navigate): warn = soft-limit violation, danger = collision hit
+           (full-height = rapid contact). -->
+      <div v-for="(pct, i) in violationMarks" :key="'v' + i" class="scrubMark limit"
+           :style="{ left: pct + '%' }"></div>
+      <div v-for="(m, i) in hitMarks" :key="'c' + i" class="scrubMark"
+           :class="{ rapid: m.rapid }" :style="{ left: m.pct + '%' }"></div>
+    </div>
     <MachineBtn type="scrub" :disabled="!simMode" title="Playback speed" @click="cycleSpeed">&times;{{ mult }}</MachineBtn>
     <span class="scrubStatus val-status mono" :class="{ muted: !simMode }">
       {{ simMode ? `L${curLine}${curRapid ? " →" : ""} ${pct}%` : "live" }}
@@ -221,21 +296,33 @@ onUnmounted(() => {
 
     <div class="sep-v"></div>
 
+    <!-- Findings, centralized: yellow = soft limits (stage 1), red =
+         collision clashes (stage 3). Wrappers carry the tooltips (WebKit
+         doesn't hover disabled buttons). -->
+    <span v-if="violations && violations.length" class="btnTip" :title="violationsTitle">
+      <MachineBtn type="scrub" variant="warn" :disabled="!simMode && !machineOff"
+                  @click="jumpToViolation">
+        {{ violationsTotal }} limit{{ violationsTotal === 1 ? "" : "s" }}<template v-if="nextViolation"> &rarr; L{{ nextViolation.line }}</template>
+      </MachineBtn>
+    </span>
+
     <MachineBtn v-if="!collisionBusy" type="scrub"
-                title="Sweep the machine model through the program and check tool-side vs work-side clearance"
+                title="Sweep the machine model through the program and check body-pair clearance"
                 @click="emit('check')">{{ checkLabel }}</MachineBtn>
     <MachineBtn v-else type="scrub" title="Cancel the collision check"
                 @click="emit('cancel-check')">{{ checkLabel }} &times;</MachineBtn>
     <template v-if="collisionResult && !collisionBusy">
-      <span v-if="collisionResult.pairCount === 0" class="val-status muted" title="No machine bodies on the tool or work side — nothing to check">no bodies</span>
-      <span v-else-if="!hits.length" class="val-status ok" :title="`${collisionResult.samples} samples${collisionResult.coarsened ? ', coarsened to fit the sample budget' : ''}`">
+      <span v-if="collisionResult.pairCount === 0" class="val-status muted" title="No body pair moves relative to another — nothing to check">no moving pairs</span>
+      <span v-else-if="!hits.length" class="val-status ok" :title="`${collisionResult.samples} samples, ${collisionResult.pairCount} pairs${collisionResult.coarsened ? ', coarsened to fit the sample budget' : ''}${collisionResult.staticContacts.length ? `; in contact from the start (excluded): ${collisionResult.staticContacts.map(c => c.a + '/' + c.b).join(', ')}` : ''}`">
         clear{{ collisionResult.coarsened ? "*" : "" }}
       </span>
-      <MachineBtn v-else type="scrub" :disabled="!simMode && !machineOff"
-                  :title="`${hits.length} clearance hit(s) — click to simulate the next one${!simMode && !machineOff ? ' (turn the machine OFF first)' : ''}`"
-                  @click="jumpToHit">
-        {{ hits.length }} clash{{ hits.length === 1 ? "" : "es" }} &rarr; L{{ nextHit!.line }}{{ nextHit!.rapid ? " (rapid)" : "" }}
-      </MachineBtn>
+      <span v-else class="btnTip"
+            :title="`Collision hits — click to simulate the next one${!simMode && !machineOff ? ' (turn the machine OFF first)' : ''}${collisionResult.staticContacts.length ? `\nIn contact from the start (excluded): ${collisionResult.staticContacts.map(c => c.a + '/' + c.b).join(', ')}` : ''}`">
+        <MachineBtn type="scrub" variant="danger" :disabled="!simMode && !machineOff"
+                    @click="jumpToHit">
+          {{ hits.length }} clash{{ hits.length === 1 ? "" : "es" }} &rarr; L{{ nextHit!.line }}{{ nextHit!.rapid ? " (rapid)" : "" }}
+        </MachineBtn>
+      </span>
     </template>
   </div>
 </template>
@@ -251,9 +338,33 @@ onUnmounted(() => {
   align-items: center;
   padding: var(--gap-tight) var(--gap-controls);
 }
-.scrubSlider {
+.sliderWrap {
   flex: 1;
   min-width: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.sliderInput {
+  width: 100%;
+}
+/* Collision hit marker on the timeline — semantic danger red; rapid-contact
+   hits span full height, feed contacts are the shorter center band. */
+.scrubMark {
+  position: absolute;
+  top: 25%;
+  bottom: 25%;
+  width: 2px;
+  transform: translateX(-50%);
+  background: var(--danger);
+  pointer-events: none;
+}
+.scrubMark.rapid {
+  top: 0;
+  bottom: 0;
+}
+.scrubMark.limit {
+  background: var(--warn);
 }
 .scrubStatus {
   white-space: nowrap;

@@ -88,7 +88,13 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream): ScrubTra
     cum[i] = cum[i - 1]! + Math.max(linear, rot);
   }
 
-  return { pos, abc, lines, rapid: rapidFlag, cum, count: n };
+  const lineCum = new Map<number, number>();
+  for (let i = 0; i < n; i++) {
+    const ln = lines[i]!;
+    if (ln && !lineCum.has(ln)) lineCum.set(ln, cum[i]!);
+  }
+
+  return { pos, abc, lines, rapid: rapidFlag, cum, count: n, lineCum };
 }
 
 export interface ScrubSample {

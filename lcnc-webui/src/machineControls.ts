@@ -6,7 +6,7 @@ export type ControlGate = keyof Permissions;
 
 export interface ButtonDef {
   gate: ControlGate;
-  variant: 'default' | 'primary' | 'ok' | 'danger' | 'estop';
+  variant: 'default' | 'primary' | 'ok' | 'warn' | 'danger' | 'estop';
   size: 'xs' | 'sm' | 'md' | 'lg';
   icon?: boolean;
   muted?: boolean;
@@ -111,8 +111,8 @@ export const BUTTON_TYPES = {
   viewerQuickToggle: { gate: 'always', variant: 'default', size: 'sm' },
   // Program-scrub / simulation bar. `scrub` controls are display-only; the
   // MODE itself is what gates machine actions (permissions.ts SIM_GATES).
+  // The Sim toggle uses `:selected` for its active state, like other toggles.
   scrub:          { gate: 'always',  variant: 'default', size: 'sm' },
-  scrubExit:      { gate: 'always',  variant: 'primary', size: 'sm' },
   overlayToggle:  { gate: 'always',  variant: 'default', size: 'xs' },
   dialogCancel:   { gate: 'always',  variant: 'default', size: 'md' },
   dialogConfirm:  { gate: 'always',  variant: 'primary', size: 'md' },
@@ -158,6 +158,7 @@ export const INPUT_DEFS = {
   touchoff:        { gate: 'probe',    mono: true, align: 'right', size: 'sm' },
   stripInput:      { gate: 'always',   mono: true, align: 'right', size: 'md' },
   scrubPos:        { gate: 'always' },  // scrub timeline — display-only, see BUTTON_TYPES.scrub
+  simToggle:       { gate: 'always' },  // simulation mode toggle — entry rules live in ScrubBar
   coolant:         { gate: 'override' },
 
   // Mode selection

@@ -5,7 +5,7 @@ import { usePermissions } from "./permissions";
 import { loadMachineDefaults, saveMachineDefaults, STEP_RPM } from "./defaults";
 import { scanToolchangesBefore, scanEntryPositionBefore, type RflToolchangeScan, type RflEntryScan, type RflRunOptions } from "./gcodeRfl";
 import { highlightGcode, type Token } from "./gcodeHighlight";
-import type { LimitViolation } from "./ws/bulkData";
+import { limitViolationText, type LimitViolation } from "./ws/bulkData";
 import { isTouchDevice } from "./touchDetect";
 import { emitTelemetry } from "./lcncWs";
 import { GCODE_LOOKUP, GCODE_REFERENCE } from "./gcodeReference";
@@ -277,32 +277,7 @@ function lineMarkTitle(lineNum: number): string | undefined {
 }
 
 function violationText(v: LimitViolation): string {
-  const unit = "ABC".includes(v.axis) ? "°" : ` ${props.gcodeStats?.unit ?? "mm"}`;
-  return v.kind === "min"
-    ? `${v.axis} ${v.value}${unit} < min ${v.limit}${unit}`
-    : `${v.axis} ${v.value}${unit} > max ${v.limit}${unit}`;
-}
-
-const violationSummary = computed(() => {
-  const total = props.violationsTotal;
-  const shown = props.violations?.length ?? 0;
-  if (!total) return "";
-  const s = `${total} soft-limit violation${total === 1 ? "" : "s"}`;
-  return total > shown ? `${s} (first ${shown} listed)` : s;
-});
-
-// Banner button cycles through the violation list; index resets on re-parse.
-const violationIdx = ref(0);
-watch(() => props.violations, () => { violationIdx.value = 0; });
-const nextViolation = computed(() => {
-  const list = props.violations ?? [];
-  return list.length ? list[violationIdx.value % list.length]! : null;
-});
-function jumpToViolation() {
-  const v = nextViolation.value;
-  if (!v) return;
-  scrollToLine(v.line);
-  violationIdx.value++;
+  return limitViolationText(v, props.gcodeStats?.unit ?? "mm");
 }
 
 /** ---------- File browser ---------- */
@@ -675,13 +650,8 @@ async function saveEdit() {
         <MachineBtn type="close" @click="uploadError = null">&times;</MachineBtn>
     </div>
 
-    <!-- Soft-limit violation banner (not dismissible — it names real overtravel) -->
-    <div v-if="gcodeContent && violations && violations.length" class="errorBanner warnTone">
-        <span>{{ violationSummary }}</span>
-        <MachineBtn v-if="nextViolation" type="inline" @click="jumpToViolation">
-          Line {{ nextViolation.line }}: {{ violationText(nextViolation) }} &rarr;
-        </MachineBtn>
-    </div>
+    <!-- Soft-limit violations surface in the viewer's scrub bar (yellow
+         findings button + timeline marks) and as warn line numbers here. -->
 
     <!-- File browser (collapsible) -->
     <Gate v-if="showBrowser" gate="setup" class="fileBrowser">
@@ -967,14 +937,6 @@ async function saveEdit() {
   border-radius: var(--radius-lg);
   font-size: var(--fs-base);
   color: var(--danger);
-}
-
-/* Warn-tier banner (soft-limit violations): same chrome as .errorBanner
-   with the semantic color swapped to --warn. */
-.errorBanner.warnTone {
-  background: color-mix(in oklab, var(--warn) 15%, var(--panel));
-  border-color: color-mix(in srgb, var(--warn) 25%, transparent);
-  color: var(--warn);
 }
 
 /* File browser */

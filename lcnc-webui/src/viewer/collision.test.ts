@@ -34,6 +34,7 @@ function track(points: number[][], abc?: number[][], lines?: number[], rapid?: n
     pos, abc: abcArr,
     lines: new Uint32Array(lines ?? points.map((_, i) => i + 1)),
     rapid: rapid ? new Uint8Array(rapid) : new Uint8Array(n), cum, count: n,
+    lineCum: new Map(),
   };
 }
 
@@ -60,10 +61,31 @@ const PLUNGE_BODIES: CollisionBody[] = [
 ];
 
 describe("buildCollisionModel", () => {
-  it("labels sides and builds only tool×work pairs", () => {
+  it("derives pairs from relative motion, tool-side body first", () => {
     const m = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
     expect(m.bodies.map(b => b.side)).toEqual(["work", "tool"]);
     expect(m.pairs).toEqual([[1, 0]]);
+  });
+
+  it("skips rigid pairs (same group / no DOF between) and includes DOF-crossing ones", () => {
+    // Two bodies on the head group are rigid to each other; a body on a
+    // static frame group still pairs with both movers (DOFs on their side).
+    const machine = {
+      ...PLUNGE,
+      groups: [...PLUNGE.groups, { id: "frame", parent: "root" }],
+    };
+    const m = buildCollisionModel(machine, [
+      ...PLUNGE_BODIES,
+      { id: "spindle2", group: "head", positions: boxPositions(4) },
+      { id: "column", group: "frame", positions: boxPositions(4) },
+    ]);
+    const key = (p: [number, number]) => [m.bodies[p[0]]!.id, m.bodies[p[1]]!.id].sort().join("/");
+    const pairKeys = m.pairs.map(key).sort();
+    // NOT present: spindle/spindle2 (same group).
+    expect(pairKeys).toEqual([
+      "column/spindle", "column/spindle2", "column/vise",
+      "spindle/vise", "spindle2/vise",
+    ].sort());
   });
 
   it("drops bodies on unknown groups instead of crashing", () => {
@@ -156,7 +178,57 @@ describe("sweepCollisions", () => {
     const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
     const r = sweepCollisions(model, track(
       [[0, 0, 0], [0, 0, -45]]), WCS0, { margin: 2 }, undefined, () => true);
-    expect(r.samples).toBe(1);  // only the seed sample before the first segment
+    expect(r.samples).toBe(1);  // only the baseline pose before the first segment
+  });
+
+  it("moves pairs in contact at the first pose to staticContacts instead of flooding lines", () => {
+    // A table-mounted body overlapping the head box AT THE START pose plays
+    // the role of a mechanical joint (slides/bearings sit inside the margin
+    // permanently). Baseline subtraction must report it once and exclude it
+    // from the sweep, while the genuine plunge hit still reports per-line.
+    const withDrawbar: CollisionBody[] = [
+      ...PLUNGE_BODIES,
+      { id: "drawbar", group: "table", positions: boxPositions(10), translate: [0, 0, 50] },
+    ];
+    const model = buildCollisionModel(PLUNGE, withDrawbar);
+    const r = sweepCollisions(model, track(
+      [[0, 0, 0], [0, 0, -45]], undefined, [7, 8]), WCS0, { margin: 2 });
+    expect(r.staticContacts.map(c => [c.a, c.b].sort().join("/"))).toContain("drawbar/spindle");
+    // No per-line hits for the static pair …
+    expect(r.hits.every(h => [h.a, h.b].sort().join("/") !== "drawbar/spindle")).toBe(true);
+    // … while the genuine plunge hit is still attributed normally.
+    expect(r.hits.some(h => [h.a, h.b].sort().join("/") === "spindle/vise")).toBe(true);
+  });
+
+  it("catches a same-side pair that straddles a DOF (v1 scope gap closed)", () => {
+    // Pillar on a C platter vs a post on the table it sits on: both "work"
+    // side, C DOF between them. The sweep must flag the rotary clash.
+    const machine: CollisionMachine = {
+      groups: [
+        { id: "table", parent: "root" },
+        { id: "platter", parent: "table" },
+        { id: "head", parent: "root", translate: [0, 0, 500] },  // far away
+      ],
+      kinematics: [
+        { group: "table", joint: 0, type: "translate", direction: "x", sign: 1 },
+        { group: "platter", joint: 1, type: "rotate", direction: "z", sign: 1 },
+      ],
+      workGroup: "platter",
+      toolGroup: "head",
+      unitScale: 1,
+      axes: ["X", "C"],
+    };
+    const bodies: CollisionBody[] = [
+      { id: "pillar", group: "platter", positions: boxPositions(10), translate: [20, 0, 0] },
+      { id: "post", group: "table", positions: boxPositions(10), translate: [0, 20, 0] },
+    ];
+    const model = buildCollisionModel(machine, bodies);
+    // C sweeps 0→180°: pillar swings from (20,0) through the post at (0,20).
+    const r = sweepCollisions(model, track(
+      [[0, 0, 0], [0, 0, 0]], [[0, 0, 0], [0, 0, 180]], [3, 4]), WCS0, { margin: 1 });
+    expect(r.hits).toHaveLength(1);
+    expect([r.hits[0]!.a, r.hits[0]!.b].sort()).toEqual(["pillar", "post"]);
+    expect(r.hits[0]!.line).toBe(4);
   });
 });
 

@@ -322,10 +322,12 @@ rule: only a line that MOVES an axis while out of bounds is flagged; lines
 where the axis merely sits parked past a limit are not re-flagged, so the
 culprit line stands alone. Wire: `violations` (per-line records, capped at
 200) + `violations_total`; `null` means the INI had no MIN/MAX_LIMIT —
-unchecked ≠ clean, and the stats dialog says "Not validated". UI: warn
-banner in GcodePanel with a cycling jump-to-line button, warn-tinted line
-numbers (`.codeLine.violation`, global — later dry-run stages reuse it),
-and a Soft limits row in the program stats dialog. Limitation: validated
+unchecked ≠ clean, and the stats dialog says "Not validated". UI is
+centralized in the viewer's scrub bar: a warn-variant findings button
+("N limits → L10", cycles + scrubs the sim to the line) and warn timeline
+marks, plus warn-tinted line numbers in GcodePanel
+(`.codeLine.violation`, global — collision hits reuse it) and a Soft
+limits row in the program stats dialog. Limitation: validated
 against the parse-time WCS — touch-off after load requires a file reload
 to re-validate (the live overflow box remains the coarse always-current
 check).
@@ -382,8 +384,14 @@ WCS/tool and clear on program change; GcodePanel reuses
 stock model): a program cutting at the work surface reports tool-vs-
 platter contact — cutting and crashing are indistinguishable without
 stock; the high-value signals are non-platter pairs and any rapid-flagged
-hit. Pair scope v1: tool-side × work-side only (head-vs-column is
-travel-limit territory). Test fixture:
+hit. Pair scope: DERIVED from relative motion — any two bodies whose
+group-tree path crosses a kinematic DOF below their lowest common
+ancestor form a pair (tool-vs-work, tool-vs-frame, and same-side pairs
+like platter-vs-table across the A tilt); rigid pairs are skipped.
+Baseline subtraction keeps it quiet: pairs already inside the margin at
+the program's FIRST pose (slides, bearings, trunnion mounts — found
+automatically, no annotations) are reported once as `staticContacts` and
+excluded from per-line reporting. Test fixture:
 `~/linuxcnc/nc_files/5axis_collision_test.ngc` — in-limits program whose
 low rapid traverse rams the trunnion (stage 1 quiet, stage 3 flags it).
 

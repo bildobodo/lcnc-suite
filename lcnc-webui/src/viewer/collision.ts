@@ -16,8 +16,20 @@
 // bounding-sphere prescreen first, BVH closest-point only when spheres come
 // within the margin.
 //
-// Pair scope (v1, documented): tool-side × work-side only. Head-vs-column
-// and slide-vs-frame crashes are travel-limit problems — stage 1 territory.
+// Pair derivation: any two bodies whose connecting path through the group
+// tree crosses at least one kinematic DOF have program-driven relative
+// motion and form a pair — tool-vs-work, tool-vs-frame, and same-side
+// pairs that straddle a DOF (platter edge vs table across the A tilt) all
+// fall out of the same rule. Bodies on the same rigid subchain never move
+// relative to each other and are skipped entirely.
+//
+// Noise control (baseline subtraction): mechanically-joined neighbors —
+// slides, bearings, trunnion mounts — sit inside the margin PERMANENTLY;
+// per-line reporting would flood every line of every program. Pairs already
+// within the margin at the program's FIRST pose are therefore reported once
+// as `staticContacts` and excluded from the per-line sweep. A program that
+// genuinely starts in a crashed pose still surfaces there — "in contact
+// from the start" is exactly what's true.
 import * as THREE from "three";
 import { MeshBVH } from "three-mesh-bvh";
 import { normalizeKinematics, type KinRuntime } from "./kinematics";
@@ -72,6 +84,10 @@ export interface CollisionOptions {
 
 export interface CollisionResult {
   hits: CollisionHit[];
+  /** Pairs already inside the margin at the program's first pose (mechanical
+   *  joints — or a program that starts in contact). Reported once, excluded
+   *  from the per-line sweep. */
+  staticContacts: Array<{ a: string; b: string; dist: number }>;
   samples: number;
   /** True when maxSamples forced coarser steps than requested. */
   coarsened: boolean;
@@ -214,12 +230,35 @@ export function buildCollisionModel(machine: CollisionMachine, bodyDefs: Collisi
     });
   }
 
+  // A pair is worth sweeping iff the two bodies MOVE relative to each other:
+  // a DOF must sit strictly between them (below their lowest common
+  // ancestor). DOFs on the LCA or above move both bodies rigidly together.
+  const pairHasRelativeMotion = (ia: number, ib: number): boolean => {
+    const pathA: number[] = [];
+    for (let i = ia; i >= 0; i = nodes[i]!.parentIdx) pathA.push(i);
+    const aSet = new Set(pathA);
+    let lca = -1;
+    const rel: number[] = [];
+    for (let i = ib; i >= 0; i = nodes[i]!.parentIdx) {
+      if (aSet.has(i)) { lca = i; break; }
+      rel.push(i);
+    }
+    for (const i of pathA) {
+      if (i === lca) break;
+      rel.push(i);
+    }
+    return rel.some(i => nodes[i]!.dofs.length > 0);
+  };
+
   const pairs: Array<[number, number]> = [];
   for (let a = 0; a < bodies.length; a++) {
-    if (bodies[a]!.side !== "tool") continue;
-    for (let b = 0; b < bodies.length; b++) {
-      if (bodies[b]!.side !== "work") continue;
-      pairs.push([a, b]);
+    for (let b = a + 1; b < bodies.length; b++) {
+      const A = bodies[a]!, B = bodies[b]!;
+      if (A.nodeIdx === B.nodeIdx) continue;  // same group — rigid
+      if (!pairHasRelativeMotion(A.nodeIdx, B.nodeIdx)) continue;
+      // Tool-side body first when there is one — hit messages read better.
+      if (B.side === "tool" && A.side !== "tool") pairs.push([b, a]);
+      else pairs.push([a, b]);
     }
   }
   return { nodes, bodies, pairs, machine, bvhMs: performance.now() - t0 };
@@ -313,7 +352,7 @@ export function sweepCollisions(
   const worst = new Map<string, CollisionHit>();
   let done = 0;
 
-  const testSample = (px: number, py: number, pz: number, pa: number, pb: number, pc: number, line: number, cum: number, rapid: boolean) => {
+  const poseAt = (px: number, py: number, pz: number, pa: number, pb: number, pc: number) => {
     programToMachine(px, py, pz, pa, pb, pc, o, machineVals);
     for (let ji = 0; ji < jointSlot.length; ji++) {
       const slot = jointSlot[ji]!;
@@ -324,16 +363,44 @@ export function sweepCollisions(
       body.world.multiplyMatrices(nodes[body.nodeIdx]!.world, body.localMat);
       body.worldCenter.copy(body.center).applyMatrix4(body.world);
     }
-    for (const [ai, bi] of pairs) {
+  };
+
+  // Distance between two posed bodies, Infinity when provably beyond the
+  // margin (sphere prescreen, then BVH closest-point with margin early-out;
+  // the matrix maps B's geometry into A's local frame: A⁻¹ · B).
+  const pairDistance = (A: BuiltBody, B: BuiltBody): number => {
+    const centerDist = A.worldCenter.distanceTo(B.worldCenter);
+    if (centerDist - A.radius - B.radius > opts.margin) return Infinity;
+    invA.copy(A.world).invert();
+    relMat.multiplyMatrices(invA, B.world);
+    const res = A.bvh.closestPointToGeometry(B.geom, relMat, target1, target2, 0, opts.margin);
+    return res ? target1.distance : Infinity;
+  };
+
+  // Baseline pass (first pose): pairs already inside the margin here are
+  // mechanical-joint proximity (slides, bearings, trunnion mounts) — or a
+  // program that starts in contact. Reported once, excluded from the sweep.
+  const staticExcluded = new Uint8Array(pairs.length);
+  const staticContacts: CollisionResult["staticContacts"] = [];
+  poseAt(track.pos[0]!, track.pos[1]!, track.pos[2]!,
+         track.abc[0]!, track.abc[1]!, track.abc[2]!);
+  for (let pi = 0; pi < pairs.length; pi++) {
+    const [ai, bi] = pairs[pi]!;
+    const dist = pairDistance(bodies[ai]!, bodies[bi]!);
+    if (dist <= opts.margin) {
+      staticExcluded[pi] = 1;
+      staticContacts.push({ a: bodies[ai]!.id, b: bodies[bi]!.id, dist });
+    }
+  }
+  done++;
+
+  const testSample = (px: number, py: number, pz: number, pa: number, pb: number, pc: number, line: number, cum: number, rapid: boolean) => {
+    poseAt(px, py, pz, pa, pb, pc);
+    for (let pi = 0; pi < pairs.length; pi++) {
+      if (staticExcluded[pi]) continue;
+      const [ai, bi] = pairs[pi]!;
       const A = bodies[ai]!, B = bodies[bi]!;
-      const centerDist = A.worldCenter.distanceTo(B.worldCenter);
-      if (centerDist - A.radius - B.radius > opts.margin) continue;  // sphere prescreen
-      // Closest point between meshes, early-out beyond margin. Matrix maps
-      // B's geometry into A's local frame: A⁻¹ · B.
-      invA.copy(A.world).invert();
-      relMat.multiplyMatrices(invA, B.world);
-      const res = A.bvh.closestPointToGeometry(B.geom, relMat, target1, target2, 0, opts.margin);
-      const dist = res ? target1.distance : Infinity;
+      const dist = pairDistance(A, B);
       if (dist <= opts.margin) {
         const key = `${line}|${A.id}|${B.id}`;
         const prev = worst.get(key);
@@ -345,12 +412,6 @@ export function sweepCollisions(
       }
     }
   };
-
-  // First point.
-  testSample(track.pos[0]!, track.pos[1]!, track.pos[2]!,
-             track.abc[0]!, track.abc[1]!, track.abc[2]!,
-             track.lines[0]!, 0, track.rapid[0] === 1);
-  done++;
 
   for (let i = 1; i < n; i++) {
     if (shouldAbort?.()) break;
@@ -379,6 +440,7 @@ export function sweepCollisions(
   const hits = [...worst.values()].sort((x, y) => x.cum - y.cum).slice(0, MAX_HITS);
   return {
     hits,
+    staticContacts,
     samples: done,
     coarsened,
     pairCount: pairs.length,

@@ -67,6 +67,10 @@ export interface ScrubTrack {
   rapid: Uint8Array;        // count — 1 when the segment ending here is a rapid
   cum: Float32Array;        // count — monotonic scrub parameter (mm, 1° ≙ 1 mm)
   count: number;
+  /** Source line → cum of its first track point (built off-thread; Maps
+   *  survive structured clone). Lets the UI place line-anchored marks —
+   *  soft-limit violations — on the timeline without an O(track) scan. */
+  lineCum: Map<number, number>;
 }
 
 // One per-line soft-limit overtravel record from the parse worker. `value`
@@ -77,6 +81,15 @@ export interface LimitViolation {
   value: number;
   limit: number;
   kind: "min" | "max";
+}
+
+/** Human-readable soft-limit violation, shared by the code-panel line titles
+ *  and the scrub bar's findings button. `unit` = machine linear unit. */
+export function limitViolationText(v: LimitViolation, unit: string): string {
+  const u = "ABC".includes(v.axis) ? "°" : ` ${unit}`;
+  return v.kind === "min"
+    ? `${v.axis} ${v.value}${u} < min ${v.limit}${u}`
+    : `${v.axis} ${v.value}${u} > max ${v.limit}${u}`;
 }
 
 export interface ViewerGcode {

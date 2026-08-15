@@ -90,7 +90,17 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     def straight_traverse(self, x, y, z, a, b, c, u, v, w):
         if self.suppress > 0: return
         l = self.rotate_and_translate(x, y, z, a, b, c, u, v, w)
-        if not self.first_move:
+        if self.first_move:
+            # First motion after program start / tool change: the PRIOR
+            # position is unknown (machine parked spot, post-M6 pre-position),
+            # so this one segment can't be plotted — but its END is a
+            # commanded, known position. Clear the flag here so subsequent
+            # rapids ARE recorded. (gremlin keeps suppressing until the first
+            # FEED, which silently drops entire leading rapid sequences — the
+            # scrub track and collision sweep need those lines: a low rapid
+            # traverse before the first cut is exactly the classic crash.)
+            self.first_move = False
+        else:
             self.rapid.append((self.lineno, self.lo, l, (self.xo, self.yo, self.zo), self._next_seq()))
         self.lo = l
 

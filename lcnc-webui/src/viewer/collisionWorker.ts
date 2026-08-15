@@ -40,9 +40,9 @@ self.onmessage = (e: MessageEvent<CollisionReq>) => {
     }
     const model = buildCollisionModel(machine, bodies);
     if (model.pairs.length === 0) {
-      // Not an error and not "clean": there is nothing to check (no bodies on
-      // one of the sides). Surface it honestly — the UI says so.
-      self.postMessage({ id, result: { hits: [], samples: 0, coarsened: false, pairCount: 0, bvhMs: model.bvhMs, sweepMs: 0 } });
+      // Not an error and not "clean": no body pair has program-driven
+      // relative motion — nothing to check. Surface it honestly.
+      self.postMessage({ id, result: { hits: [], staticContacts: [], samples: 0, coarsened: false, pairCount: 0, bvhMs: model.bvhMs, sweepMs: 0 } });
       return;
     }
     const result = sweepCollisions(model, track, wcs, options, (frac) => {
