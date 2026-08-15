@@ -52,7 +52,10 @@ const entryTrack = ref<ScrubTrack | null>(null);
 const track = computed(() => entryTrack.value ?? baseTrack.value);
 const running = computed(() => (st.value.interp_state ?? INTERP_IDLE) !== INTERP_IDLE);
 const machineOff = computed(() => !st.value.is_enabled);
-const visible = computed(() => !!track.value && !running.value);
+// Visible whenever a track exists — during a real run the bar is a
+// READ-ONLY display (all controls are dead via the existing gating): live
+// playhead on the estimate axis, findings/tool marks as look-ahead.
+const visible = computed(() => !!track.value);
 
 const sPos = ref(0);          // scrub parameter (seconds on a time-based track)
 const playing = ref(false);
@@ -225,6 +228,58 @@ const posLabel = computed(() => {
   return `${pct.value}%`;
 });
 
+/** ---------- run-time display (unified timeline phase 2) ---------- */
+// During a real run the playhead follows the LIVE POSITION on the estimate
+// axis: the machine's program-space point is projected onto the current
+// motion line's track span (6D, 1° ≙ 1 unit), so the playhead moves
+// continuously through a line instead of jumping when the line completes.
+// Display only: the machine drives sPos, never the reverse.
+const motionLine = computed(() => st.value.motion_line as number | null | undefined);
+watch(st, (d) => {
+  if (!running.value || simMode.value) return;
+  const t = track.value;
+  const line = motionLine.value;
+  if (!t || !line) return;
+  const span = t.lineSpan.get(line);
+  const jp = d.joint_pos;
+  if (!span || !Array.isArray(jp)) {
+    const c = t.lineCum.get(line);
+    if (c !== undefined) sPos.value = c;
+    return;
+  }
+  const p = machineJointsToProgram(jp, viewerInit.value?.axes ?? [], _wcs());
+  let bestCum = t.cum[span.start]!;
+  let bestD = Infinity;
+  for (let i = Math.max(1, span.start); i <= span.end; i++) {
+    const j = i * 3, k = j - 3;
+    const ax = t.pos[k]!, ay = t.pos[k + 1]!, az = t.pos[k + 2]!;
+    const aa = t.abc[k]!, ab = t.abc[k + 1]!, ac = t.abc[k + 2]!;
+    const dx = t.pos[j]! - ax, dy = t.pos[j + 1]! - ay, dz = t.pos[j + 2]! - az;
+    const da = t.abc[j]! - aa, db = t.abc[j + 1]! - ab, dc = t.abc[j + 2]! - ac;
+    const len2 = dx * dx + dy * dy + dz * dz + da * da + db * db + dc * dc;
+    const rx = p[0] - ax, ry = p[1] - ay, rz = p[2] - az;
+    const ra = p[3] - aa, rb = p[4] - ab, rc = p[5] - ac;
+    const u = len2 > 0 ? Math.min(1, Math.max(0, (rx * dx + ry * dy + rz * dz + ra * da + rb * db + rc * dc) / len2)) : 0;
+    const ex = rx - u * dx, ey = ry - u * dy, ez = rz - u * dz;
+    const ea = ra - u * da, eb = rb - u * db, ec = rc - u * dc;
+    const d2 = ex * ex + ey * ey + ez * ez + ea * ea + eb * eb + ec * ec;
+    if (d2 < bestD) {
+      bestD = d2;
+      bestCum = t.cum[i - 1]! + u * (t.cum[i]! - t.cum[i - 1]!);
+    }
+  }
+  sPos.value = bestCum;
+});
+
+const statusText = computed(() => {
+  if (simMode.value) return `${curLine.value ? "L" + curLine.value : "entry"}${curRapid.value ? " →" : ""} ${posLabel.value}`;
+  // "~": the run readout is the ESTIMATE clock (parse-time feeds/rapids) —
+  // feed override, accel and dwells make real elapsed differ (GcodePanel
+  // shows the wall clock).
+  if (running.value) return `L${motionLine.value ?? 0} ~${posLabel.value}`;
+  return "live";
+});
+
 /** ---------- collision results (stage 3) ---------- */
 const checkLabel = computed(() => {
   if (props.collisionBusy) return `${Math.round(props.collisionProgress * 100)}%`;
@@ -305,17 +360,31 @@ const hitMarks = computed(() =>
     : [],
 );
 
-// Tool-change event marks (info-blue) — phase 2 turns these into the
-// next-tool countdown.
-const toolChangeMarks = computed(() => {
+// Tool-change events on the timeline + the next-tool countdown (ahead of
+// the current position, NON-wrapping — a past change is not "next").
+const toolTargets = computed(() => {
   const t = track.value;
-  if (!t || cumMax.value <= 0) return [];
-  const out: number[] = [];
-  for (const [line] of viewerGcode.value?.tool_change_lines ?? []) {
+  if (!t) return [] as Array<{ cum: number; line: number; tool: number }>;
+  const out: Array<{ cum: number; line: number; tool: number }> = [];
+  for (const [line, tool] of viewerGcode.value?.tool_change_lines ?? []) {
     const cum = t.lineCum.get(line);
-    if (cum !== undefined) out.push(Math.min(100, (cum / cumMax.value) * 100));
+    if (cum !== undefined) out.push({ cum, line, tool });
   }
-  return out;
+  return out.sort((a, b) => a.cum - b.cum);
+});
+const toolChangeMarks = computed(() =>
+  cumMax.value > 0 ? toolTargets.value.map(x => Math.min(100, (x.cum / cumMax.value) * 100)) : [],
+);
+const nextTool = computed(() =>
+  toolTargets.value.find(x => x.cum > sPos.value + NAV_EPS) ?? null,
+);
+const nextToolLabel = computed(() => {
+  const nt = nextTool.value;
+  if (!nt) return "";
+  const dist = track.value?.timeBased
+    ? `in ${fmtElapsed(Math.floor(nt.cum - sPos.value))}`
+    : `L${nt.line}`;
+  return `T${nt.tool} ${dist}`;
 });
 
 // Soft-limit violations (stage 1) on the same timeline, warn-tinted —
@@ -380,8 +449,10 @@ onUnmounted(() => {
                   title="Reset playback speed to ×1" @click="speedLog = 0">
         &times;{{ speedLabel }}
       </MachineBtn>
-      <span class="scrubStatus val-status mono" :class="{ muted: !simMode }">
-        {{ simMode ? `${curLine ? "L" + curLine : "entry"}${curRapid ? " →" : ""} ${posLabel}` : "live" }}
+      <!-- Mode identity chip (redundant with banner/gating — text channel). -->
+      <span v-if="running" class="val-status ok" title="Program executing — the playhead follows the machine; timeline controls are locked">RUNNING</span>
+      <span class="scrubStatus val-status mono" :class="{ muted: !simMode && !running }">
+        {{ statusText }}
       </span>
     </div>
 
@@ -435,6 +506,14 @@ onUnmounted(() => {
           </span>
           <span class="navTarget val-status mono">{{ nextHitT ? "→ " + (nextHitT.line ? "L" + nextHitT.line : "entry") + (nextHitT.rapid ? " (rapid)" : "") : "" }}</span>
         </template>
+      </template>
+
+      <template v-if="nextTool">
+        <div class="sep-v"></div>
+        <span class="val-status mono toolNext"
+              :title="`Next tool change ahead of the ${running ? 'machine' : 'scrub'} position (estimate axis)`">
+          {{ nextToolLabel }}
+        </span>
       </template>
     </div>
   </div>
@@ -498,6 +577,10 @@ onUnmounted(() => {
 .speedVal {
   min-width: 6ch;
   white-space: nowrap;
+}
+.toolNext {
+  white-space: nowrap;
+  color: var(--info);
 }
 .scrubStatus {
   white-space: nowrap;

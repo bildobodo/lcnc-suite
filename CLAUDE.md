@@ -347,6 +347,15 @@ client-built entry move) and the track merge diffs them per stream.
 distance axis (1° ≙ 1 mm), honest not guessed. Tool-change events ride
 the wire as `tool_change_lines` (canon M6 only — preview-skipped M600
 remaps contribute none) and render as info-blue timeline marks.
+**Phase 2 (run-time display)**: the bar stays visible during a REAL run
+as a read-only surface — every control is dead via the existing gating,
+a RUNNING chip marks the mode, the playhead follows `motion_line` on the
+estimate axis (line granularity via lineCum; subroutine loops move it
+backward legitimately), and the findings/tool marks become look-ahead
+("next clash → L11", "T3 in 2:41" — the next-tool countdown, shown in
+sim too). No motion verb lives on the timeline — cycle
+start/pause/abort stay in their constant home (see
+unified-timeline-design memory: unify display, not actuation).
 Execution order is reconstructed by merging the
 feed/rapid streams on per-point `feed_seq`/`rapid_seq` (global counter in
 `gcode_canon.py` — line numbers can't order subroutine loops);

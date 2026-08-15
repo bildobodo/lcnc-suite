@@ -75,6 +75,9 @@ export interface ScrubTrack {
    *  survive structured clone). Lets the UI place line-anchored marks —
    *  soft-limit violations — on the timeline without an O(track) scan. */
   lineCum: Map<number, number>;
+  /** Source line → track point index range — the run playhead projects the
+   *  live position onto the current line's span for smooth motion. */
+  lineSpan: Map<number, { start: number; end: number }>;
 }
 
 // One per-line soft-limit overtravel record from the parse worker. `value`

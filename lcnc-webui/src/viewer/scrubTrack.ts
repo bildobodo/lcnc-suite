@@ -14,7 +14,7 @@
 // letters → joint slots via viewer_init.axes. No baked subdivision needed —
 // the kinematic chain is evaluated at pose time, not baked per vertex.
 import {
-  machineToProgram, programToMachine, wcsTerms,
+  buildLineMap, machineToProgram, programToMachine, wcsTerms,
   type PartFrameWcs, type WcsTerms,
 } from "./partFrame";
 import type { ScrubTrack } from "../ws/bulkData";
@@ -112,7 +112,7 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream): ScrubTra
     if (ln && !lineCum.has(ln)) lineCum.set(ln, cum[i]!);
   }
 
-  return { pos, abc, lines, rapid: rapidFlag, cum, count: n, lineCum, timeBased };
+  return { pos, abc, lines, rapid: rapidFlag, cum, count: n, lineCum, lineSpan: buildLineMap(lines), timeBased };
 }
 
 export interface ScrubSample {
@@ -223,7 +223,7 @@ export function prependEntry(
   for (let i = 0; i < t.count; i++) cum[i + 1] = t.cum[i]! + entryLen;
   const lineCum = new Map<number, number>();
   for (const [ln, c] of t.lineCum) lineCum.set(ln, c + entryLen);
-  return { pos, abc, lines, rapid, cum, count: n, lineCum, timeBased: t.timeBased };
+  return { pos, abc, lines, rapid, cum, count: n, lineCum, lineSpan: buildLineMap(lines), timeBased: t.timeBased };
 }
 
 const _machineVals: number[] = [0, 0, 0, 0, 0, 0];

@@ -1411,10 +1411,17 @@ function runCollisionCheck(trackOverride?: ScrubTrack) {
     id,
     machine: _pfMachine(init),           // same shape as CollisionMachine
     bodies,
-    tool: {
-      diam: _pv.toolDiam || 6 * _unitScale,   // the DISPLAYED marker dims —
-      len: _pv.toolLen || 60 * _unitScale,    // absent tool = placeholder, as drawn
-    },
+    // The DISPLAYED marker dims — same visual-length formula as the marker
+    // build (min length + shank sink into the holder). Using the raw tool
+    // length made the collision body SHORTER than the tool on screen: the
+    // model visibly touched while the sweep saw clearance.
+    tool: (() => {
+      const rawLen = _pv.toolLen || 60 * _unitScale;
+      return {
+        diam: _pv.toolDiam || 6 * _unitScale,
+        len: Math.max(40 * _unitScale, rawLen + 20 * _unitScale),
+      };
+    })(),
     track: trackCopy,
     wcs: _pfWcs(),
     options: { margin: COLLISION_MARGIN_MM * _unitScale },
@@ -1447,6 +1454,7 @@ function _colOnInputChange() {
   cancelCollisionCheck();
   collisionResult.value = null;
   emit("collision-lines", null);
+  _updateClashTint(null);
   _colScheduleAuto();
 }
 
@@ -1455,6 +1463,7 @@ watch(viewerGcode, () => {
   cancelCollisionCheck();
   collisionResult.value = null;
   emit("collision-lines", null);
+  _updateClashTint(null);
   _colScheduleAuto();
 });
 watch(machineReady, (ready) => {
@@ -1567,8 +1576,83 @@ function onScrubPose(joints: (number | null)[] | null, line: number | null) {
   _scrubJoints = joints;
   _scrubLineNo = joints ? line : null;
   emit("scrub-line", _scrubLineNo);
+  _updateClashTint(_scrubLineNo);
   if (_lastState && !pendingState) pendingState = _lastState;
   requestRender();
+}
+
+// ---- Clash-pair tint: while the scrub sits on a line with a reported
+// collision, the involved bodies glow danger-red (emissive add — works on
+// any base/vertex color). Shared materials (MAT.*, auto part materials)
+// are clone-swapped per mesh and restored on clear, so nothing leaks into
+// other parts and user color overrides stay untouched. ----
+let _dangerHex: number | null = null;
+const _clashOnIds = new Set<string>();
+
+function _clashMeshes(id: string): THREE.Mesh[] {
+  if (id === "tool") {
+    return [toolCutterMesh, toolBodyMesh].filter((m): m is THREE.Mesh => !!m);
+  }
+  return machineMeshes.filter(m => m.userData.partId === id);
+}
+
+function _tintMesh(mesh: THREE.Mesh, on: boolean) {
+  let mat = mesh.material as THREE.MeshStandardMaterial;
+  if (on) {
+    if (mesh.userData._clashOn) return;
+    if (mat.userData._shared) {
+      const clone = mat.clone();
+      clone.userData._shared = false;
+      clone.userData._clashClone = true;
+      mesh.userData._preClashMat = mat;
+      mesh.material = mat = clone;
+    } else {
+      mesh.userData._preClashEmissive = mat.emissive.getHex();
+    }
+    if (_dangerHex == null) {
+      const v = getComputedStyle(document.documentElement).getPropertyValue("--danger").trim();
+      _dangerHex = v ? new THREE.Color(v).getHex() : 0xcc3333;
+    }
+    mat.emissive.setHex(_dangerHex);
+    mesh.userData._clashOn = true;
+  } else {
+    if (!mesh.userData._clashOn) return;
+    if (mesh.userData._preClashMat) {
+      const clone = mesh.material as THREE.MeshStandardMaterial;
+      mesh.material = mesh.userData._preClashMat;
+      if (clone.userData._clashClone) clone.dispose();
+      delete mesh.userData._preClashMat;
+    } else {
+      (mesh.material as THREE.MeshStandardMaterial).emissive.setHex(mesh.userData._preClashEmissive ?? 0);
+      delete mesh.userData._preClashEmissive;
+    }
+    mesh.userData._clashOn = false;
+  }
+}
+
+function _updateClashTint(line: number | null) {
+  const want = new Set<string>();
+  if (line != null) {
+    for (const h of collisionResult.value?.hits ?? []) {
+      if (h.line === line) { want.add(h.a); want.add(h.b); }
+    }
+  }
+  let changed = false;
+  for (const id of _clashOnIds) {
+    if (!want.has(id)) {
+      for (const m of _clashMeshes(id)) _tintMesh(m, false);
+      _clashOnIds.delete(id);
+      changed = true;
+    }
+  }
+  for (const id of want) {
+    if (!_clashOnIds.has(id)) {
+      for (const m of _clashMeshes(id)) _tintMesh(m, true);
+      _clashOnIds.add(id);
+      changed = true;
+    }
+  }
+  if (changed) requestRender();
 }
 let _needsReframe = false;
 let _iniBox: THREE.Box3 | null = null;

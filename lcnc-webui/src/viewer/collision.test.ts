@@ -34,7 +34,7 @@ function track(points: number[][], abc?: number[][], lines?: number[], rapid?: n
     pos, abc: abcArr,
     lines: new Uint32Array(lines ?? points.map((_, i) => i + 1)),
     rapid: rapid ? new Uint8Array(rapid) : new Uint8Array(n), cum, count: n,
-    lineCum: new Map(), timeBased: false,
+    lineCum: new Map(), lineSpan: new Map(), timeBased: false,
   };
 }
 
