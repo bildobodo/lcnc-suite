@@ -361,22 +361,36 @@ touch-off re-poses immediately (WCS watcher). A stale pre-seq cached
 payload yields `scrubTrack: null` — the bar simply doesn't offer itself
 (unchecked ≠ broken).
 
+**Entry move + auto-check**: at sim entry the live machine position is
+captured (joints→machine→program via `machineToProgram`, the exact
+inverse of the preview transform) and `prependEntry` puts the rapid from
+the machine's ACTUAL position to the program's first point at the front
+of the track (scrub 0 = live position, labeled "entry", rapid-flagged) —
+run-time-only motion no parse can know, and the classic crash. Entering
+sim auto-runs the collision check on that extended track (each entry =
+fresh position = fresh baseline); cost is bounded by the 60k sample
+budget regardless of file size, and Check remains the manual re-run.
+
 **Collision sweep (offline dry run, stage 3)**: the scrub bar's Check
 button sweeps the machine model through the scrub track off-thread
 (`viewer/collisionWorker.ts`) and reports tool-side vs work-side body
 pairs inside a 2 mm clearance margin. `viewer/collision.ts` (pure,
 unit-tested, incl. against the real machine-xyzac STLs during dev):
 full-group-tree pose evaluation (same compose semantics as
-applyState/partFrame), machine.json STL bodies + a parametric tool
-cylinder (the DISPLAYED marker dims — tip at origin, +Z), three-mesh-bvh
+applyState/partFrame), machine.json STL bodies — UNGROUPED parts
+(column, base, spindle housing) attach to an implicit root node and are
+fully collidable; everything moves relative to the frame — + a
+parametric tool cylinder (the DISPLAYED marker dims — tip at origin,
++Z), three-mesh-bvh
 `closestPointToGeometry` with margin early-out behind a bounding-sphere
 prescreen, linear (5 mm) + rotary (4°) subdivision so plunges and sweeps
 can't fly through bodies between endpoints, sample budget 60k (steps
 COARSEN to fit — result says `coarsened`, never silently truncates).
-Attribution: worst hit per (line, pair), first-deepest sample's `cum` is
-the scrub-to-hit target (clicking the clash button scrubs the model to
-the contact). Hits during RAPID segments are flagged `rapid` — always
-real. ThreeViewer owns the worker (geometry from machineAssetCache, tool
+Attribution: worst hit per (line, pair); penetrating hits are REFINED to
+first contact (walk back to the last clear parameter + bisect, ~30 pair
+probes per hit) so scrub-to-hit poses the model at first touch, never a
+sample-step deep. Near-miss hits keep their closest-approach sample.
+Hits during RAPID segments are flagged `rapid` — always real. ThreeViewer owns the worker (geometry from machineAssetCache, tool
 dims from live status); cancel = worker terminate + lazy recreate (a sync
 sweep can't observe a cancel message). Results reflect check-time
 WCS/tool and clear on program change; GcodePanel reuses

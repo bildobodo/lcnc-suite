@@ -19,6 +19,7 @@ import { disposeObject } from "./viewer/disposal";
 import { normalizeKinematics, type KinRuntime } from "./viewer/kinematics";
 import { chainsHaveRotary, type PartFrameMachine, type PartFrameWcs } from "./viewer/partFrame";
 import type { CollisionBody, CollisionResult } from "./viewer/collision";
+import type { ScrubTrack } from "./ws/bulkData";
 import { createBackplotController } from "./viewer/backplotController";
 import { createSurfaceController } from "./viewer/surfaceController";
 import { createToolpathController, type ToolpathCtx } from "./viewer/toolpathController";
@@ -1367,18 +1368,22 @@ function cancelCollisionCheck() {
   collisionProgress.value = 0;
 }
 
-function runCollisionCheck() {
+function runCollisionCheck(trackOverride?: ScrubTrack) {
   const init = viewerInit.value;
-  const track = viewerGcode.value?.scrubTrack;
+  // ScrubBar passes its active track (base + entry move captured at sim
+  // entry); the bare-Check fallback sweeps the parse-time track.
+  const track = trackOverride ?? viewerGcode.value?.scrubTrack;
   if (!init || !track || collisionBusy.value) return;
   const bodies: CollisionBody[] = [];
   let skipped = 0;
   for (const p of (init.parts ?? [])) {
     const attr = getCachedGeometry(p.id)?.getAttribute("position");
-    if (!attr || !p.group) { skipped++; continue; }  // unloaded geometry / ungrouped part
+    if (!attr) { skipped++; continue; }  // unloaded geometry
     bodies.push({
       id: p.id,
-      group: p.group,
+      // Ungrouped parts are static frame bodies (column, base, spindle
+      // housing) — root-attached, and very much collidable-with.
+      group: p.group ?? "root",
       positions: new Float32Array(attr.array as Float32Array),  // copy → transferable
       translate: p.translate ? [...p.translate] : undefined,
       rotate: (p as any).rotate ? [...(p as any).rotate] : undefined,

@@ -100,8 +100,11 @@ describe("buildCollisionModel", () => {
 describe("sweepCollisions", () => {
   it("flags a plunge into the work body with worst-per-line attribution", () => {
     const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    // Plunge to -43: head-box bottom (45+Z) meets vise top (+5) at Z=-40,
+    // which falls BETWEEN samples (43/9 ≈ 4.78 mm steps) — the discovering
+    // sample sits ~3 mm deep in penetration.
     const r = sweepCollisions(model, track(
-      [[0, 0, 0], [0, 0, -45]], undefined, [7, 8]), WCS0, { margin: 2 });
+      [[0, 0, 0], [0, 0, -43]], undefined, [7, 8]), WCS0, { margin: 2 });
     expect(r.hits).toHaveLength(1);
     const h = r.hits[0]!;
     expect(h.line).toBe(8);
@@ -110,6 +113,9 @@ describe("sweepCollisions", () => {
     // Worst sample is the deepest: penetration → distance 0.
     expect(h.dist).toBeCloseTo(0, 5);
     expect(h.rapid).toBe(false);
+    // Contact refinement: scrub-to-hit lands at FIRST TOUCH (cum 40), not
+    // at the sample that discovered the penetration (cum ≈ 43).
+    expect(h.cum).toBeCloseTo(40, 2);
   });
 
   it("marks contacts that happen during a rapid segment", () => {
@@ -198,6 +204,27 @@ describe("sweepCollisions", () => {
     expect(r.hits.every(h => [h.a, h.b].sort().join("/") !== "drawbar/spindle")).toBe(true);
     // … while the genuine plunge hit is still attributed normally.
     expect(r.hits.some(h => [h.a, h.b].sort().join("/") === "spindle/vise")).toBe(true);
+  });
+
+  it("detects collisions with root-attached static frame bodies", () => {
+    // Ungrouped machine.json parts (column, base, spindle housing) map to
+    // the implicit root node. A frame obstacle in the head's plunge path
+    // must be hit — dropping these bodies blinded the sweep to frame
+    // collisions the scrub visuals showed plainly.
+    const withFrame: CollisionBody[] = [
+      ...PLUNGE_BODIES,
+      { id: "base_spindle", group: "root", positions: boxPositions(10), translate: [0, 0, 20] },
+    ];
+    const model = buildCollisionModel(PLUNGE, withFrame);
+    // Frame body pairs with both movers (their DOFs sit below the LCA).
+    const key = (p: [number, number]) => [model.bodies[p[0]]!.id, model.bodies[p[1]]!.id].sort().join("/");
+    expect(model.pairs.map(key).sort()).toContain("base_spindle/spindle");
+    // Head box [45+Z, 55+Z] reaches the obstacle top (z=25) at Z=-20.
+    const r = sweepCollisions(model, track(
+      [[0, 0, 0], [0, 0, -43]], undefined, [7, 8]), WCS0, { margin: 2 });
+    const frameHit = r.hits.find(h => [h.a, h.b].sort().join("/") === "base_spindle/spindle");
+    expect(frameHit).toBeTruthy();
+    expect(frameHit!.cum).toBeCloseTo(20, 2);  // refined to first touch
   });
 
   it("catches a same-side pair that straddles a DOF (v1 scope gap closed)", () => {

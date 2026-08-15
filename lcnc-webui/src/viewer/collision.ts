@@ -128,6 +128,16 @@ function buildTree(machine: CollisionMachine): { nodes: Node[]; idxOf: Map<strin
   const kin = normalizeKinematics(machine.kinematics as any);
   const nodes: Node[] = [];
   const idxOf = new Map<string, number>();
+  // Implicit root node: STATIC frame bodies (machine.json parts without a
+  // group — column, base, spindle housing) attach here. They never move,
+  // but everything else moves relative to THEM — trunnion-into-spindle-base
+  // is a frame collision, and dropping these bodies made the sweep blind to
+  // it while the scrub visuals showed it plainly.
+  nodes.push({
+    id: "root", parentIdx: -1, base: new THREE.Vector3(), dofs: [],
+    local: new THREE.Matrix4(), world: new THREE.Matrix4(),
+  });
+  idxOf.set("root", 0);
   let remaining = machine.groups.map(g => g.id);
   let guard = 0;
   while (remaining.length && guard++ < 64) {
@@ -348,8 +358,9 @@ export function sweepCollisions(
   const target1 = { point: new THREE.Vector3(), distance: 0, faceIndex: -1 };
   const target2 = { point: new THREE.Vector3(), distance: 0, faceIndex: -1 };
 
-  // Worst hit per (line, pair) — same attribution shape as stage 1.
-  const worst = new Map<string, CollisionHit>();
+  // Worst hit per (line, pair) — same attribution shape as stage 1. `pi`
+  // (pair index) is internal, for the contact-refinement pass.
+  const worst = new Map<string, CollisionHit & { pi: number }>();
   let done = 0;
 
   const poseAt = (px: number, py: number, pz: number, pa: number, pb: number, pc: number) => {
@@ -405,12 +416,37 @@ export function sweepCollisions(
         const key = `${line}|${A.id}|${B.id}`;
         const prev = worst.get(key);
         if (!prev || dist < prev.dist) {
-          worst.set(key, { line, cum, a: A.id, b: B.id, dist, rapid });
+          worst.set(key, { line, cum, a: A.id, b: B.id, dist, rapid, pi });
         } else if (rapid && !prev.rapid) {
           prev.rapid = true;  // any rapid contact on this (line, pair) marks it
         }
       }
     }
+  };
+
+  // Pose the track at an arbitrary cum parameter and return one pair's
+  // distance — the contact-refinement probe. Interpolates the same way the
+  // sweep does, so refined parameters lie exactly on the swept path.
+  const distAtCum = (s: number, pi: number): number => {
+    let lo = 1, hi = n - 1;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (track.cum[mid]! < s) lo = mid + 1;
+      else hi = mid;
+    }
+    const c0 = track.cum[lo - 1]!, c1 = track.cum[lo]!;
+    const u = c1 > c0 ? Math.min(1, Math.max(0, (s - c0) / (c1 - c0))) : 1;
+    const j = lo * 3, k = j - 3;
+    poseAt(
+      track.pos[k]! + (track.pos[j]! - track.pos[k]!) * u,
+      track.pos[k + 1]! + (track.pos[j + 1]! - track.pos[k + 1]!) * u,
+      track.pos[k + 2]! + (track.pos[j + 2]! - track.pos[k + 2]!) * u,
+      track.abc[k]! + (track.abc[j]! - track.abc[k]!) * u,
+      track.abc[k + 1]! + (track.abc[j + 1]! - track.abc[k + 1]!) * u,
+      track.abc[k + 2]! + (track.abc[j + 2]! - track.abc[k + 2]!) * u,
+    );
+    const [ai, bi] = pairs[pi]!;
+    return pairDistance(bodies[ai]!, bodies[bi]!);
   };
 
   for (let i = 1; i < n; i++) {
@@ -435,9 +471,46 @@ export function sweepCollisions(
     }
     if (onProgress && (i & 63) === 0) onProgress(done / total);
   }
+  // Contact refinement: a penetrating hit's discovering sample can sit up
+  // to one sample step PAST true contact — jumping to it would show the
+  // tool already buried. Walk back by the local sample step to the last
+  // clear parameter (crossing segment boundaries freely), then bisect the
+  // first-contact crossing. Cost: only hit pairs, ~30 probes each.
+  // "Contact" for the refinement probes: intersecting meshes report a
+  // closest distance of ~1e-8 (float), never a clean 0.
+  const CONTACT_EPS = 1e-4;
+  for (const h of worst.values()) {
+    if (h.dist > CONTACT_EPS || h.cum <= 0) continue;  // near-misses keep their closest-approach sample
+    let hi = h.cum;
+    let lo = hi;
+    let guard = 0;
+    let bracketed = false;
+    while (guard++ < 128 && lo > 0) {
+      let si = 1, sj = n - 1;
+      while (si < sj) {
+        const mid = (si + sj) >> 1;
+        if (track.cum[mid]! < lo) si = mid + 1;
+        else sj = mid;
+      }
+      const step = Math.max(1e-3, (track.cum[si]! - track.cum[si - 1]!) / (segSteps[si - 1] || 1));
+      lo = Math.max(0, lo - step);
+      if (distAtCum(lo, h.pi) > CONTACT_EPS) { bracketed = true; break; }
+      hi = lo;  // still in contact — earliest known contact moves back
+    }
+    if (!bracketed) { h.cum = hi; continue; }  // contact reaches the walk limit — keep the earliest probe
+    for (let it = 0; it < 24 && hi - lo > 1e-3; it++) {
+      const mid = (lo + hi) / 2;
+      if (distAtCum(mid, h.pi) <= CONTACT_EPS) hi = mid;
+      else lo = mid;
+    }
+    h.cum = hi;
+  }
   onProgress?.(1);
 
-  const hits = [...worst.values()].sort((x, y) => x.cum - y.cum).slice(0, MAX_HITS);
+  const hits = [...worst.values()]
+    .sort((x, y) => x.cum - y.cum)
+    .slice(0, MAX_HITS)
+    .map(({ pi: _pi, ...rest }) => rest);
   return {
     hits,
     staticContacts,

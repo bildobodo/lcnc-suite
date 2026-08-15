@@ -14,7 +14,7 @@
 // letters → joint slots via viewer_init.axes. No baked subdivision needed —
 // the kinematic chain is evaluated at pose time, not baked per vertex.
 import {
-  programToMachine, wcsTerms,
+  machineToProgram, programToMachine, wcsTerms,
   type PartFrameWcs, type WcsTerms,
 } from "./partFrame";
 import type { ScrubTrack } from "../ws/bulkData";
@@ -144,6 +144,61 @@ export function sampleTrack(t: ScrubTrack, s: number, out: ScrubSample): ScrubSa
   out.rapid = t.rapid[lo] === 1;
   out.index = lo;
   return out;
+}
+
+/** Live machine joints → program-space [x,y,z,a,b,c] via the JOINT-ordered
+ *  letter list and the inverse WCS transform. UVW/unknown joints are
+ *  ignored (they don't exist in the program frame). */
+export function machineJointsToProgram(
+  joints: ArrayLike<number>, axes: string[], wcs: PartFrameWcs,
+): [number, number, number, number, number, number] {
+  const m = [0, 0, 0, 0, 0, 0];
+  for (let ji = 0; ji < axes.length; ji++) {
+    const slot = "XYZABC".indexOf(axes[ji]!.toUpperCase());
+    if (slot >= 0) m[slot] = joints[ji] ?? 0;
+  }
+  const out: [number, number, number, number, number, number] = [0, 0, 0, 0, 0, 0];
+  machineToProgram(m[0]!, m[1]!, m[2]!, m[3]!, m[4]!, m[5]!, wcsTerms(wcs), out);
+  return out;
+}
+
+/** New track with the ENTRY MOVE prepended: the rapid the machine will make
+ *  from its live position (program coords) to the program's first point —
+ *  run-time-only motion no parse can know, and the classic crash. The entry
+ *  point gets line 0 ("entry" in the UI) and a rapid flag; cum and lineCum
+ *  shift by the entry length. Returns the original track unchanged when the
+ *  machine already sits at the first point. */
+export function prependEntry(
+  t: ScrubTrack,
+  entry: [number, number, number, number, number, number],
+): ScrubTrack {
+  const dx = t.pos[0]! - entry[0], dy = t.pos[1]! - entry[1], dz = t.pos[2]! - entry[2];
+  const linear = Math.sqrt(dx * dx + dy * dy + dz * dz);
+  const rot = Math.max(
+    Math.abs(t.abc[0]! - entry[3]),
+    Math.abs(t.abc[1]! - entry[4]),
+    Math.abs(t.abc[2]! - entry[5]),
+  ) * DEG_AS_MM;
+  const entryLen = Math.max(linear, rot);
+  if (entryLen < 1e-6) return t;
+
+  const n = t.count + 1;
+  const pos = new Float32Array(n * 3);
+  const abc = new Float32Array(n * 3);
+  const lines = new Uint32Array(n);
+  const rapid = new Uint8Array(n);
+  const cum = new Float32Array(n);
+  pos.set(entry.slice(0, 3), 0);
+  pos.set(t.pos, 3);
+  abc.set(entry.slice(3, 6), 0);
+  abc.set(t.abc, 3);
+  lines.set(t.lines, 1);            // entry point keeps line 0 = "entry"
+  rapid.set(t.rapid, 1);
+  rapid[1] = 1;                     // the entry MOVE (ending at old point 0) is a rapid
+  for (let i = 0; i < t.count; i++) cum[i + 1] = t.cum[i]! + entryLen;
+  const lineCum = new Map<number, number>();
+  for (const [ln, c] of t.lineCum) lineCum.set(ln, c + entryLen);
+  return { pos, abc, lines, rapid, cum, count: n, lineCum };
 }
 
 const _machineVals: number[] = [0, 0, 0, 0, 0, 0];

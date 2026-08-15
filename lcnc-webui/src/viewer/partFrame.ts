@@ -166,6 +166,22 @@ export function programToMachine(
   out[5] = pc + o.oc;
 }
 
+/** Exact inverse of programToMachine — machine axis values → program coords.
+ *  Used to place the LIVE machine position on the (program-space) scrub
+ *  track, e.g. as the entry-move start point. Fills out[0..5]. */
+export function machineToProgram(
+  mx: number, my: number, mz: number, ma: number, mb: number, mc: number,
+  o: WcsTerms, out: number[],
+): void {
+  const dx = mx - o.ox, dy = my - o.oy;
+  out[0] = dx * o.cth + dy * o.sth;
+  out[1] = -dx * o.sth + dy * o.cth;
+  out[2] = mz - o.oz;
+  out[3] = ma - o.oa;
+  out[4] = mb - o.ob;
+  out[5] = mc - o.oc;
+}
+
 /** True when the transform can change anything: a rotary DOF sits on the
  *  work or tool chain. Pure translate chains reproduce the input exactly. */
 export function chainsHaveRotary(machine: PartFrameMachine): boolean {

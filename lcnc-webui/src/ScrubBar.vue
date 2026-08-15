@@ -13,7 +13,11 @@ import { computed, onUnmounted, ref, watch } from "vue";
 import { status, viewerGcode, viewerInit } from "./lcncWs";
 import { INTERP_IDLE } from "./lcnc";
 import { simMode } from "./simMode";
-import { sampleTrack, jointsForSample, type ScrubSample } from "./viewer/scrubTrack";
+import {
+  sampleTrack, jointsForSample, machineJointsToProgram, prependEntry,
+  type ScrubSample,
+} from "./viewer/scrubTrack";
+import type { ScrubTrack } from "./ws/bulkData";
 import type { CollisionResult } from "./viewer/collision";
 import { limitViolationText } from "./ws/bulkData";
 import { Play, Pause } from "lucide-vue-next";
@@ -33,12 +37,18 @@ const emit = defineEmits<{
   // joints: per-JOINT machine values (null entry = keep live joint), or null
   // to return the model to the live pose. line: source line at the sample.
   (e: "pose", joints: (number | null)[] | null, line: number | null): void;
-  (e: "check"): void;
+  // The track to sweep — includes the entry move when one is known.
+  (e: "check", track: ScrubTrack): void;
   (e: "cancel-check"): void;
 }>();
 
 const st = computed<Record<string, any>>(() => status.value?.data ?? {});
-const track = computed(() => viewerGcode.value?.scrubTrack ?? null);
+const baseTrack = computed(() => viewerGcode.value?.scrubTrack ?? null);
+// Base track + the ENTRY MOVE (live machine position → program first point),
+// captured at sim entry — run-time-only motion no parse can know. Kept after
+// exit so marks/results stay consistent; rebuilt on each entry.
+const entryTrack = ref<ScrubTrack | null>(null);
+const track = computed(() => entryTrack.value ?? baseTrack.value);
 const running = computed(() => (st.value.interp_state ?? INTERP_IDLE) !== INTERP_IDLE);
 const machineOff = computed(() => !st.value.is_enabled);
 const visible = computed(() => !!track.value && !running.value);
@@ -84,13 +94,33 @@ function applyPos() {
 let _baseJoints: number[] = [];
 const MOTION_EXIT_THRESHOLD = 0.05;
 
+function _wcs() {
+  const d = st.value;
+  return { g5x: d.g5x_offset ?? [], g92: d.g92_offset ?? [], rotationDeg: d.rotation_xy ?? 0 };
+}
+
+function _buildEntryTrack() {
+  const base = baseTrack.value;
+  if (!base || !_baseJoints.length) {
+    entryTrack.value = null;
+    return;
+  }
+  const entry = machineJointsToProgram(_baseJoints, viewerInit.value?.axes ?? [], _wcs());
+  const t = prependEntry(base, entry);
+  entryTrack.value = t === base ? null : t;
+}
+
 function enterSim(): boolean {
   if (simMode.value) return true;
-  if (!track.value || running.value || !machineOff.value) return false;
+  if (!baseTrack.value || running.value || !machineOff.value) return false;
   simMode.value = true;
   const jp = st.value.joint_pos;
   _baseJoints = Array.isArray(jp) ? [...jp] : [];
-  applyPos();  // pose immediately — the mode announces itself
+  _buildEntryTrack();
+  sPos.value = 0;   // 0 = the machine's live position (entry-move start)
+  applyPos();       // pose immediately — the mode announces itself
+  // Fresh entry position → fresh baseline: auto-run the collision check.
+  if (track.value && !props.collisionBusy) emit("check", track.value);
   return true;
 }
 
@@ -113,12 +143,18 @@ const _wcsKey = computed(() => {
   const d = st.value;
   return `${(d.g5x_offset ?? []).join()},${(d.g92_offset ?? []).join()},${d.rotation_xy ?? 0}`;
 });
-watch(_wcsKey, () => applyPos());
+// The pose (and the entry move's program coords) depend on the live WCS.
+watch(_wcsKey, () => {
+  if (entryTrack.value) _buildEntryTrack();
+  applyPos();
+});
 
 // Auto-exits: execution starts, program changes, machine powered on
 // (another client — this tab's Machine On is gated), or real joint motion.
+// Keyed on the BASE track — entering sim swaps in the entry track, which
+// must not itself trigger an exit.
 watch(running, (r) => { if (r) exitSim(); });
-watch(track, () => { exitSim(); sPos.value = 0; });
+watch(baseTrack, () => { exitSim(); entryTrack.value = null; sPos.value = 0; });
 watch(machineOff, (off) => { if (!off) exitSim(); });
 watch(st, (d) => {
   if (!simMode.value) return;
@@ -217,8 +253,10 @@ const violationsTitle = computed(() => {
 // clash button). Lines the track doesn't know are skipped in the cycle.
 function jumpToViolation() {
   const list = violations.value ?? [];
+  if (!list.length || !enterSim()) return;
+  // Read the track AFTER enterSim — entry may have shifted every lineCum.
   const t = track.value;
-  if (!list.length || !t || !enterSim()) return;
+  if (!t) return;
   for (let tries = 0; tries < list.length; tries++) {
     const v = list[vIdx.value % list.length]!;
     vIdx.value++;
@@ -291,7 +329,7 @@ onUnmounted(() => {
     </div>
     <MachineBtn type="scrub" :disabled="!simMode" title="Playback speed" @click="cycleSpeed">&times;{{ mult }}</MachineBtn>
     <span class="scrubStatus val-status mono" :class="{ muted: !simMode }">
-      {{ simMode ? `L${curLine}${curRapid ? " →" : ""} ${pct}%` : "live" }}
+      {{ simMode ? `${curLine ? "L" + curLine : "entry"}${curRapid ? " →" : ""} ${pct}%` : "live" }}
     </span>
 
     <div class="sep-v"></div>
@@ -306,9 +344,9 @@ onUnmounted(() => {
       </MachineBtn>
     </span>
 
-    <MachineBtn v-if="!collisionBusy" type="scrub"
-                title="Sweep the machine model through the program and check body-pair clearance"
-                @click="emit('check')">{{ checkLabel }}</MachineBtn>
+    <MachineBtn v-if="!collisionBusy" type="scrub" :disabled="!track"
+                title="Sweep the machine model through the program (re-run; entering Sim checks automatically)"
+                @click="track && emit('check', track)">{{ checkLabel }}</MachineBtn>
     <MachineBtn v-else type="scrub" title="Cancel the collision check"
                 @click="emit('cancel-check')">{{ checkLabel }} &times;</MachineBtn>
     <template v-if="collisionResult && !collisionBusy">
@@ -320,7 +358,7 @@ onUnmounted(() => {
             :title="`Collision hits — click to simulate the next one${!simMode && !machineOff ? ' (turn the machine OFF first)' : ''}${collisionResult.staticContacts.length ? `\nIn contact from the start (excluded): ${collisionResult.staticContacts.map(c => c.a + '/' + c.b).join(', ')}` : ''}`">
         <MachineBtn type="scrub" variant="danger" :disabled="!simMode && !machineOff"
                     @click="jumpToHit">
-          {{ hits.length }} clash{{ hits.length === 1 ? "" : "es" }} &rarr; L{{ nextHit!.line }}{{ nextHit!.rapid ? " (rapid)" : "" }}
+          {{ hits.length }} clash{{ hits.length === 1 ? "" : "es" }} &rarr; {{ nextHit!.line ? "L" + nextHit!.line : "entry" }}{{ nextHit!.rapid ? " (rapid)" : "" }}
         </MachineBtn>
       </span>
     </template>

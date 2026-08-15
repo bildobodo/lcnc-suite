@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildScrubTrack, sampleTrack, jointsForSample,
+  machineJointsToProgram, prependEntry,
   type ScrubSample, type ScrubStream, type ScrubTrack,
 } from "./scrubTrack";
 
@@ -88,6 +89,53 @@ describe("sampleTrack", () => {
     expect(s.pz).toBeCloseTo(-2, 5);
     expect(s.pc).toBeCloseTo(20, 5);
     expect(s.line).toBe(3);
+  });
+});
+
+describe("machineJointsToProgram", () => {
+  it("inverts the WCS transform through JOINT-ordered letters", () => {
+    // XYZAC joints at machine [11, 22, -2, 15, 94] with g5x [1,2,3,0,0,4]
+    // must give back program [10, 20, -5, 15, 0, 90] — the exact inverse of
+    // the jointsForSample fixture.
+    const p = machineJointsToProgram(
+      [11, 22, -2, 15, 94], ["X", "Y", "Z", "A", "C"],
+      { g5x: [1, 2, 3, 0, 0, 4], g92: [], rotationDeg: 0 });
+    expect(p[0]).toBeCloseTo(10, 5);
+    expect(p[1]).toBeCloseTo(20, 5);
+    expect(p[2]).toBeCloseTo(-5, 5);
+    expect(p[3]).toBeCloseTo(15, 5);
+    expect(p[5]).toBeCloseTo(90, 5);
+  });
+
+  it("inverts the XY rotation", () => {
+    // +90° rotation: machine (0, 10) came from program (10, 0).
+    const p = machineJointsToProgram([0, 10], ["X", "Y"], { g5x: [], g92: [], rotationDeg: 90 });
+    expect(p[0]).toBeCloseTo(10, 5);
+    expect(p[1]).toBeCloseTo(0, 5);
+  });
+});
+
+describe("prependEntry", () => {
+  const base = buildScrubTrack(
+    stream([[10, 0, 0], [20, 0, 0]], { lines: [5, 7] }), EMPTY)!;
+
+  it("prepends a rapid entry segment and shifts cum + lineCum", () => {
+    const t = prependEntry(base, [10, -30, 0, 0, 0, 0]);
+    expect(t.count).toBe(3);
+    expect([t.pos[0], t.pos[1]]).toEqual([10, -30]);
+    expect(t.lines[0]).toBe(0);          // "entry"
+    expect(t.rapid[1]).toBe(1);          // the entry MOVE is a rapid
+    expect(t.cum[1]).toBeCloseTo(30, 5); // entry length
+    expect(t.cum[2]).toBeCloseTo(40, 5);
+    expect(t.lineCum.get(5)).toBeCloseTo(30, 5);
+    expect(t.lineCum.get(7)).toBeCloseTo(40, 5);
+  });
+
+  it("counts a pure rotary entry (1° ≙ 1 mm) and skips a no-op entry", () => {
+    const rot = prependEntry(base, [10, 0, 0, 0, 0, -45]);
+    expect(rot.cum[1]).toBeCloseTo(45, 5);
+    // Machine already at the first point → original track returned as-is.
+    expect(prependEntry(base, [10, 0, 0, 0, 0, 0])).toBe(base);
   });
 });
 
