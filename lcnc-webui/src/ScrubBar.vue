@@ -144,9 +144,18 @@ const _wcsKey = computed(() => {
   return `${(d.g5x_offset ?? []).join()},${(d.g92_offset ?? []).join()},${d.rotation_xy ?? 0}`;
 });
 // The pose (and the entry move's program coords) depend on the live WCS.
+// While simulating, a WCS change also re-runs the sweep with the rebuilt
+// entry track (outside sim, ThreeViewer's input watcher handles it).
+let _wcsCheckTimer: ReturnType<typeof setTimeout> | undefined;
 watch(_wcsKey, () => {
   if (entryTrack.value) _buildEntryTrack();
   applyPos();
+  clearTimeout(_wcsCheckTimer);
+  if (simMode.value) {
+    _wcsCheckTimer = setTimeout(() => {
+      if (simMode.value && track.value) emit("check", track.value);
+    }, 500);
+  }
 });
 
 // Auto-exits: execution starts, program changes, machine powered on
@@ -202,22 +211,6 @@ function cycleSpeed() {
 }
 
 /** ---------- collision results (stage 3) ---------- */
-const hits = computed(() => props.collisionResult?.hits ?? []);
-const hitIdx = ref(0);
-watch(() => props.collisionResult, () => { hitIdx.value = 0; });
-const nextHit = computed(() => (hits.value.length ? hits.value[hitIdx.value % hits.value.length]! : null));
-
-// Scrub straight to the clash — entering simulation if eligible (an
-// inspection click is a purposeful entry; the banner announces the mode).
-function jumpToHit() {
-  const h = nextHit.value;
-  if (!h || !enterSim()) return;
-  playing.value = false;
-  sPos.value = Math.min(cumMax.value, Math.max(0, h.cum));
-  applyPos();
-  hitIdx.value++;
-}
-
 const checkLabel = computed(() => {
   if (props.collisionBusy) return `${Math.round(props.collisionProgress * 100)}%`;
   return "Check";
@@ -235,39 +228,59 @@ const simToggleModel = computed({
 const violations = computed(() => viewerGcode.value?.violations ?? null);
 const violationsTotal = computed(() => viewerGcode.value?.violations_total ?? 0);
 const linearUnit = computed(() => (viewerGcode.value?.stats?.unit as string) ?? "mm");
-const vIdx = ref(0);
-watch(violations, () => { vIdx.value = 0; });
-const nextViolation = computed(() => {
-  const list = violations.value ?? [];
-  return list.length ? list[vIdx.value % list.length]! : null;
-});
 const violationsTitle = computed(() => {
   const list = violations.value ?? [];
   if (!list.length) return "";
   const shown = list.slice(0, 8).map(v => `L${v.line}: ${limitViolationText(v, linearUnit.value)}`).join("\n");
   const more = violationsTotal.value > 8 ? `\n… ${violationsTotal.value - 8} more` : "";
-  return `Soft-limit violations — click to simulate the next one\n${shown}${more}`;
+  return `Soft-limit violations\n${shown}${more}`;
 });
 
-// Scrub to the next violating line (entering sim when eligible, like the
-// clash button). Lines the track doesn't know are skipped in the cycle.
-function jumpToViolation() {
-  const list = violations.value ?? [];
-  if (!list.length || !enterSim()) return;
-  // Read the track AFTER enterSim — entry may have shifted every lineCum.
+/** ---------- position-aware finding navigation ---------- */
+// Targets are timeline positions; prev/next are relative to the CURRENT
+// scrub position, so scrubbing anywhere re-anchors the navigation. Both
+// wrap around at the ends.
+interface FindingTarget { cum: number; line: number; rapid?: boolean }
+const NAV_EPS = 0.01;
+
+const violationTargets = computed<FindingTarget[]>(() => {
   const t = track.value;
-  if (!t) return;
-  for (let tries = 0; tries < list.length; tries++) {
-    const v = list[vIdx.value % list.length]!;
-    vIdx.value++;
+  if (!t) return [];
+  const seen = new Set<number>();
+  const out: FindingTarget[] = [];
+  for (const v of violations.value ?? []) {
+    if (seen.has(v.line)) continue;
+    seen.add(v.line);
     const cum = t.lineCum.get(v.line);
-    if (cum !== undefined) {
-      playing.value = false;
-      sPos.value = Math.min(cumMax.value, Math.max(0, cum));
-      applyPos();
-      return;
-    }
+    if (cum !== undefined) out.push({ cum, line: v.line });
   }
+  return out.sort((a, b) => a.cum - b.cum);
+});
+
+// Hits are already cum-sorted by the sweep.
+const hits = computed(() => props.collisionResult?.hits ?? []);
+const hitTargets = computed<FindingTarget[]>(() => hits.value);
+
+function targetAfter(list: FindingTarget[], s: number): FindingTarget | null {
+  if (!list.length) return null;
+  return list.find(f => f.cum > s + NAV_EPS) ?? list[0]!;   // wrap to first
+}
+function targetBefore(list: FindingTarget[], s: number): FindingTarget | null {
+  if (!list.length) return null;
+  for (let i = list.length - 1; i >= 0; i--) {
+    if (list[i]!.cum < s - NAV_EPS) return list[i]!;
+  }
+  return list[list.length - 1]!;                             // wrap to last
+}
+
+const nextViolationT = computed(() => targetAfter(violationTargets.value, sPos.value));
+const nextHitT = computed(() => targetAfter(hitTargets.value, sPos.value));
+
+function jumpTo(target: FindingTarget | null) {
+  if (!target || !enterSim()) return;
+  playing.value = false;
+  sPos.value = Math.min(cumMax.value, Math.max(0, target.cum));
+  applyPos();
 }
 
 // Timeline positions of the hits, as track percentages.
@@ -297,71 +310,97 @@ const violationMarks = computed(() => {
 
 onUnmounted(() => {
   cancelAnimationFrame(raf);
+  clearTimeout(_wcsCheckTimer);
   exitSim();
 });
 </script>
 
 <template>
-  <div v-if="visible" class="scrubBar bordered-panel row-controls">
-    <!-- Sim mode toggle — same switch as settings/coolant toggles. The
-         parent-authoritative model snaps it back if entry is refused. -->
-    <MachineToggle gate="simToggle" v-model="simToggleModel" label="Sim"
-                   :disabled="!simMode && !machineOff"
-                   help="Simulation poses the 3D model along the program instead of the live machine. Requires the machine to be OFF; while active, all machine controls are locked until you switch back." />
+  <div v-if="visible" class="scrubBar bordered-panel stack-tight">
+    <!-- Row 1 — timeline + playback -->
+    <div class="row-controls scrubRow">
+      <!-- Sim mode toggle — same switch as settings/coolant toggles. The
+           parent-authoritative model snaps it back if entry is refused. -->
+      <MachineToggle gate="simToggle" v-model="simToggleModel" label="Sim"
+                     :disabled="!simMode && !machineOff"
+                     help="Simulation poses the 3D model along the program instead of the live machine. Requires the machine to be OFF; while active, all machine controls are locked until you switch back." />
 
-    <MachineBtn type="scrub" :disabled="!simMode && !machineOff"
-                :title="playing ? 'Pause playback' : 'Play the program through the machine model'"
-                @click="togglePlay">
-      <Pause v-if="playing" :size="14" />
-      <Play v-else :size="14" />
-    </MachineBtn>
-    <div class="sliderWrap">
-      <MachineSlider gate="scrubPos" class="sliderInput" :min="0" :max="cumMax"
-                     :step="cumMax / 2000 || 1" v-model="sPos" :disabled="!simMode"
-                     title="Scrub the program — poses the machine model, nothing moves" />
-      <!-- Timeline markers, non-interactive (the clash / banner buttons
-           navigate): warn = soft-limit violation, danger = collision hit
-           (full-height = rapid contact). -->
-      <div v-for="(pct, i) in violationMarks" :key="'v' + i" class="scrubMark limit"
-           :style="{ left: pct + '%' }"></div>
-      <div v-for="(m, i) in hitMarks" :key="'c' + i" class="scrubMark"
-           :class="{ rapid: m.rapid }" :style="{ left: m.pct + '%' }"></div>
-    </div>
-    <MachineBtn type="scrub" :disabled="!simMode" title="Playback speed" @click="cycleSpeed">&times;{{ mult }}</MachineBtn>
-    <span class="scrubStatus val-status mono" :class="{ muted: !simMode }">
-      {{ simMode ? `${curLine ? "L" + curLine : "entry"}${curRapid ? " →" : ""} ${pct}%` : "live" }}
-    </span>
-
-    <div class="sep-v"></div>
-
-    <!-- Findings, centralized: yellow = soft limits (stage 1), red =
-         collision clashes (stage 3). Wrappers carry the tooltips (WebKit
-         doesn't hover disabled buttons). -->
-    <span v-if="violations && violations.length" class="btnTip" :title="violationsTitle">
-      <MachineBtn type="scrub" variant="warn" :disabled="!simMode && !machineOff"
-                  @click="jumpToViolation">
-        {{ violationsTotal }} limit{{ violationsTotal === 1 ? "" : "s" }}<template v-if="nextViolation"> &rarr; L{{ nextViolation.line }}</template>
+      <MachineBtn type="scrub" :disabled="!simMode && !machineOff"
+                  :title="playing ? 'Pause playback' : 'Play the program through the machine model'"
+                  @click="togglePlay">
+        <Pause v-if="playing" :size="14" />
+        <Play v-else :size="14" />
       </MachineBtn>
-    </span>
+      <div class="sliderWrap">
+        <MachineSlider gate="scrubPos" class="sliderInput" :min="0" :max="cumMax"
+                       :step="cumMax / 2000 || 1" v-model="sPos" :disabled="!simMode"
+                       title="Scrub the program — poses the machine model, nothing moves" />
+        <!-- Timeline markers, non-interactive (row 2 navigates): warn =
+             soft-limit violation, danger = collision hit (full-height =
+             rapid contact). -->
+        <div v-for="(pct, i) in violationMarks" :key="'v' + i" class="scrubMark limit"
+             :style="{ left: pct + '%' }"></div>
+        <div v-for="(m, i) in hitMarks" :key="'c' + i" class="scrubMark"
+             :class="{ rapid: m.rapid }" :style="{ left: m.pct + '%' }"></div>
+      </div>
+      <MachineBtn type="scrub" :disabled="!simMode" title="Playback speed" @click="cycleSpeed">&times;{{ mult }}</MachineBtn>
+      <span class="scrubStatus val-status mono" :class="{ muted: !simMode }">
+        {{ simMode ? `${curLine ? "L" + curLine : "entry"}${curRapid ? " →" : ""} ${pct}%` : "live" }}
+      </span>
+    </div>
 
-    <MachineBtn v-if="!collisionBusy" type="scrub" :disabled="!track"
-                title="Sweep the machine model through the program (re-run; entering Sim checks automatically)"
-                @click="track && emit('check', track)">{{ checkLabel }}</MachineBtn>
-    <MachineBtn v-else type="scrub" title="Cancel the collision check"
-                @click="emit('cancel-check')">{{ checkLabel }} &times;</MachineBtn>
-    <template v-if="collisionResult && !collisionBusy">
-      <span v-if="collisionResult.pairCount === 0" class="val-status muted" title="No body pair moves relative to another — nothing to check">no moving pairs</span>
-      <span v-else-if="!hits.length" class="val-status ok" :title="`${collisionResult.samples} samples, ${collisionResult.pairCount} pairs${collisionResult.coarsened ? ', coarsened to fit the sample budget' : ''}${collisionResult.staticContacts.length ? `; in contact from the start (excluded): ${collisionResult.staticContacts.map(c => c.a + '/' + c.b).join(', ')}` : ''}`">
-        clear{{ collisionResult.coarsened ? "*" : "" }}
-      </span>
-      <span v-else class="btnTip"
-            :title="`Collision hits — click to simulate the next one${!simMode && !machineOff ? ' (turn the machine OFF first)' : ''}${collisionResult.staticContacts.length ? `\nIn contact from the start (excluded): ${collisionResult.staticContacts.map(c => c.a + '/' + c.b).join(', ')}` : ''}`">
-        <MachineBtn type="scrub" variant="danger" :disabled="!simMode && !machineOff"
-                    @click="jumpToHit">
-          {{ hits.length }} clash{{ hits.length === 1 ? "" : "es" }} &rarr; {{ nextHit!.line ? "L" + nextHit!.line : "entry" }}{{ nextHit!.rapid ? " (rapid)" : "" }}
-        </MachineBtn>
-      </span>
-    </template>
+    <!-- Row 2 — findings navigation (prev/next, anchored to the CURRENT
+         timeline position). Buttons keep CONSTANT labels — the moving
+         target readout sits outside the button group so click positions
+         never shift while stepping through. Wrappers carry tooltips
+         (WebKit doesn't hover disabled buttons). -->
+    <div class="row-controls scrubRow">
+      <template v-if="violations && violations.length">
+        <span class="btnTip" title="Previous soft-limit violation (from the current timeline position)">
+          <MachineBtn type="scrub" variant="warn" :disabled="!violationTargets.length || (!simMode && !machineOff)"
+                      @click="jumpTo(targetBefore(violationTargets, sPos))">&#9664;</MachineBtn>
+        </span>
+        <span class="btnTip" :title="violationsTitle">
+          <MachineBtn type="scrub" variant="warn" :disabled="!violationTargets.length || (!simMode && !machineOff)"
+                      @click="jumpTo(nextViolationT)">
+            {{ violationsTotal }} limit{{ violationsTotal === 1 ? "" : "s" }}
+          </MachineBtn>
+        </span>
+        <span class="btnTip" title="Next soft-limit violation">
+          <MachineBtn type="scrub" variant="warn" :disabled="!violationTargets.length || (!simMode && !machineOff)"
+                      @click="jumpTo(targetAfter(violationTargets, sPos))">&#9654;</MachineBtn>
+        </span>
+        <span class="navTarget val-status mono">{{ nextViolationT ? "→ L" + nextViolationT.line : "" }}</span>
+        <div class="sep-v"></div>
+      </template>
+
+      <MachineBtn v-if="collisionBusy" type="scrub" title="Collision check running — click to cancel"
+                  @click="emit('cancel-check')">{{ checkLabel }} &times;</MachineBtn>
+      <template v-if="collisionResult && !collisionBusy">
+        <span v-if="collisionResult.pairCount === 0" class="val-status muted" title="No body pair moves relative to another — nothing to check">no moving pairs</span>
+        <span v-else-if="!hits.length" class="val-status ok" :title="`${collisionResult.samples} samples, ${collisionResult.pairCount} pairs${collisionResult.coarsened ? ', coarsened to fit the sample budget' : ''}${collisionResult.staticContacts.length ? `; in contact from the start (excluded): ${collisionResult.staticContacts.map(c => c.a + '/' + c.b).join(', ')}` : ''}`">
+          clear{{ collisionResult.coarsened ? "*" : "" }}
+        </span>
+        <template v-else>
+          <span class="btnTip" title="Previous collision (from the current timeline position)">
+            <MachineBtn type="scrub" variant="danger" :disabled="!simMode && !machineOff"
+                        @click="jumpTo(targetBefore(hitTargets, sPos))">&#9664;</MachineBtn>
+          </span>
+          <span class="btnTip"
+                :title="`Collision hits — click to simulate the next one${!simMode && !machineOff ? ' (turn the machine OFF first)' : ''}${collisionResult.staticContacts.length ? `\nIn contact from the start (excluded): ${collisionResult.staticContacts.map(c => c.a + '/' + c.b).join(', ')}` : ''}`">
+            <MachineBtn type="scrub" variant="danger" :disabled="!simMode && !machineOff"
+                        @click="jumpTo(nextHitT)">
+              {{ hits.length }} clash{{ hits.length === 1 ? "" : "es" }}
+            </MachineBtn>
+          </span>
+          <span class="btnTip" title="Next collision">
+            <MachineBtn type="scrub" variant="danger" :disabled="!simMode && !machineOff"
+                        @click="jumpTo(targetAfter(hitTargets, sPos))">&#9654;</MachineBtn>
+          </span>
+          <span class="navTarget val-status mono">{{ nextHitT ? "→ " + (nextHitT.line ? "L" + nextHitT.line : "entry") + (nextHitT.rapid ? " (rapid)" : "") : "" }}</span>
+        </template>
+      </template>
+    </div>
   </div>
 </template>
 
@@ -373,8 +412,10 @@ onUnmounted(() => {
   right: var(--gap-controls);
   bottom: var(--gap-controls);
   z-index: 10;
-  align-items: center;
   padding: var(--gap-tight) var(--gap-controls);
+}
+.scrubRow {
+  align-items: center;
 }
 .sliderWrap {
   flex: 1;
@@ -407,6 +448,12 @@ onUnmounted(() => {
 .scrubStatus {
   white-space: nowrap;
   min-width: 9ch;
+}
+/* Moving next-target readout — fixed floor so row width stays stable. */
+.navTarget {
+  white-space: nowrap;
+  min-width: 9ch;
+  text-align: left;
 }
 /* Tooltip wrapper for a disabled button — layout-neutral flex item. */
 .btnTip {

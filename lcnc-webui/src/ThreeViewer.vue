@@ -7,11 +7,12 @@ import { Text } from "troika-three-text";
 import { buildToolProfile, splitProfileAt, buildToolGeometry, buildHolderGeometry, type ToolMeta } from "./toolGeometry";
 import { AXIS_HEX, AXIS_CSS } from "./axisColors";
 import {
-  failedParts, loadMachineAssets, getCachedGeometry, getToolMeta, setToolMeta,
+  failedParts, loadMachineAssets, getCachedGeometry, getToolMeta, setToolMeta, machineReady,
 } from "./viewer/machineAssetCache";
 
 import { viewerInit, viewerGcode, gcodeContent, status, emitTelemetry, type ViewerInit, type ViewerGcode } from "./lcncWs";
 import { loadViewerDefaults, loadCameraDefaults, saveCameraDefaults, ALL_LAYERS, settingsVersion, type Vec3, type Layer } from "./defaults";
+import { INTERP_IDLE } from "./lcnc";
 import { fmtCoord, fmtRpm } from "./format";
 import { useAxes } from "./useAxes";
 import { recordApply, recordRender, setViewerPerfContext } from "./viewerPerf";
@@ -1244,14 +1245,14 @@ function applyState(init: ViewerInit, st: ViewerState) {
   let changed = false;
   if (_numArrChanged(_pv.jointPos, st.joint_pos)) { _pv.jointPos = st.joint_pos ? [...st.joint_pos] : null; changed = true; }
   if (_numArrChanged(_pv.machinePos, st.machine_pos)) { _pv.machinePos = st.machine_pos ? [...st.machine_pos] : null; changed = true; }
-  if (_numArrChanged(_pv.g5x, st.g5x_offset)) { _pv.g5x = st.g5x_offset ? [...st.g5x_offset] : null; changed = true; _pfScheduleWcsRefresh(); }
-  if (_numArrChanged(_pv.g92, st.g92_offset)) { _pv.g92 = st.g92_offset ? [...st.g92_offset] : null; changed = true; _pfScheduleWcsRefresh(); }
+  if (_numArrChanged(_pv.g5x, st.g5x_offset)) { _pv.g5x = st.g5x_offset ? [...st.g5x_offset] : null; changed = true; _pfScheduleWcsRefresh(); _colOnInputChange(); }
+  if (_numArrChanged(_pv.g92, st.g92_offset)) { _pv.g92 = st.g92_offset ? [...st.g92_offset] : null; changed = true; _pfScheduleWcsRefresh(); _colOnInputChange(); }
   if (_numArrChanged(_pv.toolOffset, st.tool_offset)) { _pv.toolOffset = st.tool_offset ? [...st.tool_offset] : null; changed = true; }
   if (toolNum !== _pv.toolNum) { _pv.toolNum = toolNum; changed = true; }
-  if (toolDiam !== _pv.toolDiam) { _pv.toolDiam = toolDiam; changed = true; }
-  if (toolLen !== _pv.toolLen) { _pv.toolLen = toolLen; changed = true; }
+  if (toolDiam !== _pv.toolDiam) { _pv.toolDiam = toolDiam; changed = true; _colOnInputChange(); }
+  if (toolLen !== _pv.toolLen) { _pv.toolLen = toolLen; changed = true; _colOnInputChange(); }
   if (motionLine !== _pv.motionLine) { _pv.motionLine = motionLine; changed = true; }
-  if (rotationXy !== _pv.rotationXy) { _pv.rotationXy = rotationXy; changed = true; _pfScheduleWcsRefresh(); }
+  if (rotationXy !== _pv.rotationXy) { _pv.rotationXy = rotationXy; changed = true; _pfScheduleWcsRefresh(); _colOnInputChange(); }
   // tool_meta is null on the vast majority of ticks; the gateway sends a fresh
   // object only on a real change, so a reference compare is sufficient + cheap.
   if (toolMeta !== _pv.toolMeta) { _pv.toolMeta = toolMeta; changed = true; }
@@ -1420,11 +1421,44 @@ function runCollisionCheck(trackOverride?: ScrubTrack) {
   }, transfer);
 }
 
+// The sweep keeps itself current — no manual trigger. Auto-runs: on
+// program load (base track — marks appear before sim is ever entered), on
+// sim entry (ScrubBar re-checks with the entry track), and on WCS/tool
+// changes while idle (results reflect check-time inputs; a change makes
+// them stale, so they clear and the sweep re-runs).
+let _colAutoTimer: ReturnType<typeof setTimeout> | undefined;
+function _colScheduleAuto() {
+  clearTimeout(_colAutoTimer);
+  _colAutoTimer = setTimeout(() => {
+    if (simMode.value) return;               // ScrubBar re-checks with the entry track
+    if (!machineReady.value) return;         // geometry loading — machineReady watcher retries
+    if ((status.value?.data?.interp_state ?? INTERP_IDLE) !== INTERP_IDLE) return;
+    if (!viewerGcode.value?.scrubTrack) return;
+    if (collisionBusy.value) cancelCollisionCheck();
+    runCollisionCheck();
+  }, 400);
+}
+
+// Live WCS or tool dims changed: current results are stale — clear them
+// honestly and re-run (debounced; touch-off sequences change several
+// values in quick succession).
+function _colOnInputChange() {
+  if (!collisionResult.value && !collisionBusy.value) return;
+  cancelCollisionCheck();
+  collisionResult.value = null;
+  emit("collision-lines", null);
+  _colScheduleAuto();
+}
+
 // A new program (or unload) invalidates results — never show stale clashes.
 watch(viewerGcode, () => {
   cancelCollisionCheck();
   collisionResult.value = null;
   emit("collision-lines", null);
+  _colScheduleAuto();
+});
+watch(machineReady, (ready) => {
+  if (ready && !collisionResult.value) _colScheduleAuto();
 });
 
 function _partFrameEligible(g: ViewerGcode): boolean {
@@ -1778,6 +1812,7 @@ onUnmounted(() => {
   document.removeEventListener("visibilitychange", _onVisibilityChange);
   setViewerPerfContext(null);
   clearTimeout(_pfWcsTimer);
+  clearTimeout(_colAutoTimer);
   _pfWorker?.terminate();
   _pfWorker = null;
   _colWorker?.terminate();

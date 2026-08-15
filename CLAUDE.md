@@ -323,11 +323,12 @@ where the axis merely sits parked past a limit are not re-flagged, so the
 culprit line stands alone. Wire: `violations` (per-line records, capped at
 200) + `violations_total`; `null` means the INI had no MIN/MAX_LIMIT —
 unchecked ≠ clean, and the stats dialog says "Not validated". UI is
-centralized in the viewer's scrub bar: a warn-variant findings button
-("N limits → L10", cycles + scrubs the sim to the line) and warn timeline
-marks, plus warn-tinted line numbers in GcodePanel
-(`.codeLine.violation`, global — collision hits reuse it) and a Soft
-limits row in the program stats dialog. Limitation: validated
+centralized in the scrub bar's second row: warn-variant prev/next
+navigation ("◀ | N limits → L10 | ▶", anchored to the CURRENT timeline
+position — scrubbing re-anchors it; collision hits get the same in
+danger-red) and warn timeline marks, plus warn-tinted line numbers in
+GcodePanel (`.codeLine.violation`, global — collision hits reuse it) and
+a Soft limits row in the program stats dialog. Limitation: validated
 against the parse-time WCS — touch-off after load requires a file reload
 to re-validate (the live overflow box remains the coarse always-current
 check).
@@ -366,10 +367,13 @@ captured (joints→machine→program via `machineToProgram`, the exact
 inverse of the preview transform) and `prependEntry` puts the rapid from
 the machine's ACTUAL position to the program's first point at the front
 of the track (scrub 0 = live position, labeled "entry", rapid-flagged) —
-run-time-only motion no parse can know, and the classic crash. Entering
-sim auto-runs the collision check on that extended track (each entry =
-fresh position = fresh baseline); cost is bounded by the 60k sample
-budget regardless of file size, and Check remains the manual re-run.
+run-time-only motion no parse can know, and the classic crash. The sweep
+keeps itself current with NO manual trigger: auto-runs on program load
+(base track — marks appear before sim is entered), on sim entry (entry
+track, fresh position = fresh baseline), and on WCS/tool changes while
+idle (stale results clear + re-run, debounced; in sim ScrubBar re-checks
+with the rebuilt entry track). The only button is cancel-with-progress
+while a sweep runs.
 
 **Collision sweep (offline dry run, stage 3)**: the scrub bar's Check
 button sweeps the machine model through the scrub track off-thread
