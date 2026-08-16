@@ -1,5 +1,10 @@
 ; Origin: https://github.com/kcjengr/probe_basic
 ; License: GPL-3.0
+; Local modification (lcnc-suite): the upstream version inferred rotary
+; letters from the AXIS COUNT ([traj]axes: 4 -> A, 5 -> A C), which sends
+; a nonexistent A-word on any 5-axis layout that isn't XYZAC (e.g. XYZBC
+; nutating-head machines -> "Bad character 'A'"). Probe each rotary's INI
+; section instead: [AXIS_x]MAX_LIMIT exists iff the axis is configured.
 o<go_to_zero> sub
 
 M73
@@ -7,15 +12,15 @@ G90
 G53 G0 Z0
 G0 X0 Y0
 
-o100 if [EXISTS[#<_ini[traj]axes>]]
-    #<geometry> = #<_ini[traj]axes>
-o100 endif
-
-o110 if [#<geometry> EQ 4]
+o110 if [EXISTS[#<_ini[axis_a]max_limit>]]
     G0 A0
-o110 else if [#<geometry> EQ 5]
-    G0 A0 C0
 o110 endif
+o120 if [EXISTS[#<_ini[axis_b]max_limit>]]
+    G0 B0
+o120 endif
+o130 if [EXISTS[#<_ini[axis_c]max_limit>]]
+    G0 C0
+o130 endif
 
 o<go_to_zero> endsub
 

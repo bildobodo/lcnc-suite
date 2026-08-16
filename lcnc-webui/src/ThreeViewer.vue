@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, inject, onMounted, onUnmounted, reactive, ref, watch, type Ref } from "vue";
+import { computed, inject, onMounted, onUnmounted, reactive, ref, shallowRef, watch, type Ref } from "vue";
 
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
@@ -7,17 +7,20 @@ import { Text } from "troika-three-text";
 import { buildToolProfile, splitProfileAt, buildToolGeometry, buildHolderGeometry, type ToolMeta } from "./toolGeometry";
 import { AXIS_HEX, AXIS_CSS } from "./axisColors";
 import {
-  failedParts, loadMachineAssets, getCachedGeometry, getToolMeta, setToolMeta,
+  failedParts, loadMachineAssets, getCachedGeometry, getToolMeta, setToolMeta, machineReady,
 } from "./viewer/machineAssetCache";
 
 import { viewerInit, viewerGcode, gcodeContent, status, emitTelemetry, type ViewerInit, type ViewerGcode } from "./lcncWs";
 import { loadViewerDefaults, loadCameraDefaults, saveCameraDefaults, ALL_LAYERS, settingsVersion, type Vec3, type Layer } from "./defaults";
+import { INTERP_IDLE } from "./lcnc";
 import { fmtCoord, fmtRpm } from "./format";
 import { useAxes } from "./useAxes";
 import { recordApply, recordRender, setViewerPerfContext } from "./viewerPerf";
 import { disposeObject } from "./viewer/disposal";
 import { normalizeKinematics, type KinRuntime } from "./viewer/kinematics";
 import { chainsHaveRotary, type PartFrameMachine, type PartFrameWcs } from "./viewer/partFrame";
+import type { CollisionBody, CollisionResult } from "./viewer/collision";
+import type { ScrubTrack } from "./ws/bulkData";
 import { createBackplotController } from "./viewer/backplotController";
 import { createSurfaceController } from "./viewer/surfaceController";
 import { createToolpathController, type ToolpathCtx } from "./viewer/toolpathController";
@@ -26,6 +29,7 @@ import ViewCube from "./ViewCube.vue";
 import MachineBtn from "./MachineBtn.vue";
 import CameraPip from "./CameraPip.vue";
 import ScrubBar from "./ScrubBar.vue";
+import { simMode } from "./simMode";
 import { Camera, Settings } from "lucide-vue-next";
 
 const themeMode = inject<Ref<string>>("themeMode", ref("auto"));
@@ -106,6 +110,9 @@ const emit = defineEmits<{
   // Source line at the current scrub position (null = not scrubbing) — App
   // forwards it to GcodePanel for the code-view highlight.
   (e: "scrub-line", line: number | null): void;
+  // Source lines with collision hits after a sweep (null = no/stale results,
+  // [] = checked clean) — App forwards to GcodePanel for line markers.
+  (e: "collision-lines", lines: number[] | null): void;
 }>();
 
 // HUD data (read from status for template)
@@ -1138,12 +1145,19 @@ function applyState(init: ViewerInit, st: ViewerState) {
     _toolGrp.position.sub(_tofsVec.set(tofs[0] ?? 0, tofs[1] ?? 0, tofs[2] ?? 0));
   }
 
-  // Work origin offset: place DRO/work zero in machine space.
+  // Work origin offset: place DRO/work zero in machine space. RS274 order
+  // (rotate_and_translate): machine = g5x + Rz(θ)·(program + g92), so the
+  // effective origin is g5x + Rz(θ)·g92 — workRotGroup (child) applies the
+  // rotation to program coords AND the g92 vector's share lives here. A
+  // plain g5x+g92 sum deviates whenever G92 and G10 R are both active.
   const g5x = st.g5x_offset ?? [];
   const g92 = st.g92_offset ?? [];
+  const thRad = (st.rotation_xy ?? 0) * Math.PI / 180;
+  const cthW = Math.cos(thRad), sthW = Math.sin(thRad);
+  const g92x = g92[0] ?? 0, g92y = g92[1] ?? 0;
 
-  const ox = (g5x[0] ?? 0) + (g92[0] ?? 0);
-  const oy = (g5x[1] ?? 0) + (g92[1] ?? 0);
+  const ox = (g5x[0] ?? 0) + g92x * cthW - g92y * sthW;
+  const oy = (g5x[1] ?? 0) + g92x * sthW + g92y * cthW;
   const oz = (g5x[2] ?? 0) + (g92[2] ?? 0);
 
   if (workOrigin) {
@@ -1160,8 +1174,12 @@ function applyState(init: ViewerInit, st: ViewerState) {
     const meta: ToolMeta | null = st.tool_meta ?? null;
     // Design default: absent tool dimensions draw a generic 6×60 mm placeholder
     // marker — a viewer position cue, not a claim about the real tool geometry.
-    const diam = st.tool_diameter ?? 6.0 * _unitScale;
-    const rawLen = st.tool_length ?? 60.0 * _unitScale;
+    const diam = st.tool_diameter || 6.0 * _unitScale;
+    // `||`, not `??`: tool_length 0 (no tool / no offset) means "unknown",
+    // and a 0-length marker collapses to the 40 mm minimum — 15 mm short of
+    // the raised spindle nose, leaving the tool floating detached. The
+    // collision body already used `||`; display and check must agree.
+    const rawLen = st.tool_length || 60.0 * _unitScale;
     const sinkIntoHolder = 20 * _unitScale;
     const minVisualLen = 40 * _unitScale;
     const visLen = Math.max(minVisualLen, rawLen + sinkIntoHolder);
@@ -1238,14 +1256,16 @@ function applyState(init: ViewerInit, st: ViewerState) {
   let changed = false;
   if (_numArrChanged(_pv.jointPos, st.joint_pos)) { _pv.jointPos = st.joint_pos ? [...st.joint_pos] : null; changed = true; }
   if (_numArrChanged(_pv.machinePos, st.machine_pos)) { _pv.machinePos = st.machine_pos ? [...st.machine_pos] : null; changed = true; }
-  if (_numArrChanged(_pv.g5x, st.g5x_offset)) { _pv.g5x = st.g5x_offset ? [...st.g5x_offset] : null; changed = true; _pfScheduleWcsRefresh(); }
-  if (_numArrChanged(_pv.g92, st.g92_offset)) { _pv.g92 = st.g92_offset ? [...st.g92_offset] : null; changed = true; _pfScheduleWcsRefresh(); }
-  if (_numArrChanged(_pv.toolOffset, st.tool_offset)) { _pv.toolOffset = st.tool_offset ? [...st.tool_offset] : null; changed = true; }
+  if (_numArrChanged(_pv.g5x, st.g5x_offset)) { _pv.g5x = st.g5x_offset ? [...st.g5x_offset] : null; changed = true; _pfScheduleWcsRefresh(); _colOnInputChange(); }
+  if (_numArrChanged(_pv.g92, st.g92_offset)) { _pv.g92 = st.g92_offset ? [...st.g92_offset] : null; changed = true; _pfScheduleWcsRefresh(); _colOnInputChange(); }
+  // tool_offset is a transform input (joint-space math is G43-inclusive):
+  // refresh the part-frame preview and re-run the sweep like any WCS change.
+  if (_numArrChanged(_pv.toolOffset, st.tool_offset)) { _pv.toolOffset = st.tool_offset ? [...st.tool_offset] : null; changed = true; _pfScheduleWcsRefresh(); _colOnInputChange(); }
   if (toolNum !== _pv.toolNum) { _pv.toolNum = toolNum; changed = true; }
-  if (toolDiam !== _pv.toolDiam) { _pv.toolDiam = toolDiam; changed = true; }
-  if (toolLen !== _pv.toolLen) { _pv.toolLen = toolLen; changed = true; }
+  if (toolDiam !== _pv.toolDiam) { _pv.toolDiam = toolDiam; changed = true; _colOnInputChange(); }
+  if (toolLen !== _pv.toolLen) { _pv.toolLen = toolLen; changed = true; _colOnInputChange(); }
   if (motionLine !== _pv.motionLine) { _pv.motionLine = motionLine; changed = true; }
-  if (rotationXy !== _pv.rotationXy) { _pv.rotationXy = rotationXy; changed = true; _pfScheduleWcsRefresh(); }
+  if (rotationXy !== _pv.rotationXy) { _pv.rotationXy = rotationXy; changed = true; _pfScheduleWcsRefresh(); _colOnInputChange(); }
   // tool_meta is null on the vast majority of ticks; the gateway sends a fresh
   // object only on a real change, so a reference compare is sufficient + cheap.
   if (toolMeta !== _pv.toolMeta) { _pv.toolMeta = toolMeta; changed = true; }
@@ -1269,7 +1289,7 @@ function _pfGetWorker(): Worker {
   if (!_pfWorker) {
     _pfWorker = new Worker(new URL("./viewer/partFrameWorker.ts", import.meta.url), { type: "module" });
     _pfWorker.onmessage = (ev: MessageEvent) => {
-      const m = ev.data as { id: number; error?: string; feedPos?: Float32Array; feedLines?: Uint32Array; feedLineMap?: Map<number, { start: number; end: number }>; rapidPos?: Float32Array; rapidDist?: Float32Array };
+      const m = ev.data as { id: number; error?: string; feedPos?: Float32Array; feedLines?: Uint32Array; feedLineMap?: Map<number, { start: number; end: number }>; rapidPos?: Float32Array; rapidDist?: Float32Array; feedBreaks?: Uint32Array; rapidBreaks?: Uint32Array };
       if (m.id !== _pfReqId) return;  // superseded
       const g = viewerGcode.value;
       if (!g) return;
@@ -1283,6 +1303,7 @@ function _pfGetWorker(): Worker {
         ...g,
         feedPos: m.feedPos, feed_lines: m.feedLines, feedLineMap: m.feedLineMap,
         rapidPos: m.rapidPos, rapidDist: m.rapidDist,
+        feedBreaks: m.feedBreaks, rapidBreaks: m.rapidBreaks,
       });
       requestRender();
     };
@@ -1309,8 +1330,178 @@ function _pfMachine(init: ViewerInit): PartFrameMachine {
 }
 
 function _pfWcs(): PartFrameWcs {
-  return { g5x: _pv.g5x ?? [], g92: _pv.g92 ?? [], rotationDeg: _pv.rotationXy ?? 0 };
+  // tool: live TCP offset — makes the transform joint-space-exact (G43).
+  // The part-frame tip peel and the collision worker's tool-body shift
+  // both subtract it back, so the drawn curve is unchanged; the posed
+  // BODIES (spindle housing at joint height) are what it corrects.
+  return {
+    g5x: _pv.g5x ?? [], g92: _pv.g92 ?? [],
+    rotationDeg: _pv.rotationXy ?? 0, tool: _pv.toolOffset ?? [],
+  };
 }
+
+// ---- Collision sweep (offline dry run, stage 3) ----
+// Sweeps the machine model through the scrub track off-thread and reports
+// tool-side vs work-side body pairs inside the clearance margin. Owned here
+// (not ScrubBar) because this component holds the machine def, the cached
+// STL geometries, and the live tool dims. Results reflect the CHECK-TIME
+// WCS and tool — a new program invalidates them; re-check after touch-off.
+const COLLISION_MARGIN_MM = 2;
+let _colWorker: Worker | null = null;
+let _colReqId = 0;
+const collisionBusy = ref(false);
+const collisionProgress = ref(0);
+const collisionResult = ref<CollisionResult | null>(null);
+// The exact track the current result was swept on — hit cums are only
+// meaningful against it (shallowRef: tracks hold Maps + typed arrays).
+const collisionTrack = shallowRef<ScrubTrack | null>(null);
+let _colPendingTrack: ScrubTrack | null = null;
+
+function _colGetWorker(): Worker {
+  if (!_colWorker) {
+    _colWorker = new Worker(new URL("./viewer/collisionWorker.ts", import.meta.url), { type: "module" });
+    _colWorker.onmessage = (ev: MessageEvent) => {
+      const m = ev.data as { id: number; progress?: number; error?: string; result?: CollisionResult };
+      if (m.id !== _colReqId) return;  // superseded
+      if (m.progress != null && !m.result) {
+        collisionProgress.value = m.progress;
+        return;
+      }
+      collisionBusy.value = false;
+      if (m.error) {
+        console.error("[collision] sweep failed:", m.error);
+        emitTelemetry("collision.sweep_failed", { msg: m.error });
+        collisionResult.value = null;
+        collisionTrack.value = null;
+        emit("collision-lines", null);
+        return;
+      }
+      collisionResult.value = m.result!;
+      collisionTrack.value = _colPendingTrack;
+      emit("collision-lines", m.result!.hits.map(h => h.line));
+    };
+  }
+  return _colWorker;
+}
+
+function cancelCollisionCheck() {
+  // The sweep is synchronous inside the worker — a cancel message would sit
+  // unread until it finished. Terminate + lazy recreate is the honest cancel.
+  if (_colWorker) {
+    _colWorker.terminate();
+    _colWorker = null;
+  }
+  _colReqId++;
+  collisionBusy.value = false;
+  collisionProgress.value = 0;
+}
+
+function runCollisionCheck(trackOverride?: ScrubTrack) {
+  const init = viewerInit.value;
+  // ScrubBar passes its active track (base + entry move captured at sim
+  // entry); the bare-Check fallback sweeps the parse-time track.
+  const track = trackOverride ?? viewerGcode.value?.scrubTrack;
+  if (!init || !track || collisionBusy.value) return;
+  const bodies: CollisionBody[] = [];
+  let skipped = 0;
+  for (const p of (init.parts ?? [])) {
+    const attr = getCachedGeometry(p.id)?.getAttribute("position");
+    if (!attr) { skipped++; continue; }  // unloaded geometry
+    bodies.push({
+      id: p.id,
+      // Ungrouped parts are static frame bodies (column, base, spindle
+      // housing) — root-attached, and very much collidable-with.
+      group: p.group ?? "root",
+      positions: new Float32Array(attr.array as Float32Array),  // copy → transferable
+      translate: p.translate ? [...p.translate] : undefined,
+      rotate: (p as any).rotate ? [...(p as any).rotate] : undefined,
+      // stock: true = cuttable (feed contact is machining, rapid-onset is a
+      // gouge). Absent on machine parts — any tool contact there is a crash.
+      stock: p.stock || undefined,
+    });
+  }
+  if (skipped) console.warn(`[collision] ${skipped} machine part(s) not loaded — checked without them`);
+  const id = ++_colReqId;
+  _colPendingTrack = track;
+  collisionBusy.value = true;
+  collisionProgress.value = 0;
+  collisionResult.value = null;
+  // Track arrays are copied — transferring the originals would detach the
+  // buffers viewerGcode (and the scrub bar) still read.
+  const trackCopy = {
+    pos: track.pos.slice(), abc: track.abc.slice(), lines: track.lines.slice(),
+    rapid: track.rapid.slice(), cum: track.cum.slice(), count: track.count,
+  };
+  const transfer: Transferable[] = [
+    ...bodies.map(b => b.positions.buffer as ArrayBuffer),
+    trackCopy.pos.buffer as ArrayBuffer, trackCopy.abc.buffer as ArrayBuffer,
+    trackCopy.lines.buffer as ArrayBuffer, trackCopy.rapid.buffer as ArrayBuffer,
+    trackCopy.cum.buffer as ArrayBuffer,
+  ];
+  _colGetWorker().postMessage({
+    id,
+    machine: _pfMachine(init),           // same shape as CollisionMachine
+    bodies,
+    // The DISPLAYED marker dims — same visual-length formula as the marker
+    // build (min length + shank sink into the holder). Using the raw tool
+    // length made the collision body SHORTER than the tool on screen: the
+    // model visibly touched while the sweep saw clearance.
+    tool: (() => {
+      const rawLen = _pv.toolLen || 60 * _unitScale;
+      return {
+        diam: _pv.toolDiam || 6 * _unitScale,
+        len: Math.max(40 * _unitScale, rawLen + 20 * _unitScale),
+      };
+    })(),
+    track: trackCopy,
+    wcs: _pfWcs(),
+    options: { margin: COLLISION_MARGIN_MM * _unitScale },
+  }, transfer);
+}
+
+// The sweep keeps itself current — no manual trigger. Auto-runs: on
+// program load (base track — marks appear before sim is ever entered), on
+// sim entry (ScrubBar re-checks with the entry track), and on WCS/tool
+// changes while idle (results reflect check-time inputs; a change makes
+// them stale, so they clear and the sweep re-runs).
+let _colAutoTimer: ReturnType<typeof setTimeout> | undefined;
+function _colScheduleAuto() {
+  clearTimeout(_colAutoTimer);
+  _colAutoTimer = setTimeout(() => {
+    if (simMode.value) return;               // ScrubBar re-checks with the entry track
+    if (!machineReady.value) return;         // geometry loading — machineReady watcher retries
+    if ((status.value?.data?.interp_state ?? INTERP_IDLE) !== INTERP_IDLE) return;
+    if (!viewerGcode.value?.scrubTrack) return;
+    if (collisionBusy.value) cancelCollisionCheck();
+    runCollisionCheck();
+  }, 400);
+}
+
+// Live WCS or tool dims changed: current results are stale — clear them
+// honestly and re-run (debounced; touch-off sequences change several
+// values in quick succession).
+function _colOnInputChange() {
+  if (!collisionResult.value && !collisionBusy.value) return;
+  cancelCollisionCheck();
+  collisionResult.value = null;
+  collisionTrack.value = null;
+  emit("collision-lines", null);
+  _updateClashTint(null, null);
+  _colScheduleAuto();
+}
+
+// A new program (or unload) invalidates results — never show stale clashes.
+watch(viewerGcode, () => {
+  cancelCollisionCheck();
+  collisionResult.value = null;
+  collisionTrack.value = null;
+  emit("collision-lines", null);
+  _updateClashTint(null, null);
+  _colScheduleAuto();
+});
+watch(machineReady, (ready) => {
+  if (ready && !collisionResult.value) _colScheduleAuto();
+});
 
 function _partFrameEligible(g: ViewerGcode): boolean {
   const init = viewerInit.value;
@@ -1331,13 +1522,15 @@ function applyGcode(g: ViewerGcode) {
     const ra = g.rapidAbc && g.rapidAbc.length === rp.length ? g.rapidAbc : new Float32Array(rp.length);
     // Copies: the transfer must not detach viewerGcode's raw buffers — they
     // are re-read on every WCS/mode change.
-    const feed = { pos: fp.slice(), abc: fa.slice(), lines: fl?.slice() };
-    const rapid = { pos: rp.slice(), abc: ra.slice() };
+    const feed = { pos: fp.slice(), abc: fa.slice(), lines: fl?.slice(), breaks: g.feedBreaks?.slice() };
+    const rapid = { pos: rp.slice(), abc: ra.slice(), breaks: g.rapidBreaks?.slice() };
     const transfer: Transferable[] = [
       feed.pos.buffer as ArrayBuffer, feed.abc.buffer as ArrayBuffer,
       rapid.pos.buffer as ArrayBuffer, rapid.abc.buffer as ArrayBuffer,
     ];
     if (feed.lines) transfer.push(feed.lines.buffer as ArrayBuffer);
+    if (feed.breaks) transfer.push(feed.breaks.buffer as ArrayBuffer);
+    if (rapid.breaks) transfer.push(rapid.breaks.buffer as ArrayBuffer);
     try {
       _pfGetWorker().postMessage({ id, machine: _pfMachine(viewerInit.value!), wcs: _pfWcs(), feed, rapid }, transfer);
     } catch (err) {
@@ -1414,12 +1607,99 @@ let _scrubLineNo: number | null = null;
 // model re-poses immediately instead of waiting for the next status tick.
 let _lastState: ViewerState | null = null;
 
-function onScrubPose(joints: (number | null)[] | null, line: number | null) {
+function onScrubPose(joints: (number | null)[] | null, line: number | null, cum: number | null, trk: ScrubTrack | null) {
   _scrubJoints = joints;
   _scrubLineNo = joints ? line : null;
+  _scrubTrackRef = joints ? trk : null;
   emit("scrub-line", _scrubLineNo);
+  _updateClashTint(_scrubLineNo, joints ? cum : null);
   if (_lastState && !pendingState) pendingState = _lastState;
   requestRender();
+}
+let _scrubTrackRef: ScrubTrack | null = null;
+
+// ---- Clash-pair tint: while the scrub sits on a line with a reported
+// collision, the involved bodies glow danger-red (emissive add — works on
+// any base/vertex color). Shared materials (MAT.*, auto part materials)
+// are clone-swapped per mesh and restored on clear, so nothing leaks into
+// other parts and user color overrides stay untouched. ----
+let _dangerHex: number | null = null;
+const _clashOnIds = new Set<string>();
+
+function _clashMeshes(id: string): THREE.Mesh[] {
+  if (id === "tool") {
+    return [toolCutterMesh, toolBodyMesh].filter((m): m is THREE.Mesh => !!m);
+  }
+  return machineMeshes.filter(m => m.userData.partId === id);
+}
+
+function _tintMesh(mesh: THREE.Mesh, on: boolean) {
+  let mat = mesh.material as THREE.MeshStandardMaterial;
+  if (on) {
+    if (mesh.userData._clashOn) return;
+    if (mat.userData._shared) {
+      const clone = mat.clone();
+      clone.userData._shared = false;
+      clone.userData._clashClone = true;
+      mesh.userData._preClashMat = mat;
+      mesh.material = mat = clone;
+    } else {
+      mesh.userData._preClashEmissive = mat.emissive.getHex();
+    }
+    if (_dangerHex == null) {
+      const v = getComputedStyle(document.documentElement).getPropertyValue("--danger").trim();
+      _dangerHex = v ? new THREE.Color(v).getHex() : 0xcc3333;
+    }
+    mat.emissive.setHex(_dangerHex);
+    mesh.userData._clashOn = true;
+  } else {
+    if (!mesh.userData._clashOn) return;
+    if (mesh.userData._preClashMat) {
+      const clone = mesh.material as THREE.MeshStandardMaterial;
+      mesh.material = mesh.userData._preClashMat;
+      if (clone.userData._clashClone) clone.dispose();
+      delete mesh.userData._preClashMat;
+    } else {
+      (mesh.material as THREE.MeshStandardMaterial).emissive.setHex(mesh.userData._preClashEmissive ?? 0);
+      delete mesh.userData._preClashEmissive;
+    }
+    mesh.userData._clashOn = false;
+  }
+}
+
+// Contact-gated: the pair glows only from FIRST TOUCH (the refined contact
+// cum) onward on the flagged line, and only for genuinely penetrating hits
+// (dist ≈ 0 — near-misses never touch, so they never glow). The glow is the
+// visual proof the detection fired where the metal meets. Hit cums are only
+// meaningful on the track they were swept on — stale results never tint.
+const CONTACT_TINT_EPS = 1e-3;
+function _updateClashTint(line: number | null, cum: number | null) {
+  const want = new Set<string>();
+  if (line != null && cum != null && _scrubTrackRef && _scrubTrackRef === collisionTrack.value) {
+    for (const h of collisionResult.value?.hits ?? []) {
+      if (h.line === line && h.dist <= CONTACT_TINT_EPS
+          && cum >= h.cum - CONTACT_TINT_EPS && cum <= h.cumEnd + CONTACT_TINT_EPS) {
+        want.add(h.a);
+        want.add(h.b);
+      }
+    }
+  }
+  let changed = false;
+  for (const id of _clashOnIds) {
+    if (!want.has(id)) {
+      for (const m of _clashMeshes(id)) _tintMesh(m, false);
+      _clashOnIds.delete(id);
+      changed = true;
+    }
+  }
+  for (const id of want) {
+    if (!_clashOnIds.has(id)) {
+      for (const m of _clashMeshes(id)) _tintMesh(m, true);
+      _clashOnIds.add(id);
+      changed = true;
+    }
+  }
+  if (changed) requestRender();
 }
 let _needsReframe = false;
 let _iniBox: THREE.Box3 | null = null;
@@ -1663,8 +1943,11 @@ onUnmounted(() => {
   document.removeEventListener("visibilitychange", _onVisibilityChange);
   setViewerPerfContext(null);
   clearTimeout(_pfWcsTimer);
+  clearTimeout(_colAutoTimer);
   _pfWorker?.terminate();
   _pfWorker = null;
+  _colWorker?.terminate();
+  _colWorker = null;
   resizeObs?.disconnect();
   resizeObs = null;
   cancelAnimationFrame(raf);
@@ -2069,8 +2352,22 @@ defineExpose({
     <!-- Camera PIP overlay -->
     <CameraPip :visible="pipVisible" @close="closePip" />
 
-    <!-- Program-scrub timeline (offline dry run stage 2) -->
-    <ScrubBar @pose="onScrubPose" />
+    <!-- SIMULATION mode banner — unmissable: the model is posed along the
+         program, NOT the machine, and motion controls are locked. -->
+    <div v-if="simMode" class="simBanner">
+      SIMULATION &mdash; model shows the program, not the machine
+    </div>
+
+    <!-- Program-scrub timeline (stage 2) + collision check (stage 3) -->
+    <ScrubBar
+      :collisionBusy="collisionBusy"
+      :collisionProgress="collisionProgress"
+      :collisionResult="collisionResult"
+      :collisionTrack="collisionTrack"
+      @pose="onScrubPose"
+      @check="runCollisionCheck"
+      @cancel-check="cancelCollisionCheck"
+    />
 
     <!-- STL load failure chip (bottom-left, never blocks render) -->
     <div v-if="failedParts.length" class="stlFailedChip" :title="failedParts.join(', ')">

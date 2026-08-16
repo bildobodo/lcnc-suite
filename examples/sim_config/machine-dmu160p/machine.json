@@ -1,0 +1,30 @@
+{
+  "name": "DMU 160 P (nutating head, vtk-vismach)",
+  "source": "Sigma1912 vtk-vismach + LinuxCNC_Demo_Configs DMU-160-P model (GPL v3). STLs converted to binary and B-head pre-rotation baked by fetch-model.sh; kinematic constants mirrored from vtk-dmu-160-p-gui.py (nutation 45deg, pivot_y 0, pivot_z -80, EGO_Z offset -759.5).",
+  "groups": [
+    { "id": "x_portal", "parent": "root" },
+    { "id": "z_slide", "parent": "x_portal", "translate": [0, 0, 1040] },
+    { "id": "b_head", "parent": "z_slide" },
+    { "id": "tool", "parent": "b_head", "translate": [0, 0, 80] },
+    { "id": "y_table", "parent": "root", "translate": [0, 0, 1120] },
+    { "id": "c_table", "parent": "y_table" }
+  ],
+  "parts": [
+    { "id": "base", "file": "160Pbase.stl", "group": null, "color": [0.32, 0.32, 0.34] },
+    { "id": "portal", "file": "160PX.stl", "group": "x_portal", "color": [0.55, 0.72, 0.35] },
+    { "id": "zslide", "file": "160PZ.stl", "group": "z_slide", "translate": [0, 0, -759.5], "color": [0.95, 0.55, 0.1] },
+    { "id": "bhead", "file": "160PB.stl", "group": "b_head", "color": [0.75, 0.72, 0.1] },
+    { "id": "ytable", "file": "160PY.stl", "group": "y_table", "translate": [0, 0, -1120], "color": [0.25, 0.25, 0.27] },
+    { "id": "ctable", "file": "160PC.stl", "group": "c_table", "translate": [0, 0, -1120], "color": [0.15, 0.65, 0.85] },
+    { "id": "work_piece", "file": "work_piece_1.stl", "group": "c_table", "translate": [0, 0, -1120], "color": [0.82, 0.72, 0.55], "stock": true }
+  ],
+  "kinematics": [
+    { "group": "x_portal", "joint": 0, "type": "translate", "direction": "x", "sign": 1 },
+    { "group": "y_table", "joint": 1, "type": "translate", "direction": "y", "sign": -1 },
+    { "group": "z_slide", "joint": 2, "type": "translate", "direction": "z", "sign": 1 },
+    { "group": "b_head", "joint": 3, "type": "rotate", "axis": [0, 0.7071067811865476, 0.7071067811865476], "sign": 1 },
+    { "group": "c_table", "joint": 4, "type": "rotate", "direction": "z", "sign": -1 }
+  ],
+  "workGroup": "c_table",
+  "toolGroup": "tool"
+}

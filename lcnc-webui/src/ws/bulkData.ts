@@ -29,6 +29,9 @@ export interface ViewerPart {
   // Optional default color [r,g,b] 0–1 from machine.json (STL carries no
   // color); per-part user overrides in settings still win.
   color?: Vec3;
+  // STOCK body: the one thing the tool may FEED into (collision-sweep
+  // cutting semantics — see viewer/collision.ts). Machine parts never are.
+  stock?: boolean;
   // Legacy field names kept for backward compatibility with older payloads.
   parent?: string | null;
   t?: Vec3;
@@ -65,8 +68,19 @@ export interface ScrubTrack {
   abc: Float32Array;        // count*3 degrees (zeros when the wire had no abc)
   lines: Uint32Array;       // count — source line per point (0 = unknown)
   rapid: Uint8Array;        // count — 1 when the segment ending here is a rapid
-  cum: Float32Array;        // count — monotonic scrub parameter (mm, 1° ≙ 1 mm)
+  /** Monotonic scrub parameter: SECONDS when `timeBased` (unified timeline
+   *  phase 1 — per-segment feed + INI rapid velocities), else distance
+   *  (mm, 1° ≙ 1 mm — legacy payloads / no INI MAX_VELOCITY). */
+  cum: Float32Array;
+  timeBased: boolean;
   count: number;
+  /** Source line → cum of its first track point (built off-thread; Maps
+   *  survive structured clone). Lets the UI place line-anchored marks —
+   *  soft-limit violations — on the timeline without an O(track) scan. */
+  lineCum: Map<number, number>;
+  /** Source line → track point index range — the run playhead projects the
+   *  live position onto the current line's span for smooth motion. */
+  lineSpan: Map<number, { start: number; end: number }>;
 }
 
 // One per-line soft-limit overtravel record from the parse worker. `value`
@@ -77,6 +91,15 @@ export interface LimitViolation {
   value: number;
   limit: number;
   kind: "min" | "max";
+}
+
+/** Human-readable soft-limit violation, shared by the code-panel line titles
+ *  and the scrub bar's findings button. `unit` = machine linear unit. */
+export function limitViolationText(v: LimitViolation, unit: string): string {
+  const u = "ABC".includes(v.axis) ? "°" : ` ${unit}`;
+  return v.kind === "min"
+    ? `${v.axis} ${v.value}${u} < min ${v.limit}${u}`
+    : `${v.axis} ${v.value}${u} > max ${v.limit}${u}`;
 }
 
 export interface ViewerGcode {
@@ -94,6 +117,14 @@ export interface ViewerGcode {
   // already exact and no part-frame transform is needed.
   feedAbc?: Float32Array;          // flat [a,b,c, ...]
   rapidAbc?: Float32Array;
+  // Section breaks for the drawn streams (previewWorker, track-derived):
+  // vertex indices that OPEN a section — no segment is drawn into them.
+  // The raw wire streams are endpoint lists that lose the feed/rapid
+  // interleaving; rendered as plain strips they draw FALSE connectors
+  // across every stream switch (a feed after a G0 lift appeared to start
+  // pre-lift). Absent on track-less legacy payloads → strip rendering.
+  feedBreaks?: Uint32Array;
+  rapidBreaks?: Uint32Array;
   // P4.1: bounding boxes of the rendered polylines, computed in the parse worker
   // so ThreeViewer skips an O(n) main-thread scan per load. `bounds` is the cut
   // envelope shown as the toolpath bounds box (X/Y over feed+rapid, Z over feed
@@ -113,12 +144,26 @@ export interface ViewerGcode {
   // off-thread by previewWorker. null/absent = no track (no program, or a
   // stale pre-seq payload) — the scrub bar doesn't offer itself.
   scrubTrack?: ScrubTrack | null;
+  // Unified timeline phase 1: INI rapid velocities (machine units/s, deg/s)
+  // for the client-built entry move's duration; null = INI didn't say.
+  rapid_rate?: number | null;
+  rot_rapid_rate?: number | null;
+  // Executed tool changes as [line, tool] in execution order (canon M6 only
+  // — a preview-skipped M600 remap contributes none, same as the stats).
+  tool_change_lines?: [number, number][];
   // P4.1: source-line → point-index range map, built off-thread by previewWorker
   // (Maps survive structured clone) so ThreeViewer skips the O(points) build.
   feedLineMap?: Map<number, { start: number; end: number }>;
   // P4.1: cumulative lineDistance for the dashed rapid line, computed off-thread so
   // ThreeViewer sets the attribute directly instead of Three.computeLineDistances().
   rapidDist?: Float32Array;
+  // Parse worker aborted partway: interpreter error text + the source line it
+  // stopped on (e.g. an axis word this machine doesn't have). The payload
+  // still carries whatever parsed before the abort, but scrubTrack is absent
+  // — surfaced via previewParseError so the operator learns WHY at load time
+  // instead of at cycle start. null/absent = clean parse.
+  parse_error?: string | null;
+  error_line?: number | null;
   [key: string]: any;  // stats fields are folded in by GcodePanel watcher
 }
 
@@ -143,6 +188,15 @@ const _compGridErr = ref<string | null>(null);
 export const previewLoadError = computed<string | null>(
   () => _previewErr.value ?? _surfaceErr.value ?? _compGridErr.value,
 );
+
+// Interpreter abort inside the parse worker (distinct from the transport
+// errors above — the payload ARRIVED, but the program didn't parse). Derived
+// from the payload itself so it clears naturally when a new program loads.
+export const previewParseError = computed<string | null>(() => {
+  const g = viewerGcode.value;
+  if (!g?.parse_error) return null;
+  return g.error_line != null ? `${g.parse_error} (line ${g.error_line})` : g.parse_error;
+});
 
 let _gcodeContentFile: string | null = null;
 // Preview version of the currently-fetched text. An in-place edit (web Save or

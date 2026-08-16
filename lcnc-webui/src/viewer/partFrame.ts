@@ -11,18 +11,20 @@
 //
 // Frame math (mirrors ThreeViewer's scene graph exactly):
 //   scene renders line vertices v as  world = W_work · T(o) · Rz(θ) · v
-//   where o = live g5x+g92 XYZ offset, θ = live XY rotation, and W_work is
+//   where o = live effective XYZ offset (g5x + Rz(θ)·g92 — RS274 applies g92
+//   BEFORE the rotation, see WcsTerms), θ = live XY rotation, and W_work is
 //   the workGroup chain's world matrix at the sample's joint values.
-//   The true tool position is W_tool's translation (tool tip at toolGroup
-//   origin — TLO is already folded into programmed coords by the canon; the
-//   live TCP tool_offset shifts the tool MARKER, never the path).
-//   Therefore:  v = Rz(−θ) · (W_work⁻¹ · p_tool − o)
+//   The true tool TIP is W_tool's translation minus the live TCP tool
+//   offset (canon coords are tip positions — TLO-exclusive; joints under
+//   G43 are tip + TLO, and applyState phase 3 makes the same subtraction
+//   for the live marker).
+//   Therefore:  v = Rz(−θ) · (W_work⁻¹ · (p_tool − tlo) − o)
 //   For a machine with no rotary DOFs this reduces to v = programmed point —
 //   the existing pipeline's identity, preserved by construction.
 //
-// Joint mapping: axis values are converted to machine coords (xyz: rotate by
-// θ then add o; abc: add live rotary offsets) and used as joint values —
-// the same trivkins assumption the live machine model makes.
+// Joint mapping: axis values are converted to joint space (xyz: rotate by
+// θ, add o, add TLO; abc: add live rotary offsets) and used as joint
+// values — the same trivkins assumption the live machine model makes.
 import * as THREE from "three";
 import type { ViewerInit } from "../ws/bulkData";
 import { normalizeKinematics, type KinRuntime } from "./kinematics";
@@ -48,17 +50,30 @@ export interface PartFrameWcs {
   g92: number[];
   /** Live XY rotation, degrees. */
   rotationDeg: number;
+  /** Live TCP tool offset (G43), machine-frame XYZ — stat.tool_offset.
+   *  When provided, programToMachine produces TRUE JOINT-SPACE values
+   *  (joint = tip + TLO, what the servos actually hold under G43) and
+   *  machineToProgram inverts TLO-inclusive live joints correctly. Omit for
+   *  tip-space math (path placement). Rotary TLO components are out of
+   *  scope (matches applyState phase 3 and the gateway limit check). */
+  tool?: number[];
 }
 
 export interface PartFramePolyline {
   pos: Float32Array;        // flat programmed [x,y,z,...]
   abc: Float32Array;        // flat programmed [a,b,c,...] degrees, same length
   lines?: Uint32Array;      // optional per-vertex source line numbers
+  /** Section-start vertex indices (track-derived sectioned streams): the
+   *  segment INTO such a vertex is a false connector across a stream
+   *  interleave — never subdivided, and the renderer index-skips it. */
+  breaks?: Uint32Array;
 }
 
 export interface PartFrameResult {
   pos: Float32Array;
   lines?: Uint32Array;
+  /** Input breaks remapped to output (subdivided) vertex indices. */
+  breaks?: Uint32Array;
 }
 
 /** Max rotary sweep per emitted sample. 4° ≈ 0.06% chord error at any radius. */
@@ -130,40 +145,77 @@ function buildChain(machine: PartFrameMachine): { nodes: Node[]; workIdx: number
 }
 
 /** Precomputed live-WCS terms for program→machine conversion. Every element
- *  defaulted — the WCS arrays can be empty before the first status tick. */
+ *  defaulted — the WCS arrays can be empty before the first status tick.
+ *
+ *  RS274 ORDER (rs274.interpret.Translated.rotate_and_translate — the
+ *  interpreter's own source, our oracle in rs274.test.ts):
+ *      machine = g5x + Rz(θ)·(program + g92)
+ *  i.e. g92 is applied BEFORE the rotation, g5x after. The equivalent
+ *  single post-rotation offset is  o = g5x + Rz(θ)·g92  — which is what
+ *  ox/oy hold. The old combined g5x+g92 deviated from the interpreter
+ *  whenever G92 and G10 R rotation were both active. Rotation never
+ *  touches Z or rotary axes, so those stay plain sums.
+ *
+ *  tx/ty/tz are the TCP tool offset (0 when wcs.tool is absent): applied
+ *  post-rotation like g5x, they lift program coords into joint space. */
 export interface WcsTerms {
   ox: number; oy: number; oz: number;
   oa: number; ob: number; oc: number;
+  tx: number; ty: number; tz: number;
   cth: number; sth: number;
 }
 
 export function wcsTerms(wcs: PartFrameWcs): WcsTerms {
   const th = THREE.MathUtils.degToRad(wcs.rotationDeg || 0);
+  const cth = Math.cos(th), sth = Math.sin(th);
+  const g92x = wcs.g92[0] ?? 0, g92y = wcs.g92[1] ?? 0;
   return {
-    ox: (wcs.g5x[0] ?? 0) + (wcs.g92[0] ?? 0),
-    oy: (wcs.g5x[1] ?? 0) + (wcs.g92[1] ?? 0),
+    ox: (wcs.g5x[0] ?? 0) + g92x * cth - g92y * sth,
+    oy: (wcs.g5x[1] ?? 0) + g92x * sth + g92y * cth,
     oz: (wcs.g5x[2] ?? 0) + (wcs.g92[2] ?? 0),
     oa: (wcs.g5x[3] ?? 0) + (wcs.g92[3] ?? 0),
     ob: (wcs.g5x[4] ?? 0) + (wcs.g92[4] ?? 0),
     oc: (wcs.g5x[5] ?? 0) + (wcs.g92[5] ?? 0),
-    cth: Math.cos(th), sth: Math.sin(th),
+    tx: wcs.tool?.[0] ?? 0,
+    ty: wcs.tool?.[1] ?? 0,
+    tz: wcs.tool?.[2] ?? 0,
+    cth, sth,
   };
 }
 
 /** Program → machine axis values under the trivkins assumption: XY rotated by
- *  the live rotation then offset, Z/ABC offset. Fills out[0..5] = X..C.
+ *  the live rotation then offset, Z/ABC offset. With wcs.tool provided the
+ *  result is TRUE JOINT-SPACE (TLO-inclusive). Fills out[0..5] = X..C.
  *  Single source of truth shared by the part-frame transform and the scrub
  *  pose (viewer/scrubTrack.ts). */
 export function programToMachine(
   px: number, py: number, pz: number, pa: number, pb: number, pc: number,
   o: WcsTerms, out: number[],
 ): void {
-  out[0] = px * o.cth - py * o.sth + o.ox;
-  out[1] = px * o.sth + py * o.cth + o.oy;
-  out[2] = pz + o.oz;
+  out[0] = px * o.cth - py * o.sth + o.ox + o.tx;
+  out[1] = px * o.sth + py * o.cth + o.oy + o.ty;
+  out[2] = pz + o.oz + o.tz;
   out[3] = pa + o.oa;
   out[4] = pb + o.ob;
   out[5] = pc + o.oc;
+}
+
+/** Exact inverse of programToMachine — machine axis values → program coords.
+ *  Used to place the LIVE machine position on the (program-space) scrub
+ *  track, e.g. as the entry-move start point. Live joints under G43 are
+ *  TLO-inclusive, so callers must pass wcs.tool for a correct inversion.
+ *  Fills out[0..5]. */
+export function machineToProgram(
+  mx: number, my: number, mz: number, ma: number, mb: number, mc: number,
+  o: WcsTerms, out: number[],
+): void {
+  const dx = mx - o.ox - o.tx, dy = my - o.oy - o.ty;
+  out[0] = dx * o.cth + dy * o.sth;
+  out[1] = -dx * o.sth + dy * o.cth;
+  out[2] = mz - o.oz - o.tz;
+  out[3] = ma - o.oa;
+  out[4] = mb - o.ob;
+  out[5] = mc - o.oc;
 }
 
 /** True when the transform can change anything: a rotary DOF sits on the
@@ -187,7 +239,7 @@ export function transformToPartFrame(
     // Chain unresolvable (broken machine.json) — loud, and fall back to the
     // programmed polyline rather than rendering garbage.
     console.error("[partFrame] work/tool group missing from machine.json — programmed preview used");
-    return { pos: input.pos.slice(), lines: input.lines?.slice() };
+    return { pos: input.pos.slice(), lines: input.lines?.slice(), breaks: input.breaks?.slice() };
   }
 
   // Every element defaulted (inside wcsTerms): on a fresh page load the
@@ -198,6 +250,12 @@ export function transformToPartFrame(
   const o = wcsTerms(wcs);
   const { ox, oy, oz, cth, sth } = o;
 
+  // Section starts: segments INTO these vertices are false connectors across
+  // stream interleaves — a single un-subdivided sample keeps the vertex (the
+  // renderer index-skips the segment) without smoothing a phantom sweep.
+  const breakSet = new Set<number>();
+  if (input.breaks) for (const b of input.breaks) breakSet.add(b);
+
   // Pass 1 — sample count (subdivide segments by their largest rotary delta).
   let total = 1;
   const segSamples = new Uint16Array(Math.max(0, n - 1));
@@ -206,7 +264,8 @@ export function transformToPartFrame(
     const da = Math.abs(input.abc[j]! - input.abc[k]!);
     const db = Math.abs(input.abc[j + 1]! - input.abc[k + 1]!);
     const dc = Math.abs(input.abc[j + 2]! - input.abc[k + 2]!);
-    const steps = Math.min(MAX_SUBDIV, Math.max(1, Math.ceil(Math.max(da, db, dc) / rotStepDeg)));
+    const steps = breakSet.has(i) ? 1
+      : Math.min(MAX_SUBDIV, Math.max(1, Math.ceil(Math.max(da, db, dc) / rotStepDeg)));
     segSamples[i - 1] = steps;
     total += steps;
   }
@@ -257,7 +316,11 @@ export function transformToPartFrame(
     }
 
     // Tool tip world position, then into the work frame, then peel WCS.
+    // With wcs.tool set the joints above are TLO-inclusive, so the tool
+    // group's origin sits at the JOINT position — subtract the TLO to get
+    // the tip, exactly like applyState phase 3 shifts the live marker.
     tool.setFromMatrixPosition(nodes[toolIdx]!.world);
+    tool.x -= o.tx; tool.y -= o.ty; tool.z -= o.tz;
     invWork.copy(nodes[workIdx]!.world).invert();
     tool.applyMatrix4(invWork);
     const rx = tool.x - ox, ry = tool.y - oy;
@@ -268,8 +331,10 @@ export function transformToPartFrame(
     out++;
   };
 
+  const outBreaks: number[] = [];
   emit(input.pos[0]!, input.pos[1]!, input.pos[2]!,
        input.abc[0]!, input.abc[1]!, input.abc[2]!, input.lines?.[0] ?? 0);
+  if (breakSet.has(0)) outBreaks.push(0);
   for (let i = 1; i < n; i++) {
     const j = i * 3, k = j - 3;
     const steps = segSamples[i - 1]!;
@@ -286,9 +351,15 @@ export function transformToPartFrame(
         line,
       );
     }
+    // Remap the section start to its output index (the segment's endpoint —
+    // steps is 1 for break segments, so this IS the input vertex).
+    if (breakSet.has(i)) outBreaks.push(out - 1);
   }
 
-  return { pos: outPos, lines: outLines };
+  return {
+    pos: outPos, lines: outLines,
+    breaks: input.breaks ? Uint32Array.from(outBreaks) : undefined,
+  };
 }
 
 /** Cumulative polyline distance (dashed-line attribute), same algorithm as

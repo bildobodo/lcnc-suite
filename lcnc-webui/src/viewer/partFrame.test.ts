@@ -167,3 +167,39 @@ describe("transformToPartFrame", () => {
     expect(vec(at5.pos, 0)[2]).toBeCloseTo(0, 3);
   });
 });
+
+describe("transformToPartFrame — section breaks", () => {
+  it("never subdivides a break segment and remaps breaks to output indices", () => {
+    // Segment 0→1 sweeps C by 90° (subdivides); segment 1→2 is a section
+    // break with a large rotary delta that must NOT be subdivided (it is a
+    // false connector across a rapid — smoothing it would draw a phantom
+    // sweep); segment 2→3 sweeps 8° (subdivides into 2).
+    const input = {
+      ...poly(
+        [[50, 0, 0], [50, 0, 10], [50, 0, 60], [60, 0, 60]],
+        [[0, 0, 0], [0, 0, 90], [0, 0, 270], [0, 0, 278]],
+        [10, 11, 57, 57],
+      ),
+      breaks: new Uint32Array([0, 2]),
+    };
+    const r = transformToPartFrame(TRUNNION, WCS0, input);
+    // 1 (first vertex) + 23 (90°/4°) + 1 (break) + 2 (8°/4°) = 27.
+    const n = r.pos.length / 3;
+    expect(n).toBe(27);
+    expect(Array.from(r.breaks!)).toEqual([0, 24]);
+    // The break-segment endpoint is the exact input vertex (u=1 lerp), so
+    // the section start sits at the true post-rapid position in the work
+    // frame — spot-check against a direct 1-vertex transform.
+    const direct = transformToPartFrame(TRUNNION, WCS0, {
+      ...poly([[50, 0, 60]], [[0, 0, 270]]),
+    });
+    expect(vec(r.pos, 24)).toEqual(vec(direct.pos, 0));
+  });
+
+  it("passes breaks through the unresolvable-chain fallback", () => {
+    const broken: PartFrameMachine = { ...TRUNNION, workGroup: "missing" };
+    const input = { ...poly([[0, 0, 0], [1, 0, 0]]), breaks: new Uint32Array([0]) };
+    const r = transformToPartFrame(broken, WCS0, input);
+    expect(Array.from(r.breaks!)).toEqual([0]);
+  });
+});

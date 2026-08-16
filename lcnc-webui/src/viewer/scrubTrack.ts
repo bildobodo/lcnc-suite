@@ -14,7 +14,7 @@
 // letters → joint slots via viewer_init.axes. No baked subdivision needed —
 // the kinematic chain is evaluated at pose time, not baked per vertex.
 import {
-  programToMachine, wcsTerms,
+  buildLineMap, machineToProgram, programToMachine, wcsTerms,
   type PartFrameWcs, type WcsTerms,
 } from "./partFrame";
 import type { ScrubTrack } from "../ws/bulkData";
@@ -26,6 +26,9 @@ export interface ScrubStream {
   abc?: Float32Array;       // flat [a,b,c,...] degrees (absent on pure-linear programs)
   lines?: Uint32Array;      // per-point source line
   seq?: Uint32Array;        // per-point global execution sequence
+  /** Cumulative SECONDS within this stream (unified timeline phase 1).
+   *  Absent on legacy payloads / INIs without MAX_VELOCITY. */
+  tcum?: Float32Array;
 }
 
 // Scrub-parameter contribution of a pure rotary sweep: 1° ≙ 1 mm, the same
@@ -52,7 +55,11 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream): ScrubTra
   const rapidFlag = new Uint8Array(n);
   const cum = new Float32Array(n);
 
+  // Time axis available iff every non-empty stream carries tcum.
+  const timeBased = (nf === 0 || feed.tcum?.length === nf) && (nr === 0 || rapid.tcum?.length === nr);
+
   let fi = 0, ri = 0;
+  let prevFT = 0, prevRT = 0;   // per-stream previous cumulative time
   for (let i = 0; i < n; i++) {
     let takeFeed: boolean;
     if (fi >= nf) takeFeed = false;
@@ -72,23 +79,105 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream): ScrubTra
     }
     lines[i] = src.lines?.[si] ?? 0;
     rapidFlag[i] = takeFeed ? 0 : 1;
+    if (timeBased) {
+      // Duration of the segment ending here = this stream's cumulative
+      // delta (RDP-collapsed interiors are preserved by the cumulative).
+      const t = src.tcum![si]!;
+      const dur = Math.max(0, t - (takeFeed ? prevFT : prevRT));
+      if (takeFeed) prevFT = t; else prevRT = t;
+      if (i > 0) cum[i] = cum[i - 1]! + dur;   // point 0 anchors the axis at 0
+    }
   }
+
+  if (!timeBased) {
+    // Distance axis fallback (1° ≙ 1 mm) — legacy payloads / no INI velocity.
+    for (let i = 1; i < n; i++) {
+      const j = i * 3, k = j - 3;
+      const dx = pos[j]! - pos[k]!;
+      const dy = pos[j + 1]! - pos[k + 1]!;
+      const dz = pos[j + 2]! - pos[k + 2]!;
+      const linear = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      const rot = Math.max(
+        Math.abs(abc[j]! - abc[k]!),
+        Math.abs(abc[j + 1]! - abc[k + 1]!),
+        Math.abs(abc[j + 2]! - abc[k + 2]!),
+      ) * DEG_AS_MM;
+      cum[i] = cum[i - 1]! + Math.max(linear, rot);
+    }
+  }
+
+  const lineCum = new Map<number, number>();
+  for (let i = 0; i < n; i++) {
+    const ln = lines[i]!;
+    if (ln && !lineCum.has(ln)) lineCum.set(ln, cum[i]!);
+  }
+
+  return { pos, abc, lines, rapid: rapidFlag, cum, count: n, lineCum, lineSpan: buildLineMap(lines), timeBased };
+}
+
+/** Drawn-preview streams re-derived from the merged track.
+ *
+ *  The wire's feed/rapid endpoint lists lose the interleaving between the
+ *  two streams: rendered as connected strips, every rapid between two feeds
+ *  produced a FALSE feed connector that skipped the rapid (and vice versa)
+ *  — e.g. a feed after a G0 Z-lift drew as starting from the pre-lift
+ *  position, and the part-frame transform subdivided that phantom segment
+ *  into a long wrong curve (user-caught on a post-lift rotary sweep).
+ *
+ *  The merged track has the truth: segment (i-1 → i) belongs to the stream
+ *  point i came from. Each stream is rebuilt as SECTIONS — a section's
+ *  first vertex is the real start position (the other stream's last point)
+ *  — plus `breaks`: the vertex indices that OPEN a section, i.e. no
+ *  segment is drawn into them. Renderers turn breaks into an index buffer
+ *  (LineSegments) instead of a strip. */
+export interface SplitStreams {
+  feedPos: Float32Array; feedAbc: Float32Array;
+  feedLines: Uint32Array; feedBreaks: Uint32Array;
+  rapidPos: Float32Array; rapidAbc: Float32Array;
+  rapidBreaks: Uint32Array;
+}
+
+export function splitTrackStreams(t: ScrubTrack): SplitStreams {
+  const n = t.count;
+  const fPos: number[] = [], fAbc: number[] = [], fLines: number[] = [], fBreaks: number[] = [];
+  const rPos: number[] = [], rAbc: number[] = [], rBreaks: number[] = [];
+  let fLast = -2, rLast = -2;  // track index of each stream's last emitted point
+
+  const push = (pos: number[], abc: number[], i: number) => {
+    const j = i * 3;
+    pos.push(t.pos[j]!, t.pos[j + 1]!, t.pos[j + 2]!);
+    abc.push(t.abc[j]!, t.abc[j + 1]!, t.abc[j + 2]!);
+  };
 
   for (let i = 1; i < n; i++) {
-    const j = i * 3, k = j - 3;
-    const dx = pos[j]! - pos[k]!;
-    const dy = pos[j + 1]! - pos[k + 1]!;
-    const dz = pos[j + 2]! - pos[k + 2]!;
-    const linear = Math.sqrt(dx * dx + dy * dy + dz * dz);
-    const rot = Math.max(
-      Math.abs(abc[j]! - abc[k]!),
-      Math.abs(abc[j + 1]! - abc[k + 1]!),
-      Math.abs(abc[j + 2]! - abc[k + 2]!),
-    ) * DEG_AS_MM;
-    cum[i] = cum[i - 1]! + Math.max(linear, rot);
+    const ln = t.lines[i]!;  // segment belongs to its END point's line
+    if (t.rapid[i] === 1) {
+      if (rLast !== i - 1) {
+        rBreaks.push(rPos.length / 3);
+        push(rPos, rAbc, i - 1);
+      }
+      push(rPos, rAbc, i);
+      rLast = i;
+    } else {
+      if (fLast !== i - 1) {
+        fBreaks.push(fPos.length / 3);
+        // The section-start vertex carries the OPENING segment's line so a
+        // line highlight covers the move from its true start.
+        fLines.push(ln);
+        push(fPos, fAbc, i - 1);
+      }
+      fLines.push(ln);
+      push(fPos, fAbc, i);
+      fLast = i;
+    }
   }
 
-  return { pos, abc, lines, rapid: rapidFlag, cum, count: n };
+  return {
+    feedPos: new Float32Array(fPos), feedAbc: new Float32Array(fAbc),
+    feedLines: new Uint32Array(fLines), feedBreaks: new Uint32Array(fBreaks),
+    rapidPos: new Float32Array(rPos), rapidAbc: new Float32Array(rAbc),
+    rapidBreaks: new Uint32Array(rBreaks),
+  };
 }
 
 export interface ScrubSample {
@@ -138,6 +227,68 @@ export function sampleTrack(t: ScrubTrack, s: number, out: ScrubSample): ScrubSa
   out.rapid = t.rapid[lo] === 1;
   out.index = lo;
   return out;
+}
+
+/** Live machine joints → program-space [x,y,z,a,b,c] via the JOINT-ordered
+ *  letter list and the inverse WCS transform. UVW/unknown joints are
+ *  ignored (they don't exist in the program frame). */
+export function machineJointsToProgram(
+  joints: ArrayLike<number>, axes: string[], wcs: PartFrameWcs,
+): [number, number, number, number, number, number] {
+  const m = [0, 0, 0, 0, 0, 0];
+  for (let ji = 0; ji < axes.length; ji++) {
+    const slot = "XYZABC".indexOf(axes[ji]!.toUpperCase());
+    if (slot >= 0) m[slot] = joints[ji] ?? 0;
+  }
+  const out: [number, number, number, number, number, number] = [0, 0, 0, 0, 0, 0];
+  machineToProgram(m[0]!, m[1]!, m[2]!, m[3]!, m[4]!, m[5]!, wcsTerms(wcs), out);
+  return out;
+}
+
+/** New track with the ENTRY MOVE prepended: the rapid the machine will make
+ *  from its live position (program coords) to the program's first point —
+ *  run-time-only motion no parse can know, and the classic crash. The entry
+ *  point gets line 0 ("entry" in the UI) and a rapid flag; cum and lineCum
+ *  shift by the entry length (SECONDS on a time-based track, given rapid
+ *  `rates`; distance otherwise). Returns the original track unchanged when
+ *  the machine already sits at the first point. */
+export function prependEntry(
+  t: ScrubTrack,
+  entry: [number, number, number, number, number, number],
+  rates?: { linear?: number | null; rotary?: number | null },
+): ScrubTrack {
+  const dx = t.pos[0]! - entry[0], dy = t.pos[1]! - entry[1], dz = t.pos[2]! - entry[2];
+  const linear = Math.sqrt(dx * dx + dy * dy + dz * dz);
+  const rotDeg = Math.max(
+    Math.abs(t.abc[0]! - entry[3]),
+    Math.abs(t.abc[1]! - entry[4]),
+    Math.abs(t.abc[2]! - entry[5]),
+  );
+  let entryLen: number;
+  if (t.timeBased && rates?.linear) {
+    entryLen = Math.max(linear / rates.linear, rotDeg / (rates.rotary || rates.linear));
+  } else {
+    entryLen = Math.max(linear, rotDeg * DEG_AS_MM);
+  }
+  if (entryLen < 1e-6) return t;
+
+  const n = t.count + 1;
+  const pos = new Float32Array(n * 3);
+  const abc = new Float32Array(n * 3);
+  const lines = new Uint32Array(n);
+  const rapid = new Uint8Array(n);
+  const cum = new Float32Array(n);
+  pos.set(entry.slice(0, 3), 0);
+  pos.set(t.pos, 3);
+  abc.set(entry.slice(3, 6), 0);
+  abc.set(t.abc, 3);
+  lines.set(t.lines, 1);            // entry point keeps line 0 = "entry"
+  rapid.set(t.rapid, 1);
+  rapid[1] = 1;                     // the entry MOVE (ending at old point 0) is a rapid
+  for (let i = 0; i < t.count; i++) cum[i + 1] = t.cum[i]! + entryLen;
+  const lineCum = new Map<number, number>();
+  for (const [ln, c] of t.lineCum) lineCum.set(ln, c + entryLen);
+  return { pos, abc, lines, rapid, cum, count: n, lineCum, lineSpan: buildLineMap(lines), timeBased: t.timeBased };
 }
 
 const _machineVals: number[] = [0, 0, 0, 0, 0, 0];

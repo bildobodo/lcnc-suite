@@ -2,8 +2,13 @@
 //
 // The canonical axis list is `viewer_init.axes`: letters in motion-controller
 // order, gateway-derived from the axis mask (up to 9: X Y Z A B C U V W).
-// Every per-axis status array (work_pos, machine_pos, homed_joints, g92_offset,
-// tool_offset, wcs_table rows) is index-aligned to it.
+// JOINT-ordered status arrays (work_pos, machine_pos, joint_pos,
+// homed_joints) are index-aligned to it. The OFFSET vectors
+// (g5x_offset, g92_offset, tool_offset) are CANONICAL 9-wide — X..W at
+// fixed slots regardless of the machine's axis set; resolve them with
+// "XYZABC".indexOf(letter), never with the joint index (on XYZBC, B is
+// joint 3 but canonical slot 4 — mixing the layouts was the "Zero B does
+// nothing" gateway bug).
 //
 // Components must NEVER assume positions ("Z is index 2") or keep local
 // ABC/UVW letter sets — both patterns broke on machines whose axes aren't

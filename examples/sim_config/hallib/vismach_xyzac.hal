@@ -21,4 +21,4 @@ net vismach-tool-offset motion.tooloffset.z => xyzac-trt-gui.tool-offset
 # A-pivot position relative to the C rotary — purely visual with trivkins;
 # same values as the shipped sample so the model proportions match.
 setp xyzac-trt-gui.y-offset 20
-setp xyzac-trt-gui.z-offset 10
+setp xyzac-trt-gui.z-offset 35

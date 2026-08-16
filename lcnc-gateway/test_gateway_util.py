@@ -576,3 +576,149 @@ class TestCheckLimitViolations(unittest.TestCase):
         self.assertEqual(len(recs), 5)
         self.assertEqual(total, 11)
         self.assertEqual([r["line"] for r in recs], [1, 2, 3, 4, 5])
+
+
+try:
+    from rs274.interpret import Translated as _RS274Translated
+    _HAVE_RS274 = True
+except ImportError:  # non-LinuxCNC host (future CI subset)
+    _HAVE_RS274 = False
+
+
+@unittest.skipUnless(_HAVE_RS274, "rs274 (LinuxCNC python) not importable")
+class TestRs274EffectiveOffset(unittest.TestCase):
+    """Differential oracle: pin rs274_effective_xy_offset to the REAL
+    interpreter source. rs274.interpret.Translated.rotate_and_translate is
+    the exact offset-application order the running interp uses (g92 BEFORE
+    rotation, g5x after); these tests build a canon-shaped dummy, run the
+    genuine method, and assert our single-offset model inverts it to the
+    original program point. Any future divergence from LinuxCNC's order
+    fails here instead of mis-posing the dry-run sim."""
+
+    AXES = "xyzabcuvw"
+
+    def _canon(self, g5x, g92, rotation_deg):
+        class _C:
+            pass
+        c = _C()
+        for i, ax in enumerate(self.AXES):
+            setattr(c, f"g5x_offset_{ax}", g5x[i] if i < len(g5x) else 0.0)
+            setattr(c, f"g92_offset_{ax}", g92[i] if i < len(g92) else 0.0)
+        c.rotation_xy = rotation_deg
+        c.rotation_cos = math.cos(math.radians(rotation_deg))
+        c.rotation_sin = math.sin(math.radians(rotation_deg))
+        return c
+
+    def _roundtrip(self, g5x, g92, theta, program):
+        """program → machine via the REAL rotate_and_translate, then back
+        via our effective-offset inversion (the parse worker's math)."""
+        c = self._canon(g5x, g92, theta)
+        m = _RS274Translated.rotate_and_translate(c, *program)
+        ox, oy = gateway_util.rs274_effective_xy_offset(
+            g5x[0], g5x[1], g92[0], g92[1], theta)
+        ca = math.cos(math.radians(theta))
+        sa = math.sin(math.radians(theta))
+        dx, dy = m[0] - ox, m[1] - oy
+        px = dx * ca + dy * sa
+        py = -dx * sa + dy * ca
+        pz = m[2] - (g5x[2] + g92[2])
+        pabc = [m[3 + i] - (g5x[3 + i] + g92[3 + i]) for i in range(3)]
+        return (px, py, pz, *pabc)
+
+    def _assert_close(self, got, want):
+        for g, w in zip(got, want):
+            self.assertAlmostEqual(g, w, places=9)
+
+    def test_rotation_with_g92_matches_interp(self):
+        # The case the old combined g5x+g92 model got WRONG: both active.
+        g5x = [100.0, -50.0, 25.0, 10.0, 0.0, -30.0]
+        g92 = [7.5, -3.25, 1.5, 2.0, 0.0, 5.0]
+        program = (12.5, -8.0, 3.0, 15.0, 0.0, 90.0, 0.0, 0.0, 0.0)
+        self._assert_close(
+            self._roundtrip(g5x, g92, 33.0, program), program[:6])
+
+    def test_zero_rotation_reduces_to_plain_sum(self):
+        g5x = [10.0, 20.0, 30.0, 0.0, 0.0, 0.0]
+        g92 = [1.0, 2.0, 3.0, 0.0, 0.0, 0.0]
+        ox, oy = gateway_util.rs274_effective_xy_offset(10.0, 20.0, 1.0, 2.0, 0.0)
+        self.assertAlmostEqual(ox, 11.0)
+        self.assertAlmostEqual(oy, 22.0)
+        program = (5.0, 6.0, 7.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+        self._assert_close(self._roundtrip(g5x, g92, 0.0, program), program[:6])
+
+    def test_naive_sum_actually_deviates(self):
+        # Guard the guard: prove the OLD model disagrees with the interp on
+        # this input, so a regression to g5x+g92 cannot silently pass.
+        g5x = [100.0, -50.0, 0.0, 0.0, 0.0, 0.0]
+        g92 = [10.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        theta = 30.0
+        c = self._canon(g5x, g92, theta)
+        m = _RS274Translated.rotate_and_translate(
+            c, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+        naive_ox = g5x[0] + g92[0]
+        self.assertGreater(abs(m[0] - naive_ox), 1.0)  # ~1.34 for 10mm @ 30°
+        ox, _oy = gateway_util.rs274_effective_xy_offset(
+            g5x[0], g5x[1], g92[0], g92[1], theta)
+        self.assertAlmostEqual(m[0], ox, places=9)
+
+    def test_randomized_sweep(self):
+        import random
+        rng = random.Random(0xC0FFEE)  # fixed seed — deterministic
+        for _ in range(200):
+            g5x = [rng.uniform(-500, 500) for _ in range(6)]
+            g92 = [rng.uniform(-50, 50) for _ in range(6)]
+            theta = rng.uniform(-180, 180)
+            program = tuple(rng.uniform(-300, 300) for _ in range(6)) + (0.0, 0.0, 0.0)
+            self._assert_close(
+                self._roundtrip(g5x, g92, theta, program), program[:6])
+
+
+class TestCanonicalToJointOrder(unittest.TestCase):
+    """canonical_to_joint_order — the joint↔canonical re-indexing that the
+    work_pos computation mixes up without it. Masks: bit0=X … bit8=W."""
+
+    XYZBC = 0b0110111 & ~0b1000  # X Y Z B C = bits 0,1,2,4,5
+    XYZAC = 0b0101111            # X Y Z A C = bits 0,1,2,3,5
+
+    def test_xyzbc_rotary_slots(self):
+        # Canonical g5x with B (slot 4) and C (slot 5) offsets → joint
+        # slots 3 and 4. This exact case was the "Zero B does nothing" bug:
+        # index-wise subtraction took B's offset from C's angle.
+        g5x = [0.0, 0.0, -204.48, 0.0, -18.295, -26.755, 0.0, 0.0, 0.0]
+        self.assertEqual(
+            gateway_util.canonical_to_joint_order(g5x, self.XYZBC),
+            [0.0, 0.0, -204.48, -18.295, -26.755])
+
+    def test_xyzac_c_slot(self):
+        g5x = [1.0, 2.0, 3.0, 4.0, 0.0, 6.0, 0.0, 0.0, 0.0]
+        self.assertEqual(
+            gateway_util.canonical_to_joint_order(g5x, self.XYZAC),
+            [1.0, 2.0, 3.0, 4.0, 6.0])
+
+    def test_lathe_xz(self):
+        vals = [10.0, 99.0, 30.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        self.assertEqual(
+            gateway_util.canonical_to_joint_order(vals, 0b101), [10.0, 30.0])
+
+    def test_xyz_identity_prefix(self):
+        vals = [1.0, 2.0, 3.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        self.assertEqual(
+            gateway_util.canonical_to_joint_order(vals, 0b111), [1.0, 2.0, 3.0])
+
+    def test_short_input_pads_zero(self):
+        self.assertEqual(
+            gateway_util.canonical_to_joint_order([1.0, 2.0], self.XYZBC),
+            [1.0, 2.0, 0.0, 0.0, 0.0])
+
+    def test_none_passthrough(self):
+        self.assertIsNone(gateway_util.canonical_to_joint_order(None, 0b111))
+
+    def test_work_pos_regression_xyzbc(self):
+        # Full work_pos math for the observed live-session state: joints
+        # [0,0,0,-18.295,-26.755], canonical g5x zeroing Z/B/C. Work B and C
+        # must both read 0 after Zero B / Zero C.
+        joints = [0.0, 0.0, 0.0, -18.295, -26.755]
+        g5x = [0.0, 0.0, -204.48, 0.0, -18.295, -26.755, 0.0, 0.0, 0.0]
+        g5x_j = gateway_util.canonical_to_joint_order(g5x, self.XYZBC)
+        work = [j - o for j, o in zip(joints, g5x_j)]
+        self.assertEqual(work, [0.0, 0.0, 204.48, 0.0, 0.0])

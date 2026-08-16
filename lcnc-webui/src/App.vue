@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, provide, reactive, ref, watch } from "vue";
 import { applyClientOverlay, PERMISSIONS_KEY, type Permissions } from "./permissions";
-import { connectWs, connected, status, send, armed, lastReply, viewerGcode, viewerInit, gcodeContent, lcncError, latency, networkLatency, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead, pushMessage, safetyTrip, acknowledgeSafetyTrip, readerStale, configWarning, previewLoadError, serverShuttingDown, type LcncMessage } from "./lcncWs";
+import { simMode } from "./simMode";
+import { connectWs, connected, status, send, armed, lastReply, viewerGcode, viewerInit, gcodeContent, lcncError, latency, networkLatency, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead, pushMessage, safetyTrip, acknowledgeSafetyTrip, readerStale, configWarning, previewLoadError, previewParseError, serverShuttingDown, type LcncMessage } from "./lcncWs";
 // Lazy-load the 3D viewer so Three.js (~866 KB) + troika load as a separate async
 // chunk after first paint instead of blocking the initial bundle (P6). The viewerRef
 // methods are all `?.`-guarded, so calls during the brief load gap safely no-op.
@@ -184,6 +185,7 @@ const machineStateColor = computed(() => {
   if (readerStale.value) return '--state-warn';
   if (configWarning.value) return '--state-warn';
   if (previewLoadError.value) return '--state-warn';
+  if (previewParseError.value) return '--state-warn';
   return STATE_COLORS[machineState.value];
 });
 
@@ -241,6 +243,7 @@ const bannerFlashMode = computed<'none' | 'pulse' | 'flash'>(() => {
   if (readerStale.value) return 'pulse';
   if (configWarning.value) return 'pulse';
   if (previewLoadError.value) return 'pulse';
+  if (previewParseError.value) return 'pulse';
   if (s === 'unhomed' || s === 'toolchange' || s === 'idle') return 'pulse';
   return 'none';
 });
@@ -392,6 +395,8 @@ const gcodeViolations = ref<LimitViolation[] | null>(null);
 const gcodeViolationsTotal = ref(0);
 // Source line at the viewer's scrub position (null = not scrubbing).
 const scrubLine = ref<number | null>(null);
+// Source lines with collision hits from the viewer's sweep (null = none run).
+const collisionLines = ref<number[] | null>(null);
 
 // Donut chart (distance breakdown) lives in StatsDonut.vue.
 
@@ -461,7 +466,7 @@ let _prevPerms: Permissions | null = null;
 const permissions = computed(() => {
   // Policy lives on the backend now (issue #19): consume the broadcast
   // permission classes and overlay only the client-local armed + busy terms.
-  const next = applyClientOverlay(st.value.permissions, armed.value, busy.value);
+  const next = applyClientOverlay(st.value.permissions, armed.value, busy.value, simMode.value);
   const keys = Object.keys(next) as (keyof typeof next)[];
   if (_prevPerms && keys.every(k => _prevPerms![k] === next[k])) return _prevPerms;
   _prevPerms = next;
@@ -1352,6 +1357,9 @@ watch(viewerGcode, (newGcode) => {
           <span v-else-if="previewLoadError" :key="'preview-error'" class="bannerError">
             3D preview load failed — reload the G-code file; restart the suite if it persists
           </span>
+          <span v-else-if="previewParseError" :key="'parse-error'" class="bannerError">
+            Program won't parse — {{ previewParseError }} — no preview or simulation; fix the program or load one posted for this machine
+          </span>
           <span v-else-if="bannerMessage && !bannerShowAbort" :key="'msg'" :class="{ bannerError: bannerMessageKind <= 2 }">
             {{ bannerMessage }}
           </span>
@@ -1389,6 +1397,7 @@ watch(viewerGcode, (newGcode) => {
           :axes="axes"
           @open-settings="openSettingsTab"
           @scrub-line="scrubLine = $event"
+          @collision-lines="collisionLines = $event"
         />
       </div>
 
@@ -1405,6 +1414,7 @@ watch(viewerGcode, (newGcode) => {
               :violationsTotal="gcodeViolationsTotal"
               :currentLine="currentLine"
               :scrubLine="scrubLine"
+              :collisionLines="collisionLines"
               :isPaused="isPaused"
               :elapsed="elapsedDisplay"
               :optionalStop="optionalStopOn"

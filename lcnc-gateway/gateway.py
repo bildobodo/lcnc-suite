@@ -3507,6 +3507,9 @@ def build_viewer_init(stl_base_url: str) -> Dict[str, Any]:
             # Optional default color [r,g,b] 0–1 from machine.json (STL has no
             # color channel); user per-part overrides still win client-side.
             "color": p.get("color"),
+            # Optional stock flag: the ONE body class the tool may FEED into
+            # (collision sweep cutting semantics). Machine parts never are.
+            "stock": p.get("stock"),
         })
 
     # INI/static fields — delivered once per connect so the per-tick status

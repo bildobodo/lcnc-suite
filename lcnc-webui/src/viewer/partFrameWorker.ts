@@ -12,8 +12,8 @@ interface Req {
   id: number;
   machine: PartFrameMachine;
   wcs: PartFrameWcs;
-  feed: { pos: Float32Array; abc: Float32Array; lines?: Uint32Array };
-  rapid: { pos: Float32Array; abc: Float32Array };
+  feed: { pos: Float32Array; abc: Float32Array; lines?: Uint32Array; breaks?: Uint32Array };
+  rapid: { pos: Float32Array; abc: Float32Array; breaks?: Uint32Array };
 }
 
 function assertFinite(a: Float32Array, label: string) {
@@ -35,8 +35,10 @@ self.onmessage = (e: MessageEvent<Req>) => {
     const feedLineMap = buildLineMap(f.lines);
     const transfer: Transferable[] = [f.pos.buffer as ArrayBuffer, r.pos.buffer as ArrayBuffer, rapidDist.buffer as ArrayBuffer];
     if (f.lines) transfer.push(f.lines.buffer as ArrayBuffer);
+    if (f.breaks) transfer.push(f.breaks.buffer as ArrayBuffer);
+    if (r.breaks) transfer.push(r.breaks.buffer as ArrayBuffer);
     self.postMessage(
-      { id, feedPos: f.pos, feedLines: f.lines, feedLineMap, rapidPos: r.pos, rapidDist },
+      { id, feedPos: f.pos, feedLines: f.lines, feedLineMap, rapidPos: r.pos, rapidDist, feedBreaks: f.breaks, rapidBreaks: r.breaks },
       { transfer },
     );
   } catch (err) {

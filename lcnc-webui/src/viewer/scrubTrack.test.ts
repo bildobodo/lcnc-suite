@@ -2,15 +2,17 @@
 import { describe, expect, it } from "vitest";
 import {
   buildScrubTrack, sampleTrack, jointsForSample,
+  machineJointsToProgram, prependEntry, splitTrackStreams,
   type ScrubSample, type ScrubStream, type ScrubTrack,
 } from "./scrubTrack";
 
-function stream(points: number[][], opts: { abc?: number[][]; lines?: number[]; seq?: number[] } = {}): ScrubStream {
+function stream(points: number[][], opts: { abc?: number[][]; lines?: number[]; seq?: number[]; tcum?: number[] } = {}): ScrubStream {
   return {
     pos: new Float32Array(points.flat()),
     abc: opts.abc ? new Float32Array(opts.abc.flat()) : undefined,
     lines: opts.lines ? new Uint32Array(opts.lines) : undefined,
     seq: opts.seq ? new Uint32Array(opts.seq) : undefined,
+    tcum: opts.tcum ? new Float32Array(opts.tcum) : undefined,
   };
 }
 
@@ -49,6 +51,33 @@ describe("buildScrubTrack", () => {
     expect(t.cum[1]).toBeCloseTo(90, 5);
   });
 
+  it("builds a TIME axis from per-stream cumulative seconds", () => {
+    // Feed 2 segs (3s, 5s cumulative) interleaved with a rapid (0.5s):
+    // execution f(seq1) r(seq2) f(seq3) → durations: point0 anchor, 0.5, 2.
+    const t = buildScrubTrack(
+      stream([[10, 0, 0], [30, 0, 0]], { seq: [1, 3], lines: [5, 9], tcum: [3, 5] }),
+      stream([[20, 0, 0]], { seq: [2], lines: [7], tcum: [0.5] }))!;
+    expect(t.timeBased).toBe(true);
+    expect(Array.from(t.cum)).toEqual([0, 0.5, 2.5]);
+    expect(t.lineCum.get(9)).toBeCloseTo(2.5, 5);
+  });
+
+  it("falls back to the distance axis when a non-empty stream lacks tcum", () => {
+    const t = buildScrubTrack(
+      stream([[0, 0, 0], [10, 0, 0]], { seq: [1, 2], tcum: [1, 2] }),
+      stream([[5, 0, 0]], { seq: [3] }))!;   // rapid has no tcum
+    expect(t.timeBased).toBe(false);
+    expect(t.cum[1]).toBeCloseTo(10, 5);     // distance formula
+  });
+
+  it("maps each source line to the cum of its first track point", () => {
+    const t = buildScrubTrack(
+      stream([[0, 0, 0], [10, 0, 0], [20, 0, 0]], { lines: [4, 7, 7] }), EMPTY)!;
+    expect(t.lineCum.get(4)).toBe(0);
+    expect(t.lineCum.get(7)).toBe(10);   // first occurrence, not the last
+    expect(t.lineCum.has(0)).toBe(false); // 0 = unknown line, never mapped
+  });
+
   it("cum is monotonic and linear distance wins when larger", () => {
     const t = buildScrubTrack(
       stream([[0, 0, 0], [3, 4, 0], [3, 4, 0]], { abc: [[0, 0, 0], [0, 0, 2], [0, 0, 2]] }), EMPTY)!;
@@ -83,6 +112,63 @@ describe("sampleTrack", () => {
   });
 });
 
+describe("machineJointsToProgram", () => {
+  it("inverts the WCS transform through JOINT-ordered letters", () => {
+    // XYZAC joints at machine [11, 22, -2, 15, 94] with g5x [1,2,3,0,0,4]
+    // must give back program [10, 20, -5, 15, 0, 90] — the exact inverse of
+    // the jointsForSample fixture.
+    const p = machineJointsToProgram(
+      [11, 22, -2, 15, 94], ["X", "Y", "Z", "A", "C"],
+      { g5x: [1, 2, 3, 0, 0, 4], g92: [], rotationDeg: 0 });
+    expect(p[0]).toBeCloseTo(10, 5);
+    expect(p[1]).toBeCloseTo(20, 5);
+    expect(p[2]).toBeCloseTo(-5, 5);
+    expect(p[3]).toBeCloseTo(15, 5);
+    expect(p[5]).toBeCloseTo(90, 5);
+  });
+
+  it("inverts the XY rotation", () => {
+    // +90° rotation: machine (0, 10) came from program (10, 0).
+    const p = machineJointsToProgram([0, 10], ["X", "Y"], { g5x: [], g92: [], rotationDeg: 90 });
+    expect(p[0]).toBeCloseTo(10, 5);
+    expect(p[1]).toBeCloseTo(0, 5);
+  });
+});
+
+describe("prependEntry", () => {
+  const base = buildScrubTrack(
+    stream([[10, 0, 0], [20, 0, 0]], { lines: [5, 7] }), EMPTY)!;
+
+  it("prepends a rapid entry segment and shifts cum + lineCum", () => {
+    const t = prependEntry(base, [10, -30, 0, 0, 0, 0]);
+    expect(t.count).toBe(3);
+    expect([t.pos[0], t.pos[1]]).toEqual([10, -30]);
+    expect(t.lines[0]).toBe(0);          // "entry"
+    expect(t.rapid[1]).toBe(1);          // the entry MOVE is a rapid
+    expect(t.cum[1]).toBeCloseTo(30, 5); // entry length
+    expect(t.cum[2]).toBeCloseTo(40, 5);
+    expect(t.lineCum.get(5)).toBeCloseTo(30, 5);
+    expect(t.lineCum.get(7)).toBeCloseTo(40, 5);
+  });
+
+  it("counts a pure rotary entry (1° ≙ 1 mm) and skips a no-op entry", () => {
+    const rot = prependEntry(base, [10, 0, 0, 0, 0, -45]);
+    expect(rot.cum[1]).toBeCloseTo(45, 5);
+    // Machine already at the first point → original track returned as-is.
+    expect(prependEntry(base, [10, 0, 0, 0, 0, 0])).toBe(base);
+  });
+
+  it("computes the entry duration from rapid rates on a time-based track", () => {
+    const tb = buildScrubTrack(stream([[10, 0, 0], [20, 0, 0]], { lines: [5, 7], tcum: [0, 2] }), EMPTY)!;
+    expect(tb.timeBased).toBe(true);
+    // Entry 30 mm away at 100 mm/s → 0.3 s prepended to the time axis.
+    const t = prependEntry(tb, [10, -30, 0, 0, 0, 0], { linear: 100, rotary: 60 });
+    expect(t.cum[1]).toBeCloseTo(0.3, 5);
+    expect(t.cum[2]).toBeCloseTo(2.3, 5);
+    expect(t.timeBased).toBe(true);
+  });
+});
+
 describe("jointsForSample", () => {
   const AXES_XYZAC = ["X", "Y", "Z", "A", "C"];  // C = joint 4, canonical axis 5
 
@@ -109,5 +195,62 @@ describe("jointsForSample", () => {
     const out: (number | null)[] = [];
     jointsForSample(s, { g5x: [], g92: [], rotationDeg: 0 }, AXES_XYZAC, out);
     for (const v of out) expect(Number.isFinite(v!)).toBe(true);
+  });
+});
+
+describe("splitTrackStreams", () => {
+  // The classic false-connector case: feed → rapid Z-lift → feed sweep.
+  // Drawn as strips, the second feed appeared to start at the PRE-lift
+  // position (the lift skipped); split into sections, each feed section
+  // opens at its true start (the rapid's end) and `breaks` marks the
+  // section starts so the renderer never draws the connector.
+  it("re-opens a feed section at the rapid's end position", () => {
+    // rapid(seq1)→(0,0,0); feed(seq2)→(10,0,0); rapid(seq3)→(10,0,60) LIFT;
+    // feed(seq4)→(30,0,60) post-lift sweep.
+    const feed = stream([[10, 0, 0], [30, 0, 60]], { seq: [2, 4], lines: [5, 9], abc: [[0, 0, 0], [0, 0, 90]] });
+    const rapid = stream([[0, 0, 0], [10, 0, 60]], { seq: [1, 3], lines: [3, 7], abc: [[0, 0, 0], [0, 0, 0]] });
+    const t = buildScrubTrack(feed, rapid)!;
+    const s = splitTrackStreams(t);
+
+    // Feed: section 1 = [track p0 (0,0,0) → p1 (10,0,0)], section 2 =
+    // [track p2 (10,0,60) → p3 (30,0,60)] — section 2 STARTS at the lift's
+    // end, not at (10,0,0).
+    expect(Array.from(s.feedPos)).toEqual([0, 0, 0, 10, 0, 0, 10, 0, 60, 30, 0, 60]);
+    expect(Array.from(s.feedBreaks)).toEqual([0, 2]);
+    // Section-start vertices carry the OPENING segment's line.
+    expect(Array.from(s.feedLines)).toEqual([5, 5, 9, 9]);
+    // abc rides along (section start inherits the rapid end's abc).
+    expect(Array.from(s.feedAbc)).toEqual([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 90]);
+
+    // Rapid: only ONE rapid SEGMENT exists — the lift (feed end → lift end).
+    // Track p0 is just the initial position; the segment into it was the
+    // suppressed unknown-start first move and is not drawable.
+    expect(Array.from(s.rapidPos)).toEqual([10, 0, 0, 10, 0, 60]);
+    expect(Array.from(s.rapidBreaks)).toEqual([0]);
+  });
+
+  it("contiguous single-stream track yields one section, break only at 0", () => {
+    const feed = stream([[0, 0, 0], [10, 0, 0], [20, 0, 0]], { seq: [1, 2, 3], lines: [1, 2, 3] });
+    const t = buildScrubTrack(feed, EMPTY)!;
+    const s = splitTrackStreams(t);
+    expect(Array.from(s.feedPos)).toEqual([0, 0, 0, 10, 0, 0, 20, 0, 0]);
+    expect(Array.from(s.feedBreaks)).toEqual([0]);
+    expect(s.rapidPos.length).toBe(0);
+    expect(s.rapidBreaks.length).toBe(0);
+  });
+
+  it("alternating streams duplicate every boundary vertex", () => {
+    // F R F R: every segment is its own section.
+    const feed = stream([[1, 0, 0], [3, 0, 0]], { seq: [1, 3], lines: [1, 3] });
+    const rapid = stream([[2, 0, 0], [4, 0, 0]], { seq: [2, 4], lines: [2, 4] });
+    const t = buildScrubTrack(feed, rapid)!;
+    const s = splitTrackStreams(t);
+    // The only feed SEGMENT is p1→p2 (p0 is the first rapid... no — p0 came
+    // from feed but the segment INTO p1 is rapid): feed = [(2), (3)].
+    expect(Array.from(s.feedPos)).toEqual([2, 0, 0, 3, 0, 0]);
+    expect(Array.from(s.feedBreaks)).toEqual([0]);
+    expect(Array.from(s.feedLines)).toEqual([3, 3]);
+    expect(Array.from(s.rapidPos)).toEqual([1, 0, 0, 2, 0, 0, 3, 0, 0, 4, 0, 0]);
+    expect(Array.from(s.rapidBreaks)).toEqual([0, 2]);
   });
 });

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 defineProps<{
-  variant?: "default" | "primary" | "ok" | "danger" | "estop";
+  variant?: "default" | "primary" | "ok" | "warn" | "danger" | "estop";
   size?: "xs" | "sm" | "md" | "lg";
   icon?: boolean;
   inline?: boolean;
@@ -77,6 +77,14 @@ html.touch-device .b-icon { min-width: 40px; }
 .ok {
   border-color: color-mix(in srgb, var(--ok) 50%, transparent);
   background: color-mix(in oklab, var(--ok) 25%, var(--button-bg));
+}
+
+/* Static warn tint (findings, cautions) — same formula as .danger/.ok.
+   Distinct from the pulsing `warning` STATE prop, which signals an active
+   alarm rather than a persistent finding. */
+.warn {
+  border-color: color-mix(in srgb, var(--warn) 50%, transparent);
+  background: color-mix(in oklab, var(--warn) 25%, var(--button-bg));
 }
 
 .danger {

@@ -86,7 +86,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
   let toolpathBoundsVisible = false;
   let pathAlwaysOnTop = true;
 
-  function makeLine(points: number[][] | Float32Array, colorHex: number | string, dashed = false, opacity = 1.0, lineDist?: Float32Array) {
+  function makeLine(points: number[][] | Float32Array, colorHex: number | string, dashed = false, opacity = 1.0, lineDist?: Float32Array, breaks?: Uint32Array) {
     const geom = new THREE.BufferGeometry();
     // This geometry is reused by the overflow line (same object) and its position
     // attribute by the highlight line — but it is PER-PROGRAM, not externally
@@ -97,6 +97,25 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     // fall back to flattening nested points (WS path / older payloads).
     const flat = points instanceof Float32Array ? points : new Float32Array(points.flat());
     geom.setAttribute("position", new THREE.BufferAttribute(flat, 3));
+
+    // Sectioned stream (track-derived): `breaks` lists section-START vertex
+    // indices — no segment may be drawn into them (the connector would be a
+    // FALSE move skipping the other stream's motion, e.g. a feed drawn from
+    // the pre-G0-lift position). An index buffer of real segment pairs +
+    // LineSegments renders exactly the true segments; strip rendering stays
+    // for break-less (legacy) data.
+    if (breaks && breaks.length) {
+      const n = flat.length / 3;
+      const isBreak = new Uint8Array(n);
+      for (const b of breaks) if (b < n) isBreak[b] = 1;
+      const idx = new Uint32Array(Math.max(0, n - 1) * 2);
+      let w = 0;
+      for (let i = 1; i < n; i++) {
+        if (isBreak[i]) continue;
+        idx[w++] = i - 1; idx[w++] = i;
+      }
+      geom.setIndex(new THREE.BufferAttribute(idx.subarray(0, w).slice(), 1));
+    }
 
     // Important: stable bounds so Three doesn't cull it incorrectly
     geom.computeBoundingSphere();
@@ -119,7 +138,8 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       mat.depthWrite = false;
     }
 
-    const line = new THREE.Line(geom, mat);
+    // Indexed geometry = segment pairs → LineSegments; plain strip → Line.
+    const line = geom.index ? new THREE.LineSegments(geom, mat) : new THREE.Line(geom, mat);
     line.renderOrder = 10;
 
     // Bounding sphere is computed above; parent (workRotGroup) transforms apply
@@ -154,11 +174,30 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       clipIntersection: true,
       clippingPlanes: deps.boundsClipPlanes,
     });
-    const line = new THREE.Line(geom, mat);
+    // Mirror the owner's object type: an indexed (sectioned) geometry rendered
+    // as a strip would re-draw the false connectors this geometry exists to skip.
+    const line = geom.index ? new THREE.LineSegments(geom, mat) : new THREE.Line(geom, mat);
     line.renderOrder = 10;
     line.frustumCulled = true;
     // Idempotent: rapid channel already has lineDistance from rapidLine; feed channel doesn't.
-    if (!geom.attributes.lineDistance) line.computeLineDistances();
+    if (!geom.attributes.lineDistance) {
+      if (geom.index) {
+        // Three's computeLineDistances refuses indexed geometry — build the
+        // vertex-cumulative distances directly (dash phase across skipped
+        // section gaps is irrelevant; only per-segment deltas matter).
+        const p = geom.attributes.position!.array as Float32Array;
+        const n = p.length / 3;
+        const d = new Float32Array(n);
+        for (let i = 1; i < n; i++) {
+          const j = i * 3, k = j - 3;
+          const dx = p[j]! - p[k]!, dy = p[j + 1]! - p[k + 1]!, dz = p[j + 2]! - p[k + 2]!;
+          d[i] = d[i - 1]! + Math.sqrt(dx * dx + dy * dy + dz * dz);
+        }
+        geom.setAttribute("lineDistance", new THREE.Float32BufferAttribute(d, 1));
+      } else {
+        line.computeLineDistances();
+      }
+    }
     return line;
   }
 
@@ -353,7 +392,9 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       const feedColor = deps.colors().feed ?? "#22b8cf";
       const rapidColor = deps.colors().rapid ?? "#f5a623";
       if (_pointCount(feedData) >= 2) {
-        feedLine = makeLine(feedData, feedColor, false);
+        // Section breaks (track-derived streams) index-skip the false
+        // connectors across feed/rapid interleaves; absent on legacy data.
+        feedLine = makeLine(feedData, feedColor, false, 1.0, undefined, g.feedBreaks);
         feedSharedGeom = feedLine.geometry as THREE.BufferGeometry;
         workRotGroup!.add(feedLine);
         feedOverflow = makeOverflowLine(feedSharedGeom);
@@ -363,7 +404,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
         // Pass the worker-precomputed lineDistance when the flat buffer is in use (P4.1);
         // undefined on the WS/legacy path → makeLine falls back to computeLineDistances.
         const _rapidDist = rapidData === g.rapidPos ? g.rapidDist : undefined;
-        rapidLine = makeLine(rapidData, rapidColor, true, 1.0, _rapidDist);
+        rapidLine = makeLine(rapidData, rapidColor, true, 1.0, _rapidDist, g.rapidBreaks);
         rapidSharedGeom = rapidLine.geometry as THREE.BufferGeometry;
         workRotGroup!.add(rapidLine);
         rapidOverflow = makeOverflowLine(rapidSharedGeom);
@@ -373,6 +414,10 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       // Highlight line — shares feed's position attribute; independent drawRange.
       // Reuses the feed bounding sphere so frustum culling matches the full toolpath
       // extents (conservative: drawn subset is always inside the full bounds).
+      // Deliberately a plain strip (no section index): a single source line's
+      // vertex range sits inside one feed section except when one line mixes
+      // feed→rapid→feed (canned cycles) — there the highlight bridges its own
+      // rapid gap, an acceptable "where is this line" cue.
       if (feedSharedGeom) {
         highlightGeom = new THREE.BufferGeometry();
         // Per-program (not externally owned): disposed by apply() on program

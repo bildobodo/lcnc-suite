@@ -1,27 +1,35 @@
 #!/usr/bin/env python3
-"""Convert the LinuxCNC vismach XYZAC trunnion-mill model to viewer assets.
+"""Generate the XYZAC trunnion-mill viewer model (v2, mechanically coherent).
 
-Geometry transcribed from /usr/bin/xyzac-trt-gui (Copyright 2016 Rudy du
-Preez, GPL v2+, shipped with LinuxCNC). The vismach model is a tree of
-boxes/cylinders under HAL-driven transforms; this script bakes each rigid
-assembly (base, knee, saddle, table, A-trunnion, C-platter) into binary
-STL files — one per (assembly, color) pair, since STL carries no color —
-plus a machine.json in lcnc-webui's viewer_init schema (groups / parts /
-kinematics / workGroup / toolGroup) that ThreeViewer articulates with
-live joint positions.
+v1 transcribed the LinuxCNC vismach xyzac-trt-gui geometry (Rudy du Preez,
+GPL v2+) verbatim — and the collision sweep then proved that model was
+drawn for pivot offsets ≈ 0 while the shipped config runs 20/10: the
+trunnion support brackets floated above the table and the C base
+interpenetrated the trunnion plate. v2 keeps the machine frame (base,
+column, knee, saddle, table) and DERIVES the rotary assembly from the
+pivot constants so it is mechanically sound:
 
-Layout notes (viewer semantics, see ThreeViewer.vue applyState):
-- Transforms COMPOSE: a group may carry a static pivot `translate` plus any
-  number of translate/rotate kinematics DOFs; the viewer resets driven
-  groups to their base each frame and accumulates DOFs on top (the TCP
-  tool offset composes with the tool group's base the same way).
-- This is a knee mill: the head/spindle is fixed to the column; the Z
-  joint moves the whole knee (saddle+table+trunnion) down (sign -1).
-- The original model's y-offset / z-offset HAL pins (A-pivot position
-  relative to the C rotary center) are baked in as constants, matching
-  hallib/vismach_xyzac.hal.
-- The original's red reference tool is intentionally omitted: ThreeViewer
-  draws the real tool from the tool table at the toolGroup.
+- Support pads sit FLUSH on the table top; pillars rise to the trunnion
+  shaft bearings at the pivot height.
+- The cradle (plate + cheeks + shafts) swings a max radius of ~81 mm
+  about the pivot; with Z_OFFSET=35 the lowest swing point clears the
+  table top by ~5.7 mm through the FULL A range (analytic bound, also
+  gated by src/viewer/machineModel.test.ts sweeping the real STLs).
+- x-direction clearances (platter↔cheeks 4 mm, cheeks↔pillars 3 mm) are
+  INVARIANT under A rotation (rotation about X preserves x) and above
+  the 2 mm collision margin, so the rotary can articulate freely.
+- The C stack (bearing housing + platter) seats ON the cradle plate;
+  seat/bearing contacts are intentional and land in the sweep's
+  staticContacts baseline.
+- Platter TOP stays at table-frame z=0: machine Z0 = tool tip touching
+  the platter surface, as before.
+- The spindle nose is shortened so the nose→platter crash plane sits at
+  machine Z −35; INI Z travel is −30..+100 (5 mm margin at full plunge,
+  retract is POSITIVE Z — knee down).
+
+Viewer semantics unchanged (see ThreeViewer.vue applyState): transforms
+COMPOSE; knee mill (Z moves the knee, sign -1); the real tool is drawn by
+ThreeViewer at the toolGroup.
 
 Usage:  python3 scripts/vismach_to_stl.py
 Output: examples/sim_config/machine-xyzac/*.stl + machine.json
@@ -33,9 +41,21 @@ import struct
 from pathlib import Path
 
 Y_OFFSET = 20.0  # A-pivot Y relative to C rotary center (matches HAL setp)
-Z_OFFSET = 10.0  # A-pivot Z relative to C rotary center (matches HAL setp)
+Z_OFFSET = 35.0  # A-pivot Z above the platter top (matches HAL setp)
 SEGMENTS = 32    # cylinder tessellation, same as vismach's gluCylinder
 KNEE_Z = 200.0   # knee home height: platter top meets the tool tip
+
+# ── v2 rotary-assembly dimensions (all derived checks in the docstring) ──
+PLATTER_R = 40.0
+PLATTER_H = 12.0          # platter top at z=0 (C frame) → bottom -12
+CBASE_R = 36.0
+CBASE_H = 12.0            # bearing housing under the platter → -24..-12
+CRADLE_T = 8.0            # cradle plate thickness
+CHEEK_X0, CHEEK_X1 = 44.0, 56.0   # cheek inner/outer |x|
+SHAFT_R = 13.0
+SHAFT_X1 = 75.0           # shaft outer |x| end
+PILLAR_X0, PILLAR_X1 = 59.0, 73.0
+PAD_X0, PAD_X1 = 55.0, 77.0
 
 OUT_DIR = Path(__file__).resolve().parent.parent / "examples" / "sim_config" / "machine-xyzac"
 
@@ -140,21 +160,32 @@ COLORS = {
 
 def build_meshes():
     """Return {part_id: (group, color_key, triangles)} in group-local mm coords."""
-    # -- static base + column + head + spindle (head at z+200 on the column) --
+    # -- static base + column + head (unchanged from the vismach original) --
     head_z = 200.0
+    # Column moved back vs the original (front face y=130): at Y travel ±70
+    # the saddle reaches y 123 — 7 mm clear of the column instead of 23 mm
+    # INSIDE it (the original's geometry/travel contradiction). Head raised
+    # (bottom world 290): trunnion pillar tops reach world 281 at Z −30, and
+    # the original head bottom (260) sat in their sweep path.
     base_green = (
-        box(-120, -100, -250, 120, 160, -100)            # base
-        + box(-50, 100, -250, 50, 200, 260)              # column
-        + translate(box(-30, -30, 60, 30, 240, 135), 0, 0, head_z)  # head
+        box(-120, -100, -250, 120, 220, -100)            # base
+        + box(-50, 130, -250, 50, 230, 340)              # column
+        + translate(box(-30, -30, 90, 30, 240, 165), 0, 0, head_z)  # head
     )
     base_yellow = (
         box(-25, -100, -195, 25, -110, -145)             # Z motor
-        + cylinder_z(-100, 15, 50, 15)                   # Z lead screw
+        # Z lead screw BELOW the knee at all travel (knee bottom reaches
+        # world -80 at Z+100) — the original's screw skewered the saddle.
+        + cylinder_z(-240, 15, -90, 15)
     )
-    sp = head_z + 20.0                                   # spindle frame offset
+    # Spindle, v2.1: nose bottom at world z 255 — tool stickout (55) must
+    # exceed the trunnion cheek height above the work plane (49), or the
+    # cheeks foul the nose on any XY excursion ≥ ~29 at work height (real
+    # trunnion machines demand long tools for exactly this reason). Plunge
+    # margin at full legal Z −30: 25 mm.
     base_teal = (
-        translate(cylinder_z(0, 10, 20, 15), 0, 0, sp)     # spindle nose
-        + translate(cylinder_z(20, 20, 135, 20), 0, 0, sp)  # spindle housing
+        cylinder_z(255, 10, 270, 15)                     # spindle nose
+        + cylinder_z(270, 20, 340, 20)                   # spindle housing
         + translate(cylinder_z(135, 30, 200, 30), 0, 200, head_z)  # motor
     )
 
@@ -162,32 +193,42 @@ def build_meshes():
 
     saddle_silver = box(-75, -53, -105, 75, 53, -73)
 
+    # -- table, v2: support pads FLUSH on the table top (-52), pillars up to
+    #    the trunnion shaft bearings at the pivot (y=Y_OFFSET, z=Z_OFFSET) --
+    def _support(sx):
+        pad = box(sx * PAD_X0, Y_OFFSET - 18, -52, sx * PAD_X1, Y_OFFSET + 18, -46)
+        pillar = box(sx * PILLAR_X0, Y_OFFSET - 14, -46, sx * PILLAR_X1, Y_OFFSET + 14, Z_OFFSET + 16)
+        return pad + pillar
+
     table_gray = (
         box(-150, -50, -69, 150, 50, -52)                # body
         + box(-150, -40, -75, 150, 40, -69)              # ways
-        + translate(
-            box(-77, -40, -50, -67, 40, 0)               # bracket left
-            + box(77, -40, -50, 67, 40, 0)               # bracket right
-            + box(77, 40, -52, -77, -40, -40),           # mounting plate
-            0, Y_OFFSET, Z_OFFSET)
+        + _support(-1)
+        + _support(+1)
     )
 
+    # -- A cradle (a_assembly frame: origin = pivot; C center at (0, -Y_OFFSET)) --
+    cy = -Y_OFFSET                                       # C rotary center y
+    plate_top = -Z_OFFSET - PLATTER_H - CBASE_H          # C stack seats here (-59)
     a_orange = (
-        box(-65, -40, -35, 65, 40, -25)                  # trunnion plate
-        + box(-65, -40, -35, -55, 40, 0)                 # side plate left
-        + box(55, -40, -35, 65, 40, 0)                   # side plate right
-        + cylinder_x(-78, 20, -55, 20)                   # trunnion shaft left
-        + cylinder_x(55, 15, 70, 15)                     # trunnion shaft right
+        # cradle plate under the C stack
+        box(-CBASE_R - 10, cy - 26, plate_top - CRADLE_T, CBASE_R + 10, cy + 26, plate_top)
+        # cheeks: from the plate up past the pivot, on the shaft axis (y=0,z=0)
+        + box(-CHEEK_X1, -16, plate_top - 1, -CHEEK_X0, 16, 14)
+        + box(CHEEK_X0, -16, plate_top - 1, CHEEK_X1, 16, 14)
+        # trunnion shafts into the pillar bearings (static contact by design)
+        + cylinder_x(-SHAFT_X1, SHAFT_R, -CHEEK_X1, SHAFT_R)
+        + cylinder_x(CHEEK_X1, SHAFT_R, SHAFT_X1, SHAFT_R)
     )
-    a_white = box(-80, -20, -1, -78, 20, 1)              # drive-side mark
 
-    c_base_blue = box(-50, -50, -30, 50, 50, -18)        # rotary base
+    # -- C stack (c_assembly frame: platter top at z=0) --
+    c_base_blue = cylinder_z(-PLATTER_H - CBASE_H, CBASE_R, -PLATTER_H, CBASE_R)
 
-    platter_magenta = cylinder_z(-18, 50, 0, 50)
+    platter_magenta = cylinder_z(-PLATTER_H, PLATTER_R, 0, PLATTER_R)
     platter_white = (
-        cylinder_x(-50, 1, 50, 1)                        # cross X
-        + cylinder_y(-50, 1, 50, 1)                      # cross Y
-        + box(42, -4, -20, 51, 4, 5)                     # lump on one side
+        cylinder_x(-PLATTER_R + 4, 1, PLATTER_R - 4, 1)  # cross X (half-proud at z0)
+        + cylinder_y(-PLATTER_R + 4, 1, PLATTER_R - 4, 1)  # cross Y
+        + box(26, -3, 0, 36, 3, 3)                       # C-orientation notch
     )
 
     return {
@@ -198,7 +239,6 @@ def build_meshes():
         "saddle":          ("saddle",     "silver",  saddle_silver),
         "table":           ("table",      "gray",    table_gray),
         "a_trunnion":      ("a_assembly", "orange",  a_orange),
-        "a_mark":          ("a_assembly", "white",   a_white),
         "c_base":          ("c_assembly", "blue",    c_base_blue),
         "c_platter":       ("c_platter",  "magenta", platter_magenta),
         "c_platter_marks": ("c_platter",  "white",   platter_white),

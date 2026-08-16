@@ -59,7 +59,7 @@ _trace.init("gcode_parse_worker")
 # Ensure local-dir imports resolve when invoked from anywhere
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from gcode_canon import PreviewCanon, apply_var_patches
-from gateway_util import scan_tool_stats, read_axis_limits, check_limit_violations
+from gateway_util import scan_tool_stats, read_axis_limits, check_limit_violations, rs274_effective_xy_offset
 
 
 _EMPTY = {"feed": [], "feed_lines": [], "rapid": [], "stats": None,
@@ -192,9 +192,15 @@ def parse(ctx: dict) -> dict:
     # Subtract WCS origin AND un-rotate so the polyline is in raw program
     # coords — frontend re-applies LIVE origin (workOrigin.position) and LIVE
     # rotation (workRotGroup.rotation.z) from STAT. Symmetric with XYZ.
+    # RS274 order (rotate_and_translate): machine = g5x + Rz(θ)·(program+g92),
+    # so the single subtractable origin is g5x + Rz(θ)·g92 — NOT g5x+g92,
+    # which mis-places g92 under an active G10 R rotation. Z/rotary are never
+    # rotated; plain sums stay exact there.
     unit_scale = 25.4 if machine_units == "mm" else 1.0
-    ox = canon.g5x_offset_x + canon.g92_offset_x
-    oy = canon.g5x_offset_y + canon.g92_offset_y
+    theta_deg = canon.rotation_xy or 0.0
+    ox, oy = rs274_effective_xy_offset(
+        canon.g5x_offset_x, canon.g5x_offset_y,
+        canon.g92_offset_x, canon.g92_offset_y, theta_deg)
     oz = canon.g5x_offset_z + canon.g92_offset_z
     # Rotary offsets — subtracted so abc is in raw program coords, symmetric
     # with xyz (frontend re-applies LIVE offsets when evaluating the machine
@@ -225,7 +231,7 @@ def parse(ctx: dict) -> dict:
         violations, violations_total = None, 0
         print("limits UNCHECKED — no MIN/MAX_LIMIT in INI", file=sys.stderr, flush=True)
 
-    theta = canon.rotation_xy or 0.0
+    theta = theta_deg
     if theta:
         rad = math.radians(theta)
         ca = math.cos(rad)
@@ -234,10 +240,42 @@ def parse(ctx: dict) -> dict:
         ca = 1.0
         sa = 0.0
 
+    # Rapid velocities from the INI — needed up front for the time axis.
+    # Linear: min of AXIS_0..2 MAX_VELOCITY (machine units/s). Rotary: min of
+    # AXIS_A/B/C MAX_VELOCITY (deg/s), falling back to the linear rate under
+    # the 1° ≙ 1 unit equivalence when absent. No linear velocity at all →
+    # no time axis (the client falls back to the distance axis — honest).
+    def _ini_vel(section, key):
+        _v = ini.find(section, key)
+        if not _v:
+            return None
+        try:
+            return float(_v)
+        except (ValueError, TypeError):
+            return None
+
+    def _min_axis_vel(letters):
+        _best = None
+        for _axl in letters:
+            _fv = _ini_vel(f"AXIS_{_axl}", "MAX_VELOCITY")
+            if _fv is not None:
+                _best = _fv if _best is None else min(_best, _fv)
+        return _best
+
+    # [TRAJ] caps are canonical; per-axis sections next (letter style, then
+    # the legacy numbered style — the old numbered-only read left rapidTime
+    # silently 0 on joints-style INIs).
+    rapid_vel = _ini_vel("TRAJ", "MAX_LINEAR_VELOCITY") \
+        or _min_axis_vel(("X", "Y", "Z")) or _min_axis_vel(("0", "1", "2"))
+    rot_rapid_vel = _ini_vel("TRAJ", "MAX_ANGULAR_VELOCITY") or _min_axis_vel(("A", "B", "C"))
+    time_axis = rapid_vel is not None
+
     feed = []
     feed_lines = []
     feed_abc = []
     feed_seq = []
+    feed_tcum = []
+    _ftc = 0.0
     total_feed_dist = 0.0
     total_feed_time = 0.0
     feed_rates = set()
@@ -259,8 +297,14 @@ def parse(ctx: dict) -> dict:
             dist = (sdx * sdx + sdy * sdy + sdz * sdz) ** 0.5
             total_feed_dist += dist
             if rate > 0:
-                total_feed_time += dist / (rate * unit_scale)
+                # Segment time: F governs the larger of linear distance and
+                # rotary sweep (1° ≙ 1 unit — exact for G94 linear moves,
+                # honest approximation for rotary/G93).
+                _rotd = max(abs(end[3] - start[3]), abs(end[4] - start[4]), abs(end[5] - start[5]))
+                _ftc += max(dist, _rotd) / (rate * unit_scale)
+                total_feed_time = _ftc
                 feed_rates.add(round(rate * unit_scale * 60.0, 1))
+            feed_tcum.append(_ftc)
     else:
         for lineno, start, end, rate, _tlo, seq in canon.feed:
             feed.append([(end[0] - ox) * unit_scale, (end[1] - oy) * unit_scale, (end[2] - oz) * unit_scale])
@@ -273,14 +317,29 @@ def parse(ctx: dict) -> dict:
             dist = (dx * dx + dy * dy + dz * dz) ** 0.5
             total_feed_dist += dist
             if rate > 0:
-                total_feed_time += dist / (rate * unit_scale)
+                _rotd = max(abs(end[3] - start[3]), abs(end[4] - start[4]), abs(end[5] - start[5]))
+                _ftc += max(dist, _rotd) / (rate * unit_scale)
+                total_feed_time = _ftc
                 feed_rates.add(round(rate * unit_scale * 60.0, 1))
+            feed_tcum.append(_ftc)
 
     rapid = []
     rapid_abc = []
     rapid_lines = []
     rapid_seq = []
+    rapid_tcum = []
+    _rtc = 0.0
     total_rapid_dist = 0.0
+
+    def _rapid_seg_t(dist, start, end):
+        # max(linear, rotary) — axes run simultaneously, the slower governs.
+        if not time_axis:
+            return 0.0
+        lin_t = dist / rapid_vel
+        rotd = max(abs(end[3] - start[3]), abs(end[4] - start[4]), abs(end[5] - start[5]))
+        rot_t = rotd / (rot_rapid_vel if rot_rapid_vel else rapid_vel)
+        return max(lin_t, rot_t)
+
     if theta:
         for lineno, start, end, _tlo, seq in canon.rapid:
             dx = end[0] - ox
@@ -296,7 +355,10 @@ def parse(ctx: dict) -> dict:
             sdx = (end[0] - start[0]) * unit_scale
             sdy = (end[1] - start[1]) * unit_scale
             sdz = (end[2] - start[2]) * unit_scale
-            total_rapid_dist += (sdx * sdx + sdy * sdy + sdz * sdz) ** 0.5
+            _d = (sdx * sdx + sdy * sdy + sdz * sdz) ** 0.5
+            total_rapid_dist += _d
+            _rtc += _rapid_seg_t(_d, start, end)
+            rapid_tcum.append(_rtc)
     else:
         for lineno, start, end, _tlo, seq in canon.rapid:
             rapid.append([(end[0] - ox) * unit_scale, (end[1] - oy) * unit_scale, (end[2] - oz) * unit_scale])
@@ -306,19 +368,12 @@ def parse(ctx: dict) -> dict:
             dx = (end[0] - start[0]) * unit_scale
             dy = (end[1] - start[1]) * unit_scale
             dz = (end[2] - start[2]) * unit_scale
-            total_rapid_dist += (dx * dx + dy * dy + dz * dz) ** 0.5
+            _d = (dx * dx + dy * dy + dz * dz) ** 0.5
+            total_rapid_dist += _d
+            _rtc += _rapid_seg_t(_d, start, end)
+            rapid_tcum.append(_rtc)
 
-    rapid_vel = None
-    try:
-        for ax in range(3):
-            v = ini.find("AXIS_%d" % ax, "MAX_VELOCITY")
-            if v:
-                v_scaled = float(v)
-                if rapid_vel is None or v_scaled < rapid_vel:
-                    rapid_vel = v_scaled
-    except (ValueError, TypeError) as e:
-        _trace.emit_exc("ini.axis_max_vel_parse_failed", e)
-    total_rapid_time = (total_rapid_dist / rapid_vel) if rapid_vel else 0.0
+    total_rapid_time = _rtc if time_axis else 0.0
 
     arc_dist_scaled = canon.arc_dist * unit_scale
     linear_dist = total_feed_dist - arc_dist_scaled
@@ -371,6 +426,9 @@ def parse(ctx: dict) -> dict:
             feed_lines = [feed_lines[i] for i in keep]
             feed_abc = [feed_abc[i] for i in keep]
             feed_seq = [feed_seq[i] for i in keep]
+            # CUMULATIVE time — sampling kept indices preserves the dropped
+            # interior segments' durations in the next kept point's delta.
+            feed_tcum = [feed_tcum[i] for i in keep]
     if len(rapid) > 2:
         keep = _rdp_keep(_rdp_points(rapid, rapid_abc), [0, len(rapid) - 1], eps_sq)
         if len(keep) < len(rapid):
@@ -378,6 +436,7 @@ def parse(ctx: dict) -> dict:
             rapid_abc = [rapid_abc[i] for i in keep]
             rapid_lines = [rapid_lines[i] for i in keep]
             rapid_seq = [rapid_seq[i] for i in keep]
+            rapid_tcum = [rapid_tcum[i] for i in keep]
     print(
         f"rdp feed {pre_feed}->{len(feed)} rapid {pre_rapid}->{len(rapid)} eps={eps:.5f} rotary={has_rotary}",
         file=sys.stderr, flush=True,
@@ -487,6 +546,12 @@ def parse(ctx: dict) -> dict:
     feed_seq_bin = np.asarray(feed_seq, dtype="<u4").tobytes() if feed_seq else b""
     rapid_seq_bin = np.asarray(rapid_seq, dtype="<u4").tobytes() if rapid_seq else b""
     rapid_lines_bin = np.asarray(rapid_lines, dtype="<u4").tobytes() if rapid_lines else b""
+    # Time axis (unified timeline phase 1): per-point CUMULATIVE seconds within
+    # each stream — the client diffs per stream while merging, so the merged
+    # track's cum parameter is program time. Absent when the INI lacks
+    # MAX_VELOCITY (time_axis False) — client falls back to the distance axis.
+    feed_tcum_bin = np.asarray(feed_tcum, dtype="<f4").tobytes() if (time_axis and feed_tcum) else b""
+    rapid_tcum_bin = np.asarray(rapid_tcum, dtype="<f4").tobytes() if (time_axis and rapid_tcum) else b""
 
     # Include "file" so this dict is the EXACT GET /preview wire shape: the
     # gateway publishes these bytes verbatim (no decode + re-encode), which is
@@ -495,6 +560,9 @@ def parse(ctx: dict) -> dict:
     result = {"file": filename, "feed": feed_bin, "feed_lines": feed_lines_bin,
               "feed_seq": feed_seq_bin, "rapid_seq": rapid_seq_bin,
               "rapid_lines": rapid_lines_bin,
+              "feed_tcum": feed_tcum_bin, "rapid_tcum": rapid_tcum_bin,
+              "rapid_rate": rapid_vel, "rot_rapid_rate": rot_rapid_vel,
+              "tool_change_lines": [[int(l), int(t)] for l, t in canon.tool_change_events],
               "rapid": rapid_bin, "stats": stats, "bounds": bounds,
               "motion_bounds": motion_bounds,
               "violations": violations, "violations_total": violations_total,

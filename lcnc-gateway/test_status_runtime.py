@@ -142,6 +142,7 @@ class TestPollStatus(unittest.TestCase):
         base = dict(
             ini_filename=None,  # skip var-file path in these tests
             estop=0, enabled=1,
+            axis_mask=0b111,  # XYZ — canonical→joint re-indexing needs it
             joints=3, homed=(1, 1, 1, 0, 0),
             g5x_index=1,
             g5x_offset=(1.0, 2.0, 3.0),
