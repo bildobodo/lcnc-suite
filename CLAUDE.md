@@ -344,7 +344,14 @@ worker checks every canon segment — pre-RDP, since decimation can shave
 extremes — against per-axis INI limits. Pure helpers in `gateway_util.py`
 (`read_axis_limits`: `AXIS_<letter>` preferred, `JOINT_<n>` fallback in
 joint order; `check_limit_violations`: machine-frame, joint-side — TLO
-added back to XYZ — all axes incl. rotary; both unit-tested). Attribution
+added back to XYZ — all axes incl. rotary; both unit-tested).
+WORLD-mode (TCP) segments (phase 2c): joints ≠ words, so those segments
+route through `check_limit_violations_world` — rotary-subdivided (4°,
+mid-segment extremes are the point: the phase-0 capture's joint X hit
+−22.36 on a program whose X words never left ±20) through the Python
+kins twin, TLO applied to BOTH world coords and the pivot param; a
+declared kins without a twin leaves its segments loudly UNCHECKED,
+never identity-checked wrongly. Reports merge per (line, axis). Attribution
 rule: only a line that MOVES an axis while out of bounds is flagged; lines
 where the axis merely sits parked past a limit are not re-flagged, so the
 culprit line stands alone. Wire: `violations` (per-line records, capped at

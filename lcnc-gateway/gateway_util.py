@@ -621,6 +621,119 @@ def trt_kins_inverse(world, params, bc=False):
     return [px, py, pz, r1, c]
 
 
+_TRT_LETTERS = {"xyzac-trt": ("X", "Y", "Z", "A", "C"),
+                "xyzbc-trt": ("X", "Y", "Z", "B", "C")}
+_JOINT_MOVE_EPS = 1e-9
+
+
+def check_limit_violations_world(segments, limits, kins_cfg, unit_scale=1.0,
+                                 rot_step_deg=4.0, max_report=200):
+    """JOINT-side soft limits for WORLD-mode (TCP) segments.
+
+    Under world kins the program/world words say nothing about the joints:
+    phase-0 capture — joint X hit -22.36 on a program whose X words never
+    left +/-20, MID-segment (a C sweep at fixed world XY: jx traces
+    -sqrt(wx^2+wy^2); both endpoints were inside the limits). So each
+    segment is SUBDIVIDED by its rotary sweep (rot_step_deg, the client's
+    4-degree rule; capped 256) and every sample runs through the Python
+    kins twin (trt_kins_inverse — oracle-pinned) before checking.
+
+    segments: (lineno, start9, end9, tlo3) canon tuples of the WORLD
+    segments only (canon inches / degrees). World coords are TLO-INCLUSIVE
+    (limits act on joints; the kins' tool_offset param gets the same TLO z
+    so the pivot math is right — the phase-1d/2b audit).
+    Attribution: a joint is flagged only when it MOVES within the segment
+    (min/max span > eps — endpoint comparison would call a full C turn
+    "parked" while its X excursion is the whole point).
+
+    Returns (records, total) shaped exactly like check_limit_violations,
+    or (None, n_segments) when the declared kins type has no twin — those
+    segments are UNCHECKED (never checked wrongly as identity).
+    """
+    ktype = (kins_cfg or {}).get("type")
+    letters = _TRT_LETTERS.get(ktype)
+    segments = list(segments)
+    if letters is None:
+        return None, len(segments)
+    if not limits or not segments:
+        return [], 0
+    bc = ktype == "xyzbc-trt"
+    params0 = {k: float(v) for k, v in ((kins_cfg.get("params") or {}).items())}
+    bounds = []
+    for jno, letter in enumerate(letters):
+        b = limits.get(letter)
+        if b is not None:
+            bounds.append((jno, letter, b[0], b[1]))
+    if not bounds:
+        return [], 0
+
+    worst = {}
+    jmin = [0.0] * 5
+    jmax = [0.0] * 5
+    for lineno, start, end, tlo in segments:
+        rotd = max(abs(end[i] - start[i]) for i in (3, 4, 5))
+        steps = min(256, max(1, math.ceil(rotd / rot_step_deg)))
+        params = params0
+        if tlo is not None and tlo[2]:
+            params = dict(params0)
+            params["tool_offset"] = tlo[2] * unit_scale
+        for si in range(steps + 1):
+            t = si / steps
+            w = [0.0] * 6
+            for i in range(6):
+                v = start[i] + (end[i] - start[i]) * t
+                if i < 3:
+                    v = (v + (tlo[i] if tlo is not None else 0.0)) * unit_scale
+                w[i] = v
+            joints = trt_kins_inverse(w, params, bc=bc)
+            if si == 0:
+                for j in range(5):
+                    jmin[j] = jmax[j] = joints[j]
+            else:
+                for j in range(5):
+                    if joints[j] < jmin[j]:
+                        jmin[j] = joints[j]
+                    elif joints[j] > jmax[j]:
+                        jmax[j] = joints[j]
+        for jno, letter, mn, mx in bounds:
+            if jmax[jno] - jmin[jno] <= _JOINT_MOVE_EPS:
+                continue  # joint parked this segment — culprit line already flagged
+            if mn is not None and jmin[jno] < mn - _LIMIT_EPS:
+                key = (lineno, letter)
+                rec = worst.get(key)
+                if rec is None or jmin[jno] < rec[0]:
+                    worst[key] = [jmin[jno], mn, "min"]
+            if mx is not None and jmax[jno] > mx + _LIMIT_EPS:
+                key = (lineno, letter)
+                rec = worst.get(key)
+                if rec is None or jmax[jno] > rec[0]:
+                    worst[key] = [jmax[jno], mx, "max"]
+
+    order = {letter: i for i, letter in enumerate(AXIS_LETTERS)}
+    keys = sorted(worst, key=lambda k: (k[0], order.get(k[1], 9)))
+    records = [{"line": ln, "axis": ax, "value": round(worst[(ln, ax)][0], 4),
+                "limit": worst[(ln, ax)][1], "kind": worst[(ln, ax)][2]}
+               for ln, ax in keys[:max_report]]
+    return records, len(keys)
+
+
+def merge_violation_records(a, b, max_report=200):
+    """Union of two violation reports (identity-checked + world-checked).
+
+    Worst record wins per (line, axis) — measured by excursion beyond the
+    limit. Returns (records, total distinct pairs). Pure.
+    """
+    worst = {}
+    for rec in list(a or []) + list(b or []):
+        key = (rec["line"], rec["axis"])
+        cur = worst.get(key)
+        if cur is None or abs(rec["value"] - rec["limit"]) > abs(cur["value"] - cur["limit"]):
+            worst[key] = rec
+    order = {letter: i for i, letter in enumerate(AXIS_LETTERS)}
+    keys = sorted(worst, key=lambda k: (k[0], order.get(k[1], 9)))
+    return [worst[k] for k in keys[:max_report]], len(keys)
+
+
 def read_axis_limits(ini_find, axis_mask: int):
     """Per-axis soft limits from the active INI, for every axis in the mask.
 

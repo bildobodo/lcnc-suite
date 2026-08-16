@@ -888,3 +888,81 @@ class TestKinsModeHelpers(unittest.TestCase):
         # must not assume it — collision/scrub consumers merge later.
         flags = gateway_util.kins_world_flags([5, 1], [(2, 1)], identity_first=True)
         self.assertEqual(flags, [1, 0])
+
+
+class TestWorldLimitCheck(unittest.TestCase):
+    """Phase 2c: joint-side soft limits for world-mode (TCP) segments."""
+
+    CFG = {"type": "xyzac-trt", "identity_first": True,
+           "params": {"y_offset": 20.0, "z_offset": 10.0}}
+    # canon tuples are (lineno, start9, end9, tlo3); canon units here = mm
+    # (unit_scale 1) to keep the numbers readable.
+    NINE = staticmethod(lambda x, y, z, a, c: (x, y, z, a, 0.0, c, 0.0, 0.0, 0.0))
+
+    def test_midsegment_excursion_the_phase0_case(self):
+        # THE live regression: C sweep 0->180 at fixed world (20,10,30).
+        # Joint X traces cos(c)*20 - sin(c)*10: min = -sqrt(500) = -22.36
+        # MID-segment while both endpoints (20 and -20) sit inside +/-21.
+        seg = (23, self.NINE(20, 10, 30, 0, 0), self.NINE(20, 10, 30, 0, 180), None)
+        limits = {"X": (-21.0, 21.0)}
+        records, total = gateway_util.check_limit_violations_world(
+            [seg], limits, self.CFG)
+        self.assertEqual(total, 1)
+        self.assertEqual(records[0]["axis"], "X")
+        self.assertEqual(records[0]["kind"], "min")
+        # Reported value is the worst SAMPLE (4-degree grid), which can
+        # under-read the true extremum by <= (1-cos(step/2))*radius — here
+        # 22.3537 vs the analytic 22.3607. Detection is the guarantee.
+        self.assertAlmostEqual(records[0]["value"], -22.3607, delta=0.02)
+        # Endpoint-only checking (the identity checker) misses it entirely:
+        idn, idn_total = gateway_util.check_limit_violations([seg], limits, 1.0)
+        self.assertEqual(idn_total, 0)
+
+    def test_parked_joints_not_flagged(self):
+        # Pure Z world move at A0 C0: joints X/Y parked outside a fake
+        # limit must not re-flag; moving joint Z inside its limit is clean.
+        seg = (5, self.NINE(100, 0, 10, 0, 0), self.NINE(100, 0, 50, 0, 0), None)
+        records, total = gateway_util.check_limit_violations_world(
+            [seg], {"X": (-50.0, 50.0), "Z": (-100.0, 100.0)}, self.CFG)
+        self.assertEqual(total, 0)
+
+    def test_unknown_kins_type_returns_unchecked(self):
+        seg = (5, self.NINE(0, 0, 0, 0, 0), self.NINE(0, 0, 0, 0, 90), None)
+        records, total = gateway_util.check_limit_violations_world(
+            [seg], {"X": (-1.0, 1.0)}, {"type": "xyzbc-nutating", "params": {}})
+        self.assertIsNone(records)
+        self.assertEqual(total, 1)  # count of UNCHECKED segments
+
+    def test_tlo_shifts_joint_z_exactly(self):
+        # On xyzac the TOOL never tilts (the table does), so a G43 TLO's
+        # only joint-space effect is joint Z = tip-Z-joint + TLO — the
+        # check must apply the segment TLO to BOTH the world coords
+        # (TLO-inclusive convention) and the kins' tool_offset pivot param;
+        # get either half wrong and the shift is no longer exactly +TLO.
+        # Sweep A 0..-90 at fixed tip: find the no-TLO joint-Z max, then a
+        # limit midway into the +25 shift flags ONLY the TLO segment.
+        def jz_max(tlo_z):
+            p = {"y_offset": 20.0, "z_offset": 10.0}
+            if tlo_z:
+                p["tool_offset"] = tlo_z
+            return max(gateway_util.trt_kins_inverse(
+                [0, 0, 30 + tlo_z, -a, 0, 0], p)[2] for a in range(91))
+        m0 = jz_max(0.0)
+        self.assertAlmostEqual(jz_max(25.0), m0 + 25.0, places=9)
+        lim = {"Z": (None, m0 + 12.5)}
+        seg = (7, self.NINE(0, 0, 30, 0, 0), self.NINE(0, 0, 30, -90, 0), None)
+        seg_tlo = (7, seg[1], seg[2], (0.0, 0.0, 25.0))
+        _, t_no = gateway_util.check_limit_violations_world([seg], lim, self.CFG)
+        recs, t_tlo = gateway_util.check_limit_violations_world([seg_tlo], lim, self.CFG)
+        self.assertEqual(t_no, 0)
+        self.assertEqual(t_tlo, 1)
+        self.assertEqual(recs[0]["axis"], "Z")
+
+    def test_merge_keeps_worst_per_pair(self):
+        a = [{"line": 5, "axis": "X", "value": -22.0, "limit": -21.0, "kind": "min"}]
+        b = [{"line": 5, "axis": "X", "value": -25.0, "limit": -21.0, "kind": "min"},
+             {"line": 9, "axis": "C", "value": 361.0, "limit": 360.0, "kind": "max"}]
+        records, total = gateway_util.merge_violation_records(a, b)
+        self.assertEqual(total, 2)
+        self.assertEqual(records[0]["value"], -25.0)
+        self.assertEqual(records[1]["axis"], "C")

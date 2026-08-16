@@ -61,6 +61,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from gcode_canon import PreviewCanon, apply_var_patches
 from gateway_util import (
     scan_tool_stats, read_axis_limits, check_limit_violations,
+    check_limit_violations_world, merge_violation_records,
     rs274_effective_xy_offset, parse_kins_config, kins_world_flags,
 )
 
@@ -218,15 +219,54 @@ def parse(ctx: dict) -> dict:
     # parse time): exactly the frame soft limits act in. Touch-off after
     # load shifts that frame — the annotations refresh on the next re-parse.
     axis_limits = read_axis_limits(ini.find, s.axis_mask)
+    # Switchkins mode resolution (phase 2) — computed here because BOTH the
+    # limit check (2c: joint-side for world segments) and the wire mode
+    # arrays (2a, further down) consume it. Flags align 1:1 with the
+    # pre-RDP canon.feed / canon.rapid lists.
+    kins_cfg = None
+    feed_world = rapid_world = None
+    if canon.kins_events:
+        kins_cfg = parse_kins_config(ini.find("KINS", "KINEMATICS"),
+                                     ini.findall("HAL", "HALCMD") or [])
+        _idf = bool(kins_cfg and kins_cfg.get("identity_first"))
+        feed_world = kins_world_flags([t[5] for t in canon.feed], canon.kins_events, _idf)
+        rapid_world = kins_world_flags([t[4] for t in canon.rapid], canon.kins_events, _idf)
+    _any_world = bool(feed_world and any(feed_world)) or bool(rapid_world and any(rapid_world))
     if axis_limits:
-        def _limit_segs():
-            for _lineno, _start, _end, _rate, _tlo, _seq in canon.feed:
-                yield _lineno, _start, _end, _tlo
-            for _lineno, _start, _end, _tlo, _seq in canon.rapid:
-                yield _lineno, _start, _end, _tlo
+        def _identity_segs():
+            for _i, (_lineno, _start, _end, _rate, _tlo, _seq) in enumerate(canon.feed):
+                if not (feed_world and feed_world[_i]):
+                    yield _lineno, _start, _end, _tlo
+            for _i, (_lineno, _start, _end, _tlo, _seq) in enumerate(canon.rapid):
+                if not (rapid_world and rapid_world[_i]):
+                    yield _lineno, _start, _end, _tlo
         violations, violations_total = check_limit_violations(
-            _limit_segs(), axis_limits, unit_scale)
-        print(f"limits axes={''.join(sorted(axis_limits))} violations={violations_total}",
+            _identity_segs(), axis_limits, unit_scale)
+        if _any_world:
+            # World-mode segments: joint-side check through the kins twin
+            # (subdivided — the joint path between world endpoints is
+            # nonlinear; endpoint checks miss the phase-0 -22.36 class).
+            def _world_segs():
+                for _i, (_lineno, _start, _end, _rate, _tlo, _seq) in enumerate(canon.feed):
+                    if feed_world and feed_world[_i]:
+                        yield _lineno, _start, _end, _tlo
+                for _i, (_lineno, _start, _end, _tlo, _seq) in enumerate(canon.rapid):
+                    if rapid_world and rapid_world[_i]:
+                        yield _lineno, _start, _end, _tlo
+            w_records, w_total = check_limit_violations_world(
+                _world_segs(), axis_limits, kins_cfg, unit_scale)
+            if w_records is None:
+                # No twin for the declared kins: those segments are
+                # UNCHECKED — said loudly, never checked wrongly as identity.
+                print(f"limits: {w_total} world-mode segments UNCHECKED "
+                      f"(no kins twin for {kins_cfg.get('type') if kins_cfg else None})",
+                      file=sys.stderr, flush=True)
+            else:
+                violations, _merged_total = merge_violation_records(violations, w_records)
+                # Truncation-safe total: the merge only sees capped lists.
+                violations_total = max(_merged_total, violations_total, w_total)
+        print(f"limits axes={''.join(sorted(axis_limits))} violations={violations_total}"
+              + (f" (world-checked)" if _any_world else ""),
               file=sys.stderr, flush=True)
     else:
         # No MIN/MAX_LIMIT anywhere in the INI: unchecked, NOT clean — None
@@ -379,19 +419,17 @@ def parse(ctx: dict) -> dict:
     total_rapid_time = _rtc if time_axis else 0.0
 
     # Kins mode flags (TCP+TWP phase 2a): per-segment world-mode from the
-    # switchkins remaps' `(WEBUI_KINSTYPE=n)` markers. Present ONLY when
-    # markers were seen — absent = no mode data (untracked ≠ identity), so
-    # ordinary programs pay zero wire cost and the client never guesses.
-    feed_mode = rapid_mode = None
+    # switchkins remaps' `(WEBUI_KINSTYPE=n)` markers, resolved above at
+    # the limit-check site (flags align 1:1 with the pre-RDP canon lists,
+    # which these extraction lists mirror). Present ONLY when markers were
+    # seen — absent = no mode data (untracked ≠ identity), so ordinary
+    # programs pay zero wire cost and the client never guesses.
+    feed_mode = feed_world
+    rapid_mode = rapid_world
     if canon.kins_events:
-        _kcfg = parse_kins_config(ini.find("KINS", "KINEMATICS"),
-                                  ini.findall("HAL", "HALCMD") or [])
-        _idf = bool(_kcfg and _kcfg.get("identity_first"))
-        feed_mode = kins_world_flags(feed_seq, canon.kins_events, _idf)
-        rapid_mode = kins_world_flags(rapid_seq, canon.kins_events, _idf)
-        print(f"kins markers={len(canon.kins_events)} identity_first={_idf} "
-              f"world_feed={sum(feed_mode)}/{len(feed_mode)} "
-              f"world_rapid={sum(rapid_mode)}/{len(rapid_mode)}",
+        print(f"kins markers={len(canon.kins_events)} "
+              f"world_feed={sum(feed_mode or [])}/{len(feed_mode or [])} "
+              f"world_rapid={sum(rapid_mode or [])}/{len(rapid_mode or [])}",
               file=sys.stderr, flush=True)
 
     arc_dist_scaled = canon.arc_dist * unit_scale
