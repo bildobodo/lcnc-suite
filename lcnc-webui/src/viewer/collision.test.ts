@@ -373,6 +373,34 @@ describe("contact-window refinement (glow window)", () => {
     expect(l26.cumEnd).toBeLessThan(51);      // ...never the line end (90)
   });
 
+  it("intermittent contact on ONE line yields separate refined intervals", () => {
+    // The user's line-26 shape: enter contact, leave it, re-enter — all on
+    // one source line. One [cum, cumEnd] window would glow across the
+    // verified-clear middle; intervals must split it.
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    // Touch at Z=-40. L26: -45 (in contact) -> -10 (clear) -> -45 (back in)
+    // -> 0 (clear). Line cums: 45..80..115..160; contact ends ~50,
+    // resumes ~110, ends ~120.
+    const t = track(
+      [[0, 0, 0], [0, 0, -45], [0, 0, -10], [0, 0, -45], [0, 0, 0]],
+      undefined, [25, 25, 26, 26, 26]);
+    const res = sweepCollisions(model, t, WCS0, { margin: 2 });
+    const l26 = res.hits.find(h => h.line === 26 && h.dist < 1e-3)!;
+    expect(l26).toBeDefined();
+    expect(l26.intervals).toHaveLength(2);
+    const [a, b] = l26.intervals!;
+    expect(a![0]).toBeLessThan(45.5);      // in contact from line start
+    expect(a![1]).toBeGreaterThan(49);     // separates at Z=-40 (cum 50)
+    expect(a![1]).toBeLessThan(51);
+    expect(b![0]).toBeGreaterThan(109);    // re-touches at Z=-40 (cum 110)
+    expect(b![0]).toBeLessThan(111);
+    expect(b![1]).toBeGreaterThan(119);    // separates again (cum 120)
+    expect(b![1]).toBeLessThan(121);
+    // compat fields span the whole contact story
+    expect(l26.cum).toBe(a![0]);
+    expect(l26.cumEnd).toBe(b![1]);
+  });
+
   it("cumEnd lands at separation under world kins (TCP line-26 shape)", () => {
     // XYZAC world segments at fixed world (20,0,-45): jx = 20*cos(C), so
     // the table slides -20 -> +20 as C returns 180 -> 0. Vise rides the

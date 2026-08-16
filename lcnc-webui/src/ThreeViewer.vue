@@ -1684,10 +1684,16 @@ function _updateClashTint(line: number | null, cum: number | null) {
   const want = new Set<string>();
   if (line != null && cum != null && _scrubTrackRef && _scrubTrackRef === collisionTrack.value) {
     for (const h of collisionResult.value?.hits ?? []) {
-      if (h.line === line && h.dist <= CONTACT_TINT_EPS
-          && cum >= h.cum - CONTACT_TINT_EPS && cum <= h.cumEnd + CONTACT_TINT_EPS) {
-        want.add(h.a);
-        want.add(h.b);
+      if (h.line !== line || h.dist > CONTACT_TINT_EPS) continue;
+      // Contact within a line can be intermittent — glow only INSIDE a
+      // refined interval, never across the verified-clear gaps between.
+      const ivs = h.intervals ?? [[h.cum, h.cumEnd] as [number, number]];
+      for (const [en, ex] of ivs) {
+        if (cum >= en - CONTACT_TINT_EPS && cum <= ex + CONTACT_TINT_EPS) {
+          want.add(h.a);
+          want.add(h.b);
+          break;
+        }
       }
     }
   }

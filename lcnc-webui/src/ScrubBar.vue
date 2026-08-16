@@ -356,7 +356,14 @@ const violationTargets = computed<FindingTarget[]>(() => {
 // were swept on the DISPLAYED track (see collisionTrack prop).
 const resultCurrent = computed(() => props.collisionTrack === track.value);
 const hits = computed(() => (resultCurrent.value ? props.collisionResult?.hits ?? [] : []));
-const hitTargets = computed<FindingTarget[]>(() => hits.value);
+// One navigation target per contact ONSET: an intermittent-contact line
+// (enter → exit → re-enter) yields a target per interval, so the re-entry
+// is a real "next clash" stop, not folded invisibly into the first.
+const hitTargets = computed<FindingTarget[]>(() =>
+  hits.value
+    .flatMap(h => (h.intervals ?? [[h.cum, h.cumEnd] as [number, number]])
+      .map(iv => ({ cum: iv[0], line: h.line, rapid: h.rapid, dist: h.dist })))
+    .sort((a, b) => a.cum - b.cum));
 
 function targetAfter(list: FindingTarget[], s: number): FindingTarget | null {
   if (!list.length) return null;
@@ -387,7 +394,7 @@ function jumpTo(target: FindingTarget | null) {
 // margin but never touching (clearance warning, not a contact).
 const hitMarks = computed(() =>
   cumMax.value > 0
-    ? hits.value.map(h => ({ pct: Math.min(100, (h.cum / cumMax.value) * 100), rapid: h.rapid, near: h.dist > 1e-3 }))
+    ? hitTargets.value.map(t => ({ pct: Math.min(100, (t.cum / cumMax.value) * 100), rapid: t.rapid ?? false, near: (t.dist ?? 0) > 1e-3 }))
     : [],
 );
 
