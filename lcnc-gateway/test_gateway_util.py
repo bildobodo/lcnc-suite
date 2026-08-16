@@ -848,3 +848,43 @@ class TestParseKinsConfig(unittest.TestCase):
     def test_none_input(self):
         self.assertIsNone(gateway_util.parse_kins_config(None, []))
         self.assertIsNone(gateway_util.parse_kins_config("", []))
+
+
+class TestKinsModeHelpers(unittest.TestCase):
+    """Phase 2a: marker parsing + per-segment world-mode flags."""
+
+    def test_marker_parse(self):
+        f = gateway_util.parse_kinstype_marker
+        self.assertEqual(f("WEBUI_KINSTYPE=1"), 1)
+        self.assertEqual(f("  webui_kinstype = 0  "), 0)
+        self.assertEqual(f("WEBUI_KINSTYPE=2"), 2)
+        self.assertIsNone(f("WEBUI_KINSTYPE=x"))
+        self.assertIsNone(f("some ordinary comment"))
+        self.assertIsNone(f(""))
+        self.assertIsNone(f(None))
+        # marker must be the WHOLE comment, not embedded prose
+        self.assertIsNone(f("note: WEBUI_KINSTYPE=1 is set elsewhere"))
+
+    def test_world_flags_identity_first(self):
+        # M429(k0) start, M428(k1) after seg 2, M429(k0) after seg 5.
+        # A marker at seq N applies to segments seq > N.
+        flags = gateway_util.kins_world_flags(
+            [1, 2, 3, 4, 5, 6, 7], [(0, 0), (2, 1), (5, 0)], identity_first=True)
+        self.assertEqual(flags, [0, 0, 1, 1, 1, 0, 0])
+
+    def test_world_flags_plain_module_defaults_world(self):
+        # Without sparm=identityfirst, startup kinstype 0 IS the world kins.
+        flags = gateway_util.kins_world_flags([1, 2, 3], [(2, 1)], identity_first=False)
+        self.assertEqual(flags, [1, 1, 0])
+
+    def test_userk_type2_is_identity_in_both_mappings(self):
+        self.assertEqual(
+            gateway_util.kins_world_flags([1], [(0, 2)], identity_first=True), [0])
+        self.assertEqual(
+            gateway_util.kins_world_flags([1], [(0, 2)], identity_first=False), [0])
+
+    def test_unordered_seqs(self):
+        # feed and rapid lists are each execution-ordered but the helper
+        # must not assume it — collision/scrub consumers merge later.
+        flags = gateway_util.kins_world_flags([5, 1], [(2, 1)], identity_first=True)
+        self.assertEqual(flags, [1, 0])

@@ -10,6 +10,8 @@ import math
 from typing import Dict, List
 from rs274.interpret import Translated, ArcsToSegmentsMixin, StatMixin
 
+from gateway_util import parse_kinstype_marker
+
 
 # Adaptive arc tessellation (A1). Chord tolerance in canon units (inches —
 # LinuxCNC internal). 0.001 in ≈ 0.025 mm — sub-pixel at typical viewports.
@@ -44,6 +46,10 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         self.tools_used = set()
         self.tool_changes = 0
         self.tool_change_events = []   # [(lineno, tool_idx)] in execution order
+        # Switchkins mode markers `(WEBUI_KINSTYPE=n)` from the toggle
+        # remaps (TCP+TWP phase 2): [(seq_at_marker, kinstype)] in
+        # execution order — a marker at seq N applies to segments seq > N.
+        self.kins_events = []
         self.xo = self.yo = self.zo = 0.0
         self.ao = self.bo = self.co = 0.0
         self.uo = self.vo = self.wo = 0.0
@@ -58,7 +64,10 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     def set_feed_rate(self, f): self.feedrate = f / 60.0
     def set_spindle_rate(self, _): pass
     def select_plane(self, _): pass
-    def comment(self, _): pass
+    def comment(self, text):
+        k = parse_kinstype_marker(text)
+        if k is not None:
+            self.kins_events.append((self.seq, k))
     def message(self, _): pass
     def check_abort(self): pass
     def user_defined_function(self, i, p, q): pass

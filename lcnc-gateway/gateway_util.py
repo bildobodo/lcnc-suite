@@ -495,6 +495,49 @@ def parse_kins_config(kinematics_value, halcmd_values):
     }
 
 
+_KINSTYPE_MARKER = re.compile(r"^\s*WEBUI_KINSTYPE\s*=\s*(\d+)\s*$", re.IGNORECASE)
+
+
+def parse_kinstype_marker(text):
+    """Comment text -> switchkins-type value, or None if not a marker.
+
+    Convention (TCP+TWP plan phase 2): the switchkins toggle remaps emit
+    `(WEBUI_KINSTYPE=<n>)` right where they set motion.switchkins-type —
+    the component that PERFORMS the switch announces it. Comments are the
+    one channel the preview canon receives in execution order (remapped
+    M-codes never appear in active mcodes; M68 is swallowed by the C
+    preview canon), and they are silent in task. Programs/configs that
+    switch kins without the marker are invisible to the preview — tracked
+    honestly as "no mode data" (absent wire fields), never guessed.
+    """
+    m = _KINSTYPE_MARKER.match(text or "")
+    return int(m.group(1)) if m else None
+
+
+def kins_world_flags(seqs, events, identity_first):
+    """Per-segment world-mode flags from execution-ordered marker events.
+
+    `seqs`: segment sequence numbers (any order); `events`: [(seq_at_marker,
+    kinstype)] as recorded by the canon — a marker seen at canon seq N
+    applies to segments with seq > N. Startup kinstype is 0 (switchkins
+    boot default). Mapping (matches the kins module's sparm semantics):
+    identity_first => type 1 is the world kins; plain => type 0 is. Type 2
+    (userk) defaults to identity math in the stock template — treated as
+    identity. Returns a list of 0/1 ints aligned with `seqs`. Pure.
+    """
+    evs = sorted(events)
+    out = []
+    for s in seqs:
+        k = 0
+        for es, ek in evs:
+            if es < s:
+                k = ek
+            else:
+                break
+        out.append(1 if (k == 1 if identity_first else k == 0) else 0)
+    return out
+
+
 def trt_kins_forward(joints, params, bc=False):
     """xyzac/xyzbc-trt world kinematics, forward (joints -> world).
 

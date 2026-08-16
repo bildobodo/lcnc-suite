@@ -59,7 +59,10 @@ _trace.init("gcode_parse_worker")
 # Ensure local-dir imports resolve when invoked from anywhere
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from gcode_canon import PreviewCanon, apply_var_patches
-from gateway_util import scan_tool_stats, read_axis_limits, check_limit_violations, rs274_effective_xy_offset
+from gateway_util import (
+    scan_tool_stats, read_axis_limits, check_limit_violations,
+    rs274_effective_xy_offset, parse_kins_config, kins_world_flags,
+)
 
 
 _EMPTY = {"feed": [], "feed_lines": [], "rapid": [], "stats": None,
@@ -375,6 +378,22 @@ def parse(ctx: dict) -> dict:
 
     total_rapid_time = _rtc if time_axis else 0.0
 
+    # Kins mode flags (TCP+TWP phase 2a): per-segment world-mode from the
+    # switchkins remaps' `(WEBUI_KINSTYPE=n)` markers. Present ONLY when
+    # markers were seen — absent = no mode data (untracked ≠ identity), so
+    # ordinary programs pay zero wire cost and the client never guesses.
+    feed_mode = rapid_mode = None
+    if canon.kins_events:
+        _kcfg = parse_kins_config(ini.find("KINS", "KINEMATICS"),
+                                  ini.findall("HAL", "HALCMD") or [])
+        _idf = bool(_kcfg and _kcfg.get("identity_first"))
+        feed_mode = kins_world_flags(feed_seq, canon.kins_events, _idf)
+        rapid_mode = kins_world_flags(rapid_seq, canon.kins_events, _idf)
+        print(f"kins markers={len(canon.kins_events)} identity_first={_idf} "
+              f"world_feed={sum(feed_mode)}/{len(feed_mode)} "
+              f"world_rapid={sum(rapid_mode)}/{len(rapid_mode)}",
+              file=sys.stderr, flush=True)
+
     arc_dist_scaled = canon.arc_dist * unit_scale
     linear_dist = total_feed_dist - arc_dist_scaled
     linear_moves = len(canon.feed) - canon.arc_moves
@@ -420,23 +439,36 @@ def parse(ctx: dict) -> dict:
         for i in range(1, len(feed_lines)):
             if feed_lines[i] != feed_lines[i - 1]:
                 anchors.append(i)
+        # Mode boundaries must survive decimation — a straight run crossing
+        # a kins switch would otherwise collapse into one mixed segment.
+        if feed_mode:
+            anchors = sorted(set(anchors) | {
+                i for i in range(1, len(feed_mode)) if feed_mode[i] != feed_mode[i - 1]})
         keep = _rdp_keep(_rdp_points(feed, feed_abc), anchors, eps_sq)
         if len(keep) < len(feed):
             feed = [feed[i] for i in keep]
             feed_lines = [feed_lines[i] for i in keep]
             feed_abc = [feed_abc[i] for i in keep]
             feed_seq = [feed_seq[i] for i in keep]
+            if feed_mode:
+                feed_mode = [feed_mode[i] for i in keep]
             # CUMULATIVE time — sampling kept indices preserves the dropped
             # interior segments' durations in the next kept point's delta.
             feed_tcum = [feed_tcum[i] for i in keep]
     if len(rapid) > 2:
-        keep = _rdp_keep(_rdp_points(rapid, rapid_abc), [0, len(rapid) - 1], eps_sq)
+        r_anchors = [0, len(rapid) - 1]
+        if rapid_mode:
+            r_anchors = sorted(set(r_anchors) | {
+                i for i in range(1, len(rapid_mode)) if rapid_mode[i] != rapid_mode[i - 1]})
+        keep = _rdp_keep(_rdp_points(rapid, rapid_abc), r_anchors, eps_sq)
         if len(keep) < len(rapid):
             rapid = [rapid[i] for i in keep]
             rapid_abc = [rapid_abc[i] for i in keep]
             rapid_lines = [rapid_lines[i] for i in keep]
             rapid_seq = [rapid_seq[i] for i in keep]
             rapid_tcum = [rapid_tcum[i] for i in keep]
+            if rapid_mode:
+                rapid_mode = [rapid_mode[i] for i in keep]
     print(
         f"rdp feed {pre_feed}->{len(feed)} rapid {pre_rapid}->{len(rapid)} eps={eps:.5f} rotary={has_rotary}",
         file=sys.stderr, flush=True,
@@ -573,6 +605,12 @@ def parse(ctx: dict) -> dict:
         # frontend uses absence as "programmed preview is already exact".
         result["feed_abc"] = np.asarray(feed_abc, dtype="<f4").tobytes() if feed_abc else b""
         result["rapid_abc"] = np.asarray(rapid_abc, dtype="<f4").tobytes() if rapid_abc else b""
+    if feed_mode is not None:
+        # Per-vertex kins world-mode flags (u8), index-aligned with
+        # feed/rapid — present ONLY when the program carried switchkins
+        # markers (absence = no mode data, not "all identity").
+        result["feed_mode"] = np.asarray(feed_mode, dtype="<u1").tobytes() if feed_mode else b""
+        result["rapid_mode"] = np.asarray(rapid_mode, dtype="<u1").tobytes() if rapid_mode else b""
     return result
 
 

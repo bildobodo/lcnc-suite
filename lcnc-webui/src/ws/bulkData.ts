@@ -168,6 +168,13 @@ export interface ViewerGcode {
   // P4.1: cumulative lineDistance for the dashed rapid line, computed off-thread so
   // ThreeViewer sets the attribute directly instead of Three.computeLineDistances().
   rapidDist?: Float32Array;
+  // Kins world-mode flags per vertex (u8, index-aligned with feed/rapid) —
+  // TCP+TWP phase 2a. Present ONLY when the program carried switchkins
+  // `(WEBUI_KINSTYPE=n)` markers from the toggle remaps; absent = NO mode
+  // data (a config switching kins without markers is untracked, not
+  // identity). 1 = world/TCP kins governs the segment ending at the vertex.
+  feed_mode?: Uint8Array;
+  rapid_mode?: Uint8Array;
   // Parse worker aborted partway: interpreter error text + the source line it
   // stopped on (e.g. an axis word this machine doesn't have). The payload
   // still carries whatever parsed before the abort, but scrubTrack is absent
