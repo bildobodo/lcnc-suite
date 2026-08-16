@@ -259,15 +259,33 @@ rotary assembly from the pivot constants and is gated by
 the collision engine and requires zero self-collisions with static
 contacts only at the five designed joints. Sim travels match the v2
 geometry: X ±200, Y ±70, Z −30..+100 (retract is +Z, knee down; nose→
-platter crash plane at Z −35), A −100..+50.
+platter crash plane at Z −35), A −100..+50. A second 5-axis example,
+`machine-dmu160p/` (+ `lcnc_suite_sim_dmu160p.ini`), is the OPPOSITE
+rotary layout — Sigma1912's vtk-vismach DMU 160 P portal mill with a
+45° NUTATING B head (tool-chain rotary about axis `[0, sin45°, cos45°]`)
++ C table, real STLs fetched/converted by its `fetch-model.sh` (GPL v3),
+gated by `machineDmu160p.test.ts`, and shipping the first `stock: true`
+body (500 mm cube on the platter). Frame: X0 Y0 = table center, Z0 =
+TOP of travel (Z −970..0; nose 1120..150 above the table; stock top at
+machine −620) — Z0-at-top makes the joints-at-zero startup pose legal
+and parked (a Z0-at-table first attempt both drew the head buried and
+broke homing: LinuxCNC refuses to home a joint outside its soft
+limits). Both chains carry the frame: work chain lifted +1120 with
+meshes shifted back, preserving relative-pose ≡ machine coords.
+Trivkins boundary: G43 along machine Z vs the tilted-spindle marker —
+consistent at B0, divergent tilted+TLO (TCP out of scope; see its
+README).
 
 **Schema** (`machine.json`):
 - `groups`: `[{id, parent, translate?}]` — transform tree under implicit
   `root`. `translate` is a static base offset (pivot/home position), in mm.
-- `parts`: `[{id, file, group, translate?, rotate?, color?}]` — STL meshes
-  attached to groups. `color` is `[r,g,b]` 0–1 (STL has no color channel);
-  per-part user overrides from Settings still win. Parts get color pickers
-  in Settings automatically.
+- `parts`: `[{id, file, group, translate?, rotate?, color?, stock?}]` —
+  STL meshes attached to groups. `color` is `[r,g,b]` 0–1 (STL has no
+  color channel); per-part user overrides from Settings still win. Parts
+  get color pickers in Settings automatically. `stock: true` marks the
+  ONE body class the collision sweep may FEED into (cutting semantics);
+  `rotate` is Euler radians (prefer baking static rotations into the STL,
+  as fetch-model.sh does for the DMU B head).
 - `kinematics`: `[{group, joint, type: translate|rotate, direction: x|y|z
   or axis: [x,y,z], sign}]` — each entry drives one group from
   `joint_pos[joint]` (**joint index, not axis letter** — trivkins:
@@ -474,8 +492,10 @@ For stock bodies: FEED contact is machining and never reports; contact
 whose ONSET falls in a RAPID is the gouge class and reports; a rapid
 RETRACT leaving feed-begun contact is benign. Stock pairs are never
 baseline-excluded (parked-on-work is normal); they seed the in-contact
-state instead. No stock body ships today — the deferred user-placed
-stock-box feature provides one. Pair scope: DERIVED from relative motion
+state instead. The machine-dmu160p example ships the first stock body
+(`work_piece` cube, `stock: true` — flag flows gateway → `viewer_init`
+parts → collision bodies); the deferred user-placed stock-box feature
+would provide one for arbitrary machines/programs. Pair scope: DERIVED from relative motion
 — any two bodies whose
 group-tree path crosses a kinematic DOF below their lowest common
 ancestor form a pair (tool-vs-work, tool-vs-frame, and same-side pairs

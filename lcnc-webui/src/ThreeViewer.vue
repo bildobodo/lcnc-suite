@@ -1415,6 +1415,9 @@ function runCollisionCheck(trackOverride?: ScrubTrack) {
       positions: new Float32Array(attr.array as Float32Array),  // copy → transferable
       translate: p.translate ? [...p.translate] : undefined,
       rotate: (p as any).rotate ? [...(p as any).rotate] : undefined,
+      // stock: true = cuttable (feed contact is machining, rapid-onset is a
+      // gouge). Absent on machine parts — any tool contact there is a crash.
+      stock: p.stock || undefined,
     });
   }
   if (skipped) console.warn(`[collision] ${skipped} machine part(s) not loaded — checked without them`);

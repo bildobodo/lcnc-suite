@@ -29,6 +29,9 @@ export interface ViewerPart {
   // Optional default color [r,g,b] 0–1 from machine.json (STL carries no
   // color); per-part user overrides in settings still win.
   color?: Vec3;
+  // STOCK body: the one thing the tool may FEED into (collision-sweep
+  // cutting semantics — see viewer/collision.ts). Machine parts never are.
+  stock?: boolean;
   // Legacy field names kept for backward compatibility with older payloads.
   parent?: string | null;
   t?: Vec3;
