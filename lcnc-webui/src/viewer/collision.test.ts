@@ -354,3 +354,56 @@ describe("toolCylinderPositions", () => {
     expect(maxR).toBeCloseTo(3, 5);
   });
 });
+
+describe("contact-window refinement (glow window)", () => {
+  // User-reported scenario 2026-08-16: a line that STARTS inside a
+  // collision and separates mid-line — the glow window [cum, cumEnd]
+  // must end at the separation point, not run to the line's end.
+  it("cumEnd lands at the separation point, not the line end", () => {
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    // Tool bottom = 45+Z, vise top = +5: touch at Z=-40, 5 deep at -45.
+    // L25 plunges 0 -> -45; L26 retracts: separation (dist > eps) at
+    // Z=-40, i.e. 5 units into the 45-unit line (cum 50 of 45..90).
+    const t = track([[0, 0, 0], [0, 0, -45], [0, 0, 0]], undefined, [25, 25, 26]);
+    const res = sweepCollisions(model, t, WCS0, { margin: 2 });
+    const l26 = res.hits.find(h => h.line === 26 && h.dist < 1e-3)!;
+    expect(l26).toBeDefined();
+    expect(l26.cum).toBeLessThan(45.5);       // in contact from line start
+    expect(l26.cumEnd).toBeGreaterThan(49);   // ends at separation (~50)...
+    expect(l26.cumEnd).toBeLessThan(51);      // ...never the line end (90)
+  });
+
+  it("cumEnd lands at separation under world kins (TCP line-26 shape)", () => {
+    // XYZAC world segments at fixed world (20,0,-45): jx = 20*cos(C), so
+    // the table slides -20 -> +20 as C returns 180 -> 0. Vise rides the
+    // table at +20: penetrating at C=180, separating near C=120.
+    const M5: CollisionMachine = {
+      groups: [{ id: "table", parent: "root" }, { id: "platter", parent: "table" },
+               { id: "head", parent: "root", translate: [0, 0, 50] }],
+      kinematics: [{ group: "table", joint: 0, type: "translate", direction: "x", sign: 1 },
+                   { group: "head", joint: 2, type: "translate", direction: "z", sign: 1 }],
+      workGroup: "platter", toolGroup: "head", unitScale: 1,
+      axes: ["X", "Y", "Z", "A", "C"],
+      kins: { type: "xyzac-trt" },
+    };
+    const B5: CollisionBody[] = [
+      { id: "vise", group: "table", positions: boxPositions(10), translate: [20, 0, 0] },
+      { id: "spindle", group: "head", positions: boxPositions(10) },
+    ];
+    const model = buildCollisionModel(M5, B5);
+    // p0 clear (C=0, vise at +40) -> L25 sweeps INTO contact (C 0->180)
+    // -> L26 returns C 180->0, separating at C~120 (60 of its 180 cum).
+    const t = track(
+      [[20, 0, -45], [20, 0, -45], [20, 0, -45]],
+      [[0, 0, 0], [0, 0, 180], [0, 0, 0]],
+      [25, 25, 26]);
+    t.mode = new Uint8Array([1, 1, 1]);
+    const res = sweepCollisions(model, t, WCS0, { margin: 2 });
+    const l26 = res.hits.find(h => h.line === 26 && h.dist < 1e-3)!;
+    expect(l26).toBeDefined();
+    // L26 spans cum 180..360; contact ends near C=120 -> cum ~240.
+    expect(l26.cum).toBeLessThan(185);
+    expect(l26.cumEnd).toBeGreaterThan(230);
+    expect(l26.cumEnd).toBeLessThan(250);
+  });
+});
