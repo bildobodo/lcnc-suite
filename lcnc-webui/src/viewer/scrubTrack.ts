@@ -13,6 +13,7 @@
 // wcsTerms/programToMachine used by the part-frame preview, then axis
 // letters → joint slots via viewer_init.axes. No baked subdivision needed —
 // the kinematic chain is evaluated at pose time, not baked per vertex.
+import { kinsFor, type KinsSpec } from "./kins";
 import {
   buildLineMap, machineToProgram, programToMachine, wcsTerms,
   type PartFrameWcs, type WcsTerms,
@@ -229,17 +230,15 @@ export function sampleTrack(t: ScrubTrack, s: number, out: ScrubSample): ScrubSa
   return out;
 }
 
-/** Live machine joints → program-space [x,y,z,a,b,c] via the JOINT-ordered
- *  letter list and the inverse WCS transform. UVW/unknown joints are
+/** Live machine joints → program-space [x,y,z,a,b,c]: joints → machine
+ *  coords through the kins boundary (forward kinematics; trivkins = slot
+ *  permutation), then the inverse WCS transform. UVW/unknown joints are
  *  ignored (they don't exist in the program frame). */
 export function machineJointsToProgram(
-  joints: ArrayLike<number>, axes: string[], wcs: PartFrameWcs,
+  joints: ArrayLike<number>, axes: string[], wcs: PartFrameWcs, kins?: KinsSpec,
 ): [number, number, number, number, number, number] {
   const m = [0, 0, 0, 0, 0, 0];
-  for (let ji = 0; ji < axes.length; ji++) {
-    const slot = "XYZABC".indexOf(axes[ji]!.toUpperCase());
-    if (slot >= 0) m[slot] = joints[ji] ?? 0;
-  }
+  kinsFor(axes, kins).forward(joints, m);
   const out: [number, number, number, number, number, number] = [0, 0, 0, 0, 0, 0];
   machineToProgram(m[0]!, m[1]!, m[2]!, m[3]!, m[4]!, m[5]!, wcsTerms(wcs), out);
   return out;
@@ -294,19 +293,14 @@ export function prependEntry(
 const _machineVals: number[] = [0, 0, 0, 0, 0, 0];
 
 /** Per-joint pose values for a track sample: program → machine via the live
- *  WCS, then machine axis slots → joints via the JOINT-ordered letter list
- *  (viewer_init.axes — on XYZAC, C is joint 4 but canonical axis 5). UVW and
+ *  WCS, then machine coords → joints through the kins boundary (inverse
+ *  kinematics; trivkins = slot permutation over viewer_init.axes). UVW and
  *  unknown letters yield null — the caller falls back to the live joint
  *  position rather than inventing a value. Fills `out` in place. */
 export function jointsForSample(
-  sample: ScrubSample, wcs: PartFrameWcs, axes: string[], out: (number | null)[],
+  sample: ScrubSample, wcs: PartFrameWcs, axes: string[], out: (number | null)[], kins?: KinsSpec,
 ): (number | null)[] {
   const o: WcsTerms = wcsTerms(wcs);
   programToMachine(sample.px, sample.py, sample.pz, sample.pa, sample.pb, sample.pc, o, _machineVals);
-  out.length = axes.length;
-  for (let ji = 0; ji < axes.length; ji++) {
-    const slot = "XYZABC".indexOf(axes[ji]!.toUpperCase());
-    out[ji] = slot >= 0 ? _machineVals[slot]! : null;
-  }
-  return out;
+  return kinsFor(axes, kins).inverse(_machineVals, out);
 }

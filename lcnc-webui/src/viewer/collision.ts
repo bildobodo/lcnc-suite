@@ -39,6 +39,7 @@ import * as THREE from "three";
 import { MeshBVH } from "three-mesh-bvh";
 import { normalizeKinematics, type KinRuntime } from "./kinematics";
 import { programToMachine, wcsTerms, type PartFrameWcs } from "./partFrame";
+import { makeKins, type KinsSpec } from "./kins";
 import type { ScrubTrack } from "../ws/bulkData";
 
 export interface CollisionMachine {
@@ -50,6 +51,9 @@ export interface CollisionMachine {
   unitScale: number;
   /** Axis letters in JOINT order (viewer_init.axes). */
   axes: string[];
+  /** Kins selection (serializable — crosses the worker boundary). Absent =
+   *  trivkins. */
+  kins?: KinsSpec;
 }
 
 export interface CollisionBody {
@@ -404,7 +408,8 @@ export function sweepCollisions(
   const o = wcsTerms(wcs);
   const machineVals: number[] = [0, 0, 0, 0, 0, 0];
   const jointVals: number[] = new Array(Math.max(machine.axes.length, 9)).fill(0);
-  const jointSlot = machine.axes.map(l => "XYZABC".indexOf(l.toUpperCase()));
+  const kins = makeKins(machine.axes, machine.kins);
+  const kinsOut: (number | null)[] = [];
   const scratch = {
     pos: new THREE.Vector3(), quat: new THREE.Quaternion(),
     step: new THREE.Quaternion(), one: new THREE.Vector3(1, 1, 1),
@@ -421,9 +426,9 @@ export function sweepCollisions(
 
   const poseAt = (px: number, py: number, pz: number, pa: number, pb: number, pc: number) => {
     programToMachine(px, py, pz, pa, pb, pc, o, machineVals);
-    for (let ji = 0; ji < jointSlot.length; ji++) {
-      const slot = jointSlot[ji]!;
-      jointVals[ji] = slot >= 0 ? machineVals[slot]! : 0;  // UVW: 0, as the preview transform
+    kins.inverse(machineVals, kinsOut);
+    for (let ji = 0; ji < kinsOut.length; ji++) {
+      jointVals[ji] = kinsOut[ji] ?? 0;  // UVW: 0, as the preview transform
     }
     poseTree(nodes, jointVals, scratch);
     for (const body of bodies) {

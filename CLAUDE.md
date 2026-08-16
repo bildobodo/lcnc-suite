@@ -62,6 +62,7 @@ Gateway connects to LinuxCNC via Python bindings (`linuxcnc.stat`, `linuxcnc.com
 - `useGamepad.ts` — Gamepad polling composable (analog sticks + buttons; X/Y/Z resolved by letter)
 - `useJogPointers.ts` — Jogging pointer event management composable
 - `ws/bulkData.ts` — Shared wire types for `viewer_init` / `viewer_gcode` payloads (ViewerInit, ViewerPart, KinematicsList)
+- `viewer/kins.ts` — Kinematics boundary: machine axis coords ↔ joint values behind one swappable KinsModel interface (trivkins = letter→slot permutation; TCP+TWP plan phase 1c adds real kins mirrors pinned by compiled-C-oracle fixtures). ALL offline joint derivation (partFrame emit, collision poseAt, scrub jointsForSample, entry-move machineJointsToProgram) goes through it — never inline `"XYZABC".indexOf` letter mapping again. KinsSpec is plain data (crosses postMessage); construct models at the use site via makeKins/kinsFor.
 - `viewer/` — ThreeViewer support modules: `machineAssetCache.ts` (machine STL fetch/parse with L1 in-memory + L2 IndexedDB caches, single-flight dedup, `failedParts` surface), `geometryCache.ts` (the IndexedDB layer), `disposal.ts` (scene teardown that skips `userData._shared`), `viewerContext.ts` (fresh-snapshot scene pointers), plus backplot/surface/toolpath controllers
 
 ### Main Tabs
