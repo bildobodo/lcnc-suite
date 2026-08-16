@@ -785,3 +785,66 @@ class TestTrtKins(unittest.TestCase):
                 joints = gateway_util.trt_kins_inverse(world, params, bc=bc)
                 for g, e in zip(joints, case["input"]):
                     self.assertLess(abs(g - e), self.TOL)
+
+
+class TestParseKinsConfig(unittest.TestCase):
+    """INI -> viewer kins declaration (phase 1d single-source parse)."""
+
+    # The real lcnc_suite_sim_5axis_tcp.ini wiring
+    TCP_HALCMDS = [
+        "net :kinstype-select motion.analog-out-02 => motion.switchkins-type",
+        "setp xyzac-trt-kins.x-rot-point 0",
+        "setp xyzac-trt-kins.y-rot-point 0",
+        "setp xyzac-trt-kins.z-rot-point 0",
+        "setp xyzac-trt-kins.y-offset 20",
+        "setp xyzac-trt-kins.z-offset 10",
+        "net vismach-tool-offset => xyzac-trt-kins.tool-offset",
+    ]
+
+    def test_tcp_sim_ini(self):
+        got = gateway_util.parse_kins_config(
+            "xyzac-trt-kins sparm=identityfirst", self.TCP_HALCMDS)
+        self.assertEqual(got, {
+            "module": "xyzac-trt-kins",
+            "type": "xyzac-trt",
+            "identity_first": True,
+            "params": {"x_rot_point": 0.0, "y_rot_point": 0.0,
+                       "z_rot_point": 0.0, "y_offset": 20.0, "z_offset": 10.0},
+        })
+
+    def test_tool_offset_never_parsed(self):
+        # tool-offset is live TLO (netted from motion.tooloffset.z) — a
+        # static copy would double-count against wcs.tool client-side.
+        got = gateway_util.parse_kins_config(
+            "xyzac-trt-kins", ["setp xyzac-trt-kins.tool-offset 35.5"])
+        self.assertEqual(got["params"], {})
+
+    def test_trivkins(self):
+        got = gateway_util.parse_kins_config("trivkins coordinates=XYZAC", [])
+        self.assertEqual(got["type"], "trivkins")
+        self.assertFalse(got["identity_first"])
+        self.assertEqual(got["params"], {})
+
+    def test_xyzbc_no_sparm(self):
+        got = gateway_util.parse_kins_config(
+            "xyzbc-trt-kins", ["setp xyzbc-trt-kins.x-offset 15",
+                               "setp xyzbc-trt-kins.z-offset -12"])
+        self.assertEqual(got["type"], "xyzbc-trt")
+        self.assertFalse(got["identity_first"])
+        self.assertEqual(got["params"], {"x_offset": 15.0, "z_offset": -12.0})
+
+    def test_unknown_module_ships_verbatim(self):
+        got = gateway_util.parse_kins_config("genhexkins", [])
+        self.assertEqual(got["type"], "genhexkins")  # client refuses loudly
+
+    def test_foreign_setp_and_garbage_ignored(self):
+        got = gateway_util.parse_kins_config("xyzac-trt-kins", [
+            "setp compensation.method 1",
+            "setp xyzac-trt-kins.y-offset not-a-number",
+            "setp xyzac-trt-kins.bogus-pin 5",
+        ])
+        self.assertEqual(got["params"], {})
+
+    def test_none_input(self):
+        self.assertIsNone(gateway_util.parse_kins_config(None, []))
+        self.assertIsNone(gateway_util.parse_kins_config("", []))

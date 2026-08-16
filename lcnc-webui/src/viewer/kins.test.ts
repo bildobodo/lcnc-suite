@@ -5,7 +5,7 @@
 // interface. (Non-trivial models get compiled-C-oracle fixtures instead;
 // trivkins is the identity permutation by definition.)
 import { describe, expect, it, vi } from "vitest";
-import { kinsFor, makeKins } from "./kins";
+import { kinsFor, makeKins, specFromWire } from "./kins";
 
 describe("trivkins boundary", () => {
   it("XYZAC: letter-skipping permutation both ways (C = joint 4, slot 5)", () => {
@@ -40,6 +40,21 @@ describe("trivkins boundary", () => {
   it("kinsFor memoizes per axes+type", () => {
     expect(kinsFor(["X", "Y", "Z"])).toBe(kinsFor(["X", "Y", "Z"]));
     expect(kinsFor(["X", "Y", "Z"])).not.toBe(kinsFor(["X", "Y"]));
+  });
+
+  it("specFromWire maps the wire declaration; trivkins/absent → undefined", () => {
+    expect(specFromWire(null)).toBeUndefined();
+    expect(specFromWire({ type: "trivkins", params: {} })).toBeUndefined();
+    const spec = specFromWire({
+      type: "xyzac-trt",
+      params: { x_rot_point: 1, y_offset: 20, z_offset: 10 },
+    });
+    expect(spec?.type).toBe("xyzac-trt");
+    expect(spec?.params?.xRotPoint).toBe(1);
+    expect(spec?.params?.yOffset).toBe(20);
+    expect(spec?.params?.toolOffset).toBeUndefined();  // live TLO, never wire
+    // The mapped spec builds the real model
+    expect(makeKins(["X", "Y", "Z", "A", "C"], spec).type).toBe("xyzac-trt");
   });
 
   it("unknown kins type falls back to trivkins LOUDLY", () => {

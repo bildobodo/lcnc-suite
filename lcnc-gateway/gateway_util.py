@@ -435,6 +435,66 @@ def rs274_effective_xy_offset(g5x_x, g5x_y, g92_x, g92_y, rotation_deg):
             g5x_y + g92_x * s + g92_y * c)
 
 
+_KINS_FAMILY = {
+    "trivkins": "trivkins",
+    "xyzac-trt-kins": "xyzac-trt",
+    "xyzbc-trt-kins": "xyzbc-trt",
+}
+_KINS_PARAM_PINS = (
+    "x-rot-point", "y-rot-point", "z-rot-point",
+    "x-offset", "y-offset", "z-offset",
+)
+
+
+def parse_kins_config(kinematics_value, halcmd_values):
+    """[KINS]KINEMATICS + [HAL]HALCMD lines -> viewer kins declaration.
+
+    Single-source rule (v2 trunnion lesson): the INI already names the kins
+    module and sets its pivot pins — machine.json never duplicates either.
+    Parses the module token, the switchkins `sparm=identityfirst` flag
+    (startup mode is identity => the whole-track preview stays trivkins
+    until phase 2's per-segment modes), and any static pivot params set by
+    direct `setp <module>.<pin> <value>` HALCMD lines.
+
+    Deliberately NOT parsed: `tool-offset` — on real configs it is netted
+    from motion.tooloffset.z (live TLO, already carried as wcs.tool by the
+    client transform; a static copy here would double-count), and any pin
+    driven via net/sets signals (dynamic by definition). Unknown modules
+    ship verbatim as type=module so the client can refuse LOUDLY rather
+    than silently posing trivkins.
+
+    Returns None when kinematics_value is None/empty; otherwise
+    {"module", "type", "identity_first", "params"} (params values float,
+    machine units). Pure; unit-tested.
+    """
+    if not kinematics_value:
+        return None
+    tokens = str(kinematics_value).split()
+    module = tokens[0]
+    identity_first = any(
+        t.startswith("sparm=") and "identityfirst" in t for t in tokens[1:]
+    )
+    params = {}
+    prefix = module + "."
+    for line in halcmd_values or []:
+        parts = str(line).split()
+        if len(parts) != 3 or parts[0] != "setp" or not parts[1].startswith(prefix):
+            continue
+        pin = parts[1][len(prefix):]
+        if pin not in _KINS_PARAM_PINS:
+            continue
+        try:
+            params[pin.replace("-", "_")] = float(parts[2])
+        except ValueError:
+            continue
+    return {
+        "module": module,
+        "type": _KINS_FAMILY.get(module, module),
+        "identity_first": identity_first,
+        "params": params,
+    }
+
+
 def trt_kins_forward(joints, params, bc=False):
     """xyzac/xyzbc-trt world kinematics, forward (joints -> world).
 

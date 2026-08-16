@@ -33,6 +33,7 @@ _trace.install_crash_hooks("gateway")
 # Pure, linuxcnc-free helpers (importable under pytest without the binding).
 from gateway_util import (
     ALLOWED_EXTENSIONS,
+    parse_kins_config,
     sanitize_filename,
     validate_extension,
     validate_path_within,
@@ -3518,6 +3519,25 @@ def build_viewer_init(stl_base_url: str) -> Dict[str, Any]:
     ini_cfg = get_ini_config()
     _mark("get_ini_config", _t)
     ini_filename = getattr(STAT, "ini_filename", None) if STAT else None
+
+    # Kins declaration (TCP+TWP plan phase 1d): module/type/identity_first/
+    # pivot params, parsed from the INI — the single source that also
+    # configures the real kins ([KINS]KINEMATICS + HALCMD setp lines).
+    # Declaration only: the client STORES it but keeps trivkins for the
+    # whole-track transform until phase 2 lands per-segment modes (and the
+    # TLO-flow audit — the kins' tool-offset pin is live, wcs.tool already
+    # carries it; activating without that audit would double-count TLO).
+    kins_decl = None
+    if ini_filename:
+        try:
+            _kini = linuxcnc.ini(ini_filename)
+            kins_decl = parse_kins_config(
+                _kini.find("KINS", "KINEMATICS"),
+                _kini.findall("HAL", "HALCMD") or [],
+            )
+        except Exception as e:
+            _trace.emit_exc("viewer_init.kins_parse_failed", e)
+
     ini_config = {
         "ini_filename": ini_filename,
         "linear_units": ini_cfg.get("linear_units"),
@@ -3551,6 +3571,7 @@ def build_viewer_init(stl_base_url: str) -> Dict[str, Any]:
         "kinematics": cfg.get("kinematics", []),
         "workGroup": cfg.get("workGroup"),
         "toolGroup": cfg.get("toolGroup"),
+        "kins": kins_decl,
         "ini_config": ini_config,
     }
     _bvi_total = (time.monotonic() - _bvi_t0) * 1000

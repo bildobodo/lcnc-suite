@@ -57,6 +57,17 @@ export interface ViewerInit {
   toolGroup?: string;
   machine_bounds?: { origin: Vec3; size: Vec3 };
   axes?: string[];
+  /** Kins declaration parsed from the INI (single source: [KINS]KINEMATICS
+   *  + HALCMD setp pivot lines) — TCP+TWP plan phase 1d. DECLARATION only:
+   *  the whole-track transform stays trivkins until phase 2's per-segment
+   *  modes (+ TLO-flow audit) activate the real kins. null = no INI yet.
+   *  Convert to a KinsSpec with viewer/kins.ts specFromWire(). */
+  kins?: {
+    module: string;
+    type: string;
+    identity_first: boolean;
+    params: Record<string, number>;
+  } | null;
   ini_config?: Record<string, any>;
   [key: string]: any;  // gateway adds occasional extras (e.g. timestamp, git_sha)
 }

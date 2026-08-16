@@ -226,6 +226,26 @@ export function makeKins(axes: string[], spec?: KinsSpec): KinsModel {
   return new Trivkins(axes);
 }
 
+/** viewer_init.kins wire declaration → KinsSpec (snake_case pin names →
+ *  KinsParams). Returns undefined for trivkins/absent — callers treat
+ *  that as the identity permutation. NOTE (phase 1d): the declaration is
+ *  shipped and stored but NOT yet fed to the transform consumers — that
+ *  activation is phase 2, per-segment modes + the TLO-flow audit (the
+ *  kins' tool-offset pin is live TLO, already carried as wcs.tool). */
+export function specFromWire(w?: {
+  type: string; params: Record<string, number>;
+} | null): KinsSpec | undefined {
+  if (!w || w.type === "trivkins") return undefined;
+  const p = w.params ?? {};
+  return {
+    type: w.type,
+    params: {
+      xRotPoint: p.x_rot_point, yRotPoint: p.y_rot_point, zRotPoint: p.z_rot_point,
+      xOffset: p.x_offset, yOffset: p.y_offset, zOffset: p.z_offset,
+    },
+  };
+}
+
 // Memoized construction for per-frame callers (scrub pose runs at display
 // rate): keyed by the axes identity + spec type, so repeated calls with
 // the same machine cost a Map lookup, not an allocation.
