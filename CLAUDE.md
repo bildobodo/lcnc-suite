@@ -483,7 +483,13 @@ safety net (degrades to fixed explore steps, result says `coarsened`).
 Attribution: worst hit per (line, pair); penetrating hits are REFINED to
 first contact (walk back to the last clear parameter + bisect, ~30 pair
 probes per hit) so scrub-to-hit poses the model at first touch, never a
-sample-step deep. Near-miss hits keep their closest-approach sample.
+sample-step deep. Contact within one line can be INTERMITTENT (rotary
+return moves brush parts twice — user-caught): hits carry
+`intervals` ([enter, exit][], every boundary bisected; in-contact
+samples cluster with gaps > the in-margin stride = verified
+separations); the clash tint tests interval membership and the
+timeline marks/navigates every interval ONSET, so a re-entry is its
+own clash stop. Near-miss hits keep their closest-approach sample.
 Hits during RAPID segments are flagged `rapid` — always real. ThreeViewer owns the worker (geometry from machineAssetCache, tool
 dims from live status); cancel = worker terminate + lazy recreate (a sync
 sweep can't observe a cancel message). Results reflect check-time
