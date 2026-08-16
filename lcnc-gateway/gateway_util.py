@@ -435,6 +435,89 @@ def rs274_effective_xy_offset(g5x_x, g5x_y, g92_x, g92_y, rotation_deg):
             g5x_y + g92_x * s + g92_y * c)
 
 
+def trt_kins_forward(joints, params, bc=False):
+    """xyzac/xyzbc-trt world kinematics, forward (joints -> world).
+
+    Python twin of the TS mirror in lcnc-webui/src/viewer/kins.ts — BOTH
+    are line-for-line mirrors of LinuxCNC v2.9.4 trtfuncs.c
+    (xyzac/xyzbcKinematicsForward) and BOTH are pinned by the one fixture
+    set scripts/gen_kins_fixtures.py generates from the compiled C oracle
+    (scripts/kins_oracle/). Never edit one mirror without the other — the
+    shared fixtures make divergence a red test.
+
+    `joints` is the 5-tuple in required-coordinates order (X Y Z A C for
+    xyzac, X Y Z B C for xyzbc). `params` maps the kins HAL pin names
+    (x_rot_point, y_rot_point, z_rot_point, x_offset, y_offset, z_offset,
+    tool_offset; missing keys = 0). Returns [x, y, z, a, b, c].
+    Needed at parse time: TCP soft limits must check JOINTS, not program
+    words (phase-0 capture: joint X hit -22.4 on a program whose X words
+    never left -20..20).
+    """
+    xr = params.get("x_rot_point", 0.0)
+    yr = params.get("y_rot_point", 0.0)
+    zr = params.get("z_rot_point", 0.0)
+    dx = params.get("x_offset", 0.0)
+    dy = params.get("y_offset", 0.0)
+    dz = params.get("z_offset", 0.0) + params.get("tool_offset", 0.0)
+    jx, jy, jz, jr1, jc = (float(v) for v in joints)
+    cc, sc = math.cos(math.radians(jc)), math.sin(math.radians(jc))
+    if not bc:
+        ca, sa = math.cos(math.radians(jr1)), math.sin(math.radians(jr1))
+        return [
+            cc * (jx - xr) + sc * ca * (jy - dy - yr)
+            + sc * sa * (jz - dz - zr) + sc * dy + xr,
+            -sc * (jx - xr) + cc * ca * (jy - dy - yr)
+            + cc * sa * (jz - dz - zr) + cc * dy + yr,
+            -sa * (jy - dy - yr) + ca * (jz - dz - zr) + dz + zr,
+            jr1, 0.0, jc,
+        ]
+    cb, sb = math.cos(math.radians(jr1)), math.sin(math.radians(jr1))
+    return [
+        cc * cb * (jx - dx - xr) + sc * (jy - yr)
+        - cc * sb * (jz - dz - zr) + cc * dx + xr,
+        -sc * cb * (jx - dx - xr) + cc * (jy - yr)
+        + sc * sb * (jz - dz - zr) - sc * dx + yr,
+        sb * (jx - dx - xr) + cb * (jz - dz - zr) + dz + zr,
+        0.0, jr1, jc,
+    ]
+
+
+def trt_kins_inverse(world, params, bc=False):
+    """xyzac/xyzbc-trt world kinematics, inverse (world -> joints).
+
+    Twin of trt_kins_forward (see its docstring for the mirror/oracle
+    contract). `world` is [x, y, z, a, b, c]; returns the 5-list of
+    joints in required-coordinates order.
+    """
+    xr = params.get("x_rot_point", 0.0)
+    yr = params.get("y_rot_point", 0.0)
+    zr = params.get("z_rot_point", 0.0)
+    dx = params.get("x_offset", 0.0)
+    dy = params.get("y_offset", 0.0)
+    dz = params.get("z_offset", 0.0) + params.get("tool_offset", 0.0)
+    wx, wy, wz = (float(world[i]) for i in range(3))
+    r1 = float(world[4] if bc else world[3])
+    c = float(world[5])
+    cc, sc = math.cos(math.radians(c)), math.sin(math.radians(c))
+    if not bc:
+        ca, sa = math.cos(math.radians(r1)), math.sin(math.radians(r1))
+        px = cc * (wx - xr) - sc * (wy - yr) + xr
+        py = (sc * ca * (wx - xr) + cc * ca * (wy - yr)
+              - sa * (wz - zr) - ca * dy + sa * dz + dy + yr)
+        pz = (sc * sa * (wx - xr) + cc * sa * (wy - yr)
+              + ca * (wz - zr) - sa * dy - ca * dz + dz + zr)
+    else:
+        cb, sb = math.cos(math.radians(r1)), math.sin(math.radians(r1))
+        dpx = -cb * dx - sb * dz + dx
+        dpz = sb * dx - cb * dz + dz
+        px = (cc * cb * (wx - xr) - sc * cb * (wy - yr)
+              + sb * (wz - zr) + dpx + xr)
+        py = sc * (wx - xr) + cc * (wy - yr) + yr
+        pz = (-cc * sb * (wx - xr) + sc * sb * (wy - yr)
+              + cb * (wz - zr) + dpz + zr)
+    return [px, py, pz, r1, c]
+
+
 def read_axis_limits(ini_find, axis_mask: int):
     """Per-axis soft limits from the active INI, for every axis in the mask.
 
