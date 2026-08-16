@@ -408,7 +408,17 @@ export function sweepCollisions(
   const o = wcsTerms(wcs);
   const machineVals: number[] = [0, 0, 0, 0, 0, 0];
   const jointVals: number[] = new Array(Math.max(machine.axes.length, 9)).fill(0);
-  const kins = makeKins(machine.axes, machine.kins);
+  // Identity kins always; the machine's WORLD kins only for track segments
+  // the phase-2 mode flags mark (live TLO overlays the pivot math).
+  // Soundness note for the V bounds below: under world kins the linear
+  // joints additionally carry the pivot compensation of the SAME rotary
+  // motion the chunk analyzes — that compensation's path is bounded by
+  // Δangle × lever, which the rotary term already budgets with ×2
+  // inflation, so the certificates stay conservative.
+  const identityKins = makeKins(machine.axes);
+  const worldKins = machine.kins && track.mode
+    ? makeKins(machine.axes, machine.kins, wcs.tool?.[2] || undefined)
+    : null;
   const kinsOut: (number | null)[] = [];
   const scratch = {
     pos: new THREE.Vector3(), quat: new THREE.Quaternion(),
@@ -424,9 +434,9 @@ export function sweepCollisions(
   const worst = new Map<string, CollisionHit & { pi: number }>();
   let done = 0;
 
-  const poseAt = (px: number, py: number, pz: number, pa: number, pb: number, pc: number) => {
+  const poseAt = (px: number, py: number, pz: number, pa: number, pb: number, pc: number, world = false) => {
     programToMachine(px, py, pz, pa, pb, pc, o, machineVals);
-    kins.inverse(machineVals, kinsOut);
+    (world && worldKins ? worldKins : identityKins).inverse(machineVals, kinsOut);
     for (let ji = 0; ji < kinsOut.length; ji++) {
       jointVals[ji] = kinsOut[ji] ?? 0;  // UVW: 0, as the preview transform
     }
@@ -461,7 +471,7 @@ export function sweepCollisions(
   const onsetRapid = new Uint8Array(pairs.length);
   const staticContacts: CollisionResult["staticContacts"] = [];
   poseAt(track.pos[0]!, track.pos[1]!, track.pos[2]!,
-         track.abc[0]!, track.abc[1]!, track.abc[2]!);
+         track.abc[0]!, track.abc[1]!, track.abc[2]!, track.mode?.[0] === 1);
   for (let pi = 0; pi < pairs.length; pi++) {
     const [ai, bi] = pairs[pi]!;
     const dist = pairDistance(bodies[ai]!, bodies[bi]!, opts.margin);
@@ -524,6 +534,7 @@ export function sweepCollisions(
       track.abc[k]! + (track.abc[j]! - track.abc[k]!) * u,
       track.abc[k + 1]! + (track.abc[j + 1]! - track.abc[k + 1]!) * u,
       track.abc[k + 2]! + (track.abc[j + 2]! - track.abc[k + 2]!) * u,
+      track.mode?.[lo] === 1,
     );
     const [ai, bi] = pairs[pi]!;
     return pairDistance(bodies[ai]!, bodies[bi]!, opts.margin);
@@ -554,6 +565,7 @@ export function sweepCollisions(
       track.abc[k]! + (track.abc[j]! - track.abc[k]!) * t,
       track.abc[k + 1]! + (track.abc[j + 1]! - track.abc[k + 1]!) * t,
       track.abc[k + 2]! + (track.abc[j + 2]! - track.abc[k + 2]!) * t,
+      track.mode?.[i] === 1,
     );
   };
 

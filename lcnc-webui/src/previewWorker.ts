@@ -43,9 +43,13 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     // O(points), exactly the class of work that starved the heartbeat when it
     // ran on the UI thread. null = unbuildable (empty, or a stale pre-seq
     // cached payload) and the scrub bar simply doesn't offer itself.
+    // Kins mode flags (phase 2a): u8 wire bytes are already the typed view.
+    const feedModeWire = g.feed_mode != null ? new Uint8Array(g.feed_mode as Uint8Array) : undefined;
+    const rapidModeWire = g.rapid_mode != null ? new Uint8Array(g.rapid_mode as Uint8Array) : undefined;
+
     const scrubTrack = buildScrubTrack(
-      { pos: feedPos, abc: feedAbc, lines: feedLines, seq: _toU32(g.feed_seq), tcum: g.feed_tcum != null && (g.feed_tcum as Uint8Array).length ? _toF32(g.feed_tcum) : undefined },
-      { pos: rapidPos, abc: rapidAbc, lines: _toU32(g.rapid_lines), seq: _toU32(g.rapid_seq), tcum: g.rapid_tcum != null && (g.rapid_tcum as Uint8Array).length ? _toF32(g.rapid_tcum) : undefined },
+      { pos: feedPos, abc: feedAbc, lines: feedLines, seq: _toU32(g.feed_seq), tcum: g.feed_tcum != null && (g.feed_tcum as Uint8Array).length ? _toF32(g.feed_tcum) : undefined, mode: feedModeWire },
+      { pos: rapidPos, abc: rapidAbc, lines: _toU32(g.rapid_lines), seq: _toU32(g.rapid_seq), tcum: g.rapid_tcum != null && (g.rapid_tcum as Uint8Array).length ? _toF32(g.rapid_tcum) : undefined, mode: rapidModeWire },
     );
 
     // Drawn-preview streams re-derived from the merged track (sectioned, with
@@ -55,6 +59,8 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     // old strips: no seq → no honest interleaving, degrade like the scrub bar.
     let feedBreaks: Uint32Array | undefined;
     let rapidBreaks: Uint32Array | undefined;
+    let feedMode: Uint8Array | undefined;
+    let rapidMode: Uint8Array | undefined;
     if (scrubTrack) {
       const hadAbc = feedAbc != null || rapidAbc != null;
       const split = splitTrackStreams(scrubTrack);
@@ -64,6 +70,7 @@ self.onmessage = async (e: MessageEvent<Req>) => {
       // streams carry abc whenever either original did.
       feedAbc = hadAbc ? split.feedAbc : undefined;
       rapidAbc = hadAbc ? split.rapidAbc : undefined;
+      feedMode = split.feedMode; rapidMode = split.rapidMode;
     }
     const feedLineMap = _buildFeedLineMap(feedLines ?? g.feed_lines);
     const rapidDist = _lineDistances(rapidPos);  // dashed rapid line's lineDistance (P4.1)
@@ -72,7 +79,8 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     // them. Everything else (file, stats fields) is small and cloned as-is.
     const { feed: _f, rapid: _r, feed_lines: _fl, feed_abc: _fa, rapid_abc: _ra,
             feed_seq: _fs, rapid_seq: _rs, rapid_lines: _rl,
-            feed_tcum: _ft, rapid_tcum: _rt, ...rest } = g;
+            feed_tcum: _ft, rapid_tcum: _rt,
+            feed_mode: _fm, rapid_mode: _rm, ...rest } = g;
 
     const transfer: Transferable[] = [
       feedPos.buffer as ArrayBuffer,
@@ -90,10 +98,13 @@ self.onmessage = async (e: MessageEvent<Req>) => {
         scrubTrack.lines.buffer as ArrayBuffer, scrubTrack.rapid.buffer as ArrayBuffer,
         scrubTrack.cum.buffer as ArrayBuffer,
       );
+      if (scrubTrack.mode) transfer.push(scrubTrack.mode.buffer as ArrayBuffer);
     }
+    if (feedMode) transfer.push(feedMode.buffer as ArrayBuffer);
+    if (rapidMode) transfer.push(rapidMode.buffer as ArrayBuffer);
 
     self.postMessage(
-      { version, gcode: { ...rest, feedPos, rapidPos, feed_lines: feedLines, feedLineMap, rapidDist, feedAbc, rapidAbc, feedBreaks, rapidBreaks, scrubTrack } },
+      { version, gcode: { ...rest, feedPos, rapidPos, feed_lines: feedLines, feedLineMap, rapidDist, feedAbc, rapidAbc, feedBreaks, rapidBreaks, feedMode, rapidMode, scrubTrack } },
       { transfer },
     );
   } catch (err) {

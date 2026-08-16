@@ -12,8 +12,8 @@ interface Req {
   id: number;
   machine: PartFrameMachine;
   wcs: PartFrameWcs;
-  feed: { pos: Float32Array; abc: Float32Array; lines?: Uint32Array; breaks?: Uint32Array };
-  rapid: { pos: Float32Array; abc: Float32Array; breaks?: Uint32Array };
+  feed: { pos: Float32Array; abc: Float32Array; lines?: Uint32Array; breaks?: Uint32Array; mode?: Uint8Array };
+  rapid: { pos: Float32Array; abc: Float32Array; breaks?: Uint32Array; mode?: Uint8Array };
 }
 
 function assertFinite(a: Float32Array, label: string) {

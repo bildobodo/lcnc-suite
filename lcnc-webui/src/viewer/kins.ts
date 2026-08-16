@@ -212,12 +212,21 @@ class TrtKins implements KinsModel {
 
 /** Build a kins model from plain data. Unknown or incomplete specs fall
  *  back to trivkins LOUDLY — a machine declaring kins this client can't
- *  evaluate must not silently pose wrong. */
-export function makeKins(axes: string[], spec?: KinsSpec): KinsModel {
+ *  evaluate must not silently pose wrong.
+ *
+ *  `toolOffsetZ` overlays KinsParams.toolOffset: the trt kins' tool-offset
+ *  pin is LIVE TLO (netted from motion.tooloffset.z), so it never rides
+ *  the spec — callers inject the current wcs.tool Z here instead. World
+ *  coords stay TLO-INCLUSIVE (the kins' dz cancels at pose zero), so
+ *  programToMachine keeps adding o.tz — two roles, not a double count. */
+export function makeKins(axes: string[], spec?: KinsSpec, toolOffsetZ?: number): KinsModel {
   const type = spec?.type ?? "trivkins";
   if (type === "trivkins") return new Trivkins(axes);
+  const params = toolOffsetZ
+    ? { ...spec?.params, toolOffset: toolOffsetZ }
+    : spec?.params;
   if (type === "xyzac-trt" || type === "xyzbc-trt") {
-    const m = new TrtKins(type, axes, spec?.params);
+    const m = new TrtKins(type, axes, params);
     if (m.complete()) return m;
     console.error(`[kins] ${type}: required letters missing from axes [${axes.join(",")}] — falling back to trivkins`);
     return new Trivkins(axes);
@@ -251,13 +260,14 @@ export function specFromWire(w?: {
 // the same machine cost a Map lookup, not an allocation.
 const _memo = new Map<string, KinsModel>();
 
-export function kinsFor(axes: string[], spec?: KinsSpec): KinsModel {
+export function kinsFor(axes: string[], spec?: KinsSpec, toolOffsetZ?: number): KinsModel {
   const p = spec?.params;
   const key = axes.join(",") + "|" + (spec?.type ?? "trivkins")
-    + (p ? "|" + [p.xRotPoint, p.yRotPoint, p.zRotPoint, p.xOffset, p.yOffset, p.zOffset, p.toolOffset].join(",") : "");
+    + (p ? "|" + [p.xRotPoint, p.yRotPoint, p.zRotPoint, p.xOffset, p.yOffset, p.zOffset].join(",") : "")
+    + (toolOffsetZ ? "|t" + toolOffsetZ : "");
   let m = _memo.get(key);
   if (!m) {
-    m = makeKins(axes, spec);
+    m = makeKins(axes, spec, toolOffsetZ);
     _memo.set(key, m);
   }
   return m;

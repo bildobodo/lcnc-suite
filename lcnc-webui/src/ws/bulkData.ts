@@ -79,6 +79,10 @@ export interface ScrubTrack {
   abc: Float32Array;        // count*3 degrees (zeros when the wire had no abc)
   lines: Uint32Array;       // count — source line per point (0 = unknown)
   rapid: Uint8Array;        // count — 1 when the segment ending here is a rapid
+  /** count — 1 when the segment ending here runs under WORLD/TCP kins
+   *  (phase 2: from the switchkins remap markers). Absent = no mode data
+   *  (untracked program/config — pose derivation stays trivkins). */
+  mode?: Uint8Array;
   /** Monotonic scrub parameter: SECONDS when `timeBased` (unified timeline
    *  phase 1 — per-segment feed + INI rapid velocities), else distance
    *  (mm, 1° ≙ 1 mm — legacy payloads / no INI MAX_VELOCITY). */
@@ -136,6 +140,12 @@ export interface ViewerGcode {
   // pre-lift). Absent on track-less legacy payloads → strip rendering.
   feedBreaks?: Uint32Array;
   rapidBreaks?: Uint32Array;
+  // Per-vertex world-kins flags for the DRAWN streams (previewWorker,
+  // track-derived — aligned with feedPos/rapidPos). Present iff the wire
+  // carried feed_mode/rapid_mode. The part-frame transform routes world
+  // segments through the machine's declared kins.
+  feedMode?: Uint8Array;
+  rapidMode?: Uint8Array;
   // P4.1: bounding boxes of the rendered polylines, computed in the parse worker
   // so ThreeViewer skips an O(n) main-thread scan per load. `bounds` is the cut
   // envelope shown as the toolpath bounds box (X/Y over feed+rapid, Z over feed

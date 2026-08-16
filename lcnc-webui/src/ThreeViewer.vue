@@ -19,6 +19,7 @@ import { recordApply, recordRender, setViewerPerfContext } from "./viewerPerf";
 import { disposeObject } from "./viewer/disposal";
 import { normalizeKinematics, type KinRuntime } from "./viewer/kinematics";
 import { chainsHaveRotary, type PartFrameMachine, type PartFrameWcs } from "./viewer/partFrame";
+import { specFromWire } from "./viewer/kins";
 import type { CollisionBody, CollisionResult } from "./viewer/collision";
 import type { ScrubTrack } from "./ws/bulkData";
 import { createBackplotController } from "./viewer/backplotController";
@@ -1326,6 +1327,9 @@ function _pfMachine(init: ViewerInit): PartFrameMachine {
     toolGroup: init.toolGroup ?? "",
     unitScale: _unitScale,
     axes: init.axes ?? [],
+    // World-kins declaration (phase 2): consumers apply it ONLY to
+    // segments the track/stream mode flags mark as world.
+    kins: specFromWire(init.kins),
   }));
 }
 
@@ -1431,6 +1435,7 @@ function runCollisionCheck(trackOverride?: ScrubTrack) {
   const trackCopy = {
     pos: track.pos.slice(), abc: track.abc.slice(), lines: track.lines.slice(),
     rapid: track.rapid.slice(), cum: track.cum.slice(), count: track.count,
+    mode: track.mode?.slice(),  // world-kins flags — the sweep poses per segment
   };
   const transfer: Transferable[] = [
     ...bodies.map(b => b.positions.buffer as ArrayBuffer),
@@ -1522,8 +1527,8 @@ function applyGcode(g: ViewerGcode) {
     const ra = g.rapidAbc && g.rapidAbc.length === rp.length ? g.rapidAbc : new Float32Array(rp.length);
     // Copies: the transfer must not detach viewerGcode's raw buffers — they
     // are re-read on every WCS/mode change.
-    const feed = { pos: fp.slice(), abc: fa.slice(), lines: fl?.slice(), breaks: g.feedBreaks?.slice() };
-    const rapid = { pos: rp.slice(), abc: ra.slice(), breaks: g.rapidBreaks?.slice() };
+    const feed = { pos: fp.slice(), abc: fa.slice(), lines: fl?.slice(), breaks: g.feedBreaks?.slice(), mode: g.feedMode?.slice() };
+    const rapid = { pos: rp.slice(), abc: ra.slice(), breaks: g.rapidBreaks?.slice(), mode: g.rapidMode?.slice() };
     const transfer: Transferable[] = [
       feed.pos.buffer as ArrayBuffer, feed.abc.buffer as ArrayBuffer,
       rapid.pos.buffer as ArrayBuffer, rapid.abc.buffer as ArrayBuffer,
@@ -1531,6 +1536,8 @@ function applyGcode(g: ViewerGcode) {
     if (feed.lines) transfer.push(feed.lines.buffer as ArrayBuffer);
     if (feed.breaks) transfer.push(feed.breaks.buffer as ArrayBuffer);
     if (rapid.breaks) transfer.push(rapid.breaks.buffer as ArrayBuffer);
+    if (feed.mode) transfer.push(feed.mode.buffer as ArrayBuffer);
+    if (rapid.mode) transfer.push(rapid.mode.buffer as ArrayBuffer);
     try {
       _pfGetWorker().postMessage({ id, machine: _pfMachine(viewerInit.value!), wcs: _pfWcs(), feed, rapid }, transfer);
     } catch (err) {
