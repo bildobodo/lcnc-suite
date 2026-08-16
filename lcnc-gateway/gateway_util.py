@@ -383,6 +383,31 @@ _ROTARY_AXES = frozenset("ABC")
 _LIMIT_EPS = 1e-6
 
 
+def canonical_to_joint_order(values, axis_mask):
+    """Re-index a CANONICAL per-axis array into trivkins JOINT order.
+
+    STAT's offset vectors (g5x_offset, g92_offset, tool_offset) and
+    position/actual_position are canonical 9-wide: X Y Z A B C U V W at
+    fixed indices. joint_actual_position is JOINT-indexed: the machine's
+    configured axes in ascending canonical order (= [TRAJ]COORDINATES for
+    trivkins), compacted. On XYZAC the two layouts agree through A and
+    silently diverge at C (joint 4, canonical 5); on XYZBC both rotaries
+    land wrong (B: joint 3 vs canonical 4). Mixing them subtracted B's
+    work offset from C's angle — the "Zero B does nothing" bug.
+
+    Returns a list with one element per set axis_mask bit (ascending),
+    values pulled from their canonical slots (0.0 when absent). None in →
+    None out.
+    """
+    if values is None:
+        return None
+    out = []
+    for ci in range(9):
+        if axis_mask & (1 << ci):
+            out.append(float(values[ci]) if ci < len(values) else 0.0)
+    return out
+
+
 def rs274_effective_xy_offset(g5x_x, g5x_y, g92_x, g92_y, rotation_deg):
     """Single post-rotation XY offset equivalent to RS274's offset order.
 

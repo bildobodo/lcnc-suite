@@ -671,3 +671,54 @@ class TestRs274EffectiveOffset(unittest.TestCase):
             program = tuple(rng.uniform(-300, 300) for _ in range(6)) + (0.0, 0.0, 0.0)
             self._assert_close(
                 self._roundtrip(g5x, g92, theta, program), program[:6])
+
+
+class TestCanonicalToJointOrder(unittest.TestCase):
+    """canonical_to_joint_order — the joint↔canonical re-indexing that the
+    work_pos computation mixes up without it. Masks: bit0=X … bit8=W."""
+
+    XYZBC = 0b0110111 & ~0b1000  # X Y Z B C = bits 0,1,2,4,5
+    XYZAC = 0b0101111            # X Y Z A C = bits 0,1,2,3,5
+
+    def test_xyzbc_rotary_slots(self):
+        # Canonical g5x with B (slot 4) and C (slot 5) offsets → joint
+        # slots 3 and 4. This exact case was the "Zero B does nothing" bug:
+        # index-wise subtraction took B's offset from C's angle.
+        g5x = [0.0, 0.0, -204.48, 0.0, -18.295, -26.755, 0.0, 0.0, 0.0]
+        self.assertEqual(
+            gateway_util.canonical_to_joint_order(g5x, self.XYZBC),
+            [0.0, 0.0, -204.48, -18.295, -26.755])
+
+    def test_xyzac_c_slot(self):
+        g5x = [1.0, 2.0, 3.0, 4.0, 0.0, 6.0, 0.0, 0.0, 0.0]
+        self.assertEqual(
+            gateway_util.canonical_to_joint_order(g5x, self.XYZAC),
+            [1.0, 2.0, 3.0, 4.0, 6.0])
+
+    def test_lathe_xz(self):
+        vals = [10.0, 99.0, 30.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        self.assertEqual(
+            gateway_util.canonical_to_joint_order(vals, 0b101), [10.0, 30.0])
+
+    def test_xyz_identity_prefix(self):
+        vals = [1.0, 2.0, 3.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        self.assertEqual(
+            gateway_util.canonical_to_joint_order(vals, 0b111), [1.0, 2.0, 3.0])
+
+    def test_short_input_pads_zero(self):
+        self.assertEqual(
+            gateway_util.canonical_to_joint_order([1.0, 2.0], self.XYZBC),
+            [1.0, 2.0, 0.0, 0.0, 0.0])
+
+    def test_none_passthrough(self):
+        self.assertIsNone(gateway_util.canonical_to_joint_order(None, 0b111))
+
+    def test_work_pos_regression_xyzbc(self):
+        # Full work_pos math for the observed live-session state: joints
+        # [0,0,0,-18.295,-26.755], canonical g5x zeroing Z/B/C. Work B and C
+        # must both read 0 after Zero B / Zero C.
+        joints = [0.0, 0.0, 0.0, -18.295, -26.755]
+        g5x = [0.0, 0.0, -204.48, 0.0, -18.295, -26.755, 0.0, 0.0, 0.0]
+        g5x_j = gateway_util.canonical_to_joint_order(g5x, self.XYZBC)
+        work = [j - o for j, o in zip(joints, g5x_j)]
+        self.assertEqual(work, [0.0, 0.0, 204.48, 0.0, 0.0])

@@ -40,7 +40,7 @@ from command_policy import (
     MachineState as _PolicyMachineState,
     evaluate_permissions,
 )
-from gateway_util import atomic_write_bytes, resolve_loaded_file
+from gateway_util import atomic_write_bytes, canonical_to_joint_order, resolve_loaded_file
 from tool_table import parse_tool_table, _merge_tool_data
 
 WCS_BASES = [5220, 5240, 5260, 5280, 5300, 5320, 5340, 5360, 5380]
@@ -559,12 +559,30 @@ class StatusRuntime:
         # Prefer joint_actual_position (live encoder feedback, updates even when
         # machine is off/ESTOP) over actual_position (motion controller output,
         # stops updating when servo loop is disabled).  For trivkins machines
-        # joint positions are identical to Cartesian axis positions.
+        # joint positions equal Cartesian axis positions VALUE-wise, but the
+        # ARRAY LAYOUT differs: joint arrays are compacted to the configured
+        # axes (joint order), canonical arrays are 9-wide X..W at fixed slots.
+        # machine_pos is JOINT-ORDERED on the wire — the canonical fallbacks
+        # are re-indexed to match.
+        axis_mask = safe_get("axis_mask", 0) or 0
+        if not axis_mask:
+            # No mask = cannot re-index canonical offsets to joint slots.
+            # Fall back to index-wise math (exact for XYZ-canonical-prefix
+            # machines, the old behavior) — but never silently: STAT always
+            # carries axis_mask on a loaded config, so this firing at all
+            # means something upstream is wrong.
+            if not getattr(self, "_axis_mask_warned", False):
+                _trace.emit("poller.no_axis_mask", level="warn",
+                            msg="STAT has no axis_mask — offsets applied index-wise (joint↔canonical re-indexing skipped)")
+                self._axis_mask_warned = True
+            axis_mask = 0b111111111
         machine_pos = to_float_list(safe_get("joint_actual_position", None))
         if machine_pos is None:
-            machine_pos = to_float_list(safe_get("actual_position", None))
+            machine_pos = canonical_to_joint_order(
+                to_float_list(safe_get("actual_position", None)), axis_mask)
         if machine_pos is None:
-            machine_pos = to_float_list(safe_get("position", None))
+            machine_pos = canonical_to_joint_order(
+                to_float_list(safe_get("position", None)), axis_mask)
         if machine_pos is None:
             if not self._machine_pos_warned:
                 _trace.emit("poller.no_machine_pos", level="warn",
@@ -580,28 +598,42 @@ class StatusRuntime:
         #   work_pos = rel − g92
         # G92 is applied AFTER rotation per LinuxCNC coordinate-system spec, so a
         # G92 offset typed in the rotated WCS frame stays aligned with that frame.
+        # The offsets are CANONICAL-indexed — re-index to joint order before
+        # subtracting from the joint-ordered machine_pos (a plain index-wise
+        # subtraction silently took B's offset from C's angle on XYZBC, and C's
+        # from nothing on XYZAC — "Zero B/C does nothing").
         work_pos = None
         if machine_pos is not None:
             work_pos = machine_pos.copy()
 
-            if g5x is not None:
-                for i in range(min(len(work_pos), len(g5x))):
-                    work_pos[i] -= g5x[i]
+            g5x_j = canonical_to_joint_order(g5x, axis_mask)
+            if g5x_j is not None:
+                for i in range(min(len(work_pos), len(g5x_j))):
+                    work_pos[i] -= g5x_j[i]
 
-            if tool_offset is not None:
-                for i in range(min(len(work_pos), len(tool_offset))):
-                    work_pos[i] -= tool_offset[i]
+            tofs_j = canonical_to_joint_order(tool_offset, axis_mask)
+            if tofs_j is not None:
+                for i in range(min(len(work_pos), len(tofs_j))):
+                    work_pos[i] -= tofs_j[i]
 
-            if rotation_xy and len(work_pos) >= 2:
-                t = -math.radians(rotation_xy)
-                c, s = math.cos(t), math.sin(t)
-                x, y = work_pos[0], work_pos[1]
-                work_pos[0] = x * c - y * s
-                work_pos[1] = x * s + y * c
+            if rotation_xy:
+                # Rotate in the XY plane via the JOINT slots of X and Y —
+                # index 0/1 only by accident of X,Y being the first two
+                # configured axes (a lathe's joint 1 is Z). A letter's joint
+                # index = number of set mask bits below its canonical bit.
+                ix = 0 if (axis_mask & 1) else -1
+                iy = bin(axis_mask & 0b1).count("1") if (axis_mask & 2) else -1
+                if 0 <= ix < len(work_pos) and 0 <= iy < len(work_pos):
+                    t = -math.radians(rotation_xy)
+                    c, s = math.cos(t), math.sin(t)
+                    x, y = work_pos[ix], work_pos[iy]
+                    work_pos[ix] = x * c - y * s
+                    work_pos[iy] = x * s + y * c
 
-            if g92 is not None:
-                for i in range(min(len(work_pos), len(g92))):
-                    work_pos[i] -= g92[i]
+            g92_j = canonical_to_joint_order(g92, axis_mask)
+            if g92_j is not None:
+                for i in range(min(len(work_pos), len(g92_j))):
+                    work_pos[i] -= g92_j[i]
 
         # RAW joint positions (for driving the machine model / spindle nose)
         jpos = safe_get("joint_actual_position", None)
