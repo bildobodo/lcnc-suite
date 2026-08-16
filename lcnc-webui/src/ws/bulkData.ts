@@ -157,6 +157,13 @@ export interface ViewerGcode {
   // P4.1: cumulative lineDistance for the dashed rapid line, computed off-thread so
   // ThreeViewer sets the attribute directly instead of Three.computeLineDistances().
   rapidDist?: Float32Array;
+  // Parse worker aborted partway: interpreter error text + the source line it
+  // stopped on (e.g. an axis word this machine doesn't have). The payload
+  // still carries whatever parsed before the abort, but scrubTrack is absent
+  // — surfaced via previewParseError so the operator learns WHY at load time
+  // instead of at cycle start. null/absent = clean parse.
+  parse_error?: string | null;
+  error_line?: number | null;
   [key: string]: any;  // stats fields are folded in by GcodePanel watcher
 }
 
@@ -181,6 +188,15 @@ const _compGridErr = ref<string | null>(null);
 export const previewLoadError = computed<string | null>(
   () => _previewErr.value ?? _surfaceErr.value ?? _compGridErr.value,
 );
+
+// Interpreter abort inside the parse worker (distinct from the transport
+// errors above — the payload ARRIVED, but the program didn't parse). Derived
+// from the payload itself so it clears naturally when a new program loads.
+export const previewParseError = computed<string | null>(() => {
+  const g = viewerGcode.value;
+  if (!g?.parse_error) return null;
+  return g.error_line != null ? `${g.parse_error} (line ${g.error_line})` : g.parse_error;
+});
 
 let _gcodeContentFile: string | null = null;
 // Preview version of the currently-fetched text. An in-place edit (web Save or

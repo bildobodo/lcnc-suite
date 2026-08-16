@@ -2,7 +2,7 @@
 import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, provide, reactive, ref, watch } from "vue";
 import { applyClientOverlay, PERMISSIONS_KEY, type Permissions } from "./permissions";
 import { simMode } from "./simMode";
-import { connectWs, connected, status, send, armed, lastReply, viewerGcode, viewerInit, gcodeContent, lcncError, latency, networkLatency, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead, pushMessage, safetyTrip, acknowledgeSafetyTrip, readerStale, configWarning, previewLoadError, serverShuttingDown, type LcncMessage } from "./lcncWs";
+import { connectWs, connected, status, send, armed, lastReply, viewerGcode, viewerInit, gcodeContent, lcncError, latency, networkLatency, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead, pushMessage, safetyTrip, acknowledgeSafetyTrip, readerStale, configWarning, previewLoadError, previewParseError, serverShuttingDown, type LcncMessage } from "./lcncWs";
 // Lazy-load the 3D viewer so Three.js (~866 KB) + troika load as a separate async
 // chunk after first paint instead of blocking the initial bundle (P6). The viewerRef
 // methods are all `?.`-guarded, so calls during the brief load gap safely no-op.
@@ -185,6 +185,7 @@ const machineStateColor = computed(() => {
   if (readerStale.value) return '--state-warn';
   if (configWarning.value) return '--state-warn';
   if (previewLoadError.value) return '--state-warn';
+  if (previewParseError.value) return '--state-warn';
   return STATE_COLORS[machineState.value];
 });
 
@@ -242,6 +243,7 @@ const bannerFlashMode = computed<'none' | 'pulse' | 'flash'>(() => {
   if (readerStale.value) return 'pulse';
   if (configWarning.value) return 'pulse';
   if (previewLoadError.value) return 'pulse';
+  if (previewParseError.value) return 'pulse';
   if (s === 'unhomed' || s === 'toolchange' || s === 'idle') return 'pulse';
   return 'none';
 });
@@ -1354,6 +1356,9 @@ watch(viewerGcode, (newGcode) => {
           </span>
           <span v-else-if="previewLoadError" :key="'preview-error'" class="bannerError">
             3D preview load failed — reload the G-code file; restart the suite if it persists
+          </span>
+          <span v-else-if="previewParseError" :key="'parse-error'" class="bannerError">
+            Program won't parse — {{ previewParseError }} — no preview or simulation; fix the program or load one posted for this machine
           </span>
           <span v-else-if="bannerMessage && !bannerShowAbort" :key="'msg'" :class="{ bannerError: bannerMessageKind <= 2 }">
             {{ bannerMessage }}
