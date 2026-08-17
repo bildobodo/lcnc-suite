@@ -28,6 +28,23 @@ deploying an update to a configured machine.
 
 ### Changed
 
+- **BREAKING — heartbeat trip latch moved into the HAL servo thread** ([#34]).
+  The `webui-safety.trip-latch` pin **no longer exists**: `hal_watchdog.py`'s
+  100 ms Python edge detector could lose the race against the ~1 ms oneshot
+  re-arm and silently auto-recover from ESTOP. The sticky latch is now a
+  servo-thread `estop_latch` component named `webui-hb-latch`, which latches in
+  the same servo cycle the oneshot expires and survives gateway *and* watchdog
+  freezes. The safety HAL also gained `loadusr -Wn webui-reader hal_reader.py`
+  (all gateway HAL reads go through it; the gateway never imports `hal`).
+  - **Action:** if your HAL was written from the old README snippet (it netted
+    `webui-safety.trip-latch => and2.2.in1`), LinuxCNC will fail to load with
+    "Pin 'webui-safety.trip-latch' does not exist". Re-copy
+    `examples/sim_config/hallib/lcnc_webui.hal` (or apply its `estop_latch`
+    block: `loadrt estop_latch names=webui-hb-latch`, `ok-in` from
+    `oneshot.0.out`, `ok-out` into the chain, `reset` from
+    `webui-safety.trip-reset-out`). The gateway now banners a missing latch
+    at runtime (`safety_chain_incomplete`).
+
 - **BREAKING — log directory consolidation** ([#16]). All suite processes
   (launcher, gateway, hal_reader, hal_watchdog) now log to a single directory,
   `<install-dir>/runlogs`, derived from the install location (the same dir
@@ -61,3 +78,4 @@ deploying an update to a configured machine.
 [Unreleased]: https://github.com/bildobodo/lcnc-suite/compare/main...development
 [#16]: https://github.com/bildobodo/lcnc-suite/issues/16
 [#17]: https://github.com/bildobodo/lcnc-suite/issues/17
+[#34]: https://github.com/bildobodo/lcnc-suite/issues/34

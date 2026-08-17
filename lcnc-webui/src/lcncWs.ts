@@ -47,7 +47,7 @@ export const serverShuttingDown = ref(false);
 // ---------- Barrel re-exports (the stable consumer surface) ----------
 // Status stream, message center, timing stats (split out, A1.5).
 export {
-  status, lcncError, safetyTrip, readerStale, configWarning,
+  status, lcncError, safetyTrip, readerStale, safetyChainIncomplete, configWarning,
   latency, networkLatency, timingStats, messages, unreadCount,
   resetTimingStats, getTimingCsv, dismissMessage, clearAllMessages, markMessagesRead,
   pushMessage,

@@ -203,3 +203,41 @@ describe("transformToPartFrame — section breaks", () => {
     expect(Array.from(r.breaks!)).toEqual([0]);
   });
 });
+
+describe("kins world routing (phase 2b)", () => {
+  // Pivot params match the TRUNNION chain's a_assembly translate [0,20,10]
+  // by construction — same pairing as the xyzac sim config.
+  const SPEC = { type: "xyzac-trt", params: { yOffset: 20, zOffset: 10 } };
+  const TCP: PartFrameMachine = { ...TRUNNION, kins: SPEC };
+
+  it("routes world-flagged segments through the declared kins", () => {
+    // Constant world XYZ while C sweeps = TCP holding one point on the
+    // part: under world routing the part-frame result must COLLAPSE to
+    // that single point (TCP program coords are already tip-in-work) —
+    // subdivided samples included, since every (40,0,0,c) maps to the
+    // same part point exactly.
+    const pts: number[][] = [], abc: number[][] = [];
+    for (let d = 0; d <= 90; d += 1) { pts.push([40, 0, 0]); abc.push([0, 0, d]); }
+    const input = poly(pts, abc);
+    const mode = new Uint8Array(pts.length).fill(1);
+    const world = transformToPartFrame(TCP, WCS0, { ...input, mode });
+    for (let i = 0; i < world.pos.length / 3; i++) {
+      const [x, y, z] = vec(world.pos, i);
+      expect(x).toBeCloseTo(40, 3);
+      expect(y).toBeCloseTo(0, 3);
+      expect(z).toBeCloseTo(0, 3);
+    }
+    // Routing proof: the same polyline untracked (trivkins) fans around
+    // the platter instead of collapsing — the star-pattern error class.
+    const triv = transformToPartFrame(TCP, WCS0, input);
+    const last = vec(triv.pos, triv.pos.length / 3 - 1);
+    expect(Math.abs(last[1])).toBeGreaterThan(1);
+  });
+
+  it("mode-0 segments in a mode-carrying polyline still derive as trivkins", () => {
+    const input = poly([[40, 0, 0], [40, 0, 0]], [[0, 0, 0], [0, 0, 90]]);
+    const a = transformToPartFrame(TCP, WCS0, { ...input, mode: new Uint8Array([0, 0]) });
+    const b = transformToPartFrame(TCP, WCS0, input);
+    expect(Array.from(a.pos)).toEqual(Array.from(b.pos));
+  });
+});

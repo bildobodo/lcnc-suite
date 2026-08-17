@@ -1,25 +1,27 @@
 // Unit tests for viewer/scrubTrack.ts — the execution-ordered scrub track.
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   buildScrubTrack, sampleTrack, jointsForSample,
   machineJointsToProgram, prependEntry, splitTrackStreams,
   type ScrubSample, type ScrubStream, type ScrubTrack,
 } from "./scrubTrack";
+import { makeKins as kinsForTest } from "./kins";
 
-function stream(points: number[][], opts: { abc?: number[][]; lines?: number[]; seq?: number[]; tcum?: number[] } = {}): ScrubStream {
+function stream(points: number[][], opts: { abc?: number[][]; lines?: number[]; seq?: number[]; tcum?: number[]; mode?: number[] } = {}): ScrubStream {
   return {
     pos: new Float32Array(points.flat()),
     abc: opts.abc ? new Float32Array(opts.abc.flat()) : undefined,
     lines: opts.lines ? new Uint32Array(opts.lines) : undefined,
     seq: opts.seq ? new Uint32Array(opts.seq) : undefined,
     tcum: opts.tcum ? new Float32Array(opts.tcum) : undefined,
+    mode: opts.mode ? new Uint8Array(opts.mode) : undefined,
   };
 }
 
 const EMPTY = stream([]);
 
 function freshSample(): ScrubSample {
-  return { px: 0, py: 0, pz: 0, pa: 0, pb: 0, pc: 0, line: 0, rapid: false, index: 0 };
+  return { px: 0, py: 0, pz: 0, pa: 0, pb: 0, pc: 0, line: 0, rapid: false, world: false, index: 0 };
 }
 
 describe("buildScrubTrack", () => {
@@ -252,5 +254,103 @@ describe("splitTrackStreams", () => {
     expect(Array.from(s.feedLines)).toEqual([3, 3]);
     expect(Array.from(s.rapidPos)).toEqual([1, 0, 0, 2, 0, 0, 3, 0, 0, 4, 0, 0]);
     expect(Array.from(s.rapidBreaks)).toEqual([0, 2]);
+  });
+});
+
+describe("kins mode plumbing (phase 2b)", () => {
+  const AXES = ["X", "Y", "Z", "A", "C"];
+  const SPEC = { type: "xyzac-trt", params: { yOffset: 20, zOffset: 10 } };
+  const IDW = { g5x: [], g92: [], rotationDeg: 0 };
+
+  it("buildScrubTrack merges per-stream mode; mixed payload drops it", () => {
+    const t = buildScrubTrack(
+      stream([[1, 0, 0], [3, 0, 0]], { seq: [1, 3], mode: [1, 1] }),
+      stream([[2, 0, 0]], { seq: [2], mode: [0] }),
+    )!;
+    expect(Array.from(t.mode!)).toEqual([1, 0, 1]);
+    const mixed = buildScrubTrack(
+      stream([[1, 0, 0]], { seq: [1], mode: [1] }),
+      stream([[2, 0, 0]], { seq: [2] }),   // no mode → untracked
+    )!;
+    expect(mixed.mode).toBeUndefined();
+  });
+
+  it("sampleTrack reports the segment's world flag", () => {
+    const t = buildScrubTrack(
+      stream([[0, 0, 0], [10, 0, 0], [20, 0, 0]], { seq: [1, 2, 3], mode: [0, 1, 0] }),
+      EMPTY,
+    )!;
+    const s = freshSample();
+    sampleTrack(t, 5, s);         // inside segment 0→1 (mode[1] = 1)
+    expect(s.world).toBe(true);
+    sampleTrack(t, 15, s);        // inside segment 1→2 (mode[2] = 0)
+    expect(s.world).toBe(false);
+  });
+
+  it("splitTrackStreams carries mode per drawn vertex", () => {
+    const t = buildScrubTrack(
+      stream([[1, 0, 0], [3, 0, 0]], { seq: [1, 3], mode: [0, 1], lines: [5, 7] }),
+      stream([[2, 0, 0]], { seq: [2], mode: [0] }),
+    )!;
+    const split = splitTrackStreams(t);
+    // Track point 0 has no INCOMING segment, so the only feed section is
+    // the world-mode segment into point 2 (rapid-point start vertex + end).
+    expect(Array.from(split.feedMode!)).toEqual([1, 1]);
+    expect(Array.from(split.rapidMode!)).toEqual([0, 0]);
+  });
+
+  it("prependEntry stamps the entry move with the program's initial mode", () => {
+    const t = buildScrubTrack(
+      stream([[10, 0, 0], [20, 0, 0]], { seq: [1, 2], mode: [1, 1] }),
+      EMPTY,
+    )!;
+    const withEntry = prependEntry(t, [0, 0, 0, 0, 0, 0]);
+    expect(Array.from(withEntry.mode!)).toEqual([1, 1, 1]);  // 2 pts + entry
+  });
+
+  it("jointsForSample routes world samples through the declared kins", () => {
+    const s = freshSample();
+    s.px = 20; s.py = 10; s.pz = 30; s.pa = -45; s.pc = 90;
+    const triv: (number | null)[] = [];
+    jointsForSample(s, IDW, AXES, triv);              // untracked → trivkins
+    s.world = true;
+    const world: (number | null)[] = [];
+    jointsForSample(s, IDW, AXES, world, SPEC);
+    // Routing proof: world joints differ from the permutation and match the
+    // fixture-pinned model directly.
+    expect(world).not.toEqual(triv);
+    const expected: (number | null)[] = [];
+    kinsForTest(AXES, SPEC).inverse([20, 10, 30, -45, 0, 90], expected);
+    expect(world).toEqual(expected);
+  });
+
+  it("world sample without a spec falls back to trivkins (and warns)", () => {
+    // The A4 honesty path: mode flags arrived but no kins declaration —
+    // the pose must degrade to the permutation (identical to untracked),
+    // with the loud once-per-context log (spied here to keep output clean;
+    // the once-semantics themselves are pinned in kins.test.ts).
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    const s = freshSample();
+    s.px = 20; s.py = 10; s.pz = 30; s.pa = -45; s.pc = 90; s.world = true;
+    const noSpec: (number | null)[] = [];
+    jointsForSample(s, IDW, AXES, noSpec);            // world, but no spec
+    s.world = false;
+    const triv: (number | null)[] = [];
+    jointsForSample(s, IDW, AXES, triv);
+    expect(noSpec).toEqual(triv);
+    err.mockRestore();
+  });
+
+  it("machineJointsToProgram(world) inverts jointsForSample(world)", () => {
+    const s = freshSample();
+    s.px = 20; s.py = 10; s.pz = 30; s.pa = -45; s.pc = 90; s.world = true;
+    const joints: (number | null)[] = [];
+    jointsForSample(s, IDW, AXES, joints, SPEC);
+    const p = machineJointsToProgram(joints as number[], AXES, IDW, SPEC, true);
+    expect(p[0]).toBeCloseTo(20, 6);
+    expect(p[1]).toBeCloseTo(10, 6);
+    expect(p[2]).toBeCloseTo(30, 6);
+    expect(p[3]).toBeCloseTo(-45, 6);
+    expect(p[5]).toBeCloseTo(90, 6);
   });
 });

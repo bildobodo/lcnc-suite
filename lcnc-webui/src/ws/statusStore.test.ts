@@ -12,7 +12,7 @@ import {
   handleStatusError, handleStatusMessage, latency, lcncError,
   markMessagesRead, mergeStatusPatch, messages, networkLatency,
   noteFrameSample, noteHeartbeatSent, notePong, pushMessage,
-  readerStale, rebaseStatusDelta, resetOnClose, resetTimingStats,
+  readerStale, rebaseStatusDelta, resetOnClose, resetTimingStats, safetyChainIncomplete,
   safetyTrip, status, timingStats, unreadCount,
 } from "./statusStore";
 
@@ -30,6 +30,7 @@ beforeEach(() => {
   lcncError.value = null;
   safetyTrip.value = null;
   readerStale.value = false;
+  safetyChainIncomplete.value = null;
   configWarning.value = null;
 });
 
@@ -130,6 +131,15 @@ describe("safety_trip / reader_stale / config_warning sync", () => {
     expect(configWarning.value).toBe(cw);          // unchanged → same object
     handleStatusMessage({ type: "status", data: {} });
     expect(configWarning.value).toBeNull();
+  });
+
+  it("safety_chain_incomplete mirrors the reason string; absence clears", () => {
+    handleStatusMessage({ type: "status", data: {}, safety_chain_incomplete: "watchdog down" });
+    expect(safetyChainIncomplete.value).toBe("watchdog down");
+    handleStatusMessage({ type: "status", data: {}, safety_chain_incomplete: "watchdog down" });
+    expect(safetyChainIncomplete.value).toBe("watchdog down");
+    handleStatusMessage({ type: "status", data: {} });
+    expect(safetyChainIncomplete.value).toBeNull();
   });
 });
 

@@ -33,6 +33,7 @@ _trace.install_crash_hooks("gateway")
 # Pure, linuxcnc-free helpers (importable under pytest without the binding).
 from gateway_util import (
     ALLOWED_EXTENSIONS,
+    parse_kins_config,
     sanitize_filename,
     validate_extension,
     validate_path_within,
@@ -41,6 +42,8 @@ from gateway_util import (
     finite_float,
     finite_int,
     evaluate_trip_latch,
+    evaluate_safety_chain,
+    unwritten_estop_signal,
     parse_telemetry_batch,
     TELEMETRY_BODY_MAX,
 )
@@ -693,6 +696,45 @@ _reader_recv_loop = _hal_bridge.reader_recv_loop
 _reader_request = _hal_bridge.reader_request
 _reader_get = _hal_bridge.reader_get
 _reader_is_stale = _hal_bridge.reader_is_stale
+
+# Safety-chain completeness banner (review group B1). Grace covers the
+# concurrent process bring-up window; after it, a down watchdog socket or a
+# fresh reader snapshot without trip_latched means the advertised safety
+# chain is NOT in place — broadcast per tick, never trace-only.
+_SAFETY_CHAIN_GRACE_SEC = 15.0
+_gw_start_mono = time.monotonic()
+# One-shot estop-loop writer check result (set by the lifespan task).
+_estop_loop_reason: Optional[str] = None
+
+
+def _safety_chain_reason() -> Optional[str]:
+    return evaluate_safety_chain(
+        grace_expired=(time.monotonic() - _gw_start_mono) > _SAFETY_CHAIN_GRACE_SEC,
+        watchdog_connected=_hal_bridge.watchdog_connected,
+        reader_fresh=not _hal_bridge.reader_is_stale(),
+        trip_latched_present=_hal_bridge.reader_get("trip_latched") is not None,
+        extra_reason=_estop_loop_reason,
+    )
+
+
+async def _estop_loop_check_once() -> None:
+    """One-shot (post-grace) check for the unwritten-estop-loop trap.
+
+    HAL topology is fixed at config load, so one look suffices. Best-effort
+    forensics: a halcmd failure parses to [] -> indeterminate (None), said
+    by _parse_hal_signals' own trace — the primary detections above don't
+    depend on this."""
+    global _estop_loop_reason
+    await asyncio.sleep(_SAFETY_CHAIN_GRACE_SEC)
+    try:
+        signals = await asyncio.get_running_loop().run_in_executor(
+            None, _parse_hal_signals)
+        _estop_loop_reason = unwritten_estop_signal(signals)
+        if _estop_loop_reason:
+            _trace.emit("safety.estop_loop_unwritten", level="error",
+                        reason=_estop_loop_reason)
+    except Exception as e:
+        _trace.emit_exc("safety.estop_loop_check_failed", e)
 
 
 def _phase_window(start_mono: float, end_mono: float) -> List[dict]:
@@ -3518,6 +3560,25 @@ def build_viewer_init(stl_base_url: str) -> Dict[str, Any]:
     ini_cfg = get_ini_config()
     _mark("get_ini_config", _t)
     ini_filename = getattr(STAT, "ini_filename", None) if STAT else None
+
+    # Kins declaration (TCP+TWP plan phase 1d): module/type/identity_first/
+    # pivot params, parsed from the INI — the single source that also
+    # configures the real kins ([KINS]KINEMATICS + HALCMD setp lines).
+    # Declaration only: the client STORES it but keeps trivkins for the
+    # whole-track transform until phase 2 lands per-segment modes (and the
+    # TLO-flow audit — the kins' tool-offset pin is live, wcs.tool already
+    # carries it; activating without that audit would double-count TLO).
+    kins_decl = None
+    if ini_filename:
+        try:
+            _kini = linuxcnc.ini(ini_filename)
+            kins_decl = parse_kins_config(
+                _kini.find("KINS", "KINEMATICS"),
+                _kini.findall("HAL", "HALCMD") or [],
+            )
+        except Exception as e:
+            _trace.emit_exc("viewer_init.kins_parse_failed", e)
+
     ini_config = {
         "ini_filename": ini_filename,
         "linear_units": ini_cfg.get("linear_units"),
@@ -3551,6 +3612,7 @@ def build_viewer_init(stl_base_url: str) -> Dict[str, Any]:
         "kinematics": cfg.get("kinematics", []),
         "workGroup": cfg.get("workGroup"),
         "toolGroup": cfg.get("toolGroup"),
+        "kins": kins_decl,
         "ini_config": ini_config,
     }
     _bvi_total = (time.monotonic() - _bvi_t0) * 1000
@@ -3620,6 +3682,9 @@ async def lifespan(app: "FastAPI"):
         get_tool_tbl_path()
     except Exception as e:
         _trace.emit_exc("boot.path_warmup_failed", e)
+    # One-shot estop-loop writer check (review B2 stretch): runs after the
+    # safety-chain grace window, feeds _safety_chain_reason's extra_reason.
+    register_bg_task(asyncio.create_task(_estop_loop_check_once()))
     # Opt-in event-loop attribution (issue #35): with WEBUI_ASYNCIO_DEBUG=1 asyncio
     # logs "Executing <coro …> took N seconds" for any callback holding the loop
     # >50 ms (half the [HB-WAKE] threshold), naming the exact culprit behind a
@@ -4888,6 +4953,7 @@ async def ws_endpoint(ws: WebSocket):
                         armed=client.armed,
                         safety_trip=_unacked_trip,
                         reader_stale=_reader_is_stale(),
+                        safety_chain=_safety_chain_reason(),
                         config_warning=(
                             {
                                 "reason": _config_warning_reason or _units_fallback_reason,

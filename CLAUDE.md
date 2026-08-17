@@ -62,6 +62,7 @@ Gateway connects to LinuxCNC via Python bindings (`linuxcnc.stat`, `linuxcnc.com
 - `useGamepad.ts` — Gamepad polling composable (analog sticks + buttons; X/Y/Z resolved by letter)
 - `useJogPointers.ts` — Jogging pointer event management composable
 - `ws/bulkData.ts` — Shared wire types for `viewer_init` / `viewer_gcode` payloads (ViewerInit, ViewerPart, KinematicsList)
+- `viewer/kins.ts` — Kinematics boundary: machine axis coords ↔ joint values behind one swappable KinsModel interface (trivkins = letter→slot permutation; TCP+TWP plan phase 1c adds real kins mirrors pinned by compiled-C-oracle fixtures). ALL offline joint derivation (partFrame emit, collision poseAt, scrub jointsForSample, entry-move machineJointsToProgram) goes through it — never inline `"XYZABC".indexOf` letter mapping again. KinsSpec is plain data (crosses postMessage); construct models at the use site via makeKins/kinsFor.
 - `viewer/` — ThreeViewer support modules: `machineAssetCache.ts` (machine STL fetch/parse with L1 in-memory + L2 IndexedDB caches, single-flight dedup, `failedParts` surface), `geometryCache.ts` (the IndexedDB layer), `disposal.ts` (scene teardown that skips `userData._shared`), `viewerContext.ts` (fresh-snapshot scene pointers), plus backplot/surface/toolpath controllers
 
 ### Main Tabs
@@ -99,7 +100,7 @@ The gateway never imports `hal`. All HAL access goes through three independent u
 
 - **`hal_reader.py`** — owns the `webui-reader` HAL component. Pushes a snapshot of ~9 pins (`tool-change`, `tool-prep-number`, `spindle.0.speed-in`, `axis.z.eoffset`, `axis.z.eoffset-enable`, `motion.probe-input`, `compensation.method`, `compensation.grid-version`, `webui-hb-latch.fault-out` → `trip_latched`) to the gateway at 30 Hz over `/tmp/webui-reader.sock`. Also serves request/reply RPC for `set_p` (compensation reload bumps) and `halshow_dump` (diagnostics tab). Any pin read failure logs every tick — no silent fallback.
 - **`hal_watchdog.py`** — single-purpose safety supervisor. Generates the gateway heartbeat and pulses `webui-safety.trip-reset-out` on operator E-Stop Reset. The sticky latch itself is a servo-thread `estop_latch` (`webui-hb-latch`), not Python — so it latches in-cycle and survives gateway *and* watchdog freezes (issue #34). Independent process (100 ms select loop).
-- **`gateway.py`** — connects to both sockets. `_reader_recv_loop` updates `_reader_state: Tuple[snapshot, monotonic_ts]` (single-rebind so reads are torn-free). `poll_status()` calls `_reader_get(field)` which returns `None` if the snapshot is absent or the field is missing — the absent value propagates to the frontend so consumers see "no data" honestly rather than a synthetic default. If no snapshot has arrived in 2 s, `status_msg.reader_stale = True` is broadcast and the UI shows a banner.
+- **`gateway.py`** — connects to both sockets. `_reader_recv_loop` updates `_reader_state: Tuple[snapshot, monotonic_ts]` (single-rebind so reads are torn-free). `poll_status()` calls `_reader_get(field)` which returns `None` if the snapshot is absent or the field is missing — the absent value propagates to the frontend so consumers see "no data" honestly rather than a synthetic default. If no snapshot has arrived in 2 s, `status_msg.reader_stale = True` is broadcast and the UI shows a banner. **Safety-chain completeness** (review B1): after a 15 s startup grace, `evaluate_safety_chain` (pure, unit-tested) broadcasts `status_msg.safety_chain_incomplete` (reason string) when the watchdog socket is down, when a FRESH reader snapshot lacks `trip_latched` (= `webui-hb-latch` not loaded), or when the one-shot `unwritten_estop_signal` check finds `estop-loop` with no writer pin (the stuck-in-ESTOP trap: `net` silently creates unwritten signals) — the UI shows a danger-tier banner; a config missing `lcnc_webui.hal` can no longer run with the safety chain silently absent.
 
 Why this split: the previous in-process approach had `webui-monitor` mirror-pin shadowing for sub-µs reads, but a SIGKILL orphan left stale shadow values readable by `hal.get_value` while the real pin was disconnected — silent-fallback failure mode that masked a safety-trip read. See GitHub issue #9 for full history. Driving rule: [feedback_no_silent_fallbacks.md](.claude/projects/-home-cnc-lcnc-suite/memory/feedback_no_silent_fallbacks.md).
 
@@ -343,7 +344,26 @@ worker checks every canon segment — pre-RDP, since decimation can shave
 extremes — against per-axis INI limits. Pure helpers in `gateway_util.py`
 (`read_axis_limits`: `AXIS_<letter>` preferred, `JOINT_<n>` fallback in
 joint order; `check_limit_violations`: machine-frame, joint-side — TLO
-added back to XYZ — all axes incl. rotary; both unit-tested). Attribution
+added back to XYZ — all axes incl. rotary; both unit-tested).
+WORLD-mode (TCP) segments (phase 2c): joints ≠ words, so those segments
+route through `check_limit_violations_world` — rotary-subdivided (4°,
+mid-segment extremes are the point: the phase-0 capture's joint X hit
+−22.36 on a program whose X words never left ±20) through the Python
+kins twin, TLO applied to BOTH world coords and the pivot param; a
+declared kins without a twin leaves its segments UNCHECKED — the count
+rides the wire as `violations_world_unchecked` (present only >0) and the
+stats dialog appends "N TCP segments not validated" (warn, never OK) —
+never identity-checked wrongly. Marker policy (`kins_marker_policy`):
+markers on a NON-switchable declared kins (trivkins / no `[KINS]`) are
+IGNORED with one stderr note — the machine can't switch, so emitting
+flags would map startup type 0 to "world" (no sparm) and gut the identity
+check; only 'twin'/'unchecked' configs get mode arrays. Client honesty:
+world-flagged segments arriving with NO kins spec pose as trivkins but
+log loudly once per JS context (`warnWorldWithoutSpec` — scrub pose,
+entry move, part-frame, collision sweep). RDP anchors both flip vertices
+(`mode_boundary_indices`: i-1 ends the old-mode span, i starts the new —
+keeping only i relabels a collapsed collinear span). Reports merge per
+(line, axis). Attribution
 rule: only a line that MOVES an axis while out of bounds is flagged; lines
 where the axis merely sits parked past a limit are not re-flagged, so the
 culprit line stands alone. Wire: `violations` (per-line records, capped at
@@ -475,7 +495,13 @@ safety net (degrades to fixed explore steps, result says `coarsened`).
 Attribution: worst hit per (line, pair); penetrating hits are REFINED to
 first contact (walk back to the last clear parameter + bisect, ~30 pair
 probes per hit) so scrub-to-hit poses the model at first touch, never a
-sample-step deep. Near-miss hits keep their closest-approach sample.
+sample-step deep. Contact within one line can be INTERMITTENT (rotary
+return moves brush parts twice — user-caught): hits carry
+`intervals` ([enter, exit][], every boundary bisected; in-contact
+samples cluster with gaps > the in-margin stride = verified
+separations); the clash tint tests interval membership and the
+timeline marks/navigates every interval ONSET, so a re-entry is its
+own clash stop. Near-miss hits keep their closest-approach sample.
 Hits during RAPID segments are flagged `rapid` — always real. ThreeViewer owns the worker (geometry from machineAssetCache, tool
 dims from live status); cancel = worker terminate + lazy recreate (a sync
 sweep can't observe a cancel message). Results reflect check-time

@@ -29,7 +29,8 @@ const REF_EXPORTS = [
   "armed", "configWarning", "connected", "gcodeContent",
   "halInitialized", "halParams", "halPins", "halSignals",
   "lastReply", "latency", "lcncError", "messages", "networkLatency",
-  "previewLoadError", "readerStale", "safetyTrip", "serverShuttingDown",
+  "previewLoadError", "previewParseError", "readerStale", "safetyChainIncomplete",
+  "safetyTrip", "serverShuttingDown",
   "status", "timingStats", "toolTableVersion", "unreadCount",
   "viewerGcode", "viewerInit",
 ] as const;

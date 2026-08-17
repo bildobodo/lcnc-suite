@@ -57,6 +57,17 @@ export interface ViewerInit {
   toolGroup?: string;
   machine_bounds?: { origin: Vec3; size: Vec3 };
   axes?: string[];
+  /** Kins declaration parsed from the INI (single source: [KINS]KINEMATICS
+   *  + HALCMD setp pivot lines) — TCP+TWP plan phase 1d. DECLARATION only:
+   *  the whole-track transform stays trivkins until phase 2's per-segment
+   *  modes (+ TLO-flow audit) activate the real kins. null = no INI yet.
+   *  Convert to a KinsSpec with viewer/kins.ts specFromWire(). */
+  kins?: {
+    module: string;
+    type: string;
+    identity_first: boolean;
+    params: Record<string, number>;
+  } | null;
   ini_config?: Record<string, any>;
   [key: string]: any;  // gateway adds occasional extras (e.g. timestamp, git_sha)
 }
@@ -68,6 +79,10 @@ export interface ScrubTrack {
   abc: Float32Array;        // count*3 degrees (zeros when the wire had no abc)
   lines: Uint32Array;       // count — source line per point (0 = unknown)
   rapid: Uint8Array;        // count — 1 when the segment ending here is a rapid
+  /** count — 1 when the segment ending here runs under WORLD/TCP kins
+   *  (phase 2: from the switchkins remap markers). Absent = no mode data
+   *  (untracked program/config — pose derivation stays trivkins). */
+  mode?: Uint8Array;
   /** Monotonic scrub parameter: SECONDS when `timeBased` (unified timeline
    *  phase 1 — per-segment feed + INI rapid velocities), else distance
    *  (mm, 1° ≙ 1 mm — legacy payloads / no INI MAX_VELOCITY). */
@@ -125,6 +140,12 @@ export interface ViewerGcode {
   // pre-lift). Absent on track-less legacy payloads → strip rendering.
   feedBreaks?: Uint32Array;
   rapidBreaks?: Uint32Array;
+  // Per-vertex world-kins flags for the DRAWN streams (previewWorker,
+  // track-derived — aligned with feedPos/rapidPos). Present iff the wire
+  // carried feed_mode/rapid_mode. The part-frame transform routes world
+  // segments through the machine's declared kins.
+  feedMode?: Uint8Array;
+  rapidMode?: Uint8Array;
   // P4.1: bounding boxes of the rendered polylines, computed in the parse worker
   // so ThreeViewer skips an O(n) main-thread scan per load. `bounds` is the cut
   // envelope shown as the toolpath bounds box (X/Y over feed+rapid, Z over feed
@@ -140,6 +161,11 @@ export interface ViewerGcode {
   // is the true distinct (line, axis) count.
   violations?: LimitViolation[] | null;
   violations_total?: number;
+  // World-mode (TCP) segments the parse worker could NOT limit-check: the
+  // declared kins module has no Python twin. Present only when > 0 —
+  // unchecked ≠ clean, so the stats dialog must say "not validated" for
+  // these instead of implying the violations list covered them.
+  violations_world_unchecked?: number;
   // Stage 2 (program scrub): execution-ordered feed+rapid merge built
   // off-thread by previewWorker. null/absent = no track (no program, or a
   // stale pre-seq payload) — the scrub bar doesn't offer itself.
@@ -157,6 +183,13 @@ export interface ViewerGcode {
   // P4.1: cumulative lineDistance for the dashed rapid line, computed off-thread so
   // ThreeViewer sets the attribute directly instead of Three.computeLineDistances().
   rapidDist?: Float32Array;
+  // Kins world-mode flags per vertex (u8, index-aligned with feed/rapid) —
+  // TCP+TWP phase 2a. Present ONLY when the program carried switchkins
+  // `(WEBUI_KINSTYPE=n)` markers from the toggle remaps; absent = NO mode
+  // data (a config switching kins without markers is untracked, not
+  // identity). 1 = world/TCP kins governs the segment ending at the vertex.
+  feed_mode?: Uint8Array;
+  rapid_mode?: Uint8Array;
   // Parse worker aborted partway: interpreter error text + the source line it
   // stopped on (e.g. an axis word this machine doesn't have). The payload
   // still carries whatever parsed before the abort, but scrubTrack is absent

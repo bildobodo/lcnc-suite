@@ -17,6 +17,7 @@ import {
   sampleTrack, jointsForSample, machineJointsToProgram, prependEntry,
   type ScrubSample,
 } from "./viewer/scrubTrack";
+import { specFromWire } from "./viewer/kins";
 import type { ScrubTrack } from "./ws/bulkData";
 import type { CollisionResult } from "./viewer/collision";
 import { limitViolationText } from "./ws/bulkData";
@@ -85,7 +86,7 @@ const curRapid = ref(false);
 const pct = computed(() => (cumMax.value > 0 ? Math.round((sPos.value / cumMax.value) * 100) : 0));
 
 // Reused per-frame scratch — the sPos watcher runs at animation rate.
-const _sample: ScrubSample = { px: 0, py: 0, pz: 0, pa: 0, pb: 0, pc: 0, line: 0, rapid: false, index: 0 };
+const _sample: ScrubSample = { px: 0, py: 0, pz: 0, pa: 0, pb: 0, pc: 0, line: 0, rapid: false, world: false, index: 0 };
 const _joints: (number | null)[] = [];
 
 function applyPos() {
@@ -94,7 +95,8 @@ function applyPos() {
   sampleTrack(t, sPos.value, _sample);
   curLine.value = _sample.line;
   curRapid.value = _sample.rapid;
-  jointsForSample(_sample, _wcs(), viewerInit.value?.axes ?? [], _joints);
+  jointsForSample(_sample, _wcs(), viewerInit.value?.axes ?? [], _joints,
+                  specFromWire(viewerInit.value?.kins));
   emit("pose", _joints.slice(), _sample.line, sPos.value, t);
 }
 
@@ -122,7 +124,11 @@ function _buildEntryTrack() {
     entryTrack.value = null;
     return;
   }
-  const entry = machineJointsToProgram(_baseJoints, viewerInit.value?.axes ?? [], _wcs());
+  // Entry inverse under the program's INITIAL mode (base.mode[0]) — the
+  // preamble sets kins before first motion; the live pin isn't sampled.
+  const entry = machineJointsToProgram(_baseJoints, viewerInit.value?.axes ?? [], _wcs(),
+                                       specFromWire(viewerInit.value?.kins),
+                                       base.mode?.[0] === 1);
   const g = viewerGcode.value;
   const t = prependEntry(base, entry, { linear: g?.rapid_rate, rotary: g?.rot_rapid_rate });
   entryTrack.value = t === base ? null : t;
@@ -262,7 +268,11 @@ watch(st, (d) => {
     if (c !== undefined) sPos.value = c;
     return;
   }
-  const p = machineJointsToProgram(jp, viewerInit.value?.axes ?? [], _wcs());
+  // Run-display playhead: invert live joints under the current line's
+  // segment mode so world-mode moves land on the right span position.
+  const p = machineJointsToProgram(jp, viewerInit.value?.axes ?? [], _wcs(),
+                                   specFromWire(viewerInit.value?.kins),
+                                   t.mode?.[span.end] === 1);
   let bestCum = t.cum[span.start]!;
   let bestD = Infinity;
   for (let i = Math.max(1, span.start); i <= span.end; i++) {
@@ -346,7 +356,14 @@ const violationTargets = computed<FindingTarget[]>(() => {
 // were swept on the DISPLAYED track (see collisionTrack prop).
 const resultCurrent = computed(() => props.collisionTrack === track.value);
 const hits = computed(() => (resultCurrent.value ? props.collisionResult?.hits ?? [] : []));
-const hitTargets = computed<FindingTarget[]>(() => hits.value);
+// One navigation target per contact ONSET: an intermittent-contact line
+// (enter → exit → re-enter) yields a target per interval, so the re-entry
+// is a real "next clash" stop, not folded invisibly into the first.
+const hitTargets = computed<FindingTarget[]>(() =>
+  hits.value
+    .flatMap(h => (h.intervals ?? [[h.cum, h.cumEnd] as [number, number]])
+      .map(iv => ({ cum: iv[0], line: h.line, rapid: h.rapid, dist: h.dist })))
+    .sort((a, b) => a.cum - b.cum));
 
 function targetAfter(list: FindingTarget[], s: number): FindingTarget | null {
   if (!list.length) return null;
@@ -377,7 +394,7 @@ function jumpTo(target: FindingTarget | null) {
 // margin but never touching (clearance warning, not a contact).
 const hitMarks = computed(() =>
   cumMax.value > 0
-    ? hits.value.map(h => ({ pct: Math.min(100, (h.cum / cumMax.value) * 100), rapid: h.rapid, near: h.dist > 1e-3 }))
+    ? hitTargets.value.map(t => ({ pct: Math.min(100, (t.cum / cumMax.value) * 100), rapid: t.rapid ?? false, near: (t.dist ?? 0) > 1e-3 }))
     : [],
 );
 

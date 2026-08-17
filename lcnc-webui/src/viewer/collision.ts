@@ -39,6 +39,7 @@ import * as THREE from "three";
 import { MeshBVH } from "three-mesh-bvh";
 import { normalizeKinematics, type KinRuntime } from "./kinematics";
 import { programToMachine, wcsTerms, type PartFrameWcs } from "./partFrame";
+import { makeKins, warnWorldWithoutSpec, type KinsSpec } from "./kins";
 import type { ScrubTrack } from "../ws/bulkData";
 
 export interface CollisionMachine {
@@ -50,6 +51,9 @@ export interface CollisionMachine {
   unitScale: number;
   /** Axis letters in JOINT order (viewer_init.axes). */
   axes: string[];
+  /** Kins selection (serializable — crosses the worker boundary). Absent =
+   *  trivkins. */
+  kins?: KinsSpec;
 }
 
 export interface CollisionBody {
@@ -73,8 +77,15 @@ export interface CollisionHit {
    *  sample for near-misses — the scrub-to-hit target. */
   cum: number;
   /** Track-cum where the contact ENDS (refined exit, clamped to the line) —
-   *  the tint window is [cum, cumEnd]. Equals `cum` for near-misses. */
+   *  equals `cum` for near-misses. With `intervals` present this is the
+   *  LAST interval's end (kept for compatibility). */
   cumEnd: number;
+  /** Contact intervals [enter, exit] in track cum, boundary-refined —
+   *  contact within one line can be INTERMITTENT (a rotary sweep can
+   *  brush a part, leave it, and brush it again; user-caught on a TCP
+   *  return move). The clash tint tests membership here; the timeline
+   *  marks every interval ONSET. Absent for near-misses. */
+  intervals?: Array<[number, number]>;
   a: string;               // tool-side body id
   b: string;               // work-side body id
   dist: number;            // machine units; 0 = contact/penetration
@@ -404,7 +415,18 @@ export function sweepCollisions(
   const o = wcsTerms(wcs);
   const machineVals: number[] = [0, 0, 0, 0, 0, 0];
   const jointVals: number[] = new Array(Math.max(machine.axes.length, 9)).fill(0);
-  const jointSlot = machine.axes.map(l => "XYZABC".indexOf(l.toUpperCase()));
+  // Identity kins always; the machine's WORLD kins only for track segments
+  // the phase-2 mode flags mark (live TLO overlays the pivot math).
+  // Soundness note for the V bounds below: under world kins the linear
+  // joints additionally carry the pivot compensation of the SAME rotary
+  // motion the chunk analyzes — that compensation's path is bounded by
+  // Δangle × lever, which the rotary term already budgets with ×2
+  // inflation, so the certificates stay conservative.
+  const identityKins = makeKins(machine.axes);
+  const worldKins = machine.kins && track.mode
+    ? makeKins(machine.axes, machine.kins, wcs.tool?.[2] || undefined)
+    : null;
+  const kinsOut: (number | null)[] = [];
   const scratch = {
     pos: new THREE.Vector3(), quat: new THREE.Quaternion(),
     step: new THREE.Quaternion(), one: new THREE.Vector3(1, 1, 1),
@@ -415,15 +437,17 @@ export function sweepCollisions(
   const target2 = { point: new THREE.Vector3(), distance: 0, faceIndex: -1 };
 
   // Worst hit per (line, pair) — same attribution shape as stage 1. `pi`
-  // (pair index) is internal, for the contact-refinement pass.
-  const worst = new Map<string, CollisionHit & { pi: number }>();
+  // (pair index) and `samples` (in-contact sample cums, the interval
+  // clustering input) are internal to the refinement pass.
+  const worst = new Map<string, CollisionHit & { pi: number; samples: number[] }>();
   let done = 0;
 
-  const poseAt = (px: number, py: number, pz: number, pa: number, pb: number, pc: number) => {
+  const poseAt = (px: number, py: number, pz: number, pa: number, pb: number, pc: number, world = false) => {
     programToMachine(px, py, pz, pa, pb, pc, o, machineVals);
-    for (let ji = 0; ji < jointSlot.length; ji++) {
-      const slot = jointSlot[ji]!;
-      jointVals[ji] = slot >= 0 ? machineVals[slot]! : 0;  // UVW: 0, as the preview transform
+    if (world && !worldKins) warnWorldWithoutSpec("collision sweep");
+    (world && worldKins ? worldKins : identityKins).inverse(machineVals, kinsOut);
+    for (let ji = 0; ji < kinsOut.length; ji++) {
+      jointVals[ji] = kinsOut[ji] ?? 0;  // UVW: 0, as the preview transform
     }
     poseTree(nodes, jointVals, scratch);
     for (const body of bodies) {
@@ -456,7 +480,7 @@ export function sweepCollisions(
   const onsetRapid = new Uint8Array(pairs.length);
   const staticContacts: CollisionResult["staticContacts"] = [];
   poseAt(track.pos[0]!, track.pos[1]!, track.pos[2]!,
-         track.abc[0]!, track.abc[1]!, track.abc[2]!);
+         track.abc[0]!, track.abc[1]!, track.abc[2]!, track.mode?.[0] === 1);
   for (let pi = 0; pi < pairs.length; pi++) {
     const [ai, bi] = pairs[pi]!;
     const dist = pairDistance(bodies[ai]!, bodies[bi]!, opts.margin);
@@ -471,16 +495,24 @@ export function sweepCollisions(
   }
   done++;
 
+  // Full closest distance of ~1e-8 (float) never a clean 0 — see the
+  // refinement pass, which shares this contact threshold.
+  const CONTACT_EPS = 1e-4;
   const recordHit = (line: number, cum: number, rapid: boolean, pi: number, dist: number) => {
     const [ai, bi] = pairs[pi]!;
     const key = `${line}|${bodies[ai]!.id}|${bodies[bi]!.id}`;
     const prev = worst.get(key);
     if (!prev || dist < prev.dist) {
-      const rec = { line, cum, cumEnd: cum, a: bodies[ai]!.id, b: bodies[bi]!.id, dist, rapid, pi };
+      const rec = { line, cum, cumEnd: cum, a: bodies[ai]!.id, b: bodies[bi]!.id, dist, rapid, pi,
+                    samples: prev ? prev.samples : [] };
       if (prev) rec.cumEnd = Math.max(prev.cumEnd, cum);
+      if (dist <= CONTACT_EPS) rec.samples.push(cum);
       worst.set(key, rec);
     } else {
-      if (cum > prev.cumEnd && dist <= 1e-4) prev.cumEnd = cum;  // last in-contact sample so far
+      if (dist <= CONTACT_EPS) {
+        prev.samples.push(cum);  // in-contact sample — interval clustering input
+        if (cum > prev.cumEnd) prev.cumEnd = cum;
+      }
       if (rapid && !prev.rapid) prev.rapid = true;  // any rapid contact on this (line, pair) marks it
     }
   };
@@ -519,6 +551,7 @@ export function sweepCollisions(
       track.abc[k]! + (track.abc[j]! - track.abc[k]!) * u,
       track.abc[k + 1]! + (track.abc[j + 1]! - track.abc[k + 1]!) * u,
       track.abc[k + 2]! + (track.abc[j + 2]! - track.abc[k + 2]!) * u,
+      track.mode?.[lo] === 1,
     );
     const [ai, bi] = pairs[pi]!;
     return pairDistance(bodies[ai]!, bodies[bi]!, opts.margin);
@@ -549,6 +582,7 @@ export function sweepCollisions(
       track.abc[k]! + (track.abc[j]! - track.abc[k]!) * t,
       track.abc[k + 1]! + (track.abc[j + 1]! - track.abc[k + 1]!) * t,
       track.abc[k + 2]! + (track.abc[j + 2]! - track.abc[k + 2]!) * t,
+      track.mode?.[i] === 1,
     );
   };
 
@@ -680,8 +714,6 @@ export function sweepCollisions(
   // clear parameter (crossing segment boundaries freely), then bisect the
   // first-contact crossing. Cost: only hit pairs, ~30 probes each.
   // "Contact" for the refinement probes: intersecting meshes report a
-  // closest distance of ~1e-8 (float), never a clean 0.
-  const CONTACT_EPS = 1e-4;
   // Dist-cum where the hit's LINE begins — refinement must never walk back
   // past it: through-contact across line boundaries (the pair never clears
   // between lines) would collapse every following line's hit onto the first
@@ -709,65 +741,90 @@ export function sweepCollisions(
     while (lo < n - 1 && track.lines[lo + 1] === line) lo++;
     return dcum[lo]!;
   };
+  const back = Math.max(MIN_ADV, EXPLORE / 4);
+  // Bisect a contact boundary between a known in-contact cum and a known
+  // clear cum (either order); returns the refined in-contact-side cum.
+  const bisectBoundary = (contactCum: number, clearCum: number, pi: number): number => {
+    let c = contactCum, x = clearCum;
+    for (let it = 0; it < 24 && Math.abs(x - c) > 1e-3; it++) {
+      const mid = (c + x) / 2;
+      if (distAtCum(mid, pi) <= CONTACT_EPS) c = mid;
+      else x = mid;
+    }
+    return c;
+  };
   for (const h of worst.values()) {
     if (h.dist > CONTACT_EPS || h.cum <= 0) continue;  // near-misses keep their closest-approach sample
     const floor = lineStartDist(h.cum, h.line);
-    let hi = h.cum;
-    let lo = hi;
-    let guard = 0;
-    let bracketed = false;
-    const back = Math.max(MIN_ADV, EXPLORE / 4);
-    while (guard++ < 128 && lo > floor) {
-      lo = Math.max(floor, lo - back);
-      if (distAtCum(lo, h.pi) > CONTACT_EPS) { bracketed = true; break; }
-      hi = lo;  // still in contact — earliest known contact moves back
+    const ceil = lineEndDist(Math.max(h.cumEnd, h.cum), h.line);
+
+    // Contact within one line can be INTERMITTENT. The advancement loop
+    // samples every EXPLORE step while a pair sits inside the margin
+    // (certificates cannot stride there), so gaps wider than the stride
+    // between in-contact samples are VERIFIED separations — cluster the
+    // samples into candidate intervals, then refine every boundary.
+    const CLUSTER_GAP = EXPLORE * 2 + MIN_ADV;
+    h.samples.sort((x, y) => x - y);
+    const clusters: Array<[number, number]> = [];
+    for (const s of h.samples) {
+      const last = clusters[clusters.length - 1];
+      if (!last || s - last[1] > CLUSTER_GAP) clusters.push([s, s]);
+      else last[1] = s;
     }
-    if (bracketed) {
-      for (let it = 0; it < 24 && hi - lo > 1e-3; it++) {
-        const mid = (lo + hi) / 2;
-        if (distAtCum(mid, h.pi) <= CONTACT_EPS) hi = mid;
-        else lo = mid;
-      }
-      h.cum = hi;
-    } else {
-      h.cum = hi;  // in contact from the line's start — that IS first touch here
+    if (!clusters.length) clusters.push([h.cum, Math.max(h.cum, h.cumEnd)]);
+    // Pathological chatter cap — merge the tail rather than grow unbounded.
+    while (clusters.length > 16) {
+      const t = clusters.pop()!;
+      clusters[clusters.length - 1]![1] = t[1];
     }
 
-    // Exit refinement: the glow window must END where the parts separate —
-    // walk forward from the last in-contact sample, clamped to the line.
-    const ceil = lineEndDist(Math.max(h.cumEnd, h.cum), h.line);
-    let elo = Math.max(h.cumEnd, h.cum);
-    let ehi = elo;
-    guard = 0;
-    let exitBracketed = false;
-    while (guard++ < 128 && ehi < ceil) {
-      ehi = Math.min(ceil, ehi + back);
-      if (distAtCum(ehi, h.pi) > CONTACT_EPS) { exitBracketed = true; break; }
-      elo = ehi;
-    }
-    if (exitBracketed) {
-      for (let it = 0; it < 24 && ehi - elo > 1e-3; it++) {
-        const mid = (elo + ehi) / 2;
-        if (distAtCum(mid, h.pi) <= CONTACT_EPS) elo = mid;
-        else ehi = mid;
+    const intervals: Array<[number, number]> = [];
+    for (let ci = 0; ci < clusters.length; ci++) {
+      const [cs, ce] = clusters[ci]!;
+      // ENTRY: walk back toward the previous interval's exit / line start.
+      const efloor = ci === 0 ? floor : intervals[ci - 1]![1];
+      let hi = cs, lo = hi, guard = 0, bracketed = false;
+      while (guard++ < 128 && lo > efloor) {
+        lo = Math.max(efloor, lo - back);
+        if (distAtCum(lo, h.pi) > CONTACT_EPS) { bracketed = true; break; }
+        hi = lo;  // still in contact — earliest known contact moves back
       }
-      h.cumEnd = elo;
-    } else {
-      h.cumEnd = ehi;  // in contact to the line's end
+      const entry = bracketed ? bisectBoundary(hi, lo, h.pi) : hi;
+      // EXIT: walk forward toward the next cluster / line end.
+      const eceil = ci === clusters.length - 1 ? ceil : clusters[ci + 1]![0];
+      let elo = Math.max(ce, entry), ehi = elo;
+      guard = 0;
+      let exitBracketed = false;
+      while (guard++ < 128 && ehi < eceil) {
+        ehi = Math.min(eceil, ehi + back);
+        if (distAtCum(ehi, h.pi) > CONTACT_EPS) { exitBracketed = true; break; }
+        elo = ehi;
+      }
+      const exit = exitBracketed ? bisectBoundary(elo, ehi, h.pi) : ehi;
+      intervals.push([entry, exit]);
     }
+    h.cum = intervals[0]![0];
+    h.cumEnd = intervals[intervals.length - 1]![1];
+    h.intervals = intervals;
   }
   // Hits leave the sweep in TRACK cum (time on a time-based track) — the
   // scrub-to-hit target must live on the slider's axis.
   for (const h of worst.values()) {
     h.cum = distToTrackCum(h.cum);
     h.cumEnd = Math.max(h.cum, distToTrackCum(h.cumEnd));
+    if (h.intervals) {
+      for (const iv of h.intervals) {
+        iv[0] = distToTrackCum(iv[0]);
+        iv[1] = Math.max(iv[0], distToTrackCum(iv[1]));
+      }
+    }
   }
   onProgress?.(1);
 
   const hits = [...worst.values()]
     .sort((x, y) => x.cum - y.cum)
     .slice(0, MAX_HITS)
-    .map(({ pi: _pi, ...rest }) => rest);
+    .map(({ pi: _pi, samples: _s, ...rest }) => rest);
   return {
     hits,
     staticContacts,

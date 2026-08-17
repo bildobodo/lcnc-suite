@@ -22,12 +22,14 @@
 //   For a machine with no rotary DOFs this reduces to v = programmed point —
 //   the existing pipeline's identity, preserved by construction.
 //
-// Joint mapping: axis values are converted to joint space (xyz: rotate by
-// θ, add o, add TLO; abc: add live rotary offsets) and used as joint
-// values — the same trivkins assumption the live machine model makes.
+// Joint mapping: axis values are converted to machine coords (xyz: rotate
+// by θ, add o, add TLO; abc: add live rotary offsets), then machine coords
+// become joints through the kins boundary (viewer/kins.ts — trivkins today,
+// real inverse kinematics behind the same interface later).
 import * as THREE from "three";
 import type { ViewerInit } from "../ws/bulkData";
 import { normalizeKinematics, type KinRuntime } from "./kinematics";
+import { makeKins, warnWorldWithoutSpec, type KinsSpec } from "./kins";
 
 export interface PartFrameMachine {
   groups: Array<{ id: string; parent: string; translate?: [number, number, number] | number[] }>;
@@ -36,11 +38,14 @@ export interface PartFrameMachine {
   toolGroup: string;
   /** machine.json mm → machine units (1 for mm machines, 1/25.4 for inch). */
   unitScale: number;
-  /** Axis letters in JOINT order (viewer_init.axes, from axis_mask) — the
-   *  joint↔axis mapping under trivkins. On XYZAC, C is joint 4 but canonical
-   *  axis 5; kinematics entries are joint-indexed, preview data is
-   *  axis-lettered, and this list is the bridge. */
+  /** Axis letters in JOINT order (viewer_init.axes, from axis_mask). On
+   *  XYZAC, C is joint 4 but canonical axis 5; kinematics entries are
+   *  joint-indexed, preview data is axis-lettered, and this list is the
+   *  bridge the kins boundary converts across. */
   axes: string[];
+  /** Kins selection (serializable — this machine crosses postMessage).
+   *  Absent = trivkins. */
+  kins?: KinsSpec;
 }
 
 export interface PartFrameWcs {
@@ -67,6 +72,10 @@ export interface PartFramePolyline {
    *  segment INTO such a vertex is a false connector across a stream
    *  interleave — never subdivided, and the renderer index-skips it. */
   breaks?: Uint32Array;
+  /** Per-vertex world-kins flags (phase 2): the segment ENDING at vertex i
+   *  runs under the machine's world kins when mode[i] = 1. Absent = no
+   *  mode data — every segment derives as trivkins, as before. */
+  mode?: Uint8Array;
 }
 
 export interface PartFrameResult {
@@ -280,21 +289,25 @@ export function transformToPartFrame(
   const tool = new THREE.Vector3();
   const invWork = new THREE.Matrix4();
   const SCALE1 = new THREE.Vector3(1, 1, 1);
-  const jointVals: number[] = [0, 0, 0, 0, 0, 0, 0, 0, 0];
-  // Joint index → axis slot (0..5 = machine X,Y,Z,A,B,C; -1 = unknown/UVW).
-  // kinematics joints are JOINT-indexed; the axes list maps them to letters.
+  // UVW joints come back null from the kins boundary; the DOF loop's
+  // `?? 0` keeps them at zero in the pose, as before.
+  const jointVals: (number | null)[] = [];
   const axisLetters = machine.axes.length ? machine.axes : ["X", "Y", "Z", "A", "B", "C"];
-  const jointSlot = axisLetters.map(l => "XYZABC".indexOf(l.toUpperCase()));
+  // Identity model always; the machine's WORLD kins only for segments the
+  // mode flags mark — an untracked polyline (no mode array) never touches
+  // it. Live TLO feeds the world model's pivot math (makeKins overlay).
+  const identityKins = makeKins(axisLetters);
+  const worldKins = machine.kins && input.mode
+    ? makeKins(axisLetters, machine.kins, wcs.tool?.[2] || undefined)
+    : null;
   const machineVals: number[] = [0, 0, 0, 0, 0, 0];
 
   let out = 0;
-  const emit = (px: number, py: number, pz: number, pa: number, pb: number, pc: number, line: number) => {
-    // Program → machine coords (joints under the trivkins assumption).
+  const emit = (px: number, py: number, pz: number, pa: number, pb: number, pc: number, line: number, world: boolean) => {
+    // Program → machine coords, then machine → joints via the kins boundary.
     programToMachine(px, py, pz, pa, pb, pc, o, machineVals);
-    for (let ji = 0; ji < jointVals.length; ji++) {
-      const slot = jointSlot[ji];
-      jointVals[ji] = slot !== undefined && slot >= 0 ? machineVals[slot]! : 0;
-    }
+    if (world && !worldKins) warnWorldWithoutSpec("part-frame preview");
+    (world && worldKins ? worldKins : identityKins).inverse(machineVals, jointVals);
 
     // Evaluate chain nodes (parents first): base + composed DOFs, exactly
     // like the live applyState — translations add, rotations right-multiply.
@@ -333,12 +346,14 @@ export function transformToPartFrame(
 
   const outBreaks: number[] = [];
   emit(input.pos[0]!, input.pos[1]!, input.pos[2]!,
-       input.abc[0]!, input.abc[1]!, input.abc[2]!, input.lines?.[0] ?? 0);
+       input.abc[0]!, input.abc[1]!, input.abc[2]!, input.lines?.[0] ?? 0,
+       input.mode?.[0] === 1);
   if (breakSet.has(0)) outBreaks.push(0);
   for (let i = 1; i < n; i++) {
     const j = i * 3, k = j - 3;
     const steps = segSamples[i - 1]!;
     const line = input.lines?.[i] ?? 0;
+    const world = input.mode?.[i] === 1;  // segment mode: all its samples share it
     for (let s = 1; s <= steps; s++) {
       const t = s / steps;
       emit(
@@ -349,6 +364,7 @@ export function transformToPartFrame(
         input.abc[k + 1]! + (input.abc[j + 1]! - input.abc[k + 1]!) * t,
         input.abc[k + 2]! + (input.abc[j + 2]! - input.abc[k + 2]!) * t,
         line,
+        world,
       );
     }
     // Remap the section start to its output index (the segment's endpoint —

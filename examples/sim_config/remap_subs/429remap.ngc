@@ -16,6 +16,9 @@ o1 endif
 
    M68  E#<SWITCHKINS_PIN> Q#<kinstype> ; set kinstype value
    M66  E0 L0                           ; force synch
+; announce the switch to the lcnc-suite preview parse - comments are
+; the one execution-ordered channel the preview canon receives
+   (WEBUI_KINSTYPE=0)
 
 o3 if [#<_task> EQ 1]
 o4   if [#<_hal[motion.switchkins-type]> NE #<kinstype>]

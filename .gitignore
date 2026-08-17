@@ -23,7 +23,7 @@ build/
 .claude/settings.local.json
 
 # Machine-specific / downloaded files
-rs274ngc.var
+rs274ngc.var*
 *.dsc
 runlogs/
 
