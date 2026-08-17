@@ -1092,7 +1092,7 @@ The `[RS274NGC] SUBROUTINE_PATH` must include paths to the subroutine directorie
 
 The 3D viewer loads a machine model — a directory containing `machine.json` plus STL files — describing the kinematic hierarchy, STL parts, and how joints drive the model.
 
-**Point your INI at your own model directory** with `[DISPLAY] WEBUI_MACHINE_DIR = ~/my_machine_model` (`~` is expanded). Unset, the gateway uses the shipped default `lcnc-gateway/machine/` (a 3-axis PM-25MV, STLs tracked with Git LFS) — don't edit that in place, a `git pull` overwrites it. The shipped 5-axis examples (`examples/sim_config/machine-xyzac/`, `machine-dmu160p/`) are complete rotary references, wired up by their sim INIs. `machine.json` is mtime-cached and hot-reloads on the next viewer init — no restart needed; a missing or unparseable file raises the operator config-warning banner and falls back to the default geometry.
+**Point your INI at your own model directory** with `[DISPLAY] WEBUI_MACHINE_DIR = ~/my_machine_model` (`~` is expanded). Unset, the gateway uses the shipped default `lcnc-gateway/machine/` (a 3-axis PM-25MV, STLs tracked with Git LFS) — don't edit that in place, a `git pull` overwrites it. The shipped 5-axis example (`examples/sim_config/machine-xyzac/`) is a complete rotary reference, wired up by its sim INIs. `machine.json` is mtime-cached and hot-reloads on the next viewer init — no restart needed; a missing or unparseable file raises the operator config-warning banner and falls back to the default geometry.
 
 #### Schema
 
@@ -1260,7 +1260,7 @@ REMAP=M430 modalgroup=10 ngc=430remap
 
 What you get on marker-tagged TCP programs: simulation scrub and "Path on part" pose through the real kinematics, the collision sweep checks the true joint-space motion, and **soft limits are validated joint-side** — under TCP the joints swing past the programmed words (a program whose X words stayed inside ±20 was measured driving joint X to −22.4), so word-side checking would miss real overtravel. If a config declares a kins module the suite has no twin for, those segments are counted and reported as "N TCP segments not validated" in the program stats — never silently passed.
 
-Known limits: the DMU-style nutating-B example (`machine-dmu160p/`) ships as a trivkins model only (no TCP kins twin for the nutating family yet), and gantry dual-joint / lathe modes are outside the proven envelope.
+Known limits: nutating-head (tilted-axis) kinematics have no TCP twin yet (viewer models with an arbitrary `axis: [x, y, z]` rotation render and articulate fine — trivkins only), and gantry dual-joint / lathe modes are outside the proven envelope.
 
 ### Polling Rate
 
@@ -1304,7 +1304,7 @@ lcnc-suite/
 │   │   ├── lcncWs.ts          # WebSocket client with heartbeat
 │   │   └── style.css          # Global styles, design tokens, theme vars
 │   └── package.json
-├── examples/sim_config/       # Sim configs (3/5/9-axis, TCP, DMU) + machine models
+├── examples/sim_config/       # Sim configs (3/5/9-axis, TCP) + machine models
 ├── scripts/                   # Dev tools (perf matrix, kins oracle, STL generators)
 ├── subroutines/               # G-code subroutines (bundled)
 │   ├── probe_basic/           # Probing routines (from kcjengr/probe_basic, GPL v3)

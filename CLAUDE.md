@@ -261,11 +261,17 @@ the collision engine and requires zero self-collisions with static
 contacts only at the five designed joints. Sim travels match the v2
 geometry: X ±200, Y ±70, Z −30..+100 (retract is +Z, knee down; nose→
 platter crash plane at Z −35), A −100..+50. A second 5-axis example,
-`machine-dmu160p/` (+ `lcnc_suite_sim_dmu160p.ini`), is the OPPOSITE
-rotary layout — Sigma1912's vtk-vismach DMU 160 P portal mill with a
+`machine-dmu160p/` (+ `lcnc_suite_sim_dmu160p.ini`), is **LOCAL-ONLY —
+UNTRACKED, never commit it**: the STL source repo
+(Sigma1912/LinuxCNC_Demo_Configs) declares NO license, so redistribution
+isn't clearly granted (his companion vtk-vismach IS GPL-3.0 and is
+credited in NOTICE as the kinematic reference; the kinematic constants
+mirror `vtk-dmu-160-p-gui.py`). Regenerate on a fresh machine with its
+`fetch-model.sh` (downloads from upstream directly). It is the OPPOSITE
+rotary layout — a DMU 160 P-style portal mill with a
 45° NUTATING B head (tool-chain rotary about axis `[0, sin45°, cos45°]`)
-+ C table, real STLs fetched/converted by its `fetch-model.sh` (GPL v3),
-gated by `machineDmu160p.test.ts`, and shipping the first `stock: true`
++ C table, gated by the (also local-only) `machineDmu160p.test.ts`, and
+carrying the first `stock: true`
 body (500 mm cube on the platter). Frame: X0 Y0 = table center, Z0 =
 TOP of travel (Z −970..0; nose 1120..150 above the table; stock top at
 machine −620) — Z0-at-top makes the joints-at-zero startup pose legal
@@ -518,7 +524,8 @@ For stock bodies: FEED contact is machining and never reports; contact
 whose ONSET falls in a RAPID is the gouge class and reports; a rapid
 RETRACT leaving feed-begun contact is benign. Stock pairs are never
 baseline-excluded (parked-on-work is normal); they seed the in-contact
-state instead. The machine-dmu160p example ships the first stock body
+state instead. The (local-only) machine-dmu160p example carries the first
+stock body
 (`work_piece` cube, `stock: true` — flag flows gateway → `viewer_init`
 parts → collision bodies); the deferred user-placed stock-box feature
 would provide one for arbitrary machines/programs. Pair scope: DERIVED from relative motion

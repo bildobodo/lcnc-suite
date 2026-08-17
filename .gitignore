@@ -24,6 +24,14 @@ build/
 
 # Machine-specific / downloaded files
 rs274ngc.var*
+
+# Local-only DMU 160 P example (not shipped: the upstream STL source repo
+# declares no license, so redistribution isn't clearly granted — see
+# Sigma1912/LinuxCNC_Demo_Configs; his GPL-3.0 vtk-vismach is credited in
+# NOTICE as the kinematic reference). Kept locally for testing.
+examples/sim_config/machine-dmu160p/
+examples/sim_config/lcnc_suite_sim_dmu160p.ini
+lcnc-webui/src/viewer/machineDmu160p.test.ts
 *.dsc
 runlogs/
 

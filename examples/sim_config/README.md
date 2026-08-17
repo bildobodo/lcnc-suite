@@ -39,11 +39,6 @@ Edit `hallib/lcnc_webui.hal`:
   kinematics (`xyzac-trt-kins sparm=identityfirst`) and the M428/M429/M430
   TCP toggle remaps from `remap_subs/` (see its README). Own var file
   (`sim_tcp.var`). The reference config for the suite's TCP support.
-- `lcnc_suite_sim_dmu160p.ini` — DMU 160 P portal mill: 45° nutating-B
-  head on the TOOL chain + C table (opposite rotary topology to the
-  trunnion), real STLs fetched by `machine-dmu160p/fetch-model.sh`, and
-  the first `stock: true` workpiece body for the collision sweep.
-  Trivkins only (no TCP kins twin for the nutating family yet).
 - `hallib/lcnc_webui.hal` — HAL wiring for safety watchdog, e-stop chain, tool change, compensation
 - Other HAL files — sim-specific (homing, spindle, etc.)
 
