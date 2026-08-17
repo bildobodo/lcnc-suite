@@ -906,6 +906,37 @@ class TestSafetyChain(unittest.TestCase):
         self.assertIn("no writer", r)
 
 
+class TestViewerConfigWarnings(unittest.TestCase):
+    """Review D4/D5: banner-visible viewer-config smells."""
+
+    def test_pivot_warning_only_for_paramless_twin(self):
+        f = gateway_util.kins_pivot_warning
+        self.assertIsNone(f(None))
+        self.assertIsNone(f({"module": "trivkins", "type": "trivkins", "params": {}}))
+        # Unknown module: no twin, the viewer math never runs it — no claim.
+        self.assertIsNone(f({"module": "genhexkins", "type": "genhexkins", "params": {}}))
+        # Twin with params: configured.
+        self.assertIsNone(f({"module": "xyzac-trt-kins", "type": "xyzac-trt",
+                             "params": {"y_offset": 20.0}}))
+        # Twin without params: the silent pivot-zero trap (setp lines in a
+        # .hal file instead of [HAL]HALCMD).
+        r = f({"module": "xyzac-trt-kins", "type": "xyzac-trt", "params": {}})
+        self.assertIn("HALCMD", r)
+
+    def test_rotary_model_warning(self):
+        f = gateway_util.rotary_model_warning
+        rot = [{"group": "a", "joint": 3, "type": "rotate", "direction": "x", "sign": 1}]
+        lin = [{"group": "x", "joint": 0, "direction": "x", "sign": 1}]
+        self.assertIsNone(f(["X", "Y", "Z"], lin))            # no rotary axes
+        self.assertIsNone(f(["X", "Y", "Z", "A", "C"], rot))  # model articulates
+        self.assertIsNone(f([], None))
+        # UVW are linear — never trigger the rotary claim.
+        self.assertIsNone(f(["X", "Y", "Z", "U", "V", "W"], lin))
+        # The silently-wrong-3D case: rotary config on the 3-axis default.
+        r = f(["X", "Y", "Z", "A", "C"], lin)
+        self.assertIn("A/C", r)
+
+
 class TestKinsModeHelpers(unittest.TestCase):
     """Phase 2a: marker parsing + per-segment world-mode flags."""
 

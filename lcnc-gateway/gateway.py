@@ -44,6 +44,8 @@ from gateway_util import (
     evaluate_trip_latch,
     evaluate_safety_chain,
     unwritten_estop_signal,
+    kins_pivot_warning,
+    rotary_model_warning,
     parse_telemetry_batch,
     TELEMETRY_BODY_MAX,
 )
@@ -3324,6 +3326,10 @@ _units_fallback_active = False
 _units_fallback_reason = ""
 _config_warning_active = False
 _config_warning_reason = ""
+# Viewer-config smells computed in build_viewer_init (review D4/D5): trt
+# kins declared without INI-HALCMD pivot params, rotary axes on a model
+# that articulates none. Rides the same config_warning banner; "" = clean.
+_viewer_config_warning = ""
 
 
 def _set_units_fallback(active: bool, reason: str = "") -> None:
@@ -3578,6 +3584,18 @@ def build_viewer_init(stl_base_url: str) -> Dict[str, Any]:
             )
         except Exception as e:
             _trace.emit_exc("viewer_init.kins_parse_failed", e)
+
+    # Viewer-config smells (review D4/D5) — banner-visible, never trace-only.
+    # Recomputed on every cache-miss build; a cache hit keeps the previous
+    # value (same inputs, same verdict).
+    global _viewer_config_warning
+    _viewer_config_warning = "; ".join(filter(None, [
+        kins_pivot_warning(kins_decl),
+        rotary_model_warning(axes, cfg.get("kinematics")),
+    ]))
+    if _viewer_config_warning:
+        _trace.emit("viewer_init.config_warning", level="warn",
+                    reason=_viewer_config_warning)
 
     ini_config = {
         "ini_filename": ini_filename,
@@ -4956,10 +4974,12 @@ async def ws_endpoint(ws: WebSocket):
                         safety_chain=_safety_chain_reason(),
                         config_warning=(
                             {
-                                "reason": _config_warning_reason or _units_fallback_reason,
+                                "reason": (_config_warning_reason or _units_fallback_reason
+                                           or _viewer_config_warning),
                                 "units": _units_fallback_active,
                             }
-                            if (_units_fallback_active or _config_warning_active) else None
+                            if (_units_fallback_active or _config_warning_active
+                                or _viewer_config_warning) else None
                         ),
                         probe_results=client.probe_results,
                         rfl_status=_rfl_status,

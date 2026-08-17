@@ -20,6 +20,18 @@ while [[ $# -gt 0 ]]; do
 done
 
 # ── Read optional config from INI [DISPLAY] section ──
+# `inivar` missing is a hard abort BEFORE any ini_get: ini_get swallows the
+# failure (|| true), so every WEBUI_* setting would silently read empty —
+# HOST would default to 0.0.0.0 and the token check would then blame the
+# user's "missing" WEBUI_TOKEN even though their INI sets one. Fail on the
+# real cause instead (D1).
+if [[ -n "$INI_FILE" ]] && ! command -v inivar >/dev/null 2>&1; then
+  echo "ERROR: 'inivar' not found on PATH — cannot read WEBUI_* settings from $INI_FILE." >&2
+  echo "inivar ships with LinuxCNC (usually /usr/bin/inivar). Fix the PATH LinuxCNC" >&2
+  echo "launches with, or export the LCNC_WEBUI_* environment variables instead." >&2
+  exit 1
+fi
+
 ini_get() {
   # Returns value or empty string if not found.
   # inivar returns the rest of the line verbatim, so inline "# comment"
@@ -298,19 +310,24 @@ _wait_or_kill() {
     wait "$pid" 2>/dev/null || true
 }
 
-# === TEMP HAL-SAMPLE PROBE === capture every servo-cycle value of the
-# safety-chain bool pins. The HAL sampler component fills a FIFO every
-# servo cycle (~1ms); halsampler -n 0 drains it to stdout. We pipe into
-# a CSV so we can correlate Python-side heartbeat events with what the
-# realtime thread actually sees on oneshot.0.in / oneshot.0.out. The
-# matching `loadrt sampler` lives in the LinuxCNC HAL config file
-# (lcnc_webui.hal). If halsampler isn't on PATH (older LinuxCNC, or
-# packaging miss), we skip silently — gateway operation is unaffected.
+# === OPT-IN HAL-SAMPLE PROBE (WEBUI_HAL_SAMPLE=1) === capture every
+# servo-cycle value of the safety-chain bool pins. The HAL sampler
+# component fills a FIFO every servo cycle (~1ms); halsampler drains it
+# to a CSV so Python-side heartbeat events can be correlated with what
+# the realtime thread actually sees on oneshot.0.in / oneshot.0.out.
+# Opt-in (D2): no shipped HAL file carries the matching `loadrt sampler`,
+# so an unconditional start exited within 200ms on EVERY boot and left a
+# permanent "sampler not loaded?" false alarm in launcher.log. Enable by
+# exporting WEBUI_HAL_SAMPLE=1 AND adding the sampler component
+# (loadrt sampler depth=... cfg=bbbbbbf + addf) to your HAL config.
 SAMPLER_PID=""
 HAL_SAMPLE_PATH="$LCNC_RESOLVED_LOG_DIR/hal_sample.csv"
 
 _start_hal_sampler() {
     local mode="$1"
+    if [[ "${WEBUI_HAL_SAMPLE:-0}" != "1" ]]; then
+        return
+    fi
     if ! command -v halsampler >/dev/null 2>&1; then
         _log "$mode halsampler not on PATH — skipping HAL-sample capture"
         return

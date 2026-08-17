@@ -623,6 +623,47 @@ def kins_marker_policy(kins_cfg):
     return "twin" if kins_cfg.get("type") in _TRT_LETTERS else "unchecked"
 
 
+def kins_pivot_warning(kins_cfg):
+    """Reason string when a trt-family kins is declared with ZERO pivot
+    params parsed from [HAL]HALCMD (review D4).
+
+    parse_kins_config reads setp lines from the INI's [HAL]HALCMD ONLY —
+    the normal .hal-file `setp xyzac-trt-kins.y-offset …` idiom configures
+    the real kins but is invisible here, so the viewer's TCP math would
+    silently run with every pivot at zero. A machine genuinely pivoted at
+    the origin silences this with explicit `HALCMD = setp … 0` lines.
+    None when params are present or the kins has no twin. Pure.
+    """
+    if kins_cfg and kins_marker_policy(kins_cfg) == "twin" and not kins_cfg.get("params"):
+        return (f"{kins_cfg.get('module')} declared but no pivot setp lines in "
+                f"[HAL]HALCMD — viewer TCP math would use pivot zeros; put the "
+                f"setp lines in the INI (README: 5-Axis and TCP)")
+    return None
+
+
+def rotary_model_warning(axes, kinematics):
+    """Reason string when the machine has rotary axes but the viewer model
+    articulates none of them (review D5).
+
+    The silently-wrong-3D case: a rotary config left on the default 3-axis
+    model shows correct DRO numbers while the backplot/toolpath ride a
+    workGroup that never rotates. `axes` is the viewer_init letter list
+    (from axis_mask); `kinematics` is machine.json's entry list (absent
+    `type` means translate). None when consistent — including the
+    no-rotary machine and the model that articulates at least one rotary
+    (partial models are a deliberate-simplification judgment call, not a
+    provable misconfig). Pure.
+    """
+    rot = [a for a in (axes or []) if a in ("A", "B", "C")]
+    if not rot:
+        return None
+    if any((k or {}).get("type") == "rotate" for k in (kinematics or [])):
+        return None
+    return (f"machine has rotary axes ({'/'.join(rot)}) but the machine model "
+            f"articulates none — 3D backplot/preview will be wrong; point "
+            f"[DISPLAY] WEBUI_MACHINE_DIR at a rotary model (README: Machine Model)")
+
+
 def mode_boundary_indices(mode):
     """Vertex indices that must survive decimation at kins-mode flips.
 
