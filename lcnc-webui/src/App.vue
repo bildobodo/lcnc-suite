@@ -2,7 +2,7 @@
 import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, provide, reactive, ref, watch } from "vue";
 import { applyClientOverlay, PERMISSIONS_KEY, type Permissions } from "./permissions";
 import { simMode } from "./simMode";
-import { connectWs, connected, status, send, armed, lastReply, viewerGcode, viewerInit, gcodeContent, lcncError, latency, networkLatency, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead, pushMessage, safetyTrip, acknowledgeSafetyTrip, readerStale, configWarning, previewLoadError, previewParseError, serverShuttingDown, type LcncMessage } from "./lcncWs";
+import { connectWs, connected, status, send, armed, lastReply, viewerGcode, viewerInit, gcodeContent, lcncError, latency, networkLatency, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead, pushMessage, safetyTrip, acknowledgeSafetyTrip, readerStale, safetyChainIncomplete, configWarning, previewLoadError, previewParseError, serverShuttingDown, type LcncMessage } from "./lcncWs";
 // Lazy-load the 3D viewer so Three.js (~866 KB) + troika load as a separate async
 // chunk after first paint instead of blocking the initial bundle (P6). The viewerRef
 // methods are all `?.`-guarded, so calls during the brief load gap safely no-op.
@@ -181,6 +181,7 @@ const safetyTripReasonLabel = computed(() =>
 
 const machineStateColor = computed(() => {
   if (safetyTrip.value) return '--state-danger';
+  if (safetyChainIncomplete.value) return '--state-danger';
   if (serverShuttingDown.value) return '--state-warn';
   if (readerStale.value) return '--state-warn';
   if (configWarning.value) return '--state-warn';
@@ -239,6 +240,7 @@ const bannerFlashMode = computed<'none' | 'pulse' | 'flash'>(() => {
   if (safetyTrip.value) return 'flash';
   const s = machineState.value;
   if (s === 'estop' || s === 'disconnected') return 'flash';
+  if (safetyChainIncomplete.value) return 'pulse';
   if (serverShuttingDown.value) return 'pulse';
   if (readerStale.value) return 'pulse';
   if (configWarning.value) return 'pulse';
@@ -1360,6 +1362,9 @@ watch(viewerGcode, (newGcode) => {
                suite restart is the way out (no auto-recovery implied). -->
           <span v-if="safetyTrip" :key="'safety'" class="bannerError">
             SAFETY TRIPPED ({{ safetyTripReasonLabel }}) — Acknowledge, re-Arm if needed, then E-Stop Reset
+          </span>
+          <span v-else-if="safetyChainIncomplete" :key="'safety-chain'" class="bannerError">
+            SAFETY CHAIN INCOMPLETE — {{ safetyChainIncomplete }} — check HALFILE hallib/lcnc_webui.hal, then restart the suite
           </span>
           <span v-else-if="serverShuttingDown" :key="'shutdown'" class="bannerError">
             Server shutting down — start LinuxCNC again to reconnect

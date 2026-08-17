@@ -850,6 +850,62 @@ class TestParseKinsConfig(unittest.TestCase):
         self.assertIsNone(gateway_util.parse_kins_config("", []))
 
 
+class TestSafetyChain(unittest.TestCase):
+    """Review B1: safety-chain completeness banner + estop-loop writer check."""
+
+    def test_grace_suppresses_everything(self):
+        self.assertIsNone(gateway_util.evaluate_safety_chain(
+            grace_expired=False, watchdog_connected=False,
+            reader_fresh=True, trip_latched_present=False,
+            extra_reason="x"))
+
+    def test_healthy_chain_is_none(self):
+        self.assertIsNone(gateway_util.evaluate_safety_chain(
+            grace_expired=True, watchdog_connected=True,
+            reader_fresh=True, trip_latched_present=True))
+
+    def test_watchdog_down_reported(self):
+        r = gateway_util.evaluate_safety_chain(
+            grace_expired=True, watchdog_connected=False,
+            reader_fresh=True, trip_latched_present=True)
+        self.assertIn("webui-safety", r)
+
+    def test_latch_absent_only_on_fresh_snapshot(self):
+        # Fresh snapshot without trip_latched = latch missing.
+        r = gateway_util.evaluate_safety_chain(
+            grace_expired=True, watchdog_connected=True,
+            reader_fresh=True, trip_latched_present=False)
+        self.assertIn("webui-hb-latch", r)
+        # Stale reader is its own banner — no latch claim without evidence.
+        self.assertIsNone(gateway_util.evaluate_safety_chain(
+            grace_expired=True, watchdog_connected=True,
+            reader_fresh=False, trip_latched_present=False))
+
+    def test_reasons_join_and_extra_appends(self):
+        r = gateway_util.evaluate_safety_chain(
+            grace_expired=True, watchdog_connected=False,
+            reader_fresh=True, trip_latched_present=False,
+            extra_reason="estop-loop unwritten")
+        self.assertIn("webui-safety", r)
+        self.assertIn("webui-hb-latch", r)
+        self.assertTrue(r.endswith("estop-loop unwritten"))
+
+    def test_unwritten_estop_signal(self):
+        f = gateway_util.unwritten_estop_signal
+        # Absent signal: the user rewired the chain — their names, no claim.
+        self.assertIsNone(f([]))
+        self.assertIsNone(f(None))
+        self.assertIsNone(f([{"name": "my-estop", "pins": []}]))
+        # Written signal (sim wiring): healthy.
+        self.assertIsNone(f([{"name": "estop-loop", "pins": [
+            {"arrow": "<==", "pin": "iocontrol.0.user-enable-out"},
+            {"arrow": "==>", "pin": "and2.0.in0"}]}]))
+        # Exists with readers only: the silent stuck-in-ESTOP trap.
+        r = f([{"name": "estop-loop", "pins": [
+            {"arrow": "==>", "pin": "and2.0.in0"}]}])
+        self.assertIn("no writer", r)
+
+
 class TestKinsModeHelpers(unittest.TestCase):
     """Phase 2a: marker parsing + per-segment world-mode flags."""
 

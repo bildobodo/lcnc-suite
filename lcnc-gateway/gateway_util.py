@@ -435,6 +435,67 @@ def rs274_effective_xy_offset(g5x_x, g5x_y, g92_x, g92_y, rotation_deg):
             g5x_y + g92_x * s + g92_y * c)
 
 
+def evaluate_safety_chain(grace_expired, watchdog_connected, reader_fresh,
+                          trip_latched_present, extra_reason=None):
+    """Suite safety-chain completeness -> None (healthy/indeterminate) or a
+    reason string for the operator banner.
+
+    Closes the review's worst silent gap: a config missing lcnc_webui.hal
+    runs completely normally with the advertised safety chain absent —
+    heartbeats are dropped on the floor (hal_bridge send with no socket)
+    and the only witness was a trace.ndjson line. Detections:
+
+    - watchdog socket down: hal_watchdog.py (webui-safety) isn't reachable,
+      so gateway heartbeats reach nothing. The heartbeat loop retries the
+      connect continuously, making this a live, self-healing indicator.
+    - trip latch absent: the reader snapshot is FRESH but has no
+      trip_latched field — webui-hb-latch (the servo-thread estop_latch,
+      #34) isn't loaded, so a heartbeat stall would trip nothing. Only
+      asserted on a fresh snapshot: a stale/absent reader is its own
+      banner (reader_stale), not evidence about the latch.
+    - extra_reason: caller-supplied (e.g. the one-shot estop-loop
+      writer check) — appended verbatim.
+
+    grace_expired must be False during startup (processes come up
+    concurrently); the helper returns None then. Pure; unit-tested.
+    """
+    if not grace_expired:
+        return None
+    reasons = []
+    if not watchdog_connected:
+        reasons.append("watchdog (webui-safety) not connected — heartbeat "
+                       "safety inactive")
+    if reader_fresh and not trip_latched_present:
+        reasons.append("trip latch (webui-hb-latch) not in HAL — stall "
+                       "would not trip ESTOP")
+    if extra_reason:
+        reasons.append(extra_reason)
+    return "; ".join(reasons) if reasons else None
+
+
+def unwritten_estop_signal(signals, name="estop-loop"):
+    """Detect the stuck-in-ESTOP trap: `name` exists with NO writer pin.
+
+    lcnc_webui.hal nets the sim's `estop-loop` signal into the enable
+    chain (and2.0.in0). On a real config whose e-stop signal is named
+    differently, HAL silently creates a NEW unwritten `estop-loop` —
+    permanently FALSE — and the machine can never leave ESTOP with no
+    message saying why. `signals` is the gateway's parsed
+    `halcmd -s show sig` topology ({"name", "pins": [{"arrow", "pin"}]}):
+    arrow "<==" marks a writer. Returns a reason string, or None when the
+    signal is absent (user rewired it — their chain, their names) or has
+    a writer. Pure; unit-tested.
+    """
+    for sig in signals or []:
+        if sig.get("name") == name:
+            if any(p.get("arrow") == "<==" for p in sig.get("pins", [])):
+                return None
+            return (f"'{name}' signal has no writer — e-stop input stuck "
+                    f"FALSE (wire your machine's e-stop into it, or adapt "
+                    f"lcnc_webui.hal)")
+    return None
+
+
 _KINS_FAMILY = {
     "trivkins": "trivkins",
     "xyzac-trt-kins": "xyzac-trt",

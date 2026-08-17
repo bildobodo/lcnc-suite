@@ -150,6 +150,7 @@ def build_status_envelope(
     armed: bool,
     safety_trip: Optional[dict] = None,
     reader_stale: bool = False,
+    safety_chain: Optional[str] = None,
     config_warning: Optional[dict] = None,
     probe_results: Optional[dict] = None,
     rfl_status: Optional[dict] = None,
@@ -173,6 +174,10 @@ def build_status_envelope(
         msg["safety_trip"] = safety_trip
     if reader_stale:
         msg["reader_stale"] = True
+    if safety_chain is not None:
+        # Suite safety-chain components missing (watchdog socket / trip
+        # latch / estop-loop writer) — reason string for the banner.
+        msg["safety_chain_incomplete"] = safety_chain
     if config_warning is not None:
         msg["config_warning"] = config_warning
     if probe_results:

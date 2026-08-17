@@ -48,7 +48,9 @@ addf and2.2 servo-thread
 loadrt estop_latch names=webui-hb-latch
 addf webui-hb-latch servo-thread
 
-# Break the direct estop loopback (adjust if your config uses a different signal)
+# Break the direct estop loopback. Stock configs net
+# iocontrol.0.user-enable-out straight back into emc-enable-in; the web
+# safety chain must sit in the middle instead.
 unlinkp iocontrol.0.emc-enable-in
 
 # Safety chain: machine runs only when ALL conditions are true:
@@ -59,6 +61,17 @@ unlinkp iocontrol.0.emc-enable-in
 #      instant oneshot.0.out drops and stays FALSE until the operator's E-Stop
 #      Reset pulses webui-hb-latch.reset, keeping LinuxCNC in real ESTOP even
 #      after the oneshot auto-heals.
+#
+# >>> REAL-MACHINE INTEGRATION — read before copying this file <<<
+# `estop-loop` is the SIM's e-stop signal (created in core_sim_*.hal from
+# iocontrol.0.user-enable-out). On your own config the e-stop chain almost
+# certainly has a different signal name — and `net` CREATES a missing
+# signal, so keeping the line below unchanged makes a NEW `estop-loop`
+# with no writer: permanently FALSE, machine stuck in ESTOP, and HAL
+# prints no error. Replace `estop-loop` below with YOUR e-stop signal
+# (whatever fed iocontrol.0.emc-enable-in before the unlinkp above). The
+# gateway banners the unwritten-signal case after startup, but this line
+# is where it gets fixed.
 net estop-loop                    => and2.0.in0
 net webui-connected webui-safety.connected => and2.0.in1
 net estop-connected and2.0.out    => and2.1.in0
@@ -83,6 +96,11 @@ net prog-paused halui.program.is-paused => time.0.pause
 net cycle-timer time.0.start <= not.0.out
 
 # ---- Manual tool change (web UI via webui-safety HAL component) ----
+# The other half lives in the machine config (core_sim_*.hal in the sim):
+#   net tool-change-request    <= iocontrol.0.tool-change
+#   net tool-change-confirmed  => iocontrol.0.tool-changed
+# Real machines: REMOVE any stock tool-change→tool-changed loopback first,
+# or M6 auto-completes and the web UI's confirm button drives nothing.
 net tool-change-confirmed <= webui-safety.tool-changed
 
 # ---- Surface compensation wiring ----

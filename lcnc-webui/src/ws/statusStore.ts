@@ -49,6 +49,13 @@ export const safetyTrip = ref<{ reason: string } | null>(null);
 // depend on the reader (spindle RPM, eoffset, probe input, comp state) are
 // known to be stale rather than silently frozen.
 export const readerStale = ref(false);
+// Safety-chain completeness (review B1): gateway sets `safety_chain_incomplete`
+// (a reason string) when the suite's advertised safety components aren't in
+// place — watchdog socket down, trip latch (webui-hb-latch) absent from a
+// fresh reader snapshot, or the estop-loop signal has no writer. Auto-clears
+// when the flag stops riding the frames. Distinct from safety_trip (a chain
+// that EXISTS and fired) — this is the chain not existing at all.
+export const safetyChainIncomplete = ref<string | null>(null);
 // Config fallback (issue #21): gateway sets `config_warning` on status messages
 // when it falls back to a default unit system or default machine geometry —
 // both unit-ambiguous and unsafe to apply silently. Latches server-side until a
@@ -308,6 +315,10 @@ export function handleStatusMessage(msg: any): void {
   // Reader staleness — set when gateway flag present, clear otherwise.
   const stale = msg.reader_stale === true;
   if (readerStale.value !== stale) readerStale.value = stale;
+
+  // Safety-chain completeness — reason string when present, null otherwise.
+  const sci = typeof msg.safety_chain_incomplete === "string" ? msg.safety_chain_incomplete : null;
+  if (safetyChainIncomplete.value !== sci) safetyChainIncomplete.value = sci;
 
   // RFL guard progress (rfl_status rides the status fanout; ts dedupes —
   // the same phase repeats on every frame until the next one). Failures →

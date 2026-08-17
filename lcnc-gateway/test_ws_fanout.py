@@ -38,6 +38,13 @@ class TestBuildStatusEnvelope(unittest.TestCase):
         self.assertNotIn(
             "reader_stale", build_status_envelope(**self.BASE, reader_stale=False))
 
+    def test_safety_chain_reason_attached_only_when_present(self):
+        msg = build_status_envelope(**self.BASE, safety_chain="watchdog down")
+        self.assertEqual(msg["safety_chain_incomplete"], "watchdog down")
+        self.assertNotIn(
+            "safety_chain_incomplete",
+            build_status_envelope(**self.BASE, safety_chain=None))
+
     def test_config_warning_and_rfl(self):
         warn = {"reason": "units", "units": True}
         rfl = {"phase": "measuring"}
