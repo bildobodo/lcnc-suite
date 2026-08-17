@@ -985,6 +985,35 @@ USER_M_PATH = ./
 FEATURES = 12
 ```
 
+#### Toolsetter var-file block (#3100–#3116)
+
+The `tool_touch_off.ngc` subroutine reads its configuration from the var
+file so the web UI (Settings → Machine → Toolsetter) can manage it — the
+UI writes these when you save, and appends any missing ones, so a var
+file without them self-heals on first save (`examples/sim_config/sim.var`
+ships the full set seeded):
+
+| Var | Setting | Description |
+|-----|---------|-------------|
+| #3100 | tool_touch_x_coords | Toolsetter X position (G53) |
+| #3101 | tool_touch_y_coords | Toolsetter Y position (G53) |
+| #3102 | tool_touch_z_coords | **Absolute G53 Z of the touch-plate surface** (typically negative) — not an approach-height offset |
+| #3103 | use_tool_table | 1 = use tool table for positioning |
+| #3104 | tool_min_dis | Min distance for known-tool re-probe |
+| #3105 | brake_after_M600 | 0 = none, 1 = M00, 2 = M01 |
+| #3106 | go_back_to_start_pos | 1 = return to start after measurement |
+| #3107 | spindle_stop_m | M-code to stop spindle (5 or 500) |
+| #3108 | disable_pre_pos | Disable G30 pre-change positioning |
+| #3109 | addreps | Extra retry count on probe fail |
+| #3110 | lasttry | 1 = last retry without tool table |
+| #3111 | offset_diameter | Tool diameter threshold for offset |
+| #3112 | offset_value | Offset percentage of tool diameter |
+| #3113 | finder_touch_x_coords | Edge-finder X reference (G53) |
+| #3114 | finder_touch_y_coords | Edge-finder Y reference (G53) |
+| #3115 | finder_diff_z | Height difference probe vs reference |
+| #3116 | rfl_skip_tool | One-shot run-from-line guard: tool just measured via MDI, skip its in-program re-measure once (set by the gateway, self-cleared by the routine — never set by hand) |
+| #3014 | finder_number | Probe tool number (shared with the probe tab) |
+
 ### HAL Configuration
 
 The gateway communicates with LinuxCNC through a HAL watchdog component. See [Setting Up the HAL Watchdog](#setting-up-the-hal-watchdog) above for the e-stop AND gate wiring.
@@ -1239,58 +1268,44 @@ Adjust `POLL_HZ` in `gateway.py` (default: 30 Hz).
 
 ## Project Structure
 
+Highlights, not an exhaustive listing:
+
 ```
 lcnc-suite/
 ├── lcnc-gateway/              # Backend WebSocket gateway
 │   ├── gateway.py             # FastAPI application
-│   ├── hal_watchdog.py        # HAL safety component (loaded by LinuxCNC)
+│   ├── gateway_util.py        # Pure helpers (auth, limits, kins twin) — unit-tested
+│   ├── hal_watchdog.py        # HAL safety supervisor (loaded by LinuxCNC HAL)
+│   ├── hal_reader.py          # HAL pin reader (all gateway HAL access)
+│   ├── compensation.py        # Surface-map Z compensation component
+│   ├── gcode_parse_worker.py  # Offline G-code parse (preview, limits, modes)
+│   ├── ws_fanout.py           # Status fan-out + envelope assembly
 │   ├── requirements.txt       # Python dependencies
-│   ├── setup-venv.sh          # Virtual environment setup
 │   ├── settings.json          # Server-side settings (auto-created, per-INI)
 │   ├── tool_library.json      # Extended tool metadata (auto-created)
-│   └── machine/               # Machine model config + STL files (Git LFS)
-│       ├── machine.json       # Kinematic hierarchy and part definitions
-│       └── *.stl              # STL mesh files for machine components
+│   └── machine/               # Default machine model (machine.json + STLs, Git LFS)
 ├── lcnc-webui/                # Reference Vue 3 UI
 │   ├── src/
 │   │   ├── App.vue            # Root component, state, layout, action strip
 │   │   ├── permissions.ts     # Centralized permission system (14 classes)
 │   │   ├── machineControls.ts # Machine controls catalog (BUTTON_TYPES + INPUT_DEFS)
-│   │   ├── defaults.ts        # Persistent settings (section registry, server sync)
-│   │   ├── lcnc.ts            # LinuxCNC constants and WsCommand types
-│   │   ├── lcncWs.ts          # WebSocket client with heartbeat
-│   │   ├── lcncApi.ts         # REST API helpers (file ops, settings)
-│   │   ├── format.ts          # Shared formatters (coordinates, RPM, time, size)
-│   │   ├── toolTypes.ts       # Tool type labels (18 types)
-│   │   ├── gcodeHighlight.ts  # G-code syntax tokenizer + highlighter
-│   │   ├── useGamepad.ts      # Gamepad polling composable (analog + buttons)
-│   │   ├── gcodeReference.ts  # G/M-code reference data + lookup map
-│   │   ├── main.ts            # App bootstrap with settings migration
-│   │   ├── style.css          # Global styles, design tokens, theme vars
 │   │   ├── Gate.vue           # Permission gate (<fieldset :disabled>)
-│   │   ├── MachineBtn.vue     # Catalog-aware button (wraps Btn.vue)
-│   │   ├── MachineInput.vue   # Catalog-aware input (+ Toggle/Slider/Select/Radio/Color)
+│   │   ├── MachineBtn.vue     # Catalog-aware button (+ Input/Toggle/Slider/Select/Radio/Color)
 │   │   ├── SafetyStrip.vue    # Bottom strip: Arm/Disarm, E-Stop, Machine On/Off
-│   │   ├── JogStrip.vue       # Bottom strip: jog wheel, speed slider, increments
-│   │   ├── SetupStrip.vue     # Bottom strip: DRO, touchoff, homing, WCS selector
-│   │   ├── OverridesStrip.vue # Bottom strip: Feed/Spindle/Rapid sliders
-│   │   ├── SpindleStrip.vue   # Bottom strip: FWD/REV/STOP, RPM, coolant
-│   │   ├── ToolStrip.vue      # Bottom strip: load/unload/measure, metadata
-│   │   ├── TabPanel.vue       # Tab selector for content panels
-│   │   ├── Toolbar.vue        # 3D viewer toolbar (view presets, layer toggles)
+│   │   ├── JogStrip.vue       # + SetupStrip, OverridesStrip, SpindleStrip, ToolStrip
 │   │   ├── ThreeViewer.vue    # 3D machine visualization (Three.js)
-│   │   ├── DroPanel.vue       # Digital readout with G5x, zero, home
-│   │   ├── JogPanel.vue       # Jog wheel + speed/increment controls
+│   │   ├── ScrubBar.vue       # Program scrub timeline + simulation mode + collision UI
 │   │   ├── GcodePanel.vue     # G-code viewer + editor + program controls
-│   │   ├── GcodeReferenceDialog.vue # Searchable G/M-code reference dialog
-│   │   ├── ProbePanel.vue     # Probe operations + calibration + results
-│   │   ├── ToolTablePanel.vue # Tool table editor with library metadata
-│   │   ├── ToolPreview.vue    # 2D tool side-view preview (Three.js)
-│   │   ├── OffsetPanel.vue    # WCS offset table editor (G54–G59.3)
-│   │   ├── CameraPip.vue      # Camera PiP overlay with SVG crosshair (MJPEG)
-│   │   ├── SettingsPanel.vue  # Application settings (sub-tabbed)
-│   │   └── DebugTab.vue       # Debug/diagnostics tab
+│   │   ├── ProbePanel.vue     # + OffsetPanel, ToolTablePanel, SettingsPanel, CameraPip
+│   │   ├── viewer/            # Viewer engine: kins boundary, collision sweep,
+│   │   │                      #   scrub track, part-frame transform, asset caches
+│   │   ├── ws/                # WS transport, status/bulk-data stores, telemetry
+│   │   ├── defaults.ts        # Persistent settings (section registry, server sync)
+│   │   ├── lcncWs.ts          # WebSocket client with heartbeat
+│   │   └── style.css          # Global styles, design tokens, theme vars
 │   └── package.json
+├── examples/sim_config/       # Sim configs (3/5/9-axis, TCP, DMU) + machine models
+├── scripts/                   # Dev tools (perf matrix, kins oracle, STL generators)
 ├── subroutines/               # G-code subroutines (bundled)
 │   ├── probe_basic/           # Probing routines (from kcjengr/probe_basic, GPL v3)
 │   ├── tool_length_probe/     # Tool measurement (from TooTall18T, GPL v3)
