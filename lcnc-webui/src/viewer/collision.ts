@@ -39,7 +39,7 @@ import * as THREE from "three";
 import { MeshBVH } from "three-mesh-bvh";
 import { normalizeKinematics, type KinRuntime } from "./kinematics";
 import { programToMachine, wcsTerms, type PartFrameWcs } from "./partFrame";
-import { makeKins, type KinsSpec } from "./kins";
+import { makeKins, warnWorldWithoutSpec, type KinsSpec } from "./kins";
 import type { ScrubTrack } from "../ws/bulkData";
 
 export interface CollisionMachine {
@@ -444,6 +444,7 @@ export function sweepCollisions(
 
   const poseAt = (px: number, py: number, pz: number, pa: number, pb: number, pc: number, world = false) => {
     programToMachine(px, py, pz, pa, pb, pc, o, machineVals);
+    if (world && !worldKins) warnWorldWithoutSpec("collision sweep");
     (world && worldKins ? worldKins : identityKins).inverse(machineVals, kinsOut);
     for (let ji = 0; ji < kinsOut.length; ji++) {
       jointVals[ji] = kinsOut[ji] ?? 0;  // UVW: 0, as the preview transform

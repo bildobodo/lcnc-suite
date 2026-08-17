@@ -393,6 +393,21 @@ const gcodeStats = ref<GcodeStats | null>(null);
 // (no INI limits, or no program) — distinct from [] = checked clean.
 const gcodeViolations = ref<LimitViolation[] | null>(null);
 const gcodeViolationsTotal = ref(0);
+const gcodeWorldUnchecked = ref(0);
+// Soft-limit stats row: identity-check result plus the honest TCP hole —
+// world segments with no kins twin are NOT validated and must never read
+// as "OK" (unchecked ≠ clean).
+const softLimitStatus = computed(() => {
+  if (gcodeViolations.value === null)
+    return { cls: "muted", text: "Not validated (no INI limits)" };
+  const parts: string[] = [];
+  const n = gcodeViolationsTotal.value;
+  if (n) parts.push(`${n} violation${n === 1 ? "" : "s"}`);
+  const w = gcodeWorldUnchecked.value;
+  if (w) parts.push(`${w} TCP segment${w === 1 ? "" : "s"} not validated`);
+  return parts.length ? { cls: "warn", text: parts.join(" · ") }
+                      : { cls: "ok", text: "OK" };
+});
 // Source line at the viewer's scrub position (null = not scrubbing).
 const scrubLine = ref<number | null>(null);
 // Source lines with collision hits from the viewer's sweep (null = none run).
@@ -1289,6 +1304,7 @@ watch(viewerGcode, (newGcode) => {
   gcodeStats.value = newGcode?.stats ?? null;
   gcodeViolations.value = newGcode?.violations ?? null;
   gcodeViolationsTotal.value = newGcode?.violations_total ?? 0;
+  gcodeWorldUnchecked.value = newGcode?.violations_world_unchecked ?? 0;
 });
 
 
@@ -1600,11 +1616,8 @@ watch(viewerGcode, (newGcode) => {
                   <span class="statsLabel">File size</span>
                   <span class="statsValue mono">{{ fmtSize(gcodeStats.fileSize) }}</span>
                   <span class="statsLabel">Soft limits</span>
-                  <span class="statsValue val-status"
-                        :class="gcodeViolations === null ? 'muted' : (gcodeViolationsTotal ? 'warn' : 'ok')">
-                    {{ gcodeViolations === null ? 'Not validated (no INI limits)'
-                       : gcodeViolationsTotal ? gcodeViolationsTotal + ' violation' + (gcodeViolationsTotal === 1 ? '' : 's')
-                       : 'OK' }}
+                  <span class="statsValue val-status" :class="softLimitStatus.cls">
+                    {{ softLimitStatus.text }}
                   </span>
                 </div>
               </div>

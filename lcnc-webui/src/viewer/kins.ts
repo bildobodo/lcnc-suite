@@ -235,6 +235,21 @@ export function makeKins(axes: string[], spec?: KinsSpec, toolOffsetZ?: number):
   return new Trivkins(axes);
 }
 
+// Once-per-context (main thread / each worker) loud fallback for the
+// mode-without-spec hole: the track carries world-mode (TCP) segments but
+// no kins declaration reached this consumer, so they pose as trivkins —
+// wrong by construction. makeKins can't catch this (it is never called
+// with a spec on that path), so the routing sites report it themselves.
+let _warnedWorldNoSpec = false;
+export function warnWorldWithoutSpec(site: string): void {
+  if (_warnedWorldNoSpec) return;
+  _warnedWorldNoSpec = true;
+  console.error(
+    `[kins] ${site}: world-mode (TCP) segments present but no kins declaration ` +
+    `— posing them as trivkins, positions will be wrong. Check viewer_init.kins ` +
+    `([KINS]KINEMATICS parsing).`);
+}
+
 /** viewer_init.kins wire declaration → KinsSpec (snake_case pin names →
  *  KinsParams). Returns undefined for trivkins/absent — callers treat
  *  that as the identity permutation. NOTE (phase 1d): the declaration is

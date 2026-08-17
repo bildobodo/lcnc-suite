@@ -523,9 +523,12 @@ def kins_world_flags(seqs, events, identity_first):
     boot default). Mapping (matches the kins module's sparm semantics):
     identity_first => type 1 is the world kins; plain => type 0 is. Type 2
     (userk) defaults to identity math in the stock template — treated as
-    identity. Returns a list of 0/1 ints aligned with `seqs`. Pure.
+    identity. Two markers can share a seq (back-to-back toggles with no
+    motion between): the LAST recorded one governs, so the sort must key
+    on seq alone — a plain tuple sort would reorder same-seq events by
+    kinstype. Returns a list of 0/1 ints aligned with `seqs`. Pure.
     """
-    evs = sorted(events)
+    evs = sorted(events, key=lambda e: e[0])
     out = []
     for s in seqs:
         k = 0
@@ -535,6 +538,45 @@ def kins_world_flags(seqs, events, identity_first):
             else:
                 break
         out.append(1 if (k == 1 if identity_first else k == 0) else 0)
+    return out
+
+
+def kins_marker_policy(kins_cfg):
+    """What `(WEBUI_KINSTYPE=n)` markers mean under the declared kins.
+
+    'ignore'    — trivkins or no [KINS] declaration: the machine cannot
+                  switch kins, so markers are stale noise (a program
+                  written for a TCP machine, or a hand-typed comment).
+                  Emitting mode flags here would gut the identity limit
+                  check and mislabel the whole track (startup type 0 maps
+                  to "world" without sparm=identityfirst).
+    'twin'      — a world twin exists (_TRT_LETTERS): full joint-side
+                  world checking.
+    'unchecked' — a declared non-trivial module without a twin: the
+                  switches are real, so mode flags ship, but world
+                  segments cannot be limit-checked and must be reported
+                  as an explicit unchecked count, never as clean. Pure.
+    """
+    if kins_cfg is None or kins_cfg.get("type") == "trivkins":
+        return "ignore"
+    return "twin" if kins_cfg.get("type") in _TRT_LETTERS else "unchecked"
+
+
+def mode_boundary_indices(mode):
+    """Vertex indices that must survive decimation at kins-mode flips.
+
+    Mode is a per-segment flag carried on the segment's END vertex, so a
+    flip at index i means vertex i-1 ENDS the old-mode span and i starts
+    the new one. BOTH must be RDP anchors: keeping only i lets a
+    collinear old-mode span collapse into one segment j->i that inherits
+    the NEW mode — and mode drives joint derivation downstream, so a
+    mislabeled span poses through the wrong kins. Pure.
+    """
+    out = set()
+    for i in range(1, len(mode)):
+        if mode[i] != mode[i - 1]:
+            out.add(i - 1)
+            out.add(i)
     return out
 
 

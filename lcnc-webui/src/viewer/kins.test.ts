@@ -5,7 +5,7 @@
 // interface. (Non-trivial models get compiled-C-oracle fixtures instead;
 // trivkins is the identity permutation by definition.)
 import { describe, expect, it, vi } from "vitest";
-import { kinsFor, makeKins, specFromWire } from "./kins";
+import { kinsFor, makeKins, specFromWire, warnWorldWithoutSpec } from "./kins";
 
 describe("trivkins boundary", () => {
   it("XYZAC: letter-skipping permutation both ways (C = joint 4, slot 5)", () => {
@@ -61,6 +61,30 @@ describe("trivkins boundary", () => {
     const err = vi.spyOn(console, "error").mockImplementation(() => {});
     const k = makeKins(["X", "Y", "Z"], { type: "xyzbc-nutating" });
     expect(k.type).toBe("trivkins");
+    expect(err).toHaveBeenCalledOnce();
+    err.mockRestore();
+  });
+
+  it("trt type with required letters missing falls back to trivkins LOUDLY", () => {
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    const k = makeKins(["X", "Y", "Z"], { type: "xyzac-trt" });  // no A/C axes
+    expect(k.type).toBe("trivkins");
+    expect(err).toHaveBeenCalledOnce();
+    err.mockRestore();
+  });
+
+  it("specFromWire tolerates an absent params object", () => {
+    const spec = specFromWire({ type: "xyzac-trt", params: undefined as never });
+    expect(spec?.type).toBe("xyzac-trt");
+    expect(spec?.params?.xRotPoint).toBeUndefined();
+    // The model still builds — unset pivot params default to 0.
+    expect(makeKins(["X", "Y", "Z", "A", "C"], spec).type).toBe("xyzac-trt");
+  });
+
+  it("warnWorldWithoutSpec logs exactly once per JS context", () => {
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    warnWorldWithoutSpec("test site");
+    warnWorldWithoutSpec("test site");
     expect(err).toHaveBeenCalledOnce();
     err.mockRestore();
   });

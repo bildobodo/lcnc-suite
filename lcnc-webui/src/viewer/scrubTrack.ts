@@ -13,7 +13,7 @@
 // wcsTerms/programToMachine used by the part-frame preview, then axis
 // letters → joint slots via viewer_init.axes. No baked subdivision needed —
 // the kinematic chain is evaluated at pose time, not baked per vertex.
-import { kinsFor, type KinsSpec } from "./kins";
+import { kinsFor, warnWorldWithoutSpec, type KinsSpec } from "./kins";
 import {
   buildLineMap, machineToProgram, programToMachine, wcsTerms,
   type PartFrameWcs, type WcsTerms,
@@ -271,6 +271,7 @@ export function machineJointsToProgram(
   kins?: KinsSpec, world?: boolean,
 ): [number, number, number, number, number, number] {
   const m = [0, 0, 0, 0, 0, 0];
+  if (world && !kins) warnWorldWithoutSpec("entry move");
   const model = world && kins
     ? kinsFor(axes, kins, wcs.tool?.[2] || undefined)
     : kinsFor(axes);
@@ -350,6 +351,7 @@ export function jointsForSample(
 ): (number | null)[] {
   const o: WcsTerms = wcsTerms(wcs);
   programToMachine(sample.px, sample.py, sample.pz, sample.pa, sample.pb, sample.pc, o, _machineVals);
+  if (sample.world && !kins) warnWorldWithoutSpec("scrub pose");
   const model = sample.world && kins
     ? kinsFor(axes, kins, wcs.tool?.[2] || undefined)
     : kinsFor(axes);

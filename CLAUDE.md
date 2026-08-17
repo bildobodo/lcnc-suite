@@ -350,8 +350,20 @@ route through `check_limit_violations_world` — rotary-subdivided (4°,
 mid-segment extremes are the point: the phase-0 capture's joint X hit
 −22.36 on a program whose X words never left ±20) through the Python
 kins twin, TLO applied to BOTH world coords and the pivot param; a
-declared kins without a twin leaves its segments loudly UNCHECKED,
-never identity-checked wrongly. Reports merge per (line, axis). Attribution
+declared kins without a twin leaves its segments UNCHECKED — the count
+rides the wire as `violations_world_unchecked` (present only >0) and the
+stats dialog appends "N TCP segments not validated" (warn, never OK) —
+never identity-checked wrongly. Marker policy (`kins_marker_policy`):
+markers on a NON-switchable declared kins (trivkins / no `[KINS]`) are
+IGNORED with one stderr note — the machine can't switch, so emitting
+flags would map startup type 0 to "world" (no sparm) and gut the identity
+check; only 'twin'/'unchecked' configs get mode arrays. Client honesty:
+world-flagged segments arriving with NO kins spec pose as trivkins but
+log loudly once per JS context (`warnWorldWithoutSpec` — scrub pose,
+entry move, part-frame, collision sweep). RDP anchors both flip vertices
+(`mode_boundary_indices`: i-1 ends the old-mode span, i starts the new —
+keeping only i relabels a collapsed collinear span). Reports merge per
+(line, axis). Attribution
 rule: only a line that MOVES an axis while out of bounds is flagged; lines
 where the axis merely sits parked past a limit are not re-flagged, so the
 culprit line stands alone. Wire: `violations` (per-line records, capped at

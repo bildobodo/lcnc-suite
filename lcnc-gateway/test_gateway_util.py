@@ -889,6 +889,37 @@ class TestKinsModeHelpers(unittest.TestCase):
         flags = gateway_util.kins_world_flags([5, 1], [(2, 1)], identity_first=True)
         self.assertEqual(flags, [1, 0])
 
+    def test_same_seq_marker_pair_last_wins(self):
+        # Back-to-back toggles with no motion between them share a canon
+        # seq; the LAST recorded marker governs. A plain sorted() on the
+        # (seq, kinstype) tuples once reordered these by kinstype and
+        # resolved M428;M429 preambles to world.
+        f = gateway_util.kins_world_flags
+        self.assertEqual(f([3], [(2, 1), (2, 0)], identity_first=True), [0])
+        self.assertEqual(f([3], [(2, 0), (2, 1)], identity_first=True), [1])
+
+    def test_marker_policy(self):
+        f = gateway_util.kins_marker_policy
+        # trivkins / no [KINS]: machine can't switch — markers are noise.
+        self.assertEqual(f(None), "ignore")
+        self.assertEqual(f({"type": "trivkins"}), "ignore")
+        # Twin exists: full world checking.
+        self.assertEqual(f({"type": "xyzac-trt"}), "twin")
+        self.assertEqual(f({"type": "xyzbc-trt"}), "twin")
+        # Declared switchable module without a twin: flags are real but
+        # world segments must ship as an explicit unchecked count.
+        self.assertEqual(f({"type": "genhexkins"}), "unchecked")
+
+    def test_mode_boundary_indices(self):
+        f = gateway_util.mode_boundary_indices
+        self.assertEqual(f([]), set())
+        self.assertEqual(f([0, 0, 0]), set())
+        # BOTH flip vertices: i-1 ends the old-mode span, i starts the new
+        # one — keeping only i lets RDP collapse a collinear old-mode span
+        # into a segment labeled with the NEW mode.
+        self.assertEqual(f([0, 0, 1, 1, 0]), {1, 2, 3, 4})
+        self.assertEqual(f([0, 1]), {0, 1})
+
 
 class TestWorldLimitCheck(unittest.TestCase):
     """Phase 2c: joint-side soft limits for world-mode (TCP) segments."""

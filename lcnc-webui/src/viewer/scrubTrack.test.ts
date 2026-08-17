@@ -1,5 +1,5 @@
 // Unit tests for viewer/scrubTrack.ts — the execution-ordered scrub track.
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   buildScrubTrack, sampleTrack, jointsForSample,
   machineJointsToProgram, prependEntry, splitTrackStreams,
@@ -322,6 +322,23 @@ describe("kins mode plumbing (phase 2b)", () => {
     const expected: (number | null)[] = [];
     kinsForTest(AXES, SPEC).inverse([20, 10, 30, -45, 0, 90], expected);
     expect(world).toEqual(expected);
+  });
+
+  it("world sample without a spec falls back to trivkins (and warns)", () => {
+    // The A4 honesty path: mode flags arrived but no kins declaration —
+    // the pose must degrade to the permutation (identical to untracked),
+    // with the loud once-per-context log (spied here to keep output clean;
+    // the once-semantics themselves are pinned in kins.test.ts).
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    const s = freshSample();
+    s.px = 20; s.py = 10; s.pz = 30; s.pa = -45; s.pc = 90; s.world = true;
+    const noSpec: (number | null)[] = [];
+    jointsForSample(s, IDW, AXES, noSpec);            // world, but no spec
+    s.world = false;
+    const triv: (number | null)[] = [];
+    jointsForSample(s, IDW, AXES, triv);
+    expect(noSpec).toEqual(triv);
+    err.mockRestore();
   });
 
   it("machineJointsToProgram(world) inverts jointsForSample(world)", () => {

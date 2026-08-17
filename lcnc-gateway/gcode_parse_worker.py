@@ -63,6 +63,7 @@ from gateway_util import (
     scan_tool_stats, read_axis_limits, check_limit_violations,
     check_limit_violations_world, merge_violation_records,
     rs274_effective_xy_offset, parse_kins_config, kins_world_flags,
+    kins_marker_policy, mode_boundary_indices,
 )
 
 
@@ -225,12 +226,24 @@ def parse(ctx: dict) -> dict:
     # pre-RDP canon.feed / canon.rapid lists.
     kins_cfg = None
     feed_world = rapid_world = None
+    world_unchecked = 0
     if canon.kins_events:
         kins_cfg = parse_kins_config(ini.find("KINS", "KINEMATICS"),
                                      ini.findall("HAL", "HALCMD") or [])
-        _idf = bool(kins_cfg and kins_cfg.get("identity_first"))
-        feed_world = kins_world_flags([t[5] for t in canon.feed], canon.kins_events, _idf)
-        rapid_world = kins_world_flags([t[4] for t in canon.rapid], canon.kins_events, _idf)
+        if kins_marker_policy(kins_cfg) == "ignore":
+            # Declared kins can't switch (trivkins / no [KINS]): markers
+            # are stale noise. Emitting flags anyway would map startup
+            # type 0 to "world" (no sparm), pull nearly every segment out
+            # of the identity limit check, and ship a meaningless mode
+            # track — said once here, then checked as plain identity.
+            print(f"kins markers={len(canon.kins_events)} IGNORED "
+                  f"(declared kinematics "
+                  f"{kins_cfg.get('module') if kins_cfg else None} cannot switch)",
+                  file=sys.stderr, flush=True)
+        else:
+            _idf = bool(kins_cfg and kins_cfg.get("identity_first"))
+            feed_world = kins_world_flags([t[5] for t in canon.feed], canon.kins_events, _idf)
+            rapid_world = kins_world_flags([t[4] for t in canon.rapid], canon.kins_events, _idf)
     _any_world = bool(feed_world and any(feed_world)) or bool(rapid_world and any(rapid_world))
     if axis_limits:
         def _identity_segs():
@@ -257,7 +270,10 @@ def parse(ctx: dict) -> dict:
                 _world_segs(), axis_limits, kins_cfg, unit_scale)
             if w_records is None:
                 # No twin for the declared kins: those segments are
-                # UNCHECKED — said loudly, never checked wrongly as identity.
+                # UNCHECKED — carried on the wire as an explicit count
+                # (the UI must say "not validated", never imply a pass)
+                # and said loudly here too.
+                world_unchecked = w_total
                 print(f"limits: {w_total} world-mode segments UNCHECKED "
                       f"(no kins twin for {kins_cfg.get('type') if kins_cfg else None})",
                       file=sys.stderr, flush=True)
@@ -478,10 +494,10 @@ def parse(ctx: dict) -> dict:
             if feed_lines[i] != feed_lines[i - 1]:
                 anchors.append(i)
         # Mode boundaries must survive decimation — a straight run crossing
-        # a kins switch would otherwise collapse into one mixed segment.
+        # a kins switch would otherwise collapse into one mixed segment
+        # (both flip vertices: see mode_boundary_indices).
         if feed_mode:
-            anchors = sorted(set(anchors) | {
-                i for i in range(1, len(feed_mode)) if feed_mode[i] != feed_mode[i - 1]})
+            anchors = sorted(set(anchors) | mode_boundary_indices(feed_mode))
         keep = _rdp_keep(_rdp_points(feed, feed_abc), anchors, eps_sq)
         if len(keep) < len(feed):
             feed = [feed[i] for i in keep]
@@ -496,8 +512,7 @@ def parse(ctx: dict) -> dict:
     if len(rapid) > 2:
         r_anchors = [0, len(rapid) - 1]
         if rapid_mode:
-            r_anchors = sorted(set(r_anchors) | {
-                i for i in range(1, len(rapid_mode)) if rapid_mode[i] != rapid_mode[i - 1]})
+            r_anchors = sorted(set(r_anchors) | mode_boundary_indices(rapid_mode))
         keep = _rdp_keep(_rdp_points(rapid, rapid_abc), r_anchors, eps_sq)
         if len(keep) < len(rapid):
             rapid = [rapid[i] for i in keep]
@@ -649,6 +664,11 @@ def parse(ctx: dict) -> dict:
         # markers (absence = no mode data, not "all identity").
         result["feed_mode"] = np.asarray(feed_mode, dtype="<u1").tobytes() if feed_mode else b""
         result["rapid_mode"] = np.asarray(rapid_mode, dtype="<u1").tobytes() if rapid_mode else b""
+    if world_unchecked:
+        # World-mode segments with no kins twin to check against —
+        # unchecked ≠ clean, so the count rides the wire and the UI says
+        # "not validated" instead of implying a pass.
+        result["violations_world_unchecked"] = world_unchecked
     return result
 
 

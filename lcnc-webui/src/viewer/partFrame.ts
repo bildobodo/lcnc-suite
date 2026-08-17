@@ -29,7 +29,7 @@
 import * as THREE from "three";
 import type { ViewerInit } from "../ws/bulkData";
 import { normalizeKinematics, type KinRuntime } from "./kinematics";
-import { makeKins, type KinsSpec } from "./kins";
+import { makeKins, warnWorldWithoutSpec, type KinsSpec } from "./kins";
 
 export interface PartFrameMachine {
   groups: Array<{ id: string; parent: string; translate?: [number, number, number] | number[] }>;
@@ -306,6 +306,7 @@ export function transformToPartFrame(
   const emit = (px: number, py: number, pz: number, pa: number, pb: number, pc: number, line: number, world: boolean) => {
     // Program → machine coords, then machine → joints via the kins boundary.
     programToMachine(px, py, pz, pa, pb, pc, o, machineVals);
+    if (world && !worldKins) warnWorldWithoutSpec("part-frame preview");
     (world && worldKins ? worldKins : identityKins).inverse(machineVals, jointVals);
 
     // Evaluate chain nodes (parents first): base + composed DOFs, exactly

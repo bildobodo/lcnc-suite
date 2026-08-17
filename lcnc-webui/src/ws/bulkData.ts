@@ -161,6 +161,11 @@ export interface ViewerGcode {
   // is the true distinct (line, axis) count.
   violations?: LimitViolation[] | null;
   violations_total?: number;
+  // World-mode (TCP) segments the parse worker could NOT limit-check: the
+  // declared kins module has no Python twin. Present only when > 0 —
+  // unchecked ≠ clean, so the stats dialog must say "not validated" for
+  // these instead of implying the violations list covered them.
+  violations_world_unchecked?: number;
   // Stage 2 (program scrub): execution-ordered feed+rapid merge built
   // off-thread by previewWorker. null/absent = no track (no program, or a
   // stale pre-seq payload) — the scrub bar doesn't offer itself.
