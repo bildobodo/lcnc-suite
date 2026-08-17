@@ -401,7 +401,6 @@ WEBUI_STATUS_DELTA        = 1
 # recommended ON for SBCs, optional on workstations
 WEBUI_ADAPTIVE_POLL       = 1
 WEBUI_IDLE_POLL_HZ        = 5
-WEBUI_UVLOOP              = 0
 WEBUI_WIRE_FORMAT         = msgpack
 # lower (e.g. 2) for multi-tab cold-start CPU smoothing
 WEBUI_WS_INIT_CONCURRENCY = 20
@@ -417,20 +416,22 @@ WEBUI_WS_INIT_CONCURRENCY = 20
 | `WEBUI_DEV` | `0` | `1` = Vite dev server on :5173 with hot-reload |
 | `LOG_DIR` | `<install-dir>/runlogs` | **Optional.** Where all four suite processes write logs. Unset = next to the launcher (recommended). Set only to relocate; unwritable = launcher aborts (no `/tmp` fallback) |
 | `DEBUG` | `0` | Subroutine debug logging — `0` = off, `1` = write `logfile.txt` to config folder (read by `tool_touch_off.ngc`) |
+| `WEBUI_MACHINE_DIR` | *(gateway default)* | Directory holding the 3D machine model (`machine.json` + STLs) for the viewer. **Set this per config** — unset means the shipped `lcnc-gateway/machine/` (a 3-axis PM-25MV), and editing that inside the clone gets clobbered by `git pull`. `~` is expanded. See [Machine Model](#machine-model-machinejson) |
 | `CAMERA_SOURCE` | *(disabled)* | USB device index (`0`, `1`) or URL (`rtsp://host/live`, `http://host/mjpeg`) |
 | `CAMERA_RESOLUTION` | `1280x720` | Capture resolution `WxH` (USB cameras only) |
 | `CAMERA_FPS` | `15` | MJPEG stream frame rate |
 
-**Performance flags** — all default OFF unless set to `1`. Measured on localhost SIM (300 samples each, idle and running). See `docs/` for raw CSVs.
+**Performance flags** — measured on localhost SIM (300 samples each, idle and running).
 
-| Variable | Default | Effect | When to enable |
+| Variable | Default | Effect | When to change |
 |----------|---------|--------|----------------|
-| `WEBUI_STATUS_DELTA` | `0` | Only fields that changed since last status are sent; server forces a full snapshot every 100 cycles. Measured ~90 % bandwidth cut idle (2253 → 125 B), ~65 % running (2472 → 857 B), no RT penalty. | **Always.** No downside observed. |
-| `WEBUI_ADAPTIVE_POLL` | `0` | Drops status poll rate from 30 Hz to `WEBUI_IDLE_POLL_HZ` (default 5) when the machine is idle (interp idle + not in AUTO/MDI + no motion + inpos + no tool-change). Instant return to 30 Hz on motion. Trade-off: up to ~200 ms DRO lag while truly idle. | On SBCs / low-power hosts to free ~85 % of idle-time gateway CPU and reduce stat-mutex contention. Optional on workstations. |
+| `WEBUI_STATUS_DELTA` | `1` | Only fields that changed since last status are sent; server forces a full snapshot every 100 cycles. Measured ~90 % bandwidth cut idle (2253 → 125 B), ~65 % running (2472 → 857 B), no RT penalty. | On by default. Set `0` for 6+ concurrent clients — full frames unlock the one-encode-per-tick shared fan-out path. |
+| `WEBUI_ADAPTIVE_POLL` | `0` | Drops status poll rate from 30 Hz to `WEBUI_IDLE_POLL_HZ` (default 5) when the machine is idle (interp idle + not in AUTO/MDI + no motion + inpos + no tool-change). Instant return to 30 Hz on motion. Trade-off: up to ~200 ms DRO lag while truly idle. | Enable on SBCs / low-power hosts to free ~85 % of idle-time gateway CPU and reduce stat-mutex contention. Optional on workstations. |
 | `WEBUI_IDLE_POLL_HZ` | `5` | Integer poll rate used while `WEBUI_ADAPTIVE_POLL=1` and the machine is idle. Lower = more CPU savings, longer DRO lag. | Raise to `10` if 200 ms lag feels sluggish, lower to `2` for maximum CPU savings. |
-| `WEBUI_UVLOOP` | `0` | Swaps asyncio's default event loop for libuv (requires `uvloop` package). Faster socket I/O and callback scheduling under load. No measurable effect on a single localhost client at 30 Hz. | Real deployments with multiple concurrent clients and/or camera streaming alongside status WS. |
 | `WEBUI_WIRE_FORMAT` | `msgpack` | WS encoding. `msgpack` (default) sends binary frames via `msgspec` — smaller payloads, C-accelerated encode, and when `WEBUI_STATUS_DELTA=0` unlocks a one-encode-per-tick fan-out path (each client splices the shared bytes via `msgspec.Raw`). `json` produces text frames readable directly in browser DevTools. | Set to `json` only when actively debugging status frames in DevTools. |
 | `WEBUI_WS_INIT_CONCURRENCY` | `20` | Caps the number of WebSocket clients allowed to run their initialization handshake (`ws.accept` + viewer_init send + settings load) in parallel. The lever for cold-start CPU smoothing in multi-tab setups: each handshake is ~30 ms of work, so without a cap N=12 simultaneous tabs can spike the asyncio loop into kernel-TCP saturation and starve the heartbeat task → HAL safety chain trips on a healthy gateway. | Lower (typical: `2`–`4`) when expecting 5+ tabs to cold-start in lockstep — multi-monitor deployments, shop-floor kiosks, automated test scenarios. Trade-off: ~30 ms per queued tab; at concurrency=2 the 12th tab is fully ready ~300 ms after the 1st. |
+
+There is deliberately **no uvloop option**: it was A/B-tested and rejected (600 ms–1.6 s event-loop stalls that false-tripped the 500 ms HAL watchdog budget), and the launcher pins `--loop asyncio` so uvicorn can't auto-detect an installed uvloop either.
 
 Environment variables `LCNC_WEBUI_HOST`, `LCNC_WEBUI_PORT`, `LCNC_WEBUI_BROWSER`, `LCNC_WEBUI_DEV`, `LCNC_WEBUI_TOKEN`, `LCNC_WEBUI_ALLOWED_ORIGINS` override INI values. `WEBUI_*` flags can also be set as environment variables (same name) and take precedence over the INI. Log directory: `LCNC_LOG_DIR` (env) overrides `LOG_DIR` (INI), both default to `<install-dir>/runlogs`. Camera variables: `LCNC_CAMERA_SOURCE`, `LCNC_CAMERA_RESOLUTION`, `LCNC_CAMERA_FPS`.
 
@@ -1060,9 +1061,9 @@ The `[RS274NGC] SUBROUTINE_PATH` must include paths to the subroutine directorie
 
 ### Machine Model (`machine.json`)
 
-The 3D viewer loads a machine model defined in `lcnc-gateway/machine/machine.json`. This file describes the kinematic hierarchy, STL parts, and how joints drive the model.
+The 3D viewer loads a machine model — a directory containing `machine.json` plus STL files — describing the kinematic hierarchy, STL parts, and how joints drive the model.
 
-STL files are stored alongside `machine.json` in `lcnc-gateway/machine/` and tracked with Git LFS (see `.gitattributes`).
+**Point your INI at your own model directory** with `[DISPLAY] WEBUI_MACHINE_DIR = ~/my_machine_model` (`~` is expanded). Unset, the gateway uses the shipped default `lcnc-gateway/machine/` (a 3-axis PM-25MV, STLs tracked with Git LFS) — don't edit that in place, a `git pull` overwrites it. The shipped 5-axis examples (`examples/sim_config/machine-xyzac/`, `machine-dmu160p/`) are complete rotary references, wired up by their sim INIs. `machine.json` is mtime-cached and hot-reloads on the next viewer init — no restart needed; a missing or unparseable file raises the operator config-warning banner and falls back to the default geometry.
 
 #### Schema
 
@@ -1073,7 +1074,7 @@ STL files are stored alongside `machine.json` in `lcnc-gateway/machine/` and tra
     { "id": "group_id", "parent": "root", "translate": [x, y, z] }
   ],
   "parts": [
-    { "id": "part_id", "file": "model.stl", "group": "group_id", "translate": [x, y, z], "rotate": [rx, ry, rz] }
+    { "id": "part_id", "file": "model.stl", "group": "group_id", "translate": [x, y, z], "rotate": [rx, ry, rz], "color": [r, g, b], "stock": false }
   ],
   "kinematics": [
     { "group": "group_id", "joint": 0, "type": "translate", "direction": "x", "sign": 1 }
@@ -1087,7 +1088,7 @@ STL files are stored alongside `machine.json` in `lcnc-gateway/machine/` and tra
 |-------|-------------|
 | `name` | Display name for the machine |
 | `groups` | Hierarchical assembly tree. Each group has an `id` and `parent` (use `"root"` for the top level). Optional `translate` sets a static pivot offset (e.g., rotary axis center). |
-| `parts` | STL meshes. `file` is relative to `machine/`. `group` assigns the part to a group (`null` = fixed frame). `translate` and `rotate` (Euler angles) are optional static offsets. |
+| `parts` | STL meshes. `file` is relative to the model directory. `group` assigns the part to a group (`null` = fixed frame). `translate` and `rotate` (Euler radians — prefer baking static rotations into the STL) are optional static offsets. Optional `color` is `[r, g, b]` 0–1 (STL has no color channel; parts get color pickers in Settings automatically, and user overrides win). Optional `stock: true` marks a workpiece body: the collision sweep treats FEED contact with it as machining instead of a crash (see the collision-check notes). |
 | `kinematics` | Maps LinuxCNC joints to group transforms. `joint` is the joint index from `joint_pos`. `type` is `"translate"` (default) or `"rotate"`. `direction` is `"x"`, `"y"`, or `"z"`. `sign` flips the direction (1 or -1). For arbitrary rotation axes, use `"axis": [x, y, z]` instead of `direction`. |
 | `workGroup` | Which group represents the workpiece/bed. DRO origin, backplot, and toolpath attach here. |
 | `toolGroup` | Which group represents the tool holder. Tool offset compensation is applied here. |
