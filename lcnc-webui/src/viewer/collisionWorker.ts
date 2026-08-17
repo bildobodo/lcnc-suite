@@ -9,9 +9,9 @@
 import {
   buildCollisionModel, sweepCollisions, toolCylinderPositions,
   type CollisionBody, type CollisionMachine, type CollisionOptions,
+  type CollisionTrack,
 } from "./collision";
 import type { PartFrameWcs } from "./partFrame";
-import type { ScrubTrack } from "../ws/bulkData";
 
 export interface CollisionReq {
   id: number;
@@ -20,7 +20,7 @@ export interface CollisionReq {
   /** Parametric tool body attached to the tool group (viewer marker dims,
    *  machine units). null = no tool body (bodies-only check). */
   tool: { diam: number; len: number } | null;
-  track: ScrubTrack;
+  track: CollisionTrack;
   wcs: PartFrameWcs;
   options: CollisionOptions;
 }

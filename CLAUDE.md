@@ -491,8 +491,14 @@ sweep parameter — the sweep runs in its OWN distance parameterization
 (mm, 1° ≙ 1 mm), never the track's cum, which may be time: the guarantee
 constants are spatial; hits convert back to track-cum on report —
 (V = provably conservative relative-speed bound from the
-pair's connecting DOFs — translations exact, rotations × endpoint levers
-with ×2 inflation, ≤22.5° chunks); pairs re-query only on certificate
+pair's connecting DOFs — translations exact under identity kins,
+rotations × endpoint levers with ×2 inflation, ≤22.5° chunks; WORLD-mode
+chunks additionally seed pairs riding a world-driven linear joint with a
+SAGITTA slack 4·R·(1−cos(φ/2)) — under TCP the linear joints are
+sinusoids of the swept rotary, so endpoint deltas can read 0 across a
+symmetric bulge and a pair whose path lacks the rotary has no lever
+budget: the review-found miss class, pinned by the C-sweep-into-wall
+test); pairs re-query only on certificate
 expiry. Guarantee: no margin crossing wider than 0.25 units of path is
 missed — clear programs stride in a handful of samples (adversarial
 tests: a 2 mm graze and a 2.3°-window large-radius rotary clash that

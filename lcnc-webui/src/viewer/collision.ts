@@ -40,7 +40,20 @@ import { MeshBVH } from "three-mesh-bvh";
 import { normalizeKinematics, type KinRuntime } from "./kinematics";
 import { programToMachine, wcsTerms, type PartFrameWcs } from "./partFrame";
 import { makeKins, warnWorldWithoutSpec, type KinsSpec } from "./kins";
-import type { ScrubTrack } from "../ws/bulkData";
+/** The subset of the scrub track the sweep consumes. The worker request
+ *  ships a COPIED projection of the real ScrubTrack (typed arrays only —
+ *  lineCum/lineSpan Maps and the time-axis fields never cross), so the
+ *  boundary type says exactly that instead of posing as the full track. */
+export interface CollisionTrack {
+  pos: Float32Array;
+  abc: Float32Array;
+  lines: Uint32Array;
+  rapid: Uint8Array;
+  cum: Float32Array;
+  count: number;
+  /** Per-segment world-kins flags (phase 2b) — absent = untracked. */
+  mode?: Uint8Array;
+}
 
 export interface CollisionMachine {
   groups: Array<{ id: string; parent: string; translate?: number[] }>;
@@ -355,7 +368,7 @@ function poseTree(nodes: Node[], jointVals: number[], scratch: {
  *  abort (the worker maps a cancel message onto it). `onProgress` gets 0..1. */
 export function sweepCollisions(
   model: CollisionModel,
-  track: ScrubTrack,
+  track: CollisionTrack,
   wcs: PartFrameWcs,
   opts: CollisionOptions,
   onProgress?: (frac: number) => void,
@@ -417,15 +430,33 @@ export function sweepCollisions(
   const jointVals: number[] = new Array(Math.max(machine.axes.length, 9)).fill(0);
   // Identity kins always; the machine's WORLD kins only for track segments
   // the phase-2 mode flags mark (live TLO overlays the pivot math).
-  // Soundness note for the V bounds below: under world kins the linear
-  // joints additionally carry the pivot compensation of the SAME rotary
-  // motion the chunk analyzes — that compensation's path is bounded by
-  // Δangle × lever, which the rotary term already budgets with ×2
-  // inflation, so the certificates stay conservative.
+  // Soundness for the V bounds below under world kins: the pivot
+  // compensation makes the LINEAR joints sinusoids of the swept rotary,
+  // so chunk-endpoint deltas can under-read their true in-chunk travel —
+  // and for a pair whose DOF path does NOT contain the rotary (e.g.
+  // tool-vs-column during a C sweep) the rotary lever term supplies no
+  // budget at all (review finding: the old note claimed it did). Fix:
+  // world-mode chunks seed such pairs' translation budget with a sagitta
+  // bound — a sinusoid of amplitude ≤ R over phase φ deviates from its
+  // chord by ≤ R·(1−cos(φ/2)) per extremum, ≤ 2 trig components per
+  // joint set, doubled for slack → 4·R·(1−cos(φ/2)) with R = pivot
+  // radius bound from the chunk-endpoint world coords (+ static offsets
+  // + live TLO). Pairs whose path has the rotary keep the existing
+  // Δangle × lever ×2 budget on top.
   const identityKins = makeKins(machine.axes);
   const worldKins = machine.kins && track.mode
     ? makeKins(machine.axes, machine.kins, wcs.tool?.[2] || undefined)
     : null;
+  // Pairs whose relative pose rides a world-driven linear joint (letter
+  // X/Y/Z under a declared kins) — the recipients of the sagitta slack.
+  const pairWorldLin = worldKins
+    ? pairDofs.map(list => list.some(pd =>
+        !pd.dof.rotate && "XYZ".includes(machine.axes[pd.dof.joint] ?? "")))
+    : null;
+  const kp = machine.kins?.params;
+  const pivotX = kp?.xRotPoint ?? 0, pivotY = kp?.yRotPoint ?? 0, pivotZ = kp?.zRotPoint ?? 0;
+  const pivotOffMag = Math.hypot(kp?.xOffset ?? 0, kp?.yOffset ?? 0, kp?.zOffset ?? 0)
+    + Math.abs(wcs.tool?.[2] ?? 0);
   const kinsOut: (number | null)[] = [];
   const scratch = {
     pos: new THREE.Vector3(), quat: new THREE.Quaternion(),
@@ -595,12 +626,17 @@ export function sweepCollisions(
     const L = c1 - c0;
     if (L <= 1e-9) continue;
     const j = i * 3, k = j - 3;
-    const rotDelta = Math.max(
-      Math.abs(track.abc[j]! - track.abc[k]!),
-      Math.abs(track.abc[j + 1]! - track.abc[k + 1]!),
-      Math.abs(track.abc[j + 2]! - track.abc[k + 2]!),
-    );
+    const dA = Math.abs(track.abc[j]! - track.abc[k]!);
+    const dB = Math.abs(track.abc[j + 1]! - track.abc[k + 1]!);
+    const dC = Math.abs(track.abc[j + 2]! - track.abc[k + 2]!);
+    const rotDelta = Math.max(dA, dB, dC);
     const chunks = Math.max(1, Math.ceil(rotDelta / CHUNK_ROT_DEG));
+    // Per-chunk swept phase for the world sagitta slack: SUM of the rotary
+    // deltas (each rotation contributes its own trig terms), radians.
+    const segWorld = pairWorldLin !== null && track.mode?.[i] === 1;
+    const chunkPhase = segWorld
+      ? Math.min(Math.PI, ((dA + dB + dC) / chunks) * (Math.PI / 180))
+      : 0;
 
     for (let ch = 0; ch < chunks; ch++) {
       const s0 = c0 + (L * ch) / chunks;
@@ -610,6 +646,11 @@ export function sweepCollisions(
       // Chunk endpoint joint values + start-pose rotary levers.
       interpPose(i, (s0 - c0) / L);
       for (let x = 0; x < jointVals.length; x++) jv0[x] = jointVals[x]!;
+      // World sagitta slack input: pivot radius at this endpoint (poseAt
+      // left the endpoint's machine coords in machineVals).
+      let pivotR = segWorld
+        ? Math.hypot(machineVals[0]! - pivotX, machineVals[1]! - pivotY, machineVals[2]! - pivotZ)
+        : 0;
       for (let pi = 0; pi < pairs.length; pi++) {
         if (staticExcluded[pi]) continue;
         const [ai, bi] = pairs[pi]!;
@@ -624,13 +665,21 @@ export function sweepCollisions(
       }
       interpPose(i, (s1 - c0) / L);
       for (let x = 0; x < jointVals.length; x++) jv1[x] = jointVals[x]!;
+      let chunkSlack = 0;
+      if (segWorld && chunkPhase > 0) {
+        pivotR = Math.max(pivotR, Math.hypot(
+          machineVals[0]! - pivotX, machineVals[1]! - pivotY, machineVals[2]! - pivotZ));
+        chunkSlack = 4 * (pivotR + pivotOffMag) * (1 - Math.cos(chunkPhase / 2));
+      }
 
       for (let pi = 0; pi < pairs.length; pi++) {
         if (staticExcluded[pi]) { pairV[pi] = 0; continue; }
         const [ai, bi] = pairs[pi]!;
         const A = bodies[ai]!, B = bodies[bi]!;
         const list = pairDofs[pi]!;
-        let trans = 0;
+        // Seeding trans with the world sagitta slack also flows it into
+        // the rotary lever+trans recursion below — both need the budget.
+        let trans = pairWorldLin?.[pi] ? chunkSlack : 0;
         let rotRadLever = 0;
         for (let di = 0; di < list.length; di++) {
           const pd = list[di]!;

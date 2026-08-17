@@ -435,3 +435,59 @@ describe("contact-window refinement (glow window)", () => {
     expect(l26.cumEnd).toBeLessThan(250);
   });
 });
+
+describe("world-kins conservative advancement (sagitta slack)", () => {
+  // The review's miss class: a C sweep symmetric about the joint-X
+  // extremum. The pair's DOF path is {X} only, so chunk-endpoint joint
+  // deltas give V = 0 (jx(±10°) are equal) and no rotary-lever budget
+  // applies (C is not on the pair's path) — the pre-fix certificate
+  // spanned the whole chunk from a clear starting distance while jx
+  // bulged R·(1−cos 10°) ≈ 4.6 into the wall mid-chunk. The sagitta
+  // slack seeds V for world-driven linear joints and forces mid-chunk
+  // queries.
+  const CSWEEP: CollisionMachine = {
+    groups: [
+      { id: "frame", parent: "root" },
+      { id: "xslide", parent: "root" },
+    ],
+    kinematics: [{ group: "xslide", joint: 0, type: "translate", direction: "x", sign: 1 }],
+    workGroup: "frame",
+    toolGroup: "xslide",
+    unitScale: 1,
+    axes: ["X", "Y", "Z", "A", "C"],
+    kins: { type: "xyzac-trt", params: {} },
+  };
+  const wallBodies = (wallX: number): CollisionBody[] => {
+    const wall = boxPositions(10);
+    for (let i = 0; i < wall.length; i += 3) wall[i] = wall[i]! + wallX;
+    return [
+      { id: "wall", group: "frame", positions: wall },
+      { id: "mover", group: "xslide", positions: boxPositions(10) },
+    ];
+  };
+  // World X=300 fixed while C sweeps −10°→+10° (one 20° chunk): under
+  // xyzac-trt with pivots at origin, jx = 300·cos C — endpoints equal
+  // (295.44), peak 300 exactly mid-chunk.
+  const sweep = {
+    ...track([[300, 0, 0], [300, 0, 0]], [[0, 0, -10], [0, 0, 10]]),
+    mode: new Uint8Array([1, 1]),
+  };
+
+  it("catches the mid-chunk pivot bulge endpoint deltas cannot see", () => {
+    // Wall near face at 303.44: endpoint gap 3.0 (clear of margin 2),
+    // peak overlap 1.56 — with V = 0 a certificate from the endpoint
+    // distance skips the whole chunk and misses the crossing.
+    const model = buildCollisionModel(CSWEEP, wallBodies(308.44));
+    const r = sweepCollisions(model, sweep, WCS0, { margin: 2 });
+    expect(r.hits).toHaveLength(1);
+    expect([r.hits[0]!.a, r.hits[0]!.b].sort()).toEqual(["mover", "wall"]);
+  });
+
+  it("adds no false positive when the bulge stays clear", () => {
+    // Wall 10 further out: peak gap 8.4 — slack may only shrink steps,
+    // never manufacture hits.
+    const model = buildCollisionModel(CSWEEP, wallBodies(318.44));
+    const r = sweepCollisions(model, sweep, WCS0, { margin: 2 });
+    expect(r.hits).toHaveLength(0);
+  });
+});

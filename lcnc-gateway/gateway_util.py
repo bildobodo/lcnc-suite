@@ -856,7 +856,7 @@ def check_limit_violations_world(segments, limits, kins_cfg, unit_scale=1.0,
     order = {letter: i for i, letter in enumerate(AXIS_LETTERS)}
     keys = sorted(worst, key=lambda k: (k[0], order.get(k[1], 9)))
     records = [{"line": ln, "axis": ax, "value": round(worst[(ln, ax)][0], 4),
-                "limit": worst[(ln, ax)][1], "kind": worst[(ln, ax)][2]}
+                "limit": round(worst[(ln, ax)][1], 4), "kind": worst[(ln, ax)][2]}
                for ln, ax in keys[:max_report]]
     return records, len(keys)
 

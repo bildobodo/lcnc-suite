@@ -282,6 +282,10 @@ export function kinsFor(axes: string[], spec?: KinsSpec, toolOffsetZ?: number): 
     + (toolOffsetZ ? "|t" + toolOffsetZ : "");
   let m = _memo.get(key);
   if (!m) {
+    // Bound the memo: every distinct live TLO mints a new key (tool
+    // changes over a long session), and touch-off can sweep values.
+    // Models are tiny — a rare full clear is cheaper than an LRU.
+    if (_memo.size >= 64) _memo.clear();
     m = makeKins(axes, spec, toolOffsetZ);
     _memo.set(key, m);
   }
