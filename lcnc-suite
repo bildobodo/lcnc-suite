@@ -213,7 +213,13 @@ LCNC_LOG="$LCNC_RESOLVED_LOG_DIR/gateway.log"
 # break mkfifo behavior); only the tee *output target* moves.
 LCNC_FIFO="$(mktemp -u /tmp/lcnc-fifo.XXXXXX)"
 mkfifo -m 600 "$LCNC_FIFO"
-( setsid tee -a "$LCNC_LOG" < "$LCNC_FIFO" & )
+# Line-buffered token redaction between FIFO and tee: uvicorn's access log
+# prints every WS URL verbatim (`/ws?token=<live token>` per connection), so
+# without this the auth token lands in gateway.log AND terminal scrollback —
+# and gateway.log feeds the forensic trip bundles people share. `sed -u`
+# keeps per-line latency (no 4K block buffering); the pipeline still EOFs
+# cleanly when the launcher exits and the FIFO write end closes.
+( setsid bash -c 'sed -u "s/token=[^\"\&[:space:]\\\\]*/token=REDACTED/gI" < "$0" | tee -a "$1"' "$LCNC_FIFO" "$LCNC_LOG" & )
 exec > "$LCNC_FIFO" 2>&1
 _log "tee started via FIFO=$LCNC_FIFO (setsid + reparented to init)"
 # Clean the FIFO file on exit. Tee already opened the read end before

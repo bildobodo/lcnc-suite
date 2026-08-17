@@ -314,10 +314,27 @@ def _resolve_window_endpoint(token: str, events: List[dict], start: bool) -> int
     raise SystemExit(f"unrecognized window endpoint: {token!r}")
 
 
+# Auth-token redaction at the WRITERS — the single choke point every event
+# source flows through. Bundles are the artifact people SHARE (bug reports,
+# forum posts), and uvicorn's access log puts the live WS token in every
+# connection line (`/ws?token=...`); the launcher now redacts at the tee,
+# but bundles must also be safe when built from logs an older launcher
+# wrote. The charset excludes quote, ampersand, whitespace AND backslash —
+# backslash matters: in a serialized JSON string an embedded quote is \" ,
+# and a match consuming the backslash would un-escape it and break the
+# JSON. Real tokens are urlsafe-base64 (no backslashes), so nothing is
+# under-redacted.
+_TOKEN_RE = re.compile(r"(?i)(token=)[^\"&\s\\]+")
+
+
+def _redact(line: str) -> str:
+    return _TOKEN_RE.sub(r"\1REDACTED", line)
+
+
 def write_ndjson(events: List[dict], out_path: str) -> None:
     with open(out_path, "w") as f:
         for e in events:
-            f.write(json.dumps(e, separators=(",", ":")) + "\n")
+            f.write(_redact(json.dumps(e, separators=(",", ":"))) + "\n")
 
 
 def write_log(events: List[dict], out_path: str) -> None:
@@ -337,7 +354,7 @@ def write_log(events: List[dict], out_path: str) -> None:
                 f"{k}={v}" for k, v in e.items()
                 if k not in ("t_wall_ns", "t_mono_ms", "proc", "pid", "tag", "level", "msg")
             )
-            f.write(f"[+{rel_ms:9.3f}ms] [{level:5s}] [{proc:18s}] {tag:30s} {msg} {extras}\n".rstrip() + "\n")
+            f.write(_redact(f"[+{rel_ms:9.3f}ms] [{level:5s}] [{proc:18s}] {tag:30s} {msg} {extras}").rstrip() + "\n")
 
 
 def main() -> int:
