@@ -1193,6 +1193,46 @@ The trunnion's `translate` positions the A-axis rotation center. The C table is 
 | `rotate` with `direction` | Drives `group.rotation[direction]` (degrees) | A rotates around X, B around Y, C around Z |
 | `rotate` with `axis` | Drives rotation around arbitrary vector | `"axis": [0, 0.707, 0.707]` for a 45° tilted axis |
 
+### 5-Axis and TCP (switchkins)
+
+Plain 5-axis — trivkins, joints follow the axis words — needs nothing beyond a rotary `machine.json` like the trunnion example above. The toolpath preview, program scrub, and collision sweep are rotary-aware out of the box (per-vertex A/B/C, the "Path on part" view, rotary-subdivided transforms).
+
+**TCP (tool-center-point control)** via LinuxCNC's switchable kinematics is supported end-to-end for the `xyzac-trt-kins` / `xyzbc-trt-kins` trunnion families. The offline stack (preview, simulation scrub, collision sweep, soft-limit validation) mirrors those kinematics in TypeScript and Python, pinned against the compiled LinuxCNC C source by generated fixture tests. Reference config: [`examples/sim_config/lcnc_suite_sim_5axis_tcp.ini`](examples/sim_config/lcnc_suite_sim_5axis_tcp.ini) with the `M428`/`M429`/`M430` toggle remaps in [`examples/sim_config/remap_subs/`](examples/sim_config/remap_subs/). A TCP config needs five things:
+
+**1. The switchable kins module** (`[KINS]`):
+```ini
+[KINS]
+KINEMATICS = xyzac-trt-kins sparm=identityfirst
+```
+
+**2. Pivot params as INI `HALCMD` lines — not in a `.hal` file.** The gateway reads the kins declaration for the viewer from `[KINS]KINEMATICS` plus `[HAL]HALCMD` `setp` lines *only*. A `setp xyzac-trt-kins.y-offset …` inside a HAL file works for the machine but is invisible to the viewer — the offline TCP math would silently run with all pivots at zero. Put them here:
+```ini
+[HAL]
+HALCMD = net :kinstype-select motion.analog-out-02 => motion.switchkins-type
+HALCMD = setp xyzac-trt-kins.y-offset 20
+HALCMD = setp xyzac-trt-kins.z-offset 10
+```
+(The `motion.analog-out-*` pin number must exist — check `num_aio` on your motmod line. Never `setp` the kins `tool-offset` pin statically: net it from `motion.tooloffset.z`, it's live TLO.)
+
+**3. Toggle remaps** (`[RS274NGC]`):
+```ini
+[RS274NGC]
+HAL_PIN_VARS = 1
+SUBROUTINE_PATH = <...>:~/lcnc-suite/examples/sim_config/remap_subs
+REMAP=M428 modalgroup=10 ngc=428remap
+REMAP=M429 modalgroup=10 ngc=429remap
+REMAP=M430 modalgroup=10 ngc=430remap
+```
+`M428` = TCP on, `M429` = identity, `M430` = tool-length-along-tool mode. The shipped remaps self-diagnose missing prerequisites (`HAL_PIN_VARS`, the switchkins net) with a `(debug, …)` message and a program STOP instead of failing cryptically.
+
+**4. The `(WEBUI_KINSTYPE=n)` marker convention.** Each shipped remap emits a marker comment at the exact point it switches `motion.switchkins-type`. Comments are the one execution-ordered channel the offline parse receives (remapped M-codes never appear in the interpreter's active-code lists, and `M68` is swallowed by the preview canon), so these markers are how the preview/sim/collision stack knows which segments run under which kins. If you write your **own** switchkins M-codes, emit the same comment — `(WEBUI_KINSTYPE=1)` etc., as a full comment on its own — right where you set the pin. Programs that switch kins **without** markers degrade honestly: the offline stack treats the moves as untracked (posing programmed coords directly) and warns in the browser console; the live 3D model is always correct either way (it's joint-driven).
+
+**5. A dedicated `PARAMETER_FILE`** (recommended): rotary work offsets left over from another config once ran a whole demo tilted — give the TCP config its own var file.
+
+What you get on marker-tagged TCP programs: simulation scrub and "Path on part" pose through the real kinematics, the collision sweep checks the true joint-space motion, and **soft limits are validated joint-side** — under TCP the joints swing past the programmed words (a program whose X words stayed inside ±20 was measured driving joint X to −22.4), so word-side checking would miss real overtravel. If a config declares a kins module the suite has no twin for, those segments are counted and reported as "N TCP segments not validated" in the program stats — never silently passed.
+
+Known limits: the DMU-style nutating-B example (`machine-dmu160p/`) ships as a trivkins model only (no TCP kins twin for the nutating family yet), and gantry dual-joint / lathe modes are outside the proven envelope.
+
 ### Polling Rate
 
 Adjust `POLL_HZ` in `gateway.py` (default: 30 Hz).

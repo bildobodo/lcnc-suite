@@ -4,9 +4,21 @@ A minimal LinuxCNC sim configuration for lcnc-suite. Copy to your LinuxCNC confi
 
 ## Setup
 
+Prefer `install.sh` (repo root) — it copies this directory to
+`~/linuxcnc/configs/lcnc_suite_sim` **and replaces
+`hallib/lcnc_webui.hal` with a symlink back to the repo**, so safety-chain
+updates arrive with `git pull` instead of drifting (a hand-copied HAL file
+eventually fails with `Pin does not exist` after the repo moves on).
+Copying by hand:
+
 ```bash
 cp -r examples/sim_config ~/linuxcnc/configs/lcnc_suite_sim
+ln -sf "$(pwd)/examples/sim_config/hallib/lcnc_webui.hal" \
+       ~/linuxcnc/configs/lcnc_suite_sim/hallib/lcnc_webui.hal
 ```
+
+(Later `cp -r` copies of an installed config keep the symlink — GNU cp
+copies symlinks as symlinks.)
 
 Edit `lcnc_suite_sim.ini`:
 - Set `SUBROUTINE_PATH` to your lcnc-suite clone location (LinuxCNC's INI parser expands `~`, so `~/lcnc-suite/...` is fine if you cloned there).
@@ -23,6 +35,15 @@ Edit `hallib/lcnc_webui.hal`:
   verification variants (XYZAC / XYZABCUVW). Extra joints home instantly
   (no simulated switch) and loop back via `hallib/core_sim_5.hal` /
   `core_sim_9.hal`. Same subroutines/var file as the base sim.
+- `lcnc_suite_sim_5axis_tcp.ini` — the 5-axis sim with REAL switchable
+  kinematics (`xyzac-trt-kins sparm=identityfirst`) and the M428/M429/M430
+  TCP toggle remaps from `remap_subs/` (see its README). Own var file
+  (`sim_tcp.var`). The reference config for the suite's TCP support.
+- `lcnc_suite_sim_dmu160p.ini` — DMU 160 P portal mill: 45° nutating-B
+  head on the TOOL chain + C table (opposite rotary topology to the
+  trunnion), real STLs fetched by `machine-dmu160p/fetch-model.sh`, and
+  the first `stock: true` workpiece body for the collision sweep.
+  Trivkins only (no TCP kins twin for the nutating family yet).
 - `hallib/lcnc_webui.hal` — HAL wiring for safety watchdog, e-stop chain, tool change, compensation
 - Other HAL files — sim-specific (homing, spindle, etc.)
 
