@@ -172,5 +172,39 @@ class TestShutdownGoodbyeOnCancel(unittest.TestCase):
                       "cancelled handler must push a server_shutdown frame before re-raising")
 
 
+class TestBinaryFrameRejected(unittest.TestCase):
+    def test_binary_frame_gets_error_reply_and_connection_survives(self):
+        """A BINARY frame must be rejected politely, not kill the session.
+
+        Before this guard, starlette's receive_text() raised KeyError('text')
+        on a binary frame; the KeyError sailed past the (WebSocketDisconnect,
+        RuntimeError) handler and tore the connection down through the
+        armed-disconnect side effects — one stray frame from a broken client
+        (e.g. a probe sending msgpack commands) killed its session. Now the
+        endpoint replies with an error frame and keeps serving: a heartbeat
+        sent AFTER the binary frame must still get its pong.
+        """
+        deadline = time.monotonic() + 15.0
+        got_error_reply = False
+        got_pong_after = False
+        with TestClient(gateway.app) as client:
+            with client.websocket_connect("/ws") as ws:
+                ws.send_json({"cmd": "hello", "session": "bin-reject", "resume_armed": False})
+                ws.send_bytes(b"\x81\xa3cmd\xa9heartbeat")  # msgpack {"cmd": "heartbeat"}
+                while not (got_error_reply and got_pong_after):
+                    self.assertLess(time.monotonic(), deadline,
+                                    "never saw error reply + post-binary pong")
+                    if got_error_reply and not got_pong_after:
+                        ws.send_json({"cmd": "heartbeat"})
+                    msg = _decode(ws.receive())
+                    t = msg.get("type")
+                    if t == "reply" and msg.get("ok") is False and "text JSON" in str(msg.get("error", "")):
+                        got_error_reply = True
+                    elif t == "pong" and got_error_reply:
+                        got_pong_after = True
+                    time.sleep(0.02)
+        self.assertTrue(got_error_reply and got_pong_after)
+
+
 if __name__ == "__main__":
     unittest.main()

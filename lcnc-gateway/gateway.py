@@ -543,7 +543,7 @@ async def _heartbeat_loop():
 
     Toggles at POLL_HZ while clients are connected.  When no clients remain
     the loop yields to _disconnect_grace which manages the grace period.
-    E-Stop is handled via the independent command path (ws.receive_text →
+    E-Stop is handled via the independent command path (ws.receive →
     handle_command) so a stuck status_loop does not block safety controls.
     """
     global _hal_last_hb
@@ -5291,10 +5291,31 @@ async def ws_endpoint(ws: WebSocket):
     # silently inherit armed. Stays None for old clients that don't send
     # hello (they lose armed on reconnect, same as today).
     _disc_session_id: Optional[str] = None
+    _binary_frame_warned = False
     try:
         while True:
-            _set_phase(f"ws.receive_text client#{client_id}")
-            raw = await ws.receive_text()
+            _set_phase(f"ws.receive client#{client_id}")
+            # Not receive_text(): a BINARY frame makes starlette's
+            # receive_text() raise KeyError('text'), which sails past the
+            # (WebSocketDisconnect, RuntimeError) handler below and tears the
+            # connection down through the armed-disconnect side effects — one
+            # stray frame from a broken client killed its session. Receive
+            # raw, reject non-text politely, keep the connection alive.
+            _wsmsg = await ws.receive()
+            if _wsmsg["type"] == "websocket.disconnect":
+                # Mirror receive_text()'s disconnect semantics for the
+                # handler below.
+                raise WebSocketDisconnect(_wsmsg.get("code", 1000))
+            raw = _wsmsg.get("text")
+            if raw is None:
+                if not _binary_frame_warned:
+                    _binary_frame_warned = True  # once per connection — a broken client repeats
+                    _trace.emit("ws.binary_frame_rejected", level="warn",
+                                client_id=client_id,
+                                bytes=len(_wsmsg.get("bytes") or b""))
+                await ws_send_json(ws, {"type": "reply", "ok": False,
+                                        "error": "Commands must be text JSON frames"})
+                continue
             try:
                 msg = json.loads(raw)
             except Exception:

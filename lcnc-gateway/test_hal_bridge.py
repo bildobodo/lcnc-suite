@@ -11,6 +11,7 @@ import os
 import socket
 import tempfile
 import threading
+import time
 import unittest
 
 import hal_bridge
@@ -41,6 +42,57 @@ class TestWatchdogSocket(unittest.TestCase):
         b = self._bridge()
         b.watchdog_send({"heartbeat": True})
         self.assertFalse(b.watchdog_connected)
+
+    def test_connect_failures_are_rate_limited_and_recovery_reports_total(self):
+        # The connect is retried per heartbeat send (~30 Hz); an outage must
+        # emit ONE failure line up front — not one per attempt — and the
+        # recovery emit must carry the outage's attempt count so nothing is
+        # silently dropped.
+        emitted = []
+        real_emit = hal_bridge._trace.emit
+        hal_bridge._trace.emit = lambda tag, **kw: emitted.append((tag, kw))
+        try:
+            b = self._bridge()
+            for _ in range(5):
+                b.watchdog_send({"heartbeat": True})  # 5 failed connects, no listener
+            fails = [e for e in emitted if e[0] == "hal.socket_connect_failed"]
+            self.assertEqual(len(fails), 1, f"burst must emit once, got {fails}")
+            self.assertEqual(fails[0][1]["fails"], 1)  # first failure emits immediately
+
+            srv = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            srv.bind(self.path)
+            srv.listen(1)
+            try:
+                b.watchdog_send({"heartbeat": True})  # connects now
+                self.assertTrue(b.watchdog_connected)
+                conns = [e for e in emitted if e[0] == "hal.socket_connected"]
+                self.assertEqual(len(conns), 1)
+                self.assertEqual(conns[0][1]["after_fails"], 5)
+            finally:
+                srv.close()
+        finally:
+            hal_bridge._trace.emit = real_emit
+
+    def test_failure_aggregator_interval_and_reset(self):
+        emitted = []
+        real_emit = hal_bridge._trace.emit
+        hal_bridge._trace.emit = lambda tag, **kw: emitted.append((tag, kw))
+        try:
+            agg = hal_bridge._FailureAggregator("t.fail", interval_sec=0.05)
+            err = OSError("nope")
+            for _ in range(10):
+                agg.failure(err)
+            self.assertEqual(len(emitted), 1)          # burst → one line
+            time.sleep(0.06)
+            agg.failure(err)                            # interval elapsed
+            self.assertEqual(len(emitted), 2)
+            self.assertEqual(emitted[1][1]["fails"], 11)  # cumulative count
+            self.assertEqual(agg.success(), 11)
+            agg.failure(err)                            # new outage: immediate again
+            self.assertEqual(len(emitted), 3)
+            self.assertEqual(emitted[2][1]["fails"], 1)
+        finally:
+            hal_bridge._trace.emit = real_emit
 
     def test_send_roundtrip(self):
         srv = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)

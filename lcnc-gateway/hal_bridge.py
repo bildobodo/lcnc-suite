@@ -45,6 +45,46 @@ READER_SOCK_PATH = "/tmp/webui-reader.sock"
 # A snapshot is "stale" if no message has arrived within this window.
 # The reader pushes at 30 Hz (~33 ms) so 2 s = ~60 missed ticks.
 READER_STALE_SEC = 2.0
+# Emit cadence for repeated connect failures while a sibling process is down.
+# The watchdog connect is retried per heartbeat send (~30 Hz), the reader
+# every 1 s — unthrottled, a watchdog outage wrote ~900 error lines per 30 s
+# and churned the 50 MB trace rotation away from the forensics that matter.
+WD_CONNECT_FAIL_EMIT_SEC = 5.0
+READER_CONNECT_FAIL_EMIT_SEC = 30.0
+
+
+class _FailureAggregator:
+    """Rate-limit repeated failure emits of one trace tag.
+
+    The FIRST failure of an outage emits immediately (zero detection
+    latency), then one line per ``interval_sec`` carrying the cumulative
+    ``fails`` count since the last successful connect, and ``success()``
+    hands back the total so the recovery emit can report it. The outage
+    stays fully auditable (no silent fallback — every attempt is counted,
+    none is individually logged) without flooding the trace bus.
+    """
+
+    def __init__(self, tag: str, *, interval_sec: float, level: str = "error") -> None:
+        self._tag = tag
+        self._interval = interval_sec
+        self._level = level
+        self._fails = 0        # failures since last success
+        self._last_emit = 0.0  # monotonic ts of last emitted line (0 = none yet)
+
+    def failure(self, exc: BaseException) -> None:
+        self._fails += 1
+        now = time.monotonic()
+        if self._last_emit == 0.0 or now - self._last_emit >= self._interval:
+            _trace.emit(self._tag, level=self._level,
+                        exc=type(exc).__name__, msg=str(exc), fails=self._fails)
+            self._last_emit = now
+
+    def success(self) -> int:
+        """Reset for the next outage; returns the failure count it accumulated."""
+        n = self._fails
+        self._fails = 0
+        self._last_emit = 0.0
+        return n
 
 
 class HalBridge:
@@ -64,6 +104,11 @@ class HalBridge:
         self._stale_sec = reader_stale_sec
         # -- watchdog socket --
         self._wd_sock: Optional[_socket.socket] = None
+        self._wd_connect_fails = _FailureAggregator(
+            "hal.socket_connect_failed", interval_sec=WD_CONNECT_FAIL_EMIT_SEC)
+        self._reader_connect_fails = _FailureAggregator(
+            "reader.connect_failed", interval_sec=READER_CONNECT_FAIL_EMIT_SEC,
+            level="warn")
         # hal.send_summary fires once per N sends (N=30 ≈ 1 s at heartbeat
         # cadence). `slow_count` is tallied locally (not an avg/max metric)
         # and reset by the extra-fields callable at emit time; `outq` is read
@@ -108,11 +153,14 @@ class HalBridge:
             sock.connect(self._watchdog_path)
             sock.settimeout(0.05)
             self._wd_sock = sock
-            _trace.emit("hal.socket_connected")
+            _prior_fails = self._wd_connect_fails.success()
+            if _prior_fails:
+                _trace.emit("hal.socket_connected", after_fails=_prior_fails)
+            else:
+                _trace.emit("hal.socket_connected")
         except Exception as e:
             sock.close()  # don't leave the fd to refcounting
-            _trace.emit("hal.socket_connect_failed", level="error",
-                        exc=type(e).__name__, msg=str(e))
+            self._wd_connect_fails.failure(e)
             self._wd_sock = None
 
     def watchdog_disconnect(self) -> None:
@@ -192,12 +240,15 @@ class HalBridge:
             try:
                 reader, writer = await asyncio.open_unix_connection(self._reader_path)
             except Exception as e:
-                _trace.emit("reader.connect_failed", level="warn",
-                            exc=type(e).__name__, msg=str(e))
+                self._reader_connect_fails.failure(e)
                 await asyncio.sleep(1.0)
                 continue
             self._reader_writer = writer
-            _trace.emit("reader.connected")
+            _prior_fails = self._reader_connect_fails.success()
+            if _prior_fails:
+                _trace.emit("reader.connected", after_fails=_prior_fails)
+            else:
+                _trace.emit("reader.connected")
             # Gateway policy hook (e.g. push extra-pin config so the reader
             # includes user-configured pins in snapshots). Must not block:
             # this loop dispatches RPC replies, so any awaiting must happen
