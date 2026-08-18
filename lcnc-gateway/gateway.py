@@ -44,6 +44,7 @@ from gateway_util import (
     evaluate_trip_latch,
     evaluate_safety_chain,
     unwritten_estop_signal,
+    kins_marker_policy,
     kins_pivot_warning,
     rotary_model_warning,
     parse_telemetry_batch,
@@ -464,9 +465,12 @@ async def _reader_configure_extra_pins() -> None:
 
     Called on reader reconnect (the bridge's on_reader_connect hook spawns
     this as a task — the recv loop dispatches the reply, so awaiting inside
-    the hook would deadlock) and when settings change. Reads settings
-    directly so it's correct regardless of whether status_loop has run yet
-    (race-free at startup). Fire-and-forget; failures log but don't propagate.
+    the hook would deadlock), when settings change, and after a LinuxCNC
+    (re)connect via the poller (the kins pin below needs STAT for the INI
+    path, so a reader that connected first must be re-pushed). Reads
+    settings directly so it's correct regardless of whether status_loop has
+    run yet (race-free at startup). Fire-and-forget; failures log but don't
+    propagate.
     """
     if not _hal_bridge.reader_connected:
         return
@@ -478,6 +482,15 @@ async def _reader_configure_extra_pins() -> None:
         slp = ""
     if isinstance(slp, str) and _HAL_PIN_RE.match(slp):
         pins["spindle_load"] = slp
+    # Live switchkins mode (TCP+TWP phase 2 deferred refinement): sample
+    # motion.switchkins-type so the sim entry move can invert the live
+    # joints under the machine's ACTUAL kins mode — the machine may be
+    # parked in world mode from a previous run while the loaded program's
+    # preamble hasn't executed yet. Only on configs whose declared kins
+    # can actually switch: on trivkins the pin doesn't exist and would sit
+    # in the reader's missing-pin reminder forever.
+    if kins_marker_policy(_parse_kins_decl()) != "ignore":
+        pins["kins_type"] = "motion.switchkins-type"
     try:
         await _reader_request("set_extra_pins", pins=pins)
     except Exception as e:
@@ -1141,6 +1154,10 @@ async def _status_poller():
                 if pid is not None and await asyncio.to_thread(try_connect_lcnc):
                     _reconnect_fails = 0
                     _hal_connect()
+                    # Re-push extra pins: the kins pin needs STAT (INI path),
+                    # so a reader that connected before LinuxCNC did must be
+                    # reconfigured now.
+                    register_bg_task(asyncio.create_task(_reader_configure_extra_pins()))
                     _poll_fails = 0
                 else:
                     if pid is not None and _ever_connected:
@@ -1162,6 +1179,7 @@ async def _status_poller():
                         if await asyncio.to_thread(try_connect_lcnc):
                             _reconnect_fails = 0
                             _hal_connect()
+                            register_bg_task(asyncio.create_task(_reader_configure_extra_pins()))
                     else:
                         STAT = CMD = ERR = None
                         lcnc_connected = False
@@ -1599,9 +1617,10 @@ def _self_restart():
 
 def try_connect_lcnc() -> bool:
     """Attempt to connect to LinuxCNC. Returns True on success."""
-    global STAT, CMD, ERR, lcnc_connected, _lcnc_pid, _nc_files_dir, _ini_config, _ever_connected
+    global STAT, CMD, ERR, lcnc_connected, _lcnc_pid, _nc_files_dir, _ini_config, _ever_connected, _kins_decl_cache
     _nc_files_dir = None        # re-resolve on reconnect
     _ini_config = None          # re-read INI config on reconnect
+    _kins_decl_cache = None     # re-parse kins declaration on reconnect
     _status_runtime.invalidate_var_file_path()  # re-resolve on reconnect (P2.1)
     if not _nml_connectable():
         return False
@@ -1721,6 +1740,33 @@ _ini_config: Optional[dict] = None
 def get_max_jog_velocity() -> Optional[float]:
     """Return max jog velocity from INI (units/sec), cached."""
     return get_ini_config().get("max_jog_velocity")
+
+
+_kins_decl_cache: Optional[dict] = None
+
+
+def _parse_kins_decl() -> Optional[dict]:
+    """Kins declaration ([KINS]KINEMATICS + [HAL]HALCMD pivot setp lines)
+    from the running config's INI, cached until reconnect (the INI cannot
+    change without a LinuxCNC restart). Shared by build_viewer_init
+    (viewer_init.kins) and the extra-pins push (live switchkins sampling).
+    STAT-dependent: returns None before LinuxCNC connects — never cached,
+    so the first post-connect call parses for real."""
+    global _kins_decl_cache
+    if _kins_decl_cache is not None:
+        return _kins_decl_cache
+    ini_filename = getattr(STAT, "ini_filename", None) if STAT else None
+    if not ini_filename:
+        return None
+    try:
+        _kini = linuxcnc.ini(ini_filename)
+        _kins_decl_cache = parse_kins_config(
+            _kini.find("KINS", "KINEMATICS"),
+            _kini.findall("HAL", "HALCMD") or [],
+        )
+    except Exception as e:
+        _trace.emit_exc("viewer_init.kins_parse_failed", e)
+    return _kins_decl_cache
 
 
 def get_ini_config() -> dict:
@@ -3574,16 +3620,7 @@ def build_viewer_init(stl_base_url: str) -> Dict[str, Any]:
     # whole-track transform until phase 2 lands per-segment modes (and the
     # TLO-flow audit — the kins' tool-offset pin is live, wcs.tool already
     # carries it; activating without that audit would double-count TLO).
-    kins_decl = None
-    if ini_filename:
-        try:
-            _kini = linuxcnc.ini(ini_filename)
-            kins_decl = parse_kins_config(
-                _kini.find("KINS", "KINEMATICS"),
-                _kini.findall("HAL", "HALCMD") or [],
-            )
-        except Exception as e:
-            _trace.emit_exc("viewer_init.kins_parse_failed", e)
+    kins_decl = _parse_kins_decl()
 
     # Viewer-config smells (review D4/D5) — banner-visible, never trace-only.
     # Recomputed on every cache-miss build; a cache hit keeps the previous

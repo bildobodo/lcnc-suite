@@ -270,6 +270,17 @@ export function specFromWire(w?: {
   };
 }
 
+/** Live `motion.switchkins-type` value → is the machine in WORLD (TCP)
+ *  mode? Mirrors gateway_util.kins_world_flags' parse-time mapping so the
+ *  live pin and the track's mode array can never disagree on semantics:
+ *  with `sparm=identityfirst` type 1 is the world kins, otherwise the
+ *  module's startup type 0 is; type 2 (userk) is identity math in the
+ *  stock switchkins template. */
+export function worldModeForType(kinstype: number, identityFirst: boolean): boolean {
+  const t = Math.round(kinstype);
+  return identityFirst ? t === 1 : t === 0;
+}
+
 // Memoized construction for per-frame callers (scrub pose runs at display
 // rate): keyed by the axes identity + spec type, so repeated calls with
 // the same machine cost a Map lookup, not an allocation.

@@ -148,6 +148,9 @@ class StatusPayload:
     spindle_speed: Optional[float]       # commanded (S word)
     spindle_speed_actual: Optional[float] # after override
     spindle_load: Optional[float]        # load % from configurable HAL pin
+    kins_type: Optional[float]           # live motion.switchkins-type (raw HAL value;
+                                         # sampled only on switchable-kins configs — None
+                                         # = not sampled/reader absent, never a default)
     spindle_direction: Optional[int]
     active_file: Optional[str]
     motion_line: Optional[int]
@@ -785,6 +788,7 @@ class StatusRuntime:
             spindle_speed=spindle_speed,
             spindle_speed_actual=spindle_speed_actual,
             spindle_load=reader_get("spindle_load"),
+            kins_type=reader_get("kins_type"),
             spindle_direction=spindle_direction,
             active_file=active_file,
             motion_line=safe_get("motion_line", None),

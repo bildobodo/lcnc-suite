@@ -160,6 +160,15 @@ class TestPollStatus(unittest.TestCase):
         base.update(over)
         return _Stat(**base)
 
+    def test_kins_type_rides_reader_snapshot_absent_is_none(self):
+        # Live switchkins pin: raw float from the reader snapshot when the
+        # gateway configured it (switchable kins), honest None otherwise —
+        # never a synthetic default.
+        p = _runtime(stat=self._stat(), snapshot={"kins_type": 1.0}).poll_status()
+        self.assertEqual(p.kins_type, 1.0)
+        p = _runtime(stat=self._stat()).poll_status()
+        self.assertIsNone(p.kins_type)
+
     def test_payload_core_fields_and_work_pos(self):
         rt = _runtime(stat=self._stat())
         p = rt.poll_status()

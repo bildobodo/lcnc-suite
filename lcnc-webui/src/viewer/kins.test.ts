@@ -5,7 +5,7 @@
 // interface. (Non-trivial models get compiled-C-oracle fixtures instead;
 // trivkins is the identity permutation by definition.)
 import { describe, expect, it, vi } from "vitest";
-import { kinsFor, makeKins, specFromWire, warnWorldWithoutSpec } from "./kins";
+import { kinsFor, makeKins, specFromWire, warnWorldWithoutSpec, worldModeForType } from "./kins";
 
 describe("trivkins boundary", () => {
   it("XYZAC: letter-skipping permutation both ways (C = joint 4, slot 5)", () => {
@@ -87,5 +87,25 @@ describe("trivkins boundary", () => {
     warnWorldWithoutSpec("test site");
     expect(err).toHaveBeenCalledOnce();
     err.mockRestore();
+  });
+});
+
+describe("worldModeForType (live switchkins pin → mode)", () => {
+  // Must mirror gateway_util.kins_world_flags: identity_first ⇒ type 1 is
+  // the world kins; plain ⇒ startup type 0 is; type 2 (userk) is identity
+  // math in the stock template — under BOTH sparm settings.
+  it("identityfirst configs: type 1 is world, 0 and 2 are identity", () => {
+    expect(worldModeForType(1, true)).toBe(true);
+    expect(worldModeForType(0, true)).toBe(false);
+    expect(worldModeForType(2, true)).toBe(false);
+  });
+  it("plain configs: startup type 0 is world, 1 and 2 are identity", () => {
+    expect(worldModeForType(0, false)).toBe(true);
+    expect(worldModeForType(1, false)).toBe(false);
+    expect(worldModeForType(2, false)).toBe(false);
+  });
+  it("tolerates HAL float noise around the integer type", () => {
+    expect(worldModeForType(1.0000001, true)).toBe(true);
+    expect(worldModeForType(0.9999999, true)).toBe(true);
   });
 });
