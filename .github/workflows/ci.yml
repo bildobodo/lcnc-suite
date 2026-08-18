@@ -17,6 +17,10 @@ jobs:
         working-directory: lcnc-webui
     steps:
       - uses: actions/checkout@v4
+        with:
+          # machineModel.test.ts reads the machine-xyzac STLs off disk —
+          # without LFS the checkout delivers pointer files, not geometry.
+          lfs: true
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -46,5 +50,11 @@ jobs:
       # exercise.
       # python-multipart is required by FastAPI to analyze the upload route at
       # import time (UploadFile/Form), even though no test posts a file.
-      - run: pip install fastapi msgspec click python-multipart pytest
+      # PINNED to the versions the dev venv runs (unpinned installs drifted:
+      # a newer starlette switched TestClient to httpx2, which wasn't
+      # installed, and collection died with exit 2 for two months). Bump
+      # these together with the venv, deliberately.
+      - run: >
+          pip install fastapi==0.136.1 starlette==1.0.0 httpx==0.28.1
+          msgspec==0.21.1 click==8.3.3 python-multipart==0.0.28 pytest==9.0.3
       - run: python -m pytest

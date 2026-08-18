@@ -461,7 +461,6 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
         const mx: [number, number, number] = [-Infinity, -Infinity, -Infinity];
         const mmn: [number, number, number] = [Infinity, Infinity, Infinity];
         const mmx: [number, number, number] = [-Infinity, -Infinity, -Infinity];
-        let _anyFeed = false;
         let _anyPt = false;
         // axes: 3 = all (feed), 2 = X/Y only (rapid — Z excluded from the cut box)
         const _scanBBox = (d: number[][] | Float32Array, axes: 2 | 3) => {
@@ -485,7 +484,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
             }
           }
         };
-        _anyFeed = _pointCount(feedData) > 0;
+        const _anyFeed = _pointCount(feedData) > 0;
         _scanBBox(feedData, 3);
         _scanBBox(rapidData, 2);
         if (!toolpathBBox && _anyFeed) toolpathBBox = { min: mn, max: mx };

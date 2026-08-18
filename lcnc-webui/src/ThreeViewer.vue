@@ -1437,7 +1437,9 @@ function runCollisionCheck(trackOverride?: ScrubTrack) {
     rapid: track.rapid.slice(), cum: track.cum.slice(), count: track.count,
     mode: track.mode?.slice(),  // world-kins flags — the sweep poses per segment
   };
-  const transfer: Transferable[] = [
+  // ArrayBuffer[] (not Transferable[]): every entry is a buffer, and the
+  // TS-only Transferable name trips eslint's no-undef in SFC scripts.
+  const transfer: ArrayBuffer[] = [
     ...bodies.map(b => b.positions.buffer as ArrayBuffer),
     trackCopy.pos.buffer as ArrayBuffer, trackCopy.abc.buffer as ArrayBuffer,
     trackCopy.lines.buffer as ArrayBuffer, trackCopy.rapid.buffer as ArrayBuffer,
@@ -1529,7 +1531,7 @@ function applyGcode(g: ViewerGcode) {
     // are re-read on every WCS/mode change.
     const feed = { pos: fp.slice(), abc: fa.slice(), lines: fl?.slice(), breaks: g.feedBreaks?.slice(), mode: g.feedMode?.slice() };
     const rapid = { pos: rp.slice(), abc: ra.slice(), breaks: g.rapidBreaks?.slice(), mode: g.rapidMode?.slice() };
-    const transfer: Transferable[] = [
+    const transfer: ArrayBuffer[] = [
       feed.pos.buffer as ArrayBuffer, feed.abc.buffer as ArrayBuffer,
       rapid.pos.buffer as ArrayBuffer, rapid.abc.buffer as ArrayBuffer,
     ];

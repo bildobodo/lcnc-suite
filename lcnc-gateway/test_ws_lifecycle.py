@@ -44,27 +44,54 @@ def _decode(message) -> dict:
 
 class TestViewerInitSingleSend(unittest.TestCase):
     def test_viewer_init_sent_exactly_once(self):
-        """Pump the session well past connect; count viewer_init frames."""
+        """Pump the session well past connect; count viewer_init frames.
+
+        The PID liveness check (check_lcnc_instance) sees no real
+        linuxcncsvr process under the fake binding, resets the connection,
+        and the stream degrades to rate-limited status_error — the drain
+        below then starves past its deadline (found by the 2026-08 CI
+        repair). This test's subject is the WS lifecycle, not instance
+        discovery: pin the PID probe + NML gate for the duration so the
+        fake stays connected and the real 30 Hz status path runs — the
+        harness premise in the module docstring. State restores itself
+        after the patch: the next check sees the real (absent) PID and
+        transitions back to disconnected.
+        """
         counts = 0
         saw_status = 0
         deadline = time.monotonic() + 15.0
-        with TestClient(gateway.app) as client:
-            with client.websocket_connect("/ws") as ws:
-                ws.send_json({"cmd": "hello", "session": "vinit-once", "resume_armed": False})
-                # Drain until we've seen a healthy number of status-family
-                # frames — enough ticks that the old double-send (connect-time
-                # + first-poll) would certainly have produced 2 by now.
-                while saw_status < 10:
-                    self.assertLess(time.monotonic(), deadline,
-                                    "status stream never became healthy")
-                    ws.send_json({"cmd": "heartbeat"})
-                    msg = _decode(ws.receive())
-                    t = msg.get("type", "?")
-                    if t == "viewer_init":
-                        counts += 1
-                    elif t in ("status", "status_delta", "status_error"):
-                        saw_status += 1
-                    time.sleep(0.02)
+        # Only the FAKE binding gets the connect pin: under `unittest`
+        # discover the real binding may already be loaded (no conftest),
+        # and without a running LinuxCNC its stat() constructor raises —
+        # there the legacy error-frame stream exercises the drain instead.
+        is_fake = getattr(gateway.linuxcnc, "__lcnc_fake__", False)
+        orig_pid, orig_nml = gateway._get_lcnc_pid, gateway._nml_connectable
+        try:
+            if is_fake:
+                gateway._get_lcnc_pid = lambda: 424242
+                gateway._nml_connectable = lambda: True
+                self.assertTrue(gateway.try_connect_lcnc(),
+                                "fake linuxcnc must connect")
+            with TestClient(gateway.app) as client:
+                with client.websocket_connect("/ws") as ws:
+                    ws.send_json({"cmd": "hello", "session": "vinit-once", "resume_armed": False})
+                    # Drain until we've seen a healthy number of status-family
+                    # frames — enough ticks that the old double-send (connect-time
+                    # + first-poll) would certainly have produced 2 by now.
+                    while saw_status < 10:
+                        self.assertLess(time.monotonic(), deadline,
+                                        "status stream never became healthy")
+                        ws.send_json({"cmd": "heartbeat"})
+                        msg = _decode(ws.receive())
+                        t = msg.get("type", "?")
+                        if t == "viewer_init":
+                            counts += 1
+                        elif t in ("status", "status_delta", "status_error"):
+                            saw_status += 1
+                        time.sleep(0.02)
+        finally:
+            gateway._get_lcnc_pid = orig_pid
+            gateway._nml_connectable = orig_nml
         self.assertEqual(counts, 1, f"viewer_init must be sent exactly once per connect, saw {counts}")
 
 

@@ -35,14 +35,18 @@ test("9-axis machine: SetupStrip renders a zero/home group per axis, HUD shows a
   // Grid sanity: exactly one zero button per axis, no duplicated rows.
   await expect(page.getByRole("button", { name: /^Zero [XYZABCUVW]$/ })).toHaveCount(9);
 
-  // Viewer HUD DRO: work-position block renders one row per axis with a
-  // numeric value (work_pos is index-aligned to the axis list).
+  // Viewer HUD DRO: the grid renders one .hudAxis label per axis (exact
+  // match — F and S feed/spindle rows are .hudAxis too), each paired with
+  // a .hudWork value cell (work_pos is index-aligned to the axis list).
   const hud = page.locator(".hud");
   for (const l of NINE) {
-    await expect(hud.locator(".hudCoord", { hasText: l }).first()).toBeVisible();
+    await expect(hud.locator(".hudAxis", { hasText: new RegExp(`^${l}$`) })).toBeVisible();
   }
-  // Rotary axes format in degrees — the A row carries the ° suffix.
-  await expect(hud.locator(".hudCoord", { hasText: "A" }).first()).toContainText("°");
+  // Rotary axes format in degrees — A's work-value cell (the grid span
+  // right after the A label) carries the ° suffix.
+  await expect(
+    hud.locator(".hudAxis", { hasText: /^A$/ }).locator("xpath=following-sibling::span[1]"),
+  ).toContainText("°");
 
   // Bounding-box check for the packed layout (6 axis rows per column, then
   // the next column; actions ride the last column): rows stack without
