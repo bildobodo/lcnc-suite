@@ -69,6 +69,12 @@ int main(int argc, char **argv) {
       p.a = v[3]; p.b = v[4]; p.c = v[5];
       double j[16];
       memset(j, 0, sizeof j);
+      /* The comp's inverse reads the CURRENT rotary joints (Sw from j[3],
+       * and in TCP mode Ss/Sp from j[4]/j[5]) before overwriting them from
+       * the pose — in the control, motion seeds j[] with current actuals,
+       * which in steady state equal world a/b/c (rotary passthrough). Seed
+       * the same way so fixtures match steady-state control behavior. */
+      j[3] = p.a; j[4] = p.b; j[5] = p.c;
       if (kinematicsInverse(&p, j, NULL, NULL))
         puts("ERR");
       else

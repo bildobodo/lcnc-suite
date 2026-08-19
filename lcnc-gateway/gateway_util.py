@@ -765,6 +765,140 @@ def trt_kins_inverse(world, params, bc=False):
     return [px, py, pz, r1, c]
 
 
+def _trsrn_terms(params, mode, rot_a, rot_b, rot_c):
+    """Shared trig/frame terms for the trsrn twins (one place, two callers).
+
+    Mirrors the comp's variable block: in TCP (mode 1) the frame comes from
+    the CURRENT rotary values (world a/b/c == joints, rotary passthrough);
+    in TOOL (mode 2) from the remap-written pins primary/secondary/pre-rot.
+    UNIT ASYMMETRY (upstream remap.py set_p): pre_rot is RADIANS, the
+    angles are DEGREES.
+    """
+    nu = params.get("nut_angle", 0.0)
+    sv, cv = math.sin(math.radians(nu)), math.cos(math.radians(nu))
+    tc = params.get("pre_rot", 0.0)  # radians
+    stc, ctc = math.sin(tc), math.cos(tc)
+    sw, cw = math.sin(math.radians(rot_a)), math.cos(math.radians(rot_a))
+    if mode == 1:
+        ss, cs = math.sin(math.radians(rot_b)), math.cos(math.radians(rot_b))
+        sp, cp = math.sin(math.radians(rot_c)), math.cos(math.radians(rot_c))
+    else:
+        th1 = params.get("primary_angle", 0.0)
+        th2 = params.get("secondary_angle", 0.0)
+        ss, cs = math.sin(math.radians(th2)), math.cos(math.radians(th2))
+        sp, cp = math.sin(math.radians(th1)), math.cos(math.radians(th1))
+    cvss, svss = cv * ss, sv * ss
+    r = cs + sv * sv * (1 - cs)
+    s = cs + cv * cv * (1 - cs)
+    t = sv * cv * (1 - cs)
+    return sw, cw, ss, cs, sp, cp, stc, ctc, cvss, svss, r, s, t
+
+
+def trsrn_kins_forward(joints, params, mode):
+    """xyzacb_trsrn switchable kinematics, forward (6 joints -> world).
+
+    Python twin of the TS mirror (lcnc-webui/src/viewer/kins.ts TrsrnKins)
+    — BOTH are line-for-line mirrors of the upstream TWP machine's comp
+    (master @493926b56c, vendored in scripts/kins_oracle/) and BOTH are
+    pinned by the trsrn_sets fixtures gen_kins_fixtures.py generates from
+    the compiled C, live-validated against the 2.9.4 spike captures.
+    Never edit one mirror without the other.
+
+    `joints` = 6 values j0..j5 = X Y Z A B C (the comp hardcodes indices).
+    `params` maps the kins pin names: y_pivot, z_pivot, x_offset, y_offset,
+    y_rot_axis, z_rot_axis, nut_angle (deg), tool_offset_z, pre_rot (RAD),
+    primary_angle (deg, table C), secondary_angle (deg, spindle B); missing
+    keys = 0. `mode` = switchkins type 0|1|2. Returns [x, y, z, a, b, c].
+    TLO note: mode 2 ignores tool_offset_z by upstream design (motion
+    applies TLO before the kins in plane mode).
+    """
+    ly = params.get("y_pivot", 0.0)
+    lz = params.get("z_pivot", 0.0)
+    dx = params.get("x_offset", 0.0)
+    dy = params.get("y_offset", 0.0)
+    dray = params.get("y_rot_axis", 0.0) - (dy + ly)
+    draz = params.get("z_rot_axis", 0.0) - lz
+    dt = params.get("tool_offset_z", 0.0)
+    px, py, pz, j3, j4, j5 = (float(v) for v in joints[:6])
+    if mode == 0:
+        return [px, py, pz, j3, j4, j5]
+    sw, cw, ss, cs, sp, cp, stc, ctc, cvss, svss, r, s, t = \
+        _trsrn_terms(params, mode, j3, j4, j5)
+    if mode == 1:
+        wx = (-(cp * svss - sp * t) * (dt + lz) - cp * dx
+              + (cp * cvss + sp * r) * ly + dy * sp + dx + px)
+        wy = (-cp * cw * dy - cw * dx * sp - cw * (dray - py)
+              - (cw * sp * svss + cp * cw * t - sw * s) * (dt + lz)
+              + (cvss * cw * sp - cp * cw * r + sw * t) * ly
+              + (draz - pz) * sw + dray + dy + ly)
+        wz = (-cp * dy * sw - dx * sp * sw - cw * (draz - pz)
+              - (sp * svss * sw + cp * sw * t + cw * s) * (dt + lz)
+              + (cvss * sp * sw - cp * sw * r - cw * t) * ly
+              - (dray - py) * sw + draz + dt + lz)
+    else:
+        wx = (((cs * ctc - cvss * stc) * cp - (ctc * cvss + stc * r) * sp) * (dx + px)
+              - (cs * ctc - cvss * stc) * dx
+              + ((ctc * cvss + stc * r) * cp
+                 + (cs * ctc - cvss * stc) * sp) * (dy + ly + py)
+              - (ctc * cvss + stc * r) * dy
+              - (ctc * svss - stc * t) * (lz + pz) - ly * stc)
+        wy = (-((ctc * cvss + cs * stc) * cp - (cvss * stc - ctc * r) * sp) * (dx + px)
+              + (ctc * cvss + cs * stc) * dx
+              - ((cvss * stc - ctc * r) * cp
+                 + (ctc * cvss + cs * stc) * sp) * (dy + ly + py)
+              + (cvss * stc - ctc * r) * dy
+              - ctc * ly + (stc * svss + ctc * t) * (lz + pz))
+        wz = ((cp * svss - sp * t) * (dx + px)
+              + (sp * svss + cp * t) * (dy + ly + py)
+              - dx * svss + (lz + pz) * s - dy * t - lz)
+    return [wx, wy, wz, j3, j4, j5]
+
+
+def trsrn_kins_inverse(world, params, mode):
+    """xyzacb_trsrn switchable kinematics, inverse (world -> 6 joints).
+
+    Twin of trsrn_kins_forward (see its docstring for the mirror/oracle
+    contract). `world` is [x, y, z, a, b, c]; returns j0..j5. The comp
+    reads the CURRENT rotary joints for the frame terms; motion seeds them
+    with actuals, which in steady state equal world a/b/c (rotary
+    passthrough) — mirrored here the same way the oracle harness seeds.
+    """
+    ly = params.get("y_pivot", 0.0)
+    lz = params.get("z_pivot", 0.0)
+    dx = params.get("x_offset", 0.0)
+    dy = params.get("y_offset", 0.0)
+    dray = params.get("y_rot_axis", 0.0) - (dy + ly)
+    draz = params.get("z_rot_axis", 0.0) - lz
+    dt = params.get("tool_offset_z", 0.0)
+    qx, qy, qz, wa, wb, wc = (float(v) for v in world[:6])
+    if mode == 0:
+        return [qx, qy, qz, wa, wb, wc]
+    sw, cw, ss, cs, sp, cp, stc, ctc, cvss, svss, r, s, t = \
+        _trsrn_terms(params, mode, wa, wb, wc)
+    if mode == 1:
+        j0 = ((cp * svss - sp * t) * (dt + lz) + cp * dx
+              - (cp * cvss + sp * r) * ly - dy * sp - dx + qx)
+        j1 = (cp * dy + dx * sp - cw * (dray + dy + ly - qy)
+              + (sp * svss + cp * t) * (dt + lz)
+              - (cvss * sp - cp * r) * ly
+              - (draz + dt + lz - qz) * sw + dray)
+        j2 = ((dt + lz) * s + ly * t - cw * (draz + dt + lz - qz)
+              + (dray + dy + ly - qy) * sw + draz)
+    else:
+        j0 = (cp * dx - (cp * cvss + sp * r) * ly + (cp * svss - sp * t) * lz
+              + ((cp * cs - cvss * sp) * ctc
+                 - (cp * cvss + sp * r) * stc) * qx
+              - ((cp * cvss + sp * r) * ctc + (cp * cs - cvss * sp) * stc) * qy
+              + (cp * svss - sp * t) * qz - dy * sp - dx)
+        j1 = (cp * dy - (cvss * sp - cp * r) * ly + (sp * svss + cp * t) * lz
+              + ((cp * cvss + cs * sp) * ctc - (cvss * sp - cp * r) * stc) * qx
+              - ((cvss * sp - cp * r) * ctc + (cp * cvss + cs * sp) * stc) * qy
+              + (sp * svss + cp * t) * qz + dx * sp - dy - ly)
+        j2 = (-(ctc * svss - stc * t) * qx + (stc * svss + ctc * t) * qy
+              + lz * s + qz * s + ly * t - lz)
+    return [j0, j1, j2, wa, wb, wc]
+
+
 _TRT_LETTERS = {"xyzac-trt": ("X", "Y", "Z", "A", "C"),
                 "xyzbc-trt": ("X", "Y", "Z", "B", "C")}
 _JOINT_MOVE_EPS = 1e-9

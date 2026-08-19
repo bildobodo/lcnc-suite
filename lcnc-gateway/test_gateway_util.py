@@ -787,6 +787,70 @@ class TestTrtKins(unittest.TestCase):
                     self.assertLess(abs(g - e), self.TOL)
 
 
+class TestTrsrnKins(unittest.TestCase):
+    """xyzacb_trsrn twin vs the compiled-C-oracle fixtures (TWP phase 3).
+
+    Same contract as TestTrtKins: the trsrn_sets in kins_fixtures.gen.json
+    are generated from the vendored upstream comp (master @493926b56c)
+    compiled via scripts/kins_oracle/, and the SAME sets pin the TS mirror
+    (kinsFixtures.test.ts TrsrnKins) — divergence is a red test somewhere.
+    The 'spike-live-*' sets carry the exact geometry + plane values that
+    were live-validated against the 2.9.4 spike captures.
+    """
+
+    TOL = 1e-9
+
+    # fixture camelCase -> kins pin snake_case (the twins' param keys)
+    _KEYMAP = {
+        "yPivot": "y_pivot", "zPivot": "z_pivot",
+        "xOffset": "x_offset", "yOffset": "y_offset",
+        "yRotAxis": "y_rot_axis", "zRotAxis": "z_rot_axis",
+        "nutAngle": "nut_angle", "toolOffset": "tool_offset_z",
+        "preRot": "pre_rot", "primaryAngle": "primary_angle",
+        "secondaryAngle": "secondary_angle",
+    }
+
+    @classmethod
+    def setUpClass(cls):
+        import json
+        path = os.path.join(os.path.dirname(__file__), "kins_fixtures.gen.json")
+        with open(path) as f:
+            cls.sets = json.load(f)["trsrn_sets"]
+
+    @classmethod
+    def _params(cls, fixture_params):
+        return {cls._KEYMAP[k]: v for k, v in fixture_params.items()}
+
+    def test_forward_matches_oracle(self):
+        for s in self.sets:
+            params = self._params(s["params"])
+            for case in s["forward"]:
+                got = gateway_util.trsrn_kins_forward(case["input"], params, s["mode"])
+                for slot, (g, e) in enumerate(zip(got, case["expect"])):
+                    self.assertLess(
+                        abs(g - e), self.TOL,
+                        f"{s['label']}/m{s['mode']} joints={case['input']} slot {slot}: {g} vs {e}")
+
+    def test_inverse_matches_oracle(self):
+        for s in self.sets:
+            params = self._params(s["params"])
+            for case in s["inverse"]:
+                got = gateway_util.trsrn_kins_inverse(case["input"], params, s["mode"])
+                for jno, (g, e) in enumerate(zip(got, case["expect"])):
+                    self.assertLess(
+                        abs(g - e), self.TOL,
+                        f"{s['label']}/m{s['mode']} world={case['input']} joint {jno}: {g} vs {e}")
+
+    def test_roundtrip(self):
+        for s in self.sets:
+            params = self._params(s["params"])
+            for case in s["forward"]:
+                world = gateway_util.trsrn_kins_forward(case["input"], params, s["mode"])
+                joints = gateway_util.trsrn_kins_inverse(world, params, s["mode"])
+                for g, e in zip(joints, case["input"]):
+                    self.assertLess(abs(g - e), self.TOL)
+
+
 class TestParseKinsConfig(unittest.TestCase):
     """INI -> viewer kins declaration (phase 1d single-source parse)."""
 

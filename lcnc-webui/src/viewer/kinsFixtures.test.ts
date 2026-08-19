@@ -4,8 +4,8 @@
 // (scripts/kins_oracle/). Same discipline as rs274.test.ts: never
 // re-derive interp/kins semantics, mirror the source and pin it.
 import { describe, expect, it } from "vitest";
-import { makeKins } from "./kins";
-import { KINS_FIXTURES } from "./kinsFixtures.gen";
+import { makeKins, TrsrnKins } from "./kins";
+import { KINS_FIXTURES, TRSRN_KINS_FIXTURES } from "./kinsFixtures.gen";
 
 const TOL = 1e-9;
 
@@ -51,6 +51,49 @@ for (const set of KINS_FIXTURES) {
       for (const c of set.forward) {
         kins.inverse(kins.forward(c.input, world), joints);
         for (let ji = 0; ji < 5; ji++) {
+          expect(Math.abs((joints[ji] ?? NaN) - c.input[ji]!)).toBeLessThan(TOL);
+        }
+      }
+    });
+  });
+}
+
+// xyzacb_trsrn (TWP phase 3): constructed directly — makeKins does not
+// route this type yet (mode routing lands with the marker-remap work);
+// the twin exists so that wiring is a routing change, not a math change.
+for (const set of TRSRN_KINS_FIXTURES) {
+  describe(`${set.kins} [${set.label}] mode ${set.mode}`, () => {
+    const kins = new TrsrnKins(set.mode as 0 | 1 | 2, set.params);
+
+    it(`forward matches the oracle (${set.forward.length} cases)`, () => {
+      const world = new Array<number>(6).fill(0);
+      for (const c of set.forward) {
+        kins.forward(c.input, world);
+        for (let s = 0; s < 6; s++) {
+          expect(Math.abs(world[s]! - c.expect[s]!),
+            `joints=[${c.input}] slot ${s}: ${world[s]} vs ${c.expect[s]}`).toBeLessThan(TOL);
+        }
+      }
+    });
+
+    it(`inverse matches the oracle (${set.inverse.length} cases)`, () => {
+      const joints: (number | null)[] = [];
+      for (const c of set.inverse) {
+        kins.inverse(c.input, joints);
+        expect(joints.length).toBe(6);
+        for (let ji = 0; ji < 6; ji++) {
+          expect(Math.abs((joints[ji] ?? NaN) - c.expect[ji]!),
+            `world=[${c.input}] joint ${ji}: ${joints[ji]} vs ${c.expect[ji]}`).toBeLessThan(TOL);
+        }
+      }
+    });
+
+    it("mirror round-trips its own directions", () => {
+      const world = new Array<number>(6).fill(0);
+      const joints: (number | null)[] = [];
+      for (const c of set.forward) {
+        kins.inverse(kins.forward(c.input, world), joints);
+        for (let ji = 0; ji < 6; ji++) {
           expect(Math.abs((joints[ji] ?? NaN) - c.input[ji]!)).toBeLessThan(TOL);
         }
       }
