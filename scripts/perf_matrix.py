@@ -141,6 +141,7 @@ def trace_window(t0_ns: int, t1_ns: int) -> dict:
 # ---- WS viewer client ------------------------------------------------------
 
 LIVENESS_FAILED = False  # set by with_viewers when a scenario delivers 0 status frames
+DELIVERY_FAILED = False  # set by preview_publish when the load never produces a publish
 
 
 class Viewer:
@@ -154,6 +155,9 @@ class Viewer:
         self.bytes = 0
         self.merged = {}
         self.armed_seen = None
+        self.gcode_ready = False      # viewer_gcode / viewer_gcode_ready seen
+        self.gcode_version = None     # latest viewer_gcode_ready version seen
+        self.last_reply_error = None  # most recent reply ok=False error text
         self._ws = None
         self._tasks = []
 
@@ -186,6 +190,12 @@ class Viewer:
                     self.merged.update(msg.get("data") or {})
                     if "armed" in msg:
                         self.armed_seen = msg["armed"]
+                elif msg.get("type") in ("viewer_gcode", "viewer_gcode_ready"):
+                    self.gcode_ready = True
+                    if msg.get("version") is not None:
+                        self.gcode_version = msg["version"]
+                elif msg.get("type") == "reply" and msg.get("ok") is False:
+                    self.last_reply_error = msg.get("error")
         except Exception:
             pass
 
@@ -371,6 +381,12 @@ async def sc_preview(args):
         return {"skipped": "needs --allow-arm (arms a client + load_file)"}
     path = "/tmp/perfmatrix-big.ngc"
     gen_gcode(path, args.upload_mb)
+    # Defeat the gateway's parse cache: identical content re-serves the cached
+    # payload (instant viewer_gcode_ready, NO gcode.publish event) and the
+    # scenario would measure an idle gateway. A nonce comment after M2 changes
+    # the content every run and forces a fresh parse+publish.
+    with open(path, "a") as f:
+        f.write(f"(perfmatrix nonce {time.time_ns()})\n")
     nc = os.path.expanduser("~/linuxcnc/nc_files/perfmatrix-big.ngc")
     with open(path, "rb") as f:
         requests.post(f"{BASE}/upload", headers=HDRS,
@@ -379,12 +395,38 @@ async def sc_preview(args):
     async def body(viewers):
         v = viewers[0]
         await v.send({"cmd": "arm", "armed": True})
-        await asyncio.sleep(0.5)
+        # Let any connect-time cache-hit viewer_gcode_ready (previous version)
+        # land BEFORE snapshotting the baseline version — the first ready frame
+        # after load_file can be that stale notify, not our publish.
+        await asyncio.sleep(1.5)
+        v0 = v.gcode_version
         await v.send({"cmd": "load_file", "path": nc})
-        # wait for the publish to land (parse of a heavy file takes seconds)
-        await asyncio.sleep(20)
+        # Wait for OUR publish to actually LAND (version bump), not a blind
+        # sleep: 9 of the first 17 runs of this scenario silently never
+        # published in-window (parse-cache hits + parses outrunning the fixed
+        # 20 s sleep), and their rss_kb_after measured an idle gateway — a
+        # vacuous pass that poisoned the RSS baseline ("assert delivery").
+        t0 = time.monotonic()
+        deadline = t0 + 60.0
+        while v.gcode_version in (None, v0) and time.monotonic() < deadline:
+            await asyncio.sleep(0.5)
+        delivered = v.gcode_version is not None and v.gcode_version != v0
+        wait_s = round(time.monotonic() - t0, 1)
+        await asyncio.sleep(2.0)  # settle so rss_kb_after includes publish state
         await v.send({"cmd": "arm", "armed": False})
-        return {"loaded": nc}
+        result = {"loaded": nc, "delivered": delivered, "publish_wait_s": wait_s,
+                  "version_before": v0, "version_after": v.gcode_version}
+        if v.last_reply_error:
+            result["reply_error"] = v.last_reply_error
+        if not delivered:
+            global DELIVERY_FAILED
+            DELIVERY_FAILED = True
+            result["DELIVERY_FAIL"] = True
+            print("  DELIVERY FAIL: load_file produced no fresh viewer_gcode "
+                  f"publish within 60s (version stuck at {v0!r}, last reply "
+                  f"error: {v.last_reply_error!r}) — rss/lag numbers below "
+                  "measure an idle gateway", flush=True)
+        return result
     return await with_viewers(1, 0.0, body)
 
 
@@ -477,6 +519,9 @@ async def run(args):
     print(f"\nartifact: {out}")
     if LIVENESS_FAILED:
         print("RESULT: FAIL (liveness) — at least one scenario delivered zero status frames", flush=True)
+        return 1
+    if DELIVERY_FAILED:
+        print("RESULT: FAIL (delivery) — preview_publish never published; its metrics are vacuous", flush=True)
         return 1
     return 0
 
