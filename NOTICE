@@ -64,6 +64,10 @@ over their respective contributions.
      sample (GPL v2+, Rudy du Preez)
    - examples/sim_config/remap_subs/ — adapted from the LinuxCNC 2.9.4
      table-rotary-tilting sample config's switchkins remaps (GPL v2+)
+   - scripts/kins_oracle/xyzacb_trsrn.comp (master @493926b56c, GPL v2,
+     David Mueller) — vendored VERBATIM as the compiled test oracle for
+     the TWP machine's switchable kinematics (identity/TCP/TOOL-plane;
+     see scripts/kins_oracle/README.md)
 
 
 5. vtk-vismach (kinematic reference)
