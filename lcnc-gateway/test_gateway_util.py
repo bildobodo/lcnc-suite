@@ -913,6 +913,44 @@ class TestParseKinsConfig(unittest.TestCase):
         self.assertIsNone(gateway_util.parse_kins_config(None, []))
         self.assertIsNone(gateway_util.parse_kins_config("", []))
 
+    # The upstream TWP machine (phase 3). Pin prefix is <module>_kins. —
+    # the trsrn comp names its pins that way, unlike trt where prefix ==
+    # module — and tool-offset-z stays netted (live TLO), never parsed.
+    TRSRN_HALCMDS = [
+        "net :tool-offset motion.tooloffset.z xyzacb_trsrn_kins.tool-offset-z",
+        "setp xyzacb_trsrn_kins.nut-angle 55",
+        "setp xyzacb_trsrn_kins.y-pivot 50",
+        "setp xyzacb_trsrn_kins.z-pivot 120",
+        "setp xyzacb_trsrn_kins.x-offset 0",
+        "setp xyzacb_trsrn_kins.y-offset 0",
+        "setp xyzacb_trsrn_kins.y-rot-axis -1000",
+        "setp xyzacb_trsrn_kins.z-rot-axis -2000",
+    ]
+
+    def test_trsrn_twp_ini(self):
+        got = gateway_util.parse_kins_config("xyzacb_trsrn", self.TRSRN_HALCMDS)
+        self.assertEqual(got, {
+            "module": "xyzacb_trsrn",
+            "type": "xyzacb-trsrn",
+            "identity_first": False,
+            "params": {"nut_angle": 55.0, "y_pivot": 50.0, "z_pivot": 120.0,
+                       "x_offset": 0.0, "y_offset": 0.0,
+                       "y_rot_axis": -1000.0, "z_rot_axis": -2000.0},
+        })
+
+    def test_trsrn_tool_offset_z_never_parsed(self):
+        got = gateway_util.parse_kins_config(
+            "xyzacb_trsrn", ["setp xyzacb_trsrn_kins.tool-offset-z 100"])
+        self.assertEqual(got["params"], {})
+
+    def test_trsrn_pivot_warning_without_setp_lines(self):
+        # A trsrn config seeding geometry via net/sets (the upstream idiom)
+        # is invisible here — the warning must fire like it does for trt.
+        cfg = gateway_util.parse_kins_config("xyzacb_trsrn", [])
+        self.assertIsNotNone(gateway_util.kins_pivot_warning(cfg))
+        cfg = gateway_util.parse_kins_config("xyzacb_trsrn", self.TRSRN_HALCMDS)
+        self.assertIsNone(gateway_util.kins_pivot_warning(cfg))
+
 
 class TestSafetyChain(unittest.TestCase):
     """Review B1: safety-chain completeness banner + estop-loop writer check."""
@@ -1048,6 +1086,51 @@ class TestKinsModeHelpers(unittest.TestCase):
         f = gateway_util.kins_world_flags
         self.assertEqual(f([3], [(2, 1), (2, 0)], identity_first=True), [0])
         self.assertEqual(f([3], [(2, 0), (2, 1)], identity_first=True), [1])
+
+    def test_twpframe_marker_parse(self):
+        f = gateway_util.parse_twpframe_marker
+        self.assertEqual(f("WEBUI_TWPFRAME=-1.781762,130.2455,-40.8555"),
+                         (-1.781762, 130.2455, -40.8555))
+        self.assertEqual(f("  webui_twpframe = 0 , 0 , 0  "), (0.0, 0.0, 0.0))
+        self.assertEqual(f("WEBUI_TWPFRAME=1e-3,2E2,+4.5"), (0.001, 200.0, 4.5))
+        self.assertIsNone(f("WEBUI_TWPFRAME=1,2"))          # three values required
+        self.assertIsNone(f("WEBUI_TWPFRAME=a,b,c"))
+        self.assertIsNone(f("WEBUI_KINSTYPE=2"))
+        self.assertIsNone(f("note: WEBUI_TWPFRAME=1,2,3 elsewhere"))
+        self.assertIsNone(f(""))
+        self.assertIsNone(f(None))
+
+    def test_type_flags_raw(self):
+        # Same event resolution as the world flags, but RAW types survive —
+        # trsrn type 1 (TCP) and type 2 (TOOL) have different joint
+        # mappings, so the wire must not collapse them to a bool.
+        f = gateway_util.kins_type_flags
+        self.assertEqual(f([1, 2, 3, 4], [(1, 1), (3, 2)]), [0, 1, 1, 2])
+        self.assertEqual(f([5, 1], [(2, 2)]), [2, 0])       # unordered seqs
+        self.assertEqual(f([3], [(2, 1), (2, 0)]), [0])     # same-seq: last wins
+        self.assertEqual(f([3], [(2, 0), (2, 1)]), [1])
+
+    def test_world_flags_wrap_type_flags(self):
+        # kins_world_flags is a thin mapping over kins_type_flags — the two
+        # must resolve events identically.
+        seqs, events = [1, 2, 3, 4, 5], [(1, 1), (3, 2), (4, 0)]
+        types = gateway_util.kins_type_flags(seqs, events)
+        idf = gateway_util.kins_world_flags(seqs, events, identity_first=True)
+        self.assertEqual(idf, [1 if t == 1 else 0 for t in types])
+
+    def test_nonidentity_flags_by_family(self):
+        f = gateway_util.kins_nonidentity_flags
+        trt_plain = {"type": "xyzac-trt", "identity_first": False}
+        trt_idf = {"type": "xyzac-trt", "identity_first": True}
+        trsrn = {"type": "xyzacb-trsrn", "identity_first": False}
+        # trt follows sparm; userk type 2 = identity in the stock template.
+        self.assertEqual(f([0, 1, 2], trt_plain), [1, 0, 0])
+        self.assertEqual(f([0, 1, 2], trt_idf), [0, 1, 0])
+        # trsrn: type 0 identity; 1 (TCP) and 2 (TOOL) both non-identity.
+        self.assertEqual(f([0, 1, 2], trsrn), [0, 1, 1])
+        # No config degrades to the plain-sparm trt mapping (unreachable in
+        # the worker: mode arrays are only built once kins_cfg parsed).
+        self.assertEqual(f([0, 1, 2], None), [1, 0, 0])
 
     def test_marker_policy(self):
         f = gateway_util.kins_marker_policy

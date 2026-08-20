@@ -500,10 +500,20 @@ _KINS_FAMILY = {
     "trivkins": "trivkins",
     "xyzac-trt-kins": "xyzac-trt",
     "xyzbc-trt-kins": "xyzbc-trt",
+    # upstream TWP machine (TCP+TWP plan phase 3): halcompiled from the
+    # comp vendored at scripts/kins_oracle/xyzacb_trsrn.comp
+    "xyzacb_trsrn": "xyzacb-trsrn",
 }
 _KINS_PARAM_PINS = (
     "x-rot-point", "y-rot-point", "z-rot-point",
     "x-offset", "y-offset", "z-offset",
+)
+# xyzacb_trsrn static geometry (NOT tool-offset-z: that pin is netted from
+# motion.tooloffset.z - live TLO, carried as wcs.tool by the client).
+# Snake_cased these become the TrsrnParams keys the twins consume.
+_TRSRN_PARAM_PINS = (
+    "y-pivot", "z-pivot", "x-offset", "y-offset",
+    "y-rot-axis", "z-rot-axis", "nut-angle",
 )
 
 
@@ -535,14 +545,22 @@ def parse_kins_config(kinematics_value, halcmd_values):
     identity_first = any(
         t.startswith("sparm=") and "identityfirst" in t for t in tokens[1:]
     )
+    ktype = _KINS_FAMILY.get(module, module)
     params = {}
-    prefix = module + "."
+    if ktype == "xyzacb-trsrn":
+        # the trsrn comp creates its pins under "<module>_kins." (its C
+        # body prefixes the comp name), unlike trt where prefix == module
+        prefix = module + "_kins."
+        param_pins = _TRSRN_PARAM_PINS
+    else:
+        prefix = module + "."
+        param_pins = _KINS_PARAM_PINS
     for line in halcmd_values or []:
         parts = str(line).split()
         if len(parts) != 3 or parts[0] != "setp" or not parts[1].startswith(prefix):
             continue
         pin = parts[1][len(prefix):]
-        if pin not in _KINS_PARAM_PINS:
+        if pin not in param_pins:
             continue
         try:
             params[pin.replace("-", "_")] = float(parts[2])
@@ -550,7 +568,7 @@ def parse_kins_config(kinematics_value, halcmd_values):
             continue
     return {
         "module": module,
-        "type": _KINS_FAMILY.get(module, module),
+        "type": ktype,
         "identity_first": identity_first,
         "params": params,
     }
@@ -575,19 +593,44 @@ def parse_kinstype_marker(text):
     return int(m.group(1)) if m else None
 
 
-def kins_world_flags(seqs, events, identity_first):
-    """Per-segment world-mode flags from execution-ordered marker events.
+_TWPFRAME_MARKER = re.compile(
+    r"^\s*WEBUI_TWPFRAME\s*=\s*"
+    r"([-+0-9.eE]+)\s*,\s*([-+0-9.eE]+)\s*,\s*([-+0-9.eE]+)\s*$",
+    re.IGNORECASE)
+
+
+def parse_twpframe_marker(text):
+    """Comment text -> (pre_rot_rad, primary_deg, secondary_deg), or None.
+
+    TCP+TWP plan phase 3: the forked TWP remap's g53x_core emits
+    `(WEBUI_TWPFRAME=p,t1,t2)` right where it set_p's the kins comp's
+    pre-rot / primary-angle / secondary-angle pins - the three values
+    that pin the TOOL-kins (case 2) plane frame. Units mirror the pins
+    (and the upstream remap's own asymmetry): pre-rot RADIANS,
+    primary/secondary DEGREES - exactly the TrsrnParams the twins take.
+    Same execution-ordered comment channel as WEBUI_KINSTYPE. Pure.
+    """
+    m = _TWPFRAME_MARKER.match(text or "")
+    if not m:
+        return None
+    try:
+        return (float(m.group(1)), float(m.group(2)), float(m.group(3)))
+    except ValueError:
+        return None
+
+
+def kins_type_flags(seqs, events):
+    """Per-segment RAW switchkins type from execution-ordered marker events.
 
     `seqs`: segment sequence numbers (any order); `events`: [(seq_at_marker,
     kinstype)] as recorded by the canon — a marker seen at canon seq N
     applies to segments with seq > N. Startup kinstype is 0 (switchkins
-    boot default). Mapping (matches the kins module's sparm semantics):
-    identity_first => type 1 is the world kins; plain => type 0 is. Type 2
-    (userk) defaults to identity math in the stock template — treated as
-    identity. Two markers can share a seq (back-to-back toggles with no
-    motion between): the LAST recorded one governs, so the sort must key
-    on seq alone — a plain tuple sort would reorder same-seq events by
-    kinstype. Returns a list of 0/1 ints aligned with `seqs`. Pure.
+    boot default). Two markers can share a seq (back-to-back toggles with
+    no motion between): the LAST recorded one governs, so the sort must
+    key on seq alone — a plain tuple sort would reorder same-seq events by
+    kinstype. Returns raw type ints aligned with `seqs` — the wire ships
+    these (phase 3: type 1/TCP and type 2/TOOL have DIFFERENT joint
+    mappings on trsrn, so a world/identity bool is not enough). Pure.
     """
     evs = sorted(events, key=lambda e: e[0])
     out = []
@@ -598,8 +641,38 @@ def kins_world_flags(seqs, events, identity_first):
                 k = ek
             else:
                 break
-        out.append(1 if (k == 1 if identity_first else k == 0) else 0)
+        out.append(k)
     return out
+
+
+def kins_world_flags(seqs, events, identity_first):
+    """Per-segment world-mode flags (trt families) from marker events.
+
+    Mapping (matches the kins module's sparm semantics): identity_first
+    => type 1 is the world kins; plain => type 0 is. Type 2 (userk)
+    defaults to identity math in the stock trt template — treated as
+    identity. Thin wrapper over kins_type_flags. Returns 0/1 ints
+    aligned with `seqs`. Pure.
+    """
+    return [1 if (k == 1 if identity_first else k == 0) else 0
+            for k in kins_type_flags(seqs, events)]
+
+
+def kins_nonidentity_flags(types, kins_cfg):
+    """Per-segment 'this is NOT the identity kins' flags, family-aware.
+
+    The identity mapping is a property of the kins MODULE: trt families
+    follow sparm (world = type 1 under identityfirst, else type 0; userk
+    type 2 = identity in the stock template); xyzacb-trsrn boots identity
+    as type 0 with types 1 (TCP) and 2 (TOOL) both non-identity — with
+    DIFFERENT math, which is why the wire carries raw types. Consumers:
+    identity-side limit check exclusion, and the unchecked-segment count
+    for declared kins without a routed twin. Pure.
+    """
+    if kins_cfg and kins_cfg.get("type") == "xyzacb-trsrn":
+        return [1 if t != 0 else 0 for t in types]
+    idf = bool(kins_cfg and kins_cfg.get("identity_first"))
+    return [1 if (t == 1 if idf else t == 0) else 0 for t in types]
 
 
 def kins_marker_policy(kins_cfg):
@@ -634,7 +707,9 @@ def kins_pivot_warning(kins_cfg):
     the origin silences this with explicit `HALCMD = setp … 0` lines.
     None when params are present or the kins has no twin. Pure.
     """
-    if kins_cfg and kins_marker_policy(kins_cfg) == "twin" and not kins_cfg.get("params"):
+    param_bearing = (kins_marker_policy(kins_cfg or None) == "twin"
+                     or (kins_cfg or {}).get("type") == "xyzacb-trsrn")
+    if kins_cfg and param_bearing and not kins_cfg.get("params"):
         return (f"{kins_cfg.get('module')} declared but no pivot setp lines in "
                 f"[HAL]HALCMD — viewer TCP math would use pivot zeros; put the "
                 f"setp lines in the INI (README: 5-Axis and TCP)")

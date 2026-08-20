@@ -79,8 +79,10 @@ export interface ScrubTrack {
   abc: Float32Array;        // count*3 degrees (zeros when the wire had no abc)
   lines: Uint32Array;       // count — source line per point (0 = unknown)
   rapid: Uint8Array;        // count — 1 when the segment ending here is a rapid
-  /** count — 1 when the segment ending here runs under WORLD/TCP kins
-   *  (phase 2: from the switchkins remap markers). Absent = no mode data
+  /** count — RAW switchkins type of the segment ending here (phase 2
+   *  markers, raw types since phase 3: trsrn type 1/TCP and type 2/TOOL
+   *  differ). Consumers map type → world/identity per the declared kins
+   *  family via viewer/kins.ts worldModeForSpec. Absent = no mode data
    *  (untracked program/config — pose derivation stays trivkins). */
   mode?: Uint8Array;
   /** Monotonic scrub parameter: SECONDS when `timeBased` (unified timeline
@@ -140,10 +142,11 @@ export interface ViewerGcode {
   // pre-lift). Absent on track-less legacy payloads → strip rendering.
   feedBreaks?: Uint32Array;
   rapidBreaks?: Uint32Array;
-  // Per-vertex world-kins flags for the DRAWN streams (previewWorker,
+  // Per-vertex RAW switchkins types for the DRAWN streams (previewWorker,
   // track-derived — aligned with feedPos/rapidPos). Present iff the wire
-  // carried feed_mode/rapid_mode. The part-frame transform routes world
-  // segments through the machine's declared kins.
+  // carried feed_kinstype/rapid_kinstype. The part-frame transform maps
+  // type → world per the declared kins family (worldModeForSpec) and
+  // routes non-identity segments through the machine's declared kins.
   feedMode?: Uint8Array;
   rapidMode?: Uint8Array;
   // P4.1: bounding boxes of the rendered polylines, computed in the parse worker
@@ -183,13 +186,23 @@ export interface ViewerGcode {
   // P4.1: cumulative lineDistance for the dashed rapid line, computed off-thread so
   // ThreeViewer sets the attribute directly instead of Three.computeLineDistances().
   rapidDist?: Float32Array;
-  // Kins world-mode flags per vertex (u8, index-aligned with feed/rapid) —
-  // TCP+TWP phase 2a. Present ONLY when the program carried switchkins
-  // `(WEBUI_KINSTYPE=n)` markers from the toggle remaps; absent = NO mode
-  // data (a config switching kins without markers is untracked, not
-  // identity). 1 = world/TCP kins governs the segment ending at the vertex.
-  feed_mode?: Uint8Array;
-  rapid_mode?: Uint8Array;
+  // RAW switchkins type per vertex (u8, index-aligned with feed/rapid) —
+  // TCP+TWP phase 2a, raw types since phase 3 (renamed from the world-bool
+  // feed_mode/rapid_mode so pre-rename clients see no mode field and
+  // degrade to the honest "untracked" path). Present ONLY when the program
+  // carried switchkins `(WEBUI_KINSTYPE=n)` markers from the toggle
+  // remaps; absent = NO mode data (a config switching kins without
+  // markers is untracked, not identity). The client maps type →
+  // world/identity per the declared kins family (worldModeForSpec).
+  feed_kinstype?: Uint8Array;
+  rapid_kinstype?: Uint8Array;
+  // TWP plane frames (phase 3), execution-ordered [seq, pre_rot_rad,
+  // primary_deg, secondary_deg] from the forked TWP remap's
+  // `(WEBUI_TWPFRAME=...)` markers — the three kins-pin values that pin
+  // the TOOL-kins (type 2) frame. A frame at seq N governs type-2
+  // segments with seq > N (same convention as the type markers). Present
+  // only alongside kinstype arrays on programs that call G53.x.
+  kins_frames?: [number, number, number, number][];
   // Parse worker aborted partway: interpreter error text + the source line it
   // stopped on (e.g. an axis word this machine doesn't have). The payload
   // still carries whatever parsed before the abort, but scrubTrack is absent

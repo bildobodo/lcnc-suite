@@ -13,7 +13,7 @@
 // wcsTerms/programToMachine used by the part-frame preview, then axis
 // letters → joint slots via viewer_init.axes. No baked subdivision needed —
 // the kinematic chain is evaluated at pose time, not baked per vertex.
-import { kinsFor, warnWorldWithoutSpec, type KinsSpec } from "./kins";
+import { kinsFor, warnWorldWithoutSpec, worldModeForSpec, type KinsSpec } from "./kins";
 import {
   buildLineMap, machineToProgram, programToMachine, wcsTerms,
   type PartFrameWcs, type WcsTerms,
@@ -30,8 +30,10 @@ export interface ScrubStream {
   /** Cumulative SECONDS within this stream (unified timeline phase 1).
    *  Absent on legacy payloads / INIs without MAX_VELOCITY. */
   tcum?: Float32Array;
-  /** Per-point world-kins flags (phase 2a wire feed_mode/rapid_mode).
-   *  Absent = no mode data. */
+  /** Per-point RAW switchkins type (wire feed_kinstype/rapid_kinstype —
+   *  raw since phase 3: trsrn types 1/TCP and 2/TOOL differ). Mapping to
+   *  world/identity is the consumer's job (worldModeForSpec). Absent =
+   *  no mode data. */
   mode?: Uint8Array;
 }
 
@@ -146,9 +148,9 @@ export interface SplitStreams {
   feedLines: Uint32Array; feedBreaks: Uint32Array;
   rapidPos: Float32Array; rapidAbc: Float32Array;
   rapidBreaks: Uint32Array;
-  /** Per-vertex world-kins flags aligned with feedPos/rapidPos — present
-   *  iff the track carries mode. A section-start vertex takes the OPENING
-   *  segment's mode (same convention as feedLines). */
+  /** Per-vertex RAW switchkins types aligned with feedPos/rapidPos —
+   *  present iff the track carries mode. A section-start vertex takes the
+   *  OPENING segment's mode (same convention as feedLines). */
   feedMode?: Uint8Array; rapidMode?: Uint8Array;
 }
 
@@ -208,10 +210,12 @@ export interface ScrubSample {
   pa: number; pb: number; pc: number;
   line: number;
   rapid: boolean;
-  /** True when the segment runs under WORLD/TCP kins (track mode flags).
-   *  False when the track has no mode data — untracked poses as trivkins,
-   *  same as today, never guessed. */
-  world: boolean;
+  /** RAW switchkins type of the segment (track mode array), or null when
+   *  the track has no mode data — untracked poses as trivkins, never
+   *  guessed (0 would NOT be a safe default: on a plain-sparm trt config
+   *  type 0 is the WORLD kins). Consumers map it per the declared kins
+   *  family via worldModeForSpec — jointsForSample does this internally. */
+  kinstype: number | null;
   /** Upper track index of the segment the sample falls in. */
   index: number;
 }
@@ -225,7 +229,7 @@ export function sampleTrack(t: ScrubTrack, s: number, out: ScrubSample): ScrubSa
     out.px = t.pos[0]!; out.py = t.pos[1]!; out.pz = t.pos[2]!;
     out.pa = t.abc[0]!; out.pb = t.abc[1]!; out.pc = t.abc[2]!;
     out.line = t.lines[0]!; out.rapid = t.rapid[0] === 1;
-    out.world = t.mode?.[0] === 1; out.index = 0;
+    out.kinstype = t.mode ? t.mode[0]! : null; out.index = 0;
     return out;
   }
   if (s >= t.cum[last]!) {
@@ -233,7 +237,7 @@ export function sampleTrack(t: ScrubTrack, s: number, out: ScrubSample): ScrubSa
     out.px = t.pos[j]!; out.py = t.pos[j + 1]!; out.pz = t.pos[j + 2]!;
     out.pa = t.abc[j]!; out.pb = t.abc[j + 1]!; out.pc = t.abc[j + 2]!;
     out.line = t.lines[last]!; out.rapid = t.rapid[last] === 1;
-    out.world = t.mode?.[last] === 1; out.index = last;
+    out.kinstype = t.mode ? t.mode[last]! : null; out.index = last;
     return out;
   }
   // Smallest i with cum[i] >= s (cum[0] = 0 < s here, so lo starts at 1).
@@ -254,7 +258,7 @@ export function sampleTrack(t: ScrubTrack, s: number, out: ScrubSample): ScrubSa
   out.pc = t.abc[k + 2]! + (t.abc[j + 2]! - t.abc[k + 2]!) * u;
   out.line = t.lines[lo]!;
   out.rapid = t.rapid[lo] === 1;
-  out.world = t.mode?.[lo] === 1;
+  out.kinstype = t.mode ? t.mode[lo]! : null;
   out.index = lo;
   return out;
 }
@@ -341,18 +345,20 @@ const _machineVals: number[] = [0, 0, 0, 0, 0, 0];
 
 /** Per-joint pose values for a track sample: program → machine via the live
  *  WCS (TLO-inclusive), then machine coords → joints through the kins
- *  boundary. A WORLD-mode sample (sample.world, from the phase-2a wire
- *  flags) routes through the machine's declared kins with live TLO in the
- *  pivot math; identity/untracked samples use the trivkins permutation as
- *  before. UVW and unknown letters yield null — the caller falls back to
- *  the live joint position rather than inventing a value. Fills `out`. */
+ *  boundary. A sample whose raw kinstype maps to non-identity for the
+ *  declared kins family (worldModeForSpec) routes through the machine's
+ *  declared kins with live TLO in the pivot math; identity/untracked
+ *  samples use the trivkins permutation as before. UVW and unknown
+ *  letters yield null — the caller falls back to the live joint position
+ *  rather than inventing a value. Fills `out`. */
 export function jointsForSample(
   sample: ScrubSample, wcs: PartFrameWcs, axes: string[], out: (number | null)[], kins?: KinsSpec,
 ): (number | null)[] {
   const o: WcsTerms = wcsTerms(wcs);
   programToMachine(sample.px, sample.py, sample.pz, sample.pa, sample.pb, sample.pc, o, _machineVals);
-  if (sample.world && !kins) warnWorldWithoutSpec("scrub pose");
-  const model = sample.world && kins
+  const world = sample.kinstype != null && worldModeForSpec(sample.kinstype, kins);
+  if (world && !kins) warnWorldWithoutSpec("scrub pose");
+  const model = world && kins
     ? kinsFor(axes, kins, wcs.tool?.[2] || undefined)
     : kinsFor(axes);
   return model.inverse(_machineVals, out);

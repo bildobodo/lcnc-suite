@@ -206,8 +206,9 @@ describe("transformToPartFrame — section breaks", () => {
 
 describe("kins world routing (phase 2b)", () => {
   // Pivot params match the TRUNNION chain's a_assembly translate [0,20,10]
-  // by construction — same pairing as the xyzac sim config.
-  const SPEC = { type: "xyzac-trt", params: { yOffset: 20, zOffset: 10 } };
+  // by construction — same pairing as the xyzac sim config (which is
+  // sparm=identityfirst: raw type 1 = world, matching the mode arrays).
+  const SPEC = { type: "xyzac-trt", identityFirst: true, params: { yOffset: 20, zOffset: 10 } };
   const TCP: PartFrameMachine = { ...TRUNNION, kins: SPEC };
 
   it("routes world-flagged segments through the declared kins", () => {

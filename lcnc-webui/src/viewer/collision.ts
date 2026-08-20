@@ -39,7 +39,7 @@ import * as THREE from "three";
 import { MeshBVH } from "three-mesh-bvh";
 import { normalizeKinematics, type KinRuntime } from "./kinematics";
 import { programToMachine, wcsTerms, type PartFrameWcs } from "./partFrame";
-import { makeKins, warnWorldWithoutSpec, type KinsSpec } from "./kins";
+import { makeKins, warnWorldWithoutSpec, worldModeForSpec, type KinsSpec } from "./kins";
 /** The subset of the scrub track the sweep consumes. The worker request
  *  ships a COPIED projection of the real ScrubTrack (typed arrays only —
  *  lineCum/lineSpan Maps and the time-axis fields never cross), so the
@@ -447,6 +447,11 @@ export function sweepCollisions(
   const worldKins = machine.kins && track.mode
     ? makeKins(machine.axes, machine.kins, wcs.tool?.[2] || undefined)
     : null;
+  // Raw wire types → per-vertex world flags for THIS machine's family
+  // (worldModeForSpec) — resolved once, the sweep's pose path just indexes.
+  const modeWorld = track.mode
+    ? Array.from(track.mode, (t) => worldModeForSpec(t, machine.kins))
+    : null;
   // Pairs whose relative pose rides a world-driven linear joint (letter
   // X/Y/Z under a declared kins) — the recipients of the sagitta slack.
   const pairWorldLin = worldKins
@@ -511,7 +516,7 @@ export function sweepCollisions(
   const onsetRapid = new Uint8Array(pairs.length);
   const staticContacts: CollisionResult["staticContacts"] = [];
   poseAt(track.pos[0]!, track.pos[1]!, track.pos[2]!,
-         track.abc[0]!, track.abc[1]!, track.abc[2]!, track.mode?.[0] === 1);
+         track.abc[0]!, track.abc[1]!, track.abc[2]!, modeWorld?.[0] ?? false);
   for (let pi = 0; pi < pairs.length; pi++) {
     const [ai, bi] = pairs[pi]!;
     const dist = pairDistance(bodies[ai]!, bodies[bi]!, opts.margin);
@@ -582,7 +587,7 @@ export function sweepCollisions(
       track.abc[k]! + (track.abc[j]! - track.abc[k]!) * u,
       track.abc[k + 1]! + (track.abc[j + 1]! - track.abc[k + 1]!) * u,
       track.abc[k + 2]! + (track.abc[j + 2]! - track.abc[k + 2]!) * u,
-      track.mode?.[lo] === 1,
+      modeWorld?.[lo] ?? false,
     );
     const [ai, bi] = pairs[pi]!;
     return pairDistance(bodies[ai]!, bodies[bi]!, opts.margin);
@@ -613,7 +618,7 @@ export function sweepCollisions(
       track.abc[k]! + (track.abc[j]! - track.abc[k]!) * t,
       track.abc[k + 1]! + (track.abc[j + 1]! - track.abc[k + 1]!) * t,
       track.abc[k + 2]! + (track.abc[j + 2]! - track.abc[k + 2]!) * t,
-      track.mode?.[i] === 1,
+      modeWorld?.[i] ?? false,
     );
   };
 
@@ -633,7 +638,7 @@ export function sweepCollisions(
     const chunks = Math.max(1, Math.ceil(rotDelta / CHUNK_ROT_DEG));
     // Per-chunk swept phase for the world sagitta slack: SUM of the rotary
     // deltas (each rotation contributes its own trig terms), radians.
-    const segWorld = pairWorldLin !== null && track.mode?.[i] === 1;
+    const segWorld = pairWorldLin !== null && (modeWorld?.[i] ?? false);
     const chunkPhase = segWorld
       ? Math.min(Math.PI, ((dA + dB + dC) / chunks) * (Math.PI / 180))
       : 0;

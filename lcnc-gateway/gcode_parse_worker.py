@@ -62,8 +62,8 @@ from gcode_canon import PreviewCanon, apply_var_patches
 from gateway_util import (
     scan_tool_stats, read_axis_limits, check_limit_violations,
     check_limit_violations_world, merge_violation_records,
-    rs274_effective_xy_offset, parse_kins_config, kins_world_flags,
-    kins_marker_policy, mode_boundary_indices,
+    rs274_effective_xy_offset, parse_kins_config, kins_type_flags,
+    kins_nonidentity_flags, kins_marker_policy, mode_boundary_indices,
 )
 
 
@@ -176,6 +176,17 @@ def parse(ctx: dict) -> dict:
         wcs_code = _WCS_CODES.get(g5x_index if isinstance(g5x_index, int) else 0)
         if wcs_code:
             initcodes.append(wcs_code)
+        # TWP preview state reset (phase 3): the forked TWP remap module
+        # mirrors HAL state (twp defined/active, pre-rot) in module globals
+        # for the preview interpreter, and the module stays cached in
+        # sys.modules across parses — without this hook a previous
+        # program's TWP state would leak into the next parse. First parse:
+        # the module isn't imported yet (interp init loads it), nothing to
+        # reset. Non-TWP configs never import a module named "remap" here.
+        _remap_mod = sys.modules.get("remap")
+        _reset = getattr(_remap_mod, "webui_preview_reset", None)
+        if _reset is not None:
+            _reset()
         t0 = time.monotonic()
         result, seq = gcode.parse(filename, canon, initcodes, "")
         t1 = time.monotonic()
@@ -225,6 +236,7 @@ def parse(ctx: dict) -> dict:
     # arrays (2a, further down) consume it. Flags align 1:1 with the
     # pre-RDP canon.feed / canon.rapid lists.
     kins_cfg = None
+    feed_types = rapid_types = None
     feed_world = rapid_world = None
     world_unchecked = 0
     if canon.kins_events:
@@ -236,14 +248,21 @@ def parse(ctx: dict) -> dict:
             # type 0 to "world" (no sparm), pull nearly every segment out
             # of the identity limit check, and ship a meaningless mode
             # track — said once here, then checked as plain identity.
+            # (Any WEBUI_TWPFRAME markers are dropped with them.)
             print(f"kins markers={len(canon.kins_events)} IGNORED "
                   f"(declared kinematics "
                   f"{kins_cfg.get('module') if kins_cfg else None} cannot switch)",
                   file=sys.stderr, flush=True)
         else:
-            _idf = bool(kins_cfg and kins_cfg.get("identity_first"))
-            feed_world = kins_world_flags([t[5] for t in canon.feed], canon.kins_events, _idf)
-            rapid_world = kins_world_flags([t[4] for t in canon.rapid], canon.kins_events, _idf)
+            # Raw switchkins type per segment — the wire ships these
+            # (phase 3: trsrn type 1/TCP and type 2/TOOL have different
+            # joint mappings, a world bool cannot carry that). The
+            # identity-vs-not split for the limit check below is a
+            # property of the kins family, resolved here once.
+            feed_types = kins_type_flags([t[5] for t in canon.feed], canon.kins_events)
+            rapid_types = kins_type_flags([t[4] for t in canon.rapid], canon.kins_events)
+            feed_world = kins_nonidentity_flags(feed_types, kins_cfg)
+            rapid_world = kins_nonidentity_flags(rapid_types, kins_cfg)
     _any_world = bool(feed_world and any(feed_world)) or bool(rapid_world and any(rapid_world))
     if axis_limits:
         def _identity_segs():
@@ -434,18 +453,21 @@ def parse(ctx: dict) -> dict:
 
     total_rapid_time = _rtc if time_axis else 0.0
 
-    # Kins mode flags (TCP+TWP phase 2a): per-segment world-mode from the
-    # switchkins remaps' `(WEBUI_KINSTYPE=n)` markers, resolved above at
-    # the limit-check site (flags align 1:1 with the pre-RDP canon lists,
-    # which these extraction lists mirror). Present ONLY when markers were
-    # seen — absent = no mode data (untracked ≠ identity), so ordinary
-    # programs pay zero wire cost and the client never guesses.
-    feed_mode = feed_world
-    rapid_mode = rapid_world
+    # Kins mode (TCP+TWP phase 2a, raw types since phase 3): per-segment
+    # switchkins TYPE from the `(WEBUI_KINSTYPE=n)` markers, resolved
+    # above at the limit-check site (aligned 1:1 with the pre-RDP canon
+    # lists, which these extraction lists mirror). Present ONLY when
+    # markers were seen — absent = no mode data (untracked ≠ identity),
+    # so ordinary programs pay zero wire cost and the client never
+    # guesses. The client maps type → world/identity per the declared
+    # kins family (worldModeForType / TrsrnKins mode selection).
+    feed_mode = feed_types
+    rapid_mode = rapid_types
     if canon.kins_events:
         print(f"kins markers={len(canon.kins_events)} "
-              f"world_feed={sum(feed_mode or [])}/{len(feed_mode or [])} "
-              f"world_rapid={sum(rapid_mode or [])}/{len(rapid_mode or [])}",
+              f"frames={len(canon.kins_frames)} "
+              f"nonidentity_feed={sum(feed_world or [])}/{len(feed_mode or [])} "
+              f"nonidentity_rapid={sum(rapid_world or [])}/{len(rapid_mode or [])}",
               file=sys.stderr, flush=True)
 
     arc_dist_scaled = canon.arc_dist * unit_scale
@@ -659,11 +681,23 @@ def parse(ctx: dict) -> dict:
         result["feed_abc"] = np.asarray(feed_abc, dtype="<f4").tobytes() if feed_abc else b""
         result["rapid_abc"] = np.asarray(rapid_abc, dtype="<f4").tobytes() if rapid_abc else b""
     if feed_mode is not None:
-        # Per-vertex kins world-mode flags (u8), index-aligned with
+        # Per-vertex RAW switchkins type (u8), index-aligned with
         # feed/rapid — present ONLY when the program carried switchkins
-        # markers (absence = no mode data, not "all identity").
-        result["feed_mode"] = np.asarray(feed_mode, dtype="<u1").tobytes() if feed_mode else b""
-        result["rapid_mode"] = np.asarray(rapid_mode, dtype="<u1").tobytes() if rapid_mode else b""
+        # markers (absence = no mode data, not "all identity"). Renamed
+        # from the phase-2 feed_mode/rapid_mode world bools: a client
+        # that predates the rename sees no mode field and degrades to
+        # the honest "untracked" path instead of misreading types.
+        result["feed_kinstype"] = np.asarray(feed_mode, dtype="<u1").tobytes() if feed_mode else b""
+        result["rapid_kinstype"] = np.asarray(rapid_mode, dtype="<u1").tobytes() if rapid_mode else b""
+        if canon.kins_frames:
+            # TWP plane frames, execution-ordered: [seq, pre_rot_rad,
+            # primary_deg, secondary_deg] — a frame at seq N governs
+            # type-2 segments with seq > N (same convention as the type
+            # markers). A handful per program, so a plain list rides the
+            # msgpack wire; per-vertex resolution happens client-side.
+            result["kins_frames"] = [
+                [int(s), float(p), float(t1), float(t2)]
+                for s, p, t1, t2 in canon.kins_frames]
     if world_unchecked:
         # World-mode segments with no kins twin to check against —
         # unchecked ≠ clean, so the count rides the wire and the UI says

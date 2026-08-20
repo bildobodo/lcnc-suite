@@ -412,7 +412,7 @@ describe("contact-window refinement (glow window)", () => {
                    { group: "head", joint: 2, type: "translate", direction: "z", sign: 1 }],
       workGroup: "platter", toolGroup: "head", unitScale: 1,
       axes: ["X", "Y", "Z", "A", "C"],
-      kins: { type: "xyzac-trt" },
+      kins: { type: "xyzac-trt", identityFirst: true },  // raw type 1 = world
     };
     const B5: CollisionBody[] = [
       { id: "vise", group: "table", positions: boxPositions(10), translate: [20, 0, 0] },
@@ -455,7 +455,7 @@ describe("world-kins conservative advancement (sagitta slack)", () => {
     toolGroup: "xslide",
     unitScale: 1,
     axes: ["X", "Y", "Z", "A", "C"],
-    kins: { type: "xyzac-trt", params: {} },
+    kins: { type: "xyzac-trt", identityFirst: true, params: {} },  // raw type 1 = world
   };
   const wallBodies = (wallX: number): CollisionBody[] => {
     const wall = boxPositions(10);

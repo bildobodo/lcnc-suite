@@ -21,7 +21,7 @@ function stream(points: number[][], opts: { abc?: number[][]; lines?: number[]; 
 const EMPTY = stream([]);
 
 function freshSample(): ScrubSample {
-  return { px: 0, py: 0, pz: 0, pa: 0, pb: 0, pc: 0, line: 0, rapid: false, world: false, index: 0 };
+  return { px: 0, py: 0, pz: 0, pa: 0, pb: 0, pc: 0, line: 0, rapid: false, kinstype: null, index: 0 };
 }
 
 describe("buildScrubTrack", () => {
@@ -275,16 +275,20 @@ describe("kins mode plumbing (phase 2b)", () => {
     expect(mixed.mode).toBeUndefined();
   });
 
-  it("sampleTrack reports the segment's world flag", () => {
+  it("sampleTrack reports the segment's raw kinstype (null when untracked)", () => {
     const t = buildScrubTrack(
-      stream([[0, 0, 0], [10, 0, 0], [20, 0, 0]], { seq: [1, 2, 3], mode: [0, 1, 0] }),
+      stream([[0, 0, 0], [10, 0, 0], [20, 0, 0]], { seq: [1, 2, 3], mode: [0, 2, 0] }),
       EMPTY,
     )!;
     const s = freshSample();
-    sampleTrack(t, 5, s);         // inside segment 0→1 (mode[1] = 1)
-    expect(s.world).toBe(true);
+    sampleTrack(t, 5, s);         // inside segment 0→1 (mode[1] = 2)
+    expect(s.kinstype).toBe(2);   // raw type survives — 2 ≠ a world bool
     sampleTrack(t, 15, s);        // inside segment 1→2 (mode[2] = 0)
-    expect(s.world).toBe(false);
+    expect(s.kinstype).toBe(0);
+    const untracked = buildScrubTrack(
+      stream([[0, 0, 0], [10, 0, 0]], { seq: [1, 2] }), EMPTY)!;
+    sampleTrack(untracked, 5, s); // no mode data: null, NOT 0 (0 is the
+    expect(s.kinstype).toBeNull(); // WORLD type on plain-sparm trt)
   });
 
   it("splitTrackStreams carries mode per drawn vertex", () => {
@@ -313,7 +317,8 @@ describe("kins mode plumbing (phase 2b)", () => {
     s.px = 20; s.py = 10; s.pz = 30; s.pa = -45; s.pc = 90;
     const triv: (number | null)[] = [];
     jointsForSample(s, IDW, AXES, triv);              // untracked → trivkins
-    s.world = true;
+    // SPEC has no identityFirst (plain sparm): raw type 0 IS the world kins
+    s.kinstype = 0;
     const world: (number | null)[] = [];
     jointsForSample(s, IDW, AXES, world, SPEC);
     // Routing proof: world joints differ from the permutation and match the
@@ -331,10 +336,11 @@ describe("kins mode plumbing (phase 2b)", () => {
     // the once-semantics themselves are pinned in kins.test.ts).
     const err = vi.spyOn(console, "error").mockImplementation(() => {});
     const s = freshSample();
-    s.px = 20; s.py = 10; s.pz = 30; s.pa = -45; s.pc = 90; s.world = true;
+    s.px = 20; s.py = 10; s.pz = 30; s.pa = -45; s.pc = 90;
+    s.kinstype = 1;  // no spec: any nonzero type = "needs routing we don't have"
     const noSpec: (number | null)[] = [];
-    jointsForSample(s, IDW, AXES, noSpec);            // world, but no spec
-    s.world = false;
+    jointsForSample(s, IDW, AXES, noSpec);            // switched, but no spec
+    s.kinstype = null;
     const triv: (number | null)[] = [];
     jointsForSample(s, IDW, AXES, triv);
     expect(noSpec).toEqual(triv);
@@ -343,7 +349,8 @@ describe("kins mode plumbing (phase 2b)", () => {
 
   it("machineJointsToProgram(world) inverts jointsForSample(world)", () => {
     const s = freshSample();
-    s.px = 20; s.py = 10; s.pz = 30; s.pa = -45; s.pc = 90; s.world = true;
+    s.px = 20; s.py = 10; s.pz = 30; s.pa = -45; s.pc = 90;
+    s.kinstype = 0;  // plain sparm: type 0 = world (see SPEC note above)
     const joints: (number | null)[] = [];
     jointsForSample(s, IDW, AXES, joints, SPEC);
     const p = machineJointsToProgram(joints as number[], AXES, IDW, SPEC, true);

@@ -32,9 +32,14 @@ export interface KinsParams {
 
 /** Serializable kins selection — rides machine.json / viewer_init and
  *  crosses worker boundaries. Absent/`trivkins` = identity permutation.
- *  Known types: `trivkins`, `xyzac-trt`, `xyzbc-trt`. */
+ *  Known types: `trivkins`, `xyzac-trt`, `xyzbc-trt` (routed) and
+ *  `xyzacb-trsrn` (declared; routing lands with the TWP marker work). */
 export interface KinsSpec {
   type?: string;
+  /** switchkins `sparm=identityfirst`: which raw type is the identity
+   *  kins (phase 3: the wire ships raw types, the client maps them —
+   *  see worldModeForSpec). */
+  identityFirst?: boolean;
   params?: KinsParams;
 }
 
@@ -447,12 +452,13 @@ export function warnWorldWithoutSpec(site: string): void {
  *  activation is phase 2, per-segment modes + the TLO-flow audit (the
  *  kins' tool-offset pin is live TLO, already carried as wcs.tool). */
 export function specFromWire(w?: {
-  type: string; params: Record<string, number>;
+  type: string; identity_first?: boolean; params: Record<string, number>;
 } | null): KinsSpec | undefined {
   if (!w || w.type === "trivkins") return undefined;
   const p = w.params ?? {};
   return {
     type: w.type,
+    identityFirst: !!w.identity_first,
     params: {
       xRotPoint: p.x_rot_point, yRotPoint: p.y_rot_point, zRotPoint: p.z_rot_point,
       xOffset: p.x_offset, yOffset: p.y_offset, zOffset: p.z_offset,
@@ -469,6 +475,23 @@ export function specFromWire(w?: {
 export function worldModeForType(kinstype: number, identityFirst: boolean): boolean {
   const t = Math.round(kinstype);
   return identityFirst ? t === 1 : t === 0;
+}
+
+/** RAW switchkins type (wire feed_kinstype/rapid_kinstype, live pin, or a
+ *  track's mode array) → "this segment needs the machine's non-identity
+ *  kins". Family-aware client twin of gateway_util.kins_nonidentity_flags:
+ *  trt follows sparm (worldModeForType; userk type 2 = identity in the
+ *  stock template); `xyzacb-trsrn` boots identity as type 0 with types 1
+ *  (TCP) and 2 (TOOL) both non-identity — with DIFFERENT math, which is
+ *  why the wire carries raw types at all. With NO spec the mapping is
+ *  unknowable: any nonzero type reports true so the routing sites hit
+ *  their loud warnWorldWithoutSpec + trivkins fallback, never a silent
+ *  guess. */
+export function worldModeForSpec(kinstype: number | undefined, spec?: KinsSpec | null): boolean {
+  const t = Math.round(kinstype ?? 0);
+  if (!spec) return t !== 0;
+  if (spec.type === "xyzacb-trsrn") return t !== 0;
+  return worldModeForType(t, !!spec.identityFirst);
 }
 
 // Memoized construction for per-frame callers (scrub pose runs at display

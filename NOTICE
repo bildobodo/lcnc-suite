@@ -68,6 +68,13 @@ over their respective contributions.
      David Mueller) — vendored VERBATIM as the compiled test oracle for
      the TWP machine's switchable kinematics (identity/TCP/TOOL-plane;
      see scripts/kins_oracle/README.md)
+   - examples/sim_config/twp/ (master @493926b56c, GPL v2, David
+     Mueller) — the Tilted Work Plane remap stack
+     (configs/sim/axis/vismach/5axis/twp/): python/util.py, toplevel.py
+     and twp-helper-comp.py verbatim; python/remap.py FORKED (GPL v2,
+     edits tagged LCNC-SUITE) so the preview interpreter runs the plane
+     math and emits webui marker comments; remap_subs/*.ngc wrappers
+     carry added (WEBUI_KINSTYPE=n) markers. See its README.md.
 
 
 5. vtk-vismach (kinematic reference)

@@ -5,7 +5,7 @@
 // interface. (Non-trivial models get compiled-C-oracle fixtures instead;
 // trivkins is the identity permutation by definition.)
 import { describe, expect, it, vi } from "vitest";
-import { kinsFor, makeKins, specFromWire, warnWorldWithoutSpec, worldModeForType } from "./kins";
+import { kinsFor, makeKins, specFromWire, warnWorldWithoutSpec, worldModeForSpec, worldModeForType } from "./kins";
 
 describe("trivkins boundary", () => {
   it("XYZAC: letter-skipping permutation both ways (C = joint 4, slot 5)", () => {
@@ -107,5 +107,27 @@ describe("worldModeForType (live switchkins pin → mode)", () => {
   it("tolerates HAL float noise around the integer type", () => {
     expect(worldModeForType(1.0000001, true)).toBe(true);
     expect(worldModeForType(0.9999999, true)).toBe(true);
+  });
+});
+
+describe("worldModeForSpec (raw wire type → mode, family-aware)", () => {
+  // Client twin of gateway_util.kins_nonidentity_flags — the two must
+  // never disagree on which segments leave the identity permutation.
+  it("trt specs follow sparm via worldModeForType", () => {
+    expect(worldModeForSpec(0, { type: "xyzac-trt" })).toBe(true);           // plain: 0 = world
+    expect(worldModeForSpec(1, { type: "xyzac-trt" })).toBe(false);
+    expect(worldModeForSpec(1, { type: "xyzac-trt", identityFirst: true })).toBe(true);
+    expect(worldModeForSpec(0, { type: "xyzac-trt", identityFirst: true })).toBe(false);
+    expect(worldModeForSpec(2, { type: "xyzac-trt", identityFirst: true })).toBe(false); // userk = identity
+  });
+  it("xyzacb-trsrn: type 0 identity, 1 (TCP) and 2 (TOOL) both non-identity", () => {
+    expect(worldModeForSpec(0, { type: "xyzacb-trsrn" })).toBe(false);
+    expect(worldModeForSpec(1, { type: "xyzacb-trsrn" })).toBe(true);
+    expect(worldModeForSpec(2, { type: "xyzacb-trsrn" })).toBe(true);
+  });
+  it("no spec: any nonzero type reports true (loud-fallback path)", () => {
+    expect(worldModeForSpec(0, undefined)).toBe(false);
+    expect(worldModeForSpec(2, undefined)).toBe(true);
+    expect(worldModeForSpec(undefined, undefined)).toBe(false);
   });
 });

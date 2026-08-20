@@ -10,7 +10,7 @@ import math
 from typing import Dict, List
 from rs274.interpret import Translated, ArcsToSegmentsMixin, StatMixin
 
-from gateway_util import parse_kinstype_marker
+from gateway_util import parse_kinstype_marker, parse_twpframe_marker
 
 
 # Adaptive arc tessellation (A1). Chord tolerance in canon units (inches —
@@ -50,6 +50,11 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         # remaps (TCP+TWP phase 2): [(seq_at_marker, kinstype)] in
         # execution order — a marker at seq N applies to segments seq > N.
         self.kins_events = []
+        # TWP plane-frame markers `(WEBUI_TWPFRAME=p,t1,t2)` from the
+        # forked TWP remap's g53x_core (phase 3): [(seq_at_marker,
+        # pre_rot_rad, primary_deg, secondary_deg)] in execution order —
+        # the three kins-pin values that pin the TOOL-kins (type 2) frame.
+        self.kins_frames = []
         self.xo = self.yo = self.zo = 0.0
         self.ao = self.bo = self.co = 0.0
         self.uo = self.vo = self.wo = 0.0
@@ -68,6 +73,10 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         k = parse_kinstype_marker(text)
         if k is not None:
             self.kins_events.append((self.seq, k))
+            return
+        fr = parse_twpframe_marker(text)
+        if fr is not None:
+            self.kins_frames.append((self.seq, fr[0], fr[1], fr[2]))
     def message(self, _): pass
     def check_abort(self): pass
     def user_defined_function(self, i, p, q): pass

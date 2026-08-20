@@ -43,9 +43,11 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     // O(points), exactly the class of work that starved the heartbeat when it
     // ran on the UI thread. null = unbuildable (empty, or a stale pre-seq
     // cached payload) and the scrub bar simply doesn't offer itself.
-    // Kins mode flags (phase 2a): u8 wire bytes are already the typed view.
-    const feedModeWire = g.feed_mode != null ? new Uint8Array(g.feed_mode as Uint8Array) : undefined;
-    const rapidModeWire = g.rapid_mode != null ? new Uint8Array(g.rapid_mode as Uint8Array) : undefined;
+    // Kins mode (phase 2a, RAW switchkins types since phase 3): u8 wire
+    // bytes are already the typed view. Consumers map type → world per
+    // the declared kins family (worldModeForSpec).
+    const feedModeWire = g.feed_kinstype != null ? new Uint8Array(g.feed_kinstype as Uint8Array) : undefined;
+    const rapidModeWire = g.rapid_kinstype != null ? new Uint8Array(g.rapid_kinstype as Uint8Array) : undefined;
 
     const scrubTrack = buildScrubTrack(
       { pos: feedPos, abc: feedAbc, lines: feedLines, seq: _toU32(g.feed_seq), tcum: g.feed_tcum != null && (g.feed_tcum as Uint8Array).length ? _toF32(g.feed_tcum) : undefined, mode: feedModeWire },
@@ -80,7 +82,7 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     const { feed: _f, rapid: _r, feed_lines: _fl, feed_abc: _fa, rapid_abc: _ra,
             feed_seq: _fs, rapid_seq: _rs, rapid_lines: _rl,
             feed_tcum: _ft, rapid_tcum: _rt,
-            feed_mode: _fm, rapid_mode: _rm, ...rest } = g;
+            feed_kinstype: _fm, rapid_kinstype: _rm, ...rest } = g;
 
     const transfer: Transferable[] = [
       feedPos.buffer as ArrayBuffer,

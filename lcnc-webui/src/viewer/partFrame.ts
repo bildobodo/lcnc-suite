@@ -29,7 +29,7 @@
 import * as THREE from "three";
 import type { ViewerInit } from "../ws/bulkData";
 import { normalizeKinematics, type KinRuntime } from "./kinematics";
-import { makeKins, warnWorldWithoutSpec, type KinsSpec } from "./kins";
+import { makeKins, warnWorldWithoutSpec, worldModeForSpec, type KinsSpec } from "./kins";
 
 export interface PartFrameMachine {
   groups: Array<{ id: string; parent: string; translate?: [number, number, number] | number[] }>;
@@ -72,8 +72,9 @@ export interface PartFramePolyline {
    *  segment INTO such a vertex is a false connector across a stream
    *  interleave — never subdivided, and the renderer index-skips it. */
   breaks?: Uint32Array;
-  /** Per-vertex world-kins flags (phase 2): the segment ENDING at vertex i
-   *  runs under the machine's world kins when mode[i] = 1. Absent = no
+  /** Per-vertex RAW switchkins type (phase 2, raw since phase 3): the
+   *  segment ENDING at vertex i carries type mode[i]; the transform maps
+   *  it per the declared kins family (worldModeForSpec). Absent = no
    *  mode data — every segment derives as trivkins, as before. */
   mode?: Uint8Array;
 }
@@ -300,6 +301,11 @@ export function transformToPartFrame(
   const worldKins = machine.kins && input.mode
     ? makeKins(axisLetters, machine.kins, wcs.tool?.[2] || undefined)
     : null;
+  // Raw wire types → per-vertex world flags for THIS machine's family
+  // (worldModeForSpec) — resolved once, the emit path just indexes.
+  const modeWorld = input.mode
+    ? Array.from(input.mode, (t) => worldModeForSpec(t, machine.kins))
+    : null;
   const machineVals: number[] = [0, 0, 0, 0, 0, 0];
 
   let out = 0;
@@ -347,13 +353,13 @@ export function transformToPartFrame(
   const outBreaks: number[] = [];
   emit(input.pos[0]!, input.pos[1]!, input.pos[2]!,
        input.abc[0]!, input.abc[1]!, input.abc[2]!, input.lines?.[0] ?? 0,
-       input.mode?.[0] === 1);
+       modeWorld?.[0] ?? false);
   if (breakSet.has(0)) outBreaks.push(0);
   for (let i = 1; i < n; i++) {
     const j = i * 3, k = j - 3;
     const steps = segSamples[i - 1]!;
     const line = input.lines?.[i] ?? 0;
-    const world = input.mode?.[i] === 1;  // segment mode: all its samples share it
+    const world = modeWorld?.[i] ?? false;  // segment mode: all its samples share it
     for (let s = 1; s <= steps; s++) {
       const t = s / steps;
       emit(
