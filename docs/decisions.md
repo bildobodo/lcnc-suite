@@ -145,6 +145,19 @@ vector at the cost of typing a secret into every browser on every reconnect.
 **Reopens if:** the gateway is deployed on an untrusted network, or a multi-tenant /
 remote-access story appears.
 
+### Dedicated `run_surface_scan` websocket command
+**Test:** — (superseded) · **Closed:** 2026-08-20
+
+The surface scan reaches the backend as a generic `mdi` "O<surface_scan> CALL", which
+the command policy cannot distinguish from any other MDI line. A dedicated gated
+command was considered and rejected: the in-macro guard in `surface_scan.ngc` covers
+strictly more — it also stops an operator typing the MDI call by hand, which a command
+gate cannot — and it aborts before any probe motion, so the safety is equivalent.
+Adding the command would have been a middle layer that dominates nothing.
+
+**Reopens if:** the scan needs to be refused with a UI-level error *before* the
+interpreter runs, e.g. because the G-code abort proves too coarse for operators.
+
 ### Gamepad stick → arbitrary machine axis
 **Test:** DEMAND · **Closed:** 2026-08-20
 
@@ -196,6 +209,23 @@ handler. Where the INI declares nothing, `_OVERRIDE_FALLBACKS` substitutes exact
 literal the handler used before, so a silent INI keeps today's behavior — but the
 substitution is traced (`limits.ini_fallback`) instead of being invisible.
 
+### Surface-map rotary gate (`surfaceComp`)
+**Line:** refuse to **start** surface-map work — probe a new map, or switch
+compensation ON — while any configured rotary is off zero. Do **not** refuse to turn
+compensation OFF, and do **not** auto-disable it mid-cut.
+
+Turning compensation off while tilted is the safe direction and must never be blocked,
+so the requirement cannot live on the toggle's own gate; the ENABLE direction is
+guarded handler-side (`require_no_rotary_tilt`) and the UI picks which backend class
+applies to which direction. Auto-disabling a live Z shim during a cut would move the
+tool, so the "already enabled, now tilted" case gets a **label**, not an action.
+
+Reads the canonical 9-slot position, never joint-ordered `machine_pos` — those index
+differently on a non-trivkins machine, i.e. on exactly the machines that have
+rotaries. The tolerance (`ROTARY_ZERO_TOL_DEG`) is sized to reject servo dither, not
+to tolerate a deliberate tilt, and lives on the backend: `permissions.ts` forbids the
+frontend deriving policy.
+
 ### `set_probe_vars` writable set
 **Line:** a parameter is writable if this machine's **var file declares it** and it
 is outside the reserved system ranges (`#1–#30` locals, `#5000+` system).
@@ -233,6 +263,12 @@ desynchronises the state that G10 L2, G92 and the tool table manage.
   `MAX_FEED_OVERRIDE` / `MIN|MAX_SPINDLE_OVERRIDE` were parsed from the INI and shipped
   to the UI — so a builder who declared 150% had a backend that accepted 200%. That is
   policy enforced on the client, which `permissions.ts` forbids.
+- **Surface-map compensation could be probed and applied on a tilted machine.** The map
+  is a machine-Z shim applied after kinematics, valid only with the tool normal to the
+  mapped surface and the grid aligned to the work — and TWP support made tilted work a
+  first-class thing this machine can do, so the gap became reachable. Gated in three
+  places: the `surfaceComp` permission class (UI), `require_no_rotary_tilt` (direct
+  websocket clients), and inside `surface_scan.ngc` (hand-typed MDI).
 - **Unbounded list and string payloads.** `jog_cont_multi`'s `axes` was iterated with no
   length cap, issuing one `CMD.jog` per entry while holding the command lock; `mdi` text
   was passed at any length to a 256-char buffer that truncates mid-word and executes a

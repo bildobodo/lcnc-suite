@@ -261,5 +261,49 @@ class TestErrors(unittest.TestCase):
             self.assertEqual(emit.call_count, 2)  # re-armed after reconnect
 
 
+class TestRotaryAtZero(unittest.TestCase):
+    """The surface-map rotary gate's input (W6). Surface-map Z compensation is
+    a 3-axis feature; probing or applying it tilted is directionally wrong."""
+
+    XYZ = 0b000000111
+    XYZAC = 0b000101111        # A = canonical slot 3, C = slot 5
+    NINE = [0.0] * 9
+
+    def _pos(self, **over):
+        p = list(self.NINE)
+        for slot, val in over.items():
+            p[int(slot[1:])] = val
+        return p
+
+    def test_three_axis_machine_is_always_at_zero(self):
+        self.assertTrue(status_runtime.rotary_at_zero(self.NINE, self.XYZ))
+        # Junk in an UNCONFIGURED rotary slot must not close the gate on a
+        # machine that has no rotary at all.
+        self.assertTrue(status_runtime.rotary_at_zero(self._pos(s3=90.0), self.XYZ))
+
+    def test_configured_rotary_off_zero_is_detected(self):
+        self.assertFalse(status_runtime.rotary_at_zero(self._pos(s3=10.0), self.XYZAC))
+        self.assertFalse(status_runtime.rotary_at_zero(self._pos(s5=90.0), self.XYZAC))
+
+    def test_servo_dither_tolerated_but_a_real_tilt_is_not(self):
+        tol = status_runtime.ROTARY_ZERO_TOL_DEG
+        self.assertTrue(status_runtime.rotary_at_zero(self._pos(s3=tol / 2), self.XYZAC))
+        self.assertFalse(status_runtime.rotary_at_zero(self._pos(s3=tol * 10), self.XYZAC))
+
+    def test_unreadable_position_is_none_not_zero(self):
+        # The caller must refuse on None — a gate that cannot see the rotaries
+        # must not assume they are parked.
+        self.assertIsNone(status_runtime.rotary_at_zero(None, self.XYZAC))
+        self.assertIsNone(status_runtime.rotary_at_zero([1.0, 2.0, 3.0], self.XYZAC))
+
+    def test_reads_canonical_slots_not_joint_order(self):
+        # On XYZAC the joint-ordered array has C at index 4, the canonical one
+        # at index 5. Feeding a canonical array with C=90 must be detected;
+        # reading index 4 (canonical B, unconfigured) would have missed it.
+        canonical = self._pos(s5=90.0)
+        self.assertEqual(canonical[4], 0.0)      # canonical B, unconfigured
+        self.assertFalse(status_runtime.rotary_at_zero(canonical, self.XYZAC))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -44,6 +44,13 @@ export type Permissions = {
   probe: boolean;
   /** zero: idle + no eoffset (zeroing with comp active bakes offset into G5x) */
   zero: boolean;
+  /** surfaceComp: probe + every rotary parked at zero — may START surface-map
+   *  work (scan a new map, switch compensation ON). The map is a machine-Z
+   *  shim applied after kinematics, valid only with the tool normal to the
+   *  mapped surface and the grid aligned to the work. NOT the gate on the
+   *  compensation toggle itself: turning comp OFF while tilted is the safe
+   *  direction and stays available under `ready`. */
+  surfaceComp: boolean;
   /** safety: armed + estop cleared — Machine On/Off (no enabled needed) */
   safety: boolean;
   /** setup: armed + estop cleared + idle (admin ops, no enabled needed) */
@@ -57,7 +64,7 @@ export type Permissions = {
 /** All gate names, in a stable order. */
 export const GATE_NAMES = [
   "idle", "jog", "override", "ready", "pause", "resume", "step",
-  "abort", "probe", "zero", "safety", "setup", "armed", "always",
+  "abort", "probe", "zero", "surfaceComp", "safety", "setup", "armed", "always",
 ] as const;
 
 /**
@@ -68,7 +75,7 @@ export const GATE_NAMES = [
  * wrong. `jog` never had a busy term (hold-to-move).
  */
 const BUSY_GATES: ReadonlySet<keyof Permissions> = new Set([
-  "idle", "override", "ready", "probe", "zero", "setup",
+  "idle", "override", "ready", "probe", "zero", "surfaceComp", "setup",
 ]);
 
 /**

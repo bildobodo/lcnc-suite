@@ -29,6 +29,7 @@ def _payload(**over):
     base = dict(
         estop=False, enabled=True, emc_enable_in=True, homed=True,
         interp_state=linuxcnc.INTERP_IDLE, paused=False, eoffset_enabled=False,
+        rotary_at_zero=True,
     )
     base.update(over)
     return SimpleNamespace(**base)

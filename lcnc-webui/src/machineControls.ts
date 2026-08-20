@@ -48,6 +48,10 @@ export const BUTTON_TYPES = {
   // Probe
   probe:          { gate: 'probe',    variant: 'default', size: 'md', whileProbing: true, hold: true },
   probeReset:     { gate: 'probe',    variant: 'danger',  size: 'md', whileProbing: true },
+  // Surface-map scan: `probe` plus every rotary parked at zero. The map is a
+  // machine-Z shim valid only with the tool normal to the mapped surface and
+  // the grid aligned to the work, so probing one tilted is directionally wrong.
+  surfaceScan:    { gate: 'surfaceComp', variant: 'default', size: 'md', whileProbing: true, hold: true },
 
   // Tool
   toolLoad:       { gate: 'ready',    variant: 'default', size: 'md' },

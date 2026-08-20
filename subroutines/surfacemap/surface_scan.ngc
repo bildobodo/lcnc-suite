@@ -41,6 +41,31 @@ o<surface_scan> sub
   o109 endif
 
   ; ============================================================
+  ; Rotary orientation safety check
+  ; ============================================================
+  ; A surface map is a machine-Z shim applied AFTER kinematics: it is valid
+  ; only with the tool normal to the mapped surface and the map's XY grid
+  ; aligned to the work. The map does not tilt with the tool and does not ride
+  ; a rotary platter, so probing (or applying) one while a rotary is off zero
+  ; is directionally wrong.
+  ;
+  ; Test the MACHINE rotary position, not #5423-#5425 alone: those are in the
+  ; ACTIVE WCS frame, so a rotary work offset would hide a real tilt. G92 was
+  ; cancelled above, so machine = relative + WCS offset. #5220 is the active
+  ; WCS number (G54=1); its offset block starts at 5200 + n*20, with A/B/C at
+  ; +4/+5/+6.
+  ;
+  ; The web UI gates this in its own layer too; this guard is what also covers
+  ; an operator typing the MDI call by hand.
+  #<_wcs_base> = [5200 + [#5220 * 20]]
+  #<_mach_a> = [#5423 + #[#<_wcs_base> + 4]]
+  #<_mach_b> = [#5424 + #[#<_wcs_base> + 5]]
+  #<_mach_c> = [#5425 + #[#<_wcs_base> + 6]]
+  o110 if [[ABS[#<_mach_a>] GT 0.05] OR [ABS[#<_mach_b>] GT 0.05] OR [ABS[#<_mach_c>] GT 0.05]]
+    (abort, Surface scan requires rotary axes at zero - A=%.3f#<_mach_a> B=%.3f#<_mach_b> C=%.3f#<_mach_c> - the map cannot tilt with the tool)
+  o110 endif
+
+  ; ============================================================
   ; Validate parameters and calculate probe point spacing
   ; ============================================================
   ; Validate probe counts - must be at least 2 for a grid

@@ -10,7 +10,7 @@ import { applyClientOverlay, type MachinePermissions } from "./permissions";
 const MACHINE_READY: MachinePermissions = {
   idle: true, jog: true, override: true, ready: true,
   pause: false, resume: false, step: true, abort: true,
-  probe: true, zero: true, safety: true, setup: true,
+  probe: true, zero: true, surfaceComp: true, safety: true, setup: true,
   armed: true, always: true,
 };
 
@@ -89,5 +89,18 @@ describe("simulation-mode overlay (client-local, simMode.ts)", () => {
     const a = applyClientOverlay(MACHINE_READY, true, false);
     const b = applyClientOverlay(MACHINE_READY, true, false, false);
     expect(b).toEqual(a);
+  });
+
+  it("surfaceComp passes through from the backend and carries the busy term", () => {
+    // The rotary requirement itself is backend policy (tested in
+    // test_command_policy.py); the frontend must neither re-derive it nor
+    // drop it. A tilted machine broadcasts surfaceComp:false while `ready`
+    // stays open, so turning compensation OFF remains possible.
+    const tilted = applyClientOverlay({ ...MACHINE_READY, surfaceComp: false }, true, false);
+    expect(tilted.surfaceComp).toBe(false);
+    expect(tilted.ready).toBe(true);
+    expect(applyClientOverlay(MACHINE_READY, true, true).surfaceComp).toBe(false);  // busy
+    expect(applyClientOverlay(MACHINE_READY, false, false).surfaceComp).toBe(false); // disarmed
+    expect(applyClientOverlay(MACHINE_READY, true, false, true).surfaceComp).toBe(false); // sim
   });
 });

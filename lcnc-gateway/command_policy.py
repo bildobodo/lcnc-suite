@@ -42,6 +42,11 @@ class MachineState:
     is_running: bool
     is_paused: bool
     eoffset_enabled: bool
+    #: Every configured rotary axis parked at zero (status_runtime.rotary_at_zero).
+    #: Defaults to False so a caller that forgets to supply it gets the CLOSED
+    #: gate, not the open one — the machine is built in exactly one place
+    #: (policy_state_from_payload), which always sets it.
+    rotary_at_zero: bool = False
 
 
 # Single source of truth for gate semantics (review #6): each gate is an ordered
@@ -59,6 +64,9 @@ _R_IDLE = (lambda s: s.is_idle, "Machine not idle")
 _R_HOMED = (lambda s: s.is_homed, "Machine not homed")
 _R_NO_EOFFSET = (lambda s: not s.eoffset_enabled,
                  "Surface compensation active — clear the eoffset first")
+_R_ROTARY_ZERO = (lambda s: s.rotary_at_zero,
+                  "Rotary axis not at zero — surface-map Z compensation is a "
+                  "3-axis feature (the map does not tilt or ride the platter)")
 _R_RUNNING = (lambda s: s.is_running, "No program running to pause")
 _R_NOT_PAUSED = (lambda s: not s.is_paused, "Program already paused")
 _R_PAUSED = (lambda s: s.is_paused, "No program paused to resume")
@@ -79,6 +87,15 @@ GATE_REQUIREMENTS: Dict[str, tuple] = {
     "abort":    _BASE,
     "probe":    _BASE + (_R_IDLE, _R_HOMED, _R_NO_EOFFSET),
     "zero":     _BASE + (_R_IDLE, _R_NO_EOFFSET),
+    # May the operator START surface-map work — probe a new map, or switch
+    # compensation ON? `probe` plus "the tool is normal to the mapped surface
+    # and the map's grid is aligned to the work". Deliberately NOT the gate on
+    # set_compensation itself: that command must stay usable in the DISABLE
+    # direction while tilted, which is the safe direction. The UI uses this
+    # class for the ON affordance and the scan button; the backend enforces it
+    # handler-side (require_no_rotary_tilt) and inside surface_scan.ngc, which
+    # also covers an operator typing the MDI by hand.
+    "surfaceComp": _BASE + (_R_IDLE, _R_HOMED, _R_NO_EOFFSET, _R_ROTARY_ZERO),
     "safety":   (_R_ARMED, _R_NOT_ESTOP),            # no `enabled` — Machine On/Off
     "setup":    (_R_ARMED, _R_NOT_ESTOP, _R_IDLE),   # no `enabled` — admin/idle ops
     "armed":    (_R_ARMED,),

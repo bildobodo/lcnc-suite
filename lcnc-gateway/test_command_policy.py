@@ -84,6 +84,7 @@ def state(**over) -> MachineState:
     base = dict(
         armed=True, is_estop=False, is_enabled=True, is_homed=True,
         is_idle=True, is_running=False, is_paused=False, eoffset_enabled=False,
+        rotary_at_zero=True,
     )
     base.update(over)
     return MachineState(**base)
@@ -228,6 +229,37 @@ class TestCheckCommand(unittest.TestCase):
         self.assertIsNone(check_command("confirm_tool_change", state(is_idle=False, is_running=True)))
         self.assertIsNone(check_command("confirm_tool_change", state(is_paused=True)))
         self.assertIsNotNone(check_command("confirm_tool_change", state(armed=False)))
+
+    # ---- surface-map rotary gate ----
+
+    def test_surface_comp_requires_rotaries_at_zero(self):
+        perms = evaluate_permissions(state())
+        self.assertTrue(perms["surfaceComp"])
+        tilted = evaluate_permissions(state(rotary_at_zero=False))
+        self.assertFalse(tilted["surfaceComp"])
+        # …and nothing else closes with it: a tilted machine can still jog,
+        # run, probe normally and touch off.
+        for gate in ("jog", "ready", "probe", "zero", "idle", "abort"):
+            self.assertTrue(tilted[gate], f"{gate} wrongly closed by a rotary tilt")
+
+    def test_surface_comp_is_probe_plus_rotary(self):
+        # It must inherit every requirement of `probe`, not just add one.
+        self.assertFalse(evaluate_permissions(state(is_homed=False))["surfaceComp"])
+        self.assertFalse(evaluate_permissions(state(eoffset_enabled=True))["surfaceComp"])
+        self.assertFalse(evaluate_permissions(state(is_idle=False, is_running=True))["surfaceComp"])
+
+    def test_compensation_toggle_not_gated_on_rotary(self):
+        # Turning compensation OFF while tilted is the SAFE direction and must
+        # stay available; the ENABLE direction is guarded handler-side.
+        self.assertIsNone(check_command("set_compensation", state(rotary_at_zero=False)))
+
+    def test_unknown_rotary_position_closes_the_gate(self):
+        # MachineState defaults rotary_at_zero to False so a caller that never
+        # supplies it gets the closed gate, not the open one.
+        bare = MachineState(armed=True, is_estop=False, is_enabled=True, is_homed=True,
+                            is_idle=True, is_running=False, is_paused=False,
+                            eoffset_enabled=False)
+        self.assertFalse(evaluate_permissions(bare)["surfaceComp"])
 
     def test_simulate_probe_trip_requires_armed_only(self):
         # Gating it on idle/ready would break its only purpose: exercising a

@@ -47,6 +47,30 @@ WCS_BASES = [5220, 5240, 5260, 5280, 5300, 5320, 5340, 5360, 5380]
 WCS_NAMES = ["G54", "G55", "G56", "G57", "G58", "G59", "G59.1", "G59.2", "G59.3"]
 WCS_AXIS_KEYS = ["x", "y", "z", "a", "b", "c", "u", "v", "w"]
 
+#: Canonical 9-slot indices of the rotary axes (X Y Z A B C U V W).
+_ROTARY_SLOTS = (3, 4, 5)
+#: How far a rotary may sit from zero and still count as "not tilted". Sized to
+#: reject servo dither on a parked rotary, not to tolerate a deliberate tilt —
+#: any real 3+2 orientation is degrees away, not hundredths.
+ROTARY_ZERO_TOL_DEG = 0.05
+
+
+def rotary_at_zero(canonical_pos: Optional[List[float]], axis_mask: int) -> Optional[bool]:
+    """Are all CONFIGURED rotary axes parked at zero?
+
+    `canonical_pos` is the 9-wide X..W array (STAT.actual_position), NOT the
+    joint-ordered machine_pos — on a non-trivkins machine those index
+    differently, and this would read the wrong number on exactly the machines
+    that have rotaries. Returns True on a machine with no rotary axes, and None
+    when the position is unreadable (the caller must refuse, not assume). Pure.
+    """
+    if canonical_pos is None or len(canonical_pos) < 6:
+        return None
+    configured = [s for s in _ROTARY_SLOTS if axis_mask & (1 << s)]
+    if not configured:
+        return True          # 3-axis machine: nothing can be tilted
+    return all(abs(canonical_pos[s]) <= ROTARY_ZERO_TOL_DEG for s in configured)
+
 
 def to_float_list(x) -> Optional[List[float]]:
     if x is None:
@@ -183,6 +207,14 @@ class StatusPayload:
     eoffset_enabled: Optional[bool]
     comp_method: Optional[int]  # 0=nearest, 1=linear, 2=cubic
     comp_grid_version: Optional[int]
+    #: Every configured rotary axis is within ROTARY_ZERO_TOL_DEG of zero.
+    #: True on a machine with no rotary axes at all. None when the position is
+    #: unreadable — the gate then refuses rather than assuming zero. Surface-map
+    #: Z compensation is a 3-AXIS feature (a machine-Z shim applied after
+    #: kinematics, valid only with the tool normal to the mapped surface and the
+    #: map's XY grid aligned to the work), so probing or applying it tilted is
+    #: directionally wrong.
+    rotary_at_zero: Optional[bool]
 
     # coolant
     flood: Optional[bool]
@@ -229,6 +261,12 @@ def policy_state_from_payload(p: "StatusPayload", armed: bool) -> _PolicyMachine
         and interp in (linuxcnc.INTERP_READING, linuxcnc.INTERP_WAITING),
         is_paused=is_paused,
         eoffset_enabled=bool(p.eoffset_enabled),
+        # None (position unreadable) reads as NOT at zero: a gate that cannot
+        # see the rotaries must refuse, not assume. This is the opposite of the
+        # eoffset convention above deliberately — an absent eoffset pin means
+        # "no compensation active" (permissive is correct), while an absent
+        # rotary reading means "I don't know how the tool is oriented".
+        rotary_at_zero=(p.rotary_at_zero is True),
     )
 
 
@@ -811,6 +849,10 @@ class StatusRuntime:
             eoffset_enabled=reader_get("z_eoffset_enable"),
             comp_method=reader_get("comp_method"),
             comp_grid_version=reader_get("comp_grid_version"),
+            # Canonical (9-wide) position, never the joint-ordered machine_pos —
+            # see rotary_at_zero().
+            rotary_at_zero=rotary_at_zero(
+                to_float_list(safe_get("actual_position", None)), axis_mask),
         )
         # Backend-authoritative permissions from this very snapshot (issue #19).
         # armed=True; the per-client armed/busy overlay happens client-side.

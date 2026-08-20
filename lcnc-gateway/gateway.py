@@ -2413,6 +2413,26 @@ def require_no_eoffset():
         raise PermissionError("Surface compensation active — clear the eoffset before editing work offsets")
 
 
+def require_no_rotary_tilt():
+    """Refuse to ENABLE surface-map Z compensation while a rotary axis is off
+    zero.
+
+    The map is a machine-Z shim applied AFTER kinematics: it is only valid with
+    the tool normal to the mapped surface (A=0) and the map's XY grid aligned to
+    the work (C=0 — the map does not ride the platter). Applying it tilted
+    shifts Z in the wrong direction. TWP support made tilted work a first-class
+    thing this machine can do, so this became reachable.
+
+    Only the ENABLE direction is guarded — turning compensation OFF while tilted
+    is the safe direction and must never be blocked. Refuses when the reading is
+    absent (`is True` test), because a gate that cannot see the rotaries must
+    not assume they are parked."""
+    if not (_shared_status is not None and _shared_status.rotary_at_zero is True):
+        raise PermissionError(
+            "Rotary axis not at zero — surface-map Z compensation is a 3-axis "
+            "feature (the map does not tilt or ride the platter)")
+
+
 def require_tool_change_pending():
     """Refuse a manual-toolchange confirmation when iocontrol is not asking for
     one.
@@ -3438,6 +3458,8 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
         if cmd == "set_compensation":
             require_armed(armed)
             enable = bool(msg.get("enable", False))
+            if enable:
+                require_no_rotary_tilt()
             _loop = asyncio.get_event_loop()
             await _loop.run_in_executor(None, _hal_send, {"compensation_enable": enable})
             _trace.emit("compensation.enable", enable=enable)

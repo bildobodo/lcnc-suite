@@ -815,6 +815,14 @@ label:has(input:disabled, select:disabled) {
   letter-spacing: 0.5px;
 }
 
+/* Inline warning note — a wrapped sentence explaining why something on this
+   panel is currently invalid or unsafe, sitting next to the control it is
+   about. For a transient overlay use .statusBanner / .simBanner instead. */
+.noteWarn {
+  font-size: var(--fs-sm);
+  color: var(--warn);
+}
+
 .label {
   font-size: var(--fs-xs);
   font-weight: var(--fw-semibold);

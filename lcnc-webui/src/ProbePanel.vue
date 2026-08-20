@@ -27,6 +27,10 @@ const props = defineProps<{
   surfacePoints: [number, number, number][] | null;
   compGrid: { x: number[]; y: number[]; zi: number[][]; method: number } | null;
   surfaceLayerVisible: boolean;
+  /** A configured rotary is off zero (backend `rotary_at_zero === false`), so
+   *  an ACTIVE surface map is no longer valid for the tool's orientation. Only
+   *  used for the live truth label — the gating itself is `surfaceComp`. */
+  rotaryTilted: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -1146,7 +1150,7 @@ function fmtR(key: string): string {
           <div v-if="!surfacePoints?.length" class="emptyState">No scan data</div>
         </div>
         <div class="compPanel stack-controls">
-          <MachineBtn type="probe" @click="runSurfaceScan">Start Scan</MachineBtn>
+          <MachineBtn type="surfaceScan" @click="runSurfaceScan">Start Scan</MachineBtn>
           <MachineBtn type="surfaceRefresh" @click="refreshSurface">Reload Data</MachineBtn>
           <div class="sep"></div>
           <div class="row-tight">
@@ -1166,8 +1170,18 @@ function fmtR(key: string): string {
           <MachineToggle gate="viewerSetting" :modelValue="surfaceLayerVisible"
             @update:modelValue="emit('toggleSurfaceLayer', $event!)" label="Show Surface" />
           <div class="sep"></div>
-          <MachineToggle gate="compToggle" :modelValue="eoffsetEnabled" :disabled="probing"
+          <!-- Tighter permission than the catalog gate, the case CLAUDE.md
+               allows: turning comp OFF stays available under `ready` (the safe
+               direction), but turning it ON needs `surfaceComp` — every rotary
+               parked at zero. Both classes are backend-derived; this only
+               chooses which one applies to which direction. -->
+          <MachineToggle gate="compToggle" :modelValue="eoffsetEnabled"
+            :disabled="probing || (!eoffsetEnabled && !can.surfaceComp)"
             @update:modelValue="onCompToggle" label="Enable Comp" />
+          <div v-if="eoffsetEnabled && rotaryTilted" class="noteWarn">
+            Compensation active with a rotary off zero — the Z shim does not
+            tilt with the tool and is no longer valid for this orientation.
+          </div>
         </div>
       </div>
 

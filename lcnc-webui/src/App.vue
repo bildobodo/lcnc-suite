@@ -1472,6 +1472,7 @@ watch(viewerGcode, (newGcode) => {
               :surfacePoints="surfacePoints"
               :compGrid="compGrid"
               :surfaceLayerVisible="viewerLayers.surface"
+              :rotaryTilted="st.rotary_at_zero === false"
               @toggleSurfaceLayer="(on: boolean) => { viewerLayers.surface = on; viewerRef?.setLayerVisible?.('surface', on); saveViewerDefaults({ ...loadViewerDefaults(), layers: { ...loadViewerDefaults().layers, surface: on } }); }"
               @mdi="fire({ cmd: 'mdi', text: $event }, 'ready')"
               @abort="fire({ cmd: 'abort' }, 'abort')"
