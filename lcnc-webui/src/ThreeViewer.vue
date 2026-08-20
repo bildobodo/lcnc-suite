@@ -119,11 +119,21 @@ const emit = defineEmits<{
 // HUD data (read from status for template)
 const vst = computed(() => status.value?.data ?? null);
 
-// First WCS word the loaded file pins (G54..G59.3). CAM preambles almost
-// always emit one on line ~15, so its rotation is what the preview parser
-// ends up applying — regardless of the active WCS. Surface a HUD hint when
-// this differs from the operator's active selection so rotation edits on
-// the non-pinned WCS don't look silently ignored.
+// First WCS word the loaded file pins (G54..G59.3), if one appears early.
+//
+// The hint it surfaces is real: a program that selects its own fixture will
+// cut THERE, not where the operator's active DRO reads. It is worth saying.
+//
+// What it is NOT, since the parse basis fix (W5c): a statement about which
+// rotation the preview applies. The preview is parsed against the machine's
+// ACTIVE WCS and the shipped points are correct relative to it, whatever
+// fixtures the program selects internally.
+//
+// KNOWN WEAKNESS (W5d replaces this): it scans only the first 8 KB and takes
+// the FIRST match, so a program that starts in G54 and later switches to G55
+// produces no hint at all. The authoritative answer — which fixtures the
+// program actually produced motion under — is available from the parse and
+// should come from there rather than from a regex over the source.
 const filePinnedWcs = computed(() => {
   const src = gcodeContent.value;
   if (!src) return null;
