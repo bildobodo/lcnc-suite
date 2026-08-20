@@ -62,7 +62,7 @@ from gcode_canon import PreviewCanon, apply_var_patches
 from gateway_util import (
     scan_tool_stats, read_axis_limits, check_limit_violations,
     check_limit_violations_world, merge_violation_records,
-    rs274_effective_xy_offset, parse_kins_config, kins_type_flags,
+    wcs_basis_terms, parse_kins_config, kins_type_flags,
     kins_nonidentity_flags, kins_frame_indices, check_limit_violations_trsrn,
     kins_marker_policy, mode_boundary_indices,
 )
@@ -214,17 +214,28 @@ def parse(ctx: dict) -> dict:
     # which mis-places g92 under an active G10 R rotation. Z/rotary are never
     # rotated; plain sums stay exact there.
     unit_scale = 25.4 if machine_units == "mm" else 1.0
-    theta_deg = canon.rotation_xy or 0.0
-    ox, oy = rs274_effective_xy_offset(
-        canon.g5x_offset_x, canon.g5x_offset_y,
-        canon.g92_offset_x, canon.g92_offset_y, theta_deg)
-    oz = canon.g5x_offset_z + canon.g92_offset_z
-    # Rotary offsets — subtracted so abc is in raw program coords, symmetric
-    # with xyz (frontend re-applies LIVE offsets when evaluating the machine
-    # chain for the part-frame preview). Degrees; XY rotation never touches abc.
-    oa = canon.g5x_offset_a + canon.g92_offset_a
-    ob = canon.g5x_offset_b + canon.g92_offset_b
-    oc = canon.g5x_offset_c + canon.g92_offset_c
+    # WHICH basis: the state at PROGRAM START — after the initcodes force the
+    # machine's active WCS, before the program's first line. The client re-adds
+    # the LIVE active WCS when it renders, so this is the only basis that makes
+    # `live + shipped == true machine position`.
+    #
+    # This used to be the END-OF-PARSE state, which is wrong for every program
+    # that ends in M2 (i.e. nearly all of them): M2 resets the interpreter to
+    # G54, so a program run in any other WCS rendered displaced by the whole
+    # fixture delta — the path shape was right, the whole thing sat at the
+    # wrong fixture. Pinned by canon_fixtures.gen.json / test_canon_basis.py,
+    # which also pin why "first motion" is NOT the answer.
+    _basis = canon.basis_at_start
+    if _basis is None:
+        # No program line ever ran (empty file, or an error on line 1). Fall
+        # back to the end state and say so — never silently.
+        _basis = canon.wcs_basis()
+        print("wcs basis: no program-start snapshot (no line executed) — "
+              "using end-of-parse state", file=sys.stderr, flush=True)
+    # Rotary offsets are subtracted too, so abc is in raw program coords,
+    # symmetric with xyz (the frontend re-applies LIVE offsets when it
+    # evaluates the machine chain for the part-frame preview).
+    ox, oy, oz, oa, ob, oc, theta_deg = wcs_basis_terms(_basis)
     # Per-line soft-limit validation (offline dry run stage 1). Runs on the
     # FULL canon segment list — the RDP decimation below can shave up to eps
     # off an extreme excursion, so post-RDP data is not trustworthy for

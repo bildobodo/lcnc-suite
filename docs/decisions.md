@@ -310,6 +310,16 @@ desynchronises the state that G10 L2, G92 and the tool table manage.
   `MAX_FEED_OVERRIDE` / `MIN|MAX_SPINDLE_OVERRIDE` were parsed from the INI and shipped
   to the UI — so a builder who declared 150% had a backend that accepted 200%. That is
   policy enforced on the client, which `permissions.ts` forbids.
+- **The preview subtracted the wrong work offset — for nearly every program, not
+  just multi-fixture ones.** The extraction used the END-OF-PARSE offsets, and `M2`
+  resets the interpreter to G54. So any program run in another WCS shipped points
+  displaced by the whole fixture delta: the path shape was right, the entire thing sat
+  at the wrong fixture, and on a rotary machine the error stopped being rigid because
+  those coordinates then go through the kinematic chain. The basis is now captured at
+  PROGRAM START — after the initcodes force the active WCS, before line 1 — which is
+  the only basis for which `live offset + shipped point` is the true machine position.
+  "First motion" was rejected on evidence, not taste: with a preamble that selects a
+  different WCS it pins the path to the wrong fixture.
 - **RETRACTED — "`wcs_table` mixes units in one rendered table".** Planning flagged this
   as an operator-facing lie on the strength of a source comment. The experiment above
   shows both sources are machine units, so the panel was always correct. The comment

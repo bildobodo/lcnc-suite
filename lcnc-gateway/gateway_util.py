@@ -574,6 +574,29 @@ def parse_kins_config(kinematics_value, halcmd_values):
     }
 
 
+def wcs_basis_terms(basis):
+    """(g5x9, g929, rotation_deg) -> (ox, oy, oz, oa, ob, oc, theta_deg).
+
+    The offset the preview extraction subtracts from every canon endpoint. XY
+    goes through rs274_effective_xy_offset (g5x + Rz(theta)*g92 — a plain sum
+    deviates when G92 and a G10 R rotation are both active, which the rs274
+    golden fixtures pin); the remaining axes are plain sums, and theta rides
+    along because the extraction also un-rotates XY by it.
+
+    `basis` is what PreviewCanon.wcs_basis() returns, in CANON units (inches);
+    the caller applies unit_scale to the resulting coordinates, not to these
+    terms — same as the endpoints they are subtracted from. Pure.
+    """
+    g5x, g92, theta_deg = basis
+    ox, oy = rs274_effective_xy_offset(g5x[0], g5x[1], g92[0], g92[1], theta_deg)
+    return (ox, oy,
+            g5x[2] + g92[2],      # Z
+            g5x[3] + g92[3],      # A
+            g5x[4] + g92[4],      # B
+            g5x[5] + g92[5],      # C
+            theta_deg)
+
+
 _KINSTYPE_MARKER = re.compile(r"^\s*WEBUI_KINSTYPE\s*=\s*(\d+)\s*$", re.IGNORECASE)
 
 

@@ -55,6 +55,10 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         # pre_rot_rad, primary_deg, secondary_deg)] in execution order —
         # the three kins-pin values that pin the TOOL-kins (type 2) frame.
         self.kins_frames = []
+        # WCS basis captured at the first real program line — see next_line().
+        # None means no line ever ran (empty/failed parse); the caller must
+        # then fall back and say so rather than silently using end-of-parse.
+        self.basis_at_start = None
         self.xo = self.yo = self.zo = 0.0
         self.ao = self.bo = self.co = 0.0
         self.uo = self.vo = self.wo = 0.0
@@ -62,9 +66,40 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         self.plane = 1
         self.arcdivision = _ARC_MAX_SEGS
 
+    # Axis-offset attribute suffixes, canonical order (rs274.interpret).
+    _WCS_SUFFIXES = ("x", "y", "z", "a", "b", "c", "u", "v", "w")
+
+    def wcs_basis(self):
+        """The WCS state right now: (g5x9, g929, rotation_xy).
+
+        Canon/interpreter length units (INCHES) — the extraction multiplies by
+        unit_scale, same as the endpoints these offsets are subtracted from."""
+        return (
+            tuple(getattr(self, "g5x_offset_" + s, 0.0) for s in self._WCS_SUFFIXES),
+            tuple(getattr(self, "g92_offset_" + s, 0.0) for s in self._WCS_SUFFIXES),
+            float(getattr(self, "rotation_xy", 0.0) or 0.0),
+        )
+
     def next_line(self, st):
         self.state = st
         self.lineno = st.sequence_number
+        # PROGRAM-START basis: the offsets in effect after the gateway's
+        # initcodes (which force the machine's ACTIVE WCS) and before the
+        # program's first line runs.
+        #
+        # This is the basis the extraction must subtract, because the CLIENT
+        # re-adds the live active WCS. End-of-parse is wrong: M2 resets the
+        # interpreter to G54, so a program run in any other WCS would render
+        # displaced by the whole fixture delta. First-MOTION is also wrong: a
+        # program whose preamble selects a different WCS than the active one
+        # would then be drawn at the wrong fixture. Both verified against the
+        # real interpreter (scripts/gen_canon_fixtures.py).
+        #
+        # The initcode block arrives as sequence_number 0 and its offsets are
+        # applied AFTER that callback, so the first line with a real (>=1)
+        # number is the first moment the post-initcode state is visible.
+        if self.basis_at_start is None and (self.lineno or 0) >= 1:
+            self.basis_at_start = self.wcs_basis()
 
     def set_feed_rate(self, f): self.feedrate = f / 60.0
     def set_spindle_rate(self, _): pass
