@@ -209,6 +209,31 @@ handler. Where the INI declares nothing, `_OVERRIDE_FALLBACKS` substitutes exact
 literal the handler used before, so a silent INI keeps today's behavior — but the
 substitution is traced (`limits.ini_fallback`) instead of being invisible.
 
+### WCS var-file units — settled by experiment, not inference
+**Finding (2026-08-20):** the LinuxCNC var file stores G5x offsets in **machine
+units**, independent of program units (G20/G21).
+
+This overturns a comment in `gateway.py` that claimed the var file held
+"interpreter-internal units" and that `_wcs_cache` therefore mixed units — a claim
+that was never verified, and that was blocking the parse from being given the live
+axis offsets. It also retires a suspected display bug: the Offsets panel renders all
+nine rows in one table, so mixed units would have been an operator-facing lie. There
+is no mixture; the seed and STAT agree.
+
+**Experiment** (stock `sim/axis/minimal_xyz.ini`, `LINEAR_UNITS=inch`):
+
+| Command | Program units | Persisted | Meaning |
+|---|---|---|---|
+| `G10 L2 P1 X2.5` | inch (default) | `#5221 = 2.500000` | matches `STAT.g5x_offset[0] = 2.5` |
+| `G21 G10 L2 P2 X63.5` | **mm** | `#5241 = 2.500000` | 63.5 mm → 2.5 in — machine units, not program units |
+
+The second row is the one that matters: it rules out "the file follows G20/G21", which
+the first row alone could not.
+
+**What IS true** from that old comment: LinuxCNC writes the var file only on shutdown,
+so inactive rows on disk go stale within a session. That is a staleness problem, not a
+units problem, and it has a different fix.
+
 ### Client command path (`fire()` vs `send()`)
 **Line:** no command may travel BOTH paths, and no stop command may be droppable.
 Commands that are raw everywhere stay raw, listed and justified.
@@ -285,6 +310,11 @@ desynchronises the state that G10 L2, G92 and the tool table manage.
   `MAX_FEED_OVERRIDE` / `MIN|MAX_SPINDLE_OVERRIDE` were parsed from the INI and shipped
   to the UI — so a builder who declared 150% had a backend that accepted 200%. That is
   policy enforced on the client, which `permissions.ts` forbids.
+- **RETRACTED — "`wcs_table` mixes units in one rendered table".** Planning flagged this
+  as an operator-facing lie on the strength of a source comment. The experiment above
+  shows both sources are machine units, so the panel was always correct. The comment
+  was wrong, not the code; it is corrected in place. Recorded here because a retraction
+  that only lives in a chat log is how a phantom bug gets "fixed" twice.
 - **`fire()` could silently swallow an abort.** It opens with `if (busy.value) return`
   — no feedback, no trace — and abort was routed through it from the keyboard and the
   gamepad, so an abort pressed within another action's 200 ms cooldown was discarded.

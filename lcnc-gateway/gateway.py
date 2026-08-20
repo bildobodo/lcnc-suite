@@ -3906,11 +3906,19 @@ def build_viewer_init(stl_base_url: str) -> Dict[str, Any]:
 def _build_wcs_rotation_patches() -> Dict[str, str]:
     """Build {param_number: str(value)} rotation patches for the parse worker.
 
-    LinuxCNC only writes the var file on shutdown, so after G10 L2 R changes
-    the disk copy has stale rotation. Only rotation (base + 10) is patched —
-    axis offsets on disk are already correct in interpreter-internal units.
-    (_wcs_cache mixes internal units from seed with machine units from STAT,
-    so patching axis offsets would corrupt them.)
+    LinuxCNC only writes the var file on shutdown, so after a G10 L2 the disk
+    copy is stale — for rotation AND for the axis offsets. Only rotation
+    (base + 10) is patched today.
+
+    UNITS, settled by experiment 2026-08-20 (the previous note here claimed the
+    var file held "interpreter-internal units" and that _wcs_cache therefore
+    mixed units — it does not, and that claim blocked patching axis offsets):
+    on a stock INCH sim (LINEAR_UNITS=inch), `G10 L2 P1 X2.5` persisted as
+    `#5221 = 2.500000` alongside `STAT.g5x_offset[0] = 2.5`; and with G21 in
+    force — PROGRAM units millimetres — `G10 L2 P2 X63.5` persisted as
+    `#5241 = 2.500000`. The var file stores MACHINE units, independent of
+    program units. So _wcs_cache is uniform (var-file seed and STAT agree) and
+    patching axis offsets is safe; see docs/decisions.md.
     """
     patches: Dict[str, str] = {}
     if not _wcs_cache:
