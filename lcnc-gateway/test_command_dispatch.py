@@ -281,30 +281,39 @@ class TestPayloadValidation(unittest.TestCase):
         return _run(gateway.handle_command(msg, True))
 
     def _assert_validation_rejection(self, r, contains):
-        # Guard against passing for the wrong reason: the reply must be a real
-        # ValueError from the validation layer (not an incidental AttributeError/
-        # crash) AND carry the specific reason.
+        # Guard against passing for the wrong reason: the reply must come from a
+        # validation layer, not an incidental AttributeError/crash, AND carry
+        # the specific reason.
+        #
+        # TWO layers can legitimately produce it, and which one fires depends on
+        # the field (#27): COMMAND_SCHEMA bounds run first and return a message
+        # prefixed with the command name; a field with no schema entry falls
+        # through to the handler's finite_int/finite_float, whose raise is
+        # formatted by the recv-loop catch as "ValueError: …".
         self.assertFalse(r["ok"])
         err = r["error"].lower()
-        self.assertIn("valueerror", err, f"not a validation rejection: {r['error']!r}")
+        cmd_prefixed = err.startswith(("jog_", "add_tool", "save_tool", "set_", "home", "mdi"))
+        self.assertTrue(
+            "valueerror" in err or cmd_prefixed,
+            f"not a validation rejection: {r['error']!r}")
         self.assertIn(contains, err, f"wrong reason: {r['error']!r}")
 
     def test_jog_garbage_axis_rejected(self):
         r = self._send({"cmd": "jog_cont", "axis": "x", "vel": 1.0})
-        self._assert_validation_rejection(r, "convert")  # float('x') fails
+        self._assert_validation_rejection(r, "must be a number")
 
     def test_jog_negative_axis_rejected(self):
         r = self._send({"cmd": "jog_cont", "axis": -1, "vel": 1.0})
-        self._assert_validation_rejection(r, "minimum")  # finite_int lo=0
+        self._assert_validation_rejection(r, "minimum")
 
     def test_jog_non_finite_velocity_rejected(self):
         # The motion-value guard: Infinity must not reach CMD.jog.
         r = self._send({"cmd": "jog_cont", "axis": 0, "vel": "Infinity"})
-        self._assert_validation_rejection(r, "non-finite")
+        self._assert_validation_rejection(r, "finite")
 
     def test_add_tool_garbage_number_rejected(self):
         r = self._send({"cmd": "add_tool", "tool_number": "abc"})
-        self._assert_validation_rejection(r, "convert")
+        self._assert_validation_rejection(r, "must be a number")
 
     def test_add_tool_negative_number_rejected(self):
         r = self._send({"cmd": "add_tool", "tool_number": -5})
@@ -635,6 +644,82 @@ class TestTerminateParseProc(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestPayloadBoundsReachCmd(unittest.TestCase):
+    """#27 end to end: an out-of-range payload must be refused at the dispatch
+    boundary and NEVER reach CMD.*, and a clamped continuous input must reach it
+    at the machine's declared ceiling rather than the operator's number.
+
+    Runs the real handler bodies under the fake linuxcnc, with MachineLimits
+    forced so the assertions do not depend on whatever INI the dev box has."""
+
+    LIMITS = gateway.MachineLimits(
+        n_axes=5, n_joints=5, max_jog_velocity=50.0, max_spindle_speed=3000.0,
+        max_feed_override=1.5, min_spindle_override=0.5, max_spindle_override=1.2,
+        max_linear_velocity=100.0, declared_vars=frozenset({3014, 3100}),
+    )
+
+    def setUp(self):
+        gateway.lcnc_connected = True
+        gateway.STAT = linuxcnc.stat()
+        self.cmd = _RecordingCmd()
+        gateway.CMD = self.cmd
+        self._saved_limits = gateway._machine_limits
+        gateway._machine_limits = self.LIMITS
+
+    def tearDown(self):
+        gateway._machine_limits = self._saved_limits
+
+    def _send(self, msg):
+        gateway._shared_status = _payload()   # ready -> passes policy
+        return _run(gateway.handle_command(msg, True))
+
+    def _refused(self, msg, *never_called):
+        r = self._send(msg)
+        self.assertFalse(r["ok"], f"{msg['cmd']} should have been refused: {r}")
+        for name in never_called:
+            self.assertIsNone(self.cmd.args_of(name),
+                              f"{msg['cmd']} reached CMD.{name} despite refusal")
+        return r["error"]
+
+    def test_infinite_wcs_word_never_reaches_the_mdi(self):
+        err = self._refused({"cmd": "set_wcs", "target": "active", "x": float("inf")}, "mdi")
+        self.assertIn("finite", err.lower())
+
+    def test_out_of_range_joint_never_reaches_cmd_home(self):
+        self._refused({"cmd": "home", "joint": 99}, "home")
+
+    def test_out_of_range_axis_never_reaches_cmd_jog(self):
+        self._refused({"cmd": "jog_cont", "axis": 7, "vel": 1.0}, "jog")
+
+    def test_oversized_jog_multi_list_never_reaches_cmd_jog(self):
+        self._refused({"cmd": "jog_cont_multi",
+                       "axes": [{"axis": 0, "vel": 1.0}] * 10_000}, "jog")
+
+    def test_overlong_mdi_never_reaches_cmd_mdi(self):
+        err = self._refused({"cmd": "mdi", "text": "G1 X1 " * 60}, "mdi")
+        self.assertIn("truncat", err.lower())
+
+    def test_negative_spindle_speed_reaches_cmd_clamped_to_zero(self):
+        r = self._send({"cmd": "spindle_forward", "speed": -5000})
+        self.assertTrue(r["ok"])
+        args = self.cmd.args_of("spindle")
+        self.assertIsNotNone(args, "CMD.spindle was never called")
+        self.assertGreaterEqual(args[-1], 0, "negative RPM reached CMD.spindle")
+
+    def test_feed_override_clamped_to_the_ini_ceiling(self):
+        # The handler used to hardcode 2.0; this machine declares 1.5.
+        r = self._send({"cmd": "set_feed_override", "scale": 2.0})
+        self.assertTrue(r["ok"])
+        self.assertAlmostEqual(r["scale"], 1.5)
+        self.assertAlmostEqual(self.cmd.args_of("feedrate")[0], 1.5)
+
+    def test_conforming_command_still_reaches_cmd_unchanged(self):
+        # The bounds pass must not disturb a valid payload.
+        r = self._send({"cmd": "set_feed_override", "scale": 1.2})
+        self.assertTrue(r["ok"])
+        self.assertAlmostEqual(self.cmd.args_of("feedrate")[0], 1.2)
 
 
 class TestFusionWorkerSubprocess(unittest.TestCase):

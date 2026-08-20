@@ -8,9 +8,12 @@ from pathlib import Path
 
 from command_policy import (
     MachineState,
+    MachineLimits,
     evaluate_permissions,
     check_command,
+    validate_payload,
     COMMAND_GATES,
+    COMMAND_SCHEMA,
     READ_ONLY_COMMANDS,
     GATE_REQUIREMENTS,
 )
@@ -277,6 +280,119 @@ class TestSingleSource(unittest.TestCase):
         self.assertIn(denied, msgs)
 
 
+class TestPayloadSchema(unittest.TestCase):
+    """#27: bounds come from what the machine declares, not from literals."""
+
+    LIM = MachineLimits(
+        n_axes=5, n_joints=5, max_jog_velocity=50.0, max_spindle_speed=3000.0,
+        max_feed_override=1.5, min_spindle_override=0.5, max_spindle_override=1.2,
+        max_linear_velocity=100.0, declared_vars=frozenset({3014, 3100, 3101, 5221}),
+    )
+
+    def _reject(self, cmd, payload):
+        with self.assertRaises(ValueError) as cm:
+            validate_payload(cmd, payload, self.LIM)
+        return str(cm.exception)
+
+    # ---- the holes this table exists to close ----
+
+    def test_infinite_wcs_word_rejected(self):
+        # Shipped `G10 L2 P1 Xinf` into the MDI before #27.
+        self.assertIn("finite", self._reject("set_wcs", {"x": float("inf")}))
+        self.assertIn("finite", self._reject("set_wcs", {"r": float("nan")}))
+
+    def test_axis_and_joint_indices_bounded_by_the_machine(self):
+        self.assertIn("maximum 4", self._reject("jog_cont", {"axis": 7}))
+        self.assertIn("maximum 4", self._reject("home", {"joint": 99}))
+        # -1 is the documented "all joints" sentinel and must survive.
+        self.assertEqual(validate_payload("home", {"joint": -1}, self.LIM), {})
+
+    def test_jog_multi_axes_list_is_capped(self):
+        # Each entry issues a CMD.jog under the command lock — an uncapped list
+        # is an unbounded loop holding it.
+        self.assertIn("maximum", self._reject("jog_cont_multi", {"axes": [0] * 10_000}))
+
+    def test_mdi_length_rejected_not_truncated(self):
+        msg = self._reject("mdi", {"text": "G1 X1 " * 60})
+        self.assertIn("truncates", msg)
+
+    def test_compensation_method_is_a_closed_set(self):
+        self.assertIn("not one of", self._reject("set_compensation_method", {"method": 9}))
+        self.assertEqual(validate_payload("set_compensation_method", {"method": 1}, self.LIM), {})
+
+    # ---- continuous inputs clamp and report; structural ones reject ----
+
+    def test_override_clamped_to_ini_ceiling_not_a_literal(self):
+        # The handler hardcoded 2.0; this machine's builder declared 1.5.
+        self.assertEqual(validate_payload("set_feed_override", {"scale": 2.0}, self.LIM),
+                         {"scale": 1.5})
+
+    def test_negative_spindle_speed_clamps_to_zero_not_reverse(self):
+        self.assertEqual(validate_payload("spindle_forward", {"speed": -500}, self.LIM),
+                         {"speed": 0})
+
+    def test_in_range_values_are_left_alone(self):
+        self.assertEqual(validate_payload("set_feed_override", {"scale": 1.2}, self.LIM), {})
+        self.assertEqual(validate_payload("jog_cont", {"axis": 2, "vel": 10.0}, self.LIM), {})
+
+    def test_absent_fields_are_not_invented(self):
+        # The handler's own default applies; the schema must not fabricate one.
+        self.assertEqual(validate_payload("jog_cont", {}, self.LIM), {})
+        self.assertEqual(validate_payload("mdi", {"text": None}, self.LIM), {})
+
+    def test_unschemad_command_passes_through(self):
+        # The table CONSTRAINS; it does not enumerate.
+        self.assertEqual(validate_payload("estop", {"anything": 1}, self.LIM), {})
+
+    # ---- set_probe_vars: machine-declared, system space denied ----
+
+    def test_system_parameter_space_denied_even_when_declared(self):
+        # 5221 IS in this machine's var file (WCS offsets are persistent) and
+        # must still be refused — G10 L2 owns it.
+        msg = self._reject("set_probe_vars", {"vars": {"5221": 1.0}})
+        self.assertIn("reserved system parameter space", msg)
+        self.assertIn("reserved", self._reject("set_probe_vars", {"vars": {"5": 1.0}}))
+
+    def test_undeclared_var_rejected_with_actionable_message(self):
+        msg = self._reject("set_probe_vars", {"vars": {"3200": 1.0}})
+        self.assertIn("not in this machine's var file", msg)
+
+    def test_declared_probe_var_accepted(self):
+        self.assertEqual(
+            validate_payload("set_probe_vars", {"vars": {"3100": 10.0, "3014": 99}}, self.LIM),
+            {})
+
+    def test_unreadable_var_file_still_denies_system_space(self):
+        # declared_vars=None (var file unreadable): the machine-declared check
+        # cannot run, but the system-range deny is unconditional.
+        lim = MachineLimits(declared_vars=None)
+        with self.assertRaises(ValueError):
+            validate_payload("set_probe_vars", {"vars": {"5221": 1.0}}, lim)
+        self.assertEqual(validate_payload("set_probe_vars", {"vars": {"3200": 1.0}}, lim), {})
+
+    # ---- the table itself ----
+
+    def test_no_stale_schema_entries(self):
+        for cmd in COMMAND_SCHEMA:
+            self.assertIn(cmd, ALL_HANDLED_COMMANDS, f"schema for unhandled {cmd!r}")
+
+    def test_schema_commands_are_gated(self):
+        # A bounds-checked command that nothing authorizes would be a gap.
+        for cmd in COMMAND_SCHEMA:
+            self.assertIn(cmd, COMMAND_GATES, f"{cmd!r} has bounds but no gate")
+
+    def test_undeclared_bounds_degrade_to_type_check_only(self):
+        # An INI that declares nothing must not crash the pass or invent limits.
+        empty = MachineLimits()
+        self.assertEqual(validate_payload("jog_cont", {"axis": 3, "vel": 1e6}, empty), {})
+        self.assertIn("finite", str(self._reject_with("set_wcs", {"x": float("inf")}, empty)))
+
+    def _reject_with(self, cmd, payload, limits):
+        with self.assertRaises(ValueError) as cm:
+            validate_payload(cmd, payload, limits)
+        return cm.exception
+
+
 class TestNoBarePayloadCasts(unittest.TestCase):
     """#9: every numeric coercion of a websocket command field must go through
     finite_int/finite_float (which reject NaN/Inf/missing/out-of-range and feed
@@ -286,9 +402,36 @@ class TestNoBarePayloadCasts(unittest.TestCase):
     boundary before 'int'/'float' in 'finite_int'/'finite_float')."""
 
     def test_no_bare_int_or_float_on_command_payload(self):
-        src = (Path(__file__).resolve().parent / "gateway.py").read_text(encoding="utf-8")
+        src = _gateway_src()
         bad = re.findall(r"\b(?:int|float)\((?:msg|entry)\b", src)
         self.assertEqual(bad, [], f"bare payload casts — use finite_int/finite_float: {bad}")
+
+    def test_no_bare_cast_of_payload_derived_local(self):
+        """The direct-cast check above only matches the literal names `msg` and
+        `entry`, so a value laundered through a local escaped it:
+
+            val = msg.get(axis)
+            parts.append(f"{axis.upper()}{float(val):.6f}")   # shipped Xinf
+
+        Three such sites existed (set_wcs twice, set_probe_vars once) and put
+        `G10 L2 P1 Xinf` on the MDI and arbitrary `#N=inf` into the parameter
+        file. Catch the shape: a bare cast of any short local inside the command
+        dispatch, where every numeric coercion must be finite_*."""
+        body = _function_body(_gateway_src(), "async def _handle_command_impl")
+        found = set(re.findall(
+            r"[^_\w]((?:int|float)\([a-z_][a-z0-9_]{0,12})[\)\.,\[]", body))
+        # Casts of values that are NOT payload-derived are legitimate. Naming
+        # them keeps this honest rather than making the regex cleverer — adding
+        # a name here is a claim that the value came from STAT or the INI, not
+        # from the websocket.
+        ALLOWED = {
+            "int(raw",      # safe_get("tool_in_spindle") — from STAT
+            "int(current",  # current tool/pocket read back from the tool table
+        }
+        self.assertEqual(
+            sorted(found - ALLOWED), [],
+            "bare cast of a payload-derived local inside the dispatch — use "
+            "finite_int/finite_float, or add the name to ALLOWED with a reason")
 
 
 if __name__ == "__main__":

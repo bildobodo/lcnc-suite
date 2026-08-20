@@ -50,7 +50,7 @@ from gateway_util import (
     parse_telemetry_batch,
     TELEMETRY_BODY_MAX,
 )
-from command_policy import check_command
+from command_policy import check_command, validate_payload, MachineLimits
 from tool_table import (
     parse_tool_table,
     write_tool_table,
@@ -1618,8 +1618,10 @@ def _self_restart():
 def try_connect_lcnc() -> bool:
     """Attempt to connect to LinuxCNC. Returns True on success."""
     global STAT, CMD, ERR, lcnc_connected, _lcnc_pid, _nc_files_dir, _ini_config, _ever_connected, _kins_decl_cache
+    global _machine_limits
     _nc_files_dir = None        # re-resolve on reconnect
     _ini_config = None          # re-read INI config on reconnect
+    _machine_limits = None      # rebuild payload bounds on reconnect (#27)
     _kins_decl_cache = None     # re-parse kins declaration on reconnect
     _status_runtime.invalidate_var_file_path()  # re-resolve on reconnect (P2.1)
     if not _nml_connectable():
@@ -1767,6 +1769,96 @@ def _parse_kins_decl() -> Optional[dict]:
     except Exception as e:
         _trace.emit_exc("viewer_init.kins_parse_failed", e)
     return _kins_decl_cache
+
+
+_machine_limits: Optional[MachineLimits] = None
+_var_numbers_cache: tuple = (None, None)   # (mtime, frozenset)
+
+# Ceilings used when the INI declares none. These are exactly the literals the
+# override handlers hardcoded before issue #27, so a silent INI keeps today's
+# behavior — but the substitution is TRACED rather than invisible, and a builder
+# who does declare a bound now has it enforced on the trusted side.
+_OVERRIDE_FALLBACKS = {
+    "max_feed_override": 2.0,
+    "min_spindle_override": 0.5,
+    "max_spindle_override": 2.0,
+}
+
+
+def _declared_var_numbers() -> Optional[frozenset]:
+    """Var numbers this machine's var file declares, mtime-cached.
+
+    The var file IS the machine's statement of which parameters are persistent
+    and therefore configurable — the same "ask the machine, don't hardcode"
+    rule the rest of the bounds follow. None when it cannot be read, which
+    leaves set_probe_vars' key check to the system-range deny only."""
+    global _var_numbers_cache
+    try:
+        ini_path = getattr(STAT, "ini_filename", None)
+        if not ini_path:
+            return None
+        ini = linuxcnc.ini(ini_path)
+        var_file = ini.find("RS274NGC", "PARAMETER_FILE")
+        if not var_file:
+            return None
+        if not os.path.isabs(var_file):
+            var_file = os.path.join(os.path.dirname(ini_path), var_file)
+        mtime = os.path.getmtime(var_file)
+        if _var_numbers_cache[0] == mtime:
+            return _var_numbers_cache[1]
+        nums = set()
+        with open(var_file) as fh:
+            for line in fh:
+                tok = line.split()
+                if tok:
+                    try:
+                        nums.add(int(tok[0]))
+                    except ValueError:
+                        pass
+        result = frozenset(nums)
+        _var_numbers_cache = (mtime, result)
+        return result
+    except (OSError, AttributeError) as e:
+        _trace.emit("limits.var_file_unreadable", level="warn", err=str(e))
+        return None
+
+
+def get_machine_limits() -> MachineLimits:
+    """Payload bounds this machine declares (issue #27), cached until reconnect.
+
+    Built ONCE — axis/joint counts and INI ceilings do not change during a
+    session — so the per-command validate_payload() pass costs a dict lookup,
+    not a poll or a file read."""
+    global _machine_limits
+    if _machine_limits is not None:
+        return _machine_limits
+    cfg = get_ini_config()
+    n_axes = n_joints = None
+    try:
+        STAT.poll()
+        n_axes = len(_axes_from_mask(getattr(STAT, "axis_mask", 0) or 0)) or None
+        n_joints = getattr(STAT, "joints", None) or None
+    except Exception as e:  # STAT absent / not connected yet
+        _trace.emit("limits.stat_unavailable", level="warn", err=str(e))
+    missing = [k for k, v in _OVERRIDE_FALLBACKS.items() if cfg.get(k) is None]
+    if missing:
+        _trace.emit("limits.ini_fallback", level="warn", fields=missing,
+                    msg="INI declares no override ceiling — using documented default")
+    _machine_limits = MachineLimits(
+        n_axes=n_axes,
+        n_joints=n_joints,
+        max_jog_velocity=cfg.get("max_jog_velocity"),
+        max_spindle_speed=cfg.get("max_spindle_speed"),
+        max_feed_override=cfg.get("max_feed_override") or _OVERRIDE_FALLBACKS["max_feed_override"],
+        min_spindle_override=(cfg.get("min_spindle_override")
+                              if cfg.get("min_spindle_override") is not None
+                              else _OVERRIDE_FALLBACKS["min_spindle_override"]),
+        max_spindle_override=(cfg.get("max_spindle_override")
+                              or _OVERRIDE_FALLBACKS["max_spindle_override"]),
+        max_linear_velocity=cfg.get("max_velocity") or cfg.get("max_linear_velocity"),
+        declared_vars=_declared_var_numbers(),
+    )
+    return _machine_limits
 
 
 def get_ini_config() -> dict:
@@ -2443,7 +2535,7 @@ def _rfl_entry_reached(entry: dict):
         val = entry.get(key)
         if val is None:
             continue
-        expected = float(val) * scale + float(g5x[i]) + float(g92[i])
+        expected = finite_float(val) * scale + float(g5x[i]) + float(g92[i])
         if abs(float(pos[i]) - expected) > tol:
             return False, f"{key.upper()} at {float(pos[i]):.3f}, expected {expected:.3f}"
     return True, ""
@@ -2613,6 +2705,25 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
         # No status snapshot yet (pre-first-poll window). Can't evaluate state;
         # the handler-level guards still apply. Trace so the gap is auditable.
         _trace.emit("policy.check_skipped_no_state", level="warn", cmd=cmd)
+
+    # Payload BOUNDS against what the machine declares (issue #27). Separate
+    # claim from finite_int/finite_float's TYPE check in the handlers — see the
+    # command_policy docstring. Continuous inputs are clamped and the corrected
+    # value merged back (the reply echoes it, so the UI snaps to the real
+    # ceiling); discrete/structural values are refused.
+    #
+    # A refusal RETURNS the bounded reply rather than raising, so both policy
+    # layers — gate and bounds — behave identically to a caller. (The recv
+    # loop's ValueError catch stays as the backstop for failures raised from
+    # inside a handler BODY, e.g. require_armed.)
+    try:
+        _fixed = validate_payload(cmd, msg, get_machine_limits())
+    except ValueError as _bounds_e:
+        _trace.emit("ws.payload_rejected", level="warn", cmd=cmd, reason=str(_bounds_e))
+        return {"ok": False, "error": str(_bounds_e)}
+    if _fixed:
+        _trace.emit("ws.payload_clamped", level="warn", cmd=cmd, fields=_fixed)
+        msg = {**msg, **_fixed}
 
     try:
         if cmd == "arm":
@@ -3100,17 +3211,17 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
 
         if cmd == "set_feed_override":
             require_armed(armed)
+            # Range is enforced by COMMAND_SCHEMA against the INI's
+            # MAX_FEED_OVERRIDE (was a hardcoded 2.0 here, which accepted 200%
+            # on a machine whose builder declared 150%).
             scale = finite_float(msg.get("scale", 1.0), 1.0)
-            # Clamp to reasonable range (0-200%)
-            scale = max(0.0, min(2.0, scale))
             await _cmd_blocking(CMD.feedrate, scale, wait=None)
             return {"ok": True, "scale": scale}
 
         if cmd == "set_spindle_override":
             require_armed(armed)
+            # Range from the INI's MIN/MAX_SPINDLE_OVERRIDE (COMMAND_SCHEMA).
             scale = finite_float(msg.get("scale", 1.0), 1.0)
-            # Clamp to reasonable range (50-200%)
-            scale = max(0.5, min(2.0, scale))
             await _cmd_blocking(CMD.spindleoverride, scale, wait=None)
             return {"ok": True, "scale": scale}
 
@@ -3168,9 +3279,9 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
 
         if cmd == "set_rapid_override":
             require_armed(armed)
+            # 0–100% (COMMAND_SCHEMA; 1.0 is LinuxCNC's own ceiling, not a
+            # machine-declared one, so it is a named constant there).
             scale = finite_float(msg.get("scale", 1.0), 1.0)
-            # Clamp to 0-100%
-            scale = max(0.0, min(1.0, scale))
             await _cmd_blocking(CMD.rapidrate, scale, wait=None)
             return {"ok": True, "scale": scale}
 
@@ -3188,9 +3299,8 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
 
         if cmd == "set_max_velocity":
             require_armed(armed)
+            # Range from the INI's TRAJ MAX_LINEAR_VELOCITY (COMMAND_SCHEMA).
             velocity = finite_float(msg.get("velocity", 0.0))
-            # Clamp to positive values
-            velocity = max(0.0, velocity)
             await _cmd_blocking(CMD.maxvel, velocity, wait=None)
             return {"ok": True, "velocity": velocity}
 
@@ -3262,7 +3372,11 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 if var_file:
                     if not os.path.isabs(var_file):
                         var_file = os.path.join(os.path.dirname(ini_path), var_file)
-                    str_vars = {str(k): float(v) for k, v in vars_to_set.items()}
+                    # Keys are bounds-checked against the machine's var file by
+                    # COMMAND_SCHEMA; values get the same finite_* type claim as
+                    # every other payload number (a bare cast here wrote
+                    # arbitrary #N=inf into the parameter file).
+                    str_vars = {str(k): finite_float(v) for k, v in vars_to_set.items()}
                     _trace.emit("probe.set_vars", vars=str_vars)
                     await asyncio.to_thread(_write_var_file_updates, var_file, str_vars)
                     file_ok = True
@@ -3272,7 +3386,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             STAT.poll()
             if armed and bool(safe_get("enabled", False)) and not reject_if_auto_running():
                 try:
-                    items = [f"#{k}={float(v):.6f}" for k, v in vars_to_set.items()]
+                    items = [f"#{k}={finite_float(v):.6f}" for k, v in vars_to_set.items()]
                     chunks, current = [], ""
                     for item in items:
                         if current and len(current) + 1 + len(item) > 250:
@@ -3418,7 +3532,10 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             for axis in all_keys:
                 val = msg.get(axis)
                 if val is not None:
-                    parts.append(f"{axis.upper()}{float(val):.6f}")
+                    # finite_float, not float(): a bare cast laundered through
+                    # this local slipped past the no-bare-payload-cast guard and
+                    # shipped `G10 L2 P1 Xinf` into the MDI (issue #27).
+                    parts.append(f"{axis.upper()}{finite_float(val):.6f}")
             if not parts:
                 return {"ok": False, "error": "No axis values provided"}
             await set_mode(linuxcnc.MODE_MDI)
@@ -3427,7 +3544,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             for axis in all_keys:
                 val = msg.get(axis)
                 if val is not None:
-                    _wcs_cache[ci][axis] = float(val)
+                    _wcs_cache[ci][axis] = finite_float(val)
             return {"ok": True, "table": [row.copy() for row in _wcs_cache]}
 
         return {"ok": False, "error": f"Unknown cmd: {cmd}"}

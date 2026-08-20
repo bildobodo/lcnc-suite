@@ -176,6 +176,39 @@ proving handlers *behave* — that is each command's own tests. `test_command_po
 parses both ladders out of `gateway.py` source, so a new handler on either path fails
 the build unless someone classifies it.
 
+### Payload validation (`COMMAND_SCHEMA`)
+**Line:** bounds, arity and enum membership — nothing else.
+
+Type (is it a finite number at all?) stays with `finite_int`/`finite_float` in the
+handlers. Two non-overlapping claims cannot drift; merging them would mean either a
+duplicated claim or rewriting 41 call sites. MDI is length-capped and nothing more —
+parsing G-code server-side to decide policy is an open-ended project, deliberately
+not started.
+
+**Out-of-range posture.** Continuous operator inputs (override sliders, jog velocity,
+spindle speed) **clamp** to the machine's ceiling and report the corrected value, so
+the UI snaps back visibly; erroring on a slider drag is noise. Discrete and structural
+values (axis index, joint, tool number, G10 axis words) **reject** — a clamped index
+would silently act on the *wrong* axis or tool, which is worse than refusing.
+
+**Bounds source.** Whatever the machine declares (INI, STAT), never a literal in a
+handler. Where the INI declares nothing, `_OVERRIDE_FALLBACKS` substitutes exactly the
+literal the handler used before, so a silent INI keeps today's behavior — but the
+substitution is traced (`limits.ini_fallback`) instead of being invisible.
+
+### `set_probe_vars` writable set
+**Line:** a parameter is writable if this machine's **var file declares it** and it
+is outside the reserved system ranges (`#1–#30` locals, `#5000+` system).
+
+Not an exact allowlist of the documented `#3100–#3116` block (brittle — it would break
+a custom probe macro), and not a numeric band like `#3000–#3999` (a proxy for the
+hazard rather than the hazard: it would permit undeclared vars that cannot persist and
+reject a legitimate var declared outside the band). The var file is the machine's own
+statement of what is configurable, which is the same rule every other bound follows.
+The system-range deny is unconditional *because* the var file legitimately declares
+G28/G30, G92, WCS and tool parameters — poking those behind the interpreter's back
+desynchronises the state that G10 L2, G92 and the tool table manage.
+
 ---
 
 ## Fixed
@@ -190,3 +223,17 @@ the build unless someone classifies it.
   "iocontrol is asking for a tool change", so the guard is the request pin itself
   (`require_tool_change_pending`), following the `require_no_eoffset` None/stale
   convention.
+- **Payload values laundered through a local escaped the no-bare-cast guard.** Its regex
+  matched only the literal names `msg`/`entry`, so `val = msg.get(axis)` followed by
+  `float(val)` slipped through and put `G10 L2 P1 Xinf` on the MDI and arbitrary
+  `#N=inf` into the parameter file. Three sites fixed; the guard now also catches the
+  laundered shape inside the dispatch, with an allowlist that must name any legitimate
+  non-payload cast.
+- **Override ceilings were enforced only on the client.** The gateway hardcoded 2.0 while
+  `MAX_FEED_OVERRIDE` / `MIN|MAX_SPINDLE_OVERRIDE` were parsed from the INI and shipped
+  to the UI — so a builder who declared 150% had a backend that accepted 200%. That is
+  policy enforced on the client, which `permissions.ts` forbids.
+- **Unbounded list and string payloads.** `jog_cont_multi`'s `axes` was iterated with no
+  length cap, issuing one `CMD.jog` per entry while holding the command lock; `mdi` text
+  was passed at any length to a 256-char buffer that truncates mid-word and executes a
+  different move. Both now refuse.

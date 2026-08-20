@@ -209,3 +209,253 @@ def check_command(cmd: str, state: MachineState) -> Optional[str]:
         if not ok(state):
             return message
     return None
+
+
+# ---------------------------------------------------------------------------
+# Payload bounds (issue #27)
+#
+# TWO NON-OVERLAPPING CLAIMS, deliberately kept in separate places:
+#   * TYPE     — is this a real, finite number at all?  gateway_util.finite_int /
+#                finite_float, called by the handlers (41 sites). Unchanged.
+#   * BOUNDS   — is it inside what THIS machine declares?  This table.
+# Merging them would mean either duplicating the type claim (two sources, one
+# truth, guaranteed drift) or rewriting 41 handler call sites. Split, they cannot
+# disagree.
+#
+# Bounds come from the machine (INI / STAT), never from a literal in a handler —
+# a builder who declares MAX_FEED_OVERRIDE 1.5 must not have the gateway accept
+# 2.0 while only the frontend refuses, which is policy enforced on the client
+# (lcnc-webui/src/permissions.ts forbids exactly that).
+#
+# OUT-OF-RANGE POSTURE, decided 2026-08-20:
+#   * clamp=True  — CONTINUOUS operator inputs (override sliders, jog velocity).
+#                   Clamp to the bound and report the corrected value; the UI
+#                   snaps back visibly. Erroring on a slider drag is noise.
+#   * clamp=False — DISCRETE / STRUCTURAL values (axis index, joint, tool number,
+#                   G10 axis words). Reject. A clamped index would silently act
+#                   on the WRONG axis or tool — the worst possible outcome.
+# ---------------------------------------------------------------------------
+
+# LinuxCNC's MDI buffer is 256 chars; longer text is TRUNCATED MID-WORD and
+# executed as a different move, silently. Reject instead (gateway.py's own
+# set_probe_vars chunker already encodes this limit).
+MDI_MAX_CHARS = 255
+# LinuxCNC tool-number ceiling. Not machine-declared anywhere, so it is named
+# here rather than buried as a literal in a handler.
+TOOL_NUMBER_MAX = 99999
+
+
+@dataclass(frozen=True)
+class MachineLimits:
+    """Bounds this machine declares. Built once per connection on the gateway
+    from get_ini_config() + STAT (see gateway.get_machine_limits) — never
+    rebuilt per command. Every field is Optional: an INI that does not declare a
+    bound leaves it None and that field is then type-checked only, with the gap
+    surfaced by the caller rather than silently defaulted."""
+    n_axes: Optional[int] = None
+    n_joints: Optional[int] = None
+    max_jog_velocity: Optional[float] = None
+    max_spindle_speed: Optional[float] = None
+    max_feed_override: Optional[float] = None
+    min_spindle_override: Optional[float] = None
+    max_spindle_override: Optional[float] = None
+    max_linear_velocity: Optional[float] = None
+    #: var numbers this machine's var file declares — the writable set for
+    #: set_probe_vars (see WRITABLE_VAR_DENY_RANGES).
+    declared_vars: Optional[frozenset] = None
+
+
+#: Parameter ranges that must never be written through set_probe_vars even when
+#: the var file declares them (it does declare most of these — that is the
+#: point). #1–#30 are subroutine call arguments; #5000+ is system state with
+#: proper commands (G10 L2 for offsets, G92, the tool table), and poking it
+#: behind the interpreter's back desynchronises what those commands manage.
+WRITABLE_VAR_DENY_RANGES = ((1, 30), (5000, 99999))
+
+
+@dataclass(frozen=True)
+class Num:
+    """A numeric field. `lo`/`hi` are a literal, None, or a callable taking
+    MachineLimits (so machine-declared bounds are named at the use site)."""
+    lo: object = None
+    hi: object = None
+    clamp: bool = False
+    integer: bool = False
+
+
+@dataclass(frozen=True)
+class Enum:
+    """A small closed value set — reject anything else."""
+    values: frozenset
+
+
+@dataclass(frozen=True)
+class Seq:
+    """A list field with a hard length cap. Unbounded lists matter: the
+    jog-multi handlers iterate the payload's `axes` issuing one CMD.jog per
+    entry while holding the command lock."""
+    max_len: object
+
+
+@dataclass(frozen=True)
+class Text:
+    max_len: object
+
+
+@dataclass(frozen=True)
+class VarNumbers:
+    """set_probe_vars' `vars` mapping: keys must be var numbers this machine
+    declares AND outside WRITABLE_VAR_DENY_RANGES."""
+
+
+def _axis_index(_l: MachineLimits):
+    return (_l.n_axes - 1) if _l.n_axes else None
+
+
+COMMAND_SCHEMA: Dict[str, Dict[str, object]] = {
+    # --- jogging: axis INDEX is structural (reject), velocity is a slider (clamp)
+    "jog_cont":  {"axis": Num(lo=0, hi=_axis_index, integer=True),
+                  "vel": Num(lo=0, hi=lambda l: l.max_jog_velocity, clamp=True)},
+    "jog_incr":  {"axis": Num(lo=0, hi=_axis_index, integer=True),
+                  "vel": Num(lo=0, hi=lambda l: l.max_jog_velocity, clamp=True)},
+    "jog_stop":  {"axis": Num(lo=0, hi=_axis_index, integer=True)},
+    "jog_cont_multi":  {"axes": Seq(max_len=lambda l: l.n_axes)},
+    "jog_incr_multi":  {"axes": Seq(max_len=lambda l: l.n_axes)},
+    "jog_stop_multi":  {"axes": Seq(max_len=lambda l: l.n_axes)},
+    # --- homing: joint index structural; -1 is the documented "all joints"
+    "home":   {"joint": Num(lo=-1, hi=lambda l: (l.n_joints - 1) if l.n_joints else None,
+                            integer=True)},
+    "unhome": {"joint": Num(lo=-1, hi=lambda l: (l.n_joints - 1) if l.n_joints else None,
+                            integer=True)},
+    # --- spindle: a speed is continuous, but NEGATIVE is a direction error, not
+    #     a slider overshoot — lo=0 clamps a stray sign rather than reversing.
+    "spindle_forward": {"speed": Num(lo=0, hi=lambda l: l.max_spindle_speed, clamp=True)},
+    "spindle_reverse": {"speed": Num(lo=0, hi=lambda l: l.max_spindle_speed, clamp=True)},
+    # --- overrides: builder-declared ceilings, previously hardcoded 2.0 / 0.5
+    "set_feed_override":    {"scale": Num(lo=0, hi=lambda l: l.max_feed_override, clamp=True)},
+    "set_spindle_override": {"scale": Num(lo=lambda l: l.min_spindle_override,
+                                          hi=lambda l: l.max_spindle_override, clamp=True)},
+    "set_rapid_override":   {"scale": Num(lo=0, hi=1.0, clamp=True)},  # 1.0 per LinuxCNC
+    "set_max_velocity":     {"velocity": Num(lo=0, hi=lambda l: l.max_linear_velocity,
+                                             clamp=True)},
+    # --- program run
+    "auto_run": {"line": Num(lo=0, integer=True),
+                 "pre_tool": Num(lo=0, integer=True),
+                 "spindle_speed": Num(lo=0, hi=lambda l: l.max_spindle_speed, clamp=True)},
+    # --- MDI text: length only. Parsing G-code server-side to decide policy is
+    #     an open-ended project and deliberately out of scope.
+    "mdi": {"text": Text(max_len=MDI_MAX_CHARS)},
+    # --- work offsets: these become G10 L2 words. Unbounded floats reached the
+    #     MDI as `G10 L2 P1 Xinf` before this.
+    "set_wcs": {ax: Num() for ax in ("x", "y", "z", "a", "b", "c", "u", "v", "w", "r")},
+    # --- tool table
+    "save_tool":     {"tool_number": Num(lo=0, hi=TOOL_NUMBER_MAX, integer=True),
+                      "pocket": Num(lo=0, hi=TOOL_NUMBER_MAX, integer=True),
+                      "diameter": Num(lo=0)},
+    "add_tool":      {"tool_number": Num(lo=0, hi=TOOL_NUMBER_MAX, integer=True),
+                      "pocket": Num(lo=0, hi=TOOL_NUMBER_MAX, integer=True),
+                      "diameter": Num(lo=0)},
+    "delete_tool":   {"tool_number": Num(lo=0, hi=TOOL_NUMBER_MAX, integer=True)},
+    "renumber_tool": {"tool_number": Num(lo=0, hi=TOOL_NUMBER_MAX, integer=True),
+                      "new_number": Num(lo=0, hi=TOOL_NUMBER_MAX, integer=True)},
+    "tool_change":   {"tool_number": Num(lo=0, hi=TOOL_NUMBER_MAX, integer=True)},
+    # --- surface compensation
+    "set_compensation_method": {"method": Enum(frozenset({0, 1, 2}))},  # nearest/linear/cubic
+    "set_probe_vars": {"vars": VarNumbers()},
+}
+
+
+def _bound(spec_bound, limits: MachineLimits):
+    return spec_bound(limits) if callable(spec_bound) else spec_bound
+
+
+def _check_number(cmd, field, raw, spec: Num, limits) -> Optional[float]:
+    """Returns a CORRECTED value when clamping applied, else None. Raises
+    ValueError when the value is out of range and the field rejects."""
+    try:
+        val = float(raw)
+    except (TypeError, ValueError):
+        raise ValueError(f"{cmd}: {field} must be a number")
+    if val != val or val in (float("inf"), float("-inf")):
+        # finite_* normally catches this; set_wcs laundered its cast through a
+        # local and shipped `Xinf` into the MDI, so bounds re-assert it.
+        raise ValueError(f"{cmd}: {field} must be finite")
+    if spec.integer and val != int(val):
+        raise ValueError(f"{cmd}: {field} must be a whole number")
+    lo, hi = _bound(spec.lo, limits), _bound(spec.hi, limits)
+    if lo is not None and val < lo:
+        if not spec.clamp:
+            raise ValueError(f"{cmd}: {field} {val:g} below minimum {lo:g}")
+        return lo
+    if hi is not None and val > hi:
+        if not spec.clamp:
+            raise ValueError(f"{cmd}: {field} {val:g} above maximum {hi:g}")
+        return hi
+    return None
+
+
+def validate_payload(cmd: str, msg: Dict, limits: MachineLimits) -> Dict[str, object]:
+    """Bounds-check one command payload against what the machine declares.
+
+    Returns a dict of CORRECTED field values (clamped continuous inputs) for the
+    caller to merge into the payload — never mutates `msg`, so the correction is
+    explicit and testable. Raises ValueError for a rejected value; the gateway's
+    dispatch boundary already turns that into a bounded structured reply.
+
+    Fields absent from the payload are not invented: a handler's own default
+    applies. Commands with no schema entry pass through — this table constrains,
+    it does not enumerate. Pure."""
+    schema = COMMAND_SCHEMA.get(cmd)
+    if not schema:
+        return {}
+    corrections: Dict[str, object] = {}
+    for field, spec in schema.items():
+        if field not in msg or msg[field] is None:
+            continue
+        raw = msg[field]
+        if isinstance(spec, Num):
+            fixed = _check_number(cmd, field, raw, spec, limits)
+            if fixed is not None:
+                corrections[field] = int(fixed) if spec.integer else fixed
+        elif isinstance(spec, Enum):
+            try:
+                val = int(raw)
+            except (TypeError, ValueError):
+                raise ValueError(f"{cmd}: {field} must be an integer")
+            if val not in spec.values:
+                raise ValueError(
+                    f"{cmd}: {field} {val} not one of "
+                    f"{sorted(spec.values)}")
+        elif isinstance(spec, Seq):
+            if not isinstance(raw, (list, tuple)):
+                raise ValueError(f"{cmd}: {field} must be a list")
+            cap = _bound(spec.max_len, limits)
+            if cap is not None and len(raw) > cap:
+                raise ValueError(
+                    f"{cmd}: {field} has {len(raw)} entries, maximum {cap}")
+        elif isinstance(spec, Text):
+            if not isinstance(raw, str):
+                raise ValueError(f"{cmd}: {field} must be a string")
+            cap = _bound(spec.max_len, limits)
+            if cap is not None and len(raw) > cap:
+                raise ValueError(
+                    f"{cmd}: {field} is {len(raw)} characters, maximum {cap} "
+                    f"(LinuxCNC truncates longer input mid-word)")
+        elif isinstance(spec, VarNumbers):
+            if not isinstance(raw, dict):
+                raise ValueError(f"{cmd}: {field} must be a mapping")
+            for key in raw:
+                try:
+                    num = int(key)
+                except (TypeError, ValueError):
+                    raise ValueError(f"{cmd}: {key!r} is not a var number")
+                for dlo, dhi in WRITABLE_VAR_DENY_RANGES:
+                    if dlo <= num <= dhi:
+                        raise ValueError(
+                            f"{cmd}: #{num} is reserved system parameter space "
+                            f"— use the proper command (G10 L2, G92, tool table)")
+                if limits.declared_vars is not None and num not in limits.declared_vars:
+                    raise ValueError(
+                        f"{cmd}: #{num} is not in this machine's var file — "
+                        f"declare it there to make it configurable")
+    return corrections
