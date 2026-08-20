@@ -1,0 +1,192 @@
+# Decision record
+
+Why things are the way they are — specifically, why some things are **not** built.
+
+This file exists because "we decided not to do that" is worthless if it lives in a
+chat log. Every item below is closed on the record, with the reason and the condition
+that would reopen it. If you are about to build something in the "Closed" table, read
+its row first: either the condition has been met (build it, and move the row), or it
+has not (don't).
+
+## The completeness rule
+
+> **Complete = every claim the UI makes is true, every reachable unsafe action is
+> gated, and every gap is either closed or visibly labeled. NOT: every capability
+> exists.**
+
+Three tests decide whether an item must be built:
+
+| Test | Question | Verdict |
+|---|---|---|
+| **TRUTH** | Does the current behavior tell the operator something false? | Must fix |
+| **REACH** | Can a machine we support actually reach this unsafe state? | Must gate |
+| **DEMAND** | Does this need a machine or a user we do not have? | Close and record |
+
+This is the project's existing "no silent fallbacks" ethos (see the HAL reader and
+preview-limit design notes) applied as a stopping rule rather than a coding rule.
+
+---
+
+## Closed
+
+### Per-segment WCS in the preview transform
+**Test:** — (superseded) · **Closed:** 2026-08-20
+
+The preview subtracts one work-offset basis for the whole program. Making it
+per-segment was scoped at ~180 lines across 8 files and blocked on two structural
+facts: the drawn preview is a single `THREE.Group` (`workOrigin` → `workRotGroup`), so
+per-segment offsets would need vertex-baking or N line objects; and `wcs_table`'s
+per-index offsets are not reliable enough to key off.
+
+Closed on merit, not obstacle: fixing the *reference basis* (parse against the
+program-start WCS, with the live table patched into the parse var file) makes
+multi-fixture programs render exactly, so per-segment state buys nothing.
+
+**Reopens if:** a program must show two fixtures simultaneously in one frame — e.g.
+a pallet-changer view, or a preview that overlays G54 and G55 setups at once.
+
+### Websocket request IDs (issue #28)
+**Test:** DEMAND · **Closed:** 2026-08-20 (deferred by agreement 2026-06)
+
+Command→reply correlation. The single-client UI has never observed a mis-routed
+reply, and every command's effect is visible in the next status frame.
+
+**Reopens if:** a second concurrent controlling client ships (pendant, second
+operator station), or a reply-routing bug is actually observed.
+
+### Gantry dual-joint axes
+**Test:** DEMAND · **Closed:** 2026-08-20
+
+Two motors on one axis letter breaks the one-joint-per-letter assumption behind the
+joint-ordered status arrays, `viewer_init.axes`, and the homing grid. Needs a
+joints→letter map from STAT/INI, per-joint homing UI, and a decision on which joint
+drives the viewer group. No such machine exists here to validate against.
+
+**Reopens if:** a gantry machine is proposed — quote it as an architecture task, not
+a machine.json job.
+
+### Lathe UI semantics
+**Test:** DEMAND · **Closed:** 2026-08-20
+
+Axis math has been correct for XZ since the canonical↔joint fix, but there is no
+lathe UI: G7/G8 diameter mode in the DRO, tool orientation display, CSS/G96 readout,
+back-tool layouts. Building it blind would produce a lathe UI nobody has used.
+
+**Reopens if:** a lathe is brought up on this stack.
+
+### UVW in the preview/scrub transforms
+**Test:** DEMAND · **Closed:** 2026-08-20
+
+UVW axes are displayed and joggable, but evaluate as 0 in the part-frame and scrub
+transforms. They are virtually never in a work/tool kinematic chain, the live model
+still articulates them from `joint_pos`, and the limitation is documented in
+CLAUDE.md's preview-limits section.
+
+**Reopens if:** a machine with UVW in its work or tool chain appears.
+
+### Rotary work-offset zero tick
+**Test:** DEMAND · **Closed:** 2026-08-20
+
+Zeroing a work-side rotary correctly changes only the DRO (RS274: offsets never
+reorient the frame). A cosmetic tick on the platter rim showing where the angle
+scale's zero points would be nice; nothing is wrong without it. Tool-side rotaries
+have nothing to visualize by nature.
+
+**Reopens if:** an operator reports being unable to find rotary zero.
+
+### HAL-pin-driven auxiliary DOFs in machine.json
+**Test:** DEMAND · **Closed:** 2026-08-20
+
+Vises, tailstocks and ATC arms driven by HAL pins rather than joints (a vtk-vismach
+capability). `hal_reader` could sample the pins, but collision semantics for
+non-joint DOFs need real design — is a closing vise a crash or a clamp?
+
+**Reopens if:** a machine here has a modeled auxiliary axis that matters for
+collision.
+
+### User-placed stock box / material removal
+**Test:** DEMAND · **Closed:** 2026-08-20 (material sim rejected earlier by design)
+
+CAM already covers material simulation; the control-side gap is motion safety, which
+the collision sweep addresses. A user-placed stock body would give arbitrary machines
+the cutting semantics that currently require a `stock: true` body in machine.json.
+
+**Reopens if:** operators routinely run programs whose cutting contact is
+indistinguishable from a crash on machines without a stock body.
+
+### Timeline motion verbs (unified-timeline phase 3)
+**Test:** — (design position) · **Closed:** 2026-08-20
+
+Agreed design: the timeline unifies **display**, not actuation. Cycle start, pause
+and abort stay in their constant home so a control never means two things. The
+timeline never starts motion.
+
+**Reopens if:** never, without revisiting the unified-timeline design position
+explicitly.
+
+### Stronger token mode
+**Test:** DEMAND · **Closed:** 2026-08-20
+
+Today's token is generated by the operator, set in the INI, and injected into the
+served `index.html`, so browsers the gateway serves get it automatically.
+
+**Threat model this accepts.** The gateway is a machine-control surface on a trusted
+LAN. The token defends against: cross-origin WebSocket hijack from a page the
+operator visits, and unauthenticated REST mutation by another device on the LAN. It
+does **not** defend against an attacker already executing code on the LAN or on the
+operator's browser host — such an attacker can read the token from the served page.
+That is accepted: a machine tool on a network with a hostile host has larger problems
+than the web UI, and physical E-stop remains the backstop. The launcher refuses to
+bind a non-loopback interface without a token at all.
+
+An operator-entered token (never served by the gateway) would close the read-from-page
+vector at the cost of typing a secret into every browser on every reconnect.
+
+**Reopens if:** the gateway is deployed on an untrusted network, or a multi-tenant /
+remote-access story appears.
+
+### Gamepad stick → arbitrary machine axis
+**Test:** DEMAND · **Closed:** 2026-08-20
+
+Per-controller mapping profiles and the capture wizard shipped (5f1e2a4) and are
+hardware-validated. Profiles map physical sticks to logical XY/Z; machine axes are
+still resolved by letter. Assigning a stick to any axis letter is a want with no
+reported need.
+
+**Reopens if:** an operator needs to jog a rotary or UVW axis from a stick.
+
+### Per-group machine-model visibility toggles
+**Test:** DEMAND · **Closed:** 2026-08-20
+
+Cheap and genuinely useful for looking inside a machine model, but it is a want, not
+completeness. Nothing is wrong or unsafe without it.
+
+**Reopens if:** it blocks diagnosing a model problem.
+
+---
+
+## Bounded — built to a stated line
+
+### Websocket command coverage contract
+**Line:** every command reachable on **any** dispatch path is gated, read-only, or
+listed in `INLINE_EXEMPT` with a written reason.
+
+Not bounded to the dispatched ladder, which is how four commands hid. Not extended to
+proving handlers *behave* — that is each command's own tests. `test_command_policy`
+parses both ladders out of `gateway.py` source, so a new handler on either path fails
+the build unless someone classifies it.
+
+---
+
+## Fixed
+
+- **Four commands were authorized by `armed` alone and were structurally invisible to
+  the coverage test** (`set_compensation`, `set_compensation_method`,
+  `simulate_probe_trip`, `confirm_tool_change`). A direct websocket client could enable
+  machine-Z compensation on an unhomed or running machine. Moved behind the dispatch
+  boundary; gates now match the frontend catalog. The *test boundary* was fixed first —
+  gating the four without it would have guaranteed a fifth.
+- **`confirm_tool_change` had no meaningful precondition.** Machine state cannot express
+  "iocontrol is asking for a tool change", so the guard is the request pin itself
+  (`require_tool_change_pending`), following the `require_no_eoffset` None/stale
+  convention.

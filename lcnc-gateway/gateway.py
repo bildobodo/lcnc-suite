@@ -2321,6 +2321,25 @@ def require_no_eoffset():
         raise PermissionError("Surface compensation active — clear the eoffset before editing work offsets")
 
 
+def require_tool_change_pending():
+    """Refuse a manual-toolchange confirmation when iocontrol is not asking for
+    one.
+
+    `confirm_tool_change` asserts `tool-changed` into HAL, which tells LinuxCNC
+    the operator has physically swapped the tool. Machine STATE cannot express
+    the real precondition — the machine may legitimately be idle, running or
+    paused at M6 — so the gate is the request pin itself: no pending request
+    means the confirmation is meaningless at best and desynchronises the
+    toolchange handshake at worst.
+
+    Same None/stale convention as require_no_eoffset(): only blocks when the pin
+    DEFINITELY says no change is pending (`is False`), so an absent or stale
+    reader snapshot allows the command rather than stranding an operator
+    mid-change."""
+    if _reader_get("tool_change") is False:
+        raise PermissionError("No tool change pending")
+
+
 # ---- Run-from-line toolchange guard (RFL × M600) ----
 # LinuxCNC's run-from-line skim re-enters M600 remap bodies in lines 1..N-1:
 # G38 probes are queue-busters and execute for REAL while plain moves are
@@ -3292,6 +3311,66 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             result = await asyncio.to_thread(_read_var_file, var_file, {str(v) for v in var_nums})
             _trace.emit("probe.get_vars", vars=result)
             return {"ok": True, "vars": result}
+
+        # ---- Surface compensation + HAL handshakes ----
+        # These four ran INLINE in the websocket receive loop until 2026-08-20,
+        # authorized by `armed` alone: they never reached check_command, were
+        # absent from COMMAND_GATES, and the coverage test could not see them
+        # (it parsed only this ladder). A direct websocket client could enable
+        # machine-Z compensation, force the probe input, or satisfy a manual
+        # toolchange handshake in any machine state. Gates now live in
+        # command_policy.COMMAND_GATES; the "LinuxCNC not connected" check and
+        # the bounded-error catch come free on this path.
+        if cmd == "set_compensation":
+            require_armed(armed)
+            enable = bool(msg.get("enable", False))
+            _loop = asyncio.get_event_loop()
+            await _loop.run_in_executor(None, _hal_send, {"compensation_enable": enable})
+            _trace.emit("compensation.enable", enable=enable)
+            return {"ok": True}
+
+        if cmd == "set_compensation_method":
+            require_armed(armed)
+            method = finite_int(msg.get("method", 2))
+            _loop = asyncio.get_event_loop()
+            await _loop.run_in_executor(None, _hal_send, {"compensation_method": method})
+            _trace.emit("compensation.method", method=method)
+            return {"ok": True}
+
+        if cmd == "confirm_tool_change":
+            require_armed(armed)
+            require_tool_change_pending()
+            _loop = asyncio.get_event_loop()
+            await _loop.run_in_executor(None, _hal_send, {"tool_changed": True})
+            return {"ok": True}
+
+        if cmd == "simulate_probe_trip":
+            require_armed(armed)
+            try:
+                _loop = asyncio.get_event_loop()
+                # Unlink any existing writer on probe-in (e.g. qtpyvcp.probe-in.out)
+                # so halcmd sets works. The pin may not exist in non-qtpyvcp
+                # configs — that's fine. Log other failures (halcmd missing,
+                # permission denied, syntax error) so they don't disappear.
+                _unlink_res = await _loop.run_in_executor(None, lambda: subprocess.run(
+                    ['halcmd', 'unlinkp', 'qtpyvcp.probe-in.out'],
+                    capture_output=True, text=True, timeout=2))
+                if _unlink_res.returncode != 0:
+                    _err = (_unlink_res.stderr or "").strip()
+                    if _err and "does not exist" not in _err and "no such" not in _err.lower():
+                        _trace.emit("halcmd.unlinkp_failed", level="warn",
+                                    pin="qtpyvcp.probe-in.out",
+                                    rc=_unlink_res.returncode, stderr=_err)
+                await _loop.run_in_executor(None, lambda: subprocess.run(
+                    ['halcmd', 'sets', 'probe-in', '1'],
+                    capture_output=True, text=True, timeout=2, check=True))
+                await asyncio.sleep(0.02)
+                await _loop.run_in_executor(None, lambda: subprocess.run(
+                    ['halcmd', 'sets', 'probe-in', '0'],
+                    capture_output=True, text=True, timeout=2, check=True))
+                return {"ok": True}
+            except Exception as e:
+                return {"ok": False, "error": f"simulate_probe_trip: {e}"}
 
         if cmd == "get_wcs_table":
             return {"ok": True, "table": [row.copy() for row in _wcs_cache]}
@@ -5592,79 +5671,12 @@ async def ws_endpoint(ws: WebSocket):
                 )
                 continue
 
-            if msg.get("cmd") == "simulate_probe_trip":
-                if not client.armed:
-                    await ws_send_json(ws, {"type": "reply", "ok": False, "error": "Not armed"})
-                    continue
-                if not lcnc_connected:
-                    await ws_send_json(ws, {"type": "reply", "ok": False, "error": "LinuxCNC not connected"})
-                    continue
-                try:
-                    _loop = asyncio.get_event_loop()
-                    # Unlink any existing writer on probe-in (e.g. qtpyvcp.probe-in.out)
-                    # so halcmd sets works. The pin may not exist in non-qtpyvcp
-                    # configs — that's fine. Log other failures (halcmd missing,
-                    # permission denied, syntax error) so they don't disappear.
-                    _unlink_res = await _loop.run_in_executor(None, lambda: subprocess.run(
-                        ['halcmd', 'unlinkp', 'qtpyvcp.probe-in.out'],
-                        capture_output=True, text=True, timeout=2))
-                    if _unlink_res.returncode != 0:
-                        _err = (_unlink_res.stderr or "").strip()
-                        if _err and "does not exist" not in _err and "no such" not in _err.lower():
-                            _trace.emit("halcmd.unlinkp_failed", level="warn",
-                                        pin="qtpyvcp.probe-in.out",
-                                        rc=_unlink_res.returncode, stderr=_err)
-                    await _loop.run_in_executor(None, lambda: subprocess.run(
-                        ['halcmd', 'sets', 'probe-in', '1'],
-                        capture_output=True, text=True, timeout=2, check=True))
-                    await asyncio.sleep(0.02)
-                    await _loop.run_in_executor(None, lambda: subprocess.run(
-                        ['halcmd', 'sets', 'probe-in', '0'],
-                        capture_output=True, text=True, timeout=2, check=True))
-                    await ws_send_json(ws, {"type": "reply", "ok": True})
-                except Exception as e:
-                    await ws_send_json(ws, {"type": "reply", "ok": False, "error": f"simulate_probe_trip: {e}"})
-                continue
-
-            if msg.get("cmd") == "confirm_tool_change":
-                if not client.armed:
-                    await ws_send_json(ws, {"type": "reply", "ok": False, "error": "Not armed"})
-                    continue
-                if not lcnc_connected:
-                    await ws_send_json(ws, {"type": "reply", "ok": False, "error": "LinuxCNC not connected"})
-                    continue
-                _loop = asyncio.get_event_loop()
-                await _loop.run_in_executor(None, _hal_send, {"tool_changed": True})
-                await ws_send_json(ws, {"type": "reply", "ok": True})
-                continue
-
-            if msg.get("cmd") == "set_compensation":
-                if not client.armed:
-                    await ws_send_json(ws, {"type": "reply", "ok": False, "error": "Not armed"})
-                    continue
-                enable = bool(msg.get("enable", False))
-                _loop = asyncio.get_event_loop()
-                await _loop.run_in_executor(None, _hal_send, {"compensation_enable": enable})
-                await ws_send_json(ws, {"type": "reply", "ok": True})
-                continue
-
-            if msg.get("cmd") == "set_compensation_method":
-                if not client.armed:
-                    await ws_send_json(ws, {"type": "reply", "ok": False, "error": "Not armed"})
-                    continue
-                # Validated inline: this handler runs BEFORE the handle_command
-                # dispatch boundary, so a bad cast here would escape to the
-                # WebSocketDisconnect/RuntimeError catch and tear the socket
-                # down instead of returning a bounded error (issue #27).
-                try:
-                    method = finite_int(msg.get("method", 2))
-                except (ValueError, TypeError) as _e:
-                    await ws_send_json(ws, {"type": "reply", "ok": False, "error": f"Invalid method: {_e}"})
-                    continue
-                _loop = asyncio.get_event_loop()
-                await _loop.run_in_executor(None, _hal_send, {"compensation_method": method})
-                await ws_send_json(ws, {"type": "reply", "ok": True})
-                continue
+            # NOTE: simulate_probe_trip, confirm_tool_change, set_compensation and
+            # set_compensation_method used to be handled HERE, authorized by
+            # `client.armed` alone. They now live in _handle_command_impl so they
+            # pass check_command, get the bounded-error catch below, and are
+            # visible to the coverage contract in test_command_policy — which was
+            # structurally scoped to the dispatched ladder and could not see them.
 
             _set_phase(f"handle_command cmd={msg.get('cmd', '?')} client#{client_id}")
             try:

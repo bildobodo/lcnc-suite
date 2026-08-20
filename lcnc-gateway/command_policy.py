@@ -163,6 +163,27 @@ COMMAND_GATES: Dict[str, str] = {
     # --- file ops ---
     "load_file": "setup",
     "unload_file": "setup",
+    # --- surface compensation + HAL handshakes (moved out of the pre-dispatch
+    #     inline ladder, where they were `armed`-only and structurally invisible
+    #     to the coverage test — see test_command_policy._inline_commands) ---
+    # Gates match the frontend catalog exactly (machineControls.ts INPUT_DEFS):
+    # compToggle -> ready, compMethod -> probe. NOT `zero`/`probe` for the
+    # toggle: those carry _R_NO_EOFFSET, which would block DISABLING
+    # compensation once it is on — the one direction that must stay available.
+    "set_compensation": "ready",
+    "set_compensation_method": "probe",
+    # Confirming a manual tool change is meaningful only while iocontrol is
+    # actually asking for one; machine state cannot express that, so the real
+    # precondition is handler-side (require_tool_change_pending). `armed` is
+    # the state gate — the operation must remain available while a program is
+    # paused at M6, which is exactly when it is used.
+    "confirm_tool_change": "armed",
+    # Debug affordance that forces the probe input. Gating it on idle/ready
+    # would break its ONLY purpose (exercising a probe cycle's reaction while
+    # that cycle is running), so `armed` is the honest gate — the change here
+    # is that it is now declared, bounded-error'd and coverage-visible rather
+    # than ad-hoc.
+    "simulate_probe_trip": "armed",
 }
 
 # Read-only queries handled before the policy check — no machine-state gate.
