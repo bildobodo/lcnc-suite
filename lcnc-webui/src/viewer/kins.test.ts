@@ -5,7 +5,7 @@
 // interface. (Non-trivial models get compiled-C-oracle fixtures instead;
 // trivkins is the identity permutation by definition.)
 import { describe, expect, it, vi } from "vitest";
-import { kinsFor, makeKins, specFromWire, warnWorldWithoutSpec, worldModeForSpec, worldModeForType } from "./kins";
+import { kinsFor, kinsForSegment, makeKins, specFromWire, warnWorldWithoutSpec, worldModeForSpec, worldModeForType } from "./kins";
 
 describe("trivkins boundary", () => {
   it("XYZAC: letter-skipping permutation both ways (C = joint 4, slot 5)", () => {
@@ -129,5 +129,61 @@ describe("worldModeForSpec (raw wire type → mode, family-aware)", () => {
     expect(worldModeForSpec(0, undefined)).toBe(false);
     expect(worldModeForSpec(2, undefined)).toBe(true);
     expect(worldModeForSpec(undefined, undefined)).toBe(false);
+  });
+});
+
+describe("kinsForSegment (phase 3 per-segment routing)", () => {
+  const AXES6 = ["X", "Y", "Z", "A", "B", "C"];
+  // The spike machine's INI wiring, through the real wire mapping.
+  const TRSRN = specFromWire({
+    type: "xyzacb-trsrn", identity_first: false,
+    params: { y_pivot: 50, z_pivot: 120, x_offset: 0, y_offset: 0,
+              y_rot_axis: -1000, z_rot_axis: -2000, nut_angle: 55 },
+  })!;
+  const FRAME: [number, number, number] = [-1.781762, 130.2455, -40.8555];
+
+  it("routes trt exactly as phase 2b (world/identity by sparm)", () => {
+    const spec = { type: "xyzac-trt", identityFirst: true, params: { yOffset: 20, zOffset: 10 } };
+    const axes = ["X", "Y", "Z", "A", "C"];
+    expect(kinsForSegment(axes, spec, 1, null, 5, "test").type).toBe("xyzac-trt");
+    expect(kinsForSegment(axes, spec, 0, null, 5, "test").type).toBe("trivkins");
+    expect(kinsForSegment(axes, spec, null, null, 5, "test").type).toBe("trivkins");
+  });
+
+  it("trsrn type 2 + frame: capture-pinned plane inverse (TLO ignored)", () => {
+    // Live task run 2026-08-20 (simple_example.ngc end state, G43 h3=100):
+    // stat.position vs joints — mode-2 world coords ARE the TLO-inclusive
+    // machine position, no TLO term in the math.
+    const m = kinsForSegment(AXES6, TRSRN, 2, FRAME, 100, "test");
+    const joints: (number | null)[] = [];
+    m.inverse([1609.597, -854.904, -571.098, 0, -40.855, 130.245], joints);
+    expect(joints[0]).toBeCloseTo(1390.773, 2);
+    expect(joints[1]).toBeCloseTo(-379.602, 2);
+    expect(joints[2]).toBeCloseTo(-1279.861, 2);
+  });
+
+  it("trsrn type 1 (TCP): capture-pinned with TLO folded into the pivot", () => {
+    // capture-g536 orient window: world pinned (1300,-200,-1200) while
+    // the joints migrated (capture values, 1 decimal).
+    const m = kinsForSegment(AXES6, TRSRN, 1, null, 100, "test");
+    const world: number[] = [];
+    m.forward([1309.7, -371.6, -1230.2, 0, -40.855, 130.245], world);
+    expect(world[0]).toBeCloseTo(1300, 1);
+    expect(world[1]).toBeCloseTo(-200, 1);
+    expect(world[2]).toBeCloseTo(-1200, 1);
+  });
+
+  it("trsrn type 0 → trivkins; type 2 without frame → loud trivkins", () => {
+    expect(kinsForSegment(AXES6, TRSRN, 0, null, 0, "test").type).toBe("trivkins");
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(kinsForSegment(AXES6, TRSRN, 2, null, 0, "test").type).toBe("trivkins");
+    expect(err).toHaveBeenCalled();
+    err.mockRestore();
+  });
+
+  it("memoizes: same segment inputs return the same instance", () => {
+    const a = kinsForSegment(AXES6, TRSRN, 2, FRAME, 100, "test");
+    const b = kinsForSegment(AXES6, TRSRN, 2, FRAME, 100, "test");
+    expect(a).toBe(b);
   });
 });

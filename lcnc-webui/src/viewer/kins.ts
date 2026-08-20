@@ -41,6 +41,11 @@ export interface KinsSpec {
    *  see worldModeForSpec). */
   identityFirst?: boolean;
   params?: KinsParams;
+  /** xyzacb-trsrn static geometry (INI setp lines via viewer_init.kins).
+   *  Plane-frame values (preRot/primary/secondary) never live here — they
+   *  are per-SEGMENT state from the WEBUI_TWPFRAME markers, merged in by
+   *  kinsForSegment. */
+  trsrn?: TrsrnParams;
 }
 
 export interface KinsModel {
@@ -426,6 +431,12 @@ export function makeKins(axes: string[], spec?: KinsSpec, toolOffsetZ?: number):
     console.error(`[kins] ${type}: required letters missing from axes [${axes.join(",")}] — falling back to trivkins`);
     return new Trivkins(axes);
   }
+  if (type === "xyzacb-trsrn") {
+    // Modeless call on a per-segment kins: the trsrn model depends on the
+    // segment's switchkins type (+ TWP frame) — route via kinsForSegment.
+    console.error(`[kins] xyzacb-trsrn is per-segment (kinsForSegment) — modeless makeKins falls back to trivkins`);
+    return new Trivkins(axes);
+  }
   console.error(`[kins] unknown kins type "${type}" — falling back to trivkins (poses may be wrong)`);
   return new Trivkins(axes);
 }
@@ -456,6 +467,18 @@ export function specFromWire(w?: {
 } | null): KinsSpec | undefined {
   if (!w || w.type === "trivkins") return undefined;
   const p = w.params ?? {};
+  if (w.type === "xyzacb-trsrn") {
+    return {
+      type: w.type,
+      identityFirst: !!w.identity_first,
+      trsrn: {
+        yPivot: p.y_pivot, zPivot: p.z_pivot,
+        xOffset: p.x_offset, yOffset: p.y_offset,
+        yRotAxis: p.y_rot_axis, zRotAxis: p.z_rot_axis,
+        nutAngle: p.nut_angle,
+      },
+    };
+  }
   return {
     type: w.type,
     identityFirst: !!w.identity_first,
@@ -494,6 +517,21 @@ export function worldModeForSpec(kinstype: number | undefined, spec?: KinsSpec |
   return worldModeForType(t, !!spec.identityFirst);
 }
 
+// Once-per-context loud fallback for a TOOL-mode (type 2) segment with no
+// governing WEBUI_TWPFRAME marker: the plane frame lives only in the kins
+// pins (bare M430), so the pose falls back to trivkins — wrong by
+// construction, said loudly, never guessed. (The parse-side twin counts
+// the same segments as violations_world_unchecked.)
+let _warnedPlaneNoFrame = false;
+export function warnPlaneWithoutFrame(site: string): void {
+  if (_warnedPlaneNoFrame) return;
+  _warnedPlaneNoFrame = true;
+  console.error(
+    `[kins] ${site}: TOOL-mode (type 2) segments present with no TWP frame ` +
+    `marker — posing them as trivkins, positions will be wrong. Programs ` +
+    `should enter TOOL mode via G53.x (bare M430 gives the preview no frame).`);
+}
+
 // Memoized construction for per-frame callers (scrub pose runs at display
 // rate): keyed by the axes identity + spec type, so repeated calls with
 // the same machine cost a Map lookup, not an allocation.
@@ -514,4 +552,67 @@ export function kinsFor(axes: string[], spec?: KinsSpec, toolOffsetZ?: number): 
     _memo.set(key, m);
   }
   return m;
+}
+
+function _trsrnFor(spec: KinsSpec, mode: 1 | 2,
+                   frame: readonly number[] | null | undefined,
+                   toolOffsetZ: number | undefined): KinsModel {
+  const g = spec.trsrn ?? {};
+  const key = "trsrn|" + mode
+    + "|" + [g.yPivot, g.zPivot, g.xOffset, g.yOffset, g.yRotAxis, g.zRotAxis, g.nutAngle].join(",")
+    + "|" + (frame ? frame.join(",") : "")
+    + "|t" + (toolOffsetZ ?? 0);
+  let m = _memo.get(key);
+  if (!m) {
+    if (_memo.size >= 64) _memo.clear();
+    m = new TrsrnKins(mode, {
+      ...g,
+      toolOffset: toolOffsetZ,
+      preRot: frame?.[0], primaryAngle: frame?.[1], secondaryAngle: frame?.[2],
+    });
+    _memo.set(key, m);
+  }
+  return m;
+}
+
+/** Segment-level model selection (phase 3): RAW switchkins type + (for
+ *  TOOL mode) the governing TWP frame → the kins model mapping this
+ *  segment's machine coords to joints. This is THE routing point for
+ *  every offline derivation site (scrub pose, entry move, part-frame,
+ *  collision poseAt); the loud honesty warns live here so the sites
+ *  can't forget them.
+ *
+ *  trt families keep the phase-2b behavior exactly (world segments →
+ *  TrtKins with live TLO, identity → trivkins). xyzacb-trsrn routes by
+ *  type: 0 → trivkins; 1 (TCP) → TrsrnKins mode 1 with live TLO folded
+ *  into the pivot; 2 (TOOL) → TrsrnKins mode 2 with the segment's frame
+ *  (pre-rot rad, primary/secondary deg — the WEBUI_TWPFRAME trio; the
+ *  mode-2 math ignores TLO by upstream design, capture-verified).
+ *  `kinstype` null = untracked → trivkins, never guessed. World coords
+ *  are TLO-INCLUSIVE on both families (programToMachine adds wcs.tool).
+ *  Memoized like kinsFor. */
+export function kinsForSegment(
+  axes: string[], spec: KinsSpec | undefined,
+  kinstype: number | null | undefined,
+  frame: readonly number[] | null | undefined,
+  toolOffsetZ: number | undefined,
+  site: string,
+): KinsModel {
+  if (kinstype == null) return kinsFor(axes);
+  const t = Math.round(kinstype);
+  if (spec?.type === "xyzacb-trsrn") {
+    if (t === 0) return kinsFor(axes);
+    if (t === 2 && !frame) {
+      warnPlaneWithoutFrame(site);
+      return kinsFor(axes);
+    }
+    return _trsrnFor(spec, t === 1 ? 1 : 2, frame, toolOffsetZ);
+  }
+  const world = worldModeForSpec(t, spec);
+  if (!world) return kinsFor(axes);
+  if (!spec) {
+    warnWorldWithoutSpec(site);
+    return kinsFor(axes);
+  }
+  return kinsFor(axes, spec, toolOffsetZ);
 }

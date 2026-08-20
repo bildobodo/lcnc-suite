@@ -13,7 +13,7 @@
 // wcsTerms/programToMachine used by the part-frame preview, then axis
 // letters → joint slots via viewer_init.axes. No baked subdivision needed —
 // the kinematic chain is evaluated at pose time, not baked per vertex.
-import { kinsFor, warnWorldWithoutSpec, worldModeForSpec, type KinsSpec } from "./kins";
+import { kinsForSegment, type KinsSpec } from "./kins";
 import {
   buildLineMap, machineToProgram, programToMachine, wcsTerms,
   type PartFrameWcs, type WcsTerms,
@@ -35,6 +35,10 @@ export interface ScrubStream {
    *  world/identity is the consumer's job (worldModeForSpec). Absent =
    *  no mode data. */
   mode?: Uint8Array;
+  /** Per-point governing TWP frame INDEX into the track's `frames` list
+   *  (0xff = none) — resolved at ingestion from wire kins_frames by seq.
+   *  Absent on programs without WEBUI_TWPFRAME markers. */
+  frame?: Uint8Array;
 }
 
 // Scrub-parameter contribution of a pure rotary sweep: 1° ≙ 1 mm, the same
@@ -47,7 +51,8 @@ const DEG_AS_MM = 1;
  *  Returns null when a track can't be built honestly: no points at all, or
  *  both streams present but seq missing (a stale pre-stage-2 cached payload)
  *  — the scrub UI treats null as "unavailable", never guesses an order. */
-export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream): ScrubTrack | null {
+export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
+                                frames?: [number, number, number][]): ScrubTrack | null {
   const nf = (feed.pos.length / 3) | 0;
   const nr = (rapid.pos.length / 3) | 0;
   const n = nf + nr;
@@ -69,6 +74,13 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream): ScrubTra
     && (nr === 0 || rapid.mode?.length === nr)
     && !!(feed.mode || rapid.mode);
   const mode = hasMode ? new Uint8Array(n) : undefined;
+  // TWP frame indices merge like mode (present iff consistent + a frames
+  // list exists to dereference into).
+  const hasFrame = !!frames?.length && hasMode
+    && (nf === 0 || feed.frame?.length === nf)
+    && (nr === 0 || rapid.frame?.length === nr)
+    && !!(feed.frame || rapid.frame);
+  const frameIdx = hasFrame ? new Uint8Array(n) : undefined;
 
   let fi = 0, ri = 0;
   let prevFT = 0, prevRT = 0;   // per-stream previous cumulative time
@@ -92,6 +104,7 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream): ScrubTra
     lines[i] = src.lines?.[si] ?? 0;
     rapidFlag[i] = takeFeed ? 0 : 1;
     if (mode) mode[i] = src.mode?.[si] ?? 0;
+    if (frameIdx) frameIdx[i] = src.frame?.[si] ?? 0xff;
     if (timeBased) {
       // Duration of the segment ending here = this stream's cumulative
       // delta (RDP-collapsed interiors are preserved by the cumulative).
@@ -125,7 +138,9 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream): ScrubTra
     if (ln && !lineCum.has(ln)) lineCum.set(ln, cum[i]!);
   }
 
-  return { pos, abc, lines, rapid: rapidFlag, mode, cum, count: n, lineCum, lineSpan: buildLineMap(lines), timeBased };
+  return { pos, abc, lines, rapid: rapidFlag, mode, frame: frameIdx,
+           frames: hasFrame ? frames : undefined,
+           cum, count: n, lineCum, lineSpan: buildLineMap(lines), timeBased };
 }
 
 /** Drawn-preview streams re-derived from the merged track.
@@ -152,6 +167,9 @@ export interface SplitStreams {
    *  present iff the track carries mode. A section-start vertex takes the
    *  OPENING segment's mode (same convention as feedLines). */
   feedMode?: Uint8Array; rapidMode?: Uint8Array;
+  /** Per-vertex TWP frame indices (same conventions as feedMode/rapidMode;
+   *  dereference into the track's `frames`). */
+  feedFrame?: Uint8Array; rapidFrame?: Uint8Array;
 }
 
 export function splitTrackStreams(t: ScrubTrack): SplitStreams {
@@ -159,6 +177,7 @@ export function splitTrackStreams(t: ScrubTrack): SplitStreams {
   const fPos: number[] = [], fAbc: number[] = [], fLines: number[] = [], fBreaks: number[] = [];
   const rPos: number[] = [], rAbc: number[] = [], rBreaks: number[] = [];
   const fMode: number[] = [], rMode: number[] = [];
+  const fFrame: number[] = [], rFrame: number[] = [];
   let fLast = -2, rLast = -2;  // track index of each stream's last emitted point
 
   const push = (pos: number[], abc: number[], i: number) => {
@@ -170,14 +189,15 @@ export function splitTrackStreams(t: ScrubTrack): SplitStreams {
   for (let i = 1; i < n; i++) {
     const ln = t.lines[i]!;  // segment belongs to its END point's line
     const md = t.mode?.[i] ?? 0;  // ...and its END point's mode
+    const fr = t.frame?.[i] ?? 0xff;  // ...and its END point's TWP frame
     if (t.rapid[i] === 1) {
       if (rLast !== i - 1) {
         rBreaks.push(rPos.length / 3);
         push(rPos, rAbc, i - 1);
-        rMode.push(md);
+        rMode.push(md); rFrame.push(fr);
       }
       push(rPos, rAbc, i);
-      rMode.push(md);
+      rMode.push(md); rFrame.push(fr);
       rLast = i;
     } else {
       if (fLast !== i - 1) {
@@ -186,11 +206,11 @@ export function splitTrackStreams(t: ScrubTrack): SplitStreams {
         // line highlight covers the move from its true start.
         fLines.push(ln);
         push(fPos, fAbc, i - 1);
-        fMode.push(md);
+        fMode.push(md); fFrame.push(fr);
       }
       fLines.push(ln);
       push(fPos, fAbc, i);
-      fMode.push(md);
+      fMode.push(md); fFrame.push(fr);
       fLast = i;
     }
   }
@@ -202,6 +222,8 @@ export function splitTrackStreams(t: ScrubTrack): SplitStreams {
     rapidBreaks: new Uint32Array(rBreaks),
     feedMode: t.mode ? new Uint8Array(fMode) : undefined,
     rapidMode: t.mode ? new Uint8Array(rMode) : undefined,
+    feedFrame: t.frame ? new Uint8Array(fFrame) : undefined,
+    rapidFrame: t.frame ? new Uint8Array(rFrame) : undefined,
   };
 }
 
@@ -216,8 +238,16 @@ export interface ScrubSample {
    *  type 0 is the WORLD kins). Consumers map it per the declared kins
    *  family via worldModeForSpec — jointsForSample does this internally. */
   kinstype: number | null;
+  /** Governing TWP frame values [preRot, primary, secondary] for a
+   *  TOOL-mode (type 2) segment, or null (no frame marker / no TWP). */
+  frame: [number, number, number] | null;
   /** Upper track index of the segment the sample falls in. */
   index: number;
+}
+
+function _frameAt(t: ScrubTrack, i: number): [number, number, number] | null {
+  const idx = t.frame?.[i];
+  return (idx != null && idx !== 0xff && t.frames) ? t.frames[idx] ?? null : null;
 }
 
 /** Interpolated track state at scrub parameter `s` (clamped to [0, cumMax]).
@@ -229,7 +259,8 @@ export function sampleTrack(t: ScrubTrack, s: number, out: ScrubSample): ScrubSa
     out.px = t.pos[0]!; out.py = t.pos[1]!; out.pz = t.pos[2]!;
     out.pa = t.abc[0]!; out.pb = t.abc[1]!; out.pc = t.abc[2]!;
     out.line = t.lines[0]!; out.rapid = t.rapid[0] === 1;
-    out.kinstype = t.mode ? t.mode[0]! : null; out.index = 0;
+    out.kinstype = t.mode ? t.mode[0]! : null;
+    out.frame = _frameAt(t, 0); out.index = 0;
     return out;
   }
   if (s >= t.cum[last]!) {
@@ -237,7 +268,8 @@ export function sampleTrack(t: ScrubTrack, s: number, out: ScrubSample): ScrubSa
     out.px = t.pos[j]!; out.py = t.pos[j + 1]!; out.pz = t.pos[j + 2]!;
     out.pa = t.abc[j]!; out.pb = t.abc[j + 1]!; out.pc = t.abc[j + 2]!;
     out.line = t.lines[last]!; out.rapid = t.rapid[last] === 1;
-    out.kinstype = t.mode ? t.mode[last]! : null; out.index = last;
+    out.kinstype = t.mode ? t.mode[last]! : null;
+    out.frame = _frameAt(t, last); out.index = last;
     return out;
   }
   // Smallest i with cum[i] >= s (cum[0] = 0 < s here, so lo starts at 1).
@@ -259,26 +291,26 @@ export function sampleTrack(t: ScrubTrack, s: number, out: ScrubSample): ScrubSa
   out.line = t.lines[lo]!;
   out.rapid = t.rapid[lo] === 1;
   out.kinstype = t.mode ? t.mode[lo]! : null;
+  out.frame = _frameAt(t, lo);
   out.index = lo;
   return out;
 }
 
 /** Live machine joints → program-space [x,y,z,a,b,c]: joints → machine
  *  coords through the kins boundary (forward kinematics), then the inverse
- *  WCS transform. `world` selects the machine's WORLD kins (spec + live
- *  TLO from wcs.tool) instead of the trivkins permutation — the caller
- *  passes the track's INITIAL mode (programs set their kins mode in the
- *  preamble before first motion; the live switchkins pin isn't sampled —
- *  recorded refinement). UVW/unknown joints are ignored. */
+ *  WCS transform. `kinstype` (+ `frame` for TOOL mode) selects the model
+ *  via kinsForSegment — the caller passes the live switchkins pin when
+ *  sampled, else the track's INITIAL mode/frame (programs set their kins
+ *  mode in the preamble before first motion). null kinstype = untracked
+ *  → trivkins. UVW/unknown joints are ignored. */
 export function machineJointsToProgram(
   joints: ArrayLike<number>, axes: string[], wcs: PartFrameWcs,
-  kins?: KinsSpec, world?: boolean,
+  kins?: KinsSpec, kinstype?: number | null,
+  frame?: readonly number[] | null,
 ): [number, number, number, number, number, number] {
   const m = [0, 0, 0, 0, 0, 0];
-  if (world && !kins) warnWorldWithoutSpec("entry move");
-  const model = world && kins
-    ? kinsFor(axes, kins, wcs.tool?.[2] || undefined)
-    : kinsFor(axes);
+  const model = kinsForSegment(axes, kins, kinstype ?? null, frame,
+                               wcs.tool?.[2] || undefined, "entry move");
   model.forward(joints, m);
   const out: [number, number, number, number, number, number] = [0, 0, 0, 0, 0, 0];
   machineToProgram(m[0]!, m[1]!, m[2]!, m[3]!, m[4]!, m[5]!, wcsTerms(wcs), out);
@@ -335,10 +367,18 @@ export function prependEntry(
     mode[0] = t.mode[0] ?? 0;
     mode[1] = t.mode[0] ?? 0;
   }
+  let frame: Uint8Array | undefined;
+  if (t.frame) {
+    frame = new Uint8Array(n);
+    frame.set(t.frame, 1);
+    frame[0] = t.frame[0] ?? 0xff;
+    frame[1] = t.frame[0] ?? 0xff;
+  }
   for (let i = 0; i < t.count; i++) cum[i + 1] = t.cum[i]! + entryLen;
   const lineCum = new Map<number, number>();
   for (const [ln, c] of t.lineCum) lineCum.set(ln, c + entryLen);
-  return { pos, abc, lines, rapid, mode, cum, count: n, lineCum, lineSpan: buildLineMap(lines), timeBased: t.timeBased };
+  return { pos, abc, lines, rapid, mode, frame, frames: t.frames,
+           cum, count: n, lineCum, lineSpan: buildLineMap(lines), timeBased: t.timeBased };
 }
 
 const _machineVals: number[] = [0, 0, 0, 0, 0, 0];
@@ -356,10 +396,7 @@ export function jointsForSample(
 ): (number | null)[] {
   const o: WcsTerms = wcsTerms(wcs);
   programToMachine(sample.px, sample.py, sample.pz, sample.pa, sample.pb, sample.pc, o, _machineVals);
-  const world = sample.kinstype != null && worldModeForSpec(sample.kinstype, kins);
-  if (world && !kins) warnWorldWithoutSpec("scrub pose");
-  const model = world && kins
-    ? kinsFor(axes, kins, wcs.tool?.[2] || undefined)
-    : kinsFor(axes);
+  const model = kinsForSegment(axes, kins, sample.kinstype, sample.frame,
+                               wcs.tool?.[2] || undefined, "scrub pose");
   return model.inverse(_machineVals, out);
 }

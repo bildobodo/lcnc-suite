@@ -1435,7 +1435,9 @@ function runCollisionCheck(trackOverride?: ScrubTrack) {
   const trackCopy = {
     pos: track.pos.slice(), abc: track.abc.slice(), lines: track.lines.slice(),
     rapid: track.rapid.slice(), cum: track.cum.slice(), count: track.count,
-    mode: track.mode?.slice(),  // world-kins flags — the sweep poses per segment
+    mode: track.mode?.slice(),  // raw switchkins types — the sweep poses per segment
+    frame: track.frame?.slice(),  // TWP frame indices (+ triplets below)
+    frames: track.frames,         // small list — structured-cloned, not transferred
   };
   // ArrayBuffer[] (not Transferable[]): every entry is a buffer, and the
   // TS-only Transferable name trips eslint's no-undef in SFC scripts.
@@ -1529,8 +1531,10 @@ function applyGcode(g: ViewerGcode) {
     const ra = g.rapidAbc && g.rapidAbc.length === rp.length ? g.rapidAbc : new Float32Array(rp.length);
     // Copies: the transfer must not detach viewerGcode's raw buffers — they
     // are re-read on every WCS/mode change.
-    const feed = { pos: fp.slice(), abc: fa.slice(), lines: fl?.slice(), breaks: g.feedBreaks?.slice(), mode: g.feedMode?.slice() };
-    const rapid = { pos: rp.slice(), abc: ra.slice(), breaks: g.rapidBreaks?.slice(), mode: g.rapidMode?.slice() };
+    const feed = { pos: fp.slice(), abc: fa.slice(), lines: fl?.slice(), breaks: g.feedBreaks?.slice(),
+                   mode: g.feedMode?.slice(), frame: g.feedFrame?.slice(), frames: g.kinsFrames };
+    const rapid = { pos: rp.slice(), abc: ra.slice(), breaks: g.rapidBreaks?.slice(),
+                    mode: g.rapidMode?.slice(), frame: g.rapidFrame?.slice(), frames: g.kinsFrames };
     const transfer: ArrayBuffer[] = [
       feed.pos.buffer as ArrayBuffer, feed.abc.buffer as ArrayBuffer,
       rapid.pos.buffer as ArrayBuffer, rapid.abc.buffer as ArrayBuffer,
@@ -1540,6 +1544,8 @@ function applyGcode(g: ViewerGcode) {
     if (rapid.breaks) transfer.push(rapid.breaks.buffer as ArrayBuffer);
     if (feed.mode) transfer.push(feed.mode.buffer as ArrayBuffer);
     if (rapid.mode) transfer.push(rapid.mode.buffer as ArrayBuffer);
+    if (feed.frame) transfer.push(feed.frame.buffer as ArrayBuffer);
+    if (rapid.frame) transfer.push(rapid.frame.buffer as ArrayBuffer);
     try {
       _pfGetWorker().postMessage({ id, machine: _pfMachine(viewerInit.value!), wcs: _pfWcs(), feed, rapid }, transfer);
     } catch (err) {

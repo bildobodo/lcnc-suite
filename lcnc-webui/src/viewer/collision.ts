@@ -39,7 +39,7 @@ import * as THREE from "three";
 import { MeshBVH } from "three-mesh-bvh";
 import { normalizeKinematics, type KinRuntime } from "./kinematics";
 import { programToMachine, wcsTerms, type PartFrameWcs } from "./partFrame";
-import { makeKins, warnWorldWithoutSpec, worldModeForSpec, type KinsSpec } from "./kins";
+import { kinsForSegment, makeKins, worldModeForSpec, type KinsModel, type KinsSpec } from "./kins";
 /** The subset of the scrub track the sweep consumes. The worker request
  *  ships a COPIED projection of the real ScrubTrack (typed arrays only —
  *  lineCum/lineSpan Maps and the time-axis fields never cross), so the
@@ -51,8 +51,13 @@ export interface CollisionTrack {
   rapid: Uint8Array;
   cum: Float32Array;
   count: number;
-  /** Per-segment world-kins flags (phase 2b) — absent = untracked. */
+  /** Per-segment RAW switchkins type (phase 2b, raw since phase 3) —
+   *  absent = untracked. Mapped per family via kinsForSegment. */
   mode?: Uint8Array;
+  /** Per-segment governing TWP frame index into `frames` (0xff = none). */
+  frame?: Uint8Array;
+  /** TWP frame triplets [preRot rad, primary deg, secondary deg]. */
+  frames?: [number, number, number][];
 }
 
 export interface CollisionMachine {
@@ -444,17 +449,34 @@ export function sweepCollisions(
   // + live TLO). Pairs whose path has the rotary keep the existing
   // Δangle × lever ×2 budget on top.
   const identityKins = makeKins(machine.axes);
-  const worldKins = machine.kins && track.mode
-    ? makeKins(machine.axes, machine.kins, wcs.tool?.[2] || undefined)
-    : null;
   // Raw wire types → per-vertex world flags for THIS machine's family
-  // (worldModeForSpec) — resolved once, the sweep's pose path just indexes.
+  // (worldModeForSpec) — the sagitta-slack condition indexes these.
   const modeWorld = track.mode
     ? Array.from(track.mode, (t) => worldModeForSpec(t, machine.kins))
     : null;
+  // Per-vertex kins model (phase 3): RAW type + governing TWP frame via
+  // kinsForSegment (family-aware; loud fallbacks live there).
+  const tFrames = track.frames;
+  const vertModel: KinsModel[] | null = track.mode
+    ? Array.from(track.mode, (t, i) => {
+        const fi = track.frame?.[i];
+        const fr = (fi != null && fi !== 0xff && tFrames) ? tFrames[fi] ?? null : null;
+        return kinsForSegment(machine.axes, machine.kins, t, fr,
+                              wcs.tool?.[2] || undefined, "collision sweep");
+      })
+    : null;
+  if (machine.kins?.type === "xyzacb-trsrn" && modeWorld?.some(Boolean)) {
+    // Pose math is exact (oracle-pinned twins), but the conservative-
+    // advancement SPEED BOUNDS (rotary levers, sagitta slack, pivot
+    // magnitudes) are audited for the trt family only — the no-missed-
+    // crossing guarantee is not yet certified for trsrn. Said loudly,
+    // once per sweep, never silently assumed.
+    console.warn("[collision] xyzacb-trsrn segments: CA speed bounds not yet "
+      + "audited for this kins family — sweep runs, guarantee not certified");
+  }
   // Pairs whose relative pose rides a world-driven linear joint (letter
   // X/Y/Z under a declared kins) — the recipients of the sagitta slack.
-  const pairWorldLin = worldKins
+  const pairWorldLin = machine.kins && track.mode
     ? pairDofs.map(list => list.some(pd =>
         !pd.dof.rotate && "XYZ".includes(machine.axes[pd.dof.joint] ?? "")))
     : null;
@@ -478,10 +500,9 @@ export function sweepCollisions(
   const worst = new Map<string, CollisionHit & { pi: number; samples: number[] }>();
   let done = 0;
 
-  const poseAt = (px: number, py: number, pz: number, pa: number, pb: number, pc: number, world = false) => {
+  const poseAt = (px: number, py: number, pz: number, pa: number, pb: number, pc: number, model: KinsModel = identityKins) => {
     programToMachine(px, py, pz, pa, pb, pc, o, machineVals);
-    if (world && !worldKins) warnWorldWithoutSpec("collision sweep");
-    (world && worldKins ? worldKins : identityKins).inverse(machineVals, kinsOut);
+    model.inverse(machineVals, kinsOut);
     for (let ji = 0; ji < kinsOut.length; ji++) {
       jointVals[ji] = kinsOut[ji] ?? 0;  // UVW: 0, as the preview transform
     }
@@ -516,7 +537,7 @@ export function sweepCollisions(
   const onsetRapid = new Uint8Array(pairs.length);
   const staticContacts: CollisionResult["staticContacts"] = [];
   poseAt(track.pos[0]!, track.pos[1]!, track.pos[2]!,
-         track.abc[0]!, track.abc[1]!, track.abc[2]!, modeWorld?.[0] ?? false);
+         track.abc[0]!, track.abc[1]!, track.abc[2]!, vertModel?.[0] ?? identityKins);
   for (let pi = 0; pi < pairs.length; pi++) {
     const [ai, bi] = pairs[pi]!;
     const dist = pairDistance(bodies[ai]!, bodies[bi]!, opts.margin);
@@ -587,7 +608,7 @@ export function sweepCollisions(
       track.abc[k]! + (track.abc[j]! - track.abc[k]!) * u,
       track.abc[k + 1]! + (track.abc[j + 1]! - track.abc[k + 1]!) * u,
       track.abc[k + 2]! + (track.abc[j + 2]! - track.abc[k + 2]!) * u,
-      modeWorld?.[lo] ?? false,
+      vertModel?.[lo] ?? identityKins,
     );
     const [ai, bi] = pairs[pi]!;
     return pairDistance(bodies[ai]!, bodies[bi]!, opts.margin);
@@ -618,7 +639,7 @@ export function sweepCollisions(
       track.abc[k]! + (track.abc[j]! - track.abc[k]!) * t,
       track.abc[k + 1]! + (track.abc[j + 1]! - track.abc[k + 1]!) * t,
       track.abc[k + 2]! + (track.abc[j + 2]! - track.abc[k + 2]!) * t,
-      modeWorld?.[i] ?? false,
+      vertModel?.[i] ?? identityKins,
     );
   };
 

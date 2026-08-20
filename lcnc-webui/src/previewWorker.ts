@@ -48,10 +48,38 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     // the declared kins family (worldModeForSpec).
     const feedModeWire = g.feed_kinstype != null ? new Uint8Array(g.feed_kinstype as Uint8Array) : undefined;
     const rapidModeWire = g.rapid_kinstype != null ? new Uint8Array(g.rapid_kinstype as Uint8Array) : undefined;
+    const feedSeq = _toU32(g.feed_seq);
+    const rapidSeq = _toU32(g.rapid_seq);
+
+    // TWP frames (phase 3): wire kins_frames = [seq, preRot, primary,
+    // secondary]; per-vertex governing frame resolved by seq with the
+    // marker convention (an event at seq N governs segments with seq > N;
+    // same-seq ties: last recorded wins — stable sort on seq alone).
+    const wireFrames = (g.kins_frames as [number, number, number, number][] | undefined);
+    const kinsFrames = wireFrames?.length
+      ? wireFrames.map((f) => [f[1], f[2], f[3]] as [number, number, number])
+      : undefined;
+    const frameIdxFor = (seq: Uint32Array | undefined): Uint8Array | undefined => {
+      if (!kinsFrames || !wireFrames || !seq) return undefined;
+      const evs = wireFrames.map((f, i) => [f[0], i] as const).sort((a, b) => a[0] - b[0]);
+      const out = new Uint8Array(seq.length).fill(0xff);
+      for (let v = 0; v < seq.length; v++) {
+        let idx = 0xff;
+        for (const [es, ei] of evs) {
+          if (es < seq[v]!) idx = Math.min(ei, 0xfe);
+          else break;
+        }
+        out[v] = idx;
+      }
+      return out;
+    };
+    const feedFrameWire = frameIdxFor(feedSeq);
+    const rapidFrameWire = frameIdxFor(rapidSeq);
 
     const scrubTrack = buildScrubTrack(
-      { pos: feedPos, abc: feedAbc, lines: feedLines, seq: _toU32(g.feed_seq), tcum: g.feed_tcum != null && (g.feed_tcum as Uint8Array).length ? _toF32(g.feed_tcum) : undefined, mode: feedModeWire },
-      { pos: rapidPos, abc: rapidAbc, lines: _toU32(g.rapid_lines), seq: _toU32(g.rapid_seq), tcum: g.rapid_tcum != null && (g.rapid_tcum as Uint8Array).length ? _toF32(g.rapid_tcum) : undefined, mode: rapidModeWire },
+      { pos: feedPos, abc: feedAbc, lines: feedLines, seq: feedSeq, tcum: g.feed_tcum != null && (g.feed_tcum as Uint8Array).length ? _toF32(g.feed_tcum) : undefined, mode: feedModeWire, frame: feedFrameWire },
+      { pos: rapidPos, abc: rapidAbc, lines: _toU32(g.rapid_lines), seq: rapidSeq, tcum: g.rapid_tcum != null && (g.rapid_tcum as Uint8Array).length ? _toF32(g.rapid_tcum) : undefined, mode: rapidModeWire, frame: rapidFrameWire },
+      kinsFrames,
     );
 
     // Drawn-preview streams re-derived from the merged track (sectioned, with
@@ -63,6 +91,8 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     let rapidBreaks: Uint32Array | undefined;
     let feedMode: Uint8Array | undefined;
     let rapidMode: Uint8Array | undefined;
+    let feedFrame: Uint8Array | undefined;
+    let rapidFrame: Uint8Array | undefined;
     if (scrubTrack) {
       const hadAbc = feedAbc != null || rapidAbc != null;
       const split = splitTrackStreams(scrubTrack);
@@ -73,6 +103,7 @@ self.onmessage = async (e: MessageEvent<Req>) => {
       feedAbc = hadAbc ? split.feedAbc : undefined;
       rapidAbc = hadAbc ? split.rapidAbc : undefined;
       feedMode = split.feedMode; rapidMode = split.rapidMode;
+      feedFrame = split.feedFrame; rapidFrame = split.rapidFrame;
     }
     const feedLineMap = _buildFeedLineMap(feedLines ?? g.feed_lines);
     const rapidDist = _lineDistances(rapidPos);  // dashed rapid line's lineDistance (P4.1)
@@ -101,12 +132,15 @@ self.onmessage = async (e: MessageEvent<Req>) => {
         scrubTrack.cum.buffer as ArrayBuffer,
       );
       if (scrubTrack.mode) transfer.push(scrubTrack.mode.buffer as ArrayBuffer);
+      if (scrubTrack.frame) transfer.push(scrubTrack.frame.buffer as ArrayBuffer);
     }
     if (feedMode) transfer.push(feedMode.buffer as ArrayBuffer);
     if (rapidMode) transfer.push(rapidMode.buffer as ArrayBuffer);
+    if (feedFrame) transfer.push(feedFrame.buffer as ArrayBuffer);
+    if (rapidFrame) transfer.push(rapidFrame.buffer as ArrayBuffer);
 
     self.postMessage(
-      { version, gcode: { ...rest, feedPos, rapidPos, feed_lines: feedLines, feedLineMap, rapidDist, feedAbc, rapidAbc, feedBreaks, rapidBreaks, feedMode, rapidMode, scrubTrack } },
+      { version, gcode: { ...rest, feedPos, rapidPos, feed_lines: feedLines, feedLineMap, rapidDist, feedAbc, rapidAbc, feedBreaks, rapidBreaks, feedMode, rapidMode, feedFrame, rapidFrame, kinsFrames, scrubTrack } },
       { transfer },
     );
   } catch (err) {

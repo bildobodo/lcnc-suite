@@ -17,7 +17,7 @@ import {
   sampleTrack, jointsForSample, machineJointsToProgram, prependEntry,
   type ScrubSample,
 } from "./viewer/scrubTrack";
-import { specFromWire, worldModeForSpec } from "./viewer/kins";
+import { specFromWire } from "./viewer/kins";
 import type { ScrubTrack } from "./ws/bulkData";
 import type { CollisionResult } from "./viewer/collision";
 import { limitViolationText } from "./ws/bulkData";
@@ -86,7 +86,7 @@ const curRapid = ref(false);
 const pct = computed(() => (cumMax.value > 0 ? Math.round((sPos.value / cumMax.value) * 100) : 0));
 
 // Reused per-frame scratch — the sPos watcher runs at animation rate.
-const _sample: ScrubSample = { px: 0, py: 0, pz: 0, pa: 0, pb: 0, pc: 0, line: 0, rapid: false, kinstype: 0, index: 0 };
+const _sample: ScrubSample = { px: 0, py: 0, pz: 0, pa: 0, pb: 0, pc: 0, line: 0, rapid: false, kinstype: null, frame: null, index: 0 };
 const _joints: (number | null)[] = [];
 // Wire kins declaration → spec, cached: specFromWire allocates, and this
 // feeds the per-frame pose path — recompute only when viewer_init changes.
@@ -133,14 +133,18 @@ function _buildEntryTrack() {
   // executed yet, so the program's initial mode can be wrong for the live
   // joints. Fallback when the pin isn't sampled: base.mode[0].
   const kt = st.value.kins_type;
-  // Raw type (live pin or the track's first segment) → world/identity,
-  // family-aware (worldModeForSpec — trsrn types 1 and 2 are both
-  // non-identity, trt follows sparm). No pin AND no mode data = untracked
-  // → identity, never guessed (0 is the WORLD type on plain-sparm trt).
-  const ktEntry = kt != null ? kt : base.mode?.[0];
-  const worldEntry = ktEntry != null && worldModeForSpec(ktEntry, _kinsSpec.value);
+  // Entry inverse raw kinstype: prefer the LIVE switchkins pin, else the
+  // track's first segment. No pin AND no mode data = untracked → identity,
+  // never guessed (0 is the WORLD type on plain-sparm trt). TWP frame for
+  // a type-2 entry: the kins' frame pins aren't sampled, so the track's
+  // first governing frame stands in (the parked-in-TWP machine normally
+  // holds the program's own frame; frameless → loud trivkins fallback in
+  // kinsForSegment).
+  const ktEntry = kt != null ? kt : (base.mode?.[0] ?? null);
+  const f0 = base.frame?.[0];
+  const frameEntry = (f0 != null && f0 !== 0xff && base.frames) ? base.frames[f0] ?? null : null;
   const entry = machineJointsToProgram(_baseJoints, viewerInit.value?.axes ?? [], _wcs(),
-                                       _kinsSpec.value, worldEntry);
+                                       _kinsSpec.value, ktEntry, frameEntry);
   const g = viewerGcode.value;
   const t = prependEntry(base, entry, { linear: g?.rapid_rate, rotary: g?.rot_rapid_rate });
   entryTrack.value = t === base ? null : t;
@@ -284,10 +288,11 @@ watch(st, (d) => {
   // kins mode (live switchkins pin) when sampled — same authority as the
   // joints being inverted; fall back to the current line's segment mode.
   const ktLive = d.kins_type;
-  const ktNow = ktLive != null ? ktLive : t.mode?.[span.end];
-  const worldNow = ktNow != null && worldModeForSpec(ktNow, _kinsSpec.value);
+  const ktNow = ktLive != null ? ktLive : (t.mode?.[span.end] ?? null);
+  const fN = t.frame?.[span.end];
+  const frameNow = (fN != null && fN !== 0xff && t.frames) ? t.frames[fN] ?? null : null;
   const p = machineJointsToProgram(jp, viewerInit.value?.axes ?? [], _wcs(),
-                                   _kinsSpec.value, worldNow);
+                                   _kinsSpec.value, ktNow, frameNow);
   let bestCum = t.cum[span.start]!;
   let bestD = Infinity;
   for (let i = Math.max(1, span.start); i <= span.end; i++) {

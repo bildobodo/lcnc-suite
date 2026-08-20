@@ -63,7 +63,8 @@ from gateway_util import (
     scan_tool_stats, read_axis_limits, check_limit_violations,
     check_limit_violations_world, merge_violation_records,
     rs274_effective_xy_offset, parse_kins_config, kins_type_flags,
-    kins_nonidentity_flags, kins_marker_policy, mode_boundary_indices,
+    kins_nonidentity_flags, kins_frame_indices, check_limit_violations_trsrn,
+    kins_marker_policy, mode_boundary_indices,
 )
 
 
@@ -274,7 +275,36 @@ def parse(ctx: dict) -> dict:
                     yield _lineno, _start, _end, _tlo
         violations, violations_total = check_limit_violations(
             _identity_segs(), axis_limits, unit_scale)
-        if _any_world:
+        if _any_world and kins_cfg and kins_cfg.get("type") == "xyzacb-trsrn":
+            # trsrn non-identity segments: joint-side check through the
+            # trsrn twin, per-segment TYPE (1=TCP w/ TLO-in-pivot,
+            # 2=TOOL w/ its governing WEBUI_TWPFRAME) — frames resolved
+            # by seq exactly like the type markers. Frameless type-2
+            # (bare M430) rides the wire as the unchecked count.
+            _f_frame = kins_frame_indices([t[5] for t in canon.feed], canon.kins_frames)
+            _r_frame = kins_frame_indices([t[4] for t in canon.rapid], canon.kins_frames)
+            _frames = [(f[1], f[2], f[3]) for f in canon.kins_frames]
+
+            def _trsrn_segs():
+                for _i, (_lineno, _start, _end, _rate, _tlo, _seq) in enumerate(canon.feed):
+                    if feed_world and feed_world[_i]:
+                        _fi = _f_frame[_i]
+                        yield (_lineno, _start, _end, _tlo, feed_types[_i],
+                               _frames[_fi] if _fi is not None else None)
+                for _i, (_lineno, _start, _end, _tlo, _seq) in enumerate(canon.rapid):
+                    if rapid_world and rapid_world[_i]:
+                        _fi = _r_frame[_i]
+                        yield (_lineno, _start, _end, _tlo, rapid_types[_i],
+                               _frames[_fi] if _fi is not None else None)
+            w_records, w_total, world_unchecked = check_limit_violations_trsrn(
+                _trsrn_segs(), axis_limits, kins_cfg, unit_scale)
+            if world_unchecked:
+                print(f"limits: {world_unchecked} type-2 segments UNCHECKED "
+                      f"(no TWP frame marker — bare M430?)",
+                      file=sys.stderr, flush=True)
+            violations, _merged_total = merge_violation_records(violations, w_records)
+            violations_total = max(_merged_total, violations_total, w_total)
+        elif _any_world:
             # World-mode segments: joint-side check through the kins twin
             # (subdivided — the joint path between world endpoints is
             # nonlinear; endpoint checks miss the phase-0 -22.36 class).

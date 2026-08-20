@@ -7,7 +7,7 @@ import {
 } from "./scrubTrack";
 import { makeKins as kinsForTest } from "./kins";
 
-function stream(points: number[][], opts: { abc?: number[][]; lines?: number[]; seq?: number[]; tcum?: number[]; mode?: number[] } = {}): ScrubStream {
+function stream(points: number[][], opts: { abc?: number[][]; lines?: number[]; seq?: number[]; tcum?: number[]; mode?: number[]; frame?: number[] } = {}): ScrubStream {
   return {
     pos: new Float32Array(points.flat()),
     abc: opts.abc ? new Float32Array(opts.abc.flat()) : undefined,
@@ -15,13 +15,14 @@ function stream(points: number[][], opts: { abc?: number[][]; lines?: number[]; 
     seq: opts.seq ? new Uint32Array(opts.seq) : undefined,
     tcum: opts.tcum ? new Float32Array(opts.tcum) : undefined,
     mode: opts.mode ? new Uint8Array(opts.mode) : undefined,
+    frame: opts.frame ? new Uint8Array(opts.frame) : undefined,
   };
 }
 
 const EMPTY = stream([]);
 
 function freshSample(): ScrubSample {
-  return { px: 0, py: 0, pz: 0, pa: 0, pb: 0, pc: 0, line: 0, rapid: false, kinstype: null, index: 0 };
+  return { px: 0, py: 0, pz: 0, pa: 0, pb: 0, pc: 0, line: 0, rapid: false, kinstype: null, frame: null, index: 0 };
 }
 
 describe("buildScrubTrack", () => {
@@ -312,6 +313,26 @@ describe("kins mode plumbing (phase 2b)", () => {
     expect(Array.from(withEntry.mode!)).toEqual([1, 1, 1]);  // 2 pts + entry
   });
 
+  it("carries TWP frames through track, sample, split and entry", () => {
+    const frames: [number, number, number][] = [[-1.78, 130.2, -40.9]];
+    const t = buildScrubTrack(
+      stream([[0, 0, 0], [10, 0, 0]], { seq: [1, 2], mode: [2, 2], frame: [0xff, 0] }),
+      EMPTY, frames,
+    )!;
+    expect(t.frames).toBe(frames);
+    const s = freshSample();
+    sampleTrack(t, 5, s);          // segment 0→1 ends at index 1 (frame 0)
+    expect(s.kinstype).toBe(2);
+    expect(s.frame).toEqual([-1.78, 130.2, -40.9]);
+    sampleTrack(t, 0, s);          // point 0: no governing frame yet
+    expect(s.frame).toBeNull();
+    const split = splitTrackStreams(t);
+    expect(Array.from(split.feedFrame!)).toEqual([0, 0]);
+    const withEntry = prependEntry(t, [5, 5, 5, 0, 0, 0]);
+    expect(Array.from(withEntry.frame!)).toEqual([0xff, 0xff, 0]);
+    expect(withEntry.frames).toBe(frames);
+  });
+
   it("jointsForSample routes world samples through the declared kins", () => {
     const s = freshSample();
     s.px = 20; s.py = 10; s.pz = 30; s.pa = -45; s.pc = 90;
@@ -353,7 +374,7 @@ describe("kins mode plumbing (phase 2b)", () => {
     s.kinstype = 0;  // plain sparm: type 0 = world (see SPEC note above)
     const joints: (number | null)[] = [];
     jointsForSample(s, IDW, AXES, joints, SPEC);
-    const p = machineJointsToProgram(joints as number[], AXES, IDW, SPEC, true);
+    const p = machineJointsToProgram(joints as number[], AXES, IDW, SPEC, 0);
     expect(p[0]).toBeCloseTo(20, 6);
     expect(p[1]).toBeCloseTo(10, 6);
     expect(p[2]).toBeCloseTo(30, 6);

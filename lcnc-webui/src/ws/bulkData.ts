@@ -85,6 +85,12 @@ export interface ScrubTrack {
    *  family via viewer/kins.ts worldModeForSpec. Absent = no mode data
    *  (untracked program/config — pose derivation stays trivkins). */
   mode?: Uint8Array;
+  /** count — governing TWP frame INDEX into `frames` per segment (0xff =
+   *  none). Present only on programs with WEBUI_TWPFRAME markers. */
+  frame?: Uint8Array;
+  /** TWP frame value triplets [preRot rad, primary deg, secondary deg],
+   *  dereferenced by `frame` (wire kins_frames minus the seq column). */
+  frames?: [number, number, number][];
   /** Monotonic scrub parameter: SECONDS when `timeBased` (unified timeline
    *  phase 1 — per-segment feed + INI rapid velocities), else distance
    *  (mm, 1° ≙ 1 mm — legacy payloads / no INI MAX_VELOCITY). */
@@ -149,6 +155,14 @@ export interface ViewerGcode {
   // routes non-identity segments through the machine's declared kins.
   feedMode?: Uint8Array;
   rapidMode?: Uint8Array;
+  // Per-vertex governing TWP frame index for the DRAWN streams (0xff =
+  // none; dereference into kinsFrames). Present iff kins_frames arrived.
+  feedFrame?: Uint8Array;
+  rapidFrame?: Uint8Array;
+  // TWP frame triplets [preRot rad, primary deg, secondary deg] — wire
+  // kins_frames minus the seq column, shared by the per-vertex indices
+  // above and scrubTrack.frames.
+  kinsFrames?: [number, number, number][];
   // P4.1: bounding boxes of the rendered polylines, computed in the parse worker
   // so ThreeViewer skips an O(n) main-thread scan per load. `bounds` is the cut
   // envelope shown as the toolpath bounds box (X/Y over feed+rapid, Z over feed

@@ -658,6 +658,32 @@ def kins_world_flags(seqs, events, identity_first):
             for k in kins_type_flags(seqs, events)]
 
 
+def kins_frame_indices(seqs, frame_events):
+    """Per-segment index into the TWP frame list, or None when no frame
+    governs yet.
+
+    `frame_events`: canon.kins_frames [(seq_at_marker, pre_rot, th1, th2)]
+    in recorded order — the wire ships this list verbatim, so consumers
+    key segments to frames by INDEX. Same resolution convention as the
+    type markers (an event at seq N governs segments with seq > N; two
+    events on one seq: the last recorded wins — sort keys on seq alone).
+    A type-2 segment resolving to None is the bare-M430 case: the plane
+    frame lives only in the kins pins, unknowable to a parse — those
+    segments are counted UNCHECKED, never guessed. Pure.
+    """
+    evs = sorted(range(len(frame_events)), key=lambda i: frame_events[i][0])
+    out = []
+    for s in seqs:
+        idx = None
+        for i in evs:
+            if frame_events[i][0] < s:
+                idx = i
+            else:
+                break
+        out.append(idx)
+    return out
+
+
 def kins_nonidentity_flags(types, kins_cfg):
     """Per-segment 'this is NOT the identity kins' flags, family-aware.
 
@@ -684,8 +710,10 @@ def kins_marker_policy(kins_cfg):
                   Emitting mode flags here would gut the identity limit
                   check and mislabel the whole track (startup type 0 maps
                   to "world" without sparm=identityfirst).
-    'twin'      — a world twin exists (_TRT_LETTERS): full joint-side
-                  world checking.
+    'twin'      — a joint-side twin exists (trt families, xyzacb-trsrn):
+                  full world/non-identity limit checking. (trsrn still
+                  reports its frameless type-2 segments — bare M430 —
+                  as an unchecked count.)
     'unchecked' — a declared non-trivial module without a twin: the
                   switches are real, so mode flags ship, but world
                   segments cannot be limit-checked and must be reported
@@ -693,7 +721,8 @@ def kins_marker_policy(kins_cfg):
     """
     if kins_cfg is None or kins_cfg.get("type") == "trivkins":
         return "ignore"
-    return "twin" if kins_cfg.get("type") in _TRT_LETTERS else "unchecked"
+    ktype = kins_cfg.get("type")
+    return "twin" if (ktype in _TRT_LETTERS or ktype == "xyzacb-trsrn") else "unchecked"
 
 
 def kins_pivot_warning(kins_cfg):
@@ -707,9 +736,7 @@ def kins_pivot_warning(kins_cfg):
     the origin silences this with explicit `HALCMD = setp … 0` lines.
     None when params are present or the kins has no twin. Pure.
     """
-    param_bearing = (kins_marker_policy(kins_cfg or None) == "twin"
-                     or (kins_cfg or {}).get("type") == "xyzacb-trsrn")
-    if kins_cfg and param_bearing and not kins_cfg.get("params"):
+    if kins_cfg and kins_marker_policy(kins_cfg) == "twin" and not kins_cfg.get("params"):
         return (f"{kins_cfg.get('module')} declared but no pivot setp lines in "
                 f"[HAL]HALCMD — viewer TCP math would use pivot zeros; put the "
                 f"setp lines in the INI (README: 5-Axis and TCP)")
@@ -1068,6 +1095,107 @@ def check_limit_violations_world(segments, limits, kins_cfg, unit_scale=1.0,
                 "limit": round(worst[(ln, ax)][1], 4), "kind": worst[(ln, ax)][2]}
                for ln, ax in keys[:max_report]]
     return records, len(keys)
+
+
+_TRSRN_LETTERS = ("X", "Y", "Z", "A", "B", "C")
+
+
+def check_limit_violations_trsrn(segments, limits, kins_cfg, unit_scale=1.0,
+                                 rot_step_deg=4.0, max_report=200):
+    """JOINT-side soft limits for xyzacb-trsrn non-identity segments.
+
+    Sibling of check_limit_violations_world with the trsrn twist: the raw
+    switchkins TYPE picks the joint mapping per segment — type 1 (TCP)
+    routes through trsrn_kins_inverse mode 1 with the live TLO folded
+    into the pivot (`tool_offset_z`), type 2 (TOOL/plane) through mode 2
+    with the governing WEBUI_TWPFRAME values (pre-rot rad, primary/
+    secondary deg — the kins pin trio; mode-2 math ignores TLO by
+    upstream design, capture-verified to the µm). A type-2 segment with
+    NO governing frame (bare M430 — the frame lives only in the kins
+    pins) is UNCHECKED, never guessed. World coords are TLO-INCLUSIVE
+    like the trt path (canon subtracts TLO; both twins' live validation
+    matched stat.position with TLO added back).
+
+    segments: (lineno, start9, end9, tlo3, kinstype, frame) — frame is
+    (pre_rot, th1, th2) or None. Rotary subdivision mirrors the trt rule
+    (mode-1 orient sweeps bend the joint path mid-segment; parked-rotary
+    plane moves get steps=1 for free). Attribution: only a joint that
+    MOVES within the segment is flagged.
+
+    Returns (records, total, unchecked) — records/total shaped like
+    check_limit_violations; unchecked counts the frameless type-2
+    segments (rides the wire as violations_world_unchecked). Pure.
+    """
+    segments = list(segments)
+    if not limits or not segments:
+        return [], 0, sum(1 for s in segments if s[4] == 2 and s[5] is None)
+    params0 = {k: float(v) for k, v in ((kins_cfg or {}).get("params") or {}).items()}
+    bounds = []
+    for jno, letter in enumerate(_TRSRN_LETTERS):
+        b = limits.get(letter)
+        if b is not None:
+            bounds.append((jno, letter, b[0], b[1]))
+
+    unchecked = 0
+    worst = {}
+    jmin = [0.0] * 6
+    jmax = [0.0] * 6
+    for lineno, start, end, tlo, ktype, frame in segments:
+        if ktype == 2 and frame is None:
+            unchecked += 1
+            continue
+        if ktype not in (1, 2):
+            continue  # identity segs belong to the caller's identity check
+        params = dict(params0)
+        tz = (tlo[2] if tlo is not None else 0.0) * unit_scale
+        if ktype == 1:
+            params["tool_offset_z"] = tz
+        else:
+            params["pre_rot"] = frame[0]
+            params["primary_angle"] = frame[1]
+            params["secondary_angle"] = frame[2]
+        if not bounds:
+            continue
+        rotd = max(abs(end[i] - start[i]) for i in (3, 4, 5))
+        steps = min(256, max(1, math.ceil(rotd / rot_step_deg)))
+        for si in range(steps + 1):
+            t = si / steps
+            w = [0.0] * 6
+            for i in range(6):
+                v = start[i] + (end[i] - start[i]) * t
+                if i < 3:
+                    v = (v + (tlo[i] if tlo is not None else 0.0)) * unit_scale
+                w[i] = v
+            joints = trsrn_kins_inverse(w, params, ktype)
+            if si == 0:
+                for j in range(6):
+                    jmin[j] = jmax[j] = joints[j]
+            else:
+                for j in range(6):
+                    if joints[j] < jmin[j]:
+                        jmin[j] = joints[j]
+                    elif joints[j] > jmax[j]:
+                        jmax[j] = joints[j]
+        for jno, letter, mn, mx in bounds:
+            if jmax[jno] - jmin[jno] <= _JOINT_MOVE_EPS:
+                continue  # joint parked this segment — culprit line already flagged
+            if mn is not None and jmin[jno] < mn - _LIMIT_EPS:
+                key = (lineno, letter)
+                rec = worst.get(key)
+                if rec is None or jmin[jno] < rec[0]:
+                    worst[key] = [jmin[jno], mn, "min"]
+            if mx is not None and jmax[jno] > mx + _LIMIT_EPS:
+                key = (lineno, letter)
+                rec = worst.get(key)
+                if rec is None or jmax[jno] > rec[0]:
+                    worst[key] = [jmax[jno], mx, "max"]
+
+    order = {letter: i for i, letter in enumerate(AXIS_LETTERS)}
+    keys = sorted(worst, key=lambda k: (k[0], order.get(k[1], 9)))
+    records = [{"line": ln, "axis": ax, "value": round(worst[(ln, ax)][0], 4),
+                "limit": round(worst[(ln, ax)][1], 4), "kind": worst[(ln, ax)][2]}
+               for ln, ax in keys[:max_report]]
+    return records, len(keys), unchecked
 
 
 def merge_violation_records(a, b, max_report=200):

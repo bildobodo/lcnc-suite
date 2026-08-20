@@ -851,6 +851,110 @@ class TestTrsrnKins(unittest.TestCase):
                     self.assertLess(abs(g - e), self.TOL)
 
 
+class TestTrsrnCapturePins(unittest.TestCase):
+    """Live-capture golden pins for the trsrn twin's COORDINATE CONVENTIONS
+    (TWP phase 3 close-out, 2026-08-20 task run of simple_example.ngc /
+    capture-g536 on the fork): world side is TLO-INCLUSIVE stat.position;
+    mode 1 folds TLO into the pivot via tool_offset_z; mode 2 ignores TLO
+    entirely (motion applies it upstream of the kins in plane mode).
+    The oracle fixtures pin the math — these pin the PLUMBING conventions
+    the limit check and the client transform rely on.
+    """
+
+    GEO = {"nut_angle": 55.0, "y_pivot": 50.0, "z_pivot": 120.0,
+           "x_offset": 0.0, "y_offset": 0.0,
+           "y_rot_axis": -1000.0, "z_rot_axis": -2000.0}
+    FRAME = {"pre_rot": -1.781762, "primary_angle": 130.2455,
+             "secondary_angle": -40.8555}
+
+    def test_mode2_end_state_and_tlo_ignored(self):
+        geo = dict(self.GEO, **self.FRAME)
+        joints = [1390.773, -379.602, -1279.861, 0.0, -40.855, 130.245]
+        pos = [1609.597, -854.904, -571.098, 0.0, -40.855, 130.245]
+        w = gateway_util.trsrn_kins_forward(joints, geo, 2)
+        for i in range(3):
+            self.assertAlmostEqual(w[i], pos[i], places=2)
+        inv = gateway_util.trsrn_kins_inverse(pos, geo, 2)
+        for i in range(3):
+            self.assertAlmostEqual(inv[i], joints[i], places=2)
+        # TLO param must be a no-op in mode 2 (capture: G43 h3=100 active,
+        # forward(joints) matched stat.position with no TLO term).
+        w_tlo = gateway_util.trsrn_kins_forward(
+            joints, dict(geo, tool_offset_z=100.0), 2)
+        for i in range(3):
+            self.assertAlmostEqual(w_tlo[i], w[i], places=9)
+
+    def test_mode1_tcp_window_needs_tlo_in_pivot(self):
+        # G53.6 orient: world pinned (1300,-200,-1200) TLO-inclusive while
+        # joints migrated to ~(1309.7,-371.6,-1230.2) (capture, 1 decimal).
+        geo = dict(self.GEO, tool_offset_z=100.0)
+        j = [1309.7, -371.6, -1230.2, 0.0, -40.855, 130.245]
+        w = gateway_util.trsrn_kins_forward(j, geo, 1)
+        self.assertAlmostEqual(w[0], 1300.0, delta=0.1)
+        self.assertAlmostEqual(w[1], -200.0, delta=0.1)
+        self.assertAlmostEqual(w[2], -1200.0, delta=0.1)
+        # Without the TLO fold the same joints land tens of mm away.
+        w0 = gateway_util.trsrn_kins_forward(j, dict(self.GEO), 1)
+        self.assertGreater(abs(w0[1] + 200.0), 10.0)
+
+
+class TestTrsrnLimitCheck(unittest.TestCase):
+    """Phase 3 close-out: joint-side soft limits for trsrn TCP/TOOL segs."""
+
+    CFG = {"type": "xyzacb-trsrn", "identity_first": False,
+           "params": {"nut_angle": 55.0, "y_pivot": 50.0, "z_pivot": 120.0,
+                      "x_offset": 0.0, "y_offset": 0.0,
+                      "y_rot_axis": -1000.0, "z_rot_axis": -2000.0}}
+    FRAME = (-1.781762, 130.2455, -40.8555)
+    NINE = staticmethod(lambda x, y, z, a, b, c: (x, y, z, a, b, c, 0.0, 0.0, 0.0))
+
+    def test_plane_move_drives_joint_past_limit(self):
+        # Capture point: machine world (1609.597,-854.904,-571.098)
+        # TLO-inclusive = joint X 1390.773; canon-style z carries TLO 100
+        # subtracted (the checker adds it back). A 1 mm plane move keeps
+        # joint X moving so attribution fires.
+        start = self.NINE(1609.597, -854.904, -671.098, 0.0, -40.855, 130.245)
+        end = self.NINE(1610.597, -853.904, -671.098, 0.0, -40.855, 130.245)
+        seg = (7, start, end, (0.0, 0.0, 100.0), 2, self.FRAME)
+        records, total, unchecked = gateway_util.check_limit_violations_trsrn(
+            [seg], {"X": (-2000.0, 1390.0)}, self.CFG)
+        self.assertEqual(unchecked, 0)
+        self.assertEqual(total, 1)
+        self.assertEqual((records[0]["axis"], records[0]["kind"]), ("X", "max"))
+        self.assertGreater(records[0]["value"], 1390.5)
+        self.assertLess(records[0]["value"], 1392.0)
+
+    def test_tcp_orient_sweep_checked_with_tlo(self):
+        # G53.6 orient: world pinned while B/C sweep — the joints migrate
+        # MID-segment (rotary subdivision is the point). End joint Y is
+        # ~-371.6 (capture); a -300 bound must flag it.
+        start = self.NINE(1300.0, -200.0, -1300.0, 0.0, 0.0, 0.0)
+        end = self.NINE(1300.0, -200.0, -1300.0, 0.0, -40.855, 130.245)
+        seg = (6, start, end, (0.0, 0.0, 100.0), 1, None)  # mode 1: no frame
+        records, total, unchecked = gateway_util.check_limit_violations_trsrn(
+            [seg], {"Y": (-300.0, 300.0)}, self.CFG)
+        self.assertEqual(unchecked, 0)
+        self.assertEqual(total, 1)
+        self.assertEqual((records[0]["axis"], records[0]["kind"]), ("Y", "min"))
+        self.assertLess(records[0]["value"], -350.0)
+
+    def test_frameless_type2_is_unchecked_never_guessed(self):
+        seg = (9, self.NINE(0, 0, 0, 0, 0, 0), self.NINE(1, 0, 0, 0, 0, 0),
+               None, 2, None)
+        records, total, unchecked = gateway_util.check_limit_violations_trsrn(
+            [seg], {"X": (-1.0, 1.0)}, self.CFG)
+        self.assertEqual(records, [])
+        self.assertEqual(total, 0)
+        self.assertEqual(unchecked, 1)
+
+    def test_identity_segments_skipped(self):
+        seg = (3, self.NINE(500, 0, 0, 0, 0, 0), self.NINE(600, 0, 0, 0, 0, 0),
+               None, 0, None)
+        records, total, unchecked = gateway_util.check_limit_violations_trsrn(
+            [seg], {"X": (-1.0, 1.0)}, self.CFG)
+        self.assertEqual((records, total, unchecked), ([], 0, 0))
+
+
 class TestParseKinsConfig(unittest.TestCase):
     """INI -> viewer kins declaration (phase 1d single-source parse)."""
 
@@ -1140,9 +1244,20 @@ class TestKinsModeHelpers(unittest.TestCase):
         # Twin exists: full world checking.
         self.assertEqual(f({"type": "xyzac-trt"}), "twin")
         self.assertEqual(f({"type": "xyzbc-trt"}), "twin")
+        self.assertEqual(f({"type": "xyzacb-trsrn"}), "twin")
         # Declared switchable module without a twin: flags are real but
         # world segments must ship as an explicit unchecked count.
         self.assertEqual(f({"type": "genhexkins"}), "unchecked")
+
+    def test_frame_indices(self):
+        f = gateway_util.kins_frame_indices
+        frames = [(2, -1.7, 130.0, -40.0), (7, 0.5, 10.0, 20.0)]
+        # Event at seq N governs segments with seq > N (marker convention).
+        self.assertEqual(f([1, 2, 3, 7, 8], frames), [None, None, 0, 0, 1])
+        self.assertEqual(f([5, 1], frames), [0, None])   # unordered seqs
+        self.assertEqual(f([3], []), [None])
+        # Two frames on one seq: the LAST recorded wins.
+        self.assertEqual(f([3], [(2, 1, 1, 1), (2, 2, 2, 2)]), [1])
 
     def test_mode_boundary_indices(self):
         f = gateway_util.mode_boundary_indices

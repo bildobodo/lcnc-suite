@@ -29,7 +29,7 @@
 import * as THREE from "three";
 import type { ViewerInit } from "../ws/bulkData";
 import { normalizeKinematics, type KinRuntime } from "./kinematics";
-import { makeKins, warnWorldWithoutSpec, worldModeForSpec, type KinsSpec } from "./kins";
+import { kinsForSegment, makeKins, type KinsModel, type KinsSpec } from "./kins";
 
 export interface PartFrameMachine {
   groups: Array<{ id: string; parent: string; translate?: [number, number, number] | number[] }>;
@@ -74,9 +74,14 @@ export interface PartFramePolyline {
   breaks?: Uint32Array;
   /** Per-vertex RAW switchkins type (phase 2, raw since phase 3): the
    *  segment ENDING at vertex i carries type mode[i]; the transform maps
-   *  it per the declared kins family (worldModeForSpec). Absent = no
+   *  it per the declared kins family (kinsForSegment). Absent = no
    *  mode data — every segment derives as trivkins, as before. */
   mode?: Uint8Array;
+  /** Per-vertex governing TWP frame index into `frames` (0xff = none) —
+   *  TOOL-mode (type 2) segments need it to pin the plane frame. */
+  frame?: Uint8Array;
+  /** TWP frame triplets [preRot rad, primary deg, secondary deg]. */
+  frames?: [number, number, number][];
 }
 
 export interface PartFrameResult {
@@ -294,26 +299,28 @@ export function transformToPartFrame(
   // `?? 0` keeps them at zero in the pose, as before.
   const jointVals: (number | null)[] = [];
   const axisLetters = machine.axes.length ? machine.axes : ["X", "Y", "Z", "A", "B", "C"];
-  // Identity model always; the machine's WORLD kins only for segments the
-  // mode flags mark — an untracked polyline (no mode array) never touches
-  // it. Live TLO feeds the world model's pivot math (makeKins overlay).
+  // Per-vertex kins model (phase 3): RAW switchkins type + governing TWP
+  // frame → kinsForSegment (family-aware routing; the loud honesty warns
+  // live there). An untracked polyline (no mode array) stays trivkins
+  // throughout. Live TLO feeds the model's pivot math where the family
+  // uses it (trt world, trsrn TCP).
   const identityKins = makeKins(axisLetters);
-  const worldKins = machine.kins && input.mode
-    ? makeKins(axisLetters, machine.kins, wcs.tool?.[2] || undefined)
-    : null;
-  // Raw wire types → per-vertex world flags for THIS machine's family
-  // (worldModeForSpec) — resolved once, the emit path just indexes.
-  const modeWorld = input.mode
-    ? Array.from(input.mode, (t) => worldModeForSpec(t, machine.kins))
+  const inFrames = input.frames;
+  const vertModel: KinsModel[] | null = input.mode
+    ? Array.from(input.mode, (t, i) => {
+        const fi = input.frame?.[i];
+        const fr = (fi != null && fi !== 0xff && inFrames) ? inFrames[fi] ?? null : null;
+        return kinsForSegment(axisLetters, machine.kins, t, fr,
+                              wcs.tool?.[2] || undefined, "part-frame preview");
+      })
     : null;
   const machineVals: number[] = [0, 0, 0, 0, 0, 0];
 
   let out = 0;
-  const emit = (px: number, py: number, pz: number, pa: number, pb: number, pc: number, line: number, world: boolean) => {
+  const emit = (px: number, py: number, pz: number, pa: number, pb: number, pc: number, line: number, model: KinsModel) => {
     // Program → machine coords, then machine → joints via the kins boundary.
     programToMachine(px, py, pz, pa, pb, pc, o, machineVals);
-    if (world && !worldKins) warnWorldWithoutSpec("part-frame preview");
-    (world && worldKins ? worldKins : identityKins).inverse(machineVals, jointVals);
+    model.inverse(machineVals, jointVals);
 
     // Evaluate chain nodes (parents first): base + composed DOFs, exactly
     // like the live applyState — translations add, rotations right-multiply.
@@ -353,13 +360,13 @@ export function transformToPartFrame(
   const outBreaks: number[] = [];
   emit(input.pos[0]!, input.pos[1]!, input.pos[2]!,
        input.abc[0]!, input.abc[1]!, input.abc[2]!, input.lines?.[0] ?? 0,
-       modeWorld?.[0] ?? false);
+       vertModel?.[0] ?? identityKins);
   if (breakSet.has(0)) outBreaks.push(0);
   for (let i = 1; i < n; i++) {
     const j = i * 3, k = j - 3;
     const steps = segSamples[i - 1]!;
     const line = input.lines?.[i] ?? 0;
-    const world = modeWorld?.[i] ?? false;  // segment mode: all its samples share it
+    const model = vertModel?.[i] ?? identityKins;  // segment mode: all its samples share it
     for (let s = 1; s <= steps; s++) {
       const t = s / steps;
       emit(
@@ -370,7 +377,7 @@ export function transformToPartFrame(
         input.abc[k + 1]! + (input.abc[j + 1]! - input.abc[k + 1]!) * t,
         input.abc[k + 2]! + (input.abc[j + 2]! - input.abc[k + 2]!) * t,
         line,
-        world,
+        model,
       );
     }
     // Remap the section start to its output index (the segment's endpoint —
