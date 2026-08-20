@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, provide, reactive, ref, watch } from "vue";
-import { applyClientOverlay, PERMISSIONS_KEY, type Permissions } from "./permissions";
+import { applyClientOverlay, PERMISSIONS_KEY, FIRE_KEY, type Permissions } from "./permissions";
 import { simMode } from "./simMode";
 import { connectWs, connected, status, send, armed, lastReply, viewerGcode, viewerInit, gcodeContent, lcncError, latency, networkLatency, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead, pushMessage, safetyTrip, acknowledgeSafetyTrip, readerStale, safetyChainIncomplete, configWarning, previewLoadError, previewParseError, serverShuttingDown, type LcncMessage } from "./lcncWs";
 // Lazy-load the 3D viewer so Three.js (~866 KB) + troika load as a separate async
@@ -48,6 +48,7 @@ import {
   TRAJ_MODE_FREE, TRAJ_MODE_TELEOP,
   SPINDLE_FORWARD, SPINDLE_REVERSE,
   OPERATOR_DISPLAY,
+  cooldownFor, isNeverDebounced,
 } from "./lcnc";
 
 const _vd = loadViewerDefaults();
@@ -292,7 +293,10 @@ const {
   handleMdiSend,
   clearMdiHistory,
   onMdiKeydown,
-} = useMdiHistory({ send });
+  // MDI is a state-changing command: route it through the ONE client path so
+  // it carries the permission re-check and the busy latch, like every other
+  // `mdi` call site (issue #31 — it was raw here and gated at every other).
+} = useMdiHistory({ fire: (c) => { fire(c, 'ready'); } });
 
 // ── G-code keypad strip (touch text entry for MDI + G-code editor) ──
 // Shown in the bottom strip in place of Jog/Overrides/Spindle/Tool while
@@ -706,16 +710,15 @@ function toggleMist() {
 const optionalStopOn = computed(() => !!st.value.optional_stop);
 const blockDeleteOn = computed(() => !!st.value.block_delete);
 
-// These two are server-authoritative toggles (state comes from st.value), and
-// they're inside the permission-gated program controls. They intentionally use
-// raw send() rather than fire() (issue #31): fire()'s 200 ms busy-gate/cooldown
-// is for debouncing motion, and would make a flag toggle feel laggy / drop a
-// click. Backend require_armed still applies.
+// Server-authoritative toggles (state comes from st.value). These used to route
+// around fire() because its flat 200 ms cooldown made a flag toggle feel laggy
+// and dropped a deliberate second click; with per-command transport policy
+// (lcnc.ts COMMAND_COOLDOWN_MS) they hold no latch and can use the one path.
 function toggleOptionalStop() {
-  send({ cmd: "set_optional_stop", value: !optionalStopOn.value });
+  fire({ cmd: "set_optional_stop", value: !optionalStopOn.value }, "override");
 }
 function toggleBlockDelete() {
-  send({ cmd: "set_block_delete", value: !blockDeleteOn.value });
+  fire({ cmd: "set_block_delete", value: !blockDeleteOn.value }, "override");
 }
 
 // Dialog state — see useDialogState.ts. Holds settings, gcode-reference,
@@ -750,19 +753,24 @@ const {
 } = useMacros({ fire });
 provide("updateMacros", updateMacros);
 const toolTableRef = ref<InstanceType<typeof ToolTablePanel> | null>(null);
+// The vars must land before the M600 that reads them — one latch, in order.
 function measureAuto() {
   const t = st.value.tool_number;
   if (!permissions.value.ready || st.value.probing || !t) return;
-  send({ cmd: "set_probe_vars", vars: buildToolsetterVarMap() });
-  fire({ cmd: "mdi", text: `T${t} M600` }, 'ready');
+  fireBatch([
+    { cmd: "set_probe_vars", vars: buildToolsetterVarMap() },
+    { cmd: "mdi", text: `T${t} M600` },
+  ], 'ready');
 }
 
 function unloadTool() {
   if (!permissions.value.ready) return;
   const mode = loadMachineDefaults().toolChangeMode;
   if (mode === "m600") {
-    send({ cmd: "set_probe_vars", vars: buildToolsetterVarMap() });
-    fire({ cmd: "mdi", text: "T0 M600" }, 'ready');
+    fireBatch([
+      { cmd: "set_probe_vars", vars: buildToolsetterVarMap() },
+      { cmd: "mdi", text: "T0 M600" },
+    ], 'ready');
   } else {
     fire({ cmd: "mdi", text: "T0 M6 G49" }, 'ready');
   }
@@ -1023,30 +1031,76 @@ watch(spindleSpeed, (v) => {
 });
 
 /**
- * Anti-spam gate with inline permission check (defense-in-depth).
- * Gate param ensures the command is re-checked even if DOM state changed.
+ * The single client path for a state-changing command (issue #31).
+ *
+ * Adds two things over raw send(): an imperative permission re-check
+ * (defense-in-depth behind Gate.vue's fieldset, in case DOM state drifted) and
+ * the anti-spam busy latch. The gate is READ from the backend-broadcast
+ * permissions — never re-derived here.
+ *
+ * The latch NEVER applies to a stop command (isNeverDebounced): `abort` was
+ * routed through here from the keyboard and gamepad and could be silently
+ * discarded within another action's cooldown. Its permission gate still
+ * applies; only the debounce is bypassed. Cooldown length is per-command
+ * transport policy (cooldownFor), which is why a flag toggle no longer needs
+ * to route around fire() to feel responsive.
+ *
+ * A drop is logged, not silent — the same honesty rule the backend follows.
  */
-async function fire(payload: any, gate?: keyof Permissions, cooldownMs = 200) {
-  if (busy.value) return;
-  if (gate && !permissions.value[gate]) return;
+async function fire(payload: any, gate?: keyof Permissions, cooldownMs?: number) {
+  const cmd = String(payload?.cmd ?? "");
+  const neverDebounced = isNeverDebounced(cmd);
+  if (busy.value && !neverDebounced) {
+    console.warn(`[fire] ${cmd} dropped: another command is settling`);
+    return;
+  }
+  if (gate && !permissions.value[gate]) {
+    console.warn(`[fire] ${cmd} dropped: gate '${gate}' is closed`);
+    return;
+  }
+  const hold = cooldownMs ?? cooldownFor(cmd);
+  if (hold <= 0) { send(payload); return; }   // no latch: nothing to release
   busy.value = true;
   try {
     send(payload);
   } finally {
-    window.setTimeout(() => (busy.value = false), cooldownMs);
+    window.setTimeout(() => (busy.value = false), hold);
+  }
+}
+
+/**
+ * Several commands that must land together under ONE latch — the missing
+ * primitive that onRunProbe used to hand-inline by copying fire()'s body.
+ * Gate and cooldown are evaluated once, from the FIRST payload.
+ */
+async function fireBatch(payloads: any[], gate?: keyof Permissions) {
+  if (!payloads.length) return;
+  if (busy.value) {
+    console.warn(`[fireBatch] ${payloads[0]?.cmd} dropped: another command is settling`);
+    return;
+  }
+  if (gate && !permissions.value[gate]) {
+    console.warn(`[fireBatch] ${payloads[0]?.cmd} dropped: gate '${gate}' is closed`);
+    return;
+  }
+  busy.value = true;
+  try {
+    for (const p of payloads) send(p);
+  } finally {
+    window.setTimeout(() => (busy.value = false), cooldownFor(String(payloads[0]?.cmd ?? "")));
   }
 }
 
 function onRunProbe({ vars, macro }: { vars: Record<string, number>; macro: string }) {
-  if (busy.value || !permissions.value.ready) return;
-  busy.value = true;
-  try {
-    send({ cmd: 'set_probe_vars', vars });
-    send({ cmd: 'mdi', text: `O<${macro}> CALL` });
-  } finally {
-    window.setTimeout(() => (busy.value = false), 200);
-  }
+  fireBatch([
+    { cmd: 'set_probe_vars', vars },
+    { cmd: 'mdi', text: `O<${macro}> CALL` },
+  ], 'ready');
 }
+
+// Reachable by descendants that cannot see this closure, so a component never
+// has to fall back to raw send() for a state-changing command (issue #31).
+provide(FIRE_KEY, fire);
 
 // Touch-off math + Z-eoffset compensation. See useTouchoffMath.ts.
 const { setAxis, setAll, setG5x } = useTouchoffMath({ axes, st, fire });
@@ -1391,7 +1445,7 @@ watch(viewerGcode, (newGcode) => {
       </div>
       <div class="bannerActions row-controls">
         <MachineBtn v-if="safetyTrip" type="dialogConfirm" @click="acknowledgeSafetyTrip">Acknowledge</MachineBtn>
-        <MachineBtn v-if="bannerShowAbort" type="bannerAbort" @click="send({ cmd: 'abort' })" />
+        <MachineBtn v-if="bannerShowAbort" type="bannerAbort" @click="fire({ cmd: 'abort' }, 'abort')" />
         <MachineBtn v-if="machineState === 'unhomed'" type="bannerHome" @click="homeAll">Home All</MachineBtn>
         <MachineBtn v-if="unreadCount > 0" type="bannerAction" @click="messagesDialogOpen = true; markMessagesRead()">
           {{ unreadCount }} message{{ unreadCount === 1 ? '' : 's' }}
@@ -1504,7 +1558,7 @@ watch(viewerGcode, (newGcode) => {
                   placeholder="G-code command (↑↓ history)"
                 />
                 <MachineBtn type="mdi" @click="handleMdiSend">Send</MachineBtn>
-                <MachineBtn type="abort" @click="send({ cmd: 'abort' })" />
+                <MachineBtn type="abort" @click="fire({ cmd: 'abort' }, 'abort')" />
               </div>
               <div class="mdiHistoryHeader">
                 <span class="sub">History</span>
@@ -1544,7 +1598,7 @@ watch(viewerGcode, (newGcode) => {
                   <div class="row-tight">
                     <MachineBtn type="toolMeasure" @click="measureAuto">Measure Current</MachineBtn>
                     <MachineBtn type="toolUnload" @click="unloadTool">Unload</MachineBtn>
-                    <MachineBtn type="abort" @click="send({ cmd: 'abort' })" />
+                    <MachineBtn type="abort" @click="fire({ cmd: 'abort' }, 'abort')" />
                   </div>
                   <div class="row-tight toolTabManage">
                     <MachineBtn type="manage" @click="toolTableRef?.openAdd()">+ Add</MachineBtn>
@@ -1702,7 +1756,7 @@ watch(viewerGcode, (newGcode) => {
             </template>
           </div>
           <div class="dialogActions">
-            <MachineBtn type="abort" @click="send({ cmd: 'abort' })" />
+            <MachineBtn type="abort" @click="fire({ cmd: 'abort' }, 'abort')" />
             <MachineBtn type="dialogBase" @click="confirmToolChange">Confirm</MachineBtn>
           </div>
         </div>

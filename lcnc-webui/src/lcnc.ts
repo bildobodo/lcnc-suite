@@ -135,3 +135,56 @@ const QUEUE_SAFE_CMDS = new Set<string>([
 export function isQueueSafe(cmd: string): boolean {
   return cmd.startsWith("get_") || QUEUE_SAFE_CMDS.has(cmd);
 }
+
+/**
+ * Commands that must NEVER be swallowed by the client-local busy latch.
+ *
+ * `fire()` opens with `if (busy.value) return` — a silent drop — and abort is
+ * routed through it from the keyboard and the gamepad. An abort pressed within
+ * the cooldown of any other gated action was therefore discarded, with no
+ * feedback: a stop control failing because of a UI debounce.
+ *
+ * These are exactly the commands the GATEWAY maps to gate "always" or "abort"
+ * (command_policy.COMMAND_GATES) — stopping must not depend on client-side
+ * pacing. Their permission gate still applies; only the debounce is bypassed.
+ */
+const NEVER_DEBOUNCED = new Set<string>([
+  "abort", "estop", "estop_reset", "jog_stop", "jog_stop_multi",
+]);
+
+export function isNeverDebounced(cmd: string): boolean {
+  return NEVER_DEBOUNCED.has(cmd);
+}
+
+/**
+ * Client-local TRANSPORT policy per command: how long `fire()` holds the busy
+ * latch after sending it.
+ *
+ * Deliberately carries NO permission gates. A gate table here would be a
+ * re-derivation of the backend's COMMAND_GATES on the client, which
+ * permissions.ts forbids and which would drift; the gate check stays in
+ * `fire()`, reading the permissions the backend broadcasts.
+ *
+ * Default is DEFAULT_COOLDOWN_MS: enough to debounce a double-click on a
+ * motion command. Flag toggles and stop commands opt out — a 200 ms latch made
+ * a checkbox feel laggy and dropped the second click of a deliberate pair.
+ */
+export const DEFAULT_COOLDOWN_MS = 200;
+
+const COMMAND_COOLDOWN_MS: Record<string, number> = {
+  // Stop/abort: never debounced at all (see NEVER_DEBOUNCED).
+  abort: 0, estop: 0, estop_reset: 0, jog_stop: 0, jog_stop_multi: 0,
+  // Modal flags — instant toggles, no motion started.
+  set_optional_stop: 0,
+  set_block_delete: 0,
+  // Continuous inputs: the slider already rate-limits; the backend clamps.
+  set_feed_override: 0,
+  set_spindle_override: 0,
+  set_rapid_override: 0,
+  set_max_velocity: 0,
+};
+
+export function cooldownFor(cmd: string): number {
+  const v = COMMAND_COOLDOWN_MS[cmd];
+  return v === undefined ? DEFAULT_COOLDOWN_MS : v;
+}

@@ -19,8 +19,11 @@ export interface MdiEntry { id: number; text: string }
 const MDI_MAX_HISTORY = 50;
 
 interface UseMdiHistoryOptions {
-  /** Send the MDI command to the gateway. Caller controls gating. */
-  send: (cmd: WsCommand) => void;
+  /** Dispatch the MDI command through the caller's GATED path (App.vue's
+   *  fire()). Named `fire`, not `send`, so the one-path-per-command rule is
+   *  visible here: MDI starts machine motion and must carry the permission
+   *  re-check and busy latch like every other `mdi` call site (issue #31). */
+  fire: (cmd: WsCommand) => void;
 }
 
 export function useMdiHistory(opts: UseMdiHistoryOptions) {
@@ -52,7 +55,7 @@ export function useMdiHistory(opts: UseMdiHistoryOptions) {
     persistMdiHistory();
     mdiHistoryIndex.value = -1;
     mdiSavedInput.value = "";
-    opts.send({ cmd: "mdi", text: cmd });
+    opts.fire({ cmd: "mdi", text: cmd });
     mdiText.value = "";
   }
 

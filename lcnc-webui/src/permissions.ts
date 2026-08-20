@@ -122,6 +122,24 @@ export const VALID_GATES: ReadonlySet<string> =
 /** Injection key for provide/inject */
 export const PERMISSIONS_KEY = Symbol("permissions") as InjectionKey<ComputedRef<Permissions>>;
 
+/**
+ * The ONE client path for a state-changing command (issue #31): permission
+ * re-check + the busy latch, with per-command transport policy from lcnc.ts.
+ * `fire()` is a closure in App.vue over the shared `busy` ref, so components
+ * that cannot see it used raw `send()` instead — which is how the same command
+ * ended up with two policies. Providing it removes that reason without hoisting
+ * `busy` out of App.vue. Same shape as PERMISSIONS_KEY above.
+ */
+export type FireFn = (payload: any, gate?: keyof Permissions, cooldownMs?: number) => void;
+export const FIRE_KEY = Symbol("fire") as InjectionKey<FireFn>;
+
+/** Composable: inject the gated send path from the ancestor provider. */
+export function useFire(): FireFn {
+  const fire = inject(FIRE_KEY);
+  if (!fire) throw new Error("useFire() called without provider — ensure App.vue provides FIRE_KEY");
+  return fire;
+}
+
 /** Composable: inject permissions from ancestor provider */
 export function usePermissions(): ComputedRef<Permissions> {
   const perms = inject(PERMISSIONS_KEY);

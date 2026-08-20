@@ -209,6 +209,28 @@ handler. Where the INI declares nothing, `_OVERRIDE_FALLBACKS` substitutes exact
 literal the handler used before, so a silent INI keeps today's behavior — but the
 substitution is traced (`limits.ini_fallback`) instead of being invisible.
 
+### Client command path (`fire()` vs `send()`)
+**Line:** no command may travel BOTH paths, and no stop command may be droppable.
+Commands that are raw everywhere stay raw, listed and justified.
+
+"Route everything through `fire()`" would be wrong: 28 call sites are hold-to-move jog
+pairs where a busy latch swallows the paired `jog_stop` and the machine keeps moving,
+and the remaining raw state-changing commands are already disabled by their catalog
+control inside the outer `<Gate>` fieldset *and* refused by the backend — a third
+imperative re-check guards no reachable failure. What mattered was the **asymmetry**:
+one command with two policies, where which one applied depended on which button the
+operator pressed.
+
+`COMMAND_COOLDOWN_MS` in `lcnc.ts` carries **transport policy only** — cooldown and
+queue-safety, never gates. A gate table on the client would re-derive the backend's
+`COMMAND_GATES` and drift, which `permissions.ts` forbids; a test asserts the table
+contains no `gate:` key. Per-command cooldown is also what let the flag toggles stop
+routing around `fire()` — a flat 200 ms latch was the reason they went raw.
+
+`commandPath.test.ts` parses call sites and enforces this, mirroring the gateway's
+coverage-contract discipline; `DOM_GATED_ONLY` is a ratchet, so a new raw-only command
+fails the suite until someone classifies it.
+
 ### Surface-map rotary gate (`surfaceComp`)
 **Line:** refuse to **start** surface-map work — probe a new map, or switch
 compensation ON — while any configured rotary is off zero. Do **not** refuse to turn
@@ -263,6 +285,13 @@ desynchronises the state that G10 L2, G92 and the tool table manage.
   `MAX_FEED_OVERRIDE` / `MIN|MAX_SPINDLE_OVERRIDE` were parsed from the INI and shipped
   to the UI — so a builder who declared 150% had a backend that accepted 200%. That is
   policy enforced on the client, which `permissions.ts` forbids.
+- **`fire()` could silently swallow an abort.** It opens with `if (busy.value) return`
+  — no feedback, no trace — and abort was routed through it from the keyboard and the
+  gamepad, so an abort pressed within another action's 200 ms cooldown was discarded.
+  Stop commands now bypass the latch entirely (`isNeverDebounced`), abort is on one
+  path at all six call sites, and every drop is logged.
+- **Two call sites hand-inlined `fire()`'s body** to get two sends under one latch,
+  because the batch primitive did not exist. `fireBatch` replaces the copies.
 - **Surface-map compensation could be probed and applied on a tilted machine.** The map
   is a machine-Z shim applied after kinematics, valid only with the tool normal to the
   mapped surface and the grid aligned to the work — and TWP support made tilted work a

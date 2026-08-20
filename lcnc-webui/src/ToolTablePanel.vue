@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, defineAsyncComponent } from "vue";
 import { send, lastReply, connected, toolTableVersion } from "./lcncWs";
+import { useFire } from "./permissions";
 import { loadMachineDefaults, STEP_DEFAULT, type ToolChangeMode } from "./defaults";
 import { TOOL_TYPE_LABELS, toolTypeLabel } from "./toolTypes";
 import { fmtCell } from "./format";
@@ -27,6 +28,7 @@ const props = defineProps<{
   hideHeader?: boolean;
 }>();
 
+const fire = useFire();
 const toolChangeMode = ref<ToolChangeMode>(loadMachineDefaults().toolChangeMode);
 
 interface Tool {
@@ -268,10 +270,13 @@ function cancelEditModal() {
 // ---- Tool change ----
 function requestToolChange(toolNum: number) {
   toolChangeMode.value = loadMachineDefaults().toolChangeMode;
+  // Through the one gated path (issue #31): `mdi` was fired with a permission
+  // re-check at every other call site and raw here — the same command with two
+  // policies. Both branches start machine motion, so both take `ready`.
   if (toolChangeMode.value === "m600") {
-    send({ cmd: "mdi", text: `T${toolNum} M600` });
+    fire({ cmd: "mdi", text: `T${toolNum} M600` }, "ready");
   } else {
-    send({ cmd: "tool_change", tool_number: toolNum });
+    fire({ cmd: "tool_change", tool_number: toolNum }, "ready");
   }
 }
 
