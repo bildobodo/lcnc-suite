@@ -72,6 +72,42 @@ class TestExtraPinsKinsGating(unittest.TestCase):
             self.assertNotIn("kins_type", pins,
                              f"non-switchable decl must not sample the pin: {decl}")
 
+    # ── TWP plane-frame pins (W8) ──────────────────────────────────────────
+    # A machine parked in TWP entering sim needs the LIVE frame, not the
+    # loaded program's first marker; these pins are how it gets one.
+
+    def test_trsrn_requests_the_three_frame_pins_under_the_module_prefix(self):
+        pins = self._configured_pins(
+            {"module": "xyzacb_trsrn", "type": "xyzacb-trsrn",
+             "identity_first": False, "params": {}})
+        # "<module>_kins." — the comp prefixes its own name, unlike trt where
+        # the prefix IS the module. parse_kins_config special-cases the same
+        # quirk; deriving it here keeps a future module rename honest.
+        self.assertEqual(pins.get("kins_pre_rot"), "xyzacb_trsrn_kins.pre-rot")
+        self.assertEqual(pins.get("kins_primary_angle"),
+                         "xyzacb_trsrn_kins.primary-angle")
+        self.assertEqual(pins.get("kins_secondary_angle"),
+                         "xyzacb_trsrn_kins.secondary-angle")
+        # still switchable, so the type pin rides along
+        self.assertEqual(pins.get("kins_type"), "motion.switchkins-type")
+
+    def test_non_trsrn_configs_do_not_request_the_frame_pins(self):
+        # Gated on the TYPE, not on "is it switchable": a trt machine is
+        # switchable and has no such pins, so asking would park three entries
+        # in the reader's missing-pin reminder for the life of the session.
+        for decl in (
+            None,
+            {"module": "trivkins", "type": "trivkins",
+             "identity_first": False, "params": {}},
+            {"module": "xyzac-trt-kins", "type": "xyzac-trt",
+             "identity_first": True, "params": {}},
+            {"module": "weird-kins", "type": "weird",
+             "identity_first": False, "params": {}},
+        ):
+            pins = self._configured_pins(decl)
+            for f in ("kins_pre_rot", "kins_primary_angle", "kins_secondary_angle"):
+                self.assertNotIn(f, pins, f"{f} must not be sampled for {decl}")
+
 
 if __name__ == "__main__":
     unittest.main()

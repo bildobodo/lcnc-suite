@@ -169,6 +169,27 @@ class TestPollStatus(unittest.TestCase):
         p = _runtime(stat=self._stat()).poll_status()
         self.assertIsNone(p.kins_type)
 
+    def test_twp_frame_pins_ride_the_snapshot_raw_and_absent_is_none(self):
+        # The three TWP plane-frame pins reach the client UNCONVERTED, with
+        # upstream's own unit asymmetry intact: pre-rot in RADIANS, the two
+        # angles in DEGREES. That asymmetry is the convention the parse-time
+        # markers already use, so both the live and the parsed frame feed
+        # kinsForSegment identically — a tidy-up that "fixed" the units on
+        # one path would silently put the sim on the wrong plane.
+        snap = {"kins_pre_rot": -1.781762,
+                "kins_primary_angle": 130.2455,
+                "kins_secondary_angle": -40.8555}
+        p = _runtime(stat=self._stat(), snapshot=snap).poll_status()
+        self.assertEqual(p.kins_pre_rot, -1.781762)
+        self.assertEqual(p.kins_primary_angle, 130.2455)
+        self.assertEqual(p.kins_secondary_angle, -40.8555)
+        # Not sampled (any non-trsrn config) — None, never a default. The
+        # client treats a partial trio as no frame at all.
+        p = _runtime(stat=self._stat()).poll_status()
+        self.assertIsNone(p.kins_pre_rot)
+        self.assertIsNone(p.kins_primary_angle)
+        self.assertIsNone(p.kins_secondary_angle)
+
     def test_payload_core_fields_and_work_pos(self):
         rt = _runtime(stat=self._stat())
         p = rt.poll_status()

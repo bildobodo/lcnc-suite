@@ -489,8 +489,25 @@ async def _reader_configure_extra_pins() -> None:
     # preamble hasn't executed yet. Only on configs whose declared kins
     # can actually switch: on trivkins the pin doesn't exist and would sit
     # in the reader's missing-pin reminder forever.
-    if kins_marker_policy(_parse_kins_decl()) != "ignore":
+    _kins_decl = _parse_kins_decl()
+    if kins_marker_policy(_kins_decl) != "ignore":
         pins["kins_type"] = "motion.switchkins-type"
+    # TWP plane frame (phase 3 residual): the three pins g53x_core set_p's at
+    # every G53.x. Until now the frame reached the client only as parse-time
+    # marker comments, so a machine PARKED IN TWP from a previous run — a real
+    # state, the upstream demo leaves the machine in it — entering sim had a
+    # LIVE switchkins type paired with a frame taken from whatever program
+    # happens to be loaded. Mixed authority: right mode, wrong plane.
+    # Gated on the TYPE, not on marker policy: only this family has these
+    # pins, and asking for them elsewhere would park them in the reader's
+    # missing-pin reminder forever. Prefix from the module name — the comp
+    # creates its pins under "<module>_kins.", the same quirk
+    # parse_kins_config special-cases.
+    if (_kins_decl or {}).get("type") == "xyzacb-trsrn":
+        _kp = f"{_kins_decl['module']}_kins."
+        pins["kins_pre_rot"] = f"{_kp}pre-rot"
+        pins["kins_primary_angle"] = f"{_kp}primary-angle"
+        pins["kins_secondary_angle"] = f"{_kp}secondary-angle"
     try:
         await _reader_request("set_extra_pins", pins=pins)
     except Exception as e:

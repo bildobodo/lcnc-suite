@@ -175,6 +175,14 @@ class StatusPayload:
     kins_type: Optional[float]           # live motion.switchkins-type (raw HAL value;
                                          # sampled only on switchable-kins configs — None
                                          # = not sampled/reader absent, never a default)
+    # Live TWP plane frame — the three pins the TWP remap set_p's at G53.x.
+    # UNITS MIRROR THE PINS, including upstream's own asymmetry: pre_rot is
+    # RADIANS, the two angles DEGREES. Sampled only on xyzacb-trsrn configs;
+    # None = not sampled, never a default. All three or none — a partial trio
+    # is not a frame, and the client refuses to build one from it.
+    kins_pre_rot: Optional[float]
+    kins_primary_angle: Optional[float]
+    kins_secondary_angle: Optional[float]
     spindle_direction: Optional[int]
     active_file: Optional[str]
     motion_line: Optional[int]
@@ -827,6 +835,9 @@ class StatusRuntime:
             spindle_speed_actual=spindle_speed_actual,
             spindle_load=reader_get("spindle_load"),
             kins_type=reader_get("kins_type"),
+            kins_pre_rot=reader_get("kins_pre_rot"),
+            kins_primary_angle=reader_get("kins_primary_angle"),
+            kins_secondary_angle=reader_get("kins_secondary_angle"),
             spindle_direction=spindle_direction,
             active_file=active_file,
             motion_line=safe_get("motion_line", None),

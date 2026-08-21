@@ -121,6 +121,27 @@ function _wcs() {
   };
 }
 
+/** The TWP plane frame the MACHINE is actually holding, from the kins pins
+ *  (sampled only on xyzacb-trsrn configs). Null when not sampled.
+ *
+ *  This exists for the parked-in-TWP case: the upstream demo ends with the
+ *  plane still active, so a machine can sit in switchkins type 2 while the
+ *  operator loads a different program. The live switchkins type was already
+ *  preferred over the program's, but the FRAME still came from whatever
+ *  program happened to be loaded — right mode, wrong plane. All three or
+ *  none: two-thirds of a frame is not a frame, and inventing the third would
+ *  put the entry move on a plane the machine is not on.
+ *
+ *  Units are the pins' own, including upstream's asymmetry (pre-rot radians,
+ *  the two angles degrees) — the same triplet convention the parse markers
+ *  use, so both paths feed kinsForSegment unconverted. */
+function liveKinsFrame(): [number, number, number] | null {
+  const d = st.value;
+  const p = d.kins_pre_rot, t1 = d.kins_primary_angle, t2 = d.kins_secondary_angle;
+  if (typeof p !== "number" || typeof t1 !== "number" || typeof t2 !== "number") return null;
+  return [p, t1, t2];
+}
+
 function _buildEntryTrack() {
   const base = baseTrack.value;
   if (!base || !_baseJoints.length) {
@@ -135,14 +156,11 @@ function _buildEntryTrack() {
   const kt = st.value.kins_type;
   // Entry inverse raw kinstype: prefer the LIVE switchkins pin, else the
   // track's first segment. No pin AND no mode data = untracked → identity,
-  // never guessed (0 is the WORLD type on plain-sparm trt). TWP frame for
-  // a type-2 entry: the kins' frame pins aren't sampled, so the track's
-  // first governing frame stands in (the parked-in-TWP machine normally
-  // holds the program's own frame; frameless → loud trivkins fallback in
-  // kinsForSegment).
+  // never guessed (0 is the WORLD type on plain-sparm trt).
   const ktEntry = kt != null ? kt : (base.mode?.[0] ?? null);
   const f0 = base.frame?.[0];
-  const frameEntry = (f0 != null && f0 !== 0xff && base.frames) ? base.frames[f0] ?? null : null;
+  const frameEntry = liveKinsFrame()
+    ?? ((f0 != null && f0 !== 0xff && base.frames) ? base.frames[f0] ?? null : null);
   const entry = machineJointsToProgram(_baseJoints, viewerInit.value?.axes ?? [], _wcs(),
                                        _kinsSpec.value, ktEntry, frameEntry);
   const g = viewerGcode.value;
@@ -290,7 +308,12 @@ watch(st, (d) => {
   const ktLive = d.kins_type;
   const ktNow = ktLive != null ? ktLive : (t.mode?.[span.end] ?? null);
   const fN = t.frame?.[span.end];
-  const frameNow = (fN != null && fN !== 0xff && t.frames) ? t.frames[fN] ?? null : null;
+  // Live frame first, for the same reason as the mode: it is the plane the
+  // machine is on, sampled from the same source at the same instant as the
+  // joints being inverted. The parse frame stands in when the pins are not
+  // sampled.
+  const frameNow = liveKinsFrame()
+    ?? ((fN != null && fN !== 0xff && t.frames) ? t.frames[fN] ?? null : null);
   const p = machineJointsToProgram(jp, viewerInit.value?.axes ?? [], _wcs(),
                                    _kinsSpec.value, ktNow, frameNow);
   let bestCum = t.cum[span.start]!;
