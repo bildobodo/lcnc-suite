@@ -20,10 +20,21 @@ import { loadGeometryFromIDB, storeGeometryInIDB, pruneStaleVersions } from "../
 import { type ToolMeta } from "../toolGeometry";
 
 // ---- Central caches (shared across ALL ThreeViewer instances) ----
+//
+// Keyed by PART ID, which assumes an id always means the same geometry. That
+// holds for every supported case today: the model directory is fixed per
+// config, and a re-load of the same model hits the id it already has. It would
+// NOT hold if one page session swapped to a different machine model that
+// reused a part id for different geometry — the in-memory entry would win and
+// the wrong mesh would draw (IndexedDB is keyed by URL including ?v=mtime, so
+// only this layer is affected). Not built for: keying by URL, or clearing on
+// model change. Reopen if machine-model switching without a page reload ships.
 const _geometryCache = new Map<string, THREE.BufferGeometry>();
 const _toolMetaCache = new Map<number, ToolMeta>();  // tool_number → ToolMeta, populated on first sight
 let _loadPromise: Promise<void> | null = null;
 let _loadedInitJson: string | null = null;
+//: Monotonic load generation — see the comment in loadMachineAssets (F4).
+let _loadGeneration = 0;
 export const machineReady = ref(false);
 export const failedParts = ref<string[]>([]);
 
@@ -52,6 +63,16 @@ export function loadMachineAssets(init: any, onProgress?: (msg: string) => void)
   // threw OR completed with failedParts clear _loadPromise below, so the next
   // call retries the missing parts (cached successes skip straight through).
   if (_loadPromise && json === _loadedInitJson) return _loadPromise;
+
+  // Load generation (F4). The dedup slot is keyed by `json`, which protects
+  // _loadPromise — but a SUPERSEDED load keeps running (nothing cancels its
+  // fetches) and used to publish its results anyway: its failedParts would
+  // overwrite the newer load's, its machineReady would declare a scene ready
+  // that is still loading, and its geometry could land in the cache under a
+  // part id the new model maps to a different file. Every publish below is
+  // gated on still being the current generation.
+  const gen = ++_loadGeneration;
+  const current = () => gen === _loadGeneration;
 
   _loadedInitJson = json;
   machineReady.value = false;
@@ -92,6 +113,9 @@ export function loadMachineAssets(init: any, onProgress?: (msg: string) => void)
           onProgress?.(`✓ ${p.id} (${((performance.now() - t0) / 1000).toFixed(1)}s)`);
         }
         geom.userData._shared = true;
+        // Deliberately NOT generation-gated: a superseded load's geometry is
+        // still valid for its own part ids, and discarding it would re-fetch
+        // work already paid for. See the id-collision note on _geometryCache.
         _geometryCache.set(p.id, geom);
       }));
 
@@ -103,6 +127,8 @@ export function loadMachineAssets(init: any, onProgress?: (msg: string) => void)
           console.error(`[STL] failed to load ${id}:`, r.reason);
         }
       });
+      if (!current()) return;   // superseded — publish nothing
+
       failedParts.value = failed;
       if (failed.length > 0 && _loadedInitJson === json) {
         // Partial failure still FULFILS (allSettled) — without this the dedup

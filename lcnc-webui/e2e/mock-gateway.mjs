@@ -79,10 +79,15 @@ const state = {
     permissions: {
       idle: true, jog: true, override: true, ready: true, pause: false,
       resume: false, step: true, abort: true, probe: true, zero: true,
-      safety: true, setup: true, armed: true, always: true,
+      surfaceComp: true, safety: true, setup: true, armed: true, always: true,
     },
   },
 };
+
+// Pristine snapshot for `op: "reset"`. Captured once at startup, BEFORE any
+// spec can mutate `state`, so a reset restores everything rather than the few
+// fields someone remembered to list.
+const PRISTINE = structuredClone(state);
 
 // App derives its axis list from viewer_init (gateway computes it from
 // axis_mask), so the DRO/SetupStrip render no axis rows without this frame.
@@ -182,12 +187,20 @@ ctlWss.on("connection", (ws) => {
       quiet = m.on === true;
     } else if (m.op === "reset") {
       // Restore pristine state between tests. The mock is ONE process shared by
-      // every spec (and frames.spec mutates state.data.work_pos via status_delta,
+      // every spec (frames.spec mutates state.data via status_delta, and
       // nine-axis.spec swaps the axis set), so serial specs call this in
       // beforeEach to avoid order-dependent bleed.
+      //
+      // Restores the WHOLE snapshot rather than a hand-picked field list (F5):
+      // `delta` does Object.assign(state.data, …) with ARBITRARY fields and
+      // `setAxes` rewrites work_pos/g92_offset/tool_offset/wcs_table, so
+      // anything a spec touched beyond work_pos used to bleed into the next
+      // one — silently, as a passing test that depended on the previous spec.
       quiet = false;
       refuseWs = false;
-      state.data.work_pos = [12.345, 1.0, -5.5];
+      state.armed = PRISTINE.armed;
+      state.data = structuredClone(PRISTINE.data);
+      hellos.length = 0;   // lifecycle.spec asserts on hello COUNTS
       _initRev++;
       broadcast({ ...VIEWER_INIT, data: { ...VIEWER_INIT.data, _rev: _initRev } });
       broadcast(state);

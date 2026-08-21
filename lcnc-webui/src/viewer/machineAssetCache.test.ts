@@ -67,6 +67,33 @@ describe("loadMachineAssets", () => {
     expect(getCachedGeometry("m3-b")).toBeDefined();
   });
 
+  it("a SUPERSEDED load does not publish its results over the newer one (F4)", async () => {
+    // The dedup slot is keyed by the init json, so a different init starts a
+    // second load — but nothing cancels the first, and it used to publish its
+    // failedParts and machineReady when it finally finished. On a slow link
+    // that meant the newer model's failure list was replaced by the older
+    // model's, and the scene was declared ready while still loading.
+    let releaseOld!: () => void;
+    const oldDone = new Promise<void>(res => { releaseOld = res; });
+    idb.loadGeometryFromIDB.mockImplementation(async (url: string) => {
+      if (url.includes("/old/")) { await oldDone; throw new Error("old part failed"); }
+      return new THREE.BufferGeometry();
+    });
+    vi.stubGlobal("fetch", async () => { throw new Error("no network in test"); });
+
+    const slow = loadMachineAssets({ stl_base_url: "/old/", parts: [{ id: "f4-old", file: "o.stl" }] });
+    const fresh = loadMachineAssets({ stl_base_url: "/new/", parts: [{ id: "f4-new", file: "n.stl" }] });
+    await fresh;
+    expect(failedParts.value).toEqual([]);       // the winner loaded cleanly
+    expect(machineReady.value).toBe(true);
+
+    releaseOld();                                 // superseded load finishes LAST
+    await slow;
+    expect(failedParts.value, "superseded load clobbered the winner's failures")
+      .toEqual([]);
+    expect(machineReady.value).toBe(true);
+  });
+
   it("records a part in failedParts when its IDB miss + fetch both fail", async () => {
     idb.loadGeometryFromIDB.mockResolvedValue(null);        // force the fetch path
     vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("network down"); }));

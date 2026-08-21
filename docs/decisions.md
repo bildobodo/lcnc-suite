@@ -234,6 +234,30 @@ the first row alone could not.
 so inactive rows on disk go stale within a session. That is a staleness problem, not a
 units problem, and it has a different fix.
 
+### Machine-asset cache: what the generation token covers
+**Line:** a superseded load publishes nothing — not `failedParts`, not
+`machineReady`, not the dedup slot. Its GEOMETRY is still cached, because that work
+is paid for and valid for its own part ids.
+
+The in-memory geometry cache stays keyed by part id, which assumes an id always means
+the same geometry. True for every supported case: the model directory is fixed per
+config. It would break only if one page session swapped to a different machine model
+that reused an id for different geometry — recorded at the declaration with its reopen
+condition rather than solved speculatively (IndexedDB is already URL-keyed, so only
+the in-memory layer is exposed).
+
+### Code-quality tooling (issue #36)
+**Test:** — (answered) · **Not closed on GitHub**
+
+An external contributor offered a PR for typechecking, linting, testing and dedup. The
+project has since grown all of it: `vue-tsc -b` in the build, eslint plus a scoped-CSS
+audit in `npm run lint`, vitest, pytest, Playwright e2e, and CI green since 2026-08-18.
+So there is no work item left here.
+
+Replying to or closing someone else's issue is the maintainer's call, not something to
+do on their behalf — it is a conversation with a person, not a task. Left open
+deliberately.
+
 ### HTTP-fetched bulk channels in the status object
 **Line:** surface points and comp grid are carried across every status frame, keyed by
 the version the gateway pinged, and consumers react on the version EDGE. The carry
@@ -379,6 +403,14 @@ desynchronises the state that G10 L2, G92 and the tool table manage.
   shows both sources are machine units, so the panel was always correct. The comment
   was wrong, not the code; it is corrected in place. Recorded here because a retraction
   that only lives in a chat log is how a phantom bug gets "fixed" twice.
+- **A superseded machine-model load published over the newer one.** Nothing cancels an
+  in-flight load when a different model arrives, so on a slow link the older load's
+  `failedParts` replaced the winner's and its `machineReady` declared a still-loading
+  scene ready.
+- **The e2e mock's `reset` restored one field.** Specs mutate arbitrary status fields
+  via `delta` and rewrite four more via `setAxes`, so anything beyond `work_pos` bled
+  into the next spec — a passing test that silently depended on the previous one. It
+  now restores a pristine snapshot taken at startup, and clears the recorded hellos.
 - **The surface map could vanish and never come back.** Its value survived at most one
   animation frame in `status.value`, and after a reconnect the gateway re-pinged a
   version the client's module-level sentinel already held, so nothing refetched.
