@@ -74,7 +74,9 @@ over their respective contributions.
      and twp-helper-comp.py verbatim; python/remap.py FORKED (GPL v2,
      edits tagged LCNC-SUITE) so the preview interpreter runs the plane
      math and emits webui marker comments; remap_subs/*.ngc wrappers
-     carry added (WEBUI_KINSTYPE=n) markers. See its README.md.
+     carry added (WEBUI_KINSTYPE=n) markers; demos/simple_example.ngc and
+     demos/square.ngc are vendored VERBATIM from the same config's
+     demos/. See its README.md.
    - examples/sim_config/machine-xyzacb-trsrn/ STL geometry — generated
      by scripts/vismach_to_stl_trsrn.py, whose machine layout, kinematic
      constants and frame placement are taken from LinuxCNC's vismach

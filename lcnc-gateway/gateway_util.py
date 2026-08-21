@@ -749,21 +749,41 @@ def kins_marker_policy(kins_cfg):
 
 
 def kins_pivot_warning(kins_cfg):
-    """Reason string when a trt-family kins is declared with ZERO pivot
-    params parsed from [HAL]HALCMD (review D4).
+    """Reason string when a kins with a twin is declared without the full set
+    of geometry pins parsed from [HAL]HALCMD (review D4).
 
     parse_kins_config reads setp lines from the INI's [HAL]HALCMD ONLY —
     the normal .hal-file `setp xyzac-trt-kins.y-offset …` idiom configures
     the real kins but is invisible here, so the viewer's TCP math would
     silently run with every pivot at zero. A machine genuinely pivoted at
     the origin silences this with explicit `HALCMD = setp … 0` lines.
-    None when params are present or the kins has no twin. Pure.
+
+    PARTIAL sets are reported too, and that is the load-bearing half:
+    parse_kins_config skips any pin name it does not recognise, so ONE
+    misspelling parses as ABSENT and the twin quietly substitutes 0. On the
+    trsrn machine a mistyped `nut-angle` collapses the entire nutating
+    solution with nothing else wrong anywhere — the all-or-nothing check
+    that used to live here could not see it.
+
+    None when the full expected set is present or the kins has no twin. Pure.
     """
-    if kins_cfg and kins_marker_policy(kins_cfg) == "twin" and not kins_cfg.get("params"):
-        return (f"{kins_cfg.get('module')} declared but no pivot setp lines in "
+    if not kins_cfg or kins_marker_policy(kins_cfg) != "twin":
+        return None
+    module = kins_cfg.get("module")
+    params = kins_cfg.get("params") or {}
+    expected = (_TRSRN_PARAM_PINS if kins_cfg.get("type") == "xyzacb-trsrn"
+                else _KINS_PARAM_PINS)
+    missing = [p for p in expected if p.replace("-", "_") not in params]
+    if not missing:
+        return None
+    if not params:
+        return (f"{module} declared but no pivot setp lines in "
                 f"[HAL]HALCMD — viewer TCP math would use pivot zeros; put the "
                 f"setp lines in the INI (README: 5-Axis and TCP)")
-    return None
+    return (f"{module}: [HAL]HALCMD sets only {len(params)} of {len(expected)} "
+            f"kins geometry pins — missing {', '.join(missing)}. A misspelled "
+            f"pin name parses as ABSENT and the viewer substitutes 0; set every "
+            f"pin explicitly, including the ones that are 0")
 
 
 def rotary_model_warning(axes, kinematics):

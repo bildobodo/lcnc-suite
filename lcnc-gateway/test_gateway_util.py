@@ -1121,13 +1121,40 @@ class TestViewerConfigWarnings(unittest.TestCase):
         self.assertIsNone(f({"module": "trivkins", "type": "trivkins", "params": {}}))
         # Unknown module: no twin, the viewer math never runs it — no claim.
         self.assertIsNone(f({"module": "genhexkins", "type": "genhexkins", "params": {}}))
-        # Twin with params: configured.
+        # Twin with the FULL pin set: configured.
+        full = {p.replace("-", "_"): 0.0 for p in gateway_util._KINS_PARAM_PINS}
         self.assertIsNone(f({"module": "xyzac-trt-kins", "type": "xyzac-trt",
-                             "params": {"y_offset": 20.0}}))
+                             "params": full}))
         # Twin without params: the silent pivot-zero trap (setp lines in a
         # .hal file instead of [HAL]HALCMD).
         r = f({"module": "xyzac-trt-kins", "type": "xyzac-trt", "params": {}})
         self.assertIn("HALCMD", r)
+        # PARTIAL set — one pin missing because it was misspelled. This is the
+        # case the old all-or-nothing check waved through, and it is worse
+        # than the empty one: everything else looks configured.
+        partial = dict(full)
+        del partial["y_offset"]
+        r = f({"module": "xyzac-trt-kins", "type": "xyzac-trt", "params": partial})
+        self.assertIsNotNone(r)
+        self.assertIn("y-offset", r)
+
+    def test_kins_pivot_warning_catches_one_misspelled_trsrn_pin(self):
+        # The trsrn hazard concretely: `nut-angle` mistyped parses as ABSENT,
+        # the twin substitutes nutAngle = 0, and the entire nutating solution
+        # collapses with nothing else wrong anywhere in the config.
+        halcmds = [
+            "setp xyzacb_trsrn_kins.y-pivot 50", "setp xyzacb_trsrn_kins.z-pivot 120",
+            "setp xyzacb_trsrn_kins.x-offset 0", "setp xyzacb_trsrn_kins.y-offset 0",
+            "setp xyzacb_trsrn_kins.y-rot-axis -1000",
+            "setp xyzacb_trsrn_kins.z-rot-axis -2000",
+            "setp xyzacb_trsrn_kins.nut_angle 55",     # underscore, not hyphen
+        ]
+        cfg = gateway_util.parse_kins_config("xyzacb_trsrn", halcmds)
+        self.assertNotIn("nut_angle", cfg["params"])
+        r = gateway_util.kins_pivot_warning(cfg)
+        self.assertIsNotNone(r)
+        self.assertIn("nut-angle", r)
+        self.assertIn("6 of 7", r)
 
     def test_rotary_model_warning(self):
         f = gateway_util.rotary_model_warning
