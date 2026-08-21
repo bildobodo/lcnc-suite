@@ -316,12 +316,40 @@ function _fetchBulk(
       setError(null);  // clear only THIS channel's error
     })
     .catch(err => {
-      if (err?.name !== "AbortError") {
-        console.error(`GET ${url} failed`, err);
-        setError(`${url} failed: ${err?.message ?? err}`);
-        if (getLast() === version) setLast(-1);  // let next bump retry
+      if (err?.name === "AbortError") {
+        // Today the only abort is the supersede at the top of this function,
+        // where getLast() has already moved to the newer version — so this is
+        // a no-op and the newer fetch keeps ownership of the sentinel.
+        //
+        // It is written as a condition rather than a bare `return` because an
+        // abort WITHOUT a successor (e.g. if teardown ever cancels in-flight
+        // fetches) would otherwise leave the sentinel pointing at data that
+        // never arrived, and the dedupe at the top would then swallow every
+        // future ping of that same version.
+        if (getLast() === version) setLast(-1);
+        return;
       }
+      console.error(`GET ${url} failed`, err);
+      setError(`${url} failed: ${err?.message ?? err}`);
+      if (getLast() === version) setLast(-1);  // let next bump retry
     });
+}
+
+/**
+ * Drop the bulk version sentinels on socket close.
+ *
+ * The gateway tracks "what did I last send THIS connection" per connection and
+ * starts a reconnect at zero, so it re-pings versions this client may already
+ * hold. Those pings are the only trigger for a fetch, and the sentinels were
+ * module-level — so the dedupe at the top of _fetchBulk swallowed the re-ping
+ * and nothing was refetched. Combined with the old status-patch wipe that made
+ * the surface map disappear for the life of the page; the carry
+ * (statusStore.noteBulkData) keeps it on screen now, and this makes the
+ * refetch actually happen instead of relying on carried data.
+ */
+export function resetBulkVersionsOnClose(): void {
+  _surfaceLastVersion = -1;
+  _compGridLastVersion = -1;
 }
 
 function _applyGcodeFile(nextFile: string | null, version = -1) {

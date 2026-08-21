@@ -234,6 +234,38 @@ the first row alone could not.
 so inactive rows on disk go stale within a session. That is a staleness problem, not a
 units problem, and it has a different fix.
 
+### HTTP-fetched bulk channels in the status object
+**Line:** surface points and comp grid are carried across every status frame, keyed by
+the version the gateway pinged, and consumers react on the version EDGE. The carry
+survives a reconnect. It is not extended to anything the server already re-sends.
+
+These arrive out of band — the gateway pings a version over the socket, the client
+fetches the payload over HTTP — so the value is not part of any status envelope.
+Writing it into `status.value` alone survived at most one animation frame, because the
+next frame replaced the whole object; `status.value.surface_points` was therefore
+`undefined` for any consumer not already latching it in a watcher.
+
+Three things that made the obvious fix wrong, all now handled:
+
+- **Fold in at FLUSH, not on arrival.** Stamping the carry onto a message when it
+  arrives freezes whatever was carried at that moment, so a fetch resolving while the
+  frame sat in the rAF buffer would be overwritten by the older value.
+- **React on the version edge.** With the value on every frame, the old
+  presence-triggered `compGrid = null` would blank the grid mesh ~30×/s. The edge also
+  lets an EMPTY result clear the display — the previous `&& .length` guard existed
+  only because the value kept vanishing.
+- **Carry the same array reference.** Consumers watch these by identity; a fresh copy
+  per tick rebuilds the surface `InstancedMesh` about thirty times a second.
+
+The version sentinels in `bulkData` are now cleared on socket close, because the
+gateway tracks "last sent to THIS connection" and re-pings the same version after a
+reconnect — which the dedupe swallowed, so nothing refetched. Note the abort branch
+there is defensive only: the sole abort today is the supersede, where releasing the
+sentinel is correctly a no-op. Claiming it fixes a teardown dead-end would have been
+wrong — nothing cancels those fetches on close.
+
+`clearBulkCarry()` exists for test isolation only; production never clears the carry.
+
 ### Which fixture the program cuts in — and whether the preview is stale
 **Line:** the preview names the fixtures a program actually cuts in when they differ
 from the active one, says when it was parsed against offsets that are no longer live,
@@ -347,6 +379,10 @@ desynchronises the state that G10 L2, G92 and the tool table manage.
   shows both sources are machine units, so the panel was always correct. The comment
   was wrong, not the code; it is corrected in place. Recorded here because a retraction
   that only lives in a chat log is how a phantom bug gets "fixed" twice.
+- **The surface map could vanish and never come back.** Its value survived at most one
+  animation frame in `status.value`, and after a reconnect the gateway re-pinged a
+  version the client's module-level sentinel already held, so nothing refetched.
+  Together that left the map gone for the life of the page.
 - **`fire()` could silently swallow an abort.** It opens with `if (busy.value) return`
   — no feedback, no trace — and abort was routed through it from the keyboard and the
   gamepad, so an abort pressed within another action's 200 ms cooldown was discarded.

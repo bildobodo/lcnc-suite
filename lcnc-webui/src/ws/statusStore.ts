@@ -33,6 +33,10 @@ export interface WsStatus {
   // Lives at envelope top-level so the shared msgpack encode of `data` stays
   // valid every tick (delta-off path).
   tool_meta?: Record<string, any> | null;
+  // Versions of the HTTP-fetched bulk channels folded in by the carry
+  // (noteBulkData), keyed by field name. Consumers react on the version EDGE:
+  // the values themselves are on every frame, so presence means nothing.
+  bulk_versions?: Record<string, number>;
 }
 
 export const status = shallowRef<WsStatus | null>(null);
@@ -298,6 +302,11 @@ export function handleStatusMessage(msg: any): void {
     msg.tool_meta = _lastToolMeta.meta;
   }
 
+  // NOTE: the HTTP-fetched bulk channels are folded in at FLUSH time, not
+  // here — see _flushPending. Stamping on arrival would freeze whatever the
+  // carry held when the frame arrived, so a fetch that resolved while this
+  // frame sat in the rAF buffer would be overwritten by the older value.
+
   // Sync sticky safety-trip state from every status message. Gateway
   // includes the field while _unacked_trip is set; absence = no trip.
   // Update synchronously (not via the rAF buffer) so the dialog opens
@@ -364,6 +373,10 @@ export function handleStatusMessage(msg: any): void {
 function _flushPending(): void {
   _flushScheduled = false;
   if (_pendingStatus) {
+    // Fold the bulk carry in HERE — the last moment before the object becomes
+    // `status.value`, so it always carries the freshest fetched value even if
+    // that fetch resolved while this frame was sitting in the buffer.
+    _applyBulkCarry(_pendingStatus);
     status.value = _pendingStatus;
     _pendingStatus = null;
   }
@@ -378,14 +391,71 @@ export function handleStatusError(msg: any): void {
 }
 
 /**
- * Merge fields into the CURRENT status object (bulk-fetch sinks: surface
- * points, comp grid; status_error clients list). Known oddity F1 (ledger):
- * the patch lands on status.value only — a buffered _pendingStatus or the
- * next full status frame replaces the whole object and the patch is gone
- * until the next *_ready ping. Behavior preserved from the monolith.
+ * Merge fields into the CURRENT status object.
+ *
+ * Only for values the SERVER re-sends on every status envelope (the
+ * status_error clients list), because the next full status frame replaces the
+ * whole object and anything not re-sent is gone. Bulk channels that are
+ * fetched over HTTP — surface points, comp grid — must use noteBulkData()
+ * instead, or they survive at most one animation frame (ledger F1).
  */
 export function mergeStatusPatch(patch: Record<string, any>): void {
   status.value = { ...(status.value ?? {}), ...patch };
+}
+
+/**
+ * HTTP-fetched bulk channels, carried across status frames.
+ *
+ * These arrive out of band: the gateway pings a version over the socket and
+ * the client fetches the payload separately, so the value is NOT part of any
+ * status envelope. Writing it into `status.value` alone lasted at most one rAF
+ * — the next frame replaced the whole object — which left
+ * `status.value.surface_points` permanently `undefined` for any consumer that
+ * was not already latching it in a watcher.
+ *
+ * Same shape as the `tool_meta` carry above: the value is folded into the
+ * INCOMING message before it becomes `_pendingStatus`, so it is part of the
+ * object that survives the flush. The stored value is reused BY REFERENCE —
+ * consumers watch these arrays by identity, and a fresh copy per tick would
+ * rebuild an InstancedMesh 30 times a second. The version rides alongside so
+ * consumers can act on the EDGE rather than on every frame.
+ */
+const _bulkCarry = new Map<string, { version: number; value: any }>();
+
+export function noteBulkData(key: string, version: number, value: any): void {
+  _bulkCarry.set(key, { version, value });
+  // Land it on the current object too, so a consumer watching status.value
+  // sees it in this tick rather than waiting for the next status frame.
+  status.value = {
+    ...(status.value ?? {}),
+    [key]: value,
+    bulk_versions: _bulkVersions(),
+  };
+}
+
+/**
+ * Drop every carried bulk value.
+ *
+ * Test isolation only — the carry is module-level and deliberately outlives a
+ * reconnect (resetOnClose does NOT touch it), so without this a suite's tests
+ * would leak values into each other. Production has no caller.
+ */
+export function clearBulkCarry(): void {
+  _bulkCarry.clear();
+}
+
+function _bulkVersions(): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const [k, v] of _bulkCarry) out[k] = v.version;
+  return out;
+}
+
+function _applyBulkCarry(msg: any): void {
+  if (_bulkCarry.size === 0) return;
+  for (const [k, v] of _bulkCarry) {
+    if (msg[k] === undefined) msg[k] = v.value;   // by reference, see above
+  }
+  msg.bulk_versions = _bulkVersions();
 }
 
 /** WS close: latency readouts and RTT anchors are connection-scoped. */
@@ -393,4 +463,7 @@ export function resetOnClose(): void {
   latency.value = null;
   networkLatency.value = null;
   _heartbeatSentAt = _rtSentAt = 0;
+  // The carry deliberately SURVIVES a reconnect: the surface map on screen did
+  // not stop being true because the socket blipped, and the gateway re-pings
+  // its version on the new connection anyway.
 }

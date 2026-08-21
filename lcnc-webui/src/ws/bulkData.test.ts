@@ -28,7 +28,7 @@ class FakeWorker {
 const {
   fetchCompGrid, fetchSurfacePoints, gcodeContent,
   handleToolTableChanged, handleViewerGcode, handleViewerGcodeReady, handleViewerInit,
-  previewLoadError, toolTableVersion, viewerGcode, viewerInit,
+  previewLoadError, resetBulkVersionsOnClose, toolTableVersion, viewerGcode, viewerInit,
 } = await import("./bulkData");
 
 type FetchCall = { url: string; signal: AbortSignal };
@@ -127,6 +127,26 @@ describe("surface/comp-grid channels", () => {
     fetchSurfacePoints(11, vi.fn());  // surface retry succeeds
     await flush();
     expect(previewLoadError.value).toBeNull();
+  });
+
+  it("resetBulkVersionsOnClose lets a re-ping of the same version refetch", async () => {
+    fetchImpl = () => okBuffer([[1]]);
+    const first = vi.fn();
+    fetchSurfacePoints(40, first);
+    await flush();
+    expect(first).toHaveBeenCalled();
+
+    const before = fetchCalls.length;
+    fetchSurfacePoints(40, vi.fn());          // still deduped while connected
+    await flush();
+    expect(fetchCalls.length).toBe(before);
+
+    resetBulkVersionsOnClose();               // socket closed
+    const apply = vi.fn();
+    fetchSurfacePoints(40, apply);            // gateway re-pings on reconnect
+    await flush();
+    expect(fetchCalls.length).toBe(before + 1);
+    expect(apply).toHaveBeenCalledWith([[1]]);
   });
 
   it("failure resets the sentinel so the SAME version can retry", async () => {

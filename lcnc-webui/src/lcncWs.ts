@@ -24,11 +24,11 @@ import {
   persistArmedForReload, postWorkerConfig, sendCommand, terminateTransport,
 } from "./ws/wsTransport";
 import {
-  fetchCompGrid, fetchSurfacePoints,
+  fetchCompGrid, fetchSurfacePoints, resetBulkVersionsOnClose,
   handleToolTableChanged, handleViewerGcode, handleViewerGcodeReady, handleViewerInit,
 } from "./ws/bulkData";
 import {
-  handleStatusError, handleStatusMessage, mergeStatusPatch,
+  handleStatusError, handleStatusMessage, noteBulkData,
   noteFrameSample, noteHeartbeatSent, notePong, pushMessage,
   rebaseStatusDelta, resetOnClose, safetyTrip,
 } from "./ws/statusStore";
@@ -136,6 +136,9 @@ function onWorkerMessage(m: any) {
       armed.value = false;     // new connection starts disarmed
       try { disableWakeLock(); } catch { /* ignored */ }
       resetOnClose();          // latency readouts + RTT anchors are connection-scoped
+      // Bulk version sentinels are connection-scoped too: the gateway re-pings
+      // versions per connection, and those pings are the only fetch trigger.
+      resetBulkVersionsOnClose();
       // Server forgets per-client halshow subscription on disconnect — clear
       // so the panel honestly shows "no data" (see halshowStore.resetHalshow).
       resetHalshow();
@@ -285,12 +288,14 @@ function onFrame(data: string | ArrayBuffer) {
     } else if (msg.type === "viewer_gcode_ready") {
       handleViewerGcodeReady(msg);
     } else if (msg.type === "surface_points_ready") {
-      // bulkData owns versioning/abort/decode; the sink patches the status
-      // object (statusStore) — ledger F1 documents the wipe-on-next-full-status
-      // oddity this preserves.
-      fetchSurfacePoints(msg.version ?? 0, data => mergeStatusPatch({ surface_points: data }));
+      // bulkData owns versioning/abort/decode; the sink hands the value to the
+      // status carry, keyed by the version the ping carried, so it survives
+      // every subsequent status frame (ledger F1 — it used to last one rAF).
+      const sv = msg.version ?? 0;
+      fetchSurfacePoints(sv, data => noteBulkData("surface_points", sv, data));
     } else if (msg.type === "comp_grid_ready") {
-      fetchCompGrid(msg.version ?? 0, data => mergeStatusPatch({ comp_grid: data }));
+      const gv = msg.version ?? 0;
+      fetchCompGrid(gv, data => noteBulkData("comp_grid", gv, data));
     } else if (msg.type === "tool_table_changed") {
       handleToolTableChanged(msg);
     } else if (msg.type === "settings_changed" || msg.type === "settings_init") {

@@ -1325,14 +1325,31 @@ watch(status, (st) => {
   if (st?.probe_results && typeof st.probe_results === "object") {
     probeResults.value = st.probe_results;
   }
-  if (Array.isArray(st?.surface_points) && st.surface_points.length) {
-    surfacePoints.value = st.surface_points;
-    compGrid.value = null;  // hide stale visualization; new grid arrives within ~150 ms
+  // Surface map / comp grid are HTTP-fetched bulk channels carried across
+  // every status frame (statusStore.noteBulkData). React on the VERSION EDGE,
+  // not on presence: the values are now on every frame, so the old
+  // presence-triggered `compGrid = null` would blank the grid mesh ~30×/s.
+  //
+  // Reacting to the edge also means an EMPTY result can clear the display.
+  // The old `&& .length` guard existed because the value was wiped between
+  // frames, which left an emptied probe-results.txt showing a stale surface.
+  const bv = st?.bulk_versions;
+  if (bv && bv.surface_points !== _lastSurfaceVersion) {
+    _lastSurfaceVersion = bv.surface_points;
+    surfacePoints.value = Array.isArray(st.surface_points) && st.surface_points.length
+      ? st.surface_points : null;
+    compGrid.value = null;   // grid belongs to the PREVIOUS points; new one lands in ~150 ms
+    _lastGridVersion = bv.comp_grid;   // …so don't immediately re-apply the old one
   }
-  if (st?.comp_grid && typeof st.comp_grid === "object") {
-    compGrid.value = st.comp_grid;
+  if (bv && bv.comp_grid !== _lastGridVersion) {
+    _lastGridVersion = bv.comp_grid;
+    compGrid.value = (st.comp_grid && typeof st.comp_grid === "object") ? st.comp_grid : null;
   }
 });
+
+// Last bulk versions applied to the local refs — see the watcher above.
+let _lastSurfaceVersion: number | undefined;
+let _lastGridVersion: number | undefined;
 
 /** ---------- Surface map probe results ---------- */
 const surfacePoints = ref<[number, number, number][] | null>(null);

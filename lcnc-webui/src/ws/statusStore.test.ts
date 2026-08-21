@@ -1,6 +1,6 @@
 // Unit tests for ws/statusStore.ts (A1.5) — the hardest extraction of the
 // lcncWs split. Every behavior here is pinned BYTE-FOR-BYTE from the monolith,
-// including ledger oddity F1 (mergeStatusPatch wiped by the next full status).
+// including the carry contracts that replaced ledger oddity F1.
 //
 // rAF in this suite is the testGlobals stub: setTimeout(cb, 16). Tests use
 // fake timers and advance 16 ms to flush the status buffer deterministically.
@@ -8,9 +8,9 @@ import "../testGlobals";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { OPERATOR_DISPLAY, OPERATOR_ERROR } from "../lcnc";
 import {
-  clearAllMessages, configWarning, dismissMessage, getTimingCsv,
+  clearAllMessages, clearBulkCarry, configWarning, dismissMessage, getTimingCsv,
   handleStatusError, handleStatusMessage, latency, lcncError,
-  markMessagesRead, mergeStatusPatch, messages, networkLatency,
+  markMessagesRead, mergeStatusPatch, messages, networkLatency, noteBulkData,
   noteFrameSample, noteHeartbeatSent, notePong, pushMessage,
   readerStale, rebaseStatusDelta, resetOnClose, resetTimingStats, safetyChainIncomplete,
   safetyTrip, status, timingStats, unreadCount,
@@ -24,6 +24,7 @@ beforeEach(() => {
   vi.useFakeTimers();
   // Connection-scoped + per-test reset using only the public API.
   resetOnClose();
+  clearBulkCarry();   // module-level and survives reconnect by design
   resetTimingStats();
   clearAllMessages();
   status.value = null;
@@ -195,23 +196,93 @@ describe("RTT anchors (function-call crossing only)", () => {
   });
 });
 
-describe("mergeStatusPatch — ledger oddity F1 pinned", () => {
+describe("mergeStatusPatch", () => {
   it("patches the current status object", () => {
     handleStatusMessage({ type: "status", data: { a: 1 } });
     flushRaf();
-    mergeStatusPatch({ surface_points: [[0, 0, 0]] });
-    expect(status.value?.surface_points).toEqual([[0, 0, 0]]);
+    mergeStatusPatch({ clients: [{ ip: "1.1.1.1", armed: false }] });
+    expect(status.value?.clients).toEqual([{ ip: "1.1.1.1", armed: false }]);
     expect(status.value?.data).toEqual({ a: 1 });                // rest preserved
   });
 
-  it("F1: the NEXT full status replaces the object and the patch is gone", () => {
-    mergeStatusPatch({ surface_points: [[1, 2, 3]] });
+  it("is only safe for fields the server re-sends every frame", () => {
+    // The next full status replaces the whole object, so anything patched in
+    // and NOT re-sent is gone. `clients` self-heals because the gateway puts
+    // it on every envelope; HTTP-fetched bulk data does not, which is why it
+    // uses noteBulkData instead (see below).
+    mergeStatusPatch({ surface_points: [[1, 2, 3]] as any });
     expect(status.value?.surface_points).toEqual([[1, 2, 3]]);
     handleStatusMessage({ type: "status", data: { b: 2 } });
     flushRaf();
-    // CURRENT (odd) behavior, preserved verbatim from the monolith: the
-    // surface points vanish until the next surface_points_ready ping.
     expect(status.value?.surface_points).toBeUndefined();
+  });
+
+  it("noteBulkData survives arbitrarily many status frames (F1 fixed)", () => {
+    const pts = [[1, 2, 3]] as any;
+    noteBulkData("surface_points", 7, pts);
+    for (let i = 0; i < 5; i++) {
+      handleStatusMessage({ type: "status", data: { tick: i } });
+      flushRaf();
+      expect(status.value?.surface_points, `frame ${i}`).toEqual([[1, 2, 3]]);
+    }
+    expect(status.value?.bulk_versions?.surface_points).toBe(7);
+  });
+
+  it("a fetch resolving AFTER its status frame was buffered is not overwritten", () => {
+    // The narrow version of the same wipe: the frame is already in the rAF
+    // buffer when the HTTP fetch lands, so the carry must be re-applied at
+    // flush time, not only on arrival.
+    handleStatusMessage({ type: "status", data: { n: 1 } });   // buffered
+    noteBulkData("surface_points", 4, [[4, 4, 4]] as any);      // fetch resolves
+    flushRaf();
+    expect(status.value?.surface_points).toEqual([[4, 4, 4]]);
+  });
+
+  it("carries the SAME array reference, not a copy", () => {
+    // Consumers watch these by identity; a fresh array per tick would rebuild
+    // the surface InstancedMesh ~30 times a second.
+    const pts = [[1, 2, 3]] as any;
+    noteBulkData("surface_points", 1, pts);
+    handleStatusMessage({ type: "status", data: {} });
+    flushRaf();
+    const a = status.value?.surface_points;
+    handleStatusMessage({ type: "status", data: {} });
+    flushRaf();
+    expect(status.value?.surface_points).toBe(a);
+    expect(a).toBe(pts);
+  });
+
+  it("a newer version replaces the carried value and bumps the version", () => {
+    noteBulkData("surface_points", 1, [[1, 1, 1]] as any);
+    noteBulkData("surface_points", 2, [[9, 9, 9]] as any);
+    handleStatusMessage({ type: "status", data: {} });
+    flushRaf();
+    expect(status.value?.surface_points).toEqual([[9, 9, 9]]);
+    expect(status.value?.bulk_versions?.surface_points).toBe(2);
+  });
+
+  it("an EMPTY result is carried too, so a cleared map can clear the display", () => {
+    noteBulkData("surface_points", 1, [[1, 1, 1]] as any);
+    noteBulkData("surface_points", 2, [] as any);
+    handleStatusMessage({ type: "status", data: {} });
+    flushRaf();
+    expect(status.value?.surface_points).toEqual([]);
+    expect(status.value?.bulk_versions?.surface_points).toBe(2);
+  });
+
+  it("a server-sent field of the same name still wins", () => {
+    noteBulkData("surface_points", 1, [[1, 1, 1]] as any);
+    handleStatusMessage({ type: "status", data: {}, surface_points: [[5, 5, 5]] });
+    flushRaf();
+    expect(status.value?.surface_points).toEqual([[5, 5, 5]]);
+  });
+
+  it("survives a reconnect — the map on screen did not stop being true", () => {
+    noteBulkData("comp_grid", 3, { x: [1], y: [1], zi: [[0]], method: 2 } as any);
+    resetOnClose();
+    handleStatusMessage({ type: "status", data: {} });
+    flushRaf();
+    expect(status.value?.comp_grid).toBeTruthy();
   });
 
   it("status_error surfaces the error and patches the clients list in", () => {
