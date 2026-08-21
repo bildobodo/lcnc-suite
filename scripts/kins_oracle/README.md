@@ -20,12 +20,21 @@ modes). The 45° nutating DMU head needs Sigma1912's custom comp —
 separate vendor when phase 1c reaches it.
 
 `xyzacb_trsrn.comp` (phase 3) is vendored VERBATIM (do not edit) from
-the upstream TWP stack, LinuxCNC master @493926b56c (pre-ini-migration
-tree the spike validated on 2.9.4), GPL-2.0, © David Mueller:
+the upstream TWP stack, LinuxCNC master, GPL-2.0, © David Mueller:
 
-    https://raw.githubusercontent.com/LinuxCNC/linuxcnc/493926b56c/configs/sim/axis/vismach/5axis/table-rotary-spindle-rotary-nutating/xyzacb_trsrn.comp
+    https://raw.githubusercontent.com/LinuxCNC/linuxcnc/master/src/hal/components/xyzacb_trsrn.comp
 
 It is the TWP machine's switchable kins (identity / TCP / TOOL-plane).
+
+TWO COPIES, ON PURPOSE. This one is the ORACLE and tracks current master,
+whose handle-style HAL pin API the stubs below mirror; LinuxCNC 2.9's
+halcompile cannot even parse it. The INSTALLABLE runtime module for the TWP
+sim config is `examples/sim_config/twp/xyzacb_trsrn.comp`, the @493926b56c
+revision, which uses the classic pointer API that 2.9 accepts. Their
+kinematics math is character-identical — only the surrounding example-pin
+scaffolding differs — and `lcnc-gateway/test_kins_oracle_parity.py` compares
+the two function bodies (normalising the accessor style) so the pair cannot
+silently drift.
 `harness_trsrn.c` includes its C body — everything after the `;;`
 separator, extracted verbatim at build time by gen_kins_fixtures.py
 (the halcompile-equivalent split; the extracted file is generated, not

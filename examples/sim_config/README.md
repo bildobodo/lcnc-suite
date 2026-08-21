@@ -82,10 +82,15 @@ mode, and `G69` cancels.
 and must be compiled once before the config will load:
 
 ```bash
-halcompile --install scripts/kins_oracle/xyzacb_trsrn.comp
+sudo halcompile --install examples/sim_config/twp/xyzacb_trsrn.comp
 ```
 
-Re-run it whenever that file changes. `install.sh` deliberately does not do
+Re-run it whenever that file changes. **Not** the copy under
+`scripts/kins_oracle/`: that one is the fixture oracle, vendored from current
+LinuxCNC *master*, and it uses a HAL pin API (`hal_real_t` / `hal_pin_new_real`)
+that LinuxCNC 2.9's `halcompile` cannot parse — it is compiled against stubs by
+the test harness, never installed. The two carry character-identical kinematics
+math, and `test_kins_oracle_parity.py` fails if they ever diverge. `install.sh` deliberately does not do
 this: nothing else in the project builds a realtime component, and a failed
 `halcompile` would break the install for everyone who does not want TWP.
 Without it LinuxCNC fails at HAL load with a missing-module error.

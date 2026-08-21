@@ -64,10 +64,18 @@ over their respective contributions.
      sample (GPL v2+, Rudy du Preez)
    - examples/sim_config/remap_subs/ — adapted from the LinuxCNC 2.9.4
      table-rotary-tilting sample config's switchkins remaps (GPL v2+)
-   - scripts/kins_oracle/xyzacb_trsrn.comp (master @493926b56c, GPL v2,
+   - scripts/kins_oracle/xyzacb_trsrn.comp (LinuxCNC master, GPL v2,
      David Mueller) — vendored VERBATIM as the compiled test oracle for
      the TWP machine's switchable kinematics (identity/TCP/TOOL-plane;
-     see scripts/kins_oracle/README.md)
+     see scripts/kins_oracle/README.md). Uses master's handle-style HAL
+     pin API, so it is compiled against stubs by the harness and CANNOT
+     be halcompile'd on 2.9.
+   - examples/sim_config/twp/xyzacb_trsrn.comp (master @493926b56c, GPL
+     v2, David Mueller) — vendored VERBATIM as the INSTALLABLE runtime
+     module for the TWP sim config; this pre-2.10 revision uses the
+     classic pointer HAL API that LinuxCNC 2.9's halcompile accepts. Its
+     kinematics math is character-identical to the oracle copy above, and
+     test_kins_oracle_parity.py fails if they ever diverge.
    - examples/sim_config/twp/ (master @493926b56c, GPL v2, David
      Mueller) — the Tilted Work Plane remap stack
      (configs/sim/axis/vismach/5axis/twp/): python/util.py, toplevel.py
