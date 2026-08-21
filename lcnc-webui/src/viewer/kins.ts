@@ -59,6 +59,44 @@ export interface KinsModel {
    *  slots no joint maps to become 0. Null/missing joints contribute 0.
    *  Returns `world`. */
   forward(joints: ArrayLike<number | null>, world: number[]): number[];
+  /** Per-JOINT upper bound on how far this model's joint value can stray from
+   *  the straight line between its two endpoint values, over a chunk whose
+   *  MACHINE coords go linearly from `w0` to `w1`.
+   *
+   *  CALLER CONTRACT — the bound is only meaningful if the caller really does
+   *  lerp the machine coords across the chunk. The collision sweep does
+   *  (interpPose lerps program coords and programToMachine is affine with
+   *  constants held for the whole sweep), which is what lets it price a
+   *  mid-chunk excursion its endpoint deltas cannot see.
+   *
+   *  Under identity kins the joints ARE the coords, so the bound is 0 and the
+   *  sweep behaves exactly as before. Under a world kins the pivot
+   *  compensation makes the linear joints trigonometric in the swept rotaries,
+   *  and a chunk symmetric about an extremum has EQUAL endpoints around a real
+   *  bulge — the miss class this exists to price.
+   *
+   *  Fills every index of `out`; joints this model does not drive stay 0. */
+  jointBulge(w0: ReadonlyArray<number>, w1: ReadonlyArray<number>,
+             out: Float64Array): Float64Array;
+}
+
+/** Chord-deviation budget for one term `A(t)·h(t)` of a joint expression,
+ *  where `A` is a product of sinusoids of the chunk's swept angles and `h` is
+ *  affine in the lerped machine coords.
+ *
+ *  With every angle linear in t over [0,1] and `phi` = the SUM of their swept
+ *  magnitudes (radians), |A| <= amp, |A'| <= amp·phi and |A''| <= amp·phi²
+ *  (each product-rule term keeps |sin|,|cos| <= 1). So
+ *      |(A·h)''| = |A''h + 2A'h'| <= amp·(phi²·max|h| + 2·phi·|Δh|)
+ *  and linear interpolation on [0,1] errs by at most (1/8)·max|f''|.
+ *
+ *  Summing this over a joint's terms is therefore a genuine upper bound, not
+ *  a heuristic — which is what the sweep's no-missed-crossing guarantee rests
+ *  on. For a pure sinusoid it reproduces the classical sagitta R(1-cos(phi/2))
+ *  to within the phi²/8 >= 1-cos(phi/2) slack. */
+function bulgeTerm(phi: number, amp: number, h0: number, h1: number): number {
+  const hmax = Math.max(Math.abs(h0), Math.abs(h1));
+  return amp * (phi * phi * hmax + 2 * phi * Math.abs(h1 - h0)) / 8;
 }
 
 class Trivkins implements KinsModel {
@@ -82,6 +120,14 @@ class Trivkins implements KinsModel {
       if (slot >= 0) world[slot] = joints[ji] ?? 0;
     }
     return world;
+  }
+
+  /** Identity permutation: every joint IS a lerped coord, so it lies exactly
+   *  on the chord and there is nothing for endpoint deltas to miss. */
+  jointBulge(_w0: ReadonlyArray<number>, _w1: ReadonlyArray<number>,
+             out: Float64Array): Float64Array {
+    out.fill(0);
+    return out;
   }
 }
 
@@ -216,6 +262,39 @@ class TrtKins implements KinsModel {
     out[this.jr1] = r1; out[this.jc] = c;
     if (this.jopt >= 0) out[this.jopt] = (this.isBC ? world[3] : world[4]) ?? 0;
     for (const ji of this.uvw) out[ji] = null;
+    return out;
+  }
+
+  /** Term-by-term over the inverse above. Both trt variants have the same
+   *  shape: one linear joint driven by the C rotary alone, and two driven by
+   *  C and the tilt together plus the tilt-swung static offsets. Rotaries
+   *  pass straight through, so they ride the chord exactly. */
+  jointBulge(w0: ReadonlyArray<number>, w1: ReadonlyArray<number>,
+             out: Float64Array): Float64Array {
+    out.fill(0);
+    const r1s = this.isBC ? 4 : 3;
+    const phiR = Math.abs((w1[r1s] ?? 0) - (w0[r1s] ?? 0)) * RAD;
+    const phiC = Math.abs((w1[5] ?? 0) - (w0[5] ?? 0)) * RAD;
+    const phiRC = phiR + phiC;
+    const u0 = (w0[0] ?? 0) - this.xr, u1 = (w1[0] ?? 0) - this.xr;
+    const v0 = (w0[1] ?? 0) - this.yr, v1 = (w1[1] ?? 0) - this.yr;
+    const z0 = (w0[2] ?? 0) - this.zr, z1 = (w1[2] ?? 0) - this.zr;
+    const dz = this.dzBase + this.dt;
+    // Static offsets the tilt swings: dy/dz on xyzac, dx/dz on xyzbc. Naming
+    // both costs only slack on the family that does not use one of them.
+    const k1 = this.isBC ? this.dx : this.dy;
+    const simple = bulgeTerm(phiC, 1, u0, u1) + bulgeTerm(phiC, 1, v0, v1);
+    const full = bulgeTerm(phiRC, 1, u0, u1) + bulgeTerm(phiRC, 1, v0, v1)
+               + bulgeTerm(phiR, 1, z0, z1)
+               + bulgeTerm(phiR, 1, k1, k1) + bulgeTerm(phiR, 1, dz, dz);
+    if (this.isBC) {
+      if (this.jy >= 0 && this.jy < out.length) out[this.jy] = simple;
+      if (this.jx >= 0 && this.jx < out.length) out[this.jx] = full;
+    } else {
+      if (this.jx >= 0 && this.jx < out.length) out[this.jx] = simple;
+      if (this.jy >= 0 && this.jy < out.length) out[this.jy] = full;
+    }
+    if (this.jz >= 0 && this.jz < out.length) out[this.jz] = full;
     return out;
   }
 }
@@ -405,6 +484,64 @@ export class TrsrnKins implements KinsModel {
              + Qz * s
              + Ly * t
              - Lz;
+    }
+    return out;
+  }
+
+  /** Term-by-term over the mode-1 inverse above; 0 for modes 0 and 2.
+   *
+   *  MODE 2 IS EXACTLY ZERO, not an approximation: its branch contains no
+   *  Sw/Cw at all, and Ss/Cs/Sp/Cp/Stc/Ctc are frozen at the segment's
+   *  preRot/primary/secondary. So every joint is an AFFINE function of the
+   *  machine coords with constant coefficients — a lerped path lerps the
+   *  joints, and the endpoint deltas the sweep already measures are exact.
+   *
+   *  MODE 1 is where the trt-shaped bound was not merely loose but unrelated.
+   *  The A term's radius is |yRotAxis - Qy| and |zRotAxis + toolOffset - Qz|
+   *  (visible once Dray/Draz are substituted back), which on the upstream TWP
+   *  machine is ~2.1 m from the machine origin — nothing a pivot-point read
+   *  of the trt params can see, since a trsrn spec carries no such params.
+   *  Note the B/C terms are driven by PIVOT LENGTHS, not by position, so
+   *  they do not shrink near the origin. */
+  jointBulge(w0: ReadonlyArray<number>, w1: ReadonlyArray<number>,
+             out: Float64Array): Float64Array {
+    out.fill(0);
+    if (this.mode !== 1) return out;
+    const phiA = Math.abs((w1[3] ?? 0) - (w0[3] ?? 0)) * RAD;
+    const phiB = Math.abs((w1[4] ?? 0) - (w0[4] ?? 0)) * RAD;
+    const phiC = Math.abs((w1[5] ?? 0) - (w0[5] ?? 0)) * RAD;
+    const phiCB = phiC + phiB;
+    const dtlz = this.dt + this.lz;
+    // Lever of the A (table) rotation, per endpoint — the term the trt-shaped
+    // bound could not reach. Dray + Dy + Ly collapses to yRotAxis.
+    const ry0 = this.dray + this.dy + this.ly - (w0[1] ?? 0);
+    const ry1 = this.dray + this.dy + this.ly - (w1[1] ?? 0);
+    const rz0 = this.draz + this.dt + this.lz - (w0[2] ?? 0);
+    const rz1 = this.draz + this.dt + this.lz - (w1[2] ?? 0);
+    const aTerms = bulgeTerm(phiA, 1, ry0, ry1) + bulgeTerm(phiA, 1, rz0, rz1);
+    // Spindle-pivot terms. r, s and t are AFFINE in cos(B) — r = Sv² + Cv²·Cs,
+    // s = Cv² + Sv²·Cs, t = SvCv·(1 - Cs) — so each splits into a part that
+    // only the C sweep moves and a part both move, at the nutation angle's
+    // true amplitudes rather than a blanket 1. Worth the arithmetic: the
+    // blanket version ran ~50x loose on this machine, and an over-loose bound
+    // spends the sample budget, which is what turns a sweep `coarsened` and
+    // voids the very guarantee this is here to give.
+    const sv = this.sv, cv = this.cv, svcv = sv * cv;
+    const ly = this.ly;
+    const cb = bulgeTerm(phiCB, 1, sv * dtlz, sv * dtlz)
+             + bulgeTerm(phiCB, 1, svcv * dtlz, svcv * dtlz)
+             + bulgeTerm(phiCB, 1, cv * ly, cv * ly)
+             + bulgeTerm(phiCB, 1, cv * cv * ly, cv * cv * ly);
+    const cOnly = bulgeTerm(phiC, 1, svcv * dtlz, svcv * dtlz)
+                + bulgeTerm(phiC, 1, sv * sv * ly, sv * sv * ly)
+                + bulgeTerm(phiC, 1, this.dx, this.dx)
+                + bulgeTerm(phiC, 1, this.dy, this.dy);
+    if (out.length > 0) out[0] = cb + cOnly;
+    if (out.length > 1) out[1] = cb + cOnly + aTerms;
+    if (out.length > 2) {
+      out[2] = bulgeTerm(phiB, 1, sv * sv * dtlz, sv * sv * dtlz)
+             + bulgeTerm(phiB, 1, svcv * ly, svcv * ly)
+             + aTerms;
     }
     return out;
   }
