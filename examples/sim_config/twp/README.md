@@ -62,8 +62,14 @@ square under 2/TOOL); G69 returns segments to type 0.
 ## Files
 
 - `python/remap.py` — the fork (marked edits; everything else verbatim)
-- `python/util.py`, `python/toplevel.py`, `python/twp-helper-comp.py` —
-  verbatim upstream
+- `python/util.py`, `python/toplevel.py` — verbatim upstream
+- `python/twp-helper-comp.py` — upstream plus ONE edit (tagged
+  `LCNC-SUITE`): a 20 Hz sleep in its main loop. Upstream runs a bare
+  `while 1:` with no sleep, which pins a CPU core at 100% and polls the
+  NML status channel as fast as it can — measured here at 13m29s of CPU
+  in 13m33s of wall time. Everything it publishes is display state for a
+  vismach window; next to a 500 ms heartbeat watchdog the spin is a real
+  hazard, not just waste.
 - `remap_subs/*.ngc` — upstream wrappers + `(WEBUI_KINSTYPE=n)` markers;
   M428/429/430 adapted with preview-safe nested o-if HAL guards (RS274
   `AND` does not short-circuit)

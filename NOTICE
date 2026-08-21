@@ -78,8 +78,10 @@ over their respective contributions.
      test_kins_oracle_parity.py fails if they ever diverge.
    - examples/sim_config/twp/ (master @493926b56c, GPL v2, David
      Mueller) — the Tilted Work Plane remap stack
-     (configs/sim/axis/vismach/5axis/twp/): python/util.py, toplevel.py
-     and twp-helper-comp.py verbatim; python/remap.py FORKED (GPL v2,
+     (configs/sim/axis/vismach/5axis/twp/): python/util.py and toplevel.py
+     verbatim; python/twp-helper-comp.py FORKED (GPL v2, edit tagged
+     LCNC-SUITE) to add a 20 Hz sleep to its loop, which upstream leaves
+     as a bare `while 1:` busy-spin; python/remap.py FORKED (GPL v2,
      edits tagged LCNC-SUITE) so the preview interpreter runs the plane
      math and emits webui marker comments; remap_subs/*.ngc wrappers
      carry added (WEBUI_KINSTYPE=n) markers; demos/simple_example.ngc and

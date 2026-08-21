@@ -122,5 +122,19 @@ Without it LinuxCNC fails at HAL load with a missing-module error.
 
 `twp/demos/` carries the upstream `simple_example.ngc` (and the `square`
 subroutine it calls) — the program every stage of this machine's support was
-validated against. It is a kinematics demo: it exercises the plane transform
-rather than cutting the modelled stock.
+validated against. To run it, copy it into your `PROGRAM_PREFIX`, since that
+is the only directory a program loads from:
+
+```bash
+cp examples/sim_config/twp/demos/simple_example.ngc ~/linuxcnc/nc_files/
+```
+
+`square.ngc` does **not** need copying — it is an O-word subroutine and is
+found via `SUBROUTINE_PATH`. The demo is a kinematics exercise: it drives the
+plane transform rather than cutting the modelled stock.
+
+Loading it should produce a preview whose `kins_frames` reads
+`[-1.781762, 130.2455, -40.8555]` (pre-rot radians, primary/secondary
+degrees) with every segment typed `2` (TOOL/plane) and `wcs_used = [6]` —
+the same values the live task run produces, which is what makes the offline
+preview trustworthy on this machine.

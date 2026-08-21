@@ -2,6 +2,7 @@
 
 import hal
 import linuxcnc
+import time  # LCNC-SUITE
 
 h = hal.component("twp-helper-comp")
 
@@ -47,8 +48,17 @@ h.ready()
 # create a connection to the status channel
 s = linuxcnc.stat()
 
+# LCNC-SUITE: upstream's loop is a bare `while 1:` with no sleep — a pure
+# busy-spin that pins a core at 100% AND polls the NML status channel as fast
+# as the CPU allows. Measured here: 13m29s of CPU in 13m33s of wall time, a
+# quarter of this 4-core box gone permanently. That is not survivable next to
+# a 500 ms heartbeat watchdog, and everything this component publishes is
+# display state for a vismach window, so 20 Hz is far more than it needs.
+_PERIOD_S = 0.05  # LCNC-SUITE
+
 try:
     while 1:
+        time.sleep(_PERIOD_S)  # LCNC-SUITE
         # publish twp-status
         if h['twp-status'] == 1:
             h['twp-is-defined'] = 1
