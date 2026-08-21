@@ -426,12 +426,38 @@ That direction is the safe one — it invents motion rather than missing it, so 
 would show up as a spurious clash at the G53.x line rather than as a silent miss
 — but it is still wrong.
 
-**The check, when the TWP sim boots:** parse a G53.x program and inspect the
-track's coordinates either side of a `WEBUI_KINSTYPE` flip. Machine-frame
-continuity there means nothing to do; a jump means the flip vertex needs its
-own zero-length handling.
+**The check was RUN on 2026-08-21 and found the jump. This is now a
+confirmed open defect, not a hypothetical.**
 
-**Reopens if:** that check finds a discontinuity.
+Probe program: identity-mode rapids, then `G68.2` + `G53.3`, plane-frame
+rapids, then `G69` and more rapids. The preview wire came back with the
+pre- and post-switch positions as CONSECUTIVE vertices:
+
+```
+[0] type=0  L6     (  50.000,    0.000,  100.000)
+[1] type=2  L1029  ( 309.597, -654.904,  708.901)   flip 0->2, gap 931.16
+[3] type=2  L10    ( 279.597, -684.904,  708.901)
+[4] type=0  L12    (   0.000,    0.000,  100.000)   flip 2->0, gap 958.14
+```
+
+`track.mode[i]` governs the segment from vertex i-1 to vertex i, so the
+segment carrying each gap is typed with the NEW mode: the sweep interpolates
+~931 units of travel under the plane model across what the machine performs
+partly as a frame relabelling at a stationary pose (measured live: joints
+hold to servo dither while world coords jump 645 mm).
+
+Consequences, all in the OVER-report direction — it invents motion rather
+than missing it, so it cannot hide a crash: spurious collision hits along a
+path never taken, phantom travel in the scrub timeline, and a long false
+segment in the part-frame preview. Confined to programs that switch kins,
+i.e. TWP programs on the newly shipped machine.
+
+Note the flip vertex also carries a REMAP-file line number (L1029), the
+line-attribution quirk already recorded in the TWP spike notes.
+
+**Not fixed here** — the fix is a wire/track change (zero-length handling at
+the flip, or splitting the frame change out of the motion segment) and wants
+its own design pass rather than being bolted onto W8's acceptance run.
 
 ---
 
