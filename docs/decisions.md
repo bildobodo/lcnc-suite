@@ -364,6 +364,75 @@ The system-range deny is unconditional *because* the var file legitimately decla
 G28/G30, G92, WCS and tool parameters — poking those behind the interpreter's back
 desynchronises the state that G10 L2, G92 and the tool table manage.
 
+### Collision-sweep clearance bounds: certified per kins family
+**Line:** each kins model bounds its OWN per-joint mid-chunk excursion, and a
+property test certifies that bound against the model's real inverse. The sweep
+knows no family's parameter names. A segment whose declared kins this client
+cannot evaluate is reported as `uncertified`, not posed silently as identity.
+
+The old bound read `machine.kins.params` — the trt-only `KinsParams` struct.
+`specFromWire` puts trsrn geometry in `spec.trsrn`, a different field, so on the
+TWP machine that read returned nothing at all: the rotary pivot collapsed to the
+machine origin and the radius to the tool-length offset, against a real A lever
+of about 2 m. Not loose — unrelated. Fixing it for trsrn alone would have left
+the identical trap armed for the next family, because the break was structural:
+a shared component reaching into one family's data by name.
+
+**Residual, stated rather than glossed:** `MIN_ADV = 0.25` floors every
+advancement step regardless of the bound, and the sweep's distance parameter
+counts 1° as 1 mm. On a metre-scale machine a forced 0.25° step is ~8.7 mm of
+surface travel at a 2 m lever — larger than the 2 mm margin. So a correct bound
+does not by itself certify a machine of this size against arbitrarily thin
+crossings; it removes the systematic blind spot, not the sampling floor. The
+guarantee remains "no crossing wider than MIN_ADV of path parameter".
+
+**Also bounded:** the bound is phase-independent — it charges φ²·amplitude
+whether or not the chunk sits on a curvature peak — so a B or C sweep centred on
+zero reads up to ~50× loose. Harmless in the sweep (for any pair a rotary
+swings, the lever term dominates by two orders of magnitude; for a pair it does
+not swing, the excursion is a few units against a certificate measured in
+hundreds) and pinned in `kinsBulge.test.ts` so a regression is visible. The
+A-lever term, which IS the budget for the miss class, stays within 3.5×.
+
+**Reopens if:** a machine needs crossings thinner than MIN_ADV resolved — then
+MIN_ADV has to scale with the model's largest lever rather than being a
+constant.
+
+### `halcompile` for the TWP kins stays out of `install.sh`
+**Line:** documented as a one-time precondition in the sim README and in the
+INI header; not automated.
+
+`install.sh` has never built a realtime component. Making it do so would put a
+compiler invocation that can fail on the install path of every user, including
+everyone who does not want TWP, in exchange for saving one documented command
+for those who do.
+
+**Reopens if:** a second config needs a vendored component, making the
+one-off a pattern.
+
+### Switchkins transition vertices in the offline track
+**Line:** the live behaviour is settled and the offline consequence is
+identified, but the preview side is unverified until the TWP config runs.
+
+Measured from the G53.6 capture (`~/twp-spike/capture-g536.ndjson`): at both
+transitions the joints hold still (max |Δjoint| 0.0003 and 0.0041 — servo
+dither) while world coordinates jump 645 mm at the 1→2 switch. So switchkins
+swaps at a stationary pose and relabels the frame; it is not a move.
+
+The offline stack interpolates within a segment using that segment's model. If
+the wire ever carries the pre-switch and post-switch positions as consecutive
+vertices, the sweep would interpolate a ~645 mm phantom move across one segment.
+That direction is the safe one — it invents motion rather than missing it, so it
+would show up as a spurious clash at the G53.x line rather than as a silent miss
+— but it is still wrong.
+
+**The check, when the TWP sim boots:** parse a G53.x program and inspect the
+track's coordinates either side of a `WEBUI_KINSTYPE` flip. Machine-frame
+continuity there means nothing to do; a jump means the flip vertex needs its
+own zero-length handling.
+
+**Reopens if:** that check finds a discontinuity.
+
 ---
 
 ## Fixed
@@ -432,3 +501,33 @@ desynchronises the state that G10 L2, G92 and the tool table manage.
   length cap, issuing one `CMD.jog` per entry while holding the command lock; `mdi` text
   was passed at any length to a 256-char buffer that truncates mid-word and executes a
   different move. Both now refuse.
+- **The collision sweep's clearance bound could not be computed for the TWP
+  machine at all.** It read the trt-family parameter struct, which a trsrn
+  declaration does not carry, so the rotary radius silently became the distance
+  from the machine origin instead of the ~2 m distance from the faceplate axis.
+  The bound now lives behind `KinsModel` and is certified per family by a
+  property test that samples each model's real inverse; the adversarial case was
+  verified to fail with the bound stubbed to zero. The old `console.warn` that
+  admitted the gap is gone, replaced by a `CollisionResult.uncertified` reason
+  shown on both the "clear" and the "N clashes" branches — a sweep that found
+  hits is no more certified than one that did not.
+- **Chunking capped the largest rotary sweep, not the total.** The ×2
+  lever-drift inflation is justified by `1/(1 − rotRad) ≤ 1.65` at `rotRad ≤ 0.4`
+  rad; with three rotaries turning at once the per-chunk total reached 67.5° and
+  `1 − rotRad` went negative. The justification stopped holding on exactly the
+  machines that sweep three rotaries.
+- **One misspelled kins pin silently zeroed the kinematics.**
+  `parse_kins_config` skips pin names it does not recognise and
+  `kins_pivot_warning` fired only when *nothing* parsed, so six correct `setp`
+  lines plus one typo left the viewer substituting 0 with no warning anywhere.
+  On the nutating machine a mistyped `nut-angle` collapses the entire solution.
+  The warning now names the missing pins.
+- **The sim pose paired a live switchkins mode with a parse-time plane.** The
+  TWP frame reached the client only as marker comments, so a machine parked in
+  TWP — the state the upstream demo actually leaves it in — entering sim took
+  its mode from the machine and its plane from whatever program was loaded.
+  The three kins frame pins are now sampled live, all three or none.
+- **A segment model wrote fewer joints than the machine has.** `poseAt` filled
+  only the joints the segment's model drives (trsrn hardcodes six), leaving any
+  tail from a preceding segment's model in place — a stale pose on a machine
+  with more than six joints.
