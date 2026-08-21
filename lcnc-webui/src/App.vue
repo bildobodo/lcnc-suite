@@ -1473,6 +1473,7 @@ watch(viewerGcode, (newGcode) => {
           @open-settings="openSettingsTab"
           @scrub-line="scrubLine = $event"
           @collision-lines="collisionLines = $event"
+          @reparse="fire({ cmd: 'reparse_preview' }, 'setup')"
         />
       </div>
 

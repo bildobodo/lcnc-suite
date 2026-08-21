@@ -3446,6 +3446,24 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             _trace.emit("probe.get_vars", vars=result)
             return {"ok": True, "vars": result}
 
+        if cmd == "reparse_preview":
+            require_armed(armed)
+            # Re-parse the loaded program against the CURRENT work offsets.
+            #
+            # The preview is parsed once, against the offsets in effect then; a
+            # touch-off afterwards leaves it stale (CLAUDE.md has always said
+            # "reload the file to re-validate"). But that promise was not
+            # keepable in one step: the poller's edge is
+            # `active_file != last_file or mtime != last_mtime`, so re-loading
+            # the SAME path at the same mtime is a no-op, and the only escape
+            # was unload-then-load. Clearing the cache keys makes the edge fire
+            # on the next tick — one action that refreshes the render, the
+            # soft-limit annotations and the collision/scrub basis together.
+            _bulk.last_file = None
+            _bulk.last_mtime = None
+            _trace.emit("gcode.reparse_requested")
+            return {"ok": True}
+
         # ---- Surface compensation + HAL handshakes ----
         # These four ran INLINE in the websocket receive loop until 2026-08-20,
         # authorized by `armed` alone: they never reached check_command, were
@@ -3925,7 +3943,18 @@ def _build_wcs_rotation_patches() -> Dict[str, str]:
         return patches
     for i, base in enumerate(_WCS_BASES):
         row = _wcs_cache[i]
-        if row and "r" in row:
+        if not row:
+            continue
+        # Axis offsets (base+1 .. base+9) and rotation (base+10). Both in
+        # MACHINE units on disk and in _wcs_cache — settled by experiment, see
+        # the docstring. Patching the axis offsets too means the parse sees the
+        # LIVE table, so a touch-off no longer leaves the preview parsed
+        # against a stale on-disk value until LinuxCNC's next shutdown.
+        for j, key in enumerate(_WCS_AXIS_KEYS):
+            val = row.get(key)
+            if isinstance(val, (int, float)):
+                patches[str(base + 1 + j)] = f"{float(val):.6f}"
+        if "r" in row:
             patches[str(base + 10)] = f"{row['r']:.6f}"
     return patches
 

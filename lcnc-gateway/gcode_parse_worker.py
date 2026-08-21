@@ -140,6 +140,17 @@ _WCS_CODES = {
 }
 
 
+#: Canonical 9-slot indices whose offsets are LENGTHS (X Y Z … U V W). A B C
+#: are angles and never scale with the machine's linear unit.
+_LINEAR_OFFSET_SLOTS = frozenset((0, 1, 2, 6, 7, 8))
+
+
+def _basis_to_machine(vals, unit_scale):
+    """Canon offsets (inches) -> machine units, leaving the rotary slots alone."""
+    return [v * unit_scale if i in _LINEAR_OFFSET_SLOTS else v
+            for i, v in enumerate(vals)]
+
+
 def parse(ctx: dict) -> dict:
     filename = ctx.get("file") or ""
     ini_path = ctx.get("ini_path")
@@ -714,6 +725,25 @@ def parse(ctx: dict) -> dict:
               "rapid": rapid_bin, "stats": stats, "bounds": bounds,
               "motion_bounds": motion_bounds,
               "violations": violations, "violations_total": violations_total,
+              # Which WCS this preview is expressed relative to, and which
+              # fixtures the program actually cut in (W5d). `wcs_basis_index`
+              # is the active WCS the parse was forced into — the one the
+              # client re-adds; anything in `wcs_used` that differs from it is
+              # a fixture the program moves to but the operator's DRO does not
+              # read. Authoritative (sampled at motion), replacing a regex over
+              # the first 8 KB of source that saw only the first WCS word.
+              "wcs_basis_index": g5x_index if isinstance(g5x_index, int) else None,
+              "wcs_used": list(canon.wcs_used),
+              # The offsets this preview was actually parsed against, in MACHINE
+              # units so the client can compare them straight against the live
+              # status values. Differing means the preview is STALE — a touch-off
+              # after load — and the client can say so and offer a re-parse
+              # instead of the operator wondering why the path moved.
+              "wcs_basis": {
+                  "g5x": _basis_to_machine(_basis[0], unit_scale),
+                  "g92": _basis_to_machine(_basis[1], unit_scale),
+                  "rotation": _basis[2],
+              },
               "parse_error": parse_error, "error_line": error_line}
     if has_rotary:
         # Per-vertex abc (degrees, raw program coords), index-aligned with

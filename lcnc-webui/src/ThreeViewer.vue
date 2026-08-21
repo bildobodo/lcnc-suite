@@ -10,7 +10,7 @@ import {
   failedParts, loadMachineAssets, getCachedGeometry, getToolMeta, setToolMeta, machineReady,
 } from "./viewer/machineAssetCache";
 
-import { viewerInit, viewerGcode, gcodeContent, status, emitTelemetry, type ViewerInit, type ViewerGcode } from "./lcncWs";
+import { viewerInit, viewerGcode, status, emitTelemetry, type ViewerInit, type ViewerGcode } from "./lcncWs";
 import { loadViewerDefaults, loadCameraDefaults, saveCameraDefaults, ALL_LAYERS, settingsVersion, type Vec3, type Layer } from "./defaults";
 import { INTERP_IDLE } from "./lcnc";
 import { fmtCoord, fmtRpm } from "./format";
@@ -114,32 +114,56 @@ const emit = defineEmits<{
   // Source lines with collision hits after a sweep (null = no/stale results,
   // [] = checked clean) — App forwards to GcodePanel for line markers.
   (e: "collision-lines", lines: number[] | null): void;
+  // The preview was parsed against offsets that are no longer live (touch-off
+  // after load) — App re-parses it against current ones.
+  (e: "reparse"): void;
 }>();
 
 // HUD data (read from status for template)
 const vst = computed(() => status.value?.data ?? null);
 
-// First WCS word the loaded file pins (G54..G59.3), if one appears early.
+// g5x index (1..9) -> label, matching the gateway's _G5X_MAP.
+const WCS_LABELS = ["G54", "G55", "G56", "G57", "G58", "G59", "G59.1", "G59.2", "G59.3"];
+const wcsLabel = (idx: number) => WCS_LABELS[idx - 1] ?? `G5x#${idx}`;
+
+// Fixtures the program actually CUTS IN that are not the active one.
 //
-// The hint it surfaces is real: a program that selects its own fixture will
-// cut THERE, not where the operator's active DRO reads. It is worth saying.
+// Straight from the parse: the canon samples the work system at every emitted
+// segment, so M2's reset to G54 never counts and a mid-program switch cannot
+// be missed. This replaced a regex over the first 8 KB of source that took the
+// FIRST WCS word — which saw a preamble and nothing after it, so a program
+// starting in G54 and later switching to G55 produced no hint at all.
 //
-// What it is NOT, since the parse basis fix (W5c): a statement about which
-// rotation the preview applies. The preview is parsed against the machine's
-// ACTIVE WCS and the shipped points are correct relative to it, whatever
-// fixtures the program selects internally.
-//
-// KNOWN WEAKNESS (W5d replaces this): it scans only the first 8 KB and takes
-// the FIRST match, so a program that starts in G54 and later switches to G55
-// produces no hint at all. The authoritative answer — which fixtures the
-// program actually produced motion under — is available from the parse and
-// should come from there rather than from a regex over the source.
-const filePinnedWcs = computed(() => {
-  const src = gcodeContent.value;
-  if (!src) return null;
-  const head = src.length > 8192 ? src.slice(0, 8192) : src;
-  const m = head.match(/\bG5[4-9](?:\.[1-3])?\b/i);
-  return m ? m[0].toUpperCase() : null;
+// The hint is real and worth saying: such a program cuts THERE, not where the
+// operator's DRO reads. It is NOT a statement about correctness — since the
+// basis fix the preview is parsed against the ACTIVE WCS and the shipped
+// points are right relative to it, whatever the program selects internally.
+const foreignWcs = computed<string[]>(() => {
+  const g: any = viewerGcode.value;
+  const used: number[] | undefined = g?.wcs_used;
+  const basis: number | null | undefined = g?.wcs_basis_index;
+  if (!used?.length || basis == null) return [];
+  return used.filter((i) => i !== basis).map(wcsLabel);
+});
+
+// Preview parsed against offsets that are no longer live — a touch-off after
+// the file was loaded. The parse basis rides the wire in MACHINE units for
+// exactly this comparison; `reparse_preview` makes them agree again.
+const WCS_STALE_EPS = 1e-4;
+const previewWcsStale = computed(() => {
+  const b: any = (viewerGcode.value as any)?.wcs_basis;
+  const s = vst.value;
+  if (!b || !s) return false;
+  const cmp = (was: number[] | undefined, now: any) => {
+    if (!Array.isArray(was) || !Array.isArray(now)) return false;
+    const n = Math.min(was.length, now.length);
+    for (let i = 0; i < n; i++) {
+      if (Math.abs((was[i] ?? 0) - (now[i] ?? 0)) > WCS_STALE_EPS) return true;
+    }
+    return false;
+  };
+  return cmp(b.g5x, s.g5x_offset) || cmp(b.g92, s.g92_offset)
+    || Math.abs((b.rotation ?? 0) - (s.rotation_xy ?? 0)) > WCS_STALE_EPS;
 });
 
 // ---------- DOM ----------
@@ -2358,7 +2382,8 @@ defineExpose({
 
       <div v-if="vst?.eoffset_enabled" class="hudWarn">Comp Z {{ vst.eoffset_z != null ? vst.eoffset_z.toFixed(3) : '---' }}</div>
       <div v-if="vst?.rotation_xy" class="hudWarn">Rotation {{ vst.rotation_xy.toFixed(1) }}°</div>
-      <div v-if="filePinnedWcs && filePinnedWcs !== props.g5xLabel" class="hudWarn">Program uses {{ filePinnedWcs }} — {{ props.g5xLabel }} active</div>
+      <div v-if="foreignWcs.length" class="hudWarn">Program cuts in {{ foreignWcs.join(', ') }} — {{ props.g5xLabel }} active</div>
+      <div v-if="previewWcsStale" class="hudWarn hudAction" @click="emit('reparse')">Preview uses older offsets — Refresh</div>
       <div v-if="toolpathOverflow" class="hudWarn">Toolpath exceeds bounds</div>
     </div>
 
@@ -2546,6 +2571,14 @@ defineExpose({
   font-size: calc(var(--fs-md) * var(--hud-scale));
   font-weight: var(--fw-medium);
   color: var(--warn);
+}
+
+/* A HUD warning that is also the fix for what it warns about. The HUD is
+   pointer-events:none so it never eats viewer drags — re-enable for this one. */
+.hudWarn.hudAction {
+  pointer-events: auto;
+  cursor: pointer;
+  text-decoration: underline;
 }
 
 </style>

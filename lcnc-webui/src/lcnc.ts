@@ -48,6 +48,9 @@ export type WsCommand =
   | { cmd: "abort" }
   | { cmd: "load_file"; path: string }
   | { cmd: "unload_file" }
+  // Re-parse the loaded program against the CURRENT work offsets (the preview
+  // is parsed once, so a touch-off afterwards leaves it stale).
+  | { cmd: "reparse_preview" }
   // MDI
   | { cmd: "mdi"; text: string }
   // Jogging (single axis)

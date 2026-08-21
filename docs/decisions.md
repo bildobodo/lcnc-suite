@@ -234,6 +234,28 @@ the first row alone could not.
 so inactive rows on disk go stale within a session. That is a staleness problem, not a
 units problem, and it has a different fix.
 
+### Which fixture the program cuts in — and whether the preview is stale
+**Line:** the preview names the fixtures a program actually cuts in when they differ
+from the active one, says when it was parsed against offsets that are no longer live,
+and offers one action that fixes it. It does not try to re-parse automatically.
+
+The fixture list comes from the parse — the canon samples the work system at every
+emitted segment — not from a regex over the source, which read the first 8 KB and took
+the first WCS word, so a program that started in G54 and switched to G55 produced no
+hint at all. Sampling at MOTION also means `M2`'s reset to G54 never counts as a
+fixture used.
+
+Staleness is detected by shipping the offsets the parse actually used, in machine
+units, and comparing them against live status — not inferred from "did anything
+change since load". `reparse_preview` is the one action: re-loading the same path at
+the same mtime is a no-op (the poller's edge is `file != last or mtime != last`), so
+the "reload the file to re-validate" promise in CLAUDE.md was not keepable in one step
+before this. The same action refreshes the render, the soft-limit annotations and the
+collision/scrub basis, because they all derive from the same parse.
+
+Auto-re-parsing on every touch-off was rejected: it spawns a multi-second parse of a
+possibly multi-MB program while the operator is mid-setup, repeatedly.
+
 ### Client command path (`fire()` vs `send()`)
 **Line:** no command may travel BOTH paths, and no stop command may be droppable.
 Commands that are raw everywhere stay raw, listed and justified.

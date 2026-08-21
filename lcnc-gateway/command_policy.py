@@ -180,6 +180,9 @@ COMMAND_GATES: Dict[str, str] = {
     # --- file ops ---
     "load_file": "setup",
     "unload_file": "setup",
+    # Re-parse the loaded program against current offsets. Same class as
+    # loading it: touches no machine state, but spawns the parse worker.
+    "reparse_preview": "setup",
     # --- surface compensation + HAL handshakes (moved out of the pre-dispatch
     #     inline ladder, where they were `armed`-only and structurally invisible
     #     to the coverage test — see test_command_policy._inline_commands) ---

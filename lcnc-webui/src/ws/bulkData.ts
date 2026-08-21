@@ -217,6 +217,18 @@ export interface ViewerGcode {
   // segments with seq > N (same convention as the type markers). Present
   // only alongside kinstype arrays on programs that call G53.x.
   kins_frames?: [number, number, number, number][];
+  // Which WCS this preview is expressed relative to (the active one the parse
+  // was forced into), and which fixtures the program actually PRODUCED MOTION
+  // in — g5x indices, 1=G54 … 9=G59.3, sampled at motion so M2's reset to G54
+  // never counts. An entry differing from wcs_basis_index is a fixture the
+  // program cuts in but the operator's DRO does not read. Authoritative
+  // replacement for a regex over the first 8 KB of source (W5d).
+  wcs_basis_index?: number | null;
+  wcs_used?: number[];
+  // The offsets this preview was parsed against, in MACHINE units so they can
+  // be compared straight against the live status values. Differing means the
+  // preview is STALE — a touch-off after load — and `reparse_preview` fixes it.
+  wcs_basis?: { g5x: number[]; g92: number[]; rotation: number } | null;
   // Parse worker aborted partway: interpreter error text + the source line it
   // stopped on (e.g. an axis word this machine doesn't have). The payload
   // still carries whatever parsed before the abort, but scrubTrack is absent

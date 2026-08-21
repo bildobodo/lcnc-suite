@@ -59,6 +59,16 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         # None means no line ever ran (empty/failed parse); the caller must
         # then fall back and say so rather than silently using end-of-parse.
         self.basis_at_start = None
+        # Work coordinate systems that actually PRODUCED MOTION (g5x indices,
+        # 1=G54 … 9=G59.3), in first-use order. This is the authoritative
+        # answer to "which fixtures does this program cut in" — the viewer used
+        # to guess it with a regex over the first 8 KB of source, which sees
+        # only the first WCS word and misses a mid-program switch entirely.
+        #
+        # Recorded at MOTION, not at the G-code word, so M2's reset to G54
+        # (which happens after the last move) never counts as a fixture used.
+        self.wcs_used = []
+        self._last_motion_g5x = None
         self.xo = self.yo = self.zo = 0.0
         self.ao = self.bo = self.co = 0.0
         self.uo = self.vo = self.wo = 0.0
@@ -142,6 +152,13 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     # gcode.arc_to_segments produces for arcs; WCS offsets subtract once at
     # extraction time (not here).
     def _next_seq(self):
+        # Called exactly once per emitted segment, by every motion emitter —
+        # so it is also where the fixture-in-use is sampled (an int compare).
+        idx = getattr(self, "g5x_index", None)
+        if idx != self._last_motion_g5x:
+            self._last_motion_g5x = idx
+            if idx is not None and idx not in self.wcs_used:
+                self.wcs_used.append(idx)
         self.seq += 1
         return self.seq
 
