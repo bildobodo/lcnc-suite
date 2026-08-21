@@ -531,3 +531,47 @@ own zero-length handling.
   only the joints the segment's model drives (trsrn hardcodes six), leaving any
   tail from a preceding segment's model in place — a stale pose on a machine
   with more than six joints.
+
+---
+
+## W8 live acceptance (2026-08-21, LinuxCNC 2.9.4)
+
+The TWP config was booted and the gateway gate run on it. Three defects only a
+live boot could have found, all fixed before this record:
+
+- **The documented `halcompile` precondition could not work.** It pointed at
+  `scripts/kins_oracle/xyzacb_trsrn.comp`, which is the fixture ORACLE and
+  tracks current LinuxCNC master; 2.9's halcompile cannot parse its
+  handle-style pin API. The installable `@493926b56c` revision now ships at
+  `examples/sim_config/twp/xyzacb_trsrn.comp`, with `test_kins_oracle_parity`
+  comparing the two copies' kinematics statements so they cannot drift.
+- **`twp-helper-comp.py` busy-spins.** Upstream's loop is a bare `while 1:`
+  with no sleep, polling NML as fast as the CPU allows: 13m29s of CPU in
+  13m33s of wall time, one core of four gone permanently. It starved the
+  publish scenario outright. Forked to 20 Hz; 99.6% → 0.0%.
+- **`OPEN_FILE` pointed outside `PROGRAM_PREFIX`**, so the config booted with
+  no program and `load_file` refused the path.
+
+**Gate result.** Full matrix on the clean boot: zero lag windows in all nine
+scenarios; `sigstop_trip` `sticky_ok` + `recovered_ok`. `preview_publish`
+re-run to a real delivery (`delivered: true`, publish wait 8.5 s, RSS
+130.8 → 172.0 MB — both inside the historical 7.4–14.2 s and 169–207 MB
+bands). Reader cost with the three new TWP frame pins: pin-read avg 0.05 ms,
+max 0.20 ms against a 5 ms threshold, zero `reader.tick_slow`.
+
+**A precondition worth writing down, because it cost two vacuous runs.**
+`preview_publish` needs an armed client, and `arm` is refused while a safety
+trip is unacknowledged. With no armed client holding heartbeats the HAL chain
+trips within seconds — so acknowledging the trip and then *disconnecting*
+before starting the matrix re-trips it, and every later `arm` fails with
+"Safety trip not acknowledged", surfacing as `reply_error: 'Not armed'`. The
+delivery assertion (d0b43d8) caught both runs and refused to report their
+numbers, which is exactly its job. The fix is to hold an armed, heartbeating
+client for the duration of the run.
+
+**Live behaviour confirmed on the shipped config:** `viewer_init.kins` reports
+`xyzacb-trsrn` with all seven pins and no config warning; a preview of the
+upstream demo emits `kins_frames = [-1.781761556, 130.245476621,
+-40.855497803]`, matching the phase-3 live task run to six decimals, with every
+segment typed TOOL/plane, `wcs_used = [6]` and
+`violations_world_unchecked: None` — the trsrn twin checked every segment.
