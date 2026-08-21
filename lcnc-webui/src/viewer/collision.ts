@@ -135,6 +135,13 @@ export interface CollisionResult {
   samples: number;
   /** True when maxSamples forced coarser steps than requested. */
   coarsened: boolean;
+  /** Set when the no-missed-crossing guarantee does NOT hold for this sweep,
+   *  with the reason. The clearance bounds are certified per kins FAMILY
+   *  (kinsBulge.test.ts), so a segment whose declared kins this client cannot
+   *  evaluate falls back to an identity pose whose bound is 0 — sound for a
+   *  trivkins machine, wrong for the machine that declared otherwise. Null
+   *  means the sweep is certified. Unchecked is not clear. */
+  uncertified: string | null;
   pairCount: number;
   bvhMs: number;
   sweepMs: number;
@@ -432,25 +439,29 @@ export function sweepCollisions(
 
   const o = wcsTerms(wcs);
   const machineVals: number[] = [0, 0, 0, 0, 0, 0];
+  // Chunk-start machine coords. machineVals is shared scratch that the second
+  // interpPose overwrites, so the bulge bound needs its own copy of the first
+  // endpoint or it would be handed the same pose twice.
+  const chunkM0: number[] = [0, 0, 0, 0, 0, 0];
   const jointVals: number[] = new Array(Math.max(machine.axes.length, 9)).fill(0);
   // Identity kins always; the machine's WORLD kins only for track segments
   // the phase-2 mode flags mark (live TLO overlays the pivot math).
   // Soundness for the V bounds below under world kins: the pivot
-  // compensation makes the LINEAR joints sinusoids of the swept rotary,
+  // compensation makes the LINEAR joints trigonometric in the swept rotary,
   // so chunk-endpoint deltas can under-read their true in-chunk travel —
   // and for a pair whose DOF path does NOT contain the rotary (e.g.
   // tool-vs-column during a C sweep) the rotary lever term supplies no
-  // budget at all (review finding: the old note claimed it did). Fix:
-  // world-mode chunks seed such pairs' translation budget with a sagitta
-  // bound — a sinusoid of amplitude ≤ R over phase φ deviates from its
-  // chord by ≤ R·(1−cos(φ/2)) per extremum, ≤ 2 trig components per
-  // joint set, doubled for slack → 4·R·(1−cos(φ/2)) with R = pivot
-  // radius bound from the chunk-endpoint world coords (+ static offsets
-  // + live TLO). Pairs whose path has the rotary keep the existing
-  // Δangle × lever ×2 budget on top.
+  // budget at all (review finding: the old note claimed it did). The fix is
+  // KinsModel.jointBulge: each family bounds its OWN per-joint mid-chunk
+  // excursion from its own geometry, and this file no longer knows any
+  // family's parameter names. It used to read the trt-only KinsParams, which
+  // a trsrn spec does not carry at all — so that machine's ~2 m rotary lever
+  // came out as the distance from the machine origin. Certified per family by
+  // kinsBulge.test.ts.
   const identityKins = makeKins(machine.axes);
+  const jointBulge = new Float64Array(jointVals.length);
   // Raw wire types → per-vertex world flags for THIS machine's family
-  // (worldModeForSpec) — the sagitta-slack condition indexes these.
+  // (worldModeForSpec) — the uncertified check below indexes these.
   const modeWorld = track.mode
     ? Array.from(track.mode, (t) => worldModeForSpec(t, machine.kins))
     : null;
@@ -465,25 +476,24 @@ export function sweepCollisions(
                               wcs.tool?.[2] || undefined, "collision sweep");
       })
     : null;
-  if (machine.kins?.type === "xyzacb-trsrn" && modeWorld?.some(Boolean)) {
-    // Pose math is exact (oracle-pinned twins), but the conservative-
-    // advancement SPEED BOUNDS (rotary levers, sagitta slack, pivot
-    // magnitudes) are audited for the trt family only — the no-missed-
-    // crossing guarantee is not yet certified for trsrn. Said loudly,
-    // once per sweep, never silently assumed.
-    console.warn("[collision] xyzacb-trsrn segments: CA speed bounds not yet "
-      + "audited for this kins family — sweep runs, guarantee not certified");
+  // The guarantee is certified per FAMILY, so it can only be claimed for a
+  // segment whose model is the one the machine declared. kinsForSegment falls
+  // back to trivkins — loudly, but still — for a kins type this client cannot
+  // evaluate or a plane segment with no frame; that model's bulge is
+  // legitimately 0, which would then be silently wrong for the real machine.
+  // Report it instead of assuming it: unchecked is not clear.
+  let uncertified: string | null = null;
+  if (modeWorld && vertModel) {
+    for (let i = 0; i < modeWorld.length; i++) {
+      if (!modeWorld[i]) continue;
+      const m = vertModel[i];
+      if (m && m.type !== "trivkins") continue;
+      uncertified = `non-identity segments fell back to trivkins (declared `
+        + `${machine.kins?.type ?? "unknown"}) — poses and clearance bounds `
+        + `are identity approximations`;
+      break;
+    }
   }
-  // Pairs whose relative pose rides a world-driven linear joint (letter
-  // X/Y/Z under a declared kins) — the recipients of the sagitta slack.
-  const pairWorldLin = machine.kins && track.mode
-    ? pairDofs.map(list => list.some(pd =>
-        !pd.dof.rotate && "XYZ".includes(machine.axes[pd.dof.joint] ?? "")))
-    : null;
-  const kp = machine.kins?.params;
-  const pivotX = kp?.xRotPoint ?? 0, pivotY = kp?.yRotPoint ?? 0, pivotZ = kp?.zRotPoint ?? 0;
-  const pivotOffMag = Math.hypot(kp?.xOffset ?? 0, kp?.yOffset ?? 0, kp?.zOffset ?? 0)
-    + Math.abs(wcs.tool?.[2] ?? 0);
   const kinsOut: (number | null)[] = [];
   const scratch = {
     pos: new THREE.Vector3(), quat: new THREE.Quaternion(),
@@ -506,6 +516,10 @@ export function sweepCollisions(
     for (let ji = 0; ji < kinsOut.length; ji++) {
       jointVals[ji] = kinsOut[ji] ?? 0;  // UVW: 0, as the preview transform
     }
+    // Models write only the joints they drive (trsrn hardcodes six), so on a
+    // machine with more joints than that the tail would keep whatever a
+    // PRECEDING segment's model left there — a stale pose, not a fresh one.
+    for (let ji = kinsOut.length; ji < jointVals.length; ji++) jointVals[ji] = 0;
     poseTree(nodes, jointVals, scratch);
     for (const body of bodies) {
       body.world.multiplyMatrices(nodes[body.nodeIdx]!.world, body.localMat);
@@ -655,14 +669,16 @@ export function sweepCollisions(
     const dA = Math.abs(track.abc[j]! - track.abc[k]!);
     const dB = Math.abs(track.abc[j + 1]! - track.abc[k + 1]!);
     const dC = Math.abs(track.abc[j + 2]! - track.abc[k + 2]!);
-    const rotDelta = Math.max(dA, dB, dC);
-    const chunks = Math.max(1, Math.ceil(rotDelta / CHUNK_ROT_DEG));
-    // Per-chunk swept phase for the world sagitta slack: SUM of the rotary
-    // deltas (each rotation contributes its own trig terms), radians.
-    const segWorld = pairWorldLin !== null && (modeWorld?.[i] ?? false);
-    const chunkPhase = segWorld
-      ? Math.min(Math.PI, ((dA + dB + dC) / chunks) * (Math.PI / 180))
-      : 0;
+    // Chunk on the SUMMED rotary sweep, not the largest single one. The ×2
+    // lever-drift inflation below is justified by rotRad ≤ 0.4 rad giving
+    // 1/(1−rotRad) ≤ 1.65; with three rotaries turning at once, capping only
+    // the largest let the per-chunk total reach 67.5° and 1−rotRad go
+    // NEGATIVE — the argument stopped holding exactly on the machines that
+    // sweep three rotaries. Costs nothing when one rotary moves (the common
+    // case), where sum == max.
+    const chunks = Math.max(1, Math.ceil((dA + dB + dC) / CHUNK_ROT_DEG));
+    const segModel = vertModel?.[i] ?? identityKins;
+    const segBulges = segModel.type !== "trivkins";
 
     for (let ch = 0; ch < chunks; ch++) {
       const s0 = c0 + (L * ch) / chunks;
@@ -672,11 +688,9 @@ export function sweepCollisions(
       // Chunk endpoint joint values + start-pose rotary levers.
       interpPose(i, (s0 - c0) / L);
       for (let x = 0; x < jointVals.length; x++) jv0[x] = jointVals[x]!;
-      // World sagitta slack input: pivot radius at this endpoint (poseAt
-      // left the endpoint's machine coords in machineVals).
-      let pivotR = segWorld
-        ? Math.hypot(machineVals[0]! - pivotX, machineVals[1]! - pivotY, machineVals[2]! - pivotZ)
-        : 0;
+      // poseAt left this endpoint's machine coords in machineVals; keep them,
+      // the second interpPose is about to overwrite the buffer.
+      if (segBulges) for (let x = 0; x < 6; x++) chunkM0[x] = machineVals[x]!;
       for (let pi = 0; pi < pairs.length; pi++) {
         if (staticExcluded[pi]) continue;
         const [ai, bi] = pairs[pi]!;
@@ -691,26 +705,27 @@ export function sweepCollisions(
       }
       interpPose(i, (s1 - c0) / L);
       for (let x = 0; x < jointVals.length; x++) jv1[x] = jointVals[x]!;
-      let chunkSlack = 0;
-      if (segWorld && chunkPhase > 0) {
-        pivotR = Math.max(pivotR, Math.hypot(
-          machineVals[0]! - pivotX, machineVals[1]! - pivotY, machineVals[2]! - pivotZ));
-        chunkSlack = 4 * (pivotR + pivotOffMag) * (1 - Math.cos(chunkPhase / 2));
-      }
+      // How far each joint can stray from the straight line between the two
+      // endpoint values just measured — the excursion jv1−jv0 cannot see.
+      // Zero under identity kins, so identity segments pay nothing.
+      if (segBulges) segModel.jointBulge(chunkM0, machineVals, jointBulge);
+      else jointBulge.fill(0);
 
       for (let pi = 0; pi < pairs.length; pi++) {
         if (staticExcluded[pi]) { pairV[pi] = 0; continue; }
         const [ai, bi] = pairs[pi]!;
         const A = bodies[ai]!, B = bodies[bi]!;
         const list = pairDofs[pi]!;
-        // Seeding trans with the world sagitta slack also flows it into
-        // the rotary lever+trans recursion below — both need the budget.
-        let trans = pairWorldLin?.[pi] ? chunkSlack : 0;
+        // Each linear DOF on this pair's path contributes its endpoint delta
+        // PLUS its own mid-chunk bulge — per joint, so a pair riding only X
+        // pays only X's. The budget then flows into the rotary lever+trans
+        // recursion below, which needs it too.
+        let trans = 0;
         let rotRadLever = 0;
         for (let di = 0; di < list.length; di++) {
           const pd = list[di]!;
           const dJ = Math.abs((jv1[pd.dof.joint] ?? 0) - (jv0[pd.dof.joint] ?? 0));
-          if (!pd.dof.rotate) trans += dJ;
+          if (!pd.dof.rotate) trans += dJ + (jointBulge[pd.dof.joint] ?? 0);
           else {
             const lever = Math.max(rotLever[pi]![di]!, leverFor(pd, A), leverFor(pd, B));
             rotRadLever += (dJ * Math.PI / 180) * (lever + trans);
@@ -905,6 +920,7 @@ export function sweepCollisions(
     staticContacts,
     samples: done,
     coarsened,
+    uncertified,
     pairCount: pairs.length,
     bvhMs: model.bvhMs,
     sweepMs: performance.now() - t0,

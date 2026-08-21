@@ -376,6 +376,18 @@ const violationTargets = computed<FindingTarget[]>(() => {
 // were swept on the DISPLAYED track (see collisionTrack prop).
 const resultCurrent = computed(() => props.collisionTrack === track.value);
 const hits = computed(() => (resultCurrent.value ? props.collisionResult?.hits ?? [] : []));
+// Reasons this sweep's no-missed-crossing guarantee does NOT hold. Null when
+// it does. Both cases mean the same thing to an operator — the result is a
+// sample, not a proof — so they share one marker rather than hiding one of
+// them next to a green "clear".
+const sweepCaveat = computed<string | null>(() => {
+  const r = resultCurrent.value ? props.collisionResult : null;
+  if (!r) return null;
+  const why: string[] = [];
+  if (r.uncertified) why.push(r.uncertified);
+  if (r.coarsened) why.push("coarsened to fit the sample budget");
+  return why.length ? `Clearance guarantee not certified for this sweep: ${why.join("; ")}` : null;
+});
 // One navigation target per contact ONSET: an intermittent-contact line
 // (enter → exit → re-enter) yields a target per interval, so the re-entry
 // is a real "next clash" stop, not folded invisibly into the first.
@@ -546,8 +558,8 @@ onUnmounted(() => {
                   @click="emit('cancel-check')">{{ checkLabel }} &times;</MachineBtn>
       <template v-if="collisionResult && !collisionBusy && resultCurrent">
         <span v-if="collisionResult.pairCount === 0" class="val-status muted" title="No body pair moves relative to another — nothing to check">no moving pairs</span>
-        <span v-else-if="!hits.length" class="val-status ok" :title="`${collisionResult.samples} samples, ${collisionResult.pairCount} pairs${collisionResult.coarsened ? ', coarsened to fit the sample budget' : ''}${collisionResult.staticContacts.length ? `; in contact from the start (excluded): ${collisionResult.staticContacts.map(c => c.a + '/' + c.b).join(', ')}` : ''}`">
-          clear{{ collisionResult.coarsened ? "*" : "" }}
+        <span v-else-if="!hits.length" class="val-status ok" :title="`${collisionResult.samples} samples, ${collisionResult.pairCount} pairs${collisionResult.staticContacts.length ? `; in contact from the start (excluded): ${collisionResult.staticContacts.map(c => c.a + '/' + c.b).join(', ')}` : ''}`">
+          clear
         </span>
         <template v-else>
           <span class="btnTip" title="Previous collision (from the current timeline position)">
@@ -567,6 +579,10 @@ onUnmounted(() => {
           </span>
           <span class="navTarget val-status mono">{{ nextHitT ? "→ " + (nextHitT.line ? "L" + nextHitT.line : "entry") + (nextHitT.rapid ? " (rapid)" : "") + ((nextHitT.dist ?? 0) > 0.001 ? ` ~${nextHitT.dist!.toFixed(1)}mm` : "") : "" }}</span>
         </template>
+        <!-- Shown on BOTH branches: a sweep that found clashes is no more
+             certified than one that found none, so the caveat cannot live
+             only next to "clear". -->
+        <span v-if="sweepCaveat" class="val-status warn" :title="sweepCaveat">*</span>
       </template>
 
       <template v-if="nextTool">

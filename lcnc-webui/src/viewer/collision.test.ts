@@ -491,3 +491,89 @@ describe("world-kins conservative advancement (sagitta slack)", () => {
     expect(r.hits).toHaveLength(0);
   });
 });
+
+describe("trsrn (TWP) conservative advancement", () => {
+  // Same miss class as the trt case above, on the family whose bound the
+  // sweep could not previously compute AT ALL: it read the trt-only
+  // KinsParams, which a trsrn spec does not carry, so the rotary radius
+  // collapsed from ~2 m to the distance from the machine origin.
+  //
+  // The pair's DOF path is {Z} only, so no rotary-lever budget applies (A is
+  // not on the path), and the A sweep is centred on the Z joint's extremum so
+  // the endpoint deltas are exactly zero. Under trsrn mode 1 at the machine
+  // origin the Z joint is 2000·cos A − 1000·sin A − 2000, i.e. a cosine of
+  // amplitude 2236 about A = −26.5651°. Over ±10° about that centre both ends
+  // read 202.0971 while the middle reaches 236.0680 — a 33.97 excursion that
+  // only jointBulge can see.
+  const A_MID = -26.5651, A_HALF = 10;
+  const J_END = 202.0971, J_MID = 236.0680;
+
+  const TSWEEP: CollisionMachine = {
+    groups: [
+      { id: "frame", parent: "root" },
+      { id: "zslide", parent: "root" },
+    ],
+    kinematics: [{ group: "zslide", joint: 2, type: "translate", direction: "z", sign: 1 }],
+    workGroup: "frame",
+    toolGroup: "zslide",
+    unitScale: 1,
+    axes: ["X", "Y", "Z", "A", "B", "C"],
+    // The upstream TWP machine's INI geometry; raw type 1 = TCP.
+    kins: {
+      type: "xyzacb-trsrn", identityFirst: false,
+      trsrn: { yPivot: 50, zPivot: 120, xOffset: 0, yOffset: 0,
+               yRotAxis: -1000, zRotAxis: -2000, nutAngle: 55 },
+    },
+  };
+  const wallBodies = (wallZ: number): CollisionBody[] => {
+    const wall = boxPositions(10);
+    for (let i = 2; i < wall.length; i += 3) wall[i] = wall[i]! + wallZ;
+    return [
+      { id: "wall", group: "frame", positions: wall },
+      { id: "mover", group: "zslide", positions: boxPositions(10) },
+    ];
+  };
+  // World XYZ pinned at the machine origin while A sweeps 20° — one chunk.
+  const sweep = {
+    ...track([[0, 0, 0], [0, 0, 0]],
+             [[A_MID - A_HALF, 0, 0], [A_MID + A_HALF, 0, 0]]),
+    mode: new Uint8Array([1, 1]),
+  };
+
+  it("catches the mid-chunk excursion the endpoint deltas cannot see", () => {
+    // Wall near face at J_END + 10 + 3: endpoint gap 3.0 (clear of margin 2),
+    // mid-chunk overlap ~31. With a zero bulge the pair's V is 0, one
+    // certificate from the endpoint distance spans the whole chunk, and the
+    // crossing is missed entirely.
+    const model = buildCollisionModel(TSWEEP, wallBodies(J_END + 13));
+    const r = sweepCollisions(model, sweep, WCS0, { margin: 2 });
+    expect(r.hits).toHaveLength(1);
+    expect([r.hits[0]!.a, r.hits[0]!.b].sort()).toEqual(["mover", "wall"]);
+    expect(r.uncertified).toBeNull();
+  });
+
+  it("adds no false positive when the excursion stays clear", () => {
+    // Wall 12 beyond the peak: the bulge may only shrink steps, never invent
+    // a hit. This is the half of the pair that a merely-larger bound passes
+    // trivially — it is here so an over-conservative bound is visible too.
+    const model = buildCollisionModel(TSWEEP, wallBodies(J_MID + 22));
+    const r = sweepCollisions(model, sweep, WCS0, { margin: 2 });
+    expect(r.hits).toHaveLength(0);
+  });
+
+  it("reports a declared kins it cannot evaluate instead of posing identity", () => {
+    // kinsForSegment falls back to trivkins for an unknown family. That
+    // model's bulge is legitimately 0, which would be silently wrong here —
+    // so the sweep must SAY the guarantee does not hold rather than return a
+    // clean-looking result.
+    // identityFirst so raw type 1 reads as non-identity under the trt
+    // convention worldModeForSpec applies to families it does not know.
+    const unknown: CollisionMachine = {
+      ...TSWEEP, kins: { type: "xyzsomething-new", identityFirst: true },
+    };
+    const model = buildCollisionModel(unknown, wallBodies(J_END + 13));
+    const r = sweepCollisions(model, sweep, WCS0, { margin: 2 });
+    expect(r.uncertified).toMatch(/trivkins/);
+    expect(r.uncertified).toMatch(/xyzsomething-new/);
+  });
+});

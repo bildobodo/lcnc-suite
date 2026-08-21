@@ -55,7 +55,8 @@ self.onmessage = (e: MessageEvent<CollisionReq>) => {
     if (model.pairs.length === 0) {
       // Not an error and not "clean": no body pair has program-driven
       // relative motion — nothing to check. Surface it honestly.
-      self.postMessage({ id, result: { hits: [], staticContacts: [], samples: 0, coarsened: false, pairCount: 0, bvhMs: model.bvhMs, sweepMs: 0 } });
+      // No moving pair: nothing to certify, so the guarantee holds vacuously.
+      self.postMessage({ id, result: { hits: [], staticContacts: [], samples: 0, coarsened: false, uncertified: null, pairCount: 0, bvhMs: model.bvhMs, sweepMs: 0 } });
       return;
     }
     const result = sweepCollisions(model, track, wcs, options, (frac) => {
