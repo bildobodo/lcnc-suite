@@ -15,6 +15,11 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 import { transformToPartFrame, type PartFrameMachine } from "./partFrame";
+import {
+  buildCollisionModel, sweepCollisions,
+  type CollisionBody, type CollisionMachine,
+} from "./collision";
+import type { ScrubTrack } from "../ws/bulkData";
 
 const DIR = path.resolve(__dirname, "../../../examples/sim_config/machine-xyzacb-trsrn");
 const AXES = ["X", "Y", "Z", "A", "B", "C"];
@@ -173,5 +178,156 @@ describe("machine-xyzacb-trsrn kinematic chain", () => {
     expect(turned[0]!).toBeCloseTo(0, 3);
     expect(turned[1]!).toBeCloseTo(2 * Y_ROT_AXIS, 3);
     expect(turned[2]!).toBeCloseTo(2 * Z_ROT_AXIS, 3);
+  });
+});
+
+// ── envelope acceptance sweep ───────────────────────────────────────────────
+
+function parseBinSTL(buf: Buffer): Float32Array {
+  const n = buf.readUInt32LE(80);
+  const out = new Float32Array(n * 9);
+  for (let i = 0; i < n; i++) {
+    const off = 84 + i * 50 + 12;
+    for (let v = 0; v < 9; v++) out[i * 9 + v] = buf.readFloatLE(off + v * 4);
+  }
+  return out;
+}
+
+/** points: [x, y, z, a, b, c]. `mode`/`frames` make the sweep actually route
+ *  through the trsrn kins — without them every pose falls back to identity
+ *  and the sweep would exercise none of the machinery it is here to gate. */
+function envelopeTrack(points: number[][], mode?: number[]): ScrubTrack {
+  const n = points.length;
+  const pos = new Float32Array(n * 3);
+  const abc = new Float32Array(n * 3);
+  const cum = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const [x, y, z, a, b, c] = points[i]!;
+    pos.set([x!, y!, z!], i * 3);
+    abc.set([a!, b!, c!], i * 3);
+    if (i > 0) {
+      const p = points[i - 1]!;
+      const lin = Math.hypot(x! - p[0]!, y! - p[1]!, z! - p[2]!);
+      const rot = Math.max(Math.abs(a! - p[3]!), Math.abs(b! - p[4]!), Math.abs(c! - p[5]!));
+      cum[i] = cum[i - 1]! + Math.max(lin, rot);
+    }
+  }
+  const t: ScrubTrack = {
+    pos, abc, lines: new Uint32Array(points.map((_, i) => i + 1)),
+    rapid: new Uint8Array(n), cum, count: n,
+    lineCum: new Map(), lineSpan: new Map(), timeBased: false,
+  };
+  if (mode) {
+    t.mode = new Uint8Array(mode);
+    // A frame for every vertex; only the type-2 ones consult it. The triplet
+    // is the live-validated plane from the TWP spike capture.
+    t.frame = new Uint8Array(n);
+    t.frames = [[-1.781762, 130.2455, -40.8555]];
+  }
+  return t;
+}
+
+const machine: CollisionMachine = {
+  groups: mj.groups, kinematics: mj.kinematics,
+  workGroup: mj.workGroup, toolGroup: mj.toolGroup,
+  unitScale: 1, axes: AXES,
+  kins: {
+    type: "xyzacb-trsrn", identityFirst: false,
+    trsrn: { yPivot: PIVOT_Y, zPivot: PIVOT_Z, xOffset: 0, yOffset: 0,
+             yRotAxis: Y_ROT_AXIS, zRotAxis: Z_ROT_AXIS, nutAngle: NUT_ANGLE },
+  },
+};
+const bodies: CollisionBody[] = mj.parts.map((p: any) => ({
+  id: p.id, group: p.group ?? "root",
+  positions: parseBinSTL(fs.readFileSync(path.join(DIR, p.file))),
+  translate: p.translate, rotate: p.rotate, stock: p.stock,
+}));
+const WCS0 = { g5x: [0, 0, 0, 0, 0, 0], g92: [], rotationDeg: 0 };
+
+describe("machine-xyzacb-trsrn envelope acceptance", () => {
+  // The only pairs allowed to touch at rest. Both are real bearings; anything
+  // else in contact means the model is drawn wrong, not that the gate is too
+  // strict.
+  const ALLOWED_STATIC = new Set([
+    "c_head/ram",          // the C bearing plate seated on the ram
+    "platter/table_base",  // the A faceplate in its bearing block
+  ]);
+
+  it("working envelope has zero self-collisions; static contacts are the designed bearings only", { timeout: 300_000 }, () => {
+    // Not the travel hypercube. The INI allows +/-5000 on every linear axis,
+    // which sweeps a 10 m cube through the portal and the table alike; that
+    // is what the program-level sweep exists to catch. This is the
+    // mechanically intended envelope:
+    //   - at parked height (Z0, nose 2 m above the table): the full rotary
+    //     envelope and the full linear extents the portal opening allows
+    //   - down at the work: traverse over the stock, stopping just above it
+    // Rotaries are exercised HIGH and the descent happens with the rotaries
+    // parked, which is how the machine is actually driven — indexing the
+    // faceplate with the head down swings a 941 mm radius into the spindle,
+    // and correctly so.
+    const track = envelopeTrack([
+      [0, 0, 0, 0, 0, 0],
+      // full rotary envelope, head parked high
+      [0, 0, 0, 360, 0, 0],
+      [0, 0, 0, 360, 180, 0],
+      [0, 0, 0, 360, 180, 180],
+      [0, 0, 0, 360, -180, -180],
+      [0, 0, 0, 0, 0, 0],
+      // linear extents at parked height (portal opening bounds X)
+      [200, 0, 0, 0, 0, 0],
+      [-600, 0, 0, 0, 0, 0],
+      [-600, -1400, 0, 0, 0, 0],
+      [200, -1400, 0, 0, 0, 0],
+      [0, -1000, 0, 0, 0, 0],
+      // descend over the stock and traverse it, rotaries parked
+      [0, -1000, -1300, 0, 0, 0],
+      [200, -1000, -1300, 0, 0, 0],
+      [-400, -1000, -1300, 0, 0, 0],
+      [0, -1000, -1380, 0, 0, 0],
+      [0, -1000, 0, 0, 0, 0],
+    ]);
+    const r = sweepCollisions(buildCollisionModel(machine, bodies), track, WCS0,
+                              { margin: 2, maxSamples: 400_000 });
+
+    const staticPairs = r.staticContacts.map(c => [c.a, c.b].sort().join("/"));
+    for (const p of staticPairs) {
+      expect(ALLOWED_STATIC.has(p), `unexpected rest contact: ${p}`).toBe(true);
+    }
+    const hitDescr = r.hits.map(h => `L${h.line} ${h.a}/${h.b} d=${h.dist.toFixed(2)} cum=${h.cum.toFixed(1)}`);
+    expect(hitDescr, `self-collisions inside the legal envelope:\n${hitDescr.join("\n")}`).toEqual([]);
+    // A coarsened sweep is a sample, not a proof — the assertion above would
+    // be vacuous under one.
+    expect(r.coarsened).toBe(false);
+    expect(r.uncertified).toBeNull();
+  });
+
+  it("stays certified and inside budget through TCP and plane segments", { timeout: 300_000 }, () => {
+    // The envelope gate above runs in identity kins, where the poses are the
+    // machine coords by construction and the geometry claim is exact. This
+    // one drives the SAME model through raw switchkins types 0 -> 1 (TCP) ->
+    // 2 (TOOL/plane) with a transition between them, which is what routes the
+    // sweep through TrsrnKins and its clearance bound on real STL geometry.
+    //
+    // It deliberately does NOT assert zero hits: under TCP and plane kins the
+    // same words mean different joints, so these poses are not an envelope
+    // anyone designed and a contact would prove nothing about the model. What
+    // it does assert is that the machinery holds up — the kins route resolves
+    // for every segment, and the bound does not blow the sample budget, which
+    // is the failure mode that would silently downgrade a real sweep to a
+    // sample.
+    const track = envelopeTrack([
+      [0, 0, 0, 0, 0, 0],
+      [100, -200, -300, 0, 0, 0],
+      [100, -200, -300, 20, 0, 0],
+      [150, -250, -350, 20, 15, 30],
+      [200, -300, -400, 40, 30, 60],
+      [200, -300, -400, 40, 30, 60],
+      [250, -350, -450, 40, 30, 60],
+    ], [0, 0, 1, 1, 1, 2, 2]);
+    const r = sweepCollisions(buildCollisionModel(machine, bodies), track, WCS0,
+                              { margin: 2, maxSamples: 400_000 });
+    expect(r.uncertified).toBeNull();
+    expect(r.coarsened).toBe(false);
+    expect(r.pairCount).toBeGreaterThan(0);
   });
 });
