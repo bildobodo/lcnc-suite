@@ -601,3 +601,48 @@ upstream demo emits `kins_frames = [-1.781761556, 130.245476621,
 -40.855497803]`, matching the phase-3 live task run to six decimals, with every
 segment typed TOOL/plane, `wcs_used = [6]` and
 `violations_world_unchecked: None` — the trsrn twin checked every segment.
+- **Every negative jog was silently clamped to zero velocity.** W3's payload
+  schema declared jog `vel` as `Num(lo=0, …, clamp=True)` — reading it as an
+  unsigned slider. It is signed: the UI sends `vel = v * dir`, and for
+  `jog_cont` the sign IS the direction. So `lo=0` turned every negative jog
+  into `vel 0`, and because continuous inputs clamp *silently* by that same
+  W3 policy, the button moved nothing and said nothing. Both jog modes, every
+  axis, every machine. The bound was always meant to cap the SPEED, so it must
+  be symmetric (`lo = -max`). **A magnitude cap on a signed field cannot be
+  written as `lo=0`** — and the spindle-speed entry immediately above it in
+  the schema, where `lo=0` is genuinely correct because a negative there is a
+  direction *error*, is very likely what made the wrong shape look natural.
+  Operator-reported; reproduced and verified live.
+
+---
+
+## Open — found by operating the TWP machine (2026-08-22)
+
+### The preview does not match the machine on a TWP program
+**Status:** root-caused with measurements, NOT fixed.
+
+Operator report: the sim and the real run both disagree with the preview, and
+the path draws in the warn-tinted "outside bounds" style.
+
+Measured on `simple_example.ngc`: the parse basis is G54
+(`wcs_basis_index: 1`, `g5x = [1300, -200, -1400]`) while `wcs_used = [6]` —
+the program's motion happens in **G59**, because that is where `G53.x` writes
+the tilted-plane origin (`G10 L2 P6..9`). The wire therefore carries plane
+coords offset by `G59 - G54`, and the client adds back the *live* g5x, which
+is G54. Numerically: G59 = (1609.597, -854.904, -791.098), G54 = (1300, -200,
+-1400), difference (309.597, -654.904, 608.902) — and the first plane-section
+vertex on the wire is exactly (309.597, -654.904, 708.901). The plane section
+renders about a metre from where the machine goes, which also pushes it
+outside the travel box and triggers the overflow tint.
+
+This is the recorded parse-time-WCS limitation, but on a TWP program it is not
+a corner case — `G53.x` *always* relocates the origin into G59, so it is the
+normal path. Compounding it, this demo also rewrites its own G54 at runtime
+(`g10 l2 p0 …` on line 2), the separately-recorded program-rewrites-WCS gap.
+
+**Not fixed here.** The preview basis is one offset for the whole program; the
+fix is per-section WCS handling on the wire, which is the item closed earlier
+in this file as "Per-segment WCS (Tier 2)" — and its reopen condition ("a
+program needs two fixtures visible simultaneously") turns out to understate
+it: a TWP program needs two fixtures *sequentially* and is wrong without them.
+That closure should be revisited with this evidence.
