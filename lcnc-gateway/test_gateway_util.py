@@ -1062,6 +1062,84 @@ class TestInsertKinsRelabels(unittest.TestCase):
         self.assertEqual((len(r2), brks, unres), (1, set(), 0))
         self.assertEqual(w2, [(0, 1, wcs[0][2])], "seqs doubled, values kept")
 
+    # ---- W2 P2: seed from the true canon start, not the previous end ----
+    # The interpreter's `lo` tracks through canon-SUPPRESSED moves (a G43
+    # shift, a deduped first move), so when one sits between the pre-flip
+    # tuple and the flip, the next tuple's START — not the previous tuple's
+    # END — is where the relabel physically happens. These fixtures make the
+    # two diverge and pin the seed choice.
+
+    def test_kins_flip_seeds_from_true_canon_start_not_prev_end(self):
+        p0 = self._seg9(50.0, 0.0, 100.0)
+        p0_shift = self._seg9(50.0, 0.0, 130.0)   # suppressed +30 Z shift
+        p1 = self._seg9(0.0, 0.0, 100.0)
+        rapid = [(5, self._seg9(0, 0, 0), p0, None, 1),
+                 (8, p0_shift, p1, None, 2)]      # canon start ≠ prev end
+        events = [(1, 2)]
+        frames = [(1,) + tuple(self.FRAME[k] for k in
+                               ("pre_rot", "primary_angle", "secondary_angle"))]
+        _f2, r2, _e2, _fr2, _w2, brks, unres = gateway_util.insert_flip_relabels(
+            [], rapid, events, frames, [], self.TRSRN, unit_scale=1.0)
+        self.assertEqual((unres, len(r2), brks), (0, 3, {3}))
+        ins = r2[1]
+        # Joint invariance must hold against the TRUE start (the shifted
+        # pose), not the stale previous end.
+        j_true = gateway_util.trsrn_kins_inverse(
+            list(p0_shift[:6]), dict(self.GEO), 0)
+        j_ins = gateway_util.trsrn_kins_inverse(
+            list(ins[2][:6]), dict(self.GEO, **self.FRAME), 2)
+        for a, b in zip(j_true, j_ins):
+            self.assertAlmostEqual(a, b, places=6)
+        # ...and it must DIFFER from what a prev-end seed would produce.
+        j_stale = gateway_util.trsrn_kins_inverse(list(p0[:6]), dict(self.GEO), 0)
+        self.assertGreater(max(abs(a - b) for a, b in zip(j_stale, j_ins)), 1.0)
+        self.assertEqual(r2[2][1], ins[2], "next start patched to the relabel")
+
+    def test_epoch_only_flip_seeds_from_true_canon_start(self):
+        p0 = self._seg9(50.0, 0.0, 100.0)
+        p0_shift = self._seg9(50.0, 0.0, 130.0)
+        p1 = self._seg9(0.0, 0.0, 100.0)
+        rapid = [(4, self._seg9(0, 0, 0), p0, None, 1),
+                 (8, p0_shift, p1, None, 2)]
+        wcs = [(0, 1, self._basis((51.2, -7.9, -55.1))),
+               (1, 6, self._basis((63.4, -33.7, -31.1)))]
+        _f2, r2, _e2, _fr2, _w2, brks, unres = gateway_util.insert_flip_relabels(
+            [], rapid, [], [], wcs, {"type": "not-a-family"}, unit_scale=1.0)
+        self.assertEqual((unres, len(r2), brks), (0, 3, {3}))
+        ins = r2[1]
+        self.assertEqual(ins[1], p0_shift, "relabel = true canon start")
+        self.assertEqual(ins[2], p0_shift)
+        self.assertEqual(r2[2][1], p0_shift, "next start untouched")
+
+    def test_kins_flip_unpeels_with_next_segments_tlo(self):
+        # A G43 change hides at the flip boundary: prev peeled with tlo 50,
+        # nxt with tlo 20 — the same PHYSICAL pose, different stored coords.
+        # The seed must un-peel nxt's start with nxt's OWN tlo; mixing
+        # prev's tlo would shift the pose by the 30-unit delta. trt
+        # world→identity at a tilted pose makes the twin path exercise the
+        # TLO fold on the world side.
+        cfg = {"type": "xyzac-trt",
+               "params": {"y_rot_point": 30.0, "z_rot_point": -40.0}}
+        w_tilt = (10.0, 20.0, -5.0, 30.0, 0.0, 45.0)
+        w_tilt_n = (10.0, 20.0, 25.0, 30.0, 0.0, 45.0)  # z: -5+50 = 25+20
+        rapid = [(4, self._seg9(0, 0, 0), w_tilt + (0.0,) * 3,
+                  (0.0, 0.0, 50.0), 1),
+                 (8, w_tilt_n + (0.0,) * 3, self._seg9(0, 0, 50),
+                  (0.0, 0.0, 20.0), 2)]
+        events = [(1, 1)]  # flip to identity
+        _f2, r2, _e2, _fr2, _w2, brks, unres = gateway_util.insert_flip_relabels(
+            [], rapid, events, [], [], cfg, unit_scale=1.0)
+        self.assertEqual((unres, len(r2), brks), (0, 3, {3}))
+        ins = r2[1]
+        # Expected: inverse of the physical pose (world z = 25 + 20 = 45)
+        # under the world side with tool_offset 20 folded, re-peeled by 20.
+        j5 = gateway_util.trt_kins_inverse(
+            [10.0, 20.0, 45.0, 30.0, 0.0, 45.0],
+            {"y_rot_point": 30.0, "z_rot_point": -40.0, "tool_offset": 20.0})
+        expect = [j5[0], j5[1], j5[2] - 20.0, j5[3], 0.0, j5[4]]
+        for i in range(6):
+            self.assertAlmostEqual(ins[2][i], expect[i], places=9)
+
 
 class TestWcsEventRewritten(unittest.TestCase):
     """P2 `rewritten` flag: the client must re-add the PARSE snapshot for a

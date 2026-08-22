@@ -982,11 +982,13 @@ def insert_flip_relabels(feed, rapid, kins_events, kins_frames, wcs_events,
     WCS-EPOCH flips (the metre-off TWP preview, review P2): a fixture
     switch or G10 L2 rewrite changes which basis the extraction subtracts
     from subsequent endpoints (canon.wcs_events). The machine does NOT
-    move at the switch, so the relabeled position is simply the pre-flip
-    endpoint itself — but the vertex must EXIST so the pre-flip pose gets
-    re-expressed in the new epoch's frame on the wire, giving the drawn
-    section, the scrub lerp, and the sweep a same-frame start for the
-    following real move. No twins involved.
+    move at the switch, so the relabeled position is the following
+    segment's own canon start verbatim (W2 P2: the interpreter's `lo`, not
+    the previous tuple's end — canon-suppressed moves land only in the
+    former) — but the vertex must EXIST so that pose gets re-expressed in
+    the new epoch's frame on the wire, giving the drawn section, the scrub
+    lerp, and the sweep a same-frame start for the following real move.
+    No twins involved.
 
     Either way the inserted vertex is a zero-length rapid: the segment
     INTO it is the relabel (flagged via the returned seq set -> wire
@@ -1041,43 +1043,51 @@ def insert_flip_relabels(feed, rapid, kins_events, kins_frames, wcs_events,
         kins_flip = types[k] != types[k - 1] or fidx[k] != fidx[k - 1]
         if not kins_flip and eidx[k] == eidx[k - 1]:
             continue
-        _seq_p, lst_p, i_p = merged[k - 1]
         seq_n, lst_n, i_n = merged[k]
-        prev = lst_p[i_p]
         nxt = lst_n[i_n]
-        prev_end = prev[2]
+        # Seed from the TRUE canon start of the first post-flip segment (W2
+        # P2): the interpreter's own `lo` tracks through moves the canon
+        # SUPPRESSES (a G43 shift, a deduped first move), which the previous
+        # tuple's END never sees — seeding from prev[2] relabeled a pose the
+        # position bookkeeping had already left whenever such a move sat
+        # between the two tuples. nxt's start coords were TLO-peeled with
+        # nxt's OWN tlo, so that same tlo un-peels them (and parameterizes
+        # BOTH twin sides: one instant, one pin state — the TLO fold makes
+        # the recovered joints invariant to which consistent tlo is used,
+        # while mixing prev's tlo into nxt's coords would shift the physical
+        # pose by any G43 delta at the boundary).
+        nxt_start = nxt[1]
         tlo_n = nxt[4] if lst_n is feed else nxt[3]
         if kins_flip:
-            tlo_p = prev[4] if lst_p is feed else prev[3]
             fr_p = frames_vals[fidx[k - 1]] if fidx[k - 1] is not None else None
             fr_n = frames_vals[fidx[k]] if fidx[k] is not None else None
             w0 = [0.0] * 6
             for i in range(6):
-                v = float(prev_end[i])
+                v = float(nxt_start[i])
                 if i < 3:
-                    v = (v + (tlo_p[i] if tlo_p is not None else 0.0)) * unit_scale
+                    v = (v + (tlo_n[i] if tlo_n is not None else 0.0)) * unit_scale
                 w0[i] = v
-            j = _kins_flip_pose(kins_cfg, types[k - 1], fr_p, tlo_p, unit_scale, world=w0)
+            j = _kins_flip_pose(kins_cfg, types[k - 1], fr_p, tlo_n, unit_scale, world=w0)
             w1 = None if j is None else \
                 _kins_flip_pose(kins_cfg, types[k], fr_n, tlo_n, unit_scale, joints=j)
             if w1 is None:
                 unresolved += 1
                 continue
             # Back to canon units, TLO peeled — the shape of its neighbours.
-            end = list(prev_end)
+            end = list(nxt_start)
             for i in range(3):
                 end[i] = w1[i] / unit_scale - (tlo_n[i] if tlo_n is not None else 0.0)
             for i in range(3, 6):
                 end[i] = w1[i]
             if eidx[k] == eidx[k - 1] and \
-                    max(abs(end[i] - float(prev_end[i])) for i in range(6)) < 1e-9:
-                continue  # same pose, same epoch — nothing to re-express
+                    max(abs(end[i] - float(nxt_start[i])) for i in range(6)) < 1e-9:
+                continue  # relabel lands where the segment already starts
             end = tuple(end)
         else:
             # Epoch-only flip: the machine holds still at a fixture switch —
-            # the relabel is the pre-flip endpoint verbatim; only its EPOCH
-            # (and thus the basis subtracted at extraction) differs.
-            end = tuple(prev_end)
+            # the relabel is the true post-flip start verbatim; only its
+            # EPOCH (and thus the basis subtracted at extraction) differs.
+            end = tuple(nxt_start)
         rl_seq = seq_n - 1
         # Zero-length rapid AT the relabeled pose; the next segment now
         # really starts there.
