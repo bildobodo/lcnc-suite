@@ -15,8 +15,10 @@ import { INTERP_IDLE } from "./lcnc";
 import { simMode } from "./simMode";
 import {
   sampleTrack, jointsForSample, machineJointsToProgram, prependEntry,
+  machineFromJoints, projectOntoTrack, lineRunAround,
   type ScrubSample,
 } from "./viewer/scrubTrack";
+import { trackHighlightRange } from "./trackHighlight";
 import { specFromWire } from "./viewer/kins";
 import { epochTermsFor, type WcsTableRow } from "./viewer/wcsEpochs";
 import type { WcsTerms } from "./viewer/partFrame";
@@ -113,6 +115,9 @@ function applyPos() {
   jointsForSample(_sample, _wcs(), viewerInit.value?.axes ?? [], _joints,
                   _kinsSpec.value, _epochTerms.value);
   emit("pose", _joints.slice(), _sample.line, sPos.value, t);
+  // Positional 3D highlight (review P3): address the path by track index —
+  // the sample's line number may be sub/remap-relative and collide.
+  trackHighlightRange.value = lineRunAround(t, _sample.index);
 }
 
 /** ---------- explicit mode entry / exit ---------- */
@@ -207,6 +212,7 @@ function exitSim() {
   if (!simMode.value) return;
   simMode.value = false;
   emit("pose", null, null, null, null);
+  trackHighlightRange.value = null;
 }
 
 // Pose-only watcher: programmatic sPos writes never change the mode.
@@ -250,7 +256,10 @@ watch(_wcsKey, () => {
 // Keyed on the BASE track — entering sim swaps in the entry track, which
 // must not itself trigger an exit.
 watch(running, (r) => { if (r) exitSim(); });
-watch(baseTrack, () => { exitSim(); entryTrack.value = null; sPos.value = 0; });
+watch(baseTrack, () => {
+  exitSim(); entryTrack.value = null; sPos.value = 0;
+  _lastRunCum = null; _runWindow = 0; trackHighlightRange.value = null;
+});
 watch(machineOff, (off) => { if (!off) exitSim(); });
 watch(st, (d) => {
   if (!simMode.value) return;
@@ -303,72 +312,92 @@ const posLabel = computed(() => {
   return `${pct.value}%`;
 });
 
-/** ---------- run-time display (unified timeline phase 2) ---------- */
-// During a real run the playhead follows the LIVE POSITION on the estimate
-// axis: the machine's program-space point is projected onto the current
-// motion line's track span (6D, 1° ≙ 1 unit), so the playhead moves
-// continuously through a line instead of jumping when the line completes.
-// Display only: the machine drives sPos, never the reverse.
+/** ---------- run-time display (unified timeline phase 2 + review P3) ---------- */
+// During a real run the playhead follows the LIVE POSITION: the machine
+// pose is projected onto the track POSITIONALLY (projectOntoTrack — a
+// cum-monotonic forward-biased window around the previous playhead, with a
+// full-track rescue). motion_line is a HINT only, and only while the
+// payload's line attribution is trusted — sub/remap-relative numbers
+// collide with the main file's, which is what parked the old highlight on
+// wrong lines. Display only: the machine drives sPos, never the reverse.
 const motionLine = computed(() => st.value.motion_line as number | null | undefined);
+let _lastRunCum: number | null = null;
+// A few × the longest segment so one segment can't outrun the window.
+let _runWindow = 0;
+function _computeRunWindow(t: ScrubTrack | null) {
+  if (!t) { _runWindow = 0; return; }
+  let maxSeg = 0;
+  for (let i = 1; i < t.count; i++) {
+    const d = t.cum[i]! - t.cum[i - 1]!;
+    if (d > maxSeg) maxSeg = d;
+  }
+  _runWindow = Math.max(t.timeBased ? 5 : 200, 3 * maxSeg);
+}
+// Residual gate on the windowed match: past this the machine is somewhere
+// the window doesn't cover (run-from-line, M0 jump) → full-track rescue.
+const RUN_ESCAPE_D2 = 100;  // (10 units)²
 watch(st, (d) => {
   if (!running.value || simMode.value) return;
   const t = track.value;
-  const line = motionLine.value;
-  if (!t || !line) return;
-  const span = t.lineSpan.get(line);
   const jp = d.joint_pos;
-  if (!span || !Array.isArray(jp)) {
-    const c = t.lineCum.get(line);
-    if (c !== undefined) sPos.value = c;
-    return;
-  }
-  // Run-display playhead: invert live joints under the machine's ACTUAL
-  // kins mode (live switchkins pin) when sampled — same authority as the
-  // joints being inverted; fall back to the current line's segment mode.
+  if (!t || !Array.isArray(jp)) return;
+  const trusted = !viewerGcode.value?.lines_untrusted;
+  const line = trusted ? motionLine.value : null;
+  const span = line ? t.lineSpan.get(line) : undefined;
+  // Forward kins for the live joints: the machine's ACTUAL switchkins pin
+  // and plane frame when sampled — same authority as the joints being
+  // inverted; the hint span's (or track-start) segment mode stands in.
   const ktLive = d.kins_type;
-  const ktNow = ktLive != null ? ktLive : (t.mode?.[span.end] ?? null);
-  const fN = t.frame?.[span.end];
-  // Live frame first, for the same reason as the mode: it is the plane the
-  // machine is on, sampled from the same source at the same instant as the
-  // joints being inverted. The parse frame stands in when the pins are not
-  // sampled.
+  const ktNow = ktLive != null ? ktLive : (t.mode?.[span?.end ?? 0] ?? null);
+  const fN = t.frame?.[span?.end ?? 0];
   const frameNow = liveKinsFrame()
     ?? ((fN != null && fN !== 0xff && t.frames) ? t.frames[fN] ?? null : null);
-  // The span's segments live in ONE epoch (epoch flips insert their own
-  // relabel vertex on a remap line, never inside a program line's span) —
-  // invert the live pose into that epoch's frame before projecting.
-  const p = machineJointsToProgram(jp, viewerInit.value?.axes ?? [], _wcs(),
-                                   _kinsSpec.value, ktNow, frameNow,
-                                   _epochTerms.value?.[t.wcsEpoch?.[span.end] ?? 0]);
-  let bestCum = t.cum[span.start]!;
-  let bestD = Infinity;
-  for (let i = Math.max(1, span.start); i <= span.end; i++) {
-    const j = i * 3, k = j - 3;
-    const ax = t.pos[k]!, ay = t.pos[k + 1]!, az = t.pos[k + 2]!;
-    const aa = t.abc[k]!, ab = t.abc[k + 1]!, ac = t.abc[k + 2]!;
-    const dx = t.pos[j]! - ax, dy = t.pos[j + 1]! - ay, dz = t.pos[j + 2]! - az;
-    const da = t.abc[j]! - aa, db = t.abc[j + 1]! - ab, dc = t.abc[j + 2]! - ac;
-    const len2 = dx * dx + dy * dy + dz * dz + da * da + db * db + dc * dc;
-    const rx = p[0] - ax, ry = p[1] - ay, rz = p[2] - az;
-    const ra = p[3] - aa, rb = p[4] - ab, rc = p[5] - ac;
-    const u = len2 > 0 ? Math.min(1, Math.max(0, (rx * dx + ry * dy + rz * dz + ra * da + rb * db + rc * dc) / len2)) : 0;
-    const ex = rx - u * dx, ey = ry - u * dy, ez = rz - u * dz;
-    const ea = ra - u * da, eb = rb - u * db, ec = rc - u * dc;
-    const d2 = ex * ex + ey * ey + ez * ez + ea * ea + eb * eb + ec * ec;
-    if (d2 < bestD) {
-      bestD = d2;
-      bestCum = t.cum[i - 1]! + u * (t.cum[i]! - t.cum[i - 1]!);
-    }
+  const m = machineFromJoints(jp, viewerInit.value?.axes ?? [], _wcs(),
+                              _kinsSpec.value, ktNow, frameNow);
+  const et = _epochTerms.value;
+  if (!_runWindow) _computeRunWindow(t);
+  let best = _lastRunCum != null
+    ? projectOntoTrack(t, m, _wcs(), et, {
+        lo: _lastRunCum - 0.25 * _runWindow,
+        hi: _lastRunCum + 0.75 * _runWindow,
+      })
+    : null;
+  if (span) {
+    // The trusted-line hint competes on residual — it never overrides a
+    // better positional match, and a colliding-line span simply loses.
+    const sw = { lo: t.cum[Math.max(0, span.start - 1)]!, hi: t.cum[span.end]! };
+    const b2 = projectOntoTrack(t, m, _wcs(), et, sw);
+    if (b2 && (!best || b2.dist2 < best.dist2)) best = b2;
   }
-  sPos.value = bestCum;
+  if (!best || best.dist2 > RUN_ESCAPE_D2) {
+    const full = projectOntoTrack(t, m, _wcs(), et, null);
+    if (full && (!best || full.dist2 < best.dist2)) best = full;
+  }
+  if (!best) return;
+  _lastRunCum = best.cum;
+  sPos.value = best.cum;
+  // Positional 3D highlight: the contiguous same-line run around the
+  // matched segment — contiguity disambiguates colliding line numbers.
+  trackHighlightRange.value = lineRunAround(t, best.index);
+});
+watch(running, (r) => {
+  _lastRunCum = null;
+  if (!r && !simMode.value) trackHighlightRange.value = null;
 });
 
 const statusText = computed(() => {
-  if (simMode.value) return `${curLine.value ? "L" + curLine.value : "entry"}${curRapid.value ? " →" : ""} ${posLabel.value}`;
+  // No L-label when the payload's line attribution is untrusted — those
+  // numbers index a called sub/remap file, not the loaded program
+  // (the positional playhead itself never needed them).
+  const trusted = !viewerGcode.value?.lines_untrusted;
+  if (simMode.value) {
+    const label = !curLine.value ? "entry" : trusted ? `L${curLine.value}` : "···";
+    return `${label}${curRapid.value ? " →" : ""} ${posLabel.value}`;
+  }
   // "~": the run readout is the ESTIMATE clock (parse-time feeds/rapids) —
   // feed override, accel and dwells make real elapsed differ (GcodePanel
   // shows the wall clock).
-  if (running.value) return `L${motionLine.value ?? 0} ~${posLabel.value}`;
+  if (running.value) return trusted ? `L${motionLine.value ?? 0} ~${posLabel.value}` : `~${posLabel.value}`;
   return "live";
 });
 
@@ -395,7 +424,12 @@ const violationsTitle = computed(() => {
   if (!list.length) return "";
   const shown = list.slice(0, 8).map(v => `L${v.line}: ${limitViolationText(v, linearUnit.value)}`).join("\n");
   const more = violationsTotal.value > 8 ? `\n… ${violationsTotal.value - 8} more` : "";
-  return `Soft-limit violations\n${shown}${more}`;
+  // The violations are real either way — only their L-numbers index a
+  // called file when the attribution is untrusted, and the reader must
+  // know that before chasing the wrong line.
+  const caveat = viewerGcode.value?.lines_untrusted
+    ? "\n(line numbers index a called sub/remap file, not this program)" : "";
+  return `Soft-limit violations\n${shown}${more}${caveat}`;
 });
 
 /** ---------- position-aware finding navigation ---------- */

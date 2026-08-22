@@ -266,3 +266,20 @@ describe("per-epoch WCS terms (review P2)", () => {
     expect(vec(plain.pos, 1)).toEqual([10, 0, 0]);
   });
 });
+
+describe("src carry through subdivision (review P3)", () => {
+  it("subdivided samples share their segment's src; array stays ascending", () => {
+    const input = {
+      ...poly([[0, 0, 0], [0, 0, 0]], [[0, 0, 0], [0, 0, 40]], [1, 2]),
+      src: new Uint32Array([5, 9]),
+    };
+    const r = transformToPartFrame(TRUNNION, WCS0, input);
+    expect(r.src).toBeDefined();
+    expect(r.src!.length).toBe(r.pos.length / 3);
+    expect(r.src![0]).toBe(5);
+    for (let i = 1; i < r.src!.length; i++) {
+      expect(r.src![i]).toBe(9);                       // all subdivided samples
+      expect(r.src![i]).toBeGreaterThanOrEqual(r.src![i - 1]!);
+    }
+  });
+});

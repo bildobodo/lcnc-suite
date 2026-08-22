@@ -18,7 +18,7 @@ interface Req {
    *  single-basis payload. */
   wcsEvents?: WcsEpoch[];
   wcsTable?: WcsTableRow[];
-  feed: { pos: Float32Array; abc: Float32Array; lines?: Uint32Array; breaks?: Uint32Array; mode?: Uint8Array; wcs?: Uint8Array };
+  feed: { pos: Float32Array; abc: Float32Array; lines?: Uint32Array; breaks?: Uint32Array; mode?: Uint8Array; wcs?: Uint8Array; src?: Uint32Array };
   rapid: { pos: Float32Array; abc: Float32Array; breaks?: Uint32Array; mode?: Uint8Array; wcs?: Uint8Array };
 }
 
@@ -45,8 +45,9 @@ self.onmessage = (e: MessageEvent<Req>) => {
     if (f.lines) transfer.push(f.lines.buffer as ArrayBuffer);
     if (f.breaks) transfer.push(f.breaks.buffer as ArrayBuffer);
     if (r.breaks) transfer.push(r.breaks.buffer as ArrayBuffer);
+    if (f.src) transfer.push(f.src.buffer as ArrayBuffer);
     self.postMessage(
-      { id, feedPos: f.pos, feedLines: f.lines, feedLineMap, rapidPos: r.pos, rapidDist, feedBreaks: f.breaks, rapidBreaks: r.breaks },
+      { id, feedPos: f.pos, feedLines: f.lines, feedLineMap, rapidPos: r.pos, rapidDist, feedBreaks: f.breaks, rapidBreaks: r.breaks, feedSrc: f.src },
       { transfer },
     );
   } catch (err) {

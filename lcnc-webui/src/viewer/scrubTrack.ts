@@ -211,6 +211,11 @@ export interface SplitStreams {
    *  track's `wcsEvents`) — which basis each drawn vertex was peeled
    *  against, consumed by the display rebase (wcsEpochs.rebasePositions). */
   feedWcs?: Uint8Array; rapidWcs?: Uint8Array;
+  /** Source TRACK index per drawn feed vertex (ascending) — maps a track
+   *  segment range to a drawn-vertex range for the positional 3D highlight
+   *  (review P3), which line numbers cannot do once a called sub's numbers
+   *  collide with the main file's. */
+  feedSrc?: Uint32Array;
 }
 
 export function splitTrackStreams(t: ScrubTrack): SplitStreams {
@@ -220,6 +225,7 @@ export function splitTrackStreams(t: ScrubTrack): SplitStreams {
   const fMode: number[] = [], rMode: number[] = [];
   const fFrame: number[] = [], rFrame: number[] = [];
   const fWcs: number[] = [], rWcs: number[] = [];
+  const fSrc: number[] = [];
   let fLast = -2, rLast = -2;  // track index of each stream's last emitted point
 
   const push = (pos: number[], abc: number[], i: number) => {
@@ -259,7 +265,7 @@ export function splitTrackStreams(t: ScrubTrack): SplitStreams {
         fBreaks.push(fPos.length / 3);
         fLines.push(ln);
         push(fPos, fAbc, i);
-        fMode.push(md); fFrame.push(fr); fWcs.push(we);
+        fMode.push(md); fFrame.push(fr); fWcs.push(we); fSrc.push(i);
         fLast = i;
         continue;
       }
@@ -269,11 +275,11 @@ export function splitTrackStreams(t: ScrubTrack): SplitStreams {
         // line highlight covers the move from its true start.
         fLines.push(ln);
         push(fPos, fAbc, i - 1);
-        fMode.push(md); fFrame.push(fr); fWcs.push(we);
+        fMode.push(md); fFrame.push(fr); fWcs.push(we); fSrc.push(i - 1);
       }
       fLines.push(ln);
       push(fPos, fAbc, i);
-      fMode.push(md); fFrame.push(fr); fWcs.push(we);
+      fMode.push(md); fFrame.push(fr); fWcs.push(we); fSrc.push(i);
       fLast = i;
     }
   }
@@ -289,6 +295,7 @@ export function splitTrackStreams(t: ScrubTrack): SplitStreams {
     rapidFrame: t.frame ? new Uint8Array(rFrame) : undefined,
     feedWcs: t.wcsEpoch ? new Uint8Array(fWcs) : undefined,
     rapidWcs: t.wcsEpoch ? new Uint8Array(rWcs) : undefined,
+    feedSrc: new Uint32Array(fSrc),
   };
 }
 
@@ -393,6 +400,116 @@ export function machineJointsToProgram(
   // track, not necessarily the live ACTIVE fixture's.
   machineToProgram(m[0]!, m[1]!, m[2]!, m[3]!, m[4]!, m[5]!, terms ?? wcsTerms(wcs), out);
   return out;
+}
+
+/** Live joints → machine axis values through the kins boundary (forward
+ *  only — no WCS peel). The projection converts machine → program PER
+ *  CANDIDATE SEGMENT (each has its own epoch terms), so the two halves of
+ *  machineJointsToProgram are split here. */
+export function machineFromJoints(
+  joints: ArrayLike<number>, axes: string[], wcs: PartFrameWcs,
+  kins?: KinsSpec, kinstype?: number | null, frame?: readonly number[] | null,
+): [number, number, number, number, number, number] {
+  const m: [number, number, number, number, number, number] = [0, 0, 0, 0, 0, 0];
+  const model = kinsForSegment(axes, kins, kinstype ?? null, frame,
+                               wcs.tool?.[2] || undefined, "run playhead");
+  model.forward(joints, m);
+  return m;
+}
+
+export interface TrackProjection {
+  /** Scrub parameter of the closest on-track point. */
+  cum: number;
+  /** Upper track index of the segment it falls in. */
+  index: number;
+  /** Squared 6D residual (units/degrees, 1° ≙ 1 unit). */
+  dist2: number;
+}
+
+/** Project a live MACHINE pose onto the track (review P3 — the positional
+ *  run playhead): best point-to-segment match in 6D (1° ≙ 1 unit) over the
+ *  segments whose cum range intersects `win` (null = the whole track).
+ *  motion_line is NOT consulted — sub/remap-relative line numbers collide
+ *  with the main file's, which is exactly what parked the old highlight on
+ *  wrong lines. The machine pose converts to program space per candidate
+ *  segment through ITS epoch's terms (memoized per epoch); brk segments
+ *  (frame relabels — poses the machine never sweeps) are skipped. */
+export function projectOntoTrack(
+  t: ScrubTrack,
+  machine: readonly number[],
+  wcs: PartFrameWcs,
+  epochTerms: readonly WcsTerms[] | undefined,
+  win: { lo: number; hi: number } | null,
+): TrackProjection | null {
+  const n = t.count;
+  if (n < 2) return null;
+  let i0 = 1, i1 = n - 1;
+  if (win) {
+    // Smallest i with cum[i] >= lo …
+    let lo = 1, hi = n - 1;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (t.cum[mid]! < win.lo) lo = mid + 1; else hi = mid;
+    }
+    i0 = lo;
+    // … largest i with cum[i-1] <= hi.
+    lo = i0; hi = n - 1;
+    while (lo < hi) {
+      const mid = (lo + hi + 1) >> 1;
+      if (t.cum[mid - 1]! > win.hi) hi = mid - 1; else lo = mid;
+    }
+    i1 = lo;
+    if (t.cum[i0 - 1]! > win.hi) return null;  // window past the segment
+  }
+  const liveTerms = wcsTerms(wcs);
+  const pByEpoch = new Map<number, number[]>();
+  const pFor = (i: number): number[] => {
+    const e = (t.wcsEpoch && epochTerms) ? t.wcsEpoch[i]! : -1;
+    let p = pByEpoch.get(e);
+    if (!p) {
+      const terms = e >= 0 ? (epochTerms![e] ?? liveTerms) : liveTerms;
+      p = [0, 0, 0, 0, 0, 0];
+      machineToProgram(machine[0]!, machine[1]!, machine[2]!,
+                       machine[3]!, machine[4]!, machine[5]!, terms, p);
+      pByEpoch.set(e, p);
+    }
+    return p;
+  };
+  let best: TrackProjection | null = null;
+  for (let i = i0; i <= i1; i++) {
+    if (t.brk?.[i]) continue;
+    const p = pFor(i);
+    const j = i * 3, k = j - 3;
+    const ax = t.pos[k]!, ay = t.pos[k + 1]!, az = t.pos[k + 2]!;
+    const aa = t.abc[k]!, ab = t.abc[k + 1]!, ac = t.abc[k + 2]!;
+    const dx = t.pos[j]! - ax, dy = t.pos[j + 1]! - ay, dz = t.pos[j + 2]! - az;
+    const da = t.abc[j]! - aa, db = t.abc[j + 1]! - ab, dc = t.abc[j + 2]! - ac;
+    const len2 = dx * dx + dy * dy + dz * dz + da * da + db * db + dc * dc;
+    const rx = p[0]! - ax, ry = p[1]! - ay, rz = p[2]! - az;
+    const ra = p[3]! - aa, rb = p[4]! - ab, rc = p[5]! - ac;
+    const u = len2 > 0
+      ? Math.min(1, Math.max(0, (rx * dx + ry * dy + rz * dz + ra * da + rb * db + rc * dc) / len2))
+      : 0;
+    const ex = rx - u * dx, ey = ry - u * dy, ez = rz - u * dz;
+    const ea = ra - u * da, eb = rb - u * db, ec = rc - u * dc;
+    const d2 = ex * ex + ey * ey + ez * ez + ea * ea + eb * eb + ec * ec;
+    if (d2 < (best?.dist2 ?? Infinity)) {
+      best = { cum: t.cum[i - 1]! + u * (t.cum[i]! - t.cum[i - 1]!), index: i, dist2: d2 };
+    }
+  }
+  return best;
+}
+
+/** The contiguous same-line run of track segments around index i — the
+ *  track-index answer to "which stretch of path is this line". Contiguity
+ *  is what disambiguates COLLIDING line numbers (a sub's L7 vs the main
+ *  file's L7 are different runs); brk boundaries never join a run. */
+export function lineRunAround(t: ScrubTrack, i: number): [number, number] {
+  const ln = t.lines[i]!;
+  let a = i, b = i;
+  while (a > 1 && t.lines[a - 1] === ln && !t.brk?.[a]) a--;
+  while (b < t.count - 1 && t.lines[b + 1] === ln && !t.brk?.[b + 1]) b++;
+  return [a, b];
 }
 
 /** New track with the ENTRY MOVE prepended: the rapid the machine will make

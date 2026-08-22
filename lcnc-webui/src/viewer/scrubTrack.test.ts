@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   buildScrubTrack, sampleTrack, jointsForSample,
   machineJointsToProgram, prependEntry, splitTrackStreams,
+  projectOntoTrack, lineRunAround,
   type ScrubSample, type ScrubStream, type ScrubTrack,
 } from "./scrubTrack";
 import { makeKins as kinsForTest } from "./kins";
@@ -515,5 +516,88 @@ describe("wcs epochs on the track (review P2)", () => {
   it("splitTrackStreams carries per-vertex epochs on the drawn streams", () => {
     const split = splitTrackStreams(T());
     expect(Array.from(split.rapidWcs!)).toEqual([0, 0, 1]);
+  });
+});
+
+describe("positional run playhead (review P3)", () => {
+  // Two visits to the SAME coordinates on colliding line numbers (a sub
+  // loop): position alone cannot tell them apart — the window can.
+  const LOOP = () => buildScrubTrack(
+    EMPTY,
+    stream([[0, 0, 0], [10, 0, 0], [20, 0, 0], [10, 0, 0], [0, 0, 0]],
+           { seq: [1, 2, 3, 4, 5], lines: [4, 7, 9, 7, 4] }),
+  )!;
+  const W0 = { g5x: [], g92: [], rotationDeg: 0 };
+
+  it("projects onto the nearest segment inside the window", () => {
+    const t = LOOP();
+    // Machine at x=12: ambiguous between segment 2 (10→20) and 3 (20→10).
+    // A window around the SECOND visit resolves to the return segment.
+    const late = projectOntoTrack(t, [12, 0, 0, 0, 0, 0], W0, undefined,
+                                  { lo: 25, hi: 40 })!;
+    expect(late.index).toBe(3);
+    expect(late.cum).toBeCloseTo(28, 5);
+    const early = projectOntoTrack(t, [12, 0, 0, 0, 0, 0], W0, undefined,
+                                   { lo: 5, hi: 20 })!;
+    expect(early.index).toBe(2);
+    expect(early.cum).toBeCloseTo(12, 5);
+  });
+
+  it("full-track projection finds the global best; brk segments are skipped", () => {
+    const t = buildScrubTrack(
+      EMPTY,
+      stream([[0, 0, 0], [10, 0, 0], [500, 0, 0], [510, 0, 0]],
+             { seq: [1, 2, 3, 4], lines: [3, 4, 1029, 8],
+               mode: [0, 0, 2, 2], brk: [0, 0, 1, 0] }),
+    )!;
+    // Machine near the phantom connector's midpoint: the brk segment (into
+    // vertex 2) must never win — the match lands on a real segment.
+    const p = projectOntoTrack(t, [250, 0, 0, 0, 0, 0], W0, undefined, null)!;
+    expect(p.index).not.toBe(2);
+  });
+
+  it("converts through the segment's epoch terms", () => {
+    const t = buildScrubTrack(
+      EMPTY,
+      { ...stream([[0, 0, 0], [10, 0, 0]], { seq: [1, 2] }),
+        wcs: new Uint8Array([0, 0]) },
+      undefined,
+      [{ seq: 0, idx: 6, rotationDeg: 0, rewritten: true,
+         g5x: [100, 0, 0, 0, 0, 0], g92: [0, 0, 0, 0, 0, 0] }],
+    )!;
+    const terms = [{ ox: 100, oy: 0, oz: 0, oa: 0, ob: 0, oc: 0, tx: 0, ty: 0, tz: 0, cth: 1, sth: 0 }];
+    // Machine x=105 → program x=5 under the epoch → mid-segment match.
+    const p = projectOntoTrack(t, [105, 0, 0, 0, 0, 0], W0, terms, null)!;
+    expect(p.cum).toBeCloseTo(5, 5);
+    expect(p.dist2).toBeCloseTo(0, 6);
+    // Without terms the same pose misses by ~95 — proves the routing.
+    const raw = projectOntoTrack(t, [105, 0, 0, 0, 0, 0], W0, undefined, null)!;
+    expect(Math.sqrt(raw.dist2)).toBeGreaterThan(90);
+  });
+
+  it("lineRunAround: contiguity disambiguates colliding line numbers", () => {
+    const t = LOOP();
+    expect(lineRunAround(t, 1)).toEqual([1, 1]);   // first L7 run
+    expect(lineRunAround(t, 3)).toEqual([3, 3]);   // second L7 run — separate
+    // …and a run never crosses a brk boundary.
+    const b = buildScrubTrack(
+      EMPTY,
+      stream([[0, 0, 0], [5, 0, 0], [500, 0, 0], [505, 0, 0]],
+             { seq: [1, 2, 3, 4], lines: [7, 7, 7, 7],
+               mode: [0, 0, 2, 2], brk: [0, 0, 1, 0] }),
+    )!;
+    expect(lineRunAround(b, 1)).toEqual([1, 1]);
+    expect(lineRunAround(b, 3)).toEqual([2, 3]);
+  });
+
+  it("splitTrackStreams emits ascending feedSrc for the drawn feed", () => {
+    const t = buildScrubTrack(
+      stream([[10, 0, 0], [30, 0, 0]], { seq: [2, 4], lines: [5, 9] }),
+      stream([[0, 0, 0], [20, 0, 0]], { seq: [1, 3], lines: [3, 7] }),
+    )!;
+    const split = splitTrackStreams(t);
+    // Two feed sections (each opened by a rapid): start vertex carries the
+    // opening segment's track index.
+    expect(Array.from(split.feedSrc!)).toEqual([0, 1, 2, 3]);
   });
 });

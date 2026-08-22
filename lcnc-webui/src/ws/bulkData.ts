@@ -177,6 +177,10 @@ export interface ViewerGcode {
   // arrived with an epoch-aware track.
   feedWcs?: Uint8Array;
   rapidWcs?: Uint8Array;
+  // Source TRACK index per drawn feed vertex (ascending; subdivided in
+  // part-frame mode) — the positional 3D highlight's address space
+  // (review P3). Present iff the track-derived streams were built.
+  feedSrc?: Uint32Array;
   // WCS epoch events parsed from wire wcs_frames (previewWorker) — the
   // per-section bases this preview was peeled against (review P2).
   wcsEvents?: import("../viewer/wcsEpochs").WcsEpoch[];

@@ -86,6 +86,9 @@ export interface PartFramePolyline {
    *  transform's `epochTerms` converts this vertex's program coords to
    *  machine coords. Absent = single-basis (the live `wcs` terms). */
   wcs?: Uint8Array;
+  /** Per-vertex source TRACK index (review P3) — carried through
+   *  subdivision so the positional highlight keeps its address space. */
+  src?: Uint32Array;
 }
 
 export interface PartFrameResult {
@@ -93,6 +96,9 @@ export interface PartFrameResult {
   lines?: Uint32Array;
   /** Input breaks remapped to output (subdivided) vertex indices. */
   breaks?: Uint32Array;
+  /** Input src carried per output sample (subdivided samples share their
+   *  segment's src, keeping the array ascending). */
+  src?: Uint32Array;
 }
 
 /** Max rotary sweep per emitted sample. 4° ≈ 0.06% chord error at any radius. */
@@ -252,14 +258,14 @@ export function transformToPartFrame(
   epochTerms?: readonly WcsTerms[],
 ): PartFrameResult {
   const n = Math.min(input.pos.length, input.abc.length) / 3 | 0;
-  if (n === 0) return { pos: new Float32Array(0), lines: input.lines && new Uint32Array(0) };
+  if (n === 0) return { pos: new Float32Array(0), lines: input.lines && new Uint32Array(0), src: input.src && new Uint32Array(0) };
 
   const { nodes, workIdx, toolIdx } = buildChain(machine);
   if (workIdx < 0 || toolIdx < 0) {
     // Chain unresolvable (broken machine.json) — loud, and fall back to the
     // programmed polyline rather than rendering garbage.
     console.error("[partFrame] work/tool group missing from machine.json — programmed preview used");
-    return { pos: input.pos.slice(), lines: input.lines?.slice(), breaks: input.breaks?.slice() };
+    return { pos: input.pos.slice(), lines: input.lines?.slice(), breaks: input.breaks?.slice(), src: input.src?.slice() };
   }
 
   // Every element defaulted (inside wcsTerms): on a fresh page load the
@@ -298,6 +304,7 @@ export function transformToPartFrame(
 
   const outPos = new Float32Array(total * 3);
   const outLines = input.lines ? new Uint32Array(total) : undefined;
+  const outSrc = input.src ? new Uint32Array(total) : undefined;
 
   // Scratch (allocation-free inner loop).
   const pos = new THREE.Vector3();
@@ -366,10 +373,12 @@ export function transformToPartFrame(
     outPos[out * 3 + 1] = -rx * sth + ry * cth;
     outPos[out * 3 + 2] = tool.z - oz;
     if (outLines) outLines[out] = line;
+    if (outSrc) outSrc[out] = _srcCur;
     out++;
   };
 
   const outBreaks: number[] = [];
+  let _srcCur = input.src?.[0] ?? 0;
   emit(input.pos[0]!, input.pos[1]!, input.pos[2]!,
        input.abc[0]!, input.abc[1]!, input.abc[2]!, input.lines?.[0] ?? 0,
        vertModel?.[0] ?? identityKins, termFor(0));
@@ -380,6 +389,7 @@ export function transformToPartFrame(
     const line = input.lines?.[i] ?? 0;
     const model = vertModel?.[i] ?? identityKins;  // segment mode: all its samples share it
     const oSeg = termFor(i);                       // ...and its epoch terms
+    _srcCur = input.src?.[i] ?? i;                 // ...and its track index
     for (let s = 1; s <= steps; s++) {
       const t = s / steps;
       emit(
@@ -402,6 +412,7 @@ export function transformToPartFrame(
   return {
     pos: outPos, lines: outLines,
     breaks: input.breaks ? Uint32Array.from(outBreaks) : undefined,
+    src: outSrc,
   };
 }
 

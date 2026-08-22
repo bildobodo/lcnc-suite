@@ -114,6 +114,7 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     let rapidFrame: Uint8Array | undefined;
     let feedWcs: Uint8Array | undefined;
     let rapidWcs: Uint8Array | undefined;
+    let feedSrc: Uint32Array | undefined;
     if (scrubTrack) {
       const hadAbc = feedAbc != null || rapidAbc != null;
       const split = splitTrackStreams(scrubTrack);
@@ -126,6 +127,7 @@ self.onmessage = async (e: MessageEvent<Req>) => {
       feedMode = split.feedMode; rapidMode = split.rapidMode;
       feedFrame = split.feedFrame; rapidFrame = split.rapidFrame;
       feedWcs = split.feedWcs; rapidWcs = split.rapidWcs;
+      feedSrc = split.feedSrc;
     }
     const feedLineMap = _buildFeedLineMap(feedLines ?? g.feed_lines);
     const rapidDist = _lineDistances(rapidPos);  // dashed rapid line's lineDistance (P4.1)
@@ -164,9 +166,10 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     if (rapidFrame) transfer.push(rapidFrame.buffer as ArrayBuffer);
     if (feedWcs) transfer.push(feedWcs.buffer as ArrayBuffer);
     if (rapidWcs) transfer.push(rapidWcs.buffer as ArrayBuffer);
+    if (feedSrc) transfer.push(feedSrc.buffer as ArrayBuffer);
 
     self.postMessage(
-      { version, gcode: { ...rest, feedPos, rapidPos, feed_lines: feedLines, feedLineMap, rapidDist, feedAbc, rapidAbc, feedBreaks, rapidBreaks, feedMode, rapidMode, feedFrame, rapidFrame, feedWcs, rapidWcs, kinsFrames, wcsEvents, scrubTrack } },
+      { version, gcode: { ...rest, feedPos, rapidPos, feed_lines: feedLines, feedLineMap, rapidDist, feedAbc, rapidAbc, feedBreaks, rapidBreaks, feedMode, rapidMode, feedFrame, rapidFrame, feedWcs, rapidWcs, feedSrc, kinsFrames, wcsEvents, scrubTrack } },
       { transfer },
     );
   } catch (err) {

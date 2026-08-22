@@ -21,6 +21,7 @@ import { normalizeKinematics, type KinRuntime } from "./viewer/kinematics";
 import { chainsHaveRotary, lineDistances, wcsTerms, type PartFrameMachine, type PartFrameWcs } from "./viewer/partFrame";
 import { boundsOf, epochTermsFor, rebasePositions, type WcsTableRow } from "./viewer/wcsEpochs";
 import { specFromWire } from "./viewer/kins";
+import { trackHighlightRange } from "./trackHighlight";
 import type { CollisionBody, CollisionResult } from "./viewer/collision";
 import type { ScrubTrack } from "./ws/bulkData";
 import { createBackplotController } from "./viewer/backplotController";
@@ -1298,9 +1299,20 @@ function applyState(init: ViewerInit, st: ViewerState) {
   }
 
   // ---- Highlight current motion line in toolpath ----
-  // While scrubbing, the scrub position's source line replaces the (idle)
-  // live motion line so the toolpath highlight tracks the slider.
-  toolpath.setHighlight(_scrubJoints ? _scrubLineNo : curLine);
+  // Positional first (review P3): the track-index range from the playhead /
+  // scrub sample addresses the path directly — line numbers cannot once a
+  // called sub's numbering collides with the main file's. Fall back to the
+  // line-number path only on legacy tracks, and suppress it entirely when
+  // the payload's line attribution is untrusted (a confidently wrong
+  // highlight is worse than none).
+  const hlRange = trackHighlightRange.value;
+  if (hlRange) {
+    toolpath.setHighlightTrackRange(hlRange);
+  } else if (viewerGcode.value?.lines_untrusted) {
+    toolpath.setHighlight(null);
+  } else {
+    toolpath.setHighlight(_scrubJoints ? _scrubLineNo : curLine);
+  }
 
   // Render-on-demand: detect whether anything visually changed since the last
   // applied state. Status broadcasts arrive at ~30 Hz; without this diff we'd
@@ -1361,7 +1373,7 @@ function _pfGetWorker(): Worker {
   if (!_pfWorker) {
     _pfWorker = new Worker(new URL("./viewer/partFrameWorker.ts", import.meta.url), { type: "module" });
     _pfWorker.onmessage = (ev: MessageEvent) => {
-      const m = ev.data as { id: number; error?: string; feedPos?: Float32Array; feedLines?: Uint32Array; feedLineMap?: Map<number, { start: number; end: number }>; rapidPos?: Float32Array; rapidDist?: Float32Array; feedBreaks?: Uint32Array; rapidBreaks?: Uint32Array };
+      const m = ev.data as { id: number; error?: string; feedPos?: Float32Array; feedLines?: Uint32Array; feedLineMap?: Map<number, { start: number; end: number }>; rapidPos?: Float32Array; rapidDist?: Float32Array; feedBreaks?: Uint32Array; rapidBreaks?: Uint32Array; feedSrc?: Uint32Array };
       if (m.id !== _pfReqId) return;  // superseded
       const g = viewerGcode.value;
       if (!g) return;
@@ -1376,6 +1388,7 @@ function _pfGetWorker(): Worker {
         feedPos: m.feedPos, feed_lines: m.feedLines, feedLineMap: m.feedLineMap,
         rapidPos: m.rapidPos, rapidDist: m.rapidDist,
         feedBreaks: m.feedBreaks, rapidBreaks: m.rapidBreaks,
+        feedSrc: m.feedSrc,
       };
       if ((g.wcsEvents?.length ?? 0) > 1) {
         // Multi-epoch payload: the shipped bounds boxes mix frames. The
@@ -1672,7 +1685,7 @@ function applyGcode(g: ViewerGcode) {
     // are re-read on every WCS/mode change.
     const feed = { pos: fp.slice(), abc: fa.slice(), lines: fl?.slice(), breaks: g.feedBreaks?.slice(),
                    mode: g.feedMode?.slice(), frame: g.feedFrame?.slice(), frames: g.kinsFrames,
-                   wcs: g.feedWcs?.slice() };
+                   wcs: g.feedWcs?.slice(), src: g.feedSrc?.slice() };
     const rapid = { pos: rp.slice(), abc: ra.slice(), breaks: g.rapidBreaks?.slice(),
                     mode: g.rapidMode?.slice(), frame: g.rapidFrame?.slice(), frames: g.kinsFrames,
                     wcs: g.rapidWcs?.slice() };
@@ -1689,6 +1702,7 @@ function applyGcode(g: ViewerGcode) {
     if (rapid.frame) transfer.push(rapid.frame.buffer as ArrayBuffer);
     if (feed.wcs) transfer.push(feed.wcs.buffer as ArrayBuffer);
     if (rapid.wcs) transfer.push(rapid.wcs.buffer as ArrayBuffer);
+    if (feed.src) transfer.push(feed.src.buffer as ArrayBuffer);
     try {
       _pfGetWorker().postMessage({
         id, machine: _pfMachine(viewerInit.value!), wcs: _pfWcs(),

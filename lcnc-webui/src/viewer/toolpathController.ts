@@ -45,6 +45,11 @@ export interface ToolpathCtx {
 export interface ToolpathController {
   apply(ctx: ToolpathCtx, g: ViewerGcode): void;
   setHighlight(curLine: number | null): void;
+  /** Positional highlight (review P3): light the drawn-feed vertices whose
+   *  source TRACK index falls in [start, end] — line numbers cannot address
+   *  a run once a called sub's numbering collides with the main file's.
+   *  No-op fallback to nothing when the drawn stream carries no src map. */
+  setHighlightTrackRange(range: [number, number] | null): void;
   /** Recompute the machine-bounds overflow flag (workOrigin moved / new path). */
   updateOverflow(ctx: ToolpathCtx): void;
   setVisible(on: boolean): void;
@@ -73,6 +78,9 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
   let highlightGeom: THREE.BufferGeometry | null = null;
   // g-code line number → { start, end } point-index range in feed arrays
   let feedLineMap: Map<number, { start: number; end: number }> = new Map();
+  // Source track index per drawn feed vertex (ascending) — the positional
+  // highlight's address space. Absent on legacy/track-less payloads.
+  let feedSrc: Uint32Array | null = null;
   // Cut envelope: X/Y over feed+rapid, Z over feed only (drawn bounds box).
   let toolpathBBox: BBox | null = null;
   // Full feed+rapid envelope (machine-limit overflow check).
@@ -376,6 +384,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
 
       // Prefer the line→point-range map built off-thread by previewWorker (P4.1); fall
       // back to building it here for the WS/legacy path that carries no worker map.
+      feedSrc = g.feedSrc instanceof Uint32Array ? g.feedSrc : null;
       if (g.feedLineMap instanceof Map) {
         feedLineMap = g.feedLineMap;
       } else {
@@ -519,6 +528,35 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       } else {
         if (highlightLine) highlightLine.geometry.setDrawRange(0, 0);
       }
+    },
+
+    setHighlightTrackRange(range) {
+      if (!highlightLine) return;
+      if (!range || !feedSrc || feedSrc.length === 0) {
+        highlightLine.geometry.setDrawRange(0, 0);
+        return;
+      }
+      const [i0, i1] = range;
+      // feedSrc is ascending: first drawn vertex with src >= i0 …
+      let lo = 0, hi = feedSrc.length - 1;
+      while (lo < hi) {
+        const mid = (lo + hi) >> 1;
+        if (feedSrc[mid]! < i0) lo = mid + 1; else hi = mid;
+      }
+      const first = lo;
+      // … last drawn vertex with src <= i1.
+      hi = feedSrc.length - 1;
+      while (lo < hi) {
+        const mid = (lo + hi + 1) >> 1;
+        if (feedSrc[mid]! > i1) hi = mid - 1; else lo = mid;
+      }
+      const last = lo;
+      if (feedSrc[first]! > i1 || feedSrc[last]! < i0) {
+        highlightLine.geometry.setDrawRange(0, 0);  // run is all-rapid — no feed to light
+        return;
+      }
+      const s = Math.max(0, first - 1);
+      highlightLine.geometry.setDrawRange(s, last - s + 1);
     },
 
     updateOverflow,
