@@ -332,12 +332,29 @@ def _axis_index(_l: MachineLimits):
     return (_l.n_axes - 1) if _l.n_axes else None
 
 
+def _neg(v):
+    """Mirror a declared ceiling into a floor, keeping None as unbounded —
+    for fields whose SIGN carries meaning and whose magnitude is what the
+    machine bounds."""
+    return None if v is None else -v
+
+
 COMMAND_SCHEMA: Dict[str, Dict[str, object]] = {
     # --- jogging: axis INDEX is structural (reject), velocity is a slider (clamp)
+    #
+    # `vel` IS SIGNED and the bound must be symmetric. For jog_cont the sign is
+    # the DIRECTION (gateway passes it to CMD.jog unabs'd); the UI sends
+    # `vel: v * dir` for both jog commands. Clamping at lo=0 turned every
+    # negative jog into vel 0 — the button moved nothing and, because
+    # continuous values clamp silently rather than erroring, said nothing
+    # either. What is bounded here is the SPEED, i.e. |vel|, so the floor is
+    # -max, not 0.
     "jog_cont":  {"axis": Num(lo=0, hi=_axis_index, integer=True),
-                  "vel": Num(lo=0, hi=lambda l: l.max_jog_velocity, clamp=True)},
+                  "vel": Num(lo=lambda l: _neg(l.max_jog_velocity),
+                             hi=lambda l: l.max_jog_velocity, clamp=True)},
     "jog_incr":  {"axis": Num(lo=0, hi=_axis_index, integer=True),
-                  "vel": Num(lo=0, hi=lambda l: l.max_jog_velocity, clamp=True)},
+                  "vel": Num(lo=lambda l: _neg(l.max_jog_velocity),
+                             hi=lambda l: l.max_jog_velocity, clamp=True)},
     "jog_stop":  {"axis": Num(lo=0, hi=_axis_index, integer=True)},
     "jog_cont_multi":  {"axes": Seq(max_len=lambda l: l.n_axes)},
     "jog_incr_multi":  {"axes": Seq(max_len=lambda l: l.n_axes)},

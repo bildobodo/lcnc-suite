@@ -363,6 +363,30 @@ class TestPayloadSchema(unittest.TestCase):
         self.assertEqual(validate_payload("spindle_forward", {"speed": -500}, self.LIM),
                          {"speed": 0})
 
+    def test_jog_velocity_is_SIGNED_and_must_survive_the_clamp(self):
+        # Regression: this schema originally declared jog `vel` with lo=0,
+        # reading it as an unsigned slider. It is not — the UI sends
+        # `vel = v * dir`, and for jog_cont the SIGN IS THE DIRECTION (the
+        # handler passes it to CMD.jog unabs'd). Clamping at 0 turned every
+        # negative jog into vel 0: the button moved nothing, and since
+        # continuous values clamp silently it reported nothing either. Every
+        # axis, both jog modes, every machine.
+        #
+        # Contrast the spindle case directly above, where lo=0 is CORRECT
+        # because a negative speed there is a direction error, not a sign.
+        for cmd in ("jog_cont", "jog_incr"):
+            self.assertEqual(
+                validate_payload(cmd, {"axis": 0, "vel": -10.0}, self.LIM), {},
+                f"{cmd}: an in-range NEGATIVE jog velocity must pass untouched")
+            # The magnitude is still bounded — symmetrically.
+            self.assertEqual(
+                validate_payload(cmd, {"axis": 0, "vel": -999.0}, self.LIM),
+                {"vel": -50.0},
+                f"{cmd}: over-speed clamps to -max, preserving direction")
+            self.assertEqual(
+                validate_payload(cmd, {"axis": 0, "vel": 999.0}, self.LIM),
+                {"vel": 50.0})
+
     def test_in_range_values_are_left_alone(self):
         self.assertEqual(validate_payload("set_feed_override", {"scale": 1.2}, self.LIM), {})
         self.assertEqual(validate_payload("jog_cont", {"axis": 2, "vel": 10.0}, self.LIM), {})
