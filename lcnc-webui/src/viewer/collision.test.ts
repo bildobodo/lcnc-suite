@@ -128,6 +128,25 @@ describe("sweepCollisions", () => {
     expect(r.hits[0]!.rapid).toBe(true);
   });
 
+  it("skips kins-flip relabel segments — a phantom crossing reports nothing", () => {
+    // Head down at Z=-40: crossing X -30→+30 drives the vise straight
+    // through the tool. As a REAL segment that is a certain hit (control);
+    // flagged brk=1 it is a frame relabel at a stationary pose — the sweep
+    // must exclude it (and its width) entirely, then sweep the following
+    // real retract normally.
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const pts = [[-30, 0, -40], [30, 0, -40], [30, 0, 0]];
+    const control = sweepCollisions(model, track(pts, undefined, [5, 1029, 8]),
+                                    WCS0, { margin: 2 });
+    expect(control.hits.length).toBeGreaterThan(0);
+    const t = track(pts, undefined, [5, 1029, 8]);
+    t.brk = new Uint8Array([0, 1, 0]);
+    t.cum[1] = t.cum[0]!;                       // buildScrubTrack zeroes brk widths
+    t.cum[2] = t.cum[1]! + 40;
+    const r = sweepCollisions(model, t, WCS0, { margin: 2 });
+    expect(r.hits).toHaveLength(0);
+  });
+
   it("stays silent on a clear traverse — with big advancement strides", () => {
     const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
     const r = sweepCollisions(model, track(

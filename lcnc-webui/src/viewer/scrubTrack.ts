@@ -39,6 +39,11 @@ export interface ScrubStream {
    *  (0xff = none) — resolved at ingestion from wire kins_frames by seq.
    *  Absent on programs without WEBUI_TWPFRAME markers. */
   frame?: Uint8Array;
+  /** Per-point kins-flip relabel flag (wire rapid_brk): 1 ⇒ the segment
+   *  INTO this point is a switchkins frame relabel at a stationary pose —
+   *  zero machine motion. Absent = legacy payload (flip segments keep the
+   *  raw phantom; the reparse machinery refreshes them). */
+  brk?: Uint8Array;
 }
 
 // Scrub-parameter contribution of a pure rotary sweep: 1° ≙ 1 mm, the same
@@ -81,6 +86,14 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
     && (nr === 0 || rapid.frame?.length === nr)
     && !!(feed.frame || rapid.frame);
   const frameIdx = hasFrame ? new Uint8Array(n) : undefined;
+  // Relabel flags: a stream without brk data means "no relabels here" (the
+  // worker only ever inserts them into rapid), so absence on one stream is
+  // zeros, not inconsistency — but a mislengthed array is a bug upstream
+  // and drops the whole channel (never guess alignment).
+  const hasBrk = !!(feed.brk || rapid.brk)
+    && (!feed.brk || feed.brk.length === nf)
+    && (!rapid.brk || rapid.brk.length === nr);
+  const brk = hasBrk ? new Uint8Array(n) : undefined;
 
   let fi = 0, ri = 0;
   let prevFT = 0, prevRT = 0;   // per-stream previous cumulative time
@@ -105,11 +118,15 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
     rapidFlag[i] = takeFeed ? 0 : 1;
     if (mode) mode[i] = src.mode?.[si] ?? 0;
     if (frameIdx) frameIdx[i] = src.frame?.[si] ?? 0xff;
+    if (brk) brk[i] = src.brk?.[si] ?? 0;
     if (timeBased) {
       // Duration of the segment ending here = this stream's cumulative
       // delta (RDP-collapsed interiors are preserved by the cumulative).
+      // A relabel segment is not motion: its wire tcum delta is already 0
+      // (the worker inserts a zero-length tuple), forced here as a belt
+      // against any payload that disagrees.
       const t = src.tcum![si]!;
-      const dur = Math.max(0, t - (takeFeed ? prevFT : prevRT));
+      const dur = brk?.[i] ? 0 : Math.max(0, t - (takeFeed ? prevFT : prevRT));
       if (takeFeed) prevFT = t; else prevRT = t;
       if (i > 0) cum[i] = cum[i - 1]! + dur;   // point 0 anchors the axis at 0
     }
@@ -118,6 +135,11 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
   if (!timeBased) {
     // Distance axis fallback (1° ≙ 1 mm) — legacy payloads / no INI velocity.
     for (let i = 1; i < n; i++) {
+      if (brk?.[i]) {
+        // Frame relabel — the position jump is a re-expression, not travel.
+        cum[i] = cum[i - 1]!;
+        continue;
+      }
       const j = i * 3, k = j - 3;
       const dx = pos[j]! - pos[k]!;
       const dy = pos[j + 1]! - pos[k + 1]!;
@@ -139,7 +161,7 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
   }
 
   return { pos, abc, lines, rapid: rapidFlag, mode, frame: frameIdx,
-           frames: hasFrame ? frames : undefined,
+           frames: hasFrame ? frames : undefined, brk,
            cum, count: n, lineCum, lineSpan: buildLineMap(lines), timeBased };
 }
 
@@ -190,7 +212,19 @@ export function splitTrackStreams(t: ScrubTrack): SplitStreams {
     const ln = t.lines[i]!;  // segment belongs to its END point's line
     const md = t.mode?.[i] ?? 0;  // ...and its END point's mode
     const fr = t.frame?.[i] ?? 0xff;  // ...and its END point's TWP frame
+    // Kins-flip relabel INTO i: unlike a stream-interleave section (whose
+    // connector is the other stream's real move), no motion exists here at
+    // all — open the section AT the relabeled vertex and draw nothing into
+    // it. The next real segment then starts from the machine's true pose.
+    const relabel = t.brk?.[i] === 1;
     if (t.rapid[i] === 1) {
+      if (relabel) {
+        rBreaks.push(rPos.length / 3);
+        push(rPos, rAbc, i);
+        rMode.push(md); rFrame.push(fr);
+        rLast = i;
+        continue;
+      }
       if (rLast !== i - 1) {
         rBreaks.push(rPos.length / 3);
         push(rPos, rAbc, i - 1);
@@ -200,6 +234,14 @@ export function splitTrackStreams(t: ScrubTrack): SplitStreams {
       rMode.push(md); rFrame.push(fr);
       rLast = i;
     } else {
+      if (relabel) {
+        fBreaks.push(fPos.length / 3);
+        fLines.push(ln);
+        push(fPos, fAbc, i);
+        fMode.push(md); fFrame.push(fr);
+        fLast = i;
+        continue;
+      }
       if (fLast !== i - 1) {
         fBreaks.push(fPos.length / 3);
         // The section-start vertex carries the OPENING segment's line so a
@@ -280,7 +322,10 @@ export function sampleTrack(t: ScrubTrack, s: number, out: ScrubSample): ScrubSa
     else hi = mid;
   }
   const c0 = t.cum[lo - 1]!, c1 = t.cum[lo]!;
-  const u = c1 > c0 ? (s - c0) / (c1 - c0) : 1;
+  // A relabel segment must never be lerped — the two vertices are the same
+  // machine pose in two frames (zero cum makes this unreachable today; the
+  // guard keeps a future non-zero-width break from posing mid-phantom).
+  const u = t.brk?.[lo] ? 1 : c1 > c0 ? (s - c0) / (c1 - c0) : 1;
   const j = lo * 3, k = j - 3;
   out.px = t.pos[k]! + (t.pos[j]! - t.pos[k]!) * u;
   out.py = t.pos[k + 1]! + (t.pos[j + 1]! - t.pos[k + 1]!) * u;
@@ -374,10 +419,19 @@ export function prependEntry(
     frame[0] = t.frame[0] ?? 0xff;
     frame[1] = t.frame[0] ?? 0xff;
   }
+  let brk: Uint8Array | undefined;
+  if (t.brk) {
+    // The entry rapid is REAL motion (live position → first point), so the
+    // entry vertex and the move ending at old point 0 are both unbroken.
+    brk = new Uint8Array(n);
+    brk.set(t.brk, 1);
+    brk[0] = 0;
+    brk[1] = 0;
+  }
   for (let i = 0; i < t.count; i++) cum[i + 1] = t.cum[i]! + entryLen;
   const lineCum = new Map<number, number>();
   for (const [ln, c] of t.lineCum) lineCum.set(ln, c + entryLen);
-  return { pos, abc, lines, rapid, mode, frame, frames: t.frames,
+  return { pos, abc, lines, rapid, mode, frame, frames: t.frames, brk,
            cum, count: n, lineCum, lineSpan: buildLineMap(lines), timeBased: t.timeBased };
 }
 

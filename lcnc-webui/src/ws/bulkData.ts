@@ -91,6 +91,11 @@ export interface ScrubTrack {
   /** TWP frame value triplets [preRot rad, primary deg, secondary deg],
    *  dereferenced by `frame` (wire kins_frames minus the seq column). */
   frames?: [number, number, number][];
+  /** count — kins-flip relabel flag: 1 ⇒ the segment ending here is a
+   *  switchkins frame relabel at a stationary pose (wire rapid_brk), zero
+   *  machine motion — zero cum, never drawn/swept/lerped. Absent = legacy
+   *  payload; flip segments keep the raw phantom jump. */
+  brk?: Uint8Array;
   /** Monotonic scrub parameter: SECONDS when `timeBased` (unified timeline
    *  phase 1 — per-segment feed + INI rapid velocities), else distance
    *  (mm, 1° ≙ 1 mm — legacy payloads / no INI MAX_VELOCITY). */
@@ -229,6 +234,24 @@ export interface ViewerGcode {
   // be compared straight against the live status values. Differing means the
   // preview is STALE — a touch-off after load — and `reparse_preview` fixes it.
   wcs_basis?: { g5x: number[]; g92: number[]; rotation: number } | null;
+  // Motion line numbers do NOT index this file: the program calls a
+  // subroutine or remap whose per-file line numbers collide with the main
+  // file's (gateway_util.check_line_attribution — unfixable, a queued
+  // motion carries no file identity). The run highlight must be suppressed
+  // rather than pointed at an unrelated line; the reason string is shown
+  // to the operator.
+  lines_untrusted?: boolean;
+  lines_untrusted_reason?: string;
+  // Kins-flip relabel flags (u8, index-aligned with rapid): brk[i]=1 means
+  // the segment INTO point i is a switchkins frame relabel at a stationary
+  // pose — zero machine motion, never drawn/swept/timed/lerped. Present
+  // (zeros included) whenever kinstype arrays ship; absent-with-modes =
+  // legacy payload whose flip segments still carry the raw phantom jump.
+  rapid_brk?: Uint8Array;
+  // Kins flips the parse worker could NOT resolve through a twin (unknown
+  // family, or a frameless type-2 side): those segments keep the phantom
+  // geometry. Present only when > 0 — unresolved ≠ handled.
+  kins_flips_unresolved?: number;
   // Parse worker aborted partway: interpreter error text + the source line it
   // stopped on (e.g. an axis word this machine doesn't have). The payload
   // still carries whatever parsed before the abort, but scrubTrack is absent

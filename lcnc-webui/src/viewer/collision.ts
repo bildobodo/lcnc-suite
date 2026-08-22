@@ -58,6 +58,10 @@ export interface CollisionTrack {
   frame?: Uint8Array;
   /** TWP frame triplets [preRot rad, primary deg, secondary deg]. */
   frames?: [number, number, number][];
+  /** Kins-flip relabel flags: brk[i]=1 ⇒ segment i-1→i is a frame relabel
+   *  at a stationary pose — zero machine motion, excluded from the sweep
+   *  and from its distance parameterization. Absent = legacy track. */
+  brk?: Uint8Array;
 }
 
 export interface CollisionMachine {
@@ -398,6 +402,14 @@ export function sweepCollisions(
   // Hits are converted back to track-cum at the end (scrub-to-hit target).
   const dcum = new Float32Array(n);
   for (let i = 1; i < n; i++) {
+    if (track.brk?.[i]) {
+      // Frame relabel — a re-expression, not travel: contributing its
+      // program-space jump would stretch the sweep's spatial guarantee
+      // constants across motion that never happens. Zero width also makes
+      // the segment loop's L<=eps guard skip it without a special case.
+      dcum[i] = dcum[i - 1]!;
+      continue;
+    }
     const j = i * 3, k = j - 3;
     const dx = track.pos[j]! - track.pos[k]!;
     const dy = track.pos[j + 1]! - track.pos[k + 1]!;

@@ -7,7 +7,7 @@ import {
 } from "./scrubTrack";
 import { makeKins as kinsForTest } from "./kins";
 
-function stream(points: number[][], opts: { abc?: number[][]; lines?: number[]; seq?: number[]; tcum?: number[]; mode?: number[]; frame?: number[] } = {}): ScrubStream {
+function stream(points: number[][], opts: { abc?: number[][]; lines?: number[]; seq?: number[]; tcum?: number[]; mode?: number[]; frame?: number[]; brk?: number[] } = {}): ScrubStream {
   return {
     pos: new Float32Array(points.flat()),
     abc: opts.abc ? new Float32Array(opts.abc.flat()) : undefined,
@@ -16,6 +16,7 @@ function stream(points: number[][], opts: { abc?: number[][]; lines?: number[]; 
     tcum: opts.tcum ? new Float32Array(opts.tcum) : undefined,
     mode: opts.mode ? new Uint8Array(opts.mode) : undefined,
     frame: opts.frame ? new Uint8Array(opts.frame) : undefined,
+    brk: opts.brk ? new Uint8Array(opts.brk) : undefined,
   };
 }
 
@@ -380,5 +381,81 @@ describe("kins mode plumbing (phase 2b)", () => {
     expect(p[2]).toBeCloseTo(30, 6);
     expect(p[3]).toBeCloseTo(-45, 6);
     expect(p[5]).toBeCloseTo(90, 6);
+  });
+});
+
+describe("kins-flip relabel breaks (P1)", () => {
+  // Wire shape mirroring the decisions.md switchkins probe: identity rapid,
+  // the parse-worker-inserted relabel vertex (brk=1 — same machine pose
+  // re-expressed in the plane frame, a ~600-unit program-space jump that is
+  // NOT motion), then the real G53.3 entry move and a plane rapid.
+  const PROBE = () => buildScrubTrack(
+    EMPTY,
+    stream(
+      [[0, 0, 100], [50, 0, 100], [293.0, -498.4, 711.2], [309.6, -654.9, 708.9], [329.6, -684.9, 708.9]],
+      { seq: [1, 2, 3, 4, 6], lines: [4, 5, 1029, 1029, 8],
+        mode: [0, 0, 2, 2, 2], brk: [0, 0, 1, 0, 0] }),
+  )!;
+
+  it("relabel segments contribute ZERO to the distance axis", () => {
+    const t = PROBE();
+    expect(Array.from(t.brk!)).toEqual([0, 0, 1, 0, 0]);
+    expect(t.cum[1]).toBeCloseTo(50, 4);   // the identity rapid is travel
+    expect(t.cum[2]).toBe(t.cum[1]);       // the phantom jump is not
+    const real1 = Math.hypot(309.6 - 293.0, -654.9 + 498.4, 708.9 - 711.2);
+    expect(t.cum[3]! - t.cum[2]!).toBeCloseTo(real1, 4);  // entry move is real
+    expect(t.cum[4]!).toBeGreaterThan(t.cum[3]!);
+  });
+
+  it("forces zero duration across a relabel even when wire tcum disagrees", () => {
+    // Belt: the worker guarantees a zero tcum delta for inserted vertices;
+    // an adversarial payload must not smuggle phantom seconds through.
+    const t = buildScrubTrack(
+      EMPTY,
+      stream([[0, 0, 0], [500, 0, 0], [510, 0, 0]],
+             { seq: [1, 2, 3], tcum: [0, 7, 8], mode: [0, 2, 2], brk: [0, 1, 0] }),
+    )!;
+    expect(t.timeBased).toBe(true);
+    expect(t.cum[1]).toBe(0);
+    expect(t.cum[2]).toBeCloseTo(1, 5);
+  });
+
+  it("sampleTrack never poses mid-relabel", () => {
+    const t = PROBE();
+    const s = freshSample();
+    const end = t.cum[t.count - 1]!;
+    for (let i = 0; i <= 200; i++) {
+      sampleTrack(t, (end * i) / 200, s);
+      // A pose strictly between the pre-flip vertex (x=50) and the relabel
+      // (x=293) would be mid-phantom — the machine never occupies it.
+      expect(s.px <= 50 + 1e-3 || s.px >= 293 - 1e-3).toBe(true);
+    }
+  });
+
+  it("prependEntry keeps the entry move real and shifts brk", () => {
+    const t = prependEntry(PROBE(), [-40, 0, 100, 0, 0, 0]);
+    expect(Array.from(t.brk!)).toEqual([0, 0, 0, 1, 0, 0]);
+    expect(t.cum[1]!).toBeCloseTo(40, 4);          // entry rapid is travel
+    expect(t.cum[3]).toBe(t.cum[2]);               // relabel still is not
+  });
+
+  it("splitTrackStreams opens a section AT the relabel — no connector drawn", () => {
+    const split = splitTrackStreams(PROBE());
+    // The relabel vertex opens a NEW section with no back-vertex: unlike a
+    // stream-interleave section (whose connector is the other stream's real
+    // move), no motion exists into a relabel at all. The real entry move
+    // then continues in-strip from the relabeled pose.
+    expect(Array.from(split.rapidBreaks)).toEqual([0, 2]);
+    const xs = Array.from(split.rapidPos.filter((_, i) => i % 3 === 0));
+    expect(xs.map(v => Math.round(v))).toEqual([0, 50, 293, 310, 330]);
+  });
+
+  it("a mislengthed brk array drops the channel, never guesses alignment", () => {
+    const t = buildScrubTrack(
+      EMPTY,
+      { ...stream([[0, 0, 0], [1, 0, 0]], { seq: [1, 2], mode: [0, 0] }),
+        brk: new Uint8Array([1]) },
+    )!;
+    expect(t.brk).toBeUndefined();
   });
 });

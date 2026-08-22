@@ -1472,6 +1472,7 @@ function runCollisionCheck(trackOverride?: ScrubTrack) {
     mode: track.mode?.slice(),  // raw switchkins types — the sweep poses per segment
     frame: track.frame?.slice(),  // TWP frame indices (+ triplets below)
     frames: track.frames,         // small list — structured-cloned, not transferred
+    brk: track.brk?.slice(),      // kins-flip relabel flags — excluded from the sweep
   };
   // ArrayBuffer[] (not Transferable[]): every entry is a buffer, and the
   // TS-only Transferable name trips eslint's no-undef in SFC scripts.

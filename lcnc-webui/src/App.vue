@@ -471,7 +471,22 @@ const activeFile = computed<string | null>(() => {
   return st.value?.active_file || null;
 });
 
+/** True when the parse found that this program's motion carries line numbers
+ *  from a called subroutine or a remap (gateway_util.check_line_attribution).
+ *  Those collide with the main file's numbering and cannot be repaired: a
+ *  queued motion carries no file identity, and `call_level` tracks where the
+ *  interpreter is READING (which runs ahead and is usually back at 0 while the
+ *  sub's motion executes), so it cannot qualify `motion_line` either. */
+const linesUntrusted = computed<boolean>(
+  () => !!viewerGcode.value?.lines_untrusted);
+const linesUntrustedReason = computed<string>(
+  () => viewerGcode.value?.lines_untrusted_reason || "");
+
 const currentLine = computed<number | null>(() => {
+  // Pointing the operator at a confidently wrong line is worse than pointing
+  // at none — the observed case parks the highlight on an unrelated line for
+  // the whole run and never reaches the o<...> call that is really executing.
+  if (linesUntrusted.value) return null;
   return st.value?.motion_line ?? null;
 });
 
@@ -1506,6 +1521,7 @@ watch(viewerGcode, (newGcode) => {
               :violations="gcodeViolations"
               :violationsTotal="gcodeViolationsTotal"
               :currentLine="currentLine"
+              :linesUntrustedReason="linesUntrustedReason"
               :scrubLine="scrubLine"
               :collisionLines="collisionLines"
               :isPaused="isPaused"

@@ -42,6 +42,10 @@ const props = defineProps<{
   violations: LimitViolation[] | null;
   violationsTotal: number;
   currentLine: number | null;
+  // Set when the parse determined this program's motion carries line numbers
+  // from a called subroutine or remap, so `currentLine` is deliberately null
+  // rather than a confidently wrong line. Carries the reason for the operator.
+  linesUntrustedReason?: string;
   // Source line at the viewer's scrub position (offline dry run stage 2).
   // Highlights + auto-scrolls like the run highlight; null = not scrubbing.
   scrubLine?: number | null;
@@ -689,6 +693,12 @@ async function saveEdit() {
         <div class="dropText">{{ can.setup ? 'Drop program file to upload' : 'Not permitted' }}</div>
       </div>
 
+      <!-- Line numbers belong to a called sub / remap, not this file: the run
+           highlight is suppressed rather than pointed at an unrelated line. -->
+      <div v-if="linesUntrustedReason" class="warnBanner">
+        <span>Line highlight off — {{ linesUntrustedReason }}</span>
+      </div>
+
       <!-- Edit mode -->
       <div v-if="editing" class="stack-controls editArea">
         <div v-if="saveError" class="errorBanner">
@@ -926,6 +936,22 @@ async function saveEdit() {
 
 
 /* Error banner */
+/* Warn-tier sibling of .errorBanner below (same structure, --warn tokens).
+   Used for "this information is not trustworthy" notices, as distinct from
+   an operation that failed. */
+.warnBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-controls);
+  padding: var(--gap-tight) var(--gap-controls);
+  background: color-mix(in oklab, var(--warn) 15%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--warn) 25%, transparent);
+  border-radius: var(--radius-lg);
+  font-size: var(--fs-base);
+  color: var(--warn);
+}
+
 .errorBanner {
   display: flex;
   align-items: center;
