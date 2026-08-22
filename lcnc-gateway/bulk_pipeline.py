@@ -77,6 +77,17 @@ class BulkPipeline:
         self.preview_version: int = int(time.time())
         self.last_file: Optional[str] = None          # edge detection in poller
         self.last_mtime: Optional[float] = None       # re-parse on in-place edits of the same path
+        # Wire-format stamp of the PUBLISHED payload (P1), parsed from the
+        # worker's `__SCHEMA__` stderr line — the payload bytes are passthrough
+        # and never decoded here. None = published by a worker that emitted no
+        # stamp (pre-P1 code on disk) or nothing published yet. The poller
+        # compares it against gateway_util.PREVIEW_SCHEMA and auto-reparses on
+        # mismatch, latched via schema_reparse_attempted so a persistent
+        # disagreement (gateway process older/newer than the worker on disk)
+        # reparses ONCE per (file, mtime) and then leaves the loud client
+        # banner standing instead of respawning workers every poll tick.
+        self.published_schema: Optional[int] = None
+        self.schema_reparse_attempted: Optional[tuple] = None
         self.refresh_running: bool = False            # single-flight guard
         self.preview_bytes: Optional[bytes] = None    # raw copy kept ONLY when no gz exists (<4 KiB payloads)
         self.preview_bytes_gz: Optional[bytes] = None # pre-compressed once per parse
@@ -116,6 +127,8 @@ class BulkPipeline:
         self.preview_version += 1
         self.last_file = None
         self.last_mtime = None
+        self.published_schema = None
+        self.schema_reparse_attempted = None
 
     def invalidate_caches_for_ini(self, cur_ini: Optional[str]) -> None:
         """INI-change invalidation (issue #29): if the active INI changed under
@@ -217,6 +230,11 @@ class BulkPipeline:
                 return
             # Surface worker-side timing + lift the partial-parse marker into a
             # structured event WITHOUT decoding the (multi-MB) stdout payload.
+            # The __SCHEMA__ line is the payload's wire-format stamp riding the
+            # same channel (P1) — None survives if the worker on disk predates
+            # the stamp, and publishing None is deliberate: the client banners
+            # it rather than this code guessing a value.
+            worker_schema: Optional[int] = None
             if stderr:
                 for ln in stderr.decode(errors="replace").splitlines():
                     if not ln.strip():
@@ -226,6 +244,13 @@ class BulkPipeline:
                         _trace.emit("gcode.parse_partial", level="warn", file=filepath,
                                     error=_p[2] if len(_p) > 2 else "",
                                     error_line=_p[1] if len(_p) > 1 else "")
+                    elif ln.startswith("__SCHEMA__"):
+                        _s = ln.split("\t", 1)
+                        try:
+                            worker_schema = int(_s[1])
+                        except (IndexError, ValueError):
+                            _trace.emit("gcode.schema_line_malformed", level="warn",
+                                        line=ln[:120])
                     else:
                         _trace.emit("gcode.worker_log", line=ln)
             _trace.emit("gcode.worker_done",
@@ -259,11 +284,13 @@ class BulkPipeline:
             # variant that was practically never served.
             self.preview_bytes = None if preview_bytes_gz is not None else stdout
             self.preview_bytes_gz = preview_bytes_gz
+            self.published_schema = worker_schema
             self.preview_version += 1
             self.last_file = filepath
             self.last_mtime = _mtime_at_parse
             _trace.emit("gcode.publish",
                         version=self.preview_version,
+                        schema=worker_schema,
                         gzip_ms=round((t_gz_done - t_gz0) * 1000, 1),
                         bytes=len(stdout),
                         bytes_gz=len(preview_bytes_gz) if preview_bytes_gz else 0,

@@ -66,12 +66,14 @@ from gateway_util import (
     kins_nonidentity_flags, kins_frame_indices, check_limit_violations_trsrn,
     kins_marker_policy, mode_boundary_indices, check_line_attribution,
     insert_flip_relabels, read_var_wcs_rows, wcs_event_rewritten,
+    PREVIEW_SCHEMA,
 )
 
 
 _EMPTY = {"feed": [], "feed_lines": [], "rapid": [], "stats": None,
           "violations": None, "violations_total": 0,
-          "parse_error": None, "error_line": None}
+          "parse_error": None, "error_line": None,
+          "preview_schema": PREVIEW_SCHEMA}
 
 # RDP decimation tolerance in machine units (mm or in — caller passes the
 # scaled epsilon). 0.005 mm is sub-pixel at typical viewport zoom (~0.2
@@ -781,7 +783,15 @@ def parse(ctx: dict) -> dict:
         print(f"line attribution UNTRUSTED: {lines_untrusted_reason}; "
               f"suspect lines {_bad_lines[:12]}", file=sys.stderr, flush=True)
 
-    result = {"file": filename, "feed": feed_bin, "feed_lines": feed_lines_bin,
+    result = {"file": filename,
+              # Wire-format generation (P1): the client banners an absent or
+              # different stamp (EXPECTED_PREVIEW_SCHEMA) and offers Reparse;
+              # the gateway poller auto-reparses on mismatch with its own
+              # imported constant. Read fresh from gateway_util at every spawn
+              # — this subprocess always reflects the code on disk, which is
+              # exactly what makes a stale long-lived gateway detectable.
+              "preview_schema": PREVIEW_SCHEMA,
+              "feed": feed_bin, "feed_lines": feed_lines_bin,
               "feed_seq": feed_seq_bin, "rapid_seq": rapid_seq_bin,
               "rapid_lines": rapid_lines_bin,
               "feed_tcum": feed_tcum_bin, "rapid_tcum": rapid_tcum_bin,
@@ -901,6 +911,12 @@ def main() -> None:
     out = msgspec.msgpack.encode(result)
     sys.stdout.buffer.write(out)
     sys.stdout.buffer.flush()
+    # Out-of-band schema stamp for the gateway (P1): the pipeline publishes
+    # stdout as PASSTHROUGH bytes (GC discipline — it must never decode the
+    # multi-MB payload), so the stamp it records at publish time rides stderr,
+    # which it already line-parses for __PARTIAL__. Emitted only on success —
+    # a failed parse publishes nothing.
+    print(f"__SCHEMA__\t{PREVIEW_SCHEMA}", file=sys.stderr, flush=True)
     t_end = time.monotonic()
     print(
         f"worker total_ms={(t_end - t_main)*1000:.0f} "

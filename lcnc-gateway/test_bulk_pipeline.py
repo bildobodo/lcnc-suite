@@ -4,6 +4,7 @@ Temp dirs stand in for the LinuxCNC config dir; no gateway import. The parse
 worker and fusion worker subprocesses have their own round-trip coverage in
 test_command_dispatch (TestTerminateParseProc / TestFusionWorkerSubprocess).
 """
+import asyncio
 import json
 import os
 import tempfile
@@ -38,6 +39,8 @@ class TestPreviewContract(unittest.TestCase):
         b.preview_bytes_gz = b"gz"
         b.last_file = "/x.ngc"
         b.last_mtime = 1.0
+        b.published_schema = 1
+        b.schema_reparse_attempted = ("/x.ngc", 1.0)
         v0 = b.preview_version
         b.clear_preview()
         self.assertIsNone(b.preview_pending)
@@ -45,6 +48,8 @@ class TestPreviewContract(unittest.TestCase):
         self.assertIsNone(b.preview_bytes_gz)
         self.assertIsNone(b.last_file)
         self.assertIsNone(b.last_mtime)
+        self.assertIsNone(b.published_schema)
+        self.assertIsNone(b.schema_reparse_attempted)
         self.assertEqual(b.preview_version, v0 + 1)
 
     def test_versions_seeded_nonzero(self):
@@ -53,6 +58,56 @@ class TestPreviewContract(unittest.TestCase):
         self.assertGreater(b.preview_version, 0)
         self.assertGreater(b.surface_version, 0)
         self.assertGreater(b.grid_version, 0)
+
+
+class TestSchemaStampRecording(unittest.TestCase):
+    """The published payload's wire-format stamp (P1) is parsed from the
+    worker's `__SCHEMA__` stderr line — the stdout payload is passthrough
+    bytes the pipeline must never decode. Absent/malformed lines record None
+    (honest legacy signal for the poller edge and the client banner), never a
+    guessed value."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.ini = os.path.join(self.tmp.name, "m.ini")
+        open(self.ini, "w").write("[EMC]\n")
+        self.ngc = os.path.join(self.tmp.name, "p.ngc")
+        open(self.ngc, "w").write("G0 X1\nM2\n")
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def _refresh(self, stderr: bytes):
+        b = _pipeline(self.ini)
+        b._run_gcode_worker_blocking = (
+            lambda ctx_bytes, timeout: (0, b"\x81\xa4file\xc0", stderr))
+        asyncio.run(b.refresh_gcode_preview(self.ngc))
+        return b
+
+    def test_schema_line_recorded_at_publish(self):
+        b = self._refresh(b"__SCHEMA__\t7\nworker total_ms=1\n")
+        self.assertTrue(b.preview_available())
+        self.assertEqual(b.published_schema, 7)
+        self.assertEqual(b.last_file, self.ngc)
+
+    def test_absent_schema_line_records_none(self):
+        b = self._refresh(b"worker total_ms=1\n")
+        self.assertTrue(b.preview_available())   # legacy publish still lands
+        self.assertIsNone(b.published_schema)
+
+    def test_malformed_schema_line_records_none(self):
+        b = self._refresh(b"__SCHEMA__\tnot-an-int\n")
+        self.assertTrue(b.preview_available())
+        self.assertIsNone(b.published_schema)
+
+    def test_failed_worker_leaves_prior_stamp(self):
+        b = _pipeline(self.ini)
+        b.published_schema = 3
+        b._run_gcode_worker_blocking = (
+            lambda ctx_bytes, timeout: (1, b"", b"__SCHEMA__\t9\n"))
+        asyncio.run(b.refresh_gcode_preview(self.ngc))
+        self.assertFalse(b.preview_available())
+        self.assertEqual(b.published_schema, 3)  # nothing published, stamp untouched
 
 
 class TestIniInvalidation(unittest.TestCase):

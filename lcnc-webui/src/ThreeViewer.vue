@@ -23,7 +23,7 @@ import { boundsOf, epochTermsFor, rebasePositions, type WcsTableRow } from "./vi
 import { specFromWire } from "./viewer/kins";
 import { trackHighlightRange } from "./trackHighlight";
 import type { CollisionBody, CollisionResult } from "./viewer/collision";
-import type { ScrubTrack } from "./ws/bulkData";
+import { previewSchemaMismatch, EXPECTED_PREVIEW_SCHEMA, type ScrubTrack } from "./ws/bulkData";
 import { createBackplotController } from "./viewer/backplotController";
 import { createSurfaceController } from "./viewer/surfaceController";
 import { createToolpathController, type ToolpathCtx } from "./viewer/toolpathController";
@@ -166,6 +166,14 @@ const rewrittenWcs = computed<string[]>(() => {
   const idxs = [...new Set(evs.filter(e => e.rewritten && e.idx >= 1).map(e => e.idx))];
   return idxs.map(wcsLabel);
 });
+
+// Preview payload from a different wire-format generation than this client
+// build (P1) — a gateway that outlived a code upgrade keeps serving its
+// cached payload (keyed on file+mtime only), and a hot-reloaded client would
+// otherwise mis-read or silently degrade on it. `got: null` = legacy
+// unstamped payload. Reparse spawns a fresh worker from the code on disk,
+// which republishes with the current stamp.
+const previewSchemaStale = computed(() => previewSchemaMismatch(viewerGcode.value));
 
 // Preview parsed against offsets that are no longer live — a touch-off after
 // the file was loaded. The parse basis rides the wire in MACHINE units for
@@ -2516,6 +2524,9 @@ defineExpose({
       <div v-if="vst?.rotation_xy" class="hudWarn">Rotation {{ vst.rotation_xy.toFixed(1) }}°</div>
       <div v-if="foreignWcs.length" class="hudWarn">Program cuts in {{ foreignWcs.join(', ') }} — {{ props.g5xLabel }} active</div>
       <div v-if="rewrittenWcs.length" class="hudWarn">Program writes {{ rewrittenWcs.join(', ') }} — live edits there don't move its preview</div>
+      <div v-if="previewSchemaStale" class="hudWarn hudAction"
+        :title="`Payload format ${previewSchemaStale.got ?? 'unstamped (older gateway)'}; this UI expects ${EXPECTED_PREVIEW_SCHEMA}. Reparse rebuilds it with the installed code.`"
+        @click="emit('reparse')">Preview from a different suite version — Reparse</div>
       <div v-if="previewWcsStale" class="hudWarn hudAction" @click="emit('reparse')">Preview uses older offsets — Refresh</div>
       <div v-if="toolpathOverflow" class="hudWarn">Toolpath exceeds bounds</div>
     </div>

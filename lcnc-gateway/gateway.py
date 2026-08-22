@@ -43,6 +43,7 @@ from gateway_util import (
     finite_int,
     evaluate_trip_latch,
     evaluate_safety_chain,
+    PREVIEW_SCHEMA,
     unwritten_estop_signal,
     kins_marker_policy,
     kins_pivot_warning,
@@ -1366,6 +1367,26 @@ async def _status_poller():
             if file_changed and not _bulk.refresh_running:
                 _bulk.refresh_running = True
                 register_bg_task(asyncio.create_task(_bulk.refresh_gcode_preview(st.active_file)))
+            elif (
+                # Schema edge (P1): the published payload's wire-format stamp
+                # disagrees with the schema this gateway was started with —
+                # the cache key (file+mtime) can't see a code upgrade, so the
+                # stamp is the missing key component. Latched per (file,
+                # mtime): if the mismatch survives one reparse (the worker on
+                # disk genuinely emits a different schema than this process
+                # imported — a half-upgraded install), respawning every tick
+                # fixes nothing; the client banner carries the signal instead.
+                bool(st.active_file)
+                and not _bulk.refresh_running
+                and _bulk.preview_available()
+                and _bulk.published_schema != PREVIEW_SCHEMA
+                and _bulk.schema_reparse_attempted != (_bulk.last_file, _bulk.last_mtime)
+            ):
+                _bulk.schema_reparse_attempted = (_bulk.last_file, _bulk.last_mtime)
+                _trace.emit("gcode.schema_stale_reparse", level="warn",
+                            published=_bulk.published_schema, expected=PREVIEW_SCHEMA)
+                _bulk.refresh_running = True
+                register_bg_task(asyncio.create_task(_bulk.refresh_gcode_preview(st.active_file)))
             elif not st.active_file and _bulk.last_file is not None:
                 _bulk.preview_pending = None
                 _bulk.preview_bytes = None
@@ -1373,6 +1394,8 @@ async def _status_poller():
                 _bulk.preview_version += 1
                 _bulk.last_file = None
                 _bulk.last_mtime = None
+                _bulk.published_schema = None
+                _bulk.schema_reparse_attempted = None
 
             # Safety-trip detection via the servo-thread HAL latch level
             # (webui-hb-latch.fault-out, issue #34). The latch is sticky and

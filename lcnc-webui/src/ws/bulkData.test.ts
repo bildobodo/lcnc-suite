@@ -29,6 +29,7 @@ const {
   fetchCompGrid, fetchSurfacePoints, gcodeContent,
   handleToolTableChanged, handleViewerGcode, handleViewerGcodeReady, handleViewerInit,
   previewLoadError, resetBulkVersionsOnClose, toolTableVersion, viewerGcode, viewerInit,
+  previewSchemaMismatch, EXPECTED_PREVIEW_SCHEMA,
 } = await import("./bulkData");
 
 type FetchCall = { url: string; signal: AbortSignal };
@@ -81,6 +82,40 @@ describe("bulkData frame handlers", () => {
     expect(viewerGcode.value).toEqual({ file: null });
     expect(gcodeContent.value).toBeNull();
     expect(fetchCalls.filter(c => c.url.startsWith("/gcode"))).toHaveLength(0);
+  });
+});
+
+describe("previewSchemaMismatch (P1)", () => {
+  it("null / missing payload → nothing to judge", () => {
+    expect(previewSchemaMismatch(null)).toBeNull();
+    expect(previewSchemaMismatch(undefined)).toBeNull();
+    expect(previewSchemaMismatch({} as any)).toBeNull();          // no file
+    expect(previewSchemaMismatch({ file: null } as any)).toBeNull();
+  });
+
+  it("matching stamp → no mismatch", () => {
+    expect(previewSchemaMismatch(
+      { file: "/a.ngc", preview_schema: EXPECTED_PREVIEW_SCHEMA } as any,
+    )).toBeNull();
+  });
+
+  it("legacy unstamped payload → { got: null } (bannered, never silently accepted)", () => {
+    expect(previewSchemaMismatch({ file: "/a.ngc" } as any)).toEqual({ got: null });
+  });
+
+  it("different stamp → { got: n } in both directions", () => {
+    expect(previewSchemaMismatch(
+      { file: "/a.ngc", preview_schema: EXPECTED_PREVIEW_SCHEMA + 1 } as any,
+    )).toEqual({ got: EXPECTED_PREVIEW_SCHEMA + 1 });
+    expect(previewSchemaMismatch(
+      { file: "/a.ngc", preview_schema: -1 } as any,
+    )).toEqual({ got: -1 });
+  });
+
+  it("non-numeric stamp is treated as absent", () => {
+    expect(previewSchemaMismatch(
+      { file: "/a.ngc", preview_schema: "1" } as any,
+    )).toEqual({ got: null });
   });
 });
 

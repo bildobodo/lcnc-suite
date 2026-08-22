@@ -129,6 +129,27 @@ export interface LimitViolation {
   kind: "min" | "max";
 }
 
+// The preview wire-format generation this client build was written against —
+// mirror of gateway_util.PREVIEW_SCHEMA, bumped in the SAME commit as every
+// preview wire-shape change. A fetched payload whose `preview_schema` differs
+// (or is absent — a legacy payload from a pre-stamp worker) gets a HUD banner
+// with a Reparse action instead of being silently mis-read by newer decode
+// paths.
+export const EXPECTED_PREVIEW_SCHEMA = 1;
+
+/** Non-null when the loaded payload's wire-format stamp disagrees with this
+ *  client build: `{ got: n }` for a differently-stamped payload, `{ got:
+ *  null }` for a legacy unstamped one. Null when no program payload is loaded
+ *  or the stamp matches. Pure — unit-tested; ThreeViewer's HUD banner and its
+ *  Reparse action hang off this. */
+export function previewSchemaMismatch(
+  g: ViewerGcode | null | undefined,
+): { got: number | null } | null {
+  if (!g || g.file == null) return null;  // no program payload → nothing to judge
+  const got = typeof g.preview_schema === "number" ? g.preview_schema : null;
+  return got === EXPECTED_PREVIEW_SCHEMA ? null : { got };
+}
+
 /** Human-readable soft-limit violation, shared by the code-panel line titles
  *  and the scrub bar's findings button. `unit` = machine linear unit. */
 export function limitViolationText(v: LimitViolation, unit: string): string {
@@ -140,6 +161,13 @@ export function limitViolationText(v: LimitViolation, unit: string): string {
 
 export interface ViewerGcode {
   file?: string | null;
+  // Wire-format generation stamp (P1) — gateway_util.PREVIEW_SCHEMA at parse
+  // time. The gateway cache keys payloads on file+mtime only, so a gateway
+  // process that outlives a code upgrade serves pre-upgrade payloads to
+  // hot-reloaded clients; this stamp is how the client notices. Absent =
+  // legacy payload (pre-stamp worker) — bannered with a Reparse action, never
+  // silently accepted. Compare via previewSchemaMismatch().
+  preview_schema?: number;
   feed?: number[][] | Uint8Array;  // wire: LE float32 bin (preferred) | legacy nested
   rapid?: number[][] | Uint8Array;
   feed_lines?: number[] | Uint32Array | Uint8Array;  // wire: LE uint32 bin | legacy list

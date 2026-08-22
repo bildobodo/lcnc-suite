@@ -23,6 +23,20 @@ from typing import Iterable, Optional
 # self-contained and testable.
 ALLOWED_EXTENSIONS = {".ngc", ".nc", ".gcode", ".tap", ".txt"}
 
+# Preview wire-format generation. Single source for the parse worker (stamps
+# every payload as `preview_schema` + a `__SCHEMA__\t<n>` stderr line), the
+# gateway poller (auto-reparses a published payload whose stamp disagrees with
+# the schema this process was started with), and — mirrored as
+# EXPECTED_PREVIEW_SCHEMA in ws/bulkData.ts — the client, which banners a
+# payload with an absent or different stamp and offers Reparse. The stamp
+# exists because the gateway cache keys on file+mtime only: a gateway process
+# that outlives a code upgrade keeps serving pre-upgrade payloads to
+# hot-reloaded clients with nothing saying so. Absence ≡ legacy payload,
+# bannered — never silently accepted. Bump on EVERY preview wire-shape change
+# (adding/removing/renaming fields or changing field semantics), and bump the
+# client constant in the same commit.
+PREVIEW_SCHEMA = 1
+
 
 def sanitize_filename(name: str) -> str:
     name = os.path.basename(name)
