@@ -23,7 +23,7 @@ function stream(points: number[][], opts: { abc?: number[][]; lines?: number[]; 
 const EMPTY = stream([]);
 
 function freshSample(): ScrubSample {
-  return { px: 0, py: 0, pz: 0, pa: 0, pb: 0, pc: 0, line: 0, rapid: false, kinstype: null, frame: null, index: 0 };
+  return { px: 0, py: 0, pz: 0, pa: 0, pb: 0, pc: 0, line: 0, rapid: false, kinstype: null, frame: null, wcsEpoch: null, index: 0 };
 }
 
 describe("buildScrubTrack", () => {
@@ -457,5 +457,63 @@ describe("kins-flip relabel breaks (P1)", () => {
         brk: new Uint8Array([1]) },
     )!;
     expect(t.brk).toBeUndefined();
+  });
+});
+
+describe("wcs epochs on the track (review P2)", () => {
+  const EVS = [
+    { seq: 0, idx: 1, rotationDeg: 0, rewritten: false, g5x: [0, 0, 0, 0, 0, 0], g92: [0, 0, 0, 0, 0, 0] },
+    { seq: 2, idx: 6, rotationDeg: 0, rewritten: true, g5x: [100, -50, 25, 0, 0, 0], g92: [0, 0, 0, 0, 0, 0] },
+  ];
+  const T = () => buildScrubTrack(
+    EMPTY,
+    { ...stream([[0, 0, 0], [10, 0, 0], [20, 0, 0]],
+                { seq: [1, 2, 3], mode: [0, 0, 0] }),
+      wcs: new Uint8Array([0, 0, 1]) },
+    undefined, EVS,
+  )!;
+
+  it("merges per-point epochs and samples carry them", () => {
+    const t = T();
+    expect(Array.from(t.wcsEpoch!)).toEqual([0, 0, 1]);
+    expect(t.wcsEvents).toBe(EVS);
+    const s = freshSample();
+    sampleTrack(t, 5, s);
+    expect(s.wcsEpoch).toBe(0);
+    sampleTrack(t, 15, s);
+    expect(s.wcsEpoch).toBe(1);
+    const legacy = buildScrubTrack(
+      stream([[0, 0, 0], [10, 0, 0]], { seq: [1, 2] }), EMPTY)!;
+    sampleTrack(legacy, 5, s);
+    expect(s.wcsEpoch).toBeNull();
+  });
+
+  it("jointsForSample converts through the sample's epoch terms", () => {
+    const t = T();
+    const s = freshSample();
+    sampleTrack(t, 15, s);           // epoch-1 segment
+    const terms = [
+      { ox: 0, oy: 0, oz: 0, oa: 0, ob: 0, oc: 0, tx: 0, ty: 0, tz: 0, cth: 1, sth: 0 },
+      { ox: 100, oy: -50, oz: 25, oa: 0, ob: 0, oc: 0, tx: 0, ty: 0, tz: 0, cth: 1, sth: 0 },
+    ];
+    const j: (number | null)[] = [];
+    jointsForSample(s, { g5x: [], g92: [], rotationDeg: 0 }, ["X", "Y", "Z"], j, undefined, terms);
+    expect(j[0]).toBeCloseTo(s.px + 100, 5);
+    expect(j[1]).toBeCloseTo(-50, 5);
+    expect(j[2]).toBeCloseTo(25, 5);
+    // Without the terms the live (empty) wcs applies — proves routing.
+    jointsForSample(s, { g5x: [], g92: [], rotationDeg: 0 }, ["X", "Y", "Z"], j);
+    expect(j[0]).toBeCloseTo(s.px, 5);
+  });
+
+  it("prependEntry stamps the entry move with epoch 0 and keeps the events", () => {
+    const t = prependEntry(T(), [-5, 0, 0, 0, 0, 0]);
+    expect(Array.from(t.wcsEpoch!)).toEqual([0, 0, 0, 1]);
+    expect(t.wcsEvents).toBe(EVS);
+  });
+
+  it("splitTrackStreams carries per-vertex epochs on the drawn streams", () => {
+    const split = splitTrackStreams(T());
+    expect(Array.from(split.rapidWcs!)).toEqual([0, 0, 1]);
   });
 });

@@ -3,7 +3,7 @@
 // 3-axis PM-25MV config and the XYZAC trunnion sim (machine-xyzac).
 import { describe, expect, it } from "vitest";
 import {
-  transformToPartFrame, chainsHaveRotary, buildLineMap,
+  transformToPartFrame, chainsHaveRotary, buildLineMap, wcsTerms,
   type PartFrameMachine, type PartFrameWcs,
 } from "./partFrame";
 
@@ -240,5 +240,29 @@ describe("kins world routing (phase 2b)", () => {
     const a = transformToPartFrame(TCP, WCS0, { ...input, mode: new Uint8Array([0, 0]) });
     const b = transformToPartFrame(TCP, WCS0, input);
     expect(Array.from(a.pos)).toEqual(Array.from(b.pos));
+  });
+});
+
+describe("per-epoch WCS terms (review P2)", () => {
+  it("converts each vertex through ITS epoch's basis; peel stays active", () => {
+    // MILL3 is an identity chain under one basis; with per-epoch terms the
+    // epoch offset survives into the (active-frame) output: out = v + o_e
+    // when the active origin is zero. Vertex 0 in the active epoch, vertex
+    // 1 in a G59-like epoch at (100, -50, 25).
+    const input = { ...poly([[0, 0, 0], [10, 0, 0]], undefined, [1, 2]),
+                    wcs: new Uint8Array([0, 1]) };
+    const terms = [
+      wcsTerms(WCS0),
+      wcsTerms({ g5x: [100, -50, 25, 0, 0, 0], g92: [], rotationDeg: 0 }),
+    ];
+    const r = transformToPartFrame(MILL3, WCS0, input, undefined, terms);
+    expect(vec(r.pos, 0)).toEqual([0, 0, 0]);
+    const [x, y, z] = vec(r.pos, 1);
+    expect(x).toBeCloseTo(110, 3);
+    expect(y).toBeCloseTo(-50, 3);
+    expect(z).toBeCloseTo(25, 3);
+    // Without the epoch data the same input is the plain identity.
+    const plain = transformToPartFrame(MILL3, WCS0, poly([[0, 0, 0], [10, 0, 0]]));
+    expect(vec(plain.pos, 1)).toEqual([10, 0, 0]);
   });
 });

@@ -38,7 +38,7 @@
 import * as THREE from "three";
 import { MeshBVH } from "three-mesh-bvh";
 import { normalizeKinematics, type KinRuntime } from "./kinematics";
-import { programToMachine, wcsTerms, type PartFrameWcs } from "./partFrame";
+import { programToMachine, wcsTerms, type PartFrameWcs, type WcsTerms } from "./partFrame";
 import { kinsForSegment, makeKins, worldModeForSpec, type KinsModel, type KinsSpec } from "./kins";
 /** The subset of the scrub track the sweep consumes. The worker request
  *  ships a COPIED projection of the real ScrubTrack (typed arrays only —
@@ -62,6 +62,10 @@ export interface CollisionTrack {
    *  at a stationary pose — zero machine motion, excluded from the sweep
    *  and from its distance parameterization. Absent = legacy track. */
   brk?: Uint8Array;
+  /** Per-segment WCS epoch index (review P2) — selects the entry of
+   *  CollisionOptions.epochTerms that converts this segment's program
+   *  coords to machine coords. Absent = single-basis (live wcs terms). */
+  wcs?: Uint8Array;
 }
 
 export interface CollisionMachine {
@@ -128,6 +132,10 @@ export interface CollisionOptions {
   /** Safety budget on pose evaluations — on breach the sweep degrades to
    *  fixed explore steps (result says `coarsened`); never truncates. */
   maxSamples?: number;
+  /** Per-epoch WCS re-add terms (review P2), indexed by the track's `wcs`
+   *  bytes — built by wcsEpochs.epochTermsFor from the payload's wcs_frames
+   *  + the live table. Absent = single-basis (the live `wcs` terms). */
+  epochTerms?: WcsTerms[];
 }
 
 export interface CollisionResult {
@@ -522,8 +530,13 @@ export function sweepCollisions(
   const worst = new Map<string, CollisionHit & { pi: number; samples: number[] }>();
   let done = 0;
 
-  const poseAt = (px: number, py: number, pz: number, pa: number, pb: number, pc: number, model: KinsModel = identityKins) => {
-    programToMachine(px, py, pz, pa, pb, pc, o, machineVals);
+  // Per-segment epoch terms (review P2): a segment's program coords convert
+  // through ITS epoch's basis; single-basis tracks fall through to `o`.
+  const termFor = (i: number): WcsTerms =>
+    (track.wcs && opts.epochTerms?.[track.wcs[i] ?? 0]) ? opts.epochTerms[track.wcs[i] ?? 0]! : o;
+
+  const poseAt = (px: number, py: number, pz: number, pa: number, pb: number, pc: number, model: KinsModel = identityKins, oSeg: WcsTerms = o) => {
+    programToMachine(px, py, pz, pa, pb, pc, oSeg, machineVals);
     model.inverse(machineVals, kinsOut);
     for (let ji = 0; ji < kinsOut.length; ji++) {
       jointVals[ji] = kinsOut[ji] ?? 0;  // UVW: 0, as the preview transform
@@ -563,7 +576,8 @@ export function sweepCollisions(
   const onsetRapid = new Uint8Array(pairs.length);
   const staticContacts: CollisionResult["staticContacts"] = [];
   poseAt(track.pos[0]!, track.pos[1]!, track.pos[2]!,
-         track.abc[0]!, track.abc[1]!, track.abc[2]!, vertModel?.[0] ?? identityKins);
+         track.abc[0]!, track.abc[1]!, track.abc[2]!, vertModel?.[0] ?? identityKins,
+         termFor(0));
   for (let pi = 0; pi < pairs.length; pi++) {
     const [ai, bi] = pairs[pi]!;
     const dist = pairDistance(bodies[ai]!, bodies[bi]!, opts.margin);
@@ -635,6 +649,7 @@ export function sweepCollisions(
       track.abc[k + 1]! + (track.abc[j + 1]! - track.abc[k + 1]!) * u,
       track.abc[k + 2]! + (track.abc[j + 2]! - track.abc[k + 2]!) * u,
       vertModel?.[lo] ?? identityKins,
+      termFor(lo),
     );
     const [ai, bi] = pairs[pi]!;
     return pairDistance(bodies[ai]!, bodies[bi]!, opts.margin);
@@ -666,6 +681,7 @@ export function sweepCollisions(
       track.abc[k + 1]! + (track.abc[j + 1]! - track.abc[k + 1]!) * t,
       track.abc[k + 2]! + (track.abc[j + 2]! - track.abc[k + 2]!) * t,
       vertModel?.[i] ?? identityKins,
+      termFor(i),
     );
   };
 

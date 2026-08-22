@@ -18,7 +18,8 @@ import { useAxes } from "./useAxes";
 import { recordApply, recordRender, setViewerPerfContext } from "./viewerPerf";
 import { disposeObject } from "./viewer/disposal";
 import { normalizeKinematics, type KinRuntime } from "./viewer/kinematics";
-import { chainsHaveRotary, type PartFrameMachine, type PartFrameWcs } from "./viewer/partFrame";
+import { chainsHaveRotary, lineDistances, wcsTerms, type PartFrameMachine, type PartFrameWcs } from "./viewer/partFrame";
+import { boundsOf, epochTermsFor, rebasePositions, type WcsTableRow } from "./viewer/wcsEpochs";
 import { specFromWire } from "./viewer/kins";
 import type { CollisionBody, CollisionResult } from "./viewer/collision";
 import type { ScrubTrack } from "./ws/bulkData";
@@ -73,6 +74,9 @@ type ViewerState = {
   g5x_offset?: number[];
   g92_offset?: number[];
   rotation_xy?: number;
+  /** All nine fixture rows (lowercase axis letters + "r") — the per-epoch
+   *  re-add source for multi-fixture previews (review P2). */
+  wcs_table?: WcsTableRow[];
 
   active_file?: string;
   motion_line?: number;
@@ -139,11 +143,27 @@ const wcsLabel = (idx: number) => WCS_LABELS[idx - 1] ?? `G5x#${idx}`;
 // basis fix the preview is parsed against the ACTIVE WCS and the shipped
 // points are right relative to it, whatever the program selects internally.
 const foreignWcs = computed<string[]>(() => {
-  const g: any = viewerGcode.value;
+  const g = viewerGcode.value;
+  // Epoch-aware payload (review P2): fixtures other than the active one are
+  // TRACKED — every section renders against its own basis, so a foreign
+  // fixture is normal operation, not a warning. The hint stays only for
+  // legacy payloads whose sections would render displaced.
+  if (g?.wcsEvents?.length) return [];
   const used: number[] | undefined = g?.wcs_used;
   const basis: number | null | undefined = g?.wcs_basis_index;
   if (!used?.length || basis == null) return [];
   return used.filter((i) => i !== basis).map(wcsLabel);
+});
+
+// Program-rewritten fixtures (review P2): the preview pins these epochs to
+// the parse snapshot — live edits to that fixture's row do NOT move those
+// sections (the program overwrites the row at run time anyway). Said in the
+// HUD so a touch-off that "does nothing" is explained, not mysterious.
+const rewrittenWcs = computed<string[]>(() => {
+  const evs = viewerGcode.value?.wcsEvents;
+  if (!evs?.length) return [];
+  const idxs = [...new Set(evs.filter(e => e.rewritten && e.idx >= 1).map(e => e.idx))];
+  return idxs.map(wcsLabel);
 });
 
 // Preview parsed against offsets that are no longer live — a touch-off after
@@ -259,10 +279,15 @@ const _pv: {
   g5x: number[] | null; g92: number[] | null; toolOffset: number[] | null;
   toolNum: number | null; toolDiam: number | null; toolLen: number | null;
   toolMeta: unknown; motionLine: number | null; rotationXy: number | null;
+  /** Live fixture table (value-keyed — rows are re-copied each publish).
+   *  A WCS-epoch preview re-adds per-fixture rows, so table edits must
+   *  refresh the preview exactly like the active-fixture terms do. */
+  wcsTableKey: string; wcsTable: WcsTableRow[] | null;
 } = {
   jointPos: null, machinePos: null, g5x: null, g92: null, toolOffset: null,
   toolNum: NaN as unknown as number, toolDiam: NaN, toolLen: NaN,
   toolMeta: undefined, motionLine: NaN, rotationXy: NaN,
+  wcsTableKey: "", wcsTable: null,
 };
 // Returns true if `next` differs from `prev`; when it differs, writes a fresh
 // copy back into the owner so subsequent ticks compare against the new value.
@@ -1301,6 +1326,18 @@ function applyState(init: ViewerInit, st: ViewerState) {
   if (toolLen !== _pv.toolLen) { _pv.toolLen = toolLen; changed = true; _colOnInputChange(); }
   if (motionLine !== _pv.motionLine) { _pv.motionLine = motionLine; changed = true; }
   if (rotationXy !== _pv.rotationXy) { _pv.rotationXy = rotationXy; changed = true; _pfScheduleWcsRefresh(); _colOnInputChange(); }
+  // Fixture-table edits (review P2): only consulted when the loaded preview
+  // is epoch-aware — a plain payload re-adds nothing per-fixture, so idle
+  // table publishes stay free of stringify work.
+  if (viewerGcode.value?.wcsEvents?.length) {
+    const tk = JSON.stringify(st.wcs_table ?? null);
+    if (tk !== _pv.wcsTableKey) {
+      _pv.wcsTableKey = tk;
+      _pv.wcsTable = (st.wcs_table as WcsTableRow[] | undefined) ?? null;
+      changed = true;
+      _pfScheduleWcsRefresh(); _colOnInputChange();
+    }
+  }
   // tool_meta is null on the vast majority of ticks; the gateway sends a fresh
   // object only on a real change, so a reference compare is sufficient + cheap.
   if (toolMeta !== _pv.toolMeta) { _pv.toolMeta = toolMeta; changed = true; }
@@ -1330,21 +1367,40 @@ function _pfGetWorker(): Worker {
       if (!g) return;
       if (m.error) {
         console.error("[partFrame] transform failed — programmed preview used:", m.error);
-        toolpath.apply(toolpathCtx(), g);
+        _applyProgrammed(g);
         requestRender();
         return;
       }
-      toolpath.apply(toolpathCtx(), {
+      const out: ViewerGcode = {
         ...g,
         feedPos: m.feedPos, feed_lines: m.feedLines, feedLineMap: m.feedLineMap,
         rapidPos: m.rapidPos, rapidDist: m.rapidDist,
         feedBreaks: m.feedBreaks, rapidBreaks: m.rapidBreaks,
-      });
+      };
+      if ((g.wcsEvents?.length ?? 0) > 1) {
+        // Multi-epoch payload: the shipped bounds boxes mix frames. The
+        // part-frame output is already in the live active frame (per-epoch
+        // terms on the input side, single peel on the output) — recompute
+        // the boxes from it so the overflow tint tests real geometry.
+        const fb = m.feedPos ? boundsOf(m.feedPos) : null;
+        const rb = m.rapidPos ? boundsOf(m.rapidPos) : null;
+        out.motion_bounds = fb && rb
+          ? { min: fb.min.map((v, i) => Math.min(v, rb.min[i]!)),
+              max: fb.max.map((v, i) => Math.max(v, rb.max[i]!)) }
+          : (fb ?? rb);
+        out.bounds = fb
+          ? (rb
+            ? { min: [Math.min(fb.min[0]!, rb.min[0]!), Math.min(fb.min[1]!, rb.min[1]!), fb.min[2]!],
+                max: [Math.max(fb.max[0]!, rb.max[0]!), Math.max(fb.max[1]!, rb.max[1]!), fb.max[2]!] }
+            : fb)
+          : null;
+      }
+      toolpath.apply(toolpathCtx(), out);
       requestRender();
     };
     _pfWorker.onerror = (ev) => {
       console.error("[partFrame] worker error — programmed preview used:", ev.message);
-      if (viewerGcode.value) toolpath.apply(toolpathCtx(), viewerGcode.value);
+      if (viewerGcode.value) _applyProgrammed(viewerGcode.value);
     };
   }
   return _pfWorker;
@@ -1473,6 +1529,7 @@ function runCollisionCheck(trackOverride?: ScrubTrack) {
     frame: track.frame?.slice(),  // TWP frame indices (+ triplets below)
     frames: track.frames,         // small list — structured-cloned, not transferred
     brk: track.brk?.slice(),      // kins-flip relabel flags — excluded from the sweep
+    wcs: track.wcsEpoch?.slice(), // per-segment WCS epoch (terms in options below)
   };
   // ArrayBuffer[] (not Transferable[]): every entry is a buffer, and the
   // TS-only Transferable name trips eslint's no-undef in SFC scripts.
@@ -1499,7 +1556,15 @@ function runCollisionCheck(trackOverride?: ScrubTrack) {
     })(),
     track: trackCopy,
     wcs: _pfWcs(),
-    options: { margin: COLLISION_MARGIN_MM * _unitScale },
+    options: {
+      margin: COLLISION_MARGIN_MM * _unitScale,
+      // Per-epoch re-add terms (review P2) — the sweep converts each
+      // segment's program coords through ITS epoch's basis. Built here
+      // (live status is main-thread state); plain JSON, clones fine.
+      epochTerms: track.wcsEvents?.length
+        ? epochTermsFor(track.wcsEvents, _pfWcs(), _pv.wcsTable ?? undefined)
+        : undefined,
+    },
   }, transfer);
 }
 
@@ -1555,6 +1620,45 @@ function _partFrameEligible(g: ViewerGcode): boolean {
   return chainsHaveRotary(_pfMachine(init));
 }
 
+/** Programmed-path apply, epoch-aware (review P2): a multi-epoch payload's
+ *  sections each carry their own frame, but the rendered polyline hangs
+ *  under the single workOrigin group (the live ACTIVE fixture) — so vertices
+ *  are re-based per epoch into the display frame first, and the bounds boxes
+ *  (frame-mixed as shipped) are recomputed from the re-based vertices — this
+ *  is also what retires the false "outside travel" tint on TWP programs.
+ *  Single-epoch payloads take the zero-copy fast path inside
+ *  rebasePositions. */
+function _applyProgrammed(g: ViewerGcode) {
+  let out = g;
+  if (g.wcsEvents?.length && (g.feedWcs || g.rapidWcs) && (g.feedPos || g.rapidPos)) {
+    const live = _pfWcs();
+    const terms = epochTermsFor(g.wcsEvents, live, _pv.wcsTable ?? undefined);
+    const active = wcsTerms(live);
+    const fp = g.feedPos ? rebasePositions(g.feedPos, g.feedWcs, terms, active) : g.feedPos;
+    const rp = g.rapidPos ? rebasePositions(g.rapidPos, g.rapidWcs, terms, active) : g.rapidPos;
+    if (fp !== g.feedPos || rp !== g.rapidPos) {
+      const fb = fp ? boundsOf(fp) : null;
+      const rb = rp ? boundsOf(rp) : null;
+      // Same shapes the worker ships: bounds = cut envelope (X/Y over
+      // feed+rapid, Z over feed only), motion_bounds = full envelope.
+      const motion = fb && rb
+        ? { min: fb.min.map((v, i) => Math.min(v, rb.min[i]!)),
+            max: fb.max.map((v, i) => Math.max(v, rb.max[i]!)) }
+        : (fb ?? rb);
+      const bounds = fb
+        ? (rb
+          ? { min: [Math.min(fb.min[0]!, rb.min[0]!), Math.min(fb.min[1]!, rb.min[1]!), fb.min[2]!],
+              max: [Math.max(fb.max[0]!, rb.max[0]!), Math.max(fb.max[1]!, rb.max[1]!), fb.max[2]!] }
+          : fb)
+        : null;
+      out = { ...g, feedPos: fp, rapidPos: rp,
+              rapidDist: rp ? lineDistances(rp) : g.rapidDist,
+              bounds, motion_bounds: motion };
+    }
+  }
+  toolpath.apply(toolpathCtx(), out);
+}
+
 function applyGcode(g: ViewerGcode) {
   if (_partFrameEligible(g)) {
     _pfAppliedMode = "part";
@@ -1567,9 +1671,11 @@ function applyGcode(g: ViewerGcode) {
     // Copies: the transfer must not detach viewerGcode's raw buffers — they
     // are re-read on every WCS/mode change.
     const feed = { pos: fp.slice(), abc: fa.slice(), lines: fl?.slice(), breaks: g.feedBreaks?.slice(),
-                   mode: g.feedMode?.slice(), frame: g.feedFrame?.slice(), frames: g.kinsFrames };
+                   mode: g.feedMode?.slice(), frame: g.feedFrame?.slice(), frames: g.kinsFrames,
+                   wcs: g.feedWcs?.slice() };
     const rapid = { pos: rp.slice(), abc: ra.slice(), breaks: g.rapidBreaks?.slice(),
-                    mode: g.rapidMode?.slice(), frame: g.rapidFrame?.slice(), frames: g.kinsFrames };
+                    mode: g.rapidMode?.slice(), frame: g.rapidFrame?.slice(), frames: g.kinsFrames,
+                    wcs: g.rapidWcs?.slice() };
     const transfer: ArrayBuffer[] = [
       feed.pos.buffer as ArrayBuffer, feed.abc.buffer as ArrayBuffer,
       rapid.pos.buffer as ArrayBuffer, rapid.abc.buffer as ArrayBuffer,
@@ -1581,14 +1687,23 @@ function applyGcode(g: ViewerGcode) {
     if (rapid.mode) transfer.push(rapid.mode.buffer as ArrayBuffer);
     if (feed.frame) transfer.push(feed.frame.buffer as ArrayBuffer);
     if (rapid.frame) transfer.push(rapid.frame.buffer as ArrayBuffer);
+    if (feed.wcs) transfer.push(feed.wcs.buffer as ArrayBuffer);
+    if (rapid.wcs) transfer.push(rapid.wcs.buffer as ArrayBuffer);
     try {
-      _pfGetWorker().postMessage({ id, machine: _pfMachine(viewerInit.value!), wcs: _pfWcs(), feed, rapid }, transfer);
+      _pfGetWorker().postMessage({
+        id, machine: _pfMachine(viewerInit.value!), wcs: _pfWcs(),
+        // Epochs (review P2): events + the live table let the worker build
+        // per-epoch re-add terms next to the per-vertex `wcs` indices.
+        wcsEvents: g.wcsEvents,
+        wcsTable: _pv.wcsTable ?? undefined,
+        feed, rapid,
+      }, transfer);
     } catch (err) {
       // A failed post must NEVER leave the viewer with no toolpath — fall
       // back to the programmed preview and say so.
       console.error("[partFrame] postMessage failed — programmed preview used:", err);
       _pfAppliedMode = "programmed";
-      toolpath.apply(toolpathCtx(), g);
+      _applyProgrammed(g);
     }
     return;
   }
@@ -1596,14 +1711,16 @@ function applyGcode(g: ViewerGcode) {
   ++_pfReqId;  // invalidate any in-flight part-frame reply
   // Owned by toolpathController; pass a fresh ctx with the reassigned
   // scene-graph pointers + per-program machine bounds/units.
-  toolpath.apply(toolpathCtx(), g);
+  _applyProgrammed(g);
 }
 
 // Part-frame vertices depend on the pivot position relative to the live work
 // origin, so a WCS change (touch-off, G10, G92, rotation) re-transforms —
 // debounced, these change rarely and never mid-cut at speed.
 function _pfScheduleWcsRefresh() {
-  if (_pfAppliedMode !== "part") return;
+  // Epoch-aware programmed payloads (review P2) also re-apply on WCS/table
+  // changes: their display rebase depends on the live per-fixture rows.
+  if (_pfAppliedMode !== "part" && !viewerGcode.value?.wcsEvents?.length) return;
   clearTimeout(_pfWcsTimer);
   _pfWcsTimer = setTimeout(() => {
     if (viewerGcode.value) applyGcode(viewerGcode.value);
@@ -2384,6 +2501,7 @@ defineExpose({
       <div v-if="vst?.eoffset_enabled" class="hudWarn">Comp Z {{ vst.eoffset_z != null ? vst.eoffset_z.toFixed(3) : '---' }}</div>
       <div v-if="vst?.rotation_xy" class="hudWarn">Rotation {{ vst.rotation_xy.toFixed(1) }}°</div>
       <div v-if="foreignWcs.length" class="hudWarn">Program cuts in {{ foreignWcs.join(', ') }} — {{ props.g5xLabel }} active</div>
+      <div v-if="rewrittenWcs.length" class="hudWarn">Program writes {{ rewrittenWcs.join(', ') }} — live edits there don't move its preview</div>
       <div v-if="previewWcsStale" class="hudWarn hudAction" @click="emit('reparse')">Preview uses older offsets — Refresh</div>
       <div v-if="toolpathOverflow" class="hudWarn">Toolpath exceeds bounds</div>
     </div>

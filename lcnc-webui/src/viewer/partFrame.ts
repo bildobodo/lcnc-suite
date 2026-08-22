@@ -82,6 +82,10 @@ export interface PartFramePolyline {
   frame?: Uint8Array;
   /** TWP frame triplets [preRot rad, primary deg, secondary deg]. */
   frames?: [number, number, number][];
+  /** Per-vertex WCS epoch index (review P2) — selects which entry of the
+   *  transform's `epochTerms` converts this vertex's program coords to
+   *  machine coords. Absent = single-basis (the live `wcs` terms). */
+  wcs?: Uint8Array;
 }
 
 export interface PartFrameResult {
@@ -245,6 +249,7 @@ export function transformToPartFrame(
   wcs: PartFrameWcs,
   input: PartFramePolyline,
   rotStepDeg = DEFAULT_ROT_STEP_DEG,
+  epochTerms?: readonly WcsTerms[],
 ): PartFrameResult {
   const n = Math.min(input.pos.length, input.abc.length) / 3 | 0;
   if (n === 0) return { pos: new Float32Array(0), lines: input.lines && new Uint32Array(0) };
@@ -263,7 +268,13 @@ export function transformToPartFrame(
   // g5x/g92 first arrive (ThreeViewer's WCS-change refresh). A bare [0]!
   // here turned that race into NaN vertices — invisible geometry, no error.
   const o = wcsTerms(wcs);
+  // Output peel stays in the LIVE ACTIVE frame — the rendered polyline hangs
+  // under the single workOrigin group. Per-epoch terms (review P2) only
+  // steer the INPUT side: program coords → machine coords per vertex.
   const { ox, oy, oz, cth, sth } = o;
+  const inWcs = input.wcs;
+  const termFor = (i: number): WcsTerms =>
+    (inWcs && epochTerms?.[inWcs[i] ?? 0]) ? epochTerms[inWcs[i] ?? 0]! : o;
 
   // Section starts: segments INTO these vertices are false connectors across
   // stream interleaves — a single un-subdivided sample keeps the vertex (the
@@ -317,9 +328,10 @@ export function transformToPartFrame(
   const machineVals: number[] = [0, 0, 0, 0, 0, 0];
 
   let out = 0;
-  const emit = (px: number, py: number, pz: number, pa: number, pb: number, pc: number, line: number, model: KinsModel) => {
-    // Program → machine coords, then machine → joints via the kins boundary.
-    programToMachine(px, py, pz, pa, pb, pc, o, machineVals);
+  const emit = (px: number, py: number, pz: number, pa: number, pb: number, pc: number, line: number, model: KinsModel, oIn: WcsTerms) => {
+    // Program → machine coords (per the sample's EPOCH terms), then machine
+    // → joints via the kins boundary.
+    programToMachine(px, py, pz, pa, pb, pc, oIn, machineVals);
     model.inverse(machineVals, jointVals);
 
     // Evaluate chain nodes (parents first): base + composed DOFs, exactly
@@ -360,13 +372,14 @@ export function transformToPartFrame(
   const outBreaks: number[] = [];
   emit(input.pos[0]!, input.pos[1]!, input.pos[2]!,
        input.abc[0]!, input.abc[1]!, input.abc[2]!, input.lines?.[0] ?? 0,
-       vertModel?.[0] ?? identityKins);
+       vertModel?.[0] ?? identityKins, termFor(0));
   if (breakSet.has(0)) outBreaks.push(0);
   for (let i = 1; i < n; i++) {
     const j = i * 3, k = j - 3;
     const steps = segSamples[i - 1]!;
     const line = input.lines?.[i] ?? 0;
     const model = vertModel?.[i] ?? identityKins;  // segment mode: all its samples share it
+    const oSeg = termFor(i);                       // ...and its epoch terms
     for (let s = 1; s <= steps; s++) {
       const t = s / steps;
       emit(
@@ -378,6 +391,7 @@ export function transformToPartFrame(
         input.abc[k + 2]! + (input.abc[j + 2]! - input.abc[k + 2]!) * t,
         line,
         model,
+        oSeg,
       );
     }
     // Remap the section start to its output index (the segment's endpoint —

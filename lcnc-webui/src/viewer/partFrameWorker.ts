@@ -7,13 +7,19 @@ import {
   transformToPartFrame, lineDistances, buildLineMap,
   type PartFrameMachine, type PartFrameWcs,
 } from "./partFrame";
+import { epochTermsFor, type WcsEpoch, type WcsTableRow } from "./wcsEpochs";
 
 interface Req {
   id: number;
   machine: PartFrameMachine;
   wcs: PartFrameWcs;
-  feed: { pos: Float32Array; abc: Float32Array; lines?: Uint32Array; breaks?: Uint32Array; mode?: Uint8Array };
-  rapid: { pos: Float32Array; abc: Float32Array; breaks?: Uint32Array; mode?: Uint8Array };
+  /** WCS epochs + the live table (review P2): per-vertex `wcs` indices on
+   *  the streams resolve into per-epoch re-add terms here. Absent = legacy
+   *  single-basis payload. */
+  wcsEvents?: WcsEpoch[];
+  wcsTable?: WcsTableRow[];
+  feed: { pos: Float32Array; abc: Float32Array; lines?: Uint32Array; breaks?: Uint32Array; mode?: Uint8Array; wcs?: Uint8Array };
+  rapid: { pos: Float32Array; abc: Float32Array; breaks?: Uint32Array; mode?: Uint8Array; wcs?: Uint8Array };
 }
 
 function assertFinite(a: Float32Array, label: string) {
@@ -23,10 +29,12 @@ function assertFinite(a: Float32Array, label: string) {
 }
 
 self.onmessage = (e: MessageEvent<Req>) => {
-  const { id, machine, wcs, feed, rapid } = e.data;
+  const { id, machine, wcs, wcsEvents, wcsTable, feed, rapid } = e.data;
   try {
-    const f = transformToPartFrame(machine, wcs, feed);
-    const r = transformToPartFrame(machine, wcs, rapid);
+    const epochTerms = wcsEvents?.length
+      ? epochTermsFor(wcsEvents, wcs, wcsTable) : undefined;
+    const f = transformToPartFrame(machine, wcs, feed, undefined, epochTerms);
+    const r = transformToPartFrame(machine, wcs, rapid, undefined, epochTerms);
     // NaN positions render as NOTHING with no error — never ship them; the
     // main thread falls back to the programmed preview and logs loudly.
     assertFinite(f.pos, "feed");

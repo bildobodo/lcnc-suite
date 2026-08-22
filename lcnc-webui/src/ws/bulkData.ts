@@ -96,6 +96,14 @@ export interface ScrubTrack {
    *  machine motion — zero cum, never drawn/swept/lerped. Absent = legacy
    *  payload; flip segments keep the raw phantom jump. */
   brk?: Uint8Array;
+  /** count — WCS epoch index of the segment ending here (into `wcsEvents`):
+   *  which basis the point was peeled against (review P2). Absent = legacy
+   *  payload (single-basis semantics). */
+  wcsEpoch?: Uint8Array;
+  /** WCS epoch events (parsed wire wcs_frames) dereferenced by `wcsEpoch` —
+   *  see viewer/wcsEpochs.ts for the re-add rules (live row vs rewritten
+   *  snapshot). */
+  wcsEvents?: import("../viewer/wcsEpochs").WcsEpoch[];
   /** Monotonic scrub parameter: SECONDS when `timeBased` (unified timeline
    *  phase 1 — per-segment feed + INI rapid velocities), else distance
    *  (mm, 1° ≙ 1 mm — legacy payloads / no INI MAX_VELOCITY). */
@@ -164,6 +172,14 @@ export interface ViewerGcode {
   // none; dereference into kinsFrames). Present iff kins_frames arrived.
   feedFrame?: Uint8Array;
   rapidFrame?: Uint8Array;
+  // Per-vertex WCS epoch index for the DRAWN streams (dereference into
+  // wcsEvents) — consumed by the display rebase. Present iff wcs_frames
+  // arrived with an epoch-aware track.
+  feedWcs?: Uint8Array;
+  rapidWcs?: Uint8Array;
+  // WCS epoch events parsed from wire wcs_frames (previewWorker) — the
+  // per-section bases this preview was peeled against (review P2).
+  wcsEvents?: import("../viewer/wcsEpochs").WcsEpoch[];
   // TWP frame triplets [preRot rad, primary deg, secondary deg] — wire
   // kins_frames minus the seq column, shared by the per-vertex indices
   // above and scrubTrack.frames.
@@ -252,6 +268,11 @@ export interface ViewerGcode {
   // family, or a frameless type-2 side): those segments keep the phantom
   // geometry. Present only when > 0 — unresolved ≠ handled.
   kins_flips_unresolved?: number;
+  // WCS epoch rows (review P2): [seq, g5x_index, rotation_deg, rewritten,
+  // g5x x6, g92 x6] in machine units — the basis each epoch's endpoints
+  // were peeled against. ≥1 row whenever motion exists; absence = legacy
+  // single-basis payload. Parsed into `wcsEvents` by previewWorker.
+  wcs_frames?: number[][];
   // Parse worker aborted partway: interpreter error text + the source line it
   // stopped on (e.g. an axis word this machine doesn't have). The payload
   // still carries whatever parsed before the abort, but scrubTrack is absent

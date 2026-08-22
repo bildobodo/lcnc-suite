@@ -18,6 +18,7 @@ import {
   buildLineMap, machineToProgram, programToMachine, wcsTerms,
   type PartFrameWcs, type WcsTerms,
 } from "./partFrame";
+import type { WcsEpoch } from "./wcsEpochs";
 import type { ScrubTrack } from "../ws/bulkData";
 
 export type { ScrubTrack };
@@ -44,6 +45,10 @@ export interface ScrubStream {
    *  zero machine motion. Absent = legacy payload (flip segments keep the
    *  raw phantom; the reparse machinery refreshes them). */
   brk?: Uint8Array;
+  /** Per-point WCS epoch INDEX into the payload's wcs_frames events —
+   *  which basis this point was peeled against (review P2). Absent =
+   *  legacy payload (single-basis semantics). */
+  wcs?: Uint8Array;
 }
 
 // Scrub-parameter contribution of a pure rotary sweep: 1° ≙ 1 mm, the same
@@ -57,7 +62,8 @@ const DEG_AS_MM = 1;
  *  both streams present but seq missing (a stale pre-stage-2 cached payload)
  *  — the scrub UI treats null as "unavailable", never guesses an order. */
 export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
-                                frames?: [number, number, number][]): ScrubTrack | null {
+                                frames?: [number, number, number][],
+                                wcsEvents?: WcsEpoch[]): ScrubTrack | null {
   const nf = (feed.pos.length / 3) | 0;
   const nr = (rapid.pos.length / 3) | 0;
   const n = nf + nr;
@@ -94,6 +100,13 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
     && (!feed.brk || feed.brk.length === nf)
     && (!rapid.brk || rapid.brk.length === nr);
   const brk = hasBrk ? new Uint8Array(n) : undefined;
+  // WCS epochs (review P2): like mode — present iff every non-empty stream
+  // carries the per-point index and an events list exists to deref into.
+  const hasWcs = !!wcsEvents?.length
+    && (nf === 0 || feed.wcs?.length === nf)
+    && (nr === 0 || rapid.wcs?.length === nr)
+    && !!(feed.wcs || rapid.wcs);
+  const wcsEpoch = hasWcs ? new Uint8Array(n) : undefined;
 
   let fi = 0, ri = 0;
   let prevFT = 0, prevRT = 0;   // per-stream previous cumulative time
@@ -119,6 +132,7 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
     if (mode) mode[i] = src.mode?.[si] ?? 0;
     if (frameIdx) frameIdx[i] = src.frame?.[si] ?? 0xff;
     if (brk) brk[i] = src.brk?.[si] ?? 0;
+    if (wcsEpoch) wcsEpoch[i] = src.wcs?.[si] ?? 0;
     if (timeBased) {
       // Duration of the segment ending here = this stream's cumulative
       // delta (RDP-collapsed interiors are preserved by the cumulative).
@@ -162,6 +176,7 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
 
   return { pos, abc, lines, rapid: rapidFlag, mode, frame: frameIdx,
            frames: hasFrame ? frames : undefined, brk,
+           wcsEpoch, wcsEvents: hasWcs ? wcsEvents : undefined,
            cum, count: n, lineCum, lineSpan: buildLineMap(lines), timeBased };
 }
 
@@ -192,6 +207,10 @@ export interface SplitStreams {
   /** Per-vertex TWP frame indices (same conventions as feedMode/rapidMode;
    *  dereference into the track's `frames`). */
   feedFrame?: Uint8Array; rapidFrame?: Uint8Array;
+  /** Per-vertex WCS epoch indices (same conventions; dereference into the
+   *  track's `wcsEvents`) — which basis each drawn vertex was peeled
+   *  against, consumed by the display rebase (wcsEpochs.rebasePositions). */
+  feedWcs?: Uint8Array; rapidWcs?: Uint8Array;
 }
 
 export function splitTrackStreams(t: ScrubTrack): SplitStreams {
@@ -200,6 +219,7 @@ export function splitTrackStreams(t: ScrubTrack): SplitStreams {
   const rPos: number[] = [], rAbc: number[] = [], rBreaks: number[] = [];
   const fMode: number[] = [], rMode: number[] = [];
   const fFrame: number[] = [], rFrame: number[] = [];
+  const fWcs: number[] = [], rWcs: number[] = [];
   let fLast = -2, rLast = -2;  // track index of each stream's last emitted point
 
   const push = (pos: number[], abc: number[], i: number) => {
@@ -212,6 +232,7 @@ export function splitTrackStreams(t: ScrubTrack): SplitStreams {
     const ln = t.lines[i]!;  // segment belongs to its END point's line
     const md = t.mode?.[i] ?? 0;  // ...and its END point's mode
     const fr = t.frame?.[i] ?? 0xff;  // ...and its END point's TWP frame
+    const we = t.wcsEpoch?.[i] ?? 0;  // ...and its END point's WCS epoch
     // Kins-flip relabel INTO i: unlike a stream-interleave section (whose
     // connector is the other stream's real move), no motion exists here at
     // all — open the section AT the relabeled vertex and draw nothing into
@@ -221,24 +242,24 @@ export function splitTrackStreams(t: ScrubTrack): SplitStreams {
       if (relabel) {
         rBreaks.push(rPos.length / 3);
         push(rPos, rAbc, i);
-        rMode.push(md); rFrame.push(fr);
+        rMode.push(md); rFrame.push(fr); rWcs.push(we);
         rLast = i;
         continue;
       }
       if (rLast !== i - 1) {
         rBreaks.push(rPos.length / 3);
         push(rPos, rAbc, i - 1);
-        rMode.push(md); rFrame.push(fr);
+        rMode.push(md); rFrame.push(fr); rWcs.push(we);
       }
       push(rPos, rAbc, i);
-      rMode.push(md); rFrame.push(fr);
+      rMode.push(md); rFrame.push(fr); rWcs.push(we);
       rLast = i;
     } else {
       if (relabel) {
         fBreaks.push(fPos.length / 3);
         fLines.push(ln);
         push(fPos, fAbc, i);
-        fMode.push(md); fFrame.push(fr);
+        fMode.push(md); fFrame.push(fr); fWcs.push(we);
         fLast = i;
         continue;
       }
@@ -248,11 +269,11 @@ export function splitTrackStreams(t: ScrubTrack): SplitStreams {
         // line highlight covers the move from its true start.
         fLines.push(ln);
         push(fPos, fAbc, i - 1);
-        fMode.push(md); fFrame.push(fr);
+        fMode.push(md); fFrame.push(fr); fWcs.push(we);
       }
       fLines.push(ln);
       push(fPos, fAbc, i);
-      fMode.push(md); fFrame.push(fr);
+      fMode.push(md); fFrame.push(fr); fWcs.push(we);
       fLast = i;
     }
   }
@@ -266,6 +287,8 @@ export function splitTrackStreams(t: ScrubTrack): SplitStreams {
     rapidMode: t.mode ? new Uint8Array(rMode) : undefined,
     feedFrame: t.frame ? new Uint8Array(fFrame) : undefined,
     rapidFrame: t.frame ? new Uint8Array(rFrame) : undefined,
+    feedWcs: t.wcsEpoch ? new Uint8Array(fWcs) : undefined,
+    rapidWcs: t.wcsEpoch ? new Uint8Array(rWcs) : undefined,
   };
 }
 
@@ -283,6 +306,9 @@ export interface ScrubSample {
   /** Governing TWP frame values [preRot, primary, secondary] for a
    *  TOOL-mode (type 2) segment, or null (no frame marker / no TWP). */
   frame: [number, number, number] | null;
+  /** WCS epoch index of the segment (into the track's wcsEvents), or null
+   *  when the track has no epoch data (legacy payload — single-basis). */
+  wcsEpoch: number | null;
   /** Upper track index of the segment the sample falls in. */
   index: number;
 }
@@ -303,6 +329,7 @@ export function sampleTrack(t: ScrubTrack, s: number, out: ScrubSample): ScrubSa
     out.line = t.lines[0]!; out.rapid = t.rapid[0] === 1;
     out.kinstype = t.mode ? t.mode[0]! : null;
     out.frame = _frameAt(t, 0); out.index = 0;
+    out.wcsEpoch = t.wcsEpoch ? t.wcsEpoch[0]! : null;
     return out;
   }
   if (s >= t.cum[last]!) {
@@ -312,6 +339,7 @@ export function sampleTrack(t: ScrubTrack, s: number, out: ScrubSample): ScrubSa
     out.line = t.lines[last]!; out.rapid = t.rapid[last] === 1;
     out.kinstype = t.mode ? t.mode[last]! : null;
     out.frame = _frameAt(t, last); out.index = last;
+    out.wcsEpoch = t.wcsEpoch ? t.wcsEpoch[last]! : null;
     return out;
   }
   // Smallest i with cum[i] >= s (cum[0] = 0 < s here, so lo starts at 1).
@@ -337,6 +365,7 @@ export function sampleTrack(t: ScrubTrack, s: number, out: ScrubSample): ScrubSa
   out.rapid = t.rapid[lo] === 1;
   out.kinstype = t.mode ? t.mode[lo]! : null;
   out.frame = _frameAt(t, lo);
+  out.wcsEpoch = t.wcsEpoch ? t.wcsEpoch[lo]! : null;
   out.index = lo;
   return out;
 }
@@ -352,13 +381,17 @@ export function machineJointsToProgram(
   joints: ArrayLike<number>, axes: string[], wcs: PartFrameWcs,
   kins?: KinsSpec, kinstype?: number | null,
   frame?: readonly number[] | null,
+  terms?: WcsTerms,
 ): [number, number, number, number, number, number] {
   const m = [0, 0, 0, 0, 0, 0];
   const model = kinsForSegment(axes, kins, kinstype ?? null, frame,
                                wcs.tool?.[2] || undefined, "entry move");
   model.forward(joints, m);
   const out: [number, number, number, number, number, number] = [0, 0, 0, 0, 0, 0];
-  machineToProgram(m[0]!, m[1]!, m[2]!, m[3]!, m[4]!, m[5]!, wcsTerms(wcs), out);
+  // `terms` override (review P2): the entry inverse must land in the frame
+  // of the track point it connects to — epoch 0's terms on an epoch-aware
+  // track, not necessarily the live ACTIVE fixture's.
+  machineToProgram(m[0]!, m[1]!, m[2]!, m[3]!, m[4]!, m[5]!, terms ?? wcsTerms(wcs), out);
   return out;
 }
 
@@ -428,10 +461,21 @@ export function prependEntry(
     brk[0] = 0;
     brk[1] = 0;
   }
+  let wcsEpoch: Uint8Array | undefined;
+  if (t.wcsEpoch) {
+    // The entry move targets the track's first point, whose coords live in
+    // epoch 0's frame — the whole entry segment shares that epoch (same
+    // reasoning as the initial-mode stamp above).
+    wcsEpoch = new Uint8Array(n);
+    wcsEpoch.set(t.wcsEpoch, 1);
+    wcsEpoch[0] = t.wcsEpoch[0] ?? 0;
+    wcsEpoch[1] = t.wcsEpoch[0] ?? 0;
+  }
   for (let i = 0; i < t.count; i++) cum[i + 1] = t.cum[i]! + entryLen;
   const lineCum = new Map<number, number>();
   for (const [ln, c] of t.lineCum) lineCum.set(ln, c + entryLen);
   return { pos, abc, lines, rapid, mode, frame, frames: t.frames, brk,
+           wcsEpoch, wcsEvents: t.wcsEvents,
            cum, count: n, lineCum, lineSpan: buildLineMap(lines), timeBased: t.timeBased };
 }
 
@@ -446,9 +490,15 @@ const _machineVals: number[] = [0, 0, 0, 0, 0, 0];
  *  letters yield null — the caller falls back to the live joint position
  *  rather than inventing a value. Fills `out`. */
 export function jointsForSample(
-  sample: ScrubSample, wcs: PartFrameWcs, axes: string[], out: (number | null)[], kins?: KinsSpec,
+  sample: ScrubSample, wcs: PartFrameWcs, axes: string[], out: (number | null)[],
+  kins?: KinsSpec, epochTerms?: readonly WcsTerms[],
 ): (number | null)[] {
-  const o: WcsTerms = wcsTerms(wcs);
+  // Per-epoch terms (review P2): a sample on an epoch-aware track re-adds
+  // ITS segment's basis (live row or rewritten snapshot, resolved by
+  // wcsEpochs.epochTermsFor), not the live active fixture's. A legacy
+  // track (wcsEpoch null) or a missing terms list keeps today's behavior.
+  const o: WcsTerms = (sample.wcsEpoch != null && epochTerms?.[sample.wcsEpoch])
+    ? epochTerms[sample.wcsEpoch]! : wcsTerms(wcs);
   programToMachine(sample.px, sample.py, sample.pz, sample.pa, sample.pb, sample.pc, o, _machineVals);
   const model = kinsForSegment(axes, kins, sample.kinstype, sample.frame,
                                wcs.tool?.[2] || undefined, "scrub pose");

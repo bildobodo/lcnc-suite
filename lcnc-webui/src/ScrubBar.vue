@@ -18,6 +18,8 @@ import {
   type ScrubSample,
 } from "./viewer/scrubTrack";
 import { specFromWire } from "./viewer/kins";
+import { epochTermsFor, type WcsTableRow } from "./viewer/wcsEpochs";
+import type { WcsTerms } from "./viewer/partFrame";
 import type { ScrubTrack } from "./ws/bulkData";
 import type { CollisionResult } from "./viewer/collision";
 import { limitViolationText } from "./ws/bulkData";
@@ -86,11 +88,21 @@ const curRapid = ref(false);
 const pct = computed(() => (cumMax.value > 0 ? Math.round((sPos.value / cumMax.value) * 100) : 0));
 
 // Reused per-frame scratch — the sPos watcher runs at animation rate.
-const _sample: ScrubSample = { px: 0, py: 0, pz: 0, pa: 0, pb: 0, pc: 0, line: 0, rapid: false, kinstype: null, frame: null, index: 0 };
+const _sample: ScrubSample = { px: 0, py: 0, pz: 0, pa: 0, pb: 0, pc: 0, line: 0, rapid: false, kinstype: null, frame: null, wcsEpoch: null, index: 0 };
 const _joints: (number | null)[] = [];
 // Wire kins declaration → spec, cached: specFromWire allocates, and this
 // feeds the per-frame pose path — recompute only when viewer_init changes.
 const _kinsSpec = computed(() => specFromWire(viewerInit.value?.kins));
+
+/** Per-epoch WCS re-add terms (review P2): the pose, the entry inverse and
+ *  the run playhead all convert program coords through the segment's OWN
+ *  epoch basis (live table row / rewritten snapshot). undefined = legacy
+ *  single-basis track. */
+const _epochTerms = computed<WcsTerms[] | undefined>(() => {
+  const evs = track.value?.wcsEvents;
+  if (!evs?.length) return undefined;
+  return epochTermsFor(evs, _wcs(), st.value.wcs_table as WcsTableRow[] | undefined);
+});
 
 function applyPos() {
   const t = track.value;
@@ -99,7 +111,7 @@ function applyPos() {
   curLine.value = _sample.line;
   curRapid.value = _sample.rapid;
   jointsForSample(_sample, _wcs(), viewerInit.value?.axes ?? [], _joints,
-                  _kinsSpec.value);
+                  _kinsSpec.value, _epochTerms.value);
   emit("pose", _joints.slice(), _sample.line, sPos.value, t);
 }
 
@@ -161,8 +173,12 @@ function _buildEntryTrack() {
   const f0 = base.frame?.[0];
   const frameEntry = liveKinsFrame()
     ?? ((f0 != null && f0 !== 0xff && base.frames) ? base.frames[f0] ?? null : null);
+  // Epoch-0 terms (review P2): the entry lands on the track's FIRST point,
+  // whose coords live in epoch 0's frame — not necessarily the live active
+  // fixture's (a TWP program's first point is already in the plane frame).
+  const entryTerms = _epochTerms.value?.[base.wcsEpoch?.[0] ?? 0];
   const entry = machineJointsToProgram(_baseJoints, viewerInit.value?.axes ?? [], _wcs(),
-                                       _kinsSpec.value, ktEntry, frameEntry);
+                                       _kinsSpec.value, ktEntry, frameEntry, entryTerms);
   const g = viewerGcode.value;
   const t = prependEntry(base, entry, { linear: g?.rapid_rate, rotary: g?.rot_rapid_rate });
   entryTrack.value = t === base ? null : t;
@@ -205,7 +221,11 @@ watch(sPos, () => {
 // ticks don't re-emit (render-on-demand stays effective).
 const _wcsKey = computed(() => {
   const d = st.value;
-  return `${(d.g5x_offset ?? []).join()},${(d.g92_offset ?? []).join()},${d.rotation_xy ?? 0},${(d.tool_offset ?? []).join()}`;
+  // The whole fixture table is a pose input on an epoch-aware track (each
+  // epoch re-adds ITS fixture's live row) — key on it too. ~90 numbers,
+  // stringify cost is noise next to the pose math it gates.
+  const table = track.value?.wcsEvents?.length ? JSON.stringify(d.wcs_table ?? null) : "";
+  return `${(d.g5x_offset ?? []).join()},${(d.g92_offset ?? []).join()},${d.rotation_xy ?? 0},${(d.tool_offset ?? []).join()},${table}`;
 });
 // The pose (and the entry move's program coords) depend on the live WCS.
 // While simulating, a WCS change also re-runs the sweep with the rebuilt
@@ -314,8 +334,12 @@ watch(st, (d) => {
   // sampled.
   const frameNow = liveKinsFrame()
     ?? ((fN != null && fN !== 0xff && t.frames) ? t.frames[fN] ?? null : null);
+  // The span's segments live in ONE epoch (epoch flips insert their own
+  // relabel vertex on a remap line, never inside a program line's span) —
+  // invert the live pose into that epoch's frame before projecting.
   const p = machineJointsToProgram(jp, viewerInit.value?.axes ?? [], _wcs(),
-                                   _kinsSpec.value, ktNow, frameNow);
+                                   _kinsSpec.value, ktNow, frameNow,
+                                   _epochTerms.value?.[t.wcsEpoch?.[span.end] ?? 0]);
   let bestCum = t.cum[span.start]!;
   let bestD = Infinity;
   for (let i = Math.max(1, span.start); i <= span.end; i++) {

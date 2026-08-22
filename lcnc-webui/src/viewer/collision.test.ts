@@ -596,3 +596,20 @@ describe("trsrn (TWP) conservative advancement", () => {
     expect(r.uncertified).toMatch(/xyzsomething-new/);
   });
 });
+
+describe("per-epoch WCS terms (review P2)", () => {
+  it("poses each segment through ITS epoch's terms", () => {
+    // A plunge that misses under the live wcs (z 0) but whose epoch basis
+    // sits 30 low — with epochTerms + track.wcs the sweep must see the deep
+    // contact (start pose stays clear of the baseline pass); without them
+    // it must stay silent.
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const t = { ...track([[0, 0, 0], [0, 0, -13]], undefined, [7, 8]),
+                wcs: new Uint8Array([0, 0]) };
+    const epochTerms = [{ ox: 0, oy: 0, oz: -30, oa: 0, ob: 0, oc: 0, tx: 0, ty: 0, tz: 0, cth: 1, sth: 0 }];
+    const hit = sweepCollisions(model, t, WCS0, { margin: 2, epochTerms });
+    expect(hit.hits.length).toBeGreaterThan(0);
+    const miss = sweepCollisions(model, t, WCS0, { margin: 2 });
+    expect(miss.hits).toHaveLength(0);
+  });
+});

@@ -9,6 +9,7 @@
 // points.flat(), no per-point allocation on the UI thread.
 import { decode as msgpackDecode } from "@msgpack/msgpack";
 import { buildScrubTrack, splitTrackStreams } from "./viewer/scrubTrack";
+import { parseWcsFrames } from "./viewer/wcsEpochs";
 
 interface Req { version: number; url: string }
 
@@ -56,20 +57,18 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     const feedSeq = _toU32(g.feed_seq);
     const rapidSeq = _toU32(g.rapid_seq);
 
-    // TWP frames (phase 3): wire kins_frames = [seq, preRot, primary,
-    // secondary]; per-vertex governing frame resolved by seq with the
-    // marker convention (an event at seq N governs segments with seq > N;
-    // same-seq ties: last recorded wins — stable sort on seq alone).
-    const wireFrames = (g.kins_frames as [number, number, number, number][] | undefined);
-    const kinsFrames = wireFrames?.length
-      ? wireFrames.map((f) => [f[1], f[2], f[3]] as [number, number, number])
-      : undefined;
-    const frameIdxFor = (seq: Uint32Array | undefined): Uint8Array | undefined => {
-      if (!kinsFrames || !wireFrames || !seq) return undefined;
-      const evs = wireFrames.map((f, i) => [f[0], i] as const).sort((a, b) => a[0] - b[0]);
-      const out = new Uint8Array(seq.length).fill(0xff);
+    // Seq-keyed event resolution, shared by TWP frames and WCS epochs: an
+    // event at seq N governs segments with seq > N; same-seq ties: last
+    // recorded wins (stable sort on seq alone). `none` is the fill value
+    // for "no event governs yet".
+    const eventIdxFor = (
+      seq: Uint32Array | undefined, eventSeqs: number[] | undefined, none: number,
+    ): Uint8Array | undefined => {
+      if (!eventSeqs?.length || !seq) return undefined;
+      const evs = eventSeqs.map((s, i) => [s, i] as const).sort((a, b) => a[0] - b[0]);
+      const out = new Uint8Array(seq.length).fill(none);
       for (let v = 0; v < seq.length; v++) {
-        let idx = 0xff;
+        let idx = none;
         for (const [es, ei] of evs) {
           if (es < seq[v]!) idx = Math.min(ei, 0xfe);
           else break;
@@ -78,13 +77,28 @@ self.onmessage = async (e: MessageEvent<Req>) => {
       }
       return out;
     };
-    const feedFrameWire = frameIdxFor(feedSeq);
-    const rapidFrameWire = frameIdxFor(rapidSeq);
+    // TWP frames (phase 3): wire kins_frames = [seq, preRot, primary, secondary].
+    const wireFrames = (g.kins_frames as [number, number, number, number][] | undefined);
+    const kinsFrames = wireFrames?.length
+      ? wireFrames.map((f) => [f[1], f[2], f[3]] as [number, number, number])
+      : undefined;
+    const frameSeqs = kinsFrames ? wireFrames!.map(f => f[0]) : undefined;
+    const feedFrameWire = eventIdxFor(feedSeq, frameSeqs, 0xff);
+    const rapidFrameWire = eventIdxFor(rapidSeq, frameSeqs, 0xff);
+    // WCS epochs (review P2): wire wcs_frames rows → per-vertex epoch index.
+    // Every recorded segment has a governing epoch by construction (the
+    // first event precedes the first motion), so fill 0 is unreachable in
+    // practice and harmless if a malformed payload proves otherwise.
+    const wcsEvents = parseWcsFrames(g.wcs_frames as number[][] | undefined);
+    const epochSeqs = wcsEvents?.map(e => e.seq);
+    const feedWcsWire = eventIdxFor(feedSeq, epochSeqs, 0);
+    const rapidWcsWire = eventIdxFor(rapidSeq, epochSeqs, 0);
 
     const scrubTrack = buildScrubTrack(
-      { pos: feedPos, abc: feedAbc, lines: feedLines, seq: feedSeq, tcum: g.feed_tcum != null && (g.feed_tcum as Uint8Array).length ? _toF32(g.feed_tcum) : undefined, mode: feedModeWire, frame: feedFrameWire },
-      { pos: rapidPos, abc: rapidAbc, lines: _toU32(g.rapid_lines), seq: rapidSeq, tcum: g.rapid_tcum != null && (g.rapid_tcum as Uint8Array).length ? _toF32(g.rapid_tcum) : undefined, mode: rapidModeWire, frame: rapidFrameWire, brk: rapidBrkWire },
+      { pos: feedPos, abc: feedAbc, lines: feedLines, seq: feedSeq, tcum: g.feed_tcum != null && (g.feed_tcum as Uint8Array).length ? _toF32(g.feed_tcum) : undefined, mode: feedModeWire, frame: feedFrameWire, wcs: feedWcsWire },
+      { pos: rapidPos, abc: rapidAbc, lines: _toU32(g.rapid_lines), seq: rapidSeq, tcum: g.rapid_tcum != null && (g.rapid_tcum as Uint8Array).length ? _toF32(g.rapid_tcum) : undefined, mode: rapidModeWire, frame: rapidFrameWire, brk: rapidBrkWire, wcs: rapidWcsWire },
       kinsFrames,
+      wcsEvents,
     );
 
     // Drawn-preview streams re-derived from the merged track (sectioned, with
@@ -98,6 +112,8 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     let rapidMode: Uint8Array | undefined;
     let feedFrame: Uint8Array | undefined;
     let rapidFrame: Uint8Array | undefined;
+    let feedWcs: Uint8Array | undefined;
+    let rapidWcs: Uint8Array | undefined;
     if (scrubTrack) {
       const hadAbc = feedAbc != null || rapidAbc != null;
       const split = splitTrackStreams(scrubTrack);
@@ -109,6 +125,7 @@ self.onmessage = async (e: MessageEvent<Req>) => {
       rapidAbc = hadAbc ? split.rapidAbc : undefined;
       feedMode = split.feedMode; rapidMode = split.rapidMode;
       feedFrame = split.feedFrame; rapidFrame = split.rapidFrame;
+      feedWcs = split.feedWcs; rapidWcs = split.rapidWcs;
     }
     const feedLineMap = _buildFeedLineMap(feedLines ?? g.feed_lines);
     const rapidDist = _lineDistances(rapidPos);  // dashed rapid line's lineDistance (P4.1)
@@ -139,14 +156,17 @@ self.onmessage = async (e: MessageEvent<Req>) => {
       if (scrubTrack.mode) transfer.push(scrubTrack.mode.buffer as ArrayBuffer);
       if (scrubTrack.frame) transfer.push(scrubTrack.frame.buffer as ArrayBuffer);
       if (scrubTrack.brk) transfer.push(scrubTrack.brk.buffer as ArrayBuffer);
+      if (scrubTrack.wcsEpoch) transfer.push(scrubTrack.wcsEpoch.buffer as ArrayBuffer);
     }
     if (feedMode) transfer.push(feedMode.buffer as ArrayBuffer);
     if (rapidMode) transfer.push(rapidMode.buffer as ArrayBuffer);
     if (feedFrame) transfer.push(feedFrame.buffer as ArrayBuffer);
     if (rapidFrame) transfer.push(rapidFrame.buffer as ArrayBuffer);
+    if (feedWcs) transfer.push(feedWcs.buffer as ArrayBuffer);
+    if (rapidWcs) transfer.push(rapidWcs.buffer as ArrayBuffer);
 
     self.postMessage(
-      { version, gcode: { ...rest, feedPos, rapidPos, feed_lines: feedLines, feedLineMap, rapidDist, feedAbc, rapidAbc, feedBreaks, rapidBreaks, feedMode, rapidMode, feedFrame, rapidFrame, kinsFrames, scrubTrack } },
+      { version, gcode: { ...rest, feedPos, rapidPos, feed_lines: feedLines, feedLineMap, rapidDist, feedAbc, rapidAbc, feedBreaks, rapidBreaks, feedMode, rapidMode, feedFrame, rapidFrame, feedWcs, rapidWcs, kinsFrames, wcsEvents, scrubTrack } },
       { transfer },
     );
   } catch (err) {
