@@ -38,8 +38,11 @@ ALLOWED_EXTENSIONS = {".ngc", ".nc", ".gcode", ".tap", ".txt"}
 #
 # Log: 1 = stamp introduced (W2 P1); 2 = feed_abc/rapid_abc ship on
 # pose-dependence (should_ship_abc), not only on a peeled-stream sweep (W2
-# P3 — a pre-2 payload of a TWP program lacks the abc channel entirely).
-PREVIEW_SCHEMA = 2
+# P3 — a pre-2 payload of a TWP program lacks the abc channel entirely);
+# 3 = parse_tlos snapshot rides the wire and the gateway auto-reparses on
+# tool-table drift (W2 P4 — pre-3 payloads keep per-line limit flags baked
+# with a re-measured-away tool length).
+PREVIEW_SCHEMA = 3
 
 
 def sanitize_filename(name: str) -> str:
@@ -879,6 +882,39 @@ def should_ship_abc(kins_marked, raw_abc, peeled_abc, eps=1e-9):
               or abs(t[2] - first[2]) > eps):
             return True
     return False
+
+
+def evaluate_tlo_drift(meta, cur_mtime, tool_number, applied_tlo_z, eps=1e-4):
+    """Has the tool-length picture moved since the preview was parsed? (W2 P4)
+
+    The per-line limit validator bakes the PARSE-TIME tool table into its
+    flags; a toolsetter re-measure afterwards leaves them stale (live
+    defect: 11,532 false Z-max flags after tool_touch_off re-measured
+    156.56 → 56.63 mm). Two drift signals, first hit wins:
+
+    - "table_mtime": the tool-table FILE changed since the parse snapshot
+      (G10 L1 writes through to disk) — the broad signal, catches every
+      tool.
+    - "tool_offset": the APPLIED offset of the loaded tool differs from the
+      parse-time row. Guarded to a loaded tool with a non-trivially-applied
+      offset — G49 zeroes the applied vector and must not read as drift.
+
+    `meta` is the worker's parse-time snapshot {"table_mtime": float|None,
+    "tlos": [[tool, xo, yo, zo], ...]}. Returns the reason string or None.
+    The CALLER owns idle-gating and debounce. Pure.
+    """
+    if not meta:
+        return None
+    m0 = meta.get("table_mtime")
+    if m0 is not None and cur_mtime is not None and cur_mtime != m0:
+        return "table_mtime"
+    if tool_number and applied_tlo_z is not None and abs(applied_tlo_z) > eps:
+        for row in meta.get("tlos") or []:
+            if row and row[0] == tool_number:
+                if abs(float(row[3]) - applied_tlo_z) > eps:
+                    return "tool_offset"
+                break
+    return None
 
 
 #: Var-file numbered-parameter bases for the nine fixtures (G54 … G59.3):

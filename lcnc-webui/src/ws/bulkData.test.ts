@@ -29,7 +29,7 @@ const {
   fetchCompGrid, fetchSurfacePoints, gcodeContent,
   handleToolTableChanged, handleViewerGcode, handleViewerGcodeReady, handleViewerInit,
   previewLoadError, resetBulkVersionsOnClose, toolTableVersion, viewerGcode, viewerInit,
-  previewSchemaMismatch, EXPECTED_PREVIEW_SCHEMA,
+  previewSchemaMismatch, EXPECTED_PREVIEW_SCHEMA, parseTloMismatch,
 } = await import("./bulkData");
 
 type FetchCall = { url: string; signal: AbortSignal };
@@ -116,6 +116,34 @@ describe("previewSchemaMismatch (P1)", () => {
     expect(previewSchemaMismatch(
       { file: "/a.ngc", preview_schema: "1" } as any,
     )).toEqual({ got: null });
+  });
+});
+
+describe("parseTloMismatch (W2 P4)", () => {
+  const G = { file: "/a.ngc", parse_tlos: [[3, 0, 0, 156.5596], [7, 0, 0, -80]] } as any;
+
+  it("null on missing payload / rows / tool / live length", () => {
+    expect(parseTloMismatch(null, 3, 100)).toBeNull();
+    expect(parseTloMismatch({ file: "/a.ngc" } as any, 3, 100)).toBeNull();
+    expect(parseTloMismatch(G, 0, 100)).toBeNull();
+    expect(parseTloMismatch(G, null, 100)).toBeNull();
+    expect(parseTloMismatch(G, 3, null)).toBeNull();
+    expect(parseTloMismatch(G, 5, 100)).toBeNull();   // tool not in snapshot
+  });
+
+  it("matching length within eps → null", () => {
+    expect(parseTloMismatch(G, 3, 156.5596)).toBeNull();
+    expect(parseTloMismatch(G, 3, 156.5599)).toBeNull();  // sub-eps
+  });
+
+  it("re-measured length → mismatch with the live-defect numbers", () => {
+    expect(parseTloMismatch(G, 3, 56.6346))
+      .toEqual({ tool: 3, parsed: 156.5596, live: 56.6346 });
+  });
+
+  it("compares magnitudes (status ships |zoffset|)", () => {
+    expect(parseTloMismatch(G, 7, 80)).toBeNull();
+    expect(parseTloMismatch(G, 7, 81)).toEqual({ tool: 7, parsed: 80, live: 81 });
   });
 });
 

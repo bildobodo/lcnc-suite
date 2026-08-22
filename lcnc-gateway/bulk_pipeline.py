@@ -25,6 +25,7 @@ This module never imports gateway.
 """
 import asyncio
 import gzip
+import json
 import os
 import subprocess
 import sys
@@ -88,6 +89,14 @@ class BulkPipeline:
         # banner standing instead of respawning workers every poll tick.
         self.published_schema: Optional[int] = None
         self.schema_reparse_attempted: Optional[tuple] = None
+        # Parse-time TLO snapshot of the published payload (W2 P4), from the
+        # worker's `__TLO__` stderr line: {"table_path", "table_mtime",
+        # "tlos": [[tool, xo, yo, zo]…]}. The poller's idle-gated drift edge
+        # (evaluate_tlo_drift) auto-reparses when the tool table moves after
+        # a parse — the stale-flags defect (11,532 false Z-max flags after a
+        # toolsetter re-measure). None = legacy worker / nothing published.
+        self.published_tlo: Optional[dict] = None
+        self.tlo_check_ts: float = 0.0   # drift-edge debounce (monotonic)
         self.refresh_running: bool = False            # single-flight guard
         self.preview_bytes: Optional[bytes] = None    # raw copy kept ONLY when no gz exists (<4 KiB payloads)
         self.preview_bytes_gz: Optional[bytes] = None # pre-compressed once per parse
@@ -129,6 +138,7 @@ class BulkPipeline:
         self.last_mtime = None
         self.published_schema = None
         self.schema_reparse_attempted = None
+        self.published_tlo = None
 
     def invalidate_caches_for_ini(self, cur_ini: Optional[str]) -> None:
         """INI-change invalidation (issue #29): if the active INI changed under
@@ -235,6 +245,7 @@ class BulkPipeline:
             # the stamp, and publishing None is deliberate: the client banners
             # it rather than this code guessing a value.
             worker_schema: Optional[int] = None
+            worker_tlo: Optional[dict] = None
             if stderr:
                 for ln in stderr.decode(errors="replace").splitlines():
                     if not ln.strip():
@@ -251,6 +262,17 @@ class BulkPipeline:
                         except (IndexError, ValueError):
                             _trace.emit("gcode.schema_line_malformed", level="warn",
                                         line=ln[:120])
+                    elif ln.startswith("__TLO__"):
+                        # Parse-time TLO snapshot (W2 P4) for the poller's
+                        # drift edge. Malformed → None, loudly — the edge
+                        # then simply can't fire (unchecked ≠ clean, but the
+                        # client-side parse_tlos hint still works).
+                        _s = ln.split("\t", 1)
+                        try:
+                            worker_tlo = json.loads(_s[1])
+                        except (IndexError, ValueError):
+                            _trace.emit("gcode.tlo_line_malformed", level="warn",
+                                        line=ln[:160])
                     else:
                         _trace.emit("gcode.worker_log", line=ln)
             _trace.emit("gcode.worker_done",
@@ -285,6 +307,7 @@ class BulkPipeline:
             self.preview_bytes = None if preview_bytes_gz is not None else stdout
             self.preview_bytes_gz = preview_bytes_gz
             self.published_schema = worker_schema
+            self.published_tlo = worker_tlo
             self.preview_version += 1
             self.last_file = filepath
             self.last_mtime = _mtime_at_parse

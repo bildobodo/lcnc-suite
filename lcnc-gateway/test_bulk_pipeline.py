@@ -41,6 +41,7 @@ class TestPreviewContract(unittest.TestCase):
         b.last_mtime = 1.0
         b.published_schema = 1
         b.schema_reparse_attempted = ("/x.ngc", 1.0)
+        b.published_tlo = {"table_mtime": 1.0, "tlos": []}
         v0 = b.preview_version
         b.clear_preview()
         self.assertIsNone(b.preview_pending)
@@ -50,6 +51,7 @@ class TestPreviewContract(unittest.TestCase):
         self.assertIsNone(b.last_mtime)
         self.assertIsNone(b.published_schema)
         self.assertIsNone(b.schema_reparse_attempted)
+        self.assertIsNone(b.published_tlo)
         self.assertEqual(b.preview_version, v0 + 1)
 
     def test_versions_seeded_nonzero(self):
@@ -89,6 +91,18 @@ class TestSchemaStampRecording(unittest.TestCase):
         self.assertTrue(b.preview_available())
         self.assertEqual(b.published_schema, 7)
         self.assertEqual(b.last_file, self.ngc)
+
+    def test_tlo_line_recorded_at_publish(self):
+        b = self._refresh(
+            b'__TLO__\t{"table_path": "/cfg/tool.tbl", "table_mtime": 5.0,'
+            b' "tlos": [[3, 0.0, 0.0, 156.5596]]}\n__SCHEMA__\t3\n')
+        self.assertEqual(b.published_tlo["table_mtime"], 5.0)
+        self.assertEqual(b.published_tlo["tlos"], [[3, 0.0, 0.0, 156.5596]])
+
+    def test_malformed_tlo_line_records_none(self):
+        b = self._refresh(b"__TLO__\t{broken json\n")
+        self.assertTrue(b.preview_available())
+        self.assertIsNone(b.published_tlo)
 
     def test_absent_schema_line_records_none(self):
         b = self._refresh(b"worker total_ms=1\n")

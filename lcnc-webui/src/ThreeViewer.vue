@@ -23,7 +23,7 @@ import { boundsOf, epochTermsFor, rebasePositions, type WcsTableRow } from "./vi
 import { specFromWire, worldModeForSpec } from "./viewer/kins";
 import { trackHighlightRange } from "./trackHighlight";
 import type { CollisionBody, CollisionResult } from "./viewer/collision";
-import { previewSchemaMismatch, EXPECTED_PREVIEW_SCHEMA, type ScrubTrack } from "./ws/bulkData";
+import { previewSchemaMismatch, parseTloMismatch, EXPECTED_PREVIEW_SCHEMA, type ScrubTrack } from "./ws/bulkData";
 import { createBackplotController } from "./viewer/backplotController";
 import { createSurfaceController } from "./viewer/surfaceController";
 import { createToolpathController, type ToolpathCtx } from "./viewer/toolpathController";
@@ -174,6 +174,12 @@ const rewrittenWcs = computed<string[]>(() => {
 // unstamped payload. Reparse spawns a fresh worker from the code on disk,
 // which republishes with the current stamp.
 const previewSchemaStale = computed(() => previewSchemaMismatch(viewerGcode.value));
+
+// Preview parsed with a different tool length than the live table now holds
+// for the spindle tool (W2 P4) — the per-line limit flags are stale. The
+// gateway auto-reparses when idle; this is the honest in-run signal.
+const previewTloStale = computed(() =>
+  parseTloMismatch(viewerGcode.value, vst.value?.tool_number, vst.value?.tool_length));
 
 // Preview parsed against offsets that are no longer live — a touch-off after
 // the file was loaded. The parse basis rides the wire in MACHINE units for
@@ -357,6 +363,7 @@ const toolpath = createToolpathController({
 const _toolpathCtx: ToolpathCtx = {
   scene: null, workOrigin: null, workRotGroup: null,
   pathAlwaysOnTop: false, machineBounds: undefined, units: undefined,
+  toolOffset: null,
 };
 function toolpathCtx(): ToolpathCtx {
   _toolpathCtx.scene = scene;
@@ -365,6 +372,7 @@ function toolpathCtx(): ToolpathCtx {
   _toolpathCtx.pathAlwaysOnTop = pathAlwaysOnTop;
   _toolpathCtx.machineBounds = viewerInit.value?.machine_bounds;
   _toolpathCtx.units = viewerInit.value?.units;
+  _toolpathCtx.toolOffset = vst.value?.tool_offset ?? null;
   return _toolpathCtx;
 }
 let _machineEdgeLines: THREE.LineSegments[] = [];
@@ -2543,6 +2551,9 @@ defineExpose({
         :title="`Payload format ${previewSchemaStale.got ?? 'unstamped (older gateway)'}; this UI expects ${EXPECTED_PREVIEW_SCHEMA}. Reparse rebuilds it with the installed code.`"
         @click="emit('reparse')">Preview from a different suite version — Reparse</div>
       <div v-if="previewWcsStale" class="hudWarn hudAction" @click="emit('reparse')">Preview uses older offsets — Refresh</div>
+      <div v-if="previewTloStale" class="hudWarn hudAction"
+        :title="`Parsed with T${previewTloStale.tool} length ${previewTloStale.parsed.toFixed(3)}, table now ${previewTloStale.live.toFixed(3)} — line limit flags are stale`"
+        @click="emit('reparse')">Preview parsed with a different T{{ previewTloStale.tool }} length — Reparse</div>
       <div v-if="toolpathOverflow" class="hudWarn">Toolpath exceeds bounds</div>
     </div>
 

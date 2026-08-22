@@ -138,8 +138,33 @@ export interface LimitViolation {
 //
 // Log (mirror gateway_util): 1 = stamp introduced (W2 P1); 2 = abc ships on
 // pose-dependence, not only on a sweep (W2 P3 — a pre-2 TWP payload lacks
-// the abc channel entirely and would draw flat).
-export const EXPECTED_PREVIEW_SCHEMA = 2;
+// the abc channel entirely and would draw flat); 3 = parse_tlos snapshot +
+// gateway TLO-drift auto-reparse (W2 P4 — pre-3 payloads keep limit flags
+// baked with a re-measured-away tool length).
+export const EXPECTED_PREVIEW_SCHEMA = 3;
+
+/** Non-null when the loaded payload was parsed with a DIFFERENT tool length
+ *  than the live table now holds for the spindle tool (W2 P4): the per-line
+ *  soft-limit flags baked the parse-time tool table, and a toolsetter
+ *  re-measure invalidates them. The gateway auto-reparses when idle; this
+ *  hint is the honest in-run signal (compare uses the live table row via
+ *  status tool_length, which is G43-state-independent). Values in machine
+ *  units; magnitudes compared (status ships |zoffset|). Pure. */
+export function parseTloMismatch(
+  g: ViewerGcode | null | undefined,
+  toolNumber: number | null | undefined,
+  liveToolLength: number | null | undefined,
+  eps = 1e-3,
+): { tool: number; parsed: number; live: number } | null {
+  if (!g?.parse_tlos?.length || !toolNumber || toolNumber <= 0) return null;
+  if (liveToolLength == null) return null;
+  const row = g.parse_tlos.find(r => r[0] === toolNumber);
+  if (!row) return null;
+  const parsed = Math.abs(row[3] ?? 0);
+  return Math.abs(parsed - liveToolLength) > eps
+    ? { tool: toolNumber, parsed, live: liveToolLength }
+    : null;
+}
 
 /** Non-null when the loaded payload's wire-format stamp disagrees with this
  *  client build: `{ got: n }` for a differently-stamped payload, `{ got:
@@ -289,6 +314,12 @@ export interface ViewerGcode {
   // be compared straight against the live status values. Differing means the
   // preview is STALE — a touch-off after load — and `reparse_preview` fixes it.
   wcs_basis?: { g5x: number[]; g92: number[]; rotation: number } | null;
+  // Parse-time tool-table rows [[tool, xo, yo, zo]…] for the tools the
+  // program touches plus the spindle tool (W2 P4) — the offsets the
+  // per-line limit flags were baked with, in machine units. Compared
+  // against the live table via parseTloMismatch(); the gateway also
+  // auto-reparses on drift when idle. Absent = pre-schema-3 payload.
+  parse_tlos?: [number, number, number, number][];
   // Motion line numbers do NOT index this file: the program calls a
   // subroutine or remap whose per-file line numbers collide with the main
   // file's (gateway_util.check_line_attribution — unfixable, a queued

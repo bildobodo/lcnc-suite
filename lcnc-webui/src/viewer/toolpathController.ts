@@ -40,6 +40,12 @@ export interface ToolpathCtx {
   pathAlwaysOnTop: boolean;
   machineBounds: { origin: Vec3; size: Vec3 } | undefined;
   units: string | undefined;
+  /** Live applied tool offset [x,y,z,…] (status tool_offset, machine
+   *  units) — the overflow check is joint-side (W2 P4): the machine
+   *  reaches program Z + TLO, so omitting it disagreed with the per-line
+   *  limit validator by exactly the tool length. Null/absent = no offset
+   *  applied. */
+  toolOffset: number[] | null;
 }
 
 export interface ToolpathController {
@@ -339,8 +345,13 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     const mb = ctx.machineBounds;
     if (!mb) return;
     const wo = workOrigin.position;
-    // Machine bounds converted to work coordinates
-    const bMin0 = mb.origin[0] - wo.x, bMin1 = mb.origin[1] - wo.y, bMin2 = mb.origin[2] - wo.z;
+    // Machine bounds converted to work coordinates. The applied TLO shifts
+    // the window too (W2 P4): the joint reaches program + workOrigin + TLO,
+    // so a bounds check without it disagrees with the per-line validator
+    // (joint-side, TLO-inclusive) by exactly the tool length.
+    const tlo = ctx.toolOffset;
+    const tx = tlo?.[0] ?? 0, ty = tlo?.[1] ?? 0, tz = tlo?.[2] ?? 0;
+    const bMin0 = mb.origin[0] - wo.x - tx, bMin1 = mb.origin[1] - wo.y - ty, bMin2 = mb.origin[2] - wo.z - tz;
     const bMax0 = bMin0 + mb.size[0], bMax1 = bMin1 + mb.size[1], bMax2 = bMin2 + mb.size[2];
     // motionBBox is in pre-rotation work coords; rotate the 4 XY corners by
     // workRotGroup.rotation.z to get the rendered AABB. Z is unaffected.

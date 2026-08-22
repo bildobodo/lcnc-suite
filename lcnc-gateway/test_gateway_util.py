@@ -1189,6 +1189,48 @@ class TestShouldShipAbc(unittest.TestCase):
         self.assertFalse(gateway_util.should_ship_abc(False, [n, n], [n, n]))
 
 
+class TestEvaluateTloDrift(unittest.TestCase):
+    """W2 P4 drift edge: the per-line limit flags bake the parse-time tool
+    table; this decides when the poller must reparse. G49 (applied offset
+    zero) must never read as drift."""
+
+    META = {"table_path": "/cfg/tool.tbl", "table_mtime": 100.0,
+            "tlos": [[3, 0.0, 0.0, 156.5596], [7, 0.0, 0.0, 80.0]]}
+
+    def test_no_meta_is_never_drift(self):
+        self.assertIsNone(gateway_util.evaluate_tlo_drift(None, 101.0, 3, 156.5596))
+        self.assertIsNone(gateway_util.evaluate_tlo_drift({}, 101.0, 3, 156.5596))
+
+    def test_table_mtime_change_is_drift(self):
+        self.assertEqual(
+            gateway_util.evaluate_tlo_drift(self.META, 101.0, None, None),
+            "table_mtime")
+
+    def test_matching_mtime_and_offset_is_clean(self):
+        self.assertIsNone(
+            gateway_util.evaluate_tlo_drift(self.META, 100.0, 3, 156.5596))
+
+    def test_applied_offset_drift_on_loaded_tool(self):
+        # The live defect's numbers: parsed 156.5596, re-measured 56.6346.
+        self.assertEqual(
+            gateway_util.evaluate_tlo_drift(self.META, 100.0, 3, 56.6346),
+            "tool_offset")
+
+    def test_g49_zero_applied_offset_is_not_drift(self):
+        self.assertIsNone(gateway_util.evaluate_tlo_drift(self.META, 100.0, 3, 0.0))
+        self.assertIsNone(gateway_util.evaluate_tlo_drift(self.META, 100.0, 3, None))
+
+    def test_unknown_tool_and_no_tool_are_clean(self):
+        self.assertIsNone(gateway_util.evaluate_tlo_drift(self.META, 100.0, 5, 42.0))
+        self.assertIsNone(gateway_util.evaluate_tlo_drift(self.META, 100.0, 0, 42.0))
+        self.assertIsNone(gateway_util.evaluate_tlo_drift(self.META, 100.0, None, 42.0))
+
+    def test_missing_mtimes_skip_the_file_signal(self):
+        meta = dict(self.META, table_mtime=None)
+        self.assertIsNone(gateway_util.evaluate_tlo_drift(meta, 101.0, None, None))
+        self.assertIsNone(gateway_util.evaluate_tlo_drift(self.META, None, None, None))
+
+
 class TestWcsEventRewritten(unittest.TestCase):
     """P2 `rewritten` flag: the client must re-add the PARSE snapshot for a
     fixture the program overwrites (G10 L2 — the normal TWP path), and the

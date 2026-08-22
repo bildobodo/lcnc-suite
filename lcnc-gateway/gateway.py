@@ -44,6 +44,7 @@ from gateway_util import (
     evaluate_trip_latch,
     evaluate_safety_chain,
     PREVIEW_SCHEMA,
+    evaluate_tlo_drift,
     unwritten_estop_signal,
     kins_marker_policy,
     kins_pivot_warning,
@@ -1387,6 +1388,36 @@ async def _status_poller():
                             published=_bulk.published_schema, expected=PREVIEW_SCHEMA)
                 _bulk.refresh_running = True
                 register_bg_task(asyncio.create_task(_bulk.refresh_gcode_preview(st.active_file)))
+            elif (
+                # TLO drift edge (W2 P4): the per-line limit flags bake the
+                # parse-time tool table, so a toolsetter re-measure after
+                # load leaves them stale (11,532 false Z-max flags live).
+                # Idle-gated — never reparse under a run (the client's
+                # parse_tlos hint covers that window) — and debounced to one
+                # check per 2 s so MDI/touch-off sequences settle first.
+                bool(st.active_file)
+                and not _bulk.refresh_running
+                and _bulk.preview_available()
+                and _bulk.published_tlo is not None
+                and st.interp_state == linuxcnc.INTERP_IDLE
+                and time.monotonic() - _bulk.tlo_check_ts >= 2.0
+            ):
+                _bulk.tlo_check_ts = time.monotonic()
+                _tlo_meta = _bulk.published_tlo
+                _tt_path = _tlo_meta.get("table_path")
+                try:
+                    _tt_cur = os.path.getmtime(_tt_path) if _tt_path else None
+                except OSError:
+                    _tt_cur = None
+                _tofs = st.tool_offset
+                _drift = evaluate_tlo_drift(
+                    _tlo_meta, _tt_cur, st.tool_number,
+                    _tofs[2] if _tofs and len(_tofs) > 2 else None)
+                if _drift:
+                    _trace.emit("gcode.reparse_tlo_drift", reason=_drift,
+                                tool=st.tool_number)
+                    _bulk.refresh_running = True
+                    register_bg_task(asyncio.create_task(_bulk.refresh_gcode_preview(st.active_file)))
             elif not st.active_file and _bulk.last_file is not None:
                 _bulk.preview_pending = None
                 _bulk.preview_bytes = None
@@ -1396,6 +1427,7 @@ async def _status_poller():
                 _bulk.last_mtime = None
                 _bulk.published_schema = None
                 _bulk.schema_reparse_attempted = None
+                _bulk.published_tlo = None
 
             # Safety-trip detection via the servo-thread HAL latch level
             # (webui-hb-latch.fault-out, issue #34). The latch is sticky and

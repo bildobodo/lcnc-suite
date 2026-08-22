@@ -41,6 +41,7 @@ Result shape (msgpack dict):
   violations_total: distinct (line, axis) violation count before the cap
 """
 
+import json
 import math
 import os
 import shutil
@@ -794,7 +795,48 @@ def parse(ctx: dict) -> dict:
         print(f"line attribution UNTRUSTED: {lines_untrusted_reason}; "
               f"suspect lines {_bad_lines[:12]}", file=sys.stderr, flush=True)
 
+    # Parse-time TLO snapshot (W2 P4): the tool-table rows this parse baked
+    # into its per-line limit flags (canon TLO modeling reads s.tool_table),
+    # for the tools the program touches plus the spindle tool. Rides the
+    # payload as `parse_tlos` (client staleness hint) AND stderr as a
+    # `__TLO__` line (the gateway's drift edge — the payload bytes are
+    # passthrough and never decoded there). table_mtime anchors the broad
+    # drift signal: any re-measure writes the file (G10 L1 saves through).
+    _tlo_tools = set(int(t) for t in canon.tools_used)
+    _spindle_tool = int(getattr(s, "tool_in_spindle", 0) or 0)
+    if _spindle_tool > 0:
+        _tlo_tools.add(_spindle_tool)
+    parse_tlos = []
+    _tlo_seen = set()
+    for _t in (getattr(s, "tool_table", None) or []):
+        _tid = int(getattr(_t, "id", -1))
+        # Dedupe by id: with a non-random toolchanger the spindle pocket
+        # (index 0) repeats the loaded tool's id alongside its home pocket.
+        if _tid > 0 and _tid in _tlo_tools and _tid not in _tlo_seen:
+            _tlo_seen.add(_tid)
+            parse_tlos.append([_tid, float(_t.xoffset), float(_t.yoffset),
+                               float(_t.zoffset)])
+    _tt_file = ini.find("EMCIO", "TOOL_TABLE")
+    _tt_path = None
+    _tt_mtime = None
+    if _tt_file:
+        _tt_path = os.path.normpath(os.path.join(
+            os.path.dirname(os.path.abspath(ini_path)),
+            os.path.expanduser(_tt_file)))
+        try:
+            _tt_mtime = os.path.getmtime(_tt_path)
+        except OSError:
+            _tt_mtime = None   # honest None — the drift edge skips mtime then
+    print("__TLO__\t" + json.dumps(
+        {"table_path": _tt_path, "table_mtime": _tt_mtime, "tlos": parse_tlos}),
+        file=sys.stderr, flush=True)
+
     result = {"file": filename,
+              # Parse-time tool-table rows [[tool, xo, yo, zo]…] for the
+              # tools involved (W2 P4) — lets the client say "parsed with a
+              # different T3 length" while a run is holding off the
+              # gateway's idle-gated auto-reparse. Machine units.
+              "parse_tlos": parse_tlos,
               # Wire-format generation (P1): the client banners an absent or
               # different stamp (EXPECTED_PREVIEW_SCHEMA) and offers Reparse;
               # the gateway poller auto-reparses on mismatch with its own
