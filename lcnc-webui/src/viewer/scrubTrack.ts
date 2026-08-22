@@ -70,6 +70,17 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
   if (n === 0) return null;
   const fseq = feed.seq, rseq = rapid.seq;
   if (nf > 0 && nr > 0 && (fseq?.length !== nf || rseq?.length !== nr)) return null;
+  // abc alignment guard (W2 P3): a present-but-mislengthed abc stream is an
+  // upstream bug — zero-filling would pose the machine untilted, the exact
+  // silent-wrong class the abc channel exists to fix — so the track refuses
+  // to build and says why (same honesty rule as the seq guard above).
+  // Absence stays legal: pure-linear programs ship no abc.
+  if ((feed.abc && feed.abc.length !== nf * 3)
+      || (rapid.abc && rapid.abc.length !== nr * 3)) {
+    console.error("[scrubTrack] abc stream length mismatch — track not built",
+      { feedAbc: feed.abc?.length, nf, rapidAbc: rapid.abc?.length, nr });
+    return null;
+  }
 
   const pos = new Float32Array(n * 3);
   const abc = new Float32Array(n * 3);

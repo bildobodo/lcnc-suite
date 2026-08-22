@@ -47,6 +47,7 @@ import shutil
 import sys
 import tempfile
 import time
+from itertools import chain
 
 import msgspec
 import numpy as np
@@ -66,7 +67,7 @@ from gateway_util import (
     kins_nonidentity_flags, kins_frame_indices, check_limit_violations_trsrn,
     kins_marker_policy, mode_boundary_indices, check_line_attribution,
     insert_flip_relabels, read_var_wcs_rows, wcs_event_rewritten,
-    PREVIEW_SCHEMA,
+    PREVIEW_SCHEMA, should_ship_abc,
 )
 
 
@@ -563,25 +564,35 @@ def parse(ctx: dict) -> dict:
     linear_dist = total_feed_dist - arc_dist_scaled
     linear_moves = len(canon.feed) - canon.arc_moves
 
-    # Rotary participation: constant abc (however nonzero) needs no wire data —
-    # the frontend's live parent transform poses the whole polyline; only abc
-    # DELTAS make "path on part" differ from the programmed polyline.
+    # abc ship condition (W2 P3): per-vertex A/B/C must ride the wire
+    # whenever the tool-vs-work POSE depends on it — not only when a rotary
+    # sweeps. The TWP defect this replaces: the tilt lived in fixture ROTARY
+    # OFFSETS + kins markers while canon abc stayed constant; the old
+    # peeled-sweep test said "no rotary", abc never shipped, and the client
+    # drew the plane flat in XY and posed the sim head at B0/C0.
+    # should_ship_abc (gateway_util, truth-table tested) ORs: kins markers
+    # present, any RAW canon rotary ≠ 0 (the peel subtracts fixture offsets
+    # — exactly the case being fixed — so raw endpoints are the honest
+    # input), any peeled-stream variation (fixture rotary offsets can
+    # differ across epochs even with raw abc ≡ 0).
     _abc_all = feed_abc + rapid_abc
-    if _abc_all:
-        _abc_np = np.asarray(_abc_all, dtype=np.float64)
-        has_rotary = bool(np.ptp(_abc_np, axis=0).max() > 1e-9)
-    else:
-        has_rotary = False
+    ship_abc = should_ship_abc(
+        bool(canon.kins_events),
+        chain(((t[2][3], t[2][4], t[2][5]) for t in canon.feed),
+              ((t[2][3], t[2][4], t[2][5]) for t in canon.rapid)),
+        _abc_all)
 
     # A2: lossless RDP decimation on the rendering polylines. Stats above
     # use the full canon.feed / canon.rapid counts so they remain accurate.
     # eps is in display units (mm or inches) — the polylines are already
     # converted by the unit_scale multiplication above.
     #
-    # With rotary motion present, RDP runs in 6D (xyz + abc scaled by
-    # _DEG_TO_UNIT) so a straight-XYZ run with a rotary sweep only collapses
-    # when the sweep is LINEAR across the run — which is lossless, because the
-    # frontend re-subdivides rotary deltas by linear interpolation. _rdp_keep
+    # Whenever abc ships, RDP runs in 6D (xyz + abc scaled by deg_to_unit)
+    # so a straight-XYZ run with a rotary sweep only collapses when the
+    # sweep is LINEAR across the run — which is lossless, because the
+    # frontend re-subdivides rotary deltas by linear interpolation.
+    # Constant abc columns contribute zero deviation, so the 6D pass on a
+    # constant-tilt program decimates exactly like the 3D pass. _rdp_keep
     # is dimension-agnostic.
     eps = _RDP_EPS_MM if machine_units == "mm" else _RDP_EPS_MM / 25.4
     eps_sq = eps * eps
@@ -591,7 +602,7 @@ def parse(ctx: dict) -> dict:
 
     def _rdp_points(xyz_list, abc_list):
         pts = np.asarray(xyz_list, dtype=np.float64)
-        if has_rotary:
+        if ship_abc:
             abc = np.asarray(abc_list, dtype=np.float64) * deg_to_unit
             pts = np.hstack([pts, abc])
         return pts
@@ -650,7 +661,7 @@ def parse(ctx: dict) -> dict:
             if rapid_brk:
                 rapid_brk = [rapid_brk[i] for i in keep]
     print(
-        f"rdp feed {pre_feed}->{len(feed)} rapid {pre_rapid}->{len(rapid)} eps={eps:.5f} rotary={has_rotary}",
+        f"rdp feed {pre_feed}->{len(feed)} rapid {pre_rapid}->{len(rapid)} eps={eps:.5f} ship_abc={ship_abc}",
         file=sys.stderr, flush=True,
     )
 
@@ -827,10 +838,13 @@ def parse(ctx: dict) -> dict:
                   "rotation": _basis[2],
               },
               "parse_error": parse_error, "error_line": error_line}
-    if has_rotary:
-        # Per-vertex abc (degrees, raw program coords), index-aligned with
-        # feed/rapid. Present ONLY when a rotary axis actually sweeps — the
-        # frontend uses absence as "programmed preview is already exact".
+    if ship_abc:
+        # Per-vertex abc (degrees, per-epoch-peeled program coords),
+        # index-aligned with feed/rapid. Present whenever abc is NEEDED to
+        # pose tool-vs-work (should_ship_abc, W2 P3): a rotary sweeps, raw
+        # abc ≠ 0 anywhere (a constant tilt — the per-epoch peel can zero
+        # it), or switchkins markers are present. Absence still means
+        # "programmed preview is already exact".
         result["feed_abc"] = np.asarray(feed_abc, dtype="<f4").tobytes() if feed_abc else b""
         result["rapid_abc"] = np.asarray(rapid_abc, dtype="<f4").tobytes() if rapid_abc else b""
     if feed_mode is not None:

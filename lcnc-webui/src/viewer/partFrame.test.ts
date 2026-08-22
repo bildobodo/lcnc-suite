@@ -141,6 +141,22 @@ describe("transformToPartFrame", () => {
     expect(map.get(8)).toEqual({ start: 1, end: n - 1 });
   });
 
+  it("tilts a CONSTANT-abc polyline — no sweep required (W2 P3)", () => {
+    // The TWP defect class: the rotaries never move inside the program (the
+    // tilt is a held pose), yet the tool-vs-work mapping is rotated the
+    // whole time. A constant C=90 must transform every vertex; an
+    // implementation that engages only on abc DELTAS draws this flat.
+    const out = transformToPartFrame(
+      TRUNNION, WCS0,
+      poly([[10, 0, 0], [20, 0, 0], [20, 5, 0]],
+           [[0, 0, 90], [0, 0, 90], [0, 0, 90]]),
+    );
+    expect(out.pos.length / 3).toBe(3);          // constant abc: no subdivision
+    expect(vec(out.pos, 0)).toEqual([expect.closeTo(0, 3), expect.closeTo(-10, 3), expect.closeTo(0, 3)]);
+    expect(vec(out.pos, 1)).toEqual([expect.closeTo(0, 3), expect.closeTo(-20, 3), expect.closeTo(0, 3)]);
+    expect(vec(out.pos, 2)).toEqual([expect.closeTo(5, 3), expect.closeTo(-20, 3), expect.closeTo(0, 3)]);
+  });
+
   it("stays finite when the live WCS hasn't arrived yet (empty offset arrays)", () => {
     // Fresh-page-load race: preview can beat the first status tick, so g5x/g92
     // may be empty. Regression: a bare [0]! produced NaN → invisible geometry.

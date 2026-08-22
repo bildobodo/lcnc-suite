@@ -35,7 +35,11 @@ ALLOWED_EXTENSIONS = {".ngc", ".nc", ".gcode", ".tap", ".txt"}
 # bannered — never silently accepted. Bump on EVERY preview wire-shape change
 # (adding/removing/renaming fields or changing field semantics), and bump the
 # client constant in the same commit.
-PREVIEW_SCHEMA = 1
+#
+# Log: 1 = stamp introduced (W2 P1); 2 = feed_abc/rapid_abc ship on
+# pose-dependence (should_ship_abc), not only on a peeled-stream sweep (W2
+# P3 — a pre-2 payload of a TWP program lacks the abc channel entirely).
+PREVIEW_SCHEMA = 2
 
 
 def sanitize_filename(name: str) -> str:
@@ -839,6 +843,42 @@ def mode_boundary_indices(mode):
             out.add(i - 1)
             out.add(i)
     return out
+
+
+def should_ship_abc(kins_marked, raw_abc, peeled_abc, eps=1e-9):
+    """Whether per-vertex A/B/C must ride the preview wire (W2 P3).
+
+    True when the tool-vs-work POSE depends on abc — NOT merely when a
+    rotary sweeps. Three sufficient conditions, OR'd:
+
+    1. switchkins markers present — under TCP/TOOL modes the pose math
+       consumes abc even when constant;
+    2. any RAW canon rotary endpoint ≠ 0 — the per-epoch extraction PEELS
+       fixture rotary offsets, so a constant tilt held in the fixture's
+       ABC offsets (the TWP pattern: G54 carries A/B/C while canon abc
+       never moves) leaves the PEELED stream at zero. Testing the peeled
+       stream here is exactly the defect this replaces (flat-in-XY preview,
+       sim head posed B0/C0): raw endpoints are the honest input;
+    3. any variation across the PEELED stream — fixture rotary offsets can
+       differ between epochs even with raw abc identically 0.
+
+    `raw_abc` may be a one-shot iterable (generator) of (a, b, c) — it is
+    consumed at most once and short-circuits on the first hit. `peeled_abc`
+    is a sequence of (a, b, c). Pure.
+    """
+    if kins_marked:
+        return True
+    for t in raw_abc:
+        if abs(t[0]) > eps or abs(t[1]) > eps or abs(t[2]) > eps:
+            return True
+    first = None
+    for t in peeled_abc:
+        if first is None:
+            first = t
+        elif (abs(t[0] - first[0]) > eps or abs(t[1] - first[1]) > eps
+              or abs(t[2] - first[2]) > eps):
+            return True
+    return False
 
 
 #: Var-file numbered-parameter bases for the nine fixtures (G54 … G59.3):

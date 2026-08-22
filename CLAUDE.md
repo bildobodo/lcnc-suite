@@ -351,8 +351,12 @@ the whole model.
 **Toolpath preview modes (rotary-aware preview)**: on machines whose
 work/tool chain has a rotary DOF, the programmed XYZ polyline is not the
 tool-versus-workpiece path. The parse worker ships per-vertex A/B/C
-(`feed_abc`/`rapid_abc`, present ONLY when a rotary actually sweeps) and
-decimates in 6D so rotary sweeps survive RDP; `viewer/partFrame.ts`
+(`feed_abc`/`rapid_abc`, present whenever the tool-vs-work POSE depends
+on abc — `should_ship_abc`, W2 P3: a rotary sweeps, raw abc ≠ 0 anywhere
+(a constant tilt — the per-epoch peel can zero it, the TWP pattern), or
+switchkins markers are present; absence = programmed polyline already
+exact) and decimates in 6D under the same condition so rotary sweeps
+survive RDP; `viewer/partFrame.ts`
 (pure, unit-tested; run off-thread by `partFrameWorker.ts`) subdivides
 rotary segments (~4°/sample) and transforms each sample into the work
 frame by evaluating the machine.json chain — same normalize code as the

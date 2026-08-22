@@ -43,6 +43,20 @@ describe("buildScrubTrack", () => {
     expect(buildScrubTrack(stream([[0, 0, 0]]), stream([[1, 0, 0]]))).toBeNull();
   });
 
+  it("refuses a mislengthed abc stream instead of zero-filling (W2 P3)", () => {
+    // Zero-filled abc would pose the machine untilted — the silent-wrong
+    // class the channel exists to fix — so alignment bugs kill the track.
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const bad = stream([[0, 0, 0], [5, 0, 0]], { lines: [1, 2] });
+      bad.abc = new Float32Array([0, 0, 90]);      // 1 triple for 2 points
+      expect(buildScrubTrack(bad, EMPTY)).toBeNull();
+      expect(err).toHaveBeenCalled();
+    } finally {
+      err.mockRestore();
+    }
+  });
+
   it("builds a single-stream track without seq and null on no points", () => {
     const t = buildScrubTrack(stream([[0, 0, 0], [5, 0, 0]], { lines: [1, 2] }), EMPTY)!;
     expect(t.count).toBe(2);
@@ -516,6 +530,40 @@ describe("wcs epochs on the track (review P2)", () => {
   it("splitTrackStreams carries per-vertex epochs on the drawn streams", () => {
     const split = splitTrackStreams(T());
     expect(Array.from(split.rapidWcs!)).toEqual([0, 0, 1]);
+  });
+});
+
+describe("abc pose reconstruction through epoch terms (W2 P3)", () => {
+  // The TWP pattern: canon abc constant, the tilt held in the fixture's
+  // ROTARY OFFSETS (sim_twp.var G54 abc). The per-epoch peel zeroes the
+  // shipped abc stream; re-adding the epoch's oa/ob/oc MUST reconstruct
+  // the raw machine rotaries — this is the convention the whole pose
+  // pipeline (sim head, part frame, collision, playhead) hangs on.
+  const TILT = [19.05, -40.855498, 130.245477] as const;
+  const EVS = [{
+    seq: 0, idx: 6, rotationDeg: 0, rewritten: true,
+    g5x: [10, -20, 5, TILT[0], TILT[1], TILT[2]], g92: [0, 0, 0, 0, 0, 0],
+  }];
+
+  it("peeled-zero abc + fixture rotary offsets = raw machine abc", async () => {
+    const { epochTermsFor } = await import("./wcsEpochs");
+    const t = buildScrubTrack(
+      EMPTY,
+      { ...stream([[0, 0, 0], [15, 0, 0]],
+                  { seq: [1, 2], abc: [[0, 0, 0], [0, 0, 0]] }),
+        wcs: new Uint8Array([0, 0]) },
+      undefined, EVS,
+    )!;
+    const live = { g5x: [], g92: [], rotationDeg: 0 };
+    const terms = epochTermsFor(EVS, live, undefined);
+    const s = freshSample();
+    sampleTrack(t, 7, s);
+    expect([s.pa, s.pb, s.pc]).toEqual([0, 0, 0]);  // the peeled stream IS zero
+    const j: (number | null)[] = [];
+    jointsForSample(s, live, ["X", "Y", "Z", "A", "B", "C"], j, undefined, terms);
+    expect(j[3]).toBeCloseTo(TILT[0], 6);
+    expect(j[4]).toBeCloseTo(TILT[1], 6);
+    expect(j[5]).toBeCloseTo(TILT[2], 6);
   });
 });
 

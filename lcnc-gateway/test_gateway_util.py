@@ -1141,6 +1141,54 @@ class TestInsertKinsRelabels(unittest.TestCase):
             self.assertAlmostEqual(ins[2][i], expect[i], places=9)
 
 
+class TestShouldShipAbc(unittest.TestCase):
+    """W2 P3 ship condition: abc rides the wire whenever the tool-vs-work
+    pose depends on it. The row that matters most is the TWP defect this
+    replaced: constant RAW tilt held in fixture rotary offsets → the
+    per-epoch peel zeroes the peeled stream → the old sweep test said 'no
+    rotary' and the client drew the plane flat."""
+
+    Z = (0.0, 0.0, 0.0)
+
+    def test_all_zero_no_markers_does_not_ship(self):
+        self.assertFalse(gateway_util.should_ship_abc(
+            False, [self.Z, self.Z], [self.Z, self.Z]))
+
+    def test_empty_streams_do_not_ship(self):
+        self.assertFalse(gateway_util.should_ship_abc(False, [], []))
+
+    def test_kins_markers_ship_even_all_zero(self):
+        self.assertTrue(gateway_util.should_ship_abc(
+            True, [self.Z], [self.Z]))
+
+    def test_peeled_sweep_ships(self):
+        self.assertTrue(gateway_util.should_ship_abc(
+            False, [self.Z, self.Z], [self.Z, (5.0, 0.0, 0.0)]))
+
+    def test_constant_raw_tilt_with_peeled_zero_MUST_ship(self):
+        # THE fixture-offset case: raw abc constant at the TWP tilt, peeled
+        # stream identically zero (G54 carries the rotaries).
+        tilt = (19.05, -40.855498, 130.245477)
+        self.assertTrue(gateway_util.should_ship_abc(
+            False, [tilt, tilt, tilt], [self.Z, self.Z, self.Z]))
+
+    def test_epoch_differing_offsets_with_raw_zero_ships(self):
+        # Raw abc identically 0 but two epochs peel with different rotary
+        # offsets → peeled stream varies → pose depends on abc.
+        self.assertFalse(gateway_util.should_ship_abc(
+            False, [self.Z, self.Z], [(-10.0, 0.0, 0.0), (-10.0, 0.0, 0.0)]))
+        self.assertTrue(gateway_util.should_ship_abc(
+            False, [self.Z, self.Z], [(-10.0, 0.0, 0.0), (-20.0, 0.0, 0.0)]))
+
+    def test_raw_accepts_one_shot_generator(self):
+        raw = ((v, 0.0, 0.0) for v in (0.0, 0.0, 3.0, 0.0))
+        self.assertTrue(gateway_util.should_ship_abc(False, raw, []))
+
+    def test_sub_eps_noise_does_not_ship(self):
+        n = (1e-12, -1e-12, 5e-13)
+        self.assertFalse(gateway_util.should_ship_abc(False, [n, n], [n, n]))
+
+
 class TestWcsEventRewritten(unittest.TestCase):
     """P2 `rewritten` flag: the client must re-add the PARSE snapshot for a
     fixture the program overwrites (G10 L2 — the normal TWP path), and the

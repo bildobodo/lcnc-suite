@@ -20,7 +20,7 @@ import { disposeObject } from "./viewer/disposal";
 import { normalizeKinematics, type KinRuntime } from "./viewer/kinematics";
 import { chainsHaveRotary, lineDistances, wcsTerms, type PartFrameMachine, type PartFrameWcs } from "./viewer/partFrame";
 import { boundsOf, epochTermsFor, rebasePositions, type WcsTableRow } from "./viewer/wcsEpochs";
-import { specFromWire } from "./viewer/kins";
+import { specFromWire, worldModeForSpec } from "./viewer/kins";
 import { trackHighlightRange } from "./trackHighlight";
 import type { CollisionBody, CollisionResult } from "./viewer/collision";
 import { previewSchemaMismatch, EXPECTED_PREVIEW_SCHEMA, type ScrubTrack } from "./ws/bulkData";
@@ -1637,7 +1637,22 @@ function _partFrameEligible(g: ViewerGcode): boolean {
   const init = viewerInit.value;
   if (!init) return false;
   if (viewerDefaults.previewMode === "programmed") return false;
-  if (!(g.feedAbc?.length || g.rapidAbc?.length)) return false;  // no rotary sweep in program
+  // Non-identity switchkins segments route through the kins model — that
+  // routing IS what poses them, rotary chain DOF or not, so their presence
+  // alone makes the part frame mandatory (belt for W2 P3: abc ships
+  // alongside markers since schema 2, but a mode array must never be
+  // drawn as trivkins just because abc is absent or empty).
+  const spec = specFromWire(init.kins);
+  for (const m of [g.feedMode, g.rapidMode]) {
+    if (!m) continue;
+    for (let i = 0; i < m.length; i++) {
+      if (worldModeForSpec(m[i]!, spec)) return true;
+    }
+  }
+  // abc pose channel present (ships whenever the tool-vs-work pose depends
+  // on abc: a sweep, a constant raw tilt, or switchkins markers)…
+  if (!(g.feedAbc?.length || g.rapidAbc?.length)) return false;
+  // …and the machine model has a rotary DOF to pose it through.
   return chainsHaveRotary(_pfMachine(init));
 }
 

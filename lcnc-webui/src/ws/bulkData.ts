@@ -135,7 +135,11 @@ export interface LimitViolation {
 // (or is absent — a legacy payload from a pre-stamp worker) gets a HUD banner
 // with a Reparse action instead of being silently mis-read by newer decode
 // paths.
-export const EXPECTED_PREVIEW_SCHEMA = 1;
+//
+// Log (mirror gateway_util): 1 = stamp introduced (W2 P1); 2 = abc ships on
+// pose-dependence, not only on a sweep (W2 P3 — a pre-2 TWP payload lacks
+// the abc channel entirely and would draw flat).
+export const EXPECTED_PREVIEW_SCHEMA = 2;
 
 /** Non-null when the loaded payload's wire-format stamp disagrees with this
  *  client build: `{ got: n }` for a differently-stamped payload, `{ got:
@@ -175,10 +179,13 @@ export interface ViewerGcode {
   // over the nested arrays — ThreeViewer builds BufferAttributes directly).
   feedPos?: Float32Array;          // flat [x,y,z, ...]
   rapidPos?: Float32Array;
-  // Rotary-aware preview: per-vertex A/B/C (degrees, raw program coords),
-  // index-aligned with feedPos/rapidPos. Present ONLY when the program
-  // actually sweeps a rotary axis — absence means the programmed polyline is
-  // already exact and no part-frame transform is needed.
+  // Rotary-aware preview: per-vertex A/B/C (degrees, per-epoch-peeled
+  // program coords), index-aligned with feedPos/rapidPos. Present whenever
+  // abc is NEEDED to pose tool-vs-work (should_ship_abc, W2 P3): a rotary
+  // sweeps, raw abc ≠ 0 anywhere (a constant tilt — the per-epoch peel can
+  // zero it), or switchkins markers are present. Absence means the
+  // programmed polyline is already exact and no part-frame transform is
+  // needed.
   feedAbc?: Float32Array;          // flat [a,b,c, ...]
   rapidAbc?: Float32Array;
   // Section breaks for the drawn streams (previewWorker, track-derived):
