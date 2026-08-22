@@ -443,14 +443,18 @@ export interface TrackProjection {
  *  motion_line is NOT consulted — sub/remap-relative line numbers collide
  *  with the main file's, which is exactly what parked the old highlight on
  *  wrong lines. The machine pose converts to program space per candidate
- *  segment through ITS epoch's terms (memoized per epoch); brk segments
- *  (frame relabels — poses the machine never sweeps) are skipped. */
+ *  segment through ITS epoch's terms (precomputed flat per epoch); brk
+ *  segments (frame relabels — poses the machine never sweeps) are skipped.
+ *  `stride` probes every Nth segment — the off-path re-probe's bounded
+ *  coarse scan (W2 P5); callers refine a strided hit with a windowed
+ *  stride-1 pass before trusting its residual. */
 export function projectOntoTrack(
   t: ScrubTrack,
   machine: readonly number[],
   wcs: PartFrameWcs,
   epochTerms: readonly WcsTerms[] | undefined,
   win: { lo: number; hi: number } | null,
+  stride = 1,
 ): TrackProjection | null {
   const n = t.count;
   if (n < 2) return null;
@@ -473,31 +477,37 @@ export function projectOntoTrack(
     if (t.cum[i0 - 1]! > win.hi) return null;  // window past the segment
   }
   const liveTerms = wcsTerms(wcs);
-  const pByEpoch = new Map<number, number[]>();
-  const pFor = (i: number): number[] => {
-    const e = (t.wcsEpoch && epochTerms) ? t.wcsEpoch[i]! : -1;
-    let p = pByEpoch.get(e);
-    if (!p) {
-      const terms = e >= 0 ? (epochTerms![e] ?? liveTerms) : liveTerms;
-      p = [0, 0, 0, 0, 0, 0];
-      machineToProgram(machine[0]!, machine[1]!, machine[2]!,
-                       machine[3]!, machine[4]!, machine[5]!, terms, p);
-      pByEpoch.set(e, p);
-    }
-    return p;
-  };
+  // Per-epoch machine→program conversions precomputed FLAT (W2 P5): the
+  // previous lazy Map paid a hash lookup per segment — real money on a 99k
+  // segment full-track scan. Slot 0 = live terms (no-epoch fallback);
+  // slot e+1 = epochTerms[e].
+  const nE = epochTerms?.length ?? 0;
+  const pFlat = new Float64Array((nE + 1) * 6);
+  const _tmp: number[] = [0, 0, 0, 0, 0, 0];
+  machineToProgram(machine[0]!, machine[1]!, machine[2]!,
+                   machine[3]!, machine[4]!, machine[5]!, liveTerms, _tmp);
+  pFlat.set(_tmp, 0);
+  for (let e = 0; e < nE; e++) {
+    machineToProgram(machine[0]!, machine[1]!, machine[2]!,
+                     machine[3]!, machine[4]!, machine[5]!,
+                     epochTerms![e] ?? liveTerms, _tmp);
+    pFlat.set(_tmp, (e + 1) * 6);
+  }
+  const hasEp = !!(t.wcsEpoch && epochTerms);
+  const step = Math.max(1, stride | 0);
   let best: TrackProjection | null = null;
-  for (let i = i0; i <= i1; i++) {
+  for (let i = i0; i <= i1; i += step) {
     if (t.brk?.[i]) continue;
-    const p = pFor(i);
+    const e = hasEp ? t.wcsEpoch![i]! : -1;
+    const off = (e >= 0 && e < nE ? e + 1 : 0) * 6;
     const j = i * 3, k = j - 3;
     const ax = t.pos[k]!, ay = t.pos[k + 1]!, az = t.pos[k + 2]!;
     const aa = t.abc[k]!, ab = t.abc[k + 1]!, ac = t.abc[k + 2]!;
     const dx = t.pos[j]! - ax, dy = t.pos[j + 1]! - ay, dz = t.pos[j + 2]! - az;
     const da = t.abc[j]! - aa, db = t.abc[j + 1]! - ab, dc = t.abc[j + 2]! - ac;
     const len2 = dx * dx + dy * dy + dz * dz + da * da + db * db + dc * dc;
-    const rx = p[0]! - ax, ry = p[1]! - ay, rz = p[2]! - az;
-    const ra = p[3]! - aa, rb = p[4]! - ab, rc = p[5]! - ac;
+    const rx = pFlat[off]! - ax, ry = pFlat[off + 1]! - ay, rz = pFlat[off + 2]! - az;
+    const ra = pFlat[off + 3]! - aa, rb = pFlat[off + 4]! - ab, rc = pFlat[off + 5]! - ac;
     const u = len2 > 0
       ? Math.min(1, Math.max(0, (rx * dx + ry * dy + rz * dz + ra * da + rb * db + rc * dc) / len2))
       : 0;

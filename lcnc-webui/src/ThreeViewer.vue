@@ -19,7 +19,7 @@ import { recordApply, recordRender, setViewerPerfContext } from "./viewerPerf";
 import { disposeObject } from "./viewer/disposal";
 import { normalizeKinematics, type KinRuntime } from "./viewer/kinematics";
 import { chainsHaveRotary, lineDistances, wcsTerms, type PartFrameMachine, type PartFrameWcs } from "./viewer/partFrame";
-import { boundsOf, epochTermsFor, rebasePositions, type WcsTableRow } from "./viewer/wcsEpochs";
+import { boundsOf, epochTermsFor, rebasePositions, usedWcsRowsKey, type WcsTableRow } from "./viewer/wcsEpochs";
 import { specFromWire, worldModeForSpec } from "./viewer/kins";
 import { trackHighlightRange } from "./trackHighlight";
 import type { CollisionBody, CollisionResult } from "./viewer/collision";
@@ -1354,11 +1354,13 @@ function applyState(init: ViewerInit, st: ViewerState) {
   if (toolLen !== _pv.toolLen) { _pv.toolLen = toolLen; changed = true; _colOnInputChange(); }
   if (motionLine !== _pv.motionLine) { _pv.motionLine = motionLine; changed = true; }
   if (rotationXy !== _pv.rotationXy) { _pv.rotationXy = rotationXy; changed = true; _pfScheduleWcsRefresh(); _colOnInputChange(); }
-  // Fixture-table edits (review P2): only consulted when the loaded preview
-  // is epoch-aware — a plain payload re-adds nothing per-fixture, so idle
-  // table publishes stay free of stringify work.
+  // Fixture-table edits (review P2): only the rows the payload's
+  // non-rewritten epochs actually RE-ADD participate in the change key
+  // (W2 P5 — wcs_frames ships on every modern payload, so keying on the
+  // whole stringified table made every idle table publish a change).
   if (viewerGcode.value?.wcsEvents?.length) {
-    const tk = JSON.stringify(st.wcs_table ?? null);
+    const tk = usedWcsRowsKey(viewerGcode.value.wcsEvents,
+                              st.wcs_table as WcsTableRow[] | undefined);
     if (tk !== _pv.wcsTableKey) {
       _pv.wcsTableKey = tk;
       _pv.wcsTable = (st.wcs_table as WcsTableRow[] | undefined) ?? null;
@@ -1764,8 +1766,19 @@ function applyGcode(g: ViewerGcode) {
 // debounced, these change rarely and never mid-cut at speed.
 function _pfScheduleWcsRefresh() {
   // Epoch-aware programmed payloads (review P2) also re-apply on WCS/table
-  // changes: their display rebase depends on the live per-fixture rows.
-  if (_pfAppliedMode !== "part" && !viewerGcode.value?.wcsEvents?.length) return;
+  // changes — but ONLY when the display rebase can differ from identity:
+  // more than one epoch, a program-rewritten epoch 0, or an epoch-0
+  // fixture other than the ACTIVE one (workOrigin carries the active
+  // fixture live, so an identity rebase needs no geometry rebuild). W2 P5
+  // gate fix: wcs_frames ships ≥1 row on every modern payload, so the old
+  // bare length check re-ran a full rebuild of a 99k-point program on
+  // every G43 the toolchange sub issued.
+  if (_pfAppliedMode !== "part") {
+    const evs = viewerGcode.value?.wcsEvents;
+    if (!evs?.length) return;
+    if (evs.length === 1 && !evs[0]!.rewritten
+        && evs[0]!.idx === (vst.value?.g5x_index ?? 0)) return;
+  }
   clearTimeout(_pfWcsTimer);
   _pfWcsTimer = setTimeout(() => {
     if (viewerGcode.value) applyGcode(viewerGcode.value);

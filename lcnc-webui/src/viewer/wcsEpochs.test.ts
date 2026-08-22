@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 import {
   boundsOf, epochWcsList, epochTermsFor, parseWcsFrames, rebasePositions,
+  usedWcsRowsKey,
   type WcsEpoch, type WcsTableRow,
 } from "./wcsEpochs";
 import { machineToProgram, programToMachine, wcsTerms, type PartFrameWcs } from "./partFrame";
@@ -54,6 +55,45 @@ describe("epochWcsList", () => {
   it("missing table falls back to the snapshot — the only honest stand-in", () => {
     const [w] = epochWcsList([ev({ idx: 6 })], LIVE, undefined);
     expect(w!.g5x).toEqual([10, 20, 30, 0, 0, 0]);
+  });
+});
+
+describe("usedWcsRowsKey (W2 P5 gate fix)", () => {
+  const table: WcsTableRow[] = [
+    { name: "G54", x: 1, y: 2, z: 3, r: 0 },
+    { name: "G55", x: 9, y: 9, z: 9, r: 5 },
+  ];
+
+  it("empty for no events, and for rewritten-only payloads", () => {
+    expect(usedWcsRowsKey(undefined, table)).toBe("");
+    expect(usedWcsRowsKey([], table)).toBe("");
+    expect(usedWcsRowsKey([ev({ rewritten: true })], table)).toBe("");
+  });
+
+  it("keys only the USED non-rewritten rows and ignores the rest of the table", () => {
+    const k0 = usedWcsRowsKey([ev({ idx: 1 })], table);
+    expect(k0).toContain("1:");
+    expect(k0).not.toContain("9");           // G55's values never enter
+    // Editing an UNUSED row (G55) does not change the key…
+    const t2 = [table[0]!, { ...table[1]!, x: 42 }];
+    expect(usedWcsRowsKey([ev({ idx: 1 })], t2)).toBe(k0);
+    // …editing the USED row does.
+    const t3 = [{ ...table[0]!, z: -7 }, table[1]!];
+    expect(usedWcsRowsKey([ev({ idx: 1 })], t3)).not.toBe(k0);
+  });
+
+  it("a missing table row keys as absent (still changes when it appears)", () => {
+    const kAbsent = usedWcsRowsKey([ev({ idx: 6 })], table);
+    expect(kAbsent).toContain("6:");
+    expect(usedWcsRowsKey([ev({ idx: 6 })], undefined)).toBe(kAbsent);
+    const t6: WcsTableRow[] = [...table, {}, {}, {}, { x: 1 }];
+    expect(usedWcsRowsKey([ev({ idx: 6 })], t6)).not.toBe(kAbsent);
+  });
+
+  it("dedupes repeated epochs of the same fixture", () => {
+    const one = usedWcsRowsKey([ev({ idx: 1 })], table);
+    const twice = usedWcsRowsKey([ev({ idx: 1 }), ev({ seq: 5, idx: 1 })], table);
+    expect(twice).toBe(one);
   });
 });
 

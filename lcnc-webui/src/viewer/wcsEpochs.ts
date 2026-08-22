@@ -89,6 +89,37 @@ export function epochTermsFor(
   return epochWcsList(events, live, table).map(wcsTerms);
 }
 
+const _KEY_AXES = ["x", "y", "z", "a", "b", "c", "r"] as const;
+
+/** Change key over ONLY the fixture rows an epoch-aware payload actually
+ *  re-adds: rows of USED, NON-REWRITTEN epochs (a rewritten epoch pins the
+ *  parse snapshot, so live edits to its row are display-inert). Empty
+ *  string when nothing is consumed. (W2 P5 gate fix: both change-watch
+ *  sites previously stringified the WHOLE ~90-number table on every idle
+ *  table publish — and since wcs_frames ships ≥1 row on every modern
+ *  payload, that "epoch-aware only" guard was always open.) Pure. */
+export function usedWcsRowsKey(
+  events: readonly WcsEpoch[] | undefined,
+  table: readonly WcsTableRow[] | undefined,
+): string {
+  if (!events?.length) return "";
+  let idxs: number[] = [];
+  for (const e of events) {
+    if (!e.rewritten && e.idx >= 1 && !idxs.includes(e.idx)) idxs.push(e.idx);
+  }
+  if (!idxs.length) return "";
+  idxs = idxs.sort((a, b) => a - b);
+  let out = "";
+  for (const i of idxs) {
+    const r = table?.[i - 1];
+    out += `${i}:`;
+    if (r) for (const k of _KEY_AXES) out += `${r[k] ?? 0},`;
+    else out += "∅";
+    out += "|";
+  }
+  return out;
+}
+
 function termsClose(a: WcsTerms, b: WcsTerms): boolean {
   return Math.abs(a.ox - b.ox) < 1e-9 && Math.abs(a.oy - b.oy) < 1e-9
     && Math.abs(a.oz - b.oz) < 1e-9 && Math.abs(a.oa - b.oa) < 1e-9

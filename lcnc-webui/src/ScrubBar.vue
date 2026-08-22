@@ -10,17 +10,18 @@
 // (program run start, program change, machine powered on elsewhere, real
 // joint motion as a backstop). ThreeViewer shows the .simBanner while active.
 import { computed, onUnmounted, ref, watch } from "vue";
-import { status, viewerGcode, viewerInit } from "./lcncWs";
+import { status, viewerGcode, viewerInit, emitTelemetry } from "./lcncWs";
 import { INTERP_IDLE } from "./lcnc";
 import { simMode } from "./simMode";
 import {
   sampleTrack, jointsForSample, machineJointsToProgram, prependEntry,
-  machineFromJoints, projectOntoTrack, lineRunAround,
+  machineFromJoints, lineRunAround,
   type ScrubSample,
 } from "./viewer/scrubTrack";
+import { createRunWatcher } from "./viewer/runWatcher";
 import { trackHighlightRange } from "./trackHighlight";
 import { specFromWire } from "./viewer/kins";
-import { epochTermsFor, type WcsTableRow } from "./viewer/wcsEpochs";
+import { epochTermsFor, usedWcsRowsKey, type WcsTableRow } from "./viewer/wcsEpochs";
 import type { WcsTerms } from "./viewer/partFrame";
 import type { ScrubTrack } from "./ws/bulkData";
 import type { CollisionResult } from "./viewer/collision";
@@ -227,10 +228,12 @@ watch(sPos, () => {
 // ticks don't re-emit (render-on-demand stays effective).
 const _wcsKey = computed(() => {
   const d = st.value;
-  // The whole fixture table is a pose input on an epoch-aware track (each
-  // epoch re-adds ITS fixture's live row) — key on it too. ~90 numbers,
-  // stringify cost is noise next to the pose math it gates.
-  const table = track.value?.wcsEvents?.length ? JSON.stringify(d.wcs_table ?? null) : "";
+  // Fixture rows are a pose input on an epoch-aware track — but ONLY the
+  // rows its non-rewritten epochs actually re-add (W2 P5: the whole-table
+  // stringify fired on every idle table publish and, with wcs_frames on
+  // every modern payload, its epoch-aware guard was always open).
+  const table = usedWcsRowsKey(track.value?.wcsEvents,
+                               d.wcs_table as WcsTableRow[] | undefined);
   return `${(d.g5x_offset ?? []).join()},${(d.g92_offset ?? []).join()},${d.rotation_xy ?? 0},${(d.tool_offset ?? []).join()},${table}`;
 });
 // The pose (and the entry move's program coords) depend on the live WCS.
@@ -258,7 +261,7 @@ watch(_wcsKey, () => {
 watch(running, (r) => { if (r) exitSim(); });
 watch(baseTrack, () => {
   exitSim(); entryTrack.value = null; sPos.value = 0;
-  _lastRunCum = null; _runWindow = 0; trackHighlightRange.value = null;
+  _runWatcher.reset(); runOffPath.value = false; trackHighlightRange.value = null;
 });
 watch(machineOff, (off) => { if (!off) exitSim(); });
 watch(st, (d) => {
@@ -321,21 +324,20 @@ const posLabel = computed(() => {
 // collide with the main file's, which is what parked the old highlight on
 // wrong lines. Display only: the machine drives sPos, never the reverse.
 const motionLine = computed(() => st.value.motion_line as number | null | undefined);
-let _lastRunCum: number | null = null;
-// A few × the longest segment so one segment can't outrun the window.
-let _runWindow = 0;
-function _computeRunWindow(t: ScrubTrack | null) {
-  if (!t) { _runWindow = 0; return; }
-  let maxSeg = 0;
-  for (let i = 1; i < t.count; i++) {
-    const d = t.cum[i]! - t.cum[i - 1]!;
-    if (d > maxSeg) maxSeg = d;
-  }
-  _runWindow = Math.max(t.timeBased ? 5 : 200, 3 * maxSeg);
-}
-// Residual gate on the windowed match: past this the machine is somewhere
-// the window doesn't cover (run-from-line, M0 jump) → full-track rescue.
-const RUN_ESCAPE_D2 = 100;  // (10 units)²
+// The watcher itself is a pure state machine (viewer/runWatcher.ts):
+// ATTACHED = windowed projection per frame (+ trusted-line hint competing
+// on residual); a miss pays exactly ONE full-track scan (the attach /
+// run-from-line path) and then latches OFF-PATH — playhead frozen,
+// highlight cleared, chip shown, ≤1 Hz strided re-probe, ZERO per-frame
+// work. Wave 1 instead full-scanned 99k segments on EVERY status frame
+// while the machine sat at the toolchange park (gap_p50 33 → 319 ms) and
+// accepted the rescue's match however far away it was.
+const _runWatcher = createRunWatcher();
+const runOffPath = ref(false);
+// ui.playhead_slow telemetry: the watcher self-times; anything past the
+// budget is worth a trace row, rate-limited so a bad state can't flood.
+const PLAYHEAD_SLOW_MS = 30;
+let _lastSlowEmit = 0;
 watch(st, (d) => {
   if (!running.value || simMode.value) return;
   const t = track.value;
@@ -354,34 +356,33 @@ watch(st, (d) => {
     ?? ((fN != null && fN !== 0xff && t.frames) ? t.frames[fN] ?? null : null);
   const m = machineFromJoints(jp, viewerInit.value?.axes ?? [], _wcs(),
                               _kinsSpec.value, ktNow, frameNow);
-  const et = _epochTerms.value;
-  if (!_runWindow) _computeRunWindow(t);
-  let best = _lastRunCum != null
-    ? projectOntoTrack(t, m, _wcs(), et, {
-        lo: _lastRunCum - 0.25 * _runWindow,
-        hi: _lastRunCum + 0.75 * _runWindow,
-      })
-    : null;
-  if (span) {
-    // The trusted-line hint competes on residual — it never overrides a
-    // better positional match, and a colliding-line span simply loses.
-    const sw = { lo: t.cum[Math.max(0, span.start - 1)]!, hi: t.cum[span.end]! };
-    const b2 = projectOntoTrack(t, m, _wcs(), et, sw);
-    if (b2 && (!best || b2.dist2 < best.dist2)) best = b2;
+  const out = _runWatcher.update({
+    track: t, machine: m, wcs: _wcs(), epochTerms: _epochTerms.value,
+    hintSpan: span ?? null, nowMs: performance.now(),
+  });
+  runOffPath.value = out.phase === "offPath";
+  if (out.costMs > PLAYHEAD_SLOW_MS && performance.now() - _lastSlowEmit > 10_000) {
+    _lastSlowEmit = performance.now();
+    emitTelemetry("ui.playhead_slow", {
+      cost_ms: Math.round(out.costMs), probed: out.probed,
+      points: t.count, phase: out.phase,
+    });
   }
-  if (!best || best.dist2 > RUN_ESCAPE_D2) {
-    const full = projectOntoTrack(t, m, _wcs(), et, null);
-    if (full && (!best || full.dist2 < best.dist2)) best = full;
+  if (out.phase === "offPath") {
+    // Frozen playhead, no highlight — the machine is somewhere the program
+    // never goes (toolchange park); pretending otherwise is the old bug.
+    trackHighlightRange.value = null;
+    return;
   }
-  if (!best) return;
-  _lastRunCum = best.cum;
-  sPos.value = best.cum;
+  if (out.cum == null) return;
+  sPos.value = out.cum;
   // Positional 3D highlight: the contiguous same-line run around the
   // matched segment — contiguity disambiguates colliding line numbers.
-  trackHighlightRange.value = lineRunAround(t, best.index);
+  trackHighlightRange.value = lineRunAround(t, out.index!);
 });
 watch(running, (r) => {
-  _lastRunCum = null;
+  _runWatcher.reset();
+  runOffPath.value = false;
   if (!r && !simMode.value) trackHighlightRange.value = null;
 });
 
@@ -605,6 +606,8 @@ onUnmounted(() => {
       </MachineBtn>
       <!-- Mode identity chip (redundant with banner/gating — text channel). -->
       <span v-if="running" class="val-status ok" title="Program executing — the playhead follows the machine; timeline controls are locked">RUNNING</span>
+      <span v-if="running && runOffPath" class="val-status warn"
+        title="The machine is somewhere the program's path never goes (e.g. a toolchange park) — the playhead is frozen until it returns">off path</span>
       <span class="scrubStatus val-status mono" :class="{ muted: !simMode && !running }">
         {{ statusText }}
       </span>
