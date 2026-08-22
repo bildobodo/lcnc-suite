@@ -64,7 +64,8 @@ from gateway_util import (
     check_limit_violations_world, merge_violation_records,
     wcs_basis_terms, parse_kins_config, kins_type_flags,
     kins_nonidentity_flags, kins_frame_indices, check_limit_violations_trsrn,
-    kins_marker_policy, mode_boundary_indices,
+    kins_marker_policy, mode_boundary_indices, check_line_attribution,
+    insert_kins_relabels,
 )
 
 
@@ -262,6 +263,8 @@ def parse(ctx: dict) -> dict:
     feed_types = rapid_types = None
     feed_world = rapid_world = None
     world_unchecked = 0
+    relabel_seqs = set()
+    flips_unresolved = 0
     if canon.kins_events:
         kins_cfg = parse_kins_config(ini.find("KINS", "KINEMATICS"),
                                      ini.findall("HAL", "HALCMD") or [])
@@ -277,6 +280,26 @@ def parse(ctx: dict) -> dict:
                   f"{kins_cfg.get('module') if kins_cfg else None} cannot switch)",
                   file=sys.stderr, flush=True)
         else:
+            # W8 phantom-jump fix: a switchkins flip relabels the frame at a
+            # stationary pose, but the offline interp never resyncs, so the
+            # first post-flip canon segment starts at the PRE-flip position
+            # — bundling the relabel jump with the real entry move. Insert
+            # the relabeled start vertex (through the family twins) BEFORE
+            # anything reads the canon lists: limit subdivision then follows
+            # the real entry path, the time/distance stats drop the phantom
+            # length, and the wire gains per-point `brk` flags marking the
+            # relabel connectors as not-motion. All seqs come back doubled
+            # (inserted vertices sit at odd seqs) — events/frames re-keyed
+            # to match, every strict `<` comparison downstream unaffected.
+            (canon.feed, canon.rapid, canon.kins_events, canon.kins_frames,
+             relabel_seqs, flips_unresolved) = insert_kins_relabels(
+                canon.feed, canon.rapid, canon.kins_events,
+                canon.kins_frames, kins_cfg, unit_scale)
+            if relabel_seqs or flips_unresolved:
+                print(f"kins flips: {len(relabel_seqs)} relabel vertices "
+                      f"inserted, {flips_unresolved} UNRESOLVED "
+                      f"(no twin/frame — those keep the raw segment)",
+                      file=sys.stderr, flush=True)
             # Raw switchkins type per segment — the wire ships these
             # (phase 3: trsrn type 1/TCP and type 2/TOOL have different
             # joint mappings, a world bool cannot carry that). The
@@ -505,6 +528,15 @@ def parse(ctx: dict) -> dict:
 
     total_rapid_time = _rtc if time_axis else 0.0
 
+    # W8 phantom-jump fix: per-point relabel flags for the wire. brk[i]=1
+    # means the segment INTO point i is a kins-flip frame relabel — zero
+    # machine motion — inserted by insert_kins_relabels (always into the
+    # rapid stream). Shipped whenever mode arrays ship, zeros included, so
+    # the client can tell "flips handled" from a legacy payload.
+    rapid_brk = None
+    if rapid_types is not None:
+        rapid_brk = [1 if s in relabel_seqs else 0 for s in rapid_seq]
+
     # Kins mode (TCP+TWP phase 2a, raw types since phase 3): per-segment
     # switchkins TYPE from the `(WEBUI_KINSTYPE=n)` markers, resolved
     # above at the limit-check site (aligned 1:1 with the pre-RDP canon
@@ -572,6 +604,13 @@ def parse(ctx: dict) -> dict:
         # (both flip vertices: see mode_boundary_indices).
         if feed_mode:
             anchors = sorted(set(anchors) | mode_boundary_indices(feed_mode))
+        if relabel_seqs:
+            # A relabel vertex's exec-order predecessor (seq+1 = the inserted
+            # vertex) must survive too: dropping it would extend the brk
+            # connector backwards over REAL motion. Frame-only flips share a
+            # mode, so mode_boundary_indices alone cannot anchor these.
+            anchors = sorted(set(anchors)
+                             | {i for i, s in enumerate(feed_seq) if s + 1 in relabel_seqs})
         keep = _rdp_keep(_rdp_points(feed, feed_abc), anchors, eps_sq)
         if len(keep) < len(feed):
             feed = [feed[i] for i in keep]
@@ -587,6 +626,13 @@ def parse(ctx: dict) -> dict:
         r_anchors = [0, len(rapid) - 1]
         if rapid_mode:
             r_anchors = sorted(set(r_anchors) | mode_boundary_indices(rapid_mode))
+        if relabel_seqs:
+            # Relabel vertices AND their in-stream predecessors (see the feed
+            # anchor note): a dropped relabel vertex loses the brk flag; a
+            # dropped predecessor stretches the brk connector over real motion.
+            r_anchors = sorted(set(r_anchors)
+                               | {i for i, s in enumerate(rapid_seq)
+                                  if s in relabel_seqs or s + 1 in relabel_seqs})
         keep = _rdp_keep(_rdp_points(rapid, rapid_abc), r_anchors, eps_sq)
         if len(keep) < len(rapid):
             rapid = [rapid[i] for i in keep]
@@ -596,6 +642,8 @@ def parse(ctx: dict) -> dict:
             rapid_tcum = [rapid_tcum[i] for i in keep]
             if rapid_mode:
                 rapid_mode = [rapid_mode[i] for i in keep]
+            if rapid_brk:
+                rapid_brk = [rapid_brk[i] for i in keep]
     print(
         f"rdp feed {pre_feed}->{len(feed)} rapid {pre_rapid}->{len(rapid)} eps={eps:.5f} rotary={has_rotary}",
         file=sys.stderr, flush=True,
@@ -664,9 +712,11 @@ def parse(ctx: dict) -> dict:
     # does execute. Max/union of the two is the best honest estimate.
     text_changes = 0
     text_tools = set()
+    _src_text = ""
     try:
         with open(filename, "r", errors="replace") as f:
-            text_changes, text_tools = scan_tool_stats(f.read())
+            _src_text = f.read()
+        text_changes, text_tools = scan_tool_stats(_src_text)
     except OSError as e:
         _trace.emit_exc("gcode.tool_scan_failed", e)
 
@@ -716,6 +766,18 @@ def parse(ctx: dict) -> dict:
     # gateway publishes these bytes verbatim (no decode + re-encode), which is
     # what keeps the multi-MB polyline from ever becoming Python objects on the
     # event-loop process (mmw#4 GC pressure).
+    # Line-number honesty (see gateway_util.check_line_attribution): motion
+    # executed inside a called sub or a remap is tagged with THAT file's line
+    # numbers. Checked against the pre-RDP canon lines — decimation drops
+    # points and could hide the evidence. Source text reused from the tool
+    # scan above (one read, one failure path).
+    lines_untrusted, _bad_lines, lines_untrusted_reason = check_line_attribution(
+        _src_text,
+        [t[0] for t in canon.feed] + [t[0] for t in canon.rapid])
+    if lines_untrusted:
+        print(f"line attribution UNTRUSTED: {lines_untrusted_reason}; "
+              f"suspect lines {_bad_lines[:12]}", file=sys.stderr, flush=True)
+
     result = {"file": filename, "feed": feed_bin, "feed_lines": feed_lines_bin,
               "feed_seq": feed_seq_bin, "rapid_seq": rapid_seq_bin,
               "rapid_lines": rapid_lines_bin,
@@ -725,6 +787,13 @@ def parse(ctx: dict) -> dict:
               "rapid": rapid_bin, "stats": stats, "bounds": bounds,
               "motion_bounds": motion_bounds,
               "violations": violations, "violations_total": violations_total,
+              # Whether the per-point line numbers actually index THIS file.
+              # A program that calls an external subroutine or a remap gets
+              # motion tagged with that file's line numbers, which collide with
+              # the main program's. Unfixable (see check_line_attribution), but
+              # detectable — and a wrong highlight is worse than none.
+              "lines_untrusted": lines_untrusted,
+              "lines_untrusted_reason": lines_untrusted_reason,
               # Which WCS this preview is expressed relative to, and which
               # fixtures the program actually cut in (W5d). `wcs_basis_index`
               # is the active WCS the parse was forced into — the one the
@@ -769,6 +838,21 @@ def parse(ctx: dict) -> dict:
             result["kins_frames"] = [
                 [int(s), float(p), float(t1), float(t2)]
                 for s, p, t1, t2 in canon.kins_frames]
+        if rapid_brk is not None:
+            # Kins-flip relabel flags (u8), index-aligned with rapid:
+            # brk[i]=1 ⇒ the segment INTO point i is a frame relabel at a
+            # stationary pose (insert_kins_relabels), zero machine motion —
+            # the client must never draw, sweep, time, or lerp across it.
+            # Present (zeros included) whenever mode arrays ship, so
+            # absence-with-modes identifies a legacy payload whose flip
+            # segments still carry the raw phantom.
+            result["rapid_brk"] = np.asarray(rapid_brk, dtype="<u1").tobytes() if rapid_brk else b""
+        if flips_unresolved:
+            # Flips the twins could not evaluate (no twin for the family, or
+            # a frameless type-2 side): their segments keep the raw phantom
+            # geometry. Unhandled ≠ handled — the count rides the wire so
+            # the sweep/UI can say so instead of implying a clean track.
+            result["kins_flips_unresolved"] = flips_unresolved
     if world_unchecked:
         # World-mode segments with no kins twin to check against —
         # unchecked ≠ clean, so the count rides the wire and the UI says

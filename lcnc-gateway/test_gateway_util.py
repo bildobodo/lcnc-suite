@@ -898,6 +898,206 @@ class TestTrsrnCapturePins(unittest.TestCase):
         self.assertGreater(abs(w0[1] + 200.0), 10.0)
 
 
+class TestInsertKinsRelabels(unittest.TestCase):
+    """W8 phantom-jump fix: a switchkins flip relabels the frame at a
+    stationary pose, but the offline canon's post-flip segment starts at the
+    PRE-flip position (no motion controller to resync against), bundling
+    relabel + real entry move. insert_kins_relabels must insert the
+    relabeled start vertex (joint-invariant across the flip), patch the next
+    segment's start, and re-key every seq (doubled; inserts odd)."""
+
+    GEO = TestTrsrnCapturePins.GEO
+    FRAME = TestTrsrnCapturePins.FRAME
+    TRSRN = {"type": "xyzacb-trsrn", "params": GEO}
+
+    @staticmethod
+    def _seg9(x, y, z):
+        return (x, y, z, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+
+    def _flip_fixture(self, frames):
+        # identity rapid (seq1) -> flip markers -> plane rapid (seq2)
+        p0 = self._seg9(50.0, 0.0, 100.0)
+        p1 = self._seg9(0.0, 0.0, 100.0)
+        rapid = [(5, self._seg9(0, 0, 0), p0, None, 1),
+                 (8, p0, p1, None, 2)]
+        events = [(1, 2)]
+        return rapid, events, p0, p1
+
+    def test_trsrn_flip_inserts_joint_invariant_relabel(self):
+        rapid, events, p0, _p1 = self._flip_fixture(True)
+        frames = [(1,) + tuple(self.FRAME[k] for k in
+                               ("pre_rot", "primary_angle", "secondary_angle"))]
+        feed2, rapid2, ev2, fr2, brks, unres = gateway_util.insert_kins_relabels(
+            [], rapid, events, frames, self.TRSRN, unit_scale=1.0)
+        self.assertEqual(unres, 0)
+        self.assertEqual(len(rapid2), 3)
+        self.assertEqual(feed2, [])
+        # seqs doubled; the insert takes the odd seq between the pair
+        self.assertEqual([t[4] for t in rapid2], [2, 3, 4])
+        self.assertEqual(brks, {3})
+        self.assertEqual(ev2, [(2, 2)])
+        self.assertEqual(fr2[0][0], 2)
+        ins = rapid2[1]
+        self.assertEqual(ins[1], ins[2], "relabel vertex is zero-length")
+        # The physical property: joints under the OLD side at the pre-flip
+        # pose == joints under the NEW side at the relabeled pose.
+        j_old = gateway_util.trsrn_kins_inverse(list(p0[:6]), dict(self.GEO), 0)
+        j_new = gateway_util.trsrn_kins_inverse(
+            list(ins[2][:6]), dict(self.GEO, **self.FRAME), 2)
+        for a, b in zip(j_old, j_new):
+            self.assertAlmostEqual(a, b, places=6)
+        # ...and the next segment now starts at the relabeled pose.
+        self.assertEqual(rapid2[2][1], ins[2])
+        # The relabel is a real displacement here, not a degenerate skip.
+        self.assertGreater(
+            max(abs(ins[2][i] - p0[i]) for i in range(3)), 1.0)
+
+    def test_frameless_type2_flip_is_unresolved_not_guessed(self):
+        rapid, events, _p0, _p1 = self._flip_fixture(False)
+        feed2, rapid2, _ev2, _fr2, brks, unres = gateway_util.insert_kins_relabels(
+            [], rapid, events, [], self.TRSRN, unit_scale=1.0)
+        self.assertEqual(unres, 1)
+        self.assertEqual(len(rapid2), 2, "no vertex may be invented")
+        self.assertEqual(brks, set())
+        self.assertEqual(rapid2[1][1], rapid2[0][2],
+                         "unresolved flip keeps the raw start")
+
+    def test_unknown_family_is_unresolved(self):
+        rapid, events, _p0, _p1 = self._flip_fixture(True)
+        cfg = {"type": "5axiskins", "params": {}}
+        _f, rapid2, _e, _fr, brks, unres = gateway_util.insert_kins_relabels(
+            [], rapid, events, [], cfg, unit_scale=1.0)
+        self.assertEqual((len(rapid2), brks, unres), (2, set(), 1))
+
+    def test_no_events_is_passthrough_with_doubled_seqs(self):
+        rapid = [(5, self._seg9(0, 0, 0), self._seg9(1, 0, 0), None, 1)]
+        feed = [(6, self._seg9(1, 0, 0), self._seg9(2, 0, 0), 0.1, None, 2)]
+        f2, r2, e2, fr2, brks, unres = gateway_util.insert_kins_relabels(
+            feed, rapid, [], [], self.TRSRN, unit_scale=1.0)
+        self.assertEqual(([t[5] for t in f2], [t[4] for t in r2]), ([4], [2]))
+        self.assertEqual((e2, fr2, brks, unres), ([], [], set(), 0))
+
+    def test_trt_flip_and_feed_next_start_patch(self):
+        # xyzac-trt, no identity_first: type 0 IS the world kins. Flip
+        # world->identity with the next segment a FEED: the relabel vertex
+        # still lands in the rapid stream (by seq), and the FEED's start is
+        # patched. Pivot geometry chosen so the relabel is a real jump.
+        cfg = {"type": "xyzac-trt",
+               "params": {"y_rot_point": 30.0, "z_rot_point": -40.0}}
+        w_end = (10.0, 20.0, -5.0, 30.0, 0.0, 45.0)  # A=30 C=45: tilted pose
+        rapid = [(4, self._seg9(0, 0, 0), w_end + (0.0, 0.0, 0.0), None, 1)]
+        feed = [(7, w_end + (0.0, 0.0, 0.0), self._seg9(0, 0, 50) , 0.1, None, 2)]
+        events = [(1, 1)]  # flip to type 1 = identity on plain sparm
+        f2, r2, _e2, _fr2, brks, unres = gateway_util.insert_kins_relabels(
+            feed, rapid, events, [], cfg, unit_scale=1.0)
+        self.assertEqual(unres, 0)
+        self.assertEqual(len(r2), 2, "relabel vertex inserted into rapid")
+        ins = r2[1]
+        self.assertEqual(ins[4], 3)
+        self.assertEqual(brks, {3})
+        # identity side: world == joints, so the relabeled pose must equal
+        # the trt inverse of the pre-flip world pose (canonical 6-slot).
+        j5 = gateway_util.trt_kins_inverse(list(w_end), dict(cfg["params"]))
+        expect = [j5[0], j5[1], j5[2], j5[3], 0.0, j5[4]]
+        for i in range(6):
+            self.assertAlmostEqual(ins[2][i], expect[i], places=9)
+        self.assertEqual(f2[0][1], ins[2], "feed start patched to the relabel")
+        self.assertGreater(max(abs(ins[2][i] - w_end[i]) for i in range(3)), 1.0)
+
+    def test_degenerate_flip_at_neutral_pose_inserts_nothing(self):
+        # trt flip at A=0 C=0 with no offsets: world == joints on both sides,
+        # the relabel lands exactly on the pre-flip pose — no vertex, no brk.
+        cfg = {"type": "xyzac-trt", "params": {}}
+        rapid = [(4, self._seg9(0, 0, 0), self._seg9(10, 0, 5), None, 1),
+                 (8, self._seg9(10, 0, 5), self._seg9(20, 0, 5), None, 2)]
+        events = [(1, 1)]
+        _f2, r2, _e2, _fr2, brks, unres = gateway_util.insert_kins_relabels(
+            [], rapid, events, [], cfg, unit_scale=1.0)
+        self.assertEqual((len(r2), brks, unres), (2, set(), 0))
+
+
+class TestLineAttribution(unittest.TestCase):
+    """Motion line numbers only index the MAIN file when nothing was called.
+
+    Pinned against the real observed case: the TWP demo's motion comes back
+    tagged with square.ngc's lines 2..7 and remap.py's line 1029, which is why
+    the run highlight parked on an unrelated line and never reached the
+    o<square> call. The number cannot be repaired, so it must be disowned.
+    """
+
+    CLEAN = "g0 x0 y0 z10\ng1 x50 f100\nx60\nm2\n"
+
+    def test_single_file_program_is_trusted(self):
+        untrusted, bad, why = gateway_util.check_line_attribution(
+            self.CLEAN, [1, 2, 3])
+        self.assertFalse(untrusted)
+        self.assertEqual(bad, [])
+        self.assertEqual(why, "")
+
+    def test_line_number_past_end_of_file_is_caught(self):
+        untrusted, bad, why = gateway_util.check_line_attribution(
+            self.CLEAN, [1, 1029])
+        self.assertTrue(untrusted)
+        self.assertIn(1029, bad)
+        self.assertIn("beyond the file's 4 lines", why)
+
+    def test_motion_blamed_on_a_line_that_cannot_move_is_caught(self):
+        # line 2 is a tool change, line 3 blank: neither can produce motion,
+        # so motion tagged with them came from somewhere else.
+        src = "g0 x1\nm6 t3\n\ng1 x2 f10\n"
+        untrusted, bad, _why = gateway_util.check_line_attribution(src, [1, 2, 3])
+        self.assertTrue(untrusted)
+        self.assertEqual(bad, [2, 3])
+
+    def test_comment_only_and_bare_axis_word_are_classified_correctly(self):
+        src = "(just a comment)\nx10\n; another\ng4 p1\n"
+        untrusted, bad, _why = gateway_util.check_line_attribution(src, [2])
+        self.assertFalse(untrusted, "a bare axis word under modal motion moves")
+        untrusted, bad, _why = gateway_util.check_line_attribution(src, [1, 3, 4])
+        self.assertTrue(untrusted)
+        self.assertEqual(bad, [1, 3, 4], "comments and a dwell cannot move")
+
+    def test_no_line_numbers_is_not_an_accusation(self):
+        self.assertEqual(gateway_util.check_line_attribution(self.CLEAN, []),
+                         (False, [], ""))
+        self.assertEqual(gateway_util.check_line_attribution("", []),
+                         (False, [], ""))
+
+    def test_remapped_g53_3_counts_as_motion_capable(self):
+        # G53.x is remapped but IS the line that commands the move — motion
+        # attributed to it is legitimate and must not be flagged.
+        src = "g68.2 x1 y1 z1 q121 i30 j15\ng53.3 x0y0z100\n"
+        untrusted, _bad, _why = gateway_util.check_line_attribution(src, [2])
+        self.assertFalse(untrusted)
+
+    def test_bare_g28_g30_are_motion_capable(self):
+        # G28/G30 move with NO axis words — flagging them disabled the
+        # highlight on clean single-file programs with a false "came from a
+        # subroutine" banner (review-caught false positive).
+        src = "g28\ng30\ng0 x1\n"
+        untrusted, bad, _why = gateway_util.check_line_attribution(src, [1, 2, 3])
+        self.assertFalse(untrusted)
+        self.assertEqual(bad, [])
+
+    def test_reference_store_and_cancel_are_not_motion(self):
+        # G28.1/G30.1 only STORE the reference point; G80 CANCELS canned
+        # cycles. None can be a motion's source line.
+        src = "g28.1\ng30.1\ng80\ng81 x1 z-2 r1\n"
+        untrusted, bad, _why = gateway_util.check_line_attribution(
+            src, [1, 2, 3, 4])
+        self.assertTrue(untrusted)
+        self.assertEqual(bad, [1, 2, 3], "g81 canned cycle stays trusted")
+
+    def test_settings_axis_words_are_not_motion(self):
+        # G10/G92/G52 carry axis words that write offsets, not moves — a sub
+        # line colliding with one must not keep the attribution trusted.
+        src = "g10 l2 p1 x0 y0 z0\ng92 x5\ng52 x1 y1\ng0 x1\n"
+        untrusted, bad, _why = gateway_util.check_line_attribution(
+            src, [1, 2, 3, 4])
+        self.assertTrue(untrusted)
+        self.assertEqual(bad, [1, 2, 3])
+
+
 class TestTrsrnLimitCheck(unittest.TestCase):
     """Phase 3 close-out: joint-side soft limits for trsrn TCP/TOOL segs."""
 

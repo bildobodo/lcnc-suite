@@ -827,6 +827,173 @@ def mode_boundary_indices(mode):
     return out
 
 
+def _kins_flip_pose(kins_cfg, ktype, frame, tlo, unit_scale, world=None, joints=None):
+    """One side of a kins flip: world -> joints (pass `world`) or joints ->
+    world (pass `joints`), routed through the family's Python twin with the
+    same TLO conventions as the limit checkers (world coords TLO-inclusive;
+    trsrn mode 1 folds TLO z into the pivot, mode 2 ignores it by upstream
+    design; trt world folds it into `tool_offset`). Returns a 6-list in
+    SCALED machine units, or None when this side cannot be evaluated (no
+    twin for the family, or a type-2 segment with no governing frame —
+    the bare-M430 case, never guessed). Pure."""
+    family = (kins_cfg or {}).get("type")
+    params0 = {k: float(v) for k, v in ((kins_cfg or {}).get("params") or {}).items()}
+    tlz = (tlo[2] if tlo is not None else 0.0) * unit_scale
+    if family == "xyzacb-trsrn":
+        if ktype == 0:
+            return list(world if world is not None else joints)
+        params = dict(params0)
+        if ktype == 1:
+            params["tool_offset_z"] = tlz
+        elif ktype == 2:
+            if frame is None:
+                return None
+            params["pre_rot"] = frame[0]
+            params["primary_angle"] = frame[1]
+            params["secondary_angle"] = frame[2]
+        else:
+            return None
+        if world is not None:
+            return list(trsrn_kins_inverse(world, params, ktype))
+        return list(trsrn_kins_forward(joints, params, ktype))
+    if family in _TRT_LETTERS:
+        world_type = 1 if (kins_cfg or {}).get("identity_first") else 0
+        if ktype != world_type:
+            return list(world if world is not None else joints)
+        bc = family == "xyzbc-trt"
+        params = params0
+        if tlz:
+            params = dict(params0)
+            params["tool_offset"] = tlz
+        if world is not None:
+            j5 = trt_kins_inverse(world, params, bc=bc)
+            # required-coordinates order back to the canonical 6-slot layout
+            return ([j5[0], j5[1], j5[2], 0.0, j5[3], j5[4]] if bc
+                    else [j5[0], j5[1], j5[2], j5[3], 0.0, j5[4]])
+        j5 = ([joints[0], joints[1], joints[2], joints[4], joints[5]] if bc
+              else [joints[0], joints[1], joints[2], joints[3], joints[5]])
+        return list(trt_kins_forward(j5, params, bc=bc))
+    return None
+
+
+def insert_kins_relabels(feed, rapid, kins_events, kins_frames, kins_cfg,
+                         unit_scale=1.0):
+    """Insert the RELABELED start vertex at every kins flip (W8 open defect).
+
+    A switchkins flip swaps the world<->joint mapping at a stationary pose:
+    joints hold (G53.6 capture: servo dither) while world coords jump. The
+    offline interpreter has no motion controller so its position is never
+    resynced — the canon's first post-flip segment therefore STARTS at the
+    pre-flip position, bundling [frame relabel + the real entry move] into
+    one segment ~931 units long on the recorded probe. Interpolating it is
+    wrong in BOTH directions: phantom travel where the machine relabels,
+    and the real entry move (the G53.3 rotary swing) swept along a path
+    the machine never takes.
+
+    Fix: for each flip (per-segment TYPE or governing FRAME changes between
+    execution-adjacent segments), compute the machine's true post-flip
+    position — joints of the pre-flip endpoint through the OLD side's twin,
+    forward through the NEW side's — and insert it as a zero-length rapid
+    vertex. The segment INTO it is the relabel (flagged via the returned
+    seq set -> wire `brk` -> never drawn/swept/timed); the segment OUT of
+    it is the real entry move, now with its true start (its canon `start`
+    is patched, so distance/time stats and the joint-side limit subdivision
+    follow the real path too).
+
+    `feed`/`rapid` are the canon tuple lists; all OUTPUT seqs are DOUBLED
+    (2*orig; inserted vertices take odd seqs 2*next-1) so an inserted
+    vertex can sit between two previously-adjacent seqs — events/frames
+    are returned re-keyed the same way, which preserves every strict
+    seq comparison downstream (client and server both resolve markers
+    with `event_seq < seq`).
+
+    Returns (feed2, rapid2, events2, frames2, relabel_seqs, unresolved):
+    `relabel_seqs` = doubled seqs of the inserted vertices; `unresolved`
+    counts flips this family/frame data could NOT evaluate — those keep
+    the raw (wrong) segment, and the caller must ship the count rather
+    than pretend the track is clean. Pure.
+    """
+    feed = [list(t) for t in feed]
+    rapid = [list(t) for t in rapid]
+    events2 = [(e[0] * 2, e[1]) for e in kins_events]
+    frames2 = [(f[0] * 2,) + tuple(f[1:]) for f in kins_frames]
+    for t in feed:
+        t[5] *= 2
+    for t in rapid:
+        t[4] *= 2
+    if not kins_events or (not feed and not rapid):
+        return feed, rapid, events2, frames2, set(), 0
+
+    # Execution-ordered view: (seq2, stream_list, index). Both lists are
+    # seq-ascending (canon appends in execution order), so a plain merge
+    # by seq reconstructs program order — same convention as the client.
+    merged = sorted(
+        [(t[5], feed, i) for i, t in enumerate(feed)]
+        + [(t[4], rapid, i) for i, t in enumerate(rapid)])
+    seqs2 = [m[0] for m in merged]
+    types = kins_type_flags(seqs2, events2)
+    fidx = kins_frame_indices(seqs2, frames2)
+    frames_vals = [tuple(f[1:]) for f in frames2]
+
+    relabel_seqs = set()
+    inserts = []  # (position-in-rapid, tuple) collected, applied afterwards
+    unresolved = 0
+    for k in range(1, len(merged)):
+        if types[k] == types[k - 1] and fidx[k] == fidx[k - 1]:
+            continue
+        _seq_p, lst_p, i_p = merged[k - 1]
+        seq_n, lst_n, i_n = merged[k]
+        prev = lst_p[i_p]
+        nxt = lst_n[i_n]
+        prev_end = prev[2]
+        tlo_p = prev[4] if lst_p is feed else prev[3]
+        tlo_n = nxt[4] if lst_n is feed else nxt[3]
+        fr_p = frames_vals[fidx[k - 1]] if fidx[k - 1] is not None else None
+        fr_n = frames_vals[fidx[k]] if fidx[k] is not None else None
+        w0 = [0.0] * 6
+        for i in range(6):
+            v = float(prev_end[i])
+            if i < 3:
+                v = (v + (tlo_p[i] if tlo_p is not None else 0.0)) * unit_scale
+            w0[i] = v
+        j = _kins_flip_pose(kins_cfg, types[k - 1], fr_p, tlo_p, unit_scale, world=w0)
+        w1 = None if j is None else \
+            _kins_flip_pose(kins_cfg, types[k], fr_n, tlo_n, unit_scale, joints=j)
+        if w1 is None:
+            unresolved += 1
+            continue
+        # Back to canon units, TLO peeled — the same shape as its neighbours.
+        end = list(prev_end)
+        for i in range(3):
+            end[i] = w1[i] / unit_scale - (tlo_n[i] if tlo_n is not None else 0.0)
+        for i in range(3, 6):
+            end[i] = w1[i]
+        if max(abs(end[i] - float(prev_end[i])) for i in range(6)) < 1e-9:
+            continue  # flip relabels to the same pose — nothing to insert
+        end = tuple(end)
+        rl_seq = seq_n - 1
+        # Zero-length rapid AT the relabeled pose; the next segment now
+        # really starts there.
+        inserts.append((i_n if lst_n is rapid else None,
+                        [nxt[0], end, end, tlo_n, rl_seq]))
+        lst_n[i_n] = list(nxt)
+        lst_n[i_n][1] = end
+        relabel_seqs.add(rl_seq)
+
+    # Apply rapid insertions back-to-front so indices stay valid; flips whose
+    # next segment is a FEED still insert into rapid, positioned by seq.
+    for at, tup in sorted(inserts, key=lambda x: x[1][4], reverse=True):
+        if at is not None:
+            rapid.insert(at, tup)
+        else:
+            pos = 0
+            while pos < len(rapid) and rapid[pos][4] < tup[4]:
+                pos += 1
+            rapid.insert(pos, tup)
+    return ([tuple(t) for t in feed], [tuple(t) for t in rapid],
+            events2, frames2, relabel_seqs, unresolved)
+
+
 def trt_kins_forward(joints, params, bc=False):
     """xyzac/xyzbc-trt world kinematics, forward (joints -> world).
 
@@ -1256,6 +1423,90 @@ def merge_violation_records(a, b, max_report=200):
     order = {letter: i for i, letter in enumerate(AXIS_LETTERS)}
     keys = sorted(worst, key=lambda k: (k[0], order.get(k[1], 9)))
     return [worst[k] for k in keys[:max_report]], len(keys)
+
+
+#: G-codes that command motion on their own (the rest need an axis word).
+#: G28/G30 move with no axis words (return to reference — common in headers;
+#: flagging them disabled the highlight on clean single-file programs), but
+#: G28.1/G30.1 only STORE the reference — hence the (?!\.). G80 CANCELS
+#: motion, so the canned-cycle range starts at 81.
+_MOTION_GCODES = re.compile(
+    r"\bg\s*0*(?:0|1|2|3|28(?!\.)|30(?!\.)|33(?:\.1)?|38(?:\.[2-5])?"
+    r"|73|76|8[1-9](?:\.\d)?|53\.[136])\b",
+    re.I)
+#: An axis word with a value — under a modal motion mode this moves the machine.
+_AXIS_WORD = re.compile(r"[XYZABCUVW]\s*[-+]?[\d.]", re.I)
+#: Settings codes whose axis words do NOT move the machine (G10 offset
+#: writes, G92 offsets, G52 shifts). A line whose only G-codes are these
+#: is not motion-capable even with axis words on it.
+_SETTINGS_GCODES = re.compile(r"\bg\s*0*(?:10|92(?:\.[123])?|52)\b", re.I)
+
+
+def strip_gcode_comments(line: str) -> str:
+    """Drop ``;`` trailing comments and ``(...)`` inline comments."""
+    out, depth = [], 0
+    for ch in line:
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth = max(0, depth - 1)
+        elif ch == ";" and depth == 0:
+            break
+        elif depth == 0:
+            out.append(ch)
+    return "".join(out)
+
+
+def check_line_attribution(source_text, line_numbers):
+    """Are these motion line numbers actually lines of THIS program?
+
+    LinuxCNC reports a motion's line number as the line within whichever file
+    was executing — a called subroutine or an ngc/python remap. Those numbers
+    collide with the main program's own numbering (``square.ngc`` line 7 is
+    indistinguishable from the main file's line 7), and nothing in the canon
+    or in ``stat`` says which file a queued motion came from: ``call_level``
+    and ``stat.file`` track where the interpreter is READING, which runs ahead
+    and is routinely back at level 0 while the sub's motion is still executing.
+
+    So the number cannot be corrected — but it CAN be caught. A motion
+    attributed to a main-file line that is blank, comment-only, or carries no
+    motion G-code and no axis word did not come from that line. Any such hit
+    means the whole attribution is untrustworthy: highlighting it would point
+    the operator at an unrelated line (the observed case parks the highlight on
+    ``g53.3`` forever and never reaches the ``o<...> call`` that is really
+    running).
+
+    Returns ``(untrusted, bad_lines, reason)``. Conservative in the safe
+    direction: it only ever reports MORE doubt, never less.
+    """
+    lines = (source_text or "").splitlines()
+    n = len(lines)
+    bad, out_of_range = [], 0
+    for ln in sorted({int(v) for v in (line_numbers or []) if int(v) > 0}):
+        if ln > n:
+            out_of_range += 1
+            bad.append(ln)
+            continue
+        src = strip_gcode_comments(lines[ln - 1]).strip()
+        # Axis words only qualify when they aren't arguments to a pure
+        # settings code (G10 L2 P1 X0 writes an offset, it moves nothing) —
+        # without this, a sub line colliding with such a line stays trusted
+        # and the wrong highlight survives.
+        moves = bool(_MOTION_GCODES.search(src)) or (
+            bool(_AXIS_WORD.search(src)) and not _SETTINGS_GCODES.search(src))
+        if not src or not moves:
+            bad.append(ln)
+    if not bad:
+        return False, [], ""
+    why = []
+    if out_of_range:
+        why.append(f"{out_of_range} beyond the file's {n} lines")
+    inrange = len(bad) - out_of_range
+    if inrange:
+        why.append(f"{inrange} on lines that cannot move the machine")
+    return True, bad, (
+        "motion line numbers come from a called subroutine or remap, not this "
+        "file (" + ", ".join(why) + ")")
 
 
 def read_axis_limits(ini_find, axis_mask: int):
