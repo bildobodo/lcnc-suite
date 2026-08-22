@@ -30,7 +30,7 @@ preview-limit design notes) applied as a stopping rule rather than a coding rule
 ## Closed
 
 ### Per-segment WCS in the preview transform
-**Test:** — (superseded) · **Closed:** 2026-08-20
+**Test:** — · **Closed:** 2026-08-20 · **FALSIFIED and BUILT:** 2026-08-22 (review P2)
 
 The preview subtracts one work-offset basis for the whole program. Making it
 per-segment was scoped at ~180 lines across 8 files and blocked on two structural
@@ -38,12 +38,20 @@ facts: the drawn preview is a single `THREE.Group` (`workOrigin` → `workRotGro
 per-segment offsets would need vertex-baking or N line objects; and `wcs_table`'s
 per-index offsets are not reliable enough to key off.
 
-Closed on merit, not obstacle: fixing the *reference basis* (parse against the
+~~Closed on merit, not obstacle: fixing the *reference basis* (parse against the
 program-start WCS, with the live table patched into the parse var file) makes
-multi-fixture programs render exactly, so per-segment state buys nothing.
-
-**Reopens if:** a program must show two fixtures simultaneously in one frame — e.g.
-a pallet-changer view, or a preview that overlays G54 and G55 setups at once.
+multi-fixture programs render exactly, so per-segment state buys nothing.~~
+**The "buys nothing" claim was measured wrong** by the TWP preview defect (see
+the Fixed row below): `G53.x` writes the plane origin into G59 and every TWP
+program cuts in two fixtures *sequentially*, so single-basis rendering was
+wrong by the whole fixture delta on the NORMAL path, not a pallet-changer
+corner case. Per-segment WCS is now implemented — canon `wcs_events` epochs,
+per-epoch subtraction at extraction, `wcs_frames` on the wire, per-epoch
+re-add client-side (`viewer/wcsEpochs.ts`) with vertex-baked display rebase —
+and the two structural blockers dissolved: the rebase bakes the epoch delta
+so the single `THREE.Group` survives, and `wcs_table` reliability is handled
+by the `rewritten` flag (program-written fixtures pin the parse snapshot
+instead of the live row).
 
 ### Websocket request IDs (issue #28)
 **Test:** DEMAND · **Closed:** 2026-08-20 (deferred by agreement 2026-06)
@@ -411,7 +419,22 @@ for those who do.
 one-off a pattern.
 
 ### Switchkins transition vertices in the offline track
-**Line:** the live behaviour is settled and the offline consequence is
+**FIXED 2026-08-22 (review P1, f689a5d + f568865).** The fix went further than
+the "zero-length handling at the flip" sketched below: the flip segment
+bundles the frame relabel WITH the real G53.x entry move (remap.py:1029 is a
+real `G0 X Y Z B C` — the offline interp never resyncs its position at the
+switch, so the segment start is wrong by the relabel jump). A zero-length
+break would have swallowed the entry swing — the under-report direction a
+collision sweep cannot afford. Instead `insert_flip_relabels` computes the
+machine's true post-flip position through the family twins (joint-invariance
+across the flip) and inserts it as a zero-length rapid vertex flagged `brk`
+on the wire: the relabel connector is never drawn/swept/timed/lerped, and the
+entry move sweeps from its true start. Measured on the probe below: both
+flips get relabel vertices, and the 0→2 phantom was hiding 157 units of real
+entry travel. A flip the twins cannot evaluate keeps the raw segment and
+ships as `kins_flips_unresolved` — unhandled is said, never disguised.
+
+**Line (historical):** the live behaviour is settled and the offline consequence is
 identified, but the preview side is unverified until the TWP config runs.
 
 Measured from the G53.6 capture (`~/twp-spike/capture-g536.ndjson`): at both
@@ -462,6 +485,25 @@ its own design pass rather than being bolted onto W8's acceptance run.
 ---
 
 ## Fixed
+
+- **The run line-highlight parked on wrong lines for any program calling a
+  sub or remap — and the first fix draft just turned it off.** (Review P1/P3,
+  2026-08-22.) `motion_line` is reported per-executing-FILE, so a called
+  file's numbering collides with the main program's; unfixable at the source
+  (a queued motion carries no file identity, `call_level` tracks read-ahead).
+  The detection (`check_line_attribution`) landed hardened — bare G28/G30 are
+  motion (the draft's false positive disabled the highlight on clean
+  single-file programs with a false "came from a subroutine" banner), G80 is
+  a cancel, G10/G92/G52 axis words are settings — and the ACTUATING surfaces
+  went positional instead of dark: the run playhead projects the live machine
+  pose onto the track (`projectOntoTrack` — windowed, epoch-aware, brk-
+  skipping; `motion_line` demoted to a residual-competing hint), and the 3D
+  highlight is track-index addressed (`feedSrc` + `lineRunAround`, where
+  contiguity disambiguates colliding numbers). Only the TEXT panel keeps the
+  honest suppression + banner: a per-point main-file call-site channel is
+  provably unavailable from the offline interp surface (`gcode.linecode`
+  exposes no call level or filename), and a heuristic that can silently
+  mislabel is the defect class being fixed.
 
 - **Four commands were authorized by `armed` alone and were structurally invisible to
   the coverage test** (`set_compensation`, `set_compensation_method`,
@@ -575,6 +617,19 @@ live boot could have found, all fixed before this record:
   with no sleep, polling NML as fast as the CPU allows: 13m29s of CPU in
   13m33s of wall time, one core of four gone permanently. It starved the
   publish scenario outright. Forked to 20 Hz; 99.6% → 0.0%.
+  **AMENDED (review P4):** the uniform 20 Hz fork was itself a defect — this
+  record's "everything it publishes is display state" claim was wrong.
+  `twp-is-defined`/`twp-is-active` are CONTROL-FLOW GUARDS remap.py reads
+  (G68.2 aborts if TWP is already defined; G53.x aborts "No TWP defined" if
+  not); upstream's spin made them synchronous, and at 20 Hz the
+  `g69 / g68.2 / g53.3` sequence became a race the program lost roughly half
+  the time — mid-run abort, machine in limbo. The loop is now SPLIT-RATE:
+  guard pins at ~1 kHz edge-triggered (steady state = one pin read + compare),
+  NML poll + vismach passthrough at 20 Hz. Measured on a live session: ~0.9%
+  of one core. The full perf-matrix gate has not re-run since the split (the
+  recorded W8 matrix covered the 20 Hz build; a matrix run needs a suite
+  restart) — run it at the next restart; the sub-percent CPU and a full live
+  TWP acceptance run (twp_parity truth/compare) both ran clean beside it.
 - **`OPEN_FILE` pointed outside `PROGRAM_PREFIX`**, so the config booted with
   no program and `load_file` refused the path.
 
@@ -601,6 +656,11 @@ upstream demo emits `kins_frames = [-1.781761556, 130.245476621,
 -40.855497803]`, matching the phase-3 live task run to six decimals, with every
 segment typed TOOL/plane, `wcs_used = [6]` and
 `violations_world_unchecked: None` — the trsrn twin checked every segment.
+**CAVEAT (review P4):** this paragraph was a clean bill for the marker/twin/
+limit plumbing only. On the same program, at the time it was written, the
+rendered preview sat ~1 m from the machine path (the per-segment-WCS defect
+below, then open) and the flip segments carried the phantom jump — an
+acceptance record must say which layer it certifies.
 - **Every negative jog was silently clamped to zero velocity.** W3's payload
   schema declared jog `vel` as `Num(lo=0, …, clamp=True)` — reading it as an
   unsigned slider. It is signed: the UI sends `vel = v * dir`, and for
@@ -619,7 +679,21 @@ segment typed TOOL/plane, `wcs_used = [6]` and
 ## Open — found by operating the TWP machine (2026-08-22)
 
 ### The preview does not match the machine on a TWP program
-**Status:** root-caused with measurements, NOT fixed.
+**FIXED 2026-08-22 (review P2, 3003dcf + 24137b5 + 8869513), verified against
+the LIVE machine.** Per-segment WCS epochs: the canon snapshots the effective
+basis at every motion (`wcs_events` — sampled in the same `_next_seq` call
+that stamps the segment, so per-epoch subtraction is per-segment exact by
+construction), the extraction subtracts each endpoint's OWN epoch basis, and
+`wcs_frames` rows ship what to re-add — the live table row of the epoch's
+fixture, or the parse snapshot for program-REWRITTEN epochs (the `rewritten`
+flag; a G10 L2-written fixture's live row is not authoritative). Acceptance
+(`scripts/twp_parity.py` on the live TWP sim, `simple_example.ngc`, TLO 22):
+derived-vs-truth JOINTS max |Δ| 0.2651 mm (tol 0.5); the machine's traced
+square passed the independent invariants (sides 99.66–99.96 of 100, planar,
+normal exactly the G68.2 plane). The false "outside travel" tint is retired
+by recomputing the bounds boxes from the re-based display geometry.
+
+**Status (historical):** root-caused with measurements, NOT fixed.
 
 Operator report: the sim and the real run both disagree with the preview, and
 the path draws in the warn-tinted "outside bounds" style.

@@ -63,13 +63,23 @@ square under 2/TOOL); G69 returns segments to type 0.
 
 - `python/remap.py` — the fork (marked edits; everything else verbatim)
 - `python/util.py`, `python/toplevel.py` — verbatim upstream
-- `python/twp-helper-comp.py` — upstream plus ONE edit (tagged
-  `LCNC-SUITE`): a 20 Hz sleep in its main loop. Upstream runs a bare
-  `while 1:` with no sleep, which pins a CPU core at 100% and polls the
-  NML status channel as fast as it can — measured here at 13m29s of CPU
-  in 13m33s of wall time. Everything it publishes is display state for a
-  vismach window; next to a 500 ms heartbeat watchdog the spin is a real
-  hazard, not just waste.
+- `python/twp-helper-comp.py` — upstream plus a SPLIT-RATE main loop
+  (edits tagged `LCNC-SUITE`). Upstream runs a bare `while 1:` with no
+  sleep, pinning a CPU core at 100% and polling the NML status channel
+  as fast as it can — measured here at 13m29s of CPU in 13m33s of wall
+  time; next to a 500 ms heartbeat watchdog that spin is a real hazard,
+  not just waste. But the rate cannot simply be dropped to 20 Hz:
+  `twp-is-defined`/`twp-is-active` are NOT display state — remap.py
+  reads them as CONTROL-FLOW GUARDS (G68.2 aborts if TWP is already
+  defined; G53.x aborts "No TWP defined" if it is not), and upstream's
+  spin made them effectively synchronous with the analog-out that
+  drives them. A uniform 20 Hz period turned `g69 / g68.2 / g53.3` into
+  a race the program lost roughly half the time, aborting mid-run and
+  leaving the machine in limbo. So the guard pins republish at ~1 kHz
+  (edge-triggered — steady state is one pin read and a compare) while
+  the NML poll and the vismach passthrough (genuine display state) run
+  at 20 Hz. Measured on a live session: ~0.9% of one core, vs
+  upstream's 99.6%.
 - `remap_subs/*.ngc` — upstream wrappers + `(WEBUI_KINSTYPE=n)` markers;
   M428/429/430 adapted with preview-safe nested o-if HAL guards (RS274
   `AND` does not short-circuit)
