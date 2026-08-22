@@ -827,6 +827,78 @@ def mode_boundary_indices(mode):
     return out
 
 
+#: Var-file numbered-parameter bases for the nine fixtures (G54 … G59.3):
+#: axis offsets at base+1..+9, rotation at base+10. MACHINE units on disk
+#: (settled by experiment — see gateway._build_wcs_rotation_patches).
+WCS_VAR_BASES = (5220, 5240, 5260, 5280, 5300, 5320, 5340, 5360, 5380)
+
+
+def read_var_wcs_rows(path):
+    """WCS fixture rows from a LinuxCNC var file.
+
+    Returns {g5x_index: ([9 axis offsets], rotation_deg)} for indices 1..9,
+    absent params read as 0.0 (LinuxCNC's own default for unset numbered
+    parameters). The parse worker reads the TEMP var file it just patched
+    with the live table, so these are the fixture values the machine
+    actually holds at parse time — the comparison baseline that exposes a
+    program REWRITING its fixtures (G10 L2 mid-program, the normal TWP
+    path). Unreadable file -> {} (the caller must treat that as "cannot
+    tell", never as "not rewritten"). Pure aside from the read."""
+    params = {}
+    try:
+        with open(path, "r") as f:
+            for line in f:
+                parts = line.split()
+                if len(parts) >= 2:
+                    try:
+                        params[int(parts[0])] = float(parts[1])
+                    except ValueError:
+                        continue
+    except OSError:
+        return {}
+    rows = {}
+    for i, base in enumerate(WCS_VAR_BASES):
+        rows[i + 1] = ([params.get(base + 1 + j, 0.0) for j in range(9)],
+                       params.get(base + 10, 0.0))
+    return rows
+
+
+def wcs_event_rewritten(basis, g5x_index, var_rows, epoch0_g92, unit_scale,
+                        eps=1e-3):
+    """Did the PROGRAM write this epoch's offsets, rather than the operator?
+
+    Compares the epoch's captured basis against the parse-time var-file row
+    for its fixture (g5x axes + rotation — what G10 L2 writes), plus the
+    epoch's g92 against EPOCH 0's g92 (a mid-program G92 change; the var
+    file can't referee g92 — it is not patched with live values). True
+    means the client must re-add the PARSE snapshot for this epoch's
+    segments: the live table row is not authoritative for a fixture the
+    program overwrites at run time. Empty var_rows (unreadable file) ->
+    True — "cannot tell" must degrade to the snapshot, never to trusting
+    a table we could not read. Pure."""
+    if not var_rows or g5x_index not in var_rows:
+        return True
+    g5x_m = _basis_to_machine_units(basis[0], unit_scale)
+    var_g5x, var_rot = var_rows[g5x_index]
+    if any(abs(a - b) > eps for a, b in zip(g5x_m, var_g5x)):
+        return True
+    if abs(float(basis[2]) - var_rot) > eps:
+        return True
+    return any(abs(float(a) - float(b)) > 1e-9
+               for a, b in zip(basis[1], epoch0_g92))
+
+
+#: Canonical 9-slot offset indices holding LENGTHS (X Y Z U V W) — A B C are
+#: angles and never scale with the linear unit. (Twin of the parse worker's
+#: _LINEAR_OFFSET_SLOTS — needed here for the var-file comparison.)
+_LINEAR_SLOTS = frozenset((0, 1, 2, 6, 7, 8))
+
+
+def _basis_to_machine_units(vals, unit_scale):
+    return [v * unit_scale if i in _LINEAR_SLOTS else v
+            for i, v in enumerate(vals)]
+
+
 def _kins_flip_pose(kins_cfg, ktype, frame, tlo, unit_scale, world=None, joints=None):
     """One side of a kins flip: world -> joints (pass `world`) or joints ->
     world (pass `joints`), routed through the family's Python twin with the
@@ -876,53 +948,65 @@ def _kins_flip_pose(kins_cfg, ktype, frame, tlo, unit_scale, world=None, joints=
     return None
 
 
-def insert_kins_relabels(feed, rapid, kins_events, kins_frames, kins_cfg,
-                         unit_scale=1.0):
-    """Insert the RELABELED start vertex at every kins flip (W8 open defect).
+def insert_flip_relabels(feed, rapid, kins_events, kins_frames, wcs_events,
+                         kins_cfg, unit_scale=1.0):
+    """Insert the RELABELED start vertex at every kins or WCS-epoch flip.
 
-    A switchkins flip swaps the world<->joint mapping at a stationary pose:
-    joints hold (G53.6 capture: servo dither) while world coords jump. The
-    offline interpreter has no motion controller so its position is never
-    resynced — the canon's first post-flip segment therefore STARTS at the
-    pre-flip position, bundling [frame relabel + the real entry move] into
-    one segment ~931 units long on the recorded probe. Interpolating it is
+    KINS flips (the W8 phantom-jump defect): a switchkins flip swaps the
+    world<->joint mapping at a stationary pose — joints hold (G53.6
+    capture: servo dither) while world coords jump. The offline interpreter
+    has no motion controller so its position is never resynced — the
+    canon's first post-flip segment therefore STARTS at the pre-flip
+    position, bundling [frame relabel + the real entry move] into one
+    segment ~931 units long on the recorded probe. Interpolating it is
     wrong in BOTH directions: phantom travel where the machine relabels,
     and the real entry move (the G53.3 rotary swing) swept along a path
-    the machine never takes.
+    the machine never takes. The relabeled position is computed through
+    the family twins: joints of the pre-flip endpoint under the OLD side,
+    forward under the NEW side.
 
-    Fix: for each flip (per-segment TYPE or governing FRAME changes between
-    execution-adjacent segments), compute the machine's true post-flip
-    position — joints of the pre-flip endpoint through the OLD side's twin,
-    forward through the NEW side's — and insert it as a zero-length rapid
-    vertex. The segment INTO it is the relabel (flagged via the returned
-    seq set -> wire `brk` -> never drawn/swept/timed); the segment OUT of
-    it is the real entry move, now with its true start (its canon `start`
-    is patched, so distance/time stats and the joint-side limit subdivision
-    follow the real path too).
+    WCS-EPOCH flips (the metre-off TWP preview, review P2): a fixture
+    switch or G10 L2 rewrite changes which basis the extraction subtracts
+    from subsequent endpoints (canon.wcs_events). The machine does NOT
+    move at the switch, so the relabeled position is simply the pre-flip
+    endpoint itself — but the vertex must EXIST so the pre-flip pose gets
+    re-expressed in the new epoch's frame on the wire, giving the drawn
+    section, the scrub lerp, and the sweep a same-frame start for the
+    following real move. No twins involved.
+
+    Either way the inserted vertex is a zero-length rapid: the segment
+    INTO it is the relabel (flagged via the returned seq set -> wire
+    `brk` -> never drawn/swept/timed), the segment OUT of it is the real
+    move with its true start (the next tuple's canon `start` is patched,
+    so distance/time stats and the joint-side limit subdivision follow
+    the real path too). A combined kins+epoch flip (TWP G53.x switches
+    fixture and kins back-to-back) gets ONE vertex: twin-relabeled pose,
+    new epoch.
 
     `feed`/`rapid` are the canon tuple lists; all OUTPUT seqs are DOUBLED
     (2*orig; inserted vertices take odd seqs 2*next-1) so an inserted
-    vertex can sit between two previously-adjacent seqs — events/frames
-    are returned re-keyed the same way, which preserves every strict
-    seq comparison downstream (client and server both resolve markers
-    with `event_seq < seq`).
+    vertex can sit between two previously-adjacent seqs — kins events,
+    frames, and wcs events are returned re-keyed the same way, which
+    preserves every strict seq comparison downstream (client and server
+    both resolve markers with `event_seq < seq`).
 
-    Returns (feed2, rapid2, events2, frames2, relabel_seqs, unresolved):
-    `relabel_seqs` = doubled seqs of the inserted vertices; `unresolved`
-    counts flips this family/frame data could NOT evaluate — those keep
-    the raw (wrong) segment, and the caller must ship the count rather
-    than pretend the track is clean. Pure.
+    Returns (feed2, rapid2, events2, frames2, wcs_events2, relabel_seqs,
+    unresolved): `relabel_seqs` = doubled seqs of the inserted vertices;
+    `unresolved` counts kins flips this family/frame data could NOT
+    evaluate — those keep the raw (wrong) segment, and the caller must
+    ship the count rather than pretend the track is clean. Pure.
     """
     feed = [list(t) for t in feed]
     rapid = [list(t) for t in rapid]
     events2 = [(e[0] * 2, e[1]) for e in kins_events]
     frames2 = [(f[0] * 2,) + tuple(f[1:]) for f in kins_frames]
+    wcs_events2 = [(w[0] * 2,) + tuple(w[1:]) for w in wcs_events]
     for t in feed:
         t[5] *= 2
     for t in rapid:
         t[4] *= 2
-    if not kins_events or (not feed and not rapid):
-        return feed, rapid, events2, frames2, set(), 0
+    if (not kins_events and len(wcs_events) < 2) or (not feed and not rapid):
+        return feed, rapid, events2, frames2, wcs_events2, set(), 0
 
     # Execution-ordered view: (seq2, stream_list, index). Both lists are
     # seq-ascending (canon appends in execution order), so a plain merge
@@ -933,44 +1017,53 @@ def insert_kins_relabels(feed, rapid, kins_events, kins_frames, kins_cfg,
     seqs2 = [m[0] for m in merged]
     types = kins_type_flags(seqs2, events2)
     fidx = kins_frame_indices(seqs2, frames2)
+    eidx = kins_frame_indices(seqs2, wcs_events2)
     frames_vals = [tuple(f[1:]) for f in frames2]
 
     relabel_seqs = set()
     inserts = []  # (position-in-rapid, tuple) collected, applied afterwards
     unresolved = 0
     for k in range(1, len(merged)):
-        if types[k] == types[k - 1] and fidx[k] == fidx[k - 1]:
+        kins_flip = types[k] != types[k - 1] or fidx[k] != fidx[k - 1]
+        if not kins_flip and eidx[k] == eidx[k - 1]:
             continue
         _seq_p, lst_p, i_p = merged[k - 1]
         seq_n, lst_n, i_n = merged[k]
         prev = lst_p[i_p]
         nxt = lst_n[i_n]
         prev_end = prev[2]
-        tlo_p = prev[4] if lst_p is feed else prev[3]
         tlo_n = nxt[4] if lst_n is feed else nxt[3]
-        fr_p = frames_vals[fidx[k - 1]] if fidx[k - 1] is not None else None
-        fr_n = frames_vals[fidx[k]] if fidx[k] is not None else None
-        w0 = [0.0] * 6
-        for i in range(6):
-            v = float(prev_end[i])
-            if i < 3:
-                v = (v + (tlo_p[i] if tlo_p is not None else 0.0)) * unit_scale
-            w0[i] = v
-        j = _kins_flip_pose(kins_cfg, types[k - 1], fr_p, tlo_p, unit_scale, world=w0)
-        w1 = None if j is None else \
-            _kins_flip_pose(kins_cfg, types[k], fr_n, tlo_n, unit_scale, joints=j)
-        if w1 is None:
-            unresolved += 1
-            continue
-        # Back to canon units, TLO peeled — the same shape as its neighbours.
-        end = list(prev_end)
-        for i in range(3):
-            end[i] = w1[i] / unit_scale - (tlo_n[i] if tlo_n is not None else 0.0)
-        for i in range(3, 6):
-            end[i] = w1[i]
-        if max(abs(end[i] - float(prev_end[i])) for i in range(6)) < 1e-9:
-            continue  # flip relabels to the same pose — nothing to insert
-        end = tuple(end)
+        if kins_flip:
+            tlo_p = prev[4] if lst_p is feed else prev[3]
+            fr_p = frames_vals[fidx[k - 1]] if fidx[k - 1] is not None else None
+            fr_n = frames_vals[fidx[k]] if fidx[k] is not None else None
+            w0 = [0.0] * 6
+            for i in range(6):
+                v = float(prev_end[i])
+                if i < 3:
+                    v = (v + (tlo_p[i] if tlo_p is not None else 0.0)) * unit_scale
+                w0[i] = v
+            j = _kins_flip_pose(kins_cfg, types[k - 1], fr_p, tlo_p, unit_scale, world=w0)
+            w1 = None if j is None else \
+                _kins_flip_pose(kins_cfg, types[k], fr_n, tlo_n, unit_scale, joints=j)
+            if w1 is None:
+                unresolved += 1
+                continue
+            # Back to canon units, TLO peeled — the shape of its neighbours.
+            end = list(prev_end)
+            for i in range(3):
+                end[i] = w1[i] / unit_scale - (tlo_n[i] if tlo_n is not None else 0.0)
+            for i in range(3, 6):
+                end[i] = w1[i]
+            if eidx[k] == eidx[k - 1] and \
+                    max(abs(end[i] - float(prev_end[i])) for i in range(6)) < 1e-9:
+                continue  # same pose, same epoch — nothing to re-express
+            end = tuple(end)
+        else:
+            # Epoch-only flip: the machine holds still at a fixture switch —
+            # the relabel is the pre-flip endpoint verbatim; only its EPOCH
+            # (and thus the basis subtracted at extraction) differs.
+            end = tuple(prev_end)
         rl_seq = seq_n - 1
         # Zero-length rapid AT the relabeled pose; the next segment now
         # really starts there.
@@ -991,7 +1084,7 @@ def insert_kins_relabels(feed, rapid, kins_events, kins_frames, kins_cfg,
                 pos += 1
             rapid.insert(pos, tup)
     return ([tuple(t) for t in feed], [tuple(t) for t in rapid],
-            events2, frames2, relabel_seqs, unresolved)
+            events2, frames2, wcs_events2, relabel_seqs, unresolved)
 
 
 def trt_kins_forward(joints, params, bc=False):

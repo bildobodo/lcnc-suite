@@ -902,7 +902,7 @@ class TestInsertKinsRelabels(unittest.TestCase):
     """W8 phantom-jump fix: a switchkins flip relabels the frame at a
     stationary pose, but the offline canon's post-flip segment starts at the
     PRE-flip position (no motion controller to resync against), bundling
-    relabel + real entry move. insert_kins_relabels must insert the
+    relabel + real entry move. insert_flip_relabels must insert the
     relabeled start vertex (joint-invariant across the flip), patch the next
     segment's start, and re-key every seq (doubled; inserts odd)."""
 
@@ -927,8 +927,8 @@ class TestInsertKinsRelabels(unittest.TestCase):
         rapid, events, p0, _p1 = self._flip_fixture(True)
         frames = [(1,) + tuple(self.FRAME[k] for k in
                                ("pre_rot", "primary_angle", "secondary_angle"))]
-        feed2, rapid2, ev2, fr2, brks, unres = gateway_util.insert_kins_relabels(
-            [], rapid, events, frames, self.TRSRN, unit_scale=1.0)
+        feed2, rapid2, ev2, fr2, _w2, brks, unres = gateway_util.insert_flip_relabels(
+            [], rapid, events, frames, [], self.TRSRN, unit_scale=1.0)
         self.assertEqual(unres, 0)
         self.assertEqual(len(rapid2), 3)
         self.assertEqual(feed2, [])
@@ -954,8 +954,8 @@ class TestInsertKinsRelabels(unittest.TestCase):
 
     def test_frameless_type2_flip_is_unresolved_not_guessed(self):
         rapid, events, _p0, _p1 = self._flip_fixture(False)
-        feed2, rapid2, _ev2, _fr2, brks, unres = gateway_util.insert_kins_relabels(
-            [], rapid, events, [], self.TRSRN, unit_scale=1.0)
+        feed2, rapid2, _ev2, _fr2, _w2, brks, unres = gateway_util.insert_flip_relabels(
+            [], rapid, events, [], [], self.TRSRN, unit_scale=1.0)
         self.assertEqual(unres, 1)
         self.assertEqual(len(rapid2), 2, "no vertex may be invented")
         self.assertEqual(brks, set())
@@ -965,15 +965,15 @@ class TestInsertKinsRelabels(unittest.TestCase):
     def test_unknown_family_is_unresolved(self):
         rapid, events, _p0, _p1 = self._flip_fixture(True)
         cfg = {"type": "5axiskins", "params": {}}
-        _f, rapid2, _e, _fr, brks, unres = gateway_util.insert_kins_relabels(
-            [], rapid, events, [], cfg, unit_scale=1.0)
+        _f, rapid2, _e, _fr, _w2, brks, unres = gateway_util.insert_flip_relabels(
+            [], rapid, events, [], [], cfg, unit_scale=1.0)
         self.assertEqual((len(rapid2), brks, unres), (2, set(), 1))
 
     def test_no_events_is_passthrough_with_doubled_seqs(self):
         rapid = [(5, self._seg9(0, 0, 0), self._seg9(1, 0, 0), None, 1)]
         feed = [(6, self._seg9(1, 0, 0), self._seg9(2, 0, 0), 0.1, None, 2)]
-        f2, r2, e2, fr2, brks, unres = gateway_util.insert_kins_relabels(
-            feed, rapid, [], [], self.TRSRN, unit_scale=1.0)
+        f2, r2, e2, fr2, _w2, brks, unres = gateway_util.insert_flip_relabels(
+            feed, rapid, [], [], [], self.TRSRN, unit_scale=1.0)
         self.assertEqual(([t[5] for t in f2], [t[4] for t in r2]), ([4], [2]))
         self.assertEqual((e2, fr2, brks, unres), ([], [], set(), 0))
 
@@ -988,8 +988,8 @@ class TestInsertKinsRelabels(unittest.TestCase):
         rapid = [(4, self._seg9(0, 0, 0), w_end + (0.0, 0.0, 0.0), None, 1)]
         feed = [(7, w_end + (0.0, 0.0, 0.0), self._seg9(0, 0, 50) , 0.1, None, 2)]
         events = [(1, 1)]  # flip to type 1 = identity on plain sparm
-        f2, r2, _e2, _fr2, brks, unres = gateway_util.insert_kins_relabels(
-            feed, rapid, events, [], cfg, unit_scale=1.0)
+        f2, r2, _e2, _fr2, _w2, brks, unres = gateway_util.insert_flip_relabels(
+            feed, rapid, events, [], [], cfg, unit_scale=1.0)
         self.assertEqual(unres, 0)
         self.assertEqual(len(r2), 2, "relabel vertex inserted into rapid")
         ins = r2[1]
@@ -1011,9 +1011,111 @@ class TestInsertKinsRelabels(unittest.TestCase):
         rapid = [(4, self._seg9(0, 0, 0), self._seg9(10, 0, 5), None, 1),
                  (8, self._seg9(10, 0, 5), self._seg9(20, 0, 5), None, 2)]
         events = [(1, 1)]
-        _f2, r2, _e2, _fr2, brks, unres = gateway_util.insert_kins_relabels(
-            [], rapid, events, [], cfg, unit_scale=1.0)
+        _f2, r2, _e2, _fr2, _w2, brks, unres = gateway_util.insert_flip_relabels(
+            [], rapid, events, [], [], cfg, unit_scale=1.0)
         self.assertEqual((len(r2), brks, unres), (2, set(), 0))
+
+    @staticmethod
+    def _basis(g5x_xyz, g92=(0.0,) * 9, rot=0.0):
+        return (tuple(g5x_xyz) + (0.0,) * 6, tuple(g92), rot)
+
+    def test_epoch_only_flip_inserts_identity_relabel(self):
+        # G54 -> G59 fixture switch, no kins involved: the machine does not
+        # move, so the relabel is the pre-flip endpoint VERBATIM — but the
+        # vertex must exist (its epoch differs, so extraction re-expresses
+        # the pose under the new basis). Twins must never be consulted.
+        p0 = self._seg9(50.0, 0.0, 100.0)
+        p1 = self._seg9(0.0, 0.0, 100.0)
+        rapid = [(4, self._seg9(0, 0, 0), p0, None, 1),
+                 (8, p0, p1, None, 2)]
+        wcs = [(0, 1, self._basis((51.2, -7.9, -55.1))),
+               (1, 6, self._basis((63.4, -33.7, -31.1)))]
+        f2, r2, _e2, _fr2, w2, brks, unres = gateway_util.insert_flip_relabels(
+            [], rapid, [], [], wcs, {"type": "not-a-family"}, unit_scale=1.0)
+        self.assertEqual((unres, len(r2), f2), (0, 3, []))
+        ins = r2[1]
+        self.assertEqual(ins[4], 3)
+        self.assertEqual(brks, {3})
+        self.assertEqual(ins[1], p0, "identity relabel — same machine pose")
+        self.assertEqual(ins[2], p0)
+        self.assertEqual(r2[2][1], p0, "next start already there — unchanged")
+        self.assertEqual([w[0] for w in w2], [0, 2], "wcs events re-keyed")
+
+    def test_combined_kins_and_epoch_flip_gets_one_vertex(self):
+        # TWP G53.x switches fixture AND kins back-to-back: ONE inserted
+        # vertex, twin-relabeled pose (epoch handling lives in extraction).
+        rapid, events, p0, _p1 = self._flip_fixture(True)
+        frames = [(1,) + tuple(self.FRAME[k] for k in
+                               ("pre_rot", "primary_angle", "secondary_angle"))]
+        wcs = [(0, 1, self._basis((0, 0, 0))),
+               (1, 6, self._basis((10, 20, 30)))]
+        _f2, r2, _e2, _fr2, _w2, brks, unres = gateway_util.insert_flip_relabels(
+            [], rapid, events, frames, wcs, self.TRSRN, unit_scale=1.0)
+        self.assertEqual((unres, len(r2), len(brks)), (0, 3, 1))
+        self.assertNotEqual(r2[1][2], p0, "kins flip relabels the pose")
+
+    def test_single_epoch_and_no_kins_returns_early(self):
+        rapid = [(4, self._seg9(0, 0, 0), self._seg9(1, 0, 0), None, 1)]
+        wcs = [(0, 1, self._basis((5, 5, 5)))]
+        _f2, r2, _e2, _fr2, w2, brks, unres = gateway_util.insert_flip_relabels(
+            [], rapid, [], [], wcs, None, unit_scale=1.0)
+        self.assertEqual((len(r2), brks, unres), (1, set(), 0))
+        self.assertEqual(w2, [(0, 1, wcs[0][2])], "seqs doubled, values kept")
+
+
+class TestWcsEventRewritten(unittest.TestCase):
+    """P2 `rewritten` flag: the client must re-add the PARSE snapshot for a
+    fixture the program overwrites (G10 L2 — the normal TWP path), and the
+    live table row for everything else."""
+
+    B = ((1300.0, -200.0, -1400.0) + (0.0,) * 6, (0.0,) * 9, 0.0)
+
+    def _rows(self, g5x=(1300.0, -200.0, -1400.0), rot=0.0):
+        rows = {i: ([0.0] * 9, 0.0) for i in range(1, 10)}
+        rows[1] = (list(g5x) + [0.0] * 6, rot)
+        return rows
+
+    def test_matching_row_is_not_rewritten(self):
+        self.assertFalse(gateway_util.wcs_event_rewritten(
+            self.B, 1, self._rows(), self.B[1], 1.0))
+
+    def test_program_written_offsets_are_rewritten(self):
+        self.assertTrue(gateway_util.wcs_event_rewritten(
+            self.B, 1, self._rows(g5x=(1290.0, -200.0, -1400.0)), self.B[1], 1.0))
+        self.assertTrue(gateway_util.wcs_event_rewritten(
+            self.B, 1, self._rows(rot=30.0), self.B[1], 1.0))
+
+    def test_mid_program_g92_marks_rewritten(self):
+        basis = (self.B[0], (5.0,) + (0.0,) * 8, 0.0)
+        self.assertTrue(gateway_util.wcs_event_rewritten(
+            basis, 1, self._rows(), (0.0,) * 9, 1.0))
+
+    def test_unit_scale_applies_to_linear_axes(self):
+        # Canon inches vs machine-mm var rows: 1300 mm = 51.1811 in.
+        basis = ((51.18110236, -7.874015748, -55.11811024) + (0.0,) * 6,
+                 (0.0,) * 9, 0.0)
+        self.assertFalse(gateway_util.wcs_event_rewritten(
+            basis, 1, self._rows(), basis[1], 25.4))
+
+    def test_unreadable_table_degrades_to_snapshot(self):
+        # "Cannot tell" must never become "trust the live table".
+        self.assertTrue(gateway_util.wcs_event_rewritten(
+            self.B, 1, {}, self.B[1], 1.0))
+
+    def test_read_var_wcs_rows(self):
+        import tempfile
+        with tempfile.NamedTemporaryFile("w", suffix=".var", delete=False) as f:
+            f.write("5221\t1300.0\n5222\t-200.0\n5230\t15.5\n5241\t7.0\njunk line\n")
+            path = f.name
+        try:
+            rows = gateway_util.read_var_wcs_rows(path)
+            self.assertEqual(rows[1][0][:2], [1300.0, -200.0])
+            self.assertEqual(rows[1][1], 15.5)
+            self.assertEqual(rows[2][0][0], 7.0)
+            self.assertEqual(rows[3], ([0.0] * 9, 0.0))
+        finally:
+            os.unlink(path)
+        self.assertEqual(gateway_util.read_var_wcs_rows("/nonexistent"), {})
 
 
 class TestLineAttribution(unittest.TestCase):

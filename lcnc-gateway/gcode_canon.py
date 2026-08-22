@@ -69,6 +69,17 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         # (which happens after the last move) never counts as a fixture used.
         self.wcs_used = []
         self._last_motion_g5x = None
+        # WCS EPOCH events (review P2 — the metre-off TWP preview): the
+        # effective basis (g5x + g92 + rotation, per wcs_basis()) sampled at
+        # every motion, recorded when it CHANGES: [(seq_at_change, g5x_index,
+        # basis)]. One channel covers both fixture switches (G54→G59) and
+        # mid-program G10 L2 rewrites of the governing fixture — either way
+        # the value the canon's rotate_and_translate applied to subsequent
+        # segments changed, and the extraction must subtract per-epoch
+        # instead of one program-start basis. Seq convention matches the
+        # kins markers: an event at seq N governs segments with seq > N.
+        self.wcs_events = []
+        self._last_wcs_basis = None
         self.xo = self.yo = self.zo = 0.0
         self.ao = self.bo = self.co = 0.0
         self.uo = self.vo = self.wo = 0.0
@@ -153,12 +164,21 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     # extraction time (not here).
     def _next_seq(self):
         # Called exactly once per emitted segment, by every motion emitter —
-        # so it is also where the fixture-in-use is sampled (an int compare).
+        # so it is also where the fixture-in-use is sampled (an int compare)
+        # and where the WCS epoch snapshot is taken: the offsets sampled here
+        # are EXACTLY the values rotate_and_translate just applied to this
+        # segment, so per-epoch subtraction at extraction is per-segment
+        # exact by construction. Cost: two 9-tuples per segment; the tuple
+        # compare short-circuits on the first differing float.
         idx = getattr(self, "g5x_index", None)
         if idx != self._last_motion_g5x:
             self._last_motion_g5x = idx
             if idx is not None and idx not in self.wcs_used:
                 self.wcs_used.append(idx)
+        basis = self.wcs_basis()
+        if basis != self._last_wcs_basis:
+            self._last_wcs_basis = basis
+            self.wcs_events.append((self.seq, idx, basis))
         self.seq += 1
         return self.seq
 

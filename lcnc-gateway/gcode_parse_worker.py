@@ -65,7 +65,7 @@ from gateway_util import (
     wcs_basis_terms, parse_kins_config, kins_type_flags,
     kins_nonidentity_flags, kins_frame_indices, check_limit_violations_trsrn,
     kins_marker_policy, mode_boundary_indices, check_line_attribution,
-    insert_kins_relabels,
+    insert_flip_relabels, read_var_wcs_rows, wcs_event_rewritten,
 )
 
 
@@ -183,6 +183,12 @@ def parse(ctx: dict) -> dict:
                 shutil.copy(param_path, temp_param)
         apply_var_patches(temp_param, var_patches)
         canon.parameter_file = temp_param
+        # Fixture rows as the machine holds them at parse time (the temp copy
+        # was just patched with the live table) — the baseline that exposes a
+        # program REWRITING its fixtures via G10 L2 (review P2, `rewritten`
+        # flag on the wcs_frames wire rows). Read here: the temp dir is gone
+        # by extraction time.
+        var_wcs_rows = read_var_wcs_rows(temp_param)
 
         unitcode = "G%d" % (20 + (s.linear_units == 1))
         initcodes = [unitcode, "G90"]
@@ -244,10 +250,13 @@ def parse(ctx: dict) -> dict:
         _basis = canon.wcs_basis()
         print("wcs basis: no program-start snapshot (no line executed) — "
               "using end-of-parse state", file=sys.stderr, flush=True)
-    # Rotary offsets are subtracted too, so abc is in raw program coords,
-    # symmetric with xyz (the frontend re-applies LIVE offsets when it
-    # evaluates the machine chain for the part-frame preview).
-    ox, oy, oz, oa, ob, oc, theta_deg = wcs_basis_terms(_basis)
+    # NOTE (review P2): the extraction below no longer subtracts THIS basis —
+    # each endpoint subtracts its own EPOCH's basis (canon.wcs_events; see the
+    # per-epoch block before the extraction loops). basis_at_start remains the
+    # wire's `wcs_basis` staleness comparator: it is the state the machine's
+    # ACTIVE fixture held at parse time, which is what a touch-off changes.
+    # For a program that never switches or rewrites offsets, epoch 0 IS this
+    # basis and the shipped coordinates are unchanged.
     # Per-line soft-limit validation (offline dry run stage 1). Runs on the
     # FULL canon segment list — the RDP decimation below can shave up to eps
     # off an extreme excursion, so post-RDP data is not trustworthy for
@@ -265,6 +274,8 @@ def parse(ctx: dict) -> dict:
     world_unchecked = 0
     relabel_seqs = set()
     flips_unresolved = 0
+    flips_handled = False
+    kins_active = False
     if canon.kins_events:
         kins_cfg = parse_kins_config(ini.find("KINS", "KINEMATICS"),
                                      ini.findall("HAL", "HALCMD") or [])
@@ -280,35 +291,45 @@ def parse(ctx: dict) -> dict:
                   f"{kins_cfg.get('module') if kins_cfg else None} cannot switch)",
                   file=sys.stderr, flush=True)
         else:
-            # W8 phantom-jump fix: a switchkins flip relabels the frame at a
-            # stationary pose, but the offline interp never resyncs, so the
-            # first post-flip canon segment starts at the PRE-flip position
-            # — bundling the relabel jump with the real entry move. Insert
-            # the relabeled start vertex (through the family twins) BEFORE
-            # anything reads the canon lists: limit subdivision then follows
-            # the real entry path, the time/distance stats drop the phantom
-            # length, and the wire gains per-point `brk` flags marking the
-            # relabel connectors as not-motion. All seqs come back doubled
-            # (inserted vertices sit at odd seqs) — events/frames re-keyed
-            # to match, every strict `<` comparison downstream unaffected.
-            (canon.feed, canon.rapid, canon.kins_events, canon.kins_frames,
-             relabel_seqs, flips_unresolved) = insert_kins_relabels(
-                canon.feed, canon.rapid, canon.kins_events,
-                canon.kins_frames, kins_cfg, unit_scale)
-            if relabel_seqs or flips_unresolved:
-                print(f"kins flips: {len(relabel_seqs)} relabel vertices "
-                      f"inserted, {flips_unresolved} UNRESOLVED "
-                      f"(no twin/frame — those keep the raw segment)",
-                      file=sys.stderr, flush=True)
-            # Raw switchkins type per segment — the wire ships these
-            # (phase 3: trsrn type 1/TCP and type 2/TOOL have different
-            # joint mappings, a world bool cannot carry that). The
-            # identity-vs-not split for the limit check below is a
-            # property of the kins family, resolved here once.
-            feed_types = kins_type_flags([t[5] for t in canon.feed], canon.kins_events)
-            rapid_types = kins_type_flags([t[4] for t in canon.rapid], canon.kins_events)
-            feed_world = kins_nonidentity_flags(feed_types, kins_cfg)
-            rapid_world = kins_nonidentity_flags(rapid_types, kins_cfg)
+            kins_active = True
+    if kins_active or len(canon.wcs_events) > 1:
+        # Flip relabels (W8 phantom jump + review P2): a switchkins flip
+        # relabels the frame at a stationary pose but the offline interp
+        # never resyncs, so the first post-flip canon segment starts at the
+        # PRE-flip position — bundling the relabel jump with the real entry
+        # move; a WCS-epoch flip (fixture switch / G10 L2 rewrite) likewise
+        # needs the pre-flip pose re-expressed under the new epoch's basis.
+        # Insert the relabeled start vertices BEFORE anything reads the
+        # canon lists: limit subdivision then follows the real entry path,
+        # the time/distance stats drop the phantom length, and the wire
+        # gains per-point `brk` flags marking the relabel connectors as
+        # not-motion. All seqs come back doubled (inserted vertices sit at
+        # odd seqs) — kins events, frames, and wcs events re-keyed to
+        # match, every strict `<` comparison downstream unaffected. In
+        # marker-ignore mode the kins events are dropped here (enforcing
+        # the policy) while epoch flips are still handled.
+        (canon.feed, canon.rapid, canon.kins_events, canon.kins_frames,
+         canon.wcs_events, relabel_seqs, flips_unresolved) = insert_flip_relabels(
+            canon.feed, canon.rapid,
+            canon.kins_events if kins_active else [],
+            canon.kins_frames if kins_active else [],
+            canon.wcs_events, kins_cfg, unit_scale)
+        flips_handled = True
+        if relabel_seqs or flips_unresolved:
+            print(f"flips: {len(relabel_seqs)} relabel vertices inserted "
+                  f"({len(canon.wcs_events)} wcs epochs), {flips_unresolved} "
+                  f"UNRESOLVED (no twin/frame — those keep the raw segment)",
+                  file=sys.stderr, flush=True)
+    if kins_active:
+        # Raw switchkins type per segment — the wire ships these
+        # (phase 3: trsrn type 1/TCP and type 2/TOOL have different
+        # joint mappings, a world bool cannot carry that). The
+        # identity-vs-not split for the limit check below is a
+        # property of the kins family, resolved here once.
+        feed_types = kins_type_flags([t[5] for t in canon.feed], canon.kins_events)
+        rapid_types = kins_type_flags([t[4] for t in canon.rapid], canon.kins_events)
+        feed_world = kins_nonidentity_flags(feed_types, kins_cfg)
+        rapid_world = kins_nonidentity_flags(rapid_types, kins_cfg)
     _any_world = bool(feed_world and any(feed_world)) or bool(rapid_world and any(rapid_world))
     if axis_limits:
         def _identity_segs():
@@ -384,14 +405,25 @@ def parse(ctx: dict) -> dict:
         violations, violations_total = None, 0
         print("limits UNCHECKED — no MIN/MAX_LIMIT in INI", file=sys.stderr, flush=True)
 
-    theta = theta_deg
-    if theta:
-        rad = math.radians(theta)
-        ca = math.cos(rad)
-        sa = math.sin(rad)
-    else:
-        ca = 1.0
-        sa = 0.0
+    # Per-epoch subtraction terms (review P2 — the metre-off TWP preview):
+    # every endpoint subtracts ITS OWN epoch's basis instead of one
+    # program-start basis, so a program cutting in several fixtures — or one
+    # that G10-rewrites its fixture mid-run, which is the NORMAL TWP path
+    # (G53.x writes the plane origin into G59) — ships every section in that
+    # section's own program frame. The client re-adds each epoch's live
+    # fixture row (or the parse snapshot for program-rewritten epochs). The
+    # terms are exactly what rotate_and_translate applied to each segment:
+    # canon.wcs_events snapshots the basis at every change, sampled in the
+    # same _next_seq call that stamps the segment. Single-epoch programs
+    # produce coordinates identical to the old single-basis path.
+    _ep = []
+    for _ev in canon.wcs_events:
+        _et = wcs_basis_terms(_ev[2])
+        _erad = math.radians(_et[6]) if _et[6] else 0.0
+        _ep.append((_et[0], _et[1], _et[2], _et[3], _et[4], _et[5],
+                    math.cos(_erad), math.sin(_erad)))
+    feed_epoch = kins_frame_indices([t[5] for t in canon.feed], canon.wcs_events)
+    rapid_epoch = kins_frame_indices([t[4] for t in canon.rapid], canon.wcs_events)
 
     # Rapid velocities from the INI — needed up front for the time axis.
     # Linear: min of AXIS_0..2 MAX_VELOCITY (machine units/s). Rotary: min of
@@ -432,49 +464,32 @@ def parse(ctx: dict) -> dict:
     total_feed_dist = 0.0
     total_feed_time = 0.0
     feed_rates = set()
-    if theta:
-        for lineno, start, end, rate, _tlo, seq in canon.feed:
-            dx = end[0] - ox
-            dy = end[1] - oy
-            feed.append([
-                (dx * ca + dy * sa) * unit_scale,
-                (-dx * sa + dy * ca) * unit_scale,
-                (end[2] - oz) * unit_scale,
-            ])
-            feed_abc.append([end[3] - oa, end[4] - ob, end[5] - oc])
-            feed_lines.append(lineno)
-            feed_seq.append(seq)
-            sdx = (end[0] - start[0]) * unit_scale
-            sdy = (end[1] - start[1]) * unit_scale
-            sdz = (end[2] - start[2]) * unit_scale
-            dist = (sdx * sdx + sdy * sdy + sdz * sdz) ** 0.5
-            total_feed_dist += dist
-            if rate > 0:
-                # Segment time: F governs the larger of linear distance and
-                # rotary sweep (1° ≙ 1 unit — exact for G94 linear moves,
-                # honest approximation for rotary/G93).
-                _rotd = max(abs(end[3] - start[3]), abs(end[4] - start[4]), abs(end[5] - start[5]))
-                _ftc += max(dist, _rotd) / (rate * unit_scale)
-                total_feed_time = _ftc
-                feed_rates.add(round(rate * unit_scale * 60.0, 1))
-            feed_tcum.append(_ftc)
-    else:
-        for lineno, start, end, rate, _tlo, seq in canon.feed:
-            feed.append([(end[0] - ox) * unit_scale, (end[1] - oy) * unit_scale, (end[2] - oz) * unit_scale])
-            feed_abc.append([end[3] - oa, end[4] - ob, end[5] - oc])
-            feed_lines.append(lineno)
-            feed_seq.append(seq)
-            dx = (end[0] - start[0]) * unit_scale
-            dy = (end[1] - start[1]) * unit_scale
-            dz = (end[2] - start[2]) * unit_scale
-            dist = (dx * dx + dy * dy + dz * dz) ** 0.5
-            total_feed_dist += dist
-            if rate > 0:
-                _rotd = max(abs(end[3] - start[3]), abs(end[4] - start[4]), abs(end[5] - start[5]))
-                _ftc += max(dist, _rotd) / (rate * unit_scale)
-                total_feed_time = _ftc
-                feed_rates.add(round(rate * unit_scale * 60.0, 1))
-            feed_tcum.append(_ftc)
+    for i, (lineno, start, end, rate, _tlo, seq) in enumerate(canon.feed):
+        e = _ep[feed_epoch[i]]
+        dx = end[0] - e[0]
+        dy = end[1] - e[1]
+        feed.append([
+            (dx * e[6] + dy * e[7]) * unit_scale,
+            (-dx * e[7] + dy * e[6]) * unit_scale,
+            (end[2] - e[2]) * unit_scale,
+        ])
+        feed_abc.append([end[3] - e[3], end[4] - e[4], end[5] - e[5]])
+        feed_lines.append(lineno)
+        feed_seq.append(seq)
+        sdx = (end[0] - start[0]) * unit_scale
+        sdy = (end[1] - start[1]) * unit_scale
+        sdz = (end[2] - start[2]) * unit_scale
+        dist = (sdx * sdx + sdy * sdy + sdz * sdz) ** 0.5
+        total_feed_dist += dist
+        if rate > 0:
+            # Segment time: F governs the larger of linear distance and
+            # rotary sweep (1° ≙ 1 unit — exact for G94 linear moves,
+            # honest approximation for rotary/G93).
+            _rotd = max(abs(end[3] - start[3]), abs(end[4] - start[4]), abs(end[5] - start[5]))
+            _ftc += max(dist, _rotd) / (rate * unit_scale)
+            total_feed_time = _ftc
+            feed_rates.add(round(rate * unit_scale * 60.0, 1))
+        feed_tcum.append(_ftc)
 
     rapid = []
     rapid_abc = []
@@ -493,48 +508,36 @@ def parse(ctx: dict) -> dict:
         rot_t = rotd / (rot_rapid_vel if rot_rapid_vel else rapid_vel)
         return max(lin_t, rot_t)
 
-    if theta:
-        for lineno, start, end, _tlo, seq in canon.rapid:
-            dx = end[0] - ox
-            dy = end[1] - oy
-            rapid.append([
-                (dx * ca + dy * sa) * unit_scale,
-                (-dx * sa + dy * ca) * unit_scale,
-                (end[2] - oz) * unit_scale,
-            ])
-            rapid_abc.append([end[3] - oa, end[4] - ob, end[5] - oc])
-            rapid_lines.append(lineno)
-            rapid_seq.append(seq)
-            sdx = (end[0] - start[0]) * unit_scale
-            sdy = (end[1] - start[1]) * unit_scale
-            sdz = (end[2] - start[2]) * unit_scale
-            _d = (sdx * sdx + sdy * sdy + sdz * sdz) ** 0.5
-            total_rapid_dist += _d
-            _rtc += _rapid_seg_t(_d, start, end)
-            rapid_tcum.append(_rtc)
-    else:
-        for lineno, start, end, _tlo, seq in canon.rapid:
-            rapid.append([(end[0] - ox) * unit_scale, (end[1] - oy) * unit_scale, (end[2] - oz) * unit_scale])
-            rapid_abc.append([end[3] - oa, end[4] - ob, end[5] - oc])
-            rapid_lines.append(lineno)
-            rapid_seq.append(seq)
-            dx = (end[0] - start[0]) * unit_scale
-            dy = (end[1] - start[1]) * unit_scale
-            dz = (end[2] - start[2]) * unit_scale
-            _d = (dx * dx + dy * dy + dz * dz) ** 0.5
-            total_rapid_dist += _d
-            _rtc += _rapid_seg_t(_d, start, end)
-            rapid_tcum.append(_rtc)
+    for i, (lineno, start, end, _tlo, seq) in enumerate(canon.rapid):
+        e = _ep[rapid_epoch[i]]
+        dx = end[0] - e[0]
+        dy = end[1] - e[1]
+        rapid.append([
+            (dx * e[6] + dy * e[7]) * unit_scale,
+            (-dx * e[7] + dy * e[6]) * unit_scale,
+            (end[2] - e[2]) * unit_scale,
+        ])
+        rapid_abc.append([end[3] - e[3], end[4] - e[4], end[5] - e[5]])
+        rapid_lines.append(lineno)
+        rapid_seq.append(seq)
+        sdx = (end[0] - start[0]) * unit_scale
+        sdy = (end[1] - start[1]) * unit_scale
+        sdz = (end[2] - start[2]) * unit_scale
+        _d = (sdx * sdx + sdy * sdy + sdz * sdz) ** 0.5
+        total_rapid_dist += _d
+        _rtc += _rapid_seg_t(_d, start, end)
+        rapid_tcum.append(_rtc)
 
     total_rapid_time = _rtc if time_axis else 0.0
 
-    # W8 phantom-jump fix: per-point relabel flags for the wire. brk[i]=1
-    # means the segment INTO point i is a kins-flip frame relabel — zero
-    # machine motion — inserted by insert_kins_relabels (always into the
-    # rapid stream). Shipped whenever mode arrays ship, zeros included, so
-    # the client can tell "flips handled" from a legacy payload.
+    # Flip relabel flags for the wire (W8 phantom jump + review P2 epochs).
+    # brk[i]=1 means the segment INTO point i is a frame relabel — zero
+    # machine motion — inserted by insert_flip_relabels (always into the
+    # rapid stream). Shipped whenever the insertion pass ran, zeros
+    # included, so the client can tell "flips handled" from a legacy
+    # payload.
     rapid_brk = None
-    if rapid_types is not None:
+    if flips_handled:
         rapid_brk = [1 if s in relabel_seqs else 0 for s in rapid_seq]
 
     # Kins mode (TCP+TWP phase 2a, raw types since phase 3): per-segment
@@ -838,21 +841,41 @@ def parse(ctx: dict) -> dict:
             result["kins_frames"] = [
                 [int(s), float(p), float(t1), float(t2)]
                 for s, p, t1, t2 in canon.kins_frames]
-        if rapid_brk is not None:
-            # Kins-flip relabel flags (u8), index-aligned with rapid:
-            # brk[i]=1 ⇒ the segment INTO point i is a frame relabel at a
-            # stationary pose (insert_kins_relabels), zero machine motion —
-            # the client must never draw, sweep, time, or lerp across it.
-            # Present (zeros included) whenever mode arrays ship, so
-            # absence-with-modes identifies a legacy payload whose flip
-            # segments still carry the raw phantom.
-            result["rapid_brk"] = np.asarray(rapid_brk, dtype="<u1").tobytes() if rapid_brk else b""
-        if flips_unresolved:
-            # Flips the twins could not evaluate (no twin for the family, or
-            # a frameless type-2 side): their segments keep the raw phantom
-            # geometry. Unhandled ≠ handled — the count rides the wire so
-            # the sweep/UI can say so instead of implying a clean track.
-            result["kins_flips_unresolved"] = flips_unresolved
+    if rapid_brk is not None:
+        # Flip relabel flags (u8), index-aligned with rapid: brk[i]=1 ⇒ the
+        # segment INTO point i is a frame relabel at a stationary pose
+        # (insert_flip_relabels — kins flips AND WCS-epoch flips), zero
+        # machine motion — the client must never draw, sweep, time, or lerp
+        # across it. Present (zeros included) whenever the insertion pass
+        # ran, so absence identifies a legacy payload whose flip segments
+        # still carry the raw phantom.
+        result["rapid_brk"] = np.asarray(rapid_brk, dtype="<u1").tobytes() if rapid_brk else b""
+    if flips_unresolved:
+        # Flips the twins could not evaluate (no twin for the family, or
+        # a frameless type-2 side): their segments keep the raw phantom
+        # geometry. Unhandled ≠ handled — the count rides the wire so
+        # the sweep/UI can say so instead of implying a clean track.
+        result["kins_flips_unresolved"] = flips_unresolved
+    if canon.wcs_events:
+        # WCS epoch rows (review P2), execution-ordered: [seq, g5x_index,
+        # rotation_deg, rewritten, g5x x6, g92 x6] — MACHINE units, the
+        # basis each epoch's endpoints were peeled against. An event at seq
+        # N governs segments with seq > N (marker convention). `rewritten`
+        # = the PROGRAM wrote these offsets (G10 L2 / mid-program G92) so
+        # the live table row is not authoritative for this epoch — the
+        # client re-adds the snapshot instead of the live row. Always ≥1
+        # row when motion exists, so absence unambiguously means a legacy
+        # payload. A handful of small rows — GC discipline intact.
+        _e0_g92 = canon.wcs_events[0][2][1]
+        result["wcs_frames"] = []
+        for _eseq, _eidx, _ebasis in canon.wcs_events:
+            _rw = wcs_event_rewritten(_ebasis, _eidx, var_wcs_rows,
+                                      _e0_g92, unit_scale)
+            result["wcs_frames"].append(
+                [int(_eseq), int(_eidx or 0), float(_ebasis[2]),
+                 1 if _rw else 0]
+                + [float(v) for v in _basis_to_machine(_ebasis[0], unit_scale)[:6]]
+                + [float(v) for v in _basis_to_machine(_ebasis[1], unit_scale)[:6]])
     if world_unchecked:
         # World-mode segments with no kins twin to check against —
         # unchecked ≠ clean, so the count rides the wire and the UI says
