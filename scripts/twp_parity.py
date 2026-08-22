@@ -126,6 +126,22 @@ def frame_params(base_params, frame):
     return p
 
 
+def governing_epoch(payload, seq):
+    """The WCS epoch row governing this segment (wire wcs_frames, review P2).
+
+    Same strictly-before convention as the frames. Rows are [seq, g5x_index,
+    rotation_deg, rewritten, g5x x6, g92 x6] in MACHINE units — the basis the
+    worker peeled this epoch's endpoints against, which is exactly what the
+    derivation must add back. None = legacy single-basis payload.
+    """
+    rows = payload.get("wcs_frames") or []
+    best = None
+    for r in rows:
+        if r[0] < seq:
+            best = r
+    return best
+
+
 def governing_frame(payload, seq):
     """The last WEBUI_TWPFRAME marker STRICTLY before this segment's seq.
 
@@ -165,7 +181,16 @@ def derive_tip(pts, kts, seqs, payload, kins_cfg, wcs_terms, tool_z=0.0):
     out = []
     frameless = 0
     for (x, y, z), t, sq in zip(pts, kts, seqs):
-        mx, my, mz = float(x) + ox, float(y) + oy, float(z) + oz
+        # Per-epoch basis (review P2): each point adds back ITS epoch's g5x
+        # (wire wcs_frames row) — the parse-time snapshot the worker peeled
+        # against, which on TWP is the plane origin the program writes into
+        # G59. Legacy payloads (no rows) keep the caller's single basis.
+        ep = governing_epoch(payload, sq)
+        if ep is not None:
+            eox, eoy, eoz = ep[4], ep[5], ep[6]
+            mx, my, mz = float(x) + eox, float(y) + eoy, float(z) + eoz + tool_z
+        else:
+            mx, my, mz = float(x) + ox, float(y) + oy, float(z) + oz
         fr = governing_frame(payload, sq) if t == 2 else None
         if t == 2 and fr is None:
             frameless += 1
@@ -366,10 +391,19 @@ def cmd_check(a):
     print(f"  wcs_used        : {pay.get('wcs_used')}")
     print(f"  basis g5x       : {[round(v,3) for v in (basis.get('g5x') or [])[:6]]}")
     print(f"  kins_frames     : {pay.get('kins_frames')}")
+    print(f"  wcs_frames      : {len(pay.get('wcs_frames') or [])} epoch(s)"
+          + "".join(f"\n    seq={int(r[0])} idx={int(r[1])} rw={int(r[3])} "
+                    f"g5x={[round(v, 3) for v in r[4:7]]}"
+                    for r in (pay.get("wcs_frames") or [])))
     if pay.get("wcs_used") and pay.get("wcs_basis_index") not in (pay.get("wcs_used") or []):
-        print("  !! FRAME MISMATCH: the program's motion WCS is not the parse basis WCS.")
-        print("     Shipped coords are peeled against the basis and the client re-adds")
-        print("     the LIVE WCS, so the path displaces by the difference.")
+        if pay.get("wcs_frames"):
+            print("  motion WCS differs from the parse basis — HANDLED: per-epoch")
+            print("  wcs_frames rows peel and re-add each section in its own frame.")
+        else:
+            print("  !! FRAME MISMATCH: the program's motion WCS is not the parse basis WCS.")
+            print("     Shipped coords are peeled against the basis and the client re-adds")
+            print("     the LIVE WCS, so the path displaces by the difference")
+            print("     (LEGACY payload — no wcs_frames on the wire).")
 
     for stream in ("feed", "rapid"):
         pts, lines, kts, seqs = preview_points(pay, stream)
