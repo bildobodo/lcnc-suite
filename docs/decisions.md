@@ -783,26 +783,62 @@ carries unit + e2e evidence in its commit message.
   display DECISION pure, and its test is the L1 display oracle — decision
   + transform composed, asserting a held-tilt program DRAWS tilted.
 
-### Open — found by the hardened parity gate (P8, 2026-08-23)
+### Found by the hardened parity gate (P8, 2026-08-23) — FIXED same day
+### (acc1f50) after the operator hit it live
 
 **The offline interpreter poses uncommanded axes at program-zero of the
 active fixture.** Measured on the TWP config (wave-1 truth capture,
 hardened compare): derived joint A = 19.05° — exactly G54's A rotary
 offset — while the machine held A = 0 throughout; B and C only matched
-because their fixture offsets happen to equal the parked pose. The task
-interpreter syncs its positions from the machine at run start; the
-offline interpreter starts uncommanded axes at modal zero, so machine =
-0 + fixture offset. Operator-visible: the work-side A faceplate poses
-19° off in the scrub sim, and the path-overlay metric reads ~340 mm mean
-(19° at ~1.2 m radius) from this one cause. **Not fixed in this wave,
-reason stated:** no non-guessing fix exists at the worker layer —
-commanded-ness is invisible in canon callbacks (a constant-at-offset
-axis is indistinguishable from one commanded there), and the gcode
-module exposes no interpreter position seeding. Fix direction: find why
-the offline interp does not consult StatMixin's external-position
-answers at init the way task does (or add commanded-axis visibility to
-the canon), then rebase only never-commanded axes to live stat. The
-parity gate stays honestly RED on this config until then.
+because their fixture offsets happen to equal the parked pose.
+Operator-visible: the work-side A faceplate posed 19° off in the scrub
+sim ("sim ≠ run, sim == preview" — sim and preview share the
+derivation). Initially recorded as open ("no non-guessing fix at the
+worker layer") — that judgment was WRONG by one move: the fix is not to
+correct the OUTPUT but to correct the interpreter's INPUT. The worker
+now appends one `G53 G0 A… B… C…` initcode built from live stat — the
+same position sync task performs at run start — and the canon re-arms
+its first-move suppression at the first real program line so the sync
+seeds position without recording motion. Nothing is guessed; commanded
+axes then behave exactly as the run will (the command records a real
+change from the live pose). PREVIEW_SCHEMA → 5.
+
+**Design decision recorded — output-rebase heuristic REJECTED:** a
+"rebase provably-uncommanded rotaries" pass (constant machine value +
+axis word absent from source) was built and then thrown away: a REMAP
+commanding an axis to exactly the fixture offset — this very config's
+B/C, whose G54 offsets equal the orient targets — is indistinguishable
+from an uncommanded axis in the canon output, and rebasing it would
+UNTILT a correct preview whenever the machine parks elsewhere. Fixing
+the interpreter's initial state has no such ambiguity.
+
+**Parity gate now 3/3 MATCH** (joints x6 max 0.2651 mm, rotary
+residuals 0.0; swept axes; per-line overlay max 0.0044 mm over 221
+main-level samples). Overlay calibration recorded: remap-internal
+motion (call_level > 0 — the g53.x approach/orient) is transit the
+preview omits by design (first-move suppression; the client prepends
+the real entry at sim entry) — its ENDPOINTS are validated by the
+joints gate, its PATH is not claimed; scoring it read 100+ mm of false
+error. Known residual: the synced rotary pose is parse-time state — a
+jogged rotary after load needs a reparse (same class as WCS drift; the
+P4-style drift edge could later watch rotary drift too).
+
+### The bounds HUD contradicted the validator and the machine (operator
+### report, 2026-08-23 — FIXED, acc1f50)
+
+On the 3-axis config, Haus_Brunnen showed "Toolpath exceeds bounds" in
+the HUD while the per-line validator was clean and the real run proved
+in-bounds. Root cause, measured: the HUD's geometric box applied ONE
+live TLO uniformly to an envelope built from mixed-TLO segments — the
+program's `G53 G0 Z0` retract is a program-space vertex at exactly
+−G54.z (153.088), so machine Z computed 153.088 − 153.088 + 56.63 =
+56.63 > the 0.10 limit: wrong by exactly the applied tool length. Two
+implementations of one check will disagree; the weaker one is deleted.
+The HUD flag now derives from the SAME per-line validator as the marked
+lines and scrub findings (current via the P4 TLO-drift auto-reparse;
+the wcs-stale hint covers the drift window; unchecked payloads claim
+nothing). This retires the P4 change that added live TLO to the box —
+patching the weaker check was the wrong layer.
 
 ### Deferred with designs recorded (P8)
 
