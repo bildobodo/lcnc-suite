@@ -1094,7 +1094,7 @@ def _kins_flip_pose(kins_cfg, ktype, frame, tlo, unit_scale, world=None, joints=
 
 
 def insert_flip_relabels(feed, rapid, kins_events, kins_frames, wcs_events,
-                         kins_cfg, unit_scale=1.0):
+                         kins_cfg, unit_scale=1.0, ustart_seqs=frozenset()):
     """Insert the RELABELED start vertex at every kins or WCS-epoch flip.
 
     KINS flips (the W8 phantom-jump defect): a switchkins flip swaps the
@@ -1137,6 +1137,11 @@ def insert_flip_relabels(feed, rapid, kins_events, kins_frames, wcs_events,
     preserves every strict seq comparison downstream (client and server
     both resolve markers with `event_seq < seq`).
 
+    `ustart_seqs` = RAW canon seqs of unknown-start (zero-length) tuples
+    (W3 P1/P2): the k=0 seed correction skips such a first tuple — its
+    start is a synthetic copy of its end, and relabeling it would turn a
+    zero-length vertex into a phantom segment.
+
     Returns (feed2, rapid2, events2, frames2, wcs_events2, relabel_seqs,
     unresolved): `relabel_seqs` = doubled seqs of the inserted vertices;
     `unresolved` counts kins flips this family/frame data could NOT
@@ -1170,6 +1175,48 @@ def insert_flip_relabels(feed, rapid, kins_events, kins_frames, wcs_events,
     relabel_seqs = set()
     inserts = []  # (position-in-rapid, tuple) collected, applied afterwards
     unresolved = 0
+
+    # k=0 seed correction (W3 P2 — the 962 mm phantom): markers that fire
+    # BEFORE the first recorded segment produce no k-loop flip (types[] and
+    # fidx[] are uniform from index 0), yet merged[0]'s canon start is still
+    # expressed in the STARTUP labeling (type 0, no frame — the
+    # initcode-seeded pose). On the TWP capture that allocated a ~962 mm /
+    # ~4.8 s phantom to the first scrub segment and polluted the stats and
+    # the joint-side limit subdivision. Re-express the start through the
+    # twins exactly like the k-loop and PATCH in place — no vertex
+    # insertion: the wire ships endpoints only, so this corrects time/dist/
+    # limit subdivision without touching geometry. Skipped for an
+    # unknown-start first tuple (start is a synthetic copy of its end —
+    # relabeling it would fabricate a segment out of a zero-length vertex).
+    ustart2 = {s * 2 for s in ustart_seqs}
+    if merged and (types[0] != 0 or fidx[0] is not None) \
+            and merged[0][0] not in ustart2:
+        _seq0, lst_0, i_0 = merged[0]
+        nxt = lst_0[i_0]
+        nxt_start = nxt[1]
+        tlo_n = nxt[4] if lst_0 is feed else nxt[3]
+        fr_n = frames_vals[fidx[0]] if fidx[0] is not None else None
+        w0 = [0.0] * 6
+        for i in range(6):
+            v = float(nxt_start[i])
+            if i < 3:
+                v = (v + (tlo_n[i] if tlo_n is not None else 0.0)) * unit_scale
+            w0[i] = v
+        j = _kins_flip_pose(kins_cfg, 0, None, tlo_n, unit_scale, world=w0)
+        w1 = None if j is None else \
+            _kins_flip_pose(kins_cfg, types[0], fr_n, tlo_n, unit_scale, joints=j)
+        if w1 is None:
+            unresolved += 1
+        else:
+            start = list(nxt_start)
+            for i in range(3):
+                start[i] = w1[i] / unit_scale - (tlo_n[i] if tlo_n is not None else 0.0)
+            for i in range(3, 6):
+                start[i] = w1[i]
+            if max(abs(start[i] - float(nxt_start[i])) for i in range(6)) >= 1e-9:
+                lst_0[i_0] = list(nxt)
+                lst_0[i_0][1] = tuple(start)
+
     for k in range(1, len(merged)):
         kins_flip = types[k] != types[k - 1] or fidx[k] != fidx[k - 1]
         if not kins_flip and eidx[k] == eidx[k - 1]:

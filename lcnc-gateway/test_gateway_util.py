@@ -1022,6 +1022,62 @@ class TestInsertKinsRelabels(unittest.TestCase):
         self.assertEqual(f2[0][1], ins[2], "feed start patched to the relabel")
         self.assertGreater(max(abs(ins[2][i] - w_end[i]) for i in range(3)), 1.0)
 
+    def test_preamble_marker_patches_first_segment_start(self):
+        # W3 P2 (the 962 mm phantom): every marker fires BEFORE the first
+        # recorded segment (a preamble remap, or the first move suppressed
+        # into a ustart vertex) — no k-loop flip exists, yet the first
+        # tuple's start is still the STARTUP-labeled initcode pose. The
+        # k=0 correction must re-express it in the governing labeling.
+        # FEED-first on purpose: feeds are never suppressed, so this is
+        # the general class that P1's ustart vertex does not absorb.
+        p0 = self._seg9(50.0, 0.0, 100.0)
+        p1 = self._seg9(0.0, 0.0, 100.0)
+        feed = [(7, p0, p1, 0.1, None, 1)]
+        events = [(0, 2)]   # marker at seq 0 governs seq 1
+        frames = [(0,) + tuple(self.FRAME[k] for k in
+                               ("pre_rot", "primary_angle", "secondary_angle"))]
+        f2, r2, _e2, _fr2, _w2, brks, unres = gateway_util.insert_flip_relabels(
+            feed, [], events, frames, [], self.TRSRN, unit_scale=1.0)
+        self.assertEqual((unres, len(f2), len(r2), brks), (0, 1, 0, set()))
+        # No vertex inserted — the start is PATCHED in place: joints under
+        # the new labeling at the patched start == joints under startup
+        # (type 0 = identity: joints == world) at the raw start.
+        patched = f2[0][1]
+        self.assertNotEqual(patched, p0)
+        j_new = gateway_util.trsrn_kins_inverse(
+            list(patched[:6]), dict(self.GEO, **self.FRAME), 2)
+        for a, b in zip(j_new, p0[:6]):
+            self.assertAlmostEqual(a, b, places=6)
+        # The end is untouched — geometry on the wire is endpoint-only.
+        self.assertEqual(f2[0][2], p1)
+        # The phantom class this kills: the raw start was ~a machine-frame
+        # jump away from where the segment really begins.
+        self.assertGreater(max(abs(patched[i] - p0[i]) for i in range(3)), 1.0)
+
+    def test_preamble_marker_without_twin_is_unresolved(self):
+        p0 = self._seg9(50.0, 0.0, 100.0)
+        rapid = [(7, p0, self._seg9(0, 0, 100), None, 1)]
+        _f2, r2, _e2, _fr2, _w2, brks, unres = gateway_util.insert_flip_relabels(
+            [], rapid, [(0, 2)], [], [], {"type": "5axiskins", "params": {}},
+            unit_scale=1.0)
+        self.assertEqual((unres, brks), (1, set()))
+        self.assertEqual(r2[0][1], p0, "unresolved keeps the raw start")
+
+    def test_preamble_marker_skips_ustart_first_tuple(self):
+        # merged[0] is a suppressed-first-move endpoint (W3 P1): its start
+        # is a synthetic copy of its end — patching it would fabricate a
+        # segment out of a zero-length vertex.
+        p1 = self._seg9(0.0, 0.0, 100.0)
+        rapid = [(7, p1, p1, None, 1)]
+        frames = [(0,) + tuple(self.FRAME[k] for k in
+                               ("pre_rot", "primary_angle", "secondary_angle"))]
+        _f2, r2, _e2, _fr2, _w2, brks, unres = gateway_util.insert_flip_relabels(
+            [], rapid, [(0, 2)], frames, [], self.TRSRN, unit_scale=1.0,
+            ustart_seqs={1})
+        self.assertEqual((unres, brks), (0, set()))
+        self.assertEqual(r2[0][1], r2[0][2], "zero length preserved")
+        self.assertEqual(r2[0][1], p1)
+
     def test_degenerate_flip_at_neutral_pose_inserts_nothing(self):
         # trt flip at A=0 C=0 with no offsets: world == joints on both sides,
         # the relabel lands exactly on the pre-flip pose — no vertex, no brk.
