@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
-import { listFiles, uploadFile, saveFile, type FileEntry } from "./lcncApi";
+import { listFiles, uploadFile, saveFile, fetchSubfile, type FileEntry } from "./lcncApi";
+import { splitSubLines, expansionAllowed, totalRows, rowAt, rowForMain, rowForSub, type SubExpansion } from "./subRows";
 import { usePermissions } from "./permissions";
 import { loadMachineDefaults, saveMachineDefaults, STEP_RPM } from "./defaults";
 import { scanToolchangesBefore, scanEntryPositionBefore, type RflToolchangeScan, type RflEntryScan, type RflRunOptions } from "./gcodeRfl";
@@ -57,6 +58,11 @@ const props = defineProps<{
   // Lines flagged by the viewer's collision sweep (stage 3) — marked with
   // the same warn-tinted line numbers as soft-limit violations.
   collisionLines?: number[] | null;
+  // Marked-span execution state for the inline sub view (W5): while a
+  // marked o-call span executes (run playhead or sim scrub), the called
+  // file's lines render INDENTED under the call line with the executing
+  // sub line highlighted. Null = collapsed.
+  subView?: { name: string; subLine: number; callLine: number } | null;
   isPaused: boolean;
   elapsed: string;
   optionalStop: boolean;
@@ -171,6 +177,36 @@ const progressPercent = computed(() => {
   return Math.min(100, (props.currentLine / lineCount.value) * 100);
 });
 
+// ---------- Inline sub view (W5) ----------
+// The called file's source, fetched once per sub name (server resolves it
+// through SUBROUTINE_PATH). Guarded against out-of-order responses.
+const subText = ref<string | null>(null);
+watch(() => props.subView?.name, (name) => {
+  subText.value = null;
+  if (!name) return;
+  fetchSubfile(name).then((t) => {
+    if (props.subView?.name === name) subText.value = t;
+  });
+}, { immediate: true });
+
+// Active expansion: only while the span executes, only when the call
+// line's own text IS `o<name> call` for exactly this span (remap wrappers
+// and nested spans never pass — see subRows.expansionAllowed), never in
+// edit mode. Null = the plain main-file view, all row math is identity.
+const expansion = computed<SubExpansion | null>(() => {
+  const sv = props.subView;
+  const text = subText.value;
+  if (!sv || !text || editing.value || !props.gcodeContent) return null;
+  if (sv.callLine < 1 || sv.callLine > lineCount.value) return null;
+  const lines = splitSubLines(text);
+  if (!expansionAllowed(lineAt(sv.callLine - 1), sv.name, lines.length)) return null;
+  return { callLine: sv.callLine, name: sv.name, lines };
+});
+const rowCount = computed(() => totalRows(lineCount.value, expansion.value));
+// The executing sub line — the indented row that carries the highlight.
+const subActiveLine = computed(() =>
+  expansion.value ? props.subView?.subLine ?? null : null);
+
 // Slot floor for the running line number: as wide as the file's last line
 // number, so the "current / total" readout never shifts during a run.
 const lineDigits = computed(() => String(lineCount.value || 0).length);
@@ -197,17 +233,25 @@ const rangeStart = computed(() =>
 const rangeEnd = computed(() => {
   const viewportH = codeViewerRef.value?.clientHeight ?? 400;
   const count = Math.ceil(viewportH / LINE_HEIGHT.value) + BUFFER * 2;
-  return Math.min(lineCount.value, rangeStart.value + count);
+  return Math.min(rowCount.value, rangeStart.value + count);
 });
 
 // Tokenize only the visible window — never the full file — to avoid blocking the
 // main thread (and delaying heartbeat) when a large G-code file is opened.
+// Rows, not raw lines (W5): with an active sub expansion the window walks
+// main rows, then the indented sub rows, then main again (subRows.rowAt).
 const visibleLines = computed(() => {
   const start = rangeStart.value;
   const end = rangeEnd.value;
+  const exp = expansion.value;
   const out = [];
   for (let i = start; i < end; i++) {
-    out.push({ lineNum: i + 1, tokens: highlightGcode(lineAt(i)) });
+    const r = rowAt(i, exp);
+    out.push({
+      kind: r.kind,
+      lineNum: r.lineNum,
+      tokens: highlightGcode(r.kind === "sub" ? exp!.lines[r.lineNum - 1]! : lineAt(r.lineNum - 1)),
+    });
   }
   return out;
 });
@@ -218,7 +262,7 @@ const visibleLines = computed(() => {
 // content-space; at scale 1 (files under ~520k lines) every formula reduces
 // exactly to the unscaled originals.
 const SPACER_MAX_PX = 12_000_000;
-const contentHeight = computed(() => lineCount.value * LINE_HEIGHT.value);
+const contentHeight = computed(() => rowCount.value * LINE_HEIGHT.value);
 const totalHeight = computed(() => Math.min(contentHeight.value, SPACER_MAX_PX));
 
 function _viewH(): number {
@@ -250,18 +294,26 @@ function onCodeScroll(ev: Event) {
   tooltip.value = null;
 }
 
-// Scroll to current line (mathematical — no DOM search). Target is computed in
+// Scroll to a ROW (mathematical — no DOM search). Target is computed in
 // content space, then mapped to scrollbar space (identity at scale 1).
-function scrollToLine(line: number) {
+function scrollToRow(row: number) {
   if (!codeViewerRef.value) return;
-  const targetY = (line - 1) * LINE_HEIGHT.value - codeViewerRef.value.clientHeight / 2 + LINE_HEIGHT.value / 2;
+  const targetY = row * LINE_HEIGHT.value - codeViewerRef.value.clientHeight / 2 + LINE_HEIGHT.value / 2;
   codeViewerRef.value.scrollTop = Math.max(0, _contentToScroll(targetY));
+}
+function scrollToLine(line: number) {
+  scrollToRow(rowForMain(line, expansion.value));
 }
 watch(() => props.currentLine, (newLine) => {
   if (newLine != null) scrollToLine(newLine);
 });
 watch(() => props.scrubLine, (newLine) => {
   if (newLine != null && !editing.value) scrollToLine(newLine);
+});
+// The indented sub view follows its own executing line (W5).
+watch(subActiveLine, (ln) => {
+  const exp = expansion.value;
+  if (ln != null && exp) scrollToRow(rowForSub(ln, exp));
 });
 
 /** ---------- Soft-limit violations (offline dry run stage 1) ---------- */
@@ -729,17 +781,24 @@ async function saveEdit() {
       <div class="codeViewer scroll-thin fade-scroll" v-else-if="gcodeContent" ref="codeViewerRef" @scroll="onCodeScroll">
         <div :style="{ height: totalHeight + 'px', position: 'relative' }">
           <div :style="{ position: 'absolute', top: offsetY + 'px', left: 0, right: 0 }">
+            <!-- Rows, not raw lines (W5): sub rows are the called file's
+                 lines indented under the o-call — they carry their OWN
+                 line numbers (muted) and never take main-line marks,
+                 selection or run-from-line clicks. -->
             <div class="codeLine"
                  v-for="item in visibleLines"
-                 :key="item.lineNum"
+                 :key="item.kind + ':' + item.lineNum"
                  :class="{
-                   active: currentLine === item.lineNum || scrubLine === item.lineNum,
-                   selected: selectedLine === item.lineNum,
-                   selectable: runFromLine && gcodeContent,
-                   violation: violationsByLine.has(item.lineNum) || collisionLineSet.has(item.lineNum)
+                   subRow: item.kind === 'sub',
+                   active: item.kind === 'main'
+                     ? (currentLine === item.lineNum || scrubLine === item.lineNum)
+                     : subActiveLine === item.lineNum,
+                   selected: item.kind === 'main' && selectedLine === item.lineNum,
+                   selectable: item.kind === 'main' && runFromLine && gcodeContent,
+                   violation: item.kind === 'main' && (violationsByLine.has(item.lineNum) || collisionLineSet.has(item.lineNum))
                  }"
-                 :title="lineMarkTitle(item.lineNum)"
-                 @click="onLineClick(item.lineNum)">
+                 :title="item.kind === 'main' ? lineMarkTitle(item.lineNum) : undefined"
+                 @click="item.kind === 'main' && onLineClick(item.lineNum)">
               <span class="lineNumber">{{ item.lineNum }}</span>
               <span class="lineContent">
                 <span
@@ -1170,6 +1229,16 @@ async function saveEdit() {
 /* Run from line */
 .codeLine.selectable {
   cursor: pointer;
+}
+
+/* Inline sub view (W5): the called file's rows sit indented under the
+   o-call line; their line numbers are the SUB file's (muted so they never
+   read as main-file numbers). Layout + opacity tokens only. */
+.codeLine.subRow .lineContent {
+  padding-left: var(--gap-panel);
+}
+.codeLine.subRow .lineNumber {
+  opacity: var(--opacity-muted);
 }
 
 /* .codeLine.selected — global in style.css */

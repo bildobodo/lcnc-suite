@@ -2,7 +2,8 @@
 import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, provide, reactive, ref, watch } from "vue";
 import { applyClientOverlay, PERMISSIONS_KEY, FIRE_KEY, type Permissions } from "./permissions";
 import { simMode } from "./simMode";
-import { runLineState, resolveCurrentLine } from "./trackHighlight";
+import { runLineState, subExecState, resolveCurrentLine } from "./trackHighlight";
+import { clearSubfileCache } from "./lcncApi";
 import { mainLinesTrusted, type ScrubTrack } from "./viewer/scrubTrack";
 import { connectWs, connected, status, send, armed, lastReply, viewerGcode, viewerInit, gcodeContent, lcncError, latency, networkLatency, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead, pushMessage, safetyTrip, acknowledgeSafetyTrip, readerStale, safetyChainIncomplete, configWarning, previewLoadError, previewParseError, serverShuttingDown, type LcncMessage } from "./lcncWs";
 // Lazy-load the 3D viewer so Three.js (~866 KB) + troika load as a separate async
@@ -1410,6 +1411,9 @@ watch(viewerGcode, (newGcode) => {
   gcodeViolationsTotal.value = newGcode?.violations_total ?? 0;
   gcodeWorldUnchecked.value = newGcode?.violations_world_unchecked ?? 0;
   gcodeUnmarkedSubs.value = newGcode?.unmarked_subs ?? [];
+  // New payload = program change or reparse — sub files may have been
+  // edited, so the inline sub view must re-fetch (W5).
+  clearSubfileCache();
 });
 
 
@@ -1539,6 +1543,7 @@ watch(viewerGcode, (newGcode) => {
               :violationsTotal="gcodeViolationsTotal"
               :currentLine="currentLine"
               :subName="runSubName"
+              :subView="subExecState"
               :linesUntrustedReason="linesUntrustedReason"
               :scrubLine="linesUntrusted ? null : scrubLine"
               :collisionLines="collisionLines"
