@@ -55,7 +55,7 @@ import linuxcnc  # noqa: E402
 
 from gateway_util import (  # noqa: E402
     parse_kins_config, trsrn_kins_forward, trsrn_kins_inverse,
-    trt_kins_forward, trt_kins_inverse,
+    trt_kins_forward, trt_kins_inverse, read_var_wcs_rows,
 )
 
 #: Kins families this harness can derive/forward through a Python twin.
@@ -415,6 +415,37 @@ def sample_run(ini_path, ngc, out_path, hz=50, timeout=180):
     if not all(s.homed[: s.joints]):
         raise SystemExit("machine is not homed — home it first")
 
+    # Context header (W6): everything the sim-trajectory dump needs to
+    # replay this run through the ACTUAL client code — captured at the same
+    # instant as the truth, in the exact wire shapes the client consumes
+    # (viewer_init axes/kins, PartFrameWcs, status wcs_table rows).
+    ini = linuxcnc.ini(ini_path)
+    var_file = ini.find("RS274NGC", "PARAMETER_FILE") or "linuxcnc.var"
+    if not os.path.isabs(var_file):
+        var_file = os.path.join(os.path.dirname(os.path.abspath(ini_path)), var_file)
+    _rows = read_var_wcs_rows(var_file)
+    _names = ["G54", "G55", "G56", "G57", "G58", "G59",
+              "G59.1", "G59.2", "G59.3"]
+    header = {
+        "header": True,
+        "axes": [l for i, l in enumerate("XYZABCUVW")
+                 if s.axis_mask & (1 << i)],
+        "kins": parse_kins_config(ini.find("KINS", "KINEMATICS"),
+                                  ini.findall("HAL", "HALCMD") or []),
+        "start_joints": [s.joint_actual_position[i] for i in range(s.joints)],
+        "wcs": {"g5x": [round(v, 6) for v in s.g5x_offset[:9]],
+                "g92": [round(v, 6) for v in s.g92_offset[:9]],
+                "rotationDeg": s.rotation_xy,
+                "tool": [round(v, 6) for v in s.tool_offset[:3]]},
+        "wcs_table": [
+            dict(name=_names[i],
+                 **{k: _rows.get(i + 1, ([0.0] * 9, 0.0))[0][j]
+                    for j, k in enumerate("xyzabcuvw")},
+                 r=_rows.get(i + 1, ([0.0] * 9, 0.0))[1])
+            for i in range(9)
+        ],
+    }
+
     c.mode(linuxcnc.MODE_AUTO)
     c.wait_complete()
     c.program_open(ngc)
@@ -455,6 +486,7 @@ def sample_run(ini_path, ngc, out_path, hz=50, timeout=180):
         time.sleep(dt)
 
     with open(out_path, "w") as f:
+        f.write(json.dumps(header) + "\n")
         for r in rows:
             f.write(json.dumps(r) + "\n")
     print(f"sampled {len(rows)} rows -> {out_path}")
@@ -633,7 +665,8 @@ def cmd_compare(a):
         raise SystemExit(
             f"no Python twin for declared kins family {fam!r} — this compare "
             f"cannot run (unchecked ≠ clean; add a twin, never a guess)")
-    rows = [json.loads(l) for l in open(a.truth) if l.strip()]
+    rows = [r for r in (json.loads(l) for l in open(a.truth) if l.strip())
+            if not r.get("header")]   # W6: line 1 is the sim-dump context header
     moving = [r for r in rows if r["interp"] != linuxcnc.INTERP_IDLE]
     if not moving:
         raise SystemExit("truth capture contains no motion")
