@@ -14,7 +14,7 @@ import { status, viewerGcode, viewerInit, gcodeContent, emitTelemetry } from "./
 import { INTERP_IDLE } from "./lcnc";
 import { simMode } from "./simMode";
 import {
-  sampleTrack, jointsForSample, machineJointsToProgram, prependEntry,
+  sampleTrack, jointsForSample, buildEntryTrack,
   machineFromJoints, lineRunAround, displayLineForPoint, atTrackEnd,
   programEndLine,
   type ScrubSample,
@@ -207,34 +207,13 @@ function _buildEntryTrack() {
     entryTrack.value = null;
     return;
   }
-  // Entry labeling (W3 P3): the entry converts the live JOINTS into the
-  // frame of the track's FIRST SEGMENT — its mode, its TWP frame, its
-  // epoch-0 terms — one consistent triple. Joints are the physical
-  // invariant; kins maps are labelings: forwarding the joints under the
-  // track's own labeling names the live pose in exactly the coordinates
-  // vertex 0 uses, so `jointsForSample(entry)` round-trips to the live
-  // joints BY CONSTRUCTION (matching the mode[0]/frame[0]/wcsEpoch[0]
-  // stamps prependEntry writes on the entry segment). The previous code
-  // mixed the LIVE kins pin + live plane pins with epoch-0 terms: parked
-  // in identity after g69 on a TWP program, the live-identity forward +
-  // plane-frame peel landed the entry start ~(G59−G54) ≈ 900 mm off.
-  // The machine's parked STATE is irrelevant to naming its pose — a
-  // machine parked in type 2 converts correctly under the track's
-  // labeling too. Live pin only as legacy fallback (track without mode
-  // data); no pin AND no mode = untracked → identity, never guessed.
-  const ktEntry = base.mode?.[0] ?? st.value.kins_type ?? null;
-  const f0 = base.frame?.[0];
-  const frameEntry =
-    (f0 != null && f0 !== 0xff && base.frames) ? base.frames[f0] ?? null : null;
-  // Epoch-0 terms (review P2): the entry lands on the track's FIRST point,
-  // whose coords live in epoch 0's frame — not necessarily the live active
-  // fixture's (a TWP program's first point is already in the plane frame).
-  const entryTerms = _epochTerms.value?.[base.wcsEpoch?.[0] ?? 0];
-  const entry = machineJointsToProgram(_baseJoints, viewerInit.value?.axes ?? [], _wcs(),
-                                       _kinsSpec.value, ktEntry, frameEntry, entryTerms);
+  // Entry labeling (W3 P3) lives in scrubTrack.buildEntryTrack — ONE
+  // implementation shared with the sim-vs-actual gate harness (W6 P1).
   const g = viewerGcode.value;
-  const t = prependEntry(base, entry, { linear: g?.rapid_rate, rotary: g?.rot_rapid_rate });
-  entryTrack.value = t === base ? null : t;
+  entryTrack.value = buildEntryTrack(
+    base, _baseJoints, viewerInit.value?.axes ?? [], _wcs(), _kinsSpec.value,
+    _epochTerms.value, st.value.kins_type ?? null,
+    { linear: g?.rapid_rate, rotary: g?.rot_rapid_rate });
 }
 
 function enterSim(): boolean {

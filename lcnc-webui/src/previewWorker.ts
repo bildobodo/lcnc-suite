@@ -9,7 +9,7 @@
 // points.flat(), no per-point allocation on the UI thread.
 import { decode as msgpackDecode } from "@msgpack/msgpack";
 import { buildScrubTrack, splitTrackStreams } from "./viewer/scrubTrack";
-import { parseWcsFrames } from "./viewer/wcsEpochs";
+import { decodePreviewStreams } from "./previewDecode";
 
 interface Req { version: number; url: string }
 
@@ -33,91 +33,16 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     if (ac.signal.aborted) return;  // superseded during the read — skip the decode
     const g = msgpackDecode(new Uint8Array(buf)) as Record<string, any>;
 
-    let feedPos = _toF32(g.feed);
-    let rapidPos = _toF32(g.rapid);
-    let feedLines = _toU32(g.feed_lines);
-    // Rotary-aware preview: per-vertex abc, present only when a rotary sweeps.
-    let feedAbc = g.feed_abc != null ? _toF32(g.feed_abc) : undefined;
-    let rapidAbc = g.rapid_abc != null ? _toF32(g.rapid_abc) : undefined;
-
-    // Scrub track (stage 2): merge feed+rapid into execution order off-thread —
-    // O(points), exactly the class of work that starved the heartbeat when it
-    // ran on the UI thread. null = unbuildable (empty, or a stale pre-seq
-    // cached payload) and the scrub bar simply doesn't offer itself.
-    // Kins mode (phase 2a, RAW switchkins types since phase 3): u8 wire
-    // bytes are already the typed view. Consumers map type → world per
-    // the declared kins family (worldModeForSpec).
-    const feedModeWire = g.feed_kinstype != null ? new Uint8Array(g.feed_kinstype as Uint8Array) : undefined;
-    const rapidModeWire = g.rapid_kinstype != null ? new Uint8Array(g.rapid_kinstype as Uint8Array) : undefined;
-    // Kins-flip relabel flags (P1): brk[i]=1 ⇒ the segment INTO rapid point
-    // i is a frame relabel at a stationary pose, not motion. Absent on a
-    // legacy payload → the track carries no brk and flip segments keep the
-    // raw phantom (honest degradation — the reparse machinery refreshes it).
-    const rapidBrkWire = g.rapid_brk != null ? new Uint8Array(g.rapid_brk as Uint8Array) : undefined;
-    // Unknown-start flags (schema 6, W3 P1): ustart[i]=1 ⇒ rapid point i is
-    // a suppressed first-move ENDPOINT reached via an unknown path — the
-    // track unions these into brk (never draw/sweep/time/lerp the
-    // connector) and keeps the distinct channel for labels/entry handling.
-    const rapidUstartWire = g.rapid_ustart != null ? new Uint8Array(g.rapid_ustart as Uint8Array) : undefined;
-    // Per-point line trust + marked-sub spans (W2 P6) — consumed via the
-    // merged track (playhead trust / "in subroutine" indicator).
-    const feedLineOkWire = g.feed_lineok != null ? new Uint8Array(g.feed_lineok as Uint8Array) : undefined;
-    const rapidLineOkWire = g.rapid_lineok != null ? new Uint8Array(g.rapid_lineok as Uint8Array) : undefined;
-    const feedSubWire = g.feed_sub != null ? new Uint8Array(g.feed_sub as Uint8Array) : undefined;
-    const rapidSubWire = g.rapid_sub != null ? new Uint8Array(g.rapid_sub as Uint8Array) : undefined;
-    const subNames = g.sub_names as string[] | undefined;
-    // Call-site attribution (W4, schema 7): u16 main-file call/trigger
-    // line per point (0 = none) — displayable while the point's own line
-    // number is a colliding sub-file number.
-    const feedClineWire = _toU16(g.feed_cline);
-    const rapidClineWire = _toU16(g.rapid_cline);
-    const feedSeq = _toU32(g.feed_seq);
-    const rapidSeq = _toU32(g.rapid_seq);
-
-    // Seq-keyed event resolution, shared by TWP frames and WCS epochs: an
-    // event at seq N governs segments with seq > N; same-seq ties: last
-    // recorded wins (stable sort on seq alone). `none` is the fill value
-    // for "no event governs yet".
-    const eventIdxFor = (
-      seq: Uint32Array | undefined, eventSeqs: number[] | undefined, none: number,
-    ): Uint8Array | undefined => {
-      if (!eventSeqs?.length || !seq) return undefined;
-      const evs = eventSeqs.map((s, i) => [s, i] as const).sort((a, b) => a[0] - b[0]);
-      const out = new Uint8Array(seq.length).fill(none);
-      for (let v = 0; v < seq.length; v++) {
-        let idx = none;
-        for (const [es, ei] of evs) {
-          if (es < seq[v]!) idx = Math.min(ei, 0xfe);
-          else break;
-        }
-        out[v] = idx;
-      }
-      return out;
-    };
-    // TWP frames (phase 3): wire kins_frames = [seq, preRot, primary, secondary].
-    const wireFrames = (g.kins_frames as [number, number, number, number][] | undefined);
-    const kinsFrames = wireFrames?.length
-      ? wireFrames.map((f) => [f[1], f[2], f[3]] as [number, number, number])
-      : undefined;
-    const frameSeqs = kinsFrames ? wireFrames!.map(f => f[0]) : undefined;
-    const feedFrameWire = eventIdxFor(feedSeq, frameSeqs, 0xff);
-    const rapidFrameWire = eventIdxFor(rapidSeq, frameSeqs, 0xff);
-    // WCS epochs (review P2): wire wcs_frames rows → per-vertex epoch index.
-    // Every recorded segment has a governing epoch by construction (the
-    // first event precedes the first motion), so fill 0 is unreachable in
-    // practice and harmless if a malformed payload proves otherwise.
-    const wcsEvents = parseWcsFrames(g.wcs_frames as number[][] | undefined);
-    const epochSeqs = wcsEvents?.map(e => e.seq);
-    const feedWcsWire = eventIdxFor(feedSeq, epochSeqs, 0);
-    const rapidWcsWire = eventIdxFor(rapidSeq, epochSeqs, 0);
-
-    const scrubTrack = buildScrubTrack(
-      { pos: feedPos, abc: feedAbc, lines: feedLines, seq: feedSeq, tcum: g.feed_tcum != null && (g.feed_tcum as Uint8Array).length ? _toF32(g.feed_tcum) : undefined, mode: feedModeWire, frame: feedFrameWire, wcs: feedWcsWire, lineOk: feedLineOkWire, sub: feedSubWire, cline: feedClineWire },
-      { pos: rapidPos, abc: rapidAbc, lines: _toU32(g.rapid_lines), seq: rapidSeq, tcum: g.rapid_tcum != null && (g.rapid_tcum as Uint8Array).length ? _toF32(g.rapid_tcum) : undefined, mode: rapidModeWire, frame: rapidFrameWire, brk: rapidBrkWire, ustart: rapidUstartWire, wcs: rapidWcsWire, lineOk: rapidLineOkWire, sub: rapidSubWire, cline: rapidClineWire },
-      kinsFrames,
-      wcsEvents,
-      subNames,
-    );
+    // Payload → typed stream inputs: ONE decode source (previewDecode.ts),
+    // shared with the sim-vs-actual gate harness (W6). Scrub track (stage
+    // 2): merge feed+rapid into execution order off-thread — O(points),
+    // exactly the class of work that starved the heartbeat on the UI
+    // thread. null = unbuildable (empty / stale pre-seq cached payload)
+    // and the scrub bar simply doesn't offer itself.
+    const d = decodePreviewStreams(g);
+    let { feedPos, rapidPos, feedLines, feedAbc, rapidAbc } = d;
+    const { kinsFrames, wcsEvents } = d;
+    const scrubTrack = buildScrubTrack(d.feed, d.rapid, kinsFrames, wcsEvents, d.subNames);
 
     // Drawn-preview streams re-derived from the merged track (sectioned, with
     // break indices) — the raw endpoint strips draw FALSE connectors across
@@ -204,46 +129,8 @@ self.onmessage = async (e: MessageEvent<Req>) => {
   }
 };
 
-// Preferred wire shape: little-endian float32 bytes from the parse worker (msgpack
-// bin → Uint8Array VIEW into the fetch buffer). One buffer.slice gives an aligned,
-// independently-transferable Float32Array — a single memcpy instead of flattening
-// 1M+ per-point JS arrays. Legacy nested [[x,y,z],...] lists still fall back to
-// _flatten (old payloads / WS path).
-function _toF32(v: unknown): Float32Array {
-  if (v instanceof Uint8Array) {
-    return new Float32Array(v.buffer.slice(v.byteOffset, v.byteOffset + v.byteLength));
-  }
-  return _flatten(v);
-}
-
-// nested [[x,y,z],...] → flat Float32Array [x,y,z,x,y,z,...]. Point index i maps
-// to offset i*3, so feed_lines (one entry per point) stays index-aligned.
-function _flatten(pts: unknown): Float32Array {
-  if (!Array.isArray(pts) || pts.length === 0) return new Float32Array(0);
-  const out = new Float32Array(pts.length * 3);
-  for (let i = 0; i < pts.length; i++) {
-    const p = pts[i];
-    out[i * 3] = p[0]; out[i * 3 + 1] = p[1]; out[i * 3 + 2] = p[2];
-  }
-  return out;
-}
-
-function _toU32(a: unknown): Uint32Array | undefined {
-  if (a instanceof Uint8Array) {
-    return new Uint32Array(a.buffer.slice(a.byteOffset, a.byteOffset + a.byteLength));
-  }
-  if (!Array.isArray(a)) return undefined;
-  const out = new Uint32Array(a.length);
-  for (let i = 0; i < a.length; i++) out[i] = a[i];
-  return out;
-}
-
-function _toU16(a: unknown): Uint16Array | undefined {
-  if (a instanceof Uint8Array) {
-    return new Uint16Array(a.buffer.slice(a.byteOffset, a.byteOffset + a.byteLength));
-  }
-  return undefined;
-}
+// Typed-array decode helpers moved to previewDecode.ts (W6 P1) — one
+// decode source for this worker and the sim-vs-actual gate harness.
 
 // Cumulative polyline distances for the dashed rapid line, so LineDashedMaterial's
 // `lineDistance` attribute is ready off-thread instead of Three.computeLineDistances()

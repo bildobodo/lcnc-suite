@@ -471,6 +471,47 @@ export function atTrackEnd(t: ScrubTrack, s: number): boolean {
   return t.count > 0 && s >= t.cum[t.count - 1]! - 1e-9;
 }
 
+/** Build the sim's ENTRY track from the live joints (W6 P1 extraction —
+ *  the single implementation for ScrubBar's sim entry AND the sim-vs-
+ *  actual gate harness; reimplementing it is the W3 P3 bug class).
+ *
+ *  Entry labeling (W3 P3): the entry converts the live JOINTS into the
+ *  frame of the track's FIRST SEGMENT — its mode, its TWP frame, its
+ *  epoch-0 terms — one consistent triple. Joints are the physical
+ *  invariant; kins maps are labelings: forwarding the joints under the
+ *  track's own labeling names the live pose in exactly the coordinates
+ *  vertex 0 uses, so jointsForSample(entry) round-trips to the live
+ *  joints BY CONSTRUCTION. `liveKinsType` is only the legacy fallback for
+ *  a track without mode data; no pin AND no mode = untracked → identity,
+ *  never guessed.
+ *
+ *  Returns the entry track, or null when nothing to prepend (no joints,
+ *  or prependEntry judged the entry degenerate). */
+export function buildEntryTrack(
+  base: ScrubTrack,
+  liveJoints: readonly number[],
+  axes: string[],
+  wcs: PartFrameWcs,
+  kins: KinsSpec | undefined,
+  epochTerms: readonly WcsTerms[] | undefined,
+  liveKinsType: number | null | undefined,
+  rates?: { linear?: number | null; rotary?: number | null },
+): ScrubTrack | null {
+  if (!liveJoints.length) return null;
+  const ktEntry = base.mode?.[0] ?? liveKinsType ?? null;
+  const f0 = base.frame?.[0];
+  const frameEntry =
+    (f0 != null && f0 !== 0xff && base.frames) ? base.frames[f0] ?? null : null;
+  // Epoch-0 terms (review P2): the entry lands on the track's FIRST point,
+  // whose coords live in epoch 0's frame — not necessarily the live active
+  // fixture's (a TWP program's first point is already in the plane frame).
+  const entryTerms = epochTerms?.[base.wcsEpoch?.[0] ?? 0];
+  const entry = machineJointsToProgram(liveJoints, axes, wcs, kins,
+                                       ktEntry, frameEntry, entryTerms);
+  const t = prependEntry(base, entry, rates);
+  return t === base ? null : t;
+}
+
 /** The program's terminating line — the UNIQUE comment-stripped main-file
  *  line that is an M2/M02/M30 (optionally N-numbered) statement (W5).
  *  Zero or several such lines → null, never a guess. Displayed when the
