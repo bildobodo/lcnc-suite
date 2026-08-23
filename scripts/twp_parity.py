@@ -118,7 +118,12 @@ def preview_points(payload, stream):
     kt = payload.get(stream + "_kinstype")
     kt = list(kt) if kt else [0] * len(pts)
     seqs = _arr(payload, stream + "_seq", np.uint32)
-    return pts, list(lines), kt, list(seqs)
+    # Unknown-start flags (schema 6, W3 P1): 1 ⇒ the point is a suppressed
+    # first-move ENDPOINT whose path is unclaimed — the overlay must not
+    # judge samples against it. Absent = none.
+    us = payload.get(stream + "_ustart")
+    us = list(us) if us else [0] * len(pts)
+    return pts, list(lines), kt, list(seqs), us
 
 
 # ────────────────────── stage 2: offline derivation ─────────────────────
@@ -316,7 +321,7 @@ def _seg_dist(p, P):
     return float(np.sqrt((d * d).sum(axis=1).min()))
 
 
-def path_overlay(truth_samples, der_tips, der_lines):
+def path_overlay(truth_samples, der_tips, der_lines, der_ustart=None):
     """Per-LINE overlay: does the machine, while executing line L, stay on
     the derived geometry the preview claims for line L? (P8.1)
 
@@ -341,22 +346,40 @@ def path_overlay(truth_samples, der_tips, der_lines):
     truth_samples: [(tip3, motion_line, call_level)] — a legacy capture
     without call_level passes None (treated as main-level, judged).
     der_tips: ordered derived tip polyline; der_lines: per-vertex line
-    numbers. Pure."""
+    numbers. der_ustart (W3, schema 6): per-vertex unknown-start flags —
+    a suppressed first-move ENDPOINT claims no path, so such vertices
+    never build spans (judging approach samples against them scored the
+    deliberately-unclaimed park→first-point excursion as ~40–96 mm of
+    "error"). A line that runs MORE THAN ONCE in truth (a main-file line
+    colliding with a sub-file line — visible once schema 6 ships the
+    main-file endpoint too) is claim-consistent only for its LAST run;
+    earlier runs are transit. Pure."""
     P = np.asarray(der_tips, float)
     if len(P) == 0 or not truth_samples:
         return None
     spans = {}
     for i, ln in enumerate(der_lines):
+        if der_ustart is not None and der_ustart[i]:
+            continue   # unknown-path endpoint — claims no geometry
         ln = int(ln)
         if ln not in spans:
             spans[ln] = [max(0, i - 1), i]   # include the leading segment
         else:
             spans[ln][1] = i
+    # Start index of each line's LAST truth run (contiguous same-line spans
+    # of the ordered capture); overwritten per run so the final value wins.
+    last_run_start = {}
+    run_start = 0
+    for i, (_tip, ln, _lvl) in enumerate(truth_samples):
+        if i == 0 or truth_samples[i - 1][1] != ln:
+            run_start = i
+        last_run_start[int(ln)] = run_start
     dists = []
     transit = 0
-    for tip, ln, lvl in truth_samples:
+    for i, (tip, ln, lvl) in enumerate(truth_samples):
         span = spans.get(int(ln))
-        if span is None or (lvl is not None and lvl > 0):
+        if span is None or (lvl is not None and lvl > 0) \
+                or i < last_run_start[int(ln)]:
             transit += 1
             continue
         dists.append(_seg_dist(np.asarray(tip, float), P[span[0]:span[1] + 1]))
@@ -568,10 +591,11 @@ def cmd_check(a):
             print("     (LEGACY payload — no wcs_frames on the wire).")
 
     for stream in ("feed", "rapid"):
-        pts, lines, kts, seqs = preview_points(pay, stream)
+        pts, lines, kts, seqs, ustarts = preview_points(pay, stream)
         if not len(pts):
             continue
-        print(f"== {stream}: {len(pts)} pts, kinstype={sorted(set(kts))} ==")
+        print(f"== {stream}: {len(pts)} pts, kinstype={sorted(set(kts))}"
+              f"{', ustarts=' + str(sum(ustarts)) if any(ustarts) else ''} ==")
         bad = [l for l in lines if l > a.max_line]
         if bad:
             print(f"  !! LINE ATTRIBUTION: {len(bad)} point(s) carry line numbers")
@@ -618,14 +642,28 @@ def cmd_compare(a):
     for r in moving:
         r["tip"] = truth_tip(r["joints"], kins, tool_z=_tlo0)
 
-    # Endpoint per executed line: the LAST sample carrying that motion_line is
-    # where that move finished. This gives an exact derived<->truth
-    # correspondence, instead of guessing corners out of a sampled path.
+    # Endpoint per executed line (W3 P6): the FIRST sample AFTER the line's
+    # run — the transition sample where motion_line moves on. The previous
+    # rule ("last sample still carrying the line") read up to one sample
+    # period SHORT of the corner: decelerating at 700 mm/s², the tip sits
+    # ½·a·t² ≈ 0.22–0.27 mm behind at the harness's real 25–28 ms stride —
+    # the alarming 0.2651 mm joints number, while the path overlay bounded
+    # true agreement at 0.0044 mm. The transition sample has just LEFT the
+    # (near-stop, G64 P0.001) corner and is early in the fresh accel ramp,
+    # so its corner error is far smaller in practice. The FINAL line keeps
+    # its own last sample (no successor exists). |v|<eps gating was
+    # rejected: blending means some lines legitimately never stop, and eps
+    # would be a tunable. Subroutine loops: the LAST run of a line wins,
+    # matching the previous semantics.
     endpoint = {}
     endjoints = {}
-    for r in moving:
-        endpoint[r["motion_line"]] = r["tip"]
-        endjoints[r["motion_line"]] = r["joints"]
+    for i, r in enumerate(moving):
+        ln = r["motion_line"]
+        nxt = moving[i + 1] if i + 1 < len(moving) else None
+        if nxt is None or nxt["motion_line"] != ln:
+            src = r if nxt is None else nxt
+            endpoint[ln] = src["tip"]
+            endjoints[ln] = src["joints"]
 
     q, ijk = parse_g682(a.file)
     wn = g682_normal(q, ijk) if q else None
@@ -655,8 +693,9 @@ def cmd_compare(a):
     all_der_joints = []
     all_der_tips = []
     all_der_lines = []
+    all_der_ustart = []
     for stream in ("feed", "rapid"):
-        pts, lines, kts, seqs = preview_points(pay, stream)
+        pts, lines, kts, seqs, ustarts = preview_points(pay, stream)
         if not len(pts):
             continue
         s_abc = _stream_abc(pay, stream)
@@ -673,13 +712,27 @@ def cmd_compare(a):
         # under different params reads as a huge bogus offset.
         all_der_tips.extend(truth_tip(j, kins, tool_z=tlo_z) for j, _t in der)
         all_der_lines.extend(int(ln) for ln in lines)
+        all_der_ustart.extend(int(u) for u in ustarts)
         # Compare ALL SIX JOINTS, not tool tips (and not XYZ only — P8.1:
         # the XYZ-only compare hid a missing rotary channel entirely, the
         # flat-TWP class). Rotary residuals wrap to ±180° so a same-pose
         # different-branch pair never reads as a full turn of error.
+        #
+        # Correspondence (W3): per line, the LAST derived vertex in
+        # execution order pairs with the truth endpoint — which is also
+        # last-run by construction (the endpoint dict overwrites per run).
+        # Bare-line pairing broke the moment schema 6 legitimately shipped
+        # TWO motions labeled "line 4" (the main-file ustart endpoint and
+        # square.ngc's own L4): pairing the early ustart vertex against
+        # the late square corner read as ~180 mm of phantom error.
+        by_line = {}
+        for (j, _t), ln, sq in zip(der, lines, seqs):
+            ln = int(ln)
+            if ln in endjoints and (ln not in by_line or sq > by_line[ln][0]):
+                by_line[ln] = (sq, j)
         pairs = [(np.array((list(j) + [0.0] * 6)[:6], float),
-                  np.array((list(endjoints[int(ln)]) + [0.0] * 6)[:6], float))
-                 for (j, _t), ln in zip(der, lines) if int(ln) in endjoints]
+                  np.array((list(endjoints[ln]) + [0.0] * 6)[:6], float))
+                 for ln, (_sq, j) in sorted(by_line.items())]
         print(f"== {stream}: derived vs truth JOINTS x6 ({len(pairs)} matched by line) ==")
         if not pairs:
             print("  no line correspondence — cannot compare")
@@ -727,7 +780,7 @@ def cmd_compare(a):
     ov = path_overlay(
         [(r["tip"], r["motion_line"], r.get("call_level"))
          for r in moving if r.get("tip")],
-        all_der_tips, all_der_lines)
+        all_der_tips, all_der_lines, all_der_ustart)
     if ov:
         print(f"== path overlay: truth vs derived, per-line (main-level motion) ==")
         print(f"  max {ov['max']:.4f}  p95 {ov['p95']:.4f}  mean {ov['mean']:.4f} (mm)"
