@@ -10,16 +10,17 @@
 // (program run start, program change, machine powered on elsewhere, real
 // joint motion as a backstop). ThreeViewer shows the .simBanner while active.
 import { computed, onUnmounted, ref, watch } from "vue";
-import { status, viewerGcode, viewerInit, emitTelemetry } from "./lcncWs";
+import { status, viewerGcode, viewerInit, gcodeContent, emitTelemetry } from "./lcncWs";
 import { INTERP_IDLE } from "./lcnc";
 import { simMode } from "./simMode";
 import {
   sampleTrack, jointsForSample, machineJointsToProgram, prependEntry,
   machineFromJoints, lineRunAround, displayLineForPoint, atTrackEnd,
+  programEndLine,
   type ScrubSample,
 } from "./viewer/scrubTrack";
 import { createRunWatcher } from "./viewer/runWatcher";
-import { trackHighlightRange, runLineState } from "./trackHighlight";
+import { trackHighlightRange, runLineState, subExecState } from "./trackHighlight";
 import { specFromWire } from "./viewer/kins";
 import { epochTermsFor, usedWcsRowsKey, type WcsTableRow } from "./viewer/wcsEpochs";
 import type { WcsTerms } from "./viewer/partFrame";
@@ -101,6 +102,18 @@ const curSubName = ref<string | null>(null);
 const curViaCall = ref(false);
 const curDispLine = ref<number | null>(null);
 const curAtEnd = ref(false);
+// W5: the unique program-end line (M2/M30 text scan) — what the playhead
+// displays when pinned at the track's terminal vertex.
+const endLine = computed(() => programEndLine(gcodeContent.value));
+// W5: marked-span execution state for GcodePanel's inline indent view —
+// published from both the sim scrub and the run playhead; only spans with
+// an attributed call line anchor an expansion.
+function publishSubExec(t: ScrubTrack, i: number, subName: string | null) {
+  const cl = t.cline?.[i] ?? 0;
+  const raw = t.lines[i] ?? 0;
+  subExecState.value = (subName && cl > 0 && raw > 0)
+    ? { name: subName, subLine: raw, callLine: cl } : null;
+}
 const pct = computed(() => (cumMax.value > 0 ? Math.round((sPos.value / cumMax.value) * 100) : 0));
 
 // Reused per-frame scratch — the sPos watcher runs at animation rate.
@@ -139,10 +152,12 @@ function applyPos() {
   curSubName.value = disp.subName;
   curViaCall.value = disp.viaCall;
   curDispLine.value = disp.line;
+  if (curAtEnd.value) subExecState.value = null;   // end state collapses the indent
+  else publishSubExec(t, _sample.index, disp.subName);
   jointsForSample(_sample, _wcs(), viewerInit.value?.axes ?? [], _joints,
                   _kinsSpec.value, _epochTerms.value);
   emit("pose", _joints.slice(), _sample.line, sPos.value, t,
-       curAtEnd.value ? null : disp.line);
+       curAtEnd.value ? (endLine.value ?? null) : disp.line);
   // Positional 3D highlight (review P3): address the path by track index —
   // the sample's line number may be sub/remap-relative and collide.
   trackHighlightRange.value = lineRunAround(t, _sample.index);
@@ -246,6 +261,7 @@ function exitSim() {
   simMode.value = false;
   emit("pose", null, null, null, null, null);
   trackHighlightRange.value = null;
+  subExecState.value = null;
 }
 
 // Pose-only watcher: programmatic sPos writes never change the mode.
@@ -295,6 +311,7 @@ watch(baseTrack, () => {
   exitSim(); entryTrack.value = null; sPos.value = 0;
   _runWatcher.reset(); runOffPath.value = false; runLineState.value = null;
   trackHighlightRange.value = null;
+  subExecState.value = null;
 });
 watch(machineOff, (off) => { if (!off) exitSim(); });
 watch(st, (d) => {
@@ -407,7 +424,10 @@ watch(st, (d) => {
     // The published state is SUPPRESS, never null: null would let App.vue
     // fall back to motion_line's colliding sub numbers.
     trackHighlightRange.value = null;
-    runLineState.value = { line: 0, trusted: false, subName: null };
+    // offPath (W5) lets resolveCurrentLine apply the text-trusted
+    // motion_line rescue (the approach executing a real main line).
+    runLineState.value = { line: 0, trusted: false, subName: null, offPath: true };
+    subExecState.value = null;
     return;
   }
   if (out.cum == null) return;
@@ -420,7 +440,12 @@ watch(st, (d) => {
   // unknowable, so present "end" instead of freezing on the last line.
   const i = out.index!;
   if (i === t.count - 1 && atTrackEnd(t, out.cum)) {
-    runLineState.value = { line: 0, trusted: false, subName: null, atEnd: true };
+    // W5: the unique text-scanned program-end line displays here — the
+    // track cannot know what follows the last move, the text can.
+    runLineState.value = { line: endLine.value ?? 0,
+                           trusted: endLine.value != null,
+                           subName: null, atEnd: true };
+    subExecState.value = null;
     return;
   }
   // Text-panel line state (W2 P6): the ONE shared gating rule (W3 P4) —
@@ -434,13 +459,15 @@ watch(st, (d) => {
     trusted: disp.line != null,
     subName: disp.subName,
     viaCall: disp.viaCall,
+    subLine: disp.subName ? t.lines[i] ?? null : null,
   };
+  publishSubExec(t, i, disp.subName);
 });
 watch(running, (r) => {
   _runWatcher.reset();
   runOffPath.value = false;
   if (!r) runLineState.value = null;
-  if (!r && !simMode.value) trackHighlightRange.value = null;
+  if (!r && !simMode.value) { trackHighlightRange.value = null; subExecState.value = null; }
 });
 
 const statusText = computed(() => {
