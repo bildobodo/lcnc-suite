@@ -7,6 +7,7 @@ import {
   type ScrubSample, type ScrubStream, type ScrubTrack,
 } from "./scrubTrack";
 import { makeKins as kinsForTest } from "./kins";
+import { wcsTerms } from "./partFrame";
 
 function stream(points: number[][], opts: { abc?: number[][]; lines?: number[]; seq?: number[]; tcum?: number[]; mode?: number[]; frame?: number[]; brk?: number[] } = {}): ScrubStream {
   return {
@@ -396,6 +397,44 @@ describe("kins mode plumbing (phase 2b)", () => {
     expect(p[2]).toBeCloseTo(30, 6);
     expect(p[3]).toBeCloseTo(-45, 6);
     expect(p[5]).toBeCloseTo(90, 6);
+  });
+
+  it("entry conversion under the TRACK's labeling round-trips; the live pin does not (W3 P3)", () => {
+    // The identity-parked entry class: the machine sits parked under one
+    // labeling (identity after g69) while the track's first segment is
+    // labeled another (world/plane + its own epoch terms). Naming the
+    // live pose in the track's coordinates must use the TRACK's labeling
+    // — jointsForSample(entry) then reproduces the live joints exactly,
+    // because forward and inverse are the same model by construction.
+    const liveJoints = [20, 10, 30, -45, 90];        // parked pose, joint order
+    const terms0 = wcsTerms({ g5x: [100, -50, 25, 0, 0, 0], g92: [], rotationDeg: 0 });
+    // NEW rule: track first-segment labeling (mode[0]=0 = world on plain
+    // sparm) + epoch-0 terms.
+    const entry = machineJointsToProgram(liveJoints, AXES, IDW, SPEC, 0, null, terms0);
+    const s = freshSample();
+    [s.px, s.py, s.pz, s.pa, s.pb, s.pc] =
+      [entry[0], entry[1], entry[2], entry[3], entry[4], entry[5]];
+    s.kinstype = 0;
+    s.wcsEpoch = 0;
+    const rt: (number | null)[] = [];
+    jointsForSample(s, IDW, AXES, rt, SPEC, [terms0]);
+    for (let i = 0; i < liveJoints.length; i++) {
+      expect(rt[i]).toBeCloseTo(liveJoints[i]!, 6);
+    }
+    // The OLD rule mixed the LIVE labeling (parked identity, type 1 on
+    // plain sparm) with the track's epoch terms: the same round trip
+    // through the TRACK's labeling then misses the live pose — the
+    // operator-visible entry-start displacement class.
+    const entryOld = machineJointsToProgram(liveJoints, AXES, IDW, SPEC, 1, null, terms0);
+    const sOld = freshSample();
+    [sOld.px, sOld.py, sOld.pz, sOld.pa, sOld.pb, sOld.pc] =
+      [entryOld[0], entryOld[1], entryOld[2], entryOld[3], entryOld[4], entryOld[5]];
+    sOld.kinstype = 0;
+    sOld.wcsEpoch = 0;
+    const rtOld: (number | null)[] = [];
+    jointsForSample(sOld, IDW, AXES, rtOld, SPEC, [terms0]);
+    const worst = Math.max(...liveJoints.map((j, i) => Math.abs((rtOld[i] ?? 0) - j)));
+    expect(worst).toBeGreaterThan(1);
   });
 });
 

@@ -152,13 +152,12 @@ function _wcs() {
 /** The TWP plane frame the MACHINE is actually holding, from the kins pins
  *  (sampled only on xyzacb-trsrn configs). Null when not sampled.
  *
- *  This exists for the parked-in-TWP case: the upstream demo ends with the
- *  plane still active, so a machine can sit in switchkins type 2 while the
- *  operator loads a different program. The live switchkins type was already
- *  preferred over the program's, but the FRAME still came from whatever
- *  program happened to be loaded — right mode, wrong plane. All three or
- *  none: two-thirds of a frame is not a frame, and inventing the third would
- *  put the entry move on a plane the machine is not on.
+ *  Used by the RUN playhead's forward kins, where the machine's ACTUAL
+ *  switchkins state is the authority for the joints being projected. The
+ *  ENTRY conversion no longer uses it (W3 P3): naming the live pose in the
+ *  track's coordinates is a labeling question, answered by the track's own
+ *  first-segment mode/frame — mixing the live state in put the entry start
+ *  ~900 mm off whenever parked labeling ≠ track labeling.
  *
  *  Units are the pins' own, including upstream's asymmetry (pre-rot radians,
  *  the two angles degrees) — the same triplet convention the parse markers
@@ -176,19 +175,25 @@ function _buildEntryTrack() {
     entryTrack.value = null;
     return;
   }
-  // Entry inverse mode: prefer the LIVE switchkins pin (status kins_type,
-  // sampled only on switchable-kins configs) — the machine may be parked
-  // in world mode from a previous run while THIS program's preamble hasn't
-  // executed yet, so the program's initial mode can be wrong for the live
-  // joints. Fallback when the pin isn't sampled: base.mode[0].
-  const kt = st.value.kins_type;
-  // Entry inverse raw kinstype: prefer the LIVE switchkins pin, else the
-  // track's first segment. No pin AND no mode data = untracked → identity,
-  // never guessed (0 is the WORLD type on plain-sparm trt).
-  const ktEntry = kt != null ? kt : (base.mode?.[0] ?? null);
+  // Entry labeling (W3 P3): the entry converts the live JOINTS into the
+  // frame of the track's FIRST SEGMENT — its mode, its TWP frame, its
+  // epoch-0 terms — one consistent triple. Joints are the physical
+  // invariant; kins maps are labelings: forwarding the joints under the
+  // track's own labeling names the live pose in exactly the coordinates
+  // vertex 0 uses, so `jointsForSample(entry)` round-trips to the live
+  // joints BY CONSTRUCTION (matching the mode[0]/frame[0]/wcsEpoch[0]
+  // stamps prependEntry writes on the entry segment). The previous code
+  // mixed the LIVE kins pin + live plane pins with epoch-0 terms: parked
+  // in identity after g69 on a TWP program, the live-identity forward +
+  // plane-frame peel landed the entry start ~(G59−G54) ≈ 900 mm off.
+  // The machine's parked STATE is irrelevant to naming its pose — a
+  // machine parked in type 2 converts correctly under the track's
+  // labeling too. Live pin only as legacy fallback (track without mode
+  // data); no pin AND no mode = untracked → identity, never guessed.
+  const ktEntry = base.mode?.[0] ?? st.value.kins_type ?? null;
   const f0 = base.frame?.[0];
-  const frameEntry = liveKinsFrame()
-    ?? ((f0 != null && f0 !== 0xff && base.frames) ? base.frames[f0] ?? null : null);
+  const frameEntry =
+    (f0 != null && f0 !== 0xff && base.frames) ? base.frames[f0] ?? null : null;
   // Epoch-0 terms (review P2): the entry lands on the track's FIRST point,
   // whose coords live in epoch 0's frame — not necessarily the live active
   // fixture's (a TWP program's first point is already in the plane frame).

@@ -428,10 +428,13 @@ export function sampleTrack(t: ScrubTrack, s: number, out: ScrubSample): ScrubSa
 /** Live machine joints → program-space [x,y,z,a,b,c]: joints → machine
  *  coords through the kins boundary (forward kinematics), then the inverse
  *  WCS transform. `kinstype` (+ `frame` for TOOL mode) selects the model
- *  via kinsForSegment — the caller passes the live switchkins pin when
- *  sampled, else the track's INITIAL mode/frame (programs set their kins
- *  mode in the preamble before first motion). null kinstype = untracked
- *  → trivkins. UVW/unknown joints are ignored. */
+ *  via kinsForSegment — the caller passes the TRACK'S first-segment
+ *  mode/frame (W3 P3: naming the live pose in the track's coordinates is
+ *  a labeling question, answered by the track's own labeling — the live
+ *  pin is only a legacy fallback for mode-less tracks; mixing the live
+ *  STATE in landed the entry ~900 mm off when parked labeling ≠ track
+ *  labeling). null kinstype = untracked → trivkins. UVW/unknown joints
+ *  are ignored. */
 export function machineJointsToProgram(
   joints: ArrayLike<number>, axes: string[], wcs: PartFrameWcs,
   kins?: KinsSpec, kinstype?: number | null,
