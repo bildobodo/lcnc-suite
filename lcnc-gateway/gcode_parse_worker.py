@@ -220,6 +220,13 @@ def parse(ctx: dict) -> dict:
             getattr(s, "actual_position", None))
         if _rot_sync:
             initcodes.append(_rot_sync)
+        # The seeded values, captured at the same read (W6): stderr snapshot
+        # for the gateway's rotary-drift reparse edge — a later run that
+        # leaves the rotaries elsewhere makes every uncommanded-rotary
+        # segment of this payload stale (the arc-vs-plunge class).
+        _rot_seed = rotary_seed_values(
+            getattr(s, "axis_mask", 0),
+            getattr(s, "actual_position", None))
         wcs_code = _WCS_CODES.get(g5x_index if isinstance(g5x_index, int) else 0)
         if wcs_code:
             initcodes.append(wcs_code)
@@ -960,6 +967,11 @@ def parse(ctx: dict) -> dict:
     print("__TLO__\t" + json.dumps(
         {"table_path": _tt_path, "table_mtime": _tt_mtime, "tlos": parse_tlos}),
         file=sys.stderr, flush=True)
+    if _rot_seed is not None:
+        # Rotary pose this parse was seeded with (W6) — the gateway's
+        # drift edge. Absent line = no rotary sync (3-axis config).
+        print("__ABCSEED__\t" + json.dumps(_rot_seed),
+              file=sys.stderr, flush=True)
 
     result = {"file": filename,
               # Parse-time tool-table rows [[tool, xo, yo, zo]…] for the

@@ -943,6 +943,49 @@ def rotary_sync_initcode(axis_mask, actual_position):
     return "G53 G0 " + " ".join(words)
 
 
+def rotary_seed_values(axis_mask, actual_position):
+    """The rotary {letter: value} the sync initcode seeds (schema 5) — the
+    parse-time snapshot the gateway's drift edge compares against the live
+    pose (W6). Same mask/slot/failure rules as rotary_sync_initcode: None
+    when no sync happens (no rotary axes, or partial live data). Pure."""
+    if actual_position is None:
+        return None
+    out = {}
+    for bit, slot, letter in ((3, 3, "A"), (4, 4, "B"), (5, 5, "C")):
+        if axis_mask & (1 << bit):
+            try:
+                out[letter] = float(actual_position[slot])
+            except (TypeError, IndexError, ValueError):
+                return None
+    return out or None
+
+
+def evaluate_rotary_drift(seed, rotary_abc, eps=0.01):
+    """Has the machine's ROTARY pose moved since the preview was parsed?
+    (W6 — the arc-vs-plunge class: a run leaves the table tilted, `;g69`
+    style programs restore nothing, and the cached preview still poses
+    every uncommanded-rotary segment at the parse-time values — the sim
+    then shows an orient sweep from a pose the next run never visits,
+    while the real machine plunges straight.)
+
+    seed       -- the worker's __ABCSEED__ snapshot {letter: degrees}.
+    rotary_abc -- live canonical [A, B, C] degrees (status snapshot).
+
+    Returns "rotary:<letters>" naming the drifted axes, or None. Absent
+    live data makes no claim. The CALLER owns idle-gating and debounce
+    (same contract as evaluate_tlo_drift). Pure."""
+    if not seed or not rotary_abc:
+        return None
+    drifted = ""
+    for i, letter in enumerate("ABC"):
+        v = seed.get(letter)
+        if v is None or i >= len(rotary_abc) or rotary_abc[i] is None:
+            continue
+        if abs(float(rotary_abc[i]) - float(v)) > eps:
+            drifted += letter
+    return ("rotary:" + drifted) if drifted else None
+
+
 def evaluate_tlo_drift(meta, cur_mtime, tool_number, applied_tlo_z, eps=1e-4):
     """Has the tool-length picture moved since the preview was parsed? (W2 P4)
 

@@ -186,6 +186,11 @@ class StatusPayload:
     spindle_direction: Optional[int]
     active_file: Optional[str]
     motion_line: Optional[int]
+    # Canonical [A, B, C] actual position (degrees) — the gateway's
+    # rotary-drift reparse edge compares this against the payload's
+    # parse-time seed (W6). Canonical slots, NOT joint order: the seed is
+    # slot-based. None = STAT exposes no canonical position.
+    rotary_abc: Optional[List[float]]
 
     # program elapsed (server-authoritative, mid-program reconnects see true value)
     program_elapsed_ms: Optional[int]
@@ -625,10 +630,14 @@ class StatusRuntime:
                             msg="STAT has no axis_mask — offsets applied index-wise (joint↔canonical re-indexing skipped)")
                 self._axis_mask_warned = True
             axis_mask = 0b111111111
+        # Canonical actual position, kept in slot order for the rotary-drift
+        # edge (W6): the parse-time seed is canonical-slot-based (A/B/C =
+        # slots 3/4/5), while machine_pos below is JOINT order.
+        _canon_pos = to_float_list(safe_get("actual_position", None))
+        rotary_abc = _canon_pos[3:6] if _canon_pos and len(_canon_pos) >= 6 else None
         machine_pos = to_float_list(safe_get("joint_actual_position", None))
         if machine_pos is None:
-            machine_pos = canonical_to_joint_order(
-                to_float_list(safe_get("actual_position", None)), axis_mask)
+            machine_pos = canonical_to_joint_order(_canon_pos, axis_mask)
         if machine_pos is None:
             machine_pos = canonical_to_joint_order(
                 to_float_list(safe_get("position", None)), axis_mask)
@@ -841,6 +850,7 @@ class StatusRuntime:
             spindle_direction=spindle_direction,
             active_file=active_file,
             motion_line=safe_get("motion_line", None),
+            rotary_abc=rotary_abc,
             program_elapsed_ms=program_elapsed_ms,
             gcodes=to_float_list(safe_get("gcodes", None)),
             mcodes=to_float_list(safe_get("mcodes", None)),

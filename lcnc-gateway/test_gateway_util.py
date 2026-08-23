@@ -1339,6 +1339,48 @@ class TestLineTrustMachinery(unittest.TestCase):
         self.assertIsNone(gateway_util.parse_sub_marker("plain comment"))
 
 
+class TestRotaryDrift(unittest.TestCase):
+    """W6 rotary-pose freshness: the seed the parse posed uncommanded
+    rotaries at, and the drift edge that reparses when the live pose
+    leaves it (the arc-vs-plunge class)."""
+
+    MASK6 = 0b111111   # XYZABC
+
+    def test_seed_values_mirror_sync_rules(self):
+        pos = (1.0, 2.0, 3.0, 0.0, -40.855, 130.245)
+        self.assertEqual(
+            gateway_util.rotary_seed_values(self.MASK6, pos),
+            {"A": 0.0, "B": -40.855, "C": 130.245})
+        # 3-axis mask: no rotaries → None (no edge, honestly).
+        self.assertIsNone(gateway_util.rotary_seed_values(0b111, pos))
+        # Absent/partial live data → None, same as rotary_sync_initcode.
+        self.assertIsNone(gateway_util.rotary_seed_values(self.MASK6, None))
+        self.assertIsNone(gateway_util.rotary_seed_values(self.MASK6, (1.0, 2.0)))
+
+    def test_drift_detects_moved_letters(self):
+        seed = {"A": 0.0, "B": 0.0, "C": 0.0}
+        # The observed live defect: a run parks B/C tilted; A stays.
+        self.assertEqual(
+            gateway_util.evaluate_rotary_drift(seed, [0.0, -40.855, 130.245]),
+            "rotary:BC")
+        self.assertIsNone(
+            gateway_util.evaluate_rotary_drift(seed, [0.0, 0.0, 0.0]))
+        # eps boundary: 0.01° is not drift, just past it is.
+        self.assertIsNone(
+            gateway_util.evaluate_rotary_drift(seed, [0.0, 0.0, 0.009]))
+        self.assertEqual(
+            gateway_util.evaluate_rotary_drift(seed, [0.0, 0.0, 0.02]),
+            "rotary:C")
+
+    def test_drift_no_claim_without_data(self):
+        self.assertIsNone(gateway_util.evaluate_rotary_drift(None, [0, 0, 0]))
+        self.assertIsNone(gateway_util.evaluate_rotary_drift({}, [0, 0, 0]))
+        self.assertIsNone(gateway_util.evaluate_rotary_drift({"B": 0.0}, None))
+        # A letter the seed doesn't carry is never judged.
+        self.assertIsNone(
+            gateway_util.evaluate_rotary_drift({"B": 0.0}, [99.0, 0.0, 99.0]))
+
+
 class TestResolveSubfile(unittest.TestCase):
     """W5 subfile route resolver: LinuxCNC's first-hit SUBROUTINE_PATH rule
     with realpath containment — a symlink or crafted name can never serve a

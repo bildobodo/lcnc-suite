@@ -47,6 +47,7 @@ from gateway_util import (
     evaluate_safety_chain,
     PREVIEW_SCHEMA,
     evaluate_tlo_drift,
+    evaluate_rotary_drift,
     unwritten_estop_signal,
     kins_marker_policy,
     kins_pivot_warning,
@@ -1415,9 +1416,25 @@ async def _status_poller():
                 _drift = evaluate_tlo_drift(
                     _tlo_meta, _tt_cur, st.tool_number,
                     _tofs[2] if _tofs and len(_tofs) > 2 else None)
-                if _drift:
+                if _drift is None:
+                    # Rotary-pose drift (W6): the payload poses every
+                    # uncommanded-rotary segment at the PARSE-time pose; a
+                    # run that parks the table tilted makes that stale (the
+                    # sim then shows an orient sweep the next run will not
+                    # perform — the arc-vs-plunge class). Same idle gate and
+                    # debounce; reparse re-seeds from the current pose.
+                    _rdrift = evaluate_rotary_drift(
+                        _bulk.published_rotary_seed, st.rotary_abc)
+                    if _rdrift:
+                        _trace.emit("gcode.reparse_rotary_drift",
+                                    reason=_rdrift,
+                                    seed=_bulk.published_rotary_seed,
+                                    live=st.rotary_abc)
+                        _drift = _rdrift
+                elif _drift:
                     _trace.emit("gcode.reparse_tlo_drift", reason=_drift,
                                 tool=st.tool_number)
+                if _drift:
                     _bulk.refresh_running = True
                     register_bg_task(asyncio.create_task(_bulk.refresh_gcode_preview(st.active_file)))
             elif not st.active_file and _bulk.last_file is not None:
@@ -1430,6 +1447,7 @@ async def _status_poller():
                 _bulk.published_schema = None
                 _bulk.schema_reparse_attempted = None
                 _bulk.published_tlo = None
+                _bulk.published_rotary_seed = None
 
             # Safety-trip detection via the servo-thread HAL latch level
             # (webui-hb-latch.fault-out, issue #34). The latch is sticky and
