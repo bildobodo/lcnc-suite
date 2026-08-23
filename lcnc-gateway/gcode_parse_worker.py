@@ -78,6 +78,7 @@ from gateway_util import (
     attribute_sub_callers, resolve_sub_callers,
     insert_flip_relabels, read_var_wcs_rows, wcs_event_rewritten,
     PREVIEW_SCHEMA, should_ship_abc, rotary_sync_initcode,
+    rotary_seed_values,
     find_unmarked_subs, resolve_subroutine_dirs,
 )
 
