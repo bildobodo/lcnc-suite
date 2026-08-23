@@ -29,7 +29,11 @@ export const trackHighlightRange = shallowRef<[number, number] | null>(null);
  *  motion_line path gated by the wholesale untrusted flag. `atEnd` (W3
  *  P4): the playhead sits pinned at the track's terminal vertex — the
  *  readout says "end" instead of freezing on the last attributable line
- *  (trailing non-motion lines like M2 are unknowable, never guessed). */
+ *  (trailing non-motion lines like M2 are unknowable, never guessed).
+ *  `line` is always the GATED display line — W4: inside an attributed sub
+ *  span it is the sub's CALL/trigger line (`viaCall: true`), never the
+ *  raw colliding sub-file number. */
 export const runLineState = shallowRef<{
-  line: number; trusted: boolean; subName: string | null; atEnd?: boolean;
+  line: number; trusted: boolean; subName: string | null;
+  atEnd?: boolean; viaCall?: boolean;
 } | null>(null);

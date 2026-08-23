@@ -650,8 +650,14 @@ async function saveEdit() {
         <span class="val-slot" :style="{ '--slot-w': lineDigits + 'ch' }">{{ currentLine ?? 0 }}</span> / {{ lineCount }}
         <span class="progressPct">(<span class="val-slot pctSlot">{{ progressPercent.toFixed(0) }}</span>%)</span>
       </span>
-      <span v-if="subName" class="val-status warn"
-        :title="`Executing inside the ${subName} subroutine — its line numbers belong to that file, so no line is highlighted here`">▶ in subroutine ({{ subName }})</span>
+      <!-- Attributed span (W4): a non-null currentLine alongside subName can
+           only be the sub's call/trigger line (a trusted own-line point is
+           never inside a marked span), so the chip drops to muted and the
+           tooltip says which line is lit. Chip-only (warn) = unattributed. -->
+      <span v-if="subName" class="val-status" :class="currentLine != null ? 'muted' : 'warn'"
+        :title="currentLine != null
+          ? `Executing inside the ${subName} subroutine — the highlighted line ${currentLine} is where it is called`
+          : `Executing inside the ${subName} subroutine — its line numbers belong to that file, so no line is highlighted here`">▶ in subroutine ({{ subName }})</span>
       <span class="elapsedLabel">{{ elapsed }}</span>
     </div>
 

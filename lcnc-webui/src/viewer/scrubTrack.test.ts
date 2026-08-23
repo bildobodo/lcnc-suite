@@ -534,17 +534,29 @@ describe("displayLineForPoint / atTrackEnd (W3 P4)", () => {
 
   it("trusted point → its line; untrusted → null (+ sub name when marked)", () => {
     const t = T();
-    expect(displayLineForPoint(t, 0, true)).toEqual({ line: 4, subName: null });
-    expect(displayLineForPoint(t, 1, true)).toEqual({ line: null, subName: null });
-    expect(displayLineForPoint(t, 2, true)).toEqual({ line: null, subName: "g533remap" });
-    expect(displayLineForPoint(t, 3, true)).toEqual({ line: null, subName: null });  // line 0 never displays
+    expect(displayLineForPoint(t, 0, true)).toEqual({ line: 4, subName: null, viaCall: false });
+    expect(displayLineForPoint(t, 1, true)).toEqual({ line: null, subName: null, viaCall: false });
+    expect(displayLineForPoint(t, 2, true)).toEqual({ line: null, subName: "g533remap", viaCall: false });
+    expect(displayLineForPoint(t, 3, true)).toEqual({ line: null, subName: null, viaCall: false });  // line 0 never displays
   });
 
   it("legacy track (no lineOk) falls back to the wholesale flag", () => {
     const t = T();
     t.lineOk = undefined;
-    expect(displayLineForPoint(t, 2, true)).toEqual({ line: 1029, subName: "g533remap" });
-    expect(displayLineForPoint(t, 2, false)).toEqual({ line: null, subName: "g533remap" });
+    expect(displayLineForPoint(t, 2, true)).toEqual({ line: 1029, subName: "g533remap", viaCall: false });
+    expect(displayLineForPoint(t, 2, false)).toEqual({ line: null, subName: "g533remap", viaCall: false });
+  });
+
+  it("attributed sub span → the CALL line, viaCall (W4); own line wins", () => {
+    const t = T();
+    t.cline = new Uint16Array([7, 0, 9, 0]);
+    // Untrusted span point with a verified call site: display line 9.
+    expect(displayLineForPoint(t, 2, true))
+      .toEqual({ line: 9, subName: "g533remap", viaCall: true });
+    // A trusted OWN line always beats attribution (never rewritten).
+    expect(displayLineForPoint(t, 0, true)).toEqual({ line: 4, subName: null, viaCall: false });
+    // Untrusted with no attribution stays dark.
+    expect(displayLineForPoint(t, 1, true)).toEqual({ line: null, subName: null, viaCall: false });
   });
 
   it("atTrackEnd fires only at the terminal cum", () => {

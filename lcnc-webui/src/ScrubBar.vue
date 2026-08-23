@@ -96,6 +96,10 @@ const curRapid = ref(false);
 // null trust = legacy track → fall back to the wholesale flag.
 const curLineOk = ref<boolean | null>(null);
 const curSubName = ref<string | null>(null);
+// W4: the displayed line is the sub's CALL/trigger line (readout shows
+// both, e.g. "L9 (square)").
+const curViaCall = ref(false);
+const curDispLine = ref<number | null>(null);
 const curAtEnd = ref(false);
 const pct = computed(() => (cumMax.value > 0 ? Math.round((sPos.value / cumMax.value) * 100) : 0));
 
@@ -133,6 +137,8 @@ function applyPos() {
   const disp = displayLineForPoint(t, _sample.index,
                                    !viewerGcode.value?.lines_untrusted);
   curSubName.value = disp.subName;
+  curViaCall.value = disp.viaCall;
+  curDispLine.value = disp.line;
   jointsForSample(_sample, _wcs(), viewerInit.value?.axes ?? [], _joints,
                   _kinsSpec.value, _epochTerms.value);
   emit("pose", _joints.slice(), _sample.line, sPos.value, t,
@@ -419,12 +425,15 @@ watch(st, (d) => {
   }
   // Text-panel line state (W2 P6): the ONE shared gating rule (W3 P4) —
   // per-point trust from the wire when the track carries it; legacy
-  // tracks fall back to the wholesale flag.
+  // tracks fall back to the wholesale flag. The published line is the
+  // GATED display line (W4: inside an attributed sub span that is the
+  // CALL/trigger line, viaCall) — never the raw colliding sub number.
   const disp = displayLineForPoint(t, i, trusted);
   runLineState.value = {
-    line: t.lines[i]!,
+    line: disp.line ?? 0,
     trusted: disp.line != null,
     subName: disp.subName,
+    viaCall: disp.viaCall,
   };
 });
 watch(running, (r) => {
@@ -442,10 +451,14 @@ const statusText = computed(() => {
   if (simMode.value) {
     const ok = curLineOk.value ?? trusted;
     // "end" mirrors "entry" (W3 P4): the terminal vertex is where the
-    // track's knowledge stops — never a guessed M2 highlight.
+    // track's knowledge stops — never a guessed M2 highlight. Inside an
+    // attributed sub span (W4) the readout names the CALL line and the
+    // sub: "L9 (square)".
     const label = curAtEnd.value ? "end"
       : !curLine.value ? "entry"
       : ok ? `L${curLine.value}`
+      : curViaCall.value && curDispLine.value
+        ? `L${curDispLine.value}${curSubName.value ? ` (${curSubName.value})` : ""}`
       : curSubName.value ? `(${curSubName.value})` : "···";
     return `${label}${curRapid.value ? " →" : ""} ${posLabel.value}`;
   }
@@ -456,7 +469,8 @@ const statusText = computed(() => {
     const rls = runLineState.value;
     const label = rls
       ? (rls.atEnd ? "end"
-        : rls.trusted ? `L${rls.line}`
+        : rls.trusted ? (rls.viaCall && rls.subName
+          ? `L${rls.line} (${rls.subName})` : `L${rls.line}`)
         : rls.subName ? `(${rls.subName})` : "···")
       : trusted ? `L${motionLine.value ?? 0}` : "···";
     return `${label} ~${posLabel.value}`;

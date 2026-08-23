@@ -442,16 +442,24 @@ export function sampleTrack(t: ScrubTrack, s: number, out: ScrubSample): ScrubSa
  *  "in subroutine (name)" instead of a colliding line. Shared by the run
  *  playhead and the scrub emit — the scrub path used to forward RAW
  *  sample lines, lighting blank main-file lines with a called sub's
- *  numbers and scrolling to remap linenos past the end of the file. */
+ *  numbers and scrolling to remap linenos past the end of the file.
+ *
+ *  W4: an untrusted point inside a marked sub span whose unique main-file
+ *  call/trigger line was text-verified (track `cline`) displays THAT line
+ *  (`viaCall: true`) — the o-call/remap line the operator wrote — so the
+ *  highlight tracks execution through subs instead of going dark. */
 export function displayLineForPoint(
   t: ScrubTrack, i: number, wholesaleTrusted: boolean,
-): { line: number | null; subName: string | null } {
+): { line: number | null; subName: string | null; viaCall: boolean } {
   const ln = t.lines[i] ?? 0;
   const ok = t.lineOk ? t.lineOk[i] === 1 : wholesaleTrusted;
   const sb = t.sub?.[i];
+  const cl = t.cline?.[i] ?? 0;
+  const own = ok && ln > 0;
   return {
-    line: ok && ln > 0 ? ln : null,
+    line: own ? ln : cl > 0 ? cl : null,
     subName: (sb != null && sb !== 0xff && t.subNames) ? t.subNames[sb] ?? null : null,
+    viaCall: !own && cl > 0,
   };
 }
 
