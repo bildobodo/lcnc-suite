@@ -401,6 +401,10 @@ const gcodeStats = ref<GcodeStats | null>(null);
 const gcodeViolations = ref<LimitViolation[] | null>(null);
 const gcodeViolationsTotal = ref(0);
 const gcodeWorldUnchecked = ref(0);
+// Called external subs with no WEBUI_SUB markers (W3 P5): their motion's
+// line numbers collide with the main file's — one info-tier stats hint,
+// no per-point behavior change (markers are the only trust mechanism).
+const gcodeUnmarkedSubs = ref<string[]>([]);
 // Soft-limit stats row: identity-check result plus the honest TCP hole —
 // world segments with no kins twin are NOT validated and must never read
 // as "OK" (unchecked ≠ clean).
@@ -1403,6 +1407,7 @@ watch(viewerGcode, (newGcode) => {
   gcodeViolations.value = newGcode?.violations ?? null;
   gcodeViolationsTotal.value = newGcode?.violations_total ?? 0;
   gcodeWorldUnchecked.value = newGcode?.violations_world_unchecked ?? 0;
+  gcodeUnmarkedSubs.value = newGcode?.unmarked_subs ?? [];
 });
 
 
@@ -1724,6 +1729,16 @@ watch(viewerGcode, (newGcode) => {
                   <span class="statsValue val-status" :class="softLimitStatus.cls">
                     {{ softLimitStatus.text }}
                   </span>
+                  <template v-if="gcodeUnmarkedSubs.length">
+                    <span class="statsLabel">Line tracking</span>
+                    <span class="statsValue val-status muted"
+                          :title="'Called subroutine' + (gcodeUnmarkedSubs.length === 1 ? '' : 's') + ' '
+                            + gcodeUnmarkedSubs.map(n => n + '.ngc').join(', ')
+                            + ' carr' + (gcodeUnmarkedSubs.length === 1 ? 'ies' : 'y')
+                            + ' no WEBUI_SUB markers — the line highlight may be unreliable during their motion'">
+                      {{ gcodeUnmarkedSubs.map(n => n + '.ngc').join(', ') }} unmarked
+                    </span>
+                  </template>
                 </div>
               </div>
             </div>

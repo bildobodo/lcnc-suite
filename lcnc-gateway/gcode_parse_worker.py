@@ -74,6 +74,7 @@ from gateway_util import (
     classify_motion_lines, line_trust_flags, resolve_sub_indices,
     insert_flip_relabels, read_var_wcs_rows, wcs_event_rewritten,
     PREVIEW_SCHEMA, should_ship_abc, rotary_sync_initcode,
+    find_unmarked_subs, resolve_subroutine_dirs,
 )
 
 
@@ -878,6 +879,21 @@ def parse(ctx: dict) -> dict:
               f"line (marked subs: {sub_names or 'none'})",
               file=sys.stderr, flush=True)
 
+    # Unmarked-sub advisory (W3 P5): external o-calls whose files carry no
+    # WEBUI_SUB marker — their motion's line numbers collide with the main
+    # file's and can false-positively trust. File-level hint only, no
+    # per-point reattribution (markers remain the only trust mechanism).
+    unmarked_subs = []
+    if _src_text:
+        unmarked_subs = find_unmarked_subs(
+            _src_text,
+            resolve_subroutine_dirs(ini.find("RS274NGC", "SUBROUTINE_PATH"),
+                                    ini_path))
+        if unmarked_subs:
+            print(f"unmarked subs: {unmarked_subs} — line highlight may be "
+                  f"unreliable during their motion (add WEBUI_SUB markers)",
+                  file=sys.stderr, flush=True)
+
     # Include "file" so this dict is the EXACT GET /preview wire shape: the
     # gateway publishes these bytes verbatim (no decode + re-encode), which is
     # what keeps the multi-MB polyline from ever becoming Python objects on the
@@ -1055,6 +1071,11 @@ def parse(ctx: dict) -> dict:
         # unchecked ≠ clean, so the count rides the wire and the UI says
         # "not validated" instead of implying a pass.
         result["violations_world_unchecked"] = world_unchecked
+    if unmarked_subs:
+        # Unmarked-sub advisory (W3 P5, schema 6): called external subs
+        # with no WEBUI_SUB markers — the stats dialog shows one info-tier
+        # hint. Present only when non-empty.
+        result["unmarked_subs"] = unmarked_subs
     return result
 
 

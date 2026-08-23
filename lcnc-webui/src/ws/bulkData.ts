@@ -373,6 +373,11 @@ export interface ViewerGcode {
   // line; the reason string is shown to the operator.
   lines_untrusted?: boolean;
   lines_untrusted_reason?: string;
+  // Called EXTERNAL subroutines whose files carry no WEBUI_SUB marker
+  // (W3 P5, schema 6): their motion's line numbers collide with the main
+  // file's and can false-positively trust — surfaced as one info-tier
+  // stats-dialog hint. Present only when non-empty.
+  unmarked_subs?: string[];
   // Kins-flip relabel flags (u8, index-aligned with rapid): brk[i]=1 means
   // the segment INTO point i is a switchkins frame relabel at a stationary
   // pose — zero machine motion, never drawn/swept/timed/lerped. Present

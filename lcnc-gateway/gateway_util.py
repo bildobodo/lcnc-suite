@@ -1946,6 +1946,71 @@ def resolve_sub_indices(seqs, sub_events, name_index):
     return out
 
 
+_OCALL_RE = re.compile(r"^\s*o<([a-z0-9_.\-]+)>\s*call\b", re.IGNORECASE | re.MULTILINE)
+_OSUB_RE = re.compile(r"^\s*o<([a-z0-9_.\-]+)>\s*sub\b", re.IGNORECASE | re.MULTILINE)
+
+
+def find_unmarked_subs(source_text, search_dirs, max_read=65536):
+    """Names of EXTERNAL `o<name> call` subroutines whose files carry no
+    `(WEBUI_SUB=…)` marker (W3 P5 — the unmarked-sub advisory).
+
+    The offline interpreter exposes no file identity, so motion inside an
+    unmarked external sub carries THAT file's line numbers, which collide
+    with the main program's — and can false-positively trust (the square
+    demo lit main lines 4/6/7 from the sub's own numbering). No robust
+    point-level counter-signal exists (the W2 P6 no-monotonicity decision
+    is precedent against guessing), so this is a FILE-level advisory only:
+    which called files lack markers. No per-point behavior changes; markers
+    remain the only trust mechanism.
+
+    source_text -- the main program's text.
+    search_dirs -- resolved INI [RS274NGC]SUBROUTINE_PATH entries, in
+                   order; first hit wins (LinuxCNC's own rule). A name
+                   whose file cannot be found or read yields NO claim.
+
+    Returns the unmarked names in first-call order, deduped.
+    """
+    in_file = {m.group(1).lower() for m in _OSUB_RE.finditer(source_text)}
+    out = []
+    seen = set()
+    for m in _OCALL_RE.finditer(source_text):
+        name = m.group(1).lower()
+        if name in in_file or name in seen:
+            continue
+        seen.add(name)
+        for d in search_dirs:
+            path = os.path.join(d, name + ".ngc")
+            if not os.path.isfile(path):
+                continue
+            try:
+                with open(path, "r", errors="replace") as f:
+                    text = f.read(max_read)
+            except OSError:
+                break   # unreadable ≠ unmarked — no claim
+            if "WEBUI_SUB" not in text:
+                out.append(name)
+            break
+    return out
+
+
+def resolve_subroutine_dirs(sub_path, ini_path):
+    """Split an INI SUBROUTINE_PATH into absolute dirs (W3 P5). Colon-
+    separated; `~` expanded; relative entries resolve against the INI's
+    directory (LinuxCNC resolves relative to PROGRAM_PREFIX/config dir —
+    the config dir is the honest approximation available here). Pure
+    string work; existence is the caller's lookup concern."""
+    dirs = []
+    base = os.path.dirname(os.path.abspath(ini_path)) if ini_path else "."
+    for d in (sub_path or "").split(":"):
+        d = os.path.expanduser(d.strip())
+        if not d:
+            continue
+        if not os.path.isabs(d):
+            d = os.path.normpath(os.path.join(base, d))
+        dirs.append(d)
+    return dirs
+
+
 def read_axis_limits(ini_find, axis_mask: int):
     """Per-axis soft limits from the active INI, for every axis in the mask.
 

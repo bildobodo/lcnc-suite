@@ -1468,6 +1468,60 @@ class TestCanonFirstMoveRearm(unittest.TestCase):
         self.assertEqual(c.unknown_start[1], c.rapid[2][4])
 
 
+class TestFindUnmarkedSubs(unittest.TestCase):
+    """W3 P5 advisory: external o-calls whose sub files carry no WEBUI_SUB
+    marker — file-level hint only, and NO claim without a resolvable file."""
+
+    def setUp(self):
+        import tempfile
+        self._td = tempfile.TemporaryDirectory()
+        self.dir = self._td.name
+
+    def tearDown(self):
+        self._td.cleanup()
+
+    def _write(self, name, text):
+        with open(os.path.join(self.dir, name), "w") as f:
+            f.write(text)
+
+    def test_unmarked_external_sub_is_reported_once(self):
+        self._write("square.ngc", "o<square>sub\n g0 x1\no<square>endsub\n")
+        src = "g0 x0\no<square> call\no<square> call\nM2\n"
+        self.assertEqual(
+            gateway_util.find_unmarked_subs(src, [self.dir]), ["square"])
+
+    def test_marked_sub_and_in_file_sub_are_quiet(self):
+        self._write("square.ngc",
+                    "o<square>sub\n(WEBUI_SUB=square)\n g0 x1\n"
+                    "(WEBUI_SUB_END)\no<square>endsub\n")
+        src = ("o<local>sub\n g0 x1\no<local>endsub\n"
+               "o<local> call\no<square> call\n")
+        self.assertEqual(gateway_util.find_unmarked_subs(src, [self.dir]), [])
+
+    def test_missing_file_yields_no_claim(self):
+        # Unresolvable ≠ unmarked: a numbered sub, a wrong path, or a
+        # gcode-generated name must never produce a false advisory.
+        src = "o<ghost> call\n"
+        self.assertEqual(gateway_util.find_unmarked_subs(src, [self.dir]), [])
+
+    def test_first_search_dir_wins(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as d2:
+            self._write("s.ngc", "o<s>sub\n(WEBUI_SUB=s)\no<s>endsub\n")
+            with open(os.path.join(d2, "s.ngc"), "w") as f:
+                f.write("o<s>sub\no<s>endsub\n")   # unmarked shadow
+            self.assertEqual(
+                gateway_util.find_unmarked_subs("o<s> call\n", [self.dir, d2]),
+                [])   # marked copy found first — LinuxCNC's own resolution order
+
+    def test_resolve_subroutine_dirs(self):
+        dirs = gateway_util.resolve_subroutine_dirs(
+            "~/subs: rel/dir :/abs/dir:", "/cfg/machine.ini")
+        self.assertEqual(dirs, [os.path.expanduser("~/subs"),
+                                "/cfg/rel/dir", "/abs/dir"])
+        self.assertEqual(gateway_util.resolve_subroutine_dirs(None, "/cfg/x.ini"), [])
+
+
 class TestEvaluateTloDrift(unittest.TestCase):
     """W2 P4 drift edge: the per-line limit flags bake the parse-time tool
     table; this decides when the poller must reparse. G49 (applied offset
