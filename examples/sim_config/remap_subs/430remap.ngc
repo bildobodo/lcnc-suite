@@ -2,6 +2,8 @@
 ; Adapted from LinuxCNC 2.9.4 sample-configs sim/axis/vismach/5axis/
 ; table-rotary-tilting (GPL v2). lcnc-suite changes: see 428remap.ngc
 o<430remap>sub
+(WEBUI_SUB=430remap) ;lcnc-suite: preview sub-span marker, silent in task
+
   #<kinstype> = 2
   #<SWITCHKINS_PIN> = 2  ; motion.analog-out-02 (see 428remap.ngc)
 
@@ -29,4 +31,5 @@ o4   if [#<_hal[motion.switchkins-type]> NE #<kinstype>]
 o4   endif
 o3 endif
 
+(WEBUI_SUB_END) ;lcnc-suite: preview sub-span marker
 o<430remap>endsub

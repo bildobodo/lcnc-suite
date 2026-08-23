@@ -367,6 +367,18 @@ if [[ -d "$SIM_CONFIG_DIR/hallib" ]]; then
   ok "Linked lcnc_webui.hal → repo template (safety glue stays in sync)"
 fi
 
+# Drift check (W2 P7, warn-only): the sim config above is a COPY kept across
+# installs, so repo template fixes never arrive on their own — a deployed TCP
+# INI missing one repo-added HALCMD line booted with a config-fallback banner
+# (review report 4). The checker prints the exact drifted lines; local edits
+# are legitimate, so this never aborts an install.
+if python3 "$TARGET_DIR/scripts/config_sync_check.py" \
+     --repo "$TARGET_DIR/examples/sim_config" --deployed "$SIM_CONFIG_DIR"; then
+  ok "Deployed sim config matches the repo templates"
+else
+  warn "Deployed sim config has drifted from the repo templates (see lines above) — carry over any repo-only lines you want; local edits are yours to keep"
+fi
+
 # ============================================================
 # Step 6: Done
 # ============================================================
