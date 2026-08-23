@@ -1828,7 +1828,8 @@ LINE_NONE, LINE_RAPID, LINE_FEED, LINE_EITHER = 0, 1, 2, 3
 
 
 def parse_sub_marker(text):
-    """Comment text -> ("start", name) / ("end", None), or None.
+    """Comment text -> ("start", name, caller|None) / ("end", None, None),
+    or None.
 
     W2 P6: our shipped subroutines and the TWP remap wrappers carry
     `(WEBUI_SUB=<name>)` after their `o<...> sub` line and `(WEBUI_SUB_END)`
@@ -1838,12 +1839,24 @@ def parse_sub_marker(text):
     with the main file's and must never be highlighted there. Unmarked subs
     stay invisible (their motion falls to the line-classification tests),
     never guessed.
+
+    W4: an optional `CALLER=<token>` after the name declares the main-file
+    text that invokes this sub (e.g. `CALLER=g53.3` for a remap wrapper) —
+    the verification token for call-site line attribution. The name is the
+    first whitespace-separated token; markers without CALLER parse as
+    before. o-word subs need no token (`o<name> call` is verifiable from
+    the name alone).
     """
     m = _SUB_MARKER.match(text or "")
     if m:
-        return ("start", m.group(1).strip())
+        parts = m.group(1).strip().split()
+        caller = None
+        for p in parts[1:]:
+            if p.upper().startswith("CALLER="):
+                caller = p[len("CALLER="):].strip() or None
+        return ("start", parts[0], caller)
     if _SUB_END_MARKER.match(text or ""):
-        return ("end", None)
+        return ("end", None, None)
     return None
 
 
@@ -1943,6 +1956,90 @@ def resolve_sub_indices(seqs, sub_events, name_index):
                 stack.append(nm)
             ei += 1
         out.append(name_index.get(stack[-1], 0xff) if stack else 0xff)
+    return out
+
+
+def _caller_site_re(name, caller_token):
+    """Regex matching a comment-stripped MAIN-file line that invokes sub
+    `name`: its `o<name> call` statement, or the marker-declared CALLER
+    token (word-guarded so `g53.3` never matches `g53.36` and `g69` never
+    matches `g69.1`). Pure."""
+    pats = [r"^\s*o<" + re.escape(name) + r">\s*call\b"]
+    if caller_token:
+        pats.append(r"(?<![a-z0-9_.])" + re.escape(caller_token) + r"(?![0-9.])")
+    return re.compile("|".join(pats), re.IGNORECASE)
+
+
+def attribute_sub_callers(sub_events, source_text):
+    """Verified call-site MAIN-file line per sub-span START event (W4).
+
+    sub_events  -- canon triples [(seq, name|None, caller_token|None)];
+                   name None = span end.
+    source_text -- the main program's text.
+
+    Returns (caller_by_event, unattributed_names): caller_by_event maps
+    the EVENT INDEX of a depth-0 start event to the verified main-file
+    line; unattributed_names lists depth-0 span names (first-seen order,
+    deduped) with no attribution — the worker's stderr note. The display
+    degrades to the sub-name chip there, never a guessed line.
+
+    Rule: UNIQUE-site text scan only. A main-file line attributes iff it
+    is the ONLY comment-stripped line invoking the sub (`o<name> call`, or
+    the marker-declared CALLER token); zero or several sites yield no
+    claim. No positional signal exists to disambiguate multiple sites —
+    the interpreter fires next_line only for plainly-executed blocks,
+    never for the o-call/remap trigger lines themselves (verified
+    empirically, W4). Nested spans (depth > 0) are never attributed:
+    their caller line lives in the OUTER sub's file, the very collision
+    this machinery exists to avoid. Pure.
+    """
+    lines = [strip_gcode_comments(ln) for ln in (source_text or "").splitlines()]
+    out = {}
+    unattributed = []
+    site_cache = {}
+    depth = 0
+    for idx, ev in enumerate(sub_events):
+        name = ev[1]
+        if name is None:
+            depth = max(0, depth - 1)
+            continue
+        if depth == 0:
+            key = (name, ev[2])
+            if key not in site_cache:
+                rx = _caller_site_re(name, ev[2])
+                hits = [i + 1 for i, ln in enumerate(lines) if rx.search(ln)]
+                site_cache[key] = hits[0] if len(hits) == 1 else None
+            line = site_cache[key]
+            if line is not None:
+                out[idx] = line
+            elif name not in unattributed:
+                unattributed.append(name)
+        depth += 1
+    return out, unattributed
+
+
+def resolve_sub_callers(seqs, sub_events, caller_by_event):
+    """Per-point call-site line for one canon stream (W4). Pure.
+
+    Same span-walk as resolve_sub_indices (event at seq N governs points
+    with seq > N, strict). A point takes its OUTERMOST open span's verified
+    caller line — the ultimate main-file cause of the motion; only depth-0
+    events ever appear in caller_by_event, so inner spans contribute 0.
+    Points outside any span, or under unverified spans, get 0 (= none).
+    """
+    out = []
+    stack = []
+    ei = 0
+    n_ev = len(sub_events)
+    for s in seqs:
+        while ei < n_ev and sub_events[ei][0] < s:
+            if sub_events[ei][1] is None:
+                if stack:
+                    stack.pop()
+            else:
+                stack.append(caller_by_event.get(ei, 0))
+            ei += 1
+        out.append(stack[0] if stack else 0)
     return out
 
 

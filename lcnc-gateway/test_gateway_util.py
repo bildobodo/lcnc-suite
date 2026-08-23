@@ -1322,13 +1322,121 @@ class TestLineTrustMachinery(unittest.TestCase):
 
     def test_parse_sub_marker(self):
         self.assertEqual(gateway_util.parse_sub_marker("WEBUI_SUB=tool_touch_off"),
-                         ("start", "tool_touch_off"))
+                         ("start", "tool_touch_off", None))
+        # W4: whitespace splits the optional CALLER token off the name —
+        # names are single tokens now (no shipped marker ever used spaces).
+        self.assertEqual(
+            gateway_util.parse_sub_marker("WEBUI_SUB=g533remap CALLER=g53.3"),
+            ("start", "g533remap", "g53.3"))
+        self.assertEqual(
+            gateway_util.parse_sub_marker(" WEBUI_SUB = square  caller=M6 "),
+            ("start", "square", "M6"))
         self.assertEqual(gateway_util.parse_sub_marker(" WEBUI_SUB = g53x core "),
-                         ("start", "g53x core"))
+                         ("start", "g53x", None))
         self.assertEqual(gateway_util.parse_sub_marker("WEBUI_SUB_END"),
-                         ("end", None))
+                         ("end", None, None))
         self.assertIsNone(gateway_util.parse_sub_marker("WEBUI_KINSTYPE=2"))
         self.assertIsNone(gateway_util.parse_sub_marker("plain comment"))
+
+
+class TestCallerAttribution(unittest.TestCase):
+    """W4 call-site line attribution: unique-site text scan, verified
+    against the comment-stripped main file — anything short of a unique
+    match degrades to chip-only display, never a guessed line. (A
+    positional canon signal was disproven empirically: the interpreter
+    never fires next_line for o-call/remap trigger lines.)"""
+
+    MAIN = "\n".join([
+        "g69",                        # 1  remap trigger (CALLER=g69)
+        "g10 l2 p0 x10",              # 2
+        "o<square> call",             # 3  unique o-call site
+        "g53.3 x0y0z100",             # 4  remap trigger (CALLER=g53.3)
+        "g53.36 x1",                  # 5  red herring for the g53.3 guard
+        ";g69",                       # 6  commented — must never match
+        "o<other> call",              # 7  first site of a DUPLICATED call
+        "o<other> call",              # 8  second site — ambiguous
+    ])
+
+    def test_unique_ocall_site(self):
+        events = [(2, "square", None), (4, None, None)]
+        got, unattributed = gateway_util.attribute_sub_callers(events, self.MAIN)
+        self.assertEqual(got, {0: 3})
+        self.assertEqual(unattributed, [])
+        # Every occurrence of the span attributes to the one site.
+        events = [(2, "square", None), (4, None, None),
+                  (8, "square", None), (10, None, None)]
+        got, _ = gateway_util.attribute_sub_callers(events, self.MAIN)
+        self.assertEqual(got, {0: 3, 2: 3})
+
+    def test_caller_token_word_guard(self):
+        # g53.3 appears once as a real trigger; the g53.36 line must not
+        # defeat uniqueness (numeric word guard).
+        events = [(5, "g533remap", "g53.3"), (9, None, None)]
+        got, unattributed = gateway_util.attribute_sub_callers(events, self.MAIN)
+        self.assertEqual(got, {0: 4})
+        self.assertEqual(unattributed, [])
+
+    def test_commented_trigger_never_matches(self):
+        # `;g69` on line 6 is a comment; only line 1 invokes g69remap.
+        events = [(1, "g69remap", "g69")]
+        got, _ = gateway_util.attribute_sub_callers(events, self.MAIN)
+        self.assertEqual(got, {0: 1})
+
+    def test_multiple_sites_yield_no_claim(self):
+        # Two o<other> call sites: no positional signal exists — zero
+        # attribution, one deduped note.
+        events = [(2, "other", None), (4, None, None),
+                  (10, "other", None)]
+        got, unattributed = gateway_util.attribute_sub_callers(events, self.MAIN)
+        self.assertEqual(got, {})
+        self.assertEqual(unattributed, ["other"])
+
+    def test_zero_sites_yield_no_claim(self):
+        # A sub never invoked from the main text (e.g. called by another
+        # sub the canon didn't mark): no claim.
+        events = [(2, "ghost", None)]
+        got, unattributed = gateway_util.attribute_sub_callers(events, self.MAIN)
+        self.assertEqual(got, {})
+        self.assertEqual(unattributed, ["ghost"])
+
+    def test_nested_span_never_attributed(self):
+        # A depth-1 span's caller line lives in the OUTER sub's file —
+        # even a unique main-file site for its name makes no claim.
+        events = [(2, "other", None),          # depth 0, ambiguous sites
+                  (4, "square", None),         # depth 1 — unique site, still no
+                  (6, None, None), (8, None, None)]
+        got, unattributed = gateway_util.attribute_sub_callers(events, self.MAIN)
+        self.assertEqual(got, {})
+        self.assertEqual(unattributed, ["other"])
+
+    def test_resolve_sub_callers_outermost_wins(self):
+        events = [(2, "square", None),      # attributed to line 3
+                  (4, "inner", None),       # nested — never attributed
+                  (6, None, None), (8, None, None),
+                  (10, "other", None)]      # unattributed span
+        caller_map = {0: 3}
+        self.assertEqual(
+            gateway_util.resolve_sub_callers([1, 3, 5, 7, 9, 12],
+                                             events, caller_map),
+            [0, 3, 3, 3, 0, 0])
+
+    def test_canon_records_caller_token(self):
+        import types
+        import gcode_canon
+        c = object.__new__(gcode_canon.PreviewCanon)
+        c.seq = 0
+        c.lineno = -1
+        c.kins_events = []
+        c.kins_frames = []
+        c.sub_events = []
+        c.basis_at_start = ()   # sidestep next_line's basis capture
+        ns = types.SimpleNamespace
+        c.next_line(ns(sequence_number=1))
+        c.comment("WEBUI_SUB=g533remap CALLER=g53.3")
+        c.comment("WEBUI_SUB_END")
+        c.comment("WEBUI_SUB=square")
+        self.assertEqual(c.sub_events, [
+            (0, "g533remap", "g53.3"), (0, None, None), (0, "square", None)])
 
 
 class TestRotarySyncInitcode(unittest.TestCase):

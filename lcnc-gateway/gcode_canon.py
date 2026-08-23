@@ -82,13 +82,20 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         # kins markers: an event at seq N governs segments with seq > N.
         self.wcs_events = []
         self._last_wcs_basis = None
-        # Subroutine span markers `(WEBUI_SUB=name)` / `(WEBUI_SUB_END)`
-        # from our shipped subs and the TWP remap wrappers (W2 P6):
-        # [(seq_at_marker, name | None)] in execution order; None = span
-        # end. Motion inside a span carries the SUB file's line numbers —
-        # colliding with the main program's — so the worker marks those
-        # points untrusted (with the sub's name for the UI) instead of
-        # letting the text-panel highlight land on an unrelated main line.
+        # Subroutine span markers `(WEBUI_SUB=name [CALLER=tok])` /
+        # `(WEBUI_SUB_END)` from our shipped subs and the TWP remap
+        # wrappers (W2 P6): [(seq_at_marker, name | None, caller_token |
+        # None)] in execution order; name None = span end. Motion inside a
+        # span carries the SUB file's line numbers — colliding with the
+        # main program's — so the worker marks those points untrusted
+        # (with the sub's name for the UI) instead of letting the
+        # text-panel highlight land on an unrelated main line. The CALLER
+        # token (W4) declares the main-file text that invokes the sub, for
+        # call-site line attribution (attribute_sub_callers). NOTE: the
+        # interpreter fires next_line only for plainly-executed blocks —
+        # never for remap trigger lines, o-call lines, blanks, or
+        # comment-only lines (verified empirically, W4) — so no canon-side
+        # signal can locate the call site; attribution is text-scan only.
         self.sub_events = []
         # Seqs of ZERO-LENGTH rapids recorded at suppressed-move endpoints
         # (W3 P1): a first_move rapid's PRIOR position is unknown, but its
@@ -163,7 +170,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
             return
         sub = parse_sub_marker(text)
         if sub is not None:
-            self.sub_events.append((self.seq, sub[1]))
+            self.sub_events.append((self.seq, sub[1], sub[2]))
     def message(self, _): pass
     def check_abort(self): pass
     def user_defined_function(self, i, p, q): pass

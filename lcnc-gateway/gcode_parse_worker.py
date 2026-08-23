@@ -352,7 +352,8 @@ def parse(ctx: dict) -> dict:
         # Sub-span markers re-key with the same seq doubling (W2 P6) — their
         # strict `<` comparisons must stay aligned with the doubled per-point
         # seqs (inserted relabel vertices at odd seqs resolve consistently).
-        canon.sub_events = [(_s * 2, _nm) for _s, _nm in canon.sub_events]
+        canon.sub_events = [(_ev[0] * 2,) + tuple(_ev[1:])
+                            for _ev in canon.sub_events]
         if relabel_seqs or flips_unresolved:
             print(f"flips: {len(relabel_seqs)} relabel vertices inserted "
                   f"({len(canon.wcs_events)} wcs epochs), {flips_unresolved} "
@@ -856,7 +857,8 @@ def parse(ctx: dict) -> dict:
     sub_names = []
     feed_sub = rapid_sub = None
     if canon.sub_events:
-        for _s, _nm in canon.sub_events:
+        for _ev in canon.sub_events:
+            _nm = _ev[1]
             if _nm is not None and _nm not in sub_names:
                 sub_names.append(_nm)
         sub_names = sub_names[:254]   # u8 channel; 0xff = "no sub"
