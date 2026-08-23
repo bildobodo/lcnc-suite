@@ -52,6 +52,30 @@ export async function listFiles(subdir: string = ""): Promise<FilesResponse> {
   return resp.json();
 }
 
+/** ---------- subroutine source (W5 inline sub view) ---------- */
+
+const _subfileCache = new Map<string, Promise<string | null>>();
+
+/** Source text of a called subroutine (resolved server-side through
+ *  SUBROUTINE_PATH, names restricted to bare o-word tokens). Cached per
+ *  name; null = not resolvable (the indent view simply doesn't offer
+ *  itself — never a guess). */
+export function fetchSubfile(name: string): Promise<string | null> {
+  let p = _subfileCache.get(name);
+  if (!p) {
+    p = fetch(`${getBaseUrl()}/subfile?name=${encodeURIComponent(name)}`)
+      .then(r => (r.ok ? r.text() : null))          // 404 = definitive, cached
+      .catch(() => { _subfileCache.delete(name); return null; });  // transient — retry later
+    _subfileCache.set(name, p);
+  }
+  return p;
+}
+
+/** Program change / reparse: sub files may have been edited — drop the cache. */
+export function clearSubfileCache(): void {
+  _subfileCache.clear();
+}
+
 export interface SaveResponse {
   ok: boolean;
   path: string;

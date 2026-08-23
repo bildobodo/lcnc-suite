@@ -2094,6 +2094,34 @@ def find_unmarked_subs(source_text, search_dirs, max_read=65536):
     return out
 
 
+#: Bare o-word subroutine name — no path separators ever (W5 subfile route).
+SUBFILE_NAME_RE = re.compile(r"^[a-z0-9_.\-]+$", re.IGNORECASE)
+
+
+def resolve_subfile(name, search_dirs):
+    """Absolute path of `<name>.ngc` through the resolved SUBROUTINE_PATH
+    dirs, first hit wins — LinuxCNC's own lookup rule (W5: source for the
+    inline sub view). None unless the name is a bare o-word token AND the
+    hit's realpath stays inside the dir it was found in (symlink/traversal
+    containment). A first-dir hit that escapes containment yields None —
+    never a fallback to a later dir the interpreter would not have used.
+    """
+    if not name or not SUBFILE_NAME_RE.match(name):
+        return None
+    for d in search_dirs:
+        path = os.path.join(d, name + ".ngc")
+        if not os.path.isfile(path):
+            continue
+        real = os.path.realpath(path)
+        droot = os.path.realpath(d)
+        try:
+            contained = os.path.commonpath([real, droot]) == droot
+        except ValueError:
+            contained = False
+        return path if contained else None
+    return None
+
+
 def resolve_subroutine_dirs(sub_path, ini_path):
     """Split an INI SUBROUTINE_PATH into absolute dirs (W3 P5). Colon-
     separated; `~` expanded; relative entries resolve against the INI's

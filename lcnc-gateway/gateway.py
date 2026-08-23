@@ -33,6 +33,8 @@ _trace.install_crash_hooks("gateway")
 # Pure, linuxcnc-free helpers (importable under pytest without the binding).
 from gateway_util import (
     ALLOWED_EXTENSIONS,
+    SUBFILE_NAME_RE,
+    resolve_subfile,
     parse_kins_config,
     sanitize_filename,
     validate_extension,
@@ -4693,6 +4695,24 @@ def get_gcode(path: str):
                 f"bytes={os.path.getsize(abs_path)}B file={os.path.basename(abs_path)}",
                 flush=True,
             )
+
+
+@app.get("/subfile")
+def get_subfile(name: str):
+    """Serve a called subroutine's source for the inline sub view (W5).
+
+    `name` is the bare o-word name from the payload's marked-span
+    sub_names; resolution walks the INI's [RS274NGC]SUBROUTINE_PATH dirs
+    exactly like the interpreter does (first hit wins), with realpath
+    containment so a symlink can never serve a file outside those dirs.
+    """
+    if not SUBFILE_NAME_RE.match(name or ""):
+        raise HTTPException(status_code=400, detail="Invalid subroutine name")
+    dirs = get_ini_config().get("subroutine_paths", [])
+    path = resolve_subfile(name, dirs)
+    if path is None:
+        raise HTTPException(status_code=404, detail="Subroutine not found")
+    return FileResponse(path, media_type="text/plain")
 
 
 @app.get("/preview")

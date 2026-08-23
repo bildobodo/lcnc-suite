@@ -1339,6 +1339,52 @@ class TestLineTrustMachinery(unittest.TestCase):
         self.assertIsNone(gateway_util.parse_sub_marker("plain comment"))
 
 
+class TestResolveSubfile(unittest.TestCase):
+    """W5 subfile route resolver: LinuxCNC's first-hit SUBROUTINE_PATH rule
+    with realpath containment — a symlink or crafted name can never serve a
+    file outside the sub dirs."""
+
+    def setUp(self):
+        import tempfile
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.d1 = os.path.join(self.tmp.name, "d1")
+        self.d2 = os.path.join(self.tmp.name, "d2")
+        os.makedirs(self.d1)
+        os.makedirs(self.d2)
+        with open(os.path.join(self.d1, "square.ngc"), "w") as f:
+            f.write("o<square>sub\no<square>endsub\n")
+        with open(os.path.join(self.d2, "square.ngc"), "w") as f:
+            f.write("SHADOWED\n")
+        with open(os.path.join(self.d2, "probe.ngc"), "w") as f:
+            f.write("o<probe>sub\n")
+        with open(os.path.join(self.tmp.name, "outside.ngc"), "w") as f:
+            f.write("OUTSIDE\n")
+
+    def test_first_dir_wins(self):
+        got = gateway_util.resolve_subfile("square", [self.d1, self.d2])
+        self.assertEqual(got, os.path.join(self.d1, "square.ngc"))
+        got = gateway_util.resolve_subfile("probe", [self.d1, self.d2])
+        self.assertEqual(got, os.path.join(self.d2, "probe.ngc"))
+
+    def test_missing_and_bad_names(self):
+        self.assertIsNone(gateway_util.resolve_subfile("nope", [self.d1]))
+        self.assertIsNone(gateway_util.resolve_subfile("", [self.d1]))
+        self.assertIsNone(gateway_util.resolve_subfile(None, [self.d1]))
+        self.assertIsNone(gateway_util.resolve_subfile("../outside", [self.d1]))
+        self.assertIsNone(gateway_util.resolve_subfile("a/b", [self.d1]))
+
+    def test_symlink_escaping_dir_yields_none_not_fallback(self):
+        # d1/evil.ngc → a file outside the dir: containment fails, and the
+        # resolver must NOT fall back to a later dir the interpreter would
+        # not have used for this hit.
+        os.symlink(os.path.join(self.tmp.name, "outside.ngc"),
+                   os.path.join(self.d1, "evil.ngc"))
+        with open(os.path.join(self.d2, "evil.ngc"), "w") as f:
+            f.write("d2 evil\n")
+        self.assertIsNone(gateway_util.resolve_subfile("evil", [self.d1, self.d2]))
+
+
 class TestCallerAttribution(unittest.TestCase):
     """W4 call-site line attribution: unique-site text scan, verified
     against the comment-stripped main file — anything short of a unique
