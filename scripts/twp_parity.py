@@ -55,7 +55,11 @@ import linuxcnc  # noqa: E402
 
 from gateway_util import (  # noqa: E402
     parse_kins_config, trsrn_kins_forward, trsrn_kins_inverse,
+    trt_kins_forward, trt_kins_inverse,
 )
+
+#: Kins families this harness can derive/forward through a Python twin.
+_TRT_FAMILIES = {"xyzac-trt", "xyzbc-trt"}
 
 WORKER = os.path.join(_HERE, "..", "lcnc-gateway", "gcode_parse_worker.py")
 
@@ -91,6 +95,14 @@ def _arr(payload, key, dtype=np.float32):
     if isinstance(v, (bytes, bytearray)):
         return np.frombuffer(v, dtype=dtype)
     return np.asarray(v, dtype=dtype)
+
+
+def _stream_abc(payload, stream):
+    """(N,3) per-point A/B/C for a stream, or None (pre-schema-2 payload)."""
+    raw = payload.get(stream + "_abc")
+    if not raw:
+        return None
+    return _arr(payload, stream + "_abc").reshape(-1, 3)
 
 
 def preview_points(payload, stream):
@@ -159,7 +171,8 @@ def governing_frame(payload, seq):
     return best
 
 
-def derive_tip(pts, kts, seqs, payload, kins_cfg, wcs_terms, tool_z=0.0):
+def derive_tip(pts, kts, seqs, payload, kins_cfg, wcs_terms, tool_z=0.0,
+               abc=None):
     """Preview point -> machine coords -> joints -> tool tip in work frame.
 
     Mirrors the client chain (partFrame.programToMachine + kinsForSegment
@@ -180,22 +193,31 @@ def derive_tip(pts, kts, seqs, payload, kins_cfg, wcs_terms, tool_z=0.0):
     oz += tool_z
     out = []
     frameless = 0
-    for (x, y, z), t, sq in zip(pts, kts, seqs):
+    for i, ((x, y, z), t, sq) in enumerate(zip(pts, kts, seqs)):
         # Per-epoch basis (review P2): each point adds back ITS epoch's g5x
         # (wire wcs_frames row) — the parse-time snapshot the worker peeled
         # against, which on TWP is the plane origin the program writes into
         # G59. Legacy payloads (no rows) keep the caller's single basis.
         ep = governing_epoch(payload, sq)
+        # World rotaries (P8.1): the wire abc (shipped since schema 2 for
+        # every kins-marked program) plus its epoch's rotary offsets. The
+        # wave-1 harness hardcoded zeros here — invisible under the old
+        # XYZ-only compare, wrong for the 6-joint one: on trsrn the rotary
+        # joints ARE the world abc, so the orient sweep and the held tilt
+        # only reach the derived joints through this channel.
+        a6 = list(abc[i]) if abc is not None and i < len(abc) else [0.0, 0.0, 0.0]
         if ep is not None:
             eox, eoy, eoz = ep[4], ep[5], ep[6]
             mx, my, mz = float(x) + eox, float(y) + eoy, float(z) + eoz + tool_z
+            ma, mb, mc = a6[0] + ep[7], a6[1] + ep[8], a6[2] + ep[9]
         else:
             mx, my, mz = float(x) + ox, float(y) + oy, float(z) + oz
+            ma, mb, mc = a6
         fr = governing_frame(payload, sq) if t == 2 else None
         if t == 2 and fr is None:
             frameless += 1
         p = frame_params(base, fr)
-        joints = trsrn_kins_inverse([mx, my, mz, 0.0, 0.0, 0.0], p, int(t))
+        joints = trsrn_kins_inverse([mx, my, mz, ma, mb, mc], p, int(t))
         tip = trsrn_kins_forward(joints, p, 1)
         out.append((joints, tip[:3]))
     if frameless:
@@ -205,6 +227,106 @@ def derive_tip(pts, kts, seqs, payload, kins_cfg, wcs_terms, tool_z=0.0):
         print(f"  !! {frameless} plane-mode point(s) have NO governing "
               "kins_frames row — derived against base pins", file=sys.stderr)
     return out
+
+
+def derive_tip_trt(pts, abc, kts, seqs, payload, kins_cfg, wcs_terms, tool_z=0.0):
+    """trt-family derivation twin of derive_tip (P8.1 dispatch).
+
+    Same chain, trt twins: program point (+ its epoch basis, + its wire abc
+    for the rotaries — under trt the joints ARE the rotary words) →
+    machine → joints under the segment's kins side → tip via the WORLD
+    forward. World side = type 1 with `sparm=identityfirst`, else type 0
+    (worldModeForType's mapping). Every segment resolves per point — a
+    payload without kinstype derives as identity, honest to the wire.
+    """
+    bc = kins_cfg.get("type") == "xyzbc-trt"
+    world_type = 1 if kins_cfg.get("identity_first") else 0
+    params = dict(kins_cfg.get("params") or {})
+    if tool_z:
+        params = dict(params, tool_offset=tool_z)
+    ox, oy, oz = wcs_terms
+    oz += tool_z
+    out = []
+    for i, ((x, y, z), t, sq) in enumerate(zip(pts, kts, seqs)):
+        ep = governing_epoch(payload, sq)
+        a6 = list(abc[i]) if abc is not None and i < len(abc) else [0.0, 0.0, 0.0]
+        if ep is not None:
+            mx, my, mz = float(x) + ep[4], float(y) + ep[5], float(z) + ep[6] + tool_z
+            ma, mb, mc = a6[0] + ep[7], a6[1] + ep[8], a6[2] + ep[9]
+        else:
+            mx, my, mz = float(x) + ox, float(y) + oy, float(z) + oz
+            ma, mb, mc = a6
+        world = [mx, my, mz, ma, mb, mc]
+        if int(t) == world_type:
+            j5 = trt_kins_inverse(world, params, bc=bc)
+            joints = ([j5[0], j5[1], j5[2], 0.0, j5[3], j5[4]] if bc
+                      else [j5[0], j5[1], j5[2], j5[3], 0.0, j5[4]])
+        else:
+            joints = world   # identity side: joints are the machine coords
+        j5 = ([joints[0], joints[1], joints[2], joints[4], joints[5]] if bc
+              else [joints[0], joints[1], joints[2], joints[3], joints[5]])
+        tip = trt_kins_forward(j5, params, bc=bc)
+        out.append((joints, list(tip[:3])))
+    return out
+
+
+def truth_tip(joints, kins_cfg, tool_z=0.0):
+    """Live joints → tool tip in the work frame, via the family's twin.
+
+    Refuses (returns None once signalled by the caller) rather than
+    guessing when no twin exists for the declared family.
+    """
+    fam = kins_cfg.get("type")
+    params = dict(kins_cfg.get("params") or {})
+    if fam == "xyzacb-trsrn":
+        return list(trsrn_kins_forward(joints, params, 1)[:3])
+    if fam in _TRT_FAMILIES:
+        bc = fam == "xyzbc-trt"
+        if tool_z:
+            params = dict(params, tool_offset=tool_z)
+        j5 = ([joints[0], joints[1], joints[2], joints[4], joints[5]] if bc
+              else [joints[0], joints[1], joints[2], joints[3], joints[5]])
+        return list(trt_kins_forward(j5, params, bc=bc)[:3])
+    return None
+
+
+def swept_axes(joint_rows, eps=1e-3):
+    """Which joints actually MOVE across a set of joint rows (P8.1
+    completeness): the truth-vs-derived swept SETS must agree, or a whole
+    DOF is missing from the offline story — exactly the flat-TWP class
+    (truth swings B/C while the derived preview holds them at 0)."""
+    rows = np.asarray([list(r) + [0.0] * (6 - len(r)) for r in joint_rows],
+                      float)
+    if not len(rows):
+        return set()
+    ptp = rows.max(axis=0) - rows.min(axis=0)
+    return {i for i in range(rows.shape[1]) if ptp[i] > eps}
+
+
+def path_overlay(truth_pts, poly_pts):
+    """Max/p95 distance from truth samples to the derived polyline (P8.1).
+
+    THE operator-visible metric: does the drawn path overlay the live run —
+    endpoint parity can pass while the path between endpoints bends wrong.
+    Point-to-segment in 3D over every polyline segment; O(N·M) numpy,
+    fine at capture sizes."""
+    T = np.asarray(truth_pts, float)
+    P = np.asarray(poly_pts, float)
+    if len(T) == 0 or len(P) < 2:
+        return None
+    A = P[:-1]                      # (M,3) segment starts
+    D = P[1:] - A                   # (M,3) segment vectors
+    L2 = (D * D).sum(axis=1)        # (M,)
+    L2[L2 == 0] = 1e-30
+    best = np.empty(len(T))
+    for i, p in enumerate(T):
+        u = ((p - A) * D).sum(axis=1) / L2
+        u = np.clip(u, 0.0, 1.0)
+        d = p - (A + u[:, None] * D)
+        best[i] = np.sqrt((d * d).sum(axis=1).min())
+    return {"max": float(best.max()),
+            "p95": float(np.percentile(best, 95)),
+            "mean": float(best.mean())}
 
 
 # ─────────────────────────── stage 3: truth ─────────────────────────────
@@ -416,7 +538,8 @@ def cmd_check(a):
             print(f"     above the program's {a.max_line} lines (e.g. {bad[:5]}) —")
             print("     they come from a called sub / python remap, not the main file.")
         g5x = (basis.get("g5x") or [0, 0, 0])[:3]
-        der = derive_tip(pts, kts, seqs, pay, kins, tuple(g5x))
+        der = derive_tip(pts, kts, seqs, pay, kins, tuple(g5x),
+                         abc=_stream_abc(pay, stream))
         for i, (j, tip) in enumerate(der):
             print(f"   L{lines[i]:>5} t{kts[i]} prog={[round(float(v),2) for v in pts[i]]}"
                   f" -> j={[round(v,2) for v in j]} tip={[round(v,2) for v in tip]}")
@@ -441,14 +564,19 @@ def cmd_compare(a):
     kins = parse_kins_config(
         linuxcnc.ini(a.ini).find("KINS", "KINEMATICS"),
         linuxcnc.ini(a.ini).findall("HAL", "HALCMD") or [])
-    params = dict(kins.get("params") or {})
+    fam = kins.get("type")
+    if fam != "xyzacb-trsrn" and fam not in _TRT_FAMILIES:
+        raise SystemExit(
+            f"no Python twin for declared kins family {fam!r} — this compare "
+            f"cannot run (unchecked ≠ clean; add a twin, never a guess)")
     rows = [json.loads(l) for l in open(a.truth) if l.strip()]
     moving = [r for r in rows if r["interp"] != linuxcnc.INTERP_IDLE]
     if not moving:
         raise SystemExit("truth capture contains no motion")
 
+    _tlo0 = float((moving[0].get("tool_offset") or [0, 0, 0])[2])
     for r in moving:
-        r["tip"] = trsrn_kins_forward(r["joints"], params, 1)[:3]
+        r["tip"] = truth_tip(r["joints"], kins, tool_z=_tlo0)
 
     # Endpoint per executed line: the LAST sample carrying that motion_line is
     # where that move finished. This gives an exact derived<->truth
@@ -483,27 +611,89 @@ def cmd_compare(a):
     # TLO as the machine had it during the capture — the client applies it too.
     tlo_z = float((moving[0].get("tool_offset") or [0, 0, 0])[2])
     print(f"  tool_offset_z  : {tlo_z}")
+    verdicts = []
+    all_der_joints = []
+    all_der_tips = []
     for stream in ("feed", "rapid"):
         pts, lines, kts, seqs = preview_points(pay, stream)
         if not len(pts):
             continue
-        der = derive_tip(pts, kts, seqs, pay, kins, tuple(basis[:3]), tool_z=tlo_z)
-        # Compare JOINTS, not tool tips: the tip needs a forward-kins pass whose
-        # tool_offset_z convention must match on both sides, and getting that
-        # subtly wrong shows up as a large bogus "frame offset". Joints are what
-        # the machine actually did, with no further modelling on either side.
-        pairs = [(np.array(j[:3], float), np.array(endjoints[int(ln)][:3], float))
+        s_abc = _stream_abc(pay, stream)
+        if fam == "xyzacb-trsrn":
+            der = derive_tip(pts, kts, seqs, pay, kins, tuple(basis[:3]),
+                             tool_z=tlo_z, abc=s_abc)
+        else:
+            der = derive_tip_trt(pts, s_abc, kts, seqs, pay, kins,
+                                 tuple(basis[:3]), tool_z=tlo_z)
+        all_der_joints.extend(j for j, _t in der)
+        # Overlay tips forward through the SAME convention as the truth tips
+        # (truth_tip: base params, one fixed TCP frame) — derive_tip's own
+        # tips carry per-segment frame/TLO params, and comparing tips built
+        # under different params reads as a huge bogus offset.
+        all_der_tips.extend(truth_tip(j, kins, tool_z=tlo_z) for j, _t in der)
+        # Compare ALL SIX JOINTS, not tool tips (and not XYZ only — P8.1:
+        # the XYZ-only compare hid a missing rotary channel entirely, the
+        # flat-TWP class). Rotary residuals wrap to ±180° so a same-pose
+        # different-branch pair never reads as a full turn of error.
+        pairs = [(np.array((list(j) + [0.0] * 6)[:6], float),
+                  np.array((list(endjoints[int(ln)]) + [0.0] * 6)[:6], float))
                  for (j, _t), ln in zip(der, lines) if int(ln) in endjoints]
-        print(f"== {stream}: derived vs truth JOINTS ({len(pairs)} matched by line) ==")
+        print(f"== {stream}: derived vs truth JOINTS x6 ({len(pairs)} matched by line) ==")
         if not pairs:
             print("  no line correspondence — cannot compare")
+            verdicts.append(False)
             continue
         diffs = np.array([tr - dv for dv, tr in pairs])
+        diffs[:, 3:6] = (diffs[:, 3:6] + 180.0) % 360.0 - 180.0
+        per_axis = np.abs(diffs).max(axis=0)
         dmax = float(np.max(np.linalg.norm(diffs, axis=1)))
-        print(f"  max |derived - truth| : {dmax:.4f} mm   "
-              f"mean {[round(float(v),4) for v in diffs.mean(axis=0)]}")
-        print(f"  VERDICT: {'MATCH' if dmax <= a.tol else 'MISMATCH'} (tol {a.tol})")
-    return 0
+        print(f"  max |derived - truth| : {dmax:.4f} (mm, 1°≙1)   "
+              f"per-axis {[round(float(v), 4) for v in per_axis]}")
+        ok = dmax <= a.tol
+        verdicts.append(ok)
+        print(f"  VERDICT: {'MATCH' if ok else 'MISMATCH'} (tol {a.tol})")
+
+    # Swept-axes completeness (P8.1): every DOF the machine moved must move
+    # in the derived preview too — endpoint parity can pass while a whole
+    # rotary channel is missing between the endpoints.
+    truth_swept = swept_axes([r["joints"] for r in moving])
+    der_swept = swept_axes(all_der_joints)
+    missing = truth_swept - der_swept
+    extra = der_swept - truth_swept
+    names = "XYZABC"
+    print(f"== swept axes: truth {sorted(names[i] for i in truth_swept if i < 6)} "
+          f"vs derived {sorted(names[i] for i in der_swept if i < 6)} ==")
+    swept_ok = not missing
+    if missing:
+        print(f"  !! DOF MISSING from the derived preview: "
+              f"{sorted(names[i] for i in missing if i < 6)} — the offline "
+              f"story is missing a whole axis the machine actually moved")
+    if extra:
+        # Extra derived motion is suspicious but not the missing-channel
+        # class (e.g. an approach the capture's settle window clipped).
+        print(f"  note: derived sweeps {sorted(names[i] for i in extra if i < 6)} "
+              f"that truth does not — check the capture window")
+    print(f"  VERDICT: {'MATCH' if swept_ok else 'MISMATCH'}")
+    verdicts.append(swept_ok)
+
+    # Path overlay (P8.1): distance from every truth sample's tip to the
+    # DERIVED tip polyline — the operator-visible frame ("does the drawn
+    # path overlay the live run"), which endpoint parity alone can't see.
+    ov = path_overlay([r["tip"] for r in moving if r.get("tip")],
+                      all_der_tips)
+    if ov:
+        print(f"== path overlay: truth tips vs derived polyline ==")
+        print(f"  max {ov['max']:.4f}  p95 {ov['p95']:.4f}  mean {ov['mean']:.4f} (mm)")
+        # The overlay tolerance is looser than the endpoint one: truth
+        # samples include accel blends and the sampled approach.
+        ov_ok = ov["p95"] <= max(a.tol * 4, 1.0)
+        print(f"  VERDICT: {'MATCH' if ov_ok else 'MISMATCH'} "
+              f"(p95 tol {max(a.tol * 4, 1.0)})")
+        verdicts.append(ov_ok)
+
+    print(f"\nOVERALL: {'MATCH' if all(verdicts) else 'MISMATCH'} "
+          f"({sum(verdicts)}/{len(verdicts)} gates)")
+    return 0 if all(verdicts) else 1
 
 
 def main():

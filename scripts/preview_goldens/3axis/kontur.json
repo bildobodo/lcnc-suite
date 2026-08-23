@@ -1,0 +1,27 @@
+{
+  "brk_count": 0,
+  "kins_frames": 0,
+  "kinstype_present": false,
+  "lines_untrusted": false,
+  "points": {
+    "feed": 1253,
+    "rapid": 2
+  },
+  "preview_schema": 4,
+  "ships_abc": false,
+  "sub_names": [
+    "m600",
+    "tool_touch_off"
+  ],
+  "swept_axes": [],
+  "trusted_points": {
+    "total": 1255,
+    "trusted": 1255
+  },
+  "violations_total": 0,
+  "violations_world_unchecked": 0,
+  "wcs_epochs": {
+    "count": 1,
+    "rewritten": 0
+  }
+}

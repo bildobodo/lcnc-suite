@@ -1,0 +1,27 @@
+{
+  "brk_count": 0,
+  "kins_frames": 1,
+  "kinstype_present": true,
+  "lines_untrusted": false,
+  "points": {
+    "feed": 0,
+    "rapid": 7
+  },
+  "preview_schema": 4,
+  "ships_abc": true,
+  "sub_names": [
+    "g69remap",
+    "g533remap"
+  ],
+  "swept_axes": [],
+  "trusted_points": {
+    "total": 7,
+    "trusted": 3
+  },
+  "violations_total": 0,
+  "violations_world_unchecked": 0,
+  "wcs_epochs": {
+    "count": 1,
+    "rewritten": 0
+  }
+}
