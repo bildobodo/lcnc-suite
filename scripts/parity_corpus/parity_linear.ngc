@@ -1,0 +1,10 @@
+(sim-parity corpus: linear + arc moves, rotaries deliberately uncommanded)
+(G64 declared so the gate's blend budget is explicit, not the machine default)
+g54 g90 g17
+g64 p0.01
+g0 x0 y0 z50
+g1 z10 f800
+g1 x40 y25 f1200
+g3 x0 y0 i-20 j-12.5
+g0 z50
+m2
