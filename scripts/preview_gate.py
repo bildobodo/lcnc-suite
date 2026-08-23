@@ -95,6 +95,15 @@ def summarize(payload):
     us = payload.get("rapid_ustart")
     out["ustart_count"] = int(np.frombuffer(us, np.uint8).sum()) if us else 0
     out["unmarked_subs"] = list(payload.get("unmarked_subs") or [])
+    # Schema 7 (W4): call-site attribution — the distinct main-file lines
+    # sub-span points highlight through. The demo golden reading [7, 9]
+    # (orient trigger, o<square> call) is the human-readable gate.
+    cl = set()
+    for stream in ("feed", "rapid"):
+        raw = payload.get(stream + "_cline")
+        if raw:
+            cl |= {int(v) for v in np.frombuffer(raw, "<u2") if v}
+    out["cline_lines"] = sorted(cl)
     return out
 
 

@@ -1,5 +1,6 @@
 {
   "brk_count": 0,
+  "cline_lines": [],
   "kins_frames": 0,
   "kinstype_present": false,
   "lines_untrusted": false,
@@ -7,7 +8,7 @@
     "feed": 0,
     "rapid": 0
   },
-  "preview_schema": 6,
+  "preview_schema": 7,
   "ships_abc": false,
   "sub_names": [],
   "swept_axes": [],

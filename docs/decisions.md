@@ -1022,3 +1022,72 @@ identity-parked sim entry lands on the live model (D4); scrub/run
 highlight: L4 → "(square)" chip → "end", no blank-line lights, no
 scrollToLine into remap linenos (D5); plus everything already listed
 in the wave-2 bucket that has not yet had its live pass.
+
+## Wave 4 (2026-08-23) — operator retest: highlight the call line, not a chip
+
+**Report.** After wave 3 the sim and run agree, but the highlight
+regressed to "nothing": per-point trust on the TWP demo is 1/9 (only
+the L4 endpoint — every other point is remap/sub motion, correctly
+untrusted → gated to null), so the operator saw only the "(square)"
+chip and asked the right question: why not highlight the `o<square>
+call` line while inside the sub, and the correct lines before/after?
+Also asked: is the sub name hardcoded (no — the `(WEBUI_SUB=square)`
+marker ships it), and are the blank lines 5/8/10 an overlay artifact
+(no — the file itself has blank lines there; GcodePanel renders the
+main file verbatim).
+
+**Design: call-site attribution, text-verified (SCHEMA 7).** A sub
+span's points may display the MAIN-file line that invoked the sub —
+the o-call line or the remap trigger line — when that line can be
+verified from the main file's own text:
+
+- **Marker syntax** gains an optional trigger declaration:
+  `(WEBUI_SUB=g533remap CALLER=g53.3)`. o-word subs need no token
+  (`o<name> call` is verifiable from the name); remap wrappers declare
+  their trigger code. All twp + 5axis-tcp remap_subs templates carry
+  tokens now (on_abort_* wrappers have no main-file trigger — none).
+- **Unique-site rule** (`attribute_sub_callers`, pure, unit-tested): a
+  depth-0 span attributes iff EXACTLY ONE comment-stripped main-file
+  line matches `o<name> call` or the CALLER token (numeric word guards:
+  `g53.3` never matches `g53.36`, `g69` never matches `g69.1`). Zero
+  or several sites → no claim (chip-only + one stderr note). Nested
+  spans never attribute — their caller line lives in the outer sub's
+  FILE, the very collision this machinery exists to avoid.
+- **Positional attribution was implemented, probed, and DISPROVEN**:
+  the interpreter fires canon `next_line` only for plainly-executed
+  blocks — never for o-call lines, remap trigger lines, blanks, or
+  comment-only lines (empirical next_line capture on the live demo:
+  the backward-jump "caller candidate" landed on the PREVIOUS sub
+  file's last line, e.g. 17/27 instead of 7/9). So no canon-side
+  signal can disambiguate multiple call sites of the same sub; those
+  programs keep the chip-only display, recorded as the known limit.
+  (A possible future refinement — bracketing a span between its
+  surrounding trusted main-line points — is sound only for main files
+  with no o-word control flow; not built, no demand yet.)
+- **Wire**: `feed_cline`/`rapid_cline` u16 per point (0 = none),
+  resolved post-RDP with the outermost-attributed-span rule; PREVIEW_
+  SCHEMA 6→7 auto-reparses warm caches. Client merges into
+  `scrubTrack.cline` (mislengthed drops the channel, never guesses);
+  entry vertices carry none.
+- **Display**: `displayLineForPoint` prefers the point's own trusted
+  line, then the attributed call line (`viaCall`) — ONE rule, so the
+  sim scrub emit and the run playhead both light L4 → L7 (orient) →
+  L9 (square) → end on the demo, with scroll following. ScrubBar
+  readout: "L9 (square)". GcodePanel's sub chip drops warn→muted with
+  a truthful tooltip when the call line is lit (invariant: a trusted
+  own-line point is never inside a marked span, so subName +
+  currentLine ⇒ attribution). Clash tint / 3D highlight keep RAW
+  lines (self-consistent sub-relative numbering) — unchanged.
+
+**Verification.** Live demo parse: `rapid_cline = [0, 7, 7, 9, 9, 9,
+9, 9, 9]`, all spans attributed. preview_gate summarize gains
+`cline_lines`; twp goldens regenerated at schema 7 with exactly the
+predicted drift (simple_example: `cline_lines [7, 9]`; square
+standalone: `[]` — its sub is in-file, no call site, honest none).
+Suites: pytest 479 + new attribution class, vitest 455, build clean.
+
+**Owed at the next suite restart (wave-4 additions to the bucket):**
+operator visual pass — scrub/run the demo, expect continuous
+L4 → L7 → L9 → end highlight with scroll, "L9 (square)" readout,
+muted chip tooltip naming the call line; 3axis goldens regen now needs
+schema 7 (supersedes the wave-3 "at schema 6" entry).

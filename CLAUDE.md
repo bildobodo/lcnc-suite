@@ -491,7 +491,15 @@ While simulating: backplot recording is suspended (never fabricate motion
 history), the toolpath highlight and GcodePanel follow the scrub line, and
 touch-off re-poses immediately (WCS watcher). A stale pre-seq cached
 payload yields `scrubTrack: null` — the bar simply doesn't offer itself
-(unchecked ≠ broken).
+(unchecked ≠ broken). Text-panel line: `displayLineForPoint` is the ONE
+gating rule for scrub AND run playhead — the point's own line only when
+per-point trust allows (motion in called subs/remaps carries THAT file's
+colliding linenos, W2 P6), else the sub span's text-verified CALL/trigger
+line (W4, schema 7: `(WEBUI_SUB=name CALLER=g53.3)` markers +
+unique-site scan in `attribute_sub_callers` — multiple call sites of one
+sub keep the chip-only display; no positional signal exists, the interp
+never fires next_line for o-call/remap trigger lines), else null + the
+"(name)" chip; track end is an explicit "end" state, never a guessed M2.
 
 **Entry move + auto-check**: at sim entry the live machine position is
 captured (joints→machine→program via `machineToProgram`, the exact
