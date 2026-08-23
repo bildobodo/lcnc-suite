@@ -471,6 +471,42 @@ export function atTrackEnd(t: ScrubTrack, s: number): boolean {
   return t.count > 0 && s >= t.cum[t.count - 1]! - 1e-9;
 }
 
+/** The program's terminating line — the UNIQUE comment-stripped main-file
+ *  line that is an M2/M02/M30 (optionally N-numbered) statement (W5).
+ *  Zero or several such lines → null, never a guess. Displayed when the
+ *  playhead reaches the track's terminal vertex: the motion track cannot
+ *  know what follows the last move, but the program's own text can. */
+export function programEndLine(text: string | null | undefined): number | null {
+  if (!text) return null;
+  let hit: number | null = null;
+  const lines = text.split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    const src = lines[i]!.replace(/\([^)]*\)/g, "").replace(/;.*$/, "");
+    if (/^\s*(?:n\d+\s*)?(?:m0?2|m30)(?![0-9.])/i.test(src)) {
+      if (hit != null) return null;   // two program-end lines — ambiguous
+      hit = i + 1;
+    }
+  }
+  return hit;
+}
+
+/** MAIN-file lines vouched for by the track's per-point trust (W5): the
+ *  set a live `motion_line` value must belong to before it may display —
+ *  motion ids carry no file identity (LinuxCNC stamps the interp's bare
+ *  sequence_number on each motion segment), so a number outside this set
+ *  is either a called file's colliding lineno or a stale id. Null for
+ *  legacy tracks without the per-point channel (callers fall back to the
+ *  wholesale flag, pre-W2 behavior). */
+export function mainLinesTrusted(t: ScrubTrack): Set<number> | null {
+  if (!t.lineOk) return null;
+  const s = new Set<number>();
+  for (let i = 0; i < t.count; i++) {
+    const ln = t.lines[i] ?? 0;
+    if (t.lineOk[i] === 1 && ln > 0) s.add(ln);
+  }
+  return s;
+}
+
 /** Live machine joints → program-space [x,y,z,a,b,c]: joints → machine
  *  coords through the kins boundary (forward kinematics), then the inverse
  *  WCS transform. `kinstype` (+ `frame` for TOOL mode) selects the model

@@ -4,6 +4,7 @@ import {
   buildScrubTrack, sampleTrack, jointsForSample,
   machineJointsToProgram, prependEntry, splitTrackStreams,
   displayLineForPoint, atTrackEnd,
+  programEndLine, mainLinesTrusted,
   projectOntoTrack, lineRunAround,
   type ScrubSample, type ScrubStream, type ScrubTrack,
 } from "./scrubTrack";
@@ -545,6 +546,27 @@ describe("displayLineForPoint / atTrackEnd (W3 P4)", () => {
     t.lineOk = undefined;
     expect(displayLineForPoint(t, 2, true)).toEqual({ line: 1029, subName: "g533remap", viaCall: false });
     expect(displayLineForPoint(t, 2, false)).toEqual({ line: null, subName: "g533remap", viaCall: false });
+  });
+
+  it("programEndLine: the UNIQUE M2/M02/M30 line, else null (W5)", () => {
+    expect(programEndLine("g0 x1\ng1 y2\nM2\n")).toBe(3);
+    expect(programEndLine("g0 x1\nm30\n")).toBe(2);
+    expect(programEndLine("g0 x1\nN120 M02 (end of program)\n")).toBe(2);
+    expect(programEndLine("g0 x1\n  m2 ;done\n\n")).toBe(2);
+    // m20 / m300 are different codes; commented m2 is not a statement.
+    expect(programEndLine("m20\nm300\n;m2\n(m2)\ng0 x1\nM2\n")).toBe(6);
+    // Two candidate end lines (conditional M2s) — ambiguous, no claim.
+    expect(programEndLine("m2\ng0 x1\nm30\n")).toBe(null);
+    expect(programEndLine("g0 x1\n")).toBe(null);
+    expect(programEndLine("")).toBe(null);
+  });
+
+  it("mainLinesTrusted: the set live motion_line must belong to (W5)", () => {
+    const t = T();
+    t.lineOk = new Uint8Array([1, 0, 0, 0]);
+    expect(Array.from(mainLinesTrusted(t)!)).toEqual([4]);
+    t.lineOk = undefined;             // legacy track → null, wholesale fallback
+    expect(mainLinesTrusted(t)).toBe(null);
   });
 
   it("attributed sub span → the CALL line, viaCall (W4); own line wins", () => {

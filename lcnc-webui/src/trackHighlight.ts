@@ -29,11 +29,63 @@ export const trackHighlightRange = shallowRef<[number, number] | null>(null);
  *  motion_line path gated by the wholesale untrusted flag. `atEnd` (W3
  *  P4): the playhead sits pinned at the track's terminal vertex — the
  *  readout says "end" instead of freezing on the last attributable line
- *  (trailing non-motion lines like M2 are unknowable, never guessed).
- *  `line` is always the GATED display line — W4: inside an attributed sub
- *  span it is the sub's CALL/trigger line (`viaCall: true`), never the
- *  raw colliding sub-file number. */
-export const runLineState = shallowRef<{
+ *  (trailing non-motion lines like M2 are unknowable, never guessed —
+ *  except the W5 unique program-end line, which the atEnd publication
+ *  carries in `line`). `line` is always the GATED display line — W4:
+ *  inside an attributed sub span it is the sub's CALL/trigger line
+ *  (`viaCall: true`), never the raw colliding sub-file number. `offPath`
+ *  (W5) marks the frozen-playhead publication so resolveCurrentLine can
+ *  apply the text-trusted motion_line rescue; `subLine` (W5) is the RAW
+ *  sub-file lineno while inside a marked span — the indented sub view's
+ *  highlight, meaningless against the main file. */
+export interface RunLineState {
   line: number; trusted: boolean; subName: string | null;
-  atEnd?: boolean; viaCall?: boolean;
+  atEnd?: boolean; viaCall?: boolean; offPath?: boolean;
+  subLine?: number | null;
+}
+export const runLineState = shallowRef<RunLineState | null>(null);
+
+/** Marked-subroutine execution state for the inline indent view (W5):
+ *  published by BOTH the run playhead and the sim scrub whenever the
+ *  matched point sits in a marked span with an attributed call line;
+ *  null otherwise (and on run end / sim exit). GcodePanel expands the
+ *  sub's source under `callLine` and highlights its own `subLine`. */
+export const subExecState = shallowRef<{
+  name: string; subLine: number; callLine: number;
 } | null>(null);
+
+/** THE text-panel line precedence chain (W5 — the display spec's single
+ *  implementation; see docs/decisions.md wave 5 for the table):
+ *  1. a trusted positional playhead state wins (own line / W4 call line /
+ *     W5 end line);
+ *  2. OFF-PATH while running: the live motion_line displays iff the
+ *     track's per-point trust vouches for that main-file line (the
+ *     approach executing "line 4" park→first-vertex — the interp names
+ *     the line, the text verifies it). Known bounded residual: a marked
+ *     sub executing off-path reports ITS file's linenos, which display
+ *     iff they collide with a trusted main line;
+ *  3. any other positional state (on-path untrusted span) suppresses —
+ *     the chip/indent view carries the information instead;
+ *  4. no positional playhead while running: per-line gate when the track
+ *     carries trust, else the legacy wholesale flag;
+ *  5. NOT running: never display — motion_line is a stale motion-queue id
+ *     after a program ends (LinuxCNC keeps the last executed segment's id
+ *     until a state transition resets it; the observed stale blank-line-8
+ *     highlight was square.ngc's own line 8). */
+export function resolveCurrentLine(o: {
+  rls: RunLineState | null;
+  running: boolean;
+  motionLine: number | null | undefined;
+  linesUntrusted: boolean;
+  trustedLines: Set<number> | null;
+}): number | null {
+  const ml = o.motionLine ?? 0;
+  if (o.rls) {
+    if (o.rls.trusted) return o.rls.line;
+    if (o.rls.offPath && o.running && ml > 0 && o.trustedLines?.has(ml)) return ml;
+    return null;
+  }
+  if (!o.running || ml <= 0) return null;
+  if (o.trustedLines) return o.trustedLines.has(ml) ? ml : null;
+  return o.linesUntrusted ? null : ml;   // legacy track — wholesale gate
+}
