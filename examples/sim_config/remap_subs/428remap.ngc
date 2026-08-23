@@ -6,7 +6,7 @@
 ;   - HAL-pin sanity check hard-fails only under task (#<_task> EQ 1) so
 ;     a preview parse (no HAL) is not truncated by the debug,STOP branch
 o<428remap>sub
-(WEBUI_SUB=428remap) ;lcnc-suite: preview sub-span marker, silent in task
+(WEBUI_SUB=428remap CALLER=m428) ;lcnc-suite: preview sub-span marker, silent in task
 
   #<kinstype> = 1        ; xyzac world/TCP-style
   #<SWITCHKINS_PIN> = 2  ; motion.analog-out-02 (see header)

@@ -7,7 +7,7 @@
 ;     a preview parse (no HAL) is not truncated by the debug,STOP branch;
 ;     guards are NESTED o-if blocks because RS274 AND does not short-circuit
 o<429remap>sub
-(WEBUI_SUB=429remap) ;lcnc-suite: preview sub-span marker, silent in task
+(WEBUI_SUB=429remap CALLER=m429) ;lcnc-suite: preview sub-span marker, silent in task
 
   #<kinstype> = 1        ; TCP
   #<SWITCHKINS_PIN> = 3  ; motion.analog-out-03

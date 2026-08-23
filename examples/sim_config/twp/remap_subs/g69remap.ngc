@@ -5,7 +5,7 @@
 ; webui preview canon receives (silent in task).
 
 o<g69remap>sub
-(WEBUI_SUB=g69remap) ;lcnc-suite: preview sub-span marker, silent in task
+(WEBUI_SUB=g69remap CALLER=g69) ;lcnc-suite: preview sub-span marker, silent in task
 
 M66 L0 E0       ; force sync, stop read ahead
 M469            ; call the python G69_core code

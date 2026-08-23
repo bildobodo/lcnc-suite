@@ -6,7 +6,7 @@
 ; final TOOL-kins switch is emitted by remap.py g53x_core (M530).
 
 o<g536remap>sub
-(WEBUI_SUB=g536remap) ;lcnc-suite: preview sub-span marker, silent in task
+(WEBUI_SUB=g536remap CALLER=g53.6) ;lcnc-suite: preview sub-span marker, silent in task
 
 M66 L0 E0                                                   ;force sync, stop read ahead
 o100 if [EXISTS [#<P>]]

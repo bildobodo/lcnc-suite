@@ -6,7 +6,7 @@
 ; final TOOL-kins switch is emitted by remap.py g53x_core (M530).
 
 o<g533remap>sub
-(WEBUI_SUB=g533remap) ;lcnc-suite: preview sub-span marker, silent in task
+(WEBUI_SUB=g533remap CALLER=g53.3) ;lcnc-suite: preview sub-span marker, silent in task
 
 M66 L0 E0                                                   ;force sync, stop read ahead
 o100 if [[EXISTS [#<X>]] AND [EXISTS [#<Y>]] AND [EXISTS [#<Z>]]]

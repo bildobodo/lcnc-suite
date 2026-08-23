@@ -11,7 +11,7 @@
 ; kins pins' current values, which the preview cannot know. The webui
 ; treats a type-2 span with no frame marker as unchecked, never guessed.
 o<430remap>sub
-(WEBUI_SUB=430remap) ;lcnc-suite: preview sub-span marker, silent in task
+(WEBUI_SUB=430remap CALLER=m430) ;lcnc-suite: preview sub-span marker, silent in task
 
   #<kinstype> = 2        ; TOOL (tilted work plane)
   #<SWITCHKINS_PIN> = 3  ; motion.analog-out-03
