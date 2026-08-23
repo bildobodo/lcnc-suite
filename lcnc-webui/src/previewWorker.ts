@@ -66,6 +66,11 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     const feedSubWire = g.feed_sub != null ? new Uint8Array(g.feed_sub as Uint8Array) : undefined;
     const rapidSubWire = g.rapid_sub != null ? new Uint8Array(g.rapid_sub as Uint8Array) : undefined;
     const subNames = g.sub_names as string[] | undefined;
+    // Call-site attribution (W4, schema 7): u16 main-file call/trigger
+    // line per point (0 = none) — displayable while the point's own line
+    // number is a colliding sub-file number.
+    const feedClineWire = _toU16(g.feed_cline);
+    const rapidClineWire = _toU16(g.rapid_cline);
     const feedSeq = _toU32(g.feed_seq);
     const rapidSeq = _toU32(g.rapid_seq);
 
@@ -107,8 +112,8 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     const rapidWcsWire = eventIdxFor(rapidSeq, epochSeqs, 0);
 
     const scrubTrack = buildScrubTrack(
-      { pos: feedPos, abc: feedAbc, lines: feedLines, seq: feedSeq, tcum: g.feed_tcum != null && (g.feed_tcum as Uint8Array).length ? _toF32(g.feed_tcum) : undefined, mode: feedModeWire, frame: feedFrameWire, wcs: feedWcsWire, lineOk: feedLineOkWire, sub: feedSubWire },
-      { pos: rapidPos, abc: rapidAbc, lines: _toU32(g.rapid_lines), seq: rapidSeq, tcum: g.rapid_tcum != null && (g.rapid_tcum as Uint8Array).length ? _toF32(g.rapid_tcum) : undefined, mode: rapidModeWire, frame: rapidFrameWire, brk: rapidBrkWire, ustart: rapidUstartWire, wcs: rapidWcsWire, lineOk: rapidLineOkWire, sub: rapidSubWire },
+      { pos: feedPos, abc: feedAbc, lines: feedLines, seq: feedSeq, tcum: g.feed_tcum != null && (g.feed_tcum as Uint8Array).length ? _toF32(g.feed_tcum) : undefined, mode: feedModeWire, frame: feedFrameWire, wcs: feedWcsWire, lineOk: feedLineOkWire, sub: feedSubWire, cline: feedClineWire },
+      { pos: rapidPos, abc: rapidAbc, lines: _toU32(g.rapid_lines), seq: rapidSeq, tcum: g.rapid_tcum != null && (g.rapid_tcum as Uint8Array).length ? _toF32(g.rapid_tcum) : undefined, mode: rapidModeWire, frame: rapidFrameWire, brk: rapidBrkWire, ustart: rapidUstartWire, wcs: rapidWcsWire, lineOk: rapidLineOkWire, sub: rapidSubWire, cline: rapidClineWire },
       kinsFrames,
       wcsEvents,
       subNames,
@@ -153,6 +158,7 @@ self.onmessage = async (e: MessageEvent<Req>) => {
             feed_kinstype: _fm, rapid_kinstype: _rm, rapid_brk: _rb,
             rapid_ustart: _ru,
             feed_lineok: _fo, rapid_lineok: _ro, feed_sub: _fsb, rapid_sub: _rsb,
+            feed_cline: _fc, rapid_cline: _rc,
             ...rest } = g;
 
     const transfer: Transferable[] = [
@@ -177,6 +183,7 @@ self.onmessage = async (e: MessageEvent<Req>) => {
       if (scrubTrack.wcsEpoch) transfer.push(scrubTrack.wcsEpoch.buffer as ArrayBuffer);
       if (scrubTrack.lineOk) transfer.push(scrubTrack.lineOk.buffer as ArrayBuffer);
       if (scrubTrack.sub) transfer.push(scrubTrack.sub.buffer as ArrayBuffer);
+      if (scrubTrack.cline) transfer.push(scrubTrack.cline.buffer as ArrayBuffer);
       if (scrubTrack.ustart) transfer.push(scrubTrack.ustart.buffer as ArrayBuffer);
     }
     if (feedMode) transfer.push(feedMode.buffer as ArrayBuffer);
@@ -229,6 +236,13 @@ function _toU32(a: unknown): Uint32Array | undefined {
   const out = new Uint32Array(a.length);
   for (let i = 0; i < a.length; i++) out[i] = a[i];
   return out;
+}
+
+function _toU16(a: unknown): Uint16Array | undefined {
+  if (a instanceof Uint8Array) {
+    return new Uint16Array(a.buffer.slice(a.byteOffset, a.byteOffset + a.byteLength));
+  }
+  return undefined;
 }
 
 // Cumulative polyline distances for the dashed rapid line, so LineDashedMaterial's

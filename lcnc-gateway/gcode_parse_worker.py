@@ -31,6 +31,9 @@ Result shape (msgpack dict):
                point is a suppressed first-move ENDPOINT — the segment into
                it is an unknown path (client brk semantics), the vertex is
                a real commanded pose with 0 s / 0 dist
+  feed_cline / rapid_cline: u16 per point (schema 7, only when any span
+               attributed): the text-verified UNIQUE main-file call/trigger
+               line of the marked sub span the point sits in; 0 = none
   stats:       { feedMoves, rapidMoves, linearMoves, arcMoves, feedDist,
                  rapidDist, linearDist, arcDist, feedTime, rapidTime,
                  totalTime, feedRates, toolChanges, toolsUsed, unit,
@@ -72,6 +75,7 @@ from gateway_util import (
     kins_nonidentity_flags, kins_frame_indices, check_limit_violations_trsrn,
     kins_marker_policy, mode_boundary_indices,
     classify_motion_lines, line_trust_flags, resolve_sub_indices,
+    attribute_sub_callers, resolve_sub_callers,
     insert_flip_relabels, read_var_wcs_rows, wcs_event_rewritten,
     PREVIEW_SCHEMA, should_ship_abc, rotary_sync_initcode,
     find_unmarked_subs, resolve_subroutine_dirs,
@@ -856,6 +860,7 @@ def parse(ctx: dict) -> dict:
     rapid_lineok = line_trust_flags(rapid_lines, _line_cls, True)
     sub_names = []
     feed_sub = rapid_sub = None
+    feed_cline = rapid_cline = None
     if canon.sub_events:
         for _ev in canon.sub_events:
             _nm = _ev[1]
@@ -865,6 +870,25 @@ def parse(ctx: dict) -> dict:
         _nm_index = {nm: i for i, nm in enumerate(sub_names)}
         feed_sub = resolve_sub_indices(feed_seq, canon.sub_events, _nm_index)
         rapid_sub = resolve_sub_indices(rapid_seq, canon.sub_events, _nm_index)
+        # Call-site line attribution (W4): a span whose UNIQUE main-file
+        # call/trigger line text-verifies stamps its points with that line
+        # (u16 wire channel, 0 = none) so the text-panel highlight tracks
+        # the o-call/remap line instead of going dark. Unattributed spans
+        # keep the chip-only display — noted, never guessed. Lines beyond
+        # the u16 range make no claim (same honest degradation).
+        _caller_map, _unattributed = attribute_sub_callers(
+            canon.sub_events, _src_text)
+        if _caller_map:
+            feed_cline = [c if 0 < c <= 0xffff else 0 for c in
+                          resolve_sub_callers(feed_seq, canon.sub_events,
+                                              _caller_map)]
+            rapid_cline = [c if 0 < c <= 0xffff else 0 for c in
+                           resolve_sub_callers(rapid_seq, canon.sub_events,
+                                               _caller_map)]
+        if _unattributed:
+            print(f"call-site attribution: no unique main-file site for "
+                  f"{_unattributed} — those spans keep chip-only display",
+                  file=sys.stderr, flush=True)
         feed_lineok = [0 if sb != 0xff else ok
                        for ok, sb in zip(feed_lineok, feed_sub)]
         rapid_lineok = [0 if sb != 0xff else ok
@@ -1008,6 +1032,11 @@ def parse(ctx: dict) -> dict:
         result["feed_sub"] = np.asarray(feed_sub, dtype="<u1").tobytes() if feed_sub else b""
         result["rapid_sub"] = np.asarray(rapid_sub, dtype="<u1").tobytes() if rapid_sub else b""
         result["sub_names"] = sub_names
+    if feed_cline is not None:
+        # Call-site attribution (W4, schema 7): u16 main-file line per
+        # point, 0 = none. Present only when some span attributed.
+        result["feed_cline"] = np.asarray(feed_cline, dtype="<u2").tobytes() if feed_cline else b""
+        result["rapid_cline"] = np.asarray(rapid_cline, dtype="<u2").tobytes() if rapid_cline else b""
     if feed_mode is not None:
         # Per-vertex RAW switchkins type (u8), index-aligned with
         # feed/rapid — present ONLY when the program carried switchkins

@@ -54,8 +54,12 @@ ALLOWED_EXTENSIONS = {".ngc", ".nc", ".gcode", ".tap", ".txt"}
 # `unmarked_subs` advisory (W3 P5) — pre-6 the program's own first rapid
 # vanished entirely, so the sim entry lerped straight to remap-internal
 # motion (the collapsed two-stage TWP approach) and preamble kins flips
-# fell before the first recorded segment (the 962 mm phantom).
-PREVIEW_SCHEMA = 6
+# fell before the first recorded segment (the 962 mm phantom); 7 =
+# call-site line attribution (`feed_cline`/`rapid_cline` u16, W4): points
+# inside a marked sub span whose UNIQUE main-file call/trigger line is
+# text-verified carry that line, so the highlight tracks the o-call or
+# remap trigger instead of going dark — pre-7 payloads show chip-only.
+PREVIEW_SCHEMA = 7
 
 
 def sanitize_filename(name: str) -> str:

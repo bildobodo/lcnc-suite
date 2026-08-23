@@ -121,6 +121,12 @@ export interface ScrubTrack {
    *  executed. */
   sub?: Uint8Array;
   subNames?: string[];
+  /** count — text-verified call-site MAIN-file line of the marked sub
+   *  span the point sits in (W4, wire feed_cline/rapid_cline; 0 = none):
+   *  the o-call / remap trigger line, displayable while the point's own
+   *  `lines` entry is a colliding sub-file number. Present only when some
+   *  span attributed (unique-site rule — never a guess). */
+  cline?: Uint16Array;
   /** WCS epoch events (parsed wire wcs_frames) dereferenced by `wcsEpoch` —
    *  see viewer/wcsEpochs.ts for the re-add rules (live row vs rewritten
    *  snapshot). */
@@ -171,8 +177,11 @@ export interface LimitViolation {
 // (rapid_ustart, W3 P1) plus the unmarked_subs advisory (W3 P5) — pre-6
 // the program's own first rapid vanished, so the sim entry lerped
 // straight to remap-internal motion and preamble kins flips fell before
-// the first recorded segment (the 962 mm phantom).
-export const EXPECTED_PREVIEW_SCHEMA = 6;
+// the first recorded segment (the 962 mm phantom); 7 = call-site line
+// attribution (feed_cline/rapid_cline, W4) — sub-span points whose
+// unique main-file call/trigger line text-verifies highlight THAT line
+// instead of going dark (pre-7 payloads show chip-only).
+export const EXPECTED_PREVIEW_SCHEMA = 7;
 
 /** Non-null when the loaded payload was parsed with a DIFFERENT tool length
  *  than the live table now holds for the spindle tool (W2 P4): the per-line
@@ -360,6 +369,9 @@ export interface ViewerGcode {
   //     this file and could have produced this motion (exists, can move,
   //     stream-compatible, not in a marked sub span).
   //   feed_sub / rapid_sub : index into sub_names, 0xff = none.
+  //   feed_cline / rapid_cline (u16, W4, schema 7): text-verified UNIQUE
+  //     main-file call/trigger line of the span the point sits in, 0 =
+  //     none — stripped into scrubTrack.cline.
   // Since schema 4, `lines_untrusted` below means NO point trusts (the
   // honest kill switch) — a program calling subs keeps its own lines
   // highlightable through the per-point channel.

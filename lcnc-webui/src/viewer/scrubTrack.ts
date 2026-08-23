@@ -59,6 +59,10 @@ export interface ScrubStream {
   /** Per-point marked-subroutine index (wire feed_sub/rapid_sub, 0xff =
    *  none) — dereferences into the payload's sub_names. */
   sub?: Uint8Array;
+  /** Per-point call-site MAIN-file line (wire feed_cline/rapid_cline,
+   *  W4; 0 = none) — the text-verified unique o-call/remap trigger line
+   *  of the span the point sits in. */
+  cline?: Uint16Array;
 }
 
 // Scrub-parameter contribution of a pure rotary sweep: 1° ≙ 1 mm, the same
@@ -151,6 +155,11 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
     && (nr === 0 || rapid.sub?.length === nr)
     && !!(feed.sub || rapid.sub);
   const sub = hasSub ? new Uint8Array(n) : undefined;
+  // Call-site attribution (W4): merged like sub (present iff consistent).
+  const hasCline = (nf === 0 || feed.cline?.length === nf)
+    && (nr === 0 || rapid.cline?.length === nr)
+    && !!(feed.cline || rapid.cline);
+  const cline = hasCline ? new Uint16Array(n) : undefined;
 
   let fi = 0, ri = 0;
   let prevFT = 0, prevRT = 0;   // per-stream previous cumulative time
@@ -180,6 +189,7 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
     if (wcsEpoch) wcsEpoch[i] = src.wcs?.[si] ?? 0;
     if (lineOk) lineOk[i] = src.lineOk?.[si] ?? 0;
     if (sub) sub[i] = src.sub?.[si] ?? 0xff;
+    if (cline) cline[i] = src.cline?.[si] ?? 0;
     if (timeBased) {
       // Duration of the segment ending here = this stream's cumulative
       // delta (RDP-collapsed interiors are preserved by the cumulative).
@@ -224,7 +234,7 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
   return { pos, abc, lines, rapid: rapidFlag, mode, frame: frameIdx,
            frames: hasFrame ? frames : undefined, brk, ustart,
            wcsEpoch, wcsEvents: hasWcs ? wcsEvents : undefined,
-           lineOk, sub, subNames: hasSub ? subNames : undefined,
+           lineOk, sub, subNames: hasSub ? subNames : undefined, cline,
            cum, count: n, lineCum, lineSpan: buildLineMap(lines), timeBased };
 }
 
@@ -705,12 +715,20 @@ export function prependEntry(
     sub[0] = 0xff;
     sub[1] = 0xff;
   }
+  let cline: Uint16Array | undefined;
+  if (t.cline) {
+    // Entry vertices carry no call-site line (run-time motion, W4).
+    cline = new Uint16Array(n);
+    cline.set(t.cline, 1);
+    cline[0] = 0;
+    cline[1] = 0;
+  }
   for (let i = 0; i < t.count; i++) cum[i + 1] = t.cum[i]! + entryLen;
   const lineCum = new Map<number, number>();
   for (const [ln, c] of t.lineCum) lineCum.set(ln, c + entryLen);
   return { pos, abc, lines, rapid, mode, frame, frames: t.frames, brk, ustart,
            wcsEpoch, wcsEvents: t.wcsEvents,
-           lineOk, sub, subNames: t.subNames,
+           lineOk, sub, subNames: t.subNames, cline,
            cum, count: n, lineCum, lineSpan: buildLineMap(lines), timeBased: t.timeBased };
 }
 

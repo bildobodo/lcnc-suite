@@ -633,6 +633,45 @@ describe("unknown-start vertices (W3 P1)", () => {
   });
 });
 
+describe("call-site attribution channel (W4)", () => {
+  // TWP demo shape: the L4 ustart vertex (no span), then square-sub points
+  // attributed to the `o<square> call` line 9 (their own lines are the sub
+  // FILE's colliding numbers).
+  const T = () => buildScrubTrack(
+    EMPTY,
+    { ...stream([[0, 0, 100], [50, 50, 100], [-50, 50, 100]],
+        { seq: [2, 3, 4], lines: [4, 3, 4] }),
+      cline: new Uint16Array([0, 9, 9]) },
+  )!;
+
+  it("merges per-point cline (0 = none)", () => {
+    expect(Array.from(T().cline!)).toEqual([0, 9, 9]);
+  });
+
+  it("merges cline across interleaved streams", () => {
+    const feed = { ...stream([[10, 0, 0]], { seq: [3], lines: [5] }),
+                   cline: new Uint16Array([9]) };
+    const rapid = { ...stream([[0, 0, 0], [20, 0, 0]], { seq: [1, 4], lines: [4, 6] }),
+                    cline: new Uint16Array([0, 9]) };
+    const t = buildScrubTrack(feed, rapid)!;
+    expect(Array.from(t.cline!)).toEqual([0, 9, 9]);
+  });
+
+  it("prependEntry shifts cline; entry vertices carry none", () => {
+    const t = prependEntry(T(), [-40, 0, 100, 0, 0, 0]);
+    expect(Array.from(t.cline!)).toEqual([0, 0, 9, 9]);
+  });
+
+  it("a mislengthed cline array drops the channel, never guesses alignment", () => {
+    const t = buildScrubTrack(
+      EMPTY,
+      { ...stream([[0, 0, 0], [1, 0, 0]], { seq: [1, 2] }),
+        cline: new Uint16Array([9]) },
+    )!;
+    expect(t.cline).toBeUndefined();
+  });
+});
+
 describe("wcs epochs on the track (review P2)", () => {
   const EVS = [
     { seq: 0, idx: 1, rotationDeg: 0, rewritten: false, g5x: [0, 0, 0, 0, 0, 0], g92: [0, 0, 0, 0, 0, 0] },
