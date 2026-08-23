@@ -475,6 +475,82 @@ describe("kins-flip relabel breaks (P1)", () => {
   });
 });
 
+describe("unknown-start vertices (W3 P1)", () => {
+  // TWP-shaped rapid stream: the suppressed program-first-rapid ENDPOINT
+  // (ustart=1, line 4), the parse-worker relabel vertex (brk=1), then the
+  // remap's real orient move. Pre-schema-6 the first vertex did not exist
+  // and the entry move lerped straight to the relabeled pose.
+  const T = () => buildScrubTrack(
+    EMPTY,
+    { ...stream(
+        [[0, 0, 100], [293.0, -498.4, 711.2], [309.6, -654.9, 708.9]],
+        { seq: [2, 3, 4], lines: [4, 1029, 1029], mode: [0, 2, 2], brk: [0, 1, 0] }),
+      ustart: new Uint8Array([1, 0, 0]) },
+  )!;
+
+  it("unions ustart into brk while keeping the distinct channel", () => {
+    const t = T();
+    expect(Array.from(t.ustart!)).toEqual([1, 0, 0]);
+    expect(Array.from(t.brk!)).toEqual([1, 1, 0]);   // union — the relabel keeps its own
+    // No cum contribution from either connector; the real move measures.
+    expect(t.cum[1]).toBe(0);
+    expect(t.cum[2]!).toBeGreaterThan(100);
+  });
+
+  it("ustart alone allocates brk (a 3-axis toolchange program has no relabels)", () => {
+    const t = buildScrubTrack(
+      EMPTY,
+      { ...stream([[0, 0, 5], [10, 0, 5], [1, 2, 3]], { seq: [1, 2, 3], lines: [4, 5, 9] }),
+        ustart: new Uint8Array([0, 0, 1]) },   // post-M6 excursion endpoint
+    )!;
+    expect(Array.from(t.brk!)).toEqual([0, 0, 1]);   // connector never drawn/timed
+    expect(t.cum[2]).toBe(t.cum[1]);                 // unknown path = no travel
+    expect(Array.from(t.ustart!)).toEqual([0, 0, 1]);
+  });
+
+  it("prependEntry supersedes the unknown approach with the real entry move", () => {
+    const t = prependEntry(T(), [-40, 0, 100, 0, 0, 0]);
+    // Entry vertex 0 → old ustart vertex now has a REAL path: both the
+    // unioned break and the ustart flag clear; the relabel stays broken.
+    expect(Array.from(t.brk!)).toEqual([0, 0, 1, 0]);
+    expect(Array.from(t.ustart!)).toEqual([0, 0, 0, 0]);
+    expect(t.cum[1]!).toBeCloseTo(40, 4);            // the entry rapid measures
+  });
+
+  it("splitTrackStreams never draws a segment into a ustart vertex", () => {
+    // TWP shape: the ustart endpoint is immediately followed by the relabel
+    // break, so no drawn segment touches it at all — it is dropped from the
+    // DRAW stream (a vertex with breaks on both sides draws nothing) while
+    // staying on the scrub track for the playhead.
+    const split = splitTrackStreams(T());
+    expect(Array.from(split.rapidBreaks)).toEqual([0]);
+    const xs = Array.from(split.rapidPos.filter((_, i) => i % 3 === 0));
+    expect(xs.map(v => Math.round(v))).toEqual([293, 310]);   // no (0,0,100) vertex
+    // 3-axis shape: mid-program M6 ustart with real motion on both sides —
+    // the connector into it breaks, the endpoint itself stays drawn as the
+    // next section's start.
+    const t2 = buildScrubTrack(
+      EMPTY,
+      { ...stream([[0, 0, 5], [10, 0, 5], [1, 2, 3], [4, 2, 3]], { seq: [1, 2, 3, 4], lines: [4, 5, 9, 10] }),
+        ustart: new Uint8Array([0, 0, 1, 0]) },
+    )!;
+    const s2 = splitTrackStreams(t2);
+    expect(Array.from(s2.rapidBreaks)).toEqual([0, 2]);
+    const xs2 = Array.from(s2.rapidPos.filter((_, i) => i % 3 === 0));
+    expect(xs2.map(v => Math.round(v))).toEqual([0, 10, 1, 4]);
+  });
+
+  it("a mislengthed ustart array drops the channel, never guesses alignment", () => {
+    const t = buildScrubTrack(
+      EMPTY,
+      { ...stream([[0, 0, 0], [1, 0, 0]], { seq: [1, 2] }),
+        ustart: new Uint8Array([1]) },
+    )!;
+    expect(t.ustart).toBeUndefined();
+    expect(t.brk).toBeUndefined();
+  });
+});
+
 describe("wcs epochs on the track (review P2)", () => {
   const EVS = [
     { seq: 0, idx: 1, rotationDeg: 0, rewritten: false, g5x: [0, 0, 0, 0, 0, 0], g92: [0, 0, 0, 0, 0, 0] },

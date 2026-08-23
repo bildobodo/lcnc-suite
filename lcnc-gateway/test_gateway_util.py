@@ -569,6 +569,24 @@ class TestCheckLimitViolations(unittest.TestCase):
         self.assertEqual([(r["line"], r["axis"]) for r in recs],
                          [(12, "A"), (14, "Z")])
 
+    def test_unknown_start_endpoint_counts_as_moved_to(self):
+        # W3 P1: a suppressed first-move endpoint arrives with start=None
+        # (unknown path). A zero-length tuple would read "parked" under the
+        # attribution rule and an out-of-limits endpoint would silently
+        # pass; start=None must flag every out-of-bounds endpoint axis.
+        end = (250.0 / 25.4, 0.0, -1.0 / 25.4, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+        recs, total = gateway_util.check_limit_violations(
+            [(4, None, end, self.TLO0)], self.LIMITS, 25.4)
+        self.assertEqual(total, 1)
+        self.assertEqual((recs[0]["line"], recs[0]["axis"], recs[0]["kind"]),
+                         (4, "X", "max"))
+        # The zero-length form (start == end) is what the parked rule
+        # skips — pinning the contrast so the None convention stays load-
+        # bearing rather than redundant.
+        recs2, total2 = gateway_util.check_limit_violations(
+            [(4, end, end, self.TLO0)], self.LIMITS, 25.4)
+        self.assertEqual((recs2, total2), ([], 0))
+
     def test_max_report_caps_records_but_not_total(self):
         segs = [self._seg(i, a=-101.0) for i in range(1, 12)]
         recs, total = gateway_util.check_limit_violations(
@@ -1321,6 +1339,7 @@ class TestCanonFirstMoveRearm(unittest.TestCase):
         c.wcs_events = []
         c._last_wcs_basis = None
         c.sub_events = []
+        c.unknown_start = []
         c.rotation_xy = 0.0
         c.xo = c.yo = c.zo = 0.0
         c.ao = c.bo = c.co = 0.0
@@ -1332,34 +1351,65 @@ class TestCanonFirstMoveRearm(unittest.TestCase):
         c.rotate_and_translate = lambda *a: tuple(a)
         return c, types.SimpleNamespace
 
-    def test_initcode_move_seeds_lo_and_program_first_move_still_suppressed(self):
+    def test_initcode_move_seeds_lo_and_program_first_move_is_ustart(self):
         c, ns = self._canon()
-        # Initcode G53 rotary sync (sequence_number 0): suppressed, seeds lo.
+        # Initcode G53 rotary sync (sequence_number 0): fully suppressed —
+        # NOT even a ustart vertex (its endpoint IS the live parked pose
+        # the client-built entry move starts from) — and seeds lo.
         c.next_line(ns(sequence_number=0))
         c.straight_traverse(0, 0, 0, 0, -40.86, -229.75, 0, 0, 0)
         self.assertEqual(c.rapid, [])
+        self.assertEqual(c.unknown_start, [])
         self.assertEqual(c.lo[4], -40.86)
-        # First REAL line re-arms: the program's first move is suppressed
-        # too (its prior XYZ is still unknown), and seeds lo again.
+        # First REAL line re-arms: the program's first move records a
+        # ZERO-LENGTH unknown-start vertex at its endpoint (W3 P1 — the
+        # prior XYZ is still unknown, but the endpoint is a commanded pose
+        # the run will visit; pre-schema-6 it vanished entirely and the sim
+        # entry lerped past it).
         c.next_line(ns(sequence_number=1))
         self.assertTrue(c.first_move)
         c.straight_traverse(5, 0, 0, 0, -40.86, -229.75, 0, 0, 0)
-        self.assertEqual(c.rapid, [])
-        # The SECOND program move records, starting from the first's end.
+        self.assertEqual(len(c.rapid), 1)
+        self.assertEqual(c.rapid[0][1], c.rapid[0][2])          # zero-length
+        self.assertEqual(c.rapid[0][2][0], 5)                    # at the endpoint
+        self.assertEqual(c.unknown_start, [c.rapid[0][4]])       # seq flagged
+        # The SECOND program move records normally from the first's end.
         c.next_line(ns(sequence_number=2))
         c.straight_traverse(9, 0, 0, 0, -40.86, -229.75, 0, 0, 0)
-        self.assertEqual(len(c.rapid), 1)
-        self.assertEqual(c.rapid[0][1][0], 5)
-        self.assertEqual(c.rapid[0][2][4], -40.86)
+        self.assertEqual(len(c.rapid), 2)
+        self.assertEqual(c.rapid[1][1][0], 5)
+        self.assertEqual(c.rapid[1][2][4], -40.86)
+        self.assertEqual(c.unknown_start, [c.rapid[0][4]])       # still just one
 
-    def test_without_initcode_behavior_is_unchanged(self):
+    def test_without_initcode_first_move_records_as_ustart(self):
         c, ns = self._canon()
         c.next_line(ns(sequence_number=1))
-        c.straight_traverse(5, 0, 0, 0, 0, 0, 0, 0, 0)   # suppressed
+        c.straight_traverse(5, 0, 0, 0, 0, 0, 0, 0, 0)   # ustart vertex
         c.next_line(ns(sequence_number=2))
-        c.straight_traverse(9, 0, 0, 0, 0, 0, 0, 0, 0)   # records
-        self.assertEqual(len(c.rapid), 1)
-        self.assertEqual(c.rapid[0][1][0], 5)
+        c.straight_traverse(9, 0, 0, 0, 0, 0, 0, 0, 0)   # records normally
+        self.assertEqual(len(c.rapid), 2)
+        self.assertEqual(c.rapid[0][1], c.rapid[0][2])
+        self.assertEqual(c.unknown_start, [c.rapid[0][4]])
+        self.assertEqual(c.rapid[1][1][0], 5)
+
+    def test_midprogram_toolchange_gains_ustart_vertex(self):
+        # Post-M6/G43 suppression is the same defect class: the excursion
+        # to the toolchange position is unknown, but the first move after
+        # it lands at a known endpoint — an honest gap + endpoint now, not
+        # a silently stretched false connector.
+        c, ns = self._canon()
+        c.next_line(ns(sequence_number=1))
+        c.straight_traverse(5, 0, 0, 0, 0, 0, 0, 0, 0)   # program-start ustart
+        c.next_line(ns(sequence_number=2))
+        c.straight_traverse(9, 0, 0, 0, 0, 0, 0, 0, 0)
+        c.first_move = True                               # what change_tool sets
+        c.next_line(ns(sequence_number=3))
+        c.straight_traverse(1, 2, 3, 0, 0, 0, 0, 0, 0)
+        self.assertEqual(len(c.rapid), 3)
+        self.assertEqual(c.rapid[2][1], c.rapid[2][2])    # zero-length endpoint
+        self.assertEqual(c.rapid[2][2][:3], (1, 2, 3))
+        self.assertEqual(len(c.unknown_start), 2)
+        self.assertEqual(c.unknown_start[1], c.rapid[2][4])
 
 
 class TestEvaluateTloDrift(unittest.TestCase):
@@ -1982,6 +2032,21 @@ class TestWorldLimitCheck(unittest.TestCase):
             [seg], {"X": (-1.0, 1.0)}, {"type": "xyzbc-nutating", "params": {}})
         self.assertIsNone(records)
         self.assertEqual(total, 1)  # count of UNCHECKED segments
+
+    def test_unknown_start_endpoint_flags_without_joint_motion(self):
+        # W3 P1: a suppressed first-move endpoint under world kins arrives
+        # with start=None — its joints never "move" within the segment, but
+        # the machine does reach them, so an out-of-limits endpoint joint
+        # must flag. Parked at world (60,0,0) A0 C0 → joint X = 60 past a
+        # ±50 limit; the zero-length form would be skipped as parked.
+        end = self.NINE(60, 0, 0, 0, 0)
+        records, total = gateway_util.check_limit_violations_world(
+            [(4, None, end, None)], {"X": (-50.0, 50.0)}, self.CFG)
+        self.assertEqual(total, 1)
+        self.assertEqual((records[0]["line"], records[0]["axis"]), (4, "X"))
+        _, z_total = gateway_util.check_limit_violations_world(
+            [(4, end, end, None)], {"X": (-50.0, 50.0)}, self.CFG)
+        self.assertEqual(z_total, 0)   # the contrast the convention exists for
 
     def test_tlo_shifts_joint_z_exactly(self):
         # On xyzac the TOOL never tilts (the table does), so a G43 TLO's

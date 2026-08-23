@@ -45,6 +45,10 @@ export interface ScrubStream {
    *  zero machine motion. Absent = legacy payload (flip segments keep the
    *  raw phantom; the reparse machinery refreshes them). */
   brk?: Uint8Array;
+  /** Per-point unknown-start flag (wire rapid_ustart, schema 6 / W3 P1):
+   *  1 ⇒ this point is a suppressed first-move ENDPOINT reached via an
+   *  unknown path — unioned into the track's brk at build time. */
+  ustart?: Uint8Array;
   /** Per-point WCS epoch INDEX into the payload's wcs_frames events —
    *  which basis this point was peeled against (review P2). Absent =
    *  legacy payload (single-basis semantics). */
@@ -117,7 +121,16 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
   const hasBrk = !!(feed.brk || rapid.brk)
     && (!feed.brk || feed.brk.length === nf)
     && (!rapid.brk || rapid.brk.length === nr);
-  const brk = hasBrk ? new Uint8Array(n) : undefined;
+  // Unknown-start flags (W3 P1): same tolerance rules as brk (rapid-only
+  // in practice; a mislengthed array drops the channel, never guessed).
+  const hasUstart = !!(feed.ustart || rapid.ustart)
+    && (!feed.ustart || feed.ustart.length === nf)
+    && (!rapid.ustart || rapid.ustart.length === nr);
+  // brk exists whenever EITHER channel does: ustart unions into it so every
+  // brk consumer (draw sections, sweep, time, projection) inherits the
+  // never-cross-the-connector behavior with no per-consumer changes.
+  const brk = (hasBrk || hasUstart) ? new Uint8Array(n) : undefined;
+  const ustart = hasUstart ? new Uint8Array(n) : undefined;
   // WCS epochs (review P2): like mode — present iff every non-empty stream
   // carries the per-point index and an events list exists to deref into.
   const hasWcs = !!wcsEvents?.length
@@ -162,7 +175,8 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
     rapidFlag[i] = takeFeed ? 0 : 1;
     if (mode) mode[i] = src.mode?.[si] ?? 0;
     if (frameIdx) frameIdx[i] = src.frame?.[si] ?? 0xff;
-    if (brk) brk[i] = src.brk?.[si] ?? 0;
+    if (brk) brk[i] = (src.brk?.[si] ?? 0) | (src.ustart?.[si] ?? 0);
+    if (ustart) ustart[i] = src.ustart?.[si] ?? 0;
     if (wcsEpoch) wcsEpoch[i] = src.wcs?.[si] ?? 0;
     if (lineOk) lineOk[i] = src.lineOk?.[si] ?? 0;
     if (sub) sub[i] = src.sub?.[si] ?? 0xff;
@@ -208,7 +222,7 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
   }
 
   return { pos, abc, lines, rapid: rapidFlag, mode, frame: frameIdx,
-           frames: hasFrame ? frames : undefined, brk,
+           frames: hasFrame ? frames : undefined, brk, ustart,
            wcsEpoch, wcsEvents: hasWcs ? wcsEvents : undefined,
            lineOk, sub, subNames: hasSub ? subNames : undefined,
            cum, count: n, lineCum, lineSpan: buildLineMap(lines), timeBased };
@@ -617,10 +631,22 @@ export function prependEntry(
   if (t.brk) {
     // The entry rapid is REAL motion (live position → first point), so the
     // entry vertex and the move ending at old point 0 are both unbroken.
+    // When old point 0 was an unknown-start vertex this is the supersede
+    // (W3 P1): the entry provides the real path to that endpoint, so the
+    // unioned break clears with it.
     brk = new Uint8Array(n);
     brk.set(t.brk, 1);
     brk[0] = 0;
     brk[1] = 0;
+  }
+  let ustart: Uint8Array | undefined;
+  if (t.ustart) {
+    // The entry move supersedes the unknown approach to the first vertex —
+    // its path is now the concrete live-pose → endpoint rapid.
+    ustart = new Uint8Array(n);
+    ustart.set(t.ustart, 1);
+    ustart[0] = 0;
+    ustart[1] = 0;
   }
   let wcsEpoch: Uint8Array | undefined;
   if (t.wcsEpoch) {
@@ -651,7 +677,7 @@ export function prependEntry(
   for (let i = 0; i < t.count; i++) cum[i + 1] = t.cum[i]! + entryLen;
   const lineCum = new Map<number, number>();
   for (const [ln, c] of t.lineCum) lineCum.set(ln, c + entryLen);
-  return { pos, abc, lines, rapid, mode, frame, frames: t.frames, brk,
+  return { pos, abc, lines, rapid, mode, frame, frames: t.frames, brk, ustart,
            wcsEpoch, wcsEvents: t.wcsEvents,
            lineOk, sub, subNames: t.subNames,
            cum, count: n, lineCum, lineSpan: buildLineMap(lines), timeBased: t.timeBased };

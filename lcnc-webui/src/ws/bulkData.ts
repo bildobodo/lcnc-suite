@@ -96,6 +96,14 @@ export interface ScrubTrack {
    *  machine motion — zero cum, never drawn/swept/lerped. Absent = legacy
    *  payload; flip segments keep the raw phantom jump. */
   brk?: Uint8Array;
+  /** count — unknown-start flag (schema 6, W3 P1): 1 ⇒ this point is a
+   *  suppressed first-move ENDPOINT (wire rapid_ustart) — the machine
+   *  reaches it via a path no parse can know. Build time unions these
+   *  into `brk` (the connector is never drawn/swept/timed/lerped); the
+   *  distinct channel keeps the semantics apart (relabel = stationary,
+   *  ustart = unknown motion) for labels and the entry move, which
+   *  supersedes the unknown approach with a real one. Absent = none. */
+  ustart?: Uint8Array;
   /** count — WCS epoch index of the segment ending here (into `wcsEvents`):
    *  which basis the point was peeled against (review P2). Absent = legacy
    *  payload (single-basis semantics). */
@@ -158,8 +166,13 @@ export interface LimitViolation {
 // pre-4 payloads disable the whole run highlight on any sub call); 5 =
 // uncommanded rotaries rebased to the live machine pose (a pre-5 TWP
 // payload can pose a parked rotary a whole fixture-offset wrong — the
-// bump reparses warm caches out of the wrong pose).
-export const EXPECTED_PREVIEW_SCHEMA = 5;
+// bump reparses warm caches out of the wrong pose); 6 = suppressed
+// first-move endpoints ship as zero-length unknown-start rapids
+// (rapid_ustart, W3 P1) plus the unmarked_subs advisory (W3 P5) — pre-6
+// the program's own first rapid vanished, so the sim entry lerped
+// straight to remap-internal motion and preamble kins flips fell before
+// the first recorded segment (the 962 mm phantom).
+export const EXPECTED_PREVIEW_SCHEMA = 6;
 
 /** Non-null when the loaded payload was parsed with a DIFFERENT tool length
  *  than the live table now holds for the spindle tool (W2 P4): the per-line
@@ -366,6 +379,14 @@ export interface ViewerGcode {
   // (zeros included) whenever kinstype arrays ship; absent-with-modes =
   // legacy payload whose flip segments still carry the raw phantom jump.
   rapid_brk?: Uint8Array;
+  // Unknown-start flags (u8, index-aligned with rapid, schema 6 / W3 P1):
+  // ustart[i]=1 means point i is a suppressed first-move ENDPOINT (program
+  // start, post-M6 excursion, post-G43 shift) — the machine reaches it via
+  // a path no parse can know, so the segment INTO it is never drawn/swept/
+  // timed/lerped (unioned into the track's brk), while the vertex itself
+  // is a real commanded pose. Present only when the program has suppressed
+  // moves; absent under schema ≥ 6 = none.
+  rapid_ustart?: Uint8Array;
   // Kins flips the parse worker could NOT resolve through a twin (unknown
   // family, or a frameless type-2 side): those segments keep the phantom
   // geometry. Present only when > 0 — unresolved ≠ handled.

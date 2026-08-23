@@ -27,6 +27,10 @@ Result shape (msgpack dict):
   rapid:       [[x, y, z], ...]   work-coord polyline (rapid moves)
   rapid_lines: [lineno, ...]      parallel line numbers for rapid
   rapid_seq:   [seq, ...]         see feed_seq
+  rapid_ustart: u8 per rapid point (schema 6, only when any set): 1 = the
+               point is a suppressed first-move ENDPOINT — the segment into
+               it is an unknown path (client brk semantics), the vertex is
+               a real commanded pose with 0 s / 0 dist
   stats:       { feedMoves, rapidMoves, linearMoves, arcMoves, feedDist,
                  rapidDist, linearDist, arcDist, feedTime, rapidTime,
                  totalTime, feedRates, toolChanges, toolsUsed, unit,
@@ -352,6 +356,9 @@ def parse(ctx: dict) -> dict:
                   f"({len(canon.wcs_events)} wcs epochs), {flips_unresolved} "
                   f"UNRESOLVED (no twin/frame — those keep the raw segment)",
                   file=sys.stderr, flush=True)
+    # Unknown-start seqs (W3 P1) in the same seq space as the tuples —
+    # doubled iff the relabel pass ran and doubled everything else.
+    ustart_seqs = {(_s * 2 if flips_handled else _s) for _s in canon.unknown_start}
     if kins_active:
         # Raw switchkins type per segment — the wire ships these
         # (phase 3: trsrn type 1/TCP and type 2/TOOL have different
@@ -365,12 +372,16 @@ def parse(ctx: dict) -> dict:
     _any_world = bool(feed_world and any(feed_world)) or bool(rapid_world and any(rapid_world))
     if axis_limits:
         def _identity_segs():
+            # Unknown-start segments yield start=None (W3 P1): the endpoint
+            # is a commanded pose reached via an unknown path, so the
+            # checkers treat every axis as moved-to instead of skipping the
+            # zero-length tuple as "parked".
             for _i, (_lineno, _start, _end, _rate, _tlo, _seq) in enumerate(canon.feed):
                 if not (feed_world and feed_world[_i]):
                     yield _lineno, _start, _end, _tlo
             for _i, (_lineno, _start, _end, _tlo, _seq) in enumerate(canon.rapid):
                 if not (rapid_world and rapid_world[_i]):
-                    yield _lineno, _start, _end, _tlo
+                    yield _lineno, None if _seq in ustart_seqs else _start, _end, _tlo
         violations, violations_total = check_limit_violations(
             _identity_segs(), axis_limits, unit_scale)
         if _any_world and kins_cfg and kins_cfg.get("type") == "xyzacb-trsrn":
@@ -392,7 +403,8 @@ def parse(ctx: dict) -> dict:
                 for _i, (_lineno, _start, _end, _tlo, _seq) in enumerate(canon.rapid):
                     if rapid_world and rapid_world[_i]:
                         _fi = _r_frame[_i]
-                        yield (_lineno, _start, _end, _tlo, rapid_types[_i],
+                        yield (_lineno, None if _seq in ustart_seqs else _start,
+                               _end, _tlo, rapid_types[_i],
                                _frames[_fi] if _fi is not None else None)
             w_records, w_total, world_unchecked = check_limit_violations_trsrn(
                 _trsrn_segs(), axis_limits, kins_cfg, unit_scale)
@@ -412,7 +424,7 @@ def parse(ctx: dict) -> dict:
                         yield _lineno, _start, _end, _tlo
                 for _i, (_lineno, _start, _end, _tlo, _seq) in enumerate(canon.rapid):
                     if rapid_world and rapid_world[_i]:
-                        yield _lineno, _start, _end, _tlo
+                        yield _lineno, None if _seq in ustart_seqs else _start, _end, _tlo
             w_records, w_total = check_limit_violations_world(
                 _world_segs(), axis_limits, kins_cfg, unit_scale)
             if w_records is None:
@@ -572,6 +584,17 @@ def parse(ctx: dict) -> dict:
     if flips_handled:
         rapid_brk = [1 if s in relabel_seqs else 0 for s in rapid_seq]
 
+    # Unknown-start flags (W3 P1): ustart[i]=1 means point i is a suppressed
+    # first-move ENDPOINT — the machine reaches it via a path no parse can
+    # know (program start, post-M6 excursion, post-G43 shift). The client
+    # unions these into brk (never draw/sweep/time across the connector)
+    # while keeping the channel distinct (relabel = stationary, ustart =
+    # unknown motion). Present only when the program has suppressed moves —
+    # absence under schema >= 6 means "none", not "legacy".
+    rapid_ustart = None
+    if ustart_seqs:
+        rapid_ustart = [1 if s in ustart_seqs else 0 for s in rapid_seq]
+
     # Kins mode (TCP+TWP phase 2a, raw types since phase 3): per-segment
     # switchkins TYPE from the `(WEBUI_KINSTYPE=n)` markers, resolved
     # above at the limit-check site (aligned 1:1 with the pre-RDP canon
@@ -678,6 +701,14 @@ def parse(ctx: dict) -> dict:
             r_anchors = sorted(set(r_anchors)
                                | {i for i, s in enumerate(rapid_seq)
                                   if s in relabel_seqs or s + 1 in relabel_seqs})
+        if ustart_seqs:
+            # Unknown-start vertices are ZERO-LENGTH (collinear by
+            # construction — plain RDP would silently drop them) and their
+            # in-stream predecessors bound the unknown connector; anchor
+            # both, same reasoning as the relabel anchors above.
+            _u_idx = {i for i, s in enumerate(rapid_seq) if s in ustart_seqs}
+            r_anchors = sorted(set(r_anchors) | _u_idx
+                               | {i - 1 for i in _u_idx if i > 0})
         keep = _rdp_keep(_rdp_points(rapid, rapid_abc), r_anchors, eps_sq)
         if len(keep) < len(rapid):
             rapid = [rapid[i] for i in keep]
@@ -689,6 +720,8 @@ def parse(ctx: dict) -> dict:
                 rapid_mode = [rapid_mode[i] for i in keep]
             if rapid_brk:
                 rapid_brk = [rapid_brk[i] for i in keep]
+            if rapid_ustart:
+                rapid_ustart = [rapid_ustart[i] for i in keep]
     print(
         f"rdp feed {pre_feed}->{len(feed)} rapid {pre_rapid}->{len(rapid)} eps={eps:.5f} ship_abc={ship_abc}",
         file=sys.stderr, flush=True,
@@ -983,6 +1016,13 @@ def parse(ctx: dict) -> dict:
         # ran, so absence identifies a legacy payload whose flip segments
         # still carry the raw phantom.
         result["rapid_brk"] = np.asarray(rapid_brk, dtype="<u1").tobytes() if rapid_brk else b""
+    if rapid_ustart is not None:
+        # Unknown-start flags (u8, W3 P1), index-aligned with rapid:
+        # ustart[i]=1 ⇒ point i is a suppressed first-move ENDPOINT — the
+        # segment into it is an unknown path (brk semantics client-side),
+        # the vertex itself is a real commanded pose with 0 s / 0 dist.
+        # Present only when the program has suppressed moves (schema ≥ 6).
+        result["rapid_ustart"] = np.asarray(rapid_ustart, dtype="<u1").tobytes() if rapid_ustart else b""
     if flips_unresolved:
         # Flips the twins could not evaluate (no twin for the family, or
         # a frameless type-2 side): their segments keep the raw phantom

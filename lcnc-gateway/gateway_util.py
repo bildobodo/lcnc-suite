@@ -49,8 +49,13 @@ ALLOWED_EXTENSIONS = {".ngc", ".nc", ".gcode", ".tap", ".txt"}
 # rotaries rebased to the LIVE machine pose (the offline interp assumed
 # program-zero of the active fixture — a pre-5 TWP payload can pose a
 # parked rotary a whole fixture-offset wrong; the bump forces warm caches
-# to reparse the wrong pose away).
-PREVIEW_SCHEMA = 5
+# to reparse the wrong pose away); 6 = suppressed first-move endpoints ship
+# as zero-length unknown-start rapids (`rapid_ustart`, W3 P1) plus the
+# `unmarked_subs` advisory (W3 P5) — pre-6 the program's own first rapid
+# vanished entirely, so the sim entry lerped straight to remap-internal
+# motion (the collapsed two-stage TWP approach) and preamble kins flips
+# fell before the first recorded segment (the 962 mm phantom).
+PREVIEW_SCHEMA = 6
 
 
 def sanitize_filename(name: str) -> str:
@@ -1504,6 +1509,13 @@ def check_limit_violations_world(segments, limits, kins_cfg, unit_scale=1.0,
     jmin = [0.0] * 5
     jmax = [0.0] * 5
     for lineno, start, end, tlo in segments:
+        # start=None = UNKNOWN-PATH segment (W3 P1): only the endpoint is
+        # known, so sample it alone and skip the joint-moved attribution —
+        # the machine does move there, so an out-of-bounds endpoint joint
+        # must flag its line.
+        unknown = start is None
+        if unknown:
+            start = end
         rotd = max(abs(end[i] - start[i]) for i in (3, 4, 5))
         steps = min(256, max(1, math.ceil(rotd / rot_step_deg)))
         params = params0
@@ -1529,7 +1541,7 @@ def check_limit_violations_world(segments, limits, kins_cfg, unit_scale=1.0,
                     elif joints[j] > jmax[j]:
                         jmax[j] = joints[j]
         for jno, letter, mn, mx in bounds:
-            if jmax[jno] - jmin[jno] <= _JOINT_MOVE_EPS:
+            if not unknown and jmax[jno] - jmin[jno] <= _JOINT_MOVE_EPS:
                 continue  # joint parked this segment — culprit line already flagged
             if mn is not None and jmin[jno] < mn - _LIMIT_EPS:
                 key = (lineno, letter)
@@ -1599,6 +1611,12 @@ def check_limit_violations_trsrn(segments, limits, kins_cfg, unit_scale=1.0,
             continue
         if ktype not in (1, 2):
             continue  # identity segs belong to the caller's identity check
+        # start=None = UNKNOWN-PATH (W3 P1): endpoint-only sample, no
+        # joint-moved attribution skip — same convention as the identity
+        # and trt checkers.
+        unknown = start is None
+        if unknown:
+            start = end
         params = dict(params0)
         tz = (tlo[2] if tlo is not None else 0.0) * unit_scale
         if ktype == 1:
@@ -1630,7 +1648,7 @@ def check_limit_violations_trsrn(segments, limits, kins_cfg, unit_scale=1.0,
                     elif joints[j] > jmax[j]:
                         jmax[j] = joints[j]
         for jno, letter, mn, mx in bounds:
-            if jmax[jno] - jmin[jno] <= _JOINT_MOVE_EPS:
+            if not unknown and jmax[jno] - jmin[jno] <= _JOINT_MOVE_EPS:
                 continue  # joint parked this segment — culprit line already flagged
             if mn is not None and jmin[jno] < mn - _LIMIT_EPS:
                 key = (lineno, letter)
@@ -1966,7 +1984,12 @@ def check_limit_violations(segments, limits, unit_scale: float = 1.0,
             if idx >= n:
                 continue
             v = end[idx]
-            if idx < len(start) and start[idx] == v:
+            # start=None = UNKNOWN-PATH segment (W3 P1: a suppressed
+            # first-move endpoint) — the machine moves there via a path no
+            # parse can know, so every axis counts as moved-to and the
+            # parked-axis attribution skip must not hide an out-of-bounds
+            # endpoint.
+            if start is not None and idx < len(start) and start[idx] == v:
                 continue  # axis parked this segment — culprit line already flagged
             if idx < 3 and tlo is not None:
                 v += tlo[idx]

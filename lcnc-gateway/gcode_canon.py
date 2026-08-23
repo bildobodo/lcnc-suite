@@ -90,6 +90,15 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         # points untrusted (with the sub's name for the UI) instead of
         # letting the text-panel highlight land on an unrelated main line.
         self.sub_events = []
+        # Seqs of ZERO-LENGTH rapids recorded at suppressed-move endpoints
+        # (W3 P1): a first_move rapid's PRIOR position is unknown, but its
+        # END is a commanded pose the run will visit — dropping the whole
+        # segment (pre-schema-6) erased the program's own first rapid, so
+        # the sim entry lerped straight to remap-internal motion (the
+        # collapsed two-stage TWP approach). The endpoint ships as a
+        # start==end tuple; the segment INTO it is unknown-path (client
+        # brk semantics, `rapid_ustart` on the wire).
+        self.unknown_start = []
         self.xo = self.yo = self.zo = 0.0
         self.ao = self.bo = self.co = 0.0
         self.uo = self.vo = self.wo = 0.0
@@ -208,15 +217,26 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         if self.suppress > 0: return
         l = self.rotate_and_translate(x, y, z, a, b, c, u, v, w)
         if self.first_move:
-            # First motion after program start / tool change: the PRIOR
+            # First motion after program start / tool change / G43: the PRIOR
             # position is unknown (machine parked spot, post-M6 pre-position),
-            # so this one segment can't be plotted — but its END is a
-            # commanded, known position. Clear the flag here so subsequent
-            # rapids ARE recorded. (gremlin keeps suppressing until the first
-            # FEED, which silently drops entire leading rapid sequences — the
-            # scrub track and collision sweep need those lines: a low rapid
-            # traverse before the first cut is exactly the classic crash.)
+            # so the segment can't be plotted — but its END is a commanded,
+            # known position the run will visit. Record it as a ZERO-LENGTH
+            # rapid (W3 P1) and mark the seq unknown-start: 0 s / 0 dist by
+            # construction, the endpoint keeps its line/epoch/kins stamps,
+            # and the client renders the connector into it as a gap instead
+            # of a false straight line. Only PROGRAM lines (lineno >= 1)
+            # record — the rotary-sync initcode's G53 move (lineno 0) stays
+            # fully suppressed: its endpoint IS the live parked pose the
+            # client-built entry move already starts from. (gremlin keeps
+            # suppressing until the first FEED, which silently drops entire
+            # leading rapid sequences — the scrub track and collision sweep
+            # need those lines: a low rapid traverse before the first cut is
+            # exactly the classic crash.)
             self.first_move = False
+            if (self.lineno or 0) >= 1:
+                seq = self._next_seq()
+                self.rapid.append((self.lineno, l, l, (self.xo, self.yo, self.zo), seq))
+                self.unknown_start.append(seq)
         else:
             self.rapid.append((self.lineno, self.lo, l, (self.xo, self.yo, self.zo), self._next_seq()))
         self.lo = l

@@ -54,6 +54,11 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     // legacy payload → the track carries no brk and flip segments keep the
     // raw phantom (honest degradation — the reparse machinery refreshes it).
     const rapidBrkWire = g.rapid_brk != null ? new Uint8Array(g.rapid_brk as Uint8Array) : undefined;
+    // Unknown-start flags (schema 6, W3 P1): ustart[i]=1 ⇒ rapid point i is
+    // a suppressed first-move ENDPOINT reached via an unknown path — the
+    // track unions these into brk (never draw/sweep/time/lerp the
+    // connector) and keeps the distinct channel for labels/entry handling.
+    const rapidUstartWire = g.rapid_ustart != null ? new Uint8Array(g.rapid_ustart as Uint8Array) : undefined;
     // Per-point line trust + marked-sub spans (W2 P6) — consumed via the
     // merged track (playhead trust / "in subroutine" indicator).
     const feedLineOkWire = g.feed_lineok != null ? new Uint8Array(g.feed_lineok as Uint8Array) : undefined;
@@ -103,7 +108,7 @@ self.onmessage = async (e: MessageEvent<Req>) => {
 
     const scrubTrack = buildScrubTrack(
       { pos: feedPos, abc: feedAbc, lines: feedLines, seq: feedSeq, tcum: g.feed_tcum != null && (g.feed_tcum as Uint8Array).length ? _toF32(g.feed_tcum) : undefined, mode: feedModeWire, frame: feedFrameWire, wcs: feedWcsWire, lineOk: feedLineOkWire, sub: feedSubWire },
-      { pos: rapidPos, abc: rapidAbc, lines: _toU32(g.rapid_lines), seq: rapidSeq, tcum: g.rapid_tcum != null && (g.rapid_tcum as Uint8Array).length ? _toF32(g.rapid_tcum) : undefined, mode: rapidModeWire, frame: rapidFrameWire, brk: rapidBrkWire, wcs: rapidWcsWire, lineOk: rapidLineOkWire, sub: rapidSubWire },
+      { pos: rapidPos, abc: rapidAbc, lines: _toU32(g.rapid_lines), seq: rapidSeq, tcum: g.rapid_tcum != null && (g.rapid_tcum as Uint8Array).length ? _toF32(g.rapid_tcum) : undefined, mode: rapidModeWire, frame: rapidFrameWire, brk: rapidBrkWire, ustart: rapidUstartWire, wcs: rapidWcsWire, lineOk: rapidLineOkWire, sub: rapidSubWire },
       kinsFrames,
       wcsEvents,
       subNames,
@@ -146,6 +151,7 @@ self.onmessage = async (e: MessageEvent<Req>) => {
             feed_seq: _fs, rapid_seq: _rs, rapid_lines: _rl,
             feed_tcum: _ft, rapid_tcum: _rt,
             feed_kinstype: _fm, rapid_kinstype: _rm, rapid_brk: _rb,
+            rapid_ustart: _ru,
             feed_lineok: _fo, rapid_lineok: _ro, feed_sub: _fsb, rapid_sub: _rsb,
             ...rest } = g;
 
@@ -171,6 +177,7 @@ self.onmessage = async (e: MessageEvent<Req>) => {
       if (scrubTrack.wcsEpoch) transfer.push(scrubTrack.wcsEpoch.buffer as ArrayBuffer);
       if (scrubTrack.lineOk) transfer.push(scrubTrack.lineOk.buffer as ArrayBuffer);
       if (scrubTrack.sub) transfer.push(scrubTrack.sub.buffer as ArrayBuffer);
+      if (scrubTrack.ustart) transfer.push(scrubTrack.ustart.buffer as ArrayBuffer);
     }
     if (feedMode) transfer.push(feedMode.buffer as ArrayBuffer);
     if (rapidMode) transfer.push(rapidMode.buffer as ArrayBuffer);
