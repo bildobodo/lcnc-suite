@@ -15,7 +15,7 @@ import { INTERP_IDLE } from "./lcnc";
 import { simMode } from "./simMode";
 import {
   sampleTrack, jointsForSample, machineJointsToProgram, prependEntry,
-  machineFromJoints, lineRunAround,
+  machineFromJoints, lineRunAround, displayLineForPoint, atTrackEnd,
   type ScrubSample,
 } from "./viewer/scrubTrack";
 import { createRunWatcher } from "./viewer/runWatcher";
@@ -49,7 +49,11 @@ const emit = defineEmits<{
   // joints: per-JOINT machine values (null entry = keep live joint), or null
   // to return the model to the live pose. line/cum: sample position; trk:
   // the track the cum lives on (ThreeViewer gates the clash tint on it).
-  (e: "pose", joints: (number | null)[] | null, line: number | null, cum: number | null, trk: ScrubTrack | null): void;
+  // `line` is the RAW sample line (clash tint + 3D line highlight key —
+  // sub-relative numbers are self-consistent within the drawn data);
+  // `displayLine` is the per-point-trust-GATED line for the text panel
+  // (W3 P4) — null = suppress (untrusted / entry / end), never raw.
+  (e: "pose", joints: (number | null)[] | null, line: number | null, cum: number | null, trk: ScrubTrack | null, displayLine: number | null): void;
   // The track to sweep — includes the entry move when one is known.
   (e: "check", track: ScrubTrack): void;
   (e: "cancel-check"): void;
@@ -92,6 +96,7 @@ const curRapid = ref(false);
 // null trust = legacy track → fall back to the wholesale flag.
 const curLineOk = ref<boolean | null>(null);
 const curSubName = ref<string | null>(null);
+const curAtEnd = ref(false);
 const pct = computed(() => (cumMax.value > 0 ? Math.round((sPos.value / cumMax.value) * 100) : 0));
 
 // Reused per-frame scratch — the sPos watcher runs at animation rate.
@@ -117,15 +122,21 @@ function applyPos() {
   sampleTrack(t, sPos.value, _sample);
   curLine.value = _sample.line;
   curRapid.value = _sample.rapid;
+  curAtEnd.value = atTrackEnd(t, sPos.value);
   // Per-point trust + sub name for the sim readout (W2 P6): the sample's
   // upper track index addresses the wire trust channels directly.
   curLineOk.value = t.lineOk ? t.lineOk[_sample.index] === 1 : null;
-  const _sb = t.sub?.[_sample.index];
-  curSubName.value = (_sb != null && _sb !== 0xff && t.subNames)
-    ? t.subNames[_sb] ?? null : null;
+  // Text-panel line: the ONE shared gating rule (W3 P4) — the raw sample
+  // line still rides the emit for the clash tint, but GcodePanel only
+  // ever sees the gated value (blank main-file lines stopped lighting,
+  // scrollToLine(remap lineno) stopped firing). End state suppresses too.
+  const disp = displayLineForPoint(t, _sample.index,
+                                   !viewerGcode.value?.lines_untrusted);
+  curSubName.value = disp.subName;
   jointsForSample(_sample, _wcs(), viewerInit.value?.axes ?? [], _joints,
                   _kinsSpec.value, _epochTerms.value);
-  emit("pose", _joints.slice(), _sample.line, sPos.value, t);
+  emit("pose", _joints.slice(), _sample.line, sPos.value, t,
+       curAtEnd.value ? null : disp.line);
   // Positional 3D highlight (review P3): address the path by track index —
   // the sample's line number may be sub/remap-relative and collide.
   trackHighlightRange.value = lineRunAround(t, _sample.index);
@@ -227,7 +238,7 @@ function exitSim() {
   playing.value = false;
   if (!simMode.value) return;
   simMode.value = false;
-  emit("pose", null, null, null, null);
+  emit("pose", null, null, null, null, null);
   trackHighlightRange.value = null;
 }
 
@@ -398,15 +409,22 @@ watch(st, (d) => {
   // Positional 3D highlight: the contiguous same-line run around the
   // matched segment — contiguity disambiguates colliding line numbers.
   trackHighlightRange.value = lineRunAround(t, out.index!);
-  // Text-panel line state (W2 P6): per-point trust from the wire when the
-  // track carries it; legacy tracks fall back to the wholesale flag.
+  // End state (W3 P4): the playhead pinned at the terminal vertex has
+  // nothing further to attribute — trailing non-motion lines (M2) are
+  // unknowable, so present "end" instead of freezing on the last line.
   const i = out.index!;
-  const pointTrusted = t.lineOk ? t.lineOk[i] === 1 : trusted;
-  const sb = t.sub?.[i];
+  if (i === t.count - 1 && atTrackEnd(t, out.cum)) {
+    runLineState.value = { line: 0, trusted: false, subName: null, atEnd: true };
+    return;
+  }
+  // Text-panel line state (W2 P6): the ONE shared gating rule (W3 P4) —
+  // per-point trust from the wire when the track carries it; legacy
+  // tracks fall back to the wholesale flag.
+  const disp = displayLineForPoint(t, i, trusted);
   runLineState.value = {
     line: t.lines[i]!,
-    trusted: pointTrusted && t.lines[i]! > 0,
-    subName: (sb != null && sb !== 0xff && t.subNames) ? t.subNames[sb] ?? null : null,
+    trusted: disp.line != null,
+    subName: disp.subName,
   };
 });
 watch(running, (r) => {
@@ -423,7 +441,10 @@ const statusText = computed(() => {
   const trusted = !viewerGcode.value?.lines_untrusted;
   if (simMode.value) {
     const ok = curLineOk.value ?? trusted;
-    const label = !curLine.value ? "entry"
+    // "end" mirrors "entry" (W3 P4): the terminal vertex is where the
+    // track's knowledge stops — never a guessed M2 highlight.
+    const label = curAtEnd.value ? "end"
+      : !curLine.value ? "entry"
       : ok ? `L${curLine.value}`
       : curSubName.value ? `(${curSubName.value})` : "···";
     return `${label}${curRapid.value ? " →" : ""} ${posLabel.value}`;
@@ -434,7 +455,8 @@ const statusText = computed(() => {
   if (running.value) {
     const rls = runLineState.value;
     const label = rls
-      ? (rls.trusted ? `L${rls.line}`
+      ? (rls.atEnd ? "end"
+        : rls.trusted ? `L${rls.line}`
         : rls.subName ? `(${rls.subName})` : "···")
       : trusted ? `L${motionLine.value ?? 0}` : "···";
     return `${label} ~${posLabel.value}`;

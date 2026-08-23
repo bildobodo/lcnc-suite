@@ -1822,11 +1822,16 @@ let _scrubLineNo: number | null = null;
 // model re-poses immediately instead of waiting for the next status tick.
 let _lastState: ViewerState | null = null;
 
-function onScrubPose(joints: (number | null)[] | null, line: number | null, cum: number | null, trk: ScrubTrack | null) {
+function onScrubPose(joints: (number | null)[] | null, line: number | null, cum: number | null, trk: ScrubTrack | null, displayLine: number | null = null) {
   _scrubJoints = joints;
+  // RAW sample line: keys the clash tint and the 3D path highlight, whose
+  // data (collision hits, drawn feed_lines) carries the same sub-relative
+  // numbering — self-consistent. The TEXT panel gets only the per-point-
+  // trust-GATED displayLine (W3 P4): raw numbers lit blank main-file
+  // lines and scrolled to remap linenos past the end of the file.
   _scrubLineNo = joints ? line : null;
   _scrubTrackRef = joints ? trk : null;
-  emit("scrub-line", _scrubLineNo);
+  emit("scrub-line", joints ? displayLine : null);
   _updateClashTint(_scrubLineNo, joints ? cum : null);
   if (_lastState && !pendingState) pendingState = _lastState;
   requestRender();

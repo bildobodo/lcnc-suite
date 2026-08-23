@@ -26,7 +26,10 @@ export const trackHighlightRange = shallowRef<[number, number] | null>(null);
  *  highlight must suppress, never fall back to motion_line's colliding
  *  numbers. Null only when no positional playhead is active at all (idle;
  *  sim drives GcodePanel via scrubLine) — App.vue then falls back to the
- *  motion_line path gated by the wholesale untrusted flag. */
+ *  motion_line path gated by the wholesale untrusted flag. `atEnd` (W3
+ *  P4): the playhead sits pinned at the track's terminal vertex — the
+ *  readout says "end" instead of freezing on the last attributable line
+ *  (trailing non-motion lines like M2 are unknowable, never guessed). */
 export const runLineState = shallowRef<{
-  line: number; trusted: boolean; subName: string | null;
+  line: number; trusted: boolean; subName: string | null; atEnd?: boolean;
 } | null>(null);

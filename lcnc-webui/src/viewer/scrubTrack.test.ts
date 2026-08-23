@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   buildScrubTrack, sampleTrack, jointsForSample,
   machineJointsToProgram, prependEntry, splitTrackStreams,
+  displayLineForPoint, atTrackEnd,
   projectOntoTrack, lineRunAround,
   type ScrubSample, type ScrubStream, type ScrubTrack,
 } from "./scrubTrack";
@@ -511,6 +512,48 @@ describe("kins-flip relabel breaks (P1)", () => {
         brk: new Uint8Array([1]) },
     )!;
     expect(t.brk).toBeUndefined();
+  });
+});
+
+describe("displayLineForPoint / atTrackEnd (W3 P4)", () => {
+  // The one shared gating rule for the text-panel highlight: raw sample
+  // lines lit blank main-file lines with a called sub's numbers (the
+  // operator's "line 5 is just shown empty") and scrolled to remap
+  // linenos past the end of the file.
+  const T = () => {
+    const t = buildScrubTrack(
+      EMPTY,
+      stream([[0, 0, 0], [1, 0, 0], [2, 0, 0], [3, 0, 0]],
+             { seq: [1, 2, 3, 4], lines: [4, 5, 1029, 0] }),
+    )!;
+    t.lineOk = new Uint8Array([1, 0, 0, 0]);
+    t.sub = new Uint8Array([0xff, 0xff, 0, 0xff]);
+    t.subNames = ["g533remap"];
+    return t;
+  };
+
+  it("trusted point → its line; untrusted → null (+ sub name when marked)", () => {
+    const t = T();
+    expect(displayLineForPoint(t, 0, true)).toEqual({ line: 4, subName: null });
+    expect(displayLineForPoint(t, 1, true)).toEqual({ line: null, subName: null });
+    expect(displayLineForPoint(t, 2, true)).toEqual({ line: null, subName: "g533remap" });
+    expect(displayLineForPoint(t, 3, true)).toEqual({ line: null, subName: null });  // line 0 never displays
+  });
+
+  it("legacy track (no lineOk) falls back to the wholesale flag", () => {
+    const t = T();
+    t.lineOk = undefined;
+    expect(displayLineForPoint(t, 2, true)).toEqual({ line: 1029, subName: "g533remap" });
+    expect(displayLineForPoint(t, 2, false)).toEqual({ line: null, subName: "g533remap" });
+  });
+
+  it("atTrackEnd fires only at the terminal cum", () => {
+    const t = T();
+    const end = t.cum[t.count - 1]!;
+    expect(atTrackEnd(t, end)).toBe(true);
+    expect(atTrackEnd(t, end + 5)).toBe(true);   // clamped scrub past the end
+    expect(atTrackEnd(t, end - 0.01)).toBe(false);
+    expect(atTrackEnd(t, 0)).toBe(false);
   });
 });
 

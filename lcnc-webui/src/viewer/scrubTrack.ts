@@ -425,6 +425,34 @@ export function sampleTrack(t: ScrubTrack, s: number, out: ScrubSample): ScrubSa
   return out;
 }
 
+/** The ONE rule for "which text-panel line may a track point display"
+ *  (W3 P4): per-point wire trust when the track carries it, else the
+ *  wholesale lines_untrusted fallback; line 0 (entry/unknown) never
+ *  displays. Returns the sub name alongside so callers can say
+ *  "in subroutine (name)" instead of a colliding line. Shared by the run
+ *  playhead and the scrub emit — the scrub path used to forward RAW
+ *  sample lines, lighting blank main-file lines with a called sub's
+ *  numbers and scrolling to remap linenos past the end of the file. */
+export function displayLineForPoint(
+  t: ScrubTrack, i: number, wholesaleTrusted: boolean,
+): { line: number | null; subName: string | null } {
+  const ln = t.lines[i] ?? 0;
+  const ok = t.lineOk ? t.lineOk[i] === 1 : wholesaleTrusted;
+  const sb = t.sub?.[i];
+  return {
+    line: ok && ln > 0 ? ln : null,
+    subName: (sb != null && sb !== 0xff && t.subNames) ? t.subNames[sb] ?? null : null,
+  };
+}
+
+/** True when the scrub parameter sits pinned at the track's very end —
+ *  the playhead has nothing further to attribute (trailing non-motion
+ *  lines are unknowable), so the UI presents an explicit "end" state
+ *  instead of a frozen last-line highlight (W3 P4). */
+export function atTrackEnd(t: ScrubTrack, s: number): boolean {
+  return t.count > 0 && s >= t.cum[t.count - 1]! - 1e-9;
+}
+
 /** Live machine joints → program-space [x,y,z,a,b,c]: joints → machine
  *  coords through the kins boundary (forward kinematics), then the inverse
  *  WCS transform. `kinstype` (+ `frame` for TOOL mode) selects the model
