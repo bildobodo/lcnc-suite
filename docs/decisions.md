@@ -720,3 +720,113 @@ in this file as "Per-segment WCS (Tier 2)" — and its reopen condition ("a
 program needs two fixtures visible simultaneously") turns out to understate
 it: a TWP program needs two fixtures *sequentially* and is wrong without them.
 That closure should be revisited with this evidence.
+
+---
+
+## Wave 2 (2026-08-23) — operator reports after wave 1, P0–P8 complete
+
+Plan: `~/.claude/plans/can-you-review-opus-shimmering-rain.md`. Commits
+924a0e0 (P7 landed out of order), defca43 (P1), 82ed8c8 (P2), 1e559da
+(P3), a30e69b (P4), 449c788 (P5), be08bdd (P6), plus the P8 tooling
+commit. All root causes were confirmed live before fixing; every phase
+carries unit + e2e evidence in its commit message.
+
+- **P1 preview_schema stamp** — the gateway cache keyed on file+mtime only,
+  so a gateway outliving a code upgrade served pre-upgrade payloads to
+  hot-reloaded clients forever. Every payload now carries a wire-format
+  generation; the poller auto-reparses on mismatch (latched, never a storm);
+  the client banners absent/different stamps with a Reparse action.
+- **P2 relabel seed** — flip relabels seeded from the previous tuple's end;
+  canon-suppressed moves (G43 shifts, deduped first moves) made that a pose
+  the bookkeeping had left. Seed is now the next tuple's canon start,
+  un-peeled with its OWN tlo.
+- **P3 abc ships on pose-dependence** (reports 1+2, the flat TWP preview /
+  untilted sim head) — `should_ship_abc`: markers present OR raw abc ≠ 0
+  (the per-epoch peel zeroes exactly the fixture-offset-tilt case) OR
+  peeled-stream variation. Verified against the real stack: the constant
+  tilt now rides the wire; a 1.18M-point 3-axis program still ships none.
+- **P4 stale-TLO flags** (report 5, 11,532 false Z-max flags live) —
+  worker ships a parse-time TLO snapshot (payload + __TLO__ stderr);
+  poller drift edge (tool-table mtime / applied-offset, idle-gated,
+  debounced, G49-safe) auto-reparses; client hint covers the in-run
+  window; the overflow box gains the applied TLO so both bounds surfaces
+  finally agree.
+- **P5 off-path playhead latch** (report 6, gap_p50 33→319 ms through the
+  toolchange) — `viewer/runWatcher.ts` state machine: windowed when
+  attached, exactly ONE full scan on escape, OFF-PATH frozen with a chip
+  and a ≤1 Hz strided re-probe. Plus the two never-closing gates:
+  fixture-table change keys now cover only USED non-rewritten rows
+  (usedWcsRowsKey), and `_pfScheduleWcsRefresh` early-outs unless the
+  rebase can differ from identity. Op-budget vitest on a 200k track pins
+  the regression class.
+- **P6 per-point line trust** (report 3) — trust is per point (line
+  exists + can move + stream-compatible + not in a `(WEBUI_SUB=…)` span);
+  `lines_untrusted` now means NO point trusts. The positional playhead
+  publishes {line, trusted, subName}; GcodePanel shows "in subroutine
+  (name)"; off-path SUPPRESSES rather than falling back to colliding
+  motion_line numbers. **Decision: NO monotonicity gate** on the
+  playhead/highlight — legal o-loops and run-from-line legitimately move
+  backward; a monotonic filter would break them to paper over a class the
+  positional matching already handles.
+- **P7 config drift checker** (report 4's class) — the deployed config is
+  a one-time copy; `scripts/config_sync_check.py` prints exact drifted
+  lines (whitelist: runtime artifacts whole, per-install settings lines);
+  warn-only from install.sh. Its first run caught the deployed copies
+  missing the P6 markers (harmless — all deployed SUBROUTINE_PATHs point
+  at the repo, verified) and that P6's marking pass missed the TCP
+  config's top-level remap_subs.
+- **P8 tooling** (question 7) — twp_parity: 6-joint compare (±180°-wrapped
+  rotaries), swept-axes-set completeness, path-overlay metric, trt
+  dispatch, real wire abc through the derivation; `scripts/preview_gate.py`
+  golden summaries per config (checked in: twp + 3axis, generated against
+  headless DISPLAY=dummy sims); `viewer/displayPipeline.ts` extracts the
+  display DECISION pure, and its test is the L1 display oracle — decision
+  + transform composed, asserting a held-tilt program DRAWS tilted.
+
+### Open — found by the hardened parity gate (P8, 2026-08-23)
+
+**The offline interpreter poses uncommanded axes at program-zero of the
+active fixture.** Measured on the TWP config (wave-1 truth capture,
+hardened compare): derived joint A = 19.05° — exactly G54's A rotary
+offset — while the machine held A = 0 throughout; B and C only matched
+because their fixture offsets happen to equal the parked pose. The task
+interpreter syncs its positions from the machine at run start; the
+offline interpreter starts uncommanded axes at modal zero, so machine =
+0 + fixture offset. Operator-visible: the work-side A faceplate poses
+19° off in the scrub sim, and the path-overlay metric reads ~340 mm mean
+(19° at ~1.2 m radius) from this one cause. **Not fixed in this wave,
+reason stated:** no non-guessing fix exists at the worker layer —
+commanded-ness is invisible in canon callbacks (a constant-at-offset
+axis is indistinguishable from one commanded there), and the gcode
+module exposes no interpreter position seeding. Fix direction: find why
+the offline interp does not consult StatMixin's external-position
+answers at init the way task does (or add commanded-axis visibility to
+the canon), then rebase only never-commanded axes to live stat. The
+parity gate stays honestly RED on this config until then.
+
+### Deferred with designs recorded (P8)
+
+- **L2 display probe**: `window.__lcncDisplayProbe()` — the running page
+  returns drawn-vertex checksums + FPS stats for a playwright e2e; budget
+  asserted per frame. Needs the e2e harness to boot a headless sim (the
+  DISPLAY=dummy pattern above works).
+- **L3 live probe**: the same probe surfaced through browser telemetry so
+  a live session can be interrogated post-hoc (`browser.viewer.perf`
+  already carries the timing half).
+- **Full scene assembly in displayPipeline**: compose decision + rebase +
+  transform + split into one pure "what would the scene hold" function;
+  today the L1 oracle composes the two layers the defect crossed.
+- **config_smoke**: boot each shipped INI headless (DISPLAY=dummy +
+  stdin-open trick, see scripts/preview_gate.py docstring), assert the
+  gateway's viewer_init builds and the safety chain reports complete.
+
+### Owed at the next suite restart (accumulated live-verification bucket)
+
+The gateway/suite session that these fixes were developed against ended
+mid-wave; the following claims are code-complete with offline evidence
+and need one live pass: P0 TCP config boots bannerless; P3 tilted
+preview overlays the backplot + sim head at B≈−40.9/C≈130.2; P4 the
+11,532-flag payload auto-reparses to 0 once idle; P5 gap_p50 ≈33 ms
+through tool_touch_off (browser.viewer.perf); P6 main-file lines
+highlight through a toolchange run with the off-path chip showing; and
+the wave-1 perf-matrix re-run.
