@@ -1,27 +1,30 @@
 {
-  "brk_count": 0,
+  "brk_count": 1,
   "kins_frames": 1,
   "kinstype_present": true,
   "lines_untrusted": false,
   "points": {
     "feed": 0,
-    "rapid": 7
+    "rapid": 9
   },
-  "preview_schema": 5,
+  "preview_schema": 6,
   "ships_abc": true,
   "sub_names": [
     "g69remap",
-    "g533remap"
+    "g533remap",
+    "square"
   ],
   "swept_axes": [],
   "trusted_points": {
-    "total": 7,
-    "trusted": 3
+    "total": 9,
+    "trusted": 1
   },
+  "unmarked_subs": [],
+  "ustart_count": 1,
   "violations_total": 0,
   "violations_world_unchecked": 0,
   "wcs_epochs": {
-    "count": 1,
+    "count": 2,
     "rewritten": 0
   }
 }

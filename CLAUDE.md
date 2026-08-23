@@ -361,7 +361,12 @@ survive RDP; `viewer/partFrame.ts`
 rotary segments (~4°/sample) and transforms each sample into the work
 frame by evaluating the machine.json chain — same normalize code as the
 live scene (`viewer/kinematics.ts`), so the preview overlays the backplot
-by construction. Settings → 3D Viewer → "Path on part" (default) vs
+by construction. TLO rule (W3 P0): the tool-length offset subtracts in
+the TOOL NODE'S WORLD ROTATION — the same frame as applyState phase 3
+(local .position under the rotated spindle chain) and the collision
+worker (tool-local cylinder verts); three consumers, one rule. A
+world-axis subtraction is off by a constant rigid offset whenever the
+spindle chain is tilted (operator-caught: 12.58 mm at the TWP hold). Settings → 3D Viewer → "Path on part" (default) vs
 "Programmed XYZ". The transform re-runs on live WCS changes (debounced —
 part-frame vertices depend on pivot-vs-work-origin). Machine-limit
 overflow + bounds boxes stay in programmed/machine space (the correct
@@ -493,7 +498,18 @@ captured (joints→machine→program via `machineToProgram`, the exact
 inverse of the preview transform) and `prependEntry` puts the rapid from
 the machine's ACTUAL position to the program's first point at the front
 of the track (scrub 0 = live position, labeled "entry", rapid-flagged) —
-run-time-only motion no parse can know, and the classic crash. The sweep
+run-time-only motion no parse can know, and the classic crash. The
+conversion runs under the TRACK's first-segment labeling (mode[0] +
+frame[0] + epoch-0 terms as ONE triple — W3 P3: joints are the physical
+invariant, kins maps are labelings; mixing the live kins pin/plane pins
+with epoch-0 terms landed the entry ~900 mm off when parked labeling ≠
+track labeling); the live pin is only the legacy fallback for mode-less
+tracks. Since schema 6 the track's first point is the program's own
+first-move ENDPOINT (`rapid_ustart` — the canon records suppressed
+first moves as zero-length unknown-start rapids instead of dropping
+them; ustart unions into brk client-side, and the entry move supersedes
+the unknown approach), so the sim reproduces the run's real multi-stage
+approach. The sweep
 keeps itself current with NO manual trigger: auto-runs on program load
 (base track — marks appear before sim is entered), on sim entry (entry
 track, fresh position = fresh baseline), and on WCS/tool changes while

@@ -90,6 +90,11 @@ def summarize(payload):
     out["violations_total"] = int(payload.get("violations_total") or 0)
     out["violations_world_unchecked"] = int(
         payload.get("violations_world_unchecked") or 0)
+    # Schema 6 (W3): suppressed first-move endpoints on the wire, and the
+    # unmarked-external-sub advisory.
+    us = payload.get("rapid_ustart")
+    out["ustart_count"] = int(np.frombuffer(us, np.uint8).sum()) if us else 0
+    out["unmarked_subs"] = list(payload.get("unmarked_subs") or [])
     return out
 
 

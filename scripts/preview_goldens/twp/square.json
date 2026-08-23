@@ -7,7 +7,7 @@
     "feed": 0,
     "rapid": 0
   },
-  "preview_schema": 5,
+  "preview_schema": 6,
   "ships_abc": false,
   "sub_names": [],
   "swept_axes": [],
@@ -15,6 +15,8 @@
     "total": 0,
     "trusted": 0
   },
+  "unmarked_subs": [],
+  "ustart_count": 0,
   "violations_total": 0,
   "violations_world_unchecked": 0,
   "wcs_epochs": {

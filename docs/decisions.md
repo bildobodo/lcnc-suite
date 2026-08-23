@@ -893,3 +893,132 @@ preview overlays the backplot + sim head at B≈−40.9/C≈130.2; P4 the
 through tool_touch_off (browser.viewer.perf); P6 main-file lines
 highlight through a toolchange run with the off-path chip showing; and
 the wave-1 perf-matrix re-run.
+
+## Wave 3 (2026-08-23) — operator retest: residual offset, approach, highlight
+
+Operator reports after wave 2: (1) "still a small offset between preview
+and actual run/sim", (2) "the sim does not do the same moves while
+approaching the square", (3) "line highlight stops at line 7, blank
+lines light, never reaches M2" — plus two architecture questions
+answered below. All root causes were confirmed read-only before any fix
+(commits 2b17426..this).
+
+**P0 — the small offset was D1: TLO subtracted in WORLD axes**
+(`partFrame.ts`) while applyState phase 3 and the collision worker
+subtract along the TILTED tool axis — a constant 12.58 mm rigid offset
+of the drawn plane at the held tilt (C=130.2455, B=−40.8555, TLO z=22).
+Run and sim agreed with each other; the drawn polyline was the odd one
+out — exactly the report. Rule now: **the TLO subtracts in the tool
+node's world rotation — three consumers, one rule.** Gate gap closed:
+partFrame gains a tool-side-rotary+TLO fixture (the trunnion's tool
+group hangs untilted under root, so the frame of subtraction was
+invisible to every prior test) and the L1 oracle asserts drawn
+POSITIONS against quaternion-derived truth, not just tilt.
+
+**P1 — approach part 1 (D2): suppressed first moves ship as zero-length
+unknown-start endpoints** (`rapid_ustart`, PREVIEW_SCHEMA 5→6). The
+canon used to drop the whole segment — erasing the program's own first
+rapid, so the sim entry lerped straight to remap-internal motion. The
+endpoint is a commanded pose the run will visit: it ships zero-length
+(0 s / 0 dist by construction), RDP-anchored (collinear points would
+drop), limit-checked as moved-to via a start=None convention in all
+three checkers (the parked-axis attribution would have skipped it), and
+unioned into the client brk channel so every consumer inherits
+never-cross-the-connector. prependEntry supersedes the unknown approach
+with the real live-pose→endpoint rapid. The rotary-sync initcode stays
+fully suppressed (its endpoint IS the live pose).
+
+**P2 — approach part 2 (D3): the k=0 relabel seed.** All kins/frame
+markers firing BEFORE the first recorded segment produced no flip in
+`insert_flip_relabels` (loop from k=1) — the first tuple's start stayed
+the startup-labeled initcode pose: a ~962 mm phantom worth ~4.8 s on
+the first scrub segment, polluting stats and the joint-side limit
+subdivision. The k=0 correction re-expresses merged[0]'s START through
+the same twin math and patches in place (endpoint-only wire — no
+geometry change); ustart-first tuples are skipped, no-twin cases join
+the unresolved count.
+
+**P3 — approach part 3 (D4, latent): the entry conversion mixed
+frames** — LIVE kins pin + live plane pins with epoch-0 (plane-frame)
+terms; parked in identity after g69, the entry start landed ~(G59−G54)
+≈ 900 mm off. Design position: **joints are the physical invariant,
+kins maps are labelings** — naming the live pose in the track's
+coordinates uses the TRACK's first-segment labeling (mode/frame/epoch-0
+as ONE triple), making jointsForSample(entry) round-trip to the live
+joints by construction. The live pin stays authoritative only for the
+run playhead's forward kins (actual machine state) and as the legacy
+fallback for mode-less tracks.
+
+**P4 — highlight (D5a+d): one gating rule, honest end.** The scrub path
+forwarded RAW sample lines to GcodePanel (blank line 5 lit from
+square.ngc's L5; scrollToLine(1029) fired for the remap point) while
+the run path gated per-point. `displayLineForPoint` is now the single
+shared rule; the pose emit carries raw (clash tint + 3D path highlight
+— their data shares the sub-relative numbering, self-consistent) and
+gated (text panel) lines separately. `atTrackEnd` presents an explicit
+"end" state mirroring "entry" — trailing non-motion lines (M2) are
+unknowable, never guessed, and the highlight no longer freezes on the
+last attributable line.
+
+**P5 — highlight (D5b+c): markers + advisory.** square.ngc gains
+WEBUI_SUB markers (its line numbers collided with the main file's and
+three points false-positively trusted — main 4/6/7 lit from the sub's
+own numbering); deployed copy byte-synced. Point-level heuristics for
+the unmarked-sub class REJECTED (no file identity in the canon; W2 P6
+no-monotonicity precedent); instead a FILE-level advisory ships
+(`unmarked_subs`): external o-calls resolved through SUBROUTINE_PATH
+whose files lack markers → one info-tier "Line tracking" stats row.
+Unresolvable names claim nothing.
+
+**P6 — harness corner-exactness + correspondence** (see the dated
+corrections in the wave-2 section): endpoints := transition samples
+(0.2651 → 0.0316 mm on the same capture); joints gate pairs per line by
+LAST-in-execution-order derived vertex; overlay excludes ustart
+vertices from span claiming and judges only a line's LAST truth run
+(collided lines). Validated 3/3 MATCH against the wave-2 capture via a
+SUBROUTINE_PATH shim serving the capture-time square.ngc — the P5
+markers shifted the sub's line numbers, so the old capture corresponds
+only to the pre-marker file. (Found the hard way: the un-shimmed
+compare read exactly 100.0 mm = the square's side, the signature of
+off-by-one line correspondence. Note: the interp chokes on an
+over-long SUBROUTINE_PATH with "Bad character 'g'" — keep shim paths
+short.)
+
+**P7 — goldens regenerated (twp) at schema 6**, every delta matching
+prediction: rapid 7→9 (ustart + relabel vertices), brk_count 0→1,
+sub_names +square, trusted 3/7 → 1/9 (the three false positives gone;
+exactly the L4 ustart vertex remains trusted — 0/N would have been the
+red flag), wcs_epochs 1→2 (motion now exists under the pre-plane G54
+epoch; `rewritten` stays 0 because the disk rows coincide — the A4
+inertness). 3axis goldens: restart-window bucket (their config must be
+the running one; also carry schema 6 + the two new summary fields).
+
+**Architecture verdicts (operator questions).** "Let LinuxCNC do the
+sim" (full task/motion shadow instance): REJECTED for preview — HAL's
+shm keys are compile-time constants (`hal_priv.h HAL_KEY`, no env
+override; upstream #2716 unimplemented; the launcher's
+/tmp/linuxcnc.lock auto-kills a second instance headless), and
+task/motion has NO faster-than-realtime knob (uspace_rtapi_app
+nanosleeps real servo periods), so a shadow sim costs 1:1 wall-clock —
+a verification tool, not a preview. The only unpatched path if ever
+wanted as a "verify run" feature: IPC-namespace (unshare --ipc) shadow
++ NML-over-TCP client.nml, with `linuxcnc.nmlfile` per-channel on the
+gateway side (~3 lines client-side). Industry pattern (Heidenhain
+PLANE SPATIAL sim, Siemens CYCLE800, Okuma 3DVM): share the kinematic
+model between motion and graphics — our architecture. "How do other
+UIs handle TWP": they don't — gremlin/AXIS/QtDragon draw program
+coordinates with at most a rigid [DISPLAY]GEOMETRY rotary transform
+(upstream's own TRT demos name only the tilt axis); Sigma1912 shows
+tilt only via vismach, disjoint from the backplot.
+
+**Owed at the next suite restart (wave-3 additions to the bucket):**
+fresh twp_parity truth capture against the marker-shifted square.ngc
+(the wave-2 capture only corresponds to the pre-marker file) —
+expect joints ≤ ~0.05 mm with the P6 endpoints; 3axis golden regen at
+schema 6; live D1 check (preview overlays run/sim with zero rigid
+offset at the held tilt); sim shows the two-stage approach with a
+realistic first-segment time and stats −962 mm (D2/D3);
+identity-parked sim entry lands on the live model (D4); scrub/run
+highlight: L4 → "(square)" chip → "end", no blank-line lights, no
+scrollToLine into remap linenos (D5); plus everything already listed
+in the wave-2 bucket that has not yet had its live pass.
