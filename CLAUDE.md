@@ -499,7 +499,17 @@ line (W4, schema 7: `(WEBUI_SUB=name CALLER=g53.3)` markers +
 unique-site scan in `attribute_sub_callers` — multiple call sites of one
 sub keep the chip-only display; no positional signal exists, the interp
 never fires next_line for o-call/remap trigger lines), else null + the
-"(name)" chip; track end is an explicit "end" state, never a guessed M2.
+"(name)" chip. Above it sits `resolveCurrentLine` (W5, the display
+spec in docs/decisions.md wave 5): live `motion_line` — a bare
+motion-queue id with NO file identity — may display only when the
+track's per-line trust set vouches for it (the off-path approach
+rescue) and NEVER at idle (post-run it holds the last executed id: the
+stale blank-line-8 class); the track's terminal vertex displays the
+text-scanned unique M2/M30 line ("end" readout). While a marked o-call
+span executes, GcodePanel renders the called file's lines INDENTED
+under the call line (`subRows.ts` row model, `GET /subfile` source,
+expansion only when the call line's text IS `o<name> call` — remap
+wrappers and nested spans never expand).
 
 **Entry move + auto-check**: at sim entry the live machine position is
 captured (joints→machine→program via `machineToProgram`, the exact

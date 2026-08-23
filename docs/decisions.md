@@ -1091,3 +1091,76 @@ operator visual pass — scrub/run the demo, expect continuous
 L4 → L7 → L9 → end highlight with scroll, "L9 (square)" readout,
 muted chip tooltip naming the call line; 3axis goldens regen now needs
 schema 7 (supersedes the wave-3 "at schema 6" entry).
+
+## Wave 5 (2026-08-23) — run-highlight spec + inline subroutine view
+
+**Report (screenshot).** Real run of the TWP demo: L7→L9 highlighted
+correctly (wave 4 works live), but blank line 8 stayed highlighted
+after the run ("8 / 13 (62%)"), the first lines never highlighted, and
+M2 never did. Operator (rightly): "are we just fixing this as things
+pop up? … let's think this over properly."
+
+**Where motion_line comes from (read from the 2.9.4 source).** The
+interpreter stamps each canon motion with its sequence_number
+(`emccanon.cc interp_list.set_line_number`); the number rides the
+motion queue as the segment's trajectory id; task publishes the id of
+the segment the realtime controller is executing
+(`emctask.cc:705 stat->motionLine = emcStatus->motion.traj.id`). It is
+a bare integer with NO file identity — inside square.ngc it is
+square's own lineno — and after a program ends it holds the LAST
+executed id until a state transition resets it to 0 (both observed:
+the stale 8 = square.ngc's `g0 x0y0z120`, later 0). `call_level`
+cannot qualify it: interp read-ahead is back at level 0 while queued
+sub motion executes (W2 finding).
+
+**Other UIs (read from installed sources).** AXIS:
+`set_current_line(stat.motion_id or stat.motion_line)` (axis:816).
+gladevcp/gmoccapy: `highlight_line(stat.motion_line)`
+(hal_sourceview.py:152). QtVCP: same field raw. All of them highlight
+the colliding wrong line during subroutines, with no end-of-program or
+approach handling. Nothing to adopt — our parse-time marker spans are
+strictly more information than the live channel any UI reads.
+
+**The display spec** (implemented as ONE pure function,
+`trackHighlight.resolveCurrentLine`, every branch vitest-pinned):
+
+| State (run or sim) | Panel shows | Verified by |
+|---|---|---|
+| idle | nothing; panel editable | stale motion-queue ids NEVER display |
+| approach / off-path, motion_line text-trusted | that main line | `mainLinesTrusted` per-line set |
+| off-path otherwise | nothing | no honest signal |
+| on-path trusted point | its line | per-point lineOk (W2 P6) |
+| on-path marked o-call span | call line + the sub's lines INDENTED under it, its own executing line highlighted | markers + W4 cline + the call line's text IS `o<name> call` |
+| on-path remap span | trigger line + chip (no expansion — system plumbing) | W4 CALLER rules |
+| unattributed / nested span | chip only | W4 rules |
+| terminal vertex | the program's M2/M30 line + "end" readout | `programEndLine` unique-statement scan |
+| non-motion lines | never hold a highlight | execute in ms between motions — motion-anchored playhead limit |
+
+Known bounded residual: during OFF-PATH motion of a marked sub
+(toolchange park), motion_line carries that file's linenos and displays
+iff one collides with a text-trusted main line — strictly smaller than
+the pre-W2 raw fallback, self-correcting on re-attach.
+
+**Inline sub view (operator's design: indent, not a swap).** Row model
+`subRows.ts` (pure): virtual-scroll rows walk main → indented sub →
+main; sub rows carry the SUB file's linenos (muted) and take no
+main-line marks/selection/run-from-line clicks. Expansion only while
+the span executes, only when the call line's comment-stripped text IS
+`o<name> call` of exactly the span's name (remap wrappers and nested
+spans never expand by construction), ≤500 lines, never in edit mode.
+Source served by `GET /subfile?name=` — bare-token name gate,
+SUBROUTINE_PATH first-hit resolution with realpath containment (an
+escaping symlink yields 404, never a later-dir fallback the
+interpreter would not have used). Client cache per name, cleared on
+every new payload.
+
+**Verification.** vitest 468 (resolveCurrentLine + subRows + end-line
+tables), pytest 482 (subfile resolver), builds clean. No wire/schema
+change.
+
+**Owed at the next suite restart (wave-5 additions to the bucket):**
+the /subfile route needs the gateway restart before the indent view
+can fetch; operator visual pass — run the demo, expect L4 (whole
+approach) → L7 (orient) → L9 with square.ngc indented and its lines
+walking → L12/M2 → cleared + editable panel at idle; same scrubbed in
+sim.
