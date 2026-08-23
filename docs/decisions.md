@@ -1164,3 +1164,64 @@ can fetch; operator visual pass — run the demo, expect L4 (whole
 approach) → L7 (orient) → L9 with square.ngc indented and its lines
 walking → L12/M2 → cleared + editable panel at idle; same scrubbed in
 sim.
+
+## Wave 6 (2026-08-23) — sim-vs-actual trajectory gate + rotary-state freshness
+
+**Report.** Sim showed line 7 as "an arc leading into the plane"; the
+real run "plunges straight" and "does not go to the start of this arc".
+Operator: "is it even achievable to get parity?" — then the
+requirement: dump the sim trajectory and the real trajectory to files,
+a harness must show both match, over a corpus of test programs,
+"before that it's not proven correct."
+
+**Root cause (live data).** The rotaries were parked tilted
+(B −40.855 / C 130.245 — the previous run; `;g69` restores nothing,
+M2 moves nothing). A fresh parse at that pose yields abc CONSTANT —
+line 7 IS a straight plunge. The gateway's cached payload was parsed
+untilted — its orient sweeps B 0→−40.86 / C 0→130.25, an arc whose
+start pose the run never visits. Sim and run each answered a different
+question ("from the pose at parse time" vs "from the pose now"). This
+also explains the earlier missing-L7-highlight report: the real orient
+was off the stale track → off-path → suppressed.
+
+**Parity IS achievable — the preview has exactly four run-time state
+inputs, all now freshness-guarded:** WCS table (per-epoch terms +
+rewrite snapshots), tool length (TLO-drift auto-reparse, W2 P4), XYZ
+start (entry move, W3), and — closed this wave — ROTARY pose: the
+worker emits its schema-5 seed as an `__ABCSEED__` stderr line, the
+status snapshot carries canonical `rotary_abc`, and the poller's
+existing idle-gated debounced drift block also runs
+`evaluate_rotary_drift` (0.01°) → reparse, re-seeding from the current
+pose. What parity can never include: wall-clock (the sim runs the
+estimate axis) and corner rounding within the program's G64 budget —
+the gate below compares paths with a per-program tolerance, not clocks.
+
+**The gate (operator's design, sharpened).** The existing twp_parity
+harness parses FRESH at capture time — parse-state == run-state by
+construction, so cache staleness was invisible to it. sim_parity.py
+closes that: per corpus run it (1) saves the RUNNING GATEWAY'S cached
+payload after an idle settle window (the drift edges are part of what's
+under test), (2) captures the real run via sample_run (sim-config +
+on/homed guards; truth file now opens with a context header: axes/kins
+wire shapes, PartFrameWcs, wcs_table rows, start joints), (3) replays
+the payload through the ACTUAL client code — decodePreviewStreams →
+buildScrubTrack → buildEntryTrack → sampleTrack + jointsForSample, all
+extracted as single pure implementations (W6 P1) so the harness and the
+browser share one math — via `npx vite-node lcnc-webui/scripts/
+simDump.ts`, and (4) gates on BIDIRECTIONAL 6D joint-space path
+deviation (deg ≙ mm; a synthetic 40-unit detour reads 0.0 from the
+straight side — one direction is blind to exactly the arc class). Null
+sim joints are counted UNCHECKED; >5% refuses to certify.
+
+**Offline adversarial validation:** the gateway's actual stale cached
+payload vs a fresh-state replay diverges 136 joint-units against tol
+0.5 — the reported bug fails the gate by 270×. Corpus
+(scripts/parity_corpus/twp.json): the TWP demo ×2 BACK-TO-BACK (run 2
+starts tilted — green only through the drift reparse) + a linear/arc
+program with uncommanded rotaries.
+
+**Owed at the next suite restart + machine-on session (P4):**
+`scripts/sim_parity.py gate --corpus scripts/parity_corpus/twp.json` —
+expect GREEN including the back-to-back case; record the numbers here
+and tighten per-program tolerances from the first live data. 3-axis
+corpus at the next 3-axis session.

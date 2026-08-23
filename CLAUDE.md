@@ -511,6 +511,24 @@ under the call line (`subRows.ts` row model, `GET /subfile` source,
 expansion only when the call line's text IS `o<name> call` — remap
 wrappers and nested spans never expand).
 
+**Run-time state freshness + the sim-parity gate (W6)**: the preview
+depends on four run-time state inputs, each freshness-guarded — WCS
+table (per-epoch terms), tool length (TLO-drift auto-reparse), XYZ
+start (entry move), and rotary pose: the worker emits its schema-5
+rotary seed as an `__ABCSEED__` stderr line and the gateway's idle
+drift edge (`evaluate_rotary_drift`, 0.01°) auto-reparses when the live
+pose leaves it (a run parking the table tilted made the cached preview
+orient from a pose the next run never visits — the arc-vs-plunge
+class). Acceptance standard: `scripts/sim_parity.py gate --corpus
+scripts/parity_corpus/<config>.json` — per run it saves the RUNNING
+gateway's cached payload, captures the real run (twp_parity
+sample_run; truth file opens with a context header), replays the
+payload through the ACTUAL client chain (`lcnc-webui/scripts/
+simDump.ts` via vite-node — decodePreviewStreams/buildEntryTrack are
+single pure implementations shared with the browser), and gates on
+bidirectional 6D joint-space path deviation (deg ≙ mm; wall-clock never
+compared; per-program tolerance absorbs G64 blending).
+
 **Entry move + auto-check**: at sim entry the live machine position is
 captured (joints→machine→program via `machineToProgram`, the exact
 inverse of the preview transform) and `prependEntry` puts the rapid from
