@@ -40,12 +40,6 @@ export interface ToolpathCtx {
   pathAlwaysOnTop: boolean;
   machineBounds: { origin: Vec3; size: Vec3 } | undefined;
   units: string | undefined;
-  /** Live applied tool offset [x,y,z,…] (status tool_offset, machine
-   *  units) — the overflow check is joint-side (W2 P4): the machine
-   *  reaches program Z + TLO, so omitting it disagreed with the per-line
-   *  limit validator by exactly the tool length. Null/absent = no offset
-   *  applied. */
-  toolOffset: number[] | null;
 }
 
 export interface ToolpathController {
@@ -56,8 +50,6 @@ export interface ToolpathController {
    *  a run once a called sub's numbering collides with the main file's.
    *  No-op fallback to nothing when the drawn stream carries no src map. */
   setHighlightTrackRange(range: [number, number] | null): void;
-  /** Recompute the machine-bounds overflow flag (workOrigin moved / new path). */
-  updateOverflow(ctx: ToolpathCtx): void;
   setVisible(on: boolean): void;
   setBoundsVisible(on: boolean): void;
   setAlwaysOnTop(on: boolean): void;
@@ -335,41 +327,21 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     workRotGroup.add(toolpathBoundsLabels);
   }
 
-  function updateOverflow(ctx: ToolpathCtx) {
-    deps.overflow.value = false;
-    const workOrigin = ctx.workOrigin;
-    // Overflow checks the FULL motion envelope (feed + rapid, all axes) — a
-    // rapid past the machine bounds must flag even though the drawn cut-bounds
-    // box excludes rapid Z.
-    if (!motionBBox || !workOrigin) return;
-    const mb = ctx.machineBounds;
-    if (!mb) return;
-    const wo = workOrigin.position;
-    // Machine bounds converted to work coordinates. The applied TLO shifts
-    // the window too (W2 P4): the joint reaches program + workOrigin + TLO,
-    // so a bounds check without it disagrees with the per-line validator
-    // (joint-side, TLO-inclusive) by exactly the tool length.
-    const tlo = ctx.toolOffset;
-    const tx = tlo?.[0] ?? 0, ty = tlo?.[1] ?? 0, tz = tlo?.[2] ?? 0;
-    const bMin0 = mb.origin[0] - wo.x - tx, bMin1 = mb.origin[1] - wo.y - ty, bMin2 = mb.origin[2] - wo.z - tz;
-    const bMax0 = bMin0 + mb.size[0], bMax1 = bMin1 + mb.size[1], bMax2 = bMin2 + mb.size[2];
-    // motionBBox is in pre-rotation work coords; rotate the 4 XY corners by
-    // workRotGroup.rotation.z to get the rendered AABB. Z is unaffected.
-    const theta = ctx.workRotGroup?.rotation.z ?? 0;
-    const ca = Math.cos(theta), sa = Math.sin(theta);
-    let mnX = Infinity, mxX = -Infinity, mnY = Infinity, mxY = -Infinity;
-    for (const x of [motionBBox.min[0], motionBBox.max[0]]) {
-      for (const y of [motionBBox.min[1], motionBBox.max[1]]) {
-        const rx = x * ca - y * sa;
-        const ry = x * sa + y * ca;
-        if (rx < mnX) mnX = rx; if (rx > mxX) mxX = rx;
-        if (ry < mnY) mnY = ry; if (ry > mxY) mxY = ry;
-      }
-    }
-    deps.overflow.value =
-      mnX < bMin0 || mxX > bMax0 ||
-      mnY < bMin1 || mxY > bMax1 ||
-      motionBBox.min[2] < bMin2 || motionBBox.max[2] > bMax2;
+  // The HUD "exceeds bounds" verdict comes from the per-line soft-limit
+  // VALIDATOR — the same source of truth as the marked lines and scrub
+  // findings (W2 follow-up, operator-caught): the old geometric box here
+  // applied ONE live TLO uniformly to an envelope built from mixed-TLO
+  // segments, so a `G53 G0 Z0` retract with G43 active flagged Z by
+  // exactly the tool length while the validator (per-segment TLO,
+  // joint-side) and the real run were both clean. Two implementations of
+  // one check will disagree; the weaker one is gone. The validator stays
+  // current via the P4 TLO-drift auto-reparse; WCS drift between
+  // reparses is covered by the "Preview uses older offsets — Refresh"
+  // hint, not by a second geometric guess. null violations (INI without
+  // limits) = unchecked, and the stats dialog already says "Not
+  // validated" — the HUD must not claim either way.
+  function updateOverflowFromValidator(g: ViewerGcode) {
+    deps.overflow.value = (g.violations_total ?? 0) > 0;
   }
 
   return {
@@ -510,7 +482,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
         if (!toolpathBBox && _anyFeed) toolpathBBox = { min: mn, max: mx };
         if (!motionBBox && _anyPt) motionBBox = { min: mmn, max: mmx };
       }
-      updateOverflow(ctx);
+      updateOverflowFromValidator(g);
       rebuildToolpathBounds(ctx);
 
       // Apply stored toolpath visibility (may have been set before lines existed)
@@ -570,7 +542,6 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       highlightLine.geometry.setDrawRange(s, last - s + 1);
     },
 
-    updateOverflow,
 
     setVisible(on) {
       toolpathVisible = on;

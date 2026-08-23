@@ -155,8 +155,11 @@ export interface LimitViolation {
 // gateway TLO-drift auto-reparse (W2 P4 — pre-3 payloads keep limit flags
 // baked with a re-measured-away tool length); 4 = per-point line trust +
 // marked-sub spans, lines_untrusted means "NO point trusts" (W2 P6 —
-// pre-4 payloads disable the whole run highlight on any sub call).
-export const EXPECTED_PREVIEW_SCHEMA = 4;
+// pre-4 payloads disable the whole run highlight on any sub call); 5 =
+// uncommanded rotaries rebased to the live machine pose (a pre-5 TWP
+// payload can pose a parked rotary a whole fixture-offset wrong — the
+// bump reparses warm caches out of the wrong pose).
+export const EXPECTED_PREVIEW_SCHEMA = 5;
 
 /** Non-null when the loaded payload was parsed with a DIFFERENT tool length
  *  than the live table now holds for the spindle tool (W2 P4): the per-line

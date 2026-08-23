@@ -343,8 +343,10 @@ let machineMeshes: THREE.Mesh[] = [];
 
 // Toolpath preview controller. Stable deps (clip-plane arrays mutated in place,
 // the billboard registry, mkTextLabel, disposeObject, the live colour getter,
-// the HUD overflow ref) are bound once; apply()/updateOverflow() take a fresh
-// ToolpathCtx with the reassigned scene-graph pointers (never cached).
+// the HUD overflow ref) are bound once; apply() takes a fresh ToolpathCtx
+// with the reassigned scene-graph pointers (never cached). The overflow ref
+// is set from the per-line VALIDATOR at apply time — one source of truth
+// with the marked lines (the old per-tick geometric box is gone).
 const toolpath = createToolpathController({
   requestRender,
   boundsClipPlanes,
@@ -356,15 +358,13 @@ const toolpath = createToolpathController({
   axisCss: AXIS_CSS,
   overflow: toolpathOverflow,
 });
-// Reused ctx object: applyState calls updateOverflow(toolpathCtx()) on every
-// status tick (≤30 Hz), and a fresh 6-field object per tick is avoidable gen-0
-// churn (GC pauses here are object-count driven). Safe to mutate in place —
+// Reused ctx object: a fresh object per call is avoidable gen-0 churn (GC
+// pauses here are object-count driven). Safe to mutate in place —
 // controllers read ctx fields synchronously and never retain it (contract in
 // viewerContext.ts).
 const _toolpathCtx: ToolpathCtx = {
   scene: null, workOrigin: null, workRotGroup: null,
   pathAlwaysOnTop: false, machineBounds: undefined, units: undefined,
-  toolOffset: null,
 };
 function toolpathCtx(): ToolpathCtx {
   _toolpathCtx.scene = scene;
@@ -373,7 +373,6 @@ function toolpathCtx(): ToolpathCtx {
   _toolpathCtx.pathAlwaysOnTop = pathAlwaysOnTop;
   _toolpathCtx.machineBounds = viewerInit.value?.machine_bounds;
   _toolpathCtx.units = viewerInit.value?.units;
-  _toolpathCtx.toolOffset = vst.value?.tool_offset ?? null;
   return _toolpathCtx;
 }
 let _machineEdgeLines: THREE.LineSegments[] = [];
@@ -1240,7 +1239,6 @@ function applyState(init: ViewerInit, st: ViewerState) {
 
   if (workOrigin) {
     workOrigin.position.set(ox, oy, oz);
-    toolpath.updateOverflow(toolpathCtx());
   }
   if (workRotGroup) {
     workRotGroup.rotation.z = (st.rotation_xy ?? 0) * Math.PI / 180;
@@ -2559,7 +2557,8 @@ defineExpose({
       <div v-if="previewTloStale" class="hudWarn hudAction"
         :title="`Parsed with T${previewTloStale.tool} length ${previewTloStale.parsed.toFixed(3)}, table now ${previewTloStale.live.toFixed(3)} — line limit flags are stale`"
         @click="emit('reparse')">Preview parsed with a different T{{ previewTloStale.tool }} length — Reparse</div>
-      <div v-if="toolpathOverflow" class="hudWarn">Toolpath exceeds bounds</div>
+      <div v-if="toolpathOverflow" class="hudWarn"
+        title="The per-line soft-limit validator flagged moves outside the machine's travel — the same source of truth as the marked code lines and the scrub bar's findings">Toolpath exceeds soft limits</div>
     </div>
 
     <!-- View navigation cube (top-right) -->

@@ -131,6 +131,14 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         # number is the first moment the post-initcode state is visible.
         if self.basis_at_start is None and (self.lineno or 0) >= 1:
             self.basis_at_start = self.wcs_basis()
+            # Re-arm the first-move suppression for the PROGRAM (schema 5):
+            # the rotary-sync initcode (gateway_util.rotary_sync_initcode)
+            # is a G53 move that consumed the one suppression while seeding
+            # self.lo with the machine's live rotary pose. The program's
+            # own first move must stay suppressed exactly as before — its
+            # prior XYZ position is still unknown. A parse without the
+            # sync initcode leaves first_move already True; this is a no-op.
+            self.first_move = True
 
     def set_feed_rate(self, f): self.feedrate = f / 60.0
     def set_spindle_rate(self, _): pass

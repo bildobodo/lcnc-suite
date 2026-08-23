@@ -303,30 +303,70 @@ def swept_axes(joint_rows, eps=1e-3):
     return {i for i in range(rows.shape[1]) if ptp[i] > eps}
 
 
-def path_overlay(truth_pts, poly_pts):
-    """Max/p95 distance from truth samples to the derived polyline (P8.1).
-
-    THE operator-visible metric: does the drawn path overlay the live run —
-    endpoint parity can pass while the path between endpoints bends wrong.
-    Point-to-segment in 3D over every polyline segment; O(N·M) numpy,
-    fine at capture sizes."""
-    T = np.asarray(truth_pts, float)
-    P = np.asarray(poly_pts, float)
-    if len(T) == 0 or len(P) < 2:
-        return None
-    A = P[:-1]                      # (M,3) segment starts
-    D = P[1:] - A                   # (M,3) segment vectors
-    L2 = (D * D).sum(axis=1)        # (M,)
+def _seg_dist(p, P):
+    """Min distance from point p to polyline P ((M,3), M>=1)."""
+    if len(P) == 1:
+        return float(np.linalg.norm(p - P[0]))
+    A = P[:-1]
+    D = P[1:] - A
+    L2 = (D * D).sum(axis=1)
     L2[L2 == 0] = 1e-30
-    best = np.empty(len(T))
-    for i, p in enumerate(T):
-        u = ((p - A) * D).sum(axis=1) / L2
-        u = np.clip(u, 0.0, 1.0)
-        d = p - (A + u[:, None] * D)
-        best[i] = np.sqrt((d * d).sum(axis=1).min())
-    return {"max": float(best.max()),
-            "p95": float(np.percentile(best, 95)),
-            "mean": float(best.mean())}
+    u = np.clip(((p - A) * D).sum(axis=1) / L2, 0.0, 1.0)
+    d = p - (A + u[:, None] * D)
+    return float(np.sqrt((d * d).sum(axis=1).min()))
+
+
+def path_overlay(truth_samples, der_tips, der_lines):
+    """Per-LINE overlay: does the machine, while executing line L, stay on
+    the derived geometry the preview claims for line L? (P8.1)
+
+    THE operator-visible metric — endpoint parity can pass while the path
+    between endpoints bends wrong. Correspondence is by motion_line, the
+    same key as the joints gate: each truth sample compares against ITS
+    line's derived span (that line's vertices plus the segment leading
+    into its first vertex — motion TO an endpoint happens DURING the
+    line). Samples on lines the preview claims no geometry for are
+    TRANSIT (the entry/approach class the canon's first-move suppression
+    deliberately omits; the client prepends the real entry from the LIVE
+    pose at sim entry) — counted, never scored. A mid-line departure, the
+    real defect class, lands on a claimed line and counts fully.
+
+    Division of labor with the joints gate: samples executing INSIDE a
+    remap or sub (call_level > 0 — the g53.x approach/orient, the G30
+    park) are run-time motion whose PATH the preview never claims; their
+    endpoints are still validated by the per-line joints compare. Scoring
+    them here read the whole orient approach as 100+ mm of "error" on the
+    g53.x call's line while the square overlaid exactly.
+
+    truth_samples: [(tip3, motion_line, call_level)] — a legacy capture
+    without call_level passes None (treated as main-level, judged).
+    der_tips: ordered derived tip polyline; der_lines: per-vertex line
+    numbers. Pure."""
+    P = np.asarray(der_tips, float)
+    if len(P) == 0 or not truth_samples:
+        return None
+    spans = {}
+    for i, ln in enumerate(der_lines):
+        ln = int(ln)
+        if ln not in spans:
+            spans[ln] = [max(0, i - 1), i]   # include the leading segment
+        else:
+            spans[ln][1] = i
+    dists = []
+    transit = 0
+    for tip, ln, lvl in truth_samples:
+        span = spans.get(int(ln))
+        if span is None or (lvl is not None and lvl > 0):
+            transit += 1
+            continue
+        dists.append(_seg_dist(np.asarray(tip, float), P[span[0]:span[1] + 1]))
+    if not dists:
+        return {"max": float("nan"), "p95": float("nan"), "mean": float("nan"),
+                "judged": 0, "transit": transit}
+    d = np.asarray(dists)
+    return {"max": float(d.max()), "p95": float(np.percentile(d, 95)),
+            "mean": float(d.mean()), "judged": int(len(d)),
+            "transit": transit}
 
 
 # ─────────────────────────── stage 3: truth ─────────────────────────────
@@ -614,6 +654,7 @@ def cmd_compare(a):
     verdicts = []
     all_der_joints = []
     all_der_tips = []
+    all_der_lines = []
     for stream in ("feed", "rapid"):
         pts, lines, kts, seqs = preview_points(pay, stream)
         if not len(pts):
@@ -631,6 +672,7 @@ def cmd_compare(a):
         # tips carry per-segment frame/TLO params, and comparing tips built
         # under different params reads as a huge bogus offset.
         all_der_tips.extend(truth_tip(j, kins, tool_z=tlo_z) for j, _t in der)
+        all_der_lines.extend(int(ln) for ln in lines)
         # Compare ALL SIX JOINTS, not tool tips (and not XYZ only — P8.1:
         # the XYZ-only compare hid a missing rotary channel entirely, the
         # flat-TWP class). Rotary residuals wrap to ±180° so a same-pose
@@ -676,17 +718,23 @@ def cmd_compare(a):
     print(f"  VERDICT: {'MATCH' if swept_ok else 'MISMATCH'}")
     verdicts.append(swept_ok)
 
-    # Path overlay (P8.1): distance from every truth sample's tip to the
-    # DERIVED tip polyline — the operator-visible frame ("does the drawn
-    # path overlay the live run"), which endpoint parity alone can't see.
-    ov = path_overlay([r["tip"] for r in moving if r.get("tip")],
-                      all_der_tips)
+    # Path overlay (P8.1): per-LINE distance from truth samples to the
+    # derived geometry claimed for their line — the operator-visible frame
+    # ("does the drawn path overlay the live run"), which endpoint parity
+    # alone can't see. Transit samples (lines the preview claims nothing
+    # for — approach/orient motion the first-move suppression omits by
+    # design) are counted, never scored.
+    ov = path_overlay(
+        [(r["tip"], r["motion_line"], r.get("call_level"))
+         for r in moving if r.get("tip")],
+        all_der_tips, all_der_lines)
     if ov:
-        print(f"== path overlay: truth tips vs derived polyline ==")
-        print(f"  max {ov['max']:.4f}  p95 {ov['p95']:.4f}  mean {ov['mean']:.4f} (mm)")
+        print(f"== path overlay: truth vs derived, per-line (main-level motion) ==")
+        print(f"  max {ov['max']:.4f}  p95 {ov['p95']:.4f}  mean {ov['mean']:.4f} (mm)"
+              f"  [judged {ov['judged']}, transit (remap/sub or unclaimed): {ov['transit']}]")
         # The overlay tolerance is looser than the endpoint one: truth
-        # samples include accel blends and the sampled approach.
-        ov_ok = ov["p95"] <= max(a.tol * 4, 1.0)
+        # samples include accel blends.
+        ov_ok = ov["judged"] > 0 and ov["p95"] <= max(a.tol * 4, 1.0)
         print(f"  VERDICT: {'MATCH' if ov_ok else 'MISMATCH'} "
               f"(p95 tol {max(a.tol * 4, 1.0)})")
         verdicts.append(ov_ok)

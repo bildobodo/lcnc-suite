@@ -45,8 +45,12 @@ ALLOWED_EXTENSIONS = {".ngc", ".nc", ".gcode", ".tap", ".txt"}
 # (feed_lineok/rapid_lineok) + subroutine spans (feed_sub/rapid_sub +
 # sub_names), and lines_untrusted means "NO point trusts" instead of "any
 # point is doubtful" (W2 P6 — pre-4 payloads disable the whole run
-# highlight the moment one subroutine call appears).
-PREVIEW_SCHEMA = 4
+# highlight the moment one subroutine call appears); 5 = uncommanded
+# rotaries rebased to the LIVE machine pose (the offline interp assumed
+# program-zero of the active fixture — a pre-5 TWP payload can pose a
+# parked rotary a whole fixture-offset wrong; the bump forces warm caches
+# to reparse the wrong pose away).
+PREVIEW_SCHEMA = 5
 
 
 def sanitize_filename(name: str) -> str:
@@ -866,8 +870,12 @@ def should_ship_abc(kins_marked, raw_abc, peeled_abc, eps=1e-9):
        never moves) leaves the PEELED stream at zero. Testing the peeled
        stream here is exactly the defect this replaces (flat-in-XY preview,
        sim head posed B0/C0): raw endpoints are the honest input;
-    3. any variation across the PEELED stream — fixture rotary offsets can
-       differ between epochs even with raw abc identically 0.
+    3. any PEELED value ≠ 0 — a client without the channel zero-fills abc
+       and re-adds the epoch's rotary offsets, so a nonzero peeled value
+       (however constant — e.g. a live-rebased parked rotary under a
+       nonzero fixture offset, schema 5) reconstructs wrong without the
+       wire data. Subsumes the earlier variation test: a varying stream
+       cannot be identically zero.
 
     `raw_abc` may be a one-shot iterable (generator) of (a, b, c) — it is
     consumed at most once and short-circuits on the first hit. `peeled_abc`
@@ -878,14 +886,52 @@ def should_ship_abc(kins_marked, raw_abc, peeled_abc, eps=1e-9):
     for t in raw_abc:
         if abs(t[0]) > eps or abs(t[1]) > eps or abs(t[2]) > eps:
             return True
-    first = None
     for t in peeled_abc:
-        if first is None:
-            first = t
-        elif (abs(t[0] - first[0]) > eps or abs(t[1] - first[1]) > eps
-              or abs(t[2] - first[2]) > eps):
+        if abs(t[0]) > eps or abs(t[1]) > eps or abs(t[2]) > eps:
             return True
     return False
+
+
+def rotary_sync_initcode(axis_mask, actual_position):
+    """The initcode that syncs the preview interp's ROTARY position to the
+    live machine (schema 5 — the parity gate's wave-2 find).
+
+    The offline interpreter starts every axis at program-zero of the
+    active fixture, so an axis the program never commands is posed at the
+    fixture's rotary offset while the real machine holds its parked pose
+    (measured: derived A = 19.05° — exactly G54's A offset — machine A =
+    0; the work-side faceplate 19° off in the sim, ~340 mm of tip error
+    at the work radius). Task syncs its position from the machine at run
+    start; this gives the preview interp the same sync, the same way a
+    program would state it: one `G53 G0` carrying the live rotary values
+    — no motion is recorded (the canon's first-move suppression eats it
+    and re-arms at the first real program line), no value is guessed, and
+    axes the program DOES command behave exactly as the run will (the
+    command becomes a real recorded change from the live pose).
+
+    XYZ are deliberately NOT synced: the linear entry move is run-time
+    state that changes between parse and run, and the client already
+    prepends it from the live position at sim entry — baking a parse-time
+    copy would go stale. Rotary pose is equally run-time state, but the
+    canon needs it to POSE every segment, so parse-time is the honest
+    best (a re-parse refreshes it, same as WCS).
+
+    Returns the initcode string, or None when the machine has no rotary
+    axes or no live position is available (absence = no sync, the honest
+    pre-5 behavior). Pure.
+    """
+    if actual_position is None:
+        return None
+    words = []
+    for bit, slot, letter in ((3, 3, "A"), (4, 4, "B"), (5, 5, "C")):
+        if axis_mask & (1 << bit):
+            try:
+                words.append(f"{letter}{float(actual_position[slot]):.9f}")
+            except (TypeError, IndexError, ValueError):
+                return None   # partial live data: no sync beats a wrong one
+    if not words:
+        return None
+    return "G53 G0 " + " ".join(words)
 
 
 def evaluate_tlo_drift(meta, cur_mtime, tool_number, applied_tlo_z, eps=1e-4):

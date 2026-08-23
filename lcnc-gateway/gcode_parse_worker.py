@@ -69,7 +69,7 @@ from gateway_util import (
     kins_marker_policy, mode_boundary_indices,
     classify_motion_lines, line_trust_flags, resolve_sub_indices,
     insert_flip_relabels, read_var_wcs_rows, wcs_event_rewritten,
-    PREVIEW_SCHEMA, should_ship_abc,
+    PREVIEW_SCHEMA, should_ship_abc, rotary_sync_initcode,
 )
 
 
@@ -197,6 +197,20 @@ def parse(ctx: dict) -> dict:
 
         unitcode = "G%d" % (20 + (s.linear_units == 1))
         initcodes = [unitcode, "G90"]
+        # Rotary position sync (schema 5): seed the preview interp's rotary
+        # pose from the LIVE machine — the same sync task performs at run
+        # start. Without it every uncommanded axis sits at program-zero of
+        # the active fixture (= the fixture's rotary offset in machine
+        # frame; measured: derived A = 19.05° vs machine A = 0 on the TWP
+        # config). The G53 move is eaten by the canon's first-move
+        # suppression (re-armed at the first real program line), so it
+        # seeds position without recording any motion. XYZ deliberately
+        # not synced — see rotary_sync_initcode's docstring.
+        _rot_sync = rotary_sync_initcode(
+            getattr(s, "axis_mask", 0),
+            getattr(s, "actual_position", None))
+        if _rot_sync:
+            initcodes.append(_rot_sync)
         wcs_code = _WCS_CODES.get(g5x_index if isinstance(g5x_index, int) else 0)
         if wcs_code:
             initcodes.append(wcs_code)
@@ -262,6 +276,15 @@ def parse(ctx: dict) -> dict:
     # ACTIVE fixture held at parse time, which is what a touch-off changes.
     # For a program that never switches or rewrites offsets, epoch 0 IS this
     # basis and the shipped coordinates are unchanged.
+    # Source text read ONCE — the tool scan and the line-trust
+    # classification (W2 P6) reuse it.
+    _src_text = ""
+    try:
+        with open(filename, "r", errors="replace") as f:
+            _src_text = f.read()
+    except OSError as e:
+        _trace.emit_exc("gcode.tool_scan_failed", e)
+
     # Per-line soft-limit validation (offline dry run stage 1). Runs on the
     # FULL canon segment list — the RDP decimation below can shave up to eps
     # off an extreme excursion, so post-RDP data is not trustworthy for
@@ -734,13 +757,8 @@ def parse(ctx: dict) -> dict:
     # does execute. Max/union of the two is the best honest estimate.
     text_changes = 0
     text_tools = set()
-    _src_text = ""
-    try:
-        with open(filename, "r", errors="replace") as f:
-            _src_text = f.read()
+    if _src_text:   # read once, further up (rotary-rebase command scan)
         text_changes, text_tools = scan_tool_stats(_src_text)
-    except OSError as e:
-        _trace.emit_exc("gcode.tool_scan_failed", e)
 
     stats = {
         "feedMoves": len(canon.feed),

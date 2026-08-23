@@ -133,32 +133,28 @@ describe("highlight", () => {
 });
 
 describe("overflow / visibility / colours", () => {
-  it("flags overflow when the toolpath bbox exceeds machine bounds", () => {
+  it("the overflow flag follows the per-line validator, not a geometric box", () => {
+    // One source of truth (W2 follow-up, operator-caught): the old
+    // geometric box applied one live TLO to a mixed-TLO envelope and
+    // contradicted the validator (and the real run) on a G53 retract.
+    // A geometrically "overflowing" bbox with a CLEAN validator must not
+    // flag…
     const ctx = makeCtx({ machineBounds: { origin: [0, 0, 0], size: [5, 5, 5] } });
-    c.apply(ctx, GCODE);   // bbox max [10,10,0] > size 5 → overflow
-    expect(overflow.value).toBe(true);
-
-    const ctx2 = makeCtx({ machineBounds: { origin: [0, 0, 0], size: [100, 100, 100] } });
-    c.apply(ctx2, GCODE);
+    c.apply(ctx, { ...GCODE, violations_total: 0 });
     expect(overflow.value).toBe(false);
-  });
-
-  it("flags overflow from rapid Z even though the drawn cut box excludes it", () => {
-    // Machine Z envelope 3 mm; feed stays at Z0 (inside) but the rapid retract
-    // reaches Z5 (outside). The cut box must not flag it — the motion envelope must.
-    const ctx = makeCtx({ machineBounds: { origin: [0, 0, 0], size: [100, 100, 3] } });
-    c.apply(ctx, { ...GCODE, bounds: undefined });   // force the fallback scan
+    // …and validator findings flag regardless of the box.
+    const ctx2 = makeCtx({ machineBounds: { origin: [0, 0, 0], size: [100, 100, 100] } });
+    c.apply(ctx2, { ...GCODE, violations_total: 3 });
     expect(overflow.value).toBe(true);
   });
 
-  it("prefers worker-provided motion_bounds over rescanning", () => {
-    const ctx = makeCtx({ machineBounds: { origin: [0, 0, 0], size: [100, 100, 100] } });
-    // Worker says the motion envelope tops out at Z500 — trust it, don't rescan.
-    c.apply(ctx, {
-      ...GCODE,
-      motion_bounds: { min: [0, 0, 0], max: [10, 10, 500] },
-    });
-    expect(overflow.value).toBe(true);
+  it("an unchecked payload (no violations data) never claims overflow", () => {
+    // null/absent = the INI had no limits to check against — unchecked ≠
+    // clean, and the stats dialog says "Not validated"; the HUD must not
+    // claim either way.
+    const ctx = makeCtx({ machineBounds: { origin: [0, 0, 0], size: [5, 5, 5] } });
+    c.apply(ctx, { ...GCODE, violations_total: undefined });
+    expect(overflow.value).toBe(false);
   });
 
   it("fallback cut box takes X/Y from rapids but Z from feed only", () => {

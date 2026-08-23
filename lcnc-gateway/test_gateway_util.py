@@ -1172,10 +1172,13 @@ class TestShouldShipAbc(unittest.TestCase):
         self.assertTrue(gateway_util.should_ship_abc(
             False, [tilt, tilt, tilt], [self.Z, self.Z, self.Z]))
 
-    def test_epoch_differing_offsets_with_raw_zero_ships(self):
-        # Raw abc identically 0 but two epochs peel with different rotary
-        # offsets → peeled stream varies → pose depends on abc.
-        self.assertFalse(gateway_util.should_ship_abc(
+    def test_any_nonzero_peeled_value_ships(self):
+        # Nonzero PEELED values must ship however constant (schema 5: a
+        # live-rebased parked rotary under a nonzero fixture offset peels
+        # to a constant nonzero — a client without the channel zero-fills
+        # and re-adds the offset, reconstructing the wrong pose). Also
+        # covers the epoch-differing-offsets case (varying ⇒ nonzero).
+        self.assertTrue(gateway_util.should_ship_abc(
             False, [self.Z, self.Z], [(-10.0, 0.0, 0.0), (-10.0, 0.0, 0.0)]))
         self.assertTrue(gateway_util.should_ship_abc(
             False, [self.Z, self.Z], [(-10.0, 0.0, 0.0), (-20.0, 0.0, 0.0)]))
@@ -1252,6 +1255,111 @@ class TestLineTrustMachinery(unittest.TestCase):
                          ("end", None))
         self.assertIsNone(gateway_util.parse_sub_marker("WEBUI_KINSTYPE=2"))
         self.assertIsNone(gateway_util.parse_sub_marker("plain comment"))
+
+
+class TestRotarySyncInitcode(unittest.TestCase):
+    """Schema-5 fix for the parity gate's wave-2 find: the offline interp
+    starts every axis at program-zero of the active fixture, so an axis
+    the program never commands poses at the fixture's rotary offset while
+    the machine holds its parked pose. The fix seeds the interp with one
+    G53 rotary move built from LIVE stat — no motion recorded (first-move
+    suppression eats it, re-armed by the canon at the first real line),
+    no value guessed; commanded axes then behave exactly as the run will
+    (the command records a real change from the live pose — this is also
+    why a rebase-the-output heuristic was rejected: a remap commanding an
+    axis to exactly the fixture offset is indistinguishable from an
+    uncommanded axis in the output, and rebasing it would UNTILT a
+    correct preview whenever the machine parks elsewhere)."""
+
+    # xyzacb axis_mask: X|Y|Z|A|B|C = bits 0..5.
+    MASK6 = 0b111111
+    MASK3 = 0b000111
+
+    def test_builds_g53_move_from_live_rotaries(self):
+        code = gateway_util.rotary_sync_initcode(
+            self.MASK6, (1.0, 2.0, 3.0, 0.0, -40.855498, -229.754523))
+        self.assertEqual(code, "G53 G0 A0.000000000 B-40.855498000 C-229.754523000")
+
+    def test_only_axes_in_the_mask(self):
+        code = gateway_util.rotary_sync_initcode(
+            0b001111, (0, 0, 0, 19.05, 99.0, 99.0))   # A only
+        self.assertEqual(code, "G53 G0 A19.050000000")
+
+    def test_no_rotary_axes_no_sync(self):
+        self.assertIsNone(gateway_util.rotary_sync_initcode(
+            self.MASK3, (1.0, 2.0, 3.0, 0.0, 0.0, 0.0)))
+
+    def test_missing_or_partial_live_data_no_sync(self):
+        # Absence = the honest pre-5 behavior, never a guessed value.
+        self.assertIsNone(gateway_util.rotary_sync_initcode(self.MASK6, None))
+        self.assertIsNone(gateway_util.rotary_sync_initcode(
+            self.MASK6, (1.0, 2.0, 3.0)))
+        self.assertIsNone(gateway_util.rotary_sync_initcode(
+            self.MASK6, (0, 0, 0, 1.0, None, 2.0)))
+
+
+class TestCanonFirstMoveRearm(unittest.TestCase):
+    """The rotary-sync initcode consumes the canon's one first-move
+    suppression; next_line must re-arm it at the first REAL program line
+    so the program's own first move stays suppressed exactly as before."""
+
+    def _canon(self):
+        import types
+        import gcode_canon
+        c = object.__new__(gcode_canon.PreviewCanon)
+        # Minimal state — bypass StatMixin (needs a live stat object).
+        c.feed = []
+        c.rapid = []
+        c.seq = 0
+        c.lineno = -1
+        c.lo = (0.0,) * 9
+        c.first_move = True
+        c.suppress = 0
+        c.basis_at_start = None
+        c.wcs_used = []
+        c._last_motion_g5x = None
+        c.wcs_events = []
+        c._last_wcs_basis = None
+        c.sub_events = []
+        c.rotation_xy = 0.0
+        c.xo = c.yo = c.zo = 0.0
+        c.ao = c.bo = c.co = 0.0
+        c.uo = c.vo = c.wo = 0.0
+        for s in c._WCS_SUFFIXES:
+            setattr(c, "g5x_offset_" + s, 0.0)
+            setattr(c, "g92_offset_" + s, 0.0)
+        c.g5x_index = 1
+        c.rotate_and_translate = lambda *a: tuple(a)
+        return c, types.SimpleNamespace
+
+    def test_initcode_move_seeds_lo_and_program_first_move_still_suppressed(self):
+        c, ns = self._canon()
+        # Initcode G53 rotary sync (sequence_number 0): suppressed, seeds lo.
+        c.next_line(ns(sequence_number=0))
+        c.straight_traverse(0, 0, 0, 0, -40.86, -229.75, 0, 0, 0)
+        self.assertEqual(c.rapid, [])
+        self.assertEqual(c.lo[4], -40.86)
+        # First REAL line re-arms: the program's first move is suppressed
+        # too (its prior XYZ is still unknown), and seeds lo again.
+        c.next_line(ns(sequence_number=1))
+        self.assertTrue(c.first_move)
+        c.straight_traverse(5, 0, 0, 0, -40.86, -229.75, 0, 0, 0)
+        self.assertEqual(c.rapid, [])
+        # The SECOND program move records, starting from the first's end.
+        c.next_line(ns(sequence_number=2))
+        c.straight_traverse(9, 0, 0, 0, -40.86, -229.75, 0, 0, 0)
+        self.assertEqual(len(c.rapid), 1)
+        self.assertEqual(c.rapid[0][1][0], 5)
+        self.assertEqual(c.rapid[0][2][4], -40.86)
+
+    def test_without_initcode_behavior_is_unchanged(self):
+        c, ns = self._canon()
+        c.next_line(ns(sequence_number=1))
+        c.straight_traverse(5, 0, 0, 0, 0, 0, 0, 0, 0)   # suppressed
+        c.next_line(ns(sequence_number=2))
+        c.straight_traverse(9, 0, 0, 0, 0, 0, 0, 0, 0)   # records
+        self.assertEqual(len(c.rapid), 1)
+        self.assertEqual(c.rapid[0][1][0], 5)
 
 
 class TestEvaluateTloDrift(unittest.TestCase):
