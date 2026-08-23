@@ -15,3 +15,18 @@
 import { shallowRef } from "vue";
 
 export const trackHighlightRange = shallowRef<[number, number] | null>(null);
+
+/** Text-panel line state from the positional run playhead (W2 P6): what
+ *  the playhead's matched track point says about the CURRENT line.
+ *  `trusted` = the point's line number belongs to this file and may be
+ *  highlighted (per-point wire trust; legacy tracks fall back to the
+ *  wholesale lines_untrusted flag); `subName` = the marked subroutine the
+ *  point sits in (the UI shows "in subroutine (name)" instead of a
+ *  colliding line). OFF-PATH publishes { line: 0, trusted: false } — the
+ *  highlight must suppress, never fall back to motion_line's colliding
+ *  numbers. Null only when no positional playhead is active at all (idle;
+ *  sim drives GcodePanel via scrubLine) — App.vue then falls back to the
+ *  motion_line path gated by the wholesale untrusted flag. */
+export const runLineState = shallowRef<{
+  line: number; trusted: boolean; subName: string | null;
+} | null>(null);

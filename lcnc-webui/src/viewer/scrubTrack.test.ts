@@ -533,6 +533,47 @@ describe("wcs epochs on the track (review P2)", () => {
   });
 });
 
+describe("line trust + sub spans on the track (W2 P6)", () => {
+  const T = () => buildScrubTrack(
+    { ...stream([[0, 0, 0], [10, 0, 0], [20, 0, 0]],
+                { seq: [1, 2, 3], lines: [4, 7, 9] }),
+      lineOk: new Uint8Array([1, 0, 1]),
+      sub: new Uint8Array([0xff, 0, 0xff]) },
+    EMPTY, undefined, undefined, ["tool_touch_off"],
+  )!;
+
+  it("merges per-point trust and sub indices with names", () => {
+    const t = T();
+    expect(Array.from(t.lineOk!)).toEqual([1, 0, 1]);
+    expect(Array.from(t.sub!)).toEqual([0xff, 0, 0xff]);
+    expect(t.subNames).toEqual(["tool_touch_off"]);
+  });
+
+  it("drops the sub channel without names to dereference into", () => {
+    const t = buildScrubTrack(
+      { ...stream([[0, 0, 0], [10, 0, 0]], { seq: [1, 2] }),
+        lineOk: new Uint8Array([1, 1]), sub: new Uint8Array([0, 0]) },
+      EMPTY,
+    )!;
+    expect(t.lineOk).toBeDefined();
+    expect(t.sub).toBeUndefined();
+    expect(t.subNames).toBeUndefined();
+  });
+
+  it("drops a mislengthed trust channel whole (never guesses alignment)", () => {
+    const bad = { ...stream([[0, 0, 0], [10, 0, 0]], { seq: [1, 2] }),
+                  lineOk: new Uint8Array([1]) };
+    expect(buildScrubTrack(bad, EMPTY)!.lineOk).toBeUndefined();
+  });
+
+  it("prependEntry marks both entry vertices untrusted and outside subs", () => {
+    const t = prependEntry(T(), [-5, 0, 0, 0, 0, 0]);
+    expect(Array.from(t.lineOk!)).toEqual([0, 0, 0, 1]);
+    expect(Array.from(t.sub!)).toEqual([0xff, 0xff, 0, 0xff]);
+    expect(t.subNames).toEqual(["tool_touch_off"]);
+  });
+});
+
 describe("abc pose reconstruction through epoch terms (W2 P3)", () => {
   // The TWP pattern: canon abc constant, the tilt held in the fixture's
   // ROTARY OFFSETS (sim_twp.var G54 abc). The per-epoch peel zeroes the

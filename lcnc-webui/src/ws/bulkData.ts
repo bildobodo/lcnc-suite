@@ -100,6 +100,19 @@ export interface ScrubTrack {
    *  which basis the point was peeled against (review P2). Absent = legacy
    *  payload (single-basis semantics). */
   wcsEpoch?: Uint8Array;
+  /** count — per-point line trust (W2 P6, wire feed_lineok/rapid_lineok):
+   *  1 ⇒ this point's `lines` entry is a line of THIS file that could have
+   *  produced this motion (exists, can move, stream-compatible, not in a
+   *  marked sub span) and may drive the text-panel highlight. Absent =
+   *  pre-schema-4 payload → callers fall back to the wholesale
+   *  lines_untrusted flag. */
+  lineOk?: Uint8Array;
+  /** count — marked-subroutine index into `subNames` per point (0xff =
+   *  none): the UI says "in subroutine (name)" instead of highlighting a
+   *  colliding main-file line. Present only when WEBUI_SUB markers
+   *  executed. */
+  sub?: Uint8Array;
+  subNames?: string[];
   /** WCS epoch events (parsed wire wcs_frames) dereferenced by `wcsEpoch` —
    *  see viewer/wcsEpochs.ts for the re-add rules (live row vs rewritten
    *  snapshot). */
@@ -140,8 +153,10 @@ export interface LimitViolation {
 // pose-dependence, not only on a sweep (W2 P3 — a pre-2 TWP payload lacks
 // the abc channel entirely and would draw flat); 3 = parse_tlos snapshot +
 // gateway TLO-drift auto-reparse (W2 P4 — pre-3 payloads keep limit flags
-// baked with a re-measured-away tool length).
-export const EXPECTED_PREVIEW_SCHEMA = 3;
+// baked with a re-measured-away tool length); 4 = per-point line trust +
+// marked-sub spans, lines_untrusted means "NO point trusts" (W2 P6 —
+// pre-4 payloads disable the whole run highlight on any sub call).
+export const EXPECTED_PREVIEW_SCHEMA = 4;
 
 /** Non-null when the loaded payload was parsed with a DIFFERENT tool length
  *  than the live table now holds for the spindle tool (W2 P4): the per-line
@@ -320,12 +335,26 @@ export interface ViewerGcode {
   // against the live table via parseTloMismatch(); the gateway also
   // auto-reparses on drift when idle. Absent = pre-schema-3 payload.
   parse_tlos?: [number, number, number, number][];
-  // Motion line numbers do NOT index this file: the program calls a
-  // subroutine or remap whose per-file line numbers collide with the main
-  // file's (gateway_util.check_line_attribution — unfixable, a queued
-  // motion carries no file identity). The run highlight must be suppressed
-  // rather than pointed at an unrelated line; the reason string is shown
-  // to the operator.
+  // Per-point line trust + marked-sub spans (W2 P6, schema 4): u8 wire
+  // bytes, index-aligned with feed/rapid — consumed via the merged track
+  // (previewWorker strips them into scrubTrack.lineOk / .sub / .subNames,
+  // so they do not appear as fields on the decoded object). Documented
+  // here for the wire shape only.
+  //   feed_lineok / rapid_lineok : 1 = the point's line number belongs to
+  //     this file and could have produced this motion (exists, can move,
+  //     stream-compatible, not in a marked sub span).
+  //   feed_sub / rapid_sub : index into sub_names, 0xff = none.
+  // Since schema 4, `lines_untrusted` below means NO point trusts (the
+  // honest kill switch) — a program calling subs keeps its own lines
+  // highlightable through the per-point channel.
+  sub_names?: string[];
+  // Motion line numbers do NOT index this file: NO motion point attributes
+  // to a line of this file (per-point trust, W2 P6) — the program's motion
+  // runs in called subroutines or remaps whose per-file line numbers
+  // collide with the main file's (gateway_util.check_line_attribution —
+  // unfixable, a queued motion carries no file identity). The run
+  // highlight must be suppressed rather than pointed at an unrelated
+  // line; the reason string is shown to the operator.
   lines_untrusted?: boolean;
   lines_untrusted_reason?: string;
   // Kins-flip relabel flags (u8, index-aligned with rapid): brk[i]=1 means

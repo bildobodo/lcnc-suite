@@ -6,6 +6,8 @@
 ; final TOOL-kins switch is emitted by remap.py g53x_core (M530).
 
 o<g536remap>sub
+(WEBUI_SUB=g536remap) ;lcnc-suite: preview sub-span marker, silent in task
+
 M66 L0 E0                                                   ;force sync, stop read ahead
 o100 if [EXISTS [#<P>]]
 o100 else
@@ -16,5 +18,6 @@ M68 E3 Q1                                                   ;switch to tcp kinem
 M66 L0 E0
 M530 P#<P>                                                  ;orient the spindle with P word
 M66 L0 E0
+(WEBUI_SUB_END) ;lcnc-suite: preview sub-span marker
 o<g536remap>endsub
 m2

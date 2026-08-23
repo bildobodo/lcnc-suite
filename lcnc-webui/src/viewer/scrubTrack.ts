@@ -49,6 +49,12 @@ export interface ScrubStream {
    *  which basis this point was peeled against (review P2). Absent =
    *  legacy payload (single-basis semantics). */
   wcs?: Uint8Array;
+  /** Per-point line trust (wire feed_lineok/rapid_lineok, W2 P6). Absent
+   *  = pre-schema-4 payload. */
+  lineOk?: Uint8Array;
+  /** Per-point marked-subroutine index (wire feed_sub/rapid_sub, 0xff =
+   *  none) — dereferences into the payload's sub_names. */
+  sub?: Uint8Array;
 }
 
 // Scrub-parameter contribution of a pure rotary sweep: 1° ≙ 1 mm, the same
@@ -63,7 +69,8 @@ const DEG_AS_MM = 1;
  *  — the scrub UI treats null as "unavailable", never guesses an order. */
 export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
                                 frames?: [number, number, number][],
-                                wcsEvents?: WcsEpoch[]): ScrubTrack | null {
+                                wcsEvents?: WcsEpoch[],
+                                subNames?: string[]): ScrubTrack | null {
   const nf = (feed.pos.length / 3) | 0;
   const nr = (rapid.pos.length / 3) | 0;
   const n = nf + nr;
@@ -118,6 +125,19 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
     && (nr === 0 || rapid.wcs?.length === nr)
     && !!(feed.wcs || rapid.wcs);
   const wcsEpoch = hasWcs ? new Uint8Array(n) : undefined;
+  // Line trust + sub spans (W2 P6): merged like mode — present iff every
+  // non-empty stream carries the channel (the worker ships both together;
+  // a half-present channel is a bug upstream, dropped whole rather than
+  // guessed). subNames must exist to dereference sub indices into.
+  const hasLineOk = (nf === 0 || feed.lineOk?.length === nf)
+    && (nr === 0 || rapid.lineOk?.length === nr)
+    && !!(feed.lineOk || rapid.lineOk);
+  const lineOk = hasLineOk ? new Uint8Array(n) : undefined;
+  const hasSub = !!subNames?.length
+    && (nf === 0 || feed.sub?.length === nf)
+    && (nr === 0 || rapid.sub?.length === nr)
+    && !!(feed.sub || rapid.sub);
+  const sub = hasSub ? new Uint8Array(n) : undefined;
 
   let fi = 0, ri = 0;
   let prevFT = 0, prevRT = 0;   // per-stream previous cumulative time
@@ -144,6 +164,8 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
     if (frameIdx) frameIdx[i] = src.frame?.[si] ?? 0xff;
     if (brk) brk[i] = src.brk?.[si] ?? 0;
     if (wcsEpoch) wcsEpoch[i] = src.wcs?.[si] ?? 0;
+    if (lineOk) lineOk[i] = src.lineOk?.[si] ?? 0;
+    if (sub) sub[i] = src.sub?.[si] ?? 0xff;
     if (timeBased) {
       // Duration of the segment ending here = this stream's cumulative
       // delta (RDP-collapsed interiors are preserved by the cumulative).
@@ -188,6 +210,7 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
   return { pos, abc, lines, rapid: rapidFlag, mode, frame: frameIdx,
            frames: hasFrame ? frames : undefined, brk,
            wcsEpoch, wcsEvents: hasWcs ? wcsEvents : undefined,
+           lineOk, sub, subNames: hasSub ? subNames : undefined,
            cum, count: n, lineCum, lineSpan: buildLineMap(lines), timeBased };
 }
 
@@ -609,11 +632,28 @@ export function prependEntry(
     wcsEpoch[0] = t.wcsEpoch[0] ?? 0;
     wcsEpoch[1] = t.wcsEpoch[0] ?? 0;
   }
+  let lineOk: Uint8Array | undefined;
+  if (t.lineOk) {
+    // The entry move is run-time motion no program line commanded — both
+    // its vertices are untrusted for the text highlight (W2 P6).
+    lineOk = new Uint8Array(n);
+    lineOk.set(t.lineOk, 1);
+    lineOk[0] = 0;
+    lineOk[1] = 0;
+  }
+  let sub: Uint8Array | undefined;
+  if (t.sub) {
+    sub = new Uint8Array(n);
+    sub.set(t.sub, 1);
+    sub[0] = 0xff;
+    sub[1] = 0xff;
+  }
   for (let i = 0; i < t.count; i++) cum[i + 1] = t.cum[i]! + entryLen;
   const lineCum = new Map<number, number>();
   for (const [ln, c] of t.lineCum) lineCum.set(ln, c + entryLen);
   return { pos, abc, lines, rapid, mode, frame, frames: t.frames, brk,
            wcsEpoch, wcsEvents: t.wcsEvents,
+           lineOk, sub, subNames: t.subNames,
            cum, count: n, lineCum, lineSpan: buildLineMap(lines), timeBased: t.timeBased };
 }
 

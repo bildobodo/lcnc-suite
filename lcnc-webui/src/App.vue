@@ -2,6 +2,7 @@
 import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, provide, reactive, ref, watch } from "vue";
 import { applyClientOverlay, PERMISSIONS_KEY, FIRE_KEY, type Permissions } from "./permissions";
 import { simMode } from "./simMode";
+import { runLineState } from "./trackHighlight";
 import { connectWs, connected, status, send, armed, lastReply, viewerGcode, viewerInit, gcodeContent, lcncError, latency, networkLatency, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead, pushMessage, safetyTrip, acknowledgeSafetyTrip, readerStale, safetyChainIncomplete, configWarning, previewLoadError, previewParseError, serverShuttingDown, type LcncMessage } from "./lcncWs";
 // Lazy-load the 3D viewer so Three.js (~866 KB) + troika load as a separate async
 // chunk after first paint instead of blocking the initial bundle (P6). The viewerRef
@@ -483,12 +484,21 @@ const linesUntrustedReason = computed<string>(
   () => viewerGcode.value?.lines_untrusted_reason || "");
 
 const currentLine = computed<number | null>(() => {
-  // Pointing the operator at a confidently wrong line is worse than pointing
-  // at none — the observed case parks the highlight on an unrelated line for
-  // the whole run and never reaches the o<...> call that is really executing.
+  // Positional playhead first (W2 P6): the run watcher's matched track
+  // point carries PER-POINT trust — a main program calling subs keeps its
+  // own lines highlighted, a point inside a sub (or the off-path state)
+  // suppresses instead of pointing at a colliding number.
+  const rls = runLineState.value;
+  if (rls) return rls.trusted ? rls.line : null;
+  // No positional state (idle / legacy track): pointing the operator at a
+  // confidently wrong line is worse than pointing at none — the observed
+  // case parks the highlight on an unrelated line for the whole run.
   if (linesUntrusted.value) return null;
   return st.value?.motion_line ?? null;
 });
+/** Marked-subroutine name at the playhead (W2 P6) — GcodePanel shows
+ *  "▶ in subroutine (name)" instead of a line highlight. */
+const runSubName = computed<string | null>(() => runLineState.value?.subName ?? null);
 
 /** ---------- permissions (arming + machine state) ---------- */
 const canEstop = computed(() => !isEstop.value);
@@ -1521,6 +1531,7 @@ watch(viewerGcode, (newGcode) => {
               :violations="gcodeViolations"
               :violationsTotal="gcodeViolationsTotal"
               :currentLine="currentLine"
+              :subName="runSubName"
               :linesUntrustedReason="linesUntrustedReason"
               :scrubLine="linesUntrusted ? null : scrubLine"
               :collisionLines="collisionLines"

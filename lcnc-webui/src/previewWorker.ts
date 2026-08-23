@@ -54,6 +54,13 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     // legacy payload → the track carries no brk and flip segments keep the
     // raw phantom (honest degradation — the reparse machinery refreshes it).
     const rapidBrkWire = g.rapid_brk != null ? new Uint8Array(g.rapid_brk as Uint8Array) : undefined;
+    // Per-point line trust + marked-sub spans (W2 P6) — consumed via the
+    // merged track (playhead trust / "in subroutine" indicator).
+    const feedLineOkWire = g.feed_lineok != null ? new Uint8Array(g.feed_lineok as Uint8Array) : undefined;
+    const rapidLineOkWire = g.rapid_lineok != null ? new Uint8Array(g.rapid_lineok as Uint8Array) : undefined;
+    const feedSubWire = g.feed_sub != null ? new Uint8Array(g.feed_sub as Uint8Array) : undefined;
+    const rapidSubWire = g.rapid_sub != null ? new Uint8Array(g.rapid_sub as Uint8Array) : undefined;
+    const subNames = g.sub_names as string[] | undefined;
     const feedSeq = _toU32(g.feed_seq);
     const rapidSeq = _toU32(g.rapid_seq);
 
@@ -95,10 +102,11 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     const rapidWcsWire = eventIdxFor(rapidSeq, epochSeqs, 0);
 
     const scrubTrack = buildScrubTrack(
-      { pos: feedPos, abc: feedAbc, lines: feedLines, seq: feedSeq, tcum: g.feed_tcum != null && (g.feed_tcum as Uint8Array).length ? _toF32(g.feed_tcum) : undefined, mode: feedModeWire, frame: feedFrameWire, wcs: feedWcsWire },
-      { pos: rapidPos, abc: rapidAbc, lines: _toU32(g.rapid_lines), seq: rapidSeq, tcum: g.rapid_tcum != null && (g.rapid_tcum as Uint8Array).length ? _toF32(g.rapid_tcum) : undefined, mode: rapidModeWire, frame: rapidFrameWire, brk: rapidBrkWire, wcs: rapidWcsWire },
+      { pos: feedPos, abc: feedAbc, lines: feedLines, seq: feedSeq, tcum: g.feed_tcum != null && (g.feed_tcum as Uint8Array).length ? _toF32(g.feed_tcum) : undefined, mode: feedModeWire, frame: feedFrameWire, wcs: feedWcsWire, lineOk: feedLineOkWire, sub: feedSubWire },
+      { pos: rapidPos, abc: rapidAbc, lines: _toU32(g.rapid_lines), seq: rapidSeq, tcum: g.rapid_tcum != null && (g.rapid_tcum as Uint8Array).length ? _toF32(g.rapid_tcum) : undefined, mode: rapidModeWire, frame: rapidFrameWire, brk: rapidBrkWire, wcs: rapidWcsWire, lineOk: rapidLineOkWire, sub: rapidSubWire },
       kinsFrames,
       wcsEvents,
+      subNames,
     );
 
     // Drawn-preview streams re-derived from the merged track (sectioned, with
@@ -137,7 +145,9 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     const { feed: _f, rapid: _r, feed_lines: _fl, feed_abc: _fa, rapid_abc: _ra,
             feed_seq: _fs, rapid_seq: _rs, rapid_lines: _rl,
             feed_tcum: _ft, rapid_tcum: _rt,
-            feed_kinstype: _fm, rapid_kinstype: _rm, rapid_brk: _rb, ...rest } = g;
+            feed_kinstype: _fm, rapid_kinstype: _rm, rapid_brk: _rb,
+            feed_lineok: _fo, rapid_lineok: _ro, feed_sub: _fsb, rapid_sub: _rsb,
+            ...rest } = g;
 
     const transfer: Transferable[] = [
       feedPos.buffer as ArrayBuffer,
@@ -159,6 +169,8 @@ self.onmessage = async (e: MessageEvent<Req>) => {
       if (scrubTrack.frame) transfer.push(scrubTrack.frame.buffer as ArrayBuffer);
       if (scrubTrack.brk) transfer.push(scrubTrack.brk.buffer as ArrayBuffer);
       if (scrubTrack.wcsEpoch) transfer.push(scrubTrack.wcsEpoch.buffer as ArrayBuffer);
+      if (scrubTrack.lineOk) transfer.push(scrubTrack.lineOk.buffer as ArrayBuffer);
+      if (scrubTrack.sub) transfer.push(scrubTrack.sub.buffer as ArrayBuffer);
     }
     if (feedMode) transfer.push(feedMode.buffer as ArrayBuffer);
     if (rapidMode) transfer.push(rapidMode.buffer as ArrayBuffer);

@@ -21,6 +21,8 @@
 
 o<on_abort_twp> sub
 
+(WEBUI_SUB=on_abort_twp) ;lcnc-suite: preview sub-span marker, silent in task
+
 ; --- suite safety tidy-up (from probe_basic on_abort) ---
 M5   (Spindle Stop)
 M9   (Coolant Off)
@@ -42,5 +44,6 @@ o101 else
  G[53+#1]
 o101 endif
 
+(WEBUI_SUB_END) ;lcnc-suite: preview sub-span marker
 o<on_abort_twp> endsub
 M2

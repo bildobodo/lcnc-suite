@@ -19,7 +19,7 @@ import {
   type ScrubSample,
 } from "./viewer/scrubTrack";
 import { createRunWatcher } from "./viewer/runWatcher";
-import { trackHighlightRange } from "./trackHighlight";
+import { trackHighlightRange, runLineState } from "./trackHighlight";
 import { specFromWire } from "./viewer/kins";
 import { epochTermsFor, usedWcsRowsKey, type WcsTableRow } from "./viewer/wcsEpochs";
 import type { WcsTerms } from "./viewer/partFrame";
@@ -88,6 +88,10 @@ const cumMax = computed(() => {
 });
 const curLine = ref(0);
 const curRapid = ref(false);
+// Per-point line trust + marked-sub name at the scrub position (W2 P6);
+// null trust = legacy track → fall back to the wholesale flag.
+const curLineOk = ref<boolean | null>(null);
+const curSubName = ref<string | null>(null);
 const pct = computed(() => (cumMax.value > 0 ? Math.round((sPos.value / cumMax.value) * 100) : 0));
 
 // Reused per-frame scratch — the sPos watcher runs at animation rate.
@@ -113,6 +117,12 @@ function applyPos() {
   sampleTrack(t, sPos.value, _sample);
   curLine.value = _sample.line;
   curRapid.value = _sample.rapid;
+  // Per-point trust + sub name for the sim readout (W2 P6): the sample's
+  // upper track index addresses the wire trust channels directly.
+  curLineOk.value = t.lineOk ? t.lineOk[_sample.index] === 1 : null;
+  const _sb = t.sub?.[_sample.index];
+  curSubName.value = (_sb != null && _sb !== 0xff && t.subNames)
+    ? t.subNames[_sb] ?? null : null;
   jointsForSample(_sample, _wcs(), viewerInit.value?.axes ?? [], _joints,
                   _kinsSpec.value, _epochTerms.value);
   emit("pose", _joints.slice(), _sample.line, sPos.value, t);
@@ -261,7 +271,8 @@ watch(_wcsKey, () => {
 watch(running, (r) => { if (r) exitSim(); });
 watch(baseTrack, () => {
   exitSim(); entryTrack.value = null; sPos.value = 0;
-  _runWatcher.reset(); runOffPath.value = false; trackHighlightRange.value = null;
+  _runWatcher.reset(); runOffPath.value = false; runLineState.value = null;
+  trackHighlightRange.value = null;
 });
 watch(machineOff, (off) => { if (!off) exitSim(); });
 watch(st, (d) => {
@@ -371,7 +382,10 @@ watch(st, (d) => {
   if (out.phase === "offPath") {
     // Frozen playhead, no highlight — the machine is somewhere the program
     // never goes (toolchange park); pretending otherwise is the old bug.
+    // The published state is SUPPRESS, never null: null would let App.vue
+    // fall back to motion_line's colliding sub numbers.
     trackHighlightRange.value = null;
+    runLineState.value = { line: 0, trusted: false, subName: null };
     return;
   }
   if (out.cum == null) return;
@@ -379,26 +393,47 @@ watch(st, (d) => {
   // Positional 3D highlight: the contiguous same-line run around the
   // matched segment — contiguity disambiguates colliding line numbers.
   trackHighlightRange.value = lineRunAround(t, out.index!);
+  // Text-panel line state (W2 P6): per-point trust from the wire when the
+  // track carries it; legacy tracks fall back to the wholesale flag.
+  const i = out.index!;
+  const pointTrusted = t.lineOk ? t.lineOk[i] === 1 : trusted;
+  const sb = t.sub?.[i];
+  runLineState.value = {
+    line: t.lines[i]!,
+    trusted: pointTrusted && t.lines[i]! > 0,
+    subName: (sb != null && sb !== 0xff && t.subNames) ? t.subNames[sb] ?? null : null,
+  };
 });
 watch(running, (r) => {
   _runWatcher.reset();
   runOffPath.value = false;
+  if (!r) runLineState.value = null;
   if (!r && !simMode.value) trackHighlightRange.value = null;
 });
 
 const statusText = computed(() => {
-  // No L-label when the payload's line attribution is untrusted — those
-  // numbers index a called sub/remap file, not the loaded program
-  // (the positional playhead itself never needed them).
+  // Per-point trust (W2 P6) labels the readout; a point inside a marked
+  // sub shows the sub's NAME instead of a colliding line number. Legacy
+  // tracks (no per-point channel) fall back to the wholesale flag.
   const trusted = !viewerGcode.value?.lines_untrusted;
   if (simMode.value) {
-    const label = !curLine.value ? "entry" : trusted ? `L${curLine.value}` : "···";
+    const ok = curLineOk.value ?? trusted;
+    const label = !curLine.value ? "entry"
+      : ok ? `L${curLine.value}`
+      : curSubName.value ? `(${curSubName.value})` : "···";
     return `${label}${curRapid.value ? " →" : ""} ${posLabel.value}`;
   }
   // "~": the run readout is the ESTIMATE clock (parse-time feeds/rapids) —
   // feed override, accel and dwells make real elapsed differ (GcodePanel
   // shows the wall clock).
-  if (running.value) return trusted ? `L${motionLine.value ?? 0} ~${posLabel.value}` : `~${posLabel.value}`;
+  if (running.value) {
+    const rls = runLineState.value;
+    const label = rls
+      ? (rls.trusted ? `L${rls.line}`
+        : rls.subName ? `(${rls.subName})` : "···")
+      : trusted ? `L${motionLine.value ?? 0}` : "···";
+    return `${label} ~${posLabel.value}`;
+  }
   return "live";
 });
 

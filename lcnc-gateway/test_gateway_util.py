@@ -1189,6 +1189,71 @@ class TestShouldShipAbc(unittest.TestCase):
         self.assertFalse(gateway_util.should_ship_abc(False, [n, n], [n, n]))
 
 
+class TestLineTrustMachinery(unittest.TestCase):
+    """W2 P6 per-point line trust: classification, stream compatibility,
+    and marked-subroutine span resolution."""
+
+    SRC = "\n".join([
+        "G0 X0 Y0",            # 1 rapid
+        "G1 X10 F200",         # 2 feed
+        "(comment only)",      # 3 none
+        "X20 Y5",              # 4 either (modal axis words)
+        "G10 L2 P1 X0",        # 5 none (settings-only axis words)
+        "G81 X1 Y1 Z-2 R1",    # 6 either (canned: rapids AND feeds)
+        "G28",                 # 7 rapid
+        "M6 T3",               # 8 none
+        "G2 X0 I5",            # 9 feed
+    ])
+
+    def test_classification(self):
+        cls = gateway_util.classify_motion_lines(self.SRC)
+        L = gateway_util
+        self.assertEqual(cls, [
+            L.LINE_RAPID, L.LINE_FEED, L.LINE_NONE, L.LINE_EITHER,
+            L.LINE_NONE, L.LINE_EITHER, L.LINE_RAPID, L.LINE_NONE,
+            L.LINE_FEED])
+
+    def test_stream_compatibility(self):
+        cls = gateway_util.classify_motion_lines(self.SRC)
+        # A FEED point on the rapid-only line 1 is a colliding sub number.
+        self.assertEqual(
+            gateway_util.line_trust_flags([1, 2, 4, 6], cls, is_rapid_stream=False),
+            [0, 1, 1, 1])
+        # A RAPID point on the feed-only line 2 likewise.
+        self.assertEqual(
+            gateway_util.line_trust_flags([1, 2, 4, 7], cls, is_rapid_stream=True),
+            [1, 0, 1, 1])
+
+    def test_out_of_range_and_cannot_move_untrusted(self):
+        cls = gateway_util.classify_motion_lines(self.SRC)
+        self.assertEqual(
+            gateway_util.line_trust_flags([0, 3, 5, 8, 99], cls, False),
+            [0, 0, 0, 0, 0])
+
+    def test_sub_indices_strict_seq_and_nesting(self):
+        events = [(2, "toolchange"), (5, "probe"), (7, None), (9, None)]
+        idx = {"toolchange": 0, "probe": 1}
+        # Marker at seq N governs points with seq > N (strict).
+        self.assertEqual(
+            gateway_util.resolve_sub_indices([1, 2, 3, 6, 8, 10], events, idx),
+            [0xff, 0xff, 0, 1, 0, 0xff])
+
+    def test_sub_indices_unbalanced_end_pops_nothing(self):
+        self.assertEqual(
+            gateway_util.resolve_sub_indices([1, 5], [(2, None)], {}),
+            [0xff, 0xff])
+
+    def test_parse_sub_marker(self):
+        self.assertEqual(gateway_util.parse_sub_marker("WEBUI_SUB=tool_touch_off"),
+                         ("start", "tool_touch_off"))
+        self.assertEqual(gateway_util.parse_sub_marker(" WEBUI_SUB = g53x core "),
+                         ("start", "g53x core"))
+        self.assertEqual(gateway_util.parse_sub_marker("WEBUI_SUB_END"),
+                         ("end", None))
+        self.assertIsNone(gateway_util.parse_sub_marker("WEBUI_KINSTYPE=2"))
+        self.assertIsNone(gateway_util.parse_sub_marker("plain comment"))
+
+
 class TestEvaluateTloDrift(unittest.TestCase):
     """W2 P4 drift edge: the per-line limit flags bake the parse-time tool
     table; this decides when the poller must reparse. G49 (applied offset

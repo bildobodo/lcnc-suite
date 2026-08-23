@@ -66,7 +66,8 @@ from gateway_util import (
     check_limit_violations_world, merge_violation_records,
     wcs_basis_terms, parse_kins_config, kins_type_flags,
     kins_nonidentity_flags, kins_frame_indices, check_limit_violations_trsrn,
-    kins_marker_policy, mode_boundary_indices, check_line_attribution,
+    kins_marker_policy, mode_boundary_indices,
+    classify_motion_lines, line_trust_flags, resolve_sub_indices,
     insert_flip_relabels, read_var_wcs_rows, wcs_event_rewritten,
     PREVIEW_SCHEMA, should_ship_abc,
 )
@@ -319,6 +320,10 @@ def parse(ctx: dict) -> dict:
             canon.kins_frames if kins_active else [],
             canon.wcs_events, kins_cfg, unit_scale)
         flips_handled = True
+        # Sub-span markers re-key with the same seq doubling (W2 P6) — their
+        # strict `<` comparisons must stay aligned with the doubled per-point
+        # seqs (inserted relabel vertices at odd seqs resolve consistently).
+        canon.sub_events = [(_s * 2, _nm) for _s, _nm in canon.sub_events]
         if relabel_seqs or flips_unresolved:
             print(f"flips: {len(relabel_seqs)} relabel vertices inserted "
                   f"({len(canon.wcs_events)} wcs epochs), {flips_unresolved} "
@@ -779,21 +784,52 @@ def parse(ctx: dict) -> dict:
     feed_tcum_bin = np.asarray(feed_tcum, dtype="<f4").tobytes() if (time_axis and feed_tcum) else b""
     rapid_tcum_bin = np.asarray(rapid_tcum, dtype="<f4").tobytes() if (time_axis and rapid_tcum) else b""
 
+    # Per-point line trust (W2 P6): a point trusts its line number iff the
+    # line exists in THIS file, can move the machine, its classified motion
+    # kind is compatible with the stream the point sits in
+    # (classify_motion_lines / line_trust_flags), AND the point is not
+    # inside a marked `(WEBUI_SUB=…)` span — motion executed in a called
+    # sub or remap carries THAT file's line numbers, which collide with the
+    # main program's (see gateway_util.check_line_attribution for why the
+    # number itself is unfixable). Computed on the SHIPPED (post-RDP)
+    # lists: trust is a pure per-point function of (line, seq, stream), so
+    # decimation commutes with it. Wholesale `lines_untrusted` — the run
+    # highlight's kill switch — now means NO shipped point trusts; a main
+    # program that calls subs keeps its own lines highlightable (pre-
+    # schema-4 payloads disabled the whole highlight instead).
+    _line_cls = classify_motion_lines(_src_text)
+    feed_lineok = line_trust_flags(feed_lines, _line_cls, False)
+    rapid_lineok = line_trust_flags(rapid_lines, _line_cls, True)
+    sub_names = []
+    feed_sub = rapid_sub = None
+    if canon.sub_events:
+        for _s, _nm in canon.sub_events:
+            if _nm is not None and _nm not in sub_names:
+                sub_names.append(_nm)
+        sub_names = sub_names[:254]   # u8 channel; 0xff = "no sub"
+        _nm_index = {nm: i for i, nm in enumerate(sub_names)}
+        feed_sub = resolve_sub_indices(feed_seq, canon.sub_events, _nm_index)
+        rapid_sub = resolve_sub_indices(rapid_seq, canon.sub_events, _nm_index)
+        feed_lineok = [0 if sb != 0xff else ok
+                       for ok, sb in zip(feed_lineok, feed_sub)]
+        rapid_lineok = [0 if sb != 0xff else ok
+                        for ok, sb in zip(rapid_lineok, rapid_sub)]
+    _n_pts = len(feed_lineok) + len(rapid_lineok)
+    _n_ok = sum(feed_lineok) + sum(rapid_lineok)
+    lines_untrusted = _n_pts > 0 and _n_ok == 0
+    lines_untrusted_reason = "" if not lines_untrusted else (
+        "no motion point attributes to a line of this file that could have "
+        "produced it — the motion runs in called subroutines or remaps "
+        "whose line numbers collide with this file's")
+    if _n_pts and _n_ok < _n_pts:
+        print(f"line trust: {_n_ok}/{_n_pts} shipped points trust their "
+              f"line (marked subs: {sub_names or 'none'})",
+              file=sys.stderr, flush=True)
+
     # Include "file" so this dict is the EXACT GET /preview wire shape: the
     # gateway publishes these bytes verbatim (no decode + re-encode), which is
     # what keeps the multi-MB polyline from ever becoming Python objects on the
     # event-loop process (mmw#4 GC pressure).
-    # Line-number honesty (see gateway_util.check_line_attribution): motion
-    # executed inside a called sub or a remap is tagged with THAT file's line
-    # numbers. Checked against the pre-RDP canon lines — decimation drops
-    # points and could hide the evidence. Source text reused from the tool
-    # scan above (one read, one failure path).
-    lines_untrusted, _bad_lines, lines_untrusted_reason = check_line_attribution(
-        _src_text,
-        [t[0] for t in canon.feed] + [t[0] for t in canon.rapid])
-    if lines_untrusted:
-        print(f"line attribution UNTRUSTED: {lines_untrusted_reason}; "
-              f"suspect lines {_bad_lines[:12]}", file=sys.stderr, flush=True)
 
     # Parse-time TLO snapshot (W2 P4): the tool-table rows this parse baked
     # into its per-line limit flags (canon TLO modeling reads s.tool_table),
@@ -889,6 +925,19 @@ def parse(ctx: dict) -> dict:
         # "programmed preview is already exact".
         result["feed_abc"] = np.asarray(feed_abc, dtype="<f4").tobytes() if feed_abc else b""
         result["rapid_abc"] = np.asarray(rapid_abc, dtype="<f4").tobytes() if rapid_abc else b""
+    if _n_pts:
+        # Per-point line trust (W2 P6), u8 0/1, index-aligned with
+        # feed/rapid — which points may drive the text-panel highlight.
+        result["feed_lineok"] = np.asarray(feed_lineok, dtype="<u1").tobytes() if feed_lineok else b""
+        result["rapid_lineok"] = np.asarray(rapid_lineok, dtype="<u1").tobytes() if rapid_lineok else b""
+    if feed_sub is not None:
+        # Marked-subroutine membership (W2 P6): u8 index into sub_names,
+        # 0xff = not in a marked sub — lets the UI say "in subroutine
+        # (name)" instead of highlighting a colliding main-file line.
+        # Present only when `(WEBUI_SUB=…)` markers executed.
+        result["feed_sub"] = np.asarray(feed_sub, dtype="<u1").tobytes() if feed_sub else b""
+        result["rapid_sub"] = np.asarray(rapid_sub, dtype="<u1").tobytes() if rapid_sub else b""
+        result["sub_names"] = sub_names
     if feed_mode is not None:
         # Per-vertex RAW switchkins type (u8), index-aligned with
         # feed/rapid — present ONLY when the program carried switchkins

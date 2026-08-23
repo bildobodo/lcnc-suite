@@ -10,7 +10,9 @@ import math
 from typing import Dict, List
 from rs274.interpret import Translated, ArcsToSegmentsMixin, StatMixin
 
-from gateway_util import parse_kinstype_marker, parse_twpframe_marker
+from gateway_util import (
+    parse_kinstype_marker, parse_twpframe_marker, parse_sub_marker,
+)
 
 
 # Adaptive arc tessellation (A1). Chord tolerance in canon units (inches —
@@ -80,6 +82,14 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         # kins markers: an event at seq N governs segments with seq > N.
         self.wcs_events = []
         self._last_wcs_basis = None
+        # Subroutine span markers `(WEBUI_SUB=name)` / `(WEBUI_SUB_END)`
+        # from our shipped subs and the TWP remap wrappers (W2 P6):
+        # [(seq_at_marker, name | None)] in execution order; None = span
+        # end. Motion inside a span carries the SUB file's line numbers —
+        # colliding with the main program's — so the worker marks those
+        # points untrusted (with the sub's name for the UI) instead of
+        # letting the text-panel highlight land on an unrelated main line.
+        self.sub_events = []
         self.xo = self.yo = self.zo = 0.0
         self.ao = self.bo = self.co = 0.0
         self.uo = self.vo = self.wo = 0.0
@@ -133,6 +143,10 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         fr = parse_twpframe_marker(text)
         if fr is not None:
             self.kins_frames.append((self.seq, fr[0], fr[1], fr[2]))
+            return
+        sub = parse_sub_marker(text)
+        if sub is not None:
+            self.sub_events.append((self.seq, sub[1]))
     def message(self, _): pass
     def check_abort(self): pass
     def user_defined_function(self, i, p, q): pass

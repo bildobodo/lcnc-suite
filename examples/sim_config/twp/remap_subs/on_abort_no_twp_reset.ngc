@@ -5,6 +5,8 @@
 ;NOTE: we cannot run remapped codes here only custom Mcodes (ie M100..M199)
 
 o<on_abort_no_twp_reset> sub
+(WEBUI_SUB=on_abort_no_twp_reset) ;lcnc-suite: preview sub-span marker, silent in task
+
 ;Workaround for
 ;https://github.com/LinuxCNC/linuxcnc/issues/2745
 ;https://github.com/LinuxCNC/linuxcnc/issues/2908
@@ -22,5 +24,6 @@ o101 else
  G[53+#1]
 o101 endif
 ;(msg, on_abort sub executed)
+(WEBUI_SUB_END) ;lcnc-suite: preview sub-span marker
 o<on_abort_no_twp_reset> endsub
 m2

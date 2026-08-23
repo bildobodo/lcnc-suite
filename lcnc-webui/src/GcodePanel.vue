@@ -42,9 +42,14 @@ const props = defineProps<{
   violations: LimitViolation[] | null;
   violationsTotal: number;
   currentLine: number | null;
-  // Set when the parse determined this program's motion carries line numbers
-  // from a called subroutine or remap, so `currentLine` is deliberately null
-  // rather than a confidently wrong line. Carries the reason for the operator.
+  // Marked subroutine the playhead currently sits in (W2 P6): shown as
+  // "▶ in subroutine (name)" while currentLine is suppressed — the sub's
+  // line numbers collide with this file's and must not highlight here.
+  subName?: string | null;
+  // Set when the parse determined that NO motion point of this program
+  // attributes to a line of this file (per-point trust, W2 P6), so
+  // `currentLine` is deliberately null rather than a confidently wrong
+  // line. Carries the reason for the operator.
   linesUntrustedReason?: string;
   // Source line at the viewer's scrub position (offline dry run stage 2).
   // Highlights + auto-scrolls like the run highlight; null = not scrubbing.
@@ -645,6 +650,8 @@ async function saveEdit() {
         <span class="val-slot" :style="{ '--slot-w': lineDigits + 'ch' }">{{ currentLine ?? 0 }}</span> / {{ lineCount }}
         <span class="progressPct">(<span class="val-slot pctSlot">{{ progressPercent.toFixed(0) }}</span>%)</span>
       </span>
+      <span v-if="subName" class="val-status warn"
+        :title="`Executing inside the ${subName} subroutine — its line numbers belong to that file, so no line is highlighted here`">▶ in subroutine ({{ subName }})</span>
       <span class="elapsedLabel">{{ elapsed }}</span>
     </div>
 

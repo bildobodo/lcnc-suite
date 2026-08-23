@@ -41,8 +41,12 @@ ALLOWED_EXTENSIONS = {".ngc", ".nc", ".gcode", ".tap", ".txt"}
 # P3 — a pre-2 payload of a TWP program lacks the abc channel entirely);
 # 3 = parse_tlos snapshot rides the wire and the gateway auto-reparses on
 # tool-table drift (W2 P4 — pre-3 payloads keep per-line limit flags baked
-# with a re-measured-away tool length).
-PREVIEW_SCHEMA = 3
+# with a re-measured-away tool length); 4 = per-point line trust
+# (feed_lineok/rapid_lineok) + subroutine spans (feed_sub/rapid_sub +
+# sub_names), and lines_untrusted means "NO point trusts" instead of "any
+# point is doubtful" (W2 P6 — pre-4 payloads disable the whole run
+# highlight the moment one subroutine call appears).
+PREVIEW_SCHEMA = 4
 
 
 def sanitize_filename(name: str) -> str:
@@ -1672,22 +1676,21 @@ def check_line_attribution(source_text, line_numbers):
     Returns ``(untrusted, bad_lines, reason)``. Conservative in the safe
     direction: it only ever reports MORE doubt, never less.
     """
-    lines = (source_text or "").splitlines()
-    n = len(lines)
+    cls = classify_motion_lines(source_text)
+    n = len(cls)
     bad, out_of_range = [], 0
     for ln in sorted({int(v) for v in (line_numbers or []) if int(v) > 0}):
         if ln > n:
             out_of_range += 1
             bad.append(ln)
             continue
-        src = strip_gcode_comments(lines[ln - 1]).strip()
-        # Axis words only qualify when they aren't arguments to a pure
-        # settings code (G10 L2 P1 X0 writes an offset, it moves nothing) —
-        # without this, a sub line colliding with such a line stays trusted
-        # and the wrong highlight survives.
-        moves = bool(_MOTION_GCODES.search(src)) or (
-            bool(_AXIS_WORD.search(src)) and not _SETTINGS_GCODES.search(src))
-        if not src or not moves:
+        # classify_motion_lines is the single source of "can this line
+        # move" (W2 P6): LINE_NONE covers blank/comment lines AND axis
+        # words that are arguments to pure settings codes (G10 L2 P1 X0
+        # writes an offset, it moves nothing) — without that, a sub line
+        # colliding with such a line stays trusted and the wrong highlight
+        # survives.
+        if cls[ln - 1] == LINE_NONE:
             bad.append(ln)
     if not bad:
         return False, [], ""
@@ -1700,6 +1703,136 @@ def check_line_attribution(source_text, line_numbers):
     return True, bad, (
         "motion line numbers come from a called subroutine or remap, not this "
         "file (" + ", ".join(why) + ")")
+
+
+#: Motion codes that emit RAPID canon segments. G53.x and canned cycles are
+#: deliberately NOT here — see classify_motion_lines.
+_RAPID_ONLY_GCODES = re.compile(r"\bg\s*0*(?:0|28(?!\.)|30(?!\.))\b", re.I)
+#: Motion codes that emit FEED canon segments.
+_FEED_ONLY_GCODES = re.compile(
+    r"\bg\s*0*(?:1|2|3|33(?:\.1)?|38(?:\.[2-5])?|73|76)\b", re.I)
+
+#: classify_motion_lines kinds.
+LINE_NONE, LINE_RAPID, LINE_FEED, LINE_EITHER = 0, 1, 2, 3
+
+
+def parse_sub_marker(text):
+    """Comment text -> ("start", name) / ("end", None), or None.
+
+    W2 P6: our shipped subroutines and the TWP remap wrappers carry
+    `(WEBUI_SUB=<name>)` after their `o<...> sub` line and `(WEBUI_SUB_END)`
+    before `endsub`. Comments are the one execution-ordered channel the
+    preview canon receives from CALLED files, so these spans are how the
+    worker knows which motion belongs to a sub — whose line numbers collide
+    with the main file's and must never be highlighted there. Unmarked subs
+    stay invisible (their motion falls to the line-classification tests),
+    never guessed.
+    """
+    m = _SUB_MARKER.match(text or "")
+    if m:
+        return ("start", m.group(1).strip())
+    if _SUB_END_MARKER.match(text or ""):
+        return ("end", None)
+    return None
+
+
+_SUB_MARKER = re.compile(r"^\s*WEBUI_SUB\s*=\s*([^)]+?)\s*$", re.IGNORECASE)
+_SUB_END_MARKER = re.compile(r"^\s*WEBUI_SUB_END\s*$", re.IGNORECASE)
+
+
+def classify_motion_lines(source_text):
+    """Per-line motion classification of the MAIN program (W2 P6).
+
+    Returns a list where entry i classifies source line i+1:
+
+      LINE_NONE    cannot move the machine (blank, comment, settings-only)
+      LINE_RAPID   commands rapid motion only (G0/G28/G30)
+      LINE_FEED    commands feed motion only (G1/2/3/33/38.x/73/76)
+      LINE_EITHER  could produce either stream: both kinds on one line,
+                   bare axis words under a modal motion mode, canned cycles
+                   (G81-89 emit rapids AND feeds from one line), or motion
+                   codes with no fixed stream (G53.x entries).
+
+    Per-point trust ANDs this against the canon stream a point sits in: a
+    FEED point attributed to a rapid-only line (or vice versa) is a sub's
+    colliding line number, not that line. Conservative in the safe
+    direction — uncertainty classifies EITHER, which can only under-report
+    doubt for a line that genuinely moves. Pure.
+    """
+    out = []
+    for raw in (source_text or "").splitlines():
+        src = strip_gcode_comments(raw).strip()
+        if not src:
+            out.append(LINE_NONE)
+            continue
+        rapid = bool(_RAPID_ONLY_GCODES.search(src))
+        feed = bool(_FEED_ONLY_GCODES.search(src))
+        if rapid and feed:
+            out.append(LINE_EITHER)
+        elif rapid:
+            out.append(LINE_RAPID)
+        elif feed:
+            out.append(LINE_FEED)
+        elif bool(_MOTION_GCODES.search(src)) or (
+                bool(_AXIS_WORD.search(src)) and not _SETTINGS_GCODES.search(src)):
+            # Moves, but the stream is not determined by the text alone.
+            out.append(LINE_EITHER)
+        else:
+            out.append(LINE_NONE)
+    return out
+
+
+def line_trust_flags(line_numbers, cls, is_rapid_stream):
+    """Per-point trust of one canon stream's line numbers (W2 P6). Pure.
+
+    A point trusts its line iff the line exists in the main file, can move
+    the machine, and its classified kind is compatible with the stream the
+    point came from. The caller ANDs in sub-span membership separately.
+    """
+    n = len(cls)
+    out = []
+    for ln in line_numbers:
+        ln = int(ln)
+        if ln < 1 or ln > n:
+            out.append(0)
+            continue
+        k = cls[ln - 1]
+        if k == LINE_EITHER:
+            out.append(1)
+        elif k == LINE_NONE:
+            out.append(0)
+        else:
+            out.append(1 if (k == LINE_RAPID) == bool(is_rapid_stream) else 0)
+    return out
+
+
+def resolve_sub_indices(seqs, sub_events, name_index):
+    """Per-point subroutine index for one canon stream (W2 P6). Pure.
+
+    seqs       -- the stream's ascending per-point seq list.
+    sub_events -- [(seq, name | None)] in execution order; None = span end.
+                  Marker convention: an event at seq N governs points with
+                  seq > N (strict — same rule as every other marker).
+    name_index -- {name: index}; points outside any span get 0xff.
+
+    Nesting is a stack (a marked sub calling another marked sub reports the
+    INNER name); an unbalanced end pops nothing.
+    """
+    out = []
+    stack = []
+    ei = 0
+    n_ev = len(sub_events)
+    for s in seqs:
+        while ei < n_ev and sub_events[ei][0] < s:
+            nm = sub_events[ei][1]
+            if nm is None:
+                if stack:
+                    stack.pop()
+            else:
+                stack.append(nm)
+            ei += 1
+        out.append(name_index.get(stack[-1], 0xff) if stack else 0xff)
+    return out
 
 
 def read_axis_limits(ini_find, axis_mask: int):

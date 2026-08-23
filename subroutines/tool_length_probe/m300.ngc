@@ -1,6 +1,8 @@
 ; Origin: https://github.com/TooTall18T/tool_length_probe
 ; License: GPL-3.0
 o<m300> sub
+(WEBUI_SUB=m300) ;lcnc-suite: preview sub-span marker, silent in task
+
 ;Subroutine to start a spindle and pause for a certain time.
 ;For spindles without feedback.
 ;Stand: 2023-12-30
@@ -8,6 +10,7 @@ o<m300> sub
 M3
 G4 P4.0
 ;(msg, Spindle ON)
+(WEBUI_SUB_END) ;lcnc-suite: preview sub-span marker
 o<m300> endsub
 
 M2 (end program)

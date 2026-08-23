@@ -13,6 +13,8 @@
 
 
 o<tool_touch_off> sub
+(WEBUI_SUB=tool_touch_off) ;lcnc-suite: preview sub-span marker, silent in task
+
 ;Ensures that the routine is not run when checking the CNC program. 
 ;This can sometimes lead to unjustified errors.
 o<400> if [#<_task> EQ 1]
@@ -413,6 +415,7 @@ M50 P1
 (LOG, END)
 (LOGCLOSE)
 o<400> endif
+(WEBUI_SUB_END) ;lcnc-suite: preview sub-span marker
 o<tool_touch_off> endsub
 
 M2 (end program)
