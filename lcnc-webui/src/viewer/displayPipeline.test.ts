@@ -4,6 +4,7 @@
 // between tested units (correct transform, correct-for-its-schema payload,
 // silently wrong gate) — either layer regressing turns this file red.
 import { describe, expect, it } from "vitest";
+import * as THREE from "three";
 import { displayDecision } from "./displayPipeline";
 import { transformToPartFrame, type PartFrameMachine } from "./partFrame";
 
@@ -118,5 +119,63 @@ describe("L1 display oracle — decision + transform compose", () => {
     }
     // The drawn path must NOT equal the programmed polyline — flat is red.
     expect(out.pos[0]).not.toBeCloseTo(10, 1);
+  });
+
+  it("a held tilt with a TLO draws at the POSITION the live model poses (W3 P0)", () => {
+    // The 12.58 mm rigid-offset class the tilt-only oracle above cannot
+    // see: a TRSRN-shaped tool chain (c_swivel → nutating b_nut → tool)
+    // held at the operator's tilt with TLO z=22. Truth is derived
+    // independently with quaternions: the joints hold tip + R·TLO, so
+    //   tip_in_work = (px, py, pz + tz) − R·(0,0,tz),
+    //   R = Rz(C) · Rnut(B),  nutation axis [0, sin55°, cos55°].
+    // A world-axis TLO subtraction cancels the tz term instead and lands
+    // every vertex on the programmed point — constant ~12.58 mm off.
+    const NUTHEAD: PartFrameMachine = {
+      groups: [
+        { id: "work", parent: "root" },
+        { id: "c_swivel", parent: "root" },
+        { id: "b_nut", parent: "c_swivel" },
+        { id: "tool", parent: "b_nut" },
+      ],
+      kinematics: [
+        { group: "work", joint: 0, type: "translate", direction: "x", sign: -1 },
+        { group: "work", joint: 1, type: "translate", direction: "y", sign: -1 },
+        { group: "work", joint: 2, type: "translate", direction: "z", sign: -1 },
+        { group: "c_swivel", joint: 4, type: "rotate", direction: "z", sign: 1 },
+        { group: "b_nut", joint: 3, type: "rotate",
+          axis: [0, Math.sin(THREE.MathUtils.degToRad(55)), Math.cos(THREE.MathUtils.degToRad(55))],
+          sign: 1 },
+      ] as PartFrameMachine["kinematics"],
+      workGroup: "work", toolGroup: "tool", unitScale: 1,
+      axes: ["X", "Y", "Z", "B", "C"],
+    };
+    const B = -40.8555, C = 130.2455, TZ = 22;   // the live capture's pose
+    const facts = { rapidAbc: abc([[0, B, C], [0, B, C]]) };
+    expect(displayDecision(facts, NUTHEAD, null, "part")).toBe("part");
+
+    const out = transformToPartFrame(
+      NUTHEAD, { g5x: [0, 0, 0, 0, 0, 0], g92: [], rotationDeg: 0, tool: [0, 0, TZ] },
+      { pos: new Float32Array([0, 0, 0, 10, 5, 0]), abc: facts.rapidAbc! },
+    );
+    const nut = new THREE.Vector3(
+      0, Math.sin(THREE.MathUtils.degToRad(55)), Math.cos(THREE.MathUtils.degToRad(55)));
+    const R = new THREE.Quaternion()
+      .setFromAxisAngle(new THREE.Vector3(0, 0, 1), THREE.MathUtils.degToRad(C))
+      .multiply(new THREE.Quaternion().setFromAxisAngle(nut, THREE.MathUtils.degToRad(B)));
+    const rtlo = new THREE.Vector3(0, 0, TZ).applyQuaternion(R);
+    const want = [
+      [0 - rtlo.x, 0 - rtlo.y, TZ - rtlo.z],
+      [10 - rtlo.x, 5 - rtlo.y, TZ - rtlo.z],
+    ];
+    for (let i = 0; i < 2; i++) {
+      expect(out.pos[i * 3 + 0]).toBeCloseTo(want[i]![0]!, 3);
+      expect(out.pos[i * 3 + 1]).toBeCloseTo(want[i]![1]!, 3);
+      expect(out.pos[i * 3 + 2]).toBeCloseTo(want[i]![2]!, 3);
+    }
+    // Discriminator: the world-axis bug puts vertex 0 at the programmed
+    // origin; the true tip sits the measured ~12.58 mm away from it.
+    const off = Math.hypot(out.pos[0]!, out.pos[1]!, out.pos[2]!);
+    expect(off).toBeGreaterThan(10);
+    expect(off).toBeCloseTo(12.58, 1);
   });
 });

@@ -54,6 +54,29 @@ const TRUNNION: PartFrameMachine = {
   axes: ["X", "Y", "Z", "A", "C"],
 };
 
+// Tool-side rotary head (spindle on a Z ram, tilting B head carrying the
+// tool) — the chain shape where the TLO subtraction FRAME matters. The
+// trunnion above never exercises it: its tool group hangs untilted under
+// root, so world-axis and tool-axis TLO subtraction coincide there.
+const BHEAD: PartFrameMachine = {
+  groups: [
+    { id: "work", parent: "root" },
+    { id: "z", parent: "root" },
+    { id: "b_head", parent: "z" },
+    { id: "tool", parent: "b_head" },
+  ],
+  kinematics: [
+    { group: "work", joint: 0, type: "translate", direction: "x", sign: -1 },
+    { group: "work", joint: 1, type: "translate", direction: "y", sign: -1 },
+    { group: "z", joint: 2, type: "translate", direction: "z", sign: 1 },
+    { group: "b_head", joint: 3, type: "rotate", direction: "y", sign: 1 },
+  ],
+  workGroup: "work",
+  toolGroup: "tool",
+  unitScale: 1,
+  axes: ["X", "Y", "Z", "B"],
+};
+
 function poly(points: number[][], abc?: number[][], lines?: number[]) {
   return {
     pos: new Float32Array(points.flat()),
@@ -155,6 +178,33 @@ describe("transformToPartFrame", () => {
     expect(vec(out.pos, 0)).toEqual([expect.closeTo(0, 3), expect.closeTo(-10, 3), expect.closeTo(0, 3)]);
     expect(vec(out.pos, 1)).toEqual([expect.closeTo(0, 3), expect.closeTo(-20, 3), expect.closeTo(0, 3)]);
     expect(vec(out.pos, 2)).toEqual([expect.closeTo(5, 3), expect.closeTo(-20, 3), expect.closeTo(0, 3)]);
+  });
+
+  it("subtracts the TLO along the TILTED tool axis, not world Z (W3 P0)", () => {
+    // Operator-caught 12.58 mm rigid-offset class: with the head tilted,
+    // the joints hold tip + TLO along the SPINDLE, so the tip is the tool
+    // node's origin minus the world-ROTATED TLO — the same rule as
+    // applyState phase 3 (local .position shift under the rotated chain)
+    // and the collision worker (tool-local cylinder verts). Hand-derived
+    // at B=90°, TLO z=22, program (10,5,0):
+    //   joints X=10 Y=5 Z=0+22 B=90 → tool node at (0,0,22), rot Ry(90°)
+    //   tip = (0,0,22) − Ry(90°)·(0,0,22) = (−22,0,22)
+    //   work (moving table) at (−10,−5,0) → tip in work frame (−12,5,22).
+    // The world-axis bug instead gives tip (0,0,0) → output = programmed
+    // (10,5,0) — flat, hiding the tilt entirely.
+    const wcs = { g5x: [0, 0, 0, 0, 0, 0], g92: [], rotationDeg: 0, tool: [0, 0, 22] };
+    const out = transformToPartFrame(
+      BHEAD, wcs,
+      poly([[10, 5, 0], [10, 5, 0]], [[0, 0, 0], [0, 90, 0]]),
+    );
+    // B=0 vertex: identity rotation — TLO cancels, output = programmed.
+    expect(vec(out.pos, 0)).toEqual(
+      [expect.closeTo(10, 3), expect.closeTo(5, 3), expect.closeTo(0, 3)]);
+    // B=90 vertex (last subdivided sample = exact endpoint).
+    const last = vec(out.pos, out.pos.length / 3 - 1);
+    expect(last[0]).toBeCloseTo(-12, 3);
+    expect(last[1]).toBeCloseTo(5, 3);
+    expect(last[2]).toBeCloseTo(22, 3);
   });
 
   it("stays finite when the live WCS hasn't arrived yet (empty offset arrays)", () => {

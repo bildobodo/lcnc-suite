@@ -363,9 +363,19 @@ export function transformToPartFrame(
     // Tool tip world position, then into the work frame, then peel WCS.
     // With wcs.tool set the joints above are TLO-inclusive, so the tool
     // group's origin sits at the JOINT position — subtract the TLO to get
-    // the tip, exactly like applyState phase 3 shifts the live marker.
+    // the tip. The TLO lives in the TOOL's frame (applyState phase 3
+    // shifts _toolGrp.position, local to the rotated spindle chain;
+    // collisionWorker bakes −TLO into tool-local cylinder verts), so it
+    // must be rotated by the tool node's world rotation before the world
+    // subtraction — a world-axis subtraction is off by a constant rigid
+    // offset whenever the spindle chain is tilted (W3 P0, operator-caught:
+    // 12.58 mm at B=−40.86/C=130.25 with TLO z=22). Column-major elements
+    // directly; transformDirection would normalize.
+    const we = nodes[toolIdx]!.world.elements;
     tool.setFromMatrixPosition(nodes[toolIdx]!.world);
-    tool.x -= o.tx; tool.y -= o.ty; tool.z -= o.tz;
+    tool.x -= we[0]! * o.tx + we[4]! * o.ty + we[8]! * o.tz;
+    tool.y -= we[1]! * o.tx + we[5]! * o.ty + we[9]! * o.tz;
+    tool.z -= we[2]! * o.tx + we[6]! * o.ty + we[10]! * o.tz;
     invWork.copy(nodes[workIdx]!.world).invert();
     tool.applyMatrix4(invWork);
     const rx = tool.x - ox, ry = tool.y - oy;
