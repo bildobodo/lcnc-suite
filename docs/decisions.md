@@ -823,6 +823,33 @@ error. Known residual: the synced rotary pose is parse-time state — a
 jogged rotary after load needs a reparse (same class as WCS drift; the
 P4-style drift edge could later watch rotary drift too).
 
+> **Correction (2026-08-23, W3 P6):** the "transit the preview omits by
+> design" wording above is wrong about the PREVIEW side: the canon
+> records and the worker SHIPS call_level>0 segments (the golden's
+> `sub_names` carrying the remap wrappers proves it — nothing filters
+> by call level). Only the parity OVERLAY skips those TRUTH samples;
+> what the preview genuinely omitted pre-schema-6 was the SUPPRESSED
+> first-move class, which W3 P1 now ships as unknown-start endpoints.
+> Also: the 0.2651 mm joints number was a HARNESS artifact — endpoint =
+> last 50 Hz sample with the line ⇒ up to ½·a·t² ≈ 0.22–0.27 mm of
+> decel tail; with W3 P6's transition-sample endpoints the same capture
+> measures 0.0316 mm.
+
+**wcsEpochs `rewritten` referee — bounded residual (W3 P6, experiment
+run 2026-08-23).** `wcs_event_rewritten` decides "did the PROGRAM write
+this fixture" by comparing the epoch basis against the temp var-file
+rows — the stalest copy (LinuxCNC writes the var only at shutdown, plus
+gateway patches). A post-shutdown touch-off can therefore spuriously
+flag operator state as program-rewritten, degrading that epoch to
+parse-snapshot pinning (honest but touch-off-inert; eps 1e-3, never a
+geometric lie). The candidate perfect referee — diff the temp var file
+before/after `gcode.parse`, changed rows = program-written — was
+EXPERIMENTALLY DISPROVEN: a sentinel planted in G54 X (5221) survives a
+parse whose program executes `G10 L2 P0 X1300`; the offline interp
+rewrites the file at M2 but with the LOADED values, not the program's
+G10 writes. No better referee exists without interp changes; recorded
+as a bounded residual.
+
 ### The bounds HUD contradicted the validator and the machine (operator
 ### report, 2026-08-23 — FIXED, acc1f50)
 
