@@ -2035,7 +2035,10 @@ def get_ini_config() -> dict:
             ini_dir = os.path.dirname(ini_path)
             sub_dirs = []
             for p in sub_raw.split(":"):
-                p = p.strip()
+                # expanduser matches gateway_util.resolve_subroutine_dirs:
+                # this config's entries are all `~/…` and were silently
+                # dropped (probe-macro listing AND /subfile saw no dirs).
+                p = os.path.expanduser(p.strip())
                 if not p:
                     continue
                 if not os.path.isabs(p):
