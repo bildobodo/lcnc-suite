@@ -1257,3 +1257,66 @@ the live kins TYPE at run start is the identified FIFTH run-time state
 input — seeding the preview's startup kins from the live pin (via the
 worker ctx, which the gateway can populate from hal_reader) is the
 designed follow-up, on the ledger.
+
+## 2026-08-24 — step-back review: the three "is it broken?" reports, the jog-settle fix, and the TWP branch split
+
+Operator-triggered review ("either the UI does not show what's really
+happening underneath, or the underneath is already broken"). Verdict:
+the math is sound — the sim-parity gate had certified sim-vs-real to
+0.04 units two days earlier — but the suite had NO mode visibility, so
+three correct-but-unexplained behaviors read as deep breakage:
+
+1. **Preview chased rotary jogs in ~2 s snaps.** The W6 rotary-drift
+   edge is armed exactly when jogging is permitted (interp stays IDLE
+   through a manual jog) and had no motion suppression; a program that
+   never commands a rotary ships that rotary as a CONSTANT at the
+   parse-time seed, so each reparse re-posed the whole path through the
+   new head pose. Between reparses the drawn path rotates smoothly with
+   the A table (vertices baked at A_seed under the live-rotating
+   workRotGroup: rendered pose = R_A(A_live − A_seed)·p_tool — the peel
+   and re-apply cancel only when live == seed; NOT a double-apply bug).
+   **FIXED (5128d3c): `rotary_drift_settled`** — the drift edge fires
+   only when the live pose is unchanged across two consecutive 2 s
+   samples AND the trajectory reports no motion. One honest re-anchor
+   after the jog stops — that snap is BY DESIGN (the preview answers
+   "this program from the machine's CURRENT pose"), now with a settle
+   boundary instead of a chase.
+2. **"Tool not normal to the toolpath plane."** The loaded program was
+   parity_linear.ngc (never orients the head) with the head jogged to
+   B 110.3°/C 292.3° — the preview honestly drew the path where THAT
+   tilted head would trace it. TWP-demo normality itself was verified
+   numerically: tool axis vs drawn square plane 0.013°.
+3. **Silent kins-mode traversal.** The TWP demo parks in TOOL kins
+   (upstream ships `;g69` commented out; M2 restores G54, not the kins
+   type); the corpus program's leading g69 later restored identity.
+   Nothing surfaces the switchkins type or TWP state — the twp-helper's
+   twp-is-defined/active pins are not even sampled — and the jog path
+   never consults the kins type (a world Z jog under TOOL kins moves
+   along the tilted tool axis: coincidentally the Heidenhain 3D-ROT
+   semantics, completely unlabeled).
+
+Industry grounding for the follow-up design (feat/twp): Fanuc G68.2
+(define, no motion) → G53.1/.6 (orient) → G69 (cancel); Heidenhain
+PLANE SPATIAL + 3D-ROT where MANUAL-mode jogging in the tilted frame is
+an explicit operator setting and the plane is by definition ⊥ the tool
+axis; Siemens CYCLE800 + WCS/MCS jog toggle. The jog frame is always an
+EXPLICIT operator choice, prominently indicated — never inferred.
+
+**TWP branch split (operator decision: "all of it on a separate
+branch"; depth: configs+product, kins math stays).** `git revert` was
+not viable — only 9 of 74 commits since f046fbe are pure-TWP; the
+load-bearing ones carry infra trivkins/trt now depend on (kinsForSegment
+routing, raw-kinstype wire, bulge/CA certification, the parity/golden
+gates). Separation by FILE instead (d629882): the twp/ remap fork, the
+machine-xyzacb-trsrn model+generator+gate, the TWP sim config
+(ini/var/core_sim_6.hal), corpus entry, goldens, and
+test_kins_oracle_parity.py moved to **feat/twp** (restore commit
+9519a55, byte-identical to pre-split 5128d3c). The oracle-pinned trsrn
+twins + tests stay on development as dormant shared infra. TOPOLOGY:
+feat/twp branches AFTER the excision and re-adds the files as its own
+commit, so the deletion is in the merge base and future
+`git merge development` never re-deletes the TWP product. TWP sim
+sessions now run from the `~/twp-checkout` worktree (installed
+lcnc_suite_sim_twp.ini re-pointed; .bak-presplit kept). Verified on
+development post-split: build + vitest (457) + pytest green, trunnion
+sim boots and serves.
