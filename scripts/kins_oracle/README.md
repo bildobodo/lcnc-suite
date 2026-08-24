@@ -29,12 +29,13 @@ It is the TWP machine's switchable kins (identity / TCP / TOOL-plane).
 TWO COPIES, ON PURPOSE. This one is the ORACLE and tracks current master,
 whose handle-style HAL pin API the stubs below mirror; LinuxCNC 2.9's
 halcompile cannot even parse it. The INSTALLABLE runtime module for the TWP
-sim config is `examples/sim_config/twp/xyzacb_trsrn.comp`, the @493926b56c
-revision, which uses the classic pointer API that 2.9 accepts. Their
-kinematics math is character-identical — only the surrounding example-pin
-scaffolding differs — and `lcnc-gateway/test_kins_oracle_parity.py` compares
-the two function bodies (normalising the accessor style) so the pair cannot
-silently drift.
+sim config is `examples/sim_config/twp/xyzacb_trsrn.comp` on the
+**feat/twp branch** (the TWP product was split off development
+2026-08-24), the @493926b56c revision, which uses the classic pointer API
+that 2.9 accepts. Their kinematics math is character-identical — only the
+surrounding example-pin scaffolding differs — and that branch's
+`lcnc-gateway/test_kins_oracle_parity.py` compares the two function bodies
+(normalising the accessor style) so the pair cannot silently drift.
 `harness_trsrn.c` includes its C body — everything after the `;;`
 separator, extracted verbatim at build time by gen_kins_fixtures.py
 (the halcompile-equivalent split; the extracted file is generated, not
