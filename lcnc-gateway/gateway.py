@@ -48,6 +48,7 @@ from gateway_util import (
     PREVIEW_SCHEMA,
     evaluate_tlo_drift,
     evaluate_rotary_drift,
+    rotary_drift_settled,
     unwritten_estop_signal,
     kins_marker_policy,
     kins_pivot_warning,
@@ -1423,9 +1424,21 @@ async def _status_poller():
                     # sim then shows an orient sweep the next run will not
                     # perform — the arc-vs-plunge class). Same idle gate and
                     # debounce; reparse re-seeds from the current pose.
+                    # SETTLE GUARD: interp is IDLE while jogging, so drift
+                    # alone would reparse every 2 s DURING a rotary jog and
+                    # the preview chases the head in laggy snaps (operator-
+                    # caught). Fire only once the pose has held still for a
+                    # full debounce interval, and never while the trajectory
+                    # reports motion.
                     _rdrift = evaluate_rotary_drift(
                         _bulk.published_rotary_seed, st.rotary_abc)
-                    if _rdrift:
+                    _rsettled = (
+                        not st.current_vel
+                        and rotary_drift_settled(
+                            _bulk.rotary_check_prev, st.rotary_abc)
+                    )
+                    _bulk.rotary_check_prev = st.rotary_abc
+                    if _rdrift and _rsettled:
                         _trace.emit("gcode.reparse_rotary_drift",
                                     reason=_rdrift,
                                     seed=_bulk.published_rotary_seed,

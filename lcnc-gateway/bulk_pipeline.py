@@ -104,6 +104,10 @@ class BulkPipeline:
         # orients from the parse-time pose). None = no rotary sync
         # (3-axis config) — no edge, honestly.
         self.published_rotary_seed: Optional[dict] = None
+        # Previous drift check's live rotary sample — the settle guard
+        # (rotary_drift_settled) compares consecutive 2 s samples so a
+        # jog in progress never triggers a reparse.
+        self.rotary_check_prev: Optional[list] = None
         self.tlo_check_ts: float = 0.0   # drift-edge debounce (monotonic)
         self.refresh_running: bool = False            # single-flight guard
         self.preview_bytes: Optional[bytes] = None    # raw copy kept ONLY when no gz exists (<4 KiB payloads)
@@ -148,6 +152,7 @@ class BulkPipeline:
         self.schema_reparse_attempted = None
         self.published_tlo = None
         self.published_rotary_seed = None
+        self.rotary_check_prev = None
 
     def invalidate_caches_for_ini(self, cur_ini: Optional[str]) -> None:
         """INI-change invalidation (issue #29): if the active INI changed under

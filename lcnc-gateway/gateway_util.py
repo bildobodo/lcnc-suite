@@ -986,6 +986,27 @@ def evaluate_rotary_drift(seed, rotary_abc, eps=0.01):
     return ("rotary:" + drifted) if drifted else None
 
 
+def rotary_drift_settled(prev_abc, rotary_abc, eps=0.01):
+    """Is the live rotary pose STATIONARY between two consecutive drift
+    checks? The drift edge must never fire mid-jog: interp is IDLE while
+    jogging, so without this guard every 2 s check reparses against a pose
+    that is still moving and the preview visibly chases the jog in laggy
+    snaps (operator-caught on the trsrn A axis). The caller passes the
+    PREVIOUS check's live sample; only a pose unchanged (<= eps per axis)
+    across the full debounce interval may trigger a reparse.
+
+    Returns False when either sample is absent or malformed — a pose we
+    cannot prove settled is not settled (no silent go). Pure."""
+    if not prev_abc or not rotary_abc or len(prev_abc) != len(rotary_abc):
+        return False
+    for a, b in zip(prev_abc, rotary_abc):
+        if a is None or b is None:
+            return False
+        if abs(float(a) - float(b)) > eps:
+            return False
+    return True
+
+
 def evaluate_tlo_drift(meta, cur_mtime, tool_number, applied_tlo_z, eps=1e-4):
     """Has the tool-length picture moved since the preview was parsed? (W2 P4)
 

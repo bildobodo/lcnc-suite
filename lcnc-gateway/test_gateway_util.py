@@ -1380,6 +1380,30 @@ class TestRotaryDrift(unittest.TestCase):
         self.assertIsNone(
             gateway_util.evaluate_rotary_drift({"B": 0.0}, [99.0, 0.0, 99.0]))
 
+    def test_settled_requires_stationary_consecutive_samples(self):
+        # The jog-chase defect: drift alone fires mid-jog (interp is IDLE
+        # while jogging). Only a pose unchanged across two consecutive 2 s
+        # checks may reparse.
+        still = [0.0, -40.855, 130.245]
+        self.assertTrue(gateway_util.rotary_drift_settled(still, list(still)))
+        # Still moving between checks → not settled.
+        self.assertFalse(
+            gateway_util.rotary_drift_settled(still, [0.0, -40.855, 131.0]))
+        # eps boundary: <= 0.01° of dither is settled, past it is motion.
+        self.assertTrue(
+            gateway_util.rotary_drift_settled(still, [0.0, -40.855, 130.254]))
+        self.assertFalse(
+            gateway_util.rotary_drift_settled(still, [0.0, -40.855, 130.26]))
+
+    def test_settled_no_silent_go_on_absent_data(self):
+        # A pose we cannot prove settled is not settled.
+        self.assertFalse(gateway_util.rotary_drift_settled(None, [0, 0, 0]))
+        self.assertFalse(gateway_util.rotary_drift_settled([0, 0, 0], None))
+        self.assertFalse(gateway_util.rotary_drift_settled([], []))
+        self.assertFalse(gateway_util.rotary_drift_settled([0, 0], [0, 0, 0]))
+        self.assertFalse(
+            gateway_util.rotary_drift_settled([0.0, None, 0.0], [0.0, 0.0, 0.0]))
+
 
 class TestResolveSubfile(unittest.TestCase):
     """W5 subfile route resolver: LinuxCNC's first-hit SUBROUTINE_PATH rule
