@@ -32,6 +32,7 @@ import os
 import subprocess
 import sys
 import time
+import urllib.error
 import urllib.request
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -140,6 +141,11 @@ def fetch_gateway_payload(port, expect_file, timeout=45.0, settle=4.0):
         try:
             with urllib.request.urlopen(url, timeout=5) as r:
                 raw = r.read()
+        except urllib.error.HTTPError:
+            # 404 = nothing published YET (the poller parses moments after
+            # program_open) — keep polling until the timeout.
+            time.sleep(1.0)
+            continue
         except Exception as e:
             raise SystemExit(
                 f"gate needs the RUNNING gateway ({url}): {e} — start the "

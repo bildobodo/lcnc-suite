@@ -446,6 +446,18 @@ def sample_run(ini_path, ngc, out_path, hz=50, timeout=180):
         ],
     }
 
+    # A previous run stuck mid-program (e.g. an unacked M6) would make this
+    # capture sample garbage — abort and require idle before starting.
+    if s.interp_state != linuxcnc.INTERP_IDLE:
+        c.abort()
+        for _ in range(20):
+            time.sleep(0.5)
+            s.poll()
+            if s.interp_state == linuxcnc.INTERP_IDLE:
+                break
+        else:
+            raise SystemExit("interpreter stuck non-idle — cannot capture")
+
     c.mode(linuxcnc.MODE_AUTO)
     c.wait_complete()
     c.program_open(ngc)
@@ -484,6 +496,13 @@ def sample_run(ini_path, ngc, out_path, hz=50, timeout=180):
         if seen_running and not running:
             break
         time.sleep(dt)
+    else:
+        # Timeout: the capture is garbage (a hung M6 wait produced 8899
+        # rows of a parked machine that PASSED one comparison direction).
+        c.abort()
+        raise SystemExit(
+            f"capture timed out after {timeout}s (interp state {rows[-1]['interp']}, "
+            f"motion_line {rows[-1]['motion_line']}) — aborted; nothing written")
 
     with open(out_path, "w") as f:
         f.write(json.dumps(header) + "\n")

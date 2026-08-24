@@ -1,5 +1,10 @@
 (sim-parity corpus: linear + arc moves, rotaries deliberately uncommanded)
 (G64 declared so the gate's blend budget is explicit, not the machine default)
+(g69 first: a switchkins machine may arrive in TOOL kins — the previous)
+(program's M2 restores G54 but NOT the kins type. Without this line the)
+(real run executes under tool kins while the parse assumes identity —)
+(the gate caught exactly that, truth-vs-sim 855 units, first live run.)
+g69
 g54 g90 g17
 g64 p0.01
 g0 x0 y0 z50
