@@ -70,10 +70,29 @@ over their respective contributions.
      see scripts/kins_oracle/README.md). Uses master's handle-style HAL
      pin API, so it is compiled against stubs by the harness and CANNOT
      be halcompile'd on 2.9.
-     (The TWP product itself — the examples/sim_config/twp/ remap fork,
-     its installable xyzacb_trsrn.comp copy, and the
-     machine-xyzacb-trsrn/ viewer model — lives on the feat/twp branch;
-     that branch's NOTICE carries their attributions.)
+   - examples/sim_config/twp/xyzacb_trsrn.comp (master @493926b56c, GPL
+     v2, David Mueller) — vendored VERBATIM as the INSTALLABLE runtime
+     module for the TWP sim config; this pre-2.10 revision uses the
+     classic pointer HAL API that LinuxCNC 2.9's halcompile accepts. Its
+     kinematics math is character-identical to the oracle copy above, and
+     test_kins_oracle_parity.py fails if they ever diverge.
+   - examples/sim_config/twp/ (master @493926b56c, GPL v2, David
+     Mueller) — the Tilted Work Plane remap stack
+     (configs/sim/axis/vismach/5axis/twp/): python/util.py and toplevel.py
+     verbatim; python/twp-helper-comp.py FORKED (GPL v2, edit tagged
+     LCNC-SUITE) to add a 20 Hz sleep to its loop, which upstream leaves
+     as a bare `while 1:` busy-spin; python/remap.py FORKED (GPL v2,
+     edits tagged LCNC-SUITE) so the preview interpreter runs the plane
+     math and emits webui marker comments; remap_subs/*.ngc wrappers
+     carry added (WEBUI_KINSTYPE=n) markers; demos/simple_example.ngc and
+     demos/square.ngc are vendored VERBATIM from the same config's
+     demos/. See its README.md.
+   - examples/sim_config/machine-xyzacb-trsrn/ STL geometry — generated
+     by scripts/vismach_to_stl_trsrn.py, whose machine layout, kinematic
+     constants and frame placement are taken from LinuxCNC's vismach
+     xyzacb-trsrn-gui sample (master @493926b56c, GPL v2, David Mueller).
+     The meshes are NOT copies: the assembly is re-derived from the kins
+     pins so it is mechanically coherent at the shipped pivot values.
 
 
 5. vtk-vismach (kinematic reference)
