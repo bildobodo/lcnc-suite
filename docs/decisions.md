@@ -1225,3 +1225,35 @@ program with uncommanded rotaries.
 expect GREEN including the back-to-back case; record the numbers here
 and tighten per-program tolerances from the first live data. 3-axis
 corpus at the next 3-axis session.
+
+### W6 P4 — first live gate run (2026-08-24, LinuxCNC 2.9.4 sim, suite restarted)
+
+**GREEN**, tol 0.5 (6D joint units, deg ≙ mm):
+
+| run | truth→sim max | sim→truth max |
+|---|---|---|
+| twp_simple_example run 1 (from homed, untilted) | 0.000 | 0.040 |
+| twp_simple_example run 2 (BACK-TO-BACK, tilted start) | 0.001 | 0.027 |
+| parity_linear run 1 | 0.007 | 0.009 |
+
+Run 2 is the arc-vs-plunge adversarial case passing THROUGH the live
+rotary-drift reparse (`gcode.reparse_rotary_drift` fired between runs;
+the gate fetched the re-seeded payload). Sim-vs-actual trajectory
+parity on this corpus: ≤ 0.04 units everywhere.
+
+**Live finds, all fixed in-session:** (1) gateway SUBROUTINE_PATH
+parsing never expanduser'd `~/…` entries — ALL five dirs silently
+dropped (probe-macro listing and /subfile dead on this config);
+(2) sample_run hung forever on M6 — tool change blocks on the UI's
+confirm_tool_change; the gate session's WS keeper (browser stand-in:
+hello + heartbeat + arm + trip-ack + estop_reset + machine_on +
+confirm_tool_change) is the reusable recipe, and sample_run now aborts
+stale runs and refuses on timeout instead of writing garbage; (3) THE
+GATE'S FIRST REAL CATCH: a plain-G54 program run after the TWP demo
+executes under TOOL kins (M2 restores G54, NOT the switchkins type —
+the phase-3 trap, now demonstrated at 855 units truth-vs-sim). Fixed in
+the corpus program with a leading g69 (well-formed switchkins practice);
+the live kins TYPE at run start is the identified FIFTH run-time state
+input — seeding the preview's startup kins from the live pin (via the
+worker ctx, which the gateway can populate from hal_reader) is the
+designed follow-up, on the ledger.
