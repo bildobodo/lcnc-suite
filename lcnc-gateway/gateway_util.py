@@ -986,6 +986,71 @@ def evaluate_rotary_drift(seed, rotary_abc, eps=0.01):
     return ("rotary:" + drifted) if drifted else None
 
 
+def seed_kins_events(events, frames, live_type, live_frame):
+    """Seed the parse-time kins state from the LIVE machine (the FIFTH
+    run-time freshness input — the 855-unit class: a plain-G54 program run
+    after the TWP demo executes under TOOL kins because M2 restores G54
+    but NOT the switchkins type, while the parse hard-assumed startup
+    type 0).
+
+    Prepends a synthetic marker event at seq -1 (strictly before every
+    canon seq, and still strictly before after the relabel pass doubles
+    seqs) so the ONE existing resolution path (kins_type_flags /
+    kins_frame_indices) applies it — no second code path. A type-2 seed
+    also prepends the live plane frame when the reader supplied one; a
+    frameless type-2 seed degrades exactly like a bare M430 (segments ride
+    the wire as unchecked, honestly). A program whose own first marker
+    fires before any motion simply overrides the seed.
+
+    live_type None (untracked/absent) or 0 (identity — the flags' default)
+    seeds nothing. Returns (events, frames) as NEW lists. Pure."""
+    if live_type in (None, 0):
+        return list(events), list(frames)
+    ev = [(-1, int(live_type))] + list(events)
+    fr = list(frames)
+    if int(live_type) == 2 and live_frame is not None and len(live_frame) == 3 \
+            and all(isinstance(v, (int, float)) for v in live_frame):
+        fr = [(-1, float(live_frame[0]), float(live_frame[1]),
+               float(live_frame[2]))] + fr
+    return ev, fr
+
+
+def evaluate_kins_drift(seed, live_type, live_frame, eps=1e-4):
+    """Has the machine's switchkins STATE moved since the preview was
+    parsed? (Fifth freshness input, drift side.)
+
+    seed       -- the worker's __KINSSEED__ snapshot
+                  {"type": int|None, "frame": [p,t1,t2]|None}: what the
+                  parse ASSUMED (ctx values, echoed verbatim).
+    live_type  -- current motion.switchkins-type (status snapshot).
+    live_frame -- current [pre_rot, primary, secondary] pins, or None.
+
+    Returns "kins:type" when the live type left the seeded one,
+    "kins:frame" when both sit in TOOL kins (2) but the plane frame pins
+    moved past eps, else None. Either side absent makes no claim (an
+    untracked config must never develop a drift edge). The CALLER owns
+    idle-gating and debounce, same contract as evaluate_rotary_drift.
+    Pure."""
+    if not seed or live_type is None:
+        return None
+    seed_type = seed.get("type")
+    if seed_type is None:
+        return None
+    if int(live_type) != int(seed_type):
+        return "kins:type"
+    if int(live_type) == 2:
+        sf = seed.get("frame")
+        if sf is None or live_frame is None or len(sf) != 3 \
+                or len(live_frame) != 3:
+            return None
+        for a, b in zip(sf, live_frame):
+            if a is None or b is None:
+                return None
+            if abs(float(a) - float(b)) > eps:
+                return "kins:frame"
+    return None
+
+
 def rotary_drift_settled(prev_abc, rotary_abc, eps=0.01):
     """Is the live rotary pose STATIONARY between two consecutive drift
     checks? The drift edge must never fire mid-jog: interp is IDLE while

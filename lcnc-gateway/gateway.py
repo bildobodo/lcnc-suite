@@ -49,6 +49,7 @@ from gateway_util import (
     evaluate_tlo_drift,
     evaluate_rotary_drift,
     rotary_drift_settled,
+    evaluate_kins_drift,
     unwritten_estop_signal,
     kins_marker_policy,
     kins_pivot_warning,
@@ -697,10 +698,30 @@ def _phase_ring_snapshot() -> List[Tuple[float, str]]:
 # (not rebinds — rebinding wouldn't track reassignment), so call sites read
 # _bulk.<attr> directly. Deps late-bound: STAT rebinds on reconnect, and
 # get_machine_units/_build_wcs_rotation_patches are defined further down.
+def _live_kins_for_parse():
+    """(live switchkins type, live plane frame [p,t1,t2]) for the parse ctx
+    — the fifth freshness input. Reader-sourced, same pins the status
+    snapshot carries; None on untracked configs / absent snapshot (the
+    worker then seeds nothing, honestly)."""
+    kt = _reader_get("kins_type")
+    fr = (_reader_get("kins_pre_rot"), _reader_get("kins_primary_angle"),
+          _reader_get("kins_secondary_angle"))
+    frame = [float(v) for v in fr] if all(v is not None for v in fr) else None
+    return (int(round(kt)) if kt is not None else None, frame)
+
+
+def _live_kins_frame_of(st):
+    """Status-snapshot view of the live plane frame — all three pins or
+    nothing (a partial frame makes no claim)."""
+    f = (st.kins_pre_rot, st.kins_primary_angle, st.kins_secondary_angle)
+    return [float(v) for v in f] if all(v is not None for v in f) else None
+
+
 _bulk = _bulk_mod.BulkPipeline(
     get_stat=lambda: STAT,
     get_machine_units=lambda: get_machine_units(),
     build_wcs_rotation_patches=lambda: _build_wcs_rotation_patches(),
+    get_live_kins=lambda: _live_kins_for_parse(),
 )
 
 
@@ -1444,6 +1465,24 @@ async def _status_poller():
                                     seed=_bulk.published_rotary_seed,
                                     live=st.rotary_abc)
                         _drift = _rdrift
+                    elif _rdrift is None:
+                        # Switchkins drift (fifth freshness input): the
+                        # payload's segment modes start from the PARSE-time
+                        # switchkins type (and, in TOOL kins, its plane
+                        # frame). An M428/M430 or G53.x/G69 issued after
+                        # load — or a program parking the machine in TOOL
+                        # kins — makes that stale (the 855-unit class). A
+                        # type/frame change is a discrete step (no settle
+                        # needed); same idle gate and 2 s debounce.
+                        _kdrift = evaluate_kins_drift(
+                            _bulk.published_kins_seed, st.kins_type,
+                            _live_kins_frame_of(st))
+                        if _kdrift:
+                            _trace.emit("gcode.reparse_kins_drift",
+                                        reason=_kdrift,
+                                        seed=_bulk.published_kins_seed,
+                                        live=st.kins_type)
+                            _drift = _kdrift
                 elif _drift:
                     _trace.emit("gcode.reparse_tlo_drift", reason=_drift,
                                 tool=st.tool_number)
@@ -1461,6 +1500,7 @@ async def _status_poller():
                 _bulk.schema_reparse_attempted = None
                 _bulk.published_tlo = None
                 _bulk.published_rotary_seed = None
+                _bulk.published_kins_seed = None
 
             # Safety-trip detection via the servo-thread HAL latch level
             # (webui-hb-latch.fault-out, issue #34). The latch is sticky and

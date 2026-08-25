@@ -78,7 +78,7 @@ from gateway_util import (
     attribute_sub_callers, resolve_sub_callers,
     insert_flip_relabels, read_var_wcs_rows, wcs_event_rewritten,
     PREVIEW_SCHEMA, should_ship_abc, rotary_sync_initcode,
-    rotary_seed_values,
+    rotary_seed_values, seed_kins_events,
     find_unmarked_subs, resolve_subroutine_dirs,
 )
 
@@ -321,7 +321,9 @@ def parse(ctx: dict) -> dict:
     flips_unresolved = 0
     flips_handled = False
     kins_active = False
-    if canon.kins_events:
+    live_kins_type = ctx.get("kins_type")
+    live_kins_frame = ctx.get("kins_frame")
+    if canon.kins_events or live_kins_type not in (None, 0):
         kins_cfg = parse_kins_config(ini.find("KINS", "KINEMATICS"),
                                      ini.findall("HAL", "HALCMD") or [])
         if kins_marker_policy(kins_cfg) == "ignore":
@@ -337,6 +339,18 @@ def parse(ctx: dict) -> dict:
                   file=sys.stderr, flush=True)
         else:
             kins_active = True
+            # FIFTH freshness input: seed the startup kins state from the
+            # live pin (ctx, sampled by the gateway via hal_reader). The
+            # 855-unit class: a markerless program run while the machine
+            # is PARKED in TOOL kins (the demo's M2 restores G54, not the
+            # kins type) used to parse as identity throughout.
+            if live_kins_type not in (None, 0):
+                canon.kins_events, canon.kins_frames = seed_kins_events(
+                    canon.kins_events, canon.kins_frames,
+                    live_kins_type, live_kins_frame)
+                print(f"kins seeded from live pin: type={live_kins_type} "
+                      f"frame={'yes' if canon.kins_frames and canon.kins_frames[0][0] == -1 else 'no'}",
+                      file=sys.stderr, flush=True)
     if kins_active or len(canon.wcs_events) > 1:
         # Flip relabels (W8 phantom jump + review P2): a switchkins flip
         # relabels the frame at a stationary pose but the offline interp
@@ -973,6 +987,13 @@ def parse(ctx: dict) -> dict:
         # drift edge. Absent line = no rotary sync (3-axis config).
         print("__ABCSEED__\t" + json.dumps(_rot_seed),
               file=sys.stderr, flush=True)
+    # Switchkins state this parse ASSUMED (fifth freshness input): the ctx
+    # values verbatim — None type on untracked configs, where the drift
+    # edge then makes no claim. (kins_marker_policy gating in the gateway
+    # means a type can only arrive on configs whose kins can switch.)
+    print("__KINSSEED__\t" + json.dumps(
+        {"type": live_kins_type, "frame": live_kins_frame}),
+        file=sys.stderr, flush=True)
 
     result = {"file": filename,
               # Parse-time tool-table rows [[tool, xo, yo, zo]…] for the

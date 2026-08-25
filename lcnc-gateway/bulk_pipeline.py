@@ -67,10 +67,16 @@ class BulkPipeline:
         get_stat: Callable[[], Any],
         get_machine_units: Callable[[], str],
         build_wcs_rotation_patches: Callable[[], dict],
+        get_live_kins: Optional[Callable[[], tuple]] = None,
     ) -> None:
         self._get_stat = get_stat
         self._get_machine_units = get_machine_units
         self._build_wcs_rotation_patches = build_wcs_rotation_patches
+        # (live switchkins type, live plane frame [p,t1,t2]) for the parse
+        # ctx — the fifth freshness input. Default (None, None): untracked
+        # (non-switchable configs, tests) — the worker then seeds nothing
+        # and the drift edge makes no claim.
+        self._get_live_kins = get_live_kins or (lambda: (None, None))
 
         # ---- G-code preview (passthrough bytes; GET /preview) ----
         self.preview_pending: Optional[dict] = None   # {"file"} metadata only — consumers only read .get("file")
@@ -104,6 +110,14 @@ class BulkPipeline:
         # orients from the parse-time pose). None = no rotary sync
         # (3-axis config) — no edge, honestly.
         self.published_rotary_seed: Optional[dict] = None
+        # Parse-time switchkins state of the published payload (fifth
+        # freshness input), from the worker's `__KINSSEED__` stderr line:
+        # {"type": int|None, "frame": [p,t1,t2]|None} — what the parse
+        # ASSUMED. The idle drift edge auto-reparses when the live
+        # switchkins type (or, in TOOL kins, the plane-frame pins) leaves
+        # it — the 855-unit class (M2 restores G54 but not the kins type).
+        # None / type None = untracked — no edge, honestly.
+        self.published_kins_seed: Optional[dict] = None
         # Previous drift check's live rotary sample — the settle guard
         # (rotary_drift_settled) compares consecutive 2 s samples so a
         # jog in progress never triggers a reparse.
@@ -152,6 +166,7 @@ class BulkPipeline:
         self.schema_reparse_attempted = None
         self.published_tlo = None
         self.published_rotary_seed = None
+        self.published_kins_seed = None
         self.rotary_check_prev = None
 
     def invalidate_caches_for_ini(self, cur_ini: Optional[str]) -> None:
@@ -225,12 +240,17 @@ class BulkPipeline:
                 return
             active_idx = getattr(stat, "g5x_index", None) if stat is not None else None
             patches = self._build_wcs_rotation_patches()
+            _live_kt, _live_kf = self._get_live_kins()
             ctx = {
                 "file": filepath,
                 "ini_path": ini_path,
                 "units": self._get_machine_units(),
                 "var_patches": patches,
                 "g5x_index": active_idx if isinstance(active_idx, int) else 1,
+                # Fifth freshness input: live switchkins type + plane frame
+                # (None on untracked configs — worker seeds nothing).
+                "kins_type": _live_kt,
+                "kins_frame": _live_kf,
             }
             ctx_bytes = _msgspec.msgpack.encode(ctx)
             _trace.emit("gcode.spawn_start",
@@ -261,6 +281,7 @@ class BulkPipeline:
             worker_schema: Optional[int] = None
             worker_tlo: Optional[dict] = None
             worker_rotary_seed: Optional[dict] = None
+            worker_kins_seed: Optional[dict] = None
             if stderr:
                 for ln in stderr.decode(errors="replace").splitlines():
                     if not ln.strip():
@@ -296,6 +317,15 @@ class BulkPipeline:
                             worker_rotary_seed = json.loads(_s[1])
                         except (IndexError, ValueError):
                             _trace.emit("gcode.abcseed_line_malformed",
+                                        level="warn", line=ln[:160])
+                    elif ln.startswith("__KINSSEED__"):
+                        # Parse-time switchkins assumption (fifth input) —
+                        # same malformed-→-None-loudly contract.
+                        _s = ln.split("\t", 1)
+                        try:
+                            worker_kins_seed = json.loads(_s[1])
+                        except (IndexError, ValueError):
+                            _trace.emit("gcode.kinsseed_line_malformed",
                                         level="warn", line=ln[:160])
                     else:
                         _trace.emit("gcode.worker_log", line=ln)
@@ -333,6 +363,7 @@ class BulkPipeline:
             self.published_schema = worker_schema
             self.published_tlo = worker_tlo
             self.published_rotary_seed = worker_rotary_seed
+            self.published_kins_seed = worker_kins_seed
             self.preview_version += 1
             self.last_file = filepath
             self.last_mtime = _mtime_at_parse

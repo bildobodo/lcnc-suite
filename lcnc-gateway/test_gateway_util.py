@@ -1405,6 +1405,67 @@ class TestRotaryDrift(unittest.TestCase):
             gateway_util.rotary_drift_settled([0.0, None, 0.0], [0.0, 0.0, 0.0]))
 
 
+class TestKinsSeed(unittest.TestCase):
+    """Fifth freshness input: seeding the parse-time switchkins state from
+    the live pin, and the drift edge that reparses when the live state
+    leaves the published assumption (the 855-unit class: M2 restores G54
+    but NOT the kins type)."""
+
+    FRAME = [-1.781762, 130.2455, -40.8555]
+
+    def test_seed_noop_on_identity_or_untracked(self):
+        ev, fr = gateway_util.seed_kins_events([(5, 2)], [(5, 1, 2, 3)], None, None)
+        self.assertEqual(ev, [(5, 2)])
+        self.assertEqual(fr, [(5, 1, 2, 3)])
+        ev, fr = gateway_util.seed_kins_events([], [], 0, self.FRAME)
+        self.assertEqual((ev, fr), ([], []))
+
+    def test_seed_prepends_before_every_seq(self):
+        ev, fr = gateway_util.seed_kins_events([(5, 0)], [], 2, self.FRAME)
+        self.assertEqual(ev[0], (-1, 2))
+        self.assertEqual(fr, [(-1, *self.FRAME)])
+        # The seed governs every segment; the program's own marker still
+        # overrides from its seq on (kins_type_flags applies es < s).
+        flags = gateway_util.kins_type_flags([0, 4, 6], ev)
+        self.assertEqual(flags, [2, 2, 0])
+
+    def test_seed_type2_frameless_and_type1(self):
+        # Frameless TOOL seed: event only — degrades exactly like a bare
+        # M430 (unchecked segments, honestly).
+        ev, fr = gateway_util.seed_kins_events([], [], 2, None)
+        self.assertEqual((ev, fr), ([(-1, 2)], []))
+        # TCP seed never carries a frame.
+        ev, fr = gateway_util.seed_kins_events([], [], 1, self.FRAME)
+        self.assertEqual((ev, fr), ([(-1, 1)], []))
+
+    def test_kins_drift_type_and_frame(self):
+        seed = {"type": 0, "frame": None}
+        self.assertEqual(
+            gateway_util.evaluate_kins_drift(seed, 2, self.FRAME), "kins:type")
+        self.assertIsNone(gateway_util.evaluate_kins_drift(seed, 0, None))
+        seed2 = {"type": 2, "frame": list(self.FRAME)}
+        self.assertIsNone(
+            gateway_util.evaluate_kins_drift(seed2, 2, list(self.FRAME)))
+        moved = [self.FRAME[0] + 0.001, self.FRAME[1], self.FRAME[2]]
+        self.assertEqual(
+            gateway_util.evaluate_kins_drift(seed2, 2, moved), "kins:frame")
+        # Type change wins over frame comparison.
+        self.assertEqual(
+            gateway_util.evaluate_kins_drift(seed2, 0, None), "kins:type")
+
+    def test_kins_drift_no_claim_without_data(self):
+        self.assertIsNone(gateway_util.evaluate_kins_drift(None, 2, None))
+        self.assertIsNone(
+            gateway_util.evaluate_kins_drift({"type": None, "frame": None}, 2, None))
+        self.assertIsNone(
+            gateway_util.evaluate_kins_drift({"type": 2, "frame": self.FRAME}, None, None))
+        # TOOL kins with either frame side absent: no frame claim.
+        self.assertIsNone(
+            gateway_util.evaluate_kins_drift({"type": 2, "frame": None}, 2, self.FRAME))
+        self.assertIsNone(
+            gateway_util.evaluate_kins_drift({"type": 2, "frame": self.FRAME}, 2, None))
+
+
 class TestResolveSubfile(unittest.TestCase):
     """W5 subfile route resolver: LinuxCNC's first-hit SUBROUTINE_PATH rule
     with realpath containment — a symlink or crafted name can never serve a
