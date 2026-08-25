@@ -72,6 +72,23 @@ def rotary_at_zero(canonical_pos: Optional[List[float]], axis_mask: int) -> Opti
     return all(abs(canonical_pos[s]) <= ROTARY_ZERO_TOL_DEG for s in configured)
 
 
+#: Reader field names for the TWP plane, in wire order: origin (machine
+#: frame, world variant), plane normal (Z), plane X. All-or-nothing — a
+#: partial set is not a plane and the client must never build one from it.
+_TWP_PLANE_FIELDS = ("twp_ox", "twp_oy", "twp_oz",
+                     "twp_zx", "twp_zy", "twp_zz",
+                     "twp_xx", "twp_xy", "twp_xz")
+
+
+def assemble_twp_plane(reader_get) -> Optional[List[float]]:
+    """The live TWP plane [ox,oy,oz, zx,zy,zz, xx,xy,xz] from the helper
+    comp's display pins, or None unless every component is present."""
+    vals = [reader_get(k) for k in _TWP_PLANE_FIELDS]
+    if any(v is None for v in vals):
+        return None
+    return [float(v) for v in vals]
+
+
 def to_float_list(x) -> Optional[List[float]]:
     if x is None:
         return None
@@ -183,6 +200,14 @@ class StatusPayload:
     kins_pre_rot: Optional[float]
     kins_primary_angle: Optional[float]
     kins_secondary_angle: Optional[float]
+    # Live TWP state from the twp-helper comp (P3 operator surface).
+    # Sampled only on xyzacb-trsrn configs; None = not sampled, never a
+    # default. twp_plane is the FULL plane definition — [ox,oy,oz (machine
+    # frame), zx,zy,zz (plane normal), xx,xy,xz (plane X)] — assembled
+    # all-or-nothing from the helper's nine display pins.
+    twp_defined: Optional[bool]
+    twp_active: Optional[bool]
+    twp_plane: Optional[List[float]]
     spindle_direction: Optional[int]
     active_file: Optional[str]
     motion_line: Optional[int]
@@ -847,6 +872,11 @@ class StatusRuntime:
             kins_pre_rot=reader_get("kins_pre_rot"),
             kins_primary_angle=reader_get("kins_primary_angle"),
             kins_secondary_angle=reader_get("kins_secondary_angle"),
+            twp_defined=(None if (_twpd := reader_get("twp_defined")) is None
+                         else bool(_twpd)),
+            twp_active=(None if (_twpa := reader_get("twp_active")) is None
+                        else bool(_twpa)),
+            twp_plane=assemble_twp_plane(reader_get),
             spindle_direction=spindle_direction,
             active_file=active_file,
             motion_line=safe_get("motion_line", None),

@@ -168,6 +168,9 @@ export const INPUT_DEFS = {
 
   // Mode selection
   modeSelect:      { gate: 'idle' },
+  // Jog-frame selector (switchable-kins machines): switching runs an MDI
+  // remap (M428/M430), so it carries the MDI tier, not modeSelect's.
+  jogFrame:        { gate: 'ready' },
 
   // Override sliders
   feedOverride:    { gate: 'override' },

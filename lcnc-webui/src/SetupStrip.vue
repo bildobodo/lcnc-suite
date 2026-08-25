@@ -19,6 +19,11 @@ const props = defineProps<{
   homedJoints: boolean[];
   isHomed: boolean;
   g5xLabel: string;
+  // Live switchkins mode (null = machine has no switchable kins — chip
+  // hidden). The industry convention (Heidenhain 3D-ROT, Siemens WCS/MCS)
+  // is that the active jog/work frame is ALWAYS visibly indicated.
+  kinsType?: number | null;
+  twpActive?: boolean | null;
 }>();
 
 const emit = defineEmits<{
@@ -59,6 +64,27 @@ const axisChunks = computed<SetupChunk[]>(() => {
 
 const g5xOptions = ["G54", "G55", "G56", "G57", "G58", "G59", "G59.1", "G59.2", "G59.3"];
 
+// Kins-mode chip (P3 operator surface): the silent-mode-traversal trap —
+// the TWP demo parks the machine in TOOL kins (M2 restores G54, not the
+// kins type) with zero indication anywhere.
+const kinsChip = computed(() => {
+  const k = props.kinsType;
+  if (k == null) return null;
+  if (k === 1) return {
+    text: "TCP", cls: "ok",
+    title: "Tool-center-point kinematics active — programmed XYZ is the tool tip",
+  };
+  if (k === 2) return props.twpActive
+    ? { text: "TWP", cls: "warn",
+        title: "Tilted work plane ACTIVE — X/Y/Z jogs move in the tilted plane (Z along the tool axis). G69 cancels." }
+    : { text: "TOOL", cls: "warn",
+        title: "TOOL kinematics active without an active plane — X/Y/Z jogs move along the last plane frame, not machine axes. G69 restores machine kinematics." };
+  return {
+    text: "MACHINE", cls: "muted",
+    title: "Identity kinematics — X/Y/Z jogs move along machine axes",
+  };
+});
+
 function zeroAll() {
   emit("setAll", new Array(props.axes.length).fill(0));
 }
@@ -86,6 +112,8 @@ function zeroAll() {
 
       <div class="wcsCol stack-tight strip-radio-group">
         <span class="label-muted">WCS</span>
+        <span v-if="kinsChip" class="val-status kinsChip" :class="kinsChip.cls"
+              :title="kinsChip.title">{{ kinsChip.text }}</span>
         <div class="strip-radio-options">
           <label v-for="g in g5xOptions" :key="g" class="radio-label">
             <MachineRadio gate="touchoff" name="wcs" :value="g" :modelValue="g5xLabel" @update:modelValue="(v: string | number | undefined) => { if (v != null) emit('setG5x', String(v)) }" />
@@ -115,6 +143,9 @@ function zeroAll() {
 .setupInput { width: 100%; }
 .spanAll { grid-column: 1 / -1; }
 .wcsCol { justify-content: flex-start; }
+/* Chip inherits .val-status visuals; only the alignment is local (the
+   column reads left-to-right, not right-aligned like status rows). */
+.kinsChip { text-align: left; }
 
 @media (orientation: portrait) {
   .setupContent { flex-direction: column; }

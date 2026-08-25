@@ -515,6 +515,21 @@ async def _reader_configure_extra_pins() -> None:
         pins["kins_pre_rot"] = f"{_kp}pre-rot"
         pins["kins_primary_angle"] = f"{_kp}primary-angle"
         pins["kins_secondary_angle"] = f"{_kp}secondary-angle"
+        # TWP state + plane definition from the twp-helper comp (P3
+        # operator surface: mode chip, plane visualization). Same trsrn
+        # gate: the shipped trsrn config IS the TWP stack; a trsrn config
+        # without the helper comp would park these in the reader's
+        # missing-pin reminder — loud, and correct (its TWP state would
+        # be unknowable).
+        pins["twp_defined"] = "twp-helper-comp.twp-is-defined"
+        pins["twp_active"] = "twp-helper-comp.twp-is-active"
+        for _f, _p in (("twp_ox", "twp-ox-world"), ("twp_oy", "twp-oy-world"),
+                       ("twp_oz", "twp-oz-world"),
+                       ("twp_zx", "twp-zx"), ("twp_zy", "twp-zy"),
+                       ("twp_zz", "twp-zz"),
+                       ("twp_xx", "twp-xx"), ("twp_xy", "twp-xy"),
+                       ("twp_xz", "twp-xz")):
+            pins[_f] = f"twp-helper-comp.{_p}"
     try:
         await _reader_request("set_extra_pins", pins=pins)
     except Exception as e:

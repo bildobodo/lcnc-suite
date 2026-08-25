@@ -540,6 +540,19 @@ const isHomed = computed(() => {
 });
 
 const motionMode = computed(() => st.value.motion_mode ?? TRAJ_MODE_FREE);
+// Live switchkins type as a clean int (null = no switchable kins on this
+// machine / not sampled — the kins-mode surfaces hide themselves then).
+const liveKinsType = computed<number | null>(() => {
+  const k = st.value.kins_type;
+  return k == null ? null : Math.round(Number(k));
+});
+// Jog-frame selector (JogStrip): the switch is an MDI remap — M430 enters
+// TOOL/plane kins, M428 restores identity. Switchkins preserves joint
+// positions, so the switch itself moves nothing; the ready gate (idle +
+// homed) is what makes it a safe stationary relabel.
+function setKinsMode(t: number) {
+  fire({ cmd: "mdi", text: t === 2 ? "M430" : "M428" }, "ready");
+}
 const isTeleop = computed(() => motionMode.value === TRAJ_MODE_TELEOP);
 
 const interpState = computed(() => st.value.interp_state ?? INTERP_IDLE);
@@ -1944,6 +1957,9 @@ watch(viewerGcode, (newGcode) => {
         :jogIncrement="jogIncrement"
         :minJogVel="minJogVel"
         :iniIncrements="iniIncrements"
+        :kinsType="liveKinsType"
+        :twpDefined="st.twp_defined ?? null"
+        @setKinsMode="setKinsMode"
         :jogDisabled="!permissions.jog"
         :taskMode="taskMode"
         @update:jogVel="jogVel = $event"
@@ -1962,6 +1978,8 @@ watch(viewerGcode, (newGcode) => {
         :homedJoints="homedJoints"
         :isHomed="isHomed"
         :g5xLabel="g5xLabel"
+        :kinsType="liveKinsType"
+        :twpActive="st.twp_active ?? null"
         @homeAll="homeAll"
         @unhomeAll="unhomeAll"
         @homeAxis="homeAxis"

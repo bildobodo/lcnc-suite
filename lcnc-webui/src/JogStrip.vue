@@ -29,6 +29,12 @@ const props = defineProps<{
   iniIncrements: number[] | null;
   jogDisabled: boolean;
   taskMode: number;
+  // Jog-frame selector (switchable-kins machines only; industry convention
+  // — Heidenhain 3D-ROT manual setting, Siemens WCS/MCS softkey — is an
+  // EXPLICIT operator choice of jog frame, prominently indicated).
+  // null kinsType = machine can't switch: selector hidden entirely.
+  kinsType?: number | null;
+  twpDefined?: boolean | null;
 }>();
 
 const emit = defineEmits<{
@@ -38,6 +44,7 @@ const emit = defineEmits<{
   (e: "resetJogVel"): void;
   (e: "resetAngularJogVel"): void;
   (e: "modeChange", mode: number): void;
+  (e: "setKinsMode", type: number): void;
 }>();
 
 const can = usePermissions();
@@ -396,6 +403,22 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
             <label class="radio-label"><MachineRadio gate="modeSelect" name="taskMode" :modelValue="taskMode" :value="TASK_MODE_AUTO" @update:modelValue="emit('modeChange', TASK_MODE_AUTO)" /> Auto</label>
           </div>
         </div>
+
+        <!-- Jog-frame selector: only on switchable-kins machines with a
+             defined TWP plane (Heidenhain 3D-ROT / Siemens WCS-MCS
+             convention — the jog frame is an explicit, indicated operator
+             choice). Plane = TOOL kins (M430): X/Y/Z jog in the tilted
+             plane, Z along the tool axis. Machine = identity (M428). -->
+        <template v-if="kinsType != null && twpDefined">
+          <div class="sep modeColSep"></div>
+          <div class="frameCol stack-tight strip-radio-group">
+            <span class="label-muted">Jog frame</span>
+            <div class="strip-radio-options">
+              <label class="radio-label" title="Identity kinematics — jog along machine axes"><MachineRadio gate="jogFrame" name="jogFrame" :modelValue="kinsType === 2 ? 2 : 0" :value="0" @update:modelValue="emit('setKinsMode', 0)" /> Machine</label>
+              <label class="radio-label" title="TOOL kinematics — jog in the tilted work plane, Z along the tool axis"><MachineRadio gate="jogFrame" name="jogFrame" :modelValue="kinsType === 2 ? 2 : 0" :value="2" @update:modelValue="emit('setKinsMode', 2)" /> Plane</label>
+            </div>
+          </div>
+        </template>
       </div>
     </div>
   </div>
