@@ -322,6 +322,22 @@ let pathAlwaysOnTop = true; // default; overridden by setPathAlwaysOnTop()
 // 1 for mm machines, 1/25.4 for inch machines. Set in buildFromInit() from viewer_init.units.
 let _unitScale = 1;
 
+// ---- TWP plane visualization (P3.4) ----
+// The live tilted-work-plane, drawn from the twp-helper comp's plane pins
+// (status twp_plane: [ox,oy,oz, zx,zy,zz, xx,xy,xz], MACHINE frame — the
+// control's plane does not ride the table, so it attaches to the scene
+// root, not the work chain). Heidenhain's simulation and the upstream TWP
+// VTK GUI both draw this; the marker comments only ever carried it as
+// numbers. Info-blue while TOOL kins is active; warn-amber when a plane
+// is defined but the kins is back to identity (defined-but-inactive —
+// the parked-in-TWP trap made visible).
+let twpPlaneGroup: THREE.Group | null = null;
+let twpPlaneMat: THREE.MeshBasicMaterial | null = null;
+let twpGridMat: THREE.LineBasicMaterial | null = null;
+let _twpLayerOn = true;
+const _TWP_ACTIVE_HEX = 0x4aa3ff;   // matches the info-blue family
+const _TWP_INACTIVE_HEX = 0xffb347; // matches the warn-amber family
+
 // ---- Backplot (live toolpath history) — owned by backplotController ----
 const backplot = createBackplotController(requestRender);
 // Reused scratch vectors for the per-tick backplot append — avoids allocating
@@ -683,6 +699,63 @@ function switchProjection() {
   controls.update();
 }
 
+// TWP plane pose/tint update (P3.4). Signature-gated: the status watcher
+// calls this every tick, but pose math + re-render run only when the plane
+// values, kins type, or layer toggle actually changed.
+let _twpSig = "";
+const _twpZ = new THREE.Vector3();
+const _twpX = new THREE.Vector3();
+const _twpY = new THREE.Vector3();
+const _twpM = new THREE.Matrix4();
+
+function _twpRefresh() {
+  const d: any = status.value?.data;
+  updateTwpPlane(d?.twp_plane, !!d?.twp_defined, d?.kins_type);
+}
+
+function updateTwpPlane(plane: unknown, defined: boolean, ktype: unknown) {
+  if (!twpPlaneGroup) return;
+  const ok = defined && Array.isArray(plane) && plane.length === 9 &&
+    (plane as unknown[]).every((v) => Number.isFinite(Number(v)));
+  const k = ktype == null ? -1 : Math.round(Number(ktype));
+  const sig = ok
+    ? `${(plane as number[]).map((v) => Number(v).toFixed(4)).join(",")}|${k}|${_twpLayerOn}`
+    : "off";
+  if (sig === _twpSig) return;
+  _twpSig = sig;
+  if (!ok || !_twpLayerOn) {
+    if (twpPlaneGroup.visible) { twpPlaneGroup.visible = false; requestRender(); }
+    return;
+  }
+  const p = (plane as number[]).map(Number);
+  _twpZ.set(p[3]!, p[4]!, p[5]!);
+  if (_twpZ.lengthSq() < 1e-9) {
+    // A defined plane with a zero normal is not drawable — hide, honestly.
+    if (twpPlaneGroup.visible) { twpPlaneGroup.visible = false; requestRender(); }
+    return;
+  }
+  _twpZ.normalize();
+  _twpX.set(p[6]!, p[7]!, p[8]!);
+  _twpX.addScaledVector(_twpZ, -_twpX.dot(_twpZ));
+  if (_twpX.lengthSq() < 1e-9) {
+    // Degenerate X (parallel to the normal): any in-plane X will do for
+    // drawing — derive one from the least-aligned world axis.
+    _twpX.set(1, 0, 0);
+    if (Math.abs(_twpZ.x) > 0.9) _twpX.set(0, 1, 0);
+    _twpX.addScaledVector(_twpZ, -_twpX.dot(_twpZ));
+  }
+  _twpX.normalize();
+  _twpY.crossVectors(_twpZ, _twpX);
+  _twpM.makeBasis(_twpX, _twpY, _twpZ);
+  twpPlaneGroup.quaternion.setFromRotationMatrix(_twpM);
+  twpPlaneGroup.position.set(p[0]!, p[1]!, p[2]!);   // machine units = world units
+  const hex = k === 2 ? _TWP_ACTIVE_HEX : _TWP_INACTIVE_HEX;
+  if (twpPlaneMat) twpPlaneMat.color.setHex(hex);
+  if (twpGridMat) twpGridMat.color.setHex(hex);
+  twpPlaneGroup.visible = true;
+  requestRender();
+}
+
 function setLayerVisible(layer: Layer, on: boolean) {
   if (pendingLayers) {
     pendingLayers.set(layer, on);
@@ -709,6 +782,11 @@ function setLayerVisible(layer: Layer, on: boolean) {
       break;
     case "workzero":
       if (workAxes) workAxes.visible = on;
+      break;
+    case "workplane":
+      _twpLayerOn = on;
+      _twpSig = "";   // force the next refresh to re-evaluate visibility
+      _twpRefresh();
       break;
     case "hud":
       hudVisible.value = on;
@@ -874,6 +952,41 @@ function ensureCoreGroups(init: ViewerInit) {
   workAxes.add(new THREE.ArrowHelper(new THREE.Vector3(0,0,1), new THREE.Vector3(), _al, AXIS_HEX.z, _ah, _aw));
 
   workRotGroup.add(workAxes);
+
+  // ---- TWP plane (P3.4) — machine frame, hidden until a plane is defined ----
+  {
+    twpPlaneGroup = new THREE.Group();
+    twpPlaneGroup.visible = false;
+    const _ps = 300 * _unitScale;   // 300 mm-equivalent square
+    twpPlaneMat = new THREE.MeshBasicMaterial({
+      color: _TWP_ACTIVE_HEX, transparent: true, opacity: 0.12,
+      side: THREE.DoubleSide, depthWrite: false,
+    });
+    twpPlaneGroup.add(new THREE.Mesh(new THREE.PlaneGeometry(_ps, _ps), twpPlaneMat));
+    // Grid: hand-built LineSegments (GridHelper bakes vertex colors, which
+    // would defeat the active/inactive tint swap).
+    {
+      const div = 10, half = _ps / 2, pos: number[] = [];
+      for (let i = 0; i <= div; i++) {
+        const c = -half + (i * _ps) / div;
+        pos.push(c, -half, 0, c, half, 0, -half, c, 0, half, c, 0);
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+      twpGridMat = new THREE.LineBasicMaterial({
+        color: _TWP_ACTIVE_HEX, transparent: true, opacity: 0.35, depthWrite: false,
+      });
+      twpPlaneGroup.add(new THREE.LineSegments(g, twpGridMat));
+    }
+    // Origin triad in the PLANE's frame — Z is the plane normal (= tool
+    // axis when TOOL kins is active).
+    const _tl = 80 * _unitScale, _th = _tl * 0.15, _tw = _tl * 0.08;
+    twpPlaneGroup.add(new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(), _tl, AXIS_HEX.x, _th, _tw));
+    twpPlaneGroup.add(new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), new THREE.Vector3(), _tl, AXIS_HEX.y, _th, _tw));
+    twpPlaneGroup.add(new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1), new THREE.Vector3(), _tl, AXIS_HEX.z, _th, _tw));
+    scene.add(twpPlaneGroup);
+    _twpRefresh();
+  }
 
   // ---- Backplot line (tool history in WORK coordinates) ----
   // Rebuild under the fresh _workGrp (reassigned each rebuild); the controller
@@ -2268,6 +2381,7 @@ watch(
     if (tm && msg.data.tool_number != null) {
       setToolMeta(msg.data.tool_number, tm);
     }
+    _twpRefresh();
   },
 );
 

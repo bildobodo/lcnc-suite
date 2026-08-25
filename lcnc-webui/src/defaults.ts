@@ -23,8 +23,8 @@ export const STEP_RAPID_OVERRIDE = 25;
 
 export type Vec3 = [number, number, number];
 
-export type Layer = "backplot" | "toolpath" | "machine" | "bounds" | "toolpathBounds" | "workzero" | "hud" | "surface" | "tool";
-export const ALL_LAYERS: Layer[] = ["backplot", "toolpath", "machine", "bounds", "toolpathBounds", "workzero", "hud", "surface", "tool"];
+export type Layer = "backplot" | "toolpath" | "machine" | "bounds" | "toolpathBounds" | "workzero" | "hud" | "surface" | "tool" | "workplane";
+export const ALL_LAYERS: Layer[] = ["backplot", "toolpath", "machine", "bounds", "toolpathBounds", "workzero", "hud", "surface", "tool", "workplane"];
 
 export type TrackMode = "none" | "tool" | "wcs";
 export type Projection = "perspective" | "parallel";
@@ -208,7 +208,7 @@ export const HUD_FALLBACK: HudDefaults = {
 };
 
 const VIEWER_FALLBACK: ViewerDefaults = {
-  layers: { backplot: true, toolpath: true, machine: true, bounds: true, toolpathBounds: false, workzero: true, hud: true, surface: true, tool: true },
+  layers: { backplot: true, toolpath: true, machine: true, bounds: true, toolpathBounds: false, workzero: true, hud: true, surface: true, tool: true, workplane: true },
   colors: { feed: "#22b8cf", rapid: "#f5a623", backplot: "#ff00ff", bounds: "#ffffff", toolpathBounds: "#f5a623", tool: "#c0c0c0", cutter: "#ffdd00" },
   machineColors: {},
   machineEdges: true,

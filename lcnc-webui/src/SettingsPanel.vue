@@ -267,6 +267,7 @@ const LAYER_LABELS: { key: Layer; label: string }[] = [
   { key: "backplot", label: "Backplot" },
   { key: "toolpath", label: "Toolpath" },
   { key: "workzero", label: "Work Zero" },
+  { key: "workplane", label: "Work Plane" },
   { key: "surface", label: "Surface" },
   { key: "toolpathBounds", label: "Toolpath Bounds" },
   { key: "bounds", label: "Machine Bounds" },
