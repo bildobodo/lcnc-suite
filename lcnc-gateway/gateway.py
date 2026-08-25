@@ -49,6 +49,8 @@ from gateway_util import (
     evaluate_tlo_drift,
     evaluate_rotary_drift,
     rotary_drift_settled,
+    wcs_offset_flat_from_table,
+    evaluate_wcs_offset_drift,
     unwritten_estop_signal,
     kins_marker_policy,
     kins_pivot_warning,
@@ -1444,6 +1446,28 @@ async def _status_poller():
                                     seed=_bulk.published_rotary_seed,
                                     live=st.rotary_abc)
                         _drift = _rdrift
+                    elif _rdrift is None:
+                        # WCS-offset drift: a touch-off changes the
+                        # offsets the payload's abc peel and soft-limit
+                        # flags were baked with, with NO pose change — no
+                        # other edge sees it (live-caught: Zero All on a
+                        # tilted head wrote the rotary pose into G54's
+                        # rotary offsets; the client re-added them onto
+                        # the payload's unpeeled values and the sim posed
+                        # A at double the real angle). Burst-settled: a
+                        # multi-G10 Zero All reparses once, after the
+                        # last write.
+                        _wflat = wcs_offset_flat_from_table(
+                            st.wcs_table, st.g92_offset)
+                        _wdrift = evaluate_wcs_offset_drift(
+                            _bulk.published_wcs_off, _wflat)
+                        _wsettled = (_wflat is not None
+                                     and _wflat == _bulk.wcsoff_check_prev)
+                        _bulk.wcsoff_check_prev = _wflat
+                        if _wdrift and _wsettled:
+                            _trace.emit("gcode.reparse_wcsoff_drift",
+                                        reason=_wdrift)
+                            _drift = _wdrift
                 elif _drift:
                     _trace.emit("gcode.reparse_tlo_drift", reason=_drift,
                                 tool=st.tool_number)
@@ -1461,6 +1485,7 @@ async def _status_poller():
                 _bulk.schema_reparse_attempted = None
                 _bulk.published_tlo = None
                 _bulk.published_rotary_seed = None
+                _bulk.published_wcs_off = None
 
             # Safety-trip detection via the servo-thread HAL latch level
             # (webui-hb-latch.fault-out, issue #34). The latch is sticky and

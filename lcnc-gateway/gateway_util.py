@@ -986,6 +986,84 @@ def evaluate_rotary_drift(seed, rotary_abc, eps=0.01):
     return ("rotary:" + drifted) if drifted else None
 
 
+#: Flat WCS-offset snapshot layout: 9 rows (G54..G59.3) × 10 slots
+#: (x y z a b c u v w r) + 9 g92 slots = 99 entries.
+_WCSOFF_ROW_KEYS = ("x", "y", "z", "a", "b", "c", "u", "v", "w", "r")
+_WCSOFF_NAMES = ("G54", "G55", "G56", "G57", "G58", "G59",
+                 "G59.1", "G59.2", "G59.3")
+
+
+def wcs_offset_flat_from_var(var_rows, g92_offset):
+    """Parse-time WCS-offset snapshot from read_var_wcs_rows' dict + the
+    canonical g92, flattened to the 99-entry layout. The abc peel and the
+    per-line soft-limit flags bake these values into the payload — an
+    operator touch-off afterwards makes them stale with NO pose change,
+    so the drift edge needs this snapshot to compare against. None when
+    the rows are unreadable/incomplete (no claim). Pure."""
+    if not var_rows:
+        return None
+    out = []
+    for i in range(1, 10):
+        ent = var_rows.get(i)
+        if ent is None:
+            return None
+        offs, rot = ent
+        if offs is None or len(offs) < 9:
+            return None
+        out.extend(float(v) for v in offs[:9])
+        out.append(float(rot))
+    for j in range(9):
+        try:
+            out.append(float(g92_offset[j]))
+        except (TypeError, IndexError, ValueError):
+            out.append(None)
+    return out
+
+
+def wcs_offset_flat_from_table(wcs_table, g92_offset):
+    """The LIVE side of the same snapshot, from the status wcs_table rows
+    (list of dicts keyed x..w + r). None when the table is absent or
+    short (no claim). Pure."""
+    if not wcs_table or len(wcs_table) < 9:
+        return None
+    out = []
+    for i in range(9):
+        row = wcs_table[i]
+        for k in _WCSOFF_ROW_KEYS:
+            v = row.get(k)
+            out.append(None if v is None else float(v))
+    for j in range(9):
+        try:
+            out.append(float(g92_offset[j]))
+        except (TypeError, IndexError, ValueError):
+            out.append(None)
+    return out
+
+
+def evaluate_wcs_offset_drift(snap_flat, live_flat, eps=1e-3):
+    """Has any WCS offset (all nine rows incl. rotation, plus g92) moved
+    since the preview was parsed? The class the rotary Zero All exposed:
+    the payload's rotary channel is peeled with the PARSE-time offsets and
+    the client re-adds the LIVE ones — a touch-off with no pose change
+    double-counts the rotary offset (A jogged to 116°, zeroed, sim derives
+    233°), and the per-line soft-limit flags go stale the same silent way.
+
+    Returns "wcsoff:<row>:<letter>" naming the first drifted slot, or
+    None. Absent data on either side (or a None slot) makes no claim.
+    The CALLER owns idle-gating, debounce, and burst-settling. Pure."""
+    if not snap_flat or not live_flat or len(snap_flat) != len(live_flat):
+        return None
+    for i, (a, b) in enumerate(zip(snap_flat, live_flat)):
+        if a is None or b is None:
+            continue
+        if abs(float(a) - float(b)) > eps:
+            if i < 90:
+                return (f"wcsoff:{_WCSOFF_NAMES[i // 10]}:"
+                        f"{_WCSOFF_ROW_KEYS[i % 10]}")
+            return f"wcsoff:g92:{_WCSOFF_ROW_KEYS[i - 90]}"
+    return None
+
+
 def rotary_drift_settled(prev_abc, rotary_abc, eps=0.01):
     """Is the live rotary pose STATIONARY between two consecutive drift
     checks? The drift edge must never fire mid-jog: interp is IDLE while
