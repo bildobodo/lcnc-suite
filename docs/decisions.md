@@ -1320,3 +1320,55 @@ sessions now run from the `~/twp-checkout` worktree (installed
 lcnc_suite_sim_twp.ini re-pointed; .bak-presplit kept). Verified on
 development post-split: build + vitest (457) + pytest green, trunnion
 sim boots and serves.
+
+## 2026-08-25 — P3 operator surface shipped on feat/twp + live validation; the gate's SECOND real catch
+
+P3 of the step-back plan, all on feat/twp (155ebb0, e08818b, e26da23,
+a76858b), live-validated on the worktree-hosted TWP sim:
+
+- **Fifth freshness input LIVE**: parse ctx now carries the live
+  switchkins type + plane frame; the worker seeds a synthetic seq -1
+  marker event (one resolution path — kins_type_flags/kins_frame_indices
+  apply it, the program's own first marker overrides it) and echoes
+  `__KINSSEED__`; the idle drift edge reparses on type/frame drift.
+  Both edges observed live this session: `gcode.reparse_rotary_drift`
+  (rotary:BC after the demo parked the head) and
+  `gcode.reparse_kins_drift` (kins:type, seed 2 → live 0 after the
+  corpus program's g69). Follow-up fix in the same session: the k=0
+  start-labeling correction in insert_flip_relabels converts FROM the
+  live labeling (start_type/start_frame), not a hardcoded type 0 —
+  a parked-in-TOOL parse's canon start is ALREADY expressed in the live
+  labeling (pinned by two new joint-invariance tests).
+- **Kins-mode chip** (SetupStrip, by the WCS selector): MACHINE / TCP /
+  TWP·TOOL, warn-tinted for TOOL kins — the M2-parks-in-TWP trap is now
+  visible. Hidden entirely on non-switchable machines (kins_type null).
+- **Explicit jog-frame selector** (JogStrip): Machine/Plane, shown only
+  when a TWP plane is defined — the Heidenhain 3D-ROT / Siemens WCS-MCS
+  convention (jog frame = explicit, indicated operator choice). Switch
+  runs M428/M430 via MDI under the ready gate (stationary relabel).
+- **TWP plane visualization** (ThreeViewer): translucent square + grid +
+  origin triad posed from the twp-helper comp's plane pins (new status
+  fields twp_defined / twp_active / twp_plane, machine frame,
+  all-or-nothing); info-blue active, warn-amber defined-but-inactive;
+  'Work Plane' layer toggle; signature-gated updates.
+
+**Gate re-run (fresh-boot state)**: twp run2 PASS 0.000/0.031 (through
+BOTH live drift edges), parity_linear PASS 0.007/0.031 — but twp run1
+**FAIL at exactly 22.000 in every metric**: THE GATE'S SECOND REAL
+CATCH. Truth-context tool offset was [0,0,0] (fresh boot) while the
+demo applies its own `g43 h3` (TLO 22) before any motion; the sim's
+joint transform uses ONE wcs.tool for the whole track (W3 P0), so every
+post-G43 joint is off by exactly the TLO in Z. Two days ago the same
+run "passed" only because the session start state already carried
+TLO 22. Class: **in-program TLO change vs the single-TLO sim transform**
+— the SIXTH run-time state item. Operator impact is bounded: the tip-
+on-path display stays consistent (jointsForSample and applyState phase 3
+use the same live wcs.tool); the JOINT pose (head height) is off by the
+TLO delta only between a fresh load and the post-run TLO-drift reparse.
+Designed fix (ledger, own wave — this is the W3 P0 multi-consumer
+class): per-segment TLO events on the wire (schema 8, emitted only when
+TLO changes mid-program) + an audit of every TLO consumer (scrub
+jointsForSample, entry move, partFrame emit, collision tool shift,
+applyState phase-3 override completeness). Not patched ad hoc here —
+a wrong partial fix in this class is exactly how the 12.58 mm TLO bug
+hid before.
