@@ -1227,7 +1227,8 @@ def _kins_flip_pose(kins_cfg, ktype, frame, tlo, unit_scale, world=None, joints=
 
 
 def insert_flip_relabels(feed, rapid, kins_events, kins_frames, wcs_events,
-                         kins_cfg, unit_scale=1.0, ustart_seqs=frozenset()):
+                         kins_cfg, unit_scale=1.0, ustart_seqs=frozenset(),
+                         start_type=0, start_frame=None):
     """Insert the RELABELED start vertex at every kins or WCS-epoch flip.
 
     KINS flips (the W8 phantom-jump defect): a switchkins flip swaps the
@@ -1321,21 +1322,31 @@ def insert_flip_relabels(feed, rapid, kins_events, kins_frames, wcs_events,
     # limit subdivision without touching geometry. Skipped for an
     # unknown-start first tuple (start is a synthetic copy of its end —
     # relabeling it would fabricate a segment out of a zero-length vertex).
+    # The FROM side of the k=0 correction is the PARSE-TIME LIVE labeling
+    # (start_type/start_frame — the fifth freshness input), not a
+    # hardcoded 0: the initcode pose comes from actual_position, which is
+    # expressed under whatever kins the machine is parked in. Pre-seed
+    # code assumed startup type 0 — correct only while the parse itself
+    # assumed it. A seeded parse whose first segment carries the seed
+    # labeling converts FROM==TO (identity, no patch), exactly right.
+    _sfr = tuple(start_frame) if start_frame is not None else None
     ustart2 = {s * 2 for s in ustart_seqs}
-    if merged and (types[0] != 0 or fidx[0] is not None) \
+    _fr0 = frames_vals[fidx[0]] if merged and fidx[0] is not None else None
+    if merged and (types[0] != start_type or _fr0 != _sfr) \
             and merged[0][0] not in ustart2:
         _seq0, lst_0, i_0 = merged[0]
         nxt = lst_0[i_0]
         nxt_start = nxt[1]
         tlo_n = nxt[4] if lst_0 is feed else nxt[3]
-        fr_n = frames_vals[fidx[0]] if fidx[0] is not None else None
+        fr_n = _fr0
         w0 = [0.0] * 6
         for i in range(6):
             v = float(nxt_start[i])
             if i < 3:
                 v = (v + (tlo_n[i] if tlo_n is not None else 0.0)) * unit_scale
             w0[i] = v
-        j = _kins_flip_pose(kins_cfg, 0, None, tlo_n, unit_scale, world=w0)
+        j = _kins_flip_pose(kins_cfg, start_type, _sfr, tlo_n, unit_scale,
+                            world=w0)
         w1 = None if j is None else \
             _kins_flip_pose(kins_cfg, types[0], fr_n, tlo_n, unit_scale, joints=j)
         if w1 is None:

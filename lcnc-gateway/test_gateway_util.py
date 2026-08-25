@@ -970,6 +970,46 @@ class TestInsertKinsRelabels(unittest.TestCase):
         self.assertGreater(
             max(abs(ins[2][i] - p0[i]) for i in range(3)), 1.0)
 
+    def test_seeded_start_skips_k0_correction_when_labels_match(self):
+        # Fifth input: a parse under PARKED TOOL kins carries a synthetic
+        # seed event/frame at seq -1 and start_type/start_frame naming the
+        # live labeling. The canon start is ALREADY expressed in it, so
+        # the k=0 correction must be an identity (it used to convert FROM
+        # a hardcoded type 0 — wrong the moment the parse KNOWS better).
+        p0 = self._seg9(50.0, 0.0, 100.0)
+        rapid = [(5, self._seg9(0, 0, 0), p0, None, 1)]
+        fv = tuple(self.FRAME[k] for k in
+                   ("pre_rot", "primary_angle", "secondary_angle"))
+        _f, r2, _e, _fr, _w2, brks, unres = gateway_util.insert_flip_relabels(
+            [], rapid, [(-1, 2)], [(-1,) + fv], [], self.TRSRN,
+            unit_scale=1.0, start_type=2, start_frame=fv)
+        self.assertEqual((len(r2), brks, unres), (1, set(), 0))
+        self.assertEqual(tuple(r2[0][1]), rapid[0][1],
+                         "start already in the live labeling — untouched")
+
+    def test_seeded_start_converts_from_live_labeling(self):
+        # The program's own pre-motion marker returns to identity (a
+        # leading g69) while the machine is parked in TOOL kins: the k=0
+        # correction must convert the start FROM the seed labeling TO the
+        # program's — joint-invariant across the relabel.
+        start2 = self._seg9(50.0, 0.0, 100.0)   # expressed in TOOL labeling
+        rapid = [(5, start2, self._seg9(0, 0, 100.0), None, 1)]
+        fv = tuple(self.FRAME[k] for k in
+                   ("pre_rot", "primary_angle", "secondary_angle"))
+        _f, r2, _e, _fr, _w2, _brks, unres = gateway_util.insert_flip_relabels(
+            [], rapid, [(-1, 2), (0, 0)], [(-1,) + fv], [], self.TRSRN,
+            unit_scale=1.0, start_type=2, start_frame=fv)
+        self.assertEqual(unres, 0)
+        patched = list(r2[0][1][:6])
+        j_seed = gateway_util.trsrn_kins_inverse(
+            list(start2[:6]), dict(self.GEO, **self.FRAME), 2)
+        j_new = gateway_util.trsrn_kins_inverse(list(patched), dict(self.GEO), 0)
+        for a, b in zip(j_seed, j_new):
+            self.assertAlmostEqual(a, b, places=6)
+        self.assertGreater(
+            max(abs(patched[i] - start2[i]) for i in range(3)), 1.0,
+            "the relabel is a real displacement in this fixture")
+
     def test_frameless_type2_flip_is_unresolved_not_guessed(self):
         rapid, events, _p0, _p1 = self._flip_fixture(False)
         feed2, rapid2, _ev2, _fr2, _w2, brks, unres = gateway_util.insert_flip_relabels(

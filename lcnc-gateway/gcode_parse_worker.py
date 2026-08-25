@@ -373,7 +373,13 @@ def parse(ctx: dict) -> dict:
             canon.kins_events if kins_active else [],
             canon.kins_frames if kins_active else [],
             canon.wcs_events, kins_cfg, unit_scale,
-            ustart_seqs=set(canon.unknown_start))
+            ustart_seqs=set(canon.unknown_start),
+            # Fifth input: the initcode pose is expressed under the LIVE
+            # parse-time kins — the k=0 correction converts FROM it.
+            start_type=(live_kins_type if (kins_active and
+                                           live_kins_type is not None) else 0),
+            start_frame=(live_kins_frame if (kins_active and
+                                             live_kins_type == 2) else None))
         flips_handled = True
         # Sub-span markers re-key with the same seq doubling (W2 P6) — their
         # strict `<` comparisons must stay aligned with the doubled per-point
