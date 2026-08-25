@@ -1504,6 +1504,74 @@ class TestKinsSeed(unittest.TestCase):
             gateway_util.evaluate_kins_drift({"type": 2, "frame": None}, 2, self.FRAME))
         self.assertIsNone(
             gateway_util.evaluate_kins_drift({"type": 2, "frame": self.FRAME}, 2, None))
+class TestWcsOffsetDrift(unittest.TestCase):
+    """WCS-offset drift edge (live-caught): a touch-off changes the offsets
+    the payload's abc peel and soft-limit flags were baked with, with NO
+    pose change — Zero All on a tilted head wrote the rotary pose into
+    G54's rotary offsets and the sim then posed A at double the real
+    angle."""
+
+    @staticmethod
+    def _var_rows(g54=(0.0,) * 9, rot=0.0):
+        return {i: (list(g54) if i == 1 else [0.0] * 9, rot if i == 1 else 0.0)
+                for i in range(1, 10)}
+
+    @staticmethod
+    def _table(g54=None, r54=0.0):
+        keys = ("x", "y", "z", "a", "b", "c", "u", "v", "w")
+        rows = []
+        for i in range(9):
+            vals = g54 if (i == 0 and g54 is not None) else [0.0] * 9
+            row = {k: vals[j] for j, k in enumerate(keys)}
+            row["r"] = r54 if i == 0 else 0.0
+            rows.append(row)
+        return rows
+
+    def test_flatteners_agree_on_same_state(self):
+        g54 = [1300.0, -200.0, -1400.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        snap = gateway_util.wcs_offset_flat_from_var(
+            self._var_rows(tuple(g54)), [0.0] * 9)
+        live = gateway_util.wcs_offset_flat_from_table(
+            self._table(g54), [0.0] * 9)
+        self.assertIsNotNone(snap)
+        self.assertIsNone(gateway_util.evaluate_wcs_offset_drift(snap, live))
+
+    def test_rotary_offset_touchoff_detected(self):
+        # The live catch: G54 rotary offsets rewritten to the parked pose.
+        snap = gateway_util.wcs_offset_flat_from_var(self._var_rows(), [0.0] * 9)
+        moved = [0.0, 0.0, 0.0, 116.52, 53.885, 192.315, 0.0, 0.0, 0.0]
+        live = gateway_util.wcs_offset_flat_from_table(
+            self._table(moved), [0.0] * 9)
+        self.assertEqual(
+            gateway_util.evaluate_wcs_offset_drift(snap, live), "wcsoff:G54:a")
+
+    def test_rotation_and_g92_detected(self):
+        snap = gateway_util.wcs_offset_flat_from_var(self._var_rows(), [0.0] * 9)
+        live = gateway_util.wcs_offset_flat_from_table(
+            self._table(r54=30.0), [0.0] * 9)
+        self.assertEqual(
+            gateway_util.evaluate_wcs_offset_drift(snap, live), "wcsoff:G54:r")
+        live = gateway_util.wcs_offset_flat_from_table(
+            self._table(), [0.0, 0.0, 5.0] + [0.0] * 6)
+        self.assertEqual(
+            gateway_util.evaluate_wcs_offset_drift(snap, live), "wcsoff:g92:z")
+
+    def test_no_claim_on_absent_or_partial_data(self):
+        snap = gateway_util.wcs_offset_flat_from_var(self._var_rows(), [0.0] * 9)
+        self.assertIsNone(gateway_util.evaluate_wcs_offset_drift(None, snap))
+        self.assertIsNone(gateway_util.evaluate_wcs_offset_drift(snap, None))
+        self.assertIsNone(gateway_util.wcs_offset_flat_from_var({}, [0.0] * 9))
+        self.assertIsNone(gateway_util.wcs_offset_flat_from_table([], [0.0] * 9))
+        # A None slot on the live side is skipped, not judged.
+        live = gateway_util.wcs_offset_flat_from_table(self._table(), [0.0] * 9)
+        live2 = list(live)
+        live2[3] = None
+        self.assertIsNone(gateway_util.evaluate_wcs_offset_drift(snap, live2))
+        # Sub-eps writes never fire.
+        near = [0.0, 0.0, 0.0005, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        live3 = gateway_util.wcs_offset_flat_from_table(
+            self._table(near), [0.0] * 9)
+        self.assertIsNone(gateway_util.evaluate_wcs_offset_drift(snap, live3))
 
 
 class TestResolveSubfile(unittest.TestCase):

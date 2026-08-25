@@ -78,7 +78,7 @@ from gateway_util import (
     attribute_sub_callers, resolve_sub_callers,
     insert_flip_relabels, read_var_wcs_rows, wcs_event_rewritten,
     PREVIEW_SCHEMA, should_ship_abc, rotary_sync_initcode,
-    rotary_seed_values, seed_kins_events,
+    rotary_seed_values, seed_kins_events, wcs_offset_flat_from_var,
     find_unmarked_subs, resolve_subroutine_dirs,
 )
 
@@ -1000,6 +1000,16 @@ def parse(ctx: dict) -> dict:
     print("__KINSSEED__\t" + json.dumps(
         {"type": live_kins_type, "frame": live_kins_frame}),
         file=sys.stderr, flush=True)
+    # WCS offsets this parse baked (abc peel + soft-limit flags): the
+    # gateway's offset-drift edge reparses when a touch-off moves them
+    # with no pose change — the rotary Zero-All double-count class, and
+    # the stale-soft-limit-flags-after-touch-off class. Absent line =
+    # unreadable var rows (no claim).
+    _wcs_off = wcs_offset_flat_from_var(
+        var_wcs_rows, getattr(s, "g92_offset", None))
+    if _wcs_off is not None:
+        print("__WCSOFF__\t" + json.dumps(_wcs_off),
+              file=sys.stderr, flush=True)
 
     result = {"file": filename,
               # Parse-time tool-table rows [[tool, xo, yo, zo]…] for the

@@ -118,10 +118,19 @@ class BulkPipeline:
         # it — the 855-unit class (M2 restores G54 but not the kins type).
         # None / type None = untracked — no edge, honestly.
         self.published_kins_seed: Optional[dict] = None
+        # Parse-time WCS-offset snapshot (99-entry flat: 9 rows × xyzabc
+        # uvw+r, then g92) from the worker's `__WCSOFF__` line. The
+        # offset-drift edge reparses when a touch-off moves any of them —
+        # offsets change with NO pose change, so no other edge sees it
+        # (the rotary Zero-All double-count class). None = no claim.
+        self.published_wcs_off: Optional[list] = None
         # Previous drift check's live rotary sample — the settle guard
         # (rotary_drift_settled) compares consecutive 2 s samples so a
         # jog in progress never triggers a reparse.
         self.rotary_check_prev: Optional[list] = None
+        # Previous drift check's live WCS-offset flat — burst settle for
+        # multi-G10 touch-offs (Zero All writes six in a row).
+        self.wcsoff_check_prev: Optional[list] = None
         self.tlo_check_ts: float = 0.0   # drift-edge debounce (monotonic)
         self.refresh_running: bool = False            # single-flight guard
         self.preview_bytes: Optional[bytes] = None    # raw copy kept ONLY when no gz exists (<4 KiB payloads)
@@ -167,7 +176,9 @@ class BulkPipeline:
         self.published_tlo = None
         self.published_rotary_seed = None
         self.published_kins_seed = None
+        self.published_wcs_off = None
         self.rotary_check_prev = None
+        self.wcsoff_check_prev = None
 
     def invalidate_caches_for_ini(self, cur_ini: Optional[str]) -> None:
         """INI-change invalidation (issue #29): if the active INI changed under
@@ -282,6 +293,7 @@ class BulkPipeline:
             worker_tlo: Optional[dict] = None
             worker_rotary_seed: Optional[dict] = None
             worker_kins_seed: Optional[dict] = None
+            worker_wcs_off: Optional[list] = None
             if stderr:
                 for ln in stderr.decode(errors="replace").splitlines():
                     if not ln.strip():
@@ -327,6 +339,15 @@ class BulkPipeline:
                         except (IndexError, ValueError):
                             _trace.emit("gcode.kinsseed_line_malformed",
                                         level="warn", line=ln[:160])
+                    elif ln.startswith("__WCSOFF__"):
+                        # Parse-time WCS-offset snapshot for the offset-
+                        # drift edge — same malformed-→-None contract.
+                        _s = ln.split("\t", 1)
+                        try:
+                            worker_wcs_off = json.loads(_s[1])
+                        except (IndexError, ValueError):
+                            _trace.emit("gcode.wcsoff_line_malformed",
+                                        level="warn", line=ln[:160])
                     else:
                         _trace.emit("gcode.worker_log", line=ln)
             _trace.emit("gcode.worker_done",
@@ -364,6 +385,7 @@ class BulkPipeline:
             self.published_tlo = worker_tlo
             self.published_rotary_seed = worker_rotary_seed
             self.published_kins_seed = worker_kins_seed
+            self.published_wcs_off = worker_wcs_off
             self.preview_version += 1
             self.last_file = filepath
             self.last_mtime = _mtime_at_parse
