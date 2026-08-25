@@ -525,8 +525,14 @@ async def _reader_configure_extra_pins() -> None:
         # be unknowable).
         pins["twp_defined"] = "twp-helper-comp.twp-is-defined"
         pins["twp_active"] = "twp-helper-comp.twp-is-active"
+        # Upstream's vismach composition: plane position = work offset
+        # (twp-o*-world, identity frame) + origin vector (twp-o*, "from
+        # current work-offset to the origin of the twp", world coords).
+        # Both halves ride the snapshot; status assembles the sum.
         for _f, _p in (("twp_ox", "twp-ox-world"), ("twp_oy", "twp-oy-world"),
                        ("twp_oz", "twp-oz-world"),
+                       ("twp_pox", "twp-ox"), ("twp_poy", "twp-oy"),
+                       ("twp_poz", "twp-oz"),
                        ("twp_zx", "twp-zx"), ("twp_zy", "twp-zy"),
                        ("twp_zz", "twp-zz"),
                        ("twp_xx", "twp-xx"), ("twp_xy", "twp-xy"),

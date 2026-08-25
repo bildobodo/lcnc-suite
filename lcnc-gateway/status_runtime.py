@@ -72,21 +72,27 @@ def rotary_at_zero(canonical_pos: Optional[List[float]], axis_mask: int) -> Opti
     return all(abs(canonical_pos[s]) <= ROTARY_ZERO_TOL_DEG for s in configured)
 
 
-#: Reader field names for the TWP plane, in wire order: origin (machine
-#: frame, world variant), plane normal (Z), plane X. All-or-nothing — a
-#: partial set is not a plane and the client must never build one from it.
+#: Reader field names for the TWP plane. The drawn position is the SUM of
+#: the work offset (twp_o* — helper's -world pins, identity frame) and the
+#: plane-origin vector (twp_po* — "from current work-offset to the twp
+#: origin", world coords): upstream's own vismach composition. G68.2 alone
+#: populates the origin vector; the offset half mirrors the saved work
+#: offset. All-or-nothing — a partial set is not a plane.
 _TWP_PLANE_FIELDS = ("twp_ox", "twp_oy", "twp_oz",
+                     "twp_pox", "twp_poy", "twp_poz",
                      "twp_zx", "twp_zy", "twp_zz",
                      "twp_xx", "twp_xy", "twp_xz")
 
 
 def assemble_twp_plane(reader_get) -> Optional[List[float]]:
-    """The live TWP plane [ox,oy,oz, zx,zy,zz, xx,xy,xz] from the helper
-    comp's display pins, or None unless every component is present."""
+    """The live TWP plane [ox,oy,oz, zx,zy,zz, xx,xy,xz] (origin already
+    composed: work offset + plane-origin vector) from the helper comp's
+    display pins, or None unless every component is present."""
     vals = [reader_get(k) for k in _TWP_PLANE_FIELDS]
     if any(v is None for v in vals):
         return None
-    return [float(v) for v in vals]
+    f = [float(v) for v in vals]
+    return [f[0] + f[3], f[1] + f[4], f[2] + f[5]] + f[6:]
 
 
 def to_float_list(x) -> Optional[List[float]]:
