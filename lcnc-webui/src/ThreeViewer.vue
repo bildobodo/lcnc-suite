@@ -324,11 +324,15 @@ let _unitScale = 1;
 
 // ---- TWP plane visualization (P3.4) ----
 // The live tilted-work-plane, drawn from the twp-helper comp's plane pins
-// (status twp_plane: [ox,oy,oz, zx,zy,zz, xx,xy,xz], MACHINE frame — the
-// control's plane does not ride the table, so it attaches to the scene
-// root, not the work chain). Heidenhain's simulation and the upstream TWP
-// VTK GUI both draw this; the marker comments only ever carried it as
-// numbers. Info-blue while TOOL kins is active; warn-amber when a plane
+// (status twp_plane: [ox,oy,oz, zx,zy,zz, xx,xy,xz], MACHINE frame).
+// Machine coordinates live in _workGrp's LOCAL frame, not the scene root —
+// model chains carry static base translates (trsrn head chain at
+// (-1000,1000,2000)), so a scene-root attach lands the plane a frame-offset
+// away from the machine (operator-caught: invisible below the floor). Same
+// attach rule as machineBoundsMesh; like the bounds box, the drawn plane is
+// exact at the rotary pose it was defined at (the pins are definition-time
+// world coords). Heidenhain's simulation and the upstream TWP VTK GUI both
+// draw this; the marker comments only ever carried it as numbers. Info-blue while TOOL kins is active; warn-amber when a plane
 // is defined but the kins is back to identity (defined-but-inactive —
 // the parked-in-TWP trap made visible).
 let twpPlaneGroup: THREE.Group | null = null;
@@ -984,7 +988,11 @@ function ensureCoreGroups(init: ViewerInit) {
     twpPlaneGroup.add(new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(), _tl, AXIS_HEX.x, _th, _tw));
     twpPlaneGroup.add(new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), new THREE.Vector3(), _tl, AXIS_HEX.y, _th, _tw));
     twpPlaneGroup.add(new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1), new THREE.Vector3(), _tl, AXIS_HEX.z, _th, _tw));
-    scene.add(twpPlaneGroup);
+    // _workGrp local frame = machine coordinates (see header comment) — and
+    // the fresh group starts hidden, so the stale signature must be cleared
+    // or an unchanged status would skip re-showing it after a rebuild.
+    _workGrp!.add(twpPlaneGroup);
+    _twpSig = "";
     _twpRefresh();
   }
 
