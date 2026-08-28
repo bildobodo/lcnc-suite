@@ -1435,6 +1435,27 @@ cancel. Reproducer committed as `scripts/parity_corpus/twp_g69_tail.ngc` +
 permanently-red gate stops being a signal). The acceptance program was
 trimmed to gate what it exists to gate.
 
+**g69-tail defect ROOT-CAUSED (2026-08-28, same session).** Not a vague
+"offline chain mishandles the boundary" — the arithmetic closes exactly.
+On the minimal reproducer the sim's final point is
+[1609.597, -854.904, -649.099]. The payload's PRE-g69 epoch (G59, from
+`wcs_frames` entry 1) is [1609.597046, -854.903811, -791.098493]. Then
+    G59_origin + program(0,0,120) + TLO 22  =  [1609.597, -854.904, -649.098]
+which matches the sim to a RESIDUAL OF 0.0000 mm. So at the g69 boundary
+the trailing vertex carries a MIXED LABELING: its kins type correctly
+advances to 0 (identity) — `rapid_kinstype`'s last two entries are 0 — but
+its WCS epoch does NOT advance to epoch 2 (the G54 restore recorded at
+seq 16, while the vertices are seq 17/18, i.e. strictly greater and so
+SHOULD resolve to epoch 2). The vertex is positioned in the old frame with
+the new kinematics. The real machine sits 897.1 mm away; that gap IS the
+phantom. Fix direction (unverified): the epoch and mode resolution for a
+vertex must come from ONE decision, not two independent lookups — the same
+class as the W3 P3 entry-move finding (mode + frame + epoch terms are ONE
+triple, never mixed). Next step is to find which of the two resolvers is
+off by an epoch at a same-seq combined flip, and whether
+`insert_flip_relabels` inserts a relabel vertex for the WCS half of a
+combined kins+epoch flip.
+
 **Also observed (not acted on):** `preview_goldens/twp/simple_example.json`
 drifts on a fresh boot (`swept_axes [] → [B,C]`, `wcs_epochs.rewritten
 0 → 1`). Identical with the composition stubbed ⇒ environmental: the golden
