@@ -1494,3 +1494,23 @@ stage-1 indicator telling the operator WHEN to re-orient, covers the
 workflow; stage 3 only additionally fixes manual jogging while parked in a
 stale plane. Deferred candidate: an idle-gated one-click re-orient, pending
 a live probe of the `G68.2`-via-MDI `INTERP_EXECUTE_FINISH` stall class.
+
+**PARKED (2026-08-28, operator-found) — the plane overlay is not sim-aware.**
+`ThreeViewer._twpRefresh` reads ONLY live status (`twp_plane`,
+`twp_defined`, `kins_type`, pose staleness). During a real run that is
+correct — the HAL pins genuinely change, so the overlay clears at `g69` and
+returns at `g68.2`. During SIMULATION nothing executes, so the overlay
+freezes on the machine's current plane while every other viewer surface
+(tool marker, toolpath highlight, suspended backplot) shows the PROGRAM.
+Worse, it is half sim-aware by accident: the group hangs off the A table,
+so its POSITION follows the scrubbed table while its EXISTENCE and TINT
+come from the live machine. The stale-red tint is the most misleading part
+— staleness is a claim about the live setup, meaningless against a program
+that defines its own plane at its own pose.
+Fix direction: draw the PROGRAM's plane from the payload's `kins_frames`,
+appearing/disappearing along the timeline as the scrub passes its
+`g68.2`/`g69` — the same missing piece as "why is there no plane when I
+merely LOAD a TWP program?". Fall back to hiding the overlay whenever the
+payload carries no plane data, so it never shows live state while the model
+shows the program. Parked next to the g69-tail fix (both are offline-chain
+work).
