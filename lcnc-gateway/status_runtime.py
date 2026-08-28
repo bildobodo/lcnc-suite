@@ -214,6 +214,10 @@ class StatusPayload:
     twp_defined: Optional[bool]
     twp_active: Optional[bool]
     twp_plane: Optional[List[float]]
+    # Machine-frame A (deg) the current plane state assumes. Raw — the remap's
+    # "no plane" sentinel (-1e9) rides through so the client interprets it in
+    # one place; None still means "not sampled".
+    twp_pose_a: Optional[float]
     spindle_direction: Optional[int]
     active_file: Optional[str]
     motion_line: Optional[int]
@@ -883,6 +887,7 @@ class StatusRuntime:
             twp_active=(None if (_twpa := reader_get("twp_active")) is None
                         else bool(_twpa)),
             twp_plane=assemble_twp_plane(reader_get),
+            twp_pose_a=reader_get("twp_pose_a"),
             spindle_direction=spindle_direction,
             active_file=active_file,
             motion_line=safe_get("motion_line", None),

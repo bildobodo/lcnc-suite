@@ -34,6 +34,7 @@ import MachineBtn from "./MachineBtn.vue";
 import CameraPip from "./CameraPip.vue";
 import ScrubBar from "./ScrubBar.vue";
 import { simMode } from "./simMode";
+import { twpPoseStale } from "./twpPose";
 import { Camera, Settings } from "lucide-vue-next";
 
 const themeMode = inject<Ref<string>>("themeMode", ref("auto"));
@@ -341,6 +342,7 @@ let twpGridMat: THREE.LineBasicMaterial | null = null;
 let _twpLayerOn = true;
 const _TWP_ACTIVE_HEX = 0x4aa3ff;   // matches the info-blue family
 const _TWP_INACTIVE_HEX = 0xffb347; // matches the warn-amber family
+const _TWP_STALE_HEX = 0xcc3333;    // matches the danger family
 
 // ---- Backplot (live toolpath history) — owned by backplotController ----
 const backplot = createBackplotController(requestRender);
@@ -714,16 +716,19 @@ const _twpM = new THREE.Matrix4();
 
 function _twpRefresh() {
   const d: any = status.value?.data;
-  updateTwpPlane(d?.twp_plane, !!d?.twp_defined, d?.kins_type);
+  updateTwpPlane(d?.twp_plane, !!d?.twp_defined, d?.kins_type,
+    twpPoseStale(d?.twp_pose_a, d?.rotary_abc?.[0], d?.twp_defined));
 }
 
-function updateTwpPlane(plane: unknown, defined: boolean, ktype: unknown) {
+function updateTwpPlane(plane: unknown, defined: boolean, ktype: unknown, stale: boolean) {
   if (!twpPlaneGroup) return;
   const ok = defined && Array.isArray(plane) && plane.length === 9 &&
     (plane as unknown[]).every((v) => Number.isFinite(Number(v)));
   const k = ktype == null ? -1 : Math.round(Number(ktype));
+  // `stale` joins the signature or the tint would never repaint — a boolean,
+  // so live A jitter under the eps costs nothing.
   const sig = ok
-    ? `${(plane as number[]).map((v) => Number(v).toFixed(4)).join(",")}|${k}|${_twpLayerOn}`
+    ? `${(plane as number[]).map((v) => Number(v).toFixed(4)).join(",")}|${k}|${_twpLayerOn}|${stale}`
     : "off";
   if (sig === _twpSig) return;
   _twpSig = sig;
@@ -753,7 +758,7 @@ function updateTwpPlane(plane: unknown, defined: boolean, ktype: unknown) {
   _twpM.makeBasis(_twpX, _twpY, _twpZ);
   twpPlaneGroup.quaternion.setFromRotationMatrix(_twpM);
   twpPlaneGroup.position.set(p[0]!, p[1]!, p[2]!);   // machine units = world units
-  const hex = k === 2 ? _TWP_ACTIVE_HEX : _TWP_INACTIVE_HEX;
+  const hex = stale ? _TWP_STALE_HEX : (k === 2 ? _TWP_ACTIVE_HEX : _TWP_INACTIVE_HEX);
   if (twpPlaneMat) twpPlaneMat.color.setHex(hex);
   if (twpGridMat) twpGridMat.color.setHex(hex);
   twpPlaneGroup.visible = true;

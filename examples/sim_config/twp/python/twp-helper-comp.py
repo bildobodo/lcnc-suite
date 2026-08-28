@@ -42,6 +42,19 @@ h.newpin("twp-oz-world-in", hal.HAL_FLOAT, hal.HAL_IN)
 h.newpin("twp-ox-world", hal.HAL_FLOAT, hal.HAL_OUT)
 h.newpin("twp-oy-world", hal.HAL_FLOAT, hal.HAL_OUT)
 h.newpin("twp-oz-world", hal.HAL_FLOAT, hal.HAL_OUT)
+# LCNC-SUITE: machine-frame A (degrees) that the current plane state assumes —
+# written by the remap at definition and at each orient. The A rotary is a
+# WORK-side table here, so a live A away from this value means the stored plane
+# frame and the physical face no longer agree (surfaced as "stale" in the UI).
+h.newpin("twp-pose-a-in", hal.HAL_FLOAT, hal.HAL_IN)
+h.newpin("twp-pose-a", hal.HAL_FLOAT, hal.HAL_OUT)
+
+# LCNC-SUITE: "no pose" sentinel — the pin always exists once we are loaded, so
+# absence has to be expressed in the VALUE, not by a missing pin. Set before
+# ready() so a fresh boot reads "none" rather than a plausible 0.0.
+_POSE_NONE = -1e9
+h['twp-pose-a'] = _POSE_NONE
+h['twp-pose-a-in'] = _POSE_NONE
 
 h.ready()
 
@@ -108,6 +121,7 @@ try:
         h['twp-zx'] = h['twp-zx-in']
         h['twp-zy'] = h['twp-zy-in']
         h['twp-zz'] = h['twp-zz-in']
+        h['twp-pose-a'] = h['twp-pose-a-in']  # LCNC-SUITE: display only
 
         _next_stat = _now + _STAT_PERIOD_S  # LCNC-SUITE
 

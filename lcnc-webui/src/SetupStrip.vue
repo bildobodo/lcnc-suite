@@ -24,6 +24,9 @@ const props = defineProps<{
   // is that the active jog/work frame is ALWAYS visibly indicated.
   kinsType?: number | null;
   twpActive?: boolean | null;
+  // The plane's assumed table pose no longer matches the live one — the
+  // stored frame and the physical face disagree (see twpPose.ts).
+  twpStale?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -74,11 +77,19 @@ const kinsChip = computed(() => {
     text: "TCP", cls: "ok",
     title: "Tool-center-point kinematics active — programmed XYZ is the tool tip",
   };
-  if (k === 2) return props.twpActive
-    ? { text: "TWP", cls: "warn",
-        title: "Tilted work plane ACTIVE — X/Y/Z jogs move in the tilted plane (Z along the tool axis). G69 cancels." }
-    : { text: "TOOL", cls: "warn",
-        title: "TOOL kinematics active without an active plane — X/Y/Z jogs move along the last plane frame, not machine axes. G69 restores machine kinematics." };
+  if (k === 2) {
+    // Stale wins over the normal tint: the frame is not just tilted, it is
+    // tilted relative to where the workpiece USED to be.
+    if (props.twpStale) return {
+      text: props.twpActive ? "TWP" : "TOOL", cls: "bad",
+      title: "Plane frame STALE — the A table has moved since this plane was oriented, so the frame no longer matches the workpiece. Re-run G53.x to re-orient (M430 alone does not recompose).",
+    };
+    return props.twpActive
+      ? { text: "TWP", cls: "warn",
+          title: "Tilted work plane ACTIVE — X/Y/Z jogs move in the tilted plane (Z along the tool axis). G69 cancels." }
+      : { text: "TOOL", cls: "warn",
+          title: "TOOL kinematics active without an active plane — X/Y/Z jogs move along the last plane frame, not machine axes. G69 restores machine kinematics." };
+  }
   return {
     text: "MACHINE", cls: "muted",
     title: "Identity kinematics — X/Y/Z jogs move along machine axes",

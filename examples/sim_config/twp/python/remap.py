@@ -105,6 +105,9 @@ kins_pre_rotation = kins_comp + '_kins.pre-rot'
 kins_primary_rotation = kins_comp + '_kins.primary-angle'
 # name of the hal pin that represents the secondary joint orientation angle
 kins_secondary_rotation = kins_comp + '_kins.secondary-angle'
+# LCNC-SUITE: machine y/z of the work-table rotary's axis line (static geometry)
+kins_y_rot_axis = kins_comp + '_kins.y-rot-axis'
+kins_z_rot_axis = kins_comp + '_kins.z-rot-axis'
 
 ## CONNECTIONS TO THE HELPER COMPONENT
 twp_comp = 'twp-helper-comp.'
@@ -189,6 +192,57 @@ def _get_pre_rot():
     return _preview_pre_rot
 
 
+# LCNC-SUITE: the table rotary's axis LINE (x-parallel, through machine
+# y=y-rot-axis, z=z-rot-axis) - static geometry, same INI-setp single-sourcing
+# as the nutation angle above.
+_ini_y_rot_axis = _ini_halcmd_setp(kins_y_rot_axis)
+_ini_z_rot_axis = _ini_halcmd_setp(kins_z_rot_axis)
+
+
+def _get_rot_axis_yz():
+    """Table axis line (machine y, z): live pins under task, INI in preview."""
+    if _task_mode:
+        return (hal.get_value(kins_y_rot_axis), hal.get_value(kins_z_rot_axis))
+    if _ini_y_rot_axis is None or _ini_z_rot_axis is None:
+        raise RuntimeError(
+            "LCNC-SUITE preview: no `setp %s <val>` / `setp %s <val>` lines in"
+            " [HAL]HALCMD of %s - the preview cannot know the table's rotation"
+            " axis" % (kins_y_rot_axis, kins_z_rot_axis, inifile))
+    return (_ini_y_rot_axis, _ini_z_rot_axis)
+
+
+def rotary_offsets_nonzero(self):
+    """True when a nonzero A work/G92 offset makes the machine frame ambiguous.
+
+    LCNC-SUITE: the table composition works in the MACHINE frame; a rotary work
+    offset rewritten between definition and orient would silently shift it.
+    Upstream already restricts TWP to G54 for similar reasons - this closes the
+    rotary corner loudly instead of computing something untested.
+    """
+    try:
+        return (abs(float(self.AA_origin_offset)) > 1e-6
+                or abs(float(self.AA_axis_offset)) > 1e-6)
+    except AttributeError:
+        return (abs(float(self.params[5224])) > 1e-6
+                or abs(float(self.params[5214])) > 1e-6)
+
+
+def get_machine_a(self):
+    """Machine-frame A in degrees, valid in task AND preview.
+
+    LCNC-SUITE: the interpreter's AA_current is PROGRAM coordinates, so the
+    active work-offset and G92 A terms have to be added back to reach the
+    machine frame the table pivot lives in. Falls back to the numbered
+    parameters if this interp build lacks the offset attributes (G54-only is
+    enforced at definition time, so #5224/#5214 are the right rows).
+    """
+    a = float(self.AA_current)
+    try:
+        return a + float(self.AA_origin_offset) + float(self.AA_axis_offset)
+    except AttributeError:
+        return a + float(self.params[5224]) + float(self.params[5214])
+
+
 def webui_preview_reset():
     """Reset all preview-side module state before a fresh parse.
 
@@ -200,6 +254,9 @@ def webui_preview_reset():
     global _preview_twp_state, _preview_pre_rot
     global twp_matrix, twp_flag, twp_build_params, pre_rot
     global saved_work_offset, saved_work_offset_number, orient_mode
+    global twp_def_a, twp_pose_a
+    twp_def_a = None
+    twp_pose_a = None
     _preview_twp_state = 0
     _preview_pre_rot = 0.0
     twp_matrix = np.asmatrix(np.identity(4))
@@ -231,6 +288,15 @@ twp_build_params = {}
 # container to store the current work offset during twp operations
 current_work_offset_number = 1
 saved_work_offset = [0,0,0]
+# LCNC-SUITE (table-aware wave): machine-frame A (deg) at the moment the plane
+# was DEFINED - the frame the stored twp_matrix is expressed in. None = no plane.
+twp_def_a = None
+# LCNC-SUITE: machine-frame A the CURRENT plane state assumes (definition pose
+# until an orient recomposes it). Published for the UI staleness indicator.
+twp_pose_a = None
+# LCNC-SUITE: sentinel published when no plane is defined (the pin always
+# exists, so "none" must be a value - see twp-helper-comp.py).
+TWP_POSE_NONE = -1e9
 # orientation mode refers to the strategy used to choose from the different rotary angles for a given
 # tool-z vector. The optimization is applied to the primary axis only with mode 0 (shortest path) being
 # the default. (0=shortest_path , 1=positive_rotation only, 2=negative_rotation only, )
@@ -788,7 +854,7 @@ def twp_calc_euler_rot_matrix(th1, th2, th3, order):
 
 # The tilted-work-plane is created in identity mode and must NOT be updated after a switch
 def gui_update_twp(self):
-    global twp_matrix, saved_work_offset
+    global twp_matrix, saved_work_offset, twp_pose_a
     # LCNC-SUITE: the twp-helper pins are display-only (vismach) - a
     # preview interpreter has no HAL and nothing to display
     if self.task == 0:
@@ -817,6 +883,10 @@ def gui_update_twp(self):
     hal.set_p("twp-helper-comp.twp-ox-world-in",str(work_offset_x))
     hal.set_p("twp-helper-comp.twp-oy-world-in",str(work_offset_y))
     hal.set_p("twp-helper-comp.twp-oz-world-in",str(work_offset_z))
+    # LCNC-SUITE: the machine-frame A this plane state assumes (sentinel when
+    # no plane is defined) - the UI compares it against the live table pose.
+    hal.set_p("twp-helper-comp.twp-pose-a-in",
+              str(twp_pose_a if twp_pose_a is not None else TWP_POSE_NONE))
 
 
 # NOTE: Due to easier abort handling we currently restrict the use of twp to G54
@@ -874,7 +944,11 @@ def matrix_to_point(matrix):
 
 def reset_twp_params(self):
     global pre_rot, twp_matrix, twp_flag, twp_build_params
+    global twp_def_a, twp_pose_a
     pre_rot = 0
+    # LCNC-SUITE: the plane is gone, so is the table pose it assumed
+    twp_def_a = None
+    twp_pose_a = None
     # we must not change tool kins parameters when TOOL kins are active or we get sudden joint position changes
     # ie don't do this: kins_comp_set_pre_rot(self,0)!
     twp_flag = []
@@ -1063,6 +1137,7 @@ def g69_core(self):
 # tool-orientation
 def g683(self, **words):
     global twp_matrix, pre_rot, twp_flag, saved_work_offset_number, saved_work_offset
+    global twp_def_a, twp_pose_a  # LCNC-SUITE: table-aware capture
     global _task_mode, _preview_twp_state
 
     # LCNC-SUITE: preview runs the full plane math too (pure numpy +
@@ -1101,6 +1176,16 @@ def g683(self, **words):
         yield INTERP_EXIT # w/o this the error does not abort a running gcode program
         return INTERP_ERROR
 
+    # LCNC-SUITE: see the identical guard in g682 - machine-frame table capture
+    if rotary_offsets_nonzero(self):
+        reset_twp_params(self)
+        msg = "G68.3 ERROR: A-axis work or G92 offset must be zero to define TWP."
+        log.debug(msg)
+        emccanon.CANON_ERROR(msg)
+        yield INTERP_EXECUTE_FINISH
+        yield INTERP_EXIT
+        return INTERP_ERROR
+
     c = self.blocks[self.remap_level]
     # parse the requested origin
     x = c.x_number if c.x_flag else 0
@@ -1132,6 +1217,9 @@ def g683(self, **words):
     saved_work_offset = offsets
     saved_work_offset_number = n
     log.debug("G68.3: Saved work offsets: %s", (n, saved_work_offset))
+    # LCNC-SUITE: the table pose this definition is expressed in
+    twp_def_a = twp_pose_a = get_machine_a(self)
+    log.debug("G68.3: Table A at definition [deg]: %s", twp_def_a)
     # set twp-state to 'defined' (1)
     self.execute("M68 E2 Q1")
     if not _task_mode:
@@ -1145,6 +1233,7 @@ def g683(self, **words):
 # definition of a virtual work-plane (twp) using different methods set by the 'p'-word
 def g682(self, **words):
     global twp_matrix, pre_rot, twp_flag, twp_build_params, saved_work_offset_number, saved_work_offset
+    global twp_def_a, twp_pose_a  # LCNC-SUITE: table-aware capture
     global _task_mode, _preview_twp_state
 
     # LCNC-SUITE: preview runs the full plane math too (pure numpy +
@@ -1182,10 +1271,25 @@ def g682(self, **words):
         yield INTERP_EXIT # w/o this the error does not abort a running gcode program
         return INTERP_ERROR
 
+    # LCNC-SUITE: the table pose is captured in the MACHINE frame (below), so a
+    # rotary work/G92 offset would make that capture ambiguous - refuse loudly.
+    if rotary_offsets_nonzero(self):
+        reset_twp_params(self)
+        msg = "G68.2 ERROR: A-axis work or G92 offset must be zero to define TWP."
+        log.debug(msg)
+        emccanon.CANON_ERROR(msg)
+        yield INTERP_EXECUTE_FINISH
+        yield INTERP_EXIT
+        return INTERP_ERROR
+
     # collect the currently active work offset values (ie g54, g55 or other)
     saved_work_offset_number = n
     saved_work_offset = offsets
     log.debug("G68.2: Saved work offsets %s", (n, saved_work_offset))
+    # LCNC-SUITE: the table pose this definition is expressed in (see the
+    # table-aware composition in g53x_core)
+    twp_def_a = twp_pose_a = get_machine_a(self)
+    log.debug("G68.2: Table A at definition [deg]: %s", twp_def_a)
 
     c = self.blocks[self.remap_level]
     p = c.p_number if c.p_flag else 0

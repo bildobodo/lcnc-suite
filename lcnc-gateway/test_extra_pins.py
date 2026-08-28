@@ -105,8 +105,19 @@ class TestExtraPinsKinsGating(unittest.TestCase):
              "identity_first": False, "params": {}},
         ):
             pins = self._configured_pins(decl)
-            for f in ("kins_pre_rot", "kins_primary_angle", "kins_secondary_angle"):
+            for f in ("kins_pre_rot", "kins_primary_angle", "kins_secondary_angle",
+                      "twp_pose_a"):
                 self.assertNotIn(f, pins, f"{f} must not be sampled for {decl}")
+
+    # ── Plane pose staleness (table-aware wave) ────────────────────────────
+
+    def test_trsrn_requests_the_plane_pose_pin(self):
+        # The machine-frame A the plane assumes; the UI compares it against
+        # the live table pose to warn that the stored frame is stale.
+        pins = self._configured_pins(
+            {"module": "xyzacb_trsrn", "type": "xyzacb-trsrn",
+             "identity_first": False, "params": {}})
+        self.assertEqual(pins.get("twp_pose_a"), "twp-helper-comp.twp-pose-a")
 
 
 if __name__ == "__main__":

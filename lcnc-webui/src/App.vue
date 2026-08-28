@@ -2,6 +2,7 @@
 import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, provide, reactive, ref, watch } from "vue";
 import { applyClientOverlay, PERMISSIONS_KEY, FIRE_KEY, type Permissions } from "./permissions";
 import { simMode } from "./simMode";
+import { twpPoseStale } from "./twpPose";
 import { runLineState, subExecState, resolveCurrentLine } from "./trackHighlight";
 import { clearSubfileCache } from "./lcncApi";
 import { mainLinesTrusted, type ScrubTrack } from "./viewer/scrubTrack";
@@ -546,6 +547,13 @@ const liveKinsType = computed<number | null>(() => {
   const k = st.value.kins_type;
   return k == null ? null : Math.round(Number(k));
 });
+// TWP plane staleness: the A rotary is a WORK-side table, so rotating it after
+// the plane was defined/oriented leaves the stored frame pointing at where the
+// face USED to be. One predicate (twpPose.ts), two surfaces — the kins chip
+// here via prop, the plane overlay inside ThreeViewer.
+const twpStale = computed(() =>
+  twpPoseStale(st.value.twp_pose_a, st.value.rotary_abc?.[0], st.value.twp_defined),
+);
 // Jog-frame selector (JogStrip): the switch is an MDI remap — M430 enters
 // TOOL/plane kins, M428 restores identity. Switchkins preserves joint
 // positions, so the switch itself moves nothing; the ready gate (idle +
@@ -1980,6 +1988,7 @@ watch(viewerGcode, (newGcode) => {
         :g5xLabel="g5xLabel"
         :kinsType="liveKinsType"
         :twpActive="st.twp_active ?? null"
+        :twpStale="twpStale"
         @homeAll="homeAll"
         @unhomeAll="unhomeAll"
         @homeAxis="homeAxis"

@@ -190,6 +190,20 @@ class TestPollStatus(unittest.TestCase):
         self.assertIsNone(p.kins_primary_angle)
         self.assertIsNone(p.kins_secondary_angle)
 
+    def test_twp_pose_a_rides_the_snapshot_raw_including_the_sentinel(self):
+        # The plane's assumed table pose. The remap's "no plane defined"
+        # sentinel (-1e9) must reach the client UNTOUCHED — the client owns
+        # the one place that decides what counts as "no pose", so a gateway
+        # that mapped it to None here would give the same answer as "not
+        # sampled" for two very different states.
+        p = _runtime(stat=self._stat(), snapshot={"twp_pose_a": 20.0}).poll_status()
+        self.assertEqual(p.twp_pose_a, 20.0)
+        p = _runtime(stat=self._stat(), snapshot={"twp_pose_a": -1e9}).poll_status()
+        self.assertEqual(p.twp_pose_a, -1e9)
+        # Not sampled (any non-trsrn config) — None, never a default.
+        p = _runtime(stat=self._stat()).poll_status()
+        self.assertIsNone(p.twp_pose_a)
+
     def test_payload_core_fields_and_work_pos(self):
         rt = _runtime(stat=self._stat())
         p = rt.poll_status()

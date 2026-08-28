@@ -538,6 +538,11 @@ async def _reader_configure_extra_pins() -> None:
                        ("twp_xx", "twp-xx"), ("twp_xy", "twp-xy"),
                        ("twp_xz", "twp-xz")):
             pins[_f] = f"twp-helper-comp.{_p}"
+        # Machine-frame A (deg) the current plane state assumes. A is a
+        # WORK-side table here, so a live A away from this value means the
+        # stored plane frame and the physical face no longer agree. Raw float
+        # on the wire — the remap's "no plane" sentinel is read client-side.
+        pins["twp_pose_a"] = "twp-helper-comp.twp-pose-a"
     try:
         await _reader_request("set_extra_pins", pins=pins)
     except Exception as e:
