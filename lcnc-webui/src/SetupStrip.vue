@@ -80,9 +80,14 @@ const kinsChip = computed(() => {
   if (k === 2) {
     // Stale wins over the normal tint: the frame is not just tilted, it is
     // tilted relative to where the workpiece USED to be.
+    // Recovery wording is deliberate and live-verified: G53.x REFUSES to run
+    // while TWP is active (remap.py g53x_core's twp_is_active guard aborts and
+    // resets the plane), and M430 only flips the kins type — neither
+    // recomposes. Re-running the program re-defines AND re-orients at the
+    // current table pose, which is what actually works.
     if (props.twpStale) return {
       text: props.twpActive ? "TWP" : "TOOL", cls: "bad",
-      title: "Plane frame STALE — the A table has moved since this plane was oriented, so the frame no longer matches the workpiece. Re-run G53.x to re-orient (M430 alone does not recompose).",
+      title: "Plane frame STALE — the A table has moved since this plane was oriented, so the frame no longer matches the workpiece. Re-run the program to re-define and re-orient at the current table pose (G53.x on its own is refused while TWP is active; M430 does not recompose).",
     };
     return props.twpActive
       ? { text: "TWP", cls: "warn",

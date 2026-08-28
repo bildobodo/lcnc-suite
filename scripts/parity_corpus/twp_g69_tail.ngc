@@ -1,21 +1,15 @@
 (REPRODUCER for an OPEN offline-chain defect: motion AFTER g69.)
-(
-(The machine runs this correctly. The offline preview/sim chain does not:
-(the payload contains a phantom ~600-900 mm XYZ excursion on the trailing
-(move, which the real machine never makes. Measured 2026-08-28 with
-(sim_parity: truth->sim 0.001 (the sim covers the real path) but
-(sim->truth 897 (the sim invents a move).
-(
-(No previously shipped program exercised this: twp_simple_example ships its
-(final g69 COMMENTED OUT, and parity_linear's g69 is the first line with no
-(motion before it. This program is deliberately the minimal case - it has NO
-(table move, so the table-aware composition never engages and cannot be
-(implicated (verified: the divergence is identical with the composition
-(stubbed off).
-(
-(Reproduce:
-(  scripts/sim_parity.py gate --corpus scripts/parity_corpus/_open_g69_tail.json
-(Expected: FAIL until the g69-tail defect is fixed.
+(The machine runs this correctly. The offline preview/sim chain does not:)
+(the payload contains a phantom XYZ excursion on the trailing move that)
+(the real machine never makes.)
+(No previously shipped program exercised this: twp_simple_example ships)
+(its final g69 COMMENTED OUT, and parity_linear's g69 is the first line)
+(with no motion before it. This program is deliberately the minimal case)
+(- it has NO table move, so the table-aware composition never engages and)
+(cannot be implicated.)
+(Reproduce:)
+(  scripts/sim_parity.py gate --corpus scripts/parity_corpus/_open_g69_tail.json)
+(Expected: FAIL until the g69-tail defect is fixed.)
 g69
 g10 l2 p0 x1300 y-200 z-1400 a0
 m6 t3 g43 h3

@@ -1444,6 +1444,26 @@ a rewrite). NOT regenerated — that would bake one session's pose in.
 Fixing this means making the golden pose-independent, or generating from a
 declared start state.
 
+**Two corrections found by operating it afterwards (same session).**
+(1) The stage-1 chip first told the operator to "re-run G53.x to re-orient".
+**That advice cannot work**: `g53x_core`'s `twp_is_active` guard REFUSES
+G53.x while TWP is active — it aborts and resets the plane (live-observed:
+kins dropped to 0, `twp-is-defined` went FALSE, pose pin went to the
+sentinel). Correct recovery, now in the tooltip, is to RE-RUN THE PROGRAM,
+which re-defines and re-orients at the current table pose — precisely what
+stage 2 makes correct, and what corpus run 2 already proves (it starts from
+the tilted parked pose and passes). Design note for stage 3: an idle-gated
+"re-orient" cannot be a bare G53.x; it would have to cancel and re-apply
+from the stored `twp_matrix`.
+(2) The first `twp_a_tilt` fixture carried a TWO-LINE G-code comment. RS274
+comments are single-line, so the gateway preview parse reported
+`Unclosed comment found` and returned a PARTIAL payload; the gate passed
+only because the truncation fell after all motion — luck, not correctness.
+Fixed, all corpus fixtures audited for paren balance, and both gates re-run
+clean. Re-measuring the g69-tail defect with the corrected fixture returns
+the IDENTICAL sim→truth 897.050, so that finding was never an artifact of
+the malformed comment.
+
 **Stage 3 (live 3D-ROT-style tracking) — deferred, blocked by two facts.**
 G59 offsets are writable only by the interpreter (`G10 L2`), not from HAL;
 and the kins comp reads its frame pins EVERY servo cycle with no

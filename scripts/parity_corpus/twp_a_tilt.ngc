@@ -10,6 +10,6 @@ g68.2 x50 y50 z-50 q121 i30 j15
 g0 a20
 g53.3 x0y0z100
 o<square> call
-(NOTE: no trailing g69 + move — motion after g69 has a separate,
-pre-existing offline-chain defect; twp_g69_tail.ngc is its reproducer.)
+(NOTE: no trailing g69 + move. Motion after g69 has a separate,)
+(pre-existing offline-chain defect - twp_g69_tail.ngc reproduces it.)
 M2
