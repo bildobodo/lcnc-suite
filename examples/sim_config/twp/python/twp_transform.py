@@ -11,8 +11,15 @@ pose rotated about the table's axis line (x-parallel through machine
 Sign derivation: the kins comp's TCP (mode 1) forward expands to
     work = Rx(+A) . (machine - pivot) + pivot
 so a table-fixed point's MACHINE coordinates move by Rx(-dA) when A
-increases by dA.  Sign status: derived from the comp; LIVE-VERIFIED
-marker to be added here after the phase-L2 differential probe.
+increases by dA.
+
+SIGN IS LIVE-VERIFIED (2026-08-28, sim xyzacb-trsrn), not just derived:
+scripts/parity_corpus/twp_a_tilt.ngc moves the table 20 deg between g68.2
+and g53.3, and twp_parity.py's invariants (tool tip in the WORKPIECE
+frame, from sampled joints) report normal_err 0.000 deg against the
+G68.2-defined plane.  Adversarially falsified in the same session: with
+this composition stubbed off, the identical program reports 19.31 deg -
+the stale-plane defect itself.  A flipped sign would report ~40 deg.
 
 This module is deliberately free of linuxcnc/interpreter imports so the
 gateway test suite can import it directly (remap.py cannot be imported

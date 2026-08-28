@@ -1372,3 +1372,84 @@ jointsForSample, entry move, partFrame emit, collision tool shift,
 applyState phase-3 override completeness). Not patched ad hoc here —
 a wrong partial fix in this class is exactly how the 12.58 mm TLO bug
 hid before.
+
+## 2026-08-28 — TWP goes table-aware (stages 1+2), and a new find
+
+**The operator's discovery.** Working the TWP sim by hand, the operator hit
+the same defect from three angles: a plane-frame Z jog running off the face
+normal, the traced square sitting at an angle to the plane overlay, and —
+the telling one — **re-running `g53.3` fixing nothing**. Root cause: on
+xyzacb-trsrn the A rotary is a WORK-side table, but `g68.2` stores the plane
+as static world numbers with no record of the table pose. Rotate A and the
+face turns out from under its own definition; `g53.x` then dutifully
+re-orients to where the face *used to be*. Their instinct ("the program
+should be attached to the workpiece — jogging must not change where it
+cuts") is not naivety: it is exactly what Heidenhain 3D-ROT, Fanuc
+table-type G68.2, and Haas DWO engineer into existence. Our stack simply
+lacked the ingredient.
+
+**Stage 1 (d53fd6e) — surface it.** The remap records the machine-frame A
+its plane state assumes (`twp_def_a`/`twp_pose_a`, sentinel when undefined,
+cleared in both reset paths) on a new `twp-helper-comp.twp-pose-a` pin;
+the gateway samples it under the existing trsrn gate and ships it RAW —
+sentinel included, so "no plane" and "not sampled" stay distinguishable —
+and one pure predicate (`twpPose.ts`) drives both surfaces: kins chip goes
+danger-tinted with a re-orient hint, plane overlay paints danger. Display
+only, no new gating: `G53.x` IS the remedy, so gating it behind the warning
+would be backwards. Machine-frame A = `AA_current` + active work/G92 A
+offsets (numbered-param fallback); definition now refuses loudly on a
+nonzero rotary offset — the machine frame is where the table pivot lives.
+
+**Stage 2 (6005dd8) — fix it.** `g53x_core` rotates the requested plane
+frame, and the origin about the table's axis LINE, by the table's move
+since definition. Deliberately narrow: `twp_matrix` is never modified (it
+stays the definition-frame record G68.4 composes onto and the helper
+publishes for the table-riding overlay), and everything downstream of the
+solve — kins pins, `WEBUI_TWPFRAME`, both twins, the wire, the preview —
+carries the composed values through the EXISTING three-value frame. No
+kins/comp/oracle/wire change was needed at all. Below 1e-4 deg the
+composition is skipped, so A-static programs emit byte-identical G59.
+
+**The sign was falsified, not trusted.** Derived `Rx(-dA)` from the comp's
+own TCP forward, then live-proved it: `twp_a_tilt.ngc` moves the table 20°
+between `g68.2` and `g53.3`; `twp_parity` invariants (tool tip in the
+WORKPIECE frame, from sampled joints) report **normal_err 0.000°**.
+Adversarially confirmed in the same session by stubbing the composition
+off: the identical program then reports **19.31°** — the stale-plane defect
+itself, reproduced on demand. A flipped sign would have read ~40°.
+Full gate GREEN, 5 runs: twp_simple_example 0.001/0.045 + 0.007/0.033,
+twp_a_tilt 0.007/0.033 + 0.004/0.040, parity_linear 0.007/0.028 (tol 0.5).
+
+**NEW FIND — motion after `g69` (OPEN, pre-existing, not this change).**
+The first draft of `twp_a_tilt` ended `g69 / g0 a0 / M2` and failed the gate
+hard (sim→truth 415). Isolation probe with the table move REMOVED — so the
+composition never engages — still fails at **sim→truth 897 with truth→sim
+0.001**: the sim covers the real path perfectly but *invents* a ~900 mm
+excursion on the post-`g69` move. Identical with the composition stubbed,
+so it is not ours. No shipped program had ever exercised it:
+`twp_simple_example` ships its final `g69` commented out (the parked-in-TOOL
+trap) and `parity_linear`'s `g69` is line 1 with no motion before it.
+Operator impact: the preview would MISLEAD about any move following a plane
+cancel. Reproducer committed as `scripts/parity_corpus/twp_g69_tail.ngc` +
+`_open_g69_tail.json` (deliberately NOT in the acceptance corpus — a
+permanently-red gate stops being a signal). The acceptance program was
+trimmed to gate what it exists to gate.
+
+**Also observed (not acted on):** `preview_goldens/twp/simple_example.json`
+drifts on a fresh boot (`swept_axes [] → [B,C]`, `wcs_epochs.rewritten
+0 → 1`). Identical with the composition stubbed ⇒ environmental: the golden
+is START-POSE sensitive (B/C do not sweep if the machine is already parked
+at the oriented pose, and a `g10 l2 p0` that writes unchanged values is not
+a rewrite). NOT regenerated — that would bake one session's pose in.
+Fixing this means making the golden pose-independent, or generating from a
+declared start state.
+
+**Stage 3 (live 3D-ROT-style tracking) — deferred, blocked by two facts.**
+G59 offsets are writable only by the interpreter (`G10 L2`), not from HAL;
+and the kins comp reads its frame pins EVERY servo cycle with no
+interpolation, so a frame change while TOOL kins is active steps the joints
+(remap.py's own warning). Stage 2's "re-orient and it is right", plus the
+stage-1 indicator telling the operator WHEN to re-orient, covers the
+workflow; stage 3 only additionally fixes manual jogging while parked in a
+stale plane. Deferred candidate: an idle-gated one-click re-orient, pending
+a live probe of the `G68.2`-via-MDI `INTERP_EXECUTE_FINISH` stall class.

@@ -1,0 +1,8 @@
+{
+  "_note": "OPEN DEFECT reproducer — EXPECTED TO FAIL. Not part of the acceptance gate (scripts/parity_corpus/twp.json); a permanently-red acceptance gate stops being a signal, so this lives on its own. The offline preview/sim chain invents a large XYZ excursion on a move that follows g69; the machine itself is correct. See scripts/parity_corpus/twp_g69_tail.ngc and docs/decisions.md.",
+  "ini": "~/linuxcnc/configs/lcnc_suite_sim/lcnc_suite_sim_twp.ini",
+  "programs": [
+    { "file": "twp_g69_tail.ngc", "runs": 1, "tol": 0.5,
+      "note": "minimal case: no table move, so the table-aware composition never engages." }
+  ]
+}
