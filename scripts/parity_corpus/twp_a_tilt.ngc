@@ -1,0 +1,15 @@
+(Table-aware TWP gate fixture: the plane is defined at table A0, then the)
+(WORK-side A table is moved 20 deg BEFORE the orient. The composition in)
+(g53x_core must orient to where the face IS, not to the definition-frame)
+(numbers - a wrong sign puts the plane normal off by 2*dA = 40 deg.)
+g69
+g10 l2 p0 x1300 y-200 z-1400 a0
+m6 t3 g43 h3
+g0 x0y0z100 a0
+g68.2 x50 y50 z-50 q121 i30 j15
+g0 a20
+g53.3 x0y0z100
+o<square> call
+g69
+g0 a0
+M2

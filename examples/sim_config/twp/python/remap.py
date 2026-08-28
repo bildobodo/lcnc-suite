@@ -45,6 +45,8 @@ from math import sin,cos,tan,asin,acos,atan,atan2,sqrt,pi,degrees,radians,fabs
 from interpreter import *
 import emccanon
 from util import lineno, call_pydevd
+# LCNC-SUITE: pure table-composition geometry (unit-tested off-machine)
+from twp_transform import compose_table_a
 import hal
 
 
@@ -966,6 +968,7 @@ def reset_twp_params(self):
 # (ie do it in the ngc remap mentioned above!)
 def g53x_core(self):
     global saved_work_offset, twp_matrix, twp_flag, pre_rot
+    global twp_def_a, twp_pose_a  # LCNC-SUITE: table-aware composition
     global joint_letter_primary, joint_letter_secondary, twp_error_status
     global orient_mode, _task_mode, _preview_twp_state, _preview_pre_rot
     # LCNC-SUITE: upstream returned here for the preview interpreter; the
@@ -1020,9 +1023,43 @@ def g53x_core(self):
         return INTERP_ERROR
 
     orient_mode = p
+
+    # ---- LCNC-SUITE (table-aware wave): compose the work table's move ------
+    # The plane was defined in the machine frame at table pose twp_def_a. A is
+    # a WORK-side rotary on this machine, so if the table has turned since,
+    # the physical plane feature turned with it and the stored world numbers
+    # now describe where the face USED to be. Rotate the requested frame — and
+    # the origin POINT, about the table's axis line — by the delta, so we
+    # orient to where the face IS.
+    #
+    # twp_matrix itself is deliberately NOT modified: it stays the
+    # definition-frame record that G68.4 composes onto and that the helper
+    # publishes for the plane overlay (which hangs off the table in the
+    # viewer, so definition coords drawn there land on the composed frame).
+    machine_a_now = get_machine_a(self)
+    d_a = 0.0 if twp_def_a is None else (machine_a_now - twp_def_a)
+    compose_a = abs(d_a) > 1e-4
+    tool_z_requested = [twp_matrix[0,2],twp_matrix[1,2],twp_matrix[2,2]]
+    tool_x_requested = [twp_matrix[0,0],twp_matrix[1,0],twp_matrix[2,0]]
+    twp_offset = (twp_matrix[0,3],twp_matrix[1,3],twp_matrix[2,3])
+    origin_composed = None
+    if compose_a:
+        y_rot_axis, z_rot_axis = _get_rot_axis_yz()
+        origin_world = [saved_work_offset[i] + twp_offset[i] for i in range(3)]
+        tool_z_requested, tool_x_requested, origin_composed = compose_table_a(
+            tool_z_requested, tool_x_requested, origin_world,
+            d_a, y_rot_axis, z_rot_axis)
+        tool_z_requested = list(tool_z_requested)
+        tool_x_requested = list(tool_x_requested)
+        log.info("G53.x: table A moved %.6f deg since the plane was defined"
+                 " - composed plane frame: z=%s x=%s origin=%s",
+                 d_a, tool_z_requested, tool_x_requested, origin_composed)
+    # the plane state now assumes the CURRENT table pose (published below)
+    twp_pose_a = machine_a_now
+    # ---- end LCNC-SUITE table composition ---------------------------------
+
     # calculate the required rotary joint positions and pre_rotation for the requested tool-orientation
     try:
-        tool_z_requested = [twp_matrix[0,2],twp_matrix[1,2],twp_matrix[2,2]]
         # calculate all possible pairs of (primary, secondary) angles so our tool-z vector matches the requested tool-z
         # angles are returned in [-pi,pi]
         possible_prim_sec_angle_pairs = kins_calc_jnt_angles(self, tool_z_requested)
@@ -1054,8 +1091,8 @@ def g53x_core(self):
 
     theta_1 = radians(theta_1)
     theta_2 = radians(theta_2)
-    # calculate the pre-rotation needed so our tool-x vector matches the requested tool-x vector
-    tool_x_requested = [twp_matrix[0,0],twp_matrix[1,0],twp_matrix[2,0]]
+    # calculate the pre-rotation needed so our tool-x vector matches the
+    # requested tool-x vector (LCNC-SUITE: table-composed above)
     pre_rot = kins_calc_pre_rot(self,theta_1, theta_2, tool_x_requested, tool_z_requested)
     log.debug("Calculated pre-rotation (pre_rot) to match requested tool-x): %s", pre_rot)
     # mark twp-flag as active
@@ -1076,18 +1113,24 @@ def g53x_core(self):
     self.execute("(WEBUI_TWPFRAME=%.9f,%.9f,%.9f)"
                  % (pre_rot, degrees(theta_1), degrees(theta_2)))
 
-    # calculate the work offset in tool-coords
-    P = matrix_to_point(kins_calc_tool_transformation(self, point_to_matrix(saved_work_offset), theta_1, theta_2, pre_rot))
-    # get the current twp_origin
-    twp_offset = (twp_matrix[0,3],twp_matrix[1,3],twp_matrix[2,3])
-    # calculate the twp offset in tool-coords
-    Q = matrix_to_point(kins_calc_tool_transformation(self, point_to_matrix(twp_offset), theta_1, theta_2, pre_rot))
-    log.debug("G53.x: Setting transformed work-offsets for tool-kins in G59, G59.1, G59.2 and G59.3 to: %s ", P)
+    if origin_composed is None:
+        # calculate the work offset in tool-coords
+        P = matrix_to_point(kins_calc_tool_transformation(self, point_to_matrix(saved_work_offset), theta_1, theta_2, pre_rot))
+        # calculate the twp offset in tool-coords
+        Q = matrix_to_point(kins_calc_tool_transformation(self, point_to_matrix(twp_offset), theta_1, theta_2, pre_rot))
+        O = (P[0]+Q[0], P[1]+Q[1], P[2]+Q[2])
+    else:
+        # LCNC-SUITE: the table-composed origin is already the SUM point
+        # (work offset + twp origin) rotated about the table axis; the tool
+        # transformation is a pure rotation, so transforming the sum once is
+        # the same operation as upstream's transform-then-add.
+        O = matrix_to_point(kins_calc_tool_transformation(self, point_to_matrix(list(origin_composed)), theta_1, theta_2, pre_rot))
+    log.debug("G53.x: Setting transformed work-offsets for tool-kins in G59, G59.1, G59.2 and G59.3 to: %s ", O)
     # set the dedicated TWP work offset values (G53, G53.1, G53.2, G53.3)
-    self.execute("G10 L2 P6 X%f Y%f Z%f " % (P[0]+Q[0], P[1]+Q[1], P[2]+Q[2]), lineno())
-    self.execute("G10 L2 P7 X%f Y%f Z%f " % (P[0]+Q[0], P[1]+Q[1], P[2]+Q[2]), lineno())
-    self.execute("G10 L2 P8 X%f Y%f Z%f " % (P[0]+Q[0], P[1]+Q[1], P[2]+Q[2]), lineno())
-    self.execute("G10 L2 P9 X%f Y%f Z%f " % (P[0]+Q[0], P[1]+Q[1], P[2]+Q[2]), lineno())
+    self.execute("G10 L2 P6 X%f Y%f Z%f " % (O[0], O[1], O[2]), lineno())
+    self.execute("G10 L2 P7 X%f Y%f Z%f " % (O[0], O[1], O[2]), lineno())
+    self.execute("G10 L2 P8 X%f Y%f Z%f " % (O[0], O[1], O[2]), lineno())
+    self.execute("G10 L2 P9 X%f Y%f Z%f " % (O[0], O[1], O[2]), lineno())
     log.debug("G53.x: Moving (secondary and primary) joints to: %s", (degrees(theta_2), degrees(theta_1)))
     if (x,y,z) == (None,None,None):
         # Move rotary joints to align the tool with the requested twp
