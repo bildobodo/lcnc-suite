@@ -1739,3 +1739,60 @@ The honest reading of the regenerated diff — `swept_axes [] → ['B','C']`,
 `wcs_epochs.rewritten 0 → 2` — is that both new values are RIGHT and the
 golden was wrong: this program does sweep B and C, and the source scan does
 correctly mark both epochs.
+
+### Live acceptance — re-orient, 2026-08-29
+
+Sim, homed, armed. `scripts/twp_reorient_check.py`, 15 checks, all green.
+
+| step | measured |
+|---|---|
+| tool normal to plane at A=0 | 0.0000147° |
+| after jogging the table to A=35 | 33.7709° off-normal (the defect) |
+| after Re-orient | **0.0000086° = 0.031 arc-seconds** |
+| stored plane across the re-orient | unchanged |
+| stored plane across a bare `G53.1` refusal | **unchanged** (was wiped) |
+| staleness stamp | 0 → 35, self-cleared |
+| joint step on X/Y/Z/A across the kins switch | none |
+| wall time | 2.7 s |
+
+`B −40.85550 → −19.31025`, `C 130.24550 → 203.59150`.
+
+**The first version of that check reported two failures that were mine, not
+the feature's.** It compared the `twp-z*` pins directly against a
+machine-frame tool axis — but those pins are TABLE-relative (that is the
+storage that makes the plane ride the workpiece), so they stay constant as
+the table turns. The comparison is valid only at A=0. It therefore read
+0.0000° where the tool was physically 33.77° off, and 33.77° where it was
+normal: the feature looked broken and was not. The fix takes the mapping
+from the code under test (`compose_table_a`: `th = -radians(d_a)`, rotate
+about X) rather than fitting a sign, and it independently reproduces the
+machine-frame normal `[0.258819, 0.084186, 0.962250]` measured in the
+separate MDI probe.
+
+**And the off-normal angle is not the table move.** I asserted ≈35° for a
+35° table move; it is 33.77°. The normal rides a CONE about the A axis at
+φ=75°, so `cos ψ = cos²φ + sin²φ·cos θ`. The check now asserts that
+prediction to 0.01°, which tests the geometry instead of tolerating a gap I
+could not explain.
+
+### Operational: `scripts/lcnc-stop.sh`
+
+A stale session is invisible in the failure it causes. `restart.sh` only
+knows the standalone dev mode (kill whatever holds :8000/:5173), so run
+against a LinuxCNC-as-DISPLAY session it decapitates the launcher and
+leaves `linuxcnc` and the realtime side half-standing. The next start then
+cannot claim HAL and, on its way out, its teardown unloads the realtime
+threads out from under the OLD instance — so the surviving gateway reports
+`27 pin(s) still missing` and the whole thing reads as a config fault.
+Observed live today, caused by a session this assistant had launched
+detached with `nohup` and never reaped.
+
+The script matches processes POSITIONALLY on argv, never by substring over
+the command line — a `pgrep -f` first cut matched its OWN invoking shell
+(which quoted the patterns), walked that shell's children, and announced
+"stopping 20 process(es)" on an already-clean system. A real launcher has
+its path at `argv[1]`; a shell quoting that path has `-c` there. It also
+refuses to touch itself or its ancestors, dedupes overlapping subtrees,
+kills children before parents (an orphaned child keeps holding :8000), and
+verifies afterwards, naming survivors rather than reporting a silent
+partial stop. `--dry-run` lists the tree without touching it.
