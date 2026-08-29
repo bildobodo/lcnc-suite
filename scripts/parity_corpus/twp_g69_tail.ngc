@@ -1,15 +1,11 @@
-(REPRODUCER for an OPEN offline-chain defect: motion AFTER g69.)
-(The machine runs this correctly. The offline preview/sim chain does not:)
-(the payload contains a phantom XYZ excursion on the trailing move that)
-(the real machine never makes.)
-(No previously shipped program exercised this: twp_simple_example ships)
-(its final g69 COMMENTED OUT, and parity_linear's g69 is the first line)
-(with no motion before it. This program is deliberately the minimal case)
-(- it has NO table move, so the table-aware composition never engages and)
-(cannot be implicated.)
-(Reproduce:)
-(  scripts/sim_parity.py gate --corpus scripts/parity_corpus/_open_g69_tail.json)
-(Expected: FAIL until the g69-tail defect is fixed.)
+(REGRESSION: motion AFTER g69 - the relabel carry.)
+(A relabel re-expresses a POSITION, so every axis the following blocks do)
+(not command keeps the pre-flip value in the un-resynced offline)
+(interpreter. Correcting only the post-flip segment's START turned this)
+(program's trailing zero-length hold into 897 mm of invented travel.)
+(Fixed 2026-08-29; this program is the gate that keeps it fixed.)
+(NO table move here on purpose, so the table-aware composition cannot be)
+(implicated - the defect and its fix are purely offline-chain.)
 g69
 g10 l2 p0 x1300 y-200 z-1400 a0
 m6 t3 g43 h3
