@@ -899,6 +899,13 @@ def gui_update_twp(self):
 
 # NOTE: Due to easier abort handling we currently restrict the use of twp to G54
 # as LinuxCNC seems to revert to G54 as the default system
+#
+# LCNC-SUITE STANDING PRECONDITION: the active work offset is read as a
+# TABLE-FRAME point (the plane is stored relative to the A table, datum'd to
+# coincide with machine coords at A=0), so the operator must TOUCH OFF WITH
+# A AT 0. LinuxCNC records no touch-off pose, so this cannot be detected or
+# guarded — it is stated here, in the TWP README and in docs/decisions.md
+# precisely because no code can check it.
 def get_current_work_offset(self):
     # get which offset is active (g54=1 .. g59.3=9)
     active_offset = int(self.params[5220])
