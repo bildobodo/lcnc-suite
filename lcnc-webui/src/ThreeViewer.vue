@@ -325,17 +325,25 @@ let _unitScale = 1;
 
 // ---- TWP plane visualization (P3.4) ----
 // The live tilted-work-plane, drawn from the twp-helper comp's plane pins
-// (status twp_plane: [ox,oy,oz, zx,zy,zz, xx,xy,xz], MACHINE frame).
-// Machine coordinates live in _workGrp's LOCAL frame, not the scene root —
-// model chains carry static base translates (trsrn head chain at
-// (-1000,1000,2000)), so a scene-root attach lands the plane a frame-offset
-// away from the machine (operator-caught: invisible below the floor). Same
-// attach rule as machineBoundsMesh; like the bounds box, the drawn plane is
-// exact at the rotary pose it was defined at (the pins are definition-time
-// world coords). Heidenhain's simulation and the upstream TWP VTK GUI both
-// draw this; the marker comments only ever carried it as numbers. Info-blue while TOOL kins is active; warn-amber when a plane
-// is defined but the kins is back to identity (defined-but-inactive —
-// the parked-in-TWP trap made visible).
+// (status twp_plane: [ox,oy,oz, zx,zy,zz, xx,xy,xz], TABLE frame — the
+// frame in which a table-fixed feature has constant coordinates, datum'd
+// to coincide with machine coords at A=0; see status_runtime
+// assemble_twp_plane and remap.py gui_update_twp).
+// The group is attached under _workGrp (the A table's work group), whose
+// local frame IS the table frame — applyState rotates it by the live A, so
+// the plane rides the workpiece and is exact at EVERY table angle. The
+// earlier MACHINE-frame pins drawn in this same rotating group double-
+// counted A (wrong by the table angle, cancelling only at A=0); the
+// table-frame storage is what removed that, not a change here. Not the
+// scene root either: model chains carry static base translates (trsrn head
+// chain at (-1000,1000,2000)), so a scene-root attach lands the plane a
+// frame-offset away from the machine (operator-caught: invisible below the
+// floor). Same attach rule as machineBoundsMesh. Heidenhain's simulation
+// and the upstream TWP VTK GUI both draw this; the marker comments only
+// ever carried it as numbers. Info-blue while TOOL kins is active;
+// warn-amber when a plane is defined but the kins is back to identity
+// (defined-but-inactive — the parked-in-TWP trap made visible). During
+// simulation the PROGRAM's plane (viewer/twpPlaneFrame.ts) replaces it.
 let twpPlaneGroup: THREE.Group | null = null;
 let twpNormalArrow: THREE.ArrowHelper | null = null;
 let twpPlaneMat: THREE.MeshBasicMaterial | null = null;

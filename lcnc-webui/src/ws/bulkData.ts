@@ -408,6 +408,11 @@ export interface ViewerGcode {
   // family, or a frameless type-2 side): those segments keep the phantom
   // geometry. Present only when > 0 — unresolved ≠ handled.
   kins_flips_unresolved?: number;
+  // Tuples whose shipped geometry a frame-relabel CARRY moved (the g69-tail
+  // fix): canon-endpoint replay cannot tell "axis held" from "axis
+  // commanded to exactly the stale value", so the reach of every carry is
+  // reported rather than assumed. Present only when > 0.
+  kins_carry_spans?: number;
   // WCS epoch rows (review P2): [seq, g5x_index, rotation_deg, rewritten,
   // g5x x6, g92 x6] in machine units — the basis each epoch's endpoints
   // were peeled against. ≥1 row whenever motion exists; absence = legacy

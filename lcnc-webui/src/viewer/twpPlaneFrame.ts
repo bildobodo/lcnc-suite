@@ -42,6 +42,14 @@ export interface TwpPlaneInputs {
   /** The segment's epoch g5x + g92 (machine units), axis-indexed. */
   g5x: readonly number[] | undefined;
   g92: readonly number[] | undefined;
+  /**
+   * The epoch's G10 R rotation, degrees (undefined/0 = none). RS274's
+   * effective origin is g5x + Rz(θ)·g92 — g92 applies BEFORE the rotation
+   * (the golden-pinned rule in rs274.test.ts / partFrame.ts); a plain sum
+   * deviates whenever both are active. The TWP remap writes G59 with no R,
+   * so this is exotic input — but dropping it silently would be a guess.
+   */
+  rotationDeg?: number;
   /** Machine-frame A (the work table) for the sample, degrees. */
   a: number;
 }
@@ -71,9 +79,13 @@ export function twpPlaneForSample(i: TwpPlaneInputs): TwpPlane | null {
 
   // The plane's ORIGIN is the epoch's work origin: G59 carries the
   // TWP-dedicated offsets G53.x wrote, and g92 rides along the same way the
-  // rest of the transform chain applies it.
-  const ox = Number(i.g5x[0] ?? 0) + Number(i.g92?.[0] ?? 0);
-  const oy = Number(i.g5x[1] ?? 0) + Number(i.g92?.[1] ?? 0);
+  // rest of the transform chain applies it — g92 BEFORE the G10 R rotation
+  // (o = g5x + Rz(θ)·g92, the rs274-pinned order; Z is never rotated).
+  const th = (i.rotationDeg || 0) * Math.PI / 180;
+  const c = Math.cos(th), s = Math.sin(th);
+  const gx = Number(i.g92?.[0] ?? 0), gy = Number(i.g92?.[1] ?? 0);
+  const ox = Number(i.g5x[0] ?? 0) + c * gx - s * gy;
+  const oy = Number(i.g5x[1] ?? 0) + s * gx + c * gy;
   const oz = Number(i.g5x[2] ?? 0) + Number(i.g92?.[2] ?? 0);
 
   const out: number[] = [0, 0, 0, 0, 0, 0];

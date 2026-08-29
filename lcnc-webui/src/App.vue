@@ -404,6 +404,21 @@ const gcodeStats = ref<GcodeStats | null>(null);
 const gcodeViolations = ref<LimitViolation[] | null>(null);
 const gcodeViolationsTotal = ref(0);
 const gcodeWorldUnchecked = ref(0);
+// Kins-flip honesty counts from the parse worker: flips no twin could
+// resolve (segments keep phantom geometry) and frame-relabel CARRY spans
+// (geometry corrected under an assumption canon replay cannot verify —
+// "axis held" vs "commanded to the stale value"). Both ride the wire;
+// shipping a count nobody displays is the delivery gap the review found.
+const gcodeKinsUnresolved = ref(0);
+const gcodeKinsCarrySpans = ref(0);
+const kinsFlipStatus = computed(() => {
+  const u = gcodeKinsUnresolved.value, cs = gcodeKinsCarrySpans.value;
+  if (!u && !cs) return null;
+  const parts: string[] = [];
+  if (u) parts.push(`${u} flip${u === 1 ? "" : "s"} unresolved`);
+  if (cs) parts.push(`${cs} relabel-carry span${cs === 1 ? "" : "s"} estimated`);
+  return { cls: u ? "warn" : "muted", text: parts.join(" · ") };
+});
 // Called external subs with no WEBUI_SUB markers (W3 P5): their motion's
 // line numbers collide with the main file's — one info-tier stats hint,
 // no per-point behavior change (markers are the only trust mechanism).
@@ -554,12 +569,18 @@ const liveKinsType = computed<number | null>(() => {
 const twpStale = computed(() =>
   twpPoseStale(st.value.twp_pose_a, st.value.rotary_abc?.[0], st.value.twp_defined),
 );
-// Jog-frame selector (JogStrip): the switch is an MDI remap — M430 enters
-// TOOL/plane kins, M428 restores identity. Switchkins preserves joint
-// positions, so the switch itself moves nothing; the ready gate (idle +
-// homed) is what makes it a safe stationary relabel.
+// Jog-frame selector (JogStrip): the switch is an MDI remap — M428 restores
+// identity, M429 enters TCP (world XYZ = the table-riding work frame: jog A
+// and the tool tip stays on the workpiece, the kins re-solving XYZ — the
+// Heidenhain 3D-ROT-style tracking the operator asked for), M430 enters
+// TOOL/plane kins. Switchkins preserves joint positions, so the switch
+// itself moves nothing; the ready gate (idle + homed) is what makes it a
+// safe stationary relabel.
+const _KINS_MODE_MDI: Record<number, string> = { 0: "M428", 1: "M429", 2: "M430" };
 function setKinsMode(t: number) {
-  fire({ cmd: "mdi", text: t === 2 ? "M430" : "M428" }, "ready");
+  const mdi = _KINS_MODE_MDI[t];
+  if (!mdi) return;
+  fire({ cmd: "mdi", text: mdi }, "ready");
 }
 // TWP re-orient: re-solve the head at the CURRENT table pose. Unlike the
 // jog-frame switch above this MOVES the rotaries, hence the probe tier.
@@ -1440,6 +1461,8 @@ watch(viewerGcode, (newGcode) => {
   gcodeViolations.value = newGcode?.violations ?? null;
   gcodeViolationsTotal.value = newGcode?.violations_total ?? 0;
   gcodeWorldUnchecked.value = newGcode?.violations_world_unchecked ?? 0;
+  gcodeKinsUnresolved.value = newGcode?.kins_flips_unresolved ?? 0;
+  gcodeKinsCarrySpans.value = newGcode?.kins_carry_spans ?? 0;
   gcodeUnmarkedSubs.value = newGcode?.unmarked_subs ?? [];
   // New payload = program change or reparse — sub files may have been
   // edited, so the inline sub view must re-fetch (W5).
@@ -1766,6 +1789,13 @@ watch(viewerGcode, (newGcode) => {
                   <span class="statsValue val-status" :class="softLimitStatus.cls">
                     {{ softLimitStatus.text }}
                   </span>
+                  <template v-if="kinsFlipStatus">
+                    <span class="statsLabel">Kins frames</span>
+                    <span class="statsValue val-status" :class="kinsFlipStatus.cls"
+                          title="Unresolved: a kinematics switch this client has no twin for — those segments keep uncorrected geometry. Carry spans: geometry after a frame relabel was corrected assuming uncommanded axes HELD; canon replay cannot tell that from a command to the same stale value.">
+                      {{ kinsFlipStatus.text }}
+                    </span>
+                  </template>
                   <template v-if="gcodeUnmarkedSubs.length">
                     <span class="statsLabel">Line tracking</span>
                     <span class="statsValue val-status muted"
@@ -1976,6 +2006,7 @@ watch(viewerGcode, (newGcode) => {
         :iniIncrements="iniIncrements"
         :kinsType="liveKinsType"
         :twpDefined="st.twp_defined ?? null"
+        :twpStale="twpStale"
         @setKinsMode="setKinsMode"
         :jogDisabled="!permissions.jog"
         :taskMode="taskMode"

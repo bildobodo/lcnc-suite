@@ -35,6 +35,9 @@ const props = defineProps<{
   // null kinsType = machine can't switch: selector hidden entirely.
   kinsType?: number | null;
   twpDefined?: boolean | null;
+  // Head solve stale (table moved since the last orient): the Plane frame's
+  // Z is then NOT the face normal — say so where the operator picks it.
+  twpStale?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -404,18 +407,31 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
           </div>
         </div>
 
-        <!-- Jog-frame selector: only on switchable-kins machines with a
-             defined TWP plane (Heidenhain 3D-ROT / Siemens WCS-MCS
-             convention — the jog frame is an explicit, indicated operator
-             choice). Plane = TOOL kins (M430): X/Y/Z jog in the tilted
-             plane, Z along the tool axis. Machine = identity (M428). -->
-        <template v-if="kinsType != null && twpDefined">
+        <!-- Jog-frame selector: switchable-kins machines only (Heidenhain
+             3D-ROT / Siemens WCS-MCS convention — the jog frame is an
+             explicit, indicated operator choice). The radio reflects the
+             ACTUAL kins type: an earlier version folded TCP into "Machine",
+             so a machine parked in TCP displayed as Machine and one click
+             on that radio silently dropped it to identity.
+             Machine = identity (M428).
+             TCP = M429: world XYZ is the table-riding work frame — jog A
+               and the tool tip stays put on the workpiece (position
+               tracking; the head's orientation does not follow).
+             Plane = TOOL kins (M430): X/Y/Z jog in the tilted plane, Z
+               along the tool axis AS OF THE LAST ORIENT — the frame is
+               frozen in the kins pins at G53.x, so after a table move it
+               is stale until Re-orient. Offered only with a plane defined:
+               a bare M430 reuses whatever pins the last session left. -->
+        <template v-if="kinsType != null">
           <div class="sep modeColSep"></div>
           <div class="frameCol stack-tight strip-radio-group">
             <span class="label-muted">Jog frame</span>
             <div class="strip-radio-options">
-              <label class="radio-label" title="Identity kinematics — jog along machine axes"><MachineRadio gate="jogFrame" name="jogFrame" :modelValue="kinsType === 2 ? 2 : 0" :value="0" @update:modelValue="emit('setKinsMode', 0)" /> Machine</label>
-              <label class="radio-label" title="TOOL kinematics — jog in the tilted work plane, Z along the tool axis"><MachineRadio gate="jogFrame" name="jogFrame" :modelValue="kinsType === 2 ? 2 : 0" :value="2" @update:modelValue="emit('setKinsMode', 2)" /> Plane</label>
+              <label class="radio-label" title="Identity kinematics — jog along machine axes"><MachineRadio gate="jogFrame" name="jogFrame" :modelValue="kinsType" :value="0" @update:modelValue="emit('setKinsMode', 0)" /> Machine</label>
+              <label class="radio-label" title="TCP kinematics — X/Y/Z are the work frame riding the table: jogging A keeps the tool tip on the workpiece (position only; the head orientation does not follow)"><MachineRadio gate="jogFrame" name="jogFrame" :modelValue="kinsType" :value="1" @update:modelValue="emit('setKinsMode', 1)" /> TCP</label>
+              <label v-if="twpDefined" class="radio-label" :class="{ 'val-status': true, warn: twpStale }" :title="twpStale
+                ? 'TOOL kinematics — the plane frame is from the LAST orient and the table has moved since: Z is NOT the face normal. Re-orient (Setup strip) to restore it.'
+                : 'TOOL kinematics — jog in the tilted work plane, Z along the tool axis as of the last orient (re-orient after moving the table)'"><MachineRadio gate="jogFrame" name="jogFrame" :modelValue="kinsType" :value="2" @update:modelValue="emit('setKinsMode', 2)" /> Plane{{ twpStale ? ' (stale)' : '' }}</label>
             </div>
           </div>
         </template>

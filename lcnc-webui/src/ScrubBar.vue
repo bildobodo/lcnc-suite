@@ -174,7 +174,8 @@ function applyPos() {
   const _plane = (_ew && _ai >= 0 && _joints[_ai] != null)
     ? twpPlaneForSample({
         spec: _kinsSpec.value, kinstype: _sample.kinstype, frame: _sample.frame,
-        g5x: _ew.g5x, g92: _ew.g92, a: _joints[_ai] as number })
+        g5x: _ew.g5x, g92: _ew.g92, rotationDeg: _ew.rotationDeg,
+        a: _joints[_ai] as number })
     : null;
   emit("pose", _joints.slice(), _sample.line, sPos.value, t,
        curAtEnd.value ? (endLine.value ?? null) : disp.line, _plane);

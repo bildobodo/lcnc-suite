@@ -90,7 +90,9 @@ export const BUTTON_TYPES = {
   // TWP re-orient: re-solves the head at the current table pose. It MOVES the
   // rotaries, so it carries the probe tier (idle + homed + no eoffset), not
   // jogFrame's — a jog-frame switch is a stationary relabel, this is motion.
-  twpReorient:    { gate: 'probe',    variant: 'default', size: 'sm' },
+  // hold: like every other motion-initiating button (home, goTo, zero…) —
+  // it sits next to the WCS radios on a touch-first strip.
+  twpReorient:    { gate: 'probe',    variant: 'default', size: 'sm', hold: true },
 
   // Zero / touchoff (sends G10 L20 MDI — needs homed + !eoffset)
   zero:           { gate: 'probe',    variant: 'default', size: 'md', hold: true },

@@ -69,6 +69,48 @@ describe("twpPlaneForSample: the program's plane, from the wire", () => {
     expect(Math.hypot(...z)).toBeCloseTo(1, 9);
   });
 
+  it("at A≠0 is exactly the A=0 frame rotated about the table axis line", () => {
+    // Pins the a≠0 branch against a known-good value (the live A20
+    // acceptance is the only other pin, and it is not CI-runnable). The
+    // work frame is Rx(+A) about the axis line through machine
+    // (y_rot_axis, z_rot_axis): a table-fixed feature keeps constant table
+    // coordinates, so a MACHINE-fixed frame (what the kins pins describe)
+    // appears in table coordinates rotated by +A about that line.
+    const A = 20, th = (A * Math.PI) / 180, c = Math.cos(th), s = Math.sin(th);
+    const py = -1000, pz = -2000;
+    const rotPoint = (v: number[]) => {
+      const ry = v[1]! - py, rz = v[2]! - pz;
+      return [v[0]!, c * ry - s * rz + py, s * ry + c * rz + pz];
+    };
+    const rotDir = (v: number[]) => [v[0]!, c * v[1]! - s * v[2]!, s * v[1]! + c * v[2]!];
+    const at0 = plane({ a: 0 })!;
+    const at20 = plane({ a: A })!;
+    const wantO = rotPoint(at0.slice(0, 3));
+    const wantZ = rotDir(at0.slice(3, 6));
+    const wantX = rotDir(at0.slice(6, 9));
+    for (let i = 0; i < 3; i++) {
+      expect(at20[i]).toBeCloseTo(wantO[i]!, 4);
+      expect(at20[3 + i]).toBeCloseTo(wantZ[i]!, 6);
+      expect(at20[6 + i]).toBeCloseTo(wantX[i]!, 6);
+    }
+  });
+
+  it("applies a G10 R rotation to g92 before summing (rs274 order)", () => {
+    // o = g5x + Rz(θ)·g92: with g92 = (10, 0, 0) and R = 90 the origin
+    // moves by (0, 10, 0) in the epoch frame, not by (10, 0, 0). The plane
+    // frame then carries that displacement; assert its LENGTH and that a
+    // plain-sum origin would differ — the same invariant style as the TLO
+    // guard, for the same frame reason.
+    const base = plane()!;
+    const rot = plane({ g92: [10, 0, 0, 0, 0, 0, 0, 0, 0], rotationDeg: 90 })!;
+    const sum = plane({ g92: [10, 0, 0, 0, 0, 0, 0, 0, 0], rotationDeg: 0 })!;
+    const d = (p: number[]) => Math.hypot(p[0]! - base[0]!, p[1]! - base[1]!, p[2]! - base[2]!);
+    expect(d(rot)).toBeCloseTo(10, 6);
+    expect(d(sum)).toBeCloseTo(10, 6);
+    expect(Math.hypot(rot[0]! - sum[0]!, rot[1]! - sum[1]!, rot[2]! - sum[2]!))
+      .toBeCloseTo(10 * Math.SQRT2, 6);
+  });
+
   it("makes no claim where it cannot know one", () => {
     expect(plane({ kinstype: 0 })).toBeNull();     // identity: no plane
     expect(plane({ kinstype: 1 })).toBeNull();     // TCP: not a plane mode
