@@ -1566,3 +1566,81 @@ merely LOAD a TWP program?". Fall back to hiding the overlay whenever the
 payload carries no plane data, so it never shows live state while the model
 shows the program. Parked next to the g69-tail fix (both are offline-chain
 work).
+
+## 2026-08-29 — the TWP plane becomes a property of the workpiece
+
+**What the operator was actually asking for.** "The program should be
+attached to the workpiece — jogging must not change where it cuts." That
+instinct is not naivety: it is what Fanuc's table-type G68.2, Heidenhain's
+3D-ROT and Haas's DWO all engineer into existence. Our stack stored the
+plane as static WORLD numbers, so the workpiece could rotate out from under
+its own definition.
+
+**Rejected first: making mode-2 kinematics table-aware.** It was the obvious
+answer and it is wrong. Mode 2 IS the tool frame by design, and motion
+applies TLO BEFORE it (`Dt` is deliberately unused in case 2, test-pinned in
+both twins). So the change would take effect only when the tool is NOT
+normal to the plane — exactly when it breaks tool-length compensation. When
+the tool IS normal, plane-Z and tool-Z coincide and it buys nothing. Cost
+was severe too: the fixture generator compiles the ORACLE comp, and A=0
+appears in ZERO of the 120 mode-2 fixture cases, so none would have stayed
+upstream-pinned; and `jointBulge` returns exactly zero for mode 2 under an
+`exact: true` pin, which a non-zero bound would replace with new tightness
+obligations and a `coarsened` risk on the collision sweep.
+
+**Done instead: change the plane's STORAGE FRAME (5cff267, 5f8fbf5).**
+`twp_matrix` is expressed in the TABLE frame — where a table-fixed feature
+has constant coordinates, datum'd to coincide with machine coords at A=0.
+Verified analytically before writing any code: the kins axis line (machine
+y=-1000, z=-2000) is INVARIANT under the viewer's work-chain rotation at
+A = 0/20/45/90, and the group applies Rx(-A) about it — the exact inverse of
+the orient-time mapping. So the same rotation appears twice, once forward
+and once backward, and the EXISTING viewer attach becomes correct at every
+table angle with no geometry change. (World-frame pins drawn in that
+rotating group double-counted A — wrong by the table angle, cancelling only
+at A=0. Upstream's own vismach comment shows the same latent error.)
+
+`twp_def_a` is DELETED: there is no definition pose to remember, because
+G53.x maps the stored plane through the LIVE table angle every time. G68.2's
+words are read as workpiece intent (no math change — which makes the
+behaviour change at A≠0 invisible to review); G68.3 DOES convert, since it
+measures the live spindle. Below 1e-4 deg the mapping is skipped, so every
+shipped A=0 program emits byte-identical G59 rows.
+
+**Staleness survives, sharpened.** The plane can no longer go stale — it
+rides the workpiece. The HEAD SOLVE can: G53.x computes the spindle angles
+once, and no coordinate relabelling can swing the head. So the chip now
+reads "tool orientation stale", `twp_pose_a` means "the A the head was
+oriented at" (set only by G53.x, cleared to the sentinel by G68.2/.3/.4 —
+an increment invalidates the previous solve), and the red moves off the
+plane onto the +Z arrow, which is the tool-normal claim. Painting the plane
+red asserted the plane was wrong when it was not.
+
+**The overlay stops lying during simulation.** It read only live status, so
+while scrubbing it froze on the machine's plane while everything else showed
+the program — and was half sim-aware by accident, its position riding the
+scrubbed table while its existence and tint came from the machine. It now
+draws the PROGRAM's plane (`viewer/twpPlaneFrame.ts`, derived from the frame
+triple + G59 epoch already on the wire — no new marker) and HIDES when the
+program has established none, never falling through to live state.
+
+**Two derivation traps, both found by measuring rather than reasoning.**
+(1) Mode 2's inverse returns SLIDE positions, not the tool tip — the head
+geometry sits between them. While TWP is active the head sits AT its frame
+(B = secondary, C = primary), and seeding zeros lands ~125 mm out.
+(2) A TLO error does NOT stay in Z: adding the tool offset to the origin
+displaces the plane by exactly 22 mm, but as a ROTATION of (0,0,22) through
+the plane frame. The test asserts the LENGTH — asserting a Z shift would be
+wrong for the same frame reason that makes the bug subtle.
+
+**Acceptance.** `scripts/parity_corpus/twp_a_define_tilted.ngc` defines the
+plane at A20 — the case this wave exists for, and the only thing that can
+catch a regression, since g68.2's P-branches change meaning with zero code
+change. Live: `normal_err_deg 0.000`, planar, a true 100 mm square; with the
+mapping stubbed off, **19.31 deg**. Full gate GREEN, 5 programs / 9 runs,
+worst 0.038 vs tol 0.5.
+
+**STANDING PRECONDITION, undetectable and therefore stated.** G54 is read as
+a TABLE-frame point, so **touch off with A at 0**. LinuxCNC records no
+touch-off pose, so nothing can check this — it is a documented precondition,
+not a guard. Also recorded in remap.py beside the G54-only check.

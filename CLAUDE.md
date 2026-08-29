@@ -49,7 +49,7 @@ Gateway connects to LinuxCNC via Python bindings (`linuxcnc.stat`, `linuxcnc.com
 - `SetupStrip.vue` — Bottom strip: DRO display, axis touchoff, homing grid, WCS selector
 - `OverridesStrip.vue` — Bottom strip: Feed/Spindle/Rapid override sliders
 - `SpindleStrip.vue` — Bottom strip: FWD/REV/STOP, RPM input, actual speed, coolant toggles
-- `ToolStrip.vue` — Bottom strip: Tool # input, Measure/Manual/Load/Abort, probe status
+- `ToolStrip.vue` — Bottom strip: READ-ONLY tool info (Tool Table nav button + T / Pocket / Diameter / Z-offset / Type / Description for the loaded tool). The tool-CHANGE dialog lives in `App.vue` (`confirmToolChange`), "Measure Current"/"Unload" are App-level actions, and tool editing is in `ToolTablePanel.vue`
 - `ToolsetterSettings.vue` — Toolsetter configuration panel (used in SettingsPanel Machine sub-tab)
 - `GamepadLiveInput.vue` — Gamepad input visualization (SettingsPanel Gamepad sub-tab)
 - `DebugTab.vue` — Debug/diagnostics tab (SettingsPanel Debug sub-tab)
@@ -78,7 +78,7 @@ Horizontally scrollable strip with six components (wrapped in `<Gate gate="armed
 3. **SetupStrip** — DRO display, axis touchoff, homing grid, WCS selector
 4. **OverridesStrip** — Feed/Spindle/Rapid override sliders
 5. **SpindleStrip** — FWD/REV/STOP, RPM input, actual speed, coolant toggles
-6. **ToolStrip** — Tool # input, Measure/Manual/Load/Abort buttons, probe status, tool context (T# D# Z#)
+6. **ToolStrip** — Read-only loaded-tool info + a Tool Table nav button (the change dialog and measure/unload actions are App-level, not here)
 
 ## Safety System — Three Layers
 
@@ -665,7 +665,7 @@ low rapid traverse rams the trunnion (stage 1 quiet, stage 3 flags it).
   - All tiers inherit `font-size: var(--fs-base)` from `.dialog` base — never set font-size on dialog body content
   - Safety dialogs add `.safetyDialog` (z-index 1010) and omit `@click.self` on overlay
 - Gateway `tool_change` handler is fire-and-forget (no `CMD.wait_complete()` — blocks heartbeat loop)
-- Toolsetter settings live in SettingsPanel (Machine sub-tab), tool actions in sidebar ToolStrip
+- Toolsetter settings live in SettingsPanel (Machine sub-tab); tool ACTIONS live in App.vue (tool-change dialog, Measure/Unload) and ToolTablePanel, not in the read-only ToolStrip
 - **Tool geometry**: Per-tool STL files in `machine/tools/`, loaded via `STLLoader`. Fallback: simple cylinder from diameter + length. Vertex colors split cutter (gold) / shaft (silver) by `flute_length` / `shoulder_length` Z thresholds. STL origin convention: tool tip at (0,0,0), extends in +Z.
 - **No `:deep()` visual overrides** — scoped CSS may use `:deep()` for layout properties (flex, width, height, padding) but NEVER for visual properties (background, color, border, box-shadow). Visual overrides bypass Btn.vue's state system. If a button state looks wrong, fix it in Btn.vue.
 - **Gate.vue** — renders `<fieldset :disabled="!allow">` with `.fs-reset` styling (chrome-only: no border/padding/margin). Browser-enforced default-deny: disabled propagates to all descendants. The outer Gate (`gate="armed"`) wraps the entire main area. `#exempt` slot reserved for safety section only (Arm, E-Stop). All buttons use MachineBtn catalog types; `<Btn>` is never used directly in templates.
