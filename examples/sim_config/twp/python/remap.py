@@ -213,6 +213,86 @@ def _get_rot_axis_yz():
     return (_ini_y_rot_axis, _ini_z_rot_axis)
 
 
+# ---------------------------------------------------------------------------
+# LCNC-SUITE: touch-off provenance (W1).
+#
+# The work offset is read below as a TABLE-FRAME point. That is only true of
+# the raw numbers if the operator touched off with A at 0 — which used to be
+# a STANDING PRECONDITION stated in three places and checkable in none,
+# because LinuxCNC records nothing about the pose an offset was set in.
+#
+# The gateway now records it, in the ten parameters per fixture that the
+# interpreter leaves undefined (G54 uses 5221..5230; 5231.. are free and
+# persist via the var file). Layout, TWIN of gateway_util.wcs_prov_params —
+# the two must agree, so both name the same base and stride:
+#
+#   base = 5231 + (n-1)*20
+#   base+0  stamped flag (1 = recorded; 0, the value a fresh var file is
+#           full of, means never recorded — deliberately NOT a sentinel in
+#           the data, because kins type 0 is a legitimate value)
+#   base+1  switchkins type at touch-off
+#   base+2  machine-frame A at touch-off
+#   base+3..5  the offset X/Y/Z as written
+#
+# The recorded triple is what makes it falsifiable: we stamp only the writes
+# the gateway makes, so a program's `G10 L2`, another GUI, or a typed MDI
+# line moves the offset out from under the stamp. A stale record is worse
+# than none — it reads as authoritative — so it is believed only while the
+# recorded values still match the live fixture.
+_PROV_BASE = 5231
+_PROV_STRIDE = 20
+_PROV_STAMPED = 1.0
+
+
+def read_touchoff_pose(self, n, offsets):
+    """Machine-frame A the fixture `n` offset was touched off at.
+
+    Returns (a_deg, source) where source is 'recorded' or 'assumed'. When
+    no usable record exists we fall back to A = 0 — the historical
+    precondition — and SAY so, so the caller can tell the operator that the
+    old rule is still in force for this offset rather than silently
+    pretending the pose is known.
+    """
+    try:
+        b = _PROV_BASE + (int(n) - 1) * _PROV_STRIDE
+        if abs(float(self.params[b]) - _PROV_STAMPED) > 1e-9:
+            return 0.0, 'assumed'                      # never recorded
+        rec = [float(self.params[b + 3 + i]) for i in range(3)]
+        if any(abs(rec[i] - float(offsets[i])) > 1e-6 for i in range(3)):
+            return 0.0, 'stale'                        # changed underneath
+        return float(self.params[b + 2]), 'recorded'
+    except (IndexError, KeyError, TypeError, ValueError):
+        return 0.0, 'assumed'
+
+
+def to_storage_frame(self, offsets, n):
+    """The active work offset as a TABLE-FRAME point.
+
+    A fixture offset is a MACHINE-frame position of the work origin, true at
+    the table angle it was touched off at. Converting it through that
+    recorded angle is what lets an operator touch off at ANY table angle —
+    the whole point of W1. With no record the conversion is the identity, so
+    an A=0 touch-off (and every pre-existing var file) behaves exactly as
+    before.
+    """
+    a_touch, source = read_touchoff_pose(self, n, offsets)
+    if source != 'recorded' or abs(a_touch) <= 1e-9:
+        if source == 'stale':
+            log.warning(
+                "TWP: G%s offset changed since it was touched off (not by the"
+                " web UI) - its recorded table pose no longer describes it, so"
+                " A=0 is assumed. Re-touch-off through the UI to restore it.",
+                53 + int(n))
+        return list(offsets), a_touch, source
+    y_rot_axis, z_rot_axis = _get_rot_axis_yz()
+    _z, _x, origin_table = to_table_frame(
+        (0.0, 0.0, 1.0), (1.0, 0.0, 0.0), list(offsets),
+        a_touch, y_rot_axis, z_rot_axis)
+    log.info("TWP: G%s touched off at A=%.6f deg - offset %s mapped to table"
+             " frame %s", 53 + int(n), a_touch, list(offsets), list(origin_table))
+    return list(origin_table), a_touch, source
+
+
 def rotary_offsets_nonzero(self):
     """True when a nonzero A work/G92 offset makes the machine frame ambiguous.
 
@@ -900,12 +980,14 @@ def gui_update_twp(self):
 # NOTE: Due to easier abort handling we currently restrict the use of twp to G54
 # as LinuxCNC seems to revert to G54 as the default system
 #
-# LCNC-SUITE STANDING PRECONDITION: the active work offset is read as a
-# TABLE-FRAME point (the plane is stored relative to the A table, datum'd to
-# coincide with machine coords at A=0), so the operator must TOUCH OFF WITH
-# A AT 0. LinuxCNC records no touch-off pose, so this cannot be detected or
-# guarded — it is stated here, in the TWP README and in docs/decisions.md
-# precisely because no code can check it.
+# LCNC-SUITE (W1): the active work offset is read as a TABLE-FRAME point, so
+# it has to be converted through the table angle it was touched off at — see
+# to_storage_frame(). This USED to be a standing precondition ("touch off
+# with A at 0") stated in three places and checkable in none, because
+# LinuxCNC records no touch-off pose. The gateway now records one, so touch
+# off at any table angle. An offset with no record still assumes A=0, which
+# is the old rule and the correct fallback: it is what every existing var
+# file means.
 def get_current_work_offset(self):
     # get which offset is active (g54=1 .. g59.3=9)
     active_offset = int(self.params[5220])
@@ -1302,9 +1384,11 @@ def g683(self, **words):
     twp_flag[2] = 'done'
     log.info("G68.3: Built twp-transformation-matrix: \n%s", twp_matrix)
     # collect the currently active work offset values (ie g54, g55 or other)
-    saved_work_offset = offsets
+    # LCNC-SUITE (W1): see the note in g68.2 — same conversion, same reason.
+    saved_work_offset, _a_touch, _prov = to_storage_frame(self, offsets, n)
     saved_work_offset_number = n
-    log.debug("G68.3: Saved work offsets: %s", (n, saved_work_offset))
+    log.debug("G68.3: Saved work offsets: %s (touch-off A=%.6f, %s)",
+              (n, saved_work_offset), _a_touch, _prov)
     # LCNC-SUITE: the table pose this definition is expressed in
     # LCNC-SUITE: g68.3 builds its matrix from the LIVE spindle rotaries, i.e.
     # a MACHINE-frame measurement — so unlike g68.2 (whose words are already
@@ -1390,15 +1474,21 @@ def g682(self, **words):
 
     # collect the currently active work offset values (ie g54, g55 or other)
     saved_work_offset_number = n
-    saved_work_offset = offsets
-    log.debug("G68.2: Saved work offsets %s", (n, saved_work_offset))
+    # LCNC-SUITE (W1): stored in the TABLE frame, converted through the table
+    # angle the offset was RECORDED as touched off at. Identity when there is
+    # no record or the record says A=0, so every pre-existing setup is
+    # byte-identical.
+    saved_work_offset, _a_touch, _prov = to_storage_frame(self, offsets, n)
+    log.debug("G68.2: Saved work offsets %s (touch-off A=%.6f, %s)",
+              (n, saved_work_offset), _a_touch, _prov)
     # LCNC-SUITE: the table pose this definition is expressed in (see the
     # table-aware composition in g53x_core)
     # LCNC-SUITE: G68.2's words are operator intent in the WORKPIECE frame
     # (Fanuc table-type / Heidenhain 3D-ROT convention), which IS the storage
-    # frame — so no conversion here, by design. NOTE the standing precondition
-    # that goes with it: G54 is read as a table-frame point, so TOUCH OFF WITH
-    # A AT 0. LinuxCNC records no touch-off pose, so this cannot be detected.
+    # frame — so no conversion here, by design. The work OFFSET is a separate
+    # matter and does get converted, through its recorded touch-off pose
+    # (to_storage_frame, just above): that is what retired the old "touch off
+    # with A at 0" precondition.
     # No head solve yet, so no staleness claim to make.
     twp_pose_a = None
 

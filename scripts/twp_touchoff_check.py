@@ -1,0 +1,217 @@
+#!/usr/bin/env python3
+"""Live acceptance for touch-off provenance (W1).
+
+THE CLAIM: you can touch off at any table angle. Before this, the work
+offset was read as a table-frame point, so it was only true if you touched
+off with A at 0 — a precondition stated in three places and checkable in
+none, because LinuxCNC records no touch-off pose.
+
+THE TEST is physical, not algebraic. Bolt a part to the table and touch off
+one feature; do it again with the table rotated. Both describe the SAME
+physical point, so both must produce the SAME stored (table-frame) plane
+origin. The second offset is computed here from the rigid-body rotation
+
+    machine(A) = Rx(-A) . (table - pivot) + pivot
+
+which is the kinematics' own definition of the work frame, written out
+independently — NOT by calling the transform under test. That is what keeps
+this a check rather than a restatement.
+
+Run with the machine homed, armed and out of E-stop.
+"""
+import json
+import os
+import math
+import subprocess
+import sys
+import time
+
+import linuxcnc
+
+# Table axis line, from [HAL]HALCMD in the INI.
+Y_ROT_AXIS, Z_ROT_AXIS = -1000.0, -2000.0
+O_TABLE = [100.0, 50.0, -200.0]      # the physical feature, table frame
+TILT = 20.0                           # the second touch-off angle
+GATEWAY = "http://127.0.0.1:8000"
+
+c = linuxcnc.command()
+s = linuxcnc.stat()
+FAILS = []
+
+
+def check(name, ok, detail=""):
+    print(f"  {'PASS' if ok else 'FAIL'}  {name}{'  — ' + detail if detail else ''}")
+    if not ok:
+        FAILS.append(name)
+
+
+def halget(pin):
+    out = subprocess.run(["halcmd", "getp", pin], capture_output=True, text=True)
+    if out.returncode != 0:
+        raise SystemExit(f"halcmd getp {pin}: {out.stderr.strip()}")
+    return float(out.stdout.strip().replace("TRUE", "1").replace("FALSE", "0"))
+
+
+def wait_idle(timeout=180.0):
+    t0 = time.time()
+    while time.time() - t0 < timeout:
+        s.poll()
+        if s.interp_state == linuxcnc.INTERP_IDLE and not s.current_vel:
+            return True
+        time.sleep(0.05)
+    return False
+
+
+def mdi(line, timeout=180.0):
+    c.mode(linuxcnc.MODE_MDI)
+    c.wait_complete()
+    c.mdi(line)
+    c.wait_complete(timeout)
+    wait_idle(timeout)
+
+
+def machine_from_table(p, a_deg):
+    """Rigid-body: where a table-fixed point SITS in machine coords at A."""
+    th = math.radians(-a_deg)
+    ct, st = math.cos(th), math.sin(th)
+    y, z = p[1] - Y_ROT_AXIS, p[2] - Z_ROT_AXIS
+    return [p[0], y * ct - z * st + Y_ROT_AXIS, y * st + z * ct + Z_ROT_AXIS]
+
+
+def set_wcs(x, y, z):
+    """Touch off G54 through the GATEWAY — the path that stamps provenance."""
+    payload = json.dumps({"cmd": "set_wcs", "target": "G54",
+                          "x": x, "y": y, "z": z})
+    # The gateway venv, not sys.executable: this script runs under the
+    # system python (which has the linuxcnc bindings) while the WS client
+    # needs `websockets`, which only the venv has.
+    r = subprocess.run([os.path.join(GW_DIR, ".venv/bin/python3"),
+                        WS_SEND, payload],
+                       capture_output=True, text=True, cwd=GW_DIR)
+    if r.returncode != 0:
+        raise SystemExit(f"set_wcs failed: {r.stderr[:400]}")
+    time.sleep(1.5)
+
+
+WS_SEND = sys.argv[1] if len(sys.argv) > 1 else None
+GW_DIR = sys.argv[2] if len(sys.argv) > 2 else None
+if not WS_SEND:
+    raise SystemExit("usage: twp_touchoff_check.py <ws_send.py> <gateway_dir>")
+
+def require_ready():
+    """Refuse to run against a machine that cannot execute.
+
+    Learned here: an earlier run of this script executed end to end against
+    an E-STOPPED, unhomed machine. Every MDI was silently rejected, the
+    plane pins kept values from a previous session, and the report read as
+    three failures OF THE FEATURE. A test whose preconditions are unmet must
+    say so and stop, never produce findings.
+    """
+    s.poll()
+    problems = []
+    if s.task_state != linuxcnc.STATE_ON:
+        problems.append(f"machine not ON (task_state={s.task_state})")
+    if not all(list(s.homed)[:6]):
+        problems.append(f"not homed ({list(s.homed)[:6]})")
+    if problems:
+        raise SystemExit("PRECONDITIONS NOT MET — refusing to report:\n  "
+                         + "\n  ".join(problems))
+
+
+PLANE = "g68.2 x0 y0 z0 q121 i30 j15"
+
+
+def establish(a_deg, offset):
+    """Table to A, touch off G54 = offset, define the plane, report storage."""
+    mdi("g69")
+    mdi(f"G0 A{a_deg}")
+    set_wcs(*offset)
+    s.poll()
+    live = [float(v) for v in s.g5x_offset[:3]]
+    if any(abs(live[i] - offset[i]) > 1e-3 for i in range(3)):
+        raise SystemExit(
+            f"set_wcs did not take: asked {[round(v,3) for v in offset]}, "
+            f"G54 reads {[round(v,3) for v in live]} — is a client armed?")
+    mdi(PLANE)
+    # twp-*-world is NOT a direct readback of the remap's stored offset.
+    # twp-helper-comp publishes the LIVE g5x_offset while twp-is-defined is
+    # false and only switches to the remap's value once it is — and that
+    # whole block is throttled to 20 Hz because it is display state. Reading
+    # too early returns the raw fixture offset, which at A=0 is identical to
+    # the stored value and at A=20 is exactly the wrong answer this test is
+    # looking for. So: wait for the flag, then for the throttle.
+    t0 = time.time()
+    while time.time() - t0 < 5.0:
+        if halget("twp-helper-comp.twp-is-defined") == 1:
+            break
+        time.sleep(0.05)
+    else:
+        raise SystemExit("g68.2 did not define a plane — cannot read storage")
+    time.sleep(0.25)   # >= 2x the helper's 50 ms display period
+    return [halget(f"twp-helper-comp.twp-o{k}-world") for k in "xyz"]
+
+
+require_ready()
+
+print("=== A: touch off at A=0 (the historical precondition) ===")
+o0 = machine_from_table(O_TABLE, 0.0)
+store0 = establish(0.0, o0)
+print(f"  G54 = {[round(v,4) for v in o0]}")
+print(f"  stored (table frame) = {[round(v,4) for v in store0]}")
+check("A=0 storage is the offset itself (datum: table == machine at A=0)",
+      all(abs(store0[i] - o0[i]) < 1e-3 for i in range(3)))
+
+print(f"\n=== B: SAME physical feature, touched off at A={TILT} ===")
+o20 = machine_from_table(O_TABLE, TILT)
+print(f"  the feature has moved to machine {[round(v,4) for v in o20]}")
+store20 = establish(TILT, o20)
+print(f"  stored (table frame) = {[round(v,4) for v in store20]}")
+
+d = math.dist(store0, store20)
+check("both touch-offs store the SAME table-frame origin", d < 1e-3,
+      f"separation {d:.6f} mm")
+
+# What the old behaviour would have produced, so the number has a scale:
+# the raw tilted offset, stored unconverted.
+d_raw = math.dist(store0, o20)
+print(f"\n  (unconverted, i.e. before W1, the tilted touch-off would have"
+      f" stored a point {d_raw:.3f} mm away)")
+check("the fix is doing real work (the error it removes is large)",
+      d_raw > 1.0, f"{d_raw:.3f} mm")
+
+print("\n=== C: orient at the tilted pose and land on the face ===")
+mdi("G53.1")
+kins = halget("motion.switchkins-type")
+active = halget("twp-helper-comp.twp-is-active")
+check("TOOL kins entered", kins == 2)
+check("TWP active", active == 1)
+n = [halget(f"twp-helper-comp.twp-z{k}") for k in "xyz"]
+th = math.radians(-TILT)
+ct, st = math.cos(th), math.sin(th)
+n_machine = [n[0], n[1] * ct - n[2] * st, n[1] * st + n[2] * ct]
+b = math.radians(halget("xyzacb_trsrn_kins.secondary-angle"))
+cc = math.radians(halget("xyzacb_trsrn_kins.primary-angle"))
+nut = math.radians(55.0)
+ax = [0.0, math.sin(nut), math.cos(nut)]
+v = [0.0, 0.0, 1.0]
+kv = ax[0] * v[0] + ax[1] * v[1] + ax[2] * v[2]
+kx = [ax[1] * v[2] - ax[2] * v[1], ax[2] * v[0] - ax[0] * v[2],
+      ax[0] * v[1] - ax[1] * v[0]]
+r = [v[i] * math.cos(b) + kx[i] * math.sin(b) + ax[i] * kv * (1 - math.cos(b))
+     for i in range(3)]
+cz, sz = math.cos(cc), math.sin(cc)
+tool = [r[0] * cz - r[1] * sz, r[0] * sz + r[1] * cz, r[2]]
+crossx = n_machine[1] * tool[2] - n_machine[2] * tool[1]
+crossy = n_machine[2] * tool[0] - n_machine[0] * tool[2]
+crossz = n_machine[0] * tool[1] - n_machine[1] * tool[0]
+err = math.degrees(math.atan2(
+    math.hypot(crossx, crossy, crossz),
+    sum(n_machine[i] * tool[i] for i in range(3))))
+check("tool normal to the plane after a TILTED touch-off", err < 0.01,
+      f"{err:.7f} deg")
+
+mdi("g69")
+mdi("G0 A0")
+print("\n" + ("ALL CHECKS PASSED" if not FAILS
+              else f"{len(FAILS)} FAILURE(S): " + ", ".join(FAILS)))
+sys.exit(1 if FAILS else 0)
