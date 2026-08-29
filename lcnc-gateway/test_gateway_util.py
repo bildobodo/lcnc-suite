@@ -1504,6 +1504,59 @@ class TestRotaryDrift(unittest.TestCase):
         self.assertIsNone(gateway_util.rotary_seed_values(self.MASK6, None))
         self.assertIsNone(gateway_util.rotary_seed_values(self.MASK6, (1.0, 2.0)))
 
+    def test_prov_param_numbers_match_the_var_file_stride(self):
+        # The claim the whole feature rests on: fixture blocks are 20 wide
+        # and the interpreter defines only the first ten, so 5231+ is free.
+        # G54 -> 5231..5235, and the next fixture starts 20 later, landing
+        # clear of G55's own row (G55_X = 5241, G55_R = 5250).
+        p54 = gateway_util.wcs_prov_params(1)
+        self.assertEqual(p54, {"stamped": 5231, "kins": 5232, "a": 5233,
+                               "x": 5234, "y": 5235, "z": 5236})
+        self.assertEqual(gateway_util.wcs_prov_params(2)["stamped"], 5251)
+        self.assertEqual(gateway_util.wcs_prov_params(9)["stamped"], 5391)
+        # Every slot must miss every DEFINED fixture row (base+0..9).
+        defined = {5221 + 20 * k + j for k in range(9) for j in range(10)}
+        for i in range(1, 10):
+            for n in gateway_util.wcs_prov_params(i).values():
+                self.assertNotIn(n, defined, f"#{n} collides with a fixture row")
+        for bad in (0, 10):
+            with self.assertRaises(ValueError):
+                gateway_util.wcs_prov_params(bad)
+
+    def test_provenance_is_believed_only_while_it_is_true(self):
+        ev = gateway_util.evaluate_wcs_provenance
+        good = {"stamped": 1.0, "kins": 0, "a": 20.0,
+                "x": 1.0, "y": 2.0, "z": 3.0}
+        self.assertEqual(ev(good, [1.0, 2.0, 3.0]),
+                         ("valid", {"kins": 0, "a": 20.0}))
+        # THE case this exists for: something we do not control rewrote the
+        # offset (a program's G10 L2, another GUI, a typed MDI line) and
+        # left our stamp behind. Believing it would apply a 20 deg table
+        # correction to an offset that was never touched off there.
+        kind, info = ev(good, [1.0, 2.0, 99.0])
+        self.assertEqual(kind, "stale")
+        self.assertEqual(info["recorded_xyz"], [1.0, 2.0, 3.0])
+        self.assertEqual(info["live_xyz"], [1.0, 2.0, 99.0])
+        # Never stamped -> absent, which is a DIFFERENT answer from stale
+        # and callers must not collapse them. THE case that killed the
+        # sentinel design: a fresh/round-tripped var file is all zeros, and
+        # kins 0 is a VALID value (identity) — so the all-zero row must read
+        # as absent on the strength of the flag alone, never as "touched off
+        # in identity kins at A=0".
+        self.assertEqual(ev({"stamped": 0.0, "kins": 0.0, "a": 0.0,
+                             "x": 0.0, "y": 0.0, "z": 0.0}, [0, 0, 0])[0],
+                         "absent")
+        self.assertEqual(ev(None, [0, 0, 0]), ("absent", None))
+        self.assertEqual(ev({}, [0, 0, 0]), ("absent", None))
+        self.assertEqual(ev({"kins": 0}, [0, 0, 0]), ("absent", None))
+        # ...and with the flag set, kins 0 IS identity and must survive a
+        # falsy-check bug: a `if not kins` would read it as absent.
+        self.assertEqual(ev({"stamped": 1.0, "kins": 0.0, "a": 0.0,
+                             "x": 0, "y": 0, "z": 0}, [0, 0, 0]),
+                         ("valid", {"kins": 0, "a": 0.0}))
+        # Float noise from the var file round-trip must not read as stale.
+        self.assertEqual(ev(good, [1.0 + 1e-9, 2.0, 3.0])[0], "valid")
+
     def test_override_pins_the_pose_for_goldens(self):
         # A preview golden must be a property of the CODE, not of wherever
         # the table was parked when the gate ran. Live pose A=35 (a session

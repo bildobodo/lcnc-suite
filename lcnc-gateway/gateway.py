@@ -58,6 +58,9 @@ from gateway_util import (
     rotary_model_warning,
     parse_telemetry_batch,
     TELEMETRY_BODY_MAX,
+    wcs_prov_params,
+    evaluate_wcs_provenance,
+    PROV_STAMPED,
 )
 from command_policy import check_command, validate_payload, MachineLimits
 from tool_table import (
@@ -3750,6 +3753,11 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             zero_parts = " ".join(f"{k.upper()}0" for k in machine_axes) + " R0"
             for p in indices:
                 await _cmd_blocking(CMD.mdi, f"G10 L2 P{p} {zero_parts}", wait=5)
+            # A cleared offset is still an ESTABLISHED one — zeros touched
+            # off at whatever pose the table is at now. Stamping it keeps
+            # the record true; leaving the previous stamp behind would make
+            # it describe an offset that no longer exists.
+            await _stamp_wcs_provenance(indices, {p: [0.0, 0.0, 0.0] for p in indices})
             # Update cache immediately
             for p in indices:
                 ci = p - 1
@@ -3785,6 +3793,14 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 val = msg.get(axis)
                 if val is not None:
                     _wcs_cache[ci][axis] = finite_float(val)
+            # Stamp AFTER the cache update, and from the cache: a touch-off
+            # may name only some axes (Z alone is the common one), so the
+            # values just written are not the offset's X/Y/Z. The stamp has
+            # to carry the RESULTING triple or the staleness check compares
+            # against something that was never the offset.
+            await _stamp_wcs_provenance(
+                [p], {p: [finite_float(_wcs_cache[ci].get(k, 0.0))
+                          for k in ("x", "y", "z")]})
             return {"ok": True, "table": [row.copy() for row in _wcs_cache]}
 
         return {"ok": False, "error": f"Unknown cmd: {cmd}"}
@@ -3938,6 +3954,89 @@ _AXIS_LETTERS = "XYZABCUVW"
 def _axes_from_mask(mask: int) -> List[str]:
     """Derive axis letter list from LinuxCNC axis_mask bitmask."""
     return [_AXIS_LETTERS[i] for i in range(9) if mask & (1 << i)]
+
+
+async def _stamp_wcs_provenance(indices, values_by_index):
+    """Record the machine state each offset was established in (W1).
+
+    LinuxCNC records nothing about this, and on a rotary machine the same
+    three numbers mean different things depending on the table angle and
+    the active kinematics. Without it, "touch off with A at 0" can only be
+    a documented precondition; with it, a wrong touch-off is detectable.
+
+    Stamped only for machines that HAVE an A rotary — on a 3-axis mill
+    there is nothing that could go stale, and writing rows there would be
+    noise an operator has to wonder about.
+
+    The pose is read from the JOINT, not from actual_position. Joints are
+    the physical invariant and kinematics are labelings: under TOOL/TCP
+    kins the world XYZ are relabeled, and while A happens to be passthrough
+    in this kins family, recording a labeled value as if it were physical
+    is exactly the class of mistake this whole feature exists to catch.
+
+    `values_by_index` maps fixture index -> the [x, y, z] just written, so
+    the stamp carries what it was written FOR (see evaluate_wcs_provenance:
+    a stamp that outlives its offset must be detectable as stale).
+
+    Never raises into the caller: a failed stamp must not fail the
+    touch-off the operator actually asked for. It is traced instead, and a
+    missing stamp reads as "absent" downstream, which is honest.
+    """
+    try:
+        STAT.poll()
+        if not (int(getattr(STAT, "axis_mask", 0)) & (1 << 3)):
+            return  # no A axis: nothing to record
+        joints = getattr(STAT, "joint_actual_position", None)
+        if not joints or len(joints) <= 3:
+            _trace.emit("wcs.provenance_skipped", level="warn",
+                        reason="no joint position")
+            return
+        a_val = float(joints[3])
+        kins = _reader_get("kins_type")
+        # A machine with no switchable kins is always identity: a known 0,
+        # not a guess. A switchable machine whose reader snapshot is missing
+        # is genuinely unknown — record NOTHING rather than a plausible 0,
+        # so it reads as absent downstream instead of as a confident lie.
+        if kins is None:
+            if _kins_is_switchable():
+                _trace.emit("wcs.provenance_skipped", level="warn",
+                            reason="kins_type unavailable from reader")
+                return
+            kins_val = 0.0
+        else:
+            kins_val = float(kins)
+        for p in indices:
+            xyz = values_by_index.get(p)
+            if xyz is None:
+                continue
+            n = wcs_prov_params(p)
+            # The flag goes LAST: if this line is interrupted part-way the
+            # record stays unflagged, and an incomplete record must read as
+            # absent rather than as a half-truth.
+            await _cmd_blocking(
+                CMD.mdi,
+                f"#{n['kins']}={kins_val:.6f} #{n['a']}={a_val:.6f} "
+                f"#{n['x']}={xyz[0]:.6f} #{n['y']}={xyz[1]:.6f} "
+                f"#{n['z']}={xyz[2]:.6f} #{n['stamped']}={PROV_STAMPED:.6f}",
+                wait=5)
+        _trace.emit("wcs.provenance_stamped", level="info",
+                    indices=list(indices), kins=kins_val, a=a_val)
+    except Exception as exc:  # noqa: BLE001 - never break a touch-off
+        _trace.emit("wcs.provenance_stamp_failed", level="warn", error=repr(exc))
+
+
+def _kins_is_switchable() -> bool:
+    """Does this machine have switchable kinematics at all?
+
+    Distinguishes "identity, certainly" from "unknown" when the reader has
+    no kins_type — the difference between a recordable fact and a guess.
+    Same predicate that decides whether to sample motion.switchkins-type in
+    the first place, so the two cannot disagree about what this machine is.
+    """
+    try:
+        return kins_marker_policy(_parse_kins_decl()) != "ignore"
+    except Exception:  # noqa: BLE001 - unknown beats a confident wrong answer
+        return True
 
 
 # Cache for build_viewer_init() output. Keyed on every input that can

@@ -943,6 +943,98 @@ def rotary_sync_initcode(axis_mask, actual_position):
     return "G53 G0 " + " ".join(words)
 
 
+# ── touch-off provenance (W1) ───────────────────────────────────────────
+# NOTHING in LinuxCNC records the machine state an offset was established
+# in. That is fine on a 3-axis mill and false on a rotary table: an offset
+# touched off at A=20 is only true at A=20, and the same three numbers mean
+# different things depending on whether TCP kinematics were active when
+# they were set. The TWP stack read the active offset as a TABLE-frame
+# point and therefore carried a STANDING PRECONDITION — "touch off with A
+# at 0" — that no code could check. This is what makes it checkable.
+#
+# Storage: LinuxCNC's fixture table is 20 parameters wide but the
+# interpreter defines only the first ten (G54 X..R = 5221..5230, then
+# G55_X at 5241). The second ten are unassigned, and any parameter present
+# in the var file persists across a restart. So every fixture has ten free,
+# persistent, G-code-readable slots at 5231 + (i-1)*20 — verified against
+# the var file's own layout, whose gaps (5230->5241, 5250->5261, ...) are
+# exactly this stride.
+WCS_PROV_BASE = 5231
+WCS_PROV_STRIDE = 20
+#: value of the `stamped` slot that means "this record is present".
+PROV_STAMPED = 1.0
+
+
+def wcs_prov_params(index):
+    """Provenance parameter numbers for fixture `index` (1=G54 .. 9=G59.3).
+
+    `stamped` is a PRESENCE FLAG, not a sentinel value in the data. That is
+    deliberate and was learned the hard way: the first cut used -1e9 in the
+    `kins` slot to mean "never recorded", and a var-file round-trip brought
+    it back as 0.000000 — which is a perfectly valid kins type (identity).
+    A never-stamped offset would have read as "touched off in identity kins
+    at A=0", confidently and wrongly. A flag whose absent value is the 0
+    that a fresh var file is already full of cannot fail that way.
+
+    `kins` and `a` are the state at touch-off. `x`/`y`/`z` are the offset
+    values AS WRITTEN, which is what makes the record falsifiable — see
+    evaluate_wcs_provenance. Pure.
+    """
+    i = int(index)
+    if not 1 <= i <= 9:
+        raise ValueError(f"fixture index out of range: {index}")
+    b = WCS_PROV_BASE + (i - 1) * WCS_PROV_STRIDE
+    return {"stamped": b, "kins": b + 1, "a": b + 2,
+            "x": b + 3, "y": b + 4, "z": b + 5}
+
+
+def evaluate_wcs_provenance(prov, offset_xyz, eps=1e-6):
+    """Is the recorded touch-off provenance still TRUE of this offset?
+
+    We stamp only the writes we control (the gateway's own G10 L2). A
+    program's `G10 L2`, another GUI, or a hand-typed MDI line changes the
+    offset and leaves the stamp behind — and a STALE provenance is worse
+    than none, because it reads as authoritative while describing an offset
+    that no longer exists. So the stamp carries the values it was written
+    for, and is believed only while they still match.
+
+    `prov` is {kins, a, x, y, z} as read from the parameters; `offset_xyz`
+    is the fixture's live X/Y/Z. Returns one of:
+
+      ("valid", {"kins": int, "a": float})  -- trustworthy
+      ("absent", None)                      -- never stamped (sentinel/missing)
+      ("stale",  {...})                     -- stamped, but the offset moved
+                                               underneath it; includes the
+                                               recorded values so the caller
+                                               can say what changed.
+
+    Absence and staleness are DIFFERENT answers and callers must not
+    collapse them: absent means "unknown, proceed by the old rules", stale
+    means "someone changed this behind our back", which is worth saying out
+    loud. Pure.
+    """
+    if not prov:
+        return ("absent", None)
+    try:
+        stamped = float(prov["stamped"])
+        kins = float(prov["kins"])
+        a = float(prov["a"])
+        rec = [float(prov["x"]), float(prov["y"]), float(prov["z"])]
+    except (KeyError, TypeError, ValueError):
+        return ("absent", None)
+    # The flag is the ONLY presence test. A fresh var file is all zeros, so
+    # "never stamped" needs no magic value that a round-trip could mangle.
+    if abs(stamped - PROV_STAMPED) > 1e-9:
+        return ("absent", None)
+    live = [float(v) for v in (offset_xyz or [0.0, 0.0, 0.0])[:3]]
+    if len(live) < 3:
+        return ("absent", None)
+    if any(abs(r - l) > eps for r, l in zip(rec, live)):
+        return ("stale", {"kins": int(round(kins)), "a": a,
+                          "recorded_xyz": rec, "live_xyz": live})
+    return ("valid", {"kins": int(round(kins)), "a": a})
+
+
 def override_rotary_position(actual_position, pose):
     """`actual_position` with its A/B/C slots replaced by `pose`.
 
