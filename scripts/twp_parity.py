@@ -654,27 +654,82 @@ def g683_expectation(path, nut_deg, square_z=100.0):
     return n_t, origin_t + square_z * n_t
 
 
-def truth_plane_invariants(kins, ngc, truth_path, side=100.0):
-    """Text-derived plane invariants on a REAL run's per-line endpoints.
+def plane_origin_expectation(ngc, a_orient_deg, params):
+    """Expected MACHINE-frame plane origin at orient time, from the text.
+
+    Table-frame origin = G54_table + v for G68.2 (words are workpiece
+    intent) or G54_table + Rx(A_def)·v for G68.3 (origin words are a
+    machine-frame VECTOR at the definition pose, converted rotation-only —
+    the 2026-08-29 review find: pushed through the POINT path this picked
+    up (I-Rx(A))·pivot ≈ 776 mm). Mapped to machine coords about the table
+    axis LINE at the ORIENT pose. G54 is read from the program's own g10 l2
+    line as a table-frame point (unstamped -> the documented A=0 rule).
+    Returns (origin_machine, normal_table) or (None, None)."""
+    piv = np.array([0.0, float(params["y_rot_axis"]), float(params["z_rot_axis"])])
+    q, ijk = parse_g682(ngc)
+    if q:
+        n_t = g682_normal(q, ijk)
+        g = parse_g683(ngc)     # reuses the G54 / v parse; g68.3 absent -> None
+        import re
+        W, v = [0.0] * 3, [0.0] * 3
+        with open(ngc) as f:
+            for ln in f:
+                src = ln.split(";")[0].split("(")[0]
+                if re.search(r"\bg10\s*l2\s*p0\b", src, re.I):
+                    W = [float((re.search(rf"(?<![a-z#<]){k}\s*(-?[\d.]+)", src, re.I) or [None, 0]).group(1) or 0.0) if re.search(rf"(?<![a-z#<]){k}\s*(-?[\d.]+)", src, re.I) else 0.0 for k in "xyz"]
+                if re.search(r"\bg68\.2\b", src, re.I):
+                    v = [float(re.search(rf"(?<![a-z#<]){k}\s*(-?[\d.]+)", src, re.I).group(1)) if re.search(rf"(?<![a-z#<]){k}\s*(-?[\d.]+)", src, re.I) else 0.0 for k in "xyz"]
+                    break
+        origin_t = np.asarray(W, float) + np.asarray(v, float)
+    else:
+        g = parse_g683(ngc)
+        if g is None:
+            return None, None
+        v, b, c, a_def, W = g
+        n_t = _axis_rot(1, a_def) @ trsrn_tool_dir(b, c, float(params["nut_angle"]))
+        origin_t = np.asarray(W, float) + _axis_rot(1, a_def) @ np.asarray(v, float)
+    origin_m = piv + _axis_rot(1, -float(a_orient_deg)) @ (origin_t - piv)
+    return origin_m, n_t
+
+
+def truth_plane_invariants(kins, ngc, truth_path, side=100.0, frame=None):
+    """Text-derived plane invariants on a REAL run.
 
     (ok, report) — or (None, reason) when the program defines no plane, so
     the caller gates nothing rather than passing a vacuous check. This is
     what lets the sim-parity GATE see a remap defect: truth and sim both
     run the same remap and agree with each other perfectly while both cut
-    in the wrong place. The G68.2 normal and the G68.3 normal + CENTROID
-    come from the program text and the head geometry alone.
-    Endpoint rule = cmd_compare's (first sample after each line's run).
+    in the wrong place.
+
+    Two checks, each with an INDEPENDENT half:
+      normal    — the traced square's fitted normal (per-line endpoints
+                  through the mode-1 twin, table frame) vs the normal the
+                  text asks for (G68.2 Euler words / G68.3 head pose).
+      origin    — the G59 row the remap WROTE (the TOOL samples' own g5x),
+                  rotated back to the machine frame through the mode-2
+                  frame R (Jacobian of the mode-2 twin at the payload's
+                  frame triple — exact, the map is affine), vs the origin
+                  the text asks for (plane_origin_expectation). A pure
+                  translation of the plane is invisible to every
+                  frame-independent invariant; THIS sees it. Needs
+                  `frame` (the payload's kins_frames row); without it the
+                  origin is reported UNCHECKED, never assumed.
+    A centroid-through-the-head-model check was tried first and carried a
+    constant ~14 mm head-geometry term in every program including the
+    known-good ones; the G59 row is the clean oracle.
     """
+    params = kins.get("params") or {}
     q, ijk = parse_g682(ngc)
     wn = g682_normal(q, ijk) if q else None
-    wc = None
     if wn is None:
-        wn, wc = g683_expectation(
-            ngc, float((kins.get("params") or {}).get("nut_angle", 0.0)))
+        wn, _wc = g683_expectation(ngc, float(params.get("nut_angle", 0.0)))
     if wn is None:
         return None, "no g68.2/g68.3 in the program — no plane to gate"
     if truth_tip([0.0] * 6, kins) is None:
         return None, f"no Python twin for kins {kins.get('type')!r} — UNCHECKED"
+    with open(truth_path) as f:
+        first = f.readline()
+    hdr = json.loads(first) if first.strip() else {}
     rows = [r for r in (json.loads(l) for l in open(truth_path) if l.strip())
             if not r.get("header")]
     moving = [r for r in rows if r["interp"] != linuxcnc.INTERP_IDLE]
@@ -691,12 +746,37 @@ def truth_plane_invariants(kins, ngc, truth_path, side=100.0):
             last_i[ln] = i
     order = sorted(endpoint, key=lambda ln: last_i[ln])
     inv = check_square([endpoint[ln] for ln in order], side, tol=0.2,
-                       want_normal=wn, want_centroid=wc)
+                       want_normal=wn)
     parts = [f"normal_err {inv.get('normal_err_deg')} deg"]
     ok = bool(inv.get("normal_match")) and bool(inv.get("planar"))
-    if wc is not None:
-        parts.append(f"centroid_err {inv.get('centroid_err_mm')} mm")
-        ok = ok and bool(inv.get("centroid_match"))
+    # origin: the G59 row vs the text. Read from the TOOL-kins samples'
+    # own per-sample `g5x` (the offset in force while cutting), NOT the
+    # header's wcs_table — that is a capture-START snapshot and on run 1
+    # of a program still holds the previous program's G59.
+    tool_rows = [r for r in moving if r.get("g5x_index") == 6
+                 and isinstance(r.get("g5x"), list) and len(r["g5x"]) >= 3]
+    g59 = ({"x": tool_rows[-1]["g5x"][0], "y": tool_rows[-1]["g5x"][1],
+            "z": tool_rows[-1]["g5x"][2]} if tool_rows else None)
+    if frame is None or kins.get("type") != "xyzacb-trsrn" or not tool_rows \
+            or not isinstance(g59, dict):
+        parts.append("origin UNCHECKED (no frame/G59/TOOL samples)")
+    else:
+        pf = frame_params(params, frame)
+        j0 = list(tool_rows[-1]["joints"])
+        base = np.array(trsrn_kins_forward(j0, pf, 2)[:3])
+        R = np.zeros((3, 3))
+        for i in range(3):
+            jj = list(j0)
+            jj[i] += 1.0
+            R[:, i] = np.array(trsrn_kins_forward(jj, pf, 2)[:3]) - base
+        origin_m, _n = plane_origin_expectation(ngc, j0[3], params)
+        if origin_m is None:
+            parts.append("origin UNCHECKED (text has no origin)")
+        else:
+            got = R.T @ np.array([g59["x"], g59["y"], g59["z"]], float)
+            err = float(np.linalg.norm(got - origin_m))
+            parts.append(f"origin_err {err:.4f} mm")
+            ok = ok and err <= 0.5
     parts.append(f"planarity {inv.get('planarity_dev')}")
     return ok, " | ".join(parts)
 

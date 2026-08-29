@@ -343,7 +343,9 @@ def cmd_gate(a):
             _ini_obj = linuxcnc.ini(ini)
             _kins = parse_kins_config(_ini_obj.find("KINS", "KINEMATICS"),
                                       _ini_obj.findall("HAL", "HALCMD") or [])
-            inv_ok, inv_rep = truth_plane_invariants(_kins, ngc, truth_path)
+            _frames = [f for f in (_pd.get("kins_frames") or []) if f[0] >= 0]
+            inv_ok, inv_rep = truth_plane_invariants(
+                _kins, ngc, truth_path, frame=_frames[-1] if _frames else None)
             if inv_ok is None:
                 print(f"[----] {tag}: plane invariants: {inv_rep}")
             else:

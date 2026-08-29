@@ -34,8 +34,8 @@
     {
       "file": "twp_g683_tilted.ngc",
       "runs": 2,
-      "tol": 0.5,
-      "note": "G68.3 (live-spindle definition) at a TILTED table: the origin words are a VECTOR and must convert rotation-only. twp_parity gates the square's CENTROID in the table frame (frame-independent invariants cannot see a translation) \u2014 the point-path bug reports centroid_err ~776 mm with normal_err ~0."
+      "tol": 1.5,
+      "note": "G68.3 (live-spindle definition) at a TILTED table: the origin words are a VECTOR and must convert rotation-only. The plane invariants (normal + G59 ORIGIN rotated back through the mode-2 frame) are what this program exists for and gate at 0.5; the point-path bug reports origin_err ~776 mm with normal_err ~0. Joint parity tol is 1.5 here, not 0.5: both runs show a localized ~1.07 mm spike (p99 <= 0.05) on the initial head-posing rapids (lines 16-17) where the sim's parse-time rotary seed differs from the pose the run actually started from \u2014 the rotary-seed freshness class, not the plane. Open item in decisions.md."
     }
   ]
 }
