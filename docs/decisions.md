@@ -1796,3 +1796,73 @@ refuses to touch itself or its ancestors, dedupes overlapping subtrees,
 kills children before parents (an orphaned child keeps holding :8000), and
 verifies afterwards, naming survivors rather than reporting a silent
 partial stop. `--dry-run` lists the tree without touching it.
+
+## W1 — touch-off provenance: the precondition became a fact (2026-08-29)
+
+**Retires the STANDING PRECONDITION recorded above.** "Touch off with A at
+0" was stated in remap.py, the TWP README and this file, and checkable in
+none of them, because LinuxCNC records nothing about the machine state an
+offset was established in. It now does.
+
+**Storage.** LinuxCNC's fixture table is 20 parameters wide but the
+interpreter defines only the first ten (G54 X..R = 5221..5230, then G55_X
+at 5241). The var file's own gaps — 5230→5241, 5250→5261, … — are exactly
+that stride. So every fixture has ten free slots at `5231 + (i-1)*20` that
+persist through the var file. Six are used: stamped flag, kins type,
+machine-frame A, and the offset X/Y/Z as written.
+
+**Two design points, both learned by getting them wrong first.**
+
+*Presence is a FLAG, not a sentinel in the data.* The first cut wrote
+`-1e9` in the kins slot to mean "never recorded". A var-file round-trip
+brought it back as `0.000000` — a perfectly valid kins type. A
+never-stamped offset would have read as "touched off in identity kins at
+A=0", confidently and wrongly. A flag whose absent value is the 0 a fresh
+var file is already full of cannot fail that way. It is written LAST, so an
+interrupted stamp reads as absent rather than half-true.
+
+*The stamp carries the offset it describes.* Only the gateway's own writes
+are stamped; a program's `G10 L2`, another GUI or a typed MDI line moves
+the offset out from under the record. A stale record is worse than none
+because it reads as authoritative — so it is believed only while the
+recorded X/Y/Z still match the live fixture, and `absent` / `valid` /
+`stale` are three distinct answers callers must not collapse.
+
+The pose is read from the JOINT, not `actual_position`: joints are the
+physical invariant, kinematics are labelings. Unknown kins on a switchable
+machine records NOTHING rather than a plausible 0.
+
+**Live acceptance** (`scripts/twp_touchoff_check.py`, all green). Physical,
+not algebraic: touch off ONE feature at two table angles and require the
+same stored result. The second offset comes from the rigid-body rotation
+`machine(A) = Rx(-A)·(table - pivot) + pivot`, written out independently
+rather than by calling the transform under test.
+
+| | |
+|---|---|
+| same feature at A=0 | stored (100, 50, −200) |
+| …and at A=20 (machine 100, 602.3135, −667.6744) | stored (100, 50, −200) |
+| separation | **0.000000 mm** |
+| error removed | 723.719 mm |
+| orient at the tilted pose, tool vs face | 0.0000166° |
+
+Fallback is the old rule, deliberately: no record — or a record that no
+longer matches — assumes A=0, which is exactly what every pre-existing var
+file means.
+
+**Three harness defects, all mine, none the feature's.** Worth recording
+because the pattern repeated: each one made working code look broken.
+(1) A run executed end to end against an E-STOPPED, unhomed machine — every
+MDI silently rejected, plane pins holding a previous session's values —
+and reported three failures OF THE FEATURE. (2) `twp-*-world` is not a
+readback of the remap's stored offset: `twp-helper-comp` publishes the LIVE
+`g5x_offset` while `twp-is-defined` is false and switches to the remap's
+value only once it is, behind a 20 Hz display throttle; reading too early
+returns the raw fixture offset, which is identical to the stored value at
+A=0 and exactly the wrong answer at A=20. (3) Earlier, in the re-orient
+check, table-frame pins were compared against a machine-frame tool axis.
+All three now carry the reason in the file.
+
+**NOT DONE, and not started:** refusing a plain XYZ program when the table
+has moved since touch-off, and reporting a touch-off-mode vs run-mode
+mismatch. The record those need now exists; the surfacing does not.
