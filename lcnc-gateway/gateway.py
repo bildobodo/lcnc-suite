@@ -60,6 +60,7 @@ from gateway_util import (
     TELEMETRY_BODY_MAX,
     wcs_prov_params,
     evaluate_wcs_provenance,
+    wcs_stamp_decision,
     PROV_STAMPED,
 )
 from command_policy import check_command, validate_payload, MachineLimits
@@ -1234,6 +1235,7 @@ async def _status_poller():
                     # so a reader that connected before LinuxCNC did must be
                     # reconfigured now.
                     register_bg_task(asyncio.create_task(_reader_configure_extra_pins()))
+                    register_bg_task(asyncio.create_task(_ensure_prov_var_rows()))
                     _poll_fails = 0
                 else:
                     if pid is not None and _ever_connected:
@@ -1256,6 +1258,7 @@ async def _status_poller():
                             _reconnect_fails = 0
                             _hal_connect()
                             register_bg_task(asyncio.create_task(_reader_configure_extra_pins()))
+                            register_bg_task(asyncio.create_task(_ensure_prov_var_rows()))
                     else:
                         STAT = CMD = ERR = None
                         lcnc_connected = False
@@ -3756,8 +3759,11 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             # A cleared offset is still an ESTABLISHED one — zeros touched
             # off at whatever pose the table is at now. Stamping it keeps
             # the record true; leaving the previous stamp behind would make
-            # it describe an offset that no longer exists.
-            await _stamp_wcs_provenance(indices, {p: [0.0, 0.0, 0.0] for p in indices})
+            # it describe an offset that no longer exists. (Full-triple
+            # write, so the mixed-angle decision always stamps.)
+            await _stamp_wcs_provenance(
+                indices, {p: [0.0, 0.0, 0.0] for p in indices},
+                wrote_all_xyz=True)
             # Update cache immediately
             for p in indices:
                 ci = p - 1
@@ -3787,8 +3793,13 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             if not parts:
                 return {"ok": False, "error": "No axis values provided"}
             await set_mode(linuxcnc.MODE_MDI)
-            await _cmd_blocking(CMD.mdi, f"G10 L2 P{p} {' '.join(parts)}", wait=5)
             ci = p - 1
+            # Capture the PRE-write triple first: the mixed-angle decision
+            # needs it to falsify the prior stamp (a foreign G10 between our
+            # writes shows up as a mismatch here).
+            prewrite = [finite_float(_wcs_cache[ci].get(k, 0.0))
+                        for k in ("x", "y", "z")]
+            await _cmd_blocking(CMD.mdi, f"G10 L2 P{p} {' '.join(parts)}", wait=5)
             for axis in all_keys:
                 val = msg.get(axis)
                 if val is not None:
@@ -3798,10 +3809,18 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             # values just written are not the offset's X/Y/Z. The stamp has
             # to carry the RESULTING triple or the staleness check compares
             # against something that was never the offset.
-            await _stamp_wcs_provenance(
+            wrote_all = all(msg.get(k) is not None for k in ("x", "y", "z"))
+            prov = await _stamp_wcs_provenance(
                 [p], {p: [finite_float(_wcs_cache[ci].get(k, 0.0))
-                          for k in ("x", "y", "z")]})
-            return {"ok": True, "table": [row.copy() for row in _wcs_cache]}
+                          for k in ("x", "y", "z")]},
+                wrote_all_xyz=wrote_all, prewrite_by_index={p: prewrite})
+            resp = {"ok": True, "table": [row.copy() for row in _wcs_cache]}
+            if prov.get(p) == "cleared_mixed_angle":
+                # Surface it: the operator mixed table poses in one fixture,
+                # so the any-angle touch-off guarantee no longer holds for it
+                # (the documented A=0 rule applies until a full re-touch).
+                resp["provenance"] = {"index": p, "action": prov[p]}
+            return resp
 
         return {"ok": False, "error": f"Unknown cmd: {cmd}"}
 
@@ -3956,7 +3975,22 @@ def _axes_from_mask(mask: int) -> List[str]:
     return [_AXIS_LETTERS[i] for i in range(9) if mask & (1 << i)]
 
 
-async def _stamp_wcs_provenance(indices, values_by_index):
+#: Fixture index -> the stamp THIS GATEWAY believes it last wrote
+#: ({"kins","a","x","y","z"}). Seeded from the var file at connect
+#: (_ensure_prov_var_rows), updated only by successful stamps, dropped by
+#: clears — the gateway is the only stamper by design, so this cannot go
+#: stale w.r.t. its own writes; foreign writes are caught by comparing the
+#: cached xyz against the live row (the falsifiability rule).
+_prov_cache: Dict[int, Dict[str, float]] = {}
+#: var-file paths whose provenance rows have been verified present.
+_prov_rows_ensured: set = set()
+#: None = not yet checked; False = seeding failed, stamps will NOT survive a
+#: restart (announced at stamp time — see _stamp_wcs_provenance).
+_prov_rows_ok: Optional[bool] = None
+
+
+async def _stamp_wcs_provenance(indices, values_by_index,
+                                wrote_all_xyz=True, prewrite_by_index=None):
     """Record the machine state each offset was established in (W1).
 
     LinuxCNC records nothing about this, and on a rotary machine the same
@@ -3974,24 +4008,40 @@ async def _stamp_wcs_provenance(indices, values_by_index):
     in this kins family, recording a labeled value as if it were physical
     is exactly the class of mistake this whole feature exists to catch.
 
-    `values_by_index` maps fixture index -> the [x, y, z] just written, so
-    the stamp carries what it was written FOR (see evaluate_wcs_provenance:
-    a stamp that outlives its offset must be detectable as stale).
+    `values_by_index` maps fixture index -> the RESULTING [x, y, z] triple;
+    `prewrite_by_index` maps it to the triple BEFORE this write, and
+    `wrote_all_xyz` says whether the write named all three axes. Together
+    they feed wcs_stamp_decision: a PARTIAL write merging into components
+    established at a different table pose has no single pose, so the fixture
+    is CLEARED (loudly) instead of stamped with a confident lie — see the
+    helper's docstring for the full matrix.
 
     Never raises into the caller: a failed stamp must not fail the
     touch-off the operator actually asked for. It is traced instead, and a
     missing stamp reads as "absent" downstream, which is honest.
+
+    Returns {index: "stamped" | "cleared_mixed_angle" | "failed"} plus the
+    pose recorded, for the caller to surface in its response.
     """
+    out = {}
     try:
         STAT.poll()
-        if not (int(getattr(STAT, "axis_mask", 0)) & (1 << 3)):
-            return  # no A axis: nothing to record
+        mask = int(getattr(STAT, "axis_mask", 0))
+        if not (mask & (1 << 3)):
+            return out  # no A axis: nothing to record
+        # Joint index of A = configured axes below it (trivkins compaction,
+        # the same layout canonical_to_joint_order documents). NEVER a
+        # hardcoded 3: on XYZBC-style masks the slot moves. Gantry
+        # duplicate-joint configs are outside this mapping (and outside the
+        # proven envelope) — there joint_actual_position has more entries
+        # than axes and no per-axis compaction exists.
+        a_joint = bin(mask & 0b111).count("1")
         joints = getattr(STAT, "joint_actual_position", None)
-        if not joints or len(joints) <= 3:
+        if not joints or len(joints) <= a_joint:
             _trace.emit("wcs.provenance_skipped", level="warn",
                         reason="no joint position")
-            return
-        a_val = float(joints[3])
+            return out
+        a_val = float(joints[a_joint])
         kins = _reader_get("kins_type")
         # A machine with no switchable kins is always identity: a known 0,
         # not a guess. A switchable machine whose reader snapshot is missing
@@ -4001,28 +4051,144 @@ async def _stamp_wcs_provenance(indices, values_by_index):
             if _kins_is_switchable():
                 _trace.emit("wcs.provenance_skipped", level="warn",
                             reason="kins_type unavailable from reader")
-                return
+                return out
             kins_val = 0.0
         else:
             kins_val = float(kins)
+        if _prov_rows_ok is False:
+            # The rows could not be seeded into the var file, so whatever is
+            # stamped now evaporates at the next LinuxCNC save/restart.
+            # Announce that AT STAMP TIME — a stamp that will silently
+            # degrade to "assumed A=0" later is the one non-fail-safe hole.
+            _trace.emit("wcs.provenance_not_persistent", level="warn",
+                        indices=list(indices))
+        stamped_ok = []
         for p in indices:
             xyz = values_by_index.get(p)
             if xyz is None:
                 continue
+            prior = _prov_cache.get(p)
+            prior_valid = False
+            if prior is not None:
+                pre = (prewrite_by_index or {}).get(p)
+                # The prior stamp is believed only while its recorded triple
+                # still matched the row this write replaced — a foreign G10
+                # in between falsifies it.
+                prior_valid = pre is not None and all(
+                    abs(float(prior[k]) - float(pre[i])) <= 1e-6
+                    for i, k in enumerate(("x", "y", "z")))
+            action = wcs_stamp_decision(
+                prior_valid,
+                prior["a"] if prior else 0.0,
+                prior["kins"] if prior else 0.0,
+                a_val, kins_val, wrote_all_xyz)
             n = wcs_prov_params(p)
+            if action == "clear":
+                rc = await _cmd_blocking(
+                    CMD.mdi, f"#{n['stamped']}=0.000000", wait=5)
+                if rc:
+                    out[p] = "failed"
+                    _trace.emit("wcs.provenance_stamp_failed", level="warn",
+                                index=p, rc=rc, action="clear")
+                    continue
+                _prov_cache.pop(p, None)
+                out[p] = "cleared_mixed_angle"
+                _trace.emit("wcs.provenance_cleared_mixed_angle", level="warn",
+                            index=p, current_a=a_val, current_kins=kins_val,
+                            prior_a=prior["a"] if prior else None,
+                            prior_valid=prior_valid)
+                continue
             # The flag goes LAST: if this line is interrupted part-way the
             # record stays unflagged, and an incomplete record must read as
             # absent rather than as a half-truth.
-            await _cmd_blocking(
+            rc = await _cmd_blocking(
                 CMD.mdi,
                 f"#{n['kins']}={kins_val:.6f} #{n['a']}={a_val:.6f} "
                 f"#{n['x']}={xyz[0]:.6f} #{n['y']}={xyz[1]:.6f} "
                 f"#{n['z']}={xyz[2]:.6f} #{n['stamped']}={PROV_STAMPED:.6f}",
                 wait=5)
-        _trace.emit("wcs.provenance_stamped", level="info",
-                    indices=list(indices), kins=kins_val, a=a_val)
+            if rc:
+                # wait_complete said no (1) or timed out (-1): the record may
+                # not exist. No success trace, no cache update — the next
+                # decision must not believe a stamp that may not be there.
+                out[p] = "failed"
+                _trace.emit("wcs.provenance_stamp_failed", level="warn",
+                            index=p, rc=rc, action="stamp")
+                continue
+            _prov_cache[p] = {"kins": kins_val, "a": a_val,
+                              "x": float(xyz[0]), "y": float(xyz[1]),
+                              "z": float(xyz[2])}
+            out[p] = "stamped"
+            stamped_ok.append(p)
+        if stamped_ok:
+            _trace.emit("wcs.provenance_stamped", level="info",
+                        indices=stamped_ok, kins=kins_val, a=a_val)
     except Exception as exc:  # noqa: BLE001 - never break a touch-off
         _trace.emit("wcs.provenance_stamp_failed", level="warn", error=repr(exc))
+    return out
+
+
+async def _ensure_prov_var_rows() -> None:
+    """Make the provenance parameter rows PERSIST, or say loudly they won't.
+
+    LinuxCNC's parameter save keeps only rows already present in the var
+    file — an MDI `#5231=...` writes interp memory, but the value survives a
+    restart only if the row exists on disk. The shipped var templates carry
+    the rows; a var file from before this feature (or another config's) does
+    not, and a stamp made there would silently evaporate at shutdown — the
+    one place where the "absent record → assume A=0" fallback is NOT
+    fail-safe, because the operator touched off tilted and was told it
+    worked.
+
+    So at connect: verify all 54 rows exist in the live var file, append the
+    missing ones as ZEROS (0 in the stamped slot IS the documented absent
+    value — no data is invented) via the same atomic writer the probe vars
+    use, and re-read to verify. Memoized per resolved path; the reconnect
+    paths re-run it so an INI switch is re-checked. Failure sets
+    _prov_rows_ok=False, which the stamper announces per-stamp.
+
+    Also seeds _prov_cache from the rows found, so the mixed-angle decision
+    knows about stamps made in previous sessions.
+    """
+    global _prov_rows_ok
+    try:
+        if STAT is None:
+            return
+        STAT.poll()
+        if not (int(getattr(STAT, "axis_mask", 0) or 0) & (1 << 3)):
+            return  # no A rotary: the stamp records nothing that can go stale
+        path = _resolve_var_file_path()
+        if not path or path in _prov_rows_ensured:
+            return
+        keys = [str(n) for i in range(1, 10)
+                for n in wcs_prov_params(i).values()]
+        have = await asyncio.to_thread(_read_var_file, path, set(keys))
+        missing = [k for k in keys if k not in have]
+        if missing:
+            await asyncio.to_thread(
+                _write_var_file_updates, path, {k: 0.0 for k in missing})
+            re_read = await asyncio.to_thread(_read_var_file, path, set(missing))
+            still = [k for k in missing if k not in re_read]
+            if still:
+                _prov_rows_ok = False
+                _trace.emit("wcs.provenance_seed_failed", level="warn",
+                            path=path, still_missing=len(still))
+                return
+            _trace.emit("wcs.provenance_rows_seeded", level="info",
+                        path=path, count=len(missing))
+        _prov_rows_ok = True
+        _prov_rows_ensured.add(path)
+        for i in range(1, 10):
+            n = wcs_prov_params(i)
+            row = {k: have.get(str(v)) for k, v in n.items()}
+            if row["stamped"] is None or \
+                    abs(float(row["stamped"]) - PROV_STAMPED) > 1e-9:
+                continue
+            _prov_cache[i] = {k: float(row[k])
+                              for k in ("kins", "a", "x", "y", "z")}
+    except Exception as exc:  # noqa: BLE001 - a failed check must be loud, not fatal
+        _prov_rows_ok = False
+        _trace.emit("wcs.provenance_seed_failed", level="warn", error=repr(exc))
 
 
 def _kins_is_switchable() -> bool:
@@ -4294,6 +4460,11 @@ async def lifespan(app: "FastAPI"):
     # One-shot estop-loop writer check (review B2 stretch): runs after the
     # safety-chain grace window, feeds _safety_chain_reason's extra_reason.
     register_bg_task(asyncio.create_task(_estop_loop_check_once()))
+    # Touch-off provenance rows: the boot-time try_connect_lcnc() ran before
+    # the loop existed, so the reconnect-site registrations never fire for a
+    # machine that was already up. Run the (memoized, connection-checked)
+    # heal once here too.
+    register_bg_task(asyncio.create_task(_ensure_prov_var_rows()))
     # Opt-in event-loop attribution (issue #35): with WEBUI_ASYNCIO_DEBUG=1 asyncio
     # logs "Executing <coro …> took N seconds" for any callback holding the loop
     # >50 ms (half the [HB-WAKE] threshold), naming the exact culprit behind a

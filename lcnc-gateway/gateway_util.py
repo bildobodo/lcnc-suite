@@ -1011,7 +1011,11 @@ def evaluate_wcs_provenance(prov, offset_xyz, eps=1e-6):
     Absence and staleness are DIFFERENT answers and callers must not
     collapse them: absent means "unknown, proceed by the old rules", stale
     means "someone changed this behind our back", which is worth saying out
-    loud. Pure.
+    loud. A stamp with NO live offset to check against is a fourth answer,
+    ("unknown", {...recorded}) — the stamp exists but nothing can falsify
+    it right now, so no claim is made either way. (The first cut here
+    substituted zeros for the missing live triple, which could MANUFACTURE
+    a "stale" verdict — live_xyz=[0,0,0] — out of absent data.) Pure.
     """
     if not prov:
         return ("absent", None)
@@ -1026,13 +1030,58 @@ def evaluate_wcs_provenance(prov, offset_xyz, eps=1e-6):
     # "never stamped" needs no magic value that a round-trip could mangle.
     if abs(stamped - PROV_STAMPED) > 1e-9:
         return ("absent", None)
-    live = [float(v) for v in (offset_xyz or [0.0, 0.0, 0.0])[:3]]
-    if len(live) < 3:
-        return ("absent", None)
+    if offset_xyz is None or len(offset_xyz) < 3:
+        return ("unknown", {"kins": int(round(kins)), "a": a,
+                            "recorded_xyz": rec})
+    live = [float(v) for v in offset_xyz[:3]]
     if any(abs(r - l) > eps for r, l in zip(rec, live)):
         return ("stale", {"kins": int(round(kins)), "a": a,
                           "recorded_xyz": rec, "live_xyz": live})
     return ("valid", {"kins": int(round(kins)), "a": a})
+
+
+#: Table-pose agreement window for provenance stamping, degrees. Wide enough
+#: to absorb servo dither on a parked rotary, far below any deliberate move.
+PROV_A_EPS = 0.01
+
+
+def wcs_stamp_decision(prior_valid, prior_a, prior_kins,
+                       current_a, current_kins, wrote_all_xyz,
+                       eps_deg=PROV_A_EPS):
+    """Should this touch-off write STAMP the fixture, or CLEAR its stamp?
+
+    The stamp records ONE (kins, A) per fixture, claiming the whole X/Y/Z
+    triple was established there. A PARTIAL write (the everyday Z-only
+    touch-off) merges new components into old ones — and if the old ones
+    were established at a different table pose, no single pose describes
+    the result. Stamping it would be the confident lie; keeping the old
+    stamp would misfire the 'stale' signal (which means "someone changed
+    this behind our back", not "we updated it ourselves"). Clearing is the
+    one state whose downstream semantics — "unknown, the documented A=0
+    rule applies" — are exactly true, and the caller makes it loud.
+
+    Returns "stamp" or "clear":
+      - full X/Y/Z write            -> stamp (whole triple is ours, here)
+      - partial, prior stamp valid,
+        same pose and same kins     -> stamp (merge is pose-consistent)
+      - partial, no prior stamp,
+        at the A=0 identity datum   -> stamp (claims exactly what the
+                                       historical assumption already claims
+                                       for the unstamped components)
+      - anything else               -> clear
+
+    A clear at the datum is harmless by construction (assumed A=0 IS the
+    truth there), so ties break toward clearing. Pure.
+    """
+    if wrote_all_xyz:
+        return "stamp"
+    if prior_valid and abs(float(prior_a) - float(current_a)) <= eps_deg \
+            and int(round(prior_kins)) == int(round(current_kins)):
+        return "stamp"
+    if not prior_valid and abs(float(current_a)) <= eps_deg \
+            and int(round(current_kins)) == 0:
+        return "stamp"
+    return "clear"
 
 
 def override_rotary_position(actual_position, pose):
@@ -1335,11 +1384,18 @@ def read_var_wcs_rows(path):
     return rows
 
 
-#: `G10 L2|L20 P<n>` — the program writing a work offset. L2 sets the offset
-#: directly, L20 sets it so the current position takes the given value; both
-#: make the live var-file row non-authoritative for that fixture.
-_G10_WCS_RE = re.compile(r"\bG\s*10\b[^\n]*?\bL\s*(2|20)\b[^\n]*?\bP\s*(\d+)",
-                         re.IGNORECASE)
+#: RS274 is whitespace-insensitive ("spaces and tabs are allowed anywhere on a
+#: line and do not change its meaning") and word order is free, so the scan
+#: below strips whitespace and looks for WORDS, not for a spaced, ordered
+#: phrase. A word is a letter followed by a numeric literal, a parameter
+#: (#n / #<name>) or a bracketed expression. The first regex here (a `\b`-
+#: anchored `G\s*10 ... L ... P` phrase) missed `N10G10L2P1X5` (no boundary
+#: between the 0 of N10 and the G), `G10 P1 L2` (free word order), and every
+#: `P#100` / `P[...]` form — the exact writes this scan exists to catch.
+_G10_WORD_RE = re.compile(r"G0*10(?![0-9.])")
+_L_WORD_RE = re.compile(r"L(\d+|#|\[)")
+_P_WORD_RE = re.compile(r"P(\d+|#|\[)")
+_NAMED_PARAM_RE = re.compile(r"#<[^>]*>")
 
 
 def wcs_rewrite_targets(text):
@@ -1356,15 +1412,37 @@ def wcs_rewrite_targets(text):
     `P0` means "the active fixture", which is not statically knowable, so it
     returns writes_active=True and the caller must treat EVERY epoch as
     rewritten — cannot tell degrades to the snapshot, never to the live row.
-    Pure; comments stripped first so a commented-out G10 does not count."""
+    The same degradation applies to anything the text cannot settle: a
+    dynamic P or L word (`P#100`, `L[#5]`), or a G10 with no P at all.
+    Scope: the caller hands in the MAIN file only — a G10 inside a called
+    sub is invisible here (differing values are still caught by the value
+    comparison). Pure; comments stripped first so a commented-out G10 does
+    not count."""
     explicit, active = set(), False
     for raw in (text or "").splitlines():
-        for m in _G10_WCS_RE.finditer(strip_gcode_comments(raw)):
-            p = int(m.group(2))
-            if p == 0:
-                active = True
-            else:
-                explicit.add(p)
+        line = strip_gcode_comments(raw)
+        # Whitespace-free, upper-cased, named params neutralised so a letter
+        # inside `#<name>` can never read as a word.
+        s = _NAMED_PARAM_RE.sub("#0", re.sub(r"\s+", "", line)).upper()
+        if not _G10_WORD_RE.search(s):
+            continue
+        lw = _L_WORD_RE.search(s)
+        if lw is None:
+            continue                 # a G10 with no L word writes nothing
+        if not lw.group(1).isdigit():
+            active = True            # dynamic L: cannot tell -> snapshot
+            continue
+        if int(lw.group(1)) not in (2, 20):
+            continue                 # L1 tool table, L10/L11 tool offsets
+        pw = _P_WORD_RE.search(s)
+        if pw is None or not pw.group(1).isdigit():
+            active = True            # missing/dynamic P: cannot tell
+            continue
+        p = int(pw.group(1))
+        if p == 0:
+            active = True
+        else:
+            explicit.add(p)
     return explicit, active
 
 

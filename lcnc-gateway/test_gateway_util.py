@@ -1556,6 +1556,14 @@ class TestRotaryDrift(unittest.TestCase):
                          ("valid", {"kins": 0, "a": 0.0}))
         # Float noise from the var file round-trip must not read as stale.
         self.assertEqual(ev(good, [1.0 + 1e-9, 2.0, 3.0])[0], "valid")
+        # No live triple to check against: a stamp exists but nothing can
+        # falsify it — "unknown", NOT a stale verdict manufactured from
+        # substituted zeros (the first cut did exactly that).
+        kind, info = ev(good, None)
+        self.assertEqual(kind, "unknown")
+        self.assertEqual(info["recorded_xyz"], [1.0, 2.0, 3.0])
+        self.assertNotIn("live_xyz", info)
+        self.assertEqual(ev(good, [1.0, 2.0])[0], "unknown")
 
     def test_override_pins_the_pose_for_goldens(self):
         # A preview golden must be a property of the CODE, not of wherever
@@ -2318,6 +2326,70 @@ class TestWcsRewriteTargets(unittest.TestCase):
             basis, 1, rows, [0.0] * 9, 1.0))
         ex, act = gateway_util.wcs_rewrite_targets("g10 l2 p0 x1300 y-200 z-1400\n")
         self.assertTrue(act, "the source scan must catch what the values cannot")
+
+    def test_rs274_spelling_is_whitespace_and_order_free(self):
+        # Review find: the first regex required a spaced, L-before-P phrase
+        # with word boundaries — legal RS274 walked straight past it.
+        for line in ("G10L2P1X5", "N10G10L2P1X5", "G10 P1 L2 X5",
+                     "g 1 0 l 2 p 1 x 5", "G10L20P1Z0", "G010 L2 P1"):
+            ex, act = gateway_util.wcs_rewrite_targets(line)
+            self.assertEqual((ex, act), ({1}, False), line)
+
+    def test_dynamic_words_degrade_to_the_snapshot(self):
+        # P#100 / P[...] / L[...] / missing P: not statically knowable, so
+        # every epoch counts — cannot tell must degrade to the snapshot,
+        # never to trusting the live row.
+        for line in ("G10 L2 P#100 X5", "G10 L2 P[#100+1] X5",
+                     "G10 L[#5] P1 X5", "G10 L2 P#<fix> X5", "G10 L2 X5"):
+            ex, act = gateway_util.wcs_rewrite_targets(line)
+            self.assertEqual((ex, act), (set(), True), line)
+
+    def test_non_wcs_g10_forms_do_not_count(self):
+        # L1 (tool table), L10/L11 (tool offsets), G100 (not G10), G1 with a
+        # P word, and a letter inside a named parameter.
+        for line in ("G10 L1 P3 Z-5", "G10 L10 P2 Z0", "G10 L11 P2 Z0",
+                     "G100 L2 P1", "G1 P1 L2 X5", "#<g10_l2_p1> = 3"):
+            ex, act = gateway_util.wcs_rewrite_targets(line)
+            self.assertEqual((ex, act), (set(), False), line)
+
+
+class TestWcsStampDecision(unittest.TestCase):
+    """The stamp claims ONE table pose for a fixture's whole X/Y/Z. A partial
+    write merging into components established elsewhere has no single pose —
+    stamping lies, keeping the old stamp misfires 'stale', clearing is the
+    one honest state (and the caller makes it loud)."""
+
+    D = staticmethod(gateway_util.wcs_stamp_decision)
+
+    def test_full_triple_always_stamps(self):
+        self.assertEqual(self.D(True, 0.0, 0, 20.0, 0, True), "stamp")
+        self.assertEqual(self.D(False, 0.0, 0, 20.0, 2, True), "stamp")
+
+    def test_partial_at_the_same_pose_and_kins_stamps(self):
+        self.assertEqual(self.D(True, 20.0, 0, 20.004, 0, False), "stamp")
+
+    def test_partial_at_a_different_pose_clears(self):
+        # THE mixed-angle case: X/Y probed at A=0, Z touched off at A=20.
+        self.assertEqual(self.D(True, 0.0, 0, 20.0, 0, False), "clear")
+        # ...and an R-only edit at A=0 over a valid A=20 stamp.
+        self.assertEqual(self.D(True, 20.0, 0, 0.0, 0, False), "clear")
+
+    def test_partial_under_a_different_kins_clears(self):
+        self.assertEqual(self.D(True, 0.0, 0, 0.0, 1, False), "clear")
+
+    def test_partial_with_no_prior_stamp(self):
+        # At the identity datum the unstamped components are exactly what the
+        # historical rule assumes, so stamping claims nothing new.
+        self.assertEqual(self.D(False, 0.0, 0, 0.0, 0, False), "stamp")
+        # Tilted, or under non-identity kins: the old components' pose is
+        # unknown — do not manufacture one.
+        self.assertEqual(self.D(False, 0.0, 0, 20.0, 0, False), "clear")
+        self.assertEqual(self.D(False, 0.0, 0, 0.0, 1, False), "clear")
+
+    def test_prior_invalidated_by_a_foreign_write(self):
+        # prior_valid=False even though a stamp exists: a program's G10 moved
+        # the row. Same rules as no prior stamp.
+        self.assertEqual(self.D(False, 20.0, 0, 20.0, 0, False), "clear")
 
 
 class TestTrsrnLimitCheck(unittest.TestCase):

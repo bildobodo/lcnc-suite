@@ -222,48 +222,49 @@ def _get_rot_axis_yz():
 # a STANDING PRECONDITION stated in three places and checkable in none,
 # because LinuxCNC records nothing about the pose an offset was set in.
 #
-# The gateway now records it, in the ten parameters per fixture that the
-# interpreter leaves undefined (G54 uses 5221..5230; 5231.. are free and
-# persist via the var file). Layout, TWIN of gateway_util.wcs_prov_params —
-# the two must agree, so both name the same base and stride:
-#
-#   base = 5231 + (n-1)*20
-#   base+0  stamped flag (1 = recorded; 0, the value a fresh var file is
-#           full of, means never recorded — deliberately NOT a sentinel in
-#           the data, because kins type 0 is a legitimate value)
-#   base+1  switchkins type at touch-off
-#   base+2  machine-frame A at touch-off
-#   base+3..5  the offset X/Y/Z as written
+# The gateway now records it. The parameter layout lives in twp_prov.py
+# (imported below) — a linuxcnc-free module that gateway_util.wcs_prov_params
+# twins and lcnc-gateway/test_twp_prov.py pins, so the two sides cannot
+# drift silently.
 #
 # The recorded triple is what makes it falsifiable: we stamp only the writes
 # the gateway makes, so a program's `G10 L2`, another GUI, or a typed MDI
 # line moves the offset out from under the stamp. A stale record is worse
 # than none — it reads as authoritative — so it is believed only while the
 # recorded values still match the live fixture.
-_PROV_BASE = 5231
-_PROV_STRIDE = 20
-_PROV_STAMPED = 1.0
+from twp_prov import prov_params, PROV_STAMPED
+
+
+class TwpTouchoffKinsError(Exception):
+    """The recorded touch-off was made under non-identity kinematics.
+
+    The var row holds literal numbers; under TCP or TOOL kinematics the
+    world frame those numbers were computed in is not the machine frame,
+    and the stamp cannot tell HOW they were computed. Refusing loudly is
+    the only honest move (doctrine: silent wrong beats absent is false)."""
 
 
 def read_touchoff_pose(self, n, offsets):
     """Machine-frame A the fixture `n` offset was touched off at.
 
-    Returns (a_deg, source) where source is 'recorded' or 'assumed'. When
-    no usable record exists we fall back to A = 0 — the historical
-    precondition — and SAY so, so the caller can tell the operator that the
-    old rule is still in force for this offset rather than silently
-    pretending the pose is known.
+    Returns (a_deg, kins, source) where source is 'recorded', 'stale' or
+    'assumed' and kins is the switchkins type recorded at touch-off (0.0
+    when not recorded). When no usable record exists we fall back to A = 0
+    — the historical precondition — and SAY so, so the caller can tell the
+    operator that the old rule is still in force for this offset rather
+    than silently pretending the pose is known.
     """
     try:
-        b = _PROV_BASE + (int(n) - 1) * _PROV_STRIDE
-        if abs(float(self.params[b]) - _PROV_STAMPED) > 1e-9:
-            return 0.0, 'assumed'                      # never recorded
-        rec = [float(self.params[b + 3 + i]) for i in range(3)]
+        pp = prov_params(n)
+        if abs(float(self.params[pp["stamped"]]) - PROV_STAMPED) > 1e-9:
+            return 0.0, 0.0, 'assumed'                 # never recorded
+        rec = [float(self.params[pp[k]]) for k in ("x", "y", "z")]
         if any(abs(rec[i] - float(offsets[i])) > 1e-6 for i in range(3)):
-            return 0.0, 'stale'                        # changed underneath
-        return float(self.params[b + 2]), 'recorded'
+            return 0.0, 0.0, 'stale'                   # changed underneath
+        return float(self.params[pp["a"]]), float(self.params[pp["kins"]]), \
+            'recorded'
     except (IndexError, KeyError, TypeError, ValueError):
-        return 0.0, 'assumed'
+        return 0.0, 0.0, 'assumed'
 
 
 def to_storage_frame(self, offsets, n):
@@ -276,7 +277,26 @@ def to_storage_frame(self, offsets, n):
     an A=0 touch-off (and every pre-existing var file) behaves exactly as
     before.
     """
-    a_touch, source = read_touchoff_pose(self, n, offsets)
+    a_touch, kins_touch, source = read_touchoff_pose(self, n, offsets)
+    # LCNC-SUITE: the gateway records the switchkins type "so the record is
+    # falsifiable" — so READ it. Under TOOL kinematics (2) the world frame is
+    # the plane frame (a function of the head pins, tilted or not, at ANY A);
+    # under TCP (1) it is the table-riding work frame, which coincides with
+    # the machine frame ONLY at the A=0 datum. A record made in either frame
+    # converted as if machine-frame would double-rotate the offset — the
+    # exact class this whole feature exists to catch — so refuse loudly and
+    # have the operator re-touch in machine mode. kins 1 at A=0 is provably
+    # the identity (work = Rx(0)(machine - pivot) + pivot = machine) and is
+    # admitted; whether tilted TCP touch-offs record table-frame numbers is
+    # unknowable without a live probe (follow-up), so it is refused too.
+    if source == 'recorded':
+        _kt = int(round(kins_touch))
+        if _kt == 2 or (_kt != 0 and abs(a_touch) > 1e-9):
+            raise TwpTouchoffKinsError(
+                "G%s was touched off under non-identity kinematics (kins %d"
+                " at A=%.3f deg) - the recorded numbers are not machine-frame."
+                " Switch the jog frame to Machine and re-touch-off."
+                % (53 + int(n), _kt, a_touch))
     if source != 'recorded' or abs(a_touch) <= 1e-9:
         if source == 'stale':
             log.warning(
@@ -1390,7 +1410,16 @@ def g683(self, **words):
     log.info("G68.3: Built twp-transformation-matrix: \n%s", twp_matrix)
     # collect the currently active work offset values (ie g54, g55 or other)
     # LCNC-SUITE (W1): see the note in g68.2 — same conversion, same reason.
-    saved_work_offset, _a_touch, _prov = to_storage_frame(self, offsets, n)
+    try:
+        saved_work_offset, _a_touch, _prov = to_storage_frame(self, offsets, n)
+    except TwpTouchoffKinsError as _e:
+        reset_twp_params(self)
+        msg = "G68.3 ERROR: %s" % _e
+        log.debug(msg)
+        emccanon.CANON_ERROR(msg)
+        yield INTERP_EXECUTE_FINISH
+        yield INTERP_EXIT
+        return INTERP_ERROR
     saved_work_offset_number = n
     log.debug("G68.3: Saved work offsets: %s (touch-off A=%.6f, %s)",
               (n, saved_work_offset), _a_touch, _prov)
@@ -1491,7 +1520,16 @@ def g682(self, **words):
     # angle the offset was RECORDED as touched off at. Identity when there is
     # no record or the record says A=0, so every pre-existing setup is
     # byte-identical.
-    saved_work_offset, _a_touch, _prov = to_storage_frame(self, offsets, n)
+    try:
+        saved_work_offset, _a_touch, _prov = to_storage_frame(self, offsets, n)
+    except TwpTouchoffKinsError as _e:
+        reset_twp_params(self)
+        msg = "G68.2 ERROR: %s" % _e
+        log.debug(msg)
+        emccanon.CANON_ERROR(msg)
+        yield INTERP_EXECUTE_FINISH
+        yield INTERP_EXIT
+        return INTERP_ERROR
     log.debug("G68.2: Saved work offsets %s (touch-off A=%.6f, %s)",
               (n, saved_work_offset), _a_touch, _prov)
     # LCNC-SUITE: the table pose this definition is expressed in (see the
