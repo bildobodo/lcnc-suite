@@ -22,20 +22,25 @@ Run with the machine homed, armed and out of E-stop.
 import json
 import os
 import math
+import atexit
 import subprocess
 import sys
 import time
 
 import linuxcnc
 
-# Table axis line, from [HAL]HALCMD in the INI.
-Y_ROT_AXIS, Z_ROT_AXIS = -1000.0, -2000.0
+# Table axis line + nutation: read from the RUNNING INI (below), never a
+# constant copied from the code under test — a hardcoded pivot here would
+# turn the independent oracle into a restatement the moment someone
+# "fixed" it by pasting the value from twp_transform.
+Y_ROT_AXIS = Z_ROT_AXIS = NUT_ANGLE = None
 O_TABLE = [100.0, 50.0, -200.0]      # the physical feature, table frame
 TILT = 20.0                           # the second touch-off angle
 GATEWAY = "http://127.0.0.1:8000"
 
 c = linuxcnc.command()
 s = linuxcnc.stat()
+err = linuxcnc.error_channel()
 FAILS = []
 
 
@@ -62,12 +67,50 @@ def wait_idle(timeout=180.0):
     return False
 
 
+def _drain_errors():
+    msgs = []
+    while True:
+        e = err.poll()
+        if not e:
+            return msgs
+        kind, text = e
+        if kind in (linuxcnc.NML_ERROR, linuxcnc.OPERATOR_ERROR):
+            msgs.append(str(text))
+
+
 def mdi(line, timeout=180.0):
+    """Run one MDI line and REFUSE to continue on a rejection or timeout —
+    a `G0 A20` rejected at a limit would otherwise run the touch-off at the
+    wrong physical pose and report a feature failure."""
+    _drain_errors()
     c.mode(linuxcnc.MODE_MDI)
     c.wait_complete()
     c.mdi(line)
+    rc = c.wait_complete(timeout)
+    idle = wait_idle(timeout)
+    errors = _drain_errors()
+    if rc == linuxcnc.RCS_ERROR or rc == -1 or not idle or errors:
+        raise SystemExit(f"MDI {line!r} did not complete cleanly: rc={rc} "
+                         f"idle={idle} errors={errors}")
+
+
+def read_params(nums, timeout=5.0):
+    """Interpreter parameters via `(DEBUG, ...)` on the error channel — the
+    only way to read #-params from outside the interp without trusting a
+    var file that is written only at save time."""
+    _drain_errors()
+    c.mode(linuxcnc.MODE_MDI)
+    c.wait_complete()
+    c.mdi("(DEBUG,PARAMS " + " ".join(f"#{n}" for n in nums) + ")")
     c.wait_complete(timeout)
-    wait_idle(timeout)
+    t0 = time.time()
+    while time.time() - t0 < timeout:
+        e = err.poll()
+        if e and "PARAMS" in str(e[1]):
+            vals = str(e[1]).split("PARAMS", 1)[1].split()
+            return [float(v) for v in vals]
+        time.sleep(0.05)
+    raise SystemExit("could not read interpreter parameters")
 
 
 def machine_from_table(p, a_deg):
@@ -95,8 +138,10 @@ def set_wcs(x, y, z):
 
 WS_SEND = sys.argv[1] if len(sys.argv) > 1 else None
 GW_DIR = sys.argv[2] if len(sys.argv) > 2 else None
-if not WS_SEND:
+if not WS_SEND or not GW_DIR or not os.path.isdir(GW_DIR):
     raise SystemExit("usage: twp_touchoff_check.py <ws_send.py> <gateway_dir>")
+sys.path.insert(0, GW_DIR)
+from gateway_util import parse_kins_config, wcs_prov_params  # noqa: E402
 
 def require_ready():
     """Refuse to run against a machine that cannot execute.
@@ -153,6 +198,40 @@ def establish(a_deg, offset):
 
 require_ready()
 
+s.poll()
+_ini = linuxcnc.ini(s.ini_filename)
+_k = parse_kins_config(_ini.find("KINS", "KINEMATICS"),
+                       _ini.findall("HAL", "HALCMD") or [])["params"]
+Y_ROT_AXIS, Z_ROT_AXIS = float(_k["y_rot_axis"]), float(_k["z_rot_axis"])
+NUT_ANGLE = float(_k["nut_angle"])
+
+# Capture the operator's G54 and its provenance rows BEFORE touching
+# anything, and put them back on every exit path — this check overwrites
+# the work offset, and destroying a real setup is the one side effect that
+# costs an operator setup time. Restored via plain MDI (G10 + #-params),
+# NOT through the gateway, so the original stamp comes back verbatim.
+_PROV = wcs_prov_params(1)
+_saved_g54 = read_params([5221, 5222, 5223, 5224, 5225, 5226, 5227, 5228, 5229, 5230])
+_saved_prov = read_params([_PROV[k] for k in ("stamped", "kins", "a", "x", "y", "z")])
+
+
+def _teardown():
+    try:
+        mdi("g69")
+        mdi("G0 A0")
+        g = _saved_g54
+        mdi("G10 L2 P1 X%.6f Y%.6f Z%.6f A%.6f B%.6f C%.6f U%.6f V%.6f W%.6f R%.6f" % tuple(g))
+        mdi(" ".join(f"#{_PROV[k]}={v:.6f}" for k, v in
+                     zip(("kins", "a", "x", "y", "z", "stamped"),
+                         (_saved_prov[1], _saved_prov[2], _saved_prov[3],
+                          _saved_prov[4], _saved_prov[5], _saved_prov[0]))))
+        print("  (teardown: g69, A0, G54 + provenance restored)")
+    except SystemExit as e:
+        print(f"  (teardown incomplete: {e})")
+
+
+atexit.register(_teardown)
+
 print("=== A: touch off at A=0 (the historical precondition) ===")
 o0 = machine_from_table(O_TABLE, 0.0)
 store0 = establish(0.0, o0)
@@ -191,7 +270,7 @@ ct, st = math.cos(th), math.sin(th)
 n_machine = [n[0], n[1] * ct - n[2] * st, n[1] * st + n[2] * ct]
 b = math.radians(halget("xyzacb_trsrn_kins.secondary-angle"))
 cc = math.radians(halget("xyzacb_trsrn_kins.primary-angle"))
-nut = math.radians(55.0)
+nut = math.radians(NUT_ANGLE)
 ax = [0.0, math.sin(nut), math.cos(nut)]
 v = [0.0, 0.0, 1.0]
 kv = ax[0] * v[0] + ax[1] * v[1] + ax[2] * v[2]
@@ -210,8 +289,6 @@ err = math.degrees(math.atan2(
 check("tool normal to the plane after a TILTED touch-off", err < 0.01,
       f"{err:.7f} deg")
 
-mdi("g69")
-mdi("G0 A0")
 print("\n" + ("ALL CHECKS PASSED" if not FAILS
               else f"{len(FAILS)} FAILURE(S): " + ", ".join(FAILS)))
 sys.exit(1 if FAILS else 0)

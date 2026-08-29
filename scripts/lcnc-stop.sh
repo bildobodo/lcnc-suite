@@ -30,6 +30,14 @@ set -uo pipefail
 
 MODE="${1:-}"
 say() { printf '%s\n' "$*"; }
+# An unrecognised argument must NOT fall through to the kill path: a typo'd
+# `--dryrun` or `-n` would have stopped the session the user only wanted
+# listed. Nothing but the two documented flags (or none) is consent.
+case "$MODE" in
+  ""|--dry-run|--force) ;;
+  *) say "usage: $0 [--dry-run|--force]  (got: $MODE)"; exit 2 ;;
+esac
+[ $# -le 1 ] || { say "usage: $0 [--dry-run|--force]  (extra arguments: ${*:2})"; exit 2; }
 
 # ── identifying a suite process ─────────────────────────────────────────
 # Matched POSITIONALLY on argv, never by substring over the whole command
@@ -53,6 +61,16 @@ is_suite_proc() {
   # "-", which basename reads as its own option and spews usage errors.
   local a1="${argv[1]:-}"
   [ "${a1##*/}" = "lcnc-suite" ] && return 0
+  # HAL userspace components started by `loadusr` (hal_reader.py,
+  # hal_watchdog.py, compensation.py): children of a halcmd that has long
+  # exited, so they sit OUTSIDE every launcher subtree and only halrun -U
+  # reaches them. A wedged one survives that, keeps its HAL component name,
+  # and the next session's `loadusr -Wn webui-reader` fails — precisely the
+  # stale state this script exists to clear, and one the verify below used
+  # to certify "clean" over. Positional (argv[1] basename), like the rest.
+  case "${a1##*/}" in
+    hal_reader.py|hal_watchdog.py|compensation.py) return 0 ;;
+  esac
   # gateway: python3 -m uvicorn gateway:app …  (argv[1] is "-m")
   if [ "${argv[1]:-}" = "-m" ] && [ "${argv[2]:-}" = "uvicorn" ]; then
     case "${argv[3]:-}" in gateway:app) return 0 ;; esac
@@ -118,7 +136,10 @@ else
       sleep 1
     done
     for p in "${ALL[@]}"; do
-      [ -d "/proc/$p" ] && { say "  SIGKILL $p (ignored TERM)"; kill -KILL "$p" 2>/dev/null; }
+      # Re-identify before escalating: a pid that exited during the wait
+      # and was reused by something else must not eat the SIGKILL.
+      [ -d "/proc/$p" ] && is_suite_proc "$p" && {
+        say "  SIGKILL $p (ignored TERM)"; kill -KILL "$p" 2>/dev/null; }
     done
   fi
 fi
@@ -133,6 +154,9 @@ halrun -U >/dev/null 2>&1
 rm -f /tmp/webui-reader.sock /tmp/webui-safety.sock /tmp/lcnc-fifo.* 2>/dev/null
 
 # ── verify, and SAY so — a stop that half-worked must not look clean ────
+# Brief settle: a just-killed listener's socket can still show in `ss` for
+# a moment, which read as "port STILL BOUND" on a genuinely clean stop.
+sleep 1
 rc=0
 for d in /proc/[0-9]*; do
   pid=${d#/proc/}

@@ -17,13 +17,52 @@ Claims under test, each with a way to be wrong:
 """
 import math
 import subprocess
+import atexit
+import os
 import sys
 import time
 
 import linuxcnc
 
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                "..", "lcnc-gateway"))
+from gateway_util import parse_kins_config  # noqa: E402
+
 c = linuxcnc.command()
 s = linuxcnc.stat()
+err = linuxcnc.error_channel()
+
+
+def require_ready():
+    """Refuse to run against a machine that cannot execute.
+
+    Backported from twp_touchoff_check.py, where it was learned: a run of
+    the sibling script executed end to end against an E-STOPPED, unhomed
+    machine — every MDI silently rejected, plane pins holding a previous
+    session's values — and reported failures OF THE FEATURE. This script
+    predated that lesson and could do the same. A test whose preconditions
+    are unmet must say so and stop, never produce findings.
+    """
+    s.poll()
+    problems = []
+    if s.task_state != linuxcnc.STATE_ON:
+        problems.append(f"machine not ON (task_state={s.task_state})")
+    if not all(list(s.homed)[:6]):
+        problems.append(f"not homed ({list(s.homed)[:6]})")
+    if problems:
+        raise SystemExit("PRECONDITIONS NOT MET — refusing to report:\n  "
+                         + "\n  ".join(problems))
+
+
+def kins_from_running_config():
+    """Nutation angle from the RUNNING INI, never a constant copied from the
+    code under test (a hardcoded 55 here was documented as 45 — the number
+    was right and the comment wrong, which is how such constants drift)."""
+    s.poll()
+    ini = linuxcnc.ini(s.ini_filename)
+    k = parse_kins_config(ini.find("KINS", "KINEMATICS"),
+                          ini.findall("HAL", "HALCMD") or [])
+    return float(k["params"]["nut_angle"])
 
 PINS = ["twp-helper-comp.twp-is-defined", "twp-helper-comp.twp-is-active",
         "twp-helper-comp.twp-ox", "twp-helper-comp.twp-oy", "twp-helper-comp.twp-oz",
@@ -60,14 +99,38 @@ def wait_idle(timeout=180.0):
     return False
 
 
-def mdi(line, timeout=180.0):
+def _drain_errors():
+    msgs = []
+    while True:
+        e = err.poll()
+        if not e:
+            return msgs
+        kind, text = e
+        if kind in (linuxcnc.NML_ERROR, linuxcnc.OPERATOR_ERROR):
+            msgs.append(str(text))
+
+
+def mdi(line, timeout=180.0, expect_error=False):
+    """Run one MDI line and REFUSE to continue on a rejection or timeout.
+
+    An MDI that LinuxCNC rejects (wrong mode, limits, interp error) used to
+    return normally here, so a "check" could pass or fail on state the
+    command never produced. `expect_error=True` is for the one probe whose
+    whole point is the refusal (a bare G53.1 while TWP is active)."""
+    _drain_errors()
     c.mode(linuxcnc.MODE_MDI)
     c.wait_complete()
     c.mdi(line)
-    c.wait_complete(timeout)
-    wait_idle(timeout)
+    rc = c.wait_complete(timeout)
+    idle = wait_idle(timeout)
     poll()
-    return s.interp_state
+    errors = _drain_errors()
+    if expect_error:
+        return errors
+    if rc == linuxcnc.RCS_ERROR or rc == -1 or not idle or errors:
+        raise SystemExit(f"MDI {line!r} did not complete cleanly: rc={rc} "
+                         f"idle={idle} errors={errors}")
+    return errors
 
 
 def joints():
@@ -105,11 +168,12 @@ def plane_normal_machine(snapshot, a_deg):
 
 def tool_axis_from_head(snapshot):
     """Tool axis in machine coords from the LIVE head solve (B secondary,
-    C primary, 45 deg nutating B). Independent of the plane pins, which is
-    what makes the comparison a check and not a restatement."""
+    C primary, nutating B at the config's nut-angle). Independent of the
+    plane pins, which is what makes the comparison a check and not a
+    restatement."""
     b = math.radians(snapshot["xyzacb_trsrn_kins.secondary-angle"])
     cc = math.radians(snapshot["xyzacb_trsrn_kins.primary-angle"])
-    nut = math.radians(55.0)  # [HAL] setp xyzacb_trsrn_kins.nut-angle 55
+    nut = math.radians(NUT_ANGLE)
     # Rotate -Z tool vector about the nutating B axis, then about C (Z).
     ax = [0.0, math.sin(nut), math.cos(nut)]
     v = [0.0, 0.0, 1.0]
@@ -131,7 +195,26 @@ def check(name, ok, detail=""):
 
 
 print("=== 0. preconditions ===")
+require_ready()
+NUT_ANGLE = kins_from_running_config()
 poll()
+
+
+def _teardown():
+    """Leave the machine as found: no plane, TOOL kins off, table at A=0.
+    Registered atexit so every exit path — pass, fail, SystemExit from a
+    rejected MDI — restores it; the next tool (or the next run of this
+    script) must not inherit A=35 / TOOL kins / an active plane, which is
+    the stale-session trap the decision record documents."""
+    try:
+        mdi("g69")
+        mdi("G0 A0")
+        print("  (teardown: g69, A0)")
+    except SystemExit as e:
+        print(f"  (teardown incomplete: {e})")
+
+
+atexit.register(_teardown)
 print(f"  homed={list(s.homed)[:6]} tool={s.tool_in_spindle} "
       f"pos={[round(v,3) for v in s.actual_position[:6]]}")
 
@@ -180,7 +263,8 @@ check("tool is OFF-normal by the predicted cone angle (the defect)",
 
 print("\n=== 3. a bare G53.1 must REFUSE and must NOT destroy the plane ===")
 before_bare = snap()
-mdi("G53.1")
+refusal = mdi("G53.1", expect_error=True)
+check("bare G53.1 was refused", bool(refusal), "; ".join(refusal)[:120])
 after_bare = snap()
 plane_keys = [k for k in PINS if k.startswith("twp-helper-comp.twp-")
               and not k.endswith("pose-a")]

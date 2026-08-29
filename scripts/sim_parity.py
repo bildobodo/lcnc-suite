@@ -112,8 +112,12 @@ def compare_files(truth_path, sim_path, tol):
     S, nulls = load_sim_joints(sim_path)
     if T.size == 0 or S.size == 0:
         return False, "empty trajectory (truth or sim) — nothing to certify"
-    j = min(T.shape[1], S.shape[1])
-    T, S = T[:, :j], S[:, :j]
+    if T.shape[1] != S.shape[1]:
+        # Never narrow silently: a sim that shipped 3-column joints on a
+        # 6-joint machine would otherwise be compared on XYZ alone and pass
+        # with a whole rotary channel unchecked.
+        return False, (f"joint width mismatch: truth {T.shape[1]} vs sim "
+                       f"{S.shape[1]} columns — refusing to certify")
     t2s_max, t2s_p99 = path_deviation(T, S)
     s2t_max, s2t_p99 = path_deviation(S, T)
     ok = t2s_max <= tol and s2t_max <= tol
@@ -176,7 +180,10 @@ def cmd_compare(a):
     return 0 if ok else 1
 
 
-_TOOLCHANGE_RE = re.compile(r"\bM\s*0*6(?!\d)", re.IGNORECASE)
+# (?<![A-Za-z]) not \b: RS274 words abut ("G1X5M6") and \b sees no boundary
+# between the 5 and the M — a digit before M is the normal case, only a
+# letter is not (comments are already stripped).
+_TOOLCHANGE_RE = re.compile(r"(?<![A-Za-z])M\s*0*6(?!\d)", re.IGNORECASE)
 
 
 def program_needs_toolchange(path):
@@ -280,7 +287,14 @@ def cmd_gate(a):
                 c.mode(_l.MODE_AUTO)
                 c.wait_complete()
                 c.program_open(ngc)
-                raw = fetch_gateway_payload(a.port, ngc)
+                # Per-run isolation, same as the capture below: a payload
+                # that never settles must fail THIS run, not the corpus.
+                try:
+                    raw = fetch_gateway_payload(a.port, ngc)
+                except SystemExit as e:
+                    fails += 1
+                    print(f"[FAIL] {tag}: {e}")
+                    continue
             with open(payload_path, "wb") as f:
                 f.write(raw)
             # 1b. REFUSE a partial parse. The worker ships parse_error /
