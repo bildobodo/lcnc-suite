@@ -21,7 +21,8 @@ sys.path.insert(
 )
 
 from twp_transform import (  # noqa: E402
-    compose_table_a, to_table_frame, from_table_frame)
+    compose_table_a, to_table_frame, from_table_frame,
+    to_table_frame_vector, from_table_frame_vector, calc_shortest_distance)
 
 Y_RA = -1000.0
 Z_RA = -2000.0
@@ -125,6 +126,95 @@ class TestFrameDirections(unittest.TestCase):
         self.assertFalse(_close(z_t, self.Z0, 1e-6))
         self.assertFalse(_close(z_m, self.Z0, 1e-6))
         self.assertFalse(_close(z_t, z_m, 1e-6))
+
+
+class TestVectorTransform(unittest.TestCase):
+    """to_table_frame_vector is rotation-ONLY: a free vector has no position,
+    so the pivot line must never enter. Its defining property is that it
+    equals the DIFFERENCE of two point transforms — for ANY pivot."""
+
+    V = (17.0, -42.5, 88.25)
+    P = (1350.0, -150.0, -1450.0)
+
+    def test_vector_is_difference_of_point_transforms_for_any_pivot(self):
+        z0, x0 = (0, 0, 1), (1, 0, 0)
+        for a in (0.0, 20.0, 90.0, -33.25, 180.0):
+            want = to_table_frame_vector(self.V, a)
+            for py, pz in ((Y_RA, Z_RA), (0.0, 0.0), (123.4, -9876.5)):
+                _z, _x, o_pv = to_table_frame(
+                    z0, x0,
+                    tuple(p + v for p, v in zip(self.P, self.V)),
+                    a, py, pz)
+                _z, _x, o_p = to_table_frame(z0, x0, self.P, a, py, pz)
+                got = tuple(b - c for b, c in zip(o_pv, o_p))
+                self.assertTrue(_close(got, want, 1e-8), (a, py, pz, got, want))
+
+    def test_matches_the_point_paths_direction_vector_rotation(self):
+        # to_table_frame rotates its DIRECTION vectors by exactly this
+        # rotation — the vector helper must agree with it for unit vectors.
+        for a in (0.0, 20.0, -70.0, 145.0):
+            z, _x, _o = to_table_frame((0, 0, 1), (1, 0, 0), (0, 0, 0), a, Y_RA, Z_RA)
+            self.assertTrue(_close(to_table_frame_vector((0, 0, 1), a), z, 1e-12), a)
+
+    def test_round_trip(self):
+        for a in (0.0, 20.0, 90.0, -33.25):
+            self.assertTrue(_close(
+                from_table_frame_vector(to_table_frame_vector(self.V, a), a),
+                self.V, 1e-9), a)
+
+    def test_a_zero_is_the_exact_identity(self):
+        self.assertEqual(to_table_frame_vector(self.V, 0.0), self.V)
+
+    def test_hand_computed_sense(self):
+        # to_table_frame's sense is Rx(+a_now): (0,1,0) at a=90 -> (0,0,1).
+        self.assertTrue(_close(to_table_frame_vector((0, 1, 0), 90.0),
+                               (0.0, 0.0, 1.0), 1e-12))
+
+    def test_point_path_on_a_vector_is_the_g683_bug(self):
+        # Documents the defect class this helper exists for: pushing a free
+        # vector through the POINT path adds (I - Rx(A))*pivot — ~776 mm at
+        # A=20 with this config's pivot. If someone "simplifies" the vector
+        # helper back onto to_table_frame, this pins the magnitude they are
+        # reintroducing.
+        a = 20.0
+        _z, _x, o_pt = to_table_frame((0, 0, 1), (1, 0, 0), self.V, a, Y_RA, Z_RA)
+        o_vec = to_table_frame_vector(self.V, a)
+        err = _norm(tuple(b - c for b, c in zip(o_pt, o_vec)))
+        th = math.radians(a)
+        want = _norm((0.0,
+                      (1 - math.cos(th)) * Y_RA + math.sin(th) * Z_RA,
+                      -math.sin(th) * Y_RA + (1 - math.cos(th)) * Z_RA))
+        self.assertAlmostEqual(err, want, places=6)
+        self.assertGreater(err, 700.0)
+        self.assertLess(err, 850.0)
+
+
+class TestCalcShortestDistance(unittest.TestCase):
+    """Extracted from remap.py; the elif chain is the fix — upstream's final
+    `else` bound to `if mode == 2`, clobbering every mode-1 result."""
+
+    def test_mode0_wraparound(self):
+        self.assertAlmostEqual(calc_shortest_distance(170, -170, 0), 20.0)
+        self.assertAlmostEqual(calc_shortest_distance(-170, 170, 0), -20.0)
+        self.assertAlmostEqual(calc_shortest_distance(0, 90, 0), 90.0)
+
+    def test_mode1_positive_only_takes_the_long_way(self):
+        # The clobbered case: shortest is -90, positive-only must be +270.
+        self.assertAlmostEqual(calc_shortest_distance(0, -90, 1), 270.0)
+        self.assertAlmostEqual(calc_shortest_distance(0, 90, 1), 90.0)
+
+    def test_mode2_negative_only_takes_the_long_way(self):
+        self.assertAlmostEqual(calc_shortest_distance(0, 90, 2), -270.0)
+        self.assertAlmostEqual(calc_shortest_distance(0, -90, 2), -90.0)
+
+    def test_zero_move(self):
+        self.assertAlmostEqual(calc_shortest_distance(35, 35, 0), 0.0)
+        self.assertAlmostEqual(calc_shortest_distance(35, 35, 1), 0.0)
+        # Upstream-inherited asymmetry, pinned deliberately: mode 2 treats
+        # dist 0 as ">= 0, go the other way" and returns a full -360. The
+        # extraction only fixes the else-binding; changing this would change
+        # P2 semantics beyond what the fix claims.
+        self.assertAlmostEqual(calc_shortest_distance(35, 35, 2), -360.0)
 
 
 if __name__ == "__main__":

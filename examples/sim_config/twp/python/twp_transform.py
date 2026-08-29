@@ -100,3 +100,51 @@ def from_table_frame(tool_z, tool_x, origin_table, a_now_deg,
     """
     return compose_table_a(tool_z, tool_x, origin_table, float(a_now_deg),
                            y_rot_axis, z_rot_axis)
+
+
+def to_table_frame_vector(v, a_now_deg):
+    """Machine-frame free VECTOR -> table frame, at the CURRENT table pose.
+
+    Rotation only: a free vector has no position, so the table axis LINE's
+    pivot terms must cancel. Deriving the origin: with W the work offset and
+    v the offset->origin vector, to_table_point(W + v) = to_table_point(W)
+    + Rx(A)*v — the pivot appears once on the point and not at all on the
+    vector. Pushing a vector through the POINT path instead displaces the
+    result by (I - Rx(A))*pivot: ~776 mm at A=20 deg with this config's
+    pivot (0, -1000, -2000). Same rotation sense as to_table_frame applies
+    to its direction vectors (th = +radians(a_now)).
+    """
+    th = math.radians(float(a_now_deg))
+    return _rot_x(v, math.cos(th), math.sin(th))
+
+
+def from_table_frame_vector(v, a_now_deg):
+    """Table-frame free VECTOR -> machine frame, at the CURRENT table pose."""
+    return to_table_frame_vector(v, -float(a_now_deg))
+
+
+def calc_shortest_distance(pos, trgt, mode):
+    """Signed rotary move pos -> trgt (degrees) for the operator's P-word.
+
+    mode 0: shortest distance either way (result in [-180, 180]).
+    mode 1: positive rotation only.
+    mode 2: negative rotation only.
+
+    Moved here from remap.py (pure, linuxcnc-free) so the mode logic is
+    unit-testable off-machine. Upstream's version chained the final `else`
+    onto `if mode == 2`, so a mode-1 result was immediately overwritten
+    with the shortest distance — positive-only requests could silently go
+    the negative way. The elif chain is the fix.
+    """
+    dist_short = (float(trgt) - float(pos) + 180.0) % 360.0 - 180.0
+    if dist_short >= 0:  # ie dist_long should be negative
+        dist_long = -(360.0 - dist_short)
+    else:
+        dist_long = 360.0 + dist_short
+    if mode == 1:  # positive rotation only
+        dist = dist_short if dist_short >= 0 else dist_long
+    elif mode == 2:  # negative rotation only
+        dist = dist_short if dist_short < 0 else dist_long
+    else:  # mode 0: shortest distance either way
+        dist = dist_short
+    return dist

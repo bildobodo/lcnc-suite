@@ -46,7 +46,8 @@ from interpreter import *
 import emccanon
 from util import lineno, call_pydevd
 # LCNC-SUITE: pure table-composition geometry (unit-tested off-machine)
-from twp_transform import to_table_frame, from_table_frame
+from twp_transform import (to_table_frame, from_table_frame,
+                           to_table_frame_vector, calc_shortest_distance)
 import hal
 
 
@@ -672,33 +673,12 @@ def kins_calc_jnt_angles(self, tool_z_req):
     else:
         return None, None
 
-def calc_shortest_distance(pos, trgt, mode):
-    # calculate the shortest distance in [-180°, 180°]
-    # eg if pos=170° and trgt=-170° then dist will be 20°
-    # If the operator requests positive or negative rotation
-    # we may need to return the long distance instead
-    log.debug('Got (pos, trgt): %s', (pos, trgt))
-    dist_short = (trgt - pos + 180) % 360 - 180
-    # calculate short and long distance
-    if dist_short >= 0: # ie dist_long should be negative
-        dist_long = -(360 - dist_short)
-    else:
-        dist_long =  360 + dist_short
-    log.debug('Calculated (dist_short, dist_long):  %s', (dist_short, dist_long))
-    if mode == 1: # positive rotation only, ie we want a positive distance
-        if dist_short >= 0: # ie we want this one
-            dist = dist_short
-        else:  # ie we need to go the other way
-            dist = dist_long
-    if mode == 2: # negative rotation only ie we want a positive distance
-        if dist_short >= 0: # ie we need to go the other way
-            dist = dist_long
-        else: # ie we want this one
-            dist = dist_short
-    else: # mode = 0 ie we want the shortest distance either way
-        dist = dist_short
-    log.debug('Distance returned:  %s', dist)
-    return dist
+# LCNC-SUITE: calc_shortest_distance moved to twp_transform.py (imported at
+# the top) so the P-word mode logic is unit-testable off-machine. The move
+# also fixes upstream's else-binding bug: the final `else` chained onto
+# `if mode == 2`, so a mode-1 (positive-only) result was immediately
+# overwritten with the shortest distance and could silently rotate the
+# negative way.
 
 
 # this takes a target angle in [-pi,pi] and finds the closest move within [min_limit, max_limit]
@@ -1063,7 +1043,7 @@ def reset_twp_params(self):
 def g53x_core(self):
     global saved_work_offset, twp_matrix, twp_flag, pre_rot
     global twp_pose_a  # LCNC-SUITE: head-solve pose
-    global joint_letter_primary, joint_letter_secondary, twp_error_status
+    global joint_letter_primary, joint_letter_secondary
     global orient_mode, _task_mode, _preview_twp_state, _preview_pre_rot
     # LCNC-SUITE: upstream returned here for the preview interpreter; the
     # fork runs the same math in preview and emits the frame/kins markers.
@@ -1114,11 +1094,20 @@ def g53x_core(self):
         # LCNC-SUITE: upstream calls reset_twp_params(self) here. We do NOT.
         # "TWP already active" is an operator/program SEQUENCING mistake, not
         # a corrupt plane — and reset_twp_params wipes twp_matrix to identity
-        # and saved_work_offset to zeros. So a stray G53.x (a re-run of the
-        # orient block, a fat-fingered MDI line) silently DESTROYED a plane
-        # that was perfectly good, on a path whose whole job is to refuse.
-        # Refusing is right; taking the plane down with it is not. The abort
-        # below still stops the program, so nothing runs on a stale state.
+        # (pre_rot, pose stamp and build params with it; it does NOT touch
+        # saved_work_offset). So a stray G53.x (a re-run of the orient block,
+        # a fat-fingered MDI line) silently DESTROYED a plane that was
+        # perfectly good, on a path whose whole job is to refuse. Refusing is
+        # right; taking the plane down with it is not. The abort below still
+        # stops the program, so nothing runs on a stale state.
+        #
+        # The status pin IS demoted to 'defined' (1) first: the ngc wrapper
+        # already dropped kins to identity (M68 E3 Q0) before M530, so
+        # leaving twp-status at 2 would claim ACTIVE on identity kins — a
+        # lie the UI chip would repeat. Status 1 + intact plane means a
+        # retry (plain G53.x) simply works.
+        self.execute("M68 E2 Q1")
+        yield INTERP_EXECUTE_FINISH  # drain: the demote must land before the abort flushes the queue
         msg = "G53.x: TWP already active"
         log.debug(msg)
         emccanon.CANON_ERROR(msg)
@@ -1134,8 +1123,10 @@ def g53x_core(self):
     z = c.k_number if c.k_flag else None
     log.debug('G53.x Words passed: (P, X,Y,Z): %s', (p,x,y,z))
     if p not in [0,1,2]:
-         # reset the twp parameters
-        reset_twp_params(self)
+        # LCNC-SUITE: upstream reset_twp_params here — a typo'd P word must
+        # not destroy a valid plane. Refuse loudly, preserve all state; the
+        # corrected command then works. (P validation lives ONLY here: both
+        # G53.x and M531 funnel through M530.)
         msg = "G53.x : unrecognised P-Word found."
         log.debug(msg)
         emccanon.CANON_ERROR(msg)
@@ -1179,10 +1170,11 @@ def g53x_core(self):
         log.info("G53.x: table at A=%.6f deg - plane mapped table->machine:"
                  " z=%s x=%s origin=%s",
                  d_a, tool_z_requested, tool_x_requested, origin_composed)
-    # The HEAD was solved for this table pose. The plane cannot go stale, but
-    # this solve can: move the table afterwards and the tool is no longer
-    # normal to the face. That is what the UI reports.
-    twp_pose_a = machine_a_now
+    # LCNC-SUITE: the pose stamp (twp_pose_a = machine_a_now) is written at
+    # the END of this function, after the queued moves and the ACTIVE promote
+    # have completed — stamping here published "oriented at the current A"
+    # before the head ever moved, so an abort mid-orient left the UI claiming
+    # a fresh solve that never happened.
     # ---- end LCNC-SUITE table->machine map ---------------------------------
 
     # calculate the required rotary joint positions and pre_rotation for the requested tool-orientation
@@ -1195,8 +1187,13 @@ def g53x_core(self):
         log.error('G53.x: Calculation failed, %s', error)
         possible_prim_sec_angle_pairs = []
     if not possible_prim_sec_angle_pairs:
-         # reset the twp parameters
-        reset_twp_params(self)
+        # LCNC-SUITE: upstream reset_twp_params here. The plane is NOT the
+        # problem — the head cannot reach it AT THIS TABLE POSE. Wiping it
+        # while twp-status stays defined/active left the next G53.x to
+        # silently orient against an identity matrix (and a failed RE-ORIENT
+        # to "succeed" on retry against zeros). Preserve the plane; the
+        # abort stops the program, and a retry after moving the table back
+        # into reach works against the real definition.
         msg = "G53.x ERROR: Requested tool orientation not reachable -> aborting G53.x"
         log.debug(msg)
         emccanon.CANON_ERROR(msg)
@@ -1207,8 +1204,8 @@ def g53x_core(self):
     # this returns one pair of optimized angles in degrees, or (None, None) if no solution could be found
     theta_1, theta_2 = calc_optimal_joint_move(self, possible_prim_sec_angle_pairs)
     if theta_1 == None:
-         # reset the twp parameters
-        reset_twp_params(self)
+        # LCNC-SUITE: no reset — same rationale as the branch above (the
+        # plane is valid, the pose is the problem; preserve it for retry).
         msg = ("G53.x ERROR: Requested tool orientation not reachable -> aborting G53.x")
         log.debug(msg)
         emccanon.CANON_ERROR(msg)
@@ -1276,6 +1273,14 @@ def g53x_core(self):
     if not _task_mode:
         _preview_twp_state = 2  # LCNC-SUITE: preview mirror of twp-status
     yield INTERP_EXECUTE_FINISH
+    # LCNC-SUITE: stamp the head-solve pose only NOW — the queued rotary
+    # moves and the ACTIVE promote have completed (same post-yield HAL-only
+    # shape as g683's trailing gui_update_twp). An abort anywhere above never
+    # resumes this generator, so the pose pin keeps its previous value (or
+    # the sentinel) and the UI honestly reports the solve as stale instead
+    # of claiming an orient that never finished.
+    twp_pose_a = machine_a_now
+    gui_update_twp(self)
     return INTERP_OK
 
 
@@ -1396,11 +1401,19 @@ def g683(self, **words):
     # A = 0 this is the identity, so today's behaviour is byte-identical.
     _a_now = get_machine_a(self)
     if abs(_a_now) > 1e-4:
-        _yra, _zra = _get_rot_axis_yz()
-        _tz = [twp_matrix[0,2], twp_matrix[1,2], twp_matrix[2,2]]
-        _tx = [twp_matrix[0,0], twp_matrix[1,0], twp_matrix[2,0]]
-        _to = [twp_matrix[0,3], twp_matrix[1,3], twp_matrix[2,3]]
-        _tz, _tx, _to = to_table_frame(_tz, _tx, _to, _a_now, _yra, _zra)
+        _tz = to_table_frame_vector(
+            [twp_matrix[0,2], twp_matrix[1,2], twp_matrix[2,2]], _a_now)
+        _tx = to_table_frame_vector(
+            [twp_matrix[0,0], twp_matrix[1,0], twp_matrix[2,0]], _a_now)
+        # LCNC-SUITE: column 3 is a VECTOR (work offset -> twp origin, see
+        # gui_update_twp and the sum in g53x_core), NOT a point — so every
+        # converted quantity here is rotation-only and the pivot line never
+        # enters. Pushing the vector through to_table_frame's POINT path
+        # displaced the stored origin by (I - Rx(A))*pivot (~776 mm at A=20
+        # with this config's pivot); the vector helper is the fix, and it
+        # also drops the pivot-pin dependency from this path entirely.
+        _to = to_table_frame_vector(
+            [twp_matrix[0,3], twp_matrix[1,3], twp_matrix[2,3]], _a_now)
         _ty = np.cross(_tz, _tx)
         for _r in range(3):
             twp_matrix[_r,0] = _tx[_r]

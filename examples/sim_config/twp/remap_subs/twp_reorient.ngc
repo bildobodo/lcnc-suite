@@ -14,11 +14,17 @@
 ; normal entry state here rather than an error, which is what M530's Q1 word
 ; says.
 ;
-; Q1 is an interpreter word and not a HAL demote (M68 E2 Q1 first) on purpose:
-; twp-status is an INPUT pin that twp-helper-comp polls to derive
-; twp-is-active, so a demote reaches the guard about a millisecond late —
-; harmless when an operator types two MDI lines seconds apart, a coin flip
-; when a subroutine runs them back to back.
+; Q1 is an interpreter word and not a HAL demote (M68 E2 Q1 INSTEAD of the
+; word) on purpose: twp-status is an INPUT pin that twp-helper-comp polls to
+; derive twp-is-active, so a demote reaches the guard about a millisecond
+; late — harmless when an operator types two MDI lines seconds apart, a coin
+; flip when a subroutine runs them back to back. The M68 E2 Q1 BELOW does not
+; replace the word, it accompanies it: demoting status to 'defined' in the
+; same real-time queue as the kins demote keeps twp-status truthful through
+; the entire re-orient window (solver failure, mid-move abort, anywhere) —
+; without it a failed re-orient left status claiming ACTIVE on identity
+; kinematics. g53x_core's Q1 path needs only twp-is-defined, which status 1
+; keeps true, so there is no race for this pin to lose.
 ;
 ; No twp-is-defined guard here: g53x_core already refuses with "No TWP
 ; defined", and since nothing is demoted on the way in there is no state left
@@ -30,16 +36,23 @@
 ; wants the small correction, not the program's original branch.
 
 o<twp_reorient>sub
+(WEBUI_SUB=twp_reorient) ;lcnc-suite: preview sub-span marker, silent in task
 
 M66 L0 E0                                  ;force sync, stop read ahead
 o100 if [EXISTS [#<P>]]
 o100 else
     #<P> = 0                               ;default: shortest move
 o100 endif
+                                           ;P validation is delegated to
+                                           ;g53x_core (M530) — the one layer
+                                           ;that checks it, loudly and
+                                           ;state-preservingly.
 M68 E3 Q0                                  ;identity kinematics for the solve
+M68 E2 Q1                                  ;status 'defined' for the window (see header)
 (WEBUI_KINSTYPE=0)
 M66 L0 E0
 M530 P#<P> Q1                              ;re-solve, move, re-enter TOOL kins
 M66 L0 E0
+(WEBUI_SUB_END) ;lcnc-suite: preview sub-span marker
 o<twp_reorient>endsub
 m2
