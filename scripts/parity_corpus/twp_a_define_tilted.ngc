@@ -1,0 +1,19 @@
+(ACCEPTANCE for table-relative plane storage.)
+(The table is moved to A20 BEFORE g68.2, so the plane is DEFINED at a)
+(tilted table. Under world-frame storage the head orients to the)
+(definition numbers as if the table were at 0 and twp_parity reports)
+(normal_err ~20 deg; with the plane stored table-relative it must)
+(report 0.000 - the plane is a feature of the workpiece, so it means)
+(the same thing at any table angle.)
+(This program is the ONLY thing pinning that behaviour: g68.2's four)
+(P-branches change meaning with ZERO code change, which is invisible)
+(to review.)
+g69
+g10 l2 p0 x1300 y-200 z-1400 a0
+m6 t3 g43 h3
+g0 x0y0z100 a0
+g0 a20
+g68.2 x50 y50 z-50 q121 i30 j15
+g53.3 x0y0z100
+o<square> call
+M2

@@ -22,7 +22,8 @@ import {
 import { createRunWatcher } from "./viewer/runWatcher";
 import { trackHighlightRange, runLineState, subExecState } from "./trackHighlight";
 import { specFromWire } from "./viewer/kins";
-import { epochTermsFor, usedWcsRowsKey, type WcsTableRow } from "./viewer/wcsEpochs";
+import { epochTermsFor, epochWcsList, usedWcsRowsKey, type WcsTableRow } from "./viewer/wcsEpochs";
+import { twpPlaneForSample } from "./viewer/twpPlaneFrame";
 import type { WcsTerms } from "./viewer/partFrame";
 import type { ScrubTrack } from "./ws/bulkData";
 import type { CollisionResult } from "./viewer/collision";
@@ -54,7 +55,7 @@ const emit = defineEmits<{
   // sub-relative numbers are self-consistent within the drawn data);
   // `displayLine` is the per-point-trust-GATED line for the text panel
   // (W3 P4) — null = suppress (untrusted / entry / end), never raw.
-  (e: "pose", joints: (number | null)[] | null, line: number | null, cum: number | null, trk: ScrubTrack | null, displayLine: number | null): void;
+  (e: "pose", joints: (number | null)[] | null, line: number | null, cum: number | null, trk: ScrubTrack | null, displayLine: number | null, plane: number[] | null): void;
   // The track to sweep — includes the entry move when one is known.
   (e: "check", track: ScrubTrack): void;
   (e: "cancel-check"): void;
@@ -127,6 +128,15 @@ const _kinsSpec = computed(() => specFromWire(viewerInit.value?.kins));
  *  the run playhead all convert program coords through the segment's OWN
  *  epoch basis (live table row / rewritten snapshot). undefined = legacy
  *  single-basis track. */
+// Per-epoch raw offsets. The plane's ORIGIN is a workpiece feature, so it
+// needs the epoch's g5x/g92 — NOT wcsTerms, which folds the tool offset in.
+const _epochWcs = computed(() => {
+  const evs = track.value?.wcsEvents;
+  if (!evs?.length) return undefined;
+  return epochWcsList(evs, _wcs(), st.value.wcs_table as WcsTableRow[] | undefined);
+});
+const _aIndex = computed(() => (viewerInit.value?.axes ?? []).indexOf("A"));
+
 const _epochTerms = computed<WcsTerms[] | undefined>(() => {
   const evs = track.value?.wcsEvents;
   if (!evs?.length) return undefined;
@@ -156,8 +166,18 @@ function applyPos() {
   else publishSubExec(t, _sample.index, disp.subName);
   jointsForSample(_sample, _wcs(), viewerInit.value?.axes ?? [], _joints,
                   _kinsSpec.value, _epochTerms.value);
+  // The PROGRAM's tilted plane at this sample (null unless this segment
+  // establishes one). Simulation must not fall through to live machine
+  // state: the model shows the program, so the overlay has to as well.
+  const _ew = _sample.wcsEpoch != null ? _epochWcs.value?.[_sample.wcsEpoch] : undefined;
+  const _ai = _aIndex.value;
+  const _plane = (_ew && _ai >= 0 && _joints[_ai] != null)
+    ? twpPlaneForSample({
+        spec: _kinsSpec.value, kinstype: _sample.kinstype, frame: _sample.frame,
+        g5x: _ew.g5x, g92: _ew.g92, a: _joints[_ai] as number })
+    : null;
   emit("pose", _joints.slice(), _sample.line, sPos.value, t,
-       curAtEnd.value ? (endLine.value ?? null) : disp.line);
+       curAtEnd.value ? (endLine.value ?? null) : disp.line, _plane);
   // Positional 3D highlight (review P3): address the path by track index —
   // the sample's line number may be sub/remap-relative and collide.
   trackHighlightRange.value = lineRunAround(t, _sample.index);
@@ -238,7 +258,7 @@ function exitSim() {
   playing.value = false;
   if (!simMode.value) return;
   simMode.value = false;
-  emit("pose", null, null, null, null, null);
+  emit("pose", null, null, null, null, null, null);
   trackHighlightRange.value = null;
   subExecState.value = null;
 }

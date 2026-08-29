@@ -337,6 +337,7 @@ let _unitScale = 1;
 // is defined but the kins is back to identity (defined-but-inactive —
 // the parked-in-TWP trap made visible).
 let twpPlaneGroup: THREE.Group | null = null;
+let twpNormalArrow: THREE.ArrowHelper | null = null;
 let twpPlaneMat: THREE.MeshBasicMaterial | null = null;
 let twpGridMat: THREE.LineBasicMaterial | null = null;
 let _twpLayerOn = true;
@@ -714,8 +715,21 @@ const _twpX = new THREE.Vector3();
 const _twpY = new THREE.Vector3();
 const _twpM = new THREE.Matrix4();
 
+// The PROGRAM's plane while simulating (from ScrubBar), null otherwise.
+let _scrubPlane: number[] | null = null;
+
 function _twpRefresh() {
   const d: any = status.value?.data;
+  if (simMode.value || _scrubJoints) {
+    // Simulating: the model shows the PROGRAM, so the overlay must too.
+    // No plane data for this point means the program has not established
+    // one there — HIDE it. Falling through to live status would put a
+    // machine fact on screen beside a simulated machine, which is the
+    // incoherence this exists to remove. Staleness is a claim about the
+    // live setup and is meaningless here, so it is never applied in sim.
+    updateTwpPlane(_scrubPlane, _scrubPlane != null, 2, false);
+    return;
+  }
   updateTwpPlane(d?.twp_plane, !!d?.twp_defined, d?.kins_type,
     twpPoseStale(d?.twp_pose_a, d?.rotary_abc?.[0], d?.twp_defined));
 }
@@ -728,8 +742,8 @@ function updateTwpPlane(plane: unknown, defined: boolean, ktype: unknown, stale:
   // `stale` joins the signature or the tint would never repaint — a boolean,
   // so live A jitter under the eps costs nothing.
   const sig = ok
-    ? `${(plane as number[]).map((v) => Number(v).toFixed(4)).join(",")}|${k}|${_twpLayerOn}|${stale}`
-    : "off";
+    ? `${(plane as number[]).map((v) => Number(v).toFixed(4)).join(",")}|${k}|${_twpLayerOn}|${stale}|${simMode.value}`
+    : `off|${simMode.value}`;
   if (sig === _twpSig) return;
   _twpSig = sig;
   if (!ok || !_twpLayerOn) {
@@ -758,7 +772,17 @@ function updateTwpPlane(plane: unknown, defined: boolean, ktype: unknown, stale:
   _twpM.makeBasis(_twpX, _twpY, _twpZ);
   twpPlaneGroup.quaternion.setFromRotationMatrix(_twpM);
   twpPlaneGroup.position.set(p[0]!, p[1]!, p[2]!);   // machine units = world units
-  const hex = stale ? _TWP_STALE_HEX : (k === 2 ? _TWP_ACTIVE_HEX : _TWP_INACTIVE_HEX);
+  // The PLANE is never the stale thing — it rides the workpiece. What goes
+  // stale is the head solve, and that is the CHIP's claim to make; painting
+  // the plane red would assert the plane is wrong when it is not. The
+  // +Z arrow (the tool-normal claim) carries the warning instead.
+  const hex = k === 2 ? _TWP_ACTIVE_HEX : _TWP_INACTIVE_HEX;
+  if (twpNormalArrow) {
+    (twpNormalArrow.line.material as THREE.LineBasicMaterial).color
+      .setHex(stale ? _TWP_STALE_HEX : AXIS_HEX.z);
+    (twpNormalArrow.cone.material as THREE.MeshBasicMaterial).color
+      .setHex(stale ? _TWP_STALE_HEX : AXIS_HEX.z);
+  }
   if (twpPlaneMat) twpPlaneMat.color.setHex(hex);
   if (twpGridMat) twpGridMat.color.setHex(hex);
   twpPlaneGroup.visible = true;
@@ -884,6 +908,7 @@ function ensureCoreGroups(init: ViewerInit) {
   workRotGroup = null;
   workAxes = null;
   machineBoundsMesh = null;
+  twpNormalArrow = null;
   machineMeshes = [];
   _machineEdgeLines = [];
   _edgesBuilt = false;
@@ -992,7 +1017,10 @@ function ensureCoreGroups(init: ViewerInit) {
     const _tl = 80 * _unitScale, _th = _tl * 0.15, _tw = _tl * 0.08;
     twpPlaneGroup.add(new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(), _tl, AXIS_HEX.x, _th, _tw));
     twpPlaneGroup.add(new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), new THREE.Vector3(), _tl, AXIS_HEX.y, _th, _tw));
-    twpPlaneGroup.add(new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1), new THREE.Vector3(), _tl, AXIS_HEX.z, _th, _tw));
+    // +Z is the TOOL-NORMAL claim, so it is the element that carries the
+    // stale warning (see updateTwpPlane) — keep a handle on it.
+    twpNormalArrow = new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1), new THREE.Vector3(), _tl, AXIS_HEX.z, _th, _tw);
+    twpPlaneGroup.add(twpNormalArrow);
     // _workGrp local frame = machine coordinates (see header comment) — and
     // the fresh group starts hidden, so the stale signature must be cleared
     // or an unchanged status would skip re-showing it after a rebuild.
@@ -1948,8 +1976,10 @@ let _scrubLineNo: number | null = null;
 // model re-poses immediately instead of waiting for the next status tick.
 let _lastState: ViewerState | null = null;
 
-function onScrubPose(joints: (number | null)[] | null, line: number | null, cum: number | null, trk: ScrubTrack | null, displayLine: number | null = null) {
+function onScrubPose(joints: (number | null)[] | null, line: number | null, cum: number | null, trk: ScrubTrack | null, displayLine: number | null = null, plane: number[] | null = null) {
   _scrubJoints = joints;
+  _scrubPlane = plane;
+  _twpRefresh();
   // RAW sample line: keys the clash tint and the 3D path highlight, whose
   // data (collision hits, drawn feed_lines) carries the same sub-relative
   // numbering — self-consistent. The TEXT panel gets only the per-point-

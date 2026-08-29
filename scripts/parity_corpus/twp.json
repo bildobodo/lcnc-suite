@@ -24,6 +24,12 @@
       "runs": 2,
       "tol": 0.5,
       "note": "motion after g69: the relabel must carry forward per axis, not just patch the segment start (was a 897mm phantom). Run 2 also starts parked in identity."
+    },
+    {
+      "file": "twp_a_define_tilted.ngc",
+      "runs": 2,
+      "tol": 0.5,
+      "note": "the plane is DEFINED at a tilted table (A20 before g68.2). Pins table-relative storage: g68.2's P-branches change meaning with zero code change, so nothing else can catch a regression here. Stub the table mapping and this reports ~19.3 deg."
     }
   ]
 }
