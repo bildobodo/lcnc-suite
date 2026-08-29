@@ -120,5 +120,36 @@ class TestExtraPinsKinsGating(unittest.TestCase):
         self.assertEqual(pins.get("twp_pose_a"), "twp-helper-comp.twp-pose-a")
 
 
+class TestHealthArmedClients(unittest.TestCase):
+    """`/health` reports armed client COUNT so a harness can check, before it
+    starts, whether anyone can answer an M6 (this config has no HAL loopback
+    for the tool-change half, so an unattended run would just block).
+
+    The regression it pins: `_clients` is Dict[int, ClientState], and a first
+    cut iterated the dict — yielding int KEYS — with
+    `getattr(c, "armed", False)`, which silently reported zero armed clients
+    forever. A silent fallback inside the feature built to remove one."""
+
+    def _health(self, states):
+        orig = dict(gateway._clients)
+        gateway._clients.clear()
+        gateway._clients.update(states)
+        try:
+            return gateway.health()
+        finally:
+            gateway._clients.clear()
+            gateway._clients.update(orig)
+
+    def test_counts_armed_client_values_not_dict_keys(self):
+        class _C:
+            def __init__(self, armed): self.armed = armed
+        h = self._health({1: _C(True), 2: _C(False), 3: _C(True)})
+        self.assertEqual((h["clients"], h["armed_clients"]), (3, 2))
+
+    def test_no_clients_reports_zero(self):
+        h = self._health({})
+        self.assertEqual((h["clients"], h["armed_clients"]), (0, 0))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -4435,7 +4435,17 @@ app.mount("/assets", StaticFiles(directory=str(MACHINE_DIR), html=False), name="
 
 @app.get("/health")
 def health():
-    return {"ok": True}
+    # `armed_clients` lets a harness check, BEFORE it starts, whether anyone
+    # can answer an M6: this config has no HAL loopback for the tool-change
+    # half, so confirm_tool_change (armed-only) is the sole path and an
+    # unattended run would otherwise just block. Counts, never identities.
+    # _clients is Dict[int, ClientState] — iterate VALUES. (`getattr(c,
+    # "armed", False)` over the dict silently counted zero armed clients
+    # forever, which is the exact silent-fallback shape this endpoint exists
+    # to eliminate; assert the attribute instead of defaulting it.)
+    return {"ok": True,
+            "clients": len(_clients),
+            "armed_clients": sum(1 for c in _clients.values() if c.armed)}
 
 
 @app.post("/telemetry")

@@ -29,6 +29,7 @@ Per run:
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -39,6 +40,7 @@ _HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, _HERE)
 sys.path.insert(0, os.path.join(_HERE, "..", "lcnc-gateway"))
 
+from gateway_util import strip_gcode_comments  # noqa: E402
 import msgspec  # noqa: E402
 import numpy as np  # noqa: E402
 
@@ -174,6 +176,76 @@ def cmd_compare(a):
     return 0 if ok else 1
 
 
+_TOOLCHANGE_RE = re.compile(r"\bM\s*0*6(?!\d)", re.IGNORECASE)
+
+
+def program_needs_toolchange(path):
+    """Does this program stop for a tool change? Comments stripped, and M600/
+    M601 are matched FIRST so the toolsetter remaps never read as a bare M6
+    (they call M6 internally and stop the same way)."""
+    try:
+        with open(path) as f:
+            text = f.read()
+    except OSError:
+        return False
+    for raw in text.splitlines():
+        line = strip_gcode_comments(raw)
+        if re.search(r"\bM\s*0*60[01]\b", line, re.IGNORECASE):
+            return True
+        if _TOOLCHANGE_RE.search(line):
+            return True
+    return False
+
+
+def _preflight_toolchange(corpus, cdir, port):
+    """Say the dependency out loud BEFORE burning 180 s per program on it.
+
+    This config deliberately does not self-loop the tool-change handshake
+    (hallib/core_sim_6.hal: `tool-change-request` has no reader,
+    `tool-change-confirmed` is driven only by webui-safety.tool-changed), so
+    an M6 blocks until a CLIENT confirms it — and confirm_tool_change
+    requires an ARMED one. An unattended gate would simply hang there. We
+    refuse instead of auto-answering: a machine that stops for the operator
+    is a fact about the machine, not an inconvenience for the harness."""
+    needs = []
+    for entry in corpus.get("programs", []):
+        ngc = os.path.expanduser(entry["file"])
+        if not os.path.isabs(ngc):
+            ngc = os.path.normpath(os.path.join(cdir, ngc))
+        if program_needs_toolchange(ngc):
+            needs.append(os.path.basename(ngc))
+    if not needs:
+        return
+    armed, reachable, reports = None, False, False
+    try:
+        with urllib.request.urlopen(
+                f"http://127.0.0.1:{port}/health", timeout=2.0) as r:
+            reachable = True
+            _h = json.loads(r.read())
+            reports = "armed_clients" in _h
+            armed = _h.get("armed_clients")
+    except Exception:
+        pass
+    if armed:
+        return
+    if not reachable:
+        detail = f"the gateway is not answering on port {port}"
+    elif not reports:
+        detail = ("the gateway is running but does not report armed_clients "
+                  "— it predates this check, so restart it to use the "
+                  "pre-flight (proceeding blind would just hang)")
+    else:
+        detail = "no armed client is connected"
+    sys.exit(
+        f"sim_parity: {len(needs)} corpus program(s) stop for a tool change "
+        f"({', '.join(needs)}) and {detail}.\n"
+        f"  This config routes M6 through webui-safety.tool-changed "
+        f"(hallib/lcnc_webui.hal), and the gateway's confirm_tool_change "
+        f"requires an ARMED client — nothing else answers, so the capture "
+        f"would hang for 180 s per run and report nothing.\n"
+        f"  Open the web UI and arm it, then re-run.")
+
+
 def cmd_gate(a):
     corpus = json.load(open(a.corpus))
     cdir = os.path.dirname(os.path.abspath(a.corpus))
@@ -181,6 +253,7 @@ def cmd_gate(a):
     out_dir = a.out_dir or os.path.join(cdir, "runs")
     os.makedirs(out_dir, exist_ok=True)
     import linuxcnc  # noqa: F401  (sample_run needs it; fail early if absent)
+    _preflight_toolchange(corpus, cdir, a.port)
     fails = 0
     for entry in corpus["programs"]:
         ngc = os.path.expanduser(entry["file"])
@@ -210,8 +283,31 @@ def cmd_gate(a):
                 raw = fetch_gateway_payload(a.port, ngc)
             with open(payload_path, "wb") as f:
                 f.write(raw)
-            # 2. the real run.
-            sample_run(ini, ngc, truth_path)
+            # 1b. REFUSE a partial parse. The worker ships parse_error /
+            # error_line when the interpreter stopped early; the payload then
+            # describes only a PREFIX of the program. A truncation whose
+            # missing tail happens to carry no motion still passes every
+            # geometric check — which is exactly how a two-line G-code comment
+            # once shipped a truncated preview through a green gate. Certify
+            # nothing we could not parse.
+            _pd = msgspec.msgpack.decode(raw)
+            if _pd.get("parse_error"):
+                fails += 1
+                print(f"[FAIL] {tag}: payload carries parse_error "
+                      f"{_pd['parse_error']!r} at line {_pd.get('error_line')}"
+                      f" — PARTIAL parse, refusing to certify")
+                continue
+            # 2. the real run. A run that cannot complete (an unanswered M6 is
+            # the usual cause on this config) fails THIS run only — one
+            # program must not destroy the other results, which is what a
+            # bare SystemExit propagating out of sample_run used to do.
+            try:
+                sample_run(ini, ngc, truth_path)
+            except SystemExit as e:
+                fails += 1
+                print(f"[FAIL] {tag}: capture aborted ({e}) — see the "
+                      f"tool-change note above if this program has an M6")
+                continue
             # 3. the sim replay of the SAME pre-run payload + start state.
             r = subprocess.run(
                 ["npx", "vite-node", "scripts/simDump.ts", "--",

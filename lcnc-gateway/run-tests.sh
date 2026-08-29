@@ -17,4 +17,5 @@ PY=.venv/bin/python3
 exec "$PY" -m unittest "$@" \
   test_gateway_util \
   test_command_policy \
-  test_command_dispatch
+  test_command_dispatch \
+  test_ngc_fixtures
