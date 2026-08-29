@@ -126,7 +126,10 @@ def mdi(line, timeout=180.0, expect_error=False):
     poll()
     errors = _drain_errors()
     if expect_error:
-        return errors
+        # The gateway polls the same NML error queue at 30 Hz and usually
+        # wins the race for the message text, so the RCS status is the
+        # reliable signal that the interpreter rejected the line.
+        return errors + (["<RCS_ERROR>"] if rc == linuxcnc.RCS_ERROR else [])
     if rc == linuxcnc.RCS_ERROR or rc == -1 or not idle or errors:
         raise SystemExit(f"MDI {line!r} did not complete cleanly: rc={rc} "
                          f"idle={idle} errors={errors}")
@@ -266,8 +269,21 @@ before_bare = snap()
 refusal = mdi("G53.1", expect_error=True)
 check("bare G53.1 was refused", bool(refusal), "; ".join(refusal)[:120])
 after_bare = snap()
+# The wrapper demoted kins to identity before M530, so a status still
+# claiming ACTIVE would be a lie; the refusal now demotes it to DEFINED
+# (M68 E2 Q1 on the error path — live-verified here, the precedent for
+# an M-code before CANON_ERROR was success-path only).
+check("refusal left kins at identity", after_bare["motion.switchkins-type"] == 0)
+check("refusal demoted status to DEFINED (not active)",
+      after_bare["twp-helper-comp.twp-is-defined"] == 1
+      and after_bare["twp-helper-comp.twp-is-active"] == 0,
+      f"defined={after_bare['twp-helper-comp.twp-is-defined']:.0f} "
+      f"active={after_bare['twp-helper-comp.twp-is-active']:.0f}")
+# GEOMETRY pins only: the refusal now legitimately demotes twp-is-active
+# (kins is identity after the wrapper's M68 E3 Q0, so ACTIVE would be a lie).
 plane_keys = [k for k in PINS if k.startswith("twp-helper-comp.twp-")
-              and not k.endswith("pose-a")]
+              and k.split(".")[-1][4:] in ("ox", "oy", "oz", "zx", "zy", "zz",
+                                            "xx", "xy", "xz")]
 kept = all(abs(before_bare[k] - after_bare[k]) < 1e-9 for k in plane_keys)
 check("plane survived the refusal", kept,
       "" if kept else "WIPED: " + ", ".join(
@@ -279,6 +295,12 @@ j_before = joints()
 t0 = time.time()
 mdi("o<twp_reorient> call")
 dt = time.time() - t0
+# The pose stamp is written by the remap AFTER the queued moves complete
+# (post-yield), behind the helper's 50 ms display period: give it a moment
+# rather than reading the previous value.
+_t = time.time()
+while time.time() - _t < 3.0 and abs(halget("twp-helper-comp.twp-pose-a") - 35.0) > 1e-3:
+    time.sleep(0.05)
 done = snap()
 print(f"  took {dt:.1f}s   B={done['xyzacb_trsrn_kins.secondary-angle']:.5f} "
       f"C={done['xyzacb_trsrn_kins.primary-angle']:.5f} "

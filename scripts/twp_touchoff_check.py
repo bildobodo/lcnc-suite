@@ -40,7 +40,7 @@ GATEWAY = "http://127.0.0.1:8000"
 
 c = linuxcnc.command()
 s = linuxcnc.stat()
-err = linuxcnc.error_channel()
+_errch = linuxcnc.error_channel()   # not `err`: section C reuses that name for the angle
 FAILS = []
 
 
@@ -70,7 +70,7 @@ def wait_idle(timeout=180.0):
 def _drain_errors():
     msgs = []
     while True:
-        e = err.poll()
+        e = _errch.poll()
         if not e:
             return msgs
         kind, text = e
@@ -95,22 +95,34 @@ def mdi(line, timeout=180.0):
 
 
 def read_params(nums, timeout=5.0):
-    """Interpreter parameters via `(DEBUG, ...)` on the error channel — the
-    only way to read #-params from outside the interp without trusting a
-    var file that is written only at save time."""
-    _drain_errors()
-    c.mode(linuxcnc.MODE_MDI)
-    c.wait_complete()
-    c.mdi("(DEBUG,PARAMS " + " ".join(f"#{n}" for n in nums) + ")")
-    c.wait_complete(timeout)
+    """Interpreter parameters via RS274's (LOGOPEN)/(LOG)/(LOGCLOSE) — the
+    interp expands #-params into a file we own. A (DEBUG,...) message on the
+    error channel is the obvious alternative, but the gateway drains that
+    NML queue at 30 Hz and usually wins the race for it; a var file is
+    written only at save time. The log file has no such reader to lose to."""
+    import tempfile
+    path = os.path.join(tempfile.gettempdir(), f"twp_touchoff_params_{os.getpid()}.txt")
+    try:
+        os.remove(path)
+    except OSError:
+        pass
+    mdi(f"(LOGOPEN,{path})")
+    mdi("(LOG,PARAMS " + " ".join(f"#{n}" for n in nums) + ")")
+    mdi("(LOGCLOSE)")
     t0 = time.time()
     while time.time() - t0 < timeout:
-        e = err.poll()
-        if e and "PARAMS" in str(e[1]):
-            vals = str(e[1]).split("PARAMS", 1)[1].split()
-            return [float(v) for v in vals]
+        try:
+            with open(path) as f:
+                for ln in f:
+                    if "PARAMS" in ln:
+                        vals = ln.split("PARAMS", 1)[1].split()
+                        if len(vals) == len(nums):
+                            os.remove(path)
+                            return [float(v) for v in vals]
+        except OSError:
+            pass
         time.sleep(0.05)
-    raise SystemExit("could not read interpreter parameters")
+    raise SystemExit(f"could not read interpreter parameters ({path})")
 
 
 def machine_from_table(p, a_deg):
@@ -220,7 +232,12 @@ def _teardown():
         mdi("g69")
         mdi("G0 A0")
         g = _saved_g54
-        mdi("G10 L2 P1 X%.6f Y%.6f Z%.6f A%.6f B%.6f C%.6f U%.6f V%.6f W%.6f R%.6f" % tuple(g))
+        # Only CONFIGURED axes: the interpreter rejects a G10 that names an
+        # axis the machine lacks (U/V/W here) — rc 3, no message text.
+        s.poll()
+        words = " ".join(f"{L}{g[i]:.6f}" for i, L in enumerate("XYZABCUVW")
+                         if s.axis_mask & (1 << i))
+        mdi(f"G10 L2 P1 {words} R{g[9]:.6f}")
         mdi(" ".join(f"#{_PROV[k]}={v:.6f}" for k, v in
                      zip(("kins", "a", "x", "y", "z", "stamped"),
                          (_saved_prov[1], _saved_prov[2], _saved_prov[3],

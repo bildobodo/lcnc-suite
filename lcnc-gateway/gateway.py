@@ -2484,8 +2484,12 @@ async def _cmd_blocking(cmd_fn, *args, wait=_CMD_WAIT_TIMEOUT) -> int:
     extension holds the GIL during its blocking sections; calling it directly
     from the event-loop thread starves `_heartbeat_loop` and trips the HAL
     watchdog. `asyncio.to_thread` isolates the blocking section so heartbeats
-    and status polls keep firing. Returns wait_complete()'s int result (0 ok,
-    1 failed, -1 timeout) or 0 when wait=None.
+    and status polls keep firing. Returns wait_complete()'s int result —
+    linuxcnc.RCS_DONE (1) on success, linuxcnc.RCS_ERROR (3) when the
+    command was rejected, -1 on timeout — or 0 when wait=None. (An earlier
+    version of this docstring said "0 ok, 1 failed", which is not the API:
+    the first rc check written against it counted every success as a
+    failure. Use _cmd_rc_failed.)
 
     Caller must hold `_cmd_lock` — NML command channel is not thread-safe.
     """
@@ -4086,7 +4090,7 @@ async def _stamp_wcs_provenance(indices, values_by_index,
             if action == "clear":
                 rc = await _cmd_blocking(
                     CMD.mdi, f"#{n['stamped']}=0.000000", wait=5)
-                if rc:
+                if _cmd_rc_failed(rc):
                     out[p] = "failed"
                     _trace.emit("wcs.provenance_stamp_failed", level="warn",
                                 index=p, rc=rc, action="clear")
@@ -4107,7 +4111,7 @@ async def _stamp_wcs_provenance(indices, values_by_index,
                 f"#{n['x']}={xyz[0]:.6f} #{n['y']}={xyz[1]:.6f} "
                 f"#{n['z']}={xyz[2]:.6f} #{n['stamped']}={PROV_STAMPED:.6f}",
                 wait=5)
-            if rc:
+            if _cmd_rc_failed(rc):
                 # wait_complete said no (1) or timed out (-1): the record may
                 # not exist. No success trace, no cache update — the next
                 # decision must not believe a stamp that may not be there.
@@ -4176,6 +4180,8 @@ async def _ensure_prov_var_rows() -> None:
                 return
             _trace.emit("wcs.provenance_rows_seeded", level="info",
                         path=path, count=len(missing))
+        else:
+            _trace.emit("wcs.provenance_rows_ok", level="info", path=path)
         _prov_rows_ok = True
         _prov_rows_ensured.add(path)
         for i in range(1, 10):
@@ -4189,6 +4195,15 @@ async def _ensure_prov_var_rows() -> None:
     except Exception as exc:  # noqa: BLE001 - a failed check must be loud, not fatal
         _prov_rows_ok = False
         _trace.emit("wcs.provenance_seed_failed", level="warn", error=repr(exc))
+
+
+def _cmd_rc_failed(rc) -> bool:
+    """Did a _cmd_blocking(..., wait=N) call fail? RCS_DONE (1) and the
+    wait=None sentinel 0 are success; RCS_ERROR (3) and -1 (timeout) are
+    not. RCS_EXEC (2) cannot come back from wait_complete with a timeout —
+    it returns -1 instead — but is treated as failure too: not done is
+    not done."""
+    return rc not in (0, linuxcnc.RCS_DONE)
 
 
 def _kins_is_switchable() -> bool:
