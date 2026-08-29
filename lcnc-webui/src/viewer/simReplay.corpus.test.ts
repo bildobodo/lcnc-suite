@@ -130,6 +130,26 @@ const cases = existsSync(RUNS)
       .filter((tag: string) => existsSync(`${RUNS}/${tag}.payload.msgpack`))
   : [];
 
+/**
+ * Per-program joint tolerance, from the corpus manifests the live gate uses
+ * (scripts/parity_corpus/*.json: `tol` per entry, default 0.5). The two must
+ * agree or this replay contradicts the gate on the same artifacts — e.g.
+ * twp_g683_tilted carries a documented ~1.07 mm seed spike gated at 1.5.
+ */
+const CORPUS_DIR = resolve(HERE, "../../../scripts/parity_corpus");
+const TOL: Record<string, number> = {};
+for (const f of existsSync(CORPUS_DIR) ? readdirSync(CORPUS_DIR) : []) {
+  if (!f.endsWith(".json")) continue;
+  try {
+    const m = JSON.parse(readFileSync(`${CORPUS_DIR}/${f}`, "utf8"));
+    for (const e of m.programs ?? []) {
+      const base = String(e.file).split("/").pop()!.replace(/\.ngc$/i, "");
+      if (typeof e.tol === "number") TOL[base] = e.tol;
+    }
+  } catch { /* a manifest that does not parse contributes no tolerance */ }
+}
+const tolFor = (tag: string) => TOL[tag.replace(/\.run\d+$/, "")] ?? 0.5;
+
 describe("sim replay vs recorded machine truth (committed corpus)", () => {
   it("has corpus artifacts to replay", () => {
     // A silently empty suite would be the worst outcome: it looks green.
@@ -149,10 +169,11 @@ describe("sim replay vs recorded machine truth (committed corpus)", () => {
         .toBeLessThan(0.05);
       // Both directions: the sim must cover the real path AND invent nothing.
       // sim->truth is the one that catches a phantom excursion (897 mm, once).
-      expect(deviation(truth, sim), `${tag}: truth not covered by sim`)
-        .toBeLessThan(0.5);
-      expect(deviation(sim, truth), `${tag}: sim invents motion`)
-        .toBeLessThan(0.5);
+      const tol = tolFor(tag);
+      expect(deviation(truth, sim), `${tag}: truth not covered by sim (tol ${tol})`)
+        .toBeLessThan(tol);
+      expect(deviation(sim, truth), `${tag}: sim invents motion (tol ${tol})`)
+        .toBeLessThan(tol);
     });
   }
 });

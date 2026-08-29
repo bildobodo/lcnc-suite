@@ -1866,3 +1866,146 @@ All three now carry the reason in the file.
 **NOT DONE, and not started:** refusing a plain XYZ program when the table
 has moved since touch-off, and reporting a touch-off-mode vs run-mode
 mismatch. The record those need now exists; the surfacing does not.
+
+## 2026-08-29 — review fix wave: the span reviewed, and what it turned up
+
+**What was reviewed.** The 08-25..08-29 continuation (table-relative
+plane, M530 Q1 re-orient, W1 touch-off provenance, the g69-tail carry,
+gate hardening) — four review agents over the remap fork, the gateway
+provenance layer, the viewer/UI and the scripts, with the critical
+finding re-derived by hand before anything was changed. The core
+architecture held; the defects were on the sibling paths the
+acceptance choreography never walked. Everything below landed on
+feat/twp the same day and was live-verified on the sim.
+
+**CRITICAL — G68.3 stored a VECTOR through the point transform.** g683
+converted twp_matrix column 3 with `to_table_frame`, which rotates
+about the table axis LINE (subtract pivot, rotate, add back). Column 3
+is the work-offset→origin VECTOR (g53x_core sums it with the offset), and
+for a vector the pivot must cancel: the stored origin picked up
+(I−Rx(A))·pivot — **776.6 mm at A=20** with this pivot — behind a plane
+whose normal was right, so every angle-based check read 0. Nothing
+covered it: both tilted corpus programs use G68.2, whose words are
+workpiece intent and never convert. Fix: `to_table_frame_vector`
+(rotation-only) for all three columns; tests pin the defining property
+(vector transform == difference of two point transforms, for ANY pivot)
+and the bug's magnitude. Live (`twp_g683_check.py`): stored vector ==
+Rx(20)·words to **0.0000 mm**; the point path would have been 776.6 off.
+
+**The gate could not have seen it — and now can.** Truth and sim share
+the remap, so joint parity certifies a plane that is wrong in the same
+way twice, and every frame-independent invariant is blind to a pure
+translation. First cut: gate the traced square's CENTROID from the text.
+It read a constant 26 mm on every tilted program, the accepted G68.2
+ones included — 22 along the normal (mode-1 twin without the TLO) plus a
+~14 mm head-geometry term the mode-1 and mode-2 reference points differ
+by. The plane was right; the oracle was measuring the head. The clean
+oracle is the **G59 row the remap actually wrote** (the TOOL samples'
+own per-sample g5x — the header's wcs_table is a capture-START snapshot
+and holds the previous program's G59 on run 1) rotated back to the
+machine frame through the mode-2 frame R (Jacobian of the mode-2 twin
+at the payload's frame triple; exact, the map is affine) against
+`plane_origin_expectation` from the text. **origin_err 0.0000 mm on all
+ten plane runs**; the vector bug reads 776.58 against it. The sim-parity
+gate now runs `truth_plane_invariants` per run; `[----]` for programs
+with no plane (a vacuous pass is not a pass).
+
+**MAJOR — error paths destroyed the plane.** A bad P word or an
+unreachable orientation called reset_twp_params while twp-status stayed
+defined/active → the next G53.x silently oriented against an identity
+matrix; on the Q1 path kins was already identity under an ACTIVE status
+and a retry "succeeded" against zeros. Now no error exit resets; the
+active-refusal branch demotes status to DEFINED (the wrapper already
+dropped kins) — `M68 E2 Q1` before CANON_ERROR works on the error path,
+live-verified with the pins; twp_reorient.ngc demotes status beside its
+kins demote so any failure in the window leaves {identity, DEFINED,
+plane intact}. The head-pose stamp moved to AFTER the queued moves
+complete (post-yield): an aborted orient publishes no stamp. Live
+probes 16/16: unreachable, bad P, aborted mid-move — plane preserved,
+status honest, sentinel kept. calc_shortest_distance extracted to
+twp_transform with upstream's else-binding fixed (mode-1 results were
+clobbered; mode-2's zero-move −360 is pinned as upstream behavior).
+
+**MAJOR — provenance had three holes.** (1) LinuxCNC persists only var
+rows present at load; sim.var/sim_tcp.var never had the 523x rows and
+neither does any pre-feature install, so a stamp evaporated at exit and
+the next G68.2 read "assumed A=0" for an offset the operator was told was
+recorded at 20 — the one place the fallback was NOT fail-safe. Templates
+seeded; `_ensure_prov_var_rows` (connect + lifespan) appends missing rows
+as zeros via the atomic var writer, verifies, and traces rows_ok /
+rows_seeded / seed_failed; a failed seed makes every later stamp trace
+`provenance_not_persistent`. **Crux experiment settled the design**: on
+the 5-axis config (installed sim.var had NO rows) the gateway seeded 54,
+a set_wcs at A=15 stamped, a graceful exit wrote the file — rows present
+WITH the in-memory values (5231=1, 5233=15, xyz=11/22/−33), every other
+row byte-identical. (2) A partial write (the everyday Z-only touch-off)
+re-stamped the whole triple at the current pose: X/Y probed at A=0 then
+Z at A=20 read "all at A=20" under a VALID stamp. `wcs_stamp_decision`
+clears the stamp for a partial write whose prior valid stamp sits at a
+different pose/kins (or with no prior stamp away from the datum) — the
+one state whose downstream meaning is true — traced and surfaced as
+`provenance.cleared_mixed_angle` in the reply; live: full → stamped,
+Z-only same pose → stamped, Z-only at A=20 → cleared, full at 20 →
+stamped. (3) The remap never read the kins slot it was given "so the
+record is falsifiable": TOOL/TCP touch-offs were consumed as
+machine-frame numbers. twp_prov.py is the fork twin (pinned by a real
+import in test_twp_prov); to_storage_frame refuses kins 2 anywhere and
+kins 1 off the A=0 datum (where TCP == identity provably).
+
+**Also:** `wait_complete()` returns RCS_DONE=**1** on success — a
+docstring said "1 failed" and the first rc check counted every
+successful stamp as a failure (caught live: four stamp_failed rc=1 on
+touch-offs the acceptance had just proven); the G10 rewrite scan is a
+whitespace-free word scan (the phrase regex missed N10G10L2P1X5, free
+word order and every dynamic P/L); the A pose reads the joint by
+axis-mask popcount, not a hardcoded 3; evaluate_wcs_provenance returns
+"unknown" instead of manufacturing a stale verdict from substituted
+zeros.
+
+**UI — the jog question, answered from the code.** Plane-mode Z IS the
+tool axis, but only for the frame frozen into the kins pins at the last
+G53.x (Aciera, forum #292228: the comp "uses the static angles
+calculated by the TWP remap" — a deliberate safety choice); a bare M430
+reuses whatever pins the last session left, and a table move since the
+orient tilts the face away. "Rotate A and XYZ follows" cannot live in
+mode 2 (no A term, by design — table-aware mode 2 breaks TLO, rightly
+rejected) but **mode 1 already is it**: TCP world XYZ is the table-riding
+work frame. Live: A +10° under M429 moved the XYZ joints 56.8/−165.5 mm
+while world XYZ held to 0.0000. M429 had zero UI references; the
+jog-frame selector now offers Machine / TCP / Plane, reflects the ACTUAL
+kins type (type 1 used to display as Machine and one click dropped it to
+identity), states the freshness condition on Plane and shows "(stale)"
+from the twpPose predicate, and Re-orient holds to fire. Upstream's demo
+GUI switches the same three modes (IDENTITY/TCP/TOOL); the terminology
+maps 1:1. Forum find worth carrying: with tight soft limits a rotated
+frame can make a plane-mode jog fail silently (planner is cartesian;
+G59 can put axis positions outside limits) — upstream answers with
+switchable limits via M-codes (millturn sim). Ledger.
+
+**Harness fail-safety.** twp_reorient_check gained the sibling's
+require_ready, MDI error checking, atexit teardown and config-read
+constants (a "45 deg" comment sat on a 55 value); twp_touchoff_check
+restores G54 + provenance on every exit (capture via (LOGOPEN)/(LOG) —
+the gateway drains the NML error queue at 30 Hz, so (DEBUG,…) loses the
+race and so does message-text refusal detection: the RCS status is the
+signal); lcnc-stop rejects unknown args, sees loadusr orphans, re-checks
+before SIGKILL; sim_parity refuses joint-width mismatch and isolates a
+never-settling payload per run. Deliberately NOT added: a between-runs
+pose reset — run n+1 from run n's parked pose is coverage.
+
+**Corpus gate, this session (6 programs / 11 runs):** all G68.2 and
+g69-tail runs PASS at ≤0.050; plane invariants PASS on every plane run
+(normal ≤0.0054°, origin 0.0000). twp_g683_tilted joint parity 0.61/1.07
+(tol now 1.5 with the reason in twp.json — one localized spike, p99 ≤
+0.05, on the initial head-posing rapids where the parse-time rotary
+seed differs from the run's actual start pose; OPEN: why the rotary
+drift edge did not re-seed B/C for a freshly loaded file between
+runs). twp_simple_example.run1 RED at exactly 22.000 on this fresh
+session = the known sixth-input TLO catch (unchanged, on the schema-8
+ledger); its committed artifacts stay the green set.
+
+**Open / deferred:** schema-8 tlo_events + full TLO-consumer audit (also
+retires the G43-retires-carry edge in insert_flip_relabels); the g683
+rotary-seed spike above; switchable soft limits on M430 entry;
+kins==1 tilted touch-off admission (needs a live probe of what a TCP
+G10 records); preview_gate orphaned-golden sweep.
