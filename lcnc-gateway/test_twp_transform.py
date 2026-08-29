@@ -20,7 +20,8 @@ sys.path.insert(
     ),
 )
 
-from twp_transform import compose_table_a  # noqa: E402
+from twp_transform import (  # noqa: E402
+    compose_table_a, to_table_frame, from_table_frame)
 
 Y_RA = -1000.0
 Z_RA = -2000.0
@@ -88,6 +89,42 @@ class TestComposeTableA(unittest.TestCase):
         self.assertTrue(_close(z2, z3, tol=1e-10))
         self.assertTrue(_close(x2, x3, tol=1e-10))
         self.assertTrue(_close(o2, o3, tol=1e-8))
+
+
+class TestFrameDirections(unittest.TestCase):
+    """The plane is STORED table-relative, so the two directions must be exact
+    inverses at every table angle — that round trip is what lets G53.x orient
+    to where the face IS while the stored definition never changes."""
+
+    Z0 = (0.258819, -0.482963, 0.836516)     # the corpus plane's normal
+    X0 = (0.965926, 0.129410, -0.224144)
+    O0 = (1350.0, -150.0, -1450.0)
+
+    def test_round_trip_is_the_identity_at_every_table_angle(self):
+        for a in (0.0, 7.5, 20.0, 90.0, 180.0, -33.25, 359.9):
+            z1, x1, o1 = to_table_frame(self.Z0, self.X0, self.O0, a, Y_RA, Z_RA)
+            z2, x2, o2 = from_table_frame(z1, x1, o1, a, Y_RA, Z_RA)
+            self.assertTrue(_close(z2, self.Z0, 1e-9), a)
+            self.assertTrue(_close(x2, self.X0, 1e-9), a)
+            self.assertTrue(_close(o2, self.O0, 1e-7), a)
+
+    def test_at_a_zero_table_the_frames_coincide(self):
+        # The datum: table coords == machine coords at A = 0, which is why
+        # every existing program (all of which define at A=0) is unaffected.
+        z, x, o = to_table_frame(self.Z0, self.X0, self.O0, 0.0, Y_RA, Z_RA)
+        self.assertTrue(_close(z, self.Z0))
+        self.assertTrue(_close(x, self.X0))
+        self.assertTrue(_close(o, self.O0))
+
+    def test_the_two_directions_are_opposite_rotations(self):
+        a = 25.0
+        z_t, _x, _o = to_table_frame(self.Z0, self.X0, self.O0, a, Y_RA, Z_RA)
+        z_m, _x2, _o2 = from_table_frame(self.Z0, self.X0, self.O0, a, Y_RA, Z_RA)
+        # Equal and opposite about the table axis: neither is the identity,
+        # and applying one then the other returns the original (above).
+        self.assertFalse(_close(z_t, self.Z0, 1e-6))
+        self.assertFalse(_close(z_m, self.Z0, 1e-6))
+        self.assertFalse(_close(z_t, z_m, 1e-6))
 
 
 if __name__ == "__main__":

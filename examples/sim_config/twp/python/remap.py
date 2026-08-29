@@ -46,7 +46,7 @@ from interpreter import *
 import emccanon
 from util import lineno, call_pydevd
 # LCNC-SUITE: pure table-composition geometry (unit-tested off-machine)
-from twp_transform import compose_table_a
+from twp_transform import to_table_frame, from_table_frame
 import hal
 
 
@@ -256,8 +256,7 @@ def webui_preview_reset():
     global _preview_twp_state, _preview_pre_rot
     global twp_matrix, twp_flag, twp_build_params, pre_rot
     global saved_work_offset, saved_work_offset_number, orient_mode
-    global twp_def_a, twp_pose_a
-    twp_def_a = None
+    global twp_pose_a
     twp_pose_a = None
     _preview_twp_state = 0
     _preview_pre_rot = 0.0
@@ -290,11 +289,10 @@ twp_build_params = {}
 # container to store the current work offset during twp operations
 current_work_offset_number = 1
 saved_work_offset = [0,0,0]
-# LCNC-SUITE (table-aware wave): machine-frame A (deg) at the moment the plane
-# was DEFINED - the frame the stored twp_matrix is expressed in. None = no plane.
-twp_def_a = None
-# LCNC-SUITE: machine-frame A the CURRENT plane state assumes (definition pose
-# until an orient recomposes it). Published for the UI staleness indicator.
+# LCNC-SUITE: the machine-frame A the HEAD was last oriented at (G53.x). The
+# PLANE itself is stored table-relative and rides the workpiece, so it cannot
+# go stale; the head solve can. Sentinel until the first orient - before that
+# there is no solve and "not normal" would be a claim about nothing.
 twp_pose_a = None
 # LCNC-SUITE: sentinel published when no plane is defined (the pin always
 # exists, so "none" must be a value - see twp-helper-comp.py).
@@ -861,7 +859,14 @@ def gui_update_twp(self):
     # preview interpreter has no HAL and nothing to display
     if self.task == 0:
         return
-    # twp origin as vector (in world coords) from current work-offset to the origin of the twp
+    # LCNC-SUITE: TABLE-FRAME. twp_matrix is stored relative to the A table
+    # (datum'd to coincide with machine coords at A=0), and the viewer draws
+    # these numbers inside the a_work group — which IS that frame. Publishing
+    # table coordinates is therefore what makes the overlay correct at every
+    # table angle instead of only at A=0. (Upstream's own vismach comment
+    # below describes drawing the plane inside the rotating table too, so the
+    # A-double-count this avoids is latent upstream as well.)
+    # twp origin as a vector from the work-offset to the origin of the twp
     hal.set_p("twp-helper-comp.twp-ox-in",str(twp_matrix[0,3]))
     hal.set_p("twp-helper-comp.twp-oy-in",str(twp_matrix[1,3]))
     hal.set_p("twp-helper-comp.twp-oz-in",str(twp_matrix[2,3]))
@@ -885,8 +890,9 @@ def gui_update_twp(self):
     hal.set_p("twp-helper-comp.twp-ox-world-in",str(work_offset_x))
     hal.set_p("twp-helper-comp.twp-oy-world-in",str(work_offset_y))
     hal.set_p("twp-helper-comp.twp-oz-world-in",str(work_offset_z))
-    # LCNC-SUITE: the machine-frame A this plane state assumes (sentinel when
-    # no plane is defined) - the UI compares it against the live table pose.
+    # LCNC-SUITE: the machine-frame A the HEAD was last oriented at, or the
+    # sentinel when no orient has happened. The PLANE rides the workpiece and
+    # cannot go stale; what goes stale is the tool being normal to it.
     hal.set_p("twp-helper-comp.twp-pose-a-in",
               str(twp_pose_a if twp_pose_a is not None else TWP_POSE_NONE))
 
@@ -946,10 +952,9 @@ def matrix_to_point(matrix):
 
 def reset_twp_params(self):
     global pre_rot, twp_matrix, twp_flag, twp_build_params
-    global twp_def_a, twp_pose_a
+    global twp_pose_a
     pre_rot = 0
-    # LCNC-SUITE: the plane is gone, so is the table pose it assumed
-    twp_def_a = None
+    # LCNC-SUITE: the plane is gone, so is the head solve it was oriented by
     twp_pose_a = None
     # we must not change tool kins parameters when TOOL kins are active or we get sudden joint position changes
     # ie don't do this: kins_comp_set_pre_rot(self,0)!
@@ -968,7 +973,7 @@ def reset_twp_params(self):
 # (ie do it in the ngc remap mentioned above!)
 def g53x_core(self):
     global saved_work_offset, twp_matrix, twp_flag, pre_rot
-    global twp_def_a, twp_pose_a  # LCNC-SUITE: table-aware composition
+    global twp_pose_a  # LCNC-SUITE: head-solve pose
     global joint_letter_primary, joint_letter_secondary, twp_error_status
     global orient_mode, _task_mode, _preview_twp_state, _preview_pre_rot
     # LCNC-SUITE: upstream returned here for the preview interpreter; the
@@ -1024,20 +1029,24 @@ def g53x_core(self):
 
     orient_mode = p
 
-    # ---- LCNC-SUITE (table-aware wave): compose the work table's move ------
-    # The plane was defined in the machine frame at table pose twp_def_a. A is
-    # a WORK-side rotary on this machine, so if the table has turned since,
-    # the physical plane feature turned with it and the stored world numbers
-    # now describe where the face USED to be. Rotate the requested frame — and
-    # the origin POINT, about the table's axis line — by the delta, so we
-    # orient to where the face IS.
+    # ---- LCNC-SUITE: map the stored plane TABLE -> MACHINE ------------------
+    # twp_matrix is stored in the TABLE frame: the frame in which a
+    # table-fixed feature has constant coordinates, datum'd so that it
+    # coincides with the machine frame at A = 0. A is a WORK-side rotary
+    # here, so a plane stored that way RIDES THE WORKPIECE — it can never go
+    # stale, and no definition pose has to be remembered.
     #
-    # twp_matrix itself is deliberately NOT modified: it stays the
-    # definition-frame record that G68.4 composes onto and that the helper
-    # publishes for the plane overlay (which hangs off the table in the
-    # viewer, so definition coords drawn there land on the composed frame).
+    # To orient the head we need the plane where it physically IS right now,
+    # so the stored frame is mapped through the LIVE table angle. Below the
+    # threshold this is skipped outright, so an A=0 program emits byte-
+    # identical G59 rows and the goldens/corpus are untouched.
+    #
+    # twp_matrix itself is never modified: G68.4 composes onto it (in the
+    # plane's own frame, so frame-agnostic) and the helper publishes it for
+    # the viewer, whose work group IS the table frame — which is what makes
+    # the overlay correct at every A rather than only at A = 0.
     machine_a_now = get_machine_a(self)
-    d_a = 0.0 if twp_def_a is None else (machine_a_now - twp_def_a)
+    d_a = machine_a_now
     compose_a = abs(d_a) > 1e-4
     tool_z_requested = [twp_matrix[0,2],twp_matrix[1,2],twp_matrix[2,2]]
     tool_x_requested = [twp_matrix[0,0],twp_matrix[1,0],twp_matrix[2,0]]
@@ -1045,18 +1054,20 @@ def g53x_core(self):
     origin_composed = None
     if compose_a:
         y_rot_axis, z_rot_axis = _get_rot_axis_yz()
-        origin_world = [saved_work_offset[i] + twp_offset[i] for i in range(3)]
-        tool_z_requested, tool_x_requested, origin_composed = compose_table_a(
-            tool_z_requested, tool_x_requested, origin_world,
+        origin_table = [saved_work_offset[i] + twp_offset[i] for i in range(3)]
+        tool_z_requested, tool_x_requested, origin_composed = from_table_frame(
+            tool_z_requested, tool_x_requested, origin_table,
             d_a, y_rot_axis, z_rot_axis)
         tool_z_requested = list(tool_z_requested)
         tool_x_requested = list(tool_x_requested)
-        log.info("G53.x: table A moved %.6f deg since the plane was defined"
-                 " - composed plane frame: z=%s x=%s origin=%s",
+        log.info("G53.x: table at A=%.6f deg - plane mapped table->machine:"
+                 " z=%s x=%s origin=%s",
                  d_a, tool_z_requested, tool_x_requested, origin_composed)
-    # the plane state now assumes the CURRENT table pose (published below)
+    # The HEAD was solved for this table pose. The plane cannot go stale, but
+    # this solve can: move the table afterwards and the tool is no longer
+    # normal to the face. That is what the UI reports.
     twp_pose_a = machine_a_now
-    # ---- end LCNC-SUITE table composition ---------------------------------
+    # ---- end LCNC-SUITE table->machine map ---------------------------------
 
     # calculate the required rotary joint positions and pre_rotation for the requested tool-orientation
     try:
@@ -1180,7 +1191,7 @@ def g69_core(self):
 # tool-orientation
 def g683(self, **words):
     global twp_matrix, pre_rot, twp_flag, saved_work_offset_number, saved_work_offset
-    global twp_def_a, twp_pose_a  # LCNC-SUITE: table-aware capture
+    global twp_pose_a  # LCNC-SUITE: head-solve pose
     global _task_mode, _preview_twp_state
 
     # LCNC-SUITE: preview runs the full plane math too (pure numpy +
@@ -1261,8 +1272,26 @@ def g683(self, **words):
     saved_work_offset_number = n
     log.debug("G68.3: Saved work offsets: %s", (n, saved_work_offset))
     # LCNC-SUITE: the table pose this definition is expressed in
-    twp_def_a = twp_pose_a = get_machine_a(self)
-    log.debug("G68.3: Table A at definition [deg]: %s", twp_def_a)
+    # LCNC-SUITE: g68.3 builds its matrix from the LIVE spindle rotaries, i.e.
+    # a MACHINE-frame measurement — so unlike g68.2 (whose words are already
+    # workpiece intent) it has to be converted into the storage frame. At
+    # A = 0 this is the identity, so today's behaviour is byte-identical.
+    _a_now = get_machine_a(self)
+    if abs(_a_now) > 1e-4:
+        _yra, _zra = _get_rot_axis_yz()
+        _tz = [twp_matrix[0,2], twp_matrix[1,2], twp_matrix[2,2]]
+        _tx = [twp_matrix[0,0], twp_matrix[1,0], twp_matrix[2,0]]
+        _to = [twp_matrix[0,3], twp_matrix[1,3], twp_matrix[2,3]]
+        _tz, _tx, _to = to_table_frame(_tz, _tx, _to, _a_now, _yra, _zra)
+        _ty = np.cross(_tz, _tx)
+        for _r in range(3):
+            twp_matrix[_r,0] = _tx[_r]
+            twp_matrix[_r,1] = _ty[_r]
+            twp_matrix[_r,2] = _tz[_r]
+            twp_matrix[_r,3] = _to[_r]
+        log.info("G68.3: measured at A=%.6f, stored in the table frame", _a_now)
+    # No head solve yet: staleness is a claim about the ORIENT, not the plane.
+    twp_pose_a = None
     # set twp-state to 'defined' (1)
     self.execute("M68 E2 Q1")
     if not _task_mode:
@@ -1276,7 +1305,7 @@ def g683(self, **words):
 # definition of a virtual work-plane (twp) using different methods set by the 'p'-word
 def g682(self, **words):
     global twp_matrix, pre_rot, twp_flag, twp_build_params, saved_work_offset_number, saved_work_offset
-    global twp_def_a, twp_pose_a  # LCNC-SUITE: table-aware capture
+    global twp_pose_a  # LCNC-SUITE: head-solve pose
     global _task_mode, _preview_twp_state
 
     # LCNC-SUITE: preview runs the full plane math too (pure numpy +
@@ -1331,8 +1360,13 @@ def g682(self, **words):
     log.debug("G68.2: Saved work offsets %s", (n, saved_work_offset))
     # LCNC-SUITE: the table pose this definition is expressed in (see the
     # table-aware composition in g53x_core)
-    twp_def_a = twp_pose_a = get_machine_a(self)
-    log.debug("G68.2: Table A at definition [deg]: %s", twp_def_a)
+    # LCNC-SUITE: G68.2's words are operator intent in the WORKPIECE frame
+    # (Fanuc table-type / Heidenhain 3D-ROT convention), which IS the storage
+    # frame — so no conversion here, by design. NOTE the standing precondition
+    # that goes with it: G54 is read as a table-frame point, so TOUCH OFF WITH
+    # A AT 0. LinuxCNC records no touch-off pose, so this cannot be detected.
+    # No head solve yet, so no staleness claim to make.
+    twp_pose_a = None
 
     c = self.blocks[self.remap_level]
     p = c.p_number if c.p_flag else 0
@@ -1642,6 +1676,7 @@ def g682(self, **words):
 # incremental definition of  a virtual work-plane (twp) using different methods set by the 'p'-word
 def g684(self, **words):
     global twp_matrix, pre_rot, twp_flag, twp_build_params, saved_work_offset_number, saved_work_offset
+    global twp_pose_a  # LCNC-SUITE: an increment invalidates the head solve
     global _task_mode, _preview_twp_state
 
     # LCNC-SUITE: preview runs the incremental plane math too; the
@@ -1993,6 +2028,13 @@ def g684(self, **words):
         log.info("G68.4: twp vector-z: %s", twp_vect_z)
         log.info("G68.4: incremented twp_matrix: \n%s", twp_matrix_new)
         twp_matrix = twp_matrix_new
+        # LCNC-SUITE: the PLANE just changed, so whatever G53.x last solved
+        # the head for no longer matches it. Drop the pose stamp to the
+        # sentinel rather than let it vouch for a stale orient. (The
+        # increment itself is frame-agnostic: it right-multiplies, i.e. it is
+        # expressed in the CURRENT plane's own frame, so the result inherits
+        # the table frame — which is why nothing else here needs converting.)
+        twp_pose_a = None
         # set twp-state to 'defined' (1)
         self.execute("M68 E2 Q1")
         if not _task_mode:

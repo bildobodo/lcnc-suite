@@ -24,8 +24,9 @@ const props = defineProps<{
   // is that the active jog/work frame is ALWAYS visibly indicated.
   kinsType?: number | null;
   twpActive?: boolean | null;
-  // The plane's assumed table pose no longer matches the live one — the
-  // stored frame and the physical face disagree (see twpPose.ts).
+  // The A table has moved since G53.x oriented the head, so the TOOL is no
+  // longer normal to the plane. The plane itself is stored table-relative
+  // and rides the workpiece, so it cannot go stale (see twpPose.ts).
   twpStale?: boolean;
 }>();
 
@@ -78,16 +79,16 @@ const kinsChip = computed(() => {
     title: "Tool-center-point kinematics active — programmed XYZ is the tool tip",
   };
   if (k === 2) {
-    // Stale wins over the normal tint: the frame is not just tilted, it is
-    // tilted relative to where the workpiece USED to be.
-    // Recovery wording is deliberate and live-verified: G53.x REFUSES to run
-    // while TWP is active (remap.py g53x_core's twp_is_active guard aborts and
-    // resets the plane), and M430 only flips the kins type — neither
-    // recomposes. Re-running the program re-defines AND re-orients at the
-    // current table pose, which is what actually works.
+    // What is stale is the ORIENT, not the plane: relabelling coordinates
+    // cannot swing the head, so a table move leaves the tool off-normal even
+    // though the plane still rides the workpiece. Recovery wording is
+    // live-verified: G53.x REFUSES to run while TWP is active (g53x_core's
+    // twp_is_active guard aborts AND resets the plane), and M430 only flips
+    // the kins type — neither re-solves the head. Re-running the program
+    // does, at whatever table pose is current.
     if (props.twpStale) return {
       text: props.twpActive ? "TWP" : "TOOL", cls: "bad",
-      title: "Plane frame STALE — the A table has moved since this plane was oriented, so the frame no longer matches the workpiece. Re-run the program to re-define and re-orient at the current table pose (G53.x on its own is refused while TWP is active; M430 does not recompose).",
+      title: "Tool orientation STALE — the A table has moved since G53.x oriented the head, so the tool is no longer normal to the plane. The plane itself still follows the workpiece. Re-run the program to re-orient at the current table pose (G53.x on its own is refused while TWP is active; M430 does not re-solve).",
     };
     return props.twpActive
       ? { text: "TWP", cls: "warn",

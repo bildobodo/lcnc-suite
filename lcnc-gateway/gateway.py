@@ -525,10 +525,11 @@ async def _reader_configure_extra_pins() -> None:
         # be unknowable).
         pins["twp_defined"] = "twp-helper-comp.twp-is-defined"
         pins["twp_active"] = "twp-helper-comp.twp-is-active"
-        # Upstream's vismach composition: plane position = work offset
-        # (twp-o*-world, identity frame) + origin vector (twp-o*, "from
-        # current work-offset to the origin of the twp", world coords).
-        # Both halves ride the snapshot; status assembles the sum.
+        # Plane position = work offset (twp-o*-world) + origin vector
+        # (twp-o*), both in the TABLE frame: the plane is stored relative to
+        # the A table, so the sum is a table-frame point and the viewer draws
+        # it inside the work group, which is that same frame. Both halves ride
+        # the snapshot; status assembles the sum.
         for _f, _p in (("twp_ox", "twp-ox-world"), ("twp_oy", "twp-oy-world"),
                        ("twp_oz", "twp-oz-world"),
                        ("twp_pox", "twp-ox"), ("twp_poy", "twp-oy"),
@@ -538,10 +539,10 @@ async def _reader_configure_extra_pins() -> None:
                        ("twp_xx", "twp-xx"), ("twp_xy", "twp-xy"),
                        ("twp_xz", "twp-xz")):
             pins[_f] = f"twp-helper-comp.{_p}"
-        # Machine-frame A (deg) the current plane state assumes. A is a
-        # WORK-side table here, so a live A away from this value means the
-        # stored plane frame and the physical face no longer agree. Raw float
-        # on the wire — the remap's "no plane" sentinel is read client-side.
+        # Machine-frame A (deg) the HEAD was last oriented at. The plane
+        # itself rides the workpiece and cannot go stale; a live A away from
+        # this means the TOOL is no longer normal to the plane. Raw float on
+        # the wire — the remap's "no orient yet" sentinel is read client-side.
         pins["twp_pose_a"] = "twp-helper-comp.twp-pose-a"
     try:
         await _reader_request("set_extra_pins", pins=pins)

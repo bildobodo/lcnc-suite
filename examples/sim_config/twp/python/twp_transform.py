@@ -54,6 +54,10 @@ def compose_table_a(tool_z, tool_x, origin_world, d_a_deg, y_rot_axis, z_rot_axi
     """
     th = -math.radians(float(d_a_deg))
     c, s = math.cos(th), math.sin(th)
+    return _apply(tool_z, tool_x, origin_world, c, s, y_rot_axis, z_rot_axis)
+
+
+def _apply(tool_z, tool_x, origin_world, c, s, y_rot_axis, z_rot_axis):
     z2 = _rot_x(tool_z, c, s)
     x2 = _rot_x(tool_x, c, s)
     py, pz = float(y_rot_axis), float(z_rot_axis)
@@ -64,3 +68,35 @@ def compose_table_a(tool_z, tool_x, origin_world, d_a_deg, y_rot_axis, z_rot_axi
     )
     r2 = _rot_x(rel, c, s)
     return z2, x2, (r2[0], r2[1] + py, r2[2] + pz)
+
+
+# ---------------------------------------------------------------------------
+# Named directions. The plane is STORED in the TABLE frame — the frame in
+# which a table-fixed feature has constant coordinates, datum'd so that it
+# coincides with the machine frame at A = 0. Call sites then read as
+# directions rather than as signed deltas, which is what a reader needs in
+# order to check them: "machine -> table" and "table -> machine".
+#
+# This is the same frame the viewer's work group already draws in (a_work,
+# child of the A table), and the same frame the kins' TCP mode calls "work":
+#     work = Rx(+A) . (machine - pivot) + pivot
+# so a plane stored here rides the workpiece by construction.
+# ---------------------------------------------------------------------------
+
+def to_table_frame(tool_z, tool_x, origin_machine, a_now_deg,
+                   y_rot_axis, z_rot_axis):
+    """Machine-frame plane -> table frame, at the CURRENT table pose."""
+    return compose_table_a(tool_z, tool_x, origin_machine, -float(a_now_deg),
+                           y_rot_axis, z_rot_axis)
+
+
+def from_table_frame(tool_z, tool_x, origin_table, a_now_deg,
+                     y_rot_axis, z_rot_axis):
+    """Table-frame plane -> machine frame, at the CURRENT table pose.
+
+    This is what G53.x needs: the head must be oriented to where the face IS
+    right now, so the stored (table-frame) plane is mapped through the live
+    table angle before the spindle angles are solved.
+    """
+    return compose_table_a(tool_z, tool_x, origin_table, float(a_now_deg),
+                           y_rot_axis, z_rot_axis)

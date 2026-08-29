@@ -73,11 +73,13 @@ def rotary_at_zero(canonical_pos: Optional[List[float]], axis_mask: int) -> Opti
 
 
 #: Reader field names for the TWP plane. The drawn position is the SUM of
-#: the work offset (twp_o* — helper's -world pins, identity frame) and the
-#: plane-origin vector (twp_po* — "from current work-offset to the twp
-#: origin", world coords): upstream's own vismach composition. G68.2 alone
-#: populates the origin vector; the offset half mirrors the saved work
-#: offset. All-or-nothing — a partial set is not a plane.
+#: the work offset (twp_o* — helper's -world pins) and the plane-origin
+#: vector (twp_po* — "from the work-offset to the twp origin"): upstream's
+#: vismach composition. Both halves are in the TABLE frame — the plane is
+#: stored relative to the A table, datum'd to coincide with machine coords
+#: at A=0 — so the sum is a table-frame point, which is exactly the frame
+#: the viewer's work group draws in. All-or-nothing: a partial set is not
+#: a plane.
 _TWP_PLANE_FIELDS = ("twp_ox", "twp_oy", "twp_oz",
                      "twp_pox", "twp_poy", "twp_poz",
                      "twp_zx", "twp_zy", "twp_zz",
@@ -85,9 +87,9 @@ _TWP_PLANE_FIELDS = ("twp_ox", "twp_oy", "twp_oz",
 
 
 def assemble_twp_plane(reader_get) -> Optional[List[float]]:
-    """The live TWP plane [ox,oy,oz, zx,zy,zz, xx,xy,xz] (origin already
-    composed: work offset + plane-origin vector) from the helper comp's
-    display pins, or None unless every component is present."""
+    """The live TWP plane [ox,oy,oz, zx,zy,zz, xx,xy,xz] in the TABLE frame
+    (origin already composed: work offset + plane-origin vector) from the
+    helper comp's display pins, or None unless every component is present."""
     vals = [reader_get(k) for k in _TWP_PLANE_FIELDS]
     if any(v is None for v in vals):
         return None
@@ -214,9 +216,11 @@ class StatusPayload:
     twp_defined: Optional[bool]
     twp_active: Optional[bool]
     twp_plane: Optional[List[float]]
-    # Machine-frame A (deg) the current plane state assumes. Raw — the remap's
-    # "no plane" sentinel (-1e9) rides through so the client interprets it in
-    # one place; None still means "not sampled".
+    # Machine-frame A (deg) the HEAD was last oriented at (G53.x). The plane
+    # is stored table-relative and rides the workpiece, so it cannot go stale;
+    # the head solve can. Raw — the remap's "no orient yet" sentinel (-1e9)
+    # rides through so the client interprets it in one place; None still means
+    # "not sampled".
     twp_pose_a: Optional[float]
     spindle_direction: Optional[int]
     active_file: Optional[str]
