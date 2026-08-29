@@ -125,10 +125,43 @@ def _golden_path(config_name, ngc):
     return os.path.join(GOLDEN_DIR, config_name, base + ".json")
 
 
+# The rotary pose every golden is recorded at. The preview seeds its rotary
+# axes from the LIVE machine, so without pinning this a golden silently
+# becomes a record of where the table was parked: generate with A=0, leave a
+# session at A=35, and the gate reports drift in the CODE. Zero is the
+# natural datum — the table frame is datum'd to coincide with machine
+# coordinates at A=0 — and any pose would do as long as it is stated.
+GOLDEN_ROTARY_POSE = {"A": 0.0, "B": 0.0, "C": 0.0}
+
+
 def run(mode, ini, files, config_name):
     fails = 0
     for ngc in files:
-        payload = run_preview(ini, ngc)
+        payload = run_preview(ini, ngc, rotary_pose=GOLDEN_ROTARY_POSE)
+        # A payload that never parsed is not DRIFT. Comparing it field by
+        # field produces a long, confident-looking report ("points.rapid:
+        # golden=9 current=0") that describes the symptom and hides the
+        # cause — which is exactly how a dangling INI path went unnoticed
+        # here until someone read the worker's stderr. Same refusal
+        # sim_parity.py already makes; state the reason and stop.
+        # This runs BEFORE the generate branch on purpose. A golden written
+        # from a failed parse is all zeros, and an all-zero golden then
+        # matches the same failure forever: green, and certifying nothing.
+        # That is exactly what scripts/preview_goldens/twp/square.json was —
+        # square.ngc is a subroutine DEFINITION with no M2, so it can never
+        # parse as a standalone program, and its golden recorded the failure
+        # as the expected result. It is covered where it belongs, as the sub
+        # simple_example.ngc calls.
+        err = payload.get("parse_error")
+        if err:
+            fails += 1
+            verb = "refusing to write golden" if mode == "generate" else "PARSE FAILED"
+            print(f"[{verb}] {os.path.basename(ngc)}: {err}")
+            for ln in (payload.get("_stderr") or "").splitlines():
+                if ln.startswith(("can't resolve", "Python plugin",
+                                  "INTERP_REMAP", "REMAP INI")):
+                    print(f"  {ln}")
+            continue
         cur = summarize(payload)
         path = _golden_path(config_name, ngc)
         if mode == "generate":

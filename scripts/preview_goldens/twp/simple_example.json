@@ -18,7 +18,10 @@
     "g533remap",
     "square"
   ],
-  "swept_axes": [],
+  "swept_axes": [
+    "B",
+    "C"
+  ],
   "trusted_points": {
     "total": 9,
     "trusted": 1
@@ -29,6 +32,6 @@
   "violations_world_unchecked": 0,
   "wcs_epochs": {
     "count": 2,
-    "rewritten": 0
+    "rewritten": 2
   }
 }

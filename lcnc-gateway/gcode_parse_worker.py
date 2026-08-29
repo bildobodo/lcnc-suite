@@ -79,7 +79,8 @@ from gateway_util import (
     insert_flip_relabels, read_var_wcs_rows, wcs_event_rewritten,
     wcs_rewrite_targets,
     PREVIEW_SCHEMA, should_ship_abc, rotary_sync_initcode,
-    rotary_seed_values, seed_kins_events, wcs_offset_flat_from_var,
+    rotary_seed_values, override_rotary_position,
+    seed_kins_events, wcs_offset_flat_from_var,
     find_unmarked_subs, resolve_subroutine_dirs,
 )
 
@@ -217,9 +218,16 @@ def parse(ctx: dict) -> dict:
         # suppression (re-armed at the first real program line), so it
         # seeds position without recording any motion. XYZ deliberately
         # not synced — see rotary_sync_initcode's docstring.
+        # LCNC-SUITE: `rotary_pose` pins that live read to a stated pose.
+        # Only the offline gates set it — the gateway never does, so live
+        # behaviour is unchanged — and it is what makes a preview golden a
+        # property of the CODE instead of a property of wherever the table
+        # was parked when the gate ran. Applied once, at the shared input,
+        # so the seeded pose and the recorded seed cannot disagree.
+        _actual_pos = override_rotary_position(
+            getattr(s, "actual_position", None), ctx.get("rotary_pose"))
         _rot_sync = rotary_sync_initcode(
-            getattr(s, "axis_mask", 0),
-            getattr(s, "actual_position", None))
+            getattr(s, "axis_mask", 0), _actual_pos)
         if _rot_sync:
             initcodes.append(_rot_sync)
         # The seeded values, captured at the same read (W6): stderr snapshot
@@ -227,8 +235,7 @@ def parse(ctx: dict) -> dict:
         # leaves the rotaries elsewhere makes every uncommanded-rotary
         # segment of this payload stale (the arc-vs-plunge class).
         _rot_seed = rotary_seed_values(
-            getattr(s, "axis_mask", 0),
-            getattr(s, "actual_position", None))
+            getattr(s, "axis_mask", 0), _actual_pos)
         wcs_code = _WCS_CODES.get(g5x_index if isinstance(g5x_index, int) else 0)
         if wcs_code:
             initcodes.append(wcs_code)

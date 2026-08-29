@@ -1504,6 +1504,36 @@ class TestRotaryDrift(unittest.TestCase):
         self.assertIsNone(gateway_util.rotary_seed_values(self.MASK6, None))
         self.assertIsNone(gateway_util.rotary_seed_values(self.MASK6, (1.0, 2.0)))
 
+    def test_override_pins_the_pose_for_goldens(self):
+        # A preview golden must be a property of the CODE, not of wherever
+        # the table was parked when the gate ran. Live pose A=35 (a session
+        # left it there), pinned back to the datum:
+        live = [1.0, 2.0, 3.0, 35.0, -41.28, -3.0]
+        pinned = gateway_util.override_rotary_position(
+            live, {"A": 0.0, "B": 0.0, "C": 0.0})
+        self.assertEqual(list(pinned), [1.0, 2.0, 3.0, 0.0, 0.0, 0.0])
+        # BOTH consumers must see the same pose — a seeded pose that
+        # disagrees with the recorded seed makes the payload lie about its
+        # own baseline, which is why the substitution happens at the input.
+        self.assertEqual(
+            gateway_util.rotary_seed_values(self.MASK6, pinned),
+            {"A": 0.0, "B": 0.0, "C": 0.0})
+        self.assertEqual(
+            gateway_util.rotary_sync_initcode(self.MASK6, pinned),
+            "G53 G0 A0.000000000 B0.000000000 C0.000000000")
+        # XYZ are untouched: this pins the rotary pose, nothing else.
+        self.assertEqual(list(pinned)[:3], [1.0, 2.0, 3.0])
+        # A partial pose keeps the live value for letters it omits.
+        self.assertEqual(
+            list(gateway_util.override_rotary_position(live, {"B": 0.0})),
+            [1.0, 2.0, 3.0, 35.0, 0.0, -3.0])
+        # No pose / no live data → unchanged, so the gateway (which never
+        # passes one) keeps the live read exactly as before.
+        self.assertIs(gateway_util.override_rotary_position(live, None), live)
+        self.assertIs(gateway_util.override_rotary_position(live, {}), live)
+        self.assertIsNone(
+            gateway_util.override_rotary_position(None, {"A": 0.0}))
+
     def test_drift_detects_moved_letters(self):
         seed = {"A": 0.0, "B": 0.0, "C": 0.0}
         # The observed live defect: a run parks B/C tilted; A stays.

@@ -943,6 +943,33 @@ def rotary_sync_initcode(axis_mask, actual_position):
     return "G53 G0 " + " ".join(words)
 
 
+def override_rotary_position(actual_position, pose):
+    """`actual_position` with its A/B/C slots replaced by `pose`.
+
+    The preview seeds its rotary pose from the LIVE machine, which is right
+    for the gateway and wrong for a GOLDEN: it makes the recorded payload a
+    function of wherever the table happened to be parked when the gate ran.
+    Observed here — a golden generated with the table at A=0 drifts as soon
+    as a session leaves it at A=35, reported as `swept_axes [] -> ['B','C']`
+    with nothing to say the cause was the machine and not the code.
+
+    Substituting at the shared INPUT rather than at each call site is
+    deliberate: `rotary_sync_initcode` (what the interp is seeded with) and
+    `rotary_seed_values` (what the drift edge later compares against) must
+    describe the same pose or the payload lies about its own baseline.
+
+    `pose` is {letter: degrees}; letters absent from it keep their live
+    value. Returns a list, or None if there is nothing to override. Pure.
+    """
+    if actual_position is None or not pose:
+        return actual_position
+    out = list(actual_position)
+    for slot, letter in ((3, "A"), (4, "B"), (5, "C")):
+        if letter in pose and slot < len(out):
+            out[slot] = float(pose[letter])
+    return out
+
+
 def rotary_seed_values(axis_mask, actual_position):
     """The rotary {letter: value} the sync initcode seeds (schema 5) — the
     parse-time snapshot the gateway's drift edge compares against the live

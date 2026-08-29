@@ -66,21 +66,36 @@ WORKER = os.path.join(_HERE, "..", "lcnc-gateway", "gcode_parse_worker.py")
 
 # ─────────────────────────── stage 1: preview ───────────────────────────
 
-def run_preview(ini_path, ngc, g5x_index=1, units="mm"):
+def run_preview(ini_path, ngc, g5x_index=1, units="mm", rotary_pose=None):
     """Spawn the real parse worker exactly as the gateway does.
 
     INI_FILE_NAME must be in the environment or the interpreter initialises
     with NO remap table and every TWP code comes back "Unknown g code used"
     with an empty payload — a failure mode that looks like a broken program.
     """
+    # LinuxCNC runs its display (and therefore the gateway that spawns this
+    # worker) with cwd = the CONFIG DIRECTORY — verified on the live sim, and
+    # the INIs already depend on it (`USER_M_PATH = ./`). Offline we must
+    # reproduce that or every relative path in the INI resolves against
+    # whatever directory the gate happened to start in. When it does not
+    # resolve, `[PYTHON]TOPLEVEL` fails to load, the interpreter comes up with
+    # NO remap table, and `g68.2` returns "Bad character 'g' used" — an empty
+    # payload that the gate then reports as ELEVEN DRIFTED FIELDS instead of
+    # "your program did not parse". Paths are absolutised first, because they
+    # were given relative to the caller's cwd, not the config dir.
+    ini_path = os.path.abspath(ini_path)
+    ngc = os.path.abspath(ngc)
     env = dict(os.environ)
     env["INI_FILE_NAME"] = ini_path
     env.setdefault("PYTHONPATH", "/usr/lib/python")
     ctx = {"file": ngc, "ini_path": ini_path, "units": units,
            "var_patches": {}, "g5x_index": g5x_index}
+    if rotary_pose:
+        ctx["rotary_pose"] = rotary_pose
     p = subprocess.run([sys.executable, WORKER],
                        input=msgspec.msgpack.encode(ctx),
-                       capture_output=True, env=env)
+                       capture_output=True, env=env,
+                       cwd=os.path.dirname(ini_path))
     if p.returncode != 0:
         raise SystemExit(f"parse worker rc={p.returncode}\n{p.stderr.decode()[:2000]}")
     out = msgspec.msgpack.decode(p.stdout)

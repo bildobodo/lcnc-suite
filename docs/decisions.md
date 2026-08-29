@@ -1547,6 +1547,26 @@ workflow; stage 3 only additionally fixes manual jogging while parked in a
 stale plane. Deferred candidate: an idle-gated one-click re-orient, pending
 a live probe of the `G68.2`-via-MDI `INTERP_EXECUTE_FINISH` stall class.
 
+> **RETRACTED 2026-08-29 (both halves), by live MDI probe.** The two facts
+> above are true; neither is a blocker, because I applied them to the wrong
+> thing. "G59 is interpreter-only" forbids SERVO-RATE tracking — an idle
+> re-orient goes out as MDI, which *is* the interpreter, on the same channel
+> `set_wcs` and the jog-frame selector already use. "Frame pins step the
+> joints" is true of naive pin-writing; the safe ordering (identity → write
+> pins inert → move rotaries → enter TOOL) already ships and runs on every
+> `G53.x`.
+>
+> **The `G68.2`-via-MDI stall does not exist.** There is no probe behind it.
+> The only prior mention is the line above — I wrote that a probe was owed,
+> then later cited my own note as a finding. Probed 2026-08-29 on the live
+> sim: `g69`, `g68.2 x50 y50 z-50 q121 i30 j15` and `G53.1` each complete
+> from MDI, the last one moving B −21.97 → −43.95 and C −206.59 → −53.18 and
+> ending in `kins=2 active=TRUE`. The likely original was the session where
+> the machine was silently OFF and every MDI was rejected.
+>
+> What stage 3 actually needed was one word on `M530`. See "TWP re-orient"
+> below.
+
 **PARKED (2026-08-28, operator-found) — the plane overlay is not sim-aware.**
 `ThreeViewer._twpRefresh` reads ONLY live status (`twp_plane`,
 `twp_defined`, `kins_type`, pose staleness). During a real run that is
@@ -1644,3 +1664,78 @@ worst 0.038 vs tol 0.5.
 a TABLE-frame point, so **touch off with A at 0**. LinuxCNC records no
 touch-off pose, so nothing can check this — it is a documented precondition,
 not a guard. Also recorded in remap.py beside the G54-only check.
+
+## TWP re-orient — stage 3, at the size it actually was (2026-08-29)
+
+The operator's story: *"the table moved — does the machine know, and can I
+get back to a good state in one action?"* The plane rides the workpiece and
+never goes stale; the HEAD SOLVE does. Orient at A=0, jog to A=35, and the
+tool points 35° off the face with no recovery short of re-running the whole
+program.
+
+**One word on `M530`.** `g53x_core` already contains every piece — the
+table→machine map at the live A, the reachability solve, the pin writes, the
+G59 rows, the rotary move, the staleness stamp. `Q1` marks the call a
+RE-ORIENT, which changes exactly one thing: "TWP already active" is the
+normal entry state instead of an error. `twp_reorient.ngc` wraps it the way
+`g531remap.ngc` wraps a first orient; the UI sends `o<twp_reorient> call` on
+the same MDI channel M428/M430 already use, `probe`-tier because this MOVES
+the rotaries.
+
+**Why not `M68 E2 Q1` then `G53.x`** — the sequence the live probe used, and
+the one the plan proposed. `twp-status` is an INPUT pin that
+`twp-helper-comp` polls to derive `twp-is-active`, so the demote reaches the
+guard about a millisecond late. Typing two MDI lines seconds apart always
+wins that race; a subroutine running them back to back is a coin flip. An
+interpreter word has no race to lose.
+
+**The guard no longer destroys the plane.** Upstream's "TWP already active"
+branch calls `reset_twp_params`, which wipes `twp_matrix` to identity and
+`saved_work_offset` to zeros. So a stray `G53.x` — a re-run orient block, a
+fat-fingered MDI line — silently took down a perfectly good plane, on the
+path whose entire job is to refuse. Refusing is right; the reset is not. The
+abort still stops the program. Fork divergence, deliberate.
+
+`P` defaults to 0 (shortest move from the current joints). A re-orient wants
+the small correction, not the program's original branch.
+
+### Three gate defects found on the way, each hiding the next
+
+**The TWP INI's paths dangled, and the gate called it drift.** The
+2026-08-24 split moved the TWP product to `feat/twp` (worktree
+`~/twp-checkout`), but `lcnc_suite_sim_twp.ini` still pointed at
+`~/lcnc-suite/examples/sim_config/twp/`, which does not exist on
+development. `[PYTHON]TOPLEVEL` failed to load → no remap table → `g68.2`
+came back "Bad character 'g' used" → empty payload. `preview_gate` compared
+that empty payload field by field and reported **eleven drifted fields** on
+`simple_example.ngc`. Every number in that report was a symptom; none named
+the cause, which was one line of stderr nobody had read. Paths are now
+relative to the INI's own directory, which is the only thing true in both
+trees — and `run_preview` sets `cwd` to the config dir, which is how
+LinuxCNC actually runs (verified: the live gateway's cwd is
+`~/linuxcnc/configs/lcnc_suite_sim`, and the INI's own `USER_M_PATH = ./`
+has always depended on it). The gate now REFUSES a payload carrying
+`parse_error` instead of diffing it — same refusal `sim_parity.py` makes.
+
+**`square.json` was a golden recorded over a parse failure.** `square.ngc`
+is a subroutine DEFINITION with no `M2`, so it can never parse as a
+standalone program. Its golden was all zeros, and it matched the same
+failure forever: green, certifying nothing — the g69-tail lesson exactly.
+Deleted; it is covered where it belongs, as the sub `simple_example.ngc`
+calls. `generate` now refuses to write a golden from a failed parse, so the
+class cannot recur.
+
+**Preview goldens were a record of where the table was parked.** The preview
+seeds its rotary pose from `stat.actual_position` — correct for the gateway,
+fatal for a golden. `simple_example`'s golden held `swept_axes: []` because
+the machine happened to sit at the plane's solved B/C when it was generated,
+making the orient move zero-length. `preview_gate` now pins the pose
+(`GOLDEN_ROTARY_POSE`, the A=0 datum) via a new `rotary_pose` ctx field,
+substituted at the shared INPUT so the seeded pose and the recorded seed
+cannot disagree. Only the gates set it; the gateway never does. Proof: the
+regenerated golden checks CLEAN with the live machine parked at A=35.
+
+The honest reading of the regenerated diff — `swept_axes [] → ['B','C']`,
+`wcs_epochs.rewritten 0 → 2` — is that both new values are RIGHT and the
+golden was wrong: this program does sweep B and C, and the source scan does
+correctly mark both epochs.
