@@ -1,0 +1,45 @@
+; LCNC-SUITE ORIGINAL — not vendored from upstream.
+;
+; Re-solve the head at the CURRENT table pose, leaving the stored plane alone.
+;
+; Why this exists. The plane is stored TABLE-relative, so it rides the
+; workpiece and can never go stale. The HEAD SOLVE can: orient at A=0, jog the
+; table to A=35, and the plane is still on the part while the tool points 35
+; deg off its normal. Upstream has no recovery from that short of re-running
+; the whole program. This is that recovery, in one action.
+;
+; It is the same work a first orient does — g53x_core maps the stored plane
+; through the live A, solves the rotaries, rewrites the G59 rows and re-enters
+; TOOL kinematics. The only difference is that "TWP already active" is the
+; normal entry state here rather than an error, which is what M530's Q1 word
+; says.
+;
+; Q1 is an interpreter word and not a HAL demote (M68 E2 Q1 first) on purpose:
+; twp-status is an INPUT pin that twp-helper-comp polls to derive
+; twp-is-active, so a demote reaches the guard about a millisecond late —
+; harmless when an operator types two MDI lines seconds apart, a coin flip
+; when a subroutine runs them back to back.
+;
+; No twp-is-defined guard here: g53x_core already refuses with "No TWP
+; defined", and since nothing is demoted on the way in there is no state left
+; half-changed when it does.
+;
+; P word: solution branch, same meaning as G53.1 — 0 = shortest move from the
+; current joints, 1 = positive primary rotation only, 2 = negative primary
+; only. 0 is the right default for a re-orient: the head is already close and
+; wants the small correction, not the program's original branch.
+
+o<twp_reorient>sub
+
+M66 L0 E0                                  ;force sync, stop read ahead
+o100 if [EXISTS [#<P>]]
+o100 else
+    #<P> = 0                               ;default: shortest move
+o100 endif
+M68 E3 Q0                                  ;identity kinematics for the solve
+(WEBUI_KINSTYPE=0)
+M66 L0 E0
+M530 P#<P> Q1                              ;re-solve, move, re-enter TOOL kins
+M66 L0 E0
+o<twp_reorient>endsub
+m2

@@ -24,6 +24,7 @@ const props = defineProps<{
   // is that the active jog/work frame is ALWAYS visibly indicated.
   kinsType?: number | null;
   twpActive?: boolean | null;
+  twpDefined?: boolean | null;
   // The A table has moved since G53.x oriented the head, so the TOOL is no
   // longer normal to the plane. The plane itself is stored table-relative
   // and rides the workpiece, so it cannot go stale (see twpPose.ts).
@@ -41,6 +42,7 @@ const emit = defineEmits<{
   (e: "goToG30"): void;
   (e: "goToHome"): void;
   (e: "goToZero"): void;
+  (e: "twpReorient"): void;
 }>();
 
 const { entries } = useAxes(computed(() => props.axes));
@@ -81,14 +83,13 @@ const kinsChip = computed(() => {
   if (k === 2) {
     // What is stale is the ORIENT, not the plane: relabelling coordinates
     // cannot swing the head, so a table move leaves the tool off-normal even
-    // though the plane still rides the workpiece. Recovery wording is
-    // live-verified: G53.x REFUSES to run while TWP is active (g53x_core's
-    // twp_is_active guard aborts AND resets the plane), and M430 only flips
-    // the kins type — neither re-solves the head. Re-running the program
-    // does, at whatever table pose is current.
+    // though the plane still rides the workpiece. Re-orient is the recovery —
+    // it re-solves the head at the current table pose. (A bare G53.x is still
+    // refused while TWP is active; M430 only flips the kins type. Neither
+    // re-solves, which is why the button exists.)
     if (props.twpStale) return {
       text: props.twpActive ? "TWP" : "TOOL", cls: "bad",
-      title: "Tool orientation STALE — the A table has moved since G53.x oriented the head, so the tool is no longer normal to the plane. The plane itself still follows the workpiece. Re-run the program to re-orient at the current table pose (G53.x on its own is refused while TWP is active; M430 does not re-solve).",
+      title: "Tool orientation STALE — the A table has moved since G53.x oriented the head, so the tool is no longer normal to the plane. The plane itself still follows the workpiece. Press Re-orient to re-solve the head at the current table pose.",
     };
     return props.twpActive
       ? { text: "TWP", cls: "warn",
@@ -101,6 +102,13 @@ const kinsChip = computed(() => {
     title: "Identity kinematics — X/Y/Z jogs move along machine axes",
   };
 });
+
+// Re-orient is offered only where it means something: a plane must be
+// DEFINED (there is nothing to re-solve to otherwise) and the machine must be
+// in TOOL kins, which is the only state whose head solve can be stale. Both
+// come from HAL, so a machine without the TWP stack never sees the button.
+const canReorient = computed(() =>
+  props.kinsType === 2 && props.twpDefined === true);
 
 function zeroAll() {
   emit("setAll", new Array(props.axes.length).fill(0));
@@ -131,6 +139,10 @@ function zeroAll() {
         <span class="label-muted">WCS</span>
         <span v-if="kinsChip" class="val-status kinsChip" :class="kinsChip.cls"
               :title="kinsChip.title">{{ kinsChip.text }}</span>
+        <MachineBtn v-if="canReorient" type="twpReorient" @click="emit('twpReorient')"
+                    :title="twpStale
+                      ? 'Re-solve the head at the current table pose — the tool becomes normal to the plane again. The rotaries MOVE.'
+                      : 'Re-solve the head at the current table pose. The orientation is current, so this should move very little.'">Re-orient</MachineBtn>
         <div class="strip-radio-options">
           <label v-for="g in g5xOptions" :key="g" class="radio-label">
             <MachineRadio gate="touchoff" name="wcs" :value="g" :modelValue="g5xLabel" @update:modelValue="(v: string | number | undefined) => { if (v != null) emit('setG5x', String(v)) }" />

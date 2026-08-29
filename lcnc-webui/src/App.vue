@@ -561,6 +561,15 @@ const twpStale = computed(() =>
 function setKinsMode(t: number) {
   fire({ cmd: "mdi", text: t === 2 ? "M430" : "M428" }, "ready");
 }
+// TWP re-orient: re-solve the head at the CURRENT table pose. Unlike the
+// jog-frame switch above this MOVES the rotaries, hence the probe tier.
+// Same MDI channel the switchkins remaps use; the o-sub carries the whole
+// sequence so a failure aborts as one action and surfaces on the error
+// channel like any other MDI. Q1 inside tells g53x_core this is a re-orient,
+// so the "TWP already active" refusal is skipped rather than raced.
+function twpReorient() {
+  fire({ cmd: "mdi", text: "o<twp_reorient> call" }, "probe");
+}
 const isTeleop = computed(() => motionMode.value === TRAJ_MODE_TELEOP);
 
 const interpState = computed(() => st.value.interp_state ?? INTERP_IDLE);
@@ -1988,7 +1997,9 @@ watch(viewerGcode, (newGcode) => {
         :g5xLabel="g5xLabel"
         :kinsType="liveKinsType"
         :twpActive="st.twp_active ?? null"
+        :twpDefined="st.twp_defined ?? null"
         :twpStale="twpStale"
+        @twpReorient="twpReorient"
         @homeAll="homeAll"
         @unhomeAll="unhomeAll"
         @homeAxis="homeAxis"

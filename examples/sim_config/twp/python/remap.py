@@ -997,6 +997,27 @@ def g53x_core(self):
         yield INTERP_EXECUTE_FINISH
         return INTERP_OK
 
+    # LCNC-SUITE: Q1 = RE-ORIENT. The plane is stored table-relative, so it
+    # rides the workpiece and never goes stale — but the head solve does:
+    # orient at A=0, jog the table to A=35, and the tool points 35 deg off the
+    # face normal, with nothing upstream able to recover short of re-running
+    # the program. Q1 re-solves the head at the CURRENT table pose. That is
+    # the same work this function already does for a first orient; the ONLY
+    # difference is that "TWP already active" is the normal entry state here
+    # rather than an error.
+    #
+    # It is a word on M530 and not a HAL demote (M68 E2 Q1, then G53.x) on
+    # purpose. twp-status is an INPUT pin that twp-helper-comp polls to derive
+    # twp-is-active, so a demote reaches the guard about a millisecond late —
+    # harmless when an operator types two MDI lines seconds apart, a coin flip
+    # when a subroutine runs them back to back. Interpreter-side there is no
+    # race to lose. Read below the preview return: this is a task-mode
+    # concept, and the preview branch deliberately touches no block words.
+    _reorient = False
+    if _task_mode:
+        _c = self.blocks[self.remap_level]
+        _reorient = bool(_c.q_flag) and int(_c.q_number) == 1
+
     if _task_mode and not hal.get_value(twp_is_defined):
          # reset the twp parameters
         reset_twp_params(self)
@@ -1007,9 +1028,15 @@ def g53x_core(self):
         yield INTERP_EXIT # w/o this the error does not abort a running gcode program
         return INTERP_ERROR
 
-    elif _task_mode and hal.get_value(twp_is_active):
-         # reset the twp parameters
-        reset_twp_params(self)
+    elif _task_mode and hal.get_value(twp_is_active) and not _reorient:
+        # LCNC-SUITE: upstream calls reset_twp_params(self) here. We do NOT.
+        # "TWP already active" is an operator/program SEQUENCING mistake, not
+        # a corrupt plane — and reset_twp_params wipes twp_matrix to identity
+        # and saved_work_offset to zeros. So a stray G53.x (a re-run of the
+        # orient block, a fat-fingered MDI line) silently DESTROYED a plane
+        # that was perfectly good, on a path whose whole job is to refuse.
+        # Refusing is right; taking the plane down with it is not. The abort
+        # below still stops the program, so nothing runs on a stale state.
         msg = "G53.x: TWP already active"
         log.debug(msg)
         emccanon.CANON_ERROR(msg)
