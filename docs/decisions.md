@@ -1435,26 +1435,78 @@ cancel. Reproducer committed as `scripts/parity_corpus/twp_g69_tail.ngc` +
 permanently-red gate stops being a signal). The acceptance program was
 trimmed to gate what it exists to gate.
 
-**g69-tail defect ROOT-CAUSED (2026-08-28, same session).** Not a vague
-"offline chain mishandles the boundary" — the arithmetic closes exactly.
-On the minimal reproducer the sim's final point is
-[1609.597, -854.904, -649.099]. The payload's PRE-g69 epoch (G59, from
-`wcs_frames` entry 1) is [1609.597046, -854.903811, -791.098493]. Then
-    G59_origin + program(0,0,120) + TLO 22  =  [1609.597, -854.904, -649.098]
-which matches the sim to a RESIDUAL OF 0.0000 mm. So at the g69 boundary
-the trailing vertex carries a MIXED LABELING: its kins type correctly
-advances to 0 (identity) — `rapid_kinstype`'s last two entries are 0 — but
-its WCS epoch does NOT advance to epoch 2 (the G54 restore recorded at
-seq 16, while the vertices are seq 17/18, i.e. strictly greater and so
-SHOULD resolve to epoch 2). The vertex is positioned in the old frame with
-the new kinematics. The real machine sits 897.1 mm away; that gap IS the
-phantom. Fix direction (unverified): the epoch and mode resolution for a
-vertex must come from ONE decision, not two independent lookups — the same
-class as the W3 P3 entry-move finding (mode + frame + epoch terms are ONE
-triple, never mixed). Next step is to find which of the two resolvers is
-off by an epoch at a same-seq combined flip, and whether
-`insert_flip_relabels` inserts a relabel vertex for the WCS half of a
-combined kins+epoch flip.
+**g69-tail defect — first root cause was WRONG; corrected 2026-08-29.**
+The 2026-08-28 entry blamed a MIXED LABELING (kins type advancing across
+the g69 boundary while the WCS epoch did not). **That attribution is
+false and is retracted here.** Both resolvers use the same rule and
+AGREE: verified against the failing payload — `wcs_frames` events at seq
+0/2/16, rapid seqs [...,16,17,18], and both the Python (`kins_frame_indices`)
+and client (`eventIdxFor`) resolutions put seq 17/18 in epoch 2, the G54
+restore. The epoch round-trip is also numerically inert: Python ships
+`canon_end - basis[E]`, the client re-adds `basis[E]`, so any epoch both
+sides agree on cancels exactly. The arithmetic in that entry
+(`G59_origin + program(0,0,120) + TLO 22` = the sim point, residual
+0.0000) was CORRECT but was only re-deriving the PRE-flip canon endpoint;
+it was evidence of where the number came from, not of an epoch error.
+Recorded as a retraction rather than an edit: a plausible identity that
+reconciles to zero is exactly the kind of finding that feels conclusive
+and is not, and the failure mode is worth keeping visible.
+
+**The real cause.** `insert_flip_relabels` patched a flip's post-segment
+START (`lst_n[i_n][1]`) and never its END, while the offline interpreter
+is never resynced at a flip. The trailing `g0 a0` commands only A, and A
+was already 0, so the raw tuple was `start == end` — a zero-length hold.
+Relabeling only its start MANUFACTURED 897 mm of travel. The function's
+own k=0 branch already guarded this exact hazard ("relabeling it would
+turn a zero-length vertex into a phantom segment"); the k-loop did not.
+Reconciles both ways: seq 17's end + TLO = the truth joints; seq 18's end
++ TLO = the sim's phantom point.
+
+**Doctrine (supersedes "two independent lookups" for this class):** a
+vertex's coordinates and its labeling must come from the SAME AUTHORITY —
+consistent resolution is necessary but not sufficient, the NUMBER has to
+have been computed under the labeling the vertex carries. **Relabel
+invariant: a frame relabel may neither create nor destroy motion.** An
+axis whose RAW segment delta is zero has a zero delta afterwards.
+
+**Fixed (7b40dc7, 726145c).** The k=0 correction and the k-loop became one
+forward walk carrying a per-axis correction, retired when an axis is
+re-commanded, compared against a FIXED anchor (never a running position,
+so a later re-command to the same number cannot resurrect it) and
+evaluated at both ends against that anchor — which makes the invariant
+hold by construction. The inherent residual (canon-endpoint replay cannot
+tell "held" from "commanded to exactly the stale value") is REPORTED as
+`kins_carry_spans` rather than assumed away. Live: reproducer 897.050 ->
+PASS 0.000/0.028; full corpus GREEN 4 programs / 7 runs, worst 0.042 vs
+tol 0.5; and the three pre-existing programs' feed/rapid/seq/line arrays
+BYTE-IDENTICAL to their baselines — the "carry retires on the first
+commanded move" claim measured, not asserted. Falsified adversarially:
+with the carry stubbed off, four tests go red including the zero-length
+case and the invariant property. The reproducer is now an acceptance
+program (`twp_g69_tail.ngc`, runs 2); `_open_g69_tail.json` is deleted.
+
+**Same wave — the one hole by which the two epoch resolutions COULD
+diverge, closed.** `wcs_event_rewritten` compares VALUES, so a `G10 L2`
+writing the numbers the var row already holds reads as operator-owned —
+which is what every corpus program does on each run after the first. The
+client then re-adds the LIVE G54 row, so a touch-off between parse and
+display would move the preview somewhere the machine never goes.
+`wcs_rewrite_targets` scans the source text (comments stripped; `P0` =
+active = every epoch, because cannot-tell must degrade to the snapshot)
+and unions in.
+
+**Off-machine gates added.** `previewDecode.test.ts` pins the resolution
+contract (strict `<`, ties-last, honest fill) so "the resolvers agree"
+is a standing assertion instead of a session finding.
+`viewer/simReplay.corpus.test.ts` replays every committed corpus payload
+against its recorded truth through the real client chain — `sim_parity
+compare` in CI, no machine. Its SCOPE is stated in the file and is
+narrower than it looks: the payload is an input, so it does not protect
+the parse-side fix; it pins the client chain, and catches a bad payload
+whenever artifacts are regenerated. Its metric is point-to-SEGMENT, a
+twin of `sim_parity.path_deviation` — a first cut using nearest-sample
+read ~2.0 where the live gate reads 0.04, i.e. it measured the sampling
+grid rather than the paths.
 
 **Also observed (not acted on):** `preview_goldens/twp/simple_example.json`
 drifts on a fresh boot (`swept_axes [] → [B,C]`, `wcs_epochs.rewritten

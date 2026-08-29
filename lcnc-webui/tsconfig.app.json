@@ -18,5 +18,5 @@
   // typechecked/run by vitest instead. Keep every other test in the app
   // project so vue-tsc still covers them.
   "exclude": ["src/viewer/machineModel.test.ts", "src/viewer/machineDmu160p.test.ts",
-              "src/viewer/machineTrsrn.test.ts"]
+              "src/viewer/machineTrsrn.test.ts", "src/viewer/simReplay.corpus.test.ts"]
 }
