@@ -941,11 +941,104 @@ class TestInsertKinsRelabels(unittest.TestCase):
         events = [(1, 2)]
         return rapid, events, p0, p1
 
+    # ---- the relabel CARRY (post-g69 phantom, 2026-08-29) ----------------
+    # A relabel re-expresses a POSITION; every axis the following blocks do
+    # not command keeps the pre-flip number in the un-resynced offline
+    # interpreter. Correcting only the post-flip START is what turned a
+    # zero-length hold into 897 mm of invented travel.
+
+    def _carry_fixture(self, tail_end=None):
+        """identity rapid -> flip -> a tuple that HOLDS every axis."""
+        p0 = self._seg9(50.0, 0.0, 100.0)
+        tail = p0 if tail_end is None else tail_end
+        rapid = [(5, self._seg9(0, 0, 0), p0, None, 1),
+                 (8, p0, tail, None, 2)]
+        frames = [(1,) + tuple(self.FRAME[k] for k in
+                               ("pre_rot", "primary_angle", "secondary_angle"))]
+        return rapid, [(1, 2)], frames, p0
+
+    def test_flip_into_a_held_segment_keeps_it_zero_length(self):
+        # The g69-tail shape: the post-flip block commands only an axis that
+        # is already at its target, so canon records start == end. Relabeling
+        # the start alone manufactured the phantom; both ends must move.
+        rapid, events, frames, p0 = self._carry_fixture()
+        _f, r2, _e, _fr, _w, brks, unres, carry = \
+            gateway_util.insert_flip_relabels(
+                [], rapid, events, frames, [], self.TRSRN, unit_scale=1.0)
+        self.assertEqual((unres, len(brks)), (0, 1))
+        tail = [t for t in r2 if t[4] == 4][0]
+        self.assertNotEqual(tail[1], p0)          # start relabeled
+        for i in range(6):                        # and STILL zero length
+            self.assertAlmostEqual(tail[2][i], tail[1][i], places=9)
+        self.assertGreaterEqual(carry, 1)         # and it is reported
+
+    def test_carry_retires_per_axis_on_the_first_commanded_move(self):
+        # X is commanded away, Y/Z are held: X takes its raw value, Y/Z carry.
+        tail_end = self._seg9(-25.0, 0.0, 100.0)
+        rapid, events, frames, p0 = self._carry_fixture(tail_end)
+        _f, r2, _e, _fr, _w, _b, unres, _c = \
+            gateway_util.insert_flip_relabels(
+                [], rapid, events, frames, [], self.TRSRN, unit_scale=1.0)
+        self.assertEqual(unres, 0)
+        tail = [t for t in r2 if t[4] == 4][0]
+        self.assertAlmostEqual(tail[2][0], tail_end[0], places=9)   # retired
+        for i in (1, 2):                                            # carried
+            self.assertAlmostEqual(tail[2][i] - tail[1][i],
+                                   tail_end[i] - p0[i], places=9)
+
+    def test_a_recommand_to_the_same_number_does_not_resurrect_the_carry(self):
+        # Retirement compares against the FIXED anchor, never a running
+        # position: once X has left, a later block putting X back on the
+        # anchor value must not pick the correction up again.
+        p0 = self._seg9(50.0, 0.0, 100.0)
+        moved = self._seg9(-25.0, 0.0, 100.0)
+        rapid = [(5, self._seg9(0, 0, 0), p0, None, 1),
+                 (8, p0, moved, None, 2),
+                 (9, moved, p0, None, 3)]
+        frames = [(1,) + tuple(self.FRAME[k] for k in
+                               ("pre_rot", "primary_angle", "secondary_angle"))]
+        _f, r2, _e, _fr, _w, _b, unres, _c = \
+            gateway_util.insert_flip_relabels(
+                [], rapid, [(1, 2)], frames, [], self.TRSRN, unit_scale=1.0)
+        self.assertEqual(unres, 0)
+        back = [t for t in r2 if t[4] == 6][0]
+        self.assertAlmostEqual(back[2][0], p0[0], places=9)
+
+    def test_relabel_never_manufactures_motion(self):
+        # The invariant, as a property over every fixture shape in this class:
+        # an axis whose RAW delta is zero has a zero delta afterwards too.
+        for tail_end in (None, self._seg9(-25.0, 0.0, 100.0),
+                         self._seg9(50.0, 12.0, 100.0)):
+            rapid, events, frames, _p0 = self._carry_fixture(tail_end)
+            raw = {t[4] * 2: (t[1], t[2]) for t in rapid}
+            _f, r2, _e, _fr, _w, _b, unres, _c = \
+                gateway_util.insert_flip_relabels(
+                    [], rapid, events, frames, [], self.TRSRN, unit_scale=1.0)
+            self.assertEqual(unres, 0)
+            for t in r2:
+                if t[4] not in raw:
+                    continue          # inserted relabel vertex
+                r_s, r_e = raw[t[4]]
+                for i in range(6):
+                    if abs(r_e[i] - r_s[i]) < 1e-12:
+                        self.assertAlmostEqual(t[2][i], t[1][i], places=9,
+                                               msg=f"axis {i} gained motion")
+
+    def test_unresolved_flip_drops_the_carry_and_counts_it(self):
+        # A frameless type-2 side cannot be evaluated: never guess — the raw
+        # segment is kept, the carry is dropped, and the count rides out.
+        rapid, events, _frames, _p0 = self._carry_fixture()
+        _f, r2, _e, _fr, _w, brks, unres, carry = \
+            gateway_util.insert_flip_relabels(
+                [], rapid, events, [], [], self.TRSRN, unit_scale=1.0)
+        self.assertEqual((unres, brks, carry), (1, set(), 0))
+        self.assertEqual([t[1] for t in r2], [t[1] for t in rapid])
+
     def test_trsrn_flip_inserts_joint_invariant_relabel(self):
         rapid, events, p0, _p1 = self._flip_fixture(True)
         frames = [(1,) + tuple(self.FRAME[k] for k in
                                ("pre_rot", "primary_angle", "secondary_angle"))]
-        feed2, rapid2, ev2, fr2, _w2, brks, unres = gateway_util.insert_flip_relabels(
+        feed2, rapid2, ev2, fr2, _w2, brks, unres, _carry = gateway_util.insert_flip_relabels(
             [], rapid, events, frames, [], self.TRSRN, unit_scale=1.0)
         self.assertEqual(unres, 0)
         self.assertEqual(len(rapid2), 3)
@@ -980,7 +1073,7 @@ class TestInsertKinsRelabels(unittest.TestCase):
         rapid = [(5, self._seg9(0, 0, 0), p0, None, 1)]
         fv = tuple(self.FRAME[k] for k in
                    ("pre_rot", "primary_angle", "secondary_angle"))
-        _f, r2, _e, _fr, _w2, brks, unres = gateway_util.insert_flip_relabels(
+        _f, r2, _e, _fr, _w2, brks, unres, _carry = gateway_util.insert_flip_relabels(
             [], rapid, [(-1, 2)], [(-1,) + fv], [], self.TRSRN,
             unit_scale=1.0, start_type=2, start_frame=fv)
         self.assertEqual((len(r2), brks, unres), (1, set(), 0))
@@ -996,7 +1089,7 @@ class TestInsertKinsRelabels(unittest.TestCase):
         rapid = [(5, start2, self._seg9(0, 0, 100.0), None, 1)]
         fv = tuple(self.FRAME[k] for k in
                    ("pre_rot", "primary_angle", "secondary_angle"))
-        _f, r2, _e, _fr, _w2, _brks, unres = gateway_util.insert_flip_relabels(
+        _f, r2, _e, _fr, _w2, _brks, unres, _carry = gateway_util.insert_flip_relabels(
             [], rapid, [(-1, 2), (0, 0)], [(-1,) + fv], [], self.TRSRN,
             unit_scale=1.0, start_type=2, start_frame=fv)
         self.assertEqual(unres, 0)
@@ -1012,7 +1105,7 @@ class TestInsertKinsRelabels(unittest.TestCase):
 
     def test_frameless_type2_flip_is_unresolved_not_guessed(self):
         rapid, events, _p0, _p1 = self._flip_fixture(False)
-        feed2, rapid2, _ev2, _fr2, _w2, brks, unres = gateway_util.insert_flip_relabels(
+        feed2, rapid2, _ev2, _fr2, _w2, brks, unres, _carry = gateway_util.insert_flip_relabels(
             [], rapid, events, [], [], self.TRSRN, unit_scale=1.0)
         self.assertEqual(unres, 1)
         self.assertEqual(len(rapid2), 2, "no vertex may be invented")
@@ -1023,14 +1116,14 @@ class TestInsertKinsRelabels(unittest.TestCase):
     def test_unknown_family_is_unresolved(self):
         rapid, events, _p0, _p1 = self._flip_fixture(True)
         cfg = {"type": "5axiskins", "params": {}}
-        _f, rapid2, _e, _fr, _w2, brks, unres = gateway_util.insert_flip_relabels(
+        _f, rapid2, _e, _fr, _w2, brks, unres, _carry = gateway_util.insert_flip_relabels(
             [], rapid, events, [], [], cfg, unit_scale=1.0)
         self.assertEqual((len(rapid2), brks, unres), (2, set(), 1))
 
     def test_no_events_is_passthrough_with_doubled_seqs(self):
         rapid = [(5, self._seg9(0, 0, 0), self._seg9(1, 0, 0), None, 1)]
         feed = [(6, self._seg9(1, 0, 0), self._seg9(2, 0, 0), 0.1, None, 2)]
-        f2, r2, e2, fr2, _w2, brks, unres = gateway_util.insert_flip_relabels(
+        f2, r2, e2, fr2, _w2, brks, unres, _carry = gateway_util.insert_flip_relabels(
             feed, rapid, [], [], [], self.TRSRN, unit_scale=1.0)
         self.assertEqual(([t[5] for t in f2], [t[4] for t in r2]), ([4], [2]))
         self.assertEqual((e2, fr2, brks, unres), ([], [], set(), 0))
@@ -1046,7 +1139,7 @@ class TestInsertKinsRelabels(unittest.TestCase):
         rapid = [(4, self._seg9(0, 0, 0), w_end + (0.0, 0.0, 0.0), None, 1)]
         feed = [(7, w_end + (0.0, 0.0, 0.0), self._seg9(0, 0, 50) , 0.1, None, 2)]
         events = [(1, 1)]  # flip to type 1 = identity on plain sparm
-        f2, r2, _e2, _fr2, _w2, brks, unres = gateway_util.insert_flip_relabels(
+        f2, r2, _e2, _fr2, _w2, brks, unres, _carry = gateway_util.insert_flip_relabels(
             feed, rapid, events, [], [], cfg, unit_scale=1.0)
         self.assertEqual(unres, 0)
         self.assertEqual(len(r2), 2, "relabel vertex inserted into rapid")
@@ -1076,7 +1169,7 @@ class TestInsertKinsRelabels(unittest.TestCase):
         events = [(0, 2)]   # marker at seq 0 governs seq 1
         frames = [(0,) + tuple(self.FRAME[k] for k in
                                ("pre_rot", "primary_angle", "secondary_angle"))]
-        f2, r2, _e2, _fr2, _w2, brks, unres = gateway_util.insert_flip_relabels(
+        f2, r2, _e2, _fr2, _w2, brks, unres, _carry = gateway_util.insert_flip_relabels(
             feed, [], events, frames, [], self.TRSRN, unit_scale=1.0)
         self.assertEqual((unres, len(f2), len(r2), brks), (0, 1, 0, set()))
         # No vertex inserted — the start is PATCHED in place: joints under
@@ -1088,8 +1181,22 @@ class TestInsertKinsRelabels(unittest.TestCase):
             list(patched[:6]), dict(self.GEO, **self.FRAME), 2)
         for a, b in zip(j_new, p0[:6]):
             self.assertAlmostEqual(a, b, places=6)
-        # The end is untouched — geometry on the wire is endpoint-only.
-        self.assertEqual(f2[0][2], p1)
+        # The END is carried, per axis. This tuple commands X (50 -> 0) but
+        # HOLDS Y and Z, and a held axis keeps the interpreter's stale
+        # pre-relabel number — which after the relabel denotes a DIFFERENT
+        # physical place. So X takes its raw commanded value (it means what
+        # it says in the new labeling) while Y and Z carry the correction.
+        # The old assertion here ("the end is untouched") pinned the
+        # incomplete behaviour: leaving held axes raw is what manufactured
+        # the 897 mm post-g69 phantom out of a zero-length hold.
+        self.assertAlmostEqual(f2[0][2][0], p1[0], places=9)   # X: commanded
+        self.assertNotAlmostEqual(f2[0][2][1], p1[1], places=6)  # Y: carried
+        self.assertNotAlmostEqual(f2[0][2][2], p1[2], places=6)  # Z: carried
+        # The carry is the SAME displacement the start got, so the segment's
+        # held axes keep exactly their raw delta (here: zero).
+        for i in (1, 2):
+            self.assertAlmostEqual(f2[0][2][i] - f2[0][1][i],
+                                   p1[i] - p0[i], places=9)
         # The phantom class this kills: the raw start was ~a machine-frame
         # jump away from where the segment really begins.
         self.assertGreater(max(abs(patched[i] - p0[i]) for i in range(3)), 1.0)
@@ -1097,7 +1204,7 @@ class TestInsertKinsRelabels(unittest.TestCase):
     def test_preamble_marker_without_twin_is_unresolved(self):
         p0 = self._seg9(50.0, 0.0, 100.0)
         rapid = [(7, p0, self._seg9(0, 0, 100), None, 1)]
-        _f2, r2, _e2, _fr2, _w2, brks, unres = gateway_util.insert_flip_relabels(
+        _f2, r2, _e2, _fr2, _w2, brks, unres, _carry = gateway_util.insert_flip_relabels(
             [], rapid, [(0, 2)], [], [], {"type": "5axiskins", "params": {}},
             unit_scale=1.0)
         self.assertEqual((unres, brks), (1, set()))
@@ -1111,7 +1218,7 @@ class TestInsertKinsRelabels(unittest.TestCase):
         rapid = [(7, p1, p1, None, 1)]
         frames = [(0,) + tuple(self.FRAME[k] for k in
                                ("pre_rot", "primary_angle", "secondary_angle"))]
-        _f2, r2, _e2, _fr2, _w2, brks, unres = gateway_util.insert_flip_relabels(
+        _f2, r2, _e2, _fr2, _w2, brks, unres, _carry = gateway_util.insert_flip_relabels(
             [], rapid, [(0, 2)], frames, [], self.TRSRN, unit_scale=1.0,
             ustart_seqs={1})
         self.assertEqual((unres, brks), (0, set()))
@@ -1125,7 +1232,7 @@ class TestInsertKinsRelabels(unittest.TestCase):
         rapid = [(4, self._seg9(0, 0, 0), self._seg9(10, 0, 5), None, 1),
                  (8, self._seg9(10, 0, 5), self._seg9(20, 0, 5), None, 2)]
         events = [(1, 1)]
-        _f2, r2, _e2, _fr2, _w2, brks, unres = gateway_util.insert_flip_relabels(
+        _f2, r2, _e2, _fr2, _w2, brks, unres, _carry = gateway_util.insert_flip_relabels(
             [], rapid, events, [], [], cfg, unit_scale=1.0)
         self.assertEqual((len(r2), brks, unres), (2, set(), 0))
 
@@ -1144,7 +1251,7 @@ class TestInsertKinsRelabels(unittest.TestCase):
                  (8, p0, p1, None, 2)]
         wcs = [(0, 1, self._basis((51.2, -7.9, -55.1))),
                (1, 6, self._basis((63.4, -33.7, -31.1)))]
-        f2, r2, _e2, _fr2, w2, brks, unres = gateway_util.insert_flip_relabels(
+        f2, r2, _e2, _fr2, w2, brks, unres, _carry = gateway_util.insert_flip_relabels(
             [], rapid, [], [], wcs, {"type": "not-a-family"}, unit_scale=1.0)
         self.assertEqual((unres, len(r2), f2), (0, 3, []))
         ins = r2[1]
@@ -1163,7 +1270,7 @@ class TestInsertKinsRelabels(unittest.TestCase):
                                ("pre_rot", "primary_angle", "secondary_angle"))]
         wcs = [(0, 1, self._basis((0, 0, 0))),
                (1, 6, self._basis((10, 20, 30)))]
-        _f2, r2, _e2, _fr2, _w2, brks, unres = gateway_util.insert_flip_relabels(
+        _f2, r2, _e2, _fr2, _w2, brks, unres, _carry = gateway_util.insert_flip_relabels(
             [], rapid, events, frames, wcs, self.TRSRN, unit_scale=1.0)
         self.assertEqual((unres, len(r2), len(brks)), (0, 3, 1))
         self.assertNotEqual(r2[1][2], p0, "kins flip relabels the pose")
@@ -1171,7 +1278,7 @@ class TestInsertKinsRelabels(unittest.TestCase):
     def test_single_epoch_and_no_kins_returns_early(self):
         rapid = [(4, self._seg9(0, 0, 0), self._seg9(1, 0, 0), None, 1)]
         wcs = [(0, 1, self._basis((5, 5, 5)))]
-        _f2, r2, _e2, _fr2, w2, brks, unres = gateway_util.insert_flip_relabels(
+        _f2, r2, _e2, _fr2, w2, brks, unres, _carry = gateway_util.insert_flip_relabels(
             [], rapid, [], [], wcs, None, unit_scale=1.0)
         self.assertEqual((len(r2), brks, unres), (1, set(), 0))
         self.assertEqual(w2, [(0, 1, wcs[0][2])], "seqs doubled, values kept")
@@ -1192,7 +1299,7 @@ class TestInsertKinsRelabels(unittest.TestCase):
         events = [(1, 2)]
         frames = [(1,) + tuple(self.FRAME[k] for k in
                                ("pre_rot", "primary_angle", "secondary_angle"))]
-        _f2, r2, _e2, _fr2, _w2, brks, unres = gateway_util.insert_flip_relabels(
+        _f2, r2, _e2, _fr2, _w2, brks, unres, _carry = gateway_util.insert_flip_relabels(
             [], rapid, events, frames, [], self.TRSRN, unit_scale=1.0)
         self.assertEqual((unres, len(r2), brks), (0, 3, {3}))
         ins = r2[1]
@@ -1217,7 +1324,7 @@ class TestInsertKinsRelabels(unittest.TestCase):
                  (8, p0_shift, p1, None, 2)]
         wcs = [(0, 1, self._basis((51.2, -7.9, -55.1))),
                (1, 6, self._basis((63.4, -33.7, -31.1)))]
-        _f2, r2, _e2, _fr2, _w2, brks, unres = gateway_util.insert_flip_relabels(
+        _f2, r2, _e2, _fr2, _w2, brks, unres, _carry = gateway_util.insert_flip_relabels(
             [], rapid, [], [], wcs, {"type": "not-a-family"}, unit_scale=1.0)
         self.assertEqual((unres, len(r2), brks), (0, 3, {3}))
         ins = r2[1]
@@ -1241,7 +1348,7 @@ class TestInsertKinsRelabels(unittest.TestCase):
                  (8, w_tilt_n + (0.0,) * 3, self._seg9(0, 0, 50),
                   (0.0, 0.0, 20.0), 2)]
         events = [(1, 1)]  # flip to identity
-        _f2, r2, _e2, _fr2, _w2, brks, unres = gateway_util.insert_flip_relabels(
+        _f2, r2, _e2, _fr2, _w2, brks, unres, _carry = gateway_util.insert_flip_relabels(
             [], rapid, events, [], [], cfg, unit_scale=1.0)
         self.assertEqual((unres, len(r2), brks), (0, 3, {3}))
         ins = r2[1]
@@ -2088,6 +2195,46 @@ class TestLineAttribution(unittest.TestCase):
             src, [1, 2, 3, 4])
         self.assertTrue(untrusted)
         self.assertEqual(bad, [1, 2, 3])
+
+
+class TestWcsRewriteTargets(unittest.TestCase):
+    """The value comparison in wcs_event_rewritten cannot see a G10 L2 that
+    writes the SAME numbers the var row already holds — the corpus programs
+    re-assert their own offsets on every run. The source-text scan settles
+    it: a fixture the PROGRAM writes is program-owned whatever the numbers
+    say, so the client re-adds the parse snapshot and a touch-off between
+    parse and display cannot move the preview off the machine's real path."""
+
+    def test_explicit_fixture_is_reported(self):
+        ex, act = gateway_util.wcs_rewrite_targets("g10 l2 p1 x10 y20\nG0 X0\n")
+        self.assertEqual((ex, act), ({1}, False))
+
+    def test_p0_means_the_active_fixture_so_every_epoch_counts(self):
+        # P0 is not statically knowable -> cannot tell must degrade to the
+        # snapshot, never to trusting the live row.
+        ex, act = gateway_util.wcs_rewrite_targets("G10 L2 P0 X1300 Y-200\n")
+        self.assertEqual((ex, act), (set(), True))
+
+    def test_l20_counts_too(self):
+        ex, _a = gateway_util.wcs_rewrite_targets("g10 l20 p3 z0\n")
+        self.assertEqual(ex, {3})
+
+    def test_commented_out_g10_does_not_count(self):
+        for line in ("(g10 l2 p1 x5)", "; g10 l2 p1 x5", "G0 X0 (g10 l2 p2 y1)"):
+            ex, act = gateway_util.wcs_rewrite_targets(line)
+            self.assertEqual((ex, act), (set(), False), line)
+
+    def test_rewrite_to_identical_values_is_still_a_rewrite(self):
+        # The exact corpus shape: the var row already holds what the program
+        # writes, so the value comparison says "not rewritten" — and the
+        # source scan is what keeps it honest.
+        basis = ([1300.0, -200.0, -1400.0, 0, 0, 0, 0, 0, 0],
+                 [0.0] * 9, 0.0)
+        rows = {1: ([1300.0, -200.0, -1400.0, 0, 0, 0, 0, 0, 0], 0.0)}
+        self.assertFalse(gateway_util.wcs_event_rewritten(
+            basis, 1, rows, [0.0] * 9, 1.0))
+        ex, act = gateway_util.wcs_rewrite_targets("g10 l2 p0 x1300 y-200 z-1400\n")
+        self.assertTrue(act, "the source scan must catch what the values cannot")
 
 
 class TestTrsrnLimitCheck(unittest.TestCase):

@@ -77,6 +77,7 @@ from gateway_util import (
     classify_motion_lines, line_trust_flags, resolve_sub_indices,
     attribute_sub_callers, resolve_sub_callers,
     insert_flip_relabels, read_var_wcs_rows, wcs_event_rewritten,
+    wcs_rewrite_targets,
     PREVIEW_SCHEMA, should_ship_abc, rotary_sync_initcode,
     rotary_seed_values, seed_kins_events, wcs_offset_flat_from_var,
     find_unmarked_subs, resolve_subroutine_dirs,
@@ -319,6 +320,7 @@ def parse(ctx: dict) -> dict:
     world_unchecked = 0
     relabel_seqs = set()
     flips_unresolved = 0
+    flips_carry_spans = 0
     flips_handled = False
     kins_active = False
     live_kins_type = ctx.get("kins_type")
@@ -368,7 +370,8 @@ def parse(ctx: dict) -> dict:
         # marker-ignore mode the kins events are dropped here (enforcing
         # the policy) while epoch flips are still handled.
         (canon.feed, canon.rapid, canon.kins_events, canon.kins_frames,
-         canon.wcs_events, relabel_seqs, flips_unresolved) = insert_flip_relabels(
+         canon.wcs_events, relabel_seqs, flips_unresolved,
+         flips_carry_spans) = insert_flip_relabels(
             canon.feed, canon.rapid,
             canon.kins_events if kins_active else [],
             canon.kins_frames if kins_active else [],
@@ -386,10 +389,11 @@ def parse(ctx: dict) -> dict:
         # seqs (inserted relabel vertices at odd seqs resolve consistently).
         canon.sub_events = [(_ev[0] * 2,) + tuple(_ev[1:])
                             for _ev in canon.sub_events]
-        if relabel_seqs or flips_unresolved:
+        if relabel_seqs or flips_unresolved or flips_carry_spans:
             print(f"flips: {len(relabel_seqs)} relabel vertices inserted "
                   f"({len(canon.wcs_events)} wcs epochs), {flips_unresolved} "
-                  f"UNRESOLVED (no twin/frame — those keep the raw segment)",
+                  f"UNRESOLVED (no twin/frame — those keep the raw segment), "
+                  f"{flips_carry_spans} segment(s) moved by the relabel carry",
                   file=sys.stderr, flush=True)
     # Unknown-start seqs (W3 P1) in the same seq space as the tuples —
     # doubled iff the relabel pass ran and doubled everything else.
@@ -1127,6 +1131,14 @@ def parse(ctx: dict) -> dict:
         # geometry. Unhandled ≠ handled — the count rides the wire so
         # the sweep/UI can say so instead of implying a clean track.
         result["kins_flips_unresolved"] = flips_unresolved
+    if flips_carry_spans:
+        # Segments whose geometry a relabel CARRY moved (the post-g69 class):
+        # an axis the post-flip blocks never command keeps the pre-flip value
+        # in the un-resynced offline interpreter, so the correction is carried
+        # until that axis is re-commanded. Canon-endpoint replay cannot tell
+        # "held" from "commanded to exactly the stale value", so the reach of
+        # the carry rides the wire instead of being silently assumed.
+        result["kins_carry_spans"] = flips_carry_spans
     if canon.wcs_events:
         # WCS epoch rows (review P2), execution-ordered: [seq, g5x_index,
         # rotation_deg, rewritten, g5x x6, g92 x6] — MACHINE units, the
@@ -1138,10 +1150,18 @@ def parse(ctx: dict) -> dict:
         # row when motion exists, so absence unambiguously means a legacy
         # payload. A handful of small rows — GC discipline intact.
         _e0_g92 = canon.wcs_events[0][2][1]
+        # The value comparison alone misses a G10 L2 that writes the SAME
+        # numbers the var row already holds — a program re-asserting its own
+        # offsets every run then reads as operator-owned, and the client
+        # re-adds the LIVE row, so a touch-off between parse and display
+        # moves the preview somewhere the machine will never go. Union in
+        # what the SOURCE says the program writes.
+        _wr_explicit, _wr_active = wcs_rewrite_targets(_src_text)
         result["wcs_frames"] = []
         for _eseq, _eidx, _ebasis in canon.wcs_events:
-            _rw = wcs_event_rewritten(_ebasis, _eidx, var_wcs_rows,
-                                      _e0_g92, unit_scale)
+            _rw = (wcs_event_rewritten(_ebasis, _eidx, var_wcs_rows,
+                                       _e0_g92, unit_scale)
+                   or _wr_active or (_eidx in _wr_explicit))
             result["wcs_frames"].append(
                 [int(_eseq), int(_eidx or 0), float(_ebasis[2]),
                  1 if _rw else 0]

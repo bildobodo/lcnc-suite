@@ -1216,6 +1216,39 @@ def read_var_wcs_rows(path):
     return rows
 
 
+#: `G10 L2|L20 P<n>` — the program writing a work offset. L2 sets the offset
+#: directly, L20 sets it so the current position takes the given value; both
+#: make the live var-file row non-authoritative for that fixture.
+_G10_WCS_RE = re.compile(r"\bG\s*10\b[^\n]*?\bL\s*(2|20)\b[^\n]*?\bP\s*(\d+)",
+                         re.IGNORECASE)
+
+
+def wcs_rewrite_targets(text):
+    """Fixtures the PROGRAM TEXT writes: (explicit_indices, writes_active).
+
+    The value comparison in `wcs_event_rewritten` cannot see a G10 L2 that
+    writes the SAME numbers the var file already holds — and a program that
+    re-asserts its own offsets every run (the corpus does exactly this) then
+    looks operator-owned, so the client re-adds the LIVE row and a touch-off
+    between parse and display moves the preview somewhere the machine will
+    never go. The source text settles it: a fixture the program writes is
+    program-owned whatever the numbers say.
+
+    `P0` means "the active fixture", which is not statically knowable, so it
+    returns writes_active=True and the caller must treat EVERY epoch as
+    rewritten — cannot tell degrades to the snapshot, never to the live row.
+    Pure; comments stripped first so a commented-out G10 does not count."""
+    explicit, active = set(), False
+    for raw in (text or "").splitlines():
+        for m in _G10_WCS_RE.finditer(strip_gcode_comments(raw)):
+            p = int(m.group(2))
+            if p == 0:
+                active = True
+            else:
+                explicit.add(p)
+    return explicit, active
+
+
 def wcs_event_rewritten(basis, g5x_index, var_rows, epoch0_g92, unit_scale,
                         eps=1e-3):
     """Did the PROGRAM write this epoch's offsets, rather than the operator?
@@ -1351,11 +1384,23 @@ def insert_flip_relabels(feed, rapid, kins_events, kins_frames, wcs_events,
     start is a synthetic copy of its end, and relabeling it would turn a
     zero-length vertex into a phantom segment.
 
+    A relabel re-expresses a POSITION, so it must be CARRIED FORWARD: every
+    axis the following blocks leave uncommanded keeps the pre-flip value in
+    the un-resynced interpreter, and correcting only the post-flip segment's
+    start manufactures motion the moment that segment holds an axis. See the
+    carry block below. Relabel invariant, enforced by construction: a relabel
+    may neither create nor destroy motion — an axis whose RAW segment delta is
+    zero has a zero delta afterwards too.
+
     Returns (feed2, rapid2, events2, frames2, wcs_events2, relabel_seqs,
-    unresolved): `relabel_seqs` = doubled seqs of the inserted vertices;
-    `unresolved` counts kins flips this family/frame data could NOT
-    evaluate — those keep the raw (wrong) segment, and the caller must
-    ship the count rather than pretend the track is clean. Pure.
+    unresolved, carry_spans): `relabel_seqs` = doubled seqs of the inserted
+    vertices; `unresolved` counts kins flips this family/frame data could NOT
+    evaluate — those keep the raw (wrong) segment and drop the carry, and the
+    caller must ship the count rather than pretend the track is clean;
+    `carry_spans` counts tuples whose shipped geometry the carry moved, which
+    the caller ships too: canon-endpoint replay cannot tell "axis held" from
+    "axis commanded to exactly the stale value", so the reach of every carry
+    is reported rather than assumed. Pure.
     """
     feed = [list(t) for t in feed]
     rapid = [list(t) for t in rapid]
@@ -1367,7 +1412,7 @@ def insert_flip_relabels(feed, rapid, kins_events, kins_frames, wcs_events,
     for t in rapid:
         t[4] *= 2
     if (not kins_events and len(wcs_events) < 2) or (not feed and not rapid):
-        return feed, rapid, events2, frames2, wcs_events2, set(), 0
+        return feed, rapid, events2, frames2, wcs_events2, set(), 0, 0
 
     # Execution-ordered view: (seq2, stream_list, index). Both lists are
     # seq-ascending (canon appends in execution order), so a plain merge
@@ -1384,6 +1429,62 @@ def insert_flip_relabels(feed, rapid, kins_events, kins_frames, wcs_events,
     relabel_seqs = set()
     inserts = []  # (position-in-rapid, tuple) collected, applied afterwards
     unresolved = 0
+
+    # ---- the relabel CARRY (the post-g69 phantom, 2026-08-29) --------------
+    # A relabel re-expresses a POSITION, and the offline interpreter is never
+    # resynced — so every axis the following blocks do not command keeps the
+    # PRE-flip value for as long as it stays uncommanded. Patching only the
+    # post-flip segment's start (what this function used to do) therefore
+    # manufactures motion the moment that segment holds an axis: the trailing
+    # `g0 a0` of a g69 tail is start==end, and moving only its start invented
+    # 897 mm of travel. The k=0 branch already knew this hazard ("relabeling
+    # it would turn a zero-length vertex into a phantom segment"); the k-loop
+    # did not.
+    #
+    # So the correction is carried forward per axis until that axis is
+    # re-commanded:
+    #   corr[i]   raw -> true, in CANON units (a displacement: world/unit_scale,
+    #             so it is invariant to any per-tuple TLO difference)
+    #   live[i]   the correction still applies
+    #   anchor[i] the RAW WORLD value when it was established. Retirement
+    #             compares against this FIXED anchor, never a running
+    #             position, so a later re-command to the same number cannot
+    #             resurrect a retired axis.
+    # Retirement is evaluated on the start AND on the end, against the same
+    # anchor, which is what makes the relabel invariant hold by construction:
+    # an axis with a zero raw delta gets the same treatment at both ends.
+    corr = [0.0] * 6
+    live = [False] * 6
+    anchor = [0.0] * 6
+    carry_spans = 0          # tuples whose shipped geometry the carry moved
+    _EPS = 1e-9
+
+    def _world(coords, tlo):
+        out = [0.0] * 6
+        for i in range(6):
+            v = float(coords[i])
+            if i < 3:
+                v = (v + (tlo[i] if tlo is not None else 0.0)) * unit_scale
+            out[i] = v
+        return out
+
+    def _retire(coords, tlo):
+        """Drop the carry for every axis that has left its anchor."""
+        w = _world(coords, tlo)
+        for i in range(6):
+            if live[i] and abs(w[i] - anchor[i]) > _EPS:
+                live[i] = False
+
+    def _apply(coords):
+        if not any(live):
+            return list(coords), False
+        out = list(coords)
+        moved = False
+        for i in range(6):
+            if live[i]:
+                out[i] = float(coords[i]) + corr[i]
+                moved = True
+        return out, moved
 
     # k=0 seed correction (W3 P2 — the 962 mm phantom): markers that fire
     # BEFORE the first recorded segment produce no k-loop flip (types[] and
@@ -1407,91 +1508,120 @@ def insert_flip_relabels(feed, rapid, kins_events, kins_frames, wcs_events,
     _sfr = tuple(start_frame) if start_frame is not None else None
     ustart2 = {s * 2 for s in ustart_seqs}
     _fr0 = frames_vals[fidx[0]] if merged and fidx[0] is not None else None
-    if merged and (types[0] != start_type or _fr0 != _sfr) \
-            and merged[0][0] not in ustart2:
-        _seq0, lst_0, i_0 = merged[0]
-        nxt = lst_0[i_0]
-        nxt_start = nxt[1]
-        tlo_n = nxt[4] if lst_0 is feed else nxt[3]
-        fr_n = _fr0
-        w0 = [0.0] * 6
-        for i in range(6):
-            v = float(nxt_start[i])
-            if i < 3:
-                v = (v + (tlo_n[i] if tlo_n is not None else 0.0)) * unit_scale
-            w0[i] = v
-        j = _kins_flip_pose(kins_cfg, start_type, _sfr, tlo_n, unit_scale,
-                            world=w0)
-        w1 = None if j is None else \
-            _kins_flip_pose(kins_cfg, types[0], fr_n, tlo_n, unit_scale, joints=j)
-        if w1 is None:
-            unresolved += 1
-        else:
-            start = list(nxt_start)
-            for i in range(3):
-                start[i] = w1[i] / unit_scale - (tlo_n[i] if tlo_n is not None else 0.0)
-            for i in range(3, 6):
-                start[i] = w1[i]
-            if max(abs(start[i] - float(nxt_start[i])) for i in range(6)) >= 1e-9:
-                lst_0[i_0] = list(nxt)
-                lst_0[i_0][1] = tuple(start)
 
-    for k in range(1, len(merged)):
-        kins_flip = types[k] != types[k - 1] or fidx[k] != fidx[k - 1]
-        if not kins_flip and eidx[k] == eidx[k - 1]:
-            continue
+    for k in range(len(merged)):
         seq_n, lst_n, i_n = merged[k]
         nxt = lst_n[i_n]
-        # Seed from the TRUE canon start of the first post-flip segment (W2
-        # P2): the interpreter's own `lo` tracks through moves the canon
-        # SUPPRESSES (a G43 shift, a deduped first move), which the previous
-        # tuple's END never sees — seeding from prev[2] relabeled a pose the
-        # position bookkeeping had already left whenever such a move sat
-        # between the two tuples. nxt's start coords were TLO-peeled with
-        # nxt's OWN tlo, so that same tlo un-peels them (and parameterizes
-        # BOTH twin sides: one instant, one pin state — the TLO fold makes
-        # the recovered joints invariant to which consistent tlo is used,
-        # while mixing prev's tlo into nxt's coords would shift the physical
-        # pose by any G43 delta at the boundary).
         nxt_start = nxt[1]
+        nxt_end = nxt[2]
         tlo_n = nxt[4] if lst_n is feed else nxt[3]
-        if kins_flip:
+
+        if k == 0:
+            # k=0 is a PATCH IN PLACE, never an insertion: the wire ships
+            # endpoints only, so re-expressing the very first start corrects
+            # time/distance/limit subdivision without inventing geometry.
+            kins_flip = ((types[0] != start_type or _fr0 != _sfr)
+                         and seq_n not in ustart2)
+            flip = kins_flip
+            fr_p, fr_n = _sfr, _fr0
+            type_p = start_type
+        else:
+            kins_flip = types[k] != types[k - 1] or fidx[k] != fidx[k - 1]
+            flip = kins_flip or eidx[k] != eidx[k - 1]
             fr_p = frames_vals[fidx[k - 1]] if fidx[k - 1] is not None else None
             fr_n = frames_vals[fidx[k]] if fidx[k] is not None else None
-            w0 = [0.0] * 6
-            for i in range(6):
-                v = float(nxt_start[i])
-                if i < 3:
-                    v = (v + (tlo_n[i] if tlo_n is not None else 0.0)) * unit_scale
-                w0[i] = v
-            j = _kins_flip_pose(kins_cfg, types[k - 1], fr_p, tlo_n, unit_scale, world=w0)
+            type_p = types[k - 1]
+
+        # Retire first, so an axis this tuple has already left cannot be
+        # corrected, then carry what survives into the start.
+        _retire(nxt_start, tlo_n)
+        start_c, start_moved = _apply(nxt_start)
+
+        end = None
+        if flip and kins_flip:
+            # The FROM side is the TRUE pre-flip pose — raw PLUS any live
+            # carry — so a relabel that follows another relabel composes.
+            w0 = _world(start_c, tlo_n)
+            j = _kins_flip_pose(kins_cfg, type_p, fr_p, tlo_n, unit_scale,
+                                world=w0)
             w1 = None if j is None else \
-                _kins_flip_pose(kins_cfg, types[k], fr_n, tlo_n, unit_scale, joints=j)
+                _kins_flip_pose(kins_cfg, types[k], fr_n, tlo_n, unit_scale,
+                                joints=j)
             if w1 is None:
+                # Never guess: drop the carry entirely and let the caller
+                # ship the count rather than pretend the track is clean.
                 unresolved += 1
+                corr[:] = [0.0] * 6
+                live[:] = [False] * 6
                 continue
-            # Back to canon units, TLO peeled — the shape of its neighbours.
             end = list(nxt_start)
             for i in range(3):
                 end[i] = w1[i] / unit_scale - (tlo_n[i] if tlo_n is not None else 0.0)
             for i in range(3, 6):
                 end[i] = w1[i]
-            if eidx[k] == eidx[k - 1] and \
-                    max(abs(end[i] - float(nxt_start[i])) for i in range(6)) < 1e-9:
-                continue  # relabel lands where the segment already starts
-            end = tuple(end)
-        else:
-            # Epoch-only flip: the machine holds still at a fixture switch —
-            # the relabel is the true post-flip start verbatim; only its
-            # EPOCH (and thus the basis subtracted at extraction) differs.
-            end = tuple(nxt_start)
+            # Establish the carry: raw -> true, anchored at the raw pose it
+            # was computed from.
+            _raw_w = _world(nxt_start, tlo_n)
+            for i in range(6):
+                corr[i] = end[i] - float(nxt_start[i])
+                anchor[i] = _raw_w[i]
+                live[i] = abs(corr[i]) > _EPS
+            start_c = list(end)
+        elif flip:
+            # Epoch-only flip: the machine holds still at a fixture switch, so
+            # the relabel is the post-flip start verbatim (carry included);
+            # only its EPOCH differs.
+            end = list(start_c)
+        elif not any(live):
+            continue          # nothing to relabel and nothing to carry
+
+        # The tuple's own motion retires whatever it commands; an axis with a
+        # zero raw delta keeps the same live state at both ends, so a relabel
+        # can never create or destroy motion.
+        _retire(nxt_end, tlo_n)
+        end_c, end_moved = _apply(nxt_end)
+
+        if start_moved or end_moved:
+            carry_spans += 1
+
+        if not flip:
+            # Carry-only tuple: no vertex, no relabel — just the corrected
+            # geometry.
+            lst_n[i_n] = list(nxt)
+            lst_n[i_n][1] = tuple(start_c)
+            lst_n[i_n][2] = tuple(end_c)
+            continue
+
+        if k == 0:
+            if max(abs(start_c[i] - float(nxt_start[i]))
+                   for i in range(6)) >= _EPS:
+                lst_n[i_n] = list(nxt)
+                lst_n[i_n][1] = tuple(start_c)
+                lst_n[i_n][2] = tuple(end_c)
+            continue
+
+        if kins_flip and eidx[k] == eidx[k - 1] and \
+                max(abs(start_c[i] - float(nxt_start[i]))
+                    for i in range(6)) < _EPS:
+            continue  # relabel lands where the segment already starts
+        end = tuple(start_c)
+        # The relabel vertex is seeded from the TRUE canon start of the first
+        # post-flip segment (W2 P2): the interpreter's own `lo` tracks through
+        # moves the canon SUPPRESSES (a G43 shift, a deduped first move), which
+        # the previous tuple's END never sees. nxt's start coords were TLO-peeled
+        # with nxt's OWN tlo, so that same tlo un-peels them (and parameterizes
+        # BOTH twin sides: the TLO fold makes the recovered joints invariant to
+        # which consistent tlo is used, while mixing prev's tlo into nxt's coords
+        # would shift the physical pose by any G43 delta at the boundary).
         rl_seq = seq_n - 1
-        # Zero-length rapid AT the relabeled pose; the next segment now
-        # really starts there.
+        # Zero-length rapid AT the relabeled pose; the next segment now really
+        # STARTS there — and, via the carry, ENDS where it truly ends instead
+        # of snapping back to the un-relabeled position (the g69-tail phantom).
         inserts.append((i_n if lst_n is rapid else None,
                         [nxt[0], end, end, tlo_n, rl_seq]))
         lst_n[i_n] = list(nxt)
         lst_n[i_n][1] = end
+        lst_n[i_n][2] = tuple(end_c)
         relabel_seqs.add(rl_seq)
 
     # Apply rapid insertions back-to-front so indices stay valid; flips whose
@@ -1505,7 +1635,8 @@ def insert_flip_relabels(feed, rapid, kins_events, kins_frames, wcs_events,
                 pos += 1
             rapid.insert(pos, tup)
     return ([tuple(t) for t in feed], [tuple(t) for t in rapid],
-            events2, frames2, wcs_events2, relabel_seqs, unresolved)
+            events2, frames2, wcs_events2, relabel_seqs, unresolved,
+            carry_spans)
 
 
 def trt_kins_forward(joints, params, bc=False):
