@@ -1,0 +1,21 @@
+(ACCEPTANCE for G68.3 vector-semantics origin storage.)
+(The head is posed with B/C, THEN the table tilts to A20, THEN g68.3)
+(measures the live spindle. The origin words are a VECTOR from the)
+(work offset - under the point-semantics conversion the review found,)
+(the stored origin picked up an [I-Rx[20deg]]*pivot term of ~776 mm and)
+(the square was cut 776 mm from where the program put it, while the)
+(normal error read ~0: no frame-independent invariant can see a pure)
+(translation. twp_parity's centroid_err_mm is the check that can.)
+(Correct vector storage leaves the square at G54 + Rx[A]*v + 100*n in)
+(the table frame; run 2 starts from run 1's parked pose, the leading)
+(g69 resets plane and kins.)
+g69
+g10 l2 p0 x1300 y-200 z-1400 a0
+m6 t3 g43 h3
+g0 x0y0z100 a0
+g0 b-30 c15
+g0 a20
+g68.3 x50 y50 z-50
+g53.3 x0y0z100
+o<square> call
+M2

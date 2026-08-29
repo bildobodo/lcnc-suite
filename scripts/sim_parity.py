@@ -40,11 +40,11 @@ _HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, _HERE)
 sys.path.insert(0, os.path.join(_HERE, "..", "lcnc-gateway"))
 
-from gateway_util import strip_gcode_comments  # noqa: E402
+from gateway_util import strip_gcode_comments, parse_kins_config  # noqa: E402
 import msgspec  # noqa: E402
 import numpy as np  # noqa: E402
 
-from twp_parity import run_preview, sample_run  # noqa: E402
+from twp_parity import run_preview, sample_run, truth_plane_invariants  # noqa: E402
 
 _WEBUI = os.path.join(_HERE, "..", "lcnc-webui")
 
@@ -335,6 +335,21 @@ def cmd_gate(a):
             ok, rep = compare_files(truth_path, sim_path, tol)
             print(("[PASS] " if ok else "[FAIL] ") + f"{tag}: {rep}")
             fails += 0 if ok else 1
+            # 4b. text-derived plane invariants on the REAL run. Joint parity
+            # is blind to a remap defect — truth and sim share the remap and
+            # agree perfectly while both cut in the wrong place (the G68.3
+            # origin bug: normal_err ~0, square 776 mm away). Gated here so
+            # the corpus, not a separate manual command, is what catches it.
+            _ini_obj = linuxcnc.ini(ini)
+            _kins = parse_kins_config(_ini_obj.find("KINS", "KINEMATICS"),
+                                      _ini_obj.findall("HAL", "HALCMD") or [])
+            inv_ok, inv_rep = truth_plane_invariants(_kins, ngc, truth_path)
+            if inv_ok is None:
+                print(f"[----] {tag}: plane invariants: {inv_rep}")
+            else:
+                print(("[PASS] " if inv_ok else "[FAIL] ")
+                      + f"{tag}: plane invariants: {inv_rep}")
+                fails += 0 if inv_ok else 1
     print(f"\nsim parity gate: {'GREEN' if fails == 0 else f'{fails} FAILURE(S)'}")
     return 1 if fails else 0
 

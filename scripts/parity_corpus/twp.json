@@ -30,6 +30,12 @@
       "runs": 2,
       "tol": 0.5,
       "note": "the plane is DEFINED at a tilted table (A20 before g68.2). Pins table-relative storage: g68.2's P-branches change meaning with zero code change, so nothing else can catch a regression here. Stub the table mapping and this reports ~19.3 deg."
+    },
+    {
+      "file": "twp_g683_tilted.ngc",
+      "runs": 2,
+      "tol": 0.5,
+      "note": "G68.3 (live-spindle definition) at a TILTED table: the origin words are a VECTOR and must convert rotation-only. twp_parity gates the square's CENTROID in the table frame (frame-independent invariants cannot see a translation) \u2014 the point-path bug reports centroid_err ~776 mm with normal_err ~0."
     }
   ]
 }
