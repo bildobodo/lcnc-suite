@@ -2147,3 +2147,83 @@ sixth-input catch, schema-8 ledger); the marker + collision cylinder use
 the LOADED tool's row or a 6×60 stub — the program's T sequence is not
 consulted. Deferred by decision to the schema-8 TLO wave (same
 multi-consumer class as the 12.58 mm bug); the bar says so.
+
+## 2026-08-30 — Schema 8: per-segment tool-length offset (feat/twp)
+
+**The defect.** The corpus gate's one standing red — `twp_simple_example.run1`
+at exactly 22.000 on a fresh boot — was the sixth run-time state input: the
+program does `m6 t3 g43 h3` before any motion, and the client's simulation
+applied ONE live `wcs.tool` (0 on a fresh boot) to the whole track, so every
+post-G43 joint sat 22 mm high. It "passed" only on sessions already carrying
+TLO 22, and the committed green artifacts hid it (captured in such a
+session). Same class as the 12.58 mm TLO bug: many consumers, one rule; a
+partial fix hides the defect — so every consumer switched in ONE commit.
+
+**Wire (schema 8).** The canon side was already per-segment (every tuple
+carries tlo3; endpoints are TLO-peeled tip coords; the limit checkers add
+tlo back per segment) — only what the CLIENT adds back collapsed to one
+value. `tlo_events` rows [seq, xo, yo, zo, tool] (machine units, present
+only when the program changes tool or offset; -1 = no M6 yet), recorded in
+`tool_offset()` and `change_tool()` on program lines only (an initcode-
+driven tool_offset must never become "the program asserted 0": segments
+BEFORE the first row run under the machine's LIVE modal G43 state, which
+no parse can know — the client resolves 0xff to the live applied offset).
+Same seq convention as the other channels; `m6 t3 g43 h3` = two rows at
+one seq, last wins; G49-when-zero IS recorded. RDP anchors every event
+boundary (a G43 followed by a feed has no vertex of its own).
+`parse_tlos` rows gain a diameter column.
+
+**The one-commit switch.** partFrame `liftToJoints` / `jointsToProgram` /
+`tipWcs` are the ONE lift and inverse; epoch terms are TIP-space (no tool)
+so the offset can never ride twice; `transformToPartFrame` lifts AND peels
+each vertex with `tloForIndex` — the old code lifted with the epoch terms'
+tool but peeled with the live terms' tool, an asymmetry invisible only
+while both were the same value (the next 12.58 mm class, pre-empted);
+`jointsForSample` lifts with the sample's event; the entry inverse uses
+point 0's offset (round-trips by construction); `projectOntoTrack` strips
+the LIVE offset once (physical joints); `machineFromJoints` deliberately
+stays live (the run playhead inverts the machine's actual G43 state); the
+collision tool body's −TLO tip shift moved from a once-per-sweep vertex
+bake into a per-pose tool-local translation, and the per-chunk kins model
+carries the segment's offset (clearance bound stays certified);
+applyState phase 3 subtracts the SCRUB SAMPLE's offset while a scrub pose
+is shown. Kins memo became an LRU (cap 256): N offsets × M frames are all
+hot at once.
+
+**Rides along.** The sweep swaps the ONE tool body's geometry/BVH to the
+program tool active per segment (never K bodies — K× pairs, misattributed
+hits); the model is handed back wearing its base body (the test caught a
+reused model inheriting the last tool). While scrubbing the marker wears
+the sample's tool (table dims; meta only if ever loaded). ScrubBar row 2
+says "sweep: program tools T3 Ø6.0"; the loaded-tool/stub note stays for
+programs without the channel (M600 remaps fire no change_tool). The TLO
+drift edge compares every program tool's row against the live table (a
+re-measure of a NOT-loaded tool stales the pose too).
+
+**G43-retires-carry edge — closed by pin, not code.** `_retire` compares
+in WORLD with the tuple's own tlo; the canon's lo-peel keeps raw + tlo
+continuous across a G43; `corr[]` is a raw-space displacement. Pinned:
+a held axis stays carried across a G43 (zero length preserved), a
+commanded one retires; and the lo-peel identity itself on the REAL
+interpreter (new canon fixture `tlo_midprogram`: tool_offset fires only on
+program lines, M6+G43 share a seq with the G43 row last, the post-G43
+traverse is a zero-length ustart vertex, lo_before + tlo_before ==
+lo_after + zo on both calls).
+
+**Live.** Fresh boot (tool 0): gate 11/11 GREEN; twp_simple_example.run1
+22.000 → 0.000/0.021 with NO tolerance change; every plane origin 0.0000;
+g683 1.07/1.09 within its documented 1.5. Artifacts regenerated at schema
+8 (run1's header tool is [0,0,0] — the green set no longer hides the
+defect); the corpus replay additionally runs every payload with the
+header's live tool ZEROED at the same tolerance, and asserts run1 ships
+the channel. The twp preview golden regenerated under the program's real
+basename, which exposed `simple_example.json` as the ledger's orphaned
+golden (a renamed program) — removed.
+
+**Not verified here:** the browser walk-through (scrub across the G43,
+marker/head step, row-2 text) — the pose math is pinned by the replay
+against the real capture, the visual layer is for the next session.
+**Recorded, unchanged:** pre-G43 segments on a machine already carrying
+G43 — the client now uses the live offset (correct) while the parse-side
+limit flags for those segments still assume 0; `RANDOM_TOOLCHANGER` idx
+is a pocket (pre-existing on tool_change_events).

@@ -361,12 +361,24 @@ survive RDP; `viewer/partFrame.ts`
 rotary segments (~4°/sample) and transforms each sample into the work
 frame by evaluating the machine.json chain — same normalize code as the
 live scene (`viewer/kinematics.ts`), so the preview overlays the backplot
-by construction. TLO rule (W3 P0): the tool-length offset subtracts in
-the TOOL NODE'S WORLD ROTATION — the same frame as applyState phase 3
-(local .position under the rotated spindle chain) and the collision
-worker (tool-local cylinder verts); three consumers, one rule. A
-world-axis subtraction is off by a constant rigid offset whenever the
-spindle chain is tilted (operator-caught: 12.58 mm at the TWP hold). Settings → 3D Viewer → "Path on part" (default) vs
+by construction. TLO rule (W3 P0 + schema 8): the tool-length offset is
+PER-SEGMENT state — the wire's `tlo_events` rows ([seq, xo, yo, zo, tool],
+recorded by the canon at every G43/G43.1/G49 and executed M6 on a program
+line; the LIVE applied offset governs segments before the first row, which
+the run inherits as modal G43 state) — resolved by ONE function
+(`viewer/tloEvents.ts` tloForIndex) and LIFTED by one (`partFrame.ts`
+liftToJoints, on TIP-space terms: epoch terms carry no tool, so the offset
+can never ride twice). It subtracts in the TOOL NODE'S WORLD ROTATION —
+the same frame in applyState phase 3 (local .position under the rotated
+spindle chain; the scrub SAMPLE's offset while a scrub pose is shown), the
+part-frame tip peel (lift and peel from the same per-vertex value) and the
+collision sweep (a per-pose tool-local translation of the tool body, no
+longer baked into its verts). A world-axis subtraction is off by a
+constant rigid offset whenever the spindle chain is tilted (operator-
+caught: 12.58 mm at the TWP hold); ONE live offset for the whole track
+posed every post-G43 joint a tool length high on a fresh boot (the corpus
+gate's 22.000 catch). The sweep and the scrub marker also wear the tool the
+program has active per segment (`parse_tlos` rows carry diameter). Settings → 3D Viewer → "Path on part" (default) vs
 "Programmed XYZ". The transform re-runs on live WCS changes (debounced —
 part-frame vertices depend on pivot-vs-work-origin). Machine-limit
 overflow + bounds boxes stay in programmed/machine space (the correct
