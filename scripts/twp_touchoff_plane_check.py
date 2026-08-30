@@ -209,7 +209,13 @@ _saved_g54 = read_params(G54_ROW)
 _saved_g59 = read_params(G59_ROW)
 _saved_prov = read_params(_PROV_ROWS)
 print(f"  nut={NUT_ANGLE} G54={[round(v, 3) for v in _saved_g54[:6]]} "
-      f"G59 rotary rows A/B/C={[round(v, 3) for v in _saved_g59[3:6]]}")
+      f"G59 rotary rows A/B/C={[round(v, 3) for v in _saved_g59[3:6]]} "
+      f"G54 prov stamped={_saved_prov[0]:.0f} kins={_saved_prov[1]:.0f} a={_saved_prov[2]:.3f}")
+# Start from an ABSENT G54 provenance record: a stamp left by a previous
+# session (e.g. a table edit made under Plane kinematics) makes G68.2 refuse
+# by design (W1: "touched off under non-identity kinematics"), which is not
+# what this check is about. The teardown puts the original stamp back.
+mdi(f"#{_PROV['stamped']}=0")
 
 
 def _teardown():

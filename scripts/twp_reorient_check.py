@@ -221,6 +221,27 @@ atexit.register(_teardown)
 print(f"  homed={list(s.homed)[:6]} tool={s.tool_in_spindle} "
       f"pos={[round(v,3) for v in s.actual_position[:6]]}")
 
+# Start from an ABSENT G54 provenance record (W1): a stamp left by a
+# previous session — e.g. a fixture edit made under Plane kinematics before
+# the 2026-08-30 touch-off gates — makes G68.2 refuse by design, which is
+# not what this check is about. Restored by the teardown.
+_PROV_STAMPED = 5231
+_saved_stamp = None
+try:
+    import tempfile as _tf
+    _pp = os.path.join(_tf.gettempdir(), f"twp_reorient_prov_{os.getpid()}.txt")
+    mdi(f"(LOGOPEN,{_pp})"); mdi(f"(LOG,STAMP #{_PROV_STAMPED})"); mdi("(LOGCLOSE)")
+    with open(_pp) as _f:
+        for _ln in _f:
+            if "STAMP" in _ln:
+                _saved_stamp = float(_ln.split("STAMP", 1)[1].split()[0])
+    os.remove(_pp)
+except (OSError, ValueError, IndexError):
+    _saved_stamp = None
+mdi(f"#{_PROV_STAMPED}=0")
+if _saved_stamp is not None:
+    atexit.register(lambda: mdi(f"#{_PROV_STAMPED}={_saved_stamp:.6f}"))
+
 print("\n=== 1. define a plane and orient at A=0 ===")
 mdi("g69")
 mdi("G0 A0")

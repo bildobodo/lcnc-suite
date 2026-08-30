@@ -158,7 +158,9 @@ TIER 4 — Machine idle (requires base + isIdle)
 
 TIER 5 — Full ready (requires everything)
   ready ──────────────── base + isIdle + !busy + isHomed              MDI, Cycle Start, Spindle, Coolant
-  probe ──────────────── base + isIdle + !busy + isHomed + !eoffset   Probe ops, tool change, touch-off, WCS edit, macros
+  probe ──────────────── base + isIdle + !busy + isHomed + !eoffset   Probe ops, tool change, WCS edit, macros
+  touchoff ───────────── probe + kins-mode × fixture rule (linear)     DRO touch-off / Zero (linear letters)
+  touchoffRotary ─────── probe + identity kins + G54                    DRO touch-off / Zero (A/B/C)
 ```
 
 **State transition map — when gates open:**
@@ -171,6 +173,24 @@ Homed             → + ready, probe, step (TIER 5)
 Running           → abort, override, pause, step remain; idle/ready/jog close
 Paused            → abort, override, resume, step remain; pause closes
 ```
+
+**Touch-off under kinematics modes (2026-08-30):** a touch-off is the gateway
+command `touchoff {axes}`, never a client-built `G10 L20` (`useTouchoffMath.ts`
+→ `command_policy.touchoff_route`, pure): identity → G54–G58 (rotary letters
+G54 only); TCP → G54–G58 with the table at A=0 (`to_storage_frame`'s own
+admission rule); Plane (kins 2) → G59 with the plane active, routed to the
+remap (`o<twp_touchoff>` → `M535`) which writes the WORKPIECE datum G54
+THROUGH the plane (`G59' = G59 + current − v`, `M' = R_tool⁻¹·G59'`, table
+frame at the LIVE A, minus the plane's origin vector) and stamps G54's W1
+provenance table-frame. G59–G59.3 are the TWP remap's scratch rows — never a
+touch-off target, disabled in the WCS selector on TWP configs, rewritten
+COMPLETELY (`A0 B0 C0 R0`) by every orient; the orient move is `G53 G0 B C`.
+The fixture rides the kins mode (M428/M429 → G54 when leaving a reserved row,
+M430 → G59); a reserved fixture active on identity kins at boot is bannered
+and healed with one `G54` at `ready`. The viewer poses the active-fixture
+triad in the frame the fixture is expressed in (`viewer/activeFixtureFrame.ts`)
+and never moves `workOrigin`, the toolpath anchor. The datum lives in ONE
+place: G54, table frame. Record: docs/decisions.md 2026-08-30.
 
 **LinuxCNC enforces very little** — mode sequence (MDI needs MODE_MDI) and state transitions only. Our gates enforce: armed state (web-safety invention), idle-vs-running checks, homing requirements, and eoffset contamination prevention. The `set_mode()` + `reject_if_auto_running()` functions in gateway.py are the real backend gatekeepers.
 

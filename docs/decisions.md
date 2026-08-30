@@ -2227,3 +2227,112 @@ against the real capture, the visual layer is for the next session.
 G43 — the client now uses the live offset (correct) while the parse-side
 limit flags for those segments still assume 0; `RANDOM_TOOLCHANGER` idx
 is a pocket (pre-existing on tool_change_events).
+
+## 2026-08-30 — Touch-off under kinematics modes: one datum, gated, through the plane
+
+**The operator's three reports were one defect chain.** "Orient sometimes
+lands the tool parallel, not normal"; "what happens if I zero in Plane
+mode?"; "the work origin hangs in space". The live var file said it: `5220 =
+6` (G59 active at shutdown) and G59 carrying `A −46.495 B −162.79 C 268.26`.
+Every touch-off was a client-built `G10 L20 P0 …` — `P0` is the ACTIVE
+fixture, which under the Plane jog frame is G59, the remap's own scratch row
+(rewritten by every orient). "Zero All" named every axis, so one press under
+Plane wrote A/B/C into G59; the orient move `G0 B C` was issued in PROGRAM
+coordinates (and the G53.3 path already ran inside G59), so the head landed at
+solution + offset. Nothing gated it, and — unlike `set_wcs` — the DRO path
+never stamped W1 provenance. The viewer placed the active fixture's numbers
+under the table group whatever frame they were in: TOOL-frame numbers drawn
+as table coordinates float. Upstream assumes rotary WCS rows are zero and
+never says so.
+
+**Decided (with the user):** the datum lives in ONE place — G54 in the table
+frame — with the plane on top (Heidenhain semantics). Rotary touch-off is
+identity + G54 only; Zero All never names rotaries on a TWP machine; TCP
+touch-off stays OPEN (world = tip in the table-riding frame G54 lives in — the
+correct 5-axis datum path) but only at the A=0 datum, the same admission rule
+`to_storage_frame` enforces; Plane-mode touch-off is NOT gated away but made
+right: it writes G54 THROUGH the plane.
+
+**Shape.** Touch-off is the gateway command `touchoff {axes}`
+(command_policy.touchoff_route, pure, per-letter): identity → G54–G58, rotary
+letters G54 only; TCP → G54–G58 at A=0; Plane → G59 with the plane active,
+routed to `o<twp_touchoff> [mask] [x] [y] [z]` → `M535 P I J K` (an M-code
+line cannot carry axis words — IJK, like M530). Two state-only gates
+(`touchoff`, `touchoffRotary`) are DEFINED through the route, so gate and
+handler cannot disagree; `MachineState` gained kins_switchable / kins_type /
+g5x_index / twp_active / a_at_zero, every default CLOSED (a switchable
+machine with an unknown kins refuses; a non-switchable one is identity,
+certainly). The mdi route adds eoffset_z server-side (undelivered = refuse,
+never 0) and stamps provenance from the RESULTING row — the unstamped-DRO gap
+closed. The remap's `twp_touchoff`: `G59' = G59 + current − v`;
+`M' = R_tool⁻¹·G59'` (g53x_core builds G59 = R_tool·origin, a pure rotation —
+`inv = Rp·Rs·Rtc` is `fwd`'s transpose); `T' = to_table_frame(M', LIVE A)`
+(exact with a stale head — the mode-2 map is pin-affine, independent of A);
+`G54' = T' − twp_offset`. G59..G59.3 follow so the DRO reads v at once; the
+G54 provenance rows are stamped kins 0 / A 0 (a table-frame point —
+`to_storage_frame`'s identity path). Round-trip property: Re-orient recomputes
+`G59 = fwd(from_table_frame(G54' + twp_offset, A)) = G59'`.
+
+**Remap hardening.** The orient move is `G53 G0 B C` (the solution is
+machine-frame angles); every orient writes G59..G59.3 COMPLETELY (`A0 B0 C0
+R0` — the root cause: foreign rows survived every orient) and tells the
+operator via `(MSG,…)` when it had to clear something; a G92 rotary offset
+refuses (no fixture write can repair it). `get_current_rotary_positions` and
+`get_machine_a` add the ACTIVE fixture + G92 offsets back (the old parameter
+fallback read #5224 — the G54 row — under G59, i.e. at every re-orient);
+`rotary_offsets_nonzero` covers A/B/C, so a G54 rotary offset still blocks
+plane DEFINITION loudly (the identity-mode rotary touch-off the user kept is
+for non-TWP workflows). `:1290` (G53.3, simultaneous XYZ + rotaries) stays one
+block — it runs inside G59 whose rotary rows are now guaranteed zero;
+splitting it would change the G53.3 motion contract and the corpus truth.
+`twp_params.py` is the linuxcnc-free fixture/G92 layout twin, pinned to
+`gateway_util.WCS_VAR_BASES`; run-tests.sh now runs the three TWP twin tests.
+
+**The fixture rides the kins mode** inside the switch wrappers (one MDI —
+two queued `mdi` payloads race `reject_if_auto_running`): M428/M429 leave a
+reserved fixture for G54, M430 selects G59. A reserved fixture active on
+identity kins at BOOT (`#5220` persisted from a Plane-mode shutdown or the
+abort handler's deliberate index resync) is bannered and healed with one
+`G54` when `ready` first opens — traced, superseded if an orient or a
+fixture select comes first. No shutdown-time MDI: the machine may be off.
+Live finding: on THIS config the boot path is dormant — `#5220=6` planted in
+the var file booted with G54 active because `RS274NGC_STARTUP_CODE` names
+`G54`; the persisted 6 was the last session's save, not a boot state. The
+heal stays for configs whose startup code does not select a fixture; the
+mid-session paths (abort resync, M428 out of Plane) are what the wrappers
+now cover.
+
+**Viewer.** The active-fixture triad has its OWN group under the table and
+is posed by `activeFixturePose` (pure): identity/TCP at `g5x + Rz(θ)·g92`;
+TOOL kins + reserved fixture through the plane frame — the same
+mode-2-inverse → mode-1-forward compose as the overlay, so arrows and plane
+coincide by construction; no frame trio → hidden, never guessed. `workOrigin`
+(the toolpath anchor) is NOT moved: partFrame peels the live active offset
+from every vertex and the group re-adds it, so the path is right by
+cancellation and moving the anchor would break it. A muted datum triad at
+`twp_datum` (the helper's world pins = the remap's G54) shows the workpiece
+origin while the DRO reads a reserved fixture.
+
+**Live (TWP sim, `scripts/twp_touchoff_plane_check.py`, 37/37).** Orient with
+`G10 L2 P6 B5 C-7 R3` planted: normal to 0.0000147°, rows read 0 afterwards,
+joints on the solved angles; with `G54 B5 C-7`: same. Plane touch-off at A=0:
+DRO 9.2668 → 12.5000, |ΔG54| 3.2332 = the entered delta, along the normal to
+1e-4, provenance (1, 0, 0, xyz); Re-orient keeps 12.5000 and recomputes the
+identical G59 rows. At A=35: 874.5622 → −3.2500, |ΔG54| 877.8122 along the
+normal, round trip exact, normal 0.0000086° after re-orient. M428 → G54,
+M430 → G59, M429 keeps G55, G69 → G54. Re-orient check 15/15; corpus gate
+GREEN (every plane origin 0.0000); preview golden CLEAN (`G53 G0` with zero
+rows emits the same canon). e2e: Plane mode → Zero A disabled, G59 radios
+disabled, Zero All open.
+
+**Found on the way.** The live G54 carried a provenance stamp "kins 2 at
+A=−46.495" — a fixture-table edit made under Plane kinematics (`set_wcs`
+stamps the CURRENT kins/A for typed numbers). The gates stop the touch-off
+half; the honest stamp for a TYPED value is a follow-up (typed numbers are
+fixture-frame numbers — kins 0 / A 0 — not a pose). Both live checks now
+start from an absent G54 stamp and restore the original.
+
+**Not verified here:** the browser walk-through (arrows on the plane triad,
+datum triad moving along the normal, the boot banner) — the pose math is
+pinned by `activeFixtureFrame.test.ts` against the overlay's compose and the
+gates by e2e.

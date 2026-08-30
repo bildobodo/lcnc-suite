@@ -47,8 +47,37 @@ Preview mechanics (all edits tagged `LCNC-SUITE` in `python/remap.py`):
   cached in `sys.modules`). Foreign previews (AXIS) never call it, so
   preview state checks never hard-error: a G53.x with no plane declines
   loudly (stderr) instead of guessing, and a re-issued G68.2 overwrites.
-- Task-mode behavior is intentionally IDENTICAL to upstream (verified
-  live: same pin values, same program end state as the pristine stack).
+- Task-mode behavior was IDENTICAL to upstream until 2026-08-30 (verified
+  live then: same pin values, same program end state as the pristine
+  stack). Deliberate divergences since, all in `python/remap.py` and the
+  wrappers, each recorded in docs/decisions.md:
+  - the orient move is `G53 G0 B C` (machine-frame angles cannot be
+    displaced by a rotary work offset), and every orient writes
+    G59..G59.3 COMPLETELY (`A0 B0 C0 R0`) with an operator `(MSG,…)` when
+    it had to clear foreign values; a G92 rotary offset refuses;
+  - rotary reads add the ACTIVE fixture + G92 offsets back
+    (`get_current_rotary_positions`, `get_machine_a`) — upstream read raw
+    program coordinates; `rotary_offsets_nonzero` covers A/B/C;
+  - `M535` / `o<twp_touchoff>` (lcnc-suite original): Plane-mode touch-off
+    that writes the WORKPIECE datum G54 through the plane — the one datum;
+  - `M428/M429` leave a reserved fixture for G54, `M430` selects G59 (the
+    fixture rides the kins mode);
+  - the "TWP already active" / "not reachable" refusals preserve the plane
+    instead of wiping it; `M530 Q1` is the re-orient.
+
+## Touch-off and the reserved fixtures
+
+G59..G59.3 hold the plane frame's origin in TOOL coordinates and are the
+remap's to write. A touch-off never targets them: the gateway's `touchoff`
+command routes identity/TCP touch-offs into G54–G58 (rotary letters into
+G54 only, identity kins only; TCP only with the table at A=0) and Plane-mode
+touch-offs to `o<twp_touchoff> call [mask] [x] [y] [z]`, which maps the
+touched point back through the head solve (the kins pins) and the live table
+angle and writes G54 — so a Re-orient recomputes the same G59 rows and G69
+leaves a real datum behind. Layout twins: `python/twp_params.py` ↔
+`gateway_util.WCS_VAR_BASES` (`lcnc-gateway/test_twp_params.py`),
+`python/twp_prov.py` ↔ `gateway_util.wcs_prov_params`. Live acceptance:
+`scripts/twp_touchoff_plane_check.py`.
 
 ## Validation (2026-08-20, LinuxCNC 2.9.4)
 
