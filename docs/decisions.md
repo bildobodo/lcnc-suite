@@ -2009,3 +2009,141 @@ retires the G43-retires-carry edge in insert_flip_relabels); the g683
 rotary-seed spike above; switchable soft limits on M430 entry;
 kins==1 tilted touch-off admission (needs a live probe of what a TCP
 G10 records); preview_gate orphaned-golden sweep.
+
+## 2026-08-30 — UI hygiene + preview-pipeline fix wave (feat/twp)
+
+Operator testing on the TWP sim reported: a collision check that "hangs
+at 0%", reparses that sometimes don't happen, the "Preview uses older
+offsets" chip lighting during every TWP run, scrub-bar jitter, a HUD that
+balloons on long chips, jog-strip space, a one-off false "toolpath
+exceeds soft limits" in sim (twp_g69_tail), and vivid model colors. Every
+fix below was grounded in `runlogs/trace.ndjson` or a corpus payload
+before it was written; the questions the wave answered are at the end.
+
+**Collision sweep stuck at 0% — root cause.** `browser.error.console
+"DataCloneError: Proxy object could not be cloned"` ×8 over two days.
+ScrubBar's `entryTrack` was a DEEP `ref`; at sim entry the proxied track
+went to `runCollisionCheck`, which set `collisionBusy` and THEN posted
+`frames: track.frames` (a Proxy) — postMessage threw synchronously with
+no try/catch, the busy flag stayed pinned, the Check chip read 0% and
+every later sweep early-returned on `collisionBusy` until a program
+change. Fix: `shallowRef` + `markRaw` on the entry track, `toRaw` at the
+worker boundary, the post in try/catch, a worker `onerror`, and ONE
+unwind (`_colFail`) every failure path reaches. Tests pin that an entry
+track in a `shallowRef` survives `structuredClone` and a deep `ref` does
+not.
+
+**"Does not reparse."** Not a hang — three defects: (1) `reparse_preview`
+worked by clearing `last_file/last_mtime`, which a parse already in
+flight REWROTE on completion, so the request evaporated after replying
+ok; it is now a `reparse_pending` FLAG the poller honors once nothing is
+running (`gcode.reparse_deferred` traced). (2) `refresh_running` had one
+clear site and four inline set+create_task sites that were not
+exception-safe (a raise between them latched the flag for the process
+lifetime and silently killed every preview edge); all four go through
+`BulkPipeline.schedule_refresh` (traces `gcode.refresh_scheduled` /
+`refresh_schedule_failed`, done-callback reset on cancel-before-start).
+(3) The rotary / kins / WCS-offset drift edges were nested under
+`published_tlo is not None`, so a payload with an absent or malformed
+`__TLO__` line never re-seeded its rotary pose; the gate is flat now.
+Plus: the silent no-stat return traces `gcode.refresh_skipped`; the
+unload branch uses `clear_preview()` (it was dead code diverged from an
+inline copy); the limit chip is clickable like its siblings. Recorded,
+not fixed: the connect-time "refresh-already-running" path tells that
+client nothing if the in-flight parse then fails; `fire()` can drop a
+Reparse on its busy latch with only a console.warn. Diagnostic rule for
+the trace: `gcode.spawn_start` == `worker_done` + `parse_timeout` +
+`parse_worker_failed`; a `reparse_requested` with no following
+`spawn_start` is the swallowed class.
+
+**Reparse noise is real work.** 38 reparses in one session, all idle
+drift edges (rotary ×21, kins-type ×16 — each A jog, each Machine/TCP/
+Plane click, each G53.x/G69). Kept (user decision): the re-seeds are
+correct; the LAYOUT absorbs the flash — see scrub bar below.
+
+**"Preview uses older offsets" during every run.** The chip compared the
+parse-time ACTIVE basis with the live ACTIVE offset, so a program
+switching G54→G59 (every G53.x) tripped it with nothing the operator
+changed — and touch-off is idle-gated, so during a run only the program
+can change offsets, and its writes are exactly the `rewritten` epochs.
+`previewWcsStaleFor` (wcsEpochs.ts, pure) is per FIXTURE: stale ⇔ a
+NON-rewritten epoch's live table row differs from its parse snapshot;
+rewritten epochs never count; legacy payloads keep the old comparison;
+eps is the gateway's 1e-3 (the client's 1e-4 let a chip outlive the
+auto-reparse). The chip is not offered as an action while the interp is
+busy (the reparse is idle-gated anyway).
+
+**False "toolpath exceeds soft limits" in sim.** Corpus evidence:
+`twp_g69_tail.run2` vertex 0 IS run1's parked end pose (the rotary seed
+carry, `rapid_ustart[0]=1`). Unknown-start segments were limit-checked
+with a fully-None start — no parked-axis exemption — so the seeded,
+UNCOMMANDED rotary was checked unconditionally, and the seed is wherever
+the previous run parked. This program advances machine C ~153°/orient
+with no unwind against `[AXIS_C] ±320`: a few back-to-back runs walk the
+parked C past −320 and the HUD reports an exceedance on a pose the fresh
+run never visits. Fix: `ustart_start_tuple` gives the ustart segment a
+PARTIAL start — None for axes reached via the unknown path (XYZ and any
+rotary the program commanded away from the seed: always checked), the
+endpoint value for a rotary still parked at the seed (exempt like any
+parked axis); the joint-side checkers apply the same rule per joint
+(`_fill_unknown_start` / `_joint_unknown`). Relabel connectors
+(`relabel_seqs` → wire `brk`) are skipped by the limit check outright —
+they are coordinate re-expressions, not motion (the collision sweep
+already excluded them). Note for the ledger: the C accumulation itself is
+a property of the program/remap (shortest-move P-mode, no unwind) — the
+REAL machine hits ±320 after enough runs too; sits next to the
+switchable-soft-limits item.
+
+**Scrub bar jitter — layout doctrine.** Row 1's only flexible item is the
+timeline; every content-sized sibling stole its width (a longer
+"L14 (g544remap)" chip, RUNNING appearing, h:mm:ss growing) and row 2
+came and went with each auto-sweep, pushing the bottom-anchored bar up
+and down. Rule now: every content-sized sibling of the timeline gets a
+FIXED `.val-slot` (mode 8ch / line 15ch with ellipsis + tooltip / position
+14ch / speed 6ch), and row 2 always renders at a stable min-height. The
+row-2 also states what the sweep checks WITH ("sweep: T3 Ø6.0" or
+"no tool loaded — 6 mm stub") — see the tool answer below.
+
+**HUD width.** `.hud` was shrink-to-fit with no max-width, so a long
+single-line chip set the card's width. `.hudWarn { width: 0; min-width:
+100%; white-space: normal }` — a flex-column child with width:0
+contributes nothing to the card's intrinsic width, then stretches to the
+DRO grid's width and wraps; `.hud` gets an outer max-width.
+
+**Jog strip.** The jog-frame selector shares the Mode column (portrait:
+`.strip-radio-col` dissolves like `.strip-radio-group`). Plane is ALWAYS
+visible on a TWP machine (so the operator learns it exists) and ENABLED
+only once a head solve exists — `twpPoseOriented` (pose stamp above the
+remap's sentinel) — because a bare M430 before any orient jogs on
+whatever the kins pins last held (the stale-pin trap the operator hit:
+G68.2 in MDI, click Plane, jog machine-parallel). The Orient button
+moved from the Setup strip to sit under the frame radios ("so you
+actually find it"); it works from a DEFINED plane (first orient) and
+re-orients after a table move. Tooltips say switching the frame re-seeds
+the preview (the progress flash is expected).
+
+**Muted machine palette.** `viewer/palette.ts` is the one table (frame,
+base, x/y/z hue-matched to the gizmo at low saturation, rotary A bronze /
+B teal-grey / C slate, stock tan, marks); the three duplicated default
+tables (ThreeViewer MAT init, `setMachinePartColor`, SettingsPanel) import
+it. Both sim machine.json files were recolored (linear slides DROP their
+color so the axis rule applies; frame/rotary/stock parts carry palette
+rgb — `palette.test.ts` pins every JSON color to a palette entry and
+every entry to HSV saturation ≤ 0.35), and `vismach_to_stl.py`'s color
+table emits the same values so regeneration does not revert. DMU
+(local-only) recolored locally, not committed.
+
+**Answers.** (1) Sigma's TOOL mode == our Plane mode: same comp `case 2`,
+pins-only (`primary-angle`/`secondary-angle`/`pre-rot`, written once by
+g53x_core), `j[3..5]` never enter — Z jogs along the LAST-SOLVED tool
+axis, per Aciera's README ("uses rotary joint positions set by the
+remap"). No generic LinuxCNC TOOL kins exists (trt's type 2 is the
+identity `userkins` template; its M428/M429 numbering is swapped vs the
+TWP configs — README fixed). Heidenhain 3D-ROT is ⊥ the CURRENT axis;
+TOOL kins ⊥ the last-solved one; Orient fills the gap. (2) Sim tool: path
+geometry uses the real tool table at parse time (T3 G43 H3 applies even
+with nothing loaded); the joint pose uses ONE live tool_offset (the
+sixth-input catch, schema-8 ledger); the marker + collision cylinder use
+the LOADED tool's row or a 6×60 stub — the program's T sequence is not
+consulted. Deferred by decision to the schema-8 TLO wave (same
+multi-consumer class as the 12.58 mm bug); the bar says so.

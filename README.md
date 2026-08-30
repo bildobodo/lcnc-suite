@@ -1252,7 +1252,7 @@ REMAP=M428 modalgroup=10 ngc=428remap
 REMAP=M429 modalgroup=10 ngc=429remap
 REMAP=M430 modalgroup=10 ngc=430remap
 ```
-`M428` = TCP on, `M429` = identity, `M430` = tool-length-along-tool mode. The shipped remaps self-diagnose missing prerequisites (`HAL_PIN_VARS`, the switchkins net) with a `(debug, …)` message and a program STOP instead of failing cryptically.
+In the TWP configs (and this suite's jog-frame selector) `M428` = identity, `M429` = TCP, `M430` = TOOL/plane kinematics — note upstream's trt sample numbers them differently (M429 identity, M428 trt, M430 userkins). The shipped remaps self-diagnose missing prerequisites (`HAL_PIN_VARS`, the switchkins net) with a `(debug, …)` message and a program STOP instead of failing cryptically.
 
 **4. The `(WEBUI_KINSTYPE=n)` marker convention.** Each shipped remap emits a marker comment at the exact point it switches `motion.switchkins-type`. Comments are the one execution-ordered channel the offline parse receives (remapped M-codes never appear in the interpreter's active-code lists, and `M68` is swallowed by the preview canon), so these markers are how the preview/sim/collision stack knows which segments run under which kins. If you write your **own** switchkins M-codes, emit the same comment — `(WEBUI_KINSTYPE=1)` etc., as a full comment on its own — right where you set the pin. Programs that switch kins **without** markers degrade honestly: the offline stack treats the moves as untracked (posing programmed coords directly) and warns in the browser console; the live 3D model is always correct either way (it's joint-driven).
 
