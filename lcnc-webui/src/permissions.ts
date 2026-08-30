@@ -44,6 +44,15 @@ export type Permissions = {
   probe: boolean;
   /** zero: idle + no eoffset (zeroing with comp active bakes offset into G5x) */
   zero: boolean;
+  /** touchoff: probe + the kins-mode × fixture rule for LINEAR letters —
+   *  identity/TCP into G54–G58 (TCP only with the table at A=0), Plane mode
+   *  only with the plane active and G59 selected (routed to the remap, which
+   *  writes G54 through the plane). G59–G59.3 are the TWP remap's scratch
+   *  rows and never a touch-off target. Backend: command_policy.touchoff_route. */
+  touchoff: boolean;
+  /** touchoffRotary: probe + Machine (identity) jog frame + G54 — a rotary
+   *  offset under TCP/Plane kinematics displaces the orient move. */
+  touchoffRotary: boolean;
   /** surfaceComp: probe + every rotary parked at zero — may START surface-map
    *  work (scan a new map, switch compensation ON). The map is a machine-Z
    *  shim applied after kinematics, valid only with the tool normal to the
@@ -64,7 +73,8 @@ export type Permissions = {
 /** All gate names, in a stable order. */
 export const GATE_NAMES = [
   "idle", "jog", "override", "ready", "pause", "resume", "step",
-  "abort", "probe", "zero", "surfaceComp", "safety", "setup", "armed", "always",
+  "abort", "probe", "zero", "touchoff", "touchoffRotary", "surfaceComp",
+  "safety", "setup", "armed", "always",
 ] as const;
 
 /**
@@ -75,7 +85,8 @@ export const GATE_NAMES = [
  * wrong. `jog` never had a busy term (hold-to-move).
  */
 const BUSY_GATES: ReadonlySet<keyof Permissions> = new Set([
-  "idle", "override", "ready", "probe", "zero", "surfaceComp", "setup",
+  "idle", "override", "ready", "probe", "zero", "touchoff", "touchoffRotary",
+  "surfaceComp", "setup",
 ]);
 
 /**

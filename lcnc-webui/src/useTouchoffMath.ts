@@ -1,68 +1,56 @@
-// Touch-off math + Z-eoffset compensation, extracted from App.vue.
+// Touch-off from the DRO inputs / Zero buttons, extracted from App.vue.
 //
-// Z touchoff has to add the current external Z offset back into the G5x
-// value so the WCS doesn't absorb the comp eoffset. If eoffset_z hasn't
-// yet been delivered by status (cold start, reader stale), treating it
-// as 0 silently corrupts the WCS Z. The helper refuses to fire and lets
-// the readerStale banner explain the wait. Only blocks when the value
-// is genuinely missing — a real 0 is fine.
+// Every touch-off is the gateway's `touchoff` command, never a client-built
+// `G10 L20 P0` MDI (2026-08-30). The gateway decides the route from the
+// kins mode × active fixture (command_policy.touchoff_route): a plain G10
+// L20 into G54–G58, or — in Plane mode — the TWP remap that transforms the
+// touched point back through the plane and writes G54. It also adds the
+// comp eoffset back on Z (refusing when the reader has not delivered it,
+// rather than treating it as 0) and stamps W1 provenance from the resulting
+// row. The client's only job is to name the letters and pick the gate class:
+// rotary letters are `touchoffRotary` (Machine frame + G54 only), linear
+// letters `touchoff`.
 
-import type { ComputedRef, Ref } from "vue";
+import type { ComputedRef } from "vue";
 import type { Permissions } from "./permissions";
+import { isRotaryAxis } from "./useAxes";
 
 interface UseTouchoffMathOptions {
   /** Axis letters in motion-controller order (e.g. ["X","Y","Z"]). */
   axes: ComputedRef<string[]>;
-  /** Live status ref. We only read st.value.eoffset_z. */
-  st: Ref<{ eoffset_z?: number;[key: string]: any }>;
   /** Permission-gated send wrapper from App.vue. */
   fire: (payload: any, gate?: keyof Permissions, cooldownMs?: number) => void;
 }
 
+/** The gate class a touch-off of `letters` needs: rotary if ANY letter is
+ *  rotary (the stricter rule wins for a mixed request). */
+export function touchoffGate(letters: readonly string[]): keyof Permissions {
+  return letters.some((l) => isRotaryAxis(l)) ? "touchoffRotary" : "touchoff";
+}
+
 export function useTouchoffMath(opts: UseTouchoffMathOptions) {
-  function _eoffsetZForTouchoff(): number | null {
-    const v = opts.st.value.eoffset_z;
-    return (typeof v === "number" && Number.isFinite(v)) ? v : null;
+  function _fireTouchoff(axes: Record<string, number>) {
+    const letters = Object.keys(axes);
+    if (!letters.length) return;
+    opts.fire({ cmd: "touchoff", axes }, touchoffGate(letters));
   }
 
   function setAxis(axis: number, value: number = 0) {
     // Resolve through the MACHINE's axis list, not the canonical letter
-    // string: on a lathe ["X","Z"], index 1 is Z — the old canonical lookup
-    // emitted Y here and hardcoded the eoffset guard to index 2 (both wrong
-    // whenever axes aren't XYZ… in canonical order). setAll below was
-    // already letter-based; the two paths now agree.
+    // string: on a lathe ["X","Z"], index 1 is Z.
     const axisName = opts.axes.value[axis];
     if (!axisName) return;
-
-    let val = value;
-    if (axisName === "Z") {
-      const eoffsetZ = _eoffsetZForTouchoff();
-      if (eoffsetZ === null) {
-        console.warn("touchoff Z refused: eoffset_z not yet delivered by gateway");
-        return;
-      }
-      val += eoffsetZ;
-    }
-    opts.fire({ cmd: "mdi", text: `G10 L20 P0 ${axisName}${val.toFixed(6)}` }, 'probe');
+    _fireTouchoff({ [axisName.toUpperCase()]: value });
   }
 
-  function setAll(values: number[] = []) {
-    const needsZ = opts.axes.value.some(letter => letter === "Z");
-    let eoffsetZ = 0;
-    if (needsZ) {
-      const v = _eoffsetZForTouchoff();
-      if (v === null) {
-        console.warn("touchoff (all axes) refused: eoffset_z not yet delivered by gateway");
-        return;
-      }
-      eoffsetZ = v;
+  /** Zero the given letters (default: every configured axis) in ONE command. */
+  function setAll(letters?: readonly string[]) {
+    const want = letters ?? opts.axes.value;
+    const axes: Record<string, number> = {};
+    for (const l of want) {
+      if (opts.axes.value.includes(l)) axes[l.toUpperCase()] = 0;
     }
-    const parts = opts.axes.value.map((letter, i) => {
-      let val = values[i] ?? 0;
-      if (letter === "Z") val += eoffsetZ;
-      return `${letter}${val.toFixed(6)}`;
-    });
-    opts.fire({ cmd: "mdi", text: `G10 L20 P0 ${parts.join(" ")}` }, 'probe');
+    _fireTouchoff(axes);
   }
 
   function setG5x(gcode: string) {

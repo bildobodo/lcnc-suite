@@ -17,7 +17,7 @@ export default defineConfig({
     headless: true,
   },
   projects: [
-    { name: "chromium", use: { browserName: "chromium" }, testIgnore: /(lifecycle|viewer|nine-axis)\.spec\.ts/ },
+    { name: "chromium", use: { browserName: "chromium" }, testIgnore: /(lifecycle|viewer|nine-axis|touchoff)\.spec\.ts/ },
     // Mock-global-state specs run strictly ONE FILE AT A TIME via project
     // dependency CHAINING. fullyParallel:false alone is NOT enough — it only
     // serializes tests within a file; separate files still land on parallel
@@ -44,9 +44,18 @@ export default defineConfig({
       fullyParallel: false,
     },
     {
-      name: "serial-viewer",
+      // touchoff.spec.ts — setAxes (rotary rows) + permissions deltas: same
+      // mock-global churn as nine-axis, so it rides the chain right after it.
+      name: "serial-touchoff",
       use: { browserName: "chromium" },
       dependencies: ["serial-nine-axis"],
+      testMatch: /touchoff\.spec\.ts/,
+      fullyParallel: false,
+    },
+    {
+      name: "serial-viewer",
+      use: { browserName: "chromium" },
+      dependencies: ["serial-touchoff"],
       testMatch: /viewer\.spec\.ts/,
       fullyParallel: false,
     },

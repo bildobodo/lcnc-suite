@@ -1190,7 +1190,7 @@ function onRunProbe({ vars, macro }: { vars: Record<string, number>; macro: stri
 provide(FIRE_KEY, fire);
 
 // Touch-off math + Z-eoffset compensation. See useTouchoffMath.ts.
-const { setAxis, setAll, setG5x } = useTouchoffMath({ axes, st, fire });
+const { setAxis, setAll, setG5x } = useTouchoffMath({ axes, fire });
 
 function homeAll() {
   fire({ cmd: "home_all" }, 'idle');

@@ -37,7 +37,7 @@ const emit = defineEmits<{
   (e: "homeAxis", joint: number): void;
   (e: "unhomeAxis", joint: number): void;
   (e: "setAxis", axis: number, value: number): void;
-  (e: "setAll", values: number[]): void;
+  (e: "setAll", letters: string[]): void;
   (e: "setG5x", gcode: string): void;
   (e: "goToG30"): void;
   (e: "goToHome"): void;
@@ -68,6 +68,16 @@ const axisChunks = computed<SetupChunk[]>(() => {
 });
 
 const g5xOptions = ["G54", "G55", "G56", "G57", "G58", "G59", "G59.1", "G59.2", "G59.3"];
+// G59..G59.3 are the TWP remap's scratch rows — g53x_core rewrites them at
+// every orient, and a touch-off into them evaporates (XYZ) or poisons the
+// next orient (A/B/C). On a TWP machine (switchable kins present) they are
+// not an operator choice; the Plane jog frame selects G59 itself.
+const RESERVED_WCS = new Set(["G59", "G59.1", "G59.2", "G59.3"]);
+const isTwpMachine = computed(() => props.kinsType != null);
+function wcsReserved(g: string): boolean {
+  return isTwpMachine.value && RESERVED_WCS.has(g);
+}
+const RESERVED_TITLE = "Reserved for the tilted-work-plane remap — rewritten by every orient. Touch off into G54–G58; the Plane jog frame selects G59 itself.";
 
 // Kins-mode chip (P3 operator surface): the silent-mode-traversal trap —
 // the TWP demo parks the machine in TOOL kins (M2 restores G54, not the
@@ -92,7 +102,7 @@ const kinsChip = computed(() => {
     };
     return props.twpActive
       ? { text: "TWP", cls: "warn",
-          title: "Tilted work plane ACTIVE — X/Y/Z jogs move in the tilted plane (Z along the tool axis). G69 cancels." }
+          title: "Tilted work plane ACTIVE — X/Y/Z jogs move in the tilted plane (Z along the tool axis). A touch-off here sets the WORKPIECE datum (G54) through the plane; rotary touch-off needs the Machine frame. G69 cancels." }
       : { text: "TOOL", cls: "warn",
           title: "TOOL kinematics active without an active plane — X/Y/Z jogs move along the last plane frame, not machine axes. G69 restores machine kinematics." };
   }
@@ -105,8 +115,15 @@ const kinsChip = computed(() => {
 // The Orient button lives in the Jog strip next to the jog-frame selector
 // (2026-08-30: "so you actually find it"); this strip keeps the kins chip.
 
+// Zero All names LINEAR axes only on a TWP machine: a rotary work offset
+// displaces the orient move (the remap issues its head move in machine
+// coordinates now, but a G54 A/B/C row still blocks plane definition), and
+// zeroing A/B/C is never what "zero the part" means there. Per-axis rotary
+// zero stays available under its own (identity + G54) gate.
+const zeroAllLetters = computed(() =>
+  isTwpMachine.value ? props.axes.filter((l) => !isRotaryAxis(l)) : [...props.axes]);
 function zeroAll() {
-  emit("setAll", new Array(props.axes.length).fill(0));
+  emit("setAll", zeroAllLetters.value);
 }
 </script>
 
@@ -117,12 +134,12 @@ function zeroAll() {
       <!-- Axis grids: 6 axis rows per column (machine order); actions fill the tail -->
       <div v-for="(chunk, ci) in axisChunks" :key="ci" class="setupGrid">
         <template v-for="a in chunk.axes" :key="a.letter">
-          <MachineInput gate="touchoff" type="number" :label="a.letter" :value="fmtAxisInput(workPos[a.index], a.letter)" @input="emit('setAxis', a.index, +($event.target as HTMLInputElement).value)" class="setupInput" />
-          <MachineBtn type="zero" @click="emit('setAxis', a.index, 0)">Zero {{ a.letter }}</MachineBtn>
+          <MachineInput :gate="isRotaryAxis(a.letter) ? 'touchoffRotary' : 'touchoff'" type="number" :label="a.letter" :value="fmtAxisInput(workPos[a.index], a.letter)" @input="emit('setAxis', a.index, +($event.target as HTMLInputElement).value)" class="setupInput" />
+          <MachineBtn :type="isRotaryAxis(a.letter) ? 'zeroRotary' : 'zero'" @click="emit('setAxis', a.index, 0)">Zero {{ a.letter }}</MachineBtn>
           <MachineBtn :type="homedJoints[a.index] ? 'unhome' : 'home'" @click="homedJoints[a.index] ? emit('unhomeAxis', a.index) : emit('homeAxis', a.index)"><span class="stable-width"><span :class="{ alt: homedJoints[a.index] }">Home {{ a.letter }}</span><span :class="{ alt: !homedJoints[a.index] }">Unhome {{ a.letter }}</span></span></MachineBtn>
         </template>
         <template v-if="chunk.actions">
-          <MachineBtn type="zero" class="spanAll" @click="zeroAll()">Zero All</MachineBtn>
+          <MachineBtn type="zero" class="spanAll" @click="zeroAll()" :title="isTwpMachine ? 'Zero the linear axes (rotary offsets are set per axis, Machine frame + G54 only)' : undefined">Zero All</MachineBtn>
           <MachineBtn :type="isHomed ? 'unhome' : 'home'" class="spanAll" @click="isHomed ? emit('unhomeAll') : emit('homeAll')"><span class="stable-width"><span :class="{ alt: isHomed }">Home All</span><span :class="{ alt: !isHomed }">Unhome All</span></span></MachineBtn>
           <MachineBtn type="goTo" @click="emit('goToG30')">→ G30</MachineBtn>
           <MachineBtn type="goTo" @click="emit('goToHome')">→ Home</MachineBtn>
@@ -135,9 +152,9 @@ function zeroAll() {
         <span v-if="kinsChip" class="val-status kinsChip" :class="kinsChip.cls"
               :title="kinsChip.title">{{ kinsChip.text }}</span>
         <div class="strip-radio-options">
-          <label v-for="g in g5xOptions" :key="g" class="radio-label">
-            <MachineRadio gate="touchoff" name="wcs" :value="g" :modelValue="g5xLabel" @update:modelValue="(v: string | number | undefined) => { if (v != null) emit('setG5x', String(v)) }" />
-            <span>{{ g }}</span>
+          <label v-for="g in g5xOptions" :key="g" class="radio-label" :title="wcsReserved(g) ? RESERVED_TITLE : undefined">
+            <MachineRadio gate="wcsSelect" name="wcs" :value="g" :modelValue="g5xLabel" :disabled="wcsReserved(g)" @update:modelValue="(v: string | number | undefined) => { if (v != null) emit('setG5x', String(v)) }" />
+            <span :class="{ 'label-muted': wcsReserved(g) }">{{ g }}</span>
           </label>
         </div>
       </div>

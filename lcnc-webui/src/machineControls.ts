@@ -94,8 +94,11 @@ export const BUTTON_TYPES = {
   // it sits next to the WCS radios on a touch-first strip.
   twpReorient:    { gate: 'probe',    variant: 'default', size: 'sm', hold: true },
 
-  // Zero / touchoff (sends G10 L20 MDI — needs homed + !eoffset)
-  zero:           { gate: 'probe',    variant: 'default', size: 'md', hold: true },
+  // Zero / touchoff — the `touchoff` command (gateway-routed G10 L20 or the
+  // Plane-mode remap; needs homed + !eoffset + the kins-mode × fixture rule).
+  // Linear and rotary letters carry different rules, hence two types.
+  zero:           { gate: 'touchoff', variant: 'default', size: 'md', hold: true },
+  zeroRotary:     { gate: 'touchoffRotary', variant: 'default', size: 'md', hold: true },
 
   // Macros
   macro:          { gate: 'probe',    variant: 'default', size: 'lg' },
@@ -165,7 +168,12 @@ export const INPUT_DEFS = {
   jogWheel:        { gate: 'jog' },
   jogAxis:         { gate: 'jog' },
   mdiText:         { gate: 'ready' },
-  touchoff:        { gate: 'probe',    mono: true, align: 'right', size: 'sm' },
+  touchoff:        { gate: 'touchoff', mono: true, align: 'right', size: 'sm' },
+  touchoffRotary:  { gate: 'touchoffRotary', mono: true, align: 'right', size: 'sm' },
+  // WCS selector radios: selecting a fixture is a plain modal (G54..), the
+  // probe tier like the `wcs` button; the reserved rows are disabled per
+  // option in SetupStrip, not by a gate.
+  wcsSelect:       { gate: 'probe' },
   stripInput:      { gate: 'always',   mono: true, align: 'right', size: 'md' },
   scrubPos:        { gate: 'always' },  // scrub timeline — display-only, see BUTTON_TYPES.scrub
   simToggle:       { gate: 'always' },  // simulation mode toggle — entry rules live in ScrubBar

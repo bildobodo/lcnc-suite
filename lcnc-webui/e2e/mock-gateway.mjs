@@ -79,6 +79,7 @@ const state = {
     permissions: {
       idle: true, jog: true, override: true, ready: true, pause: false,
       resume: false, step: true, abort: true, probe: true, zero: true,
+      touchoff: true, touchoffRotary: true,
       surfaceComp: true, safety: true, setup: true, armed: true, always: true,
     },
   },

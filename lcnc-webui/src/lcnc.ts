@@ -101,6 +101,10 @@ export type WsCommand =
   // Offsets
   | { cmd: "get_wcs_table" }
   | { cmd: "clear_wcs"; target: string }
+  // Operator touch-off (DRO inputs / Zero buttons): the gateway routes it —
+  // G10 L20 into the active fixture, or the Plane-mode remap that writes G54
+  // through the plane — and stamps provenance. Letters upper-case.
+  | { cmd: "touchoff"; axes: Record<string, number> }
   | { cmd: "set_wcs"; target: string; x?: number; y?: number; z?: number; a?: number; b?: number; c?: number; u?: number; v?: number; w?: number; r?: number }
   // Heartbeat
   | { cmd: "heartbeat" }
