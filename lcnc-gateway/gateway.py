@@ -63,7 +63,7 @@ from gateway_util import (
     wcs_stamp_decision,
     PROV_STAMPED,
 )
-from command_policy import check_command, validate_payload, MachineLimits
+from command_policy import check_command, validate_payload, MachineLimits, touchoff_route
 from tool_table import (
     parse_tool_table,
     write_tool_table,
@@ -1900,6 +1900,7 @@ _status_runtime = _status_runtime_mod.StatusRuntime(
     get_tool_tbl_path=lambda: get_tool_tbl_path(),
     load_tool_library=lambda: load_tool_library(),
     get_fb_scale=lambda: _fb_scale,
+    get_kins_switchable=lambda: _kins_is_switchable(),
 )
 safe_get = _status_runtime.safe_get
 normalize_homed = _status_runtime.normalize_homed
@@ -2947,7 +2948,8 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
     # Denials are bounded + traced — never silently dropped
     # (feedback_no_silent_fallbacks).
     if _shared_status is not None:
-        _deny = check_command(cmd, _policy_state_from_payload(_shared_status, armed))
+        _deny = check_command(cmd, _policy_state_from_payload(
+            _shared_status, armed, kins_switchable=_kins_is_switchable()))
         if _deny is not None:
             _trace.emit("ws.command_denied", level="warn", cmd=cmd, reason=_deny)
             return {"ok": False, "error": _deny}
@@ -3775,7 +3777,16 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 STAT.poll()
                 indices = [STAT.g5x_index]  # 1-based
             elif target == "all":
-                indices = list(range(1, 10))
+                # On a TWP (switchable-kins) config the reserved rows G59..G59.3
+                # are the remap's — zeroing them under an active plane destroys
+                # it. `all` is the operator's fixtures; `reserved` below is the
+                # explicit recovery for the scratch rows.
+                indices = list(range(1, 6)) if _kins_is_switchable() else list(range(1, 10))
+            elif target == "reserved":
+                if _reader_get("twp_active"):
+                    return {"ok": False, "error": "A tilted work plane is active — "
+                            "G59..G59.3 hold its frame. G69 first."}
+                indices = [6, 7, 8, 9]
             elif target in _G5X_MAP:
                 indices = [_G5X_MAP[target]]
             else:
@@ -3800,6 +3811,94 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 if 0 <= ci < 9:
                     _wcs_cache[ci] = {"name": _WCS_NAMES[ci], **{k: 0.0 for k in _WCS_AXIS_KEYS}, "r": 0.0}
             return {"ok": True, "table": [row.copy() for row in _wcs_cache]}
+
+        if cmd == "touchoff":
+            # Operator touch-off from the DRO / Zero buttons. Was a client-built
+            # `G10 L20 P0 …` MDI: opaque to the gateway, never provenance-
+            # stamped, and in Plane mode it wrote the TOOL-frame numbers (and
+            # Zero All's rotary words) into G59 — the remap's scratch row —
+            # which the next orient then read as a rotary offset. The route
+            # decision is command_policy.touchoff_route (pure, tested); the
+            # Plane route hands the point to the remap, which writes G54
+            # THROUGH the plane (o<twp_touchoff>).
+            require_armed(armed)
+            require_no_eoffset()
+            blocked = reject_if_auto_running()
+            if blocked:
+                return blocked
+            axes_in = msg.get("axes")
+            if not isinstance(axes_in, dict) or not axes_in:
+                return {"ok": False, "error": "No axis values provided"}
+            values = {str(k).upper(): finite_float(v) for k, v in axes_in.items()}
+            if _shared_status is None:
+                return {"ok": False, "error": "No machine state yet — touch-off refused"}
+            pstate = _policy_state_from_payload(
+                _shared_status, armed, kins_switchable=_kins_is_switchable())
+            route, reason = touchoff_route(pstate, values.keys())
+            if route is None:
+                _trace.emit("touchoff.refused", level="warn", letters=sorted(values),
+                            reason=reason, kins_type=pstate.kins_type,
+                            g5x_index=pstate.g5x_index)
+                return {"ok": False, "error": reason}
+            await set_mode(linuxcnc.MODE_MDI)
+            if route == "plane":
+                extra = sorted(l for l in values if l not in ("X", "Y", "Z"))
+                if extra:
+                    return {"ok": False, "error": f"Plane-mode touch-off takes X/Y/Z only (got {extra})"}
+                mask = (1 if "X" in values else 0) | (2 if "Y" in values else 0) | (4 if "Z" in values else 0)
+                line = (f"o<twp_touchoff> call [{mask}] [{values.get('X', 0.0):.6f}] "
+                        f"[{values.get('Y', 0.0):.6f}] [{values.get('Z', 0.0):.6f}]")
+                rc = await _cmd_blocking(CMD.mdi, line, wait=30)
+                if _cmd_rc_failed(rc):
+                    _trace.emit("touchoff.plane_failed", level="warn", rc=rc, line=line)
+                    return {"ok": False, "error": "Plane touch-off failed — see the error channel"}
+                # The remap wrote G54 and its own provenance (kins 0 / A 0:
+                # already a table-frame point). Our cache of G54's stamp is
+                # stale now; re-read it so the next partial gateway stamp on
+                # G54 judges against the record that exists.
+                await _reseed_prov_cache_row(1)
+                _trace.emit("touchoff.plane", level="info", mask=mask, values=values)
+                return {"ok": True, "route": "plane", "index": 6}
+            if "Z" in values:
+                z_eoff = _reader_get("z_eoffset")
+                if z_eoff is None:
+                    # The comp eoffset must be added back so the WCS does not
+                    # absorb it; an undelivered value is unknown, not 0.
+                    return {"ok": False, "error": "Z eoffset not delivered by the HAL reader — touch-off refused"}
+                values["Z"] = values["Z"] + finite_float(z_eoff)
+            STAT.poll()
+            p = finite_int(getattr(STAT, "g5x_index", 0))
+            if not 1 <= p <= 9:
+                return {"ok": False, "error": f"Active fixture index {p} out of range"}
+            ci = p - 1
+            prewrite = [finite_float(_wcs_cache[ci].get(k, 0.0)) for k in ("x", "y", "z")]
+            words = " ".join(f"{l}{v:.6f}" for l, v in values.items())
+            rc = await _cmd_blocking(CMD.mdi, f"G10 L20 P0 {words}", wait=5)
+            if _cmd_rc_failed(rc):
+                _trace.emit("touchoff.mdi_failed", level="warn", rc=rc, words=words)
+                return {"ok": False, "error": "Touch-off failed — see the error channel"}
+            STAT.poll()
+            off = list(getattr(STAT, "g5x_offset", None) or [])
+            if len(off) < 3:
+                _trace.emit("touchoff.no_readback", level="warn", index=p)
+                return {"ok": True, "route": "mdi", "index": p,
+                        "table": [row.copy() for row in _wcs_cache]}
+            for i, k in enumerate(_WCS_AXIS_KEYS):
+                if i < len(off):
+                    _wcs_cache[ci][k] = finite_float(off[i])
+            # Stamp the RESULTING triple (a Z-only touch-off leaves X/Y as
+            # they were) — same contract as set_wcs.
+            wrote_all = {"X", "Y", "Z"} <= set(values)
+            prov = await _stamp_wcs_provenance(
+                [p], {p: [finite_float(off[i]) for i in range(3)]},
+                wrote_all_xyz=wrote_all, prewrite_by_index={p: prewrite})
+            _trace.emit("touchoff.mdi", level="info", index=p, words=words,
+                        provenance=prov.get(p))
+            resp = {"ok": True, "route": "mdi", "index": p,
+                    "table": [row.copy() for row in _wcs_cache]}
+            if prov.get(p) == "cleared_mixed_angle":
+                resp["provenance"] = {"index": p, "action": prov[p]}
+            return resp
 
         if cmd == "set_wcs":
             require_armed(armed)
@@ -4221,6 +4320,35 @@ async def _ensure_prov_var_rows() -> None:
     except Exception as exc:  # noqa: BLE001 - a failed check must be loud, not fatal
         _prov_rows_ok = False
         _trace.emit("wcs.provenance_seed_failed", level="warn", error=repr(exc))
+
+
+async def _reseed_prov_cache_row(index: int) -> None:
+    """Re-read ONE fixture's provenance rows from the var file into
+    _prov_cache — after a write the gateway did not make itself (the Plane-
+    mode touch-off remap stamps G54 in the interpreter). Best effort: a row
+    that cannot be read leaves the cache entry DROPPED, so the next stamp
+    decision sees "no prior" (honest) rather than a stale prior."""
+    try:
+        path = _resolve_var_file_path()
+        n = wcs_prov_params(index)
+        if not path:
+            _prov_cache.pop(index, None)
+            _trace.emit("wcs.provenance_reseed_skipped", level="warn",
+                        index=index, reason="no var file path")
+            return
+        have = await asyncio.to_thread(_read_var_file, path,
+                                       {str(v) for v in n.values()})
+        row = {k: have.get(str(v)) for k, v in n.items()}
+        if row["stamped"] is None or abs(float(row["stamped"]) - PROV_STAMPED) > 1e-9:
+            _prov_cache.pop(index, None)
+            _trace.emit("wcs.provenance_reseed", level="info", index=index, stamped=False)
+            return
+        _prov_cache[index] = {k: float(row[k]) for k in ("kins", "a", "x", "y", "z")}
+        _trace.emit("wcs.provenance_reseed", level="info", index=index, stamped=True,
+                    kins=_prov_cache[index]["kins"], a=_prov_cache[index]["a"])
+    except Exception as exc:  # noqa: BLE001 - never break a touch-off
+        _prov_cache.pop(index, None)
+        _trace.emit("wcs.provenance_reseed_failed", level="warn", index=index, error=repr(exc))
 
 
 def _cmd_rc_failed(rc) -> bool:

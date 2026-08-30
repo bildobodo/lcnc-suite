@@ -47,6 +47,25 @@ class MachineState:
     #: gate, not the open one — the machine is built in exactly one place
     #: (policy_state_from_payload), which always sets it.
     rotary_at_zero: bool = False
+    #: Kinematics-mode inputs for the touch-off gates (2026-08-30). Every
+    #: field defaults to the CLOSED reading: an unknown kins on a switchable
+    #: machine, an unknown fixture, no active plane, a table not known to be
+    #: at zero — each refuses. `kins_switchable` defaults True so a builder
+    #: that never says what the machine is gets "unknown" (closed), never
+    #: "identity" (open); the one real builder (policy_state_from_payload)
+    #: always sets it from the kins declaration.
+    kins_switchable: bool = True
+    #: Live motion.switchkins-type, rounded (0 identity / 1 TCP / 2 TOOL);
+    #: None = not sampled or reader stale.
+    kins_type: Optional[int] = None
+    #: Active fixture, 1-based (G54 = 1 … G59.3 = 9); None = unknown.
+    g5x_index: Optional[int] = None
+    #: twp-helper-comp twp-is-active (a plane is defined AND the head was
+    #: oriented into it).
+    twp_active: bool = False
+    #: Table A within PROV_A_EPS of zero — the TCP touch-off admission rule
+    #: the remap enforces later (to_storage_frame: kins 1 only at A=0).
+    a_at_zero: bool = False
 
 
 # Single source of truth for gate semantics (review #6): each gate is an ordered
@@ -73,6 +92,94 @@ _R_PAUSED = (lambda s: s.is_paused, "No program paused to resume")
 _R_READY_OR_PAUSED = (lambda s: (s.is_idle and s.is_homed) or s.is_paused,
                       "Must be homed and idle, or paused, to step")
 
+
+# ---------------------------------------------------------------------------
+# Touch-off under kinematics modes (2026-08-30)
+#
+# A touch-off writes the ACTIVE fixture (G10 L20 P0). On a TWP machine that is
+# only sometimes the datum: G59–G59.3 are the remap's scratch rows (rewritten by
+# every orient), Plane mode (kins 2) expresses positions in the TOOL frame, and
+# a rotary offset displaces the orient move. The datum lives in ONE place — G54
+# in the table frame — and these rules keep every touch-off pointed at it:
+#   identity (kins 0 / non-switchable): linear letters into G54–G58; rotary
+#       letters into G54 only (the remap then refuses to define a plane on a
+#       rotary offset, loudly — allowed for non-TWP workflows).
+#   TCP (kins 1): linear letters into G54–G58, table at A=0 — TCP world equals
+#       the table frame G54 is stored in only at the datum (remap.py
+#       to_storage_frame), so the UI refuses exactly where the remap would.
+#   Plane (kins 2): linear letters, plane active, G59 active → routed to the
+#       remap (o<twp_touchoff>), which transforms the touched point back
+#       through the plane and writes G54 — never G59.
+#   anything else refuses with the reason.
+# The two gates below are STATE-only (check_command sees no payload); the
+# per-letter decision is touchoff_route, called by the handler. The gates are
+# DEFINED through the route so the two can never disagree.
+# ---------------------------------------------------------------------------
+LINEAR_LETTERS = frozenset("XYZUVW")
+ROTARY_LETTERS = frozenset("ABC")
+TOUCHOFF_LETTERS = LINEAR_LETTERS | ROTARY_LETTERS
+#: G59..G59.3 — owned by the TWP remap (g53x_core writes them at every orient).
+RESERVED_FIXTURES = frozenset({6, 7, 8, 9})
+
+
+def _effective_kins(s: MachineState) -> Optional[int]:
+    """0/1/2 — or None when a switchable machine's type is unknown."""
+    return 0 if not s.kins_switchable else s.kins_type
+
+
+def touchoff_route(s: MachineState, letters):
+    """Where a touch-off of `letters` goes in state `s`.
+
+    Returns ("mdi", None) for a plain G10 L20 into the active fixture,
+    ("plane", None) for the Plane-mode remap route, or (None, reason).
+    Pure; reasons are operator-readable and surface verbatim."""
+    ls = [str(l).upper() for l in letters]
+    if not ls:
+        return None, "No axis given"
+    for l in ls:
+        if l not in TOUCHOFF_LETTERS:
+            return None, f"{l!r} is not an axis letter"
+    k = _effective_kins(s)
+    if k is None:
+        return None, "Kinematics mode unknown (reader stale) — touch-off refused"
+    if s.g5x_index is None:
+        return None, "Active fixture unknown — touch-off refused"
+    if any(l in ROTARY_LETTERS for l in ls):
+        if k != 0:
+            return None, ("Rotary touch-off needs the Machine (identity) jog "
+                          "frame — a rotary offset under TCP/Plane kinematics "
+                          "displaces the orient move")
+        if s.g5x_index != 1:
+            return None, "Rotary offsets are allowed in G54 only"
+    if k == 2:
+        if not s.twp_active:
+            return None, ("Plane jog frame without an active plane — Orient "
+                          "first (G53.x), or switch to the Machine frame")
+        if s.g5x_index != 6:
+            return None, ("Plane mode expects G59 (the plane fixture) active "
+                          "— select the Plane frame again")
+        return "plane", None
+    if s.g5x_index in RESERVED_FIXTURES:
+        return None, ("G59–G59.3 are TWP scratch rows rewritten by every "
+                      "orient — touch off into G54–G58")
+    if k == 1 and not s.a_at_zero:
+        return None, ("TCP touch-off needs the table at A=0 (the fixture is "
+                      "stored as a table-frame point) — jog A to 0 or use "
+                      "the Machine frame")
+    if k not in (0, 1):
+        return None, f"Kinematics type {k} has no touch-off rule"
+    return "mdi", None
+
+
+_R_TOUCHOFF_LINEAR = (
+    lambda s: touchoff_route(s, ("X",))[0] is not None,
+    "Touch-off refused here: G59–G59.3 are TWP scratch rows (use G54–G58); "
+    "Plane mode needs an active plane with G59 selected; TCP needs A=0; "
+    "an unknown kinematics mode refuses")
+_R_TOUCHOFF_ROTARY = (
+    lambda s: touchoff_route(s, ("A",))[0] is not None,
+    "Rotary touch-off is allowed in the Machine jog frame and G54 only")
+
 _BASE = (_R_ARMED, _R_NOT_ESTOP, _R_ENABLED)
 
 # gate -> ordered requirements (armed/estop/enabled first → sensible messages).
@@ -87,6 +194,11 @@ GATE_REQUIREMENTS: Dict[str, tuple] = {
     "abort":    _BASE,
     "probe":    _BASE + (_R_IDLE, _R_HOMED, _R_NO_EOFFSET),
     "zero":     _BASE + (_R_IDLE, _R_NO_EOFFSET),
+    # Touch-off (G10 L20 / the Plane-mode remap route): `probe` plus the
+    # kins-mode × fixture rule above. Two classes because the per-axis
+    # controls differ: rotary letters are identity + G54 only.
+    "touchoff":       _BASE + (_R_IDLE, _R_HOMED, _R_NO_EOFFSET, _R_TOUCHOFF_LINEAR),
+    "touchoffRotary": _BASE + (_R_IDLE, _R_HOMED, _R_NO_EOFFSET, _R_TOUCHOFF_ROTARY),
     # May the operator START surface-map work — probe a new map, or switch
     # compensation ON? `probe` plus "the tool is normal to the mapped surface
     # and the map's grid is aligned to the work". Deliberately NOT the gate on
@@ -171,6 +283,9 @@ COMMAND_GATES: Dict[str, str] = {
     # --- work offsets / probing setup ---
     "set_wcs": "probe",
     "clear_wcs": "probe",
+    # Operator touch-off from the DRO (was a client-built `G10 L20 P0` MDI
+    # under `probe`; now routed + stamped server-side, see touchoff_route).
+    "touchoff": "touchoff",
     "set_probe_vars": "ready",
     # --- tool-table edits (no machine-enabled needed) ---
     "save_tool": "setup",
@@ -323,6 +438,13 @@ class Text:
 
 
 @dataclass(frozen=True)
+class AxisMap:
+    """touchoff's `axes` mapping: axis LETTER -> finite value. Letters are
+    structural (an unknown one is rejected, never dropped); values are the
+    operator's DRO entries, unbounded like set_wcs' words."""
+
+
+@dataclass(frozen=True)
 class VarNumbers:
     """set_probe_vars' `vars` mapping: keys must be var numbers this machine
     declares AND outside WRITABLE_VAR_DENY_RANGES."""
@@ -385,6 +507,7 @@ COMMAND_SCHEMA: Dict[str, Dict[str, object]] = {
     # --- work offsets: these become G10 L2 words. Unbounded floats reached the
     #     MDI as `G10 L2 P1 Xinf` before this.
     "set_wcs": {ax: Num() for ax in ("x", "y", "z", "a", "b", "c", "u", "v", "w", "r")},
+    "touchoff": {"axes": AxisMap()},
     # --- tool table
     "save_tool":     {"tool_number": Num(lo=0, hi=TOOL_NUMBER_MAX, integer=True),
                       "pocket": Num(lo=0, hi=TOOL_NUMBER_MAX, integer=True),
@@ -478,6 +601,14 @@ def validate_payload(cmd: str, msg: Dict, limits: MachineLimits) -> Dict[str, ob
                 raise ValueError(
                     f"{cmd}: {field} is {len(raw)} characters, maximum {cap} "
                     f"(LinuxCNC truncates longer input mid-word)")
+        elif isinstance(spec, AxisMap):
+            if not isinstance(raw, dict) or not raw:
+                raise ValueError(f"{cmd}: {field} must be a non-empty mapping")
+            for key, val in raw.items():
+                letter = str(key).upper()
+                if letter not in TOUCHOFF_LETTERS:
+                    raise ValueError(f"{cmd}: {key!r} is not an axis letter")
+                _check_number(cmd, f"{field}.{letter}", val, Num(), limits)
         elif isinstance(spec, VarNumbers):
             if not isinstance(raw, dict):
                 raise ValueError(f"{cmd}: {field} must be a mapping")
@@ -495,4 +626,8 @@ def validate_payload(cmd: str, msg: Dict, limits: MachineLimits) -> Dict[str, ob
                     raise ValueError(
                         f"{cmd}: #{num} is not in this machine's var file — "
                         f"declare it there to make it configurable")
+        else:
+            # A spec class this chain does not know would otherwise pass
+            # every value through silently — the opposite of a bounds check.
+            raise TypeError(f"{cmd}: {field} has an unhandled schema spec {spec!r}")
     return corrections

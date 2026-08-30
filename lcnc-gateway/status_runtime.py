@@ -40,7 +40,8 @@ from command_policy import (
     MachineState as _PolicyMachineState,
     evaluate_permissions,
 )
-from gateway_util import atomic_write_bytes, canonical_to_joint_order, resolve_loaded_file
+from gateway_util import (PROV_A_EPS, atomic_write_bytes, canonical_to_joint_order,
+                          resolve_loaded_file)
 from tool_table import parse_tool_table, _merge_tool_data
 
 WCS_BASES = [5220, 5240, 5260, 5280, 5300, 5320, 5340, 5360, 5380]
@@ -172,7 +173,7 @@ class StatusPayload:
     call_level: Optional[int]     # subroutine nesting depth
 
     # offsets and positions
-    g5x_index: Optional[int]  # 0=G54, 1=G55, 2=G56, etc.
+    g5x_index: Optional[int]  # 1-based: 1=G54, 2=G55 … 6=G59 … 9=G59.3 (STAT.g5x_index)
     g5x_offset: Optional[List[float]]
     g92_offset: Optional[List[float]]
     rotation_xy: Optional[float]
@@ -286,8 +287,15 @@ class StatusPayload:
     is_enabled: Optional[bool] = None
 
 
-def policy_state_from_payload(p: "StatusPayload", armed: bool) -> _PolicyMachineState:
+def policy_state_from_payload(p: "StatusPayload", armed: bool,
+                              kins_switchable: bool = True) -> _PolicyMachineState:
     """Build the command-policy MachineState from a status snapshot.
+
+    `kins_switchable` is the machine's kins DECLARATION (gateway
+    _kins_is_switchable), not a status field: it decides whether a missing
+    kins_type means "identity, certainly" or "unknown" (closed touch-off
+    gates). Defaults to True — unknown — so a caller that does not say what
+    the machine is gets the closed reading.
 
     The estop/enabled HAL-merge lives here (issues #14 + #19): STAT.estop/enabled
     merged with the safety chain (emc_enable_in). poll_status broadcasts the
@@ -319,6 +327,17 @@ def policy_state_from_payload(p: "StatusPayload", armed: bool) -> _PolicyMachine
         # "no compensation active" (permissive is correct), while an absent
         # rotary reading means "I don't know how the tool is oriented".
         rotary_at_zero=(p.rotary_at_zero is True),
+        # Touch-off gates (2026-08-30): the kins mode × active fixture rule.
+        # kins_type is the raw switchkins pin (float) — rounded here, once.
+        kins_switchable=bool(kins_switchable),
+        kins_type=(None if p.kins_type is None else int(round(float(p.kins_type)))),
+        g5x_index=(None if p.g5x_index is None else int(p.g5x_index)),
+        twp_active=(p.twp_active is True),
+        # Table A at the datum within the provenance window; an absent
+        # canonical position reads as NOT at zero (closed), like the rotary
+        # rule above.
+        a_at_zero=(p.rotary_abc is not None and len(p.rotary_abc) > 0
+                   and abs(float(p.rotary_abc[0])) <= PROV_A_EPS),
     )
 
 
@@ -332,8 +351,12 @@ class StatusRuntime:
         get_tool_tbl_path: Callable[[], Optional[str]],
         load_tool_library: Callable[[], dict],
         get_fb_scale: Callable[[], float],
+        get_kins_switchable: Callable[[], bool] = lambda: True,
     ) -> None:
         self._get_stat = get_stat
+        # Kins declaration for the touch-off gates; default "unknown" = closed
+        # (see policy_state_from_payload). The gateway wires _kins_is_switchable.
+        self._get_kins_switchable = get_kins_switchable
         self._get_err = get_err
         self._reader_get = reader_get
         self._get_tool_tbl_path = get_tool_tbl_path
@@ -925,7 +948,8 @@ class StatusRuntime:
         # One safety-merge: build the policy state once, broadcast its merged
         # is_estop/is_enabled for the frontend banner, and reuse it for permissions
         # (review #5 — removes the duplicate merge that lived in App.vue).
-        _pstate = policy_state_from_payload(payload, armed=True)
+        _pstate = policy_state_from_payload(
+            payload, armed=True, kins_switchable=self._get_kins_switchable())
         payload.is_estop = _pstate.is_estop
         payload.is_enabled = _pstate.is_enabled
         payload.permissions = evaluate_permissions(_pstate)

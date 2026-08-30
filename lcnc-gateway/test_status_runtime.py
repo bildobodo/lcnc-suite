@@ -169,6 +169,34 @@ class TestPollStatus(unittest.TestCase):
         p = _runtime(stat=self._stat()).poll_status()
         self.assertIsNone(p.kins_type)
 
+    def test_policy_state_carries_the_touchoff_inputs(self):
+        # The touch-off gates (2026-08-30) read kins mode × fixture × table
+        # pose from the SAME snapshot the broadcast carries: raw pin rounded,
+        # 1-based fixture, plane state, A within the provenance window. The
+        # kins declaration is NOT a status field — unknown (closed) unless the
+        # gateway wires it.
+        stat = self._stat(g5x_index=6, actual_position=(0, 0, 0, 0.004, 0, 0, 0, 0, 0))
+        p = _runtime(stat=stat, snapshot={"kins_type": 2.0, "twp_active": 1}).poll_status()
+        ps = status_runtime.policy_state_from_payload(p, armed=True, kins_switchable=True)
+        self.assertEqual((ps.kins_type, ps.g5x_index, ps.twp_active, ps.a_at_zero),
+                         (2, 6, True, True))
+        self.assertFalse(p.permissions["touchoff"] is False and False)  # sanity: key exists
+        self.assertIn("touchoff", p.permissions)
+        # Default builder = unknown machine = closed gates, even in G54.
+        p2 = _runtime(stat=self._stat(g5x_index=1)).poll_status()
+        self.assertFalse(p2.permissions["touchoff"])
+        # Declared non-switchable: identity, certainly — open in G54.
+        rt = _runtime(stat=self._stat(g5x_index=1))
+        rt._get_kins_switchable = lambda: False
+        p3 = rt.poll_status()
+        self.assertTrue(p3.permissions["touchoff"])
+        self.assertTrue(p3.permissions["touchoffRotary"])
+        # Tilted table: a_at_zero False.
+        stat = self._stat(actual_position=(0, 0, 0, 35.0, 0, 0, 0, 0, 0))
+        ps = status_runtime.policy_state_from_payload(
+            _runtime(stat=stat).poll_status(), armed=True, kins_switchable=False)
+        self.assertFalse(ps.a_at_zero)
+
     def test_twp_frame_pins_ride_the_snapshot_raw_and_absent_is_none(self):
         # The three TWP plane-frame pins reach the client UNCONVERTED, with
         # upstream's own unit asymmetry intact: pre-rot in RADIANS, the two
