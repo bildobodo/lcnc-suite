@@ -77,7 +77,7 @@ from gateway_util import (
     classify_motion_lines, line_trust_flags, resolve_sub_indices,
     attribute_sub_callers, resolve_sub_callers,
     insert_flip_relabels, read_var_wcs_rows, wcs_event_rewritten,
-    wcs_rewrite_targets,
+    wcs_rewrite_targets, ustart_start_tuple,
     PREVIEW_SCHEMA, should_ship_abc, rotary_sync_initcode,
     rotary_seed_values, override_rotary_position,
     seed_kins_events, wcs_offset_flat_from_var,
@@ -418,16 +418,21 @@ def parse(ctx: dict) -> dict:
     _any_world = bool(feed_world and any(feed_world)) or bool(rapid_world and any(rapid_world))
     if axis_limits:
         def _identity_segs():
-            # Unknown-start segments yield start=None (W3 P1): the endpoint
-            # is a commanded pose reached via an unknown path, so the
-            # checkers treat every axis as moved-to instead of skipping the
-            # zero-length tuple as "parked".
+            # Unknown-start segments yield a PARTIAL start (W3 P1 +
+            # ustart_start_tuple): None for the axes reached via an unknown
+            # path (moved-to, always checked) and the endpoint value for a
+            # rotary still parked at the parse-time seed (never commanded —
+            # the previous run's park pose, exempt like any parked axis).
+            # Relabel connectors (relabel_seqs → wire `brk`) are skipped
+            # outright: the machine does not move at a kins/epoch flip.
             for _i, (_lineno, _start, _end, _rate, _tlo, _seq) in enumerate(canon.feed):
                 if not (feed_world and feed_world[_i]):
                     yield _lineno, _start, _end, _tlo
             for _i, (_lineno, _start, _end, _tlo, _seq) in enumerate(canon.rapid):
+                if _seq in relabel_seqs:
+                    continue  # kins/epoch RELABEL connector — a coordinate re-expression, not motion
                 if not (rapid_world and rapid_world[_i]):
-                    yield _lineno, None if _seq in ustart_seqs else _start, _end, _tlo
+                    yield _lineno, ustart_start_tuple(_end, _rot_seed) if _seq in ustart_seqs else _start, _end, _tlo
         violations, violations_total = check_limit_violations(
             _identity_segs(), axis_limits, unit_scale)
         if _any_world and kins_cfg and kins_cfg.get("type") == "xyzacb-trsrn":
@@ -447,9 +452,11 @@ def parse(ctx: dict) -> dict:
                         yield (_lineno, _start, _end, _tlo, feed_types[_i],
                                _frames[_fi] if _fi is not None else None)
                 for _i, (_lineno, _start, _end, _tlo, _seq) in enumerate(canon.rapid):
+                    if _seq in relabel_seqs:
+                        continue  # relabel connector, not motion (see _identity_segs)
                     if rapid_world and rapid_world[_i]:
                         _fi = _r_frame[_i]
-                        yield (_lineno, None if _seq in ustart_seqs else _start,
+                        yield (_lineno, ustart_start_tuple(_end, _rot_seed) if _seq in ustart_seqs else _start,
                                _end, _tlo, rapid_types[_i],
                                _frames[_fi] if _fi is not None else None)
             w_records, w_total, world_unchecked = check_limit_violations_trsrn(
@@ -469,8 +476,10 @@ def parse(ctx: dict) -> dict:
                     if feed_world and feed_world[_i]:
                         yield _lineno, _start, _end, _tlo
                 for _i, (_lineno, _start, _end, _tlo, _seq) in enumerate(canon.rapid):
+                    if _seq in relabel_seqs:
+                        continue  # relabel connector, not motion (see _identity_segs)
                     if rapid_world and rapid_world[_i]:
-                        yield _lineno, None if _seq in ustart_seqs else _start, _end, _tlo
+                        yield _lineno, ustart_start_tuple(_end, _rot_seed) if _seq in ustart_seqs else _start, _end, _tlo
             w_records, w_total = check_limit_violations_world(
                 _world_segs(), axis_limits, kins_cfg, unit_scale)
             if w_records is None:

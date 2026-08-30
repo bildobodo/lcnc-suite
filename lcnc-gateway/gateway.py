@@ -1425,9 +1425,14 @@ async def _status_poller():
             file_changed = bool(st.active_file) and (
                 st.active_file != _bulk.last_file or _cur_mtime != _bulk.last_mtime
             )
-            if file_changed and not _bulk.refresh_running:
-                _bulk.refresh_running = True
-                register_bg_task(asyncio.create_task(_bulk.refresh_gcode_preview(st.active_file)))
+            # reparse_pending: an operator Reparse that arrived during an
+            # in-flight parse (or any Reparse — the flag is the request,
+            # the cache keys are no longer cleared for it).
+            if (file_changed or (_bulk.reparse_pending and st.active_file)) \
+                    and not _bulk.refresh_running:
+                _bulk.schedule_refresh(
+                    st.active_file, "reparse" if not file_changed else "file",
+                    _spawn_preview_task)
             elif (
                 # Schema edge (P1): the published payload's wire-format stamp
                 # disagrees with the schema this gateway was started with —
@@ -1446,8 +1451,7 @@ async def _status_poller():
                 _bulk.schema_reparse_attempted = (_bulk.last_file, _bulk.last_mtime)
                 _trace.emit("gcode.schema_stale_reparse", level="warn",
                             published=_bulk.published_schema, expected=PREVIEW_SCHEMA)
-                _bulk.refresh_running = True
-                register_bg_task(asyncio.create_task(_bulk.refresh_gcode_preview(st.active_file)))
+                _bulk.schedule_refresh(st.active_file, "schema", _spawn_preview_task)
             elif (
                 # TLO drift edge (W2 P4): the per-line limit flags bake the
                 # parse-time tool table, so a toolsetter re-measure after
@@ -1455,24 +1459,29 @@ async def _status_poller():
                 # Idle-gated — never reparse under a run (the client's
                 # parse_tlos hint covers that window) — and debounced to one
                 # check per 2 s so MDI/touch-off sequences settle first.
+                # The rotary / kins / WCS-offset edges below share this
+                # gate. They used to sit under `published_tlo is not None`
+                # too, so a payload whose __TLO__ line was absent or
+                # malformed never re-seeded its rotary pose at all.
                 bool(st.active_file)
                 and not _bulk.refresh_running
                 and _bulk.preview_available()
-                and _bulk.published_tlo is not None
                 and st.interp_state == linuxcnc.INTERP_IDLE
                 and time.monotonic() - _bulk.tlo_check_ts >= 2.0
             ):
                 _bulk.tlo_check_ts = time.monotonic()
+                _drift = None
                 _tlo_meta = _bulk.published_tlo
-                _tt_path = _tlo_meta.get("table_path")
-                try:
-                    _tt_cur = os.path.getmtime(_tt_path) if _tt_path else None
-                except OSError:
-                    _tt_cur = None
-                _tofs = st.tool_offset
-                _drift = evaluate_tlo_drift(
-                    _tlo_meta, _tt_cur, st.tool_number,
-                    _tofs[2] if _tofs and len(_tofs) > 2 else None)
+                if _tlo_meta is not None:
+                    _tt_path = _tlo_meta.get("table_path")
+                    try:
+                        _tt_cur = os.path.getmtime(_tt_path) if _tt_path else None
+                    except OSError:
+                        _tt_cur = None
+                    _tofs = st.tool_offset
+                    _drift = evaluate_tlo_drift(
+                        _tlo_meta, _tt_cur, st.tool_number,
+                        _tofs[2] if _tofs and len(_tofs) > 2 else None)
                 if _drift is None:
                     # Rotary-pose drift (W6): the payload poses every
                     # uncommanded-rotary segment at the PARSE-time pose; a
@@ -1544,21 +1553,15 @@ async def _status_poller():
                     _trace.emit("gcode.reparse_tlo_drift", reason=_drift,
                                 tool=st.tool_number)
                 if _drift:
-                    _bulk.refresh_running = True
-                    register_bg_task(asyncio.create_task(_bulk.refresh_gcode_preview(st.active_file)))
-            elif not st.active_file and _bulk.last_file is not None:
-                _bulk.preview_pending = None
-                _bulk.preview_bytes = None
-                _bulk.preview_bytes_gz = None
-                _bulk.preview_version += 1
-                _bulk.last_file = None
-                _bulk.last_mtime = None
-                _bulk.published_schema = None
-                _bulk.schema_reparse_attempted = None
-                _bulk.published_tlo = None
-                _bulk.published_rotary_seed = None
-                _bulk.published_kins_seed = None
-                _bulk.published_wcs_off = None
+                    _bulk.schedule_refresh(st.active_file, "drift", _spawn_preview_task)
+            elif not st.active_file and (_bulk.last_file is not None
+                                         or _bulk.preview_available()):
+                # Unload: one contract (clear_preview — it was dead code
+                # diverged from an inline copy here). The preview_available
+                # term keeps the branch reachable when the keys were cleared
+                # by something other than an unload.
+                _bulk.clear_preview()
+                _bulk.reparse_pending = False
 
             # Safety-trip detection via the servo-thread HAL latch level
             # (webui-hb-latch.fault-out, issue #34). The latch is sticky and
@@ -2531,6 +2534,14 @@ def reject_if_auto_running() -> Optional[Dict[str, Any]]:
         }
     return None
 
+
+
+def _spawn_preview_task(coro):
+    """spawn callable for BulkPipeline.schedule_refresh — the gateway's
+    background-task registry + loop, kept out of bulk_pipeline."""
+    task = asyncio.create_task(coro)
+    register_bg_task(task)
+    return task
 
 
 def _jog_joint_flag() -> int:
@@ -3669,9 +3680,15 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             # was unload-then-load. Clearing the cache keys makes the edge fire
             # on the next tick — one action that refreshes the render, the
             # soft-limit annotations and the collision/scrub basis together.
-            _bulk.last_file = None
-            _bulk.last_mtime = None
-            _trace.emit("gcode.reparse_requested")
+            # The request is a FLAG, not a cache-key wipe: clearing the keys
+            # was swallowed whenever a parse was already in flight (its
+            # completion rewrote them — replied ok, nothing respawned), and
+            # it also made the poller's unload branch unreachable.
+            _bulk.reparse_pending = True
+            _trace.emit("gcode.reparse_requested",
+                        deferred=bool(_bulk.refresh_running))
+            if _bulk.refresh_running:
+                _trace.emit("gcode.reparse_deferred")
             return {"ok": True}
 
         # ---- Surface compensation + HAL handshakes ----
@@ -5616,9 +5633,7 @@ async def ws_endpoint(ws: WebSocket):
                         "file": initial_file,
                     })
                     _gcode_path = "cache-hit-sent"
-                elif not _bulk.refresh_running:
-                    _bulk.refresh_running = True
-                    register_bg_task(asyncio.create_task(_bulk.refresh_gcode_preview(initial_file)))
+                elif _bulk.schedule_refresh(initial_file, "connect", _spawn_preview_task):
                     _gcode_path = "refresh-scheduled"
                 else:
                     _gcode_path = "refresh-already-running"

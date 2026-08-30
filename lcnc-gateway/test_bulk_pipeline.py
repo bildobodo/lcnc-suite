@@ -197,3 +197,76 @@ class TestFileReaders(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestScheduleRefresh(unittest.TestCase):
+    """Single-flight scheduling (2026-08-30 reparse-hang wave): the flag has
+    ONE setter, exception-safe, and an operator Reparse is a pending FLAG the
+    poller honors after an in-flight parse — clearing cache keys was
+    swallowed by the finishing parse rewriting them."""
+
+    def test_schedule_sets_flag_and_clears_pending(self):
+        b = _pipeline()
+        b.reparse_pending = True
+        spawned = []
+        def spawn(coro):
+            spawned.append(coro)
+            return _FakeTask(coro)
+        self.assertTrue(b.schedule_refresh("/p.ngc", "reparse", spawn))
+        self.assertTrue(b.refresh_running)
+        self.assertFalse(b.reparse_pending)
+        self.assertEqual(len(spawned), 1)
+        spawned[0].close()
+        # second call while running is refused (single flight)
+        self.assertFalse(b.schedule_refresh("/p.ngc", "file", spawn))
+        self.assertEqual(len(spawned), 1)
+
+    def test_spawn_failure_resets_flag(self):
+        b = _pipeline()
+        def spawn(coro):
+            coro.close()
+            raise RuntimeError("loop closed")
+        self.assertFalse(b.schedule_refresh("/p.ngc", "file", spawn))
+        self.assertFalse(b.refresh_running)   # was: latched True forever
+
+    def test_cancel_before_start_resets_flag(self):
+        b = _pipeline()
+        holder = {}
+        def spawn(coro):
+            t = _FakeTask(coro); holder["t"] = t; return t
+        b.schedule_refresh("/p.ngc", "file", spawn)
+        self.assertTrue(b.refresh_running)
+        holder["t"].cancel()   # never ran: the coroutine's finally never fires
+        self.assertFalse(b.refresh_running)
+
+    def test_refresh_without_stat_traces_skip(self):
+        import lcnc_trace
+        seen = []
+        orig = lcnc_trace.emit
+        lcnc_trace.emit = lambda tag, **kw: seen.append((tag, kw))
+        try:
+            b = _pipeline()   # stat None
+            asyncio.run(b.refresh_gcode_preview("/p.ngc"))
+        finally:
+            lcnc_trace.emit = orig
+        self.assertIn("gcode.refresh_skipped", [t for t, _ in seen])
+        self.assertFalse(b.refresh_running)
+
+
+class _FakeTask:
+    """Minimal asyncio.Task stand-in: done callbacks + cancel()."""
+    def __init__(self, coro):
+        self._coro = coro
+        self._cbs = []
+        self._cancelled = False
+    def add_done_callback(self, cb):
+        self._cbs.append(cb)
+    def cancelled(self):
+        return self._cancelled
+    def cancel(self):
+        self._cancelled = True
+        self._coro.close()
+        for cb in self._cbs:
+            cb(self)
+    def close(self):
+        self._coro.close()

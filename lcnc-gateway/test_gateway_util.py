@@ -587,6 +587,33 @@ class TestCheckLimitViolations(unittest.TestCase):
             [(4, end, end, self.TLO0)], self.LIMITS, 25.4)
         self.assertEqual((recs2, total2), ([], 0))
 
+    def test_ustart_seeded_rotary_is_parked_not_flagged(self):
+        # The false "toolpath exceeds soft limits" in sim (2026-08-30):
+        # the ustart vertex carries the PARSE-TIME rotary seed for every
+        # rotary the program did not command, and that seed is wherever
+        # the previous run parked (corpus twp_g69_tail run2 vertex 0 ==
+        # run1's end pose). A fully-None start checked it unconditionally.
+        limits = dict(self.LIMITS); limits["C"] = (-320.0, 320.0)
+        end = (0.0, 0.0, -1.0 / 25.4, 0.0, 0.0, -383.163, 0.0, 0.0, 0.0)
+        seed = {"A": 0.0, "B": 0.0, "C": -383.163}
+        start = gateway_util.ustart_start_tuple(end, seed)
+        self.assertEqual(start[5], -383.163)         # parked at the seed: known
+        self.assertIsNone(start[0])                  # linear: unknown path, always checked
+        self.assertEqual(start[3], 0.0)              # A also sits at its seed: parked too
+        recs, total = gateway_util.check_limit_violations(
+            [(12, start, end, self.TLO0)], limits, 25.4)
+        self.assertEqual((recs, total), ([], 0))
+        # Same endpoint but the PROGRAM commanded C there (seed elsewhere):
+        # that is motion into the limit and must flag.
+        start2 = gateway_util.ustart_start_tuple(end, {"A": 0.0, "B": 0.0, "C": 0.0})
+        self.assertIsNone(start2[5])
+        recs2, total2 = gateway_util.check_limit_violations(
+            [(12, start2, end, self.TLO0)], limits, 25.4)
+        self.assertEqual(total2, 1)
+        self.assertEqual((recs2[0]["axis"], recs2[0]["kind"]), ("C", "min"))
+        # No seed at all keeps the legacy fully-unknown convention.
+        self.assertEqual(gateway_util.ustart_start_tuple(end, None), (None,) * 9)
+
     def test_max_report_caps_records_but_not_total(self):
         segs = [self._seg(i, a=-101.0) for i in range(1, 12)]
         recs, total = gateway_util.check_limit_violations(
@@ -2447,6 +2474,24 @@ class TestTrsrnLimitCheck(unittest.TestCase):
         records, total, unchecked = gateway_util.check_limit_violations_trsrn(
             [seg], {"X": (-1.0, 1.0)}, self.CFG)
         self.assertEqual((records, total, unchecked), ([], 0, 0))
+
+    def test_ustart_seeded_rotary_parked_under_tcp(self):
+        # Joint-side twin of the identity case: a TCP ustart endpoint whose
+        # C sits at the parse-time seed past the C limit. The seed slot is
+        # KNOWN (parked) so C is exempt; the unknown linear axes are still
+        # checked (X past its bound flags).
+        end = self.NINE(1400.0, -200.0, -1300.0, 0.0, 0.0, -383.163)
+        start = gateway_util.ustart_start_tuple(end, {"A": 0.0, "B": 0.0, "C": -383.163})
+        seg = (12, start, end, (0.0, 0.0, 100.0), 1, None)
+        records, total, unchecked = gateway_util.check_limit_violations_trsrn(
+            [seg], {"C": (-320.0, 320.0), "X": (-2000.0, 1390.0)}, self.CFG)
+        self.assertEqual(unchecked, 0)
+        self.assertEqual([(r["axis"], r["kind"]) for r in records], [("X", "max")])
+        # Fully-unknown start (no seed): C is checked as before.
+        records2, total2, _ = gateway_util.check_limit_violations_trsrn(
+            [(12, None, end, (0.0, 0.0, 100.0), 1, None)],
+            {"C": (-320.0, 320.0)}, self.CFG)
+        self.assertEqual([(r["axis"], r["kind"]) for r in records2], [("C", "min")])
 
 
 class TestParseKinsConfig(unittest.TestCase):

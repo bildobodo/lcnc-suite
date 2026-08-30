@@ -133,6 +133,11 @@ class BulkPipeline:
         self.wcsoff_check_prev: Optional[list] = None
         self.tlo_check_ts: float = 0.0   # drift-edge debounce (monotonic)
         self.refresh_running: bool = False            # single-flight guard
+        # Operator Reparse arrived while a parse was in flight: the finishing
+        # parse rewrites last_file/last_mtime, so a key-clearing request was
+        # silently swallowed (replied ok, nothing respawned). The poller
+        # schedules one more refresh when this is set and nothing is running.
+        self.reparse_pending: bool = False
         self.preview_bytes: Optional[bytes] = None    # raw copy kept ONLY when no gz exists (<4 KiB payloads)
         self.preview_bytes_gz: Optional[bytes] = None # pre-compressed once per parse
         self.preview_raw_len: int = 0                 # uncompressed size (for traces)
@@ -161,6 +166,44 @@ class BulkPipeline:
         gzip; a rare non-gzip client gets an on-demand decompress in
         get_preview)."""
         return self.preview_bytes is not None or self.preview_bytes_gz is not None
+
+    def schedule_refresh(self, filepath: str, reason: str, spawn) -> bool:
+        """Single-flight scheduler — the ONE place refresh_running goes True.
+
+        `spawn(coro) -> asyncio.Task` is supplied by the gateway (its
+        register_bg_task + create_task). Exception-safe: a spawn that raises
+        (loop shutting down) resets the flag and traces, and a task cancelled
+        before it ever ran (lifespan teardown) resets it from the done
+        callback — the coroutine's own `finally` never executes in that case.
+        Previously four inline `flag = True; create_task(...)` sites could
+        latch the flag forever and silently kill every preview edge.
+        Returns True when a refresh was scheduled."""
+        if self.refresh_running:
+            return False
+        self.refresh_running = True
+        self.reparse_pending = False
+        try:
+            task = spawn(self.refresh_gcode_preview(filepath))
+        except BaseException as e:
+            self.refresh_running = False
+            _trace.emit("gcode.refresh_schedule_failed", level="warn",
+                        file=filepath, reason=reason,
+                        exc=type(e).__name__, msg=str(e))
+            if not isinstance(e, Exception):
+                raise
+            return False
+
+        def _done(t):
+            if t.cancelled() and self.refresh_running:
+                # Cancelled before its first step: no finally ran.
+                self.refresh_running = False
+                self.gcode_parse_proc = None
+        try:
+            task.add_done_callback(_done)
+        except AttributeError:
+            pass  # spawn returned no task handle — the coroutine's finally is the only reset
+        _trace.emit("gcode.refresh_scheduled", file=filepath, reason=reason)
+        return True
 
     def clear_preview(self) -> None:
         """Unload contract: drop all preview payloads together, THEN bump the
@@ -248,6 +291,11 @@ class BulkPipeline:
             stat = self._get_stat()
             ini_path = getattr(stat, "ini_filename", None) if stat is not None else None
             if not ini_path:
+                # Was a bare return: indistinguishable in the trace from
+                # "never scheduled" — the class of silent no-op a hang
+                # report cannot be triaged against.
+                _trace.emit("gcode.refresh_skipped", level="warn", file=filepath,
+                            reason="no-stat" if stat is None else "no-ini")
                 return
             active_idx = getattr(stat, "g5x_index", None) if stat is not None else None
             patches = self._build_wcs_rotation_patches()

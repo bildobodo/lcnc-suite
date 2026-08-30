@@ -2056,6 +2056,61 @@ def trsrn_kins_inverse(world, params, mode):
 _TRT_LETTERS = {"xyzac-trt": ("X", "Y", "Z", "A", "C"),
                 "xyzbc-trt": ("X", "Y", "Z", "B", "C")}
 _JOINT_MOVE_EPS = 1e-9
+_USTART_SEED_EPS = 1e-5   # degrees — a rotary "at the seed" (initcode %f round-trip)
+
+
+def ustart_start_tuple(end, seed_abc, eps=_USTART_SEED_EPS):
+    """Partial START tuple for an UNKNOWN-START segment (W3 P1 endpoint-only
+    rapid): None for every axis the run reaches via a path no parse can
+    know — XYZ/UVW, and any rotary the program COMMANDED away from the
+    parse-time seed — but the endpoint value itself for a rotary that still
+    SITS at the seed. That axis was never commanded: it is parked live
+    state, not motion, and the checkers' parked-axis rule must exempt it.
+    Before this the whole tuple was None, so the seeded, uncommanded rotary
+    was checked unconditionally — and the seed is wherever the PREVIOUS run
+    parked (corpus: twp_g69_tail run2 vertex 0 carries run1's end pose;
+    that program walks machine C ~153 deg per orient with no unwind, so a
+    few back-to-back runs put the parked C past the ±320 limit and the
+    HUD reported an exceedance on a pose the fresh run never visits).
+    seed_abc: {"A": deg, ...} (rotary_seed_values) or None → fully unknown,
+    the pre-existing convention. Pure."""
+    n = len(end)
+    out = [None] * n
+    if seed_abc:
+        for slot, letter in ((3, "A"), (4, "B"), (5, "C")):
+            sv = seed_abc.get(letter)
+            if slot < n and sv is not None and abs(float(end[slot]) - float(sv)) <= eps:
+                out[slot] = end[slot]
+    return tuple(out)
+
+
+def _fill_unknown_start(start, end):
+    """(filled_start, unknown_axis_indices) for the joint-side checkers:
+    an axis is UNKNOWN when start is None or its slot is None (see
+    ustart_start_tuple); filled_start substitutes the endpoint there so the
+    sweep interpolation degenerates to the endpoint sample. Pure."""
+    n = len(end)
+    if start is None:
+        return list(end), set(range(n))
+    unknown = set()
+    filled = []
+    for i in range(n):
+        sv = start[i] if i < len(start) else None
+        if sv is None:
+            unknown.add(i)
+            filled.append(end[i])
+        else:
+            filled.append(sv)
+    return filled, unknown
+
+
+def _joint_unknown(jno, letter, unknown_axes):
+    """Parked-joint exemption applies only to KNOWN motion: linear joints
+    are unknown if any linear axis is (they mix under world kins); a
+    rotary joint is its own axis (passthrough in every twin)."""
+    if jno < 3:
+        return bool(unknown_axes & {0, 1, 2})
+    return AXIS_LETTERS.index(letter) in unknown_axes
 
 
 def check_limit_violations_world(segments, limits, kins_cfg, unit_scale=1.0,
@@ -2103,13 +2158,13 @@ def check_limit_violations_world(segments, limits, kins_cfg, unit_scale=1.0,
     jmin = [0.0] * 5
     jmax = [0.0] * 5
     for lineno, start, end, tlo in segments:
-        # start=None = UNKNOWN-PATH segment (W3 P1): only the endpoint is
-        # known, so sample it alone and skip the joint-moved attribution —
+        # start=None (or None slots — ustart_start_tuple) = UNKNOWN-PATH
+        # axes (W3 P1): only the endpoint is known there, so sample it
+        # alone and skip the joint-moved attribution for those joints —
         # the machine does move there, so an out-of-bounds endpoint joint
-        # must flag its line.
-        unknown = start is None
-        if unknown:
-            start = end
+        # must flag its line. A rotary slot that IS known (parked at the
+        # parse-time seed) keeps the parked exemption.
+        start, unknown_axes = _fill_unknown_start(start, end)
         rotd = max(abs(end[i] - start[i]) for i in (3, 4, 5))
         steps = min(256, max(1, math.ceil(rotd / rot_step_deg)))
         params = params0
@@ -2135,7 +2190,8 @@ def check_limit_violations_world(segments, limits, kins_cfg, unit_scale=1.0,
                     elif joints[j] > jmax[j]:
                         jmax[j] = joints[j]
         for jno, letter, mn, mx in bounds:
-            if not unknown and jmax[jno] - jmin[jno] <= _JOINT_MOVE_EPS:
+            if (not _joint_unknown(jno, letter, unknown_axes)
+                    and jmax[jno] - jmin[jno] <= _JOINT_MOVE_EPS):
                 continue  # joint parked this segment — culprit line already flagged
             if mn is not None and jmin[jno] < mn - _LIMIT_EPS:
                 key = (lineno, letter)
@@ -2205,12 +2261,11 @@ def check_limit_violations_trsrn(segments, limits, kins_cfg, unit_scale=1.0,
             continue
         if ktype not in (1, 2):
             continue  # identity segs belong to the caller's identity check
-        # start=None = UNKNOWN-PATH (W3 P1): endpoint-only sample, no
-        # joint-moved attribution skip — same convention as the identity
-        # and trt checkers.
-        unknown = start is None
-        if unknown:
-            start = end
+        # start=None / None slots = UNKNOWN-PATH axes (W3 P1): endpoint-
+        # only sample, no joint-moved attribution skip for those joints —
+        # same convention as the identity and trt checkers (see
+        # ustart_start_tuple for the seeded-rotary exemption).
+        start, unknown_axes = _fill_unknown_start(start, end)
         params = dict(params0)
         tz = (tlo[2] if tlo is not None else 0.0) * unit_scale
         if ktype == 1:
@@ -2242,7 +2297,8 @@ def check_limit_violations_trsrn(segments, limits, kins_cfg, unit_scale=1.0,
                     elif joints[j] > jmax[j]:
                         jmax[j] = joints[j]
         for jno, letter, mn, mx in bounds:
-            if not unknown and jmax[jno] - jmin[jno] <= _JOINT_MOVE_EPS:
+            if (not _joint_unknown(jno, letter, unknown_axes)
+                    and jmax[jno] - jmin[jno] <= _JOINT_MOVE_EPS):
                 continue  # joint parked this segment — culprit line already flagged
             if mn is not None and jmin[jno] < mn - _LIMIT_EPS:
                 key = (lineno, letter)
@@ -2772,7 +2828,9 @@ def check_limit_violations(segments, limits, unit_scale: float = 1.0,
             # first-move endpoint) — the machine moves there via a path no
             # parse can know, so every axis counts as moved-to and the
             # parked-axis attribution skip must not hide an out-of-bounds
-            # endpoint.
+            # endpoint. A PARTIAL start (ustart_start_tuple: None slots =
+            # unknown, a rotary parked at the parse-time seed keeps its
+            # value) exempts only the parked seed slots.
             if start is not None and idx < len(start) and start[idx] == v:
                 continue  # axis parked this segment — culprit line already flagged
             if idx < 3 and tlo is not None:
