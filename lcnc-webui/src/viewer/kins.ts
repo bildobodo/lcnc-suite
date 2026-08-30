@@ -671,22 +671,37 @@ export function warnPlaneWithoutFrame(site: string): void {
 
 // Memoized construction for per-frame callers (scrub pose runs at display
 // rate): keyed by the axes identity + spec type, so repeated calls with
-// the same machine cost a Map lookup, not an allocation.
+// the same machine cost a Map lookup, not an allocation. Bounded by
+// evicting the OLDEST key (Map keeps insertion order): with per-segment
+// TLO (schema 8) a program's N tool offsets × M TWP frames are all hot at
+// once, and the previous "clear everything at 64" thrashed at display rate
+// the moment that product passed the cap. Models are tiny; 256 is ample.
 const _memo = new Map<string, KinsModel>();
+const _MEMO_CAP = 256;
+// LRU, not FIFO: a hit re-inserts the key so the models a per-frame loop
+// keeps using stay resident while stale ones age out.
+function _memoGet(key: string): KinsModel | undefined {
+  const m = _memo.get(key);
+  if (m !== undefined) { _memo.delete(key); _memo.set(key, m); }
+  return m;
+}
+function _memoSet(key: string, m: KinsModel): void {
+  if (_memo.size >= _MEMO_CAP) {
+    const oldest = _memo.keys().next().value;
+    if (oldest !== undefined) _memo.delete(oldest);
+  }
+  _memo.set(key, m);
+}
 
 export function kinsFor(axes: string[], spec?: KinsSpec, toolOffsetZ?: number): KinsModel {
   const p = spec?.params;
   const key = axes.join(",") + "|" + (spec?.type ?? "trivkins")
     + (p ? "|" + [p.xRotPoint, p.yRotPoint, p.zRotPoint, p.xOffset, p.yOffset, p.zOffset].join(",") : "")
     + (toolOffsetZ ? "|t" + toolOffsetZ : "");
-  let m = _memo.get(key);
+  let m = _memoGet(key);
   if (!m) {
-    // Bound the memo: every distinct live TLO mints a new key (tool
-    // changes over a long session), and touch-off can sweep values.
-    // Models are tiny — a rare full clear is cheaper than an LRU.
-    if (_memo.size >= 64) _memo.clear();
     m = makeKins(axes, spec, toolOffsetZ);
-    _memo.set(key, m);
+    _memoSet(key, m);
   }
   return m;
 }
@@ -699,15 +714,14 @@ function _trsrnFor(spec: KinsSpec, mode: 1 | 2,
     + "|" + [g.yPivot, g.zPivot, g.xOffset, g.yOffset, g.yRotAxis, g.zRotAxis, g.nutAngle].join(",")
     + "|" + (frame ? frame.join(",") : "")
     + "|t" + (toolOffsetZ ?? 0);
-  let m = _memo.get(key);
+  let m = _memoGet(key);
   if (!m) {
-    if (_memo.size >= 64) _memo.clear();
     m = new TrsrnKins(mode, {
       ...g,
       toolOffset: toolOffsetZ,
       preRot: frame?.[0], primaryAngle: frame?.[1], secondaryAngle: frame?.[2],
     });
-    _memo.set(key, m);
+    _memoSet(key, m);
   }
   return m;
 }

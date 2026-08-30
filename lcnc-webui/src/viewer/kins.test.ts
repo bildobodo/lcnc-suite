@@ -187,3 +187,18 @@ describe("kinsForSegment (phase 3 per-segment routing)", () => {
     expect(a).toBe(b);
   });
 });
+
+describe("kins memo eviction (schema 8)", () => {
+  it("keeps a hot key resident across hundreds of distinct TLO keys", () => {
+    const axes = ["X", "Y", "Z", "A", "C"];
+    const spec = specFromWire({ type: "xyzac-trt", params: { y_rot_point: 1, z_rot_point: 2 } });
+    const hot = kinsFor(axes, spec, 22);
+    // 300 distinct offsets: a clear-at-cap memo would drop `hot` several
+    // times over; oldest-key eviction keeps it as long as it is re-used.
+    for (let i = 1; i <= 300; i++) {
+      kinsFor(axes, spec, 1000 + i);
+      if (i % 50 === 0) expect(kinsFor(axes, spec, 22)).toBe(hot);
+    }
+    expect(kinsFor(axes, spec, 22)).toBe(hot);
+  });
+});
