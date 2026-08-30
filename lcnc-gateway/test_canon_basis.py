@@ -141,3 +141,82 @@ class TestBasisChoice(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestTloEvents(unittest.TestCase):
+    """Schema 8: the canon's TLO/tool events against the REAL interpreter
+    (case tlo_midprogram: G0/G1, then `T2 M6 G43 H2`, G0/G1, G49, G1, M2;
+    fixture ini tool.tbl T2 Z=47.690467 mm)."""
+
+    H2 = 47.690467 / MM_PER_IN   # canon inches
+
+    def setUp(self):
+        self.c = CASES["tlo_midprogram"]
+
+    def test_no_tool_offset_fires_on_initcode_lines(self):
+        # If the interpreter fired tool_offset at init the fixture shows it —
+        # and the canon's lineno guard is what keeps it off the wire.
+        for call in self.c["tool_offset_calls"]:
+            self.assertGreaterEqual(call[0], 1, f"tool_offset fired on line {call[0]}")
+        for ev in self.c["tlo_events"]:
+            self.assertGreaterEqual(ev[0], 0)
+
+    def test_m6_and_g43_share_a_seq_and_the_last_row_is_h2_t2(self):
+        evs = self.c["tlo_events"]
+        # M6 row (tool 2, offset still 0) then the G43 row (H2, tool 2) —
+        # same seq (no motion between them), last wins.
+        g43 = [e for e in evs if abs(e[3] - self.H2) < 1e-9]
+        self.assertEqual(len(g43), 1)
+        gi = evs.index(g43[0])
+        m6 = [e for e in evs[:gi] if e[4] == 2 and abs(e[3]) < 1e-12]
+        self.assertEqual(len(m6), 1)              # the M6 row precedes the G43 row
+        self.assertEqual(m6[0][0], g43[0][0])     # same seq: no motion between
+        self.assertEqual(g43[0][4], 2)
+        self.assertEqual(evs[0], m6[0])           # nothing before the M6
+
+    def test_segments_carry_the_offset_the_event_convention_predicts(self):
+        evs = self.c["tlo_events"]
+        g43_seq = [e for e in evs if abs(e[3] - self.H2) < 1e-9][0][0]
+        g49_seq = [e[0] for e in evs if abs(e[3]) < 1e-12][-1]
+        for seqs, tlos in ((self.c["feed_seqs"], self.c["feed_tlos"]),
+                           (self.c["rapid_seqs"], self.c["rapid_tlos"])):
+            for s, tlo in zip(seqs, tlos):
+                if s <= g43_seq or s > g49_seq:
+                    self.assertAlmostEqual(tlo[2], 0.0, places=12, msg=f"seq {s}")
+                else:
+                    self.assertAlmostEqual(tlo[2], self.H2, places=9, msg=f"seq {s}")
+
+    def test_post_g43_traverse_is_a_zero_length_unknown_start_vertex(self):
+        evs = self.c["tlo_events"]
+        g43_seq = [e for e in evs if abs(e[3] - self.H2) < 1e-9][0][0]
+        us = [s for s in self.c["unknown_start"] if s > g43_seq]
+        self.assertTrue(us, "no unknown-start vertex after the G43")
+        i = self.c["rapid_seqs"].index(us[0])
+        self.assertEqual(self.c["rapid_starts"][i], self.c["rapid_ends"][i])
+        self.assertAlmostEqual(self.c["rapid_tlos"][i][2], self.H2, places=9)
+
+    def test_lo_peel_keeps_the_world_continuous_across_the_g43(self):
+        # The identity the carry-retire closure rests on: the interpreter's
+        # position `lo` is peeled by exactly the offset delta, so lo + tlo
+        # (the world Z) is the same before and after every G43/G49 — pinned
+        # from the recorder's before/after samples on the real interpreter
+        # (the tuples cannot show it: the post-G43 traverse is a zero-length
+        # unknown-start vertex whose start IS its end).
+        calls = self.c["tool_offset_calls"]
+        self.assertGreaterEqual(len(calls), 2)     # the G43 and the G49
+        for lineno, _seq, _xo, _yo, zo, lo_before, tlo_before, lo_after in calls:
+            self.assertAlmostEqual(lo_before + tlo_before, lo_after + zo, places=9,
+                                   msg=f"line {lineno}")
+        # ...and the G43 really moved lo (a non-vacuous identity).
+        g43 = [c for c in calls if abs(c[4] - self.H2) < 1e-9][0]
+        self.assertAlmostEqual(g43[7] - g43[5], -self.H2, places=9)
+
+    def test_g49_zeros_and_the_following_feed_carries_zero(self):
+        evs = self.c["tlo_events"]
+        g49 = [e for e in evs if abs(e[3]) < 1e-12 and e[4] == 2]
+        g49 = [e for e in g49 if e[0] > [x for x in evs if abs(x[3] - self.H2) < 1e-9][0][0]]
+        self.assertEqual(len(g49), 1)
+        after = [t for s, t in zip(self.c["feed_seqs"], self.c["feed_tlos"]) if s > g49[0][0]]
+        self.assertTrue(after)
+        for t in after:
+            self.assertAlmostEqual(t[2], 0.0, places=12)
