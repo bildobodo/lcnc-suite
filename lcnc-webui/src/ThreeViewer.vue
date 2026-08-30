@@ -20,6 +20,7 @@ import { disposeObject } from "./viewer/disposal";
 import { normalizeKinematics, type KinRuntime } from "./viewer/kinematics";
 import { lineDistances, tipWcs, wcsTerms, type PartFrameMachine, type PartFrameWcs } from "./viewer/partFrame";
 import { MACHINE_PALETTE, defaultPartHex } from "./viewer/palette";
+import { toolDimsFor } from "./viewer/tloEvents";
 import { boundsOf, epochTermsFor, previewWcsStaleFor, rebasePositions, usedWcsRowsKey, type WcsTableRow } from "./viewer/wcsEpochs";
 import { specFromWire } from "./viewer/kins";
 import { displayDecision } from "./viewer/displayPipeline";
@@ -1408,19 +1409,23 @@ function applyState(init: ViewerInit, st: ViewerState) {
 
   // ---- Tool visual: parametric profile (TIP stays at local z=0) ----
   {
-    const toolNum = st.tool_number ?? null;
-    const meta: ToolMeta | null = st.tool_meta ?? null;
-    // Design default: absent tool dimensions draw a generic 6×60 mm placeholder
-    // marker — a viewer position cue, not a claim about the real tool geometry.
-    const diam = st.tool_diameter || 6.0 * _unitScale;
-    // `||`, not `??`: tool_length 0 (no tool / no offset) means "unknown",
-    // and a 0-length marker collapses to the 40 mm minimum — 15 mm short of
-    // the raised spindle nose, leaving the tool floating detached. The
-    // collision body already used `||`; display and check must agree.
-    const rawLen = st.tool_length || 60.0 * _unitScale;
-    const sinkIntoHolder = 20 * _unitScale;
-    const minVisualLen = 40 * _unitScale;
-    const visLen = Math.max(minVisualLen, rawLen + sinkIntoHolder);
+    const liveToolNum = st.tool_number ?? null;
+    // While scrubbing, the marker wears the SAMPLE's tool (schema 8): dims
+    // from the parse-time table row, meta only if that tool was ever loaded
+    // this session (getToolMeta) — never the loaded tool's meta on another
+    // tool's dims. Leaving sim restores the loaded tool.
+    const scrubTool = (_scrubJoints && _scrubTool != null && _scrubTool > 0 && _scrubTool !== liveToolNum)
+      ? _scrubTool : null;
+    const toolNum = scrubTool ?? liveToolNum;
+    const meta: ToolMeta | null = scrubTool != null
+      ? (getToolMeta(scrubTool) ?? null) : (st.tool_meta ?? null);
+    let diamRaw: number | null | undefined = st.tool_diameter;
+    let lenRaw: number | null | undefined = st.tool_length;
+    if (scrubTool != null) {
+      const d = toolDimsFor(scrubTool, viewerGcode.value?.parse_tlos, _unitScale, { diam: null, len: null });
+      diamRaw = d.diam; lenRaw = d.len;
+    }
+    const { diam, len: visLen } = _toolVisual(diamRaw, lenRaw);
 
     // Determine if we need a rebuild
     const needsRebuild = (toolNum !== _currentToolNum && _toolGrp)
@@ -1444,7 +1449,7 @@ function applyState(init: ViewerInit, st: ViewerState) {
       }
       if (meta) {
         _lastToolMeta = meta;
-        if (toolNum != null) setToolMeta(toolNum, meta);
+        if (toolNum != null && scrubTool == null) setToolMeta(toolNum, meta);
       } else if (toolNum != null) {
         _lastToolMeta = getToolMeta(toolNum) ?? null;
       }
@@ -1615,6 +1620,41 @@ function _pfMachine(init: ViewerInit): PartFrameMachine {
   }));
 }
 
+/** The DISPLAYED tool dims — ONE formula for the marker and the collision
+ *  body (they must agree: the body used to be shorter than the drawn tool).
+ *  Design default: absent dims draw a generic 6×60 placeholder — a position
+ *  cue, not a claim about the real tool. `||`, not `??`: a 0 length means
+ *  "unknown", and a 0-length marker collapses to the 40 mm minimum — 15 mm
+ *  short of the raised spindle nose, leaving the tool floating detached.
+ *  Visual length = raw + the shank's sink into the holder, floored. */
+function _toolVisual(diamRaw: number | null | undefined, lenRaw: number | null | undefined): { diam: number; len: number } {
+  const diam = diamRaw || 6.0 * _unitScale;
+  const rawLen = lenRaw || 60.0 * _unitScale;
+  return { diam, len: Math.max(40 * _unitScale, rawLen + 20 * _unitScale) };
+}
+
+/** Per-program-tool dims for the sweep (schema 8): every tool a tlo_events
+ *  row names that has a parse-time table row. Absent channel → undefined
+ *  (the sweep keeps the loaded tool / stub body throughout, and the bar
+ *  says so). */
+function _programToolDims(): Record<number, { diam: number; len: number }> | undefined {
+  const g = viewerGcode.value;
+  if (!g?.tloEvents?.length || !g.parse_tlos?.length) return undefined;
+  const out: Record<number, { diam: number; len: number }> = {};
+  for (const ev of g.tloEvents) {
+    if (ev.tool == null || ev.tool <= 0 || out[ev.tool]) continue;
+    const d = toolDimsFor(ev.tool, g.parse_tlos, _unitScale, { diam: null, len: null });
+    if (d.known) out[ev.tool] = _toolVisual(d.diam, d.len);
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+const programTools = computed<Array<{ num: number; diam: number }> | null>(() => {
+  const dims = _programToolDims();
+  if (!dims) return null;
+  return Object.entries(dims).map(([n, d]) => ({ num: Number(n), diam: d.diam }))
+    .sort((a, b) => a.num - b.num);
+});
+
 function _pfWcs(): PartFrameWcs {
   // tool: live TCP offset — makes the transform joint-space-exact (G43).
   // The part-frame tip peel and the collision worker's tool-body shift
@@ -1765,13 +1805,7 @@ function runCollisionCheck(trackOverride?: ScrubTrack) {
     // build (min length + shank sink into the holder). Using the raw tool
     // length made the collision body SHORTER than the tool on screen: the
     // model visibly touched while the sweep saw clearance.
-    tool: (() => {
-      const rawLen = _pv.toolLen || 60 * _unitScale;
-      return {
-        diam: _pv.toolDiam || 6 * _unitScale,
-        len: Math.max(40 * _unitScale, rawLen + 20 * _unitScale),
-      };
-    })(),
+    tool: _toolVisual(_pv.toolDiam, _pv.toolLen),
     track: trackCopy,
     wcs: _pfWcs(),
     options: {
@@ -1783,6 +1817,11 @@ function runCollisionCheck(trackOverride?: ScrubTrack) {
         ? epochTermsFor(track.wcsEvents, _pfWcs(), _pv.wcsTable ?? undefined)
         : undefined,
       tloEvents: track.tloEvents,
+      // Per-program-tool bodies (schema 8): the sweep swaps the tool
+      // cylinder to each segment's tool; the live tool is the pre-first-M6
+      // fallback.
+      toolDims: _programToolDims(),
+      liveTool: _pv.toolNum,
     },
     }, transfer);
   } catch (err) {
@@ -2019,18 +2058,20 @@ let pendingState: any = null;
 // through the exact same compose path as live motion — no second kinematics
 // implementation. null entries (UVW/unknown letters) keep the live joint.
 let _scrubJoints: (number | null)[] | null = null;
-// The scrub sample's tool offset (schema 8): applyState phase 3 subtracts
-// THIS while a scrub pose is shown (the sample's joints were lifted with
-// it). null = live.
+// The scrub sample's tool offset + tool number (schema 8): applyState phase
+// 3 subtracts THIS offset while a scrub pose is shown (the sample's joints
+// were lifted with it), and the marker wears the sample's tool. null = live.
 let _scrubTlo: number[] | null = null;
+let _scrubTool: number | null = null;
 let _scrubLineNo: number | null = null;
 // Last full status applied — requeued when the scrub pose changes so the
 // model re-poses immediately instead of waiting for the next status tick.
 let _lastState: ViewerState | null = null;
 
-function onScrubPose(joints: (number | null)[] | null, line: number | null, cum: number | null, trk: ScrubTrack | null, displayLine: number | null = null, plane: number[] | null = null, tlo: number[] | null = null, _tool: number | null = null) {
+function onScrubPose(joints: (number | null)[] | null, line: number | null, cum: number | null, trk: ScrubTrack | null, displayLine: number | null = null, plane: number[] | null = null, tlo: number[] | null = null, tool: number | null = null) {
   _scrubJoints = joints;
   _scrubTlo = joints ? tlo : null;
+  _scrubTool = joints ? tool : null;
   _scrubPlane = plane;
   _twpRefresh();
   // RAW sample line: keys the clash tint and the 3D path highlight, whose
@@ -2809,7 +2850,7 @@ defineExpose({
     <ScrubBar
       :collisionBusy="collisionBusy"
       :collisionProgress="collisionProgress"
-      :sweepTool="{ num: _pv.toolNum, diam: _pv.toolDiam }"
+      :sweepTool="{ num: _pv.toolNum, diam: _pv.toolDiam, programTools }"
       :collisionResult="collisionResult"
       :collisionTrack="collisionTrack"
       @pose="onScrubPose"

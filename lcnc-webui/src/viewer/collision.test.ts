@@ -652,3 +652,33 @@ describe("per-segment tool offset (schema 8)", () => {
     expect(pairsOn(4)).toEqual(["tool"]);
   });
 });
+
+describe("per-segment tool dims (schema 8)", () => {
+  // A pillar the FAT tool (Ø30) hits and the THIN one (Ø6) clears: the
+  // track passes the pillar twice — under T1 (thin, live) and, after an
+  // M6 row, under T2 (fat). Only the fat pass reports.
+  const PILLAR: CollisionBody[] = [
+    // pillar top at +5 (box centred at origin), offset 12 in X on the table
+    { id: "pillar", group: "table", positions: boxPositions(10), translate: [12, 0, 0] },
+    { id: "tool", group: "head", positions: toolCylinderPositions(6, 20) },
+  ];
+  it("swaps the tool body to the segment's tool", () => {
+    const m = buildCollisionModel(PLUNGE, PILLAR);
+    // Tip at head origin z=50+Z: plunge at X=0 to Z=−45 → tip at +5 (pillar
+    // top height) but 12 mm off in X: thin tool (r 3) clears, fat (r 15) hits.
+    const t = track([[0, 0, 0], [0, 0, -45], [0, 0, 0], [0, 0, -45]], undefined, [1, 2, 3, 4]);
+    // The event governs the segment ENDING at vertex 3 (line 4) only — the
+    // retract (line 3) still runs under the thin tool.
+    t.tlo = new Uint8Array([0xff, 0xff, 0xff, 0]);
+    t.tloEvents = [{ seq: 0, xyz: [0, 0, 0], tool: 2 }];
+    const r = sweepCollisions(m, t, WCS0, {
+      margin: 0.5, tloEvents: t.tloEvents, liveTool: 1,
+      toolDims: { 1: { diam: 6, len: 20 }, 2: { diam: 30, len: 20 } },
+    });
+    const lines = [...new Set(r.hits.map(h => h.line))].sort();
+    expect(lines).toEqual([4]);
+    // Without dims the base (thin) body is used throughout: nothing reports.
+    const r2 = sweepCollisions(m, t, WCS0, { margin: 0.5, tloEvents: t.tloEvents, liveTool: 1 });
+    expect(r2.hits).toEqual([]);
+  });
+});

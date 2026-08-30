@@ -77,7 +77,7 @@ export function toolForIndex(
  *  UI can say "stub" honestly. len = |zoffset| (status_runtime's rule). */
 export function toolDimsFor(
   tool: number | null,
-  parseTlos: readonly (readonly number[])[] | undefined,
+  parseTlos: readonly (readonly (number | undefined)[])[] | undefined,
   unitScale: number,
   live: { diam: number | null | undefined; len: number | null | undefined },
 ): { diam: number; len: number; known: boolean } {

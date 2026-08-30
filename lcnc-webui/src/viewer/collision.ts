@@ -39,7 +39,7 @@ import * as THREE from "three";
 import { MeshBVH } from "three-mesh-bvh";
 import { normalizeKinematics, type KinRuntime } from "./kinematics";
 import { liftToJoints, tipWcs, wcsTerms, type PartFrameWcs, type WcsTerms } from "./partFrame";
-import { tloForIndex, type TloEvent } from "./tloEvents";
+import { tloForIndex, toolForIndex, type TloEvent } from "./tloEvents";
 import { kinsForSegment, makeKins, worldModeForSpec, type KinsModel, type KinsSpec } from "./kins";
 /** The subset of the scrub track the sweep consumes. The worker request
  *  ships a COPIED projection of the real ScrubTrack (typed arrays only —
@@ -144,6 +144,14 @@ export interface CollisionOptions {
   /** Per-segment TLO/tool events (schema 8), indexed by the track's `tlo`
    *  bytes. Absent = the live `wcs.tool` governs every segment. */
   tloEvents?: TloEvent[];
+  /** Dims (machine units, the DISPLAYED marker formula) per PROGRAM tool
+   *  number: the tool body is swapped to the segment's tool as the sweep
+   *  walks the track (schema 8). Tools without an entry keep the base body
+   *  (the loaded tool / stub the caller built). */
+  toolDims?: Record<number, { diam: number; len: number }>;
+  /** The loaded tool number — what a segment before the first M6 row
+   *  (or a payload without the channel) runs with. */
+  liveTool?: number | null;
 }
 
 export interface CollisionResult {
@@ -480,6 +488,40 @@ export function sweepCollisions(
   // a per-segment offset.
   const toolBodyIdx = bodies.findIndex(b => b.id === "tool");
   const _tloMat = new THREE.Matrix4();
+  // Per-program-tool body VARIANTS (schema 8): the segment's tool number
+  // (toolForIndex) selects the cylinder the tool body wears. Only the ONE
+  // tool BuiltBody's geometry/BVH/sphere swap — pairs, pair DOFs and the
+  // cutting flags are properties of the body's identity and stay invariant
+  // (pushing K tool bodies would mint K× pairs and misattribute hits).
+  type ToolVariant = { geom: THREE.BufferGeometry; bvh: MeshBVH; center: THREE.Vector3; radius: number };
+  const toolVariants = new Map<number, ToolVariant>();
+  let baseVariant: ToolVariant | null = null;
+  let appliedTool: number | null | undefined = undefined;
+  if (toolBodyIdx >= 0 && opts.toolDims && opts.tloEvents?.length) {
+    const tb = bodies[toolBodyIdx]!;
+    baseVariant = { geom: tb.geom, bvh: tb.bvh, center: tb.center, radius: tb.radius };
+    for (const ev of opts.tloEvents) {
+      const tn = ev.tool;
+      if (tn == null || toolVariants.has(tn)) continue;
+      const dims = opts.toolDims[tn];
+      if (!dims) continue;
+      const geom = new THREE.BufferGeometry();
+      geom.setAttribute("position", new THREE.BufferAttribute(toolCylinderPositions(dims.diam, dims.len), 3));
+      const bvh = new MeshBVH(geom);
+      (geom as any).boundsTree = bvh;
+      geom.computeBoundingSphere();
+      toolVariants.set(tn, { geom, bvh, center: geom.boundingSphere!.center.clone(), radius: geom.boundingSphere!.radius });
+    }
+  }
+  const applyTool = (tn: number | null) => {
+    if (!baseVariant || tn === appliedTool) return;
+    appliedTool = tn;
+    const v = (tn != null ? toolVariants.get(tn) : undefined) ?? baseVariant;
+    const tb = bodies[toolBodyIdx]!;
+    tb.geom = v.geom; tb.bvh = v.bvh; tb.center = v.center; tb.radius = v.radius;
+  };
+  const toolFor = (i: number): number | null =>
+    toolForIndex(track.tlo?.[i], opts.tloEvents, opts.liveTool);
   const machineVals: number[] = [0, 0, 0, 0, 0, 0];
   // Chunk-start machine coords. machineVals is shared scratch that the second
   // interpPose overwrites, so the bulge bound needs its own copy of the first
@@ -557,7 +599,8 @@ export function sweepCollisions(
   const termFor = (i: number): WcsTerms =>
     (track.wcs && opts.epochTerms?.[track.wcs[i] ?? 0]) ? opts.epochTerms[track.wcs[i] ?? 0]! : o;
 
-  const poseAt = (px: number, py: number, pz: number, pa: number, pb: number, pc: number, model: KinsModel = identityKins, oSeg: WcsTerms = o, tloSeg: readonly number[] = liveTlo) => {
+  const poseAt = (px: number, py: number, pz: number, pa: number, pb: number, pc: number, model: KinsModel = identityKins, oSeg: WcsTerms = o, tloSeg: readonly number[] = liveTlo, toolSeg: number | null = null) => {
+    applyTool(toolSeg);
     liftToJoints(px, py, pz, pa, pb, pc, oSeg, tloSeg, machineVals);
     model.inverse(machineVals, kinsOut);
     for (let ji = 0; ji < kinsOut.length; ji++) {
@@ -603,7 +646,7 @@ export function sweepCollisions(
   const staticContacts: CollisionResult["staticContacts"] = [];
   poseAt(track.pos[0]!, track.pos[1]!, track.pos[2]!,
          track.abc[0]!, track.abc[1]!, track.abc[2]!, vertModel?.[0] ?? identityKins,
-         termFor(0), tloFor(0));
+         termFor(0), tloFor(0), toolFor(0));
   for (let pi = 0; pi < pairs.length; pi++) {
     const [ai, bi] = pairs[pi]!;
     const dist = pairDistance(bodies[ai]!, bodies[bi]!, opts.margin);
@@ -677,6 +720,7 @@ export function sweepCollisions(
       vertModel?.[lo] ?? identityKins,
       termFor(lo),
       tloFor(lo),
+      toolFor(lo),
     );
     const [ai, bi] = pairs[pi]!;
     return pairDistance(bodies[ai]!, bodies[bi]!, opts.margin);
@@ -710,6 +754,7 @@ export function sweepCollisions(
       vertModel?.[i] ?? identityKins,
       termFor(i),
       tloFor(i),
+      toolFor(i),
     );
   };
 
@@ -971,6 +1016,10 @@ export function sweepCollisions(
     .sort((x, y) => x.cum - y.cum)
     .slice(0, MAX_HITS)
     .map(({ pi: _pi, samples: _s, ...rest }) => rest);
+  // Hand the model back wearing its BASE tool body: a caller that reuses
+  // the model (tests, a future cached build) must not inherit the last
+  // segment's program tool.
+  applyTool(null);
   return {
     hits,
     staticContacts,
