@@ -22,7 +22,8 @@ import { lineDistances, tipWcs, wcsTerms, type PartFrameMachine, type PartFrameW
 import { MACHINE_PALETTE, defaultPartHex } from "./viewer/palette";
 import { toolDimsFor } from "./viewer/tloEvents";
 import { boundsOf, epochTermsFor, previewWcsStaleFor, rebasePositions, usedWcsRowsKey, type WcsTableRow } from "./viewer/wcsEpochs";
-import { specFromWire } from "./viewer/kins";
+import { specFromWire, type KinsSpec } from "./viewer/kins";
+import { activeFixturePose } from "./viewer/activeFixtureFrame";
 import { displayDecision } from "./viewer/displayPipeline";
 import { trackHighlightRange } from "./trackHighlight";
 import type { CollisionBody, CollisionResult } from "./viewer/collision";
@@ -98,6 +99,20 @@ type ViewerState = {
   current_vel?: number | null;
   spindle_speed?: number | null;
   spindle_direction?: number | null;
+
+  // Kinematics-mode inputs for the active-fixture triad (2026-08-30): the
+  // fixture's numbers are table-frame on identity/TCP but TOOL-frame under
+  // kins 2 with a reserved fixture (G59..G59.3) active. All ride the same
+  // status `data` object _twpRefresh already reads untyped.
+  kins_type?: number | null;
+  g5x_index?: number | null;
+  kins_pre_rot?: number | null;
+  kins_primary_angle?: number | null;
+  kins_secondary_angle?: number | null;
+  rotary_abc?: number[] | null;
+  twp_defined?: boolean | null;
+  /** The datum the plane rides on (the remap's G54), TABLE frame. */
+  twp_datum?: number[] | null;
 };
 
 
@@ -260,6 +275,19 @@ let holderMesh: THREE.Mesh | null = null;
 let _currentToolNum: number | null = null;
 let _lastToolMeta: ToolMeta | null = null;
 let workAxes: THREE.Group | null = null;
+// The active-fixture triad's OWN group under _workGrp (table frame). It used
+// to hang under workRotGroup ← workOrigin, i.e. at the raw fixture numbers —
+// wrong under TOOL kinematics with G59 active (TOOL-frame numbers drawn as
+// table coordinates: "the work origin hangs in space"). workOrigin itself
+// stays at the raw numbers on purpose: the toolpath is right there by
+// cancellation (partFrame peels the same offset). See activeFixtureFrame.ts.
+let workAxesGroup: THREE.Group | null = null;
+// The workpiece datum (the remap's G54, table frame) while a reserved
+// fixture is active — muted, shorter, so the operator still sees where the
+// part's zero is when the DRO is reading the plane fixture.
+let datumAxes: THREE.Group | null = null;
+// KinsSpec from viewer_init, for the live active-fixture pose (kins 2).
+let _liveKinsSpec: KinsSpec | undefined;
 // Surface map (probe heightmap) — owned by surfaceController.
 const surface = createSurfaceController();
 // Toolpath preview (feed/rapid/highlight lines, bounds box/labels/overflow) —
@@ -717,6 +745,7 @@ function switchProjection() {
 // calls this every tick, but pose math + re-render run only when the plane
 // values, kins type, or layer toggle actually changed.
 let _twpSig = "";
+const _fixM = new THREE.Matrix4(), _fixX = new THREE.Vector3(), _fixY = new THREE.Vector3(), _fixZ = new THREE.Vector3();
 const _twpZ = new THREE.Vector3();
 const _twpX = new THREE.Vector3();
 const _twpY = new THREE.Vector3();
@@ -914,6 +943,8 @@ function ensureCoreGroups(init: ViewerInit) {
   workOrigin = null;
   workRotGroup = null;
   workAxes = null;
+  workAxesGroup = null;
+  datumAxes = null;
   machineBoundsMesh = null;
   twpNormalArrow = null;
   machineMeshes = [];
@@ -992,7 +1023,25 @@ function ensureCoreGroups(init: ViewerInit) {
   workAxes.add(new THREE.ArrowHelper(new THREE.Vector3(0,1,0), new THREE.Vector3(), _al, AXIS_HEX.y, _ah, _aw));
   workAxes.add(new THREE.ArrowHelper(new THREE.Vector3(0,0,1), new THREE.Vector3(), _al, AXIS_HEX.z, _ah, _aw));
 
-  workRotGroup.add(workAxes);
+  // Posed per frame from activeFixturePose (NOT under workOrigin — see the
+  // declaration comment).
+  workAxesGroup = new THREE.Group();
+  workAxesGroup.add(workAxes);
+  _workGrp.add(workAxesGroup);
+
+  datumAxes = new THREE.Group();
+  const _dl = _al * 0.6;
+  for (const [dir, hex] of [[[1, 0, 0], AXIS_HEX.x], [[0, 1, 0], AXIS_HEX.y], [[0, 0, 1], AXIS_HEX.z]] as const) {
+    const ah = new THREE.ArrowHelper(new THREE.Vector3(...dir), new THREE.Vector3(), _dl, hex, _dl * 0.15, _dl * 0.08);
+    (ah.line.material as THREE.LineBasicMaterial).transparent = true;
+    (ah.line.material as THREE.LineBasicMaterial).opacity = 0.5;
+    (ah.cone.material as THREE.MeshBasicMaterial).transparent = true;
+    (ah.cone.material as THREE.MeshBasicMaterial).opacity = 0.5;
+    datumAxes.add(ah);
+  }
+  datumAxes.visible = false;
+  _workGrp.add(datumAxes);
+  _liveKinsSpec = specFromWire(init.kins);
 
   // ---- TWP plane (P3.4) — machine frame, hidden until a plane is defined ----
   {
@@ -1405,6 +1454,39 @@ function applyState(init: ViewerInit, st: ViewerState) {
   }
   if (workRotGroup) {
     workRotGroup.rotation.z = (st.rotation_xy ?? 0) * Math.PI / 180;
+  }
+  // The active-fixture TRIAD goes where the fixture is expressed: identity /
+  // TCP at the anchor above; under TOOL kins with a reserved fixture, through
+  // the plane frame (same compose as the overlay). Hidden — never guessed —
+  // when that frame is unknown. A scrub pose keeps the live fixture (the sim
+  // banner is the operator's cue there).
+  if (workAxesGroup) {
+    const trio = (typeof st.kins_pre_rot === "number" && typeof st.kins_primary_angle === "number"
+      && typeof st.kins_secondary_angle === "number")
+      ? [st.kins_pre_rot, st.kins_primary_angle, st.kins_secondary_angle] : null;
+    const pose = activeFixturePose({
+      g5x: st.g5x_offset, g92: st.g92_offset, rotationDeg: st.rotation_xy ?? 0,
+      kinsType: st.kins_type, g5xIndex: st.g5x_index, frame: trio,
+      a: st.rotary_abc?.[0] ?? 0, spec: _liveKinsSpec,
+    });
+    if (pose) {
+      workAxesGroup.position.set(pose.pos[0], pose.pos[1], pose.pos[2]);
+      _fixM.makeBasis(_fixX.set(...pose.x), _fixY.set(...pose.y), _fixZ.set(...pose.z));
+      workAxesGroup.quaternion.setFromRotationMatrix(_fixM);
+      workAxesGroup.visible = true;
+    } else {
+      workAxesGroup.visible = false;
+    }
+  }
+  // The workpiece datum (G54 as the remap holds it) while the DRO reads a
+  // reserved fixture — the "global touch-off coordinate system" the operator
+  // asked for. Same spot as the active triad otherwise, so it hides.
+  if (datumAxes) {
+    const d = st.twp_datum;
+    const idx = st.g5x_index == null ? 1 : Math.round(st.g5x_index);
+    const show = !!st.twp_defined && !!d && d.length >= 3 && idx !== 1;
+    if (show) datumAxes.position.set(d![0]!, d![1]!, d![2]!);
+    datumAxes.visible = show;
   }
 
   // ---- Tool visual: parametric profile (TIP stays at local z=0) ----
@@ -2214,8 +2296,8 @@ function animate() {
     _trackTarget.set(0, 0, 0);
     if (trackingMode === "tool" && toolMarker) {
       toolMarker.getWorldPosition(_trackTarget);
-    } else if (trackingMode === "wcs" && workOrigin) {
-      workOrigin.getWorldPosition(_trackTarget);
+    } else if (trackingMode === "wcs" && (workAxesGroup ?? workOrigin)) {
+      (workAxesGroup ?? workOrigin)!.getWorldPosition(_trackTarget);
     }
     const delta = _trackTarget.sub(controls.target);
     if (delta.lengthSq() > 1e-12) {

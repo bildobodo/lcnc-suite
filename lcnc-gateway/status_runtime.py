@@ -87,6 +87,17 @@ _TWP_PLANE_FIELDS = ("twp_ox", "twp_oy", "twp_oz",
                      "twp_xx", "twp_xy", "twp_xz")
 
 
+def assemble_twp_datum(reader_get) -> Optional[List[float]]:
+    """The WORKPIECE datum the plane is built on — the remap's saved work
+    offset (G54 at definition, or the last Plane-mode touch-off), published
+    by the helper as twp-o*-world, TABLE frame. The viewer draws it as the
+    G54 triad while a reserved fixture is active; None unless all three."""
+    vals = [reader_get(k) for k in _TWP_PLANE_FIELDS[:3]]
+    if any(v is None for v in vals):
+        return None
+    return [float(v) for v in vals]
+
+
 def assemble_twp_plane(reader_get) -> Optional[List[float]]:
     """The live TWP plane [ox,oy,oz, zx,zy,zz, xx,xy,xz] in the TABLE frame
     (origin already composed: work offset + plane-origin vector) from the
@@ -217,6 +228,9 @@ class StatusPayload:
     twp_defined: Optional[bool]
     twp_active: Optional[bool]
     twp_plane: Optional[List[float]]
+    # The datum the plane rides on (G54 as the remap holds it), TABLE frame —
+    # the helper's twp-o*-world pins. None = not sampled.
+    twp_datum: Optional[List[float]]
     # Machine-frame A (deg) the HEAD was last oriented at (G53.x). The plane
     # is stored table-relative and rides the workpiece, so it cannot go stale;
     # the head solve can. Raw — the remap's "no orient yet" sentinel (-1e9)
@@ -330,14 +344,17 @@ def policy_state_from_payload(p: "StatusPayload", armed: bool,
         # Touch-off gates (2026-08-30): the kins mode × active fixture rule.
         # kins_type is the raw switchkins pin (float) — rounded here, once.
         kins_switchable=bool(kins_switchable),
-        kins_type=(None if p.kins_type is None else int(round(float(p.kins_type)))),
-        g5x_index=(None if p.g5x_index is None else int(p.g5x_index)),
-        twp_active=(p.twp_active is True),
+        # getattr: a partial payload (test doubles, an older envelope) reads as
+        # UNKNOWN — the closed gate — never as identity/G54.
+        kins_type=(None if (_kt := getattr(p, "kins_type", None)) is None
+                   else int(round(float(_kt)))),
+        g5x_index=(None if (_gi := getattr(p, "g5x_index", None)) is None else int(_gi)),
+        twp_active=(getattr(p, "twp_active", None) is True),
         # Table A at the datum within the provenance window; an absent
         # canonical position reads as NOT at zero (closed), like the rotary
         # rule above.
-        a_at_zero=(p.rotary_abc is not None and len(p.rotary_abc) > 0
-                   and abs(float(p.rotary_abc[0])) <= PROV_A_EPS),
+        a_at_zero=((_ra := getattr(p, "rotary_abc", None)) is not None and len(_ra) > 0
+                   and abs(float(_ra[0])) <= PROV_A_EPS),
     )
 
 
@@ -914,6 +931,7 @@ class StatusRuntime:
             twp_active=(None if (_twpa := reader_get("twp_active")) is None
                         else bool(_twpa)),
             twp_plane=assemble_twp_plane(reader_get),
+            twp_datum=assemble_twp_datum(reader_get),
             twp_pose_a=reader_get("twp_pose_a"),
             spindle_direction=spindle_direction,
             active_file=active_file,

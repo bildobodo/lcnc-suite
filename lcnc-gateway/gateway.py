@@ -1572,6 +1572,13 @@ async def _status_poller():
                 _bulk.clear_preview()
                 _bulk.reparse_pending = False
 
+            # A reserved TWP fixture (G59..G59.3) active on identity kins at
+            # boot — the previous session shut down (or aborted) in Plane
+            # mode. The var file persisted #5220=6, so the DRO reads the
+            # plane frame's TOOL-frame numbers on a machine that is not in
+            # that frame. Banner now, restore G54 once the machine is ready.
+            _reserved_fixture_heal_tick(st)
+
             # Safety-trip detection via the servo-thread HAL latch level
             # (webui-hb-latch.fault-out, issue #34). The latch is sticky and
             # owned by HAL — independent of both this poller and the watchdog
@@ -3976,6 +3983,84 @@ _config_warning_reason = ""
 # kins declared without INI-HALCMD pivot params, rotary axes on a model
 # that articulates none. Rides the same config_warning banner; "" = clean.
 _viewer_config_warning = ""
+# Reserved-fixture-at-boot heal (2026-08-30): the previous session left
+# G59..G59.3 active (Plane mode shut down / aborted) and the var file kept
+# #5220. Evaluated ONCE, on the first status carrying a fixture index; the
+# heal (a bare `G54`, a pure modal — no motion) runs when `ready` first
+# opens. Rides the config_warning banner until then; "" = clean.
+_reserved_fixture_warning = ""
+_reserved_heal_checked = False
+_reserved_heal_pending: Optional[int] = None
+_reserved_heal_inflight = False
+_reserved_heal_last_try = 0.0
+
+
+def _reserved_fixture_heal_tick(st) -> None:
+    """Status-loop hook: detect once, heal when the machine can take an MDI."""
+    global _reserved_fixture_warning, _reserved_heal_checked, _reserved_heal_pending
+    if not _reserved_heal_checked:
+        if st.g5x_index is None:
+            return
+        _reserved_heal_checked = True
+        try:
+            idx = int(st.g5x_index)
+        except (TypeError, ValueError):
+            return
+        if idx in (6, 7, 8, 9) and not st.twp_active and _kins_is_switchable():
+            name = _WCS_NAMES[idx - 1] if 0 < idx <= len(_WCS_NAMES) else f"G5x[{idx}]"
+            _reserved_heal_pending = idx
+            _reserved_fixture_warning = (
+                f"{name} (a TWP scratch row) was active at the last shutdown — "
+                f"the DRO reads a dead plane frame; restoring G54 once the machine is homed")
+            _trace.emit("twp.reserved_fixture_on_boot", level="warn", index=idx)
+        return
+    if _reserved_heal_pending is None or _reserved_heal_inflight:
+        return
+    if st.twp_active:
+        # An orient happened first — the row is the live plane's now.
+        _trace.emit("twp.reserved_fixture_heal_superseded", level="info",
+                    index=_reserved_heal_pending)
+        _reserved_heal_pending = None
+        _reserved_fixture_warning = ""
+        return
+    if st.g5x_index is not None and int(st.g5x_index) not in (6, 7, 8, 9):
+        # The operator (or a program) selected a fixture already.
+        _trace.emit("twp.reserved_fixture_heal_superseded", level="info",
+                    index=_reserved_heal_pending, now=int(st.g5x_index))
+        _reserved_heal_pending = None
+        _reserved_fixture_warning = ""
+        return
+    if not (st.permissions or {}).get("ready"):
+        return
+    if time.monotonic() - _reserved_heal_last_try < 5.0:
+        return
+    try:
+        asyncio.get_running_loop().create_task(_reserved_fixture_heal())
+    except RuntimeError as exc:  # no loop — should not happen in the status loop
+        _trace.emit("twp.reserved_fixture_heal_failed", level="warn", error=repr(exc))
+
+
+async def _reserved_fixture_heal() -> None:
+    global _reserved_fixture_warning, _reserved_heal_pending, _reserved_heal_inflight
+    global _reserved_heal_last_try
+    _reserved_heal_inflight = True
+    _reserved_heal_last_try = time.monotonic()
+    try:
+        if reject_if_auto_running():
+            return
+        await set_mode(linuxcnc.MODE_MDI)
+        rc = await _cmd_blocking(CMD.mdi, "G54", wait=5)
+        if _cmd_rc_failed(rc):
+            _trace.emit("twp.reserved_fixture_heal_failed", level="warn",
+                        index=_reserved_heal_pending, rc=rc)
+            return
+        _trace.emit("twp.reserved_fixture_healed", level="info", index=_reserved_heal_pending)
+        _reserved_heal_pending = None
+        _reserved_fixture_warning = ""
+    except Exception as exc:  # noqa: BLE001 - a failed heal is loud, not fatal
+        _trace.emit("twp.reserved_fixture_heal_failed", level="warn", error=repr(exc))
+    finally:
+        _reserved_heal_inflight = False
 
 
 def _set_units_fallback(active: bool, reason: str = "") -> None:
@@ -5932,11 +6017,13 @@ async def ws_endpoint(ws: WebSocket):
                         config_warning=(
                             {
                                 "reason": (_config_warning_reason or _units_fallback_reason
-                                           or _viewer_config_warning),
+                                           or _viewer_config_warning
+                                           or _reserved_fixture_warning),
                                 "units": _units_fallback_active,
                             }
                             if (_units_fallback_active or _config_warning_active
-                                or _viewer_config_warning) else None
+                                or _viewer_config_warning
+                                or _reserved_fixture_warning) else None
                         ),
                         probe_results=client.probe_results,
                         rfl_status=_rfl_status,
