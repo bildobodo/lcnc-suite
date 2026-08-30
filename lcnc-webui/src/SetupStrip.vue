@@ -42,7 +42,6 @@ const emit = defineEmits<{
   (e: "goToG30"): void;
   (e: "goToHome"): void;
   (e: "goToZero"): void;
-  (e: "twpReorient"): void;
 }>();
 
 const { entries } = useAxes(computed(() => props.axes));
@@ -103,12 +102,8 @@ const kinsChip = computed(() => {
   };
 });
 
-// Re-orient is offered only where it means something: a plane must be
-// DEFINED (there is nothing to re-solve to otherwise) and the machine must be
-// in TOOL kins, which is the only state whose head solve can be stale. Both
-// come from HAL, so a machine without the TWP stack never sees the button.
-const canReorient = computed(() =>
-  props.kinsType === 2 && props.twpDefined === true);
+// The Orient button lives in the Jog strip next to the jog-frame selector
+// (2026-08-30: "so you actually find it"); this strip keeps the kins chip.
 
 function zeroAll() {
   emit("setAll", new Array(props.axes.length).fill(0));
@@ -139,10 +134,6 @@ function zeroAll() {
         <span class="label-muted">WCS</span>
         <span v-if="kinsChip" class="val-status kinsChip" :class="kinsChip.cls"
               :title="kinsChip.title">{{ kinsChip.text }}</span>
-        <MachineBtn v-if="canReorient" type="twpReorient" @click="emit('twpReorient')"
-                    :title="twpStale
-                      ? 'Re-solve the head at the current table pose — the tool becomes normal to the plane again. The rotaries MOVE.'
-                      : 'Re-solve the head at the current table pose. The orientation is current, so this should move very little.'">Re-orient</MachineBtn>
         <div class="strip-radio-options">
           <label v-for="g in g5xOptions" :key="g" class="radio-label">
             <MachineRadio gate="touchoff" name="wcs" :value="g" :modelValue="g5xLabel" @update:modelValue="(v: string | number | undefined) => { if (v != null) emit('setG5x', String(v)) }" />

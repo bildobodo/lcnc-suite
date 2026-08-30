@@ -2,7 +2,7 @@
 import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, provide, reactive, ref, watch } from "vue";
 import { applyClientOverlay, PERMISSIONS_KEY, FIRE_KEY, type Permissions } from "./permissions";
 import { simMode } from "./simMode";
-import { twpPoseStale } from "./twpPose";
+import { twpPoseOriented, twpPoseStale } from "./twpPose";
 import { runLineState, subExecState, resolveCurrentLine } from "./trackHighlight";
 import { clearSubfileCache } from "./lcncApi";
 import { mainLinesTrusted, type ScrubTrack } from "./viewer/scrubTrack";
@@ -569,6 +569,10 @@ const liveKinsType = computed<number | null>(() => {
 const twpStale = computed(() =>
   twpPoseStale(st.value.twp_pose_a, st.value.rotary_abc?.[0], st.value.twp_defined),
 );
+// A head solve exists (G53.x / Orient ran this session): the pose stamp is
+// above the remap's "no orient yet" sentinel. Gates the Plane jog frame —
+// a bare M430 before any orient jogs on whatever the kins pins last held.
+const twpOriented = computed(() => twpPoseOriented(st.value.twp_pose_a, st.value.twp_defined));
 // Jog-frame selector (JogStrip): the switch is an MDI remap — M428 restores
 // identity, M429 enters TCP (world XYZ = the table-riding work frame: jog A
 // and the tool tip stays on the workpiece, the kins re-solving XYZ — the
@@ -2007,7 +2011,9 @@ watch(viewerGcode, (newGcode) => {
         :kinsType="liveKinsType"
         :twpDefined="st.twp_defined ?? null"
         :twpStale="twpStale"
+        :twpOriented="twpOriented"
         @setKinsMode="setKinsMode"
+        @twpOrient="twpReorient"
         :jogDisabled="!permissions.jog"
         :taskMode="taskMode"
         @update:jogVel="jogVel = $event"
@@ -2030,7 +2036,6 @@ watch(viewerGcode, (newGcode) => {
         :twpActive="st.twp_active ?? null"
         :twpDefined="st.twp_defined ?? null"
         :twpStale="twpStale"
-        @twpReorient="twpReorient"
         @homeAll="homeAll"
         @unhomeAll="unhomeAll"
         @homeAxis="homeAxis"

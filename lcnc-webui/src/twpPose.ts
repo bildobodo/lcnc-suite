@@ -39,3 +39,17 @@ export function twpPoseStale(
   if (poseA <= TWP_POSE_NONE_BELOW) return false;
   return Math.abs(liveA - poseA) > TWP_POSE_EPS_DEG;
 }
+
+/**
+ * True once the remap has published a real head-solve pose (G53.x / Orient
+ * ran and stamped `twp_pose_a`) for a DEFINED plane. The Plane jog frame is
+ * offered only then. Unknown (no plane, no data, sentinel) is false.
+ */
+export function twpPoseOriented(
+  poseA: number | null | undefined,
+  defined: boolean | null | undefined,
+): boolean {
+  if (!defined) return false;
+  if (poseA == null || !Number.isFinite(poseA)) return false;
+  return poseA > TWP_POSE_NONE_BELOW;
+}

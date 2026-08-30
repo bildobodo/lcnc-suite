@@ -38,6 +38,10 @@ const props = defineProps<{
   // Head solve stale (table moved since the last orient): the Plane frame's
   // Z is then NOT the face normal — say so where the operator picks it.
   twpStale?: boolean;
+  // A head solve exists this session (G53.x / Orient ran): the Plane frame
+  // is only OFFERED then — a bare M430 before any orient jogs on whatever
+  // frame the kins pins last held (the stale-pin trap).
+  twpOriented?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -48,6 +52,7 @@ const emit = defineEmits<{
   (e: "resetAngularJogVel"): void;
   (e: "modeChange", mode: number): void;
   (e: "setKinsMode", type: number): void;
+  (e: "twpOrient"): void;
 }>();
 
 const can = usePermissions();
@@ -398,16 +403,9 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
 
         <div class="sep modeColSep"></div>
 
-        <div class="modeCol stack-tight strip-radio-group">
-          <span class="label-muted">Mode</span>
-          <div class="strip-radio-options">
-            <label class="radio-label"><MachineRadio gate="modeSelect" name="taskMode" :modelValue="taskMode" :value="TASK_MODE_MANUAL" @update:modelValue="emit('modeChange', TASK_MODE_MANUAL)" /> Manual</label>
-            <label class="radio-label"><MachineRadio gate="modeSelect" name="taskMode" :modelValue="taskMode" :value="TASK_MODE_MDI" @update:modelValue="emit('modeChange', TASK_MODE_MDI)" /> MDI</label>
-            <label class="radio-label"><MachineRadio gate="modeSelect" name="taskMode" :modelValue="taskMode" :value="TASK_MODE_AUTO" @update:modelValue="emit('modeChange', TASK_MODE_AUTO)" /> Auto</label>
-          </div>
-        </div>
-
-        <!-- Jog-frame selector: switchable-kins machines only (Heidenhain
+        <!-- Mode + jog frame share ONE column (space): task mode radios, then
+             the jog-frame radios and the Orient button beneath them.
+             Jog-frame selector: switchable-kins machines only (Heidenhain
              3D-ROT / Siemens WCS-MCS convention — the jog frame is an
              explicit, indicated operator choice). The radio reflects the
              ACTUAL kins type: an earlier version folded TCP into "Machine",
@@ -420,21 +418,49 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
              Plane = TOOL kins (M430): X/Y/Z jog in the tilted plane, Z
                along the tool axis AS OF THE LAST ORIENT — the frame is
                frozen in the kins pins at G53.x, so after a table move it
-               is stale until Re-orient. Offered only with a plane defined:
-               a bare M430 reuses whatever pins the last session left. -->
-        <template v-if="kinsType != null">
-          <div class="sep modeColSep"></div>
-          <div class="frameCol stack-tight strip-radio-group">
-            <span class="label-muted">Jog frame</span>
+               is stale until Orient. Always VISIBLE on a TWP machine (so
+               the operator learns it exists), ENABLED only once a head
+               solve exists: a bare M430 reuses whatever pins the last
+               session left. -->
+        <div class="modeCol stack-controls strip-radio-col">
+          <div class="strip-radio-group stack-tight">
+            <span class="label-muted">Mode</span>
             <div class="strip-radio-options">
-              <label class="radio-label" title="Identity kinematics — jog along machine axes"><MachineRadio gate="jogFrame" name="jogFrame" :modelValue="kinsType" :value="0" @update:modelValue="emit('setKinsMode', 0)" /> Machine</label>
-              <label class="radio-label" title="TCP kinematics — X/Y/Z are the work frame riding the table: jogging A keeps the tool tip on the workpiece (position only; the head orientation does not follow)"><MachineRadio gate="jogFrame" name="jogFrame" :modelValue="kinsType" :value="1" @update:modelValue="emit('setKinsMode', 1)" /> TCP</label>
-              <label v-if="twpDefined" class="radio-label" :class="{ 'val-status': true, warn: twpStale }" :title="twpStale
-                ? 'TOOL kinematics — the plane frame is from the LAST orient and the table has moved since: Z is NOT the face normal. Re-orient (Setup strip) to restore it.'
-                : 'TOOL kinematics — jog in the tilted work plane, Z along the tool axis as of the last orient (re-orient after moving the table)'"><MachineRadio gate="jogFrame" name="jogFrame" :modelValue="kinsType" :value="2" @update:modelValue="emit('setKinsMode', 2)" /> Plane{{ twpStale ? ' (stale)' : '' }}</label>
+              <label class="radio-label"><MachineRadio gate="modeSelect" name="taskMode" :modelValue="taskMode" :value="TASK_MODE_MANUAL" @update:modelValue="emit('modeChange', TASK_MODE_MANUAL)" /> Manual</label>
+              <label class="radio-label"><MachineRadio gate="modeSelect" name="taskMode" :modelValue="taskMode" :value="TASK_MODE_MDI" @update:modelValue="emit('modeChange', TASK_MODE_MDI)" /> MDI</label>
+              <label class="radio-label"><MachineRadio gate="modeSelect" name="taskMode" :modelValue="taskMode" :value="TASK_MODE_AUTO" @update:modelValue="emit('modeChange', TASK_MODE_AUTO)" /> Auto</label>
             </div>
           </div>
-        </template>
+          <template v-if="kinsType != null">
+            <div class="strip-radio-group stack-tight">
+              <span class="label-muted">Jog frame</span>
+              <div class="strip-radio-options">
+                <label class="radio-label" title="Identity kinematics — jog along machine axes"><MachineRadio gate="jogFrame" name="jogFrame" :modelValue="kinsType" :value="0" @update:modelValue="emit('setKinsMode', 0)" /> Machine</label>
+                <label class="radio-label" title="TCP kinematics — X/Y/Z are the work frame riding the table: jogging A keeps the tool tip on the workpiece (position only; the head orientation does not follow). Switching re-seeds the preview (a brief progress flash is expected)"><MachineRadio gate="jogFrame" name="jogFrame" :modelValue="kinsType" :value="1" @update:modelValue="emit('setKinsMode', 1)" /> TCP</label>
+                <label class="radio-label" :class="{ 'val-status': true, warn: twpStale, muted: !twpOriented }" :title="!twpOriented
+                  ? (twpDefined
+                    ? 'Plane defined but the head has not been oriented — press Orient (or G53.1) first. A bare M430 would jog on whatever frame the kins pins last held.'
+                    : 'No tilted work plane defined (G68.2 / G68.3) — nothing to jog in yet')
+                  : twpStale
+                    ? 'TOOL kinematics — the plane frame is from the LAST orient and the table has moved since: Z is NOT the face normal. Press Orient to restore it.'
+                    : 'TOOL kinematics — jog in the tilted work plane, Z along the tool axis as of the last orient (Orient again after moving the table). Switching re-seeds the preview (a brief progress flash is expected)'"><MachineRadio gate="jogFrame" name="jogFrame" :modelValue="kinsType" :value="2" :disabled="!twpOriented" @update:modelValue="emit('setKinsMode', 2)" /> Plane{{ twpStale ? ' (stale)' : '' }}</label>
+              </div>
+            </div>
+            <!-- Orient lives next to the frame it enables (moved here from the
+                 Setup strip so it is found where it is needed). Works from a
+                 DEFINED plane (first orient) and re-orients after a table
+                 move; the o-sub demotes to identity and re-solves as one
+                 action. Hold-to-fire: the rotaries MOVE. -->
+            <MachineBtn type="twpReorient" :disabled="!twpDefined" @click="emit('twpOrient')"
+                        :title="!twpDefined
+                          ? 'Define a plane first (G68.2 / G68.3)'
+                          : twpStale
+                            ? 'Re-solve the head at the current table pose — the tool becomes normal to the plane again. The rotaries MOVE.'
+                            : twpOriented
+                              ? 'Re-solve the head at the current table pose. The orientation is current, so this should move very little.'
+                              : 'Orient the head into the defined plane (G53.1 equivalent). The rotaries MOVE.'">Orient</MachineBtn>
+          </template>
+        </div>
       </div>
     </div>
   </div>

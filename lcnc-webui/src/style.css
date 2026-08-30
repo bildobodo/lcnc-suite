@@ -1256,6 +1256,10 @@ label:has(input:disabled, select:disabled) {
     align-items: start;
   }
   .strip-radio-grid > .strip-radio-group { display: contents; }
+  /* A column that stacks several radio groups in landscape (JogStrip's
+     Mode + Jog frame) dissolves the same way so its groups become grid rows. */
+  .strip-radio-grid > .strip-radio-col,
+  .strip-radio-grid > .strip-radio-col > .strip-radio-group { display: contents; }
 }
 
 /* SafetyStrip stays visible when strip scrolls.
