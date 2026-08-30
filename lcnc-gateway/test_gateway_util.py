@@ -1013,6 +1013,52 @@ class TestInsertKinsRelabels(unittest.TestCase):
             self.assertAlmostEqual(tail[2][i] - tail[1][i],
                                    tail_end[i] - p0[i], places=9)
 
+    def test_carry_survives_a_g43_tlo_change_on_a_held_axis(self):
+        # The "G43-retires-carry" ledger edge, closed by pin: a G43 between
+        # carry establishment and a later held tuple changes the tuple's
+        # tlo, and the canon's lo-peel shifts its RAW z by the same delta
+        # so the WORLD pose is unchanged. _retire compares in world with
+        # the tuple's own tlo, so the held axis must stay carried — both
+        # ends corrected, zero length preserved — never spuriously retired.
+        p0 = self._seg9(50.0, 0.0, 100.0)
+        p0_g43 = self._seg9(50.0, 0.0, 80.0)      # same world z: 80 + 20
+        rapid = [(5, self._seg9(0, 0, 0), p0, None, 1),
+                 (8, p0, p0, None, 2),                    # held (tlo 0)
+                 (9, p0_g43, p0_g43, (0.0, 0.0, 20.0), 3)]  # held, after G43
+        frames = [(1,) + tuple(self.FRAME[k] for k in
+                               ("pre_rot", "primary_angle", "secondary_angle"))]
+        _f, r2, _e, _fr, _w, _b, unres, carry = \
+            gateway_util.insert_flip_relabels(
+                [], rapid, [(1, 2)], frames, [], self.TRSRN, unit_scale=1.0)
+        self.assertEqual(unres, 0)
+        held = [t for t in r2 if t[4] == 4][0]
+        after = [t for t in r2 if t[4] == 6][0]
+        for i in range(6):                        # still zero length
+            self.assertAlmostEqual(after[2][i], after[1][i], places=9)
+        for i in range(3):                        # same correction as before the G43
+            self.assertAlmostEqual(after[2][i] - p0_g43[i], held[2][i] - p0[i], places=9)
+        self.assertGreaterEqual(carry, 2)
+
+    def test_carry_retires_across_a_g43_when_the_axis_is_commanded(self):
+        # Same shape, but the post-G43 tuple really moves Z (raw delta is
+        # not the tlo delta): Z retires and takes its raw value.
+        p0 = self._seg9(50.0, 0.0, 100.0)
+        p0_g43 = self._seg9(50.0, 0.0, 80.0)
+        moved = self._seg9(50.0, 0.0, 70.0)       # world 90: commanded
+        rapid = [(5, self._seg9(0, 0, 0), p0, None, 1),
+                 (8, p0, p0, None, 2),
+                 (9, p0_g43, moved, (0.0, 0.0, 20.0), 3)]
+        frames = [(1,) + tuple(self.FRAME[k] for k in
+                               ("pre_rot", "primary_angle", "secondary_angle"))]
+        _f, r2, _e, _fr, _w, _b, unres, _c = \
+            gateway_util.insert_flip_relabels(
+                [], rapid, [(1, 2)], frames, [], self.TRSRN, unit_scale=1.0)
+        self.assertEqual(unres, 0)
+        after = [t for t in r2 if t[4] == 6][0]
+        self.assertAlmostEqual(after[2][2], moved[2], places=9)    # Z retired: raw
+        for i in (0, 1):                                            # X/Y still carried
+            self.assertAlmostEqual(after[2][i] - after[1][i], moved[i] - p0_g43[i], places=9)
+
     def test_a_recommand_to_the_same_number_does_not_resurrect_the_carry(self):
         # Retirement compares against the FIXED anchor, never a running
         # position: once X has left, a later block putting X back on the
@@ -2010,6 +2056,8 @@ class TestCanonFirstMoveRearm(unittest.TestCase):
         c._last_wcs_basis = None
         c.sub_events = []
         c.unknown_start = []
+        c.tlo_events = []
+        c.cur_tool = -1
         c.rotation_xy = 0.0
         c.xo = c.yo = c.zo = 0.0
         c.ao = c.bo = c.co = 0.0
@@ -2081,6 +2129,97 @@ class TestCanonFirstMoveRearm(unittest.TestCase):
         self.assertEqual(len(c.unknown_start), 2)
         self.assertEqual(c.unknown_start[1], c.rapid[2][4])
 
+
+
+class TestTloEvents(unittest.TestCase):
+    """Schema 8: the canon records every G43/G43.1/G49 and executed M6 on a
+    program line as a (seq, xo, yo, zo, tool) event — the per-segment TLO
+    source the client used to lack (one live wcs.tool for the whole track:
+    the fresh-boot 22.000 gate catch). Seq convention = the other channels."""
+
+    def _canon(self):
+        import gcode_canon
+        from unittest import mock
+        c, ns = TestCanonFirstMoveRearm._canon(self)
+        c.feedrate = 1.0
+        c.tools_used = set()
+        c.tool_changes = 0
+        c.tool_change_events = []
+        # change_tool defers to StatMixin (needs a live stat object) — bypass.
+        p = mock.patch.object(gcode_canon.StatMixin, "change_tool", lambda self, idx: None)
+        p.start()
+        self.addCleanup(p.stop)
+        return c, ns
+
+    def _prog(self, c, ns, lineno):
+        c.next_line(ns(sequence_number=lineno))
+
+    def test_g43_records_event_at_current_seq_governing_later_segments(self):
+        c, ns = self._canon()
+        self._prog(c, ns, 1)
+        c.straight_feed(1, 0, 0, 0, 0, 0, 0, 0, 0)          # seq 1
+        self._prog(c, ns, 2)
+        c.tool_offset(0, 0, 22, 0, 0, 0, 0, 0, 0)         # G43 H..
+        self._prog(c, ns, 3)
+        c.straight_feed(2, 0, 0, 0, 0, 0, 0, 0, 0)          # seq 2
+        self.assertEqual(c.tlo_events, [(1, 0, 0, 22, -1)])
+        # governs seq > 1 only: the first feed carries 0, the second 22
+        self.assertEqual(c.feed[0][4], (0.0, 0.0, 0.0))
+        self.assertEqual(c.feed[1][4], (0, 0, 22))
+        self.assertLess(c.tlo_events[0][0], c.feed[1][5])
+
+    def test_m6_then_g43_same_seq_last_row_wins(self):
+        c, ns = self._canon()
+        self._prog(c, ns, 3)
+        c.change_tool(3)
+        c.tool_offset(0, 0, 22, 0, 0, 0, 0, 0, 0)
+        self.assertEqual(c.tlo_events, [(0, 0.0, 0.0, 0.0, 3), (0, 0, 0, 22, 3)])
+        self.assertEqual(c.tlo_events[-1], (0, 0, 0, 22, 3))  # last wins
+
+    def test_g49_when_already_zero_is_recorded(self):
+        c, ns = self._canon()
+        self._prog(c, ns, 4)
+        c.tool_offset(0, 0, 0, 0, 0, 0, 0, 0, 0)
+        self.assertEqual(c.tlo_events, [(0, 0, 0, 0, -1)])
+
+    def test_m6_before_any_g43_carries_current_tlo_and_tool(self):
+        c, ns = self._canon()
+        self._prog(c, ns, 2)
+        c.tool_offset(0, 0, 10, 0, 0, 0, 0, 0, 0)
+        self._prog(c, ns, 5)
+        c.change_tool(7)
+        self.assertEqual(c.tlo_events[-1], (0, 0, 0, 10, 7))
+
+    def test_initcode_lines_never_record(self):
+        c, ns = self._canon()
+        self._prog(c, ns, 0)                                # initcodes
+        c.tool_offset(0, 0, 5, 0, 0, 0, 0, 0, 0)
+        c.change_tool(2)
+        self.assertEqual(c.tlo_events, [])
+        self.assertEqual((c.xo, c.yo, c.zo), (0, 0, 5))     # state still applied
+        self.assertEqual(c.cur_tool, 2)
+
+    def test_no_m6_leaves_tool_minus_one(self):
+        c, ns = self._canon()
+        self._prog(c, ns, 1)
+        c.tool_offset(0, 0, 1, 0, 0, 0, 0, 0, 0)
+        self.assertEqual(c.tlo_events[0][4], -1)
+
+    def test_post_g43_traverse_is_ustart_and_carries_the_new_tlo(self):
+        c, ns = self._canon()
+        self._prog(c, ns, 1)
+        c.straight_feed(1, 0, 0, 0, 0, 0, 0, 0, 0)          # seq 1
+        self._prog(c, ns, 2)
+        c.tool_offset(0, 0, 22, 0, 0, 0, 0, 0, 0)
+        # lo-peel identity: world (raw + tlo) is continuous across the G43 —
+        # the property the carry-retire closure rests on (pinned against the
+        # real interpreter by the canon fixture).
+        self.assertAlmostEqual(c.lo[2] + c.zo, c.feed[0][2][2] + 0.0, places=9)
+        self._prog(c, ns, 3)
+        c.straight_traverse(5, 0, 0, 0, 0, 0, 0, 0, 0)      # seq 2, ustart
+        self.assertEqual(c.unknown_start, [2])
+        self.assertEqual(c.rapid[0][3], (0, 0, 22))
+        self.assertEqual(c.rapid[0][1], c.rapid[0][2])      # zero-length
 
 class TestFindUnmarkedSubs(unittest.TestCase):
     """W3 P5 advisory: external o-calls whose sub files carry no WEBUI_SUB

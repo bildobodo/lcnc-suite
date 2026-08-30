@@ -106,6 +106,23 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         # start==end tuple; the segment INTO it is unknown-path (client
         # brk semantics, `rapid_ustart` on the wire).
         self.unknown_start = []
+        # TLO / tool EVENTS (schema 8 — the sixth run-time state input):
+        # [(seq, xo, yo, zo, tool)] in execution order, CANON units, recorded
+        # at every G43/G43.1/G49 (tool_offset) and every executed M6
+        # (change_tool) on a PROGRAM line. Same seq convention as the other
+        # channels — a row at seq N governs segments with seq > N; two rows
+        # at one seq (`m6 t3 g43 h3`) resolve last-wins. Rows carry FULL
+        # state (a G43 row the current tool, an M6 row the current tlo).
+        # `tool` is -1 until the first executed M6 (= inherit the loaded
+        # tool). Segments BEFORE the first row run under the machine's LIVE
+        # modal G43 state, which no parse can know — the client resolves
+        # "no row yet" to the live applied offset; the parse's fresh
+        # interpreter starting at 0 is NOT what the machine runs with, so an
+        # initcode-driven tool_offset (lineno 0) must never become "the
+        # program asserted 0" (the ustart lineno rule). Absent = the program
+        # never changes tool or offset.
+        self.tlo_events = []
+        self.cur_tool = -1
         self.xo = self.yo = self.zo = 0.0
         self.ao = self.bo = self.co = 0.0
         self.uo = self.vo = self.wo = 0.0
@@ -186,6 +203,9 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         self.tool_change_events.append((self.lineno, idx))
         if idx > 0:
             self.tools_used.add(idx)
+        self.cur_tool = idx
+        if (self.lineno or 0) >= 1:
+            self.tlo_events.append((self.seq, self.xo, self.yo, self.zo, idx))
 
     def tool_offset(self, xo, yo, zo, ao, bo, co, uo, vo, wo):
         self.first_move = True
@@ -196,6 +216,10 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         self.xo, self.yo, self.zo = xo, yo, zo
         self.ao, self.bo, self.co = ao, bo, co
         self.uo, self.vo, self.wo = uo, vo, wo
+        # G49 when already zero IS recorded: the program asserting zero
+        # differs from "inherit live" (see tlo_events in __init__).
+        if (self.lineno or 0) >= 1:
+            self.tlo_events.append((self.seq, xo, yo, zo, self.cur_tool))
 
     # rotate_and_translate keeps straight moves in the same translated frame
     # gcode.arc_to_segments produces for arcs; WCS offsets subtract once at
