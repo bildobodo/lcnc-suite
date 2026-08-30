@@ -41,8 +41,8 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     // and the scrub bar simply doesn't offer itself.
     const d = decodePreviewStreams(g);
     let { feedPos, rapidPos, feedLines, feedAbc, rapidAbc } = d;
-    const { kinsFrames, wcsEvents } = d;
-    const scrubTrack = buildScrubTrack(d.feed, d.rapid, kinsFrames, wcsEvents, d.subNames);
+    const { kinsFrames, wcsEvents, tloEvents } = d;
+    const scrubTrack = buildScrubTrack(d.feed, d.rapid, kinsFrames, wcsEvents, d.subNames, tloEvents);
 
     // Drawn-preview streams re-derived from the merged track (sectioned, with
     // break indices) — the raw endpoint strips draw FALSE connectors across
@@ -57,6 +57,8 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     let rapidFrame: Uint8Array | undefined;
     let feedWcs: Uint8Array | undefined;
     let rapidWcs: Uint8Array | undefined;
+    let feedTlo: Uint8Array | undefined;
+    let rapidTlo: Uint8Array | undefined;
     let feedSrc: Uint32Array | undefined;
     if (scrubTrack) {
       const hadAbc = feedAbc != null || rapidAbc != null;
@@ -70,6 +72,7 @@ self.onmessage = async (e: MessageEvent<Req>) => {
       feedMode = split.feedMode; rapidMode = split.rapidMode;
       feedFrame = split.feedFrame; rapidFrame = split.rapidFrame;
       feedWcs = split.feedWcs; rapidWcs = split.rapidWcs;
+      feedTlo = split.feedTlo; rapidTlo = split.rapidTlo;
       feedSrc = split.feedSrc;
     }
     const feedLineMap = _buildFeedLineMap(feedLines ?? g.feed_lines);
@@ -106,6 +109,7 @@ self.onmessage = async (e: MessageEvent<Req>) => {
       if (scrubTrack.frame) transfer.push(scrubTrack.frame.buffer as ArrayBuffer);
       if (scrubTrack.brk) transfer.push(scrubTrack.brk.buffer as ArrayBuffer);
       if (scrubTrack.wcsEpoch) transfer.push(scrubTrack.wcsEpoch.buffer as ArrayBuffer);
+      if (scrubTrack.tlo) transfer.push(scrubTrack.tlo.buffer as ArrayBuffer);
       if (scrubTrack.lineOk) transfer.push(scrubTrack.lineOk.buffer as ArrayBuffer);
       if (scrubTrack.sub) transfer.push(scrubTrack.sub.buffer as ArrayBuffer);
       if (scrubTrack.cline) transfer.push(scrubTrack.cline.buffer as ArrayBuffer);
@@ -117,10 +121,12 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     if (rapidFrame) transfer.push(rapidFrame.buffer as ArrayBuffer);
     if (feedWcs) transfer.push(feedWcs.buffer as ArrayBuffer);
     if (rapidWcs) transfer.push(rapidWcs.buffer as ArrayBuffer);
+    if (feedTlo) transfer.push(feedTlo.buffer as ArrayBuffer);
+    if (rapidTlo) transfer.push(rapidTlo.buffer as ArrayBuffer);
     if (feedSrc) transfer.push(feedSrc.buffer as ArrayBuffer);
 
     self.postMessage(
-      { version, gcode: { ...rest, feedPos, rapidPos, feed_lines: feedLines, feedLineMap, rapidDist, feedAbc, rapidAbc, feedBreaks, rapidBreaks, feedMode, rapidMode, feedFrame, rapidFrame, feedWcs, rapidWcs, feedSrc, kinsFrames, wcsEvents, scrubTrack } },
+      { version, gcode: { ...rest, feedPos, rapidPos, feed_lines: feedLines, feedLineMap, rapidDist, feedAbc, rapidAbc, feedBreaks, rapidBreaks, feedMode, rapidMode, feedFrame, rapidFrame, feedWcs, rapidWcs, feedTlo, rapidTlo, feedSrc, kinsFrames, wcsEvents, tloEvents, scrubTrack } },
       { transfer },
     );
   } catch (err) {

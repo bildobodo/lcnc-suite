@@ -14,6 +14,7 @@
 // letters → joint slots via viewer_init.axes. No baked subdivision needed —
 // the kinematic chain is evaluated at pose time, not baked per vertex.
 import { kinsForSegment, type KinsSpec } from "./kins";
+import { TLO_NONE, type TloEvent } from "./tloEvents";
 import {
   buildLineMap, machineToProgram, programToMachine, wcsTerms,
   type PartFrameWcs, type WcsTerms,
@@ -53,6 +54,10 @@ export interface ScrubStream {
    *  which basis this point was peeled against (review P2). Absent =
    *  legacy payload (single-basis semantics). */
   wcs?: Uint8Array;
+  /** Per-point TLO/tool event INDEX into the payload's tlo_events (schema
+   *  8; 0xff = before the first row → live offset governs). Absent = the
+   *  program never changes tool or offset. */
+  tlo?: Uint8Array;
   /** Per-point line trust (wire feed_lineok/rapid_lineok, W2 P6). Absent
    *  = pre-schema-4 payload. */
   lineOk?: Uint8Array;
@@ -78,7 +83,8 @@ const DEG_AS_MM = 1;
 export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
                                 frames?: [number, number, number][],
                                 wcsEvents?: WcsEpoch[],
-                                subNames?: string[]): ScrubTrack | null {
+                                subNames?: string[],
+                                tloEvents?: TloEvent[]): ScrubTrack | null {
   const nf = (feed.pos.length / 3) | 0;
   const nr = (rapid.pos.length / 3) | 0;
   const n = nf + nr;
@@ -142,6 +148,13 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
     && (nr === 0 || rapid.wcs?.length === nr)
     && !!(feed.wcs || rapid.wcs);
   const wcsEpoch = hasWcs ? new Uint8Array(n) : undefined;
+  // TLO/tool events (schema 8): like wcs — present iff consistent and an
+  // events list exists to dereference into.
+  const hasTlo = !!tloEvents?.length
+    && (nf === 0 || feed.tlo?.length === nf)
+    && (nr === 0 || rapid.tlo?.length === nr)
+    && !!(feed.tlo || rapid.tlo);
+  const tlo = hasTlo ? new Uint8Array(n) : undefined;
   // Line trust + sub spans (W2 P6): merged like mode — present iff every
   // non-empty stream carries the channel (the worker ships both together;
   // a half-present channel is a bug upstream, dropped whole rather than
@@ -187,6 +200,7 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
     if (brk) brk[i] = (src.brk?.[si] ?? 0) | (src.ustart?.[si] ?? 0);
     if (ustart) ustart[i] = src.ustart?.[si] ?? 0;
     if (wcsEpoch) wcsEpoch[i] = src.wcs?.[si] ?? 0;
+    if (tlo) tlo[i] = src.tlo?.[si] ?? TLO_NONE;
     if (lineOk) lineOk[i] = src.lineOk?.[si] ?? 0;
     if (sub) sub[i] = src.sub?.[si] ?? 0xff;
     if (cline) cline[i] = src.cline?.[si] ?? 0;
@@ -234,6 +248,7 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
   return { pos, abc, lines, rapid: rapidFlag, mode, frame: frameIdx,
            frames: hasFrame ? frames : undefined, brk, ustart,
            wcsEpoch, wcsEvents: hasWcs ? wcsEvents : undefined,
+           tlo, tloEvents: hasTlo ? tloEvents : undefined,
            lineOk, sub, subNames: hasSub ? subNames : undefined, cline,
            cum, count: n, lineCum, lineSpan: buildLineMap(lines), timeBased };
 }
@@ -269,6 +284,10 @@ export interface SplitStreams {
    *  track's `wcsEvents`) — which basis each drawn vertex was peeled
    *  against, consumed by the display rebase (wcsEpochs.rebasePositions). */
   feedWcs?: Uint8Array; rapidWcs?: Uint8Array;
+  /** Per-vertex TLO event indices (same conventions; dereference into the
+   *  track's `tloEvents`) — the part-frame worker lifts and peels each
+   *  vertex with ITS offset (schema 8). */
+  feedTlo?: Uint8Array; rapidTlo?: Uint8Array;
   /** Source TRACK index per drawn feed vertex (ascending) — maps a track
    *  segment range to a drawn-vertex range for the positional 3D highlight
    *  (review P3), which line numbers cannot do once a called sub's numbers
@@ -283,6 +302,7 @@ export function splitTrackStreams(t: ScrubTrack): SplitStreams {
   const fMode: number[] = [], rMode: number[] = [];
   const fFrame: number[] = [], rFrame: number[] = [];
   const fWcs: number[] = [], rWcs: number[] = [];
+  const fTlo: number[] = [], rTlo: number[] = [];
   const fSrc: number[] = [];
   let fLast = -2, rLast = -2;  // track index of each stream's last emitted point
 
@@ -297,6 +317,7 @@ export function splitTrackStreams(t: ScrubTrack): SplitStreams {
     const md = t.mode?.[i] ?? 0;  // ...and its END point's mode
     const fr = t.frame?.[i] ?? 0xff;  // ...and its END point's TWP frame
     const we = t.wcsEpoch?.[i] ?? 0;  // ...and its END point's WCS epoch
+    const te = t.tlo?.[i] ?? TLO_NONE;  // ...and its END point's TLO event
     // Kins-flip relabel INTO i: unlike a stream-interleave section (whose
     // connector is the other stream's real move), no motion exists here at
     // all — open the section AT the relabeled vertex and draw nothing into
@@ -306,24 +327,24 @@ export function splitTrackStreams(t: ScrubTrack): SplitStreams {
       if (relabel) {
         rBreaks.push(rPos.length / 3);
         push(rPos, rAbc, i);
-        rMode.push(md); rFrame.push(fr); rWcs.push(we);
+        rMode.push(md); rFrame.push(fr); rWcs.push(we); rTlo.push(te);
         rLast = i;
         continue;
       }
       if (rLast !== i - 1) {
         rBreaks.push(rPos.length / 3);
         push(rPos, rAbc, i - 1);
-        rMode.push(md); rFrame.push(fr); rWcs.push(we);
+        rMode.push(md); rFrame.push(fr); rWcs.push(we); rTlo.push(te);
       }
       push(rPos, rAbc, i);
-      rMode.push(md); rFrame.push(fr); rWcs.push(we);
+      rMode.push(md); rFrame.push(fr); rWcs.push(we); rTlo.push(te);
       rLast = i;
     } else {
       if (relabel) {
         fBreaks.push(fPos.length / 3);
         fLines.push(ln);
         push(fPos, fAbc, i);
-        fMode.push(md); fFrame.push(fr); fWcs.push(we); fSrc.push(i);
+        fMode.push(md); fFrame.push(fr); fWcs.push(we); fTlo.push(te); fSrc.push(i);
         fLast = i;
         continue;
       }
@@ -333,11 +354,11 @@ export function splitTrackStreams(t: ScrubTrack): SplitStreams {
         // line highlight covers the move from its true start.
         fLines.push(ln);
         push(fPos, fAbc, i - 1);
-        fMode.push(md); fFrame.push(fr); fWcs.push(we); fSrc.push(i - 1);
+        fMode.push(md); fFrame.push(fr); fWcs.push(we); fTlo.push(te); fSrc.push(i - 1);
       }
       fLines.push(ln);
       push(fPos, fAbc, i);
-      fMode.push(md); fFrame.push(fr); fWcs.push(we); fSrc.push(i);
+      fMode.push(md); fFrame.push(fr); fWcs.push(we); fTlo.push(te); fSrc.push(i);
       fLast = i;
     }
   }
@@ -353,6 +374,8 @@ export function splitTrackStreams(t: ScrubTrack): SplitStreams {
     rapidFrame: t.frame ? new Uint8Array(rFrame) : undefined,
     feedWcs: t.wcsEpoch ? new Uint8Array(fWcs) : undefined,
     rapidWcs: t.wcsEpoch ? new Uint8Array(rWcs) : undefined,
+    feedTlo: t.tlo ? new Uint8Array(fTlo) : undefined,
+    rapidTlo: t.tlo ? new Uint8Array(rTlo) : undefined,
     feedSrc: new Uint32Array(fSrc),
   };
 }
@@ -784,6 +807,16 @@ export function prependEntry(
     wcsEpoch[0] = t.wcsEpoch[0] ?? 0;
     wcsEpoch[1] = t.wcsEpoch[0] ?? 0;
   }
+  let tlo: Uint8Array | undefined;
+  if (t.tlo) {
+    // The entry move runs under whatever offset governs the track's first
+    // point (schema 8) — the same "one consistent triple" rule as mode /
+    // frame / epoch above; the entry inverse uses the same value.
+    tlo = new Uint8Array(n);
+    tlo.set(t.tlo, 1);
+    tlo[0] = t.tlo[0] ?? TLO_NONE;
+    tlo[1] = t.tlo[0] ?? TLO_NONE;
+  }
   let lineOk: Uint8Array | undefined;
   if (t.lineOk) {
     // The entry move is run-time motion no program line commanded — both
@@ -812,7 +845,7 @@ export function prependEntry(
   const lineCum = new Map<number, number>();
   for (const [ln, c] of t.lineCum) lineCum.set(ln, c + entryLen);
   return { pos, abc, lines, rapid, mode, frame, frames: t.frames, brk, ustart,
-           wcsEpoch, wcsEvents: t.wcsEvents,
+           wcsEpoch, wcsEvents: t.wcsEvents, tlo, tloEvents: t.tloEvents,
            lineOk, sub, subNames: t.subNames, cline,
            cum, count: n, lineCum, lineSpan: buildLineMap(lines), timeBased: t.timeBased };
 }

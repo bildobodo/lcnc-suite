@@ -60,3 +60,28 @@ describe("per-vertex event resolution (frames and WCS epochs)", () => {
     expect(d.rapid.wcs).toBeUndefined();
   });
 });
+
+describe("TLO/tool events (schema 8)", () => {
+  function tloPayload(seqs: number[], rows: number[][]) {
+    const seq = new Uint32Array(seqs);
+    return {
+      rapid: new Float32Array(seqs.length * 3).buffer,
+      rapid_seq: new Uint8Array(seq.buffer),
+      tlo_events: rows,
+    } as Record<string, any>;
+  }
+
+  it("governs strictly with 0xff before the first row (live), last row wins on a tie", () => {
+    const d = decodePreviewStreams(tloPayload([1, 2, 3, 4], [[2, 0, 0, 22, -1], [2, 0, 0, 22, 3]]));
+    expect(Array.from(d.rapid.tlo!)).toEqual([0xff, 0xff, 1, 1]);
+    expect(d.tloEvents).toHaveLength(2);
+    expect(d.tloEvents![1]).toEqual({ seq: 2, xyz: [0, 0, 22], tool: 3 });
+    expect(d.tloEvents![0]!.tool).toBeNull();
+  });
+
+  it("omits the channel entirely when the wire carries no events", () => {
+    const d = decodePreviewStreams(tloPayload([1, 2], []));
+    expect(d.rapid.tlo).toBeUndefined();
+    expect(d.tloEvents).toBeUndefined();
+  });
+});

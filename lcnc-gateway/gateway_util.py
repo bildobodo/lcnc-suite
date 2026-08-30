@@ -58,8 +58,14 @@ ALLOWED_EXTENSIONS = {".ngc", ".nc", ".gcode", ".tap", ".txt"}
 # call-site line attribution (`feed_cline`/`rapid_cline` u16, W4): points
 # inside a marked sub span whose UNIQUE main-file call/trigger line is
 # text-verified carry that line, so the highlight tracks the o-call or
-# remap trigger instead of going dark — pre-7 payloads show chip-only.
-PREVIEW_SCHEMA = 7
+# remap trigger instead of going dark — pre-7 payloads show chip-only;
+# 8 = per-segment TLO/tool events (`tlo_events` [seq, xo, yo, zo, tool],
+# machine units, present only when the program changes tool or offset)
+# and a diameter column on `parse_tlos` — the sixth run-time state input:
+# pre-8 the client applied ONE live tool offset to the whole track, so a
+# program applying its own G43 before motion posed every joint a tool
+# length high on a fresh boot (the corpus gate's 22.000 catch).
+PREVIEW_SCHEMA = 8
 
 
 def sanitize_filename(name: str) -> str:
@@ -863,6 +869,21 @@ def mode_boundary_indices(mode):
             out.add(i - 1)
             out.add(i)
     return out
+
+
+def event_boundary_indices(seqs, events):
+    """Vertex indices that must survive decimation at a seq-keyed EVENT
+    boundary (schema 8: tlo_events). Same rule as mode_boundary_indices —
+    both the last vertex governed by the old event and the first governed
+    by the new one anchor — applied to the per-segment event index that
+    kins_frame_indices resolves (None before the first event). A G43
+    followed by a FEED makes no vertex of its own (only a traverse does,
+    via first_move), so a collinear run across the change would otherwise
+    collapse into one segment carrying the wrong offset. Pure."""
+    if not events or not seqs:
+        return set()
+    idx = kins_frame_indices(seqs, events)
+    return mode_boundary_indices([-1 if i is None else i for i in idx])
 
 
 def should_ship_abc(kins_marked, raw_abc, peeled_abc, eps=1e-9):

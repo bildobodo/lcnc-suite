@@ -11,8 +11,9 @@ import {
 import { makeKins as kinsForTest } from "./kins";
 import { wcsTerms } from "./partFrame";
 
-function stream(points: number[][], opts: { abc?: number[][]; lines?: number[]; seq?: number[]; tcum?: number[]; mode?: number[]; frame?: number[]; brk?: number[] } = {}): ScrubStream {
+function stream(points: number[][], opts: { abc?: number[][]; lines?: number[]; seq?: number[]; tcum?: number[]; mode?: number[]; frame?: number[]; brk?: number[]; tlo?: number[] } = {}): ScrubStream {
   return {
+    tlo: opts.tlo ? new Uint8Array(opts.tlo) : undefined,
     pos: new Float32Array(points.flat()),
     abc: opts.abc ? new Float32Array(opts.abc.flat()) : undefined,
     lines: opts.lines ? new Uint32Array(opts.lines) : undefined,
@@ -919,5 +920,37 @@ describe("positional run playhead (review P3)", () => {
     // Two feed sections (each opened by a rapid): start vertex carries the
     // opening segment's track index.
     expect(Array.from(split.feedSrc!)).toEqual([0, 1, 2, 3]);
+  });
+});
+
+describe("tlo events on the track (schema 8)", () => {
+  const EVS = [{ seq: 1, xyz: [0, 0, 22] as [number, number, number], tool: 3 }];
+
+  it("merges the per-point index when every non-empty stream carries it and events exist", () => {
+    const feed = stream([[10, 0, 0], [30, 0, 0]], { seq: [2, 4], tlo: [0, 0] });
+    const rapid = stream([[0, 0, 0], [20, 0, 0]], { seq: [1, 3], tlo: [0xff, 0] });
+    const t = buildScrubTrack(feed, rapid, undefined, undefined, undefined, EVS)!;
+    expect(Array.from(t.tlo!)).toEqual([0xff, 0, 0, 0]);
+    expect(t.tloEvents).toBe(EVS);
+  });
+
+  it("drops the channel — never guesses — without an events list or on a mislengthed stream", () => {
+    const feed = stream([[10, 0, 0]], { seq: [2], tlo: [0] });
+    const rapid = stream([[0, 0, 0]], { seq: [1], tlo: [0xff] });
+    expect(buildScrubTrack(feed, rapid)!.tlo).toBeUndefined();
+    const bad = stream([[0, 0, 0]], { seq: [1], tlo: [0xff, 0] });
+    expect(buildScrubTrack(feed, bad, undefined, undefined, undefined, EVS)!.tlo).toBeUndefined();
+  });
+
+  it("splits back onto the drawn streams and rides the entry move from point 0", () => {
+    const feed = stream([[10, 0, 0], [30, 0, 0]], { seq: [2, 4], tlo: [0, 0] });
+    const rapid = stream([[0, 0, 0], [20, 0, 0]], { seq: [1, 3], tlo: [0xff, 0] });
+    const t = buildScrubTrack(feed, rapid, undefined, undefined, undefined, EVS)!;
+    const split = splitTrackStreams(t);
+    expect(split.feedTlo!.length).toBe(split.feedPos.length / 3);
+    expect(split.rapidTlo!.length).toBe(split.rapidPos.length / 3);
+    const e = prependEntry(t, [-5, 0, 0, 0, 0, 0]);
+    expect(Array.from(e.tlo!.slice(0, 3))).toEqual([0xff, 0xff, 0]);
+    expect(e.tloEvents).toBe(EVS);
   });
 });

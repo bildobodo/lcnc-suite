@@ -73,7 +73,7 @@ from gateway_util import (
     check_limit_violations_world, merge_violation_records,
     wcs_basis_terms, parse_kins_config, kins_type_flags,
     kins_nonidentity_flags, kins_frame_indices, check_limit_violations_trsrn,
-    kins_marker_policy, mode_boundary_indices,
+    kins_marker_policy, mode_boundary_indices, event_boundary_indices,
     classify_motion_lines, line_trust_flags, resolve_sub_indices,
     attribute_sub_callers, resolve_sub_callers,
     insert_flip_relabels, read_var_wcs_rows, wcs_event_rewritten,
@@ -396,6 +396,9 @@ def parse(ctx: dict) -> dict:
         # seqs (inserted relabel vertices at odd seqs resolve consistently).
         canon.sub_events = [(_ev[0] * 2,) + tuple(_ev[1:])
                             for _ev in canon.sub_events]
+        # TLO/tool events (schema 8) re-key the same way.
+        canon.tlo_events = [(_ev[0] * 2,) + tuple(_ev[1:])
+                            for _ev in canon.tlo_events]
         if relabel_seqs or flips_unresolved or flips_carry_spans:
             print(f"flips: {len(relabel_seqs)} relabel vertices inserted "
                   f"({len(canon.wcs_events)} wcs epochs), {flips_unresolved} "
@@ -727,6 +730,12 @@ def parse(ctx: dict) -> dict:
         # (both flip vertices: see mode_boundary_indices).
         if feed_mode:
             anchors = sorted(set(anchors) | mode_boundary_indices(feed_mode))
+        if canon.tlo_events:
+            # TLO/tool event boundaries (schema 8): a G43 followed by a feed
+            # has no vertex of its own — anchor both sides so the offset
+            # change survives decimation (see event_boundary_indices).
+            anchors = sorted(set(anchors)
+                             | event_boundary_indices(feed_seq, canon.tlo_events))
         if relabel_seqs:
             # A relabel vertex's exec-order predecessor (seq+1 = the inserted
             # vertex) must survive too: dropping it would extend the brk
@@ -749,6 +758,9 @@ def parse(ctx: dict) -> dict:
         r_anchors = [0, len(rapid) - 1]
         if rapid_mode:
             r_anchors = sorted(set(r_anchors) | mode_boundary_indices(rapid_mode))
+        if canon.tlo_events:
+            r_anchors = sorted(set(r_anchors)
+                               | event_boundary_indices(rapid_seq, canon.tlo_events))
         if relabel_seqs:
             # Relabel vertices AND their in-stream predecessors (see the feed
             # anchor note): a dropped relabel vertex loses the brk flag; a
@@ -976,10 +988,12 @@ def parse(ctx: dict) -> dict:
     # Parse-time TLO snapshot (W2 P4): the tool-table rows this parse baked
     # into its per-line limit flags (canon TLO modeling reads s.tool_table),
     # for the tools the program touches plus the spindle tool. Rides the
-    # payload as `parse_tlos` (client staleness hint) AND stderr as a
-    # `__TLO__` line (the gateway's drift edge — the payload bytes are
-    # passthrough and never decoded there). table_mtime anchors the broad
-    # drift signal: any re-measure writes the file (G10 L1 saves through).
+    # payload as `parse_tlos` (client staleness hint + per-tool DIMS for the
+    # collision sweep / scrub marker since schema 8: [id, xo, yo, zo,
+    # diameter]) AND stderr as a `__TLO__` line (the gateway's drift edge —
+    # the payload bytes are passthrough and never decoded there).
+    # table_mtime anchors the broad drift signal: any re-measure writes the
+    # file (G10 L1 saves through).
     _tlo_tools = set(int(t) for t in canon.tools_used)
     _spindle_tool = int(getattr(s, "tool_in_spindle", 0) or 0)
     if _spindle_tool > 0:
@@ -993,7 +1007,7 @@ def parse(ctx: dict) -> dict:
         if _tid > 0 and _tid in _tlo_tools and _tid not in _tlo_seen:
             _tlo_seen.add(_tid)
             parse_tlos.append([_tid, float(_t.xoffset), float(_t.yoffset),
-                               float(_t.zoffset)])
+                               float(_t.zoffset), float(_t.diameter)])
     _tt_file = ini.find("EMCIO", "TOOL_TABLE")
     _tt_path = None
     _tt_mtime = None
@@ -1183,6 +1197,22 @@ def parse(ctx: dict) -> dict:
                  1 if _rw else 0]
                 + [float(v) for v in _basis_to_machine(_ebasis[0], unit_scale)[:6]]
                 + [float(v) for v in _basis_to_machine(_ebasis[1], unit_scale)[:6]])
+    if canon.tlo_events:
+        # TLO/tool event rows (schema 8), execution-ordered: [seq, xo, yo,
+        # zo, tool] — MACHINE units, the offset + tool the program itself
+        # put in effect at that point (G43/G43.1/G49 and executed M6 on
+        # program lines; tool -1 = no M6 executed yet, inherit the loaded
+        # tool). A row at seq N governs segments with seq > N; two rows at
+        # one seq resolve last-wins. Segments BEFORE the first row run
+        # under the machine's LIVE modal G43 state (the client resolves
+        # "no row" to the live applied offset — the parse's fresh
+        # interpreter starting at 0 is not what the machine runs with).
+        # Absent = the program never changes tool or offset; the client
+        # applies the live offset throughout, exactly as pre-8.
+        result["tlo_events"] = [
+            [int(_s), float(_xo) * unit_scale, float(_yo) * unit_scale,
+             float(_zo) * unit_scale, int(_tool)]
+            for _s, _xo, _yo, _zo, _tool in canon.tlo_events]
     if world_unchecked:
         # World-mode segments with no kins twin to check against —
         # unchecked ≠ clean, so the count rides the wire and the UI says

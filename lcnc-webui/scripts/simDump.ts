@@ -49,7 +49,7 @@ const kinsSpec = specFromWire(header.kins ?? undefined);
 const startJoints: number[] = header.start_joints ?? [];
 
 const d = decodePreviewStreams(payload);
-const base = buildScrubTrack(d.feed, d.rapid, d.kinsFrames, d.wcsEvents, d.subNames);
+const base = buildScrubTrack(d.feed, d.rapid, d.kinsFrames, d.wcsEvents, d.subNames, d.tloEvents);
 if (!base) fail("scrub track unbuildable from this payload — the sim would not offer itself (that IS a red result)");
 const epochTerms = base.wcsEvents
   ? epochTermsFor(base.wcsEvents, wcs, header.wcs_table as WcsTableRow[] | undefined)

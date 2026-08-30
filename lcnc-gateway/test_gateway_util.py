@@ -1435,6 +1435,26 @@ class TestInsertKinsRelabels(unittest.TestCase):
             self.assertAlmostEqual(ins[2][i], expect[i], places=9)
 
 
+class TestEventBoundaryIndices(unittest.TestCase):
+    """Schema 8 RDP anchors at tlo_events boundaries (both sides, like
+    mode_boundary_indices), keyed on the resolved per-segment event index."""
+
+    def test_boundary_anchors_both_vertices(self):
+        seqs = [1, 2, 3, 4, 5]
+        events = [(2, 0, 0, 22, 3)]        # governs seq > 2
+        self.assertEqual(gateway_util.event_boundary_indices(seqs, events), {1, 2})
+
+    def test_no_events_or_no_seqs(self):
+        self.assertEqual(gateway_util.event_boundary_indices([1, 2], []), set())
+        self.assertEqual(gateway_util.event_boundary_indices([], [(1, 0, 0, 1, -1)]), set())
+
+    def test_two_events_two_boundaries_same_seq_last_wins(self):
+        seqs = [1, 2, 3, 4, 5, 6]
+        events = [(2, 0, 0, 22, -1), (2, 0, 0, 22, 3), (4, 0, 0, 0, 3)]
+        # index 1 governs 3..4 (last row at seq 2), index 2 governs 5..6
+        self.assertEqual(gateway_util.event_boundary_indices(seqs, events), {1, 2, 3, 4})
+
+
 class TestShouldShipAbc(unittest.TestCase):
     """W2 P3 ship condition: abc rides the wire whenever the tool-vs-work
     pose depends on it. The row that matters most is the TWP defect this

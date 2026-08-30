@@ -131,6 +131,12 @@ export interface ScrubTrack {
    *  see viewer/wcsEpochs.ts for the re-add rules (live row vs rewritten
    *  snapshot). */
   wcsEvents?: import("../viewer/wcsEpochs").WcsEpoch[];
+  /** count — TLO/tool event index of the segment ending here (into
+   *  `tloEvents`; 0xff = before the program's first G43/M6 → the LIVE
+   *  applied offset governs). Schema 8; absent = the program never changes
+   *  tool or offset (live everywhere, the pre-8 behavior). */
+  tlo?: Uint8Array;
+  tloEvents?: import("../viewer/tloEvents").TloEvent[];
   /** Monotonic scrub parameter: SECONDS when `timeBased` (unified timeline
    *  phase 1 — per-segment feed + INI rapid velocities), else distance
    *  (mm, 1° ≙ 1 mm — legacy payloads / no INI MAX_VELOCITY). */
@@ -180,8 +186,12 @@ export interface LimitViolation {
 // the first recorded segment (the 962 mm phantom); 7 = call-site line
 // attribution (feed_cline/rapid_cline, W4) — sub-span points whose
 // unique main-file call/trigger line text-verifies highlight THAT line
-// instead of going dark (pre-7 payloads show chip-only).
-export const EXPECTED_PREVIEW_SCHEMA = 7;
+// instead of going dark (pre-7 payloads show chip-only); 8 = per-segment
+// TLO/tool events (tlo_events → scrubTrack.tlo / tloEvents) + a diameter
+// column on parse_tlos — pre-8 the client applied ONE live tool offset to
+// the whole track (a program applying its own G43 before motion posed
+// every joint a tool length high on a fresh boot: the 22.000 gate catch).
+export const EXPECTED_PREVIEW_SCHEMA = 8;
 
 /** Non-null when the loaded payload was parsed with a DIFFERENT tool length
  *  than the live table now holds for the spindle tool (W2 P4): the per-line
@@ -189,7 +199,10 @@ export const EXPECTED_PREVIEW_SCHEMA = 7;
  *  re-measure invalidates them. The gateway auto-reparses when idle; this
  *  hint is the honest in-run signal (compare uses the live table row via
  *  status tool_length, which is G43-state-independent). Values in machine
- *  units; magnitudes compared (status ships |zoffset|). Pure. */
+ *  units; magnitudes compared (status ships |zoffset|). Scope: the LOADED
+ *  tool only — status carries no other tool's length, so other program
+ *  tools are the gateway drift edge's job (evaluate_tlo_drift compares
+ *  every parse row against the live table). Pure. */
 export function parseTloMismatch(
   g: ViewerGcode | null | undefined,
   toolNumber: number | null | undefined,
@@ -354,12 +367,21 @@ export interface ViewerGcode {
   // be compared straight against the live status values. Differing means the
   // preview is STALE — a touch-off after load — and `reparse_preview` fixes it.
   wcs_basis?: { g5x: number[]; g92: number[]; rotation: number } | null;
-  // Parse-time tool-table rows [[tool, xo, yo, zo]…] for the tools the
-  // program touches plus the spindle tool (W2 P4) — the offsets the
-  // per-line limit flags were baked with, in machine units. Compared
-  // against the live table via parseTloMismatch(); the gateway also
-  // auto-reparses on drift when idle. Absent = pre-schema-3 payload.
-  parse_tlos?: [number, number, number, number][];
+  // Parse-time tool-table rows [[tool, xo, yo, zo, diameter]…] for the
+  // tools the program touches plus the spindle tool (W2 P4; diameter since
+  // schema 8) — the offsets the per-line limit flags were baked with, in
+  // machine units, and the dims the sweep/marker use for program tools.
+  // Compared against the live table via parseTloMismatch(); the gateway
+  // also auto-reparses on drift when idle. Absent = pre-schema-3 payload.
+  parse_tlos?: [number, number, number, number, number?][];
+  // TLO/tool event rows [seq, xo, yo, zo, tool] (schema 8; machine units;
+  // present only when the program changes tool or offset) — decoded into
+  // `tloEvents` + the per-point track index. See viewer/tloEvents.ts.
+  tlo_events?: number[][];
+  tloEvents?: import("../viewer/tloEvents").TloEvent[];
+  // Per-vertex TLO event index for the DRAWN streams (like feedWcs).
+  feedTlo?: Uint8Array;
+  rapidTlo?: Uint8Array;
   // Per-point line trust + marked-sub spans (W2 P6, schema 4): u8 wire
   // bytes, index-aligned with feed/rapid — consumed via the merged track
   // (previewWorker strips them into scrubTrack.lineOk / .sub / .subNames,

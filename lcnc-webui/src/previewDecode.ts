@@ -6,6 +6,7 @@
 // exercise EXACTLY the client math — a second decode implementation is
 // how divergence starts). No DOM/worker globals here.
 import { parseWcsFrames, type WcsEpoch } from "./viewer/wcsEpochs";
+import { TLO_NONE, parseTloEvents, type TloEvent } from "./viewer/tloEvents";
 import type { ScrubStream } from "./viewer/scrubTrack";
 
 export interface DecodedPreview {
@@ -13,6 +14,7 @@ export interface DecodedPreview {
   rapid: ScrubStream;
   kinsFrames?: [number, number, number][];
   wcsEvents?: WcsEpoch[];
+  tloEvents?: TloEvent[];
   subNames?: string[];
   // The drawing-path aliases the worker also ships (same buffers as the
   // stream fields — feed.pos === feedPos etc.).
@@ -63,18 +65,24 @@ export function decodePreviewStreams(g: Record<string, any>): DecodedPreview {
   const epochSeqs = wcsEvents?.map(e => e.seq);
   const feedWcsWire = eventIdxFor(feedSeq, epochSeqs, 0);
   const rapidWcsWire = eventIdxFor(rapidSeq, epochSeqs, 0);
+  // TLO/tool events (schema 8): same rule; TLO_NONE before the first row
+  // (= the live applied offset governs).
+  const tloEvents = parseTloEvents(g.tlo_events as number[][] | undefined);
+  const tloSeqs = tloEvents?.map(e => e.seq);
+  const feedTloWire = eventIdxFor(feedSeq, tloSeqs, TLO_NONE);
+  const rapidTloWire = eventIdxFor(rapidSeq, tloSeqs, TLO_NONE);
 
   return {
     feed: { pos: feedPos, abc: feedAbc, lines: feedLines, seq: feedSeq,
             tcum: g.feed_tcum != null && (g.feed_tcum as Uint8Array).length ? toF32(g.feed_tcum) : undefined,
-            mode: feedModeWire, frame: feedFrameWire, wcs: feedWcsWire,
+            mode: feedModeWire, frame: feedFrameWire, wcs: feedWcsWire, tlo: feedTloWire,
             lineOk: feedLineOkWire, sub: feedSubWire, cline: feedClineWire },
     rapid: { pos: rapidPos, abc: rapidAbc, lines: toU32(g.rapid_lines), seq: rapidSeq,
              tcum: g.rapid_tcum != null && (g.rapid_tcum as Uint8Array).length ? toF32(g.rapid_tcum) : undefined,
              mode: rapidModeWire, frame: rapidFrameWire, brk: rapidBrkWire,
-             ustart: rapidUstartWire, wcs: rapidWcsWire,
+             ustart: rapidUstartWire, wcs: rapidWcsWire, tlo: rapidTloWire,
              lineOk: rapidLineOkWire, sub: rapidSubWire, cline: rapidClineWire },
-    kinsFrames, wcsEvents, subNames,
+    kinsFrames, wcsEvents, tloEvents, subNames,
     feedPos, rapidPos, feedLines, feedAbc, rapidAbc,
   };
 }
