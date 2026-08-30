@@ -2331,6 +2331,29 @@ class TestEvaluateTloDrift(unittest.TestCase):
         self.assertIsNone(gateway_util.evaluate_tlo_drift(self.META, 100.0, 0, 42.0))
         self.assertIsNone(gateway_util.evaluate_tlo_drift(self.META, 100.0, None, 42.0))
 
+    def test_other_tool_row_drift_detected(self):
+        # Schema 8: T7 is NOT loaded (T3 is), yet its row moved 80 → 60 —
+        # the sim poses T7's segments with the parse row, so it is stale.
+        rows = [(3, 156.5596), (7, 60.0), (9, 1.0)]
+        self.assertEqual(
+            gateway_util.evaluate_tlo_drift(self.META, 100.0, 3, 156.5596, table_rows=rows),
+            "table_row")
+        # Matching rows: clean; rows for tools the program never touches: ignored.
+        rows_ok = [(3, 156.5596), (7, 80.0), (9, 999.0)]
+        self.assertIsNone(
+            gateway_util.evaluate_tlo_drift(self.META, 100.0, 3, 156.5596, table_rows=rows_ok))
+        # A 5-tuple parse row (diameter column) reads the same.
+        meta5 = dict(self.META, tlos=[[3, 0.0, 0.0, 156.5596, 6.0], [7, 0.0, 0.0, 80.0, 8.0]])
+        self.assertEqual(
+            gateway_util.evaluate_tlo_drift(meta5, 100.0, 3, 156.5596, table_rows=rows),
+            "table_row")
+
+    def test_table_rows_none_keeps_old_behaviour(self):
+        self.assertIsNone(
+            gateway_util.evaluate_tlo_drift(self.META, 100.0, 3, 156.5596, table_rows=None))
+        self.assertIsNone(
+            gateway_util.evaluate_tlo_drift(self.META, 100.0, 3, 156.5596, table_rows=[]))
+
     def test_missing_mtimes_skip_the_file_signal(self):
         meta = dict(self.META, table_mtime=None)
         self.assertIsNone(gateway_util.evaluate_tlo_drift(meta, 101.0, None, None))

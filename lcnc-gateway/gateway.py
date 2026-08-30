@@ -1479,9 +1479,18 @@ async def _status_poller():
                     except OSError:
                         _tt_cur = None
                     _tofs = st.tool_offset
+                    # Live table rows for every program tool (schema 8): a
+                    # re-measure of a tool that is NOT loaded stales the
+                    # per-segment pose too. STAT was polled this tick.
+                    try:
+                        _rows = [(int(t.id), float(t.zoffset))
+                                 for t in (getattr(STAT, "tool_table", None) or [])]
+                    except (AttributeError, TypeError, ValueError):
+                        _rows = None
                     _drift = evaluate_tlo_drift(
                         _tlo_meta, _tt_cur, st.tool_number,
-                        _tofs[2] if _tofs and len(_tofs) > 2 else None)
+                        _tofs[2] if _tofs and len(_tofs) > 2 else None,
+                        table_rows=_rows)
                 if _drift is None:
                     # Rotary-pose drift (W6): the payload poses every
                     # uncommanded-rotary segment at the PARSE-time pose; a

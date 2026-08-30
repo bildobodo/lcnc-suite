@@ -1336,7 +1336,8 @@ def rotary_drift_settled(prev_abc, rotary_abc, eps=0.01):
     return True
 
 
-def evaluate_tlo_drift(meta, cur_mtime, tool_number, applied_tlo_z, eps=1e-4):
+def evaluate_tlo_drift(meta, cur_mtime, tool_number, applied_tlo_z, eps=1e-4,
+                       table_rows=None):
     """Has the tool-length picture moved since the preview was parsed? (W2 P4)
 
     The per-line limit validator bakes the PARSE-TIME tool table into its
@@ -1351,9 +1352,15 @@ def evaluate_tlo_drift(meta, cur_mtime, tool_number, applied_tlo_z, eps=1e-4):
       parse-time row. Guarded to a loaded tool with a non-trivially-applied
       offset — G49 zeroes the applied vector and must not read as drift.
 
+    - "table_row": a parse row for ANY tool the program touches differs
+      from the live table's Z for that id (schema 8: the per-segment TLO
+      the sim poses with comes from the parse-time rows, so a re-measure
+      of a NOT-loaded program tool stales the pose too). `table_rows`
+      = [(id, zoffset), ...] from STAT.tool_table; None = skip (legacy).
+
     `meta` is the worker's parse-time snapshot {"table_mtime": float|None,
-    "tlos": [[tool, xo, yo, zo], ...]}. Returns the reason string or None.
-    The CALLER owns idle-gating and debounce. Pure.
+    "tlos": [[tool, xo, yo, zo(, diameter)], ...]}. Returns the reason
+    string or None. The CALLER owns idle-gating and debounce. Pure.
     """
     if not meta:
         return None
@@ -1366,6 +1373,19 @@ def evaluate_tlo_drift(meta, cur_mtime, tool_number, applied_tlo_z, eps=1e-4):
                 if abs(float(row[3]) - applied_tlo_z) > eps:
                     return "tool_offset"
                 break
+    if table_rows:
+        live = {}
+        for tid, z in table_rows:
+            try:
+                live.setdefault(int(tid), float(z))
+            except (TypeError, ValueError):
+                continue
+        for row in meta.get("tlos") or []:
+            if not row:
+                continue
+            lz = live.get(int(row[0]))
+            if lz is not None and abs(float(row[3]) - lz) > eps:
+                return "table_row"
     return None
 
 

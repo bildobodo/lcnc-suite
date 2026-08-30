@@ -99,6 +99,15 @@ class TestSchemaStampRecording(unittest.TestCase):
         self.assertEqual(b.published_tlo["table_mtime"], 5.0)
         self.assertEqual(b.published_tlo["tlos"], [[3, 0.0, 0.0, 156.5596]])
 
+    def test_tlo_line_with_diameter_column_records_five_tuples(self):
+        # Schema 8: parse_tlos rows carry a diameter column; the pipeline
+        # passes rows through untouched (the drift edge indexes by position).
+        b = self._refresh(
+            b'__TLO__\t{"table_path": "/cfg/tool.tbl", "table_mtime": 5.0,'
+            b' "tlos": [[3, 0.0, 0.0, 22.0, 6.0]]}\n__SCHEMA__\t8\n')
+        self.assertEqual(b.published_tlo["tlos"], [[3, 0.0, 0.0, 22.0, 6.0]])
+        self.assertEqual(b.published_schema, 8)
+
     def test_malformed_tlo_line_records_none(self):
         b = self._refresh(b"__TLO__\t{broken json\n")
         self.assertTrue(b.preview_available())
