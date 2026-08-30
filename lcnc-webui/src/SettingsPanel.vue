@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, reactive, computed, inject, watch, type Ref, type ComputedRef } from "vue";
+import { defaultPartHex } from "./viewer/palette";
 import TabPanel from "./TabPanel.vue";
 import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
@@ -450,16 +451,14 @@ const colorFields: { key: keyof ColorDefaults; label: string }[] = [
 ];
 
 // ─── Machine part colors ────────────────────
-const DIR_DEFAULT_COLORS: Record<string, string> = { x: "#9b4a4a", y: "#4a8f5a", z: "#4a6f9b" };
-const FRAME_COLOR = "#bfbfbf";
-
 function defaultMachineColor(part: { direction: string | null; color: [number, number, number] | null }): string {
-  // machine.json default color wins; then linear-axis color; then frame.
+  // machine.json default color wins; then the palette's linear-axis /
+  // frame rule (viewer/palette.ts — the same table the scene uses).
   if (part.color) {
     const hex = part.color.map(c => Math.round(Math.min(1, Math.max(0, c)) * 255).toString(16).padStart(2, "0")).join("");
     return `#${hex}`;
   }
-  return (part.direction ? DIR_DEFAULT_COLORS[part.direction] : null) ?? FRAME_COLOR;
+  return "#" + defaultPartHex(part.direction).toString(16).padStart(6, "0");
 }
 
 function formatPartLabel(id: string): string {
