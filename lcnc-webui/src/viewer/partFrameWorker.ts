@@ -8,6 +8,7 @@ import {
   type PartFrameMachine, type PartFrameWcs,
 } from "./partFrame";
 import { epochTermsFor, type WcsEpoch, type WcsTableRow } from "./wcsEpochs";
+import type { TloEvent } from "./tloEvents";
 
 interface Req {
   id: number;
@@ -18,8 +19,11 @@ interface Req {
    *  single-basis payload. */
   wcsEvents?: WcsEpoch[];
   wcsTable?: WcsTableRow[];
-  feed: { pos: Float32Array; abc: Float32Array; lines?: Uint32Array; breaks?: Uint32Array; mode?: Uint8Array; wcs?: Uint8Array; src?: Uint32Array };
-  rapid: { pos: Float32Array; abc: Float32Array; breaks?: Uint32Array; mode?: Uint8Array; wcs?: Uint8Array };
+  /** Per-segment TLO/tool events (schema 8) — per-vertex `tlo` indices on
+   *  the streams resolve into them (live `wcs.tool` before the first row). */
+  tloEvents?: TloEvent[];
+  feed: { pos: Float32Array; abc: Float32Array; lines?: Uint32Array; breaks?: Uint32Array; mode?: Uint8Array; wcs?: Uint8Array; src?: Uint32Array; tlo?: Uint8Array };
+  rapid: { pos: Float32Array; abc: Float32Array; breaks?: Uint32Array; mode?: Uint8Array; wcs?: Uint8Array; tlo?: Uint8Array };
 }
 
 function assertFinite(a: Float32Array, label: string) {
@@ -29,12 +33,12 @@ function assertFinite(a: Float32Array, label: string) {
 }
 
 self.onmessage = (e: MessageEvent<Req>) => {
-  const { id, machine, wcs, wcsEvents, wcsTable, feed, rapid } = e.data;
+  const { id, machine, wcs, wcsEvents, wcsTable, tloEvents, feed, rapid } = e.data;
   try {
     const epochTerms = wcsEvents?.length
       ? epochTermsFor(wcsEvents, wcs, wcsTable) : undefined;
-    const f = transformToPartFrame(machine, wcs, feed, undefined, epochTerms);
-    const r = transformToPartFrame(machine, wcs, rapid, undefined, epochTerms);
+    const f = transformToPartFrame(machine, wcs, { ...feed, tloEvents }, undefined, epochTerms);
+    const r = transformToPartFrame(machine, wcs, { ...rapid, tloEvents }, undefined, epochTerms);
     // NaN positions render as NOTHING with no error — never ship them; the
     // main thread falls back to the programmed preview and logs loudly.
     assertFinite(f.pos, "feed");

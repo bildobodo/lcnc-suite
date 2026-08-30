@@ -14,11 +14,10 @@
 // letters → joint slots via viewer_init.axes. No baked subdivision needed —
 // the kinematic chain is evaluated at pose time, not baked per vertex.
 import { kinsForSegment, type KinsSpec } from "./kins";
-import { TLO_NONE, type TloEvent } from "./tloEvents";
+import { TLO_NONE, tloForIndex, type TloEvent } from "./tloEvents";
 import {
-  buildLineMap, machineToProgram, programToMachine, wcsTerms,
-  type PartFrameWcs, type WcsTerms,
-} from "./partFrame";
+  buildLineMap, machineToProgram, wcsTerms,
+  type PartFrameWcs, type WcsTerms, liftToJoints, jointsToProgram, tipWcs } from "./partFrame";
 import type { WcsEpoch } from "./wcsEpochs";
 import type { ScrubTrack } from "../ws/bulkData";
 
@@ -397,6 +396,11 @@ export interface ScrubSample {
   /** WCS epoch index of the segment (into the track's wcsEvents), or null
    *  when the track has no epoch data (legacy payload — single-basis). */
   wcsEpoch: number | null;
+  /** TLO/tool event governing the segment (schema 8), or null = the LIVE
+   *  applied offset governs (before the program's first G43/M6, or no
+   *  channel). Consumers resolve through tloEvents.tloForIndex semantics:
+   *  `sample.tlo?.xyz ?? wcs.tool`. */
+  tlo: TloEvent | null;
   /** Upper track index of the segment the sample falls in. */
   index: number;
 }
@@ -404,6 +408,11 @@ export interface ScrubSample {
 function _frameAt(t: ScrubTrack, i: number): [number, number, number] | null {
   const idx = t.frame?.[i];
   return (idx != null && idx !== 0xff && t.frames) ? t.frames[idx] ?? null : null;
+}
+
+function _tloAt(t: ScrubTrack, i: number): TloEvent | null {
+  const idx = t.tlo?.[i];
+  return (idx != null && idx !== TLO_NONE && t.tloEvents) ? t.tloEvents[idx] ?? null : null;
 }
 
 /** Interpolated track state at scrub parameter `s` (clamped to [0, cumMax]).
@@ -418,6 +427,7 @@ export function sampleTrack(t: ScrubTrack, s: number, out: ScrubSample): ScrubSa
     out.kinstype = t.mode ? t.mode[0]! : null;
     out.frame = _frameAt(t, 0); out.index = 0;
     out.wcsEpoch = t.wcsEpoch ? t.wcsEpoch[0]! : null;
+    out.tlo = _tloAt(t, 0);
     return out;
   }
   if (s >= t.cum[last]!) {
@@ -428,6 +438,7 @@ export function sampleTrack(t: ScrubTrack, s: number, out: ScrubSample): ScrubSa
     out.kinstype = t.mode ? t.mode[last]! : null;
     out.frame = _frameAt(t, last); out.index = last;
     out.wcsEpoch = t.wcsEpoch ? t.wcsEpoch[last]! : null;
+    out.tlo = _tloAt(t, last);
     return out;
   }
   // Smallest i with cum[i] >= s (cum[0] = 0 < s here, so lo starts at 1).
@@ -454,6 +465,7 @@ export function sampleTrack(t: ScrubTrack, s: number, out: ScrubSample): ScrubSa
   out.kinstype = t.mode ? t.mode[lo]! : null;
   out.frame = _frameAt(t, lo);
   out.wcsEpoch = t.wcsEpoch ? t.wcsEpoch[lo]! : null;
+  out.tlo = _tloAt(t, lo);
   out.index = lo;
   return out;
 }
@@ -529,8 +541,11 @@ export function buildEntryTrack(
   // whose coords live in epoch 0's frame — not necessarily the live active
   // fixture's (a TWP program's first point is already in the plane frame).
   const entryTerms = epochTerms?.[base.wcsEpoch?.[0] ?? 0];
+  // Point 0's tool offset (schema 8) — the fourth member of the "one
+  // consistent triple": the entry lands where vertex 0 lifts from.
+  const entryTlo = tloForIndex(base.tlo?.[0], base.tloEvents, wcs.tool);
   const entry = machineJointsToProgram(liveJoints, axes, wcs, kins,
-                                       ktEntry, frameEntry, entryTerms);
+                                       ktEntry, frameEntry, entryTerms, entryTlo);
   const t = prependEntry(base, entry, rates);
   return t === base ? null : t;
 }
@@ -586,23 +601,32 @@ export function machineJointsToProgram(
   kins?: KinsSpec, kinstype?: number | null,
   frame?: readonly number[] | null,
   terms?: WcsTerms,
+  tlo?: readonly number[],
 ): [number, number, number, number, number, number] {
   const m = [0, 0, 0, 0, 0, 0];
+  // The offset the track's FIRST segment runs under (schema 8) — the same
+  // value jointsForSample lifts that point with, so the entry round-trips
+  // to the live joints by construction; live `wcs.tool` when unknown.
+  const tl = tlo ?? tloForIndex(undefined, undefined, wcs.tool);
   const model = kinsForSegment(axes, kins, kinstype ?? null, frame,
-                               wcs.tool?.[2] || undefined, "entry move");
+                               tl[2] || undefined, "entry move");
   model.forward(joints, m);
   const out: [number, number, number, number, number, number] = [0, 0, 0, 0, 0, 0];
   // `terms` override (review P2): the entry inverse must land in the frame
   // of the track point it connects to — epoch 0's terms on an epoch-aware
-  // track, not necessarily the live ACTIVE fixture's.
-  machineToProgram(m[0]!, m[1]!, m[2]!, m[3]!, m[4]!, m[5]!, terms ?? wcsTerms(wcs), out);
+  // track, not necessarily the live ACTIVE fixture's. Terms are TIP-space.
+  jointsToProgram(m[0]!, m[1]!, m[2]!, m[3]!, m[4]!, m[5]!, terms ?? wcsTerms(tipWcs(wcs)), tl, out);
   return out;
 }
 
 /** Live joints → machine axis values through the kins boundary (forward
  *  only — no WCS peel). The projection converts machine → program PER
  *  CANDIDATE SEGMENT (each has its own epoch terms), so the two halves of
- *  machineJointsToProgram are split here. */
+ *  machineJointsToProgram are split here. Uses the LIVE tool offset on
+ *  purpose (schema 8 changes nothing here): the run playhead inverts the
+ *  machine's PHYSICAL joints under its ACTUAL G43 state at that instant —
+ *  the track's per-segment offsets are the parse-time prediction of that
+ *  same state, not a substitute for it. */
 export function machineFromJoints(
   joints: ArrayLike<number>, axes: string[], wcs: PartFrameWcs,
   kins?: KinsSpec, kinstype?: number | null, frame?: readonly number[] | null,
@@ -662,7 +686,12 @@ export function projectOntoTrack(
     i1 = lo;
     if (t.cum[i0 - 1]! > win.hi) return null;  // window past the segment
   }
-  const liveTerms = wcsTerms(wcs);
+  const liveTerms = wcsTerms(tipWcs(wcs));
+  // The live joints are physical under the machine's ACTUAL G43 state:
+  // strip the LIVE tool offset once, up front, then every per-epoch
+  // conversion runs in TIP space (epoch terms carry no tool, schema 8).
+  const lt = wcs.tool ?? [];
+  const mx = machine[0]! - (lt[0] ?? 0), my = machine[1]! - (lt[1] ?? 0), mz = machine[2]! - (lt[2] ?? 0);
   // Per-epoch machine→program conversions precomputed FLAT (W2 P5): the
   // previous lazy Map paid a hash lookup per segment — real money on a 99k
   // segment full-track scan. Slot 0 = live terms (no-epoch fallback);
@@ -670,12 +699,10 @@ export function projectOntoTrack(
   const nE = epochTerms?.length ?? 0;
   const pFlat = new Float64Array((nE + 1) * 6);
   const _tmp: number[] = [0, 0, 0, 0, 0, 0];
-  machineToProgram(machine[0]!, machine[1]!, machine[2]!,
-                   machine[3]!, machine[4]!, machine[5]!, liveTerms, _tmp);
+  machineToProgram(mx, my, mz, machine[3]!, machine[4]!, machine[5]!, liveTerms, _tmp);
   pFlat.set(_tmp, 0);
   for (let e = 0; e < nE; e++) {
-    machineToProgram(machine[0]!, machine[1]!, machine[2]!,
-                     machine[3]!, machine[4]!, machine[5]!,
+    machineToProgram(mx, my, mz, machine[3]!, machine[4]!, machine[5]!,
                      epochTerms![e] ?? liveTerms, _tmp);
     pFlat.set(_tmp, (e + 1) * 6);
   }
@@ -852,14 +879,16 @@ export function prependEntry(
 
 const _machineVals: number[] = [0, 0, 0, 0, 0, 0];
 
-/** Per-joint pose values for a track sample: program → machine via the live
- *  WCS (TLO-inclusive), then machine coords → joints through the kins
- *  boundary. A sample whose raw kinstype maps to non-identity for the
- *  declared kins family (worldModeForSpec) routes through the machine's
- *  declared kins with live TLO in the pivot math; identity/untracked
- *  samples use the trivkins permutation as before. UVW and unknown
- *  letters yield null — the caller falls back to the live joint position
- *  rather than inventing a value. Fills `out`. */
+/** Per-joint pose values for a track sample: program → machine via the
+ *  sample's epoch terms (tip-space) + the sample's TOOL OFFSET (schema 8:
+ *  the event governing the segment, else the live applied offset), then
+ *  machine coords → joints through the kins boundary. A sample whose raw
+ *  kinstype maps to non-identity for the declared kins family
+ *  (worldModeForSpec) routes through the machine's declared kins with the
+ *  same per-segment TLO in the pivot math; identity/untracked samples use
+ *  the trivkins permutation as before. UVW and unknown letters yield null —
+ *  the caller falls back to the live joint position rather than inventing
+ *  a value. Fills `out`. */
 export function jointsForSample(
   sample: ScrubSample, wcs: PartFrameWcs, axes: string[], out: (number | null)[],
   kins?: KinsSpec, epochTerms?: readonly WcsTerms[],
@@ -869,9 +898,10 @@ export function jointsForSample(
   // wcsEpochs.epochTermsFor), not the live active fixture's. A legacy
   // track (wcsEpoch null) or a missing terms list keeps today's behavior.
   const o: WcsTerms = (sample.wcsEpoch != null && epochTerms?.[sample.wcsEpoch])
-    ? epochTerms[sample.wcsEpoch]! : wcsTerms(wcs);
-  programToMachine(sample.px, sample.py, sample.pz, sample.pa, sample.pb, sample.pc, o, _machineVals);
+    ? epochTerms[sample.wcsEpoch]! : wcsTerms(tipWcs(wcs));
+  const tlo = sample.tlo?.xyz ?? tloForIndex(undefined, undefined, wcs.tool);
+  liftToJoints(sample.px, sample.py, sample.pz, sample.pa, sample.pb, sample.pc, o, tlo, _machineVals);
   const model = kinsForSegment(axes, kins, sample.kinstype, sample.frame,
-                               wcs.tool?.[2] || undefined, "scrub pose");
+                               tlo[2] || undefined, "scrub pose");
   return model.inverse(_machineVals, out);
 }

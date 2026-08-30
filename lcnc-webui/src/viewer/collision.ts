@@ -38,7 +38,8 @@
 import * as THREE from "three";
 import { MeshBVH } from "three-mesh-bvh";
 import { normalizeKinematics, type KinRuntime } from "./kinematics";
-import { programToMachine, wcsTerms, type PartFrameWcs, type WcsTerms } from "./partFrame";
+import { liftToJoints, tipWcs, wcsTerms, type PartFrameWcs, type WcsTerms } from "./partFrame";
+import { tloForIndex, type TloEvent } from "./tloEvents";
 import { kinsForSegment, makeKins, worldModeForSpec, type KinsModel, type KinsSpec } from "./kins";
 /** The subset of the scrub track the sweep consumes. The worker request
  *  ships a COPIED projection of the real ScrubTrack (typed arrays only —
@@ -66,6 +67,10 @@ export interface CollisionTrack {
    *  CollisionOptions.epochTerms that converts this segment's program
    *  coords to machine coords. Absent = single-basis (live wcs terms). */
   wcs?: Uint8Array;
+  /** Per-segment TLO/tool event index (schema 8) into
+   *  CollisionOptions.tloEvents (0xff = live offset governs). The lift and
+   *  the tool body's tip shift both use that segment's offset. */
+  tlo?: Uint8Array;
 }
 
 export interface CollisionMachine {
@@ -136,6 +141,9 @@ export interface CollisionOptions {
    *  bytes — built by wcsEpochs.epochTermsFor from the payload's wcs_frames
    *  + the live table. Absent = single-basis (the live `wcs` terms). */
   epochTerms?: WcsTerms[];
+  /** Per-segment TLO/tool events (schema 8), indexed by the track's `tlo`
+   *  bytes. Absent = the live `wcs.tool` governs every segment. */
+  tloEvents?: TloEvent[];
 }
 
 export interface CollisionResult {
@@ -457,7 +465,21 @@ export function sweepCollisions(
   const CHUNK_ROT_DEG = 22.5;  // lever bounds are computed per chunk; ≤22.5° keeps drift factors small
   let coarsened = false;
 
-  const o = wcsTerms(wcs);
+  // TIP-space terms; the tool offset is per segment (schema 8) and enters
+  // through liftToJoints + the tool body's tip shift below, ONE source.
+  const o = wcsTerms(tipWcs(wcs));
+  const liveTlo = tloForIndex(undefined, undefined, wcs.tool);
+  const tloFor = (i: number): readonly number[] =>
+    tloForIndex(track.tlo?.[i], opts.tloEvents, wcs.tool);
+  // The parametric tool body (id "tool", tip at its local origin): the
+  // swept joints are G43-inclusive, which poses the tool GROUP at the joint
+  // position (tip + TLO), so the body is shifted by −TLO in the tool node's
+  // LOCAL frame per pose — the same subtraction applyState phase 3 makes
+  // for the live marker and partFrame makes for the drawn tip. It used to
+  // be baked into the cylinder verts once per sweep, which could not follow
+  // a per-segment offset.
+  const toolBodyIdx = bodies.findIndex(b => b.id === "tool");
+  const _tloMat = new THREE.Matrix4();
   const machineVals: number[] = [0, 0, 0, 0, 0, 0];
   // Chunk-start machine coords. machineVals is shared scratch that the second
   // interpPose overwrites, so the bulge bound needs its own copy of the first
@@ -493,7 +515,7 @@ export function sweepCollisions(
         const fi = track.frame?.[i];
         const fr = (fi != null && fi !== 0xff && tFrames) ? tFrames[fi] ?? null : null;
         return kinsForSegment(machine.axes, machine.kins, t, fr,
-                              wcs.tool?.[2] || undefined, "collision sweep");
+                              tloFor(i)[2] || undefined, "collision sweep");
       })
     : null;
   // The guarantee is certified per FAMILY, so it can only be claimed for a
@@ -535,8 +557,8 @@ export function sweepCollisions(
   const termFor = (i: number): WcsTerms =>
     (track.wcs && opts.epochTerms?.[track.wcs[i] ?? 0]) ? opts.epochTerms[track.wcs[i] ?? 0]! : o;
 
-  const poseAt = (px: number, py: number, pz: number, pa: number, pb: number, pc: number, model: KinsModel = identityKins, oSeg: WcsTerms = o) => {
-    programToMachine(px, py, pz, pa, pb, pc, oSeg, machineVals);
+  const poseAt = (px: number, py: number, pz: number, pa: number, pb: number, pc: number, model: KinsModel = identityKins, oSeg: WcsTerms = o, tloSeg: readonly number[] = liveTlo) => {
+    liftToJoints(px, py, pz, pa, pb, pc, oSeg, tloSeg, machineVals);
     model.inverse(machineVals, kinsOut);
     for (let ji = 0; ji < kinsOut.length; ji++) {
       jointVals[ji] = kinsOut[ji] ?? 0;  // UVW: 0, as the preview transform
@@ -546,8 +568,12 @@ export function sweepCollisions(
     // PRECEDING segment's model left there — a stale pose, not a fresh one.
     for (let ji = kinsOut.length; ji < jointVals.length; ji++) jointVals[ji] = 0;
     poseTree(nodes, jointVals, scratch);
-    for (const body of bodies) {
+    for (let bi = 0; bi < bodies.length; bi++) {
+      const body = bodies[bi]!;
       body.world.multiplyMatrices(nodes[body.nodeIdx]!.world, body.localMat);
+      if (bi === toolBodyIdx && (tloSeg[0] || tloSeg[1] || tloSeg[2])) {
+        body.world.multiply(_tloMat.makeTranslation(-(tloSeg[0] ?? 0), -(tloSeg[1] ?? 0), -(tloSeg[2] ?? 0)));
+      }
       body.worldCenter.copy(body.center).applyMatrix4(body.world);
     }
   };
@@ -577,7 +603,7 @@ export function sweepCollisions(
   const staticContacts: CollisionResult["staticContacts"] = [];
   poseAt(track.pos[0]!, track.pos[1]!, track.pos[2]!,
          track.abc[0]!, track.abc[1]!, track.abc[2]!, vertModel?.[0] ?? identityKins,
-         termFor(0));
+         termFor(0), tloFor(0));
   for (let pi = 0; pi < pairs.length; pi++) {
     const [ai, bi] = pairs[pi]!;
     const dist = pairDistance(bodies[ai]!, bodies[bi]!, opts.margin);
@@ -650,6 +676,7 @@ export function sweepCollisions(
       track.abc[k + 2]! + (track.abc[j + 2]! - track.abc[k + 2]!) * u,
       vertModel?.[lo] ?? identityKins,
       termFor(lo),
+      tloFor(lo),
     );
     const [ai, bi] = pairs[pi]!;
     return pairDistance(bodies[ai]!, bodies[bi]!, opts.margin);
@@ -682,6 +709,7 @@ export function sweepCollisions(
       track.abc[k + 2]! + (track.abc[j + 2]! - track.abc[k + 2]!) * t,
       vertModel?.[i] ?? identityKins,
       termFor(i),
+      tloFor(i),
     );
   };
 

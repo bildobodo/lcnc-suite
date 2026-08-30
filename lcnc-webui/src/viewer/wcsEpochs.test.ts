@@ -5,7 +5,7 @@ import {
   rebasePositions, usedWcsRowsKey,
   type WcsEpoch, type WcsTableRow,
 } from "./wcsEpochs";
-import { machineToProgram, programToMachine, wcsTerms, type PartFrameWcs } from "./partFrame";
+import { machineToProgram, programToMachine, tipWcs, wcsTerms, type PartFrameWcs } from "./partFrame";
 
 const LIVE: PartFrameWcs = {
   g5x: [7, 8, 9, 0, 0, 0], g92: [0.5, 0, 0, 0, 0, 0], rotationDeg: 0, tool: [0, 0, 100],
@@ -42,14 +42,14 @@ describe("epochWcsList", () => {
     expect(w!.g5x).toEqual([40, -41, 42, 0, 0, 0]);
     expect(w!.rotationDeg).toBe(12);
     expect(w!.g92).toBe(LIVE.g92);
-    expect(w!.tool).toBe(LIVE.tool);
+    expect(w!.tool).toBeUndefined();   // tip-space: TLO is per-segment (schema 8)
   });
 
   it("rewritten epoch pins the PARSE snapshot (live row is not authoritative)", () => {
     const [w] = epochWcsList([ev({ idx: 6, rewritten: true })], LIVE, TABLE);
     expect(w!.g5x).toEqual([10, 20, 30, 0, 0, 0]);
     expect(w!.rotationDeg).toBe(0);
-    expect(w!.tool).toBe(LIVE.tool);
+    expect(w!.tool).toBeUndefined();   // tip-space: TLO is per-segment (schema 8)
   });
 
   it("missing table falls back to the snapshot — the only honest stand-in", () => {
@@ -134,15 +134,20 @@ describe("rebasePositions", () => {
     expect(out[2]).toBeCloseTo(p[2]!, 5);
   });
 
-  it("TLO cancels — the same live tool on both sides never shifts the path", () => {
-    const withTool = epochTermsFor(
+  it("epoch terms are TIP-space: the rebase is independent of the live tool (schema 8)", () => {
+    const terms = epochTermsFor(
       [ev({ idx: 1, rewritten: true, g5x: [50, 0, 0, 0, 0, 0] })], LIVE, undefined);
-    const active = wcsTerms(LIVE);
+    expect([terms[0]!.tx, terms[0]!.ty, terms[0]!.tz]).toEqual([0, 0, 0]);
+    const active = wcsTerms(tipWcs(LIVE));
     const out = rebasePositions(new Float32Array([0, 0, 0]), new Uint8Array([0]),
-                                withTool, active);
-    // Only the OFFSET delta survives (epoch z 0 vs active z 9): the ±100
-    // tool z is added by the epoch terms and removed by the active terms.
+                                terms, active);
+    // Only the OFFSET delta survives (epoch z 0 vs active z 9); the live
+    // tool (z 100) appears on NEITHER side — a tool-bearing `active` would
+    // be the double count the old "TLO cancels" invariant guarded against.
     expect(out[2]).toBeCloseTo(-9, 5);
+    const wrong = rebasePositions(new Float32Array([0, 0, 0]), new Uint8Array([0]),
+                                  terms, wcsTerms(LIVE));
+    expect(wrong[2]).toBeCloseTo(-109, 5);
   });
 });
 

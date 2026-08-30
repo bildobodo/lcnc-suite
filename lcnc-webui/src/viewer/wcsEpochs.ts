@@ -12,8 +12,10 @@
 //   rewritten epoch → the PARSE SNAPSHOT: the program writes these offsets
 //     itself (G10 L2 — the normal TWP path writes the plane origin into
 //     G59), so the live table row is not authoritative — following it would
-//     render a position the machine will never visit. Live tool terms stay
-//     live in both cases (TLO is not fixture state).
+//     render a position the machine will never visit. Tool terms are NOT
+//     part of epoch terms (schema 8): the tool offset is per-SEGMENT state
+//     (viewer/tloEvents.ts), added by each consumer through liftToJoints —
+//     epoch terms are TIP-space, so the offset can never ride twice.
 //
 // Mirrors the kinsForSegment routing-point pattern: one place resolves
 // "which terms govern this vertex", consumed by the part-frame transform,
@@ -74,10 +76,9 @@ export function epochWcsList(
         g5x: AXIS_KEYS.map(k => Number(row[k] ?? 0)),
         g92: live.g92,
         rotationDeg: Number(row.r ?? 0),
-        tool: live.tool,
       };
     }
-    return { g5x: ev.g5x, g92: ev.g92, rotationDeg: ev.rotationDeg, tool: live.tool };
+    return { g5x: ev.g5x, g92: ev.g92, rotationDeg: ev.rotationDeg };
   });
 }
 
@@ -192,8 +193,9 @@ const _p: number[] = [0, 0, 0, 0, 0, 0];
  *
  *  The rendered polyline hangs under ONE scene group (workOrigin = the live
  *  ACTIVE fixture's terms), so a vertex peeled against epoch e must be
- *  re-based:  v_display = active⁻¹( epoch_e(v) ).  TLO terms cancel (same
- *  live tool on both sides). Fast path: no epoch data, or every epoch's
+ *  re-based:  v_display = active⁻¹( epoch_e(v) ).  Both `terms` and
+ *  `active` are TIP-space (schema 8: no tool offset in any WCS terms —
+ *  callers build `active` from tipWcs(live)). Fast path: no epoch data, or every epoch's
  *  terms already equal the active terms (the overwhelmingly common
  *  single-fixture case) → the INPUT array is returned untouched, zero
  *  copies. Pure. */

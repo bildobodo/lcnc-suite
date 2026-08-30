@@ -57,7 +57,10 @@ const emit = defineEmits<{
   // sub-relative numbers are self-consistent within the drawn data);
   // `displayLine` is the per-point-trust-GATED line for the text panel
   // (W3 P4) — null = suppress (untrusted / entry / end), never raw.
-  (e: "pose", joints: (number | null)[] | null, line: number | null, cum: number | null, trk: ScrubTrack | null, displayLine: number | null, plane: number[] | null): void;
+  // `tlo`/`tool`: the sample's tool offset + tool number (schema 8) —
+  // ThreeViewer's phase 3 subtracts the offset the joints were lifted
+  // with, and the marker follows the tool; null = live.
+  (e: "pose", joints: (number | null)[] | null, line: number | null, cum: number | null, trk: ScrubTrack | null, displayLine: number | null, plane: number[] | null, tlo: number[] | null, tool: number | null): void;
   // The track to sweep — includes the entry move when one is known.
   (e: "check", track: ScrubTrack): void;
   (e: "cancel-check"): void;
@@ -126,7 +129,7 @@ function publishSubExec(t: ScrubTrack, i: number, subName: string | null) {
 const pct = computed(() => (cumMax.value > 0 ? Math.round((sPos.value / cumMax.value) * 100) : 0));
 
 // Reused per-frame scratch — the sPos watcher runs at animation rate.
-const _sample: ScrubSample = { px: 0, py: 0, pz: 0, pa: 0, pb: 0, pc: 0, line: 0, rapid: false, kinstype: null, frame: null, wcsEpoch: null, index: 0 };
+const _sample: ScrubSample = { px: 0, py: 0, pz: 0, pa: 0, pb: 0, pc: 0, line: 0, rapid: false, kinstype: null, frame: null, wcsEpoch: null, tlo: null, index: 0 };
 const _joints: (number | null)[] = [];
 // Wire kins declaration → spec, cached: specFromWire allocates, and this
 // feeds the per-frame pose path — recompute only when viewer_init changes.
@@ -186,7 +189,8 @@ function applyPos() {
         a: _joints[_ai] as number })
     : null;
   emit("pose", _joints.slice(), _sample.line, sPos.value, t,
-       curAtEnd.value ? (endLine.value ?? null) : disp.line, _plane);
+       curAtEnd.value ? (endLine.value ?? null) : disp.line, _plane,
+       _sample.tlo ? [..._sample.tlo.xyz] : null, _sample.tlo?.tool ?? null);
   // Positional 3D highlight (review P3): address the path by track index —
   // the sample's line number may be sub/remap-relative and collide.
   trackHighlightRange.value = lineRunAround(t, _sample.index);
@@ -201,9 +205,10 @@ const MOTION_EXIT_THRESHOLD = 0.05;
 
 function _wcs() {
   const d = st.value;
-  // tool_offset makes the derived joints TRUE joint-space (G43-inclusive)
-  // — required so applyState phase 3's marker shift lands the tip on the
-  // path, and so entry capture inverts TLO-inclusive live joints.
+  // tool_offset is the LIVE applied offset — since schema 8 the fallback
+  // for segments before the program's first G43/M6 row (jointsForSample /
+  // the entry inverse resolve each segment's own offset from the track's
+  // tloEvents through it), so derived joints stay TRUE joint-space.
   return {
     g5x: d.g5x_offset ?? [], g92: d.g92_offset ?? [],
     rotationDeg: d.rotation_xy ?? 0, tool: d.tool_offset ?? [],
@@ -268,7 +273,7 @@ function exitSim() {
   playing.value = false;
   if (!simMode.value) return;
   simMode.value = false;
-  emit("pose", null, null, null, null, null, null);
+  emit("pose", null, null, null, null, null, null, null, null);
   trackHighlightRange.value = null;
   subExecState.value = null;
 }

@@ -613,3 +613,42 @@ describe("per-epoch WCS terms (review P2)", () => {
     expect(miss.hits).toHaveLength(0);
   });
 });
+
+describe("per-segment tool offset (schema 8)", () => {
+  // The parametric tool body (tip at its local origin) under the PLUNGE
+  // head: with a live TLO the swept joints are tip + TLO, so the body must
+  // be shifted back per pose or the tip floats a tool length above the path.
+  const TOOL_BODIES: CollisionBody[] = [
+    { id: "vise", group: "table", positions: boxPositions(10) },
+    { id: "tool", group: "head", positions: toolCylinderPositions(6, 20) },
+  ];
+  // Tool tip at head origin z=50+Z, work box top at +5 → contact at Z=−45.
+  const plunge = track([[0, 0, 0], [0, 0, -50]], undefined, [1, 2]);
+
+  it("the tip lands on the path under a live TLO — same first touch as without", () => {
+    const m = buildCollisionModel(PLUNGE, TOOL_BODIES);
+    const r0 = sweepCollisions(m, plunge, WCS0, { margin: 0.5 });
+    const r22 = sweepCollisions(m, plunge, { ...WCS0, tool: [0, 0, 22] }, { margin: 0.5 });
+    expect(r0.hits.length).toBe(1);
+    expect(r22.hits.length).toBe(1);
+    expect(r22.hits[0]!.cum).toBeCloseTo(r0.hits[0]!.cum, 1);
+    expect(r0.hits[0]!.cum).toBeCloseTo(45, 0.5);
+  });
+
+  it("a mid-track event changes the housing height but not the tip", () => {
+    // Spindle housing box (bottom at 40+Z) + tool body; plunge twice: line 2
+    // under the live offset (0) contacts the vise at Z=−35 (housing) and
+    // the tool tip at −45; line 4 under the program's G43 (22) lifts the
+    // HOUSING 22 higher (contact at −57 — beyond the −40 plunge) while the
+    // tool tip still lands at −45. So line 4 reports the tool, not the housing.
+    const bodies: CollisionBody[] = [...PLUNGE_BODIES, TOOL_BODIES[1]!];
+    const m = buildCollisionModel(PLUNGE, bodies);
+    const t = track([[0, 0, 0], [0, 0, -48], [0, 0, 0], [0, 0, -48]], undefined, [1, 2, 3, 4]);
+    t.tlo = new Uint8Array([0xff, 0xff, 0, 0]);
+    t.tloEvents = [{ seq: 0, xyz: [0, 0, 22], tool: 3 }];
+    const r = sweepCollisions(m, t, WCS0, { margin: 0.5, tloEvents: t.tloEvents });
+    const pairsOn = (line: number) => r.hits.filter(h => h.line === line).map(h => h.a).sort();
+    expect(pairsOn(2)).toEqual(["spindle", "tool"]);
+    expect(pairsOn(4)).toEqual(["tool"]);
+  });
+});

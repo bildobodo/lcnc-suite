@@ -30,6 +30,7 @@ import * as THREE from "three";
 import type { ViewerInit } from "../ws/bulkData";
 import { normalizeKinematics, type KinRuntime } from "./kinematics";
 import { kinsForSegment, makeKins, type KinsModel, type KinsSpec } from "./kins";
+import { tloForIndex, type TloEvent } from "./tloEvents";
 
 export interface PartFrameMachine {
   groups: Array<{ id: string; parent: string; translate?: [number, number, number] | number[] }>;
@@ -55,13 +56,47 @@ export interface PartFrameWcs {
   g92: number[];
   /** Live XY rotation, degrees. */
   rotationDeg: number;
-  /** Live TCP tool offset (G43), machine-frame XYZ — stat.tool_offset.
-   *  When provided, programToMachine produces TRUE JOINT-SPACE values
-   *  (joint = tip + TLO, what the servos actually hold under G43) and
-   *  machineToProgram inverts TLO-inclusive live joints correctly. Omit for
-   *  tip-space math (path placement). Rotary TLO components are out of
-   *  scope (matches applyState phase 3 and the gateway limit check). */
+  /** LIVE applied TCP tool offset (G43), machine-frame XYZ —
+   *  stat.tool_offset. Since schema 8 the offset is PER-SEGMENT state
+   *  (tloEvents on the track/polyline); this live value is the fallback
+   *  for segments before the program's first G43/M6 row (the run inherits
+   *  the machine's modal G43 state) and for payloads without the channel.
+   *  Consumers resolve it through tloEvents.tloForIndex and lift with
+   *  liftToJoints — never through wcsTerms' tx/ty/tz on epoch terms (those
+   *  are tip-space). Rotary TLO components are out of scope (matches
+   *  applyState phase 3 and the gateway limit check). */
   tool?: number[];
+}
+
+/** The same WCS with the tool offset stripped — TIP-space terms. Every
+ *  per-segment consumer builds its terms from this and adds the segment's
+ *  own offset via liftToJoints, so the offset can never ride twice. */
+export function tipWcs(wcs: PartFrameWcs): PartFrameWcs {
+  return wcs.tool ? { g5x: wcs.g5x, g92: wcs.g92, rotationDeg: wcs.rotationDeg } : wcs;
+}
+
+/** Program coords → TRUE JOINT-SPACE machine values: programToMachine under
+ *  TIP-space terms, then + the segment's tool offset (joint = tip + TLO,
+ *  what the servos hold under G43). ONE lift for every consumer (scrub
+ *  pose, entry inverse, part-frame, collision) — schema 8. */
+export function liftToJoints(
+  px: number, py: number, pz: number, pa: number, pb: number, pc: number,
+  oTip: WcsTerms, tlo: readonly number[], out: number[],
+): void {
+  programToMachine(px, py, pz, pa, pb, pc, oTip, out);
+  out[0]! += tlo[0] ?? 0;
+  out[1]! += tlo[1] ?? 0;
+  out[2]! += tlo[2] ?? 0;
+}
+
+/** Exact inverse of liftToJoints: TLO-inclusive machine values → program
+ *  coords under TIP-space terms. */
+export function jointsToProgram(
+  mx: number, my: number, mz: number, ma: number, mb: number, mc: number,
+  oTip: WcsTerms, tlo: readonly number[], out: number[],
+): void {
+  machineToProgram(mx - (tlo[0] ?? 0), my - (tlo[1] ?? 0), mz - (tlo[2] ?? 0),
+                   ma, mb, mc, oTip, out);
 }
 
 export interface PartFramePolyline {
@@ -89,6 +124,12 @@ export interface PartFramePolyline {
   /** Per-vertex source TRACK index (review P3) — carried through
    *  subdivision so the positional highlight keeps its address space. */
   src?: Uint32Array;
+  /** Per-vertex TLO/tool event index into `tloEvents` (schema 8; 0xff =
+   *  before the first row → the live `wcs.tool` governs). The segment
+   *  ENDING at vertex i lifts AND peels with that offset. Absent = live
+   *  offset throughout (pre-8 behavior). */
+  tlo?: Uint8Array;
+  tloEvents?: TloEvent[];
 }
 
 export interface PartFrameResult {
@@ -273,7 +314,12 @@ export function transformToPartFrame(
   // still be empty — the transform then runs offset-free and re-runs when
   // g5x/g92 first arrive (ThreeViewer's WCS-change refresh). A bare [0]!
   // here turned that race into NaN vertices — invisible geometry, no error.
-  const o = wcsTerms(wcs);
+  // TIP-space terms: the tool offset is per-vertex (schema 8) and enters
+  // through liftToJoints / the peel below with ONE source per vertex —
+  // the old code lifted with the epoch terms' (live) tool but peeled with
+  // the active terms' (live) tool, an asymmetry that was invisible only
+  // because both were the same value.
+  const o = wcsTerms(tipWcs(wcs));
   // Output peel stays in the LIVE ACTIVE frame — the rendered polyline hangs
   // under the single workOrigin group. Per-epoch terms (review P2) only
   // steer the INPUT side: program coords → machine coords per vertex.
@@ -281,6 +327,8 @@ export function transformToPartFrame(
   const inWcs = input.wcs;
   const termFor = (i: number): WcsTerms =>
     (inWcs && epochTerms?.[inWcs[i] ?? 0]) ? epochTerms[inWcs[i] ?? 0]! : o;
+  const tloFor = (i: number): readonly number[] =>
+    tloForIndex(input.tlo?.[i], input.tloEvents, wcs.tool);
 
   // Section starts: segments INTO these vertices are false connectors across
   // stream interleaves — a single un-subdivided sample keeps the vertex (the
@@ -329,16 +377,16 @@ export function transformToPartFrame(
         const fi = input.frame?.[i];
         const fr = (fi != null && fi !== 0xff && inFrames) ? inFrames[fi] ?? null : null;
         return kinsForSegment(axisLetters, machine.kins, t, fr,
-                              wcs.tool?.[2] || undefined, "part-frame preview");
+                              tloFor(i)[2] || undefined, "part-frame preview");
       })
     : null;
   const machineVals: number[] = [0, 0, 0, 0, 0, 0];
 
   let out = 0;
-  const emit = (px: number, py: number, pz: number, pa: number, pb: number, pc: number, line: number, model: KinsModel, oIn: WcsTerms) => {
-    // Program → machine coords (per the sample's EPOCH terms), then machine
-    // → joints via the kins boundary.
-    programToMachine(px, py, pz, pa, pb, pc, oIn, machineVals);
+  const emit = (px: number, py: number, pz: number, pa: number, pb: number, pc: number, line: number, model: KinsModel, oIn: WcsTerms, tloV: readonly number[]) => {
+    // Program → machine coords (per the sample's EPOCH terms + the
+    // segment's TLO), then machine → joints via the kins boundary.
+    liftToJoints(px, py, pz, pa, pb, pc, oIn, tloV, machineVals);
     model.inverse(machineVals, jointVals);
 
     // Evaluate chain nodes (parents first): base + composed DOFs, exactly
@@ -371,11 +419,13 @@ export function transformToPartFrame(
     // offset whenever the spindle chain is tilted (W3 P0, operator-caught:
     // 12.58 mm at B=−40.86/C=130.25 with TLO z=22). Column-major elements
     // directly; transformDirection would normalize.
+    // Same per-vertex offset as the lift above (schema 8).
     const we = nodes[toolIdx]!.world.elements;
+    const tx = tloV[0] ?? 0, ty = tloV[1] ?? 0, tz = tloV[2] ?? 0;
     tool.setFromMatrixPosition(nodes[toolIdx]!.world);
-    tool.x -= we[0]! * o.tx + we[4]! * o.ty + we[8]! * o.tz;
-    tool.y -= we[1]! * o.tx + we[5]! * o.ty + we[9]! * o.tz;
-    tool.z -= we[2]! * o.tx + we[6]! * o.ty + we[10]! * o.tz;
+    tool.x -= we[0]! * tx + we[4]! * ty + we[8]! * tz;
+    tool.y -= we[1]! * tx + we[5]! * ty + we[9]! * tz;
+    tool.z -= we[2]! * tx + we[6]! * ty + we[10]! * tz;
     invWork.copy(nodes[workIdx]!.world).invert();
     tool.applyMatrix4(invWork);
     const rx = tool.x - ox, ry = tool.y - oy;
@@ -391,7 +441,7 @@ export function transformToPartFrame(
   let _srcCur = input.src?.[0] ?? 0;
   emit(input.pos[0]!, input.pos[1]!, input.pos[2]!,
        input.abc[0]!, input.abc[1]!, input.abc[2]!, input.lines?.[0] ?? 0,
-       vertModel?.[0] ?? identityKins, termFor(0));
+       vertModel?.[0] ?? identityKins, termFor(0), tloFor(0));
   if (breakSet.has(0)) outBreaks.push(0);
   for (let i = 1; i < n; i++) {
     const j = i * 3, k = j - 3;
@@ -399,6 +449,7 @@ export function transformToPartFrame(
     const line = input.lines?.[i] ?? 0;
     const model = vertModel?.[i] ?? identityKins;  // segment mode: all its samples share it
     const oSeg = termFor(i);                       // ...and its epoch terms
+    const tloSeg = tloFor(i);                      // ...and its tool offset
     _srcCur = input.src?.[i] ?? i;                 // ...and its track index
     for (let s = 1; s <= steps; s++) {
       const t = s / steps;
@@ -412,6 +463,7 @@ export function transformToPartFrame(
         line,
         model,
         oSeg,
+        tloSeg,
       );
     }
     // Remap the section start to its output index (the segment's endpoint —

@@ -18,7 +18,7 @@ import { useAxes } from "./useAxes";
 import { recordApply, recordRender, setViewerPerfContext } from "./viewerPerf";
 import { disposeObject } from "./viewer/disposal";
 import { normalizeKinematics, type KinRuntime } from "./viewer/kinematics";
-import { lineDistances, wcsTerms, type PartFrameMachine, type PartFrameWcs } from "./viewer/partFrame";
+import { lineDistances, tipWcs, wcsTerms, type PartFrameMachine, type PartFrameWcs } from "./viewer/partFrame";
 import { MACHINE_PALETTE, defaultPartHex } from "./viewer/palette";
 import { boundsOf, epochTermsFor, previewWcsStaleFor, rebasePositions, usedWcsRowsKey, type WcsTableRow } from "./viewer/wcsEpochs";
 import { specFromWire } from "./viewer/kins";
@@ -1376,8 +1376,10 @@ function applyState(init: ViewerInit, st: ViewerState) {
 
   // Phase 3 — tool spatial compensation: put the tool TIP at TCP by shifting
   // the tool group by -tool_offset relative to its (base or DOF-composed)
-  // position.
-  const tofs = st.tool_offset;
+  // position. Under a scrub pose the SAMPLE's offset is what its joints were
+  // lifted with (schema 8) — live tool_offset would put the tip a tool-length
+  // delta off the path after an in-program G43 (the fresh-boot 22.000 class).
+  const tofs = (_scrubJoints && _scrubTlo) ? _scrubTlo : st.tool_offset;
   if (tofs && tofs.length >= 3) {
     _toolGrp.position.sub(_tofsVec.set(tofs[0] ?? 0, tofs[1] ?? 0, tofs[2] ?? 0));
   }
@@ -1744,6 +1746,7 @@ function runCollisionCheck(trackOverride?: ScrubTrack) {
     frames: track.frames,         // small list — structured-cloned, not transferred
     brk: track.brk?.slice(),      // kins-flip relabel flags — excluded from the sweep
     wcs: track.wcsEpoch?.slice(), // per-segment WCS epoch (terms in options below)
+    tlo: track.tlo?.slice(),      // per-segment TLO/tool event (events in options below)
   };
   // ArrayBuffer[] (not Transferable[]): every entry is a buffer, and the
   // TS-only Transferable name trips eslint's no-undef in SFC scripts.
@@ -1779,6 +1782,7 @@ function runCollisionCheck(trackOverride?: ScrubTrack) {
       epochTerms: track.wcsEvents?.length
         ? epochTermsFor(track.wcsEvents, _pfWcs(), _pv.wcsTable ?? undefined)
         : undefined,
+      tloEvents: track.tloEvents,
     },
     }, transfer);
   } catch (err) {
@@ -1863,7 +1867,7 @@ function _applyProgrammed(g: ViewerGcode) {
   if (g.wcsEvents?.length && (g.feedWcs || g.rapidWcs) && (g.feedPos || g.rapidPos)) {
     const live = _pfWcs();
     const terms = epochTermsFor(g.wcsEvents, live, _pv.wcsTable ?? undefined);
-    const active = wcsTerms(live);
+    const active = wcsTerms(tipWcs(live));   // tip-space like the epoch terms (schema 8)
     const fp = g.feedPos ? rebasePositions(g.feedPos, g.feedWcs, terms, active) : g.feedPos;
     const rp = g.rapidPos ? rebasePositions(g.rapidPos, g.rapidWcs, terms, active) : g.rapidPos;
     if (fp !== g.feedPos || rp !== g.rapidPos) {
@@ -1902,10 +1906,10 @@ function applyGcode(g: ViewerGcode) {
     // are re-read on every WCS/mode change.
     const feed = { pos: fp.slice(), abc: fa.slice(), lines: fl?.slice(), breaks: g.feedBreaks?.slice(),
                    mode: g.feedMode?.slice(), frame: g.feedFrame?.slice(), frames: g.kinsFrames,
-                   wcs: g.feedWcs?.slice(), src: g.feedSrc?.slice() };
+                   wcs: g.feedWcs?.slice(), src: g.feedSrc?.slice(), tlo: g.feedTlo?.slice() };
     const rapid = { pos: rp.slice(), abc: ra.slice(), breaks: g.rapidBreaks?.slice(),
                     mode: g.rapidMode?.slice(), frame: g.rapidFrame?.slice(), frames: g.kinsFrames,
-                    wcs: g.rapidWcs?.slice() };
+                    wcs: g.rapidWcs?.slice(), tlo: g.rapidTlo?.slice() };
     const transfer: ArrayBuffer[] = [
       feed.pos.buffer as ArrayBuffer, feed.abc.buffer as ArrayBuffer,
       rapid.pos.buffer as ArrayBuffer, rapid.abc.buffer as ArrayBuffer,
@@ -1920,6 +1924,8 @@ function applyGcode(g: ViewerGcode) {
     if (feed.wcs) transfer.push(feed.wcs.buffer as ArrayBuffer);
     if (rapid.wcs) transfer.push(rapid.wcs.buffer as ArrayBuffer);
     if (feed.src) transfer.push(feed.src.buffer as ArrayBuffer);
+    if (feed.tlo) transfer.push(feed.tlo.buffer as ArrayBuffer);
+    if (rapid.tlo) transfer.push(rapid.tlo.buffer as ArrayBuffer);
     try {
       _pfGetWorker().postMessage({
         id, machine: _pfMachine(viewerInit.value!), wcs: _pfWcs(),
@@ -1927,6 +1933,8 @@ function applyGcode(g: ViewerGcode) {
         // per-epoch re-add terms next to the per-vertex `wcs` indices.
         wcsEvents: g.wcsEvents,
         wcsTable: _pv.wcsTable ?? undefined,
+        // Per-segment TLO/tool events (schema 8) for the `tlo` indices.
+        tloEvents: g.tloEvents,
         feed, rapid,
       }, transfer);
     } catch (err) {
@@ -2011,13 +2019,18 @@ let pendingState: any = null;
 // through the exact same compose path as live motion — no second kinematics
 // implementation. null entries (UVW/unknown letters) keep the live joint.
 let _scrubJoints: (number | null)[] | null = null;
+// The scrub sample's tool offset (schema 8): applyState phase 3 subtracts
+// THIS while a scrub pose is shown (the sample's joints were lifted with
+// it). null = live.
+let _scrubTlo: number[] | null = null;
 let _scrubLineNo: number | null = null;
 // Last full status applied — requeued when the scrub pose changes so the
 // model re-poses immediately instead of waiting for the next status tick.
 let _lastState: ViewerState | null = null;
 
-function onScrubPose(joints: (number | null)[] | null, line: number | null, cum: number | null, trk: ScrubTrack | null, displayLine: number | null = null, plane: number[] | null = null) {
+function onScrubPose(joints: (number | null)[] | null, line: number | null, cum: number | null, trk: ScrubTrack | null, displayLine: number | null = null, plane: number[] | null = null, tlo: number[] | null = null, _tool: number | null = null) {
   _scrubJoints = joints;
+  _scrubTlo = joints ? tlo : null;
   _scrubPlane = plane;
   _twpRefresh();
   // RAW sample line: keys the clash tint and the 3D path highlight, whose

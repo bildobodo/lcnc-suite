@@ -28,7 +28,7 @@ function stream(points: number[][], opts: { abc?: number[][]; lines?: number[]; 
 const EMPTY = stream([]);
 
 function freshSample(): ScrubSample {
-  return { px: 0, py: 0, pz: 0, pa: 0, pb: 0, pc: 0, line: 0, rapid: false, kinstype: null, frame: null, wcsEpoch: null, index: 0 };
+  return { px: 0, py: 0, pz: 0, pa: 0, pb: 0, pc: 0, line: 0, rapid: false, kinstype: null, frame: null, wcsEpoch: null, tlo: null, index: 0 };
 }
 
 describe("buildScrubTrack", () => {
@@ -952,5 +952,49 @@ describe("tlo events on the track (schema 8)", () => {
     const e = prependEntry(t, [-5, 0, 0, 0, 0, 0]);
     expect(Array.from(e.tlo!.slice(0, 3))).toEqual([0xff, 0xff, 0]);
     expect(e.tloEvents).toBe(EVS);
+  });
+});
+
+describe("per-segment tool offset in the pose chain (schema 8)", () => {
+  const AXES = ["X", "Y", "Z"];
+  const EVS = [{ seq: 1, xyz: [0, 0, 22] as [number, number, number], tool: 3 }];
+  // rapid seq 1 (before the G43 row) → feed seq 2 (after it)
+  const feed = stream([[10, 0, -5]], { seq: [2], tlo: [0], lines: [4] });
+  const rapid = stream([[0, 0, 0]], { seq: [1], tlo: [0xff], lines: [3] });
+  const track = buildScrubTrack(feed, rapid, undefined, undefined, undefined, EVS)!;
+  const wcs = { g5x: [100, 0, 0, 0, 0, 0], g92: [], rotationDeg: 0, tool: [0, 0, 0] };
+
+  it("pre-event sample lifts with the LIVE offset, post-event with the event's (the 22.000 shape)", () => {
+    const s = freshSample();
+    const j: (number | null)[] = [];
+    sampleTrack(track, 0, s);
+    expect(s.tlo).toBeNull();
+    jointsForSample(s, wcs, AXES, j);
+    expect(j[2]).toBeCloseTo(0, 9);                 // z 0 + live 0
+    sampleTrack(track, track.cum[1]!, s);
+    expect(s.tlo?.xyz).toEqual([0, 0, 22]);
+    jointsForSample(s, wcs, AXES, j);
+    expect(j[0]).toBeCloseTo(110, 9);
+    expect(j[2]).toBeCloseTo(-5 + 22, 9);           // z −5 + the program's G43
+    // A live offset changes nothing after the event — the program's own
+    // G43 governs (fresh boot vs. a session carrying TLO 22 agree).
+    jointsForSample(s, { ...wcs, tool: [0, 0, 22] }, AXES, j);
+    expect(j[2]).toBeCloseTo(17, 9);
+  });
+
+  it("entry inverse uses point 0's offset and round-trips to the live joints", () => {
+    const liveJoints = [130, 0, 40];
+    const withEvent0 = buildScrubTrack(
+      stream([[10, 0, -5]], { seq: [2], tlo: [0] }), stream([[0, 0, 0]], { seq: [1], tlo: [0] }),
+      undefined, undefined, undefined, EVS)!;
+    const e = machineJointsToProgram(liveJoints, AXES, wcs, undefined, null, null, undefined, [0, 0, 22]);
+    expect(e[2]).toBeCloseTo(40 - 22, 9);
+    const t = prependEntry(withEvent0, e);
+    const s = freshSample();
+    const j: (number | null)[] = [];
+    sampleTrack(t, 0, s);
+    jointsForSample(s, wcs, AXES, j);
+    expect(j[0]).toBeCloseTo(130, 9);
+    expect(j[2]).toBeCloseTo(40, 9);
   });
 });

@@ -109,7 +109,7 @@ function replay(payloadPath: string, truthPath: string) {
 
   const sample: ScrubSample = {
     px: 0, py: 0, pz: 0, pa: 0, pb: 0, pc: 0,
-    line: 0, rapid: false, kinstype: null, frame: null, wcsEpoch: null, index: 0,
+    line: 0, rapid: false, kinstype: null, frame: null, wcsEpoch: null, tlo: null, index: 0,
   };
   const joints: (number | null)[] = [];
   const sim: number[][] = [];

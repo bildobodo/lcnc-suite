@@ -207,6 +207,31 @@ describe("transformToPartFrame", () => {
     expect(last[2]).toBeCloseTo(22, 3);
   });
 
+  it("lifts AND peels each vertex with ITS OWN tool offset (schema 8)", () => {
+    // Same B=90 fixture, but the offset is per vertex: live tool 0, and a
+    // tlo_events row (22) governing only the second vertex. Vertex 0 (B=0,
+    // live 0) stays programmed; the B=90 endpoint reproduces the W3 P0
+    // numbers — (−12, 5, 22) — which requires the LIFT and the PEEL to use
+    // the same per-vertex value (the pre-8 code peeled with the live terms).
+    const wcs = { g5x: [0, 0, 0, 0, 0, 0], g92: [], rotationDeg: 0, tool: [0, 0, 0] };
+    const input = {
+      ...poly([[10, 5, 0], [10, 5, 0]], [[0, 0, 0], [0, 90, 0]]),
+      tlo: new Uint8Array([0xff, 0]),
+      tloEvents: [{ seq: 0, xyz: [0, 0, 22] as [number, number, number], tool: 3 }],
+    };
+    const out = transformToPartFrame(BHEAD, wcs, input);
+    expect(vec(out.pos, 0)).toEqual(
+      [expect.closeTo(10, 3), expect.closeTo(5, 3), expect.closeTo(0, 3)]);
+    const last = vec(out.pos, out.pos.length / 3 - 1);
+    expect(last[0]).toBeCloseTo(-12, 3);
+    expect(last[1]).toBeCloseTo(5, 3);
+    expect(last[2]).toBeCloseTo(22, 3);
+    // Absent channel: the live offset governs every vertex, as before.
+    const live22 = transformToPartFrame(
+      BHEAD, { ...wcs, tool: [0, 0, 22] }, poly([[10, 5, 0], [10, 5, 0]], [[0, 0, 0], [0, 90, 0]]));
+    expect(vec(live22.pos, live22.pos.length / 3 - 1)[0]).toBeCloseTo(-12, 3);
+  });
+
   it("stays finite when the live WCS hasn't arrived yet (empty offset arrays)", () => {
     // Fresh-page-load race: preview can beat the first status tick, so g5x/g92
     // may be empty. Regression: a bare [0]! produced NaN → invisible geometry.
