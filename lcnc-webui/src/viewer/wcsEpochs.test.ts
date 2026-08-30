@@ -1,8 +1,8 @@
 // Unit tests for viewer/wcsEpochs.ts — per-segment WCS epochs (review P2).
 import { describe, expect, it } from "vitest";
 import {
-  boundsOf, epochWcsList, epochTermsFor, parseWcsFrames, rebasePositions,
-  usedWcsRowsKey,
+  boundsOf, epochWcsList, epochTermsFor, parseWcsFrames, previewWcsStaleFor,
+  rebasePositions, usedWcsRowsKey,
   type WcsEpoch, type WcsTableRow,
 } from "./wcsEpochs";
 import { machineToProgram, programToMachine, wcsTerms, type PartFrameWcs } from "./partFrame";
@@ -152,5 +152,63 @@ describe("boundsOf", () => {
     const b = boundsOf(new Float32Array([1, 2, 3, -4, 5, -6]))!;
     expect(b.min).toEqual([-4, 2, -6]);
     expect(b.max).toEqual([1, 5, 3]);
+  });
+});
+
+describe("previewWcsStaleFor — per-fixture, not per-active-slot", () => {
+  // Parse-time: G54 = (1300,-200,-1400), G59 written by the program (rewritten).
+  const G54 = [1300, -200, -1400, 0, 0, 0];
+  const G59 = [1609.6, -854.9, -791.1, 0, 0, 0];
+  const events: WcsEpoch[] = [
+    ev({ seq: 0, idx: 1, g5x: G54 }),
+    ev({ seq: 4, idx: 6, g5x: G59, rewritten: true }),
+  ];
+  const basis = { g5x: G54, g92: [0, 0, 0, 0, 0, 0], rotation: 0 };
+  const row = (v: number[], r = 0): WcsTableRow =>
+    ({ x: v[0], y: v[1], z: v[2], a: v[3], b: v[4], c: v[5], r });
+  const table = (g54: number[], g59: number[]): WcsTableRow[] => {
+    const t: WcsTableRow[] = [];
+    for (let i = 0; i < 9; i++) t.push(row([0, 0, 0, 0, 0, 0]));
+    t[0] = row(g54); t[5] = row(g59);
+    return t;
+  };
+  const zero = [0, 0, 0, 0, 0, 0];
+
+  it("a G54→G59 switch mid-run is NOT stale (the operator changed nothing)", () => {
+    // Live ACTIVE offset is now the G59 row — the old check lit here.
+    expect(previewWcsStaleFor(events, basis, table(G54, G59),
+      { g5x: G59, g92: zero, rotationDeg: 0 })).toBe(false);
+  });
+
+  it("an idle touch-off on a USED fixture is stale", () => {
+    expect(previewWcsStaleFor(events, basis, table([1310, -200, -1400, 0, 0, 0], G59),
+      { g5x: G54, g92: zero, rotationDeg: 0 })).toBe(true);
+  });
+
+  it("a change to a fixture the PROGRAM rewrites is not stale", () => {
+    expect(previewWcsStaleFor(events, basis, table(G54, [0, 0, 0, 0, 0, 0]),
+      { g5x: G54, g92: zero, rotationDeg: 0 })).toBe(false);
+  });
+
+  it("rotation on a used fixture counts; sub-eps jitter does not", () => {
+    const t = table(G54, G59);
+    t[0] = row(G54, 5);
+    expect(previewWcsStaleFor(events, basis, t, { g5x: G54, g92: zero, rotationDeg: 0 })).toBe(true);
+    const t2 = table([1300.0005, -200, -1400, 0, 0, 0], G59);
+    expect(previewWcsStaleFor(events, basis, t2, { g5x: G54, g92: zero, rotationDeg: 0 })).toBe(false);
+  });
+
+  it("legacy payload (no events) keeps the active-basis comparison", () => {
+    expect(previewWcsStaleFor(undefined, basis, undefined,
+      { g5x: G54, g92: zero, rotationDeg: 0 })).toBe(false);
+    expect(previewWcsStaleFor(undefined, basis, undefined,
+      { g5x: [1310, -200, -1400, 0, 0, 0], g92: zero, rotationDeg: 0 })).toBe(true);
+    expect(previewWcsStaleFor(undefined, null, undefined,
+      { g5x: G54, g92: zero, rotationDeg: 0 })).toBe(false);
+  });
+
+  it("makes no claim without a table or live status", () => {
+    expect(previewWcsStaleFor(events, basis, undefined, { g5x: G59, g92: zero, rotationDeg: 0 })).toBe(false);
+    expect(previewWcsStaleFor(events, basis, table(G54, G59), null)).toBe(false);
   });
 });

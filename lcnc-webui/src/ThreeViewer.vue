@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, inject, onMounted, onUnmounted, reactive, ref, shallowRef, watch, type Ref } from "vue";
+import { computed, inject, onMounted, onUnmounted, reactive, ref, shallowRef, toRaw, watch, type Ref } from "vue";
 
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
@@ -19,7 +19,8 @@ import { recordApply, recordRender, setViewerPerfContext } from "./viewerPerf";
 import { disposeObject } from "./viewer/disposal";
 import { normalizeKinematics, type KinRuntime } from "./viewer/kinematics";
 import { lineDistances, wcsTerms, type PartFrameMachine, type PartFrameWcs } from "./viewer/partFrame";
-import { boundsOf, epochTermsFor, rebasePositions, usedWcsRowsKey, type WcsTableRow } from "./viewer/wcsEpochs";
+import { MACHINE_PALETTE, defaultPartHex } from "./viewer/palette";
+import { boundsOf, epochTermsFor, previewWcsStaleFor, rebasePositions, usedWcsRowsKey, type WcsTableRow } from "./viewer/wcsEpochs";
 import { specFromWire } from "./viewer/kins";
 import { displayDecision } from "./viewer/displayPipeline";
 import { trackHighlightRange } from "./trackHighlight";
@@ -184,24 +185,21 @@ const previewTloStale = computed(() =>
   parseTloMismatch(viewerGcode.value, vst.value?.tool_number, vst.value?.tool_length));
 
 // Preview parsed against offsets that are no longer live — a touch-off after
-// the file was loaded. The parse basis rides the wire in MACHINE units for
-// exactly this comparison; `reparse_preview` makes them agree again.
-const WCS_STALE_EPS = 1e-4;
+// the file was loaded. Per FIXTURE on an epoch-aware payload (previewWcsStaleFor):
+// the old active-vs-active comparison lit during every TWP run because the
+// program itself switches G54→G59 at G53.x. `reparse_preview` makes them
+// agree again — but it is idle-gated, so the chip is not offered as an action
+// while the interpreter is busy.
 const previewWcsStale = computed(() => {
-  const b: any = (viewerGcode.value as any)?.wcs_basis;
+  const g = viewerGcode.value;
   const s = vst.value;
-  if (!b || !s) return false;
-  const cmp = (was: number[] | undefined, now: any) => {
-    if (!Array.isArray(was) || !Array.isArray(now)) return false;
-    const n = Math.min(was.length, now.length);
-    for (let i = 0; i < n; i++) {
-      if (Math.abs((was[i] ?? 0) - (now[i] ?? 0)) > WCS_STALE_EPS) return true;
-    }
-    return false;
-  };
-  return cmp(b.g5x, s.g5x_offset) || cmp(b.g92, s.g92_offset)
-    || Math.abs((b.rotation ?? 0) - (s.rotation_xy ?? 0)) > WCS_STALE_EPS;
+  if (!g || !s) return false;
+  return previewWcsStaleFor(
+    g.wcsEvents, g.wcs_basis, s.wcs_table as WcsTableRow[] | undefined,
+    { g5x: s.g5x_offset, g92: s.g92_offset, rotationDeg: s.rotation_xy });
 });
+const interpBusy = computed(() =>
+  (vst.value?.interp_state ?? INTERP_IDLE) !== INTERP_IDLE);
 
 // ---------- DOM ----------
 const host = ref<HTMLDivElement | null>(null);
@@ -866,12 +864,12 @@ const MAT = {
   axisZ: new THREE.MeshStandardMaterial({ metalness: 0.1, roughness: 0.7 }),
 };
 
-// light gray frame
-MAT.frame.color.setHex(0xbfbfbf);
-// muted red/green/blue axes
-MAT.axisX.color.setHex(0x9b4a4a); // X muted red
-MAT.axisY.color.setHex(0x4a8f5a); // Y muted green
-MAT.axisZ.color.setHex(0x4a6f9b); // Z muted blue
+// Machine-part defaults come from viewer/palette.ts (one table for the
+// scene build, the live recolor and the settings pickers).
+MAT.frame.color.setHex(MACHINE_PALETTE.frame);
+MAT.axisX.color.setHex(MACHINE_PALETTE.x);
+MAT.axisY.color.setHex(MACHINE_PALETTE.y);
+MAT.axisZ.color.setHex(MACHINE_PALETTE.z);
 MAT.tool.color.setHex(0xc0c0c0);  // silver shaft
 MAT.cutter.color.setHex(0xffdd00); // gold cutter
 MAT.holder.color.setHex(0x888888); // steel gray holder
@@ -1666,8 +1664,28 @@ function _colGetWorker(): Worker {
       collisionTrack.value = _colPendingTrack;
       emit("collision-lines", m.result!.hits.map(h => h.line));
     };
+    // A worker-level failure (module load, OOM, uncaught throw) never
+    // replies — without this the busy flag stayed set and the Check chip
+    // read 0% until a program change (the part-frame worker already had it).
+    _colWorker.onerror = (ev: ErrorEvent) => {
+      console.error("[collision] worker error:", ev.message);
+      emitTelemetry("collision.sweep_failed", { msg: `worker error: ${ev.message}` });
+      _colFail();
+    };
   }
   return _colWorker;
+}
+
+// Reset every sweep state the busy flag guards — the one place a failed
+// sweep unwinds to, so no failure path can leave `collisionBusy` pinned
+// (runCollisionCheck early-returns on it, and every auto-run goes through
+// runCollisionCheck).
+function _colFail() {
+  collisionBusy.value = false;
+  collisionProgress.value = 0;
+  collisionResult.value = null;
+  collisionTrack.value = null;
+  emit("collision-lines", null);
 }
 
 function cancelCollisionCheck() {
@@ -1686,7 +1704,11 @@ function runCollisionCheck(trackOverride?: ScrubTrack) {
   const init = viewerInit.value;
   // ScrubBar passes its active track (base + entry move captured at sim
   // entry); the bare-Check fallback sweeps the parse-time track.
-  const track = trackOverride ?? viewerGcode.value?.scrubTrack;
+  // toRaw: structured clone refuses Vue Proxies. The gcode payload is
+  // markRaw'd on arrival, but a track that ever passed through a deep ref
+  // arrives with its nested arrays proxied — unwrap at the boundary so the
+  // post below cannot throw on a caller's reactivity choice.
+  const track = toRaw(trackOverride ?? viewerGcode.value?.scrubTrack ?? null) as ScrubTrack | null;
   if (!init || !track || collisionBusy.value) return;
   const bodies: CollisionBody[] = [];
   let skipped = 0;
@@ -1731,7 +1753,8 @@ function runCollisionCheck(trackOverride?: ScrubTrack) {
     trackCopy.lines.buffer as ArrayBuffer, trackCopy.rapid.buffer as ArrayBuffer,
     trackCopy.cum.buffer as ArrayBuffer,
   ];
-  _colGetWorker().postMessage({
+  try {
+    _colGetWorker().postMessage({
     id,
     machine: _pfMachine(init),           // same shape as CollisionMachine
     bodies,
@@ -1757,7 +1780,16 @@ function runCollisionCheck(trackOverride?: ScrubTrack) {
         ? epochTermsFor(track.wcsEvents, _pfWcs(), _pv.wcsTable ?? undefined)
         : undefined,
     },
-  }, transfer);
+    }, transfer);
+  } catch (err) {
+    // postMessage throws SYNCHRONOUSLY on an uncloneable payload
+    // (DataCloneError — a Vue Proxy in the track was the live case). The
+    // busy flag was already set above; a throw here used to pin the Check
+    // chip at 0% and short-circuit every later sweep. Unwind and say so.
+    console.error("[collision] postMessage failed — sweep not run:", err);
+    emitTelemetry("collision.post_failed", { msg: String(err) });
+    _colFail();
+  }
 }
 
 // The sweep keeps itself current — no manual trigger. Auto-runs: on
@@ -2488,10 +2520,9 @@ watch(() => props.compGrid, () => {
 /** Live-update a machine part's color without rebuilding the scene.
  *  Pass `null` as color to revert to the built-in default. */
 function setMachinePartColor(partId: string, color: string | null) {
-  const dirColorMap: Record<string, number> = { x: 0x9b4a4a, y: 0x4a8f5a, z: 0x4a6f9b };
   const grp = _partGroupMap[partId];
   const dir = grp ? _groupDirMap[grp] : null;
-  const defaultHex = (dir ? dirColorMap[dir] : null) ?? 0xbfbfbf;
+  const defaultHex = defaultPartHex(dir);
   // machine.json default color (if any) beats the direction-derived fallback
   const partColor = viewerInit.value?.parts?.find((p) => p.id === partId)?.color;
 
@@ -2719,16 +2750,19 @@ defineExpose({
       <div v-if="vst?.eoffset_enabled" class="hudWarn">Comp Z {{ vst.eoffset_z != null ? vst.eoffset_z.toFixed(3) : '---' }}</div>
       <div v-if="vst?.rotation_xy" class="hudWarn">Rotation {{ vst.rotation_xy.toFixed(1) }}°</div>
       <div v-if="foreignWcs.length" class="hudWarn">Program cuts in {{ foreignWcs.join(', ') }} — {{ props.g5xLabel }} active</div>
-      <div v-if="rewrittenWcs.length" class="hudWarn">Program writes {{ rewrittenWcs.join(', ') }} — live edits there don't move its preview</div>
+      <div v-if="rewrittenWcs.length" class="hudWarn">Program writes {{ rewrittenWcs.join(', ') }} — its preview ignores live edits there</div>
       <div v-if="previewSchemaStale" class="hudWarn hudAction"
         :title="`Payload format ${previewSchemaStale.got ?? 'unstamped (older gateway)'}; this UI expects ${EXPECTED_PREVIEW_SCHEMA}. Reparse rebuilds it with the installed code.`"
         @click="emit('reparse')">Preview from a different suite version — Reparse</div>
-      <div v-if="previewWcsStale" class="hudWarn hudAction" @click="emit('reparse')">Preview uses older offsets — Refresh</div>
+      <div v-if="previewWcsStale" class="hudWarn" :class="{ hudAction: !interpBusy }"
+        :title="interpBusy ? 'A fixture this program uses was touched off after it was parsed — it re-parses when the run ends' : 'A fixture this program uses was touched off after it was parsed — click to re-parse'"
+        @click="!interpBusy && emit('reparse')">Preview uses older offsets{{ interpBusy ? '' : ' — Refresh' }}</div>
       <div v-if="previewTloStale" class="hudWarn hudAction"
         :title="`Parsed with T${previewTloStale.tool} length ${previewTloStale.parsed.toFixed(3)}, table now ${previewTloStale.live.toFixed(3)} — line limit flags are stale`"
         @click="emit('reparse')">Preview parsed with a different T{{ previewTloStale.tool }} length — Reparse</div>
-      <div v-if="toolpathOverflow" class="hudWarn"
-        title="The per-line soft-limit validator flagged moves outside the machine's travel — the same source of truth as the marked code lines and the scrub bar's findings">Toolpath exceeds soft limits</div>
+      <div v-if="toolpathOverflow" class="hudWarn" :class="{ hudAction: !interpBusy }"
+        :title="'The per-line soft-limit validator flagged moves outside the machine\'s travel — the same source of truth as the marked code lines and the scrub bar\'s findings' + (interpBusy ? '' : '. Click to re-parse against the current pose and offsets')"
+        @click="!interpBusy && emit('reparse')">Toolpath exceeds soft limits</div>
     </div>
 
     <!-- View navigation cube (top-right) -->
@@ -2762,6 +2796,7 @@ defineExpose({
     <ScrubBar
       :collisionBusy="collisionBusy"
       :collisionProgress="collisionProgress"
+      :sweepTool="{ num: _pv.toolNum, diam: _pv.toolDiam }"
       :collisionResult="collisionResult"
       :collisionTrack="collisionTrack"
       @pose="onScrubPose"
@@ -2830,6 +2865,7 @@ defineExpose({
   z-index: 1;
   top: 12px;
   left: 12px;
+  max-width: calc(100% - 24px);
   pointer-events: none;
   user-select: none;
 }
@@ -2915,6 +2951,13 @@ defineExpose({
   font-size: calc(var(--fs-md) * var(--hud-scale));
   font-weight: var(--fw-medium);
   color: var(--warn);
+  /* The card is shrink-to-fit, so a long single-line chip used to set the
+     card's width (the DRO grid followed it out to the viewer edge). A
+     flex-column child with width:0 contributes nothing to the card's
+     intrinsic width, then stretches to the width the grid set and wraps. */
+  width: 0;
+  min-width: 100%;
+  white-space: normal;
 }
 
 /* A HUD warning that is also the fix for what it warns about. The HUD is

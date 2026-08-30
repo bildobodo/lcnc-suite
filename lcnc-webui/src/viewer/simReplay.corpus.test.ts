@@ -11,6 +11,7 @@ import {
 import { specFromWire } from "./kins";
 import { epochTermsFor, type WcsTableRow } from "./wcsEpochs";
 import type { PartFrameWcs } from "./partFrame";
+import { ref, shallowRef } from "vue";
 
 // `sim_parity compare`, off-machine and in CI, on RECORDED data.
 //
@@ -97,6 +98,7 @@ function replay(payloadPath: string, truthPath: string) {
                               { linear: payload.rapid_rate, rotary: payload.rot_rapid_rate });
     if (t) track = t;
   }
+  _lastEntryTrack = track !== base ? track : null;
 
   const cumMax = track.cum[track.count - 1] ?? 0;
   const step = track.timeBased ? 0.02 : 0.5;
@@ -123,6 +125,9 @@ function replay(payloadPath: string, truthPath: string) {
     .filter(Boolean);
   return { sim, truth, nulls, samples: cums.length };
 }
+
+// The last entry track `replay` built — for the worker-boundary pin below.
+let _lastEntryTrack: ScrubTrack | null = null;
 
 const cases = existsSync(RUNS)
   ? readdirSync(RUNS).filter((f: string) => f.endsWith(".truth.ndjson"))
@@ -176,4 +181,27 @@ describe("sim replay vs recorded machine truth (committed corpus)", () => {
         .toBeLessThan(tol);
     });
   }
+});
+
+/**
+ * Worker-boundary pin (2026-08-30): the collision sweep posts the track's
+ * nested `frames`/`wcsEvents` to a Worker. A track held in a DEEP Vue `ref`
+ * re-wraps those arrays in Proxies, and structured clone refuses Proxies —
+ * the sweep threw DataCloneError after setting its busy flag and the Check
+ * chip sat at 0% for the whole sim session. ScrubBar holds the entry track
+ * in a shallowRef + markRaw; this asserts that choice is load-bearing on a
+ * REAL entry track (frames present on TWP payloads).
+ */
+describe("entry track across the worker boundary", () => {
+  const withFrames = cases.find((tag) => {
+    const r = replay(`${RUNS}/${tag}.payload.msgpack`, `${RUNS}/${tag}.truth.ndjson`);
+    return r && _lastEntryTrack?.frames?.length;
+  });
+  it.skipIf(!withFrames)("shallowRef keeps the track cloneable; a deep ref does not", () => {
+    replay(`${RUNS}/${withFrames}.payload.msgpack`, `${RUNS}/${withFrames}.truth.ndjson`);
+    const track = _lastEntryTrack!;
+    const post = (t: ScrubTrack) => structuredClone({ frames: t.frames, wcs: t.wcsEvents });
+    expect(() => post(shallowRef(track).value!)).not.toThrow();
+    expect(() => post(ref(track).value as ScrubTrack)).toThrow();
+  });
 });

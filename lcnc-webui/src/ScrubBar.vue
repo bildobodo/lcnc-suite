@@ -9,7 +9,7 @@
 // the interpreter idle; exit is the Exit button or one of the auto-exits
 // (program run start, program change, machine powered on elsewhere, real
 // joint motion as a backstop). ThreeViewer shows the .simBanner while active.
-import { computed, onUnmounted, ref, watch } from "vue";
+import { computed, markRaw, onUnmounted, ref, shallowRef, watch } from "vue";
 import { status, viewerGcode, viewerInit, gcodeContent, emitTelemetry } from "./lcncWs";
 import { INTERP_IDLE } from "./lcnc";
 import { simMode } from "./simMode";
@@ -39,6 +39,8 @@ const props = defineProps<{
   // and geometries); this bar is the control surface + scrub-to-hit.
   collisionBusy: boolean;
   collisionProgress: number;
+  /** Loaded tool the sweep checks with (null num = nothing loaded). */
+  sweepTool?: { num: number | null; diam: number | null } | null;
   collisionResult: CollisionResult | null;
   // The exact track the current result was swept on. Hit cums only mean
   // anything on THAT track — entering sim swaps in the entry-extended track
@@ -66,7 +68,13 @@ const baseTrack = computed(() => viewerGcode.value?.scrubTrack ?? null);
 // Base track + the ENTRY MOVE (live machine position → program first point),
 // captured at sim entry — run-time-only motion no parse can know. Kept after
 // exit so marks/results stay consistent; rebuilt on each entry.
-const entryTrack = ref<ScrubTrack | null>(null);
+// shallowRef + markRaw: a deep `ref` re-wrapped the track's nested arrays
+// (frames, wcsEvents, subNames) in Vue Proxies; the collision worker post
+// then threw DataCloneError ("Proxy object could not be cloned") AFTER the
+// busy flag was set, pinning the Check chip at 0% for the whole sim session
+// (trace: browser.error.console ×8 over two days). Nothing watches the
+// track deeply — consumers react to the ref reassignment only.
+const entryTrack = shallowRef<ScrubTrack | null>(null);
 const track = computed(() => entryTrack.value ?? baseTrack.value);
 const running = computed(() => (st.value.interp_state ?? INTERP_IDLE) !== INTERP_IDLE);
 const machineOff = computed(() => !st.value.is_enabled);
@@ -231,10 +239,11 @@ function _buildEntryTrack() {
   // Entry labeling (W3 P3) lives in scrubTrack.buildEntryTrack — ONE
   // implementation shared with the sim-vs-actual gate harness (W6 P1).
   const g = viewerGcode.value;
-  entryTrack.value = buildEntryTrack(
+  const built = buildEntryTrack(
     base, _baseJoints, viewerInit.value?.axes ?? [], _wcs(), _kinsSpec.value,
     _epochTerms.value, st.value.kins_type ?? null,
     { linear: g?.rapid_rate, rotary: g?.rot_rapid_rate });
+  entryTrack.value = built ? markRaw(built) : null;
 }
 
 function enterSim(): boolean {
@@ -470,7 +479,10 @@ watch(running, (r) => {
   if (!r && !simMode.value) { trackHighlightRange.value = null; subExecState.value = null; }
 });
 
-const statusText = computed(() => {
+// Row-1 readouts live in FIXED slots (E: the timeline is the only flexible
+// item, so every content-sized sibling used to steal its width — a longer
+// "L14 (g544remap)" chip or RUNNING appearing shifted the slider edge).
+const lineText = computed(() => {
   // Per-point trust (W2 P6) labels the readout; a point inside a marked
   // sub shows the sub's NAME instead of a colliding line number. Legacy
   // tracks (no per-point channel) fall back to the wholesale flag.
@@ -487,7 +499,7 @@ const statusText = computed(() => {
       : curViaCall.value && curDispLine.value
         ? `L${curDispLine.value}${curSubName.value ? ` (${curSubName.value})` : ""}`
       : curSubName.value ? `(${curSubName.value})` : "···";
-    return `${label}${curRapid.value ? " →" : ""} ${posLabel.value}`;
+    return `${label}${curRapid.value ? " →" : ""}`;
   }
   // "~": the run readout is the ESTIMATE clock (parse-time feeds/rapids) —
   // feed override, accel and dwells make real elapsed differ (GcodePanel
@@ -500,12 +512,42 @@ const statusText = computed(() => {
           ? `L${rls.line} (${rls.subName})` : `L${rls.line}`)
         : rls.subName ? `(${rls.subName})` : "···")
       : trusted ? `L${motionLine.value ?? 0}` : "···";
-    return `${label} ~${posLabel.value}`;
+    return label;
   }
+  return "";
+});
+// Position readout in its own slot: "~" prefix marks the run ESTIMATE axis.
+const posText = computed(() => {
+  if (simMode.value) return posLabel.value;
+  if (running.value) return `~${posLabel.value}`;
   return "live";
+});
+// Mode chip slot: always rendered so run start never re-lays the row.
+const modeChip = computed(() => {
+  if (!running.value) return null;
+  if (runOffPath.value) return {
+    text: "off path", cls: "warn",
+    title: "The machine is somewhere the program's path never goes (e.g. a toolchange park) — the playhead is frozen until it returns",
+  };
+  return { text: "RUNNING", cls: "ok",
+           title: "Program executing — the playhead follows the machine; timeline controls are locked" };
 });
 
 /** ---------- collision results (stage 3) ---------- */
+// Loaded-tool note for the sweep (see the row-2 comment). Dims are the
+// DISPLAYED marker dims ThreeViewer feeds the sweep (props from _pv).
+const sweepToolText = computed(() => {
+  const n = props.sweepTool?.num;
+  if (n == null || n <= 0) return "sweep: no tool loaded — 6 mm stub";
+  const d = props.sweepTool?.diam;
+  return `sweep: T${n}${d != null && d > 0 ? ` Ø${d.toFixed(1)}` : ""}`;
+});
+const sweepToolTitle = computed(() => {
+  const n = props.sweepTool?.num;
+  return (n == null || n <= 0)
+    ? "The collision sweep checks a 6 mm × 60 mm stub cylinder because no tool is loaded — load the program's tool for a real check (the program's T sequence is not consulted yet)"
+    : "The collision sweep checks the LOADED tool's table dimensions for the whole program — the program's own tool changes are not consulted yet";
+});
 const checkLabel = computed(() => {
   if (props.collisionBusy) return `${Math.round(props.collisionProgress * 100)}%`;
   return "Check";
@@ -707,13 +749,12 @@ onUnmounted(() => {
                   title="Reset playback speed to ×1" @click="speedLog = 0">
         &times;{{ speedLabel }}
       </MachineBtn>
-      <!-- Mode identity chip (redundant with banner/gating — text channel). -->
-      <span v-if="running" class="val-status ok" title="Program executing — the playhead follows the machine; timeline controls are locked">RUNNING</span>
-      <span v-if="running && runOffPath" class="val-status warn"
-        title="The machine is somewhere the program's path never goes (e.g. a toolchange park) — the playhead is frozen until it returns">off path</span>
-      <span class="scrubStatus val-status mono" :class="{ muted: !simMode && !running }">
-        {{ statusText }}
-      </span>
+      <!-- Mode identity chip (redundant with banner/gating — text channel).
+           Fixed slot, always present: appearing/disappearing moved the timeline. -->
+      <span class="val-slot modeSlot val-status" :class="modeChip?.cls" :title="modeChip?.title">{{ modeChip?.text ?? "" }}</span>
+      <span class="val-slot lineSlot val-status mono" :class="{ muted: !simMode && !running }"
+            :title="lineText">{{ lineText }}</span>
+      <span class="val-slot posSlot val-status mono" :class="{ muted: !simMode && !running }">{{ posText }}</span>
     </div>
 
     <!-- Row 2 — findings navigation (prev/next, anchored to the CURRENT
@@ -779,6 +820,11 @@ onUnmounted(() => {
           {{ nextToolLabel }}
         </span>
       </template>
+      <!-- What the sweep is checking WITH (user decision 2026-08-30): the
+           LOADED tool's table row, or a stub when nothing is loaded. Per-line
+           tool dims from the program's T sequence are on the schema-8 TLO
+           ledger — until then this is said, not implied. -->
+      <span class="val-status muted sweepTool" :title="sweepToolTitle">{{ sweepToolText }}</span>
     </div>
   </div>
 </template>
@@ -846,17 +892,24 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 .speedVal {
-  min-width: 6ch;
+  width: 6ch;   /* fixed: ×0.1 … ×100 all fit; a min-width still let it grow */
   white-space: nowrap;
 }
 .toolNext {
   white-space: nowrap;
   color: var(--info);
 }
-.scrubStatus {
-  white-space: nowrap;
-  min-width: 9ch;
-}
+/* Row-1 fixed slots (--slot-w is the global .val-slot width var). Every
+   content-sized sibling of the timeline gets a fixed slot, so the slider —
+   the one flex:1 item — keeps its edges while text changes. */
+.modeSlot { --slot-w: 8ch; white-space: nowrap; }
+.lineSlot { --slot-w: 15ch; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.posSlot  { --slot-w: 14ch; white-space: nowrap; }
+.sweepTool { white-space: nowrap; margin-left: auto; }
+/* Row 2 keeps its height whether or not it has findings: the bar is
+   bottom-anchored, so a row that came and went with each auto-sweep pushed
+   the timeline up and down. */
+.scrubRow + .scrubRow { min-height: var(--touch-target-compact); }
 /* Moving next-target readout — fixed floor so row width stays stable. */
 .navTarget {
   white-space: nowrap;
