@@ -1,0 +1,32 @@
+; LCNC-SUITE ORIGINAL — not vendored from upstream.
+;
+; Plane-mode touch-off: set the WORKPIECE datum (G54) from a point touched in
+; the tilted plane. Called by the gateway's `touchoff` command when the Plane
+; jog frame is active (kins 2, G59):
+;
+;     o<twp_touchoff> call [mask] [x] [y] [z]
+;
+; mask bits: 1 = X given, 2 = Y given, 4 = Z given (values for unset bits are
+; ignored). Semantics per axis are G10 L20's — "make the current position
+; read v" — in the plane frame the DRO shows. The datum is then written where
+; it lives: remap.py twp_touchoff maps the new plane-frame origin back through
+; the head solve (the frame the kins pins hold) and the LIVE table pose into
+; the table frame, subtracts the plane's own origin vector, and writes G54;
+; G59..G59.3 are rewritten to match, so the DRO reads v at once and the next
+; Orient recomputes the same rows from G54 (the round trip the live check
+; pins). Nothing moves.
+;
+; The leading M66 is what makes the interpreter's current position CURRENT
+; (queue drained, read-ahead stopped) — the same reliance twp_reorient.ngc
+; places on it before M530. IJK carry the values: an M-code line cannot
+; carry X/Y/Z words (see g533remap.ngc).
+o<twp_touchoff>sub
+(WEBUI_SUB=twp_touchoff) ;lcnc-suite: preview sub-span marker, silent in task
+
+M66 L0 E0                                  ;force sync, stop read ahead
+M535 P#1 I#2 J#3 K#4
+M66 L0 E0
+
+(WEBUI_SUB_END) ;lcnc-suite: preview sub-span marker
+o<twp_touchoff>endsub
+m2

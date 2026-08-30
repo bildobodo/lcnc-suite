@@ -35,6 +35,14 @@ o4   if [#<_hal[motion.switchkins-type]> NE #<kinstype>]
 o4   endif
 o3 endif
 
+; lcnc-suite (2026-08-30): the fixture rides the kins mode. G59..G59.3 hold
+; the plane frame's origin in TOOL coordinates — on identity/TCP kinematics
+; they are a dead frame (DRO garbage, origin marker in space). Leave them
+; for G54 here; an operator fixture (G54..G58) is left as it is.
+o5 if [#5220 GE 6]
+   G54
+o5 endif
+
 (WEBUI_SUB_END) ;lcnc-suite: preview sub-span marker
 o<428remap>endsub
 m2

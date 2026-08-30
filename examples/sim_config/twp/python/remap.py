@@ -233,6 +233,10 @@ def _get_rot_axis_yz():
 # than none — it reads as authoritative — so it is believed only while the
 # recorded values still match the live fixture.
 from twp_prov import prov_params, PROV_STAMPED
+# LCNC-SUITE: fixture/G92 parameter layout (linuxcnc-free twin of
+# gateway_util.WCS_VAR_BASES; lcnc-gateway/test_twp_params.py pins them).
+from twp_params import (wcs_row_params, G92_PARAMS, G92_FLAG_PARAM,
+                        RESERVED_FIXTURES, active_index as _active_fixture_index)
 
 
 class TwpTouchoffKinsError(Exception):
@@ -314,20 +318,68 @@ def to_storage_frame(self, offsets, n):
     return list(origin_table), a_touch, source
 
 
+_ROTARY_ATTR = {"A": "AA", "B": "BB", "C": "CC"}
+
+
+def _rotary_work_offset(self, letter):
+    """ACTIVE-fixture + G92 offset of rotary `letter`, degrees.
+
+    LCNC-SUITE: the interpreter's *_current values are PROGRAM coordinates;
+    adding these back reaches the machine frame. Attribute path first; the
+    parameter fallback reads the ACTIVE row (the old fallback read #5224,
+    the G54 row, which is the wrong row as soon as G59 is active - i.e. at
+    every re-orient) and the G92 row.
+    """
+    attr = _ROTARY_ATTR[letter]
+    try:
+        return (float(getattr(self, attr + "_origin_offset"))
+                + float(getattr(self, attr + "_axis_offset")))
+    except AttributeError:
+        row = wcs_row_params(_active_fixture_index(self.params))
+        g92 = float(self.params[G92_PARAMS[letter]]) if float(self.params[G92_FLAG_PARAM]) else 0.0
+        return float(self.params[row[letter]]) + g92
+
+
 def rotary_offsets_nonzero(self):
-    """True when a nonzero A work/G92 offset makes the machine frame ambiguous.
+    """True when a nonzero A/B/C work/G92 offset makes the machine frame ambiguous.
 
     LCNC-SUITE: the table composition works in the MACHINE frame; a rotary work
     offset rewritten between definition and orient would silently shift it.
     Upstream already restricts TWP to G54 for similar reasons - this closes the
-    rotary corner loudly instead of computing something untested.
+    rotary corner loudly instead of computing something untested. B/C joined A
+    on 2026-08-30: the head solve reads them too (get_current_rotary_positions).
     """
+    return any(abs(_rotary_work_offset(self, l)) > 1e-6 for l in "ABC")
+
+
+def _g92_rotary_nonzero(self):
+    """A G92 A/B/C offset in effect - it applies in EVERY fixture, so no
+    fixture write can repair it; only G92.1 can."""
     try:
-        return (abs(float(self.AA_origin_offset)) > 1e-6
-                or abs(float(self.AA_axis_offset)) > 1e-6)
+        return any(abs(float(getattr(self, _ROTARY_ATTR[l] + "_axis_offset"))) > 1e-6
+                   for l in "ABC")
     except AttributeError:
-        return (abs(float(self.params[5224])) > 1e-6
-                or abs(float(self.params[5214])) > 1e-6)
+        if not float(self.params[G92_FLAG_PARAM]):
+            return False
+        return any(abs(float(self.params[G92_PARAMS[l]])) > 1e-6 for l in "ABC")
+
+
+def reserved_rows_dirty(self):
+    """{(fixture, letter): value} for every nonzero A/B/C/R in G59..G59.3.
+
+    LCNC-SUITE: these four rows are g53x_core's. It writes X/Y/Z at every
+    orient and, since 2026-08-30, zeroes A/B/C/R too - upstream left them
+    untouched, so a rotary touch-off that landed in G59 (Zero All under the
+    Plane jog frame) survived every orient and displaced the head move.
+    """
+    out = {}
+    for n in RESERVED_FIXTURES:
+        row = wcs_row_params(n)
+        for l in ("A", "B", "C", "R"):
+            v = float(self.params[row[l]])
+            if abs(v) > 1e-6:
+                out[(n, l)] = v
+    return out
 
 
 def get_machine_a(self):
@@ -339,11 +391,7 @@ def get_machine_a(self):
     parameters if this interp build lacks the offset attributes (G54-only is
     enforced at definition time, so #5224/#5214 are the right rows).
     """
-    a = float(self.AA_current)
-    try:
-        return a + float(self.AA_origin_offset) + float(self.AA_axis_offset)
-    except AttributeError:
-        return a + float(self.params[5224]) + float(self.params[5214])
+    return float(self.AA_current) + _rotary_work_offset(self, "A")
 
 
 def webui_preview_reset():
@@ -1005,21 +1053,21 @@ def get_current_work_offset(self):
 
 
 def get_current_rotary_positions(self):
+    """MACHINE-frame primary/secondary joint angles, radians.
+
+    LCNC-SUITE: *_current is PROGRAM coordinates. Upstream returned it raw,
+    so a B/C work offset in the active fixture skewed the shortest-move
+    branch selection (and, through kins_calc_tool_transformation's
+    theta=None path, the tool frame itself). Add the active offsets back,
+    exactly as get_machine_a does for A.
+    """
     global joint_letter_primary, joint_letter_secondary
-    if joint_letter_primary == 'A':
-        theta_1 = radians(self.AA_current)
-    elif joint_letter_primary == 'B':
-        theta_1 = radians(self.BB_current)
-    elif joint_letter_primary == 'C':
-        theta_1 = radians(self.CC_current)
+    cur = {"A": self.AA_current, "B": self.BB_current, "C": self.CC_current}
+    theta_1 = radians(float(cur[joint_letter_primary])
+                      + _rotary_work_offset(self, joint_letter_primary))
     log.debug('Current position Primary joint: %s', degrees(theta_1))
-    # read current spindle rotary angles and convert to radians
-    if joint_letter_secondary == 'A':
-        theta_2 = radians(self.AA_current)
-    elif joint_letter_secondary == 'B':
-        theta_2 = radians(self.BB_current)
-    elif joint_letter_secondary == 'C':
-        theta_2 = radians(self.CC_current)
+    theta_2 = radians(float(cur[joint_letter_secondary])
+                      + _rotary_work_offset(self, joint_letter_secondary))
     log.debug('Current position Secondary joint: %s', degrees(theta_2))
     return theta_1, theta_2
 
@@ -1156,6 +1204,24 @@ def g53x_core(self):
 
     orient_mode = p
 
+    # ---- LCNC-SUITE: rotary offsets vs the orient move (2026-08-30) --------
+    # The head move below is issued in MACHINE coordinates (G53), so a work
+    # offset on B/C cannot displace it any more - but a G92 rotary offset
+    # applies in every fixture and no fixture write can repair it: refuse.
+    # G59..G59.3's A/B/C/R rows are cleared by the writes below (they are
+    # ours); when they held anything the operator is told, never silently.
+    _dirty_rows = {}
+    if _task_mode:
+        if _g92_rotary_nonzero(self):
+            msg = ("G53.x: a G92 rotary offset (A/B/C) is in effect - it would"
+                   " displace the orient move in every fixture. G92.1 first.")
+            log.debug(msg)
+            emccanon.CANON_ERROR(msg)
+            yield INTERP_EXECUTE_FINISH
+            yield INTERP_EXIT
+            return INTERP_ERROR
+        _dirty_rows = reserved_rows_dirty(self)
+
     # ---- LCNC-SUITE: map the stored plane TABLE -> MACHINE ------------------
     # twp_matrix is stored in the TABLE frame: the frame in which a
     # table-fixed feature has constant coordinates, datum'd so that it
@@ -1271,14 +1337,28 @@ def g53x_core(self):
         O = matrix_to_point(kins_calc_tool_transformation(self, point_to_matrix(list(origin_composed)), theta_1, theta_2, pre_rot))
     log.debug("G53.x: Setting transformed work-offsets for tool-kins in G59, G59.1, G59.2 and G59.3 to: %s ", O)
     # set the dedicated TWP work offset values (G53, G53.1, G53.2, G53.3)
-    self.execute("G10 L2 P6 X%f Y%f Z%f " % (O[0], O[1], O[2]), lineno())
-    self.execute("G10 L2 P7 X%f Y%f Z%f " % (O[0], O[1], O[2]), lineno())
-    self.execute("G10 L2 P8 X%f Y%f Z%f " % (O[0], O[1], O[2]), lineno())
-    self.execute("G10 L2 P9 X%f Y%f Z%f " % (O[0], O[1], O[2]), lineno())
+    # LCNC-SUITE: the rows are written COMPLETELY - A/B/C/R zeroed. Upstream
+    # wrote X/Y/Z only, so a foreign rotary offset in G59 (a touch-off made
+    # under the Plane jog frame) survived every orient and shifted the G53.3
+    # head move below, which runs inside G59.
+    for _pn in (6, 7, 8, 9):
+        self.execute("G10 L2 P%d X%f Y%f Z%f A0 B0 C0 R0 " % (_pn, O[0], O[1], O[2]), lineno())
+    if _dirty_rows:
+        _names = {6: "G59", 7: "G59.1", 8: "G59.2", 9: "G59.3"}
+        _txt = " ".join("%s %s=%.4f" % (_names[n], l, v)
+                        for (n, l), v in sorted(_dirty_rows.items()))
+        log.warning("G53.x: cleared foreign rotary/rotation offsets from the reserved TWP fixtures: %s", _txt)
+        self.execute("(MSG, G53.x: cleared foreign offsets from the reserved TWP fixtures - %s)" % _txt.replace("(", "").replace(")", ""))
     log.debug("G53.x: Moving (secondary and primary) joints to: %s", (degrees(theta_2), degrees(theta_1)))
     if (x,y,z) == (None,None,None):
-        # Move rotary joints to align the tool with the requested twp
-        self.execute("G0 %s%f %s%f" % (joint_letter_secondary, degrees(theta_2), joint_letter_primary, degrees(theta_1)), lineno())
+        # Move rotary joints to align the tool with the requested twp.
+        # LCNC-SUITE: G53 - the solution is MACHINE-frame angles; without it
+        # the move was interpreted in the active fixture, and any rotary work
+        # offset (G54 A/B/C rows are operator-writable) landed the head at
+        # solution + offset ("parallel to the plane" from the operator's
+        # side). The G53.3 path below stays a single simultaneous block: it
+        # runs inside G59, whose rotary rows the writes above just zeroed.
+        self.execute("G53 G0 %s%f %s%f" % (joint_letter_secondary, degrees(theta_2), joint_letter_primary, degrees(theta_1)), lineno())
     # switch to the dedicated TWP work offsets
     self.execute("G59", lineno())
     # activate TOOL kinematics
@@ -1308,6 +1388,113 @@ def g53x_core(self):
 # Note: To avoid that this python code is run prematurely by the read ahead we need a quebuster at the beginning but
 # because we need self.execute() to switch the WCS properly this remap needs to be called from
 # an ngc that contains a quebuster before calling this code
+def twp_touchoff(self, **words):
+    """M535 P<mask> I<x> J<y> K<z> - Plane-mode touch-off (LCNC-SUITE original).
+
+    Set the WORKPIECE datum (G54) from a point touched in the tilted plane.
+    Called through o<twp_touchoff> (which drains the queue first, so the
+    interpreter's current position is current) by the gateway's `touchoff`
+    command when the Plane jog frame is active. Semantics per selected axis
+    are G10 L20's in the plane frame the DRO shows: make the current position
+    read the given value. The datum is written where it lives:
+
+        G59' = G59 + current_program - v            (plane-frame origin, per axis)
+        M'   = R_tool^-1 . G59'                      (machine frame; g53x_core
+                                                      built G59 = R_tool . origin)
+        T'   = to_table_frame(M', live A)            (table frame - where the
+                                                      table IS, stale head or not)
+        G54' = T' - twp_offset                       (the plane's own origin vector)
+
+    G54 gets G54', G59..G59.3 get G59' (so the DRO reads v at once), and the
+    next Orient recomputes G59 from G54' + twp_offset = G59' - the round trip
+    the live check pins. The G54 provenance rows are stamped kins 0 / A 0:
+    G54' IS a table-frame point (to_storage_frame's identity path). Nothing
+    moves. Bits of P: 1 = X, 2 = Y, 4 = Z; IJK carry the values because an
+    M-code line cannot carry axis words.
+    """
+    global saved_work_offset, twp_matrix, _task_mode
+    _task_mode = (self.task != 0)
+    if not _task_mode:
+        print("LCNC-SUITE preview: M535 (Plane touch-off) is an operator action"
+              " - ignored in preview", file=sys.stderr, flush=True)
+        yield INTERP_EXECUTE_FINISH
+        return INTERP_OK
+    mask = int(round(float(words.get('p', 0))))
+    given = [l for l, bit in (('X', 1), ('Y', 2), ('Z', 4)) if mask & bit]
+    vals = {'X': float(words.get('i', 0.0)), 'Y': float(words.get('j', 0.0)),
+            'Z': float(words.get('k', 0.0))}
+    err = None
+    if not given:
+        err = "M535: no axis selected (P mask 1=X 2=Y 4=Z)"
+    elif not hal.get_value(twp_is_active):
+        err = "Plane touch-off needs an ACTIVE plane - Orient first (G53.x)"
+    elif _active_fixture_index(self.params) != 6:
+        err = ("Plane touch-off expects G59 (the plane fixture) active - got"
+               " fixture index %d" % _active_fixture_index(self.params))
+    else:
+        try:
+            _metric = float(self.params["_metric"])
+        except Exception:  # noqa: BLE001 - an interp without named-param access
+            _metric = 1.0
+        if not _metric:
+            err = "Plane touch-off needs G21 (the TWP stack is metric-only)"
+        elif float(self.params[G92_FLAG_PARAM]) and any(
+                abs(float(self.params[G92_PARAMS[l]])) > 1e-6 for l in "XYZ"):
+            err = "Plane touch-off with a G92 X/Y/Z offset in effect - G92.1 first"
+        elif reserved_rows_dirty(self):
+            err = ("The reserved TWP fixtures carry rotary/rotation offsets -"
+                   " Orient first (it clears them)")
+    if err is not None:
+        log.debug(err)
+        emccanon.CANON_ERROR(err)
+        yield INTERP_EXECUTE_FINISH
+        yield INTERP_EXIT
+        return INTERP_ERROR
+
+    row = wcs_row_params(6)
+    g59 = [float(self.params[row[l]]) for l in "XYZ"]
+    cur = {'X': float(self.current_x), 'Y': float(self.current_y), 'Z': float(self.current_z)}
+    new59 = list(g59)
+    for i, l in enumerate("XYZ"):
+        if l in given:
+            new59[i] = g59[i] + cur[l] - vals[l]
+    # The frame the kins is USING: the pins g53x_core set_p'd (pre-rot
+    # radians, the two angles degrees - upstream's asymmetry).
+    th1 = radians(float(hal.get_value(kins_primary_rotation)))
+    th2 = radians(float(hal.get_value(kins_secondary_rotation)))
+    pr = float(hal.get_value(kins_pre_rotation))
+    M = matrix_to_point(kins_calc_tool_transformation(
+        self, point_to_matrix(list(new59)), th1, th2, pr, 'inv'))
+    a_now = get_machine_a(self)
+    if abs(a_now) > 1e-4:
+        y_rot_axis, z_rot_axis = _get_rot_axis_yz()
+        T = list(to_table_frame((0.0, 0.0, 1.0), (1.0, 0.0, 0.0), list(M),
+                                a_now, y_rot_axis, z_rot_axis)[2])
+    else:
+        T = list(M)
+    twp_offset = (twp_matrix[0, 3], twp_matrix[1, 3], twp_matrix[2, 3])
+    g54 = [float(T[i]) - float(twp_offset[i]) for i in range(3)]
+    log.info("M535: plane touch-off %s -> G59' %s, machine %s, table %s (A=%.4f),"
+             " G54' %s", {l: vals[l] for l in given}, new59, list(M), T, a_now, g54)
+    self.execute("G10 L2 P1 X%f Y%f Z%f" % (g54[0], g54[1], g54[2]), lineno())
+    for _pn in (6, 7, 8, 9):
+        self.execute("G10 L2 P%d X%f Y%f Z%f A0 B0 C0 R0" % (_pn, new59[0], new59[1], new59[2]), lineno())
+    saved_work_offset = [g54[0], g54[1], g54[2]]
+    # Provenance: a table-frame datum, stamped as such (kins 0, A 0). Flag
+    # LAST so a partial record reads as absent.
+    prov = prov_params(1)
+    self.params[prov["stamped"]] = 0.0
+    self.params[prov["kins"]] = 0.0
+    self.params[prov["a"]] = 0.0
+    self.params[prov["x"]] = g54[0]
+    self.params[prov["y"]] = g54[1]
+    self.params[prov["z"]] = g54[2]
+    self.params[prov["stamped"]] = PROV_STAMPED
+    gui_update_twp(self)
+    yield INTERP_EXECUTE_FINISH
+    return INTERP_OK
+
+
 def g69_core(self):
     global twp_flag, saved_work_offset_number, saved_work_offset
     global _task_mode, _preview_twp_state, _preview_pre_rot
@@ -1374,7 +1561,9 @@ def g683(self, **words):
     # LCNC-SUITE: see the identical guard in g682 - machine-frame table capture
     if rotary_offsets_nonzero(self):
         reset_twp_params(self)
-        msg = "G68.3 ERROR: A-axis work or G92 offset must be zero to define TWP."
+        msg = ("G68.3 ERROR: a rotary (A/B/C) work or G92 offset is in effect -"
+               " it must be zero to define a TWP. Clear it (G10 L2 P1 A0 B0 C0"
+               " / G92.1) and define again.")
         log.debug(msg)
         emccanon.CANON_ERROR(msg)
         yield INTERP_EXECUTE_FINISH
@@ -1507,7 +1696,9 @@ def g682(self, **words):
     # rotary work/G92 offset would make that capture ambiguous - refuse loudly.
     if rotary_offsets_nonzero(self):
         reset_twp_params(self)
-        msg = "G68.2 ERROR: A-axis work or G92 offset must be zero to define TWP."
+        msg = ("G68.2 ERROR: a rotary (A/B/C) work or G92 offset is in effect -"
+               " it must be zero to define a TWP. Clear it (G10 L2 P1 A0 B0 C0"
+               " / G92.1) and define again.")
         log.debug(msg)
         emccanon.CANON_ERROR(msg)
         yield INTERP_EXECUTE_FINISH

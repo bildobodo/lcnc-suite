@@ -18,4 +18,7 @@ exec "$PY" -m unittest "$@" \
   test_gateway_util \
   test_command_policy \
   test_command_dispatch \
-  test_ngc_fixtures
+  test_ngc_fixtures \
+  test_twp_transform \
+  test_twp_prov \
+  test_twp_params

@@ -39,6 +39,13 @@ o4   if [#<_hal[motion.switchkins-type]> NE #<kinstype>]
 o4   endif
 o3 endif
 
+; lcnc-suite (2026-08-30): the fixture rides the kins mode. TOOL kinematics
+; express positions in the plane frame whose origin g53x_core wrote to
+; G59 — select it, so the DRO reads the plane and a touch-off here reaches
+; the remap's Plane route (gateway command_policy.touchoff_route: kins 2 +
+; G59). The UI only offers this switch after an orient (twpOriented).
+G59
+
 (WEBUI_SUB_END) ;lcnc-suite: preview sub-span marker
 o<430remap>endsub
 m2
