@@ -735,13 +735,17 @@ def truth_plane_invariants(kins, ngc, truth_path, side=100.0, frame=None):
     moving = [r for r in rows if r["interp"] != linuxcnc.INTERP_IDLE]
     if not moving:
         return False, "truth capture contains no motion"
-    tlo = float((moving[0].get("tool_offset") or [0, 0, 0])[2])
     endpoint, last_i = {}, {}
     for i, r in enumerate(moving):
         ln = r["motion_line"]
         nxt = moving[i + 1] if i + 1 < len(moving) else None
         if nxt is None or nxt["motion_line"] != ln:
             src = r if nxt is None else nxt
+            # Per-row tool offset (schema 8): the capture records the applied
+            # offset on every sample, so a program whose G43 lands after
+            # motion starts is tipped with the RIGHT offset per row — row 0's
+            # value used to be applied to the whole capture.
+            tlo = float((src.get("tool_offset") or [0, 0, 0])[2])
             endpoint[ln] = truth_tip(src["joints"], kins, tool_z=tlo)
             last_i[ln] = i
     order = sorted(endpoint, key=lambda ln: last_i[ln])
@@ -920,9 +924,10 @@ def cmd_compare(a):
     if not moving:
         raise SystemExit("truth capture contains no motion")
 
-    _tlo0 = float((moving[0].get("tool_offset") or [0, 0, 0])[2])
     for r in moving:
-        r["tip"] = truth_tip(r["joints"], kins, tool_z=_tlo0)
+        # Per-row tool offset (schema 8) — see truth_plane_invariants.
+        r["tip"] = truth_tip(r["joints"], kins,
+                             tool_z=float((r.get("tool_offset") or [0, 0, 0])[2]))
 
     # Endpoint per executed line (W3 P6): the FIRST sample AFTER the line's
     # run — the transition sample where motion_line moves on. The previous
@@ -974,9 +979,11 @@ def cmd_compare(a):
             print(f"  {k:16s}: {inv[k]}")
 
     basis = (pay.get("wcs_basis") or {}).get("g5x") or [0, 0, 0]
-    # TLO as the machine had it during the capture — the client applies it too.
-    tlo_z = float((moving[0].get("tool_offset") or [0, 0, 0])[2])
-    print(f"  tool_offset_z  : {tlo_z}")
+    # TLO as the machine had it during the capture — per row since schema 8
+    # (the client applies the program's own G43 per segment); print the
+    # distinct set so an in-program change is visible in the report.
+    _tlos = sorted({float((r.get("tool_offset") or [0, 0, 0])[2]) for r in moving})
+    print(f"  tool_offset_z  : {_tlos[0] if len(_tlos) == 1 else _tlos}")
     verdicts = []
     # A plane the text asked for and the machine did not cut in is a failed
     # compare, whatever the joints say: truth and sim share the remap, so

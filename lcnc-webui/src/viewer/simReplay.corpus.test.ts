@@ -73,12 +73,16 @@ function deviation(a: number[][], b: number[][]): number {
   return Math.sqrt(worst);
 }
 
-function replay(payloadPath: string, truthPath: string) {
+function replay(payloadPath: string, truthPath: string, opts: { zeroLiveTool?: boolean } = {}) {
   const payload = msgpackDecode(
     new Uint8Array(readFileSync(payloadPath))) as Record<string, any>;
   const truthLines = readFileSync(truthPath, "utf8").split("\n").filter((l: string) => l.trim());
   const header = JSON.parse(truthLines[0]!);
   if (!header?.header) return null;      // pre-header capture: nothing to pin
+  // Schema 8 pin: with the header's LIVE tool zeroed, the replay must still
+  // match — the program's own G43 rides the payload (tlo_events), so the
+  // capture-time session state cannot be what makes the run pass.
+  if (opts.zeroLiveTool && header.wcs) header.wcs = { ...header.wcs, tool: [0, 0, 0] };
 
   const axes: string[] = header.axes ?? [];
   const wcs: PartFrameWcs = header.wcs;
@@ -204,4 +208,41 @@ describe("entry track across the worker boundary", () => {
     expect(() => post(shallowRef(track).value!)).not.toThrow();
     expect(() => post(ref(track).value as ScrubTrack)).toThrow();
   });
+});
+
+/**
+ * Payload-driven TLO (schema 8). The corpus gate's standing red was
+ * twp_simple_example.run1 at exactly 22.000 on a FRESH boot: the program
+ * does `m6 t3 g43 h3` before motion, and the sim used to apply one LIVE
+ * tool offset (0 on a fresh boot) to the whole track. The committed green
+ * artifacts hid it — captured in a session already carrying TLO 22. Replay
+ * every payload that carries tlo_events with the header's live tool ZEROED
+ * and require the same tolerance: the run must pass on the program's own
+ * G43, not on whatever the session happened to hold.
+ */
+describe("payload-driven TLO (schema 8): the live tool cannot be what makes a run pass", () => {
+  const withEvents = cases.filter((tag) => {
+    const payload = msgpackDecode(
+      new Uint8Array(readFileSync(`${RUNS}/${tag}.payload.msgpack`))) as Record<string, any>;
+    return Array.isArray(payload.tlo_events) && payload.tlo_events.length > 0;
+  });
+
+  it("twp_simple_example.run1 ships tlo_events (its artifacts were regenerated at schema 8)", () => {
+    // Loud until the corpus is regenerated on a fresh boot: the pre-8
+    // artifacts carry no channel, and that absence IS the old defect.
+    expect(cases).toContain("twp_simple_example.run1");
+    expect(withEvents).toContain("twp_simple_example.run1");
+  });
+
+  for (const tag of withEvents) {
+    it(`${tag}: replays within tolerance with the live tool zeroed`, () => {
+      const r = replay(`${RUNS}/${tag}.payload.msgpack`, `${RUNS}/${tag}.truth.ndjson`,
+                       { zeroLiveTool: true });
+      expect(r).not.toBeNull();
+      const { sim, truth } = r!;
+      const tol = tolFor(tag);
+      expect(deviation(truth, sim), `${tag}: truth→sim`).toBeLessThan(tol);
+      expect(deviation(sim, truth), `${tag}: sim→truth`).toBeLessThan(tol);
+    });
+  }
 });
