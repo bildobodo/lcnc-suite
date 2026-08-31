@@ -13,6 +13,13 @@ const SPEC = specFromWire({
 });
 
 describe("activeFixturePose", () => {
+  it("frame tags: identity → machine, TCP → table, plane compose → table", () => {
+    const base = { g5x: [10, 0, 0], g92: null };
+    expect(activeFixturePose({ ...base, kinsType: 0, g5xIndex: 1 })!.frame).toBe("machine");
+    expect(activeFixturePose({ ...base, kinsType: null, g5xIndex: 1 })!.frame).toBe("machine");
+    expect(activeFixturePose({ ...base, kinsType: 1, g5xIndex: 1 })!.frame).toBe("table");
+  });
+
   it("identity: g5x + Rz(θ)·g92, basis Rz(θ) — the applyState anchor formula", () => {
     const p = activeFixturePose({ g5x: [10, 20, 30], g92: [1, 0, 0], rotationDeg: 90, kinsType: 0, g5xIndex: 1 })!;
     expect(p.pos[0]).toBeCloseTo(10, 9);

@@ -1,9 +1,10 @@
 // Where the ACTIVE fixture's origin triad belongs, in the table frame.
 //
 // The viewer draws one set of work-zero arrows for the active fixture. On
-// identity/TCP kinematics the fixture numbers ARE table-frame coordinates
-// (TCP's world frame rides the table; identity coincides with it at the A=0
-// datum the fixtures are stored at), so the triad sits at
+// TCP kinematics the fixture numbers ARE table-frame coordinates (TCP's
+// world frame rides the table); identity-kins numbers are MACHINE frame
+// (they coincide with the table only at A=0 — the `frame` tag lets the
+// caller draw them where they are). Either way the triad sits at
 // g5x + Rz(θ)·g92 rotated by θ — the same RS274 rotate_and_translate order
 // applyState uses for the toolpath anchor. Under TOOL/plane kinematics
 // (kins 2) a RESERVED fixture (G59..G59.3) holds the plane frame's origin in
@@ -38,13 +39,21 @@ export interface ActiveFixtureInputs {
   spec?: KinsSpec | null;
 }
 
+/** The frame the pose's numbers are expressed in. Identity-kins fixture
+ *  numbers are MACHINE coordinates — they do NOT ride the table, so drawing
+ *  them under the A-rotating work group missed the tip by the table rotation
+ *  whenever A != 0 (operator-caught: "moves on touch-off, but not to the
+ *  tooltip"). TCP's world frame and the plane compose are table-frame. */
+export type FixtureFrame = "machine" | "table";
+
 export interface FixturePose {
-  /** Origin, table frame. */
+  /** Origin, in `frame` coordinates. */
   pos: [number, number, number];
-  /** Orthonormal basis columns (X, Y, Z), table frame. */
+  /** Orthonormal basis columns (X, Y, Z), in `frame` coordinates. */
   x: [number, number, number];
   y: [number, number, number];
   z: [number, number, number];
+  frame: FixtureFrame;
 }
 
 export const RESERVED_FIXTURES: ReadonlySet<number> = new Set([6, 7, 8, 9]);
@@ -77,7 +86,7 @@ export function activeFixturePose(i: ActiveFixtureInputs): FixturePose | null {
     const d = xr[0]! * z[0] + xr[1]! * z[1] + xr[2]! * z[2];
     const x = norm([xr[0]! - d * z[0], xr[1]! - d * z[1], xr[2]! - d * z[2]]);
     if (!x) return null;
-    return { pos: [plane[0]!, plane[1]!, plane[2]!], x, y: cross(z, x), z };
+    return { pos: [plane[0]!, plane[1]!, plane[2]!], x, y: cross(z, x), z, frame: "table" };
   }
   // Identity / TCP (or a non-reserved fixture under kins 2, which the
   // policy never lets a touch-off reach — drawn as its numbers say).
@@ -88,5 +97,8 @@ export function activeFixturePose(i: ActiveFixtureInputs): FixturePose | null {
   return {
     pos: [(g5x[0] ?? 0) + gx * c - gy * s, (g5x[1] ?? 0) + gx * s + gy * c, (g5x[2] ?? 0) + gz],
     x: [c, s, 0], y: [-s, c, 0], z: [0, 0, 1],
+    // TCP (k=1): world IS the table-riding frame. Identity: machine frame —
+    // the caller must counter-rotate if it draws under the table group.
+    frame: k === 1 ? "table" : "machine",
   };
 }

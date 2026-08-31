@@ -37,7 +37,7 @@ import MachineBtn from "./MachineBtn.vue";
 import CameraPip from "./CameraPip.vue";
 import ScrubBar from "./ScrubBar.vue";
 import { simMode } from "./simMode";
-import { twpPoseStale } from "./twpPose";
+import { twpPoseStale, twpDatumStale } from "./twpPose";
 import { Camera, Settings } from "lucide-vue-next";
 
 const themeMode = inject<Ref<string>>("themeMode", ref("auto"));
@@ -286,8 +286,18 @@ let workAxesGroup: THREE.Group | null = null;
 // fixture is active — muted, shorter, so the operator still sees where the
 // part's zero is when the DRO is reading the plane fixture.
 let datumAxes: THREE.Group | null = null;
+// Marker labels (billboarded troika text, registered in _billboardLabels):
+// three near-identical unlabeled triads were genuinely ambiguous
+// (operator-caught) — each marker now says what it is. The active-fixture
+// label is dynamic (fixture name from g5x_index).
+let workAxesLabel: Text | null = null;
+let datumLabel: Text | null = null;
+let twpPlaneLabel: Text | null = null;
+const G5X_NAMES = ["G54", "G55", "G56", "G57", "G58", "G59", "G59.1", "G59.2", "G59.3"] as const;
 // KinsSpec from viewer_init, for the live active-fixture pose (kins 2).
 let _liveKinsSpec: KinsSpec | undefined;
+// The workzero layer's live flag (ANDed into the datum triad's show rule).
+let _workzeroLayerOn = true;
 // Surface map (probe heightmap) — owned by surfaceController.
 const surface = createSurfaceController();
 // Toolpath preview (feed/rapid/highlight lines, bounds box/labels/overflow) —
@@ -746,6 +756,8 @@ function switchProjection() {
 // values, kins type, or layer toggle actually changed.
 let _twpSig = "";
 const _fixM = new THREE.Matrix4(), _fixX = new THREE.Vector3(), _fixY = new THREE.Vector3(), _fixZ = new THREE.Vector3();
+const _fixInv = new THREE.Matrix4();
+const _fixV = new THREE.Vector3();
 const _twpZ = new THREE.Vector3();
 const _twpX = new THREE.Vector3();
 const _twpY = new THREE.Vector3();
@@ -763,14 +775,15 @@ function _twpRefresh() {
     // machine fact on screen beside a simulated machine, which is the
     // incoherence this exists to remove. Staleness is a claim about the
     // live setup and is meaningless here, so it is never applied in sim.
-    updateTwpPlane(_scrubPlane, _scrubPlane != null, 2, false);
+    updateTwpPlane(_scrubPlane, _scrubPlane != null, 2, false, false);
     return;
   }
   updateTwpPlane(d?.twp_plane, !!d?.twp_defined, d?.kins_type,
-    twpPoseStale(d?.twp_pose_a, d?.rotary_abc?.[0], d?.twp_defined));
+    twpPoseStale(d?.twp_pose_a, d?.rotary_abc?.[0], d?.twp_defined),
+    twpDatumStale(d?.wcs_table?.[0], d?.twp_datum, d?.twp_defined));
 }
 
-function updateTwpPlane(plane: unknown, defined: boolean, ktype: unknown, stale: boolean) {
+function updateTwpPlane(plane: unknown, defined: boolean, ktype: unknown, stale: boolean, datumStale = false) {
   if (!twpPlaneGroup) return;
   const ok = defined && Array.isArray(plane) && plane.length === 9 &&
     (plane as unknown[]).every((v) => Number.isFinite(Number(v)));
@@ -778,7 +791,7 @@ function updateTwpPlane(plane: unknown, defined: boolean, ktype: unknown, stale:
   // `stale` joins the signature or the tint would never repaint — a boolean,
   // so live A jitter under the eps costs nothing.
   const sig = ok
-    ? `${(plane as number[]).map((v) => Number(v).toFixed(4)).join(",")}|${k}|${_twpLayerOn}|${stale}|${simMode.value}`
+    ? `${(plane as number[]).map((v) => Number(v).toFixed(4)).join(",")}|${k}|${_twpLayerOn}|${stale}|${datumStale}|${simMode.value}`
     : `off|${simMode.value}`;
   if (sig === _twpSig) return;
   _twpSig = sig;
@@ -812,7 +825,11 @@ function updateTwpPlane(plane: unknown, defined: boolean, ktype: unknown, stale:
   // stale is the head solve, and that is the CHIP's claim to make; painting
   // the plane red would assert the plane is wrong when it is not. The
   // +Z arrow (the tool-normal claim) carries the warning instead.
-  const hex = k === 2 ? _TWP_ACTIVE_HEX : _TWP_INACTIVE_HEX;
+  // Datum-stale is a DIFFERENT claim from head-stale: the head arrow says
+  // "the tool is off-normal", the quad+grid tint says "this plane hangs on
+  // a datum G54 has since left" — the overlay itself is what is out of
+  // date, so the surface (not the normal) carries it.
+  const hex = datumStale ? _TWP_STALE_HEX : k === 2 ? _TWP_ACTIVE_HEX : _TWP_INACTIVE_HEX;
   if (twpNormalArrow) {
     (twpNormalArrow.line.material as THREE.LineBasicMaterial).color
       .setHex(stale ? _TWP_STALE_HEX : AXIS_HEX.z);
@@ -850,7 +867,11 @@ function setLayerVisible(layer: Layer, on: boolean) {
       if (toolMarker) toolMarker.visible = on;
       break;
     case "workzero":
+      // One layer for both "where is zero" markers: the active triad and
+      // the muted G54 datum triad (a tenth toggle for a marker that only
+      // exists in one niche state would be toggle sprawl).
       if (workAxes) workAxes.visible = on;
+      _workzeroLayerOn = on;
       break;
     case "workplane":
       _twpLayerOn = on;
@@ -1027,6 +1048,10 @@ function ensureCoreGroups(init: ViewerInit) {
   // declaration comment).
   workAxesGroup = new THREE.Group();
   workAxesGroup.add(workAxes);
+  workAxesLabel = mkTextLabel("", "#" + AXIS_HEX.z.toString(16).padStart(6, "0"), _al * 0.28);
+  workAxesLabel.position.set(0, 0, _al * 1.35);
+  workAxesGroup.add(workAxesLabel);
+  _billboardLabels.push(workAxesLabel);
   _workGrp.add(workAxesGroup);
 
   datumAxes = new THREE.Group();
@@ -1039,6 +1064,11 @@ function ensureCoreGroups(init: ViewerInit) {
     (ah.cone.material as THREE.MeshBasicMaterial).opacity = 0.5;
     datumAxes.add(ah);
   }
+  datumLabel = mkTextLabel("G54", "#" + AXIS_HEX.z.toString(16).padStart(6, "0"), _dl * 0.35);
+  (datumLabel as unknown as { fillOpacity: number }).fillOpacity = 0.6;
+  datumLabel.position.set(0, 0, _dl * 1.4);
+  datumAxes.add(datumLabel);
+  _billboardLabels.push(datumLabel);
   datumAxes.visible = false;
   _workGrp.add(datumAxes);
   _liveKinsSpec = specFromWire(init.kins);
@@ -1070,13 +1100,19 @@ function ensureCoreGroups(init: ViewerInit) {
     }
     // Origin triad in the PLANE's frame — Z is the plane normal (= tool
     // axis when TOOL kins is active).
-    const _tl = 80 * _unitScale, _th = _tl * 0.15, _tw = _tl * 0.08;
+    // 48 (was 80): the ACTIVE triad (60) is the DRO's truth and must
+    // dominate — the plane's dominant cue is the 300 mm quad, not its triad.
+    const _tl = 48 * _unitScale, _th = _tl * 0.15, _tw = _tl * 0.08;
     twpPlaneGroup.add(new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(), _tl, AXIS_HEX.x, _th, _tw));
     twpPlaneGroup.add(new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), new THREE.Vector3(), _tl, AXIS_HEX.y, _th, _tw));
     // +Z is the TOOL-NORMAL claim, so it is the element that carries the
     // stale warning (see updateTwpPlane) — keep a handle on it.
     twpNormalArrow = new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1), new THREE.Vector3(), _tl, AXIS_HEX.z, _th, _tw);
     twpPlaneGroup.add(twpNormalArrow);
+    twpPlaneLabel = mkTextLabel("Plane", "#" + _TWP_ACTIVE_HEX.toString(16).padStart(6, "0"), _tl * 0.45);
+    twpPlaneLabel.position.set(0, 0, _tl * 1.5);
+    twpPlaneGroup.add(twpPlaneLabel);
+    _billboardLabels.push(twpPlaneLabel);
     // _workGrp local frame = machine coordinates (see header comment) — and
     // the fresh group starts hidden, so the stale signature must be cleared
     // or an unchanged status would skip re-showing it after a rebuild.
@@ -1470,10 +1506,32 @@ function applyState(init: ViewerInit, st: ViewerState) {
       a: st.rotary_abc?.[0] ?? 0, spec: _liveKinsSpec,
     });
     if (pose) {
-      workAxesGroup.position.set(pose.pos[0], pose.pos[1], pose.pos[2]);
       _fixM.makeBasis(_fixX.set(...pose.x), _fixY.set(...pose.y), _fixZ.set(...pose.z));
-      workAxesGroup.quaternion.setFromRotationMatrix(_fixM);
+      if (pose.frame === "machine") {
+        // Identity-kins numbers are MACHINE coordinates — they do not ride
+        // the table. The group stays parented under _workGrp (stable graph),
+        // so counter-transform through the parent's world matrix: at A=0
+        // this is the identity; at A!=0 it puts the triad where the fixture
+        // physically is (operator-caught miss). Counter-transform beats
+        // reparenting: applyState is the per-frame hot path and
+        // _workGrp.matrixWorld is already maintained (machine units = world
+        // units, so no scale term sneaks in).
+        _workGrp!.updateMatrixWorld();
+        _fixInv.copy(_workGrp!.matrixWorld).invert();
+        _fixM.premultiply(_fixInv);
+        workAxesGroup.quaternion.setFromRotationMatrix(_fixM);
+        _fixV.set(pose.pos[0], pose.pos[1], pose.pos[2]).applyMatrix4(_fixInv);
+        workAxesGroup.position.copy(_fixV);
+      } else {
+        workAxesGroup.position.set(pose.pos[0], pose.pos[1], pose.pos[2]);
+        workAxesGroup.quaternion.setFromRotationMatrix(_fixM);
+      }
       workAxesGroup.visible = true;
+      const fixName = G5X_NAMES[(st.g5x_index ?? 1) - 1] ?? "";
+      if (workAxesLabel && workAxesLabel.text !== fixName) {
+        workAxesLabel.text = fixName;
+        workAxesLabel.sync();
+      }
     } else {
       workAxesGroup.visible = false;
     }
@@ -1484,7 +1542,7 @@ function applyState(init: ViewerInit, st: ViewerState) {
   if (datumAxes) {
     const d = st.twp_datum;
     const idx = st.g5x_index == null ? 1 : Math.round(st.g5x_index);
-    const show = !!st.twp_defined && !!d && d.length >= 3 && idx !== 1;
+    const show = _workzeroLayerOn && !!st.twp_defined && !!d && d.length >= 3 && idx !== 1;
     if (show) datumAxes.position.set(d![0]!, d![1]!, d![2]!);
     datumAxes.visible = show;
   }
