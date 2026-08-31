@@ -197,6 +197,41 @@ class TestPollStatus(unittest.TestCase):
             _runtime(stat=stat).poll_status(), armed=True, kins_switchable=False)
         self.assertFalse(ps.a_at_zero)
 
+    def test_work_pos_uses_world_coords_under_nonzero_kins(self):
+        # Kins mode 2 (TOOL/plane): joints != world. The DRO math must read
+        # canonical actual_position (forward-kins output), not joint values —
+        # a tip at the plane origin reads 0 (operator-caught: it did not).
+        stat = self._stat(
+            joint_actual_position=(111.0, 222.0, 333.0),      # joint space
+            actual_position=(1.0, 2.0, 3.0, 0, 0, 0, 0, 0, 0),  # world
+            g5x_offset=(1.0, 2.0, 3.0), g92_offset=(0.0,) * 9,
+            tool_offset=(0.0, 0.0, 0.0))
+        p = _runtime(stat=stat, snapshot={"kins_type": 2.0}).poll_status()
+        self.assertEqual(p.work_pos[:3], [0.0, 0.0, 0.0])
+        # machine_pos stays the joint truth (recorded limitation).
+        self.assertEqual(p.machine_pos[:3], [111.0, 222.0, 333.0])
+
+    def test_work_pos_keeps_joint_path_on_identity(self):
+        # Identity (or unknown/non-switchable): encoder-live joints stay the
+        # source — they update with the machine off, actual_position freezes.
+        stat = self._stat(
+            joint_actual_position=(11.0, 22.0, 33.0),
+            actual_position=(99.0, 99.0, 99.0, 0, 0, 0, 0, 0, 0),
+            g5x_offset=(1.0, 2.0, 3.0), g92_offset=(0.0,) * 9,
+            tool_offset=(0.0, 0.0, 0.0))
+        p = _runtime(stat=stat, snapshot={"kins_type": 0.0}).poll_status()
+        self.assertEqual(p.work_pos[:3], [10.0, 20.0, 30.0])
+        p2 = _runtime(stat=stat).poll_status()  # no kins pin sampled
+        self.assertEqual(p2.work_pos[:3], [10.0, 20.0, 30.0])
+
+    def test_work_pos_blank_when_world_missing_under_kins2(self):
+        # No actual_position while kins != 0: DRO blank, never joint-frame
+        # numbers posing as plane coordinates.
+        stat = self._stat(joint_actual_position=(11.0, 22.0, 33.0),
+                          actual_position=None)
+        p = _runtime(stat=stat, snapshot={"kins_type": 2.0}).poll_status()
+        self.assertIsNone(p.work_pos)
+
     def test_capture_clean_helpers_closed_on_none(self):
         # Absent/short/malformed inputs read DIRTY — a gate that cannot see
         # the offsets refuses, never assumes clean.

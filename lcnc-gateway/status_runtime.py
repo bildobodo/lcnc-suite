@@ -774,9 +774,29 @@ class StatusRuntime:
         # subtracting from the joint-ordered machine_pos (a plain index-wise
         # subtraction silently took B's offset from C's angle on XYZBC, and C's
         # from nothing on XYZAC — "Zero B/C does nothing").
+        # ---- kins-mode work_pos source (2026-08-31, operator-caught) ----
+        # The subtraction below is the trivkins identity: joints == world.
+        # Under switchable kins mode 1/2 (TCP/TOOL) the world coords come
+        # from the FORWARD KINS — subtracting G59 from joint values produced
+        # DRO numbers that never read 0 at the plane origin. So: non-zero
+        # live kins type sources the math from canonical actual_position
+        # (the trajectory's forward-kins world output); identity keeps the
+        # encoder-live joint path (updates with the machine off). A missing
+        # world position under kins != 0 leaves the DRO BLANK (None) — never
+        # joint-frame numbers posing as plane coordinates.
+        _kt_raw = reader_get("kins_type")
+        _kins_nonzero = _kt_raw is not None and int(round(float(_kt_raw))) != 0
+        pos_src = machine_pos
+        if _kins_nonzero:
+            pos_src = canonical_to_joint_order(_canon_pos, axis_mask)
+            if pos_src is None:
+                if not getattr(self, "_world_pos_warned", False):
+                    _trace.emit("poller.world_pos_missing", level="warn",
+                                msg="kins mode != 0 but STAT has no actual_position — work_pos blank")
+                    self._world_pos_warned = True
         work_pos = None
-        if machine_pos is not None:
-            work_pos = machine_pos.copy()
+        if pos_src is not None:
+            work_pos = pos_src.copy()
 
             g5x_j = canonical_to_joint_order(g5x, axis_mask)
             if g5x_j is not None:
