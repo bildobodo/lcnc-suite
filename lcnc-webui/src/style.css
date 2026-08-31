@@ -1330,6 +1330,9 @@ label:has(input:disabled, select:disabled) {
 
 /* Muted label (section headers, units, field labels) */
 .label-muted    { font-size: var(--fs-2xs); opacity: var(--opacity-muted); white-space: nowrap; }
+/* Opacity-only muting — dims without changing type size (e.g. the reserved-
+   WCS radio text, which must stay --fs-base with its siblings). */
+.muted          { opacity: var(--opacity-muted); }
 .label-muted.md { font-size: var(--fs-md); }
 
 /* Status key/value row — label left, value right (safety detail, tool

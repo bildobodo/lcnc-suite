@@ -154,7 +154,7 @@ function zeroAll() {
         <div class="strip-radio-options">
           <label v-for="g in g5xOptions" :key="g" class="radio-label" :title="wcsReserved(g) ? RESERVED_TITLE : undefined">
             <MachineRadio gate="wcsSelect" name="wcs" :value="g" :modelValue="g5xLabel" :disabled="wcsReserved(g)" @update:modelValue="(v: string | number | undefined) => { if (v != null) emit('setG5x', String(v)) }" />
-            <span :class="{ 'label-muted': wcsReserved(g) }">{{ g }}</span>
+            <span :class="{ muted: wcsReserved(g) }">{{ g }}</span>
           </label>
         </div>
       </div>
