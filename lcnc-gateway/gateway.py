@@ -3981,7 +3981,13 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             prov = await _stamp_wcs_provenance(
                 [p], {p: [finite_float(_wcs_cache[ci].get(k, 0.0))
                           for k in ("x", "y", "z")]},
-                wrote_all_xyz=wrote_all, prewrite_by_index={p: prewrite})
+                wrote_all_xyz=wrote_all, prewrite_by_index={p: prewrite},
+                # Typed values are fixture-frame statements, not measurements
+                # at the live pose — stamp table frame (kins 0 / A 0). A
+                # partial typed edit onto a fixture stamped at a real pose
+                # falsifies the stamp exactly as a pose change would (the
+                # override feeds the mixed-angle decision too).
+                pose_override=(0.0, 0.0))
             resp = {"ok": True, "table": [row.copy() for row in _wcs_cache]}
             if prov.get(p) == "cleared_mixed_angle":
                 # Surface it: the operator mixed table poses in one fixture,
@@ -4236,7 +4242,8 @@ _prov_rows_ok: Optional[bool] = None
 
 
 async def _stamp_wcs_provenance(indices, values_by_index,
-                                wrote_all_xyz=True, prewrite_by_index=None):
+                                wrote_all_xyz=True, prewrite_by_index=None,
+                                pose_override=None):
     """Record the machine state each offset was established in (W1).
 
     LinuxCNC records nothing about this, and on a rotary machine the same
@@ -4248,7 +4255,14 @@ async def _stamp_wcs_provenance(indices, values_by_index,
     there is nothing that could go stale, and writing rows there would be
     noise an operator has to wonder about.
 
-    The pose is read from the JOINT, not from actual_position. Joints are
+    `pose_override` = (kins, a): recorded IN PLACE of the live sample —
+    including as input to the mixed-angle decision. A TYPED fixture value is
+    a fixture-frame statement, not a measurement at the current pose, so
+    set_wcs passes (0.0, 0.0) (table frame by definition; 2026-08-31,
+    closing the decisions.md follow-up). Touch-offs keep the live sample:
+    they ARE measurements at the current pose.
+
+    The live pose is read from the JOINT, not from actual_position. Joints are
     the physical invariant and kinematics are labelings: under TOOL/TCP
     kins the world XYZ are relabeled, and while A happens to be passthrough
     in this kins family, recording a labeled value as if it were physical
@@ -4275,6 +4289,10 @@ async def _stamp_wcs_provenance(indices, values_by_index,
         mask = int(getattr(STAT, "axis_mask", 0))
         if not (mask & (1 << 3)):
             return out  # no A axis: nothing to record
+        if pose_override is not None:
+            kins_val, a_val = float(pose_override[0]), float(pose_override[1])
+            return await _stamp_wcs_rows(indices, values_by_index, wrote_all_xyz,
+                                         prewrite_by_index, a_val, kins_val, out)
         # Joint index of A = configured axes below it (trivkins compaction,
         # the same layout canonical_to_joint_order documents). NEVER a
         # hardcoded 3: on XYZBC-style masks the slot moves. Gantry
@@ -4301,6 +4319,19 @@ async def _stamp_wcs_provenance(indices, values_by_index,
             kins_val = 0.0
         else:
             kins_val = float(kins)
+        return await _stamp_wcs_rows(indices, values_by_index, wrote_all_xyz,
+                                     prewrite_by_index, a_val, kins_val, out)
+    except Exception as exc:  # noqa: BLE001 - never break a touch-off
+        _trace.emit("wcs.provenance_stamp_failed", level="warn", error=repr(exc))
+    return out
+
+
+async def _stamp_wcs_rows(indices, values_by_index, wrote_all_xyz,
+                          prewrite_by_index, a_val, kins_val, out):
+    """The shared stamp/clear row loop for _stamp_wcs_provenance — one
+    implementation for both pose sources (live sample vs pose_override),
+    so the mixed-angle decision can never diverge between them."""
+    try:
         if _prov_rows_ok is False:
             # The rows could not be seeded into the var file, so whatever is
             # stamped now evaporates at the next LinuxCNC save/restart.

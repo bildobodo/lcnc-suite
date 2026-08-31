@@ -59,3 +59,42 @@ class TestProvenanceTwins(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestTypedEditPoseOverride(unittest.TestCase):
+    """C9 (2026-08-31): a TYPED fixture value is a fixture-frame statement —
+    set_wcs must stamp table frame (kins 0 / A 0) instead of the live pose,
+    and the override must feed the SAME shared row loop as the live path so
+    the mixed-angle decision cannot diverge. Source-level pins (the pattern
+    test_command_policy uses for the dispatch ladder): the gateway cannot be
+    imported without linuxcnc, but the calling convention is text."""
+
+    @staticmethod
+    def _src():
+        import re
+        from pathlib import Path
+        return (Path(__file__).resolve().parent / "gateway.py").read_text(), re
+
+    def test_set_wcs_stamps_table_frame(self):
+        src, re = self._src()
+        start = src.index('if cmd == "set_wcs":')
+        # set_wcs is the LAST handler in the ladder — bound the slice at the
+        # next top-level def instead of "the next handler".
+        nxt = src.index("\nasync def", start)
+        set_wcs = src[start:nxt]
+        self.assertIn("pose_override=(0.0, 0.0)", set_wcs)
+
+    def test_touchoff_keeps_the_live_pose(self):
+        src, re = self._src()
+        touchoff = src[src.index('if cmd == "touchoff":'):src.index('if cmd == "set_wcs":')]
+        self.assertIn("_stamp_wcs_provenance", touchoff)
+        self.assertNotIn("pose_override", touchoff)
+
+    def test_both_pose_paths_share_the_row_loop(self):
+        src, re = self._src()
+        fn = src[src.index("async def _stamp_wcs_provenance"):src.index("async def _stamp_wcs_rows")]
+        # exactly two call sites of the shared loop: override path + live path
+        self.assertEqual(fn.count("_stamp_wcs_rows("), 2)
+        # and no decision CALL remains outside the shared loop (the
+        # docstring may name the helper; a call site has an open paren)
+        self.assertNotIn("wcs_stamp_decision(", fn)
