@@ -301,6 +301,35 @@ class StatusPayload:
     is_enabled: Optional[bool] = None
 
 
+_CAPTURE_OFFSET_EPS = 1e-6  # matches the remap's rotary_offsets_nonzero
+
+
+def capture_rotary_offsets_clean(wcs_table, g92_offset) -> bool:
+    """G54's A/B/C row AND G92's rotary components all ~0 — the capture-gate
+    mirror of the remap's rotary_offsets_nonzero (g683 refuses those states
+    loudly; the button closes for them with the reason). None/absent/short
+    inputs read DIRTY (closed): a gate that cannot see the offsets must
+    refuse, never assume clean. Pure; unit-tested."""
+    try:
+        row = wcs_table[0]
+        rot = [float(row[k]) for k in ("a", "b", "c")]
+        g92r = [float(g92_offset[i]) for i in range(3, 6)]
+    except (TypeError, KeyError, IndexError, ValueError):
+        return False
+    return all(abs(v) <= _CAPTURE_OFFSET_EPS for v in rot + g92r)
+
+
+def capture_g92_xyz_clean(g92_offset) -> bool:
+    """G92 X/Y/Z all ~0 — a live G92 would displace the captured plane origin
+    (#<_x> includes it; G68.3's origin words are G54-relative). None/short
+    reads DIRTY (closed). Pure; unit-tested."""
+    try:
+        g92l = [float(g92_offset[i]) for i in range(3)]
+    except (TypeError, IndexError, ValueError):
+        return False
+    return all(abs(v) <= _CAPTURE_OFFSET_EPS for v in g92l)
+
+
 def policy_state_from_payload(p: "StatusPayload", armed: bool,
                               kins_switchable: bool = True) -> _PolicyMachineState:
     """Build the command-policy MachineState from a status snapshot.
@@ -355,6 +384,12 @@ def policy_state_from_payload(p: "StatusPayload", armed: bool,
         # rule above.
         a_at_zero=((_ra := getattr(p, "rotary_abc", None)) is not None and len(_ra) > 0
                    and abs(float(_ra[0])) <= PROV_A_EPS),
+        # Capture-plane gate inputs (2026-08-31): absent table/offset data
+        # reads CLOSED, like every rule above.
+        twp_defined=(getattr(p, "twp_defined", None) is True),
+        rotary_offsets_clean=capture_rotary_offsets_clean(
+            getattr(p, "wcs_table", None), getattr(p, "g92_offset", None)),
+        g92_xyz_clean=capture_g92_xyz_clean(getattr(p, "g92_offset", None)),
     )
 
 

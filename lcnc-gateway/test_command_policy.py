@@ -9,6 +9,7 @@ from pathlib import Path
 from command_policy import (
     MachineState,
     MachineLimits,
+    twp_capture_check,
     evaluate_permissions,
     check_command,
     validate_payload,
@@ -403,6 +404,85 @@ class TestTouchoffRoute(unittest.TestCase):
         self.assertEqual(COMMAND_GATES["touchoff"], "touchoff")
         self.assertIsNone(check_command("touchoff", state()))
         self.assertIsNotNone(check_command("touchoff", self.twp(g5x_index=6)))
+
+
+class TestTwpCapture(unittest.TestCase):
+    """twp_capture_check — the Capture-plane admission rule (2026-08-31).
+    The `twpCapture` gate is defined through the check; the last test pins
+    that they can never disagree."""
+
+    def _capture_state(self, **over):
+        base = dict(kins_switchable=True, kins_type=0, g5x_index=1,
+                    twp_defined=False, rotary_offsets_clean=True,
+                    g92_xyz_clean=True)
+        base.update(over)
+        return state(**base)
+
+    def test_defaults_are_closed(self):
+        # A builder that forgets the capture fields gets a refusal, never an
+        # open gate (rotary_offsets_clean / g92_xyz_clean default False).
+        s = state(kins_switchable=True, kins_type=0, g5x_index=1)
+        self.assertIsNotNone(twp_capture_check(s))
+
+    def test_happy_g54_identity(self):
+        self.assertIsNone(twp_capture_check(self._capture_state()))
+
+    def test_happy_from_tcp_any_table_angle(self):
+        # The stated workflow: align in the TCP jog frame, tip on the face.
+        # No A=0 rule — g683 converts a live tilt into the table frame itself.
+        self.assertIsNone(twp_capture_check(
+            self._capture_state(kins_type=1, a_at_zero=False)))
+
+    def test_happy_from_dead_tool_kins(self):
+        # TOOL kins without a plane (the limbo state): G69 normalizes.
+        self.assertIsNone(twp_capture_check(self._capture_state(kins_type=2)))
+
+    def test_refuses_non_switchable_machine(self):
+        self.assertIn("TWP machine",
+                      twp_capture_check(self._capture_state(kins_switchable=False)))
+
+    def test_refuses_unknown_kins(self):
+        self.assertIn("unknown",
+                      twp_capture_check(self._capture_state(kins_type=None)))
+
+    def test_refuses_unknown_fixture(self):
+        self.assertIn("unknown",
+                      twp_capture_check(self._capture_state(g5x_index=None)))
+
+    def test_refuses_plane_already_defined(self):
+        # User decision 2026-08-31: refuse, never silently discard.
+        r = twp_capture_check(self._capture_state(twp_defined=True))
+        self.assertIn("Clear plane", r)
+
+    def test_refuses_g55(self):
+        # G69 inside the sub FORCES G54 — starting from G55 would silently
+        # switch the datum fixture, so it must refuse above the sub.
+        r = twp_capture_check(self._capture_state(g5x_index=2))
+        self.assertIn("G54", r)
+
+    def test_refuses_reserved_fixture(self):
+        self.assertIsNotNone(twp_capture_check(self._capture_state(g5x_index=6)))
+
+    def test_refuses_rotary_offsets(self):
+        r = twp_capture_check(self._capture_state(rotary_offsets_clean=False))
+        self.assertIn("rotary", r)
+
+    def test_refuses_g92_xyz(self):
+        r = twp_capture_check(self._capture_state(g92_xyz_clean=False))
+        self.assertIn("G92", r)
+
+    def test_gate_and_check_agree(self):
+        # The twpCapture gate must be exactly `probe`-tier + the check.
+        for s in (self._capture_state(),
+                  self._capture_state(twp_defined=True),
+                  self._capture_state(g5x_index=2),
+                  self._capture_state(kins_type=None),
+                  self._capture_state(rotary_offsets_clean=False),
+                  state()):
+            perms = evaluate_permissions(s)
+            self.assertEqual(perms["twpCapture"],
+                             perms["probe"] and twp_capture_check(s) is None,
+                             f"gate/check disagree for {s}")
 
 
 class TestSingleSource(unittest.TestCase):

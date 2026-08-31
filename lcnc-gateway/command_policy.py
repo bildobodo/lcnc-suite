@@ -66,6 +66,17 @@ class MachineState:
     #: Table A within PROV_A_EPS of zero — the TCP touch-off admission rule
     #: the remap enforces later (to_storage_frame: kins 1 only at A=0).
     a_at_zero: bool = False
+    #: A tilted-work-plane is DEFINED (twp-helper-comp twp-is-defined).
+    #: Capture refuses rather than silently discarding it (user decision
+    #: 2026-08-31: Clear plane first).
+    twp_defined: bool = False
+    #: G54's A/B/C row ≈ 0 AND G92's rotary components ≈ 0 — the states g683
+    #: refuses loudly; the gate closes the Capture button for the same reason
+    #: so the operator sees why BEFORE pressing.
+    rotary_offsets_clean: bool = False
+    #: G92 X/Y/Z ≈ 0 — a live G92 would displace the captured origin
+    #: (#<_x> includes it; G68.3's origin words are G54-relative).
+    g92_xyz_clean: bool = False
 
 
 # Single source of truth for gate semantics (review #6): each gate is an ordered
@@ -180,6 +191,45 @@ _R_TOUCHOFF_ROTARY = (
     lambda s: touchoff_route(s, ("A",))[0] is not None,
     "Rotary touch-off is allowed in the Machine jog frame and G54 only")
 
+
+def twp_capture_check(s: MachineState) -> Optional[str]:
+    """May "Capture plane" fire? None = yes, else the operator-readable refusal.
+
+    The one-button manual TWP definition (o<twp_capture>): G69 normalize,
+    G68.3 with origin at the current tool tip, no-move G53.1 P0. Pure; the
+    `twpCapture` gate is DEFINED through this check so the two can never
+    disagree. The NGC sub carries belt-and-braces guards for hand-typed MDI
+    (and g683 refuses rotary offsets loudly itself) — this check exists so
+    the BUTTON closes with the reason before anything fires.
+
+    No A=0 rule and no kins-mode rule beyond "known": capture from the TCP
+    jog frame is the stated workflow (align the spindle with the tip held on
+    the face), and the sub's G69 normalizes kins + fixture before sampling;
+    g683 converts a live table tilt into the table frame itself."""
+    if not s.kins_switchable:
+        return "Not a TWP machine — plane capture needs switchable kinematics"
+    if s.kins_type is None:
+        return "Kinematics mode unknown (reader stale) — capture refused"
+    if s.g5x_index is None:
+        return "Active fixture unknown — capture refused"
+    if s.twp_defined:
+        return "A plane is already defined — press Clear plane first"
+    if s.g5x_index != 1:
+        return ("Capture defines the plane on the G54 datum — select G54 "
+                "first (G59–G59.3 are TWP scratch rows)")
+    if not s.rotary_offsets_clean:
+        return ("A rotary (A/B/C) work or G92 offset is in effect — clear it "
+                "(G10 L2 P1 A0 B0 C0 / G92.1) before capturing")
+    if not s.g92_xyz_clean:
+        return "A G92 X/Y/Z offset is in effect — G92.1 before capturing"
+    return None
+
+
+_R_TWP_CAPTURE = (
+    lambda s: twp_capture_check(s) is None,
+    "Capture plane refused: needs a TWP machine sitting in G54 with no plane "
+    "defined and no rotary/G92 offsets in effect")
+
 _BASE = (_R_ARMED, _R_NOT_ESTOP, _R_ENABLED)
 
 # gate -> ordered requirements (armed/estop/enabled first → sensible messages).
@@ -199,6 +249,10 @@ GATE_REQUIREMENTS: Dict[str, tuple] = {
     # controls differ: rotary letters are identity + G54 only.
     "touchoff":       _BASE + (_R_IDLE, _R_HOMED, _R_NO_EOFFSET, _R_TOUCHOFF_LINEAR),
     "touchoffRotary": _BASE + (_R_IDLE, _R_HOMED, _R_NO_EOFFSET, _R_TOUCHOFF_ROTARY),
+    # One-button plane capture at the tool tip (o<twp_capture>): plane from
+    # the live rotaries, origin at the tip, no-move orient. Defined through
+    # twp_capture_check above.
+    "twpCapture": _BASE + (_R_IDLE, _R_HOMED, _R_NO_EOFFSET, _R_TWP_CAPTURE),
     # May the operator START surface-map work — probe a new map, or switch
     # compensation ON? `probe` plus "the tool is normal to the mapped surface
     # and the map's grid is aligned to the work". Deliberately NOT the gate on
@@ -216,7 +270,7 @@ GATE_REQUIREMENTS: Dict[str, tuple] = {
 
 
 def evaluate_permissions(s: MachineState) -> Dict[str, bool]:
-    """The 14 permission classes for `s`, derived from GATE_REQUIREMENTS — the
+    """The permission classes for `s` (one per GATE_REQUIREMENTS entry), derived from GATE_REQUIREMENTS — the
     same table check_command() reports denials from, so a gate's decision and its
     deny message can't drift (review #6)."""
     return {gate: all(ok(s) for ok, _ in reqs)
@@ -286,6 +340,7 @@ COMMAND_GATES: Dict[str, str] = {
     # Operator touch-off from the DRO (was a client-built `G10 L20 P0` MDI
     # under `probe`; now routed + stamped server-side, see touchoff_route).
     "touchoff": "touchoff",
+    "twp_capture": "twpCapture",
     "set_probe_vars": "ready",
     # --- tool-table edits (no machine-enabled needed) ---
     "save_tool": "setup",

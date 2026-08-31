@@ -63,7 +63,7 @@ from gateway_util import (
     wcs_stamp_decision,
     PROV_STAMPED,
 )
-from command_policy import check_command, validate_payload, MachineLimits, touchoff_route
+from command_policy import check_command, validate_payload, MachineLimits, touchoff_route, twp_capture_check
 from tool_table import (
     parse_tool_table,
     write_tool_table,
@@ -3906,6 +3906,38 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             if prov.get(p) == "cleared_mixed_angle":
                 resp["provenance"] = {"index": p, "action": prov[p]}
             return resp
+
+        if cmd == "twp_capture":
+            # One-button plane capture at the tool tip (o<twp_capture>):
+            # G69 normalize -> G68.3 with origin at the current tip -> no-move
+            # G53.1 P0. Nothing here computes geometry — the NGC sub samples
+            # #<_x>/#<_y>/#<_z> AFTER its own sync, so there is no poll-to-
+            # command race for the gateway to lose. Policy first (the same
+            # check the twpCapture gate broadcasts), then blocking MDI with
+            # rc surfacing — never the fire-and-forget mdi shape.
+            require_armed(armed)
+            require_no_eoffset()
+            blocked = reject_if_auto_running()
+            if blocked:
+                return blocked
+            if _shared_status is None:
+                return {"ok": False, "error": "No machine state yet — capture refused"}
+            pstate = _policy_state_from_payload(
+                _shared_status, armed, kins_switchable=_kins_is_switchable())
+            reason = twp_capture_check(pstate)
+            if reason is not None:
+                _trace.emit("twp.capture_refused", level="warn", reason=reason,
+                            kins_type=pstate.kins_type, g5x_index=pstate.g5x_index)
+                return {"ok": False, "error": reason}
+            await set_mode(linuxcnc.MODE_MDI)
+            rc = await _cmd_blocking(CMD.mdi, "o<twp_capture> call", wait=30)
+            if _cmd_rc_failed(rc):
+                _trace.emit("twp.capture_failed", level="warn", rc=rc)
+                return {"ok": False, "error": "Capture plane failed — see the error channel"}
+            # Capture writes no datum (G54 row + provenance untouched), so no
+            # prov-cache reseed — the live check pins that property.
+            _trace.emit("twp.capture", level="info")
+            return {"ok": True}
 
         if cmd == "set_wcs":
             require_armed(armed)

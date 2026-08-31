@@ -197,6 +197,58 @@ class TestPollStatus(unittest.TestCase):
             _runtime(stat=stat).poll_status(), armed=True, kins_switchable=False)
         self.assertFalse(ps.a_at_zero)
 
+    def test_capture_clean_helpers_closed_on_none(self):
+        # Absent/short/malformed inputs read DIRTY — a gate that cannot see
+        # the offsets refuses, never assumes clean.
+        f = status_runtime.capture_rotary_offsets_clean
+        g = status_runtime.capture_g92_xyz_clean
+        self.assertFalse(f(None, None))
+        self.assertFalse(f([], [0.0] * 9))
+        self.assertFalse(f([{"x": 0}], [0.0] * 9))          # row missing a/b/c
+        self.assertFalse(f([{"a": 0, "b": 0, "c": 0}], [0.0] * 3))  # short g92
+        self.assertFalse(g(None))
+        self.assertFalse(g([0.0, 0.0]))
+
+    def test_capture_clean_helpers_read_the_offsets(self):
+        f = status_runtime.capture_rotary_offsets_clean
+        g = status_runtime.capture_g92_xyz_clean
+        row = [{"x": 1.0, "y": 2.0, "z": 3.0, "a": 0.0, "b": 0.0, "c": 0.0}]
+        self.assertTrue(f(row, [0.0] * 9))
+        self.assertTrue(g([0.0] * 9))
+        self.assertFalse(f([{"a": 5.0, "b": 0.0, "c": 0.0}], [0.0] * 9))
+        self.assertFalse(f(row, [0, 0, 0, 0.5, 0, 0, 0, 0, 0]))  # G92 rotary
+        self.assertFalse(g([1.0, 0, 0, 0, 0, 0, 0, 0, 0]))
+        # Linear work offsets and a G92 rotary=0 tail are fine.
+        self.assertTrue(g([0, 0, 0, 5.0, 0, 0, 0, 0, 0]))  # rotary g92 is not XYZ's business
+
+    def test_policy_state_carries_the_capture_inputs(self):
+        # twp_defined + the two clean flags ride the same snapshot the
+        # broadcast carries. The default _stat has G92 X=0.5 — deliberately
+        # used as the dirty case; a zeroed G92 with a clean G54 row is open.
+        p = _runtime(stat=self._stat(),
+                     snapshot={"kins_type": 0.0, "twp_defined": 1}).poll_status()
+        ps = status_runtime.policy_state_from_payload(p, armed=True, kins_switchable=True)
+        self.assertTrue(ps.twp_defined)
+        self.assertFalse(ps.g92_xyz_clean)  # G92 X=0.5 in the default stat
+        clean = self._stat(g92_offset=(0.0,) * 9)  # 9-wide like real STAT (short reads closed)
+        p2 = _runtime(stat=clean, snapshot={"kins_type": 0.0}).poll_status()
+        ps2 = status_runtime.policy_state_from_payload(p2, armed=True, kins_switchable=True)
+        self.assertFalse(ps2.twp_defined)
+        self.assertTrue(ps2.g92_xyz_clean)
+        # rotary_offsets_clean reads the broadcast wcs_table's G54 row (the
+        # var-file cache — zeros in these tests) + the G92 rotary tail.
+        self.assertTrue(ps2.rotary_offsets_clean)
+        # A partial payload (older envelope / test double) reads CLOSED.
+        from types import SimpleNamespace
+        bare = SimpleNamespace(estop=0, enabled=1, homed=True, paused=False,
+                               interp_state=None, eoffset_enabled=False,
+                               emc_enable_in=None, rotary_at_zero=True)
+        psb = status_runtime.policy_state_from_payload(bare, armed=True,
+                                                       kins_switchable=True)
+        self.assertFalse(psb.twp_defined)
+        self.assertFalse(psb.rotary_offsets_clean)
+        self.assertFalse(psb.g92_xyz_clean)
+
     def test_twp_frame_pins_ride_the_snapshot_raw_and_absent_is_none(self):
         # The three TWP plane-frame pins reach the client UNCONVERTED, with
         # upstream's own unit asymmetry intact: pre-rot in RADIANS, the two
