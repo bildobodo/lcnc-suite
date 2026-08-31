@@ -192,43 +192,50 @@ _R_TOUCHOFF_ROTARY = (
     "Rotary touch-off is allowed in the Machine jog frame and G54 only")
 
 
+#: Capture-plane admission rules, ordered — ONE source for three consumers:
+#: twp_capture_check (the handler's refusal text), the twpCapture gate below
+#: (check_command surfaces the FIRST failing rule's message verbatim, so a
+#: denied WS command names its exact reason, not a summary), and the button
+#: dimming (permissions broadcast). Every predicate is None-safe and every
+#: default is the CLOSED reading.
+_TWP_CAPTURE_RULES = (
+    (lambda s: s.kins_switchable,
+     "Not a TWP machine — plane capture needs switchable kinematics"),
+    (lambda s: s.kins_type is not None,
+     "Kinematics mode unknown (reader stale) — capture refused"),
+    (lambda s: s.g5x_index is not None,
+     "Active fixture unknown — capture refused"),
+    (lambda s: not s.twp_defined,
+     "A plane is already defined — press Clear plane first"),
+    (lambda s: s.g5x_index == 1,
+     "Capture defines the plane on the G54 datum — select G54 first "
+     "(G59–G59.3 are TWP scratch rows)"),
+    (lambda s: s.rotary_offsets_clean,
+     "A rotary (A/B/C) work or G92 offset is in effect — clear it "
+     "(G10 L2 P1 A0 B0 C0 / G92.1) before capturing"),
+    (lambda s: s.g92_xyz_clean,
+     "A G92 X/Y/Z offset is in effect — G92.1 before capturing"),
+)
+
+
 def twp_capture_check(s: MachineState) -> Optional[str]:
     """May "Capture plane" fire? None = yes, else the operator-readable refusal.
 
-    The one-button manual TWP definition (o<twp_capture>): G69 normalize,
-    G68.3 with origin at the current tool tip, no-move G53.1 P0. Pure; the
-    `twpCapture` gate is DEFINED through this check so the two can never
-    disagree. The NGC sub carries belt-and-braces guards for hand-typed MDI
-    (and g683 refuses rotary offsets loudly itself) — this check exists so
-    the BUTTON closes with the reason before anything fires.
+    The one-button manual TWP definition: G69 normalize, G68.3 with origin
+    at the current tool tip, no-move G53.1 P0 — driven by the gateway as
+    separate blocking MDIs (remapped G-codes never execute inside an o-sub
+    called from MDI). First failing _TWP_CAPTURE_RULES message, so the
+    handler, the gate and the WS denial can never disagree.
 
     No A=0 rule and no kins-mode rule beyond "known": capture from the TCP
     jog frame is the stated workflow (align the spindle with the tip held on
-    the face), and the sub's G69 normalizes kins + fixture before sampling;
-    g683 converts a live table tilt into the table frame itself."""
-    if not s.kins_switchable:
-        return "Not a TWP machine — plane capture needs switchable kinematics"
-    if s.kins_type is None:
-        return "Kinematics mode unknown (reader stale) — capture refused"
-    if s.g5x_index is None:
-        return "Active fixture unknown — capture refused"
-    if s.twp_defined:
-        return "A plane is already defined — press Clear plane first"
-    if s.g5x_index != 1:
-        return ("Capture defines the plane on the G54 datum — select G54 "
-                "first (G59–G59.3 are TWP scratch rows)")
-    if not s.rotary_offsets_clean:
-        return ("A rotary (A/B/C) work or G92 offset is in effect — clear it "
-                "(G10 L2 P1 A0 B0 C0 / G92.1) before capturing")
-    if not s.g92_xyz_clean:
-        return "A G92 X/Y/Z offset is in effect — G92.1 before capturing"
+    the face), and the sequence's G69 normalizes kins + fixture before the
+    tip sample; g683 converts a live table tilt into the table frame itself."""
+    for ok, msg in ((f(s), m) for f, m in _TWP_CAPTURE_RULES):
+        if not ok:
+            return msg
     return None
 
-
-_R_TWP_CAPTURE = (
-    lambda s: twp_capture_check(s) is None,
-    "Capture plane refused: needs a TWP machine sitting in G54 with no plane "
-    "defined and no rotary/G92 offsets in effect")
 
 _BASE = (_R_ARMED, _R_NOT_ESTOP, _R_ENABLED)
 
@@ -252,7 +259,7 @@ GATE_REQUIREMENTS: Dict[str, tuple] = {
     # One-button plane capture at the tool tip (o<twp_capture>): plane from
     # the live rotaries, origin at the tip, no-move orient. Defined through
     # twp_capture_check above.
-    "twpCapture": _BASE + (_R_IDLE, _R_HOMED, _R_NO_EOFFSET, _R_TWP_CAPTURE),
+    "twpCapture": _BASE + (_R_IDLE, _R_HOMED, _R_NO_EOFFSET) + _TWP_CAPTURE_RULES,
     # May the operator START surface-map work — probe a new map, or switch
     # compensation ON? `probe` plus "the tool is normal to the mapped surface
     # and the map's grid is aligned to the work". Deliberately NOT the gate on

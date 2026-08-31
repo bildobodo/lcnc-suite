@@ -3908,13 +3908,18 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             return resp
 
         if cmd == "twp_capture":
-            # One-button plane capture at the tool tip (o<twp_capture>):
-            # G69 normalize -> G68.3 with origin at the current tip -> no-move
-            # G53.1 P0. Nothing here computes geometry — the NGC sub samples
-            # #<_x>/#<_y>/#<_z> AFTER its own sync, so there is no poll-to-
-            # command race for the gateway to lose. Policy first (the same
-            # check the twpCapture gate broadcasts), then blocking MDI with
-            # rc surfacing — never the fire-and-forget mdi shape.
+            # One-button plane capture at the tool tip: G69 normalize ->
+            # G68.3 with origin at the current tip -> no-move G53.1 P0.
+            # The gateway drives the sequence as SEPARATE blocking MDIs:
+            # a pure-NGC o-sub wrapper was tried first and failed —
+            # remapped G-CODES silently never execute inside an o-sub
+            # called from MDI (empirical on 2.9.4: rc clean, no effect,
+            # no error; the M-code remaps M530/M535 in subs are fine, and
+            # upstream only ever calls G68.x/G53.x at program top level).
+            # Between steps the tip is read from STAT — safe because G69
+            # left the machine idle in identity/G54 and the policy already
+            # guaranteed G92/rotary-offset-clean; each rc is checked and
+            # each failure names its step.
             require_armed(armed)
             require_no_eoffset()
             blocked = reject_if_auto_running()
@@ -3924,19 +3929,97 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 return {"ok": False, "error": "No machine state yet — capture refused"}
             pstate = _policy_state_from_payload(
                 _shared_status, armed, kins_switchable=_kins_is_switchable())
+            _trace.emit("twp.capture_state", level="info",
+                        twp_defined=pstate.twp_defined, g5x_index=pstate.g5x_index,
+                        kins_type=pstate.kins_type,
+                        rotary_clean=pstate.rotary_offsets_clean,
+                        g92_clean=pstate.g92_xyz_clean)
             reason = twp_capture_check(pstate)
             if reason is not None:
                 _trace.emit("twp.capture_refused", level="warn", reason=reason,
                             kins_type=pstate.kins_type, g5x_index=pstate.g5x_index)
                 return {"ok": False, "error": reason}
             await set_mode(linuxcnc.MODE_MDI)
-            rc = await _cmd_blocking(CMD.mdi, "o<twp_capture> call", wait=30)
+            STAT.poll()
+            rot = finite_float(getattr(STAT, "rotation_xy", 0.0) or 0.0)
+            if abs(rot) > 1e-9:
+                # G68.3's origin words assume an unrotated G54 — honest
+                # refusal beats a silently displaced plane origin.
+                return {"ok": False, "error": "G54 carries a G10 R rotation — "
+                        "clear it (G10 L2 P1 R0) before capturing"}
+            rc = await _cmd_blocking(CMD.mdi, "G69", wait=10)
             if _cmd_rc_failed(rc):
-                _trace.emit("twp.capture_failed", level="warn", rc=rc)
-                return {"ok": False, "error": "Capture plane failed — see the error channel"}
-            # Capture writes no datum (G54 row + provenance untouched), so no
-            # prov-cache reseed — the live check pins that property.
-            _trace.emit("twp.capture", level="info")
+                _trace.emit("twp.capture_failed", level="warn", rc=rc, step="G69")
+                return {"ok": False, "error": "Capture plane failed at G69 — see the error channel"}
+            STAT.poll()
+            if finite_int(getattr(STAT, "g5x_index", 0)) != 1:
+                return {"ok": False, "error": "Capture: G69 did not land in G54 — refusing"}
+            _g92 = list(getattr(STAT, "g92_offset", None) or [])
+            if any(abs(finite_float(v)) > 1e-6 for v in _g92[:3]):
+                return {"ok": False, "error": "A G92 X/Y/Z offset appeared — G92.1 before capturing"}
+            _pos = list(getattr(STAT, "actual_position", None) or [])
+            _g5x = list(getattr(STAT, "g5x_offset", None) or [])
+            _tofs = list(getattr(STAT, "tool_offset", None) or [])
+            if len(_pos) < 3 or len(_g5x) < 3 or len(_tofs) < 3:
+                return {"ok": False, "error": "Machine position unreadable — capture refused"}
+            tip = [finite_float(_pos[i]) - finite_float(_g5x[i]) - finite_float(_tofs[i])
+                   for i in range(3)]
+            line = f"G68.3 X{tip[0]:.6f} Y{tip[1]:.6f} Z{tip[2]:.6f}"
+            rc = await _cmd_blocking(CMD.mdi, line, wait=10)
+            if _cmd_rc_failed(rc):
+                _trace.emit("twp.capture_failed", level="warn", rc=rc,
+                            step="G68.3", line=line)
+                return {"ok": False, "error": "Capture plane failed at G68.3 — see the error channel"}
+            # Settle: the helper comp promotes twp-is-defined at 1 kHz from
+            # the M68 the remap queued — bounded wait on the reader
+            # snapshot (<=2 s), never a blind dwell, loud on timeout.
+            for _ in range(40):
+                if _reader_get("twp_defined"):
+                    break
+                await asyncio.sleep(0.05)
+            else:
+                _trace.emit("twp.capture_failed", level="warn", step="settle")
+                return {"ok": False, "error": "Capture: the plane definition "
+                        "did not settle — see the error channel"}
+            # M530 Q2 = ADOPT the current head pose (fork extension): the
+            # plane was built FROM the live rotaries one step ago, so the
+            # current pose is a solution — Q2 verifies normality and uses it
+            # verbatim. A plain G53.1 P0 may pick the OTHER (B,C) branch
+            # (observed live: a 168-deg C swing with the tip on the part).
+            # G69 already left identity kins, the wrapper's demote is moot.
+            rc = await _cmd_blocking(CMD.mdi, "M530 P0 Q2", wait=30)
+            if _cmd_rc_failed(rc):
+                _trace.emit("twp.capture_failed", level="warn", rc=rc, step="M530 Q2")
+                return {"ok": False, "error": "Capture plane failed at the orient — see the error channel"}
+            # The orient's kins switch and twp-is-active promote ride the
+            # helper comp like the definition did — same bounded settle, so
+            # the caller (and the operator's next action) sees TOOL kins
+            # actually in force, or an honest failure.
+            for _ in range(40):
+                _kt = _reader_get("kins_type")
+                if _kt is not None and int(round(finite_float(_kt))) == 2:
+                    break
+                await asyncio.sleep(0.05)
+            else:
+                _trace.emit("twp.capture_failed", level="warn", step="orient_settle",
+                            kins_type=_reader_get("kins_type"))
+                return {"ok": False, "error": "Capture: the orient did not enter TOOL "
+                        "kinematics — see the error channel"}
+            # Final step: touch off THROUGH the plane at the tip (the proven
+            # M535 path, all-XYZ zero). G68.3's origin words alone do not pin
+            # the plane-frame READING to 0 — the kins-2 world carries pivot
+            # terms, so the DRO at the captured tip read a residual (live:
+            # ~36 mm at B20 C-15 with no TLO). Zeroing through the plane
+            # makes the DRO read 0,0,0 at the tip BY CONSTRUCTION and puts
+            # the ONE datum (G54, table frame) at the tip — the operator's
+            # ask verbatim ("touch off the plane at the tool tip"). The
+            # remap stamps the provenance itself (kins 0 / A 0).
+            rc = await _cmd_blocking(CMD.mdi, "o<twp_touchoff> call [7] [0] [0] [0]", wait=30)
+            if _cmd_rc_failed(rc):
+                _trace.emit("twp.capture_failed", level="warn", rc=rc, step="M535 zero")
+                return {"ok": False, "error": "Capture: the plane touch-off failed — see the error channel"}
+            await _reseed_prov_cache_row(1)
+            _trace.emit("twp.capture", level="info", tip=tip)
             return {"ok": True}
 
         if cmd == "set_wcs":

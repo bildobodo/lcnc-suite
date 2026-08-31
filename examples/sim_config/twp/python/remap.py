@@ -1144,9 +1144,19 @@ def g53x_core(self):
     # race to lose. Read below the preview return: this is a task-mode
     # concept, and the preview branch deliberately touches no block words.
     _reorient = False
+    _adopt = False
     if _task_mode:
         _c = self.blocks[self.remap_level]
         _reorient = bool(_c.q_flag) and int(_c.q_number) == 1
+        # LCNC-SUITE: Q2 = ADOPT the current head pose (the Capture-plane
+        # path). The plane was just built FROM the live rotaries (G68.3), so
+        # the current pose IS a solution — but calc_optimal_joint_move may
+        # legitimately pick the OTHER (B,C) branch (observed live: capture
+        # at B20 C-15 solved to B-20 C-183.45 — a 168 deg swing with the
+        # tip touching the part). Q2 verifies the current pose is normal to
+        # the plane and uses it verbatim: a zero-length orient by
+        # construction, loud refusal if the head is NOT actually normal.
+        _adopt = bool(_c.q_flag) and int(_c.q_number) == 2
 
     if _task_mode and not hal.get_value(twp_is_defined):
          # reset the twp parameters
@@ -1263,16 +1273,38 @@ def g53x_core(self):
     # a fresh solve that never happened.
     # ---- end LCNC-SUITE table->machine map ---------------------------------
 
+    # ---- LCNC-SUITE: Q2 adopt-current-pose (Capture plane) ------------------
+    if _adopt:
+        _prim_now, _sec_now = get_current_rotary_positions(self)  # radians
+        _t = kins_tool_transformation(_prim_now, _sec_now, 0,
+                                      np.asmatrix(np.identity(4)), 'inv')
+        _z_now = np.array([_t[0, 2], _t[1, 2], _t[2, 2]])
+        _z_req = np.array(tool_z_requested, dtype=float)
+        _z_req = _z_req / np.linalg.norm(_z_req)
+        # same element-wise tolerance kins_calc_jnt_angles uses for a match
+        if not np.all(np.abs(_z_req - _z_now) < 1e-4):
+            msg = ("G53.x: Q2 (adopt pose) refused - the current head pose is "
+                   "not normal to the plane. Use Orient (G53.1) instead.")
+            log.debug(msg)
+            emccanon.CANON_ERROR(msg)
+            yield INTERP_EXECUTE_FINISH
+            yield INTERP_EXIT
+            return INTERP_ERROR
+        theta_1, theta_2 = _prim_now, _sec_now
+    # ---- end LCNC-SUITE Q2 --------------------------------------------------
+
     # calculate the required rotary joint positions and pre_rotation for the requested tool-orientation
     try:
         # calculate all possible pairs of (primary, secondary) angles so our tool-z vector matches the requested tool-z
-        # angles are returned in [-pi,pi]
-        possible_prim_sec_angle_pairs = kins_calc_jnt_angles(self, tool_z_requested)
+        # angles are returned in [-pi,pi] (LCNC-SUITE: skipped under Q2 —
+        # the verified current pose IS the solution)
+        possible_prim_sec_angle_pairs = ([] if _adopt else
+                                         kins_calc_jnt_angles(self, tool_z_requested))
     # An excepton will occur if the requested tool orientation cannot be achieved with the kinematic at hand
     except Exception as error:
         log.error('G53.x: Calculation failed, %s', error)
         possible_prim_sec_angle_pairs = []
-    if not possible_prim_sec_angle_pairs:
+    if not _adopt and not possible_prim_sec_angle_pairs:
         # LCNC-SUITE: upstream reset_twp_params here. The plane is NOT the
         # problem — the head cannot reach it AT THIS TABLE POSE. Wiping it
         # while twp-status stays defined/active left the next G53.x to
@@ -1288,8 +1320,9 @@ def g53x_core(self):
         return INTERP_ERROR
 
     # this returns one pair of optimized angles in degrees, or (None, None) if no solution could be found
-    theta_1, theta_2 = calc_optimal_joint_move(self, possible_prim_sec_angle_pairs)
-    if theta_1 == None:
+    if not _adopt:
+        theta_1, theta_2 = calc_optimal_joint_move(self, possible_prim_sec_angle_pairs)
+    if not _adopt and theta_1 == None:
         # LCNC-SUITE: no reset — same rationale as the branch above (the
         # plane is valid, the pose is the problem; preserve it for retry).
         msg = ("G53.x ERROR: Requested tool orientation not reachable -> aborting G53.x")
@@ -1299,8 +1332,9 @@ def g53x_core(self):
         yield INTERP_EXIT # w/o this the error does not abort a running gcode program
         return INTERP_ERROR
 
-    theta_1 = radians(theta_1)
-    theta_2 = radians(theta_2)
+    if not _adopt:  # LCNC-SUITE: Q2's adopted angles are already radians
+        theta_1 = radians(theta_1)
+        theta_2 = radians(theta_2)
     # calculate the pre-rotation needed so our tool-x vector matches the
     # requested tool-x vector (LCNC-SUITE: table-composed above)
     pre_rot = kins_calc_pre_rot(self,theta_1, theta_2, tool_x_requested, tool_z_requested)

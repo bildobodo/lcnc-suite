@@ -465,7 +465,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
             <MachineBtn type="twpCapture" @click="emit('twpCapture')"
                         :title="twpDefined
                           ? 'A plane is already defined — press Clear plane first (no silent discard).'
-                          : 'Capture the plane at the tool tip: orient the spindle normal to the face, touch the datum point, press. Defines the plane from the live spindle direction with origin at the tip and enters the Plane frame — nothing moves.'">Capture plane</MachineBtn>
+                          : 'Capture the plane at the tool tip: orient the spindle normal to the face, touch the datum point, press. Defines the plane from the live spindle direction, sets the workpiece datum (G54) at the tip through the plane, and enters the Plane frame with the DRO reading 0 — nothing moves.'">Capture plane</MachineBtn>
             <MachineBtn type="twpReorient" :disabled="!twpDefined" @click="emit('twpOrient')"
                         :title="!twpDefined
                           ? 'Define a plane first (G68.2 / G68.3)'

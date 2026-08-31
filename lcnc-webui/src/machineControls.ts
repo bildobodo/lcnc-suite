@@ -101,8 +101,11 @@ export const BUTTON_TYPES = {
   zeroRotary:     { gate: 'touchoffRotary', variant: 'default', size: 'md', hold: true },
 
   // One-button plane capture at the tool tip (workflow 2): the gateway's
-  // twp_capture command → o<twp_capture> (G69 → G68.3 at the tip → no-move
-  // G53.1 P0). hold: the orient is a G53 G0 — zero-length by construction,
+  // twp_capture command drives G69 → G68.3 at the tip → M530 Q2 (adopt the
+  // current pose — a plain G53.1 may pick the other rotary branch) → plane
+  // touch-off (M535, XYZ zero → DRO 0 at the tip, datum in G54) as separate
+  // MDIs (remapped G-codes never run inside an o-sub from MDI).
+  // hold: the orient is a G53 G0 — zero-length by construction,
   // still motion. Gate = the backend's twp_capture_check verbatim.
   twpCapture:     { gate: 'twpCapture', variant: 'default', size: 'sm', hold: true },
   // Clear plane: plain MDI G69 (idempotent, guardless, restores identity

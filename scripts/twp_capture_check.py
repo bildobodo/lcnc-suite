@@ -4,7 +4,9 @@
 What it proves, on the TWP sim (homed, machine on):
 
   B. Capture at A=0: with the head tilted (B20 C-15) and the tip at a known
-     point, `o<twp_capture> call` defines the plane FROM the live rotaries
+     point, the gateway's `twp_capture` command (fired over the WS as an
+     ARMED client — the REAL button path, policy included) defines the
+     plane FROM the live rotaries
      with origin AT the tip, and the G53.1 P0 orient is a NO-MOVE (joints
      unchanged < 1e-4): TWP active, TOOL kins, tool normal to the plane,
      DRO ~0 on X/Y/Z, G59..G59.3 rewritten with A0 B0 C0 R0, and the G54
@@ -17,10 +19,9 @@ What it proves, on the TWP sim (homed, machine on):
      recomputes the same G59 rows.
   D. Round trip with the Plane touch-off: after a capture,
      `o<twp_touchoff> call [4] [0] [0] [v]` makes the DRO read v.
-  E. Refusals, state-intact: capture with a plane already defined; capture
-     from G55 (G69 would silently force G54 — refused above the sub);
-     capture with a G92 X offset; capture with a G54 rotary offset (g683's
-     own loud refusal, reached through the sub).
+  E. Refusals, state-intact (all policy-side, surfaced as {ok:false}):
+     plane already defined; from G55 (G69 would silently force G54);
+     a G92 X offset; a G54 rotary offset.
   F. Clear path: G69 → undefined, G54, identity kins.
 
 Pattern: twp_touchoff_plane_check.py (mdi/snap/read_params/teardown).
@@ -198,6 +199,72 @@ def joints():
     return list(s.joint_actual_position[:6])
 
 
+_WS_HELPER_SRC = r"""
+import asyncio, json, sys
+import msgspec.msgpack
+import websockets
+
+async def main():
+    url = sys.argv[1]
+    async with websockets.connect(url, max_size=None) as ws:
+        async def send(o):
+            await ws.send(json.dumps(o))
+        await send({"cmd": "hello"})
+        await send({"cmd": "arm", "armed": True})
+        async def beat():
+            while True:
+                await send({"cmd": "heartbeat"})
+                await asyncio.sleep(0.8)
+        asyncio.get_event_loop().create_task(beat())
+        loop = asyncio.get_event_loop()
+        while True:
+            line = await loop.run_in_executor(None, sys.stdin.readline)
+            if not line:
+                return
+            req = json.loads(line)
+            await send(req)
+            while True:
+                raw = await asyncio.wait_for(ws.recv(), 90)
+                try:
+                    d = msgspec.msgpack.decode(raw) if isinstance(raw, (bytes, bytearray)) else json.loads(raw)
+                except Exception:
+                    continue
+                # Match the reply to THIS command: hello/arm/heartbeat acks
+                # also carry "ok", and reading the first ok-bearing frame
+                # shifted every reply by two in the first live run.
+                if isinstance(d, dict) and "ok" in d and d.get("cmd") == req.get("cmd"):
+                    print(json.dumps(d), flush=True)
+                    break
+
+asyncio.run(main())
+"""
+
+_ws_proc = None
+
+
+def ws_cmd(obj, timeout=90.0):
+    """Send one typed command through a persistent ARMED WS client (the real
+    button path — policy, armed-gate and all) and return the reply dict."""
+    global _ws_proc
+    import json as _json
+    venv = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        "..", "lcnc-gateway", ".venv", "bin", "python3")
+    if _ws_proc is None or _ws_proc.poll() is not None:
+        tok = os.environ.get("LCNC_WS_TOKEN", "")
+        url = "ws://127.0.0.1:8000/ws" + (f"?token={tok}" if tok else "")
+        _ws_proc = subprocess.Popen([venv, "-c", _WS_HELPER_SRC, url],
+                                    stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                    text=True, bufsize=1)
+        time.sleep(2.0)  # hello + arm settle
+    _ws_proc.stdin.write(_json.dumps(obj) + "\n")
+    _ws_proc.stdin.flush()
+    import select
+    r, _, _ = select.select([_ws_proc.stdout], [], [], timeout)
+    if not r:
+        raise SystemExit(f"WS command {obj} timed out")
+    return _json.loads(_ws_proc.stdout.readline())
+
+
 def gateway_work_pos():
     """One status snapshot from the RUNNING gateway over WS (venv python —
     it has websockets+msgpack; this process has linuxcnc). Returns the XYZ
@@ -205,11 +272,12 @@ def gateway_work_pos():
     venv = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                         "..", "lcnc-gateway", ".venv", "bin", "python3")
     prog = (
-        "import asyncio,json,msgpack,websockets\n"
+        "import asyncio,json,websockets\n"
+        "import msgspec.msgpack as msgpack\n"
         "async def m():\n"
-        "    async with websockets.connect('ws://127.0.0.1:8000/ws', max_size=None) as w:\n"
+        "    async with websockets.connect('ws://127.0.0.1:8000/ws?token=' + (__import__('os').environ.get('LCNC_WS_TOKEN','')) if __import__('os').environ.get('LCNC_WS_TOKEN') else 'ws://127.0.0.1:8000/ws', max_size=None) as w:\n"
         "        for _ in range(60):\n"
-        "            d = msgpack.unpackb(await asyncio.wait_for(w.recv(), 5), raw=False)\n"
+        "            d = msgpack.decode(await asyncio.wait_for(w.recv(), 5))\n"
         "            wp = d.get('work_pos') if isinstance(d, dict) else None\n"
         "            if wp: print(json.dumps(wp)); return\n"
         "        raise SystemExit('no work_pos frame seen')\n"
@@ -241,6 +309,14 @@ mdi(f"#{_PROV['stamped']}=0")
 
 
 def _teardown():
+    global _ws_proc
+    if _ws_proc is not None and _ws_proc.poll() is None:
+        _ws_proc.stdin.close()
+        try:
+            _ws_proc.wait(timeout=3)
+        except subprocess.TimeoutExpired:
+            _ws_proc.kill()  # helper may sit in ws.recv — the socket drop is the point
+        time.sleep(1.0)  # the armed-disconnect abort lands before our MDIs
     try:
         mdi("g69")
         mdi("G0 A0")
@@ -271,9 +347,11 @@ def capture_case(label, a_deg, x, y, z):
     mdi("G10 L2 P1 X0 Y0 Z0 A0 B0 C0 R0")
     mdi(f"G0 X{x} Y{y} Z{z}")
     j_before = joints()
-    g54_before = read_params([5221, 5222, 5223])
-    prov_before = read_params(_PROV_ROWS)
-    mdi("o<twp_capture> call")
+    read_params([5221, 5222, 5223])  # settle the param channel before capture
+    time.sleep(0.6)  # let the broadcast poll see the settled state (the gate reads it)
+    r = ws_cmd({"cmd": "twp_capture"})
+    check(f"{label}: gateway capture ok", r.get("ok") is True, str(r))
+    wait_idle()
     st = snap()
     check(f"{label}: TWP active + TOOL kins",
           st["twp-helper-comp.twp-is-active"] == 1
@@ -290,10 +368,30 @@ def capture_case(label, a_deg, x, y, z):
     check(f"{label}: G59 A/B/C/R zero", all(abs(v) < 1e-6 for v in rows), f"{rows}")
     g54_after = read_params([5221, 5222, 5223])
     prov_after = read_params(_PROV_ROWS)
-    check(f"{label}: G54 row untouched",
-          all(abs(a - b) < 1e-9 for a, b in zip(g54_before, g54_after)))
-    check(f"{label}: G54 provenance untouched (capture writes no datum)",
-          all(abs(a - b) < 1e-9 for a, b in zip(prov_before, prov_after)))
+    # Capture ends with the plane touch-off (M535, all-XYZ zero): the ONE
+    # datum (G54) lands at the tip THROUGH the plane, provenance stamped
+    # table-frame by the remap.
+    check(f"{label}: datum provenance stamped table-frame (kins 0, A 0, xyz)",
+          abs(prov_after[0] - 1.0) < 1e-9 and abs(prov_after[1]) < 1e-9
+          and abs(prov_after[2]) < 1e-9
+          and all(abs(prov_after[3 + i] - g54_after[i]) < 1e-4 for i in range(3)),
+          f"{[round(v, 4) for v in prov_after]}")
+    # Bounded settle: the world pins ride gui_update_twp -> helper republish
+    # (a manual probe 1.5 s later showed exact agreement; the immediate read
+    # raced the republish once at A=35).
+    _pins_ok = False
+    for _ in range(30):
+        # 5e-3: halcmd getp prints ~7 significant digits, so at datum
+        # magnitudes ~1000 its print resolution is 1e-3 — a 1e-4 tolerance
+        # failed on formatting, not on disagreement.
+        _pins_ok = all(abs(halget(f"twp-helper-comp.twp-o{ax}-world") - g54_after[i]) < 5e-3
+                       for i, ax in enumerate("xyz"))
+        if _pins_ok:
+            break
+        time.sleep(0.1)
+    check(f"{label}: helper world pins follow the new datum", _pins_ok,
+          f"pins={[halget(f'twp-helper-comp.twp-o{ax}-world') for ax in 'xyz']} "
+          f"g54={[round(v, 4) for v in g54_after]}")
     return st
 
 
@@ -320,28 +418,30 @@ after = dro()
 check("D: DRO Z reads the entered value", abs(after[2] - 5.0) < 1e-3,
       f"{after[2]:.4f} (was {before[2]:.4f})")
 
-print("\n=== E. refusals, state intact ===")
-errs = mdi("o<twp_capture> call", expect_error=True)
-check("E1: capture refused while a plane is defined", bool(errs), f"{errs[:1]}")
+print("\n=== E. refusals, state intact (policy-side, {ok:false}) ===")
+def refuse(label, fragment):
+    time.sleep(0.6)  # let the broadcast poll see the planted state
+    r = ws_cmd({"cmd": "twp_capture"})
+    check(f"{label}: refused", r.get("ok") is False, str(r))
+    check(f"{label}: reason names it", fragment.lower() in str(r.get("error", "")).lower(),
+          str(r.get("error")))
+
+refuse("E1 plane already defined", "Clear plane")
 st = snap()
 check("E1: plane still active (state intact)",
       st["twp-helper-comp.twp-is-active"] == 1)
 mdi("g69")
 mdi("G0 A0")
 mdi("G55")
-errs = mdi("o<twp_capture> call", expect_error=True)
+refuse("E2 from G55", "G54")
 poll()
-check("E2: capture refused from G55", bool(errs), f"{errs[:1]}")
 check("E2: G55 still active (no silent G54 switch)", s.g5x_index == 2)
 mdi("G54")
 mdi("G92 X1")
-errs = mdi("o<twp_capture> call", expect_error=True)
-check("E3: capture refused with a G92 X offset", bool(errs), f"{errs[:1]}")
+refuse("E3 G92 X offset", "G92")
 mdi("G92.1")
 mdi("G10 L2 P1 A5")
-errs = mdi("o<twp_capture> call", expect_error=True)
-check("E4: capture refused with a G54 rotary offset (g683's own refusal)",
-      bool(errs), f"{errs[:1]}")
+refuse("E4 G54 rotary offset", "rotary")
 check("E4: TWP stays undefined",
       halget("twp-helper-comp.twp-is-defined") == 0)
 mdi("G10 L2 P1 A0")
@@ -349,7 +449,10 @@ mdi("G10 L2 P1 A0")
 print("\n=== F. clear path ===")
 mdi("G0 B10 C10")
 mdi("G0 X10 Y10 Z-10")
-mdi("o<twp_capture> call")
+time.sleep(0.6)  # broadcast settle (gate reads the shared payload)
+rF = ws_cmd({"cmd": "twp_capture"})
+check("F: gateway capture ok", rF.get("ok") is True, str(rF))
+wait_idle()
 check("F: capture defines + activates",
       halget("twp-helper-comp.twp-is-active") == 1)
 mdi("g69")
