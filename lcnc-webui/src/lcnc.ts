@@ -53,6 +53,7 @@ export type WsCommand =
   | { cmd: "reparse_preview" }
   // MDI
   | { cmd: "mdi"; text: string }
+  | { cmd: "twp_capture" }
   // Jogging (single axis)
   | { cmd: "jog_cont"; axis: number; vel: number }
   | { cmd: "jog_incr"; axis: number; vel: number; distance: number }

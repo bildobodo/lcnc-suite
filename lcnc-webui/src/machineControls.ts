@@ -100,6 +100,17 @@ export const BUTTON_TYPES = {
   zero:           { gate: 'touchoff', variant: 'default', size: 'md', hold: true },
   zeroRotary:     { gate: 'touchoffRotary', variant: 'default', size: 'md', hold: true },
 
+  // One-button plane capture at the tool tip (workflow 2): the gateway's
+  // twp_capture command → o<twp_capture> (G69 → G68.3 at the tip → no-move
+  // G53.1 P0). hold: the orient is a G53 G0 — zero-length by construction,
+  // still motion. Gate = the backend's twp_capture_check verbatim.
+  twpCapture:     { gate: 'twpCapture', variant: 'default', size: 'sm', hold: true },
+  // Clear plane: plain MDI G69 (idempotent, guardless, restores identity
+  // kins + G54 — nothing to refuse, hence no typed command). `ready` tier:
+  // a stationary relabel like the jog-frame switch, not motion. hold: a
+  // tap-guard on a setup-destroying action.
+  twpClear:       { gate: 'ready',    variant: 'default', size: 'sm', hold: true },
+
   // Macros
   macro:          { gate: 'probe',    variant: 'default', size: 'lg' },
 

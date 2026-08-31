@@ -10,7 +10,7 @@ import { ctl as ctlSend, MOCK } from "./ctl";
 const PERMS_ALL = {
   idle: true, jog: true, override: true, ready: true, pause: false,
   resume: false, step: true, abort: true, probe: true, zero: true,
-  touchoff: true, touchoffRotary: true,
+  touchoff: true, touchoffRotary: true, twpCapture: true,
   surfaceComp: true, safety: true, setup: true, armed: true, always: true,
 };
 
@@ -44,6 +44,41 @@ test("Plane mode: rotary touch-off closed, reserved fixtures disabled, Zero All 
     } });
     await expect(zeroX).toBeDisabled();
     await expect(page.locator("input.setupInput").first()).toBeDisabled();
+  } finally {
+    await ctlSend({ op: "quiet", on: false });
+    await ctlSend({ op: "reset" });
+  }
+});
+
+test("Capture/Clear plane buttons: gate-driven, Clear needs a plane (or TOOL limbo)", async ({ page }) => {
+  await page.goto(MOCK);
+  await expect(page.getByRole("button", { name: "Zero X", exact: true })).toBeVisible();
+  await ctlSend({ op: "quiet", on: true });
+  try {
+    // TWP machine, no plane: Capture open (perm true), Clear disabled.
+    await ctlSend({ op: "status_delta", data: {
+      kins_type: 0, g5x_index: 1, twp_defined: false,
+      permissions: { ...PERMS_ALL },
+    } });
+    const capture = page.getByRole("button", { name: "Capture plane" });
+    const clear = page.getByRole("button", { name: "Clear plane" });
+    await expect(capture).toBeVisible();
+    await expect(capture).not.toBeDisabled();
+    await expect(clear).toBeDisabled();
+    // Plane defined: backend closes twpCapture (refuse, never discard);
+    // Clear opens.
+    await ctlSend({ op: "status_delta", data: {
+      twp_defined: true,
+      permissions: { ...PERMS_ALL, twpCapture: false },
+    } });
+    await expect(capture).toBeDisabled();
+    await expect(clear).not.toBeDisabled();
+    // TOOL-kins limbo (kins 2, no plane): Clear stays open as the recovery.
+    await ctlSend({ op: "status_delta", data: {
+      kins_type: 2, twp_defined: false,
+      permissions: { ...PERMS_ALL, twpCapture: false },
+    } });
+    await expect(clear).not.toBeDisabled();
   } finally {
     await ctlSend({ op: "quiet", on: false });
     await ctlSend({ op: "reset" });

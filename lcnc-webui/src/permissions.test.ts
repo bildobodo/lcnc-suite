@@ -10,7 +10,7 @@ import { applyClientOverlay, type MachinePermissions } from "./permissions";
 const MACHINE_READY: MachinePermissions = {
   idle: true, jog: true, override: true, ready: true,
   pause: false, resume: false, step: true, abort: true,
-  probe: true, zero: true, touchoff: true, touchoffRotary: true,
+  probe: true, zero: true, touchoff: true, touchoffRotary: true, twpCapture: true,
   surfaceComp: true, safety: true, setup: true,
   armed: true, always: true,
 };

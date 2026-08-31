@@ -2,7 +2,7 @@
 import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, provide, reactive, ref, watch } from "vue";
 import { applyClientOverlay, PERMISSIONS_KEY, FIRE_KEY, type Permissions } from "./permissions";
 import { simMode } from "./simMode";
-import { twpPoseOriented, twpPoseStale } from "./twpPose";
+import { twpPoseOriented, twpPoseStale, twpDatumStale } from "./twpPose";
 import { runLineState, subExecState, resolveCurrentLine } from "./trackHighlight";
 import { clearSubfileCache } from "./lcncApi";
 import { mainLinesTrusted, type ScrubTrack } from "./viewer/scrubTrack";
@@ -569,6 +569,14 @@ const liveKinsType = computed<number | null>(() => {
 const twpStale = computed(() =>
   twpPoseStale(st.value.twp_pose_a, st.value.rotary_abc?.[0], st.value.twp_defined),
 );
+// The datum moved AFTER the plane was defined: the remap's saved_work_offset
+// snapshot (echoed as twp_datum) no longer matches the live G54 row, so the
+// plane overlay and the NEXT ORIENT still use the old datum. Honest surface
+// only — the snapshot semantics are deliberate upstream behavior.
+const twpDatumMoved = computed(() =>
+  twpDatumStale(st.value.wcs_table?.[0] as { x?: number; y?: number; z?: number } | undefined,
+    st.value.twp_datum, st.value.twp_defined),
+);
 // A head solve exists (G53.x / Orient ran this session): the pose stamp is
 // above the remap's "no orient yet" sentinel. Gates the Plane jog frame —
 // a bare M430 before any orient jogs on whatever the kins pins last held.
@@ -594,6 +602,17 @@ function setKinsMode(t: number) {
 // so the "TWP already active" refusal is skipped rather than raced.
 function twpReorient() {
   fire({ cmd: "mdi", text: "o<twp_reorient> call" }, "probe");
+}
+// Capture plane (workflow 2, one button): typed command — the gateway
+// re-checks twp_capture_check server-side and surfaces the refusal reason;
+// the o-sub samples the tip itself after its own sync (no poll race here).
+function twpCapture() {
+  fire({ cmd: "twp_capture" }, "twpCapture");
+}
+// Clear plane: plain G69 like the other TWP MDI verbs — idempotent,
+// guardless, moves nothing (stationary relabel → ready tier).
+function twpClear() {
+  fire({ cmd: "mdi", text: "G69" }, "ready");
 }
 const isTeleop = computed(() => motionMode.value === TRAJ_MODE_TELEOP);
 
@@ -2011,9 +2030,12 @@ watch(viewerGcode, (newGcode) => {
         :kinsType="liveKinsType"
         :twpDefined="st.twp_defined ?? null"
         :twpStale="twpStale"
+        :twpDatumMoved="twpDatumMoved"
         :twpOriented="twpOriented"
         @setKinsMode="setKinsMode"
         @twpOrient="twpReorient"
+        @twpCapture="twpCapture"
+        @twpClear="twpClear"
         :jogDisabled="!permissions.jog"
         :taskMode="taskMode"
         @update:jogVel="jogVel = $event"

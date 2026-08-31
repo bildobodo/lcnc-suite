@@ -53,6 +53,11 @@ export type Permissions = {
   /** touchoffRotary: probe + Machine (identity) jog frame + G54 — a rotary
    *  offset under TCP/Plane kinematics displaces the orient move. */
   touchoffRotary: boolean;
+  /** twpCapture: probe + the Capture-plane admission rule — TWP machine,
+   *  G54 active, NO plane defined (refuse, never silently discard — user
+   *  decision 2026-08-31), no rotary/G92 offsets. One button: G69 → G68.3
+   *  at the tool tip → no-move G53.1 P0. Backend: twp_capture_check. */
+  twpCapture: boolean;
   /** surfaceComp: probe + every rotary parked at zero — may START surface-map
    *  work (scan a new map, switch compensation ON). The map is a machine-Z
    *  shim applied after kinematics, valid only with the tool normal to the
@@ -73,7 +78,8 @@ export type Permissions = {
 /** All gate names, in a stable order. */
 export const GATE_NAMES = [
   "idle", "jog", "override", "ready", "pause", "resume", "step",
-  "abort", "probe", "zero", "touchoff", "touchoffRotary", "surfaceComp",
+  "abort", "probe", "zero", "touchoff", "touchoffRotary", "twpCapture",
+  "surfaceComp",
   "safety", "setup", "armed", "always",
 ] as const;
 
@@ -86,7 +92,7 @@ export const GATE_NAMES = [
  */
 const BUSY_GATES: ReadonlySet<keyof Permissions> = new Set([
   "idle", "override", "ready", "probe", "zero", "touchoff", "touchoffRotary",
-  "surfaceComp", "setup",
+  "twpCapture", "surfaceComp", "setup",
 ]);
 
 /**

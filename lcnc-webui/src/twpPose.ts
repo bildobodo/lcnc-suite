@@ -53,3 +53,32 @@ export function twpPoseOriented(
   if (poseA == null || !Number.isFinite(poseA)) return false;
   return poseA > TWP_POSE_NONE_BELOW;
 }
+
+/** Display threshold for a moved datum — 1 µm-class noise must not warn. */
+export const TWP_DATUM_EPS = 1e-3;
+
+/**
+ * True when the LIVE G54 row has left the datum snapshot the plane was
+ * defined against. The remap freezes `saved_work_offset` at G68.2/G68.3
+ * (and moves it only through the Plane touch-off, M535) — a plain identity
+ * touch-off of G54 afterwards is silently ignored by the plane: the overlay
+ * and the NEXT ORIENT keep using the old datum. That is deliberate upstream
+ * semantics (not changed here) — this predicate is the honest surface.
+ * Unknown is not stale: no plane, no datum echo, or an unreadable row all
+ * return false, same rule as twpPoseStale above.
+ */
+export function twpDatumStale(
+  g54row: { x?: number | null; y?: number | null; z?: number | null } | null | undefined,
+  datum: readonly number[] | null | undefined,
+  defined: boolean | null | undefined,
+): boolean {
+  if (!defined) return false;
+  if (!g54row || !datum || datum.length < 3) return false;
+  const live = [g54row.x, g54row.y, g54row.z];
+  for (let i = 0; i < 3; i++) {
+    const l = live[i], d = datum[i];
+    if (l == null || d == null || !Number.isFinite(l) || !Number.isFinite(d)) return false;
+    if (Math.abs(l - d) > TWP_DATUM_EPS) return true;
+  }
+  return false;
+}
