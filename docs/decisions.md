@@ -2336,3 +2336,110 @@ start from an absent G54 stamp and restore the original.
 datum triad moving along the normal, the boot banner) — the pose math is
 pinned by `activeFixtureFrame.test.ts` against the overlay's compose and the
 gates by e2e.
+
+## 2026-08-31 — Capture plane: one-button workflow 2, plane-DRO honesty, viewer coordinate clarity
+
+**Ask (operator, 2026-08-31):** manual 5-axis setup ("workflow 2") had no
+buttons — orient the head normal to a face, then "press one button to touch
+off the plane, at the tool tip". Plus: the G59 DRO did not read 0 with the
+tip at the plane triad; three unlabeled look-alike triads; the reserved-WCS
+radio text rendered smaller; a Clear-plane button.
+
+**Shipped (commits 3488aec..this):**
+
+- **`twp_capture` typed command + `twpCapture` gate.** The gateway drives
+  `G69 → G68.3 X<tip> Y<tip> Z<tip> → M530 P0 Q2 → o<twp_touchoff> [7][0][0][0]`
+  as separate blocking MDIs, each rc-checked, with bounded reader-snapshot
+  settles (twp_defined after G68.3, kins==2 after the orient). Policy:
+  `_TWP_CAPTURE_RULES` — ONE ordered rule list feeding three consumers
+  (handler refusal, gate denial via check_command — so the WS denial names
+  the exact reason — and the button dimming). Refuse-when-plane-defined was
+  the user's decision (AskUserQuestion 2026-08-31): never silently discard.
+- **Remapped G-CODES never execute inside an o-sub called from MDI**
+  (found the hard way). The first implementation was a pure-NGC
+  `o<twp_capture>` wrapper; empirically on 2.9.4 the remapped G68.3/G69/
+  G53.1 inside it complete rc-clean with ZERO effect and no error, while
+  M-code remaps (M530/M535) in the same position work — upstream only ever
+  calls G68.x/G53.x at program top level. The sub was deleted; the gateway
+  sequence is the vehicle. Recorded as a harness fact.
+- **`M530 Q2` = adopt current pose (fork extension).** A plain `G53.1 P0`
+  after G68.3 is NOT a no-move: live, capture at B20 C-15 solved to
+  B-20 C-183.45 — a 168° C-swing with the tip touching the part
+  (calc_optimal_joint_move's "shortest primary move" picked the other
+  branch; observation recorded, solver untouched). Q2 verifies the current
+  head pose is normal to the stored plane (same 1e-4 element tolerance as
+  kins_calc_jnt_angles, loud refusal otherwise) and uses the current
+  rotaries verbatim — the orient is zero-length by construction
+  (live: max joint delta 0.000000).
+- **Capture ends with the plane touch-off (M535, XYZ→0).** G68.3's origin
+  words alone do not pin the plane-frame READING to 0 — the kins-2 world
+  carries pivot terms (live residual ~36 mm at B20 C-15 with no TLO). The
+  datum-through-the-plane touch-off makes the DRO read exactly 0,0,0 at
+  the tip and puts the ONE datum (G54, table frame) there, provenance
+  stamped by the remap (kins 0 / A 0) — the operator's ask verbatim, and
+  the one-datum invariant holds.
+- **Plane-mode DRO honesty (operator-caught).** `work_pos` was
+  `joint_actual_position − offsets` — a trivkins-only formula; under kins
+  1/2 joints ≠ world, so the DRO at the plane origin read garbage. Fixed:
+  non-zero live kins type sources the math from canonical
+  `actual_position` (forward-kins world output); identity keeps the
+  encoder-live joint path; missing world under kins≠0 → DRO blank + trace,
+  never joint numbers posing as plane coordinates.
+- **Active-fixture triad frame tag (operator-caught "moves but not to the
+  tooltip").** Identity-kins fixture numbers are MACHINE coordinates and do
+  not ride the table; the triad hung under the A-rotating work group and
+  missed the tip by the table rotation at A≠0. `activeFixturePose` now
+  returns `frame: "machine" | "table"` (identity → machine, TCP → table,
+  plane compose → table); applyState counter-transforms machine-frame poses
+  through `_workGrp.matrixWorld`.
+- **Marker labels + size hierarchy + datum layer.** Billboard labels on all
+  three markers (existing troika infra): active triad = live fixture name
+  (dynamic), datum = "G54" (muted), plane = "Plane". Plane triad shrunk
+  80→48 mm (the active triad is the DRO's truth and must dominate; the
+  quad is the plane's cue). `datumAxes` joined the `workzero` layer.
+- **Stale-datum truth.** The remap freezes `saved_work_offset` at
+  definition; an identity G54 re-touch-off afterwards is silently ignored
+  by the plane and the NEXT ORIENT. Client-only surface (remap semantics
+  deliberate, untouched): `twpDatumStale` (live G54 row vs the frozen
+  `twp_datum` echo, unknown-is-not-stale) tints the plane quad+grid
+  stale-red — a DIFFERENT claim from the head-stale normal arrow — and a
+  JogStrip "datum moved" chip says what to do.
+- **Clear plane button** — plain `G69` under `ready` + hold (twpReorient
+  precedent; idempotent, guardless, also the TOOL-kins-limbo recovery).
+- **Typed `set_wcs` provenance** — `pose_override=(0,0)` threaded through a
+  shared `_stamp_wcs_rows` loop (both pose sources, one mixed-angle
+  decision); closes the 2026-08-30 follow-up.
+- **Reserved-WCS radio font** — `.label-muted` is a section-label class
+  (fs-2xs); new opacity-only `.muted` utility; text stays `--fs-base`.
+
+**Live acceptance (2026-08-31, TWP sim):** `twp_capture_check.py` ALL PASS —
+capture at A=0 and A=35: gateway ok, TWP active + TOOL kins, no-move orient
+(max dJ 0.000000), plane normal == tool axis (≤4.1e-6 deg), DRO exactly 0
+at the tip, G59 rotary/R rows zero, datum provenance stamped table-frame,
+helper world pins follow (bounded settle; 5e-3 tolerance = halcmd's ~7
+significant digits at datum magnitude ~1000), re-orient recomputes the
+SAME G59 rows; four refusals each with their specific reason, state
+intact; clear path green. Regressions: `twp_touchoff_plane_check.py`
+ALL PASS (37), `twp_reorient_check.py` ALL PASS, `twp_g683_check.py`
+ALL PASS. Corpus gate: the first run hung at a tool change (see harness
+fact below) and its early programs carried incident noise; the clean rerun
+with the confirmer standing: **GREEN, 21/21 PASS** (plane invariants:
+normal_err ≤ 0.0031°, origin_err 0.0000 mm across the corpus).
+
+**Harness facts (hard-won):**
+- The corpus gate needs an ARMED WS client that CONFIRMS TOOL CHANGES; the
+  `tool_change_requested` flag rides INSIDE the status envelope's nested
+  `data` payload — a watcher reading only top-level fields sees nothing
+  and the gate hangs at M6. Confirm on the RISING EDGE only. A client
+  joining while a program runs must NOT send the ready-up (`home_all`
+  errors and aborts the run); after a safety trip the recovery order is
+  Ack → Arm → Reset (Arm and Reset are rejected while a trip is unacked).
+  Killing an ARMED client aborts motion (by design) — never `pkill` a
+  keeper mid-run; also `pkill -f` self-matches any literal occurrence of
+  the pattern in the calling command line (log filenames included).
+- WS replies must be matched by `cmd` — hello/arm acks also carry `ok`,
+  and reading "the next ok-bearing frame" shifted every reply by two
+  (an entire check run mis-attributed its replies before this was found).
+
+**Open after this wave:** browser walk-through (Capture from TCP jog at a
+tilted face; labels; stale tint; radio font) — listed for the operator.

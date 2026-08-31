@@ -63,7 +63,17 @@ Preview mechanics (all edits tagged `LCNC-SUITE` in `python/remap.py`):
   - `M428/M429` leave a reserved fixture for G54, `M430` selects G59 (the
     fixture rides the kins mode);
   - the "TWP already active" / "not reachable" refusals preserve the plane
-    instead of wiping it; `M530 Q1` is the re-orient.
+    instead of wiping it; `M530 Q1` is the re-orient;
+  - `M530 Q2` (lcnc-suite original, 2026-08-31): ADOPT the current head
+    pose — verifies the live rotaries are normal to the stored plane and
+    uses them verbatim instead of the solver's branch pick (a plain
+    `G53.1 P0` after G68.3 can swing to the OTHER (B,C) solution; observed
+    live: 168° of C with the tip on the part). Used by the gateway's
+    one-button `twp_capture` command (G69 → G68.3 at the tool tip →
+    M530 P0 Q2 → plane touch-off XYZ→0), driven as separate MDIs because
+    remapped G-CODES silently never execute inside an o-sub called from
+    MDI (M-code remaps do). Live acceptance:
+    `scripts/twp_capture_check.py`.
 
 ## Touch-off and the reserved fixtures
 

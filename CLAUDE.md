@@ -161,6 +161,8 @@ TIER 5 — Full ready (requires everything)
   probe ──────────────── base + isIdle + !busy + isHomed + !eoffset   Probe ops, tool change, WCS edit, macros
   touchoff ───────────── probe + kins-mode × fixture rule (linear)     DRO touch-off / Zero (linear letters)
   touchoffRotary ─────── probe + identity kins + G54                    DRO touch-off / Zero (A/B/C)
+  twpCapture ─────────── probe + capture rules (TWP machine, G54, no     Capture plane (one-button workflow 2)
+                         plane defined, offsets clean)
 ```
 
 **State transition map — when gates open:**
