@@ -1,0 +1,64 @@
+; LCNC-SUITE ORIGINAL — not vendored from upstream.
+;
+; One-button plane capture at the tool tip ("touch off the plane"):
+;
+;     o<twp_capture> call
+;
+; Precondition (operator): spindle oriented normal to the face (TCP jog frame
+; makes this pleasant), tool tip touching the datum point, tool length active
+; (G43) so program coords ARE tip coords. Then one call:
+;
+;   G69           normalize — identity kins + G54 (idempotent, guardless)
+;   G68.3 X Y Z   plane from the LIVE spindle rotaries, origin at the tip
+;   G53.1 P0      no-move orient: the plane was built from the same live
+;                 rotaries, so P0 (shortest move from current joints) solves
+;                 to the current angles and the G53 G0 B C block is
+;                 zero-length. Ends in TOOL kins with G59 active; the DRO
+;                 reads ~0 at the tip.
+;
+; The M66 between G69 and G68.3 is LOAD-BEARING: #<_x>/#<_y>/#<_z> are only
+; the G54-relative machine-frame vector G68.3's origin words mean AFTER the
+; queue has drained past the identity-kins + G54 restore (under TCP or TOOL
+; kins the same params read table- or plane-frame numbers). Same reliance
+; twp_reorient.ngc places on its syncs.
+;
+; The guards above the sequence are belt-and-braces against hand-typed MDI —
+; the gateway's twp_capture policy refuses the same states before the button
+; fires:
+;   - plane already defined: REFUSE, never silently discard (user decision
+;     2026-08-31); Clear plane (G69) is one tap away.
+;   - fixture != G54: G69 FORCES G54, so starting from G55-G58 would silently
+;     switch the datum fixture — g683's own "must be G54" guard can never
+;     fire through this sub. Refuse instead.
+;   - G92 X/Y/Z in effect: #<_x> includes G92 but G68.3's origin words are
+;     G54-relative — the origin would land displaced by the G92 vector.
+; Rotary work/G92-rotary offsets are deliberately NOT guarded here: g683
+; refuses those loudly itself with the clear-recipe message (remap.py).
+; A != 0 (tilted table) needs no guard — g683 converts the captured frame
+; into the table frame at the live A.
+o<twp_capture>sub
+(WEBUI_SUB=twp_capture) ;lcnc-suite: preview sub-span marker, silent in task
+
+M66 L0 E0                                  ;force sync, stop read ahead
+o100 if [#<_hal[twp-helper-comp.twp-is-defined]> GT 0]
+  (abort, Capture plane: a plane is already defined - press Clear plane (G69) first)
+o100 endif
+o110 if [#5220 NE 1]
+  (abort, Capture plane: must start from G54 - G55-G58 are not the TWP datum and G59-G59.3 are TWP scratch rows)
+o110 endif
+o120 if [#5210 NE 0]
+o121   if [[ABS[#5211] GT 0.000001] OR [ABS[#5212] GT 0.000001] OR [ABS[#5213] GT 0.000001]]
+  (abort, Capture plane: a G92 X/Y/Z offset is in effect - the tip sample would misplace the origin. G92.1 first)
+o121   endif
+o120 endif
+
+G69                                        ;identity kins + G54 (g69remap.ngc)
+M66 L0 E0                                  ;sync BEFORE sampling (see header)
+G68.3 X#<_x> Y#<_y> Z#<_z>                 ;plane from live rotaries, origin at the tip
+M66 L0 E0
+G53.1 P0                                   ;no-move orient into the plane
+M66 L0 E0
+
+(WEBUI_SUB_END) ;lcnc-suite: preview sub-span marker
+o<twp_capture>endsub
+m2
