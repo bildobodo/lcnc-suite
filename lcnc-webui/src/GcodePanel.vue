@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
+import type { CollisionLineMark } from "./viewer/collision";
 import { listFiles, uploadFile, saveFile, fetchSubfile, type FileEntry } from "./lcncApi";
 import { splitSubLines, expansionAllowed, totalRows, rowAt, rowForMain, rowForSub, type SubExpansion } from "./subRows";
 import { usePermissions } from "./permissions";
@@ -57,7 +58,7 @@ const props = defineProps<{
   scrubLine?: number | null;
   // Lines flagged by the viewer's collision sweep (stage 3) — marked with
   // the same warn-tinted line numbers as soft-limit violations.
-  collisionLines?: number[] | null;
+  collisionLines?: CollisionLineMark[] | null;
   // Marked-span execution state for the inline sub view (W5): while a
   // marked o-call span executes (run playhead or sim scrub), the called
   // file's lines render INDENTED under the call line with the executing
@@ -327,13 +328,16 @@ const violationsByLine = computed(() => {
   return m;
 });
 
-const collisionLineSet = computed(() => new Set(props.collisionLines ?? []));
+const collisionLineSet = computed(() => new Map((props.collisionLines ?? []).map(m => [m.line, m])));
 
 function lineMarkTitle(lineNum: number): string | undefined {
   const parts: string[] = [];
   const v = violationsByLine.value.get(lineNum);
   if (v) parts.push(v.map(violationText).join("; "));
-  if (collisionLineSet.value.has(lineNum)) parts.push("collision clearance hit — see viewer Check results");
+  const cm = collisionLineSet.value.get(lineNum);
+  if (cm) parts.push(cm.continuation !== undefined
+    ? `still in contact (began L${cm.continuation}) — see viewer Check results`
+    : "collision clearance hit — see viewer Check results");
   return parts.length ? parts.join(" · ") : undefined;
 }
 

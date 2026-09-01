@@ -124,7 +124,21 @@ export interface CollisionHit {
    *  Feed-move contact with the work-holding (platter) can be legitimate
    *  cutting; there is no stock model to tell the difference. */
   rapid: boolean;
+  /** Set when this record's contact BEGAN on an earlier line and never
+   *  separated (verified: the pair never cleared 2× the margin): the value
+   *  is that onset line. The pair is still in contact here — this is NOT a
+   *  new event (operator-caught: a beam rammed into the portal on the entry
+   *  move was re-reported on every following line). Absent = this record
+   *  IS the onset. Records are still one per (line, pair) so the clash tint
+   *  and the G-code line marks show the full extent. */
+  continuation?: number;
+  /** On an ONSET record: the last line the contact persists through
+   *  (== line when the contact ends on its own line). */
+  spanEndLine?: number;
 }
+
+/** What the G-code panel marks: every line in contact, onset or not. */
+export interface CollisionLineMark { line: number; continuation?: number }
 
 export interface CollisionOptions {
   /** Clearance margin in machine units — pairs closer than this are hits. */
@@ -643,6 +657,11 @@ export function sweepCollisions(
   const staticExcluded = new Uint8Array(pairs.length);
   const inContact = new Uint8Array(pairs.length);
   const onsetRapid = new Uint8Array(pairs.length);
+  // The line a pair's CURRENT contact began on (-1 = not in contact) — the
+  // same latch the cutting semantics use for onsetRapid, now read by the
+  // non-cutting branch too: a record minted on a later line while the pair
+  // never separated is a CONTINUATION, not a new clash.
+  const onsetLine = new Int32Array(pairs.length).fill(-1);
   const staticContacts: CollisionResult["staticContacts"] = [];
   poseAt(track.pos[0]!, track.pos[1]!, track.pos[2]!,
          track.abc[0]!, track.abc[1]!, track.abc[2]!, vertModel?.[0] ?? identityKins,
@@ -664,13 +683,24 @@ export function sweepCollisions(
   // Full closest distance of ~1e-8 (float) never a clean 0 — see the
   // refinement pass, which shares this contact threshold.
   const CONTACT_EPS = 1e-4;
+  const keyFor = (line: number, pi: number) => {
+    const [ai, bi] = pairs[pi]!;
+    return `${line}|${bodies[ai]!.id}|${bodies[bi]!.id}`;
+  };
   const recordHit = (line: number, cum: number, rapid: boolean, pi: number, dist: number) => {
     const [ai, bi] = pairs[pi]!;
-    const key = `${line}|${bodies[ai]!.id}|${bodies[bi]!.id}`;
+    const key = keyFor(line, pi);
     const prev = worst.get(key);
     if (!prev || dist < prev.dist) {
-      const rec = { line, cum, cumEnd: cum, a: bodies[ai]!.id, b: bodies[bi]!.id, dist, rapid, pi,
-                    samples: prev ? prev.samples : [] };
+      const rec: CollisionHit & { pi: number; samples: number[] } = {
+        line, cum, cumEnd: cum, a: bodies[ai]!.id, b: bodies[bi]!.id, dist, rapid, pi,
+        samples: prev ? prev.samples : [] };
+      // Continuation: the pair's contact began on an EARLIER line and has
+      // not separated since. A worse sample on the same line keeps the
+      // record's existing verdict.
+      const cont = prev ? prev.continuation
+        : (onsetLine[pi]! >= 0 && onsetLine[pi] !== line ? onsetLine[pi]! : undefined);
+      if (cont !== undefined) rec.continuation = cont;
       if (prev) rec.cumEnd = Math.max(prev.cumEnd, cum);
       if (dist <= CONTACT_EPS) rec.samples.push(cum);
       worst.set(key, rec);
@@ -868,6 +898,12 @@ export function sweepCollisions(
             if (!inContact[pi]) {
               inContact[pi] = 1;
               onsetRapid[pi] = isRapid ? 1 : 0;
+              onsetLine[pi] = line;
+              // Re-entry promotion: a genuine onset on a line whose record
+              // was minted as a continuation (contact carried in, separated,
+              // came back on the same line) is a real clash — never hidden.
+              const ex = worst.get(keyFor(line, pi));
+              if (ex && ex.continuation !== undefined) delete ex.continuation;
             }
             if (pairCutting[pi]) {
               // Cutting pair (tool × workGroup body): feed contact is
@@ -884,6 +920,7 @@ export function sweepCollisions(
             if (inContact[pi] && d > opts.margin * 2) {
               inContact[pi] = 0;
               onsetRapid[pi] = 0;
+              onsetLine[pi] = -1;  // verified separation: the next touch is a new onset
             }
             const bound = d === Infinity ? HORIZON : d;
             sSafe[pi] = s + Math.max(MIN_ADV, (bound - opts.margin) / Math.max(pairV[pi]!, 1e-9));
@@ -1012,9 +1049,23 @@ export function sweepCollisions(
   }
   onProgress?.(1);
 
-  const hits = [...worst.values()]
-    .sort((x, y) => x.cum - y.cum)
+  // Back-fill spanEndLine on every onset: the last line its contact persists
+  // through (continuations point at their onset by line + pair).
+  for (const h of worst.values()) {
+    if (h.continuation === undefined) continue;
+    const onset = worst.get(keyFor(h.continuation, h.pi));
+    if (onset) onset.spanEndLine = Math.max(onset.spanEndLine ?? onset.line, h.line);
+  }
+
+  // Onsets first when the cap bites: a long penetration's continuation
+  // records must never evict a genuinely distinct later clash. Re-sorted by
+  // cum afterwards (ScrubBar relies on cum order).
+  const all = [...worst.values()];
+  const onsets = all.filter(h => h.continuation === undefined).sort((x, y) => x.cum - y.cum);
+  const conts = all.filter(h => h.continuation !== undefined).sort((x, y) => x.cum - y.cum);
+  const hits = [...onsets, ...conts]
     .slice(0, MAX_HITS)
+    .sort((x, y) => x.cum - y.cum)
     .map(({ pi: _pi, samples: _s, ...rest }) => rest);
   // Hand the model back wearing its BASE tool body: a caller that reuses
   // the model (tests, a future cached build) must not inherit the last

@@ -390,6 +390,45 @@ describe("contact-window refinement (glow window)", () => {
     expect(l26.cum).toBeLessThan(45.5);       // in contact from line start
     expect(l26.cumEnd).toBeGreaterThan(49);   // ends at separation (~50)...
     expect(l26.cumEnd).toBeLessThan(51);      // ...never the line end (90)
+    // The line-26 record is a CONTINUATION of the line-25 onset (the pair
+    // never separated between the lines); the onset spans through 26.
+    expect(l26.continuation).toBe(25);
+    const l25 = res.hits.find(h => h.line === 25 && h.dist < 1e-3)!;
+    expect(l25.continuation).toBeUndefined();
+    expect(l25.spanEndLine).toBe(26);
+  });
+
+  it("through-contact across lines: one onset spanning to the last in-contact line, continuations for the rest", () => {
+    // L25 plunges into contact; L26/L27 traverse INSIDE it; L28 retracts.
+    // Operator-caught: a beam rammed into the portal was re-reported on
+    // every following line. One clash (the onset), three continuations.
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const t = track(
+      [[0, 0, 0], [0, 0, -45], [2, 0, -45], [4, 0, -45], [4, 0, 0]],
+      undefined, [25, 25, 26, 27, 28]);
+    const res = sweepCollisions(model, t, WCS0, { margin: 2 });
+    const contact = res.hits.filter(h => h.dist < 1e-3);
+    const onsets = contact.filter(h => h.continuation === undefined);
+    expect(onsets).toHaveLength(1);
+    expect(onsets[0]!.line).toBe(25);
+    expect(onsets[0]!.spanEndLine).toBe(28);
+    const conts = contact.filter(h => h.continuation !== undefined);
+    expect(conts.map(h => h.line).sort()).toEqual([26, 27, 28]);
+    expect(conts.every(h => h.continuation === 25)).toBe(true);
+  });
+
+  it("verified separation (>2×margin) then re-entry two lines later yields two onset records", () => {
+    // L25 plunge (contact), L26 retract to clear, L27 lateral clear,
+    // L28 plunge again — the second touch is a NEW clash.
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const t = track(
+      [[0, 0, 0], [0, 0, -45], [0, 0, 0], [5, 0, 0], [5, 0, -45]],
+      undefined, [25, 25, 26, 27, 28]);
+    const res = sweepCollisions(model, t, WCS0, { margin: 2 });
+    const onsets = res.hits.filter(h => h.dist < 1e-3 && h.continuation === undefined).map(h => h.line);
+    expect(onsets.sort()).toEqual([25, 28]);
+    const l26 = res.hits.find(h => h.line === 26 && h.dist < 1e-3)!;
+    expect(l26.continuation).toBe(25);
   });
 
   it("intermittent contact on ONE line yields separate refined intervals", () => {
@@ -448,6 +487,7 @@ describe("contact-window refinement (glow window)", () => {
     const res = sweepCollisions(model, t, WCS0, { margin: 2 });
     const l26 = res.hits.find(h => h.line === 26 && h.dist < 1e-3)!;
     expect(l26).toBeDefined();
+    expect(l26.continuation).toBe(25);   // carried in from the line-25 sweep
     // L26 spans cum 180..360; contact ends near C=120 -> cum ~240.
     expect(l26.cum).toBeLessThan(185);
     expect(l26.cumEnd).toBeGreaterThan(230);
