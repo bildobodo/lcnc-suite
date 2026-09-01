@@ -24,9 +24,10 @@ import { toolDimsFor } from "./viewer/tloEvents";
 import { boundsOf, epochTermsFor, previewWcsStaleFor, rebasePositions, usedWcsRowsKey, type WcsTableRow } from "./viewer/wcsEpochs";
 import { specFromWire, type KinsSpec } from "./viewer/kins";
 import { activeFixturePose } from "./viewer/activeFixtureFrame";
+import { fixtureLocalMatrix } from "./viewer/fixtureLocal";
 import { displayDecision } from "./viewer/displayPipeline";
 import { trackHighlightRange } from "./trackHighlight";
-import type { CollisionBody, CollisionResult } from "./viewer/collision";
+import type { CollisionBody, CollisionResult, CollisionLineMark } from "./viewer/collision";
 import { previewSchemaMismatch, parseTloMismatch, EXPECTED_PREVIEW_SCHEMA, type ScrubTrack } from "./ws/bulkData";
 import { createBackplotController } from "./viewer/backplotController";
 import { createSurfaceController } from "./viewer/surfaceController";
@@ -37,7 +38,7 @@ import MachineBtn from "./MachineBtn.vue";
 import CameraPip from "./CameraPip.vue";
 import ScrubBar from "./ScrubBar.vue";
 import { simMode } from "./simMode";
-import { twpPoseStale, twpDatumStale } from "./twpPose";
+import { twpPoseStale, twpDatumStale, kinsModeChip } from "./twpPose";
 import { Camera, Settings } from "lucide-vue-next";
 
 const themeMode = inject<Ref<string>>("themeMode", ref("auto"));
@@ -113,6 +114,9 @@ type ViewerState = {
   twp_defined?: boolean | null;
   /** The datum the plane rides on (the remap's G54), TABLE frame. */
   twp_datum?: number[] | null;
+  twp_active?: boolean | null;
+  twp_pose_a?: number | null;
+  wcs_prov_a?: (number | null)[] | null;
 };
 
 
@@ -137,7 +141,7 @@ const emit = defineEmits<{
   (e: "scrub-line", line: number | null): void;
   // Source lines with collision hits after a sweep (null = no/stale results,
   // [] = checked clean) — App forwards to GcodePanel for line markers.
-  (e: "collision-lines", lines: number[] | null): void;
+  (e: "collision-lines", lines: CollisionLineMark[] | null): void;
   // The preview was parsed against offsets that are no longer live (touch-off
   // after load) — App re-parses it against current ones.
   (e: "reparse"): void;
@@ -145,6 +149,25 @@ const emit = defineEmits<{
 
 // HUD data (read from status for template)
 const vst = computed(() => status.value?.data ?? null);
+// HUD mode line: the kins/TWP mode is otherwise visible only in the strip
+// radios and the tiny fixture labels (operator-caught). ONE derivation with
+// SetupStrip's chip (kinsModeChip) so the two can never disagree.
+const hudMode = computed(() => {
+  const d = vst.value;
+  if (!d || d.kins_type == null) return null;
+  return kinsModeChip({
+    kinsType: d.kins_type,
+    twpActive: d.twp_active,
+    twpStale: twpPoseStale(d.twp_pose_a, d.rotary_abc?.[0], d.twp_defined),
+    twpDatumMoved: twpDatumStale(d.wcs_table?.[0], d.twp_datum, d.twp_defined, d.wcs_prov_a?.[0]),
+  });
+});
+const hudPlaneWord = computed(() => {
+  const d = vst.value;
+  if (!d?.twp_defined) return null;
+  if (twpPoseStale(d.twp_pose_a, d.rotary_abc?.[0], d.twp_defined)) return "plane stale";
+  return d.twp_active ? "plane active" : "plane defined";
+});
 
 // g5x index (1..9) -> label, matching the gateway's _G5X_MAP.
 const WCS_LABELS = ["G54", "G55", "G56", "G57", "G58", "G59", "G59.1", "G59.2", "G59.3"];
@@ -756,8 +779,11 @@ function switchProjection() {
 // values, kins type, or layer toggle actually changed.
 let _twpSig = "";
 const _fixM = new THREE.Matrix4(), _fixX = new THREE.Vector3(), _fixY = new THREE.Vector3(), _fixZ = new THREE.Vector3();
-const _fixInv = new THREE.Matrix4();
-const _fixV = new THREE.Vector3();
+// W0 = the work group's WORLD matrix at all-zero joints (captured in
+// ensureCoreGroups). NOT the identity on chains with static bases — see
+// viewer/fixtureLocal.ts.
+const _workW0 = new THREE.Matrix4();
+const _fixScale = new THREE.Vector3();
 const _twpZ = new THREE.Vector3();
 const _twpX = new THREE.Vector3();
 const _twpY = new THREE.Vector3();
@@ -780,7 +806,7 @@ function _twpRefresh() {
   }
   updateTwpPlane(d?.twp_plane, !!d?.twp_defined, d?.kins_type,
     twpPoseStale(d?.twp_pose_a, d?.rotary_abc?.[0], d?.twp_defined),
-    twpDatumStale(d?.wcs_table?.[0], d?.twp_datum, d?.twp_defined));
+    twpDatumStale(d?.wcs_table?.[0], d?.twp_datum, d?.twp_defined, d?.wcs_prov_a?.[0]));
 }
 
 function updateTwpPlane(plane: unknown, defined: boolean, ktype: unknown, stale: boolean, datumStale = false) {
@@ -1025,6 +1051,11 @@ function ensureCoreGroups(init: ViewerInit) {
   _workGrp = groups[init.workGroup ?? grpDefs[0]?.id ?? "root"] ?? groups.root;
   _toolGrp = groups[init.toolGroup ?? "tool"] ?? groups.root;
   _toolBase.copy(_toolGrp.position);
+  // Every group sits at its static base with an identity quaternion here (no
+  // joint state has been applied yet), so this IS W(joints = 0). Walk the
+  // ancestors: a child-only update would compose with a stale parent.
+  _workGrp.updateWorldMatrix(true, false);
+  _workW0.copy(_workGrp.matrixWorld);
 
   // Work origin (DRO zero frame) — attached to the work/table group
   workOrigin = new THREE.Group();
@@ -1509,19 +1540,17 @@ function applyState(init: ViewerInit, st: ViewerState) {
       _fixM.makeBasis(_fixX.set(...pose.x), _fixY.set(...pose.y), _fixZ.set(...pose.z));
       if (pose.frame === "machine") {
         // Identity-kins numbers are MACHINE coordinates — they do not ride
-        // the table. The group stays parented under _workGrp (stable graph),
-        // so counter-transform through the parent's world matrix: at A=0
-        // this is the identity; at A!=0 it puts the triad where the fixture
-        // physically is (operator-caught miss). Counter-transform beats
-        // reparenting: applyState is the per-frame hot path and
-        // _workGrp.matrixWorld is already maintained (machine units = world
-        // units, so no scale term sneaks in).
-        _workGrp!.updateMatrixWorld();
-        _fixInv.copy(_workGrp!.matrixWorld).invert();
-        _fixM.premultiply(_fixInv);
-        workAxesGroup.quaternion.setFromRotationMatrix(_fixM);
-        _fixV.set(pose.pos[0], pose.pos[1], pose.pos[2]).applyMatrix4(_fixInv);
-        workAxesGroup.position.copy(_fixV);
+        // the table. The group stays parented under _workGrp (stable graph)
+        // and the pose is counter-transformed: local = W(A)⁻¹ · W0 · pose
+        // (viewer/fixtureLocal.ts). W0 — the group's world matrix at zero
+        // joints — is NOT the identity on this machine (T(-1000,1000,2000)
+        // on the trsrn chain); a plain W(A)⁻¹ drew the triad 2 m off
+        // (operator-caught: "Zero All does not move the G54 triad to the
+        // tip"). The ancestor walk matters too: the child-only
+        // updateMatrixWorld() lagged the table by one frame ("jumpy datum").
+        _workGrp!.updateWorldMatrix(true, false);
+        fixtureLocalMatrix(_workGrp!.matrixWorld, _workW0, pose, _fixM);
+        _fixM.decompose(workAxesGroup.position, workAxesGroup.quaternion, _fixScale);
       } else {
         workAxesGroup.position.set(pose.pos[0], pose.pos[1], pose.pos[2]);
         workAxesGroup.quaternion.setFromRotationMatrix(_fixM);
@@ -1614,7 +1643,11 @@ function applyState(init: ViewerInit, st: ViewerState) {
   // fabricate machine motion history in the backplot.
   if (toolMarker && _workGrp && !_scrubJoints) {
     toolMarker.getWorldPosition(_bpWorld);
-    // worldToLocal mutates its argument in place, so convert a copy.
+    // worldToLocal mutates its argument in place, so convert a copy. Refresh
+    // the work group's world matrix through its ANCESTORS first: the tool
+    // chain was just walked by getWorldPosition, but the table chain was
+    // not, and a stale a_table rotation put backplot points one frame off.
+    _workGrp.updateWorldMatrix(true, false);
     _bpLocal.copy(_bpWorld);
     _workGrp.worldToLocal(_bpLocal);
     backplot.push(_bpLocal.x, _bpLocal.y, _bpLocal.z);
@@ -1844,7 +1877,7 @@ function _colGetWorker(): Worker {
       }
       collisionResult.value = m.result!;
       collisionTrack.value = _colPendingTrack;
-      emit("collision-lines", m.result!.hits.map(h => h.line));
+      emit("collision-lines", m.result!.hits.map(h => ({ line: h.line, continuation: h.continuation })));
     };
     // A worker-level failure (module load, OOM, uncaught throw) never
     // replies — without this the busy flag stayed set and the Check chip
@@ -2373,7 +2406,7 @@ function animate() {
   // Update overflow clipping planes to track _workGrp world transform
   // (only runs when we're actually rendering — C4 lazy clip planes).
   if (_localBoundsPlanes.length > 0 && _localBoundsPlanes.length === boundsClipPlanes.length && _workGrp) {
-    _workGrp.updateMatrixWorld();
+    _workGrp.updateWorldMatrix(true, false);  // ancestors too — a_table's rotation this frame
     for (let i = 0; i < _localBoundsPlanes.length; i++) {
       boundsClipPlanes[i]!.copy(_localBoundsPlanes[i]!);
       boundsClipPlanes[i]!.applyMatrix4(_workGrp.matrixWorld);
@@ -2931,6 +2964,10 @@ defineExpose({
         </template>
       </div>
 
+      <div v-if="hudMode" class="hudMode val-status" :class="hudMode.cls" :title="hudMode.title">
+        {{ hudMode.text }} · {{ props.g5xLabel || '-' }}<template v-if="hudPlaneWord"> · {{ hudPlaneWord }}</template>
+      </div>
+
       <template v-if="hudCfg.showTool">
         <div class="sep"></div>
         <div class="hudCtx">
@@ -3131,6 +3168,16 @@ defineExpose({
 }
 
 /* Tool context line: T · Ø · L in G-code notation — no word labels. */
+/* Mode line: colour semantics come from the global .val-status.ok/warn/bad/
+   muted classes; only layout is local (the HUD's width-0/min-width trick so
+   a long text cannot widen the card). */
+.hudMode {
+  font-size: calc(var(--fs-md) * var(--hud-scale));
+  text-align: left;
+  width: 0;
+  min-width: 100%;
+  white-space: normal;
+}
 .hudCtx {
   font-size: calc(var(--fs-md) * var(--hud-scale));
   font-weight: var(--fw-medium);
