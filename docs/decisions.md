@@ -2443,3 +2443,99 @@ normal_err ≤ 0.0031°, origin_err 0.0000 mm across the corpus).
 
 **Open after this wave:** browser walk-through (Capture from TCP jog at a
 tilted face; labels; stale tint; radio font) — listed for the operator.
+
+## 2026-09-01 — Walk-through fix wave: triad W0 + lag, stale-datum truth, Setup-strip TWP buttons, HUD mode line, collision continuation
+
+**Ask (operator browser walk-through of the 2026-08-31 capture wave):** Zero All
+in G54 did not put the G54 triad at the tip; the datum looked "jumpy" when
+jogging A in the Machine frame (and: should G54 ride A?); define → clear →
+move → redefine sometimes left the plane red with "datum moved"; the TWP
+buttons rendered at different sizes ("not tokenized") and the datum chip sat
+off-position; the HUD showed no mode; the collision sweep reported many
+clashes while the Y beam sat continuously inside the portal.
+
+**Root causes and fixes:**
+
+- **Triad through W0.** The 2026-08-31 counter-transform took the
+  machine-frame fixture pose as scene-WORLD coordinates. `_workGrp`'s LOCAL
+  frame is machine coordinates (every machine-frame object attaches there),
+  and its world matrix at zero joints, W0, is `T(-1000,1000,2000)` on
+  machine-xyzacb-trsrn (`a_table` [-1700,0,0] → `a_work` [700,1000,2000]) —
+  only the 3-axis dev model has W0 = I, which is how it shipped. The triad
+  drew (+1000,-1000,-2000) mm off. Rule (viewer/fixtureLocal.ts, pinned by
+  a synthetic-chain test): `local = W(A)⁻¹ · W0 · pose`; W0 captured once in
+  ensureCoreGroups with the ancestor walk.
+- **One-frame lag.** `updateMatrixWorld()` on the CHILD composes with the
+  parent's LAST-frame matrix — `a_table`'s rotation set in the same
+  applyState was one frame old, so the triad followed A then snapped back.
+  `updateWorldMatrix(true, false)` at the triad, the backplot `worldToLocal`
+  and the bounds clip planes (same latent bug, three sites).
+- **Does G54 ride A?** Not in identity kins: the fixture is a MACHINE-frame
+  offset — rotating the table moves the workpiece away from the origin;
+  staying put is the honest picture of what the control does. It rides in
+  TCP (the world frame rides the table; the Heidenhain 3D-ROT convention),
+  and TOOL kins draws the plane frame. `workOrigin` keeps the raw numbers
+  (the toolpath is right there by cancellation).
+- **Stale datum — the real "sometimes".** The gateway's `_wcs_cache` refreshes
+  the ACTIVE row from STAT and all rows from the var file on mtime change —
+  but LinuxCNC writes that file ONLY at shutdown (recorded 2026-08-20; the
+  comment in status_runtime claiming MDI-completion saves was wrong and is
+  fixed). M535 writes `G10 L2 P1` while G59 is active → row 0 froze at the
+  pre-touch-off value while `twp_datum` (the helper's world pins) moved →
+  `twpDatumStale` fired for a datum that did not move, self-healing only when
+  G54 became active again. `_reseed_prov_cache_row` read the same stale file.
+  Fix: after M535 (plane-route touch-off and capture) the gateway waits for
+  the helper datum to CHANGE (bounded, value-keyed, warn-traced timeout) and
+  seeds row 0 + the G54 provenance from it — exact by M535's contract (G54 ==
+  saved_work_offset literally, stamp kins 0 / A 0). The gateway's own var-file
+  writes (provenance rows, probe vars) now `mark_var_file_written` so they
+  cannot reseed axis rows from the shutdown-stale disk copy. Remaining escape
+  (operator-caused, documented): a hand-typed `G10 L2 P1` while a reserved
+  fixture is active.
+- **Second false positive:** `twp_datum` is TABLE frame, the row is machine
+  frame — equal only when G54's W1 stamp A == 0. The payload now carries
+  `wcs_prov_a` (9 raw stamps) and `twpDatumStale` makes NO claim on a tilted
+  stamp (no stamp = pre-W1 = compared as A0).
+- **Buttons.** Tokens were identical; in portrait `.strip-radio-col
+  { display: contents }` dissolved the JogStrip column so the three buttons
+  alternated `max-content`/`1fr` grid tracks, and the `.val-status` chip
+  (a status-row class, right-aligned) auto-placed beside Clear plane. All
+  three (Capture plane / Orient / Clear plane) moved to SetupStrip as ONE
+  `.actionRow` — three equal `1fr` cells spanning the grid, size `md` — the
+  same structure now applied to `→ G30 / → Home / → Zero` (which had `→ G30`
+  in the 80px column). Placement reversal recorded: 2026-08-30 moved Orient to
+  the Jog strip "so you actually find it"; the operator asked for the grid
+  ("3 side by side … not some weird different size").
+- **Chip + HUD.** `kinsModeChip` (twpPose.ts, pure, priority-tested) is the
+  ONE derivation for SetupStrip's chip and the new HUD mode line
+  (`MACHINE|TCP|TWP|TOOL · G5x · plane defined|active|stale`); "datum moved"
+  rides in its text; colour priority head-stale (bad) > datum-moved (warn),
+  text lists both.
+- **Collision continuation.** Hits are keyed per (line, pair); the per-pair
+  `inContact` latch already persisted across lines for the cutting semantics
+  but the non-cutting branch called `recordHit` on every sample, so one
+  penetration begun on the entry move minted a record per following line
+  (each refined to span its line) — flooding the count and the MAX_HITS cap
+  (which could evict genuinely distinct later clashes). Now `onsetLine[pi]`
+  is latched at onset and cleared on the verified 2×-margin separation;
+  records minted on later lines carry `continuation: <onset line>`, the
+  onset carries `spanEndLine`; the count and navigation see onsets only
+  ("… through L{n}"), while the per-line records stay so the clash tint and
+  the G-code marks show the full extent ("still in contact (began L{n})").
+  Re-entry after a verified separation is its own onset; the cap slices
+  onsets first. Answer to "what is detected": nothing new — the same contact,
+  re-labelled per line.
+
+**Verification:** vitest 567 (fixtureLocal 5, kinsModeChip/stamp rule 22,
+collision continuation 32), build, lint, playwright 16, gateway pytest all
+green. Live (TWP sim): `twp_capture_check.py` ALL PASS incl. the new
+gateway-row phases — broadcast `wcs_table[0]` == interp G54 == `twp_datum`
+to 1e-4 at A=0 and after the A=35 plane touch-off, stamp A published 0, and
+the (previously SKIP-broken, nested-`data`) work_pos probe reads exactly 0
+at the tip; `twp_touchoff_plane_check.py`, `twp_reorient_check.py`,
+`twp_g683_check.py` ALL PASS; preview goldens CLEAN; sim-parity corpus
+GREEN 21/21 (the keeper auto-confirmed the tool change from the nested
+`data` payload — the fix from the 2026-08-31 hang, now the permanent
+`armkeeper` shape). Browser walk-through of the visual layer (triad at the
+tip, steady datum under A jog, equal button rows, HUD line, onset-only
+clash count) is the operator's remaining pass.

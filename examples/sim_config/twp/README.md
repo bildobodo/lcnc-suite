@@ -77,6 +77,12 @@ Preview mechanics (all edits tagged `LCNC-SUITE` in `python/remap.py`):
 
 ## Touch-off and the reserved fixtures
 
+The gateway's G54 row is seeded from the helper's datum pins after every
+M535 write (STAT carries only the ACTIVE fixture, and LinuxCNC writes the
+var file at shutdown), and the payload publishes the W1 stamp angles
+(`wcs_prov_a`) so the client never compares a tilted-stamp row against the
+table-frame datum.
+
 G59..G59.3 hold the plane frame's origin in TOOL coordinates and are the
 remap's to write. A touch-off never targets them: the gateway's `touchoff`
 command routes identity/TCP touch-offs into G54–G58 (rotary letters into
