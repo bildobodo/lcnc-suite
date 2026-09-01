@@ -92,7 +92,7 @@ export const BUTTON_TYPES = {
   // jogFrame's — a jog-frame switch is a stationary relabel, this is motion.
   // hold: like every other motion-initiating button (home, goTo, zero…) —
   // it sits next to the WCS radios on a touch-first strip.
-  twpReorient:    { gate: 'probe',    variant: 'default', size: 'sm', hold: true },
+  twpReorient:    { gate: 'probe',    variant: 'default', size: 'md', hold: true },
 
   // Zero / touchoff — the `touchoff` command (gateway-routed G10 L20 or the
   // Plane-mode remap; needs homed + !eoffset + the kins-mode × fixture rule).
@@ -107,12 +107,12 @@ export const BUTTON_TYPES = {
   // MDIs (remapped G-codes never run inside an o-sub from MDI).
   // hold: the orient is a G53 G0 — zero-length by construction,
   // still motion. Gate = the backend's twp_capture_check verbatim.
-  twpCapture:     { gate: 'twpCapture', variant: 'default', size: 'sm', hold: true },
+  twpCapture:     { gate: 'twpCapture', variant: 'default', size: 'md', hold: true },
   // Clear plane: plain MDI G69 (idempotent, guardless, restores identity
   // kins + G54 — nothing to refuse, hence no typed command). `ready` tier:
   // a stationary relabel like the jog-frame switch, not motion. hold: a
   // tap-guard on a setup-destroying action.
-  twpClear:       { gate: 'ready',    variant: 'default', size: 'sm', hold: true },
+  twpClear:       { gate: 'ready',    variant: 'default', size: 'md', hold: true },
 
   // Macros
   macro:          { gate: 'probe',    variant: 'default', size: 'lg' },

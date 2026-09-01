@@ -67,13 +67,23 @@ export const TWP_DATUM_EPS = 1e-3;
  * Unknown is not stale: no plane, no datum echo, or an unreadable row all
  * return false, same rule as twpPoseStale above.
  */
+/** Twin of gateway_util.PROV_A_EPS (degrees): a G54 stamped further from
+ *  A=0 than this was touched off on a tilted table and is stored as a
+ *  TABLE-frame point — not comparable to the machine-frame row. */
+export const TWP_PROV_A_EPS = 0.01;
+
 export function twpDatumStale(
   g54row: { x?: number | null; y?: number | null; z?: number | null } | null | undefined,
   datum: readonly number[] | null | undefined,
   defined: boolean | null | undefined,
+  stampA?: number | null,
 ): boolean {
   if (!defined) return false;
   if (!g54row || !datum || datum.length < 3) return false;
+  // A tilted W1 stamp: the row is not table-frame, so the comparison would
+  // report a frame difference as a datum move — no claim. No stamp (pre-W1
+  // touch-off) = touched off at A0 = compare.
+  if (stampA != null && Number.isFinite(stampA) && Math.abs(stampA) > TWP_PROV_A_EPS) return false;
   const live = [g54row.x, g54row.y, g54row.z];
   for (let i = 0; i < 3; i++) {
     const l = live[i], d = datum[i];
@@ -81,4 +91,56 @@ export function twpDatumStale(
     if (Math.abs(l - d) > TWP_DATUM_EPS) return true;
   }
   return false;
+}
+
+/**
+ * The kins-mode chip: ONE derivation for SetupStrip's chip and the viewer
+ * HUD (the silent-mode-traversal trap — the TWP demo parks the machine in
+ * TOOL kins with zero indication anywhere). Colour priority: head-stale
+ * (bad) > datum-moved (warn) > mode tint; the TEXT lists both flags when
+ * both hold, so nothing is hidden by the colour choice.
+ */
+export type ChipCls = "ok" | "warn" | "bad" | "muted";
+export interface KinsModeChip { text: string; cls: ChipCls; title: string }
+
+const DATUM_MOVED_TITLE = "The G54 datum was touched off AFTER this plane was defined — the plane and the next Orient still use the old datum. Capture again (after Clear plane) to accept the new datum, or re-run G68.2.";
+
+export function kinsModeChip(i: {
+  kinsType: number | null | undefined;
+  twpActive?: boolean | null;
+  twpStale?: boolean | null;
+  twpDatumMoved?: boolean | null;
+}): KinsModeChip | null {
+  const k = i.kinsType == null ? null : Math.round(i.kinsType);
+  if (k == null) return null;
+  let chip: KinsModeChip;
+  if (k === 1) {
+    chip = { text: "TCP", cls: "ok",
+      title: "Tool-center-point kinematics active — programmed XYZ is the tool tip" };
+  } else if (k === 2) {
+    // What is stale is the ORIENT, not the plane: relabelling coordinates
+    // cannot swing the head, so a table move leaves the tool off-normal even
+    // though the plane still rides the workpiece. Re-orient is the recovery.
+    if (i.twpStale) {
+      chip = { text: i.twpActive ? "TWP" : "TOOL", cls: "bad",
+        title: "Tool orientation STALE — the A table has moved since G53.x oriented the head, so the tool is no longer normal to the plane. The plane itself still follows the workpiece. Press Orient to re-solve the head at the current table pose." };
+    } else if (i.twpActive) {
+      chip = { text: "TWP", cls: "warn",
+        title: "Tilted work plane ACTIVE — X/Y/Z jogs move in the tilted plane (Z along the tool axis). A touch-off here sets the WORKPIECE datum (G54) through the plane; rotary touch-off needs the Machine frame. G69 cancels." };
+    } else {
+      chip = { text: "TOOL", cls: "warn",
+        title: "TOOL kinematics active without an active plane — X/Y/Z jogs move along the last plane frame, not machine axes. G69 restores machine kinematics." };
+    }
+  } else {
+    chip = { text: "MACHINE", cls: "muted",
+      title: "Identity kinematics — X/Y/Z jogs move along machine axes" };
+  }
+  if (i.twpDatumMoved) {
+    chip = {
+      text: `${chip.text} · datum moved`,
+      cls: chip.cls === "bad" ? "bad" : "warn",
+      title: `${DATUM_MOVED_TITLE}${chip.cls === "bad" ? " (Also: " + chip.title + ")" : ""}`,
+    };
+  }
+  return chip;
 }

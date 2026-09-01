@@ -4,6 +4,7 @@ import MachineBtn from "./MachineBtn.vue";
 import MachineInput from "./MachineInput.vue";
 import MachineRadio from "./MachineRadio.vue";
 import { useAxes, isRotaryAxis } from "./useAxes";
+import { kinsModeChip } from "./twpPose";
 
 // Match HUD precision (3 decimals linear, 2 rotary) without the unit suffix
 // so the keypad parser still receives a clean numeric string. (Deliberately
@@ -29,6 +30,10 @@ const props = defineProps<{
   // longer normal to the plane. The plane itself is stored table-relative
   // and rides the workpiece, so it cannot go stale (see twpPose.ts).
   twpStale?: boolean;
+  // A head solve exists (the Plane frame is offered) — Orient's title case.
+  twpOriented?: boolean;
+  // Live G54 has left the datum snapshot the plane was defined against.
+  twpDatumMoved?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -42,6 +47,9 @@ const emit = defineEmits<{
   (e: "goToG30"): void;
   (e: "goToHome"): void;
   (e: "goToZero"): void;
+  (e: "twpOrient"): void;
+  (e: "twpCapture"): void;
+  (e: "twpClear"): void;
 }>();
 
 const { entries } = useAxes(computed(() => props.axes));
@@ -55,6 +63,7 @@ const { entries } = useAxes(computed(() => props.axes));
 // actions at its tail (vertical space is plentiful there; width is the
 // constraint, and one grid keeps a single uniform rhythm).
 const isPortrait = inject<Ref<boolean>>("isPortrait", ref(false));
+const isTwpMachine = computed(() => props.kinsType != null);
 interface SetupChunk { axes: typeof entries.value; actions: boolean }
 const axisChunks = computed<SetupChunk[]>(() => {
   const e = entries.value;
@@ -62,7 +71,8 @@ const axisChunks = computed<SetupChunk[]>(() => {
   const out: SetupChunk[] = [];
   for (let i = 0; i < e.length; i += 6) out.push({ axes: e.slice(i, i + 6), actions: false });
   const last = out[out.length - 1];
-  if (last && last.axes.length <= 3) last.actions = true;
+  const actionRows = isTwpMachine.value ? 4 : 3;  // + the TWP action row
+  if (last && last.axes.length <= 6 - actionRows) last.actions = true;
   else out.push({ axes: [], actions: true }); // no axes yet, or a full last column
   return out;
 });
@@ -73,7 +83,6 @@ const g5xOptions = ["G54", "G55", "G56", "G57", "G58", "G59", "G59.1", "G59.2", 
 // next orient (A/B/C). On a TWP machine (switchable kins present) they are
 // not an operator choice; the Plane jog frame selects G59 itself.
 const RESERVED_WCS = new Set(["G59", "G59.1", "G59.2", "G59.3"]);
-const isTwpMachine = computed(() => props.kinsType != null);
 function wcsReserved(g: string): boolean {
   return isTwpMachine.value && RESERVED_WCS.has(g);
 }
@@ -81,39 +90,18 @@ const RESERVED_TITLE = "Reserved for the tilted-work-plane remap — rewritten b
 
 // Kins-mode chip (P3 operator surface): the silent-mode-traversal trap —
 // the TWP demo parks the machine in TOOL kins (M2 restores G54, not the
-// kins type) with zero indication anywhere.
-const kinsChip = computed(() => {
-  const k = props.kinsType;
-  if (k == null) return null;
-  if (k === 1) return {
-    text: "TCP", cls: "ok",
-    title: "Tool-center-point kinematics active — programmed XYZ is the tool tip",
-  };
-  if (k === 2) {
-    // What is stale is the ORIENT, not the plane: relabelling coordinates
-    // cannot swing the head, so a table move leaves the tool off-normal even
-    // though the plane still rides the workpiece. Re-orient is the recovery —
-    // it re-solves the head at the current table pose. (A bare G53.x is still
-    // refused while TWP is active; M430 only flips the kins type. Neither
-    // re-solves, which is why the button exists.)
-    if (props.twpStale) return {
-      text: props.twpActive ? "TWP" : "TOOL", cls: "bad",
-      title: "Tool orientation STALE — the A table has moved since G53.x oriented the head, so the tool is no longer normal to the plane. The plane itself still follows the workpiece. Press Re-orient to re-solve the head at the current table pose.",
-    };
-    return props.twpActive
-      ? { text: "TWP", cls: "warn",
-          title: "Tilted work plane ACTIVE — X/Y/Z jogs move in the tilted plane (Z along the tool axis). A touch-off here sets the WORKPIECE datum (G54) through the plane; rotary touch-off needs the Machine frame. G69 cancels." }
-      : { text: "TOOL", cls: "warn",
-          title: "TOOL kinematics active without an active plane — X/Y/Z jogs move along the last plane frame, not machine axes. G69 restores machine kinematics." };
-  }
-  return {
-    text: "MACHINE", cls: "muted",
-    title: "Identity kinematics — X/Y/Z jogs move along machine axes",
-  };
-});
+// kins type) with zero indication anywhere. ONE derivation (twpPose.ts
+// kinsModeChip) shared with the viewer HUD; "datum moved" rides in it.
+const kinsChip = computed(() => kinsModeChip({
+  kinsType: props.kinsType, twpActive: props.twpActive,
+  twpStale: props.twpStale, twpDatumMoved: props.twpDatumMoved,
+}));
 
-// The Orient button lives in the Jog strip next to the jog-frame selector
-// (2026-08-30: "so you actually find it"); this strip keeps the kins chip.
+// The TWP action buttons (Capture plane / Orient / Clear plane) live here as
+// one equal-width action row — the same structure as the goto row. (Orient
+// had moved to the Jog strip on 2026-08-30 "so you actually find it"; the
+// operator asked for them back in this grid on 2026-09-01: "3 side by side
+// like go home / go G30 / go zero, not some weird different size".)
 
 // Zero All names LINEAR axes only on a TWP machine: a rotary work offset
 // displaces the orient move (the remap issues its head move in machine
@@ -141,9 +129,43 @@ function zeroAll() {
         <template v-if="chunk.actions">
           <MachineBtn type="zero" class="spanAll" @click="zeroAll()" :title="isTwpMachine ? 'Zero the linear axes (rotary offsets are set per axis, Machine frame + G54 only)' : undefined">Zero All</MachineBtn>
           <MachineBtn :type="isHomed ? 'unhome' : 'home'" class="spanAll" @click="isHomed ? emit('unhomeAll') : emit('homeAll')"><span class="stable-width"><span :class="{ alt: isHomed }">Home All</span><span :class="{ alt: !isHomed }">Unhome All</span></span></MachineBtn>
-          <MachineBtn type="goTo" @click="emit('goToG30')">→ G30</MachineBtn>
-          <MachineBtn type="goTo" @click="emit('goToHome')">→ Home</MachineBtn>
-          <MachineBtn type="goTo" @click="emit('goToZero')">→ Zero</MachineBtn>
+          <!-- Action rows: three EQUAL cells spanning the grid (never one
+               button per 80px/1fr/1fr track — "→ G30" used to sit in the
+               80px column). -->
+          <div class="actionRow">
+            <MachineBtn type="goTo" @click="emit('goToG30')">→ G30</MachineBtn>
+            <MachineBtn type="goTo" @click="emit('goToHome')">→ Home</MachineBtn>
+            <MachineBtn type="goTo" @click="emit('goToZero')">→ Zero</MachineBtn>
+          </div>
+          <div v-if="isTwpMachine" class="actionRow">
+            <!-- Capture plane: the one-button manual definition — align the
+                 spindle normal to the face (TCP jog), tip on the datum point,
+                 press. The backend gate (twp_capture_check) dims it with the
+                 reason — plane already defined, not G54, offsets in effect. -->
+            <MachineBtn type="twpCapture" @click="emit('twpCapture')"
+                        :title="twpDefined
+                          ? 'A plane is already defined — press Clear plane first (no silent discard).'
+                          : 'Capture the plane at the tool tip: orient the spindle normal to the face, touch the datum point, press. Defines the plane from the live spindle direction, sets the workpiece datum (G54) at the tip through the plane, and enters the Plane frame with the DRO reading 0 — nothing moves.'">Capture plane</MachineBtn>
+            <!-- Orient: works from a DEFINED plane (first orient) and
+                 re-orients after a table move. Hold-to-fire: the rotaries MOVE. -->
+            <MachineBtn type="twpReorient" :disabled="!twpDefined" @click="emit('twpOrient')"
+                        :title="!twpDefined
+                          ? 'Define a plane first (Capture plane, G68.2 / G68.3)'
+                          : twpStale
+                            ? 'Re-solve the head at the current table pose — the tool becomes normal to the plane again. The rotaries MOVE.'
+                            : twpOriented
+                              ? 'Re-solve the head at the current table pose. The orientation is current, so this should move very little.'
+                              : 'Orient the head into the defined plane (G53.1 equivalent). The rotaries MOVE.'">Orient</MachineBtn>
+            <!-- Clear plane: plain G69 — idempotent, restores identity kins +
+                 G54, moves nothing. Also the TOOL-kins-limbo recovery. -->
+            <MachineBtn type="twpClear" :disabled="!twpDefined && kinsType !== 2"
+                        @click="emit('twpClear')"
+                        :title="twpDefined
+                          ? 'Discard the tilted work plane (G69): back to identity kinematics and G54.'
+                          : kinsType === 2
+                            ? 'TOOL kinematics without a plane — G69 restores identity kinematics and G54.'
+                            : 'No plane defined — nothing to clear.'">Clear plane</MachineBtn>
+          </div>
         </template>
       </div>
 
@@ -179,6 +201,9 @@ function zeroAll() {
    axis rows and the action rows in the neighbouring column now match. */
 .setupInput { width: 100%; }
 .spanAll { grid-column: 1 / -1; }
+/* Three equal cells across the whole grid (layout only): the goto row and
+   the TWP action row are structurally identical. */
+.actionRow { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--gap-controls); }
 .wcsCol { justify-content: flex-start; }
 /* Chip inherits .val-status visuals; only the alignment is local (the
    column reads left-to-right, not right-aligned like status rows). */

@@ -38,8 +38,6 @@ const props = defineProps<{
   // Head solve stale (table moved since the last orient): the Plane frame's
   // Z is then NOT the face normal — say so where the operator picks it.
   twpStale?: boolean;
-  // Live G54 has left the datum snapshot the plane was defined against.
-  twpDatumMoved?: boolean;
   // A head solve exists this session (G53.x / Orient ran): the Plane frame
   // is only OFFERED then — a bare M430 before any orient jogs on whatever
   // frame the kins pins last held (the stale-pin trap).
@@ -54,9 +52,6 @@ const emit = defineEmits<{
   (e: "resetAngularJogVel"): void;
   (e: "modeChange", mode: number): void;
   (e: "setKinsMode", type: number): void;
-  (e: "twpOrient"): void;
-  (e: "twpCapture"): void;
-  (e: "twpClear"): void;
 }>();
 
 const can = usePermissions();
@@ -408,7 +403,9 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
         <div class="sep modeColSep"></div>
 
         <!-- Mode + jog frame share ONE column (space): task mode radios, then
-             the jog-frame radios and the Orient button beneath them.
+             the jog-frame radios beneath them (the TWP action buttons —
+             Capture / Orient / Clear — live in the Setup strip's action rows,
+             2026-09-01: operator wants them in the grid, three equal buttons).
              Jog-frame selector: switchable-kins machines only (Heidenhain
              3D-ROT / Siemens WCS-MCS convention — the jog frame is an
              explicit, indicated operator choice). The radio reflects the
@@ -450,43 +447,6 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
                     : 'TOOL kinematics — jog in the tilted work plane, Z along the tool axis as of the last orient (Orient again after moving the table). Switching re-seeds the preview (a brief progress flash is expected)'"><MachineRadio gate="jogFrame" name="jogFrame" :modelValue="kinsType" :value="2" :disabled="!twpOriented" @update:modelValue="emit('setKinsMode', 2)" /> Plane{{ twpStale ? ' (stale)' : '' }}</label>
               </div>
             </div>
-            <!-- Orient lives next to the frame it enables (moved here from the
-                 Setup strip so it is found where it is needed). Works from a
-                 DEFINED plane (first orient) and re-orients after a table
-                 move; the o-sub demotes to identity and re-solves as one
-                 action. Hold-to-fire: the rotaries MOVE. -->
-            <!-- Capture plane: the one-button manual definition — align the
-                 spindle normal to the face (TCP jog), tip on the datum point,
-                 press. G69 → G68.3 from the LIVE rotaries with origin at the
-                 tip → no-move G53.1 P0; ends in the Plane frame with the DRO
-                 reading ~0. The backend gate (twp_capture_check) dims it with
-                 the reason — plane already defined, not G54, offsets in
-                 effect — so no :disabled here beyond what the catalog does. -->
-            <MachineBtn type="twpCapture" @click="emit('twpCapture')"
-                        :title="twpDefined
-                          ? 'A plane is already defined — press Clear plane first (no silent discard).'
-                          : 'Capture the plane at the tool tip: orient the spindle normal to the face, touch the datum point, press. Defines the plane from the live spindle direction, sets the workpiece datum (G54) at the tip through the plane, and enters the Plane frame with the DRO reading 0 — nothing moves.'">Capture plane</MachineBtn>
-            <MachineBtn type="twpReorient" :disabled="!twpDefined" @click="emit('twpOrient')"
-                        :title="!twpDefined
-                          ? 'Define a plane first (G68.2 / G68.3)'
-                          : twpStale
-                            ? 'Re-solve the head at the current table pose — the tool becomes normal to the plane again. The rotaries MOVE.'
-                            : twpOriented
-                              ? 'Re-solve the head at the current table pose. The orientation is current, so this should move very little.'
-                              : 'Orient the head into the defined plane (G53.1 equivalent). The rotaries MOVE.'">Orient</MachineBtn>
-            <!-- Clear plane: plain G69 — idempotent, restores identity kins +
-                 G54, moves nothing. Enabled with a defined plane OR in the
-                 TOOL-kins-without-plane limbo (G69 is also that state's
-                 recovery). -->
-            <MachineBtn type="twpClear" :disabled="!twpDefined && kinsType !== 2"
-                        @click="emit('twpClear')"
-                        :title="twpDefined
-                          ? 'Discard the tilted work plane (G69): back to identity kinematics and G54.'
-                          : kinsType === 2
-                            ? 'TOOL kinematics without a plane — G69 restores identity kinematics and G54.'
-                            : 'No plane defined — nothing to clear.'">Clear plane</MachineBtn>
-            <span v-if="twpDatumMoved" class="val-status warn"
-                  title="The G54 datum was touched off AFTER this plane was defined — the plane and the next Orient still use the old datum. Capture again (after Clear plane) to accept the new datum, or re-run G68.2.">datum moved</span>
           </template>
         </div>
       </div>

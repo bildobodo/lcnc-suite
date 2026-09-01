@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, provide, reactive, ref, watch } from "vue";
+import type { CollisionLineMark } from "./viewer/collision";
 import { applyClientOverlay, PERMISSIONS_KEY, FIRE_KEY, type Permissions } from "./permissions";
 import { simMode } from "./simMode";
 import { twpPoseOriented, twpPoseStale, twpDatumStale } from "./twpPose";
@@ -440,7 +441,7 @@ const softLimitStatus = computed(() => {
 // Source line at the viewer's scrub position (null = not scrubbing).
 const scrubLine = ref<number | null>(null);
 // Source lines with collision hits from the viewer's sweep (null = none run).
-const collisionLines = ref<number[] | null>(null);
+const collisionLines = ref<CollisionLineMark[] | null>(null);
 
 // Donut chart (distance breakdown) lives in StatsDonut.vue.
 
@@ -575,7 +576,7 @@ const twpStale = computed(() =>
 // only — the snapshot semantics are deliberate upstream behavior.
 const twpDatumMoved = computed(() =>
   twpDatumStale(st.value.wcs_table?.[0] as { x?: number; y?: number; z?: number } | undefined,
-    st.value.twp_datum, st.value.twp_defined),
+    st.value.twp_datum, st.value.twp_defined, st.value.wcs_prov_a?.[0]),
 );
 // A head solve exists (G53.x / Orient ran this session): the pose stamp is
 // above the remap's "no orient yet" sentinel. Gates the Plane jog frame —
@@ -2030,12 +2031,8 @@ watch(viewerGcode, (newGcode) => {
         :kinsType="liveKinsType"
         :twpDefined="st.twp_defined ?? null"
         :twpStale="twpStale"
-        :twpDatumMoved="twpDatumMoved"
         :twpOriented="twpOriented"
         @setKinsMode="setKinsMode"
-        @twpOrient="twpReorient"
-        @twpCapture="twpCapture"
-        @twpClear="twpClear"
         :jogDisabled="!permissions.jog"
         :taskMode="taskMode"
         @update:jogVel="jogVel = $event"
@@ -2058,6 +2055,11 @@ watch(viewerGcode, (newGcode) => {
         :twpActive="st.twp_active ?? null"
         :twpDefined="st.twp_defined ?? null"
         :twpStale="twpStale"
+        :twpOriented="twpOriented"
+        :twpDatumMoved="twpDatumMoved"
+        @twpOrient="twpReorient"
+        @twpCapture="twpCapture"
+        @twpClear="twpClear"
         @homeAll="homeAll"
         @unhomeAll="unhomeAll"
         @homeAxis="homeAxis"
