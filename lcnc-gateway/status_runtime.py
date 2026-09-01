@@ -31,7 +31,7 @@ import math
 import os
 import time
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Sequence
 
 import linuxcnc
 
@@ -96,6 +96,39 @@ def assemble_twp_datum(reader_get) -> Optional[List[float]]:
     if any(v is None for v in vals):
         return None
     return [float(v) for v in vals]
+
+
+def datum_changed(before: Optional[Sequence[float]], now: Optional[Sequence[float]],
+                  eps: float = 1e-6) -> Optional[bool]:
+    """Did the helper's datum move between two reads? None when either side
+    is unreadable (no claim), True once any of X/Y/Z differs by more than
+    eps. The settle after M535 keys on this — never on a fixed dwell."""
+    if before is None or now is None or len(before) < 3 or len(now) < 3:
+        return None
+    return any(abs(float(now[i]) - float(before[i])) > eps for i in range(3))
+
+
+def seed_wcs_row_xyz(wcs_cache: List[Dict[str, Any]], index0: int,
+                     xyz: Sequence[float]) -> None:
+    """Overwrite x/y/z of ONE cached fixture row in place (the gateway holds
+    the same list object). Used after the remap wrote a NON-ACTIVE fixture
+    (M535: G10 L2 P1 while G59 is active) — STAT only refreshes the active
+    row and the var file is written at shutdown, so without this the row
+    froze at the pre-touch-off value and twpDatumStale fired for a datum
+    that never moved. ValueError on a non-finite value or bad index: never
+    a partial row."""
+    if not (0 <= index0 < len(wcs_cache)):
+        raise ValueError(f"wcs row index {index0} out of range")
+    vals = []
+    for v in xyz[:3]:
+        f = float(v)
+        if not math.isfinite(f):
+            raise ValueError(f"non-finite datum component {v!r}")
+        vals.append(f)
+    if len(vals) < 3:
+        raise ValueError("datum needs three components")
+    row = wcs_cache[index0]
+    row["x"], row["y"], row["z"] = vals
 
 
 def assemble_twp_plane(reader_get) -> Optional[List[float]]:
@@ -189,6 +222,10 @@ class StatusPayload:
     g92_offset: Optional[List[float]]
     rotation_xy: Optional[float]
     wcs_table: Optional[List[Dict[str, Any]]]  # all 9 WCS slots (G54–G59.3) w/ per-axis + rotation
+    # W1 provenance: the table angle each fixture was touched off at (9 entries,
+    # None = no stamp). The client refuses a datum-moved claim on a tilted stamp
+    # (the row is not table-frame there).
+    wcs_prov_a: Optional[List[Optional[float]]]
     joint_pos: Optional[List[float]]
     tool_offset: Optional[List[float]]
     machine_pos: Optional[List[float]]
@@ -404,11 +441,13 @@ class StatusRuntime:
         load_tool_library: Callable[[], dict],
         get_fb_scale: Callable[[], float],
         get_kins_switchable: Callable[[], bool] = lambda: True,
+        get_prov_a: Callable[[], Optional[List[Optional[float]]]] = lambda: None,
     ) -> None:
         self._get_stat = get_stat
         # Kins declaration for the touch-off gates; default "unknown" = closed
         # (see policy_state_from_payload). The gateway wires _kins_is_switchable.
         self._get_kins_switchable = get_kins_switchable
+        self._get_prov_a = get_prov_a
         self._get_err = get_err
         self._reader_get = reader_get
         self._get_tool_tbl_path = get_tool_tbl_path
@@ -457,6 +496,16 @@ class StatusRuntime:
         """Re-resolve the var-file path on next use (reconnect, P2.1)."""
         self._var_file_path_cache_key = None
         self._var_file_path_cache_val = None
+
+    def mark_var_file_written(self, path: str) -> None:
+        """The GATEWAY just wrote the var file (provenance rows, probe vars).
+        Adopt its new mtime so the next poll does not reseed all nine axis
+        rows from disk — those disk rows are the shutdown-stale values and
+        would clobber a row the gateway seeded from the live datum."""
+        try:
+            self._wcs_var_file_mtime = os.path.getmtime(path)
+        except OSError:
+            self._wcs_var_file_mtime = None
 
     def invalidate_wcs_mtime(self) -> None:
         """Force re-seed of the WCS cache from the var file on next poll."""
@@ -703,11 +752,16 @@ class StatusRuntime:
         g92 = to_float_list(safe_get("g92_offset", None))
         rotation_xy = safe_get("rotation_xy", None)
 
-        # Update WCS cache: re-seed from var file whenever its mtime changes.
-        # LinuxCNC rewrites the var file on interpreter sync (program end, MDI
-        # completion that wrote vars, probe macros). This catches writes to
-        # inactive slots. Active slot is overwritten from STAT below — mid-motion
-        # authoritative source.
+        # Update WCS cache: re-seed from the var file whenever its mtime
+        # changes. LinuxCNC writes that file ONLY at shutdown (decisions.md
+        # 2026-08-20; gcode_canon.py), so this path catches DISK writers — the
+        # gateway's own provenance/probe-var writes (which call
+        # mark_var_file_written so they do not reseed axis rows they never
+        # wrote) and foreign editors — never an interpreter-side G10 to an
+        # inactive slot. The active slot is overwritten from STAT below (the
+        # mid-motion authoritative source); an inactive slot written by the
+        # remap (M535 → G10 L2 P1 while G59 is active) is seeded by the
+        # gateway from the helper's datum pins (seed_wcs_row_xyz).
         try:
             _vfp = self.resolve_var_file_path()
             if _vfp:
@@ -959,6 +1013,7 @@ class StatusRuntime:
             g92_offset=g92,
             rotation_xy=rotation_xy,
             wcs_table=[row.copy() for row in self.wcs_cache],
+            wcs_prov_a=self._get_prov_a(),
             joint_pos=joint_pos,
             tool_offset=tool_offset,
             machine_pos=machine_pos,

@@ -265,29 +265,65 @@ def ws_cmd(obj, timeout=90.0):
     return _json.loads(_ws_proc.stdout.readline())
 
 
-def gateway_work_pos():
-    """One status snapshot from the RUNNING gateway over WS (venv python —
-    it has websockets+msgpack; this process has linuxcnc). Returns the XYZ
-    of the broadcast work_pos, or None with a loud SKIP if unreachable."""
+def gateway_status_fields(keys):
+    """One FULL status snapshot from the RUNNING gateway over WS (venv python —
+    it has websockets+msgspec; this process has linuxcnc). A fresh client's
+    first status frame is full; the payload rides INSIDE the envelope's
+    nested `data` (ws_fanout.build_status_envelope) — the same fact the
+    corpus confirmer needed. Returns {key: value} or None with a loud SKIP."""
     venv = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                         "..", "lcnc-gateway", ".venv", "bin", "python3")
+    tok = os.environ.get("LCNC_WS_TOKEN", "")
+    url = "ws://127.0.0.1:8000/ws" + (f"?token={tok}" if tok else "")
     prog = (
-        "import asyncio,json,websockets\n"
-        "import msgspec.msgpack as msgpack\n"
+        "import asyncio,json,sys,websockets\n"
+        "import msgspec.msgpack as mp\n"
+        "KEYS=json.loads(sys.argv[2])\n"
         "async def m():\n"
-        "    async with websockets.connect('ws://127.0.0.1:8000/ws?token=' + (__import__('os').environ.get('LCNC_WS_TOKEN','')) if __import__('os').environ.get('LCNC_WS_TOKEN') else 'ws://127.0.0.1:8000/ws', max_size=None) as w:\n"
-        "        for _ in range(60):\n"
-        "            d = msgpack.decode(await asyncio.wait_for(w.recv(), 5))\n"
-        "            wp = d.get('work_pos') if isinstance(d, dict) else None\n"
-        "            if wp: print(json.dumps(wp)); return\n"
-        "        raise SystemExit('no work_pos frame seen')\n"
+        "    async with websockets.connect(sys.argv[1], max_size=None) as w:\n"
+        "        await w.send(json.dumps({'cmd':'hello'}))\n"
+        "        for _ in range(80):\n"
+        "            raw = await asyncio.wait_for(w.recv(), 5)\n"
+        "            try: d = mp.decode(raw)\n"
+        "            except Exception: continue\n"
+        "            data = d.get('data') if isinstance(d, dict) and isinstance(d.get('data'), dict) else None\n"
+        "            if data and all(k in data for k in KEYS):\n"
+        "                print(json.dumps({k: data[k] for k in KEYS})); return\n"
+        "        raise SystemExit('no full status frame with ' + str(KEYS))\n"
         "asyncio.run(m())\n")
-    out = subprocess.run([venv, "-c", prog], capture_output=True, text=True, timeout=30)
-    if out.returncode != 0:
-        print(f"  SKIP  gateway work_pos probe unavailable — {out.stderr.strip()[-200:]}")
-        return None
     import json
+    out = subprocess.run([venv, "-c", prog, url, json.dumps(list(keys))],
+                         capture_output=True, text=True, timeout=30)
+    if out.returncode != 0:
+        print(f"  SKIP  gateway status probe unavailable — {out.stderr.strip()[-200:]}")
+        return None
     return json.loads(out.stdout.strip())
+
+
+def gateway_work_pos():
+    d = gateway_status_fields(["work_pos"])
+    return None if d is None else d["work_pos"]
+
+
+def gateway_datum_row_check(label, g54_after):
+    """The gateway's broadcast G54 row must follow the datum M535 wrote
+    (seeded from the helper pins — STAT only carries the ACTIVE fixture and
+    the var file is written at shutdown): the false "datum moved" class."""
+    d = gateway_status_fields(["wcs_table", "twp_datum", "wcs_prov_a"])
+    if d is None:
+        return
+    row = d["wcs_table"][0]
+    rxyz = [float(row[k]) for k in ("x", "y", "z")]
+    check(f"{label}: GATEWAY wcs_table[0] follows the datum (M535 seed)",
+          all(abs(rxyz[i] - g54_after[i]) < 1e-4 for i in range(3)),
+          f"row={[round(v, 4) for v in rxyz]} g54={[round(v, 4) for v in g54_after]}")
+    dat = d["twp_datum"]
+    check(f"{label}: twp_datum == wcs_table[0]",
+          dat is not None and all(abs(float(dat[i]) - rxyz[i]) < 5e-3 for i in range(3)),
+          f"datum={dat}")
+    pa = (d.get("wcs_prov_a") or [None])[0]
+    check(f"{label}: G54 stamp A published as 0 (table frame)",
+          pa is not None and abs(float(pa)) < 1e-9, f"wcs_prov_a[0]={pa}")
 
 
 G54_ROW = list(range(5221, 5231))
@@ -397,6 +433,7 @@ def capture_case(label, a_deg, x, y, z):
 
 print("\n=== B. capture at A=0 ===")
 stB = capture_case("A=0", 0.0, 50.0, 40.0, -30.0)
+gateway_datum_row_check("A=0", read_params([5221, 5222, 5223]))
 wp = gateway_work_pos()
 if wp is not None:
     check("A=0: GATEWAY work_pos ~0 (kins-2 DRO honesty)",
@@ -417,6 +454,7 @@ mdi("o<twp_touchoff> call [4] [0] [0] [5.0]")
 after = dro()
 check("D: DRO Z reads the entered value", abs(after[2] - 5.0) < 1e-3,
       f"{after[2]:.4f} (was {before[2]:.4f})")
+gateway_datum_row_check("D (after plane touch-off)", read_params([5221, 5222, 5223]))
 
 print("\n=== E. refusals, state intact (policy-side, {ok:false}) ===")
 def refuse(label, fragment):

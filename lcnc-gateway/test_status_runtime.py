@@ -232,6 +232,59 @@ class TestPollStatus(unittest.TestCase):
         p = _runtime(stat=stat, snapshot={"kins_type": 2.0}).poll_status()
         self.assertIsNone(p.work_pos)
 
+    def test_seed_wcs_row_xyz_writes_xyz_only_in_place(self):
+        cache = [{"x": 1.0, "y": 2.0, "z": 3.0, "a": 4.0, "b": 5.0, "c": 6.0, "r": 7.0}
+                 for _ in range(9)]
+        same = cache
+        status_runtime.seed_wcs_row_xyz(cache, 0, [10.0, 20.0, 30.0])
+        self.assertIs(cache, same)                       # gateway holds the same list
+        self.assertEqual((cache[0]["x"], cache[0]["y"], cache[0]["z"]), (10.0, 20.0, 30.0))
+        self.assertEqual((cache[0]["a"], cache[0]["b"], cache[0]["c"], cache[0]["r"]),
+                         (4.0, 5.0, 6.0, 7.0))            # rotary/R untouched
+        self.assertEqual(cache[1]["x"], 1.0)               # other rows untouched
+
+    def test_seed_wcs_row_xyz_refuses_non_finite_and_bad_index(self):
+        cache = [{"x": 0.0, "y": 0.0, "z": 0.0} for _ in range(9)]
+        with self.assertRaises(ValueError):
+            status_runtime.seed_wcs_row_xyz(cache, 0, [float("nan"), 0.0, 0.0])
+        with self.assertRaises(ValueError):
+            status_runtime.seed_wcs_row_xyz(cache, 9, [0.0, 0.0, 0.0])
+        with self.assertRaises(ValueError):
+            status_runtime.seed_wcs_row_xyz(cache, 0, [1.0, 2.0])
+        self.assertEqual(cache[0], {"x": 0.0, "y": 0.0, "z": 0.0})  # never a partial row
+
+    def test_datum_changed_none_when_unreadable_true_past_eps_false_within(self):
+        f = status_runtime.datum_changed
+        self.assertIsNone(f(None, [0, 0, 0]))
+        self.assertIsNone(f([0, 0, 0], None))
+        self.assertIsNone(f([0, 0], [0, 0, 0]))
+        self.assertFalse(f([1, 2, 3], [1, 2, 3 + 1e-7]))
+        self.assertTrue(f([1, 2, 3], [1, 2, 3.5]))
+
+    def test_own_var_file_write_does_not_reseed_axis_rows(self):
+        # The gateway writing provenance/probe vars bumps the var-file mtime;
+        # mark_var_file_written adopts it so the next poll keeps the rows the
+        # gateway seeded from the live datum (disk holds shutdown-stale values).
+        rt = _runtime(stat=self._stat())
+        with tempfile.NamedTemporaryFile("w", suffix=".var", delete=False) as f:
+            f.write("5221\t0.0\n")
+            path = f.name
+        try:
+            rt.mark_var_file_written(path)
+            self.assertEqual(rt._wcs_var_file_mtime, os.path.getmtime(path))
+            rt.mark_var_file_written(path + ".missing")
+            self.assertIsNone(rt._wcs_var_file_mtime)
+        finally:
+            os.remove(path)
+
+    def test_wcs_prov_a_rides_the_injected_getter_absent_is_none(self):
+        p = _runtime(stat=self._stat()).poll_status()
+        self.assertIsNone(p.wcs_prov_a)
+        rt = _runtime(stat=self._stat())
+        rt._get_prov_a = lambda: [0.0, None, 30.0] + [None] * 6
+        p2 = rt.poll_status()
+        self.assertEqual(p2.wcs_prov_a[:3], [0.0, None, 30.0])
+
     def test_capture_clean_helpers_closed_on_none(self):
         # Absent/short/malformed inputs read DIRTY — a gate that cannot see
         # the offsets refuses, never assumes clean.

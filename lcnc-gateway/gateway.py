@@ -1908,6 +1908,10 @@ _status_runtime = _status_runtime_mod.StatusRuntime(
     load_tool_library=lambda: load_tool_library(),
     get_fb_scale=lambda: _fb_scale,
     get_kins_switchable=lambda: _kins_is_switchable(),
+    # Raw W1 stamps (late-bound: _prov_cache is defined below). No
+    # falsification pass — a hand-typed G10 under a reserved fixture is the
+    # documented operator-caused escape.
+    get_prov_a=lambda: [(_prov_cache.get(i) or {}).get("a") for i in range(1, 10)],
 )
 safe_get = _status_runtime.safe_get
 normalize_homed = _status_runtime.normalize_homed
@@ -3638,6 +3642,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                     str_vars = {str(k): finite_float(v) for k, v in vars_to_set.items()}
                     _trace.emit("probe.set_vars", vars=str_vars)
                     await asyncio.to_thread(_write_var_file_updates, var_file, str_vars)
+                    _status_runtime.mark_var_file_written(var_file)
                     file_ok = True
             # 2) Best-effort: set in interpreter memory via MDI (requires armed + machine on + idle)
             # Split into chunks ≤250 chars to fit LinuxCNC's 256-char MDI buffer
@@ -3855,15 +3860,17 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 mask = (1 if "X" in values else 0) | (2 if "Y" in values else 0) | (4 if "Z" in values else 0)
                 line = (f"o<twp_touchoff> call [{mask}] [{values.get('X', 0.0):.6f}] "
                         f"[{values.get('Y', 0.0):.6f}] [{values.get('Z', 0.0):.6f}]")
+                _datum_before = _status_runtime_mod.assemble_twp_datum(_reader_get)
                 rc = await _cmd_blocking(CMD.mdi, line, wait=30)
                 if _cmd_rc_failed(rc):
                     _trace.emit("touchoff.plane_failed", level="warn", rc=rc, line=line)
                     return {"ok": False, "error": "Plane touch-off failed — see the error channel"}
-                # The remap wrote G54 and its own provenance (kins 0 / A 0:
-                # already a table-frame point). Our cache of G54's stamp is
-                # stale now; re-read it so the next partial gateway stamp on
-                # G54 judges against the record that exists.
-                await _reseed_prov_cache_row(1)
+                # The remap wrote G54 (a NON-active row: G59 is active) and its
+                # own provenance in the INTERPRETER — neither STAT nor the var
+                # file carries it. Seed our G54 row + stamp from the datum the
+                # remap published, once it has settled.
+                _adopt_m535_datum(await _settle_datum_after_m535(_datum_before),
+                                  step="touchoff.plane")
                 _trace.emit("touchoff.plane", level="info", mask=mask, values=values)
                 return {"ok": True, "route": "plane", "index": 6}
             if "Z" in values:
@@ -4014,11 +4021,12 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             # the ONE datum (G54, table frame) at the tip — the operator's
             # ask verbatim ("touch off the plane at the tool tip"). The
             # remap stamps the provenance itself (kins 0 / A 0).
+            _datum_before = _status_runtime_mod.assemble_twp_datum(_reader_get)
             rc = await _cmd_blocking(CMD.mdi, "o<twp_touchoff> call [7] [0] [0] [0]", wait=30)
             if _cmd_rc_failed(rc):
                 _trace.emit("twp.capture_failed", level="warn", rc=rc, step="M535 zero")
                 return {"ok": False, "error": "Capture: the plane touch-off failed — see the error channel"}
-            await _reseed_prov_cache_row(1)
+            _adopt_m535_datum(await _settle_datum_after_m535(_datum_before), step="twp.capture")
             _trace.emit("twp.capture", level="info", tip=tip)
             return {"ok": True}
 
@@ -4527,6 +4535,7 @@ async def _ensure_prov_var_rows() -> None:
         if missing:
             await asyncio.to_thread(
                 _write_var_file_updates, path, {k: 0.0 for k in missing})
+            _status_runtime.mark_var_file_written(path)
             re_read = await asyncio.to_thread(_read_var_file, path, set(missing))
             still = [k for k in missing if k not in re_read]
             if still:
@@ -4553,33 +4562,49 @@ async def _ensure_prov_var_rows() -> None:
         _trace.emit("wcs.provenance_seed_failed", level="warn", error=repr(exc))
 
 
-async def _reseed_prov_cache_row(index: int) -> None:
-    """Re-read ONE fixture's provenance rows from the var file into
-    _prov_cache — after a write the gateway did not make itself (the Plane-
-    mode touch-off remap stamps G54 in the interpreter). Best effort: a row
-    that cannot be read leaves the cache entry DROPPED, so the next stamp
-    decision sees "no prior" (honest) rather than a stale prior."""
+async def _settle_datum_after_m535(before, *, timeout_s: float = 3.0,
+                                   period_s: float = 0.05):
+    """Wait for the helper's datum pins to reflect the G54 the remap just
+    wrote (M535: G10 L2 P1 + saved_work_offset + gui_update_twp; the helper
+    republishes at 20 Hz). Keyed on the VALUE changing, never a dwell: on
+    timeout the current value is adopted anyway with a warn trace — the one
+    legitimate no-change case (touch-off landing on the same datum) reads
+    identically, and a real lag stays loud through the chip. Unreadable
+    pins → None (no seeding, traced)."""
+    now = None
+    for _ in range(max(1, int(timeout_s / period_s))):
+        now = _status_runtime_mod.assemble_twp_datum(_reader_get)
+        ch = _status_runtime_mod.datum_changed(before, now)
+        if ch is True:
+            return now
+        await asyncio.sleep(period_s)
+    if now is None:
+        _trace.emit("twp.datum_unreadable", level="warn")
+        return None
+    _trace.emit("twp.datum_settle_timeout", level="warn", before=before, now=now)
+    return now
+
+
+def _adopt_m535_datum(datum, *, step: str) -> None:
+    """After M535 wrote G54 through the plane: seed the gateway's G54 row and
+    its provenance from the datum the remap published. Exact by M535's own
+    contract — it writes G54 == saved_work_offset literally and stamps
+    kins 0 / A 0 (table frame == machine frame), so the helper pins ARE the
+    row. STAT cannot help (only the ACTIVE fixture's offset is broadcast,
+    and G59 is active here) and the var file is written at shutdown."""
+    if datum is None:
+        _trace.emit("wcs.row_seed_skipped", level="warn", index=1, step=step,
+                    reason="datum unreadable")
+        return
     try:
-        path = _resolve_var_file_path()
-        n = wcs_prov_params(index)
-        if not path:
-            _prov_cache.pop(index, None)
-            _trace.emit("wcs.provenance_reseed_skipped", level="warn",
-                        index=index, reason="no var file path")
-            return
-        have = await asyncio.to_thread(_read_var_file, path,
-                                       {str(v) for v in n.values()})
-        row = {k: have.get(str(v)) for k, v in n.items()}
-        if row["stamped"] is None or abs(float(row["stamped"]) - PROV_STAMPED) > 1e-9:
-            _prov_cache.pop(index, None)
-            _trace.emit("wcs.provenance_reseed", level="info", index=index, stamped=False)
-            return
-        _prov_cache[index] = {k: float(row[k]) for k in ("kins", "a", "x", "y", "z")}
-        _trace.emit("wcs.provenance_reseed", level="info", index=index, stamped=True,
-                    kins=_prov_cache[index]["kins"], a=_prov_cache[index]["a"])
-    except Exception as exc:  # noqa: BLE001 - never break a touch-off
-        _prov_cache.pop(index, None)
-        _trace.emit("wcs.provenance_reseed_failed", level="warn", index=index, error=repr(exc))
+        _status_runtime_mod.seed_wcs_row_xyz(_wcs_cache, 0, datum)
+    except ValueError as exc:
+        _trace.emit("wcs.row_seed_failed", level="warn", index=1, step=step, error=str(exc))
+        return
+    _prov_cache[1] = {"kins": 0.0, "a": 0.0,
+                      "x": float(datum[0]), "y": float(datum[1]), "z": float(datum[2])}
+    _trace.emit("wcs.row_seeded_from_datum", level="info", index=1, step=step,
+                xyz=[float(v) for v in datum[:3]])
 
 
 def _cmd_rc_failed(rc) -> bool:
