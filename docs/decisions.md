@@ -2603,3 +2603,108 @@ boundary and unknowns, chip off-datum text/title/both-flags), full vitest,
 `npm run build`, lint green. No gateway change (the stamp was already on
 the wire). Browser walk-through (the triad pair separating under an A jog,
 no jump at the mode switch, the chip) is the operator's pass.
+
+## 2026-09-02 — Program zero rides the part: chain-evaluated fixture triad, machine ghost, datum triad removed
+
+Supersedes the record above (the mode-invariant "datum" triad, 8db508a):
+that fix was right about the symptom and wrong about the model.
+
+**Ask (operator, same day):** "switching between Machine and Plane/TCP
+always moves G54 around; when I switch back to Machine it remains at the
+moved position until I jog any axis. Do other UIs even show G54 when it is
+not active? What do Fanuc, Siemens, Heidenhain, Fusion, the grbl senders,
+gmoccapy do?"
+
+**Survey.** Sources: TNC7 Programming/Testing and Setup manuals
+(content.heidenhain.de), the SINUMERIK Operate user guide, the Fanuc TWP
+guidance-screen spec (cncmanuals.com) and Manual Guide i page, the Fusion
+machine-configuration KB, the Haas NGC operator manual, LinuxCNC's AXIS docs
++ `rs274/glcanon.py`, QtPyVCP `vtk_backplot.py`, CNCjs/gSender/bCNC/UGS
+visualizer sources, Sigma1912's `LinuxCNC_Demo_Configs` (vtk-vismach DMU
+GUI) and David Mueller's upstream TWP vismach in the spike checkout.
+- Every UI draws exactly ONE work-system marker, the active fixture, on the
+  workpiece; none shows inactive fixtures. AXIS/glcanon: "Show offsets" =
+  a line from machine zero to the SELECTED g5x origin + its triad + a cyan
+  machine-origin marker. QtPyVCP: one axes actor moved on
+  `update_active_wcs`. Haas Graphics: tool icon, paths, a "Z-axis part zero
+  line". grbl senders: the scene IS work coordinates (grid + RGB axes at
+  work zero, machine limits as a separate box).
+- Commercial controls store the datum ONCE at the end of the kinematic
+  chain (TNC7: B-CS "origin is the end of the kinematics description", the
+  preset is a transformation inside it), so it rides the table in every
+  mode; TCPM/PLANE/CYCLE800/G68.2 are functions layered on that one datum.
+  The DRO offers reference-system MODES (I-CS vs M-CS); the graphics draw
+  the workpiece with one preset. The "table rotated, no tilt function"
+  state exists there too (3D-ROT off, warning icon) — its datum numbers
+  never change MEANING, and nothing draws it on a moving machine model.
+- LinuxCNC switchkins re-interprets the SAME G54 numbers: joint-space under
+  identity, table-frame under TCP. That re-interpretation is the jump, and
+  it is LinuxCNC-specific. Upstream's own TWP vismach draws THREE static
+  copies of the work-offset triad switched by the kinstype pin — the
+  identity and tool copies are siblings of the table (room-fixed), only
+  the TCP copy rotates with A — i.e. the same split we shipped, with the
+  same jump. Sigma1912 draws no G54 triad at all (machine axes, a kins-
+  switched tool triad, a triad fixed at the table centre, the plane frame
+  at `twp_o*_world`, an arrow from machine zero).
+
+**Decision (operator, after three rounds of clarification: "is this
+inherent to switchkins?", "is the standard to always stay in TCP/TWP?",
+"would a program go to G54 anyway?", "is this the 3D-ROT feature?"):**
+one G54 triad, always where the part's zero physically is; a muted
+"program zero (machine)" marker only under identity kins while live A ≠
+the touch-off A; the "datum" triad removed. Answers recorded: yes, the
+jump is inherent to switchkins; no, the standard is touch off once at the
+reference pose, then TCP or Plane for any tilted work and Machine mode for
+indexing/setup; a program goes where the ACTIVE mode sends it (M428/M429/
+M430 and G68.x/G53.x/G69 in the program are how a program switches; M2
+resets G54 but not the kins type); TCP IS the 3D-ROT-style tracking, and
+Machine mode is 3D-ROT off.
+
+**Definition (viewer/programZero.ts):** program zero = where the tool TIP
+lands when the control is commanded to program (0,0,0), evaluated through
+the machine.json chain (work + tool) at the joint set the mode implies,
+expressed in the work group's local frame — `transformToPartFrame`'s
+per-vertex rule, now factored into `buildChain` + `tipInWorkFrame` (one
+chain, one lift, one TLO-in-tool-node-rotation convention; the markers and
+the path-on-part preview agree by construction).
+- Identity: evaluate at rotary = the fixture's W1 stamp A (absent = A0, the
+  documented rule), tool-chain rotaries 0 (the control point's zero, what
+  the DRO reads); drawn under `_workGrp` it rides the table. Ghost: the
+  same evaluation at the LIVE A, shown only when `fixtureOffDatum` holds
+  and no scrub pose is displayed; it coincides with the triad exactly iff
+  live A = stamp A.
+- TCP: the numbers (table frame). TOOL + reserved fixture: the plane
+  compose (`activeFixturePose`, `frame` tag removed).
+- Bound: the stamp records A only, so the part-riding placement requires
+  every rotary DOF of the work chain to be A (`fixtureRidesOnA`; trsrn ✓,
+  xyzac A+C ✗ → machine placement at the live pose, label "· machine", one
+  console warn, no ghost). Follow-up if ever needed: extend the stamp to
+  the full work-chain rotary pose.
+
+**Moving-table bug removed on the way.** The 2026-09-01 counter-transform
+`fixtureLocalMatrix` = `W(live)⁻¹·W0·P` assumed the work group carried no
+LINEAR DOFs. On machine-xyzac (table X → saddle Y → knee Z → A → C) it
+evaluates to `Piv·Rx(−A)·Piv⁻¹·(P + live_xyz)`: the triad drifted by the
+slide travel. The chain evaluation gives `Piv·Rx(−A)·Piv⁻¹·P`, which drawn
+under the live work group sits at `tip + (g − live)` — under the spindle
+exactly when the DRO reads 0, at any slide position. Pinned in
+`programZero.test.ts` ("moving table"). `fixtureLocal.ts` deleted.
+
+**"Stays until I jog" was a repaint miss.** ThreeViewer renders on demand;
+its `_pv` diff never listed `kins_type`, `g5x_index`, the plane pins,
+`rotary_abc` or `wcs_prov_a`, so M428 recomputed the pose and never
+painted it. `markerInputsChanged` (pure, tested with the M428 case) now
+feeds the diff, and the markers are placed after it so `_pfWcs()` reads
+fresh terms.
+
+**Verification:** vitest — programZero 28 (identity at the stamp,
+stamp-vs-live separation with the room-point check through the trsrn
+chain, coincidence window, TCP invariance across an a/b/c grid with TLO
+22 to 1e-5, kins-2 vs `twpPlaneForSample` to 1e-3, moving-table drift,
+chain letters/bound/rotary selection, the rule table incl. the xyzac
+fallback with one warn, scrub, hides, scratch reuse, the repaint diff),
+partFrame +1 (`tipInWorkFrame` ≡ the single-vertex transform), twpPose and
+activeFixtureFrame adjusted; four files 89 green. The heavy gates
+(`npm run build`, full vitest, lint, e2e) were NOT run in this session
+because the TWP sim was live on the 4-core VM (the false-trip rule) — they
+run at the next stop, before the operator walk-through in the plan.

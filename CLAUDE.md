@@ -62,7 +62,7 @@ Gateway connects to LinuxCNC via Python bindings (`linuxcnc.stat`, `linuxcnc.com
 - `useGamepad.ts` — Gamepad polling composable (analog sticks + buttons; X/Y/Z resolved by letter)
 - `useJogPointers.ts` — Jogging pointer event management composable
 - `ws/bulkData.ts` — Shared wire types for `viewer_init` / `viewer_gcode` payloads (ViewerInit, ViewerPart, KinematicsList)
-- `viewer/fixtureLocal.ts` — `fixtureLocalMatrix(W, W0, pose)`: a MACHINE-frame pose drawn under the moving work group is `W(A)⁻¹·W0·pose` — W0 (the group's world matrix at zero joints) is NOT the identity on chains with static bases; callers refresh W through the ancestors (`updateWorldMatrix(true,false)`), never the child alone (one-frame lag). Identity-kins fixtures are machine-frame (stay put when A turns); TCP rides the table; TOOL draws the plane frame.
+- `viewer/programZero.ts` — The program-zero markers (pure, tested). INVARIANT: program zero = where the tool TIP lands when the control is commanded to program (0,0,0), evaluated through the machine.json chain (work + tool) at the joint set the mode implies, expressed in the work group's local frame — `transformToPartFrame`'s per-vertex rule (`buildChain` + `tipInWorkFrame`, exported from partFrame.ts), so the markers and the path-on-part preview agree by construction and linear table DOFs are table-attached / rotary DOFs room-fixed with no per-machine reasoning (the old `W(live)⁻¹·W0·P` counter-transform drifted by the slide travel on moving-table chains). `workMarkers` rule table: the active-fixture triad is program zero ON THE PART in every mode — identity: the chain at the fixture's W1 stamp A (absent = A0 rule), riding the table; TCP: the numbers; TOOL + reserved fixture: the plane compose (`activeFixturePose`). The muted `program zero (machine)` ghost draws only under identity kins while live A ≠ stamp A (`fixtureOffDatum`): the room-fixed spot identity kins will actually use. Bound `fixtureRidesOnA`: the stamp records A only, so a work chain with other rotaries (xyzac: A+C) gets the machine placement at the live pose, labelled `· machine`, one console warn. Identity evaluations hold tool-chain rotaries at 0 (control point's zero, what the DRO reads). `markerInputsChanged` is the marker-only repaint diff (M428 used to re-pose without a paint).
 - `viewer/kins.ts` — Kinematics boundary: machine axis coords ↔ joint values behind one swappable KinsModel interface (trivkins = letter→slot permutation; TCP+TWP plan phase 1c adds real kins mirrors pinned by compiled-C-oracle fixtures). ALL offline joint derivation (partFrame emit, collision poseAt, scrub jointsForSample, entry-move machineJointsToProgram) goes through it — never inline `"XYZABC".indexOf` letter mapping again. KinsSpec is plain data (crosses postMessage); construct models at the use site via makeKins/kinsFor.
 - `viewer/` — ThreeViewer support modules: `machineAssetCache.ts` (machine STL fetch/parse with L1 in-memory + L2 IndexedDB caches, single-flight dedup, `failedParts` surface), `geometryCache.ts` (the IndexedDB layer), `disposal.ts` (scene teardown that skips `userData._shared`), `viewerContext.ts` (fresh-snapshot scene pointers), plus backplot/surface/toolpath controllers
 
@@ -190,17 +190,19 @@ touch-off target, disabled in the WCS selector on TWP configs, rewritten
 COMPLETELY (`A0 B0 C0 R0`) by every orient; the orient move is `G53 G0 B C`.
 The fixture rides the kins mode (M428/M429 → G54 when leaving a reserved row,
 M430 → G59); a reserved fixture active on identity kins at boot is bannered
-and healed with one `G54` at `ready`. The viewer poses the active-fixture
-triad in the frame the fixture is expressed in (`viewer/activeFixtureFrame.ts`)
-and never moves `workOrigin`, the toolpath anchor. The datum lives in ONE
-place: G54, table frame — drawn as the muted `datum` triad in EVERY kins
-mode once a plane is defined, hidden only while it sits under the active
-triad (`twpPose.datumTriadVisible`, geometric), so its spot never depends
-on the mode; under identity kins at A ≠ 0 the active fixture stays in the
-room while the datum rides the table, and the chip/HUD says
-`MACHINE · off datum` from the fixture's W1 stamp A vs the live A
-(`fixtureOffDatum`, the Machine-mode mirror of head-stale). Record:
-docs/decisions.md 2026-08-30 and 2026-09-02.
+and healed with one `G54` at `ready`. The viewer draws ONE work-system
+marker, the active fixture, where the PART's zero physically is in every
+kins mode (`viewer/programZero.ts`: identity = the chain at the fixture's
+W1 stamp A, riding the table; TCP = the numbers; Plane = the plane compose
+via `viewer/activeFixtureFrame.ts`), never moves `workOrigin` (the toolpath
+anchor), and shows no inactive fixture — the survey found no UI that does.
+Under identity kins with the table away from the touch-off angle, a muted
+`program zero (machine)` ghost marks the room-fixed spot identity kins will
+send the tool to, and the chip/HUD says `MACHINE · off datum`
+(`fixtureOffDatum`, the Machine-mode mirror of head-stale). The datum lives
+in ONE place: G54, table frame; `twp_datum` (the remap's snapshot) feeds
+only the plane overlay and the datum-moved chip. Record: docs/decisions.md
+2026-08-30 and 2026-09-02 (program zero rides the part).
 
 **LinuxCNC enforces very little** — mode sequence (MDI needs MODE_MDI) and state transitions only. Our gates enforce: armed state (web-safety invention), idle-vs-running checks, homing requirements, and eoffset contamination prevention. The `set_mode()` + `reject_if_auto_running()` functions in gateway.py are the real backend gatekeepers.
 
