@@ -2,10 +2,13 @@
 // The machines under test mirror real machine.json content: the shipped
 // 3-axis PM-25MV config and the XYZAC trunnion sim (machine-xyzac).
 import { describe, expect, it } from "vitest";
+import * as THREE from "three";
 import {
   transformToPartFrame, chainsHaveRotary, buildLineMap, wcsTerms,
+  buildChain, tipInWorkFrame, liftToJoints,
   type PartFrameMachine, type PartFrameWcs,
 } from "./partFrame";
+import { makeKins } from "./kins";
 
 const WCS0: PartFrameWcs = { g5x: [0, 0, 0, 0, 0, 0], g92: [], rotationDeg: 0 };
 
@@ -88,6 +91,25 @@ function poly(points: number[][], abc?: number[][], lines?: number[]) {
 function vec(out: Float32Array, i: number): [number, number, number] {
   return [out[i * 3]!, out[i * 3 + 1]!, out[i * 3 + 2]!];
 }
+
+describe("tipInWorkFrame", () => {
+  it("is transformToPartFrame's per-vertex body — one vertex through both agrees", () => {
+    const chain = buildChain(TRUNNION);
+    const o = wcsTerms(WCS0);
+    const mv: number[] = [0, 0, 0, 0, 0, 0];
+    liftToJoints(50, 30, -10, 30, 0, 45, o, [], mv);
+    const jv: (number | null)[] = [];
+    makeKins(TRUNNION.axes).inverse(mv, jv);
+    const v = tipInWorkFrame(chain, jv, [], new THREE.Vector3());
+    const r = transformToPartFrame(TRUNNION, WCS0, poly([[50, 30, -10]], [[30, 0, 45]]));
+    // (transformToPartFrame emits Float32 — 1e-4 is the honest pin.)
+    expect(v.x).toBeCloseTo(r.pos[0]!, 4);
+    expect(v.y).toBeCloseTo(r.pos[1]!, 4);
+    expect(v.z).toBeCloseTo(r.pos[2]!, 4);
+    // The joints are what they were lifted to; a rotary pose moves the point.
+    expect(Math.hypot(v.x - 50, v.y - 30, v.z + 10)).toBeGreaterThan(1);
+  });
+});
 
 describe("chainsHaveRotary", () => {
   it("is false for a pure-linear machine and true for the trunnion", () => {

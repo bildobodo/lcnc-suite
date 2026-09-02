@@ -146,7 +146,7 @@ export interface PartFrameResult {
 export const DEFAULT_ROT_STEP_DEG = 4;
 const MAX_SUBDIV = 256;  // per segment — bounds memory on pathological programs
 
-type Node = {
+export type ChainNode = {
   id: string;
   parentIdx: number;               // -1 = root
   base: THREE.Vector3;             // static translate, unit-scaled
@@ -155,10 +155,14 @@ type Node = {
   world: THREE.Matrix4;
 };
 
+/** The evaluation-ordered work+tool chain of one machine (buildChain). The
+ *  node matrices are scratch: tipInWorkFrame overwrites them per call. */
+export interface Chain { nodes: ChainNode[]; workIdx: number; toolIdx: number }
+
 /** Resolve the group tree into an evaluation-ordered node list (parents first).
  *  Only nodes on the root→workGroup / root→toolGroup chains are kept — the
  *  rest of the machine can't affect the relative tool/work pose. */
-function buildChain(machine: PartFrameMachine): { nodes: Node[]; workIdx: number; toolIdx: number } {
+export function buildChain(machine: PartFrameMachine): Chain {
   const defs = new Map(machine.groups.map(g => [g.id, g]));
   const wanted = new Set<string>();
   for (const tip of [machine.workGroup, machine.toolGroup]) {
@@ -170,7 +174,7 @@ function buildChain(machine: PartFrameMachine): { nodes: Node[]; workIdx: number
     }
   }
   const kin = normalizeKinematics(machine.kinematics);
-  const nodes: Node[] = [];
+  const nodes: ChainNode[] = [];
   const idxOf = new Map<string, number>();
   // Parents-first insertion; machine.json order already satisfies this, the
   // outer loop just retries until the set converges (cycles bail via `hops`).
@@ -208,6 +212,61 @@ function buildChain(machine: PartFrameMachine): { nodes: Node[]; workIdx: number
     workIdx: idxOf.get(machine.workGroup) ?? -1,
     toolIdx: idxOf.get(machine.toolGroup) ?? -1,
   };
+}
+
+// Scratch for tipInWorkFrame (allocation-free; one JS context at a time).
+const _tipPos = new THREE.Vector3();
+const _tipQuat = new THREE.Quaternion();
+const _tipStep = new THREE.Quaternion();
+const _tipInvWork = new THREE.Matrix4();
+const SCALE1 = new THREE.Vector3(1, 1, 1);
+
+/** The chain at `jointVals` → the TOOL TIP in the WORK group's LOCAL frame.
+ *
+ *  Nodes evaluate parents-first from their static base + composed DOFs,
+ *  exactly like the live applyState (translations add, rotations
+ *  right-multiply). With a tool offset the joints are TLO-inclusive (the
+ *  tool group's origin sits at the JOINT position), so the TLO is
+ *  subtracted to reach the tip — in the TOOL's frame: applyState phase 3
+ *  shifts _toolGrp.position local to the rotated spindle chain and the
+ *  collision worker bakes −TLO into tool-local cylinder verts, so the
+ *  offset is rotated by the tool node's world rotation before the world
+ *  subtraction. A world-axis subtraction is off by a constant rigid offset
+ *  whenever the spindle chain is tilted (W3 P0, operator-caught: 12.58 mm
+ *  at B=−40.86/C=130.25 with TLO z=22). Column-major elements directly;
+ *  transformDirection would normalize.
+ *
+ *  ONE rule for three consumers: the part-frame preview (per vertex, via
+ *  transformToPartFrame), the program-zero markers (viewer/programZero.ts)
+ *  and, by contract, the live scene. `out` is returned. */
+export function tipInWorkFrame(
+  chain: Chain, jointVals: ArrayLike<number | null>, tlo: readonly number[], out: THREE.Vector3,
+): THREE.Vector3 {
+  const { nodes, workIdx, toolIdx } = chain;
+  for (const node of nodes) {
+    _tipPos.copy(node.base);
+    _tipQuat.identity();
+    for (const d of node.dofs) {
+      const v = (jointVals[d.joint] ?? 0) * d.sign;
+      if (d.rotate) {
+        _tipStep.setFromAxisAngle(d.axisVec, THREE.MathUtils.degToRad(v));
+        _tipQuat.multiply(_tipStep);
+      } else {
+        _tipPos.addScaledVector(d.axisVec, v);
+      }
+    }
+    node.local.compose(_tipPos, _tipQuat, SCALE1);
+    if (node.parentIdx >= 0) node.world.multiplyMatrices(nodes[node.parentIdx]!.world, node.local);
+    else node.world.copy(node.local);
+  }
+  const we = nodes[toolIdx]!.world.elements;
+  const tx = tlo[0] ?? 0, ty = tlo[1] ?? 0, tz = tlo[2] ?? 0;
+  out.setFromMatrixPosition(nodes[toolIdx]!.world);
+  out.x -= we[0]! * tx + we[4]! * ty + we[8]! * tz;
+  out.y -= we[1]! * tx + we[5]! * ty + we[9]! * tz;
+  out.z -= we[2]! * tx + we[6]! * ty + we[10]! * tz;
+  _tipInvWork.copy(nodes[workIdx]!.world).invert();
+  return out.applyMatrix4(_tipInvWork);
 }
 
 /** Precomputed live-WCS terms for program→machine conversion. Every element
@@ -301,7 +360,8 @@ export function transformToPartFrame(
   const n = Math.min(input.pos.length, input.abc.length) / 3 | 0;
   if (n === 0) return { pos: new Float32Array(0), lines: input.lines && new Uint32Array(0), src: input.src && new Uint32Array(0) };
 
-  const { nodes, workIdx, toolIdx } = buildChain(machine);
+  const chain = buildChain(machine);
+  const { workIdx, toolIdx } = chain;
   if (workIdx < 0 || toolIdx < 0) {
     // Chain unresolvable (broken machine.json) — loud, and fall back to the
     // programmed polyline rather than rendering garbage.
@@ -355,12 +415,7 @@ export function transformToPartFrame(
   const outSrc = input.src ? new Uint32Array(total) : undefined;
 
   // Scratch (allocation-free inner loop).
-  const pos = new THREE.Vector3();
-  const quat = new THREE.Quaternion();
-  const step = new THREE.Quaternion();
   const tool = new THREE.Vector3();
-  const invWork = new THREE.Matrix4();
-  const SCALE1 = new THREE.Vector3(1, 1, 1);
   // UVW joints come back null from the kins boundary; the DOF loop's
   // `?? 0` keeps them at zero in the pose, as before.
   const jointVals: (number | null)[] = [];
@@ -389,45 +444,9 @@ export function transformToPartFrame(
     liftToJoints(px, py, pz, pa, pb, pc, oIn, tloV, machineVals);
     model.inverse(machineVals, jointVals);
 
-    // Evaluate chain nodes (parents first): base + composed DOFs, exactly
-    // like the live applyState — translations add, rotations right-multiply.
-    for (const node of nodes) {
-      pos.copy(node.base);
-      quat.identity();
-      for (const d of node.dofs) {
-        const v = (jointVals[d.joint] ?? 0) * d.sign;
-        if (d.rotate) {
-          step.setFromAxisAngle(d.axisVec, THREE.MathUtils.degToRad(v));
-          quat.multiply(step);
-        } else {
-          pos.addScaledVector(d.axisVec, v);
-        }
-      }
-      node.local.compose(pos, quat, SCALE1);
-      if (node.parentIdx >= 0) node.world.multiplyMatrices(nodes[node.parentIdx]!.world, node.local);
-      else node.world.copy(node.local);
-    }
-
-    // Tool tip world position, then into the work frame, then peel WCS.
-    // With wcs.tool set the joints above are TLO-inclusive, so the tool
-    // group's origin sits at the JOINT position — subtract the TLO to get
-    // the tip. The TLO lives in the TOOL's frame (applyState phase 3
-    // shifts _toolGrp.position, local to the rotated spindle chain;
-    // collisionWorker bakes −TLO into tool-local cylinder verts), so it
-    // must be rotated by the tool node's world rotation before the world
-    // subtraction — a world-axis subtraction is off by a constant rigid
-    // offset whenever the spindle chain is tilted (W3 P0, operator-caught:
-    // 12.58 mm at B=−40.86/C=130.25 with TLO z=22). Column-major elements
-    // directly; transformDirection would normalize.
-    // Same per-vertex offset as the lift above (schema 8).
-    const we = nodes[toolIdx]!.world.elements;
-    const tx = tloV[0] ?? 0, ty = tloV[1] ?? 0, tz = tloV[2] ?? 0;
-    tool.setFromMatrixPosition(nodes[toolIdx]!.world);
-    tool.x -= we[0]! * tx + we[4]! * ty + we[8]! * tz;
-    tool.y -= we[1]! * tx + we[5]! * ty + we[9]! * tz;
-    tool.z -= we[2]! * tx + we[6]! * ty + we[10]! * tz;
-    invWork.copy(nodes[workIdx]!.world).invert();
-    tool.applyMatrix4(invWork);
+    // Chain at those joints → tool tip in the work frame (tipInWorkFrame:
+    // the TLO peel in the tool node's rotation lives there), then peel WCS.
+    tipInWorkFrame(chain, jointVals, tloV, tool);
     const rx = tool.x - ox, ry = tool.y - oy;
     outPos[out * 3] = rx * cth + ry * sth;
     outPos[out * 3 + 1] = -rx * sth + ry * cth;
