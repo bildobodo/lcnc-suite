@@ -141,41 +141,6 @@ export function fixtureOffDatum(
   return Math.abs(liveA - s) > TWP_PROV_A_EPS ? { stampA: s, liveA, stamped } : null;
 }
 
-/** Below this (machine units) the datum triad sits under the active one
- *  and the active label already names the point — drawing it twice would
- *  only stack two labels. Servo dither on a parked A (0.001°) at a 1 m
- *  lever is 0.02. */
-export const DATUM_TRIAD_COINCIDENT_EPS = 0.1;
-
-/**
- * Should the datum triad draw? The datum (the remap's G54, TABLE frame —
- * `twp_datum`) draws in EVERY kins mode once a plane is defined, so its
- * spot never depends on the mode. The old rule drew it only under a
- * reserved fixture: it APPEARED at the Machine → Plane switch, at the
- * table-frame spot, while the machine-frame G54 triad it had been hiding
- * behind sat somewhere else whenever A ≠ 0 (operator-caught: "switching to
- * Plane moves G54 to a completely different spot" — at A = −5.15° the two
- * frames differ by the table rotation about the A pivot). It hides only
- * while it physically sits on the active triad — a geometric test in the
- * one frame both groups share (children of the work group).
- */
-export function datumTriadVisible(i: {
-  layerOn: boolean;
-  defined: boolean | null | undefined;
-  datum: readonly number[] | null | undefined;
-  /** Active-fixture triad position in the same frame; null when hidden. */
-  activePos: { x: number; y: number; z: number } | null;
-}): boolean {
-  if (!i.layerOn || !i.defined) return false;
-  const d = i.datum;
-  if (!d || d.length < 3) return false;
-  for (let k = 0; k < 3; k++) if (!Number.isFinite(d[k]!)) return false;
-  const p = i.activePos;
-  if (!p) return true;
-  const dx = d[0]! - p.x, dy = d[1]! - p.y, dz = d[2]! - p.z;
-  return dx * dx + dy * dy + dz * dz > DATUM_TRIAD_COINCIDENT_EPS * DATUM_TRIAD_COINCIDENT_EPS;
-}
-
 const DATUM_MOVED_TITLE = "The G54 datum was touched off AFTER this plane was defined — the plane and the next Orient still use the old datum. Capture again (after Clear plane) to accept the new datum, or re-run G68.2.";
 
 export function kinsModeChip(i: {
@@ -216,7 +181,7 @@ export function kinsModeChip(i: {
         cls: "warn",
         title: `The active fixture was established with the table at A ${o.stampA.toFixed(2)}°`
           + (o.stamped ? "" : " (no provenance stamp — the A=0 rule applies)")
-          + ` and A is now ${o.liveA.toFixed(2)}°. Under machine kinematics a fixture is a fixed point in the room, so it is no longer on the part (the datum triad shows where the part's zero went). Return A to the touch-off angle, switch to TCP (the fixture rides the table there), or touch off again here.`,
+          + ` and A is now ${o.liveA.toFixed(2)}°. Under machine kinematics a fixture is a fixed point in the room, so it is no longer on the part. In the 3D view the fixture triad rides the part; the muted 'program zero (machine)' marker is where program zero is in the room right now. Return A to the touch-off angle, switch to TCP (the fixture rides the table there), or touch off again here.`,
       };
     }
   }

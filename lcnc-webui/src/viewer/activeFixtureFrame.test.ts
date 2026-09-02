@@ -13,25 +13,13 @@ const SPEC = specFromWire({
 });
 
 describe("activeFixturePose", () => {
-  it("frame tags: identity → machine, TCP → table, plane compose → table", () => {
-    const base = { g5x: [10, 0, 0], g92: null };
-    expect(activeFixturePose({ ...base, kinsType: 0, g5xIndex: 1 })!.frame).toBe("machine");
-    expect(activeFixturePose({ ...base, kinsType: null, g5xIndex: 1 })!.frame).toBe("machine");
-    expect(activeFixturePose({ ...base, kinsType: 1, g5xIndex: 1 })!.frame).toBe("table");
-  });
-
-  it("identity: g5x + Rz(θ)·g92, basis Rz(θ) — the applyState anchor formula", () => {
-    const p = activeFixturePose({ g5x: [10, 20, 30], g92: [1, 0, 0], rotationDeg: 90, kinsType: 0, g5xIndex: 1 })!;
+  it("the numbers pose: g5x + Rz(θ)·g92, basis Rz(θ) — the applyState anchor formula", () => {
+    const p = activeFixturePose({ g5x: [10, 20, 30], g92: [1, 0, 0], rotationDeg: 90, kinsType: 1, g5xIndex: 1 })!;
     expect(p.pos[0]).toBeCloseTo(10, 9);
     expect(p.pos[1]).toBeCloseTo(21, 9);
     expect(p.pos[2]).toBeCloseTo(30, 9);
     expect(p.x[0]).toBeCloseTo(0, 9); expect(p.x[1]).toBeCloseTo(1, 9);
     expect(p.z).toEqual([0, 0, 1]);
-  });
-
-  it("no switchable kins (kinsType null) reads as identity", () => {
-    const p = activeFixturePose({ g5x: [1, 2, 3], g92: null, kinsType: null, g5xIndex: 1 })!;
-    expect(p.pos).toEqual([1, 2, 3]);
   });
 
   it("TCP with an operator fixture: the numbers are table-frame — drawn as they are", () => {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { twpPoseStale, twpDatumStale, kinsModeChip, fixtureOffDatum, stampAForFixture, datumTriadVisible,
-  TWP_POSE_EPS_DEG, TWP_POSE_NONE_BELOW, TWP_DATUM_EPS, TWP_PROV_A_EPS, DATUM_TRIAD_COINCIDENT_EPS } from "./twpPose";
+import { twpPoseStale, twpDatumStale, kinsModeChip, fixtureOffDatum, stampAForFixture,
+  TWP_POSE_EPS_DEG, TWP_POSE_NONE_BELOW, TWP_DATUM_EPS, TWP_PROV_A_EPS } from "./twpPose";
 
 describe("twpPoseStale", () => {
   it("makes no claim when no plane is defined", () => {
@@ -114,6 +114,7 @@ describe("kinsModeChip priority table", () => {
     expect(c.title).toContain("0.00°");
     expect(c.title).toContain("-5.15°");
     expect(c.title).not.toContain("no provenance stamp");
+    expect(c.title).toContain("program zero (machine)");
   });
   it("off datum without a stamp says so in the title", () => {
     const c = kinsModeChip({ kinsType: 0, offDatum: { stampA: 0, liveA: 20, stamped: false } })!;
@@ -177,30 +178,5 @@ describe("fixtureOffDatum", () => {
   });
   it("rounds a raw float kins type", () => {
     expect(fixtureOffDatum(0.0, 0, 20)).not.toBeNull();
-  });
-});
-
-describe("datumTriadVisible", () => {
-  const datum = [65.455, -599.345, 453.362];
-  it("draws in every mode once a plane is defined and the active triad is elsewhere", () => {
-    expect(datumTriadVisible({ layerOn: true, defined: true, datum, activePos: { x: 0, y: 0, z: 0 } })).toBe(true);
-  });
-  it("hides only while it sits under the active triad", () => {
-    const on = { x: 65.455, y: -599.345, z: 453.362 };
-    expect(datumTriadVisible({ layerOn: true, defined: true, datum, activePos: on })).toBe(false);
-    const near = { x: on.x + DATUM_TRIAD_COINCIDENT_EPS * 0.5, y: on.y, z: on.z };
-    expect(datumTriadVisible({ layerOn: true, defined: true, datum, activePos: near })).toBe(false);
-    const apart = { x: on.x + DATUM_TRIAD_COINCIDENT_EPS * 1.5, y: on.y, z: on.z };
-    expect(datumTriadVisible({ layerOn: true, defined: true, datum, activePos: apart })).toBe(true);
-  });
-  it("draws when the active triad is hidden (unknown frame) — the datum is still known", () => {
-    expect(datumTriadVisible({ layerOn: true, defined: true, datum, activePos: null })).toBe(true);
-  });
-  it("never without a plane, the layer, or a readable datum", () => {
-    expect(datumTriadVisible({ layerOn: false, defined: true, datum, activePos: null })).toBe(false);
-    expect(datumTriadVisible({ layerOn: true, defined: false, datum, activePos: null })).toBe(false);
-    expect(datumTriadVisible({ layerOn: true, defined: true, datum: null, activePos: null })).toBe(false);
-    expect(datumTriadVisible({ layerOn: true, defined: true, datum: [1, 2], activePos: null })).toBe(false);
-    expect(datumTriadVisible({ layerOn: true, defined: true, datum: [1, NaN, 3], activePos: null })).toBe(false);
   });
 });

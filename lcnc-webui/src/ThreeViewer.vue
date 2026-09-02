@@ -22,9 +22,8 @@ import { lineDistances, tipWcs, wcsTerms, type PartFrameMachine, type PartFrameW
 import { MACHINE_PALETTE, defaultPartHex } from "./viewer/palette";
 import { toolDimsFor } from "./viewer/tloEvents";
 import { boundsOf, epochTermsFor, previewWcsStaleFor, rebasePositions, usedWcsRowsKey, type WcsTableRow } from "./viewer/wcsEpochs";
-import { specFromWire, type KinsSpec } from "./viewer/kins";
-import { activeFixturePose } from "./viewer/activeFixtureFrame";
-import { fixtureLocalMatrix } from "./viewer/fixtureLocal";
+import { specFromWire } from "./viewer/kins";
+import { workMarkers, markerInputsChanged, newMarkerInputsPrev, G5X_NAMES, type ProgramZeroPose } from "./viewer/programZero";
 import { displayDecision } from "./viewer/displayPipeline";
 import { trackHighlightRange } from "./trackHighlight";
 import type { CollisionBody, CollisionResult, CollisionLineMark } from "./viewer/collision";
@@ -38,7 +37,7 @@ import MachineBtn from "./MachineBtn.vue";
 import CameraPip from "./CameraPip.vue";
 import ScrubBar from "./ScrubBar.vue";
 import { simMode } from "./simMode";
-import { twpPoseStale, twpDatumStale, kinsModeChip, fixtureOffDatum, stampAForFixture, datumTriadVisible } from "./twpPose";
+import { twpPoseStale, twpDatumStale, kinsModeChip, fixtureOffDatum, stampAForFixture } from "./twpPose";
 import { Camera, Settings } from "lucide-vue-next";
 
 const themeMode = inject<Ref<string>>("themeMode", ref("auto"));
@@ -171,7 +170,7 @@ const hudPlaneWord = computed(() => {
 });
 
 // g5x index (1..9) -> label, matching the gateway's _G5X_MAP.
-const WCS_LABELS = ["G54", "G55", "G56", "G57", "G58", "G59", "G59.1", "G59.2", "G59.3"];
+const WCS_LABELS = G5X_NAMES;
 const wcsLabel = (idx: number) => WCS_LABELS[idx - 1] ?? `G5x#${idx}`;
 
 // Fixtures the program actually CUTS IN that are not the active one.
@@ -306,22 +305,32 @@ let workAxes: THREE.Group | null = null;
 // stays at the raw numbers on purpose: the toolpath is right there by
 // cancellation (partFrame peels the same offset). See activeFixtureFrame.ts.
 let workAxesGroup: THREE.Group | null = null;
-// The workpiece datum (the remap's G54, table frame) while a reserved
-// fixture is active — muted, shorter, so the operator still sees where the
-// part's zero is when the DRO is reading the plane fixture.
-let datumAxes: THREE.Group | null = null;
+// The muted "program zero (machine)" marker: under identity kins, while the
+// table sits away from the active fixture's touch-off angle, the room-fixed
+// spot identity kins will send the tool to at program zero — the OTHER
+// answer to "where is zero" (viewer/programZero.ts). Same shape as the
+// triad: arrows in `ghostAxes` (the workzero layer toggles them), posed
+// through `ghostGroup`.
+let ghostAxes: THREE.Group | null = null;
+let ghostGroup: THREE.Group | null = null;
 // Marker labels (billboarded troika text, registered in _billboardLabels):
 // three near-identical unlabeled triads were genuinely ambiguous
 // (operator-caught) — each marker now says what it is. The active-fixture
-// label is dynamic (fixture name from g5x_index).
+// label is dynamic (fixture name from g5x_index, "· machine" when the
+// stamp cannot place it on the part).
 let workAxesLabel: Text | null = null;
-let datumLabel: Text | null = null;
+let ghostLabel: Text | null = null;
 let twpPlaneLabel: Text | null = null;
-const G5X_NAMES = ["G54", "G55", "G56", "G57", "G58", "G59", "G59.1", "G59.2", "G59.3"] as const;
-// KinsSpec from viewer_init, for the live active-fixture pose (kins 2).
-let _liveKinsSpec: KinsSpec | undefined;
-// The workzero layer's live flag (ANDed into the datum triad's show rule).
-let _workzeroLayerOn = true;
+// Program-zero marker inputs: the part-frame machine (built once per
+// viewer_init — _pfMachine JSON-copies, and programZero memoizes the chain
+// by object identity) and the marker-only repaint diff.
+let _markerMachine: PartFrameMachine | null = null;
+let _markerDirty = true;
+const _pvMarker = newMarkerInputsPrev();
+const _markerScratch: { primary: ProgramZeroPose; ghost: ProgramZeroPose } = {
+  primary: { pos: [0, 0, 0], x: [0, 0, 0], y: [0, 0, 0], z: [0, 0, 0] },
+  ghost: { pos: [0, 0, 0], x: [0, 0, 0], y: [0, 0, 0], z: [0, 0, 0] },
+};
 // Surface map (probe heightmap) — owned by surfaceController.
 const surface = createSurfaceController();
 // Toolpath preview (feed/rapid/highlight lines, bounds box/labels/overflow) —
@@ -780,11 +789,6 @@ function switchProjection() {
 // values, kins type, or layer toggle actually changed.
 let _twpSig = "";
 const _fixM = new THREE.Matrix4(), _fixX = new THREE.Vector3(), _fixY = new THREE.Vector3(), _fixZ = new THREE.Vector3();
-// W0 = the work group's WORLD matrix at all-zero joints (captured in
-// ensureCoreGroups). NOT the identity on chains with static bases — see
-// viewer/fixtureLocal.ts.
-const _workW0 = new THREE.Matrix4();
-const _fixScale = new THREE.Vector3();
 const _twpZ = new THREE.Vector3();
 const _twpX = new THREE.Vector3();
 const _twpY = new THREE.Vector3();
@@ -895,10 +899,10 @@ function setLayerVisible(layer: Layer, on: boolean) {
       break;
     case "workzero":
       // One layer for both "where is zero" markers: the active triad and
-      // the muted datum triad (a tenth toggle for a second marker of the
-      // same question would be toggle sprawl).
+      // the muted "program zero (machine)" ghost (a tenth toggle for a
+      // second marker of the same question would be toggle sprawl).
       if (workAxes) workAxes.visible = on;
-      _workzeroLayerOn = on;
+      if (ghostAxes) ghostAxes.visible = on;
       break;
     case "workplane":
       _twpLayerOn = on;
@@ -992,7 +996,8 @@ function ensureCoreGroups(init: ViewerInit) {
   workRotGroup = null;
   workAxes = null;
   workAxesGroup = null;
-  datumAxes = null;
+  ghostAxes = null;
+  ghostGroup = null;
   machineBoundsMesh = null;
   twpNormalArrow = null;
   machineMeshes = [];
@@ -1052,11 +1057,6 @@ function ensureCoreGroups(init: ViewerInit) {
   _workGrp = groups[init.workGroup ?? grpDefs[0]?.id ?? "root"] ?? groups.root;
   _toolGrp = groups[init.toolGroup ?? "tool"] ?? groups.root;
   _toolBase.copy(_toolGrp.position);
-  // Every group sits at its static base with an identity quaternion here (no
-  // joint state has been applied yet), so this IS W(joints = 0). Walk the
-  // ancestors: a child-only update would compose with a stale parent.
-  _workGrp.updateWorldMatrix(true, false);
-  _workW0.copy(_workGrp.matrixWorld);
 
   // Work origin (DRO zero frame) — attached to the work/table group
   workOrigin = new THREE.Group();
@@ -1076,8 +1076,8 @@ function ensureCoreGroups(init: ViewerInit) {
   workAxes.add(new THREE.ArrowHelper(new THREE.Vector3(0,1,0), new THREE.Vector3(), _al, AXIS_HEX.y, _ah, _aw));
   workAxes.add(new THREE.ArrowHelper(new THREE.Vector3(0,0,1), new THREE.Vector3(), _al, AXIS_HEX.z, _ah, _aw));
 
-  // Posed per frame from activeFixturePose (NOT under workOrigin — see the
-  // declaration comment).
+  // Posed by placeWorkMarkers (NOT under workOrigin — see the declaration
+  // comment).
   workAxesGroup = new THREE.Group();
   workAxesGroup.add(workAxes);
   workAxesLabel = mkTextLabel("", "#" + AXIS_HEX.z.toString(16).padStart(6, "0"), _al * 0.28);
@@ -1086,7 +1086,9 @@ function ensureCoreGroups(init: ViewerInit) {
   _billboardLabels.push(workAxesLabel);
   _workGrp.add(workAxesGroup);
 
-  datumAxes = new THREE.Group();
+  // The muted "program zero (machine)" marker — the same arrows at 0.6× and
+  // half opacity, its own posed group; viewer/programZero.ts decides when.
+  ghostAxes = new THREE.Group();
   const _dl = _al * 0.6;
   for (const [dir, hex] of [[[1, 0, 0], AXIS_HEX.x], [[0, 1, 0], AXIS_HEX.y], [[0, 0, 1], AXIS_HEX.z]] as const) {
     const ah = new THREE.ArrowHelper(new THREE.Vector3(...dir), new THREE.Vector3(), _dl, hex, _dl * 0.15, _dl * 0.08);
@@ -1094,18 +1096,17 @@ function ensureCoreGroups(init: ViewerInit) {
     (ah.line.material as THREE.LineBasicMaterial).opacity = 0.5;
     (ah.cone.material as THREE.MeshBasicMaterial).transparent = true;
     (ah.cone.material as THREE.MeshBasicMaterial).opacity = 0.5;
-    datumAxes.add(ah);
+    ghostAxes.add(ah);
   }
-  // "datum", never a fixture name: the active triad owns "G54"; two triads
-  // both called G54 in two frames read as one triad jumping (2026-09-02).
-  datumLabel = mkTextLabel("datum", "#" + AXIS_HEX.z.toString(16).padStart(6, "0"), _dl * 0.35);
-  (datumLabel as unknown as { fillOpacity: number }).fillOpacity = 0.6;
-  datumLabel.position.set(0, 0, _dl * 1.4);
-  datumAxes.add(datumLabel);
-  _billboardLabels.push(datumLabel);
-  datumAxes.visible = false;
-  _workGrp.add(datumAxes);
-  _liveKinsSpec = specFromWire(init.kins);
+  ghostLabel = mkTextLabel("program zero (machine)", "#" + AXIS_HEX.z.toString(16).padStart(6, "0"), _dl * 0.35);
+  (ghostLabel as unknown as { fillOpacity: number }).fillOpacity = 0.6;
+  ghostLabel.position.set(0, 0, _dl * 1.4);
+  ghostAxes.add(ghostLabel);
+  _billboardLabels.push(ghostLabel);
+  ghostGroup = new THREE.Group();
+  ghostGroup.add(ghostAxes);
+  ghostGroup.visible = false;
+  _workGrp.add(ghostGroup);
 
   // ---- TWP plane (P3.4) — machine frame, hidden until a plane is defined ----
   {
@@ -1261,6 +1262,10 @@ async function buildFromInit(init: ViewerInit) {
     scene.add(dl);
 
     ensureCoreGroups(init);
+    // Program-zero markers evaluate the same chain the part-frame worker
+    // gets; one instance per build so the memoized chain stays warm.
+    _markerMachine = _pfMachine(init);
+    _markerDirty = true;
     // Apply machine bounds from viewer_init (INI-derived)
     const mb = init.machine_bounds;
     if (machineBoundsMesh && mb?.size && mb?.origin) {
@@ -1525,67 +1530,8 @@ function applyState(init: ViewerInit, st: ViewerState) {
   if (workRotGroup) {
     workRotGroup.rotation.z = (st.rotation_xy ?? 0) * Math.PI / 180;
   }
-  // The active-fixture TRIAD goes where the fixture is expressed: identity /
-  // TCP at the anchor above; under TOOL kins with a reserved fixture, through
-  // the plane frame (same compose as the overlay). Hidden — never guessed —
-  // when that frame is unknown. A scrub pose keeps the live fixture (the sim
-  // banner is the operator's cue there).
-  if (workAxesGroup) {
-    const trio = (typeof st.kins_pre_rot === "number" && typeof st.kins_primary_angle === "number"
-      && typeof st.kins_secondary_angle === "number")
-      ? [st.kins_pre_rot, st.kins_primary_angle, st.kins_secondary_angle] : null;
-    const pose = activeFixturePose({
-      g5x: st.g5x_offset, g92: st.g92_offset, rotationDeg: st.rotation_xy ?? 0,
-      kinsType: st.kins_type, g5xIndex: st.g5x_index, frame: trio,
-      a: st.rotary_abc?.[0] ?? 0, spec: _liveKinsSpec,
-    });
-    if (pose) {
-      _fixM.makeBasis(_fixX.set(...pose.x), _fixY.set(...pose.y), _fixZ.set(...pose.z));
-      if (pose.frame === "machine") {
-        // Identity-kins numbers are MACHINE coordinates — they do not ride
-        // the table. The group stays parented under _workGrp (stable graph)
-        // and the pose is counter-transformed: local = W(A)⁻¹ · W0 · pose
-        // (viewer/fixtureLocal.ts). W0 — the group's world matrix at zero
-        // joints — is NOT the identity on this machine (T(-1000,1000,2000)
-        // on the trsrn chain); a plain W(A)⁻¹ drew the triad 2 m off
-        // (operator-caught: "Zero All does not move the G54 triad to the
-        // tip"). The ancestor walk matters too: the child-only
-        // updateMatrixWorld() lagged the table by one frame ("jumpy datum").
-        _workGrp!.updateWorldMatrix(true, false);
-        fixtureLocalMatrix(_workGrp!.matrixWorld, _workW0, pose, _fixM);
-        _fixM.decompose(workAxesGroup.position, workAxesGroup.quaternion, _fixScale);
-      } else {
-        workAxesGroup.position.set(pose.pos[0], pose.pos[1], pose.pos[2]);
-        workAxesGroup.quaternion.setFromRotationMatrix(_fixM);
-      }
-      workAxesGroup.visible = true;
-      const fixName = G5X_NAMES[(st.g5x_index ?? 1) - 1] ?? "";
-      if (workAxesLabel && workAxesLabel.text !== fixName) {
-        workAxesLabel.text = fixName;
-        workAxesLabel.sync();
-      }
-    } else {
-      workAxesGroup.visible = false;
-    }
-  }
-  // The workpiece datum (the remap's G54, TABLE frame) — the "global
-  // touch-off coordinate system" the operator asked for. Drawn in EVERY kins
-  // mode once a plane is defined, so its spot never depends on the mode;
-  // hidden only while it physically sits under the active triad (both are
-  // children of _workGrp, so the positions compare directly). Under identity
-  // kins at A ≠ 0 the two part company on screen: the machine-frame fixture
-  // stays in the room, the datum rides the table with the part — the
-  // divergence that read as "switching to Plane moves G54" while this drew
-  // only under a reserved fixture (twpPose.datumTriadVisible).
-  if (datumAxes) {
-    const d = st.twp_datum;
-    const show = datumTriadVisible({
-      layerOn: _workzeroLayerOn, defined: st.twp_defined, datum: d,
-      activePos: workAxesGroup && workAxesGroup.visible ? workAxesGroup.position : null,
-    });
-    if (show) datumAxes.position.set(d![0]!, d![1]!, d![2]!);
-    datumAxes.visible = show;
-  }
+  // The active-fixture triad and the machine ghost are posed by
+  // placeWorkMarkers at the tail of this function (after the render diff).
 
   // ---- Tool visual: parametric profile (TIP stays at local z=0) ----
   {
@@ -1694,16 +1640,16 @@ function applyState(init: ViewerInit, st: ViewerState) {
   let changed = false;
   if (_numArrChanged(_pv.jointPos, st.joint_pos)) { _pv.jointPos = st.joint_pos ? [...st.joint_pos] : null; changed = true; }
   if (_numArrChanged(_pv.machinePos, st.machine_pos)) { _pv.machinePos = st.machine_pos ? [...st.machine_pos] : null; changed = true; }
-  if (_numArrChanged(_pv.g5x, st.g5x_offset)) { _pv.g5x = st.g5x_offset ? [...st.g5x_offset] : null; changed = true; _pfScheduleWcsRefresh(); _colOnInputChange(); }
-  if (_numArrChanged(_pv.g92, st.g92_offset)) { _pv.g92 = st.g92_offset ? [...st.g92_offset] : null; changed = true; _pfScheduleWcsRefresh(); _colOnInputChange(); }
+  if (_numArrChanged(_pv.g5x, st.g5x_offset)) { _pv.g5x = st.g5x_offset ? [...st.g5x_offset] : null; changed = true; _markerDirty = true; _pfScheduleWcsRefresh(); _colOnInputChange(); }
+  if (_numArrChanged(_pv.g92, st.g92_offset)) { _pv.g92 = st.g92_offset ? [...st.g92_offset] : null; changed = true; _markerDirty = true; _pfScheduleWcsRefresh(); _colOnInputChange(); }
   // tool_offset is a transform input (joint-space math is G43-inclusive):
   // refresh the part-frame preview and re-run the sweep like any WCS change.
-  if (_numArrChanged(_pv.toolOffset, st.tool_offset)) { _pv.toolOffset = st.tool_offset ? [...st.tool_offset] : null; changed = true; _pfScheduleWcsRefresh(); _colOnInputChange(); }
+  if (_numArrChanged(_pv.toolOffset, st.tool_offset)) { _pv.toolOffset = st.tool_offset ? [...st.tool_offset] : null; changed = true; _markerDirty = true; _pfScheduleWcsRefresh(); _colOnInputChange(); }
   if (toolNum !== _pv.toolNum) { _pv.toolNum = toolNum; changed = true; }
   if (toolDiam !== _pv.toolDiam) { _pv.toolDiam = toolDiam; changed = true; _colOnInputChange(); }
   if (toolLen !== _pv.toolLen) { _pv.toolLen = toolLen; changed = true; _colOnInputChange(); }
   if (motionLine !== _pv.motionLine) { _pv.motionLine = motionLine; changed = true; }
-  if (rotationXy !== _pv.rotationXy) { _pv.rotationXy = rotationXy; changed = true; _pfScheduleWcsRefresh(); _colOnInputChange(); }
+  if (rotationXy !== _pv.rotationXy) { _pv.rotationXy = rotationXy; changed = true; _markerDirty = true; _pfScheduleWcsRefresh(); _colOnInputChange(); }
   // Fixture-table edits (review P2): only the rows the payload's
   // non-rewritten epochs actually RE-ADD participate in the change key
   // (W2 P5 — wcs_frames ships on every modern payload, so keying on the
@@ -1721,7 +1667,41 @@ function applyState(init: ViewerInit, st: ViewerState) {
   // tool_meta is null on the vast majority of ticks; the gateway sends a fresh
   // object only on a real change, so a reference compare is sufficient + cheap.
   if (toolMeta !== _pv.toolMeta) { _pv.toolMeta = toolMeta; changed = true; }
+  // Program-zero markers: their inputs (kins type, fixture index, plane
+  // pins, table pose, stamps, scrub) were never in this diff, so an M428
+  // re-posed the triad without a repaint until the next jog (operator-
+  // caught). Placed AFTER the diff so _pfWcs() reads the refreshed terms.
+  if (markerInputsChanged(_pvMarker, st, !!_scrubJoints)) _markerDirty = true;
+  if (_markerDirty) { _markerDirty = false; placeWorkMarkers(st); changed = true; }
   if (changed) _needsRender = true;
+}
+
+/** Pose the active-fixture triad and the machine ghost from the rule table
+ *  in viewer/programZero.ts (pure — the scene only draws its answer). The
+ *  groups hang under _workGrp, so a part-riding pose rides the table and
+ *  the ghost's table-local coordinates hold it still in the room. */
+function placeWorkMarkers(st: ViewerState) {
+  if (!_markerMachine || !workAxesGroup || !ghostGroup) return;
+  const trio = (typeof st.kins_pre_rot === "number" && typeof st.kins_primary_angle === "number"
+    && typeof st.kins_secondary_angle === "number")
+    ? [st.kins_pre_rot, st.kins_primary_angle, st.kins_secondary_angle] : null;
+  const m = workMarkers({
+    machine: _markerMachine, wcs: _pfWcs(), kinsType: st.kins_type, g5xIndex: st.g5x_index,
+    frame: trio, rotaryAbc: st.rotary_abc, provA: st.wcs_prov_a, scrub: !!_scrubJoints,
+  }, _markerScratch);
+  _poseMarker(workAxesGroup, m.primary?.pose ?? null);
+  if (m.primary && workAxesLabel && workAxesLabel.text !== m.primary.label) {
+    workAxesLabel.text = m.primary.label;
+    workAxesLabel.sync();
+  }
+  _poseMarker(ghostGroup, m.ghost);
+}
+function _poseMarker(g: THREE.Group, p: ProgramZeroPose | null) {
+  if (!p) { g.visible = false; return; }
+  g.position.set(p.pos[0], p.pos[1], p.pos[2]);
+  _fixM.makeBasis(_fixX.set(...p.x), _fixY.set(...p.y), _fixZ.set(...p.z));
+  g.quaternion.setFromRotationMatrix(_fixM);
+  g.visible = true;
 }
 
 // ---- Part-frame ("path on part") preview — rotary-aware toolpath ----
