@@ -2539,3 +2539,67 @@ GREEN 21/21 (the keeper auto-confirmed the tool change from the nested
 `armkeeper` shape). Browser walk-through of the visual layer (triad at the
 tip, steady datum under A jog, equal button rows, HUD line, onset-only
 clash count) is the operator's remaining pass.
+
+## 2026-09-02 — "Switching Machine → Plane moves G54": one mode-invariant datum triad, off-datum chip
+
+**Ask (operator):** "why does switching between machine and plane always
+move G54 around? when I switch to plane, G54 appears in a completely
+different spot."
+
+**Root cause — a display rule, not a datum move.** Live state at the report:
+A = −5.149°, G54 row (machine frame) = twp_datum (table frame) =
+(65.455, −599.345, 453.362). Nothing moved. The viewer draws two triads:
+the ACTIVE fixture where the current kins puts program zero (identity →
+machine frame, counter-transformed through W0, fixed in the room) and the
+muted datum triad at `twp_datum` under the work group (table frame, rides
+A). Both read the same three numbers, and at A ≠ 0 those numbers in the
+two frames are different places in the room — separated by the table
+rotation about the A pivot (tens of millimetres per degree at this lever).
+The datum triad's visibility was keyed on the FIXTURE INDEX ("shown while a
+reserved fixture is active; same spot as the active triad otherwise, so it
+hides") — a premise true only at A = 0. So it hid exactly while it would
+have shown the divergence and appeared at the Plane switch, at the
+table-frame spot, wearing the same label "G54" as the machine-frame triad
+it had been standing in for. One thing named G54 appearing to teleport.
+
+**Fix — each triad gets one mode-invariant meaning:**
+
+- **Datum triad = the part's zero, table frame, labeled "datum"** (never a
+  fixture name — the active triad owns "G54"). Drawn in every kins mode once
+  a plane is defined; hidden only while it physically sits under the active
+  triad (`twpPose.datumTriadVisible`: a 0.1-unit geometric test in the one
+  frame both groups share — children of `_workGrp` — no gateway state
+  involved, so it cannot go "sporadic"). Its position never depends on the
+  mode; the only thing that moves it is jogging A, and it moves WITH the
+  part.
+- **Active triad = where program zero is under the current kins**, labeled
+  with the fixture name. Unchanged.
+- **The informational half:** nothing had said, while A was jogged in
+  Machine mode, that G54 had left the part. `fixtureOffDatum` (twpPose.ts,
+  pure): identity kins + the ACTIVE fixture's W1 stamp A (no stamp = the
+  documented A = 0 rule, the same reading `twpDatumStale` takes) +
+  |live A − stamp A| > `TWP_PROV_A_EPS` (the stamp's own 0.01° window) →
+  `MACHINE · off datum` (warn) in SetupStrip's chip and the HUD line, title
+  quoting both angles. It is the exact mirror of head-stale: that one is
+  "table moved under an oriented head" in Plane mode, this one "table moved
+  under a machine-frame fixture" in Machine mode. Never a claim under TCP
+  (the fixture rides the table) or TOOL kins (the plane surfaces cover it).
+  `stampAForFixture` indexes the 1-based active fixture into the payload's
+  `wcs_prov_a` 9-list — G54 is the datum fixture, but the claim holds for
+  whichever fixture is active.
+
+What the operator now sees: define a plane at A = 0 in Machine mode — one
+triad. Jog A — the datum peels off G54 and rides away with the part while
+G54 stays in the room and the chip says off datum. Switch to Plane — G59
+goes to the plane, the datum does not move a micron.
+
+Grounding: on machine-xyzacb-trsrn the work group rides A only (`a_table`
+→ `a_work`; C and B are head-side), so one stamped A fully describes the
+datum's frame — why the stamp records only A.
+
+**Verification:** vitest twpPose 40 (13 new: fixtureOffDatum window/no-stamp/
+mode scope/no-reading, stampAForFixture, datumTriadVisible coincidence
+boundary and unknowns, chip off-datum text/title/both-flags), full vitest,
+`npm run build`, lint green. No gateway change (the stamp was already on
+the wire). Browser walk-through (the triad pair separating under an A jog,
+no jump at the mode switch, the chip) is the operator's pass.

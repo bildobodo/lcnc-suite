@@ -103,6 +103,79 @@ export function twpDatumStale(
 export type ChipCls = "ok" | "warn" | "bad" | "muted";
 export interface KinsModeChip { text: string; cls: ChipCls; title: string }
 
+/** The W1 stamp A of the ACTIVE fixture (1-based g5x index into the 9-list
+ *  the payload carries as `wcs_prov_a`); null = no stamp / no data. */
+export function stampAForFixture(
+  provA: readonly (number | null | undefined)[] | null | undefined,
+  g5xIndex: number | null | undefined,
+): number | null {
+  if (!provA) return null;
+  const idx = g5xIndex == null ? 1 : Math.round(g5xIndex);
+  const v = provA[idx - 1];
+  return v == null ? null : v;
+}
+
+export interface OffDatum { stampA: number; liveA: number; stamped: boolean }
+
+/**
+ * Identity-kins fixture off the part. Under machine kinematics a fixture is
+ * a FIXED POINT IN THE ROOM, valid as the part's datum only at the table
+ * pose it was established at — the pose its W1 stamp records (no stamp =
+ * the documented A=0 rule, the same reading twpDatumStale takes). Rotate
+ * the table away from it and the part leaves the fixture: program zero is
+ * still where the triad says, just no longer on the part. Mirror of
+ * twpPoseStale (table moved under an ORIENTED HEAD, Plane mode): here the
+ * table moved under a MACHINE-FRAME FIXTURE. Not a claim under TCP (the
+ * fixture rides the table) or TOOL kins (the plane surfaces cover it), nor
+ * without a live reading. Returns the two angles for the chip title.
+ */
+export function fixtureOffDatum(
+  kinsType: number | null | undefined,
+  stampA: number | null | undefined,
+  liveA: number | null | undefined,
+): OffDatum | null {
+  if (kinsType == null || Math.round(kinsType) !== 0) return null;
+  if (liveA == null || !Number.isFinite(liveA)) return null;
+  const stamped = stampA != null && Number.isFinite(stampA);
+  const s = stamped ? stampA : 0;
+  return Math.abs(liveA - s) > TWP_PROV_A_EPS ? { stampA: s, liveA, stamped } : null;
+}
+
+/** Below this (machine units) the datum triad sits under the active one
+ *  and the active label already names the point — drawing it twice would
+ *  only stack two labels. Servo dither on a parked A (0.001°) at a 1 m
+ *  lever is 0.02. */
+export const DATUM_TRIAD_COINCIDENT_EPS = 0.1;
+
+/**
+ * Should the datum triad draw? The datum (the remap's G54, TABLE frame —
+ * `twp_datum`) draws in EVERY kins mode once a plane is defined, so its
+ * spot never depends on the mode. The old rule drew it only under a
+ * reserved fixture: it APPEARED at the Machine → Plane switch, at the
+ * table-frame spot, while the machine-frame G54 triad it had been hiding
+ * behind sat somewhere else whenever A ≠ 0 (operator-caught: "switching to
+ * Plane moves G54 to a completely different spot" — at A = −5.15° the two
+ * frames differ by the table rotation about the A pivot). It hides only
+ * while it physically sits on the active triad — a geometric test in the
+ * one frame both groups share (children of the work group).
+ */
+export function datumTriadVisible(i: {
+  layerOn: boolean;
+  defined: boolean | null | undefined;
+  datum: readonly number[] | null | undefined;
+  /** Active-fixture triad position in the same frame; null when hidden. */
+  activePos: { x: number; y: number; z: number } | null;
+}): boolean {
+  if (!i.layerOn || !i.defined) return false;
+  const d = i.datum;
+  if (!d || d.length < 3) return false;
+  for (let k = 0; k < 3; k++) if (!Number.isFinite(d[k]!)) return false;
+  const p = i.activePos;
+  if (!p) return true;
+  const dx = d[0]! - p.x, dy = d[1]! - p.y, dz = d[2]! - p.z;
+  return dx * dx + dy * dy + dz * dz > DATUM_TRIAD_COINCIDENT_EPS * DATUM_TRIAD_COINCIDENT_EPS;
+}
+
 const DATUM_MOVED_TITLE = "The G54 datum was touched off AFTER this plane was defined — the plane and the next Orient still use the old datum. Capture again (after Clear plane) to accept the new datum, or re-run G68.2.";
 
 export function kinsModeChip(i: {
@@ -110,6 +183,8 @@ export function kinsModeChip(i: {
   twpActive?: boolean | null;
   twpStale?: boolean | null;
   twpDatumMoved?: boolean | null;
+  /** fixtureOffDatum() — identity kins only; ignored on other modes. */
+  offDatum?: OffDatum | null;
 }): KinsModeChip | null {
   const k = i.kinsType == null ? null : Math.round(i.kinsType);
   if (k == null) return null;
@@ -134,6 +209,16 @@ export function kinsModeChip(i: {
   } else {
     chip = { text: "MACHINE", cls: "muted",
       title: "Identity kinematics — X/Y/Z jogs move along machine axes" };
+    if (i.offDatum) {
+      const o = i.offDatum;
+      chip = {
+        text: "MACHINE · off datum",
+        cls: "warn",
+        title: `The active fixture was established with the table at A ${o.stampA.toFixed(2)}°`
+          + (o.stamped ? "" : " (no provenance stamp — the A=0 rule applies)")
+          + ` and A is now ${o.liveA.toFixed(2)}°. Under machine kinematics a fixture is a fixed point in the room, so it is no longer on the part (the datum triad shows where the part's zero went). Return A to the touch-off angle, switch to TCP (the fixture rides the table there), or touch off again here.`,
+      };
+    }
   }
   if (i.twpDatumMoved) {
     chip = {

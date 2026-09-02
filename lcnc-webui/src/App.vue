@@ -3,7 +3,7 @@ import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, provi
 import type { CollisionLineMark } from "./viewer/collision";
 import { applyClientOverlay, PERMISSIONS_KEY, FIRE_KEY, type Permissions } from "./permissions";
 import { simMode } from "./simMode";
-import { twpPoseOriented, twpPoseStale, twpDatumStale } from "./twpPose";
+import { twpPoseOriented, twpPoseStale, twpDatumStale, fixtureOffDatum, stampAForFixture } from "./twpPose";
 import { runLineState, subExecState, resolveCurrentLine } from "./trackHighlight";
 import { clearSubfileCache } from "./lcncApi";
 import { mainLinesTrusted, type ScrubTrack } from "./viewer/scrubTrack";
@@ -577,6 +577,13 @@ const twpStale = computed(() =>
 const twpDatumMoved = computed(() =>
   twpDatumStale(st.value.wcs_table?.[0] as { x?: number; y?: number; z?: number } | undefined,
     st.value.twp_datum, st.value.twp_defined, st.value.wcs_prov_a?.[0]),
+);
+// Identity-kins fixture off the part: the ACTIVE fixture's W1 stamp A vs the
+// live table A (twpPose.fixtureOffDatum — the Machine-mode mirror of twpStale).
+// Same chip/HUD derivation as the other flags via kinsModeChip.
+const twpOffDatum = computed(() =>
+  fixtureOffDatum(liveKinsType.value, stampAForFixture(st.value.wcs_prov_a, st.value.g5x_index),
+    st.value.rotary_abc?.[0]),
 );
 // A head solve exists (G53.x / Orient ran this session): the pose stamp is
 // above the remap's "no orient yet" sentinel. Gates the Plane jog frame —
@@ -2057,6 +2064,7 @@ watch(viewerGcode, (newGcode) => {
         :twpStale="twpStale"
         :twpOriented="twpOriented"
         :twpDatumMoved="twpDatumMoved"
+        :twpOffDatum="twpOffDatum"
         @twpOrient="twpReorient"
         @twpCapture="twpCapture"
         @twpClear="twpClear"

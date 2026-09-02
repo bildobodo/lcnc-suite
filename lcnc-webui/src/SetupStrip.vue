@@ -4,7 +4,7 @@ import MachineBtn from "./MachineBtn.vue";
 import MachineInput from "./MachineInput.vue";
 import MachineRadio from "./MachineRadio.vue";
 import { useAxes, isRotaryAxis } from "./useAxes";
-import { kinsModeChip } from "./twpPose";
+import { kinsModeChip, type OffDatum } from "./twpPose";
 
 // Match HUD precision (3 decimals linear, 2 rotary) without the unit suffix
 // so the keypad parser still receives a clean numeric string. (Deliberately
@@ -34,6 +34,9 @@ const props = defineProps<{
   twpOriented?: boolean;
   // Live G54 has left the datum snapshot the plane was defined against.
   twpDatumMoved?: boolean;
+  // Identity kins with the table away from the active fixture's stamp pose:
+  // the fixture is a fixed point in the room, no longer on the part.
+  twpOffDatum?: OffDatum | null;
 }>();
 
 const emit = defineEmits<{
@@ -95,6 +98,7 @@ const RESERVED_TITLE = "Reserved for the tilted-work-plane remap — rewritten b
 const kinsChip = computed(() => kinsModeChip({
   kinsType: props.kinsType, twpActive: props.twpActive,
   twpStale: props.twpStale, twpDatumMoved: props.twpDatumMoved,
+  offDatum: props.twpOffDatum,
 }));
 
 // The TWP action buttons (Capture plane / Orient / Clear plane) live here as

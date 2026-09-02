@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { twpPoseStale, twpDatumStale, kinsModeChip, TWP_POSE_EPS_DEG, TWP_POSE_NONE_BELOW, TWP_DATUM_EPS, TWP_PROV_A_EPS } from "./twpPose";
+import { twpPoseStale, twpDatumStale, kinsModeChip, fixtureOffDatum, stampAForFixture, datumTriadVisible,
+  TWP_POSE_EPS_DEG, TWP_POSE_NONE_BELOW, TWP_DATUM_EPS, TWP_PROV_A_EPS, DATUM_TRIAD_COINCIDENT_EPS } from "./twpPose";
 
 describe("twpPoseStale", () => {
   it("makes no claim when no plane is defined", () => {
@@ -106,5 +107,100 @@ describe("kinsModeChip priority table", () => {
   });
   it("rounds a raw float kins type", () => {
     expect(kinsModeChip({ kinsType: 1.0 })!.text).toBe("TCP");
+  });
+  it("off datum on identity → 'MACHINE · off datum' warn, title quotes both angles", () => {
+    const c = kinsModeChip({ kinsType: 0, offDatum: { stampA: 0, liveA: -5.149, stamped: true } })!;
+    expect(c).toMatchObject({ text: "MACHINE · off datum", cls: "warn" });
+    expect(c.title).toContain("0.00°");
+    expect(c.title).toContain("-5.15°");
+    expect(c.title).not.toContain("no provenance stamp");
+  });
+  it("off datum without a stamp says so in the title", () => {
+    const c = kinsModeChip({ kinsType: 0, offDatum: { stampA: 0, liveA: 20, stamped: false } })!;
+    expect(c.title).toContain("no provenance stamp");
+  });
+  it("off datum AND datum moved on identity → text lists both", () => {
+    const c = kinsModeChip({ kinsType: 0, twpDatumMoved: true, offDatum: { stampA: 0, liveA: 20, stamped: true } })!;
+    expect(c.text).toBe("MACHINE · off datum · datum moved");
+    expect(c.cls).toBe("warn");
+  });
+  it("offDatum is ignored on non-identity modes (the predicate never yields one there)", () => {
+    expect(kinsModeChip({ kinsType: 1, offDatum: { stampA: 0, liveA: 20, stamped: true } })).toMatchObject({ text: "TCP", cls: "ok" });
+    expect(kinsModeChip({ kinsType: 2, twpActive: true, offDatum: { stampA: 0, liveA: 20, stamped: true } })!.text).toBe("TWP");
+  });
+});
+
+describe("stampAForFixture", () => {
+  const prov = [0, 35, null, null, null, null, null, null, null];
+  it("indexes the 1-based active fixture into the 9-list", () => {
+    expect(stampAForFixture(prov, 1)).toBe(0);
+    expect(stampAForFixture(prov, 2)).toBe(35);
+    expect(stampAForFixture(prov, 3)).toBeNull();
+  });
+  it("defaults to G54 and rounds a raw float index", () => {
+    expect(stampAForFixture(prov, null)).toBe(0);
+    expect(stampAForFixture(prov, 2.0)).toBe(35);
+  });
+  it("no list → null", () => {
+    expect(stampAForFixture(null, 1)).toBeNull();
+    expect(stampAForFixture(undefined, 1)).toBeNull();
+  });
+});
+
+describe("fixtureOffDatum", () => {
+  it("identity kins, table away from the stamp pose → the two angles", () => {
+    expect(fixtureOffDatum(0, 0, -5.149)).toEqual({ stampA: 0, liveA: -5.149, stamped: true });
+    expect(fixtureOffDatum(0, 35, 0)).toEqual({ stampA: 35, liveA: 0, stamped: true });
+  });
+  it("at the stamp pose → null (the fixture is on the part)", () => {
+    expect(fixtureOffDatum(0, 35, 35)).toBeNull();
+    expect(fixtureOffDatum(0, 0, 0)).toBeNull();
+  });
+  it("uses the stamp window: at eps quiet, above it a claim", () => {
+    expect(fixtureOffDatum(0, 0, TWP_PROV_A_EPS)).toBeNull();
+    expect(fixtureOffDatum(0, 0, TWP_PROV_A_EPS * 1.5)).not.toBeNull();
+  });
+  it("no stamp = the documented A=0 rule, flagged as unstamped", () => {
+    expect(fixtureOffDatum(0, null, 20)).toEqual({ stampA: 0, liveA: 20, stamped: false });
+    expect(fixtureOffDatum(0, undefined, 0)).toBeNull();
+    expect(fixtureOffDatum(0, NaN, 20)!.stamped).toBe(false);
+  });
+  it("never a claim under TCP / TOOL kins or without switchable kins", () => {
+    expect(fixtureOffDatum(1, 0, 20)).toBeNull();
+    expect(fixtureOffDatum(2, 0, 20)).toBeNull();
+    expect(fixtureOffDatum(null, 0, 20)).toBeNull();
+    expect(fixtureOffDatum(undefined, 0, 20)).toBeNull();
+  });
+  it("no live reading → no claim", () => {
+    expect(fixtureOffDatum(0, 0, null)).toBeNull();
+    expect(fixtureOffDatum(0, 0, NaN)).toBeNull();
+  });
+  it("rounds a raw float kins type", () => {
+    expect(fixtureOffDatum(0.0, 0, 20)).not.toBeNull();
+  });
+});
+
+describe("datumTriadVisible", () => {
+  const datum = [65.455, -599.345, 453.362];
+  it("draws in every mode once a plane is defined and the active triad is elsewhere", () => {
+    expect(datumTriadVisible({ layerOn: true, defined: true, datum, activePos: { x: 0, y: 0, z: 0 } })).toBe(true);
+  });
+  it("hides only while it sits under the active triad", () => {
+    const on = { x: 65.455, y: -599.345, z: 453.362 };
+    expect(datumTriadVisible({ layerOn: true, defined: true, datum, activePos: on })).toBe(false);
+    const near = { x: on.x + DATUM_TRIAD_COINCIDENT_EPS * 0.5, y: on.y, z: on.z };
+    expect(datumTriadVisible({ layerOn: true, defined: true, datum, activePos: near })).toBe(false);
+    const apart = { x: on.x + DATUM_TRIAD_COINCIDENT_EPS * 1.5, y: on.y, z: on.z };
+    expect(datumTriadVisible({ layerOn: true, defined: true, datum, activePos: apart })).toBe(true);
+  });
+  it("draws when the active triad is hidden (unknown frame) — the datum is still known", () => {
+    expect(datumTriadVisible({ layerOn: true, defined: true, datum, activePos: null })).toBe(true);
+  });
+  it("never without a plane, the layer, or a readable datum", () => {
+    expect(datumTriadVisible({ layerOn: false, defined: true, datum, activePos: null })).toBe(false);
+    expect(datumTriadVisible({ layerOn: true, defined: false, datum, activePos: null })).toBe(false);
+    expect(datumTriadVisible({ layerOn: true, defined: true, datum: null, activePos: null })).toBe(false);
+    expect(datumTriadVisible({ layerOn: true, defined: true, datum: [1, 2], activePos: null })).toBe(false);
+    expect(datumTriadVisible({ layerOn: true, defined: true, datum: [1, NaN, 3], activePos: null })).toBe(false);
   });
 });

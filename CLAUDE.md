@@ -193,7 +193,14 @@ M430 → G59); a reserved fixture active on identity kins at boot is bannered
 and healed with one `G54` at `ready`. The viewer poses the active-fixture
 triad in the frame the fixture is expressed in (`viewer/activeFixtureFrame.ts`)
 and never moves `workOrigin`, the toolpath anchor. The datum lives in ONE
-place: G54, table frame. Record: docs/decisions.md 2026-08-30.
+place: G54, table frame — drawn as the muted `datum` triad in EVERY kins
+mode once a plane is defined, hidden only while it sits under the active
+triad (`twpPose.datumTriadVisible`, geometric), so its spot never depends
+on the mode; under identity kins at A ≠ 0 the active fixture stays in the
+room while the datum rides the table, and the chip/HUD says
+`MACHINE · off datum` from the fixture's W1 stamp A vs the live A
+(`fixtureOffDatum`, the Machine-mode mirror of head-stale). Record:
+docs/decisions.md 2026-08-30 and 2026-09-02.
 
 **LinuxCNC enforces very little** — mode sequence (MDI needs MODE_MDI) and state transitions only. Our gates enforce: armed state (web-safety invention), idle-vs-running checks, homing requirements, and eoffset contamination prevention. The `set_mode()` + `reject_if_auto_running()` functions in gateway.py are the real backend gatekeepers.
 

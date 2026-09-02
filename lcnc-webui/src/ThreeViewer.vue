@@ -38,7 +38,7 @@ import MachineBtn from "./MachineBtn.vue";
 import CameraPip from "./CameraPip.vue";
 import ScrubBar from "./ScrubBar.vue";
 import { simMode } from "./simMode";
-import { twpPoseStale, twpDatumStale, kinsModeChip } from "./twpPose";
+import { twpPoseStale, twpDatumStale, kinsModeChip, fixtureOffDatum, stampAForFixture, datumTriadVisible } from "./twpPose";
 import { Camera, Settings } from "lucide-vue-next";
 
 const themeMode = inject<Ref<string>>("themeMode", ref("auto"));
@@ -160,6 +160,7 @@ const hudMode = computed(() => {
     twpActive: d.twp_active,
     twpStale: twpPoseStale(d.twp_pose_a, d.rotary_abc?.[0], d.twp_defined),
     twpDatumMoved: twpDatumStale(d.wcs_table?.[0], d.twp_datum, d.twp_defined, d.wcs_prov_a?.[0]),
+    offDatum: fixtureOffDatum(d.kins_type, stampAForFixture(d.wcs_prov_a, d.g5x_index), d.rotary_abc?.[0]),
   });
 });
 const hudPlaneWord = computed(() => {
@@ -894,8 +895,8 @@ function setLayerVisible(layer: Layer, on: boolean) {
       break;
     case "workzero":
       // One layer for both "where is zero" markers: the active triad and
-      // the muted G54 datum triad (a tenth toggle for a marker that only
-      // exists in one niche state would be toggle sprawl).
+      // the muted datum triad (a tenth toggle for a second marker of the
+      // same question would be toggle sprawl).
       if (workAxes) workAxes.visible = on;
       _workzeroLayerOn = on;
       break;
@@ -1095,7 +1096,9 @@ function ensureCoreGroups(init: ViewerInit) {
     (ah.cone.material as THREE.MeshBasicMaterial).opacity = 0.5;
     datumAxes.add(ah);
   }
-  datumLabel = mkTextLabel("G54", "#" + AXIS_HEX.z.toString(16).padStart(6, "0"), _dl * 0.35);
+  // "datum", never a fixture name: the active triad owns "G54"; two triads
+  // both called G54 in two frames read as one triad jumping (2026-09-02).
+  datumLabel = mkTextLabel("datum", "#" + AXIS_HEX.z.toString(16).padStart(6, "0"), _dl * 0.35);
   (datumLabel as unknown as { fillOpacity: number }).fillOpacity = 0.6;
   datumLabel.position.set(0, 0, _dl * 1.4);
   datumAxes.add(datumLabel);
@@ -1565,13 +1568,21 @@ function applyState(init: ViewerInit, st: ViewerState) {
       workAxesGroup.visible = false;
     }
   }
-  // The workpiece datum (G54 as the remap holds it) while the DRO reads a
-  // reserved fixture — the "global touch-off coordinate system" the operator
-  // asked for. Same spot as the active triad otherwise, so it hides.
+  // The workpiece datum (the remap's G54, TABLE frame) — the "global
+  // touch-off coordinate system" the operator asked for. Drawn in EVERY kins
+  // mode once a plane is defined, so its spot never depends on the mode;
+  // hidden only while it physically sits under the active triad (both are
+  // children of _workGrp, so the positions compare directly). Under identity
+  // kins at A ≠ 0 the two part company on screen: the machine-frame fixture
+  // stays in the room, the datum rides the table with the part — the
+  // divergence that read as "switching to Plane moves G54" while this drew
+  // only under a reserved fixture (twpPose.datumTriadVisible).
   if (datumAxes) {
     const d = st.twp_datum;
-    const idx = st.g5x_index == null ? 1 : Math.round(st.g5x_index);
-    const show = _workzeroLayerOn && !!st.twp_defined && !!d && d.length >= 3 && idx !== 1;
+    const show = datumTriadVisible({
+      layerOn: _workzeroLayerOn, defined: st.twp_defined, datum: d,
+      activePos: workAxesGroup && workAxesGroup.visible ? workAxesGroup.position : null,
+    });
     if (show) datumAxes.position.set(d![0]!, d![1]!, d![2]!);
     datumAxes.visible = show;
   }
