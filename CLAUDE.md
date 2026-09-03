@@ -158,7 +158,8 @@ TIER 4 — Machine idle (requires base + isIdle)
   zero ───────────────── base + isIdle + !busy + !eoffset             Home, Unhome
 
 TIER 5 — Full ready (requires everything)
-  ready ──────────────── base + isIdle + !busy + isHomed              MDI, Cycle Start, Spindle, Coolant
+  ready ──────────────── base + isIdle + !busy + isHomed              MDI, Spindle, Coolant
+  run ────────────────── ready + kins runnable (Plane kins needs its plane + G59; unknown mode refuses)   Cycle Start, Run from line
   probe ──────────────── base + isIdle + !busy + isHomed + !eoffset   Probe ops, tool change, WCS edit, macros
   touchoff ───────────── probe + kins-mode × fixture rule (linear)     DRO touch-off / Zero (linear letters)
   touchoffRotary ─────── probe + identity kins + G54                    DRO touch-off / Zero (A/B/C)
@@ -476,7 +477,13 @@ start indices); `makeLine` turns breaks into an index buffer +
 `transformToPartFrame` never subdivides a break segment (breaks are
 remapped through subdivision). Track-less legacy payloads keep the old
 strips (no seq = no honest interleaving — same degradation as the scrub
-bar).
+bar). ANCHOR INVARIANT: baked geometry (part-frame output, or a programmed
+multi-epoch rebase) hangs under its OWN `pathAnchor`/`pathRot`, posed only
+by `toolpath.apply` from `anchorTerms` of the WCS it was baked with —
+never from live status. `workOrigin` (stock, surface map, axes) keeps
+following the live offsets. A mid-run G10 L2 / fixture switch used to move
+the live origin ahead of the 300 ms re-bake: the whole path jumped, then
+returned.
 
 **Program scrub (offline dry run, stage 2 + unified-timeline phase 1)**: a
 timeline bar overlaid on the 3D viewer (`ScrubBar.vue`, hosted in
@@ -654,8 +661,10 @@ return moves brush parts twice — user-caught): hits carry
 `intervals` ([enter, exit][], every boundary bisected; in-contact
 samples cluster with gaps > the in-margin stride = verified
 separations); the clash tint tests interval membership and the
-timeline marks/navigates every interval ONSET, so a re-entry is its
-own clash stop. Near-miss hits keep their closest-approach sample.
+timeline marks/navigates every interval ONSET, so a re-entry is its own clash
+stop. The clash COUNT, the marks and prev/next all read ONE list
+(`viewer/clashTargets.ts`; a same-line re-entry is labelled) and contiguous
+refined windows are merged (`mergeContiguousIntervals`) — count ≡ ticks ≡ stops. Near-miss hits keep their closest-approach sample.
 Hits during RAPID segments are flagged `rapid` — always real. ThreeViewer owns the worker (geometry from machineAssetCache, tool
 dims from live status); cancel = worker terminate + lazy recreate (a sync
 sweep can't observe a cancel message). Results reflect check-time
