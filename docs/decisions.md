@@ -2708,3 +2708,91 @@ activeFixtureFrame adjusted; four files 89 green. The heavy gates
 (`npm run build`, full vitest, lint, e2e) were NOT run in this session
 because the TWP sim was live on the 4-core VM (the false-trip rule) — they
 run at the next stop, before the operator walk-through in the plan.
+
+## 2026-09-03 — Per-client command worker: liveness never queues behind work
+
+**Ask (operator):** "since your changes I get heartbeat timeouts."
+
+**Forensics (runlogs/trace.ndjson):** six `safety.hb_stall_disarmed` events —
+Aug 31 ×2, Sep 1, Sep 2 ×2, Sep 3 — every one 0.17–0.21 s after a
+`touchoff.plane` / `twp.capture` finished, each preceded by
+`twp.datum_settle_timeout`, heartbeat arrival gaps 3.3–4.0 s. The viewer
+change of the same day was exonerated on the numbers: `workMarkers` costs
+9 µs/call (vite-node bench), the browser's 5 fps regime in
+`browser.viewer.perf` predates it by days and its frames are cheap
+(apply 0.07 ms, render 0), no `browser.error.*`.
+
+**Root cause:** `ws_endpoint` read frames in ONE sequential loop and awaited
+every command handler inline (`reply = await handle_command(...)`).
+`handle_command` holds `_cmd_lock`, and the TWP handlers wait inside it:
+the plane-route touch-off = `_cmd_blocking(CMD.mdi, wait=30)` +
+`_settle_datum_after_m535` (3.0 s, added 2026-09-01 — the "datum unchanged"
+case, i.e. touching off where G54 already is, always burns the full 3 s);
+Capture = four MDIs (`wait=10/10/30/30`) + three settle loops. While the
+handler ran, that client's own heartbeats sat unread in the socket;
+`status_loop` saw `last_hb_mono` older than 3 s and disarmed. The event loop
+was never blocked (`_cmd_blocking` runs on a thread) — the per-client reader
+coroutine was parked. The Aug 31 stalls (Capture's `orient_settle`) show the
+class predates the settle; the settle made every same-datum touch-off hit it.
+
+**Fix (by construction):** the reader handles liveness/bookkeeping frames
+only (`heartbeat`, `hello`, `safety_trip_ack`, settings, diagnostics,
+`tab_visibility`); every other command — `arm` included, its disarm branch
+takes `_cmd_lock` — goes to ONE per-client worker task (`cmd_worker`) that
+runs the former inline block verbatim (`_execute_client_command`: arm
+handshake, dispatch, bounded-error catch, `unload_file` cache reset, reply
+send), reading `client.armed` at execution time. Per-client FIFO is kept
+(`arm → jog_cont`, `jog_cont → jog_stop`). Bounded queue
+(`_WS_CMD_QUEUE_MAX` 32): overflow is replied AND traced
+(`ws.command_queue_full`, naming the in-flight command), never silently
+dropped; stop-class commands (`jog_stop`, `jog_stop_multi`, `abort`,
+`estop`) get 4× headroom and are never the ones rejected. Disconnect: the
+worker is cancelled BEFORE the armed jog-stop (which needs `_cmd_lock`),
+queued commands are drained loudly (`ws.command_dropped_on_disconnect`),
+the in-flight one traced (`ws.command_cancelled_on_disconnect`);
+`ws.disconnect` carries `queue_dropped` / `inflight_at_drop`. Slow handlers
+name themselves (`ws.command_slow`, > 1 s); the hb-stall event carries
+`inflight_cmd` / `inflight_ms`; `_HB_STALL_SEC` is a module constant.
+
+**Required companion — `_cmd_blocking` shield-and-wait.** `async with
+_cmd_lock` releases on `CancelledError`, but a thread cannot be cancelled: a
+plain `await to_thread()` under cancellation would free the lock while
+`CMD.mdi` / `wait_complete` was still running, and the next holder (the
+disconnect jog-stop, another client's worker) would call NML concurrently —
+the corruption the lock exists to prevent. Nothing cancelled handlers
+before; now a disconnect does, so the cancel path keeps the lock until the
+NML call returns (bounded by `wait`), then propagates. A cancel inside the
+datum settle skips the row seed; `twpDatumStale` surfaces that, loudly.
+
+**Contracts checked, unchanged:** `ws_send_json` → uvicorn's websockets impl
+writes frames atomically (three tasks already sent concurrently per socket;
+the worker catches `WebSocketDisconnect` around its reply). The frontend
+never awaits replies (`fire()`), consumers match by echoed `cmd` or payload
+shape, `pong` by type — a pong overtaking a slow reply is fine and the RTT
+readout becomes honest. `check_command` is pure over state read at
+execution time (more conservative). Harness scripts match replies by `cmd`.
+`test_command_policy`'s inline-ladder text contract: 10 inline > 8 after
+`arm` / `unload_file` left the reader text.
+
+**Verification:** `test_ws_command_worker.py` (7): the live failure
+reproduced — a 4 s handler with heartbeats every 0.5 s: pong gaps < 1.5 s,
+armed throughout, no `safety.hb_stall_disarmed`, reply arrives ≥ 3.5 s
+later, `ws.command_slow` names it; in-order execution; queue-full rejection
+replied + traced while pongs flow, `jog_stop` never rejected, all queued
+commands complete after release; disconnect cancels the in-flight handler
+and traces the two dropped ones (+ `ws.disconnect` fields); a raising
+handler gets a bounded error reply and the socket survives; a silent client
+is still disarmed (`_HB_STALL_SEC` 1.0, `inflight_cmd None`);
+`_cmd_blocking` keeps `_cmd_lock` held until the thread returns.
+`test_ws_lifecycle`, `test_ws_smoke`, `test_command_policy`,
+`test_command_dispatch` green. Live (after the next suite restart): the same
+same-datum plane touch-off twice with the keeper armed — the 3 s settle
+timeout still fires, the reply comes ~3 s later, NO disarm; Capture; the
+TWP live checks; corpus; perf-matrix (loop-touching change).
+
+**Follow-ups recorded:** stop-class preemption (on `abort`/`estop` cancel
+the in-flight handler so the stop runs after the current NML call — safe now
+thanks to shield-and-wait; today a stop still waits behind a 30 s MDI, as it
+always did); a helper sequence pin (`twp-seq`) so the datum settle keys on
+"the remap republished" instead of "the value changed" and a same-datum
+touch-off stops burning 3 s before replying.

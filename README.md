@@ -750,8 +750,8 @@ Machine stays enabled only when ALL FOUR: user hasn't pressed e-stop, at least o
 | Last client disconnects | 3s grace period: heartbeat keeps toggling | TRUE (grace) | **ON** |
 | Grace period expires, no reconnect | pins drop | FALSE | **OFF** |
 | Page refresh (reconnect within 3s) | grace cancelled on reconnect | TRUE | **ON** |
-| Heartbeat timeout (armed), other clients exist | force-disarm + `abort()` + `jog_stop()` | TRUE | ON |
-| Heartbeat timeout (armed), last client | force-disarm + `abort()` + `jog_stop()` → grace starts | TRUE (grace) | ON |
+| Heartbeat timeout (armed), other clients exist | force-disarm + `jog_stop()` for that client's jog (no program abort — client liveness is not safety; the HAL chain is) | TRUE | ON |
+| Heartbeat timeout (armed), last client | force-disarm + `jog_stop()` → grace starts | TRUE (grace) | ON |
 | Gateway crashes | `hal_watchdog.py` detects socket close → resets all pins | FALSE | **ESTOP** |
 | Gateway freezes or stalls (≥0.5 s) | heartbeat stops → `oneshot.0.out` drops FALSE → `webui-hb-latch` latches `ok-out` FALSE in the same servo cycle | TRUE | **ESTOP (latched)** |
 | User presses E-Stop | `CMD.state(ESTOP)` + forces `connected: false` | FALSE (transient) | **ESTOP** |
@@ -760,7 +760,7 @@ Recovery (enforced order): **Acknowledge** the safety-trip banner first — both
 
 **Layer 1 — Disconnect Handler**: When an armed WebSocket client disconnects (browser closed, network drop), the gateway immediately sends `jog_stop` for all axes and `abort` to halt any running program.
 
-**Layer 2 — Heartbeat Watchdog**: The client sends `{"cmd": "heartbeat"}` every 1 second. If the gateway doesn't receive a heartbeat from an armed client within 3 seconds (e.g., browser freeze, WiFi stall), it stops all motion and disarms the connection. The client receives an error message: `"Heartbeat timeout — disarmed for safety"`.
+**Layer 2 — Heartbeat Watchdog**: The client sends `{"cmd": "heartbeat"}` every 1 second. If the gateway doesn't receive a heartbeat from an armed client within 3 seconds (e.g., browser freeze, WiFi stall), it jog-stops that client's jog and disarms the connection (no program abort — the HAL chain owns motion-abort safety). The client receives an error message: `"Heartbeat timeout — disarmed for safety"`. Heartbeats are read by the per-client reader task and never wait behind a command handler (commands run on a per-client worker), so a long touch-off or Capture cannot trip this watchdog.
 
 **Layer 3 — HAL Watchdog**: A standalone `hal_watchdog.py` component is loaded by LinuxCNC via the HAL config (not spawned by the gateway). It creates HAL pins and listens on a Unix socket (`/tmp/webui-safety.sock`). The gateway connects to this socket as a client and sends pin updates. A retriggerable `oneshot` comp monitors the heartbeat pin — each heartbeat edge restarts its 0.5 s pulse, so it self-heals when edges resume (unlike the stock `watchdog` component, which latches on trip and requires a FALSE→TRUE edge on `enable-in` to clear — fragile across gateway reconnects).
 
