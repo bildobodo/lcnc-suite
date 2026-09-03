@@ -24,6 +24,7 @@ import { trackHighlightRange, runLineState, subExecState } from "./trackHighligh
 import { specFromWire } from "./viewer/kins";
 import { epochTermsFor, epochWcsList, usedWcsRowsKey, type WcsTableRow } from "./viewer/wcsEpochs";
 import { twpPlaneForSample } from "./viewer/twpPlaneFrame";
+import { clashTargets } from "./viewer/clashTargets";
 import type { WcsTerms } from "./viewer/partFrame";
 import type { ScrubTrack } from "./ws/bulkData";
 import type { CollisionResult } from "./viewer/collision";
@@ -597,7 +598,7 @@ const violationsTitle = computed(() => {
 // Targets are timeline positions; prev/next are relative to the CURRENT
 // scrub position, so scrubbing anywhere re-anchors the navigation. Both
 // wrap around at the ends.
-interface FindingTarget { cum: number; line: number; rapid?: boolean; dist?: number; spanEndLine?: number }
+interface FindingTarget { cum: number; line: number; rapid?: boolean; dist?: number; spanEndLine?: number; reentry?: boolean }
 const NAV_EPS = 0.01;
 
 const violationTargets = computed<FindingTarget[]>(() => {
@@ -634,14 +635,11 @@ const sweepCaveat = computed<string | null>(() => {
 // (enter → exit → re-enter) yields a target per interval, so the re-entry
 // is a real "next clash" stop, not folded invisibly into the first.
 // Continuation records (the same contact carried across line boundaries)
-// are NOT clashes of their own: the count and the navigation see onsets
-// only; the tint and the G-code marks still show the whole extent.
-const onsetHits = computed(() => hits.value.filter(h => h.continuation === undefined));
-const hitTargets = computed<FindingTarget[]>(() =>
-  onsetHits.value
-    .flatMap(h => (h.intervals ?? [[h.cum, h.cumEnd] as [number, number]])
-      .map(iv => ({ cum: iv[0], line: h.line, rapid: h.rapid, dist: h.dist, spanEndLine: h.spanEndLine })))
-    .sort((a, b) => a.cum - b.cum));
+// are NOT clashes of their own; the tint and the G-code marks still show
+// the whole extent. The COUNT, the timeline marks and prev/next all read
+// THIS list (viewer/clashTargets.ts) — they used to disagree (count per
+// record, marks per interval: "1 clash, 2 marks").
+const hitTargets = computed<FindingTarget[]>(() => clashTargets(hits.value));
 
 function targetAfter(list: FindingTarget[], s: number): FindingTarget | null {
   if (!list.length) return null;
@@ -817,14 +815,14 @@ onUnmounted(() => {
                 :title="`Collision hits — click to simulate the next one${!simMode && !machineOff ? ' (turn the machine OFF first)' : ''}${collisionResult.staticContacts.length ? `\nIn contact from the start (excluded): ${collisionResult.staticContacts.map(c => c.a + '/' + c.b).join(', ')}` : ''}`">
             <MachineBtn type="scrub" variant="danger" :disabled="!simMode && !machineOff"
                         @click="jumpTo(nextHitT)">
-              {{ onsetHits.length }} clash{{ onsetHits.length === 1 ? "" : "es" }}
+              {{ hitTargets.length }} clash{{ hitTargets.length === 1 ? "" : "es" }}
             </MachineBtn>
           </span>
           <span class="btnTip" title="Next collision">
             <MachineBtn type="scrub" variant="danger" :disabled="!simMode && !machineOff"
                         @click="jumpTo(targetAfter(hitTargets, sPos))">&#9654;</MachineBtn>
           </span>
-          <span class="navTarget val-status mono">{{ nextHitT ? "→ " + (nextHitT.line ? "L" + nextHitT.line : "entry") + (nextHitT.rapid ? " (rapid)" : "") + ((nextHitT.dist ?? 0) > 0.001 ? ` ~${nextHitT.dist!.toFixed(1)}mm` : "") + ((nextHitT.spanEndLine ?? nextHitT.line) > nextHitT.line ? ` … through L${nextHitT.spanEndLine}` : "") : "" }}</span>
+          <span class="navTarget val-status mono">{{ nextHitT ? "→ " + (nextHitT.line ? "L" + nextHitT.line : "entry") + (nextHitT.reentry ? " (re-entry)" : "") + (nextHitT.rapid ? " (rapid)" : "") + ((nextHitT.dist ?? 0) > 0.001 ? ` ~${nextHitT.dist!.toFixed(1)}mm` : "") + ((nextHitT.spanEndLine ?? nextHitT.line) > nextHitT.line ? ` … through L${nextHitT.spanEndLine}` : "") : "" }}</span>
         </template>
         <!-- Shown on BOTH branches: a sweep that found clashes is no more
              certified than one that found none, so the caveat cannot live

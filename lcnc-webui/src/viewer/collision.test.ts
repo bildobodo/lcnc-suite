@@ -3,8 +3,7 @@ import * as THREE from "three";
 import { describe, expect, it } from "vitest";
 import {
   buildCollisionModel, sweepCollisions, toolCylinderPositions,
-  type CollisionBody, type CollisionMachine,
-} from "./collision";
+  type CollisionBody, type CollisionMachine, mergeContiguousIntervals } from "./collision";
 import type { ScrubTrack } from "../ws/bulkData";
 
 const WCS0 = { g5x: [0, 0, 0, 0, 0, 0], g92: [], rotationDeg: 0 };
@@ -720,5 +719,22 @@ describe("per-segment tool dims (schema 8)", () => {
     // Without dims the base (thin) body is used throughout: nothing reports.
     const r2 = sweepCollisions(m, t, WCS0, { margin: 0.5, tloEvents: t.tloEvents, liveTool: 1 });
     expect(r2.hits).toEqual([]);
+  });
+});
+
+describe("mergeContiguousIntervals", () => {
+  it("windows meeting at one boundary are one contact (the sample-gap split)", () => {
+    expect(mergeContiguousIntervals([[45, 50], [50, 60]])).toEqual([[45, 60]]);
+    expect(mergeContiguousIntervals([[45, 50.001], [50.0025, 60]])).toEqual([[45, 60]]);
+  });
+  it("keeps a verified separation apart", () => {
+    expect(mergeContiguousIntervals([[45, 50], [110, 120]])).toEqual([[45, 50], [110, 120]]);
+    expect(mergeContiguousIntervals([[45, 50], [50.01, 60]])).toHaveLength(2);
+  });
+  it("chains and never mutates its input", () => {
+    const input: Array<[number, number]> = [[0, 1], [1, 2], [2, 3], [10, 11]];
+    expect(mergeContiguousIntervals(input)).toEqual([[0, 3], [10, 11]]);
+    expect(input).toEqual([[0, 1], [1, 2], [2, 3], [10, 11]]);
+    expect(mergeContiguousIntervals([])).toEqual([]);
   });
 });

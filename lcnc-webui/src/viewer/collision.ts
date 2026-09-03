@@ -420,6 +420,30 @@ function poseTree(nodes: Node[], jointVals: number[], scratch: {
 
 /** Sweep the track. `shouldYield` is polled between segments — return true to
  *  abort (the worker maps a cancel message onto it). `onProgress` gets 0..1. */
+/**
+ * Refinement can split ONE continuous contact into windows that meet at a
+ * boundary: the clusters are seeded from in-contact samples (pushed only at
+ * dist ≤ CONTACT_EPS), so a sample gap wider than CLUSTER_GAP opens two
+ * clusters even when every probe between them is still in contact. The exit
+ * walk of the first then reaches the next cluster's first sample unbracketed
+ * and the entry walk of the second starts there — the two boundaries land on
+ * the SAME cum. Two boundaries within twice the bisection tolerance (1e-3)
+ * are one boundary; the windows are one contact. Operator-caught 2026-09-03
+ * as "one clash reported, two marks on the timeline". Pure; unit-tested.
+ */
+export function mergeContiguousIntervals(
+  ivs: ReadonlyArray<readonly [number, number]>,
+  eps = 2e-3,
+): Array<[number, number]> {
+  const out: Array<[number, number]> = [];
+  for (const iv of ivs) {
+    const last = out[out.length - 1];
+    if (last && iv[0] - last[1] <= eps) last[1] = Math.max(last[1], iv[1]);
+    else out.push([iv[0], iv[1]]);
+  }
+  return out;
+}
+
 export function sweepCollisions(
   model: CollisionModel,
   track: CollisionTrack,
@@ -1031,9 +1055,10 @@ export function sweepCollisions(
       const exit = exitBracketed ? bisectBoundary(elo, ehi, h.pi) : ehi;
       intervals.push([entry, exit]);
     }
-    h.cum = intervals[0]![0];
-    h.cumEnd = intervals[intervals.length - 1]![1];
-    h.intervals = intervals;
+    const merged = mergeContiguousIntervals(intervals);
+    h.cum = merged[0]![0];
+    h.cumEnd = merged[merged.length - 1]![1];
+    h.intervals = merged;
   }
   // Hits leave the sweep in TRACK cum (time on a time-based track) — the
   // scrub-to-hit target must live on the slider's axis.
