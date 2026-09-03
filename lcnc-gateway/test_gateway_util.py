@@ -3109,3 +3109,30 @@ class TestWorldLimitCheck(unittest.TestCase):
         self.assertEqual(total, 2)
         self.assertEqual(records[0]["value"], -25.0)
         self.assertEqual(records[1]["axis"], "C")
+
+
+class TestDriftGateOpen(unittest.TestCase):
+    """The idle drift edges share one gate; motion closes it (2026-09-03)."""
+
+    def _open(self, **over):
+        kw = dict(active_file="/x.ngc", refresh_running=False, preview_available=True,
+                  interp_idle=True, current_vel=0.0, since_last_check_s=2.5)
+        kw.update(over)
+        return gateway_util.drift_gate_open(**kw)
+
+    def test_open_when_idle_still_and_debounced(self):
+        self.assertTrue(self._open())
+
+    def test_motion_closes_it_even_when_interp_reads_idle(self):
+        # A short program's tail: interp IDLE while the motion queue drains.
+        self.assertFalse(self._open(current_vel=12.5))
+
+    def test_each_precondition_closes_it(self):
+        self.assertFalse(self._open(active_file=""))
+        self.assertFalse(self._open(refresh_running=True))
+        self.assertFalse(self._open(preview_available=False))
+        self.assertFalse(self._open(interp_idle=False))
+        self.assertFalse(self._open(since_last_check_s=1.9))
+
+    def test_debounce_is_a_parameter(self):
+        self.assertTrue(self._open(since_last_check_s=0.6, debounce_s=0.5))

@@ -290,6 +290,22 @@ export interface WcsTerms {
   cth: number; sth: number;
 }
 
+/** The scene-graph anchor of a drawn toolpath: where program (0,0,0) sits in
+ *  the work group (g5x + Rz(θ)·g92, z = g5x_z + g92_z) and the XY rotation.
+ *  ONE formula for applyState's live work origin AND the anchor a baked
+ *  toolpath is parented under (2026-09-03: the lines hung under the LIVE
+ *  origin while their vertices were peeled against the origin at bake
+ *  time — a G10 L2 / fixture switch mid-run moved the anchor at once and
+ *  the vertices ≥300 ms later: the whole path jumped, then returned). */
+export interface AnchorTerms { ox: number; oy: number; oz: number; thetaDeg: number }
+
+export function anchorTerms(wcs: PartFrameWcs, out?: AnchorTerms): AnchorTerms {
+  const t = wcsTerms(wcs);
+  const o = out ?? { ox: 0, oy: 0, oz: 0, thetaDeg: 0 };
+  o.ox = t.ox; o.oy = t.oy; o.oz = t.oz; o.thetaDeg = wcs.rotationDeg || 0;
+  return o;
+}
+
 export function wcsTerms(wcs: PartFrameWcs): WcsTerms {
   const th = THREE.MathUtils.degToRad(wcs.rotationDeg || 0);
   const cth = Math.cos(th), sth = Math.sin(th);

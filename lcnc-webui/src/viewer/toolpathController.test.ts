@@ -30,11 +30,15 @@ function makeDeps(overflow: Ref<boolean>) {
   };
 }
 
-function makeCtx(over: Partial<ToolpathCtx> = {}): ToolpathCtx & { workRotGroup: THREE.Group } {
+function makeCtx(over: Partial<ToolpathCtx> = {}): ToolpathCtx & { workRotGroup: THREE.Group; pathAnchor: THREE.Group; pathRot: THREE.Group } {
+  const pathAnchor = new THREE.Group();
+  const pathRot = new THREE.Group();
+  pathAnchor.add(pathRot);
   return {
     scene: new THREE.Scene(),
     workOrigin: new THREE.Group(),
     workRotGroup: new THREE.Group(),
+    pathAnchor, pathRot,
     pathAlwaysOnTop: false,
     machineBounds: { origin: [0, 0, 0], size: [100, 100, 100] },
     units: "mm",
@@ -221,5 +225,49 @@ describe("overflow / visibility / colours", () => {
     expect(geomSpy).not.toHaveBeenCalled();
     expect(feedLineOf(ctx2.workRotGroup)).toBeTruthy();
     expect(c.feedSegs).toBe(3);
+  });
+});
+
+describe("baked-toolpath anchor (2026-09-03 run-time jump)", () => {
+  it("apply with anchor parents the lines under pathRot and poses the anchor in the same call", () => {
+    const ctx = makeCtx();
+    c.apply(ctx, GCODE, { ox: 1300, oy: -200, oz: -1400, thetaDeg: 90 });
+    const fl = feedLineOf(ctx.pathRot);
+    expect(fl).toBeDefined();
+    expect(feedLineOf(ctx.workRotGroup)).toBeUndefined();
+    expect(ctx.pathAnchor.position.toArray()).toEqual([1300, -200, -1400]);
+    expect(ctx.pathRot.rotation.z).toBeCloseTo(Math.PI / 2, 12);
+    // the bounds box rides the same parent as the lines
+    expect(ctx.workRotGroup.children.some(o => (o as any).isLineSegments || (o as any).isLine)).toBe(false);
+  });
+  it("apply without an anchor keeps raw program coordinates under the live workRotGroup", () => {
+    const ctx = makeCtx();
+    c.apply(ctx, GCODE, null);
+    expect(feedLineOf(ctx.workRotGroup)).toBeDefined();
+    expect(feedLineOf(ctx.pathRot)).toBeUndefined();
+    expect(ctx.pathAnchor.position.toArray()).toEqual([0, 0, 0]);
+  });
+  it("a re-bake moves the anchor and replaces the lines together — never one without the other", () => {
+    const ctx = makeCtx();
+    c.apply(ctx, GCODE, { ox: 0, oy: 0, oz: 45.6, thetaDeg: 0 });
+    const first = feedLineOf(ctx.pathRot);
+    c.apply(ctx, GCODE, { ox: 1300, oy: -200, oz: -1400, thetaDeg: 0 });
+    const second = feedLineOf(ctx.pathRot);
+    expect(second).toBeDefined();
+    expect(second).not.toBe(first);
+    expect(first.parent).toBeNull();                       // old lines detached
+    expect(ctx.pathAnchor.position.toArray()).toEqual([1300, -200, -1400]);
+    // exactly one feed line (non-dashed, 3 points) remains under the anchor
+    // (the highlight line shares feed's positions at renderOrder 12; rapid is dashed)
+    expect(ctx.pathRot.children.filter(o => (o as any).isLine && o.renderOrder === 10
+      && !((o as any).material instanceof THREE.LineDashedMaterial)
+      && (o as THREE.Line).geometry.getAttribute("position")?.count === 3)).toHaveLength(1);
+  });
+  it("switching from baked to raw moves the lines back under workRotGroup", () => {
+    const ctx = makeCtx();
+    c.apply(ctx, GCODE, { ox: 5, oy: 5, oz: 5, thetaDeg: 0 });
+    c.apply(ctx, GCODE, null);
+    expect(feedLineOf(ctx.pathRot)).toBeUndefined();
+    expect(feedLineOf(ctx.workRotGroup)).toBeDefined();
   });
 });

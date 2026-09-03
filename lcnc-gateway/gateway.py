@@ -47,7 +47,7 @@ from gateway_util import (
     evaluate_safety_chain,
     PREVIEW_SCHEMA,
     evaluate_tlo_drift,
-    evaluate_rotary_drift,
+    evaluate_rotary_drift, drift_gate_open,
     rotary_drift_settled,
     evaluate_kins_drift,
     wcs_offset_flat_from_table,
@@ -1484,11 +1484,10 @@ async def _status_poller():
                 # gate. They used to sit under `published_tlo is not None`
                 # too, so a payload whose __TLO__ line was absent or
                 # malformed never re-seeded its rotary pose at all.
-                bool(st.active_file)
-                and not _bulk.refresh_running
-                and _bulk.preview_available()
-                and st.interp_state == linuxcnc.INTERP_IDLE
-                and time.monotonic() - _bulk.tlo_check_ts >= 2.0
+                drift_gate_open(
+                    st.active_file, _bulk.refresh_running, _bulk.preview_available(),
+                    st.interp_state == linuxcnc.INTERP_IDLE, st.current_vel,
+                    time.monotonic() - _bulk.tlo_check_ts)
             ):
                 _bulk.tlo_check_ts = time.monotonic()
                 _drift = None

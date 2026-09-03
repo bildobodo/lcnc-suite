@@ -13,6 +13,7 @@
 // carries the REASSIGNED scene-graph pointers (scene/workOrigin/workRotGroup)
 // plus per-program data (pathAlwaysOnTop/machineBounds/units) — never cached.
 import * as THREE from "three";
+import type { AnchorTerms } from "./partFrame";
 import type { Ref } from "vue";
 import type { Text } from "troika-three-text";
 import type { ViewerGcode } from "../lcncWs";
@@ -37,13 +38,24 @@ export interface ToolpathCtx {
   scene: THREE.Scene | null;
   workOrigin: THREE.Group | null;
   workRotGroup: THREE.Group | null;
+  /** Baked-toolpath anchor (sibling of workOrigin under the work group):
+   *  posed ONLY by apply(), from the terms the geometry was baked with, so
+   *  the lines and their origin can never disagree for a frame. */
+  pathAnchor: THREE.Group | null;
+  /** XY-rotation child of pathAnchor — the lines' actual parent. */
+  pathRot: THREE.Group | null;
   pathAlwaysOnTop: boolean;
   machineBounds: { origin: Vec3; size: Vec3 } | undefined;
   units: string | undefined;
 }
 
 export interface ToolpathController {
-  apply(ctx: ToolpathCtx, g: ViewerGcode): void;
+  /** `anchor` = the WCS terms the vertices in `g` were baked against
+   *  (part-frame output, or a programmed multi-epoch rebase): the lines are
+   *  parented under ctx.pathRot and pathAnchor/pathRot are posed from it in
+   *  the same call. null = raw program coordinates (no bake): the lines hang
+   *  under the LIVE workRotGroup, whose re-add IS the transform. */
+  apply(ctx: ToolpathCtx, g: ViewerGcode, anchor?: AnchorTerms | null): void;
   setHighlight(curLine: number | null): void;
   /** Positional highlight (review P3): light the drawn-feed vertices whose
    *  source TRACK index falls in [start, end] — line numbers cannot address
@@ -232,6 +244,10 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
    *  geometry AND materials (A2); the shared feed/rapid/highlight geoms are
    *  deliberately not _shared, so one pass releases everything (a second
    *  visit via the geometry-sharing overflow lines is idempotent). */
+  // Parent of the current program's lines + bounds (baked anchor or the
+  // live workRotGroup) — set by apply(), read by rebuildToolpathBounds.
+  let _lineParent: THREE.Group | null = null;
+
   function teardownLines() {
     for (const old of [feedLine, rapidLine, feedOverflow, rapidOverflow, highlightLine]) {
       if (!old) continue;
@@ -269,7 +285,9 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
   }
 
   function rebuildToolpathBounds(ctx: ToolpathCtx) {
-    const workRotGroup = ctx.workRotGroup;
+    // The bounds box is in the SAME coordinates as the drawn vertices, so
+    // it hangs under the same parent (the baked anchor when there is one).
+    const workRotGroup = _lineParent ?? ctx.workRotGroup;
     teardownBounds();
     if (!toolpathBBox || !workRotGroup) return;
 
@@ -345,10 +363,20 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
   }
 
   return {
-    apply(ctx, g) {
+    apply(ctx, g, anchor = null) {
       if (!ctx.scene || !ctx.workOrigin) return;
       pathAlwaysOnTop = ctx.pathAlwaysOnTop;
       const workRotGroup = ctx.workRotGroup;
+      // Baked geometry rides its OWN anchor, posed here and nowhere else —
+      // the pose and the vertices change in the same call (the run-time
+      // "jump then return" was the live origin moving ahead of a re-bake).
+      const baked = anchor != null && ctx.pathAnchor != null && ctx.pathRot != null;
+      const lineParent: THREE.Group | null = baked ? ctx.pathRot : workRotGroup;
+      _lineParent = lineParent;
+      if (baked) {
+        ctx.pathAnchor!.position.set(anchor!.ox, anchor!.oy, anchor!.oz);
+        ctx.pathRot!.rotation.z = THREE.MathUtils.degToRad(anchor!.thetaDeg);
+      }
 
       // Program change: free every replaced line (geometry + material).
       teardownLines();
@@ -388,9 +416,9 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
         // connectors across feed/rapid interleaves; absent on legacy data.
         feedLine = makeLine(feedData, feedColor, false, 1.0, undefined, g.feedBreaks);
         feedSharedGeom = feedLine.geometry as THREE.BufferGeometry;
-        workRotGroup!.add(feedLine);
+        lineParent!.add(feedLine);
         feedOverflow = makeOverflowLine(feedSharedGeom);
-        if (feedOverflow) workRotGroup!.add(feedOverflow);
+        if (feedOverflow) lineParent!.add(feedOverflow);
       }
       if (_pointCount(rapidData) >= 2) {
         // Pass the worker-precomputed lineDistance when the flat buffer is in use (P4.1);
@@ -398,9 +426,9 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
         const _rapidDist = rapidData === g.rapidPos ? g.rapidDist : undefined;
         rapidLine = makeLine(rapidData, rapidColor, true, 1.0, _rapidDist, g.rapidBreaks);
         rapidSharedGeom = rapidLine.geometry as THREE.BufferGeometry;
-        workRotGroup!.add(rapidLine);
+        lineParent!.add(rapidLine);
         rapidOverflow = makeOverflowLine(rapidSharedGeom);
-        if (rapidOverflow) workRotGroup!.add(rapidOverflow);
+        if (rapidOverflow) lineParent!.add(rapidOverflow);
       }
 
       // Highlight line — shares feed's position attribute; independent drawRange.
@@ -423,7 +451,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
         highlightLine = new THREE.Line(highlightGeom, hlMat);
         highlightLine.renderOrder = 12;
         highlightLine.frustumCulled = true;
-        workRotGroup!.add(highlightLine);
+        lineParent!.add(highlightLine);
       }
 
       // Toolpath bounding boxes (work coordinates). `toolpathBBox` is the cut

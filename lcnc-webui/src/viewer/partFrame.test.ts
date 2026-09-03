@@ -6,8 +6,8 @@ import * as THREE from "three";
 import {
   transformToPartFrame, chainsHaveRotary, buildLineMap, wcsTerms,
   buildChain, tipInWorkFrame, liftToJoints,
-  type PartFrameMachine, type PartFrameWcs,
-} from "./partFrame";
+  type PartFrameMachine, type PartFrameWcs, } from "./partFrame";
+import { anchorTerms } from "./partFrame";
 import { makeKins } from "./kins";
 
 const WCS0: PartFrameWcs = { g5x: [0, 0, 0, 0, 0, 0], g92: [], rotationDeg: 0 };
@@ -394,5 +394,21 @@ describe("src carry through subdivision (review P3)", () => {
       expect(r.src![i]).toBe(9);                       // all subdivided samples
       expect(r.src![i]).toBeGreaterThanOrEqual(r.src![i - 1]!);
     }
+  });
+});
+
+describe("anchorTerms — the toolpath anchor equals the live work-origin formula", () => {
+  it("g5x + Rz(θ)·g92 in XY, plain sum in Z, θ carried in degrees", () => {
+    const a = anchorTerms({ g5x: [10, 20, 30], g92: [1, 0, 0.5], rotationDeg: 90 });
+    expect(a.ox).toBeCloseTo(10, 9);
+    expect(a.oy).toBeCloseTo(21, 9);
+    expect(a.oz).toBeCloseTo(30.5, 9);
+    expect(a.thetaDeg).toBe(90);
+  });
+  it("fills a caller-provided scratch object (allocation-free per frame)", () => {
+    const out = { ox: 0, oy: 0, oz: 0, thetaDeg: 0 };
+    const r = anchorTerms({ g5x: [1, 2, 3], g92: [], rotationDeg: 0 }, out);
+    expect(r).toBe(out);
+    expect(out).toEqual({ ox: 1, oy: 2, oz: 3, thetaDeg: 0 });
   });
 });

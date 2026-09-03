@@ -18,7 +18,7 @@ import { useAxes } from "./useAxes";
 import { recordApply, recordRender, setViewerPerfContext } from "./viewerPerf";
 import { disposeObject } from "./viewer/disposal";
 import { normalizeKinematics, type KinRuntime } from "./viewer/kinematics";
-import { lineDistances, tipWcs, wcsTerms, type PartFrameMachine, type PartFrameWcs } from "./viewer/partFrame";
+import { lineDistances, tipWcs, wcsTerms, type PartFrameMachine, type PartFrameWcs, anchorTerms, type AnchorTerms } from "./viewer/partFrame";
 import { MACHINE_PALETTE, defaultPartHex } from "./viewer/palette";
 import { toolDimsFor } from "./viewer/tloEvents";
 import { boundsOf, epochTermsFor, previewWcsStaleFor, rebasePositions, usedWcsRowsKey, type WcsTableRow } from "./viewer/wcsEpochs";
@@ -264,6 +264,13 @@ const GIZMO_SIZE = 140; // pixels
 const groups: Record<string, THREE.Group> = {};
 let workOrigin: THREE.Group | null = null;
 let workRotGroup: THREE.Group | null = null;  // rotated sub-group for stock/axes (WCS rotation)
+// Baked-toolpath anchor: sibling of workOrigin, posed ONLY by toolpath.apply
+// from the terms the drawn vertices were baked with (viewer/partFrame.ts
+// anchorTerms). workOrigin keeps following the LIVE offsets for stock,
+// surface map and axes; the toolpath must not, or it jumps ahead of its
+// own re-bake (2026-09-03, operator-caught during a TWP run).
+let pathAnchor: THREE.Group | null = null;
+let pathRot: THREE.Group | null = null;
 let _workGrp: THREE.Group | null = null;   // resolved from init.workGroup
 let _toolGrp: THREE.Group | null = null;   // resolved from init.toolGroup
 
@@ -465,13 +472,15 @@ const toolpath = createToolpathController({
 // controllers read ctx fields synchronously and never retain it (contract in
 // viewerContext.ts).
 const _toolpathCtx: ToolpathCtx = {
-  scene: null, workOrigin: null, workRotGroup: null,
+  scene: null, workOrigin: null, workRotGroup: null, pathAnchor: null, pathRot: null,
   pathAlwaysOnTop: false, machineBounds: undefined, units: undefined,
 };
 function toolpathCtx(): ToolpathCtx {
   _toolpathCtx.scene = scene;
   _toolpathCtx.workOrigin = workOrigin;
   _toolpathCtx.workRotGroup = workRotGroup;
+  _toolpathCtx.pathAnchor = pathAnchor;
+  _toolpathCtx.pathRot = pathRot;
   _toolpathCtx.pathAlwaysOnTop = pathAlwaysOnTop;
   _toolpathCtx.machineBounds = viewerInit.value?.machine_bounds;
   _toolpathCtx.units = viewerInit.value?.units;
@@ -1069,6 +1078,13 @@ function ensureCoreGroups(init: ViewerInit) {
   workRotGroup = new THREE.Group();
   workOrigin.add(workRotGroup);
 
+  // Baked-toolpath anchor (see the declaration comment): same parent as
+  // workOrigin, posed by toolpath.apply only.
+  pathAnchor = new THREE.Group();
+  _workGrp.add(pathAnchor);
+  pathRot = new THREE.Group();
+  pathAnchor.add(pathRot);
+
   // Work zero XYZ arrows (color identifies axis — no text labels)
   workAxes = new THREE.Group();
   const _al = 60 * _unitScale;
@@ -1515,21 +1531,18 @@ function applyState(init: ViewerInit, st: ViewerState) {
   // effective origin is g5x + Rz(θ)·g92 — workRotGroup (child) applies the
   // rotation to program coords AND the g92 vector's share lives here. A
   // plain g5x+g92 sum deviates whenever G92 and G10 R are both active.
-  const g5x = st.g5x_offset ?? [];
-  const g92 = st.g92_offset ?? [];
-  const thRad = (st.rotation_xy ?? 0) * Math.PI / 180;
-  const cthW = Math.cos(thRad), sthW = Math.sin(thRad);
-  const g92x = g92[0] ?? 0, g92y = g92[1] ?? 0;
-
-  const ox = (g5x[0] ?? 0) + g92x * cthW - g92y * sthW;
-  const oy = (g5x[1] ?? 0) + g92x * sthW + g92y * cthW;
-  const oz = (g5x[2] ?? 0) + (g92[2] ?? 0);
-
+  // ONE formula with the baked-toolpath anchor (anchorTerms) so the live
+  // origin and a baked path's anchor can never disagree; scratch objects
+  // keep the per-frame loop allocation-free.
+  _liveWcs.g5x = st.g5x_offset ?? _EMPTY_NUMS;
+  _liveWcs.g92 = st.g92_offset ?? _EMPTY_NUMS;
+  _liveWcs.rotationDeg = st.rotation_xy ?? 0;
+  anchorTerms(_liveWcs, _liveAnchor);
   if (workOrigin) {
-    workOrigin.position.set(ox, oy, oz);
+    workOrigin.position.set(_liveAnchor.ox, _liveAnchor.oy, _liveAnchor.oz);
   }
   if (workRotGroup) {
-    workRotGroup.rotation.z = (st.rotation_xy ?? 0) * Math.PI / 180;
+    workRotGroup.rotation.z = _liveAnchor.thetaDeg * Math.PI / 180;
   }
   // The active-fixture triad and the machine ghost are posed by
   // placeWorkMarkers at the tail of this function (after the render diff).
@@ -1716,6 +1729,12 @@ function _poseMarker(g: THREE.Group, p: ProgramZeroPose | null) {
 let _pfWorker: Worker | null = null;
 let _pfReqId = 0;
 let _pfAppliedMode: "part" | "programmed" | null = null;
+// The anchor the in-flight part-frame request was baked against — applied
+// together with its reply (never from live status).
+let _pfAnchorFor: { id: number; anchor: AnchorTerms } | null = null;
+const _EMPTY_NUMS: number[] = [];
+const _liveWcs: PartFrameWcs = { g5x: _EMPTY_NUMS, g92: _EMPTY_NUMS, rotationDeg: 0 };
+const _liveAnchor: AnchorTerms = { ox: 0, oy: 0, oz: 0, thetaDeg: 0 };
 let _pfWcsTimer: ReturnType<typeof setTimeout> | undefined;
 
 function _pfGetWorker(): Worker {
@@ -1757,7 +1776,15 @@ function _pfGetWorker(): Worker {
             : fb)
           : null;
       }
-      toolpath.apply(toolpathCtx(), out);
+      if (!_pfAnchorFor || _pfAnchorFor.id !== m.id) {
+        // Cannot happen (the anchor is stored with the request id) — but a
+        // baked path under the live origin is the exact bug this guards.
+        console.error("[partFrame] reply without its anchor — programmed preview used");
+        _applyProgrammed(g);
+        requestRender();
+        return;
+      }
+      toolpath.apply(toolpathCtx(), out, _pfAnchorFor.anchor);
       requestRender();
     };
     _pfWorker.onerror = (ev) => {
@@ -2068,6 +2095,7 @@ function _partFrameEligible(g: ViewerGcode): boolean {
  *  rebasePositions. */
 function _applyProgrammed(g: ViewerGcode) {
   let out = g;
+  let anchor: AnchorTerms | null = null;
   if (g.wcsEvents?.length && (g.feedWcs || g.rapidWcs) && (g.feedPos || g.rapidPos)) {
     const live = _pfWcs();
     const terms = epochTermsFor(g.wcsEvents, live, _pv.wcsTable ?? undefined);
@@ -2092,15 +2120,21 @@ function _applyProgrammed(g: ViewerGcode) {
       out = { ...g, feedPos: fp, rapidPos: rp,
               rapidDist: rp ? lineDistances(rp) : g.rapidDist,
               bounds, motion_bounds: motion };
+      // Rebased against `live` — anchor the lines to those terms, not to
+      // the live origin (same invariant as the part-frame reply).
+      anchor = anchorTerms(live);
     }
   }
-  toolpath.apply(toolpathCtx(), out);
+  toolpath.apply(toolpathCtx(), out, anchor);
 }
 
 function applyGcode(g: ViewerGcode) {
   if (_partFrameEligible(g)) {
     _pfAppliedMode = "part";
     const id = ++_pfReqId;
+    // The terms the worker peels against — the reply hangs under THIS
+    // anchor, not under whatever the live origin is by then.
+    _pfAnchorFor = { id, anchor: anchorTerms(_pfWcs()) };
     const fp = g.feedPos ?? new Float32Array(0);
     const fa = g.feedAbc && g.feedAbc.length === fp.length ? g.feedAbc : new Float32Array(fp.length);
     const fl = g.feed_lines instanceof Uint32Array ? g.feed_lines : undefined;

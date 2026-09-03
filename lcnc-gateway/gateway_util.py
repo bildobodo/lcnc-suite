@@ -1149,6 +1149,26 @@ def rotary_seed_values(axis_mask, actual_position):
     return out or None
 
 
+
+def drift_gate_open(active_file, refresh_running, preview_available, interp_idle,
+                    current_vel, since_last_check_s, debounce_s=2.0):
+    """May the idle drift edges (TLO / rotary / kins / WCS-offset) evaluate now?
+
+    One predicate for all four edges. `interp_idle` alone is a single poll
+    sample: LinuxCNC reports INTERP_IDLE as soon as the interpreter has read
+    the last block, while the motion queue still drains — a short program's
+    tail is "idle" with the axes moving, and a kins 0→2 step or a G10 L2 from
+    the program would otherwise schedule a reparse MID-RUN (the preview would
+    swap under a running program). The rotary edge already required
+    `not current_vel`; this hoists it to the shared gate (2026-09-03). Pure.
+    """
+    return (bool(active_file)
+            and not refresh_running
+            and bool(preview_available)
+            and bool(interp_idle)
+            and not current_vel
+            and since_last_check_s >= debounce_s)
+
 def evaluate_rotary_drift(seed, rotary_abc, eps=0.01):
     """Has the machine's ROTARY pose moved since the preview was parsed?
     (W6 — the arc-vs-plunge class: a run leaves the table tilted, `;g69`
