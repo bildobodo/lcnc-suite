@@ -82,8 +82,32 @@ describe("kinsModeChip priority table", () => {
   it("TCP → ok", () => {
     expect(kinsModeChip({ kinsType: 1 })).toMatchObject({ text: "TCP", cls: "ok" });
   });
-  it("TOOL kins without a plane → TOOL warn", () => {
-    expect(kinsModeChip({ kinsType: 2, twpActive: false })).toMatchObject({ text: "TOOL", cls: "warn" });
+  it("TOOL kins without a plane → TOOL bad (jogs follow an unknown frozen frame)", () => {
+    expect(kinsModeChip({ kinsType: 2, twpActive: false })).toMatchObject({ text: "TOOL", cls: "bad" });
+  });
+  it("Plane kins with G54 selected (the M2 trap, live 2026-09-03) → bad 'TWP · G54'", () => {
+    const c = kinsModeChip({ kinsType: 2, twpActive: true, twpStale: false, g5xIndex: 1 })!;
+    expect(c).toMatchObject({ text: "TWP · G54", cls: "bad" });
+    expect(c.title).toContain("G54 is selected, not G59");
+    expect(c.title).toContain("M430");
+  });
+  it("Plane kins with G59 selected → the normal amber TWP (unchanged)", () => {
+    expect(kinsModeChip({ kinsType: 2, twpActive: true, g5xIndex: 6 })).toMatchObject({ text: "TWP", cls: "warn" });
+  });
+  it("Plane kins, G55 selected → names the real fixture", () => {
+    expect(kinsModeChip({ kinsType: 2, twpActive: true, g5xIndex: 2 })!.text).toBe("TWP · G55");
+  });
+  it("unknown fixture index → no wrong-fixture claim", () => {
+    expect(kinsModeChip({ kinsType: 2, twpActive: true, g5xIndex: null })).toMatchObject({ text: "TWP", cls: "warn" });
+  });
+  it("head-stale AND G54 selected → bad, text and title carry both claims", () => {
+    const c = kinsModeChip({ kinsType: 2, twpActive: true, twpStale: true, g5xIndex: 1 })!;
+    expect(c).toMatchObject({ text: "TWP · G54", cls: "bad" });
+    expect(c.title).toContain("STALE");
+    expect(c.title).toContain("not G59");
+  });
+  it("wrong fixture is a PLANE claim: TOOL kins without a plane ignores g5xIndex", () => {
+    expect(kinsModeChip({ kinsType: 2, twpActive: false, g5xIndex: 1 })!.text).toBe("TOOL");
   });
   it("TWP active → TWP warn", () => {
     expect(kinsModeChip({ kinsType: 2, twpActive: true })).toMatchObject({ text: "TWP", cls: "warn" });

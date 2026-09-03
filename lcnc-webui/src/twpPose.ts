@@ -141,6 +141,8 @@ export function fixtureOffDatum(
   return Math.abs(liveA - s) > TWP_PROV_A_EPS ? { stampA: s, liveA, stamped } : null;
 }
 
+import { g5xName } from "./viewer/programZero";
+
 const DATUM_MOVED_TITLE = "The G54 datum was touched off AFTER this plane was defined — the plane and the next Orient still use the old datum. Capture again (after Clear plane) to accept the new datum, or re-run G68.2.";
 
 export function kinsModeChip(i: {
@@ -150,6 +152,9 @@ export function kinsModeChip(i: {
   twpDatumMoved?: boolean | null;
   /** fixtureOffDatum() — identity kins only; ignored on other modes. */
   offDatum?: OffDatum | null;
+  /** Active fixture 1..9 (G54 … G59.3). Under Plane kinematics anything but
+   *  G59 (6) is the stranded state a program's M2 leaves behind. */
+  g5xIndex?: number | null;
 }): KinsModeChip | null {
   const k = i.kinsType == null ? null : Math.round(i.kinsType);
   if (k == null) return null;
@@ -161,14 +166,31 @@ export function kinsModeChip(i: {
     // What is stale is the ORIENT, not the plane: relabelling coordinates
     // cannot swing the head, so a table move leaves the tool off-normal even
     // though the plane still rides the workpiece. Re-orient is the recovery.
+    // Wrong fixture: Plane kinematics expresses positions against G59 (the
+    // row every orient rewrites); an operator fixture selected under it is
+    // the state M2 leaves behind (G54 restored, kins type NOT reset — the
+    // trap the TWP demo walks into) and it had no indicator at all
+    // (2026-09-03, operator standing in it). Both claims can hold at once;
+    // the colour is bad either way and the text lists both.
+    const fx = i.g5xIndex == null || !Number.isFinite(i.g5xIndex) ? null : Math.round(i.g5xIndex);
+    const wrongFixture = !!i.twpActive && fx != null && fx !== 6;
+    const wrongFixtureTitle = fx == null ? "" :
+      `Plane kinematics is active but ${g5xName(fx)} is selected, not G59 (the plane fixture): the DRO and jogs are in the tilted frame against the wrong offsets. A program that ended with M2 left TOOL kinematics on. Select the Plane frame again (M430 selects G59), or G69 / the Machine frame.`;
     if (i.twpStale) {
       chip = { text: i.twpActive ? "TWP" : "TOOL", cls: "bad",
         title: "Tool orientation STALE — the A table has moved since G53.x oriented the head, so the tool is no longer normal to the plane. The plane itself still follows the workpiece. Press Orient to re-solve the head at the current table pose." };
+      if (wrongFixture) {
+        chip = { text: `${chip.text} · ${g5xName(fx!)}`, cls: "bad", title: `${chip.title} (Also: ${wrongFixtureTitle})` };
+      }
+    } else if (wrongFixture) {
+      chip = { text: `TWP · ${g5xName(fx!)}`, cls: "bad", title: wrongFixtureTitle };
     } else if (i.twpActive) {
       chip = { text: "TWP", cls: "warn",
         title: "Tilted work plane ACTIVE — X/Y/Z jogs move in the tilted plane (Z along the tool axis). A touch-off here sets the WORKPIECE datum (G54) through the plane; rotary touch-off needs the Machine frame. G69 cancels." };
     } else {
-      chip = { text: "TOOL", cls: "warn",
+      // No plane under TOOL kins: jogs follow whatever frame the kins pins
+      // last held — a trap, not a caution.
+      chip = { text: "TOOL", cls: "bad",
         title: "TOOL kinematics active without an active plane — X/Y/Z jogs move along the last plane frame, not machine axes. G69 restores machine kinematics." };
     }
   } else {

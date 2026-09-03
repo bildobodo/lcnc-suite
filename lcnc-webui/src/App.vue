@@ -2065,6 +2065,7 @@ watch(viewerGcode, (newGcode) => {
         :twpOriented="twpOriented"
         :twpDatumMoved="twpDatumMoved"
         :twpOffDatum="twpOffDatum"
+        :g5xIndex="st.g5x_index ?? null"
         @twpOrient="twpReorient"
         @twpCapture="twpCapture"
         @twpClear="twpClear"

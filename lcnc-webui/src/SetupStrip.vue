@@ -37,6 +37,9 @@ const props = defineProps<{
   // Identity kins with the table away from the active fixture's stamp pose:
   // the fixture is a fixed point in the room, no longer on the part.
   twpOffDatum?: OffDatum | null;
+  // Active fixture 1..9: under Plane kinematics anything but G59 is the
+  // stranded post-M2 state the chip must call out (twpPose.ts).
+  g5xIndex?: number | null;
 }>();
 
 const emit = defineEmits<{
@@ -98,7 +101,7 @@ const RESERVED_TITLE = "Reserved for the tilted-work-plane remap — rewritten b
 const kinsChip = computed(() => kinsModeChip({
   kinsType: props.kinsType, twpActive: props.twpActive,
   twpStale: props.twpStale, twpDatumMoved: props.twpDatumMoved,
-  offDatum: props.twpOffDatum,
+  offDatum: props.twpOffDatum, g5xIndex: props.g5xIndex,
 }));
 
 // The TWP action buttons (Capture plane / Orient / Clear plane) live here as

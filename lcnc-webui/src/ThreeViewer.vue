@@ -160,6 +160,7 @@ const hudMode = computed(() => {
     twpStale: twpPoseStale(d.twp_pose_a, d.rotary_abc?.[0], d.twp_defined),
     twpDatumMoved: twpDatumStale(d.wcs_table?.[0], d.twp_datum, d.twp_defined, d.wcs_prov_a?.[0]),
     offDatum: fixtureOffDatum(d.kins_type, stampAForFixture(d.wcs_prov_a, d.g5x_index), d.rotary_abc?.[0]),
+    g5xIndex: d.g5x_index,
   });
 });
 const hudPlaneWord = computed(() => {
@@ -852,15 +853,15 @@ function updateTwpPlane(plane: unknown, defined: boolean, ktype: unknown, stale:
   _twpM.makeBasis(_twpX, _twpY, _twpZ);
   twpPlaneGroup.quaternion.setFromRotationMatrix(_twpM);
   twpPlaneGroup.position.set(p[0]!, p[1]!, p[2]!);   // machine units = world units
-  // The PLANE is never the stale thing — it rides the workpiece. What goes
-  // stale is the head solve, and that is the CHIP's claim to make; painting
-  // the plane red would assert the plane is wrong when it is not. The
-  // +Z arrow (the tool-normal claim) carries the warning instead.
-  // Datum-stale is a DIFFERENT claim from head-stale: the head arrow says
-  // "the tool is off-normal", the quad+grid tint says "this plane hangs on
-  // a datum G54 has since left" — the overlay itself is what is out of
-  // date, so the surface (not the normal) carries it.
-  const hex = datumStale ? _TWP_STALE_HEX : k === 2 ? _TWP_ACTIVE_HEX : _TWP_INACTIVE_HEX;
+  // The tint is an ATTENTION signal, not a claim: the plane itself still
+  // rides the workpiece when the head solve goes stale, and the CHIP title
+  // says which claim it is (head off-normal vs. a datum G54 has since
+  // left). 2026-08-31 moved head-stale onto the 48 mm +Z arrow alone on the
+  // "plane is not the stale thing" argument — semantically right, visually
+  // invisible beside a 300 mm quad (operator: "why does a stale plane not
+  // become red anymore?"). Either claim paints quad + grid; the arrow keeps
+  // the head-stale tint as the pointer to WHAT is off.
+  const hex = (stale || datumStale) ? _TWP_STALE_HEX : k === 2 ? _TWP_ACTIVE_HEX : _TWP_INACTIVE_HEX;
   if (twpNormalArrow) {
     (twpNormalArrow.line.material as THREE.LineBasicMaterial).color
       .setHex(stale ? _TWP_STALE_HEX : AXIS_HEX.z);
