@@ -8,7 +8,7 @@ import { applyClientOverlay, type MachinePermissions } from "./permissions";
 // What the backend broadcasts for a fully-ready machine (computed armed=true):
 // every machine-state gate open except pause/resume (need running/paused).
 const MACHINE_READY: MachinePermissions = {
-  idle: true, jog: true, override: true, ready: true,
+  idle: true, jog: true, override: true, ready: true, run: true,
   pause: false, resume: false, step: true, abort: true,
   probe: true, zero: true, touchoff: true, touchoffRotary: true, twpCapture: true,
   surfaceComp: true, safety: true, setup: true,
@@ -103,5 +103,18 @@ describe("simulation-mode overlay (client-local, simMode.ts)", () => {
     expect(applyClientOverlay(MACHINE_READY, true, true).surfaceComp).toBe(false);  // busy
     expect(applyClientOverlay(MACHINE_READY, false, false).surfaceComp).toBe(false); // disarmed
     expect(applyClientOverlay(MACHINE_READY, true, false, true).surfaceComp).toBe(false); // sim
+  });
+});
+
+describe("run gate (program start)", () => {
+  it("is a busy-subset gate that follows armed, independent of ready", () => {
+    const machine = { ...MACHINE_READY, run: false };
+    expect(applyClientOverlay(MACHINE_READY, true, false).run).toBe(true);
+    expect(applyClientOverlay(MACHINE_READY, true, true).run).toBe(false);
+    expect(applyClientOverlay(MACHINE_READY, false, false).run).toBe(false);
+    // backend closed `run` (stranded Plane kins) while `ready` stays open for the MDI fix
+    const p = applyClientOverlay(machine, true, false);
+    expect(p.run).toBe(false);
+    expect(p.ready).toBe(true);
   });
 });

@@ -33,7 +33,7 @@ export const HOLD_FIRE_MS = 500;
 
 export const BUTTON_TYPES = {
   // Program control
-  start:          { gate: 'ready',    variant: 'primary', size: 'md' },
+  start:          { gate: 'run',      variant: 'primary', size: 'md' },
   step:           { gate: 'step',     variant: 'default', size: 'md' },
   pause:          { gate: 'pause',    variant: 'default', size: 'md' },
   resume:         { gate: 'resume',   variant: 'default', size: 'md' },

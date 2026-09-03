@@ -182,6 +182,37 @@ def touchoff_route(s: MachineState, letters):
     return "mdi", None
 
 
+def kins_runnable(s: MachineState) -> Optional[str]:
+    """May a program START under the current kinematics state? None = yes,
+    else the operator-readable refusal.
+
+    Plane (TOOL) kinematics is a frozen frame: without an active plane the
+    axes follow whatever the kins pins last held, and with an operator
+    fixture selected the positions are tilted-frame numbers against
+    table-frame offsets. Both are what a program's M2 leaves behind — G54
+    restored, the kins TYPE not (it is a HAL pin, not interpreter state; M2
+    and M30 are not remappable and the only end hook is the abort handler).
+    A 3-axis program started here would cut in the tilted frame. The chip
+    shows it (twpPose.ts kinsModeChip); this refuses to run on it. Pure."""
+    k = _effective_kins(s)
+    if k is None:
+        # Same reading as touchoff_route: unknown is not identity.
+        return "Kinematics mode unknown (reader stale) — start refused"
+    if k == 2 and not s.twp_active:
+        return ("Plane kinematics is active with no active plane — select the "
+                "Machine frame (M428) or G69 before starting")
+    if k == 2 and s.g5x_index is not None and s.g5x_index != 6:
+        return ("Plane kinematics is active but G54 (not G59, the plane fixture) "
+                "is selected — a program ended with TOOL kinematics on. Select the "
+                "Plane frame again (M430 selects G59), or the Machine frame / G69")
+    return None
+
+
+_R_RUNNABLE = (lambda s: kins_runnable(s) is None,
+               "Kinematics state not runnable (Plane kinematics without its plane "
+               "or fixture) — select the Machine frame / G69, or the Plane frame")
+
+
 _R_TOUCHOFF_LINEAR = (
     lambda s: touchoff_route(s, ("X",))[0] is not None,
     "Touch-off refused here: G59–G59.3 are TWP scratch rows (use G54–G58); "
@@ -245,6 +276,10 @@ GATE_REQUIREMENTS: Dict[str, tuple] = {
     "jog":      _BASE + (_R_IDLE, _R_HOMED),
     "override": _BASE,
     "ready":    _BASE + (_R_IDLE, _R_HOMED),
+    # Program start (Cycle Start / run-from-line): `ready` plus the
+    # kinematics-runnable rule above — a stranded Plane-kins state (post-M2)
+    # must not start a program in the tilted frame (2026-09-03).
+    "run":      _BASE + (_R_IDLE, _R_HOMED, _R_RUNNABLE),
     "pause":    _BASE + (_R_RUNNING, _R_NOT_PAUSED),
     "resume":   _BASE + (_R_PAUSED,),
     "step":     _BASE + (_R_READY_OR_PAUSED,),
@@ -314,8 +349,8 @@ COMMAND_GATES: Dict[str, str] = {
     "unhome": "zero",
     "unhome_all": "zero",
     # --- program execution ---
-    "cycle_start": "ready",
-    "auto_run": "ready",
+    "cycle_start": "run",
+    "auto_run": "run",
     "auto_step": "step",
     "cycle_pause": "pause",
     "cycle_resume": "resume",
@@ -404,6 +439,9 @@ def check_command(cmd: str, state: MachineState) -> Optional[str]:
     # first unmet requirement (review #6 — no separate reason chain to drift).
     for ok, message in GATE_REQUIREMENTS[gate]:
         if not ok(state):
+            # The runnable rule's reason names the exact stranded state.
+            if ok is _R_RUNNABLE[0]:
+                return kins_runnable(state) or message
             return message
     return None
 

@@ -1243,7 +1243,7 @@ function unhomeAxis(joint: number) {
 
 
 function cycleStart() {
-  fire({ cmd: "cycle_start" }, 'ready');
+  fire({ cmd: "cycle_start" }, 'run');
 }
 
 function runFromLine(opts: import("./gcodeRfl").RflRunOptions) {
@@ -1260,7 +1260,7 @@ function runFromLine(opts: import("./gcodeRfl").RflRunOptions) {
     entry_y: opts.entry?.y ?? undefined,
     entry_wcs: opts.entry?.wcs ?? undefined,
     entry_units: opts.entry?.units ?? undefined,
-  }, 'ready');
+  }, 'run');
 }
 
 function cycleStep() {

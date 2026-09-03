@@ -30,8 +30,14 @@ export type Permissions = {
   jog: boolean;
   /** override: feed/spindle/rapid overrides (works during execution) */
   override: boolean;
-  /** ready: idle + homed (MDI, cycle start, spindle direction, coolant) */
+  /** ready: idle + homed (MDI, spindle direction, coolant) */
   ready: boolean;
+  /** run: ready + the kinematics-runnable rule — Cycle Start / run-from-line.
+   *  Plane (TOOL) kinematics without its plane, or with an operator fixture
+   *  selected (what a program's M2 leaves behind: G54 restored, kins type
+   *  not), must not start a program in the tilted frame. Backend:
+   *  command_policy.kins_runnable. */
+  run: boolean;
   /** pause: can pause a running program */
   pause: boolean;
   /** resume: can resume a paused program */
@@ -77,7 +83,7 @@ export type Permissions = {
 
 /** All gate names, in a stable order. */
 export const GATE_NAMES = [
-  "idle", "jog", "override", "ready", "pause", "resume", "step",
+  "idle", "jog", "override", "ready", "run", "pause", "resume", "step",
   "abort", "probe", "zero", "touchoff", "touchoffRotary", "twpCapture",
   "surfaceComp",
   "safety", "setup", "armed", "always",
@@ -91,7 +97,7 @@ export const GATE_NAMES = [
  * wrong. `jog` never had a busy term (hold-to-move).
  */
 const BUSY_GATES: ReadonlySet<keyof Permissions> = new Set([
-  "idle", "override", "ready", "probe", "zero", "touchoff", "touchoffRotary",
+  "idle", "override", "ready", "run", "probe", "zero", "touchoff", "touchoffRotary",
   "twpCapture", "surfaceComp", "setup",
 ]);
 

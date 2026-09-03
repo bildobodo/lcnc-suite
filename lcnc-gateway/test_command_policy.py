@@ -18,6 +18,7 @@ from command_policy import (
     READ_ONLY_COMMANDS,
     GATE_REQUIREMENTS,
     touchoff_route,
+    kins_runnable,
     RESERVED_FIXTURES,
 )
 
@@ -706,3 +707,48 @@ class TestNoBarePayloadCasts(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestKinsRunnable(unittest.TestCase):
+    """Cycle Start / run-from-line refuse a stranded Plane-kins state (2026-09-03)."""
+
+    def _twp(self, **over):
+        base = dict(kins_switchable=True, kins_type=2, twp_active=True, g5x_index=6)
+        base.update(over)
+        return state(**base)
+
+    def test_plain_machine_and_identity_and_tcp_run(self):
+        self.assertIsNone(kins_runnable(state()))
+        self.assertIsNone(kins_runnable(self._twp(kins_type=0, g5x_index=1)))
+        self.assertIsNone(kins_runnable(self._twp(kins_type=1, g5x_index=1)))
+
+    def test_plane_kins_with_its_plane_and_g59_runs(self):
+        self.assertIsNone(kins_runnable(self._twp()))
+        self.assertTrue(evaluate_permissions(self._twp())["run"])
+
+    def test_plane_kins_without_a_plane_refuses(self):
+        r = kins_runnable(self._twp(twp_active=False, g5x_index=1))
+        self.assertIn("no active plane", r)
+        self.assertFalse(evaluate_permissions(self._twp(twp_active=False, g5x_index=1))["run"])
+
+    def test_plane_kins_with_g54_selected_refuses_the_post_m2_state(self):
+        # The live 2026-09-03 state: M2 restored G54, kins stayed 2, plane active.
+        s = self._twp(g5x_index=1)
+        r = kins_runnable(s)
+        self.assertIn("G54", r)
+        self.assertIn("M430", r)
+        p = evaluate_permissions(s)
+        self.assertFalse(p["run"])
+        self.assertTrue(p["ready"])   # MDI (M428/M430/G69) stays available to fix it
+
+    def test_check_command_names_the_exact_reason(self):
+        s = self._twp(g5x_index=1)
+        self.assertIn("G54", check_command("cycle_start", s))
+        self.assertIn("G54", check_command("auto_run", s))
+        self.assertIsNone(check_command("cycle_start", self._twp()))
+
+    def test_unknown_kins_type_on_a_switchable_machine_refuses(self):
+        # None = reader stale: unknown is not identity (touchoff_route's rule).
+        r = kins_runnable(self._twp(kins_type=None))
+        self.assertIn("unknown", r)
+        self.assertIsNone(kins_runnable(state(kins_switchable=False, kins_type=None)))
