@@ -2837,3 +2837,83 @@ thanks to shield-and-wait; today a stop still waits behind a 30 s MDI, as it
 always did); a helper sequence pin (`twp-seq`) so the datum settle keys on
 "the remap republished" instead of "the value changed" and a same-datum
 touch-off stops burning 3 s before replying.
+
+
+## 2026-09-03 — Operator bug wave: stale-plane tint, clash count, run-time preview jump, the M2 trap
+
+Operator reported four things after the walk-through; one was by design (→ Zero
+retracts Z to machine top and rapids X/Y to work zero — the probe_basic
+`go_to_zero` contract; only a tooltip was owed). The other three were real, and
+the investigation found a fourth gap the operator was standing in.
+
+**Stale plane no longer red.** `d0eed51` (2026-08-31) had narrowed the head-stale
+tint from the 300 mm plane quad + grid to the 48 mm +Z arrow ("the plane rides
+the workpiece; the head solve is the stale thing"). Semantically right, visually
+invisible. Reversed: the tint is an ATTENTION signal and the chip title carries
+the claim — quad + grid red on head-stale OR datum-stale, the arrow keeps the
+head-stale tint as the pointer (`ThreeViewer.vue updateTwpPlane`). And the state
+the operator was actually in had NO indicator: `twp_simple_example.ngc` with its
+`;g69` commented out ended with M2 → G54 restored, TOOL kinematics latched, plane
+active — the chip read amber "TWP" like a healthy plane. `kinsModeChip` gains
+`g5xIndex`: Plane kinematics with any fixture but G59 selected is red
+"TWP · G54" (names the real fixture), TOOL kins without a plane is red too.
+
+**One clash, two marks.** `ScrubBar` counted onset RECORDS while marks and
+prev/next iterated per-INTERVAL targets (`4cff3e5` moved the marks, `e984288`
+the count; nothing pinned the relation). `viewer/clashTargets.ts` is now the one
+derivation for count, marks and navigation; a same-line re-entry is labelled
+"(re-entry)". Second mechanism, same symptom: refinement could split ONE
+continuous contact into windows meeting at a boundary (clusters are seeded from
+in-contact samples only) — `mergeContiguousIntervals` merges windows within
+twice the bisection tolerance. Both unit-tested.
+
+**Run-time preview jump (lines 4–7, the orient span).** The drawn lines hung
+under `workOrigin`, re-posed from the LIVE g5x/g92/rotation on every status
+frame, while their vertices were peeled against the WCS snapshot at bake time
+and re-baked only 300 ms after the last change (`_pfScheduleWcsRefresh`) plus
+the worker round trip. Line 2's `G10 L2 P0` and line 6's `g53.3` fixture switch
+moved the anchor at once and the vertices later: the whole path jumped, then
+returned. Sim never changes those inputs, hence "not in sim". Fix by
+construction: the lines (+ overflow twins, highlight, bounds box) hang under
+their OWN `pathAnchor`/`pathRot`, posed ONLY by `toolpath.apply` from
+`anchorTerms` of the very WCS the geometry was baked with — one call, both
+halves; `applyState` uses the same `anchorTerms` for the live `workOrigin`
+(stock, surface map, axes must still follow a touch-off at once). The anchor
+rides the part-frame request id, so a superseded reply can never land under a
+newer origin. Gateway hardening of the second candidate mechanism: the
+TLO/rotary/kins/WCS-offset drift edges share `drift_gate_open`, which also
+requires no motion — `interp_state` reads IDLE while a short program's motion
+queue drains, so a kins step could have scheduled a reparse mid-run.
+
+**The M2 trap, guarded.** M2 resets interpreter modal state; the kinematics
+type is a HAL pin written by M68 inside the M428/M429/M430 remaps, so M2 cannot
+touch it; M2/M30 are not remappable and LinuxCNC's only end hook is the abort
+handler (which this config deliberately keeps the plane through). Two guards:
+(1) `command_policy.kins_runnable` → new permission class `run` (= `ready` +
+the rule) for `cycle_start` and `auto_run`: Plane kinematics without its plane,
+Plane kinematics with an operator fixture selected, or an unknown kins mode on a
+switchable machine refuse to start with the exact reason; `ready` stays open so
+the MDI fix (M428 / M430 / G69) is one step away. Frontend `run` class
+(busy-subset), Cycle Start and both fire sites on it; a backend that predates
+the class is read as `ready` with one console warning (mixed-version window
+before the restart). (2) Load-time lint: the parse worker ships
+`kins_end_type` — the type the program's LAST switchkins marker leaves in
+effect (program markers only, before the live seed; absent when the program
+never switches) — shown as a HUD chip and a stats-dialog row naming the fix
+(G69 / M428 before M2).
+
+**Verification (frontend live via Vite HMR; gateway parts at the next restart):**
+unit — twpPose 42, collision + clashTargets 39, toolpathController + partFrame
+37, permissions 11, command_policy 92, gateway_util DriftGate + ProgramEndKins
+green. Real-path proof of the lint: a reparse of the operator's program through
+the RUNNING gateway logged "kins at end: type 2 — the program does not restore
+identity (G69 / M428) before M2" and published the key. Owed: operator browser
+walk-through (red "TWP · G54" chip in the current state; plane red on a jogged
+A; clash count == ticks; no jump on the next run of the program; the lint chip
+on load), `cycle_start` refusal + drift gate after the gateway restart, and the
+frontend heavy gates at the next suite stop.
+
+Recorded for later: the → Zero button drives rotaries to zero after the XY move,
+which un-orients a Plane-mode head (probe_basic contract, tooltip now says so);
+`twpDatumStale`'s stamp-A short-circuit makes the datum-red path dead on a
+tilted-A machine (documented frame reason, left as is).
