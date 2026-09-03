@@ -3136,3 +3136,19 @@ class TestDriftGateOpen(unittest.TestCase):
 
     def test_debounce_is_a_parameter(self):
         self.assertTrue(self._open(since_last_check_s=0.6, debounce_s=0.5))
+
+
+class TestProgramEndKinsType(unittest.TestCase):
+    """The load-time lint input: what the program itself leaves the kins in."""
+
+    def test_no_markers_is_not_applicable(self):
+        self.assertIsNone(gateway_util.program_end_kins_type([]))
+        self.assertIsNone(gateway_util.program_end_kins_type(None))
+
+    def test_last_marker_wins(self):
+        self.assertEqual(gateway_util.program_end_kins_type([(3, 0), (9, 2)]), 2)
+        self.assertEqual(gateway_util.program_end_kins_type([(3, 2), (40, 0)]), 0)
+        self.assertEqual(gateway_util.program_end_kins_type([(3, 1)]), 1)
+
+    def test_garbage_is_none_not_a_guess(self):
+        self.assertIsNone(gateway_util.program_end_kins_type([(3, "x")]))

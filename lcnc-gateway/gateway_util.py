@@ -1195,6 +1195,24 @@ def evaluate_rotary_drift(seed, rotary_abc, eps=0.01):
     return ("rotary:" + drifted) if drifted else None
 
 
+
+def program_end_kins_type(program_events):
+    """The switchkins type a program LEAVES the machine in, from its own
+    `(WEBUI_KINSTYPE=n)` markers (execution-ordered (seq, type) pairs, BEFORE
+    the live seed is prepended): the last marker's type, or None when the
+    program never switches — a markerless program is not at fault for the
+    mode it was started in (the live seed is the operator's state). Non-zero
+    = the program does not restore identity before M2: M2 restores G54 but
+    not the kins pin, so the next program would run in that frame (the trap
+    the TWP demo walks into). Pure; unit-tested.
+    """
+    if not program_events:
+        return None
+    try:
+        return int(program_events[-1][1])
+    except (TypeError, ValueError, IndexError):
+        return None
+
 def seed_kins_events(events, frames, live_type, live_frame):
     """Seed the parse-time kins state from the LIVE machine (the FIFTH
     run-time freshness input — the 855-unit class: a plain-G54 program run

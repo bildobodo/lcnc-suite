@@ -80,7 +80,7 @@ from gateway_util import (
     wcs_rewrite_targets, ustart_start_tuple,
     PREVIEW_SCHEMA, should_ship_abc, rotary_sync_initcode,
     rotary_seed_values, override_rotary_position,
-    seed_kins_events, wcs_offset_flat_from_var,
+    seed_kins_events, program_end_kins_type, wcs_offset_flat_from_var,
     find_unmarked_subs, resolve_subroutine_dirs,
 )
 
@@ -332,6 +332,9 @@ def parse(ctx: dict) -> dict:
     kins_active = False
     live_kins_type = ctx.get("kins_type")
     live_kins_frame = ctx.get("kins_frame")
+    # The program's OWN markers, before the live seed is prepended: the
+    # load-time "does not restore identity before M2" lint reads these.
+    kins_end_type = program_end_kins_type(list(canon.kins_events))
     if canon.kins_events or live_kins_type not in (None, 0):
         kins_cfg = parse_kins_config(ini.find("KINS", "KINEMATICS"),
                                      ini.findall("HAL", "HALCMD") or [])
@@ -1213,6 +1216,17 @@ def parse(ctx: dict) -> dict:
             [int(_s), float(_xo) * unit_scale, float(_yo) * unit_scale,
              float(_zo) * unit_scale, int(_tool)]
             for _s, _xo, _yo, _zo, _tool in canon.tlo_events]
+    if kins_end_type is not None and kins_active:
+        # Load-time lint (2026-09-03): the type the program's LAST switchkins
+        # marker leaves in effect. M2 restores G54 but not the kins pin, so a
+        # program ending in TOOL/TCP kins strands the machine in that frame
+        # (the demo's `;g69`). Present only when the program itself switched
+        # — absent = not applicable, never "0 = fine". kins_active: on a
+        # non-switchable declaration the markers are stale noise (above).
+        result["kins_end_type"] = kins_end_type
+        if kins_end_type != 0:
+            print(f"kins at end: type {kins_end_type} — the program does not "
+                  f"restore identity (G69 / M428) before M2", file=sys.stderr, flush=True)
     if world_unchecked:
         # World-mode segments with no kins twin to check against —
         # unchecked ≠ clean, so the count rides the wire and the UI says

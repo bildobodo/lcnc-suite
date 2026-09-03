@@ -118,3 +118,12 @@ describe("run gate (program start)", () => {
     expect(p.ready).toBe(true);
   });
 });
+
+describe("run gate — backend without the class (mixed-version window)", () => {
+  it("reads run as ready when the backend ships no run key, and stays closed when it does", () => {
+    const { run: _r, ...legacy } = MACHINE_READY as any;
+    expect(applyClientOverlay(legacy, true, false).run).toBe(true);
+    expect(applyClientOverlay({ ...legacy, ready: false }, true, false).run).toBe(false);
+    expect(applyClientOverlay({ ...MACHINE_READY, run: false }, true, false).run).toBe(false);
+  });
+});

@@ -122,6 +122,7 @@ export type MachinePermissions = Partial<Record<keyof Permissions, boolean>>;
  * gates also require `!busy`. Absent backend perms (before the first status)
  * yield all-false except `always` — the safe default.
  */
+let _warnedNoRun = false;
 export function applyClientOverlay(
   machine: MachinePermissions | null | undefined,
   armed: boolean,
@@ -129,6 +130,13 @@ export function applyClientOverlay(
   sim: boolean = false,
 ): Permissions {
   const out = {} as Permissions;
+  // Mixed-version window (2026-09-03): a gateway that predates the `run`
+  // class ships no `run` key. Read it as `ready` (its old gate) and say so
+  // once, instead of dimming Cycle Start until the restart.
+  if (machine && machine.run === undefined && machine.ready !== undefined) {
+    if (!_warnedNoRun) { _warnedNoRun = true; console.warn("[permissions] backend ships no 'run' class — using 'ready' until the gateway restarts"); }
+    machine = { ...machine, run: machine.ready };
+  }
   for (const g of GATE_NAMES) {
     if (g === "always") { out[g] = true; continue; }
     out[g] = !!machine?.[g] && armed

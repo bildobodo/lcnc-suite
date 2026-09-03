@@ -424,6 +424,9 @@ const kinsFlipStatus = computed(() => {
 // line numbers collide with the main file's — one info-tier stats hint,
 // no per-point behavior change (markers are the only trust mechanism).
 const gcodeUnmarkedSubs = ref<string[]>([]);
+// Load-time lint: the kins type the program's last switch leaves in effect
+// (null = the program never switches; 0 = restored before M2).
+const gcodeKinsEnd = ref<number | null>(null);
 // Soft-limit stats row: identity-check result plus the honest TCP hole —
 // world segments with no kins twin are NOT validated and must never read
 // as "OK" (unchecked ≠ clean).
@@ -1495,6 +1498,7 @@ watch(viewerGcode, (newGcode) => {
   gcodeKinsUnresolved.value = newGcode?.kins_flips_unresolved ?? 0;
   gcodeKinsCarrySpans.value = newGcode?.kins_carry_spans ?? 0;
   gcodeUnmarkedSubs.value = newGcode?.unmarked_subs ?? [];
+  gcodeKinsEnd.value = newGcode?.kins_end_type ?? null;
   // New payload = program change or reparse — sub files may have been
   // edited, so the inline sub view must re-fetch (W5).
   clearSubfileCache();
@@ -1825,6 +1829,13 @@ watch(viewerGcode, (newGcode) => {
                     <span class="statsValue val-status" :class="kinsFlipStatus.cls"
                           title="Unresolved: a kinematics switch this client has no twin for — those segments keep uncorrected geometry. Carry spans: geometry after a frame relabel was corrected assuming uncommanded axes HELD; canon replay cannot tell that from a command to the same stale value.">
                       {{ kinsFlipStatus.text }}
+                    </span>
+                  </template>
+                  <template v-if="gcodeKinsEnd != null && gcodeKinsEnd !== 0">
+                    <span class="statsLabel">Kinematics at end</span>
+                    <span class="statsValue val-status warn"
+                          :title="'The program\'s last kinematics switch leaves type ' + gcodeKinsEnd + ' in effect. M2 restores G54 but not the kinematics pin, so after the run the machine stays in this frame and Cycle Start is refused until the Machine frame is restored.'">
+                      {{ gcodeKinsEnd === 1 ? 'TCP' : 'TOOL (plane)' }} — not restored before M2 (add {{ gcodeKinsEnd === 1 ? 'M428' : 'G69 or M428' }})
                     </span>
                   </template>
                   <template v-if="gcodeUnmarkedSubs.length">

@@ -210,6 +210,20 @@ const rewrittenWcs = computed<string[]>(() => {
   return idxs.map(wcsLabel);
 });
 
+// Load-time lint (2026-09-03): the program switches kinematics and its last
+// marker is not identity — M2 restores G54 but not the kins pin, so the run
+// strands the machine in that frame and the NEXT program runs there too.
+const kinsEndWarn = computed<{ text: string; title: string } | null>(() => {
+  const k = viewerGcode.value?.kins_end_type;
+  if (k == null || k === 0) return null;
+  const mode = k === 1 ? "TCP" : "TOOL (plane)";
+  const fix = k === 1 ? "M428" : "G69 (or M428)";
+  return {
+    text: `Program ends in ${mode} kinematics — add ${fix} before M2`,
+    title: `The program's last kinematics switch leaves type ${k} in effect. M2 restores G54 but not the kinematics pin, so after the run the machine stays in the ${mode} frame and Cycle Start is refused until the Machine frame is restored.`,
+  };
+});
+
 // Preview payload from a different wire-format generation than this client
 // build (P1) — a gateway that outlived a code upgrade keeps serving its
 // cached payload (keyed on file+mtime only), and a hot-reloaded client would
@@ -3008,6 +3022,7 @@ defineExpose({
       <div v-if="vst?.rotation_xy" class="hudWarn">Rotation {{ vst.rotation_xy.toFixed(1) }}°</div>
       <div v-if="foreignWcs.length" class="hudWarn">Program cuts in {{ foreignWcs.join(', ') }} — {{ props.g5xLabel }} active</div>
       <div v-if="rewrittenWcs.length" class="hudWarn">Program writes {{ rewrittenWcs.join(', ') }} — its preview ignores live edits there</div>
+      <div v-if="kinsEndWarn" class="hudWarn" :title="kinsEndWarn.title">{{ kinsEndWarn.text }}</div>
       <div v-if="previewSchemaStale" class="hudWarn hudAction"
         :title="`Payload format ${previewSchemaStale.got ?? 'unstamped (older gateway)'}; this UI expects ${EXPECTED_PREVIEW_SCHEMA}. Reparse rebuilds it with the installed code.`"
         @click="emit('reparse')">Preview from a different suite version — Reparse</div>

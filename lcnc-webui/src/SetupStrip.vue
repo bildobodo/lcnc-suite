@@ -142,7 +142,7 @@ function zeroAll() {
           <div class="actionRow">
             <MachineBtn type="goTo" @click="emit('goToG30')">→ G30</MachineBtn>
             <MachineBtn type="goTo" @click="emit('goToHome')">→ Home</MachineBtn>
-            <MachineBtn type="goTo" @click="emit('goToZero')">→ Zero</MachineBtn>
+            <MachineBtn type="goTo" @click="emit('goToZero')" title="X/Y to work zero with Z retracted at machine top first; rotaries to 0 (Z is NOT lowered to work zero)">→ Zero</MachineBtn>
           </div>
           <div v-if="isTwpMachine" class="actionRow">
             <!-- Capture plane: the one-button manual definition — align the

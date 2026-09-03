@@ -321,6 +321,11 @@ export interface ViewerGcode {
   // unchecked ≠ clean, so the stats dialog must say "not validated" for
   // these instead of implying the violations list covered them.
   violations_world_unchecked?: number;
+  // Load-time lint: the switchkins type the program's LAST marker leaves in
+  // effect (M2 restores G54, not the kins pin). Present only when the program
+  // itself switches kinematics; non-zero = it does not restore Machine before
+  // M2 and the next program would run in the tilted/TCP frame.
+  kins_end_type?: number;
   // Stage 2 (program scrub): execution-ordered feed+rapid merge built
   // off-thread by previewWorker. null/absent = no track (no program, or a
   // stale pre-seq payload) — the scrub bar doesn't offer itself.
