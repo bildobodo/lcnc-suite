@@ -2785,10 +2785,51 @@ handler gets a bounded error reply and the socket survives; a silent client
 is still disarmed (`_HB_STALL_SEC` 1.0, `inflight_cmd None`);
 `_cmd_blocking` keeps `_cmd_lock` held until the thread returns.
 `test_ws_lifecycle`, `test_ws_smoke`, `test_command_policy`,
-`test_command_dispatch` green. Live (after the next suite restart): the same
-same-datum plane touch-off twice with the keeper armed — the 3 s settle
-timeout still fires, the reply comes ~3 s later, NO disarm; Capture; the
-TWP live checks; corpus; perf-matrix (loop-touching change).
+`test_command_dispatch` green.
+
+**Live verification (2026-09-03, suite restarted on ad84fd5, gateway pid
+55070):** an armed keeper (0.8 s heartbeats) drove the exact repro — plane
+capture, two same-datum Plane touch-offs, then g69 + a same-datum capture.
+Both touch-offs burned the 3 s settle (`twp.datum_settle_timeout` ×2,
+replies at 3089 / 3082 ms, `ws.command_slow` names `touchoff` for each);
+27 pongs, max gap 829 ms, mean 801 ms; armed throughout; ZERO
+`safety.hb_stall_disarmed`. Capture replied in ~200 ms both times (its
+settle saw the datum move, so the timeout path was the touch-off's).
+`twp_capture_check`, `twp_touchoff_plane_check`, `twp_reorient_check`:
+ALL PASS. Corpus gate GREEN (`sim_parity.py gate`, 11 runs; worst
+sim→truth 1.074 on twp_g683_tilted.run1 at tol 1.5, everything else
+≤ 0.040 at tol 0.5; the tracked run records were restored to the committed
+versions — regenerate deliberately). Perf matrix
+(`runlogs/perf-matrix/20260903T174927Z-ad84fd5.json`, full set with
+`--allow-arm --allow-trip`): sigstop_trip sticky_ok + recovered_ok,
+preview_publish delivered (version bump), zero loop lag windows in every
+loaded scenario. The two 81 / 123 ms `reader_recv.readline` windows
+(idle_baseline, fusion_near_limit) are the class the trace already shows
+at idle BEFORE any harness ran (19:26–19:29, browser only: 59–91 ms) —
+VM scheduling with the Vite dev server + browser on the 4-core box; the
+worker adds no loop work and the reader sits idle in `readline` when a
+late wakeup lands. RSS 130 → 225 MB across the publish: the payload was
+46 MB raw (ship_abc + per-segment kinstype under a kins-2 seed, see (3)),
+so the delta scales with it; no growth in rss_gc_watch.
+
+Findings from the run (none are this wave's defects): (1) the first
+`twp_touchoff_plane_check` pass aborted at a `read_params` timeout: the
+operator's browser hit its 10 min idle auto-disarm at 19:37:16 and the
+explicit-disarm path's `_jog_stop_for_client` forces `MODE_MANUAL`, which
+broke the harness's LOGOPEN/LOG/LOGCLOSE MDI triple between blocks (the
+rerun passed). A disarm from ANY client while another client's MDI
+o-sub is between blocks does the same to that MDI — the documented
+bluntness of the every-joint jog-stop; follow-up on the ledger: jog-stop
+only when a jog is actually in flight, never switch mode while the interp
+is not idle. (2) The corpus gate needs an armed client to confirm M6 (by
+design); the scratch keeper stands in for the operator's Continue click
+on the sim (rising-edge `confirm_tool_change`). (3) The matrix's
+perfmatrix-big.ngc parse took 28 s in the worker (off-loop; gcode.parse
+itself 6.1 s): the machine was parked in kins 2 by the last corpus
+program, so all 1.18 M feed segments went through the Python trsrn twin
+(`world-checked`, ~4× the parse). Correct labeling for a machine that
+WOULD run it in that mode; a vectorization candidate only if it ever
+matters — it never touches the loop.
 
 **Follow-ups recorded:** stop-class preemption (on `abort`/`estop` cancel
 the in-flight handler so the stop runs after the current NML call — safe now
