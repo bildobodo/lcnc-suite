@@ -14,9 +14,9 @@ Owns the per-client fan-out machinery the status broadcast rides on:
   modularization plan's "no generic event bus" requirement: when safety
   metadata is attached it is visible in the signature, never implied.
 
-The per-client status loop itself still lives in gateway.py (it orchestrates
-connection lifecycle, settings/policy side effects, and the hb-stall safety
-action); it consumes this module's pieces. ``set_phase`` is injected for
+The per-client status loop and command worker still live in gateway.py (they
+orchestrate connection lifecycle, settings/policy side effects, and the
+hb-stall safety action); they consume this module's pieces. ``set_phase`` is injected for
 stall forensics. This module never imports gateway.
 """
 import asyncio
@@ -124,6 +124,11 @@ class ClientState:
     # + total frame count say definitively what reached us and when.
     frames_rx: int = 0         # every frame received from this client
     hb_ring: "collections.deque" = field(default_factory=lambda: collections.deque(maxlen=12))  # monotonic hb arrival times
+    # The command this client's worker is executing (None = idle) and when it
+    # started — reported on hb-stall / queue-full / disconnect events so a
+    # long handler is named, not reconstructed (2026-09-03).
+    cmd_inflight: Optional[str] = None
+    cmd_inflight_since_mono: float = 0.0
 
 
 def diff_status_data(last: Dict[str, Any], current: Dict[str, Any]) -> Dict[str, Any]:

@@ -261,6 +261,26 @@ _msgpack_encoder = _ws_fanout_mod.msgpack_encoder
 _WS_INIT_LIMIT = int(os.environ.get("WEBUI_WS_INIT_CONCURRENCY", "20"))
 _ws_init_sem = asyncio.Semaphore(_WS_INIT_LIMIT)
 
+# ── Per-client command worker (2026-09-03) ──
+# The WS reader handles liveness/bookkeeping frames only; every command is
+# queued to ONE per-client worker task, in order. A handler that awaits
+# inside _cmd_lock (a plane touch-off waits up to 30 s for its MDI plus a 3 s
+# datum settle; Capture chains four such waits) used to run INSIDE the reader
+# loop, so the client's own heartbeats sat unread in the socket until it
+# returned and status_loop disarmed the client 3 s later — six operator-
+# visible false disarms (safety.hb_stall_disarmed, arrival gaps 3.3–4.0 s,
+# each 0.2 s after touchoff.plane / twp.capture). Liveness never queues
+# behind work; the event loop itself was never the problem (_cmd_blocking
+# runs on a thread).
+_WS_CMD_QUEUE_MAX = 32
+# Stop-class commands are never rejected by backpressure ("no stop command
+# may be droppable", docs/decisions.md) — a 4× hard cap still bounds a
+# broken client.
+_WS_STOP_CMDS = frozenset({"jog_stop", "jog_stop_multi", "abort", "estop"})
+# Client heartbeat budget (s): status_loop disarms an armed client whose
+# last heartbeat is older than this. Module-level so tests can shrink it.
+_HB_STALL_SEC = 3.0
+
 
 # ── Auth / origin controls (issue #17) ──
 # Pre-shared token: empty string disables auth (loopback/dev). The launcher
@@ -614,7 +634,8 @@ async def _heartbeat_loop():
     Toggles at POLL_HZ while clients are connected.  When no clients remain
     the loop yields to _disconnect_grace which manages the grace period.
     E-Stop is handled via the independent command path (ws.receive →
-    handle_command) so a stuck status_loop does not block safety controls.
+    per-client cmd_worker → handle_command) so a stuck status_loop does not
+    block safety controls.
     """
     global _hal_last_hb
     _hb_expected = 1.0 / POLL_HZ
@@ -2522,7 +2543,22 @@ async def _cmd_blocking(cmd_fn, *args, wait=_CMD_WAIT_TIMEOUT) -> int:
         if wait is not None:
             return CMD.wait_complete(wait)
         return 0
-    return await asyncio.to_thread(_run)
+    # Shield-and-wait (2026-09-03): the caller holds _cmd_lock via `async
+    # with`, which RELEASES on CancelledError — but a thread cannot be
+    # cancelled, so a plain `await to_thread()` would free the lock while
+    # CMD.mdi / wait_complete is still running on the thread, and the next
+    # holder (the disconnect jog-stop, another client's worker) would call
+    # NML concurrently — the corruption the lock exists to prevent. Handlers
+    # are now cancellable (a client disconnect cancels its command worker),
+    # so on cancel we keep the lock until the NML call actually returns
+    # (bounded by `wait`), then propagate. asyncio.wait retrieves the inner
+    # result so nothing is reported as never-retrieved.
+    inner = asyncio.ensure_future(asyncio.to_thread(_run))
+    try:
+        return await asyncio.shield(inner)
+    except asyncio.CancelledError:
+        await asyncio.wait({inner})
+        raise
 
 
 async def set_mode(mode: int):
@@ -5897,6 +5933,91 @@ async def get_g30():
     return await loop.run_in_executor(None, _read_g30_vars)
 
 
+async def _execute_client_command(client_id: int, client, ws: WebSocket, msg: Dict[str, Any]) -> None:
+    """ONE queued command for ONE client — run by that client's cmd_worker in
+    ws_endpoint, never by the reader (2026-09-03, see _WS_CMD_QUEUE_MAX).
+
+    Verbatim the block that used to sit inline in the receive loop: the
+    `arm` handshake (its disarm branch takes _cmd_lock for the jog-stop,
+    which is exactly why it cannot stay in the reader) and the dispatch
+    through handle_command with the bounded-error catch, the unload_file
+    cache reset and the reply send. `client.armed` is read at EXECUTION
+    time. `handle_command` resolves as a module global so tests can stand
+    in a slow/raising handler.
+    """
+    if msg.get("cmd") == "arm":
+        want_armed = bool(msg.get("armed", False))
+        # Re-arm gate: operator must acknowledge a sticky safety trip
+        # before the machine can come back up. Disarming is always
+        # allowed.
+        if want_armed and _unacked_trip is not None:
+            await ws_send_json(ws, {
+                "type": "reply",
+                "ok": False,
+                "error": "Safety trip not acknowledged",
+            })
+            return
+        _was_armed = client.armed
+        client.armed = want_armed
+        client.last_hb = time.time()  # reset on arm change
+        client.last_hb_mono = time.monotonic()
+        # Symmetry with auto-disarm paths (Phase 2 / E1.2 + E2):
+        # explicit disarm must jog-stop any in-flight jog from this
+        # client AND register an armed-resume hold (so a deliberate
+        # disarm-then-Ctrl-R can still restore armed state). Closes
+        # the released-jog-button hazard and matches the "all paths
+        # to disarmed do the same thing" principle.
+        if _was_armed and not client.armed:
+            if CMD is not None and not _shutting_down:
+                try:
+                    async with _get_cmd_lock():
+                        await _jog_stop_for_client()
+                except Exception as _e:
+                    _trace.emit(
+                        "safety.explicit_disarm_jog_stop_failed", level="error",
+                        client_id=client_id, exc=type(_e).__name__, err=str(_e),
+                    )
+            _register_armed_resume_hold(client.session_id, client_id)
+            _trace.emit(
+                "safety.explicit_disarmed",
+                client_id=client_id,
+            )
+        elif not _was_armed and client.armed:
+            _trace.emit(
+                "safety.explicit_armed",
+                client_id=client_id,
+            )
+        await ws_send_json(ws, {"type": "reply", "ok": True, "armed": client.armed})
+        return
+
+    _set_phase(f"handle_command cmd={msg.get('cmd', '?')} client#{client_id}")
+    try:
+        reply = await handle_command(msg, client.armed)
+    except (ValueError, TypeError, KeyError, PermissionError, OverflowError) as _val_e:
+        # Malformed payload or failed precondition (bad numeric cast,
+        # missing field, not-armed). Return a bounded structured error
+        # rather than letting it bubble out of the receive loop — an
+        # uncaught exception here would tear down the socket and trip
+        # the armed-disconnect side effects in `finally` (issue #27).
+        _trace.emit("ws.command_invalid", level="warn",
+                    client_id=client_id, cmd=msg.get("cmd"),
+                    exc=type(_val_e).__name__, msg=str(_val_e))
+        reply = {"ok": False, "error": f"{type(_val_e).__name__}: {_val_e}"}
+    else:
+        if msg.get("cmd") == "unload_file" and reply.get("ok"):
+            # reset_interpreter doesn't clear stat.file, so the shared
+            # poller's file-change edge won't fire. Clear the shared
+            # cache and bump the version so every client's status_loop
+            # sends an empty viewer_gcode on the next cycle.
+            _bulk.preview_pending = None
+            _bulk.preview_bytes = None
+            _bulk.preview_bytes_gz = None
+            _bulk.preview_version += 1
+            _bulk.last_file = None
+            _bulk.last_mtime = None
+    await ws_send_json(ws, {"type": "reply", "cmd": msg.get("cmd"), **reply})
+
+
 @app.websocket("/ws")
 async def ws_endpoint(ws: WebSocket):
     _conn_t0 = time.monotonic()  # === LIFECYCLE DIAGNOSTICS anchor for [CONN] deltas ===
@@ -6413,7 +6534,7 @@ async def ws_endpoint(ws: WebSocket):
                         # 3 s budget while heartbeats arrived on schedule → false
                         # disarm. time.monotonic() is immune in both directions
                         # (a backward step also can't keep a dead client "fresh").
-                        if time.monotonic() - _clients[client_id].last_hb_mono > 3.0:
+                        if time.monotonic() - _clients[client_id].last_hb_mono > _HB_STALL_SEC:
                             if client.armed:
                                 client.armed = False
                                 try:
@@ -6447,6 +6568,12 @@ async def ws_endpoint(ws: WebSocket):
                                     last_hb_arrival_ms_ago=round((_now_m - _ring[-1]) * 1000) if _ring else None,
                                     hb_arrival_gaps_ms=_gaps,
                                     frames_rx_total=_c.frames_rx,
+                                    # Which handler (if any) this client's worker
+                                    # was running — the forensic the 2026-09-03
+                                    # touchoff/capture stall hunt lacked.
+                                    inflight_cmd=_c.cmd_inflight,
+                                    inflight_ms=(round((_now_m - _c.cmd_inflight_since_mono) * 1000)
+                                                 if _c.cmd_inflight else None),
                                 )
                                 try:
                                     await ws_send_json(ws, {"type": "reply", "ok": False, "error": "Heartbeat timeout \u2014 disarmed for safety", "armed": False})
@@ -6499,6 +6626,60 @@ async def ws_endpoint(ws: WebSocket):
             _set_phase(f"status_loop.exit client#{client_id}")
 
         status_task = register_bg_task(asyncio.create_task(status_loop()))
+
+        # Per-client command worker (2026-09-03): the reader below handles
+        # liveness/bookkeeping frames only and queues everything else here.
+        # One worker per client keeps per-client order (arm → jog_cont,
+        # jog_cont → jog_stop); the reader returns to ws.receive() at once,
+        # so this client's heartbeats can never wait behind a handler (the
+        # touchoff/capture false-disarm class — see _WS_CMD_QUEUE_MAX).
+        cmd_queue = asyncio.Queue()
+
+        async def cmd_worker():
+            _set_phase(f"ws.worker.entry client#{client_id}")
+            while True:
+                _set_phase(f"ws.worker.idle client#{client_id}")
+                _wmsg, _enq = await cmd_queue.get()
+                _wcmd = _wmsg.get("cmd")
+                client.cmd_inflight = _wcmd
+                client.cmd_inflight_since_mono = time.monotonic()
+                _queued_ms = round((client.cmd_inflight_since_mono - _enq) * 1000)
+                if _queued_ms > 500:
+                    _trace.emit("ws.command_queue_wait", client_id=client_id,
+                                cmd=_wcmd, queued_ms=_queued_ms)
+                try:
+                    _set_phase(f"ws.worker.handle cmd={_wcmd} client#{client_id}")
+                    await _execute_client_command(client_id, client, ws, _wmsg)
+                    _ran_ms = round((time.monotonic() - client.cmd_inflight_since_mono) * 1000)
+                    if _ran_ms > 1000:
+                        # Names the slow handler in trace.ndjson — the
+                        # forensic the hb-stall hunt had to reconstruct.
+                        _trace.emit("ws.command_slow", client_id=client_id, cmd=_wcmd, ms=_ran_ms)
+                except asyncio.CancelledError:
+                    _trace.emit("ws.command_cancelled_on_disconnect", level="warn",
+                                client_id=client_id, cmd=_wcmd,
+                                ran_ms=round((time.monotonic() - client.cmd_inflight_since_mono) * 1000))
+                    raise
+                except WebSocketDisconnect:
+                    # Peer vanished under the reply send; the reader's
+                    # receive() sees the same disconnect and tears down.
+                    _trace.emit("ws.command_reply_lost", level="warn", client_id=client_id, cmd=_wcmd)
+                    return
+                except Exception as _we:  # noqa: BLE001 - never kill the socket silently
+                    _trace.emit("ws.command_exception", level="error", client_id=client_id,
+                                cmd=_wcmd, exc=type(_we).__name__, msg=str(_we))
+                    try:
+                        await ws_send_json(ws, {"type": "reply", "cmd": _wcmd, "ok": False,
+                                                "error": f"{type(_we).__name__}: {_we}"})
+                    except Exception as _we2:  # noqa: BLE001
+                        _trace.emit("ws.command_error_reply_failed", level="warn",
+                                    client_id=client_id, cmd=_wcmd, exc=type(_we2).__name__)
+                finally:
+                    client.cmd_inflight = None
+                    client.cmd_inflight_since_mono = 0.0
+                    _set_phase(f"ws.worker.done cmd={_wcmd} client#{client_id}")
+
+        cmd_task = register_bg_task(asyncio.create_task(cmd_worker()))
 
     _disc_reason = "unknown"
     # Captured on `cmd:"hello"`; the finally block uses this to register
@@ -6611,51 +6792,6 @@ async def ws_endpoint(ws: WebSocket):
                                     "session.resume_granted",
                                     client_id=client_id, session_id=_sid,
                                 )
-                await ws_send_json(ws, {"type": "reply", "ok": True, "armed": client.armed})
-                continue
-
-            if msg.get("cmd") == "arm":
-                want_armed = bool(msg.get("armed", False))
-                # Re-arm gate: operator must acknowledge a sticky safety trip
-                # before the machine can come back up. Disarming is always
-                # allowed.
-                if want_armed and _unacked_trip is not None:
-                    await ws_send_json(ws, {
-                        "type": "reply",
-                        "ok": False,
-                        "error": "Safety trip not acknowledged",
-                    })
-                    continue
-                _was_armed = client.armed
-                client.armed = want_armed
-                client.last_hb = time.time()  # reset on arm change
-                client.last_hb_mono = time.monotonic()
-                # Symmetry with auto-disarm paths (Phase 2 / E1.2 + E2):
-                # explicit disarm must jog-stop any in-flight jog from this
-                # client AND register an armed-resume hold (so a deliberate
-                # disarm-then-Ctrl-R can still restore armed state). Closes
-                # the released-jog-button hazard and matches the "all paths
-                # to disarmed do the same thing" principle.
-                if _was_armed and not client.armed:
-                    if CMD is not None and not _shutting_down:
-                        try:
-                            async with _get_cmd_lock():
-                                await _jog_stop_for_client()
-                        except Exception as _e:
-                            _trace.emit(
-                                "safety.explicit_disarm_jog_stop_failed", level="error",
-                                client_id=client_id, exc=type(_e).__name__, err=str(_e),
-                            )
-                    _register_armed_resume_hold(_disc_session_id, client_id)
-                    _trace.emit(
-                        "safety.explicit_disarmed",
-                        client_id=client_id,
-                    )
-                elif not _was_armed and client.armed:
-                    _trace.emit(
-                        "safety.explicit_armed",
-                        client_id=client_id,
-                    )
                 await ws_send_json(ws, {"type": "reply", "ok": True, "armed": client.armed})
                 continue
 
@@ -6777,32 +6913,24 @@ async def ws_endpoint(ws: WebSocket):
             # visible to the coverage contract in test_command_policy — which was
             # structurally scoped to the dispatched ladder and could not see them.
 
-            _set_phase(f"handle_command cmd={msg.get('cmd', '?')} client#{client_id}")
-            try:
-                reply = await handle_command(msg, client.armed)
-            except (ValueError, TypeError, KeyError, PermissionError, OverflowError) as _val_e:
-                # Malformed payload or failed precondition (bad numeric cast,
-                # missing field, not-armed). Return a bounded structured error
-                # rather than letting it bubble out of the receive loop — an
-                # uncaught exception here would tear down the socket and trip
-                # the armed-disconnect side effects in `finally` (issue #27).
-                _trace.emit("ws.command_invalid", level="warn",
-                            client_id=client_id, cmd=msg.get("cmd"),
-                            exc=type(_val_e).__name__, msg=str(_val_e))
-                reply = {"ok": False, "error": f"{type(_val_e).__name__}: {_val_e}"}
-            else:
-                if msg.get("cmd") == "unload_file" and reply.get("ok"):
-                    # reset_interpreter doesn't clear stat.file, so the shared
-                    # poller's file-change edge won't fire. Clear the shared
-                    # cache and bump the version so every client's status_loop
-                    # sends an empty viewer_gcode on the next cycle.
-                    _bulk.preview_pending = None
-                    _bulk.preview_bytes = None
-                    _bulk.preview_bytes_gz = None
-                    _bulk.preview_version += 1
-                    _bulk.last_file = None
-                    _bulk.last_mtime = None
-            await ws_send_json(ws, {"type": "reply", "cmd": msg.get("cmd"), **reply})
+            # Everything else runs on this client's command worker (above):
+            # the reader must be back at ws.receive() immediately so the
+            # client's heartbeats are never queued behind a handler. Bounded
+            # queue, replied + traced when full — never a silent drop; stop-
+            # class commands get 4× the headroom and are never rejected first.
+            _rcmd = msg.get("cmd")
+            _depth = cmd_queue.qsize()
+            _cap = _WS_CMD_QUEUE_MAX * (4 if _rcmd in _WS_STOP_CMDS else 1)
+            if _depth >= _cap:
+                _trace.emit("ws.command_queue_full", level="warn", client_id=client_id,
+                            cmd=_rcmd, depth=_depth, inflight_cmd=client.cmd_inflight,
+                            inflight_ms=(round((time.monotonic() - client.cmd_inflight_since_mono) * 1000)
+                                         if client.cmd_inflight else None))
+                await ws_send_json(ws, {"type": "reply", "cmd": _rcmd, "ok": False,
+                                        "error": f"Command queue full ({_depth} pending) — command dropped"})
+                continue
+            _set_phase(f"ws.enqueue cmd={_rcmd} client#{client_id}")
+            cmd_queue.put_nowait((msg, time.monotonic()))
 
     except (WebSocketDisconnect, RuntimeError) as _disc_e:
         _set_phase(f"ws_endpoint.WebSocketDisconnect_caught client#{client_id}")
@@ -6845,6 +6973,25 @@ async def ws_endpoint(ws: WebSocket):
         _last_hb_at_drop = _clients[client_id].last_hb_mono if client_id in _clients else None
         _clients.pop(client_id, None)
         _halshow_topology_sent.pop(client_id, None)
+        # Command worker: cancel FIRST — the armed jog-stop below needs
+        # _cmd_lock, which an in-flight handler may hold; _cmd_blocking keeps
+        # the lock until the NML call returns, so this is a request, not a
+        # wait (never awaited here: the SIGTERM path must not linger behind a
+        # 30 s wait_complete; the lifespan bg-task gather covers it). Queued
+        # commands are dropped and said so.
+        _set_phase(f"ws_endpoint.finally.cancel_cmd_worker client#{client_id}")
+        _inflight_at_drop = client.cmd_inflight
+        cmd_task.cancel()
+        _dropped = []
+        while True:
+            try:
+                _dm, _ = cmd_queue.get_nowait()
+            except asyncio.QueueEmpty:
+                break
+            _dropped.append(_dm.get("cmd"))
+        if _dropped:
+            _trace.emit("ws.command_dropped_on_disconnect", level="warn",
+                        client_id=client_id, count=len(_dropped), cmds=_dropped)
         # Disconnect of an armed client: jog-stop any in-flight jog this
         # client started, then register a 10s armed-resume hold keyed by
         # session_id so a Ctrl-R / Wi-Fi blip can transparently re-arm.
@@ -6910,6 +7057,8 @@ async def ws_endpoint(ws: WebSocket):
             cleanup_ms=round((time.monotonic() - _finally_t0) * 1000, 1),
             session_ms=round((time.monotonic() - _conn_t0) * 1000, 1),
             remaining_clients=len(_clients),
+            queue_dropped=len(_dropped),
+            inflight_at_drop=_inflight_at_drop,
         )
 
 
