@@ -161,7 +161,7 @@ TIER 5 — Full ready (requires everything)
   ready ──────────────── base + isIdle + !busy + isHomed              MDI, Spindle, Coolant
   run ────────────────── ready + kins runnable (Plane kins needs its plane + G59; unknown mode refuses)   Cycle Start, Run from line
   machineFrame ───────── ready + identity kins (G53 routines: → Home/G30, tool load/measure/unload, probe ops)
-  goZero ─────────────── ready + a → Zero plan for the mode (Machine: subroutine, rotaries to the fixture's STAMP angle before X/Y; Plane: retract along the tool axis, X0 Y0 in the plane; TCP refuses)
+  goZero ─────────────── ready + a → Zero plan for the mode (Machine: subroutine — Z to machine zero only when below it, rotaries to the fixture's STAMP angle before X/Y; Plane: retract along the tool axis, X0 Y0 in the plane; TCP refuses). A retract NEVER lowers Z (`#<_abs_z>` guard in go_to_zero/home/g30.ngc + the RFL safe-Z step)
   probe ──────────────── base + isIdle + !busy + isHomed + !eoffset   Probe ops, tool change, WCS edit, macros
   touchoff ───────────── probe + kins-mode × fixture rule (linear)     DRO touch-off / Zero (linear letters)
   touchoffRotary ─────── probe + identity kins + G54                    DRO touch-off / Zero (A/B/C)
@@ -214,7 +214,13 @@ machine outcome as one PASS/FAIL/SKIP table — the acceptance gate for any
 change touching a motion button, next to the corpus gate. A `jog_stop` that
 arrives while an MDI executes never switches mode (it would abort the MDI);
 `set_mode` raises on refusal; LinuxCNC operator errors ride the trace as
-`nml.error`.
+`nml.error`. A retract NEVER lowers Z: the `G53 G0 Z0` in go_to_zero/home/g30
+is guarded by `#<_abs_z> LT 0` (the same four offset terms a G53 Z word
+subtracts — interp_namedparams NP_ABS_Z / interp_find G_53) and the RFL safe-Z
+step skips when already at/above; the matrix certifies the frame premise
+(`#<_abs_z>` == machine-frame Z with a TLO active) and both branches from
+above/below machine zero (the above rows SKIP with the reason on a Z0-at-top
+config).
 
 **LinuxCNC enforces very little** — mode sequence (MDI needs MODE_MDI) and state transitions only. Our gates enforce: armed state (web-safety invention), idle-vs-running checks, homing requirements, and eoffset contamination prevention. The `set_mode()` + `reject_if_auto_running()` functions in gateway.py are the real backend gatekeepers.
 

@@ -887,7 +887,7 @@ async function saveEdit() {
 
           <div class="dialogSection">
             <MachineToggle gate="displaySetting" v-model="dialogSafeZ"
-                           label="Retract to safe Z (G53 Z0) before positioning" />
+                           label="Retract to safe Z (G53 Z0, skipped when already at or above it) before positioning" />
           </div>
 
           <div class="dialogSection">

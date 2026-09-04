@@ -142,7 +142,7 @@ function zeroAll() {
           <div class="actionRow">
             <MachineBtn type="goTo" @click="emit('goToG30')">→ G30</MachineBtn>
             <MachineBtn type="goTo" @click="emit('goToHome')">→ Home</MachineBtn>
-            <MachineBtn type="goZero" @click="emit('goToZero')" title="Machine frame: Z retracts to machine top, X/Y to work zero, rotaries to 0 (Z is NOT lowered). Plane frame: retract along the tool axis to a clearance, then X0 Y0 in the plane, rotaries untouched. TCP: not available.">→ Zero</MachineBtn>
+            <MachineBtn type="goZero" @click="emit('goToZero')" title="Machine frame: Z to machine top (G53 Z0 — skipped when Z is already at or above it, never lowered), table back to the fixture's touch-off angle, then X/Y to work zero. Plane frame: retract along the tool axis to a clearance (never lowered), then X0 Y0 in the plane, rotaries untouched. TCP: not available.">→ Zero</MachineBtn>
           </div>
           <div v-if="isTwpMachine" class="actionRow">
             <!-- Capture plane: the one-button manual definition — align the

@@ -2902,18 +2902,32 @@ async def _rfl_sequence(start_line: int, pre_tool: int, safe_z: bool,
             flag_armed = True
         if safe_z:
             _rfl_phase("safe_z")
-            ok, why = await _rfl_mdi_step("G53 G0 Z0", timeout_s=120.0)
-            if not ok:
-                _rfl_phase("safe_z_failed", False, why)
-                return
+            # "Safe Z" = at or above machine Z0 (the controlled point, TLO
+            # included — the frame G53 addresses; stat.position IS
+            # motion.traj.position, the value the interp synchs #<_abs_z>
+            # from). Never LOWER Z to get there: on a config whose Z window
+            # extends above 0 (the TWP sim before its limits were narrowed) a
+            # bare G53 Z0 from above was a descent (2026-09-04). Same
+            # predicate as the #<_abs_z> guard in go_to_zero/home/g30.ngc.
             STAT.poll()
             pos = safe_get("position", None)
-            if pos and abs(float(pos[2])) > 0.5:
-                # Move ended early (an abort mid-move leaves interp idle with no
-                # error text) — machine is NOT at safe height; refuse to start.
-                _rfl_phase("safe_z_failed", False,
-                           f"Z did not reach machine zero (at {float(pos[2]):.2f})")
-                return
+            z_now = float(pos[2]) if pos else None
+            if z_now is not None and z_now >= 0.0:
+                _trace.emit("rfl.safe_z_already_above", z=round(z_now, 3))
+            else:
+                ok, why = await _rfl_mdi_step("G53 G0 Z0", timeout_s=120.0)
+                if not ok:
+                    _rfl_phase("safe_z_failed", False, why)
+                    return
+                STAT.poll()
+                pos = safe_get("position", None)
+                if pos and float(pos[2]) < -0.5:
+                    # Move ended early (an abort mid-move leaves interp idle
+                    # with no error text) — machine is BELOW safe height;
+                    # refuse to start.
+                    _rfl_phase("safe_z_failed", False,
+                               f"Z did not reach safe height (at {float(pos[2]):.2f}, needs >= 0)")
+                    return
         if entry and (entry.get("x") is not None or entry.get("y") is not None):
             # Position preamble: rapid to the XY the program expects at line N
             # (at safe height — the handler forces safe_z on whenever entry is

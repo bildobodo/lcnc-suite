@@ -238,8 +238,10 @@ def goto_zero_plan(s: MachineState, work_z: Optional[float], clearance: float,
     """The → Zero button under the current kinematics: (mdi_lines, None) or
     (None, refusal).
 
-    Machine frame: the probe_basic subroutine (G53 Z0 retract, rotaries to
-    the fixture's touch-off pose, then X0 Y0) — `stamp` is the active
+    Machine frame: the probe_basic subroutine (G53 Z0 retract — skipped when
+    the controlled point is already at/above machine zero, `#<_abs_z>`: a
+    retract never lowers Z — then rotaries to the fixture's touch-off pose,
+    then X0 Y0) — `stamp` is the active
     fixture's W1 provenance ({"kins","a",...}, None when unstamped). In
     identity kinematics a fixture is a fixed point in the ROOM, the part's
     datum only at the table angle it was touched off at, so the table goes

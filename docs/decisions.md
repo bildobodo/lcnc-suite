@@ -2913,8 +2913,11 @@ A; clash count == ticks; no jump on the next run of the program; the lint chip
 on load), `cycle_start` refusal + drift gate after the gateway restart, and the
 frontend heavy gates at the next suite stop.
 
-Recorded for later: the → Zero button drives rotaries to zero after the XY move,
-which un-orients a Plane-mode head (probe_basic contract, tooltip now says so);
+Superseded the same evening (4bd1541 + the Z wave below): → Zero's order is Z →
+rotaries (to the fixture's STAMP angle) → X/Y, and its `G53 G0 Z0` retract is
+guarded by `#<_abs_z> LT 0` — a retract never lowers Z. Premise correction: machine
+Z0 on the TWP sim was never "tip at table"; joints-at-zero is the parked pose 2 m
+above the A axis, and the ±5000 Z window (a 10 m cube) was the defect.
 `twpDatumStale`'s stamp-A short-circuit makes the datum-red path dead on a
 tilted-A machine (documented frame reason, left as is).
 
@@ -3023,3 +3026,139 @@ live run (needs the gateway that carries today's handler — restart), pasted he
 
 Verification so far: command_policy 97, dispatch 153 (incl. the seven new), WS lifecycle /
 smoke / command-worker / gateway_util green; Vite hot-reloaded MachineBtn without errors.
+
+## 2026-09-04 (night) — "Why no full Z retraction?": a retract never lowers Z; the 10 m cube, not the datum
+
+Operator, 21:12, after the restart onto 4bd1541: "why does when I press zero
+not a full Z retraction happen?" Trace: the Plane-frame presses sent `G0 Z298`
+/ `G0 Z506` (the tip was already that high above the plane origin; that branch
+never lowers, so Z stayed and only X/Y moved); the Machine-frame presses ran
+`O<go_to_zero> CALL [0.0000]`, whose retract is `G53 G0 Z0`, and Z came DOWN
+to machine zero from about +500.
+
+**Premise correction (exploration, load-bearing).** Machine Z0 on the TWP sim
+was never "tip at table". `a_work` is a frame group origined at machine zero
+(tool-vs-work relative pose ≡ machine coords); joints-at-zero is the parked
+pose with the nose 2000 above the A axis (platter rim top at machine −1100,
+stock top −1400, bed −3100) — exactly the DMU convention's parked-high pose.
+What differs from the DMU is the LIMITS: the TWP INI had `Z ±5000` (10 m of
+travel through the portal and the bed) where the DMU has `−970..0.01`. The
+operator could jog to +500 only because the limit allowed it; the committed
+corpus record `twp_simple_example.run1` even starts at joint Z +204. So
+"Z0-at-top" here is a limits change, not a datum shift — no model
+regeneration, no kins pin, no corpus re-capture (that is the next entry).
+
+**The rule.** The retract idiom `G53 G0 Z0` assumes machine Z0 = top of travel.
+True on a mill that homes at the top (the 3-axis sim has `MAX_LIMIT 0.10`);
+on any config whose Z0 is not the top — positive-up hobby configs, this sim
+before its window was narrowed — it is a plunge dressed as a retract. Wave 1
+makes "a retract never lowers Z" hold by construction wherever the suite owns
+the retract:
+
+- `go_to_zero.ngc`, `go_to_home.ngc`, `go_to_g30.ngc`: the bare `G53 G0 Z0`
+  is now `o100 if [#<_abs_z> LT 0]` … `endif`. `#<_abs_z>` is the interp's
+  read-only machine-frame position (`interp_namedparams.cc` NP_ABS_Z:
+  `current_z + axis_offset_z + origin_offset_z + tool_offset.tran.z`) and a
+  G53 Z word subtracts exactly those four terms (`interp_find.cc` find_ends,
+  G_53) — so `#<_abs_z> >= 0` ⇔ "G53 Z0 would not raise the tip". It is fresh
+  after a jog (the MANUAL→MDI switch runs `emcTaskPlanSynch` →
+  `GET_EXTERNAL_POSITION_Z` from `motion.traj.position`), the guard is the
+  sub's first motion, and the sign test is unit-independent. First use of
+  `#<_abs_z>` in this repo; the preview interpreter evaluates it from its own
+  internal position (a user program calling these subs may preview the other
+  branch — cosmetic). → Home and → G30 are raw MDI from App.vue under the
+  `machineFrame` gate, so their guard could only live in the G-code.
+- The run-from-line safe-Z step (`gateway.py` `_rfl_sequence`) skips its
+  `G53 G0 Z0` when the live machine Z is already ≥ 0 (`rfl.safe_z_already_above`)
+  and verifies "not BELOW −0.5" instead of "|Z| ≤ 0.5" (`test_rfl_guard.py`:
+  from below → retract sent and verified; at zero / above → no MDI; 18 pass).
+- Not guarded, bounded at a line: the bundled toolsetter/probe routines
+  (`tool_touch_off.ngc:183,210,253,393`, `toolsetter_wco.ngc:37`,
+  `probe_spindle_nose.ngc:74`, `surface_scan.ngc:138,205`) carry the same
+  idiom; they start at the work, no sim here has a toolsetter, and the next
+  entry makes the sim a Z0-at-top machine.
+- Text that was wrong: the → Zero tooltip claimed "Z retracts to machine
+  top … rotaries to 0 (Z is NOT lowered)" — now states the guard, the stamp
+  angle and the Plane branch's never-lower clearance; the `goto_zero_plan`
+  docstring, CLAUDE.md and the 2026-09-04 note above likewise.
+
+**The matrix, first live run (`scripts/twp_buttons_check.py`) — three defects
+in the SCRIPT, none in the product.** (1) The motion sampler for → Home/→ G30
+started sampling after sending a no-wait command and gave up after 1.5 s of
+no motion, so a slow start read the pre-move pose as the result; now a
+sampler thread runs from BEFORE the blocking command is sent and a motion
+that never starts is reported (`ran=False`), never assumed. (2) The WS helper
+answered `_status` requests from a BACKLOG — status frames pile up on the
+socket between requests and each read consumed one old frame — so the TCP
+and Plane gate rows certified the permissions of a mode the machine had left
+seconds earlier; the helper now drains the backlog and waits for a fresh
+frame, and `settled(field, value)` waits for `kins_type` / `g5x_index` to
+report the new mode before permissions are read (a timeout prints the last
+value and the row FAILS, never passes vacuously). (3) The "fixture stamped
+under TCP" row wrote the provenance rows as var-file parameters, which the
+gateway loads once at startup and otherwise writes only through its own
+touch-off path — so `_prov_cache` never saw the stamp; the row now stamps
+through the real path (Zero All at A=0 under TCP → kins 1) and learned a
+fact on the way: a PARTIAL (Z-only) write under a different kins than the
+prior stamp CLEARS the stamp (`wcs_stamp_decision`: no single pose describes
+the merged triple), only a full X/Y/Z write stamps under the live kins.
+
+New rows, all certified live on the ±5000 window — the only time the
+above-machine-zero rows can PASS on this sim (after the next entry they SKIP
+with the reason "MAX_LIMIT ≤ 50: above machine zero unreachable"):
+`→ Zero / → Home / → G30 from BELOW Z0 (G53 Z−60)` → Z at machine top
+exactly (G30: retracts first, then lands on #5181..#5183); `… from ABOVE Z0
+(G53 Z+50)` → min Z seen ≥ +50, X/Y where the routine sends them; and the
+premise row `#<_abs_z> == machine-frame Z with a 12.5 TLO active; #<_z> ==
+abs − G5x − G92 − TLO` (FAIL there would mean the guard is wrong, not the
+machine).
+
+**Live run, 2026-09-04 22:5x, TWP sim, ±5000 window (gateway 21:10 build + the wave-1
+.ngc edits, live per call): ALL PASS (39 pass, 1 skip)**
+
+```
+PASS | Machine | Zero All routes to the mdi touch-off and stamps G54
+PASS | Machine | G54 stamp: kins 0, A 0
+PASS | Machine | → Home / → G30 gate 'machineFrame' open
+PASS | Machine | → Zero gate 'goZero' open
+PASS | Machine | Cycle Start gate 'run' open
+PASS | Machine | Tool measure / load gate 'machineFrame' open
+PASS | Machine | Probe op gate 'machineFrame' open
+PASS | Machine | → Zero from BELOW Z0 (G53 Z-60): Z at machine top exactly, X/Y at work zero, A back to the stamp (0)
+PASS | Machine | → Zero from ABOVE Z0 (G53 Z+50): Z unchanged (never lowered), X/Y at work zero
+PASS | Machine | → Home from BELOW Z0: Z to machine top, X/Y to machine zero, A 0
+PASS | Machine | → Home from ABOVE Z0: min Z seen >= +50 (never lowered), X/Y to machine zero
+PASS | Machine | → G30 from BELOW Z0: retracts to the top first (max Z seen ~ 0), then lands on #5181..#5183
+PASS | Machine | → G30 from ABOVE Z0 (#5183=+50): min Z seen >= +50 (never lowered), lands on #5181 #5182
+PASS | Machine | #<_abs_z> == machine-frame Z with a 12.5 TLO active; #<_z> == abs - G5x - G92 - TLO
+PASS | Machine | Zero All at A=20 stamps A 20
+PASS | Machine | → Zero after jogging A away: table returns to A 20 and X/Y read zero (tip on the datum)
+PASS | Machine | → Zero while the A jog is released mid-move still completes (A 20, X/Y zero)
+SKIP | Machine | Tool measure (M600) run
+PASS | TCP     | → Home / → G30 gate 'machineFrame' closed
+PASS | TCP     | → Zero gate 'goZero' closed
+PASS | TCP     | Cycle Start gate 'run' open
+PASS | TCP     | Tool measure / load gate 'machineFrame' closed
+PASS | TCP     | Probe op gate 'machineFrame' closed
+PASS | TCP     | → Zero refused with a reason naming TCP
+PASS | TCP     | tool_change refused backend-side (Machine frame required)
+PASS | TCP     | Zero Z at A=0 routes to the mdi touch-off
+PASS | TCP     | Zero All at A=0 under TCP stamps G54 with kins 1
+PASS | Machine | → Zero in Machine frame refuses a fixture stamped under TCP (numbers are table-frame)
+PASS | Machine | Zero All back in the Machine frame re-stamps G54 (kins 0)
+PASS | Plane   | Capture defines the plane at the tip (kins 2, G59)
+PASS | Plane   | → Home / → G30 gate 'machineFrame' closed
+PASS | Plane   | → Zero gate 'goZero' open
+PASS | Plane   | Cycle Start gate 'run' open
+PASS | Plane   | Tool measure / load gate 'machineFrame' closed
+PASS | Plane   | Probe op gate 'machineFrame' closed
+PASS | Plane   | Zero Z routes through the plane; DRO reads the entered value
+PASS | Plane   | → Zero: retracts along the tool axis to ≥ 25, then X0 Y0 in the plane; rotaries untouched
+PASS | Plane   | Cycle Start (G54 under Plane kins — the M2 strand) gate 'run' closed
+PASS | Plane   | → Zero (G54 under Plane kins) gate 'goZero' closed
+PASS | Plane   | Cycle Start (G59 again) gate 'run' open
+```
+
+Owed: wave 2 (the next entry) at the suite stop — the type-0 Z window, the
+kins-mode limit lift, the heavy gates; the RFL gateway change goes live with
+that restart.

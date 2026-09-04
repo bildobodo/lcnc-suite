@@ -4,12 +4,19 @@ o<go_to_g30> sub
 (WEBUI_SUB=go_to_g30) ;lcnc-suite: preview sub-span marker, silent in task
 
 ;Version date: 2024-01-14
-;The machine moves the Z-axis free and moves only the X- and Y-axis to its coordinates. At that position the Z-axis moves to its coordinate.
+;The machine retracts Z to machine zero (unless already at or above it — lcnc-suite guard, 2026-09-04) and moves only the X- and Y-axis to its coordinates. At that position the Z-axis moves to its coordinate.
 ;G30 moves the machine to X, Y and Z at the same time.
 
 M73 (save caller state in current call context, restore on return or endsub)
 G90
-G53 G0 Z0
+; lcnc-suite: a retract never lowers Z. #<_abs_z> is the frame a G53 Z word
+; addresses — program Z + G92 + G5x + TLO on both sides (interp_namedparams.cc
+; NP_ABS_Z, interp_find.cc find_ends G_53). Machine Z0 is the top of travel
+; only on machines that home at the top; anywhere else a bare G53 Z0 is a
+; descent (TWP sim, 2026-09-04).
+o100 if [#<_abs_z> LT 0]
+    G53 G0 Z0
+o100 endif
 G53 G0 X#5181 Y#5182     ;Tool change position X and y
 G53 G0 Z#5183
 

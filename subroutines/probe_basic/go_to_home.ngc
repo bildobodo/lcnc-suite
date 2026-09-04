@@ -5,11 +5,20 @@
 ; a nonexistent A-word on any 5-axis layout that isn't XYZAC (e.g. XYZBC
 ; nutating-head machines -> "Bad character 'A'"). Probe each rotary's INI
 ; section instead: [AXIS_x]MAX_LIMIT exists iff the axis is configured.
+; Local modification (lcnc-suite, 2026-09-04): the Z retract is guarded —
+; a retract never lowers Z (see the guard below).
 o<go_to_home> sub
 
 M73
 G90
-G53 G0 Z0
+; lcnc-suite: a retract never lowers Z. #<_abs_z> is the frame a G53 Z word
+; addresses — program Z + G92 + G5x + TLO on both sides (interp_namedparams.cc
+; NP_ABS_Z, interp_find.cc find_ends G_53). Machine Z0 is the top of travel
+; only on machines that home at the top; anywhere else a bare G53 Z0 is a
+; descent (TWP sim, 2026-09-04).
+o100 if [#<_abs_z> LT 0]
+    G53 G0 Z0
+o100 endif
 G53 G0 X0 Y0
 
 o110 if [EXISTS[#<_ini[axis_a]max_limit>]]

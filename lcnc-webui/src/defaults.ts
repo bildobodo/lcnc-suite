@@ -260,7 +260,7 @@ export interface MachineDefaults {
   runFromLine: boolean;
   rflSpindleDir: SpindleDir;
   rflSpindleRpm: number;
-  rflSafeZ: boolean;          // retract to G53 Z0 before a run-from-line start
+  rflSafeZ: boolean;          // retract to G53 Z0 (never lowered) before a run-from-line start
   spindleFeedbackUnit: SpindleFeedbackUnit;
   spindleLoadPin: string;
   autoDisarmMin: number;      // idle auto-disarm timeout in minutes; 0 = off

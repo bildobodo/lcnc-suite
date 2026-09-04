@@ -1256,7 +1256,8 @@ function runFromLine(opts: import("./gcodeRfl").RflRunOptions) {
     spindle_dir: opts.spindleDir !== "off" ? opts.spindleDir : undefined,
     spindle_speed: opts.spindleDir !== "off" ? opts.spindleSpeed : undefined,
     // RFL × M600 guard: measure this tool via MDI first (gateway bg sequence),
-    // retract to G53 Z0, and rapid to the derived start XY before AUTO_RUN.
+    // retract to G53 Z0 (never lowered — skipped when already at/above it),
+    // and rapid to the derived start XY before AUTO_RUN.
     pre_tool: opts.preTool > 0 ? opts.preTool : undefined,
     safe_z: opts.safeZ || undefined,
     entry_x: opts.entry?.x ?? undefined,

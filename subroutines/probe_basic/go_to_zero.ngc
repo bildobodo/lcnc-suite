@@ -10,14 +10,22 @@
 ; kinematics a fixture is a fixed point in the ROOM, the part's datum only
 ; at the table angle it was touched off at — the gateway passes that angle
 ; from the fixture's provenance stamp (command_policy.goto_zero_plan).
-; Order: Z up, then the rotaries, THEN X/Y — the tip lands on the part's
+; Order: Z up (only when below machine zero — never lowered, see the guard
+; below), then the rotaries, THEN X/Y — the tip lands on the part's
 ; datum, not on the room point at A=0 ("G54 did not align anymore with the
 ; head — it stopped somewhere else").
 o<go_to_zero> sub
 
 M73
 G90
-G53 G0 Z0
+; lcnc-suite: a retract never lowers Z. #<_abs_z> is the frame a G53 Z word
+; addresses — program Z + G92 + G5x + TLO on both sides (interp_namedparams.cc
+; NP_ABS_Z, interp_find.cc find_ends G_53). Machine Z0 is the top of travel
+; only on machines that home at the top; anywhere else a bare G53 Z0 is a
+; descent (TWP sim, 2026-09-04).
+o100 if [#<_abs_z> LT 0]
+    G53 G0 Z0
+o100 endif
 
 o110 if [EXISTS[#<_ini[axis_a]max_limit>]]
     G0 A#1
