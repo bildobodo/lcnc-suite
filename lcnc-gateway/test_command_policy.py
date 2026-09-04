@@ -19,6 +19,7 @@ from command_policy import (
     GATE_REQUIREMENTS,
     touchoff_route,
     kins_runnable,
+    machine_frame_required, goto_zero_plan,
     RESERVED_FIXTURES,
 )
 
@@ -752,3 +753,47 @@ class TestKinsRunnable(unittest.TestCase):
         r = kins_runnable(self._twp(kins_type=None))
         self.assertIn("unknown", r)
         self.assertIsNone(kins_runnable(state(kins_switchable=False, kins_type=None)))
+
+
+class TestMachineFrameAndGoZero(unittest.TestCase):
+    """G53 routines need identity kins; → Zero is mode-aware (2026-09-03)."""
+
+    def _twp(self, **over):
+        base = dict(kins_switchable=True, kins_type=2, twp_active=True, g5x_index=6)
+        base.update(over)
+        return state(**base)
+
+    def test_machine_frame_rule(self):
+        self.assertIsNone(machine_frame_required(state()))                      # plain machine
+        self.assertIsNone(machine_frame_required(self._twp(kins_type=0)))
+        self.assertIn("Machine frame required", machine_frame_required(self._twp(kins_type=1)))
+        self.assertIn("Machine frame required", machine_frame_required(self._twp()))
+        self.assertIn("unknown", machine_frame_required(self._twp(kins_type=None)))
+        p = evaluate_permissions(self._twp())
+        self.assertFalse(p["machineFrame"]); self.assertTrue(p["ready"])
+        self.assertIn("Machine frame", check_command("tool_change", self._twp()))
+
+    def test_go_zero_machine_frame_uses_the_subroutine(self):
+        self.assertEqual(goto_zero_plan(state(), 12.0, 25.0), (["O<go_to_zero> CALL"], None))
+        self.assertEqual(goto_zero_plan(self._twp(kins_type=0), None, 25.0), (["O<go_to_zero> CALL"], None))
+
+    def test_go_zero_plane_retracts_along_the_tool_axis_then_xy(self):
+        lines, why = goto_zero_plan(self._twp(), -5.0, 25.0)
+        self.assertIsNone(why)
+        self.assertEqual(lines, ["G0 Z25.0000", "G0 X0 Y0"])
+        # already above the clearance: never move down first
+        lines, _ = goto_zero_plan(self._twp(), 100.0, 25.0)
+        self.assertEqual(lines[0], "G0 Z100.0000")
+        # no rotary words anywhere
+        self.assertFalse(any(ch in " ".join(lines) for ch in "ABC"))
+
+    def test_go_zero_refusals(self):
+        self.assertIn("TCP", goto_zero_plan(self._twp(kins_type=1), 0.0, 25.0)[1])
+        self.assertIn("Plane frame", goto_zero_plan(self._twp(g5x_index=1), 0.0, 25.0)[1])
+        self.assertIn("Plane", goto_zero_plan(self._twp(twp_active=False), 0.0, 25.0)[1])
+        self.assertIn("unknown", goto_zero_plan(self._twp(kins_type=None), 0.0, 25.0)[1])
+        self.assertIn("unknown", goto_zero_plan(self._twp(), None, 25.0)[1])
+        p = evaluate_permissions(self._twp(kins_type=1))
+        self.assertFalse(p["goZero"])
+        self.assertTrue(evaluate_permissions(self._twp())["goZero"])
+        self.assertIn("TCP", check_command("go_to_zero", self._twp(kins_type=1)))

@@ -873,23 +873,23 @@ const toolTableRef = ref<InstanceType<typeof ToolTablePanel> | null>(null);
 // The vars must land before the M600 that reads them — one latch, in order.
 function measureAuto() {
   const t = st.value.tool_number;
-  if (!permissions.value.ready || st.value.probing || !t) return;
+  if (!permissions.value.machineFrame || st.value.probing || !t) return;
   fireBatch([
     { cmd: "set_probe_vars", vars: buildToolsetterVarMap() },
     { cmd: "mdi", text: `T${t} M600` },
-  ], 'ready');
+  ], 'machineFrame');
 }
 
 function unloadTool() {
-  if (!permissions.value.ready) return;
+  if (!permissions.value.machineFrame) return;
   const mode = loadMachineDefaults().toolChangeMode;
   if (mode === "m600") {
     fireBatch([
       { cmd: "set_probe_vars", vars: buildToolsetterVarMap() },
       { cmd: "mdi", text: "T0 M600" },
-    ], 'ready');
+    ], 'machineFrame');
   } else {
-    fire({ cmd: "mdi", text: "T0 M6 G49" }, 'ready');
+    fire({ cmd: "mdi", text: "T0 M6 G49" }, 'machineFrame');
   }
 }
 
@@ -1673,7 +1673,7 @@ watch(viewerGcode, (newGcode) => {
               :surfaceLayerVisible="viewerLayers.surface"
               :rotaryTilted="st.rotary_at_zero === false"
               @toggleSurfaceLayer="(on: boolean) => { viewerLayers.surface = on; viewerRef?.setLayerVisible?.('surface', on); saveViewerDefaults({ ...loadViewerDefaults(), layers: { ...loadViewerDefaults().layers, surface: on } }); }"
-              @mdi="fire({ cmd: 'mdi', text: $event }, 'ready')"
+              @mdi="fire({ cmd: 'mdi', text: $event }, 'machineFrame')"
               @abort="fire({ cmd: 'abort' }, 'abort')"
               @simTrip="send({ cmd: 'simulate_probe_trip' })"
               @setProbeVars="fire({ cmd: 'set_probe_vars', vars: $event }, 'setup')"
@@ -2087,9 +2087,9 @@ watch(viewerGcode, (newGcode) => {
         @setAxis="setAxis"
         @setAll="setAll"
         @setG5x="setG5x"
-        @goToG30="fire({ cmd: 'mdi', text: 'O<go_to_g30> CALL' }, 'ready')"
-        @goToHome="fire({ cmd: 'mdi', text: 'O<go_to_home> CALL' }, 'ready')"
-        @goToZero="fire({ cmd: 'mdi', text: 'O<go_to_zero> CALL' }, 'ready')"
+        @goToG30="fire({ cmd: 'mdi', text: 'O<go_to_g30> CALL' }, 'machineFrame')"
+        @goToHome="fire({ cmd: 'mdi', text: 'O<go_to_home> CALL' }, 'machineFrame')"
+        @goToZero="fire({ cmd: 'go_to_zero' }, 'goZero')"
       />
 
       <!-- G-code keypad: replaces every strip section except SafetyStrip

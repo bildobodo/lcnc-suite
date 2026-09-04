@@ -8,7 +8,7 @@ import { applyClientOverlay, type MachinePermissions } from "./permissions";
 // What the backend broadcasts for a fully-ready machine (computed armed=true):
 // every machine-state gate open except pause/resume (need running/paused).
 const MACHINE_READY: MachinePermissions = {
-  idle: true, jog: true, override: true, ready: true, run: true,
+  idle: true, jog: true, override: true, ready: true, run: true, machineFrame: true, goZero: true,
   pause: false, resume: false, step: true, abort: true,
   probe: true, zero: true, touchoff: true, touchoffRotary: true, twpCapture: true,
   surfaceComp: true, safety: true, setup: true,
@@ -125,5 +125,17 @@ describe("run gate — backend without the class (mixed-version window)", () => 
     expect(applyClientOverlay(legacy, true, false).run).toBe(true);
     expect(applyClientOverlay({ ...legacy, ready: false }, true, false).run).toBe(false);
     expect(applyClientOverlay({ ...MACHINE_READY, run: false }, true, false).run).toBe(false);
+  });
+});
+
+describe("machineFrame / goZero gates", () => {
+  it("follow armed/busy like ready and read as ready on a pre-class backend", () => {
+    expect(applyClientOverlay(MACHINE_READY, true, false).machineFrame).toBe(true);
+    expect(applyClientOverlay(MACHINE_READY, true, true).goZero).toBe(false);
+    const { machineFrame: _m, goZero: _g, ...legacy } = MACHINE_READY as any;
+    const p = applyClientOverlay(legacy, true, false);
+    expect(p.machineFrame).toBe(true);
+    expect(p.goZero).toBe(true);
+    expect(applyClientOverlay({ ...MACHINE_READY, machineFrame: false }, true, false).machineFrame).toBe(false);
   });
 });

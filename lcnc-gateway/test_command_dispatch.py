@@ -173,7 +173,11 @@ class TestNotOverBlocked(unittest.TestCase):
     LinuxCNC-touching handler has to run."""
 
     def test_ready_machine_passes_every_common_command(self):
-        st = gateway._policy_state_from_payload(_payload(), armed=True)
+        # A plain (non-switchable) machine, as the gateway's own call sites
+        # say via kins_switchable=_kins_is_switchable(); the builder's default
+        # (True + no kins reading) is the CLOSED "unknown" state, which the
+        # run / machineFrame gates refuse by design.
+        st = gateway._policy_state_from_payload(_payload(), armed=True, kins_switchable=False)
         for cmd in ("mdi", "cycle_start", "jog_cont", "save_tool", "set_wcs",
                     "home", "spindle_forward", "set_feed_override"):
             self.assertIsNone(

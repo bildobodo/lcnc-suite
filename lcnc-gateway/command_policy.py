@@ -25,6 +25,7 @@ Keep this file pure: stdlib only, no ``linuxcnc`` import, no import-time side
 effects, so it is unit-testable on a plain developer machine.
 """
 
+import math
 from dataclasses import dataclass
 from typing import Dict, Optional
 
@@ -208,6 +209,62 @@ def kins_runnable(s: MachineState) -> Optional[str]:
     return None
 
 
+def machine_frame_required(s: MachineState) -> Optional[str]:
+    """May a G53-moving routine run? None = yes, else the refusal.
+
+    The go-to (Home / G30), tool-change / toolsetter and probing subroutines
+    retract and position with G53. Under switched kinematics G53 addresses
+    the kinematics' WORLD frame: the tilted plane frame in TOOL mode, the
+    table-riding frame in TCP — "G53 Z0" is then not the top of travel, and
+    a rotary word swings the head at fixed XYZ joints (the tip sweeps the
+    pivot lever). Only identity kinematics makes those routines mean what
+    they say (2026-09-03, operator: "if I have defined a plane and press go
+    zero, what will happen?"). Pure."""
+    k = _effective_kins(s)
+    if k is None:
+        return "Kinematics mode unknown (reader stale) — refused"
+    if k != 0:
+        return ("Machine frame required — G53 moves are tilted-frame moves under "
+                "TCP or Plane kinematics; select the Machine frame (M428) first")
+    return None
+
+
+_R_MACHINE_FRAME = (lambda s: machine_frame_required(s) is None,
+                    "Machine frame required — select the Machine frame (M428) first")
+
+
+def goto_zero_plan(s: MachineState, work_z: Optional[float], clearance: float):
+    """The → Zero button under the current kinematics: (mdi_lines, None) or
+    (None, refusal).
+
+    Machine frame: the probe_basic subroutine (G53 Z0 retract, X0 Y0,
+    rotaries to 0). Plane frame with its plane active and G59 selected:
+    retract ALONG THE TOOL AXIS to at least `clearance` in plane
+    coordinates (never downward — max of the live plane Z and the
+    clearance), then X0 Y0 in the plane; rotaries untouched (a rotary move
+    would un-orient the head). TCP: refused — neither the machine top nor
+    the tool axis is a world axis there. Pure; unit-tested."""
+    k = _effective_kins(s)
+    if k is None:
+        return None, "Kinematics mode unknown (reader stale) — refused"
+    if k == 0:
+        return ["O<go_to_zero> CALL"], None
+    if k == 1:
+        return None, ("→ Zero under TCP: neither the machine top nor the tool axis is a "
+                      "world axis here — select the Machine frame or the Plane frame first")
+    if not s.twp_active or s.g5x_index != 6:
+        return None, ("Plane kinematics without its plane fixture — select the Plane frame "
+                      "again (M430), or the Machine frame / G69")
+    if work_z is None or not math.isfinite(work_z):
+        return None, "Plane position unknown (no status yet) — refused"
+    zc = max(float(work_z), float(clearance))
+    return [f"G0 Z{zc:.4f}", "G0 X0 Y0"], None
+
+
+_R_GOZERO = (lambda s: goto_zero_plan(s, 0.0, 0.0)[1] is None,
+             "→ Zero is not available under this kinematics mode")
+
+
 _R_RUNNABLE = (lambda s: kins_runnable(s) is None,
                "Kinematics state not runnable (Plane kinematics without its plane "
                "or fixture) — select the Machine frame / G69, or the Plane frame")
@@ -280,6 +337,12 @@ GATE_REQUIREMENTS: Dict[str, tuple] = {
     # kinematics-runnable rule above — a stranded Plane-kins state (post-M2)
     # must not start a program in the tilted frame (2026-09-03).
     "run":      _BASE + (_R_IDLE, _R_HOMED, _R_RUNNABLE),
+    # G53-moving routines (go-to Home/G30, tool change / toolsetter, probing
+    # cycles): identity kinematics only — see machine_frame_required.
+    "machineFrame": _BASE + (_R_IDLE, _R_HOMED, _R_MACHINE_FRAME),
+    # The → Zero button: Machine frame (subroutine) or Plane frame (retract
+    # along the tool axis, then X0 Y0 in the plane); TCP refuses.
+    "goZero":   _BASE + (_R_IDLE, _R_HOMED, _R_GOZERO),
     "pause":    _BASE + (_R_RUNNING, _R_NOT_PAUSED),
     "resume":   _BASE + (_R_PAUSED,),
     "step":     _BASE + (_R_READY_OR_PAUSED,),
@@ -375,7 +438,8 @@ COMMAND_GATES: Dict[str, str] = {
     "set_block_delete": "override",
     "set_optional_stop": "override",
     # --- tool change (M6 — runs motion, must not contaminate via eoffset) ---
-    "tool_change": "probe",
+    "tool_change": "machineFrame",
+    "go_to_zero": "goZero",
     # --- work offsets / probing setup ---
     "set_wcs": "probe",
     "clear_wcs": "probe",
@@ -442,6 +506,10 @@ def check_command(cmd: str, state: MachineState) -> Optional[str]:
             # The runnable rule's reason names the exact stranded state.
             if ok is _R_RUNNABLE[0]:
                 return kins_runnable(state) or message
+            if ok is _R_MACHINE_FRAME[0]:
+                return machine_frame_required(state) or message
+            if ok is _R_GOZERO[0]:
+                return goto_zero_plan(state, 0.0, 0.0)[1] or message
             return message
     return None
 

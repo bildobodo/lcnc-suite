@@ -41,12 +41,13 @@ export const BUTTON_TYPES = {
 
   // MDI / motion
   mdi:            { gate: 'ready',    variant: 'primary', size: 'md' },
-  goTo:           { gate: 'ready',    variant: 'default', size: 'md', hold: true },
+  goTo:           { gate: 'machineFrame', variant: 'default', size: 'md', hold: true },   // → Home / → G30: G53 routines
+  goZero:         { gate: 'goZero',   variant: 'default', size: 'md', hold: true },   // → Zero: mode-aware (gateway go_to_zero)
   home:           { gate: 'zero',     variant: 'default', size: 'md', hold: true },
   unhome:         { gate: 'zero',     variant: 'default', size: 'md', hold: true },
 
   // Probe
-  probe:          { gate: 'probe',    variant: 'default', size: 'md', whileProbing: true, hold: true },
+  probe:          { gate: 'machineFrame',    variant: 'default', size: 'md', whileProbing: true, hold: true },
   probeReset:     { gate: 'probe',    variant: 'danger',  size: 'md', whileProbing: true },
   // Surface-map scan: `probe` plus every rotary parked at zero. The map is a
   // machine-Z shim valid only with the tool normal to the mapped surface and
@@ -54,9 +55,9 @@ export const BUTTON_TYPES = {
   surfaceScan:    { gate: 'surfaceComp', variant: 'default', size: 'md', whileProbing: true, hold: true },
 
   // Tool
-  toolLoad:       { gate: 'ready',    variant: 'default', size: 'md' },
-  toolMeasure:    { gate: 'ready',    variant: 'default', size: 'md', whileProbing: true, hold: true },
-  toolUnload:     { gate: 'ready',    variant: 'default', size: 'md', whileProbing: true },
+  toolLoad:       { gate: 'machineFrame',    variant: 'default', size: 'md' },
+  toolMeasure:    { gate: 'machineFrame',    variant: 'default', size: 'md', whileProbing: true, hold: true },
+  toolUnload:     { gate: 'machineFrame',    variant: 'default', size: 'md', whileProbing: true },
 
   // Spindle
   spindleFwd:      { gate: 'ready',    variant: 'default', size: 'md', hold: true },

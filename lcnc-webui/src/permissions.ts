@@ -38,6 +38,17 @@ export type Permissions = {
    *  not), must not start a program in the tilted frame. Backend:
    *  command_policy.kins_runnable. */
   run: boolean;
+  /** machineFrame: ready + identity kinematics — the G53-moving routines
+   *  (go-to Home/G30, tool change / toolsetter, probing cycles). Under TCP
+   *  or Plane kinematics G53 addresses the tilted / table-riding world
+   *  frame and a rotary word swings the head at fixed XYZ joints. Backend:
+   *  command_policy.machine_frame_required. */
+  machineFrame: boolean;
+  /** goZero: ready + a → Zero plan exists for the kinematics mode — Machine
+   *  frame (subroutine) or Plane frame with its plane and G59 (retract along
+   *  the tool axis, X0 Y0 in the plane); TCP refuses. Backend:
+   *  command_policy.goto_zero_plan. */
+  goZero: boolean;
   /** pause: can pause a running program */
   pause: boolean;
   /** resume: can resume a paused program */
@@ -83,7 +94,7 @@ export type Permissions = {
 
 /** All gate names, in a stable order. */
 export const GATE_NAMES = [
-  "idle", "jog", "override", "ready", "run", "pause", "resume", "step",
+  "idle", "jog", "override", "ready", "run", "machineFrame", "goZero", "pause", "resume", "step",
   "abort", "probe", "zero", "touchoff", "touchoffRotary", "twpCapture",
   "surfaceComp",
   "safety", "setup", "armed", "always",
@@ -97,7 +108,7 @@ export const GATE_NAMES = [
  * wrong. `jog` never had a busy term (hold-to-move).
  */
 const BUSY_GATES: ReadonlySet<keyof Permissions> = new Set([
-  "idle", "override", "ready", "run", "probe", "zero", "touchoff", "touchoffRotary",
+  "idle", "override", "ready", "run", "machineFrame", "goZero", "probe", "zero", "touchoff", "touchoffRotary",
   "twpCapture", "surfaceComp", "setup",
 ]);
 
@@ -133,9 +144,10 @@ export function applyClientOverlay(
   // Mixed-version window (2026-09-03): a gateway that predates the `run`
   // class ships no `run` key. Read it as `ready` (its old gate) and say so
   // once, instead of dimming Cycle Start until the restart.
-  if (machine && machine.run === undefined && machine.ready !== undefined) {
-    if (!_warnedNoRun) { _warnedNoRun = true; console.warn("[permissions] backend ships no 'run' class — using 'ready' until the gateway restarts"); }
-    machine = { ...machine, run: machine.ready };
+  if (machine && machine.ready !== undefined
+      && (machine.run === undefined || machine.machineFrame === undefined || machine.goZero === undefined)) {
+    if (!_warnedNoRun) { _warnedNoRun = true; console.warn("[permissions] backend ships no 'run' / 'machineFrame' / 'goZero' class — using 'ready' until the gateway restarts"); }
+    machine = { run: machine.ready, machineFrame: machine.ready, goZero: machine.ready, ...machine };
   }
   for (const g of GATE_NAMES) {
     if (g === "always") { out[g] = true; continue; }

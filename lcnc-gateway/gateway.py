@@ -63,7 +63,7 @@ from gateway_util import (
     wcs_stamp_decision,
     PROV_STAMPED,
 )
-from command_policy import check_command, validate_payload, MachineLimits, touchoff_route, twp_capture_check
+from command_policy import check_command, validate_payload, MachineLimits, touchoff_route, twp_capture_check, goto_zero_plan
 from tool_table import (
     parse_tool_table,
     write_tool_table,
@@ -3136,6 +3136,40 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             await set_mode(linuxcnc.MODE_MDI)
             await _cmd_blocking(CMD.mdi, text, wait=None)
             return {"ok": True}
+
+        if cmd == "go_to_zero":
+            # The → Zero button, mode-aware (2026-09-03): Machine frame runs
+            # the probe_basic subroutine; Plane frame retracts ALONG THE TOOL
+            # AXIS to a clearance (never downward) then X0 Y0 in the plane,
+            # rotaries untouched; TCP refuses. The plan is command_policy.
+            # goto_zero_plan (pure, tested) — the gate, the dimming and this
+            # handler read one rule.
+            require_armed(armed)
+            blocked = reject_if_auto_running()
+            if blocked:
+                return blocked
+            if _shared_status is None:
+                return {"ok": False, "error": "No machine state yet — refused"}
+            pstate = _policy_state_from_payload(
+                _shared_status, armed, kins_switchable=_kins_is_switchable())
+            _wp = _shared_status.get("work_pos") if isinstance(_shared_status, dict) else None
+            work_z = None
+            if isinstance(_wp, (list, tuple)) and len(_wp) > 2:
+                try:
+                    work_z = finite_float(_wp[2])
+                except (TypeError, ValueError):
+                    work_z = None
+            clearance = 1.0 if get_machine_units() == "in" else 25.0
+            lines, why = goto_zero_plan(pstate, work_z, clearance)
+            if why:
+                _trace.emit("goto.zero_refused", level="warn", reason=why,
+                            kins_type=pstate.kins_type, g5x_index=pstate.g5x_index)
+                return {"ok": False, "error": why}
+            await set_mode(linuxcnc.MODE_MDI)
+            for line in lines:
+                await _cmd_blocking(CMD.mdi, line, wait=None)
+            _trace.emit("goto.zero", level="info", kins_type=pstate.kins_type, lines=lines)
+            return {"ok": True, "lines": lines}
 
         if cmd == "save_tool":
             require_armed(armed)

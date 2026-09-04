@@ -273,10 +273,11 @@ function requestToolChange(toolNum: number) {
   // Through the one gated path (issue #31): `mdi` was fired with a permission
   // re-check at every other call site and raw here — the same command with two
   // policies. Both branches start machine motion, so both take `ready`.
+  // Both routines retract with G53 — identity kinematics only (machineFrame).
   if (toolChangeMode.value === "m600") {
-    fire({ cmd: "mdi", text: `T${toolNum} M600` }, "ready");
+    fire({ cmd: "mdi", text: `T${toolNum} M600` }, "machineFrame");
   } else {
-    fire({ cmd: "tool_change", tool_number: toolNum }, "ready");
+    fire({ cmd: "tool_change", tool_number: toolNum }, "machineFrame");
   }
 }
 
