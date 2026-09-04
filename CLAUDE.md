@@ -161,7 +161,7 @@ TIER 5 — Full ready (requires everything)
   ready ──────────────── base + isIdle + !busy + isHomed              MDI, Spindle, Coolant
   run ────────────────── ready + kins runnable (Plane kins needs its plane + G59; unknown mode refuses)   Cycle Start, Run from line
   machineFrame ───────── ready + identity kins (G53 routines: → Home/G30, tool load/measure/unload, probe ops)
-  goZero ─────────────── ready + a → Zero plan for the mode (Machine: subroutine; Plane: retract along the tool axis, X0 Y0 in the plane; TCP refuses)
+  goZero ─────────────── ready + a → Zero plan for the mode (Machine: subroutine, rotaries to the fixture's STAMP angle before X/Y; Plane: retract along the tool axis, X0 Y0 in the plane; TCP refuses)
   probe ──────────────── base + isIdle + !busy + isHomed + !eoffset   Probe ops, tool change, WCS edit, macros
   touchoff ───────────── probe + kins-mode × fixture rule (linear)     DRO touch-off / Zero (linear letters)
   touchoffRotary ─────── probe + identity kins + G54                    DRO touch-off / Zero (A/B/C)
@@ -206,6 +206,15 @@ send the tool to, and the chip/HUD says `MACHINE · off datum`
 in ONE place: G54, table frame; `twp_datum` (the remap's snapshot) feeds
 only the plane overlay and the datum-moved chip. Record: docs/decisions.md
 2026-08-30 and 2026-09-02 (program zero rides the part).
+
+**Motion-button certification**: `scripts/twp_buttons_check.py` drives every
+motion button (→ Zero, → Home/G30, Zero All, tool measure/load, probe op, Cycle
+Start) through the WebSocket in Machine / TCP / Plane and asserts reply +
+machine outcome as one PASS/FAIL/SKIP table — the acceptance gate for any
+change touching a motion button, next to the corpus gate. A `jog_stop` that
+arrives while an MDI executes never switches mode (it would abort the MDI);
+`set_mode` raises on refusal; LinuxCNC operator errors ride the trace as
+`nml.error`.
 
 **LinuxCNC enforces very little** — mode sequence (MDI needs MODE_MDI) and state transitions only. Our gates enforce: armed state (web-safety invention), idle-vs-running checks, homing requirements, and eoffset contamination prevention. The `set_mode()` + `reject_if_auto_running()` functions in gateway.py are the real backend gatekeepers.
 

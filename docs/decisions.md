@@ -2975,3 +2975,51 @@ else ≤ 0.037 at tol 0.5); `twp_capture_check`, `twp_touchoff_plane_check`,
 `twp_reorient_check` ALL PASS — the G53.x / G69 / M428 / M430 wrappers with
 the mirror assignments are live-proven under task. Run records restored to the
 committed versions.
+
+
+## 2026-09-04 (evening) — "sometimes it goes to zero, sometimes it doesn't": two mechanisms, one matrix
+
+Operator, after restarting the suite at 20:36: "the machine sometimes goes to zero if I
+jog A and sometimes it doesn't, all in Machine mode; 'plane position unknown' in Plane
+mode; I feel our system is somewhat inconsistent and we are in over our head."
+
+**What was actually happening (trace + code, not guesses):**
+1. *Plane → Zero always refused* — my bug from the morning: the handler read
+   `_shared_status` as a dict; it is the `StatusPayload` object. The policy was
+   unit-tested with a number; the handler's plumbing was not. Fixed; dispatch tests
+   now drive the handler through the real payload shape.
+2. *"G54 did not align anymore with the head — it stopped somewhere else"* — a semantic
+   gap, not a defect: in identity kinematics a fixture is a fixed point in the ROOM,
+   the part's datum only at the table angle it was touched off at (the W1 stamp
+   records it). `go_to_zero.ngc` drove A to 0 unconditionally, so after a Zero All at
+   a tilted A the tip went to the room point while the part had rotated away — exactly
+   where the viewer's muted "program zero (machine)" ghost is drawn. Every surface was
+   honest; the button ignored the stamp. Now the gateway passes the stamp angle
+   (`O<go_to_zero> CALL [a]`), the subroutine moves the rotaries BEFORE X/Y, and a
+   fixture stamped under TCP/Plane is refused with the reason.
+3. *Presses that "did nothing"* — the accepted-press gaps of 0.95 s and 1.6 s in the
+   trace are shorter than the move: the go-to was being ABORTED. Releasing the A jog
+   sends `jog_stop`, which forced `MODE_MANUAL`; LinuxCNC's `emcTaskSetMode(MANUAL)`
+   runs `mdi_execute_abort` and the → Zero stopped wherever it was, reply ok, nothing
+   traced. `jog_stop`, `jog_stop_multi` and `_jog_stop_for_client` now skip the mode
+   switch while an MDI executes (no jog can be in flight in MDI mode) and trace it.
+   This is also the disarm-path follow-up recorded on 2026-09-03.
+4. *Silent-drop classes found alongside and closed:* `set_mode` discarded its rc
+   (raises a bounded ValueError now); the hold-to-fire button was cancelled silently
+   when the strip's drag-scroll captured the pointer at 5 px (hold buttons carry
+   `no-drag-scroll`; every cancelled hold says why on the console); LinuxCNC's operator
+   error channel never reached the trace (`nml.error` now). `_cmd_rc_failed` read
+   `linuxcnc.RCS_DONE` bare — the fake binding the dispatch tests run under has no such
+   constant, which is why no rc-checking path had ever been exercised there.
+
+**The answer to "inconsistent": one table, executed live.** `scripts/twp_buttons_check.py`
+drives every motion button through the WebSocket as the button does — → Zero, → Home/G30,
+Zero All, tool measure/load, probe op, Cycle Start — in Machine, TCP and Plane, asserting
+the reply AND the machine outcome, including the two reported sequences (Zero All at A=20,
+jog A to 0, → Zero lands on the datum; release the A jog mid-move, the move completes)
+and the post-M2 stranded state. PASS / FAIL / SKIP per cell, a table at the end. It joins
+the corpus gate as the acceptance for anything touching a motion button. Owed: the first
+live run (needs the gateway that carries today's handler — restart), pasted here.
+
+Verification so far: command_policy 97, dispatch 153 (incl. the seven new), WS lifecycle /
+smoke / command-worker / gateway_util green; Vite hot-reloaded MachineBtn without errors.
