@@ -773,9 +773,24 @@ class TestMachineFrameAndGoZero(unittest.TestCase):
         self.assertFalse(p["machineFrame"]); self.assertTrue(p["ready"])
         self.assertIn("Machine frame", check_command("tool_change", self._twp()))
 
-    def test_go_zero_machine_frame_uses_the_subroutine(self):
-        self.assertEqual(goto_zero_plan(state(), 12.0, 25.0), (["O<go_to_zero> CALL"], None))
-        self.assertEqual(goto_zero_plan(self._twp(kins_type=0), None, 25.0), (["O<go_to_zero> CALL"], None))
+    def test_go_zero_machine_frame_uses_the_subroutine_at_the_stamp_angle(self):
+        # unstamped → the documented A=0 rule
+        self.assertEqual(goto_zero_plan(state(), 12.0, 25.0), (["O<go_to_zero> CALL [0.0000]"], None))
+        self.assertEqual(goto_zero_plan(self._twp(kins_type=0), None, 25.0), (["O<go_to_zero> CALL [0.0000]"], None))
+        # stamped at A 20 in identity → the table goes back to 20 before X/Y
+        lines, why = goto_zero_plan(self._twp(kins_type=0), None, 25.0, stamp={"kins": 0.0, "a": 20.0})
+        self.assertIsNone(why)
+        self.assertEqual(lines, ["O<go_to_zero> CALL [20.0000]"])
+        self.assertEqual(goto_zero_plan(state(), 0.0, 25.0, stamp={"kins": 0, "a": -15.42})[0],
+                         ["O<go_to_zero> CALL [-15.4200]"])
+
+    def test_go_zero_refuses_a_fixture_stamped_under_another_kins(self):
+        _, why = goto_zero_plan(self._twp(kins_type=0), None, 25.0, stamp={"kins": 1.0, "a": 0.0})
+        self.assertIn("TCP", why)
+        _, why = goto_zero_plan(self._twp(kins_type=0), None, 25.0, stamp={"kins": 2.0, "a": 0.0})
+        self.assertIn("Plane", why)
+        _, why = goto_zero_plan(state(), 0.0, 25.0, stamp={"kins": "x", "a": 1.0})
+        self.assertIn("unreadable", why)
 
     def test_go_zero_plane_retracts_along_the_tool_axis_then_xy(self):
         lines, why = goto_zero_plan(self._twp(), -5.0, 25.0)

@@ -1327,6 +1327,13 @@ async def _status_poller():
                         surface_scan_done = True
                         continue  # consume — don't forward to frontend as an error
                 errs.append((kind, text))
+                # LinuxCNC's operator channel also rides the trace (2026-09-04):
+                # a refused MDI / mode switch used to be visible only in the
+                # operator's browser, so an aborted → Zero was undiagnosable
+                # from runlogs. OPERATOR_TEXT/DISPLAY (12/13) are messages;
+                # everything else (NML/operator errors) is a warn.
+                _trace.emit("nml.error", level="info" if kind in (12, 13) else "warn",
+                            kind=kind, text=str(text)[:240])
 
             # INI-change invalidation (issue #29): if the active INI changed
             # under a persistent gateway, the surface/comp caches hold the
@@ -2560,12 +2567,35 @@ async def _cmd_blocking(cmd_fn, *args, wait=_CMD_WAIT_TIMEOUT) -> int:
         raise
 
 
+_MODE_NAMES = {1: "MANUAL", 2: "AUTO", 3: "MDI"}
+
+
 async def set_mode(mode: int):
-    """Switch LinuxCNC task mode. Caller must hold `_cmd_lock`."""
+    """Switch LinuxCNC task mode. Caller must hold `_cmd_lock`.
+
+    A refused or timed-out switch RAISES (ValueError → the dispatcher's
+    bounded ok:false reply). It used to discard the rc while nine other
+    call sites checked theirs — a handler then issued its MDI into the
+    wrong mode and reported ok (2026-09-04)."""
     STAT.poll()
     if safe_get("task_mode", None) == mode:
         return
-    await _cmd_blocking(CMD.mode, mode)
+    rc = await _cmd_blocking(CMD.mode, mode)
+    if _cmd_rc_failed(rc):
+        _trace.emit("task.mode_switch_refused", level="warn", mode=mode, rc=rc)
+        raise ValueError(f"LinuxCNC refused the mode switch to {_MODE_NAMES.get(mode, mode)} (rc={rc})")
+
+
+def _jog_stop_would_abort_mdi(mode, interp, cmd: str) -> bool:
+    """A jog-stop arriving while an MDI EXECUTES: no jog can be in flight
+    (jogging requires MANUAL), and forcing MANUAL runs LinuxCNC's
+    mdi_execute_abort — the → Zero move stopped wherever it was when the
+    operator lifted the finger off the A jog (2026-09-04, "sometimes it
+    doesn't"). Skip the switch, say so in the trace, never silently."""
+    if mode == linuxcnc.MODE_MDI and interp != linuxcnc.INTERP_IDLE:
+        _trace.emit("jog.stop_skipped_mdi_busy", level="info", cmd=cmd, interp_state=interp)
+        return True
+    return False
 
 def reject_if_auto_running() -> Optional[Dict[str, Any]]:
     STAT.poll()
@@ -2666,6 +2696,8 @@ async def _jog_stop_for_client() -> None:
     homed = normalize_homed(safe_get("homed", None))
     if not homed:
         return  # nothing to jog-stop if not homed
+    if _jog_stop_would_abort_mdi(mode, interp, "jog_stop_for_client"):
+        return  # an MDI is executing — no jog can be in flight; a mode switch would abort it
     await set_mode(linuxcnc.MODE_MANUAL)
     jf = _jog_joint_flag()
     _nj = getattr(STAT, "joints", 3) if STAT else 3
@@ -3152,7 +3184,10 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 return {"ok": False, "error": "No machine state yet — refused"}
             pstate = _policy_state_from_payload(
                 _shared_status, armed, kins_switchable=_kins_is_switchable())
-            _wp = _shared_status.get("work_pos") if isinstance(_shared_status, dict) else None
+            # _shared_status is the StatusPayload OBJECT (attribute access —
+            # the first cut read it as a dict and the Plane branch refused
+            # every press with "position unknown"; 2026-09-04).
+            _wp = getattr(_shared_status, "work_pos", None)
             work_z = None
             if isinstance(_wp, (list, tuple)) and len(_wp) > 2:
                 try:
@@ -3160,7 +3195,12 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 except (TypeError, ValueError):
                     work_z = None
             clearance = 1.0 if get_machine_units() == "in" else 25.0
-            lines, why = goto_zero_plan(pstate, work_z, clearance)
+            # The active fixture's W1 stamp: Machine frame returns the table
+            # to the touch-off angle before X/Y (goto_zero_plan).
+            _stamp = None
+            if pstate.g5x_index is not None:
+                _stamp = _prov_cache.get(finite_int(pstate.g5x_index, lo=1))
+            lines, why = goto_zero_plan(pstate, work_z, clearance, stamp=_stamp)
             if why:
                 _trace.emit("goto.zero_refused", level="warn", reason=why,
                             kins_type=pstate.kins_type, g5x_index=pstate.g5x_index)
@@ -3433,6 +3473,8 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             if mode == linuxcnc.MODE_AUTO and interp != linuxcnc.INTERP_IDLE:
                 return {"ok": True}
             axis = finite_int(msg.get("axis"), lo=0)
+            if _jog_stop_would_abort_mdi(mode, interp, "jog_stop"):
+                return {"ok": True}
             await set_mode(linuxcnc.MODE_MANUAL)
             jf = _jog_joint_flag()
             await _cmd_blocking(CMD.jog, linuxcnc.JOG_STOP, jf, _jog_axis_arg(axis, jf), wait=None)
@@ -3461,6 +3503,8 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             if mode == linuxcnc.MODE_AUTO and interp != linuxcnc.INTERP_IDLE:
                 return {"ok": True}
             axes = msg.get("axes", [])
+            if _jog_stop_would_abort_mdi(mode, interp, "jog_stop_multi"):
+                return {"ok": True}
             await set_mode(linuxcnc.MODE_MANUAL)
             jf = _jog_joint_flag()
             for a in axes:
@@ -4682,7 +4726,10 @@ def _cmd_rc_failed(rc) -> bool:
     not. RCS_EXEC (2) cannot come back from wait_complete with a timeout —
     it returns -1 instead — but is treated as failure too: not done is
     not done."""
-    return rc not in (0, linuxcnc.RCS_DONE)
+    # getattr: the fake binding the dispatch tests run under has no RCS_*
+    # constants (real value 1) — a bare attribute read turned every
+    # rc check into an AttributeError reply (2026-09-04).
+    return rc not in (0, getattr(linuxcnc, "RCS_DONE", 1))
 
 
 def _kins_is_switchable() -> bool:

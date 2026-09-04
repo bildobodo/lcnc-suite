@@ -55,7 +55,9 @@ const resolvedMono = computed(() => props.mono ?? def.value.mono);
 // ── Hold-to-fire (ButtonDef.hold) ──
 // The @click handler is withheld from the button and invoked by a timer
 // after HOLD_FIRE_MS of uninterrupted press instead. Release, slide-off
-// (10px slop), pointercancel, or a drag-scroll capture steal all cancel.
+// (10px slop) and pointercancel cancel — each says so on the console. Hold
+// buttons carry `no-drag-scroll` so the strip's drag-scroll (5 px capture,
+// dragScroll.ts) can no longer steal the pointer mid-hold (2026-09-04).
 const attrs = useAttrs();
 const holdEnabled = computed(() => props.hold ?? def.value.hold ?? false);
 const holding = ref(false);
@@ -76,22 +78,40 @@ function callClickHandler(e: Event) {
   else h?.(e);
 }
 
-function cancelHold() {
+let holdStartTs = 0;
+
+// Every cancelled hold says so (console, like fire()'s drops): a swallowed
+// press used to be indistinguishable from a working one — "sometimes it
+// doesn't" (2026-09-04). A release before HOLD_FIRE_MS is the operator's
+// tap; a leave/cancel is a pointer steal or slide-off.
+function cancelHold(reason: string) {
   if (!holding.value) return;
   clearTimeout(holdTimer);
   holding.value = false;
+  console.warn(`[hold] ${props.type} cancelled after ${Math.round(performance.now() - holdStartTs)} ms: ${reason} (hold ${HOLD_FIRE_MS} ms to fire)`);
 }
+const cancelHoldUp = () => cancelHold("released before the hold time");
+const cancelHoldLeave = () => cancelHold("pointer left the button");
+const cancelHoldCancel = () => cancelHold("pointer cancelled (drag-scroll / gesture took it)");
 
 function onHoldPointerDown(e: PointerEvent) {
-  if (!holdEnabled.value || isDisabled.value || e.button !== 0) return;
+  if (!holdEnabled.value || e.button !== 0) return;
+  if (isDisabled.value) {
+    console.warn(`[hold] ${props.type} ignored: gate '${def.value.gate}' is closed`);
+    return;
+  }
   holdStartX = e.clientX;
   holdStartY = e.clientY;
+  holdStartTs = performance.now();
   holding.value = true;
   clearTimeout(holdTimer);
   holdTimer = window.setTimeout(() => {
     holding.value = false;
     // Gate may have closed mid-hold (disarm, probe started) — re-check.
-    if (isDisabled.value) return;
+    if (isDisabled.value) {
+      console.warn(`[hold] ${props.type} not fired: gate '${def.value.gate}' closed during the hold`);
+      return;
+    }
     callClickHandler(e);
   }, HOLD_FIRE_MS);
 }
@@ -99,7 +119,7 @@ function onHoldPointerDown(e: PointerEvent) {
 function onHoldPointerMove(e: PointerEvent) {
   if (!holding.value) return;
   if (Math.abs(e.clientX - holdStartX) > HOLD_MOVE_SLOP || Math.abs(e.clientY - holdStartY) > HOLD_MOVE_SLOP) {
-    cancelHold();
+    cancelHold("moved more than the slop");
   }
 }
 
@@ -127,12 +147,13 @@ onBeforeUnmount(() => clearTimeout(holdTimer));
     :flashing="flashing"
     :warning="warning"
     :holding="holding"
+    :class="holdEnabled ? 'no-drag-scroll' : undefined"
     :style="holdEnabled ? { '--hold-duration': HOLD_FIRE_MS + 'ms' } : undefined"
     @pointerdown="onHoldPointerDown"
     @pointermove="onHoldPointerMove"
-    @pointerup="cancelHold"
-    @pointercancel="cancelHold"
-    @pointerleave="cancelHold"
+    @pointerup="cancelHoldUp"
+    @pointercancel="cancelHoldCancel"
+    @pointerleave="cancelHoldLeave"
     @contextmenu="onHoldContextMenu"
   >
     <template v-if="useAbortDefault"><Square :size="14" /> Abort</template>

@@ -233,22 +233,46 @@ _R_MACHINE_FRAME = (lambda s: machine_frame_required(s) is None,
                     "Machine frame required — select the Machine frame (M428) first")
 
 
-def goto_zero_plan(s: MachineState, work_z: Optional[float], clearance: float):
+def goto_zero_plan(s: MachineState, work_z: Optional[float], clearance: float,
+                   stamp: Optional[dict] = None):
     """The → Zero button under the current kinematics: (mdi_lines, None) or
     (None, refusal).
 
-    Machine frame: the probe_basic subroutine (G53 Z0 retract, X0 Y0,
-    rotaries to 0). Plane frame with its plane active and G59 selected:
-    retract ALONG THE TOOL AXIS to at least `clearance` in plane
-    coordinates (never downward — max of the live plane Z and the
-    clearance), then X0 Y0 in the plane; rotaries untouched (a rotary move
-    would un-orient the head). TCP: refused — neither the machine top nor
-    the tool axis is a world axis there. Pure; unit-tested."""
+    Machine frame: the probe_basic subroutine (G53 Z0 retract, rotaries to
+    the fixture's touch-off pose, then X0 Y0) — `stamp` is the active
+    fixture's W1 provenance ({"kins","a",...}, None when unstamped). In
+    identity kinematics a fixture is a fixed point in the ROOM, the part's
+    datum only at the table angle it was touched off at, so the table goes
+    back to the STAMP angle (0 when unstamped = the documented A=0 rule)
+    BEFORE X/Y — the tip lands on the part's datum, where the viewer draws
+    the triad. 2026-09-04, operator: "G54 did not align anymore with the
+    head — it stopped somewhere else" (zeroed at a tilted A, the routine
+    drove A to 0). A fixture stamped under TCP/Plane holds table-frame /
+    plane numbers, not machine coordinates: refused.
+    Plane frame with its plane active and G59 selected: retract ALONG THE
+    TOOL AXIS to at least `clearance` in plane coordinates (never downward
+    — max of the live plane Z and the clearance), then X0 Y0 in the plane;
+    rotaries untouched (a rotary move would un-orient the head). TCP:
+    refused — neither the machine top nor the tool axis is a world axis
+    there. Pure; unit-tested."""
     k = _effective_kins(s)
     if k is None:
         return None, "Kinematics mode unknown (reader stale) — refused"
     if k == 0:
-        return ["O<go_to_zero> CALL"], None
+        sk, a = None, 0.0
+        if stamp:
+            try:
+                sk = int(round(float(stamp.get("kins") or 0)))
+                a = float(stamp.get("a") or 0.0)
+            except (TypeError, ValueError):
+                return None, "Fixture provenance unreadable — refused"
+        if sk not in (None, 0):
+            return None, (f"The active fixture was touched off in "
+                          f"{'TCP' if sk == 1 else 'Plane'} kinematics — its numbers are not "
+                          f"machine coordinates; select that frame, or touch off again here")
+        if not math.isfinite(a):
+            return None, "Fixture provenance unreadable — refused"
+        return [f"O<go_to_zero> CALL [{a:.4f}]"], None
     if k == 1:
         return None, ("→ Zero under TCP: neither the machine top nor the tool axis is a "
                       "world axis here — select the Machine frame or the Plane frame first")

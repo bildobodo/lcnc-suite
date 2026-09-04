@@ -743,3 +743,96 @@ class TestFusionWorkerSubprocess(unittest.TestCase):
     def test_worker_invalid_library_maps_to_valueerror(self):
         with self.assertRaises(ValueError):
             gateway._bulk._run_fusion_worker_blocking(b'{"nope":1}', "mm", timeout=30.0)
+
+
+class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
+    """2026-09-04: the → Zero handler through the REAL payload shape, and the
+    jog-stop / mode-switch holes that made it 'sometimes work'."""
+
+    def setUp(self):
+        gateway.lcnc_connected = True
+        gateway.STAT = linuxcnc.stat()
+        self.cmd = _RecordingCmd()
+        gateway.CMD = self.cmd
+        self._switchable = gateway._kins_is_switchable
+        self._prov = dict(gateway._prov_cache)
+        gateway._prov_cache.clear()
+
+    def tearDown(self):
+        gateway._kins_is_switchable = self._switchable
+        gateway._prov_cache.clear()
+        gateway._prov_cache.update(self._prov)
+
+    def _send(self, msg, **state):
+        gateway._shared_status = _payload(**state)
+        return _run(gateway.handle_command(msg, True))
+
+    def _mdi_lines(self):
+        return [a[0] for n, a, _k in self.cmd.calls if n == "mdi"]
+
+    def test_machine_frame_calls_the_subroutine_at_the_stamp_angle(self):
+        gateway._kins_is_switchable = lambda: True
+        gateway._prov_cache[1] = {"kins": 0.0, "a": 20.0, "x": 0.0, "y": 0.0, "z": 0.0}
+        r = self._send({"cmd": "go_to_zero"}, kins_type=0, twp_active=False, g5x_index=1)
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(self._mdi_lines(), ["O<go_to_zero> CALL [20.0000]"])
+
+    def test_plane_frame_reads_work_pos_from_the_payload_object(self):
+        # The payload is an OBJECT (attribute access): the first cut read it
+        # as a dict and refused every press with "Plane position unknown".
+        gateway._kins_is_switchable = lambda: True
+        r = self._send({"cmd": "go_to_zero"}, kins_type=2, twp_active=True, g5x_index=6,
+                       work_pos=[1.0, 2.0, -5.0])
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(self._mdi_lines(), ["G0 Z25.0000", "G0 X0 Y0"])
+
+    def test_plane_frame_without_work_pos_is_the_only_unknown_path(self):
+        gateway._kins_is_switchable = lambda: True
+        r = self._send({"cmd": "go_to_zero"}, kins_type=2, twp_active=True, g5x_index=6)
+        self.assertFalse(r["ok"])
+        self.assertIn("position unknown", r["error"])
+        self.assertEqual(self._mdi_lines(), [])
+
+    def test_tcp_is_refused_with_its_reason(self):
+        gateway._kins_is_switchable = lambda: True
+        r = self._send({"cmd": "go_to_zero"}, kins_type=1, twp_active=False, g5x_index=1)
+        self.assertFalse(r["ok"])
+        self.assertIn("TCP", r["error"])
+
+    def test_jog_stop_during_an_executing_mdi_never_switches_mode(self):
+        # Releasing the A jog while → Zero moves used to force MANUAL and
+        # abort the MDI wherever it was.
+        gateway.STAT.task_mode = linuxcnc.MODE_MDI
+        gateway.STAT.interp_state = linuxcnc.INTERP_READING
+        r = self._send({"cmd": "jog_stop", "axis": 3})
+        self.assertTrue(r["ok"])
+        self.assertIsNone(self.cmd.args_of("mode"), "mode switch would abort the MDI")
+        self.assertIsNone(self.cmd.args_of("jog"))
+        r = self._send({"cmd": "jog_stop_multi", "axes": [0, 3]})
+        self.assertTrue(r["ok"])
+        self.assertIsNone(self.cmd.args_of("mode"))
+
+    def test_jog_stop_still_stops_a_real_jog_in_manual(self):
+        gateway.STAT.task_mode = linuxcnc.MODE_MANUAL
+        gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
+        r = self._send({"cmd": "jog_stop", "axis": 3})
+        self.assertTrue(r["ok"])
+        self.assertIsNotNone(self.cmd.args_of("jog"))
+
+    def test_refused_mode_switch_is_a_loud_reply_not_a_silent_mdi(self):
+        class _RefusingCmd(_RecordingCmd):
+            def __getattr__(self, name):
+                if name == "mode":
+                    def refuse(*a, **k):
+                        self.calls.append(("mode", a, k)); return None
+                    return refuse
+                if name == "wait_complete":
+                    return lambda *a, **k: getattr(linuxcnc, "RCS_ERROR", 3)
+                return super().__getattr__(name)
+        gateway.CMD = self.cmd = _RefusingCmd()
+        gateway.STAT.task_mode = linuxcnc.MODE_MANUAL
+        gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
+        r = self._send({"cmd": "mdi", "text": "G0 X0"})
+        self.assertFalse(r["ok"])
+        self.assertIn("refused the mode switch", r["error"])
+        self.assertEqual(self._mdi_lines(), [])
