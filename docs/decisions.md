@@ -2968,5 +2968,10 @@ fixture now says non-switchable, as the gateway's own call sites do — the
 builder's default is the CLOSED unknown reading, refused by run/machineFrame
 by design), permissions 12. Frontend live via HMR; `go_to_zero` handler needs
 the next gateway restart (the suite was restarted 2026-09-04 18:36, before
-this commit — until then → Zero answers "unknown command"). Corpus gate re-run
-after the remap edits (record below).
+this commit — until then → Zero answers "unknown command"). Acceptance for the
+remap edits, run 2026-09-04 19:40 under an armed keeper: corpus gate GREEN
+(11 runs, worst sim→truth 0.210 on twp_g683_tilted.run1 at tol 1.5, everything
+else ≤ 0.037 at tol 0.5); `twp_capture_check`, `twp_touchoff_plane_check`,
+`twp_reorient_check` ALL PASS — the G53.x / G69 / M428 / M430 wrappers with
+the mirror assignments are live-proven under task. Run records restored to the
+committed versions.
