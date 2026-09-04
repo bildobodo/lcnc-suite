@@ -2917,3 +2917,56 @@ Recorded for later: the → Zero button drives rotaries to zero after the XY mov
 which un-orients a Plane-mode head (probe_basic contract, tooltip now says so);
 `twpDatumStale`'s stamp-A short-circuit makes the datum-red path dead on a
 tilted-A machine (documented frame reason, left as is).
+
+
+## 2026-09-04 — G53 routines need the Machine frame; a mode-aware → Zero; tool change saves and restores the kins
+
+Operator: "If I have defined a plane and I press go zero, what will happen?" —
+`go_to_zero.ngc` does `G53 G0 Z0`, `G0 X0 Y0`, then `G0 A0 / B0 / C0`. Under
+switched kinematics G53 addresses the kinematics' WORLD frame: in TOOL mode the
+tilted plane frame (so "Z0" is a plane through the machine origin, not the top
+of travel — direction depends on where you stand), in TCP the table-riding
+frame; and a rotary word under TOOL kins swings the head at fixed XYZ joints —
+the tip sweeps the pivot lever — and leaves the plane stale. Every routine that
+retracts with G53 (go-to Home/G30, the tool-change and toolsetter routines,
+probe_basic's cycles) assumed identity kinematics and sat on `ready`.
+
+**Guards (one predicate, three surfaces):** `command_policy.machine_frame_required`
+→ permission class `machineFrame` (= ready + identity kins; unknown refuses) on
+the go-to Home/G30 buttons, tool load / measure / unload, the probe operations
+and their fire sites; backend-enforced for `tool_change`. **→ Zero** is now the
+gateway command `go_to_zero` with `goto_zero_plan` (pure): Machine frame runs
+the subroutine as before; Plane frame with its plane active and G59 selected
+retracts ALONG THE TOOL AXIS to max(live plane Z, 25 mm / 1 in) and rapids
+X0 Y0 in the plane, rotaries untouched; TCP refuses with the reason (neither
+the machine top nor the tool axis is a world axis there). Class `goZero`.
+Tooltip states all three. MDI typed by hand stays the operator's own (the text
+is opaque to the policy) — documented limitation.
+
+**Tool change under TCP/Plane inside a PROGRAM** (the gate covers MDI only):
+`twp/remap_subs/m600.ngc` shadows the bundle's wrapper (first on
+SUBROUTINE_PATH): save the switchkins type, M428, `o<tool_touch_off>`, restore
+(M430 re-selects G59, M429 TCP). Under task the HAL pin is the truth; the
+preview parse has no HAL, so every switch site (428/429/430 remaps, the G53.x
+wrappers, g69, and remap.py after its `M68 E3 Q2`) now also sets the
+interpreter mirror `#<_webui_kinstype>` — the preview restores the same type
+the machine will, and a type-2 span after the change keeps the frame the last
+G53.x pinned. Proven through the RUNNING gateway's parse: a `M429 / T3 M600 /
+G0 X10` program ships the post-change rapid as kinstype 1 (5 markers), and a
+`G68.2 / G53.1 / T3 M600 / G0 X10 / G69` program ships it as kinstype 2 with
+`kins_end_type` 0. Task-side M600 not exercised on this sim (no toolsetter
+position configured) — the wrapper only sequences remaps that are live-proven.
+
+**Finding (preview honesty, follow-up):** with a plane DEFINED on the machine,
+a program that starts with G68.2 parses EMPTY (g682 refuses "already defined"
+inside the preview's seeded state) and the worker reports success with zero
+segments — no loud reason reaches the operator. Needs an interp-error channel
+on the wire ("parse stopped at line N: …") the way violations ride it.
+
+Verification: command_policy 92 + dispatch green (the dispatch "fully ready"
+fixture now says non-switchable, as the gateway's own call sites do — the
+builder's default is the CLOSED unknown reading, refused by run/machineFrame
+by design), permissions 12. Frontend live via HMR; `go_to_zero` handler needs
+the next gateway restart (the suite was restarted 2026-09-04 18:36, before
+this commit — until then → Zero answers "unknown command"). Corpus gate re-run
+after the remap edits (record below).

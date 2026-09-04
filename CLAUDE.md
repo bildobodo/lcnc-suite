@@ -160,6 +160,8 @@ TIER 4 — Machine idle (requires base + isIdle)
 TIER 5 — Full ready (requires everything)
   ready ──────────────── base + isIdle + !busy + isHomed              MDI, Spindle, Coolant
   run ────────────────── ready + kins runnable (Plane kins needs its plane + G59; unknown mode refuses)   Cycle Start, Run from line
+  machineFrame ───────── ready + identity kins (G53 routines: → Home/G30, tool load/measure/unload, probe ops)
+  goZero ─────────────── ready + a → Zero plan for the mode (Machine: subroutine; Plane: retract along the tool axis, X0 Y0 in the plane; TCP refuses)
   probe ──────────────── base + isIdle + !busy + isHomed + !eoffset   Probe ops, tool change, WCS edit, macros
   touchoff ───────────── probe + kins-mode × fixture rule (linear)     DRO touch-off / Zero (linear letters)
   touchoffRotary ─────── probe + identity kins + G54                    DRO touch-off / Zero (A/B/C)

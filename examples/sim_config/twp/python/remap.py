@@ -1399,6 +1399,10 @@ def g53x_core(self):
     self.execute("M68 E3 Q2")
     # LCNC-SUITE: the component that performs the switch announces it
     self.execute("(WEBUI_KINSTYPE=2)")
+    # LCNC-SUITE: interpreter-side mirror of the switch for wrappers that
+    # must SAVE and RESTORE the type where no HAL pin exists (the preview
+    # parse) — see remap_subs/m600.ngc.
+    self.execute("#<_webui_kinstype> = 2")
     if (x,y,z) != (None,None,None):
         log.debug('G53.3 called')
         self.execute("G0 X%s Y%s Z%s %s%f %s%f" % (x, y, z, joint_letter_secondary, degrees(theta_2), joint_letter_primary, degrees(theta_1)), lineno())

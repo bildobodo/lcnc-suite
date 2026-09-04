@@ -15,6 +15,7 @@ o100 else
 o100 endif
 M68 E3 Q0                                                   ;switch to identity kinematic
 (WEBUI_KINSTYPE=0)
+#<_webui_kinstype> = 0
 M66 L0 E0
 M530 P#<P>                                                  ;orient the spindle with P word
 M66 L0 E0

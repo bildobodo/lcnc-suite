@@ -15,6 +15,7 @@ o100 else
 o100 endif
 M68 E3 Q1                                                   ;switch to tcp kinematic
 (WEBUI_KINSTYPE=1)
+#<_webui_kinstype> = 1
 M66 L0 E0
 M530 P#<P>                                                  ;orient the spindle with P word
 M66 L0 E0
