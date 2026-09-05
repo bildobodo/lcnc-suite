@@ -92,6 +92,20 @@ def snap():
     return {p: halget(p) for p in PINS}
 
 
+def halget_moved(pin, prev, timeout=1.0):
+    """The pin's value once it differs from `prev`, or the unchanged value
+    after `timeout` — the helper republishes at 20 Hz and the seq out pin is
+    copied LAST in its pass, so a read straight after an MDI can precede the
+    copy (the first live run read 3 → 3 for a bump that had happened)."""
+    t0 = time.time()
+    while time.time() - t0 < timeout:
+        v = halget(pin)
+        if abs(v - prev) > 1e-9:
+            return v
+        time.sleep(0.02)
+    return halget(pin)
+
+
 def poll():
     s.poll()
 
@@ -433,13 +447,14 @@ mdi(f"#{_PROV['stamped']}=0")
 
 
 def _teardown():
-    global _ws_proc
-    if _ws_proc is not None and _ws_proc.poll() is None:
-        _ws_proc.stdin.close()
-        try:
-            _ws_proc.wait(timeout=3)
-        except subprocess.TimeoutExpired:
-            _ws_proc.kill()  # helper may sit in ws.recv — the socket drop is the point
+    for _p in list(_ws_procs.values()):
+        if _p.poll() is None:
+            _p.stdin.close()
+            try:
+                _p.wait(timeout=3)
+            except subprocess.TimeoutExpired:
+                _p.kill()  # helper may sit in ws.recv — the socket drop is the point
+    if _ws_procs:
         time.sleep(1.0)  # the armed-disconnect abort lands before our MDIs
     try:
         mdi("g69")
@@ -580,7 +595,7 @@ print("\n=== D2. datum-write epoch: the settle keys on M535's write, not on the 
 # exactly this case (3089 / 3082 ms replies, twp.datum_settle_timeout).
 seq_d = halget("twp-helper-comp.twp-datum-seq")
 mdi("o<twp_touchoff> call [4] [0] [0] [5.0]")
-seq_e = halget("twp-helper-comp.twp-datum-seq")
+seq_e = halget_moved("twp-helper-comp.twp-datum-seq", seq_d)
 check("D2: twp-datum-seq +1 per M535 (direct MDI)", abs(seq_e - seq_d - 1) < 1e-9,
       f"{seq_d:.0f} → {seq_e:.0f}")
 time.sleep(0.6)  # broadcast settle (the touchoff gate reads the shared payload)
@@ -591,8 +606,9 @@ dtT = time.monotonic() - t0
 check("D2: gateway Plane touch-off on the SAME datum ok",
       rT.get("ok") is True and rT.get("route") == "plane", str(rT))
 check("D2: same-datum touch-off replies in < 1 s", dtT < 1.0, f"{dtT * 1000:.0f} ms")
-check("D2: twp-datum-seq +1 through the gateway path",
-      abs(halget("twp-helper-comp.twp-datum-seq") - seq_e - 1) < 1e-9)
+seq_f = halget_moved("twp-helper-comp.twp-datum-seq", seq_e)
+check("D2: twp-datum-seq +1 through the gateway path", abs(seq_f - seq_e - 1) < 1e-9,
+      f"{seq_e:.0f} → {seq_f:.0f}")
 _ev = trace_tags_since(t0_ns, {"twp.datum_settled", "twp.datum_settle_timeout",
                               "twp.datum_seq_unavailable"})
 if _ev is not None:

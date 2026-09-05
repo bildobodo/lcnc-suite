@@ -90,6 +90,19 @@ def snap():
     return {p: halget(p) for p in PINS}
 
 
+def halget_moved(pin, prev, timeout=1.0):
+    """The pin's value once it differs from `prev` (the helper copies the seq
+    out pin LAST in its 20 Hz pass — a read straight after the MDI can
+    precede it), or the unchanged value after `timeout`."""
+    t0 = time.time()
+    while time.time() - t0 < timeout:
+        v = halget(pin)
+        if abs(v - prev) > 1e-9:
+            return v
+        time.sleep(0.02)
+    return halget(pin)
+
+
 def poll():
     s.poll()
 
@@ -308,9 +321,9 @@ def plane_touchoff_roundtrip(label, a_deg, z_value):
     after = dro()
     # Datum-write epoch (2026-09-05): M535 bumps it exactly once, after the
     # datum pins — the gateway's settle keys on it instead of on the value.
-    check(f"{label}: twp-datum-seq +1 per M535",
-          abs(halget("twp-helper-comp.twp-datum-seq") - seq_before - 1) < 1e-9,
-          f"{seq_before:.0f} → {halget('twp-helper-comp.twp-datum-seq'):.0f}")
+    seq_after = halget_moved("twp-helper-comp.twp-datum-seq", seq_before)
+    check(f"{label}: twp-datum-seq +1 per M535", abs(seq_after - seq_before - 1) < 1e-9,
+          f"{seq_before:.0f} → {seq_after:.0f}")
     check(f"{label}: DRO Z reads the entered value", abs(after[2] - z_value) < 1e-3,
           f"{after[2]:.4f} (was {before[2]:.4f})")
     check(f"{label}: DRO X/Y untouched", abs(after[0] - before[0]) < 1e-3
