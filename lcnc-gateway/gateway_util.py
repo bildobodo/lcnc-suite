@@ -2326,9 +2326,13 @@ def check_limit_violations_world(segments, limits, kins_cfg, unit_scale=1.0,
 _TRSRN_LETTERS = ("X", "Y", "Z", "A", "B", "C")
 
 
-def check_limit_violations_trsrn(segments, limits, kins_cfg, unit_scale=1.0,
-                                 rot_step_deg=4.0, max_report=200):
-    """JOINT-side soft limits for xyzacb-trsrn non-identity segments.
+def _check_limit_violations_trsrn_scalar(segments, limits, kins_cfg, unit_scale=1.0,
+                                         rot_step_deg=4.0, max_report=200):
+    """SCALAR ORACLE TWIN of check_limit_violations_trsrn (per-segment Python
+    loop). Kept verbatim so the vectorized checker below is pinned to it in
+    tests (TestVectorizedLimitChecks); never called by the worker.
+
+    JOINT-side soft limits for xyzacb-trsrn non-identity segments.
 
     Sibling of check_limit_violations_world with the trsrn twist: the raw
     switchkins TYPE picks the joint mapping per segment — type 1 (TCP)
@@ -2430,6 +2434,222 @@ def check_limit_violations_trsrn(segments, limits, kins_cfg, unit_scale=1.0,
     return records, len(keys), unchecked
 
 
+_ZERO3 = (0.0, 0.0, 0.0)
+_NAN3 = (float("nan"),) * 3
+
+
+def _segment_arrays(segs, width):
+    """(end, start, unknown, tlo) as numpy arrays for a list of canon-shaped
+    segment tuples whose slots [1]=start, [2]=end, [3]=tlo. end/start are
+    (n, width) float64; unknown is (n, width) bool marking start=None /
+    None slots (W3 P1 unknown-path axes — see ustart_start_tuple), where
+    start carries the ENDPOINT value like _fill_unknown_start; tlo is
+    (n, 3) with zeros for None. Tuples shorter than `width` pad with NaN
+    (never compared equal, never flagged — the scalar twins skip those
+    slots). Fast path: one array build per field; only rows with a None
+    take the per-row fallback."""
+    import numpy as np
+    n = len(segs)
+    unknown = np.zeros((n, width), dtype=bool)
+    nan_row = (float("nan"),) * width
+
+    def _rows(field):
+        out = []
+        bad = []
+        for i, sg in enumerate(segs):
+            v = sg[field]
+            if v is None or len(v) < width or None in v[:width]:
+                bad.append(i)
+                out.append(nan_row)
+            else:
+                out.append(v[:width])
+        return np.array(out, dtype=np.float64).reshape(n, width), bad
+
+    end, _bad_end = _rows(2)
+    start, bad_start = _rows(1)
+    for i in bad_start:
+        st = segs[i][1]
+        if st is None:
+            unknown[i, :] = True
+            start[i, :] = end[i, :]
+            continue
+        for k in range(width):
+            v = st[k] if k < len(st) else None
+            if v is None:
+                unknown[i, k] = True
+                start[i, k] = end[i, k]
+            else:
+                start[i, k] = v
+    tlo = np.array([sg[3] if sg[3] is not None else _ZERO3 for sg in segs],
+                   dtype=np.float64).reshape(n, 3)
+    return end, start, unknown, tlo
+
+
+def _trsrn_inverse_np(w, params0, mode, tz=None, frame=None):
+    """Vectorized twin of trsrn_kins_inverse for S world samples.
+
+    w: (S, 6) TLO-inclusive world [x y z a b c]; mode 1 takes `tz` (S,)
+    per-sample tool_offset_z, mode 2 `frame` (S, 3) per-sample
+    (pre_rot rad, primary deg, secondary deg). Returns (S, 6) joints.
+    The expressions are the scalar twin's, term for term and in the same
+    operation order (no reassociation), so the two agree to the ULP; the
+    scalar (oracle-pinned to the compiled comp) stays the reference in
+    tests. Mode 2 ignores TLO by upstream design, like the scalar.
+    """
+    import numpy as np
+    ly = params0.get("y_pivot", 0.0)
+    lz = params0.get("z_pivot", 0.0)
+    dx = params0.get("x_offset", 0.0)
+    dy = params0.get("y_offset", 0.0)
+    dray = params0.get("y_rot_axis", 0.0) - (dy + ly)
+    draz = params0.get("z_rot_axis", 0.0) - lz
+    qx, qy, qz = w[:, 0], w[:, 1], w[:, 2]
+    wa, wb, wc = w[:, 3], w[:, 4], w[:, 5]
+    nu = params0.get("nut_angle", 0.0)
+    sv, cv = math.sin(math.radians(nu)), math.cos(math.radians(nu))
+    sw, cw = np.sin(np.radians(wa)), np.cos(np.radians(wa))
+    if mode == 1:
+        tc = params0.get("pre_rot", 0.0)  # radians (upstream set_p convention)
+        stc, ctc = math.sin(tc), math.cos(tc)
+        ss, cs = np.sin(np.radians(wb)), np.cos(np.radians(wb))
+        sp, cp = np.sin(np.radians(wc)), np.cos(np.radians(wc))
+        dt = tz if tz is not None else params0.get("tool_offset_z", 0.0)
+    else:
+        tc, th1, th2 = frame[:, 0], frame[:, 1], frame[:, 2]
+        stc, ctc = np.sin(tc), np.cos(tc)
+        ss, cs = np.sin(np.radians(th2)), np.cos(np.radians(th2))
+        sp, cp = np.sin(np.radians(th1)), np.cos(np.radians(th1))
+        dt = params0.get("tool_offset_z", 0.0)
+    cvss, svss = cv * ss, sv * ss
+    r = cs + sv * sv * (1 - cs)
+    s = cs + cv * cv * (1 - cs)
+    t = sv * cv * (1 - cs)
+    if mode == 1:
+        j0 = ((cp * svss - sp * t) * (dt + lz) + cp * dx
+              - (cp * cvss + sp * r) * ly - dy * sp - dx + qx)
+        j1 = (cp * dy + dx * sp - cw * (dray + dy + ly - qy)
+              + (sp * svss + cp * t) * (dt + lz)
+              - (cvss * sp - cp * r) * ly
+              - (draz + dt + lz - qz) * sw + dray)
+        j2 = ((dt + lz) * s + ly * t - cw * (draz + dt + lz - qz)
+              + (dray + dy + ly - qy) * sw + draz)
+    else:
+        j0 = (cp * dx - (cp * cvss + sp * r) * ly + (cp * svss - sp * t) * lz
+              + ((cp * cs - cvss * sp) * ctc
+                 - (cp * cvss + sp * r) * stc) * qx
+              - ((cp * cvss + sp * r) * ctc + (cp * cs - cvss * sp) * stc) * qy
+              + (cp * svss - sp * t) * qz - dy * sp - dx)
+        j1 = (cp * dy - (cvss * sp - cp * r) * ly + (sp * svss + cp * t) * lz
+              + ((cp * cvss + cs * sp) * ctc - (cvss * sp - cp * r) * stc) * qx
+              - ((cvss * sp - cp * r) * ctc + (cp * cvss + cs * sp) * stc) * qy
+              + (sp * svss + cp * t) * qz + dx * sp - dy - ly)
+        j2 = (-(ctc * svss - stc * t) * qx + (stc * svss + ctc * t) * qy
+              + lz * s + qz * s + ly * t - lz)
+    out = np.empty((w.shape[0], 6), dtype=np.float64)
+    out[:, 0] = j0
+    out[:, 1] = j1
+    out[:, 2] = j2
+    out[:, 3:6] = w[:, 3:6]
+    return out
+
+
+def check_limit_violations_trsrn(segments, limits, kins_cfg, unit_scale=1.0,
+                                 rot_step_deg=4.0, max_report=200):
+    """JOINT-side soft limits for xyzacb-trsrn non-identity segments —
+    VECTORIZED (2026-09-05). Contract, rules and return shape are exactly
+    _check_limit_violations_trsrn_scalar's (read its docstring); this one
+    builds every rotary-subdivided sample of every segment as one numpy
+    batch, runs the vectorized inverse twin once per mode, and reduces
+    per-segment joint extremes with reduceat. Only the VIOLATING segments
+    go through Python (in segment order, so the per-(line, axis) worst
+    record resolves identically). Pinned to the scalar twin by
+    TestVectorizedLimitChecks. Why: 1.18 M plane-mode segments cost ~18 s
+    in the scalar loop (2.36 M inverse solves in pure Python) — 40 % of a
+    46 s re-parse the operator waits on after every touch-off.
+    """
+    import numpy as np
+    segments = list(segments)
+    if not limits or not segments:
+        return [], 0, sum(1 for s in segments if s[4] == 2 and s[5] is None)
+    params0 = {k: float(v) for k, v in ((kins_cfg or {}).get("params") or {}).items()}
+    bounds = []
+    for jno, letter in enumerate(_TRSRN_LETTERS):
+        b = limits.get(letter)
+        if b is not None:
+            bounds.append((jno, letter, b[0], b[1]))
+    keep = []
+    unchecked = 0
+    for sg in segments:
+        kt = sg[4]
+        if kt == 2 and sg[5] is None:
+            unchecked += 1
+            continue
+        if kt not in (1, 2):
+            continue  # identity segs belong to the caller's identity check
+        keep.append(sg)
+    if not bounds or not keep:
+        return [], 0, unchecked
+    n = len(keep)
+    end, start, unknown, tlo = _segment_arrays(keep, 6)
+    ktype = np.fromiter((sg[4] for sg in keep), dtype=np.int8, count=n)
+    frame = np.array([sg[5] if sg[5] is not None else _NAN3 for sg in keep],
+                     dtype=np.float64).reshape(n, 3)
+    # Rotary subdivision per segment (the trt/client 4-degree rule, cap 256).
+    rotd = np.max(np.abs(end[:, 3:6] - start[:, 3:6]), axis=1)
+    steps = np.minimum(256, np.maximum(1, np.ceil(rotd / rot_step_deg))).astype(np.int64)
+    cnt = steps + 1
+    seg_start = np.cumsum(cnt) - cnt
+    total_samples = int(cnt.sum())
+    seg_idx = np.repeat(np.arange(n), cnt)
+    si = np.arange(total_samples) - np.repeat(seg_start, cnt)
+    tt = si / steps[seg_idx]
+    s0 = start[seg_idx]
+    w = s0 + (end[seg_idx] - s0) * tt[:, None]
+    w[:, :3] = (w[:, :3] + tlo[seg_idx]) * unit_scale
+    joints = np.empty((total_samples, 6), dtype=np.float64)
+    kt_s = ktype[seg_idx]
+    m1 = kt_s == 1
+    if m1.any():
+        tz = (tlo[:, 2] * unit_scale)[seg_idx][m1]
+        joints[m1] = _trsrn_inverse_np(w[m1], params0, 1, tz=tz)
+    m2 = ~m1
+    if m2.any():
+        joints[m2] = _trsrn_inverse_np(w[m2], params0, 2, frame=frame[seg_idx][m2])
+    jmin = np.minimum.reduceat(joints, seg_start, axis=0)
+    jmax = np.maximum.reduceat(joints, seg_start, axis=0)
+    lin_unknown = unknown[:, :3].any(axis=1)
+    linenos = [sg[0] for sg in keep]
+    worst = {}
+    for jno, letter, mn, mx in bounds:
+        unk = lin_unknown if jno < 3 else unknown[:, jno]
+        # Parked-joint exemption applies only to KNOWN motion (see
+        # _joint_unknown): a known joint that did not move this segment
+        # was flagged on its culprit line already.
+        exempt = (~unk) & ((jmax[:, jno] - jmin[:, jno]) <= _JOINT_MOVE_EPS)
+        below = (~exempt) & (jmin[:, jno] < mn - _LIMIT_EPS) if mn is not None else None
+        above = (~exempt) & (jmax[:, jno] > mx + _LIMIT_EPS) if mx is not None else None
+        if below is None and above is None:
+            continue
+        either = below if above is None else (above if below is None else (below | above))
+        for i in np.flatnonzero(either):
+            key = (linenos[i], letter)
+            if below is not None and below[i]:
+                v = float(jmin[i, jno])
+                rec = worst.get(key)
+                if rec is None or v < rec[0]:
+                    worst[key] = [v, mn, "min"]
+            if above is not None and above[i]:
+                v = float(jmax[i, jno])
+                rec = worst.get(key)
+                if rec is None or v > rec[0]:
+                    worst[key] = [v, mx, "max"]
+    order = {letter: i for i, letter in enumerate(AXIS_LETTERS)}
+    keys = sorted(worst, key=lambda k: (k[0], order.get(k[1], 9)))
+    records = [{"line": ln, "axis": ax, "value": round(worst[(ln, ax)][0], 4),
+                "limit": round(worst[(ln, ax)][1], 4), "kind": worst[(ln, ax)][2]}
+               for ln, ax in keys[:max_report]]
+    return records, len(keys), unchecked
+
 def merge_violation_records(a, b, max_report=200):
     """Union of two violation reports (identity-checked + world-checked).
 
@@ -2465,7 +2685,16 @@ _SETTINGS_GCODES = re.compile(r"\bg\s*0*(?:10|92(?:\.[123])?|52)\b", re.I)
 
 
 def strip_gcode_comments(line: str) -> str:
-    """Drop ``;`` trailing comments and ``(...)`` inline comments."""
+    """Drop ``;`` trailing comments and ``(...)`` inline comments.
+
+    Fast path (2026-09-05): a line with neither ``(`` nor ``;`` is returned
+    as-is — the character loop below would rebuild it unchanged. Nearly
+    every line of CAM output is such a line, and this function runs three
+    times per source line per parse (line classification, G10 target
+    scan, sub-caller attribution): on a 1.18 M-line program the loop was
+    ~10 s of a 23 s parse."""
+    if "(" not in line and ";" not in line:
+        return line
     out, depth = [], 0
     for ch in line:
         if ch == "(":
@@ -2946,9 +3175,13 @@ def read_axis_limits(ini_find, axis_mask: int):
     return limits
 
 
-def check_limit_violations(segments, limits, unit_scale: float = 1.0,
-                           max_report: int = 200):
-    """Check canon motion segments against per-axis soft limits.
+def _check_limit_violations_scalar(segments, limits, unit_scale: float = 1.0,
+                                   max_report: int = 200):
+    """SCALAR ORACLE TWIN of check_limit_violations (per-segment Python
+    loop). Kept verbatim so the vectorized checker below is pinned to it in
+    tests (TestVectorizedLimitChecks); never called by the worker.
+
+    Check canon motion segments against per-axis soft limits.
 
     segments   -- iterable of (lineno, start9, end9, tlo3): start9/end9 =
                   canon tuples in canon linear units (inches) / degrees,
@@ -3025,6 +3258,80 @@ def check_limit_violations(segments, limits, unit_scale: float = 1.0,
                     worst[key] = [v, mx, "max", letter]
                 elif rec[2] == "max" and v > rec[0]:
                     rec[0] = v
+    total = len(worst)
+    records = [
+        {"line": line, "axis": rec[3], "value": round(rec[0], 4),
+         "limit": round(rec[1], 4), "kind": rec[2]}
+        for (line, _idx), rec in sorted(worst.items())
+    ]
+    return records[:max_report], total
+
+
+def check_limit_violations(segments, limits, unit_scale: float = 1.0,
+                           max_report: int = 200):
+    """Canon motion segments against per-axis soft limits — VECTORIZED
+    (2026-09-05). Contract, attribution rule and return shape are exactly
+    _check_limit_violations_scalar's (read its docstring); the per-axis
+    parked test, TLO add-back, unit scale and bound compares run as numpy
+    column ops, and only the VIOLATING segments go through Python, in
+    segment order, so the kind-locked per-(line, axis) worst record
+    resolves identically. Pinned to the scalar twin by
+    TestVectorizedLimitChecks. Why: ~2 s of every identity re-parse of a
+    1.18 M-line program.
+    """
+    import numpy as np
+    if not limits:
+        return [], 0
+    segments = list(segments)
+    if not segments:
+        return [], 0
+    plan = []
+    for idx, letter in enumerate(AXIS_LETTERS):
+        b = limits.get(letter)
+        if b is None:
+            continue
+        mn, mx = b
+        scale = 1.0 if letter in _ROTARY_AXES else unit_scale
+        plan.append((idx, letter, scale,
+                     None if mn is None else mn - _LIMIT_EPS,
+                     None if mx is None else mx + _LIMIT_EPS,
+                     mn, mx))
+    width = len(AXIS_LETTERS)
+    end, start, unknown, tlo = _segment_arrays(segments, width)
+    # _segment_arrays fills unknown START slots with the endpoint; the
+    # identity rule compares start == end to mean PARKED, so those slots
+    # must read as not-parked (None never equals a float in the scalar).
+    start = np.where(unknown, np.nan, start)
+    linenos = [sg[0] for sg in segments]
+    worst = {}  # (line, axis_idx) -> [value, limit, kind, letter]
+    for idx, letter, scale, mn_eps, mx_eps, mn, mx in plan:
+        if idx >= width:
+            continue
+        raw = end[:, idx]
+        parked = start[:, idx] == raw
+        v = raw + tlo[:, idx] if idx < 3 else raw
+        v = v * scale
+        below = (~parked) & (v < mn_eps) if mn_eps is not None else None
+        above = (~parked) & (v > mx_eps) if mx_eps is not None else None
+        if below is not None and above is not None:
+            above = above & ~below   # the scalar's elif
+        either = below if above is None else (above if below is None else (below | above))
+        if either is None:
+            continue
+        for i in np.flatnonzero(either):
+            key = (linenos[i], idx)
+            val = float(v[i])
+            rec = worst.get(key)
+            if below is not None and below[i]:
+                if rec is None:
+                    worst[key] = [val, mn, "min", letter]
+                elif rec[2] == "min" and val < rec[0]:
+                    rec[0] = val
+            else:
+                if rec is None:
+                    worst[key] = [val, mx, "max", letter]
+                elif rec[2] == "max" and val > rec[0]:
+                    rec[0] = val
     total = len(worst)
     records = [
         {"line": line, "axis": rec[3], "value": round(rec[0], 4),

@@ -82,6 +82,13 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         # kins markers: an event at seq N governs segments with seq > N.
         self.wcs_events = []
         self._last_wcs_basis = None
+        # The basis can only change through the three canon setters below
+        # (the interpreter never writes the offset attributes directly —
+        # rs274.interpret.Translated owns them and only its setters assign).
+        # They raise this flag; _next_seq re-snapshots ONLY when it is set.
+        # Before: a 19-getattr snapshot + two 9-tuple compares on EVERY
+        # segment — 60 % of the canon's share of a 1.18 M-line parse.
+        self._wcs_dirty = True
         # Subroutine span markers `(WEBUI_SUB=name [CALLER=tok])` /
         # `(WEBUI_SUB_END)` from our shipped subs and the TWP remap
         # wrappers (W2 P6): [(seq_at_marker, name | None, caller_token |
@@ -132,6 +139,9 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
 
     # Axis-offset attribute suffixes, canonical order (rs274.interpret).
     _WCS_SUFFIXES = ("x", "y", "z", "a", "b", "c", "u", "v", "w")
+    # Class default so a canon built without __init__ (test harnesses) still
+    # snapshots on its first segment; __init__ sets it too.
+    _wcs_dirty = True
 
     def wcs_basis(self):
         """The WCS state right now: (g5x9, g929, rotation_xy).
@@ -237,12 +247,28 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
             self._last_motion_g5x = idx
             if idx is not None and idx not in self.wcs_used:
                 self.wcs_used.append(idx)
-        basis = self.wcs_basis()
-        if basis != self._last_wcs_basis:
-            self._last_wcs_basis = basis
-            self.wcs_events.append((self.seq, idx, basis))
+        if self._wcs_dirty:
+            self._wcs_dirty = False
+            basis = self.wcs_basis()
+            if basis != self._last_wcs_basis:
+                self._last_wcs_basis = basis
+                self.wcs_events.append((self.seq, idx, basis))
         self.seq += 1
         return self.seq
+
+    # WCS basis writers (rs274.interpret.Translated): the ONLY paths that
+    # change what wcs_basis() returns — flag, then let the parent assign.
+    def set_g5x_offset(self, *args, **kw):
+        self._wcs_dirty = True
+        return super().set_g5x_offset(*args, **kw)
+
+    def set_g92_offset(self, *args, **kw):
+        self._wcs_dirty = True
+        return super().set_g92_offset(*args, **kw)
+
+    def set_xy_rotation(self, *args, **kw):
+        self._wcs_dirty = True
+        return super().set_xy_rotation(*args, **kw)
 
     def straight_traverse(self, x, y, z, a, b, c, u, v, w):
         if self.suppress > 0: return

@@ -362,6 +362,128 @@ class TestResolveLoadedFile(unittest.TestCase):
             self.assertEqual(prev, want)
 
 
+class TestVectorizedLimitChecks(unittest.TestCase):
+    """The vectorized soft-limit checkers (2026-09-05) are pinned to their
+    scalar twins — the per-segment Python loops the worker ran before —
+    on randomized segment sets exercising both trsrn kins types, plane
+    frames, frameless type-2, identity segments, unknown / partial starts,
+    None TLO, parked axes, repeated line numbers, one-sided bounds and both
+    unit scales: identical records, totals and unchecked counts. The
+    vectorized inverse twin is pinned to the (oracle-pinned) scalar inverse
+    to 1e-9 on random poses."""
+
+    CFG = {"type": "xyzacb-trsrn", "identity_first": False,
+           "params": {"nut_angle": 55.0, "y_pivot": 50.0, "z_pivot": 120.0,
+                      "x_offset": 0.0, "y_offset": 0.0,
+                      "y_rot_axis": -1000.0, "z_rot_axis": -2000.0}}
+    LIMITS = {"X": (-1400.0, 1400.0), "Y": (-700.0, 700.0), "Z": (-1400.0, 50.0),
+              "A": (-90.0, 40.0), "B": (-50.0, 50.0), "C": (-180.0, 180.0)}
+    ONE_SIDED = {"X": (None, 1400.0), "C": (-180.0, None), "Y": (None, None)}
+
+    @staticmethod
+    def _segments(rng, n, trsrn):
+        segs = []
+        for _ in range(n):
+            lineno = rng.randint(1, 10)
+            base = [rng.uniform(-1500, 1500), rng.uniform(-800, 800),
+                    rng.uniform(-1500, 100), rng.uniform(-100, 50),
+                    rng.uniform(-60, 60), rng.uniform(-200, 200), 0.0, 0.0, 0.0]
+            start = list(base)
+            for k in range(6):
+                if rng.random() < 0.6:   # 40 % of axes parked per segment
+                    start[k] = base[k] + rng.uniform(-30, 30)
+            r = rng.random()
+            if r < 0.1:
+                st = None
+            elif r < 0.25:
+                st = tuple(None if rng.random() < 0.5 else v for v in start)
+            else:
+                st = tuple(start)
+            tlo = None if rng.random() < 0.3 else (0.0, 0.0, rng.uniform(0, 120))
+            if trsrn:
+                kt = rng.choice([0, 1, 2, 2, 2])
+                frame = None
+                if kt == 2 and rng.random() >= 0.15:
+                    frame = (rng.uniform(-3, 3), rng.uniform(-180, 180), rng.uniform(-90, 90))
+                segs.append((lineno, st, tuple(base), tlo, kt, frame))
+            else:
+                segs.append((lineno, st, tuple(base), tlo))
+        return segs
+
+    def test_trsrn_checker_matches_scalar_twin(self):
+        import random
+        for seed in range(12):
+            rng = random.Random(seed)
+            segs = self._segments(rng, 120, True)
+            for limits in (self.LIMITS, self.ONE_SIDED, {}):
+                for scale in (1.0, 25.4):
+                    got = gateway_util.check_limit_violations_trsrn(
+                        iter(segs), limits, self.CFG, scale)
+                    want = gateway_util._check_limit_violations_trsrn_scalar(
+                        iter(segs), limits, self.CFG, scale)
+                    self.assertEqual(got, want, f"seed {seed} limits {limits} scale {scale}")
+            # Something must actually be flagged for the comparison to mean anything.
+            _, total, unchecked = gateway_util.check_limit_violations_trsrn(segs, self.LIMITS, self.CFG)
+            self.assertGreater(total, 0)
+            self.assertGreater(unchecked, 0)
+
+    def test_identity_checker_matches_scalar_twin(self):
+        import random
+        for seed in range(12):
+            rng = random.Random(100 + seed)
+            segs = self._segments(rng, 150, False)
+            for limits in (self.LIMITS, self.ONE_SIDED, {}):
+                for scale in (1.0, 25.4):
+                    got = gateway_util.check_limit_violations(iter(segs), limits, scale)
+                    want = gateway_util._check_limit_violations_scalar(iter(segs), limits, scale)
+                    self.assertEqual(got, want, f"seed {seed} limits {limits} scale {scale}")
+            _, total = gateway_util.check_limit_violations(segs, self.LIMITS)
+            self.assertGreater(total, 0)
+
+    def test_max_report_cap_and_total_match(self):
+        import random
+        rng = random.Random(7)
+        segs = [(i, (0.0,) * 9, (5000.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0), None, 2,
+                 (0.0, 10.0, 5.0)) for i in range(1, 300)]
+        got = gateway_util.check_limit_violations_trsrn(segs, {"X": (-1.0, 1.0)}, self.CFG, max_report=50)
+        want = gateway_util._check_limit_violations_trsrn_scalar(segs, {"X": (-1.0, 1.0)}, self.CFG, max_report=50)
+        self.assertEqual(got, want)
+        self.assertEqual(len(got[0]), 50)
+        self.assertEqual(got[1], 299)
+        isegs = [(i, (0.0,) * 9, (5000.0,) + (0.0,) * 8, None) for i in range(1, 300)]
+        got = gateway_util.check_limit_violations(isegs, {"X": (-1.0, 1.0)}, max_report=50)
+        want = gateway_util._check_limit_violations_scalar(isegs, {"X": (-1.0, 1.0)}, max_report=50)
+        self.assertEqual(got, want)
+        self.assertEqual((len(got[0]), got[1]), (50, 299))
+
+    def test_vectorized_inverse_matches_scalar_inverse(self):
+        import random
+        import numpy as np
+        rng = random.Random(3)
+        params = dict(self.CFG["params"])
+        params["pre_rot"] = 0.4
+        for mode in (1, 2):
+            worlds, expect, tz, frames = [], [], [], []
+            for _ in range(400):
+                w = [rng.uniform(-1500, 1500), rng.uniform(-800, 800), rng.uniform(-1500, 100),
+                     rng.uniform(-100, 50), rng.uniform(-60, 60), rng.uniform(-200, 200)]
+                p = dict(params)
+                if mode == 1:
+                    p["tool_offset_z"] = rng.uniform(0, 120)
+                    tz.append(p["tool_offset_z"])
+                else:
+                    fr = (rng.uniform(-3, 3), rng.uniform(-180, 180), rng.uniform(-90, 90))
+                    p["pre_rot"], p["primary_angle"], p["secondary_angle"] = fr
+                    frames.append(fr)
+                worlds.append(w)
+                expect.append(gateway_util.trsrn_kins_inverse(w, p, mode))
+            got = gateway_util._trsrn_inverse_np(
+                np.array(worlds), params, mode,
+                tz=np.array(tz) if mode == 1 else None,
+                frame=np.array(frames) if mode == 2 else None)
+            np.testing.assert_allclose(got, np.array(expect), rtol=0, atol=1e-9)
+
+
 if __name__ == "__main__":
     unittest.main()
 
