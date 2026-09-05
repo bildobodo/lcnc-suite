@@ -12,6 +12,7 @@ import unittest
 
 import gateway_util
 from gateway_util import (
+    joints_beyond_limits,
     sanitize_filename,
     validate_extension,
     validate_path_within,
@@ -3109,6 +3110,24 @@ class TestWorldLimitCheck(unittest.TestCase):
         self.assertEqual(total, 2)
         self.assertEqual(records[0]["value"], -25.0)
         self.assertEqual(records[1]["axis"], "C")
+
+
+class TestJointsBeyondLimits(unittest.TestCase):
+    def test_inside_is_empty(self):
+        self.assertEqual(joints_beyond_limits([0.0, -5.0, -1999.0], [(-5000, 5000), (-5000, 5000), (-2000, 0.01)]), [])
+
+    def test_beyond_ceiling_and_floor(self):
+        lims = [(-5000, 5000), (-5000, 5000), (-2000, 0.01)]
+        self.assertEqual(joints_beyond_limits([0.0, 0.0, 0.057], lims), [2])      # the live case
+        self.assertEqual(joints_beyond_limits([0.0, 0.0, -2000.5], lims), [2])
+        self.assertEqual(joints_beyond_limits([5001.0, 0.0, 0.0], lims), [0])
+
+    def test_eps_and_unknowns_never_flag(self):
+        self.assertEqual(joints_beyond_limits([0.01 + 5e-7], [(-2000, 0.01)]), [])
+        self.assertEqual(joints_beyond_limits([9.0], [(None, 0.01)]), [])
+        self.assertEqual(joints_beyond_limits([9.0], [None]), [])
+        self.assertEqual(joints_beyond_limits([9.0, 9.0], [(-1, 1)]), [0])     # short limits → later joints unknown
+        self.assertEqual(joints_beyond_limits([float("nan")], [(-1, 1)]), [])
 
 
 class TestDriftGateOpen(unittest.TestCase):

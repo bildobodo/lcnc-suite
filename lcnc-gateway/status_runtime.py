@@ -40,7 +40,8 @@ from command_policy import (
     MachineState as _PolicyMachineState,
     evaluate_permissions,
 )
-from gateway_util import (PROV_A_EPS, atomic_write_bytes, canonical_to_joint_order,
+from gateway_util import (
+    joints_beyond_limits, PROV_A_EPS, atomic_write_bytes, canonical_to_joint_order,
                           resolve_loaded_file)
 from tool_table import parse_tool_table, _merge_tool_data
 
@@ -202,6 +203,11 @@ class StatusPayload:
     emc_enable_in: Optional[bool]
     homed: Optional[bool]  # LinuxCNC stat truth (normalized)
     homed_joints: Optional[list]  # per-joint homed mask (configured joints only)
+    # Joint LETTERS whose position lies outside the joint's own soft-limit
+    # window (gateway_util.joints_beyond_limits). Non-empty ⇒ motion refuses
+    # every world-mode move; the gateway jogs in joint mode meanwhile and the
+    # UI says so. None = STAT exposes no joint limits (never silently empty).
+    joints_beyond_limit: Optional[List[str]]
 
     # task/motion
     task_mode: Optional[int]
@@ -883,6 +889,19 @@ class StatusRuntime:
 
         # RAW joint positions (for driving the machine model / spindle nose)
         jpos = safe_get("joint_actual_position", None)
+        joints_beyond_limit = None
+        jinfo = safe_get("joint", None)
+        if jpos is not None and jinfo:
+            try:
+                nj_lim = int(safe_get("joints", 0) or 0) or len(jinfo)
+                lims = [(j.get("min_position_limit"), j.get("max_position_limit"))
+                        if isinstance(j, dict) else (None, None) for j in jinfo[:nj_lim]]
+                jl = [L for i, L in enumerate("XYZABCUVW") if int(axis_mask) & (1 << i)]
+                joints_beyond_limit = [jl[i] if i < len(jl) else f"J{i}"
+                                       for i in joints_beyond_limits(list(jpos)[:nj_lim], lims)]
+            except (TypeError, ValueError, AttributeError) as exc:
+                _trace.emit("poller.joint_limits_unreadable", level="warn", error=repr(exc))
+                joints_beyond_limit = None
         if jpos is None:
             jpos = safe_get("joint_position", None)
         joint_pos = to_float_list(jpos)
@@ -997,6 +1016,7 @@ class StatusRuntime:
             emc_enable_in=reader_get("emc_enable_in"),
             homed=homed,
             homed_joints=homed_joints,
+            joints_beyond_limit=joints_beyond_limit,
             task_mode=safe_get("task_mode", None),
             interp_state=safe_get("interp_state", None),
             paused=bool(safe_get("paused", False)),

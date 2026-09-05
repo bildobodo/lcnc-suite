@@ -33,6 +33,22 @@ const NUT_ANGLE = 55, PIVOT_Y = 50, PIVOT_Z = 120;
 const Y_ROT_AXIS = -1000, Z_ROT_AXIS = -2000;
 const MZ = [-1000, 1000, 2000];
 
+// The Z window the INI grants the type-0 (identity) kinematics — read from the
+// config itself so the model and the limits cannot drift apart silently: the
+// parked pose and every envelope station must lie inside it, the sweep must
+// reach the declared floor, and the AXIS and JOINT windows must agree (the
+// ini.z.* lift under TCP/TOOL kins relies on the joint window being the
+// physical one). 2026-09-05: Z0 became the top of travel (−2000..0.01).
+const INI = fs.readFileSync(
+  path.resolve(__dirname, "../../../examples/sim_config/lcnc_suite_sim_twp.ini"), "utf8");
+function iniFloat(section: string, key: string): number {
+  const body = INI.split(/^\[/m).find(s => s.startsWith(`${section}]`));
+  const m = body?.match(new RegExp(`^${key}\\s*=\\s*(-?[\\d.]+)`, "m"));
+  if (!m) throw new Error(`${section}.${key} missing from the TWP INI`);
+  return parseFloat(m[1]);
+}
+const Z_MIN = iniFloat("JOINT_2", "MIN_LIMIT"), Z_MAX = iniFloat("JOINT_2", "MAX_LIMIT");
+
 describe("machine-xyzacb-trsrn model structure", () => {
   it("drives joints 0..5 exactly once each, with the vismach signs", () => {
     const byJoint = new Map<number, any>();
@@ -253,39 +269,62 @@ describe("machine-xyzacb-trsrn envelope acceptance", () => {
     "platter/table_base",  // the A faceplate in its bearing block
   ]);
 
+  // Not the travel hypercube. The INI allows +/-5000 on X and Y, which sweeps
+  // a 10 m square through the portal and the table alike; that is what the
+  // program-level sweep exists to catch. This is the mechanically intended
+  // envelope:
+  //   - at parked height (Z0 = the top of travel, nose 2 m above the table):
+  //     the full rotary envelope and the linear extents the portal allows
+  //   - down at the work: traverse over the stock, stopping just above it
+  //   - the Z floor (INI MIN_LIMIT): straight down from the parked pose over
+  //     the clear region — NOT over the stock at Y-1000, which would be 600 mm
+  //     through the work piece onto the console
+  // Rotaries are exercised HIGH and the descent happens with the rotaries
+  // parked, which is how the machine is actually driven — indexing the
+  // faceplate with the head down swings a 941 mm radius into the spindle,
+  // and correctly so.
+  const ENVELOPE: number[][] = [
+    [0, 0, 0, 0, 0, 0],
+    // full rotary envelope, head parked high
+    [0, 0, 0, 360, 0, 0],
+    [0, 0, 0, 360, 180, 0],
+    [0, 0, 0, 360, 180, 180],
+    [0, 0, 0, 360, -180, -180],
+    [0, 0, 0, 0, 0, 0],
+    // linear extents at parked height (portal opening bounds X)
+    [200, 0, 0, 0, 0, 0],
+    [-600, 0, 0, 0, 0, 0],
+    [-600, -1400, 0, 0, 0, 0],
+    [200, -1400, 0, 0, 0, 0],
+    [0, -1000, 0, 0, 0, 0],
+    // descend over the stock and traverse it, rotaries parked
+    [0, -1000, -1300, 0, 0, 0],
+    [200, -1000, -1300, 0, 0, 0],
+    [-400, -1000, -1300, 0, 0, 0],
+    [0, -1000, -1380, 0, 0, 0],
+    [0, -1000, 0, 0, 0, 0],
+    // the Z floor: nose at the A-axis height at world (-1000, 1000, 0) — 50 mm
+    // from the console edge, the C-collar dip outside it, the ram inside the
+    // portal opening (computed from vismach_to_stl_trsrn.py; B = C = 0)
+    [0, 0, 0, 0, 0, 0],
+    [0, 0, -2000, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0],
+  ];
+
+  it("the INI Z window: Z0 is the top, AXIS == JOINT, every station inside, the sweep reaches the floor", () => {
+    expect([iniFloat("AXIS_Z", "MIN_LIMIT"), iniFloat("AXIS_Z", "MAX_LIMIT")]).toEqual([Z_MIN, Z_MAX]);
+    expect(Z_MAX).toBeGreaterThan(0);   // HOME = 0 strictly inside (homing legality)
+    expect(Z_MAX).toBeLessThan(1);      // …and Z0 IS the top of travel
+    const zs = ENVELOPE.map(p => p[2]);
+    for (const z of zs) {
+      expect(z).toBeGreaterThanOrEqual(Z_MIN);
+      expect(z).toBeLessThanOrEqual(Z_MAX);
+    }
+    expect(Math.min(...zs)).toBe(Z_MIN); // a floor change without a station change fails here
+  });
+
   it("working envelope has zero self-collisions; static contacts are the designed bearings only", { timeout: 300_000 }, () => {
-    // Not the travel hypercube. The INI allows +/-5000 on every linear axis,
-    // which sweeps a 10 m cube through the portal and the table alike; that
-    // is what the program-level sweep exists to catch. This is the
-    // mechanically intended envelope:
-    //   - at parked height (Z0, nose 2 m above the table): the full rotary
-    //     envelope and the full linear extents the portal opening allows
-    //   - down at the work: traverse over the stock, stopping just above it
-    // Rotaries are exercised HIGH and the descent happens with the rotaries
-    // parked, which is how the machine is actually driven — indexing the
-    // faceplate with the head down swings a 941 mm radius into the spindle,
-    // and correctly so.
-    const track = envelopeTrack([
-      [0, 0, 0, 0, 0, 0],
-      // full rotary envelope, head parked high
-      [0, 0, 0, 360, 0, 0],
-      [0, 0, 0, 360, 180, 0],
-      [0, 0, 0, 360, 180, 180],
-      [0, 0, 0, 360, -180, -180],
-      [0, 0, 0, 0, 0, 0],
-      // linear extents at parked height (portal opening bounds X)
-      [200, 0, 0, 0, 0, 0],
-      [-600, 0, 0, 0, 0, 0],
-      [-600, -1400, 0, 0, 0, 0],
-      [200, -1400, 0, 0, 0, 0],
-      [0, -1000, 0, 0, 0, 0],
-      // descend over the stock and traverse it, rotaries parked
-      [0, -1000, -1300, 0, 0, 0],
-      [200, -1000, -1300, 0, 0, 0],
-      [-400, -1000, -1300, 0, 0, 0],
-      [0, -1000, -1380, 0, 0, 0],
-      [0, -1000, 0, 0, 0, 0],
-    ]);
+    const track = envelopeTrack(ENVELOPE);
     const r = sweepCollisions(buildCollisionModel(machine, bodies), track, WCS0,
                               { margin: 2, maxSamples: 400_000 });
 

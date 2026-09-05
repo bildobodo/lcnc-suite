@@ -1,0 +1,40 @@
+# Z soft-limit window per kinematics mode — the TWP sim (xyzacb_trsrn switchkins).
+#
+# [AXIS_Z]/[JOINT_2] hold the IDENTITY (type-0) window = the physical travel.
+# motion checks every programmed move's WORLD pose against [AXIS_*] in every
+# kins mode (command.c inRange → axis_check_constraints) and the joints against
+# [JOINT_*]; under TCP/TOOL the world Z is a rotated frame (plane Z + G59 ≈ 509
+# on the demo plane), so the axis window must open there while the joint window
+# keeps protecting the slide. switchkins.adoc "INI file limit settings"
+# prescribes the ini.z.* pins for exactly this; driving them from the live
+# switchkins type covers every switch site (M428/9/30, G53.x, G69, on_abort,
+# twp_reorient) without touching a remap. in0 = the former ±5000, so world-mode
+# behaviour is byte-identical to the shipped gate results.
+#
+# WHY A POSTGUI FILE (run by the lcnc-suite display after `halcmd start`):
+# linking a fresh signal (value 0) to ini.z.min_limit changes the limit, inihal
+# turns that into a motion command, and at [HAL]HALCMD time the servo thread is
+# not started yet — task blocks on usrmot forever and the boot times out
+# (observed 2026-09-05). With the threads running the mux outputs already carry
+# the type-0 values when the ini pins are linked, so inihal sees no change.
+# The comparator is wcomp (window −0.5..0.5 ⇒ type 0): near and comp are
+# already loaded by the sim's hallib and a HAL module loads once.
+loadrt wcomp names=z-limit-identity
+loadrt mux2 names=z-min-limit-sel,z-max-limit-sel
+addf z-limit-identity servo-thread
+addf z-min-limit-sel servo-thread
+addf z-max-limit-sel servo-thread
+setp z-limit-identity.min -0.5
+setp z-limit-identity.max 0.5
+setp z-min-limit-sel.in1 -2000
+setp z-max-limit-sel.in1 0.01
+setp z-min-limit-sel.in0 -5000
+setp z-max-limit-sel.in0 5000
+net :kinstype-select => z-limit-identity.in
+net z-limit-is-identity z-limit-identity.out => z-min-limit-sel.sel z-max-limit-sel.sel
+# the mux outputs first (the running thread has already computed them), the
+# ini pins last — their value does not change on link
+net z-min-limit z-min-limit-sel.out
+net z-max-limit z-max-limit-sel.out
+net z-min-limit => ini.z.min_limit
+net z-max-limit => ini.z.max_limit

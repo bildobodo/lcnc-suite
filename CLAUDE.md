@@ -211,10 +211,14 @@ only the plane overlay and the datum-moved chip. Record: docs/decisions.md
 motion button (→ Zero, → Home/G30, Zero All, tool measure/load, probe op, Cycle
 Start) through the WebSocket in Machine / TCP / Plane and asserts reply +
 machine outcome as one PASS/FAIL/SKIP table — the acceptance gate for any
-change touching a motion button, next to the corpus gate. A `jog_stop` that
-arrives while an MDI executes never switches mode (it would abort the MDI);
-`set_mode` raises on refusal; LinuxCNC operator errors ride the trace as
-`nml.error`. A retract NEVER lowers Z: the `G53 G0 Z0` in go_to_zero/home/g30
+change touching a motion button, next to the corpus gate. The gateway tracks the
+jogs IT started (`_active_jogs`): a `jog_stop` for an axis with no active jog is a
+traced no-op — it used to force MANUAL, which aborted an MDI issued a beat
+earlier (the operator's finger leaving the A jog after pressing → Zero); a
+verified switch to MDI/AUTO clears the set (task refuses those while jogging);
+every new jog emits `jog.cmd`. `set_mode` raises on refusal AND when task
+ignored the switch (jog active — "release the jog"); LinuxCNC operator errors
+ride the trace as `nml.error`. A retract NEVER lowers Z: the `G53 G0 Z0` in go_to_zero/home/g30
 is guarded by `#<_abs_z> LT 0` (the same four offset terms a G53 Z word
 subtracts — interp_namedparams NP_ABS_Z / interp_find G_53) and the RFL safe-Z
 step skips when already at/above; the matrix certifies the frame premise
@@ -356,6 +360,19 @@ expresses, so the column is a portal the ram passes through with
 clearance: a crash body, not a fake bearing. Requires a one-time
 `halcompile --install scripts/kins_oracle/xyzacb_trsrn.comp`
 (deliberately not in install.sh — see examples/sim_config/README.md).
+
+TWP sim travels (2026-09-05): **Z0 is the TOP of travel** — joints-at-zero is the
+parked pose (nose 2000 above the A axis; stock top at machine −1400), type-0
+window `[AXIS_Z]/[JOINT_2] −2000..0.01` (HOME 0 strictly inside, DMU precedent),
+X/Y ±5000 on purpose (the joint-side soft-limit case). LinuxCNC checks the
+WORLD pose against `[AXIS_*]` in EVERY kins mode, so under TCP/TOOL (rotated
+world frames) the Z axis window is lifted to ±5000 by `hallib/z_limit_window.hal`
+(`wcomp` window on `:kinstype-select` → `mux2` → `ini.z.min_limit/max_limit`,
+the switchkins.adoc pattern), a `[HAL]POSTGUI_HALFILE` that the `lcnc-suite`
+launcher runs after `halcmd start` the way axis does — a `[HAL]HALCMD` net onto
+an `ini.*` pin runs before the servo thread exists and blocks task (boot
+timeout); `near`/`comp` are already loaded by the hallib and a module loads once while the joint window keeps protecting the slide;
+`machineTrsrn.test.ts` reads the INI and ties the window to the model.
 
 **Schema** (`machine.json`):
 - `groups`: `[{id, parent, translate?}]` — transform tree under implicit
@@ -846,6 +863,10 @@ which lcnc-suite    # should print ~/.local/bin/lcnc-suite
 3. Reads `WEBUI_*` config from INI `[DISPLAY]` section via `inivar`
 4. Production (`WEBUI_DEV=0`): exports `LCNC_WEBUI_DIST_DIR`, `exec`s uvicorn serving API + built frontend
 5. Dev (`WEBUI_DEV=1`): starts Vite on :5173 (hot-reload) + gateway on :8000, cleans up both on exit
+   Before either: runs every `[HAL]POSTGUI_HALFILE` with `halcmd -i <ini> -f`, the way axis/gmoccapy
+   do — after `halcmd start`, and after WAITING for milltask's `inihal` component to be ready (the
+   linuxcnc script spawns milltask in the background and this launcher is up in milliseconds, so
+   `ini.*` pins may not exist yet). A failing file aborts the display loudly.
 6. LinuxCNC blocks on the display process; SIGTERM triggers clean HAL shutdown
 
 **INI configuration** (`[DISPLAY]` section):

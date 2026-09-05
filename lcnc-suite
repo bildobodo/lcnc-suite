@@ -188,6 +188,60 @@ LCNC_LAUNCHER_LOG="$LCNC_RESOLVED_LOG_DIR/launcher.log"
 _log() { printf '[%s] %s\n' "$(date +%H:%M:%S.%3N)" "$*" >> "$LCNC_LAUNCHER_LOG"; }
 _log "launcher start pid=$$ log_dir=$LCNC_RESOLVED_LOG_DIR"
 
+# ── [HAL]POSTGUI_HALFILE — run the way axis/gmoccapy run it: by the display,
+# AFTER `halcmd start` (linuxcnc script: threads tick from step 4.3.9, the
+# display starts at 4.3.11). This is the one hook that can link ini.* pins
+# safely — a [HAL]HALCMD `net` onto ini.z.min_limit runs before the servo
+# thread exists, inihal turns the link transient into a motion command, and
+# task blocks on usrmot until the boot times out (2026-09-05, TWP sim; see
+# hallib/z_limit_window.hal). A failing file aborts the display loudly:
+# LinuxCNC must not run with its HAL wiring silently missing.
+if [[ -n "$INI_FILE" ]]; then
+  if ! command -v halcmd >/dev/null 2>&1; then
+    echo "ERROR: 'halcmd' not found on PATH — cannot run [HAL]POSTGUI_HALFILE." >&2
+    exit 1
+  fi
+  INI_DIR="$(cd "$(dirname "$INI_FILE")" && pwd)"
+  _pg_n=0
+  while :; do
+    _pg_f="$(inivar -ini "$INI_FILE" -sec HAL -var POSTGUI_HALFILE -num $((_pg_n + 1)) 2>/dev/null || true)"
+    _pg_f="${_pg_f%%#*}"
+    _pg_f="${_pg_f#"${_pg_f%%[![:space:]]*}"}"
+    _pg_f="${_pg_f%"${_pg_f##*[![:space:]]}"}"
+    [[ -z "$_pg_f" ]] && break
+    _pg_n=$((_pg_n + 1))
+    if [[ $_pg_n -eq 1 ]]; then
+      # The linuxcnc script spawns milltask in the BACKGROUND (`loadusr -Wn
+      # inihal … &`) and starts the display right after `halcmd start`; the
+      # ini.* pins appear only when milltask's inihal comes up. AXIS never
+      # sees this race because its own startup takes seconds — this launcher
+      # is ready in milliseconds ("Pin 'ini.z.min_limit' does not exist",
+      # 2026-09-05). Wait for inihal to be READY, bounded, loud on timeout.
+      _pg_i=0
+      until [[ "$(halcmd show comp inihal 2>/dev/null | awk '$3=="inihal"{print $5}')" == "ready" ]]; do
+        _pg_i=$((_pg_i + 1))
+        if [[ $_pg_i -ge 200 ]]; then
+          echo "ERROR: inihal (milltask) not ready after 20 s — cannot run POSTGUI_HALFILE '$_pg_f'." >&2
+          _log "postgui: inihal not ready after 20 s"
+          exit 1
+        fi
+        sleep 0.1
+      done
+      _log "postgui: inihal ready after $((_pg_i / 10)).$((_pg_i % 10)) s"
+    fi
+    _log "postgui halfile $_pg_n: $_pg_f"
+    echo "Running POSTGUI_HALFILE: $_pg_f"
+    # halcmd's own output is recorded in launcher.log as well as the terminal:
+    # the display's stdout is not durable at this point (before the tee/FIFO).
+    if ! (cd "$INI_DIR" && halcmd -i "$INI_FILE" -f "$_pg_f" 2>&1 | tee -a "$LCNC_LAUNCHER_LOG"); then
+      echo "ERROR: POSTGUI_HALFILE '$_pg_f' failed (halcmd output above) — aborting the display." >&2
+      _log "postgui halfile FAILED: $_pg_f"
+      exit 1
+    fi
+  done
+  [[ $_pg_n -gt 0 ]] && _log "postgui halfiles executed: $_pg_n"
+fi
+
 # ── Log gateway stdout/stderr to /tmp so we can read it after the fact
 # without needing the launching terminal. Two independent isolations:
 #

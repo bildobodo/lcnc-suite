@@ -263,17 +263,24 @@ print(f"  the feature has moved to machine {[round(v,4) for v in o20]}")
 store20 = establish(TILT, o20)
 print(f"  stored (table frame) = {[round(v,4) for v in store20]}")
 
-d = math.dist(store0, store20)
-check("both touch-offs store the SAME table-frame origin", d < 1e-3,
-      f"separation {d:.6f} mm")
-
-# What the old behaviour would have produced, so the number has a scale:
-# the raw tilted offset, stored unconverted.
-d_raw = math.dist(store0, o20)
-print(f"\n  (unconverted, i.e. before W1, the tilted touch-off would have"
-      f" stored a point {d_raw:.3f} mm away)")
-check("the fix is doing real work (the error it removes is large)",
-      d_raw > 1.0, f"{d_raw:.3f} mm")
+# CONTRACT SINCE 2026-09-01/02 (program zero rides the part; W1's automatic
+# conversion of typed values is gone): a TYPED set_wcs is a fixture-frame
+# STATEMENT — stored unchanged and stamped table frame (kins 0 / A 0,
+# gateway set_wcs pose_override) — while a real TOUCH-OFF at a tilted pose
+# stores the live point and stamps THAT A. The old assertion here ("both
+# touch-offs store the SAME table-frame origin") certified the removed W1
+# behaviour and failed by 723.7 mm on 2026-09-05 — the check, not the product.
+check("typed set_wcs at A=20 stores the typed numbers unchanged (a fixture-frame statement)",
+      all(abs(store20[i] - o20[i]) < 1e-3 for i in range(3)),
+      f"stored {[round(v, 4) for v in store20]} vs typed {[round(v, 4) for v in o20]}")
+prov_typed = read_params([_PROV[k] for k in ("stamped", "kins", "a")])
+check("…and stamps table frame (stamped, kins 0, A 0) — not the live A=20",
+      abs(prov_typed[0] - 1) < 1e-9 and abs(prov_typed[1]) < 1e-9 and abs(prov_typed[2]) < 1e-9,
+      f"stamp={prov_typed}")
+d_raw = math.dist(store0, store20)
+print(f"\n  (the two statements differ by {d_raw:.3f} mm — the same physical feature"
+      f" seen from A=0 and from A=20; a touch-off, not a typed value, is what"
+      f" carries the pose)")
 
 print("\n=== C: orient at the tilted pose and land on the face ===")
 mdi("G53.1")

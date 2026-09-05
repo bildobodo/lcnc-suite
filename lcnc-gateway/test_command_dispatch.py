@@ -238,6 +238,35 @@ class TestHandlerExecution(unittest.TestCase):
         self.assertEqual(args[0], linuxcnc.JOG_STOP)
         self.assertEqual(args[2], 5)
 
+    def test_jog_beyond_soft_limit_switches_to_joint_mode(self):
+        # A joint outside its own window (TWP sim after a +Z jog under TOOL
+        # kins ran joint Z to +0.057 past a 0.01 ceiling): motion refuses
+        # every world-mode move; the jog must go to FREE and jog the JOINT.
+        gateway.STAT.axis_mask = 0b111111
+        gateway.STAT.motion_mode = linuxcnc.TRAJ_MODE_TELEOP
+        gateway._shared_status = _payload(joints_beyond_limit=["Z"])
+        r = _run(gateway.handle_command({"cmd": "jog_cont", "axis": 2, "vel": -5.0}, True))
+        self.assertTrue(r["ok"])
+        self.assertEqual(self.cmd.args_of("teleop_enable"), (0,))
+        args = self.cmd.args_of("jog")
+        self.assertEqual(args[1], 1)      # joint jog
+        self.assertEqual(args[2], 2)      # joint 2 = Z
+        # jog_stop follows the RUNNING jog's mode, never switches
+        self.cmd.calls.clear()
+        gateway.STAT.motion_mode = getattr(linuxcnc, "TRAJ_MODE_FREE", 1)
+        r = _run(gateway.handle_command({"cmd": "jog_stop", "axis": 2}, True))
+        self.assertTrue(r["ok"])
+        self.assertIsNone(self.cmd.args_of("teleop_enable"))
+        self.assertEqual(self.cmd.args_of("jog")[1], 1)
+
+    def test_jog_back_inside_restores_teleop(self):
+        gateway.STAT.axis_mask = 0b111111
+        gateway.STAT.motion_mode = getattr(linuxcnc, "TRAJ_MODE_FREE", 1)   # left there by the recovery jog (fake binding lacks the constant)
+        gateway._shared_status = _payload(joints_beyond_limit=[], homed=True)
+        r = _run(gateway.handle_command({"cmd": "jog_cont", "axis": 2, "vel": -5.0}, True))
+        self.assertTrue(r["ok"])
+        self.assertEqual(self.cmd.args_of("teleop_enable"), (1,))
+
     def test_joint_mode_jog_passes_list_index_through(self):
         # No motion_mode attr -> _jog_joint_flag defaults to joint jog (1):
         # the list index IS the joint number (trivkins follows COORDINATES).
@@ -812,7 +841,46 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
         self.assertTrue(r["ok"])
         self.assertIsNone(self.cmd.args_of("mode"))
 
+    def test_mode_switch_ignored_while_jogging_is_refused_loudly(self):
+        # emcTaskSetMode ignores the request while a jog is active and still
+        # answers DONE; task stays MANUAL. The MDI must NOT be issued and the
+        # reply must carry the reason (it used to be ok:true + "Must be in MDI
+        # mode" in the trace, → Zero pressed while the A jog was held).
+        gateway.STAT.task_mode = linuxcnc.MODE_MANUAL   # the fake never changes it
+        r = self._send({"cmd": "mdi", "text": "G0 X1"})
+        self.assertFalse(r["ok"])
+        self.assertIn("jog", r["error"].lower())
+        self.assertIsNone(self.cmd.args_of("mdi"), "MDI issued into the wrong mode")
+
+    def test_jog_stop_without_an_active_jog_is_a_noop(self):
+        # A late release with nothing the gateway started still moving: no
+        # mode switch (that aborted a fresh MDI), no CMD.jog.
+        gateway._active_jogs.clear()
+        gateway.STAT.task_mode = linuxcnc.MODE_MANUAL
+        r = self._send({"cmd": "jog_stop", "axis": 3})
+        self.assertTrue(r["ok"])
+        self.assertIsNone(self.cmd.args_of("jog"))
+        self.assertIsNone(self.cmd.args_of("mode"))
+        r = self._send({"cmd": "jog_stop_multi", "axes": [0, 3]})
+        self.assertTrue(r["ok"])
+        self.assertIsNone(self.cmd.args_of("jog"))
+
+    def test_mdi_clears_active_jogs_so_a_late_stop_cannot_abort_it(self):
+        gateway._active_jogs.clear()
+        self._send({"cmd": "jog_cont", "axis": 3, "vel": 2.0})
+        self.assertIn(3, gateway._active_jogs)
+        self._send({"cmd": "mdi", "text": "G0 X1"})       # a switch to MDI means no jog is active
+        self.assertEqual(gateway._active_jogs, set())
+        self.cmd.calls.clear()
+        r = self._send({"cmd": "jog_stop", "axis": 3})
+        self.assertTrue(r["ok"])
+        self.assertIsNone(self.cmd.args_of("mode"))
+        self.assertIsNone(self.cmd.args_of("jog"))
+
     def test_jog_stop_still_stops_a_real_jog_in_manual(self):
+        gateway._active_jogs.clear()
+        self._send({"cmd": "jog_cont", "axis": 3, "vel": 1.0})
+        self.cmd.calls.clear()
         gateway.STAT.task_mode = linuxcnc.MODE_MANUAL
         gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
         r = self._send({"cmd": "jog_stop", "axis": 3})

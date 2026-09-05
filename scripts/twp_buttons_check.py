@@ -486,16 +486,44 @@ d = dro(); j = joints()
 check("→ Zero after jogging A away: table returns to A 20 and X/Y read zero (tip on the datum)", M,
       r.get("ok") is True and abs(j[3] - 20) < 1e-3 and abs(d[0]) < 1e-3 and abs(d[1]) < 1e-3,
       f"reply={r} A={j[3]:.3f} dro={[round(v, 3) for v in d]}")
-# release the A jog mid-move: the move must COMPLETE
+# → Zero while the A jog is still HELD: LinuxCNC refuses ANY task-mode change
+# while a jog is active (emctask.cc emcTaskSetMode: "Ignoring task mode change
+# while jogging"), so the MDI can never start — the gateway must say so
+# (ok:false with the reason) instead of reporting ok for a move that never ran
+# (2026-09-05: the old reply was ok, then "Must be in MDI mode" in the trace).
+# The wave-1 row that "passed" here had a jog that never became active.
 mdi("G53 G0 X30 Y-40")
 mdi("G0 A-10")
-_ws({"cmd": "jog_cont", "axis": 3, "vel": 5.0})
-time.sleep(0.4)
+# The jog button is gated on the gateway's BROADCAST idle state, which trails
+# the script's own STAT by up to a poll: wait for it (the operator's button
+# dims until then), and check the jog's reply — the first live run sent the
+# jog into "Machine not idle" and read the un-moved A as a product fault.
+settled("interp_state", linuxcnc.INTERP_IDLE)
+poll(); a_before = s.joint_actual_position[3]
+rj = ws_cmd({"cmd": "jog_cont", "axis": 3, "vel": 5.0})
+time.sleep(0.5)
+poll(); a_mid = s.joint_actual_position[3]
+r = ws_cmd({"cmd": "go_to_zero"})
+_ws({"cmd": "jog_stop", "axis": 3}); _ws({"_sleep": 0.3}); wait_idle(); poll(); j = joints()
+_drain_errors()   # LinuxCNC's own "Ignoring task mode change while jogging" text, whichever channel got it
+check("→ Zero while the A jog is HELD: the jog is real (A moving) and → Zero is REFUSED with the reason (mode change while jogging)", M,
+      rj.get("ok") is True and a_mid > a_before + 0.5 and r.get("ok") is False and "jog" in str(r.get("error", "")).lower() and abs(j[3] - 20) > 1.0,
+      f"jog reply={rj}; A {a_before:.3f} → {a_mid:.3f} during the jog; → Zero reply={r}; A after={j[3]:.3f}")
+# … and after RELEASING the jog, the same press completes
+r = ws_cmd({"cmd": "go_to_zero"})
+wait_idle(); d = dro(); j = joints()
+check("→ Zero after releasing the A jog completes (A 20, X/Y zero)", M,
+      r.get("ok") is True and abs(j[3] - 20) < 1e-3 and abs(d[0]) < 1e-3 and abs(d[1]) < 1e-3,
+      f"reply={r} A={j[3]:.3f} dro={[round(v, 3) for v in d]}")
+# a stray jog_stop (finger lifted late, jog already gone) arriving DURING the
+# MDI must not abort it: the gateway skips the mode switch (jog.stop_skipped_mdi_busy)
+mdi("G53 G0 X30 Y-40")
+mdi("G0 A-10")
+settled("interp_state", linuxcnc.INTERP_IDLE)   # the button is gated on the BROADCAST idle state (see above)
 _ws({"cmd": "go_to_zero", "_nowait": True})
 time.sleep(0.3)
 _ws({"cmd": "jog_stop", "axis": 3})
 _ws({"_sleep": 0.2})
-# drain the go_to_zero reply (it is the next reply-bearing frame for that cmd)
 t0 = time.time()
 while time.time() - t0 < 60:
     poll()
@@ -504,7 +532,7 @@ while time.time() - t0 < 60:
     time.sleep(0.1)
 wait_idle()
 d = dro(); j = joints()
-check("→ Zero while the A jog is released mid-move still completes (A 20, X/Y zero)", M,
+check("a stray jog_stop during the → Zero MDI does not abort it (A 20, X/Y zero)", M,
       abs(j[3] - 20) < 1e-3 and abs(d[0]) < 1e-3 and abs(d[1]) < 1e-3,
       f"A={j[3]:.3f} dro={[round(v, 3) for v in d]}")
 if TOOLSETTER:
@@ -595,6 +623,68 @@ mdi("G59")
 settled("g5x_index", 6)
 p = permissions()
 gate_row("Cycle Start (G59 again)", P, p, "run", True)
+
+# ---------------------------------------------------------------- soft-limit recovery under switched kins
+# With the type-0 Z window narrowed (Z0 = top), the world window is lifted under
+# TCP/TOOL, so a +Z jog toward the top (the "retract fully" gesture) drives
+# joint Z past its ceiling: motion's backup check aborts the jog ("Exceeded
+# POSITIVE soft limit … Hint: switch to joint mode to jog off soft limit") and
+# REFUSES every further world-mode move — teleop jogs and MDI alike — while
+# the joint sits outside its window (first live run: stuck at +0.057, no UI
+# recovery, teardown refused). The gateway now reports `joints_beyond_limit`
+# and jogs in JOINT mode while it is non-empty; this certifies that path
+# through the real jog commands. Only meaningful once the ceiling is near
+# zero; on the ±5000 window it SKIPs.
+if Z_CEIL is not None and Z_CEIL < 5:
+    poll(); z_start = s.joint_actual_position[2]
+    _ws({"cmd": "jog_cont", "axis": 2, "vel": 20.0})
+    t0 = time.time(); beyond = False
+    while time.time() - t0 < 30:
+        poll()
+        if s.joint_actual_position[2] > Z_CEIL + 1e-6:
+            beyond = True
+            break
+        time.sleep(0.05)
+    _ws({"cmd": "jog_stop", "axis": 2})
+    _ws({"_sleep": 0.5}); poll()
+    z_fault = s.joint_actual_position[2]
+    # the gateway must REPORT the state (the banner and the jog mode key on it)
+    t1 = time.time(); reported = None
+    while time.time() - t1 < 5:
+        d = _ws({"_status": ["joints_beyond_limit"]}) or {}
+        reported = d.get("joints_beyond_limit")
+        if reported == ["Z"]:
+            break
+        _ws({"_sleep": 0.1})
+    check("Plane: +Z jog (tool axis) runs joint Z past its ceiling; machine stays ON; status reports joints_beyond_limit == ['Z']", P,
+          beyond and s.task_state == linuxcnc.STATE_ON and reported == ["Z"],
+          f"beyond={beyond} jointZ {z_start:.3f} → {z_fault:.3f} (ceiling {Z_CEIL}) task_state={s.task_state} reported={reported}")
+    # recovery through the UI's own jog: the gateway switches to joint mode
+    _ws({"cmd": "jog_cont", "axis": 2, "vel": -20.0}); _ws({"_sleep": 1.0}); _ws({"cmd": "jog_stop", "axis": 2}); _ws({"_sleep": 0.5}); poll()
+    z_back = s.joint_actual_position[2]
+    t2 = time.time(); cleared = None
+    while time.time() - t2 < 5:
+        d = _ws({"_status": ["joints_beyond_limit"]}) or {}
+        cleared = d.get("joints_beyond_limit")
+        if cleared == []:
+            break
+        _ws({"_sleep": 0.1})
+    _drain_errors()   # the soft-limit NML text, whichever channel got it — never let mdi() trip on it
+    # and the machine takes world-mode moves again (the next jog restores teleop; MDI works)
+    _ws({"cmd": "jog_cont", "axis": 2, "vel": -5.0}); _ws({"_sleep": 0.3}); _ws({"cmd": "jog_stop", "axis": 2}); _ws({"_sleep": 0.3})
+    _drain_errors()
+    mdi_ok = True
+    try:
+        mdi("G53 G0 Z-60")
+    except SystemExit as exc:
+        mdi_ok = False; mdi_err = str(exc)
+    poll()
+    check("Plane: after the fault a UI −Z jog moves the joint back inside (joint mode), the report clears, and MDI works again", P,
+          z_back < Z_CEIL - 0.5 and cleared == [] and mdi_ok,
+          f"jointZ {z_fault:.3f} → {z_back:.3f}; reported after={cleared}; MDI G53 Z-60 ok={mdi_ok}" + ("" if mdi_ok else f" ({mdi_err[:160]})"))
+else:
+    skip("Plane: +Z jog past the joint ceiling / recovery through the UI jog", P,
+         f"Z MAX_LIMIT {Z_CEIL}: the ceiling is not near zero, the fault is unreachable")
 
 print("\n=== table ===")
 rows = []

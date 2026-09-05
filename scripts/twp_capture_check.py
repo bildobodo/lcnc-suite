@@ -485,8 +485,15 @@ check("E4: TWP stays undefined",
 mdi("G10 L2 P1 A0")
 
 print("\n=== F. clear path ===")
+# Start from a known G54 at machine zero: the sections above leave G54 where
+# the plane touch-off (D) wrote it, and with the Z window narrowed to the top
+# of travel (2026-09-05) a G54-relative Z-10 from there can sit ABOVE machine
+# zero — "would exceed Z's positive limit" — which was fine only on ±5000.
+mdi("G10 L2 P1 X0 Y0 Z0 A0 B0 C0 R0")
 mdi("G0 B10 C10")
-mdi("G0 X10 Y10 Z-10")
+# Z-60, not Z-10: the joint-side limit check adds the tool length back
+# (tip at -10 with a 22 mm tool puts the JOINT above the 0.01 ceiling).
+mdi("G0 X10 Y10 Z-60")
 time.sleep(0.6)  # broadcast settle (gate reads the shared payload)
 rF = ws_cmd({"cmd": "twp_capture"})
 check("F: gateway capture ok", rF.get("ok") is True, str(rF))

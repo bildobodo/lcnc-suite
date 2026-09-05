@@ -1230,6 +1230,14 @@ function unhomeAll() {
   fire({ cmd: "unhome_all" }, 'idle');
 }
 
+// Joint letters outside their own soft-limit window (status
+// joints_beyond_limit): motion refuses every world-mode move meanwhile, the
+// gateway jogs in joint mode until they are back inside — the banner says so.
+const jointsBeyondLimit = computed<string[]>(() => {
+  const j = st.value.joints_beyond_limit;
+  return Array.isArray(j) ? j.map(String) : [];
+});
+
 const homedJoints = computed<boolean[]>(() => {
   const hj = st.value.homed_joints;
   return Array.isArray(hj) ? hj.map(Boolean) : [];
@@ -1570,6 +1578,9 @@ watch(viewerGcode, (newGcode) => {
           </span>
           <span v-else-if="configWarning" :key="'config-warning'" class="bannerError">
             Config fallback — {{ configWarning.reason }} — fix the INI, then restart the suite
+          </span>
+          <span v-else-if="jointsBeyondLimit.length" :key="'beyond-limit'" class="bannerError">
+            Joint {{ jointsBeyondLimit.join(', ') }} beyond its soft limit — every other move is refused; jog that axis back inside (the jog runs in joint mode until it is)
           </span>
           <span v-else-if="previewLoadError" :key="'preview-error'" class="bannerError">
             3D preview load failed — reload the G-code file; restart the suite if it persists

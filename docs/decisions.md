@@ -3162,3 +3162,231 @@ PASS | Plane   | Cycle Start (G59 again) gate 'run' open
 Owed: wave 2 (the next entry) at the suite stop — the type-0 Z window, the
 kins-mode limit lift, the heavy gates; the RFL gateway change goes live with
 that restart.
+\n
+## 2026-09-05 — Z0 is the top of travel: type-0 window −2000..0.01, lifted under TCP/TOOL; AXIS limits are world limits in every kins mode
+
+Wave 2 of the "no full Z retraction" pair (previous entry). Operator's choice:
+both waves back to back.
+
+**The finding that shaped the design (design review, from the 2.9.4 source).**
+`command.c:213 → axis.c:540-564`: motion checks every programmed move's WORLD
+pose against `[AXIS_*]` in EVERY kinematics mode, and the joints against
+`[JOINT_*]`. Under TOOL kins the world Z is the rotated plane frame (+G59 ≈
+409 mm on the demo plane), so a naive `[AXIS_Z] −2000..0.01` refuses every
+`g53.3 … z100` ("would exceed Z's positive limit") — the corpus would go 0/21.
+Narrowing only `[JOINT_2]` is also wrong: identity teleop jogs clamp to the
+AXIS window only (`axis.c:267-269`), so a +Z jog crosses the joint limit,
+trips the backup check (`control.c:1499-1558`) and kills every teleop jog
+until the joint is jogged back in joint mode — which the web UI does not
+offer. LinuxCNC's switchkins doc (`switchkins.adoc:212-266`) prescribes the
+answer: the INI sections hold the type-0 window and the `ini.z.min_limit /
+max_limit` HAL pins lift it in the other modes.
+
+**What changed.** `examples/sim_config/lcnc_suite_sim_twp.ini`: `[AXIS_Z]` and
+`[JOINT_2]` `MIN_LIMIT −2000 / MAX_LIMIT 0.01` (HOME 0 strictly inside — the
+DMU precedent; −2000 = the nose at the A-axis height, the corpus' deepest
+commanded joint Z is −1683), X/Y untouched (X ±5000 carries the joint-side
+soft-limit case), plus `hallib/z_limit_window.hal`: `wcomp` window on `:kinstype-select`
+→ `mux2` pair → `ini.z.min_limit / max_limit`, run as a `[HAL]POSTGUI_HALFILE`
+by the `lcnc-suite` launcher (new: it executes POSTGUI_HALFILE entries after
+`halcmd start`, the way axis/gmoccapy do; a failing file aborts the display
+loudly). Three boot failures on the way, all mine: (1) `loadrt near` — `near:
+already exists`, spindle_sim.hal loads it as `near_speed`, a HAL module loads
+once and HALCMD runs after twopass, so no name merging → `wcomp`; (2) as a
+`[HAL]HALCMD` block the `net` onto `ini.z.min_limit` HUNG the boot: the fresh
+signal is 0, inihal turns the changed limit into a motion command, and at
+HALCMD time the servo thread has not started (step 4.3.9 comes after 4.3.8),
+so task blocks on usrmot until the script's timeout — the review's "harmless
+startup transient" was wrong. With the threads running the mux outputs
+already carry the type-0 values when the ini pins are linked; (3) the first
+postgui run failed in 22 ms with `Pin 'ini.z.min_limit' does not exist`: the
+linuxcnc script spawns milltask in the BACKGROUND (`loadusr -Wn inihal … &`)
+and starts the display right after `halcmd start`, and this launcher is up
+in milliseconds — AXIS never sees the race because its own startup takes
+seconds. The launcher now waits for the `inihal` component to be READY
+(bounded 20 s, loud on timeout; 0.1 s on the sim) before the first postgui
+file, and records halcmd's output in launcher.log, which is how failure (3)
+became readable at all (the display's stdout is not durable before the
+tee/FIFO) (in1 = the type-0 window, in0 =
+the former ±5000, so world-mode behaviour is byte-identical to the shipped
+gate results; every switch site already pairs `M68 E3` with `M66 E0 L0`).
+Gateway/preview code: unchanged — identity segments are checked in the
+machine frame, world segments joint-side through the trsrn twin, and
+`machine_bounds` reads the INI, so the drawn envelope shrinks from a 10 m
+cube to the real window. `machineTrsrn.test.ts` reads the INI: AXIS window
+== JOINT window, Z0 strictly inside and the top, every envelope station
+inside, the sweep reaches the declared floor (a station at [0, 0, −2000]
+straight down from the parked pose — NOT over the stock at Y −1000, which is
+600 mm through the work piece onto the console; computed from the generator
+geometry). The installed INI copy is hand-carried (it is a `cp`, never
+re-synced): `config_sync_check.py` must list no LIMIT / z-limit / mux2 /
+near drift.
+
+**Reachable trap, certified rather than assumed.** Under TCP/TOOL the world
+window is ±5000, so a +Z jog toward the top drives joint Z past 0.01 →
+`max_soft_limit` fault. The matrix gained a Plane-section row that jogs into
+the fault through the real jog path and then tries to jog back (teleop −Z in
+TOOL kins; M428 then −Z). First live run (gateway without a fallback): the +Z jog ran joint Z to
++0.057 past the 0.01 ceiling; `nml.error` in the trace: "Exceeded POSITIVE soft
+limit (0.01000) on joint 2" and LinuxCNC's own "Hint: switch to joint mode to
+jog off soft limit"; STAT's `max_soft_limit` flag read 0 the whole time; a
+teleop −Z jog did nothing, M428 then −Z did nothing, and the teardown's first
+MDI was refused ("would exceed joint 2's positive limit") — the sim was stuck
+with no way out through the UI. A joint-mode jog by hand (`teleop_enable(0)`,
+`jog(JOINT, 2, −5)`) moved it back inside at once. So the fallback SHIPPED in
+this wave, exactly as bounded: `gateway_util.joints_beyond_limits` (pure —
+joint position vs its own min/max window, eps 1e-6; unknown limits never flag)
+→ status `joints_beyond_limit` (joint LETTERS; None when STAT has no joint
+limits, traced) → `_jog_mode_flag()` in the four jog handlers: beyond ⇒
+`teleop_enable(0)` + joint jog (`jog.joint_mode_beyond_limit`), back inside and
+homed ⇒ `teleop_enable(1)` (`jog.teleop_restored`); `jog_stop` never switches
+mode. UI: a danger banner "Joint Z beyond its soft limit — every other move is
+refused; jog that axis back inside (the jog runs in joint mode until it is)".
+Dispatch tests pin both transitions; the matrix rows now drive into the fault
+through the real jog, require the status to report `['Z']`, recover through the
+real −Z jog, require the report to clear and an MDI to work again. 
+
+**Found by the fallback, fixed in the same wave — → Zero pressed while a jog is
+HELD.** With jogs now real, the matrix's "release the A jog mid-move" row
+(wave 1) FAILED on this build: A stopped at −6.3, X/Y never moved, the reply
+was ok. Trace: `nml.error` "Ignoring task mode change while jogging", then
+"Must be in MDI mode to issue MDI command". Source (`emctask.cc`
+`emcTaskSetMode`): task IGNORES any mode change while
+`emcStatus->motion.jogging_active` — teleop or joint jog — and still answers
+DONE. So a → Zero (or any MDI-issuing button) pressed while a jog button is
+still held can never run, by LinuxCNC's design; the gateway reported ok for a
+move that never happened — the silent-drop class again. `set_mode()` now
+verifies after the switch that `task_mode` actually changed and otherwise
+raises "LinuxCNC ignored the mode switch to MDI (task stays MANUAL) — a jog
+is still active: release the jog, then try again" (`task.mode_switch_ignored`
+traced; dispatch test). Honesty about wave 1: that row passed four times
+because its jog never became ACTIVE on those builds (the trace of every
+earlier run shows the MDI mode switch accepted 0.28 s before
+`jog.stop_skipped_mdi_busy`, and no "Ignoring…" ever) — the jog-stop guard it
+exercised is real and stays, but the "jog held" premise is now three honest
+rows: held ⇒ refused with the reason (A visibly moving), released ⇒ completes,
+and a stray jog_stop during the MDI ⇒ skipped, the move completes. This is
+also the second mechanism behind the operator's "sometimes it does nothing":
+pressing → Zero before the A jog button was fully released.
+
+**Gates.** Down-time (suite stopped): `npm run build` OK (after excluding the
+node-based `programZero.test.ts` from the app build — a 2026-09-02 gap, same
+class as its five siblings on that list; the file still runs under vitest, 29
+tests), lint + scoped-CSS audit OK, full vitest 43 files / 627 passed (incl.
+the model sweep with the new floor station and the INI-window assertions),
+e2e 16 passed, gateway pytest 660/660 (the project's `-q` plus mine made
+`-qq`, which suppresses the summary line — counted from the result dots and
+the collection). Restart fingerprint: `wcomp`/`mux2` loaded, `ini.z.*` =
+−2000 / 0.01 at type 0, −5000 / 5000 at types 1 and 2, back to −2000 / 0.01
+at type 0; startup pose joints-at-zero, homed. Preview goldens: CLEAN
+(`violations_total 0` holds under the new window). Corpus gate (`sim_parity.py gate`, 11 runs, joint-space 6D): GREEN, 21/21 PASS,
+worst sim→truth deviation 1.079 mm on the g683 tilted run (tol 1.5) — every
+TCP/TOOL move accepted under the lifted window, which is the loud proof that the
+lift is in effect (a missing lift would refuse `g53.3 … z100` with "would exceed
+Z's positive limit"); run records restored with `git checkout --` per the rule.
+
+
+**`twp_touchoff_check.py` was certifying a removed behaviour.** It failed on
+this build by 723.7 mm ("both touch-offs store the SAME table-frame origin"):
+its section B asserted W1's automatic conversion of a TYPED offset at a
+tilted A into the table frame — the behaviour the 2026-09-01/02 waves
+replaced (a typed value is a fixture-frame STATEMENT, stored unchanged and
+stamped table frame kins 0 / A 0 by `set_wcs`'s `pose_override`; a real
+touch-off stores the live point and stamps that A). The check had not run
+since (it needs a one-shot WS sender as its first argument — recreated as a
+scratchpad helper with a heartbeat, since an armed client that does not
+heartbeat is closed after 3 s). Section B now asserts the current contract:
+the typed numbers stored unchanged and the stamp reading (stamped, kins 0,
+A 0). `twp_capture_check.py` section F needed a G54-at-machine-zero reset:
+its `G0 … Z-10` was G54-relative to the plane touch-off's row and sat ABOVE
+machine zero, legal only on ±5000.
+
+**A jog that did nothing, once.** Of three matrix runs on the fallback build,
+one had the held-jog row's `jog_cont A` move nothing (A −10 → −10 in 0.5 s,
+reply ok, no disarm, no refusal, no `nml.error` — and the same sequence
+moved A 3.7° the run before and in a hand probe from both MANUAL and MDI
+start modes). Undiagnosable from the trace as it was, so every NEW jog now
+emits `jog.cmd` (cmd, axis, joint-flag, resolved arg, task/motion/interp
+modes at issue, rc) — a jog that vanishes next time says where. Closed the next morning with the forensics in place: the trace showed
+`ws.command_denied jog_cont "Machine not idle"` — the SCRIPT sent the jog
+before the gateway's broadcast status had caught up with the end of the
+previous MDI, and the row never read that reply (the operator's jog button is
+gated on the same broadcast state, so it dims until then). The row now waits
+for the broadcast to settle and asserts the jog's reply. Its twin, "a stray
+jog_stop during the → Zero MDI", failed the same run by the wave-1 mechanism
+racing at poll granularity: the stop arrived in the ~30 ms before STAT showed
+the MDI executing, the interp-busy guard read IDLE, and the forced MANUAL
+aborted the move. Closed by construction instead of by timing: the gateway
+tracks the jogs IT started (`_active_jogs`, filled by the four jog handlers);
+a `jog_stop` / `jog_stop_multi` for an axis with no active jog is a traced
+no-op (`jog.stop_without_jog`), the disarm path stops only active jogs
+(`jog.stop_for_client_noop` otherwise — the 2026-09-03 "disarm forces MANUAL
+mid-MDI" follow-up closes with it), a verified switch to MDI/AUTO clears the
+set (task refuses those while jogging, so success means none is active), and
+the abort guard polls STAT fresh. Jogs started by other UIs are not tracked:
+the gateway never stops what it did not start; the HAL chain owns motion
+safety. Dispatch tests pin the no-op, the MDI clear and the real stop.
+
+**Final build (active-jog tracking, verified mode switch, joint-jog fallback,
+`jog.cmd` forensics), 2026-09-05 morning, one boot.** Fingerprint: `ini.z.*`
+−2000 / 0.01 at type 0, ±5000 at types 1 and 2, back at type 0. Corpus gate
+GREEN, 21/21, worst sim→truth deviation 1.079 mm (g683 tilted run, tol
+1.5); records restored. The five TWP checks ALL PASS: `twp_capture_check`
+(section F at a G54-at-machine-zero Z−60 — Z−10 put the JOINT above the
+ceiling once the 22 mm tool length was added back), `twp_touchoff_check` (on
+the current typed-value contract, with the heartbeating one-shot sender),
+`twp_touchoff_plane_check`, `twp_reorient_check`, `twp_g683_check`. **Matrix, final build, Z window −2000..0.01: ALL PASS (40 pass, 4 skip)** — the three above-machine-zero rows
+SKIP with their reason (unreachable by construction now), every never-lower row, the
+held-jog refusal, the release-then-complete, the stray-stop no-op, the TCP-stamped
+refusal, and the two soft-limit recovery rows PASS:
+
+```
+PASS | Machine | Zero All routes to the mdi touch-off and stamps G54
+PASS | Machine | G54 stamp: kins 0, A 0
+PASS | Machine | → Home / → G30 gate 'machineFrame' open
+PASS | Machine | → Zero gate 'goZero' open
+PASS | Machine | Cycle Start gate 'run' open
+PASS | Machine | Tool measure / load gate 'machineFrame' open
+PASS | Machine | Probe op gate 'machineFrame' open
+PASS | Machine | → Zero from BELOW Z0 (G53 Z-60): Z at machine top exactly, X/Y at work zero, A back to the stamp (0)
+SKIP | Machine | → Zero from ABOVE Z0
+PASS | Machine | → Home from BELOW Z0: Z to machine top, X/Y to machine zero, A 0
+SKIP | Machine | → Home from ABOVE Z0
+PASS | Machine | → G30 from BELOW Z0: retracts to the top first (max Z seen ~ 0), then lands on #5181..#5183
+SKIP | Machine | → G30 from ABOVE Z0
+PASS | Machine | #<_abs_z> == machine-frame Z with a 12.5 TLO active; #<_z> == abs - G5x - G92 - TLO
+PASS | Machine | Zero All at A=20 stamps A 20
+PASS | Machine | → Zero after jogging A away: table returns to A 20 and X/Y read zero (tip on the datum)
+PASS | Machine | → Zero while the A jog is HELD: the jog is real (A moving) and → Zero is REFUSED with the reason (mode change while jogging)
+PASS | Machine | → Zero after releasing the A jog completes (A 20, X/Y zero)
+PASS | Machine | a stray jog_stop during the → Zero MDI does not abort it (A 20, X/Y zero)
+SKIP | Machine | Tool measure (M600) run
+PASS | TCP     | → Home / → G30 gate 'machineFrame' closed
+PASS | TCP     | → Zero gate 'goZero' closed
+PASS | TCP     | Cycle Start gate 'run' open
+PASS | TCP     | Tool measure / load gate 'machineFrame' closed
+PASS | TCP     | Probe op gate 'machineFrame' closed
+PASS | TCP     | → Zero refused with a reason naming TCP
+PASS | TCP     | tool_change refused backend-side (Machine frame required)
+PASS | TCP     | Zero Z at A=0 routes to the mdi touch-off
+PASS | TCP     | Zero All at A=0 under TCP stamps G54 with kins 1
+PASS | Machine | → Zero in Machine frame refuses a fixture stamped under TCP (numbers are table-frame)
+PASS | Machine | Zero All back in the Machine frame re-stamps G54 (kins 0)
+PASS | Plane   | Capture defines the plane at the tip (kins 2, G59)
+PASS | Plane   | → Home / → G30 gate 'machineFrame' closed
+PASS | Plane   | → Zero gate 'goZero' open
+PASS | Plane   | Cycle Start gate 'run' open
+PASS | Plane   | Tool measure / load gate 'machineFrame' closed
+PASS | Plane   | Probe op gate 'machineFrame' closed
+PASS | Plane   | Zero Z routes through the plane; DRO reads the entered value
+PASS | Plane   | → Zero: retracts along the tool axis to ≥ 25, then X0 Y0 in the plane; rotaries untouched
+PASS | Plane   | Cycle Start (G54 under Plane kins — the M2 strand) gate 'run' closed
+PASS | Plane   | → Zero (G54 under Plane kins) gate 'goZero' closed
+PASS | Plane   | Cycle Start (G59 again) gate 'run' open
+PASS | Plane   | Plane: +Z jog (tool axis) runs joint Z past its ceiling; machine stays ON; status reports joints_beyond_limit == ['Z']
+PASS | Plane   | Plane: after the fault a UI −Z jog moves the joint back inside (joint mode), the report clears, and MDI works again
+```
+
+Owed: the operator's own walk-through (→ Zero from anywhere is a full retraction to the
+top; the machine-bounds box is the real window; the banner and joint-mode jog when a
+joint is beyond its limit).

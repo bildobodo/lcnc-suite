@@ -1169,6 +1169,38 @@ def drift_gate_open(active_file, refresh_running, preview_available, interp_idle
             and not current_vel
             and since_last_check_s >= debounce_s)
 
+def joints_beyond_limits(joint_pos, limits, eps=1e-6):
+    """Indices of joints whose position lies OUTSIDE [min, max] (by more than
+    eps). `limits` is a sequence of (min, max) per joint (STAT.joint[i]
+    min_position_limit / max_position_limit); a None entry on either side
+    means unknown → never flagged. Pure.
+
+    Why this exists (2026-09-05, TWP sim, Z0 = top of travel): under TCP/TOOL
+    kins the WORLD Z window is lifted, so a +Z teleop jog toward the top can
+    drive joint Z past its ceiling; motion's backup check then aborts the jog
+    ("Exceeded POSITIVE soft limit … Hint: switch to joint mode to jog off
+    soft limit") and REFUSES every further world-mode move — teleop jogs and
+    MDI alike — while the joint sits outside its window. STAT's per-joint
+    max_soft_limit flag read 0 in that state; the position vs its limits is
+    the truth. The gateway jogs in JOINT mode while this list is non-empty."""
+    out = []
+    for i, pos in enumerate(joint_pos or []):
+        if i >= len(limits or []):
+            break
+        lim = limits[i]
+        if not lim or lim[0] is None or lim[1] is None or pos is None:
+            continue
+        try:
+            p, lo, hi = float(pos), float(lim[0]), float(lim[1])
+        except (TypeError, ValueError):
+            continue
+        if not (math.isfinite(p) and math.isfinite(lo) and math.isfinite(hi)):
+            continue
+        if p < lo - eps or p > hi + eps:
+            out.append(i)
+    return out
+
+
 def evaluate_rotary_drift(seed, rotary_abc, eps=0.01):
     """Has the machine's ROTARY pose moved since the preview was parsed?
     (W6 — the arc-vs-plunge class: a run leaves the table tilted, `;g69`
