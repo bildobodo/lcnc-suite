@@ -1385,6 +1385,34 @@ def evaluate_wcs_offset_drift(snap_flat, live_flat, eps=1e-3):
     return None
 
 
+
+def inflight_stale_reason(inflight, rotary_abc, rotary_prev, kins_type, kins_frame,
+                          wcs_flat, wcs_prev):
+    """Does an edge raised DURING a running parse stale that parse?
+    (cancel-and-restart, 2026-09-05.) `inflight` is bulk_pipeline's input
+    snapshot of the running parse — {"rotary_seed", "kins_seed",
+    "wcs_off"} in the published seeds' shapes — and the live arguments are
+    the same samples the post-publish drift edges use. Same rules, same
+    order, same settle guards as those edges: rotary drift only once the
+    pose held still across two checks, WCS-offset drift only once the
+    table held still (a multi-G10 Zero All restarts once), kins type/frame
+    as a discrete step. TLO drift is NOT evaluated in flight (it cannot
+    come from the zeroing workflow; the post-publish edge still catches
+    it). Returns the reason string or None; an absent snapshot makes no
+    claim. Pure."""
+    if not inflight:
+        return None
+    r = evaluate_rotary_drift(inflight.get("rotary_seed"), rotary_abc)
+    if r and rotary_drift_settled(rotary_prev, rotary_abc):
+        return r
+    k = evaluate_kins_drift(inflight.get("kins_seed"), kins_type, kins_frame)
+    if k:
+        return k
+    w = evaluate_wcs_offset_drift(inflight.get("wcs_off"), wcs_flat)
+    if w and wcs_flat is not None and wcs_flat == wcs_prev:
+        return w
+    return None
+
 def rotary_drift_settled(prev_abc, rotary_abc, eps=0.01):
     """Is the live rotary pose STATIONARY between two consecutive drift
     checks? The drift edge must never fire mid-jog: interp is IDLE while

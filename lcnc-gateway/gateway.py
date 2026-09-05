@@ -47,7 +47,7 @@ from gateway_util import (
     evaluate_safety_chain,
     PREVIEW_SCHEMA,
     evaluate_tlo_drift,
-    evaluate_rotary_drift, drift_gate_open,
+    evaluate_rotary_drift, drift_gate_open, inflight_stale_reason,
     rotary_drift_settled,
     evaluate_kins_drift,
     wcs_offset_flat_from_table,
@@ -804,6 +804,11 @@ _bulk = _bulk_mod.BulkPipeline(
     get_machine_units=lambda: get_machine_units(),
     build_wcs_rotation_patches=lambda: _build_wcs_rotation_patches(),
     get_live_kins=lambda: _live_kins_for_parse(),
+    # The fixture cache + g92 the var-file patches come from, flattened
+    # like the worker's __WCSOFF__ line — the in-flight supersede compares
+    # a touch-off against exactly what the running parse was seeded with.
+    get_wcs_off_flat=lambda: wcs_offset_flat_from_table(
+        _wcs_cache, getattr(STAT, "g92_offset", None)),
 )
 
 
@@ -1494,11 +1499,49 @@ async def _status_poller():
             # reparse_pending: an operator Reparse that arrived during an
             # in-flight parse (or any Reparse — the flag is the request,
             # the cache keys are no longer cleared for it).
-            if (file_changed or (_bulk.reparse_pending and st.active_file)) \
-                    and not _bulk.refresh_running:
-                _bulk.schedule_refresh(
-                    st.active_file, "reparse" if not file_changed else "file",
-                    _spawn_preview_task)
+            if file_changed or (_bulk.reparse_pending and st.active_file):
+                if _bulk.refresh_running:
+                    # A parse is running for a superseded file/mtime, or the
+                    # operator asked for a fresh one: its result is stale
+                    # before it lands. Cancel it; this branch re-fires as
+                    # soon as the flag clears (cancel_inflight is idempotent
+                    # per parse, so the tick loop does not re-trace).
+                    _bulk.cancel_inflight("file" if file_changed else "reparse")
+                else:
+                    _bulk.schedule_refresh(
+                        st.active_file, "reparse" if not file_changed else "file",
+                        _spawn_preview_task)
+            elif (
+                # In-flight supersede (2026-09-05): the drift edges below are
+                # gated on `not refresh_running`, so an edge raised DURING a
+                # parse — a touch-off while the rotary-drift parse from
+                # → Zero still runs, i.e. every zeroing sequence live — was
+                # not even evaluated until that parse published, and then
+                # queued a second full parse behind it (41–167 s to a
+                # correct preview on the 1.18 M-line program). Evaluate the
+                # same edges against the RUNNING parse's input snapshot and
+                # cancel it when one fires; reparse_pending restarts it with
+                # fresh inputs. Same idle gate, settle guards and 2 s
+                # debounce (inflight_stale_reason, pure).
+                _bulk.refresh_running
+                and _bulk.inflight is not None
+                and bool(st.active_file)
+                and drift_gate_open(
+                    st.active_file, False, True,
+                    st.interp_state == linuxcnc.INTERP_IDLE, st.current_vel,
+                    time.monotonic() - _bulk.tlo_check_ts)
+            ):
+                _bulk.tlo_check_ts = time.monotonic()
+                _wflat = wcs_offset_flat_from_table(st.wcs_table, st.g92_offset)
+                _stale = inflight_stale_reason(
+                    _bulk.inflight, st.rotary_abc, _bulk.rotary_check_prev,
+                    st.kins_type, _live_kins_frame_of(st), _wflat,
+                    _bulk.wcsoff_check_prev)
+                _bulk.rotary_check_prev = st.rotary_abc
+                _bulk.wcsoff_check_prev = _wflat
+                if _stale:
+                    _bulk.reparse_pending = True
+                    _bulk.cancel_inflight(_stale)
             elif (
                 # Schema edge (P1): the published payload's wire-format stamp
                 # disagrees with the schema this gateway was started with —
@@ -6610,6 +6653,7 @@ async def ws_endpoint(ws: WebSocket):
                         safety_trip=_unacked_trip,
                         reader_stale=_reader_is_stale(),
                         safety_chain=_safety_chain_reason(),
+                        preview_refresh=_bulk.preview_refresh_status(),
                         config_warning=(
                             {
                                 "reason": (_config_warning_reason or _units_fallback_reason

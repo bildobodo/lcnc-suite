@@ -1258,7 +1258,19 @@ def parse(ctx: dict) -> dict:
     return result
 
 
+def _on_sigterm(signum, frame):
+    # The gateway cancels a superseded parse with SIGTERM
+    # (bulk_pipeline.cancel_inflight): leave through SystemExit so parse()'s
+    # `finally` removes the temp var-file dir. Raised inside a canon
+    # callback it propagates out of gcode.parse (gcodemodule counts the
+    # failed callback and returns); the gateway ignores the exit code of a
+    # parse it cancelled, and kills after 2 s if this never ran.
+    raise SystemExit(143)
+
+
 def main() -> None:
+    import signal
+    signal.signal(signal.SIGTERM, _on_sigterm)
     t_main = time.monotonic()
     raw = sys.stdin.buffer.read()
     try:

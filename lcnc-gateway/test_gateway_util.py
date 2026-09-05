@@ -484,6 +484,45 @@ class TestVectorizedLimitChecks(unittest.TestCase):
             np.testing.assert_allclose(got, np.array(expect), rtol=0, atol=1e-9)
 
 
+class TestInflightStaleReason(unittest.TestCase):
+    """cancel-and-restart: the in-flight edges mirror the post-publish
+    drift edges (same evaluators, order and settle guards)."""
+    INF = {"rotary_seed": {"A": 0.0, "B": 0.0, "C": 0.0},
+           "kins_seed": {"type": 0, "frame": None},
+           "wcs_off": [0.0] * 99}
+
+    def test_no_snapshot_makes_no_claim(self):
+        self.assertIsNone(gateway_util.inflight_stale_reason(
+            None, [5.0, 0.0, 0.0], [5.0, 0.0, 0.0], 0, None, [0.0] * 99, [0.0] * 99))
+
+    def test_quiet_inputs_are_not_stale(self):
+        self.assertIsNone(gateway_util.inflight_stale_reason(
+            self.INF, [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], 0, None, [0.0] * 99, [0.0] * 99))
+
+    def test_rotary_drift_needs_a_settled_pose(self):
+        moving = gateway_util.inflight_stale_reason(
+            self.INF, [5.0, 0.0, 0.0], [4.0, 0.0, 0.0], 0, None, [0.0] * 99, [0.0] * 99)
+        self.assertIsNone(moving)
+        settled = gateway_util.inflight_stale_reason(
+            self.INF, [5.0, 0.0, 0.0], [5.0, 0.0, 0.0], 0, None, [0.0] * 99, [0.0] * 99)
+        self.assertEqual(settled, "rotary:A")
+
+    def test_kins_step_is_immediate(self):
+        self.assertEqual(gateway_util.inflight_stale_reason(
+            self.INF, [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], 2, [0.0, 30.0, 15.0], [0.0] * 99, [0.0] * 99),
+            "kins:type")
+
+    def test_wcs_offset_drift_needs_a_settled_table(self):
+        live = [0.0] * 99
+        live[0] = 12.5   # G54 x
+        burst = gateway_util.inflight_stale_reason(
+            self.INF, [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], 0, None, live, [0.0] * 99)
+        self.assertIsNone(burst)
+        settled = gateway_util.inflight_stale_reason(
+            self.INF, [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], 0, None, live, list(live))
+        self.assertTrue(settled and settled.startswith("wcsoff:"), settled)
+
+
 if __name__ == "__main__":
     unittest.main()
 

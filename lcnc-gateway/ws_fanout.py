@@ -164,6 +164,7 @@ def build_status_envelope(
     config_warning: Optional[dict] = None,
     probe_results: Optional[dict] = None,
     rfl_status: Optional[dict] = None,
+    preview_refresh: Optional[dict] = None,
 ) -> dict:
     """Assemble the per-tick status envelope.
 
@@ -196,6 +197,10 @@ def build_status_envelope(
         # RFL guard progress (measuring / safe_z / starting / failures)
         # — top-level sibling of `data`, same pattern as safety_trip.
         msg["rfl_status"] = rfl_status
+    if preview_refresh is not None:
+        # A preview re-parse is running (bulk_pipeline.preview_refresh_status):
+        # reason, file, expected_ms, started_ms, queued, superseded.
+        msg["preview_refresh"] = preview_refresh
     return msg
 
 

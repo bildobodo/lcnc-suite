@@ -36,6 +36,7 @@ import msgspec as _msgspec
 
 import lcnc_trace as _trace
 from fusion_import import decode_fusion_blob
+from gateway_util import rotary_seed_values
 
 _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 GCODE_WORKER_PATH = os.path.join(_BASE_DIR, "gcode_parse_worker.py")
@@ -68,10 +69,15 @@ class BulkPipeline:
         get_machine_units: Callable[[], str],
         build_wcs_rotation_patches: Callable[[], dict],
         get_live_kins: Optional[Callable[[], tuple]] = None,
+        get_wcs_off_flat: Optional[Callable[[], Optional[list]]] = None,
     ) -> None:
         self._get_stat = get_stat
         self._get_machine_units = get_machine_units
         self._build_wcs_rotation_patches = build_wcs_rotation_patches
+        # Live WCS-offset snapshot in the worker's __WCSOFF__ shape (the
+        # gateway's fixture cache + g92) — captured at spawn so a touch-off
+        # DURING the parse can be recognised as staling it. None = no claim.
+        self._get_wcs_off_flat = get_wcs_off_flat or (lambda: None)
         # (live switchkins type, live plane frame [p,t1,t2]) for the parse
         # ctx — the fifth freshness input. Default (None, None): untracked
         # (non-switchable configs, tests) — the worker then seeds nothing
@@ -80,6 +86,23 @@ class BulkPipeline:
 
         # ---- G-code preview (passthrough bytes; GET /preview) ----
         self.preview_pending: Optional[dict] = None   # {"file"} metadata only — consumers only read .get("file")
+        # The RUNNING parse (2026-09-05, cancel-and-restart): its input
+        # snapshot in the published seeds' shapes — {"file", "reason",
+        # "t0" (monotonic), "started_ms" (wall), "expected_ms",
+        # "rotary_seed" ({letter: deg} | None), "kins_seed" ({"type",
+        # "frame"}), "wcs_off" (flat list | None)} — so the poller can tell
+        # whether an edge raised DURING the parse stales it (then cancels
+        # it instead of queueing a second full parse behind it). None when
+        # nothing runs. Also the source of the status wire's
+        # `preview_refresh` (the operator's banner).
+        self.inflight: Optional[dict] = None
+        # Set by cancel_inflight; read by refresh_gcode_preview after the
+        # worker exits to trace the cancel instead of a worker failure.
+        self.cancel_reason: Optional[str] = None
+        # Last measured publish time per file path (ms) — the expected
+        # duration the banner shows and the timeout scale.
+        self.parse_ms_by_file: dict = {}
+        self.superseded_total: int = 0
         # Versions seeded from startup time so ?v= URLs don't collide across restarts.
         self.preview_version: int = int(time.time())
         self.last_file: Optional[str] = None          # edge detection in poller
@@ -183,7 +206,7 @@ class BulkPipeline:
         self.refresh_running = True
         self.reparse_pending = False
         try:
-            task = spawn(self.refresh_gcode_preview(filepath))
+            task = spawn(self.refresh_gcode_preview(filepath, reason=reason))
         except BaseException as e:
             self.refresh_running = False
             _trace.emit("gcode.refresh_schedule_failed", level="warn",
@@ -270,7 +293,91 @@ class BulkPipeline:
             raise
         return proc.returncode, stdout, stderr
 
-    async def refresh_gcode_preview(self, filepath: str):
+    #: Size-based parse estimate when a file has no history: ~48 s for the
+    #: 40 MB / 1.18 M-line perf-matrix program on the dev VM (machine
+    #: frame, after the 2026-09-05 speed-ups it is well under that — the
+    #: estimate only has to bound the timeout and seed the first banner).
+    _PARSE_MS_PER_BYTE = 1.2e-3
+    _PARSE_TIMEOUT_FLOOR_S = 60.0
+    _PARSE_TIMEOUT_FACTOR = 3.0
+
+    def expected_parse_ms(self, filepath: str) -> int:
+        """Expected publish time for `filepath`: the last measured one for
+        that path when known, else a size-based estimate (floor 1.5 s)."""
+        hist = self.parse_ms_by_file.get(filepath)
+        if hist:
+            return int(hist)
+        try:
+            size = os.path.getsize(filepath)
+        except OSError:
+            size = 0
+        return int(max(1500, size * self._PARSE_MS_PER_BYTE))
+
+    def parse_timeout_s(self, filepath: str) -> float:
+        """Worker timeout scaled to the file (2026-09-05): the flat 60 s
+        sat 14 s above the plane-mode parse of the 1.18 M-line program —
+        a slightly larger program would have silently stopped previewing
+        (`gcode.parse_timeout`, nothing else). Floor 60 s, else 3x the
+        expected time."""
+        return max(self._PARSE_TIMEOUT_FLOOR_S,
+                   self._PARSE_TIMEOUT_FACTOR * self.expected_parse_ms(filepath) / 1000.0)
+
+    def inflight_ran_ms(self) -> Optional[int]:
+        inf = self.inflight
+        return None if inf is None else int((time.monotonic() - inf["t0"]) * 1000)
+
+    def cancel_inflight(self, reason: str) -> bool:
+        """Cancel the RUNNING parse because its inputs are already stale
+        (a touch-off / rotary move / kins switch / new load during the
+        parse). SIGTERM first — the worker exits through SystemExit so
+        its temp var-file dir is removed — with a SIGKILL fallback 2 s
+        later. Idempotent per parse (a second call while the first kill
+        is in flight is a no-op, so the poll loop never re-traces).
+        Returns True when a cancel was issued. The caller decides what
+        restarts it (reparse_pending / the file edge)."""
+        proc = self.gcode_parse_proc
+        if proc is None or not self.refresh_running or self.cancel_reason is not None:
+            return False
+        self.cancel_reason = reason
+        self.superseded_total += 1
+        inf = self.inflight or {}
+        _trace.emit("gcode.reparse_superseded", reason=reason,
+                    file=os.path.basename(inf.get("file") or ""),
+                    ran_ms=self.inflight_ran_ms(),
+                    inflight_reason=inf.get("reason"))
+        try:
+            proc.terminate()
+        except (ProcessLookupError, OSError):
+            return True
+
+        def _kill_if_alive():
+            try:
+                if proc.poll() is None:
+                    proc.kill()
+                    _trace.emit("gcode.reparse_superseded_killed", level="warn",
+                                reason=reason)
+            except (ProcessLookupError, OSError):
+                pass
+        import threading
+        _t = threading.Timer(2.0, _kill_if_alive)
+        _t.daemon = True
+        _t.start()
+        return True
+
+    def preview_refresh_status(self) -> Optional[dict]:
+        """The status wire's `preview_refresh` (2026-09-05): what the
+        gateway is re-parsing and why, with the expected duration, so the
+        operator sees the wait instead of a silently stale preview. None
+        when no parse runs (the key is then absent from the frame)."""
+        inf = self.inflight
+        if inf is None or not self.refresh_running:
+            return None
+        return {"reason": inf.get("reason"), "file": os.path.basename(inf.get("file") or ""),
+                "expected_ms": inf.get("expected_ms"), "started_ms": inf.get("started_ms"),
+                "queued": bool(self.reparse_pending),
+                "superseded": self.superseded_total}
+
+    async def refresh_gcode_preview(self, filepath: str, reason: str = "file"):
         """Parse filepath in an isolated subprocess and publish the result.
 
         Called from the poller on file change. Single-flight via
@@ -312,20 +419,49 @@ class BulkPipeline:
                 "kins_frame": _live_kf,
             }
             ctx_bytes = _msgspec.msgpack.encode(ctx)
+            # Input snapshot of THIS parse in the published seeds' shapes
+            # (cancel-and-restart): rotary pose as the worker will seed it
+            # (same STAT fields, ms apart — the drift edge's settle guard
+            # absorbs that), the live kins type/frame the ctx carries, and
+            # the fixture table + g92 the var-file patches were built from.
+            expected_ms = self.expected_parse_ms(filepath)
+            timeout_s = self.parse_timeout_s(filepath)
+            self.cancel_reason = None
+            self.inflight = {
+                "file": filepath, "reason": reason,
+                "t0": time.monotonic(), "started_ms": int(time.time() * 1000),
+                "expected_ms": expected_ms,
+                "rotary_seed": rotary_seed_values(
+                    getattr(stat, "axis_mask", 0) or 0,
+                    getattr(stat, "actual_position", None)),
+                "kins_seed": {"type": _live_kt, "frame": _live_kf},
+                "wcs_off": self._get_wcs_off_flat(),
+            }
             _trace.emit("gcode.spawn_start",
-                        file=os.path.basename(filepath), active_idx=active_idx)
+                        file=os.path.basename(filepath), active_idx=active_idx,
+                        reason=reason, expected_ms=expected_ms,
+                        timeout_s=round(timeout_s, 1))
 
             t_spawn = time.monotonic()
             # Spawn + run the worker entirely off the event loop (B7): the fork no
             # longer stalls the loop. communicate() (write ctx, read stdout/stderr,
-            # wait) and the 60 s timeout all run in the thread.
+            # wait) and the timeout all run in the thread.
             try:
                 returncode, stdout, stderr = await asyncio.to_thread(
-                    self._run_gcode_worker_blocking, ctx_bytes, 60.0)
+                    self._run_gcode_worker_blocking, ctx_bytes, timeout_s)
             except subprocess.TimeoutExpired:
-                _trace.emit("gcode.parse_timeout", level="warn", file=filepath)
+                _trace.emit("gcode.parse_timeout", level="warn", file=filepath,
+                            timeout_s=round(timeout_s, 1), expected_ms=expected_ms)
                 return
             t_communicated = time.monotonic()
+            if self.cancel_reason is not None:
+                # Superseded by cancel_inflight: the result (if any) was
+                # computed from stale inputs — never publish it. The caller
+                # that cancelled owns the restart (reparse_pending / file edge).
+                _trace.emit("gcode.parse_cancelled", file=filepath,
+                            reason=self.cancel_reason, rc=returncode,
+                            ran_ms=round((t_communicated - t_spawn) * 1000))
+                return
             if returncode != 0:
                 err_tail = stderr.decode(errors="replace")[:500] if stderr else ""
                 _trace.emit("gcode.parse_worker_failed", level="warn",
@@ -446,6 +582,7 @@ class BulkPipeline:
             self.preview_version += 1
             self.last_file = filepath
             self.last_mtime = _mtime_at_parse
+            self.parse_ms_by_file[filepath] = round((t_gz_done - t_start) * 1000)
             _trace.emit("gcode.publish",
                         version=self.preview_version,
                         schema=worker_schema,
@@ -459,6 +596,7 @@ class BulkPipeline:
         finally:
             self.refresh_running = False
             self.gcode_parse_proc = None
+            self.inflight = None
 
     # ---- surface / comp grid file loading ----
 
