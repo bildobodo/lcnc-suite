@@ -3595,10 +3595,11 @@ Scope: the seven items below, on feat/twp. Commits 345320c, 94a02e6, 3c37186, 69
 - **No indication:** the gateway only traced `refresh_scheduled`/`spawn_start`; the
   viewer's HUD chip "Preview uses older offsets" lit because the offsets differed, not
   because a refresh ran, and never said how long.
-- **The viewer lag is two things.** Firefox 154 on the operator's Mac ticks its frame
-  loop at ~30 Hz with small programs too (29 fps; the render call 0.5 ms mean, 22 ms
-  p95) — the browser/display, not ours. With the big program half of all interactive
-  windows carried a ~100 ms hitch and one in twenty a >1 s freeze (gap_max p50 105 vs
+- **The viewer lag.** (Corrected the same evening, see the post-wave note: the
+  `frames`/`gap` fields of `browser.viewer.perf` count STATUS frames applied, not
+  rendered frames — the "~30 Hz frame loop" first read here was the 30 Hz status
+  cadence; the Mac's render loop runs 35–56 fps with the big program loaded.) With
+  the big program half of all interactive windows carried a ~100 ms hitch and one in twenty a >1 s freeze (gap_max p50 105 vs
   52 ms, p95 1238 vs 218 ms). Headless on the same payload: four per-line Map/Set
   structures with 1.18 M entries each (~4.7 M heap objects) made a full GC 110–140 ms vs
   8 ms empty; the 1.18 M-entry line map was structured-cloned across the worker boundary
@@ -3713,8 +3714,58 @@ comparison baseline differs, no growth inside the run.
 - Operator walk-through: Zero All on the big program in Machine frame — the banner
   with the countdown, the muted path, the path landing in ~15–25 s; the same in Plane
   frame; rotate/zoom the viewer with the big program loaded (the ~100 ms hitches should
-  be gone; the 30 fps ceiling is Firefox on that Mac).
-- CLOSED-WITH-REASON: the viewer's 30 fps ceiling (present with small programs; the
-  render call is 0.5 ms) — browser/display side. The VM-local Firefox tab's 12 fps —
-  software GL.
-- BOUNDED: remaining parse budget (item 1); the rc −2 cancel exit (item 2).
+  be gone; what remains is in the post-wave note).
+- RETRACTED (same evening): "the viewer's 30 fps ceiling is Firefox on that Mac" — a
+  misread metric (status cadence, not render rate); the interaction stutter with the
+  big program is OPEN, see the post-wave note. The VM-local Firefox tab's 12 fps —
+  software GL — stands.
+- BOUNDED: remaining parse budget (item 1); the rc −2 cancel exit (item 2; one more
+  occurrence in the operator's session carried its stderr: `KeyboardInterrupt` inside
+  `check_limit_violations` — the interpreter's SIGINT re-signal landing in the
+  post-processing pass; harmless, 274 ms).
+
+### Post-wave note (same evening) — the operator's two follow-up questions
+
+**"When moving A/B/C it takes about 20 s; X/Y/Z is fast now — what is different?"**
+The rotary pose is an INPUT to the parse (the `__ABCSEED__` seed: every segment whose
+rotary the program does not command holds the parse-time pose), so a rotary jog, or a
+Zero All that writes rotary offsets, can only be honoured by re-running the
+interpreter — nothing on the client can re-derive it, and the project rule forbids
+re-deriving interp semantics. Trace of the operator's session (gateway pid 435747):
+`jog_cont A` at t=2035.9 s → `gcode.reparse_rotary_drift rotary:A` at 2038.95 (the
+2 s settle guard + the drift-gate debounce) → `gcode.publish` at 2062.1 (23.1 s
+worker+gzip); `rotary:BC`: C jog at 2160.4 → drift 2163.4 → publish 2188.6 (25.2 s).
+The payload also grows once the seed is non-zero: 30.7 → 44.8 MB (`feed_abc` ships,
+6D decimation), so the Mac's decode + geometry rebuild grows with it (~2–4 s). An
+X/Y/Z touch-off is a pure offset change: the client re-poses the cached geometry
+through the part-frame worker in ~1 s (per-epoch WCS terms), and the same-length
+re-parse (20.6–24.2 s in the trace, `wcsoff:G54:x/y/z`) runs behind it for the
+per-line soft-limit marks only. Levers left for the rotary case are small: the settle
+guard (2 s → 1 s), the bounded ~3 s parse budget, the client rebuild. NOTED, not
+changed: in the plain X/Y/Z case the drawn path is exact from the client re-pose and
+only the limit marks are stale, so the wave's path MUTE is over-cautious there (it is
+right for rotary-offset and rotary-pose changes, where the re-posed path IS wrong
+until the re-parse lands); muting the marks alone in that case is a small rule change
+if the operator wants it.
+
+**"The 3D viewer is still laggy with the big program loaded; fluent when unloaded."**
+`browser.viewer.perf` re-read with the right semantics: `frames` = status frames
+applied (30 Hz active; 5 Hz at the adaptive idle poll after a manual-mode jog — the
+"15–20 frames / 200 ms gaps" windows are that, not lag), `renders` = rendered
+frames. Mac (Firefox 154, host 192.168.64.4), continuous-interaction windows (≥100
+renders / 3 s): loaded 34–56 fps, unloaded 46 fps — the render loop is not slower
+with the program loaded, and the CPU-side render call stays ≤2 ms. What differs is
+the frame-gap tail: the loaded rotate windows at 30 Hz status (t=2203–2230) show
+p95 49–99 ms and max 69–119 ms; the unloaded rotate window right after (t=2236) p95
+34, max 50 — a few-percent micro-stutter, not a low frame rate. With the main-thread
+cost accounted for (render ≤2 ms, applyState ≤3 ms, no pointer raycast, no per-frame
+O(program) work — this payload has one WCS epoch, zero violations, no tool changes),
+the stall sits where the telemetry cannot see: the GPU/compositor presenting a
+1.18 M-segment MSAA draw at Retina resolution (Firefox's out-of-process WebGL; worse
+while the path is drawn TRANSPARENT by the mute — the muted rotate windows ran ~30
+fps vs ~50 un-muted), or GC. OPEN. Next: (1) a discriminator in `viewerPerf` — RAF
+cadence separate from status cadence, a 0 ms timer probe (late = main thread
+blocked) and a WebGL2 fence polled across frames (GPU frames behind); (2) then either
+an interaction LOD (a coarse index buffer while OrbitControls is active, the full
+path on `end`) plus mute-by-colour instead of alpha, or the GC route — whichever the
+probe names.
