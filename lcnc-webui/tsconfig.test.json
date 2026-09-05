@@ -12,7 +12,8 @@
     "target": "ES2023",
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "module": "ESNext",
-    "types": ["node"],
+    // vite/client: the viewer modules the tests import use import.meta.hot.
+    "types": ["node", "vite/client"],
     "skipLibCheck": true,
 
     /* Bundler mode */
@@ -31,6 +32,7 @@
     "noUncheckedSideEffectImports": true
   },
   "include": [
+    "src/shims.d.ts",
     "src/viewer/palette.test.ts",
     "src/viewer/programZero.test.ts",
     "src/viewer/machineModel.test.ts",
