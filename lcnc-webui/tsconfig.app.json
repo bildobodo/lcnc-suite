@@ -13,10 +13,17 @@
     "noUncheckedSideEffectImports": true
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"],
-  // machineModel.test.ts is a NODE-side acceptance gate (reads the generated
-  // STLs via node:fs) — it can't typecheck under the DOM app config and is
-  // typechecked/run by vitest instead. Keep every other test in the app
-  // project so vue-tsc still covers them.
-  "exclude": ["src/viewer/palette.test.ts", "src/viewer/programZero.test.ts", "src/viewer/machineModel.test.ts", "src/viewer/machineDmu160p.test.ts",
-              "src/viewer/machineTrsrn.test.ts", "src/viewer/simReplay.corpus.test.ts"]
+  // NODE-side test files (node:fs / __dirname — the acceptance gates that
+  // read the repo and the generated STLs) cannot type-check under this DOM
+  // project; they are type-checked by tsconfig.test.json instead (and run
+  // by vitest as before). Keep the two lists in step —
+  // src/tsconfigCoverage.test.ts enforces it and refuses stale entries.
+  "exclude": [
+    "src/viewer/palette.test.ts",
+    "src/viewer/programZero.test.ts",
+    "src/viewer/machineModel.test.ts",
+    "src/viewer/machineTrsrn.test.ts",
+    "src/viewer/simReplay.corpus.test.ts",
+    "src/tsconfigCoverage.test.ts"
+  ]
 }

@@ -1,0 +1,43 @@
+{
+  // Node-side TypeScript: the acceptance-gate tests that read the repo or
+  // the generated STLs via node:fs, the sim replay dump, and the Playwright
+  // specs. They cannot type-check under the DOM-only app project (no node
+  // types there), so this project carries them — DOM lib too, because they
+  // import viewer modules. Referenced from tsconfig.json, so `vue-tsc -b`
+  // (npm run build, CI) covers every TypeScript file in the tree.
+  // src/tsconfigCoverage.test.ts keeps this list and tsconfig.app.json's
+  // exclude list in step and refuses stale entries.
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.test.tsbuildinfo",
+    "target": "ES2023",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "types": ["node"],
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+
+    /* Linting — the app project's flags */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true
+  },
+  "include": [
+    "src/viewer/palette.test.ts",
+    "src/viewer/programZero.test.ts",
+    "src/viewer/machineModel.test.ts",
+    "src/viewer/machineTrsrn.test.ts",
+    "src/viewer/simReplay.corpus.test.ts",
+    "src/tsconfigCoverage.test.ts",
+    "scripts/simDump.ts",
+    "e2e/**/*.ts"
+  ]
+}
