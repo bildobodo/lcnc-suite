@@ -302,5 +302,197 @@ class TestCmdBlockingHoldsLockThroughCancel(unittest.TestCase):
             gateway._cmd_lock = orig_lock
 
 
+class TestPreemption(unittest.TestCase):
+    """Stop-class preemption (2026-09-05): abort/estop supersede the work a
+    client queued before them and cancel every client's in-flight non-stop
+    handler; jog_stop stays plain FIFO; `arm` is never cancelled."""
+
+    @staticmethod
+    def _blocking_mdi(ev):
+        async def h(msg, armed):
+            if msg.get("cmd") == "mdi":
+                await ev.wait()
+            return {"ok": True, "text": msg.get("text")}
+        return h
+
+    def test_abort_preempts_inflight_and_supersedes_queue(self):
+        with _Harness() as h:
+            with TestClient(gateway.app) as client:
+                ev = client.portal.call(asyncio.Event)
+                gateway.handle_command = self._blocking_mdi(ev)
+                with client.websocket_connect("/ws") as ws:
+                    _arm(ws)
+                    for i in range(3):
+                        ws.send_json({"cmd": "mdi", "text": f"c{i}"})
+                    _drain(ws, 0.4, 0.5)   # c0 in flight, c1/c2 queued
+                    ws.send_json({"cmd": "abort"})
+                    t_send = time.monotonic()
+                    frames = _drain(ws, 3.0, 0.5, stop=lambda f: _is_reply(f, "abort"))
+                    t_reply, reply = frames[-1]
+                    self.assertTrue(_is_reply(reply, "abort") and reply.get("ok"), reply)
+                    self.assertLess(t_reply - t_send, 1.5, "abort waited behind the blocked handler")
+                    mdi = [f for _t, f in frames if _is_reply(f, "mdi")]
+                    self.assertEqual(sorted(f.get("error") for f in mdi),
+                                     ["Preempted by abort", "Superseded by abort", "Superseded by abort"])
+                    self.assertTrue(all(f.get("ok") is False for f in mdi))
+                    # The worker survived: a later command runs once released.
+                    ws.send_json({"cmd": "mdi", "text": "c3"})
+                    client.portal.call(ev.set)
+                    frames2 = _drain(ws, 4.0, 0.5,
+                                     stop=lambda f: _is_reply(f, "mdi") and f.get("text") == "c3")
+                    self.assertTrue(frames2[-1][1].get("ok"), frames2[-1][1])
+            pre = h.tags("ws.command_preempt")
+            self.assertTrue(pre and pre[0].get("by") == "abort" and pre[0]["victims"][0]["cmd"] == "mdi", pre)
+            preempted = h.tags("ws.command_preempted")
+            self.assertTrue(preempted and preempted[0].get("cmd") == "mdi" and preempted[0].get("by") == "abort")
+            sup = h.tags("ws.command_superseded")
+            self.assertTrue(sup and sup[0].get("count") == 2 and sup[0].get("cmds") == ["mdi", "mdi"], sup)
+
+    def test_estop_from_other_client_preempts_inflight(self):
+        with _Harness() as h:
+            with TestClient(gateway.app) as client:
+                ev = client.portal.call(asyncio.Event)
+                gateway.handle_command = self._blocking_mdi(ev)
+                with client.websocket_connect("/ws") as a, client.websocket_connect("/ws") as b:
+                    _arm(a, "cw-a")
+                    _arm(b, "cw-b")
+                    a.send_json({"cmd": "mdi", "text": "X"})
+                    _drain(a, 0.4, 0.5)
+                    b.send_json({"cmd": "estop"})
+                    fb = _drain(b, 3.0, 0.5, stop=lambda f: _is_reply(f, "estop"))
+                    self.assertTrue(fb[-1][1].get("ok"), fb[-1][1])
+                    fa = _drain(a, 3.0, 0.5, stop=lambda f: _is_reply(f, "mdi"))
+                    self.assertEqual(fa[-1][1].get("error"), "Preempted by estop", fa[-1][1])
+            pre = h.tags("ws.command_preempt")
+            self.assertTrue(pre and pre[0].get("by") == "estop", pre)
+            self.assertNotEqual(pre[0].get("from_client"), pre[0]["victims"][0]["client_id"])
+
+    def test_jog_stop_neither_preempts_nor_reorders(self):
+        with _Harness() as h:
+            with TestClient(gateway.app) as client:
+                ev = client.portal.call(asyncio.Event)
+                gateway.handle_command = self._blocking_mdi(ev)
+                with client.websocket_connect("/ws") as ws:
+                    _arm(ws)
+                    ws.send_json({"cmd": "mdi", "text": "c0"})
+                    ws.send_json({"cmd": "mdi", "text": "c1"})
+                    _drain(ws, 0.4, 0.5)
+                    ws.send_json({"cmd": "jog_stop"})
+                    frames = _drain(ws, 0.6, 0.5)
+                    self.assertEqual([f for _t, f in frames if _is_reply(f)], [], "a jog_stop preempted or reordered")
+                    client.portal.call(ev.set)
+                    frames2 = _drain(ws, 4.0, 0.5, stop=lambda f: _is_reply(f, "jog_stop"))
+                    order = [f.get("cmd") for _t, f in frames2 if _is_reply(f)]
+                    self.assertEqual(order, ["mdi", "mdi", "jog_stop"])
+                    self.assertTrue(all(f.get("ok") for _t, f in frames2 if _is_reply(f)))
+            self.assertEqual(h.tags("ws.command_preempt"), [])
+            self.assertEqual(h.tags("ws.command_superseded"), [])
+
+    def test_arm_is_never_preempted(self):
+        """A disarm in flight (jog-stop under _cmd_lock) is not cancelled by an
+        abort — the abort waits its turn behind it."""
+        orig_js = gateway._jog_stop_for_client
+        with _Harness() as h:
+            with TestClient(gateway.app) as client:
+                ev = client.portal.call(asyncio.Event)
+
+                async def ok(msg, armed):
+                    return {"ok": True}
+                gateway.handle_command = ok
+
+                async def slow_jog_stop():
+                    await ev.wait()
+                gateway._jog_stop_for_client = slow_jog_stop
+                try:
+                    with client.websocket_connect("/ws") as ws:
+                        _arm(ws)
+                        ws.send_json({"cmd": "arm", "armed": False})
+                        _drain(ws, 0.4, 0.5)
+                        ws.send_json({"cmd": "abort"})
+                        frames = _drain(ws, 0.6, 0.5)
+                        self.assertEqual([f for _t, f in frames if _is_reply(f)], [], "abort ran ahead of the disarm")
+                        client.portal.call(ev.set)
+                        frames2 = _drain(ws, 4.0, 0.5, stop=lambda f: _is_reply(f, "abort"))
+                        replies = [f for _t, f in frames2 if _is_reply(f)]
+                        self.assertIs(replies[0].get("armed"), False, replies)
+                        self.assertTrue(_is_reply(replies[-1], "abort") and replies[-1].get("ok"))
+                finally:
+                    gateway._jog_stop_for_client = orig_js
+            self.assertEqual(h.tags("ws.command_preempt"), [])
+
+
+class TestCmdBlockingSlicedWait(unittest.TestCase):
+    """wait_complete() holds the GIL for its whole wait (2.9.4 emcmodule.cc),
+    so _cmd_blocking waits in _CMD_WAIT_SLICE slices and a cancel lands
+    after the current slice, never after the whole wait."""
+
+    class _Cmd:
+        def __init__(self):
+            self.calls = []
+            self.release = threading.Event()
+            self.rc_when_released = 1
+
+        def wait_complete(self, t):
+            self.calls.append(t)
+            if self.release.is_set():
+                return self.rc_when_released
+            time.sleep(min(t, 0.05))
+            return -1
+
+    def _run(self, body):
+        orig_lock, orig_cmd = gateway._cmd_lock, gateway.CMD
+        gateway._cmd_lock = None
+        cmd = self._Cmd()
+        gateway.CMD = cmd
+        try:
+            asyncio.run(body(cmd))
+        finally:
+            gateway._cmd_lock, gateway.CMD = orig_lock, orig_cmd
+
+    def test_wait_is_sliced_and_cancel_returns_within_a_slice(self):
+        async def body(cmd):
+            lock = gateway._get_cmd_lock()
+            wrote, started = [], threading.Event()
+
+            def cmd_fn():
+                wrote.append(1)
+                started.set()
+
+            async def holder():
+                async with lock:
+                    return await gateway._cmd_blocking(cmd_fn, wait=30.0)
+            t = asyncio.create_task(holder())
+            await asyncio.to_thread(started.wait, 2.0)
+            await asyncio.sleep(0.2)
+            self.assertGreaterEqual(len(cmd.calls), 2, "the wait was not sliced")
+            self.assertTrue(all(c <= gateway._CMD_WAIT_SLICE + 1e-9 for c in cmd.calls), cmd.calls)
+            self.assertTrue(lock.locked())
+            t0 = time.monotonic()
+            t.cancel()
+            with self.assertRaises(asyncio.CancelledError):
+                await t
+            self.assertLess(time.monotonic() - t0, 0.5, "cancel waited for more than a slice")
+            self.assertFalse(lock.locked())
+            n = len(cmd.calls)
+            await asyncio.sleep(0.15)
+            self.assertEqual(len(cmd.calls), n, "the slice loop kept polling after the cancel")
+            self.assertEqual(wrote, [1], "the command write must run exactly once")
+        self._run(body)
+
+    def test_wait_returns_rc_when_done_and_minus_one_past_deadline(self):
+        async def body(cmd):
+            lock = gateway._get_cmd_lock()
+            cmd.release.set()
+            async with lock:
+                self.assertEqual(await gateway._cmd_blocking(lambda: None, wait=5.0), 1)
+            cmd.release.clear()
+            t0 = time.monotonic()
+            async with lock:
+                self.assertEqual(await gateway._cmd_blocking(lambda: None, wait=0.12), -1)
+            self.assertLess(time.monotonic() - t0, 0.5)
+            self.assertTrue(gateway._cmd_rc_failed(gateway._RC_WAIT_CANCELLED))
+        self._run(body)
+
+
 if __name__ == "__main__":
     unittest.main()

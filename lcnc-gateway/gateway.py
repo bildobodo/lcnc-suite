@@ -277,6 +277,18 @@ _WS_CMD_QUEUE_MAX = 32
 # may be droppable", docs/decisions.md) — a 4× hard cap still bounds a
 # broken client.
 _WS_STOP_CMDS = frozenset({"jog_stop", "jog_stop_multi", "abort", "estop"})
+# abort/estop SUPERSEDE the work this client queued before them and PREEMPT
+# any in-flight non-stop handler on EVERY client (2026-09-05): a stop must
+# never wait behind a 30 s MDI wait, and abort/E-Stop are machine-global, so
+# every in-flight handler's assumptions are void. jog_stop/jog_stop_multi
+# stay plain FIFO — no supersede, no preempt — because a stray jog_stop
+# during an MDI is a certified no-op class (twp_buttons_check) and reordering
+# it ahead of the jog_cont it belongs to would be an unbounded jog.
+_WS_PREEMPT_CMDS = frozenset({"abort", "estop"})
+# Never cancelled by a preempt: the stops themselves, and `arm` — its disarm
+# branch jog-stops under _cmd_lock and flips client.armed; cancelling it
+# would leave the flip with no reply.
+_WS_NO_PREEMPT = _WS_STOP_CMDS | {"arm"}
 # Client heartbeat budget (s): status_loop disarms an armed client whose
 # last heartbeat is older than this. Module-level so tests can shrink it.
 _HB_STALL_SEC = 3.0
@@ -446,6 +458,16 @@ _estop_hold = False  # hold connected=FALSE during UI e-stop
 # their own larger timeouts (5s) because the interpreter can legitimately
 # take longer to acknowledge a parsed block.
 _CMD_WAIT_TIMEOUT = 2.0
+# CMD.wait_complete() holds the GIL for its whole wait (2.9.4 emcmodule.cc:
+# the poll loop esleep()s with no Py_BEGIN_ALLOW_THREADS), so a long wait on
+# the to_thread worker freezes the event loop — heartbeat task included.
+# _cmd_blocking therefore waits in slices this long: each return releases
+# the GIL, and a cancel (abort/estop preemption, disconnect) lands after
+# the current slice instead of after the whole wait.
+_CMD_WAIT_SLICE = 0.05
+# wait_complete() rc when _cmd_blocking gave up the wait on cancel — treated
+# as failed by _cmd_rc_failed (the handler is being cancelled anyway).
+_RC_WAIT_CANCELLED = -2
 
 def _snapshot_trip(trip_ts_ns: int) -> None:
     """Write a forensic bundle when a HAL safety trip fires. Runs in a
@@ -2541,38 +2563,58 @@ def read_machine_limits_from_ini(stat_obj):
 async def _cmd_blocking(cmd_fn, *args, wait=_CMD_WAIT_TIMEOUT) -> int:
     """Run a blocking CMD.* call + optional wait_complete() on a worker thread.
 
-    Every `CMD.* + wait_complete()` pair must go through here. The LinuxCNC C
-    extension holds the GIL during its blocking sections; calling it directly
-    from the event-loop thread starves `_heartbeat_loop` and trips the HAL
-    watchdog. `asyncio.to_thread` isolates the blocking section so heartbeats
-    and status polls keep firing. Returns wait_complete()'s int result —
-    linuxcnc.RCS_DONE (1) on success, linuxcnc.RCS_ERROR (3) when the
-    command was rejected, -1 on timeout — or 0 when wait=None. (An earlier
-    version of this docstring said "0 ok, 1 failed", which is not the API:
-    the first rc check written against it counted every success as a
-    failure. Use _cmd_rc_failed.)
+    Every `CMD.* + wait_complete()` pair must go through here. Returns
+    wait_complete()'s int result — linuxcnc.RCS_DONE (1) on success,
+    linuxcnc.RCS_ERROR (3) when the command was rejected, -1 on timeout,
+    _RC_WAIT_CANCELLED (-2) when the wait was abandoned on cancel — or 0
+    when wait=None. (An earlier version of this docstring said "0 ok, 1
+    failed", which is not the API: the first rc check written against it
+    counted every success as a failure. Use _cmd_rc_failed.)
+
+    GIL fact (2.9.4 emcmodule.cc, verified 2026-09-05): the binding's
+    wait_complete() is a C poll loop that esleep()s WITHOUT releasing the
+    GIL — `asyncio.to_thread` isolates nothing for that half; a
+    wait_complete(30) would freeze the event loop (heartbeat task, status
+    loop) for as long as the command ran. Live it never showed because every
+    awaited command so far completes in ms. So the wait runs in
+    _CMD_WAIT_SLICE slices: repeated wait_complete(t) calls re-poll the same
+    stored serial (N slices ≡ one long wait to 10 ms), each return lets the
+    loop breathe, and a cancel lands after the current slice. The command
+    WRITE `cmd_fn(*args)` is never interrupted.
 
     Caller must hold `_cmd_lock` — NML command channel is not thread-safe.
     """
+    cancel = threading.Event()
+
     def _run():
         cmd_fn(*args)
-        if wait is not None:
-            return CMD.wait_complete(wait)
-        return 0
+        if wait is None:
+            return 0
+        deadline = time.monotonic() + float(wait)
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return -1
+            rc = CMD.wait_complete(min(_CMD_WAIT_SLICE, remaining))
+            if rc != -1:
+                return rc
+            if cancel.is_set():
+                return _RC_WAIT_CANCELLED
     # Shield-and-wait (2026-09-03): the caller holds _cmd_lock via `async
     # with`, which RELEASES on CancelledError — but a thread cannot be
     # cancelled, so a plain `await to_thread()` would free the lock while
     # CMD.mdi / wait_complete is still running on the thread, and the next
     # holder (the disconnect jog-stop, another client's worker) would call
     # NML concurrently — the corruption the lock exists to prevent. Handlers
-    # are now cancellable (a client disconnect cancels its command worker),
-    # so on cancel we keep the lock until the NML call actually returns
-    # (bounded by `wait`), then propagate. asyncio.wait retrieves the inner
-    # result so nothing is reported as never-retrieved.
+    # are cancellable (disconnect, abort/estop preemption), so on cancel we
+    # flag the slice loop, keep the lock until the thread actually returns
+    # (bounded by one slice + one NML call), then propagate. asyncio.wait
+    # retrieves the inner result so nothing is reported as never-retrieved.
     inner = asyncio.ensure_future(asyncio.to_thread(_run))
     try:
         return await asyncio.shield(inner)
     except asyncio.CancelledError:
+        cancel.set()
         await asyncio.wait({inner})
         raise
 
@@ -5094,6 +5136,12 @@ def register_bg_task(t: asyncio.Task) -> asyncio.Task:
 
 @asynccontextmanager
 async def lifespan(app: "FastAPI"):
+    # A lifespan begins not-shutting-down. Production has one lifespan per
+    # process; the in-process test harness opens many, and the flag set by
+    # the previous teardown silently skipped every later disarm jog-stop
+    # (found by test_arm_is_never_preempted, 2026-09-05).
+    global _shutting_down
+    _shutting_down = False
     _trace.emit("boot.lifespan_ready")
     # Asyncio loop exists only after lifespan startup — wire the
     # unhandled-task hook here so uvicorn's own handler is preserved.
@@ -5160,7 +5208,6 @@ async def lifespan(app: "FastAPI"):
     # Order matters. Each step is bounded so a stuck client/socket can't block
     # the rest. Total worst case ~5s — sized to fit uvicorn's
     # --timeout-graceful-shutdown 5 in the launcher.
-    global _shutting_down
     _shutting_down = True
     # Re-anchored to module-level _T0 so [SHUTDOWN] deltas line up with
     # [BOOT]/[CONN]/[SHUTDOWN-PROBE] on a single timeline.
@@ -6126,6 +6173,39 @@ async def get_g30():
     return await loop.run_in_executor(None, _read_g30_vars)
 
 
+def _retrieve_task_exc(t: asyncio.Task) -> None:
+    """Done-callback for per-command sub-tasks: retrieve the exception so a
+    sub-task that fails while its worker is being cancelled is never logged
+    as "Task exception was never retrieved" (crash.asyncio_unhandled). The
+    worker reads it again via inflight.exception() — retrieval is idempotent."""
+    if not t.cancelled():
+        t.exception()
+
+
+def _preempt_inflight(by: str, from_client: int) -> int:
+    """abort/estop from ANY client cancels every client's in-flight non-stop
+    handler (2026-09-05, docs/decisions.md). The cancel propagates into
+    _cmd_blocking, which keeps _cmd_lock until the current wait slice
+    returns — so the stop runs after the current NML call, not after a 30 s
+    MDI wait. Stop-class commands and `arm` are never cancelled
+    (_WS_NO_PREEMPT). The victim's worker replies "Preempted by <by>" and
+    traces ws.command_preempted; this site traces the fan-out once."""
+    victims = []
+    now = time.monotonic()
+    for cid, c in list(_clients.items()):
+        t = c.cmd_inflight_task
+        if t is None or t.done() or c.cmd_inflight in _WS_NO_PREEMPT:
+            continue
+        c.cmd_preempted_by = by
+        t.cancel()
+        victims.append({"client_id": cid, "cmd": c.cmd_inflight,
+                        "ran_ms": round((now - c.cmd_inflight_since_mono) * 1000)})
+    if victims:
+        _trace.emit("ws.command_preempt", level="warn", by=by,
+                    from_client=from_client, victims=victims)
+    return len(victims)
+
+
 async def _execute_client_command(client_id: int, client, ws: WebSocket, msg: Dict[str, Any]) -> None:
     """ONE queued command for ONE client — run by that client's cmd_worker in
     ws_endpoint, never by the reader (2026-09-03, see _WS_CMD_QUEUE_MAX).
@@ -6836,40 +6916,72 @@ async def ws_endpoint(ws: WebSocket):
                 _wcmd = _wmsg.get("cmd")
                 client.cmd_inflight = _wcmd
                 client.cmd_inflight_since_mono = time.monotonic()
+                client.cmd_preempted_by = None
                 _queued_ms = round((client.cmd_inflight_since_mono - _enq) * 1000)
                 if _queued_ms > 500:
                     _trace.emit("ws.command_queue_wait", client_id=client_id,
                                 cmd=_wcmd, queued_ms=_queued_ms)
+                # Each command runs as its OWN task (2026-09-05) so an
+                # abort/estop can cancel it (_preempt_inflight) without
+                # killing this worker. asyncio.wait never propagates THIS
+                # task's cancel to the sub-task, so the disconnect path
+                # cancels it explicitly below.
+                inflight = register_bg_task(asyncio.create_task(
+                    _execute_client_command(client_id, client, ws, _wmsg)))
+                inflight.add_done_callback(_retrieve_task_exc)
+                client.cmd_inflight_task = inflight
                 try:
                     _set_phase(f"ws.worker.handle cmd={_wcmd} client#{client_id}")
-                    await _execute_client_command(client_id, client, ws, _wmsg)
-                    _ran_ms = round((time.monotonic() - client.cmd_inflight_since_mono) * 1000)
-                    if _ran_ms > 1000:
-                        # Names the slow handler in trace.ndjson — the
-                        # forensic the hb-stall hunt had to reconstruct.
-                        _trace.emit("ws.command_slow", client_id=client_id, cmd=_wcmd, ms=_ran_ms)
-                except asyncio.CancelledError:
-                    _trace.emit("ws.command_cancelled_on_disconnect", level="warn",
-                                client_id=client_id, cmd=_wcmd,
-                                ran_ms=round((time.monotonic() - client.cmd_inflight_since_mono) * 1000))
-                    raise
-                except WebSocketDisconnect:
-                    # Peer vanished under the reply send; the reader's
-                    # receive() sees the same disconnect and tears down.
-                    _trace.emit("ws.command_reply_lost", level="warn", client_id=client_id, cmd=_wcmd)
-                    return
-                except Exception as _we:  # noqa: BLE001 - never kill the socket silently
-                    _trace.emit("ws.command_exception", level="error", client_id=client_id,
-                                cmd=_wcmd, exc=type(_we).__name__, msg=str(_we))
                     try:
-                        await ws_send_json(ws, {"type": "reply", "cmd": _wcmd, "ok": False,
-                                                "error": f"{type(_we).__name__}: {_we}"})
-                    except Exception as _we2:  # noqa: BLE001
-                        _trace.emit("ws.command_error_reply_failed", level="warn",
-                                    client_id=client_id, cmd=_wcmd, exc=type(_we2).__name__)
+                        await asyncio.wait({inflight})
+                    except asyncio.CancelledError:
+                        inflight.cancel()
+                        _trace.emit("ws.command_cancelled_on_disconnect", level="warn",
+                                    client_id=client_id, cmd=_wcmd,
+                                    ran_ms=round((time.monotonic() - client.cmd_inflight_since_mono) * 1000))
+                        raise
+                    _ran_ms = round((time.monotonic() - client.cmd_inflight_since_mono) * 1000)
+                    if inflight.cancelled():
+                        _by = client.cmd_preempted_by
+                        if _by:
+                            _trace.emit("ws.command_preempted", level="warn", client_id=client_id,
+                                        cmd=_wcmd, by=_by, ran_ms=_ran_ms)
+                            try:
+                                await ws_send_json(ws, {"type": "reply", "cmd": _wcmd, "ok": False,
+                                                        "error": f"Preempted by {_by}"})
+                            except Exception as _we2:  # noqa: BLE001
+                                _trace.emit("ws.command_error_reply_failed", level="warn",
+                                            client_id=client_id, cmd=_wcmd, exc=type(_we2).__name__)
+                        else:
+                            # Lifespan shutdown cancels bg tasks directly.
+                            _trace.emit("ws.command_cancelled", level="warn", client_id=client_id,
+                                        cmd=_wcmd, ran_ms=_ran_ms)
+                        continue
+                    _we = inflight.exception()
+                    if _we is None:
+                        if _ran_ms > 1000:
+                            # Names the slow handler in trace.ndjson — the
+                            # forensic the hb-stall hunt had to reconstruct.
+                            _trace.emit("ws.command_slow", client_id=client_id, cmd=_wcmd, ms=_ran_ms)
+                    elif isinstance(_we, WebSocketDisconnect):
+                        # Peer vanished under the reply send; the reader's
+                        # receive() sees the same disconnect and tears down.
+                        _trace.emit("ws.command_reply_lost", level="warn", client_id=client_id, cmd=_wcmd)
+                        return
+                    else:  # never kill the socket silently
+                        _trace.emit("ws.command_exception", level="error", client_id=client_id,
+                                    cmd=_wcmd, exc=type(_we).__name__, msg=str(_we))
+                        try:
+                            await ws_send_json(ws, {"type": "reply", "cmd": _wcmd, "ok": False,
+                                                    "error": f"{type(_we).__name__}: {_we}"})
+                        except Exception as _we2:  # noqa: BLE001
+                            _trace.emit("ws.command_error_reply_failed", level="warn",
+                                        client_id=client_id, cmd=_wcmd, exc=type(_we2).__name__)
                 finally:
                     client.cmd_inflight = None
                     client.cmd_inflight_since_mono = 0.0
+                    client.cmd_inflight_task = None
+                    client.cmd_preempted_by = None
                     _set_phase(f"ws.worker.done cmd={_wcmd} client#{client_id}")
 
         cmd_task = register_bg_task(asyncio.create_task(cmd_worker()))
@@ -7112,6 +7224,29 @@ async def ws_endpoint(ws: WebSocket):
             # queue, replied + traced when full — never a silent drop; stop-
             # class commands get 4× the headroom and are never rejected first.
             _rcmd = msg.get("cmd")
+            if _rcmd in _WS_PREEMPT_CMDS:
+                # A stop supersedes the work this client sent before it: drop
+                # the queued non-stop commands (replied + traced, never
+                # silent), keep stops/arm in their FIFO order ahead of this
+                # one, and cancel every client's in-flight handler. All on
+                # the loop thread — the worker is either parked in get() or
+                # inside its sub-task, never touching the queue.
+                _kept, _sup = [], []
+                while True:
+                    try:
+                        _qm, _qt = cmd_queue.get_nowait()
+                    except asyncio.QueueEmpty:
+                        break
+                    (_kept if _qm.get("cmd") in _WS_NO_PREEMPT else _sup).append((_qm, _qt))
+                for _qm, _qt in _kept:
+                    cmd_queue.put_nowait((_qm, _qt))
+                for _qm, _qt in _sup:
+                    await ws_send_json(ws, {"type": "reply", "cmd": _qm.get("cmd"), "ok": False,
+                                            "error": f"Superseded by {_rcmd}"})
+                if _sup:
+                    _trace.emit("ws.command_superseded", level="warn", client_id=client_id,
+                                by=_rcmd, count=len(_sup), cmds=[m.get("cmd") for m, _ in _sup])
+                _preempt_inflight(by=_rcmd, from_client=client_id)
             _depth = cmd_queue.qsize()
             _cap = _WS_CMD_QUEUE_MAX * (4 if _rcmd in _WS_STOP_CMDS else 1)
             if _depth >= _cap:

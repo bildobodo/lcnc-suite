@@ -129,6 +129,11 @@ class ClientState:
     # long handler is named, not reconstructed (2026-09-03).
     cmd_inflight: Optional[str] = None
     cmd_inflight_since_mono: float = 0.0
+    # The sub-task running that command (2026-09-05): an abort/estop from any
+    # client cancels it (gateway._preempt_inflight) and records who did, so
+    # the worker can reply "Preempted by <cmd>" instead of nothing.
+    cmd_inflight_task: Optional["asyncio.Task"] = None
+    cmd_preempted_by: Optional[str] = None
 
 
 def diff_status_data(last: Dict[str, Any], current: Dict[str, Any]) -> Dict[str, Any]:
