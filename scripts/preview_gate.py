@@ -152,7 +152,8 @@ def run(mode, ini, files, config_name):
         # parse as a standalone program, and its golden recorded the failure
         # as the expected result. It is covered where it belongs, as the sub
         # simple_example.ngc calls.
-        err = payload.get("parse_error")
+        err = (payload.get("parse_error")
+               or (payload.get("parse_refused") or {}).get("message"))
         if err:
             fails += 1
             verb = "refusing to write golden" if mode == "generate" else "PARSE FAILED"

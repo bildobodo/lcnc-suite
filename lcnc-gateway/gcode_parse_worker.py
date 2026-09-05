@@ -75,7 +75,7 @@ from gateway_util import (
     kins_nonidentity_flags, kins_frame_indices, check_limit_violations_trsrn,
     kins_marker_policy, mode_boundary_indices, event_boundary_indices,
     classify_motion_lines, line_trust_flags, resolve_sub_indices,
-    attribute_sub_callers, resolve_sub_callers,
+    attribute_sub_callers, resolve_sub_callers, refusal_payload,
     insert_flip_relabels, read_var_wcs_rows, wcs_event_rewritten,
     wcs_rewrite_targets, ustart_start_tuple,
     PREVIEW_SCHEMA, should_ship_abc, rotary_sync_initcode,
@@ -264,6 +264,13 @@ def parse(ctx: dict) -> dict:
             # parse_partial event WITHOUT decoding the (multi-MB) stdout payload.
             print(f"__PARTIAL__\t{seq}\t{parse_error}", file=sys.stderr, flush=True)
         print(f"gcode.parse feed={len(canon.feed)} rapid={len(canon.rapid)} parse_ms={(t1-t0)*1000:.0f}", file=sys.stderr, flush=True)
+        # Remap refusal in preview (2026-09-05): the gcode module's
+        # CANON_ERROR is a stub and the fork's refusals `yield INTERP_EXIT`,
+        # which gcode.parse reports as 1 (< MIN_ERROR) — a refused program
+        # parses as an EMPTY success. The fork records the first refusal on
+        # its module; re-fetched here because a worker's FIRST parse imports
+        # the module DURING gcode.parse (the pre-parse handle above is None).
+        _refusal = getattr(sys.modules.get("remap"), "webui_preview_refusal", None)
     finally:
         shutil.rmtree(td, ignore_errors=True)
 
@@ -924,6 +931,7 @@ def parse(ctx: dict) -> dict:
     sub_names = []
     feed_sub = rapid_sub = None
     feed_cline = rapid_cline = None
+    _caller_map = {}
     if canon.sub_events:
         for _ev in canon.sub_events:
             _nm = _ev[1]
@@ -1237,6 +1245,16 @@ def parse(ctx: dict) -> dict:
         # with no WEBUI_SUB markers — the stats dialog shows one info-tier
         # hint. Present only when non-empty.
         result["unmarked_subs"] = unmarked_subs
+    if _refusal:
+        # Present only when a remap refused the program — the operator's
+        # reason for an otherwise clean, EMPTY payload (task would refuse
+        # the same line). Machine-readable stderr twin for the gateway
+        # trace, like __PARTIAL__.
+        _pr = refusal_payload(_refusal, canon.sub_events, _caller_map,
+                              source_text=_src_text)
+        result["parse_refused"] = _pr
+        print(f"__REFUSED__\t{_pr.get('line') or ''}\t{_pr['message']}",
+              file=sys.stderr, flush=True)
     return result
 
 

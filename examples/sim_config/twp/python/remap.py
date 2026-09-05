@@ -405,8 +405,9 @@ def webui_preview_reset():
     global _preview_twp_state, _preview_pre_rot
     global twp_matrix, twp_flag, twp_build_params, pre_rot
     global saved_work_offset, saved_work_offset_number, orient_mode
-    global twp_pose_a
+    global twp_pose_a, webui_preview_refusal
     twp_pose_a = None
+    webui_preview_refusal = None
     _preview_twp_state = 0
     _preview_pre_rot = 0.0
     twp_matrix = np.asmatrix(np.identity(4))
@@ -435,6 +436,43 @@ def _bump_datum_seq():
         hal.set_p(twp_comp + "twp-datum-seq-in", str(_twp_datum_seq))
     except Exception as exc:  # noqa: BLE001
         log.warning("twp-datum-seq-in not writable (%s): the datum settle falls back to the value test", exc)
+
+
+# The first refusal of the current PREVIEW parse, read by gcode_parse_worker
+# after gcode.parse (cleared by webui_preview_reset). None = none.
+webui_preview_refusal = None
+
+
+def _canon_error(self, msg):
+    """Every refusal path's CANON_ERROR (2026-09-05). In task it is the
+    upstream call, byte-identical. In PREVIEW the gcode module's CANON_ERROR
+    is an empty stub and the `yield INTERP_EXIT` that follows every refusal
+    makes gcode.parse return 1 (< MIN_ERROR), so a refused program used to
+    preview as an EMPTY success with no reason anywhere. Record the first
+    refusal for the parse worker and say it on stderr. `sequence_number` is
+    the program line for python= remaps (the checks precede any
+    self.execute(..., lineno())); through an ngc wrapper (G53.x → M530) it
+    is the wrapper's line — the worker recovers the caller line from the
+    WEBUI_SUB span."""
+    global webui_preview_refusal
+    emccanon.CANON_ERROR(msg)
+    if self.task != 0:
+        return
+    if webui_preview_refusal is None:
+        webui_preview_refusal = {
+            # sequence_number reads 0 inside a remap (measured); linetext is
+            # the trigger line's TEXT, which the worker matches back to a
+            # unique main-file line.
+            "line": getattr(self, "sequence_number", None),
+            "linetext": getattr(self, "linetext", None),
+            "file": os.path.basename(getattr(self, "filename", "") or ""),
+            "call_level": getattr(self, "call_level", None),
+            "message": str(msg),
+        }
+    print(f"LCNC-SUITE preview refused: {msg} [line={getattr(self, 'sequence_number', None)!r}"
+          f" linetext={getattr(self, 'linetext', None)!r}"
+          f" file={os.path.basename(getattr(self, 'filename', '') or '')!r}"
+          f" call_level={getattr(self, 'call_level', None)!r}]", file=sys.stderr, flush=True)
 # --------------------------- end LCNC-SUITE block --------------------------
 
 
@@ -1182,7 +1220,7 @@ def g53x_core(self):
         reset_twp_params(self)
         msg = "G53.x: No TWP defined."
         log.debug(msg)
-        emccanon.CANON_ERROR(msg)
+        _canon_error(self, msg)
         yield INTERP_EXECUTE_FINISH # w/o this the error message is not displayed
         yield INTERP_EXIT # w/o this the error does not abort a running gcode program
         return INTERP_ERROR
@@ -1207,7 +1245,7 @@ def g53x_core(self):
         yield INTERP_EXECUTE_FINISH  # drain: the demote must land before the abort flushes the queue
         msg = "G53.x: TWP already active"
         log.debug(msg)
-        emccanon.CANON_ERROR(msg)
+        _canon_error(self, msg)
         yield INTERP_EXECUTE_FINISH # w/o this the error message is not displayed
         yield INTERP_EXIT # w/o this the error does not abort a running gcode program
         return INTERP_ERROR
@@ -1226,7 +1264,7 @@ def g53x_core(self):
         # G53.x and M531 funnel through M530.)
         msg = "G53.x : unrecognised P-Word found."
         log.debug(msg)
-        emccanon.CANON_ERROR(msg)
+        _canon_error(self, msg)
         yield INTERP_EXECUTE_FINISH # w/o this the error message is not displayed
         yield INTERP_EXIT # w/o this the error does not abort a running gcode program
         return INTERP_ERROR
@@ -1245,7 +1283,7 @@ def g53x_core(self):
             msg = ("G53.x: a G92 rotary offset (A/B/C) is in effect - it would"
                    " displace the orient move in every fixture. G92.1 first.")
             log.debug(msg)
-            emccanon.CANON_ERROR(msg)
+            _canon_error(self, msg)
             yield INTERP_EXECUTE_FINISH
             yield INTERP_EXIT
             return INTERP_ERROR
@@ -1305,7 +1343,7 @@ def g53x_core(self):
             msg = ("G53.x: Q2 (adopt pose) refused - the current head pose is "
                    "not normal to the plane. Use Orient (G53.1) instead.")
             log.debug(msg)
-            emccanon.CANON_ERROR(msg)
+            _canon_error(self, msg)
             yield INTERP_EXECUTE_FINISH
             yield INTERP_EXIT
             return INTERP_ERROR
@@ -1333,7 +1371,7 @@ def g53x_core(self):
         # into reach works against the real definition.
         msg = "G53.x ERROR: Requested tool orientation not reachable -> aborting G53.x"
         log.debug(msg)
-        emccanon.CANON_ERROR(msg)
+        _canon_error(self, msg)
         yield INTERP_EXECUTE_FINISH # w/o this the error message is not displayed
         yield INTERP_EXIT # w/o this the error does not abort a running gcode program
         return INTERP_ERROR
@@ -1346,7 +1384,7 @@ def g53x_core(self):
         # plane is valid, the pose is the problem; preserve it for retry).
         msg = ("G53.x ERROR: Requested tool orientation not reachable -> aborting G53.x")
         log.debug(msg)
-        emccanon.CANON_ERROR(msg)
+        _canon_error(self, msg)
         yield INTERP_EXECUTE_FINISH # w/o this the error message is not displayed
         yield INTERP_EXIT # w/o this the error does not abort a running gcode program
         return INTERP_ERROR
@@ -1503,7 +1541,7 @@ def twp_touchoff(self, **words):
                    " Orient first (it clears them)")
     if err is not None:
         log.debug(err)
-        emccanon.CANON_ERROR(err)
+        _canon_error(self, err)
         yield INTERP_EXECUTE_FINISH
         yield INTERP_EXIT
         return INTERP_ERROR
@@ -1597,7 +1635,7 @@ def g683(self, **words):
         reset_twp_params(self)
         msg =("G68.3 ERROR: TWP already defined.")
         log.debug(msg)
-        emccanon.CANON_ERROR(msg)
+        _canon_error(self, msg)
         yield INTERP_EXECUTE_FINISH # w/o this the error message is not displayed
         yield INTERP_EXIT # w/o this the error does not abort a running gcode program
         return INTERP_ERROR
@@ -1611,7 +1649,7 @@ def g683(self, **words):
         reset_twp_params(self)
         msg = "G68.3 ERROR: Must be in G54 to define TWP."
         log.debug(msg)
-        emccanon.CANON_ERROR(msg)
+        _canon_error(self, msg)
         yield INTERP_EXECUTE_FINISH # w/o this the error message is not displayed
         yield INTERP_EXIT # w/o this the error does not abort a running gcode program
         return INTERP_ERROR
@@ -1623,7 +1661,7 @@ def g683(self, **words):
                " it must be zero to define a TWP. Clear it (G10 L2 P1 A0 B0 C0"
                " / G92.1) and define again.")
         log.debug(msg)
-        emccanon.CANON_ERROR(msg)
+        _canon_error(self, msg)
         yield INTERP_EXECUTE_FINISH
         yield INTERP_EXIT
         return INTERP_ERROR
@@ -1663,7 +1701,7 @@ def g683(self, **words):
         reset_twp_params(self)
         msg = "G68.3 ERROR: %s" % _e
         log.debug(msg)
-        emccanon.CANON_ERROR(msg)
+        _canon_error(self, msg)
         yield INTERP_EXECUTE_FINISH
         yield INTERP_EXIT
         return INTERP_ERROR
@@ -1732,7 +1770,7 @@ def g682(self, **words):
         reset_twp_params(self)
         msg = ("G68.2: TWP already defined.")
         log.debug(msg)
-        emccanon.CANON_ERROR(msg)
+        _canon_error(self, msg)
         yield INTERP_EXECUTE_FINISH # w/o this the error message is not displayed
         yield INTERP_EXIT # w/o this the error does not abort a running gcode program
         return INTERP_ERROR
@@ -1745,7 +1783,7 @@ def g682(self, **words):
         reset_twp_params(self)
         msg = "G68.2 ERROR: Must be in G54 to define TWP."
         log.debug(msg)
-        emccanon.CANON_ERROR(msg)
+        _canon_error(self, msg)
         yield INTERP_EXECUTE_FINISH # w/o this the error message is not displayed
         yield INTERP_EXIT # w/o this the error does not abort a running gcode program
         return INTERP_ERROR
@@ -1758,7 +1796,7 @@ def g682(self, **words):
                " it must be zero to define a TWP. Clear it (G10 L2 P1 A0 B0 C0"
                " / G92.1) and define again.")
         log.debug(msg)
-        emccanon.CANON_ERROR(msg)
+        _canon_error(self, msg)
         yield INTERP_EXECUTE_FINISH
         yield INTERP_EXIT
         return INTERP_ERROR
@@ -1775,7 +1813,7 @@ def g682(self, **words):
         reset_twp_params(self)
         msg = "G68.2 ERROR: %s" % _e
         log.debug(msg)
-        emccanon.CANON_ERROR(msg)
+        _canon_error(self, msg)
         yield INTERP_EXECUTE_FINISH
         yield INTERP_EXIT
         return INTERP_ERROR
@@ -1803,7 +1841,7 @@ def g682(self, **words):
             reset_twp_params(self)
             msg = ("G68.2 (P0): No recognised Q-Word found.")
             log.debug(msg)
-            emccanon.CANON_ERROR(msg)
+            _canon_error(self, msg)
             yield INTERP_EXECUTE_FINISH # w/o this the error message is not displayed
             yield INTERP_EXIT # w/o this the error does not abort a running gcode program
             return INTERP_ERROR
@@ -1847,7 +1885,7 @@ def g682(self, **words):
             reset_twp_params(self)
             msg = ("G68.2 P1: No recognised Q-Word found.")
             log.debug(msg)
-            emccanon.CANON_ERROR(msg)
+            _canon_error(self, msg)
             yield INTERP_EXECUTE_FINISH # w/o this the error message is not displayed
             yield INTERP_EXIT # w/o this the error does not abort a running gcode program
             return INTERP_ERROR
@@ -1923,7 +1961,7 @@ def g682(self, **words):
             reset_twp_params(self)
             msg = ("G68.2 P2: No recognised Q-Word found.")
             log.debug(msg)
-            emccanon.CANON_ERROR(msg)
+            _canon_error(self, msg)
             yield INTERP_EXECUTE_FINISH # w/o this the error message is not displayed
             yield INTERP_EXIT # w/o this the error does not abort a running gcode program
             return INTERP_ERROR
@@ -2007,7 +2045,7 @@ def g682(self, **words):
             reset_twp_params(self)
             msg = ("G68.2 P3: No recognised Q-Word found.")
             log.debug(msg)
-            emccanon.CANON_ERROR(msg)
+            _canon_error(self, msg)
             yield INTERP_EXECUTE_FINISH # w/o this the error message is not displayed
             yield INTERP_EXIT # w/o this the error does not abort a running gcode program
             return INTERP_ERROR
@@ -2033,7 +2071,7 @@ def g682(self, **words):
                 reset_twp_params(self)
                 msg = ("G68.2 P3: Vectors are not orthogonal.")
                 log.debug(msg)
-                emccanon.CANON_ERROR(msg)
+                _canon_error(self, msg)
                 yield INTERP_EXECUTE_FINISH # w/o this the error message is not displayed
                 yield INTERP_EXIT # w/o this the error does not abort a running gcode program
                 return INTERP_ERROR
@@ -2070,7 +2108,7 @@ def g682(self, **words):
         reset_twp_params(self)
         msg = ("G68.2: No recognised P-Word found.")
         log.debug(msg)
-        emccanon.CANON_ERROR(msg)
+        _canon_error(self, msg)
         yield INTERP_EXECUTE_FINISH # w/o this the error message is not displayed
         yield INTERP_EXIT # w/o this the error does not abort a running gcode program
         return INTERP_ERROR
@@ -2126,7 +2164,7 @@ def g684(self, **words):
         reset_twp_params(self)
         msg = ("G68.4: No TWP active to increment from. Run G68.2 or G68.3 first.")
         log.debug(msg)
-        emccanon.CANON_ERROR(msg)
+        _canon_error(self, msg)
         yield INTERP_EXECUTE_FINISH # w/o this the error message is not displayed
         yield INTERP_EXIT # w/o this the error does not abort a running gcode program
         return INTERP_ERROR
@@ -2139,7 +2177,7 @@ def g684(self, **words):
         reset_twp_params(self)
         msg = ("G68.4 ERROR: Must be in G59, G59.x to increment TWP.")
         log.debug(msg)
-        emccanon.CANON_ERROR(msg)
+        _canon_error(self, msg)
         yield INTERP_EXECUTE_FINISH # w/o this the error message is not displayed
         yield INTERP_EXIT # w/o this the error does not abort a running gcode program
         return INTERP_ERROR
@@ -2161,7 +2199,7 @@ def g684(self, **words):
             reset_twp_params(self)
             msg = ("G68.4 (P0): No recognised Q-Word found.")
             log.debug(msg)
-            emccanon.CANON_ERROR(msg)
+            _canon_error(self, msg)
             yield INTERP_EXECUTE_FINISH # w/o this the error message is not displayed
             yield INTERP_EXIT # w/o this the error does not abort a running gcode program
             return INTERP_ERROR
@@ -2205,7 +2243,7 @@ def g684(self, **words):
             reset_twp_params(self)
             msg = ("G68.4 P1: No recognised Q-Word found.")
             log.debug(msg)
-            emccanon.CANON_ERROR(msg)
+            _canon_error(self, msg)
             yield INTERP_EXECUTE_FINISH # w/o this the error message is not displayed
             yield INTERP_EXIT # w/o this the error does not abort a running gcode program
             return INTERP_ERROR
@@ -2280,7 +2318,7 @@ def g684(self, **words):
             reset_twp_params(self)
             msg = ("G68.4 P2: No recognised Q-Word found.")
             log.debug(msg)
-            emccanon.CANON_ERROR(msg)
+            _canon_error(self, msg)
             yield INTERP_EXECUTE_FINISH # w/o this the error message is not displayed
             yield INTERP_EXIT # w/o this the error does not abort a running gcode program
             return INTERP_ERROR
@@ -2364,7 +2402,7 @@ def g684(self, **words):
             reset_twp_params(self)
             msg = ("G68.4 P3: No recognised Q-Word found.")
             log.debug(msg)
-            emccanon.CANON_ERROR(msg)
+            _canon_error(self, msg)
             yield INTERP_EXECUTE_FINISH # w/o this the error message is not displayed
             yield INTERP_EXIT # w/o this the error does not abort a running gcode program
             return INTERP_ERROR
@@ -2394,7 +2432,7 @@ def g684(self, **words):
                 #twp_build_params = {'q0':[], 'q1':[]}
                 msg = ("G68.4 P3: Vectors are not orthogonal.")
                 log.debug(msg)
-                emccanon.CANON_ERROR(msg)
+                _canon_error(self, msg)
                 yield INTERP_EXECUTE_FINISH # w/o this the error message is not displayed
                 yield INTERP_EXIT # w/o this the error does not abort a running gcode program
                 return INTERP_ERROR
@@ -2428,7 +2466,7 @@ def g684(self, **words):
         reset_twp_params(self)
         msg = ("G68.4: No recognised P-Word found.")
         log.debug(msg)
-        emccanon.CANON_ERROR(msg)
+        _canon_error(self, msg)
         yield INTERP_EXECUTE_FINISH # w/o this the error message is not displayed
         yield INTERP_EXIT # w/o this the error does not abort a running gcode program
         return INTERP_ERROR

@@ -452,6 +452,15 @@ export interface ViewerGcode {
   // instead of at cycle start. null/absent = clean parse.
   parse_error?: string | null;
   error_line?: number | null;
+  // A TWP remap REFUSED the program in preview (2026-09-05). The preview
+  // interpreter runs from the machine's LIVE state (active fixture, kins),
+  // and the fork's refusal paths `yield INTERP_EXIT` — an EMPTY success to
+  // gcode.parse (its CANON_ERROR is a stub). `line` is the main-file line
+  // (the verified caller line when the refusal happened inside a marked sub
+  // span; null when unattributable), `sub` / `sub_line` name that span and
+  // the refusal's own line in that file. Absent = no refusal. Task would
+  // refuse the same line — the preview is correct; this is its reason.
+  parse_refused?: { line: number | null; sub?: string | null; sub_line?: number | null; message: string } | null;
   [key: string]: any;  // stats fields are folded in by GcodePanel watcher
 }
 
@@ -484,6 +493,20 @@ export const previewParseError = computed<string | null>(() => {
   const g = viewerGcode.value;
   if (!g?.parse_error) return null;
   return g.error_line != null ? `${g.parse_error} (line ${g.error_line})` : g.parse_error;
+});
+
+// A remap refusal in preview (distinct from the interpreter abort above: the
+// payload is a structurally clean EMPTY parse). Derived from the payload, so
+// it clears when a new program loads or a state change reparses this one.
+export const previewRefusal = computed<{ line: number | null; sub: string | null; message: string; text: string } | null>(() => {
+  const r = viewerGcode.value?.parse_refused;
+  if (!r || !r.message) return null;
+  const line = typeof r.line === "number" ? r.line : null;
+  const sub = r.sub ?? null;
+  const where = line != null ? `line ${line}`
+    : sub ? `inside ${sub}.ngc${r.sub_line != null ? ` line ${r.sub_line}` : ""}`
+    : "an unknown line";
+  return { line, sub, message: r.message, text: `${r.message} (${where})` };
 });
 
 let _gcodeContentFile: string | null = null;

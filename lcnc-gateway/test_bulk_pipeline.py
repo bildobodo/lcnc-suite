@@ -123,6 +123,40 @@ class TestSchemaStampRecording(unittest.TestCase):
         self.assertTrue(b.preview_available())
         self.assertIsNone(b.published_schema)
 
+    def _refresh_recording(self, stderr: bytes):
+        import lcnc_trace
+        events = []
+        real = lcnc_trace.emit
+
+        def rec(tag, level="info", msg="", **fields):
+            events.append((tag, dict(fields)))
+            return real(tag, level, msg, **fields)
+        lcnc_trace.emit = rec
+        try:
+            b = self._refresh(stderr)
+        finally:
+            lcnc_trace.emit = real
+        return b, events
+
+    def test_refused_line_traces_parse_refused(self):
+        # A remap refusal in preview: the payload carries parse_refused (the
+        # operator's banner); the __REFUSED__ stderr twin becomes the trace.
+        b, ev = self._refresh_recording(
+            b"__REFUSED__\t12\tG68.3 ERROR: Must be in G54 to define TWP.\n__SCHEMA__\t8\n")
+        self.assertTrue(b.preview_available())   # an EMPTY success still publishes
+        hits = [f for t, f in ev if t == "gcode.parse_refused"]
+        self.assertEqual(len(hits), 1, ev)
+        self.assertEqual(hits[0].get("line"), "12")
+        self.assertEqual(hits[0].get("message"), "G68.3 ERROR: Must be in G54 to define TWP.")
+        self.assertEqual(hits[0].get("file"), self.ngc)
+
+    def test_partial_line_traces_parse_partial(self):
+        b, ev = self._refresh_recording(b"__PARTIAL__\t7\tUnknown g code used\n__SCHEMA__\t8\n")
+        self.assertTrue(b.preview_available())
+        hits = [f for t, f in ev if t == "gcode.parse_partial"]
+        self.assertEqual(len(hits), 1, ev)
+        self.assertEqual((hits[0].get("error_line"), hits[0].get("error")), ("7", "Unknown g code used"))
+
     def test_failed_worker_leaves_prior_stamp(self):
         b = _pipeline(self.ini)
         b.published_schema = 3

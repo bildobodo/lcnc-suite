@@ -7,7 +7,7 @@ import { twpPoseOriented, twpPoseStale, twpDatumStale, fixtureOffDatum, stampAFo
 import { runLineState, subExecState, resolveCurrentLine } from "./trackHighlight";
 import { clearSubfileCache } from "./lcncApi";
 import { mainLinesTrusted, type ScrubTrack } from "./viewer/scrubTrack";
-import { connectWs, connected, status, send, armed, lastReply, viewerGcode, viewerInit, gcodeContent, lcncError, latency, networkLatency, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead, pushMessage, safetyTrip, acknowledgeSafetyTrip, readerStale, safetyChainIncomplete, configWarning, previewLoadError, previewParseError, serverShuttingDown, type LcncMessage } from "./lcncWs";
+import { connectWs, connected, status, send, armed, lastReply, viewerGcode, viewerInit, gcodeContent, lcncError, latency, networkLatency, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead, pushMessage, safetyTrip, acknowledgeSafetyTrip, readerStale, safetyChainIncomplete, configWarning, previewLoadError, previewParseError, previewRefusal, serverShuttingDown, type LcncMessage } from "./lcncWs";
 // Lazy-load the 3D viewer so Three.js (~866 KB) + troika load as a separate async
 // chunk after first paint instead of blocking the initial bundle (P6). The viewerRef
 // methods are all `?.`-guarded, so calls during the brief load gap safely no-op.
@@ -193,6 +193,7 @@ const machineStateColor = computed(() => {
   if (configWarning.value) return '--state-warn';
   if (previewLoadError.value) return '--state-warn';
   if (previewParseError.value) return '--state-warn';
+  if (previewRefusal.value) return '--state-warn';
   return STATE_COLORS[machineState.value];
 });
 
@@ -252,6 +253,7 @@ const bannerFlashMode = computed<'none' | 'pulse' | 'flash'>(() => {
   if (configWarning.value) return 'pulse';
   if (previewLoadError.value) return 'pulse';
   if (previewParseError.value) return 'pulse';
+  if (previewRefusal.value) return 'pulse';
   if (s === 'unhomed' || s === 'toolchange' || s === 'idle') return 'pulse';
   return 'none';
 });
@@ -1588,6 +1590,9 @@ watch(viewerGcode, (newGcode) => {
           <span v-else-if="previewParseError" :key="'parse-error'" class="bannerError">
             Program won't parse — {{ previewParseError }} — no preview or simulation; fix the program or load one posted for this machine
           </span>
+          <span v-else-if="previewRefusal" :key="'preview-refused'" class="bannerError">
+            Preview stopped — {{ previewRefusal.text }} — the preview runs from the machine's live state (active fixture, kinematics), and a run would stop there too; no preview or simulation until it parses
+          </span>
           <span v-else-if="bannerMessage && !bannerShowAbort" :key="'msg'" :class="{ bannerError: bannerMessageKind <= 2 }">
             {{ bannerMessage }}
           </span>
@@ -1848,6 +1853,13 @@ watch(viewerGcode, (newGcode) => {
                     <span class="statsValue val-status warn"
                           :title="'The program\'s last kinematics switch leaves type ' + gcodeKinsEnd + ' in effect. M2 restores G54 but not the kinematics pin, so after the run the machine stays in this frame and Cycle Start is refused until the Machine frame is restored.'">
                       {{ gcodeKinsEnd === 1 ? 'TCP' : 'TOOL (plane)' }} — not restored before M2 (add {{ gcodeKinsEnd === 1 ? 'M428' : 'G69 or M428' }})
+                    </span>
+                  </template>
+                  <template v-if="previewRefusal">
+                    <span class="statsLabel">Parse</span>
+                    <span class="statsValue val-status warn"
+                          title="A kinematics/TWP remap refused the program in the preview, which runs from the machine's live state (active fixture, kinematics). A run would refuse the same line.">
+                      refused — {{ previewRefusal.text }}
                     </span>
                   </template>
                   <template v-if="gcodeUnmarkedSubs.length">

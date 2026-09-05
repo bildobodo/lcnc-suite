@@ -2732,6 +2732,70 @@ def attribute_sub_callers(sub_events, source_text):
     return out, unattributed
 
 
+def _norm_gcode_line(text):
+    return re.sub(r"\s+", "", strip_gcode_comments(text or "")).lower()
+
+
+def refusal_payload(refusal, sub_events, caller_by_event, source_text=None):
+    """Operator-facing record of a remap refusal in PREVIEW (2026-09-05).
+
+    refusal         -- the fork's webui_preview_refusal: {"line": the
+                       interp's sequence_number at the refusal, "file",
+                       "call_level", "message"}.
+    sub_events      -- canon triples [(seq, name|None, caller_token|None)].
+    caller_by_event -- attribute_sub_callers' map (depth-0 start-event
+                       index → verified main-file line).
+    source_text     -- the main program's text, for the UNIQUE-site match:
+                       the interp's sequence_number reads 0 inside a remap
+                       (measured 2026-09-05) and the canon never fires
+                       next_line for a remap trigger line (W4), so outside a
+                       sub span the line is recovered from the refusal's
+                       `linetext` (the trigger block's text) — the ONE
+                       comment-stripped main-file line with that text — or,
+                       failing that, the one line carrying the G-word the
+                       message opens with ("G68.2 ERROR: …"). Zero or
+                       several candidates yield None: never a guess.
+
+    Returns {"line": main-file line or None, "message"} — plus "sub" and
+    "sub_line" when the parse ended INSIDE a marked sub span: the refusal's
+    own line is that file's numbering (a G53.x refusal reports the
+    g533remap.ngc wrapper line), so `line` becomes the span's verified
+    caller line, or None when the site is not unique. Never a guessed
+    line. Pure."""
+    msg = str((refusal or {}).get("message") or "refused")
+    own = (refusal or {}).get("line")
+    own = int(own) if isinstance(own, (int, float)) and own > 0 else None
+    depth = 0
+    open_idx = None
+    open_name = None
+    for idx, ev in enumerate(sub_events or ()):
+        name = ev[1]
+        if name is None:
+            depth = max(0, depth - 1)
+            if depth == 0:
+                open_idx, open_name = None, None
+            continue
+        if depth == 0:
+            open_idx, open_name = idx, name
+        depth += 1
+    if open_name is not None:
+        caller = (caller_by_event or {}).get(open_idx)
+        return {"line": int(caller) if caller else None, "sub": open_name,
+                "sub_line": own, "message": msg}
+    if own is None and source_text:
+        lines = [_norm_gcode_line(ln) for ln in source_text.splitlines()]
+        want = _norm_gcode_line((refusal or {}).get("linetext") or "")
+        hits = [i + 1 for i, ln in enumerate(lines) if want and ln == want]
+        if not hits:
+            m = re.match(r"\s*(g\d+(?:\.\d+)?)\b", msg, re.IGNORECASE)
+            if m:
+                rx = re.compile(r"(?<![a-z0-9_.])" + re.escape(m.group(1).lower()) + r"(?![0-9.])")
+                hits = [i + 1 for i, ln in enumerate(lines) if rx.search(ln)]
+        if len(hits) == 1:
+            own = hits[0]
+    return {"line": own, "message": msg}
+
+
 def resolve_sub_callers(seqs, sub_events, caller_by_event):
     """Per-point call-site line for one canon stream (W4). Pure.
 

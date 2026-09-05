@@ -351,6 +351,15 @@ class BulkPipeline:
                         _trace.emit("gcode.parse_partial", level="warn", file=filepath,
                                     error=_p[2] if len(_p) > 2 else "",
                                     error_line=_p[1] if len(_p) > 1 else "")
+                    elif ln.startswith("__REFUSED__"):
+                        # A remap refused the program in preview (the
+                        # payload is an EMPTY success carrying
+                        # parse_refused) — the operator's banner comes
+                        # from the payload; this is the trace twin.
+                        _p = ln.split("\t", 2)
+                        _trace.emit("gcode.parse_refused", level="warn", file=filepath,
+                                    message=_p[2] if len(_p) > 2 else "",
+                                    line=_p[1] if len(_p) > 1 else "")
                     elif ln.startswith("__SCHEMA__"):
                         _s = ln.split("\t", 1)
                         try:

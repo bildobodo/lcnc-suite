@@ -284,6 +284,48 @@ def ws_cmd(obj, timeout=90.0, client=0):
     return ws_read(client, timeout)
 
 
+_PREVIEW_FETCH_SRC = r'''
+import json, sys, time, urllib.request, msgspec
+expect, keys, timeout = sys.argv[1], json.loads(sys.argv[2]), float(sys.argv[3])
+t0 = time.time()
+while time.time() - t0 < timeout:
+    try:
+        with urllib.request.urlopen("http://127.0.0.1:8000/preview", timeout=5) as r:
+            d = msgspec.msgpack.decode(r.read())
+    except Exception:
+        time.sleep(0.5)
+        continue
+    if str(d.get("file") or "").endswith(expect):
+        out = {}
+        for k in keys:
+            v = d.get(k)
+            out[k] = len(v) if isinstance(v, (bytes, bytearray)) else v
+        print(json.dumps(out))
+        sys.exit(0)
+    time.sleep(0.5)
+print("null")
+'''
+
+
+def gateway_preview_keys(expect_file, keys, timeout=30.0):
+    """Selected keys of the RUNNING gateway's cached preview payload once it
+    names `expect_file` (venv python: it has msgspec; this process has
+    linuxcnc). Binary streams report their byte length. None = never
+    published within the timeout (said)."""
+    import json as _json
+    venv = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        "..", "lcnc-gateway", ".venv", "bin", "python3")
+    out = subprocess.run([venv, "-c", _PREVIEW_FETCH_SRC, os.path.basename(expect_file),
+                          _json.dumps(keys), str(timeout)], capture_output=True, text=True)
+    if out.returncode != 0:
+        print(f"  (preview fetch failed: {out.stderr.strip()[:200]})")
+        return None
+    d = _json.loads(out.stdout.strip() or "null")
+    if d is None:
+        print(f"  (gateway never published a preview for {os.path.basename(expect_file)})")
+    return d
+
+
 def trace_tags_since(t0_ns, tags):
     """Events carrying one of `tags` written to the suite's trace file since
     t0 (wall ns) — the resolved log dir (env > INI > <install-dir>/runlogs),
@@ -494,6 +536,36 @@ check("A=35: re-orient recomputes the SAME G59 rows",
       all(abs(a - b) < 1e-3 for a, b in zip(g59_c, g59_rt)),
       f"{[round(v, 4) for v in g59_rt]} vs {[round(v, 4) for v in g59_c]}")
 
+print("\n=== C2. a refused program previews LOUDLY (plane active, G59 seeded) ===")
+# The preview interpreter starts in the machine's LIVE active fixture (G59
+# while a plane is active), so a program that opens with G68.2 is refused
+# by the remap's "Must be in G54" guard — as a run would be. Before
+# 2026-09-05 that previewed as an EMPTY success with no reason anywhere
+# (CANON_ERROR is a stub in the preview module; the refusal yields
+# INTERP_EXIT). Now the payload carries parse_refused and the trace the twin.
+poll()
+_prev_file = s.file
+_probe = os.path.expanduser("~/linuxcnc/nc_files/webui_refusal_probe.ngc")
+with open(_probe, "w") as _f:
+    _f.write("g68.2 x50 y50 z-50 q121 i30 j15\ng53.3 x0y0z100\ng0 x10\ng69\nm2\n")
+time.sleep(0.6)
+tC2_ns = time.time_ns()
+rL = ws_cmd({"cmd": "load_file", "path": _probe})
+check("C2: load_file ok", rL.get("ok") is True, str(rL))
+pv = gateway_preview_keys(_probe, ["parse_refused", "parse_error", "feed", "rapid"])
+if pv is not None:
+    pr = pv.get("parse_refused") or {}
+    check("C2: payload carries parse_refused naming G54 at line 1",
+          "G54" in str(pr.get("message", "")) and pr.get("line") == 1, str(pv))
+    check("C2: the refused payload is EMPTY and not a parse_error",
+          pv.get("feed") == 0 and pv.get("rapid") == 0 and pv.get("parse_error") is None, str(pv))
+    _ev = trace_tags_since(tC2_ns, {"gcode.parse_refused"})
+    if _ev is not None:
+        check("C2: trace — gcode.parse_refused", any("G54" in str(e.get("message")) for e in _ev),
+              str([(e.get("line"), e.get("message")) for e in _ev]))
+else:
+    check("C2: gateway published the probe's preview", False, "no payload")
+
 print("\n=== D. round trip with the Plane touch-off (M535) ===")
 before = dro()
 mdi("o<twp_touchoff> call [4] [0] [0] [5.0]")
@@ -579,6 +651,27 @@ poll()
 check("F: G69 → undefined, G54, identity kins",
       halget("twp-helper-comp.twp-is-defined") == 0 and s.g5x_index == 1
       and halget("motion.switchkins-type") == 0)
+
+print("\n=== F2. the same program parses once the machine is back in G54 ===")
+time.sleep(0.6)
+rL2 = ws_cmd({"cmd": "load_file", "path": _probe})
+check("F2: load_file ok", rL2.get("ok") is True, str(rL2))
+# The cached payload still names the probe: wait for a NEW publish (the
+# refused one had zero bytes of motion, this one must have some).
+pv2 = None
+for _ in range(30):
+    pv2 = gateway_preview_keys(_probe, ["parse_refused", "parse_error", "feed", "rapid"], timeout=5)
+    if pv2 and (pv2.get("rapid") or pv2.get("feed")):
+        break
+    time.sleep(0.5)
+check("F2: parses with motion and no parse_refused",
+      pv2 is not None and (pv2.get("rapid") or pv2.get("feed")) and not pv2.get("parse_refused")
+      and pv2.get("parse_error") is None, str(pv2))
+if _prev_file and os.path.isfile(_prev_file) and _prev_file != _probe:
+    ws_cmd({"cmd": "load_file", "path": _prev_file})
+    print(f"  (restored the loaded program: {os.path.basename(_prev_file)})")
+else:
+    ws_cmd({"cmd": "unload_file"})
 
 print("\n=== G. abort mid-capture: a stop never waits behind a handler (2026-09-05) ===")
 # Capture chains four MDI waits inside _cmd_lock; before stop-class preemption

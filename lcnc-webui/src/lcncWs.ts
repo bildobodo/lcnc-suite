@@ -58,6 +58,7 @@ export {
 // sees "preview is stale" rather than a possibly outdated toolpath.
 export {
   viewerInit, viewerGcode, toolTableVersion, gcodeContent, previewLoadError, previewParseError,
+  previewRefusal,
   type ViewerPart, type KinematicsList, type ViewerInit, type ViewerGcode,
 } from "./ws/bulkData";
 // Browser → server telemetry batcher (A1.3). Its four lifecycle/error

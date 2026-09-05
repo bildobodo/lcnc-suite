@@ -2012,6 +2012,72 @@ class TestCallerAttribution(unittest.TestCase):
             (0, "g533remap", "g53.3"), (0, None, None), (0, "square", None)])
 
 
+class TestRefusalPayload(unittest.TestCase):
+    """A remap refusal in preview (2026-09-05): the operator-facing record."""
+
+    def test_direct_refusal_uses_program_line(self):
+        r = gateway_util.refusal_payload(
+            {"line": 3, "file": "a.ngc", "call_level": 0,
+             "message": "G68.2 ERROR: Must be in G54 to define TWP."}, [], {})
+        self.assertEqual(r, {"line": 3, "message": "G68.2 ERROR: Must be in G54 to define TWP."})
+
+    def test_refusal_inside_marked_sub_attributes_caller_line(self):
+        # G53.3 → g533remap.ngc → M530: the refusal reports the WRAPPER's
+        # line; the open span's verified caller line is the operator's.
+        events = [(4, "g533remap", "g53.3")]
+        r = gateway_util.refusal_payload(
+            {"line": 26, "file": "g533remap.ngc", "call_level": 1,
+             "message": "No TWP defined"}, events, {0: 9})
+        self.assertEqual(r, {"line": 9, "sub": "g533remap", "sub_line": 26,
+                             "message": "No TWP defined"})
+
+    def test_refusal_inside_unattributed_sub_reports_sub_name(self):
+        events = [(4, "square", None), (5, None, None), (7, "g533remap", "g53.3")]
+        r = gateway_util.refusal_payload(
+            {"line": 26, "file": "g533remap.ngc", "call_level": 1,
+             "message": "No TWP defined"}, events, {0: 3})   # only the CLOSED span attributed
+        self.assertEqual(r, {"line": None, "sub": "g533remap", "sub_line": 26,
+                             "message": "No TWP defined"})
+
+    def test_closed_span_does_not_claim_the_refusal(self):
+        events = [(4, "square", None), (5, None, None)]
+        r = gateway_util.refusal_payload({"line": 12, "message": "x"}, events, {0: 3})
+        self.assertEqual(r, {"line": 12, "message": "x"})
+
+    def test_garbage_refusal_never_guesses_a_line(self):
+        self.assertEqual(gateway_util.refusal_payload({"line": -1, "message": ""}, None, None),
+                         {"line": None, "message": "refused"})
+
+    def test_linetext_unique_site_recovers_the_trigger_line(self):
+        # sequence_number reads 0 inside a remap and the canon never fires
+        # next_line for a remap trigger line: the trigger block's TEXT is
+        # matched to the ONE main-file line carrying it.
+        src = "g54\n(setup)\nG68.2 X50 Y50 Z-50 Q121 I30 J15 ; plane\ng53.3 x0y0z100\nm2\n"
+        r = gateway_util.refusal_payload(
+            {"line": 0, "linetext": "g68.2 x50 y50 z-50 q121 i30 j15",
+             "message": "G68.2 ERROR: Must be in G54 to define TWP."}, [], {}, source_text=src)
+        self.assertEqual(r["line"], 3)
+
+    def test_gword_unique_site_is_the_second_resort(self):
+        src = "g54\ng68.2 x1 y2 z3 q0 i0 j0\nm2\n"
+        r = gateway_util.refusal_payload(
+            {"line": 0, "linetext": None, "message": "G68.2 ERROR: nope"}, [], {}, source_text=src)
+        self.assertEqual(r["line"], 2)
+
+    def test_ambiguous_or_absent_sites_never_guess(self):
+        src = "g68.2 x1\ng68.2 x2\nm2\n"
+        r = gateway_util.refusal_payload(
+            {"line": 0, "linetext": "g68.2 x9", "message": "G68.2 ERROR: nope"}, [], {}, source_text=src)
+        self.assertIsNone(r["line"])
+        r = gateway_util.refusal_payload({"line": 0, "message": "Must be in G54"}, [], {}, source_text=src)
+        self.assertIsNone(r["line"])
+        # Inside a sub span the text scan is not attempted (sub-file numbering).
+        r = gateway_util.refusal_payload(
+            {"line": 0, "linetext": "g68.2 x1", "message": "G68.2 ERROR"},
+            [(4, "g533remap", "g53.3")], {}, source_text=src)
+        self.assertEqual(r, {"line": None, "sub": "g533remap", "sub_line": None, "message": "G68.2 ERROR"})
+
+
 class TestRotarySyncInitcode(unittest.TestCase):
     """Schema-5 fix for the parity gate's wave-2 find: the offline interp
     starts every axis at program-zero of the active fixture, so an axis
