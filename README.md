@@ -952,6 +952,8 @@ The gateway checks `SPINDLE_0` through `SPINDLE_7` (LinuxCNC's `EMCMOT_MAX_SPIND
 
 Falls back to `[JOINT_N]` limits if `[AXIS_*]` is not present.
 
+**Machine Z0 must be the top of travel** (`[AXIS_Z] MAX_LIMIT` at or just above 0, LinuxCNC's convention): the bundled toolsetter and probing routines retract with `G53 G0 Z0`, which is a plunge on a config whose Z0 sits lower. The suite's own retract buttons never lower Z regardless.
+
 #### `[EMCIO]`
 
 | Key | Required | Description |

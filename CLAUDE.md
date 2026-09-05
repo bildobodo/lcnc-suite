@@ -13,6 +13,8 @@ subroutines/        G-code subroutines shipped with the project
 
 Gateway connects to LinuxCNC via Python bindings (`linuxcnc.stat`, `linuxcnc.command`, `linuxcnc.error_channel`). WebUI connects to gateway via WebSocket at `/ws`.
 
+The bundled routines retract with `G53 G0 Z0` and assume **machine Z0 is the top of travel** (LinuxCNC's convention: `[AXIS_Z] MAX_LIMIT` at or just above 0 — true on every shipped config). The suite's own retracts (→ Zero / → Home / → G30, run-from-line safe-Z) additionally never LOWER Z (`#<_abs_z>` guard); the upstream toolsetter/probe files keep the bare idiom, so a config whose Z0 is not the top must not run them (recorded 2026-09-05).
+
 ## Frontend Structure (lcnc-webui/src/)
 
 - `App.vue` — Root component, sidebar + multi-panel tab layout, state management
@@ -188,7 +190,11 @@ admission rule); Plane (kins 2) → G59 with the plane active, routed to the
 remap (`o<twp_touchoff>` → `M535`) which writes the WORKPIECE datum G54
 THROUGH the plane (`G59' = G59 + current − v`, `M' = R_tool⁻¹·G59'`, table
 frame at the LIVE A, minus the plane's origin vector) and stamps G54's W1
-provenance table-frame. G59–G59.3 are the TWP remap's scratch rows — never a
+provenance table-frame; the gateway then seeds its G54 row from the
+helper's datum pins once `twp-helper-comp.twp-datum-seq` (a datum-WRITE
+epoch M535 bumps AFTER publishing; the helper copies it last, the reader
+samples it first) has advanced — never a dwell, never the value alone
+(`twp.datum_settled`; a same-datum touch-off replies in ~85 ms). G59–G59.3 are the TWP remap's scratch rows — never a
 touch-off target, disabled in the WCS selector on TWP configs, rewritten
 COMPLETELY (`A0 B0 C0 R0`) by every orient; the orient move is `G53 G0 B C`.
 The fixture rides the kins mode (M428/M429 → G54 when leaving a reserved row,
@@ -496,6 +502,22 @@ a Soft limits row in the program stats dialog. Limitation: validated
 against the parse-time WCS — touch-off after load requires a file reload
 to re-validate (the live overflow box remains the coarse always-current
 check).
+
+**Preview refusals are loud (2026-09-05)**: the preview interpreter runs
+from the machine's LIVE state (active fixture, kinematics), so a TWP remap
+can refuse a program in preview exactly as a run would (G68.2 while the
+machine sits in G59 with a plane active: "Must be in G54"). In the preview
+module `CANON_ERROR` is a stub and every remap refusal `yield INTERP_EXIT`
+(= 1 < MIN_ERROR), so `gcode.parse` reports an EMPTY success — the fork's
+`_canon_error` records the first refusal (`webui_preview_refusal`), the
+worker ships `parse_refused {line, message[, sub, sub_line]}` + the
+`__REFUSED__` stderr twin (`gcode.parse_refused` trace), and the client's
+`previewRefusal` feeds the "Preview stopped — …" banner and a "Parse" stats
+row. Line attribution is the unique-site rule (inside a marked sub span →
+the span's verified caller line; else the one main-file line matching the
+trigger text or the message's G-word), because `sequence_number` reads 0
+inside a remap, `linetext` is empty in preview and the canon never fires
+`next_line` for a remap trigger line — `line: null` rather than a guess.
 
 **Sectioned preview streams**: the wire ships feed/rapid as separate
 endpoint lists, which loses their interleaving — rendered as plain strips,
@@ -806,7 +828,7 @@ The `tool_touch_off.ngc` subroutine reads parameters from the LinuxCNC var file 
 
 ## Build Verification
 
-**ALWAYS run `npm run build` (in `lcnc-webui/`) after any TypeScript/Vue change.** This uses `vue-tsc -b` which is stricter than `vue-tsc --noEmit` — it catches unused imports (TS6133) and declaration emit issues that `--noEmit` misses. Zero TS errors is a hard requirement. Never use `vue-tsc --noEmit` as the sole verification step.
+**ALWAYS run `npm run build` (in `lcnc-webui/`) after any TypeScript/Vue change.** This uses `vue-tsc -b` which is stricter than `vue-tsc --noEmit` — it catches unused imports (TS6133) and declaration emit issues that `--noEmit` misses. Zero TS errors is a hard requirement. Never use `vue-tsc --noEmit` as the sole verification step. `-b` builds THREE projects: `tsconfig.app.json` (DOM, `src/**` minus the node-side tests), `tsconfig.node.json` (the vite/vitest/playwright configs) and `tsconfig.test.json` (the node-side tests, `scripts/simDump.ts`, `e2e/**`) — a test that imports `node:fs` goes in the app exclude AND the test include; `src/tsconfigCoverage.test.ts` enforces both lists and refuses stale entries.
 
 ## Lessons Learned
 

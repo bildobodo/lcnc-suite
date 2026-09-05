@@ -3390,3 +3390,176 @@ PASS | Plane   | Plane: after the fault a UI −Z jog moves the joint back insid
 Owed: the operator's own walk-through (→ Zero from anywhere is a full retraction to the
 top; the machine-bounds box is the real window; the banner and joint-mode jog when a
 joint is beyond its limit).
+
+## 2026-09-05 (afternoon) — Ledger close: stop-class preemption, the datum-write epoch, refusal reasons in the preview, every TypeScript file type-checked; perf-matrix on 4b7c7be
+
+**Ask:** after the Z-retraction pair the operator asked "any deferred items left? status of
+backlog?" and chose the scope "feat/twp ledger only". Verified against this file, the
+ledger held five open items plus a set of bounds that were recorded but never formally
+closed. Stopping principle as in the backlog program (2026-08-20): every item ends FIXED,
+BOUNDED-AT-A-LINE, or CLOSED-WITH-REASON. Commits d449d34, dfe95a2, 9b33428, 90ec279,
+220629b, 4b7c7be + this record. Design review before coding changed three things from the
+first draft (recorded so they are not re-proposed): FIFO + supersede instead of a priority
+queue (a priority queue inverts `jog_cont → jog_stop` into an unbounded jog); a datum-WRITE
+epoch instead of a republish counter (g53x_core republishes twice per M530, the second bump
+lands after the wait returns — a counter makes the stale adoption certain); a module
+attribute instead of a comment marker for refusals (no proof that a comment executed after
+a remap's first yield reaches the preview canon).
+
+### 1. Stop-class preemption (d449d34) — FIXED, plus a finding
+
+Filed 2026-09-03: `abort`/`estop` waited behind an in-flight handler (a plane touch-off
+holds `_cmd_lock` up to 30 s + 3 s; Capture ≈ 85 s worst case). Now each queued command
+runs as its own sub-task; `abort`/`estop` from ANY client cancel every client's in-flight
+non-stop handler (`_preempt_inflight`, `ws.command_preempt`; the victim's worker replies
+"Preempted by abort", `ws.command_preempted`) and supersede the requesting client's queued
+non-stop commands ("Superseded by abort", `ws.command_superseded`). `jog_stop`/
+`jog_stop_multi` stay plain FIFO — never reordered ahead of their `jog_cont`, never a
+preempt (a stray jog_stop during an MDI is a certified no-op class). Stops and `arm` are
+never cancelled (a disarm jog-stops under the lock and flips `client.armed`).
+
+**Finding, verified in the 2.9.4 source (emcmodule.cc:212-231, :1383-1387):** the
+binding's `wait_complete()` is a C poll loop that `esleep()`s WITHOUT releasing the GIL —
+the file's only `Py_BEGIN_ALLOW_THREADS` pair is `Logger_start`. So `CMD.wait_complete(30)`
+on the `to_thread` worker froze the event loop (heartbeat task, status loop) for as long as
+the command ran; the `_cmd_blocking` docstring's premise was false for the wait half. It
+never showed live because every awaited command completes in ms (M530 Q2 is a zero-length
+orient, G10 writes are ms); any awaited command that MOVED would have eaten the 500 ms
+watchdog budget. `_cmd_blocking` now waits in 50 ms slices (repeated `wait_complete(t)`
+re-polls the same stored serial — N slices ≡ one wait to 10 ms; returns 1/3/−1; the fake
+binding's None terminates the loop as "failed", as before): one slice is the most the loop
+can be frozen by an awaited command, and a cancel lands after the current slice. The
+command write is never interrupted; the lock is held until the thread returns (the
+2026-09-03 shield-and-wait contract, still tested).
+
+Also found: `_shutting_down` was never reset at lifespan start — production has one
+lifespan, but the in-process test harness opens many, and the flag set by the previous
+teardown silently skipped every later disarm jog-stop (found by
+`test_arm_is_never_preempted`). Tests: TestPreemption ×4, TestCmdBlockingSlicedWait ×2;
+worker file 13/13; command_policy 97 (inline ladder unchanged), dispatch 61, ws_lifecycle,
+rfl_guard green. Live (twp_capture_check G): an abort from a SECOND client mid-Capture
+replied ok in 72 ms; the capture reply was "Preempted by abort"; `ws.command_preempt`
+named the capture (ran 86 ms); G69 recovered the state.
+
+### 2. `twp-datum-seq` — the datum settle keys on M535's write (dfe95a2) — FIXED
+
+Filed 2026-09-03: `_settle_datum_after_m535` keyed on the helper's datum VALUE changing, so
+a touch-off landing on the same datum burned the whole 3 s timeout (3089 / 3082 ms
+replies). Now M535 (`twp_touchoff`) bumps `twp-helper-comp.twp-datum-seq-in` AFTER
+`gui_update_twp` published the datum; the helper's 20 Hz pass reads the `-in` FIRST and
+writes `twp-datum-seq` LAST, and the gateway registers `twp_datum_seq` BEFORE the datum
+pins (the reader samples extra pins in insertion order) — so a changed seq in a reader
+snapshot proves the datum in that snapshot is current. The settle returns on
+`datum_seq_advanced` (`twp.datum_settled` with ms/changed), falls back to the value test
+with ONE `twp.datum_seq_unavailable` warn when the pin is absent, keeps the timeout warn.
+The helper comp is a `cp` copy in the installed config (hand-carried; remap.py loads from
+the worktree). Tests: test_twp_settle ×5 (incl. "a moved value with the OLD seq does not
+settle"), status_runtime, extra-pins order pinned. Live (twp_capture_check D2): seq +1 per
+M535 both directly and through the gateway; a same-datum gateway touch-off replied in
+**85 ms** (was 3089); trace `twp.datum_settled changed=false ms=50`, no timeout;
+plane check: seq +1 per M535 at A=0 and A=35. The check's first run read the seq out
+pin straight after the MDI returned (3 → 3 for a bump that had happened; the helper copies
+it ≤50 ms later) — the rows now wait for the pin to move (`halget_moved`).
+
+### 3. Refusal reasons reach the preview (9b33428) — FIXED
+
+Filed 2026-09-04: with a plane defined, a program opening with G68.2 previewed EMPTY with
+no reason. Root cause (gcodemodule.cc + interp_return.hh): the preview module's
+`CANON_ERROR` is `void CANON_ERROR(const char*, ...) {}` and every remap refusal
+`yield INTERP_EXIT` (=1), which `gcode.parse` reports as ≤ MIN_ERROR (3) — a structurally
+clean EMPTY success. The refusal that fires is NOT "already defined" (task-gated) but
+g682's WCS guard "Must be in G54 to define TWP.": the gateway seeds the preview's active
+WCS from the live `g5x_index` (G59 while a plane is active). The preview is therefore
+CORRECT — task refuses the same line — only silent. Now `_canon_error(self, msg)` replaces
+the 30 refusal-path `CANON_ERROR` calls (yields untouched, task byte-identical: corpus
+GREEN, goldens CLEAN); in preview it records the first refusal on the module
+(`webui_preview_refusal`, cleared by `webui_preview_reset`); the worker re-fetches the
+module AFTER the parse (a worker's first parse imports it during `gcode.parse`), ships the
+conditional key `parse_refused` and the `__REFUSED__` stderr twin (`gcode.parse_refused`
+trace); the client's `previewRefusal` feeds a warn banner ("Preview stopped — <msg> (line
+N) — the preview runs from the machine's live state…") and a "Parse" stats row;
+`preview_gate` refuses to write a golden for a refused payload.
+
+Line attribution, measured: `self.sequence_number` reads **0** inside a remap and
+`self.linetext` is **empty** in preview, and the canon never fires `next_line` for a remap
+trigger line (W4) — so no deterministic line exists at the refusal. `refusal_payload`
+therefore uses the UNIQUE-site rule the sub-caller attribution uses: inside a marked sub
+span → the span's verified caller line (a G53.x refusal reports the g533remap.ngc wrapper
+line as `sub_line`); outside → the one main-file line matching the trigger text, else the
+one line carrying the G-word the message opens with ("G68.2 ERROR: …"); zero or several
+candidates → `line: null`, never a guess. Proven through the REAL worker against the
+running sim: G59-seeded parse → `parse_refused {line 1, "Must be in G54"}`, zero motion,
+no `parse_error`; G54-seeded → motion, no key. Live (twp_capture_check C2/F2): loaded
+through the gateway under the active plane the payload carried the refusal and the trace
+`gcode.parse_refused`; after G69 the same file parsed with motion. Tests: TestRefusalPayload
+×8, `__REFUSED__`/`__PARTIAL__` trace tests (the latter had never been tested), bulkData
+`previewRefusal`, the export surface. Bound (recorded): a refusal on a line that appears
+more than once in the program is reported without a line — the message still names the
+command.
+
+### 4. Every TypeScript file is type-checked (90ec279 + 220629b) — FIXED
+
+Filed 2026-09-05: six `src/**/*.test.ts` files (node:fs) were excluded from `vue-tsc -b`
+and type-checked nowhere; one entry was stale (`machineDmu160p.test.ts`, deleted in
+5a5a86e); `e2e/*.ts` and `scripts/simDump.ts` were in no project at all, and `eslint`
+carries no type-aware rules (it even disables no-unused-vars "because vue-tsc catches
+it"). `tsconfig.test.json` (node types + DOM lib + vite/client, the app's strict flags,
+noEmit) now carries the five node-side tests, the guard, `scripts/simDump.ts`, `e2e/**`
+and the window shims; referenced from `tsconfig.json`, so `npm run build` and CI cover
+it. The first `vue-tsc` run over the new project found **9 errors, all declaration-level**
+(no `@types/ws` — added as a devDependency; `window.__viewerDiag`/`__viewerLeakProbe`
+undeclared outside `src/shims.d.ts`; `import.meta.hot` without vite/client types) and no
+code defects. `src/tsconfigCoverage.test.ts` keeps the app-exclude and test-include lists
+in step (every node-side test in both, every exclude entry exists and is node-side,
+includes resolve, all three references present) — its own first run found its bug: a
+block-comment stripper ate the `/**/` inside the `e2e/**/*.ts` glob (whole-line comments
+only now). Down-time gates on the result: `npm run build` (three projects) OK, lint +
+scoped-CSS audit OK, vitest 44 files / 633, playwright 16, gateway pytest 691 + 11 subtests.
+
+### 5. Perf-matrix on 4b7c7be (gateway pid 164181, fresh boot) — done
+
+Preconditions held: pristine latch (`fault-out FALSE`), identity kins + G54 restored by
+hand first (the last corpus program leaves TOOL kins — the 09-03 30 s / 225 MB numbers were
+a kins-2-labelled 46 MB payload), armed keeper for the run, `LCNC_INI_FILE` pointed at
+the TWP INI (the harness's default is the 3-axis sim and it would read the wrong token
+silently — noted in the plan, worth a harness assertion one day).
+
+```
+scenario             lag windows (n / max / dominant)          RSS kB              direct
+idle_baseline        0                      (was 1 / 81 ms)    79544→79552
+fanout               0                                         79552→80616
+reconnect_storm      0                                         80616→80756
+upload_during_stream 0                                         80756→84184
+save_during_stream   0                                         84184→84332
+fusion_near_limit    2 / 62.5 ms / ws_send_measured.send_done  84332→128788        (was 1 / 123 ms)
+rss_gc_watch         0                                         128788→128796       growth 8 kB
+preview_publish      0                                         128796→183872       delivered, wait 23.5 s (was 30.0 s / 225 MB)
+sigstop_trip         2 / 875 ms / ws_send_measured.send_done   183872→183876       latch FALSE→TRUE→FALSE, sticky_ok, recovered_ok
+```
+No `safety.hb_stall_disarmed`; the only safety events are the harness's own
+arm/disarm/trip/ack. The sub-100 ms windows are the known VM-scheduling noise; the 875 ms
+window IS the SIGSTOP. RSS and publish time are back in band with the parse identity-labelled.
+
+### 6. Bounds closed with a reason
+
+| Bound | Closed as |
+|---|---|
+| Bundled toolsetter/probe routines keep a bare `G53 G0 Z0` retract (`tool_touch_off.ngc`, `toolsetter_wco.ngc`, `probe_spindle_nose.ngc`, `surface_scan.ngc`) | LABELED: the upstream idiom assumes machine Z0 = top of travel — LinuxCNC's own convention, true on every shipped config (3-axis sim MAX_LIMIT 0.10, TWP sim 0.01). Stated in CLAUDE.md and the README's config notes: "machine Z0 must be the top of travel for the bundled routines". |
+| Preview of a user program that calls the guarded subs may take the other `#<_abs_z>` branch | CLOSED: cosmetic — one rapid differs; the retract target is the same. |
+| A +Z jog under TCP/TOOL can run joint Z past its ceiling | CLOSED by design: certified by the matrix Plane rows; the joint-mode fallback + banner is the recovery. |
+| The program-zero stamp records A only (xyzac draws "· machine") | CLOSED with label: trsrn is the only TWP model; the xyzac case is visibly labelled. |
+| Big-file parse 28 s under a kins-2 seed | CLOSED: off-loop, correct labelling; vectorization only on demand. |
+| Stage-3 servo-rate plane tracking | CLOSED 2026-08-29 (retracted): TCP mode IS the tracking; mode-2 table-aware kins rejected (breaks TLO). |
+| "Frontend heavy gates / gateway restart owed" lines in the 09-02..09-04 entries | Superseded by wave 2's down-time gates + restart (2026-09-05) and by this entry's gates. |
+
+**Live acceptance on the fresh boot (all on 4b7c7be):** postgui lift fingerprint (identity
+−2000/0.01, TCP/TOOL ±5000, back to identity); five TWP checks ALL PASS
+(capture 55 rows incl. C2/D2/F2/G, touchoff, touchoff_plane with the seq rows, reorient,
+g683); buttons matrix ALL PASS (40 pass, 4 skip); preview gate CLEAN; corpus GREEN 11/11
+(worst 1.075 within its 1.5 tol); perf-matrix above. Corpus run records restored, not
+committed.
+
+**Owed:** the operator's own walk-through (unchanged list: → Zero full retraction, the real
+bounds box, the beyond-limit banner + joint-mode jog, plus now the "Preview stopped"
+banner on a G68.2 program loaded under an active plane and an abort mid-Capture answering
+at once). Nothing else is open on this branch's ledger.
