@@ -3563,3 +3563,158 @@ committed.
 bounds box, the beyond-limit banner + joint-mode jog, plus now the "Preview stopped"
 banner on a G68.2 program loaded under an active plane and an abort mid-Capture answering
 at once). Nothing else is open on this branch's ledger.
+
+## 2026-09-05 (evening) — Zeroing on a 1.18 M-line program: re-parse cancel-and-restart, parse speed-ups, the wait made visible, viewer hitches removed
+
+**Ask:** "in machine mode now, I press Zero All, the huge perf matrix takes a very long time
+to move to G54; in plane mode as well; no indication that the program is not shown at the
+correct position; parsing of the sim takes an unreasonable amount of time for such a large
+program — any ways to speed both up?", then "in machine mode it does take a very long time
+as well", then "also the 3D viewer window sometimes lags a bit when rotating or zooming".
+Scope: the seven items below, on feat/twp. Commits 345320c, 94a02e6, 3c37186, 692f5c6
++ this record.
+
+### Findings that set the design (trace + offline measurements, before any code)
+
+- **Every touch-off waited behind a parse that was already running.** All 14 recent
+  touch-offs in the trace (machine and plane frame) landed while a parse ran — the
+  rotary-drift parse from → Zero, the kins parse from leaving Plane mode, or the
+  previous zero — and their offsets reached the preview 41 to 167 s later (machine frame
+  41–78 s). The drift edges were gated on `not refresh_running`, so the touch-off's edge
+  was not even evaluated until that parse published, then queued a second full parse
+  behind it. One zero = one queued parse + one full parse. The scheduler was single-flight
+  with no cancel and no queue-jump.
+- **Where a parse went** (cProfile on the same program; proportions, cProfile inflates
+  Python-call-heavy code ~2×): three per-line text passes re-stripped comments character
+  by character (~half of the machine-frame parse); the interpreter phase a quarter, of
+  which 60 % was the canon snapshotting the full WCS basis with 19 attribute reads per
+  segment; plane mode added 2.36 M pure-Python trsrn inverse solves (~40 % of the 46 s).
+  The interpreter's C side (~5 s) is the floor.
+- **The flat 60 s worker timeout** sat 14 s above the plane-mode parse: a slightly larger
+  program would have silently stopped previewing (`gcode.parse_timeout`, nothing else).
+- **No indication:** the gateway only traced `refresh_scheduled`/`spawn_start`; the
+  viewer's HUD chip "Preview uses older offsets" lit because the offsets differed, not
+  because a refresh ran, and never said how long.
+- **The viewer lag is two things.** Firefox 154 on the operator's Mac ticks its frame
+  loop at ~30 Hz with small programs too (29 fps; the render call 0.5 ms mean, 22 ms
+  p95) — the browser/display, not ours. With the big program half of all interactive
+  windows carried a ~100 ms hitch and one in twenty a >1 s freeze (gap_max p50 105 vs
+  52 ms, p95 1238 vs 218 ms). Headless on the same payload: four per-line Map/Set
+  structures with 1.18 M entries each (~4.7 M heap objects) made a full GC 110–140 ms vs
+  8 ms empty; the 1.18 M-entry line map was structured-cloned across the worker boundary
+  on every publish (0.9 s); every touch-off copied ~150 MB of typed arrays on the main
+  thread. The VM-local Firefox tab (no GPU acceleration) is a separate 12 fps story.
+- The client chain itself is not the wait: decode 0.1 s (the wire is already
+  binary-flat msgpack), scrub track 0.4 s, part-frame transform 1.1 s on the VM.
+
+### 1. Parse speed-ups (345320c)
+
+`strip_gcode_comments` returns a line without `(`/`;` as-is (nearly every CAM line —
+the loop rebuilt it unchanged). `PreviewCanon` snapshots the WCS basis only when one of
+the three `Translated` offset setters ran (`_wcs_dirty`); same `wcs_events` by
+construction — the interpreter never writes the offset attributes directly.
+`check_limit_violations` / `check_limit_violations_trsrn` are numpy over every
+rotary-subdivided sample with a vectorized inverse twin (`_trsrn_inverse_np`, same
+expression order as the scalar, agrees to the ULP) and `reduceat` extremes; only the
+violating segments go through Python in segment order, so the per-(line, axis) worst
+record resolves identically. The scalar loops stay as `_*_scalar` oracle twins pinned by
+`TestVectorizedLimitChecks` (randomized: both kins types, frames, frameless type-2,
+unknown/partial starts, None TLO, one-sided bounds, both unit scales, the report cap).
+Preview goldens CLEAN and the corpus green on the new worker = byte-identical output.
+
+| parse of perfmatrix-big.ngc (1.18 M lines) | before | after |
+|---|---|---|
+| cProfile, identity seed | 56 s | 20 s |
+| cProfile, plane seed | 91 s | 26 s |
+| interpreter phase (cProfile) | 14 s | 4 s |
+| live, identity, quiet VM (worker+gzip) | 23 s | 15.3 s (restart parse) / 20.8–21.5 s while the VM-local Firefox tab decoded the previous publish |
+| live, identity, VM tab decoding the previous publish | 33–44 s | 23.5 s |
+| live, plane (TOOL kins) | 44–46 s | 30.9 s publish (worker 28.4 s, interpreter 6.4 s, VM tab decoding) |
+
+What remains in a parse (identity, real time ≈ 10 s on a quiet VM): the interpreter's C
+side ~3 s, the canon callbacks ~1 s, the two regex passes (`wcs_rewrite_targets`,
+`classify_motion_lines`) ~2 s, the per-point extraction loops ~1.5 s, array building
+~1 s, the limit check ~1 s. BOUNDED AT A LINE: sharing the stripped lines across the
+three passes and vectorizing the extraction would take another ~3 s; on demand.
+
+### 2. Cancel-and-restart, file-scaled timeout, `preview_refresh` (94a02e6, 692f5c6)
+
+`BulkPipeline.inflight` = the running parse's input snapshot (rotary seed, kins seed,
+flat WCS offsets, file + mtime, reason, expected). The poll loop evaluates the drift
+edges against it while a parse runs (`inflight_stale_reason`, pure: same evaluators,
+order and settle guards as the post-publish edges; TLO not in flight); a hit
+`cancel_inflight`s the worker — SIGTERM (measured offline: inside `gcode.parse` the
+handler's SystemExit becomes `interp_error` → exit 3 in 35–117 ms with the temp dir
+removed; in the post-processing exit 143), SIGKILL fallback after 2 s, idempotent per
+parse — and `reparse_pending` restarts it under the specific edge. A drift parse is now
+scheduled under its edge (`wcsoff:G54:x`, `rotary:A`, `kins:type`) instead of "drift".
+Timeout `max(60 s, 3× expected)`, expected = the last measured publish of that path else
+1.2 ms/byte. The status envelope carries `preview_refresh` {reason, file, expected_ms,
+started_ms, queued, superseded} while a parse runs.
+
+**Live catch on the first acceptance run (692f5c6):** `file_changed` stays true until a
+parse PUBLISHES, and the new branch cancelled whenever a parse was running — every load
+parse died 33 ms after its spawn, forever, and no preview was delivered. Now
+`preview_file_edge_action` (pure, tested) leaves a running parse for the current
+file+mtime alone; another file/mtime or an operator Reparse supersedes it.
+
+**Acceptance (fresh boot, gateway pid 435747, `wave3_live_check.py`):** load the big
+program; 3 s in, touch off X → the running parse superseded at 6.1 s
+(`gcode.reparse_superseded wcsoff:G54:x`, `gcode.parse_cancelled` within 300 ms), ONE restart
+scheduled under `wcsoff:G54:x`, `preview_refresh` on the wire named it with
+`superseded: 1`, the publish landed 18.5–18.7 s after the touch-off (restart parse 15.3–15.4 s
+worker+gzip; three runs), and the field cleared. Then an idle touch-off: one `reparse_wcsoff_drift`,
+one parse, nothing superseded, published 25.4–27.2 s after the touch-off (parse 23.1–23.7 s while
+the VM-local tab decoded the previous publish; three runs). During the TWP checks the edges
+superseded each other exactly as designed (a kins switch every ~2 s → each parse
+cancelled by the next). Two of eight cancels exited by signal 2 (rc −2) instead of
+code 3: the traced stderr tail shows a `KeyboardInterrupt` raised at the first Python
+line AFTER `gcode.parse` returned (a SIGTERM that lands in the interpreter's tail is
+re-signalled as SIGINT — the 2.9.4 rs274ngc sources carry `signal(SIGINT, clean)` /
+`pthread_kill(id, SIGINT)`); the `finally` still removed the temp dir and the exit came
+within 300 ms. BOUNDED: the acceptance accepts exit 3 / 143 / −15 / −2 with a 1.5 s
+exit bound; the mechanism is not chased further.
+
+### 3. Client: typed line index, resident part-frame payload, banner + mute (3c37186)
+
+`viewer/lineIndex.ts`: line → first/last point index (+ cum at the first point) as
+direct-indexed typed arrays, transferable, zero heap objects; replaces
+`ScrubTrack.lineCum/lineSpan`, `ViewerGcode.feedLineMap` and the `mainLinesTrusted`
+Set (now a `Uint8Array` mask); same semantics (line 0 indexed like `buildLineMap`, cum
+never mapped for 0); unit-tested; every consumer and their tests moved.
+`partFrameWorker` keeps the streams RESIDENT (one `load` per program, small `transform`
+per WCS/tool/table change, `needPayload` → re-send). `statusStore.previewRefresh` with a
+locally ticked elapsed clock and `previewRefreshLabel`; App.vue banner "Preview
+re-parsing after touch-off (G54 X) — big.ngc · 0:07 of ~0:33" with a progress track
+that never reaches 100 % on its own; the same chip in the viewer HUD; the drawn toolpath
+MUTED (`toolpathController.setStale`, `--opacity-disabled`) while a parse runs or the
+payload's offsets/tool length are known stale.
+
+### 4. Gates
+
+Heavy gates at the suite stop: `npm run build` (three projects, 0 TS errors), lint,
+vitest 642/45 files, playwright 16, pytest 710 passed, 11 subtests passed in 22.07s. Live on the fresh boot: postgui
+fingerprint (ini.z −2000/0.01 identity, ±5000 under TCP/TOOL), preview goldens CLEAN,
+five TWP checks ALL PASS, buttons matrix ALL PASS (40 pass, 4 skip), corpus GREEN 11/11 (per-program tolerances met, plane invariants 0.0 deg / 0.0000 mm),
+perf-matrix on 692f5c6 (gateway pid 435747, artifact
+`runlogs/perf-matrix/20260905T165605Z-692f5c6.json`): zero lag windows in idle, fanout,
+reconnect storm, upload/save during stream and the RSS watch; `fusion_near_limit` one
+128 ms `reader_recv.readline` window (the known VM idle-noise class; 4b7c7be had two
+62 ms `send_done` windows); `sigstop_trip` two windows ≤ 890 ms in the scenario that
+SIGSTOPs the gateway on purpose (4b7c7be: two ≤ 875 ms), latch pristine, sticky and
+recovered, no heartbeat-stall disarms; `preview_publish` delivered in 20.0 s (publish
+21.3 s, 30.7 MB identity-labelled; 4b7c7be: 23.5 s / 22.9 s). RSS: this run started at
+307 MB after ~10 big-file publishes in the same gateway session (4b7c7be started fresh
+at 129 MB); the watch window shows −13.6 MB and the publish 294 → 314 MB — the
+comparison baseline differs, no growth inside the run.
+
+### Owed / closed
+
+- Operator walk-through: Zero All on the big program in Machine frame — the banner
+  with the countdown, the muted path, the path landing in ~15–25 s; the same in Plane
+  frame; rotate/zoom the viewer with the big program loaded (the ~100 ms hitches should
+  be gone; the 30 fps ceiling is Firefox on that Mac).
+- CLOSED-WITH-REASON: the viewer's 30 fps ceiling (present with small programs; the
+  render call is 0.5 ms) — browser/display side. The VM-local Firefox tab's 12 fps —
+  software GL.
+- BOUNDED: remaining parse budget (item 1); the rc −2 cancel exit (item 2).

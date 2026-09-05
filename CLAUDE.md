@@ -66,7 +66,7 @@ The bundled routines retract with `G53 G0 Z0` and assume **machine Z0 is the top
 - `ws/bulkData.ts` — Shared wire types for `viewer_init` / `viewer_gcode` payloads (ViewerInit, ViewerPart, KinematicsList)
 - `viewer/programZero.ts` — The program-zero markers (pure, tested). INVARIANT: program zero = where the tool TIP lands when the control is commanded to program (0,0,0), evaluated through the machine.json chain (work + tool) at the joint set the mode implies, expressed in the work group's local frame — `transformToPartFrame`'s per-vertex rule (`buildChain` + `tipInWorkFrame`, exported from partFrame.ts), so the markers and the path-on-part preview agree by construction and linear table DOFs are table-attached / rotary DOFs room-fixed with no per-machine reasoning (the old `W(live)⁻¹·W0·P` counter-transform drifted by the slide travel on moving-table chains). `workMarkers` rule table: the active-fixture triad is program zero ON THE PART in every mode — identity: the chain at the fixture's W1 stamp A (absent = A0 rule), riding the table; TCP: the numbers; TOOL + reserved fixture: the plane compose (`activeFixturePose`). The muted `program zero (machine)` ghost draws only under identity kins while live A ≠ stamp A (`fixtureOffDatum`): the room-fixed spot identity kins will actually use. Bound `fixtureRidesOnA`: the stamp records A only, so a work chain with other rotaries (xyzac: A+C) gets the machine placement at the live pose, labelled `· machine`, one console warn. Identity evaluations hold tool-chain rotaries at 0 (control point's zero, what the DRO reads). `markerInputsChanged` is the marker-only repaint diff (M428 used to re-pose without a paint).
 - `viewer/kins.ts` — Kinematics boundary: machine axis coords ↔ joint values behind one swappable KinsModel interface (trivkins = letter→slot permutation; TCP+TWP plan phase 1c adds real kins mirrors pinned by compiled-C-oracle fixtures). ALL offline joint derivation (partFrame emit, collision poseAt, scrub jointsForSample, entry-move machineJointsToProgram) goes through it — never inline `"XYZABC".indexOf` letter mapping again. KinsSpec is plain data (crosses postMessage); construct models at the use site via makeKins/kinsFor.
-- `viewer/` — ThreeViewer support modules: `machineAssetCache.ts` (machine STL fetch/parse with L1 in-memory + L2 IndexedDB caches, single-flight dedup, `failedParts` surface), `geometryCache.ts` (the IndexedDB layer), `disposal.ts` (scene teardown that skips `userData._shared`), `viewerContext.ts` (fresh-snapshot scene pointers), plus backplot/surface/toolpath controllers
+- `viewer/` — ThreeViewer support modules: `machineAssetCache.ts` (machine STL fetch/parse with L1 in-memory + L2 IndexedDB caches, single-flight dedup, `failedParts` surface), `geometryCache.ts` (the IndexedDB layer), `disposal.ts` (scene teardown that skips `userData._shared`), `viewerContext.ts` (fresh-snapshot scene pointers), `lineIndex.ts` (per-line point ranges + cum as direct-indexed typed arrays — replaced three 1.18 M-entry Maps and a Set that cost 110–140 ms per major GC and a 0.9 s clone per publish; `ScrubTrack.lineIndex`, `ViewerGcode.feedLineIndex`, `mainLinesTrusted` mask), plus backplot/surface/toolpath controllers. `partFrameWorker.ts` keeps the program's streams RESIDENT (one `load` per program, small `transform` requests per WCS change; `needPayload` reply → re-send)
 
 ### Main Tabs
 
@@ -468,7 +468,11 @@ worker checks every canon segment — pre-RDP, since decimation can shave
 extremes — against per-axis INI limits. Pure helpers in `gateway_util.py`
 (`read_axis_limits`: `AXIS_<letter>` preferred, `JOINT_<n>` fallback in
 joint order; `check_limit_violations`: machine-frame, joint-side — TLO
-added back to XYZ — all axes incl. rotary; both unit-tested).
+added back to XYZ — all axes incl. rotary; both unit-tested; VECTORIZED
+with numpy since 2026-09-05 — the per-segment Python loops stay as
+`_check_limit_violations_scalar` / `_check_limit_violations_trsrn_scalar`
+oracle twins pinned by `TestVectorizedLimitChecks`, and the trsrn inverse
+has a vectorized twin `_trsrn_inverse_np` pinned to the scalar to 1e-9).
 WORLD-mode (TCP) segments (phase 2c): joints ≠ words, so those segments
 route through `check_limit_violations_world` — rotary-subdivided (4°,
 mid-segment extremes are the point: the phase-0 capture's joint X hit
@@ -635,6 +639,40 @@ simDump.ts` via vite-node — decodePreviewStreams/buildEntryTrack are
 single pure implementations shared with the browser), and gates on
 bidirectional 6D joint-space path deviation (deg ≙ mm; wall-clock never
 compared; per-program tolerance absorbs G64 blending).
+
+**Re-parse cancel-and-restart + visibility (2026-09-05)**: every drift
+edge above used to be gated on "no parse running", so an edge raised
+DURING a parse (a touch-off while the rotary-drift parse from → Zero
+still ran — every zeroing sequence, live) was not evaluated until that
+parse published and then queued a second full parse behind it: 41–167 s
+to a correct preview on a 1.18 M-line program. Now `BulkPipeline.inflight`
+holds the running parse's input snapshot (rotary seed, kins seed, flat
+WCS offsets, file + mtime) and the poll loop evaluates the same edges
+against it under the same idle gate, settle guards and 2 s debounce
+(`inflight_stale_reason`, pure); a hit CANCELS the worker
+(`cancel_inflight`: SIGTERM — inside `gcode.parse` the handler's
+SystemExit becomes `interp_error` → exit 3 within ~100 ms, temp dir
+removed; SIGKILL fallback after 2 s; `gcode.reparse_superseded` /
+`gcode.parse_cancelled`) and `reparse_pending` restarts it under the
+specific edge (`wcsoff:G54:x`, `rotary:A`, `kins:type`, …) — the
+scheduled reason is that edge, never a bare "drift". A running parse for
+the CURRENT file+mtime is never superseded by its own file edge
+(`preview_file_edge_action` — `file_changed` holds until the publish;
+the first acceptance run killed every load parse 33 ms after spawn).
+The worker timeout is `max(60 s, 3× expected)` where expected = the last
+measured publish of that path, else 1.2 ms/byte (the flat 60 s sat 14 s
+above the plane-mode parse). While a parse runs the status envelope
+carries `preview_refresh` {reason, file, expected_ms, started_ms,
+queued, superseded}: App.vue shows a warn banner with the reason in
+operator wording (`previewRefreshLabel`), a locally ticked elapsed clock
+and a progress track that never reaches 100 % on its own, the viewer HUD
+shows the same chip, and the drawn toolpath is MUTED
+(`toolpathController.setStale`, `--opacity-disabled`) while a parse runs
+or the payload's offsets / tool length are known stale. Parse speed on
+the same program (identity, this VM): ~23 s → ~15 s quiet / ~23 s while
+a VM-local tab decodes the previous publish — the comment-strip fast
+path, the canon's WCS snapshot only on a setter call, and the vectorized
+limit checks (below).
 
 **Entry move + auto-check**: at sim entry the live machine position is
 captured (joints→machine→program via `machineToProgram`, the exact
@@ -853,6 +891,9 @@ The `tool_touch_off.ngc` subroutine reads parameters from the LinuxCNC var file 
 - Never re-derive RS274/interp semantics from docs or memory — mirror the interpreter's own source and pin it with differential golden tests (`rs274.test.ts` + `TestRs274EffectiveOffset`, oracle = `rs274.interpret.Translated.rotate_and_translate`). Two latent bugs came from re-derivation: combined `g5x+g92` origin (wrong under G92+G10 R together) and TLO missing from the scrub joint transform (sim pose off in Z by exactly the G43 offset while `applyState` phase 3 subtracted it anyway)
 - Mode overrides must swap COMPLETE state objects, not single fields: `_scrubJoints` substituting joints inside `applyState` while `tool_offset`/WCS stayed live is how the TLO pose bug hid — every phase of a shared code path must be audited when one input is overridden per-mode
 - Surface-map Z compensation (`axis.z.eoffset`) is a **3-axis feature**: a machine-Z shim applied after kinematics, valid only with the tool normal to the mapped surface (A=0) and the map's XY grid aligned to the work (C=0 — the map does not ride the platter). Probing or applying it tilted is directionally wrong; enforcement gate deferred (recorded in dry-run memory)
+- A per-line `Map`/`Set` on a million-line program is a million heap objects the browser's collector marks on EVERY major GC (110–140 ms measured) and a ~1 s structured clone per worker hop — the "sometimes lags when rotating" class. Line-indexed typed arrays (`viewer/lineIndex.ts`) are the shape for anything keyed by line number
+- A background re-parse that cannot be cancelled QUEUES: an edge raised during it was not even evaluated until it published, then ran a second full parse (41–167 s live). Snapshot the running parse's inputs and supersede it; and an edge that stays true until the publish (`file_changed`) must never be allowed to cancel the parse that will clear it
+- Profile before vectorizing: 40 % of the 46 s plane-mode parse was 2.36 M pure-Python inverse-kinematics solves, another ~40 % three passes that re-stripped comments character by character; the interpreter itself was a quarter. cProfile inflates Python-call-heavy code ~2× — use it for proportions, the trace for absolute numbers
 
 ## Production DISPLAY Integration
 
