@@ -261,6 +261,16 @@ class TestPollStatus(unittest.TestCase):
         self.assertFalse(f([1, 2, 3], [1, 2, 3 + 1e-7]))
         self.assertTrue(f([1, 2, 3], [1, 2, 3.5]))
 
+    def test_datum_seq_advanced_none_when_unreadable_true_on_any_change(self):
+        # The datum-write epoch: None = no claim (helper predates the pin),
+        # any change counts (the counter wraps; the reader floats it).
+        f = status_runtime.datum_seq_advanced
+        self.assertIsNone(f(None, 5.0))
+        self.assertIsNone(f(5.0, None))
+        self.assertFalse(f(5.0, 5))
+        self.assertTrue(f(5.0, 6.0))
+        self.assertTrue(f(4294967295.0, 0.0))   # wrap
+
     def test_own_var_file_write_does_not_reseed_axis_rows(self):
         # The gateway writing provenance/probe vars bumps the var-file mtime;
         # mark_var_file_written adopts it so the next poll keeps the rows the

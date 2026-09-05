@@ -416,6 +416,25 @@ def webui_preview_reset():
     saved_work_offset = [0, 0, 0]
     saved_work_offset_number = 1
     orient_mode = 0
+
+
+_twp_datum_seq = 0
+
+
+def _bump_datum_seq():
+    """Datum-write epoch (2026-09-05). M535 publishes the datum through
+    gui_update_twp, then bumps twp-helper-comp.twp-datum-seq-in so the
+    gateway's settle keys on "M535 wrote" instead of "the value changed" (a
+    touch-off landing on the same datum used to burn the whole 3 s timeout).
+    Task-only by construction: twp_touchoff returns before it in preview.
+    A helper without the pin must never turn a good M535 into an
+    interpreter error — the gateway falls back to the value test, loudly."""
+    global _twp_datum_seq
+    _twp_datum_seq = (_twp_datum_seq + 1) & 0xFFFFFFFF
+    try:
+        hal.set_p(twp_comp + "twp-datum-seq-in", str(_twp_datum_seq))
+    except Exception as exc:  # noqa: BLE001
+        log.warning("twp-datum-seq-in not writable (%s): the datum settle falls back to the value test", exc)
 # --------------------------- end LCNC-SUITE block --------------------------
 
 
@@ -1529,6 +1548,7 @@ def twp_touchoff(self, **words):
     self.params[prov["z"]] = g54[2]
     self.params[prov["stamped"]] = PROV_STAMPED
     gui_update_twp(self)
+    _bump_datum_seq()   # LCNC-SUITE: after the datum -in writes, never before
     yield INTERP_EXECUTE_FINISH
     return INTERP_OK
 

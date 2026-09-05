@@ -239,30 +239,76 @@ async def main():
 asyncio.run(main())
 """
 
-_ws_proc = None
+_ws_procs = {}
 
 
-def ws_cmd(obj, timeout=90.0):
-    """Send one typed command through a persistent ARMED WS client (the real
-    button path — policy, armed-gate and all) and return the reply dict."""
-    global _ws_proc
-    import json as _json
-    venv = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                        "..", "lcnc-gateway", ".venv", "bin", "python3")
-    if _ws_proc is None or _ws_proc.poll() is not None:
+def _ws_client(client=0):
+    """One persistent ARMED WS client per index (the real button path —
+    policy, armed-gate and all); index 1 stands in for a second operator tab."""
+    p = _ws_procs.get(client)
+    if p is None or p.poll() is not None:
+        venv = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                            "..", "lcnc-gateway", ".venv", "bin", "python3")
         tok = os.environ.get("LCNC_WS_TOKEN", "")
         url = "ws://127.0.0.1:8000/ws" + (f"?token={tok}" if tok else "")
-        _ws_proc = subprocess.Popen([venv, "-c", _WS_HELPER_SRC, url],
-                                    stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                    text=True, bufsize=1)
+        p = subprocess.Popen([venv, "-c", _WS_HELPER_SRC, url],
+                             stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                             text=True, bufsize=1)
+        _ws_procs[client] = p
         time.sleep(2.0)  # hello + arm settle
-    _ws_proc.stdin.write(_json.dumps(obj) + "\n")
-    _ws_proc.stdin.flush()
+    return p
+
+
+def ws_send(obj, client=0):
+    """Send without waiting for the reply (ws_read collects it)."""
+    import json as _json
+    p = _ws_client(client)
+    p.stdin.write(_json.dumps(obj) + "\n")
+    p.stdin.flush()
+
+
+def ws_read(client=0, timeout=90.0):
+    import json as _json
     import select
-    r, _, _ = select.select([_ws_proc.stdout], [], [], timeout)
+    p = _ws_client(client)
+    r, _, _ = select.select([p.stdout], [], [], timeout)
     if not r:
-        raise SystemExit(f"WS command {obj} timed out")
-    return _json.loads(_ws_proc.stdout.readline())
+        raise SystemExit(f"WS reply (client {client}) timed out")
+    return _json.loads(p.stdout.readline())
+
+
+def ws_cmd(obj, timeout=90.0, client=0):
+    """Send one typed command through a persistent ARMED WS client and
+    return the reply dict."""
+    ws_send(obj, client)
+    return ws_read(client, timeout)
+
+
+def trace_tags_since(t0_ns, tags):
+    """Events carrying one of `tags` written to the suite's trace file since
+    t0 (wall ns) — the resolved log dir (env > INI > <install-dir>/runlogs),
+    the same resolution the gateway uses. None when unreadable (said)."""
+    import json as _json
+    import lcnc_paths
+    path = os.path.join(lcnc_paths.resolve()[0], "trace.ndjson")
+    out = []
+    try:
+        with open(path, "rb") as f:
+            f.seek(0, 2)
+            f.seek(max(0, f.tell() - 4_000_000))
+            for ln in f.read().decode(errors="replace").splitlines():
+                if not ln.startswith("{"):
+                    continue
+                try:
+                    d = _json.loads(ln)
+                except ValueError:
+                    continue
+                if d.get("tag") in tags and int(d.get("t_wall_ns", 0)) >= t0_ns:
+                    out.append(d)
+    except OSError as e:
+        print(f"  (trace file {path} unreadable: {e} — trace rows not judged)")
+        return None
+    return out
 
 
 def gateway_status_fields(keys):
@@ -456,6 +502,34 @@ check("D: DRO Z reads the entered value", abs(after[2] - 5.0) < 1e-3,
       f"{after[2]:.4f} (was {before[2]:.4f})")
 gateway_datum_row_check("D (after plane touch-off)", read_params([5221, 5222, 5223]))
 
+print("\n=== D2. datum-write epoch: the settle keys on M535's write, not on the value ===")
+# Same datum again (DRO Z already reads 5.0): before 2026-09-05 the gateway's
+# settle waited for the VALUE to change and burned its whole 3 s timeout on
+# exactly this case (3089 / 3082 ms replies, twp.datum_settle_timeout).
+seq_d = halget("twp-helper-comp.twp-datum-seq")
+mdi("o<twp_touchoff> call [4] [0] [0] [5.0]")
+seq_e = halget("twp-helper-comp.twp-datum-seq")
+check("D2: twp-datum-seq +1 per M535 (direct MDI)", abs(seq_e - seq_d - 1) < 1e-9,
+      f"{seq_d:.0f} → {seq_e:.0f}")
+time.sleep(0.6)  # broadcast settle (the touchoff gate reads the shared payload)
+t0_ns = time.time_ns()
+t0 = time.monotonic()
+rT = ws_cmd({"cmd": "touchoff", "axes": {"Z": 5.0}})
+dtT = time.monotonic() - t0
+check("D2: gateway Plane touch-off on the SAME datum ok",
+      rT.get("ok") is True and rT.get("route") == "plane", str(rT))
+check("D2: same-datum touch-off replies in < 1 s", dtT < 1.0, f"{dtT * 1000:.0f} ms")
+check("D2: twp-datum-seq +1 through the gateway path",
+      abs(halget("twp-helper-comp.twp-datum-seq") - seq_e - 1) < 1e-9)
+_ev = trace_tags_since(t0_ns, {"twp.datum_settled", "twp.datum_settle_timeout",
+                              "twp.datum_seq_unavailable"})
+if _ev is not None:
+    _settled = [e for e in _ev if e["tag"] == "twp.datum_settled"]
+    check("D2: trace — one twp.datum_settled (changed=false), no timeout, no seq-unavailable",
+          len(_settled) == 1 and _settled[0].get("changed") is False and len(_ev) == 1,
+          str([(e["tag"], e.get("changed"), e.get("ms")) for e in _ev]))
+gateway_datum_row_check("D2 (same datum)", read_params([5221, 5222, 5223]))
+
 print("\n=== E. refusals, state intact (policy-side, {ok:false}) ===")
 def refuse(label, fragment):
     time.sleep(0.6)  # let the broadcast poll see the planted state
@@ -505,6 +579,45 @@ poll()
 check("F: G69 → undefined, G54, identity kins",
       halget("twp-helper-comp.twp-is-defined") == 0 and s.g5x_index == 1
       and halget("motion.switchkins-type") == 0)
+
+print("\n=== G. abort mid-capture: a stop never waits behind a handler (2026-09-05) ===")
+# Capture chains four MDI waits inside _cmd_lock; before stop-class preemption
+# an abort from any client waited behind all of them. Now the abort cancels the
+# in-flight handler (the victim replies "Preempted by abort") and runs after
+# the current 50 ms wait slice.
+mdi("G10 L2 P1 X0 Y0 Z0 A0 B0 C0 R0")
+mdi("G0 A0 B10 C10")
+mdi("G0 X10 Y10 Z-60")
+time.sleep(0.6)
+_ws_client(1)  # the second operator tab, armed
+tG_ns = time.time_ns()
+ws_send({"cmd": "twp_capture"}, client=0)
+time.sleep(0.08)  # the capture is inside its first MDI wait
+t0 = time.monotonic()
+rA = ws_cmd({"cmd": "abort"}, client=1)
+dtA = time.monotonic() - t0
+check("G: abort from a second client replies ok in < 1 s while the capture is in flight",
+      rA.get("ok") is True and dtA < 1.0, f"{rA} {dtA * 1000:.0f} ms")
+rC = ws_read(client=0, timeout=30)
+_preempted = rC.get("ok") is False and "Preempted by abort" in str(rC.get("error", ""))
+check("G: the capture reply says it was preempted (or it completed before the abort landed)",
+      _preempted or rC.get("ok") is True, str(rC))
+print(f"  capture reply: {rC}" + ("" if _preempted else "  (completed first — preemption not exercised this run)"))
+if _preempted:
+    _ev = trace_tags_since(tG_ns, {"ws.command_preempt", "ws.command_preempted"})
+    if _ev is not None:
+        check("G: trace — ws.command_preempt names the capture, ws.command_preempted by=abort",
+              any(e["tag"] == "ws.command_preempt" and e.get("by") == "abort"
+                  and any(v.get("cmd") == "twp_capture" for v in e.get("victims", [])) for e in _ev)
+              and any(e["tag"] == "ws.command_preempted" and e.get("cmd") == "twp_capture" for e in _ev),
+              str([(e["tag"], e.get("by"), e.get("cmd"), e.get("victims")) for e in _ev]))
+wait_idle()
+mdi("g69")
+mdi("G0 A0")
+poll()
+check("G: G69 recovers — undefined, G54, identity kins, machine ON",
+      halget("twp-helper-comp.twp-is-defined") == 0 and s.g5x_index == 1
+      and halget("motion.switchkins-type") == 0 and s.task_state == linuxcnc.STATE_ON)
 
 print(f"\n=== {'ALL PASS' if not FAILS else str(len(FAILS)) + ' FAIL: ' + ', '.join(FAILS)} ===")
 sys.exit(1 if FAILS else 0)

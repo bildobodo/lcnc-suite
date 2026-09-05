@@ -109,6 +109,18 @@ def datum_changed(before: Optional[Sequence[float]], now: Optional[Sequence[floa
     return any(abs(float(now[i]) - float(before[i])) > eps for i in range(3))
 
 
+def datum_seq_advanced(before_seq, now_seq) -> Optional[bool]:
+    """Did the helper's datum-write epoch (twp-helper-comp.twp-datum-seq,
+    bumped by M535 AFTER it published the datum) move between two reads?
+    None when either side is unreadable — a helper that predates the pin,
+    or no snapshot — so the caller can say so and fall back to the
+    value-keyed test. Any change counts: the counter wraps, the reader
+    floats it, and floats hold integers exactly far beyond 2^32."""
+    if before_seq is None or now_seq is None:
+        return None
+    return float(now_seq) != float(before_seq)
+
+
 def seed_wcs_row_xyz(wcs_cache: List[Dict[str, Any]], index0: int,
                      xyz: Sequence[float]) -> None:
     """Overwrite x/y/z of ONE cached fixture row in place (the gateway holds

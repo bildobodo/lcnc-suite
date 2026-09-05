@@ -576,6 +576,12 @@ async def _reader_configure_extra_pins() -> None:
         # the A table, so the sum is a table-frame point and the viewer draws
         # it inside the work group, which is that same frame. Both halves ride
         # the snapshot; status assembles the sum.
+        # Datum-write epoch (2026-09-05): M535 bumps it AFTER publishing the
+        # datum. Registered BEFORE the datum pins on purpose — the reader
+        # samples extra pins in insertion order, and "seq changed ⇒ datum
+        # current" needs the seq read first (the helper writes the datum,
+        # then the seq). test_extra_pins pins the order.
+        pins["twp_datum_seq"] = "twp-helper-comp.twp-datum-seq"
         for _f, _p in (("twp_ox", "twp-ox-world"), ("twp_oy", "twp-oy-world"),
                        ("twp_oz", "twp-oz-world"),
                        ("twp_pox", "twp-ox"), ("twp_poy", "twp-oy"),
@@ -4129,6 +4135,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 line = (f"o<twp_touchoff> call [{mask}] [{values.get('X', 0.0):.6f}] "
                         f"[{values.get('Y', 0.0):.6f}] [{values.get('Z', 0.0):.6f}]")
                 _datum_before = _status_runtime_mod.assemble_twp_datum(_reader_get)
+                _seq_before = _reader_get("twp_datum_seq")
                 rc = await _cmd_blocking(CMD.mdi, line, wait=30)
                 if _cmd_rc_failed(rc):
                     _trace.emit("touchoff.plane_failed", level="warn", rc=rc, line=line)
@@ -4137,7 +4144,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 # own provenance in the INTERPRETER — neither STAT nor the var
                 # file carries it. Seed our G54 row + stamp from the datum the
                 # remap published, once it has settled.
-                _adopt_m535_datum(await _settle_datum_after_m535(_datum_before),
+                _adopt_m535_datum(await _settle_datum_after_m535(_datum_before, before_seq=_seq_before),
                                   step="touchoff.plane")
                 _trace.emit("touchoff.plane", level="info", mask=mask, values=values)
                 return {"ok": True, "route": "plane", "index": 6}
@@ -4290,11 +4297,13 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             # ask verbatim ("touch off the plane at the tool tip"). The
             # remap stamps the provenance itself (kins 0 / A 0).
             _datum_before = _status_runtime_mod.assemble_twp_datum(_reader_get)
+            _seq_before = _reader_get("twp_datum_seq")
             rc = await _cmd_blocking(CMD.mdi, "o<twp_touchoff> call [7] [0] [0] [0]", wait=30)
             if _cmd_rc_failed(rc):
                 _trace.emit("twp.capture_failed", level="warn", rc=rc, step="M535 zero")
                 return {"ok": False, "error": "Capture: the plane touch-off failed — see the error channel"}
-            _adopt_m535_datum(await _settle_datum_after_m535(_datum_before), step="twp.capture")
+            _adopt_m535_datum(await _settle_datum_after_m535(_datum_before, before_seq=_seq_before),
+                              step="twp.capture")
             _trace.emit("twp.capture", level="info", tip=tip)
             return {"ok": True}
 
@@ -4830,26 +4839,48 @@ async def _ensure_prov_var_rows() -> None:
         _trace.emit("wcs.provenance_seed_failed", level="warn", error=repr(exc))
 
 
-async def _settle_datum_after_m535(before, *, timeout_s: float = 3.0,
+async def _settle_datum_after_m535(before, *, before_seq=None, timeout_s: float = 3.0,
                                    period_s: float = 0.05):
     """Wait for the helper's datum pins to reflect the G54 the remap just
     wrote (M535: G10 L2 P1 + saved_work_offset + gui_update_twp; the helper
-    republishes at 20 Hz). Keyed on the VALUE changing, never a dwell: on
-    timeout the current value is adopted anyway with a warn trace — the one
-    legitimate no-change case (touch-off landing on the same datum) reads
-    identically, and a real lag stays loud through the chip. Unreadable
-    pins → None (no seeding, traced)."""
+    republishes at 20 Hz). Keyed on the datum-write EPOCH (2026-09-05):
+    M535 bumps twp-datum-seq AFTER publishing the datum, the helper copies
+    it LAST in its pass and the reader samples it FIRST, so a changed seq
+    in a snapshot proves the datum in that snapshot is current — a touch-off
+    landing on the SAME datum settles in one tick instead of burning the
+    whole timeout (3089 / 3082 ms per same-datum touch-off, measured
+    2026-09-03). A helper without the pin (seq None on either side) falls
+    back to the value-keyed test, said once (twp.datum_seq_unavailable). On
+    timeout the current value is adopted anyway with a warn trace, so a real
+    lag stays loud through the chip. Unreadable pins → None (no seeding,
+    traced). Never a dwell."""
     now = None
+    now_seq = None
+    t0 = time.monotonic()
+    seq_said = False
     for _ in range(max(1, int(timeout_s / period_s))):
+        # Same snapshot for both reads (no await between them).
+        now_seq = _reader_get("twp_datum_seq")
         now = _status_runtime_mod.assemble_twp_datum(_reader_get)
-        ch = _status_runtime_mod.datum_changed(before, now)
-        if ch is True:
+        adv = _status_runtime_mod.datum_seq_advanced(before_seq, now_seq)
+        if adv is True:
+            _trace.emit("twp.datum_settled", ms=round((time.monotonic() - t0) * 1000),
+                        seq_before=before_seq, seq_now=now_seq,
+                        changed=_status_runtime_mod.datum_changed(before, now))
             return now
+        if adv is None:
+            if not seq_said:
+                seq_said = True
+                _trace.emit("twp.datum_seq_unavailable", level="warn",
+                            seq_before=before_seq, seq_now=now_seq)
+            if _status_runtime_mod.datum_changed(before, now) is True:
+                return now
         await asyncio.sleep(period_s)
     if now is None:
         _trace.emit("twp.datum_unreadable", level="warn")
         return None
-    _trace.emit("twp.datum_settle_timeout", level="warn", before=before, now=now)
+    _trace.emit("twp.datum_settle_timeout", level="warn", before=before, now=now,
+                seq_before=before_seq, seq_now=now_seq)
     return now
 
 

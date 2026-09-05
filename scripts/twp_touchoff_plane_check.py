@@ -303,8 +303,14 @@ def plane_touchoff_roundtrip(label, a_deg, z_value):
           and halget("motion.switchkins-type") == 2)
     before = dro()
     g54_before = read_params([5221, 5222, 5223])
+    seq_before = halget("twp-helper-comp.twp-datum-seq")
     mdi(f"o<twp_touchoff> call [4] [0] [0] [{z_value}]")
     after = dro()
+    # Datum-write epoch (2026-09-05): M535 bumps it exactly once, after the
+    # datum pins — the gateway's settle keys on it instead of on the value.
+    check(f"{label}: twp-datum-seq +1 per M535",
+          abs(halget("twp-helper-comp.twp-datum-seq") - seq_before - 1) < 1e-9,
+          f"{seq_before:.0f} → {halget('twp-helper-comp.twp-datum-seq'):.0f}")
     check(f"{label}: DRO Z reads the entered value", abs(after[2] - z_value) < 1e-3,
           f"{after[2]:.4f} (was {before[2]:.4f})")
     check(f"{label}: DRO X/Y untouched", abs(after[0] - before[0]) < 1e-3

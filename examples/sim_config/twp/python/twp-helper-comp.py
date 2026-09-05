@@ -48,6 +48,14 @@ h.newpin("twp-oz-world", hal.HAL_FLOAT, hal.HAL_OUT)
 # frame and the physical face no longer agree (surfaced as "stale" in the UI).
 h.newpin("twp-pose-a-in", hal.HAL_FLOAT, hal.HAL_IN)
 h.newpin("twp-pose-a", hal.HAL_FLOAT, hal.HAL_OUT)
+# LCNC-SUITE: datum-write epoch. M535 (remap twp_touchoff) bumps -in AFTER it
+# published the datum through the -world-in pins; the 20 Hz pass below reads
+# it FIRST and writes the out pin LAST, so a changed twp-datum-seq in any
+# reader snapshot proves the twp-o*-world values in that snapshot were
+# published with it (the gateway's datum settle keys on it instead of on the
+# value changing — a same-datum touch-off used to burn its whole timeout).
+h.newpin("twp-datum-seq-in", hal.HAL_U32, hal.HAL_IN)
+h.newpin("twp-datum-seq", hal.HAL_U32, hal.HAL_OUT)
 
 # LCNC-SUITE: "no pose" sentinel — the pin always exists once we are loaded, so
 # absence has to be expressed in the VALUE, not by a missing pin. Set before
@@ -111,6 +119,8 @@ try:
             time.sleep(_PERIOD_S)
             continue
 
+        _seq_in = h['twp-datum-seq-in']  # LCNC-SUITE: read FIRST (see the pin comment)
+
         # passthrough the twp arguments
         h['twp-ox'] = h['twp-ox-in']
         h['twp-oy'] = h['twp-oy-in']
@@ -137,6 +147,8 @@ try:
             h['twp-ox-world'] = h['twp-ox-world-in']
             h['twp-oy-world'] = h['twp-oy-world-in']
             h['twp-oz-world'] = h['twp-oz-world-in']
+
+        h['twp-datum-seq'] = _seq_in  # LCNC-SUITE: write LAST — after every datum pin
 
         time.sleep(_PERIOD_S)  # LCNC-SUITE
 

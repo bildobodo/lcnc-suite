@@ -106,7 +106,7 @@ class TestExtraPinsKinsGating(unittest.TestCase):
         ):
             pins = self._configured_pins(decl)
             for f in ("kins_pre_rot", "kins_primary_angle", "kins_secondary_angle",
-                      "twp_pose_a"):
+                      "twp_pose_a", "twp_datum_seq"):
                 self.assertNotIn(f, pins, f"{f} must not be sampled for {decl}")
 
     # ── Plane pose staleness (table-aware wave) ────────────────────────────
@@ -118,6 +118,18 @@ class TestExtraPinsKinsGating(unittest.TestCase):
             {"module": "xyzacb_trsrn", "type": "xyzacb-trsrn",
              "identity_first": False, "params": {}})
         self.assertEqual(pins.get("twp_pose_a"), "twp-helper-comp.twp-pose-a")
+
+    def test_trsrn_registers_datum_seq_before_the_datum_pins(self):
+        # The reader samples extra pins in insertion order; "seq changed ⇒
+        # datum current" holds only if the seq is read BEFORE the datum
+        # pins (the helper writes the datum first, the seq last).
+        pins = self._configured_pins(
+            {"module": "xyzacb_trsrn", "type": "xyzacb-trsrn",
+             "identity_first": False, "params": {}})
+        self.assertEqual(pins.get("twp_datum_seq"), "twp-helper-comp.twp-datum-seq")
+        order = list(pins)
+        for f in ("twp_ox", "twp_oy", "twp_oz"):
+            self.assertLess(order.index("twp_datum_seq"), order.index(f), order)
 
 
 class TestHealthArmedClients(unittest.TestCase):
