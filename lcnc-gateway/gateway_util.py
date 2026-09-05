@@ -1386,6 +1386,35 @@ def evaluate_wcs_offset_drift(snap_flat, live_flat, eps=1e-3):
 
 
 
+def preview_file_edge_action(file_changed, reparse_pending, refresh_running, inflight,
+                             active_file, cur_mtime):
+    """What the poll loop's file/reparse edge does this tick (pure).
+
+    Returns "schedule" (start a parse now), "cancel:file" (the running
+    parse is for another file or mtime — supersede it), "cancel:reparse"
+    (an operator Reparse arrived during a parse — supersede it), or None
+    (nothing to do: no edge, or the running parse IS this file+mtime and
+    must be left to finish).
+
+    The last case is the 2026-09-05 live catch: `file_changed` stays true
+    until the parse PUBLISHES (last_file/last_mtime move at publish), so a
+    branch that cancelled whenever a parse was running killed every load
+    parse ~33 ms after its spawn, forever — the first supersede wave never
+    delivered a preview on the acceptance run."""
+    if not active_file:
+        return None
+    if not (file_changed or reparse_pending):
+        return None
+    if not refresh_running:
+        return "schedule"
+    inf = inflight or {}
+    same = inf.get("file") == active_file and inf.get("mtime") == cur_mtime
+    if file_changed and not same:
+        return "cancel:file"
+    if reparse_pending and not file_changed:
+        return "cancel:reparse"
+    return None
+
 def inflight_stale_reason(inflight, rotary_abc, rotary_prev, kins_type, kins_frame,
                           wcs_flat, wcs_prev):
     """Does an edge raised DURING a running parse stale that parse?

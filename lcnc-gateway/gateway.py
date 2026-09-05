@@ -47,7 +47,7 @@ from gateway_util import (
     evaluate_safety_chain,
     PREVIEW_SCHEMA,
     evaluate_tlo_drift,
-    evaluate_rotary_drift, drift_gate_open, inflight_stale_reason,
+    evaluate_rotary_drift, drift_gate_open, inflight_stale_reason, preview_file_edge_action,
     rotary_drift_settled,
     evaluate_kins_drift,
     wcs_offset_flat_from_table,
@@ -1499,19 +1499,24 @@ async def _status_poller():
             # reparse_pending: an operator Reparse that arrived during an
             # in-flight parse (or any Reparse — the flag is the request,
             # the cache keys are no longer cleared for it).
-            if file_changed or (_bulk.reparse_pending and st.active_file):
-                if _bulk.refresh_running:
-                    # A parse is running for a superseded file/mtime, or the
+            _fe = preview_file_edge_action(
+                file_changed, _bulk.reparse_pending, _bulk.refresh_running,
+                _bulk.inflight, st.active_file, _cur_mtime)
+            if _fe is not None:
+                if _fe == "schedule":
+                    _bulk.schedule_refresh(
+                        st.active_file,
+                        _bulk.reparse_pending_reason or ("file" if file_changed else "reparse"),
+                        _spawn_preview_task)
+                else:
+                    # The running parse is for another file/mtime, or the
                     # operator asked for a fresh one: its result is stale
                     # before it lands. Cancel it; this branch re-fires as
                     # soon as the flag clears (cancel_inflight is idempotent
-                    # per parse, so the tick loop does not re-trace).
-                    _bulk.cancel_inflight("file" if file_changed else "reparse")
-                else:
-                    _bulk.schedule_refresh(
-                        st.active_file,
-                        "file" if file_changed else (_bulk.reparse_pending_reason or "reparse"),
-                        _spawn_preview_task)
+                    # per parse). A running parse for THIS file+mtime is
+                    # left alone (preview_file_edge_action) — file_changed
+                    # holds until it publishes.
+                    _bulk.cancel_inflight(_fe.split(":", 1)[1])
             elif (
                 # In-flight supersede (2026-09-05): the drift edges below are
                 # gated on `not refresh_running`, so an edge raised DURING a

@@ -523,6 +523,38 @@ class TestInflightStaleReason(unittest.TestCase):
         self.assertTrue(settled and settled.startswith("wcsoff:"), settled)
 
 
+class TestPreviewFileEdgeAction(unittest.TestCase):
+    """The file/reparse edge of the poll loop with a parse in flight."""
+    INF = {"file": "/nc/a.ngc", "mtime": 10.0}
+
+    def test_no_edge_or_no_file(self):
+        f = gateway_util.preview_file_edge_action
+        self.assertIsNone(f(False, False, False, None, "/nc/a.ngc", 10.0))
+        self.assertIsNone(f(True, True, False, None, "", 10.0))
+
+    def test_schedules_when_nothing_runs(self):
+        f = gateway_util.preview_file_edge_action
+        self.assertEqual(f(True, False, False, None, "/nc/a.ngc", 10.0), "schedule")
+        self.assertEqual(f(False, True, False, None, "/nc/a.ngc", 10.0), "schedule")
+
+    def test_running_parse_for_this_file_is_left_to_finish(self):
+        # The live catch: file_changed stays true until the publish.
+        f = gateway_util.preview_file_edge_action
+        self.assertIsNone(f(True, False, True, self.INF, "/nc/a.ngc", 10.0))
+        # ...also when a supersede already queued a restart behind it.
+        self.assertIsNone(f(True, True, True, self.INF, "/nc/a.ngc", 10.0))
+
+    def test_other_file_or_edited_file_supersedes(self):
+        f = gateway_util.preview_file_edge_action
+        self.assertEqual(f(True, False, True, self.INF, "/nc/b.ngc", 10.0), "cancel:file")
+        self.assertEqual(f(True, False, True, self.INF, "/nc/a.ngc", 11.0), "cancel:file")
+        self.assertEqual(f(True, False, True, None, "/nc/a.ngc", 10.0), "cancel:file")
+
+    def test_operator_reparse_during_a_parse_supersedes(self):
+        f = gateway_util.preview_file_edge_action
+        self.assertEqual(f(False, True, True, self.INF, "/nc/a.ngc", 10.0), "cancel:reparse")
+
+
 if __name__ == "__main__":
     unittest.main()
 

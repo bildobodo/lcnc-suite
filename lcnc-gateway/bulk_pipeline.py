@@ -432,7 +432,7 @@ class BulkPipeline:
             timeout_s = self.parse_timeout_s(filepath)
             self.cancel_reason = None
             self.inflight = {
-                "file": filepath, "reason": reason,
+                "file": filepath, "mtime": _mtime_at_parse, "reason": reason,
                 "t0": time.monotonic(), "started_ms": int(time.time() * 1000),
                 "expected_ms": expected_ms,
                 "rotary_seed": rotary_seed_values(
@@ -464,7 +464,8 @@ class BulkPipeline:
                 # that cancelled owns the restart (reparse_pending / file edge).
                 _trace.emit("gcode.parse_cancelled", file=filepath,
                             reason=self.cancel_reason, rc=returncode,
-                            ran_ms=round((t_communicated - t_spawn) * 1000))
+                            ran_ms=round((t_communicated - t_spawn) * 1000),
+                            stderr_tail=(stderr.decode(errors="replace")[-240:] if stderr else ""))
                 return
             if returncode != 0:
                 err_tail = stderr.decode(errors="replace")[:500] if stderr else ""
