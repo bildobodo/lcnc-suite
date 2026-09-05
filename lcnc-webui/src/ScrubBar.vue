@@ -10,6 +10,7 @@
 // (program run start, program change, machine powered on elsewhere, real
 // joint motion as a backstop). ThreeViewer shows the .simBanner while active.
 import { computed, markRaw, onUnmounted, ref, shallowRef, watch } from "vue";
+import { lineCumOf, lineRange } from "./viewer/lineIndex";
 import { status, viewerGcode, viewerInit, gcodeContent, emitTelemetry } from "./lcncWs";
 import { INTERP_IDLE } from "./lcnc";
 import { simMode } from "./simMode";
@@ -413,7 +414,7 @@ watch(st, (d) => {
   if (!t || !Array.isArray(jp)) return;
   const trusted = !viewerGcode.value?.lines_untrusted;
   const line = trusted ? motionLine.value : null;
-  const span = line ? t.lineSpan.get(line) : undefined;
+  const span = line ? lineRange(t.lineIndex, line) : undefined;
   // Forward kins for the live joints: the machine's ACTUAL switchkins pin
   // and plane frame when sampled — same authority as the joints being
   // inverted; the hint span's (or track-start) segment mode stands in.
@@ -609,7 +610,7 @@ const violationTargets = computed<FindingTarget[]>(() => {
   for (const v of violations.value ?? []) {
     if (seen.has(v.line)) continue;
     seen.add(v.line);
-    const cum = t.lineCum.get(v.line);
+    const cum = lineCumOf(t.lineIndex, v.line);
     if (cum !== undefined) out.push({ cum, line: v.line });
   }
   return out.sort((a, b) => a.cum - b.cum);
@@ -681,7 +682,7 @@ const toolTargets = computed(() => {
   if (!t) return [] as Array<{ cum: number; line: number; tool: number }>;
   const out: Array<{ cum: number; line: number; tool: number }> = [];
   for (const [line, tool] of viewerGcode.value?.tool_change_lines ?? []) {
-    const cum = t.lineCum.get(line);
+    const cum = lineCumOf(t.lineIndex, line);
     if (cum !== undefined) out.push({ cum, line, tool });
   }
   return out.sort((a, b) => a.cum - b.cum);
@@ -702,7 +703,7 @@ const nextToolLabel = computed(() => {
 });
 
 // Soft-limit violations (stage 1) on the same timeline, warn-tinted —
-// line-anchored via the track's lineCum map. A violating line the track
+// line-anchored via the track's line index (cum). A violating line the track
 // doesn't know (comment-line attribution edge) simply has no mark; the
 // GcodePanel banner still lists it.
 const violationMarks = computed(() => {
@@ -713,7 +714,7 @@ const violationMarks = computed(() => {
   for (const v of viewerGcode.value?.violations ?? []) {
     if (seen.has(v.line)) continue;
     seen.add(v.line);
-    const cum = t.lineCum.get(v.line);
+    const cum = lineCumOf(t.lineIndex, v.line);
     if (cum !== undefined) out.push(Math.min(100, (cum / cumMax.value) * 100));
   }
   return out;

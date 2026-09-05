@@ -1,5 +1,6 @@
 // Unit tests for viewer/scrubTrack.ts — the execution-ordered scrub track.
 import { describe, expect, it, vi } from "vitest";
+import { lineCumOf, lineMaskLines, lineRange } from "./lineIndex";
 import {
   buildScrubTrack, sampleTrack, jointsForSample,
   machineJointsToProgram, prependEntry, splitTrackStreams,
@@ -82,7 +83,7 @@ describe("buildScrubTrack", () => {
       stream([[20, 0, 0]], { seq: [2], lines: [7], tcum: [0.5] }))!;
     expect(t.timeBased).toBe(true);
     expect(Array.from(t.cum)).toEqual([0, 0.5, 2.5]);
-    expect(t.lineCum.get(9)).toBeCloseTo(2.5, 5);
+    expect(lineCumOf(t.lineIndex, 9)).toBeCloseTo(2.5, 5);
   });
 
   it("falls back to the distance axis when a non-empty stream lacks tcum", () => {
@@ -96,9 +97,10 @@ describe("buildScrubTrack", () => {
   it("maps each source line to the cum of its first track point", () => {
     const t = buildScrubTrack(
       stream([[0, 0, 0], [10, 0, 0], [20, 0, 0]], { lines: [4, 7, 7] }), EMPTY)!;
-    expect(t.lineCum.get(4)).toBe(0);
-    expect(t.lineCum.get(7)).toBe(10);   // first occurrence, not the last
-    expect(t.lineCum.has(0)).toBe(false); // 0 = unknown line, never mapped
+    expect(lineCumOf(t.lineIndex, 4)).toBe(0);
+    expect(lineCumOf(t.lineIndex, 7)).toBe(10);   // first occurrence, not the last
+    expect(lineCumOf(t.lineIndex, 0)).toBeUndefined(); // 0 = unknown line, never mapped
+    expect(lineRange(t.lineIndex, 7)).toEqual({ start: 1, end: 2 });
   });
 
   it("cum is monotonic and linear distance wins when larger", () => {
@@ -162,7 +164,7 @@ describe("prependEntry", () => {
   const base = buildScrubTrack(
     stream([[10, 0, 0], [20, 0, 0]], { lines: [5, 7] }), EMPTY)!;
 
-  it("prepends a rapid entry segment and shifts cum + lineCum", () => {
+  it("prepends a rapid entry segment and shifts cum + the line index", () => {
     const t = prependEntry(base, [10, -30, 0, 0, 0, 0]);
     expect(t.count).toBe(3);
     expect([t.pos[0], t.pos[1]]).toEqual([10, -30]);
@@ -170,8 +172,8 @@ describe("prependEntry", () => {
     expect(t.rapid[1]).toBe(1);          // the entry MOVE is a rapid
     expect(t.cum[1]).toBeCloseTo(30, 5); // entry length
     expect(t.cum[2]).toBeCloseTo(40, 5);
-    expect(t.lineCum.get(5)).toBeCloseTo(30, 5);
-    expect(t.lineCum.get(7)).toBeCloseTo(40, 5);
+    expect(lineCumOf(t.lineIndex, 5)).toBeCloseTo(30, 5);
+    expect(lineCumOf(t.lineIndex, 7)).toBeCloseTo(40, 5);
   });
 
   it("counts a pure rotary entry (1° ≙ 1 mm) and skips a no-op entry", () => {
@@ -565,7 +567,7 @@ describe("displayLineForPoint / atTrackEnd (W3 P4)", () => {
   it("mainLinesTrusted: the set live motion_line must belong to (W5)", () => {
     const t = T();
     t.lineOk = new Uint8Array([1, 0, 0, 0]);
-    expect(Array.from(mainLinesTrusted(t)!)).toEqual([4]);
+    expect(lineMaskLines(mainLinesTrusted(t)!)).toEqual([4]);
     t.lineOk = undefined;             // legacy track → null, wholesale fallback
     expect(mainLinesTrusted(t)).toBe(null);
   });

@@ -15,8 +15,9 @@
 // the kinematic chain is evaluated at pose time, not baked per vertex.
 import { kinsForSegment, type KinsSpec } from "./kins";
 import { TLO_NONE, tloForIndex, type TloEvent } from "./tloEvents";
+import { buildLineIndex } from "./lineIndex";
 import {
-  buildLineMap, machineToProgram, wcsTerms,
+  machineToProgram, wcsTerms,
   type PartFrameWcs, type WcsTerms, liftToJoints, jointsToProgram, tipWcs } from "./partFrame";
 import type { WcsEpoch } from "./wcsEpochs";
 import type { ScrubTrack } from "../ws/bulkData";
@@ -238,18 +239,12 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
     }
   }
 
-  const lineCum = new Map<number, number>();
-  for (let i = 0; i < n; i++) {
-    const ln = lines[i]!;
-    if (ln && !lineCum.has(ln)) lineCum.set(ln, cum[i]!);
-  }
-
   return { pos, abc, lines, rapid: rapidFlag, mode, frame: frameIdx,
            frames: hasFrame ? frames : undefined, brk, ustart,
            wcsEpoch, wcsEvents: hasWcs ? wcsEvents : undefined,
            tlo, tloEvents: hasTlo ? tloEvents : undefined,
            lineOk, sub, subNames: hasSub ? subNames : undefined, cline,
-           cum, count: n, lineCum, lineSpan: buildLineMap(lines), timeBased };
+           cum, count: n, lineIndex: buildLineIndex(lines, cum), timeBased };
 }
 
 /** Drawn-preview streams re-derived from the merged track.
@@ -576,14 +571,21 @@ export function programEndLine(text: string | null | undefined): number | null {
  *  is either a called file's colliding lineno or a stale id. Null for
  *  legacy tracks without the per-point channel (callers fall back to the
  *  wholesale flag, pre-W2 behavior). */
-export function mainLinesTrusted(t: ScrubTrack): Set<number> | null {
+export function mainLinesTrusted(t: ScrubTrack): Uint8Array | null {
   if (!t.lineOk) return null;
-  const s = new Set<number>();
+  // A bitmap over line numbers (lineMaskHas), not a Set: one entry per
+  // trusted line was 1.18 M heap objects on the big program.
+  let max = 0;
   for (let i = 0; i < t.count; i++) {
     const ln = t.lines[i] ?? 0;
-    if (t.lineOk[i] === 1 && ln > 0) s.add(ln);
+    if (t.lineOk[i] === 1 && ln > max) max = ln;
   }
-  return s;
+  const mask = new Uint8Array(max + 1);
+  for (let i = 0; i < t.count; i++) {
+    const ln = t.lines[i] ?? 0;
+    if (t.lineOk[i] === 1 && ln > 0) mask[ln] = 1;
+  }
+  return mask;
 }
 
 /** Live machine joints → program-space [x,y,z,a,b,c]: joints → machine
@@ -749,7 +751,7 @@ export function lineRunAround(t: ScrubTrack, i: number): [number, number] {
 /** New track with the ENTRY MOVE prepended: the rapid the machine will make
  *  from its live position (program coords) to the program's first point —
  *  run-time-only motion no parse can know, and the classic crash. The entry
- *  point gets line 0 ("entry" in the UI) and a rapid flag; cum and lineCum
+ *  point gets line 0 ("entry" in the UI) and a rapid flag; cum and the line index
  *  shift by the entry length (SECONDS on a time-based track, given rapid
  *  `rates`; distance otherwise). Returns the original track unchanged when
  *  the machine already sits at the first point. */
@@ -869,12 +871,13 @@ export function prependEntry(
     cline[1] = 0;
   }
   for (let i = 0; i < t.count; i++) cum[i + 1] = t.cum[i]! + entryLen;
-  const lineCum = new Map<number, number>();
-  for (const [ln, c] of t.lineCum) lineCum.set(ln, c + entryLen);
+  // Rebuilt from the shifted arrays: the entry vertices carry line 0 (never
+  // mapped), every other line's first point moved one index up and its cum
+  // by entryLen — exactly the shifted map this used to build by hand.
   return { pos, abc, lines, rapid, mode, frame, frames: t.frames, brk, ustart,
            wcsEpoch, wcsEvents: t.wcsEvents, tlo, tloEvents: t.tloEvents,
            lineOk, sub, subNames: t.subNames, cline,
-           cum, count: n, lineCum, lineSpan: buildLineMap(lines), timeBased: t.timeBased };
+           cum, count: n, lineIndex: buildLineIndex(lines, cum), timeBased: t.timeBased };
 }
 
 const _machineVals: number[] = [0, 0, 0, 0, 0, 0];

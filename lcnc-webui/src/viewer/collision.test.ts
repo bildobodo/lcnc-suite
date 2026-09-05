@@ -1,5 +1,6 @@
 // Unit tests for viewer/collision.ts — synthetic machines with box bodies.
 import * as THREE from "three";
+import { emptyLineIndex } from "./lineIndex";
 import { describe, expect, it } from "vitest";
 import {
   buildCollisionModel, sweepCollisions, toolCylinderPositions,
@@ -33,7 +34,7 @@ function track(points: number[][], abc?: number[][], lines?: number[], rapid?: n
     pos, abc: abcArr,
     lines: new Uint32Array(lines ?? points.map((_, i) => i + 1)),
     rapid: rapid ? new Uint8Array(rapid) : new Uint8Array(n), cum, count: n,
-    lineCum: new Map(), lineSpan: new Map(), timeBased: false,
+    lineIndex: emptyLineIndex(), timeBased: false,
   };
 }
 

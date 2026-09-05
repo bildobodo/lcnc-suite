@@ -12,6 +12,7 @@ import {
   handleStatusError, handleStatusMessage, latency, lcncError,
   markMessagesRead, mergeStatusPatch, messages, networkLatency, noteBulkData,
   noteFrameSample, noteHeartbeatSent, notePong, pushMessage,
+  previewRefresh, previewRefreshElapsedMs, previewRefreshLabel,
   readerStale, rebaseStatusDelta, resetOnClose, resetTimingStats, safetyChainIncomplete,
   safetyTrip, status, timingStats, unreadCount,
 } from "./statusStore";
@@ -33,6 +34,7 @@ beforeEach(() => {
   readerStale.value = false;
   safetyChainIncomplete.value = null;
   configWarning.value = null;
+  previewRefresh.value = null;
 });
 
 afterEach(() => {
@@ -141,6 +143,50 @@ describe("safety_trip / reader_stale / config_warning sync", () => {
     expect(safetyChainIncomplete.value).toBe("watchdog down");
     handleStatusMessage({ type: "status", data: {} });
     expect(safetyChainIncomplete.value).toBeNull();
+  });
+});
+
+describe("preview_refresh sync (re-parse in flight)", () => {
+  const PR = { reason: "wcsoff:G54:x", file: "big.ngc", expected_ms: 30000, started_ms: 1000, queued: false, superseded: 1 };
+
+  it("mirrors the field while present, keeps identity for the same parse, clears on absence", () => {
+    handleStatusMessage({ type: "status", data: {}, preview_refresh: PR });
+    const first = previewRefresh.value;
+    expect(first).toMatchObject({ reason: "wcsoff:G54:x", file: "big.ngc", expected_ms: 30000, queued: false, superseded: 1 });
+    expect(typeof first!.seenAt).toBe("number");
+    handleStatusMessage({ type: "status", data: {}, preview_refresh: PR });
+    expect(previewRefresh.value).toBe(first);       // same parse, same object — no watcher storm
+    handleStatusMessage({ type: "status", data: {}, preview_refresh: { ...PR, queued: true } });
+    expect(previewRefresh.value).not.toBe(first);
+    expect(previewRefresh.value!.queued).toBe(true);
+    expect(previewRefresh.value!.seenAt).toBe(first!.seenAt);   // still the same parse: elapsed keeps counting
+    handleStatusMessage({ type: "status", data: {}, preview_refresh: { ...PR, started_ms: 2000, reason: "rotary:A" } });
+    expect(previewRefresh.value!.reason).toBe("rotary:A");
+    handleStatusMessage({ type: "status", data: {} });
+    expect(previewRefresh.value).toBeNull();
+    expect(previewRefreshElapsedMs.value).toBe(0);
+  });
+
+  it("ticks the elapsed clock locally while a parse runs and stops when it lands", () => {
+    handleStatusMessage({ type: "status", data: {}, preview_refresh: PR });
+    vi.advanceTimersByTime(1100);
+    expect(previewRefreshElapsedMs.value).toBeGreaterThan(0);
+    handleStatusMessage({ type: "status", data: {} });
+    vi.advanceTimersByTime(600);
+    expect(previewRefreshElapsedMs.value).toBe(0);
+  });
+
+  it("labels the gateway's edge names for the operator", () => {
+    expect(previewRefreshLabel("wcsoff:G54:x")).toBe("touch-off (G54 X)");
+    expect(previewRefreshLabel("wcsoff:g92:z")).toBe("touch-off (g92 Z)");
+    expect(previewRefreshLabel("rotary:AC")).toBe("rotary pose (AC)");
+    expect(previewRefreshLabel("kins:type")).toBe("kinematics mode change");
+    expect(previewRefreshLabel("kins:frame")).toBe("plane change");
+    expect(previewRefreshLabel("tlo:3")).toBe("tool length change");
+    expect(previewRefreshLabel("file")).toBe("program load");
+    expect(previewRefreshLabel("reparse")).toBe("operator reparse");
+    expect(previewRefreshLabel("schema")).toBe("suite upgrade");
+    expect(previewRefreshLabel(null)).toBe("machine state change");
   });
 });
 

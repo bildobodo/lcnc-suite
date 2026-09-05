@@ -13,6 +13,7 @@
 // private to this module by design (A1 rule).
 import { computed, markRaw, ref } from "vue";
 import { decode as msgpackDecode } from "@msgpack/msgpack";
+import type { LineIndex } from "../viewer/lineIndex";
 import type { Vec3 } from "../defaults";
 
 // Viewer payloads. Static `viewer_init` (machine description, INI config,
@@ -143,13 +144,13 @@ export interface ScrubTrack {
   cum: Float32Array;
   timeBased: boolean;
   count: number;
-  /** Source line → cum of its first track point (built off-thread; Maps
-   *  survive structured clone). Lets the UI place line-anchored marks —
-   *  soft-limit violations — on the timeline without an O(track) scan. */
-  lineCum: Map<number, number>;
-  /** Source line → track point index range — the run playhead projects the
-   *  live position onto the current line's span for smooth motion. */
-  lineSpan: Map<number, { start: number; end: number }>;
+  /** Source line → first/last track point index and the cum of the first
+   *  point, as typed arrays (viewer/lineIndex.ts; built off-thread,
+   *  transferred — the Maps it replaced were one heap object per line:
+   *  GC hitches + a 0.9 s clone per publish on a 1.18 M-line program).
+   *  Line-anchored timeline marks (soft-limit violations, tool changes)
+   *  and the run playhead's current-line span both read it. */
+  lineIndex: LineIndex;
 }
 
 // One per-line soft-limit overtravel record from the parse worker. `value`
@@ -339,7 +340,7 @@ export interface ViewerGcode {
   tool_change_lines?: [number, number][];
   // P4.1: source-line → point-index range map, built off-thread by previewWorker
   // (Maps survive structured clone) so ThreeViewer skips the O(points) build.
-  feedLineMap?: Map<number, { start: number; end: number }>;
+  feedLineIndex?: LineIndex;
   // P4.1: cumulative lineDistance for the dashed rapid line, computed off-thread so
   // ThreeViewer sets the attribute directly instead of Three.computeLineDistances().
   rapidDist?: Float32Array;

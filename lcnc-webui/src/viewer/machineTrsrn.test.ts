@@ -12,6 +12,7 @@
 // If a test here fails after touching scripts/vismach_to_stl_trsrn.py, the
 // model is wrong — regenerate with sound dimensions, don't loosen the gate.
 import * as fs from "node:fs";
+import { emptyLineIndex } from "./lineIndex";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 import { transformToPartFrame, type PartFrameMachine } from "./partFrame";
@@ -231,7 +232,7 @@ function envelopeTrack(points: number[][], mode?: number[]): ScrubTrack {
   const t: ScrubTrack = {
     pos, abc, lines: new Uint32Array(points.map((_, i) => i + 1)),
     rapid: new Uint8Array(n), cum, count: n,
-    lineCum: new Map(), lineSpan: new Map(), timeBased: false,
+    lineIndex: emptyLineIndex(), timeBased: false,
   };
   if (mode) {
     t.mode = new Uint8Array(mode);

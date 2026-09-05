@@ -10,6 +10,7 @@
 import { decode as msgpackDecode } from "@msgpack/msgpack";
 import { buildScrubTrack, splitTrackStreams } from "./viewer/scrubTrack";
 import { decodePreviewStreams } from "./previewDecode";
+import { buildLineIndex, lineIndexTransferables } from "./viewer/lineIndex";
 
 interface Req { version: number; url: string }
 
@@ -75,7 +76,9 @@ self.onmessage = async (e: MessageEvent<Req>) => {
       feedTlo = split.feedTlo; rapidTlo = split.rapidTlo;
       feedSrc = split.feedSrc;
     }
-    const feedLineMap = _buildFeedLineMap(feedLines ?? g.feed_lines);
+    // Typed line index instead of a Map (viewer/lineIndex.ts): transferred,
+    // not cloned — the Map clone alone was 0.9 s per publish on 1.18 M lines.
+    const feedLineIndex = buildLineIndex(feedLines ?? g.feed_lines);
     const rapidDist = _lineDistances(rapidPos);  // dashed rapid line's lineDistance (P4.1)
 
     // Drop the nested arrays from the passthrough; the flat typed arrays replace
@@ -99,11 +102,13 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     if (rapidAbc) transfer.push(rapidAbc.buffer as ArrayBuffer);
     if (feedBreaks) transfer.push(feedBreaks.buffer as ArrayBuffer);
     if (rapidBreaks) transfer.push(rapidBreaks.buffer as ArrayBuffer);
+    transfer.push(...lineIndexTransferables(feedLineIndex));
     if (scrubTrack) {
       transfer.push(
         scrubTrack.pos.buffer as ArrayBuffer, scrubTrack.abc.buffer as ArrayBuffer,
         scrubTrack.lines.buffer as ArrayBuffer, scrubTrack.rapid.buffer as ArrayBuffer,
         scrubTrack.cum.buffer as ArrayBuffer,
+        ...lineIndexTransferables(scrubTrack.lineIndex),
       );
       if (scrubTrack.mode) transfer.push(scrubTrack.mode.buffer as ArrayBuffer);
       if (scrubTrack.frame) transfer.push(scrubTrack.frame.buffer as ArrayBuffer);
@@ -126,7 +131,7 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     if (feedSrc) transfer.push(feedSrc.buffer as ArrayBuffer);
 
     self.postMessage(
-      { version, gcode: { ...rest, feedPos, rapidPos, feed_lines: feedLines, feedLineMap, rapidDist, feedAbc, rapidAbc, feedBreaks, rapidBreaks, feedMode, rapidMode, feedFrame, rapidFrame, feedWcs, rapidWcs, feedTlo, rapidTlo, feedSrc, kinsFrames, wcsEvents, tloEvents, scrubTrack } },
+      { version, gcode: { ...rest, feedPos, rapidPos, feed_lines: feedLines, feedLineIndex, rapidDist, feedAbc, rapidAbc, feedBreaks, rapidBreaks, feedMode, rapidMode, feedFrame, rapidFrame, feedWcs, rapidWcs, feedTlo, rapidTlo, feedSrc, kinsFrames, wcsEvents, tloEvents, scrubTrack } },
       { transfer },
     );
   } catch (err) {
@@ -154,17 +159,3 @@ function _lineDistances(pos: Float32Array): Float32Array {
   return d;
 }
 
-// Build the source-line → point-index range map off the main thread (P4.1). A Map
-// survives structured clone, and it has one entry per source line (far fewer than
-// points), so cloning it is cheap while the O(points) build moves off the UI thread.
-function _buildFeedLineMap(feed_lines: unknown): Map<number, { start: number; end: number }> {
-  const m = new Map<number, { start: number; end: number }>();
-  if (!Array.isArray(feed_lines) && !(feed_lines instanceof Uint32Array)) return m;
-  for (let i = 0; i < feed_lines.length; i++) {
-    const ln = feed_lines[i]!;
-    const entry = m.get(ln);
-    if (entry) entry.end = i;
-    else m.set(ln, { start: i, end: i });
-  }
-  return m;
-}

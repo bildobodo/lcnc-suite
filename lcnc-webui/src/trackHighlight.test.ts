@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { lineMaskFrom } from "./viewer/lineIndex";
 import { resolveCurrentLine, type RunLineState } from "./trackHighlight";
 
 // W5: the display spec's precedence chain — this chain has produced three
@@ -9,7 +10,7 @@ describe("resolveCurrentLine (W5 display spec)", () => {
     running: true,
     motionLine: 0 as number | null,
     linesUntrusted: false,
-    trustedLines: new Set([4, 7, 9, 12]) as Set<number> | null,
+    trustedLines: lineMaskFrom([4, 7, 9, 12]) as Uint8Array | null,
   };
   const rls = (p: Partial<RunLineState>): RunLineState =>
     ({ line: 0, trusted: false, subName: null, ...p });

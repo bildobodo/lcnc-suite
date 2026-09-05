@@ -10,7 +10,7 @@ import {
   failedParts, loadMachineAssets, getCachedGeometry, getToolMeta, setToolMeta, machineReady,
 } from "./viewer/machineAssetCache";
 
-import { viewerInit, viewerGcode, status, emitTelemetry, type ViewerInit, type ViewerGcode } from "./lcncWs";
+import { viewerInit, viewerGcode, status, emitTelemetry, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, type ViewerInit, type ViewerGcode } from "./lcncWs";
 import { loadViewerDefaults, loadCameraDefaults, saveCameraDefaults, ALL_LAYERS, settingsVersion, type Vec3, type Layer } from "./defaults";
 import { INTERP_IDLE } from "./lcnc";
 import { fmtCoord, fmtRpm } from "./format";
@@ -19,6 +19,7 @@ import { recordApply, recordRender, setViewerPerfContext } from "./viewerPerf";
 import { disposeObject } from "./viewer/disposal";
 import { normalizeKinematics, type KinRuntime } from "./viewer/kinematics";
 import { lineDistances, tipWcs, wcsTerms, type PartFrameMachine, type PartFrameWcs, anchorTerms, type AnchorTerms } from "./viewer/partFrame";
+import type { LineIndex } from "./viewer/lineIndex";
 import { MACHINE_PALETTE, defaultPartHex } from "./viewer/palette";
 import { toolDimsFor } from "./viewer/tloEvents";
 import { boundsOf, epochTermsFor, previewWcsStaleFor, rebasePositions, usedWcsRowsKey, type WcsTableRow } from "./viewer/wcsEpochs";
@@ -480,7 +481,18 @@ const toolpath = createToolpathController({
   colors: () => viewerDefaults.colors,
   axisCss: AXIS_CSS,
   overflow: toolpathOverflow,
+  // Stale-path opacity from the design token (never a bare number here).
+  staleOpacity: () => {
+    const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--opacity-disabled"));
+    return Number.isFinite(v) ? v : 0.4;
+  },
 });
+// A stale drawn path is muted (2026-09-05): while the gateway re-parses,
+// or while the payload's fixture offsets / tool length are known to
+// differ from the live ones, the operator sees "not current" on the
+// geometry itself, not only in a chip.
+watch(() => !!previewRefresh.value || previewWcsStale.value || !!previewTloStale.value,
+      (stale) => { toolpath.setStale(stale); requestRender(); }, { immediate: true });
 // Reused ctx object: a fresh object per call is avoidable gen-0 churn (GC
 // pauses here are object-count driven). Safe to mutate in place —
 // controllers read ctx fields synchronously and never retain it (contract in
@@ -1742,6 +1754,11 @@ function _poseMarker(g: THREE.Group, p: ProgramZeroPose | null) {
 // programmed (machine) space — that is the correct space for machine limits.
 let _pfWorker: Worker | null = null;
 let _pfReqId = 0;
+// Resident-payload bookkeeping (item 7, 2026-09-05): which ViewerGcode the
+// worker currently holds, and its id on the wire. A transform request
+// carries only the terms; the streams cross once per program.
+let _pfLoadedFor: ViewerGcode | null = null;
+let _pfPayloadId = 0;
 let _pfAppliedMode: "part" | "programmed" | null = null;
 // The anchor the in-flight part-frame request was baked against — applied
 // together with its reply (never from live status).
@@ -1755,10 +1772,17 @@ function _pfGetWorker(): Worker {
   if (!_pfWorker) {
     _pfWorker = new Worker(new URL("./viewer/partFrameWorker.ts", import.meta.url), { type: "module" });
     _pfWorker.onmessage = (ev: MessageEvent) => {
-      const m = ev.data as { id: number; error?: string; feedPos?: Float32Array; feedLines?: Uint32Array; feedLineMap?: Map<number, { start: number; end: number }>; rapidPos?: Float32Array; rapidDist?: Float32Array; feedBreaks?: Uint32Array; rapidBreaks?: Uint32Array; feedSrc?: Uint32Array };
+      const m = ev.data as { id: number; error?: string; needPayload?: number; feedPos?: Float32Array; feedLines?: Uint32Array; feedLineIndex?: LineIndex; rapidPos?: Float32Array; rapidDist?: Float32Array; feedBreaks?: Uint32Array; rapidBreaks?: Uint32Array; feedSrc?: Uint32Array };
       if (m.id !== _pfReqId) return;  // superseded
       const g = viewerGcode.value;
       if (!g) return;
+      if (m.needPayload != null) {
+        // The worker does not hold this program (recreated, or a transform
+        // that raced a program change): re-send the streams and retry once.
+        _pfLoadedFor = null;
+        applyGcode(g);
+        return;
+      }
       if (m.error) {
         console.error("[partFrame] transform failed — programmed preview used:", m.error);
         _applyProgrammed(g);
@@ -1767,7 +1791,7 @@ function _pfGetWorker(): Worker {
       }
       const out: ViewerGcode = {
         ...g,
-        feedPos: m.feedPos, feed_lines: m.feedLines, feedLineMap: m.feedLineMap,
+        feedPos: m.feedPos, feed_lines: m.feedLines, feedLineIndex: m.feedLineIndex,
         rapidPos: m.rapidPos, rapidDist: m.rapidDist,
         feedBreaks: m.feedBreaks, rapidBreaks: m.rapidBreaks,
         feedSrc: m.feedSrc,
@@ -2149,46 +2173,45 @@ function applyGcode(g: ViewerGcode) {
     // The terms the worker peels against — the reply hangs under THIS
     // anchor, not under whatever the live origin is by then.
     _pfAnchorFor = { id, anchor: anchorTerms(_pfWcs()) };
-    const fp = g.feedPos ?? new Float32Array(0);
-    const fa = g.feedAbc && g.feedAbc.length === fp.length ? g.feedAbc : new Float32Array(fp.length);
-    const fl = g.feed_lines instanceof Uint32Array ? g.feed_lines : undefined;
-    const rp = g.rapidPos ?? new Float32Array(0);
-    const ra = g.rapidAbc && g.rapidAbc.length === rp.length ? g.rapidAbc : new Float32Array(rp.length);
-    // Copies: the transfer must not detach viewerGcode's raw buffers — they
-    // are re-read on every WCS/mode change.
-    const feed = { pos: fp.slice(), abc: fa.slice(), lines: fl?.slice(), breaks: g.feedBreaks?.slice(),
-                   mode: g.feedMode?.slice(), frame: g.feedFrame?.slice(), frames: g.kinsFrames,
-                   wcs: g.feedWcs?.slice(), src: g.feedSrc?.slice(), tlo: g.feedTlo?.slice() };
-    const rapid = { pos: rp.slice(), abc: ra.slice(), breaks: g.rapidBreaks?.slice(),
-                    mode: g.rapidMode?.slice(), frame: g.rapidFrame?.slice(), frames: g.kinsFrames,
-                    wcs: g.rapidWcs?.slice(), tlo: g.rapidTlo?.slice() };
-    const transfer: ArrayBuffer[] = [
-      feed.pos.buffer as ArrayBuffer, feed.abc.buffer as ArrayBuffer,
-      rapid.pos.buffer as ArrayBuffer, rapid.abc.buffer as ArrayBuffer,
-    ];
-    if (feed.lines) transfer.push(feed.lines.buffer as ArrayBuffer);
-    if (feed.breaks) transfer.push(feed.breaks.buffer as ArrayBuffer);
-    if (rapid.breaks) transfer.push(rapid.breaks.buffer as ArrayBuffer);
-    if (feed.mode) transfer.push(feed.mode.buffer as ArrayBuffer);
-    if (rapid.mode) transfer.push(rapid.mode.buffer as ArrayBuffer);
-    if (feed.frame) transfer.push(feed.frame.buffer as ArrayBuffer);
-    if (rapid.frame) transfer.push(rapid.frame.buffer as ArrayBuffer);
-    if (feed.wcs) transfer.push(feed.wcs.buffer as ArrayBuffer);
-    if (rapid.wcs) transfer.push(rapid.wcs.buffer as ArrayBuffer);
-    if (feed.src) transfer.push(feed.src.buffer as ArrayBuffer);
-    if (feed.tlo) transfer.push(feed.tlo.buffer as ArrayBuffer);
-    if (rapid.tlo) transfer.push(rapid.tlo.buffer as ArrayBuffer);
     try {
-      _pfGetWorker().postMessage({
-        id, machine: _pfMachine(viewerInit.value!), wcs: _pfWcs(),
+      const w = _pfGetWorker();
+      if (_pfLoadedFor !== g) {
+        // New program (or a recreated worker): ship the streams ONCE.
+        // Copies: the transfer must not detach viewerGcode's raw buffers —
+        // they are still read by the programmed-mode path and the sweep.
+        const fp = g.feedPos ?? new Float32Array(0);
+        const fa = g.feedAbc && g.feedAbc.length === fp.length ? g.feedAbc : new Float32Array(fp.length);
+        const fl = g.feed_lines instanceof Uint32Array ? g.feed_lines : undefined;
+        const rp = g.rapidPos ?? new Float32Array(0);
+        const ra = g.rapidAbc && g.rapidAbc.length === rp.length ? g.rapidAbc : new Float32Array(rp.length);
+        const feed = { pos: fp.slice(), abc: fa.slice(), lines: fl?.slice(), breaks: g.feedBreaks?.slice(),
+                       mode: g.feedMode?.slice(), frame: g.feedFrame?.slice(), frames: g.kinsFrames,
+                       wcs: g.feedWcs?.slice(), src: g.feedSrc?.slice(), tlo: g.feedTlo?.slice() };
+        const rapid = { pos: rp.slice(), abc: ra.slice(), breaks: g.rapidBreaks?.slice(),
+                        mode: g.rapidMode?.slice(), frame: g.rapidFrame?.slice(), frames: g.kinsFrames,
+                        wcs: g.rapidWcs?.slice(), tlo: g.rapidTlo?.slice() };
+        const transfer: ArrayBuffer[] = [
+          feed.pos.buffer as ArrayBuffer, feed.abc.buffer as ArrayBuffer,
+          rapid.pos.buffer as ArrayBuffer, rapid.abc.buffer as ArrayBuffer,
+        ];
+        for (const a of [feed.lines, feed.breaks, rapid.breaks, feed.mode, rapid.mode, feed.frame, rapid.frame,
+                         feed.wcs, rapid.wcs, feed.src, feed.tlo, rapid.tlo]) {
+          if (a) transfer.push(a.buffer as ArrayBuffer);
+        }
+        _pfPayloadId++;
+        w.postMessage({ op: "load", payloadId: _pfPayloadId, streams: { feed, rapid } }, transfer);
+        _pfLoadedFor = g;
+      }
+      w.postMessage({
+        op: "transform", id, payloadId: _pfPayloadId,
+        machine: _pfMachine(viewerInit.value!), wcs: _pfWcs(),
         // Epochs (review P2): events + the live table let the worker build
         // per-epoch re-add terms next to the per-vertex `wcs` indices.
         wcsEvents: g.wcsEvents,
         wcsTable: _pv.wcsTable ?? undefined,
         // Per-segment TLO/tool events (schema 8) for the `tlo` indices.
         tloEvents: g.tloEvents,
-        feed, rapid,
-      }, transfer);
+      });
     } catch (err) {
       // A failed post must NEVER leave the viewer with no toolpath — fall
       // back to the programmed preview and say so.
@@ -2635,6 +2658,7 @@ onUnmounted(() => {
   clearTimeout(_colAutoTimer);
   _pfWorker?.terminate();
   _pfWorker = null;
+  _pfLoadedFor = null;
   _colWorker?.terminate();
   _colWorker = null;
   resizeObs?.disconnect();
@@ -3026,7 +3050,9 @@ defineExpose({
       <div v-if="previewSchemaStale" class="hudWarn hudAction"
         :title="`Payload format ${previewSchemaStale.got ?? 'unstamped (older gateway)'}; this UI expects ${EXPECTED_PREVIEW_SCHEMA}. Reparse rebuilds it with the installed code.`"
         @click="emit('reparse')">Preview from a different suite version — Reparse</div>
-      <div v-if="previewWcsStale" class="hudWarn" :class="{ hudAction: !interpBusy }"
+      <div v-if="previewRefresh" class="hudWarn"
+        :title="'The gateway is re-parsing the program (' + previewRefresh.reason + '). The drawn path, soft-limit marks and simulation are stale until it lands.'">Preview re-parsing after {{ previewRefreshLabel(previewRefresh.reason) }} · {{ Math.floor(previewRefreshElapsedMs / 1000) }} s{{ previewRefresh.expected_ms ? ' of ~' + Math.max(1, Math.round(previewRefresh.expected_ms / 1000)) + ' s' : '' }}</div>
+      <div v-else-if="previewWcsStale" class="hudWarn" :class="{ hudAction: !interpBusy }"
         :title="interpBusy ? 'A fixture this program uses was touched off after it was parsed — it re-parses when the run ends' : 'A fixture this program uses was touched off after it was parsed — click to re-parse'"
         @click="!interpBusy && emit('reparse')">Preview uses older offsets{{ interpBusy ? '' : ' — Refresh' }}</div>
       <div v-if="previewTloStale" class="hudWarn hudAction"

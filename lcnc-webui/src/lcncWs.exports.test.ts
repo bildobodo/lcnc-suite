@@ -29,7 +29,7 @@ const REF_EXPORTS = [
   "armed", "configWarning", "connected", "gcodeContent",
   "halInitialized", "halParams", "halPins", "halSignals",
   "lastReply", "latency", "lcncError", "messages", "networkLatency",
-  "previewLoadError", "previewParseError", "previewRefusal", "readerStale", "safetyChainIncomplete",
+  "previewLoadError", "previewParseError", "previewRefresh", "previewRefreshElapsedMs", "previewRefusal", "readerStale", "safetyChainIncomplete",
   "safetyTrip", "serverShuttingDown",
   "status", "timingStats", "toolTableVersion", "unreadCount",
   "viewerGcode", "viewerInit",
@@ -37,7 +37,7 @@ const REF_EXPORTS = [
 
 const FN_EXPORTS = [
   "acknowledgeSafetyTrip", "clearAllMessages", "connectWs", "dismissMessage",
-  "emitTelemetry", "getTimingCsv", "markMessagesRead", "pushMessage", "resetTimingStats",
+  "emitTelemetry", "getTimingCsv", "markMessagesRead", "previewRefreshLabel", "pushMessage", "resetTimingStats",
   "saveSettings", "send",
 ] as const;
 

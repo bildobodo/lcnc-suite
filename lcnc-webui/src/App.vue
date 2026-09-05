@@ -7,7 +7,7 @@ import { twpPoseOriented, twpPoseStale, twpDatumStale, fixtureOffDatum, stampAFo
 import { runLineState, subExecState, resolveCurrentLine } from "./trackHighlight";
 import { clearSubfileCache } from "./lcncApi";
 import { mainLinesTrusted, type ScrubTrack } from "./viewer/scrubTrack";
-import { connectWs, connected, status, send, armed, lastReply, viewerGcode, viewerInit, gcodeContent, lcncError, latency, networkLatency, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead, pushMessage, safetyTrip, acknowledgeSafetyTrip, readerStale, safetyChainIncomplete, configWarning, previewLoadError, previewParseError, previewRefusal, serverShuttingDown, type LcncMessage } from "./lcncWs";
+import { connectWs, connected, status, send, armed, lastReply, viewerGcode, viewerInit, gcodeContent, lcncError, latency, networkLatency, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead, pushMessage, safetyTrip, acknowledgeSafetyTrip, readerStale, safetyChainIncomplete, configWarning, previewLoadError, previewParseError, previewRefusal, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, serverShuttingDown, type LcncMessage } from "./lcncWs";
 // Lazy-load the 3D viewer so Three.js (~866 KB) + troika load as a separate async
 // chunk after first paint instead of blocking the initial bundle (P6). The viewerRef
 // methods are all `?.`-guarded, so calls during the brief load gap safely no-op.
@@ -185,6 +185,27 @@ const TRIP_REASON_LABELS: Record<string, string> = {
 const safetyTripReasonLabel = computed(() =>
   safetyTrip.value ? (TRIP_REASON_LABELS[safetyTrip.value.reason] ?? safetyTrip.value.reason) : '');
 
+// Preview re-parse banner (2026-09-05): elapsed is the client's own clock
+// since first sight (statusStore ticks it); the bar never reaches 100 % on
+// its own — only the publish ends it. Expected = the gateway's last
+// measured publish of that file (or its size estimate), so a second zero
+// on the same program gets an honest countdown.
+const previewRefreshElapsedText = computed(() => fmtElapsed(Math.floor(previewRefreshElapsedMs.value / 1000)));
+const previewRefreshExpectedText = computed(() => {
+  const e = previewRefresh.value?.expected_ms;
+  return e ? fmtElapsed(Math.max(1, Math.round(e / 1000))) : '?';
+});
+const previewRefreshPct = computed(() => {
+  const e = previewRefresh.value?.expected_ms;
+  if (!e) return 0;
+  return Math.min(97, (previewRefreshElapsedMs.value / e) * 100);
+});
+const previewRefreshTitle = computed(() => {
+  const pr = previewRefresh.value;
+  if (!pr) return '';
+  return `The gateway re-parses the program whenever an input the preview was built from changes (fixture offsets, rotary pose, kinematics mode, tool length, the file). Reason: ${pr.reason}. Superseded parses so far: ${pr.superseded}.`;
+});
+
 const machineStateColor = computed(() => {
   if (safetyTrip.value) return '--state-danger';
   if (safetyChainIncomplete.value) return '--state-danger';
@@ -194,6 +215,7 @@ const machineStateColor = computed(() => {
   if (previewLoadError.value) return '--state-warn';
   if (previewParseError.value) return '--state-warn';
   if (previewRefusal.value) return '--state-warn';
+  if (previewRefresh.value) return '--state-warn';
   return STATE_COLORS[machineState.value];
 });
 
@@ -254,6 +276,7 @@ const bannerFlashMode = computed<'none' | 'pulse' | 'flash'>(() => {
   if (previewLoadError.value) return 'pulse';
   if (previewParseError.value) return 'pulse';
   if (previewRefusal.value) return 'pulse';
+  if (previewRefresh.value) return 'pulse';
   if (s === 'unhomed' || s === 'toolchange' || s === 'idle') return 'pulse';
   return 'none';
 });
@@ -514,7 +537,7 @@ const linesUntrustedReason = computed<string>(
 // W5: the set of main-file lines the track's per-point trust vouches for —
 // the only lines a live motion_line value may ever display as (motion ids
 // carry no file identity; see trackHighlight.resolveCurrentLine).
-const trustedLines = computed<Set<number> | null>(() => {
+const trustedLines = computed<Uint8Array | null>(() => {
   const t = (viewerGcode.value as { scrubTrack?: ScrubTrack | null } | null)?.scrubTrack;
   return t ? mainLinesTrusted(t) : null;
 });
@@ -1593,6 +1616,10 @@ watch(viewerGcode, (newGcode) => {
           <span v-else-if="previewRefusal" :key="'preview-refused'" class="bannerError">
             Preview stopped — {{ previewRefusal.text }} — the preview runs from the machine's live state (active fixture, kinematics), and a run would stop there too; no preview or simulation until it parses
           </span>
+          <span v-else-if="previewRefresh" :key="'preview-refresh'" class="bannerProgress" :title="previewRefreshTitle">
+            <span>Preview re-parsing after {{ previewRefreshLabel(previewRefresh.reason) }} — {{ previewRefresh.file }} · {{ previewRefreshElapsedText }} of ~{{ previewRefreshExpectedText }}{{ previewRefresh.queued ? ' · restart queued' : '' }} — the toolpath, soft-limit marks and simulation are stale until it lands</span>
+            <span class="progressTrack"><span class="progressFill" :style="{ width: previewRefreshPct + '%' }"></span></span>
+          </span>
           <span v-else-if="bannerMessage && !bannerShowAbort" :key="'msg'" :class="{ bannerError: bannerMessageKind <= 2 }">
             {{ bannerMessage }}
           </span>
@@ -2423,6 +2450,17 @@ watch(viewerGcode, (newGcode) => {
   text-overflow: ellipsis;
 }
 
+/* Re-parse banner: text + a progress track side by side (layout only —
+   .progressTrack/.progressFill are the global program-progress styles). */
+.bannerProgress {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gap-controls);
+  width: 100%;
+}
+.bannerProgress > .progressTrack {
+  flex: 0 0 clamp(80px, 18%, 220px);
+}
 .bannerError {
   color: var(--danger);
 }

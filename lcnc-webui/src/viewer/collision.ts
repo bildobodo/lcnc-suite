@@ -43,7 +43,7 @@ import { tloForIndex, toolForIndex, type TloEvent } from "./tloEvents";
 import { kinsForSegment, makeKins, worldModeForSpec, type KinsModel, type KinsSpec } from "./kins";
 /** The subset of the scrub track the sweep consumes. The worker request
  *  ships a COPIED projection of the real ScrubTrack (typed arrays only —
- *  lineCum/lineSpan Maps and the time-axis fields never cross), so the
+ *  line index and the time-axis fields never cross), so the
  *  boundary type says exactly that instead of posing as the full track. */
 export interface CollisionTrack {
   pos: Float32Array;

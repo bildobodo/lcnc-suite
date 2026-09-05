@@ -1509,7 +1509,8 @@ async def _status_poller():
                     _bulk.cancel_inflight("file" if file_changed else "reparse")
                 else:
                     _bulk.schedule_refresh(
-                        st.active_file, "reparse" if not file_changed else "file",
+                        st.active_file,
+                        "file" if file_changed else (_bulk.reparse_pending_reason or "reparse"),
                         _spawn_preview_task)
             elif (
                 # In-flight supersede (2026-09-05): the drift edges below are
@@ -1541,6 +1542,7 @@ async def _status_poller():
                 _bulk.wcsoff_check_prev = _wflat
                 if _stale:
                     _bulk.reparse_pending = True
+                    _bulk.reparse_pending_reason = _stale
                     _bulk.cancel_inflight(_stale)
             elif (
                 # Schema edge (P1): the published payload's wire-format stamp
@@ -1670,7 +1672,10 @@ async def _status_poller():
                     _trace.emit("gcode.reparse_tlo_drift", reason=_drift,
                                 tool=st.tool_number)
                 if _drift:
-                    _bulk.schedule_refresh(st.active_file, "drift", _spawn_preview_task)
+                    # The specific edge ("wcsoff:G54:x", "rotary:A", "kins:type",
+                    # "tlo:…") is the reason the trace and the operator's
+                    # banner carry — not the bare "drift" it used to be.
+                    _bulk.schedule_refresh(st.active_file, _drift, _spawn_preview_task)
             elif not st.active_file and (_bulk.last_file is not None
                                          or _bulk.preview_available()):
                 # Unload: one contract (clear_preview — it was dead code

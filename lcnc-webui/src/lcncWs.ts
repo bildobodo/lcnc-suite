@@ -48,6 +48,7 @@ export const serverShuttingDown = ref(false);
 // Status stream, message center, timing stats (split out, A1.5).
 export {
   status, lcncError, safetyTrip, readerStale, safetyChainIncomplete, configWarning,
+  previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, type PreviewRefresh,
   latency, networkLatency, timingStats, messages, unreadCount,
   resetTimingStats, getTimingCsv, dismissMessage, clearAllMessages, markMessagesRead,
   pushMessage,

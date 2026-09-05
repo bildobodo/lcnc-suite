@@ -103,6 +103,9 @@ class BulkPipeline:
         # duration the banner shows and the timeout scale.
         self.parse_ms_by_file: dict = {}
         self.superseded_total: int = 0
+        # The edge that set reparse_pending from the in-flight supersede —
+        # the restart is scheduled under it (banner + trace), not "reparse".
+        self.reparse_pending_reason: Optional[str] = None
         # Versions seeded from startup time so ?v= URLs don't collide across restarts.
         self.preview_version: int = int(time.time())
         self.last_file: Optional[str] = None          # edge detection in poller
@@ -205,6 +208,7 @@ class BulkPipeline:
             return False
         self.refresh_running = True
         self.reparse_pending = False
+        self.reparse_pending_reason = None
         try:
             task = spawn(self.refresh_gcode_preview(filepath, reason=reason))
         except BaseException as e:

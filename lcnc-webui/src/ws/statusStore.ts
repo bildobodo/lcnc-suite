@@ -65,6 +65,59 @@ export const safetyChainIncomplete = ref<string | null>(null);
 // both unit-ambiguous and unsafe to apply silently. Latches server-side until a
 // subsequent successful read; surfaced as a non-blocking banner.
 export const configWarning = ref<{ reason: string; units: boolean } | null>(null);
+// A preview re-parse is RUNNING (2026-09-05): the gateway rides
+// `preview_refresh` on every status frame while its parse worker runs —
+// reason (the edge that scheduled it), file, expected duration (its last
+// measured publish for that file, else size-based), whether a restart is
+// already queued behind it, and how many parses this one superseded.
+// Absent = nothing running. `seenAt` is THIS client's clock at first sight
+// of the parse (started_ms identity) — elapsed time is measured locally,
+// never from the gateway's wall clock (VM clock steps).
+export interface PreviewRefresh {
+  reason: string;
+  file: string;
+  expected_ms: number | null;
+  started_ms: number | null;
+  queued: boolean;
+  superseded: number;
+  seenAt: number;
+}
+export const previewRefresh = ref<PreviewRefresh | null>(null);
+// Elapsed ms of the running re-parse, ticked here (one timer, shared by the
+// banner and the viewer HUD); 0 when nothing runs.
+export const previewRefreshElapsedMs = ref(0);
+let _previewRefreshTimer: ReturnType<typeof setInterval> | null = null;
+function _syncPreviewRefreshTimer(): void {
+  const pr = previewRefresh.value;
+  if (pr && _previewRefreshTimer === null) {
+    _previewRefreshTimer = setInterval(() => {
+      const cur = previewRefresh.value;
+      previewRefreshElapsedMs.value = cur ? Math.max(0, performance.now() - cur.seenAt) : 0;
+    }, 250);
+  } else if (!pr && _previewRefreshTimer !== null) {
+    clearInterval(_previewRefreshTimer);
+    _previewRefreshTimer = null;
+    previewRefreshElapsedMs.value = 0;
+  }
+}
+
+/** Operator wording for a re-parse reason (the gateway's edge names). Pure. */
+export function previewRefreshLabel(reason: string | null | undefined): string {
+  const r = String(reason ?? "");
+  if (r.startsWith("wcsoff:")) {
+    const [, row, key] = r.split(":");
+    return `touch-off (${row ?? "fixture"}${key ? " " + key.toUpperCase() : ""})`;
+  }
+  if (r.startsWith("rotary:")) return `rotary pose (${r.slice(7) || "moved"})`;
+  if (r === "kins:type") return "kinematics mode change";
+  if (r === "kins:frame") return "plane change";
+  if (r.startsWith("tlo")) return "tool length change";
+  if (r === "file") return "program load";
+  if (r === "reparse") return "operator reparse";
+  if (r === "schema") return "suite upgrade";
+  if (r === "drift") return "machine state change";
+  return r || "machine state change";
+}
 
 export const latency = ref<number | null>(null);        // round-trip: heartbeat → next status
 export const networkLatency = ref<number | null>(null);  // pure network: heartbeat → pong
@@ -320,6 +373,26 @@ export function handleStatusMessage(msg: any): void {
     }
   } else if (safetyTrip.value !== null) {
     safetyTrip.value = null;
+  }
+  // Preview re-parse in flight — present while the gateway's worker runs.
+  const pr = msg.preview_refresh;
+  if (pr && typeof pr === "object") {
+    const cur = previewRefresh.value;
+    const sameParse = !!cur && cur.started_ms === (pr.started_ms ?? null) && cur.file === String(pr.file ?? "");
+    if (!sameParse || cur!.reason !== String(pr.reason ?? "") || cur!.queued !== !!pr.queued
+        || cur!.superseded !== Number(pr.superseded ?? 0)) {
+      previewRefresh.value = {
+        reason: String(pr.reason ?? ""), file: String(pr.file ?? ""),
+        expected_ms: typeof pr.expected_ms === "number" ? pr.expected_ms : null,
+        started_ms: typeof pr.started_ms === "number" ? pr.started_ms : null,
+        queued: !!pr.queued, superseded: Number(pr.superseded ?? 0),
+        seenAt: sameParse ? cur!.seenAt : performance.now(),
+      };
+      _syncPreviewRefreshTimer();
+    }
+  } else if (previewRefresh.value !== null) {
+    previewRefresh.value = null;
+    _syncPreviewRefreshTimer();
   }
   // Reader staleness — set when gateway flag present, clear otherwise.
   const stale = msg.reader_stale === true;

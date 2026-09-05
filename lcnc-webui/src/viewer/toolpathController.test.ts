@@ -1,9 +1,10 @@
 // Unit tests for viewer/toolpathController.ts (A3.4). THREE geometry/material
 // ops are pure JS → headless. troika labels are faked (they need a font loader).
 // Covers the disposal-on-rebuild contract (the hardest part: shared geometry +
-// ad-hoc materials must all be freed), the feedLineMap fallback, label
+// ad-hoc materials must all be freed), the line-index fallback, label
 // unregistration, and the overflow flag.
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { buildLineIndex } from "./lineIndex";
 import * as THREE from "three";
 import { ref, type Ref } from "vue";
 import { disposeObject } from "./disposal";
@@ -115,9 +116,9 @@ describe("toolpathController.apply", () => {
 });
 
 describe("highlight", () => {
-  it("builds the feedLineMap from feed_lines when the worker map is absent, and ranges it", () => {
+  it("builds the line index from feed_lines when the worker index is absent, and ranges it", () => {
     const ctx = makeCtx();
-    c.apply(ctx, GCODE);   // no g.feedLineMap → built from feed_lines [10,11,12]
+    c.apply(ctx, GCODE);   // no g.feedLineIndex → built from feed_lines [10,11,12]
     c.setHighlight(11);    // line 11 → point index 1
     const hl = ctx.workRotGroup.children.find(o => o.renderOrder === 12) as THREE.Line;
     // effectiveLine 11 has range {start:1,end:1}; drawRange start = max(0, 0) = 0, count = 1.
@@ -126,13 +127,30 @@ describe("highlight", () => {
     expect(hl.geometry.drawRange.count).toBe(0);
   });
 
-  it("prefers the worker-provided feedLineMap (Map) over rebuilding", () => {
+  it("prefers the worker-provided line index (typed arrays) over rebuilding", () => {
     const ctx = makeCtx();
-    const workerMap = new Map([[99, { start: 2, end: 2 }]]);
-    c.apply(ctx, { ...GCODE, feedLineMap: workerMap });
+    const workerIndex = buildLineIndex(new Uint32Array([1, 1, 99]));   // line 99 → point 2 only
+    c.apply(ctx, { ...GCODE, feedLineIndex: workerIndex });
     c.setHighlight(99);
     const hl = ctx.workRotGroup.children.find(o => o.renderOrder === 12) as THREE.Line;
     expect(hl.geometry.drawRange).toMatchObject({ start: 1, count: 2 });
+  });
+});
+
+describe("stale mute", () => {
+  it("setStale mutes feed + rapid with the host's opacity token and survives a rebuild", () => {
+    const ctx = makeCtx();
+    (deps as any).staleOpacity = () => 0.4;
+    c.apply(ctx, GCODE);
+    const feedMat = () => feedLineOf(ctx.workRotGroup).material as THREE.LineBasicMaterial;
+    expect(feedMat().opacity).toBe(1);
+    c.setStale(true);
+    expect(feedMat().opacity).toBeCloseTo(0.4, 6);
+    expect(feedMat().transparent).toBe(true);
+    c.apply(ctx, { ...GCODE });        // a publish while still stale keeps the new lines muted
+    expect(feedMat().opacity).toBeCloseTo(0.4, 6);
+    c.setStale(false);
+    expect(feedMat().opacity).toBe(1);
   });
 });
 

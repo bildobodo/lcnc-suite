@@ -528,6 +528,8 @@ export function lineDistances(pos: Float32Array): Float32Array {
 }
 
 /** Source-line → point-index range map over (possibly subdivided) lines. */
+/** Map form of the per-line range (tests only since 2026-09-05 — the
+ *  runtime ships viewer/lineIndex.ts typed arrays instead). */
 export function buildLineMap(lines: Uint32Array | undefined): Map<number, { start: number; end: number }> {
   const m = new Map<number, { start: number; end: number }>();
   if (!lines) return m;

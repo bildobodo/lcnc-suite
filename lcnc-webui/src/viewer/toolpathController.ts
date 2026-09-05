@@ -13,6 +13,7 @@
 // carries the REASSIGNED scene-graph pointers (scene/workOrigin/workRotGroup)
 // plus per-program data (pathAlwaysOnTop/machineBounds/units) — never cached.
 import * as THREE from "three";
+import { buildLineIndex, emptyLineIndex, lineHas, lineRange, type LineIndex } from "./lineIndex";
 import type { AnchorTerms } from "./partFrame";
 import type { Ref } from "vue";
 import type { Text } from "troika-three-text";
@@ -30,6 +31,8 @@ export interface ToolpathDeps {
   makeLabel: (text: string, color: string, fontSize: number) => Text;
   disposeObject: (o: THREE.Object3D) => void;
   colors: () => Colors;              // reads viewerDefaults.colors fresh each call
+  /** Opacity for a stale path (the --opacity-disabled token, read by the host). */
+  staleOpacity?: () => number;
   axisCss: { x: string; y: string; z: string };
   overflow: Ref<boolean>;            // HUD warning flag, owned by ThreeViewer for the template
 }
@@ -67,6 +70,10 @@ export interface ToolpathController {
   setAlwaysOnTop(on: boolean): void;
   /** Live-update feed/rapid/toolpath-bounds colours on existing lines. */
   setColors(c: { feed?: string; rapid?: string; toolpathBounds?: string }): void;
+  /** Mute the drawn path (deps.staleOpacity) while it is known not to
+   *  match the machine's live inputs — a re-parse in flight, or offsets /
+   *  tool length changed since the parse. Sticky across apply(). */
+  setStale(on: boolean): void;
   /** Drop all refs WITHOUT disposing — clearScene already freed the objects.
    *  Parallel to surfaceController.forgetAfterSceneClear (H6): stale refs
    *  would keep feedSegs/updateOverflow reporting the disposed program and
@@ -87,7 +94,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
   let rapidSharedGeom: THREE.BufferGeometry | null = null;
   let highlightGeom: THREE.BufferGeometry | null = null;
   // g-code line number → { start, end } point-index range in feed arrays
-  let feedLineMap: Map<number, { start: number; end: number }> = new Map();
+  let feedLineIndex: LineIndex = emptyLineIndex();
   // Source track index per drawn feed vertex (ascending) — the positional
   // highlight's address space. Absent on legacy/track-less payloads.
   let feedSrc: Uint32Array | null = null;
@@ -103,6 +110,18 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
   let toolpathVisible = true;
   let toolpathBoundsVisible = false;
   let pathAlwaysOnTop = true;
+  let pathStale = false;
+
+  function _applyStale() {
+    const op = pathStale ? (deps.staleOpacity ? deps.staleOpacity() : 0.4) : 1.0;
+    for (const ln of [feedLine, rapidLine]) {
+      if (!ln) continue;
+      const m = ln.material as THREE.LineBasicMaterial;
+      m.transparent = op < 1;
+      m.opacity = op;
+      m.needsUpdate = true;
+    }
+  }
 
   function makeLine(points: number[][] | Float32Array, colorHex: number | string, dashed = false, opacity = 1.0, lineDist?: Float32Array, breaks?: Uint32Array) {
     const geom = new THREE.BufferGeometry();
@@ -396,17 +415,9 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       // Prefer the line→point-range map built off-thread by previewWorker (P4.1); fall
       // back to building it here for the WS/legacy path that carries no worker map.
       feedSrc = g.feedSrc instanceof Uint32Array ? g.feedSrc : null;
-      if (g.feedLineMap instanceof Map) {
-        feedLineMap = g.feedLineMap;
-      } else {
-        feedLineMap = new Map();
-        for (let i = 0; i < feedLines.length; i++) {
-          const ln = feedLines[i]!;
-          const entry = feedLineMap.get(ln);
-          if (entry) entry.end = i;
-          else feedLineMap.set(ln, { start: i, end: i });
-        }
-      }
+      feedLineIndex = (g.feedLineIndex && g.feedLineIndex.start instanceof Uint32Array)
+        ? g.feedLineIndex
+        : buildLineIndex(feedLines);
 
       // Feed + Rapid toolpath lines — geometry is shared with the overflow overlay.
       const feedColor = deps.colors().feed ?? "#22b8cf";
@@ -430,6 +441,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
         rapidOverflow = makeOverflowLine(rapidSharedGeom);
         if (rapidOverflow) lineParent!.add(rapidOverflow);
       }
+      _applyStale();   // sticky across rebuilds: a re-parse in flight keeps the new lines muted too
 
       // Highlight line — shares feed's position attribute; independent drawRange.
       // Reuses the feed bounding sphere so frustum culling matches the full toolpath
@@ -528,8 +540,8 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     setHighlight(curLine) {
       // motion_line can be ~1 line ahead during G64 blending; try previous line first
       if (highlightLine && curLine != null) {
-        const effectiveLine = feedLineMap.has(curLine - 1) ? curLine - 1 : curLine;
-        const range = feedLineMap.get(effectiveLine);
+        const effectiveLine = lineHas(feedLineIndex, curLine - 1) ? curLine - 1 : curLine;
+        const range = lineRange(feedLineIndex, effectiveLine);
         if (range) {
           const s = Math.max(0, range.start - 1);
           highlightLine.geometry.setDrawRange(s, range.end - s + 1);
@@ -570,6 +582,11 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       highlightLine.geometry.setDrawRange(s, last - s + 1);
     },
 
+
+    setStale(on) {
+      pathStale = on;
+      _applyStale();
+    },
 
     setVisible(on) {
       toolpathVisible = on;
@@ -623,7 +640,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       toolpathBoundsLabels = null;
       toolpathBBox = null;
       motionBBox = null;
-      feedLineMap = new Map();
+      feedLineIndex = emptyLineIndex();
       deps.overflow.value = false;
     },
 
@@ -632,7 +649,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       teardownBounds();
       toolpathBBox = null;
       motionBBox = null;
-      feedLineMap = new Map();
+      feedLineIndex = emptyLineIndex();
       deps.overflow.value = false;
     },
 
