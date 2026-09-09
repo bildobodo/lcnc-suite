@@ -15,7 +15,7 @@ import { loadViewerDefaults, loadCameraDefaults, saveCameraDefaults, ALL_LAYERS,
 import { INTERP_IDLE } from "./lcnc";
 import { fmtCoord, fmtRpm } from "./format";
 import { useAxes } from "./useAxes";
-import { recordApply, recordRender, setViewerPerfContext } from "./viewerPerf";
+import { recordApply, recordRafTick, recordRender, setViewerPerfContext, setViewerPerfGl } from "./viewerPerf";
 import { disposeObject } from "./viewer/disposal";
 import { normalizeKinematics, type KinRuntime } from "./viewer/kinematics";
 import { lineDistances, tipWcs, wcsTerms, type PartFrameMachine, type PartFrameWcs, anchorTerms, type AnchorTerms } from "./viewer/partFrame";
@@ -2419,6 +2419,7 @@ let _iniBox: THREE.Box3 | null = null;
 function animate() {
   if (props.active === false) return; // paused — don't schedule next frame
   raf = requestAnimationFrame(animate);
+  recordRafTick();   // render-loop cadence + GPU fence poll (viewerPerf)
 
   // Apply pending state before render (natural frame dropping —
   // if multiple status updates arrive between frames, only the latest is used).
@@ -2555,6 +2556,7 @@ onMounted(() => {
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.localClippingEnabled = true;
+  setViewerPerfGl(renderer.getContext());   // GPU completion fences (WebGL2 only)
 
   // Leak probe (A2): live renderer resource counts for e2e/viewer.spec.ts.
   // Read straight off renderer.info so it reflects actual GPU-tracked
@@ -2654,6 +2656,7 @@ function applyViewerDefaults() {
 onUnmounted(() => {
   document.removeEventListener("visibilitychange", _onVisibilityChange);
   setViewerPerfContext(null);
+  setViewerPerfGl(null);
   clearTimeout(_pfWcsTimer);
   clearTimeout(_colAutoTimer);
   _pfWorker?.terminate();

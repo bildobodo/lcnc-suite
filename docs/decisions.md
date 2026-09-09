@@ -3769,3 +3769,25 @@ blocked) and a WebGL2 fence polled across frames (GPU frames behind); (2) then e
 an interaction LOD (a coarse index buffer while OrbitControls is active, the full
 path on `end`) plus mute-by-colour instead of alpha, or the GC route — whichever the
 probe names.
+
+**Probe SHIPPED (2026-09-09, feat/twp):** `viewerPerf.ts` now emits, per 3 s window
+with activity: `raf_ticks` / `raf_gap_p50|p95|max_ms` / `raf_pauses` — the render
+loop's own cadence (`frames` / `gap_*` stay the STATUS cadence, documented as such in
+the file header); `mt_probes` / `mt_late_p95|max_ms` / `mt_blocks` — an 8 ms
+self-rescheduling timer whose lateness is the time the main thread was busy past its
+due time (GC, a long task, a synchronous WebGL stall; > 20 ms counts as a block;
+hidden-tab samples skipped, both clocks re-anchored on visibility change); and, on a
+WebGL2 context only (absent otherwise, not zero), `gpu_fences` / `gpu_behind_p95|max`
+(RAF ticks from a frame's submit to the first tick that saw its fence complete — 1 is
+the floor, 2+ means the GPU trails the draw) / `gpu_done_p95|max_ms` / `gpu_dropped`
+(renders past the 8-pending cap + fences abandoned after 10 s = lost context).
+Reading rule for a rotate window: `raf_gap_p95` high + `mt_blocks` ≈ 0 +
+`gpu_behind` ≥ 2 → the draw is the cost (interaction LOD + mute-by-colour);
+`mt_blocks` > 0 with `mt_late_max` ≈ the RAF gap → the main thread (GC or a task);
+neither → the compositor/display. Unit-tested (`viewerPerf.test.ts`, 11 cases with a
+fake WebGL2 context: cadences, pause vs stall, probe lateness and hidden re-anchor,
+fence ticks-behind, cap, stale drop, teardown); type-checked on a niced subset
+(`tsc --noEmit -p` over the two files under the app's strict flags) and served
+through Vite's HMR on the running suite — the full `vue-tsc -b` / vitest / playwright
+gates are OWED at the next suite stop, and the first Mac reading is OWED (reload the
+tab, rotate/zoom with the big program loaded, read `browser.viewer.perf`).
