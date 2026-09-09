@@ -1445,6 +1445,13 @@ async function buildFromInit(init: ViewerInit) {
       rapid_segs: toolpath.rapidSegs,
       backplot_pts: backplot.count,
       backplot_full: backplot.isFull,
+      // What else was running when the window closed — a busy worker is
+      // off the main thread but not off the machine (2026-09-09: the GPU
+      // trailed 3–4 frames after every publish with the sweep re-running).
+      sweep_busy: collisionBusy.value,
+      sweep_pct: collisionBusy.value ? Math.round(collisionProgress.value * 100) : null,
+      pf_pending: _pfPending,
+      path_stale: pathStaleNow.value,
       // Three.js resource counts — monotonic growth over a long run is a
       // geometry/texture leak (the "~1 hr in" stutter suspect). Ride the 3 s
       // probe so leak detection shares one event line with heap + gap.
@@ -1756,6 +1763,7 @@ function _poseMarker(g: THREE.Group, p: ProgramZeroPose | null) {
 // programmed (machine) space — that is the correct space for machine limits.
 let _pfWorker: Worker | null = null;
 let _pfReqId = 0;
+let _pfPending = false;   // a part-frame transform is in flight (perf-probe context)
 // Resident-payload bookkeeping (item 7, 2026-09-05): which ViewerGcode the
 // worker currently holds, and its id on the wire. A transform request
 // carries only the terms; the streams cross once per program.
@@ -1776,6 +1784,7 @@ function _pfGetWorker(): Worker {
     _pfWorker.onmessage = (ev: MessageEvent) => {
       const m = ev.data as { id: number; error?: string; needPayload?: number; feedPos?: Float32Array; feedLines?: Uint32Array; feedLineIndex?: LineIndex; rapidPos?: Float32Array; rapidDist?: Float32Array; feedBreaks?: Uint32Array; rapidBreaks?: Uint32Array; feedSrc?: Uint32Array };
       if (m.id !== _pfReqId) return;  // superseded
+      _pfPending = false;
       const g = viewerGcode.value;
       if (!g) return;
       if (m.needPayload != null) {
@@ -1907,6 +1916,7 @@ function _pfWcs(): PartFrameWcs {
 const COLLISION_MARGIN_MM = 2;
 let _colWorker: Worker | null = null;
 let _colReqId = 0;
+let _colStartedAt = 0;   // performance.now() of the running sweep's post (telemetry)
 const collisionBusy = ref(false);
 const collisionProgress = ref(0);
 const collisionResult = ref<CollisionResult | null>(null);
@@ -1936,6 +1946,17 @@ function _colGetWorker(): Worker {
       }
       collisionResult.value = m.result!;
       collisionTrack.value = _colPendingTrack;
+      // Off-thread but not free: a sweep is a busy worker for its whole
+      // duration — the viewer perf probe's `sweep_busy` context field says
+      // whether one overlapped a slow window; this row says how long it ran.
+      emitTelemetry("collision.sweep_done", {
+        ms: Math.round(performance.now() - _colStartedAt),
+        bvh_ms: Math.round(m.result!.bvhMs), sweep_ms: Math.round(m.result!.sweepMs),
+        samples: m.result!.samples, coarsened: m.result!.coarsened,
+        uncertified: m.result!.uncertified != null,
+        hits: m.result!.hits.length, pairs: m.result!.pairCount,
+        points: _colPendingTrack?.count ?? null,
+      });
       emit("collision-lines", m.result!.hits.map(h => ({ line: h.line, continuation: h.continuation })));
     };
     // A worker-level failure (module load, OOM, uncaught throw) never
@@ -1965,6 +1986,11 @@ function _colFail() {
 function cancelCollisionCheck() {
   // The sweep is synchronous inside the worker — a cancel message would sit
   // unread until it finished. Terminate + lazy recreate is the honest cancel.
+  if (collisionBusy.value) {
+    emitTelemetry("collision.sweep_cancelled", {
+      ran_ms: Math.round(performance.now() - _colStartedAt), progress: collisionProgress.value,
+    });
+  }
   if (_colWorker) {
     _colWorker.terminate();
     _colWorker = null;
@@ -2008,6 +2034,8 @@ function runCollisionCheck(trackOverride?: ScrubTrack) {
   collisionBusy.value = true;
   collisionProgress.value = 0;
   collisionResult.value = null;
+  _colStartedAt = performance.now();
+  emitTelemetry("collision.sweep_start", { points: track.count, bodies: bodies.length });
   // Track arrays are copied — transferring the originals would detach the
   // buffers viewerGcode (and the scrub bar) still read.
   const trackCopy = {
@@ -2172,6 +2200,7 @@ function applyGcode(g: ViewerGcode) {
   if (_partFrameEligible(g)) {
     _pfAppliedMode = "part";
     const id = ++_pfReqId;
+    _pfPending = true;
     // The terms the worker peels against — the reply hangs under THIS
     // anchor, not under whatever the live origin is by then.
     _pfAnchorFor = { id, anchor: anchorTerms(_pfWcs()) };
@@ -2225,6 +2254,7 @@ function applyGcode(g: ViewerGcode) {
   }
   _pfAppliedMode = "programmed";
   ++_pfReqId;  // invalidate any in-flight part-frame reply
+  _pfPending = false;
   // Owned by toolpathController; pass a fresh ctx with the reassigned
   // scene-graph pointers + per-program machine bounds/units.
   _applyProgrammed(g);
