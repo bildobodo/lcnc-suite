@@ -3791,3 +3791,17 @@ fence ticks-behind, cap, stale drop, teardown); type-checked on a niced subset
 through Vite's HMR on the running suite — the full `vue-tsc -b` / vitest / playwright
 gates are OWED at the next suite stop, and the first Mac reading is OWED (reload the
 tab, rotate/zoom with the big program loaded, read `browser.viewer.perf`).
+
+**First Mac reading (2026-09-09, same evening): CLEAN.** Operator rotated and zoomed
+perfmatrix-big.ngc (1.18 M segments) for ~60 s, most windows rendering every tick
+(180 renders / 180 ticks per 3 s window = 60 fps), and reported "now it was smooth".
+The probes agree: RAF gaps p50 17 / p95 18 / max 18–19 ms (one window max 37 ms);
+main-thread lateness p95 5–8 ms, max 7–12 ms, 0 blocks (one window: 2 blocks, 35 ms
+max — a re-parse publish landing); GPU 1–2 ticks behind, completion p95 17–33 ms, max
+33–34 ms (one 44 ms); status cadence 30 Hz, render submit ≤4 ms. With the path drawn
+OPAQUE and no parse running, the big program renders at the display rate on this Mac —
+the viewer itself is not the lag. The 09-05 "laggy" windows all overlapped a running
+re-parse (touch-offs, rotary jogs) with the path drawn TRANSPARENT by the mute; that
+phase is the one still unmeasured — OWED: rotate during a touch-off countdown (banner
+on, path muted) and read `gpu_behind`/`gpu_done` for that window; if the GPU trails
+there, mute by colour (opaque, mixed toward the background) instead of alpha.
