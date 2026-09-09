@@ -26,10 +26,12 @@ function makeDeps(overflow: Ref<boolean>) {
     makeLabel: vi.fn(() => fakeLabel()),
     disposeObject,
     colors: () => ({ feed: "#22b8cf", rapid: "#f5a623", toolpathBounds: "#f5a623" }),
+    sceneBackground: () => new THREE.Color(SCENE_BG),
     axisCss: { x: "#f00", y: "#0f0", z: "#00f" },
     overflow,
   };
 }
+const SCENE_BG = "#102030";
 
 function makeCtx(over: Partial<ToolpathCtx> = {}): ToolpathCtx & { workRotGroup: THREE.Group; pathAnchor: THREE.Group; pathRot: THREE.Group } {
   const pathAnchor = new THREE.Group();
@@ -138,19 +140,38 @@ describe("highlight", () => {
 });
 
 describe("stale mute", () => {
-  it("setStale mutes feed + rapid with the host's opacity token and survives a rebuild", () => {
+  // The mute is an OPAQUE colour mix toward the scene background at the
+  // token's ratio — never alpha: a million blended segments held the Mac's
+  // GPU three frames behind during every re-parse (viewerPerf, 2026-09-09).
+  const mixOf = (hex: string, keep: number) => new THREE.Color(SCENE_BG).lerp(new THREE.Color(hex), keep).getHex();
+
+  it("setStale mutes feed + rapid by an opaque mix at the host's token and survives a rebuild", () => {
     const ctx = makeCtx();
     (deps as any).staleOpacity = () => 0.4;
     c.apply(ctx, GCODE);
     const feedMat = () => feedLineOf(ctx.workRotGroup).material as THREE.LineBasicMaterial;
-    expect(feedMat().opacity).toBe(1);
+    expect(feedMat().color.getHex()).toBe(new THREE.Color("#22b8cf").getHex());
     c.setStale(true);
-    expect(feedMat().opacity).toBeCloseTo(0.4, 6);
-    expect(feedMat().transparent).toBe(true);
-    c.apply(ctx, { ...GCODE });        // a publish while still stale keeps the new lines muted
-    expect(feedMat().opacity).toBeCloseTo(0.4, 6);
-    c.setStale(false);
+    expect(feedMat().color.getHex()).toBe(mixOf("#22b8cf", 0.4));
+    expect(feedMat().transparent).toBe(false);
     expect(feedMat().opacity).toBe(1);
+    c.apply(ctx, { ...GCODE });        // a publish while still stale keeps the new lines muted
+    expect(feedMat().color.getHex()).toBe(mixOf("#22b8cf", 0.4));
+    c.setStale(false);
+    expect(feedMat().color.getHex()).toBe(new THREE.Color("#22b8cf").getHex());
+    expect(feedMat().transparent).toBe(false);
+  });
+
+  it("a colour change while muted lands as the muted mix and the new colour returns on un-mute", () => {
+    const ctx = makeCtx();
+    (deps as any).staleOpacity = () => 0.4;
+    c.apply(ctx, GCODE);
+    const feedMat = () => feedLineOf(ctx.workRotGroup).material as THREE.LineBasicMaterial;
+    c.setStale(true);
+    c.setColors({ feed: "#ff0000" });
+    expect(feedMat().color.getHex()).toBe(mixOf("#ff0000", 0.4));
+    c.setStale(false);
+    expect(feedMat().color.getHex()).toBe(0xff0000);
   });
 });
 

@@ -486,13 +486,15 @@ const toolpath = createToolpathController({
     const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--opacity-disabled"));
     return Number.isFinite(v) ? v : 0.4;
   },
+  // The mute mixes toward this, OPAQUE — see ToolpathDeps.staleOpacity.
+  sceneBackground: () => (scene?.background instanceof THREE.Color ? scene.background : sceneBgFromTheme()),
 });
 // A stale drawn path is muted (2026-09-05): while the gateway re-parses,
 // or while the payload's fixture offsets / tool length are known to
 // differ from the live ones, the operator sees "not current" on the
 // geometry itself, not only in a chip.
-watch(() => !!previewRefresh.value || previewWcsStale.value || !!previewTloStale.value,
-      (stale) => { toolpath.setStale(stale); requestRender(); }, { immediate: true });
+const pathStaleNow = computed(() => !!previewRefresh.value || previewWcsStale.value || !!previewTloStale.value);
+watch(pathStaleNow, (stale) => { toolpath.setStale(stale); requestRender(); }, { immediate: true });
 // Reused ctx object: a fresh object per call is avoidable gen-0 churn (GC
 // pauses here are object-count driven). Safe to mutate in place —
 // controllers read ctx fields synchronously and never retain it (contract in
@@ -2535,6 +2537,7 @@ function animate() {
 
 watch(themeMode, () => {
   if (scene) scene.background = sceneBgFromTheme();
+  toolpath.setStale(pathStaleNow.value);   // the muted mix follows the background
   requestRender();
 });
 

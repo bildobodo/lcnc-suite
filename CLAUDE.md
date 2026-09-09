@@ -667,7 +667,10 @@ queued, superseded}: App.vue shows a warn banner with the reason in
 operator wording (`previewRefreshLabel`), a locally ticked elapsed clock
 and a progress track that never reaches 100 % on its own, the viewer HUD
 shows the same chip, and the drawn toolpath is MUTED
-(`toolpathController.setStale`, `--opacity-disabled`) while a parse runs
+(`toolpathController.setStale`: an OPAQUE colour mix toward the scene
+background at the `--opacity-disabled` ratio — never alpha; a million
+blended segments held the Mac's GPU 3 frames behind during every re-parse,
+measured with the viewerPerf probe 2026-09-09) while a parse runs
 or the payload's offsets / tool length are known stale. Parse speed on
 the same program (identity, this VM): ~23 s → ~15 s quiet / ~23 s while
 a VM-local tab decodes the previous publish — the comment-strip fast

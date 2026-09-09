@@ -3805,3 +3805,20 @@ re-parse (touch-offs, rotary jogs) with the path drawn TRANSPARENT by the mute; 
 phase is the one still unmeasured — OWED: rotate during a touch-off countdown (banner
 on, path muted) and read `gpu_behind`/`gpu_done` for that window; if the GPU trails
 there, mute by colour (opaque, mixed toward the background) instead of alpha.
+
+**Muted-phase reading (same evening): the mute WAS the cost.** Operator touched off
+and rotated through the 27 s re-parse countdown (path drawn at alpha 0.4). Windows
+during the parse vs the opaque rotate minutes earlier: RAF gap p95 21–30 ms, max
+30–59 ms (opaque: 18 / 18–19); GPU behind p95 2–3 ticks, max 3, completion p95
+34–63 ms, max 47–85 ms (opaque: 1–2 ticks, 17–33 / 33–34 ms); main-thread lateness
+p95 11–20 ms, max 20–37 ms, up to 7 blocks per window (opaque: 5–8 / 7–12 / 0) —
+part of that is the fence poll itself waiting on a busy GPU process
+(`getSyncParameter` is a synchronous IPC under Firefox's remote WebGL), so the GPU
+rows are the clean signal. The publish landing showed as one 85 ms RAF gap / 102 ms
+block / 32 ms render submit — the geometry rebuild, one-shot, expected. FIX (same
+commit): the mute is now an OPAQUE colour mix toward the scene background at the
+`--opacity-disabled` ratio (`_applyStale` writes `material.color = bg.lerp(base, k)`
+with the base colours tracked per stream so `setColors` composes; the theme watch
+re-mixes on a background change; `sceneBackground` is a required controller dep —
+no fallback branch). No `transparent`, no blending, same visual meaning. Verification
+owed: the operator's next rotate during a countdown should read like the opaque rows.

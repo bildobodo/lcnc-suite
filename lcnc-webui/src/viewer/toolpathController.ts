@@ -31,8 +31,15 @@ export interface ToolpathDeps {
   makeLabel: (text: string, color: string, fontSize: number) => Text;
   disposeObject: (o: THREE.Object3D) => void;
   colors: () => Colors;              // reads viewerDefaults.colors fresh each call
-  /** Opacity for a stale path (the --opacity-disabled token, read by the host). */
+  /** How much of the path colour survives the stale mute (the
+   *  --opacity-disabled token, read by the host). Applied as an OPAQUE colour
+   *  mix toward `sceneBackground`, never as alpha: a million blended
+   *  segments held the Mac's GPU three frames behind during every re-parse
+   *  (viewerPerf, 2026-09-09) while the same lines opaque ran at 60 fps. */
   staleOpacity?: () => number;
+  /** The scene's background colour — the mute mixes toward it, so the muted
+   *  path reads like an alpha fade over the background at opaque cost. */
+  sceneBackground: () => THREE.Color;
   axisCss: { x: string; y: string; z: string };
   overflow: Ref<boolean>;            // HUD warning flag, owned by ThreeViewer for the template
 }
@@ -72,7 +79,9 @@ export interface ToolpathController {
   setColors(c: { feed?: string; rapid?: string; toolpathBounds?: string }): void;
   /** Mute the drawn path (deps.staleOpacity) while it is known not to
    *  match the machine's live inputs — a re-parse in flight, or offsets /
-   *  tool length changed since the parse. Sticky across apply(). */
+   *  tool length changed since the parse. Sticky across apply(). An opaque
+   *  colour mix toward deps.sceneBackground — never alpha (GPU cost, see
+   *  ToolpathDeps.staleOpacity); call again after a background change. */
   setStale(on: boolean): void;
   /** Drop all refs WITHOUT disposing — clearScene already freed the objects.
    *  Parallel to surfaceController.forgetAfterSceneClear (H6): stale refs
@@ -111,15 +120,20 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
   let toolpathBoundsVisible = false;
   let pathAlwaysOnTop = true;
   let pathStale = false;
+  // The lines' own colours (deps.colors at apply/setColors time). The drawn
+  // material colour is ONE writer's output: these, or their mix toward the
+  // background while stale.
+  const _feedBase = new THREE.Color();
+  const _rapidBase = new THREE.Color();
 
   function _applyStale() {
-    const op = pathStale ? (deps.staleOpacity ? deps.staleOpacity() : 0.4) : 1.0;
-    for (const ln of [feedLine, rapidLine]) {
+    const keep = pathStale ? (deps.staleOpacity ? deps.staleOpacity() : 0.4) : 1.0;
+    const bg = keep < 1 ? deps.sceneBackground() : null;
+    for (const [ln, base] of [[feedLine, _feedBase], [rapidLine, _rapidBase]] as const) {
       if (!ln) continue;
       const m = ln.material as THREE.LineBasicMaterial;
-      m.transparent = op < 1;
-      m.opacity = op;
-      m.needsUpdate = true;
+      if (bg) m.color.copy(bg).lerp(base, keep);
+      else m.color.copy(base);
     }
   }
 
@@ -422,6 +436,8 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       // Feed + Rapid toolpath lines — geometry is shared with the overflow overlay.
       const feedColor = deps.colors().feed ?? "#22b8cf";
       const rapidColor = deps.colors().rapid ?? "#f5a623";
+      _feedBase.set(feedColor);
+      _rapidBase.set(rapidColor);
       if (_pointCount(feedData) >= 2) {
         // Section breaks (track-derived streams) index-skip the false
         // connectors across feed/rapid interleaves; absent on legacy data.
@@ -628,9 +644,10 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     },
 
     setColors(c) {
-      if (feedLine && c.feed) (feedLine.material as THREE.LineBasicMaterial).color.set(c.feed);
-      if (rapidLine && c.rapid) (rapidLine.material as THREE.LineDashedMaterial).color.set(c.rapid);
+      if (c.feed) _feedBase.set(c.feed);
+      if (c.rapid) _rapidBase.set(c.rapid);
       if (toolpathBoundsBox && c.toolpathBounds) (toolpathBoundsBox.material as THREE.LineBasicMaterial).color.set(c.toolpathBounds);
+      _applyStale();   // the drawn colour is the base or its muted mix — one writer
     },
 
     forgetAfterSceneClear() {
