@@ -3822,3 +3822,28 @@ with the base colours tracked per stream so `setColors` composes; the theme watc
 re-mixes on a background change; `sceneBackground` is a required controller dep —
 no fallback branch). No `transparent`, no blending, same visual meaning. Verification
 owed: the operator's next rotate during a countdown should read like the opaque rows.
+
+**Sweep-flagged reading (2026-09-10, dd32835 context flags): ROOT CAUSE = the collision
+sweep.** The operator's next sample (touch-off, rotate through the countdown and on
+after the publish, "still slow after re-parsing"): every slow window carried
+`sweep_busy: true`; the windows before the first touch-off, with no sweep running,
+were clean (GPU 1 tick behind, 18 ms). The sweep rows say why: on perfmatrix-big
+(1.18 M points, 10 bodies) NO sweep has ever completed — it starts on load/publish and
+RESTARTS on every touch-off (a WCS change cancels and re-schedules it), and was
+cancelled at 4.0 s / 15.8 s / 78.4 s having covered 0.04 % / 0.20 % / 0.98 % of the
+track: a full sweep at that rate is ~2 h (the 60 k sample budget only caps the step at
+EXPLORE from then on; the hard backstop is 240 k samples; per-sample cost — every
+pair's BVH distance query against the trsrn meshes — is the number to profile). While
+it runs, the Mac's GPU completion goes 18 → 95–123 ms p95 (max 184), the RAF p95 to
+32–65 ms, with the main thread clean (max 6–8 ms, 0 blocks): a busy worker is off the
+main thread but not off the machine — Firefox's WebGL host starves. The alpha mute
+(6410501) was a real but secondary cost; the part-frame transform shows the same
+signature for its ~1 s (`pf_pending`). The 09-05 "laggy when rotating" windows all sat
+after touch-offs and rotary jogs — i.e. inside restarted sweeps. OPEN, decision owed
+to the operator (a contract change on the sweep): (1) a wall-clock budget with an
+honest `truncated` result — covered fraction in the ScrubBar caveat, "never truncates"
+becomes "never truncates silently"; (2) no restart storm — a program whose last sweep
+was truncated below a threshold is not re-swept automatically on a WCS change, the
+chip offers a manual run; (3) a chunked, message-driven worker so a cancel lands
+without terminate + BVH rebuild and the collision model stays resident across sweeps;
+(4) profile the per-sample cost before touching step sizes.
