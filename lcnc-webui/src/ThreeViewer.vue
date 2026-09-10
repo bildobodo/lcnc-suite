@@ -1922,9 +1922,12 @@ let _colStartedAt = 0;   // performance.now() of the running sweep's post (telem
 // a 1.18 M-point program ran ~2 h per sweep, restarted on every touch-off,
 // and starved the operator's GPU the whole time (2026-09-10). A truncated
 // auto sweep is not retried automatically — the bar says so and offers a
-// MANUAL run with the longer budget.
-const SWEEP_AUTO_BUDGET_MS = 20_000;
-const SWEEP_MANUAL_BUDGET_MS = 120_000;
+// MANUAL run with the longer budget. The sweep PAUSES while the camera
+// moves and its budget counts active time only, so a long auto budget no
+// longer costs interaction; 60 s covers the 1.18 M-point program on the
+// operator's Mac (~63 k samples/s → ~40 s), which 20 s cut at ~50 %.
+const SWEEP_AUTO_BUDGET_MS = 60_000;
+const SWEEP_MANUAL_BUDGET_MS = 300_000;
 let _colBudget = SWEEP_AUTO_BUDGET_MS;
 // The modelKey the worker holds a resident BVH model for (bodies are sent
 // only when it changes); null after a worker (re)creation or a failure.

@@ -3898,14 +3898,19 @@ twice = loud failure). OrbitControls `start`/`end` pause/resume a running sweep,
 posted mid-drag starts paused, and the budget runs on an ACTIVE-time clock (paused
 time stands still); a pause with no resume for 30 s resumes by itself.
 
-**Fix 4 — no restart storm.** Auto sweeps run with `SWEEP_AUTO_BUDGET_MS` = 20 s. If
-this program's auto sweep truncated, WCS/tool changes do NOT re-run it (they would
-truncate again and own the machine for another budget): ThreeViewer sets
-`collisionSkipped` {covered, budget}, traces `collision.sweep_declined`, and ScrubBar
-shows "check declined — N % in 20 s" with a Check button that runs the manual budget
-(`SWEEP_MANUAL_BUDGET_MS` = 120 s). A new program resets it. Telemetry rows
+**Fix 4 — no restart storm.** Auto sweeps run with `SWEEP_AUTO_BUDGET_MS`. If this
+program's auto sweep truncated, WCS/tool changes do NOT re-run it (they would truncate
+again and own the machine for another budget): ThreeViewer sets `collisionSkipped`
+{covered, budget}, traces `collision.sweep_declined`, and ScrubBar shows "check
+declined — N % in 60 s" with a Check button that runs the manual budget
+(`SWEEP_MANUAL_BUDGET_MS`). A new program resets it. Telemetry rows
 `collision.sweep_start/done/cancelled/declined` carry budget, covered fraction and
-reason.
+reason. Budgets, set from the Mac's first rows: the hot-loaded build's first sweeps
+ran 1.26 M / 1.16 M samples in 20 s (~63 k samples/s — slower than the niced VM's
+82 k: SpiderMonkey vs V8, or an Intel Mac), i.e. the whole program needs ~40 s there,
+and a 20 s auto budget cut it at ~50 %. Since the sweep pauses under camera
+interaction and the budget counts active time only, a long auto budget no longer
+costs the operator anything while rotating: auto 60 s, manual 300 s.
 
 **Gates (suite live — single niced files only):** collision 43 + sweepPump 3 +
 kinsBulge 8 = 54 green; `tsc --noEmit -p` over collision.ts / collisionWorker.ts /

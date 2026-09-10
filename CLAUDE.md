@@ -700,8 +700,8 @@ track, fresh position = fresh baseline), and on WCS/tool changes while
 idle (stale results clear + re-run, debounced; in sim ScrubBar re-checks
 with the rebuilt entry track). The only button is cancel-with-progress
 while a sweep runs — plus, when this program's AUTO sweep hit its budget,
-a "check declined — N % in 20 s" chip with a Check button that runs the
-MANUAL budget (120 s): a truncated auto sweep is not re-run on every
+a "check declined — N % in 60 s" chip with a Check button that runs the
+MANUAL budget (300 s): a truncated auto sweep is not re-run on every
 touch-off (it would truncate again and own the machine for another
 budget); a new program resets it.
 
@@ -757,8 +757,8 @@ was ~2 h per sweep (now 31 s, certified). Pairs inside the margin keep
 their EXPLORE re-probe cadence but are sampled at least once on every line
 they stay in contact with (the per-line continuation marks). The sweep is a
 resumable iterator (`sweepCollisionsIter`, checkpoints every 16 segments /
-512 samples) with a WALL-CLOCK budget (`maxMs`, auto 20 s / manual 120 s,
-active time only): on breach it stops and the result says `truncated`
+512 samples) with a WALL-CLOCK budget (`maxMs`, auto 60 s / manual 300 s,
+active time only — the sweep pauses while the camera moves): on breach it stops and the result says `truncated`
 {covered, reason} — ScrubBar reads "no clash in N % swept", never "clear".
 The sample budget (4 M) is only a runaway backstop, and its breach is now
 `truncated.reason = "samples"`, no longer a silent break.
