@@ -52,6 +52,11 @@ const props = defineProps<{
   // (every cum shifts by the entry duration), so the clash UI trusts results
   // only when this matches the displayed track (auto re-check covers the gap).
   collisionTrack: ScrubTrack | null;
+  /** The automatic sweep for this program hit its wall-clock budget, so
+   *  ThreeViewer declines to re-run it on every touch-off (it would truncate
+   *  again and own the machine for another budget). Shown as a warn chip
+   *  with a manual run (longer budget) on offer. */
+  collisionSkipped: { covered: number; budgetMs: number } | null;
 }>();
 
 const emit = defineEmits<{
@@ -68,6 +73,8 @@ const emit = defineEmits<{
   (e: "pose", joints: (number | null)[] | null, line: number | null, cum: number | null, trk: ScrubTrack | null, displayLine: number | null, plane: number[] | null, tlo: number[] | null, tool: number | null): void;
   // The track to sweep — includes the entry move when one is known.
   (e: "check", track: ScrubTrack): void;
+  /** Operator-requested sweep with the manual (longer) budget. */
+  (e: "check-manual", track: ScrubTrack): void;
   (e: "cancel-check"): void;
 }>();
 
@@ -630,8 +637,16 @@ const sweepCaveat = computed<string | null>(() => {
   const why: string[] = [];
   if (r.uncertified) why.push(r.uncertified);
   if (r.coarsened) why.push("coarsened to fit the sample budget");
+  if (r.truncated) {
+    why.push(`stopped at the ${Math.round(r.sweepMs / 1000)} s budget with ${pctOf(r.truncated.covered)} of the program swept — the rest is unchecked`);
+  }
   return why.length ? `Clearance guarantee not certified for this sweep: ${why.join("; ")}` : null;
 });
+/** Covered fraction for the operator: never a rounded "0 %" for a sweep
+ *  that did run — that would read as "nothing", not "very little". */
+function pctOf(f: number): string {
+  return f < 0.01 ? "<1 %" : `${Math.round(f * 100)} %`;
+}
 // One navigation target per contact ONSET: an intermittent-contact line
 // (enter → exit → re-enter) yields a target per interval, so the re-entry
 // is a real "next clash" stop, not folded invisibly into the first.
@@ -802,8 +817,20 @@ onUnmounted(() => {
 
       <MachineBtn v-if="collisionBusy" type="scrub" title="Collision check running — click to cancel"
                   @click="emit('cancel-check')">{{ checkLabel }} &times;</MachineBtn>
+      <template v-if="collisionSkipped && !collisionBusy && !collisionResult">
+        <span class="val-status warn"
+              :title="`The automatic collision check stopped at its ${Math.round(collisionSkipped.budgetMs / 1000)} s budget with ${pctOf(collisionSkipped.covered)} of this program swept, so it is not re-run on every touch-off. Check runs it with the longer manual budget.`">
+          check declined — {{ pctOf(collisionSkipped.covered) }} in {{ Math.round(collisionSkipped.budgetMs / 1000) }} s
+        </span>
+        <MachineBtn type="scrub" title="Run the collision check with the longer manual budget"
+                    :disabled="!track" @click="track && emit('check-manual', track)">Check</MachineBtn>
+      </template>
       <template v-if="collisionResult && !collisionBusy && resultCurrent">
         <span v-if="collisionResult.pairCount === 0" class="val-status muted" title="No body pair moves relative to another — nothing to check">no moving pairs</span>
+        <span v-else-if="!hits.length && collisionResult.truncated" class="val-status warn"
+              :title="`No clash in the ${pctOf(collisionResult.truncated.covered)} of the program swept before the ${Math.round(collisionResult.sweepMs / 1000)} s budget — the rest is UNCHECKED (${collisionResult.samples} samples, ${collisionResult.pairCount} pairs)`">
+          no clash in {{ pctOf(collisionResult.truncated.covered) }} swept
+        </span>
         <span v-else-if="!hits.length" class="val-status ok" :title="`${collisionResult.samples} samples, ${collisionResult.pairCount} pairs${collisionResult.staticContacts.length ? `; in contact from the start (excluded): ${collisionResult.staticContacts.map(c => c.a + '/' + c.b).join(', ')}` : ''}`">
           clear
         </span>

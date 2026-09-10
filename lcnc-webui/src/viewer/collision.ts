@@ -149,8 +149,20 @@ export interface CollisionOptions {
   /** Folded into the explore cadence (1° ≙ 1 mm); kept for callers. */
   rotStepDeg?: number;
   /** Safety budget on pose evaluations — on breach the sweep degrades to
-   *  fixed explore steps (result says `coarsened`); never truncates. */
+   *  fixed explore steps (result says `coarsened`). The hard backstop at
+   *  4× this count STOPS the sweep and says so (`truncated.reason ===
+   *  "samples"`) — it used to break out silently. */
   maxSamples?: number;
+  /** Wall-clock budget (ms). On breach the sweep STOPS where it is and the
+   *  result says `truncated` with the covered fraction — never silently: a
+   *  program too large for the budget reports "N % swept", not "clear".
+   *  (2026-09-10: a 1.18 M-point program ran ~2 h per sweep, restarted on
+   *  every touch-off, and starved the operator's GPU the whole time.) */
+  maxMs?: number;
+  /** The clock the budget (and `sweepMs`) runs on — default performance.now.
+   *  The worker passes an ACTIVE-time clock that stands still while the
+   *  sweep is paused for camera interaction, so a pause never eats the budget. */
+  clock?: () => number;
   /** Per-epoch WCS re-add terms (review P2), indexed by the track's `wcs`
    *  bytes — built by wcsEpochs.epochTermsFor from the payload's wcs_frames
    *  + the live table. Absent = single-basis (the live `wcs` terms). */
@@ -187,9 +199,23 @@ export interface CollisionResult {
   pairCount: number;
   bvhMs: number;
   sweepMs: number;
+  /** Set when the sweep stopped before the end of the track — the wall-clock
+   *  budget (`time`) or the hard sample backstop (`samples`). `covered` is
+   *  the swept fraction of the track's path (dist parameter, 0..1). Null =
+   *  the whole track was swept. A truncated sweep with no hits is NOT
+   *  "clear": only the covered part is. */
+  truncated: { covered: number; reason: "time" | "samples" } | null;
 }
 
-const DEFAULTS = { linStepMm: 5, rotStepDeg: 4, maxSamples: 60_000 };
+// maxSamples is a RUNAWAY backstop, not the operative bound: with carried
+// clearance certificates a certified sample costs ~10 µs, and a program of a
+// million short segments needs at least one sample per segment — the old
+// 60 k (sized for ~1 ms samples) truncated such a program at 9 % in 3 s.
+// The wall-clock budget (`maxMs`) is what bounds a sweep's cost now.
+const DEFAULTS = { linStepMm: 5, rotStepDeg: 4, maxSamples: 4_000_000 };
+/** Samples between iterator checkpoints inside one segment: a long segment
+ *  (a slow plunge, a full rotary turn) must still yield to its driver. */
+const SAMPLES_PER_YIELD = 512;
 const MAX_HITS = 200;
 
 interface Node {
@@ -418,8 +444,6 @@ function poseTree(nodes: Node[], jointVals: number[], scratch: {
   }
 }
 
-/** Sweep the track. `shouldYield` is polled between segments — return true to
- *  abort (the worker maps a cancel message onto it). `onProgress` gets 0..1. */
 /**
  * Refinement can split ONE continuous contact into windows that meet at a
  * boundary: the clusters are seeded from in-contact samples (pushed only at
@@ -444,6 +468,11 @@ export function mergeContiguousIntervals(
   return out;
 }
 
+/** Sweep the track to completion (or to its budget). `onProgress` gets 0..1
+ *  at the iterator's checkpoints; `shouldAbort` is polled there — true stops
+ *  the sweep with what was swept so far (an abort is the caller's decision,
+ *  so `truncated` stays null). Drives `sweepCollisionsIter`; tests and the
+ *  envelope gates use this form. */
 export function sweepCollisions(
   model: CollisionModel,
   track: CollisionTrack,
@@ -452,9 +481,32 @@ export function sweepCollisions(
   onProgress?: (frac: number) => void,
   shouldAbort?: () => boolean,
 ): CollisionResult {
+  const it = sweepCollisionsIter(model, track, wcs, opts);
+  let r = it.next();
+  while (!r.done) {
+    onProgress?.(r.value);
+    r = it.next(shouldAbort?.() === true);
+  }
+  return r.value;
+}
+
+/** The sweep as a resumable iterator: yields its progress (0..1) at
+ *  checkpoints — before the first segment, every 16 segments, every
+ *  SAMPLES_PER_YIELD samples inside a segment, and once at the end — and
+ *  returns the result. `next(true)` at a checkpoint aborts. The worker drives
+ *  it in time slices so a cancel message lands between checkpoints instead
+ *  of needing the worker terminated (and the BVH model rebuilt). The
+ *  wall-clock budget (`opts.maxMs`) is checked at the same checkpoints. */
+export function* sweepCollisionsIter(
+  model: CollisionModel,
+  track: CollisionTrack,
+  wcs: PartFrameWcs,
+  opts: CollisionOptions,
+): Generator<number, CollisionResult, boolean | undefined> {
   const { nodes, bodies, pairs, pairDofs, pairCutting, machine } = model;
   const maxSamples = opts.maxSamples ?? DEFAULTS.maxSamples;
-  const t0 = performance.now();
+  const clock = opts.clock ?? (() => performance.now());
+  const t0 = clock();
   const n = track.count;
 
   // The sweep runs in its own DISTANCE parameterization (mm, 1° ≙ 1 mm) —
@@ -791,6 +843,17 @@ export function sweepCollisions(
   // no margin crossing wider than MIN_ADV of path parameter is missed.
   const pairV = new Float64Array(pairs.length);
   const sSafe = new Float64Array(pairs.length);
+  // Carried clearance certificates (2026-09-10). A distance query leaves a
+  // pair with clearance (d − margin); a chunk can consume at most V × Lc of
+  // it (V bounds the relative surface speed per unit of path). The remainder
+  // CARRIES into the next chunk, re-expressed in that chunk's V — the old
+  // per-chunk reset re-queried every pair at every chunk boundary, which on
+  // a program of a million 0.1 mm segments was 45 BVH queries per 0.1 mm
+  // (2.85 ms per segment, ~2 h per sweep). Same guarantee: the bound is
+  // summed piecewise over the chunks the pair skipped.
+  const clear = new Float64Array(pairs.length);   // clearance left since the last query
+  const sQ = new Float64Array(pairs.length);      // path parameter of that query (or chunk start)
+  const qLine = new Int32Array(pairs.length).fill(-1);   // line of that query (per-line contact marks)
   const rotLever = pairDofs.map(list => new Float64Array(list.length));
   const jv0: number[] = new Array(jointVals.length).fill(0);
   const jv1: number[] = new Array(jointVals.length).fill(0);
@@ -812,9 +875,20 @@ export function sweepCollisions(
     );
   };
 
+  const maxMs = opts.maxMs ?? Infinity;
+  let truncated: CollisionResult["truncated"] = null;
+  let sweptTo = 0;   // dist parameter reached — the covered fraction on truncation
+  const overBudget = (): boolean => clock() - t0 > maxMs;
+  const frac = (s: number): number => Math.min(1, s / (totalCum || 1));
+  // Checkpoint before the first segment: an abort here leaves the baseline
+  // pose only (the "aborts early" contract).
+  const abortAtStart = (yield 0) === true;
   outer:
-  for (let i = 1; i < n; i++) {
-    if (shouldAbort?.()) break;
+  for (let i = 1; i < n && !abortAtStart; i++) {
+    if ((i & 15) === 0) {
+      if (overBudget()) { truncated = { covered: frac(sweptTo), reason: "time" }; break; }
+      if ((yield frac(dcum[i - 1]!)) === true) break;
+    }
     const line = track.lines[i]!;
     const isRapid = track.rapid[i] === 1;
     const c0 = dcum[i - 1]!, c1 = dcum[i]!;
@@ -896,13 +970,32 @@ export function sweepCollisions(
       // Certificates: a distance query at s proves the pair cannot reach
       // the margin before sSafe = s + (d − margin)/V — no re-query needed
       // until then (lazy conservative advancement). V changes per chunk, so
-      // certificates never carry across chunk boundaries.
-      sSafe.fill(s0);
+      // the carried clearance is re-expressed in THIS chunk's V here; a
+      // pair inside the margin keeps its absolute re-probe cadence
+      // (sSafe = s + EXPLORE), which needs no conversion.
+      for (let pi = 0; pi < pairs.length; pi++) {
+        if (staticExcluded[pi]) continue;
+        sQ[pi] = s0;
+        if (inContact[pi]) {
+          // Every LINE a pair stays in contact with gets at least one sample
+          // (its continuation record — the G-code panel marks it); within a
+          // line the EXPLORE cadence carries across the chunks.
+          if (qLine[pi] !== line) sSafe[pi] = s0;
+          continue;
+        }
+        const c = clear[pi]!;
+        sSafe[pi] = c > 0 ? s0 + c / Math.max(pairV[pi]!, 1e-9) : s0;
+      }
 
       let s = s0;
       for (;;) {
         interpPose(i, (s - c0) / L);
         done++;
+        sweptTo = s;
+        if ((done & (SAMPLES_PER_YIELD - 1)) === 0) {
+          if (overBudget()) { truncated = { covered: frac(s), reason: "time" }; break outer; }
+          if ((yield frac(s)) === true) break outer;
+        }
         if (done > maxSamples && !budgetExceeded) {
           budgetExceeded = true;
           coarsened = true;  // honest: from here on, fixed EXPLORE steps
@@ -940,6 +1033,9 @@ export function sweepCollisions(
               recordHit(line, s, isRapid, pi, d);
             }
             sSafe[pi] = s + EXPLORE;  // re-probe cadence inside the contact
+            clear[pi] = 0;
+            sQ[pi] = s;
+            qLine[pi] = line;
           } else {
             if (inContact[pi] && d > opts.margin * 2) {
               inContact[pi] = 0;
@@ -947,6 +1043,9 @@ export function sweepCollisions(
               onsetLine[pi] = -1;  // verified separation: the next touch is a new onset
             }
             const bound = d === Infinity ? HORIZON : d;
+            clear[pi] = bound - opts.margin;
+            sQ[pi] = s;
+            qLine[pi] = line;
             sSafe[pi] = s + Math.max(MIN_ADV, (bound - opts.margin) / Math.max(pairV[pi]!, 1e-9));
           }
           const remain = sSafe[pi]! - s;
@@ -955,10 +1054,18 @@ export function sweepCollisions(
         if (budgetExceeded) step = Math.min(step, EXPLORE);
         if (s >= s1 - 1e-9) break;
         s = Math.min(s1, s + Math.max(step, MIN_ADV));
-        if (done > maxSamples * 4) break outer;  // hard runaway backstop
+        if (done > maxSamples * 4) {   // hard runaway backstop — said, never silent
+          truncated = { covered: frac(s), reason: "samples" };
+          break outer;
+        }
+      }
+      // Chunk done: what this chunk could have consumed of each carried
+      // clearance since its last query (or since the chunk start).
+      for (let pi = 0; pi < pairs.length; pi++) {
+        if (staticExcluded[pi] || inContact[pi]) continue;
+        clear[pi] = clear[pi]! - pairV[pi]! * (s1 - sQ[pi]!);
       }
     }
-    if (onProgress && (i & 15) === 0) onProgress(Math.min(1, c1 / (totalCum || 1)));
   }
   // Contact refinement: a penetrating hit's discovering sample can sit up
   // to one sample step PAST true contact — jumping to it would show the
@@ -1072,7 +1179,7 @@ export function sweepCollisions(
       }
     }
   }
-  onProgress?.(1);
+  yield truncated ? truncated.covered : 1;
 
   // Back-fill spanEndLine on every onset: the last line its contact persists
   // through (continuations point at their onset by line + pair).
@@ -1104,6 +1211,7 @@ export function sweepCollisions(
     uncertified,
     pairCount: pairs.length,
     bvhMs: model.bvhMs,
-    sweepMs: performance.now() - t0,
+    sweepMs: clock() - t0,
+    truncated,
   };
 }

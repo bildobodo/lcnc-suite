@@ -3847,3 +3847,74 @@ was truncated below a threshold is not re-swept automatically on a WCS change, t
 chip offers a manual run; (3) a chunked, message-driven worker so a cancel lands
 without terminate + BVH rebuild and the collision model stays resident across sweeps;
 (4) profile the per-sample cost before touching step sizes.
+
+## 2026-09-10 — Collision sweep: 2 h → 31 s on the big program, bounded, honest, never in the operator's way
+
+**Ask:** "go" on the four-item plan above.
+
+**Profile first (headless, the gateway's cached payload of perfmatrix-big + the real
+trsrn STLs, niced VM core):** 1,179,964 points, 109.8 m of path, 11 bodies of only
+1,236 triangles, 45 pairs, BVH build 8 ms. The sweep ran 351 samples/s at 2.85 ms per
+sample and covered 0.28 % in 20 s (implied 119 min). The cost was not the meshes: the
+conservative-advancement certificates were RESET at every chunk boundary ("V changes
+per chunk, so certificates never carry"), and this program's segments are 0.09 mm long —
+so every 0.09 mm re-queried all 45 pairs. `done` counted one sample per segment; the
+two chunk-endpoint poses and 45 BVH queries per segment were the 2.85 ms.
+
+**Fix 1 — carried clearance certificates (collision.ts).** A query leaves a pair with
+clearance d − margin; a chunk can consume at most V × Lc of it (V is the per-chunk
+relative-speed bound the sweep already computes). The remainder now carries into the
+next chunk, re-expressed in that chunk's V (`clear[]`/`sQ[]`; decremented per chunk by
+V × (s1 − sQ)); a pair whose clearance outlasts the chunk is never queried in it. Same
+guarantee, summed piecewise. Pairs INSIDE the margin keep their absolute EXPLORE
+re-probe cadence across chunks, but are still sampled at least once on every LINE they
+stay in contact with (`qLine[]`) — the through-contact test caught the version that
+skipped a short line's continuation record. Result on the same program: 82,435
+samples/s, 0.01 ms/sample, the WHOLE track swept in 31 s (2.56 M samples), certified,
+not coarsened. The 60 k sample budget (sized for ~1 ms samples) then truncated it at
+9 % in 3 s — raised to 4 M as a pure runaway backstop; the wall-clock budget is the
+operative bound now. All 43 collision cases (graze, rotary lever, bulge, cutting
+semantics, refinement windows) + kinsBulge unchanged and green.
+
+**Fix 2 — the sweep is a resumable iterator with a wall-clock budget.**
+`sweepCollisionsIter` yields progress at checkpoints (before the first segment, every
+16 segments, every 512 samples, once at the end); `next(true)` aborts; `sweepCollisions`
+drives it to completion for tests and gates. `opts.maxMs` stops the sweep at a
+checkpoint with `truncated: {covered, reason: "time"}`; the hard sample backstop, which
+used to `break outer` SILENTLY, now says `reason: "samples"`. `opts.clock` lets the
+caller supply the budget's clock. ScrubBar: a truncated sweep with no hits reads
+"no clash in N % swept" (warn), never "clear"; the caveat `*` names the budget and the
+covered fraction. Tests: time budget, sample backstop, completed = null, iterator ≡
+sync, abort semantics, caller clock (frozen → never truncates; racing → truncates).
+
+**Fix 3 — message-driven worker, resident model, pause on interaction.**
+`sweepPump.runSweepSlice` (pure, 3 tests) drives the iterator for 40 ms slices with a
+`setTimeout(0)` between them, so the worker reads `{cancel}`, `{pause}`, `{resume}`
+and superseding requests between slices — a cancel no longer terminates the worker
+and rebuilds the BVHs. The collision model stays RESIDENT under a `modelKey` (loaded
+parts + placement + unit scale + tool dims); ThreeViewer sends the STL copies only when
+the key changes, and a worker that lacks the model answers `needBodies` (re-sent once;
+twice = loud failure). OrbitControls `start`/`end` pause/resume a running sweep, a sweep
+posted mid-drag starts paused, and the budget runs on an ACTIVE-time clock (paused
+time stands still); a pause with no resume for 30 s resumes by itself.
+
+**Fix 4 — no restart storm.** Auto sweeps run with `SWEEP_AUTO_BUDGET_MS` = 20 s. If
+this program's auto sweep truncated, WCS/tool changes do NOT re-run it (they would
+truncate again and own the machine for another budget): ThreeViewer sets
+`collisionSkipped` {covered, budget}, traces `collision.sweep_declined`, and ScrubBar
+shows "check declined — N % in 20 s" with a Check button that runs the manual budget
+(`SWEEP_MANUAL_BUDGET_MS` = 120 s). A new program resets it. Telemetry rows
+`collision.sweep_start/done/cancelled/declined` carry budget, covered fraction and
+reason.
+
+**Gates (suite live — single niced files only):** collision 43 + sweepPump 3 +
+kinsBulge 8 = 54 green; `tsc --noEmit -p` over collision.ts / collisionWorker.ts /
+sweepPump.ts + tests under the app's strict flags clean; Vite compiles ThreeViewer.vue,
+ScrubBar.vue and the worker; hot-loaded on the running suite. OWED at the next suite
+stop: `npm run build` (vue-tsc over the .vue changes), full vitest incl. the trsrn
+envelope gate (300 s sweeps — deliberately not run niced next to the live HAL chain),
+playwright. OWED from the operator: touch off on the big program and rotate through the
+countdown and after the publish — the sweep should pause under the pointer, finish in
+~15–20 s of active time on the Mac, and the perf rows should read like the opaque
+rotate; a second touch-off then either re-sweeps (finished within budget) or shows
+"check declined".

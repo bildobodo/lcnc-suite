@@ -3,8 +3,8 @@ import * as THREE from "three";
 import { emptyLineIndex } from "./lineIndex";
 import { describe, expect, it } from "vitest";
 import {
-  buildCollisionModel, sweepCollisions, toolCylinderPositions,
-  type CollisionBody, type CollisionMachine, mergeContiguousIntervals } from "./collision";
+  buildCollisionModel, sweepCollisions, sweepCollisionsIter, toolCylinderPositions,
+  type CollisionBody, type CollisionMachine, type CollisionResult, mergeContiguousIntervals } from "./collision";
 import type { ScrubTrack } from "../ws/bulkData";
 
 const WCS0 = { g5x: [0, 0, 0, 0, 0, 0], g92: [], rotationDeg: 0 };
@@ -211,6 +211,78 @@ describe("sweepCollisions", () => {
     const r = sweepCollisions(model, track(
       [[0, 0, 0], [0, 0, -45]]), WCS0, { margin: 2 }, undefined, () => true);
     expect(r.samples).toBe(1);  // only the baseline pose before the first segment
+    expect(r.truncated).toBeNull();   // an abort is the caller's decision, not a budget
+  });
+
+  // A 40-segment plunge (1 mm each, clear of the work): long enough to pass
+  // the every-16-segments checkpoint where the budgets are checked.
+  const plunge40 = () => track(Array.from({ length: 41 }, (_, i) => [0, 0, 60 - i]));
+
+  it("stops at the wall-clock budget and says how much it swept — never a silent 'clear'", () => {
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const r = sweepCollisions(model, plunge40(), WCS0, { margin: 2, maxMs: 0 });
+    expect(r.truncated).not.toBeNull();
+    expect(r.truncated!.reason).toBe("time");
+    expect(r.truncated!.covered).toBeGreaterThan(0);
+    expect(r.truncated!.covered).toBeLessThan(1);
+    expect(r.hits).toHaveLength(0);
+  });
+
+  it("the budget runs on the caller's clock — a paused sweep spends none of it", () => {
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    // A clock that never advances: even a 1 ms budget is never exceeded.
+    const frozen = sweepCollisions(model, plunge40(), WCS0, { margin: 2, maxMs: 1, clock: () => 0 });
+    expect(frozen.truncated).toBeNull();
+    expect(frozen.sweepMs).toBe(0);
+    // A clock that jumps 100 ms per read: the 50 ms budget is over at the
+    // first checkpoint that looks.
+    let t = 0;
+    const racing = sweepCollisions(model, plunge40(), WCS0, { margin: 2, maxMs: 50, clock: () => (t += 100) });
+    expect(racing.truncated?.reason).toBe("time");
+    expect(racing.truncated!.covered).toBeLessThan(1);
+  });
+
+  it("the hard sample backstop stops the sweep and says so instead of breaking out silently", () => {
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const r = sweepCollisions(model, plunge40(), WCS0, { margin: 2, maxSamples: 2 });
+    expect(r.coarsened).toBe(true);
+    expect(r.truncated).not.toBeNull();
+    expect(r.truncated!.reason).toBe("samples");
+    expect(r.truncated!.covered).toBeLessThan(1);
+    expect(r.samples).toBeLessThanOrEqual(10);
+  });
+
+  it("a completed sweep carries no truncation claim", () => {
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const r = sweepCollisions(model, plunge40(), WCS0, { margin: 2, maxMs: 60_000 });
+    expect(r.truncated).toBeNull();
+  });
+
+  it("the iterator yields progress checkpoints and returns the sync sweep's result", () => {
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const t = track([[0, 0, 0], [0, 0, -45]]);
+    const sync = sweepCollisions(model, t, WCS0, { margin: 2 });
+    const it = sweepCollisionsIter(model, t, WCS0, { margin: 2 });
+    const progress: number[] = [];
+    let r = it.next();
+    while (!r.done) { progress.push(r.value); r = it.next(); }
+    expect(progress[0]).toBe(0);
+    expect(progress[progress.length - 1]).toBe(1);
+    expect(r.value.hits.map(h => [h.line, h.a, h.b, +h.cum.toFixed(3)]))
+      .toEqual(sync.hits.map(h => [h.line, h.a, h.b, +h.cum.toFixed(3)]));
+    expect(r.value.samples).toBe(sync.samples);
+    expect(r.value.truncated).toBeNull();
+  });
+
+  it("next(true) at a checkpoint aborts: baseline only, epilogue still returns a result", () => {
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const it = sweepCollisionsIter(model, track([[0, 0, 0], [0, 0, -45]]), WCS0, { margin: 2 });
+    it.next();                       // to the first checkpoint (baseline posed)
+    let r = it.next(true);           // abort there
+    while (!r.done) r = it.next();   // the epilogue's final progress yield
+    const res = r.value as CollisionResult;
+    expect(res.samples).toBe(1);
+    expect(res.truncated).toBeNull();
   });
 
   it("moves pairs in contact at the first pose to staticContacts instead of flooding lines", () => {

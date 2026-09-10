@@ -1917,6 +1917,23 @@ const COLLISION_MARGIN_MM = 2;
 let _colWorker: Worker | null = null;
 let _colReqId = 0;
 let _colStartedAt = 0;   // performance.now() of the running sweep's post (telemetry)
+// Wall-clock budgets for a sweep (collision.ts `maxMs`). The AUTO sweep runs
+// on load and on WCS/tool changes and must never own the machine for long:
+// a 1.18 M-point program ran ~2 h per sweep, restarted on every touch-off,
+// and starved the operator's GPU the whole time (2026-09-10). A truncated
+// auto sweep is not retried automatically — the bar says so and offers a
+// MANUAL run with the longer budget.
+const SWEEP_AUTO_BUDGET_MS = 20_000;
+const SWEEP_MANUAL_BUDGET_MS = 120_000;
+let _colBudget = SWEEP_AUTO_BUDGET_MS;
+// The modelKey the worker holds a resident BVH model for (bodies are sent
+// only when it changes); null after a worker (re)creation or a failure.
+let _colModelSent: string | null = null;
+let _colNeedBodiesRetried = false;
+// The auto sweep for the CURRENT program hit its budget. Auto re-runs are
+// declined until the program changes (they would truncate again).
+let _colAutoTruncated: { covered: number; budgetMs: number } | null = null;
+const collisionSkipped = ref<{ covered: number; budgetMs: number } | null>(null);
 const collisionBusy = ref(false);
 const collisionProgress = ref(0);
 const collisionResult = ref<CollisionResult | null>(null);
@@ -1928,9 +1945,26 @@ let _colPendingTrack: ScrubTrack | null = null;
 function _colGetWorker(): Worker {
   if (!_colWorker) {
     _colWorker = new Worker(new URL("./viewer/collisionWorker.ts", import.meta.url), { type: "module" });
+    _colModelSent = null;   // a fresh worker holds no model
     _colWorker.onmessage = (ev: MessageEvent) => {
-      const m = ev.data as { id: number; progress?: number; error?: string; result?: CollisionResult };
+      const m = ev.data as { id: number; progress?: number; error?: string; result?: CollisionResult; needBodies?: boolean; cancelled?: boolean };
       if (m.id !== _colReqId) return;  // superseded
+      if (m.cancelled) return;         // our own cancel, acknowledged
+      if (m.needBodies) {
+        // The worker holds no model for the key we assumed it had: re-send
+        // the bodies once. A second ask in a row is a bug, not a retry.
+        if (_colNeedBodiesRetried) {
+          console.error("[collision] worker asked for bodies twice — sweep not run");
+          emitTelemetry("collision.sweep_failed", { msg: "worker asked for bodies twice" });
+          _colFail();
+          return;
+        }
+        _colNeedBodiesRetried = true;
+        _colModelSent = null;
+        collisionBusy.value = false;   // runCollisionCheck early-returns on busy
+        runCollisionCheck(_colPendingTrack ?? undefined, _colBudget);
+        return;
+      }
       if (m.progress != null && !m.result) {
         collisionProgress.value = m.progress;
         return;
@@ -1946,6 +1980,10 @@ function _colGetWorker(): Worker {
       }
       collisionResult.value = m.result!;
       collisionTrack.value = _colPendingTrack;
+      _colNeedBodiesRetried = false;
+      if (m.result!.truncated && _colBudget === SWEEP_AUTO_BUDGET_MS) {
+        _colAutoTruncated = { covered: m.result!.truncated.covered, budgetMs: _colBudget };
+      }
       // Off-thread but not free: a sweep is a busy worker for its whole
       // duration — the viewer perf probe's `sweep_busy` context field says
       // whether one overlapped a slow window; this row says how long it ran.
@@ -1954,6 +1992,8 @@ function _colGetWorker(): Worker {
         bvh_ms: Math.round(m.result!.bvhMs), sweep_ms: Math.round(m.result!.sweepMs),
         samples: m.result!.samples, coarsened: m.result!.coarsened,
         uncertified: m.result!.uncertified != null,
+        truncated: m.result!.truncated?.reason ?? null,
+        covered: m.result!.truncated?.covered ?? 1, budget_ms: _colBudget,
         hits: m.result!.hits.length, pairs: m.result!.pairCount,
         points: _colPendingTrack?.count ?? null,
       });
@@ -1991,16 +2031,38 @@ function cancelCollisionCheck() {
       ran_ms: Math.round(performance.now() - _colStartedAt), progress: collisionProgress.value,
     });
   }
-  if (_colWorker) {
-    _colWorker.terminate();
-    _colWorker = null;
-  }
+  // The worker drives the sweep in slices (sweepPump) and reads a cancel
+  // between them: no terminate, so the resident BVH model survives for the
+  // next sweep (it used to be terminated + recreated + rebuilt per cancel).
+  if (_colWorker && collisionBusy.value) _colWorker.postMessage({ cancel: _colReqId });
   _colReqId++;
   collisionBusy.value = false;
   collisionProgress.value = 0;
 }
 
-function runCollisionCheck(trackOverride?: ScrubTrack) {
+function runCollisionCheckManual(t: ScrubTrack) {
+  runCollisionCheck(t, SWEEP_MANUAL_BUDGET_MS);
+}
+
+// Camera interaction in progress (OrbitControls start→end): a sweep posted
+// meanwhile starts paused; a running one is paused/resumed by the events.
+let _camMoving = false;
+function _colSetPaused(on: boolean) {
+  if (!_colWorker || !collisionBusy.value) return;
+  _colWorker.postMessage(on ? { pause: _colReqId } : { resume: _colReqId });
+}
+
+// Identity of the collision model the worker keeps resident: the loaded
+// parts (id, file, group, placement, stock flag), the unit scale and the
+// tool body dims. Bodies are re-sent only when it changes.
+function _colModelKey(init: ViewerInit): string {
+  const parts = (init.parts ?? [])
+    .filter(p => !!getCachedGeometry(p.id))
+    .map(p => [p.id, p.file, p.group ?? "root", p.translate ?? null, (p as any).rotate ?? null, p.stock ? 1 : 0]);
+  return JSON.stringify([parts, _unitScale, _toolVisual(_pv.toolDiam, _pv.toolLen)]);
+}
+
+function runCollisionCheck(trackOverride?: ScrubTrack, budgetMs: number = SWEEP_AUTO_BUDGET_MS) {
   const init = viewerInit.value;
   // ScrubBar passes its active track (base + entry move captured at sim
   // entry); the bare-Check fallback sweeps the parse-time track.
@@ -2010,9 +2072,14 @@ function runCollisionCheck(trackOverride?: ScrubTrack) {
   // post below cannot throw on a caller's reactivity choice.
   const track = toRaw(trackOverride ?? viewerGcode.value?.scrubTrack ?? null) as ScrubTrack | null;
   if (!init || !track || collisionBusy.value) return;
+  // Bodies (copies of every machine STL) go over only when the worker does
+  // not already hold this model — a touch-off used to re-post + rebuild
+  // the BVHs every time.
+  const modelKey = _colModelKey(init);
+  const sendBodies = !_colWorker || _colModelSent !== modelKey;
   const bodies: CollisionBody[] = [];
   let skipped = 0;
-  for (const p of (init.parts ?? [])) {
+  if (sendBodies) for (const p of (init.parts ?? [])) {
     const attr = getCachedGeometry(p.id)?.getAttribute("position");
     if (!attr) { skipped++; continue; }  // unloaded geometry
     bodies.push({
@@ -2034,8 +2101,10 @@ function runCollisionCheck(trackOverride?: ScrubTrack) {
   collisionBusy.value = true;
   collisionProgress.value = 0;
   collisionResult.value = null;
+  collisionSkipped.value = null;
+  _colBudget = budgetMs;
   _colStartedAt = performance.now();
-  emitTelemetry("collision.sweep_start", { points: track.count, bodies: bodies.length });
+  emitTelemetry("collision.sweep_start", { points: track.count, bodies: bodies.length, budget_ms: budgetMs });
   // Track arrays are copied — transferring the originals would detach the
   // buffers viewerGcode (and the scrub bar) still read.
   const trackCopy = {
@@ -2060,7 +2129,8 @@ function runCollisionCheck(trackOverride?: ScrubTrack) {
     _colGetWorker().postMessage({
     id,
     machine: _pfMachine(init),           // same shape as CollisionMachine
-    bodies,
+    bodies: sendBodies ? bodies : undefined,
+    modelKey,
     // The DISPLAYED marker dims — same visual-length formula as the marker
     // build (min length + shank sink into the holder). Using the raw tool
     // length made the collision body SHORTER than the tool on screen: the
@@ -2070,6 +2140,7 @@ function runCollisionCheck(trackOverride?: ScrubTrack) {
     wcs: _pfWcs(),
     options: {
       margin: COLLISION_MARGIN_MM * _unitScale,
+      maxMs: budgetMs,   // wall-clock budget — a truncated result says so
       // Per-epoch re-add terms (review P2) — the sweep converts each
       // segment's program coords through ITS epoch's basis. Built here
       // (live status is main-thread state); plain JSON, clones fine.
@@ -2084,6 +2155,8 @@ function runCollisionCheck(trackOverride?: ScrubTrack) {
       liveTool: _pv.toolNum,
     },
     }, transfer);
+    _colModelSent = modelKey;   // the worker now holds (or is building) this model
+    if (_camMoving) _colSetPaused(true);
   } catch (err) {
     // postMessage throws SYNCHRONOUSLY on an uncloneable payload
     // (DataCloneError — a Vue Proxy in the track was the live case). The
@@ -2108,6 +2181,16 @@ function _colScheduleAuto() {
     if (!machineReady.value) return;         // geometry loading — machineReady watcher retries
     if ((status.value?.data?.interp_state ?? INTERP_IDLE) !== INTERP_IDLE) return;
     if (!viewerGcode.value?.scrubTrack) return;
+    if (_colAutoTruncated) {
+      // This program's auto sweep already hit its budget: another auto run
+      // would truncate again and own the machine for another budget.
+      // Decline, say so, offer the manual budget (ScrubBar chip + Check).
+      collisionSkipped.value = _colAutoTruncated;
+      emitTelemetry("collision.sweep_declined", {
+        covered: _colAutoTruncated.covered, budget_ms: _colAutoTruncated.budgetMs,
+      });
+      return;
+    }
     if (collisionBusy.value) cancelCollisionCheck();
     runCollisionCheck();
   }, 400);
@@ -2129,6 +2212,8 @@ function _colOnInputChange() {
 // A new program (or unload) invalidates results — never show stale clashes.
 watch(viewerGcode, () => {
   cancelCollisionCheck();
+  _colAutoTruncated = null;      // a new program gets its own auto sweep
+  collisionSkipped.value = null;
   collisionResult.value = null;
   collisionTrack.value = null;
   emit("collision-lines", null);
@@ -2620,6 +2705,11 @@ onMounted(() => {
 
   // Render-on-demand: any user-initiated camera move flags a render.
   controls.addEventListener("change", requestRender);
+  // A running collision sweep pauses while the camera moves — the busy
+  // worker starved the GPU side of the browser (2026-09-10); its budget
+  // counts active time only, so the pause costs the sweep nothing.
+  controls.addEventListener("start", () => { _camMoving = true; _colSetPaused(true); });
+  controls.addEventListener("end", () => { _camMoving = false; _colSetPaused(false); });
 
   // Pause RAF when the document is hidden (browser tab switch / system sleep).
   // Independent of props.active, which gates Vue tab visibility within the SPA.
@@ -3133,6 +3223,8 @@ defineExpose({
       :sweepTool="{ num: _pv.toolNum, diam: _pv.toolDiam, programTools }"
       :collisionResult="collisionResult"
       :collisionTrack="collisionTrack"
+      :collisionSkipped="collisionSkipped"
+      @check-manual="runCollisionCheckManual"
       @pose="onScrubPose"
       @check="runCollisionCheck"
       @cancel-check="cancelCollisionCheck"

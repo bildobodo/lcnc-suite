@@ -699,7 +699,11 @@ keeps itself current with NO manual trigger: auto-runs on program load
 track, fresh position = fresh baseline), and on WCS/tool changes while
 idle (stale results clear + re-run, debounced; in sim ScrubBar re-checks
 with the rebuilt entry track). The only button is cancel-with-progress
-while a sweep runs.
+while a sweep runs — plus, when this program's AUTO sweep hit its budget,
+a "check declined — N % in 20 s" chip with a Check button that runs the
+MANUAL budget (120 s): a truncated auto sweep is not re-run on every
+touch-off (it would truncate again and own the machine for another
+budget); a new program resets it.
 
 **Collision sweep (offline dry run, stage 3)**: the scrub bar's Check
 button sweeps the machine model through the scrub track off-thread
@@ -744,8 +748,20 @@ fixed 5 mm/4° sampling provably missed). NOTE that 0.25 is a fixed floor
 (`MIN_ADV`) in a parameterization where 1° ≙ 1 mm, so on a metre-scale
 machine a forced 0.25° step is ~8.7 mm of surface travel: the bound
 removes the systematic blind spot, not the sampling floor (recorded in
-docs/decisions.md). Sample budget 60k remains as a
-safety net (degrades to fixed explore steps, result says `coarsened`).
+docs/decisions.md). Certificates CARRY across chunk boundaries (2026-09-10):
+a query's clearance d − margin is decremented by each chunk's V × Lc and
+re-expressed in the next chunk's V, so a far pair costs nothing until the
+motion could have closed the gap — the old per-chunk reset re-queried every
+pair at every segment, which on a program of a million 0.09 mm segments
+was ~2 h per sweep (now 31 s, certified). Pairs inside the margin keep
+their EXPLORE re-probe cadence but are sampled at least once on every line
+they stay in contact with (the per-line continuation marks). The sweep is a
+resumable iterator (`sweepCollisionsIter`, checkpoints every 16 segments /
+512 samples) with a WALL-CLOCK budget (`maxMs`, auto 20 s / manual 120 s,
+active time only): on breach it stops and the result says `truncated`
+{covered, reason} — ScrubBar reads "no clash in N % swept", never "clear".
+The sample budget (4 M) is only a runaway backstop, and its breach is now
+`truncated.reason = "samples"`, no longer a silent break.
 A sweep whose guarantee does not hold — a declared kins this client
 cannot evaluate falls back to trivkins, whose bound is legitimately 0 —
 reports `uncertified` with the reason, surfaced in ScrubBar on BOTH the
@@ -763,8 +779,14 @@ stop. The clash COUNT, the marks and prev/next all read ONE list
 (`viewer/clashTargets.ts`; a same-line re-entry is labelled) and contiguous
 refined windows are merged (`mergeContiguousIntervals`) — count ≡ ticks ≡ stops. Near-miss hits keep their closest-approach sample.
 Hits during RAPID segments are flagged `rapid` — always real. ThreeViewer owns the worker (geometry from machineAssetCache, tool
-dims from live status); cancel = worker terminate + lazy recreate (a sync
-sweep can't observe a cancel message). Results reflect check-time
+dims from live status); the worker drives the iterator in 40 ms slices
+(`viewer/sweepPump.ts`) and reads `{cancel}` / `{pause}` / `{resume}`
+between them — no terminate, the BVH model stays RESIDENT under a
+`modelKey` (STL copies are re-sent only when it changes; a worker that
+lacks the model answers `needBodies`); OrbitControls start/end pause and
+resume a running sweep, because a busy worker is off the main thread but
+not off the machine (it starved the Mac's GPU 3–4 frames behind,
+2026-09-10). Results reflect check-time
 WCS/tool and clear on program change; GcodePanel reuses
 `.codeLine.violation` markers via `collisionLines`. SEMANTIC LIMIT (no
 stock model): a program cutting at the work surface reports tool-vs-
@@ -897,6 +919,8 @@ The `tool_touch_off.ngc` subroutine reads parameters from the LinuxCNC var file 
 - A per-line `Map`/`Set` on a million-line program is a million heap objects the browser's collector marks on EVERY major GC (110–140 ms measured) and a ~1 s structured clone per worker hop — the "sometimes lags when rotating" class. Line-indexed typed arrays (`viewer/lineIndex.ts`) are the shape for anything keyed by line number
 - A background re-parse that cannot be cancelled QUEUES: an edge raised during it was not even evaluated until it published, then ran a second full parse (41–167 s live). Snapshot the running parse's inputs and supersede it; and an edge that stays true until the publish (`file_changed`) must never be allowed to cancel the parse that will clear it
 - `browser.viewer.perf` `frames`/`gap_*` are the STATUS cadence (30 Hz active, 5 Hz at the gateway's idle poll after a manual jog), NOT the frame rate — a whole record once called the Mac's viewer "30 fps capped" from them. `raf_*` is the render loop; `mt_*` (timer lateness) vs `gpu_*` (WebGL2 fences) say whether a stall is the main thread or the GPU — the CPU-side `render_*` never shows a GPU-bound draw (WebGL is out of process in Firefox and Chromium)
+- A Web Worker is off the main thread, not off the machine: the collision sweep running for minutes made the GPU trail 3–4 frames on the operator's Mac with a perfectly clean main thread. Profile before designing (the "2 h sweep" was a per-chunk certificate reset meeting 0.09 mm segments — 45 BVH queries per 0.09 mm — not mesh cost); bound every background job with a wall-clock budget that reports what it covered; and let interaction pause it
+- Lazy conservative advancement must CARRY its certificates across chunk boundaries in clearance terms (d − margin, decremented by each chunk's V × L); resetting them per chunk makes the cost O(segments × pairs) regardless of geometry
 - Profile before vectorizing: 40 % of the 46 s plane-mode parse was 2.36 M pure-Python inverse-kinematics solves, another ~40 % three passes that re-stripped comments character by character; the interpreter itself was a quarter. cProfile inflates Python-call-heavy code ~2× — use it for proportions, the trace for absolute numbers
 
 ## Production DISPLAY Integration
