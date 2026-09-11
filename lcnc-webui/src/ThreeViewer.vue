@@ -286,6 +286,17 @@ let workRotGroup: THREE.Group | null = null;  // rotated sub-group for stock/axe
 // own re-bake (2026-09-03, operator-caught during a TWP run).
 let pathAnchor: THREE.Group | null = null;
 let pathRot: THREE.Group | null = null;
+// The MACHINE frame node (the machine-bounds clip planes and the chunked
+// path's overlay gate live in it): the work group's frame with every rotary
+// DOF of the work chain at zero — machine coordinates by the machine.json
+// convention (each model's chains carry the frame: joints-at-zero puts the
+// tool tip on the work group's origin). A child of the PARENT of the work
+// chain's topmost rotary node, so it follows table travel but never table
+// rotation. 2026-09-11: the bounds box used to ride _workGrp and rotated
+// with A — physically wrong on a rotary work chain (machine limits are
+// joint limits, fixed in the room). Without a rotary on the work chain it
+// IS _workGrp (3-axis and head-rotary-only machines: unchanged).
+let machineFrameGrp: THREE.Group | null = null;
 let _workGrp: THREE.Group | null = null;   // resolved from init.workGroup
 let _toolGrp: THREE.Group | null = null;   // resolved from init.toolGroup
 
@@ -374,6 +385,9 @@ let trackingMode: "none" | "tool" | "wcs" = "none";
 // flight and a non-zero tracking delta force a frame.
 let _needsRender = true;
 function requestRender() { _needsRender = true; }
+// renderer.info of the last main render (perf probe context).
+let _glCalls = 0;
+let _glLines = 0;
 
 // Fresh per-call snapshot of the reassigned scene-graph pointers for the viewer
 // controllers (they must never cache these — see viewer/viewerContext.ts).
@@ -501,6 +515,7 @@ watch(pathStaleNow, (stale) => { toolpath.setStale(stale); requestRender(); }, {
 // viewerContext.ts).
 const _toolpathCtx: ToolpathCtx = {
   scene: null, workOrigin: null, workRotGroup: null, pathAnchor: null, pathRot: null,
+  machineFrame: null,
   pathAlwaysOnTop: false, machineBounds: undefined, units: undefined,
 };
 function toolpathCtx(): ToolpathCtx {
@@ -509,6 +524,7 @@ function toolpathCtx(): ToolpathCtx {
   _toolpathCtx.workRotGroup = workRotGroup;
   _toolpathCtx.pathAnchor = pathAnchor;
   _toolpathCtx.pathRot = pathRot;
+  _toolpathCtx.machineFrame = machineFrameGrp;
   _toolpathCtx.pathAlwaysOnTop = pathAlwaysOnTop;
   _toolpathCtx.machineBounds = viewerInit.value?.machine_bounds;
   _toolpathCtx.units = viewerInit.value?.units;
@@ -1096,6 +1112,35 @@ function ensureCoreGroups(init: ViewerInit) {
   _toolGrp = groups[init.toolGroup ?? "tool"] ?? groups.root;
   _toolBase.copy(_toolGrp.position);
 
+  // Machine frame (see the declaration comment): parent = the parent of the
+  // topmost rotary node on the work chain; static offset = the base
+  // translates from the work group up to that rotary node (rotations are
+  // zero there, so the composition is a plain sum). Linear DOFs BELOW the
+  // topmost rotary (a slide riding a rotary table) are not tracked — none
+  // of the shipped models has one.
+  {
+    const workId = init.workGroup ?? grpDefs[0]?.id ?? "root";
+    const parentOf: Record<string, string> = {};
+    for (const g of grpDefs) parentOf[g.id] = g.parent;
+    const rotGroups = new Set(normalizeKinematicsCached(init.kinematics).filter(k => k.rotate).map(k => k.group));
+    let topRot: string | null = null;
+    for (let id: string | undefined = workId; id && id !== "root" && groups[id]; id = parentOf[id]) {
+      if (rotGroups.has(id)) topRot = id;
+    }
+    if (topRot) {
+      const linId = parentOf[topRot];
+      const linGrp = (linId && linId !== "root" && groups[linId]) ? groups[linId]! : groups.root!;
+      machineFrameGrp = new THREE.Group();
+      for (let id: string | undefined = workId; id && id !== "root" && groups[id]; id = parentOf[id]) {
+        machineFrameGrp.position.add(_groupBase[id] ?? groups[id]!.position);
+        if (id === topRot) break;
+      }
+      linGrp.add(machineFrameGrp);
+    } else {
+      machineFrameGrp = _workGrp;
+    }
+  }
+
   // Work origin (DRO zero frame) — attached to the work/table group
   workOrigin = new THREE.Group();
   _workGrp.add(workOrigin);
@@ -1317,7 +1362,8 @@ async function buildFromInit(init: ViewerInit) {
       applyBox(machineBoundsMesh, mb.size as Vec3, mb.origin as Vec3);
 
       // Build clipping planes for overflow visualization (normals point outward)
-      // Stored in _workGrp local space; transformed to world space each frame in animate()
+      // Stored in MACHINE-frame local space (machineFrameGrp); transformed to
+      // world space each frame in animate()
       const [bx, by, bz] = mb.origin as Vec3;
       const [bsx, bsy, bsz] = mb.size as Vec3;
       if (bsx > 0 && bsy > 0 && bsz > 0) {
@@ -1452,6 +1498,19 @@ async function buildFromInit(init: ViewerInit) {
       sweep_pct: collisionBusy.value ? Math.round(collisionProgress.value * 100) : null,
       pf_pending: _pfPending,
       path_stale: pathStaleNow.value,
+      // Chunked draw (2026-09-11): what the GPU was actually handed —
+      // segments at the current draw ranges, chunk count, chunks inside the
+      // frustum and outside-bounds overlays drawn (both from the last
+      // updateCulling), draw calls / line primitives of the last main
+      // render, and which display path built the lines.
+      draw_segs: toolpath.drawSegs,
+      chunks: toolpath.chunks,
+      chunks_visible: toolpath.chunksVisible,
+      overlay_chunks: toolpath.overlayChunks,
+      frame_mixed: toolpath.frameMixed,
+      gl_calls: _glCalls,
+      gl_lines: _glLines,
+      display_mode: _pfAppliedMode,
       // Three.js resource counts — monotonic growth over a long run is a
       // geometry/texture leak (the "~1 hr in" stutter suspect). Ride the 3 s
       // probe so leak detection shares one event line with heap + gap.
@@ -2587,13 +2646,14 @@ function animate() {
   // toggle, tracking delta, …) or a tween is in flight.
   if (!_needsRender && !_tweenRaf) return;
 
-  // Update overflow clipping planes to track _workGrp world transform
-  // (only runs when we're actually rendering — C4 lazy clip planes).
-  if (_localBoundsPlanes.length > 0 && _localBoundsPlanes.length === boundsClipPlanes.length && _workGrp) {
-    _workGrp.updateWorldMatrix(true, false);  // ancestors too — a_table's rotation this frame
+  // Update overflow clipping planes to track the MACHINE frame's world
+  // transform (table travel, never table rotation — see machineFrameGrp).
+  // Only runs when we're actually rendering — C4 lazy clip planes.
+  if (_localBoundsPlanes.length > 0 && _localBoundsPlanes.length === boundsClipPlanes.length && machineFrameGrp) {
+    machineFrameGrp.updateWorldMatrix(true, false);  // ancestors too — the table's travel this frame
     for (let i = 0; i < _localBoundsPlanes.length; i++) {
       boundsClipPlanes[i]!.copy(_localBoundsPlanes[i]!);
-      boundsClipPlanes[i]!.applyMatrix4(_workGrp.matrixWorld);
+      boundsClipPlanes[i]!.applyMatrix4(machineFrameGrp.matrixWorld);
       insideBoundsClipPlanes[i]!.copy(boundsClipPlanes[i]!).negate();
     }
   }
@@ -2619,9 +2679,16 @@ function animate() {
   // bottom transitions. The tween writes camera.position/quaternion directly
   // each frame; controls.update() runs once at tween completion to re-sync.
   if (!_tweenRaf) controls?.update();
+  // Per-chunk overlay gate + frustum count (viewer/lineChunks.ts): decides
+  // which outside-bounds overlays are drawn this frame at the current pose.
+  if (camera) toolpath.updateCulling(toolpathCtx(), camera);
   const _tRender = performance.now();
   renderer?.render(scene!, camera!);
   recordRender(performance.now() - _tRender);
+  // Draw-call counts of the MAIN pass (info auto-resets per render(), and the
+  // gizmo pass below would zero them) — read here for the perf probe.
+  _glCalls = renderer?.info.render.calls ?? 0;
+  _glLines = renderer?.info.render.lines ?? 0;
 
   // Orientation gizmo — always ortho, render into bottom-right viewport
   // (top-left is the HUD, top-right is the ViewCube + quick-grid).
