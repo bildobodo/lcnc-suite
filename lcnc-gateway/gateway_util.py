@@ -871,6 +871,24 @@ def mode_boundary_indices(mode):
     return out
 
 
+def seq_boundary_indices(seqs, bounds):
+    """Vertex indices that must survive decimation at every seq BOUNDARY in
+    `bounds` (the rotary-command seqs, 2026-09-11): the segment at seq >= b
+    is governed differently from the one before, so — exactly as
+    mode_boundary_indices — BOTH the last vertex before the boundary and
+    the first at/after it anchor, or a collinear run collapses across it
+    and the client (which stamps a segment with its END vertex) draws real
+    inherited motion riding the table. Vectorized (searchsorted + diff):
+    a 2 M-vertex stream is one C pass. Pure."""
+    import numpy as np
+    if not bounds or not len(seqs):
+        return set()
+    b = np.asarray(sorted(set(int(x) for x in bounds)), dtype=np.int64)
+    governed = np.searchsorted(b, np.asarray(seqs, dtype=np.int64), side="right")
+    flips = np.flatnonzero(np.diff(governed) != 0)     # change between i and i+1
+    return set(int(i) for i in flips) | set(int(i) + 1 for i in flips)
+
+
 def event_boundary_indices(seqs, events):
     """Vertex indices that must survive decimation at a seq-keyed EVENT
     boundary (schema 8: tlo_events). Same rule as mode_boundary_indices —
@@ -2927,6 +2945,151 @@ def line_trust_flags(line_numbers, cls, is_rapid_stream):
             out.append(0)
         else:
             out.append(1 if (k == LINE_RAPID) == bool(is_rapid_stream) else 0)
+    return out
+
+
+#: Rotary-command text scan (2026-09-11, "decouple the path from A in
+#: machine mode"). A rotary axis WORD candidate: the letter followed by a
+#: value start (number, sign, `#` parameter or `[` expression). Runs over
+#: the WHOLE source once (C speed) as a prefilter — an XYZ-only CAM file
+#: pays one scan and no per-line work; the per-line test decides. NOT
+#: `_AXIS_WORD`, which requires a digit/dot/sign right after the letter and
+#: so misses `A#100`, `A[#1+2]` and `A#<ang>` — the forms a post that
+#: parameterises its rotary uses.
+_ROT_CANDIDATE_RE = re.compile(r"[ABC]\s*[-+]?[\d.#\[]", re.I)
+_ROT_WORD_RE = re.compile(r"[ABC](?=[-+]?[\d.#\[])")
+_ANY_AXIS_WORD_RE = re.compile(r"[XYZABCUVW](?=[-+]?[\d.#\[])")
+_OWORD_NAME_RE = re.compile(r"O<[^>]*>", re.I)
+#: On a whitespace-free upper-cased line: G10 / G92(.1/.2/.3) / G52 — their
+#: axis words write offsets, never motion (`_SETTINGS_GCODES` needs word
+#: boundaries that a stripped `N10G10L2P1A30` no longer has).
+_SETTINGS_WORD_RE = re.compile(r"G0*(?:10|92(?:\.[123])?|52)(?![\d.])")
+#: A bare return-to-reference: G28/G30 with no axis words home every axis;
+#: the `.1` forms only store the reference.
+_BARE_HOME_RE = re.compile(r"G0*(?:28|30)(?![.\d])")
+
+
+def rotary_letters_on_line(raw):
+    """Rotary axis letters (a subset of "ABC", sorted) that this source line
+    COMMANDS: a letter followed by a number, `#` parameter or `[` expression,
+    after comments are stripped, named params (`#<name>` -> `#0`) and o-word
+    names (`o<name>` -> `O0`) are neutralised so a letter inside them can
+    never read as a word, and whitespace removed (`A 10` and `X5A10` are
+    both words). Settings lines (G10/G92/G52) command nothing: their axis
+    words write offsets. A bare `G28`/`G30` (no axis words) homes every axis
+    -> "ABC". Pure."""
+    s = strip_gcode_comments(raw)
+    if not s.strip():
+        return ""
+    s = _NAMED_PARAM_RE.sub("#0", s)
+    s = _OWORD_NAME_RE.sub("O0", s)
+    s = re.sub(r"\s+", "", s).upper()
+    if _SETTINGS_WORD_RE.search(s):
+        return ""
+    letters = "".join(sorted(set(_ROT_WORD_RE.findall(s))))
+    if not letters and _BARE_HOME_RE.search(s) and not _ANY_AXIS_WORD_RE.search(s):
+        return "ABC"
+    return letters
+
+
+def rotary_word_lines(source_text):
+    """{1-based line number: letters} for every MAIN-file line that commands
+    a rotary axis (rotary_letters_on_line). One regex pass over the whole
+    text finds the candidate lines; only those are examined. Pure."""
+    out = {}
+    text = source_text or ""
+    line_no, pos, done = 1, 0, 0
+    for m in _ROT_CANDIDATE_RE.finditer(text):
+        line_no += text.count("\n", pos, m.start())
+        pos = m.start()
+        if line_no == done:
+            continue
+        done = line_no
+        ls = text.rfind("\n", 0, pos) + 1
+        le = text.find("\n", pos)
+        letters = rotary_letters_on_line(text[ls:(len(text) if le < 0 else le)])
+        if letters:
+            out[line_no] = letters
+    return out
+
+
+def first_rotary_commands(streams, seed, rot_lines, relabel_seqs=(), eps=_USTART_SEED_EPS):
+    """Where the PROGRAM first commands each rotary axis (2026-09-11, the
+    rotary-boundary wire field): {"A": seq | None, "B": ..., "C": ...,
+    "unknown": seq | None}, one key per letter in `seed`.
+
+    Every segment before an axis's first command INHERITS the parse-time
+    seed pose for that axis (the interp was seeded with the live machine),
+    so a client may hold those vertices ROOM-FIXED under identity kins
+    instead of riding the table until a reparse re-bakes them. The client
+    cannot derive this: an explicit `G0 A0 C0` at the top of a 5-axis post
+    equals the seed value yet must ride the part (the run moves A back to
+    0), while an XYZ-only program must stay in the room.
+
+    Two tests per segment, either one commands the letter at that seq:
+      (a) the RAW canon endpoint (machine-frame degrees — never the
+          per-epoch peeled wire value) differs from the seed by > eps: the
+          axis moved, so it was commanded (a mid-program `G10 L2` rotary
+          offset write also moves it: reported as commanded — conservative,
+          the segment rides);
+      (b) the segment's source line carries the letter as a word (the
+          explicit-equal-to-seed case — only the text can tell) — consulted
+          only where the line number can be trusted to be THIS file's:
+          `consultable` = lineno >= 1, at sub-span depth 0, the line's
+          motion kind matches the stream, and no unmarked external sub in
+          play.
+    "unknown" = the first non-relabel seq whose text cannot be consulted
+    while some letter is still uncommanded there: from that seq on the
+    answer is "cannot tell" (unchecked != clean) and a client must treat
+    everything after it as commanded (rides the part). Letters found after
+    it by either test are still reported (a genuine command is a command);
+    a client takes the minimum over the letters it cares about and unknown.
+
+    streams: iterable of (seqs, lines, abc, consultable) — one per canon
+    stream, index-aligned per stream (abc = raw [a,b,c] per endpoint); any
+    seq order (they are merged by seq value). relabel_seqs: the inserted
+    flip-relabel vertices (stationary, never a command). Vectorized: an
+    XYZ-only 1.18 M-line program is three numpy passes. Pure."""
+    import numpy as np
+    letters = [l for l in ("A", "B", "C") if seed and seed.get(l) is not None]
+    out = {l: None for l in letters}
+    out["unknown"] = None
+    if not letters:
+        return out
+    col = {"A": 0, "B": 1, "C": 2}
+    rel = np.asarray(sorted(relabel_seqs), dtype=np.int64) if relabel_seqs else None
+    prepared = []
+    for seqs, lines, abc, consultable in streams:
+        seqs = np.asarray(seqs, dtype=np.int64)
+        if seqs.size == 0:
+            continue
+        lines = np.asarray(lines, dtype=np.int64)
+        abc = np.asarray(abc, dtype=np.float64).reshape(-1, 3)
+        cons = np.asarray(consultable, dtype=bool)
+        skip = np.isin(seqs, rel) if rel is not None and rel.size else np.zeros(seqs.shape, dtype=bool)
+        prepared.append((seqs, lines, abc, cons, skip))
+    for l in letters:
+        text_lines = np.asarray([ln for ln, ls in (rot_lines or {}).items() if l in ls], dtype=np.int64)
+        best = None
+        for seqs, lines, abc, cons, skip in prepared:
+            hit = (np.abs(abc[:, col[l]] - float(seed[l])) > eps) & ~skip
+            if text_lines.size:
+                hit |= cons & np.isin(lines, text_lines)
+            idx = np.flatnonzero(hit)
+            if idx.size:
+                s0 = int(seqs[idx].min())
+                best = s0 if best is None else min(best, s0)
+        out[l] = best
+    # Some letter is still uncommanded at seq s iff s < max over letters of
+    # (found seq, or +inf when never found).
+    horizon = max((out[l] if out[l] is not None else np.iinfo(np.int64).max) for l in letters)
+    unk = None
+    for seqs, lines, abc, cons, skip in prepared:
+        cand = np.flatnonzero(~cons & ~skip & (seqs < horizon))
+        if cand.size:
+            s0 = int(seqs[cand].min())
+            unk = s0 if unk is None else min(unk, s0)
+    out["unknown"] = unk
     return out
 
 

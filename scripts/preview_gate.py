@@ -68,6 +68,9 @@ def summarize(payload):
         ptp = allabc.max(axis=0) - allabc.min(axis=0)
         swept = {"ABC"[i] for i in range(3) if ptp[i] > 1e-6}
     out["swept_axes"] = sorted(swept)
+    # Rotary-command boundary (2026-09-11): per-letter first-command seqs +
+    # unknown + the (pinned) seed — absent on 3-axis configs.
+    out["rotary_cmd"] = payload.get("rotary_cmd")
     out["kinstype_present"] = payload.get("feed_kinstype") is not None \
         or payload.get("rapid_kinstype") is not None
     out["kins_frames"] = len(payload.get("kins_frames") or [])

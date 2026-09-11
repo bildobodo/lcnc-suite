@@ -108,6 +108,19 @@ class TestSchemaStampRecording(unittest.TestCase):
         self.assertEqual(b.published_tlo["tlos"], [[3, 0.0, 0.0, 22.0, 6.0]])
         self.assertEqual(b.published_schema, 8)
 
+    def test_rotcmd_line_recorded_at_publish(self):
+        b = self._refresh(
+            b'__ROTCMD__\t{"A": 12, "B": null, "C": null, "unknown": null,'
+            b' "seed": {"A": 0.0, "B": 0.0, "C": 0.0}}\n__SCHEMA__\t8\n')
+        self.assertEqual(b.published_rotary_cmd,
+                         {"A": 12, "B": None, "C": None, "unknown": None,
+                          "seed": {"A": 0.0, "B": 0.0, "C": 0.0}})
+
+    def test_malformed_rotcmd_line_records_none_and_publishes(self):
+        b = self._refresh(b"__ROTCMD__\t{broken\n__SCHEMA__\t8\n")
+        self.assertIsNone(b.published_rotary_cmd)
+        self.assertEqual(b.published_schema, 8)
+
     def test_malformed_tlo_line_records_none(self):
         b = self._refresh(b"__TLO__\t{broken json\n")
         self.assertTrue(b.preview_available())

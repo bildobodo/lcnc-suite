@@ -80,6 +80,8 @@ from gateway_util import (
     wcs_rewrite_targets, ustart_start_tuple,
     PREVIEW_SCHEMA, should_ship_abc, rotary_sync_initcode,
     rotary_seed_values, override_rotary_position,
+    rotary_word_lines, first_rotary_commands, seq_boundary_indices,
+    LINE_NONE, LINE_RAPID, LINE_FEED, LINE_EITHER,
     seed_kins_events, program_end_kins_type, wcs_offset_flat_from_var,
     find_unmarked_subs, resolve_subroutine_dirs,
 )
@@ -570,6 +572,7 @@ def parse(ctx: dict) -> dict:
     feed = []
     feed_lines = []
     feed_abc = []
+    feed_abc_raw = []     # machine-frame rotary endpoints (the boundary test compares these)
     feed_seq = []
     feed_tcum = []
     _ftc = 0.0
@@ -586,6 +589,7 @@ def parse(ctx: dict) -> dict:
             (end[2] - e[2]) * unit_scale,
         ])
         feed_abc.append([end[3] - e[3], end[4] - e[4], end[5] - e[5]])
+        feed_abc_raw.append(end[3:6])
         feed_lines.append(lineno)
         feed_seq.append(seq)
         sdx = (end[0] - start[0]) * unit_scale
@@ -605,6 +609,7 @@ def parse(ctx: dict) -> dict:
 
     rapid = []
     rapid_abc = []
+    rapid_abc_raw = []
     rapid_lines = []
     rapid_seq = []
     rapid_tcum = []
@@ -630,6 +635,7 @@ def parse(ctx: dict) -> dict:
             (end[2] - e[2]) * unit_scale,
         ])
         rapid_abc.append([end[3] - e[3], end[4] - e[4], end[5] - e[5]])
+        rapid_abc_raw.append(end[3:6])
         rapid_lines.append(lineno)
         rapid_seq.append(seq)
         sdx = (end[0] - start[0]) * unit_scale
@@ -641,6 +647,62 @@ def parse(ctx: dict) -> dict:
         rapid_tcum.append(_rtc)
 
     total_rapid_time = _rtc if time_axis else 0.0
+
+    # Per-line motion classification (W2 P6) and the unmarked-sub advisory
+    # (W3 P5) — computed here, ahead of the rotary boundary that consults
+    # them; reused by the per-point trust flags on the shipped lists below.
+    _line_cls = classify_motion_lines(_src_text)
+    unmarked_subs = []
+    if _src_text:
+        unmarked_subs = find_unmarked_subs(
+            _src_text,
+            resolve_subroutine_dirs(ini.find("RS274NGC", "SUBROUTINE_PATH"),
+                                    ini_path))
+        if unmarked_subs:
+            print(f"unmarked subs: {unmarked_subs} — line highlight may be "
+                  f"unreliable during their motion (add WEBUI_SUB markers)",
+                  file=sys.stderr, flush=True)
+
+    # Rotary boundary (2026-09-11, "decouple the path from A in machine
+    # mode"): where the PROGRAM first commands each rotary axis. Every
+    # segment before that inherits the parse-time seed for the axis, so the
+    # client may draw it room-fixed under identity kins instead of riding
+    # the table until the next reparse re-bakes it. The value test uses the
+    # RAW canon endpoints (machine-frame degrees); the text test is
+    # consulted only where a line number is provably this file's: at
+    # sub-span depth 0, motion kind matching the stream, and no unmarked
+    # external sub in play (an unmarked sub's colliding line could carry —
+    # or lack — an A word the main file does not). See
+    # first_rotary_commands for the "unknown" contract.
+    _rot_cmd = None
+    _rot_bounds = []
+    if _rot_seed is not None:
+        _cls_arr = np.asarray(_line_cls, dtype=np.int64)
+        _span_idx = {_ev[1]: 0 for _ev in canon.sub_events if _ev[1] is not None}
+
+        def _consultable(lines, seqs, is_rapid):
+            ln = np.asarray(lines, dtype=np.int64)
+            ok = (ln >= 1) & (ln <= _cls_arr.size)
+            if _cls_arr.size:
+                kinds = _cls_arr[np.clip(ln - 1, 0, _cls_arr.size - 1)]
+                ok &= (kinds == LINE_EITHER) | (kinds == (LINE_RAPID if is_rapid else LINE_FEED))
+            else:
+                ok &= False
+            if unmarked_subs:
+                ok &= False
+            elif _span_idx and ln.size:
+                # 0xff = outside every marked span (resolve_sub_indices)
+                ok &= np.asarray(resolve_sub_indices(seqs, canon.sub_events, _span_idx),
+                                 dtype=np.int64) == 0xff
+            return ok
+
+        _rot_cmd = first_rotary_commands(
+            [(feed_seq, feed_lines, feed_abc_raw, _consultable(feed_lines, feed_seq, False)),
+             (rapid_seq, rapid_lines, rapid_abc_raw, _consultable(rapid_lines, rapid_seq, True))],
+            _rot_seed, rotary_word_lines(_src_text), relabel_seqs)
+        _rot_bounds = sorted({v for v in _rot_cmd.values() if v is not None})
+        print("__ROTCMD__\t" + json.dumps({**_rot_cmd, "seed": _rot_seed}),
+              file=sys.stderr, flush=True)
 
     # Flip relabel flags for the wire (W8 phantom jump + review P2 epochs).
     # brk[i]=1 means the segment INTO point i is a frame relabel — zero
@@ -753,6 +815,12 @@ def parse(ctx: dict) -> dict:
             # mode, so mode_boundary_indices alone cannot anchor these.
             anchors = sorted(set(anchors)
                              | {i for i, s in enumerate(feed_seq) if s + 1 in relabel_seqs})
+        if _rot_bounds:
+            # Rotary-command boundaries (2026-09-11): both flip vertices,
+            # like mode boundaries — the client stamps a segment with its
+            # END vertex, so a collapsed run across the boundary would draw
+            # real inherited motion riding the table.
+            anchors = sorted(set(anchors) | seq_boundary_indices(feed_seq, _rot_bounds))
         keep = _rdp_keep(_rdp_points(feed, feed_abc), anchors, eps_sq)
         if len(keep) < len(feed):
             feed = [feed[i] for i in keep]
@@ -778,6 +846,8 @@ def parse(ctx: dict) -> dict:
             r_anchors = sorted(set(r_anchors)
                                | {i for i, s in enumerate(rapid_seq)
                                   if s in relabel_seqs or s + 1 in relabel_seqs})
+        if _rot_bounds:
+            r_anchors = sorted(set(r_anchors) | seq_boundary_indices(rapid_seq, _rot_bounds))
         if ustart_seqs:
             # Unknown-start vertices are ZERO-LENGTH (collinear by
             # construction — plain RDP would silently drop them) and their
@@ -925,7 +995,6 @@ def parse(ctx: dict) -> dict:
     # highlight's kill switch — now means NO shipped point trusts; a main
     # program that calls subs keeps its own lines highlightable (pre-
     # schema-4 payloads disabled the whole highlight instead).
-    _line_cls = classify_motion_lines(_src_text)
     feed_lineok = line_trust_flags(feed_lines, _line_cls, False)
     rapid_lineok = line_trust_flags(rapid_lines, _line_cls, True)
     sub_names = []
@@ -976,20 +1045,8 @@ def parse(ctx: dict) -> dict:
               f"line (marked subs: {sub_names or 'none'})",
               file=sys.stderr, flush=True)
 
-    # Unmarked-sub advisory (W3 P5): external o-calls whose files carry no
-    # WEBUI_SUB marker — their motion's line numbers collide with the main
-    # file's and can false-positively trust. File-level hint only, no
-    # per-point reattribution (markers remain the only trust mechanism).
-    unmarked_subs = []
-    if _src_text:
-        unmarked_subs = find_unmarked_subs(
-            _src_text,
-            resolve_subroutine_dirs(ini.find("RS274NGC", "SUBROUTINE_PATH"),
-                                    ini_path))
-        if unmarked_subs:
-            print(f"unmarked subs: {unmarked_subs} — line highlight may be "
-                  f"unreliable during their motion (add WEBUI_SUB markers)",
-                  file=sys.stderr, flush=True)
+    # (Unmarked-sub advisory, W3 P5: computed above, ahead of the rotary
+    # boundary, into `unmarked_subs`.)
 
     # Include "file" so this dict is the EXACT GET /preview wire shape: the
     # gateway publishes these bytes verbatim (no decode + re-encode), which is
@@ -1105,6 +1162,14 @@ def parse(ctx: dict) -> dict:
                   "rotation": _basis[2],
               },
               "parse_error": parse_error, "error_line": error_line}
+    if _rot_cmd is not None:
+        # Rotary-command boundary (2026-09-11): per rotary letter the seq of
+        # the segment that first COMMANDS it (None = never — every vertex
+        # inherits the seed for that axis), "unknown" = the seq from which
+        # the text can no longer tell (a client treats everything at/after
+        # it as commanded), and the seed itself. Absent = no rotary seed
+        # (3-axis config / legacy) — the client keeps today's picture.
+        result["rotary_cmd"] = {**_rot_cmd, "seed": _rot_seed}
     if ship_abc:
         # Per-vertex abc (degrees, per-epoch-peeled program coords),
         # index-aligned with feed/rapid. Present whenever abc is NEEDED to

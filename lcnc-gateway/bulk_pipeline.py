@@ -136,6 +136,12 @@ class BulkPipeline:
         # orients from the parse-time pose). None = no rotary sync
         # (3-axis config) — no edge, honestly.
         self.published_rotary_seed: Optional[dict] = None
+        # Rotary-command boundary of the published payload (2026-09-11),
+        # from the worker's `__ROTCMD__` line: {"A": seq|None, ..,
+        # "unknown": seq|None, "seed": {..}} — the hook for the follow-on
+        # that skips the rotary reparse when the drifted axes are never
+        # commanded. None = no rotary seed / legacy worker.
+        self.published_rotary_cmd: Optional[dict] = None
         # Parse-time switchkins state of the published payload (fifth
         # freshness input), from the worker's `__KINSSEED__` stderr line:
         # {"type": int|None, "frame": [p,t1,t2]|None} — what the parse
@@ -481,6 +487,7 @@ class BulkPipeline:
             worker_schema: Optional[int] = None
             worker_tlo: Optional[dict] = None
             worker_rotary_seed: Optional[dict] = None
+            worker_rotary_cmd: Optional[dict] = None
             worker_kins_seed: Optional[dict] = None
             worker_wcs_off: Optional[list] = None
             if stderr:
@@ -527,6 +534,15 @@ class BulkPipeline:
                             worker_rotary_seed = json.loads(_s[1])
                         except (IndexError, ValueError):
                             _trace.emit("gcode.abcseed_line_malformed",
+                                        level="warn", line=ln[:160])
+                    elif ln.startswith("__ROTCMD__"):
+                        # Rotary-command boundary (2026-09-11) — same
+                        # malformed-→-None-loudly contract as __ABCSEED__.
+                        _s = ln.split("\t", 1)
+                        try:
+                            worker_rotary_cmd = json.loads(_s[1])
+                        except (IndexError, ValueError):
+                            _trace.emit("gcode.rotcmd_line_malformed",
                                         level="warn", line=ln[:160])
                     elif ln.startswith("__KINSSEED__"):
                         # Parse-time switchkins assumption (fifth input) —
@@ -582,6 +598,7 @@ class BulkPipeline:
             self.published_schema = worker_schema
             self.published_tlo = worker_tlo
             self.published_rotary_seed = worker_rotary_seed
+            self.published_rotary_cmd = worker_rotary_cmd
             self.published_kins_seed = worker_kins_seed
             self.published_wcs_off = worker_wcs_off
             self.preview_version += 1

@@ -3430,3 +3430,114 @@ class TestProgramEndKinsType(unittest.TestCase):
 
     def test_garbage_is_none_not_a_guess(self):
         self.assertIsNone(gateway_util.program_end_kins_type([(3, "x")]))
+
+
+class TestRotaryCommands(unittest.TestCase):
+    """The rotary-boundary wire field (2026-09-11): which source lines
+    command a rotary axis, and where the program first commands each."""
+
+    def test_rotary_letters_on_line_forms(self):
+        f = gateway_util.rotary_letters_on_line
+        self.assertEqual(f("G0 A0"), "A")
+        self.assertEqual(f("G1 X5 B#100"), "B")
+        self.assertEqual(f("G1 A[#1+2]"), "A")
+        self.assertEqual(f("G0 A#<ang>"), "A")
+        self.assertEqual(f("N10G1X5C-3.5"), "C")
+        self.assertEqual(f("G1 A 10"), "A")
+        self.assertEqual(f("G0 X1 A0 C90"), "AC")
+        self.assertEqual(f("G1 X1 (A5)"), "")
+        self.assertEqual(f("G1 X1 ;A5"), "")
+        self.assertEqual(f("G10 L2 P1 A30"), "")
+        self.assertEqual(f("N10G10L2P1A30"), "")
+        self.assertEqual(f("G92 C0"), "")
+        self.assertEqual(f("G92.1"), "")
+        self.assertEqual(f("o<a1> call"), "")
+        self.assertEqual(f("#<_a_angle> = 5"), "")
+        self.assertEqual(f("X[ABS[#1]] Y[ACOS[0.5]] Z[ATAN[1]/[2]]"), "")
+        self.assertEqual(f("G28"), "ABC")
+        self.assertEqual(f("G30"), "ABC")
+        self.assertEqual(f("G28.1"), "")
+        self.assertEqual(f("G28 X0"), "")
+        self.assertEqual(f("G28 A#1"), "A")
+        self.assertEqual(f(""), "")
+        self.assertEqual(f("   "), "")
+        self.assertEqual(f("G1 X5 (rough) A10"), "A")   # a word AFTER an inline comment
+
+    def test_rotary_word_lines_numbers_the_candidate_lines(self):
+        text = "G21 G90\nG0 X0 Y0\nG0 A0 C0 (safe)\nG1 X5\n(A5 in a comment)\nG1 B[#1]\nM2\n"
+        self.assertEqual(gateway_util.rotary_word_lines(text), {3: "AC", 6: "B"})
+        self.assertEqual(gateway_util.rotary_word_lines(""), {})
+        self.assertEqual(gateway_util.rotary_word_lines("G0 X1\nG1 Y2\n"), {})
+        # CRLF endings and a word after a comment on the same line
+        self.assertEqual(gateway_util.rotary_word_lines("G0 X1\r\nG1 X5 (r) A10\r\n"), {2: "A"})
+
+    def _seg(self, seq, line, a=0.0, b=0.0, c=0.0, cons=True):
+        return (seq, line, (a, b, c), cons)
+
+    def _streams(self, *segs):
+        # one stream in seq order
+        return [([s[0] for s in segs], [s[1] for s in segs], [s[2] for s in segs], [s[3] for s in segs])]
+
+    def test_xyz_only_program_inherits_everything(self):
+        r = gateway_util.first_rotary_commands(
+            self._streams(self._seg(1, 1), self._seg(2, 2), self._seg(3, 3)),
+            {"A": 0.0, "B": 0.0, "C": 0.0}, {})
+        self.assertEqual(r, {"A": None, "B": None, "C": None, "unknown": None})
+
+    def test_explicit_zero_at_the_seed_is_found_by_the_text(self):
+        # `G0 A0 C0` at seed 0: the values cannot tell — the words can.
+        r = gateway_util.first_rotary_commands(
+            self._streams(self._seg(1, 1), self._seg(2, 2), self._seg(3, 3)),
+            {"A": 0.0, "B": 0.0, "C": 0.0}, {2: "AC"})
+        self.assertEqual(r, {"A": 2, "B": None, "C": 2, "unknown": None})
+
+    def test_value_moved_away_from_the_seed_is_a_command(self):
+        r = gateway_util.first_rotary_commands(
+            self._streams(self._seg(1, 1), self._seg(2, 2, a=30.0), self._seg(3, 3, a=30.0, c=10.0)),
+            {"A": 0.0, "B": 0.0, "C": 0.0}, {})
+        self.assertEqual(r, {"A": 2, "B": None, "C": 3, "unknown": None})
+
+    def test_seed_epsilon_and_non_zero_seed(self):
+        r = gateway_util.first_rotary_commands(
+            self._streams(self._seg(1, 1, a=35.0000001), self._seg(2, 2, a=35.1)),
+            {"A": 35.0}, {})
+        self.assertEqual(r, {"A": 2, "unknown": None})
+
+    def test_relabel_vertices_never_command(self):
+        r = gateway_util.first_rotary_commands(
+            self._streams(self._seg(2, 1), self._seg(3, 0, a=30.0), self._seg(4, 2, a=30.0)),
+            {"A": 0.0}, {}, relabel_seqs={3})
+        self.assertEqual(r, {"A": 4, "unknown": None})
+
+    def test_unknown_where_the_text_cannot_be_consulted(self):
+        # seq 2 lies inside a marked sub span (not consultable) with A still
+        # pending -> unknown = 2; A is later found by value at 4 and still
+        # reported (a command is a command); B never.
+        r = gateway_util.first_rotary_commands(
+            self._streams(self._seg(1, 1), self._seg(2, 7, cons=False), self._seg(3, 8, cons=False),
+                          self._seg(4, 3, a=30.0)),
+            {"A": 0.0, "B": 0.0}, {})
+        self.assertEqual(r, {"A": 4, "B": None, "unknown": 2})
+
+    def test_no_unknown_once_every_letter_is_commanded(self):
+        r = gateway_util.first_rotary_commands(
+            self._streams(self._seg(1, 1), self._seg(2, 2, a=1.0), self._seg(3, 0, cons=False)),
+            {"A": 0.0}, {})
+        self.assertEqual(r, {"A": 2, "unknown": None})
+
+    def test_value_inside_a_span_counts_even_when_not_consultable(self):
+        r = gateway_util.first_rotary_commands(
+            self._streams(self._seg(1, 1), self._seg(2, 5, a=12.0, cons=False)),
+            {"A": 0.0}, {})
+        self.assertEqual(r, {"A": 2, "unknown": None})
+
+    def test_two_streams_merge_by_seq(self):
+        feed = ([2, 4], [2, 4], [(0, 0, 0), (0, 0, 0)], [True, True])
+        rapid = ([1, 3], [1, 3], [(0, 0, 0), (0, 0, 20.0)], [True, True])
+        r = gateway_util.first_rotary_commands([feed, rapid], {"A": 0.0, "C": 0.0}, {4: "A"})
+        self.assertEqual(r, {"A": 4, "C": 3, "unknown": None})
+
+    def test_no_seed_no_claim(self):
+        self.assertEqual(gateway_util.first_rotary_commands(self._streams(self._seg(1, 1)), None, {}),
+                         {"unknown": None})
+        self.assertEqual(gateway_util.first_rotary_commands([], {"A": 0.0}, {}), {"A": None, "unknown": None})
