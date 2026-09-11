@@ -211,15 +211,17 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     return line;
   }
 
-  /** Yellow dashed overlay sharing geometry with a toolpath line, clipped to show only outside machine bounds. */
+  /** Plain yellow overlay sharing geometry with a toolpath line, clipped to
+   *  show only the part outside the machine bounds. Solid, opaque (2026-09-11,
+   *  operator's call): the dashed version read as solid yellow from afar
+   *  anyway (a 5 mm dash period is sub-pixel there) and as a yellow/base
+   *  mixture up close, and it cost a per-vertex dash-distance array (a
+   *  1.18 M-entry Float32Array built on the main thread per rebuild) plus
+   *  a blended second pass over every segment. */
   function makeOverflowLine(geom: THREE.BufferGeometry): THREE.Line | null {
     if (deps.boundsClipPlanes.length === 0) return null;
-    const mat = new THREE.LineDashedMaterial({
+    const mat = new THREE.LineBasicMaterial({
       color: 0xffcc00,
-      dashSize: 3,
-      gapSize: 2,
-      transparent: true,
-      opacity: 0.9,
       depthTest: !pathAlwaysOnTop,
       depthWrite: false,
       clipIntersection: true,
@@ -230,25 +232,6 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     const line = geom.index ? new THREE.LineSegments(geom, mat) : new THREE.Line(geom, mat);
     line.renderOrder = 10;
     line.frustumCulled = true;
-    // Idempotent: rapid channel already has lineDistance from rapidLine; feed channel doesn't.
-    if (!geom.attributes.lineDistance) {
-      if (geom.index) {
-        // Three's computeLineDistances refuses indexed geometry — build the
-        // vertex-cumulative distances directly (dash phase across skipped
-        // section gaps is irrelevant; only per-segment deltas matter).
-        const p = geom.attributes.position!.array as Float32Array;
-        const n = p.length / 3;
-        const d = new Float32Array(n);
-        for (let i = 1; i < n; i++) {
-          const j = i * 3, k = j - 3;
-          const dx = p[j]! - p[k]!, dy = p[j + 1]! - p[k + 1]!, dz = p[j + 2]! - p[k + 2]!;
-          d[i] = d[i - 1]! + Math.sqrt(dx * dx + dy * dy + dz * dz);
-        }
-        geom.setAttribute("lineDistance", new THREE.Float32BufferAttribute(d, 1));
-      } else {
-        line.computeLineDistances();
-      }
-    }
     return line;
   }
 
@@ -633,7 +616,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       }
       for (const ol of [feedOverflow, rapidOverflow]) {
         if (ol) {
-          const m = ol.material as THREE.LineDashedMaterial;
+          const m = ol.material as THREE.LineBasicMaterial;
           m.depthTest = dt; m.depthWrite = false; m.needsUpdate = true;
         }
       }

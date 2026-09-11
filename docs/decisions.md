@@ -3912,6 +3912,38 @@ and a 20 s auto budget cut it at ~50 %. Since the sweep pauses under camera
 interaction and the budget counts active time only, a long auto budget no longer
 costs the operator anything while rotating: auto 60 s, manual 300 s.
 
+**2026-09-11 operator reading of the new build:** both full sweeps completed (54 s and
+37 s, 2.57 M samples, certified, 0 hits) and the progress froze while the operator
+rotated (the pause works). "Still somewhat laggy even after parsing — at every zoom
+level, also when rotating." Interaction windows of the last two hours grouped by what
+else was running (GPU completion p95, median / p90 over windows):
+
+| VM parsing | browser sweep | n | gpu_done p95 | behind | RAF p95 |
+|---|---|---|---|---|---|
+| no | no | 9 | 48 / 56 ms | 2 | 18 / 31 ms |
+| yes | no | 6 | 72 / 79 ms | 3 | 22 / 39 ms |
+| no | yes (pausing) | 28 | 34 / 77 ms | 2 | 18 / 40 ms |
+| yes | yes | 7 | 117 / 121 ms | 3 | 46 / 53 ms |
+
+Two findings. (1) The VM's own parse (10–12 s per touch-off, one VM core at 100 %
+plus gzip) lags the Mac's frames by itself — the VM shares the Mac's cores, and the
+"GPU behind" fence also measures Firefox's out-of-process WebGL host being starved,
+not only GPU time. (2) With nothing running, half the windows still sat at 48–80 ms:
+the clean floor is ~18 ms per frame for 2 × 1.18 M segments (the base line plus the
+outside-bounds overlay drawn over the whole path, both at Retina resolution with
+MSAA) — one frame of budget with no headroom, so any transient host load tips it
+over, at any zoom. There is NO culling or LOD: Three culls whole objects only, and a
+sub-pixel segment still costs its vertices and a fragment. The operator's colour
+observation ("yellow from afar, yellow/magenta mixed up close") was the dashed
+overlay's 5 mm dash period going sub-pixel at distance — not culling. DONE (same
+day, operator's call): the overlay is plain opaque yellow (`LineBasicMaterial`, no
+dash-distance array — 1.18 M floats built on the main thread per rebuild — no
+blending). OPEN, proposed: a display LOD (a tolerance-decimated draw copy of the
+path — the 0.09 mm segments carry no visible detail — with the full data kept for
+scrub/highlight/sweep), spatial chunks so frustum culling drops off-screen ranges
+when zoomed in, and the overlay as a single pass; the aim is headroom, not a new
+floor.
+
 **Gates (suite live — single niced files only):** collision 43 + sweepPump 3 +
 kinsBulge 8 = 54 green; `tsc --noEmit -p` over collision.ts / collisionWorker.ts /
 sweepPump.ts + tests under the app's strict flags clean; Vite compiles ThreeViewer.vue,
