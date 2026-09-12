@@ -4297,3 +4297,13 @@ OWED: restart for the INI (operator), heavy gates at the suite stop (unchanged
 list), operator: toggle Reach Envelope on the sim, rotate A (the part solid rides
 the platter, the room solid stays), switch tools (the solids follow the length).
 
+**Operator: "so it's still a cube — intentional?"** (after the restart; the live
+limits were already the new window.) Two reasons. (1) Honest: with no tool loaded
+the only thing that leaves the 3 m travel box is the head's 130 mm pivot lever (y 50
+/ z 120), so the room solid hugs the box by 130 mm — a tool of length L grows that
+to ~130 + L. (2) A rendering defect (c64e603): the part solid is a 3.3 m cylinder
+about the trunnion axis, the camera sits inside it, and crease edges show nothing
+of a cylinder but its caps. The worker now ships a CAGE of the radial table (rings
+every 8 slices, generators every 15°, spokes at coverage boundaries and caps) and
+the hull draws its 8° facet creases so the fillets read as a fan of lines.
+

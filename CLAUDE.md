@@ -582,7 +582,12 @@ which tilt reaches a point is not shown, and no collision is subtracted
 is on. Three's quickhull produced non-supporting faces on this input (8
 translated copies of one orbit): `HullSolid` deduplicates, jitters 1e-3,
 VALIDATES every plane against the hull's own vertices and rebuilds with a
-fresh seed, dropping faces that still fail (noted in the reply). The TWP
+fresh seed, dropping faces that still fail (noted in the reply). Outlines:
+the swept solid ships a CAGE (rings, generators, spokes — a body the camera
+sits inside has no silhouette; crease edges showed only its caps and the
+layer read as "still a cube"), the hull draws its 8° facet creases (the
+head-lever fillets). With no tool loaded the room solid on the trsrn model
+IS the travel box plus the 130 mm pivot lever — the honest answer. The TWP
 sim's travels are model-derived since 2026-09-12 (X ±1500, Y −2000..1300
 asymmetric — the head homes 1 m in front of the trunnion axis — Z
 −2000..0.01; the upstream ±5000 was a 10 m box); every corpus and demo
