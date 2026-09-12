@@ -218,10 +218,11 @@ export interface CollisionResult {
   bvhMs: number;
   sweepMs: number;
   /** Set when the sweep stopped before the end of the track — the wall-clock
-   *  budget (`time`) or the hard sample backstop (`samples`). `covered` is
-   *  the swept fraction of the track's path (dist parameter, 0..1). Null =
-   *  the whole track was swept. A truncated sweep with no hits is NOT
-   *  "clear": only the covered part is. */
+   *  budget (`time`), the hard sample backstop (`samples`) or a driver park
+   *  (`stopped`). `covered` is the swept fraction of the TRACK'S AXIS (0..1;
+   *  time on a time-based track — what the scrub bar's swept band and its
+   *  "N % swept" text show). Null = the whole track was swept. A truncated
+   *  sweep with no hits is NOT "clear": only the covered part is. */
   truncated: { covered: number; reason: "time" | "samples" | "stopped" } | null;
 }
 
@@ -532,7 +533,8 @@ export function sweepCollisions(
   return r.value;
 }
 
-/** The sweep as a resumable iterator: yields its progress (0..1) at
+/** The sweep as a resumable iterator: yields its progress (0..1 of the
+ *  track's axis — see `truncated.covered`) at
  *  checkpoints — before the first segment, every 16 segments, every
  *  SAMPLES_PER_YIELD samples inside a segment, whenever `yieldMs` of clock
  *  time has passed since the last checkpoint (checked per segment and every
@@ -581,7 +583,6 @@ export function* sweepCollisionsIter(
     );
     dcum[i] = dcum[i - 1]! + Math.max(lin, rot);
   }
-  const totalCum = n > 0 ? dcum[n - 1]! : 0;
 
   // Dist-parameter → track-cum (linear within a segment; monotonic).
   const distToTrackCum = (s: number): number => {
@@ -940,7 +941,13 @@ export function* sweepCollisionsIter(
   let aborted = false;
   let sweptTo = 0;   // dist parameter reached — the covered fraction on truncation
   const overBudget = (): boolean => clock() - t0 > maxMs;
-  const frac = (s: number): number => Math.min(1, s / (totalCum || 1));
+  // Progress and `covered` are fractions of the TRACK's axis (time on a
+  // time-based track): the scrub bar draws the swept section on its
+  // timeline (2026-09-12), so the sweep's own distance parameter converts
+  // through distToTrackCum here — only at checkpoints, so the binary search
+  // is free. On a distance track the two axes coincide.
+  const trackMax = n > 0 ? track.cum[n - 1]! : 0;
+  const frac = (s: number): number => Math.min(1, distToTrackCum(s) / (trackMax || 1));
   // Contact refinement: a penetrating hit's discovering sample can sit up
   // to one sample step PAST true contact — jumping to it would show the
   // tool already buried. Walk back by the local sample step to the last

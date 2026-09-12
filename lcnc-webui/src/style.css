@@ -852,7 +852,7 @@ label:has(input:disabled, select:disabled) {
    machine controls are locked (permissions.ts SIM_GATES). */
 .simBanner {
   position: absolute;
-  top: var(--gap-controls);
+  top: var(--gap-section);   /* the viewer-overlay offset (HUD, sim bar) */
   left: 50%;
   transform: translateX(-50%);
   z-index: 11;
@@ -1113,11 +1113,16 @@ label:has(input:disabled, select:disabled) {
   padding-left: 10px;
 }
 
-/* Line flagged by offline validation (soft-limit overtravel; collision
-   results reuse this in later dry-run stages). Warn-tinted line number so
-   the marker survives next to active/selected backgrounds. */
+/* Line flagged by offline validation — tinted line number so the marker
+   survives next to active/selected backgrounds: soft-limit overtravel is
+   warn, a collision-sweep contact is danger (same colours as the scrub
+   bar's timeline marks; a line with both reads danger — later rule wins). */
 .codeLine.violation .lineNumber {
   color: var(--warn);
+  opacity: 1;
+}
+.codeLine.collision .lineNumber {
+  color: var(--danger);
   opacity: 1;
 }
 
@@ -1310,6 +1315,17 @@ label:has(input:disabled, select:disabled) {
   overflow: hidden;
 }
 
+/* Translucent overlay card (the viewer HUD, the sim bar): the scene reads
+   through at 85 % panel, blurred so text stays legible over a busy toolpath.
+   One chrome for every card that floats over the 3D view. */
+.overlay-card {
+  background: color-mix(in oklab, var(--panel) 85%, transparent);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
 /* ── Display utilities ── */
 
 /* Tabular numeric value (slider readouts, override %, RPM, durations).
@@ -1426,9 +1442,6 @@ label:has(input:disabled, select:disabled) {
   background: var(--info);
   transition: width 0.3s ease;
 }
-/* Warn-tinted fill: the swept part of a program whose rest is UNCHECKED
-   (a parked or truncated collision sweep, a stop on its way). */
-.progressTrack.warn > .progressFill { background: var(--warn); }
 
 /* Button inner content (icon + text aligned) */
 .btn-label      { display: flex; align-items: center; gap: var(--gap-tight); }

@@ -56,8 +56,9 @@ const props = defineProps<{
   // Source line at the viewer's scrub position (offline dry run stage 2).
   // Highlights + auto-scrolls like the run highlight; null = not scrubbing.
   scrubLine?: number | null;
-  // Lines flagged by the viewer's collision sweep (stage 3) — marked with
-  // the same warn-tinted line numbers as soft-limit violations.
+  // Lines flagged by the viewer's collision sweep (stage 3) — danger-tinted
+  // line numbers (soft-limit violations are warn-tinted; a line with both
+  // reads danger), the same colours as the scrub bar's timeline marks.
   collisionLines?: CollisionLineMark[] | null;
   // Marked-span execution state for the inline sub view (W5): while a
   // marked o-call span executes (run playhead or sim scrub), the called
@@ -799,7 +800,8 @@ async function saveEdit() {
                      : subActiveLine === item.lineNum,
                    selected: item.kind === 'main' && selectedLine === item.lineNum,
                    selectable: item.kind === 'main' && runFromLine && gcodeContent,
-                   violation: item.kind === 'main' && (violationsByLine.has(item.lineNum) || collisionLineSet.has(item.lineNum))
+                   violation: item.kind === 'main' && violationsByLine.has(item.lineNum),
+                   collision: item.kind === 'main' && collisionLineSet.has(item.lineNum)
                  }"
                  :title="item.kind === 'main' ? lineMarkTitle(item.lineNum) : undefined"
                  @click="item.kind === 'main' && onLineClick(item.lineNum)">

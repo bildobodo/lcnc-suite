@@ -500,8 +500,12 @@ unchecked ≠ clean, and the stats dialog says "Not validated". UI is
 centralized in the scrub bar's second row: warn-variant prev/next
 navigation ("◀ | N limits → L10 | ▶", anchored to the CURRENT timeline
 position — scrubbing re-anchors it; collision hits get the same in
-danger-red) and warn timeline marks, plus warn-tinted line numbers in
-GcodePanel (`.codeLine.violation`, global — collision hits reuse it) and
+danger-red) and timeline marks — one tick per kind plus a lucide glyph
+under the track in the tick's colour (▲ limit, × clash, ● tool change;
+the dark theme cannot separate red from amber) and extent BANDS (warn over
+the violating line's cum span, danger over every contact interval, red
+wins) — plus warn-tinted line numbers in GcodePanel (`.codeLine.violation`,
+global; collision hits are danger via `.codeLine.collision`) and
 a Soft limits row in the program stats dialog. Limitation: validated
 against the parse-time WCS — touch-off after load requires a file reload
 to re-validate (the live overflow box remains the coarse always-current
@@ -809,29 +813,32 @@ keeps itself current with NO manual trigger: auto-runs on program load
 (base track — marks appear before sim is entered), on sim entry (entry
 track, fresh position = fresh baseline), and on WCS/tool changes while
 idle (stale results clear + re-run, debounced; in sim ScrubBar re-checks
-with the rebuilt entry track). SWEEP STATES (2026-09-12, stop/continue): ONE SWEEP SLOT, first in row 2 —
-the fixed-width progress track (the SAME global track the status banner
-and the viewer HUD draw for a re-parse — one shape for "in progress",
-numbers in the tooltip) + one button, the same geometry in every state so
-❚❚ / ▶ / ↻ share a position (the findings — limits nav, clash nav, verdict
+with the rebuilt entry track). SWEEP STATES (2026-09-12, stop/continue): ONE SWEEP BUTTON, first in row 2
+(❚❚ / ▶ / ↻ share a position; the progress is the TIMELINE's swept band —
+`sweptFrac`; the iterator's progress and `covered` are TRACK-AXIS
+fractions, `distToTrackCum(s) / cum[n-1]`, since the sim-bar wave, so a
+scrub shows which section is already checked; the number lives in the
+button tooltip) (the findings — limits nav, clash nav, verdict
 text — follow it, every variable-width readout AFTER the last button of
-its group). RUNNING: fill = progress, ❚❚ PARKS the sweep — the click is
-acknowledged AT ONCE (`collisionStopping`: button disabled, warn fill)
+its group). RUNNING: band = progress, ❚❚ PARKS the sweep — the click is
+acknowledged AT ONCE (`collisionStopping`: button disabled)
 until the worker's park reply, which is now bounded: the iterator yields
 on TIME (8 ms of active clock, checked per segment and every 32 samples;
 the 16-segment / 512-sample checkpoints stay as the floor — 512 in-margin
 samples were seconds), a stop during a camera pause parks immediately, and
 the snapshot's contact refinement is MEMOIZED per unchanged record (a park
 used to re-refine every record, continuation records past the cap
-included). PARKED: fill = the covered fraction, warn-tinted, ▶ continues
+included). PARKED: band = the covered fraction, ▶ continues
 exactly where it stopped — the worker keeps the suspended generator with
 every clearance certificate and contact state, `SnapshotHandle` in
 collision.ts hands out the sweep-so-far without ending it; the clashes
 found so far are marked, the verdict reads "no clash in N % swept" / "in
-N % swept". DONE: full fill (warn when truncated), ↻ runs again from the
-start, unbounded; no result yet = empty track + ↻. Row 1's mode / line /
+N % swept". DONE: full band (the covered part when truncated), ↻ runs again
+from the start, unbounded; no result yet = no band + ↻. Row 1's line /
 time readouts are FIXED slots (flex basis, ellipsis, full text in the
-title) — a min-width floor let "L1234 (sub_name) →" eat the timeline. The budget
+title; line 10ch, time sized per track; the mode chip is gone — "off
+path" shows in the line slot) — a min-width floor let "L1234 (sub_name)
+→" eat the timeline. Dragging the timeline PAUSES playback (`@input`). The budget
 running out (AUTO sweeps: 300 s of ACTIVE time, enforced by the worker at
 slice boundaries — a continue or ↻ is unbounded, the operator's ❚❚ is the
 bound, the iterator's 4 M-sample runaway backstop behind it), the operator's
@@ -1071,6 +1078,7 @@ The `tool_touch_off.ngc` subroutine reads parameters from the LinuxCNC var file 
 - Read the actual CSS before speculating about visual bugs — the override might be setting the value to match the background, not just being "too subtle"
 - A flex item that holds single-line (`nowrap`) text needs `min-width: 0`, or its automatic minimum width is the full text and it pushes its siblings out of the container — the status banner's action buttons (messages, Refresh, Home All, Abort) vanished behind the right edge whenever a long banner showed. Compact banner texts to the state plus one recovery verb; the explanation goes in the `title`
 - A `min-width` floor on a readout slot is not a fixed slot: content past the floor still grows it and `text-overflow: ellipsis` never engages. A readout that must not move its siblings gets `flex: 0 0 <w>` + `overflow: hidden` (ScrubBar row 1 ate the timeline). Same family: a control that changes state must keep its geometry — one slot, one button position, variable-width text AFTER the last button of its group
+- Every overlay on the 3D viewer keeps `--gap-section` from the frame and floats on the global `.overlay-card` (85 % panel + blur: HUD card, sim bar) — never hard-code the 12px or copy the chrome into a component; the bar sat 8px in on an opaque panel while the HUD sat 12px in on a translucent one
 - Use direct child selectors (`.grid > label`) not descendant selectors (`.grid label`) when styling grid/container labels — descendant selectors mute nested form controls (radios, checkboxes) inside those containers
 - When adding server-synced settings sections, update `_VALID_SETTINGS_SECTIONS` in `gateway.py` — the gateway rejects unknown sections with "Unknown settings section" error
 - Don't hack around permission issues in the backend — use the proper frontend permission gate so the UI reflects machine state (dimming). The gate IS the fix, not a workaround.

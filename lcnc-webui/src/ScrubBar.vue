@@ -31,7 +31,7 @@ import type { ScrubTrack } from "./ws/bulkData";
 import type { CollisionResult } from "./viewer/collision";
 import { limitViolationText } from "./ws/bulkData";
 import { fmtElapsed } from "./format";
-import { Play, Pause } from "lucide-vue-next";
+import { Play, Pause, X, Triangle, Circle } from "lucide-vue-next";
 import MachineBtn from "./MachineBtn.vue";
 import MachineSlider from "./MachineSlider.vue";
 import MachineToggle from "./MachineToggle.vue";
@@ -426,6 +426,17 @@ function togglePlay() {
   raf = requestAnimationFrame(tick);
 }
 
+/** A drag on the timeline PAUSES playback (operator, 2026-09-12: it used to
+ *  resume from the new position the moment the drag ended). The native
+ *  `input` event fires for USER changes only — the playback loop's
+ *  programmatic writes never reach here. Play resumes from the scrubbed
+ *  position. */
+function onScrubInput() {
+  if (!playing.value) return;
+  playing.value = false;
+  cancelAnimationFrame(raf);
+}
+
 // Position readout: elapsed/total time on a time-based track, percent on
 // the distance fallback.
 const posLabel = computed(() => {
@@ -566,6 +577,10 @@ const lineText = computed(() => {
   // feed override, accel and dwells make real elapsed differ (GcodePanel
   // shows the wall clock).
   if (running.value) {
+    // Off path (a toolchange park): the playhead is frozen — say so in the
+    // line slot instead of a line number (the mode chip that used to say it
+    // was an 8ch slot empty outside a run).
+    if (runOffPath.value) return "off path";
     const rls = runLineState.value;
     const label = rls
       ? (rls.atEnd ? "end"
@@ -577,22 +592,23 @@ const lineText = computed(() => {
   }
   return "";
 });
+const lineOffPath = computed(() => running.value && runOffPath.value);
+const lineTitle = computed(() => lineOffPath.value
+  ? "The machine is somewhere the program's path never goes (e.g. a toolchange park) — the playhead is frozen until it returns"
+  : lineText.value);
 // Position readout in its own slot: "~" prefix marks the run ESTIMATE axis.
 const posText = computed(() => {
   if (simMode.value) return posLabel.value;
   if (running.value) return `~${posLabel.value}`;
   return "live";
 });
-// Mode chip slot: always rendered so run start never re-lays the row.
-const modeChip = computed(() => {
-  if (!running.value) return null;
-  if (runOffPath.value) return {
-    text: "off path", cls: "warn",
-    title: "The machine is somewhere the program's path never goes (e.g. a toolchange park) — the playhead is frozen until it returns",
-  };
-  return { text: "RUNNING", cls: "ok",
-           title: "Program executing — the playhead follows the machine; timeline controls are locked" };
-});
+// The time slot is sized PER TRACK — "mm:ss/mm:ss" plus the run "~" — so it
+// changes only on program load; 5ch holds the distance axis's "100%".
+// (Operator, 2026-09-12: 39ch of fixed slots right of the speed slider were
+// mostly empty; the RUNNING chip went — locked controls, the ~ prefix and
+// the run highlight already say it.)
+const posSlotCh = computed(() =>
+  track.value?.timeBased ? fmtElapsed(Math.floor(cumMax.value)).length * 2 + 2 : 5);
 
 /** ---------- collision results (stage 3) ---------- */
 // Loaded-tool note for the sweep (see the row-2 comment). Dims are the
@@ -616,14 +632,12 @@ const sweepToolTitle = computed(() => {
     ? "The collision sweep checks a 6 mm × 60 mm stub cylinder because no tool is loaded — load the program's tool for a real check (the program's T sequence is not consulted yet)"
     : "The collision sweep checks the LOADED tool's table dimensions for the whole program — the program's own tool changes are not consulted yet";
 });
-// Sweep progress is the same fixed-width bar the status banner and the HUD
-// draw for a re-parse (operator, 2026-09-12: a bar, seconds and a percentage
-// for "in progress" read as three different things). The number lives in
-// the tooltip; the bar is not a button — ❚❚ next to it STOPS (parks) the
-// sweep, and ▶ on the parked chip continues it. Nothing here cancels: a
-// sweep is only dropped by a superseding change (program, touch-off, tool).
+// Sweep progress is drawn ON THE TIMELINE (the swept band, sweptFrac below)
+// so a scrub shows which section is already checked; the number lives in
+// the button tooltip. ❚❚ STOPS (parks) the sweep, ▶ continues it, ↻ re-runs.
+// Nothing here cancels: a sweep is only dropped by a superseding change
+// (program, touch-off, tool).
 const sweepPct = computed(() => Math.round(props.collisionProgress * 100));
-const sweepTitle = computed(() => `Collision check running — ${sweepPct.value} % of the program swept`);
 const stoppedTitle = computed(() => {
   const st = props.collisionStopped;
   if (!st) return "";
@@ -710,16 +724,14 @@ const sweepCaveat = computed<string | null>(() => {
 function pctOf(f: number): string {
   return f < 0.01 ? "<1 %" : `${Math.round(f * 100)} %`;
 }
-/** The sweep SLOT (2026-09-12): ONE geometry — the fixed-width track + one
- *  button — in every state, first in row 2, so ❚❚ (running), ▶ (parked) and
- *  ↻ (done / no result) share one position and stop → continue is a toggle
- *  in place. The fill is the swept fraction (progress while running, the
- *  covered part while parked, warn-tinted when the rest is unchecked); the
- *  findings — limits nav, clash nav, verdict text — follow the slot, so no
+/** The sweep BUTTON (2026-09-12): one fixed-width button, first in row 2, in
+ *  every state — ❚❚ (running), ▶ (parked), ↻ (done / no result) — so stop →
+ *  continue is a toggle in place. Progress is the TIMELINE's swept band
+ *  (sweptFrac), not a bar here; the tooltip carries the number. The findings
+ *  — limits nav, clash nav, verdict text — follow the button, so no
  *  variable-width text sits between the timeline and a button. */
 interface SweepSlot {
-  pct: number; cls: string; title: string;
-  glyph: string; btnTitle: string; disabled: boolean;
+  glyph: string; title: string; disabled: boolean;
   action: "stop" | "continue" | "rerun" | "none";
 }
 const GLYPH_STOP = "\u2759\u2759", GLYPH_CONTINUE = "\u25B6", GLYPH_RERUN = "\u21BB";
@@ -727,39 +739,55 @@ const sweepSlot = computed<SweepSlot | null>(() => {
   if (!track.value) return null;
   if (props.collisionBusy) {
     if (props.collisionStopping) return {
-      pct: sweepPct.value, cls: "warn", glyph: GLYPH_STOP, disabled: true, action: "none",
-      title: `Stopping — the check parks at its next checkpoint (${sweepPct.value} % swept)`,
-      btnTitle: "Stop requested — parking at the next checkpoint",
+      glyph: GLYPH_STOP, disabled: true, action: "none",
+      title: `Stop requested — the check parks at its next checkpoint (${sweepPct.value} % swept)`,
     };
     return {
-      pct: sweepPct.value, cls: "", glyph: GLYPH_STOP, disabled: false, action: "stop",
-      title: sweepTitle.value,
-      btnTitle: "Stop the collision check — it parks where it is and can be continued",
+      glyph: GLYPH_STOP, disabled: false, action: "stop",
+      title: `Stop the collision check — ${sweepPct.value} % of the program swept so far; it parks where it is and can be continued`,
     };
   }
   const r = shownResult.value;
   if (r && props.collisionStopped && props.collisionResumable) return {
-    pct: Math.round(props.collisionStopped.covered * 100), cls: "warn", glyph: GLYPH_CONTINUE,
-    disabled: false, action: "continue", title: stoppedTitle.value,
-    btnTitle: "Continue the collision check from where it stopped",
+    glyph: GLYPH_CONTINUE, disabled: false, action: "continue", title: stoppedTitle.value,
   };
   if (r) {
     const cov = r.truncated ? r.truncated.covered : 1;
     const secs = Math.round(r.sweepMs / 1000);
     return {
-      pct: Math.round(cov * 100), cls: r.truncated ? "warn" : "", glyph: GLYPH_RERUN,
-      disabled: false, action: "rerun",
-      title: r.truncated
-        ? `${pctOf(cov)} of the program swept in ${secs} s — the rest is UNCHECKED`
-        : `Whole program swept in ${secs} s (${r.samples} samples, ${r.pairCount} pairs)`,
-      btnTitle: "Run the collision check again from the start (no time budget)",
+      glyph: GLYPH_RERUN, disabled: false, action: "rerun",
+      title: (r.truncated
+        ? `${pctOf(cov)} of the program swept in ${secs} s — the rest is UNCHECKED. `
+        : `Whole program swept in ${secs} s (${r.samples} samples, ${r.pairCount} pairs). `)
+        + "Run the collision check again from the start (no time budget)",
     };
   }
   return {
-    pct: 0, cls: "", glyph: GLYPH_RERUN, disabled: false, action: "rerun",
-    title: "No collision check result for this track yet",
-    btnTitle: "Run the collision check (no time budget)",
+    glyph: GLYPH_RERUN, disabled: false, action: "rerun",
+    title: "No collision check result for this track yet — run one (no time budget)",
   };
+});
+/** Swept fraction of the DISPLAYED track's axis — the timeline's swept band:
+ *  the running progress, the parked/truncated covered part, 1 when done.
+ *  Sweep values are BASE-relative (progress and covered are track-axis
+ *  fractions since 2026-09-12); on the entry track they are re-based past
+ *  the entry segment. */
+const sweptFrac = computed(() => {
+  const t = track.value, b = baseTrack.value;
+  if (!t || cumMax.value <= 0) return 0;
+  let f: number;
+  if (props.collisionBusy) f = props.collisionProgress;
+  else {
+    const r = shownResult.value;
+    if (!r) return 0;
+    f = props.collisionStopped && props.collisionResumable ? props.collisionStopped.covered
+      : r.truncated ? r.truncated.covered : 1;
+  }
+  if (b && t !== b && t.count > 1) {
+    const shift = t.cum[1]!, baseMax = b.cum[b.count - 1]!;
+    f = (shift + f * baseMax) / cumMax.value;
+  }
+  return Math.min(1, Math.max(0, f));
 });
 function sweepSlotClick() {
   const sl = sweepSlot.value;
@@ -804,14 +832,6 @@ function jumpTo(target: FindingTarget | null) {
   applyPos();
 }
 
-// Timeline positions of the hits, as track percentages. `near` = within the
-// margin but never touching (clearance warning, not a contact).
-const hitMarks = computed(() =>
-  cumMax.value > 0
-    ? hitTargets.value.map(t => ({ pct: Math.min(100, (t.cum / cumMax.value) * 100), rapid: t.rapid ?? false, near: (t.dist ?? 0) > 1e-3 }))
-    : [],
-);
-
 // Tool-change events on the timeline + the next-tool countdown (ahead of
 // the current position, NON-wrapping — a past change is not "next").
 const toolTargets = computed(() => {
@@ -824,9 +844,6 @@ const toolTargets = computed(() => {
   }
   return out.sort((a, b) => a.cum - b.cum);
 });
-const toolChangeMarks = computed(() =>
-  cumMax.value > 0 ? toolTargets.value.map(x => Math.min(100, (x.cum / cumMax.value) * 100)) : [],
-);
 const nextTool = computed(() =>
   toolTargets.value.find(x => x.cum > sPos.value + NAV_EPS) ?? null,
 );
@@ -839,22 +856,66 @@ const nextToolLabel = computed(() => {
   return `T${nt.tool} ${dist}`;
 });
 
-// Soft-limit violations (stage 1) on the same timeline, warn-tinted —
-// line-anchored via the track's line index (cum). A violating line the track
-// doesn't know (comment-line attribution edge) simply has no mark; the
-// GcodePanel banner still lists it.
-const violationMarks = computed(() => {
-  const t = track.value;
-  if (!t || cumMax.value <= 0) return [];
-  const seen = new Set<number>();
-  const out: number[] = [];
-  for (const v of viewerGcode.value?.violations ?? []) {
-    if (seen.has(v.line)) continue;
-    seen.add(v.line);
-    const cum = lineCumOf(t.lineIndex, v.line);
-    if (cum !== undefined) out.push(Math.min(100, (cum / cumMax.value) * 100));
+/** ---------- timeline marks + extents (2026-09-12) ---------- */
+// Every mark is the same tick, told apart by colour AND a glyph under the
+// track — × clash, ▲ soft limit, ● tool change (operator: the dark theme's
+// red and amber were hard to tell apart, and the old height tiers carried
+// no meaning; "rapid" stays in the readout and the tooltip). `near` = within
+// the margin but never touching. Clash last = paints on top. A violating line
+// the track doesn't know (comment-line attribution edge) simply has no mark;
+// the GcodePanel banner still lists it.
+type MarkKind = "tool" | "limit" | "clash";
+const marks = computed(() => {
+  const max = cumMax.value;
+  const out: Array<{ pct: number; kind: MarkKind; near: boolean }> = [];
+  if (max <= 0) return out;
+  const pctOfCum = (c: number) => Math.min(100, (c / max) * 100);
+  for (const x of toolTargets.value) out.push({ pct: pctOfCum(x.cum), kind: "tool", near: false });
+  for (const x of violationTargets.value) out.push({ pct: pctOfCum(x.cum), kind: "limit", near: false });
+  for (const x of hitTargets.value) out.push({ pct: pctOfCum(x.cum), kind: "clash", near: (x.dist ?? 0) > 1e-3 });
+  return out;
+});
+// Extent bands (timeline percentages): where a soft-limit line runs (warn)
+// and where contact persists (danger — every record's refined intervals,
+// continuations included, so the whole extent paints; red after yellow in
+// DOM order = red wins). Near-misses have no extent. Merged per kind so
+// overlapping records don't stack their tint.
+function mergeSpans(spans: Array<[number, number]>): Array<[number, number]> {
+  spans.sort((a, b) => a[0] - b[0]);
+  const out: Array<[number, number]> = [];
+  for (const sp of spans) {
+    const last = out[out.length - 1];
+    if (last && sp[0] <= last[1]) last[1] = Math.max(last[1], sp[1]);
+    else out.push([sp[0], sp[1]]);
   }
   return out;
+}
+const limitBands = computed(() => {
+  const t = track.value, max = cumMax.value;
+  const spans: Array<[number, number]> = [];
+  if (!t || max <= 0) return spans;
+  const seen = new Set<number>();
+  for (const v of violations.value ?? []) {
+    if (seen.has(v.line)) continue;
+    seen.add(v.line);
+    const start = lineCumOf(t.lineIndex, v.line);
+    const range = lineRange(t.lineIndex, v.line);
+    if (start === undefined || !range) continue;
+    const end = t.cum[range.end] ?? start;
+    if (end > start) spans.push([(start / max) * 100, (end / max) * 100]);
+  }
+  return mergeSpans(spans);
+});
+const clashBands = computed(() => {
+  const max = cumMax.value;
+  const spans: Array<[number, number]> = [];
+  if (max <= 0) return spans;
+  for (const h of hits.value) {
+    if (h.dist > 1e-3) continue;
+    const ivs = h.intervals ?? (h.cumEnd > h.cum ? [[h.cum, h.cumEnd] as [number, number]] : []);
+    for (const [a, b] of ivs) if (b > a) spans.push([(a / max) * 100, (b / max) * 100]);
+  }
+  return mergeSpans(spans);
 });
 
 onUnmounted(() => {
@@ -866,7 +927,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div v-if="visible" class="scrubBar bordered-panel stack-tight">
+  <div v-if="visible" class="scrubBar overlay-card stack-tight">
     <!-- Row 1 — timeline + playback -->
     <div class="row-controls scrubRow">
       <!-- Sim mode toggle — same switch as settings/coolant toggles. The
@@ -884,19 +945,28 @@ onUnmounted(() => {
       <div class="sliderWrap">
         <MachineSlider gate="scrubPos" class="sliderInput" :min="0" :max="cumMax"
                        :step="cumMax / 2000 || 1" v-model="sPos" :disabled="!simMode"
-                       title="Scrub the program — poses the machine model, nothing moves" />
-        <!-- Timeline markers, non-interactive (row 2 navigates): info =
-             tool change, warn = soft-limit violation, danger = collision
-             hit (full-height = rapid contact). -->
-        <!-- Marks live in the THUMB-TRAVEL span (input width − 16px thumb,
-             inset 8px each side) so ticks align with where the thumb can
-             actually sit — full-width percentages drift near the ends. -->
-        <div v-for="(p, i) in toolChangeMarks" :key="'t' + i" class="scrubMark tool"
-             :style="{ left: `calc(8px + (100% - 16px) * ${p / 100})` }"></div>
-        <div v-for="(p, i) in violationMarks" :key="'v' + i" class="scrubMark limit"
-             :style="{ left: `calc(8px + (100% - 16px) * ${p / 100})` }"></div>
-        <div v-for="(m, i) in hitMarks" :key="'c' + i" class="scrubMark"
-             :class="{ rapid: m.rapid, near: m.near }" :style="{ left: `calc(8px + (100% - 16px) * ${m.pct / 100})` }"></div>
+                       title="Scrub the program — poses the machine model, nothing moves"
+                       @input="onScrubInput" />
+        <!-- Timeline overlays, non-interactive (row 2 navigates). All live in
+             the THUMB-TRAVEL span (input width − 16px thumb, inset 8px each
+             side) so they align with where the thumb can actually sit —
+             full-width percentages drift near the ends. Paint order: the
+             swept band (what the collision check has covered), limit
+             extents (warn), clash extents (danger, on top), then the ticks
+             with their glyphs: × clash, ▲ soft limit, ● tool change. -->
+        <div class="scrubBand swept" :style="{ width: `calc((100% - 16px) * ${sweptFrac})` }"></div>
+        <div v-for="(b, i) in limitBands" :key="'lb' + i" class="scrubBand limit"
+             :style="{ left: `calc(8px + (100% - 16px) * ${b[0] / 100})`, width: `calc((100% - 16px) * ${(b[1] - b[0]) / 100})` }"></div>
+        <div v-for="(b, i) in clashBands" :key="'cb' + i" class="scrubBand clash"
+             :style="{ left: `calc(8px + (100% - 16px) * ${b[0] / 100})`, width: `calc((100% - 16px) * ${(b[1] - b[0]) / 100})` }"></div>
+        <div v-for="(m, i) in marks" :key="m.kind + i" class="scrubTick" :class="[m.kind, { near: m.near }]"
+             :style="{ left: `calc(8px + (100% - 16px) * ${m.pct / 100})` }">
+          <span class="scrubGlyph">
+            <X v-if="m.kind === 'clash'" :size="9" :stroke-width="3" />
+            <Triangle v-else-if="m.kind === 'limit'" :size="9" fill="currentColor" />
+            <Circle v-else :size="9" fill="currentColor" />
+          </span>
+        </div>
       </div>
       <MachineSlider gate="simSpeed" class="speedSlider" :min="-1" :max="2" :step="0.01"
                      v-model="speedLog" :disabled="!simMode"
@@ -905,24 +975,25 @@ onUnmounted(() => {
                   title="Reset playback speed to ×1" @click="speedLog = 0">
         &times;{{ speedLabel }}
       </MachineBtn>
-      <!-- Mode identity chip (redundant with banner/gating — text channel).
-           Fixed slot, always present: appearing/disappearing moved the timeline. -->
-      <span class="val-slot modeSlot val-status" :class="modeChip?.cls" :title="modeChip?.title">{{ modeChip?.text ?? "" }}</span>
-      <span class="val-slot lineSlot val-status mono" :class="{ muted: !simMode && !running }"
-            :title="lineText">{{ lineText }}</span>
-      <span class="val-slot posSlot val-status mono" :class="{ muted: !simMode && !running }">{{ posText }}</span>
+      <!-- Fixed slots (see the CSS): line / sub readout, then the time
+           readout sized per track. "off path" during a run lives in the line
+           slot, warn-tinted. -->
+      <span class="val-slot lineSlot val-status mono" :class="{ muted: !simMode && !running, warn: lineOffPath }"
+            :title="lineTitle">{{ lineText }}</span>
+      <span class="val-slot posSlot val-status mono" :class="{ muted: !simMode && !running }"
+            :style="{ '--slot-w': posSlotCh + 'ch' }">{{ posText }}</span>
     </div>
 
-    <!-- Row 2 — the sweep slot (one geometry in every state — see sweepSlot),
-         then findings navigation (prev/next, anchored to the CURRENT timeline
-         position). Buttons keep CONSTANT labels and every variable-width
-         readout sits AFTER the last button of its group, so click positions
-         never shift while stepping through or while a sweep changes state.
-         Wrappers carry tooltips (WebKit doesn't hover disabled buttons). -->
+    <!-- Row 2 — the sweep button (one position in every state — see
+         sweepSlot; progress is the timeline's swept band), then findings
+         navigation (prev/next, anchored to the CURRENT timeline position).
+         Buttons keep CONSTANT labels and every variable-width readout sits
+         AFTER the last button of its group, so click positions never shift
+         while stepping through or while a sweep changes state. Wrappers
+         carry tooltips (WebKit doesn't hover disabled buttons). -->
     <div class="row-controls scrubRow">
       <template v-if="sweepSlot">
-        <div class="progressTrack sweepTrack" :class="sweepSlot.cls" :title="sweepSlot.title"><div class="progressFill" :style="{ width: sweepSlot.pct + '%' }"></div></div>
-        <span class="btnTip" :title="sweepSlot.btnTitle">
+        <span class="btnTip" :title="sweepSlot.title">
           <MachineBtn type="scrub" :disabled="sweepSlot.disabled" @click="sweepSlotClick">{{ sweepSlot.glyph }}</MachineBtn>
         </span>
         <div class="sep-v"></div>
@@ -947,8 +1018,8 @@ onUnmounted(() => {
         <div class="sep-v"></div>
       </template>
 
-      <!-- Verdict (2026-09-12): the slot says how much was swept; this says
-           what it found. Parked/truncated with no hits is "no clash in N %
+      <!-- Verdict (2026-09-12): the timeline band says how much was swept;
+           this says what it found. Parked/truncated with no hits is "no clash in N %
            swept" — never "clear" for a part-swept program. -->
       <template v-if="shownResult && !collisionBusy">
         <span v-if="shownResult.pairCount === 0" class="val-status muted" title="No body pair moves relative to another — nothing to check">no moving pairs</span>
@@ -1004,12 +1075,14 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-/* Layout only — chrome comes from the global .bordered-panel / .row-controls. */
+/* Layout only — chrome comes from the global .overlay-card (shared with the
+   viewer HUD) / .row-controls. --gap-section is the one offset every viewer
+   overlay keeps from the frame. */
 .scrubBar {
   position: absolute;
-  left: var(--gap-controls);
-  right: var(--gap-controls);
-  bottom: var(--gap-controls);
+  left: var(--gap-section);
+  right: var(--gap-section);
+  bottom: var(--gap-section);
   z-index: 10;
   padding: var(--gap-tight) var(--gap-controls);
 }
@@ -1026,40 +1099,46 @@ onUnmounted(() => {
 .sliderInput {
   width: 100%;
 }
-/* Collision hit marker on the timeline — semantic danger red; rapid-contact
-   hits span full height, feed contacts are the shorter center band.
-   Positioned in the THUMB-TRAVEL span, not the full input width: a range
-   thumb (16px) travels width−16px inset 8px each side, so un-inset marks
-   drift up to 8px off the thumb toward the ends. */
-.scrubMark {
+/* Timeline overlays — all in the THUMB-TRAVEL span (a 16px thumb travels
+   width−16px, inset 8px each side; un-inset percentages drift up to 8px off
+   the thumb toward the ends), all non-interactive. Semantic tokens only:
+   info = tool change, warn = soft limit, danger = clash. */
+.scrubBand {
   position: absolute;
-  top: 25%;
-  bottom: 25%;
+  left: 8px;
+  top: 50%;
+  height: 6px;                 /* the global input[type=range] track */
+  transform: translateY(-50%);
+  border-radius: var(--radius-sm);
+  min-width: 2px;
+  pointer-events: none;
+}
+.scrubBand.swept { background: color-mix(in oklab, var(--info) 40%, transparent); }
+.scrubBand.limit { background: color-mix(in oklab, var(--warn) 45%, transparent); }
+.scrubBand.clash { background: color-mix(in oklab, var(--danger) 55%, transparent); }
+/* One tick for every mark kind (full track height); the glyph under it is
+   what tells the kinds apart when the colours don't (dark theme). */
+.scrubTick {
+  position: absolute;
+  top: 0;
+  bottom: 0;
   width: 2px;
   transform: translateX(-50%);
-  background: var(--danger);
   pointer-events: none;
   /* Hairline bg-colored edge: separates adjacent ticks (time axis fuses
      rapid-crash clusters) and crisps every tick against the track. */
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--bg) 90%, transparent);
 }
-.scrubMark.rapid {
-  top: 0;
-  bottom: 0;
-}
-.scrubMark.limit {
-  /* Full-strength warn: the hairline bg edge (above) carries the contrast
-     against bright backgrounds, so the tick keeps the bright yellow. */
-  background: var(--warn);
-}
-.scrubMark.near {
-  /* Clearance warning (never touches) — muted vs a real contact tick. */
-  opacity: var(--opacity-muted);
-}
-.scrubMark.tool {
-  background: var(--info);
-  top: 35%;
-  bottom: 35%;
+.scrubTick.tool  { background: var(--info);   color: var(--info); }
+.scrubTick.limit { background: var(--warn);   color: var(--warn); }
+.scrubTick.clash { background: var(--danger); color: var(--danger); }
+.scrubTick.near  { opacity: var(--opacity-muted); }   /* clearance warning, never touches */
+.scrubGlyph {
+  position: absolute;
+  top: calc(100% + 1px);
+  left: 50%;
+  transform: translateX(-50%);
+  line-height: 0;
 }
 .speedSlider {
   width: 72px;
@@ -1075,14 +1154,14 @@ onUnmounted(() => {
 }
 /* Row-1 fixed slots (--slot-w is the global .val-slot width var). Every
    content-sized sibling of the timeline gets a fixed slot, so the slider —
-   the one flex:1 item — keeps its edges while text changes. */
-.modeSlot { --slot-w: 8ch; }
-.lineSlot { --slot-w: 15ch; }
-.posSlot  { --slot-w: 16ch; }   /* "~1:02:34/1:23:45": an hour-long run */
+   the one flex:1 item — keeps its edges while text changes. The line slot
+   fits "L12345 →"; sub names ellipsize (full text in the title). The time
+   slot's --slot-w is bound per track (posSlotCh). */
+.lineSlot { --slot-w: 10ch; }
 /* FIXED, not min-width (2026-09-12): a floor let "L1234 (sub_name) →" grow
    the slot and the ellipsis never engaged — every extra character came out
-   of the timeline. The full text is the slot's title. */
-.modeSlot, .lineSlot, .posSlot {
+   of the timeline. */
+.lineSlot, .posSlot {
   flex: 0 0 var(--slot-w);
   white-space: nowrap;
   overflow: hidden;
@@ -1093,11 +1172,6 @@ onUnmounted(() => {
    bottom-anchored, so a row that came and went with each auto-sweep pushed
    the timeline up and down. */
 .scrubRow + .scrubRow { min-height: var(--touch-target-compact); }
-/* Sweep slot track: one width in every state (the global track is flex:1
-   for its row-filling home in GcodePanel). */
-.sweepTrack {
-  flex: 0 0 120px;
-}
 /* Moving next-target readout — fixed floor so row width stays stable. */
 .navTarget {
   white-space: nowrap;

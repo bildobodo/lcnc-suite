@@ -274,6 +274,26 @@ describe("sweepCollisions", () => {
     expect(r.value.truncated).toBeNull();
   });
 
+  it("progress and covered are fractions of the TRACK axis, not of the sweep's distance parameter", () => {
+    // 2026-09-12: the scrub bar draws the swept section on its timeline,
+    // whose axis is TIME on a time-based track. A track whose cum runs at
+    // double pace over its second half: the count-based checkpoints at
+    // segments 16 and 32 must yield cum[15]/cumMax and cum[31]/cumMax — the
+    // distance fractions would be 15/40 and 31/40.
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const t = plunge40();
+    for (let i = 21; i < t.count; i++) t.cum[i] = t.cum[20]! + 2 * (i - 20);
+    const cumMax = t.cum[t.count - 1]!;   // 60
+    const it = sweepCollisionsIter(model, t, WCS0, { margin: 2, clock: () => 0 });
+    const progress: number[] = [];
+    let r = it.next();
+    while (!r.done) { progress.push(r.value); r = it.next(); }
+    expect(progress).toHaveLength(4);   // start, segments 16 and 32, end (frozen clock = the floor)
+    expect(progress[1]).toBeCloseTo(t.cum[15]! / cumMax, 6);   // 0.25, not 0.375
+    expect(progress[2]).toBeCloseTo(t.cum[31]! / cumMax, 6);   // 0.7, not 0.775
+    expect(progress[3]).toBe(1);
+  });
+
   it("stop/continue via the snapshot hook: every snapshot is a truncated sweep-so-far, continuing ends in the uninterrupted result", () => {
     // 2026-09-12: the worker parks a sweep (budget, operator stop, rotary
     // motion) by simply not resuming the generator, snapshots the sweep-so-

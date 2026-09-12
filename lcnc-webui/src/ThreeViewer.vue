@@ -3719,7 +3719,7 @@ defineExpose({
          spindle read exactly like the axis rows. Tool is static context and
          stays a smaller single line. All text sizes scale with --hud-scale
          (settings: HUD scale). -->
-    <div v-show="hudVisible" class="hud hudCard stack-tight" :class="`hudScale-${hudCfg.scale}`">
+    <div v-show="hudVisible" class="hud hudCard overlay-card stack-tight" :class="`hudScale-${hudCfg.scale}`">
       <div class="hudGrid" :class="{ noMach: !hudCfg.showMachine }">
         <span class="hudHead"></span>
         <span class="hudHead">Work · {{ props.g5xLabel || '-' }}</span>
@@ -3851,7 +3851,7 @@ defineExpose({
   position: absolute;
   z-index: 1;
   top: 156px;
-  right: 12px;
+  right: var(--gap-section);
   width: 140px;
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -3861,8 +3861,8 @@ defineExpose({
 .stlFailedChip {
   position: absolute;
   z-index: 1;
-  bottom: 12px;
-  left: 12px;
+  bottom: var(--gap-section);
+  left: var(--gap-section);
   padding: var(--gap-tight) var(--gap-controls);
   border-radius: var(--radius-xl);
   background: color-mix(in oklab, var(--warn) 20%, var(--panel));
@@ -3887,26 +3887,24 @@ defineExpose({
   background: color-mix(in oklab, var(--panel) 70%, transparent);
 }
 
+/* Every overlay on the viewer sits --gap-section (12px) from its frame —
+   the HUD, the quick grid, the STL chip, the sim bar and banner alike. */
 .hud {
   position: absolute;
   z-index: 1;
-  top: 12px;
-  left: 12px;
-  max-width: calc(100% - 24px);
+  top: var(--gap-section);
+  left: var(--gap-section);
+  max-width: calc(100% - 2 * var(--gap-section));
   pointer-events: none;
   user-select: none;
 }
 
-/* Single HUD card. Every font-size below multiplies a --fs-* token by
-   --hud-scale so the whole card scales coherently from one setting. */
+/* Single HUD card (chrome from the global .overlay-card, shared with the
+   sim bar). Every font-size below multiplies a --fs-* token by --hud-scale
+   so the whole card scales coherently from one setting. */
 .hudCard {
   --hud-scale: 1;
-  background: color-mix(in oklab, var(--panel) 85%, transparent);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
   padding: var(--gap-controls) var(--gap-section);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
   font-variant-numeric: tabular-nums;
   line-height: 1.3;
 }

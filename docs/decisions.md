@@ -4775,3 +4775,50 @@ start reports (it never did); programs with a stock body or a clear start are
 unchanged; base sweep and sim-entry overlay agree. Pinned by a collision test
 with its control case (the same body without the flag: one static contact,
 the L9 rapid plunge reports nothing — the exact gap).
+
+## 2026-09-12 (late, 4) — Sim bar: one overlay offset + chrome, the sweep on the timeline, slimmer slots, marks you can tell apart, scrub pauses
+
+**Operator walk-through, six items; decisions: the bar takes the HUD's chrome, the
+timeline band is the only sweep progress display, the mode slot goes.**
+
+- **Offset + chrome.** Every viewer overlay keeps `--gap-section` (12 px) from the
+  frame — the HUD's hard-coded 12px, the quick grid, the STL chip, the sim banner
+  (was 8) and the bar (was 8) all read the token now. A global `.overlay-card`
+  (85 % panel + 6 px backdrop blur + border + radius) is the one chrome for cards
+  floating over the 3D view; the HUD card and the bar both use it (the HUD's own
+  copy of those declarations is gone). CameraPip stays opaque (video).
+- **Sweep progress on the timeline.** The iterator's progress and `covered` are
+  fractions of the TRACK'S AXIS now (`distToTrackCum(s) / cum[n-1]` — time on a
+  time-based track; only at checkpoints, so free; identical to the path fraction
+  on a distance track; pinned by a test on a track whose cum runs at double pace
+  over its second half). ScrubBar draws a swept band on the timeline (`sweptFrac`:
+  progress while running, the covered part while parked/truncated, 1 when done;
+  base-relative values re-based past the entry segment when the entry track is
+  displayed), so a scrub shows which section is already checked. The row-2 slot
+  is the button alone (❚❚ / ▶ / ↻, one position); the 120 px track, its
+  `pct`/`cls` and the `.progressTrack.warn` modifier from earlier tonight are gone.
+- **Slots.** Mode slot removed ("RUNNING" was redundant with locked controls, the
+  `~` estimate prefix and the run highlight; "off path" now shows in the line
+  slot, warn-tinted, with its explanation as the title). Line slot 10ch; time slot
+  sized per track (`fmtElapsed(cumMax).length × 2 + 2`, 5ch on the distance
+  axis) — ~22ch typical instead of 39.
+- **Marks.** The three kinds were 2×3 px specks (the wrap is track-height, marks
+  sat at 25–75 % of it) in colours the dark theme cannot separate (it inherits
+  the light `--danger`/`--warn`). Now one tick per mark (2 px, full track height)
+  plus a lucide glyph under the track in the tick's colour — × clash, ▲ soft
+  limit, ● tool change — and extent BANDS: warn over each violating line's cum
+  span (`lineCumOf` → `track.cum[lineRange().end]`), danger over every hit
+  record's refined intervals (continuations included, merged per kind, red after
+  yellow = red wins). Height tiers (rapid, tool) dropped — rapid stays in the
+  readout and tooltip. GcodePanel: collision lines get their own `collision`
+  class → `.codeLine.collision .lineNumber` is danger (limit lines stay warn; a
+  line with both reads danger).
+- **Scrub pauses playback.** `@input` on the timeline slider (MachineSlider
+  forwards `$attrs`; the native event fires for user changes only) sets
+  `playing = false` — Play resumes from the scrubbed position.
+
+**Verified (suite live, single niced files):** collision 46 (+1) + entry 10 + pump
+3 + merge 2; SFC compile of ScrubBar / ThreeViewer / GcodePanel, eslint, tsc
+probe clean; no browser errors after HMR. Frame-time probe before/after the blur:
+see the commit message. OWED: the operator's look (offset + chrome, band, glyphs,
+red code lines, slots, scrub-pause), heavy gates at the next stop.
