@@ -35,5 +35,43 @@ for the upper cylinder; it is not used for numeric measurements. This reference
 does not prove the remaining height, caps, other form profiles, nonzero tip
 offsets, optional holder placement or every surface of the 3D lathe mesh.
 
+## Nonzero tip-offset follow-up
+
+`tip-offset-plus10/` contains a second native capture of the same physical tool
+with `tip-offset=10` mm. Both axial ends are visible. Edge samples now cover
+z=1..178 mm; image-derived end bounds are z=0.120 and z=179.740 mm, compared with
+the imported profile's 0 and 179.598 mm. These agree within the unchanged 0.5 mm
+raster threshold without shifting the mesh by the tip offset.
+
+For this capture the camera was explicitly set to an orthographic front view
+with a 28 cm vertical extent. A 2000-pixel image therefore has 7.142857 pixels/mm.
+The 20 mm stock independently agrees within one pixel of width. Merely counting
+opaque stock pixels gives 7.1 pixels/mm because antialiased border pixels are
+excluded; that scale error would accumulate to more than 1 mm over the tool's
+height. No scale was fitted to the tool's OAL or profile. The screenshot and
+original camera settings are retained together so this calibration is reviewable.
+
+Regenerate this reference with Python/Pillow:
+
+```sh
+python3 test-fixtures/fusion-form-simulation/extract-silhouette.py \
+  test-fixtures/fusion-form-simulation/tip-offset-plus10 178
+```
+
+The 1,264 edge samples have a native-to-LCNC maximum distance of 0.372 mm and a
+reverse maximum of 0.392 mm. Tests run both captures in mm and inch and check the
+visible top/bottom bounds. These are silhouette/end-position checks, not proof
+of every 3D cap surface or other form profiles.
+
+`../fusion-tool-form-offsets.json` records three generated Trace operations and
+their canonical tools, with requested/canonical/post offsets 0, +10 and -10 mm.
+`form-offset-coordinates.cps` is the JSON-only post used to capture their linear
+positions. It emits no machine program. At the same reference line the cutting
+Z values are -6, -16 and +4 mm respectively. Clearance remains +15 mm. Fusion
+has already applied the tip offset to the cutting coordinates; applying another
+mesh offset in LCNC would shift the physical body twice. Integration tests pass
+all three tools through import, real sidecar persistence and both metadata paths,
+keep measured Z=-42.3 intact and place the unshifted body at the posted position.
+
 Fusion's CAM-post cylinder remains excluded as a form-shape oracle. Autodesk
 [describes the simulation/toolpath distinction](https://help.autodesk.com/cloudhelp/ENU/Fusion-CAM/files/FORM-MILL-OVERVIEW.htm).

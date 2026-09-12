@@ -38,6 +38,8 @@ export interface ToolMeta {
   taper_angle?: number | null;
   point_angle?: number | null;
   tip_diameter?: number | null;
+  // CAM compensation metadata, separate from the physical outline and measured
+  // length. Fusion already applies this to the verified form/Trace NC positions.
   tip_offset?: number | null;
   corner_radius?: number | null;
   holder_segments?: HolderSegment[] | null;

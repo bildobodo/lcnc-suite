@@ -208,8 +208,8 @@ not certify a complete 3D mesh to a machining tolerance.
 The linear form `tip-offset` is preserved as `tip_offset`, separately from profile
 coordinates and measured Z. It describes CAM compensation-point metadata. This
 patch does not apply it as an installed-length correction or reinterpret the
-profile's origin. DC and OAL likewise do not resize the explicit profile. A
-compensation-point/frame comparison with Fusion simulation remains necessary.
+profile's origin. DC and OAL likewise do not resize the explicit profile. The
+form/Trace compensation comparison below supports keeping these quantities separate.
 
 Ten new analytic geometry tests cover the actual bottom cap, all Autodesk sample
 endpoints, 5 micron radial steps, 10 micron axial segments, undercuts crossing LCF,
@@ -237,10 +237,43 @@ is not a machining tolerance. This sample's `DC` is 40 mm but its profile define
 cutting rings of diameter 120.8136 mm. Their native simulation silhouette supports
 using the explicit profile without rescaling it to DC.
 
-Numeric coverage is z=1..160 mm of this one 179.598 mm sample, with `tip-offset=0`
-and no holder. The front image clips the upper end; the isometric capture adds
-visual context only. Full-height/cap agreement, nonzero compensation offsets,
-other form profiles and complete 3D mesh fidelity remain unverified.
+The first capture covers z=1..160 mm of this 179.598 mm sample, with
+`tip-offset=0` and no holder. Its front image clips the upper end; the isometric
+capture adds visual context only.
+
+### Form compensation: posted coordinates and physical body
+
+Three otherwise identical native Trace operations now establish the sign and
+location of tip-offset compensation. The reference sketch line is at model Z=0,
+6 mm below the setup's stock-top origin:
+
+| Fusion tip-offset | Posted cutting Z | Clearance Z |
+| --- | --- | --- |
+| 0 mm | -6 mm | +15 mm |
+| +10 mm | -16 mm | +15 mm |
+| -10 mm | +4 mm | +15 mm |
+
+The canonical profiles and OAL remain identical. Fusion has already subtracted
+the tip offset from the cutting coordinates. The negative case needs no separate
+plunge because its cutting plane coincides with the retract plane. The evidence
+is in `test-fixtures/fusion-tool-form-offsets.json` and its JSON-only post; the
+post's cylindrical cutter outline is still not a physical-form reference.
+
+A second simulation capture, at `tip-offset=+10` and displayed Z=+15 mm, shows
+the full body. The unshifted imported outline matches 1,264 edge samples over
+z=1..178 mm within the same 0.5 mm raster threshold (0.372 mm native-to-LCNC,
+0.392 mm reverse). The image's axial limits are 0.120 and 179.740 mm, consistent
+with profile limits 0 and 179.598 mm. Its scale comes from an explicitly recorded
+28 cm orthographic camera, independently checked against the 20 mm stock; it is
+not fitted to the tool. Original pixels, camera and dialog state are retained
+under `test-fixtures/fusion-form-simulation/tip-offset-plus10`.
+
+LCNC therefore keeps rendering the physical profile at the posted tool-tip
+position without adding `tip_offset` again. Import/persistence tests retain the
+signed metadata and measured Z independently in mm and inch. No live tool offset
+or measurement behavior is changed. These observations cover this form/Trace
+example; other strategies, custom compensation definitions, other form profiles
+and complete 3D cap/mesh fidelity still need separate evidence.
 
 ## Remaining scope
 

@@ -209,7 +209,14 @@
     "pixelsPerMm": 8.1,
     "axisXPx": 1039.5,
     "tipYPx": 1325.0,
+    "scaleSource": "20 mm reference stock silhouette",
+    "stockPixelsPerMm": 8.1,
     "expectedTipOffsetMm": 0
+  },
+  "silhouetteBounds": {
+    "fullHeightVisible": false,
+    "minZMm": -0.0617283950617284,
+    "maxZMm": 163.64197530864197
   },
   "coverageZMm": [
     1,
@@ -217,8 +224,8 @@
   ],
   "toleranceMm": 0.5,
   "limits": [
-    "One Autodesk sample, tip-offset zero, holder removed.",
-    "Front image clips the top of the 179.598 mm tool; only z=1..160 mm is measured.",
+    "One Autodesk sample, tip-offset 0 mm, holder removed.",
+    "Numeric edge samples cover z=1..160 mm; full height visible: False.",
     "Pixel calibration, antialiasing and native mesh faceting limit precision.",
     "This checks the meridian silhouette, not every 3D mesh surface or tool family."
   ],

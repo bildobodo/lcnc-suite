@@ -6,6 +6,7 @@ import * as THREE from "three";
 import originalFixtures from "../../test-fixtures/fusion-tool-contours.json";
 import shoulderFixtures from "../../test-fixtures/fusion-tool-shoulders.json";
 import taperThreadFixtures from "../../test-fixtures/fusion-tool-tapers-threads.json";
+import formOffsets from "../../test-fixtures/fusion-tool-form-offsets.json";
 const fixtures = { cases: [...originalFixtures.cases, ...shoulderFixtures.cases, ...taperThreadFixtures.cases] };
 import { buildToolProfile, buildToolParts, type ToolMeta } from "./toolGeometry";
 import { toolUnitsPerMillimeter } from "./toolUnits";
@@ -38,9 +39,9 @@ print(json.dumps([{
 } for c in cases]))
 `], {
   cwd: fileURLToPath(new URL("../../lcnc-gateway/", import.meta.url)),
-  input: JSON.stringify(fixtures), encoding: "utf8",
+  input: JSON.stringify({ cases: [...fixtures.cases, ...formOffsets.cases] }), encoding: "utf8",
 })) as { id: string; mm: ImportedTool; inch: ImportedTool }[];
-type ImportedTool = ToolMeta & { D: number; preview: ToolMeta; viewer: ToolMeta };
+type ImportedTool = ToolMeta & { D: number; preview: ToolMeta & { Z: number }; viewer: ToolMeta };
 
 function expectSamePoints(a: THREE.Vector2[], b: THREE.Vector2[], factor = 1) {
   expect(b.length).toBe(a.length);
@@ -132,6 +133,32 @@ describe("Fusion import → tool geometry", () => {
     for (const unit of ["in", "inch", "inches"]) expect(toolUnitsPerMillimeter(unit)).toBe(1 / 25.4);
     expect(toolUnitsPerMillimeter("mm")).toBe(1);
   });
+});
+
+describe("form compensation offsets", () => {
+  for (const fixture of formOffsets.cases) {
+    it(`${fixture.id}: keeps measured Z and renders at the already-compensated NC position`, () => {
+      const entry = imported.find(c => c.id === fixture.id)!;
+      // Locate the native horizontal cutting pass, independent of the optional
+      // plunge/retract segments that collapse for the negative-offset case.
+      const cut = fixture.moves.find((move, i) => i > 0
+        && move.xyz[0] !== fixture.moves[i - 1]!.xyz[0]
+        && move.xyz[2] === fixture.moves[i - 1]!.xyz[2])!;
+      const expectedTipZ = formOffsets.referenceTraceZMm - formOffsets.referenceStockTopZMm
+        - fixture.requestedTipOffset;
+      for (const unit of ["mm", "inch"] as const) {
+        const scale = toolUnitsPerMillimeter(unit), tool = entry[unit];
+        expect(tool.preview.Z).toBe(-42.3);
+        for (const meta of [tool, tool.preview, tool.viewer]) {
+          expect(meta.tip_offset! / scale).toBeCloseTo(fixture.postTipOffset, 10);
+          const parts = buildToolParts(tool.D, 42.3 * scale, meta, scale);
+          const renderedTipZ = Math.min(...parts.cutter.map(p => p.y)) / scale + cut.xyz[2]!;
+          expect(renderedTipZ).toBeCloseTo(expectedTipZ, 10);
+          expect(Math.max(...parts.cutter.map(p => p.y)) / scale).toBeCloseTo(fixture.raw.geometry.OAL, 10);
+        }
+      }
+    });
+  }
 });
 
 // Native points are independently exported by Fusion, including finely sampled
