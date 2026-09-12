@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onBeforeUnmount, toRefs } from "vue";
 import * as THREE from "three";
-import { buildToolParts, buildToolGeometry, type ToolMeta } from "./toolGeometry";
+import { buildToolParts, buildToolGeometry, buildHolderGeometry, type ToolMeta } from "./toolGeometry";
+import { nominalHolderBase } from "./toolHolder";
 
 const props = withDefaults(
   defineProps<{
@@ -9,13 +10,14 @@ const props = withDefaults(
     length: number;
     meta?: ToolMeta | null;
     unitsPerMm?: number;
+    showNominalHolder?: boolean;
     width?: number;
     height?: number;
   }>(),
   { width: 80, height: 120, unitsPerMm: 1 }
 );
 
-const { diameter, length, meta, width, height, unitsPerMm } = toRefs(props);
+const { diameter, length, meta, width, height, unitsPerMm, showNominalHolder } = toRefs(props);
 
 const container = ref<HTMLDivElement | null>(null);
 
@@ -93,18 +95,22 @@ function buildPreview() {
 
   const { cutter, shaft } = buildToolParts(diameter.value, length.value, meta.value ?? null, unitsPerMm.value);
 
-  const cutterMat = new THREE.MeshStandardMaterial({
-    color: cutterColor, metalness: 0.1, roughness: 0.5,
-  });
-  const shaftMat = new THREE.MeshStandardMaterial({
-    color: shaftColor, metalness: 0.1, roughness: 0.5,
-  });
-
   if (cutter.length >= 3) {
-    group.add(new THREE.Mesh(buildToolGeometry(cutter), cutterMat));
+    group.add(new THREE.Mesh(buildToolGeometry(cutter), new THREE.MeshStandardMaterial({
+      color: cutterColor, metalness: 0.1, roughness: 0.5,
+    })));
   }
   if (shaft.length >= 3) {
-    group.add(new THREE.Mesh(buildToolGeometry(shaft), shaftMat));
+    group.add(new THREE.Mesh(buildToolGeometry(shaft), new THREE.MeshStandardMaterial({
+      color: shaftColor, metalness: 0.1, roughness: 0.5,
+    })));
+  }
+  const holderBase = nominalHolderBase(meta.value);
+  if (showNominalHolder.value && holderBase !== null) {
+    const holder = buildHolderGeometry(meta.value!.holder_segments!, holderBase);
+    if (holder) group.add(new THREE.Mesh(holder, new THREE.MeshStandardMaterial({
+      color: 0x888888, metalness: 0.7, roughness: 0.3,
+    })));
   }
 
   scene.add(group);
@@ -134,7 +140,7 @@ onMounted(() => {
 onBeforeUnmount(dispose);
 
 watch(
-  [diameter, length, meta, width, height, unitsPerMm],
+  [diameter, length, meta, width, height, unitsPerMm, showNominalHolder],
   () => {
     buildPreview();
   },

@@ -24,6 +24,7 @@ class TestMetadataRefreshPlan(unittest.TestCase):
     def test_preserves_table_and_local_data_and_clears_old_type_geometry(self):
         table = [dict(T=1, P=7, X=2, Y=-3, Z=-42.3, D=6), dict(T=8, P=8, Z=12, D=2)]
         library = {"1": {"profile": [{"end": [1, 2]}], "holder_segments": [1],
+                         "holder_gauge_length": 30, "assembly_gauge_length": 70,
                          "shaft_segments": [2], "tip_offset": 10, "local_note": "keep"},
                    "8": {"description": "Unrelated"}}
         before = copy.deepcopy((table, library))
@@ -32,7 +33,8 @@ class TestMetadataRefreshPlan(unittest.TestCase):
         self.assertEqual((table, library), before)
         self.assertEqual(plan["library"]["8"], library["8"])
         self.assertEqual(plan["library"]["1"]["local_note"], "keep")
-        for key in ("profile", "holder_segments", "shaft_segments", "tip_offset", "D", "Z", "P"):
+        for key in ("profile", "holder_segments", "holder_gauge_length", "assembly_gauge_length",
+                    "shaft_segments", "tip_offset", "D", "Z", "P"):
             self.assertNotIn(key, plan["library"]["1"])
 
     def test_skips_ambiguous_numbers_unknown_tools_identity_diameter_and_stl_conflicts(self):

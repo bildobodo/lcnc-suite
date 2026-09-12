@@ -151,6 +151,9 @@ def parse_fusion_library(data: dict, machine_unit: str) -> tuple[list, list]:
             ]
 
         # Holders carry their own `unit` independent of the tool body.
+        if holder:
+            tool["holder_gauge_length"] = _opt_scale(
+                holder.get("gaugeLength"), _fusion_unit_scale(holder.get("unit"), machine_unit))
         holder_segs = holder.get("segments", []) if holder else []
         if holder_segs:
             holder_scale = _fusion_unit_scale(holder.get("unit"), machine_unit)

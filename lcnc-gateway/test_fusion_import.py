@@ -86,6 +86,28 @@ class TestFusionGeometryImport(unittest.TestCase):
                 self.assertAlmostEqual(tool['holder_segments'][0]['height'], 30 * scale)
         self.assertEqual(raw, before)
 
+    def test_holder_gauge_length_uses_holder_unit_and_survives_storage(self):
+        # A gauge plane inside the full holder outline is metadata; do not
+        # silently replace it with the sum of segment heights or tool OAL.
+        raw = {'type': 'flat end mill', 'unit': 'millimeters',
+               'post-process': {'number': 7},
+               'geometry': {'DC': 10, 'OAL': 70, 'LB': 30, 'assemblyGaugeLength': 55.4},
+               'holder': {'unit': 'inches', 'gaugeLength': 1, 'segments': [
+                   {'height': 2, 'lower-diameter': 1, 'upper-diameter': 1.5}]}}
+        for unit, scale in [('mm', 1), ('in', 1 / 25.4)]:
+            with self.subTest(unit=unit), TemporaryDirectory() as directory:
+                tool = parse_fusion_library({'data': [raw]}, unit)[0][0]
+                store = ToolLibraryStore(Path(directory) / 'library.json', lambda: '/test.ini')
+                store.save({'7': {k: tool[k] for k in _TOOL_META_FIELDS if k in tool}})
+                meta = _merge_tool_data([dict(T=7, P=4, Z=-42.3, D=tool['D'])], store.load())[0]
+                self.assertAlmostEqual(meta['holder_gauge_length'], 25.4 * scale)
+                self.assertAlmostEqual(meta['holder_segments'][0]['height'], 50.8 * scale)
+                self.assertAlmostEqual(meta['assembly_gauge_length'], 55.4 * scale)
+                self.assertAlmostEqual(meta['body_length'], 30 * scale)
+                self.assertAlmostEqual(meta['oal'], 70 * scale)
+                self.assertEqual(meta['Z'], -42.3)
+                self.assertNotIn('Z', tool)
+
     def test_persisted_shaft_reaches_table_and_viewer_without_changing_measurement(self):
         raw = next(c['raw'] for c in CASES if c['id'] == 'bare-dovetail-mill')
         tool = parse_fusion_library({'data': [raw]}, 'mm')[0][0]

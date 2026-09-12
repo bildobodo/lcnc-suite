@@ -11,7 +11,9 @@ import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineInput from "./MachineInput.vue";
 import MachineSelect from "./MachineSelect.vue";
+import MachineToggle from "./MachineToggle.vue";
 import type { ToolMeta } from "./toolGeometry";
+import { nominalHolderBase } from "./toolHolder";
 import { toolUnitsPerMillimeter } from "./toolUnits";
 // Async on purpose (WS-E / F10-finish): ToolPreview is the ONLY statically
 // eager three.js importer left — this edge alone kept the 866 kB three
@@ -159,8 +161,12 @@ const editForm = ref({
   holder: "",
 });
 const isNewTool = ref(false);
+const showNominalHolder = ref(false);
+const editPreviewMeta = computed(() => ({ ...editTool.value, ...editForm.value }));
+const hasNominalHolder = computed(() => nominalHolderBase(editPreviewMeta.value) !== null);
 
 function openEdit(tool: Tool) {
+  showNominalHolder.value = false;
   editError.value = null;
   saving.value = false;
   editTool.value = tool;
@@ -187,6 +193,7 @@ function openEdit(tool: Tool) {
 }
 
 function openAdd() {
+  showNominalHolder.value = false;
   editError.value = null;
   saving.value = false;
   const maxT = tools.value.reduce((m, t) => Math.max(m, t.T), 0);
@@ -564,8 +571,8 @@ defineExpose({ openAdd, fetchTools, triggerImport });
                 <div class="sub">Dimensions</div>
                 <label>Total Length</label>
                 <MachineInput gate="toolEditNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.oal" placeholder="mm" />
-                <label>Shoulder Len</label>
-                <MachineInput gate="toolEditNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.body_length" placeholder="mm" />
+                <label for="tool-below-holder">Length Below Holder</label>
+                <MachineInput id="tool-below-holder" gate="toolEditNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.body_length" />
                 <label>Flute Len</label>
                 <MachineInput gate="toolEditNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.flute_length" placeholder="mm" />
                 <label>Shaft Ø</label>
@@ -584,17 +591,23 @@ defineExpose({ openAdd, fetchTools, triggerImport });
             </div>
 
             <!-- Right column: parametric preview -->
-            <div class="editPreviewCol">
+            <div class="editPreviewCol stack-controls">
               <div class="editPreviewCanvas inset-panel">
                 <ToolPreview
                   :diameter="editForm.D || 6 * unitsPerMm"
                   :length="editForm.oal || Math.abs(editForm.Z) || 50 * unitsPerMm"
-                  :meta="{ ...editTool, ...editForm }"
+                  :meta="editPreviewMeta"
+                  :show-nominal-holder="showNominalHolder && hasNominalHolder"
                   :units-per-mm="unitsPerMm"
                   :width="160"
                   :height="280"
                 />
               </div>
+              <MachineToggle v-if="hasNominalHolder" gate="toolEdit"
+                v-model="showNominalHolder" label="Show Fusion holder"
+                help="Nominal library assembly. Actual stickout depends on clamping; this preview does not change measured offsets or the machine view." />
+              <span v-if="showNominalHolder && hasNominalHolder">Nominal Fusion assembly</span>
+              <span v-else>Tool only</span>
             </div>
           </div>
 
@@ -850,7 +863,6 @@ defineExpose({ openAdd, fetchTools, triggerImport });
   display: flex;
   justify-content: center;
   padding: var(--gap-controls);
-  margin-bottom: var(--gap-section);
 }
 
 .editFooter {

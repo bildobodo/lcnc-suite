@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { validHolderSegments } from "./toolHolder";
 
 export interface ShaftSegment {
   height: number;
@@ -44,6 +45,8 @@ export interface ToolMeta {
   tip_offset?: number | null;
   corner_radius?: number | null;
   holder_segments?: HolderSegment[] | null;
+  holder_gauge_length?: number | null;
+  assembly_gauge_length?: number | null;
   profile?: ProfileSegment[] | null;
 }
 
@@ -502,13 +505,16 @@ export function buildToolGeometry(profile: THREE.Vector2[], segments = 24): THRE
   return geom;
 }
 
-/** Build holder geometry from stacked frustum segments, starting at Z=toolOAL */
+/** Stack the full holder outline at an explicitly supplied tip-relative base.
+ * Nominal Fusion previews supply LB. No installed placement is inferred here.
+ * Gauge length describes a reference plane and must not clip the outline.
+ */
 export function buildHolderGeometry(
-  segments: HolderSegment[], toolOAL: number, latheSegments = 24
+  segments: HolderSegment[], baseZ: number, latheSegments = 24
 ): THREE.LatheGeometry | null {
-  if (!segments.length) return null;
+  if (!validHolderSegments(segments) || !Number.isFinite(baseZ)) return null;
   const pts: THREE.Vector2[] = [];
-  let z = toolOAL;
+  let z = baseZ;
   pts.push(new THREE.Vector2(0, z));
   for (const seg of segments) {
     pts.push(new THREE.Vector2(seg.lower_diameter * 0.5, z));

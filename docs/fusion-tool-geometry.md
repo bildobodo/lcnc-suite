@@ -18,7 +18,8 @@ Imported `oal` defines the full physical body. A new measured length must not
 stretch that body. The existing main-viewer translation by the active signed
 `-tool_offset` remains unchanged. The offset magnitude reported as `tool_length`
 and the active signed correction remain distinct from Fusion's OAL, LB and
-assembly gauge length. Holder placement is outside this patch.
+assembly gauge length. Nominal holder placement is described below; installed
+holders require an independent spindle reference.
 
 This import fix applies when decoding Fusion JSON. Previously stored, doubled
 `point_angle` values are not automatically migrated: the sidecar does not retain
@@ -456,6 +457,53 @@ isolated Playwright tests cover default refresh, explicit replacement, stale
 review/retry and an all-conflict disabled action. These tests use a mock gateway
 and do not connect to a machine.
 
+## Optional nominal holder preview
+
+The edit dialog defaults to **Tool only**. **Show Fusion holder** appears when
+the export supplies usable segments and a finite, nonnegative `LB`. It displays
+the nominal library assembly, labelled accordingly, and resets to off when
+another tool is opened. The hover preview remains tool-only. The former
+**Shoulder Len** input was actually `LB`; it is now labelled **Length Below
+Holder**. Physical shoulder length remains a separate imported parameter.
+
+Holders stack from tip-relative `LB`, not from OAL. The previous live viewer
+automatically attached every imported holder at OAL, which was wrong even for
+the nominal assembly. That automatic attachment is removed. The actual tool
+still uses its unchanged physical outline and the signed active LinuxCNC
+offset. This matters during manual changes: a different insertion depth moves
+the tool relative to the holder, while the holder remains fixed to the spindle.
+Neither `abs(Z)` nor nominal `LB` establishes that spindle reference.
+
+The importer now preserves `holder.gaugeLength` as `holder_gauge_length`, using
+the holder's own unit. Tool OAL, LB and `assembly_gauge_length` use the tool unit.
+These separate fields survive storage and table merge without changing measured
+Z. A tool-only metadata refresh clears stale holder data, including its gauge
+length. No gauge value clips or rescales holder segments. Missing LB never falls
+back to OAL, gauge length or a measured offset.
+
+Four generated Trace operations in the isolated audit document provide native
+holder SVG references; one also supplies an unmodified native simulation image.
+The cases and limits are documented in
+[the holder fixture record](../test-fixtures/fusion-tool-holders.md). The native
+30 mm LB reference starts at 30 mm despite its 70 mm OAL; changing LB to 40 mm
+translates the holder by 10 mm. Both machine units pass the real Python importer,
+sidecar storage and TypeScript renderer tests. The native front-image reference
+also matches within a 0.08 mm raster tolerance, independently scaled by the
+saved camera and a 20 mm block. This is not a machining tolerance or full 3D
+fidelity claim.
+
+The API **normalized** the requested 20/30 mm holder gauge values to the 50 mm
+segment total, and recomputed assembly lengths. Those inputs therefore do not
+verify Fusion's behavior with a gauge plane inside the holder. Autodesk's
+[gauge-line documentation](https://help.autodesk.com/cloudhelp/ENU/Fusion-CAM/files/MFG-TL-MILL-HOLDER-GAUGE-LINE.htm)
+permits segments above that plane; this remains an explicit native-reference gap.
+The importer's preservation of a distinct gauge value is tested independently.
+
+Two isolated browser tests exercise actual preview rendering, opt-in/reset,
+tool-only imports, and the absence of automatic live-holder geometry. They do
+not connect to LinuxCNC. The permission catalog and lazy Three.js loading remain
+in use.
+
 ## Remaining scope
 
 Probe geometry, unsupported thread-crest combinations and additional 3D fidelity
@@ -469,8 +517,10 @@ See [the bounded failure record](fusion-probe-api-failure.md). The incomplete
 attempt supplies no shape evidence.
 The native form-mill post remains an unsuitable shape oracle.
 
-Optional holder placement remains separate work. These patches do not change
-live tool tables or the existing
+Installed holder placement still needs a calibrated relation between the
+machine's tool-length reference and the holder's spindle gauge plane. Nominal
+library preview support above does not establish that relation or add holder
+collision checking. These patches do not change live tool tables or the existing
 full-library replacement behavior described above. Already imported tools do not
 automatically acquire parameters discarded by earlier imports. Thread mills
 without pitch/profile-angle metadata retain their prior cylindrical approximation
