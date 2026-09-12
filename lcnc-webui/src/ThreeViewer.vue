@@ -2641,7 +2641,7 @@ let _reachReqId = 0;
 let _reachOn = false;
 let _reachKey = "";                       // inputs the cached data was computed from
 let _reachPendingKey = "";
-let _reachData: { roomTris: Float32Array; partTris: Float32Array | null; info: ReachInfo } | null = null;
+let _reachData: { roomTris: Float32Array; partTris: Float32Array | null; partCage: Float32Array | null; info: ReachInfo } | null = null;
 let reachRoomMesh: THREE.Group | null = null;
 let reachPartMesh: THREE.Group | null = null;
 let _reachTimer: ReturnType<typeof setTimeout> | undefined;
@@ -2657,7 +2657,7 @@ function _reachGetWorker(): Worker {
   if (!_reachWorker) {
     _reachWorker = new Worker(new URL("./viewer/reachWorker.ts", import.meta.url), { type: "module" });
     _reachWorker.onmessage = (ev: MessageEvent) => {
-      const m = ev.data as { id: number; error?: string; roomTris?: Float32Array; partTris?: Float32Array | null; info?: ReachInfo };
+      const m = ev.data as { id: number; error?: string; roomTris?: Float32Array; partTris?: Float32Array | null; partCage?: Float32Array | null; info?: ReachInfo };
       if (m.id !== _reachReqId) return;   // superseded
       if (m.error || !m.roomTris || !m.info) {
         console.error("[reach] envelope not computed:", m.error ?? "empty reply");
@@ -2665,7 +2665,7 @@ function _reachGetWorker(): Worker {
         _reachBuildMeshes();
         return;
       }
-      _reachData = { roomTris: m.roomTris, partTris: m.partTris ?? null, info: m.info };
+      _reachData = { roomTris: m.roomTris, partTris: m.partTris ?? null, partCage: m.partCage ?? null, info: m.info };
       _reachKey = _reachPendingKey;
       console.info(`[reach] envelope: ${m.info.samples} tilt samples × ${m.info.corners} corners, ${m.info.hullFaces} hull faces, part sweep ${m.partTris ? "yes" : "no"}, ${m.info.ms} ms`
         + (m.info.notes.length ? ` — notes: ${m.info.notes.join("; ")}` : ""));
@@ -2715,18 +2715,23 @@ function _reachDispose(g: THREE.Group | null) {
   });
 }
 
-function _reachSolidGroup(tris: Float32Array, color: string): THREE.Group {
+function _reachSolidGroup(tris: Float32Array, color: string, cage: Float32Array | null): THREE.Group {
   const geom = new THREE.BufferGeometry();
   geom.setAttribute("position", new THREE.BufferAttribute(tris, 3));
   const fill = new THREE.Mesh(geom, new THREE.MeshBasicMaterial({
     color, transparent: true, opacity: 0.12, depthWrite: false, side: THREE.DoubleSide,
   }));
   fill.renderOrder = 2;
-  // Crease edges only (25°): the hull's rounded parts read as a surface,
-  // the travel box's corners and the sweep's walls and caps as an outline.
-  const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geom, 25), new THREE.LineBasicMaterial({
+  // Outline: the swept solid ships a cage (rings + generators — a body the
+  // camera sits inside has no silhouette to offer); the hull's outline is
+  // its facet creases at 8°, which draws the rounded edges as a fan of
+  // lines (the head-lever fillets on the travel box are ~11° facets).
+  const lineGeom = new THREE.BufferGeometry();
+  if (cage) lineGeom.setAttribute("position", new THREE.BufferAttribute(cage, 3));
+  const edges = new THREE.LineSegments(cage ? lineGeom : new THREE.EdgesGeometry(geom, 8), new THREE.LineBasicMaterial({
     color, transparent: true, opacity: 0.6, depthWrite: false,
   }));
+  if (!cage) lineGeom.dispose();
   edges.renderOrder = 3;
   const g = new THREE.Group();
   g.add(fill, edges);
@@ -2742,11 +2747,11 @@ function _reachBuildMeshes() {
   const roomParent = machineFrameGrp ?? _workGrp;
   if (!d || !roomParent) { requestRender(); return; }
   const color = viewerDefaults.colors.bounds ?? "#ffffff";
-  reachRoomMesh = _reachSolidGroup(d.roomTris, color);
+  reachRoomMesh = _reachSolidGroup(d.roomTris, color, null);
   reachRoomMesh.visible = _reachOn;
   roomParent.add(reachRoomMesh);
   if (d.partTris && _workGrp && _workGrp !== roomParent) {
-    reachPartMesh = _reachSolidGroup(d.partTris, color);
+    reachPartMesh = _reachSolidGroup(d.partTris, color, d.partCage);
     reachPartMesh.visible = _reachOn;
     _workGrp.add(reachPartMesh);
   }

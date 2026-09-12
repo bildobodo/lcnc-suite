@@ -105,6 +105,16 @@ describe("sweepAboutAxis", () => {
     expect(s.contains(v(0, 0, 12))).toBe(false);   // beyond the outer radius
     expect(s.contains(v(11, 0, 7))).toBe(false);   // beyond the axial extent
     expect(s.mesh().length).toBeGreaterThan(0);
+    // the cage: rings, generators and spokes, every point on a sheet (radius 5..10 or the caps)
+    const cage = s.cage(4, 30);
+    expect(cage.length % 6).toBe(0);
+    expect(cage.length).toBeGreaterThan(0);
+    for (let i = 0; i < cage.length; i += 3) {
+      const r = Math.hypot(cage[i + 1]!, cage[i + 2]!);
+      expect(r).toBeGreaterThan(4.9); expect(r).toBeLessThan(10.1);
+      expect(Math.abs(cage[i]!)).toBeLessThan(10.01);
+      expect(cage[i + 2]!).toBeGreaterThan(-1.05); // nothing below the open side (the slab is 1 thick)
+    }
   });
   it("a full turn covers every direction", () => {
     const s = sweepAboutAxis(slab, v(1, 0, 0), 0, 2 * Math.PI, 16, 180);

@@ -17,9 +17,11 @@ self.onmessage = (e: MessageEvent<Req>) => {
   const { id, machine, jointLimits, tlo, opts } = e.data;
   try {
     const r = computeReach(machine, jointLimits, tlo, opts);
+    const partCage = r.part?.cage() ?? null;
     const transfer: Transferable[] = [r.roomTris.buffer as ArrayBuffer];
     if (r.partTris) transfer.push(r.partTris.buffer as ArrayBuffer);
-    self.postMessage({ id, roomTris: r.roomTris, partTris: r.partTris, info: r.info }, { transfer });
+    if (partCage) transfer.push(partCage.buffer as ArrayBuffer);
+    self.postMessage({ id, roomTris: r.roomTris, partTris: r.partTris, partCage, info: r.info }, { transfer });
   } catch (err) {
     self.postMessage({ id, error: String((err as Error)?.message ?? err) });
   }

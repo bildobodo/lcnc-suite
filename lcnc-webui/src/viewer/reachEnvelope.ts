@@ -77,6 +77,11 @@ export interface Solid {
   extent(dir: THREE.Vector3): [number, number];
   contains(p: THREE.Vector3): boolean;
   mesh(): Float32Array;
+  /** Outline line segments [x,y,z, x,y,z, …] that read from ANY viewpoint —
+   *  a swept solid is a cylinder-like body the camera usually sits inside,
+   *  and crease edges alone show nothing of it; null = derive crease edges
+   *  from the mesh instead (a hull's rounded edges are facet creases). */
+  cage(): Float32Array | null;
 }
 
 const DEFAULTS = { rotStepDeg: 5, maxRotSamples: 4096, slices: 64, rays: 360 };
@@ -182,6 +187,7 @@ export class HullSolid implements Solid {
   }
 
   mesh(): Float32Array { return this.tris; }
+  cage(): Float32Array | null { return null; }
 }
 
 function dedupePoints(pts: THREE.Vector3[], q: number): THREE.Vector3[] {
@@ -212,8 +218,10 @@ export class TranslatedSolid implements Solid {
     return [lo + s, hi + s];
   }
   contains(p: THREE.Vector3) { return this.inner.contains(_tv.copy(p).sub(this.offset)); }
-  mesh(): Float32Array {
-    const m = this.inner.mesh().slice();
+  mesh(): Float32Array { return this._shift(this.inner.mesh()); }
+  cage(): Float32Array | null { const c = this.inner.cage(); return c ? this._shift(c) : null; }
+  private _shift(src: Float32Array): Float32Array {
+    const m = src.slice();
     for (let i = 0; i < m.length; i += 3) { m[i] = m[i]! + this.offset.x; m[i + 1] = m[i + 1]! + this.offset.y; m[i + 2] = m[i + 2]! + this.offset.z; }
     return m;
   }
@@ -361,6 +369,38 @@ export class RadialSolid implements Solid {
     }
     this._tris = Float32Array.from(out);
     return this._tris;
+  }
+
+  /** Rings every `ringEvery` slices (plus both ends), generators every
+   *  `genEveryDeg`, and radial spokes where coverage stops and at the caps
+   *  — on both sheets. */
+  cage(ringEvery = 8, genEveryDeg = 15): Float32Array {
+    const { nT, nR } = this;
+    const out: number[] = [];
+    const A = new THREE.Vector3(), B = new THREE.Vector3();
+    const idx = (i: number, j: number) => i * nR + (((j % nR) + nR) % nR);
+    const has = (i: number, j: number) => i >= 0 && i < nT && this.rOut[idx(i, j)]! === this.rOut[idx(i, j)]!;
+    const seg = (a: THREE.Vector3, b: THREE.Vector3) => { if (a.distanceToSquared(b) > 1e-12) out.push(a.x, a.y, a.z, b.x, b.y, b.z); };
+    const genStep = Math.max(1, Math.round(genEveryDeg / (360 / nR)));
+    for (let i = 0; i < nT; i++) {
+      const ring = i % ringEvery === 0 || i === nT - 1;
+      for (let j = 0; j < nR; j++) {
+        if (!has(i, j)) continue;
+        const j1 = j + 1, jm = j - 1;
+        const boundary = !has(i, j1) || !has(i, jm);
+        if (ring && has(i, j1)) {
+          for (const outer of [true, false]) { this.point(i, j, outer, A); this.point(i, j1 % nR, outer, B); seg(A, B); }
+        }
+        if ((j % genStep === 0 || boundary) && i + 1 < nT && has(i + 1, j)) {
+          for (const outer of [true, false]) { this.point(i, j, outer, A); this.point(i + 1, j, outer, B); seg(A, B); }
+        }
+        const cap = i === 0 || i === nT - 1 || !has(i - 1, j) || !has(i + 1, j);
+        if ((ring && boundary) || (cap && j % genStep === 0) || (ring && cap)) {
+          this.point(i, j, false, A); this.point(i, j, true, B); seg(A, B);
+        }
+      }
+    }
+    return Float32Array.from(out);
   }
 }
 
