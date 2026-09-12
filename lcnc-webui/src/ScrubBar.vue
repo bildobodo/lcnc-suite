@@ -928,7 +928,7 @@ onUnmounted(() => {
 
 <template>
   <div v-if="visible" class="scrubBar overlay-card stack-tight">
-    <!-- Row 1 — timeline + playback -->
+    <!-- Row 1 — timeline + play/pause + the position readouts -->
     <div class="row-controls scrubRow">
       <!-- Sim mode toggle — same switch as settings/coolant toggles. The
            parent-authoritative model snaps it back if entry is refused. -->
@@ -950,11 +950,14 @@ onUnmounted(() => {
         <!-- Timeline overlays, non-interactive (row 2 navigates). All live in
              the THUMB-TRAVEL span (input width − 16px thumb, inset 8px each
              side) so they align with where the thumb can actually sit —
-             full-width percentages drift near the ends. Paint order: the
-             swept band (what the collision check has covered), limit
-             extents (warn), clash extents (danger, on top), then the ticks
-             with their glyphs: × clash, ▲ soft limit, ● tool change. -->
-        <div class="scrubBand swept" :style="{ width: `calc((100% - 16px) * ${sweptFrac})` }"></div>
+             full-width percentages drift near the ends — except the swept
+             band, a FILL from the track's left edge to its right edge (at
+             100 % it meets the thumb's outer edge, like a native range fill;
+             operator: the thumb-travel span left it 8px short). Paint order:
+             swept band, limit extents (warn), clash extents (danger, on
+             top), then the ticks with their glyphs: × clash, ▲ soft limit,
+             ● tool change. -->
+        <div class="scrubBand swept" :style="{ width: `${sweptFrac * 100}%` }"></div>
         <div v-for="(b, i) in limitBands" :key="'lb' + i" class="scrubBand limit"
              :style="{ left: `calc(8px + (100% - 16px) * ${b[0] / 100})`, width: `calc((100% - 16px) * ${(b[1] - b[0]) / 100})` }"></div>
         <div v-for="(b, i) in clashBands" :key="'cb' + i" class="scrubBand clash"
@@ -968,16 +971,11 @@ onUnmounted(() => {
           </span>
         </div>
       </div>
-      <MachineSlider gate="simSpeed" class="speedSlider" :min="-1" :max="2" :step="0.01"
-                     v-model="speedLog" :disabled="!simMode"
-                     :title="`Playback speed ×0.1–×100${track?.timeBased ? ' of real time' : ''}`" />
-      <MachineBtn type="scrub" class="speedVal" :disabled="!simMode"
-                  title="Reset playback speed to ×1" @click="speedLog = 0">
-        &times;{{ speedLabel }}
-      </MachineBtn>
       <!-- Fixed slots (see the CSS): line / sub readout, then the time
            readout sized per track. "off path" during a run lives in the line
-           slot, warn-tinted. -->
+           slot, warn-tinted. The playback speed controls sit in row 2 (its
+           middle was empty; operator, 2026-09-12: the space right of the
+           timeline was mostly blank). -->
       <span class="val-slot lineSlot val-status mono" :class="{ muted: !simMode && !running, warn: lineOffPath }"
             :title="lineTitle">{{ lineText }}</span>
       <span class="val-slot posSlot val-status mono" :class="{ muted: !simMode && !running }"
@@ -1058,6 +1056,17 @@ onUnmounted(() => {
         <span v-if="sweepCaveat" class="val-status warn" :title="sweepCaveat">*</span>
       </template>
 
+      <!-- Playback speed: continuous log-scale slider + reset (×1 = real time
+           on a time-based track). -->
+      <div class="sep-v"></div>
+      <MachineSlider gate="simSpeed" class="speedSlider" :min="-1" :max="2" :step="0.01"
+                     v-model="speedLog" :disabled="!simMode"
+                     :title="`Playback speed ×0.1–×100${track?.timeBased ? ' of real time' : ''}`" />
+      <MachineBtn type="scrub" class="speedVal" :disabled="!simMode"
+                  title="Reset playback speed to ×1" @click="speedLog = 0">
+        &times;{{ speedLabel }}
+      </MachineBtn>
+
       <template v-if="nextTool">
         <div class="sep-v"></div>
         <span class="val-status mono toolNext"
@@ -1113,7 +1122,7 @@ onUnmounted(() => {
   min-width: 2px;
   pointer-events: none;
 }
-.scrubBand.swept { background: color-mix(in oklab, var(--info) 40%, transparent); }
+.scrubBand.swept { left: 0; background: color-mix(in oklab, var(--info) 40%, transparent); }
 .scrubBand.limit { background: color-mix(in oklab, var(--warn) 45%, transparent); }
 .scrubBand.clash { background: color-mix(in oklab, var(--danger) 55%, transparent); }
 /* One tick for every mark kind (full track height); the glyph under it is
