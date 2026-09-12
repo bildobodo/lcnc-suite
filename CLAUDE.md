@@ -549,9 +549,14 @@ returned.
 planes, the overlay gate and the camera reframe all use ONE box in the
 MACHINE frame (`machineFrameGrp`): the LIVE per-joint limits the status
 carries as `joint_limits` (`viewer/machineBounds.ts` boundsFromJointLimits,
-joint order → letters via `viewer_init.axes`; the TWP sim switches its Z
-window by kins mode through a HAL mux), with the INI-derived
-`viewer_init.machine_bounds` as the documented fallback. The box never hangs
+joint order → letters via `viewer_init.axes`), with the INI-derived
+`viewer_init.machine_bounds` as the documented fallback. The box is the
+JOINT window and does not change with kins mode — the TWP sim's HAL mux
+switches the AXIS-letter `ini.z.*` window (the WORLD pose LinuxCNC checks
+programmed moves against), never `[JOINT_2]`. It bounds the HEAD reference
+point; the drawn path is the TIP, so the yellow overlay is off by the TLO in
+Z (and the tilt lever under B/C) — a coarse check by design; the validator's
+joint-side conversion is the exact one. The box never hangs
 under the rotating work group (7a04909 moved the planes but not the mesh —
 "yellow while inside the box"). A stale path is ONE neutral grey
 (`--bg` lifted toward `--fg` by `--opacity-disabled`, opaque) with the

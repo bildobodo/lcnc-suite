@@ -4163,10 +4163,18 @@ reframe/reset anchor uses the box in WORLD space through that node (it used
 `_workGrp.position`, a LOCAL offset — 1700 mm off in +X on the TWP machine and turning
 with A). Provenance: the box was `viewer_init.machine_bounds` = the INI FILE's
 `[AXIS_X/Y/Z] MIN/MAX_LIMIT` (`read_machine_limits_from_ini`), read once per
-connection, cached on the file's mtime, mode-blind — but the TWP sim switches its Z
-window LIVE by kins mode through a HAL mux (`hallib/z_limit_window.hal`: −2000..0.01
-under identity, ±5000 under TCP/TOOL), so under TCP the drawn box was 5 km too tight
-in +Z and legal motion clipped yellow. NOW: `status_runtime` publishes `joint_limits`
+connection, cached on the file's mtime, frozen for the session. (The entry first
+claimed the TWP sim's HAL mux made it "5 km too tight under TCP" — CORRECTED the same
+day: `hallib/z_limit_window.hal` drives the AXIS-letter `ini.z.*` pins, the WORLD-pose
+window LinuxCNC checks programmed moves against in every kins mode, while `[JOINT_2]`
+stays −2000..0.01 in every mode. STAT's per-joint limits, which the box now uses, do
+NOT change with kins mode, and the "box grows under TCP" expectation was wrong; the
+old INI box happened to carry the same numbers. What the live field does follow is
+any RUNTIME change of a joint window. Known coarse-check limit, unchanged: the box is
+the HEAD's joint window and the drawn path is the TIP — the yellow overlay is off by
+the TLO in Z and by the tilt lever under B/C; the validator's joint-side conversion is
+the exact check, and the planned reach-envelope layer is the tip-space outline.)
+NOW: `status_runtime` publishes `joint_limits`
 (STAT's per-joint [min, max], joint order, None inside the list for an unreadable
 joint, None when STAT has no joint info) on every frame — the status delta makes it
 free until it changes; the viewer derives the box from it (`viewer/machineBounds.ts`
@@ -4217,4 +4225,4 @@ the count rides and clears), machineBounds 4 (new), test_status_runtime 37 (+1);
 tsc subset clean; Vite serves ThreeViewer.vue/App.vue; no browser errors after HMR.
 OWED: vue-tsc/full vitest/playwright/pytest at the suite stop (unchanged list);
 operator: rotate A in Machine mode — the box stays put and yellow appears only
-outside it; after the next restart switch to TCP — the box grows in Z with the mux.
+outside it; switching kins mode leaves the box unchanged (joint window — correction above).
