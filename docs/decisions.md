@@ -4202,10 +4202,14 @@ chip led the tool block before; the readout and the "what to know" block are now
 each contiguous). Template move only.
 
 **Banner bar:** the re-parse message's `.progressTrack` (a fixed 80–220 px slab,
-grey on the warn-tinted banner) with `previewRefreshPct` = 0 when `expected_ms` is
-null (a file the gateway never timed) — an empty track. Now the track renders only
-with an expected duration, carries "elapsed of expected" as its title, and the
-ellipsis rule targets the text span only (a descendant selector also hit the track).
+grey on the warn-tinted banner) never showed a fill. First diagnosis (6389bfc) blamed
+a null `expected_ms` — WRONG: `expected_parse_ms` always returns a number (last
+measured publish, else a size estimate with a 1.5 s floor), so the track was always
+drawn. The real cause (operator re-test, same day): the fill was an inline `<span>`,
+which ignores `width`/`height`, while GcodePanel's program progress uses `<div>`s —
+the fill had a zero box and the track read as an empty grey bar. Track and fill are
+DIVs now; the title carries "elapsed of expected"; the ellipsis rule targets the text
+span only (a descendant selector also hit the track).
 
 **Gates (suite live — single niced files):** toolpathController 36 (+4: grey on both
 streams, colour change stays grey, overlays hidden while stale and back per the gate,
