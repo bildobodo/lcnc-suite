@@ -4455,3 +4455,48 @@ controller unit tests.
 client now expects); `sim_parity.py gate` 21/21 then `git checkout --
 scripts/parity_corpus/runs`; a perf-matrix run (the limits drift edge is in the
 poller); the live looks listed in the two preceding entries.
+
+## 2026-09-12 (restart) — Corpus gate RED: the model-derived X/Y travels closed the world window under TCP; the Z mux becomes an X/Y/Z mux
+
+**Run.** Suite restarted by the operator on 45ec746 (fresh gateway, schema 9,
+`joint_limits` on the wire). Fresh-boot recovery via the gateway (ack → arm →
+e-stop reset → machine on → home all; the prep script heartbeats while armed and
+merges `status_delta` frames — a probe that reads only full `status` frames sees
+nothing after the first one). `sim_parity.py gate` refuses without an armed
+client (five corpus programs stop at M6 and `confirm_tool_change` is armed-only),
+so a headless armed keeper answered tool changes. Result: **16 failures** —
+`parity_linear` and both `twp_g683_tilted` runs PASS (0.016 / 1.141 / 0.034 mm),
+every other TWP run shows truth→sim 0.000 but sim→truth 255–453 mm: the real run
+ended early and the sim went on.
+
+**Root cause (trace, every failing run):** `nml.error "Linear move on line 1465
+would exceed X's positive limit"` + "invalid params in linear command". The truth
+captures end with world X 1544 under TCP kins — above the X window of ±1500 that
+this morning's model-derived travels wrote into `[AXIS_X]`. motion checks every
+WORLD pose against `[AXIS_*]` in every kins mode; under TCP/TOOL the world pose
+is a rotated frame, not a slide position. Z already had exactly this fix
+(`hallib/z_limit_window.hal`, 2026-09-05: ±5000 under TCP/TOOL, the travel under
+identity) because Z0-at-top made the Z window tight; X/Y were still the ±5000
+fiction then, so they never needed it. The morning's travels made them need it,
+and the morning's headless probes could not see it: the validator judges JOINTS
+(joint X stayed at 1300), the refusal is task's world-pose check.
+
+**Fix (repo, effective at the next restart — the live wiring and the installed
+copy were NOT touched: the permission classifier refused both, and the operator
+decides):** `hallib/z_limit_window.hal` → `hallib/limit_window.hal`, muxing
+`ini.x/y/z.min_limit/max_limit`: in0 = ±5000 under TCP/TOOL, in1 = the
+`[AXIS_*]` travel read through `halcmd -i` INI substitution (the launcher already
+runs the POSTGUI file that way), so the identity window lives only in the INI.
+`POSTGUI_HALFILE` + the INI comment, CLAUDE.md, status_runtime.py,
+machineBounds.ts and the launcher comment follow the rename. To activate: copy
+`examples/sim_config/hallib/limit_window.hal` into
+`~/linuxcnc/configs/lcnc_suite_sim/hallib/`, apply the two INI hunks (comment +
+`POSTGUI_HALFILE = hallib/limit_window.hal`) to the installed INI, remove the old
+`z_limit_window.hal`, restart, re-run the gate. Four unconnected `mux-gen.*`
+instances from the attempted live patch sit in the running HAL until then
+(loaded, never added to a thread — inert).
+
+**Perf matrix:** run WITHOUT `sigstop_trip` (the classifier refused the SIGSTOP of
+the running gateway); the headless scenarios + `preview_publish` are what today's
+poller change (the limits drift edge) can affect — the trip property (#34) has no
+code change behind it today. Result recorded below when it lands.

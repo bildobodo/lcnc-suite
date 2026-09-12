@@ -3,7 +3,7 @@
 // The viewer used to draw `viewer_init.machine_bounds` — the INI FILE's
 // [AXIS_X/Y/Z] MIN/MAX_LIMIT, read once per connection and mode-blind. The
 // TWP sim switches its Z window LIVE by kins mode through a HAL mux
-// (hallib/z_limit_window.hal: −2000..0.01 under identity, ±5000 under
+// (hallib/limit_window.hal: the [AXIS_*] travel under identity, ±5000 under
 // TCP/TOOL), so under TCP the drawn box was far too tight in +Z and legal
 // motion clipped yellow. The gateway now publishes STAT's per-joint limits
 // on every status frame; this derives the box from them. The INI box stays

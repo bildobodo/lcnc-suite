@@ -194,7 +194,7 @@ _log "launcher start pid=$$ log_dir=$LCNC_RESOLVED_LOG_DIR"
 # safely — a [HAL]HALCMD `net` onto ini.z.min_limit runs before the servo
 # thread exists, inihal turns the link transient into a motion command, and
 # task blocks on usrmot until the boot times out (2026-09-05, TWP sim; see
-# hallib/z_limit_window.hal). A failing file aborts the display loudly:
+# hallib/limit_window.hal). A failing file aborts the display loudly:
 # LinuxCNC must not run with its HAL wiring silently missing.
 if [[ -n "$INI_FILE" ]]; then
   if ! command -v halcmd >/dev/null 2>&1; then

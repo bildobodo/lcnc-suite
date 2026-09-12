@@ -222,7 +222,7 @@ class StatusPayload:
     joints_beyond_limit: Optional[List[str]]
     # Per-joint soft-limit window [min, max] (machine units / degrees) as
     # STAT reports it, joint order — LIVE (2026-09-12): the TWP sim switches
-    # its Z window by kins mode through a HAL mux (hallib/z_limit_window.hal),
+    # its Z window by kins mode through a HAL mux (hallib/limit_window.hal),
     # which the INI file the viewer used to draw its machine-bounds box never
     # showed. None = STAT exposes no joint info; a joint whose limits are
     # unreadable is None inside the list (never a synthetic number).

@@ -372,7 +372,7 @@ parked pose (nose 2000 above the A axis; stock top at machine −1400), type-0
 window `[AXIS_Z]/[JOINT_2] −2000..0.01` (HOME 0 strictly inside, DMU precedent),
 X/Y ±5000 on purpose (the joint-side soft-limit case). LinuxCNC checks the
 WORLD pose against `[AXIS_*]` in EVERY kins mode, so under TCP/TOOL (rotated
-world frames) the Z axis window is lifted to ±5000 by `hallib/z_limit_window.hal`
+world frames) the X, Y and Z axis windows are lifted to ±5000 by `hallib/limit_window.hal`
 (`wcomp` window on `:kinstype-select` → `mux2` → `ini.z.min_limit/max_limit`,
 the switchkins.adoc pattern), a `[HAL]POSTGUI_HALFILE` that the `lcnc-suite`
 launcher runs after `halcmd start` the way axis does — a `[HAL]HALCMD` net onto
