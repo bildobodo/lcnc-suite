@@ -988,9 +988,13 @@ function setLayerVisible(layer: Layer, on: boolean) {
     case "toolpathBounds":
       toolpath.setBoundsVisible(on);
       break;
-    case "reach":
-      _reachOn = on;
+    case "reachRoom":
+      _reachRoomOn = on;
       if (reachRoomMesh) reachRoomMesh.visible = on;
+      if (on) _reachRequest();
+      break;
+    case "reachPart":
+      _reachPartOn = on;
       if (reachPartMesh) reachPartMesh.visible = on;
       if (on) _reachRequest();
       break;
@@ -1378,7 +1382,7 @@ function ensureCoreGroups(init: ViewerInit) {
   }
   // Reach envelope layer (2026-09-12): the cached solids re-hang under the
   // rebuilt frame groups; a new machine model recomputes (inputs key).
-  if (_reachOn) _reachRequest();
+  if (_reachRoomOn || _reachPartOn) _reachRequest();
 
   // Apply tool colors
   MAT.tool.color.set(viewerDefaults.colors.tool ?? "#c0c0c0");
@@ -2629,19 +2633,21 @@ watch(() => JSON.stringify(_jointLimitsPlain()), (cur, prev) => {
 });
 
 // ---- Reach envelope (2026-09-12) ----
-// Two translucent solids from the live joint limits, the machine.json chain
-// and the live tool length (viewer/reachEnvelope.ts, computed in
-// reachWorker.ts): where the tool tip can be in the machine frame (under
-// machineFrameGrp, like the bounds box) and where it can be relative to
-// the part — the room solid swept through every work-chain rotary (rides
-// _workGrp). An outline, never a certificate; off by default (layer
-// "reach"); recomputed only when its inputs change while it is on.
+// Two OUTLINES from the live joint limits, the machine.json chain and the
+// live tool length (viewer/reachEnvelope.ts, computed in reachWorker.ts):
+// where the tool tip can be in the machine frame (layer "reachRoom", under
+// machineFrameGrp like the bounds box) and where it can be relative to
+// the part — the room solid swept through every work-chain rotary (layer
+// "reachPart", rides _workGrp). Lines only (operator, 2026-09-12: no fills);
+// never a certificate; both off by default; computed once for both and
+// recomputed only when the inputs change while either is on.
 let _reachWorker: Worker | null = null;
 let _reachReqId = 0;
-let _reachOn = false;
+let _reachRoomOn = false;
+let _reachPartOn = false;
 let _reachKey = "";                       // inputs the cached data was computed from
 let _reachPendingKey = "";
-let _reachData: { roomTris: Float32Array; partTris: Float32Array | null; partCage: Float32Array | null; info: ReachInfo } | null = null;
+let _reachData: { roomLines: Float32Array; partLines: Float32Array | null; info: ReachInfo } | null = null;
 let reachRoomMesh: THREE.Group | null = null;
 let reachPartMesh: THREE.Group | null = null;
 let _reachTimer: ReturnType<typeof setTimeout> | undefined;
@@ -2657,17 +2663,17 @@ function _reachGetWorker(): Worker {
   if (!_reachWorker) {
     _reachWorker = new Worker(new URL("./viewer/reachWorker.ts", import.meta.url), { type: "module" });
     _reachWorker.onmessage = (ev: MessageEvent) => {
-      const m = ev.data as { id: number; error?: string; roomTris?: Float32Array; partTris?: Float32Array | null; partCage?: Float32Array | null; info?: ReachInfo };
+      const m = ev.data as { id: number; error?: string; roomLines?: Float32Array; partLines?: Float32Array | null; info?: ReachInfo };
       if (m.id !== _reachReqId) return;   // superseded
-      if (m.error || !m.roomTris || !m.info) {
+      if (m.error || !m.roomLines || !m.info) {
         console.error("[reach] envelope not computed:", m.error ?? "empty reply");
         _reachData = null; _reachKey = "";
         _reachBuildMeshes();
         return;
       }
-      _reachData = { roomTris: m.roomTris, partTris: m.partTris ?? null, partCage: m.partCage ?? null, info: m.info };
+      _reachData = { roomLines: m.roomLines, partLines: m.partLines ?? null, info: m.info };
       _reachKey = _reachPendingKey;
-      console.info(`[reach] envelope: ${m.info.samples} tilt samples × ${m.info.corners} corners, ${m.info.hullFaces} hull faces, part sweep ${m.partTris ? "yes" : "no"}, ${m.info.ms} ms`
+      console.info(`[reach] envelope: ${m.info.samples} tilt samples × ${m.info.corners} corners, ${m.info.hullFaces} hull faces, part sweep ${m.partLines ? "yes" : "no"}, ${m.info.ms} ms`
         + (m.info.notes.length ? ` — notes: ${m.info.notes.join("; ")}` : ""));
       _reachBuildMeshes();
       requestRender();
@@ -2678,14 +2684,14 @@ function _reachGetWorker(): Worker {
 }
 
 function _reachSchedule() {
-  if (!_reachOn) return;
+  if (!_reachRoomOn && !_reachPartOn) return;
   clearTimeout(_reachTimer);
   _reachTimer = setTimeout(_reachRequest, 500);
 }
 
 /** Compute (or re-hang the cached) envelope for the current inputs. */
 function _reachRequest() {
-  if (!_reachOn) return;
+  if (!_reachRoomOn && !_reachPartOn) return;
   const key = _reachInputsKey();
   if (!key) {
     // No limits yet (or no model): nothing honest to draw. Says so once per
@@ -2715,26 +2721,18 @@ function _reachDispose(g: THREE.Group | null) {
   });
 }
 
-function _reachSolidGroup(tris: Float32Array, color: string, cage: Float32Array | null): THREE.Group {
+/** One outline as a line-segment soup the worker built (hull creases or
+ *  the swept solid's cage), in the bounds colour, slightly transparent so
+ *  the bounds box stays the crisp one. */
+function _reachSolidGroup(lines: Float32Array, color: string): THREE.Group {
   const geom = new THREE.BufferGeometry();
-  geom.setAttribute("position", new THREE.BufferAttribute(tris, 3));
-  const fill = new THREE.Mesh(geom, new THREE.MeshBasicMaterial({
-    color, transparent: true, opacity: 0.12, depthWrite: false, side: THREE.DoubleSide,
-  }));
-  fill.renderOrder = 2;
-  // Outline: the swept solid ships a cage (rings + generators — a body the
-  // camera sits inside has no silhouette to offer); the hull's outline is
-  // its facet creases at 8°, which draws the rounded edges as a fan of
-  // lines (the head-lever fillets on the travel box are ~11° facets).
-  const lineGeom = new THREE.BufferGeometry();
-  if (cage) lineGeom.setAttribute("position", new THREE.BufferAttribute(cage, 3));
-  const edges = new THREE.LineSegments(cage ? lineGeom : new THREE.EdgesGeometry(geom, 8), new THREE.LineBasicMaterial({
+  geom.setAttribute("position", new THREE.BufferAttribute(lines, 3));
+  const edges = new THREE.LineSegments(geom, new THREE.LineBasicMaterial({
     color, transparent: true, opacity: 0.6, depthWrite: false,
   }));
-  if (!cage) lineGeom.dispose();
   edges.renderOrder = 3;
   const g = new THREE.Group();
-  g.add(fill, edges);
+  g.add(edges);
   return g;
 }
 
@@ -2747,12 +2745,12 @@ function _reachBuildMeshes() {
   const roomParent = machineFrameGrp ?? _workGrp;
   if (!d || !roomParent) { requestRender(); return; }
   const color = viewerDefaults.colors.bounds ?? "#ffffff";
-  reachRoomMesh = _reachSolidGroup(d.roomTris, color, null);
-  reachRoomMesh.visible = _reachOn;
+  reachRoomMesh = _reachSolidGroup(d.roomLines, color);
+  reachRoomMesh.visible = _reachRoomOn;
   roomParent.add(reachRoomMesh);
-  if (d.partTris && _workGrp && _workGrp !== roomParent) {
-    reachPartMesh = _reachSolidGroup(d.partTris, color, d.partCage);
-    reachPartMesh.visible = _reachOn;
+  if (d.partLines && _workGrp && _workGrp !== roomParent) {
+    reachPartMesh = _reachSolidGroup(d.partLines, color);
+    reachPartMesh.visible = _reachPartOn;
     _workGrp.add(reachPartMesh);
   }
   requestRender();

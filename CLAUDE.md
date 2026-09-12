@@ -565,10 +565,10 @@ a decimated LOD chord over an excursion stays yellow) — no clip planes, no
 box gate. A limits change re-runs the transform; no limits = no overlay
 (unchecked ≠ clean). The validator's per-line count stays the HUD chip.
 
-**Reach envelope (2026-09-12)**: layer `reach` (Settings → Layers → Reach
-Envelope, off by default) draws the reachable-volume OUTLINES from the
-live joint limits, the machine.json chain and the live tool length — no
-program: `viewer/reachEnvelope.ts` (pure) hulls the travel box's corners
+**Reach envelope (2026-09-12)**: layers `reachRoom` / `reachPart`
+(Settings → Layers → Machine Reach / Part Reach, both off by default) draw
+the reachable-volume OUTLINES — lines only, no fills — from the live joint
+limits, the machine.json chain and the live tool length — no program: `viewer/reachEnvelope.ts` (pure) hulls the travel box's corners
 through the chain at every head-rotary sample (ROOM solid, under
 `machineFrameGrp` like the bounds box; the box is what LinuxCNC enforces on
 the joints, the hull is where the TIP can be), then sweeps that solid about
@@ -578,8 +578,9 @@ rotary — into the work frame (PART solid, rides `_workGrp`). The 5-D
 workspace (position + tool direction) projects onto these two 3-D solids;
 which tilt reaches a point is not shown, and no collision is subtracted
 (the sweep answers that per program). `reachWorker.ts` computes off-thread
-(~0.5 s on the trsrn model), only when the inputs change while the layer
-is on. Three's quickhull produced non-supporting faces on this input (8
+(~0.5 s on the trsrn model, one computation serves both layers), only
+when the inputs change while either layer is on; the worker ships line
+soups (hull creases at 8°, the swept solid's cage), never triangles. Three's quickhull produced non-supporting faces on this input (8
 translated copies of one orbit): `HullSolid` deduplicates, jitters 1e-3,
 VALIDATES every plane against the hull's own vertices and rebuilds with a
 fresh seed, dropping faces that still fail (noted in the reply). Outlines:
