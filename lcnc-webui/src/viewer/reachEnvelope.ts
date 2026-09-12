@@ -397,8 +397,11 @@ export class RadialSolid implements Solid {
         if ((j % genStep === 0 || boundary) && i + 1 < nT && has(i + 1, j)) {
           for (const outer of [true, false]) { this.point(i, j, outer, A); this.point(i + 1, j, outer, B); seg(A, B); }
         }
+        // Spokes (inner → outer) only where a profile line meets a cap, and
+        // at an angular coverage boundary on a ring — never all around a
+        // cap (360 spokes filled the flat ends solid; operator, 2026-09-12).
         const cap = i === 0 || i === nT - 1 || !has(i - 1, j) || !has(i + 1, j);
-        if ((ring && boundary) || (cap && j % genStep === 0) || (ring && cap)) {
+        if ((ring && boundary) || (cap && j % genStep === 0)) {
           this.point(i, j, false, A); this.point(i, j, true, B); seg(A, B);
         }
       }
