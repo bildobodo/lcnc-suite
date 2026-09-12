@@ -1530,6 +1530,9 @@ async function buildFromInit(init: ViewerInit) {
       // render, and which display path built the lines.
       draw_segs: toolpath.drawSegs,
       room_segs: toolpath.roomSegs,
+      lod_min: toolpath.lodMin,
+      lod_max: toolpath.lodMax,
+      lod_ms: toolpath.lodMs,
       chunks: toolpath.chunks,
       chunks_visible: toolpath.chunksVisible,
       overlay_chunks: toolpath.overlayChunks,
@@ -1869,7 +1872,7 @@ function _pfGetWorker(): Worker {
   if (!_pfWorker) {
     _pfWorker = new Worker(new URL("./viewer/partFrameWorker.ts", import.meta.url), { type: "module" });
     _pfWorker.onmessage = (ev: MessageEvent) => {
-      const m = ev.data as { id: number; error?: string; needPayload?: number; feedPos?: Float32Array; feedLines?: Uint32Array; feedLineIndex?: LineIndex; rapidPos?: Float32Array; rapidDist?: Float32Array; feedBreaks?: Uint32Array; rapidBreaks?: Uint32Array; feedSrc?: Uint32Array; feedRoom?: Uint8Array; rapidRoom?: Uint8Array; frameFlips?: number };
+      const m = ev.data as { id: number; error?: string; needPayload?: number; feedPos?: Float32Array; feedLines?: Uint32Array; feedLineIndex?: LineIndex; rapidPos?: Float32Array; rapidDist?: Float32Array; feedBreaks?: Uint32Array; rapidBreaks?: Uint32Array; feedSrc?: Uint32Array; feedRoom?: Uint8Array; rapidRoom?: Uint8Array; frameFlips?: number; feedLod?: Uint32Array[]; rapidLod?: Uint32Array[]; lodTols?: number[]; lodMs?: number };
       if (m.id !== _pfReqId) return;  // superseded
       _pfPending = false;
       const g = viewerGcode.value;
@@ -1896,6 +1899,9 @@ function _pfGetWorker(): Worker {
         // Room split (2026-09-11): per drawn vertex, baked room-fixed or on
         // the part; absent when the transform had no boundary to apply.
         feedRoom: m.feedRoom, rapidRoom: m.rapidRoom,
+        // Display LOD levels cut over the BAKED vertices (the payload's own
+        // levels address the programmed vertices, a different space).
+        feedLod: m.feedLod, rapidLod: m.rapidLod, lodTols: m.lodTols, lodMs: m.lodMs,
       };
       if ((g.wcsEvents?.length ?? 0) > 1) {
         // Multi-epoch payload: the shipped bounds boxes mix frames. The
@@ -2742,7 +2748,7 @@ function animate() {
   if (!_tweenRaf) controls?.update();
   // Per-chunk overlay gate + frustum count (viewer/lineChunks.ts): decides
   // which outside-bounds overlays are drawn this frame at the current pose.
-  if (camera) toolpath.updateCulling(toolpathCtx(), camera);
+  if (camera) toolpath.updateCulling(toolpathCtx(), camera, renderer?.domElement.height ?? 1000);
   const _tRender = performance.now();
   renderer?.render(scene!, camera!);
   recordRender(performance.now() - _tRender);

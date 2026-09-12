@@ -328,6 +328,17 @@ export interface ViewerGcode {
    *  everything rides (legacy / no boundary / no work-chain rotary). */
   feedRoom?: Uint8Array;
   rapidRoom?: Uint8Array;
+  /** Display LOD levels (viewer/lineChunks.ts decimatePairs): per level ≥ 1
+   *  the decimated segment PAIRS over the same drawn vertices (both frames
+   *  concatenated; the renderer splits by frame and bins by cell), and the
+   *  tolerance each level was cut at (machine units). Built by the worker
+   *  that produced the drawn vertices (previewWorker for the programmed
+   *  path, partFrameWorker for the bake). Absent = level 0 only. */
+  feedLod?: Uint32Array[];
+  rapidLod?: Uint32Array[];
+  lodTols?: number[];
+  /** Worker time spent on the levels, ms (perf context). */
+  lodMs?: number;
   /** Rotary-command boundary (passthrough of the wire key, see RotaryCmd). */
   rotary_cmd?: RotaryCmd | null;
   // WCS epoch events parsed from wire wcs_frames (previewWorker) — the

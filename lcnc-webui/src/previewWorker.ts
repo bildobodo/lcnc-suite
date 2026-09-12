@@ -9,6 +9,7 @@
 // points.flat(), no per-point allocation on the UI thread.
 import { decode as msgpackDecode } from "@msgpack/msgpack";
 import { buildScrubTrack, splitTrackStreams } from "./viewer/scrubTrack";
+import { buildLodLevels } from "./viewer/lineChunks";
 import { decodePreviewStreams } from "./previewDecode";
 import { buildLineIndex, lineIndexTransferables } from "./viewer/lineIndex";
 
@@ -82,6 +83,14 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     // not cloned — the Map clone alone was 0.9 s per publish on 1.18 M lines.
     const feedLineIndex = buildLineIndex(feedLines ?? g.feed_lines);
     const rapidDist = _lineDistances(rapidPos);  // dashed rapid line's lineDistance (P4.1)
+    // Display LOD levels over the drawn vertices (viewer/lineChunks.ts): the
+    // programmed path draws these arrays as they are, so its levels are cut
+    // here. Runs break at the section breaks; a room/table flip (decided on
+    // the main thread) is not known here — the renderer drops any level pair
+    // whose endpoints differ in frame.
+    const _tLod = performance.now();
+    const { feedLod, rapidLod, lodTols } = buildLodLevels(feedPos, feedBreaks, rapidPos, rapidBreaks);
+    const lodMs = Math.round(performance.now() - _tLod);
 
     // Drop the nested arrays from the passthrough; the flat typed arrays replace
     // them. Everything else (file, stats fields) is small and cloned as-is.
@@ -132,9 +141,10 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     if (rapidTlo) transfer.push(rapidTlo.buffer as ArrayBuffer);
     if (feedSrc) transfer.push(feedSrc.buffer as ArrayBuffer);
     if (rapidSrc) transfer.push(rapidSrc.buffer as ArrayBuffer);
+    for (const a of [...feedLod, ...rapidLod]) transfer.push(a.buffer as ArrayBuffer);
 
     self.postMessage(
-      { version, gcode: { ...rest, feedPos, rapidPos, feed_lines: feedLines, feedLineIndex, rapidDist, feedAbc, rapidAbc, feedBreaks, rapidBreaks, feedMode, rapidMode, feedFrame, rapidFrame, feedWcs, rapidWcs, feedTlo, rapidTlo, feedSrc, rapidSrc, kinsFrames, wcsEvents, tloEvents, scrubTrack } },
+      { version, gcode: { ...rest, feedPos, rapidPos, feed_lines: feedLines, feedLineIndex, rapidDist, feedAbc, rapidAbc, feedBreaks, rapidBreaks, feedMode, rapidMode, feedFrame, rapidFrame, feedWcs, rapidWcs, feedTlo, rapidTlo, feedSrc, rapidSrc, feedLod, rapidLod, lodTols, lodMs, kinsFrames, wcsEvents, tloEvents, scrubTrack } },
       { transfer },
     );
   } catch (err) {

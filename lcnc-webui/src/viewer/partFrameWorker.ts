@@ -8,6 +8,7 @@ import {
   type PartFrameMachine, type PartFrameWcs,
 } from "./partFrame";
 import { buildLineIndex, lineIndexTransferables } from "./lineIndex";
+import { buildLodLevels } from "./lineChunks";
 import { epochTermsFor, type WcsEpoch, type WcsTableRow } from "./wcsEpochs";
 import type { TloEvent } from "./tloEvents";
 
@@ -81,6 +82,11 @@ self.onmessage = (e: MessageEvent<Req>) => {
     assertFinite(r.pos, "rapid");
     const rapidDist = lineDistances(r.pos);
     const feedLineIndex = buildLineIndex(f.lines);
+    // Display LOD levels over the baked vertices (see previewWorker): here
+    // the room masks are known, so runs break at the flip duplicates too.
+    const _tLod = performance.now();
+    const { feedLod, rapidLod, lodTols } = buildLodLevels(f.pos, f.breaks, r.pos, r.breaks, f.room, r.room);
+    const lodMs = Math.round(performance.now() - _tLod);
     const transfer: Transferable[] = [f.pos.buffer as ArrayBuffer, r.pos.buffer as ArrayBuffer, rapidDist.buffer as ArrayBuffer,
                                       ...lineIndexTransferables(feedLineIndex)];
     if (f.lines) transfer.push(f.lines.buffer as ArrayBuffer);
@@ -89,9 +95,11 @@ self.onmessage = (e: MessageEvent<Req>) => {
     if (f.src) transfer.push(f.src.buffer as ArrayBuffer);
     if (f.room) transfer.push(f.room.buffer as ArrayBuffer);
     if (r.room) transfer.push(r.room.buffer as ArrayBuffer);
+    for (const a of [...feedLod, ...rapidLod]) transfer.push(a.buffer as ArrayBuffer);
     self.postMessage(
       { id, feedPos: f.pos, feedLines: f.lines, feedLineIndex, rapidPos: r.pos, rapidDist, feedBreaks: f.breaks, rapidBreaks: r.breaks,
-        feedSrc: f.src, feedRoom: f.room, rapidRoom: r.room, frameFlips: (f.frameFlips ?? 0) + (r.frameFlips ?? 0) },
+        feedSrc: f.src, feedRoom: f.room, rapidRoom: r.room, frameFlips: (f.frameFlips ?? 0) + (r.frameFlips ?? 0),
+        feedLod, rapidLod, lodTols, lodMs },
       { transfer },
     );
   } catch (err) {

@@ -563,3 +563,71 @@ describe("room-fixed split (2026-09-11)", () => {
     expect(box(ctx.workRotGroup)).toBeUndefined();
   });
 });
+
+describe("display LOD (2026-09-11)", () => {
+  // A straight 5-point feed: level 1 collapses it to the single pair (0,4).
+  const G = {
+    feedPos: new Float32Array([0, 0, 0, 1, 0, 0, 2, 0, 0, 3, 0, 0, 4, 0, 0]),
+    feed_lines: [1, 2, 3, 4, 5],
+    feedLod: [new Uint32Array([0, 4])],
+    lodTols: [0.01],
+    bounds: { min: [0, 0, 0], max: [4, 0, 0] },
+  } as any;
+  const cam = (dist: number) => {
+    const c = new THREE.PerspectiveCamera(50, 1, 0.1, 1e6);
+    c.position.set(2, 0, dist);
+    c.lookAt(2, 0, 0);
+    c.updateMatrixWorld();
+    return c;
+  };
+  const visibleFeed = (g: THREE.Group) => g.children.filter(o => (o as any).isLineSegments && o.renderOrder === 10 && o.visible) as THREE.LineSegments[];
+
+  it("far away the coarse level draws (one segment), close up level 0 (four), with hysteresis in between", () => {
+    const ctx = makeCtx();
+    c.apply(ctx, G);
+    expect(c.drawSegs).toBe(4);                           // level 0 until the first culling pass
+    c.updateCulling(ctx, cam(10000), 1000);               // ~9 units per pixel: tol 0.01 ≪ half a pixel
+    expect(c.lodMax).toBe(1);
+    expect(c.drawSegs).toBe(1);
+    const vis = visibleFeed(ctx.workRotGroup);
+    expect(vis).toHaveLength(1);
+    expect(vis[0]!.geometry.drawRange.count).toBe(2);
+    c.updateCulling(ctx, cam(5), 1000);                    // 0.005 units per pixel: 0.01 > half a pixel → level 0
+    expect(c.lodMax).toBe(0);
+    expect(c.drawSegs).toBe(4);
+    // hysteresis: at 0.5 px exactly the level stays where it is
+    c.updateCulling(ctx, cam(10000), 1000);
+    expect(c.lodMax).toBe(1);
+    const dHalf = 0.01 / (0.5 * 2 * Math.tan(THREE.MathUtils.degToRad(25)) / 1000);   // distance where tol == 0.5 px
+    c.updateCulling(ctx, cam(dHalf * 0.9), 1000);         // just under the up-threshold but within the 1.25 band → keep level 1
+    expect(c.lodMax).toBe(1);
+    c.updateCulling(ctx, cam(dHalf * 0.5), 1000);         // well inside → back to level 0
+    expect(c.lodMax).toBe(0);
+  });
+
+  it("every level's geometry is disposed on rebuild and the highlight stays at level 0", () => {
+    const ctx = makeCtx();
+    c.apply(ctx, G);
+    const all = ctx.workRotGroup.children.filter(o => (o as any).isLineSegments && o.renderOrder === 10) as THREE.LineSegments[];
+    expect(all.length).toBeGreaterThan(c.chunks);          // level-1 objects exist (invisible) beside level 0
+    const spies = all.map(o => vi.spyOn(o.geometry, "dispose"));
+    c.updateCulling(ctx, cam(10000), 1000);
+    c.setHighlight(3);                                     // lights line 2 = vertex 1 → pair (0,1) in the full-resolution buffer
+    const hl = ctx.workRotGroup.children.find(o => o.renderOrder === 12) as THREE.LineSegments;
+    expect(Array.from((hl.geometry.index!.array as Uint32Array).subarray(0, 2))).toEqual([0, 1]);
+    c.apply(ctx, G);
+    for (const sp of spies) expect(sp).toHaveBeenCalled();
+  });
+
+  it("a level pair spanning a room/table flip is dropped and counted (programmed-path guard)", () => {
+    const roomOrigin = new THREE.Group(), roomRotGroup = new THREE.Group(); roomOrigin.add(roomRotGroup);
+    const roomAnchor = new THREE.Group(), roomRot = new THREE.Group(); roomAnchor.add(roomRot);
+    const ctx = makeCtx({ roomOrigin, roomRotGroup, roomAnchor, roomRot });
+    c.apply(ctx, { ...G, feedRoom: new Uint8Array([1, 1, 0, 0, 0]), feedBreaks: new Uint32Array([2]) });
+    expect(c.frameMixed).toBe(1);                          // the (0,4) level pair crosses the flip
+    c.updateCulling(ctx, cam(10000), 1000);
+    expect(c.drawSegs).toBe(0);                            // nothing at level 1 in either frame… 
+    c.updateCulling(ctx, cam(5), 1000);
+    expect(c.drawSegs).toBe(3);                            // …level 0 draws (0,1) room + (2,3),(3,4) table
+  });
+});
