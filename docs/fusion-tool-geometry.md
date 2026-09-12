@@ -419,8 +419,13 @@ and do not connect to a machine.
 
 Flat/round thread crest details and probes still need their own cutting-profile
 corrections or additional native references. The probe's legacy shape branch
-remains separate. Creating and inspecting a Probe WCS operation input stopped
-responding through Fusion MCP; that incomplete attempt supplies no shape evidence.
+remains separate. The Probe WCS failure has been narrowed to reading
+`probe_selection.value` on an operation input in Fusion 2705.1.15. A native
+stack sample shows the selection getter entering Fusion's crash handler;
+creating the input and assigning its tool had both succeeded separately.
+Do not repeat that getter or broadly enumerate operation parameter values.
+See [the bounded failure record](fusion-probe-api-failure.md). The incomplete
+attempt supplies no shape evidence.
 The native form-mill post remains an unsuitable shape oracle.
 
 Optional holder placement remains separate work. These patches do not change
