@@ -736,7 +736,12 @@ rotary seed as an `__ABCSEED__` stderr line and the gateway's idle
 drift edge (`evaluate_rotary_drift`, 0.01°) auto-reparses when the live
 pose leaves it (a run parking the table tilted made the cached preview
 orient from a pose the next run never visits — the arc-vs-plunge
-class). Acceptance standard: `scripts/sim_parity.py gate --corpus
+class). A parse IN FLIGHT whose rotary seed the live pose has left is
+cancelled at once, every tick, no settle (`inflight_doomed_reason` — it
+used to run through the whole jog); the RESTART waits until the rotary
+pose has held still 1 s (`rotary_hold_update`/`rotary_hold_settled`, the
+schedule gate in the poller), and linear motion never defers or dooms a
+parse — the payload does not depend on where X/Y/Z sit. Acceptance standard: `scripts/sim_parity.py gate --corpus
 scripts/parity_corpus/<config>.json` — per run it saves the RUNNING
 gateway's cached payload, captures the real run (twp_parity
 sample_run; truth file opens with a context header), replays the
@@ -804,18 +809,28 @@ keeps itself current with NO manual trigger: auto-runs on program load
 (base track — marks appear before sim is entered), on sim entry (entry
 track, fresh position = fresh baseline), and on WCS/tool changes while
 idle (stale results clear + re-run, debounced; in sim ScrubBar re-checks
-with the rebuilt entry track). While a sweep runs the bar shows a
-fixed-width progress track (the SAME global track the status banner and
-the viewer HUD draw for a re-parse — one shape for "in progress", the
-numbers in the tooltip) next to a × cancel button; every FINISHED state
-(clear, N clashes, partial coverage, "check cancelled", "check declined")
-carries a ↻ re-run button with the MANUAL budget (300 s). An operator
-cancel leaves the "check cancelled" chip (parent-driven cancels — program
-change, touch-off, sim entry — are followed by their own re-run and never
-show it). "check declined — N % in 60 s" appears when this program's AUTO
-sweep hit its budget: a truncated auto sweep is not re-run on every
-touch-off (it would truncate again and own the machine for another
-budget); a new program resets it.
+with the rebuilt entry track). SWEEP STATES (2026-09-12, stop/continue):
+RUNNING shows the fixed-width progress track (the SAME global track the
+status banner and the viewer HUD draw for a re-parse — one shape for "in
+progress", numbers in the tooltip) next to ❚❚, which PARKS the sweep;
+PARKED shows "stopped at N %" + ▶ (continue exactly where it stopped —
+the worker keeps the suspended generator with every clearance certificate
+and contact state, `SnapshotHandle` in collision.ts hands out the sweep-
+so-far without ending it; the clashes found so far are marked); DONE shows
+clear / N clashes + ↻ (run again from the start, unbounded). The budget
+running out (AUTO sweeps: 300 s of ACTIVE time, enforced by the worker at
+slice boundaries — a continue or ↻ is unbounded, the operator's ❚❚ is the
+bound, the iterator's 4 M-sample runaway backstop behind it), the operator's
+❚❚ and a ROTARY jog (> 0.05°) all park; nothing cancels but a superseding
+change (program, touch-off, tool). A motion-parked sweep resumes by itself
+once the pose has held still 4.5 s with no re-parse in flight; a re-parse
+that lands drops it and starts fresh. SIM ENTRY sweeps only the ENTRY
+SEGMENT (the live position → first point rapid, `sliceTrack`) and merges it
+with the program's own result (`sweepMerge.ts`: base cums shift by the
+entry length; TWO baselines, both reported — the live pose's and the
+first point's static contacts); with the machine already at the first point
+the track is identical and nothing runs. A base sweep still running or
+parked at entry falls back to the full entry-track sweep.
 
 **Collision sweep (offline dry run, stage 3)**: the scrub bar's Check
 button sweeps the machine model through the scrub track off-thread

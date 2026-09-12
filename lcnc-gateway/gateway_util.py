@@ -1465,6 +1465,47 @@ def inflight_stale_reason(inflight, rotary_abc, rotary_prev, kins_type, kins_fra
         return w
     return None
 
+def inflight_doomed_reason(inflight, rotary_abc, eps=0.01):
+    """Has the ROTARY pose already left the running parse's seed? (2026-09-12)
+
+    Evaluated EVERY tick with NO settle guard, unlike inflight_stale_reason:
+    a parse whose rotary seed no longer matches the live pose is wrong
+    whatever happens next, so the cancel need not wait for the jog to end
+    (it used to run — a full core plus gzip — through the whole jog and be
+    cancelled 2–4 s after the pose came to rest). Only the RESTART waits for
+    the pose to settle (rotary_hold_settled). Linear motion never dooms a
+    parse: the payload does not depend on where X/Y/Z sit. Returns
+    "rotary:<letters>" or None; an absent snapshot or absent live data makes
+    no claim. Pure."""
+    if not inflight:
+        return None
+    return evaluate_rotary_drift(inflight.get("rotary_seed"), rotary_abc, eps=eps)
+
+def rotary_hold_update(hold, rotary_abc, now, eps=0.01):
+    """How long has the live rotary pose held still? `hold` is
+    {"abc": [...], "since": t} or None. Returns the SAME hold while the pose
+    stays within eps of it, a fresh hold stamped `now` when the pose moved
+    (or none existed). No rotary data → None (rotary_hold_settled treats
+    that as "nothing can move"). Pure."""
+    if not rotary_abc:
+        return None
+    prev = (hold or {}).get("abc")
+    if prev and len(prev) == len(rotary_abc) and all(
+            abs(a - b) <= eps for a, b in zip(prev, rotary_abc)):
+        return hold
+    return {"abc": list(rotary_abc), "since": now}
+
+def rotary_hold_settled(hold, rotary_abc, now, min_s=1.0):
+    """May a (re)parse start now? The rotary pose must have held still for
+    min_s (a parse spawned mid-jog is doomed on the next tick — see
+    inflight_doomed_reason). A config with no rotary data is always settled;
+    a config WITH rotary data and no hold yet is NOT (no silent go). Pure."""
+    if not rotary_abc:
+        return True
+    if not hold:
+        return False
+    return (now - hold.get("since", now)) >= min_s
+
 def rotary_drift_settled(prev_abc, rotary_abc, eps=0.01):
     """Is the live rotary pose STATIONARY between two consecutive drift
     checks? The drift edge must never fire mid-jog: interp is IDLE while

@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { emptyLineIndex } from "./lineIndex";
 import { describe, expect, it } from "vitest";
 import {
-  buildCollisionModel, sweepCollisions, sweepCollisionsIter, toolCylinderPositions,
+  buildCollisionModel, sweepCollisions, sweepCollisionsIter, toolCylinderPositions, type SnapshotHandle,
   type CollisionBody, type CollisionMachine, type CollisionResult, mergeContiguousIntervals } from "./collision";
 import type { ScrubTrack } from "../ws/bulkData";
 
@@ -272,6 +272,42 @@ describe("sweepCollisions", () => {
       .toEqual(sync.hits.map(h => [h.line, h.a, h.b, +h.cum.toFixed(3)]));
     expect(r.value.samples).toBe(sync.samples);
     expect(r.value.truncated).toBeNull();
+  });
+
+  it("stop/continue via the snapshot hook: every snapshot is a truncated sweep-so-far, continuing ends in the uninterrupted result", () => {
+    // 2026-09-12: the worker parks a sweep (budget, operator stop, rotary
+    // motion) by simply not resuming the generator, snapshots the sweep-so-
+    // far through opts.snapshot, and resumes it later. The snapshots must
+    // not disturb the suspended sweep: the final result equals the sync one.
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const pts: number[][] = [];
+    for (let z = 0; z >= -45; z -= 0.5) pts.push([0, 0, z]);   // 90 short segments → checkpoints every 16
+    const t = track(pts);
+    const sync = sweepCollisions(model, t, WCS0, { margin: 2 });
+    expect(sync.hits.length).toBeGreaterThan(0);
+    const snap: SnapshotHandle = { take: null };
+    const it = sweepCollisionsIter(model, t, WCS0, { margin: 2, snapshot: snap });
+    let r = it.next();
+    expect(snap.take).not.toBeNull();       // installed before the first checkpoint
+    const covered: number[] = [], hitCounts: number[] = [];
+    while (!r.done) {
+      const partial = snap.take!("stopped");   // taken while SUSPENDED at this checkpoint
+      expect(partial.truncated?.reason).toBe("stopped");
+      expect(partial.truncated!.covered).toBeGreaterThanOrEqual(covered[covered.length - 1] ?? 0);
+      expect(partial.hits.length).toBeGreaterThanOrEqual(hitCounts[hitCounts.length - 1] ?? 0);
+      for (const h of partial.hits) expect(sync.hits.some(x => x.line === h.line && x.a === h.a && x.b === h.b)).toBe(true);
+      covered.push(partial.truncated!.covered); hitCounts.push(partial.hits.length);
+      r = it.next();
+    }
+    expect(covered.length).toBeGreaterThan(3);
+    expect(covered[0]).toBe(0);
+    expect(hitCounts[hitCounts.length - 1]).toBe(sync.hits.length);   // the last snapshot already knew every hit
+    const full = r.value as CollisionResult;
+    expect(full.truncated).toBeNull();
+    expect(full.hits.map(h => [h.line, h.a, h.b, +h.cum.toFixed(3), +h.cumEnd.toFixed(3)]))
+      .toEqual(sync.hits.map(h => [h.line, h.a, h.b, +h.cum.toFixed(3), +h.cumEnd.toFixed(3)]));
+    expect(full.samples).toBe(sync.samples);
+    expect(snap.take).toBeNull();           // cleared when the generator returned
   });
 
   it("next(true) at a checkpoint aborts: baseline only, epilogue still returns a result", () => {

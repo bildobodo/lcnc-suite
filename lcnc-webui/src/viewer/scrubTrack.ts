@@ -815,6 +815,42 @@ export function lineRunAround(t: ScrubTrack, i: number): [number, number] {
   return [a, b];
 }
 
+/** The sub-track of points [a, b) — every per-point channel sliced, cum
+ *  re-based to 0 at `a`, the shared lists (frames, sub names, WCS/TLO
+ *  events) kept by reference. The collision sweep uses it for the ENTRY
+ *  SEGMENT alone (2026-09-12): sim entry used to re-sweep the whole program
+ *  for the one segment that is new. Pure. */
+export function sliceTrack(t: ScrubTrack, a: number, b: number): ScrubTrack {
+  const n = Math.max(0, Math.min(b, t.count) - a);
+  const base = t.cum[a] ?? 0;
+  const cum = new Float32Array(n);
+  for (let i = 0; i < n; i++) cum[i] = t.cum[a + i]! - base;
+  const u8 = (x?: Uint8Array) => (x ? x.slice(a, a + n) : undefined);
+  const out: ScrubTrack = {
+    pos: t.pos.slice(a * 3, (a + n) * 3),
+    abc: t.abc.slice(a * 3, (a + n) * 3),
+    lines: t.lines.slice(a, a + n),
+    rapid: t.rapid.slice(a, a + n),
+    cum, timeBased: t.timeBased, count: n,
+    lineIndex: buildLineIndex(t.lines.slice(a, a + n), cum),
+  };
+  if (t.mode) out.mode = u8(t.mode);
+  if (t.frame) out.frame = u8(t.frame);
+  if (t.frames) out.frames = t.frames;
+  if (t.brk) out.brk = u8(t.brk);
+  if (t.ustart) out.ustart = u8(t.ustart);
+  if (t.wcsEpoch) out.wcsEpoch = u8(t.wcsEpoch);
+  if (t.lineOk) out.lineOk = u8(t.lineOk);
+  if (t.sub) out.sub = u8(t.sub);
+  if (t.subNames) out.subNames = t.subNames;
+  if (t.cline) out.cline = t.cline.slice(a, a + n);
+  if (t.wcsEvents) out.wcsEvents = t.wcsEvents;
+  if (t.tlo) out.tlo = u8(t.tlo);
+  if (t.outside) out.outside = u8(t.outside);
+  if (t.tloEvents) out.tloEvents = t.tloEvents;
+  return out;
+}
+
 /** New track with the ENTRY MOVE prepended: the rapid the machine will make
  *  from its live position (program coords) to the program's first point —
  *  run-time-only motion no parse can know, and the classic crash. The entry

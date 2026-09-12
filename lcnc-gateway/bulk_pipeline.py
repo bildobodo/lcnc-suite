@@ -96,6 +96,11 @@ class BulkPipeline:
         # nothing runs. Also the source of the status wire's
         # `preview_refresh` (the operator's banner).
         self.inflight: Optional[dict] = None
+        # Live rotary pose hold {"abc", "since"} (rotary_hold_update, every
+        # tick): a (re)parse may only START once the pose has held still —
+        # and `reparse_wait_noted` keeps the deferral trace to one line.
+        self.rotary_hold: Optional[dict] = None
+        self.reparse_wait_noted = False
         # Set by cancel_inflight; read by refresh_gcode_preview after the
         # worker exits to trace the cancel instead of a worker failure.
         self.cancel_reason: Optional[str] = None

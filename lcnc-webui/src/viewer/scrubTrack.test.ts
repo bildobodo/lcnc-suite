@@ -1,12 +1,12 @@
 // Unit tests for viewer/scrubTrack.ts — the execution-ordered scrub track.
 import { describe, expect, it, vi } from "vitest";
-import { lineCumOf, lineMaskLines, lineRange } from "./lineIndex";
+import { emptyLineIndex, lineCumOf, lineMaskLines, lineRange } from "./lineIndex";
 import {
   buildScrubTrack, sampleTrack, jointsForSample,
   machineJointsToProgram, prependEntry, splitTrackStreams,
   displayLineForPoint, atTrackEnd,
   programEndLine, mainLinesTrusted,
-  projectOntoTrack, lineRunAround,
+  projectOntoTrack, lineRunAround, sliceTrack,
   type ScrubSample, type ScrubStream, type ScrubTrack, roomEndOf,
 } from "./scrubTrack";
 import { makeKins as kinsForTest } from "./kins";
@@ -939,6 +939,29 @@ describe("positional run playhead (review P3)", () => {
     // Two feed sections (each opened by a rapid): start vertex carries the
     // opening segment's track index.
     expect(Array.from(split.feedSrc!)).toEqual([0, 1, 2, 3]);
+  });
+});
+
+describe("sliceTrack", () => {
+  it("cuts [a, b) with every per-point channel, cum re-based to 0, shared lists kept", () => {
+    const t: ScrubTrack = {
+      pos: new Float32Array([0, 0, 0, 1, 0, 0, 3, 0, 0, 6, 0, 0]),
+      abc: new Float32Array(12), lines: new Uint32Array([1, 2, 3, 4]), rapid: new Uint8Array([0, 1, 0, 0]),
+      cum: new Float32Array([0, 1, 3, 6]), timeBased: false, count: 4, lineIndex: emptyLineIndex(),
+      mode: new Uint8Array([0, 2, 2, 0]), tlo: new Uint8Array([0, 0, 1, 1]), tloEvents: [],
+    };
+    const s = sliceTrack(t, 1, 3);
+    expect(s.count).toBe(2);
+    expect(Array.from(s.pos)).toEqual([1, 0, 0, 3, 0, 0]);
+    expect(Array.from(s.lines)).toEqual([2, 3]);
+    expect(Array.from(s.rapid)).toEqual([1, 0]);
+    expect(Array.from(s.cum)).toEqual([0, 2]);
+    expect(Array.from(s.mode!)).toEqual([2, 2]);
+    expect(Array.from(s.tlo!)).toEqual([0, 1]);
+    expect(s.tloEvents).toBe(t.tloEvents);
+    expect(s.timeBased).toBe(false);
+    expect(s.frame).toBeUndefined();
+    expect(sliceTrack(t, 3, 9).count).toBe(1);   // clamped to the track
   });
 });
 

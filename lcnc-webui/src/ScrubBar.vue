@@ -52,11 +52,12 @@ const props = defineProps<{
   // (every cum shifts by the entry duration), so the clash UI trusts results
   // only when this matches the displayed track (auto re-check covers the gap).
   collisionTrack: ScrubTrack | null;
-  /** The automatic sweep for this program hit its wall-clock budget, so
-   *  ThreeViewer declines to re-run it on every touch-off (it would truncate
-   *  again and own the machine for another budget). Shown as a warn chip
-   *  with a manual run (longer budget) on offer. */
-  collisionSkipped: { covered: number; budgetMs: number } | null;
+  /** The sweep is PARKED (2026-09-12): its budget ran out, the operator
+   *  stopped it, or a rotary jog stopped it — with the covered fraction. The
+   *  partial result is in `collisionResult` (marks show); `collisionResumable`
+   *  says the worker still holds it, so ▶ continues where it stopped. */
+  collisionStopped: { covered: number; reason: "time" | "stopped" | "motion" } | null;
+  collisionResumable: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -73,9 +74,16 @@ const emit = defineEmits<{
   (e: "pose", joints: (number | null)[] | null, line: number | null, cum: number | null, trk: ScrubTrack | null, displayLine: number | null, plane: number[] | null, tlo: number[] | null, tool: number | null): void;
   // The track to sweep — includes the entry move when one is known.
   (e: "check", track: ScrubTrack): void;
-  /** Operator-requested sweep with the manual (longer) budget. */
+  /** Operator-requested full sweep, unbounded (the operator's stop is the bound). */
   (e: "check-manual", track: ScrubTrack): void;
+  /** Sim entry: the entry-extended track + the base it was built from —
+   *  ThreeViewer sweeps only the ENTRY SEGMENT when the base result is
+   *  current, and nothing at all when the machine sits at the first point. */
+  (e: "check-entry", track: ScrubTrack, base: ScrubTrack | null): void;
   (e: "cancel-check"): void;
+  /** Park the running sweep (resumable) / resume the parked one. */
+  (e: "stop-check"): void;
+  (e: "continue-check"): void;
 }>();
 
 const st = computed<Record<string, any>>(() => status.value?.data ?? {});
@@ -272,12 +280,10 @@ function enterSim(): boolean {
   _buildEntryTrack();
   sPos.value = 0;   // 0 = the machine's live position (entry-move start)
   applyPos();       // pose immediately — the mode announces itself
-  // Fresh entry position → fresh baseline: cancel any in-flight sweep (its
-  // result would be for the WRONG track) and re-run on the entry track.
-  if (track.value) {
-    emit("cancel-check");
-    emit("check", track.value);
-  }
+  // The entry move is the only new motion: ThreeViewer sweeps just that
+  // segment against the current base result (or nothing, when the machine
+  // already sits at the first point) — no full re-sweep on entry.
+  if (track.value) emit("check-entry", track.value, baseTrack.value);
   return true;
 }
 
@@ -575,20 +581,19 @@ const sweepToolTitle = computed(() => {
 // Sweep progress is the same fixed-width bar the status banner and the HUD
 // draw for a re-parse (operator, 2026-09-12: a bar, seconds and a percentage
 // for "in progress" read as three different things). The number lives in
-// the tooltip; the bar is not a button — × next to it cancels.
+// the tooltip; the bar is not a button — ❚❚ next to it STOPS (parks) the
+// sweep, and ▶ on the parked chip continues it. Nothing here cancels: a
+// sweep is only dropped by a superseding change (program, touch-off, tool).
 const sweepPct = computed(() => Math.round(props.collisionProgress * 100));
 const sweepTitle = computed(() => `Collision check running — ${sweepPct.value} % of the program swept`);
-// An operator cancel leaves a trace and a way back (the "check cancelled"
-// chip with the re-run button). Parent-driven cancels — program change,
-// touch-off, sim entry — are each followed by their own re-run and never
-// set it; the next sweep start or a new track clears it.
-const cancelledByOperator = ref(false);
-function cancelSweep() {
-  cancelledByOperator.value = true;
-  emit("cancel-check");
-}
-watch(() => props.collisionBusy, (busy) => { if (busy) cancelledByOperator.value = false; });
-watch(track, () => { cancelledByOperator.value = false; });
+const stoppedTitle = computed(() => {
+  const st = props.collisionStopped;
+  if (!st) return "";
+  const why = st.reason === "time" ? "its time budget ran out"
+    : st.reason === "motion" ? "a rotary axis moved (it resumes by itself once the pose settles and the preview is unchanged)"
+    : "you stopped it";
+  return `The collision check is parked at ${pctOf(st.covered)} of the program — ${why}. The rest is UNCHECKED until it continues; ▶ resumes exactly where it stopped.`;
+});
 
 // Sim toggle v-model: the parent-authoritative MachineToggle resets its DOM
 // checkbox when the model doesn't change — so a refused entry (machine on)
@@ -650,8 +655,8 @@ const sweepCaveat = computed<string | null>(() => {
   const why: string[] = [];
   if (r.uncertified) why.push(r.uncertified);
   if (r.coarsened) why.push("coarsened to fit the sample budget");
-  if (r.truncated) {
-    why.push(`stopped at the ${Math.round(r.sweepMs / 1000)} s budget with ${pctOf(r.truncated.covered)} of the program swept — the rest is unchecked`);
+  if (r.truncated && !props.collisionResumable) {
+    why.push(`stopped at ${pctOf(r.truncated.covered)} of the program (${r.truncated.reason === "samples" ? "sample backstop" : "time budget"}) — the rest is unchecked`);
   }
   return why.length ? `Clearance guarantee not certified for this sweep: ${why.join("; ")}` : null;
 });
@@ -830,31 +835,19 @@ onUnmounted(() => {
 
       <template v-if="collisionBusy">
         <div class="progressTrack sweepTrack" :title="sweepTitle"><div class="progressFill" :style="{ width: sweepPct + '%' }"></div></div>
-        <MachineBtn type="scrub" title="Cancel the collision check" @click="cancelSweep">&times;</MachineBtn>
+        <MachineBtn type="scrub" title="Stop the collision check — it parks where it is and can be continued" @click="emit('stop-check')">&#10074;&#10074;</MachineBtn>
       </template>
-      <!-- Every finished state offers the re-run (manual budget): cancelled,
-           declined, clear, partial coverage, clashes — the sweep otherwise
-           re-ran only on a touch-off, a tool change or a reload. -->
-      <template v-if="cancelledByOperator && !collisionBusy && !collisionResult && !collisionSkipped">
-        <span class="val-status warn" title="The collision check was cancelled — this program is unchecked until it runs again">check cancelled</span>
-        <MachineBtn type="scrub" title="Run the collision check again (manual budget)"
-                    :disabled="!track" @click="track && emit('check-manual', track)">&#8635;</MachineBtn>
-      </template>
-      <template v-if="collisionSkipped && !collisionBusy && !collisionResult">
-        <span class="val-status warn"
-              :title="`The automatic collision check stopped at its ${Math.round(collisionSkipped.budgetMs / 1000)} s budget with ${pctOf(collisionSkipped.covered)} of this program swept, so it is not re-run on every touch-off. Check runs it with the longer manual budget.`">
-          check declined — {{ pctOf(collisionSkipped.covered) }} in {{ Math.round(collisionSkipped.budgetMs / 1000) }} s
-        </span>
-        <MachineBtn type="scrub" title="Run the collision check with the longer manual budget"
-                    :disabled="!track" @click="track && emit('check-manual', track)">&#8635;</MachineBtn>
-      </template>
+      <!-- Sweep states (2026-09-12): running (bar + ❚❚), parked ("stopped at
+           N %" + ▶, clashes so far marked), done (clear / clashes + ↻). The
+           budget running out, the operator's ❚❚ and a rotary jog all park;
+           only a superseding change drops a sweep. -->
       <template v-if="collisionResult && !collisionBusy && resultCurrent">
         <span v-if="collisionResult.pairCount === 0" class="val-status muted" title="No body pair moves relative to another — nothing to check">no moving pairs</span>
-        <span v-else-if="!hits.length && collisionResult.truncated" class="val-status warn"
+        <span v-else-if="!hits.length && collisionResult.truncated && !collisionResumable" class="val-status warn"
               :title="`No clash in the ${pctOf(collisionResult.truncated.covered)} of the program swept before the ${Math.round(collisionResult.sweepMs / 1000)} s budget — the rest is UNCHECKED (${collisionResult.samples} samples, ${collisionResult.pairCount} pairs)`">
           no clash in {{ pctOf(collisionResult.truncated.covered) }} swept
         </span>
-        <span v-else-if="!hits.length" class="val-status ok" :title="`${collisionResult.samples} samples, ${collisionResult.pairCount} pairs${collisionResult.staticContacts.length ? `; in contact from the start (excluded): ${collisionResult.staticContacts.map(c => c.a + '/' + c.b).join(', ')}` : ''}`">
+        <span v-else-if="!hits.length && !collisionResumable" class="val-status ok" :title="`${collisionResult.samples} samples, ${collisionResult.pairCount} pairs${collisionResult.staticContacts.length ? `; in contact from the start (excluded): ${collisionResult.staticContacts.map(c => c.a + '/' + c.b).join(', ')}` : ''}`">
           clear
         </span>
         <template v-else>
@@ -875,11 +868,17 @@ onUnmounted(() => {
           </span>
           <span class="navTarget val-status mono">{{ nextHitT ? "→ " + (nextHitT.line ? "L" + nextHitT.line : "entry") + (nextHitT.reentry ? " (re-entry)" : "") + (nextHitT.rapid ? " (rapid)" : "") + ((nextHitT.dist ?? 0) > 0.001 ? ` ~${nextHitT.dist!.toFixed(1)}mm` : "") + ((nextHitT.spanEndLine ?? nextHitT.line) > nextHitT.line ? ` … through L${nextHitT.spanEndLine}` : "") : "" }}</span>
         </template>
+        <!-- Parked: the covered fraction + ▶ (with the clash nav above when
+             the swept part already found some). -->
+        <template v-if="collisionStopped && collisionResumable">
+          <span class="val-status warn" :title="stoppedTitle">stopped at {{ pctOf(collisionStopped.covered) }}</span>
+          <MachineBtn type="scrub" title="Continue the collision check from where it stopped" @click="emit('continue-check')">&#9654;</MachineBtn>
+        </template>
         <!-- Shown on BOTH branches: a sweep that found clashes is no more
              certified than one that found none, so the caveat cannot live
              only next to "clear". -->
         <span v-if="sweepCaveat" class="val-status warn" :title="sweepCaveat">*</span>
-        <MachineBtn type="scrub" title="Run the collision check again (manual budget)"
+        <MachineBtn v-if="!collisionResumable" type="scrub" title="Run the collision check again from the start (no time budget)"
                     :disabled="!track" @click="track && emit('check-manual', track)">&#8635;</MachineBtn>
       </template>
 

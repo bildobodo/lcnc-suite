@@ -52,6 +52,7 @@ from gateway_util import (
     evaluate_kins_drift,
     wcs_offset_flat_from_table,
     evaluate_wcs_offset_drift, evaluate_limits_drift,
+    inflight_doomed_reason, rotary_hold_update, rotary_hold_settled,
     unwritten_estop_signal,
     kins_marker_policy,
     kins_pivot_warning,
@@ -1499,11 +1500,23 @@ async def _status_poller():
             # reparse_pending: an operator Reparse that arrived during an
             # in-flight parse (or any Reparse — the flag is the request,
             # the cache keys are no longer cleared for it).
+            _now = time.monotonic()
+            _bulk.rotary_hold = rotary_hold_update(_bulk.rotary_hold, st.rotary_abc, _now)
             _fe = preview_file_edge_action(
                 file_changed, _bulk.reparse_pending, _bulk.refresh_running,
                 _bulk.inflight, st.active_file, _cur_mtime)
+            if _fe == "schedule" and not rotary_hold_settled(_bulk.rotary_hold, st.rotary_abc, _now):
+                # A parse spawned mid-jog seeds the moving pose and is doomed
+                # on the next tick (inflight_doomed_reason below): the START
+                # waits for the rotary pose to hold still for 1 s. Linear
+                # motion never defers — the payload does not depend on XYZ.
+                if not _bulk.reparse_wait_noted:
+                    _bulk.reparse_wait_noted = True
+                    _trace.emit("gcode.parse_waits_for_settle", live=st.rotary_abc)
+                _fe = None
             if _fe is not None:
                 if _fe == "schedule":
+                    _bulk.reparse_wait_noted = False
                     _bulk.schedule_refresh(
                         st.active_file,
                         _bulk.reparse_pending_reason or ("file" if file_changed else "reparse"),
@@ -1517,6 +1530,23 @@ async def _status_poller():
                     # left alone (preview_file_edge_action) — file_changed
                     # holds until it publishes.
                     _bulk.cancel_inflight(_fe.split(":", 1)[1])
+            elif (
+                # Doomed in-flight parse (2026-09-12): the rotary pose has
+                # ALREADY left the running parse's seed — its result is wrong
+                # whatever happens next, so cancel NOW (every tick, no settle,
+                # no debounce) instead of letting it run through the whole
+                # jog. reparse_pending restarts it, and the settle gate above
+                # holds that restart until the pose has come to rest.
+                _bulk.refresh_running
+                and _bulk.inflight is not None
+                and bool(st.active_file)
+                and (_doom := inflight_doomed_reason(_bulk.inflight, st.rotary_abc)) is not None
+            ):
+                _trace.emit("gcode.inflight_doomed", reason=_doom,
+                            seed=_bulk.inflight.get("rotary_seed"), live=st.rotary_abc)
+                _bulk.reparse_pending = True
+                _bulk.reparse_pending_reason = _doom
+                _bulk.cancel_inflight(_doom)
             elif (
                 # In-flight supersede (2026-09-05): the drift edges below are
                 # gated on `not refresh_running`, so an edge raised DURING a

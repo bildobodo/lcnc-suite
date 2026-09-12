@@ -159,6 +159,9 @@ export interface CollisionOptions {
    *  (2026-09-10: a 1.18 M-point program ran ~2 h per sweep, restarted on
    *  every touch-off, and starved the operator's GPU the whole time.) */
   maxMs?: number;
+  /** Snapshot hook for a driver that parks and resumes the sweep (the
+   *  collision worker): see SnapshotHandle. Absent = no snapshots. */
+  snapshot?: SnapshotHandle;
   /** The clock the budget (and `sweepMs`) runs on — default performance.now.
    *  The worker passes an ACTIVE-time clock that stands still while the
    *  sweep is paused for camera interaction, so a pause never eats the budget. */
@@ -204,7 +207,20 @@ export interface CollisionResult {
    *  the swept fraction of the track's path (dist parameter, 0..1). Null =
    *  the whole track was swept. A truncated sweep with no hits is NOT
    *  "clear": only the covered part is. */
-  truncated: { covered: number; reason: "time" | "samples" } | null;
+  truncated: { covered: number; reason: "time" | "samples" | "stopped" } | null;
+}
+
+/** Driver-side stop/continue (2026-09-12). The iterator installs `take` at
+ *  its start and clears it when it returns. While the generator is
+ *  SUSPENDED at a checkpoint the driver may call `take(reason)` to get the
+ *  sweep-so-far as a CollisionResult — `truncated` set with that reason and
+ *  the covered fraction — WITHOUT ending the generator: resuming it
+ *  afterwards continues the sweep with every certificate and contact state
+ *  intact. The refinement runs on COPIES of the hit records and the loop
+ *  re-poses every sample itself, so a snapshot leaves the suspended sweep
+ *  exactly as it found it. */
+export interface SnapshotHandle {
+  take: ((reason: "time" | "stopped") => CollisionResult) | null;
 }
 
 // maxSamples is a RUNAWAY backstop, not the operative bound: with carried
@@ -880,6 +896,172 @@ export function* sweepCollisionsIter(
   let sweptTo = 0;   // dist parameter reached — the covered fraction on truncation
   const overBudget = (): boolean => clock() - t0 > maxMs;
   const frac = (s: number): number => Math.min(1, s / (totalCum || 1));
+  // Contact refinement: a penetrating hit's discovering sample can sit up
+  // to one sample step PAST true contact — jumping to it would show the
+  // tool already buried. Walk back by the local sample step to the last
+  // clear parameter (crossing segment boundaries freely), then bisect the
+  // first-contact crossing. Cost: only hit pairs, ~30 probes each.
+  // "Contact" for the refinement probes: intersecting meshes report a
+  // Dist-cum where the hit's LINE begins — refinement must never walk back
+  // past it: through-contact across line boundaries (the pair never clears
+  // between lines) would collapse every following line's hit onto the first
+  // line's contact point (same jump target, wrong line label).
+  const segOfLine = (cum: number, line: number): number => {
+    let lo = 1, hi = n - 1;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (dcum[mid]! < cum) lo = mid + 1;
+      else hi = mid;
+    }
+    // A hit recorded exactly ON a boundary (chunk starts sit on dcum values)
+    // binary-searches into the PREVIOUS segment — step forward to the
+    // segment that actually carries the hit's line.
+    while (lo < n - 1 && track.lines[lo] !== line && track.lines[lo + 1] === line) lo++;
+    return lo;
+  };
+  const lineStartDist = (cum: number, line: number): number => {
+    let lo = segOfLine(cum, line);
+    while (lo > 1 && track.lines[lo - 1] === line) lo--;
+    return dcum[lo - 1]!;
+  };
+  const lineEndDist = (cum: number, line: number): number => {
+    let lo = segOfLine(cum, line);
+    while (lo < n - 1 && track.lines[lo + 1] === line) lo++;
+    return dcum[lo]!;
+  };
+  const back = Math.max(MIN_ADV, EXPLORE / 4);
+  // Bisect a contact boundary between a known in-contact cum and a known
+  // clear cum (either order); returns the refined in-contact-side cum.
+  const bisectBoundary = (contactCum: number, clearCum: number, pi: number): number => {
+    let c = contactCum, x = clearCum;
+    for (let it = 0; it < 24 && Math.abs(x - c) > 1e-3; it++) {
+      const mid = (c + x) / 2;
+      if (distAtCum(mid, pi) <= CONTACT_EPS) c = mid;
+      else x = mid;
+    }
+    return c;
+  };
+  // The result — built from a set of hit RECORDS so it can run twice: on the
+  // originals when the sweep ends, and on COPIES for a snapshot of the sweep-
+  // so-far while the generator is parked (SnapshotHandle). Everything below
+  // reads the loop's live state (sweptTo, done, coarsened, uncertified, the
+  // static contacts) at call time.
+  const buildResult = (recs: typeof worst, trunc: CollisionResult["truncated"], final: boolean): CollisionResult => {
+    for (const h of recs.values()) {
+      if (h.dist > CONTACT_EPS || h.cum <= 0) continue;  // near-misses keep their closest-approach sample
+      const floor = lineStartDist(h.cum, h.line);
+      const ceil = lineEndDist(Math.max(h.cumEnd, h.cum), h.line);
+
+      // Contact within one line can be INTERMITTENT. The advancement loop
+      // samples every EXPLORE step while a pair sits inside the margin
+      // (certificates cannot stride there), so gaps wider than the stride
+      // between in-contact samples are VERIFIED separations — cluster the
+      // samples into candidate intervals, then refine every boundary.
+      const CLUSTER_GAP = EXPLORE * 2 + MIN_ADV;
+      h.samples.sort((x, y) => x - y);
+      const clusters: Array<[number, number]> = [];
+      for (const s of h.samples) {
+        const last = clusters[clusters.length - 1];
+        if (!last || s - last[1] > CLUSTER_GAP) clusters.push([s, s]);
+        else last[1] = s;
+      }
+      if (!clusters.length) clusters.push([h.cum, Math.max(h.cum, h.cumEnd)]);
+      // Pathological chatter cap — merge the tail rather than grow unbounded.
+      while (clusters.length > 16) {
+        const t = clusters.pop()!;
+        clusters[clusters.length - 1]![1] = t[1];
+      }
+
+      const intervals: Array<[number, number]> = [];
+      for (let ci = 0; ci < clusters.length; ci++) {
+        const [cs, ce] = clusters[ci]!;
+        // ENTRY: walk back toward the previous interval's exit / line start.
+        const efloor = ci === 0 ? floor : intervals[ci - 1]![1];
+        let hi = cs, lo = hi, guard = 0, bracketed = false;
+        while (guard++ < 128 && lo > efloor) {
+          lo = Math.max(efloor, lo - back);
+          if (distAtCum(lo, h.pi) > CONTACT_EPS) { bracketed = true; break; }
+          hi = lo;  // still in contact — earliest known contact moves back
+        }
+        const entry = bracketed ? bisectBoundary(hi, lo, h.pi) : hi;
+        // EXIT: walk forward toward the next cluster / line end.
+        const eceil = ci === clusters.length - 1 ? ceil : clusters[ci + 1]![0];
+        let elo = Math.max(ce, entry), ehi = elo;
+        guard = 0;
+        let exitBracketed = false;
+        while (guard++ < 128 && ehi < eceil) {
+          ehi = Math.min(eceil, ehi + back);
+          if (distAtCum(ehi, h.pi) > CONTACT_EPS) { exitBracketed = true; break; }
+          elo = ehi;
+        }
+        const exit = exitBracketed ? bisectBoundary(elo, ehi, h.pi) : ehi;
+        intervals.push([entry, exit]);
+      }
+      const merged = mergeContiguousIntervals(intervals);
+      h.cum = merged[0]![0];
+      h.cumEnd = merged[merged.length - 1]![1];
+      h.intervals = merged;
+    }
+    // Hits leave the sweep in TRACK cum (time on a time-based track) — the
+    // scrub-to-hit target must live on the slider's axis.
+    for (const h of recs.values()) {
+      h.cum = distToTrackCum(h.cum);
+      h.cumEnd = Math.max(h.cum, distToTrackCum(h.cumEnd));
+      if (h.intervals) {
+        for (const iv of h.intervals) {
+          iv[0] = distToTrackCum(iv[0]);
+          iv[1] = Math.max(iv[0], distToTrackCum(iv[1]));
+        }
+      }
+    }
+
+    // Back-fill spanEndLine on every onset: the last line its contact persists
+    // through (continuations point at their onset by line + pair).
+    for (const h of recs.values()) {
+      if (h.continuation === undefined) continue;
+      const onset = recs.get(keyFor(h.continuation, h.pi));
+      if (onset) onset.spanEndLine = Math.max(onset.spanEndLine ?? onset.line, h.line);
+    }
+
+    // Onsets first when the cap bites: a long penetration's continuation
+    // records must never evict a genuinely distinct later clash. Re-sorted by
+    // cum afterwards (ScrubBar relies on cum order).
+    const all = [...recs.values()];
+    const onsets = all.filter(h => h.continuation === undefined).sort((x, y) => x.cum - y.cum);
+    const conts = all.filter(h => h.continuation !== undefined).sort((x, y) => x.cum - y.cum);
+    const hits = [...onsets, ...conts]
+      .slice(0, MAX_HITS)
+      .sort((x, y) => x.cum - y.cum)
+      .map(({ pi: _pi, samples: _s, ...rest }) => rest);
+
+    // Hand the model back wearing its BASE tool body: a caller that reuses
+    // the model (tests, a future cached build) must not inherit the last
+    // segment's program tool. (Final result only — a snapshot leaves the
+    // suspended loop's tool alone; it re-poses every sample anyway.)
+    if (final) applyTool(null);
+    return {
+      hits,
+      staticContacts,
+      samples: done,
+      coarsened,
+      uncertified,
+      pairCount: pairs.length,
+      bvhMs: model.bvhMs,
+      sweepMs: clock() - t0,
+      truncated: trunc,
+    };
+    };
+
+  if (opts.snapshot) {
+    opts.snapshot.take = (reason) => {
+      const copy: typeof worst = new Map();
+      for (const [k, h] of worst) {
+        copy.set(k, { ...h, samples: h.samples.slice(),
+                      intervals: h.intervals?.map(iv => [iv[0], iv[1]] as [number, number]) });
+      }
+      return buildResult(copy, { covered: frac(sweptTo), reason }, false);
+    };
+  }
   // Checkpoint before the first segment: an abort here leaves the baseline
   // pose only (the "aborts early" contract).
   const abortAtStart = (yield 0) === true;
@@ -1067,151 +1249,8 @@ export function* sweepCollisionsIter(
       }
     }
   }
-  // Contact refinement: a penetrating hit's discovering sample can sit up
-  // to one sample step PAST true contact — jumping to it would show the
-  // tool already buried. Walk back by the local sample step to the last
-  // clear parameter (crossing segment boundaries freely), then bisect the
-  // first-contact crossing. Cost: only hit pairs, ~30 probes each.
-  // "Contact" for the refinement probes: intersecting meshes report a
-  // Dist-cum where the hit's LINE begins — refinement must never walk back
-  // past it: through-contact across line boundaries (the pair never clears
-  // between lines) would collapse every following line's hit onto the first
-  // line's contact point (same jump target, wrong line label).
-  const segOfLine = (cum: number, line: number): number => {
-    let lo = 1, hi = n - 1;
-    while (lo < hi) {
-      const mid = (lo + hi) >> 1;
-      if (dcum[mid]! < cum) lo = mid + 1;
-      else hi = mid;
-    }
-    // A hit recorded exactly ON a boundary (chunk starts sit on dcum values)
-    // binary-searches into the PREVIOUS segment — step forward to the
-    // segment that actually carries the hit's line.
-    while (lo < n - 1 && track.lines[lo] !== line && track.lines[lo + 1] === line) lo++;
-    return lo;
-  };
-  const lineStartDist = (cum: number, line: number): number => {
-    let lo = segOfLine(cum, line);
-    while (lo > 1 && track.lines[lo - 1] === line) lo--;
-    return dcum[lo - 1]!;
-  };
-  const lineEndDist = (cum: number, line: number): number => {
-    let lo = segOfLine(cum, line);
-    while (lo < n - 1 && track.lines[lo + 1] === line) lo++;
-    return dcum[lo]!;
-  };
-  const back = Math.max(MIN_ADV, EXPLORE / 4);
-  // Bisect a contact boundary between a known in-contact cum and a known
-  // clear cum (either order); returns the refined in-contact-side cum.
-  const bisectBoundary = (contactCum: number, clearCum: number, pi: number): number => {
-    let c = contactCum, x = clearCum;
-    for (let it = 0; it < 24 && Math.abs(x - c) > 1e-3; it++) {
-      const mid = (c + x) / 2;
-      if (distAtCum(mid, pi) <= CONTACT_EPS) c = mid;
-      else x = mid;
-    }
-    return c;
-  };
-  for (const h of worst.values()) {
-    if (h.dist > CONTACT_EPS || h.cum <= 0) continue;  // near-misses keep their closest-approach sample
-    const floor = lineStartDist(h.cum, h.line);
-    const ceil = lineEndDist(Math.max(h.cumEnd, h.cum), h.line);
-
-    // Contact within one line can be INTERMITTENT. The advancement loop
-    // samples every EXPLORE step while a pair sits inside the margin
-    // (certificates cannot stride there), so gaps wider than the stride
-    // between in-contact samples are VERIFIED separations — cluster the
-    // samples into candidate intervals, then refine every boundary.
-    const CLUSTER_GAP = EXPLORE * 2 + MIN_ADV;
-    h.samples.sort((x, y) => x - y);
-    const clusters: Array<[number, number]> = [];
-    for (const s of h.samples) {
-      const last = clusters[clusters.length - 1];
-      if (!last || s - last[1] > CLUSTER_GAP) clusters.push([s, s]);
-      else last[1] = s;
-    }
-    if (!clusters.length) clusters.push([h.cum, Math.max(h.cum, h.cumEnd)]);
-    // Pathological chatter cap — merge the tail rather than grow unbounded.
-    while (clusters.length > 16) {
-      const t = clusters.pop()!;
-      clusters[clusters.length - 1]![1] = t[1];
-    }
-
-    const intervals: Array<[number, number]> = [];
-    for (let ci = 0; ci < clusters.length; ci++) {
-      const [cs, ce] = clusters[ci]!;
-      // ENTRY: walk back toward the previous interval's exit / line start.
-      const efloor = ci === 0 ? floor : intervals[ci - 1]![1];
-      let hi = cs, lo = hi, guard = 0, bracketed = false;
-      while (guard++ < 128 && lo > efloor) {
-        lo = Math.max(efloor, lo - back);
-        if (distAtCum(lo, h.pi) > CONTACT_EPS) { bracketed = true; break; }
-        hi = lo;  // still in contact — earliest known contact moves back
-      }
-      const entry = bracketed ? bisectBoundary(hi, lo, h.pi) : hi;
-      // EXIT: walk forward toward the next cluster / line end.
-      const eceil = ci === clusters.length - 1 ? ceil : clusters[ci + 1]![0];
-      let elo = Math.max(ce, entry), ehi = elo;
-      guard = 0;
-      let exitBracketed = false;
-      while (guard++ < 128 && ehi < eceil) {
-        ehi = Math.min(eceil, ehi + back);
-        if (distAtCum(ehi, h.pi) > CONTACT_EPS) { exitBracketed = true; break; }
-        elo = ehi;
-      }
-      const exit = exitBracketed ? bisectBoundary(elo, ehi, h.pi) : ehi;
-      intervals.push([entry, exit]);
-    }
-    const merged = mergeContiguousIntervals(intervals);
-    h.cum = merged[0]![0];
-    h.cumEnd = merged[merged.length - 1]![1];
-    h.intervals = merged;
-  }
-  // Hits leave the sweep in TRACK cum (time on a time-based track) — the
-  // scrub-to-hit target must live on the slider's axis.
-  for (const h of worst.values()) {
-    h.cum = distToTrackCum(h.cum);
-    h.cumEnd = Math.max(h.cum, distToTrackCum(h.cumEnd));
-    if (h.intervals) {
-      for (const iv of h.intervals) {
-        iv[0] = distToTrackCum(iv[0]);
-        iv[1] = Math.max(iv[0], distToTrackCum(iv[1]));
-      }
-    }
-  }
+  const finalResult = buildResult(worst, truncated, true);
   yield truncated ? truncated.covered : 1;
-
-  // Back-fill spanEndLine on every onset: the last line its contact persists
-  // through (continuations point at their onset by line + pair).
-  for (const h of worst.values()) {
-    if (h.continuation === undefined) continue;
-    const onset = worst.get(keyFor(h.continuation, h.pi));
-    if (onset) onset.spanEndLine = Math.max(onset.spanEndLine ?? onset.line, h.line);
-  }
-
-  // Onsets first when the cap bites: a long penetration's continuation
-  // records must never evict a genuinely distinct later clash. Re-sorted by
-  // cum afterwards (ScrubBar relies on cum order).
-  const all = [...worst.values()];
-  const onsets = all.filter(h => h.continuation === undefined).sort((x, y) => x.cum - y.cum);
-  const conts = all.filter(h => h.continuation !== undefined).sort((x, y) => x.cum - y.cum);
-  const hits = [...onsets, ...conts]
-    .slice(0, MAX_HITS)
-    .sort((x, y) => x.cum - y.cum)
-    .map(({ pi: _pi, samples: _s, ...rest }) => rest);
-  // Hand the model back wearing its BASE tool body: a caller that reuses
-  // the model (tests, a future cached build) must not inherit the last
-  // segment's program tool.
-  applyTool(null);
-  return {
-    hits,
-    staticContacts,
-    samples: done,
-    coarsened,
-    uncertified,
-    pairCount: pairs.length,
-    bvhMs: model.bvhMs,
-    sweepMs: clock() - t0,
-    truncated,
-  };
+  if (opts.snapshot) opts.snapshot.take = null;
+  return finalResult;
 }

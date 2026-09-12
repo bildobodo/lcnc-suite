@@ -12,6 +12,7 @@ import unittest
 
 import gateway_util
 from gateway_util import (
+    inflight_doomed_reason, rotary_hold_update, rotary_hold_settled,
     joints_beyond_limits,
     sanitize_filename,
     validate_extension,
@@ -1836,6 +1837,40 @@ class TestSegmentOutsideFlags(unittest.TestCase):
         self.assertIsNone(gateway_util.evaluate_limits_drift(pub, [[None, None], [0, 0], [None, None]], letters))
         # a partial live pair whose known bound moved is a drift
         self.assertEqual(gateway_util.evaluate_limits_drift(pub, [[-1500.0, 1500.0], [0, 0], [None, 5000.0]], letters), "limits:Z")
+
+
+class TestInflightDoomedAndRotaryHold(unittest.TestCase):
+    """2026-09-12: cancel a doomed parse at once, restart only once settled."""
+
+    def test_doomed_when_pose_leaves_the_inflight_seed_no_settle_needed(self):
+        inflight = {"rotary_seed": {"A": 0.0, "B": 0.0, "C": 0.0}}
+        self.assertEqual(inflight_doomed_reason(inflight, [0.0, 0.0, 0.0]), None)
+        self.assertEqual(inflight_doomed_reason(inflight, [0.005, 0.0, 0.0]), None)   # within eps
+        self.assertEqual(inflight_doomed_reason(inflight, [3.2, 0.0, 0.0]), "rotary:A")
+        self.assertEqual(inflight_doomed_reason(inflight, [0.0, 1.0, -2.0]), "rotary:BC")
+
+    def test_no_claim_without_a_snapshot_or_live_data(self):
+        self.assertIsNone(inflight_doomed_reason(None, [1.0, 0.0, 0.0]))
+        self.assertIsNone(inflight_doomed_reason({"rotary_seed": {"A": 0.0}}, None))
+        self.assertIsNone(inflight_doomed_reason({}, [1.0, 0.0, 0.0]))
+
+    def test_hold_keeps_its_stamp_while_still_and_restamps_on_motion(self):
+        h0 = rotary_hold_update(None, [0.0, 0.0, 0.0], 10.0)
+        self.assertEqual(h0, {"abc": [0.0, 0.0, 0.0], "since": 10.0})
+        h1 = rotary_hold_update(h0, [0.004, 0.0, 0.0], 10.5)
+        self.assertIs(h1, h0)                                    # servo dither: same hold
+        h2 = rotary_hold_update(h1, [0.5, 0.0, 0.0], 11.0)
+        self.assertEqual(h2["since"], 11.0)                      # moved: restamped
+        self.assertEqual(h2["abc"], [0.5, 0.0, 0.0])
+        self.assertIsNone(rotary_hold_update(h2, None, 12.0))    # no rotary data
+
+    def test_settled_after_min_hold_never_without_a_hold_always_without_rotaries(self):
+        h = rotary_hold_update(None, [20.0, 0.0, 0.0], 100.0)
+        self.assertFalse(rotary_hold_settled(h, [20.0, 0.0, 0.0], 100.5))
+        self.assertTrue(rotary_hold_settled(h, [20.0, 0.0, 0.0], 101.0))
+        self.assertFalse(rotary_hold_settled(None, [20.0, 0.0, 0.0], 101.0))   # no sample yet: no silent go
+        self.assertTrue(rotary_hold_settled(None, None, 101.0))               # 3-axis: nothing can move
+        self.assertTrue(rotary_hold_settled(None, [], 101.0))
 
 
 class TestRotaryDrift(unittest.TestCase):

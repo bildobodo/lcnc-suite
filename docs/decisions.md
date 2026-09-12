@@ -4544,3 +4544,70 @@ by construction). Fixtures restored (`git checkout -- scripts/parity_corpus/runs
 keeper stopped, only the operator's tab connected. With this the suite-stop and
 restart lists are CLOSED except the operator's own live looks and the skipped
 trip scenario (no safety-chain code changed today).
+
+## 2026-09-12 (night) — Sweep stop/continue, entry-segment sweep, rotary motion parks the sweep and dooms the parse
+
+**Asks (operator):** "why does the sweep re-run when I enter the sim although
+nothing changed?"; "we have a limit, where does it sit, how do I continue from
+70 %?"; "can we increase the limits and have continue and stop instead of
+cancel?"; "make sure both the re-parse after a rotary move and the sweep get
+cancelled as soon as you do another move".
+
+**Engine (collision.ts).** The epilogue (refinement, track-cum conversion,
+span back-fill, cap) became `buildResult(records, truncated, final)`, callable
+on the ORIGINAL records at the end and on COPIES for a snapshot. `opts.snapshot`
+(`SnapshotHandle.take(reason)`) is installed before the first checkpoint and
+cleared on return: while the generator is SUSPENDED the driver gets the sweep-
+so-far as a `truncated` result without ending it; resuming continues with every
+clearance certificate and contact state intact. The loop re-poses every sample
+itself, so a snapshot's refinement probes leave it undisturbed. `truncated.reason`
+gains "stopped". Test: 90-segment plunge, a snapshot at EVERY checkpoint —
+covered and hit counts monotone, every snapshot hit ⊆ the sync hits, the last
+snapshot already knows every hit, the final result equals the uninterrupted sync
+sweep, the hook is null afterwards (45 collision + pump tests green).
+
+**Worker (collisionWorker.ts).** The budget moved out of the iterator into the
+slice driver: `budgetMs` (active time, null = unbounded) rides the request;
+running out of it, or `{stop: id}`, PARKS the run at the next slice boundary —
+`{stopped: true, result}` to the owner, generator resident; `{continue: id,
+budgetMs}` resumes it with a fresh leg; cancel or a superseding request drops a
+parked run. The iterator's own `maxMs` stays for the sync API and its tests.
+
+**Viewer + scrub bar.** States RUNNING (bar + ❚❚), PARKED ("stopped at N %" +
+▶, clashes so far marked and navigable, `collisionStopped` {covered, reason} +
+`collisionResumable`), DONE (clear / N clashes + ↻ unbounded). AUTO budget 60 →
+300 s active; continue/↻ unbounded; "check declined" and "check cancelled" are
+gone (a budget stop is a park like any other; touch-offs re-run the auto sweep
+as before). ROTARY motion (> 0.05° from the leg's start pose, `rotary_abc` on the
+status stream, compared by VALUE because full frames re-send an unchanged pose
+as a new array) parks a running sweep; 4.5 s after the last rotary change — past
+the gateway's 2 s debounce × two settled checks — the sweep continues by itself
+unless a re-parse is in flight (its payload drops the parked sweep and starts
+fresh). SIM ENTRY: `sliceTrack(entry, 0, 2)` sweeps only the entry segment
+(unbounded, milliseconds) and `mergeEntryResult` joins it with the program's
+result — base cums shift by the entry length, TWO baselines (the live pose's and
+the first point's static contacts) both reported; an identical track (machine at
+the first point) runs nothing; a base sweep still running or parked at entry
+falls back to the full entry-track sweep (the worker holds one sweep).
+`sliceTrack` builds its own line index (vue-tsc-class catch: the .ts probe
+flagged the missing required field the runtime tests did not).
+
+**Gateway.** `inflight_doomed_reason` (pure): the rotary pose leaving the RUNNING
+parse's seed cancels it at once — every tick, no settle, no debounce (it used to
+run a full core plus gzip through the whole jog and be cancelled 2–4 s after
+the pose came to rest); `reparse_pending` restarts it. `rotary_hold_update` /
+`rotary_hold_settled` (pure): the poller tracks how long the pose has held still
+and the "schedule" outcome of the file/reparse edge WAITS until it has held 1 s
+(one trace line per deferral, `gcode.parse_waits_for_settle`); a config without
+rotary data is always settled, one with rotary data and no sample yet never
+(no silent go). Linear motion neither dooms nor defers a parse. 12 pure tests
+green. Lands at the next gateway restart (the poller is gateway-process code).
+
+**Verified (suite live, single niced files):** collision + pump 45, scrubTrack +
+sweepMerge 81, gateway util 12 (+ the rest of the file's 324 deselected),
+tsc probe over collision/worker/pump/merge/track + their tests clean, Vite
+serves ThreeViewer / ScrubBar / the worker, no browser errors after the reload,
+the reloaded viewer's first auto sweep posted `budget_ms 300000`. OWED: the
+operator's live look (❚❚ mid-sweep → "stopped at N %" → ▶ resumes; sim entry
+on a finished sweep is instant; an A jog mid-sweep parks and resumes), the
+gateway restart for the doomed-parse rule, and the heavy gates at the next stop.
