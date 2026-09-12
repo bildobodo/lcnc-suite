@@ -12,8 +12,10 @@ import { epochTermsFor, type WcsEpoch, type WcsTableRow } from "./wcsEpochs";
 import type { TloEvent } from "./tloEvents";
 
 type Streams = {
-  feed: { pos: Float32Array; abc: Float32Array; lines?: Uint32Array; breaks?: Uint32Array; mode?: Uint8Array; wcs?: Uint8Array; src?: Uint32Array; tlo?: Uint8Array };
-  rapid: { pos: Float32Array; abc: Float32Array; breaks?: Uint32Array; mode?: Uint8Array; wcs?: Uint8Array; tlo?: Uint8Array };
+  feed: { pos: Float32Array; abc: Float32Array; lines?: Uint32Array; breaks?: Uint32Array; mode?: Uint8Array;
+          frame?: Uint8Array; frames?: [number, number, number][]; wcs?: Uint8Array; src?: Uint32Array; tlo?: Uint8Array };
+  rapid: { pos: Float32Array; abc: Float32Array; breaks?: Uint32Array; mode?: Uint8Array;
+           frame?: Uint8Array; frames?: [number, number, number][]; wcs?: Uint8Array; src?: Uint32Array; tlo?: Uint8Array };
 };
 
 /** The payload is RESIDENT here (2026-09-05): the main thread sends the
@@ -40,6 +42,11 @@ interface TransformReq {
   /** Per-segment TLO/tool events (schema 8) — per-vertex `tlo` indices on
    *  the streams resolve into them (live `wcs.tool` before the first row). */
   tloEvents?: TloEvent[];
+  /** Room split (2026-09-11): vertices whose track index (`src`) is below
+   *  this and whose segment is identity-kins are baked ROOM-FIXED (machine
+   *  frame) instead of in the table frame — scrubTrack.roomEndOf. 0/absent
+   *  = everything rides the part. */
+  roomEnd?: number;
 }
 
 type Req = LoadReq | TransformReq;
@@ -57,7 +64,7 @@ self.onmessage = (e: MessageEvent<Req>) => {
     _resident = { id: e.data.payloadId, streams: e.data.streams };
     return;
   }
-  const { id, payloadId, machine, wcs, wcsEvents, wcsTable, tloEvents } = e.data;
+  const { id, payloadId, machine, wcs, wcsEvents, wcsTable, tloEvents, roomEnd } = e.data;
   if (!_resident || _resident.id !== payloadId) {
     self.postMessage({ id, needPayload: payloadId });
     return;
@@ -66,8 +73,8 @@ self.onmessage = (e: MessageEvent<Req>) => {
   try {
     const epochTerms = wcsEvents?.length
       ? epochTermsFor(wcsEvents, wcs, wcsTable) : undefined;
-    const f = transformToPartFrame(machine, wcs, { ...feed, tloEvents }, undefined, epochTerms);
-    const r = transformToPartFrame(machine, wcs, { ...rapid, tloEvents }, undefined, epochTerms);
+    const f = transformToPartFrame(machine, wcs, { ...feed, tloEvents, roomEnd }, undefined, epochTerms);
+    const r = transformToPartFrame(machine, wcs, { ...rapid, tloEvents, roomEnd }, undefined, epochTerms);
     // NaN positions render as NOTHING with no error — never ship them; the
     // main thread falls back to the programmed preview and logs loudly.
     assertFinite(f.pos, "feed");
@@ -80,8 +87,11 @@ self.onmessage = (e: MessageEvent<Req>) => {
     if (f.breaks) transfer.push(f.breaks.buffer as ArrayBuffer);
     if (r.breaks) transfer.push(r.breaks.buffer as ArrayBuffer);
     if (f.src) transfer.push(f.src.buffer as ArrayBuffer);
+    if (f.room) transfer.push(f.room.buffer as ArrayBuffer);
+    if (r.room) transfer.push(r.room.buffer as ArrayBuffer);
     self.postMessage(
-      { id, feedPos: f.pos, feedLines: f.lines, feedLineIndex, rapidPos: r.pos, rapidDist, feedBreaks: f.breaks, rapidBreaks: r.breaks, feedSrc: f.src },
+      { id, feedPos: f.pos, feedLines: f.lines, feedLineIndex, rapidPos: r.pos, rapidDist, feedBreaks: f.breaks, rapidBreaks: r.breaks,
+        feedSrc: f.src, feedRoom: f.room, rapidRoom: r.room, frameFlips: (f.frameFlips ?? 0) + (r.frameFlips ?? 0) },
       { transfer },
     );
   } catch (err) {

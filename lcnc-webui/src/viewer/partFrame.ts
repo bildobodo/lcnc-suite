@@ -29,7 +29,7 @@
 import * as THREE from "three";
 import type { ViewerInit } from "../ws/bulkData";
 import { normalizeKinematics, type KinRuntime } from "./kinematics";
-import { kinsForSegment, makeKins, type KinsModel, type KinsSpec } from "./kins";
+import { kinsForSegment, makeKins, type KinsModel, type KinsSpec, worldModeForSpec } from "./kins";
 import { tloForIndex, type TloEvent } from "./tloEvents";
 
 export interface PartFrameMachine {
@@ -130,16 +130,33 @@ export interface PartFramePolyline {
    *  offset throughout (pre-8 behavior). */
   tlo?: Uint8Array;
   tloEvents?: TloEvent[];
+  /** Room split (2026-09-11): vertices with `src` < roomEnd whose segment
+   *  is identity-kins bake ROOM-FIXED — in the work group's frame with
+   *  every work-chain rotary at zero (the scene's machineFrameGrp) instead
+   *  of the live work frame — so an uncommanded table rotary can never
+   *  move them. Needs `src`; 0/absent = everything rides the part. */
+  roomEnd?: number;
 }
 
 export interface PartFrameResult {
   pos: Float32Array;
   lines?: Uint32Array;
-  /** Input breaks remapped to output (subdivided) vertex indices. */
+  /** Input breaks remapped to output (subdivided) vertex indices — plus one
+   *  at every room/table flip inside a section (see `room`). */
   breaks?: Uint32Array;
   /** Input src carried per output sample (subdivided samples share their
    *  segment's src, keeping the array ascending). */
   src?: Uint32Array;
+  /** Per output sample: 1 = baked room-fixed, 0 = on the part. Present iff
+   *  the split was applied (roomEnd > 0, a work-chain rotary, src given).
+   *  At a flip INSIDE a section the previous vertex is emitted AGAIN in the
+   *  new frame as a break (no connector between the two frames' copies of
+   *  one point), then the segment's samples follow — the boundary move
+   *  itself draws in the frame of its END vertex, the existing convention. */
+  room?: Uint8Array;
+  /** Number of such duplicated flip vertices (telemetry: with them the
+   *  renderer's mixed-frame count must read 0). */
+  frameFlips?: number;
 }
 
 /** Max rotary sweep per emitted sample. 4° ≈ 0.06% chord error at any radius. */
@@ -157,7 +174,16 @@ export type ChainNode = {
 
 /** The evaluation-ordered work+tool chain of one machine (buildChain). The
  *  node matrices are scratch: tipInWorkFrame overwrites them per call. */
-export interface Chain { nodes: ChainNode[]; workIdx: number; toolIdx: number }
+export interface Chain {
+  nodes: ChainNode[]; workIdx: number; toolIdx: number;
+  /** Room frame (2026-09-11): the node whose frame the machine-frame group
+   *  hangs under — the PARENT of the work chain's topmost rotary node (-1 =
+   *  root) — and the static offset from it down to the work group with all
+   *  rotations zero (a plain sum of base translates: the scene's
+   *  machineFrameGrp is built the same way). hasRoom = the work chain has
+   *  a rotary at all; without one the room frame IS the work frame. */
+  linIdx: number; roomOffset: THREE.Vector3; hasRoom: boolean;
+}
 
 /** Resolve the group tree into an evaluation-ordered node list (parents first).
  *  Only nodes on the root→workGroup / root→toolGroup chains are kept — the
@@ -207,10 +233,25 @@ export function buildChain(machine: PartFrameMachine): Chain {
     }
     remaining = next;
   }
+  const workIdx = idxOf.get(machine.workGroup) ?? -1;
+  let workRotTop = -1;
+  for (let i = workIdx; i >= 0; i = nodes[i]!.parentIdx) {
+    if (nodes[i]!.dofs.some(d => d.rotate)) workRotTop = i;
+  }
+  const roomOffset = new THREE.Vector3();
+  let linIdx = -1;
+  if (workRotTop >= 0) {
+    linIdx = nodes[workRotTop]!.parentIdx;
+    for (let i = workIdx; i >= 0; i = nodes[i]!.parentIdx) {
+      roomOffset.add(nodes[i]!.base);
+      if (i === workRotTop) break;
+    }
+  }
   return {
     nodes,
-    workIdx: idxOf.get(machine.workGroup) ?? -1,
+    workIdx,
     toolIdx: idxOf.get(machine.toolGroup) ?? -1,
+    linIdx, roomOffset, hasRoom: workRotTop >= 0,
   };
 }
 
@@ -242,7 +283,34 @@ const SCALE1 = new THREE.Vector3(1, 1, 1);
 export function tipInWorkFrame(
   chain: Chain, jointVals: ArrayLike<number | null>, tlo: readonly number[], out: THREE.Vector3,
 ): THREE.Vector3 {
-  const { nodes, workIdx, toolIdx } = chain;
+  evalChainTip(chain, jointVals, tlo, out);
+  _tipInvWork.copy(chain.nodes[chain.workIdx]!.world).invert();
+  return out.applyMatrix4(_tipInvWork);
+}
+
+/** The chain at `jointVals` → the tool tip in the ROOM frame (2026-09-11):
+ *  the work group's frame with every work-chain rotary at zero — the frame
+ *  the scene's machineFrameGrp represents. Same evaluation as
+ *  tipInWorkFrame; only the final frame differs: the parent of the topmost
+ *  work-chain rotary (its matrix carries the live table TRAVEL, never table
+ *  rotation), minus the static offset down to the work group. */
+export function tipInRoomFrame(
+  chain: Chain, jointVals: ArrayLike<number | null>, tlo: readonly number[], out: THREE.Vector3,
+): THREE.Vector3 {
+  evalChainTip(chain, jointVals, tlo, out);
+  if (chain.linIdx >= 0) {
+    _tipInvWork.copy(chain.nodes[chain.linIdx]!.world).invert();
+    out.applyMatrix4(_tipInvWork);
+  }
+  return out.sub(chain.roomOffset);
+}
+
+/** Evaluate every node of the chain at `jointVals` (matrices left in the
+ *  nodes) and return the tool tip in the ROOT frame. */
+export function evalChainTip(
+  chain: Chain, jointVals: ArrayLike<number | null>, tlo: readonly number[], out: THREE.Vector3,
+): THREE.Vector3 {
+  const { nodes, toolIdx } = chain;
   for (const node of nodes) {
     _tipPos.copy(node.base);
     _tipQuat.identity();
@@ -265,8 +333,7 @@ export function tipInWorkFrame(
   out.x -= we[0]! * tx + we[4]! * ty + we[8]! * tz;
   out.y -= we[1]! * tx + we[5]! * ty + we[9]! * tz;
   out.z -= we[2]! * tx + we[6]! * ty + we[10]! * tz;
-  _tipInvWork.copy(nodes[workIdx]!.world).invert();
-  return out.applyMatrix4(_tipInvWork);
+  return out;
 }
 
 /** Precomputed live-WCS terms for program→machine conversion. Every element
@@ -412,7 +479,20 @@ export function transformToPartFrame(
   const breakSet = new Set<number>();
   if (input.breaks) for (const b of input.breaks) breakSet.add(b);
 
-  // Pass 1 — sample count (subdivide segments by their largest rotary delta).
+  // Room split (2026-09-11): per input vertex, does its segment bake
+  // room-fixed? Only identity-kins segments before the rotary boundary; a
+  // world-kins segment rides the part whatever its track index (TCP/plane
+  // make the machine track the part). Needs a work-chain rotary to matter.
+  const roomEnd = input.roomEnd ?? 0;
+  const roomV = (roomEnd > 0 && chain.hasRoom && input.src) ? new Uint8Array(n) : null;
+  if (roomV) {
+    for (let i = 0; i < n; i++) {
+      roomV[i] = (input.src![i]! < roomEnd && !worldModeForSpec(input.mode?.[i], machine.kins)) ? 1 : 0;
+    }
+  }
+
+  // Pass 1 — sample count (subdivide segments by their largest rotary delta;
+  // a room/table flip inside a section adds one duplicated vertex).
   let total = 1;
   const segSamples = new Uint16Array(Math.max(0, n - 1));
   for (let i = 1; i < n; i++) {
@@ -424,11 +504,14 @@ export function transformToPartFrame(
       : Math.min(MAX_SUBDIV, Math.max(1, Math.ceil(Math.max(da, db, dc) / rotStepDeg)));
     segSamples[i - 1] = steps;
     total += steps;
+    if (roomV && roomV[i] !== roomV[i - 1] && !breakSet.has(i)) total++;
   }
 
   const outPos = new Float32Array(total * 3);
   const outLines = input.lines ? new Uint32Array(total) : undefined;
   const outSrc = input.src ? new Uint32Array(total) : undefined;
+  const outRoom = roomV ? new Uint8Array(total) : undefined;
+  let frameFlips = 0;
 
   // Scratch (allocation-free inner loop).
   const tool = new THREE.Vector3();
@@ -454,21 +537,26 @@ export function transformToPartFrame(
   const machineVals: number[] = [0, 0, 0, 0, 0, 0];
 
   let out = 0;
-  const emit = (px: number, py: number, pz: number, pa: number, pb: number, pc: number, line: number, model: KinsModel, oIn: WcsTerms, tloV: readonly number[]) => {
+  const emit = (px: number, py: number, pz: number, pa: number, pb: number, pc: number, line: number, model: KinsModel, oIn: WcsTerms, tloV: readonly number[], room: number) => {
     // Program → machine coords (per the sample's EPOCH terms + the
     // segment's TLO), then machine → joints via the kins boundary.
     liftToJoints(px, py, pz, pa, pb, pc, oIn, tloV, machineVals);
     model.inverse(machineVals, jointVals);
 
     // Chain at those joints → tool tip in the work frame (tipInWorkFrame:
-    // the TLO peel in the tool node's rotation lives there), then peel WCS.
-    tipInWorkFrame(chain, jointVals, tloV, tool);
+    // the TLO peel in the tool node's rotation lives there) — or, for a
+    // room-fixed sample, in the zero-rotary work frame — then peel WCS.
+    // Both frames peel the same live terms, so both anchors pose from the
+    // same anchorTerms.
+    if (room) tipInRoomFrame(chain, jointVals, tloV, tool);
+    else tipInWorkFrame(chain, jointVals, tloV, tool);
     const rx = tool.x - ox, ry = tool.y - oy;
     outPos[out * 3] = rx * cth + ry * sth;
     outPos[out * 3 + 1] = -rx * sth + ry * cth;
     outPos[out * 3 + 2] = tool.z - oz;
     if (outLines) outLines[out] = line;
     if (outSrc) outSrc[out] = _srcCur;
+    if (outRoom) outRoom[out] = room;
     out++;
   };
 
@@ -476,7 +564,7 @@ export function transformToPartFrame(
   let _srcCur = input.src?.[0] ?? 0;
   emit(input.pos[0]!, input.pos[1]!, input.pos[2]!,
        input.abc[0]!, input.abc[1]!, input.abc[2]!, input.lines?.[0] ?? 0,
-       vertModel?.[0] ?? identityKins, termFor(0), tloFor(0));
+       vertModel?.[0] ?? identityKins, termFor(0), tloFor(0), roomV?.[0] ?? 0);
   if (breakSet.has(0)) outBreaks.push(0);
   for (let i = 1; i < n; i++) {
     const j = i * 3, k = j - 3;
@@ -486,6 +574,17 @@ export function transformToPartFrame(
     const oSeg = termFor(i);                       // ...and its epoch terms
     const tloSeg = tloFor(i);                      // ...and its tool offset
     _srcCur = input.src?.[i] ?? i;                 // ...and its track index
+    const rm = roomV?.[i] ?? 0;                    // ...and its frame
+    if (roomV && rm !== roomV[i - 1] && !breakSet.has(i)) {
+      // Frame flip inside a section: the previous vertex is emitted again
+      // in THIS segment's frame as a section start (no connector between
+      // the two frames' copies of one point), then the segment follows.
+      outBreaks.push(out);
+      emit(input.pos[k]!, input.pos[k + 1]!, input.pos[k + 2]!,
+           input.abc[k]!, input.abc[k + 1]!, input.abc[k + 2]!,
+           line, model, oSeg, tloSeg, rm);
+      frameFlips++;
+    }
     for (let s = 1; s <= steps; s++) {
       const t = s / steps;
       emit(
@@ -499,6 +598,7 @@ export function transformToPartFrame(
         model,
         oSeg,
         tloSeg,
+        rm,
       );
     }
     // Remap the section start to its output index (the segment's endpoint —
@@ -508,8 +608,9 @@ export function transformToPartFrame(
 
   return {
     pos: outPos, lines: outLines,
-    breaks: input.breaks ? Uint32Array.from(outBreaks) : undefined,
+    breaks: (input.breaks || outBreaks.length) ? Uint32Array.from(outBreaks) : undefined,
     src: outSrc,
+    room: outRoom, frameFlips: outRoom ? frameFlips : undefined,
   };
 }
 

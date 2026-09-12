@@ -23,8 +23,9 @@ import type { LineIndex } from "./viewer/lineIndex";
 import { MACHINE_PALETTE, defaultPartHex } from "./viewer/palette";
 import { toolDimsFor } from "./viewer/tloEvents";
 import { boundsOf, epochTermsFor, previewWcsStaleFor, rebasePositions, usedWcsRowsKey, type WcsTableRow } from "./viewer/wcsEpochs";
-import { specFromWire } from "./viewer/kins";
-import { workMarkers, markerInputsChanged, newMarkerInputsPrev, G5X_NAMES, type ProgramZeroPose } from "./viewer/programZero";
+import { specFromWire, worldModeForSpec } from "./viewer/kins";
+import { workMarkers, markerInputsChanged, newMarkerInputsPrev, G5X_NAMES, chainRotaryLetters, type ProgramZeroPose } from "./viewer/programZero";
+import { roomEndOf } from "./viewer/scrubTrack";
 import { displayDecision } from "./viewer/displayPipeline";
 import { trackHighlightRange } from "./trackHighlight";
 import type { CollisionBody, CollisionResult, CollisionLineMark } from "./viewer/collision";
@@ -297,6 +298,15 @@ let pathRot: THREE.Group | null = null;
 // joint limits, fixed in the room). Without a rotary on the work chain it
 // IS _workGrp (3-axis and head-rotary-only machines: unchanged).
 let machineFrameGrp: THREE.Group | null = null;
+// Room-fixed toolpath parents under machineFrameGrp (2026-09-11), mirroring
+// the table side one-to-one: roomOrigin/roomRotGroup follow the LIVE
+// offsets (the programmed path), roomAnchor/roomRot are posed only by
+// toolpath.apply from a bake's own terms. null when the work chain has no
+// rotary (machineFrameGrp IS _workGrp — nothing to decouple).
+let roomOrigin: THREE.Group | null = null;
+let roomRotGroup: THREE.Group | null = null;
+let roomAnchor: THREE.Group | null = null;
+let roomRot: THREE.Group | null = null;
 let _workGrp: THREE.Group | null = null;   // resolved from init.workGroup
 let _toolGrp: THREE.Group | null = null;   // resolved from init.toolGroup
 
@@ -515,7 +525,7 @@ watch(pathStaleNow, (stale) => { toolpath.setStale(stale); requestRender(); }, {
 // viewerContext.ts).
 const _toolpathCtx: ToolpathCtx = {
   scene: null, workOrigin: null, workRotGroup: null, pathAnchor: null, pathRot: null,
-  machineFrame: null,
+  machineFrame: null, roomOrigin: null, roomRotGroup: null, roomAnchor: null, roomRot: null,
   pathAlwaysOnTop: false, machineBounds: undefined, units: undefined,
 };
 function toolpathCtx(): ToolpathCtx {
@@ -525,6 +535,10 @@ function toolpathCtx(): ToolpathCtx {
   _toolpathCtx.pathAnchor = pathAnchor;
   _toolpathCtx.pathRot = pathRot;
   _toolpathCtx.machineFrame = machineFrameGrp;
+  _toolpathCtx.roomOrigin = roomOrigin;
+  _toolpathCtx.roomRotGroup = roomRotGroup;
+  _toolpathCtx.roomAnchor = roomAnchor;
+  _toolpathCtx.roomRot = roomRot;
   _toolpathCtx.pathAlwaysOnTop = pathAlwaysOnTop;
   _toolpathCtx.machineBounds = viewerInit.value?.machine_bounds;
   _toolpathCtx.units = viewerInit.value?.units;
@@ -1140,6 +1154,17 @@ function ensureCoreGroups(init: ViewerInit) {
       machineFrameGrp = _workGrp;
     }
   }
+  roomOrigin = roomRotGroup = roomAnchor = roomRot = null;
+  if (machineFrameGrp && machineFrameGrp !== _workGrp) {
+    roomOrigin = new THREE.Group();
+    machineFrameGrp.add(roomOrigin);
+    roomRotGroup = new THREE.Group();
+    roomOrigin.add(roomRotGroup);
+    roomAnchor = new THREE.Group();
+    machineFrameGrp.add(roomAnchor);
+    roomRot = new THREE.Group();
+    roomAnchor.add(roomRot);
+  }
 
   // Work origin (DRO zero frame) — attached to the work/table group
   workOrigin = new THREE.Group();
@@ -1504,6 +1529,7 @@ async function buildFromInit(init: ViewerInit) {
       // updateCulling), draw calls / line primitives of the last main
       // render, and which display path built the lines.
       draw_segs: toolpath.drawSegs,
+      room_segs: toolpath.roomSegs,
       chunks: toolpath.chunks,
       chunks_visible: toolpath.chunksVisible,
       overlay_chunks: toolpath.overlayChunks,
@@ -1634,9 +1660,11 @@ function applyState(init: ViewerInit, st: ViewerState) {
   anchorTerms(_liveWcs, _liveAnchor);
   if (workOrigin) {
     workOrigin.position.set(_liveAnchor.ox, _liveAnchor.oy, _liveAnchor.oz);
+    if (roomOrigin) roomOrigin.position.set(_liveAnchor.ox, _liveAnchor.oy, _liveAnchor.oz);
   }
   if (workRotGroup) {
     workRotGroup.rotation.z = _liveAnchor.thetaDeg * Math.PI / 180;
+    if (roomRotGroup) roomRotGroup.rotation.z = _liveAnchor.thetaDeg * Math.PI / 180;
   }
   // The active-fixture triad and the machine ghost are posed by
   // placeWorkMarkers at the tail of this function (after the render diff).
@@ -1841,7 +1869,7 @@ function _pfGetWorker(): Worker {
   if (!_pfWorker) {
     _pfWorker = new Worker(new URL("./viewer/partFrameWorker.ts", import.meta.url), { type: "module" });
     _pfWorker.onmessage = (ev: MessageEvent) => {
-      const m = ev.data as { id: number; error?: string; needPayload?: number; feedPos?: Float32Array; feedLines?: Uint32Array; feedLineIndex?: LineIndex; rapidPos?: Float32Array; rapidDist?: Float32Array; feedBreaks?: Uint32Array; rapidBreaks?: Uint32Array; feedSrc?: Uint32Array };
+      const m = ev.data as { id: number; error?: string; needPayload?: number; feedPos?: Float32Array; feedLines?: Uint32Array; feedLineIndex?: LineIndex; rapidPos?: Float32Array; rapidDist?: Float32Array; feedBreaks?: Uint32Array; rapidBreaks?: Uint32Array; feedSrc?: Uint32Array; feedRoom?: Uint8Array; rapidRoom?: Uint8Array; frameFlips?: number };
       if (m.id !== _pfReqId) return;  // superseded
       _pfPending = false;
       const g = viewerGcode.value;
@@ -1865,6 +1893,9 @@ function _pfGetWorker(): Worker {
         rapidPos: m.rapidPos, rapidDist: m.rapidDist,
         feedBreaks: m.feedBreaks, rapidBreaks: m.rapidBreaks,
         feedSrc: m.feedSrc,
+        // Room split (2026-09-11): per drawn vertex, baked room-fixed or on
+        // the part; absent when the transform had no boundary to apply.
+        feedRoom: m.feedRoom, rapidRoom: m.rapidRoom,
       };
       if ((g.wcsEvents?.length ?? 0) > 1) {
         // Multi-epoch payload: the shipped bounds boxes mix frames. The
@@ -2308,8 +2339,35 @@ function _partFrameEligible(g: ViewerGcode): boolean {
  *  is also what retires the false "outside travel" tint on TWP programs.
  *  Single-epoch payloads take the zero-copy fast path inside
  *  rebasePositions. */
+/** Leading track points that draw ROOM-FIXED (scrubTrack.roomEndOf): the
+ *  inherited prefix over the WORK chain's rotary letters and `unknown`.
+ *  0 without a boundary, a track, or a work-chain rotary. */
+function _roomEnd(g: ViewerGcode): number {
+  const m = _markerMachine;
+  if (!m || !g.scrubTrack) return 0;
+  return roomEndOf(g.scrubTrack, chainRotaryLetters(m).work);
+}
+
+/** Programmed-path room masks (2026-09-11): the drawn vertex order is the
+ *  track's, so `src < roomEnd` and an identity-kins segment ⇒ room. In
+ *  programmed mode a world-labelled segment only exists when the operator
+ *  forced "Programmed XYZ" on a TCP program (already not path-on-part);
+ *  it rides, as before. */
+function _programmedRoomMask(src: Uint32Array | undefined, mode: Uint8Array | undefined, roomEnd: number): Uint8Array | undefined {
+  if (roomEnd <= 0 || !src) return undefined;
+  const spec = specFromWire(viewerInit.value?.kins);
+  const out = new Uint8Array(src.length);
+  for (let i = 0; i < src.length; i++) {
+    out[i] = (src[i]! < roomEnd && !worldModeForSpec(mode?.[i], spec)) ? 1 : 0;
+  }
+  return out;
+}
+
 function _applyProgrammed(g: ViewerGcode) {
-  let out = g;
+  const roomEnd = _roomEnd(g);
+  const feedRoom = _programmedRoomMask(g.feedSrc, g.feedMode, roomEnd);
+  const rapidRoom = _programmedRoomMask(g.rapidSrc, g.rapidMode, roomEnd);
+  let out: ViewerGcode = (feedRoom || rapidRoom) ? { ...g, feedRoom, rapidRoom } : g;
   let anchor: AnchorTerms | null = null;
   if (g.wcsEvents?.length && (g.feedWcs || g.rapidWcs) && (g.feedPos || g.rapidPos)) {
     const live = _pfWcs();
@@ -2334,7 +2392,7 @@ function _applyProgrammed(g: ViewerGcode) {
         : null;
       out = { ...g, feedPos: fp, rapidPos: rp,
               rapidDist: rp ? lineDistances(rp) : g.rapidDist,
-              bounds, motion_bounds: motion };
+              bounds, motion_bounds: motion, feedRoom, rapidRoom };
       // Rebased against `live` — anchor the lines to those terms, not to
       // the live origin (same invariant as the part-frame reply).
       anchor = anchorTerms(live);
@@ -2367,13 +2425,13 @@ function applyGcode(g: ViewerGcode) {
                        wcs: g.feedWcs?.slice(), src: g.feedSrc?.slice(), tlo: g.feedTlo?.slice() };
         const rapid = { pos: rp.slice(), abc: ra.slice(), breaks: g.rapidBreaks?.slice(),
                         mode: g.rapidMode?.slice(), frame: g.rapidFrame?.slice(), frames: g.kinsFrames,
-                        wcs: g.rapidWcs?.slice(), tlo: g.rapidTlo?.slice() };
+                        wcs: g.rapidWcs?.slice(), src: g.rapidSrc?.slice(), tlo: g.rapidTlo?.slice() };
         const transfer: ArrayBuffer[] = [
           feed.pos.buffer as ArrayBuffer, feed.abc.buffer as ArrayBuffer,
           rapid.pos.buffer as ArrayBuffer, rapid.abc.buffer as ArrayBuffer,
         ];
         for (const a of [feed.lines, feed.breaks, rapid.breaks, feed.mode, rapid.mode, feed.frame, rapid.frame,
-                         feed.wcs, rapid.wcs, feed.src, feed.tlo, rapid.tlo]) {
+                         feed.wcs, rapid.wcs, feed.src, rapid.src, feed.tlo, rapid.tlo]) {
           if (a) transfer.push(a.buffer as ArrayBuffer);
         }
         _pfPayloadId++;
@@ -2389,6 +2447,9 @@ function applyGcode(g: ViewerGcode) {
         wcsTable: _pv.wcsTable ?? undefined,
         // Per-segment TLO/tool events (schema 8) for the `tlo` indices.
         tloEvents: g.tloEvents,
+        // Room split (2026-09-11): how many leading track points inherit
+        // every work-chain rotary — those identity vertices bake room-fixed.
+        roomEnd: _roomEnd(g),
       });
     } catch (err) {
       // A failed post must NEVER leave the viewer with no toolpath — fall

@@ -12,6 +12,7 @@ vi.mock("./lcncWs", () => ({
 import {
   flushViewerPerf, noteMainThreadProbe, recordApply, recordRafTick, recordRender,
   resetViewerPerf, setViewerPerfGl,
+  setViewerPerfContext,
 } from "./viewerPerf";
 
 function last(): Record<string, unknown> {
@@ -200,5 +201,22 @@ describe("GPU fences", () => {
     recordRender(0.3, 17);
     flushViewerPerf();
     expect(last()).not.toHaveProperty("gpu_fences");
+  });
+});
+
+describe("context provider", () => {
+  it("merges the viewer's context fields (chunked-draw counters) into the same row", () => {
+    setViewerPerfContext(() => ({ chunks: 37, chunks_visible: 12, overlay_chunks: 0, gl_calls: 115, display_mode: "part" }));
+    recordApply(1, 1000);
+    recordApply(1, 1033);
+    flushViewerPerf();
+    const f = last();
+    expect(f.frames).toBe(2);
+    expect(f.chunks).toBe(37);
+    expect(f.chunks_visible).toBe(12);
+    expect(f.overlay_chunks).toBe(0);
+    expect(f.gl_calls).toBe(115);
+    expect(f.display_mode).toBe("part");
+    setViewerPerfContext(null);
   });
 });

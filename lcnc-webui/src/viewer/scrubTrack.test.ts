@@ -7,7 +7,7 @@ import {
   displayLineForPoint, atTrackEnd,
   programEndLine, mainLinesTrusted,
   projectOntoTrack, lineRunAround,
-  type ScrubSample, type ScrubStream, type ScrubTrack,
+  type ScrubSample, type ScrubStream, type ScrubTrack, roomEndOf,
 } from "./scrubTrack";
 import { makeKins as kinsForTest } from "./kins";
 import { wcsTerms } from "./partFrame";
@@ -998,5 +998,53 @@ describe("per-segment tool offset in the pose chain (schema 8)", () => {
     jointsForSample(s, wcs, AXES, j);
     expect(j[0]).toBeCloseTo(130, 9);
     expect(j[2]).toBeCloseTo(40, 9);
+  });
+});
+
+describe("rotary-command boundary → inherited prefix (2026-09-11)", () => {
+  // Merged track seq order: rapid 1, feed 2, rapid 3, feed 4 → points 0..3.
+  const feed = () => stream([[10, 0, 0], [30, 0, 0]], { seq: [2, 4], lines: [5, 9], abc: [[0, 0, 0], [30, 0, 0]] });
+  const rapid = () => stream([[0, 0, 0], [20, 0, 0]], { seq: [1, 3], lines: [3, 7], abc: [[0, 0, 0], [0, 0, 0]] });
+
+  it("counts the leading points with seq below each axis's first-command seq; null = all", () => {
+    const t = buildScrubTrack(feed(), rapid(), undefined, undefined, undefined, undefined,
+      { A: 4, B: null, unknown: null, seed: { A: 0, B: 0 } })!;
+    expect(t.inheritedEnd).toEqual({ A: 3, B: 4, C: 4, unknown: 4 });
+  });
+  it("unknown caps the prefix; a boundary at the first seq inherits nothing", () => {
+    const t = buildScrubTrack(feed(), rapid(), undefined, undefined, undefined, undefined,
+      { A: null, unknown: 3, seed: { A: 0 } })!;
+    expect(t.inheritedEnd).toEqual({ A: 4, B: 4, C: 4, unknown: 2 });
+    const t1 = buildScrubTrack(feed(), rapid(), undefined, undefined, undefined, undefined,
+      { A: 1, unknown: null, seed: { A: 0 } })!;
+    expect(t1.inheritedEnd!.A).toBe(0);
+  });
+  it("absent boundary → no inheritedEnd (legacy picture)", () => {
+    expect(buildScrubTrack(feed(), rapid())!.inheritedEnd).toBeUndefined();
+  });
+  it("roomEndOf takes the minimum over the WORK-chain letters and unknown; a head rotary does not count", () => {
+    const t = { count: 100, inheritedEnd: { A: 60, B: 10, C: 100, unknown: 80 } };
+    expect(roomEndOf(t, ["A"])).toBe(60);          // trsrn: B is on the head
+    expect(roomEndOf(t, ["A", "C"])).toBe(60);     // xyzac table A + C
+    expect(roomEndOf(t, ["B"])).toBe(10);
+    expect(roomEndOf({ count: 100, inheritedEnd: { A: 100, B: 100, C: 100, unknown: 30 } }, ["A"])).toBe(30);
+    expect(roomEndOf(t, [])).toBe(0);              // no rotary on the work chain: nothing to decouple
+    expect(roomEndOf({ count: 5 }, ["A"])).toBe(0);
+    expect(roomEndOf(null, ["A"])).toBe(0);
+  });
+  it("prependEntry grows every prefix by one (the entry vertex is the live pose)", () => {
+    const t = buildScrubTrack(feed(), rapid(), undefined, undefined, undefined, undefined,
+      { A: 4, unknown: null, seed: { A: 0 } })!;
+    const e = prependEntry(t, [-5, 0, 0, 0, 0, 0]);
+    expect(e.count).toBe(5);
+    expect(e.inheritedEnd).toEqual({ A: 4, B: 5, C: 5, unknown: 5 });
+  });
+  it("splitTrackStreams stamps a rapid src per drawn rapid vertex (section starts take the previous point)", () => {
+    const t = buildScrubTrack(feed(), rapid())!;
+    const sp = splitTrackStreams(t);
+    // rapid segments end at track points 0 (none: first point) and 2 (from point 1):
+    // section opens with point 1 (src 1), then point 2 (src 2)
+    expect(Array.from(sp.rapidSrc!)).toEqual([1, 2]);
+    expect(Array.from(sp.feedSrc!)).toEqual([0, 1, 2, 3]);
   });
 });

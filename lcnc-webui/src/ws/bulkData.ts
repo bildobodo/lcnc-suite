@@ -75,6 +75,18 @@ export interface ViewerInit {
 // Execution-ordered feed+rapid merge for the program scrub (stage 2), built
 // off-thread by previewWorker from the per-point seq wire data. Program-space
 // samples; the pose is derived per frame in viewer/scrubTrack.ts.
+/** Rotary-command boundary (wire `rotary_cmd`, 2026-09-11): per rotary
+ *  letter the seq of the segment that first COMMANDS it (null = never —
+ *  every point inherits the parse-time seed for that axis), `unknown` = the
+ *  seq from which the parser can no longer tell (treat everything at/after
+ *  it as commanded), and the seed pose the parse was made at. Keys present
+ *  only for the machine's rotary axes. */
+export interface RotaryCmd {
+  A?: number | null; B?: number | null; C?: number | null;
+  unknown: number | null;
+  seed: { A?: number; B?: number; C?: number };
+}
+
 export interface ScrubTrack {
   pos: Float32Array;        // count*3 program XYZ, execution order
   abc: Float32Array;        // count*3 degrees (zeros when the wire had no abc)
@@ -144,6 +156,15 @@ export interface ScrubTrack {
   cum: Float32Array;
   timeBased: boolean;
   count: number;
+  /** Per rotary axis, how many LEADING track points inherit the parse-time
+   *  seed for it (the track is seq-ascending, so the inherited set is a
+   *  prefix): the count of points with seq < the axis's first-command seq
+   *  (`count` when never commanded), plus `unknown` (count when the parser
+   *  could always tell). Present iff the wire carried `rotary_cmd` and the
+   *  streams carried seq. A consumer takes the minimum over the rotary
+   *  letters on the WORK chain and `unknown` — identity-kins vertices before
+   *  that index sit at G54 + words in the room whatever the table does. */
+  inheritedEnd?: { A: number; B: number; C: number; unknown: number };
   /** Source line → first/last track point index and the cum of the first
    *  point, as typed arrays (viewer/lineIndex.ts; built off-thread,
    *  transferred — the Maps it replaced were one heap object per line:
@@ -295,6 +316,20 @@ export interface ViewerGcode {
   // part-frame mode) — the positional 3D highlight's address space
   // (review P3). Present iff the track-derived streams were built.
   feedSrc?: Uint32Array;
+  /** Same for the drawn rapid vertices (2026-09-11) — the room/table split
+   *  needs a track index per drawn vertex of BOTH streams. */
+  rapidSrc?: Uint32Array;
+  /** Per drawn vertex (aligned with feedPos/rapidPos AS DRAWN — post-
+   *  subdivision in part-frame mode): 1 = the vertex draws ROOM-FIXED (in
+   *  the machine frame at G54 + words: an identity-kins vertex before the
+   *  program's first command of every work-chain rotary), 0 = it rides the
+   *  part. Built by the part-frame worker (with a duplicated vertex + break
+   *  at every flip) or by the programmed path from src < roomEnd. Absent =
+   *  everything rides (legacy / no boundary / no work-chain rotary). */
+  feedRoom?: Uint8Array;
+  rapidRoom?: Uint8Array;
+  /** Rotary-command boundary (passthrough of the wire key, see RotaryCmd). */
+  rotary_cmd?: RotaryCmd | null;
   // WCS epoch events parsed from wire wcs_frames (previewWorker) — the
   // per-section bases this preview was peeled against (review P2).
   wcsEvents?: import("../viewer/wcsEpochs").WcsEpoch[];

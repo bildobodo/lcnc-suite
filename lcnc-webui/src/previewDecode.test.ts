@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { decodePreviewStreams } from "./previewDecode";
+import { decodePreviewStreams, parseRotaryCmd } from "./previewDecode";
 
 // Seq-keyed event resolution is what labels every vertex with its TWP frame
 // and its WCS epoch. The post-g69 investigation turned on whether these two
@@ -83,5 +83,23 @@ describe("TLO/tool events (schema 8)", () => {
     const d = decodePreviewStreams(tloPayload([1, 2], []));
     expect(d.rapid.tlo).toBeUndefined();
     expect(d.tloEvents).toBeUndefined();
+  });
+});
+
+describe("rotary_cmd (2026-09-11)", () => {
+  it("parses the wire key and rejects malformed shapes", () => {
+    expect(parseRotaryCmd({ A: 12, B: null, unknown: null, seed: { A: 0, B: 35.5 } }))
+      .toEqual({ A: 12, B: null, unknown: null, seed: { A: 0, B: 35.5 } });
+    expect(parseRotaryCmd({ unknown: 7, seed: {} })).toEqual({ unknown: 7, seed: {} });
+    expect(parseRotaryCmd(undefined)).toBeUndefined();
+    expect(parseRotaryCmd(null)).toBeUndefined();
+    expect(parseRotaryCmd({ A: 1 })).toBeUndefined();               // no unknown key
+    expect(parseRotaryCmd({ A: -1, unknown: null })).toBeUndefined();
+    expect(parseRotaryCmd({ A: "3", unknown: null })).toBeUndefined();
+  });
+  it("rides the decoded preview", () => {
+    const g = { feed: [[0, 0, 0], [1, 0, 0]], feed_seq: [1, 2], rapid: [], rotary_cmd: { A: null, unknown: null, seed: { A: 0 } } };
+    expect(decodePreviewStreams(g).rotaryCmd).toEqual({ A: null, unknown: null, seed: { A: 0 } });
+    expect(decodePreviewStreams({ feed: [[0, 0, 0]], rapid: [] }).rotaryCmd).toBeUndefined();
   });
 });

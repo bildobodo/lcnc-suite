@@ -43,7 +43,7 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     const d = decodePreviewStreams(g);
     let { feedPos, rapidPos, feedLines, feedAbc, rapidAbc } = d;
     const { kinsFrames, wcsEvents, tloEvents } = d;
-    const scrubTrack = buildScrubTrack(d.feed, d.rapid, kinsFrames, wcsEvents, d.subNames, tloEvents);
+    const scrubTrack = buildScrubTrack(d.feed, d.rapid, kinsFrames, wcsEvents, d.subNames, tloEvents, d.rotaryCmd);
 
     // Drawn-preview streams re-derived from the merged track (sectioned, with
     // break indices) — the raw endpoint strips draw FALSE connectors across
@@ -61,6 +61,7 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     let feedTlo: Uint8Array | undefined;
     let rapidTlo: Uint8Array | undefined;
     let feedSrc: Uint32Array | undefined;
+    let rapidSrc: Uint32Array | undefined;
     if (scrubTrack) {
       const hadAbc = feedAbc != null || rapidAbc != null;
       const split = splitTrackStreams(scrubTrack);
@@ -75,6 +76,7 @@ self.onmessage = async (e: MessageEvent<Req>) => {
       feedWcs = split.feedWcs; rapidWcs = split.rapidWcs;
       feedTlo = split.feedTlo; rapidTlo = split.rapidTlo;
       feedSrc = split.feedSrc;
+      rapidSrc = split.rapidSrc;
     }
     // Typed line index instead of a Map (viewer/lineIndex.ts): transferred,
     // not cloned — the Map clone alone was 0.9 s per publish on 1.18 M lines.
@@ -129,9 +131,10 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     if (feedTlo) transfer.push(feedTlo.buffer as ArrayBuffer);
     if (rapidTlo) transfer.push(rapidTlo.buffer as ArrayBuffer);
     if (feedSrc) transfer.push(feedSrc.buffer as ArrayBuffer);
+    if (rapidSrc) transfer.push(rapidSrc.buffer as ArrayBuffer);
 
     self.postMessage(
-      { version, gcode: { ...rest, feedPos, rapidPos, feed_lines: feedLines, feedLineIndex, rapidDist, feedAbc, rapidAbc, feedBreaks, rapidBreaks, feedMode, rapidMode, feedFrame, rapidFrame, feedWcs, rapidWcs, feedTlo, rapidTlo, feedSrc, kinsFrames, wcsEvents, tloEvents, scrubTrack } },
+      { version, gcode: { ...rest, feedPos, rapidPos, feed_lines: feedLines, feedLineIndex, rapidDist, feedAbc, rapidAbc, feedBreaks, rapidBreaks, feedMode, rapidMode, feedFrame, rapidFrame, feedWcs, rapidWcs, feedTlo, rapidTlo, feedSrc, rapidSrc, kinsFrames, wcsEvents, tloEvents, scrubTrack } },
       { transfer },
     );
   } catch (err) {

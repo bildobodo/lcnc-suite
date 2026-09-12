@@ -42,7 +42,7 @@ function makeCtx(over: Partial<ToolpathCtx> = {}): ToolpathCtx & { workRotGroup:
     workOrigin: new THREE.Group(),
     workRotGroup: new THREE.Group(),
     pathAnchor, pathRot,
-    machineFrame: null,
+    machineFrame: null, roomOrigin: null, roomRotGroup: null, roomAnchor: null, roomRot: null,
     pathAlwaysOnTop: false,
     machineBounds: { origin: [0, 0, 0], size: [100, 100, 100] },
     units: "mm",
@@ -122,10 +122,17 @@ describe("highlight", () => {
   it("builds the line index from feed_lines when the worker index is absent, and ranges it", () => {
     const ctx = makeCtx();
     c.apply(ctx, GCODE);   // no g.feedLineIndex → built from feed_lines [10,11,12]
-    c.setHighlight(11);    // line 11 → point index 1
-    const hl = ctx.workRotGroup.children.find(o => o.renderOrder === 12) as THREE.Line;
-    // effectiveLine 11 has range {start:1,end:1}; drawRange start = max(0, 0) = 0, count = 1.
-    expect(hl.geometry.drawRange).toMatchObject({ start: 0, count: 1 });
+    // motion_line runs ~1 line ahead under G64 blending, so line 12 lights
+    // line 11 (point index 1): the lit vertex range is [max(0, 0), 1] → ONE
+    // pair (0,1) in the highlight's own index buffer (drawRange counts
+    // index entries). Line 11 itself would light line 10 = point 0 alone,
+    // which draws nothing (a single vertex is no segment).
+    c.setHighlight(11);
+    const hl = ctx.workRotGroup.children.find(o => o.renderOrder === 12) as THREE.LineSegments;
+    expect(hl.geometry.drawRange.count).toBe(0);
+    c.setHighlight(12);
+    expect(hl.geometry.drawRange).toMatchObject({ start: 0, count: 2 });
+    expect(Array.from((hl.geometry.index!.array as Uint32Array).subarray(0, 2))).toEqual([0, 1]);
     c.setHighlight(null);
     expect(hl.geometry.drawRange.count).toBe(0);
   });
@@ -135,8 +142,10 @@ describe("highlight", () => {
     const workerIndex = buildLineIndex(new Uint32Array([1, 1, 99]));   // line 99 → point 2 only
     c.apply(ctx, { ...GCODE, feedLineIndex: workerIndex });
     c.setHighlight(99);
-    const hl = ctx.workRotGroup.children.find(o => o.renderOrder === 12) as THREE.Line;
-    expect(hl.geometry.drawRange).toMatchObject({ start: 1, count: 2 });
+    const hl = ctx.workRotGroup.children.find(o => o.renderOrder === 12) as THREE.LineSegments;
+    // point 2 only → vertex range [1, 2] → the pair (1,2)
+    expect(hl.geometry.drawRange).toMatchObject({ start: 0, count: 2 });
+    expect(Array.from((hl.geometry.index!.array as Uint32Array).subarray(0, 2))).toEqual([1, 2]);
   });
 });
 
@@ -461,5 +470,96 @@ describe("chunked draw (2026-09-11 headroom wave)", () => {
     expect(cc.chunksVisible).toBe(3);
     cc.updateCulling(ctx, lookAt(5000, 5000, 0, [5000, 5000, 10]));   // looking elsewhere
     expect(cc.chunksVisible).toBe(0);
+  });
+});
+
+describe("room-fixed split (2026-09-11)", () => {
+  // Feed: A(0,0,0) B(10,0,0) | B'(10,0,0) C(10,10,0): B' is the part-frame
+  // worker's duplicated flip vertex (a break); vertices 0,1 room, 2,3 table.
+  const G = {
+    feedPos: new Float32Array([0, 0, 0, 10, 0, 0, 10, 0, 0, 10, 10, 0]),
+    feedBreaks: new Uint32Array([2]),
+    feedRoom: new Uint8Array([1, 1, 0, 0]),
+    feed_lines: [1, 1, 2, 2],
+    rapidPos: new Float32Array([0, 0, 5, 0, 0, 0]),
+    rapidRoom: new Uint8Array([1, 1]),
+    bounds: { min: [0, 0, 0], max: [10, 10, 0] },
+  } as any;
+  function roomCtx(over: Partial<ToolpathCtx> = {}) {
+    const roomOrigin = new THREE.Group(), roomRotGroup = new THREE.Group();
+    roomOrigin.add(roomRotGroup);
+    const roomAnchor = new THREE.Group(), roomRot = new THREE.Group();
+    roomAnchor.add(roomRot);
+    return makeCtx({ roomOrigin, roomRotGroup, roomAnchor, roomRot, ...over }) as ReturnType<typeof makeCtx> & {
+      roomOrigin: THREE.Group; roomRotGroup: THREE.Group; roomAnchor: THREE.Group; roomRot: THREE.Group };
+  }
+  const feedChunksOf = (g: THREE.Group) => g.children.filter(o => (o as any).isLineSegments && o.renderOrder === 10
+    && !((o as any).material instanceof THREE.LineDashedMaterial)) as THREE.LineSegments[];
+  const pairsOf = (l: THREE.LineSegments) => {
+    const idx = l.geometry.index!.array as Uint32Array;
+    const { start, count } = l.geometry.drawRange;
+    return Array.from(idx.subarray(start, start + count));
+  };
+
+  it("baked: room pairs hang under roomRot (posed with the same anchor), table pairs under pathRot", () => {
+    const ctx = roomCtx();
+    c.apply(ctx, G, { ox: 100, oy: 0, oz: 0, thetaDeg: 90 });
+    const room = feedChunksOf(ctx.roomRot);
+    const table = feedChunksOf(ctx.pathRot);
+    expect(room.flatMap(pairsOf).sort()).toEqual([0, 1]);
+    expect(table.flatMap(pairsOf).sort()).toEqual([2, 3]);
+    expect(room[0]!.geometry.attributes.position).toBe(table[0]!.geometry.attributes.position);
+    expect(ctx.roomAnchor.position.x).toBe(100);
+    expect(ctx.roomRot.rotation.z).toBeCloseTo(Math.PI / 2, 12);
+    expect(c.roomSegs).toBe(2);        // feed (0,1) + rapid (0,1)
+    expect(c.drawSegs).toBe(3);
+    expect(c.frameMixed).toBe(0);
+  });
+
+  it("programmed: room pairs hang under the live roomRotGroup, table pairs under workRotGroup", () => {
+    const ctx = roomCtx();
+    c.apply(ctx, G, null);
+    expect(feedChunksOf(ctx.roomRotGroup).flatMap(pairsOf).sort()).toEqual([0, 1]);
+    expect(feedChunksOf(ctx.workRotGroup).flatMap(pairsOf).sort()).toEqual([2, 3]);
+    expect(feedChunksOf(ctx.roomRot)).toHaveLength(0);
+  });
+
+  it("without room parents every pair rides the table (no work-chain rotary)", () => {
+    const ctx = makeCtx();
+    c.apply(ctx, G, null);
+    expect(feedChunksOf(ctx.workRotGroup).flatMap(pairsOf).sort()).toEqual([0, 1, 2, 3]);
+    expect(c.roomSegs).toBe(0);
+  });
+
+  it("a flip WITHOUT the duplicated break vertex is dropped and counted, never drawn across frames", () => {
+    const ctx = roomCtx();
+    c.apply(ctx, { ...G, feedBreaks: undefined }, null);
+    expect(c.frameMixed).toBe(1);
+    expect(feedChunksOf(ctx.roomRotGroup).flatMap(pairsOf).sort()).toEqual([0, 1]);
+    expect(feedChunksOf(ctx.workRotGroup).flatMap(pairsOf).sort()).toEqual([2, 3]);
+  });
+
+  it("the highlight lights each frame's pairs in its own object and never the flip connector", () => {
+    const ctx = roomCtx();
+    c.apply(ctx, G, null);
+    const hlRoom = ctx.roomRotGroup.children.find(o => o.renderOrder === 12) as THREE.LineSegments;
+    const hlTable = ctx.workRotGroup.children.find(o => o.renderOrder === 12) as THREE.LineSegments;
+    expect(hlRoom && hlTable).toBeTruthy();
+    c.setHighlight(2);                     // lights line 1 (previous-line rule) = vertices 0..1 → room pair (0,1)
+    expect(pairsOf(hlRoom)).toEqual([0, 1]);
+    expect(hlTable.geometry.drawRange.count).toBe(0);
+    c.setHighlight(3);                     // lights line 2 = vertices 2..3; the range reaches back to 1: (1,2) is a break → skipped
+    expect(hlRoom.geometry.drawRange.count).toBe(0);
+    expect(pairsOf(hlTable)).toEqual([2, 3]);
+    c.setHighlight(null);
+    expect(hlTable.geometry.drawRange.count).toBe(0);
+  });
+
+  it("an all-room program parents the bounds box under the room parent", () => {
+    const ctx = roomCtx();
+    c.apply(ctx, { ...G, feedRoom: new Uint8Array([1, 1, 1, 1]) }, null);
+    const box = (g: THREE.Group) => g.children.find(o => (o as any).isLineSegments && o.renderOrder !== 10 && o.renderOrder !== 12);
+    expect(box(ctx.roomRotGroup)).toBeTruthy();
+    expect(box(ctx.workRotGroup)).toBeUndefined();
   });
 });

@@ -20,7 +20,7 @@ import {
   machineToProgram, wcsTerms,
   type PartFrameWcs, type WcsTerms, liftToJoints, jointsToProgram, tipWcs } from "./partFrame";
 import type { WcsEpoch } from "./wcsEpochs";
-import type { ScrubTrack } from "../ws/bulkData";
+import type { RotaryCmd, ScrubTrack } from "../ws/bulkData";
 
 export type { ScrubTrack };
 
@@ -84,7 +84,8 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
                                 frames?: [number, number, number][],
                                 wcsEvents?: WcsEpoch[],
                                 subNames?: string[],
-                                tloEvents?: TloEvent[]): ScrubTrack | null {
+                                tloEvents?: TloEvent[],
+                                rotaryCmd?: RotaryCmd): ScrubTrack | null {
   const nf = (feed.pos.length / 3) | 0;
   const nr = (rapid.pos.length / 3) | 0;
   const n = nf + nr;
@@ -174,6 +175,12 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
     && !!(feed.cline || rapid.cline);
   const cline = hasCline ? new Uint16Array(n) : undefined;
 
+  // Rotary-command boundary → per-axis inherited prefix lengths: needs the
+  // merged seq per point (present whenever both streams carry seq; a
+  // single non-empty stream may be a legacy seq-less payload → no claim).
+  const seqAvail = !!rotaryCmd && (nf === 0 || fseq?.length === nf) && (nr === 0 || rseq?.length === nr);
+  const mergedSeq = seqAvail ? new Uint32Array(n) : undefined;
+
   let fi = 0, ri = 0;
   let prevFT = 0, prevRT = 0;   // per-stream previous cumulative time
   for (let i = 0; i < n; i++) {
@@ -185,6 +192,7 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
     const src = takeFeed ? feed : rapid;
     const si = takeFeed ? fi++ : ri++;
     const s3 = si * 3, d3 = i * 3;
+    if (mergedSeq) mergedSeq[i] = (takeFeed ? fseq![si] : rseq![si]) ?? 0;
     pos[d3] = src.pos[s3]!;
     pos[d3 + 1] = src.pos[s3 + 1]!;
     pos[d3 + 2] = src.pos[s3 + 2]!;
@@ -239,12 +247,48 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
     }
   }
 
+  let inheritedEnd: ScrubTrack["inheritedEnd"];
+  if (mergedSeq && rotaryCmd) {
+    // The merged track is seq-ascending: points inheriting an axis are the
+    // prefix with seq < that axis's first-command seq (all n when never
+    // commanded). A letter the wire does not carry (not a machine axis) is
+    // "never commanded" too — it cannot make a vertex ride.
+    const countBelow = (b: number | null | undefined): number => {
+      if (b == null) return n;
+      let lo = 0, hi = n;
+      while (lo < hi) { const mid = (lo + hi) >> 1; if (mergedSeq[mid]! < b) lo = mid + 1; else hi = mid; }
+      return lo;
+    };
+    inheritedEnd = { A: countBelow(rotaryCmd.A), B: countBelow(rotaryCmd.B), C: countBelow(rotaryCmd.C),
+                     unknown: countBelow(rotaryCmd.unknown) };
+  }
+
   return { pos, abc, lines, rapid: rapidFlag, mode, frame: frameIdx,
            frames: hasFrame ? frames : undefined, brk, ustart,
            wcsEpoch, wcsEvents: hasWcs ? wcsEvents : undefined,
            tlo, tloEvents: hasTlo ? tloEvents : undefined,
            lineOk, sub, subNames: hasSub ? subNames : undefined, cline,
+           inheritedEnd,
            cum, count: n, lineIndex: buildLineIndex(lines, cum), timeBased };
+}
+
+/** How many leading track points draw ROOM-FIXED under identity kins: the
+ *  minimum of the inherited prefix over the rotary letters of the WORK
+ *  chain and `unknown`. Head-chain rotaries (a B/C spindle) do not move the
+ *  work, so a `G0 B30` must not make an A-inherited path ride the table.
+ *  0 when the track carries no boundary (legacy / no rotary seed) — today's
+ *  picture — or when the work chain has no rotary at all (nothing to
+ *  decouple from). */
+export function roomEndOf(t: Pick<ScrubTrack, "inheritedEnd" | "count"> | null | undefined,
+                          workLetters: readonly string[]): number {
+  const ie = t?.inheritedEnd;
+  if (!ie || workLetters.length === 0) return 0;
+  let end = ie.unknown;
+  for (const l of workLetters) {
+    const v = ie[l as "A" | "B" | "C"];
+    if (v != null && v < end) end = v;
+  }
+  return Math.max(0, Math.min(end, t!.count));
 }
 
 /** Drawn-preview streams re-derived from the merged track.
@@ -287,6 +331,9 @@ export interface SplitStreams {
    *  (review P3), which line numbers cannot do once a called sub's numbers
    *  collide with the main file's. */
   feedSrc?: Uint32Array;
+  /** Same for the drawn rapid vertices (2026-09-11): the room/table split
+   *  tests `src < roomEnd` per drawn vertex of both streams. */
+  rapidSrc?: Uint32Array;
 }
 
 export function splitTrackStreams(t: ScrubTrack): SplitStreams {
@@ -297,7 +344,7 @@ export function splitTrackStreams(t: ScrubTrack): SplitStreams {
   const fFrame: number[] = [], rFrame: number[] = [];
   const fWcs: number[] = [], rWcs: number[] = [];
   const fTlo: number[] = [], rTlo: number[] = [];
-  const fSrc: number[] = [];
+  const fSrc: number[] = [], rSrc: number[] = [];
   let fLast = -2, rLast = -2;  // track index of each stream's last emitted point
 
   const push = (pos: number[], abc: number[], i: number) => {
@@ -321,17 +368,17 @@ export function splitTrackStreams(t: ScrubTrack): SplitStreams {
       if (relabel) {
         rBreaks.push(rPos.length / 3);
         push(rPos, rAbc, i);
-        rMode.push(md); rFrame.push(fr); rWcs.push(we); rTlo.push(te);
+        rMode.push(md); rFrame.push(fr); rWcs.push(we); rTlo.push(te); rSrc.push(i);
         rLast = i;
         continue;
       }
       if (rLast !== i - 1) {
         rBreaks.push(rPos.length / 3);
         push(rPos, rAbc, i - 1);
-        rMode.push(md); rFrame.push(fr); rWcs.push(we); rTlo.push(te);
+        rMode.push(md); rFrame.push(fr); rWcs.push(we); rTlo.push(te); rSrc.push(i - 1);
       }
       push(rPos, rAbc, i);
-      rMode.push(md); rFrame.push(fr); rWcs.push(we); rTlo.push(te);
+      rMode.push(md); rFrame.push(fr); rWcs.push(we); rTlo.push(te); rSrc.push(i);
       rLast = i;
     } else {
       if (relabel) {
@@ -371,6 +418,7 @@ export function splitTrackStreams(t: ScrubTrack): SplitStreams {
     feedTlo: t.tlo ? new Uint8Array(fTlo) : undefined,
     rapidTlo: t.tlo ? new Uint8Array(rTlo) : undefined,
     feedSrc: new Uint32Array(fSrc),
+    rapidSrc: new Uint32Array(rSrc),
   };
 }
 
@@ -874,9 +922,14 @@ export function prependEntry(
   // Rebuilt from the shifted arrays: the entry vertices carry line 0 (never
   // mapped), every other line's first point moved one index up and its cum
   // by entryLen — exactly the shifted map this used to build by hand.
+  // The entry vertex IS the live pose: it inherits every axis by
+  // construction, so each inherited prefix grows by one.
+  const inheritedEnd = t.inheritedEnd
+    ? { A: t.inheritedEnd.A + 1, B: t.inheritedEnd.B + 1, C: t.inheritedEnd.C + 1, unknown: t.inheritedEnd.unknown + 1 }
+    : undefined;
   return { pos, abc, lines, rapid, mode, frame, frames: t.frames, brk, ustart,
            wcsEpoch, wcsEvents: t.wcsEvents, tlo, tloEvents: t.tloEvents,
-           lineOk, sub, subNames: t.subNames, cline,
+           lineOk, sub, subNames: t.subNames, cline, inheritedEnd,
            cum, count: n, lineIndex: buildLineIndex(lines, cum), timeBased: t.timeBased };
 }
 

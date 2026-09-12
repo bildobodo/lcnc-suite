@@ -8,6 +8,7 @@
 import { parseWcsFrames, type WcsEpoch } from "./viewer/wcsEpochs";
 import { TLO_NONE, parseTloEvents, type TloEvent } from "./viewer/tloEvents";
 import type { ScrubStream } from "./viewer/scrubTrack";
+import type { RotaryCmd } from "./ws/bulkData";
 
 export interface DecodedPreview {
   feed: ScrubStream;
@@ -16,6 +17,9 @@ export interface DecodedPreview {
   wcsEvents?: WcsEpoch[];
   tloEvents?: TloEvent[];
   subNames?: string[];
+  /** Rotary-command boundary (wire `rotary_cmd`, 2026-09-11); undefined
+   *  when absent or malformed (never guessed). */
+  rotaryCmd?: RotaryCmd;
   // The drawing-path aliases the worker also ships (same buffers as the
   // stream fields — feed.pos === feedPos etc.).
   feedPos: Float32Array;
@@ -72,6 +76,8 @@ export function decodePreviewStreams(g: Record<string, any>): DecodedPreview {
   const feedTloWire = eventIdxFor(feedSeq, tloSeqs, TLO_NONE);
   const rapidTloWire = eventIdxFor(rapidSeq, tloSeqs, TLO_NONE);
 
+  const rotaryCmd = parseRotaryCmd(g.rotary_cmd);
+
   return {
     feed: { pos: feedPos, abc: feedAbc, lines: feedLines, seq: feedSeq,
             tcum: g.feed_tcum != null && (g.feed_tcum as Uint8Array).length ? toF32(g.feed_tcum) : undefined,
@@ -82,9 +88,31 @@ export function decodePreviewStreams(g: Record<string, any>): DecodedPreview {
              mode: rapidModeWire, frame: rapidFrameWire, brk: rapidBrkWire,
              ustart: rapidUstartWire, wcs: rapidWcsWire, tlo: rapidTloWire,
              lineOk: rapidLineOkWire, sub: rapidSubWire, cline: rapidClineWire },
-    kinsFrames, wcsEvents, tloEvents, subNames,
+    kinsFrames, wcsEvents, tloEvents, subNames, rotaryCmd,
     feedPos, rapidPos, feedLines, feedAbc, rapidAbc,
   };
+}
+
+/** Wire `rotary_cmd` → RotaryCmd, or undefined for absent/malformed data
+ *  (a letter's value must be a non-negative integer seq or null). */
+export function parseRotaryCmd(v: unknown): RotaryCmd | undefined {
+  if (!v || typeof v !== "object") return undefined;
+  const o = v as Record<string, unknown>;
+  const seqOrNull = (x: unknown): number | null | undefined =>
+    x === null ? null : (typeof x === "number" && Number.isInteger(x) && x >= 0 ? x : undefined);
+  const unknown = seqOrNull(o.unknown);
+  if (unknown === undefined) return undefined;
+  const out: RotaryCmd = { unknown, seed: {} };
+  const seed = (o.seed && typeof o.seed === "object") ? o.seed as Record<string, unknown> : {};
+  for (const l of ["A", "B", "C"] as const) {
+    if (!(l in o)) continue;
+    const s = seqOrNull(o[l]);
+    if (s === undefined) return undefined;
+    out[l] = s;
+    const sv = seed[l];
+    if (typeof sv === "number" && Number.isFinite(sv)) out.seed[l] = sv;
+  }
+  return out;
 }
 
 // Seq-keyed event resolution, shared by TWP frames and WCS epochs: an

@@ -65,6 +65,14 @@ export interface ToolpathCtx {
    *  convention). The machine-bounds box lives here; the overlay gate
    *  transforms each chunk's box into it. null = no gate (overlays drawn). */
   machineFrame: THREE.Object3D | null;
+  /** Room-fixed parents (2026-09-11), one-to-one with the table side:
+   *  roomOrigin/roomRotGroup follow the LIVE offsets (programmed path),
+   *  roomAnchor/roomRot are posed by apply() from a bake's own terms. All
+   *  null when the work chain has no rotary — then every vertex rides. */
+  roomOrigin: THREE.Group | null;
+  roomRotGroup: THREE.Group | null;
+  roomAnchor: THREE.Group | null;
+  roomRot: THREE.Group | null;
   pathAlwaysOnTop: boolean;
   machineBounds: { origin: Vec3; size: Vec3 } | undefined;
   units: string | undefined;
@@ -120,7 +128,17 @@ export interface ToolpathController {
   /** Segments dropped because their endpoints lie in different frames —
    *  must read 0 (see lineChunks.FrameIndex.mixed). */
   readonly frameMixed: number;
+  /** Segments drawn room-fixed (both streams). */
+  readonly roomSegs: number;
 }
+
+/** The scrub/line highlight, one per frame present: an indexed LineSegments
+ *  over the feed position attribute with its OWN small index buffer, filled
+ *  per highlight with the pairs of the lit vertex range that belong to this
+ *  frame (a strip drawRange would draw a connector across a frame flip, and
+ *  the spatially binned draw index is not in vertex order). */
+interface Highlight { frame: 0 | 1; line: THREE.LineSegments; idx: Uint32Array; attr: THREE.BufferAttribute }
+const HL_CAP = 1 << 15;   // pairs per highlight (a line run is far smaller; beyond it the cue truncates)
 
 /** One drawn stream in one frame: its chunks (objects sharing the stream's
  *  position attribute + this set's index attribute), materials, and the
@@ -157,8 +175,11 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
   let sets: LineSet[] = [];
   let feedPosAttr: THREE.BufferAttribute | null = null;
   let rapidPosAttr: THREE.BufferAttribute | null = null;
-  let highlightLine: THREE.Line | null = null;
-  let highlightGeom: THREE.BufferGeometry | null = null;
+  let highlights: Highlight[] = [];
+  // Per feed vertex (drawn order): opens a section / draws room-fixed —
+  // the highlight's pair filter.
+  let feedIsBreak: Uint8Array | null = null;
+  let feedRoomMask: Uint8Array | null = null;
   // g-code line number → { start, end } point-index range in feed arrays
   let feedLineIndex: LineIndex = emptyLineIndex();
   // Source track index per drawn feed vertex (ascending) — the positional
@@ -317,13 +338,14 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       s.mat.dispose();
       s.overMat?.dispose();
     }
-    if (highlightLine) {
-      highlightLine.parent?.remove(highlightLine);
-      deps.disposeObject(highlightLine);
+    for (const h of highlights) {
+      h.line.parent?.remove(h.line);
+      h.line.geometry.dispose();
+      (h.line.material as THREE.Material).dispose();
     }
     sets = [];
-    highlightLine = null;
-    highlightGeom = null;
+    highlights = [];
+    feedIsBreak = feedRoomMask = null;
     feedPosAttr = rapidPosAttr = null;
     _chunksVisible = _overlayChunks = _frameMixed = 0;
   }
@@ -356,7 +378,8 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
 
   function rebuildToolpathBounds(ctx: ToolpathCtx) {
     // The bounds box is in the SAME coordinates as the drawn vertices, so
-    // it hangs under the same parent (the baked anchor when there is one).
+    // it hangs under the same parent (the baked anchor when there is one;
+    // the room parent when EVERY drawn segment is room-fixed).
     const workRotGroup = _lineParent ?? ctx.workRotGroup;
     teardownBounds();
     if (!toolpathBBox || !workRotGroup) return;
@@ -440,7 +463,52 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
         if (ov) ov.visible = toolpathVisible && s.overlayNeeded[c] === 1;
       }
     }
-    if (highlightLine) highlightLine.visible = toolpathVisible;
+    for (const h of highlights) h.line.visible = toolpathVisible;
+  }
+
+  function makeHighlight(frame: 0 | 1, parent: THREE.Group, posAttr: THREE.BufferAttribute, bounds: Float32Array): Highlight {
+    const geom = new THREE.BufferGeometry();
+    // Per-program (not externally owned): disposed by teardownLines.
+    geom.setAttribute("position", posAttr);
+    const idx = new Uint32Array(HL_CAP * 2);
+    const attr = new THREE.BufferAttribute(idx, 1);
+    attr.setUsage(THREE.DynamicDrawUsage);
+    geom.setIndex(attr);
+    geom.setDrawRange(0, 0);   // hidden until motion_line updates
+    geom.boundingSphere = sphereOfBox(unionBounds(bounds), 0);
+    const mat = new THREE.LineBasicMaterial({ color: 0xff3333 });
+    mat.depthTest = !pathAlwaysOnTop;
+    mat.depthWrite = false;
+    const line = new THREE.LineSegments(geom, mat);
+    line.renderOrder = 12;
+    line.frustumCulled = true;
+    line.visible = toolpathVisible;
+    parent.add(line);
+    return { frame, line, idx, attr };
+  }
+
+  /** Light the feed vertex range [s, s+count) — every pair (v, v+1) inside
+   *  it that does not cross a section break or a frame flip goes to the
+   *  highlight of its frame. */
+  function _setHighlightVertexRange(s: number, count: number) {
+    const e = s + count - 1;
+    for (const h of highlights) {
+      let w = 0;
+      if (count >= 2 && feedPosAttr) {
+        const last = Math.min(e, feedPosAttr.count - 1);
+        for (let v = Math.max(0, s); v < last; v++) {
+          if (feedIsBreak?.[v + 1]) continue;
+          const f = feedRoomMask?.[v + 1] ?? 0;
+          if ((feedRoomMask?.[v] ?? 0) !== f || f !== h.frame) continue;
+          if (w >= HL_CAP * 2) break;
+          h.idx[w++] = v; h.idx[w++] = v + 1;
+        }
+      }
+      h.attr.clearUpdateRanges();
+      if (w > 0) h.attr.addUpdateRange(0, w);
+      h.attr.needsUpdate = true;
+      h.line.geometry.setDrawRange(0, w);
+    }
   }
 
   return {
@@ -453,10 +521,18 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       // "jump then return" was the live origin moving ahead of a re-bake).
       const baked = anchor != null && ctx.pathAnchor != null && ctx.pathRot != null;
       const lineParent: THREE.Group | null = baked ? ctx.pathRot : workRotGroup;
+      // Room-fixed parent, same rule: a bake's own anchor, else the live
+      // origin — under the MACHINE frame. null = the machine has no work-
+      // chain rotary (every vertex rides, as before).
+      const roomParent: THREE.Group | null = baked ? ctx.roomRot : ctx.roomRotGroup;
       _lineParent = lineParent;
       if (baked) {
         ctx.pathAnchor!.position.set(anchor!.ox, anchor!.oy, anchor!.oz);
         ctx.pathRot!.rotation.z = THREE.MathUtils.degToRad(anchor!.thetaDeg);
+        if (ctx.roomAnchor && ctx.roomRot) {
+          ctx.roomAnchor.position.set(anchor!.ox, anchor!.oy, anchor!.oz);
+          ctx.roomRot.rotation.z = THREE.MathUtils.degToRad(anchor!.thetaDeg);
+        }
       }
 
       // Program change: free every replaced line (geometry + material).
@@ -491,52 +567,51 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       const rapidColor = deps.colors().rapid ?? "#f5a623";
       _feedBase.set(feedColor);
       _rapidBase.set(rapidColor);
+      // Per stream: real segment pairs split by frame (viewer/lineChunks.ts
+      // buildFrameIndex — a room mask only counts when a room parent exists),
+      // each frame's pairs as one chunked set under its own parent.
+      const roomMaskOf = (m: Uint8Array | undefined, n: number): Uint8Array | null =>
+        (roomParent && m instanceof Uint8Array && m.length === n) ? m : null;
       if (lineParent && _pointCount(feedData) >= 2) {
         const flat = _flat(feedData);
+        const n = flat.length / 3;
         feedPosAttr = new THREE.BufferAttribute(flat, 3);
-        const fi = buildFrameIndex(flat.length / 3, g.feedBreaks ?? null, null);
+        const fi = buildFrameIndex(n, g.feedBreaks ?? null, roomMaskOf(g.feedRoom, n));
         _frameMixed += fi.mixed;
-        const s = makeSet("feed", 0, lineParent, feedPosAttr, fi.table, feedColor, false, null);
-        if (s) sets.push(s);
+        const st = makeSet("feed", 0, lineParent, feedPosAttr, fi.table, feedColor, false, null);
+        if (st) sets.push(st);
+        const sr = roomParent ? makeSet("feed", 1, roomParent, feedPosAttr, fi.room, feedColor, false, null) : null;
+        if (sr) sets.push(sr);
+        feedIsBreak = new Uint8Array(n);
+        if (g.feedBreaks) for (const b of g.feedBreaks) if (b < n) feedIsBreak[b] = 1;
+        feedRoomMask = roomMaskOf(g.feedRoom, n);
       }
       if (lineParent && _pointCount(rapidData) >= 2) {
         const flat = _flat(rapidData);
+        const n = flat.length / 3;
         rapidPosAttr = new THREE.BufferAttribute(flat, 3);
         // Worker-precomputed lineDistance when the flat buffer is in use (P4.1);
-        // undefined on the WS/legacy path → the chunk computes its own.
+        // undefined on the WS/legacy path → the set computes its own.
         const _rapidDist = rapidData === g.rapidPos && g.rapidDist instanceof Float32Array ? g.rapidDist : undefined;
         const distAttr = _rapidDist ? new THREE.Float32BufferAttribute(_rapidDist, 1) : null;
-        const fi = buildFrameIndex(flat.length / 3, g.rapidBreaks ?? null, null);
+        const fi = buildFrameIndex(n, g.rapidBreaks ?? null, roomMaskOf(g.rapidRoom, n));
         _frameMixed += fi.mixed;
-        const s = makeSet("rapid", 0, lineParent, rapidPosAttr, fi.table, rapidColor, true, distAttr);
-        if (s) sets.push(s);
+        const st = makeSet("rapid", 0, lineParent, rapidPosAttr, fi.table, rapidColor, true, distAttr);
+        if (st) sets.push(st);
+        const sr = roomParent ? makeSet("rapid", 1, roomParent, rapidPosAttr, fi.room, rapidColor, true, distAttr) : null;
+        if (sr) sets.push(sr);
       }
+      // Every drawn segment room-fixed ⇒ the bounds box rides the room parent.
+      if (roomParent && sets.length && sets.every(s => s.frame === 1)) _lineParent = roomParent;
       _applyStale();   // sticky across rebuilds: a re-parse in flight keeps the new lines muted too
 
-      // Highlight line — shares feed's position attribute; independent drawRange.
-      // Its sphere is the union of the feed chunks' boxes so frustum culling
-      // matches the full feed extents (conservative: the drawn subset is always
-      // inside). Deliberately a plain strip (no section index): a single source
-      // line's vertex range sits inside one feed section except when one line
-      // mixes feed→rapid→feed (canned cycles) — there the highlight bridges its
-      // own rapid gap, an acceptable "where is this line" cue.
-      if (feedPosAttr && lineParent) {
-        highlightGeom = new THREE.BufferGeometry();
-        // Per-program (not externally owned): disposed by apply() on program
-        // change and by disposeObject on teardown — deliberately not _shared.
-        highlightGeom.setAttribute("position", feedPosAttr);
-        const feedSets = sets.filter(s => s.stream === "feed");
-        const u = unionBounds(feedSets.length === 1 ? feedSets[0]!.bounds
-          : new Float32Array(feedSets.flatMap(s => Array.from(s.bounds))));
-        highlightGeom.boundingSphere = sphereOfBox(u, 0);
-        highlightGeom.setDrawRange(0, 0); // hidden until motion_line updates
-        const hlMat = new THREE.LineBasicMaterial({ color: 0xff3333 });
-        hlMat.depthTest = !pathAlwaysOnTop;
-        hlMat.depthWrite = false;
-        highlightLine = new THREE.Line(highlightGeom, hlMat);
-        highlightLine.renderOrder = 12;
-        highlightLine.frustumCulled = true;
-        lineParent.add(highlightLine);
+      // Highlights — one per frame that has feed segments, sharing feed's
+      // position attribute (see Highlight); sphere = that frame's feed extents.
+      if (feedPosAttr) {
+        for (const st of sets) {
+          if (st.stream !== "feed") continue;
+          highlights.push(makeHighlight(st.frame, st.parent, feedPosAttr, st.bounds));
+        }
       }
 
       // Toolpath bounding boxes (work coordinates). `toolpathBBox` is the cut
@@ -639,25 +714,24 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     },
 
     setHighlight(curLine) {
+      if (!highlights.length) return;
       // motion_line can be ~1 line ahead during G64 blending; try previous line first
-      if (highlightLine && curLine != null) {
+      if (curLine != null) {
         const effectiveLine = lineHas(feedLineIndex, curLine - 1) ? curLine - 1 : curLine;
         const range = lineRange(feedLineIndex, effectiveLine);
         if (range) {
           const s = Math.max(0, range.start - 1);
-          highlightLine.geometry.setDrawRange(s, range.end - s + 1);
-        } else {
-          highlightLine.geometry.setDrawRange(0, 0);
+          _setHighlightVertexRange(s, range.end - s + 1);
+          return;
         }
-      } else {
-        if (highlightLine) highlightLine.geometry.setDrawRange(0, 0);
       }
+      _setHighlightVertexRange(0, 0);
     },
 
     setHighlightTrackRange(range) {
-      if (!highlightLine) return;
+      if (!highlights.length) return;
       if (!range || !feedSrc || feedSrc.length === 0) {
-        highlightLine.geometry.setDrawRange(0, 0);
+        _setHighlightVertexRange(0, 0);
         return;
       }
       const [i0, i1] = range;
@@ -676,11 +750,11 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       }
       const last = lo;
       if (feedSrc[first]! > i1 || feedSrc[last]! < i0) {
-        highlightLine.geometry.setDrawRange(0, 0);  // run is all-rapid — no feed to light
+        _setHighlightVertexRange(0, 0);  // run is all-rapid — no feed to light
         return;
       }
       const s = Math.max(0, first - 1);
-      highlightLine.geometry.setDrawRange(s, last - s + 1);
+      _setHighlightVertexRange(s, last - s + 1);
     },
 
 
@@ -710,8 +784,8 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
           m.depthTest = dt; m.depthWrite = false; m.needsUpdate = true;
         }
       }
-      if (highlightLine) {
-        const m = highlightLine.material as THREE.LineBasicMaterial;
+      for (const h of highlights) {
+        const m = h.line.material as THREE.LineBasicMaterial;
         m.depthTest = dt; m.depthWrite = false; m.needsUpdate = true;
       }
     },
@@ -725,8 +799,8 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
 
     forgetAfterSceneClear() {
       sets = [];
-      highlightLine = null;
-      highlightGeom = null;
+      highlights = [];
+      feedIsBreak = feedRoomMask = null;
       feedPosAttr = rapidPosAttr = null;
       _chunksVisible = _overlayChunks = _frameMixed = 0;
       toolpathBoundsBox = toolpathOverflowEdges = null;
@@ -757,5 +831,6 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     get chunksVisible() { return _chunksVisible; },
     get overlayChunks() { return _overlayChunks; },
     get frameMixed() { return _frameMixed; },
+    get roomSegs() { let n = 0; for (const s of sets) if (s.frame === 1) n += s.pairs; return n; },
   };
 }

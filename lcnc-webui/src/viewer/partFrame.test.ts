@@ -412,3 +412,80 @@ describe("anchorTerms — the toolpath anchor equals the live work-origin formul
     expect(out).toEqual({ ox: 1, oy: 2, oz: 3, thetaDeg: 0 });
   });
 });
+
+describe("room-fixed bake (2026-09-11: decouple the path from an uncommanded table rotary)", () => {
+  // TRUNNION: the work chain is table(x) → a_assembly(A) → c_assembly → c_platter(C);
+  // the room frame is the `table` node's, with zero static offset here
+  // (a_assembly [0,20,10] + c_assembly [0,-20,-10] + c_platter none).
+  const pts = [[10, 0, 0], [20, 0, 0], [20, 5, 0]];
+  const src = new Uint32Array([0, 1, 2]);
+  const tilted = pts.map(() => [30, 0, 40]);    // an INHERITED tilt: seed A30 C40 baked into every vertex
+
+  it("room vertices sit where identity kins sends the tool — the program coords — whatever the table pose", () => {
+    const table = transformToPartFrame(TRUNNION, WCS0, { ...poly(pts, tilted), src });
+    const room = transformToPartFrame(TRUNNION, WCS0, { ...poly(pts, tilted), src, roomEnd: 3 });
+    expect(room.room && Array.from(room.room)).toEqual([1, 1, 1]);
+    expect(room.frameFlips).toBe(0);
+    for (let i = 0; i < 3; i++) {
+      const r = vec(room.pos, i), t = vec(table.pos, i);
+      expect(r[0]).toBeCloseTo(pts[i]![0]!, 4);
+      expect(r[1]).toBeCloseTo(pts[i]![1]!, 4);
+      expect(r[2]).toBeCloseTo(pts[i]![2]!, 4);
+      // ...while the part-frame bake of the same vertex is the tilted/rotated point
+      expect(Math.hypot(r[0] - t[0], r[1] - t[1], r[2] - t[2])).toBeGreaterThan(1);
+    }
+  });
+
+  it("a flip inside a section duplicates the previous vertex in the new frame as a break", () => {
+    const out = transformToPartFrame(TRUNNION, WCS0, { ...poly(pts, tilted), src, roomEnd: 2 });
+    // vertices 0,1 room; 2 table → the duplicate of vertex 1 (table frame) precedes vertex 2
+    expect(out.pos.length / 3).toBe(4);
+    expect(Array.from(out.room!)).toEqual([1, 1, 0, 0]);
+    expect(Array.from(out.breaks!)).toEqual([2]);
+    expect(Array.from(out.src!)).toEqual([0, 1, 2, 2]);
+    expect(out.frameFlips).toBe(1);
+    // the duplicate is vertex 1 evaluated in the TABLE frame = the part-frame bake of vertex 1
+    const table = transformToPartFrame(TRUNNION, WCS0, { ...poly(pts, tilted), src });
+    const d = vec(out.pos, 2), t1 = vec(table.pos, 1);
+    expect(d[0]).toBeCloseTo(t1[0], 4); expect(d[1]).toBeCloseTo(t1[1], 4); expect(d[2]).toBeCloseTo(t1[2], 4);
+    // and the room copy of vertex 1 is the program point
+    expect(vec(out.pos, 1)[0]).toBeCloseTo(20, 4);
+  });
+
+  it("a flip AT a section break needs no duplicate", () => {
+    const out = transformToPartFrame(TRUNNION, WCS0, { ...poly(pts, tilted), src, roomEnd: 2, breaks: new Uint32Array([2]) });
+    expect(out.pos.length / 3).toBe(3);
+    expect(Array.from(out.breaks!)).toEqual([2]);
+    expect(out.frameFlips).toBe(0);
+  });
+
+  it("a world-kins segment never bakes room-fixed, and subdivided samples carry their segment's frame", () => {
+    // mode 1 with no declared kins spec = world (worldModeForSpec) → rides
+    const world = transformToPartFrame(TRUNNION, WCS0, { ...poly(pts, tilted), src, roomEnd: 3, mode: new Uint8Array([1, 1, 1]) });
+    expect(Array.from(world.room!)).toEqual([0, 0, 0]);
+    // a C sweep across a room segment: every sample of it is room
+    const sweep = transformToPartFrame(TRUNNION, WCS0, { ...poly(pts, [[0, 0, 0], [0, 0, 40], [0, 0, 40]]), src, roomEnd: 3 });
+    expect(sweep.pos.length / 3).toBeGreaterThan(3);
+    expect(Array.from(sweep.room!).every(v => v === 1)).toBe(true);
+  });
+
+  it("no work-chain rotary (3-axis), no src, or roomEnd 0 → no split", () => {
+    expect(transformToPartFrame(MILL3, WCS0, { ...poly(pts), src, roomEnd: 3 }).room).toBeUndefined();
+    expect(transformToPartFrame(TRUNNION, WCS0, { ...poly(pts, tilted), roomEnd: 3 }).room).toBeUndefined();
+    expect(transformToPartFrame(TRUNNION, WCS0, { ...poly(pts, tilted), src, roomEnd: 0 }).room).toBeUndefined();
+    // and buildChain reports the room frame honestly
+    expect(buildChain(MILL3).hasRoom).toBe(false);
+    const ch = buildChain(TRUNNION);
+    expect(ch.hasRoom).toBe(true);
+    expect(ch.nodes[ch.linIdx]!.id).toBe("table");
+  });
+
+  it("tipInWorkFrame is unchanged by the evalChainTip refactor (BHEAD tilted TLO case)", () => {
+    const chain = buildChain(BHEAD);
+    const out = new THREE.Vector3();
+    tipInWorkFrame(chain, [0, 0, 0, 90], [0, 0, 22], out);
+    // B=90 tilts the tool: a TLO of 22 along the tool axis subtracts along the rotated axis
+    expect(Math.abs(out.z)).toBeLessThan(1e-6);
+    expect(Math.abs(Math.abs(out.x) - 22)).toBeLessThan(1e-6);
+  });
+});
