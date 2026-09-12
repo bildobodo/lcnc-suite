@@ -4726,3 +4726,23 @@ normally, no browser errors. OWED: the operator's look — enter sim while the
 base sweep runs (it keeps running; the entry segment's verdict appears when
 it lands), exit + re-enter on a finished sweep (nothing re-sweeps), ❚❚ on a
 sweep with many hits (bounded now) — and the heavy gates at the next stop.
+
+**Follow-up the same night (operator):** "if I enter the sim I see a collision;
+if I exit the sim it states clear" — the clash was in the ENTRY MOVE (operator-
+confirmed; the base sweep is right about the program). Tonight's exit rule had
+dropped the entry track, so the verdict left with the mode — but the entry move
+is the rapid the next cycle start will actually make from where the machine
+sits, so it belongs on the bar outside sim too. Now: the entry track stays
+after exit (the base result keeps its own identity, so it costs no re-sweep);
+a run start or a program change drops it; outside sim, once the machine has
+held a NEW pose for 500 ms, ScrubBar rebuilds the entry move from it and emits
+check-entry again (a rebuild copies the track — never per status tick) — the
+clash count on the bar always includes the approach from where the machine is
+NOW. OPEN (recorded, not changed): the base sweep's baseline pass excludes ANY
+non-stock pair inside the margin at the program's first pose for the WHOLE
+sweep — meant for slides/bearings, it also silences a TOOL pair that starts in
+contact (a program whose first point is at the platter: "clear" + a static
+contact, and a later rapid through the platter never reports either). A tool
+pair is never a mechanical joint; the stock rule (seed in-contact, never
+exclude) would fit it — but it flips such programs from "clear" to a clash per
+line under the no-stock semantic limit, so it is the operator's call.

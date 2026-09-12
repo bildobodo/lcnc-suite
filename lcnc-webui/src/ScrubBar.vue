@@ -300,13 +300,13 @@ function exitSim() {
   playing.value = false;
   if (!simMode.value) return;
   simMode.value = false;
-  // The entry move only means anything while simulating (it is the rapid
-  // from the pose the machine had at entry); outside sim the bar shows the
-  // program and its own result — it used to keep the entry track so the
-  // merged result stayed addressable, which is what made every re-entry
-  // re-sweep the whole program (2026-09-12).
-  entryTrack.value = null;
-  sPos.value = 0;
+  // The entry track STAYS after exit: the entry move is the rapid the next
+  // cycle start will actually make from where the machine sits, and its
+  // verdict (operator-caught 2026-09-12: a clash in sim, "clear" on exit)
+  // must not vanish with the mode. It is dropped when a run starts or the
+  // program changes, and REBUILT from the new pose when the machine moves
+  // (the joint watcher below) — the base result keeps its own identity, so
+  // keeping the entry track no longer costs a re-sweep on re-entry.
   emit("pose", null, null, null, null, null, null, null, null);
   trackHighlightRange.value = null;
   subExecState.value = null;
@@ -354,7 +354,11 @@ watch(_wcsKey, () => {
 // (another client — this tab's Machine On is gated), or real joint motion.
 // Keyed on the BASE track — entering sim swaps in the entry track, which
 // must not itself trigger an exit.
-watch(running, (r) => { if (r) exitSim(); });
+watch(running, (r) => {
+  if (!r) return;
+  exitSim();
+  entryTrack.value = null;   // the run's approach is real motion, followed positionally
+});
 watch(baseTrack, () => {
   exitSim(); entryTrack.value = null; sPos.value = 0;
   _runWatcher.reset(); runOffPath.value = false; runLineState.value = null;
@@ -362,17 +366,35 @@ watch(baseTrack, () => {
   subExecState.value = null;
 });
 watch(machineOff, (off) => { if (!off) exitSim(); });
-watch(st, (d) => {
-  if (!simMode.value) return;
-  const jp = d.joint_pos;
-  if (!Array.isArray(jp)) return;
+// Outside sim a kept entry track built from ANOTHER pose is stale: once the
+// machine has held its new pose this long, rebuild the entry move from it and
+// re-check the segment (milliseconds — ThreeViewer's side sweep). Not per
+// status tick: a rebuild copies the whole track.
+const ENTRY_SETTLE_MS = 500;
+let _entrySettleTimer: ReturnType<typeof setTimeout> | undefined;
+function _movedFromEntryPose(jp: unknown): jp is number[] {
+  if (!Array.isArray(jp) || !_baseJoints.length) return false;
   for (let i = 0; i < jp.length; i++) {
     const base = _baseJoints[i];
-    if (base != null && Math.abs((jp[i] ?? 0) - base) > MOTION_EXIT_THRESHOLD) {
-      exitSim();
-      return;
-    }
+    if (base != null && Math.abs((jp[i] ?? 0) - base) > MOTION_EXIT_THRESHOLD) return true;
   }
+  return false;
+}
+watch(st, (d) => {
+  const jp = d.joint_pos;
+  if (simMode.value) {
+    if (_movedFromEntryPose(jp)) exitSim();
+    return;
+  }
+  if (!entryTrack.value || !_movedFromEntryPose(jp)) return;
+  clearTimeout(_entrySettleTimer);
+  _entrySettleTimer = setTimeout(() => {
+    const now = st.value.joint_pos;
+    if (simMode.value || running.value || !entryTrack.value || !Array.isArray(now)) return;
+    _baseJoints = [...now];
+    _buildEntryTrack();
+    if (track.value) emit("check-entry", track.value, baseTrack.value);
+  }, ENTRY_SETTLE_MS);
 });
 
 /** ---------- playback (distance-proportional, v1) ---------- */
@@ -838,6 +860,7 @@ const violationMarks = computed(() => {
 onUnmounted(() => {
   cancelAnimationFrame(raf);
   clearTimeout(_wcsCheckTimer);
+  clearTimeout(_entrySettleTimer);
   exitSim();
 });
 </script>

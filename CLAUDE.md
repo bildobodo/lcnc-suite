@@ -849,8 +849,13 @@ pose's and the first point's static contacts). `viewer/sweepEntry.ts`
 (pure, pinned) decides what runs: base unknown → base + side; base
 current / running / parked → side only; overlay already swept for this
 entry track → nothing; machine at the first point → the track IS the
-base, nothing new. ScrubBar drops the entry track at sim exit (the base
-result keeps its identity, so a re-entry sweeps only the new segment).
+base, nothing new. The entry track STAYS after sim exit — the entry move
+is the rapid the next cycle start will make from where the machine sits,
+and its verdict must not vanish with the mode (operator-caught: a clash
+in sim, "clear" on exit); a run start or program change drops it, and
+when the machine moves outside sim ScrubBar rebuilds it from the settled
+pose (500 ms) and re-asks for the segment. The base result keeps its
+identity, so a re-entry sweeps only the new segment.
 The first attempt cancelled a base sweep at 59 % for that one segment and
 re-swept the whole program on every re-entry; its full entry-track sweep
 also had the LIVE pose as its only baseline, so a program that starts in
