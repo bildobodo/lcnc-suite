@@ -545,18 +545,25 @@ following the live offsets. A mid-run G10 L2 / fixture switch used to move
 the live origin ahead of the 300 ms re-bake: the whole path jumped, then
 returned.
 
-**Machine bounds (2026-09-12)**: the drawn box, the outside-bounds clip
-planes, the overlay gate and the camera reframe all use ONE box in the
-MACHINE frame (`machineFrameGrp`): the LIVE per-joint limits the status
+**Machine bounds (2026-09-12)**: the drawn box, the toolpath-bounds clip
+planes and the camera reframe all use ONE box in the MACHINE frame
+(`machineFrameGrp`): the LIVE per-joint limits the status
 carries as `joint_limits` (`viewer/machineBounds.ts` boundsFromJointLimits,
 joint order → letters via `viewer_init.axes`), with the INI-derived
 `viewer_init.machine_bounds` as the documented fallback. The box is the
 JOINT window and does not change with kins mode — the TWP sim's HAL mux
 switches the AXIS-letter `ini.z.*` window (the WORLD pose LinuxCNC checks
 programmed moves against), never `[JOINT_2]`. It bounds the HEAD reference
-point; the drawn path is the TIP, so the yellow overlay is off by the TLO in
-Z (and the tilt lever under B/C) — a coarse check by design; the validator's
-joint-side conversion is the exact one. The box never hangs
+point while the drawn path is the TIP, so the yellow outside-limits overlay
+does NOT compare vertices with the box any more (that was off by the TLO in
+Z and the tilt lever under B/C): the producing worker emits a joint-side
+verdict per drawn vertex (`partFrame.outsideJointLimits` over each sample's
+TLO-inclusive joints, subdivided sweeps included; `jointLimitFlags` for the
+programmed display through a `flags` worker op) and the controller draws
+the flagged pairs as per-chunk index subsets (`buildOverlays`, prefix sum so
+a decimated LOD chord over an excursion stays yellow) — no clip planes, no
+box gate. A limits change re-runs the transform; no limits = no overlay
+(unchecked ≠ clean). The validator's per-line count stays the HUD chip. The box never hangs
 under the rotating work group (7a04909 moved the planes but not the mesh —
 "yellow while inside the box"). A stale path is ONE neutral grey
 (`--bg` lifted toward `--fg` by `--opacity-disabled`, opaque) with the

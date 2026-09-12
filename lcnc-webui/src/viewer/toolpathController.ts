@@ -3,8 +3,11 @@
 // The largest controller: owns the rendered program preview — feed + rapid
 // polylines drawn as CHUNKS (viewer/lineChunks.ts: a few dozen contiguous
 // index ranges over ONE shared position attribute, each its own object with an
-// explicit bounding box so frustum culling and the outside-bounds overlay
-// gate work per chunk), the highlight line (shares feed's position attribute,
+// explicit bounding sphere so frustum culling and display LOD work per
+// chunk; the outside-limits overlay is a per-chunk index SUBSET of the pairs
+// touching a vertex the producing worker flagged beyond a joint limit —
+// joint-side, TLO-inclusive, no clip planes), the highlight line (shares
+// feed's position attribute,
 // independent drawRange), the toolpath bounding box + axis labels + out-of-
 // bounds edges, the source-line→point-range map, and the machine-bounds
 // overflow check.
@@ -14,10 +17,10 @@
 // label registry, the troika label factory, the live colour getter, the
 // disposeObject helper, and the overflow ref the HUD reads. Per-call ToolpathCtx
 // carries the REASSIGNED scene-graph pointers (scene/workOrigin/workRotGroup)
-// plus per-program data (pathAlwaysOnTop/machineBounds/units) — never cached.
+// plus per-program data (pathAlwaysOnTop/units) — never cached.
 import * as THREE from "three";
 import { buildLineIndex, emptyLineIndex, lineHas, lineRange, type LineIndex } from "./lineIndex";
-import { binPairs, boxInsideBounds, buildFrameIndex, CHUNK_MAX, chunkBounds, chunkGrid, cumulativeDistances, splitPairsByFrame, unionBounds } from "./lineChunks";
+import { binPairs, buildFrameIndex, CHUNK_MAX, chunkBounds, chunkGrid, cumulativeDistances, splitPairsByFrame, unionBounds } from "./lineChunks";
 import type { AnchorTerms } from "./partFrame";
 import type { Ref } from "vue";
 import type { Text } from "troika-three-text";
@@ -65,11 +68,6 @@ export interface ToolpathCtx {
   pathAnchor: THREE.Group | null;
   /** XY-rotation child of pathAnchor — the lines' actual parent. */
   pathRot: THREE.Group | null;
-  /** The MACHINE frame node: the work group's frame with every rotary DOF
-   *  of the work chain at zero (= machine coordinates by the machine.json
-   *  convention). The machine-bounds box lives here; the overlay gate
-   *  transforms each chunk's box into it. null = no gate (overlays drawn). */
-  machineFrame: THREE.Object3D | null;
   /** Room-fixed parents (2026-09-11), one-to-one with the table side:
    *  roomOrigin/roomRotGroup follow the LIVE offsets (programmed path),
    *  roomAnchor/roomRot are posed by apply() from a bake's own terms. All
@@ -79,7 +77,6 @@ export interface ToolpathCtx {
   roomAnchor: THREE.Group | null;
   roomRot: THREE.Group | null;
   pathAlwaysOnTop: boolean;
-  machineBounds: { origin: Vec3; size: Vec3 } | undefined;
   units: string | undefined;
 }
 
@@ -90,14 +87,11 @@ export interface ToolpathController {
    *  the same call. null = raw program coordinates (no bake): the lines hang
    *  under the LIVE workRotGroup, whose re-add IS the transform. */
   apply(ctx: ToolpathCtx, g: ViewerGcode, anchor?: AnchorTerms | null): void;
-  /** Per rendered frame, before renderer.render: decides which chunks need
-   *  their outside-bounds overlay drawn (a chunk whose box lies entirely
-   *  inside the machine bounds — in the machine frame, at the CURRENT pose
-   *  of its parent — shows no outside segment, so its overlay object is
-   *  hidden), picks each chunk's display LOD level from the world size of a
-   *  device pixel at its distance (`heightPx` = drawing-buffer height), and
-   *  counts the chunks inside the camera frustum for the perf probe. ~100
-   *  box/sphere tests; cheaper than tracking dirtiness. */
+  /** Per rendered frame: picks each chunk's display LOD level from the
+   *  world size of a device pixel at its distance (`heightPx` =
+   *  drawing-buffer height; a level switch flips visibility) and counts the
+   *  chunks inside the camera frustum for the perf probe. ~100 sphere
+   *  tests; cheaper than tracking dirtiness. */
   updateCulling(ctx: ToolpathCtx, camera: THREE.Camera, heightPx?: number): void;
   setHighlight(curLine: number | null): void;
   /** Positional highlight (review P3): light the drawn-feed vertices whose
@@ -118,6 +112,11 @@ export interface ToolpathController {
    *  writes only — never alpha (GPU cost, see ToolpathDeps.staleOpacity);
    *  call again after a theme change. */
   setStale(on: boolean): void;
+  /** Outside-limits verdict per drawn vertex for the CURRENT lines, arriving
+   *  after apply (programmed display: the worker's flags reply). Rebuilds the
+   *  overlays in place; an array whose length is not the vertex count is
+   *  dropped loudly. undefined = unchecked (overlays cleared). */
+  setOutsideFlags(feed: Uint8Array | undefined, rapid: Uint8Array | undefined): void;
   /** Drop all refs WITHOUT disposing — clearScene already freed the objects.
    *  Parallel to surfaceController.forgetAfterSceneClear (H6): stale refs
    *  would keep feedSegs/updateOverflow reporting the disposed program and
@@ -165,8 +164,9 @@ const HL_CAP = 1 << 15;   // pairs per highlight (a line run is far smaller; bey
  *  buffer: Three only deletes a geometry's CURRENT index on dispose). */
 interface Chunk {
   lines: THREE.LineSegments[];             // per level
-  overlays: (THREE.LineSegments | null)[]; // per level
+  overlays: (THREE.LineSegments | null)[]; // per level — null where nothing is flagged
   counts: number[];                        // index entries per level (0 = nothing at that level)
+  ovCounts: number[];                      // flagged index entries per level
   level: number;
 }
 
@@ -175,11 +175,13 @@ interface LineSet {
   frame: 0 | 1;
   parent: THREE.Group;
   mat: THREE.LineBasicMaterial | THREE.LineDashedMaterial;
-  overMat: THREE.LineBasicMaterial | null;
+  overMat: THREE.LineBasicMaterial | null;  // built with the overlays (buildOverlays)
   bounds: Float32Array;                  // 6 per chunk (union over levels), parent-local coordinates
   tols: number[];                        // tolerance of level k ≥ 1 (machine units)
   chunks: Chunk[];
-  overlayNeeded: Uint8Array;             // 1 until the gate proves the chunk inside
+  posAttr: THREE.BufferAttribute;        // the shared vertices (overlays rebuild from them)
+  levels: ReturnType<typeof binPairs>[]; // binned pairs per level, chunk order (level 0 first)
+  used: number[];                        // grid cell of each chunk
   pairs: number;                         // level-0 segments
 }
 
@@ -194,8 +196,6 @@ const _camPos = new THREE.Vector3();
 const _frustum = new THREE.Frustum();
 const _projView = new THREE.Matrix4();
 const _camInv = new THREE.Matrix4();
-const _mfInv = new THREE.Matrix4();
-const _toMachine = new THREE.Matrix4();
 
 function sphereOfBox(b: Float32Array, o: number): THREE.Sphere {
   if (b[o]! > b[o + 3]!) return new THREE.Sphere(new THREE.Vector3(), 0);
@@ -271,6 +271,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     stream: "feed" | "rapid", frame: 0 | 1, parent: THREE.Group,
     posAttr: THREE.BufferAttribute, index0: Uint32Array, lod: Uint32Array[], tols: number[],
     colorHex: string, dashed: boolean, distAttr: THREE.BufferAttribute | null,
+    outside: Uint8Array | null,
   ): LineSet | null {
     if (index0.length < 2) return null;
     let mat: THREE.LineBasicMaterial | THREE.LineDashedMaterial;
@@ -281,19 +282,6 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     }
     mat.depthTest = !pathAlwaysOnTop;
     mat.depthWrite = false;
-    // Plain yellow overlay sharing each chunk's geometry, clipped to show only
-    // the part outside the machine bounds. Solid, opaque (2026-09-11,
-    // operator's call): the dashed version read as solid yellow from afar
-    // anyway (a 5 mm dash period is sub-pixel there) and as a yellow/base
-    // mixture up close, and it cost a per-vertex dash-distance array plus a
-    // blended second pass over every segment. Per chunk, updateCulling hides
-    // it wherever the chunk cannot be outside.
-    const overMat = deps.boundsClipPlanes.length > 0
-      ? new THREE.LineBasicMaterial({
-          color: 0xffcc00, depthTest: !pathAlwaysOnTop, depthWrite: false,
-          clipIntersection: true, clippingPlanes: deps.boundsClipPlanes,
-        })
-      : null;
     // Dashed rapids need a per-vertex distance; the worker precomputes it
     // (P4.1), the legacy/WS path gets it here (indexed geometry cannot use
     // Three's computeLineDistances).
@@ -320,13 +308,12 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       }
     }
     const set: LineSet = {
-      stream, frame, parent, mat, overMat, bounds, tols: tols.slice(0, levels.length - 1),
-      chunks: [], overlayNeeded: new Uint8Array(used.length).fill(1),
-      pairs: index0.length >> 1,
+      stream, frame, parent, mat, overMat: null, bounds, tols: tols.slice(0, levels.length - 1),
+      chunks: [], posAttr, levels, used, pairs: index0.length >> 1,
     };
     for (let ci = 0; ci < used.length; ci++) {
       const cell = used[ci]!;
-      const chunk: Chunk = { lines: [], overlays: [], counts: [], level: 0 };
+      const chunk: Chunk = { lines: [], overlays: [], counts: [], ovCounts: [], level: 0 };
       for (let k = 0; k < levels.length; k++) {
         const range = levels[k]!.plan[cell]!;
         const geom = new THREE.BufferGeometry();
@@ -344,20 +331,80 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
         line.visible = toolpathVisible && k === 0 && range.count > 0;
         parent.add(line);
         chunk.lines.push(line);
-        let ov: THREE.LineSegments | null = null;
-        if (overMat) {
-          ov = new THREE.LineSegments(geom, overMat);
-          ov.renderOrder = 10;
-          ov.frustumCulled = true;
-          ov.visible = line.visible;
-          parent.add(ov);
-        }
-        chunk.overlays.push(ov);
+        chunk.overlays.push(null);
+        chunk.ovCounts.push(0);
         chunk.counts.push(range.count);
       }
       set.chunks.push(chunk);
     }
+    buildOverlays(set, outside);
     return set;
+  }
+
+  /** Outside-limits overlays (2026-09-12): per chunk and LOD level, the
+   *  index pairs touching a flagged vertex — a level-k pair (a, b) stands
+   *  for the run a..b of full-resolution vertices, so it is flagged when
+   *  ANY vertex of that run is (prefix sum), and a decimated chord over an
+   *  excursion stays yellow. Plain yellow, opaque, its own index buffer per
+   *  level sharing the chunk's vertices; no clip planes and no box gate:
+   *  the verdict is the producing worker's joint-side one per vertex (the
+   *  drawn path is the TOOL TIP, the limits bound the JOINTS — a tip-vs-box
+   *  comparison was off by the tool length and the tilt lever). null =
+   *  unchecked: nothing drawn. Rebuilds in place (programmed display gets
+   *  its flags after apply). */
+  function buildOverlays(s: LineSet, outside: Uint8Array | null) {
+    for (const ch of s.chunks) {
+      for (const o of ch.overlays) {
+        if (!o) continue;
+        o.parent?.remove(o);
+        o.geometry.dispose();
+      }
+      ch.overlays = ch.lines.map(() => null);
+      ch.ovCounts = ch.lines.map(() => 0);
+    }
+    s.overMat?.dispose();
+    s.overMat = null;
+    const nV = s.posAttr.count;
+    if (!outside || outside.length !== nV) return;
+    const pre = new Uint32Array(nV + 1);
+    for (let i = 0; i < nV; i++) pre[i + 1] = pre[i]! + (outside[i] ? 1 : 0);
+    if (pre[nV] === 0) return;
+    s.overMat = new THREE.LineBasicMaterial({ color: 0xffcc00, depthTest: !pathAlwaysOnTop, depthWrite: false });
+    const nC = s.used.length;
+    const starts = new Uint32Array(nC), counts = new Uint32Array(nC);
+    for (let k = 0; k < s.levels.length; k++) {
+      const { index, plan } = s.levels[k]!;
+      const flagged = new Uint32Array(index.length);
+      let w = 0;
+      for (let ci = 0; ci < nC; ci++) {
+        const r = plan[s.used[ci]!]!;
+        starts[ci] = w;
+        for (let q = r.start; q < r.start + r.count; q += 2) {
+          const a = index[q]!, b = index[q + 1]!;
+          const lo = a < b ? a : b, hi = a < b ? b : a;
+          if (pre[hi + 1]! - pre[lo]! > 0) { flagged[w++] = a; flagged[w++] = b; }
+        }
+        counts[ci] = w - starts[ci]!;
+      }
+      if (w === 0) continue;
+      const attr = new THREE.BufferAttribute(flagged.slice(0, w), 1);
+      for (let ci = 0; ci < nC; ci++) {
+        if (counts[ci] === 0) continue;
+        const ch = s.chunks[ci]!;
+        const geom = new THREE.BufferGeometry();
+        geom.setAttribute("position", s.posAttr);
+        geom.setIndex(attr);
+        geom.setDrawRange(starts[ci]!, counts[ci]!);
+        geom.boundingSphere = sphereOfBox(s.bounds, ci * 6);
+        const ov = new THREE.LineSegments(geom, s.overMat);
+        ov.renderOrder = 10;
+        ov.frustumCulled = true;
+        ov.visible = false;
+        s.parent.add(ov);
+        ch.overlays[k] = ov;
+        ch.ovCounts[k] = counts[ci]!;
+      }
+    }
   }
 
   function rebuildOverflowEdges(size: Vec3, offset: Vec3): THREE.LineSegments | null {
@@ -523,15 +570,15 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
   }
 
   /** Only the chunk's current level draws; the overlay of that level only
-   *  where the gate says the chunk can be outside the bounds, and never
-   *  while the path is stale (its bounds verdict is stale too). */
+   *  where it has flagged pairs, and never while the path is stale (its
+   *  limits verdict is stale too). */
   function _chunkVis(s: LineSet, ci: number) {
     const ch = s.chunks[ci]!;
     for (let k = 0; k < ch.lines.length; k++) {
       const on = toolpathVisible && k === ch.level && ch.counts[k]! > 0;
       ch.lines[k]!.visible = on;
       const ov = ch.overlays[k];
-      if (ov) ov.visible = on && !pathStale && s.overlayNeeded[ci] === 1;
+      if (ov) ov.visible = on && !pathStale && (ch.ovCounts[k] ?? 0) > 0;
     }
   }
 
@@ -646,6 +693,13 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       // each frame's pairs as one chunked set under its own parent.
       const roomMaskOf = (m: Uint8Array | undefined, n: number): Uint8Array | null =>
         (roomParent && m instanceof Uint8Array && m.length === n) ? m : null;
+      // Outside-limits flags must address THESE vertices; a length mismatch
+      // (flags from another vertex set) is dropped loudly, never misdrawn.
+      const outsideOf = (m: Uint8Array | undefined, n: number, stream: string): Uint8Array | null => {
+        if (!(m instanceof Uint8Array)) return null;
+        if (m.length !== n) { console.warn(`[toolpath] ${stream} outside flags (${m.length}) do not match the drawn vertices (${n}) — overlay dropped`); return null; }
+        return m;
+      };
       // Display LOD levels the producing worker cut over these vertices (see
       // lineChunks.buildLodLevels), split per frame here; absent = level 0.
       const lodTols = Array.isArray(g.lodTols) ? g.lodTols.filter(t => typeof t === "number" && t > 0) : [];
@@ -668,9 +722,10 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
         const fi = buildFrameIndex(n, g.feedBreaks ?? null, rm);
         _frameMixed += fi.mixed;
         const lv = levelsByFrame(g.feedLod, rm);
-        const st = makeSet("feed", 0, lineParent, feedPosAttr, fi.table, lv.table, lodTols, feedColor, false, null);
+        const ov = outsideOf(g.feedOutside, n, "feed");
+        const st = makeSet("feed", 0, lineParent, feedPosAttr, fi.table, lv.table, lodTols, feedColor, false, null, ov);
         if (st) sets.push(st);
-        const sr = roomParent ? makeSet("feed", 1, roomParent, feedPosAttr, fi.room, lv.room, lodTols, feedColor, false, null) : null;
+        const sr = roomParent ? makeSet("feed", 1, roomParent, feedPosAttr, fi.room, lv.room, lodTols, feedColor, false, null, ov) : null;
         if (sr) sets.push(sr);
         feedIsBreak = new Uint8Array(n);
         if (g.feedBreaks) for (const b of g.feedBreaks) if (b < n) feedIsBreak[b] = 1;
@@ -688,9 +743,10 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
         const fi = buildFrameIndex(n, g.rapidBreaks ?? null, rm);
         _frameMixed += fi.mixed;
         const lv = levelsByFrame(g.rapidLod, rm);
-        const st = makeSet("rapid", 0, lineParent, rapidPosAttr, fi.table, lv.table, lodTols, rapidColor, true, distAttr);
+        const ov = outsideOf(g.rapidOutside, n, "rapid");
+        const st = makeSet("rapid", 0, lineParent, rapidPosAttr, fi.table, lv.table, lodTols, rapidColor, true, distAttr, ov);
         if (st) sets.push(st);
-        const sr = roomParent ? makeSet("rapid", 1, roomParent, rapidPosAttr, fi.room, lv.room, lodTols, rapidColor, true, distAttr) : null;
+        const sr = roomParent ? makeSet("rapid", 1, roomParent, rapidPosAttr, fi.room, lv.room, lodTols, rapidColor, true, distAttr, ov) : null;
         if (sr) sets.push(sr);
       }
       // Every drawn segment room-fixed ⇒ the bounds box rides the room parent.
@@ -771,7 +827,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       deps.requestRender();
     },
 
-    updateCulling(ctx, camera, heightPx = 1000) {
+    updateCulling(_ctx, camera, heightPx = 1000) {
       if (sets.length === 0) { _chunksVisible = _overlayChunks = 0; _lodMin = _lodMax = 0; return; }
       camera.updateMatrixWorld();
       _camInv.copy(camera.matrixWorld).invert();
@@ -786,27 +842,14 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       const tanHalf = persp ? Math.tan(THREE.MathUtils.degToRad(pc.fov) / 2) : 0;
       const h = Math.max(1, heightPx);
       const orthoWupp = (!persp && oc.isOrthographicCamera) ? Math.abs(oc.top - oc.bottom) / (oc.zoom || 1) / h : 0;
-      const mf = ctx.machineFrame;
-      const mb = ctx.machineBounds;
-      const gate = !!(mf && mb?.origin && mb?.size && deps.boundsClipPlanes.length > 0);
-      if (gate) {
-        mf!.updateWorldMatrix(true, false);
-        _mfInv.copy(mf!.matrixWorld).invert();
-      }
       let visible = 0, overlaysOn = 0, lodMin = Infinity, lodMax = 0;
       for (const s of sets) {
         s.parent.updateWorldMatrix(true, false);
-        if (gate) _toMachine.multiplyMatrices(_mfInv, s.parent.matrixWorld);
         for (let ci = 0; ci < s.chunks.length; ci++) {
           const ch = s.chunks[ci]!;
           _sph.copy(ch.lines[0]!.geometry.boundingSphere!).applyMatrix4(s.parent.matrixWorld);
           if (_frustum.intersectsSphere(_sph)) visible++;
           let changed = false;
-          if (gate) {
-            const need = !boxInsideBounds(s.bounds, ci * 6, _toMachine.elements, mb!.origin, mb!.size);
-            const nv = need ? 1 : 0;
-            if (nv !== s.overlayNeeded[ci]) { s.overlayNeeded[ci] = nv; changed = true; }
-          }
           // LOD: the coarsest level whose tolerance is under LOD_PX device
           // pixels at the chunk's NEAREST point (conservative); stepping back
           // to a finer level only once the current one clearly exceeds it.
@@ -916,6 +959,17 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       if (c.rapid) _rapidBase.set(c.rapid);
       if (toolpathBoundsBox && c.toolpathBounds) (toolpathBoundsBox.material as THREE.LineBasicMaterial).color.set(c.toolpathBounds);
       _applyStale();   // the drawn colour is the base or its muted mix — one writer
+    },
+
+    setOutsideFlags(feed, rapid) {
+      for (const s of sets) {
+        const m = s.stream === "feed" ? feed : rapid;
+        const n = s.posAttr.count;
+        if (m && m.length !== n) console.warn(`[toolpath] ${s.stream} outside flags (${m.length}) do not match the drawn vertices (${n}) — overlay dropped`);
+        buildOverlays(s, (m instanceof Uint8Array && m.length === n) ? m : null);
+      }
+      _applyVisibility();
+      deps.requestRender();
     },
 
     forgetAfterSceneClear() {

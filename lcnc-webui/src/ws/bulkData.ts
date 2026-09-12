@@ -328,6 +328,13 @@ export interface ViewerGcode {
    *  everything rides (legacy / no boundary / no work-chain rotary). */
   feedRoom?: Uint8Array;
   rapidRoom?: Uint8Array;
+  /** Outside-soft-limits verdict per drawn vertex (2026-09-12, from the
+   *  part-frame worker: the TLO-inclusive joints of every baked sample —
+   *  or, in programmed display, of every programmed vertex — against the
+   *  live `joint_limits`). Absent = unchecked (no limits, legacy payload,
+   *  or the flags reply still in flight). */
+  feedOutside?: Uint8Array;
+  rapidOutside?: Uint8Array;
   /** Display LOD levels (viewer/lineChunks.ts decimatePairs): per level ≥ 1
    *  the decimated segment PAIRS over the same drawn vertices (both frames
    *  concatenated; the renderer splits by frame and bins by cell), and the

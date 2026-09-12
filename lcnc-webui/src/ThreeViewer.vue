@@ -552,7 +552,7 @@ watch(effectiveBounds, (mb) => {
 const _toolpathCtx: ToolpathCtx = {
   scene: null, workOrigin: null, workRotGroup: null, pathAnchor: null, pathRot: null,
   machineFrame: null, roomOrigin: null, roomRotGroup: null, roomAnchor: null, roomRot: null,
-  pathAlwaysOnTop: false, machineBounds: undefined, units: undefined,
+  pathAlwaysOnTop: false, units: undefined,
 };
 function toolpathCtx(): ToolpathCtx {
   _toolpathCtx.scene = scene;
@@ -560,13 +560,11 @@ function toolpathCtx(): ToolpathCtx {
   _toolpathCtx.workRotGroup = workRotGroup;
   _toolpathCtx.pathAnchor = pathAnchor;
   _toolpathCtx.pathRot = pathRot;
-  _toolpathCtx.machineFrame = machineFrameGrp;
   _toolpathCtx.roomOrigin = roomOrigin;
   _toolpathCtx.roomRotGroup = roomRotGroup;
   _toolpathCtx.roomAnchor = roomAnchor;
   _toolpathCtx.roomRot = roomRot;
   _toolpathCtx.pathAlwaysOnTop = pathAlwaysOnTop;
-  _toolpathCtx.machineBounds = _effectiveBounds ?? viewerInit.value?.machine_bounds;
   _toolpathCtx.units = viewerInit.value?.units;
   return _toolpathCtx;
 }
@@ -1922,7 +1920,25 @@ function _pfGetWorker(): Worker {
   if (!_pfWorker) {
     _pfWorker = new Worker(new URL("./viewer/partFrameWorker.ts", import.meta.url), { type: "module" });
     _pfWorker.onmessage = (ev: MessageEvent) => {
-      const m = ev.data as { id: number; error?: string; needPayload?: number; feedPos?: Float32Array; feedLines?: Uint32Array; feedLineIndex?: LineIndex; rapidPos?: Float32Array; rapidDist?: Float32Array; feedBreaks?: Uint32Array; rapidBreaks?: Uint32Array; feedSrc?: Uint32Array; feedRoom?: Uint8Array; rapidRoom?: Uint8Array; frameFlips?: number; feedLod?: Uint32Array[]; rapidLod?: Uint32Array[]; lodTols?: number[]; lodMs?: number };
+      const m = ev.data as { id: number; op?: string; error?: string; needPayload?: number; feedPos?: Float32Array; feedLines?: Uint32Array; feedLineIndex?: LineIndex; rapidPos?: Float32Array; rapidDist?: Float32Array; feedBreaks?: Uint32Array; rapidBreaks?: Uint32Array; feedSrc?: Uint32Array; feedRoom?: Uint8Array; rapidRoom?: Uint8Array; frameFlips?: number; feedOutside?: Uint8Array; rapidOutside?: Uint8Array; feedLod?: Uint32Array[]; rapidLod?: Uint32Array[]; lodTols?: number[]; lodMs?: number };
+      if (m.op === "flags") {
+        // Programmed-display outside-limits flags (2026-09-12): their own
+        // id space; they address the vertices apply() drew last.
+        if (m.id !== _pfFlagsReqId) return;
+        const g0 = viewerGcode.value;
+        if (!g0) return;
+        if (m.needPayload != null) {
+          if (_pfFlagsRetried) { console.error("[partFrame] flags: worker lost the payload twice — no outside-limits overlay"); return; }
+          _pfFlagsRetried = true;
+          _pfLoadedFor = null;
+          _pfRequestFlags(g0);
+          return;
+        }
+        if (m.error) { console.error("[partFrame] flags failed — no outside-limits overlay:", m.error); return; }
+        toolpath.setOutsideFlags(m.feedOutside, m.rapidOutside);
+        requestRender();
+        return;
+      }
       if (m.id !== _pfReqId) return;  // superseded
       _pfPending = false;
       const g = viewerGcode.value;
@@ -1949,6 +1965,8 @@ function _pfGetWorker(): Worker {
         // Room split (2026-09-11): per drawn vertex, baked room-fixed or on
         // the part; absent when the transform had no boundary to apply.
         feedRoom: m.feedRoom, rapidRoom: m.rapidRoom,
+        // Joint-side outside-limits verdict per baked sample (2026-09-12).
+        feedOutside: m.feedOutside, rapidOutside: m.rapidOutside,
         // Display LOD levels cut over the BAKED vertices (the payload's own
         // levels address the programmed vertices, a different space).
         feedLod: m.feedLod, rapidLod: m.rapidLod, lodTols: m.lodTols, lodMs: m.lodMs,
@@ -2467,33 +2485,7 @@ function applyGcode(g: ViewerGcode) {
     _pfAnchorFor = { id, anchor: anchorTerms(_pfWcs()) };
     try {
       const w = _pfGetWorker();
-      if (_pfLoadedFor !== g) {
-        // New program (or a recreated worker): ship the streams ONCE.
-        // Copies: the transfer must not detach viewerGcode's raw buffers —
-        // they are still read by the programmed-mode path and the sweep.
-        const fp = g.feedPos ?? new Float32Array(0);
-        const fa = g.feedAbc && g.feedAbc.length === fp.length ? g.feedAbc : new Float32Array(fp.length);
-        const fl = g.feed_lines instanceof Uint32Array ? g.feed_lines : undefined;
-        const rp = g.rapidPos ?? new Float32Array(0);
-        const ra = g.rapidAbc && g.rapidAbc.length === rp.length ? g.rapidAbc : new Float32Array(rp.length);
-        const feed = { pos: fp.slice(), abc: fa.slice(), lines: fl?.slice(), breaks: g.feedBreaks?.slice(),
-                       mode: g.feedMode?.slice(), frame: g.feedFrame?.slice(), frames: g.kinsFrames,
-                       wcs: g.feedWcs?.slice(), src: g.feedSrc?.slice(), tlo: g.feedTlo?.slice() };
-        const rapid = { pos: rp.slice(), abc: ra.slice(), breaks: g.rapidBreaks?.slice(),
-                        mode: g.rapidMode?.slice(), frame: g.rapidFrame?.slice(), frames: g.kinsFrames,
-                        wcs: g.rapidWcs?.slice(), src: g.rapidSrc?.slice(), tlo: g.rapidTlo?.slice() };
-        const transfer: ArrayBuffer[] = [
-          feed.pos.buffer as ArrayBuffer, feed.abc.buffer as ArrayBuffer,
-          rapid.pos.buffer as ArrayBuffer, rapid.abc.buffer as ArrayBuffer,
-        ];
-        for (const a of [feed.lines, feed.breaks, rapid.breaks, feed.mode, rapid.mode, feed.frame, rapid.frame,
-                         feed.wcs, rapid.wcs, feed.src, rapid.src, feed.tlo, rapid.tlo]) {
-          if (a) transfer.push(a.buffer as ArrayBuffer);
-        }
-        _pfPayloadId++;
-        w.postMessage({ op: "load", payloadId: _pfPayloadId, streams: { feed, rapid } }, transfer);
-        _pfLoadedFor = g;
-      }
+      _pfEnsureLoaded(w, g);
       w.postMessage({
         op: "transform", id, payloadId: _pfPayloadId,
         machine: _pfMachine(viewerInit.value!), wcs: _pfWcs(),
@@ -2506,6 +2498,9 @@ function applyGcode(g: ViewerGcode) {
         // Room split (2026-09-11): how many leading track points inherit
         // every work-chain rotary — those identity vertices bake room-fixed.
         roomEnd: _roomEnd(g),
+        // Live joint limits (2026-09-12): the joint-side outside verdict
+        // per baked sample rides the reply.
+        jointLimits: _jointLimitsPlain(),
       });
     } catch (err) {
       // A failed post must NEVER leave the viewer with no toolpath — fall
@@ -2520,14 +2515,80 @@ function applyGcode(g: ViewerGcode) {
   ++_pfReqId;  // invalidate any in-flight part-frame reply
   _pfPending = false;
   // Owned by toolpathController; pass a fresh ctx with the reassigned
-  // scene-graph pointers + per-program machine bounds/units.
+  // scene-graph pointers + per-program units.
   _applyProgrammed(g);
+  // The programmed vertices' joint-side outside verdict (2026-09-12) comes
+  // from the worker against the resident streams; it lands after apply.
+  _pfFlagsRetried = false;
+  _pfRequestFlags(g);
+}
+
+/** Ship the streams to the worker ONCE per program (or per recreated
+ *  worker). Copies: the transfer must not detach viewerGcode's raw buffers —
+ *  they are still read by the programmed-mode path and the sweep. */
+function _pfEnsureLoaded(w: Worker, g: ViewerGcode) {
+  if (_pfLoadedFor === g) return;
+  const fp = g.feedPos ?? new Float32Array(0);
+  const fa = g.feedAbc && g.feedAbc.length === fp.length ? g.feedAbc : new Float32Array(fp.length);
+  const fl = g.feed_lines instanceof Uint32Array ? g.feed_lines : undefined;
+  const rp = g.rapidPos ?? new Float32Array(0);
+  const ra = g.rapidAbc && g.rapidAbc.length === rp.length ? g.rapidAbc : new Float32Array(rp.length);
+  const feed = { pos: fp.slice(), abc: fa.slice(), lines: fl?.slice(), breaks: g.feedBreaks?.slice(),
+                 mode: g.feedMode?.slice(), frame: g.feedFrame?.slice(), frames: g.kinsFrames,
+                 wcs: g.feedWcs?.slice(), src: g.feedSrc?.slice(), tlo: g.feedTlo?.slice() };
+  const rapid = { pos: rp.slice(), abc: ra.slice(), breaks: g.rapidBreaks?.slice(),
+                  mode: g.rapidMode?.slice(), frame: g.rapidFrame?.slice(), frames: g.kinsFrames,
+                  wcs: g.rapidWcs?.slice(), src: g.rapidSrc?.slice(), tlo: g.rapidTlo?.slice() };
+  const transfer: ArrayBuffer[] = [
+    feed.pos.buffer as ArrayBuffer, feed.abc.buffer as ArrayBuffer,
+    rapid.pos.buffer as ArrayBuffer, rapid.abc.buffer as ArrayBuffer,
+  ];
+  for (const a of [feed.lines, feed.breaks, rapid.breaks, feed.mode, rapid.mode, feed.frame, rapid.frame,
+                   feed.wcs, rapid.wcs, feed.src, rapid.src, feed.tlo, rapid.tlo]) {
+    if (a) transfer.push(a.buffer as ArrayBuffer);
+  }
+  _pfPayloadId++;
+  w.postMessage({ op: "load", payloadId: _pfPayloadId, streams: { feed, rapid } }, transfer);
+  _pfLoadedFor = g;
+}
+
+/** The live per-joint limits as plain arrays (structured clone refuses Vue
+ *  proxies); null when the status carries none — the worker then emits no
+ *  verdict and the overlay stays empty (unchecked ≠ clean). */
+function _jointLimitsPlain(): (number[] | null)[] | null {
+  const jl = vst.value?.joint_limits as unknown;
+  if (!Array.isArray(jl)) return null;
+  return jl.map(p => (Array.isArray(p) && p.length === 2 && typeof p[0] === "number" && typeof p[1] === "number")
+    ? [p[0], p[1]] : null);
+}
+
+let _pfFlagsReqId = 0;
+let _pfFlagsRetried = false;
+/** Programmed display: ask the worker for the outside-limits flags of the
+ *  programmed vertices (the resident streams), applied on reply through
+ *  toolpath.setOutsideFlags. */
+function _pfRequestFlags(g: ViewerGcode) {
+  const init = viewerInit.value;
+  if (!init) return;
+  const id = ++_pfFlagsReqId;
+  try {
+    const w = _pfGetWorker();
+    _pfEnsureLoaded(w, g);
+    w.postMessage({
+      op: "flags", id, payloadId: _pfPayloadId,
+      machine: _pfMachine(init), wcs: _pfWcs(),
+      wcsEvents: g.wcsEvents, wcsTable: _pv.wcsTable ?? undefined, tloEvents: g.tloEvents,
+      jointLimits: _jointLimitsPlain(),
+    });
+  } catch (err) {
+    console.error("[partFrame] flags request failed — no outside-limits overlay:", err);
+  }
 }
 
 // Part-frame vertices depend on the pivot position relative to the live work
 // origin, so a WCS change (touch-off, G10, G92, rotation) re-transforms —
 // debounced, these change rarely and never mid-cut at speed.
-function _pfScheduleWcsRefresh() {
+function _pfScheduleWcsRefresh(force = false) {
   // Epoch-aware programmed payloads (review P2) also re-apply on WCS/table
   // changes — but ONLY when the display rebase can differ from identity:
   // more than one epoch, a program-rewritten epoch 0, or an epoch-0
@@ -2535,8 +2596,9 @@ function _pfScheduleWcsRefresh() {
   // fixture live, so an identity rebase needs no geometry rebuild). W2 P5
   // gate fix: wcs_frames ships ≥1 row on every modern payload, so the old
   // bare length check re-ran a full rebuild of a 99k-point program on
-  // every G43 the toolchange sub issued.
-  if (_pfAppliedMode !== "part") {
+  // every G43 the toolchange sub issued. `force` (a joint-limits change)
+  // skips that shortcut: the outside verdict must be recomputed either way.
+  if (_pfAppliedMode !== "part" && !force) {
     const evs = viewerGcode.value?.wcsEvents;
     if (!evs?.length) return;
     if (evs.length === 1 && !evs[0]!.rewritten
@@ -2547,6 +2609,12 @@ function _pfScheduleWcsRefresh() {
     if (viewerGcode.value) applyGcode(viewerGcode.value);
   }, 300);
 }
+// Joint limits arriving or changing (rare: connect, a runtime window change)
+// re-derive the outside verdict for the current lines.
+watch(() => JSON.stringify(_jointLimitsPlain()), (cur, prev) => {
+  if (prev === undefined || cur === prev) return;
+  _pfScheduleWcsRefresh(true);
+});
 
 // ---------- lifecycle ----------
 let resizeObs: ResizeObserver | null = null;

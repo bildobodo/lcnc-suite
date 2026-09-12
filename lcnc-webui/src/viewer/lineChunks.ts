@@ -215,31 +215,6 @@ export function unionBounds(bounds: Float32Array): Float32Array {
   return out;
 }
 
-/** Whether a local box (6 floats at `o` in `bounds`), transformed by the
- *  column-major 4×4 `m` (THREE.Matrix4.elements layout), lies entirely
- *  inside the axis-aligned box [origin, origin + size]. Transforms the 8
- *  corners — exact for the rotated case and conservative for the overlay
- *  gate: "inside" means the chunk can show NO outside-bounds segment. An
- *  empty chunk is inside (nothing to draw). */
-export function boxInsideBounds(
-  bounds: Float32Array, o: number, m: ArrayLike<number>,
-  origin: ArrayLike<number>, size: ArrayLike<number>, eps = 1e-6,
-): boolean {
-  const minx = bounds[o]!, miny = bounds[o + 1]!, minz = bounds[o + 2]!;
-  const maxx = bounds[o + 3]!, maxy = bounds[o + 4]!, maxz = bounds[o + 5]!;
-  if (minx > maxx) return true;
-  const lox = origin[0]! - eps, loy = origin[1]! - eps, loz = origin[2]! - eps;
-  const hix = origin[0]! + size[0]! + eps, hiy = origin[1]! + size[1]! + eps, hiz = origin[2]! + size[2]! + eps;
-  for (let c = 0; c < 8; c++) {
-    const x = (c & 1) ? maxx : minx, y = (c & 2) ? maxy : miny, z = (c & 4) ? maxz : minz;
-    const wx = m[0]! * x + m[4]! * y + m[8]! * z + m[12]!;
-    const wy = m[1]! * x + m[5]! * y + m[9]! * z + m[13]!;
-    const wz = m[2]! * x + m[6]! * y + m[10]! * z + m[14]!;
-    if (wx < lox || wx > hix || wy < loy || wy > hiy || wz < loz || wz > hiz) return false;
-  }
-  return true;
-}
-
 /** Display LOD (2026-09-11 headroom wave, step 3): the 0.005 mm parse-time
  *  RDP keeps every 0.09 mm chord of a fine CAM post; at fit-to-view a
  *  Retina pixel is ~0.3 mm, so most of the 1.18 M segments are sub-pixel

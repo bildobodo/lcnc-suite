@@ -1,7 +1,6 @@
 // Unit tests for viewer/lineChunks.ts — the chunked-draw index arithmetic.
 import { describe, expect, it } from "vitest";
-import { binPairs, boxInsideBounds, buildFrameIndex, buildLodLevels, chunkBounds, chunkGrid, chunkPlan, cumulativeDistances, decimatePairs, envelopeDiagonal, LOD_TOL_FRAC, spatialChunks, splitPairsByFrame, unionBounds } from "./lineChunks";
-import * as THREE from "three";
+import { binPairs, buildFrameIndex, buildLodLevels, chunkBounds, chunkGrid, chunkPlan, cumulativeDistances, decimatePairs, envelopeDiagonal, LOD_TOL_FRAC, spatialChunks, splitPairsByFrame, unionBounds } from "./lineChunks";
 
 describe("buildFrameIndex", () => {
   it("pairs every consecutive vertex when there are no breaks", () => {
@@ -75,27 +74,6 @@ describe("cumulativeDistances", () => {
     const d = cumulativeDistances(new Float32Array([0, 0, 0, 3, 4, 0, 3, 4, 2]));
     expect(Array.from(d)).toEqual([0, 5, 7]);
     expect(cumulativeDistances(new Float32Array(0)).length).toBe(0);
-  });
-});
-
-describe("boxInsideBounds", () => {
-  const bounds = new Float32Array([0, 0, 0, 10, 10, 10]);
-  const I = new THREE.Matrix4().elements;
-  it("inside, straddling and outside with an identity transform", () => {
-    expect(boxInsideBounds(bounds, 0, I, [-1, -1, -1], [20, 20, 20])).toBe(true);
-    expect(boxInsideBounds(bounds, 0, I, [5, -1, -1], [20, 20, 20])).toBe(false);
-    expect(boxInsideBounds(bounds, 0, I, [50, 50, 50], [20, 20, 20])).toBe(false);
-  });
-  it("a rotated chunk is judged by its transformed corners", () => {
-    // Box [0,10]³ rotated 90° about Z lands in x ∈ [-10, 0]: outside a
-    // machine box starting at x = 0, inside one starting at x = -10.
-    const m = new THREE.Matrix4().makeRotationZ(Math.PI / 2).elements;
-    expect(boxInsideBounds(bounds, 0, m, [0, 0, 0], [20, 20, 20])).toBe(false);
-    expect(boxInsideBounds(bounds, 0, m, [-10, 0, 0], [20, 20, 20])).toBe(true);
-  });
-  it("an empty chunk is inside (nothing to draw); the epsilon absorbs float noise", () => {
-    expect(boxInsideBounds(new Float32Array([1, 1, 1, 0, 0, 0]), 0, I, [5, 5, 5], [1, 1, 1])).toBe(true);
-    expect(boxInsideBounds(bounds, 0, I, [0, 0, 0], [10 - 1e-9, 10, 10])).toBe(true);
   });
 });
 

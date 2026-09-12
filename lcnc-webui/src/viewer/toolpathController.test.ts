@@ -44,9 +44,8 @@ function makeCtx(over: Partial<ToolpathCtx> = {}): ToolpathCtx & { workRotGroup:
     workOrigin: new THREE.Group(),
     workRotGroup: new THREE.Group(),
     pathAnchor, pathRot,
-    machineFrame: null, roomOrigin: null, roomRotGroup: null, roomAnchor: null, roomRot: null,
+    roomOrigin: null, roomRotGroup: null, roomAnchor: null, roomRot: null,
     pathAlwaysOnTop: false,
-    machineBounds: { origin: [0, 0, 0], size: [100, 100, 100] },
     units: "mm",
     ...over,
   } as any;
@@ -193,21 +192,21 @@ describe("stale mute", () => {
     expect(feedMat().color.getHex()).toBe(0xff0000);
   });
 
-  it("the outside-bounds overlays are hidden while stale and come back per the gate", () => {
-    const d = { ...(deps as any), boundsClipPlanes: Array.from({ length: 6 }, () => new THREE.Plane()) };
-    const cc = createToolpathController(d);
-    const ctx = makeCtx({ machineFrame: new THREE.Group(), machineBounds: { origin: [50, 50, -1], size: [5, 5, 5] } });
-    cc.apply(ctx, GCODE);                       // the whole path is outside that box → overlays needed
+  it("the outside-limits overlays are hidden while stale and come back", () => {
+    const ctx = makeCtx();
+    // vertex 1 of feed and vertex 0 of rapid flagged → overlays in both streams
+    c.apply(ctx, { ...GCODE, feedOutside: new Uint8Array([0, 1, 0]), rapidOutside: new Uint8Array([1, 0]) });
     const overlays = () => ctx.workRotGroup.children.filter(o => (o as any).isLineSegments && o.renderOrder === 10
-      && (o as any).material.clippingPlanes?.length) as THREE.LineSegments[];
+      && (o as any).material.color.getHex() === 0xffcc00) as THREE.LineSegments[];
     const cam = new THREE.PerspectiveCamera(50, 1, 0.1, 1000); cam.position.set(5, 5, 100); cam.lookAt(5, 5, 0); cam.updateMatrixWorld();
-    cc.updateCulling(ctx, cam, 1000);
+    c.updateCulling(ctx, cam, 1000);
+    expect(overlays().length).toBeGreaterThan(0);
     expect(overlays().some(o => o.visible)).toBe(true);
-    cc.setStale(true);
+    c.setStale(true);
     expect(overlays().every(o => !o.visible)).toBe(true);
-    cc.updateCulling(ctx, cam, 1000);           // a culling pass while stale keeps them hidden
+    c.updateCulling(ctx, cam, 1000);            // a culling pass while stale keeps them hidden
     expect(overlays().every(o => !o.visible)).toBe(true);
-    cc.setStale(false);
+    c.setStale(false);
     expect(overlays().some(o => o.visible)).toBe(true);
   });
 
@@ -234,12 +233,12 @@ describe("overflow / visibility / colours", () => {
     // contradicted the validator (and the real run) on a G53 retract.
     // A geometrically "overflowing" bbox with a CLEAN validator must not
     // flag…
-    const ctx = makeCtx({ machineBounds: { origin: [0, 0, 0], size: [5, 5, 5] } });
-    c.apply(ctx, { ...GCODE, violations_total: 0 });
+    const ctx = makeCtx();
+    c.apply(ctx, { ...GCODE, violations_total: 0, feedOutside: new Uint8Array([1, 1, 1]) });
     expect(overflow.value).toBe(false);
-    // …and validator findings flag regardless of the box.
-    const ctx2 = makeCtx({ machineBounds: { origin: [0, 0, 0], size: [100, 100, 100] } });
-    c.apply(ctx2, { ...GCODE, violations_total: 3 });
+    // …and validator findings flag regardless of the geometry.
+    const ctx2 = makeCtx();
+    c.apply(ctx2, { ...GCODE, violations_total: 3, feedOutside: new Uint8Array([0, 0, 0]) });
     expect(overflow.value).toBe(true);
   });
 
@@ -247,7 +246,7 @@ describe("overflow / visibility / colours", () => {
     // null/absent = the INI had no limits to check against — unchecked ≠
     // clean, and the stats dialog says "Not validated"; the HUD must not
     // claim either way.
-    const ctx = makeCtx({ machineBounds: { origin: [0, 0, 0], size: [5, 5, 5] } });
+    const ctx = makeCtx();
     c.apply(ctx, { ...GCODE, violations_total: undefined });
     expect(overflow.value).toBe(false);
   });
@@ -370,13 +369,13 @@ describe("baked-toolpath anchor (2026-09-03 run-time jump)", () => {
 });
 
 describe("chunked draw (2026-09-11 headroom wave)", () => {
-  // Six fake clip planes stand in for the machine-bounds planes: their mere
-  // presence makes the controller build the outside-bounds overlays.
-  const PLANES = () => Array.from({ length: 6 }, () => new THREE.Plane());
+  // Overlays are the plain-yellow objects (2026-09-12: built from per-vertex
+  // outside flags, no clip planes); chunks are everything else at renderOrder 10.
+  const isOverlay = (o: THREE.Object3D) => (o as any).material?.color?.getHex?.() === 0xffcc00;
   const chunksOf = (g: THREE.Group) => g.children.filter(o => (o as any).isLineSegments && o.renderOrder === 10
-    && !((o as any).material.clippingPlanes?.length)) as THREE.LineSegments[];
+    && !isOverlay(o)) as THREE.LineSegments[];
   const overlaysOf = (g: THREE.Group) => g.children.filter(o => (o as any).isLineSegments && o.renderOrder === 10
-    && (o as any).material.clippingPlanes?.length) as THREE.LineSegments[];
+    && isOverlay(o)) as THREE.LineSegments[];
   const lookAt = (x: number, y: number, z: number, from: [number, number, number]) => {
     const cam = new THREE.PerspectiveCamera(50, 1, 0.1, 10000);
     cam.position.set(...from);
@@ -425,69 +424,90 @@ describe("chunked draw (2026-09-11 headroom wave)", () => {
     expect(cc.chunks).toBe(0);
   });
 
-  it("overlay gate: a chunk whose box lies inside the machine bounds draws no overlay; outside chunks keep it", () => {
-    const d = { ...(deps as any), boundsClipPlanes: PLANES() };
-    const cc = createToolpathController(d);
-    const mf = new THREE.Group();
-    // Path spans x 0..10, y 0..10, z 0..5 (feed + rapid). Bounds box x 0..6
-    // contains the first feed segment (0..10? no: 0..10 straddles) — use a
-    // program whose chunks separate cleanly: feed (0,0,0)-(2,0,0)-(2,2,0),
-    // rapid (50,50,0)-(60,50,0).
+  it("outside-limits overlays: per chunk, only the pairs touching a flagged vertex; none where nothing is flagged", () => {
+    const cc = createToolpathController({ ...(deps as any) });
+    // feed (0,0,0)-(2,0,0)-(2,2,0) → 2 chunks (one pair each); rapid (50,50,0)-(60,50,0) → 1 chunk
     const g = {
       feedPos: new Float32Array([0, 0, 0, 2, 0, 0, 2, 2, 0]),
       rapidPos: new Float32Array([50, 50, 0, 60, 50, 0]),
       feed_lines: [1, 2, 3],
       bounds: { min: [0, 0, 0], max: [60, 50, 0] },
+      feedOutside: new Uint8Array([0, 0, 1]),   // only vertex 2 → only the pair (1,2)
+      rapidOutside: new Uint8Array([0, 0]),
     } as any;
-    const ctx = makeCtx({ machineFrame: mf, machineBounds: { origin: [-1, -1, -1], size: [20, 20, 20] } });
+    const ctx = makeCtx();
     cc.apply(ctx, g);
     const ovs = overlaysOf(ctx.workRotGroup);
-    expect(ovs).toHaveLength(3);          // one per chunk, all drawn until the gate runs
-    expect(ovs.every(o => o.visible)).toBe(true);
+    expect(ovs).toHaveLength(1);
+    expect(ovs[0]!.geometry.drawRange.count).toBe(2);
+    expect(Array.from(ovs[0]!.geometry.index!.array).sort()).toEqual([1, 2]);
+    expect(ovs[0]!.geometry.attributes.position).toBe(chunksOf(ctx.workRotGroup)[0]!.geometry.attributes.position);
     cc.updateCulling(ctx, lookAt(5, 5, 0, [5, 5, 100]));
-    // overlays are solid LineBasic for both streams — tell the feed chunks
-    // (x ≤ 2) from the rapid chunk (x 50..60) by their spheres
-    const feedOvs = ovs.filter(o => o.geometry.boundingSphere!.center.x < 40);
-    expect(feedOvs).toHaveLength(2);
-    // the feed chunks (inside x,y ≤ 2) are gated off; the rapid chunk at x 50..60 stays
-    expect(feedOvs.every(o => o.visible === false)).toBe(true);
+    expect(ovs[0]!.visible).toBe(true);
     expect(cc.overlayChunks).toBe(1);
-    // move the machine box past x = 3 so both feed chunks (x 0..2, x = 2) fall
-    // outside it → their overlays come back on
-    ctx.machineBounds = { origin: [3, -1, -1], size: [20, 20, 20] };
+    // flags landing after apply (programmed display) rebuild the overlays in place
+    cc.setOutsideFlags(new Uint8Array([1, 0, 0]), new Uint8Array([1, 1]));
+    expect(ovs[0]!.parent).toBeNull();                       // the old overlay object is gone
+    const ovs2 = overlaysOf(ctx.workRotGroup);
+    expect(ovs2).toHaveLength(2);                             // feed pair (0,1) + the rapid pair
     cc.updateCulling(ctx, lookAt(5, 5, 0, [5, 5, 100]));
-    expect(cc.overlayChunks).toBe(3);
-    expect(feedOvs.every(o => o.visible)).toBe(true);
-    // no machine frame → no gate: everything drawn
-    ctx.machineFrame = null;
-    ctx.machineBounds = { origin: [-1, -1, -1], size: [200, 200, 200] };
-    cc.updateCulling(ctx, lookAt(5, 5, 0, [5, 5, 100]));
-    expect(cc.overlayChunks).toBe(3);
+    expect(cc.overlayChunks).toBe(2);
+    // the rapid overlay is solid LineBasic (no dashes) sharing the rapid vertices
+    const rapidOv = ovs2.find(o => o.geometry.boundingSphere!.center.x > 40)!;
+    expect(rapidOv.material).toBeInstanceOf(THREE.LineBasicMaterial);
+    expect(rapidOv.material).not.toBeInstanceOf(THREE.LineDashedMaterial);
+    // unchecked → nothing drawn
+    cc.setOutsideFlags(undefined, undefined);
+    expect(overlaysOf(ctx.workRotGroup)).toHaveLength(0);
+    // a length mismatch is dropped loudly, never misdrawn
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    cc.setOutsideFlags(new Uint8Array([1, 1]), undefined);
+    expect(overlaysOf(ctx.workRotGroup)).toHaveLength(0);
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
   });
 
-  it("the gate judges the chunk box at the parent's CURRENT pose in the machine frame", () => {
-    const d = { ...(deps as any), boundsClipPlanes: PLANES() };
-    const cc = createToolpathController(d);
-    const mf = new THREE.Group();
-    const ctx = makeCtx({ machineFrame: mf, machineBounds: { origin: [0, 0, -1], size: [20, 20, 20] } });
-    const g = { feedPos: new Float32Array([1, 1, 0, 5, 1, 0]), feed_lines: [1, 2], bounds: { min: [1, 1, 0], max: [5, 1, 0] } } as any;
+  it("a decimated level's chord is flagged when ANY vertex of its run is", () => {
+    const cc = createToolpathController({ ...(deps as any) });
+    // straight 5-point feed; level 1 = the single pair (0,4); only vertex 2 flagged
+    const g = {
+      feedPos: new Float32Array([0, 0, 0, 1, 0, 0, 2, 0, 0, 3, 0, 0, 4, 0, 0]),
+      feed_lines: [1, 2, 3, 4, 5],
+      feedLod: [new Uint32Array([0, 4])],
+      lodTols: [0.01],
+      bounds: { min: [0, 0, 0], max: [4, 0, 0] },
+      feedOutside: new Uint8Array([0, 0, 1, 0, 0]),
+    } as any;
+    const ctx = makeCtx();
     cc.apply(ctx, g);
-    cc.updateCulling(ctx, lookAt(3, 1, 0, [3, 1, 50]));
-    expect(cc.overlayChunks).toBe(0);                     // inside at identity
-    ctx.workRotGroup.rotation.z = Math.PI;                // the table turned: x 1..5 → −5..−1
-    cc.updateCulling(ctx, lookAt(3, 1, 0, [3, 1, 50]));
-    expect(cc.overlayChunks).toBe(1);                     // now outside the machine box
+    const far = lookAt(2, 0, 0, [2, 0, 10000]);
+    cc.updateCulling(ctx, far, 1000);
+    expect(cc.lodMax).toBe(1);
+    const vis = overlaysOf(ctx.workRotGroup).filter(o => o.visible);
+    expect(vis).toHaveLength(1);
+    expect(Array.from(vis[0]!.geometry.index!.array)).toEqual([0, 4]);
+    expect(cc.overlayChunks).toBe(1);
+    // close up (level 0): the two pairs touching vertex 2
+    cc.updateCulling(ctx, lookAt(2, 0, 0, [2, 0, 5]), 1000);
+    expect(cc.lodMax).toBe(0);
+    const vis0 = overlaysOf(ctx.workRotGroup).filter(o => o.visible);
+    const pairs = vis0.flatMap(o => {
+      const a = o.geometry.index!.array; const r = o.geometry.drawRange;
+      const out: number[][] = [];
+      for (let q = r.start; q < r.start + r.count; q += 2) out.push([a[q]!, a[q + 1]!]);
+      return out;
+    }).sort((x, y) => x[0]! - y[0]!);
+    expect(pairs).toEqual([[1, 2], [2, 3]]);
   });
 
-  it("setVisible(false) hides overlays too and setVisible(true) restores only the needed ones", () => {
-    const d = { ...(deps as any), boundsClipPlanes: PLANES() };
-    const cc = createToolpathController(d);
-    const mf = new THREE.Group();
+  it("setVisible(false) hides overlays too and setVisible(true) restores only the flagged ones", () => {
+    const cc = createToolpathController({ ...(deps as any) });
     const g = {
       feedPos: new Float32Array([0, 0, 0, 2, 0, 0]), feed_lines: [1, 2],
       rapidPos: new Float32Array([50, 50, 0, 60, 50, 0]), bounds: { min: [0, 0, 0], max: [60, 50, 0] },
+      feedOutside: new Uint8Array([0, 0]), rapidOutside: new Uint8Array([1, 1]),
     } as any;
-    const ctx = makeCtx({ machineFrame: mf, machineBounds: { origin: [-1, -1, -1], size: [20, 20, 20] } });
+    const ctx = makeCtx();
     cc.apply(ctx, g);
     cc.updateCulling(ctx, lookAt(5, 5, 0, [5, 5, 100]));
     cc.setVisible(false);
@@ -495,13 +515,10 @@ describe("chunked draw (2026-09-11 headroom wave)", () => {
     expect(chunksOf(ctx.workRotGroup).every(o => !o.visible)).toBe(true);
     cc.setVisible(true);
     const ovs = overlaysOf(ctx.workRotGroup);
-    const rapidOv = ovs.find(o => (o as any).material instanceof THREE.LineDashedMaterial) ?? null;
-    // overlays are LineBasic even for rapids (solid yellow); tell them apart by position
-    const outside = ovs.filter(o => o.geometry.boundingSphere!.center.x > 40);
-    const inside = ovs.filter(o => o.geometry.boundingSphere!.center.x < 40);
-    expect(rapidOv).toBeNull();
-    expect(outside.every(o => o.visible)).toBe(true);
-    expect(inside.every(o => !o.visible)).toBe(true);
+    expect(ovs).toHaveLength(1);                                       // only the rapid pair is flagged
+    expect(ovs[0]!.geometry.boundingSphere!.center.x).toBeGreaterThan(40);
+    expect(ovs[0]!.visible).toBe(true);
+    expect(chunksOf(ctx.workRotGroup).every(o => o.visible)).toBe(true);
   });
 
   it("counts the chunks inside the camera frustum for the perf probe", () => {
