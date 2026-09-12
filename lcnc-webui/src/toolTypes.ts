@@ -1,5 +1,6 @@
 export const TOOL_TYPE_LABELS: Record<string, string> = {
   endmill: "End Mill",
+  reamer: "Reamer",
   ball: "Ball",
   bullnose: "Bull Nose",
   drill: "Drill",

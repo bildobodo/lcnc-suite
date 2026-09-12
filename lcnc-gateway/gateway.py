@@ -64,7 +64,6 @@ from status_runtime import StatusPayload
 import bulk_pipeline as _bulk_mod
 from tool_store import ToolLibraryStore
 from camera_broker import CameraBroker
-from fusion_import import decode_fusion_blob
 from tool_refresh import metadata_refresh_revision, plan_metadata_refresh
 
 
@@ -4075,7 +4074,7 @@ async def lifespan(app: "FastAPI"):
             print(f"[SHUTDOWN] {_elapsed()} WS close timed out", flush=True)
         print(f"[SHUTDOWN] {_elapsed()} closed {len(snapshot)} WS connection(s)", flush=True)
 
-    _shutdown_fusion_proc = _bulk.fusion_import_proc  # (fusion worker — same race as review #2)
+    _shutdown_tool_import_proc = _bulk.tool_import_proc  # (tool import worker — same race as review #2)
     # Capture the in-flight parse handle BEFORE cancelling background tasks
     # (review #2): cancelling _bulk.refresh_gcode_preview runs its finally, which
     # clears _bulk.gcode_parse_proc — but the to_thread worker + subprocess keep
@@ -4118,12 +4117,12 @@ async def lifespan(app: "FastAPI"):
     # 6. Terminate the gcode parse subprocess if still alive, using the handle
     # captured before step 3 (review #2). _bulk_mod.terminate_parse_proc bounds the wait
     # (to_thread); terminating the child unblocks the orphaned communicate() thread.
-    if _shutdown_fusion_proc is not None:
+    if _shutdown_tool_import_proc is not None:
         try:
-            await _bulk_mod.terminate_parse_proc(_shutdown_fusion_proc)
-            print(f"[SHUTDOWN] {_elapsed()} fusion import worker handled", flush=True)
+            await _bulk_mod.terminate_parse_proc(_shutdown_tool_import_proc)
+            print(f"[SHUTDOWN] {_elapsed()} tool import worker handled", flush=True)
         except Exception as e:
-            print(f"[SHUTDOWN] {_elapsed()} fusion worker terminate failed: {e}", flush=True)
+            print(f"[SHUTDOWN] {_elapsed()} tool import worker terminate failed: {e}", flush=True)
     proc = _shutdown_parse_proc
     if proc is not None:
         try:
@@ -4429,7 +4428,7 @@ async def save_gcode(request: Request, path: str = Query(...)):
     return {"ok": True, "path": abs_path, "size": size}
 
 
-# ---- Fusion 360 Tool Library Import ----
+# ---- CAM Tool Library Import ----
 
 def _metadata_refresh_context(machine_unit: str) -> tuple[str, str]:
     """Use a connected, identified configuration; never refresh the default bucket."""
@@ -4491,7 +4490,7 @@ async def import_tool_library(file: UploadFile = File(...)):
     loop = asyncio.get_event_loop()
     machine_unit = get_ini_config().get("linear_units", "mm")  # on loop (cached; may STAT.poll once)
     try:
-        parsed, skipped = await _bulk.decode_fusion_offloaded(raw, machine_unit)
+        parsed, skipped = await _bulk.decode_tool_offloaded(raw, machine_unit)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     if not parsed and not skipped:
@@ -4545,7 +4544,7 @@ async def refresh_tool_library_metadata(file: UploadFile = File(...), revision: 
     machine_unit = get_ini_config().get("linear_units")
     try:
         _metadata_refresh_context(machine_unit)
-        parsed, skipped = await _bulk.decode_fusion_offloaded(raw, machine_unit)
+        parsed, skipped = await _bulk.decode_tool_offloaded(raw, machine_unit)
         async with _get_cmd_lock():
             if get_ini_config().get("linear_units") != machine_unit:
                 raise ValueError("Machine units changed; preview the library again")
@@ -4564,7 +4563,7 @@ async def refresh_tool_library_metadata(file: UploadFile = File(...), revision: 
 async def apply_tool_library_import(
     file: UploadFile = File(...),
 ):
-    """Apply a Fusion 360 tool library import — replaces tool.tbl and tool_library.json."""
+    """Apply a CAM tool library import — replaces tool.tbl and tool_library.json."""
     raw = await file.read(MAX_TOOL_LIBRARY_SIZE + 1)
     if len(raw) > MAX_TOOL_LIBRARY_SIZE:
         raise HTTPException(status_code=413, detail="Tool library too large (max 16 MB)")
@@ -4572,7 +4571,7 @@ async def apply_tool_library_import(
     loop = asyncio.get_event_loop()
     machine_unit = get_ini_config().get("linear_units", "mm")  # on loop (cached; may STAT.poll once)
     try:
-        parsed, _skipped = await _bulk.decode_fusion_offloaded(raw, machine_unit)
+        parsed, _skipped = await _bulk.decode_tool_offloaded(raw, machine_unit)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     if not parsed:
@@ -4589,7 +4588,8 @@ async def apply_tool_library_import(
         library: dict = {}
         for tool in parsed:
             t_num = tool["T"]
-            z_init = tool.get("body_length") or tool.get("oal") or 0.0
+            z_init = (0.0 if tool.get("source_format") == "freecad"
+                      else tool.get("body_length") or tool.get("oal") or 0.0)
             tbl_tools.append({
                 "T": t_num,
                 "P": t_num,

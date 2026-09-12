@@ -49,7 +49,7 @@ test("unverified geometry is visible in the table, editor and both import modes"
     ok: true, tools: [tool], total: 1, existing_count: 1, skipped_duplicates: [],
     metadata_refresh: { rows: [refreshRow], updated: [tool.T], skipped: [], revision: "reviewed-geometry" },
   } }));
-  await page.locator('input[type="file"][accept=".json"]').setInputFiles({
+  await page.locator('input[type="file"][accept*=".fctb"]').setInputFiles({
     name: "tools.json", mimeType: "application/json", buffer: Buffer.from('{"data":[]}'),
   });
   await expect(page.getByLabel("Import mode")).toHaveValue("metadata");

@@ -4,7 +4,7 @@ import { computed, inject, onMounted, onUnmounted, reactive, ref, shallowRef, wa
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { Text } from "troika-three-text";
-import { buildToolParts, buildToolGeometry, type ToolMeta } from "./toolGeometry";
+import { buildToolGeometries, type ToolMeta } from "./toolGeometry";
 import { toolUnitsPerMillimeter } from "./toolUnits";
 import { AXIS_HEX, AXIS_CSS } from "./axisColors";
 import {
@@ -886,16 +886,16 @@ function replaceToolMarker(newGroup: THREE.Group) {
  * The tool group continues to use the signed active LinuxCNC tool offset. */
 function buildToolGroup(diam: number, len: number, meta: ToolMeta | null): THREE.Group {
   const grp = new THREE.Group();
-  const { cutter, shaft } = buildToolParts(diam, len, meta, _unitScale);
+  const { cutter, shaft } = buildToolGeometries(diam, len, meta, _unitScale);
 
   toolCutterMesh = null;
-  if (cutter.length >= 3) {
-    toolCutterMesh = new THREE.Mesh(buildToolGeometry(cutter), MAT.cutter);
+  if (cutter) {
+    toolCutterMesh = new THREE.Mesh(cutter, MAT.cutter);
     grp.add(toolCutterMesh);
   }
   toolBodyMesh = null;
-  if (shaft.length >= 3) {
-    toolBodyMesh = new THREE.Mesh(buildToolGeometry(shaft), MAT.tool);
+  if (shaft) {
+    toolBodyMesh = new THREE.Mesh(shaft, MAT.tool);
     grp.add(toolBodyMesh);
   }
 

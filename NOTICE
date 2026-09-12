@@ -86,3 +86,15 @@ over their respective contributions.
    (in particular the nutating-spindle kinematics) served as reference
    and inspiration for this project's rotary/TCP viewer support and for
    a local-only (unshipped) nutating-head test model.
+
+FreeCAD CAM tool geometry reference data
+   Authors:   FreeCAD contributors
+   License:   LGPL-2.1-or-later
+   Source:    https://github.com/FreeCAD/FreeCAD/tree/main/src/Mod/CAM/Tools
+
+   lcnc-gateway/freecad_shape_defaults.json contains numeric defaults from
+   the FreeCAD 1.1 CAM shape templates. test-fixtures/freecad/native-profiles.json
+   records evaluated meridians and volumes from those templates. The importer
+   independently implements their dimensional constraints; no FCStd models or
+   FreeCAD runtime binaries are bundled. The custom-native fixture is an
+   independently constructed LCNC test model.

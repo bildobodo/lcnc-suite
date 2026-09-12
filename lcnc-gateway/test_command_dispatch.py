@@ -731,11 +731,11 @@ class TestFusionWorkerSubprocess(unittest.TestCase):
         lib = ('{"data":[{"type":"flat end mill","unit":"millimeters",'
                '"post-process":{"number":3},"geometry":{"DC":6.0},'
                '"description":"6mm endmill"}]}').encode()
-        parsed, skipped = gateway._bulk._run_fusion_worker_blocking(lib, "mm", timeout=30.0)
+        parsed, skipped = gateway._bulk._run_tool_import_worker_blocking(lib, "mm", timeout=30.0)
         self.assertEqual(parsed[0]["T"], 3)
         self.assertEqual(parsed[0]["D"], 6.0)
         self.assertEqual(skipped, [])
 
     def test_worker_invalid_library_maps_to_valueerror(self):
         with self.assertRaises(ValueError):
-            gateway._bulk._run_fusion_worker_blocking(b'{"nope":1}', "mm", timeout=30.0)
+            gateway._bulk._run_tool_import_worker_blocking(b'{"nope":1}', "mm", timeout=30.0)
