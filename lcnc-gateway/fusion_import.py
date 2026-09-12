@@ -164,6 +164,8 @@ def parse_fusion_library(data: dict, machine_unit: str) -> tuple[list, list]:
             ]
         # Form-mill profile coords share the tool's unit; arcs add a `center` pair.
         if our_type == "formmill":
+            # CAM compensation-point metadata, not the measured installed length.
+            tool["tip_offset"] = _opt_scale(geom.get("tip-offset"), tool_scale)
             raw_profile = geom.get("profile")
             if raw_profile and isinstance(raw_profile, list):
                 scaled_profile = []

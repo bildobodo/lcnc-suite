@@ -177,6 +177,50 @@ Reference extraction uses the native
 document. API availability does not establish that every exported parameter
 affects that contour; the flat/round crest probes demonstrate this limitation.
 
+## Form tools: imported outline and mesh integrity
+
+Form tools already imported `geometry.profile` as line/arc segments and, after
+the shoulder patch, passed that data through the sidecar, status and both
+previews. They are now rendered through the common `buildToolParts` entry point
+without splitting their closed outline at LCF. A custom profile can cross that
+plane more than once; partitioning its vertices by height loses contour
+connectivity. The complete form is therefore drawn as one cutting-body mesh.
+The profile alone does not establish a cutting/non-cutting material boundary.
+
+[Autodesk's form-tool overview](https://help.autodesk.com/cloudhelp/ENU/Fusion-CAM/files/FORM-MILL-OVERVIEW.htm)
+explains that Fusion revolves a closed half-profile, displays the form during
+simulation and uses an approximated end mill for toolpath generation. This
+supports excluding the cylindrical CAM post output from form-shape verification;
+it is not proof that the simulation itself loses the profile.
+
+The form renderer now preserves the first axis point and every exported endpoint,
+including short segments. The Autodesk sample previously retained only 11 of its
+16 endpoints exactly; it now retains all 16, including the missing bottom-cap
+axis point. Circular arcs respect the centre and CW/CCW sweep, use a target chord
+error of 0.001 mm instead of fixed coarse steps, and end exactly at the exported
+coordinate (which may itself be rounded). Explicit full-circle segments are
+supported. Off-axis profiles include their closing edge; either traversal is
+oriented to produce outward-facing mesh surfaces. Arc subdivision is bounded at
+4096 segments per arc for extreme inputs, where the target error can be exceeded.
+The existing rotational tessellation remains unchanged; the chord target does
+not certify a complete 3D mesh to a machining tolerance.
+
+The linear form `tip-offset` is preserved as `tip_offset`, separately from profile
+coordinates and measured Z. It describes CAM compensation-point metadata. This
+patch does not apply it as an installed-length correction or reinterpret the
+profile's origin. DC and OAL likewise do not resize the explicit profile. A
+compensation-point/frame comparison with Fusion simulation remains necessary.
+
+Ten new analytic geometry tests cover the actual bottom cap, all Autodesk sample
+endpoints, 5 micron radial steps, 10 micron axial segments, undercuts crossing LCF,
+CW/CCW arcs, full circles, off-axis closure, winding and bounded tessellation.
+The existing 49 import fixtures now test the mesh-part inputs used by both
+viewers, including persistence and mm/in conversion. Backend tests preserve
+form arc endpoints/centres/flags and tip offset while keeping measured Z intact.
+These are JSON-geometry and analytic checks, **not** a native Fusion simulation
+comparison. A further sketch-based Form Mill experiment has not yet produced a
+new tool reference; no additional native form fidelity claim is made.
+
 ## Remaining scope
 
 Flat/round thread crest details, chamfer return flanks, slot-mill upper radii,

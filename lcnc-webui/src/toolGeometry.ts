@@ -38,6 +38,7 @@ export interface ToolMeta {
   taper_angle?: number | null;
   point_angle?: number | null;
   tip_diameter?: number | null;
+  tip_offset?: number | null;
   corner_radius?: number | null;
   holder_segments?: HolderSegment[] | null;
   profile?: ProfileSegment[] | null;
@@ -303,8 +304,13 @@ export function buildToolProfile(
     case "formmill": {
       const profile = meta?.profile;
       if (profile && profile.length >= 2) {
-        let px = 0, py = 0;
-        for (const seg of profile) {
+        // Fusion serializes a closed half-profile: the first end is the start
+        // point, including the axis point that closes the bottom of the tool.
+        // Preserve short segments and exact exported arc endpoints.
+        let [px, py] = profile[0]!.end;
+        pts.push(V(px, py));
+        const chordTolerance = 0.001 * unitsPerMm;
+        for (const seg of profile.slice(1)) {
           const [ex, ey] = seg.end;
           if (seg.arc && seg.center) {
             const [cx, cy] = seg.center;
@@ -312,19 +318,39 @@ export function buildToolProfile(
             const startA = Math.atan2(py - cy, px - cx);
             const endA = Math.atan2(ey - cy, ex - cx);
             let sweep = endA - startA;
-            if (seg.ccw && sweep < 0) sweep += 2 * Math.PI;
-            if (!seg.ccw && sweep > 0) sweep -= 2 * Math.PI;
-            const steps = Math.max(8, Math.ceil(Math.abs(sweep) / (Math.PI / 12)));
-            for (let i = 1; i <= steps; i++) {
-              const a = startA + sweep * (i / steps);
-              pts.push(V(cx + arcR * Math.cos(a), cy + arcR * Math.sin(a)));
+            if (ex === px && ey === py) {
+              sweep = seg.ccw ? 2 * Math.PI : -2 * Math.PI;
+            } else {
+              if (seg.ccw && sweep < 0) sweep += 2 * Math.PI;
+              if (!seg.ccw && sweep > 0) sweep -= 2 * Math.PI;
             }
-          } else {
-            const dx = ex - px, dy = ey - py;
-            if (dx * dx + dy * dy > 0.001 * unitsPerMm * unitsPerMm) pts.push(V(ex, ey));
+            if (arcR > 0) {
+              const maxStep = Math.min(Math.PI / 12,
+                4 * Math.asin(Math.sqrt(Math.min(1, chordTolerance / (2 * arcR)))));
+              // Target a 1 micron chord error, with a finite allocation bound
+              // for extreme input radii. asin avoids cancellation at tiny ratios.
+              const steps = Math.min(4096, Math.max(1, Math.ceil(Math.abs(sweep) / maxStep)));
+              for (let i = 1; i < steps; i++) {
+                const a = startA + sweep * (i / steps);
+                pts.push(V(cx + arcR * Math.cos(a), cy + arcR * Math.sin(a)));
+              }
+            }
           }
+          if (seg.arc || ex !== px || ey !== py) pts.push(V(ex, ey));
           px = ex; py = ey;
         }
+        // The usual axis-to-axis profile already describes both end caps.
+        // For an off-axis closed profile (e.g. an annular section), include
+        // its implicit closing edge as well.
+        const first = pts[0]!, last = pts[pts.length - 1]!;
+        if ((first.x !== 0 || last.x !== 0) && !first.equals(last)) pts.push(first.clone());
+        // Either sketch traversal describes the same solid. LatheGeometry needs
+        // positive winding to produce outward-facing surfaces.
+        const area2 = pts.reduce((sum, p, i) => {
+          const next = pts[(i + 1) % pts.length]!;
+          return sum + p.x * next.y - next.x * p.y;
+        }, 0);
+        if (area2 < 0) pts.reverse();
       } else {
         pts.push(V(0, 0), V(r, 0), V(r, oal), V(0, oal));
       }
@@ -336,6 +362,19 @@ export function buildToolProfile(
     }
   }
   return { pts, fluteY: fluteLen };
+}
+
+/** Shared mesh inputs for both viewers. A form tool's closed outline can have
+ * undercuts and multiple crossings of LCF. Keep its topology intact as one
+ * cutting body; LCF describes Fusion's approximating end mill, not a verified
+ * boundary between cutting and non-cutting regions of the custom profile. */
+export function buildToolParts(diam: number, len: number, meta: ToolMeta | null, unitsPerMm = 1)
+  : { cutter: THREE.Vector2[], shaft: THREE.Vector2[] } {
+  const { pts, fluteY } = buildToolProfile(diam, len, meta, unitsPerMm);
+  if (meta?.type === "formmill" && meta.profile && meta.profile.length >= 2) {
+    return { cutter: pts, shaft: [] };
+  }
+  return splitProfileAt(pts, fluteY, unitsPerMm);
 }
 
 /** Split a profile at the given Y coordinate into cutter (below) and shaft (above) sub-profiles */

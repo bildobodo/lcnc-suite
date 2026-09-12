@@ -4,7 +4,7 @@ import { computed, inject, onMounted, onUnmounted, reactive, ref, shallowRef, wa
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { Text } from "troika-three-text";
-import { buildToolProfile, splitProfileAt, buildToolGeometry, buildHolderGeometry, type ToolMeta } from "./toolGeometry";
+import { buildToolParts, buildToolGeometry, buildHolderGeometry, type ToolMeta } from "./toolGeometry";
 import { toolUnitsPerMillimeter } from "./toolUnits";
 import { AXIS_HEX, AXIS_CSS } from "./axisColors";
 import {
@@ -887,8 +887,7 @@ function replaceToolMarker(newGroup: THREE.Group) {
 /** Build full tool group (cutter + shaft + optional holder) */
 function buildToolGroup(diam: number, len: number, meta: ToolMeta | null): THREE.Group {
   const grp = new THREE.Group();
-  const { pts, fluteY } = buildToolProfile(diam, len, meta, _unitScale);
-  const { cutter, shaft } = splitProfileAt(pts, fluteY, _unitScale);
+  const { cutter, shaft } = buildToolParts(diam, len, meta, _unitScale);
 
   toolCutterMesh = null;
   if (cutter.length >= 3) {
@@ -2583,4 +2582,3 @@ defineExpose({
 }
 
 </style>
-

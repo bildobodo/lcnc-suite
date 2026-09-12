@@ -7,7 +7,7 @@ import originalFixtures from "../../test-fixtures/fusion-tool-contours.json";
 import shoulderFixtures from "../../test-fixtures/fusion-tool-shoulders.json";
 import taperThreadFixtures from "../../test-fixtures/fusion-tool-tapers-threads.json";
 const fixtures = { cases: [...originalFixtures.cases, ...shoulderFixtures.cases, ...taperThreadFixtures.cases] };
-import { buildToolProfile, splitProfileAt, type ToolMeta } from "./toolGeometry";
+import { buildToolProfile, buildToolParts, type ToolMeta } from "./toolGeometry";
 import { toolUnitsPerMillimeter } from "./toolUnits";
 
 // Exercise the real Python importer and TS renderer together. The importer is
@@ -58,8 +58,8 @@ describe("Fusion import → tool geometry", () => {
       const inch = buildToolProfile(c.inch.D, c.inch.oal!, c.inch, inchScale);
       expectSamePoints(mm.pts, inch.pts, 25.4);
       expect(inch.fluteY * 25.4).toBeCloseTo(mm.fluteY, 9);
-      const a = splitProfileAt(mm.pts, mm.fluteY, 1);
-      const b = splitProfileAt(inch.pts, inch.fluteY, inchScale);
+      const a = buildToolParts(c.mm.D, c.mm.oal!, c.mm, 1);
+      const b = buildToolParts(c.inch.D, c.inch.oal!, c.inch, inchScale);
       expectSamePoints(a.cutter, b.cutter, 25.4);
       expectSamePoints(a.shaft, b.shaft, 25.4);
     });
@@ -68,9 +68,11 @@ describe("Fusion import → tool geometry", () => {
       for (const unit of ["mm", "inch"] as const) {
         const tool = c[unit];
         const scale = toolUnitsPerMillimeter(unit);
-        const direct = buildToolProfile(tool.D, tool.oal!, tool, scale);
+        const direct = buildToolParts(tool.D, tool.oal!, tool, scale);
         for (const meta of [tool.preview, tool.viewer]) {
-          expectSamePoints(direct.pts, buildToolProfile(tool.D, tool.oal!, meta, scale).pts);
+          const parts = buildToolParts(tool.D, tool.oal!, meta, scale);
+          expectSamePoints(direct.cutter, parts.cutter);
+          expectSamePoints(direct.shaft, parts.shaft);
         }
       }
     });

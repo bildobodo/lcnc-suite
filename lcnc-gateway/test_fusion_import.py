@@ -108,6 +108,36 @@ class TestFusionGeometryImport(unittest.TestCase):
         tool = parse_fusion_library({'data': [raw]}, 'mm')[0][0]
         self.assertEqual(tool_visual_metadata(tool)['profile'], tool['profile'])
 
+    def test_form_profile_units_and_compensation_offset_survive_storage(self):
+        raw = {'type': 'form mill', 'unit': 'inches', 'post-process': {'number': 12},
+               'geometry': {'DC': 0.5, 'OAL': 2, 'LCF': 1, 'tip-offset': 0.25,
+                            'profile': [{'end': [0, 0]}, {'end': [0.25, 0]},
+                                        {'end': [0.25, 0.01]},
+                                        {'arc': True, 'ccw': True, 'center': [0.25, 0.25],
+                                         'end': [0.49, 0.25]},
+                                        {'end': [0.49, 2]}, {'end': [0, 2]}]}}
+        before = copy.deepcopy(raw)
+        for unit, scale in [('mm', 25.4), ('in', 1)]:
+            with self.subTest(unit=unit), TemporaryDirectory() as directory:
+                tool = parse_fusion_library({'data': [raw]}, unit)[0][0]
+                store = ToolLibraryStore(Path(directory) / 'library.json', lambda: '/test.ini')
+                store.save({'12': {k: tool[k] for k in _TOOL_META_FIELDS if k in tool}})
+                library = store.load()
+                table = _merge_tool_data([dict(T=12, P=12, Z=-42.3, D=tool['D'])], library)[0]
+                viewer = tool_visual_metadata(library['12'])
+                for meta in [table, viewer]:
+                    self.assertAlmostEqual(meta['tip_offset'], 0.25 * scale)
+                    for source, dest in zip(raw['geometry']['profile'], meta['profile']):
+                        for name in ['end', 'center']:
+                            if name in source:
+                                for a, b in zip(source[name], dest[name]):
+                                    self.assertAlmostEqual(b, a * scale)
+                        self.assertEqual(source.get('arc'), dest.get('arc'))
+                        self.assertEqual(source.get('ccw'), dest.get('ccw'))
+                self.assertEqual(table['Z'], -42.3)
+                self.assertNotIn('Z', viewer)
+        self.assertEqual(raw, before)
+
     def test_inch_thread_dimensions_scale_without_scaling_angles_or_tooth_count(self):
         raw = {'type': 'thread mill', 'unit': 'inches',
                'post-process': {'number': 9},

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onBeforeUnmount, toRefs } from "vue";
 import * as THREE from "three";
-import { buildToolProfile, splitProfileAt, buildToolGeometry, type ToolMeta } from "./toolGeometry";
+import { buildToolParts, buildToolGeometry, type ToolMeta } from "./toolGeometry";
 
 const props = withDefaults(
   defineProps<{
@@ -91,8 +91,7 @@ function buildPreview() {
 
   const group = new THREE.Group();
 
-  const { pts, fluteY } = buildToolProfile(diameter.value, length.value, meta.value ?? null, unitsPerMm.value);
-  const { cutter, shaft } = splitProfileAt(pts, fluteY, unitsPerMm.value);
+  const { cutter, shaft } = buildToolParts(diameter.value, length.value, meta.value ?? null, unitsPerMm.value);
 
   const cutterMat = new THREE.MeshStandardMaterial({
     color: cutterColor, metalness: 0.1, roughness: 0.5,
