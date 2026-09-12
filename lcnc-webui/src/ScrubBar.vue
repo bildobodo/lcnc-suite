@@ -46,12 +46,16 @@ const props = defineProps<{
                 /** Program tools the sweep poses per segment (schema 8);
                  *  null = channel absent (loaded tool / stub throughout). */
                 programTools?: Array<{ num: number; diam: number }> | null } | null;
+  /** The program's own (base) sweep result — see collisionTrack. */
   collisionResult: CollisionResult | null;
-  // The exact track the current result was swept on. Hit cums only mean
-  // anything on THAT track — entering sim swaps in the entry-extended track
-  // (every cum shifts by the entry duration), so the clash UI trusts results
-  // only when this matches the displayed track (auto re-check covers the gap).
+  // The exact track `collisionResult` was swept on (the base track). Hit
+  // cums only mean anything on THAT track — entering sim swaps in the
+  // entry-extended track (every cum shifts by the entry duration), whose
+  // result is `collisionEntryResult` (the entry segment's side sweep merged
+  // onto the base result, 2026-09-12). The clash UI shows the result swept
+  // on exactly the displayed track, else nothing.
   collisionTrack: ScrubTrack | null;
+  collisionEntryResult: { track: ScrubTrack; result: CollisionResult } | null;
   /** The sweep is PARKED (2026-09-12): its budget ran out, the operator
    *  stopped it, or a rotary jog stopped it — with the covered fraction. The
    *  partial result is in `collisionResult` (marks show); `collisionResumable`
@@ -76,14 +80,15 @@ const emit = defineEmits<{
   // ThreeViewer's phase 3 subtracts the offset the joints were lifted
   // with, and the marker follows the tool; null = live.
   (e: "pose", joints: (number | null)[] | null, line: number | null, cum: number | null, trk: ScrubTrack | null, displayLine: number | null, plane: number[] | null, tlo: number[] | null, tool: number | null): void;
-  // The track to sweep — includes the entry move when one is known.
-  (e: "check", track: ScrubTrack): void;
-  /** Operator-requested full sweep, unbounded (the operator's stop is the bound). */
+  /** Operator-requested sweep of the BASE track, unbounded (the operator's
+   *  stop is the bound); the entry overlay, if any, stays valid. */
   (e: "check-manual", track: ScrubTrack): void;
   /** Sim entry: the entry-extended track + the base it was built from —
    *  ThreeViewer sweeps only the ENTRY SEGMENT when the base result is
    *  current, and nothing at all when the machine sits at the first point. */
   (e: "check-entry", track: ScrubTrack, base: ScrubTrack | null): void;
+  /** A sim-time input edge (the WCS rows this track re-adds): nothing is
+   *  current — followed by check-entry with the rebuilt entry track. */
   (e: "cancel-check"): void;
   /** Park the running sweep (resumable) / resume the parked one. */
   (e: "stop-check"): void;
@@ -295,6 +300,13 @@ function exitSim() {
   playing.value = false;
   if (!simMode.value) return;
   simMode.value = false;
+  // The entry move only means anything while simulating (it is the rapid
+  // from the pose the machine had at entry); outside sim the bar shows the
+  // program and its own result — it used to keep the entry track so the
+  // merged result stayed addressable, which is what made every re-entry
+  // re-sweep the whole program (2026-09-12).
+  entryTrack.value = null;
+  sPos.value = 0;
   emit("pose", null, null, null, null, null, null, null, null);
   trackHighlightRange.value = null;
   subExecState.value = null;
@@ -332,7 +344,7 @@ watch(_wcsKey, () => {
     _wcsCheckTimer = setTimeout(() => {
       if (simMode.value && track.value) {
         emit("cancel-check");
-        emit("check", track.value);
+        emit("check-entry", track.value, baseTrack.value);
       }
     }, 500);
   }
@@ -645,16 +657,23 @@ const violationTargets = computed<FindingTarget[]>(() => {
   return out.sort((a, b) => a.cum - b.cum);
 });
 
-// Hits are already cum-sorted by the sweep — but only trusted when they
-// were swept on the DISPLAYED track (see collisionTrack prop).
-const resultCurrent = computed(() => props.collisionTrack === track.value);
-const hits = computed(() => (resultCurrent.value ? props.collisionResult?.hits ?? [] : []));
+// The result swept on exactly the DISPLAYED track (see the collisionTrack
+// prop): the base result on the base track, the entry-overlaid one on the
+// entry track, nothing otherwise. Hits are cum-sorted by the sweep.
+const shownResult = computed<CollisionResult | null>(() => {
+  const t = track.value;
+  if (!t) return null;
+  if (props.collisionTrack === t) return props.collisionResult;
+  const e = props.collisionEntryResult;
+  return e && e.track === t ? e.result : null;
+});
+const hits = computed(() => shownResult.value?.hits ?? []);
 // Reasons this sweep's no-missed-crossing guarantee does NOT hold. Null when
 // it does. Both cases mean the same thing to an operator — the result is a
 // sample, not a proof — so they share one marker rather than hiding one of
 // them next to a green "clear".
 const sweepCaveat = computed<string | null>(() => {
-  const r = resultCurrent.value ? props.collisionResult : null;
+  const r = shownResult.value;
   if (!r) return null;
   const why: string[] = [];
   if (r.uncertified) why.push(r.uncertified);
@@ -696,7 +715,7 @@ const sweepSlot = computed<SweepSlot | null>(() => {
       btnTitle: "Stop the collision check — it parks where it is and can be continued",
     };
   }
-  const r = resultCurrent.value ? props.collisionResult : null;
+  const r = shownResult.value;
   if (r && props.collisionStopped && props.collisionResumable) return {
     pct: Math.round(props.collisionStopped.covered * 100), cls: "warn", glyph: GLYPH_CONTINUE,
     disabled: false, action: "continue", title: stoppedTitle.value,
@@ -725,7 +744,7 @@ function sweepSlotClick() {
   if (!sl) return;
   if (sl.action === "stop") emit("stop-check");
   else if (sl.action === "continue") emit("continue-check");
-  else if (sl.action === "rerun" && track.value) emit("check-manual", track.value);
+  else if (sl.action === "rerun" && baseTrack.value) emit("check-manual", baseTrack.value);
 }
 
 // One navigation target per contact ONSET: an intermittent-contact line
@@ -908,15 +927,15 @@ onUnmounted(() => {
       <!-- Verdict (2026-09-12): the slot says how much was swept; this says
            what it found. Parked/truncated with no hits is "no clash in N %
            swept" — never "clear" for a part-swept program. -->
-      <template v-if="collisionResult && !collisionBusy && resultCurrent">
-        <span v-if="collisionResult.pairCount === 0" class="val-status muted" title="No body pair moves relative to another — nothing to check">no moving pairs</span>
+      <template v-if="shownResult && !collisionBusy">
+        <span v-if="shownResult.pairCount === 0" class="val-status muted" title="No body pair moves relative to another — nothing to check">no moving pairs</span>
         <template v-else-if="hits.length">
           <span class="btnTip" title="Previous collision (from the current timeline position)">
             <MachineBtn type="scrub" variant="danger" :disabled="!simMode && !machineOff"
                         @click="jumpTo(targetBefore(hitTargets, sPos))">&#9664;</MachineBtn>
           </span>
           <span class="btnTip"
-                :title="`Collision hits — click to simulate the next one${!simMode && !machineOff ? ' (turn the machine OFF first)' : ''}${collisionResult.staticContacts.length ? `\nIn contact from the start (excluded): ${collisionResult.staticContacts.map(c => c.a + '/' + c.b).join(', ')}` : ''}`">
+                :title="`Collision hits — click to simulate the next one${!simMode && !machineOff ? ' (turn the machine OFF first)' : ''}${shownResult.staticContacts.length ? `\nIn contact from the start (excluded): ${shownResult.staticContacts.map(c => c.a + '/' + c.b).join(', ')}` : ''}`">
             <MachineBtn type="scrub" variant="danger" :disabled="!simMode && !machineOff"
                         @click="jumpTo(nextHitT)">
               {{ hitTargets.length }} clash{{ hitTargets.length === 1 ? "" : "es" }}
@@ -932,11 +951,11 @@ onUnmounted(() => {
         <span v-else-if="collisionStopped && collisionResumable" class="val-status warn" :title="stoppedTitle">
           no clash in {{ pctOf(collisionStopped.covered) }} swept
         </span>
-        <span v-else-if="collisionResult.truncated" class="val-status warn"
-              :title="`No clash in the ${pctOf(collisionResult.truncated.covered)} of the program swept (${collisionResult.truncated.reason === 'samples' ? 'sample backstop' : 'time budget'}) — the rest is UNCHECKED (${collisionResult.samples} samples, ${collisionResult.pairCount} pairs)`">
-          no clash in {{ pctOf(collisionResult.truncated.covered) }} swept
+        <span v-else-if="shownResult.truncated" class="val-status warn"
+              :title="`No clash in the ${pctOf(shownResult.truncated.covered)} of the program swept (${shownResult.truncated.reason === 'samples' ? 'sample backstop' : 'time budget'}) — the rest is UNCHECKED (${shownResult.samples} samples, ${shownResult.pairCount} pairs)`">
+          no clash in {{ pctOf(shownResult.truncated.covered) }} swept
         </span>
-        <span v-else class="val-status ok" :title="`${collisionResult.samples} samples, ${collisionResult.pairCount} pairs${collisionResult.staticContacts.length ? `; in contact from the start (excluded): ${collisionResult.staticContacts.map(c => c.a + '/' + c.b).join(', ')}` : ''}`">
+        <span v-else class="val-status ok" :title="`${shownResult.samples} samples, ${shownResult.pairCount} pairs${shownResult.staticContacts.length ? `; in contact from the start (excluded): ${shownResult.staticContacts.map(c => c.a + '/' + c.b).join(', ')}` : ''}`">
           clear
         </span>
         <!-- Shown on BOTH branches: a sweep that found clashes is no more

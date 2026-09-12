@@ -15,6 +15,12 @@
 //     and `{continue: id, budgetMs}` resumes it. Running out of the active-
 //     time budget is the same stop, reason "time". A stop is never a loss;
 //     only a cancel or a superseding request drops a parked sweep.
+//   - `side: true` (2026-09-12) runs a SIDE sweep on the resident model
+//     without touching the main run — the sim-entry segment (a two-point
+//     slice, milliseconds) while the program's own sweep runs or sits parked.
+//     A side run never parks or pauses; a new side request supersedes the
+//     previous one; only `cancel` with its id addresses it. Sim entry used
+//     to CANCEL a base sweep at 59 % for that one new segment.
 // The collision model (bodies + BVHs) stays RESIDENT under its `modelKey`:
 // the owner omits `bodies` when it knows the worker holds the model; a
 // worker that does not (recreated after a failure) answers `needBodies`
@@ -48,6 +54,8 @@ export interface CollisionReq {
   /** Active-time budget (ms) before the sweep PARKS itself (`stopped`,
    *  reason "time"); null = unbounded. */
   budgetMs: number | null;
+  /** Run beside the main sweep instead of superseding it (see header). */
+  side?: boolean;
 }
 
 export interface CollisionCancel { cancel: number }
@@ -96,11 +104,15 @@ interface Run {
 }
 
 let _resident: { key: string; model: CollisionModel } | null = null;
+/** The MAIN sweep — the one that parks, continues and pauses. */
 let _run: Run | null = null;
+/** An ephemeral SIDE sweep (sim-entry segment); never parks. */
+let _side: Run | null = null;
 
 self.onmessage = (e: MessageEvent<CollisionReq | CollisionCancel | CollisionPause | CollisionResume | CollisionStop | CollisionContinue>) => {
   const d = e.data;
   if ("cancel" in d) {
+    if (_side && _side.id === d.cancel) { _side.cancelled = true; return; }
     if (_run && _run.id === d.cancel) {
       if (_run.stopped) {
         // A parked sweep is not pumping: nothing will read the flag — drop it.
@@ -134,7 +146,10 @@ self.onmessage = (e: MessageEvent<CollisionReq | CollisionCancel | CollisionPaus
     if (_run && _run.id === d.resume) _run.paused = false;
     return;
   }
-  if (_run) {
+  const side = !!d.side;
+  if (side) {
+    if (_side) _side.cancelled = true;   // a newer entry segment supersedes it
+  } else if (_run) {
     // A new request supersedes the running sweep — or drops a parked one.
     if (_run.stopped) { _run.snapshot.take = null; _run = null; }
     else _run.cancelled = true;
@@ -172,18 +187,24 @@ self.onmessage = (e: MessageEvent<CollisionReq | CollisionCancel | CollisionPaus
     const run: Run = {
       id, it: null as unknown as SweepIter, cancelled: false,
       paused: false, pausedAt: 0, activeMs: 0, sliceStart: 0,
-      snapshot: { take: null }, budgetMs: budgetMs ?? null,
+      snapshot: { take: null }, budgetMs: side ? null : (budgetMs ?? null),
       stopped: false, stopRequested: false, pump: () => {},
+    };
+    // The slot this run lives in — cleared only if it still holds this run
+    // (a superseding request may have replaced it while a slice ran).
+    const release = () => {
+      if (side) { if (_side === run) _side = null; }
+      else if (_run === run) _run = null;
     };
     // The sweep's budget clock: active time only (paused time stands still).
     // The iterator's own maxMs stays unset — the budget is enforced here so
     // that running out of it PARKS the sweep instead of ending it.
     const activeClock = () => run.activeMs + (run.sliceStart ? performance.now() - run.sliceStart : 0);
-    run.it = sweepCollisionsIter(model, track, wcs, { ...options, maxMs: undefined, clock: activeClock, snapshot: run.snapshot });
-    _run = run;
+    run.it = sweepCollisionsIter(model, track, wcs, { ...options, maxMs: undefined, clock: activeClock, snapshot: side ? undefined : run.snapshot });
+    if (side) _side = run; else _run = run;
     // Park: the generator stays suspended at its current checkpoint; the
     // owner gets the sweep-so-far and decides between continue and cancel.
-    // Not a result — `stopped` says so.
+    // Not a result — `stopped` says so. (Main runs only.)
     const park = (reason: "stopped" | "time") => {
       run.stopRequested = false;
       run.stopped = true;
@@ -206,7 +227,7 @@ self.onmessage = (e: MessageEvent<CollisionReq | CollisionCancel | CollisionPaus
         run.activeMs += performance.now() - run.sliceStart;
         run.sliceStart = 0;
       } catch (err) {
-        if (_run === run) _run = null;
+        release();
         self.postMessage({ id, error: String((err as Error)?.message ?? err) });
         return;
       }
@@ -220,7 +241,7 @@ self.onmessage = (e: MessageEvent<CollisionReq | CollisionCancel | CollisionPaus
         setTimeout(pump, 0);
         return;
       }
-      if (_run === run) _run = null;
+      release();
       run.snapshot.take = null;
       if (slice.cancelled) { self.postMessage({ id, cancelled: true }); return; }
       self.postMessage({ id, result: slice.result });

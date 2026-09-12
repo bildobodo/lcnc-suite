@@ -4671,3 +4671,58 @@ attribute inside a double-quoted `:title` (the tab logged one
 OWED: the operator's look (❚❚ flips at once; ▶ where ❚❚ was; the timeline
 does not move while scrubbing through long line labels), heavy gates at the
 next stop.
+
+## 2026-09-12 (late, 2) — Sim entry never cancels the program's sweep
+
+**Operator:** "enabling the sim does still restart the sweep — is that
+intentional?" and, minutes later, "pausing started to take a very long time".
+The trace had both: 21:29:11 a base sweep at 59 % `sweep_cancelled` the
+instant sim was entered and a `sweep_start` on the entry track (points + 1)
+from zero; every later stop was on that entry-track sweep, which carried 200
+capped hits at 3 % — the entry rapid ends in contact, and with the LIVE pose
+as the sweep's only baseline every following line is a continuation record —
+so each park refined thousands of records (~30 mesh probes each). Cancels paid
+the same: a cancelled sweep refined everything in its epilogue before the
+worker could start the sweep that superseded it (14 s at 0 % in the trace).
+
+**What was intentional and wrong.** Yesterday's `runEntryCheck` rule: base
+running or parked at entry → cancel it, sweep the whole entry track (the
+worker holds one sweep). Two defects beyond the thrown-away progress: (1) the
+merged result took the ENTRY track's identity (`_colPendingTrack = entry`), so
+the next entry found no base result and re-swept everything — every re-entry,
+not just the first; (2) the full entry-track sweep has one baseline (the live
+pose) where the base sweep has another (the first point) — different verdicts
+for the same program, and the flood above.
+
+**Design now.** The MAIN run always sweeps the BASE track and is never
+cancelled for a sim entry. The entry segment is a SIDE run in the worker
+(`side: true`: its own `Run` slot beside `_run`, never parks/pauses, a newer
+side request supersedes it, `cancel` with its negative id addresses it) —
+two points, milliseconds, resident model. Its result is the entry OVERLAY
+(`collisionEntry` {track, base, result, shift}); `collisionEntryResult` merges
+it onto the base result at display time (`mergeEntryResult`, pure — recomputed
+when either lands, so a base that continues from parked re-merges by itself).
+ScrubBar shows the result swept on exactly the displayed track: base on base,
+overlay-merged on the entry track, nothing otherwise; it DROPS the entry track
+at sim exit (the base result keeps its identity). `viewer/sweepEntry.ts`
+`planEntryCheck` (pure, 10 tests) decides: base unknown → base + side; base
+current / running / parked → side only; overlay for this entry track → nothing;
+side in flight → nothing; entry === base → base only when unknown. ScrubBar's
+sim-time WCS edge emits cancel-check (→ `_colInvalidate`: base, overlay, marks
+gone) + check-entry; ↻ sweeps the BASE unbounded and keeps the overlay.
+`_colBuildRequest` is the one request builder for both runs.
+
+**Refinement bounded.** `buildResult` selects the REPORTED set first (onsets
+first when the cap bites, on raw cums — refinement moves an onset back by
+under one sample step, so the order holds but for near-ties) and refines only
+it: ≤ MAX_HITS records per park/final instead of every record; spanEndLine
+back-fill still walks all records. A driver abort (`next(true)`) skips
+refinement — every driver discards that result.
+
+**Verified (suite live, single niced files):** collision 44, sweepEntry 10,
+pump 3, merge 2; SFC compile + eslint + tsc probe clean; the worker change
+forced two full reloads of the operator's tab, each starting the base sweep
+normally, no browser errors. OWED: the operator's look — enter sim while the
+base sweep runs (it keeps running; the entry segment's verdict appears when
+it lands), exit + re-enter on a finished sweep (nothing re-sweeps), ❚❚ on a
+sweep with many hits (bounded now) — and the heavy gates at the next stop.

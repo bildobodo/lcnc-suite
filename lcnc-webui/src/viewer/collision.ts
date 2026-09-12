@@ -909,6 +909,11 @@ export function* sweepCollisionsIter(
 
   const maxMs = opts.maxMs ?? Infinity;
   let truncated: CollisionResult["truncated"] = null;
+  // Driver abort (next(true)): the result is discarded by every driver, so
+  // the epilogue must not refine — a cancelled sweep with thousands of
+  // contact records used to spend 10+ s refining them before the worker
+  // could start the sweep that superseded it (trace 2026-09-12: 14 s at 0 %).
+  let aborted = false;
   let sweptTo = 0;   // dist parameter reached — the covered fraction on truncation
   const overBudget = (): boolean => clock() - t0 > maxMs;
   const frac = (s: number): number => Math.min(1, s / (totalCum || 1));
@@ -972,8 +977,21 @@ export function* sweepCollisionsIter(
   // second and every later snapshot (and the final result) reuse them.
   // Values are DIST cum (captured before the track-cum conversion below).
   const refined = new Map<string, { sig: string; cum: number; cumEnd: number; intervals: Array<[number, number]> }>();
-  const buildResult = (recs: typeof worst, trunc: CollisionResult["truncated"], final: boolean): CollisionResult => {
-    for (const [key, h] of recs) {
+  const buildResult = (recs: typeof worst, trunc: CollisionResult["truncated"], final: boolean, refine: boolean): CollisionResult => {
+    // The REPORTED set first — onsets first when the cap bites: a long
+    // penetration's continuation records must never evict a genuinely
+    // distinct later clash — and only it is refined (2026-09-12: every
+    // record was, continuation records past the cap included — a program
+    // in contact from its first point is one record per LINE, and a park
+    // or the final result refined thousands of them at ~30 mesh probes
+    // each). Selection on the raw cums: refinement moves an onset back by
+    // under one sample step, so the order is the same but for near-ties.
+    const entries = [...recs.entries()];
+    const onsetE = entries.filter(([, h]) => h.continuation === undefined).sort((x, y) => x[1].cum - y[1].cum);
+    const contE = entries.filter(([, h]) => h.continuation !== undefined).sort((x, y) => x[1].cum - y[1].cum);
+    const selected = [...onsetE, ...contE].slice(0, MAX_HITS);
+    for (const [key, h] of selected) {
+      if (!refine) break;
       if (h.dist > CONTACT_EPS || h.cum <= 0) continue;  // near-misses keep their closest-approach sample
       const sig = `${h.samples.length},${h.cum},${h.cumEnd}`;
       const memo = refined.get(key);
@@ -1040,7 +1058,7 @@ export function* sweepCollisionsIter(
     }
     // Hits leave the sweep in TRACK cum (time on a time-based track) — the
     // scrub-to-hit target must live on the slider's axis.
-    for (const h of recs.values()) {
+    for (const [, h] of selected) {
       h.cum = distToTrackCum(h.cum);
       h.cumEnd = Math.max(h.cum, distToTrackCum(h.cumEnd));
       if (h.intervals) {
@@ -1052,21 +1070,16 @@ export function* sweepCollisionsIter(
     }
 
     // Back-fill spanEndLine on every onset: the last line its contact persists
-    // through (continuations point at their onset by line + pair).
+    // through (continuations point at their onset by line + pair) — over ALL
+    // records: a continuation past the cap still extends its onset's span.
     for (const h of recs.values()) {
       if (h.continuation === undefined) continue;
       const onset = recs.get(keyFor(h.continuation, h.pi));
       if (onset) onset.spanEndLine = Math.max(onset.spanEndLine ?? onset.line, h.line);
     }
 
-    // Onsets first when the cap bites: a long penetration's continuation
-    // records must never evict a genuinely distinct later clash. Re-sorted by
-    // cum afterwards (ScrubBar relies on cum order).
-    const all = [...recs.values()];
-    const onsets = all.filter(h => h.continuation === undefined).sort((x, y) => x.cum - y.cum);
-    const conts = all.filter(h => h.continuation !== undefined).sort((x, y) => x.cum - y.cum);
-    const hits = [...onsets, ...conts]
-      .slice(0, MAX_HITS)
+    // Re-sorted by cum after refinement (ScrubBar relies on cum order).
+    const hits = selected.map(([, h]) => h)
       .sort((x, y) => x.cum - y.cum)
       .map(({ pi: _pi, samples: _s, ...rest }) => rest);
 
@@ -1095,12 +1108,13 @@ export function* sweepCollisionsIter(
         copy.set(k, { ...h, samples: h.samples.slice(),
                       intervals: h.intervals?.map(iv => [iv[0], iv[1]] as [number, number]) });
       }
-      return buildResult(copy, { covered: frac(sweptTo), reason }, false);
+      return buildResult(copy, { covered: frac(sweptTo), reason }, false, true);
     };
   }
   // Checkpoint before the first segment: an abort here leaves the baseline
   // pose only (the "aborts early" contract).
   const abortAtStart = (yield 0) === true;
+  if (abortAtStart) aborted = true;
   lastYield = clock();
   outer:
   for (let i = 1; i < n && !abortAtStart; i++) {
@@ -1110,7 +1124,7 @@ export function* sweepCollisionsIter(
     // baseline yield and the first resume).
     if ((i & 15) === 0 || (i > 1 && clock() - lastYield >= yieldMs)) {
       if (overBudget()) { truncated = { covered: frac(sweptTo), reason: "time" }; break; }
-      if ((yield frac(dcum[i - 1]!)) === true) break;
+      if ((yield frac(dcum[i - 1]!)) === true) { aborted = true; break; }
       lastYield = clock();
     }
     const line = track.lines[i]!;
@@ -1219,7 +1233,7 @@ export function* sweepCollisionsIter(
         if ((done & (SAMPLES_PER_CLOCK - 1)) === 0
             && ((done & (SAMPLES_PER_YIELD - 1)) === 0 || clock() - lastYield >= yieldMs)) {
           if (overBudget()) { truncated = { covered: frac(s), reason: "time" }; break outer; }
-          if ((yield frac(s)) === true) break outer;
+          if ((yield frac(s)) === true) { aborted = true; break outer; }
           lastYield = clock();
         }
         if (done > maxSamples && !budgetExceeded) {
@@ -1293,7 +1307,7 @@ export function* sweepCollisionsIter(
       }
     }
   }
-  const finalResult = buildResult(worst, truncated, true);
+  const finalResult = buildResult(worst, truncated, true, !aborted);
   yield truncated ? truncated.covered : 1;
   if (opts.snapshot) opts.snapshot.take = null;
   return finalResult;

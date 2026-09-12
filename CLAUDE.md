@@ -838,13 +838,25 @@ bound, the iterator's 4 M-sample runaway backstop behind it), the operator's
 ❚❚ and a ROTARY jog (> 0.05°) all park; nothing cancels but a superseding
 change (program, touch-off, tool). A motion-parked sweep resumes by itself
 once the pose has held still 4.5 s with no re-parse in flight; a re-parse
-that lands drops it and starts fresh. SIM ENTRY sweeps only the ENTRY
-SEGMENT (the live position → first point rapid, `sliceTrack`) and merges it
-with the program's own result (`sweepMerge.ts`: base cums shift by the
-entry length; TWO baselines, both reported — the live pose's and the
-first point's static contacts); with the machine already at the first point
-the track is identical and nothing runs. A base sweep still running or
-parked at entry falls back to the full entry-track sweep.
+that lands drops it and starts fresh. SIM ENTRY never touches the
+program's sweep (the MAIN run, always on the BASE track): the ENTRY
+SEGMENT (the live position → first point rapid, `sliceTrack`) is a SIDE
+sweep in the worker (`side: true` — beside a running or parked main run,
+milliseconds) whose result is the entry OVERLAY, merged onto the base
+result AT DISPLAY TIME (`collisionEntryResult` = `sweepMerge.ts`: base
+cums shift by the entry length; TWO baselines, both reported — the live
+pose's and the first point's static contacts). `viewer/sweepEntry.ts`
+(pure, pinned) decides what runs: base unknown → base + side; base
+current / running / parked → side only; overlay already swept for this
+entry track → nothing; machine at the first point → the track IS the
+base, nothing new. ScrubBar drops the entry track at sim exit (the base
+result keeps its identity, so a re-entry sweeps only the new segment).
+The first attempt cancelled a base sweep at 59 % for that one segment and
+re-swept the whole program on every re-entry; its full entry-track sweep
+also had the LIVE pose as its only baseline, so a program that starts in
+contact reported a continuation record per line (200 capped hits at 3 %)
+and every park refined thousands of them — refinement is now bounded to
+the reported set (MAX_HITS, onsets first) and skipped on a driver abort.
 
 **Collision sweep (offline dry run, stage 3)**: the scrub bar's Check
 button sweeps the machine model through the scrub track off-thread
