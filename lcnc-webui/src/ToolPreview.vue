@@ -7,14 +7,7 @@ const props = withDefaults(
   defineProps<{
     diameter: number;
     length: number;
-    fluteLength: number;
-    shaftDiameter?: number;
-    toolType?: string;
-    cornerRadius?: number;
-    taperAngle?: number;
-    pointAngle?: number;
-    tipDiameter?: number;
-    bodyLength?: number;
+    meta?: ToolMeta | null;
     unitsPerMm?: number;
     width?: number;
     height?: number;
@@ -22,9 +15,7 @@ const props = withDefaults(
   { width: 80, height: 120, unitsPerMm: 1 }
 );
 
-const { diameter, length, fluteLength, shaftDiameter, toolType,
-        cornerRadius, taperAngle, pointAngle, tipDiameter, bodyLength,
-        width, height, unitsPerMm } = toRefs(props);
+const { diameter, length, meta, width, height, unitsPerMm } = toRefs(props);
 
 const container = ref<HTMLDivElement | null>(null);
 
@@ -100,19 +91,7 @@ function buildPreview() {
 
   const group = new THREE.Group();
 
-  const meta: ToolMeta = {
-    type: toolType?.value ?? "other",
-    oal: length.value,
-    flute_length: fluteLength.value,
-    body_length: bodyLength?.value ?? undefined,
-    shaft_diameter: shaftDiameter?.value ?? undefined,
-    corner_radius: cornerRadius?.value ?? undefined,
-    taper_angle: taperAngle?.value ?? undefined,
-    point_angle: pointAngle?.value ?? undefined,
-    tip_diameter: tipDiameter?.value ?? undefined,
-  };
-
-  const { pts, fluteY } = buildToolProfile(diameter.value, length.value, meta, unitsPerMm.value);
+  const { pts, fluteY } = buildToolProfile(diameter.value, length.value, meta.value ?? null, unitsPerMm.value);
   const { cutter, shaft } = splitProfileAt(pts, fluteY, unitsPerMm.value);
 
   const cutterMat = new THREE.MeshStandardMaterial({
@@ -156,12 +135,11 @@ onMounted(() => {
 onBeforeUnmount(dispose);
 
 watch(
-  [diameter, length, fluteLength, shaftDiameter, toolType,
-   cornerRadius, taperAngle, pointAngle, tipDiameter, bodyLength,
-   width, height, unitsPerMm],
+  [diameter, length, meta, width, height, unitsPerMm],
   () => {
     buildPreview();
-  }
+  },
+  { deep: true }
 );
 </script>
 

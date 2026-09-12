@@ -1,10 +1,13 @@
 import * as THREE from "three";
 
-export interface HolderSegment {
+export interface ShaftSegment {
   height: number;
   lower_diameter: number;
   upper_diameter: number;
 }
+
+// Holders use the same frustum shape but have a separate assembly origin.
+export type HolderSegment = ShaftSegment;
 
 export interface ProfileSegment {
   end: [number, number];
@@ -14,19 +17,21 @@ export interface ProfileSegment {
 }
 
 export interface ToolMeta {
-  type?: string;
-  oal?: number;
-  flute_length?: number;
-  shoulder_length?: number;
-  shoulder_diameter?: number;
-  body_length?: number;
-  shaft_diameter?: number;
-  taper_angle?: number;
-  point_angle?: number;
-  tip_diameter?: number;
-  corner_radius?: number;
-  holder_segments?: HolderSegment[];
-  profile?: ProfileSegment[];
+  type?: string | null;
+  fusion_type?: string | null;
+  shaft_segments?: ShaftSegment[] | null;
+  oal?: number | null;
+  flute_length?: number | null;
+  shoulder_length?: number | null;
+  shoulder_diameter?: number | null;
+  body_length?: number | null;
+  shaft_diameter?: number | null;
+  taper_angle?: number | null;
+  point_angle?: number | null;
+  tip_diameter?: number | null;
+  corner_radius?: number | null;
+  holder_segments?: HolderSegment[] | null;
+  profile?: ProfileSegment[] | null;
 }
 
 // ---- Parametric tool profile generation ----
@@ -54,9 +59,43 @@ export function buildToolProfile(
   const pts: THREE.Vector2[] = [];
   const V = (x: number, y: number) => new THREE.Vector2(Math.max(0, x), y);
 
+  // The cutter ends at LCF; the shoulder extends to its own axial length.
+  // Custom shaft segments start there and are clipped at physical OAL. Neither
+  // LB nor a measured installation length sets a shoulder/shaft coordinate.
+  const appendShoulderAndShaft = (shoulderRadius: number) => {
+    const end = pts[pts.length - 1]!;
+    const shoulderY = Math.min(oal, Math.max(end.y, meta?.shoulder_length ?? end.y));
+    const shoulderR = (meta?.shoulder_diameter ?? shoulderRadius * 2) / 2;
+    pts.push(V(shoulderR, end.y), V(shoulderR, shoulderY));
+    let z = shoulderY;
+    let radius = shaftR;
+    const segments = meta?.shaft_segments;
+    if (segments?.length) {
+      for (const seg of segments) {
+        if (z >= oal) break;
+        if (seg.height <= 0) continue;
+        const height = Math.min(seg.height, oal - z);
+        const lowerR = seg.lower_diameter / 2;
+        radius = lowerR + (seg.upper_diameter / 2 - lowerR) * height / seg.height;
+        pts.push(V(lowerR, z), V(radius, z + height));
+        z += height;
+      }
+    } else {
+      pts.push(V(radius, z));
+    }
+    if (z < oal) pts.push(V(radius, oal));
+    pts.push(V(0, oal));
+  };
+
   switch (type) {
     case "endmill":
+    case "tap": {
+      pts.push(V(0, 0), V(r, 0), V(r, fluteLen));
+      appendShoulderAndShaft(r);
+      break;
+    }
     case "threadmill": {
+      // Legacy cutting approximation pending the thread-profile correction.
       pts.push(V(0, 0), V(r, 0), V(r, fluteLen));
       if (Math.abs(shaftR - r) > eps) pts.push(V(shaftR, fluteLen));
       pts.push(V(shaftR, oal), V(0, oal));
@@ -88,22 +127,20 @@ export function buildToolProfile(
         pts.push(V(r * Math.cos(a), r - r * Math.sin(a)));
       }
       pts.push(V(r, fluteLen));
-      if (Math.abs(shaftR - r) > eps) pts.push(V(shaftR, fluteLen));
-      pts.push(V(shaftR, oal), V(0, oal));
+      appendShoulderAndShaft(r);
       break;
     }
     case "bullnose": {
       const cr = Math.min(cornerR || r * 0.2, r);
       const arcN = 8;
-      const cylTop = Math.max(cr, bodyLen);
+      const cylTop = Math.max(cr, fluteLen);
       pts.push(V(0, 0), V(r - cr, 0));
       for (let i = 1; i <= arcN; i++) {
         const a = (Math.PI / 2) * (i / arcN);
         pts.push(V(r - cr + cr * Math.sin(a), cr - cr * Math.cos(a)));
       }
       pts.push(V(r, cylTop));
-      if (Math.abs(shaftR - r) > eps) pts.push(V(shaftR, cylTop));
-      pts.push(V(shaftR, oal), V(0, oal));
+      appendShoulderAndShaft(r);
       break;
     }
     case "radiusmill": {
@@ -128,8 +165,7 @@ export function buildToolProfile(
       pts.push(V(0, 0));
       if (tipR > eps) pts.push(V(tipR, 0));
       pts.push(V(r, tipH), V(r, fluteLen));
-      if (Math.abs(shaftR - r) > eps) pts.push(V(shaftR, fluteLen));
-      pts.push(V(shaftR, oal), V(0, oal));
+      appendShoulderAndShaft(r);
       break;
     }
     case "centerdrill": {
@@ -164,8 +200,7 @@ export function buildToolProfile(
       pts.push(V(0, 0));
       if (tipR > eps) pts.push(V(tipR, 0));
       pts.push(V(r, coneH), V(r, fluteLen));
-      if (Math.abs(shaftR - r) > eps) pts.push(V(shaftR, fluteLen));
-      pts.push(V(shaftR, oal), V(0, oal));
+      appendShoulderAndShaft(r);
       break;
     }
     case "tapered": {
@@ -198,34 +233,34 @@ export function buildToolProfile(
       break;
     }
     case "dovetail": {
-      // DC = max cutting diameter (wide bottom). TA = cutting angle (full included,
-      // gateway doubled). Neck narrows above based on angle and flute length.
-      const doveHalfA = (taperAngle / 2) * (Math.PI / 180);
-      const neckR = Math.max(0.5 * unitsPerMm, r - fluteLen * Math.tan(doveHalfA || 0.3));
+      // Fusion TA is the side angle here (unmodified by the importer).
+      // Confirmed for the sharp, RE=0 dovetail; rounded edges remain future work.
+      const sideAngle = taperAngle * Math.PI / 180;
+      const neckR = Math.max(0, r - fluteLen * Math.tan(sideAngle));
       pts.push(V(0, 0), V(r, 0), V(neckR, fluteLen));
-      if (Math.abs(shaftR - neckR) > eps) pts.push(V(shaftR, fluteLen));
-      pts.push(V(shaftR, oal), V(0, oal));
+      appendShoulderAndShaft(neckR);
       break;
     }
     case "lollipop": {
-      const ballR = r;
-      const neckR2 = (tipR || shaftR || r * 0.4);
-      const steps2 = 10;
+      // Trim the sphere where it meets the neck, rather than closing the ball
+      // at 2R and doubling back to LCF. A custom shaft's first diameter is at
+      // the shoulder; Fusion also exports this as shoulder-diameter.
+      const neckR = Math.min(r, (meta?.shoulder_diameter
+        ?? meta?.shaft_segments?.[0]?.lower_diameter ?? shaftR * 2) / 2);
+      const endAngle = r > 0 ? Math.acos(neckR / r) : 0;
+      const arcN = 64;
       pts.push(V(0, 0));
-      for (let i = 0; i <= steps2; i++) {
-        const a = -Math.PI / 2 + Math.PI * (i / steps2);
-        pts.push(V(ballR * Math.cos(a), ballR + ballR * Math.sin(a)));
+      for (let i = 1; i <= arcN; i++) {
+        const a = -Math.PI / 2 + (endAngle + Math.PI / 2) * i / arcN;
+        pts.push(V(r * Math.cos(a), r + r * Math.sin(a)));
       }
-      pts.push(V(neckR2, ballR * 2), V(neckR2, fluteLen));
-      if (Math.abs(shaftR - neckR2) > eps) pts.push(V(shaftR, fluteLen));
-      pts.push(V(shaftR, oal), V(0, oal));
+      pts.push(V(neckR, Math.max(fluteLen, pts[pts.length - 1]!.y)));
+      appendShoulderAndShaft(neckR);
       break;
     }
     case "facemill": {
-      const discH = Math.max(5 * unitsPerMm, bodyLen * 0.3);
-      const arbor = shaftR || r * 0.3;
-      pts.push(V(0, 0), V(r, 0), V(r, discH));
-      pts.push(V(arbor, discH), V(arbor, oal), V(0, oal));
+      pts.push(V(0, 0), V(r, 0), V(r, fluteLen));
+      appendShoulderAndShaft(r);
       break;
     }
     case "probe": {

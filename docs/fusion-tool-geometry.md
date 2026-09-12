@@ -1,4 +1,4 @@
-# Fusion tool geometry: angle and unit regressions
+# Fusion tool geometry: native reference corrections
 
 The first geometry correction keeps Fusion countersink `SIG` as the full
 included angle. A 10 mm countersink with SIG=90 has a 5 mm cone height;
@@ -40,7 +40,7 @@ with a maximum 0.0001 mm chord error; SVG coordinate rounding also applies.
 
 The form-mill post SVG omits the custom profile and is flagged as unsuitable
 for shape verification. It can still test the Suite's mm/in consistency.
-The remaining 25 cases cover 18 types. Most complex profiles still have known
+The remaining 25 cases cover 18 types. Complex profiles still have known
 shape discrepancies; unit invariance does not certify Fusion fidelity.
 
 The new frontend tests call the actual pure Python importer before exercising
@@ -69,8 +69,68 @@ python3 -m unittest test_fusion_import test_tool_table
 `test_status_runtime` uses the repository's existing `fake_linuxcnc` bootstrap
 (automatically installed by `conftest.py` under pytest).
 
-The native references confirm the corrected **tip geometry**, not the entire
-countersink body: the current renderer still steps to the shaft at LCF rather
-than the separate shoulder length. Shaft segments, shoulder geometry, tapered
-subtypes, other complex profiles and optional holder placement remain follow-up
-work.
+## Shoulder and custom shaft correction
+
+`shaft.segments` now imports as `shaft_segments` (height, lower diameter, upper
+diameter), scaled with the tool's unit. It remains distinct from holder segments,
+which use the holder's own unit. The sidecar preserves these segments and the
+original `fusion_type`. The status payload includes shaft segments and custom
+form profiles. Tool-table hover and edit previews now receive the entire geometry
+metadata object, just like the main viewer; edits overlay the existing geometry
+for the preview. Saving or renumbering preserves metadata fields absent from the
+edit form. Three.js remains loaded through the asynchronous preview component.
+
+For end mills (including reamers/counter bores/boring bars), ball and bullnose
+mills, drills/spot drills, countersinks, face mills, taps, sharp dovetails and
+lollipops, the profile now continues from LCF to the explicit shoulder length,
+then builds the shaft. The shoulder radius uses `shoulder_diameter` when supplied.
+Custom shaft segments stack from that shoulder, interpolate their upper/lower
+radii, and stop at OAL. A segment crossing OAL is clipped at its interpolated
+radius; a shorter segment list continues cylindrically to OAL. These families
+use neither LB nor assembly gauge length to position physical shoulders.
+
+Two connected cutting-shape corrections are included: a sharp dovetail uses
+Fusion TA directly as its side angle; a lollipop sphere ends where it intersects
+the neck, instead of closing at 2R and doubling back toward LCF. The native
+right-hand tap is cylindrical through LCF before its shaft step; this is the
+Fusion CAM envelope, not a helical thread model.
+
+`test-fixtures/fusion-tool-shoulders.json` adds nine native Fusion 2705.1.15
+references from 2026-09-12. They vary shoulder lengths and shaft diameters
+independently and include two custom shafts, one extending past OAL. Canonical
+operation JSON is used: Fusion rejected the proposed flat-mill shoulder diameter
+8 mm and restored 12 mm, so the fixture records the actual accepted geometry.
+
+The combined 35 fixtures exercise the real import, sidecar storage, table merge,
+viewer metadata selection and renderer in mm/in. Of these, 23 reference contours
+in the corrected families are checked in full, bidirectionally. Linear profiles
+agree within 0.00001 mm (native SVG rounding); curved profiles within 0.01 mm,
+including the renderer's existing chord approximation. These are reference-case
+regression bounds, not a guarantee for all parameter combinations or a machining
+tolerance. Measured Z, active offsets, LB and holder metadata are separately
+checked not to stretch these physical profiles.
+
+Observed full-contour sampled distances before/after this shoulder patch:
+
+| Native reference | Before (mm) | After (mm) |
+| --- | ---: | ---: |
+| Countersink 90° | 1 | <0.00001 |
+| Dovetail with custom shaft | 4 | <0.00001 |
+| Face mill | 5 | <0.00001 |
+| Reamer | 0.19 | <0.00001 |
+| Right-hand tap | 0.75 | <0.00001 |
+| Lollipop with custom shaft | 4 | 0.00106 |
+
+## Remaining scope
+
+Tapered subtypes, thread-mill teeth, chamfer return flanks, slot-mill upper radii,
+rounded dovetails, center drills and probes still need their own cutting-profile
+corrections or additional native references. Their legacy shape branches remain
+separate; storing shaft metadata does not yet certify those branches or make them
+consume the new shaft builder. The radius-mill arc still has its existing coarse
+tessellation. The native form-mill post remains an unsuitable shape oracle.
+
+Optional holder placement and safe metadata-only refresh of existing libraries
+remain separate work. This patch does not change live tool tables or the existing
+full-library replacement behavior described above. Already imported tools do not
+automatically acquire shaft segments discarded by earlier imports.

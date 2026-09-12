@@ -21,8 +21,18 @@ _TOOL_META_FIELDS = (
     "type", "description", "flutes", "oal", "flute_length", "shoulder_length",
     "shoulder_diameter", "corner_radius", "body_length", "shaft_diameter",
     "taper_angle", "point_angle", "tip_diameter", "material", "holder", "holder_segments",
-    "assembly_gauge_length", "profile",
+    "assembly_gauge_length", "profile", "shaft_segments", "fusion_type",
 )
+
+
+def tool_visual_metadata(meta: dict) -> dict:
+    """Geometry sent to the viewer; measured offsets remain in status/tool.tbl."""
+    return {k: meta[k] for k in (
+        "type", "fusion_type", "oal", "flute_length", "shoulder_length",
+        "shoulder_diameter", "body_length", "shaft_diameter", "shaft_segments",
+        "taper_angle", "point_angle", "tip_diameter", "corner_radius",
+        "holder_segments", "profile", "stl_file",
+    ) if k in meta}
 
 
 def parse_tool_table(path: str) -> list:

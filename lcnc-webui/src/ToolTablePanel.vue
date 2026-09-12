@@ -11,6 +11,7 @@ import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineInput from "./MachineInput.vue";
 import MachineSelect from "./MachineSelect.vue";
+import type { ToolMeta } from "./toolGeometry";
 import { toolUnitsPerMillimeter } from "./toolUnits";
 // Async on purpose (WS-E / F10-finish): ToolPreview is the ONLY statically
 // eager three.js importer left — this edge alone kept the 866 kB three
@@ -34,7 +35,7 @@ const fire = useFire();
 const toolChangeMode = ref<ToolChangeMode>(loadMachineDefaults().toolChangeMode);
 const unitsPerMm = computed(() => toolUnitsPerMillimeter(props.linearUnit));
 
-interface Tool {
+interface Tool extends ToolMeta {
   T: number;
   P: number;
   Z: number;
@@ -548,15 +549,8 @@ defineExpose({ openAdd, fetchTools, triggerImport });
                 <ToolPreview
                   :diameter="editForm.D || 6 * unitsPerMm"
                   :length="editForm.oal || Math.abs(editForm.Z) || 50 * unitsPerMm"
-                  :flute-length="editForm.flute_length || (editForm.oal || 50 * unitsPerMm) * 0.6"
+                  :meta="{ ...editTool, ...editForm }"
                   :units-per-mm="unitsPerMm"
-                  :shaft-diameter="editForm.shaft_diameter ?? undefined"
-                  :tool-type="editForm.type || 'other'"
-                  :corner-radius="editForm.corner_radius ?? undefined"
-                  :taper-angle="editForm.taper_angle ?? undefined"
-                  :point-angle="editForm.point_angle ?? undefined"
-                  :tip-diameter="editForm.tip_diameter ?? undefined"
-                  :body-length="editForm.body_length ?? undefined"
                   :width="160"
                   :height="280"
                 />
@@ -683,15 +677,8 @@ defineExpose({ openAdd, fetchTools, triggerImport });
         <ToolPreview
           :diameter="hoverTool.D || 6 * unitsPerMm"
           :length="hoverTool.oal || Math.abs(hoverTool.Z) || 50 * unitsPerMm"
-          :flute-length="hoverTool.flute_length || (hoverTool.oal || 50 * unitsPerMm) * 0.6"
+          :meta="hoverTool"
           :units-per-mm="unitsPerMm"
-          :shaft-diameter="hoverTool.shaft_diameter ?? undefined"
-          :tool-type="hoverTool.type || 'other'"
-          :corner-radius="hoverTool.corner_radius ?? undefined"
-          :taper-angle="hoverTool.taper_angle ?? undefined"
-          :point-angle="hoverTool.point_angle ?? undefined"
-          :tip-diameter="hoverTool.tip_diameter ?? undefined"
-          :body-length="hoverTool.body_length ?? undefined"
           :width="100"
           :height="160"
         />

@@ -128,6 +128,17 @@ def parse_fusion_library(data: dict, machine_unit: str) -> tuple[list, list]:
             if tool.get("point_angle"):
                 tool["point_angle"] *= 2
 
+        # A custom shaft belongs to the tool and shares its unit. Segment
+        # heights stack from shoulder-length, independently of LB/installation.
+        shaft_segs = (entry.get("shaft") or {}).get("segments", [])
+        if shaft_segs:
+            tool["shaft_segments"] = [
+                {"height": s["height"] * tool_scale,
+                 "lower_diameter": s["lower-diameter"] * tool_scale,
+                 "upper_diameter": s["upper-diameter"] * tool_scale}
+                for s in shaft_segs
+            ]
+
         # Holders carry their own `unit` independent of the tool body.
         holder_segs = holder.get("segments", []) if holder else []
         if holder_segs:

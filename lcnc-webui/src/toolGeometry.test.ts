@@ -3,7 +3,9 @@ import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import * as THREE from "three";
-import fixtures from "../../test-fixtures/fusion-tool-contours.json";
+import originalFixtures from "../../test-fixtures/fusion-tool-contours.json";
+import shoulderFixtures from "../../test-fixtures/fusion-tool-shoulders.json";
+const fixtures = { cases: [...originalFixtures.cases, ...shoulderFixtures.cases] };
 import { buildToolProfile, splitProfileAt, type ToolMeta } from "./toolGeometry";
 import { toolUnitsPerMillimeter } from "./toolUnits";
 
@@ -12,16 +14,32 @@ import { toolUnitsPerMillimeter } from "./toolUnits";
 const imported = JSON.parse(execFileSync("python3", ["-c", `
 import json, sys
 from fusion_import import parse_fusion_library
+from tool_table import _TOOL_META_FIELDS, _merge_tool_data, tool_visual_metadata
+from tool_store import ToolLibraryStore
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
+def imported_case(raw, unit):
+    parsed = parse_fusion_library({'data': [raw]}, unit)[0][0]
+    key = str(parsed['T'])
+    with TemporaryDirectory() as directory:
+        store = ToolLibraryStore(Path(directory) / 'tools.json', lambda: '/test.ini')
+        store.save({key: {k: parsed[k] for k in _TOOL_META_FIELDS if k in parsed}})
+        saved = store.load()[key]
+        table = _merge_tool_data([dict(T=parsed['T'], P=1, Z=-42.3, D=parsed['D'])], {key: saved})[0]
+        return dict(parsed, preview=table, viewer=tool_visual_metadata(saved))
+
 cases = json.load(sys.stdin)['cases']
 print(json.dumps([{
     'id': c['id'],
-    'mm': parse_fusion_library({'data': [c['raw']]}, 'mm')[0][0],
-    'inch': parse_fusion_library({'data': [c['raw']]}, 'in')[0][0]
+    'mm': imported_case(c['raw'], 'mm'),
+    'inch': imported_case(c['raw'], 'in')
 } for c in cases]))
 `], {
   cwd: fileURLToPath(new URL("../../lcnc-gateway/", import.meta.url)),
   input: JSON.stringify(fixtures), encoding: "utf8",
-})) as { id: string; mm: ToolMeta & { D: number }; inch: ToolMeta & { D: number } }[];
+})) as { id: string; mm: ImportedTool; inch: ImportedTool }[];
+type ImportedTool = ToolMeta & { D: number; preview: ToolMeta; viewer: ToolMeta };
 
 function expectSamePoints(a: THREE.Vector2[], b: THREE.Vector2[], factor = 1) {
   expect(b.length).toBe(a.length);
@@ -45,6 +63,17 @@ describe("Fusion import → tool geometry", () => {
       expectSamePoints(a.shaft, b.shaft, 25.4);
     });
 
+    it(`${c.id}: preserved geometry reaches both previews after persistence`, () => {
+      for (const unit of ["mm", "inch"] as const) {
+        const tool = c[unit];
+        const scale = toolUnitsPerMillimeter(unit);
+        const direct = buildToolProfile(tool.D, tool.oal!, tool, scale);
+        for (const meta of [tool.preview, tool.viewer]) {
+          expectSamePoints(direct.pts, buildToolProfile(tool.D, tool.oal!, meta, scale).pts);
+        }
+      }
+    });
+
     it(`${c.id}: changing measured visual length does not stretch an imported body`, () => {
       // These are the two fallback lengths the viewer would pass after a
       // measurement. Imported OAL remains authoritative for the physical body.
@@ -64,7 +93,7 @@ describe("Fusion import → tool geometry", () => {
         const tool = c[unit];
         const { pts } = buildToolProfile(tool.D, tool.oal!, tool, scale);
         // Native sharp-tip fixtures begin at the axis, followed by the cone's
-        // full-diameter endpoint. The remaining shoulder profile is later work.
+        // full-diameter endpoint; full contours are checked separately below.
         const native = fixture.nativePoints[1]!;
         expect(pts[0]!.toArray()).toEqual([0, 0]);
         expect(pts[1]!.x / scale).toBeCloseTo(native[0]!, 5);
@@ -99,5 +128,62 @@ describe("Fusion import → tool geometry", () => {
   it("recognizes machine inch spellings", () => {
     for (const unit of ["in", "inch", "inches"]) expect(toolUnitsPerMillimeter(unit)).toBe(1 / 25.4);
     expect(toolUnitsPerMillimeter("mm")).toBe(1);
+  });
+});
+
+// Native points are independently exported by Fusion, including finely sampled
+// circular arcs. Sample both directions: checking vertices alone misses a
+// spurious straight bridge across a native corner or arc.
+function directedContourDistance(a: number[][], b: number[][]) {
+  let worst = 0;
+  for (let i = 1; i < a.length; i++) {
+    const p = a[i - 1]!, q = a[i]!;
+    const steps = Math.max(1, Math.ceil(Math.hypot(q[0]! - p[0]!, q[1]! - p[1]!) / 0.05));
+    for (let j = 0; j <= steps; j++) {
+      const x = p[0]! + (q[0]! - p[0]!) * j / steps;
+      const y = p[1]! + (q[1]! - p[1]!) * j / steps;
+      let best = Infinity;
+      for (let k = 1; k < b.length; k++) {
+        const u = b[k - 1]!, v = b[k]!;
+        const dx = v[0]! - u[0]!, dy = v[1]! - u[1]!;
+        const length2 = dx * dx + dy * dy;
+        const t = length2 ? Math.max(0, Math.min(1, ((x-u[0]!)*dx + (y-u[1]!)*dy) / length2)) : 0;
+        best = Math.min(best, Math.hypot(x-u[0]!-t*dx, y-u[1]!-t*dy));
+      }
+      worst = Math.max(worst, best);
+    }
+  }
+  return worst;
+}
+
+const verifiedTypes = new Set(["endmill", "ball", "bullnose", "drill", "countersink", "dovetail", "facemill", "lollipop", "tap"]);
+describe("native Fusion shoulder and shaft contours", () => {
+  for (const tool of imported.filter(c => verifiedTypes.has(c.mm.type!))) {
+    it(`${tool.id}: complete physical profile matches Fusion`, () => {
+      const fixture = fixtures.cases.find(c => c.id === tool.id)!;
+      for (const unit of ["mm", "inch"] as const) {
+        const meta = tool[unit];
+        const scale = toolUnitsPerMillimeter(unit);
+        const actual = buildToolProfile(meta.D, meta.oal!, meta, scale).pts.map(p => [p.x / scale, p.y / scale]);
+        // Lines: SVG rounding only. Curves retain the renderer's tessellation
+        // error (R4 ball's 12 chords give <0.009 mm); this is not CAM tolerance.
+        const tolerance = fixture.nativeSVG.includes("A") ? 0.01 : 0.00001;
+        expect(directedContourDistance(actual, fixture.nativePoints)).toBeLessThan(tolerance);
+        expect(directedContourDistance(fixture.nativePoints, actual)).toBeLessThan(tolerance);
+        for (let i = 1; i < actual.length; i++) {
+          expect(actual[i]![1]! + 1e-10).toBeGreaterThanOrEqual(actual[i-1]![1]!);
+        }
+      }
+    });
+  }
+
+  it("holder and insertion metadata do not change the physical tool", () => {
+    for (const tool of imported.filter(c => verifiedTypes.has(c.mm.type!))) {
+      const meta = tool.mm;
+      const changed = { ...meta, body_length: 10, assembly_gauge_length: 150,
+        holder_segments: [{height: 60, lower_diameter: 30, upper_diameter: 40}] };
+      expectSamePoints(buildToolProfile(meta.D, 42.3, meta).pts,
+        buildToolProfile(meta.D, 44.1, changed).pts);
+    }
   });
 });

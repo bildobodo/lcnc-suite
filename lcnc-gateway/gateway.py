@@ -56,6 +56,7 @@ from tool_table import (
     write_tool_table,
     _merge_tool_data,
     _TOOL_META_FIELDS,
+    tool_visual_metadata,
 )
 from settings_store import SettingsStore, VALID_SECTIONS as _VALID_SETTINGS_SECTIONS
 import status_runtime as _status_runtime_mod
@@ -5292,13 +5293,7 @@ async def ws_endpoint(ws: WebSocket):
                                 _lib = await asyncio.to_thread(load_tool_library)
                                 _meta = _lib.get(str(st.tool_number), {})
                                 if _meta:
-                                    _tm = {k: _meta[k] for k in (
-                                        "type", "oal", "flute_length", "shoulder_length",
-                                        "shoulder_diameter", "body_length",
-                                        "shaft_diameter", "taper_angle",
-                                        "point_angle", "tip_diameter", "corner_radius",
-                                        "holder_segments", "stl_file",
-                                    ) if k in _meta}
+                                    _tm = tool_visual_metadata(_meta)
                                     if _tm:
                                         status_msg["tool_meta"] = _tm
                             except (KeyError, TypeError, OSError) as e:
