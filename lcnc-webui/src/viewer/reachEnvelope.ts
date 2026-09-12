@@ -84,29 +84,73 @@ const EPS = 1e-6;
 
 // ---------------------------------------------------------------- hull solid
 
-/** Convex hull of a point set as a plane-bounded solid. */
+/** Deterministic jitter amplitude (machine units) that breaks the exact
+ *  degeneracies of the reach input — 8 translated copies of one orbit,
+ *  coplanar by construction — which three's quickhull sometimes turns into
+ *  faces that are not supporting planes (observed on the trsrn model: a
+ *  face 3.5 m inside the hull). Invisible at any drawing scale. */
+const HULL_JITTER = 1e-3;
+const HULL_TRIES = 4;
+const HULL_TOL = 1e-3;
+
+/** Convex hull of a point set as a plane-bounded solid. Input is
+ *  deduplicated and jittered; the result is VALIDATED (every plane must
+ *  hold every hull vertex) and rebuilt with a fresh jitter seed on failure;
+ *  faces that still fail are dropped (`dropped` > 0 — the solid stays a
+ *  convex bound by its remaining supporting planes; the mesh gets a hole). */
 export class HullSolid implements Solid {
   readonly planes: { n: THREE.Vector3; c: number }[] = [];
-  readonly tris: Float32Array;
+  tris: Float32Array = new Float32Array(0);
   readonly verts: THREE.Vector3[] = [];
+  dropped = 0;
+  attempts = 0;
 
   constructor(points: THREE.Vector3[]) {
-    const hull = new ConvexHull().setFromPoints(points);
-    const tris: number[] = [];
-    const seen = new Set<unknown>();
-    for (const face of hull.faces) {
-      this.planes.push({ n: face.normal.clone(), c: face.constant });
-      let edge = face.edge;
-      let k = 0;
-      do {
-        const v = edge.head();
-        tris.push(v.point.x, v.point.y, v.point.z);
-        if (!seen.has(v)) { seen.add(v); this.verts.push(v.point.clone()); }
-        edge = edge.next;
-        k++;
-      } while (edge !== face.edge && k < 8);
+    const base = dedupePoints(points, 1e-4);
+    let seed = 0x9e3779b9;
+    for (let attempt = 1; attempt <= HULL_TRIES; attempt++) {
+      this.attempts = attempt;
+      const input = jitterPoints(base, HULL_JITTER, seed + attempt * 7919);
+      const hull = new ConvexHull().setFromPoints(input);
+      this.planes.length = 0; this.verts.length = 0;
+      const tris: number[] = [];
+      const seen = new Set<unknown>();
+      for (const face of hull.faces) {
+        this.planes.push({ n: face.normal.clone(), c: face.constant });
+        let edge = face.edge;
+        let k = 0;
+        do {
+          const v = edge.head();
+          tris.push(v.point.x, v.point.y, v.point.z);
+          if (!seen.has(v)) { seen.add(v); this.verts.push(v.point.clone()); }
+          edge = edge.next;
+          k++;
+        } while (edge !== face.edge && k < 8);
+      }
+      this.tris = Float32Array.from(tris);
+      const bad = this._invalidFaces();
+      if (bad.length === 0) { this.dropped = 0; return; }
+      if (attempt === HULL_TRIES) {
+        // Keep the supporting planes only; drop the bad faces' triangles.
+        const badSet = new Set(bad);
+        const keptPlanes = this.planes.filter((_, i) => !badSet.has(i));
+        const keptTris: number[] = [];
+        for (let i = 0; i < this.planes.length; i++) if (!badSet.has(i)) for (let q = 0; q < 9; q++) keptTris.push(this.tris[i * 9 + q]!);
+        this.planes.length = 0; this.planes.push(...keptPlanes);
+        this.tris = Float32Array.from(keptTris);
+        this.dropped = bad.length;
+      }
     }
-    this.tris = Float32Array.from(tris);
+  }
+
+  /** Indices of faces whose plane fails to hold some hull vertex. */
+  private _invalidFaces(): number[] {
+    const bad: number[] = [];
+    for (let i = 0; i < this.planes.length; i++) {
+      const { n, c } = this.planes[i]!;
+      for (const v of this.verts) { if (n.dot(v) - c > HULL_TOL) { bad.push(i); break; } }
+    }
+    return bad;
   }
 
   raySpan(o: THREE.Vector3, d: THREE.Vector3): [number, number] | null {
@@ -138,6 +182,18 @@ export class HullSolid implements Solid {
   }
 
   mesh(): Float32Array { return this.tris; }
+}
+
+function dedupePoints(pts: THREE.Vector3[], q: number): THREE.Vector3[] {
+  const mp = new Map<string, THREE.Vector3>();
+  for (const p of pts) mp.set(`${Math.round(p.x / q)},${Math.round(p.y / q)},${Math.round(p.z / q)}`, p);
+  return [...mp.values()];
+}
+
+function jitterPoints(pts: THREE.Vector3[], amp: number, seed: number): THREE.Vector3[] {
+  let s = seed >>> 0;
+  const rnd = () => { s = (Math.imul(s, 1103515245) + 12345) >>> 0; return s / 4294967296 - 0.5; };
+  return pts.map(p => new THREE.Vector3(p.x + amp * rnd(), p.y + amp * rnd(), p.z + amp * rnd()));
 }
 
 // -------------------------------------------------------- translated solid
@@ -450,6 +506,7 @@ export function computeReach(
     while (pts.length < 4) pts.push(pts[0]!.clone().add(new THREE.Vector3(1e-3 * pts.length, 1e-3, 1e-3)));
   }
   const room = new HullSolid(pts);
+  if (room.dropped > 0) notes.push(`hull: ${room.dropped} inconsistent faces dropped after ${room.attempts} attempts (outline has a hole)`);
 
   // Part sweep: from the room frame (linIdx frame minus roomOffset) down the
   // work path — base translate, then the node's rotations inverted.

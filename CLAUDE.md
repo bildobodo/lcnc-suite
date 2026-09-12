@@ -563,7 +563,30 @@ programmed display through a `flags` worker op) and the controller draws
 the flagged pairs as per-chunk index subsets (`buildOverlays`, prefix sum so
 a decimated LOD chord over an excursion stays yellow) — no clip planes, no
 box gate. A limits change re-runs the transform; no limits = no overlay
-(unchecked ≠ clean). The validator's per-line count stays the HUD chip. The box never hangs
+(unchecked ≠ clean). The validator's per-line count stays the HUD chip.
+
+**Reach envelope (2026-09-12)**: layer `reach` (Settings → Layers → Reach
+Envelope, off by default) draws the reachable-volume OUTLINES from the
+live joint limits, the machine.json chain and the live tool length — no
+program: `viewer/reachEnvelope.ts` (pure) hulls the travel box's corners
+through the chain at every head-rotary sample (ROOM solid, under
+`machineFrameGrp` like the bounds box; the box is what LinuxCNC enforces on
+the joints, the hull is where the TIP can be), then sweeps that solid about
+each work-chain rotary over its limit range — per-slice ray spans and a
+circular min/max angle window; radial-table solids chain for a second
+rotary — into the work frame (PART solid, rides `_workGrp`). The 5-D
+workspace (position + tool direction) projects onto these two 3-D solids;
+which tilt reaches a point is not shown, and no collision is subtracted
+(the sweep answers that per program). `reachWorker.ts` computes off-thread
+(~0.5 s on the trsrn model), only when the inputs change while the layer
+is on. Three's quickhull produced non-supporting faces on this input (8
+translated copies of one orbit): `HullSolid` deduplicates, jitters 1e-3,
+VALIDATES every plane against the hull's own vertices and rebuilds with a
+fresh seed, dropping faces that still fail (noted in the reply). The TWP
+sim's travels are model-derived since 2026-09-12 (X ±1500, Y −2000..1300
+asymmetric — the head homes 1 m in front of the trunnion axis — Z
+−2000..0.01; the upstream ±5000 was a 10 m box); every corpus and demo
+program was validator-probed inside them. The box never hangs
 under the rotating work group (7a04909 moved the planes but not the mesh —
 "yellow while inside the box"). A stale path is ONE neutral grey
 (`--bg` lifted toward `--fg` by `--opacity-disabled`, opaque) with the

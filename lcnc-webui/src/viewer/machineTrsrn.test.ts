@@ -270,10 +270,11 @@ describe("machine-xyzacb-trsrn envelope acceptance", () => {
     "platter/table_base",  // the A faceplate in its bearing block
   ]);
 
-  // Not the travel hypercube. The INI allows +/-5000 on X and Y, which sweeps
-  // a 10 m square through the portal and the table alike; that is what the
-  // program-level sweep exists to catch. This is the mechanically intended
-  // envelope:
+  // Not the travel hypercube. The INI's X +/-1500 and Y -2000..1300 (model-
+  // derived, 2026-09-12; the upstream +/-5000 swept a 10 m square through
+  // the portal and the table alike) still run the head into the trunnion
+  // block low in Z; that is what the program-level sweep exists to catch.
+  // This is the mechanically intended envelope:
   //   - at parked height (Z0 = the top of travel, nose 2 m above the table):
   //     the full rotary envelope and the linear extents the portal allows
   //   - down at the work: traverse over the stock, stopping just above it

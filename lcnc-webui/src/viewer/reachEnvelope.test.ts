@@ -80,7 +80,7 @@ describe("computeReach — room tip reach", () => {
     expect(Math.round(e.min[0]!)).toBe(-130);
     expect(Math.round(e.max[0]!)).toBe(130);
     expect(Math.round(e.min[2]!)).toBe(-80);
-    expect(e.max[2]!).toBeCloseTo(0, 6);
+    expect(e.max[2]!).toBeCloseTo(0, 2);   // the hull input is jittered 1e-3
     expect(r.info.samples).toBeGreaterThan(30);
     expect(r.partTris).toBeNull();
   });

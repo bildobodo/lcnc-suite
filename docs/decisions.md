@@ -4226,3 +4226,74 @@ tsc subset clean; Vite serves ThreeViewer.vue/App.vue; no browser errors after H
 OWED: vue-tsc/full vitest/playwright/pytest at the suite stop (unchanged list);
 operator: rotate A in Machine mode — the box stays put and yellow appears only
 outside it; switching kins mode leaves the box unchanged (joint window — correction above).
+
+## 2026-09-12 (pm) — Outside-limits overlay goes joint-side; reach-envelope layer; model-derived sim travels
+
+**Trigger:** the operator's follow-up questions on the machine-bounds box ("what are
+the real machine bounds? a machine with rotaries does not have a cubic box… can this
+be shown? does it need to be parsed?") and the yes to "fix this and implement your
+suggestions" (commits 35fd5b0, fa1923b, and this one).
+
+**What the box is and is not.** The soft limits ARE the enforced travel, so the box
+is the right thing to draw and check against — for the JOINTS. The drawn path is
+the TOOL TIP: one tool length lower in Z and off by the tilt lever under B/C. The old
+yellow overlay compared tip vertices with the joint box through six clip planes and a
+per-chunk box gate, so it could flag a legal move at the bottom of travel and miss an
+illegal one near the top by exactly one tool length. FIXED (35fd5b0): the producing
+worker emits a joint-side verdict per drawn vertex — `transformToPartFrame` keeps
+`outside` per baked sample from the same TLO-inclusive joints it poses with
+(subdivided sweeps included, the validator's rule, `outsideJointLimits` with the
+gateway's 1e-6 eps), and the programmed display asks the resident worker for the
+same flags per programmed vertex (new `flags` op, its own id space). The controller
+draws the flagged pairs as per-chunk, per-LOD-level index subsets over the shared
+vertices (`buildOverlays`; a decimated level-k chord is flagged when ANY vertex of
+its run is — prefix sum). No clip planes on the toolpath, no `boxInsideBounds` gate
+(removed with its tests); the planes stay for the toolpath-bounds layer. A joint-
+limits change forces a transform re-run (`_pfScheduleWcsRefresh(true)`); no limits
+= no overlay (unchecked ≠ clean). The HUD chip stays the validator's per-line count.
+
+**Reach envelope (fa1923b).** The reachable space is a joint-space property — the
+limits, the chain, the tool length — so it needs no parse and does not change with
+the kins mode. Two outlines, layer `reach` (off by default): the ROOM solid = hull of
+the travel box's corners through the chain at every head-rotary sample (on the trsrn
+model the nutating B is 55° off the spindle, so the tip orbit reaches 20° above
+horizontal: the box grows by the lever sideways and down and by a third of it up);
+the PART solid = the room solid swept about each work-chain rotary over its limit
+range, evaluated per slice along the axis and per ray from it (span in the input
+solid, then a circular min/max over the swept window; a full turn = every
+direction; ONE interval per ray — a ray from the axis meets a convex slice in one
+span), yielding a radial-table solid in the child frame that a second rotary sweeps
+again. Rendered as translucent fills with crease edges in the bounds colour; the
+part solid rides `_workGrp`, the room solid hangs with the bounds box. Sizes on the
+trsrn model: 1972 tilt samples × 8 corners → ~4.4 k hull faces, 92 k sweep
+triangles, ~0.5 s in the worker. FOUND on the way: three's `ConvexHull` returned
+faces that are not supporting planes for this input (a face 3.5 m inside the hull;
+8 translated copies of one orbit are exactly coplanar by construction) — the
+sweep then saw an empty solid. `HullSolid` now deduplicates, jitters by 1e-3,
+validates every plane against the hull's own vertices, rebuilds with a fresh seed
+up to four times and drops faces that still fail (reply notes carry it). Honest
+limitations recorded in the notes: a linear joint under a work rotary is evaluated
+at 0; a rotary without finite limits is swept as a full turn. Out of scope, as
+agreed: collision subtraction.
+
+**Model-derived travels.** The sim INI's X/Y ±5000 made every envelope a 10 m box.
+The template AND the installed copy now carry X ±1500 (the column spans root X
+−2900..500, the platter face is at −2400, the console reaches −500), Y −2000..1300
+— ASYMMETRIC: the head homes 1 m in front of the trunnion axis, the platter spans
+root Y ±900 and the column front is at 2600 — and Z unchanged. Every corpus program
+and TWP demo was run through the real parse worker against both windows:
+violations unchanged (0, and parity_linear's deliberate 3 on Z), so nothing is
+re-posted and the goldens are unaffected. The INI comment's "joint-side soft-limit
+case rests on ±5000" had no referent in the repo (the gateway's trsrn limit tests
+carry their own limits); rewritten. Takes effect at the next LinuxCNC start.
+
+**Gates (suite live — single niced files):** partFrame 31 (+5), toolpathController
+36 (three gate tests rewritten onto flags, +1 LOD-inherits-flag), lineChunks −3,
+reachEnvelope 6 (new); tsc probes over every touched .ts clean; Vite serves
+ThreeViewer.vue and both workers; no browser errors after HMR; the live tab's perf
+rows read `overlay_chunks 0` on the sim program in Machine mode (its joints are
+inside the window — the old 37 yellow chunks were the tip-vs-box artefact).
+OWED: restart for the INI (operator), heavy gates at the suite stop (unchanged
+list), operator: toggle Reach Envelope on the sim, rotate A (the part solid rides
+the platter, the room solid stays), switch tools (the solids follow the length).
+
