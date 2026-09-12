@@ -4306,4 +4306,9 @@ about the trunnion axis, the camera sits inside it, and crease edges show nothin
 of a cylinder but its caps. The worker now ships a CAGE of the radial table (rings
 every 8 slices, generators every 15°, spokes at coverage boundaries and caps) and
 the hull draws its 8° facet creases so the fillets read as a fan of lines.
+Then, seeing both ("one is box-like and the other one a cylinder"): separate
+toggles and outlines only (3fb74e6) — layers `reachRoom` (Machine Reach) and
+`reachPart` (Part Reach), no translucent fills, the worker ships the two line
+soups and the main thread draws LineSegments in the bounds colour at 0.6 so the
+bounds box stays the crisp one. One computation serves both layers.
 
