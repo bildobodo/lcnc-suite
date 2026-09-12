@@ -5,7 +5,8 @@ import { describe, expect, it } from "vitest";
 import * as THREE from "three";
 import originalFixtures from "../../test-fixtures/fusion-tool-contours.json";
 import shoulderFixtures from "../../test-fixtures/fusion-tool-shoulders.json";
-const fixtures = { cases: [...originalFixtures.cases, ...shoulderFixtures.cases] };
+import taperThreadFixtures from "../../test-fixtures/fusion-tool-tapers-threads.json";
+const fixtures = { cases: [...originalFixtures.cases, ...shoulderFixtures.cases, ...taperThreadFixtures.cases] };
 import { buildToolProfile, splitProfileAt, type ToolMeta } from "./toolGeometry";
 import { toolUnitsPerMillimeter } from "./toolUnits";
 
@@ -156,9 +157,10 @@ function directedContourDistance(a: number[][], b: number[][]) {
   return worst;
 }
 
-const verifiedTypes = new Set(["endmill", "ball", "bullnose", "drill", "countersink", "dovetail", "facemill", "lollipop", "tap"]);
-describe("native Fusion shoulder and shaft contours", () => {
+const verifiedTypes = new Set(["endmill", "ball", "bullnose", "drill", "countersink", "dovetail", "facemill", "lollipop", "tap", "tapered", "threadmill"]);
+describe("native Fusion tool contours", () => {
   for (const tool of imported.filter(c => verifiedTypes.has(c.mm.type!))) {
+    if (!fixtures.cases.find(c => c.id === tool.id)!.referenceUsable) continue;
     it(`${tool.id}: complete physical profile matches Fusion`, () => {
       const fixture = fixtures.cases.find(c => c.id === tool.id)!;
       for (const unit of ["mm", "inch"] as const) {
@@ -167,7 +169,9 @@ describe("native Fusion shoulder and shaft contours", () => {
         const actual = buildToolProfile(meta.D, meta.oal!, meta, scale).pts.map(p => [p.x / scale, p.y / scale]);
         // Lines: SVG rounding only. Curves retain the renderer's tessellation
         // error (R4 ball's 12 chords give <0.009 mm); this is not CAM tolerance.
-        const tolerance = fixture.nativeSVG.includes("A") ? 0.01 : 0.00001;
+        // Larger taper radii have six significant digits in Fusion's SVG
+        // (e.g. 11.5023), so their coordinate rounding alone can reach 0.00005.
+        const tolerance = fixture.nativeSVG.includes("A") ? 0.01 : meta.type === "tapered" ? 0.0001 : 0.00001;
         expect(directedContourDistance(actual, fixture.nativePoints)).toBeLessThan(tolerance);
         expect(directedContourDistance(fixture.nativePoints, actual)).toBeLessThan(tolerance);
         for (let i = 1; i < actual.length; i++) {
@@ -185,5 +189,33 @@ describe("native Fusion shoulder and shaft contours", () => {
       expectSamePoints(buildToolProfile(meta.D, 42.3, meta).pts,
         buildToolProfile(meta.D, 44.1, changed).pts);
     }
+  });
+});
+
+describe("taper and thread profile semantics", () => {
+  it("uses NT for tooth count when LCF is independently longer", () => {
+    const meta = imported.find(c => c.id === "thread-lcf-independent")!.mm;
+    const { pts, fluteY } = buildToolProfile(meta.D, meta.oal!, meta);
+    expect(pts.filter(p => p.x === meta.D / 2).map(p => p.y)).toEqual([0.875, 2.625, 4.375]);
+    expect(fluteY).toBe(8);
+  });
+
+  it("does not invent a tooth that cannot fit within LCF", () => {
+    const meta = imported.find(c => c.id === "thread-point-range")!.mm;
+    expect(buildToolProfile(meta.D, meta.oal!, meta).pts.filter(p => p.y < 1.75)
+      .every(p => p.x < meta.D / 2)).toBe(true);
+  });
+
+  it("tapered RE=0 retains the flat diameter DC at the tip", () => {
+    for (const id of ["bare-tapered-zero-re-6", "bare-tapered-zero-re-12"]) {
+      const meta = imported.find(c => c.id === id)!.mm;
+      expect(buildToolProfile(meta.D, meta.oal!, meta).pts[1]!.toArray()).toEqual([3, 0]);
+    }
+  });
+
+  it("retains the old thread approximation when discarded metadata is unavailable", () => {
+    const meta: ToolMeta = { type: "threadmill", oal: 50, flute_length: 8, shaft_diameter: 6 };
+    expect(buildToolProfile(8, 50, meta).pts.map(p => p.toArray()))
+      .toEqual([[0,0],[4,0],[4,8],[3,8],[3,50],[0,50]]);
   });
 });

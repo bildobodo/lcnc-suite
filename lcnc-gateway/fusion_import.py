@@ -115,6 +115,19 @@ def parse_fusion_library(data: dict, machine_unit: str) -> tuple[list, list]:
             "holder": holder.get("description") if holder else None,
             "fusion_type": fusion_type,
         }
+        if our_type == "tapered":
+            tool["tapered_type"] = entry.get("tapered-type")
+        if our_type == "threadmill":
+            tool.update({
+                "thread_pitch": _opt_scale(geom.get("TP"), tool_scale),
+                "thread_pitch_min": _opt_scale(geom.get("TPN"), tool_scale),
+                "thread_pitch_max": _opt_scale(geom.get("TPX"), tool_scale),
+                "number_of_teeth": geom.get("NT"),
+                "thread_profile_angle": geom.get("thread-profile-angle"),
+                "thread_tip_type": geom.get("thread-tip-type"),
+                "thread_tip_width": _opt_scale(geom.get("thread-tip-width"), tool_scale),
+                "thread_tip_radius": _opt_scale(geom.get("thread-tip-radius"), tool_scale),
+            })
         # ---- Per-type angle normalization (Fusion stores half-angles for some types) ----
         # Source: FreeCAD Better Tool Library reverse-engineering of Fusion 360 geometry keys
         if our_type in ("chamfer", "countersink", "centerdrill"):

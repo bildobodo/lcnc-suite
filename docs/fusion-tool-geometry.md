@@ -121,16 +121,74 @@ Observed full-contour sampled distances before/after this shoulder patch:
 | Right-hand tap | 0.75 | <0.00001 |
 | Lollipop with custom shaft | 4 | 0.00106 |
 
+## Tapered mills and thread-mill teeth
+
+The next correction preserves `tapered-type` and the thread fields `TP`, `TPN`,
+`TPX`, `NT`, `thread-profile-angle`, `thread-tip-type`, `thread-tip-width` and
+`thread-tip-radius` through import, storage, table merge and viewer metadata.
+Pitch, width and radius are lengths in the tool's source unit; tooth counts and
+angles are not scaled. Existing preview components receive these fields through
+the complete metadata object added in the shoulder patch.
+
+For `tapered_bull_nose`, let `a = TA`, `R = RE`, `r = DC/2`. The unfilleted
+cone is `radius(z) = r + z*tan(a)`. The flat tip radius is
+`r_flat = r - R*(1-sin(a))/cos(a)`. A circular arc centred at `(r_flat, R)`
+connects the flat to the cone at `(r_flat+R*cos(a), R*(1-sin(a)))`.
+For `tapered_ball`, the centre lies on the axis (`r_flat=0`); Fusion normalizes
+DC to this ball/cone tangent construction. At RE=0, the bull-nose subtype has
+a flat tip of diameter DC. TA=0 produces a cylindrical cutting section.
+
+Both subtypes end the cutting cone at LCF, step to the explicitly exported
+shoulder diameter, and use the shared shoulder/shaft construction. Do not
+recompute a stored shoulder diameter from other fields: Fusion sometimes retains
+a separately derived value during a subtype switch, as the recorded ball cases
+show. The stored canonical operation JSON is the source of truth for the tests.
+
+A pointed thread-mill tooth has root radius
+`DC/2 - TP/(2*tan(thread-profile-angle/2))`, a tip at half-pitch and another root
+at one pitch. Teeth repeat at TP, limited by NT and by complete pitches that fit
+within LCF. An independent longer LCF extends the neck instead of adding teeth.
+The shoulder diameter can differ from that root radius and is applied at LCF.
+`thread-point-range` records a normalization where TP became TPX=2 while LCF
+remained 1.75: the native CAM profile contains no complete tooth in that case.
+The renderer reproduces that envelope without fabricating a partial tooth.
+
+**Flat/round thread crest limitation:** In all four tested variants, the native
+post SVG still contains pointed teeth despite preserved flat/round type, width
+or radius fields. Those exports cannot verify the actual crest detail. The
+renderer currently follows the pointed CAM envelope; it does not claim a verified
+flat or rounded crest. These four fixtures are marked `referenceUsable: false`
+for complete physical-shape assertions, while still testing lossless metadata,
+unit invariance and measured-length independence. This is the same distinction
+between metadata acceptance and geometric evidence used for form mills.
+
+`test-fixtures/fusion-tool-tapers-threads.json` adds 14 canonical references from
+Fusion 2705.1.15, captured 2026-09-12: four tapers and ten thread mills. The
+combined suite contains 49 fixtures, with 39 complete-contour regression cases
+in the corrected families. Linear taper assertions allow 0.0001 mm because
+Fusion SVG rounds larger radii to six significant digits (e.g. 11.5023 mm).
+Other linear assertions retain 0.00001 mm; curved assertions retain 0.01 mm.
+The actual sampled distances for the new tapered cases are below 0.001 mm and
+for the pointed thread cases below 0.00001 mm. No usable reference worsens.
+
+Reference extraction uses the native
+[Autodesk post Tool API](https://cam.autodesk.com/posts/reference/classTool.html),
+`getCutterProfileAsSVGPath()`, on generated operations in an isolated audit
+document. API availability does not establish that every exported parameter
+affects that contour; the flat/round crest probes demonstrate this limitation.
+
 ## Remaining scope
 
-Tapered subtypes, thread-mill teeth, chamfer return flanks, slot-mill upper radii,
+Flat/round thread crest details, chamfer return flanks, slot-mill upper radii,
 rounded dovetails, center drills and probes still need their own cutting-profile
 corrections or additional native references. Their legacy shape branches remain
-separate; storing shaft metadata does not yet certify those branches or make them
-consume the new shaft builder. The radius-mill arc still has its existing coarse
-tessellation. The native form-mill post remains an unsuitable shape oracle.
+separate. The radius-mill arc still has its existing coarse tessellation.
+The native form-mill post remains an unsuitable shape oracle.
 
 Optional holder placement and safe metadata-only refresh of existing libraries
-remain separate work. This patch does not change live tool tables or the existing
+remain separate work. These patches do not change live tool tables or the existing
 full-library replacement behavior described above. Already imported tools do not
-automatically acquire shaft segments discarded by earlier imports.
+automatically acquire parameters discarded by earlier imports. Thread mills
+without pitch/profile-angle metadata retain their prior cylindrical approximation
+until those fields are available. Tapered metadata without an explicit subtype
+uses the bull-nose construction (Fusion's default subtype).

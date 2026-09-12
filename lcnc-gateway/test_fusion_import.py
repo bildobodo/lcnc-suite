@@ -15,6 +15,8 @@ from tool_store import ToolLibraryStore
 FIXTURES = Path(__file__).resolve().parent.parent / 'test-fixtures/fusion-tool-contours.json'
 with FIXTURES.open() as fixture_file:
     CASES = json.load(fixture_file)['cases']
+with (FIXTURES.parent / 'fusion-tool-tapers-threads.json').open() as fixture_file:
+    TAPER_THREAD_CASES = json.load(fixture_file)['cases']
 
 
 class TestFusionGeometryImport(unittest.TestCase):
@@ -105,6 +107,52 @@ class TestFusionGeometryImport(unittest.TestCase):
         raw = next(c['raw'] for c in CASES if c['raw']['type'] == 'form mill')
         tool = parse_fusion_library({'data': [raw]}, 'mm')[0][0]
         self.assertEqual(tool_visual_metadata(tool)['profile'], tool['profile'])
+
+    def test_inch_thread_dimensions_scale_without_scaling_angles_or_tooth_count(self):
+        raw = {'type': 'thread mill', 'unit': 'inches',
+               'post-process': {'number': 9},
+               'geometry': {'DC': 0.25, 'OAL': 2, 'LCF': 0.15, 'NT': 3,
+                            'TP': 0.05, 'TPN': 0.04, 'TPX': 0.06,
+                            'thread-profile-angle': 60, 'thread-tip-type': 'round',
+                            'thread-tip-width': 0.01, 'thread-tip-radius': 0.005}}
+        before = copy.deepcopy(raw)
+        for unit, scale in [('mm', 25.4), ('in', 1)]:
+            tool = parse_fusion_library({'data': [raw]}, unit)[0][0]
+            for name, value in [('thread_pitch', 0.05), ('thread_pitch_min', 0.04),
+                                ('thread_pitch_max', 0.06), ('thread_tip_width', 0.01),
+                                ('thread_tip_radius', 0.005)]:
+                self.assertAlmostEqual(tool[name], value * scale)
+            self.assertEqual(tool['number_of_teeth'], 3)
+            self.assertEqual(tool['thread_profile_angle'], 60)
+            self.assertEqual(tool['thread_tip_type'], 'round')
+        self.assertEqual(raw, before)
+
+    def test_subtypes_and_unverified_crest_parameters_survive_persistence(self):
+        keys = ('tapered_type', 'thread_pitch', 'thread_pitch_min', 'thread_pitch_max',
+                'number_of_teeth', 'thread_profile_angle', 'thread_tip_type',
+                'thread_tip_width', 'thread_tip_radius')
+        for case in TAPER_THREAD_CASES:
+            with self.subTest(case=case['id']), TemporaryDirectory() as directory:
+                tool = parse_fusion_library({'data': [case['raw']]}, 'mm')[0][0]
+                key = str(tool['T'])
+                store = ToolLibraryStore(Path(directory) / 'library.json', lambda: '/test.ini')
+                store.save({key: {k: tool[k] for k in _TOOL_META_FIELDS if k in tool}})
+                library = store.load()
+                table = _merge_tool_data([dict(T=tool['T'], P=1, Z=-42.3, D=tool['D'])], library)[0]
+                viewer = tool_visual_metadata(library[key])
+                for name in keys:
+                    if name in tool:
+                        self.assertEqual(table[name], tool[name])
+                        self.assertEqual(viewer[name], tool[name])
+                self.assertEqual(table['Z'], -42.3)
+                self.assertNotIn('Z', viewer)
+
+    def test_tapered_ball_import_preserves_the_explicit_subtype(self):
+        raw = next(c['raw'] for c in TAPER_THREAD_CASES if c['id'] == 'taper-ball-r2-ta12')
+        tool = parse_fusion_library({'data': [raw]}, 'mm')[0][0]
+        self.assertEqual(tool['tapered_type'], 'tapered_ball')
+        self.assertEqual(tool['corner_radius'], 2)
+        self.assertEqual(tool['taper_angle'], 12)
 
 
 if __name__ == '__main__':

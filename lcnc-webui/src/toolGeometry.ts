@@ -19,6 +19,15 @@ export interface ProfileSegment {
 export interface ToolMeta {
   type?: string | null;
   fusion_type?: string | null;
+  tapered_type?: string | null;
+  thread_pitch?: number | null;
+  thread_pitch_min?: number | null;
+  thread_pitch_max?: number | null;
+  number_of_teeth?: number | null;
+  thread_profile_angle?: number | null;
+  thread_tip_type?: string | null;
+  thread_tip_width?: number | null;
+  thread_tip_radius?: number | null;
   shaft_segments?: ShaftSegment[] | null;
   oal?: number | null;
   flute_length?: number | null;
@@ -95,10 +104,30 @@ export function buildToolProfile(
       break;
     }
     case "threadmill": {
-      // Legacy cutting approximation pending the thread-profile correction.
-      pts.push(V(0, 0), V(r, 0), V(r, fluteLen));
-      if (Math.abs(shaftR - r) > eps) pts.push(V(shaftR, fluteLen));
-      pts.push(V(shaftR, oal), V(0, oal));
+      const pitch = meta?.thread_pitch;
+      const angle = meta?.thread_profile_angle;
+      const teeth = meta?.number_of_teeth ?? 1;
+      if (pitch != null && pitch > 0 && Number.isFinite(pitch)
+          && angle != null && angle > 0 && angle < 180 && Number.isFinite(teeth)) {
+        // Native CAM envelope: complete teeth spaced by TP, capped by NT and
+        // LCF. A longer LCF adds neck, not more teeth. The post also emits this
+        // pointed envelope for flat/round tips; their crest details remain
+        // unverified and the corresponding metadata is preserved separately.
+        const neckR = Math.max(0, r - pitch / (2 * Math.tan(angle * Math.PI / 360)));
+        const count = Math.max(0, Math.min(Math.trunc(teeth), Math.floor(fluteLen / pitch + 1e-10)));
+        pts.push(V(0, 0), V(neckR, 0));
+        for (let i = 0; i < count; i++) {
+          pts.push(V(r, (i + 0.5) * pitch), V(neckR, (i + 1) * pitch));
+        }
+        pts.push(V(neckR, fluteLen));
+        appendShoulderAndShaft(neckR);
+      } else {
+        // Older sidecars have no pitch/angle: retain the legacy approximation
+        // until those discarded fields can be refreshed from the source JSON.
+        pts.push(V(0, 0), V(r, 0), V(r, fluteLen));
+        if (Math.abs(shaftR - r) > eps) pts.push(V(shaftR, fluteLen));
+        pts.push(V(shaftR, oal), V(0, oal));
+      }
       break;
     }
     case "slotmill": {
@@ -204,32 +233,26 @@ export function buildToolProfile(
       break;
     }
     case "tapered": {
-      // BTL/Fusion model: DC = max cutting diameter (at top of flutes).
-      // Taper narrows from DC/2 at fluteLen down to a small tip.
-      // TA = half-angle per side from axis, no multiplication.
-      // RE (cornerR) = ball radius at tip, centered on axis.
+      // DC is the unfilleted diameter at z=0; TA is the side angle.
+      // Bull nose: circle centre is offset from the axis. Ball: on-axis centre.
+      // Fusion normalizes DC to the ball's tangent-cone intercept for that subtype.
       const taperRad = taperAngle * (Math.PI / 180);
-
+      const sinA = Math.sin(taperRad), cosA = Math.cos(taperRad);
+      const flatR = meta?.tapered_type === "tapered_ball" ? 0
+        : Math.max(0, r - cornerR * (1 - sinA) / cosA);
       pts.push(V(0, 0));
-      if (cornerR > eps) {
-        // Ball tip: center at (0, RE) on axis.
-        // Arc from (0, 0) sweeping to tangent point with taper line.
-        // Tangent point: (RE·cos(TA), RE·(1 − sin(TA)))
-        const arcN = 10;
-        const startA = -Math.PI / 2;  // bottom of ball at (0, 0)
-        const endA = -taperRad;       // tangent to taper line
+      if (flatR > 0) pts.push(V(flatR, 0));
+      if (cornerR > 0) {
+        const arcN = 24;
         for (let i = 1; i <= arcN; i++) {
-          const a = startA + (endA - startA) * (i / arcN);
-          pts.push(V(cornerR * Math.cos(a), cornerR + cornerR * Math.sin(a)));
+          const a = -Math.PI / 2 + (Math.PI / 2 - taperRad) * i / arcN;
+          pts.push(V(flatR + cornerR * Math.cos(a), cornerR * (1 + Math.sin(a))));
         }
-      } else {
-        // Sharp tip
-        pts.push(V(0.1 * unitsPerMm, 0));
       }
-      // Taper to DC/2 at top of flutes, then shaft to OAL
-      pts.push(V(r, fluteLen));
-      if (Math.abs(shaftR - r) > eps) pts.push(V(shaftR, fluteLen));
-      pts.push(V(shaftR, oal), V(0, oal));
+      const coneR = flatR + cornerR * (1 - sinA) / cosA;
+      const fluteR = coneR + fluteLen * Math.tan(taperRad);
+      pts.push(V(fluteR, fluteLen));
+      appendShoulderAndShaft(fluteR);
       break;
     }
     case "dovetail": {

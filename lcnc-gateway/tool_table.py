@@ -22,6 +22,9 @@ _TOOL_META_FIELDS = (
     "shoulder_diameter", "corner_radius", "body_length", "shaft_diameter",
     "taper_angle", "point_angle", "tip_diameter", "material", "holder", "holder_segments",
     "assembly_gauge_length", "profile", "shaft_segments", "fusion_type",
+    "tapered_type", "thread_pitch", "thread_pitch_min", "thread_pitch_max",
+    "number_of_teeth", "thread_profile_angle", "thread_tip_type",
+    "thread_tip_width", "thread_tip_radius",
 )
 
 
@@ -32,6 +35,9 @@ def tool_visual_metadata(meta: dict) -> dict:
         "shoulder_diameter", "body_length", "shaft_diameter", "shaft_segments",
         "taper_angle", "point_angle", "tip_diameter", "corner_radius",
         "holder_segments", "profile", "stl_file",
+        "tapered_type", "thread_pitch", "thread_pitch_min", "thread_pitch_max",
+        "number_of_teeth", "thread_profile_angle", "thread_tip_type",
+        "thread_tip_width", "thread_tip_radius",
     ) if k in meta}
 
 
