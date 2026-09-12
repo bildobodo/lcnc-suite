@@ -272,6 +272,7 @@ const LAYER_LABELS: { key: Layer; label: string }[] = [
   { key: "surface", label: "Surface" },
   { key: "toolpathBounds", label: "Toolpath Bounds" },
   { key: "bounds", label: "Machine Bounds" },
+  { key: "reach", label: "Reach Envelope" },
   { key: "machine", label: "Machine" },
   { key: "tool", label: "Tool" },
   { key: "hud", label: "HUD" },

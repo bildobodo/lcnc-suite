@@ -19,6 +19,7 @@ import { recordApply, recordRafTick, recordRender, setViewerPerfContext, setView
 import { disposeObject } from "./viewer/disposal";
 import { normalizeKinematics, type KinRuntime } from "./viewer/kinematics";
 import { lineDistances, tipWcs, wcsTerms, type PartFrameMachine, type PartFrameWcs, anchorTerms, type AnchorTerms } from "./viewer/partFrame";
+import type { ReachInfo } from "./viewer/reachEnvelope";
 import type { LineIndex } from "./viewer/lineIndex";
 import { MACHINE_PALETTE, defaultPartHex } from "./viewer/palette";
 import { toolDimsFor } from "./viewer/tloEvents";
@@ -987,6 +988,12 @@ function setLayerVisible(layer: Layer, on: boolean) {
     case "toolpathBounds":
       toolpath.setBoundsVisible(on);
       break;
+    case "reach":
+      _reachOn = on;
+      if (reachRoomMesh) reachRoomMesh.visible = on;
+      if (reachPartMesh) reachPartMesh.visible = on;
+      if (on) _reachRequest();
+      break;
     case "tool":
       if (toolMarker) toolMarker.visible = on;
       break;
@@ -1134,6 +1141,7 @@ function ensureCoreGroups(init: ViewerInit) {
   ghostAxes = null;
   ghostGroup = null;
   machineBoundsMesh = null;
+  reachRoomMesh = reachPartMesh = null;   // disposed with the scene; rebuilt from _reachData
   twpNormalArrow = null;
   machineMeshes = [];
   _machineEdgeLines = [];
@@ -1368,6 +1376,9 @@ function ensureCoreGroups(init: ViewerInit) {
     // work chains machineFrameGrp IS _workGrp.
     (machineFrameGrp ?? _workGrp)!.add(machineBoundsMesh);
   }
+  // Reach envelope layer (2026-09-12): the cached solids re-hang under the
+  // rebuilt frame groups; a new machine model recomputes (inputs key).
+  if (_reachOn) _reachRequest();
 
   // Apply tool colors
   MAT.tool.color.set(viewerDefaults.colors.tool ?? "#c0c0c0");
@@ -2589,6 +2600,7 @@ function _pfRequestFlags(g: ViewerGcode) {
 // origin, so a WCS change (touch-off, G10, G92, rotation) re-transforms —
 // debounced, these change rarely and never mid-cut at speed.
 function _pfScheduleWcsRefresh(force = false) {
+  _reachSchedule();   // the envelope follows the tool length (and the limits, below)
   // Epoch-aware programmed payloads (review P2) also re-apply on WCS/table
   // changes — but ONLY when the display rebase can differ from identity:
   // more than one epoch, a program-rewritten epoch 0, or an epoch-0
@@ -2615,6 +2627,131 @@ watch(() => JSON.stringify(_jointLimitsPlain()), (cur, prev) => {
   if (prev === undefined || cur === prev) return;
   _pfScheduleWcsRefresh(true);
 });
+
+// ---- Reach envelope (2026-09-12) ----
+// Two translucent solids from the live joint limits, the machine.json chain
+// and the live tool length (viewer/reachEnvelope.ts, computed in
+// reachWorker.ts): where the tool tip can be in the machine frame (under
+// machineFrameGrp, like the bounds box) and where it can be relative to
+// the part — the room solid swept through every work-chain rotary (rides
+// _workGrp). An outline, never a certificate; off by default (layer
+// "reach"); recomputed only when its inputs change while it is on.
+let _reachWorker: Worker | null = null;
+let _reachReqId = 0;
+let _reachOn = false;
+let _reachKey = "";                       // inputs the cached data was computed from
+let _reachPendingKey = "";
+let _reachData: { roomTris: Float32Array; partTris: Float32Array | null; info: ReachInfo } | null = null;
+let reachRoomMesh: THREE.Group | null = null;
+let reachPartMesh: THREE.Group | null = null;
+let _reachTimer: ReturnType<typeof setTimeout> | undefined;
+
+function _reachInputsKey(): string | null {
+  const init = viewerInit.value;
+  const lim = _jointLimitsPlain();
+  if (!init || !lim) return null;
+  return JSON.stringify({ l: lim, t: _pv.toolOffset ?? [], m: _pfMachine(init) });
+}
+
+function _reachGetWorker(): Worker {
+  if (!_reachWorker) {
+    _reachWorker = new Worker(new URL("./viewer/reachWorker.ts", import.meta.url), { type: "module" });
+    _reachWorker.onmessage = (ev: MessageEvent) => {
+      const m = ev.data as { id: number; error?: string; roomTris?: Float32Array; partTris?: Float32Array | null; info?: ReachInfo };
+      if (m.id !== _reachReqId) return;   // superseded
+      if (m.error || !m.roomTris || !m.info) {
+        console.error("[reach] envelope not computed:", m.error ?? "empty reply");
+        _reachData = null; _reachKey = "";
+        _reachBuildMeshes();
+        return;
+      }
+      _reachData = { roomTris: m.roomTris, partTris: m.partTris ?? null, info: m.info };
+      _reachKey = _reachPendingKey;
+      console.info(`[reach] envelope: ${m.info.samples} tilt samples × ${m.info.corners} corners, ${m.info.hullFaces} hull faces, part sweep ${m.partTris ? "yes" : "no"}, ${m.info.ms} ms`
+        + (m.info.notes.length ? ` — notes: ${m.info.notes.join("; ")}` : ""));
+      _reachBuildMeshes();
+      requestRender();
+    };
+    _reachWorker.onerror = (ev) => { console.error("[reach] worker error:", ev.message); };
+  }
+  return _reachWorker;
+}
+
+function _reachSchedule() {
+  if (!_reachOn) return;
+  clearTimeout(_reachTimer);
+  _reachTimer = setTimeout(_reachRequest, 500);
+}
+
+/** Compute (or re-hang the cached) envelope for the current inputs. */
+function _reachRequest() {
+  if (!_reachOn) return;
+  const key = _reachInputsKey();
+  if (!key) {
+    // No limits yet (or no model): nothing honest to draw. Says so once per
+    // distinct situation through the empty scene, not a stale shape.
+    if (_reachData) { _reachData = null; _reachKey = ""; _reachBuildMeshes(); }
+    return;
+  }
+  if (key === _reachKey && _reachData) { _reachBuildMeshes(); return; }
+  if (key === _reachPendingKey && _reachReqId > 0 && !_reachData) return;   // already in flight
+  const init = viewerInit.value!;
+  const id = ++_reachReqId;
+  _reachPendingKey = key;
+  try {
+    _reachGetWorker().postMessage({ id, machine: _pfMachine(init), jointLimits: _jointLimitsPlain(), tlo: [...(_pv.toolOffset ?? [])] });
+  } catch (err) {
+    console.error("[reach] request failed:", err);
+  }
+}
+
+function _reachDispose(g: THREE.Group | null) {
+  if (!g) return;
+  g.parent?.remove(g);
+  g.traverse(o => {
+    const mesh = o as THREE.Mesh;
+    mesh.geometry?.dispose?.();
+    (mesh.material as THREE.Material | undefined)?.dispose?.();
+  });
+}
+
+function _reachSolidGroup(tris: Float32Array, color: string): THREE.Group {
+  const geom = new THREE.BufferGeometry();
+  geom.setAttribute("position", new THREE.BufferAttribute(tris, 3));
+  const fill = new THREE.Mesh(geom, new THREE.MeshBasicMaterial({
+    color, transparent: true, opacity: 0.12, depthWrite: false, side: THREE.DoubleSide,
+  }));
+  fill.renderOrder = 2;
+  // Crease edges only (25°): the hull's rounded parts read as a surface,
+  // the travel box's corners and the sweep's walls and caps as an outline.
+  const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geom, 25), new THREE.LineBasicMaterial({
+    color, transparent: true, opacity: 0.6, depthWrite: false,
+  }));
+  edges.renderOrder = 3;
+  const g = new THREE.Group();
+  g.add(fill, edges);
+  return g;
+}
+
+/** (Re)build the scene objects from the cached solids under the current
+ *  frame groups; clears them when there is nothing to show. */
+function _reachBuildMeshes() {
+  _reachDispose(reachRoomMesh); _reachDispose(reachPartMesh);
+  reachRoomMesh = reachPartMesh = null;
+  const d = _reachData;
+  const roomParent = machineFrameGrp ?? _workGrp;
+  if (!d || !roomParent) { requestRender(); return; }
+  const color = viewerDefaults.colors.bounds ?? "#ffffff";
+  reachRoomMesh = _reachSolidGroup(d.roomTris, color);
+  reachRoomMesh.visible = _reachOn;
+  roomParent.add(reachRoomMesh);
+  if (d.partTris && _workGrp && _workGrp !== roomParent) {
+    reachPartMesh = _reachSolidGroup(d.partTris, color);
+    reachPartMesh.visible = _reachOn;
+    _workGrp.add(reachPartMesh);
+  }
+  requestRender();
+}
 
 // ---------- lifecycle ----------
 let resizeObs: ResizeObserver | null = null;
@@ -3049,6 +3186,8 @@ onUnmounted(() => {
   clearTimeout(_colAutoTimer);
   _pfWorker?.terminate();
   _pfWorker = null;
+  _reachWorker?.terminate();
+  _reachWorker = null;
   _pfLoadedFor = null;
   _colWorker?.terminate();
   _colWorker = null;
@@ -3357,6 +3496,7 @@ function applyPathColors(c: PathColors) {
   toolpath.setColors({ feed: c.feed, rapid: c.rapid, toolpathBounds: c.toolpathBounds });
   if (c.backplot) backplot.setColor(c.backplot);
   if (machineBoundsMesh && c.bounds) (machineBoundsMesh.material as THREE.LineBasicMaterial).color.set(c.bounds);
+  if (c.bounds) for (const g of [reachRoomMesh, reachPartMesh]) g?.traverse(o => { const m = (o as THREE.Mesh).material as THREE.Material & { color?: THREE.Color }; m?.color?.set(c.bounds!); });
 }
 
 /** Exposed instant path-colour update (parity with setToolColors). */
