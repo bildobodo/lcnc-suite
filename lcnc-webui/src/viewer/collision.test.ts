@@ -310,6 +310,62 @@ describe("sweepCollisions", () => {
     expect(snap.take).toBeNull();           // cleared when the generator returned
   });
 
+  it("time-based checkpoints: an advancing clock yields between the count-based floors, a frozen clock keeps the floor", () => {
+    // 2026-09-12: the worker parks/cancels only at a checkpoint, and 512
+    // in-margin samples were seconds — the operator's ❚❚ looked ignored.
+    // The count-based checkpoints stay as the floor (a fake clock that
+    // never advances must still yield); `yieldMs` of clock time adds one.
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const yieldsWith = (clock: () => number): number[] => {
+      const it = sweepCollisionsIter(model, plunge40(), WCS0, { margin: 2, clock, yieldMs: 8 });
+      const out: number[] = [];
+      let r = it.next();
+      while (!r.done) { out.push(r.value); r = it.next(); }
+      return out;
+    };
+    const frozen = yieldsWith(() => 0);
+    // start, segments 16 and 32, end — the floor for a 40-segment track
+    expect(frozen).toHaveLength(4);
+    let t = 0;
+    const advancing = yieldsWith(() => (t += 5));   // 5 ms per read → a checkpoint every other segment
+    expect(advancing.length).toBeGreaterThan(frozen.length * 3);
+    for (let i = 1; i < advancing.length; i++) expect(advancing[i]).toBeGreaterThanOrEqual(advancing[i - 1]!);
+    expect(advancing[0]).toBe(0);
+    expect(advancing[advancing.length - 1]).toBe(1);
+  });
+
+  it("refinement memo: repeated snapshots at one checkpoint are identical, later snapshots never move a hit's extent backwards", () => {
+    // 2026-09-12: every park snapshots by refining every record again —
+    // records whose inputs have not changed reuse their refinement. The
+    // memo must be invisible: a second take at the same checkpoint equals
+    // the first, and a record that gained samples refines to an extent at
+    // least as long as before.
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const pts: number[][] = [];
+    for (let z = 0; z >= -45; z -= 0.5) pts.push([0, 0, z]);
+    const t = track(pts);
+    const snap: SnapshotHandle = { take: null };
+    const it = sweepCollisionsIter(model, t, WCS0, { margin: 2, snapshot: snap });
+    let r = it.next();
+    const ends = new Map<string, number>();
+    let sawTwo = 0;
+    while (!r.done) {
+      const a = snap.take!("stopped"), b = snap.take!("stopped");
+      expect(b.hits).toEqual(a.hits);   // the memo answers the second take
+      for (const h of a.hits) {
+        const k = `${h.line}/${h.a}/${h.b}`;
+        const prev = ends.get(k);
+        if (prev !== undefined) { expect(h.cumEnd).toBeGreaterThanOrEqual(prev - 1e-9); sawTwo++; }
+        ends.set(k, h.cumEnd);
+      }
+      r = it.next();
+    }
+    expect(sawTwo).toBeGreaterThan(0);   // some record was snapshotted at two checkpoints
+    const sync = sweepCollisions(model, t, WCS0, { margin: 2 });
+    expect((r.value as CollisionResult).hits.map(h => [h.line, +h.cum.toFixed(3), +h.cumEnd.toFixed(3)]))
+      .toEqual(sync.hits.map(h => [h.line, +h.cum.toFixed(3), +h.cumEnd.toFixed(3)]));
+  });
+
   it("next(true) at a checkpoint aborts: baseline only, epilogue still returns a result", () => {
     const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
     const it = sweepCollisionsIter(model, track([[0, 0, 0], [0, 0, -45]]), WCS0, { margin: 2 });

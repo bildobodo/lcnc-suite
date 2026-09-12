@@ -4611,3 +4611,63 @@ the reloaded viewer's first auto sweep posted `budget_ms 300000`. OWED: the
 operator's live look (❚❚ mid-sweep → "stopped at N %" → ▶ resumes; sim entry
 on a finished sweep is instant; an A jog mid-sweep parks and resumes), the
 gateway restart for the doomed-parse rule, and the heavy gates at the next stop.
+
+## 2026-09-12 (late) — Scrub bar geometry + the stop that looked ignored
+
+**Operator walk-through (feat/twp):** the timeline still shrank when the line
+readout grew; after ❚❚ the ▶ landed somewhere else ("stopped at N %" text sat
+between the bar and the button, and the clash nav came before both); and a ❚❚
+click showed nothing for seconds — the sweep "continues to the next stopping
+point". All three confirmed in code, plus two more shifters: the row-2 "→ L…"
+readouts (min-width floors, no cap) sat before clickable things, and the time
+readout overflows its slot on an hour-long track.
+
+**Row 1.** The three readouts had `min-width` only, so content past the floor
+still grew the slot and the ellipsis never engaged — every extra character
+came out of the slider, the row's one flexible item. Now `flex: 0 0 <slot>` +
+`overflow: hidden` + ellipsis, full text in the title; the time slot is 16ch
+("~1:02:34/1:23:45").
+
+**Row 2 — one sweep slot.** The fixed-width track + ONE button, first in the
+row, the same geometry in every state: RUNNING fill = progress + ❚❚; STOPPING
+warn fill + ❚❚ disabled (acknowledged at once); PARKED fill = covered fraction,
+warn, + ▶; DONE full fill (warn when truncated) + ↻; no result = empty track +
+↻ (the manual run is available in every state). The findings follow the slot —
+limits nav, clash nav, verdict — and every variable-width readout sits AFTER
+the last button of its group. "stopped at N %" is gone as a chip: the slot's
+fill and title carry it; the verdict says "no clash in N % swept" (no hits) or
+"in N % swept" after the clash readout. Found on the way: the parked-no-hits
+branch rendered a "◀ 0 clashes ▶" nav (the v-else fell through) — the verdict
+chain is now explicit. `.progressTrack.warn > .progressFill` is a global
+modifier (style.css) — the swept part of a program whose rest is unchecked.
+
+**The stop latency had four layers.** (1) The UI changed nothing until the
+worker replied → `collisionStopping` flips the slot on the click. (2) The
+worker parks at a slice boundary, and a slice ends only at an iterator
+checkpoint — every 16 segments or 512 samples; with pairs inside the margin
+(certificates cannot stride, a query every 0.25 units) 512 samples were
+seconds → the iterator now also yields on TIME: `yieldMs` (8 ms of the active
+clock) checked at every segment head (i > 1 — a segment-1 budget check would
+report 0 % for a sweep that merely started late) and every 32 samples; the
+count-based checkpoints stay as the FLOOR so a frozen test clock still yields
+(pinned: 4 checkpoints on a 40-segment plunge frozen, >12 advancing). (3) The
+park's snapshot refined every hit record again — walk-back + bisection mesh
+probes per contact boundary, continuation records past the MAX_HITS cap
+included (a long penetration is a record per line) → refinement is MEMOIZED
+per record on (sample count, raw extent): records only gain samples, so an
+unchanged record refines to the same intervals; the memo is invisible (a
+second take at one checkpoint equals the first; a record's extent never moves
+backwards across snapshots; the final result still equals the sync sweep).
+(4) A stop during a camera pause waited for the drag to end and one more
+slice → the paused pump parks right there (the generator is at a checkpoint).
+What remains: a snapshot of many FRESH hits still refines them before the
+reply — the stopping state covers that moment honestly.
+
+**Verified (suite live, single niced files):** collision 44 (+2), pump 3,
+SFC compile of ScrubBar/ThreeViewer clean, eslint clean, tsc probe over
+collision/worker/pump clean. A first HMR push failed on a double-quoted
+attribute inside a double-quoted `:title` (the tab logged one
+`browser.error.unhandled_rejection` for the module load) — fixed, re-served.
+OWED: the operator's look (❚❚ flips at once; ▶ where ❚❚ was; the timeline
+does not move while scrubbing through long line labels), heavy gates at the
+next stop.

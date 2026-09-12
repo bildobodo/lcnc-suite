@@ -166,6 +166,14 @@ export interface CollisionOptions {
    *  The worker passes an ACTIVE-time clock that stands still while the
    *  sweep is paused for camera interaction, so a pause never eats the budget. */
   clock?: () => number;
+  /** Time between iterator checkpoints (ms, on `clock`; default YIELD_MS).
+   *  The count-based checkpoints (every 16 segments / SAMPLES_PER_YIELD
+   *  samples) stay as the FLOOR — a frozen clock still yields — this is the
+   *  ceiling on how long a stop/cancel/park waits (2026-09-12: with pairs
+   *  inside the margin every 0.25 units queries the meshes, and 512 such
+   *  samples were seconds between checkpoints — the operator's ❚❚ looked
+   *  ignored). */
+  yieldMs?: number;
   /** Per-epoch WCS re-add terms (review P2), indexed by the track's `wcs`
    *  bytes — built by wcsEpochs.epochTermsFor from the payload's wcs_frames
    *  + the live table. Absent = single-basis (the live `wcs` terms). */
@@ -230,8 +238,13 @@ export interface SnapshotHandle {
 // The wall-clock budget (`maxMs`) is what bounds a sweep's cost now.
 const DEFAULTS = { linStepMm: 5, rotStepDeg: 4, maxSamples: 4_000_000 };
 /** Samples between iterator checkpoints inside one segment: a long segment
- *  (a slow plunge, a full rotary turn) must still yield to its driver. */
+ *  (a slow plunge, a full rotary turn) must still yield to its driver. The
+ *  count is the floor; YIELD_MS of active time also yields (the clock is
+ *  read every SAMPLES_PER_CLOCK samples — one read per sample would be
+ *  measurable on a million certified 10 µs samples). */
 const SAMPLES_PER_YIELD = 512;
+const SAMPLES_PER_CLOCK = 32;
+const YIELD_MS = 8;
 const MAX_HITS = 200;
 
 interface Node {
@@ -508,8 +521,9 @@ export function sweepCollisions(
 
 /** The sweep as a resumable iterator: yields its progress (0..1) at
  *  checkpoints — before the first segment, every 16 segments, every
- *  SAMPLES_PER_YIELD samples inside a segment, and once at the end — and
- *  returns the result. `next(true)` at a checkpoint aborts. The worker drives
+ *  SAMPLES_PER_YIELD samples inside a segment, whenever `yieldMs` of clock
+ *  time has passed since the last checkpoint (checked per segment and every
+ *  SAMPLES_PER_CLOCK samples), and once at the end — and returns the result. `next(true)` at a checkpoint aborts. The worker drives
  *  it in time slices so a cancel message lands between checkpoints instead
  *  of needing the worker terminated (and the BVH model rebuilt). The
  *  wall-clock budget (`opts.maxMs`) is checked at the same checkpoints. */
@@ -523,6 +537,8 @@ export function* sweepCollisionsIter(
   const maxSamples = opts.maxSamples ?? DEFAULTS.maxSamples;
   const clock = opts.clock ?? (() => performance.now());
   const t0 = clock();
+  const yieldMs = opts.yieldMs ?? YIELD_MS;
+  let lastYield: number;   // set after the baseline checkpoint
   const n = track.count;
 
   // The sweep runs in its own DISTANCE parameterization (mm, 1° ≙ 1 mm) —
@@ -946,9 +962,27 @@ export function* sweepCollisionsIter(
   // so-far while the generator is parked (SnapshotHandle). Everything below
   // reads the loop's live state (sweptTo, done, coarsened, uncertified, the
   // static contacts) at call time.
+  // Refinement memo (2026-09-12): a park snapshots the sweep-so-far by
+  // re-running buildResult on COPIES of every record, and the refinement
+  // below is its cost — mesh probes per contact boundary, for every record
+  // including the continuation records past the MAX_HITS cap (a long
+  // penetration is one record per line). A record whose inputs have not
+  // changed since it was last refined — its raw extent and sample count;
+  // records only ever GAIN samples — refines to the same intervals, so the
+  // second and every later snapshot (and the final result) reuse them.
+  // Values are DIST cum (captured before the track-cum conversion below).
+  const refined = new Map<string, { sig: string; cum: number; cumEnd: number; intervals: Array<[number, number]> }>();
   const buildResult = (recs: typeof worst, trunc: CollisionResult["truncated"], final: boolean): CollisionResult => {
-    for (const h of recs.values()) {
+    for (const [key, h] of recs) {
       if (h.dist > CONTACT_EPS || h.cum <= 0) continue;  // near-misses keep their closest-approach sample
+      const sig = `${h.samples.length},${h.cum},${h.cumEnd}`;
+      const memo = refined.get(key);
+      if (memo && memo.sig === sig) {
+        h.cum = memo.cum;
+        h.cumEnd = memo.cumEnd;
+        h.intervals = memo.intervals.map(iv => [iv[0], iv[1]] as [number, number]);
+        continue;
+      }
       const floor = lineStartDist(h.cum, h.line);
       const ceil = lineEndDist(Math.max(h.cumEnd, h.cum), h.line);
 
@@ -1001,6 +1035,8 @@ export function* sweepCollisionsIter(
       h.cum = merged[0]![0];
       h.cumEnd = merged[merged.length - 1]![1];
       h.intervals = merged;
+      refined.set(key, { sig, cum: h.cum, cumEnd: h.cumEnd,
+                         intervals: merged.map(iv => [iv[0], iv[1]] as [number, number]) });
     }
     // Hits leave the sweep in TRACK cum (time on a time-based track) — the
     // scrub-to-hit target must live on the slider's axis.
@@ -1065,11 +1101,17 @@ export function* sweepCollisionsIter(
   // Checkpoint before the first segment: an abort here leaves the baseline
   // pose only (the "aborts early" contract).
   const abortAtStart = (yield 0) === true;
+  lastYield = clock();
   outer:
   for (let i = 1; i < n && !abortAtStart; i++) {
-    if ((i & 15) === 0) {
+    // i > 1 for the time-based checkpoint: a segment-1 checkpoint has
+    // swept nothing, and a budget check there would report 0 % covered for
+    // a sweep that merely started late (scheduler pause between the
+    // baseline yield and the first resume).
+    if ((i & 15) === 0 || (i > 1 && clock() - lastYield >= yieldMs)) {
       if (overBudget()) { truncated = { covered: frac(sweptTo), reason: "time" }; break; }
       if ((yield frac(dcum[i - 1]!)) === true) break;
+      lastYield = clock();
     }
     const line = track.lines[i]!;
     const isRapid = track.rapid[i] === 1;
@@ -1174,9 +1216,11 @@ export function* sweepCollisionsIter(
         interpPose(i, (s - c0) / L);
         done++;
         sweptTo = s;
-        if ((done & (SAMPLES_PER_YIELD - 1)) === 0) {
+        if ((done & (SAMPLES_PER_CLOCK - 1)) === 0
+            && ((done & (SAMPLES_PER_YIELD - 1)) === 0 || clock() - lastYield >= yieldMs)) {
           if (overBudget()) { truncated = { covered: frac(s), reason: "time" }; break outer; }
           if ((yield frac(s)) === true) break outer;
+          lastYield = clock();
         }
         if (done > maxSamples && !budgetExceeded) {
           budgetExceeded = true;

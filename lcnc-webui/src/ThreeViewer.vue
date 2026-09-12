@@ -2092,6 +2092,9 @@ let _colNeedBodiesRetried = false;
 // `collisionResult` carries the sweep-so-far (truncated) so its marks show.
 const collisionStopped = ref<{ covered: number; reason: "time" | "stopped" | "motion" } | null>(null);
 const collisionResumable = ref(false);
+/** A stop is on its way to the worker's next checkpoint (ScrubBar shows the
+ *  click acknowledged at once; the park reply clears it). */
+const collisionStopping = ref(false);
 let _colStopReason: "stopped" | "motion" | null = null;
 // An entry-segment sweep pending its merge with the base result (sim entry).
 let _colMerge: { base: CollisionResult; shift: number } | null = null;
@@ -2143,6 +2146,7 @@ function _colGetWorker(): Worker {
         // Parked (budget / operator / rotary motion): the sweep-so-far is
         // the result on display, and the worker still holds the generator.
         collisionBusy.value = false;
+        collisionStopping.value = false;
         collisionResult.value = m.result!;
         collisionTrack.value = _colPendingTrack;
         collisionResumable.value = true;
@@ -2157,6 +2161,7 @@ function _colGetWorker(): Worker {
         return;
       }
       collisionBusy.value = false;
+      collisionStopping.value = false;
       if (m.error) {
         console.error("[collision] sweep failed:", m.error);
         emitTelemetry("collision.sweep_failed", { msg: m.error });
@@ -2210,6 +2215,7 @@ function _colGetWorker(): Worker {
 // runCollisionCheck).
 function _colFail() {
   collisionBusy.value = false;
+  collisionStopping.value = false;
   collisionProgress.value = 0;
   collisionResult.value = null;
   collisionTrack.value = null;
@@ -2234,6 +2240,7 @@ function cancelCollisionCheck() {
   if (_colWorker && (collisionBusy.value || collisionResumable.value)) _colWorker.postMessage({ cancel: _colReqId });
   _colReqId++;
   collisionBusy.value = false;
+  collisionStopping.value = false;
   collisionProgress.value = 0;
   collisionResumable.value = false;
   collisionStopped.value = null;
@@ -2246,10 +2253,17 @@ function runCollisionCheckManual(t: ScrubTrack) {
   runCollisionCheck(t, null);   // unbounded: the operator's ❚❚ is the bound
 }
 
-/** Park the running sweep at its next slice; the worker keeps it resident. */
+/** Park the running sweep at its next checkpoint; the worker keeps it
+ *  resident. `collisionStopping` acknowledges the request on the bar until
+ *  the park reply lands (2026-09-12: the reply used to be seconds away —
+ *  512 in-margin samples between checkpoints, plus a snapshot refining
+ *  every hit — and a silent wait read as "not received"; the iterator now
+ *  yields on time and the refinement is memoized, but a snapshot of many
+ *  fresh hits still takes a moment). */
 function stopCollisionCheck(reason: "stopped" | "motion") {
-  if (!_colWorker || !collisionBusy.value) return;
+  if (!_colWorker || !collisionBusy.value || collisionStopping.value) return;
   _colStopReason = reason;
+  collisionStopping.value = true;
   _colWorker.postMessage({ stop: _colReqId });
 }
 
@@ -2376,6 +2390,7 @@ function runCollisionCheck(trackOverride?: ScrubTrack, budgetMs: number | null =
   const id = ++_colReqId;
   _colPendingTrack = track;
   collisionBusy.value = true;
+  collisionStopping.value = false;
   collisionProgress.value = 0;
   collisionResult.value = null;
   collisionResumable.value = false;
@@ -3703,6 +3718,7 @@ defineExpose({
       :collisionTrack="collisionTrack"
       :collisionStopped="collisionStopped"
       :collisionResumable="collisionResumable"
+      :collisionStopping="collisionStopping"
       @check-manual="runCollisionCheckManual"
       @check-entry="runEntryCheck"
       @stop-check="stopCollisionCheck('stopped')"

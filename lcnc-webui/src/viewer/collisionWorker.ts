@@ -9,6 +9,7 @@
 //     terminate, no worker recreation, no BVH rebuild for the next sweep;
 //   - a new request supersedes the running sweep the same way;
 //   - `{stop: id}` (2026-09-12) parks the sweep at its next slice boundary
+//     (immediately while camera-paused — the generator is at a checkpoint)
 //     and posts the sweep-so-far (`stopped` + a `truncated` result); the
 //     generator stays RESIDENT with every certificate and contact state,
 //     and `{continue: id, budgetMs}` resumes it. Running out of the active-
@@ -62,7 +63,9 @@ export interface CollisionContinue { continue: number; budgetMs: number | null }
 export interface CollisionPause { pause: number }
 export interface CollisionResume { resume: number }
 
-/** Wall-clock per slice between message checks. */
+/** Wall-clock per slice between message checks. The iterator itself
+ *  yields every ~8 ms of active time (collision.ts YIELD_MS), so a slice
+ *  overruns this by at most one sample's queries + one snapshot. */
 const SLICE_MS = 40;
 /** Poll cadence while paused. */
 const PAUSE_POLL_MS = 50;
@@ -178,8 +181,21 @@ self.onmessage = (e: MessageEvent<CollisionReq | CollisionCancel | CollisionPaus
     const activeClock = () => run.activeMs + (run.sliceStart ? performance.now() - run.sliceStart : 0);
     run.it = sweepCollisionsIter(model, track, wcs, { ...options, maxMs: undefined, clock: activeClock, snapshot: run.snapshot });
     _run = run;
+    // Park: the generator stays suspended at its current checkpoint; the
+    // owner gets the sweep-so-far and decides between continue and cancel.
+    // Not a result — `stopped` says so.
+    const park = (reason: "stopped" | "time") => {
+      run.stopRequested = false;
+      run.stopped = true;
+      self.postMessage({ id, stopped: true, result: run.snapshot.take!(reason) });
+    };
     const pump = () => {
       if (run.paused && !run.cancelled) {
+        // A stop during a camera pause parks right here — the generator is
+        // suspended at a checkpoint already; waiting for the drag to end
+        // and one more slice to run would be the stop the operator saw
+        // ignored (2026-09-12).
+        if (run.stopRequested && run.snapshot.take) { run.paused = false; park("stopped"); return; }
         if (performance.now() - run.pausedAt < PAUSE_MAX_MS) { setTimeout(pump, PAUSE_POLL_MS); return; }
         run.paused = false;   // lost resume: continue rather than hang
       }
@@ -198,13 +214,7 @@ self.onmessage = (e: MessageEvent<CollisionReq | CollisionCancel | CollisionPaus
         self.postMessage({ id, progress: slice.progress });
         const overBudget = run.budgetMs != null && run.activeMs > run.budgetMs;
         if ((run.stopRequested || overBudget) && run.snapshot.take) {
-          // Park: the generator stays suspended at this checkpoint; the
-          // owner gets the sweep-so-far and decides between continue and
-          // cancel. Not a result — `stopped` says so.
-          const reason = run.stopRequested ? "stopped" : "time";
-          run.stopRequested = false;
-          run.stopped = true;
-          self.postMessage({ id, stopped: true, result: run.snapshot.take(reason) });
+          park(run.stopRequested ? "stopped" : "time");
           return;
         }
         setTimeout(pump, 0);

@@ -58,6 +58,10 @@ const props = defineProps<{
    *  says the worker still holds it, so ▶ continues where it stopped. */
   collisionStopped: { covered: number; reason: "time" | "stopped" | "motion" } | null;
   collisionResumable: boolean;
+  /** A stop was sent and the worker has not parked yet: it parks at its
+   *  next checkpoint (bounded to ~a slice now, but a snapshot of many hits
+   *  still refines first). The slot acknowledges the click at once. */
+  collisionStopping: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -665,6 +669,65 @@ const sweepCaveat = computed<string | null>(() => {
 function pctOf(f: number): string {
   return f < 0.01 ? "<1 %" : `${Math.round(f * 100)} %`;
 }
+/** The sweep SLOT (2026-09-12): ONE geometry — the fixed-width track + one
+ *  button — in every state, first in row 2, so ❚❚ (running), ▶ (parked) and
+ *  ↻ (done / no result) share one position and stop → continue is a toggle
+ *  in place. The fill is the swept fraction (progress while running, the
+ *  covered part while parked, warn-tinted when the rest is unchecked); the
+ *  findings — limits nav, clash nav, verdict text — follow the slot, so no
+ *  variable-width text sits between the timeline and a button. */
+interface SweepSlot {
+  pct: number; cls: string; title: string;
+  glyph: string; btnTitle: string; disabled: boolean;
+  action: "stop" | "continue" | "rerun" | "none";
+}
+const GLYPH_STOP = "\u2759\u2759", GLYPH_CONTINUE = "\u25B6", GLYPH_RERUN = "\u21BB";
+const sweepSlot = computed<SweepSlot | null>(() => {
+  if (!track.value) return null;
+  if (props.collisionBusy) {
+    if (props.collisionStopping) return {
+      pct: sweepPct.value, cls: "warn", glyph: GLYPH_STOP, disabled: true, action: "none",
+      title: `Stopping — the check parks at its next checkpoint (${sweepPct.value} % swept)`,
+      btnTitle: "Stop requested — parking at the next checkpoint",
+    };
+    return {
+      pct: sweepPct.value, cls: "", glyph: GLYPH_STOP, disabled: false, action: "stop",
+      title: sweepTitle.value,
+      btnTitle: "Stop the collision check — it parks where it is and can be continued",
+    };
+  }
+  const r = resultCurrent.value ? props.collisionResult : null;
+  if (r && props.collisionStopped && props.collisionResumable) return {
+    pct: Math.round(props.collisionStopped.covered * 100), cls: "warn", glyph: GLYPH_CONTINUE,
+    disabled: false, action: "continue", title: stoppedTitle.value,
+    btnTitle: "Continue the collision check from where it stopped",
+  };
+  if (r) {
+    const cov = r.truncated ? r.truncated.covered : 1;
+    const secs = Math.round(r.sweepMs / 1000);
+    return {
+      pct: Math.round(cov * 100), cls: r.truncated ? "warn" : "", glyph: GLYPH_RERUN,
+      disabled: false, action: "rerun",
+      title: r.truncated
+        ? `${pctOf(cov)} of the program swept in ${secs} s — the rest is UNCHECKED`
+        : `Whole program swept in ${secs} s (${r.samples} samples, ${r.pairCount} pairs)`,
+      btnTitle: "Run the collision check again from the start (no time budget)",
+    };
+  }
+  return {
+    pct: 0, cls: "", glyph: GLYPH_RERUN, disabled: false, action: "rerun",
+    title: "No collision check result for this track yet",
+    btnTitle: "Run the collision check (no time budget)",
+  };
+});
+function sweepSlotClick() {
+  const sl = sweepSlot.value;
+  if (!sl) return;
+  if (sl.action === "stop") emit("stop-check");
+  else if (sl.action === "continue") emit("continue-check");
+  else if (sl.action === "rerun" && track.value) emit("check-manual", track.value);
+}
+
 // One navigation target per contact ONSET: an intermittent-contact line
 // (enter → exit → re-enter) yields a target per interval, so the re-entry
 // is a real "next clash" stop, not folded invisibly into the first.
@@ -808,12 +871,21 @@ onUnmounted(() => {
       <span class="val-slot posSlot val-status mono" :class="{ muted: !simMode && !running }">{{ posText }}</span>
     </div>
 
-    <!-- Row 2 — findings navigation (prev/next, anchored to the CURRENT
-         timeline position). Buttons keep CONSTANT labels — the moving
-         target readout sits outside the button group so click positions
-         never shift while stepping through. Wrappers carry tooltips
-         (WebKit doesn't hover disabled buttons). -->
+    <!-- Row 2 — the sweep slot (one geometry in every state — see sweepSlot),
+         then findings navigation (prev/next, anchored to the CURRENT timeline
+         position). Buttons keep CONSTANT labels and every variable-width
+         readout sits AFTER the last button of its group, so click positions
+         never shift while stepping through or while a sweep changes state.
+         Wrappers carry tooltips (WebKit doesn't hover disabled buttons). -->
     <div class="row-controls scrubRow">
+      <template v-if="sweepSlot">
+        <div class="progressTrack sweepTrack" :class="sweepSlot.cls" :title="sweepSlot.title"><div class="progressFill" :style="{ width: sweepSlot.pct + '%' }"></div></div>
+        <span class="btnTip" :title="sweepSlot.btnTitle">
+          <MachineBtn type="scrub" :disabled="sweepSlot.disabled" @click="sweepSlotClick">{{ sweepSlot.glyph }}</MachineBtn>
+        </span>
+        <div class="sep-v"></div>
+      </template>
+
       <template v-if="violations && violations.length">
         <span class="btnTip" title="Previous soft-limit violation (from the current timeline position)">
           <MachineBtn type="scrub" variant="warn" :disabled="!violationTargets.length || (!simMode && !machineOff)"
@@ -833,24 +905,12 @@ onUnmounted(() => {
         <div class="sep-v"></div>
       </template>
 
-      <template v-if="collisionBusy">
-        <div class="progressTrack sweepTrack" :title="sweepTitle"><div class="progressFill" :style="{ width: sweepPct + '%' }"></div></div>
-        <MachineBtn type="scrub" title="Stop the collision check — it parks where it is and can be continued" @click="emit('stop-check')">&#10074;&#10074;</MachineBtn>
-      </template>
-      <!-- Sweep states (2026-09-12): running (bar + ❚❚), parked ("stopped at
-           N %" + ▶, clashes so far marked), done (clear / clashes + ↻). The
-           budget running out, the operator's ❚❚ and a rotary jog all park;
-           only a superseding change drops a sweep. -->
+      <!-- Verdict (2026-09-12): the slot says how much was swept; this says
+           what it found. Parked/truncated with no hits is "no clash in N %
+           swept" — never "clear" for a part-swept program. -->
       <template v-if="collisionResult && !collisionBusy && resultCurrent">
         <span v-if="collisionResult.pairCount === 0" class="val-status muted" title="No body pair moves relative to another — nothing to check">no moving pairs</span>
-        <span v-else-if="!hits.length && collisionResult.truncated && !collisionResumable" class="val-status warn"
-              :title="`No clash in the ${pctOf(collisionResult.truncated.covered)} of the program swept before the ${Math.round(collisionResult.sweepMs / 1000)} s budget — the rest is UNCHECKED (${collisionResult.samples} samples, ${collisionResult.pairCount} pairs)`">
-          no clash in {{ pctOf(collisionResult.truncated.covered) }} swept
-        </span>
-        <span v-else-if="!hits.length && !collisionResumable" class="val-status ok" :title="`${collisionResult.samples} samples, ${collisionResult.pairCount} pairs${collisionResult.staticContacts.length ? `; in contact from the start (excluded): ${collisionResult.staticContacts.map(c => c.a + '/' + c.b).join(', ')}` : ''}`">
-          clear
-        </span>
-        <template v-else>
+        <template v-else-if="hits.length">
           <span class="btnTip" title="Previous collision (from the current timeline position)">
             <MachineBtn type="scrub" variant="danger" :disabled="!simMode && !machineOff"
                         @click="jumpTo(targetBefore(hitTargets, sPos))">&#9664;</MachineBtn>
@@ -867,19 +927,22 @@ onUnmounted(() => {
                         @click="jumpTo(targetAfter(hitTargets, sPos))">&#9654;</MachineBtn>
           </span>
           <span class="navTarget val-status mono">{{ nextHitT ? "→ " + (nextHitT.line ? "L" + nextHitT.line : "entry") + (nextHitT.reentry ? " (re-entry)" : "") + (nextHitT.rapid ? " (rapid)" : "") + ((nextHitT.dist ?? 0) > 0.001 ? ` ~${nextHitT.dist!.toFixed(1)}mm` : "") + ((nextHitT.spanEndLine ?? nextHitT.line) > nextHitT.line ? ` … through L${nextHitT.spanEndLine}` : "") : "" }}</span>
+          <span v-if="collisionStopped && collisionResumable" class="val-status warn" :title="stoppedTitle">in {{ pctOf(collisionStopped.covered) }} swept</span>
         </template>
-        <!-- Parked: the covered fraction + ▶ (with the clash nav above when
-             the swept part already found some). -->
-        <template v-if="collisionStopped && collisionResumable">
-          <span class="val-status warn" :title="stoppedTitle">stopped at {{ pctOf(collisionStopped.covered) }}</span>
-          <MachineBtn type="scrub" title="Continue the collision check from where it stopped" @click="emit('continue-check')">&#9654;</MachineBtn>
-        </template>
+        <span v-else-if="collisionStopped && collisionResumable" class="val-status warn" :title="stoppedTitle">
+          no clash in {{ pctOf(collisionStopped.covered) }} swept
+        </span>
+        <span v-else-if="collisionResult.truncated" class="val-status warn"
+              :title="`No clash in the ${pctOf(collisionResult.truncated.covered)} of the program swept (${collisionResult.truncated.reason === 'samples' ? 'sample backstop' : 'time budget'}) — the rest is UNCHECKED (${collisionResult.samples} samples, ${collisionResult.pairCount} pairs)`">
+          no clash in {{ pctOf(collisionResult.truncated.covered) }} swept
+        </span>
+        <span v-else class="val-status ok" :title="`${collisionResult.samples} samples, ${collisionResult.pairCount} pairs${collisionResult.staticContacts.length ? `; in contact from the start (excluded): ${collisionResult.staticContacts.map(c => c.a + '/' + c.b).join(', ')}` : ''}`">
+          clear
+        </span>
         <!-- Shown on BOTH branches: a sweep that found clashes is no more
              certified than one that found none, so the caveat cannot live
              only next to "clear". -->
         <span v-if="sweepCaveat" class="val-status warn" :title="sweepCaveat">*</span>
-        <MachineBtn v-if="!collisionResumable" type="scrub" title="Run the collision check again from the start (no time budget)"
-                    :disabled="!track" @click="track && emit('check-manual', track)">&#8635;</MachineBtn>
       </template>
 
       <template v-if="nextTool">
@@ -971,16 +1034,25 @@ onUnmounted(() => {
 /* Row-1 fixed slots (--slot-w is the global .val-slot width var). Every
    content-sized sibling of the timeline gets a fixed slot, so the slider —
    the one flex:1 item — keeps its edges while text changes. */
-.modeSlot { --slot-w: 8ch; white-space: nowrap; }
-.lineSlot { --slot-w: 15ch; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.posSlot  { --slot-w: 14ch; white-space: nowrap; }
+.modeSlot { --slot-w: 8ch; }
+.lineSlot { --slot-w: 15ch; }
+.posSlot  { --slot-w: 16ch; }   /* "~1:02:34/1:23:45": an hour-long run */
+/* FIXED, not min-width (2026-09-12): a floor let "L1234 (sub_name) →" grow
+   the slot and the ellipsis never engaged — every extra character came out
+   of the timeline. The full text is the slot's title. */
+.modeSlot, .lineSlot, .posSlot {
+  flex: 0 0 var(--slot-w);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .sweepTool { white-space: nowrap; margin-left: auto; }
 /* Row 2 keeps its height whether or not it has findings: the bar is
    bottom-anchored, so a row that came and went with each auto-sweep pushed
    the timeline up and down. */
 .scrubRow + .scrubRow { min-height: var(--touch-target-compact); }
-/* Sweep progress: one width while it runs (the global track is flex:1 for
-   its row-filling home in GcodePanel). */
+/* Sweep slot track: one width in every state (the global track is flex:1
+   for its row-filling home in GcodePanel). */
 .sweepTrack {
   flex: 0 0 120px;
 }

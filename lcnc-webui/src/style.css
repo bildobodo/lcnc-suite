@@ -1426,6 +1426,9 @@ label:has(input:disabled, select:disabled) {
   background: var(--info);
   transition: width 0.3s ease;
 }
+/* Warn-tinted fill: the swept part of a program whose rest is UNCHECKED
+   (a parked or truncated collision sweep, a stop on its way). */
+.progressTrack.warn > .progressFill { background: var(--warn); }
 
 /* Button inner content (icon + text aligned) */
 .btn-label      { display: flex; align-items: center; gap: var(--gap-tight); }
