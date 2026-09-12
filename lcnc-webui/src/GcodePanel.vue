@@ -337,7 +337,9 @@ function lineMarkTitle(lineNum: number): string | undefined {
   if (v) parts.push(v.map(violationText).join("; "));
   const cm = collisionLineSet.value.get(lineNum);
   if (cm) parts.push(cm.continuation !== undefined
-    ? `still in contact (began L${cm.continuation}) — see viewer Check results`
+    ? (cm.continuation === 0
+      ? "still in contact (began in the entry move) — see viewer Check results"
+      : `still in contact (began L${cm.continuation}) — see viewer Check results`)
     : "collision clearance hit — see viewer Check results");
   return parts.length ? parts.join(" · ") : undefined;
 }

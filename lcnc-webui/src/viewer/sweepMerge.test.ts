@@ -23,6 +23,29 @@ describe("mergeEntryResult", () => {
     expect(m.sweepMs).toBe(60);
     expect(m.pairCount).toBe(3);
   });
+  it("one contact seen by both sweeps counts once: the entry onset takes the base's span, the base's first-line onset becomes its continuation", () => {
+    // 2026-09-12: a contact begun in the entry rapid that never ends was
+    // "2 clashes" — the entry sweep's onset plus the base sweep's onset on
+    // line 1 (a pair clear at rest, touching at the first pose).
+    const entry = res({ hits: [{ line: 0, cum: 6, cumEnd: 10, intervals: [[6, 10]], a: "ram", b: "column", dist: 0, rapid: true }] });
+    const base = res({ hits: [
+      { line: 1, cum: 0, cumEnd: 4, spanCumEnd: 40, spanEndLine: 9, a: "ram", b: "column", dist: 0, rapid: false },
+      { line: 2, cum: 4, cumEnd: 8, continuation: 1, a: "ram", b: "column", dist: 0, rapid: false },
+      { line: 5, cum: 20, cumEnd: 21, a: "tool", b: "vise", dist: 0, rapid: false },   // another pair: untouched
+    ] });
+    const m = mergeEntryResult(entry, base, 10);
+    const onsets = m.hits.filter(h => h.continuation === undefined);
+    expect(onsets.map(h => [h.line, h.a, h.b])).toEqual([[0, "ram", "column"], [5, "tool", "vise"]]);
+    expect(onsets[0]!.spanCumEnd).toBe(50);
+    expect(onsets[0]!.spanEndLine).toBe(9);
+    expect(onsets[0]!.rapid).toBe(true);
+    const l1 = m.hits.find(h => h.line === 1)!;
+    expect(l1.continuation).toBe(0);
+    expect(l1.cum).toBe(10);
+    // An entry contact that ENDS before the first point stays its own clash.
+    const early = res({ hits: [{ line: 0, cum: 2, cumEnd: 5, a: "ram", b: "column", dist: 0, rapid: true }] });
+    expect(mergeEntryResult(early, base, 10).hits.filter(h => h.continuation === undefined)).toHaveLength(3);
+  });
   it("unions static contacts by pair (two baselines: live pose and first point) and carries the base's partial state", () => {
     const entry = res({ staticContacts: [{ a: "tool", b: "vise", dist: 0.5 }] });
     const base = res({

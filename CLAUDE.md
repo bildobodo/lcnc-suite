@@ -668,7 +668,11 @@ client-built entry move) and the track merge diffs them per stream.
 `timeBased: false` (no INI velocity / legacy payload) falls back to the
 distance axis (1° ≙ 1 mm), honest not guessed. Tool-change events ride
 the wire as `tool_change_lines` (canon M6 only — preview-skipped M600
-remaps contribute none) and render as info-blue timeline marks.
+remaps contribute none) and the client unions them with a TEXT scan for
+M6 / M600 / M601 lines (`viewer/toolChangeScan.ts`, tool from the T word
+on or before the line; "T13 M600" had no mark) — a change line has no
+motion, so its mark sits at the next line with one; info-blue ● marks +
+the "T13 in 2:41" countdown.
 **Phase 2 (run-time display)**: the bar stays visible during a REAL run
 as a read-only surface — every control is dead via the existing gating,
 a RUNNING chip marks the mode, the playhead follows `motion_line` on the
@@ -835,10 +839,15 @@ collision.ts hands out the sweep-so-far without ending it; the clashes
 found so far are marked, the verdict reads "no clash in N % swept" / "in
 N % swept". DONE: full band (the covered part when truncated), ↻ runs again
 from the start, unbounded; no result yet = no band + ↻. Row 1's line /
-time readouts are FIXED slots (flex basis, ellipsis, full text in the
-title; line 10ch, time sized per track; the mode chip is gone — "off
-path" shows in the line slot) — a min-width floor let "L1234 (sub_name)
-→" eat the timeline. Dragging the timeline PAUSES playback (`@input`). The budget
+time readouts are FIXED slots sized PER PROGRAM (flex basis, ellipsis,
+full text in the title; line = "L" + digits of the last line + " →",
+time = "mm:ss/mm:ss" + "~"; the timer shows always — "00:00/45:00" at
+idle, never "live"; the mode chip is gone — "off path" shows in the line
+slot) — a min-width floor let "L1234 (sub_name) →" eat the timeline. The
+speed slider stays in row 1 (row 2 shifts with findings). Timeline BANDS
+span the thumb's EDGES (an extent to program end reaches the track's
+end); ticks sit at thumb centres. Dragging the timeline PAUSES playback
+(`@input`). The budget
 running out (AUTO sweeps: 300 s of ACTIVE time, enforced by the worker at
 slice boundaries — a continue or ↻ is unbounded, the operator's ❚❚ is the
 bound, the iterator's 4 M-sample runaway backstop behind it), the operator's
@@ -851,7 +860,11 @@ SEGMENT (the live position → first point rapid, `sliceTrack`) is a SIDE
 sweep in the worker (`side: true` — beside a running or parked main run,
 milliseconds) whose result is the entry OVERLAY, merged onto the base
 result AT DISPLAY TIME (`collisionEntryResult` = `sweepMerge.ts`: base
-cums shift by the entry length; TWO baselines, both reported — the live
+cums shift by the entry length; ONE contact seen by both sweeps — an
+entry onset still in contact at the entry's end + a base onset for the
+same pair from the first point — counts ONCE: the entry record keeps the
+onset and the base's span, the base's first-line record becomes its
+continuation (line 0 = the entry move); TWO baselines, both reported — the live
 pose's and the first point's static contacts). `viewer/sweepEntry.ts`
 (pure, pinned) decides what runs: base unknown → base + side; base
 current / running / parked → side only; overlay already swept for this

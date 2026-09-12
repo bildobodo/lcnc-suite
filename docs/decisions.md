@@ -4861,3 +4861,41 @@ machineTrsrn 12 + machineModel; SFC compile, eslint, tsc probe clean; no
 browser errors. The operator's base sweep on the reloaded tab now samples the
 contact through the whole program (in-margin cadence, no certificates) — a
 minutes-long sweep that parks at the 300 s budget; ▶ continues it.
+
+## 2026-09-12 (late, 6) — Sim bar follow-ups: one clash for one contact, bands to the edge, slots per program, M600 marks
+
+**Operator, second walk-through of the sim bar.** Six answers/fixes:
+
+- **"Two clashes, but it's one contact."** A regression of mine: the rest-pose
+  rule made the base sweep report the ram/column contact (onset on L1, span to
+  program end) while the entry sweep already reported it (onset in the entry
+  rapid); the merge concatenated the hits. `mergeEntryResult` now folds them: an
+  entry onset still in contact at the entry's end + a base onset for the same
+  pair from the first point = ONE contact — the entry record keeps the onset
+  (rapid) and takes the base's `spanCumEnd`/`spanEndLine`, the base's first-line
+  record becomes its continuation (line 0 = the entry move; GcodePanel's title
+  says so). Pinned, incl. the control (an entry contact that ends before the
+  first point stays its own clash).
+- **Line slot width.** What it shows is "L<n>", " →" on a rapid, "entry" /
+  "end" / "···", or "L9 (sub)" — so it is sized per program: "L" + digits of the
+  last line + 2, 5ch floor (6ch for a 300-line file, 10ch only past a million).
+- **"Why live and not always the timer?"** No reason left: the timer shows
+  always — "00:00/45:00" at idle (the scrub sits at 0), "~…" during a run. The
+  slot width (per program, "~" reserved) is what the readout fills.
+- **Speed slider back in row 1.** Row 2 shifts with findings; row 1 does not.
+- **Red/blue stopping 8px short.** Bands mapped to thumb CENTRES like the
+  ticks; now they span the thumb's EDGES (left = (W−16)·a, width =
+  (W−16)·(b−a) + 16) — an extent through program end reaches the track's end,
+  one from the first line starts at its left edge, each tick 8px inside its
+  band. The swept band uses the same mapping.
+- **No mark for "T13 M600".** The wire carries canon M6 only (a preview-skipped
+  remap contributes none — documented). `viewer/toolChangeScan.ts` scans the
+  program text for M6 / M06 / M600 / M601 outside comments, tool from the T
+  word on or before the line (0 = "T?"), unioned with the wire by line. A
+  tool-change line has no motion, so the mark sits at the next line with one
+  (`cumAtOrAfterLine`).
+
+**Verified (suite live, single niced files):** merge 4 (+1), toolChangeScan 2,
+collision 47, entry 10; SFC compile of ScrubBar / GcodePanel, eslint, tsc probe
+clean. OWED: the operator's look (one clash spanning the program with the red
+band to the track's end; the slots; T13 mark + countdown on perfmatrix).

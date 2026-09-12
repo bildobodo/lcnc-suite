@@ -26,6 +26,7 @@ import { specFromWire } from "./viewer/kins";
 import { epochTermsFor, epochWcsList, usedWcsRowsKey, type WcsTableRow } from "./viewer/wcsEpochs";
 import { twpPlaneForSample } from "./viewer/twpPlaneFrame";
 import { clashTargets } from "./viewer/clashTargets";
+import { toolChangeLinesFromText } from "./viewer/toolChangeScan";
 import type { WcsTerms } from "./viewer/partFrame";
 import type { ScrubTrack } from "./ws/bulkData";
 import type { CollisionResult } from "./viewer/collision";
@@ -596,19 +597,23 @@ const lineOffPath = computed(() => running.value && runOffPath.value);
 const lineTitle = computed(() => lineOffPath.value
   ? "The machine is somewhere the program's path never goes (e.g. a toolchange park) — the playhead is frozen until it returns"
   : lineText.value);
-// Position readout in its own slot: "~" prefix marks the run ESTIMATE axis.
-const posText = computed(() => {
-  if (simMode.value) return posLabel.value;
-  if (running.value) return `~${posLabel.value}`;
-  return "live";
-});
-// The time slot is sized PER TRACK — "mm:ss/mm:ss" plus the run "~" — so it
-// changes only on program load; 5ch holds the distance axis's "100%".
-// (Operator, 2026-09-12: 39ch of fixed slots right of the speed slider were
-// mostly empty; the RUNNING chip went — locked controls, the ~ prefix and
-// the run highlight already say it.)
+// Position readout: ALWAYS the timer — the scrub position over the total
+// ("00:00/45:00" at idle, where the scrub sits at 0; "~" marks the run
+// ESTIMATE axis; the distance fallback shows a percentage). "live" used to
+// sit right-aligned in a slot sized for two timestamps (operator,
+// 2026-09-12: "why live and not always the timer?").
+const posText = computed(() => (running.value ? `~${posLabel.value}` : posLabel.value));
+// Both readout slots are sized PER PROGRAM, so they change only on load and
+// the timeline never moves while scrubbing. Time: "mm:ss/mm:ss" plus the
+// run "~" (5ch holds the distance axis's "100%"). Line: "L" + the digits of
+// the last line + " →" (the rapid marker), 5ch floor for "entry"/"end";
+// sub names ellipsize with the full text in the title.
 const posSlotCh = computed(() =>
   track.value?.timeBased ? fmtElapsed(Math.floor(cumMax.value)).length * 2 + 2 : 5);
+const lineSlotCh = computed(() => {
+  const maxLine = Math.max(track.value?.lineIndex.maxLine ?? 0, 1);
+  return Math.max(5, 1 + String(maxLine).length + 2);
+});
 
 /** ---------- collision results (stage 3) ---------- */
 // Loaded-tool note for the sweep (see the row-2 comment). Dims are the
@@ -834,12 +839,29 @@ function jumpTo(target: FindingTarget | null) {
 
 // Tool-change events on the timeline + the next-tool countdown (ahead of
 // the current position, NON-wrapping — a past change is not "next").
+// Canon M6 events from the wire PLUS the text's M6 / M600 / M601 lines: a
+// preview-skipped remap contributes no canon event ("T13 M600" had no mark
+// — operator-caught on perfmatrix). Union by line, the wire's tool wins.
+// The scan is per program text (cached), not per track.
+const textToolLines = computed(() => toolChangeLinesFromText(gcodeContent.value));
+// A tool-change line has no motion of its own: its timeline position is the
+// first point of the next line that has one.
+function cumAtOrAfterLine(t: ScrubTrack, line: number): number | undefined {
+  for (let l = line; l <= t.lineIndex.maxLine; l++) {
+    const c = lineCumOf(t.lineIndex, l);
+    if (c !== undefined) return c;
+  }
+  return undefined;
+}
 const toolTargets = computed(() => {
   const t = track.value;
-  if (!t) return [] as Array<{ cum: number; line: number; tool: number }>;
   const out: Array<{ cum: number; line: number; tool: number }> = [];
-  for (const [line, tool] of viewerGcode.value?.tool_change_lines ?? []) {
-    const cum = lineCumOf(t.lineIndex, line);
+  if (!t) return out;
+  const byLine = new Map<number, number>();
+  for (const [line, tool] of viewerGcode.value?.tool_change_lines ?? []) byLine.set(line, tool);
+  for (const [line, tool] of textToolLines.value) if (!byLine.has(line)) byLine.set(line, tool);
+  for (const [line, tool] of byLine) {
+    const cum = cumAtOrAfterLine(t, line);
     if (cum !== undefined) out.push({ cum, line, tool });
   }
   return out.sort((a, b) => a.cum - b.cum);
@@ -853,7 +875,7 @@ const nextToolLabel = computed(() => {
   const dist = track.value?.timeBased
     ? `in ${fmtElapsed(Math.floor(nt.cum - sPos.value))}`
     : `L${nt.line}`;
-  return `T${nt.tool} ${dist}`;
+  return `T${nt.tool || "?"} ${dist}`;   // 0 = no T word found (text-scanned line)
 });
 
 /** ---------- timeline marks + extents (2026-09-12) ---------- */
@@ -952,21 +974,22 @@ onUnmounted(() => {
                        :step="cumMax / 2000 || 1" v-model="sPos" :disabled="!simMode"
                        title="Scrub the program — poses the machine model, nothing moves"
                        @input="onScrubInput" />
-        <!-- Timeline overlays, non-interactive (row 2 navigates). All live in
-             the THUMB-TRAVEL span (input width − 16px thumb, inset 8px each
-             side) so they align with where the thumb can actually sit —
-             full-width percentages drift near the ends — except the swept
-             band, a FILL from the track's left edge to its right edge (at
-             100 % it meets the thumb's outer edge, like a native range fill;
-             operator: the thumb-travel span left it 8px short). Paint order:
-             swept band, limit extents (warn), clash extents (danger, on
-             top), then the ticks with their glyphs: × clash, ▲ soft limit,
-             ● tool change. -->
-        <div class="scrubBand swept" :style="{ width: `${sweptFrac * 100}%` }"></div>
+        <!-- Timeline overlays, non-interactive (row 2 navigates). A 16px
+             thumb travels width−16px, inset 8px each side. TICKS sit at the
+             thumb's CENTRE for their cum (full-width percentages drift up to
+             8px off the thumb toward the ends); BANDS span the thumb's
+             EDGES — from its left edge at the interval start to its right
+             edge at the end — so an extent that lasts to program end reaches
+             the track's right edge and one from the first line starts at the
+             left edge (operator: red and blue both stopped 8px short), with
+             each tick 8px inside its band's edge. Paint order: swept band,
+             limit extents (warn), clash extents (danger, on top), then the
+             ticks with their glyphs: × clash, ▲ soft limit, ● tool change. -->
+        <div class="scrubBand swept" :style="{ width: sweptFrac > 0 ? `calc((100% - 16px) * ${sweptFrac} + 16px)` : '0px' }"></div>
         <div v-for="(b, i) in limitBands" :key="'lb' + i" class="scrubBand limit"
-             :style="{ left: `calc(8px + (100% - 16px) * ${b[0] / 100})`, width: `calc((100% - 16px) * ${(b[1] - b[0]) / 100})` }"></div>
+             :style="{ left: `calc((100% - 16px) * ${b[0] / 100})`, width: `calc((100% - 16px) * ${(b[1] - b[0]) / 100} + 16px)` }"></div>
         <div v-for="(b, i) in clashBands" :key="'cb' + i" class="scrubBand clash"
-             :style="{ left: `calc(8px + (100% - 16px) * ${b[0] / 100})`, width: `calc((100% - 16px) * ${(b[1] - b[0]) / 100})` }"></div>
+             :style="{ left: `calc((100% - 16px) * ${b[0] / 100})`, width: `calc((100% - 16px) * ${(b[1] - b[0]) / 100} + 16px)` }"></div>
         <div v-for="(m, i) in marks" :key="m.kind + i" class="scrubTick" :class="[m.kind, { near: m.near }]"
              :style="{ left: `calc(8px + (100% - 16px) * ${m.pct / 100})` }">
           <span class="scrubGlyph">
@@ -976,13 +999,18 @@ onUnmounted(() => {
           </span>
         </div>
       </div>
-      <!-- Fixed slots (see the CSS): line / sub readout, then the time
-           readout sized per track. "off path" during a run lives in the line
-           slot, warn-tinted. The playback speed controls sit in row 2 (its
-           middle was empty; operator, 2026-09-12: the space right of the
-           timeline was mostly blank). -->
+      <MachineSlider gate="simSpeed" class="speedSlider" :min="-1" :max="2" :step="0.01"
+                     v-model="speedLog" :disabled="!simMode"
+                     :title="`Playback speed ×0.1–×100${track?.timeBased ? ' of real time' : ''}`" />
+      <MachineBtn type="scrub" class="speedVal" :disabled="!simMode"
+                  title="Reset playback speed to ×1" @click="speedLog = 0">
+        &times;{{ speedLabel }}
+      </MachineBtn>
+      <!-- Fixed slots sized per program (see lineSlotCh / posSlotCh): line /
+           sub readout, then the timer. "off path" during a run lives in the
+           line slot, warn-tinted. -->
       <span class="val-slot lineSlot val-status mono" :class="{ muted: !simMode && !running, warn: lineOffPath }"
-            :title="lineTitle">{{ lineText }}</span>
+            :style="{ '--slot-w': lineSlotCh + 'ch' }" :title="lineTitle">{{ lineText }}</span>
       <span class="val-slot posSlot val-status mono" :class="{ muted: !simMode && !running }"
             :style="{ '--slot-w': posSlotCh + 'ch' }">{{ posText }}</span>
     </div>
@@ -1061,17 +1089,6 @@ onUnmounted(() => {
         <span v-if="sweepCaveat" class="val-status warn" :title="sweepCaveat">*</span>
       </template>
 
-      <!-- Playback speed: continuous log-scale slider + reset (×1 = real time
-           on a time-based track). -->
-      <div class="sep-v"></div>
-      <MachineSlider gate="simSpeed" class="speedSlider" :min="-1" :max="2" :step="0.01"
-                     v-model="speedLog" :disabled="!simMode"
-                     :title="`Playback speed ×0.1–×100${track?.timeBased ? ' of real time' : ''}`" />
-      <MachineBtn type="scrub" class="speedVal" :disabled="!simMode"
-                  title="Reset playback speed to ×1" @click="speedLog = 0">
-        &times;{{ speedLabel }}
-      </MachineBtn>
-
       <template v-if="nextTool">
         <div class="sep-v"></div>
         <span class="val-status mono toolNext"
@@ -1113,21 +1130,21 @@ onUnmounted(() => {
 .sliderInput {
   width: 100%;
 }
-/* Timeline overlays — all in the THUMB-TRAVEL span (a 16px thumb travels
-   width−16px, inset 8px each side; un-inset percentages drift up to 8px off
-   the thumb toward the ends), all non-interactive. Semantic tokens only:
-   info = tool change, warn = soft limit, danger = clash. */
+/* Timeline overlays, all non-interactive. Ticks sit at the thumb's CENTRE
+   for their cum (a 16px thumb travels width−16px, inset 8px each side);
+   bands span the thumb's EDGES (inline left/width — see the template), so an
+   extent to program end reaches the track's end. Semantic tokens only:
+   info = tool change / swept, warn = soft limit, danger = clash. */
 .scrubBand {
   position: absolute;
-  left: 8px;
+  left: 0;
   top: 50%;
   height: 6px;                 /* the global input[type=range] track */
   transform: translateY(-50%);
   border-radius: var(--radius-sm);
-  min-width: 2px;
   pointer-events: none;
 }
-.scrubBand.swept { left: 0; background: color-mix(in oklab, var(--info) 40%, transparent); }
+.scrubBand.swept { background: color-mix(in oklab, var(--info) 40%, transparent); }
 .scrubBand.limit { background: color-mix(in oklab, var(--warn) 45%, transparent); }
 .scrubBand.clash { background: color-mix(in oklab, var(--danger) 55%, transparent); }
 /* One tick for every mark kind (full track height); the glyph under it is
@@ -1166,15 +1183,12 @@ onUnmounted(() => {
   white-space: nowrap;
   color: var(--info);
 }
-/* Row-1 fixed slots (--slot-w is the global .val-slot width var). Every
-   content-sized sibling of the timeline gets a fixed slot, so the slider —
-   the one flex:1 item — keeps its edges while text changes. The line slot
-   fits "L12345 →"; sub names ellipsize (full text in the title). The time
-   slot's --slot-w is bound per track (posSlotCh). */
-.lineSlot { --slot-w: 10ch; }
-/* FIXED, not min-width (2026-09-12): a floor let "L1234 (sub_name) →" grow
-   the slot and the ellipsis never engaged — every extra character came out
-   of the timeline. */
+/* Row-1 fixed slots (--slot-w is the global .val-slot width var, bound
+   inline PER PROGRAM — lineSlotCh / posSlotCh). Every content-sized sibling
+   of the timeline gets a fixed slot, so the slider — the one flex:1 item —
+   keeps its edges while text changes. FIXED, not min-width (2026-09-12): a
+   floor let "L1234 (sub_name) →" grow the slot and the ellipsis never
+   engaged — every extra character came out of the timeline. */
 .lineSlot, .posSlot {
   flex: 0 0 var(--slot-w);
   white-space: nowrap;

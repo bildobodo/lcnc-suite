@@ -19,7 +19,29 @@ export function mergeEntryResult(entry: CollisionResult, base: CollisionResult, 
     intervals: h.intervals?.map(iv => [iv[0] + shift, iv[1] + shift] as [number, number]),
     ...(h.spanCumEnd !== undefined ? { spanCumEnd: h.spanCumEnd + shift } : {}),
   }));
-  const hits = [...entry.hits, ...shifted].sort((x, y) => x.cum - y.cum);
+  // ONE contact seen by both sweeps (operator-caught 2026-09-12 as "two
+  // clashes"): an entry onset still in contact at the entry's end and a base
+  // onset for the same pair from the program's first point (the base seeds
+  // a pair clear at rest but touching at the first pose) are the same
+  // contact. The entry record stays the onset and takes the base's span; the
+  // base's first-line record becomes its continuation (line 0 = the entry
+  // move), so the count reads one clash while every line keeps its record
+  // for the tint and the code-panel marks.
+  const CONTACT = 1e-3;
+  const tol = 1e-3 * Math.max(1, shift);
+  const entryHits: CollisionHit[] = entry.hits.map(h => ({ ...h }));
+  for (const e of entryHits) {
+    if (e.continuation !== undefined || e.dist > CONTACT || e.cumEnd < shift - tol) continue;
+    const bi = shifted.findIndex(b => b.continuation === undefined && b.dist <= CONTACT
+      && b.a === e.a && b.b === e.b && b.cum - shift <= tol);
+    if (bi < 0) continue;
+    const b = shifted[bi]!;
+    const end = b.spanCumEnd ?? b.cumEnd;
+    if (end > e.cumEnd) e.spanCumEnd = end;
+    e.spanEndLine = b.spanEndLine ?? b.line;
+    shifted[bi] = { ...b, continuation: e.line };
+  }
+  const hits = [...entryHits, ...shifted].sort((x, y) => x.cum - y.cum);
   const seen = new Set<string>();
   const staticContacts: CollisionResult["staticContacts"] = [];
   for (const c of [...entry.staticContacts, ...base.staticContacts]) {
