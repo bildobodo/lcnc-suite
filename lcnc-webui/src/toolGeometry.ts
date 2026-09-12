@@ -19,6 +19,12 @@ export interface ProfileSegment {
 
 export interface ToolMeta {
   type?: string | null;
+  source_format?: string | null;
+  source_z_min?: number | null;
+  native_profile?: [number, number][] | null;
+  native_mesh?: { vertices: [number, number, number][]; triangles: [number, number, number][] } | null;
+  geometry_note?: string | null;
+  geometry_tolerance?: number | null;
   fusion_type?: string | null;
   tapered_type?: string | null;
   thread_pitch?: number | null;
@@ -66,6 +72,9 @@ export interface ToolMeta {
 export function buildToolProfile(
   diam: number, len: number, meta: ToolMeta | null, unitsPerMm = 1
 ): { pts: THREE.Vector2[], fluteY: number } {
+  if (meta?.native_profile?.length) {
+    return { pts: meta.native_profile.map(([r, z]) => new THREE.Vector2(r, z)), fluteY: 0 };
+  }
   const eps = 0.01 * unitsPerMm;
   // Do not inflate small, valid cutters to an arbitrary minimum diameter.
   const r = Math.max(0, diam * 0.5);
@@ -116,6 +125,7 @@ export function buildToolProfile(
   };
 
   switch (type) {
+    case "reamer":
     case "endmill":
     case "blockdrill":
     case "tap": {
@@ -521,6 +531,36 @@ export function buildToolParts(diam: number, len: number, meta: ToolMeta | null,
     return { cutter: pts, shaft: [] };
   }
   return splitProfileAt(pts, fluteY, unitsPerMm);
+}
+
+/** Shared evaluated geometry for both viewers. Imported native bodies are kept
+ * whole: FreeCAD does not classify their cutting faces. No length/diameter edit
+ * stretches a source mesh or changes its physical tip origin. */
+export function buildToolGeometries(diam: number, len: number, meta: ToolMeta | null, unitsPerMm = 1)
+  : { cutter: THREE.BufferGeometry | null, shaft: THREE.BufferGeometry | null } {
+  if (meta?.native_mesh) {
+    const mesh = meta.native_mesh;
+    const indexed = new THREE.BufferGeometry();
+    indexed.setAttribute("position", new THREE.Float32BufferAttribute(mesh.vertices.flat(), 3));
+    indexed.setIndex(mesh.triangles.flat());
+    // Flat normals preserve edges of arbitrary custom shapes, including holes.
+    const geometry = indexed.toNonIndexed();
+    indexed.dispose();
+    geometry.computeVertexNormals();
+    return { cutter: null, shaft: geometry };
+  }
+  if (meta?.native_profile?.length) {
+    const { pts } = buildToolProfile(diam, len, meta, unitsPerMm);
+    // Keep circumferential tessellation within the same 0.01 mm target as the
+    // exporter, with a bounded segment count for large saw blades.
+    const radius = Math.max(...meta.native_profile.map(p => p[0]));
+    const step = 2 * Math.acos(Math.max(-1, 1 - .01 * unitsPerMm / radius));
+    const segments = Math.min(512, Math.max(48, Math.ceil(2 * Math.PI / step)));
+    return { cutter: null, shaft: buildToolGeometry(pts, segments) };
+  }
+  const { cutter, shaft } = buildToolParts(diam, len, meta, unitsPerMm);
+  return { cutter: cutter.length >= 3 ? buildToolGeometry(cutter) : null,
+    shaft: shaft.length >= 3 ? buildToolGeometry(shaft) : null };
 }
 
 /** Split a profile at the given Y coordinate into cutter (below) and shaft (above) sub-profiles */

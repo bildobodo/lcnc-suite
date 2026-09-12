@@ -1,0 +1,116 @@
+{
+  "ballend": {
+    "CuttingEdgeHeight": "40.0 mm",
+    "Diameter": "5.0 mm",
+    "Flutes": "2",
+    "Length": "50.0 mm",
+    "ShankDiameter": "3.0 mm"
+  },
+  "bullnose": {
+    "CornerRadius": "1.5 mm",
+    "CuttingEdgeHeight": "40.0 mm",
+    "Diameter": "5.0 mm",
+    "Flutes": "4",
+    "Length": "50.0 mm",
+    "ShankDiameter": "3.0 mm"
+  },
+  "chamfer": {
+    "CuttingEdgeAngle": "60.0 deg",
+    "CuttingEdgeHeight": "6.35 mm",
+    "Diameter": "12.0 mm",
+    "Flutes": "2",
+    "Length": "30.0 mm",
+    "ShankDiameter": "6.35 mm",
+    "TipDiameter": "5.0 mm"
+  },
+  "dovetail": {
+    "CuttingEdgeAngle": "60.0 deg",
+    "CuttingEdgeHeight": "9.0 mm",
+    "Diameter": "20.0 mm",
+    "Flutes": "8",
+    "Length": "55.0 mm",
+    "NeckDiameter": "8.0 mm",
+    "NeckHeight": "5.0 mm",
+    "ShankDiameter": "8.0 mm",
+    "TipDiameter": "5.0 mm"
+  },
+  "drill": {
+    "Diameter": "3.0 mm",
+    "Flutes": "2",
+    "Length": "50.0 mm",
+    "TipAngle": "119.0 deg"
+  },
+  "endmill": {
+    "CuttingEdgeHeight": "30.0 mm",
+    "Diameter": "5.0 mm",
+    "Flutes": "4",
+    "Length": "50.0 mm",
+    "ShankDiameter": "3.0 mm"
+  },
+  "probe": {
+    "Diameter": "6.0 mm",
+    "Length": "50.0 mm",
+    "ShaftDiameter": "4.0 mm"
+  },
+  "radius": {
+    "CuttingEdgeHeight": "14.0 mm",
+    "CuttingRadius": "10.0 mm",
+    "Diameter": "15.0 mm",
+    "Flutes": "2",
+    "Length": "60.0 mm",
+    "ShankDiameter": "8.0 mm",
+    "TipDiameter": "5.0 mm"
+  },
+  "reamer": {
+    "CuttingEdgeHeight": "30.0 mm",
+    "Diameter": "5.0 mm",
+    "Length": "50.0 mm",
+    "ShankDiameter": "3.0 mm"
+  },
+  "slittingsaw": {
+    "BladeThickness": "3.0 mm",
+    "CapDiameter": "8.0 mm",
+    "CapHeight": "3.0 mm",
+    "Diameter": "100.0 mm",
+    "Flutes": "20",
+    "Length": "50.0 mm",
+    "ShankDiameter": "15.0 mm"
+  },
+  "tap": {
+    "CuttingEdgeLength": "25.0 mm",
+    "Diameter": "8.0 mm",
+    "Flutes": "4",
+    "Length": "60.0 mm",
+    "Pitch": "0.0 mm",
+    "ShankDiameter": "6.0 mm",
+    "TipAngle": "90.0 deg"
+  },
+  "taperedballnose": {
+    "CuttingEdgeHeight": "19.049999999999997 mm",
+    "Diameter": "1.5875 mm",
+    "Flutes": "2",
+    "Length": "63.5 mm",
+    "ShankDiameter": "6.35 mm",
+    "TaperAngle": "11.0 deg",
+    "TaperDiameter": "6.35 mm"
+  },
+  "thread-mill": {
+    "Crest": "0.1 mm",
+    "Diameter": "5.0 mm",
+    "Flutes": "4",
+    "Length": "50.0 mm",
+    "NeckDiameter": "3.0 mm",
+    "NeckLength": "20.0 mm",
+    "ShankDiameter": "5.0 mm",
+    "cuttingAngle": "60.0 deg"
+  },
+  "v-bit": {
+    "CuttingEdgeAngle": "90.0 deg",
+    "CuttingEdgeHeight": "1.0 mm",
+    "Diameter": "10.0 mm",
+    "Flutes": "2",
+    "Length": "20.0 mm",
+    "ShankDiameter": "5.0 mm",
+    "TipDiameter": "1.0 mm"
+  }
+}

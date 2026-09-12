@@ -327,6 +327,7 @@ const importPreview = ref<ImportTool[] | null>(null);
 const importPreviewByNumber = computed(() => new Map(importPreview.value?.map(t => [t.T, t])));
 const importSkipped = ref<ImportTool[]>([]);
 const importExistingCount = ref(0);
+const importSource = ref("Fusion 360");
 const importBusy = ref(false);
 const importResult = ref<{ added?: number; updated?: number; skipped?: number } | null>(null);
 const importFile = ref<File | null>(null);
@@ -339,7 +340,7 @@ interface RefreshRow {
   current_diameter: number | null;
   Z: number | null;
   reason: string | null;
-  match: "guid" | "number";
+  match: "guid" | "identity" | "number";
 }
 const importMode = ref("metadata");
 const importRefresh = ref<{ rows: RefreshRow[]; updated: number[]; skipped: number[]; revision: string } | null>(null);
@@ -378,6 +379,7 @@ async function previewImportFile(file: File) {
     }
     const data = await resp.json();
     importPreview.value = data.tools;
+    importSource.value = data.tools.some((t: ToolMeta) => t.source_format === "freecad") ? "FreeCAD" : "Fusion 360";
     importSkipped.value = data.skipped_duplicates ?? [];
     importExistingCount.value = data.existing_count ?? 0;
     importRefresh.value = data.metadata_refresh ?? null;
@@ -484,7 +486,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
 <template>
   <div :class="['container', 'stack-controls', { compact: hideHeader }]">
     <!-- Hidden file input for import (works via triggerImport / header button) -->
-    <input ref="importInputRef" type="file" accept=".json" @change="onImportFileSelect" hidden />
+    <input ref="importInputRef" type="file" accept=".json,.zip,.fctb,.fctl" @change="onImportFileSelect" hidden />
 
     <!-- Header -->
     <div v-if="!hideHeader" class="header">
@@ -513,7 +515,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
         Updated metadata for {{ importResult.updated }} tools. Measured offsets and table diameters retained.
       </template>
       <template v-else>
-        Imported {{ importResult.added }} tools. Z offsets initialized from Fusion lengths.
+        Imported {{ importResult.added }} tools. {{ importSource === "FreeCAD" ? "Z offsets initialized to zero; measure tools before use." : "Z offsets initialized from Fusion lengths." }}
       </template>
       <template v-if="importResult.skipped"> {{ importResult.skipped }} skipped.</template>
       <MachineBtn type="close" @click="importResult = null">&times;</MachineBtn>
@@ -628,7 +630,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
       <div v-if="importPreview" class="dialogOverlay" @click.self="cancelImport">
         <div class="dialog md importDialog">
           <div class="dialogHeader">
-            <span class="dialogTitle">Import Tool Library</span>
+            <span class="dialogTitle">Import {{ importSource }} Tool Library</span>
             <MachineBtn type="close" @click="cancelImport">&times;</MachineBtn>
           </div>
           <div class="dialogContent">
@@ -650,24 +652,24 @@ defineExpose({ openAdd, fetchTools, triggerImport });
               <template v-if="importExistingCount">
                 Will replace {{ importExistingCount }} existing tools.
               </template>
-              Z offsets will use Fusion gauge lengths (measure to replace with actual values).
+              {{ importSource === "FreeCAD" ? "Z offsets start at zero. Measure tools before use; library dimensions do not describe the installed length." : "Z offsets will use Fusion gauge lengths (measure to replace with actual values)." }}
             </div>
             <div v-if="importMode === 'metadata' && importRefreshError" class="importWarn">{{ importRefreshError }}</div>
             <div v-if="importError" class="importWarn">{{ importError }}</div>
             <div v-if="importSkipped.length" class="importWarn">
               {{ importSkipped.length }} tools skipped — duplicate tool numbers
               (T{{ [...new Set(importSkipped.map(s => s.T))].join(', T') }}).
-              Fix numbering in Fusion 360 and re-export.
+              Fix numbering in {{ importSource }} and re-export.
             </div>
             <div v-if="importMode === 'metadata'" class="importList scroll-thin fade-scroll">
               <div v-for="t in importRefresh?.rows ?? []" :key="t.T" class="importRow">
                 <span class="importT mono">T{{ t.T }}</span>
                 <span class="importDesc">
-                  {{ t.current_description || '(no current description)' }} → {{ t.description || '(no Fusion description)' }}
+                  {{ t.current_description || '(no current description)' }} → {{ t.description || '(no imported description)' }}
                   <br />
                   <template v-if="t.reason">Skipped: {{ t.reason }}.</template>
                   <template v-else>Update metadata; keep Z {{ fmtCell(t.Z ?? 0, 3) }}.</template>
-                  Ø{{ t.current_diameter == null ? '-' : fmtCell(t.current_diameter, 3) }} → Fusion Ø{{ fmtCell(t.D, 3) }}
+                  Ø{{ t.current_diameter == null ? '-' : fmtCell(t.current_diameter, 3) }} → {{ importSource }} Ø{{ fmtCell(t.D, 3) }}
                   <span v-if="toolPreviewNotice(importPreviewByNumber.get(t.T), unitsPerMm)" class="noteWarn">
                     <br />{{ toolPreviewNotice(importPreviewByNumber.get(t.T), unitsPerMm) }}
                   </span>
@@ -735,7 +737,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
             <td class="colType">{{ toolTypeLabel(tool.type) }}</td>
             <td class="colSm mono">{{ tool.flutes ?? "-" }}</td>
             <td class="colDesc" :title="toolPreviewNotice(tool, unitsPerMm) || tool.description">{{ tool.description || tool.remark || "-" }}
-              <span v-if="toolPreviewNotice(tool, unitsPerMm)" class="noteWarn"><br />Approximate preview</span>
+              <span v-if="toolPreviewNotice(tool, unitsPerMm)" class="noteWarn"><br />{{ tool.source_format === "freecad" ? "Imported geometry" : "Approximate preview" }}</span>
             </td>
             <td class="colAction colEdit">
               <MachineBtn type="manage" @click.stop="openEdit(tool)" title="Edit tool"><Pencil :size="14" /></MachineBtn>
@@ -750,7 +752,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
             </td>
           </tr>
           <tr v-if="!loading && filteredTools.length === 0">
-            <td colspan="9" class="emptyState">No tools loaded. Add tools manually or import a Fusion 360 library.</td>
+            <td colspan="9" class="emptyState">No tools loaded. Add tools manually or import a Fusion 360 or FreeCAD library.</td>
           </tr>
         </tbody>
       </table>
@@ -774,7 +776,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
           :width="100"
           :height="160"
         />
-        <span v-if="toolPreviewNotice(hoverTool, unitsPerMm)" class="noteWarn">Approximate preview</span>
+        <span v-if="toolPreviewNotice(hoverTool, unitsPerMm)" class="noteWarn">{{ hoverTool.source_format === "freecad" ? "Imported geometry" : "Approximate preview" }}</span>
       </div>
     </Teleport>
   </div>

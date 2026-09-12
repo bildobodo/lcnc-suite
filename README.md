@@ -4,6 +4,8 @@
 
 A modern, UI-agnostic WebSocket gateway for LinuxCNC with a reference Vue 3 web interface.
 
+> **FreeCAD CAM tools:** import standard libraries or native custom shapes with the [FreeCAD import guide](docs/freecad-tool-import.md).
+
 ## Table of Contents
 
 - [Overview](#overview)

@@ -1,4 +1,4 @@
-"""Pure Fusion metadata refresh planning; never writes a LinuxCNC tool table."""
+"""Pure CAM metadata refresh planning; never writes a LinuxCNC tool table."""
 import hashlib
 import json
 import math
@@ -21,7 +21,7 @@ def plan_metadata_refresh(parsed: list, duplicates: list, table: list, library: 
     GUIDs protect already-linked tools from a reused number. Legacy entries have
     no GUID, so the preview exposes both descriptions for an explicit number-based
     match. A different compensated diameter or local STL requires a separate edit.
-    Missing imported fields clear stale Fusion metadata; unrelated local keys and
+    Missing imported fields clear stale imported metadata; unrelated local keys and
     tools are retained. Inputs are never mutated.
     """
     if not isinstance(library, dict) or any(not isinstance(v, dict) for v in library.values()):
@@ -38,11 +38,17 @@ def plan_metadata_refresh(parsed: list, duplicates: list, table: list, library: 
         old = library.get(str(number), {})
         reason = None
         if source_counts[number] != 1:
-            reason = "Duplicate number in Fusion library"
+            reason = "Duplicate number in imported library"
         elif current is None:
             reason = "Tool number is not in the current table"
         elif counts[number] != 1:
             reason = "Duplicate number in current table"
+        elif old.get("source_format") and old["source_format"] != tool.get("source_format"):
+            reason = "Tool source differs"
+        elif tool.get("source_format") and (old.get("fusion_guid") or old.get("fusion_type")):
+            reason = "Tool source differs"
+        elif old.get("source_id") and old["source_id"] != tool.get("source_id"):
+            reason = "Imported tool identity differs"
         elif old.get("fusion_guid") and old["fusion_guid"] != tool.get("fusion_guid"):
             reason = "Fusion tool identity differs"
         elif old.get("stl_file"):
@@ -55,7 +61,7 @@ def plan_metadata_refresh(parsed: list, duplicates: list, table: list, library: 
                      "current_description": old.get("description") or (current or {}).get("remark", ""),
                      "D": tool["D"], "current_diameter": (current or {}).get("D"),
                      "Z": (current or {}).get("Z"), "reason": reason,
-                     "match": "guid" if old.get("fusion_guid") else "number"})
+                     "match": "identity" if old.get("source_id") else "guid" if old.get("fusion_guid") else "number"})
         if reason is not None:
             continue
         meta = dict(old)

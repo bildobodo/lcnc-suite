@@ -10,7 +10,7 @@ lifecycle behind them:
   the gen-0/1 GC stalls), gzip-compressed once, served via GET /preview.
 - **Surface points / compensation grid**: file readers + msgpack-encoded
   cached bytes served via GET /surface_points and GET /comp_grid.
-- **Fusion tool-library decode**: size-routed offload (thread for small
+- **CAM tool-library decode**: size-routed offload (thread for small
   blobs, subprocess for large — the harness proved in-thread decode of a
   near-cap library trips the HAL watchdog).
 
@@ -34,12 +34,12 @@ from typing import Any, Callable, Optional
 import msgspec as _msgspec
 
 import lcnc_trace as _trace
-from fusion_import import decode_fusion_blob
+from tool_import import decode_tool_blob
 
 _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 GCODE_WORKER_PATH = os.path.join(_BASE_DIR, "gcode_parse_worker.py")
-FUSION_WORKER_PATH = os.path.join(_BASE_DIR, "fusion_import.py")
-FUSION_INLINE_MAX = 1 << 20   # <=1 MiB decodes in ~15 ms — a thread is fine
+TOOL_IMPORT_WORKER_PATH = os.path.join(_BASE_DIR, "tool_import.py")
+TOOL_IMPORT_INLINE_MAX = 1 << 20   # <=1 MiB decodes in ~15 ms — a thread is fine
 
 
 async def terminate_parse_proc(proc) -> None:
@@ -95,8 +95,8 @@ class BulkPipeline:
         self.last_comp_hal_ver: Optional[int] = None  # last seen compensation.grid-version HAL value
         self.caches_ini: Optional[str] = None         # INI the caches were populated for (issue #29)
 
-        # ---- Fusion import worker ----
-        self.fusion_import_proc: Optional[subprocess.Popen] = None
+        # ---- CAM import worker ----
+        self.tool_import_proc: Optional[subprocess.Popen] = None
 
     # ---- preview ----
 
@@ -322,10 +322,10 @@ class BulkPipeline:
                             exc=type(e).__name__, msg=str(e))
                 return None
 
-    # ---- fusion import offload ----
+    # ---- tool import offload ----
 
-    def _run_fusion_worker_blocking(self, raw: bytes, machine_unit: str, timeout: float):
-        """Run the fusion_import worker to completion in a SUBPROCESS (own GIL).
+    def _run_tool_import_worker_blocking(self, raw: bytes, machine_unit: str, timeout: float):
+        """Run the tool_import worker to completion in a SUBPROCESS (own GIL).
 
         The perf-matrix harness proved the in-thread path trips the HAL watchdog at
         the size cap: decode+transform of a near-16 MB library is ~243 ms of
@@ -335,9 +335,9 @@ class BulkPipeline:
         for lifespan termination. Raises ValueError for an invalid library (HTTP
         400 at the route), RuntimeError for worker failures (HTTP 500)."""
         proc = subprocess.Popen(
-            [sys.executable, FUSION_WORKER_PATH],
+            [sys.executable, TOOL_IMPORT_WORKER_PATH],
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        self.fusion_import_proc = proc
+        self.tool_import_proc = proc
         try:
             ctx = _msgspec.msgpack.encode({"raw": raw, "unit": machine_unit})
             try:
@@ -345,21 +345,22 @@ class BulkPipeline:
             except subprocess.TimeoutExpired:
                 proc.kill()
                 proc.communicate()
-                raise RuntimeError(f"fusion import worker timeout after {timeout:.0f}s")
+                raise RuntimeError(f"tool import worker timeout after {timeout:.0f}s")
             err_tail = (stderr or b"").decode(errors="replace").strip()[:500]
             if proc.returncode == 4:
                 raise ValueError(err_tail or "Invalid tool library")
             if proc.returncode != 0:
-                raise RuntimeError(f"fusion import worker rc={proc.returncode}: {err_tail}")
+                raise RuntimeError(f"tool import worker rc={proc.returncode}: {err_tail}")
             out = _msgspec.msgpack.decode(stdout)
             return out["parsed"], out["skipped"]
         finally:
-            self.fusion_import_proc = None
+            self.tool_import_proc = None
 
-    async def decode_fusion_offloaded(self, raw: bytes, machine_unit: str):
+    async def decode_tool_offloaded(self, raw: bytes, machine_unit: str):
         """Size-routed offload: small blobs in a thread (cheap, common case); large
         blobs in the subprocess worker (the only true GIL isolation)."""
-        if len(raw) <= FUSION_INLINE_MAX:
-            return await asyncio.to_thread(decode_fusion_blob, raw, machine_unit)
-        _trace.emit("fusion.worker_offload", bytes=len(raw))
-        return await asyncio.to_thread(self._run_fusion_worker_blocking, raw, machine_unit, 60.0)
+        # Small compressed archives can expand substantially; always isolate ZIP.
+        if len(raw) <= TOOL_IMPORT_INLINE_MAX and not raw.startswith(b'PK'):
+            return await asyncio.to_thread(decode_tool_blob, raw, machine_unit)
+        _trace.emit("tool_import.worker_offload", bytes=len(raw))
+        return await asyncio.to_thread(self._run_tool_import_worker_blocking, raw, machine_unit, 60.0)

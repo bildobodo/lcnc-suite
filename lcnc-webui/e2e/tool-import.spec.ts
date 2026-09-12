@@ -14,8 +14,8 @@ async function preview(page: Page, rows = [row], revision = "reviewed-revision")
   await page.goto(MOCK);
   await expect(page.locator('fieldset[data-gate="armed"]').first()).not.toBeDisabled();
   await page.getByRole("button", { name: "Tools", exact: true }).click();
-  await page.locator('input[type="file"][accept=".json"]').setInputFiles(upload);
-  await expect(page.getByText("Import Tool Library", { exact: true })).toBeVisible();
+  await page.locator('input[type="file"][accept*=".fctb"]').setInputFiles(upload);
+  await expect(page.getByText("Import Fusion 360 Tool Library", { exact: true })).toBeVisible();
 }
 
 test("existing tools default to reviewed metadata refresh, not full replacement", async ({ page }) => {

@@ -71,10 +71,10 @@ test("holder is opt-in in the library preview and never auto-attached to the liv
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
 
   const status = { tool_number: 300, tool_diameter: 10, tool_length: 42.3,
-    tool_offset: [0, 0, -42.3], tool_meta: { ...tool, holder_segments: [] } };
-  await ctl({ op: "status_delta", data: status });
+    joint_pos: [0, 0, 0], tool_offset: [0, 0, -42.3] };
+  await ctl({ op: "status_delta", data: status, tool_meta: { ...tool, holder_segments: [] } });
   const bareCount = await geometryCount(page);
-  await ctl({ op: "status_delta", data: { ...status, tool_meta: tool } });
+  await ctl({ op: "status_delta", data: status, tool_meta: tool });
   expect(await geometryCount(page)).toBe(bareCount);
   await expect(page.locator("tbody tr").filter({ hasText: "Holder reference" })).toContainText("-42.300000");
 });

@@ -182,7 +182,10 @@ ctlWss.on("connection", (ws) => {
     try { m = JSON.parse(String(buf)); } catch { ws.send(JSON.stringify({ ok: false, error: "bad json" })); return; }
     if (m.op === "status_delta") {
       Object.assign(state.data, m.data);
-      broadcast({ type: "status_delta", armed: true, data: m.data });
+      // Geometry is an envelope field in the real gateway, not a data member.
+      if ("tool_meta" in m) state.tool_meta = m.tool_meta;
+      broadcast({ type: "status_delta", armed: true, data: m.data,
+        ...("tool_meta" in m ? { tool_meta: m.tool_meta } : {}) });
     } else if (m.op === "quiet") {
       quiet = m.on === true;
     } else if (m.op === "reset") {

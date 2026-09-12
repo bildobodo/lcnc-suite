@@ -28,6 +28,8 @@ _TOOL_META_FIELDS = (
     "number_of_teeth", "thread_profile_angle", "thread_tip_type",
     "thread_tip_width", "thread_tip_radius",
     "tip_offset", "tip_length", "fusion_guid",
+    "source_format", "source_id", "source_metadata", "source_z_min",
+    "native_profile", "native_mesh", "geometry_note", "geometry_tolerance",
 )
 
 
@@ -43,7 +45,8 @@ def tool_visual_metadata(meta: dict) -> dict:
         "tapered_type", "thread_pitch", "thread_pitch_min", "thread_pitch_max",
         "number_of_teeth", "thread_profile_angle", "thread_tip_type",
         "thread_tip_width", "thread_tip_radius",
-        "tip_offset", "tip_length",
+        "tip_offset", "tip_length", "source_format", "source_z_min",
+        "native_profile", "native_mesh", "geometry_note", "geometry_tolerance",
     ) if k in meta}
 
 

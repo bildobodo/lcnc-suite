@@ -3,6 +3,12 @@ import { toolTypeLabel } from "./toolTypes";
 
 /** Plain metadata only: showing a notice must not eagerly load Three.js. */
 export function toolPreviewNotice(meta: ToolMeta | null | undefined, unitsPerMm = 1): string | null {
+  if (meta?.source_format === "freecad") {
+    if (!meta.native_profile?.length && !meta.native_mesh) return "FreeCAD geometry missing. Import the library again.";
+    const origin = Math.abs(meta.source_z_min ?? 0) > .0001 * unitsPerMm
+      ? " Native CAM origin differs from the physical bottom; verify the probing reference for this tool." : "";
+    return `${meta.geometry_note || "Evaluated FreeCAD shape."} Geometry stays fixed; edit it in FreeCAD and re-import. Cutting faces are not classified.${origin}`;
+  }
   if (!meta?.type) return null;
   const type = meta.type;
   if (["circlebarrel", "circlelens", "circleoval", "circletaper", "probe"].includes(type)) {
