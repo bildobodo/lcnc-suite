@@ -217,9 +217,30 @@ CW/CCW arcs, full circles, off-axis closure, winding and bounded tessellation.
 The existing 49 import fixtures now test the mesh-part inputs used by both
 viewers, including persistence and mm/in conversion. Backend tests preserve
 form arc endpoints/centres/flags and tip offset while keeping measured Z intact.
-These are JSON-geometry and analytic checks, **not** a native Fusion simulation
-comparison. A further sketch-based Form Mill experiment has not yet produced a
-new tool reference; no additional native form fidelity claim is made.
+Those tests establish JSON geometry and analytic properties. A separate native
+simulation reference now covers Autodesk's existing example form mill. See
+[`test-fixtures/fusion-form-simulation`](../test-fixtures/fusion-form-simulation/README.md)
+for original front/isometric screenshots, the canonical tool, dialog state and a
+reproducible silhouette extraction script. The earlier sketch-based Form Mill
+dialog was cancelled and its diagnostic handler removed; it produced no new tool.
+
+The native simulation shows the three cutting rings, undercuts, rounded necks
+and upper cylinder from the imported profile. The front image provides 1,288
+left/right edge samples, calibrated using a separate 20 mm reference stock and
+the simulation's Z readout, without fitting dimensions or alignment to LCNC's
+tool. Two new tests compare the native and LCNC contours bidirectionally in mm
+and inch. The native-to-LCNC maximum is about 0.340 mm (95th percentile 0.177 mm);
+the reverse maximum is 0.407 mm, within the 0.5 mm raster-reference acceptance
+threshold. Pixel calibration,
+antialiasing and Fusion's display tessellation limit this evidence; the threshold
+is not a machining tolerance. This sample's `DC` is 40 mm but its profile defines
+cutting rings of diameter 120.8136 mm. Their native simulation silhouette supports
+using the explicit profile without rescaling it to DC.
+
+Numeric coverage is z=1..160 mm of this one 179.598 mm sample, with `tip-offset=0`
+and no holder. The front image clips the upper end; the isometric capture adds
+visual context only. Full-height/cap agreement, nonzero compensation offsets,
+other form profiles and complete 3D mesh fidelity remain unverified.
 
 ## Remaining scope
 
