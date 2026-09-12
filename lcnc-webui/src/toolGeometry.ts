@@ -30,13 +30,17 @@ export interface ToolMeta {
 }
 
 // ---- Parametric tool profile generation ----
+// Geometry inputs and outputs use machine units. Legacy visual thresholds and
+// fallback sizes below are expressed in mm, independently of that machine unit.
 // Builds 2D outline (radius vs height) for THREE.LatheGeometry.
 // Tip at Y=0, extends upward. LatheGeometry revolves around Y axis.
 // Returns profile points and fluteY (Y coordinate where cutting flutes end).
 export function buildToolProfile(
-  diam: number, len: number, meta: ToolMeta | null
+  diam: number, len: number, meta: ToolMeta | null, unitsPerMm = 1
 ): { pts: THREE.Vector2[], fluteY: number } {
-  const r = Math.max(0.2, diam * 0.5);
+  const eps = 0.01 * unitsPerMm;
+  // Do not inflate small, valid cutters to an arbitrary minimum diameter.
+  const r = Math.max(0, diam * 0.5);
   const type = meta?.type ?? "other";
   const fluteLen = meta?.flute_length ?? len * 0.6;
   const bodyLen = meta?.body_length ?? fluteLen;
@@ -54,13 +58,13 @@ export function buildToolProfile(
     case "endmill":
     case "threadmill": {
       pts.push(V(0, 0), V(r, 0), V(r, fluteLen));
-      if (Math.abs(shaftR - r) > 0.01) pts.push(V(shaftR, fluteLen));
+      if (Math.abs(shaftR - r) > eps) pts.push(V(shaftR, fluteLen));
       pts.push(V(shaftR, oal), V(0, oal));
       break;
     }
     case "slotmill": {
       // Slot mills may have corner radius (RE) — render like bullnose when present
-      if (cornerR > 0.01) {
+      if (cornerR > eps) {
         const cr = Math.min(cornerR, r);
         const arcN = 8;
         pts.push(V(0, 0), V(r - cr, 0));
@@ -72,7 +76,7 @@ export function buildToolProfile(
       } else {
         pts.push(V(0, 0), V(r, 0), V(r, fluteLen));
       }
-      if (Math.abs(shaftR - r) > 0.01) pts.push(V(shaftR, fluteLen));
+      if (Math.abs(shaftR - r) > eps) pts.push(V(shaftR, fluteLen));
       pts.push(V(shaftR, oal), V(0, oal));
       break;
     }
@@ -84,7 +88,7 @@ export function buildToolProfile(
         pts.push(V(r * Math.cos(a), r - r * Math.sin(a)));
       }
       pts.push(V(r, fluteLen));
-      if (Math.abs(shaftR - r) > 0.01) pts.push(V(shaftR, fluteLen));
+      if (Math.abs(shaftR - r) > eps) pts.push(V(shaftR, fluteLen));
       pts.push(V(shaftR, oal), V(0, oal));
       break;
     }
@@ -98,7 +102,7 @@ export function buildToolProfile(
         pts.push(V(r - cr + cr * Math.sin(a), cr - cr * Math.cos(a)));
       }
       pts.push(V(r, cylTop));
-      if (Math.abs(shaftR - r) > 0.01) pts.push(V(shaftR, cylTop));
+      if (Math.abs(shaftR - r) > eps) pts.push(V(shaftR, cylTop));
       pts.push(V(shaftR, oal), V(0, oal));
       break;
     }
@@ -112,7 +116,7 @@ export function buildToolProfile(
         const a = (Math.PI / 2) * (i / arcN);
         pts.push(V(r + cr * (1 - Math.cos(a)), cr * Math.sin(a)));
       }
-      if (Math.abs(shaftR - arcTop) > 0.01) pts.push(V(shaftR, cr));
+      if (Math.abs(shaftR - arcTop) > eps) pts.push(V(shaftR, cr));
       pts.push(V(shaftR, cylTop));
       pts.push(V(shaftR, oal), V(0, oal));
       break;
@@ -122,9 +126,9 @@ export function buildToolProfile(
       // Support flat tip (spot drills have tip_diameter > 0)
       const tipH = (r - tipR) / Math.tan(halfA || 1);
       pts.push(V(0, 0));
-      if (tipR > 0.01) pts.push(V(tipR, 0));
+      if (tipR > eps) pts.push(V(tipR, 0));
       pts.push(V(r, tipH), V(r, fluteLen));
-      if (Math.abs(shaftR - r) > 0.01) pts.push(V(shaftR, fluteLen));
+      if (Math.abs(shaftR - r) > eps) pts.push(V(shaftR, fluteLen));
       pts.push(V(shaftR, oal), V(0, oal));
       break;
     }
@@ -133,11 +137,11 @@ export function buildToolProfile(
       // point_angle = full included tip angle, taper_angle = full included body angle
       const tipHalfA = (pointAngle / 2) * (Math.PI / 180);
       const bodyHalfA = (taperAngle / 2) * (Math.PI / 180);
-      const pilotR = tipR > 0.01 ? tipR : r * 0.3;
+      const pilotR = tipR > eps ? tipR : r * 0.3;
       const pilotH = pilotR / Math.tan(tipHalfA || 1);
       const bodyH = (r - pilotR) / Math.tan(bodyHalfA || 1);
       pts.push(V(0, 0), V(pilotR, pilotH), V(r, pilotH + bodyH), V(r, fluteLen));
-      if (Math.abs(shaftR - r) > 0.01) pts.push(V(shaftR, fluteLen));
+      if (Math.abs(shaftR - r) > eps) pts.push(V(shaftR, fluteLen));
       pts.push(V(shaftR, oal), V(0, oal));
       break;
     }
@@ -146,21 +150,21 @@ export function buildToolProfile(
       const chamA = (taperAngle / 2) * (Math.PI / 180);
       const chamH = (r - tipR) / Math.tan(chamA || 1);
       pts.push(V(0, 0));
-      if (tipR > 0.01) pts.push(V(tipR, 0));
+      if (tipR > eps) pts.push(V(tipR, 0));
       pts.push(V(r, chamH), V(r, fluteLen));
-      if (Math.abs(shaftR - r) > 0.01) pts.push(V(shaftR, fluteLen));
+      if (Math.abs(shaftR - r) > eps) pts.push(V(shaftR, fluteLen));
       pts.push(V(shaftR, oal), V(0, oal));
       break;
     }
     case "countersink": {
       // Countersink cone angle comes from SIG (point_angle), not TA
-      // point_angle is full included angle (gateway doubled SIG) — halve for slope
+      // Fusion SIG / point_angle is already the full included angle.
       const coneA = (pointAngle / 2) * (Math.PI / 180);
       const coneH = (r - tipR) / Math.tan(coneA || 1);
       pts.push(V(0, 0));
-      if (tipR > 0.01) pts.push(V(tipR, 0));
+      if (tipR > eps) pts.push(V(tipR, 0));
       pts.push(V(r, coneH), V(r, fluteLen));
-      if (Math.abs(shaftR - r) > 0.01) pts.push(V(shaftR, fluteLen));
+      if (Math.abs(shaftR - r) > eps) pts.push(V(shaftR, fluteLen));
       pts.push(V(shaftR, oal), V(0, oal));
       break;
     }
@@ -172,7 +176,7 @@ export function buildToolProfile(
       const taperRad = taperAngle * (Math.PI / 180);
 
       pts.push(V(0, 0));
-      if (cornerR > 0.01) {
+      if (cornerR > eps) {
         // Ball tip: center at (0, RE) on axis.
         // Arc from (0, 0) sweeping to tangent point with taper line.
         // Tangent point: (RE·cos(TA), RE·(1 − sin(TA)))
@@ -185,11 +189,11 @@ export function buildToolProfile(
         }
       } else {
         // Sharp tip
-        pts.push(V(0.1, 0));
+        pts.push(V(0.1 * unitsPerMm, 0));
       }
       // Taper to DC/2 at top of flutes, then shaft to OAL
       pts.push(V(r, fluteLen));
-      if (Math.abs(shaftR - r) > 0.01) pts.push(V(shaftR, fluteLen));
+      if (Math.abs(shaftR - r) > eps) pts.push(V(shaftR, fluteLen));
       pts.push(V(shaftR, oal), V(0, oal));
       break;
     }
@@ -197,9 +201,9 @@ export function buildToolProfile(
       // DC = max cutting diameter (wide bottom). TA = cutting angle (full included,
       // gateway doubled). Neck narrows above based on angle and flute length.
       const doveHalfA = (taperAngle / 2) * (Math.PI / 180);
-      const neckR = Math.max(0.5, r - fluteLen * Math.tan(doveHalfA || 0.3));
+      const neckR = Math.max(0.5 * unitsPerMm, r - fluteLen * Math.tan(doveHalfA || 0.3));
       pts.push(V(0, 0), V(r, 0), V(neckR, fluteLen));
-      if (Math.abs(shaftR - neckR) > 0.01) pts.push(V(shaftR, fluteLen));
+      if (Math.abs(shaftR - neckR) > eps) pts.push(V(shaftR, fluteLen));
       pts.push(V(shaftR, oal), V(0, oal));
       break;
     }
@@ -213,12 +217,12 @@ export function buildToolProfile(
         pts.push(V(ballR * Math.cos(a), ballR + ballR * Math.sin(a)));
       }
       pts.push(V(neckR2, ballR * 2), V(neckR2, fluteLen));
-      if (Math.abs(shaftR - neckR2) > 0.01) pts.push(V(shaftR, fluteLen));
+      if (Math.abs(shaftR - neckR2) > eps) pts.push(V(shaftR, fluteLen));
       pts.push(V(shaftR, oal), V(0, oal));
       break;
     }
     case "facemill": {
-      const discH = Math.max(5, bodyLen * 0.3);
+      const discH = Math.max(5 * unitsPerMm, bodyLen * 0.3);
       const arbor = shaftR || r * 0.3;
       pts.push(V(0, 0), V(r, 0), V(r, discH));
       pts.push(V(arbor, discH), V(arbor, oal), V(0, oal));
@@ -227,7 +231,7 @@ export function buildToolProfile(
     case "probe": {
       // Full ball at tip (bottom at Y=0, center at Y=ballR) + stylus from center up
       const ballR = r;
-      const stylusR = shaftR > 0.01 && shaftR < ballR ? shaftR : ballR * 0.5;
+      const stylusR = shaftR > eps && shaftR < ballR ? shaftR : ballR * 0.5;
       const arcN = 12;
       pts.push(V(0, 0));
       for (let i = 1; i <= arcN; i++) {
@@ -259,7 +263,7 @@ export function buildToolProfile(
             }
           } else {
             const dx = ex - px, dy = ey - py;
-            if (dx * dx + dy * dy > 0.001) pts.push(V(ex, ey));
+            if (dx * dx + dy * dy > 0.001 * unitsPerMm * unitsPerMm) pts.push(V(ex, ey));
           }
           px = ex; py = ey;
         }
@@ -277,8 +281,8 @@ export function buildToolProfile(
 }
 
 /** Split a profile at the given Y coordinate into cutter (below) and shaft (above) sub-profiles */
-export function splitProfileAt(pts: THREE.Vector2[], splitY: number): { cutter: THREE.Vector2[], shaft: THREE.Vector2[] } {
-  const eps = 0.01;
+export function splitProfileAt(pts: THREE.Vector2[], splitY: number, unitsPerMm = 1): { cutter: THREE.Vector2[], shaft: THREE.Vector2[] } {
+  const eps = 0.01 * unitsPerMm;
   const below: THREE.Vector2[] = [];
   const atBound: THREE.Vector2[] = [];
   const above: THREE.Vector2[] = [];

@@ -121,11 +121,12 @@ def parse_fusion_library(data: dict, machine_unit: str) -> tuple[list, list]:
             # Fusion TA is half-angle for chamfer/countersink — double to get included angle
             if tool.get("taper_angle"):
                 tool["taper_angle"] *= 2
-        if our_type in ("countersink", "centerdrill"):
-            # Fusion SIG is half-angle for countersink/centerdrill — double to get included angle
+        # Native Fusion countersink contours confirm SIG is the full included
+        # angle (90 degrees gives a 5 mm cone height at DC=10 mm), like drills.
+        # Keep the legacy center-drill mapping until that type has a reference.
+        if our_type == "centerdrill":
             if tool.get("point_angle"):
                 tool["point_angle"] *= 2
-        # (drill/spot drill SIG is already the full included angle — no adjustment needed)
 
         # Holders carry their own `unit` independent of the tool body.
         holder_segs = holder.get("segments", []) if holder else []

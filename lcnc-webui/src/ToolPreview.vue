@@ -15,15 +15,16 @@ const props = withDefaults(
     pointAngle?: number;
     tipDiameter?: number;
     bodyLength?: number;
+    unitsPerMm?: number;
     width?: number;
     height?: number;
   }>(),
-  { width: 80, height: 120 }
+  { width: 80, height: 120, unitsPerMm: 1 }
 );
 
 const { diameter, length, fluteLength, shaftDiameter, toolType,
         cornerRadius, taperAngle, pointAngle, tipDiameter, bodyLength,
-        width, height } = toRefs(props);
+        width, height, unitsPerMm } = toRefs(props);
 
 const container = ref<HTMLDivElement | null>(null);
 
@@ -111,8 +112,8 @@ function buildPreview() {
     tip_diameter: tipDiameter?.value ?? undefined,
   };
 
-  const { pts, fluteY } = buildToolProfile(diameter.value, length.value, meta);
-  const { cutter, shaft } = splitProfileAt(pts, fluteY);
+  const { pts, fluteY } = buildToolProfile(diameter.value, length.value, meta, unitsPerMm.value);
+  const { cutter, shaft } = splitProfileAt(pts, fluteY, unitsPerMm.value);
 
   const cutterMat = new THREE.MeshStandardMaterial({
     color: cutterColor, metalness: 0.1, roughness: 0.5,
@@ -157,7 +158,7 @@ onBeforeUnmount(dispose);
 watch(
   [diameter, length, fluteLength, shaftDiameter, toolType,
    cornerRadius, taperAngle, pointAngle, tipDiameter, bodyLength,
-   width, height],
+   width, height, unitsPerMm],
   () => {
     buildPreview();
   }

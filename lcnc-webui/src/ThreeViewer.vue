@@ -5,6 +5,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { Text } from "troika-three-text";
 import { buildToolProfile, splitProfileAt, buildToolGeometry, buildHolderGeometry, type ToolMeta } from "./toolGeometry";
+import { toolUnitsPerMillimeter } from "./toolUnits";
 import { AXIS_HEX, AXIS_CSS } from "./axisColors";
 import {
   failedParts, loadMachineAssets, getCachedGeometry, getToolMeta, setToolMeta, machineReady,
@@ -886,8 +887,8 @@ function replaceToolMarker(newGroup: THREE.Group) {
 /** Build full tool group (cutter + shaft + optional holder) */
 function buildToolGroup(diam: number, len: number, meta: ToolMeta | null): THREE.Group {
   const grp = new THREE.Group();
-  const { pts, fluteY } = buildToolProfile(diam, len, meta);
-  const { cutter, shaft } = splitProfileAt(pts, fluteY);
+  const { pts, fluteY } = buildToolProfile(diam, len, meta, _unitScale);
+  const { cutter, shaft } = splitProfileAt(pts, fluteY, _unitScale);
 
   toolCutterMesh = null;
   if (cutter.length >= 3) {
@@ -927,7 +928,7 @@ async function buildFromInit(init: ViewerInit) {
   window.__viewerDiag = { ready: false };
 
   try {
-    _unitScale = (init.units === "in" || init.units === "inch") ? 1 / 25.4 : 1;
+    _unitScale = toolUnitsPerMillimeter(init.units);
 
     scene.background = sceneBgFromTheme();
 
@@ -1229,10 +1230,10 @@ function applyState(init: ViewerInit, st: ViewerState) {
         // Same tool, same meta — check if diam/length changed
         const visMesh = toolBodyMesh ?? toolCutterMesh;
         if (!visMesh) return false;
-        const r = Math.max(0.2, diam * 0.5);
+        const r = diam * 0.5;
         const prev = (visMesh.userData.toolVis as any) || {};
-        return Math.abs((prev.r ?? 0) - r) > 0.01
-            || Math.abs((prev.L ?? 0) - visLen) > 0.5;
+        return Math.abs((prev.r ?? 0) - r) > 0.01 * _unitScale
+            || Math.abs((prev.L ?? 0) - visLen) > 0.5 * _unitScale;
       })();
 
     if (needsRebuild) {

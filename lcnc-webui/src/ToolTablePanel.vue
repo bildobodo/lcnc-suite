@@ -11,6 +11,7 @@ import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineInput from "./MachineInput.vue";
 import MachineSelect from "./MachineSelect.vue";
+import { toolUnitsPerMillimeter } from "./toolUnits";
 // Async on purpose (WS-E / F10-finish): ToolPreview is the ONLY statically
 // eager three.js importer left — this edge alone kept the 866 kB three
 // chunk in the entry graph (static import + modulepreload in index.html),
@@ -25,11 +26,13 @@ const REFETCH_AFTER_DELETE_MS = 300;
 const props = defineProps<{
   currentTool: number | null;
   iniFilename: string | null;
+  linearUnit: string;
   hideHeader?: boolean;
 }>();
 
 const fire = useFire();
 const toolChangeMode = ref<ToolChangeMode>(loadMachineDefaults().toolChangeMode);
+const unitsPerMm = computed(() => toolUnitsPerMillimeter(props.linearUnit));
 
 interface Tool {
   T: number;
@@ -543,9 +546,10 @@ defineExpose({ openAdd, fetchTools, triggerImport });
             <div class="editPreviewCol">
               <div class="editPreviewCanvas inset-panel">
                 <ToolPreview
-                  :diameter="editForm.D || 6"
-                  :length="editForm.oal || Math.abs(editForm.Z) || 50"
-                  :flute-length="editForm.flute_length || (editForm.oal || 50) * 0.6"
+                  :diameter="editForm.D || 6 * unitsPerMm"
+                  :length="editForm.oal || Math.abs(editForm.Z) || 50 * unitsPerMm"
+                  :flute-length="editForm.flute_length || (editForm.oal || 50 * unitsPerMm) * 0.6"
+                  :units-per-mm="unitsPerMm"
                   :shaft-diameter="editForm.shaft_diameter ?? undefined"
                   :tool-type="editForm.type || 'other'"
                   :corner-radius="editForm.corner_radius ?? undefined"
@@ -677,9 +681,10 @@ defineExpose({ openAdd, fetchTools, triggerImport });
       <div v-if="hoverTool" class="toolHoverPreview"
            :style="{ left: hoverPos.x + 'px', top: hoverPos.y + 'px' }">
         <ToolPreview
-          :diameter="hoverTool.D || 6"
-          :length="hoverTool.oal || Math.abs(hoverTool.Z) || 50"
-          :flute-length="hoverTool.flute_length || (hoverTool.oal || 50) * 0.6"
+          :diameter="hoverTool.D || 6 * unitsPerMm"
+          :length="hoverTool.oal || Math.abs(hoverTool.Z) || 50 * unitsPerMm"
+          :flute-length="hoverTool.flute_length || (hoverTool.oal || 50 * unitsPerMm) * 0.6"
+          :units-per-mm="unitsPerMm"
           :shaft-diameter="hoverTool.shaft_diameter ?? undefined"
           :tool-type="hoverTool.type || 'other'"
           :corner-radius="hoverTool.corner_radius ?? undefined"
