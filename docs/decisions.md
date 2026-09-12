@@ -3955,3 +3955,189 @@ countdown and after the publish — the sweep should pause under the pointer, fi
 ~15–20 s of active time on the Mac, and the perf rows should read like the opaque
 rotate; a second touch-off then either re-sweeps (finished within budget) or shows
 "check declined".
+
+
+## 2026-09-12 — Rotary decoupling + viewer headroom: the rotary boundary on the wire, a room-fixed prefix, chunked draw with a gated overlay, display LOD
+
+**Asks (operator, 2026-09-11, in order).** "Why, all of a sudden in machine mode,
+when I rotate A after a touch-off does the toolpath jump back to the touch-off
+position in absolute coordinates after parsing?" → "Is it not possible to decouple
+it from A in machine mode?" → "Is this a superior way of doing it?" → "Let's plan
+this, and also the performance improvements. Is there a way to involve the GPU
+more? Also for the BVH collision?" Scope chosen via the plan questions: boundary +
+display split (the live-rotary substitution into the track is a follow-on);
+headroom = overlay gating + spatial chunks + display LOD (the orbit pixel-ratio
+lever and the backplot upload fix declined); the sweep stays on the CPU
+(assessment only, shards recorded).
+
+**The jump was correct, and it looked new for a recorded reason.** Under identity
+kins G54 is a fixed point in the room: the program goes to `G54 + words`
+whatever A is. Every vertex was baked into the TABLE frame at the parse-time
+rotary pose (the interpreter is seeded with the live A/B/C; segments the program
+never rotates inherit it), so an A jog carried the path along with the table
+until the rotary drift edge's reparse re-baked it at the room-fixed position —
+20 s on the big program, muted grey meanwhile. Before 2026-09-02 the G54 triad
+jumped to the same room-fixed spot, so triad and path moved together; since the
+"program zero rides the part" wave the triad stays on the part and a muted ghost
+marks the room-fixed spot, so the path now visibly leaves the triad and lands on
+the ghost — the honest 3D-ROT-off picture (the chip's own title says it). The
+trace showed the session switching Machine ↔ Plane between A moves, so both
+pictures were seen back to back.
+
+**Why the client could not fix it alone.** An explicit `G0 A0 C0` at the top of a
+5-axis post equals the seed value and MUST ride the part (the run moves A back to
+0 before cutting); an XYZ-only program must stay in the room. Identical in the
+data once the seed is 0. Only the parser can tell.
+
+**Wire (ffa51fd).** `rotary_cmd = {A,B,C: seq|null, unknown: seq|null, seed}`:
+per rotary letter the seq of the segment that first COMMANDS it, by (a) the RAW
+machine-frame endpoint moving > 1e-5° from the seed (a mid-program `G10 L2`
+rotary write counts — conservative) or (b) the source line carrying the letter as
+a word (`rotary_word_lines`: one C-speed regex pass over the whole text as a
+prefilter, per-line test only on candidates — comments stripped, `#<name>` →
+`#0`, `o<name>` → `O0`, whitespace removed; G10/G92/G52 lines command nothing;
+bare G28/G30 home every axis; the existing `_AXIS_WORD` was NOT reusable, it
+misses `A#100`, `A[#1+2]`, `A#<ang>`), consulted only where the line number is
+provably this file's (sub-span depth 0, motion kind matching the stream, no
+unmarked external sub); `unknown` = the first non-relabel seq whose text cannot
+be consulted while a letter is still pending — from there on the client treats
+everything as commanded. Vectorized (three numpy passes for an XYZ-only 1.18 M-
+line program); computed after the flip-relabel pass (seqs already doubled);
+BOTH flip vertices anchored at every boundary (`seq_boundary_indices`,
+searchsorted + diff) so a collinear run cannot collapse across it. Per axis on
+purpose: `G0 A30` then a TCP block still inherits C, and a `G0 B30` head tilt must
+not make an A-inherited path ride. `__ROTCMD__` stderr → `published_rotary_cmd`
+(the follow-on's hook). Headless worker runs on the TWP INI (seed 0): XYZ-only →
+all null; `G0 A0 C0` first → A=1, C=1 (text); `G0 A30` mid → A=3 (value);
+`G0 B[#<_ini[joint_4]home>]` → B=3.
+
+**Schema-bump trap (live suite).** The running gateway imports `PREVIEW_SCHEMA`
+at start; the worker is a fresh subprocess per parse. Bumping the constant live
+makes the worker emit 9 against the gateway's 8 and the schema-mismatch edge
+reparses forever (and HMR flips the tab into "schema mismatch"). So the key
+ships WITHOUT a bump (old clients ignore it); `PREVIEW_SCHEMA = 9` +
+`EXPECTED_PREVIEW_SCHEMA = 9` + golden regeneration land in one commit at the
+suite stop.
+
+**Client (bf630a4).** Design review corrections adopted: (1) "room" is NOT the
+scene root — it is the work group's frame with every WORK-chain rotary at zero
+(machine coordinates by the machine.json convention: trsrn root → a_table →
+a_work with the head carrying XYZ, so root offset by the base translates; xyzac
+knee → saddle → table → a → c, so the `table` node — it must follow table TRAVEL,
+never table rotation); `machineFrameGrp` = a child of the parent of the topmost
+work-chain rotary, static offset = the base translates below it; without a
+work-chain rotary it IS `_workGrp`. (2) The inherited set is a prefix of the
+merged track, not of the drawn arrays in general (identity → TCP → identity
+before the first rotary command is legal), so the track carries per-axis
+`inheritedEnd` counts and the draw splits PAIRS by the frame of both endpoints.
+(3) A flip inside a stream section needs a DUPLICATED vertex: the shared
+position attribute holds one position per vertex, so the part-frame bake emits
+the previous vertex again in the new frame as a break — no connector between
+the two frames' copies of one point; the boundary move draws in its END
+vertex's frame (the existing convention); in programmed mode the same program
+coordinates under two parents ARE the duplicate. (4) The big XYZ program renders
+through the PROGRAMMED path (no abc shipped while the seed is 0 → `displayDecision`
+"programmed", main-thread `_applyProgrammed`), so both paths got the split. (5) The
+machine-bounds clip planes used to ride `_workGrp` and rotated with A on a rotary
+work chain — physically wrong (machine limits are joint limits, fixed in the
+room); they now track `machineFrameGrp`. Room parents mirror the table side one-
+to-one (roomOrigin/roomRotGroup live, roomAnchor/roomRot posed by apply from the
+bake's own terms); `roomEndOf(track, workLetters)` = min over the work chain's
+letters and unknown; the part-frame worker bakes `src < roomEnd` identity
+segments via `tipInRoomFrame` (world-kins segments always ride — TCP/plane track
+the part). A payload without the key (the cached one until the next reparse)
+keeps the old picture.
+
+**Headroom (7a04909, 4d65a83).** Facts: `WebGLRenderer({antialias:true})` at
+Retina pixel ratio 2, render-on-demand loop, ONE LineSegments per stream with ONE
+bounding sphere (culling never fired), the outside-bounds overlay a full second
+draw of the same geometry with 6 clip planes drawn even when nothing is outside
+= 4 full-path draws per frame; the machine model is ~1.2 k triangles (noise).
+Now: `viewer/lineChunks.ts` (pure): real segment pairs split by frame, binned
+SPATIALLY into an extent-proportional grid by a counting sort (the index buffer
+is permuted, the vertex order — the highlight's address space — is not; program-
+order ranges were as big as the part: a pocketing pass sweeps everything every
+40 k segments — first live reading 31 chunks, 31 overlays drawn), ≤ 64 cells so
+the per-object CPU submit (~5–15 µs each) stays inside the measured ≤ 2 ms;
+explicit bounding spheres (a null one makes Three compute the WHOLE shared
+attribute's sphere per chunk); `updateCulling` per rendered frame hides each
+chunk's overlay whose box — 8 corners transformed into the machine frame at the
+parent's CURRENT pose — lies inside the machine bounds, and counts frustum hits.
+Display LOD: Douglas–Peucker per run of chained pairs (runs end at breaks and at
+the flip duplicates), coarse-from-fine, tolerances `[1e-4, 5e-4] × the joint
+envelope diagonal`, cut in the worker that produced the vertices (previewWorker
+for the programmed path — it does not know the flips, so a level pair whose
+endpoints differ in frame is dropped and counted; partFrameWorker for the bake);
+ONE grid for all levels so chunk c is the same cell at every level; a chunk is
+one geometry PER LEVEL sharing the position attribute and that level's index
+attribute, only the current level visible — a level switch is a visibility flip
+and disposing every level's geometry frees every index buffer (Three deletes
+only a geometry's CURRENT index on dispose; swapping `setIndex` would leak the
+others). Level choice per chunk: the coarsest whose tolerance is under 0.5 device
+pixels at the chunk's nearest point (world units per pixel from the camera),
+1.25× band before stepping finer. Highlight = one indexed LineSegments per frame
+with its own small index buffer, refilled per highlight with the lit range's
+pairs that cross neither a break nor a flip (a strip drawRange would draw a
+connector across the flip). Perf context gains draw_segs, room_segs, chunks,
+chunks_visible, overlay_chunks, frame_mixed, lod_min/max/ms, gl_calls, gl_lines
+(main pass, read before the gizmo pass resets info), display_mode.
+
+**Live readings (Firefox 155, Mac host, perfmatrix-big, HMR).** 37 chunks,
+gl_calls 115, frame_mixed 0. All 37 overlays still drawn — genuine: the sim's
+Z limit is 0.01 with Z0 at the top of travel, so every retract sits above the
+box and every cell holds one. LOD: every chunk at level 2 at fit-to-view,
+lod_ms 565 in the worker — and only 11 % fewer segments (1.18 M → 1.05 M):
+`perfmatrix-big.ngc` is a synthetic random walk (median segment 0.9 mm, median
+turn 52°, Z jitter −1..0; even a 0.57 mm radial tolerance keeps 87 %), genuine
+sub-millimetre structure no honest decimation can collapse — the levels are for
+CAM programs of arcs and rasters, and this benchmark cannot show them. The
+headroom this program gets is the overlay gate (where the program is inside the
+box) and frustum culling when zoomed in.
+
+**GPU assessment (the operator's question).** Drawing is already on the GPU
+(submit ≤ 2 ms, completion 18 ms) — the levers are fewer vertices, fewer
+fragments, fewer passes, none needing shaders; a custom ShaderMaterial (per-
+vertex frame flag + fragment-classified overlay) was reviewed and rejected
+(culling needs single-frame chunks anyway; three material variants to patch;
+untestable in the headless controller tests; per-chunk gating captures ~all of
+its benefit). Posing (the part-frame bake) runs once per touch-off, not per
+frame — not worth a GPU port. The sweep: three-mesh-bvh 0.9.14's GPU distance
+functions are point→BVH only (`bvhClosestPointToPoint` WebGL2,
+`getClosestPointToPointFn` WebGPU); sampling the tool surface against a body
+BVH gives an UPPER bound on the distance and the conservative-advancement
+certificates are sound only with a LOWER bound; WebGPU is default-on in Firefox
+≥ 147 on Apple Silicon but unverified inside this app's workers, and the GPU is
+the resource already at 18 ms/frame — no GPU sweep. Parallel CPU shards are the
+right parallelism (design: baseline mask from the program's FIRST pose broadcast
+to every shard, shard starts overlapped by the onset window with reporting
+suppressed so a continuing contact is not a new onset, merge on (pair, cum),
+MAX_HITS after merge, covered = min, N = min(4, hardwareConcurrency − 2), manual
+sweep first, pause fan-out kept) — recorded, not built.
+
+**Gates (suite live — single niced files only).** test_gateway_util 327 (+12),
+test_bulk_pipeline 29 (+2); vitest lineChunks 30, toolpathController 40,
+partFrame 26, scrubTrack, previewDecode, bulkData, programZero, viewerPerf,
+displayPipeline — 227+ green over the nine touched files; tsc subset under the
+app's strict flags clean; Vite compiles ThreeViewer.vue + both workers; hot-
+loaded on the running suite (no browser errors in the trace).
+
+**OWED at the suite stop:** the schema-bump commit (`PREVIEW_SCHEMA`/
+`EXPECTED_PREVIEW_SCHEMA` = 9) + regenerate all four goldens (`scripts/
+preview_gate.py`; the three `3axis` ones are already stale at schema 5) + `check`;
+`npm run build` (vue-tsc over the .vue changes), `npm run lint`, full vitest
+(incl. the trsrn envelope gate), playwright (`e2e/viewer.spec.ts` leak probe —
+extend for N chunks × levels), full pytest; restart; `sim_parity.py gate` 21/21
+then `git checkout -- scripts/parity_corpus/runs`.
+**OWED from the operator:** on an XYZ-only program in Machine mode, jog A
+twice — the FIRST jog's reparse delivers the boundary (the cached payload
+predates it), the SECOND must not move the path at all (`room_segs` > 0 in the
+perf rows); a 5-axis post opening `G0 A0 C0` must still ride the table; a mixed
+program (`G1 X…`, then `G0 A30`, more lines): prefix room-fixed, rest rides, no
+connector at the boundary, `frame_mixed = 0`; highlight/scrub across the
+boundary; TCP/Plane programs unchanged; a real CAM program for the LOD reading.
+**OPEN (follow-on, hooks in place):** live rotary substituted into the track's
+inherited prefix (scrub + sweep without a reparse; gateway drift edge skips the
+rotary reparse when the drifted axes are never commanded — `published_rotary_cmd`
+is the datum; `sim_parity.py` injects the run's start pose — the `twp_g683_tilted`
+spike); parallel sweep shards; the orbit pixel-ratio drop + antialias setting;
+the backplot `addUpdateRange` fix.

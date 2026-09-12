@@ -545,6 +545,44 @@ following the live offsets. A mid-run G10 L2 / fixture switch used to move
 the live origin ahead of the 300 ms re-bake: the whole path jumped, then
 returned.
 
+**Chunked draw, display LOD, room-fixed prefix (2026-09-12)**: the drawn
+streams are CHUNKS (`viewer/lineChunks.ts`, pure): real segment pairs
+(`buildFrameIndex`, breaks index-skipped) binned SPATIALLY into ≤ 64 grid
+cells by a counting sort — the index buffer is permuted, the vertex order
+(the highlight's and `feedSrc`'s address space) never is — each cell one
+object per LOD LEVEL with an explicit bounding sphere (a null one makes
+Three compute the whole shared attribute's sphere per chunk). Per rendered
+frame `toolpath.updateCulling` hides each chunk's outside-bounds overlay
+whose box lies inside the machine bounds at the parent's current pose (the
+overlay used to be a full second draw of every segment) and picks the
+coarsest LOD level under 0.5 device px at the chunk's nearest point. Levels
+are Douglas–Peucker pair lists over the SAME vertices (`decimatePairs`,
+runs end at breaks and frame flips; tolerances `[1e-4, 5e-4] × envelope
+diagonal`), cut by the worker that produced the vertices (`buildLodLevels`
+in previewWorker for the programmed path, partFrameWorker for the bake);
+highlight/scrub/sweep stay at full resolution. The machine-bounds clip
+planes and the box live in `machineFrameGrp` = the work group's frame with
+every WORK-chain rotary at zero (machine coordinates; a child of the parent
+of the topmost work-chain rotary, offset by the base translates; `_workGrp`
+itself without one) — never under the rotating table. ROOM-FIXED PREFIX:
+the parse worker ships `rotary_cmd` (per rotary letter the seq of the
+segment that first COMMANDS it — raw endpoint moved from the seed, or the
+source line carries the letter as a word, `rotary_word_lines` /
+`first_rotary_commands` in gateway_util — plus `unknown` and the seed);
+`ScrubTrack.inheritedEnd` (per-axis leading-point counts), `roomEndOf(track,
+work-chain letters)`; identity-kins vertices before it bake in the room
+frame (`tipInRoomFrame`; the part-frame bake DUPLICATES the previous vertex
+as a break at every flip inside a section) and hang under roomOrigin/
+roomRotGroup (live) or roomAnchor/roomRot (baked) beneath `machineFrameGrp`,
+so an uncommanded table rotary never moves them; world-kins segments and
+everything from the first command on ride the part as before. A payload
+without the key keeps the old picture. Follow-on hooks: `published_rotary_cmd`
+in the bulk pipeline (skip the rotary reparse when the drifted axes are never
+commanded), `rapidSrc`, `roomEnd` plumbing. Schema bump for the key is owed at
+the next suite stop (never bump `PREVIEW_SCHEMA` while the suite is live: the
+fresh worker emits the new number against the running gateway's imported old
+one and the schema-mismatch edge reparses forever).
+
 **Program scrub (offline dry run, stage 2 + unified-timeline phase 1)**: a
 timeline bar overlaid on the 3D viewer (`ScrubBar.vue`, hosted in
 ThreeViewer's overlay next to CameraPip) poses the articulated machine
@@ -915,6 +953,11 @@ The `tool_touch_off.ngc` subroutine reads parameters from the LinuxCNC var file 
 - ThreeViewer `buildFromInit` creates scene objects as visible after `onMounted` already applied layer defaults — must re-apply at end of `buildFromInit` using fresh `loadViewerDefaults()`
 - Never re-derive RS274/interp semantics from docs or memory — mirror the interpreter's own source and pin it with differential golden tests (`rs274.test.ts` + `TestRs274EffectiveOffset`, oracle = `rs274.interpret.Translated.rotate_and_translate`). Two latent bugs came from re-derivation: combined `g5x+g92` origin (wrong under G92+G10 R together) and TLO missing from the scrub joint transform (sim pose off in Z by exactly the G43 offset while `applyState` phase 3 subtracted it anyway)
 - Mode overrides must swap COMPLETE state objects, not single fields: `_scrubJoints` substituting joints inside `applyState` while `tool_offset`/WCS stayed live is how the TLO pose bug hid — every phase of a shared code path must be audited when one input is overridden per-mode
+- Three deletes only a geometry's CURRENT index attribute on dispose: an index attribute swapped out with `setIndex` and never current at dispose time leaks its GL buffer. Give each LOD level its own geometry object (visibility flip) instead of swapping indices.
+- Program-order index ranges are not spatially compact (a pocketing pass sweeps the whole part every 40 k segments): bin segments spatially before expecting frustum culling or a bounds gate to fire. Per-object cost (~5–15 µs) bounds the chunk count — ~64, not hundreds.
+- A benchmark program can be adversarial to an optimisation by construction: `perfmatrix-big.ngc` is a random walk (median turn 52°), so no honest decimation collapses it; read a perf lever on a real CAM program too.
+- Machine bounds are joint limits, fixed in the room: anything expressing them (clip planes, the bounds box) lives in the machine frame (the work chain with its rotaries zeroed), never under the rotating work group.
+- Never bump a wire schema constant while the suite is live when the producer is a fresh subprocess and the consumer imported the constant at start — the mismatch edge loops. Ship the new key (ignored by old readers), bump at the stop.
 - Surface-map Z compensation (`axis.z.eoffset`) is a **3-axis feature**: a machine-Z shim applied after kinematics, valid only with the tool normal to the mapped surface (A=0) and the map's XY grid aligned to the work (C=0 — the map does not ride the platter). Probing or applying it tilted is directionally wrong; enforcement gate deferred (recorded in dry-run memory)
 - A per-line `Map`/`Set` on a million-line program is a million heap objects the browser's collector marks on EVERY major GC (110–140 ms measured) and a ~1 s structured clone per worker hop — the "sometimes lags when rotating" class. Line-indexed typed arrays (`viewer/lineIndex.ts`) are the shape for anything keyed by line number
 - A background re-parse that cannot be cancelled QUEUES: an edge raised during it was not even evaluated until it published, then ran a second full parse (41–167 s live). Snapshot the running parse's inputs and supersede it; and an edge that stays true until the publish (`file_changed`) must never be allowed to cancel the parse that will clear it
