@@ -61,6 +61,7 @@ export function buildToolProfile(
   const r = Math.max(0, diam * 0.5);
   const type = meta?.type ?? "other";
   const fluteLen = meta?.flute_length ?? len * 0.6;
+  let fluteY = fluteLen;
   const shaftR = (meta?.shaft_diameter ?? diam) * 0.5;
   const oal = meta?.oal ?? len;
   const tipR = (meta?.tip_diameter ?? 0) * 0.5;
@@ -117,18 +118,61 @@ export function buildToolProfile(
       const teeth = meta?.number_of_teeth ?? 1;
       if (pitch != null && pitch > 0 && Number.isFinite(pitch)
           && angle != null && angle > 0 && angle < 180 && Number.isFinite(teeth)) {
-        // Native CAM envelope: complete teeth spaced by TP, capped by NT and
-        // LCF. A longer LCF adds neck, not more teeth. The post also emits this
-        // pointed envelope for flat/round tips; their crest details remain
-        // unverified and the corresponding metadata is preserved separately.
-        const neckR = Math.max(0, r - pitch / (2 * Math.tan(angle * Math.PI / 360)));
+        // Native simulation, including crest/root flats and roundings. The
+        // CAM post emits pointed teeth even when the simulation differs.
+        const a = angle * Math.PI / 360;
+        const cot = 1 / Math.tan(a);
+        const neckR = Math.max(0, r - pitch * cot / 2);
         const count = Math.max(0, Math.min(Math.trunc(teeth), Math.floor(fluteLen / pitch + 1e-10)));
-        pts.push(V(0, 0), V(neckR, 0));
-        for (let i = 0; i < count; i++) {
-          pts.push(V(r, (i + 0.5) * pitch), V(neckR, (i + 1) * pitch));
+        const width = meta?.thread_tip_width;
+        const radius = meta?.thread_tip_radius;
+        if (count > 0 && meta?.thread_tip_type === "flat" && width != null
+            && Number.isFinite(width) && width >= 0 && width <= pitch / 2) {
+          // Both the crest and root have axial width W. The crest ends at
+          // half-pitch; flattening also increases the physical root radius.
+          const rootR = Math.max(0, r - (pitch / 2 - width) * cot);
+          pts.push(V(0, 0), V(rootR, 0));
+          for (let i = 0; i < count; i++) {
+            const z = i * pitch;
+            pts.push(V(r, z + pitch / 2 - width), V(r, z + pitch / 2),
+              V(rootR, z + pitch - width), V(rootR, z + pitch));
+          }
+          pts.push(V(rootR, fluteLen));
+          appendShoulderAndShaft(rootR);
+        } else if (count > 0 && meta?.thread_tip_type === "round" && radius != null
+            && Number.isFinite(radius) && radius > 0 && radius <= pitch / (4 * Math.cos(a))
+            && r - pitch * cot / 2 >= 0) {
+          const offset = radius * Math.cos(a);
+          const rootR = neckR + 2 * radius * (1 / Math.sin(a) - 1);
+          const rootCenterR = rootR + radius;
+          const arc = (cx: number, cy: number, start: number, sweep: number) => {
+            const n = arcSteps(radius, sweep);
+            for (let j = 0; j <= n; j++) {
+              const theta = start + sweep * j / n;
+              pts.push(V(cx + radius * Math.cos(theta), cy + radius * Math.sin(theta)));
+            }
+          };
+          pts.push(V(0, 0), V(rootCenterR - radius * Math.sin(a), 0));
+          for (let i = 0; i < count; i++) {
+            arc(r - radius, (i + 0.5) * pitch - offset, a - Math.PI / 2, Math.PI - 2 * a);
+            // The final root ends at the arc's minimum radius. A longer LCF
+            // adds a straight neck there; it does not add another tooth.
+            arc(rootCenterR, (i + 1) * pitch - offset, -Math.PI / 2 - a,
+              i === count - 1 ? a - Math.PI / 2 : 2 * a - Math.PI);
+          }
+          fluteY = fluteLen - offset;
+          pts.push(V(rootR, fluteY));
+          appendShoulderAndShaft(rootR);
+        } else {
+          // Pointed tools, unavailable crest metadata and unsupported crest
+          // dimensions retain the established native-post envelope.
+          pts.push(V(0, 0), V(neckR, 0));
+          for (let i = 0; i < count; i++) {
+            pts.push(V(r, (i + 0.5) * pitch), V(neckR, (i + 1) * pitch));
+          }
+          pts.push(V(neckR, fluteLen));
+          appendShoulderAndShaft(neckR);
         }
-        pts.push(V(neckR, fluteLen));
-        appendShoulderAndShaft(neckR);
       } else {
         // Older sidecars have no pitch/angle: retain the legacy approximation
         // until those discarded fields can be refreshed from the source JSON.
@@ -391,7 +435,7 @@ export function buildToolProfile(
       break;
     }
   }
-  return { pts, fluteY: fluteLen };
+  return { pts, fluteY };
 }
 
 /** Shared mesh inputs for both viewers. A form tool's closed outline can have

@@ -157,8 +157,8 @@ The renderer reproduces that envelope without fabricating a partial tooth.
 **Flat/round thread crest limitation:** In all four tested variants, the native
 post SVG still contains pointed teeth despite preserved flat/round type, width
 or radius fields. Those exports cannot verify the actual crest detail. The
-renderer currently follows the pointed CAM envelope; it does not claim a verified
-flat or rounded crest. These four fixtures are marked `referenceUsable: false`
+renderer now uses the separate native simulation evidence described below for
+flat and rounded crests. These four post fixtures remain `referenceUsable: false`
 for complete physical-shape assertions, while still testing lossless metadata,
 unit invariance and measured-length independence. This is the same distinction
 between metadata acceptance and geometric evidence used for form mills.
@@ -177,6 +177,47 @@ Reference extraction uses the native
 `getCutterProfileAsSVGPath()`, on generated operations in an isolated audit
 document. API availability does not establish that every exported parameter
 affects that contour; the flat/round crest probes demonstrate this limitation.
+
+### Native simulation: flat and rounded thread teeth
+
+Eleven additional native simulation captures from Fusion 2705.1.15 are stored in
+[`test-fixtures/fusion-tool-simulation`](../test-fixtures/fusion-tool-simulation/README.md).
+They include point/flat/round teeth at included profile angles 60° and 90°, two
+longer-flute variants, a smaller rounding and two additional explicit form
+profiles. Every operation generated successfully. Screenshots were captured in
+an isolated simulation, with no holder, and each self-opened simulation was
+closed before the next call. The probe selection getter was not used.
+
+Let `r=DC/2`, `p=TP`, `a=thread-profile-angle/2`, and `W=thread-tip-width`.
+For flat teeth, the root radius is `r - (p/2-W)*cot(a)`. Each pitch begins at
+that root, rises to `r` at `p/2-W`, stays flat until `p/2`, returns to the root
+at `p-W`, then stays flat until `p`. Both crest and root have axial width W.
+The longer LCF variant extends that root radius without adding teeth.
+
+For rounded teeth with `R=thread-tip-radius`, define `delta=R*cos(a)`.
+Crest circles have radius R, radial centre `r-R`, and axial centres
+`(i+1/2)*p-delta`. Root circles have the same radius, radial centre
+`r-p*cot(a)/2 + R*(2/sin(a)-1)`, and axial centres `(i+1)*p-delta`.
+Straight flanks are tangent to both circles. The first tooth starts at the
+outgoing root tangent at z=0; the final root stops at its minimum radius.
+The physical cutting/neck boundary is `LCF-delta`, including when LCF is longer
+than the tooth train. OAL, shoulder length and measured installation stay
+independent. Meridian arcs target 0.001 mm chord error with bounded subdivision.
+
+The crest branches require finite available dimensions, complete teeth,
+`0 <= W <= p/2`, and, for round teeth, `0 < R <= p/(4*cos(a))` with a nonnegative
+unrounded root radius. Other combinations retain the existing pointed envelope;
+they are not claimed as verified physical shapes. Missing pitch/angle retains
+the older cylinder approximation.
+
+Bidirectional sampled distances to the original native silhouettes fall from
+up to 0.7967 mm to below 0.015 mm for flat teeth, and from up to 0.4223 mm to
+below 0.026 mm for round teeth. The two new form profiles already match below
+0.062 mm and require no further runtime change. The regression thresholds are
+0.04 mm for threads and 0.08 mm for these form captures. These are raster/mesh
+reference thresholds, not machining tolerances or a complete 3D equivalence
+claim. Both machine-unit paths, native image hashes, cutter height and measured
+length independence are tested. See the fixture README for calibration limits.
 
 ## Form tools: imported outline and mesh integrity
 
@@ -417,9 +458,9 @@ and do not connect to a machine.
 
 ## Remaining scope
 
-Flat/round thread crest details and probes still need their own cutting-profile
-corrections or additional native references. The probe's legacy shape branch
-remains separate. The Probe WCS failure has been narrowed to reading
+Probe geometry, unsupported thread-crest combinations and additional 3D fidelity
+still need independent references. The probe's legacy shape branch remains
+separate. The Probe WCS failure has been narrowed to reading
 `probe_selection.value` on an operation input in Fusion 2705.1.15. A native
 stack sample shows the selection getter entering Fusion's crash handler;
 creating the input and assigning its tool had both succeeded separately.

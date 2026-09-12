@@ -1,0 +1,30 @@
+{
+  "operation": "Native sim-thread-flat-three",
+  "fusion_version": "2705.1.15",
+  "active_command_at_capture": "IronSimulation",
+  "camera": {
+    "eye": [
+      0.0,
+      -50.0,
+      2.0
+    ],
+    "target": [
+      0.0,
+      0.0,
+      2.0
+    ],
+    "up": [
+      0.0,
+      0.0,
+      1.0
+    ],
+    "type": 0,
+    "extents": [
+      true,
+      4.0,
+      4.0
+    ]
+  },
+  "capture_mode": "Initial native simulation frame; position must be checked from image/calibration before fidelity assertions",
+  "image": "native-front.png"
+}
