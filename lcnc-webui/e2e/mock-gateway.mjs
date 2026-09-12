@@ -32,15 +32,36 @@ const MIME = {
   ".woff2": "font/woff2", ".png": "image/png", ".wasm": "application/wasm",
 };
 
-// A tiny toolpath preview (viewer.spec.ts, A2). previewWorker fetches
+// A toolpath preview (viewer.spec.ts, A2). previewWorker fetches
 // GET /preview, msgpack-decodes it, and ThreeViewer.applyGcode builds feed /
 // rapid / highlight geometries from it — the per-program geometry whose
-// disposal-on-rebuild the leak probe checks.
+// disposal-on-rebuild the leak probe checks. The feed is a zigzag over the
+// mock machine's 100 mm box (the camera frames that box, and a chunk the
+// frustum culls is never uploaded, so it must all be in view) in 12.5 mm
+// segments: the controller bins a flat program into an 8 × 8 spatial grid
+// (lineChunks.chunkGrid, 64 cells), so every cell holds segments and the
+// drawn path is 64 CHUNKS — the probe then covers the chunked-draw
+// disposal path (2026-09-12), not a single line. Every vertex is a real
+// corner (1 mm alternation, far above the coarsest LOD tolerance of
+// ~0.07 mm): a collinear row would decimate to one chord per row at the
+// level the framed view draws, leaving most cells empty there — and a
+// chunk with nothing to draw at the drawn level is never uploaded.
+function zigzag() {
+  const feed = [], feed_lines = [];
+  for (let r = 0; r < 64; r++) {
+    const y = (r * 100) / 63;
+    for (let c = 0; c <= 8; c++) {
+      const x = (r % 2 === 0 ? c : 8 - c) * 12.5;
+      feed.push([x, y + (c % 2), 0]);
+      feed_lines.push(feed.length);
+    }
+  }
+  return { feed, feed_lines };
+}
 const PREVIEW = msgpackEncode({
   file: "/leak.ngc",
-  feed: [[0, 0, 0], [10, 0, 0], [10, 10, 0], [0, 10, 0]],
+  ...zigzag(),
   rapid: [[0, 0, 5], [0, 0, 0]],
-  feed_lines: [1, 2, 3, 4],
 });
 
 const server = createServer(async (req, res) => {

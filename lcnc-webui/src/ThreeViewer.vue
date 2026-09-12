@@ -545,7 +545,7 @@ watch(effectiveBounds, (mb) => {
 // viewerContext.ts).
 const _toolpathCtx: ToolpathCtx = {
   scene: null, workOrigin: null, workRotGroup: null, pathAnchor: null, pathRot: null,
-  machineFrame: null, roomOrigin: null, roomRotGroup: null, roomAnchor: null, roomRot: null,
+  roomOrigin: null, roomRotGroup: null, roomAnchor: null, roomRot: null,
   pathAlwaysOnTop: false, units: undefined,
 };
 function toolpathCtx(): ToolpathCtx {

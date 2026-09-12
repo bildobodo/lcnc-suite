@@ -216,8 +216,11 @@ export interface LimitViolation {
 // TLO/tool events (tlo_events → scrubTrack.tlo / tloEvents) + a diameter
 // column on parse_tlos — pre-8 the client applied ONE live tool offset to
 // the whole track (a program applying its own G43 before motion posed
-// every joint a tool length high on a fresh boot: the 22.000 gate catch).
-export const EXPECTED_PREVIEW_SCHEMA = 8;
+// every joint a tool length high on a fresh boot: the 22.000 gate catch);
+// 9 = the gateway validator's per-vertex outside-limits verdict
+// (feed_outside/rapid_outside → track.outside → the yellow overlay) — the
+// client carries the flags and derives nothing (one source of truth).
+export const EXPECTED_PREVIEW_SCHEMA = 9;
 
 /** Non-null when the loaded payload was parsed with a DIFFERENT tool length
  *  than the live table now holds for the spindle tool (W2 P4): the per-line

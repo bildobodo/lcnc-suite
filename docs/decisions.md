@@ -4413,3 +4413,45 @@ clean; Vite serves App / ThreeViewer / ScrubBar; no browser errors after the
 HMR. Live look owed from the operator: a touch-off (bar at the right end of
 the banner, never moving; same bar in the HUD; actions row never pushed out),
 a sweep cancel (chip + ↻), and the HUD chips reading as text.
+
+## 2026-09-12 (suite stop) — Schema 9, goldens regenerated, every heavy gate green, the leak probe covers 64 chunks
+
+**Suite stopped by the operator; the accumulated heavy-gate list ran in full.**
+Schema bump `PREVIEW_SCHEMA`/`EXPECTED_PREVIEW_SCHEMA` = 9 (the per-vertex
+outside flags + `__LIMITS__`; the rotary boundary / `rotary_cmd` / `ustart` keys
+shipped unbumped earlier today ride the same bump). Goldens regenerated against
+headless `DISPLAY = dummy` boots of the matching configs (temp INI copies in the
+config dir, stdin held open on a FIFO; both sims shut down cleanly afterwards and
+the copies removed): `twp/twp_simple_example` (8 → 9: `outside_points` feed null
+/ rapid 0, `rotary_cmd` B/C commanded, 4 unknown), `3axis/haus|kontur|1001` (5 →
+9: `outside_points` 0/0, `rotary_cmd` null, `cline_lines`, `unmarked_subs`,
+`ustart_count` — haus gains 2 rapid points, the schema-6 unknown-start records;
+every other field identical). `check` CLEAN on all four.
+
+**Gates.** `npm run lint` found three errors the live-session waves never saw
+(prefer-const on the hull seed, two no-useless-assignment in the GPU fence
+probe) and `npm run build` one vue-tsc error a .ts-only probe cannot catch —
+ThreeViewer still initialised the `machineFrame` field the morning wave removed
+from `ToolpathCtx`. All four fixed; then lint 0, build 0, full pytest 0 (exit),
+full vitest 51 files / 734 tests, playwright 16/16. Lesson kept: the tsc probe
+covers .ts only — a `.vue` change is verified only by `vue-tsc -b`, i.e. at the
+stop.
+
+**Leak probe extended for the chunked draw** (owed since the morning entry). The
+mock gateway's program was a 4-point square = one chunk; it is now a zigzag over
+the mock machine's 100 mm box in 12.5 mm segments, every vertex a 1 mm corner.
+Three facts shaped it, each found by a red run: the camera frames the machine
+box, so a path outside it is frustum-culled and never uploaded (17 geometries);
+the framed view draws the coarsest LOD level, and collinear rows decimate to one
+chord per row there, so most cells held nothing at the drawn level (30); with
+real corners every cell keeps pairs at every level and all 64 level-0 chunks
+upload. The spec pins `loaded − empty ≥ 48` so the multi-chunk disposal path is
+what the rebuild invariant guards; LOD levels ≥ 1 upload only when drawn at that
+zoom, so renderer.info cannot see them — their disposal stays with the
+controller unit tests.
+
+**Still owed, all on the running suite:** the operator's restart (also picks up
+`published_limits` + the limits drift edge, and the schema-9 gateway the built
+client now expects); `sim_parity.py gate` 21/21 then `git checkout --
+scripts/parity_corpus/runs`; a perf-matrix run (the limits drift edge is in the
+poller); the live looks listed in the two preceding entries.

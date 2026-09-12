@@ -112,7 +112,7 @@ export class HullSolid implements Solid {
 
   constructor(points: THREE.Vector3[]) {
     const base = dedupePoints(points, 1e-4);
-    let seed = 0x9e3779b9;
+    const seed = 0x9e3779b9;
     for (let attempt = 1; attempt <= HULL_TRIES; attempt++) {
       this.attempts = attempt;
       const input = jitterPoints(base, HULL_JITTER, seed + attempt * 7919);

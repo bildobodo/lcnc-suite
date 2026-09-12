@@ -64,8 +64,13 @@ ALLOWED_EXTENSIONS = {".ngc", ".nc", ".gcode", ".tap", ".txt"}
 # and a diameter column on `parse_tlos` — the sixth run-time state input:
 # pre-8 the client applied ONE live tool offset to the whole track, so a
 # program applying its own G43 before motion posed every joint a tool
-# length high on a fresh boot (the corpus gate's 22.000 catch).
-PREVIEW_SCHEMA = 8
+# length high on a fresh boot (the corpus gate's 22.000 catch); 9 = the
+# validator's per-vertex outside-limits verdict on the wire
+# (`feed_outside`/`rapid_outside`, one byte per shipped vertex: the
+# segment ENDING there put a joint beyond the live joint window) and the
+# `__LIMITS__` stderr line naming the window it was judged against —
+# the client draws the overlay from the flags and derives nothing.
+PREVIEW_SCHEMA = 9
 
 
 def sanitize_filename(name: str) -> str:

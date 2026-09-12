@@ -204,7 +204,7 @@ function _dropFences(): void {
 function _insertFence(now: number): void {
   if (!_gl) return;
   if (_fences.length >= FENCE_CAP) { _gpuDropped++; return; }
-  let sync: WebGLSync | null = null;
+  let sync: WebGLSync | null;
   try {
     sync = _gl.fenceSync(_gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
     _gl.flush();
@@ -219,7 +219,7 @@ function _pollFences(now: number): void {
   // still pending. One getSyncParameter per tick in the common case.
   while (_fences.length) {
     const f = _fences[0]!;
-    let done = false;
+    let done: boolean;
     try { done = _gl.getSyncParameter(f.sync, _gl.SYNC_STATUS) === _gl.SIGNALED; } catch { done = false; }
     if (!done) {
       if (now - f.at <= FENCE_STALE_MS) break;
