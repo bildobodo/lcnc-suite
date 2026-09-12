@@ -914,6 +914,11 @@ const clashBands = computed(() => {
     if (h.dist > 1e-3) continue;
     const ivs = h.intervals ?? (h.cumEnd > h.cum ? [[h.cum, h.cumEnd] as [number, number]] : []);
     for (const [a, b] of ivs) if (b > a) spans.push([(a / max) * 100, (b / max) * 100]);
+    // An onset whose contact persists past its own line paints to where it
+    // finally ends (spanCumEnd — over ALL records, past the report cap).
+    if (h.continuation === undefined && h.spanCumEnd != null && h.spanCumEnd > h.cumEnd) {
+      spans.push([(h.cumEnd / max) * 100, (h.spanCumEnd / max) * 100]);
+    }
   }
   return mergeSpans(spans);
 });

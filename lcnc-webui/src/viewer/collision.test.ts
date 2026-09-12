@@ -444,6 +444,44 @@ describe("sweepCollisions", () => {
     expect(c.hits.filter(h => [h.a, h.b].sort().join("/") === "tool/vise")).toEqual([]);
   });
 
+  it("a machine pair touching at the program's first pose but CLEAR at the model's rest pose is a crash from the start, not a static contact", () => {
+    // 2026-09-12 (operator-caught: the entry rapid drove the portal into the
+    // X slide; the base sweep filed the pair as static and never looked at
+    // it again). Rest pose = every joint at zero. The beam sits at z 5..15 on
+    // the table; the head box is at 45..55 at Z=0 (clear) and at 5..15 when
+    // the program starts at Z −40 (touching).
+    const bodies: CollisionBody[] = [
+      { id: "vise", group: "table", positions: boxPositions(10) },
+      { id: "spindle", group: "head", positions: boxPositions(10) },
+      { id: "beam", group: "table", positions: boxPositions(10), translate: [0, 0, 10] },
+    ];
+    const model = buildCollisionModel(PLUNGE, bodies);
+    // L1 feed X through the beam (in contact from the start), L2 feed Z up
+    // and out of it, L3 RAPID back down into it. (per-point arrays)
+    const r = sweepCollisions(model, track(
+      [[0, 0, -40], [10, 0, -40], [10, 0, 0], [10, 0, -40]], undefined, [0, 1, 2, 3], [0, 0, 0, 1]), WCS0, { margin: 2 });
+    expect(r.staticContacts.map(c => [c.a, c.b].sort().join("/"))).not.toContain("beam/spindle");
+    const beam = r.hits.filter(h => [h.a, h.b].sort().join("/") === "beam/spindle");
+    const onsets = beam.filter(h => h.continuation === undefined);
+    expect(onsets.map(h => [h.line, h.rapid])).toEqual([[1, false], [3, true]]);
+    expect(onsets[0]!.cum).toBe(0);
+    expect(onsets[0]!.spanEndLine).toBe(2);
+    // The span end: the contact persists into L2 (rising out of the beam),
+    // so the onset carries where it finally ends — past its own line's end
+    // (L1 ends at cum 10) and before L2's end (cum 50).
+    expect(onsets[0]!.spanCumEnd).toBeGreaterThan(onsets[0]!.cumEnd);
+    expect(onsets[0]!.spanCumEnd!).toBeGreaterThan(10);
+    expect(onsets[0]!.spanCumEnd!).toBeLessThan(50);
+    expect(onsets[1]!.spanCumEnd).toBeUndefined();   // the L3 re-entry ends on its own line
+    // Control: the SAME pair touching at rest too (the beam raised to the
+    // head's rest height) is a mechanical neighbour — static, never a hit.
+    const raised: CollisionBody[] = [bodies[0]!, bodies[1]!, { ...bodies[2]!, translate: [0, 0, 50] }];
+    const c = sweepCollisions(buildCollisionModel(PLUNGE, raised), track(
+      [[0, 0, 0], [10, 0, 0]], undefined, [0, 1], [0, 0]), WCS0, { margin: 2 });
+    expect(c.staticContacts.map(x => [x.a, x.b].sort().join("/"))).toEqual(["beam/spindle"]);
+    expect(c.hits.filter(h => [h.a, h.b].sort().join("/") === "beam/spindle")).toEqual([]);
+  });
+
   it("catches a graze narrower than the old fixed sample step", () => {
     // 1 mm head cube passes a 1 mm plate offset 1.0 mm laterally: the
     // below-margin window is ~2 mm of path — the old 5 mm grid (43/9 ≈

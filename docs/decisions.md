@@ -4822,3 +4822,42 @@ timeline band is the only sweep progress display, the mode slot goes.**
 probe clean; no browser errors after HMR. Frame-time probe before/after the blur:
 see the commit message. OWED: the operator's look (offset + chrome, band, glyphs,
 red code lines, slots, scrub-pause), heavy gates at the next stop.
+
+## 2026-09-12 (late, 5) — A crash the program starts in is not a mechanical neighbour
+
+**Operator:** the sim bar showed no red extent while "a collision is ongoing", and
+the red tint on the two parts dropped at the program's first line although the
+contact (ram vs column, begun during the entry rapid) never ends — "it used to
+recognise it before". My first read blamed the stock body (the TWP model's
+`work_piece` is `stock: true`) — WRONG: the pair is two MACHINE bodies. The real
+cause was the other half of the baseline rule: the pair is inside the margin at
+the program's FIRST pose, so the base sweep filed it as a mechanical neighbour
+("in contact from the start (excluded)", a tooltip), never queried it again, and
+reported 0 hits. It "used to" show because the old full entry-track sweep had the
+LIVE pose (clear) as its baseline and saw the onset — as the 200-capped flood.
+
+**Rule now.** Two baselines: a pair inside the margin at the first pose is a
+mechanical neighbour only if it is ALSO inside the margin at the model's REST
+pose (every joint at zero, raw — `poseRest`; the pose the machine-model tests
+require to be self-collision-free but for the designed bearings). Clear at
+rest, touching at the first pose = a crash the program starts in → seeded as
+an onset on the first line (the tool rule's `seedOnset`) and checked
+throughout; touching at both = static, as before. The rest probe runs only when
+the first pose has candidates and is not counted as a sample. Pinned with a
+control (the same pair raised to the rest height is static again);
+machineTrsrn / machineModel envelope tests unchanged.
+
+**Span past the cap.** Such a contact is one record per LINE and the report
+keeps 200 (onsets first), so the tint and the red extent used to stop after
+~200 lines. Onsets now carry `spanCumEnd` — where the contact finally ends,
+over ALL records (dist-space maximum converted to track cum; shifted by the
+entry merge). The tint glows for a line with no record of its own while the
+cum is inside an onset's span (a line WITH records still decides by its
+refined intervals); the timeline paints the span in red. GcodePanel marks
+stay per-record (a source-line range would mark lines a sub call skips).
+
+**Verified (suite live, single niced files):** collision 47 (+1), merge 3,
+machineTrsrn 12 + machineModel; SFC compile, eslint, tsc probe clean; no
+browser errors. The operator's base sweep on the reloaded tab now samples the
+contact through the whole program (in-margin cadence, no certificates) — a
+minutes-long sweep that parks at the 300 s budget; ▶ continues it.

@@ -3063,17 +3063,28 @@ function _updateClashTint(line: number | null, cum: number | null) {
   const want = new Set<string>();
   const res = _colResultFor(_scrubTrackRef);
   if (line != null && cum != null && res) {
+    // A line with records of its own decides by its refined intervals; a
+    // line WITHOUT one (past the MAX_HITS cap of a contact that never
+    // separates) glows while the cum sits inside an onset's SPAN — the
+    // contact has provably not cleared there (2026-09-12).
+    const lineHasRecord = res.hits.some(h => h.line === line && h.dist <= CONTACT_TINT_EPS);
     for (const h of res.hits) {
-      if (h.line !== line || h.dist > CONTACT_TINT_EPS) continue;
-      // Contact within a line can be intermittent — glow only INSIDE a
-      // refined interval, never across the verified-clear gaps between.
-      const ivs = h.intervals ?? [[h.cum, h.cumEnd] as [number, number]];
-      for (const [en, ex] of ivs) {
-        if (cum >= en - CONTACT_TINT_EPS && cum <= ex + CONTACT_TINT_EPS) {
-          want.add(h.a);
-          want.add(h.b);
-          break;
+      if (h.dist > CONTACT_TINT_EPS) continue;
+      if (h.line === line) {
+        // Contact within a line can be intermittent — glow only INSIDE a
+        // refined interval, never across the verified-clear gaps between.
+        const ivs = h.intervals ?? [[h.cum, h.cumEnd] as [number, number]];
+        for (const [en, ex] of ivs) {
+          if (cum >= en - CONTACT_TINT_EPS && cum <= ex + CONTACT_TINT_EPS) {
+            want.add(h.a);
+            want.add(h.b);
+            break;
+          }
         }
+      } else if (!lineHasRecord && h.continuation === undefined && h.spanCumEnd != null
+                 && cum > h.cumEnd && cum <= h.spanCumEnd + CONTACT_TINT_EPS) {
+        want.add(h.a);
+        want.add(h.b);
       }
     }
   }

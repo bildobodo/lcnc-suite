@@ -31,8 +31,16 @@
 // Noise control (baseline subtraction): mechanically-joined neighbors —
 // slides, bearings, trunnion mounts — sit inside the margin PERMANENTLY;
 // per-line reporting would flood every line of every program. Pairs already
-// within the margin at the program's FIRST pose are therefore reported once
-// as `staticContacts` and excluded from the per-line sweep. NEVER the tool
+// within the margin at the program's FIRST pose AND at the model's REST pose
+// (every joint at zero — the designed pose machineModel.test.ts requires to
+// be self-collision-free but for the designed joints) are therefore reported
+// once as `staticContacts` and excluded from the per-line sweep. A pair
+// clear at rest but touching at the first pose is a CRASH the program
+// starts in (operator-caught 2026-09-12: the entry rapid drove the portal
+// into the X slide and the base sweep filed the pair as "in contact from
+// the start (excluded)", never queried it again, and its tint and extent
+// stopped at the program's first line): seeded as an onset on the first
+// line, like the tool rule below, and checked throughout. NEVER the tool
 // (2026-09-12, operator decision): the tool is no one's mechanical
 // neighbour, so a tool pair in contact at the first pose is a contact ONSET
 // on the first line — the same cut-or-crash ambiguity the sweep reports
@@ -142,6 +150,13 @@ export interface CollisionHit {
   /** On an ONSET record: the last line the contact persists through
    *  (== line when the contact ends on its own line). */
   spanEndLine?: number;
+  /** On an ONSET record whose contact persists past its own line: the track
+   *  cum where it finally ends (the last continuation's exit — over ALL
+   *  records, past the MAX_HITS cap too). The tint and the timeline's red
+   *  extent read it for lines that have no record of their own (a contact
+   *  that never separates over thousands of lines keeps only the first
+   *  200 records). Absent when the contact ends on the onset line. */
+  spanCumEnd?: number;
 }
 
 /** What the G-code panel marks: every line in contact, onset or not. */
@@ -792,9 +807,32 @@ export function* sweepCollisionsIter(
   // never separated is a CONTINUATION, not a new clash.
   const onsetLine = new Int32Array(pairs.length).fill(-1);
   const staticContacts: CollisionResult["staticContacts"] = [];
-  poseAt(track.pos[0]!, track.pos[1]!, track.pos[2]!,
-         track.abc[0]!, track.abc[1]!, track.abc[2]!, vertModel?.[0] ?? identityKins,
-         termFor(0), tloFor(0), toolFor(0));
+  // Contact from the program's first point: an ONSET on the first line the
+  // sweep's first sample records; later lines' records are continuations.
+  const seedOnset = (pi: number) => {
+    inContact[pi] = 1;
+    onsetLine[pi] = track.lines[firstSeg] ?? 0;
+    onsetRapid[pi] = track.rapid[firstSeg] === 1 ? 1 : 0;
+  };
+  const poseFirst = () => poseAt(track.pos[0]!, track.pos[1]!, track.pos[2]!,
+                                 track.abc[0]!, track.abc[1]!, track.abc[2]!, vertModel?.[0] ?? identityKins,
+                                 termFor(0), tloFor(0), toolFor(0));
+  // The model's REST pose — every joint at zero, raw (no kins, no WCS, no
+  // TLO): the second baseline that tells a mechanical neighbour (touching
+  // here too) from a crash pose (clear here). A classification probe, not
+  // a sweep sample — `done` does not count it.
+  const poseRest = () => {
+    jointVals.fill(0);
+    poseTree(nodes, jointVals, scratch);
+    for (let bi = 0; bi < bodies.length; bi++) {
+      const body = bodies[bi]!;
+      body.world.multiplyMatrices(nodes[body.nodeIdx]!.world, body.localMat);
+      body.worldCenter.copy(body.center).applyMatrix4(body.world);
+    }
+  };
+  poseFirst();
+  const candidates: number[] = [];   // machine pairs inside the margin at the first pose
+  const firstDist = new Float64Array(pairs.length);
   for (let pi = 0; pi < pairs.length; pi++) {
     const [ai, bi] = pairs[pi]!;
     const dist = pairDistance(bodies[ai]!, bodies[bi]!, opts.margin);
@@ -802,14 +840,25 @@ export function* sweepCollisionsIter(
       if (pairCutting[pi]) {
         inContact[pi] = 1;  // engaged from the start — a later retract is benign
       } else if (pairTool[pi]) {
-        inContact[pi] = 1;
-        onsetLine[pi] = track.lines[firstSeg] ?? 0;
-        onsetRapid[pi] = track.rapid[firstSeg] === 1 ? 1 : 0;
+        seedOnset(pi);
       } else {
-        staticExcluded[pi] = 1;
-        staticContacts.push({ a: bodies[ai]!.id, b: bodies[bi]!.id, dist });
+        candidates.push(pi);
+        firstDist[pi] = dist;
       }
     }
+  }
+  if (candidates.length) {
+    poseRest();
+    for (const pi of candidates) {
+      const [ai, bi] = pairs[pi]!;
+      if (pairDistance(bodies[ai]!, bodies[bi]!, opts.margin) <= opts.margin) {
+        staticExcluded[pi] = 1;   // touching at rest too: a slide, a bearing, a mount
+        staticContacts.push({ a: bodies[ai]!.id, b: bodies[bi]!.id, dist: firstDist[pi]! });
+      } else {
+        seedOnset(pi);            // clear at rest: the program starts crashed
+      }
+    }
+    poseFirst();   // leave the model where the sweep expects it
   }
   done++;
 
@@ -1087,9 +1136,21 @@ export function* sweepCollisionsIter(
       refined.set(key, { sig, cum: h.cum, cumEnd: h.cumEnd,
                          intervals: merged.map(iv => [iv[0], iv[1]] as [number, number]) });
     }
+    // Where each onset's contact finally ENDS, over ALL records (dist cum —
+    // refined for selected records, the raw last in-contact sample for the
+    // rest): the span the tint and the red extent paint past the cap.
+    const spanEndDist = new Map<string, number>();
+    for (const h of recs.values()) {
+      if (h.continuation === undefined) continue;
+      const key = keyFor(h.continuation, h.pi);
+      spanEndDist.set(key, Math.max(spanEndDist.get(key) ?? -Infinity, h.cumEnd));
+    }
     // Hits leave the sweep in TRACK cum (time on a time-based track) — the
     // scrub-to-hit target must live on the slider's axis.
-    for (const [, h] of selected) {
+    for (const [key, h] of selected) {
+      const se = h.continuation === undefined ? spanEndDist.get(key) : undefined;
+      if (se !== undefined && se > h.cumEnd) h.spanCumEnd = distToTrackCum(se);
+      else delete h.spanCumEnd;
       h.cum = distToTrackCum(h.cum);
       h.cumEnd = Math.max(h.cum, distToTrackCum(h.cumEnd));
       if (h.intervals) {

@@ -17,6 +17,7 @@ export function mergeEntryResult(entry: CollisionResult, base: CollisionResult, 
     cum: h.cum + shift,
     cumEnd: h.cumEnd + shift,
     intervals: h.intervals?.map(iv => [iv[0] + shift, iv[1] + shift] as [number, number]),
+    ...(h.spanCumEnd !== undefined ? { spanCumEnd: h.spanCumEnd + shift } : {}),
   }));
   const hits = [...entry.hits, ...shifted].sort((x, y) => x.cum - y.cum);
   const seen = new Set<string>();

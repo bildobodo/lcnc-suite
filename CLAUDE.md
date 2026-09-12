@@ -974,16 +974,25 @@ would provide one for arbitrary machines/programs. Pair scope: DERIVED from rela
 group-tree path crosses a kinematic DOF below their lowest common
 ancestor form a pair (tool-vs-work, tool-vs-frame, and same-side pairs
 like platter-vs-table across the A tilt); rigid pairs are skipped.
-Baseline subtraction keeps it quiet: pairs already inside the margin at
-the program's FIRST pose (slides, bearings, trunnion mounts — found
-automatically, no annotations) are reported once as `staticContacts` and
-excluded from per-line reporting. NEVER a TOOL pair (2026-09-12, operator
-decision): the tool is no one's mechanical neighbour, so contact at the
-first pose is an onset on the first line (rapid-flagged when that line
-rapids) and the pair stays checked — an excluded pair was never queried
-again, so a program starting on the platter read "clear" and a later
-rapid through it reported nothing (`CollisionBody.tool`, set by the worker
-on the parametric cutter; `pairTool` in the model). Test fixture:
+Baseline subtraction keeps it quiet: pairs inside the margin at the
+program's FIRST pose AND at the model's REST pose (every joint at zero —
+the designed pose the machine-model tests require to be self-collision-
+free but for the designed bearings; slides, bearings, trunnion mounts —
+found automatically, no annotations) are reported once as
+`staticContacts` and excluded from per-line reporting. A pair CLEAR at
+rest but touching at the first pose is a crash the program starts in
+(operator-caught 2026-09-12: the entry rapid drove the ram into the
+column; the first-pose-only rule filed the pair as static, never queried
+it again, and its tint and extent stopped at L1): seeded as an onset on
+the first line and checked throughout. NEVER a TOOL pair either
+(operator decision, same day): the tool is no one's mechanical neighbour
+(`CollisionBody.tool`, set by the worker on the parametric cutter;
+`pairTool` in the model). An onset whose contact persists past its own
+line carries `spanCumEnd` (where it finally ends, over ALL records — the
+report keeps MAX_HITS = 200 records, onsets first, and a contact that
+never separates over thousands of lines is a record per LINE): the tint
+and the timeline's red extent read it for lines with no record of their
+own. Test fixture:
 `~/linuxcnc/nc_files/5axis_collision_test.ngc` — in-limits program whose
 low rapid traverse rams the trunnion (stage 1 quiet, stage 3 flags it).
 

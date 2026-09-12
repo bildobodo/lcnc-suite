@@ -11,12 +11,14 @@ describe("mergeEntryResult", () => {
   it("shifts the base hits onto the entry track's axis and keeps entry hits first", () => {
     const entry = res({ hits: [{ line: 0, cum: 1.5, cumEnd: 2, a: "tool", b: "column", dist: 0, rapid: true }], samples: 4 });
     const base = res({
-      hits: [{ line: 7, cum: 3, cumEnd: 4, intervals: [[3, 4]], a: "tool", b: "platter", dist: 0, rapid: false }],
+      hits: [{ line: 7, cum: 3, cumEnd: 4, intervals: [[3, 4]], spanCumEnd: 9, a: "tool", b: "platter", dist: 0, rapid: false }],
       samples: 100, sweepMs: 50,
     });
     const m = mergeEntryResult(entry, base, 10);
     expect(m.hits.map(h => [h.line, h.cum, h.cumEnd])).toEqual([[0, 1.5, 2], [7, 13, 14]]);
     expect(m.hits[1]!.intervals).toEqual([[13, 14]]);
+    expect(m.hits[1]!.spanCumEnd).toBe(19);   // the span end shifts with the rest
+    expect(m.hits[0]!.spanCumEnd).toBeUndefined();
     expect(m.samples).toBe(104);
     expect(m.sweepMs).toBe(60);
     expect(m.pairCount).toBe(3);
