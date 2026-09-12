@@ -160,6 +160,20 @@ class TestPollStatus(unittest.TestCase):
         base.update(over)
         return _Stat(**base)
 
+    def test_joint_limits_ride_the_payload_live(self):
+        # The viewer's machine-bounds box follows THESE (2026-09-12), not the
+        # INI file: the TWP sim muxes its Z window by kins mode in HAL.
+        stat = self._stat(joint=[
+            {"min_position_limit": -5000.0, "max_position_limit": 5000.0},
+            {"min_position_limit": -5000.0, "max_position_limit": 5000.0},
+            {"min_position_limit": -2000.0, "max_position_limit": 0.01}])
+        p = _runtime(stat=stat).poll_status()
+        self.assertEqual(p.joint_limits, [[-5000.0, 5000.0], [-5000.0, 5000.0], [-2000.0, 0.01]])
+        # a joint without limits is None INSIDE the list; no joint info → None
+        stat = self._stat(joint=[{"min_position_limit": -1.0, "max_position_limit": 1.0}, {}, {}])
+        self.assertEqual(_runtime(stat=stat).poll_status().joint_limits, [[-1.0, 1.0], None, None])
+        self.assertIsNone(_runtime(stat=self._stat()).poll_status().joint_limits)
+
     def test_kins_type_rides_reader_snapshot_absent_is_none(self):
         # Live switchkins pin: raw float from the reader snapshot when the
         # gateway configured it (switchable kins), honest None otherwise —

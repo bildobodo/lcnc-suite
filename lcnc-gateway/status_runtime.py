@@ -220,6 +220,13 @@ class StatusPayload:
     # every world-mode move; the gateway jogs in joint mode meanwhile and the
     # UI says so. None = STAT exposes no joint limits (never silently empty).
     joints_beyond_limit: Optional[List[str]]
+    # Per-joint soft-limit window [min, max] (machine units / degrees) as
+    # STAT reports it, joint order — LIVE (2026-09-12): the TWP sim switches
+    # its Z window by kins mode through a HAL mux (hallib/z_limit_window.hal),
+    # which the INI file the viewer used to draw its machine-bounds box never
+    # showed. None = STAT exposes no joint info; a joint whose limits are
+    # unreadable is None inside the list (never a synthetic number).
+    joint_limits: Optional[List[Optional[List[float]]]]
 
     # task/motion
     task_mode: Optional[int]
@@ -914,6 +921,20 @@ class StatusRuntime:
             except (TypeError, ValueError, AttributeError) as exc:
                 _trace.emit("poller.joint_limits_unreadable", level="warn", error=repr(exc))
                 joints_beyond_limit = None
+        joint_limits = None
+        if jinfo:
+            try:
+                nj_lim = int(safe_get("joints", 0) or 0) or len(jinfo)
+                joint_limits = []
+                for j in jinfo[:nj_lim]:
+                    mn = j.get("min_position_limit") if isinstance(j, dict) else None
+                    mx = j.get("max_position_limit") if isinstance(j, dict) else None
+                    joint_limits.append(
+                        [float(mn), float(mx)]
+                        if isinstance(mn, (int, float)) and isinstance(mx, (int, float)) else None)
+            except (TypeError, ValueError, AttributeError) as exc:
+                _trace.emit("poller.joint_limits_unreadable", level="warn", error=repr(exc))
+                joint_limits = None
         if jpos is None:
             jpos = safe_get("joint_position", None)
         joint_pos = to_float_list(jpos)
@@ -1029,6 +1050,7 @@ class StatusRuntime:
             homed=homed,
             homed_joints=homed_joints,
             joints_beyond_limit=joints_beyond_limit,
+            joint_limits=joint_limits,
             task_mode=safe_get("task_mode", None),
             interp_state=safe_get("interp_state", None),
             paused=bool(safe_get("paused", False)),

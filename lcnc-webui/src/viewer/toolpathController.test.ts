@@ -27,11 +27,13 @@ function makeDeps(overflow: Ref<boolean>) {
     disposeObject,
     colors: () => ({ feed: "#22b8cf", rapid: "#f5a623", toolpathBounds: "#f5a623" }),
     sceneBackground: () => new THREE.Color(SCENE_BG),
+    sceneForeground: () => new THREE.Color(SCENE_FG),
     axisCss: { x: "#f00", y: "#0f0", z: "#00f" },
     overflow,
   };
 }
 const SCENE_BG = "#102030";
+const SCENE_FG = "#e6edf3";
 
 function makeCtx(over: Partial<ToolpathCtx> = {}): ToolpathCtx & { workRotGroup: THREE.Group; pathAnchor: THREE.Group; pathRot: THREE.Group } {
   const pathAnchor = new THREE.Group();
@@ -150,38 +152,78 @@ describe("highlight", () => {
 });
 
 describe("stale mute", () => {
-  // The mute is an OPAQUE colour mix toward the scene background at the
-  // token's ratio — never alpha: a million blended segments held the Mac's
-  // GPU three frames behind during every re-parse (viewerPerf, 2026-09-09).
-  const mixOf = (hex: string, keep: number) => new THREE.Color(SCENE_BG).lerp(new THREE.Color(hex), keep).getHex();
+  // The mute is an OPAQUE colour write — never alpha: a million blended
+  // segments held the Mac's GPU three frames behind during every re-parse
+  // (viewerPerf, 2026-09-09). Since 2026-09-12 it is ONE neutral grey for
+  // every stream (the background lifted toward the foreground by the
+  // token), not a dim version of each stream's own hue.
+  const greyOf = (keep: number) => new THREE.Color(SCENE_BG).lerp(new THREE.Color(SCENE_FG), keep).getHex();
+  const rapidLineOf = (g: THREE.Group) => g.children.find(c =>
+    (c as any).isLine && c.renderOrder === 10 && (c as any).material instanceof THREE.LineDashedMaterial) as THREE.Line;
 
-  it("setStale mutes feed + rapid by an opaque mix at the host's token and survives a rebuild", () => {
+  it("setStale turns feed AND rapid the same grey at the host's token and survives a rebuild", () => {
     const ctx = makeCtx();
     (deps as any).staleOpacity = () => 0.4;
     c.apply(ctx, GCODE);
     const feedMat = () => feedLineOf(ctx.workRotGroup).material as THREE.LineBasicMaterial;
+    const rapidMat = () => rapidLineOf(ctx.workRotGroup).material as THREE.LineDashedMaterial;
     expect(feedMat().color.getHex()).toBe(new THREE.Color("#22b8cf").getHex());
     c.setStale(true);
-    expect(feedMat().color.getHex()).toBe(mixOf("#22b8cf", 0.4));
+    expect(feedMat().color.getHex()).toBe(greyOf(0.4));
+    expect(rapidMat().color.getHex()).toBe(greyOf(0.4));
     expect(feedMat().transparent).toBe(false);
     expect(feedMat().opacity).toBe(1);
     c.apply(ctx, { ...GCODE });        // a publish while still stale keeps the new lines muted
-    expect(feedMat().color.getHex()).toBe(mixOf("#22b8cf", 0.4));
+    expect(feedMat().color.getHex()).toBe(greyOf(0.4));
     c.setStale(false);
     expect(feedMat().color.getHex()).toBe(new THREE.Color("#22b8cf").getHex());
+    expect(rapidMat().color.getHex()).toBe(new THREE.Color("#f5a623").getHex());
     expect(feedMat().transparent).toBe(false);
   });
 
-  it("a colour change while muted lands as the muted mix and the new colour returns on un-mute", () => {
+  it("a colour change while muted stays grey and the new colour returns on un-mute", () => {
     const ctx = makeCtx();
     (deps as any).staleOpacity = () => 0.4;
     c.apply(ctx, GCODE);
     const feedMat = () => feedLineOf(ctx.workRotGroup).material as THREE.LineBasicMaterial;
     c.setStale(true);
     c.setColors({ feed: "#ff0000" });
-    expect(feedMat().color.getHex()).toBe(mixOf("#ff0000", 0.4));
+    expect(feedMat().color.getHex()).toBe(greyOf(0.4));
     c.setStale(false);
     expect(feedMat().color.getHex()).toBe(0xff0000);
+  });
+
+  it("the outside-bounds overlays are hidden while stale and come back per the gate", () => {
+    const d = { ...(deps as any), boundsClipPlanes: Array.from({ length: 6 }, () => new THREE.Plane()) };
+    const cc = createToolpathController(d);
+    const ctx = makeCtx({ machineFrame: new THREE.Group(), machineBounds: { origin: [50, 50, -1], size: [5, 5, 5] } });
+    cc.apply(ctx, GCODE);                       // the whole path is outside that box → overlays needed
+    const overlays = () => ctx.workRotGroup.children.filter(o => (o as any).isLineSegments && o.renderOrder === 10
+      && (o as any).material.clippingPlanes?.length) as THREE.LineSegments[];
+    const cam = new THREE.PerspectiveCamera(50, 1, 0.1, 1000); cam.position.set(5, 5, 100); cam.lookAt(5, 5, 0); cam.updateMatrixWorld();
+    cc.updateCulling(ctx, cam, 1000);
+    expect(overlays().some(o => o.visible)).toBe(true);
+    cc.setStale(true);
+    expect(overlays().every(o => !o.visible)).toBe(true);
+    cc.updateCulling(ctx, cam, 1000);           // a culling pass while stale keeps them hidden
+    expect(overlays().every(o => !o.visible)).toBe(true);
+    cc.setStale(false);
+    expect(overlays().some(o => o.visible)).toBe(true);
+  });
+
+  it("the validator's count rides beside the flag and clears with it", () => {
+    const count = ref(0);
+    const cc = createToolpathController({ ...(deps as any), overflowCount: count });
+    const ctx = makeCtx();
+    cc.apply(ctx, { ...GCODE, violations_total: 3 });
+    expect(overflow.value).toBe(true);
+    expect(count.value).toBe(3);
+    cc.apply(ctx, { ...GCODE, violations_total: undefined });
+    expect(count.value).toBe(0);
+    cc.apply(ctx, { ...GCODE, violations_total: 2 });
+    cc.forgetAfterSceneClear();
+    expect(count.value).toBe(0);
+    expect(overflow.value).toBe(false);
   });
 });
 

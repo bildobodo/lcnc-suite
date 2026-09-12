@@ -545,6 +545,19 @@ following the live offsets. A mid-run G10 L2 / fixture switch used to move
 the live origin ahead of the 300 ms re-bake: the whole path jumped, then
 returned.
 
+**Machine bounds (2026-09-12)**: the drawn box, the outside-bounds clip
+planes, the overlay gate and the camera reframe all use ONE box in the
+MACHINE frame (`machineFrameGrp`): the LIVE per-joint limits the status
+carries as `joint_limits` (`viewer/machineBounds.ts` boundsFromJointLimits,
+joint order → letters via `viewer_init.axes`; the TWP sim switches its Z
+window by kins mode through a HAL mux), with the INI-derived
+`viewer_init.machine_bounds` as the documented fallback. The box never hangs
+under the rotating work group (7a04909 moved the planes but not the mesh —
+"yellow while inside the box"). A stale path is ONE neutral grey
+(`--bg` lifted toward `--fg` by `--opacity-disabled`, opaque) with the
+overlays hidden; the soft-limit HUD chip shows the validator's count and is
+not clickable (the scrub bar navigates violations).
+
 **Chunked draw, display LOD, room-fixed prefix (2026-09-12)**: the drawn
 streams are CHUNKS (`viewer/lineChunks.ts`, pure): real segment pairs
 (`buildFrameIndex`, breaks index-skipped) binned SPATIALLY into ≤ 64 grid

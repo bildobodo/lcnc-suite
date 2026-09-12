@@ -1618,7 +1618,7 @@ watch(viewerGcode, (newGcode) => {
           </span>
           <span v-else-if="previewRefresh" :key="'preview-refresh'" class="bannerProgress" :title="previewRefreshTitle">
             <span>Preview re-parsing after {{ previewRefreshLabel(previewRefresh.reason) }} — {{ previewRefresh.file }} · {{ previewRefreshElapsedText }} of ~{{ previewRefreshExpectedText }}{{ previewRefresh.queued ? ' · restart queued' : '' }} — the toolpath, soft-limit marks and simulation are stale until it lands</span>
-            <span class="progressTrack"><span class="progressFill" :style="{ width: previewRefreshPct + '%' }"></span></span>
+            <span v-if="previewRefresh.expected_ms != null" class="progressTrack" :title="previewRefreshElapsedText + ' of ~' + previewRefreshExpectedText"><span class="progressFill" :style="{ width: previewRefreshPct + '%' }"></span></span>
           </span>
           <span v-else-if="bannerMessage && !bannerShowAbort" :key="'msg'" :class="{ bannerError: bannerMessageKind <= 2 }">
             {{ bannerMessage }}
@@ -2444,14 +2444,18 @@ watch(viewerGcode, (newGcode) => {
   align-items: center;
 }
 
-.bannerContent span {
+.bannerContent > span,
+.bannerProgress > span:first-child {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 /* Re-parse banner: text + a progress track side by side (layout only —
-   .progressTrack/.progressFill are the global program-progress styles). */
+   .progressTrack/.progressFill are the global program-progress styles).
+   The track exists only when the gateway has an expected duration for the
+   file: with none the fill sat at 0 % and the empty grey track read as a
+   stray bar after the ellipsis (operator, 2026-09-12). */
 .bannerProgress {
   display: inline-flex;
   align-items: center;

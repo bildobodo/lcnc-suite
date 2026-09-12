@@ -41,11 +41,16 @@ export interface ToolpathDeps {
    *  segments held the Mac's GPU three frames behind during every re-parse
    *  (viewerPerf, 2026-09-09) while the same lines opaque ran at 60 fps. */
   staleOpacity?: () => number;
-  /** The scene's background colour — the mute mixes toward it, so the muted
-   *  path reads like an alpha fade over the background at opaque cost. */
+  /** The scene's background and foreground (theme `--bg` / `--fg`): the
+   *  stale grey is the background lifted toward the foreground by
+   *  `staleOpacity` — one neutral grey for every stale stream, on every
+   *  theme (operator, 2026-09-12: "make it a real grey", not a dim cyan). */
   sceneBackground: () => THREE.Color;
+  sceneForeground: () => THREE.Color;
   axisCss: { x: string; y: string; z: string };
   overflow: Ref<boolean>;            // HUD warning flag, owned by ThreeViewer for the template
+  /** The validator's violation count behind the flag (the HUD chip shows it). */
+  overflowCount?: Ref<number>;
   /** Spatial grid cells (≈ chunks) per stream — lineChunks.spatialChunks. */
   chunkCells?: number;
 }
@@ -105,11 +110,13 @@ export interface ToolpathController {
   setAlwaysOnTop(on: boolean): void;
   /** Live-update feed/rapid/toolpath-bounds colours on existing lines. */
   setColors(c: { feed?: string; rapid?: string; toolpathBounds?: string }): void;
-  /** Mute the drawn path (deps.staleOpacity) while it is known not to
-   *  match the machine's live inputs — a re-parse in flight, or offsets /
-   *  tool length changed since the parse. Sticky across apply(). An opaque
-   *  colour mix toward deps.sceneBackground — never alpha (GPU cost, see
-   *  ToolpathDeps.staleOpacity); call again after a background change. */
+  /** Mute the drawn path while it is known not to match the machine's
+   *  live inputs — a re-parse in flight, or offsets / tool length changed
+   *  since the parse. Sticky across apply(). Every stream turns the one
+   *  stale grey (rapids keep their dashes) and the outside-bounds overlays
+   *  are hidden — the bounds verdict is as stale as the path. Opaque colour
+   *  writes only — never alpha (GPU cost, see ToolpathDeps.staleOpacity);
+   *  call again after a theme change. */
   setStale(on: boolean): void;
   /** Drop all refs WITHOUT disposing — clearScene already freed the objects.
    *  Parallel to surfaceController.forgetAfterSceneClear (H6): stale refs
@@ -235,14 +242,18 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
   // background while stale.
   const _feedBase = new THREE.Color();
   const _rapidBase = new THREE.Color();
+  const _grey = new THREE.Color();
 
   function _applyStale() {
     const keep = pathStale ? (deps.staleOpacity ? deps.staleOpacity() : 0.4) : 1.0;
-    const bg = keep < 1 ? deps.sceneBackground() : null;
-    for (const s of sets) {
-      const base = s.stream === "feed" ? _feedBase : _rapidBase;
-      if (bg) s.mat.color.copy(bg).lerp(base, keep);
-      else s.mat.color.copy(base);
+    if (keep < 1) {
+      // ONE neutral grey for everything stale: the background lifted toward
+      // the foreground by the disabled-opacity token — reads as grey on every
+      // theme instead of "a dim version of the path's own colour".
+      _grey.copy(deps.sceneBackground()).lerp(deps.sceneForeground(), keep);
+      for (const s of sets) s.mat.color.copy(_grey);
+    } else {
+      for (const s of sets) s.mat.color.copy(s.stream === "feed" ? _feedBase : _rapidBase);
     }
   }
 
@@ -506,18 +517,21 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
   // limits) = unchecked, and the stats dialog already says "Not
   // validated" — the HUD must not claim either way.
   function updateOverflowFromValidator(g: ViewerGcode) {
-    deps.overflow.value = (g.violations_total ?? 0) > 0;
+    const n = typeof g.violations_total === "number" && g.violations_total > 0 ? g.violations_total : 0;
+    deps.overflow.value = n > 0;
+    if (deps.overflowCount) deps.overflowCount.value = n;
   }
 
   /** Only the chunk's current level draws; the overlay of that level only
-   *  where the gate says the chunk can be outside the bounds. */
+   *  where the gate says the chunk can be outside the bounds, and never
+   *  while the path is stale (its bounds verdict is stale too). */
   function _chunkVis(s: LineSet, ci: number) {
     const ch = s.chunks[ci]!;
     for (let k = 0; k < ch.lines.length; k++) {
       const on = toolpathVisible && k === ch.level && ch.counts[k]! > 0;
       ch.lines[k]!.visible = on;
       const ov = ch.overlays[k];
-      if (ov) ov.visible = on && s.overlayNeeded[ci] === 1;
+      if (ov) ov.visible = on && !pathStale && s.overlayNeeded[ci] === 1;
     }
   }
 
@@ -867,6 +881,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     setStale(on) {
       pathStale = on;
       _applyStale();
+      _applyVisibility();
     },
 
     setVisible(on) {
@@ -915,6 +930,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       motionBBox = null;
       feedLineIndex = emptyLineIndex();
       deps.overflow.value = false;
+      if (deps.overflowCount) deps.overflowCount.value = 0;
     },
 
     dispose() {
@@ -924,6 +940,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       motionBBox = null;
       feedLineIndex = emptyLineIndex();
       deps.overflow.value = false;
+      if (deps.overflowCount) deps.overflowCount.value = 0;
     },
 
     get feedSegs() { return feedPosAttr?.count ?? 0; },

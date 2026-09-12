@@ -4141,3 +4141,76 @@ rotary reparse when the drifted axes are never commanded — `published_rotary_c
 is the datum; `sim_parity.py` injects the run's start pose — the `twp_g683_tilted`
 spike); parallel sweep shards; the orbit pixel-ratio drop + antialias setting;
 the backplot `addUpdateRange` fix.
+
+
+## 2026-09-12 — Operator walk-through: stale grey, the counted limit chip, HUD grouping, the machine-bounds box (a regression) and live joint limits, the banner bar
+
+**Asks (operator, same morning, after the rotary/headroom wave):** "make it a real
+grey if the path is stale"; "what is the clickable 'toolpath exceeds soft limits'
+for?"; "the machine/datum chip, then the tool info, then the other warnings — these
+should stay together"; "the machine bounds move with the A axis and the toolpath is
+sometimes yellow inside them — how are they computed, do they change by mode? they
+don't represent the real bounds"; "a grey bar follows the ellipsized re-parse message
+in the status bar".
+
+**Machine bounds — a regression I made, and a blind spot.** 7a04909 moved the outside-
+bounds CLIP PLANES to `machineFrameGrp` but left the drawn box MESH under `_workGrp`
+(`_workGrp!.add(machineBoundsMesh)`): on the TWP machine the two coincide only at
+A = 0; at A = 90° the box swung on a 2236 mm arc and tilted while the clipping stayed
+room-fixed — "yellow inside the box". FIXED: the mesh hangs under `machineFrameGrp`
+(= `_workGrp` on rotary-free work chains, byte-identical there), and the camera's
+reframe/reset anchor uses the box in WORLD space through that node (it used
+`_workGrp.position`, a LOCAL offset — 1700 mm off in +X on the TWP machine and turning
+with A). Provenance: the box was `viewer_init.machine_bounds` = the INI FILE's
+`[AXIS_X/Y/Z] MIN/MAX_LIMIT` (`read_machine_limits_from_ini`), read once per
+connection, cached on the file's mtime, mode-blind — but the TWP sim switches its Z
+window LIVE by kins mode through a HAL mux (`hallib/z_limit_window.hal`: −2000..0.01
+under identity, ±5000 under TCP/TOOL), so under TCP the drawn box was 5 km too tight
+in +Z and legal motion clipped yellow. NOW: `status_runtime` publishes `joint_limits`
+(STAT's per-joint [min, max], joint order, None inside the list for an unreadable
+joint, None when STAT has no joint info) on every frame — the status delta makes it
+free until it changes; the viewer derives the box from it (`viewer/machineBounds.ts`
+`boundsFromJointLimits`, joint order → letters via `viewer_init.axes`; null unless X,
+Y, Z exist with finite min < max) and falls back to the INI box, applying mesh, clip
+planes (rebuilt IN PLACE — the toolpath materials hold the arrays by reference),
+reframe box and overlay gate together (`applyMachineBounds`) whenever the effective
+box changes. The sim's X/Y ±5000 stay: the INI says (`:252-256`) they are a deliberate
+fiction for the joint-side soft-limit test case, not the model's travel — the INI is
+LinuxCNC's own soft-limit truth and the viewer does not second-guess it. Three
+notions of "limit" coexist and are now all live: the banner's per-joint check, the
+preview validator's kins-aware world check, and the drawn box. The gateway half lands
+at the next restart (status_runtime runs in the gateway process); until then the
+viewer draws the INI box, in the right frame.
+
+**Stale = one grey.** The mute mixed each stream's own colour toward the background
+at `--opacity-disabled` — a dim cyan/orange, and the yellow overlay was never muted.
+Now `grey = bg.lerp(fg, --opacity-disabled)` (theme `--bg`/`--fg`, plain hex per
+theme; a new `cssColor(token)` helper serves `--bg`, `--fg`, `--danger`) for every
+stream (rapids keep their dashes) and the outside-bounds overlays are hidden while
+stale — the bounds verdict is as stale as the path, and the GPU draws less. Still an
+opaque colour write (the 2026-09-09 alpha finding stands).
+
+**The limit chip** re-parsed on click (the same handler as the three stale chips) —
+unrelated to the violations, and it dropped the count its source carries. Now a
+plain, counted chip ("N soft-limit violation(s)") whose title says where the marks
+are (program panel) and what navigates them (the scrub bar's ◀ N limits ▶ in
+simulation mode); the WCS/TLO-stale chips keep the re-parse where a re-parse is the
+remedy, and the wcsoff drift edge re-parses on touch-off anyway.
+
+**HUD order:** readout grid → tool line → load bar → mode/datum chip → warnings (the
+chip led the tool block before; the readout and the "what to know" block are now
+each contiguous). Template move only.
+
+**Banner bar:** the re-parse message's `.progressTrack` (a fixed 80–220 px slab,
+grey on the warn-tinted banner) with `previewRefreshPct` = 0 when `expected_ms` is
+null (a file the gateway never timed) — an empty track. Now the track renders only
+with an expected duration, carries "elapsed of expected" as its title, and the
+ellipsis rule targets the text span only (a descendant selector also hit the track).
+
+**Gates (suite live — single niced files):** toolpathController 36 (+4: grey on both
+streams, colour change stays grey, overlays hidden while stale and back per the gate,
+the count rides and clears), machineBounds 4 (new), test_status_runtime 37 (+1);
+tsc subset clean; Vite serves ThreeViewer.vue/App.vue; no browser errors after HMR.
+OWED: vue-tsc/full vitest/playwright/pytest at the suite stop (unchanged list);
+operator: rotate A in Machine mode — the box stays put and yellow appears only
+outside it; after the next restart switch to TCP — the box grows in Z with the mux.

@@ -26,6 +26,7 @@ import { boundsOf, epochTermsFor, previewWcsStaleFor, rebasePositions, usedWcsRo
 import { specFromWire, worldModeForSpec } from "./viewer/kins";
 import { workMarkers, markerInputsChanged, newMarkerInputsPrev, G5X_NAMES, chainRotaryLetters, type ProgramZeroPose } from "./viewer/programZero";
 import { roomEndOf } from "./viewer/scrubTrack";
+import { boundsFromJointLimits, sameBox, type JointLimits, type MachineBox } from "./viewer/machineBounds";
 import { displayDecision } from "./viewer/displayPipeline";
 import { trackHighlightRange } from "./trackHighlight";
 import type { CollisionBody, CollisionResult, CollisionLineMark } from "./viewer/collision";
@@ -380,6 +381,7 @@ const surface = createSurfaceController();
 // Toolpath preview (feed/rapid/highlight lines, bounds box/labels/overflow) —
 // owned by toolpathController. The HUD overflow flag stays here for the template.
 const toolpathOverflow = ref(false);
+const toolpathOverflowCount = ref(0);   // the validator's violation count behind the flag
 
 // Pending layer visibility: stores calls made before scene objects exist
 let pendingLayers: Map<Layer, boolean> | null = new Map();
@@ -505,13 +507,16 @@ const toolpath = createToolpathController({
   colors: () => viewerDefaults.colors,
   axisCss: AXIS_CSS,
   overflow: toolpathOverflow,
+  overflowCount: toolpathOverflowCount,
   // Stale-path opacity from the design token (never a bare number here).
   staleOpacity: () => {
     const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--opacity-disabled"));
     return Number.isFinite(v) ? v : 0.4;
   },
-  // The mute mixes toward this, OPAQUE — see ToolpathDeps.staleOpacity.
+  // The stale grey = background lifted toward the foreground by the token,
+  // OPAQUE — see ToolpathDeps.staleOpacity.
   sceneBackground: () => (scene?.background instanceof THREE.Color ? scene.background : sceneBgFromTheme()),
+  sceneForeground: () => cssColor("--fg", "#e6edf3"),
 });
 // A stale drawn path is muted (2026-09-05): while the gateway re-parses,
 // or while the payload's fixture offsets / tool length are known to
@@ -519,6 +524,27 @@ const toolpath = createToolpathController({
 // geometry itself, not only in a chip.
 const pathStaleNow = computed(() => !!previewRefresh.value || previewWcsStale.value || !!previewTloStale.value);
 watch(pathStaleNow, (stale) => { toolpath.setStale(stale); requestRender(); }, { immediate: true });
+// Machine bounds from the LIVE joint limits (status `joint_limits`, joint
+// order → letters via viewer_init.axes), else the INI-derived viewer_init
+// box. Memoized by value so the watcher fires only on a real change.
+let _lastLiveBounds: MachineBox | null = null;
+const liveMachineBounds = computed<MachineBox | null>(() => {
+  const b = boundsFromJointLimits(vst.value?.joint_limits as JointLimits | null | undefined, viewerInit.value?.axes ?? []);
+  if (sameBox(b, _lastLiveBounds)) return _lastLiveBounds;
+  _lastLiveBounds = b;
+  return b;
+});
+const effectiveBounds = computed<{ origin: Vec3; size: Vec3 } | undefined>(() => {
+  const live = liveMachineBounds.value;
+  if (live) return { origin: live.origin as Vec3, size: live.size as Vec3 };
+  const mb = viewerInit.value?.machine_bounds;
+  return (mb?.origin && mb?.size) ? { origin: mb.origin as Vec3, size: mb.size as Vec3 } : undefined;
+});
+watch(effectiveBounds, (mb) => {
+  if (!machineBoundsMesh) return;   // buildFromInit applies the first box itself
+  applyMachineBounds(mb);
+  requestRender();
+});
 // Reused ctx object: a fresh object per call is avoidable gen-0 churn (GC
 // pauses here are object-count driven). Safe to mutate in place —
 // controllers read ctx fields synchronously and never retain it (contract in
@@ -540,7 +566,7 @@ function toolpathCtx(): ToolpathCtx {
   _toolpathCtx.roomAnchor = roomAnchor;
   _toolpathCtx.roomRot = roomRot;
   _toolpathCtx.pathAlwaysOnTop = pathAlwaysOnTop;
-  _toolpathCtx.machineBounds = viewerInit.value?.machine_bounds;
+  _toolpathCtx.machineBounds = _effectiveBounds ?? viewerInit.value?.machine_bounds;
   _toolpathCtx.units = viewerInit.value?.units;
   return _toolpathCtx;
 }
@@ -789,8 +815,9 @@ function setView(p: ViewPreset) {
   if (!camera || !controls) return;
 
   if (p === "reset") {
-    if (!_iniBox || !_workGrp) return;
-    tweenFrameToBounds(_iniBox.clone().translate(_workGrp.position));
+    const b = _boundsWorldBox();
+    if (!b) return;
+    tweenFrameToBounds(b);
     return;
   }
 
@@ -1046,6 +1073,48 @@ function clearScene() {
   }
 }
 
+/** The box the viewer currently draws and clips against (live joint limits
+ *  or the INI fallback) — what toolpathCtx hands the overlay gate. */
+let _effectiveBounds: { origin: Vec3; size: Vec3 } | undefined;
+
+/** Apply a machine-bounds box: the wireframe mesh, the six outward clip
+ *  planes (rebuilt IN PLACE — the toolpath materials hold these arrays by
+ *  reference), the camera's reframe box and the overlay gate's box. All in
+ *  machine coordinates under machineFrameGrp. */
+function applyMachineBounds(mb: { origin: Vec3; size: Vec3 } | undefined) {
+  _effectiveBounds = mb;
+  if (!machineBoundsMesh || !mb?.size || !mb?.origin) {
+    if (!mb) console.warn("No machine bounds (live joint limits or viewer_init); bounds box will remain default");
+    return;
+  }
+  applyBox(machineBoundsMesh, mb.size, mb.origin);
+  // Clipping planes for the outside-bounds overlay (normals point outward),
+  // stored in MACHINE-frame local space and transformed to world space each
+  // rendered frame in animate().
+  const [bx, by, bz] = mb.origin;
+  const [bsx, bsy, bsz] = mb.size;
+  if (bsx > 0 && bsy > 0 && bsz > 0) {
+    _localBoundsPlanes.length = 0;
+    _localBoundsPlanes.push(
+      new THREE.Plane(new THREE.Vector3(-1, 0, 0),  bx),
+      new THREE.Plane(new THREE.Vector3( 1, 0, 0), -(bx + bsx)),
+      new THREE.Plane(new THREE.Vector3(0, -1, 0),  by),
+      new THREE.Plane(new THREE.Vector3(0,  1, 0), -(by + bsy)),
+      new THREE.Plane(new THREE.Vector3(0, 0, -1),  bz),
+      new THREE.Plane(new THREE.Vector3(0, 0,  1), -(bz + bsz)),
+    );
+    boundsClipPlanes.length = 0;
+    insideBoundsClipPlanes.length = 0;
+    for (const p of _localBoundsPlanes) {
+      boundsClipPlanes.push(p.clone());
+      insideBoundsClipPlanes.push(p.clone().negate());
+    }
+  }
+  if (_iniBox) {
+    _iniBox.set(new THREE.Vector3(bx, by, bz), new THREE.Vector3(bx + bsx, by + bsy, bz + bsz));
+  }
+}
+
 function applyBox(mesh: THREE.Object3D, size: Vec3, origin: Vec3) {
   const [sx, sy, sz] = size;
   const [ox, oy, oz] = origin;
@@ -1294,7 +1363,12 @@ function ensureCoreGroups(init: ViewerInit) {
       edgeGeom,
       new THREE.LineBasicMaterial({ color: boundsColor })
     );
-    _workGrp!.add(machineBoundsMesh);
+    // MACHINE frame, never the rotating work group: the clip planes that
+    // decide the yellow outside-bounds overlay live there (7a04909), and the
+    // box that stayed under _workGrp swung with A while the clipping did not
+    // — "yellow while inside the box" (operator, 2026-09-12). On rotary-free
+    // work chains machineFrameGrp IS _workGrp.
+    (machineFrameGrp ?? _workGrp)!.add(machineBoundsMesh);
   }
 
   // Apply tool colors
@@ -1350,10 +1424,13 @@ function buildToolGroup(diam: number, len: number, meta: ToolMeta | null): THREE
   return grp;
 }
 
-function sceneBgFromTheme(): THREE.Color {
-  const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
-  return new THREE.Color(bg);
+/** A theme colour token (`--bg`, `--fg`, `--danger`, …) as a THREE colour.
+ *  The tokens are plain hex per theme — THREE cannot parse color-mix(). */
+function cssColor(name: string, fallback: string): THREE.Color {
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return new THREE.Color(v || fallback);
 }
+function sceneBgFromTheme(): THREE.Color { return cssColor("--bg", "#0b0f14"); }
 
 async function buildFromInit(init: ViewerInit) {
   if (!scene) return;
@@ -1381,37 +1458,10 @@ async function buildFromInit(init: ViewerInit) {
     // gets; one instance per build so the memoized chain stays warm.
     _markerMachine = _pfMachine(init);
     _markerDirty = true;
-    // Apply machine bounds from viewer_init (INI-derived)
-    const mb = init.machine_bounds;
-    if (machineBoundsMesh && mb?.size && mb?.origin) {
-      applyBox(machineBoundsMesh, mb.size as Vec3, mb.origin as Vec3);
-
-      // Build clipping planes for overflow visualization (normals point outward)
-      // Stored in MACHINE-frame local space (machineFrameGrp); transformed to
-      // world space each frame in animate()
-      const [bx, by, bz] = mb.origin as Vec3;
-      const [bsx, bsy, bsz] = mb.size as Vec3;
-      if (bsx > 0 && bsy > 0 && bsz > 0) {
-        _localBoundsPlanes.length = 0;
-        _localBoundsPlanes.push(
-          new THREE.Plane(new THREE.Vector3(-1, 0, 0),  bx),
-          new THREE.Plane(new THREE.Vector3( 1, 0, 0), -(bx + bsx)),
-          new THREE.Plane(new THREE.Vector3(0, -1, 0),  by),
-          new THREE.Plane(new THREE.Vector3(0,  1, 0), -(by + bsy)),
-          new THREE.Plane(new THREE.Vector3(0, 0, -1),  bz),
-          new THREE.Plane(new THREE.Vector3(0, 0,  1), -(bz + bsz)),
-        );
-        boundsClipPlanes.length = 0;
-        insideBoundsClipPlanes.length = 0;
-        for (const p of _localBoundsPlanes) {
-          boundsClipPlanes.push(p.clone());
-          insideBoundsClipPlanes.push(p.clone().negate());
-        }
-      }
-
-    } else {
-      console.warn("No machine_bounds in viewer_init; bounds box will remain default");
-    }
+    // Machine bounds: the LIVE joint limits when the status carries them
+    // (the TWP sim's Z window follows the kins mode through a HAL mux), else
+    // the INI-derived viewer_init box. Re-applied by the watcher on change.
+    applyMachineBounds(effectiveBounds.value);
 
     // Load all STL assets via the central cache (first caller fetches, others await same Promise)
     await loadMachineAssets(init);
@@ -1474,7 +1524,7 @@ async function buildFromInit(init: ViewerInit) {
     // Falls back to STL mesh world bounds if no bounds data present.
     {
       let autoBox = new THREE.Box3();
-      const mb = init.machine_bounds;
+      const mb = _effectiveBounds ?? init.machine_bounds;
       if (mb?.size && mb?.origin) {
         const [ox, oy, oz] = mb.origin as [number, number, number];
         const [sx, sy, sz] = mb.size as [number, number, number];
@@ -2599,8 +2649,7 @@ function _tintMesh(mesh: THREE.Mesh, on: boolean) {
       mesh.userData._preClashEmissive = mat.emissive.getHex();
     }
     if (_dangerHex == null) {
-      const v = getComputedStyle(document.documentElement).getPropertyValue("--danger").trim();
-      _dangerHex = v ? new THREE.Color(v).getHex() : 0xcc3333;
+      _dangerHex = cssColor("--danger", "#cc3333").getHex();
     }
     mat.emissive.setHex(_dangerHex);
     mesh.userData._clashOn = true;
@@ -2661,6 +2710,17 @@ function _updateClashTint(line: number | null, cum: number | null) {
 }
 let _needsReframe = false;
 let _iniBox: THREE.Box3 | null = null;
+/** The machine-bounds box in WORLD space: `_iniBox` is machine coordinates,
+ *  which live in machineFrameGrp's frame (the table's travel node with the
+ *  work-chain rotaries zeroed) — the node the box mesh and the clip planes
+ *  hang under. `_workGrp.position` was that group's LOCAL offset: 1700 mm
+ *  off in +X on the TWP machine and turning with A (2026-09-12). */
+function _boundsWorldBox(): THREE.Box3 | null {
+  const g = machineFrameGrp ?? _workGrp;
+  if (!_iniBox || !g) return null;
+  g.updateWorldMatrix(true, false);
+  return _iniBox.clone().applyMatrix4(g.matrixWorld);
+}
 
 function animate() {
   if (props.active === false) return; // paused — don't schedule next frame
@@ -2679,10 +2739,10 @@ function animate() {
     pendingState = null;
 
     // Re-frame after first status update so camera accounts for actual axis positions
-    if (_needsReframe && _iniBox && _workGrp) {
+    if (_needsReframe && _iniBox) {
       _needsReframe = false;
-      const box = _iniBox.clone().translate(_workGrp.position);
-      frameToBounds(box);
+      const box = _boundsWorldBox();
+      if (box) frameToBounds(box);
     }
   }
 
@@ -3291,10 +3351,6 @@ defineExpose({
         </template>
       </div>
 
-      <div v-if="hudMode" class="hudMode val-status" :class="hudMode.cls" :title="hudMode.title">
-        {{ hudMode.text }} · {{ props.g5xLabel || '-' }}<template v-if="hudPlaneWord"> · {{ hudPlaneWord }}</template>
-      </div>
-
       <template v-if="hudCfg.showTool">
         <div class="sep"></div>
         <div class="hudCtx">
@@ -3303,6 +3359,13 @@ defineExpose({
       </template>
       <div v-if="hudCfg.showLoadBar && vst?.spindle_load != null" class="loadBar" :class="spindleLoadZone">
         <div class="loadBarFill" :style="{ width: spindleLoadFillPct + '%' }"></div>
+      </div>
+
+      <!-- The mode/datum chip leads the warnings (operator, 2026-09-12: the
+           readout, the tool line and the load bar are the readout; the chip
+           and the warnings are the "what to know" block — keep them together). -->
+      <div v-if="hudMode" class="hudMode val-status" :class="hudMode.cls" :title="hudMode.title">
+        {{ hudMode.text }} · {{ props.g5xLabel || '-' }}<template v-if="hudPlaneWord"> · {{ hudPlaneWord }}</template>
       </div>
 
       <div v-if="vst?.eoffset_enabled" class="hudWarn">Comp Z {{ vst.eoffset_z != null ? vst.eoffset_z.toFixed(3) : '---' }}</div>
@@ -3321,9 +3384,8 @@ defineExpose({
       <div v-if="previewTloStale" class="hudWarn hudAction"
         :title="`Parsed with T${previewTloStale.tool} length ${previewTloStale.parsed.toFixed(3)}, table now ${previewTloStale.live.toFixed(3)} — line limit flags are stale`"
         @click="emit('reparse')">Preview parsed with a different T{{ previewTloStale.tool }} length — Reparse</div>
-      <div v-if="toolpathOverflow" class="hudWarn" :class="{ hudAction: !interpBusy }"
-        :title="'The per-line soft-limit validator flagged moves outside the machine\'s travel — the same source of truth as the marked code lines and the scrub bar\'s findings' + (interpBusy ? '' : '. Click to re-parse against the current pose and offsets')"
-        @click="!interpBusy && emit('reparse')">Toolpath exceeds soft limits</div>
+      <div v-if="toolpathOverflow" class="hudWarn"
+        title="The per-line soft-limit validator flagged these moves — the same source as the marked lines in the program panel and the scrub bar's ◀ N limits ▶, which jumps between them (simulation mode, machine off). Validated against the offsets at parse time; a touch-off re-parses automatically.">{{ toolpathOverflowCount }} soft-limit violation{{ toolpathOverflowCount === 1 ? '' : 's' }}</div>
     </div>
 
     <!-- View navigation cube (top-right) -->
