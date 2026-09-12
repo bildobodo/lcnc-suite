@@ -2,8 +2,8 @@
 
 The first geometry correction keeps Fusion countersink `SIG` as the full
 included angle. A 10 mm countersink with SIG=90 has a 5 mm cone height;
-SIG=120 gives approximately 2.886751 mm. Center-drill angle handling remains
-unchanged pending a native reference for that different tool type.
+SIG=120 gives approximately 2.886751 mm. The later center-drill references below
+establish that type's point angle and body angle independently.
 
 `buildToolProfile` and `splitProfileAt` accept `unitsPerMm` (1 for mm,
 1/25.4 for inch). Inputs and outputs remain in machine units. Fixed visual
@@ -330,12 +330,50 @@ usable native references worsens. Form-post outlines and four flat/round thread
 crest probes remain excluded from physical-shape assertions. The separate native
 form simulation and compensation references retain their own tests and limits.
 
+## Rounded dovetails, radius mills and center drills
+
+`test-fixtures/fusion-tool-specials.json` adds twelve native references: four
+rounded dovetails, four radius mills and four center drills. Canonical inputs and
+SVG contours come from Fusion 2705.1.15 on 2026-09-12. Radius mills use Trace;
+the facing strategy did not generate valid paths for these tools. Center drills
+use Drilling, with their type and geometry set explicitly from a drill template.
+
+For a rounded dovetail, `r=DC/2`, `R=RE`, `a=TA`, and the flat-tip radius is
+`f=r-R`. The lower fillet is centred at `(f,R)`, starts at angle -90 degrees and
+ends at angle `a`, so it passes the widest point before meeting the descending
+cone. That cone has radius `f+R*(1+sin(a))/cos(a)-z*tan(a)`. Fusion increased DC
+from 12 to 13 mm when RE became 0.5 mm, retaining the 12 mm flat tip; the fixture
+stores this canonical 13 mm diameter. The contour then uses the exported shoulder
+and custom shaft. A 0.005 mm fillet is preserved as well.
+
+A radius mill's concave quarter circle is centred at `(DC/2+RE,0)`, from
+`(DC/2,0)` to `(DC/2+RE,RE)`. It continues at that radius to `max(LCF,RE)`, then
+uses the shared shoulder/shaft construction. LB no longer determines its shaft
+transition. The explicit zero-radius case is not replaced by a made-up radius.
+These two arc families target a 0.001 mm meridian chord error, bounded at 4096
+segments per arc, with unchanged rotational tessellation.
+
+Both center-drill angles are **full included angles**: SIG controls the pilot
+point, TA the body cone. With pilot radius `p=tip-diameter/2`, the point ends at
+`p/tan(SIG/2)`; `tip-length` is the axial end of the pilot from the tool tip.
+The body cone then expands from `p` to `DC/2` using `tan(TA/2)`. LCF does not
+truncate that cone. The new `tip_length` field survives unit conversion, sidecar
+storage and both viewer metadata paths. Old doubled center-drill angles need
+reimported metadata; their origin cannot safely be inferred from the angle alone.
+
+Across the six dovetail, five radius-mill and four center-drill native cases,
+maximum sampled deviations are respectively 0.000972, 0.000987 and 0.000019 mm.
+No usable prior native reference worsens. As elsewhere, these are sampled
+reference-case distances, not machining or complete 3D mesh tolerances.
+The cutter/shaft material split now uses a numerical boundary tolerance instead
+of a 0.01 mm visual band, preserving small fillets and planar end caps at LCF.
+
 ## Remaining scope
 
-Flat/round thread crest details, rounded dovetails, center drills and probes
-still need their own cutting-profile
-corrections or additional native references. Their legacy shape branches remain
-separate. The radius-mill arc still has its existing coarse tessellation.
+Flat/round thread crest details and probes still need their own cutting-profile
+corrections or additional native references. The probe's legacy shape branch
+remains separate. Creating and inspecting a Probe WCS operation input stopped
+responding through Fusion MCP; that incomplete attempt supplies no shape evidence.
 The native form-mill post remains an unsuitable shape oracle.
 
 Optional holder placement and safe metadata-only refresh of existing libraries

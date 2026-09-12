@@ -108,6 +108,7 @@ def parse_fusion_library(data: dict, machine_unit: str) -> tuple[list, list]:
             "taper_angle": geom.get("TA"),
             "point_angle": geom.get("SIG"),
             "tip_diameter": _opt_scale(geom.get("tip-diameter"), tool_scale),
+            "tip_length": _opt_scale(geom.get("tip-length"), tool_scale),
             "shoulder_length": _opt_scale(geom.get("shoulder-length"), tool_scale),
             "shoulder_diameter": _opt_scale(geom.get("shoulder-diameter"), tool_scale),
             "assembly_gauge_length": _opt_scale(geom.get("assemblyGaugeLength"), tool_scale),
@@ -129,17 +130,13 @@ def parse_fusion_library(data: dict, machine_unit: str) -> tuple[list, list]:
                 "thread_tip_radius": _opt_scale(geom.get("thread-tip-radius"), tool_scale),
             })
         # ---- Per-type angle normalization (Fusion stores half-angles for some types) ----
-        # Source: FreeCAD Better Tool Library reverse-engineering of Fusion 360 geometry keys
-        if our_type in ("chamfer", "countersink", "centerdrill"):
+        # Verified against native Fusion CAM contours, independently by type.
+        if our_type in ("chamfer", "countersink"):
             # Fusion TA is half-angle for chamfer/countersink — double to get included angle
             if tool.get("taper_angle"):
                 tool["taper_angle"] *= 2
-        # Native Fusion countersink contours confirm SIG is the full included
-        # angle (90 degrees gives a 5 mm cone height at DC=10 mm), like drills.
-        # Keep the legacy center-drill mapping until that type has a reference.
-        if our_type == "centerdrill":
-            if tool.get("point_angle"):
-                tool["point_angle"] *= 2
+        # SIG is the full included point angle for drills, countersinks and
+        # center drills. Center-drill TA is also a full included body angle.
 
         # A custom shaft belongs to the tool and shares its unit. Segment
         # heights stack from shoulder-length, independently of LB/installation.

@@ -54,11 +54,15 @@ class TestFusionGeometryImport(unittest.TestCase):
                 self.assertEqual(merged['oal'], 70)
         self.assertEqual(raw, before)
 
-    def test_center_drill_retains_legacy_mapping_pending_native_reference(self):
+    def test_center_drill_keeps_included_angles_and_scales_pilot_length(self):
         raw = {'type': 'center drill', 'post-process': {'number': 1},
-               'geometry': {'DC': 6, 'TA': 30, 'SIG': 60}}
-        tool = parse_fusion_library({'data': [raw]}, 'mm')[0][0]
-        self.assertEqual((tool['taper_angle'], tool['point_angle']), (60, 120))
+               'unit': 'inches',
+               'geometry': {'DC': .25, 'TA': 30, 'SIG': 118, 'tip-length': .1}}
+        for unit, scale in [('mm', 25.4), ('in', 1)]:
+            with self.subTest(unit=unit):
+                tool = parse_fusion_library({'data': [raw]}, unit)[0][0]
+                self.assertEqual((tool['taper_angle'], tool['point_angle']), (30, 118))
+                self.assertAlmostEqual(tool['tip_length'], .1 * scale)
 
     def test_shaft_uses_tool_units_and_holder_uses_its_own_units(self):
         raw = {'type': 'flat end mill', 'unit': 'inches',

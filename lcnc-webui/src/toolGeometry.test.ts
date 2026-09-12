@@ -7,9 +7,10 @@ import originalFixtures from "../../test-fixtures/fusion-tool-contours.json";
 import shoulderFixtures from "../../test-fixtures/fusion-tool-shoulders.json";
 import taperThreadFixtures from "../../test-fixtures/fusion-tool-tapers-threads.json";
 import chamferSlotFixtures from "../../test-fixtures/fusion-tool-chamfers-slots.json";
+import specialFixtures from "../../test-fixtures/fusion-tool-specials.json";
 import formOffsets from "../../test-fixtures/fusion-tool-form-offsets.json";
 const fixtures = { cases: [...originalFixtures.cases, ...shoulderFixtures.cases,
-  ...taperThreadFixtures.cases, ...chamferSlotFixtures.cases] };
+  ...taperThreadFixtures.cases, ...chamferSlotFixtures.cases, ...specialFixtures.cases] };
 import { buildToolProfile, buildToolParts, type ToolMeta } from "./toolGeometry";
 import { toolUnitsPerMillimeter } from "./toolUnits";
 
@@ -188,8 +189,22 @@ function directedContourDistance(a: number[][], b: number[][]) {
   return worst;
 }
 
-const verifiedTypes = new Set(["endmill", "ball", "bullnose", "drill", "countersink", "dovetail", "facemill", "lollipop", "tap", "tapered", "threadmill", "chamfer", "slotmill"]);
+const verifiedTypes = new Set(["endmill", "ball", "bullnose", "drill", "countersink", "dovetail", "facemill", "lollipop", "tap", "tapered", "threadmill", "chamfer", "slotmill", "radiusmill", "centerdrill"]);
 describe("native Fusion tool contours", () => {
+  it("keeps the small slot fillet intact at the cutter/shaft material split", () => {
+    const fixture = imported.find(c => c.id === "slot-small-radius")!;
+    for (const unit of ["mm", "inch"] as const) {
+      const meta = fixture[unit], scale = toolUnitsPerMillimeter(unit);
+      const parts = buildToolParts(meta.D, meta.oal!, meta, scale);
+      const lastEdge = parts.cutter[parts.cutter.length - 2]!;
+      expect(lastEdge.y / scale).toBeCloseTo(2, 10);
+      expect(lastEdge.x / scale).toBeCloseTo(4.995, 10);
+      expect(parts.cutter[parts.cutter.length - 1]!.toArray().map(n => n / scale)).toEqual([0, 2]);
+      expect(parts.shaft[1]!.x / scale).toBeCloseTo(3, 10);
+      expect(parts.shaft[1]!.y / scale).toBeCloseTo(2, 10);
+    }
+  });
+
   for (const tool of imported.filter(c => verifiedTypes.has(c.mm.type!))) {
     if (!fixtures.cases.find(c => c.id === tool.id)!.referenceUsable) continue;
     it(`${tool.id}: complete physical profile matches Fusion`, () => {
@@ -203,8 +218,9 @@ describe("native Fusion tool contours", () => {
         // Larger taper radii have six significant digits in Fusion's SVG
         // (e.g. 11.5023), so their coordinate rounding alone can reach 0.00005.
         // Slot arcs use a finer 0.001 mm chord target in machine units.
-        const tolerance = meta.type === "slotmill" ? 0.002
-          : fixture.nativeSVG.includes("A") ? 0.01 : meta.type === "tapered" ? 0.0001 : 0.00001;
+        const tolerance = ["slotmill", "radiusmill", "dovetail"].includes(meta.type!) ? 0.002
+          : fixture.nativeSVG.includes("A") ? 0.01
+          : ["tapered", "centerdrill"].includes(meta.type!) ? 0.0001 : 0.00001;
         expect(directedContourDistance(actual, fixture.nativePoints)).toBeLessThan(tolerance);
         expect(directedContourDistance(fixture.nativePoints, actual)).toBeLessThan(tolerance);
         for (let i = 1; i < actual.length; i++) {

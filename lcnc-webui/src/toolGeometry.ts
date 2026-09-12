@@ -38,6 +38,7 @@ export interface ToolMeta {
   taper_angle?: number | null;
   point_angle?: number | null;
   tip_diameter?: number | null;
+  tip_length?: number | null;
   // CAM compensation metadata, separate from the physical outline and measured
   // length. Fusion already applies this to the verified form/Trace NC positions.
   tip_offset?: number | null;
@@ -60,7 +61,6 @@ export function buildToolProfile(
   const r = Math.max(0, diam * 0.5);
   const type = meta?.type ?? "other";
   const fluteLen = meta?.flute_length ?? len * 0.6;
-  const bodyLen = meta?.body_length ?? fluteLen;
   const shaftR = (meta?.shaft_diameter ?? diam) * 0.5;
   const oal = meta?.oal ?? len;
   const tipR = (meta?.tip_diameter ?? 0) * 0.5;
@@ -70,6 +70,11 @@ export function buildToolProfile(
 
   const pts: THREE.Vector2[] = [];
   const V = (x: number, y: number) => new THREE.Vector2(Math.max(0, x), y);
+  // Meridian arcs target 0.001 mm, with bounded allocation for extreme inputs.
+  const arcSteps = (radius: number, sweep: number) => {
+    const step = 4 * Math.asin(Math.sqrt(Math.min(1, 0.001 * unitsPerMm / (2 * radius))));
+    return Math.min(4096, Math.max(6, Math.ceil(Math.abs(sweep) / step)));
+  };
 
   // Continue from the actual cutting-profile end to the shoulder's axial length.
   // Custom shaft segments start there and are clipped at physical OAL. Neither
@@ -184,18 +189,16 @@ export function buildToolProfile(
       break;
     }
     case "radiusmill": {
-      const cr = cornerR || r * 0.2;
-      const arcN = 8;
+      const cr = Math.max(0, meta?.corner_radius ?? r * 0.2);
+      const arcN = cr > 0 ? arcSteps(cr, Math.PI / 2) : 0;
       const arcTop = r + cr;
-      const cylTop = Math.max(cr, bodyLen);
       pts.push(V(0, 0), V(r, 0));
       for (let i = 1; i <= arcN; i++) {
         const a = (Math.PI / 2) * (i / arcN);
         pts.push(V(r + cr * (1 - Math.cos(a)), cr * Math.sin(a)));
       }
-      if (Math.abs(shaftR - arcTop) > eps) pts.push(V(shaftR, cr));
-      pts.push(V(shaftR, cylTop));
-      pts.push(V(shaftR, oal), V(0, oal));
+      pts.push(V(arcTop, Math.max(cr, fluteLen)));
+      appendShoulderAndShaft(arcTop);
       break;
     }
     case "drill": {
@@ -213,12 +216,13 @@ export function buildToolProfile(
       // point_angle = full included tip angle, taper_angle = full included body angle
       const tipHalfA = (pointAngle / 2) * (Math.PI / 180);
       const bodyHalfA = (taperAngle / 2) * (Math.PI / 180);
-      const pilotR = tipR > eps ? tipR : r * 0.3;
+      const pilotR = meta?.tip_diameter != null ? tipR : r * 0.3;
       const pilotH = pilotR / Math.tan(tipHalfA || 1);
+      const pilotEnd = Math.max(pilotH, meta?.tip_length ?? pilotH);
       const bodyH = (r - pilotR) / Math.tan(bodyHalfA || 1);
-      pts.push(V(0, 0), V(pilotR, pilotH), V(r, pilotH + bodyH), V(r, fluteLen));
-      if (Math.abs(shaftR - r) > eps) pts.push(V(shaftR, fluteLen));
-      pts.push(V(shaftR, oal), V(0, oal));
+      pts.push(V(0, 0), V(pilotR, pilotH), V(pilotR, pilotEnd),
+        V(r, pilotEnd + bodyH), V(r, Math.max(fluteLen, pilotEnd + bodyH)));
+      appendShoulderAndShaft(r);
       break;
     }
     case "chamfer": {
@@ -272,10 +276,22 @@ export function buildToolProfile(
     }
     case "dovetail": {
       // Fusion TA is the side angle here (unmodified by the importer).
-      // Confirmed for the sharp, RE=0 dovetail; rounded edges remain future work.
       const sideAngle = taperAngle * Math.PI / 180;
-      const neckR = Math.max(0, r - fluteLen * Math.tan(sideAngle));
-      pts.push(V(0, 0), V(r, 0), V(neckR, fluteLen));
+      const cr = Math.min(r, Math.max(0, cornerR));
+      const flatR = r - cr;
+      pts.push(V(0, 0), V(flatR, 0));
+      if (cr > 0) {
+        const sweep = Math.PI / 2 + sideAngle;
+        const steps = arcSteps(cr, sweep);
+        for (let i = 1; i <= steps; i++) {
+          const a = -Math.PI / 2 + sweep * i / steps;
+          pts.push(V(flatR + cr * Math.cos(a), cr * (1 + Math.sin(a))));
+        }
+      }
+      const coneR = flatR + cr * (1 + Math.sin(sideAngle)) / Math.cos(sideAngle);
+      const endY = Math.max(fluteLen, pts[pts.length - 1]!.y);
+      const neckR = Math.max(0, coneR - endY * Math.tan(sideAngle));
+      pts.push(V(neckR, endY));
       appendShoulderAndShaft(neckR);
       break;
     }
@@ -393,7 +409,9 @@ export function buildToolParts(diam: number, len: number, meta: ToolMeta | null,
 
 /** Split a profile at the given Y coordinate into cutter (below) and shaft (above) sub-profiles */
 export function splitProfileAt(pts: THREE.Vector2[], splitY: number, unitsPerMm = 1): { cutter: THREE.Vector2[], shaft: THREE.Vector2[] } {
-  const eps = 0.01 * unitsPerMm;
+  // This is a topological split, not a visual simplification. A 0.01 mm band
+  // would assign small fillets to the split plane and create slanted end caps.
+  const eps = 1e-10 * unitsPerMm;
   const below: THREE.Vector2[] = [];
   const atBound: THREE.Vector2[] = [];
   const above: THREE.Vector2[] = [];
@@ -419,14 +437,14 @@ export function splitProfileAt(pts: THREE.Vector2[], splitY: number, unitsPerMm 
   if (interpPt) cutter.push(interpPt);
   if (atBound.length > 0) cutter.push(atBound[0]!);
   const edgeR = cutter.length > 0 ? cutter[cutter.length - 1]!.x : 0;
-  if (edgeR > eps) cutter.push(new THREE.Vector2(0, splitY));
+  if (edgeR > 0) cutter.push(new THREE.Vector2(0, splitY));
 
   const shaft: THREE.Vector2[] = [new THREE.Vector2(0, splitY)];
   if (atBound.length > 1) {
     for (let i = 1; i < atBound.length; i++) shaft.push(atBound[i]!);
   } else if (above.length > 0) {
     const r = interpPt ? interpPt.x : edgeR;
-    if (r > eps) shaft.push(new THREE.Vector2(r, splitY));
+    if (r > 0) shaft.push(new THREE.Vector2(r, splitY));
   }
   shaft.push(...above);
 
