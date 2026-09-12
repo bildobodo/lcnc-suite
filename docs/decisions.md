@@ -4500,3 +4500,19 @@ instances from the attempted live patch sit in the running HAL until then
 the running gateway); the headless scenarios + `preview_publish` are what today's
 poller change (the limits drift edge) can affect — the trip property (#34) has no
 code change behind it today. Result recorded below when it lands.
+
+**Perf matrix result (artifact `runlogs/perf-matrix/20260912T162534Z-45ec746.json`,
+gateway pid 817361, `--allow-arm`, no trip):** idle_baseline, fanout,
+reconnect_storm, upload_during_stream, save_during_stream, fusion_near_limit,
+rss_gc_watch — zero lag windows each. preview_publish: delivered (version bump
+asserted), publish 20.8 s total / 1.3 s gzip for 47.2 MB (15.97 MB gz), RSS
+129 → 220 MB (in the 169–207 MB band's neighbourhood, same shape as every
+publishing run since June); ONE lag window, 51.3 ms, dominant
+`load_file.program_open` — the phase gateway.py already annotates (a ~62 ms
+program_open completion wait on the 40 MB file, measured when the phase markers
+were added); the 2026-09-05 artifact shows 0 windows for the same scenario, so
+this is the known program_open wait surfacing above the window threshold on a
+busier box (two other windows in this session's trace: a 135 ms `machine_off`
+handle on the OLD gateway during the stop, a 65 ms `reader_recv.readline` during
+the prep script), not the limits drift edge — no window names `poll_status` or
+any drift evaluation. sigstop_trip: skipped (see above).
