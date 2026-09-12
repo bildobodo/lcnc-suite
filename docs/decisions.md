@@ -4522,3 +4522,25 @@ the command serial with the GIL held, and task echoes after its cycle handled
 the open — the residual 51 ms is that echo wait on a 40 MB file, scaling with
 task's open time. Recorded in the code comment; follow-on candidate (subprocess
 or GIL-releasing send), not a regression from today's poller change.
+
+**Corpus gate on the restarted suite (limit_window.hal live): GREEN, 21/21.**
+Boot: the POSTGUI file ran (`postgui halfile 1: hallib/limit_window.hal`, 24 ms),
+`limit-is-identity` TRUE at type 0 with the ini pins at the INI travels
+(X ±1500, Y −2000..1300, Z −2000..0.01) and in0 = ±5000 armed for TCP/TOOL.
+Prep via the gateway (ack → arm → e-stop reset → machine on → home all), headless
+keeper answering M6, zero `nml.error` on the new gateway across all eleven runs:
+
+| run | truth→sim max | sim→truth max | tol | plane normal err |
+|---|---|---|---|---|
+| twp_simple_example 1 / 2 | 0.000 / 0.000 | 0.026 / 0.017 | 0.5 | 0.005° / 0.000° |
+| twp_a_tilt 1 / 2 | 0.001 / 0.000 | 0.029 / 0.020 | 0.5 | 0.0° / 0.002° |
+| parity_linear 1 | 0.007 | 0.022 | 0.5 | — |
+| twp_g69_tail 1 / 2 | 0.007 / 0.001 | 0.040 / 0.040 | 0.5 | 0.001° / 0.002° |
+| twp_a_define_tilted 1 / 2 | 0.003 / 0.004 | 0.031 / 0.037 | 0.5 | 0.000° / 0.000° |
+| twp_g683_tilted 1 / 2 | 0.691 / 0.000 | 1.074 / 0.037 | 1.5 | 0.0° / 0.002° |
+
+Same numbers as the 2026-09-05 green run (the world-mode window is byte-identical
+by construction). Fixtures restored (`git checkout -- scripts/parity_corpus/runs`),
+keeper stopped, only the operator's tab connected. With this the suite-stop and
+restart lists are CLOSED except the operator's own live looks and the skipped
+trip scenario (no safety-chain code changed today).
