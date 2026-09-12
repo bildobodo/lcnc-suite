@@ -32,9 +32,13 @@
 // slides, bearings, trunnion mounts — sit inside the margin PERMANENTLY;
 // per-line reporting would flood every line of every program. Pairs already
 // within the margin at the program's FIRST pose are therefore reported once
-// as `staticContacts` and excluded from the per-line sweep. A program that
-// genuinely starts in a crashed pose still surfaces there — "in contact
-// from the start" is exactly what's true.
+// as `staticContacts` and excluded from the per-line sweep. NEVER the tool
+// (2026-09-12, operator decision): the tool is no one's mechanical
+// neighbour, so a tool pair in contact at the first pose is a contact ONSET
+// on the first line — the same cut-or-crash ambiguity the sweep reports
+// anywhere else — and the pair stays checked. Excluding it silenced a
+// program that starts on the platter ("clear" + a tooltip) AND every later
+// rapid through it: an excluded pair is never queried again.
 import * as THREE from "three";
 import { MeshBVH } from "three-mesh-bvh";
 import { normalizeKinematics, type KinRuntime } from "./kinematics";
@@ -100,6 +104,9 @@ export interface CollisionBody {
    *  programs cut stock sitting above the fixture, so tool contact with any
    *  machine body is a crash by definition. */
   stock?: boolean;
+  /** The TOOL body (the parametric cutter the worker attaches to the tool
+   *  group). Never baseline-excluded — see the header. */
+  tool?: boolean;
 }
 
 export interface CollisionHit {
@@ -360,6 +367,8 @@ export interface CollisionModel {
    *  these pairs is CUTTING — expected machining, not reported; contact
    *  whose onset falls in a RAPID is a crash and reports normally. */
   pairCutting: boolean[];
+  /** Per pair: one body is the TOOL — never a static exclusion. */
+  pairTool: boolean[];
   machine: CollisionMachine;
   bvhMs: number;
 }
@@ -428,11 +437,14 @@ export function buildCollisionModel(machine: CollisionMachine, bodyDefs: Collisi
   // Cutting pairs: tool-side body × an EXPLICIT stock body. No machine part
   // is ever implicitly cuttable — the platter is workholding, not stock.
   const stockIds = new Set(bodyDefs.filter(d => d.stock).map(d => d.id));
+  const toolIds = new Set(bodyDefs.filter(b => b.tool).map(b => b.id));
   const isCuttingBody = (b: BuiltBody) => stockIds.has(b.id);
+  const isToolBody = (b: BuiltBody) => toolIds.has(b.id);
 
   const pairs: Array<[number, number]> = [];
   const pairDofs: PathDof[][] = [];
   const pairCutting: boolean[] = [];
+  const pairTool: boolean[] = [];
   for (let a = 0; a < bodies.length; a++) {
     for (let b = a + 1; b < bodies.length; b++) {
       const A = bodies[a]!, B = bodies[b]!;
@@ -446,9 +458,10 @@ export function buildCollisionModel(machine: CollisionMachine, bodyDefs: Collisi
       pairCutting.push(
         (A.side === "tool" && isCuttingBody(B)) || (B.side === "tool" && isCuttingBody(A)),
       );
+      pairTool.push(isToolBody(A) || isToolBody(B));
     }
   }
-  return { nodes, bodies, pairs, pairDofs, pairCutting, machine, bvhMs: performance.now() - t0 };
+  return { nodes, bodies, pairs, pairDofs, pairCutting, pairTool, machine, bvhMs: performance.now() - t0 };
 }
 
 /** One kinematic pose: evaluate every node's world matrix from joint values. */
@@ -533,7 +546,7 @@ export function* sweepCollisionsIter(
   wcs: PartFrameWcs,
   opts: CollisionOptions,
 ): Generator<number, CollisionResult, boolean | undefined> {
-  const { nodes, bodies, pairs, pairDofs, pairCutting, machine } = model;
+  const { nodes, bodies, pairs, pairDofs, pairCutting, pairTool, machine } = model;
   const maxSamples = opts.maxSamples ?? DEFAULTS.maxSamples;
   const clock = opts.clock ?? (() => performance.now());
   const t0 = clock();
@@ -758,10 +771,17 @@ export function* sweepCollisionsIter(
   };
 
   // Baseline pass (first pose): pairs already inside the margin here are
-  // mechanical-joint proximity (slides, bearings, trunnion mounts) — or a
-  // program that starts in contact. Reported once, excluded from the sweep.
-  // CUTTING pairs are never baseline-excluded (a tool parked on the work is
-  // normal) — they instead seed the in-contact state for onset tracking.
+  // mechanical-joint proximity (slides, bearings, trunnion mounts). Reported
+  // once, excluded from the sweep. CUTTING pairs are never baseline-excluded
+  // (a tool parked on the work is normal) — they instead seed the in-contact
+  // state for onset tracking. TOOL pairs are never excluded either: contact
+  // here is an ONSET on the first line (see the header) — the seeded latch
+  // makes the sweep's first sample record it and the following lines'
+  // records continuations of it.
+  // The onset belongs to the first segment WITH length: a zero-length
+  // unknown-start rapid (schema 6) carries no sample.
+  let firstSeg = 1;
+  while (firstSeg < n - 1 && dcum[firstSeg]! - dcum[firstSeg - 1]! <= 1e-9) firstSeg++;
   const staticExcluded = new Uint8Array(pairs.length);
   const inContact = new Uint8Array(pairs.length);
   const onsetRapid = new Uint8Array(pairs.length);
@@ -780,6 +800,10 @@ export function* sweepCollisionsIter(
     if (dist <= opts.margin) {
       if (pairCutting[pi]) {
         inContact[pi] = 1;  // engaged from the start — a later retract is benign
+      } else if (pairTool[pi]) {
+        inContact[pi] = 1;
+        onsetLine[pi] = track.lines[firstSeg] ?? 0;
+        onsetRapid[pi] = track.rapid[firstSeg] === 1 ? 1 : 0;
       } else {
         staticExcluded[pi] = 1;
         staticContacts.push({ a: bodies[ai]!.id, b: bodies[bi]!.id, dist });

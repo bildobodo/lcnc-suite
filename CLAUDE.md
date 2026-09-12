@@ -970,7 +970,13 @@ like platter-vs-table across the A tilt); rigid pairs are skipped.
 Baseline subtraction keeps it quiet: pairs already inside the margin at
 the program's FIRST pose (slides, bearings, trunnion mounts — found
 automatically, no annotations) are reported once as `staticContacts` and
-excluded from per-line reporting. Test fixture:
+excluded from per-line reporting. NEVER a TOOL pair (2026-09-12, operator
+decision): the tool is no one's mechanical neighbour, so contact at the
+first pose is an onset on the first line (rapid-flagged when that line
+rapids) and the pair stays checked — an excluded pair was never queried
+again, so a program starting on the platter read "clear" and a later
+rapid through it reported nothing (`CollisionBody.tool`, set by the worker
+on the parametric cutter; `pairTool` in the model). Test fixture:
 `~/linuxcnc/nc_files/5axis_collision_test.ngc` — in-limits program whose
 low rapid traverse rams the trunnion (stage 1 quiet, stage 3 flags it).
 

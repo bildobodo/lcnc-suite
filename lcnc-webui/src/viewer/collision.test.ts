@@ -396,6 +396,34 @@ describe("sweepCollisions", () => {
     expect(r.hits.some(h => [h.a, h.b].sort().join("/") === "spindle/vise")).toBe(true);
   });
 
+  it("a TOOL body in contact at the first pose is an onset on the first line, never a static exclusion — and a later rapid through the same body still reports", () => {
+    // 2026-09-12 (operator decision): the tool is no one's mechanical
+    // neighbour. The excluded pair used to silence a program that starts on
+    // the platter AND every later rapid through it — an excluded pair is
+    // never queried again. Geometry: the tool box hangs 50 below the head,
+    // i.e. inside the vise at the start pose.
+    const bodies = (toolFlag: boolean): CollisionBody[] => [
+      { id: "vise", group: "table", positions: boxPositions(10) },
+      { id: "spindle", group: "head", positions: boxPositions(10) },
+      { id: "tool", group: "head", positions: boxPositions(10), translate: [0, 0, -50], tool: toolFlag || undefined },
+    ];
+    // L7 feed X through the vise (in contact from the start), L8 feed Z up
+    // and out of it, L9 RAPID back down into it.
+    // (per-POINT arrays: segment i carries lines[i] / rapid[i])
+    const prog = () => track([[0, 0, 0], [10, 0, 0], [10, 0, 30], [10, 0, 0]], undefined, [0, 7, 8, 9], [0, 0, 0, 1]);
+    const r = sweepCollisions(buildCollisionModel(PLUNGE, bodies(true)), prog(), WCS0, { margin: 2 });
+    expect(r.staticContacts).toEqual([]);
+    const onsets = r.hits.filter(h => h.continuation === undefined && [h.a, h.b].sort().join("/") === "tool/vise");
+    expect(onsets.map(h => [h.line, h.rapid])).toEqual([[7, false], [9, true]]);
+    expect(onsets[0]!.cum).toBe(0);                       // in contact from the program's first point
+    expect(onsets[0]!.spanEndLine).toBe(8);               // still touching while L8 retracts
+    // The control: the same body WITHOUT the flag is a machine part — the
+    // old rule: one static contact, and the L9 rapid plunge reports NOTHING.
+    const c = sweepCollisions(buildCollisionModel(PLUNGE, bodies(false)), prog(), WCS0, { margin: 2 });
+    expect(c.staticContacts.map(x => [x.a, x.b].sort().join("/"))).toEqual(["tool/vise"]);
+    expect(c.hits.filter(h => [h.a, h.b].sort().join("/") === "tool/vise")).toEqual([]);
+  });
+
   it("catches a graze narrower than the old fixed sample step", () => {
     // 1 mm head cube passes a 1 mm plate offset 1.0 mm laterally: the
     // below-margin window is ~2 mm of path — the old 5 mm grid (43/9 ≈

@@ -4746,3 +4746,32 @@ contact, and a later rapid through the platter never reports either). A tool
 pair is never a mechanical joint; the stock rule (seed in-contact, never
 exclude) would fit it — but it flips such programs from "clear" to a clash per
 line under the no-stock semantic limit, so it is the operator's call.
+
+## 2026-09-12 (late, 3) — Tool pairs are never baseline-excluded
+
+**Decision (operator, on the recommendation recorded above):** the baseline
+pass keeps its whole-sweep exclusion for machine-internal pairs (slides,
+bearings, trunnion mounts legitimately separate and re-approach) and never
+applies it to a pair that involves the TOOL body. The tool is no one's
+mechanical neighbour: tool contact is cutting or a crash, the same ambiguity
+at the first point as mid-program, where the sweep already reports it and
+lets the operator judge. Quiet seeding (in-contact, no onset) was rejected —
+it closes the silent gap but keeps the misleading "clear", and disagrees with
+the sim-entry overlay that reports the approach ending in contact.
+
+**Mechanics.** `CollisionBody.tool` (the worker sets it on the parametric
+cutter), `pairTool` per pair in the model; the baseline pass seeds a tool pair
+inside the margin as in-contact with `onsetLine` = the first segment WITH
+length (a schema-6 zero-length unknown-start rapid carries no sample) and
+`onsetRapid` from that segment — so the sweep's first sample records the
+onset on the first line and later lines' records are continuations of it; a
+separation and re-entry is a new onset as anywhere else. Static-contact
+reporting is unchanged for machine pairs.
+
+**Effect.** A program whose first point sits on the platter reads "1 clash →
+L<first> … through L<n>" instead of "clear" (continuations are not counted;
+the G-code panel marks the span); a later rapid into the platter after such a
+start reports (it never did); programs with a stock body or a clear start are
+unchanged; base sweep and sim-entry overlay agree. Pinned by a collision test
+with its control case (the same body without the flag: one static contact,
+the L9 rapid plunge reports nothing — the exact gap).

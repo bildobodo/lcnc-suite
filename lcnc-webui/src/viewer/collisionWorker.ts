@@ -167,7 +167,7 @@ self.onmessage = (e: MessageEvent<CollisionReq | CollisionCancel | CollisionPaus
         // Tip at the body's local origin. The −TLO tip shift is applied PER
         // POSE inside the sweep (schema 8: the offset is per segment) — it
         // used to be baked into these verts once per sweep.
-        bodies.push({ id: "tool", group: machine.toolGroup, positions });
+        bodies.push({ id: "tool", group: machine.toolGroup, positions, tool: true });
       }
       model = buildCollisionModel(machine, bodies);
       _resident = { key: modelKey, model };
