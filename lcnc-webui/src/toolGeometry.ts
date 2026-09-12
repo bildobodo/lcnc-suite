@@ -71,7 +71,7 @@ export function buildToolProfile(
   const pts: THREE.Vector2[] = [];
   const V = (x: number, y: number) => new THREE.Vector2(Math.max(0, x), y);
 
-  // The cutter ends at LCF; the shoulder extends to its own axial length.
+  // Continue from the actual cutting-profile end to the shoulder's axial length.
   // Custom shaft segments start there and are clipped at physical OAL. Neither
   // LB nor a measured installation length sets a shoulder/shaft coordinate.
   const appendShoulderAndShaft = (shoulderRadius: number) => {
@@ -134,21 +134,29 @@ export function buildToolProfile(
       break;
     }
     case "slotmill": {
-      // Slot mills may have corner radius (RE) — render like bullnose when present
-      if (cornerR > eps) {
-        const cr = Math.min(cornerR, r);
-        const arcN = 8;
+      // Native slot contours round both edges. If LCF < 2*RE, Fusion keeps
+      // LCF in the metadata but extends the physical head to fit both arcs.
+      const cr = Math.min(Math.max(0, cornerR), r);
+      if (cr > 0) {
+        const top = Math.max(fluteLen, 2 * cr);
+        // Quarter circles with a 0.001 mm chord target, bounded for extreme
+        // inputs. At least six steps also keeps small radii visibly rounded.
+        const angleStep = 4 * Math.asin(Math.sqrt(Math.min(1, 0.001 * unitsPerMm / (2 * cr))));
+        const arcN = Math.min(4096, Math.max(6, Math.ceil(Math.PI / 2 / angleStep)));
         pts.push(V(0, 0), V(r - cr, 0));
         for (let i = 1; i <= arcN; i++) {
           const a = (Math.PI / 2) * (i / arcN);
           pts.push(V(r - cr + cr * Math.sin(a), cr - cr * Math.cos(a)));
         }
-        pts.push(V(r, fluteLen));
+        pts.push(V(r, top - cr));
+        for (let i = 1; i <= arcN; i++) {
+          const a = (Math.PI / 2) * (i / arcN);
+          pts.push(V(r - cr + cr * Math.cos(a), top - cr + cr * Math.sin(a)));
+        }
       } else {
         pts.push(V(0, 0), V(r, 0), V(r, fluteLen));
       }
-      if (Math.abs(shaftR - r) > eps) pts.push(V(shaftR, fluteLen));
-      pts.push(V(shaftR, oal), V(0, oal));
+      appendShoulderAndShaft(shaftR);
       break;
     }
     case "ball": {
@@ -216,12 +224,16 @@ export function buildToolProfile(
     case "chamfer": {
       // taper_angle is full included angle (gateway doubled TA) — halve for slope
       const chamA = (taperAngle / 2) * (Math.PI / 180);
-      const chamH = (r - tipR) / Math.tan(chamA || 1);
+      const slope = Math.tan(chamA || 1);
+      const chamH = (r - tipR) / slope;
+      const neckR = Math.min(r, (meta?.shoulder_diameter ?? shaftR * 2) / 2);
+      // The return flank starts at the widest point, using the same side angle.
+      // A longer LCF adds neck; a shorter LCF does not clip either conical flank.
+      const returnY = chamH + (r - neckR) / slope;
       pts.push(V(0, 0));
-      if (tipR > eps) pts.push(V(tipR, 0));
-      pts.push(V(r, chamH), V(r, fluteLen));
-      if (Math.abs(shaftR - r) > eps) pts.push(V(shaftR, fluteLen));
-      pts.push(V(shaftR, oal), V(0, oal));
+      if (tipR > 0) pts.push(V(tipR, 0));
+      pts.push(V(r, chamH), V(neckR, returnY), V(neckR, Math.max(returnY, fluteLen)));
+      appendShoulderAndShaft(neckR);
       break;
     }
     case "countersink": {

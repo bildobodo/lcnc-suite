@@ -275,10 +275,65 @@ or measurement behavior is changed. These observations cover this form/Trace
 example; other strategies, custom compensation definitions, other form profiles
 and complete 3D cap/mesh fidelity still need separate evidence.
 
+## Chamfer and slot mills
+
+`test-fixtures/fusion-tool-chamfers-slots.json` adds 15 canonical references from
+Fusion 2705.1.15, captured 2026-09-12. Together with four original fixtures, they
+cover ten chamfer mills and nine slot mills. The recorded `requested` changes
+and canonical `raw` operation tool distinguish accepted inputs from Fusion's
+normalizations. As before, holders are removed and LB=OAL exposes the full body.
+
+For a chamfer mill, let `r=DC/2`, `t=tip-diameter/2`, and `a=TA`. The importer
+stores twice TA as `taper_angle`, so the renderer halves that value for the
+slope. The lower cone reaches radius `r` at `z_peak=(r-t)/tan(a)`. The upper
+return flank starts immediately at this peak and uses the same slope. It ends
+at `n=min(r, shoulder-diameter/2)` and
+`z_return=z_peak+(r-n)/tan(a)`. A longer LCF extends the neck at radius `n`;
+a shorter LCF does not truncate either cone. Both physical flanks remain
+present in the native reference even with LCF=0.5 mm. A 0.01 mm tip diameter
+retains its flat tip instead of disappearing at the legacy visual threshold.
+
+Slot mills have a lower **and** upper quarter-circle fillet of radius RE. For
+the tested radii, the head height is `h=max(LCF, 2*RE)`. Their arc centres in
+the radius/height plane are `(r-RE, RE)` and `(r-RE, h-RE)`. At RE=0 the head
+is rectangular. Fusion accepts RE=2 mm with LCF=2 mm but extends the physical
+head to 4 mm; clamping the radius to LCF/2 would produce the wrong contour.
+The 0.005 mm radius case also retains both fillets. Their adaptive meridian
+subdivision targets a 0.001 mm chord error in either machine unit, with at least
+six and at most 4096 segments per quarter circle. Extreme inputs can exceed
+that target at the subdivision cap; rotational tessellation is unchanged.
+
+Both families now use the shared shoulder/custom-shaft construction. It starts
+after the actual cutting contour and extends to the exported shoulder length,
+then follows the shaft segments up to OAL. LCF remains the existing material
+split coordinate; it does not clip the complete tool body. Requested chamfer
+shoulder diameters 4 and 8 mm both became 6.35 mm in the canonical operation.
+The slot custom-shaft case retained SFDM=6 mm but exported a 10 mm shoulder;
+the renderer follows that shoulder value rather than recomputing it from SFDM.
+The requested chamfer RE=0.5 mm was reset to zero, so that case verifies a sharp
+chamfer only and provides no evidence for a rounded chamfer.
+
+All 19 native half-contours are compared bidirectionally in mm and inch, through
+the real importer and the shared renderer used by both previews. Maximum sampled
+distances changed as follows:
+
+| Family | Before (mm) | After (mm) |
+| --- | ---: | ---: |
+| Chamfer mills | 1.825 | <0.000004 |
+| Slot mills | 2 | <0.001 |
+
+Regression bounds are 0.00001 mm for these chamfer contours and 0.002 mm for slot
+contours, allowing native SVG rounding and arc discretization. These are fixture
+comparison bounds, not a machining tolerance or a certification of every possible
+parameter combination. Across the combined 64 contour fixtures, none of the 59
+usable native references worsens. Form-post outlines and four flat/round thread
+crest probes remain excluded from physical-shape assertions. The separate native
+form simulation and compensation references retain their own tests and limits.
+
 ## Remaining scope
 
-Flat/round thread crest details, chamfer return flanks, slot-mill upper radii,
-rounded dovetails, center drills and probes still need their own cutting-profile
+Flat/round thread crest details, rounded dovetails, center drills and probes
+still need their own cutting-profile
 corrections or additional native references. Their legacy shape branches remain
 separate. The radius-mill arc still has its existing coarse tessellation.
 The native form-mill post remains an unsuitable shape oracle.

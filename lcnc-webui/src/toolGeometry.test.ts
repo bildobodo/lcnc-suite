@@ -6,8 +6,10 @@ import * as THREE from "three";
 import originalFixtures from "../../test-fixtures/fusion-tool-contours.json";
 import shoulderFixtures from "../../test-fixtures/fusion-tool-shoulders.json";
 import taperThreadFixtures from "../../test-fixtures/fusion-tool-tapers-threads.json";
+import chamferSlotFixtures from "../../test-fixtures/fusion-tool-chamfers-slots.json";
 import formOffsets from "../../test-fixtures/fusion-tool-form-offsets.json";
-const fixtures = { cases: [...originalFixtures.cases, ...shoulderFixtures.cases, ...taperThreadFixtures.cases] };
+const fixtures = { cases: [...originalFixtures.cases, ...shoulderFixtures.cases,
+  ...taperThreadFixtures.cases, ...chamferSlotFixtures.cases] };
 import { buildToolProfile, buildToolParts, type ToolMeta } from "./toolGeometry";
 import { toolUnitsPerMillimeter } from "./toolUnits";
 
@@ -186,7 +188,7 @@ function directedContourDistance(a: number[][], b: number[][]) {
   return worst;
 }
 
-const verifiedTypes = new Set(["endmill", "ball", "bullnose", "drill", "countersink", "dovetail", "facemill", "lollipop", "tap", "tapered", "threadmill"]);
+const verifiedTypes = new Set(["endmill", "ball", "bullnose", "drill", "countersink", "dovetail", "facemill", "lollipop", "tap", "tapered", "threadmill", "chamfer", "slotmill"]);
 describe("native Fusion tool contours", () => {
   for (const tool of imported.filter(c => verifiedTypes.has(c.mm.type!))) {
     if (!fixtures.cases.find(c => c.id === tool.id)!.referenceUsable) continue;
@@ -200,7 +202,9 @@ describe("native Fusion tool contours", () => {
         // error (R4 ball's 12 chords give <0.009 mm); this is not CAM tolerance.
         // Larger taper radii have six significant digits in Fusion's SVG
         // (e.g. 11.5023), so their coordinate rounding alone can reach 0.00005.
-        const tolerance = fixture.nativeSVG.includes("A") ? 0.01 : meta.type === "tapered" ? 0.0001 : 0.00001;
+        // Slot arcs use a finer 0.001 mm chord target in machine units.
+        const tolerance = meta.type === "slotmill" ? 0.002
+          : fixture.nativeSVG.includes("A") ? 0.01 : meta.type === "tapered" ? 0.0001 : 0.00001;
         expect(directedContourDistance(actual, fixture.nativePoints)).toBeLessThan(tolerance);
         expect(directedContourDistance(fixture.nativePoints, actual)).toBeLessThan(tolerance);
         for (let i = 1; i < actual.length; i++) {
