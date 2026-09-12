@@ -3947,6 +3947,14 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             # observed via the status stream (interp_state + file) and the preview
             # re-parses from disk independently — same contract as the tool_change
             # fire-and-forget path. Open failures surface on the error channel.
+            # CORRECTION (perf matrix 2026-09-12, wait=None in place): the phase
+            # still owned a 51 ms lag.window on the 40 MB file. The binding's
+            # send (emcSendCommand) waits for task to ECHO the command's serial
+            # number before returning, sleeping with the GIL held, and task
+            # echoes only after its cycle has handled the open — so the "send"
+            # scales with task's open time, not with our polling. Under the
+            # 500 ms budget by ~10×; the off-loop candidate is a subprocess or
+            # a GIL-releasing send, not more wait tuning.
             _set_phase("load_file.program_open")
             await _cmd_blocking(CMD.program_open, abs_path, wait=None)
             return {"ok": True, "path": abs_path}

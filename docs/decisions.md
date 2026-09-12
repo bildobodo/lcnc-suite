@@ -4516,3 +4516,9 @@ busier box (two other windows in this session's trace: a 135 ms `machine_off`
 handle on the OLD gateway during the stop, a 65 ms `reader_recv.readline` during
 the prep script), not the limits drift edge — no window names `poll_status` or
 any drift evaluation. sigstop_trip: skipped (see above).
+Correction to the program_open annotation: the fire-and-forget (`wait=None`)
+removed the completion poll, but the binding's SEND itself waits for task to echo
+the command serial with the GIL held, and task echoes after its cycle handled
+the open — the residual 51 ms is that echo wait on a 40 MB file, scaling with
+task's open time. Recorded in the code comment; follow-on candidate (subprocess
+or GIL-releasing send), not a regression from today's poller change.
