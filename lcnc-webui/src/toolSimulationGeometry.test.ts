@@ -5,8 +5,13 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import * as THREE from "three";
-import reference from "../../test-fixtures/fusion-tool-simulation/native-silhouettes.json";
+import originalReference from "../../test-fixtures/fusion-tool-simulation/native-silhouettes.json";
+import followupReference from "../../test-fixtures/fusion-tool-followup-simulation/native-silhouettes.json";
 import { buildToolParts, buildToolProfile, type ToolMeta } from "./toolGeometry";
+const reference = { cases: [
+  ...originalReference.cases.map(c => ({ ...c, fixtureDirectory: "fusion-tool-simulation" })),
+  ...followupReference.cases.map(c => ({ ...c, fixtureDirectory: "fusion-tool-followup-simulation" })),
+] };
 
 const imported = JSON.parse(execFileSync("python3", ["-c", `
 import json, sys
@@ -47,7 +52,7 @@ describe("native Fusion simulation cutting silhouettes", () => {
   reference.cases.forEach((fixture, index) => {
     it(`${fixture.id}: retains original pixels and independent camera scale`, () => {
       const bytes = readFileSync(new URL(
-        `../../test-fixtures/fusion-tool-simulation/${fixture.id}/native-front.png`, import.meta.url));
+        `../../test-fixtures/${fixture.fixtureDirectory}/${fixture.id}/native-front.png`, import.meta.url));
       expect(createHash("sha256").update(bytes).digest("hex")).toBe(fixture.screenshotSha256);
       expect(fixture.camera.type).toBe(0);
       expect(fixture.camera.up).toEqual([0, 0, 1]);
@@ -64,7 +69,10 @@ describe("native Fusion simulation cutting silhouettes", () => {
         const rendered = cutter.map(p => p.clone().divideScalar(scale));
         // Pixel quantization and the native rotational mesh bound this test.
         // This is a screen-reference tolerance, not a machining tolerance.
-        const tolerance = fixture.family === "thread" ? 0.04 : 0.08;
+        const chordError = "nativeMeridianChordErrorMm" in fixture
+          ? Number(fixture.nativeMeridianChordErrorMm) : 0;
+        const tolerance = Math.max(fixture.family === "thread" ? 0.04 : 0.08,
+          chordError + 2 / fixture.calibration.pixelsPerMm);
         for (const side of [1, 2]) {
           const edge = [...fixture.samples].reverse().map(p => new THREE.Vector2(p[side]!, p[0]!));
           const native = [new THREE.Vector2(0, 0), new THREE.Vector2(edge[0]!.x, 0),

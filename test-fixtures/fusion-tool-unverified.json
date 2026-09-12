@@ -1,0 +1,402 @@
+{
+  "fusionVersion": "2705.1.15",
+  "scope": "Evidence of unresolved native geometry, not faithful-rendering fixtures.",
+  "cases": [
+    {
+      "id": "fu-circle-barrel",
+      "raw": {
+        "geometry": {
+          "CSP": false,
+          "DC": 12,
+          "HAND": true,
+          "LB": 80,
+          "LCF": 20,
+          "NOF": 3,
+          "NT": 1,
+          "OAL": 80,
+          "RE": 0,
+          "SFDM": 12,
+          "TA": 0,
+          "TP": 0,
+          "assemblyGaugeLength": 80,
+          "axial-distance": 10,
+          "lower-radius": 1,
+          "profile-radius": 48,
+          "shoulder-diameter": 12,
+          "shoulder-length": 20,
+          "thread-profile-angle": 60,
+          "tip-diameter": 12,
+          "tip-length": 0,
+          "tip-offset": 0,
+          "upper-radius": 1
+        },
+        "post-process": {
+          "break-control": false,
+          "comment": "",
+          "diameter-offset": 416,
+          "length-offset": 416,
+          "live": true,
+          "manual-tool-change": false,
+          "number": 416,
+          "turret": 0
+        },
+        "type": "circle segment barrel",
+        "unit": "millimeters"
+      },
+      "reason": "Trace rejects this tool; Multi-Axis Finishing is not generation-allowed in this session."
+    },
+    {
+      "id": "fu-circle-lens",
+      "raw": {
+        "geometry": {
+          "CSP": false,
+          "DC": 12,
+          "HAND": true,
+          "LB": 80,
+          "LCF": 20,
+          "NOF": 3,
+          "NT": 1,
+          "OAL": 80,
+          "RE": 1.2,
+          "SFDM": 12,
+          "TA": 0,
+          "TP": 0,
+          "assemblyGaugeLength": 80,
+          "axial-distance": 1,
+          "lower-radius": 12,
+          "profile-radius": 100,
+          "shoulder-diameter": 12,
+          "shoulder-length": 20,
+          "thread-profile-angle": 60,
+          "tip-diameter": 9.6,
+          "tip-length": 0,
+          "tip-offset": 0,
+          "upper-radius": 1
+        },
+        "post-process": {
+          "break-control": false,
+          "comment": "",
+          "diameter-offset": 417,
+          "length-offset": 417,
+          "live": true,
+          "manual-tool-change": false,
+          "number": 417,
+          "turret": 0
+        },
+        "type": "circle segment lens",
+        "unit": "millimeters"
+      },
+      "reason": "Trace rejects this tool; Multi-Axis Finishing is not generation-allowed in this session."
+    },
+    {
+      "id": "fu-circle-oval",
+      "raw": {
+        "geometry": {
+          "CSP": false,
+          "DC": 12,
+          "HAND": true,
+          "LB": 80,
+          "LCF": 20,
+          "NOF": 3,
+          "NT": 1,
+          "OAL": 80,
+          "RE": 0,
+          "SFDM": 12,
+          "TA": 0,
+          "TP": 0,
+          "assemblyGaugeLength": 80,
+          "axial-distance": 1,
+          "lower-radius": 2,
+          "profile-radius": 180,
+          "shoulder-diameter": 12,
+          "shoulder-length": 20,
+          "thread-profile-angle": 60,
+          "tip-diameter": 12,
+          "tip-length": 0,
+          "tip-offset": 0,
+          "upper-radius": 1
+        },
+        "post-process": {
+          "break-control": false,
+          "comment": "",
+          "diameter-offset": 418,
+          "length-offset": 418,
+          "live": true,
+          "manual-tool-change": false,
+          "number": 418,
+          "turret": 0
+        },
+        "type": "circle segment oval",
+        "unit": "millimeters"
+      },
+      "reason": "Trace rejects this tool; Multi-Axis Finishing is not generation-allowed in this session."
+    },
+    {
+      "id": "fu-circle-taper",
+      "raw": {
+        "geometry": {
+          "CSP": false,
+          "DC": 12,
+          "HAND": true,
+          "LB": 80,
+          "LCF": 20,
+          "NOF": 3,
+          "NT": 1,
+          "OAL": 80,
+          "RE": 0,
+          "SFDM": 12,
+          "TA": 20,
+          "TP": 0,
+          "assemblyGaugeLength": 80,
+          "axial-distance": 1,
+          "lower-radius": 3,
+          "profile-radius": 375,
+          "shoulder-diameter": 12,
+          "shoulder-length": 20,
+          "thread-profile-angle": 60,
+          "tip-diameter": 0,
+          "tip-length": 0,
+          "tip-offset": 0,
+          "upper-radius": 6
+        },
+        "post-process": {
+          "break-control": false,
+          "comment": "",
+          "diameter-offset": 419,
+          "length-offset": 419,
+          "live": true,
+          "manual-tool-change": false,
+          "number": 419,
+          "turret": 0
+        },
+        "type": "circle segment taper",
+        "unit": "millimeters"
+      },
+      "reason": "Trace rejects this tool; Multi-Axis Finishing is not generation-allowed in this session."
+    },
+    {
+      "id": "fu-probe-custom",
+      "raw": {
+        "geometry": {
+          "CSP": false,
+          "DC": 6,
+          "HAND": true,
+          "LB": 50,
+          "LCF": 12,
+          "NOF": 0,
+          "NT": 1,
+          "OAL": 50,
+          "RE": 3,
+          "SFDM": 4.5,
+          "TA": 0,
+          "TP": 0,
+          "assemblyGaugeLength": 50,
+          "shoulder-length": 12,
+          "thread-profile-angle": 60,
+          "tip-diameter": 0,
+          "tip-length": 0,
+          "tip-offset": 0
+        },
+        "post-process": {
+          "break-control": false,
+          "comment": "",
+          "diameter-offset": 1,
+          "length-offset": 1,
+          "live": true,
+          "manual-tool-change": false,
+          "number": 450,
+          "turret": 0
+        },
+        "type": "probe",
+        "unit": "millimeters"
+      },
+      "reason": "Regular drill/Custom cycle rejects the probe. The previous crashing probe_selection getter was not retried."
+    },
+    {
+      "id": "fu-form-major-arc",
+      "raw": {
+        "geometry": {
+          "CSP": false,
+          "DC": 16,
+          "HAND": true,
+          "LB": 20,
+          "LCF": 20,
+          "NOF": 1,
+          "NT": 1,
+          "OAL": 20,
+          "RE": 0,
+          "SFDM": 16,
+          "TA": 0,
+          "TP": 0,
+          "assemblyGaugeLength": 20,
+          "profile": [
+            {
+              "end": [
+                0,
+                0
+              ]
+            },
+            {
+              "end": [
+                5,
+                0
+              ]
+            },
+            {
+              "end": [
+                5,
+                3
+              ]
+            },
+            {
+              "arc": true,
+              "ccw": true,
+              "center": [
+                5,
+                6
+              ],
+              "end": [
+                2,
+                6
+              ]
+            },
+            {
+              "end": [
+                2,
+                20
+              ]
+            },
+            {
+              "end": [
+                0,
+                20
+              ]
+            }
+          ],
+          "shoulder-length": 20,
+          "thread-profile-angle": 60,
+          "tip-diameter": 16,
+          "tip-length": 0,
+          "tip-offset": 0
+        },
+        "post-process": {
+          "break-control": false,
+          "comment": "",
+          "diameter-offset": 206,
+          "length-offset": 206,
+          "live": true,
+          "manual-tool-change": false,
+          "number": 511,
+          "turret": 0
+        },
+        "type": "form mill",
+        "unit": "millimeters"
+      },
+      "reason": "Native simulation differs from the literal 270-degree arc: it shows a lower quarter arc followed by a conical flank. Not a matching contour reference.",
+      "nativeScreenshotSha256": "96a228bb575ba304a1fcf4e403a6e12b80fa6830109656715f5da573a0b155ea"
+    },
+    {
+      "id": "fu-form-major-arc-reverse",
+      "raw": {
+        "geometry": {
+          "CSP": false,
+          "DC": 16,
+          "HAND": true,
+          "LB": 20,
+          "LCF": 20,
+          "NOF": 1,
+          "NT": 1,
+          "OAL": 20,
+          "RE": 0,
+          "SFDM": 16,
+          "TA": 0,
+          "TP": 0,
+          "assemblyGaugeLength": 20,
+          "profile": [
+            {
+              "end": [
+                0,
+                20
+              ]
+            },
+            {
+              "end": [
+                2,
+                20
+              ]
+            },
+            {
+              "end": [
+                2,
+                6
+              ]
+            },
+            {
+              "arc": true,
+              "ccw": false,
+              "center": [
+                5,
+                6
+              ],
+              "end": [
+                5,
+                3
+              ]
+            },
+            {
+              "end": [
+                5,
+                0
+              ]
+            },
+            {
+              "end": [
+                0,
+                0
+              ]
+            }
+          ],
+          "shoulder-length": 20,
+          "thread-profile-angle": 60,
+          "tip-diameter": 16,
+          "tip-length": 0,
+          "tip-offset": 0
+        },
+        "post-process": {
+          "break-control": false,
+          "comment": "",
+          "diameter-offset": 206,
+          "length-offset": 206,
+          "live": true,
+          "manual-tool-change": false,
+          "number": 512,
+          "turret": 0
+        },
+        "type": "form mill",
+        "unit": "millimeters"
+      },
+      "reason": "Native simulation only shows a partial shape at a changed origin. Synthetic reversed serialization is not a matching contour reference.",
+      "nativeScreenshotSha256": "65c8dacc671957ad5aeab0b370ebc7a088f3193d6a3ec7e63fcae9ba7f80dbb8"
+    },
+    {
+      "id": "legacy-engraving-cutter",
+      "raw": {
+        "type": "engraving cutter",
+        "unit": "millimeters",
+        "description": "Detached type audit",
+        "post-process": {
+          "number": 1
+        },
+        "geometry": {
+          "DC": 12,
+          "OAL": 80,
+          "LB": 80,
+          "LCF": 20,
+          "SFDM": 12,
+          "shoulder-length": 20
+        }
+      },
+      "reason": "Current Fusion canonicalizes this legacy type to unspecified. No current native reference."
+    }
+  ]
+}

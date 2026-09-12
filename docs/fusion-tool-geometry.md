@@ -205,11 +205,12 @@ The physical cutting/neck boundary is `LCF-delta`, including when LCF is longer
 than the tooth train. OAL, shoulder length and measured installation stay
 independent. Meridian arcs target 0.001 mm chord error with bounded subdivision.
 
-The crest branches require finite available dimensions, complete teeth,
+These repeating-tooth crest branches require finite available dimensions, complete teeth,
 `0 <= W <= p/2`, and, for round teeth, `0 < R <= p/(4*cos(a))` with a nonnegative
 unrounded root radius. Other combinations retain the existing pointed envelope;
 they are not claimed as verified physical shapes. Missing pitch/angle retains
-the older cylinder approximation.
+the older cylinder approximation. Single teeth use different centres and
+limits, established in the [later follow-up](fusion-tool-followup.md#thread-mill-boundaries-and-single-teeth).
 
 Bidirectional sampled distances to the original native silhouettes fall from
 up to 0.7967 mm to below 0.015 mm for flat teeth, and from up to 0.4223 mm to
@@ -506,15 +507,17 @@ in use.
 
 ## Remaining scope
 
-The subsequent [tool-only gap audit](fusion-tool-remaining-work.md) identifies
-additional missing circle-segment and corner-chamfer families, an explicit-zero
-bull-nose radius bug, and missing face-mill cutting geometry. It separates
-observed implementation gaps from cases that merely lack native references.
-Its required follow-up work is not implemented by the holder-preview patch.
+The [tool-only follow-up](fusion-tool-followup.md) fixes the explicit-zero
+bull-nose radius, face-mill cutting geometry and single-tooth thread profiles,
+adds corner-chamfer and block-drill support, and expands native boundary coverage.
+Circle-segment metadata is preserved, but its cylinder preview is explicitly
+identified as approximate. The [remaining-work record](fusion-tool-remaining-work.md)
+separates those implemented changes from unresolved native references.
 
 Probe geometry, unsupported thread-crest combinations and additional 3D fidelity
-still need independent references. The probe's legacy shape branch remains
-separate. The Probe WCS failure has been narrowed to reading
+still need independent references. The probe's self-intersection is fixed, but
+its ball/stem relationship remains an explicitly marked approximation. The
+Probe WCS failure has been narrowed to reading
 `probe_selection.value` on an operation input in Fusion 2705.1.15. A native
 stack sample shows the selection getter entering Fusion's crash handler;
 creating the input and assigning its tool had both succeeded separately.

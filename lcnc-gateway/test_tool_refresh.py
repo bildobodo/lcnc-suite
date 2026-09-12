@@ -13,6 +13,7 @@ from unittest.mock import patch
 from fusion_import import parse_fusion_library
 from tool_refresh import metadata_refresh_revision, plan_metadata_refresh
 from tool_store import ToolLibraryStore
+from tool_table import _merge_tool_data, tool_visual_metadata
 
 
 def source_tool(number=1, diameter=6, **extra):
@@ -21,11 +22,64 @@ def source_tool(number=1, diameter=6, **extra):
 
 
 class TestMetadataRefreshPlan(unittest.TestCase):
+    def test_followup_geometry_survives_refresh_storage_and_both_previews(self):
+        fixtures = Path(__file__).resolve().parent.parent / 'test-fixtures'
+        cases = []
+        for filename in ('fusion-tool-followup.json', 'fusion-tool-unverified.json'):
+            with (fixtures / filename).open() as handle:
+                cases.extend(json.load(handle)['cases'])
+        fields = {'DCX': 'maximum_cutting_diameter', 'upper-radius': 'upper_radius',
+                  'lower-radius': 'lower_radius', 'profile-radius': 'profile_radius',
+                  'axial-distance': 'axial_distance', 'chamfer-width': 'chamfer_width'}
+        linear = ['DC', 'OAL', 'LCF', 'LB', 'RE', 'SFDM', 'tip-diameter', 'tip-length',
+                  'shoulder-length', 'shoulder-diameter', 'assemblyGaugeLength', *fields]
+        for case in cases:
+            if case['raw']['type'] == 'form mill':
+                continue  # Form/profile unit coverage lives in the native simulation tests.
+            for source_unit in ('millimeters', 'inches'):
+                raw = copy.deepcopy(case['raw'])
+                raw['unit'] = source_unit
+                if source_unit == 'inches':
+                    for key in linear:
+                        if key in raw['geometry']:
+                            raw['geometry'][key] /= 25.4
+                    for segment in raw.get('shaft', {}).get('segments', []):
+                        for key in ('height', 'lower-diameter', 'upper-diameter'):
+                            segment[key] /= 25.4
+                for unit, scale in [('mm', 1), ('in', 1/25.4)]:
+                    with self.subTest(case=case['id'], source=source_unit, target=unit), TemporaryDirectory() as directory:
+                        parsed = parse_fusion_library({'data': [raw]}, unit)[0][0]
+                        table = [dict(T=parsed['T'], P=7, D=parsed['D'], Z=-42.3)]
+                        before = copy.deepcopy(table)
+                        key = str(parsed['T'])
+                        plan = plan_metadata_refresh([parsed], [], table, {key: {'local_note': 'keep'}})
+                        self.assertEqual(plan['updated'], [parsed['T']])
+                        store = ToolLibraryStore(Path(directory) / 'tools.json', lambda: '/test.ini')
+                        store.save(plan['library'])
+                        saved = store.load()[key]
+                        preview = _merge_tool_data(table, {key: saved})[0]
+                        viewer = tool_visual_metadata(saved)
+                        for geometry in (parsed, saved, preview, viewer):
+                            for source, destination in fields.items():
+                                if source in case['raw']['geometry']:
+                                    self.assertAlmostEqual(geometry[destination], case['raw']['geometry'][source] * scale)
+                            if 'chamfer-angle' in raw['geometry']:
+                                self.assertAlmostEqual(geometry['chamfer_angle'], raw['geometry']['chamfer-angle'])
+                            self.assertEqual(geometry['fusion_type'], raw['type'])
+                        self.assertEqual(table, before)
+                        self.assertEqual(preview['Z'], -42.3)
+                        self.assertAlmostEqual(preview['D'], case['raw']['geometry']['DC'] * scale)
+                        self.assertEqual(saved['local_note'], 'keep')
+                        self.assertNotIn('Z', viewer)
+
     def test_preserves_table_and_local_data_and_clears_old_type_geometry(self):
         table = [dict(T=1, P=7, X=2, Y=-3, Z=-42.3, D=6), dict(T=8, P=8, Z=12, D=2)]
         library = {"1": {"profile": [{"end": [1, 2]}], "holder_segments": [1],
                          "holder_gauge_length": 30, "assembly_gauge_length": 70,
-                         "shaft_segments": [2], "tip_offset": 10, "local_note": "keep"},
+                         "shaft_segments": [2], "tip_offset": 10, "local_note": "keep",
+                         "maximum_cutting_diameter": 50, "upper_radius": 2,
+                         "lower_radius": 3, "profile_radius": 100, "axial_distance": 7,
+                         "chamfer_angle": 30, "chamfer_width": 1},
                    "8": {"description": "Unrelated"}}
         before = copy.deepcopy((table, library))
         plan = plan_metadata_refresh([source_tool()], [], table, library)
@@ -34,7 +88,8 @@ class TestMetadataRefreshPlan(unittest.TestCase):
         self.assertEqual(plan["library"]["8"], library["8"])
         self.assertEqual(plan["library"]["1"]["local_note"], "keep")
         for key in ("profile", "holder_segments", "holder_gauge_length", "assembly_gauge_length",
-                    "shaft_segments", "tip_offset", "D", "Z", "P"):
+                    "shaft_segments", "tip_offset", "D", "Z", "P", "maximum_cutting_diameter",
+                    "upper_radius", "lower_radius", "profile_radius", "axial_distance", "chamfer_angle", "chamfer_width"):
             self.assertNotIn(key, plan["library"]["1"])
 
     def test_skips_ambiguous_numbers_unknown_tools_identity_diameter_and_stl_conflicts(self):

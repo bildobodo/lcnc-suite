@@ -27,7 +27,13 @@ FUSION_TYPE_MAP = {
     "ball end mill": "ball",
     "bull nose end mill": "bullnose",
     "chamfer mill": "chamfer",
+    "corner chamfer end mill": "cornerchamfer",
+    "circle segment barrel": "circlebarrel",
+    "circle segment lens": "circlelens",
+    "circle segment oval": "circleoval",
+    "circle segment taper": "circletaper",
     "drill": "drill",
+    "block drill": "blockdrill",
     "spot drill": "drill",
     "counter bore": "endmill",
     "reamer": "endmill",
@@ -103,6 +109,8 @@ def parse_fusion_library(data: dict, machine_unit: str) -> tuple[list, list]:
             "oal": _opt_scale(geom.get("OAL"), tool_scale),
             "flute_length": _opt_scale(geom.get("LCF"), tool_scale),
             "corner_radius": _opt_scale(geom.get("RE"), tool_scale),
+            "maximum_cutting_diameter": _opt_scale(geom.get("DCX"), tool_scale),
+            "upper_radius": _opt_scale(geom.get("upper-radius"), tool_scale),
             "body_length": _opt_scale(geom.get("LB"), tool_scale),
             "shaft_diameter": _opt_scale(geom.get("SFDM"), tool_scale),
             "taper_angle": geom.get("TA"),
@@ -119,6 +127,14 @@ def parse_fusion_library(data: dict, machine_unit: str) -> tuple[list, list]:
         }
         if our_type == "tapered":
             tool["tapered_type"] = entry.get("tapered-type")
+        if our_type == "cornerchamfer":
+            tool["chamfer_width"] = _opt_scale(geom.get("chamfer-width"), tool_scale)
+            tool["chamfer_angle"] = geom.get("chamfer-angle")
+        if fusion_type.startswith("circle segment "):
+            # Preserve these for later native validation; the UI explicitly
+            # identifies the current generic rendering as an approximation.
+            for field in ("lower-radius", "profile-radius", "axial-distance"):
+                tool[field.replace("-", "_")] = _opt_scale(geom.get(field), tool_scale)
         if our_type == "threadmill":
             tool.update({
                 "thread_pitch": _opt_scale(geom.get("TP"), tool_scale),

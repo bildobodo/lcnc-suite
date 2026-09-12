@@ -15,6 +15,7 @@ import MachineToggle from "./MachineToggle.vue";
 import type { ToolMeta } from "./toolGeometry";
 import { nominalHolderBase } from "./toolHolder";
 import { toolUnitsPerMillimeter } from "./toolUnits";
+import { toolPreviewNotice } from "./toolPreviewNotice";
 // Async on purpose (WS-E / F10-finish): ToolPreview is the ONLY statically
 // eager three.js importer left — this edge alone kept the 866 kB three
 // chunk in the entry graph (static import + modulepreload in index.html),
@@ -323,6 +324,7 @@ interface ImportTool {
 }
 
 const importPreview = ref<ImportTool[] | null>(null);
+const importPreviewByNumber = computed(() => new Map(importPreview.value?.map(t => [t.T, t])));
 const importSkipped = ref<ImportTool[]>([]);
 const importExistingCount = ref(0);
 const importBusy = ref(false);
@@ -608,6 +610,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
                 help="Nominal library assembly. Actual stickout depends on clamping; this preview does not change measured offsets or the machine view." />
               <span v-if="showNominalHolder && hasNominalHolder">Nominal Fusion assembly</span>
               <span v-else>Tool only</span>
+              <span v-if="toolPreviewNotice(editPreviewMeta, unitsPerMm)" class="noteWarn">{{ toolPreviewNotice(editPreviewMeta, unitsPerMm) }}</span>
             </div>
           </div>
 
@@ -665,6 +668,9 @@ defineExpose({ openAdd, fetchTools, triggerImport });
                   <template v-if="t.reason">Skipped: {{ t.reason }}.</template>
                   <template v-else>Update metadata; keep Z {{ fmtCell(t.Z ?? 0, 3) }}.</template>
                   Ø{{ t.current_diameter == null ? '-' : fmtCell(t.current_diameter, 3) }} → Fusion Ø{{ fmtCell(t.D, 3) }}
+                  <span v-if="toolPreviewNotice(importPreviewByNumber.get(t.T), unitsPerMm)" class="noteWarn">
+                    <br />{{ toolPreviewNotice(importPreviewByNumber.get(t.T), unitsPerMm) }}
+                  </span>
                 </span>
               </div>
             </div>
@@ -673,7 +679,9 @@ defineExpose({ openAdd, fetchTools, triggerImport });
                 <span class="importT mono">T{{ t.T }}</span>
                 <span class="importType">{{ toolTypeLabel(t.type) }}</span>
                 <span class="importDia mono">Ø{{ fmtCell(t.D, 2) }}</span>
-                <span class="importDesc">{{ t.description || '-' }}</span>
+                <span class="importDesc">{{ t.description || '-' }}
+                  <span v-if="toolPreviewNotice(t, unitsPerMm)" class="noteWarn"><br />{{ toolPreviewNotice(t, unitsPerMm) }}</span>
+                </span>
               </div>
             </div>
           </div>
@@ -726,7 +734,9 @@ defineExpose({ openAdd, fetchTools, triggerImport });
             <td class="colNum mono">{{ fmtCell(tool.Z, 6) }}</td>
             <td class="colType">{{ toolTypeLabel(tool.type) }}</td>
             <td class="colSm mono">{{ tool.flutes ?? "-" }}</td>
-            <td class="colDesc" :title="tool.description">{{ tool.description || tool.remark || "-" }}</td>
+            <td class="colDesc" :title="toolPreviewNotice(tool, unitsPerMm) || tool.description">{{ tool.description || tool.remark || "-" }}
+              <span v-if="toolPreviewNotice(tool, unitsPerMm)" class="noteWarn"><br />Approximate preview</span>
+            </td>
             <td class="colAction colEdit">
               <MachineBtn type="manage" @click.stop="openEdit(tool)" title="Edit tool"><Pencil :size="14" /></MachineBtn>
             </td>
@@ -764,6 +774,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
           :width="100"
           :height="160"
         />
+        <span v-if="toolPreviewNotice(hoverTool, unitsPerMm)" class="noteWarn">Approximate preview</span>
       </div>
     </Teleport>
   </div>
@@ -855,6 +866,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
 }
 
 .editPreviewCol {
+  width: calc(160px + var(--gap-controls) * 2);
   flex-shrink: 0;
   align-self: flex-start;
 }

@@ -44,6 +44,13 @@ export interface ToolMeta {
   // length. Fusion already applies this to the verified form/Trace NC positions.
   tip_offset?: number | null;
   corner_radius?: number | null;
+  maximum_cutting_diameter?: number | null;
+  upper_radius?: number | null;
+  chamfer_width?: number | null;
+  chamfer_angle?: number | null;
+  lower_radius?: number | null;
+  profile_radius?: number | null;
+  axial_distance?: number | null;
   holder_segments?: HolderSegment[] | null;
   holder_gauge_length?: number | null;
   assembly_gauge_length?: number | null;
@@ -110,6 +117,7 @@ export function buildToolProfile(
 
   switch (type) {
     case "endmill":
+    case "blockdrill":
     case "tap": {
       pts.push(V(0, 0), V(r, 0), V(r, fluteLen));
       appendShoulderAndShaft(r);
@@ -129,41 +137,60 @@ export function buildToolProfile(
         const count = Math.max(0, Math.min(Math.trunc(teeth), Math.floor(fluteLen / pitch + 1e-10)));
         const width = meta?.thread_tip_width;
         const radius = meta?.thread_tip_radius;
+        const widthLimit = pitch / (teeth === 1 ? 1 : 2);
+        const radiusLimit = pitch / ((teeth === 1 ? 2 : 4) * Math.cos(a));
         if (count > 0 && meta?.thread_tip_type === "flat" && width != null
-            && Number.isFinite(width) && width >= 0 && width <= pitch / 2) {
+            && Number.isFinite(width) && width >= 0 && width <= widthLimit + 1e-10 * unitsPerMm) {
           // Both the crest and root have axial width W. The crest ends at
           // half-pitch; flattening also increases the physical root radius.
-          const rootR = Math.max(0, r - (pitch / 2 - width) * cot);
+          // Native JSON can round the exact limit upwards (0.8750000000000001).
+          // Clamp only this floating-point boundary, consistently in mm/inch.
+          const w = Math.min(width, widthLimit);
+          const rootR = Math.max(0, r - (pitch / 2 - (teeth === 1 ? w / 2 : w)) * cot);
           pts.push(V(0, 0), V(rootR, 0));
-          for (let i = 0; i < count; i++) {
-            const z = i * pitch;
-            pts.push(V(r, z + pitch / 2 - width), V(r, z + pitch / 2),
-              V(rootR, z + pitch - width), V(rootR, z + pitch));
+          if (teeth === 1) {
+            // A single crest is centered at half-pitch, without root flats.
+            pts.push(V(r, (pitch - w) / 2), V(r, (pitch + w) / 2), V(rootR, pitch));
+          } else {
+            for (let i = 0; i < count; i++) {
+              const z = i * pitch;
+              pts.push(V(r, z + pitch / 2 - w), V(r, z + pitch / 2),
+                V(rootR, z + pitch - w), V(rootR, z + pitch));
+            }
           }
           pts.push(V(rootR, fluteLen));
           appendShoulderAndShaft(rootR);
         } else if (count > 0 && meta?.thread_tip_type === "round" && radius != null
-            && Number.isFinite(radius) && radius > 0 && radius <= pitch / (4 * Math.cos(a))
+            && Number.isFinite(radius) && radius > 0 && radius <= radiusLimit + 1e-6 * unitsPerMm
             && r - pitch * cot / 2 >= 0) {
-          const offset = radius * Math.cos(a);
-          const rootR = neckR + 2 * radius * (1 / Math.sin(a) - 1);
-          const rootCenterR = rootR + radius;
+          // Fusion rounds the exact radius limit to seven decimal places.
+          const cr = Math.min(radius, radiusLimit);
+          const offset = cr * Math.cos(a);
+          const rootR = neckR + (teeth === 1 ? 1 : 2) * cr * (1 / Math.sin(a) - 1);
+          const rootCenterR = rootR + cr;
           const arc = (cx: number, cy: number, start: number, sweep: number) => {
-            const n = arcSteps(radius, sweep);
+            const n = arcSteps(cr, sweep);
             for (let j = 0; j <= n; j++) {
               const theta = start + sweep * j / n;
-              pts.push(V(cx + radius * Math.cos(theta), cy + radius * Math.sin(theta)));
+              pts.push(V(cx + cr * Math.cos(theta), cy + cr * Math.sin(theta)));
             }
           };
-          pts.push(V(0, 0), V(rootCenterR - radius * Math.sin(a), 0));
-          for (let i = 0; i < count; i++) {
-            arc(r - radius, (i + 0.5) * pitch - offset, a - Math.PI / 2, Math.PI - 2 * a);
-            // The final root ends at the arc's minimum radius. A longer LCF
-            // adds a straight neck there; it does not add another tooth.
-            arc(rootCenterR, (i + 1) * pitch - offset, -Math.PI / 2 - a,
-              i === count - 1 ? a - Math.PI / 2 : 2 * a - Math.PI);
+          if (teeth === 1) {
+            // One rounded crest, centered at half-pitch, with sharp roots.
+            pts.push(V(0, 0), V(rootR, 0));
+            arc(r - cr, pitch / 2, a - Math.PI / 2, Math.PI - 2 * a);
+            pts.push(V(rootR, pitch));
+          } else {
+            pts.push(V(0, 0), V(rootCenterR - cr * Math.sin(a), 0));
+            for (let i = 0; i < count; i++) {
+              arc(r - cr, (i + 0.5) * pitch - offset, a - Math.PI / 2, Math.PI - 2 * a);
+              // The final root ends at the arc's minimum radius. A longer LCF
+              // adds a straight neck there; it does not add another tooth.
+              arc(rootCenterR, (i + 1) * pitch - offset, -Math.PI / 2 - a,
+                i === count - 1 ? a - Math.PI / 2 : 2 * a - Math.PI);
+            }
           }
-          fluteY = fluteLen - offset;
+          fluteY = fluteLen - (teeth === 1 ? 0 : offset);
           pts.push(V(rootR, fluteY));
           appendShoulderAndShaft(rootR);
         } else {
@@ -223,8 +250,8 @@ export function buildToolProfile(
       break;
     }
     case "bullnose": {
-      const cr = Math.min(cornerR || r * 0.2, r);
-      const arcN = 8;
+      const cr = Math.min(Math.max(0, meta?.corner_radius ?? r * 0.2), r);
+      const arcN = cr > 0 ? arcSteps(cr, Math.PI / 2) : 0;
       const cylTop = Math.max(cr, fluteLen);
       pts.push(V(0, 0), V(r - cr, 0));
       for (let i = 1; i <= arcN; i++) {
@@ -269,6 +296,16 @@ export function buildToolProfile(
       const bodyH = (r - pilotR) / Math.tan(bodyHalfA || 1);
       pts.push(V(0, 0), V(pilotR, pilotH), V(pilotR, pilotEnd),
         V(r, pilotEnd + bodyH), V(r, Math.max(fluteLen, pilotEnd + bodyH)));
+      appendShoulderAndShaft(r);
+      break;
+    }
+    case "cornerchamfer": {
+      // Width is radial. This angle is measured from the bottom plane, unlike
+      // the ordinary chamfer mill's included cone angle.
+      const width = Math.min(r, Math.max(0, meta?.chamfer_width ?? 0));
+      const angle = (meta?.chamfer_angle ?? 45) * Math.PI / 180;
+      const height = width * Math.tan(angle);
+      pts.push(V(0, 0), V(r - width, 0), V(r, height), V(r, Math.max(height, fluteLen)));
       appendShoulderAndShaft(r);
       break;
     }
@@ -360,22 +397,54 @@ export function buildToolProfile(
       break;
     }
     case "facemill": {
-      pts.push(V(0, 0), V(r, 0), V(r, fluteLen));
+      // DC is the unfilleted cone intercept; DCX is the maximum head diameter.
+      // Keep them separate: LinuxCNC's D continues to come from DC. TA is the
+      // side angle. An upper radius rounds the cone into the vertical maximum
+      // diameter, rather than rounding the horizontal shoulder return.
+      const a = (meta?.taper_angle ?? 0) * Math.PI / 180;
+      const cr = Math.max(0, cornerR);
+      const upper = Math.max(0, meta?.upper_radius ?? 0);
+      const maxR = (meta?.maximum_cutting_diameter ?? (diam + 2 * fluteLen * Math.tan(a))) / 2;
+      const flatR = Math.max(0, r - cr * (1 - Math.sin(a)) / Math.cos(a));
+      pts.push(V(0, 0), V(flatR, 0));
+      if (cr > 0) {
+        const n = arcSteps(cr, Math.PI / 2 - a);
+        for (let i = 1; i <= n; i++) {
+          const theta = -Math.PI / 2 + (Math.PI / 2 - a) * i / n;
+          pts.push(V(flatR + cr * Math.cos(theta), cr * (1 + Math.sin(theta))));
+        }
+      }
+      if (a > 0 && a < Math.PI / 2) {
+        const top = Math.max(pts[pts.length - 1]!.y,
+          (maxR - r) / Math.tan(a) + upper * Math.tan(a / 2));
+        if (upper > 0) {
+          const n = arcSteps(upper, a);
+          for (let i = 0; i <= n; i++) {
+            const theta = -a + a * i / n;
+            pts.push(V(maxR - upper + upper * Math.cos(theta), top + upper * Math.sin(theta)));
+          }
+        } else pts.push(V(maxR, top));
+      } else pts.push(V(r, Math.max(cr, fluteLen)));
+      fluteY = pts[pts.length - 1]!.y;
       appendShoulderAndShaft(r);
       break;
     }
     case "probe": {
-      // Full ball at tip (bottom at Y=0, center at Y=ballR) + stylus from center up
+      // Approximate ball/stylus union; a native probe reference is still missing.
+      // Trim at the stem intersection so the lathed outline does not double
+      // back through the sphere. Keep the legacy stem-size fallback until the
+      // actual Fusion shoulder/stylus semantics have an independent reference.
       const ballR = r;
       const stylusR = shaftR > eps && shaftR < ballR ? shaftR : ballR * 0.5;
-      const arcN = 12;
+      const sweep = ballR > 0 ? Math.PI / 2 + Math.acos(stylusR / ballR) : 0;
+      const arcN = ballR > 0 ? arcSteps(ballR, sweep) : 0;
       pts.push(V(0, 0));
       for (let i = 1; i <= arcN; i++) {
-        const a = Math.PI * (i / arcN);  // 0→π full circle profile
+        const a = sweep * i / arcN;
         pts.push(V(ballR * Math.sin(a), ballR - ballR * Math.cos(a)));
       }
-      // Stylus shaft from ball center (Y=ballR) up to OAL — overlaps ball, that's fine
-      pts.push(V(stylusR, ballR), V(stylusR, oal), V(0, oal));
+      const top = Math.max(oal, pts[pts.length - 1]!.y);
+      pts.push(V(stylusR, top), V(0, top));
       break;
     }
     case "formmill": {

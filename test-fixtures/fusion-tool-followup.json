@@ -1,0 +1,5864 @@
+{
+  "fusionVersion": "2705.1.15",
+  "capturedOn": "2026-09-12",
+  "scope": "Native follow-up face mill, bull nose, corner chamfer, block drill and tap cases; canonical operation tool, no holder, LB=OAL; full physical body, not measured installation.",
+  "cases": [
+    {
+      "id": "fu-block-drill-angle118",
+      "raw": {
+        "type": "block drill",
+        "unit": "millimeters",
+        "geometry": {
+          "CSP": false,
+          "DC": 12,
+          "HAND": true,
+          "LB": 80,
+          "LCF": 20,
+          "NOF": 3,
+          "NT": 1,
+          "OAL": 80,
+          "RE": 0,
+          "SFDM": 8,
+          "SIG": 0,
+          "TP": 0,
+          "assemblyGaugeLength": 80,
+          "shoulder-length": 30,
+          "thread-profile-angle": 60,
+          "tip-diameter": 0,
+          "tip-length": 0,
+          "tip-offset": 0
+        },
+        "post-process": {
+          "break-control": false,
+          "comment": "",
+          "diameter-offset": 421,
+          "length-offset": 421,
+          "live": true,
+          "manual-tool-change": false,
+          "number": 460,
+          "turret": 0
+        }
+      },
+      "requested": {
+        "id": "fu-block-drill-angle118",
+        "family": "block drill",
+        "raw": {
+          "BMC": "hss",
+          "GRADE": "generic",
+          "description": "fu-block-drill-angle118",
+          "geometry": {
+            "CSP": false,
+            "DC": 12,
+            "HAND": true,
+            "LB": 80,
+            "LCF": 20,
+            "NOF": 3,
+            "NT": 1,
+            "OAL": 80,
+            "RE": 0,
+            "SFDM": 8,
+            "SIG": 118,
+            "TP": 0,
+            "assemblyGaugeLength": 80,
+            "shoulder-length": 30,
+            "thread-profile-angle": 60,
+            "tip-diameter": 0,
+            "tip-length": 0,
+            "tip-offset": 0
+          },
+          "guid": "2360c5de-03d0-5995-b821-429a9aac9f04",
+          "post-process": {
+            "break-control": false,
+            "comment": "",
+            "diameter-offset": 421,
+            "length-offset": 421,
+            "live": true,
+            "manual-tool-change": false,
+            "number": 460,
+            "turret": 0
+          },
+          "product-id": "",
+          "product-link": "",
+          "type": "block drill",
+          "unit": "millimeters",
+          "vendor": ""
+        },
+        "capture": {
+          "cameraTargetCm": [
+            0,
+            0,
+            6
+          ],
+          "cameraHeightCm": 12
+        }
+      },
+      "referenceUsable": true,
+      "nativeSVG": "M0 0 L6 0 L6 20 L6 30 L4 30 L4 80 L0 80 L-4 80 L-4 30 L-6 30 L-6 20 L-6 0 L-0 0 Z",
+      "nativePoints": [
+        [
+          0,
+          0
+        ],
+        [
+          6,
+          0
+        ],
+        [
+          6,
+          20
+        ],
+        [
+          6,
+          30
+        ],
+        [
+          4,
+          30
+        ],
+        [
+          4,
+          80
+        ],
+        [
+          0,
+          80
+        ]
+      ]
+    },
+    {
+      "id": "fu-block-drill-angle90",
+      "raw": {
+        "type": "block drill",
+        "unit": "millimeters",
+        "geometry": {
+          "CSP": false,
+          "DC": 12,
+          "HAND": true,
+          "LB": 80,
+          "LCF": 20,
+          "NOF": 3,
+          "NT": 1,
+          "OAL": 80,
+          "RE": 0,
+          "SFDM": 8,
+          "SIG": 0,
+          "TP": 0,
+          "assemblyGaugeLength": 80,
+          "shoulder-length": 30,
+          "thread-profile-angle": 60,
+          "tip-diameter": 0,
+          "tip-length": 0,
+          "tip-offset": 0
+        },
+        "post-process": {
+          "break-control": false,
+          "comment": "",
+          "diameter-offset": 421,
+          "length-offset": 421,
+          "live": true,
+          "manual-tool-change": false,
+          "number": 461,
+          "turret": 0
+        }
+      },
+      "requested": {
+        "id": "fu-block-drill-angle90",
+        "family": "block drill",
+        "raw": {
+          "BMC": "hss",
+          "GRADE": "generic",
+          "description": "fu-block-drill-angle90",
+          "geometry": {
+            "CSP": false,
+            "DC": 12,
+            "HAND": true,
+            "LB": 80,
+            "LCF": 20,
+            "NOF": 3,
+            "NT": 1,
+            "OAL": 80,
+            "RE": 0,
+            "SFDM": 8,
+            "SIG": 90,
+            "TP": 0,
+            "assemblyGaugeLength": 80,
+            "shoulder-length": 30,
+            "thread-profile-angle": 60,
+            "tip-diameter": 0,
+            "tip-length": 0,
+            "tip-offset": 0
+          },
+          "guid": "63d14e7f-aa14-517b-91f6-83860cb56c75",
+          "post-process": {
+            "break-control": false,
+            "comment": "",
+            "diameter-offset": 421,
+            "length-offset": 421,
+            "live": true,
+            "manual-tool-change": false,
+            "number": 461,
+            "turret": 0
+          },
+          "product-id": "",
+          "product-link": "",
+          "type": "block drill",
+          "unit": "millimeters",
+          "vendor": ""
+        },
+        "capture": {
+          "cameraTargetCm": [
+            0,
+            0,
+            6
+          ],
+          "cameraHeightCm": 12
+        }
+      },
+      "referenceUsable": true,
+      "nativeSVG": "M0 0 L6 0 L6 20 L6 30 L4 30 L4 80 L0 80 L-4 80 L-4 30 L-6 30 L-6 20 L-6 0 L-0 0 Z",
+      "nativePoints": [
+        [
+          0,
+          0
+        ],
+        [
+          6,
+          0
+        ],
+        [
+          6,
+          20
+        ],
+        [
+          6,
+          30
+        ],
+        [
+          4,
+          30
+        ],
+        [
+          4,
+          80
+        ],
+        [
+          0,
+          80
+        ]
+      ]
+    },
+    {
+      "id": "fu-block-drill-points",
+      "raw": {
+        "type": "block drill",
+        "unit": "millimeters",
+        "geometry": {
+          "CSP": false,
+          "DC": 12,
+          "HAND": true,
+          "LB": 80,
+          "LCF": 20,
+          "NOF": 3,
+          "NT": 1,
+          "OAL": 80,
+          "RE": 0,
+          "SFDM": 12,
+          "SIG": 0,
+          "TP": 0,
+          "assemblyGaugeLength": 80,
+          "shoulder-length": 20,
+          "thread-profile-angle": 60,
+          "tip-diameter": 0,
+          "tip-length": 0,
+          "tip-offset": 0
+        },
+        "post-process": {
+          "break-control": false,
+          "comment": "",
+          "diameter-offset": 421,
+          "length-offset": 421,
+          "live": true,
+          "manual-tool-change": false,
+          "number": 451,
+          "turret": 0
+        }
+      },
+      "requested": {
+        "id": "fu-block-drill-points",
+        "family": "block drill",
+        "raw": {
+          "BMC": "hss",
+          "GRADE": "generic",
+          "description": "fu-block-drill-points",
+          "geometry": {
+            "CSP": false,
+            "DC": 12,
+            "HAND": true,
+            "LB": 80,
+            "LCF": 20,
+            "NOF": 3,
+            "NT": 1,
+            "OAL": 80,
+            "RE": 0,
+            "SFDM": 12,
+            "SIG": 0,
+            "TP": 0,
+            "assemblyGaugeLength": 80,
+            "shoulder-length": 20,
+            "thread-profile-angle": 60,
+            "tip-diameter": 0,
+            "tip-length": 0,
+            "tip-offset": 0
+          },
+          "guid": "a20f7c55-381a-5d14-85e5-439603cfc7de",
+          "post-process": {
+            "break-control": false,
+            "comment": "",
+            "diameter-offset": 421,
+            "length-offset": 421,
+            "live": true,
+            "manual-tool-change": false,
+            "number": 451,
+            "turret": 0
+          },
+          "product-id": "",
+          "product-link": "",
+          "type": "block drill",
+          "unit": "millimeters",
+          "vendor": ""
+        },
+        "capture": {
+          "cameraTargetCm": [
+            0,
+            0,
+            6
+          ],
+          "cameraHeightCm": 12
+        }
+      },
+      "referenceUsable": true,
+      "nativeSVG": "M0 0 L6 0 L6 20 L6 20 L6 80 L0 80 L-6 80 L-6 20 L-6 20 L-6 0 L-0 0 Z",
+      "nativePoints": [
+        [
+          0,
+          0
+        ],
+        [
+          6,
+          0
+        ],
+        [
+          6,
+          20
+        ],
+        [
+          6,
+          20
+        ],
+        [
+          6,
+          80
+        ],
+        [
+          0,
+          80
+        ]
+      ]
+    },
+    {
+      "id": "fu-bull-r2",
+      "raw": {
+        "type": "bull nose end mill",
+        "unit": "millimeters",
+        "geometry": {
+          "CSP": false,
+          "DC": 10,
+          "HAND": true,
+          "LB": 70,
+          "LCF": 20,
+          "NOF": 3,
+          "NT": 1,
+          "OAL": 70,
+          "RE": 2,
+          "SFDM": 10,
+          "TA": 0,
+          "TP": 0,
+          "assemblyGaugeLength": 70,
+          "shoulder-diameter": 10,
+          "shoulder-length": 30,
+          "thread-profile-angle": 60,
+          "tip-diameter": 6,
+          "tip-length": 0,
+          "tip-offset": 0
+        },
+        "post-process": {
+          "break-control": false,
+          "comment": "",
+          "diameter-offset": 402,
+          "length-offset": 402,
+          "live": true,
+          "manual-tool-change": false,
+          "number": 402,
+          "turret": 0
+        }
+      },
+      "requested": {
+        "id": "fu-bull-r2",
+        "raw": {
+          "BMC": "unspecified",
+          "GRADE": "Mill Generic",
+          "description": "fu-bull-r2",
+          "geometry": {
+            "CSP": false,
+            "DC": 10,
+            "HAND": true,
+            "LB": 70,
+            "LCF": 20,
+            "NOF": 3,
+            "NT": 1,
+            "OAL": 70,
+            "RE": 2,
+            "SFDM": 10,
+            "TA": 0,
+            "TP": 0,
+            "assemblyGaugeLength": 70,
+            "shoulder-diameter": 10,
+            "shoulder-length": 30,
+            "thread-profile-angle": 60,
+            "tip-diameter": 8,
+            "tip-length": 0,
+            "tip-offset": 0
+          },
+          "guid": "0b39ab35-5946-5883-90b8-b3f586dd58cd",
+          "post-process": {
+            "break-control": false,
+            "comment": "",
+            "diameter-offset": 402,
+            "length-offset": 402,
+            "live": true,
+            "manual-tool-change": false,
+            "number": 402,
+            "turret": 0
+          },
+          "product-id": "",
+          "product-link": "",
+          "type": "bull nose end mill",
+          "unit": "millimeters",
+          "vendor": ""
+        },
+        "family": "bull nose end mill",
+        "capture": {
+          "cameraTargetCm": [
+            0,
+            0,
+            5
+          ],
+          "cameraHeightCm": 10
+        }
+      },
+      "referenceUsable": true,
+      "nativeSVG": "M0 0 L3 0 A2 2 0 0 1 5 2 L5 20 L5 20 L5 30 L5 30 L5 70 L0 70 L-5 70 L-5 30 L-5 30 L-5 20 L-5 20 L-5 2 A2 2 0 0 1 -3 0 L-0 0 Z",
+      "nativePoints": [
+        [
+          0,
+          0
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          3.0397643753301407,
+          0.000395340459868887
+        ],
+        [
+          3.0795130301938514,
+          0.0015812055453963136
+        ],
+        [
+          3.1192302503396396,
+          0.0035571264361340393
+        ],
+        [
+          3.158900333943429,
+          0.0063223219706083356
+        ],
+        [
+          3.198507597816123,
+          0.009875698955145173
+        ],
+        [
+          3.2380363836038097,
+          0.01421585259605318
+        ],
+        [
+          3.277471063978137,
+          0.019341067054996275
+        ],
+        [
+          3.3167960488144304,
+          0.025249316127333277
+        ],
+        [
+          3.3559957913551006,
+          0.03193826404315869
+        ],
+        [
+          3.3950547943559055,
+          0.03940526639072783
+        ],
+        [
+          3.433957616212636,
+          0.04764737116189832
+        ],
+        [
+          3.47268887706581,
+          0.05666131991917989
+        ],
+        [
+          3.5112332648809494,
+          0.06644354908392569
+        ],
+        [
+          3.5495755415020507,
+          0.07699019134515916
+        ],
+        [
+          3.5877005486758415,
+          0.08829707718847835
+        ],
+        [
+          3.6255932140444544,
+          0.10035973654443464
+        ],
+        [
+          3.663238557104136,
+          0.113173400555731
+        ],
+        [
+          3.7006216951276487,
+          0.12673300346254424
+        ],
+        [
+          3.7377278490480155,
+          0.14103318460522596
+        ],
+        [
+          3.7745423493012824,
+          0.15606829054358662
+        ],
+        [
+          3.811050641625988,
+          0.1718323772919308
+        ],
+        [
+          3.847238292817056,
+          0.18831921266895346
+        ],
+        [
+          3.883090996431824,
+          0.20552227876157558
+        ],
+        [
+          3.9185945784459557,
+          0.22343477450173643
+        ],
+        [
+          3.953735002857012,
+          0.2420496183551324
+        ],
+        [
+          3.9884983772334457,
+          0.26135945112083503
+        ],
+        [
+          4.022870958206845,
+          0.2813566388406781
+        ],
+        [
+          4.056839156905239,
+          0.30203327581727235
+        ],
+        [
+          4.090389544325335,
+          0.323381187739447
+        ],
+        [
+          4.123508856641542,
+          0.3453919349138854
+        ],
+        [
+          4.156184000449697,
+          0.36805681560167813
+        ],
+        [
+          4.188402057943421,
+          0.39136686945847043
+        ],
+        [
+          4.220150292021049,
+          0.4153128810768514
+        ],
+        [
+          4.25141615132112,
+          0.43988538362957597
+        ],
+        [
+          4.28218727518444,
+          0.4650746626121842
+        ],
+        [
+          4.312451498540751,
+          0.49087075968353977
+        ],
+        [
+          4.342196856718074,
+          0.5172634766027637
+        ],
+        [
+          4.371411590172826,
+          0.5442423792610118
+        ],
+        [
+          4.40008414913885,
+          0.5717968018065005
+        ],
+        [
+          4.4282031981935,
+          0.5999158508611493
+        ],
+        [
+          4.455757620738988,
+          0.6285884098271735
+        ],
+        [
+          4.482736523397237,
+          0.6578031432819267
+        ],
+        [
+          4.50912924031646,
+          0.6875485014592488
+        ],
+        [
+          4.534925337387816,
+          0.7178127248155597
+        ],
+        [
+          4.5601146163704245,
+          0.7485838486788803
+        ],
+        [
+          4.584687118923148,
+          0.7798497079789513
+        ],
+        [
+          4.60863313054153,
+          0.8115979420565791
+        ],
+        [
+          4.631943184398322,
+          0.8438159995503034
+        ],
+        [
+          4.654608065086114,
+          0.8764911433584583
+        ],
+        [
+          4.676618812260553,
+          0.9096104556746649
+        ],
+        [
+          4.697966724182727,
+          0.9431608430947609
+        ],
+        [
+          4.718643361159322,
+          0.977129041793156
+        ],
+        [
+          4.738640548879165,
+          1.0115016227665543
+        ],
+        [
+          4.757950381644868,
+          1.0462649971429876
+        ],
+        [
+          4.776565225498264,
+          1.0814054215540445
+        ],
+        [
+          4.794477721238424,
+          1.1169090035681764
+        ],
+        [
+          4.8116807873310465,
+          1.1527617071829437
+        ],
+        [
+          4.82816762270807,
+          1.1889493583740125
+        ],
+        [
+          4.843931709456413,
+          1.225457650698718
+        ],
+        [
+          4.8589668153947745,
+          1.262272150951984
+        ],
+        [
+          4.873266996537456,
+          1.2993783048723517
+        ],
+        [
+          4.8868265994442694,
+          1.3367614428958645
+        ],
+        [
+          4.899640263455566,
+          1.3744067859555458
+        ],
+        [
+          4.911702922811521,
+          1.4122994513241585
+        ],
+        [
+          4.923009808654841,
+          1.4504244584979493
+        ],
+        [
+          4.9335564509160745,
+          1.4887667351190506
+        ],
+        [
+          4.94333868008082,
+          1.5273111229341905
+        ],
+        [
+          4.952352628838102,
+          1.5660423837873643
+        ],
+        [
+          4.960594733609272,
+          1.6049452056440947
+        ],
+        [
+          4.968061735956841,
+          1.6440042086448996
+        ],
+        [
+          4.974750683872667,
+          1.6832039511855703
+        ],
+        [
+          4.980658932945004,
+          1.7225289360218634
+        ],
+        [
+          4.985784147403947,
+          1.7619636163961905
+        ],
+        [
+          4.990124301044855,
+          1.801492402183877
+        ],
+        [
+          4.993677678029392,
+          1.841099666056571
+        ],
+        [
+          4.996442873563866,
+          1.8807697496603604
+        ],
+        [
+          4.9984187944546035,
+          1.9204869698061489
+        ],
+        [
+          4.999604659540131,
+          1.9602356246698596
+        ],
+        [
+          5,
+          2
+        ],
+        [
+          5,
+          20
+        ],
+        [
+          5,
+          20
+        ],
+        [
+          5,
+          30
+        ],
+        [
+          5,
+          30
+        ],
+        [
+          5,
+          70
+        ],
+        [
+          0,
+          70
+        ]
+      ]
+    },
+    {
+      "id": "fu-bull-small",
+      "raw": {
+        "type": "bull nose end mill",
+        "unit": "millimeters",
+        "geometry": {
+          "CSP": false,
+          "DC": 10,
+          "HAND": true,
+          "LB": 70,
+          "LCF": 20,
+          "NOF": 3,
+          "NT": 1,
+          "OAL": 70,
+          "RE": 0.01,
+          "SFDM": 10,
+          "TA": 0,
+          "TP": 0,
+          "assemblyGaugeLength": 70,
+          "shoulder-diameter": 10,
+          "shoulder-length": 30,
+          "thread-profile-angle": 60,
+          "tip-diameter": 9.98,
+          "tip-length": 0,
+          "tip-offset": 0
+        },
+        "post-process": {
+          "break-control": false,
+          "comment": "",
+          "diameter-offset": 401,
+          "length-offset": 401,
+          "live": true,
+          "manual-tool-change": false,
+          "number": 401,
+          "turret": 0
+        }
+      },
+      "requested": {
+        "id": "fu-bull-small",
+        "raw": {
+          "BMC": "unspecified",
+          "GRADE": "Mill Generic",
+          "description": "fu-bull-small",
+          "geometry": {
+            "CSP": false,
+            "DC": 10,
+            "HAND": true,
+            "LB": 70,
+            "LCF": 20,
+            "NOF": 3,
+            "NT": 1,
+            "OAL": 70,
+            "RE": 0.01,
+            "SFDM": 10,
+            "TA": 0,
+            "TP": 0,
+            "assemblyGaugeLength": 70,
+            "shoulder-diameter": 10,
+            "shoulder-length": 30,
+            "thread-profile-angle": 60,
+            "tip-diameter": 8,
+            "tip-length": 0,
+            "tip-offset": 0
+          },
+          "guid": "e74a6dcc-5598-50da-b8b4-5415bedb4119",
+          "post-process": {
+            "break-control": false,
+            "comment": "",
+            "diameter-offset": 401,
+            "length-offset": 401,
+            "live": true,
+            "manual-tool-change": false,
+            "number": 401,
+            "turret": 0
+          },
+          "product-id": "",
+          "product-link": "",
+          "type": "bull nose end mill",
+          "unit": "millimeters",
+          "vendor": ""
+        },
+        "family": "bull nose end mill",
+        "capture": {
+          "cameraTargetCm": [
+            0,
+            0,
+            5
+          ],
+          "cameraHeightCm": 10
+        }
+      },
+      "referenceUsable": true,
+      "nativeSVG": "M0 0 L4.99 0 A0.01 0.01 0 0 1 5 0.01 L5 20 L5 20 L5 30 L5 30 L5 70 L0 70 L-5 70 L-5 30 L-5 30 L-5 20 L-5 20 L-5 0.01 A0.01 0.01 0 0 1 -4.99 0 L-0 0 Z",
+      "nativePoints": [
+        [
+          0,
+          0
+        ],
+        [
+          4.99,
+          0
+        ],
+        [
+          4.992588190451025,
+          0.0003407417371093166
+        ],
+        [
+          4.995,
+          0.0013397459621556137
+        ],
+        [
+          4.9970710678118655,
+          0.0029289321881345257
+        ],
+        [
+          4.998660254037844,
+          0.005
+        ],
+        [
+          4.9996592582628905,
+          0.007411809548974793
+        ],
+        [
+          5,
+          0.01
+        ],
+        [
+          5,
+          20
+        ],
+        [
+          5,
+          20
+        ],
+        [
+          5,
+          30
+        ],
+        [
+          5,
+          30
+        ],
+        [
+          5,
+          70
+        ],
+        [
+          0,
+          70
+        ]
+      ]
+    },
+    {
+      "id": "fu-bull-zero",
+      "raw": {
+        "type": "bull nose end mill",
+        "unit": "millimeters",
+        "geometry": {
+          "CSP": false,
+          "DC": 10,
+          "HAND": true,
+          "LB": 70,
+          "LCF": 20,
+          "NOF": 3,
+          "NT": 1,
+          "OAL": 70,
+          "RE": 0,
+          "SFDM": 10,
+          "TA": 0,
+          "TP": 0,
+          "assemblyGaugeLength": 70,
+          "shoulder-diameter": 10,
+          "shoulder-length": 30,
+          "thread-profile-angle": 60,
+          "tip-diameter": 10,
+          "tip-length": 0,
+          "tip-offset": 0
+        },
+        "post-process": {
+          "break-control": false,
+          "comment": "",
+          "diameter-offset": 400,
+          "length-offset": 400,
+          "live": true,
+          "manual-tool-change": false,
+          "number": 400,
+          "turret": 0
+        }
+      },
+      "requested": {
+        "id": "fu-bull-zero",
+        "raw": {
+          "BMC": "unspecified",
+          "GRADE": "Mill Generic",
+          "description": "fu-bull-zero",
+          "geometry": {
+            "CSP": false,
+            "DC": 10,
+            "HAND": true,
+            "LB": 70,
+            "LCF": 20,
+            "NOF": 3,
+            "NT": 1,
+            "OAL": 70,
+            "RE": 0,
+            "SFDM": 10,
+            "TA": 0,
+            "TP": 0,
+            "assemblyGaugeLength": 70,
+            "shoulder-diameter": 10,
+            "shoulder-length": 30,
+            "thread-profile-angle": 60,
+            "tip-diameter": 8,
+            "tip-length": 0,
+            "tip-offset": 0
+          },
+          "guid": "288c4001-60e9-59c2-8abe-6cfabe0f8185",
+          "post-process": {
+            "break-control": false,
+            "comment": "",
+            "diameter-offset": 400,
+            "length-offset": 400,
+            "live": true,
+            "manual-tool-change": false,
+            "number": 400,
+            "turret": 0
+          },
+          "product-id": "",
+          "product-link": "",
+          "type": "bull nose end mill",
+          "unit": "millimeters",
+          "vendor": ""
+        },
+        "family": "bull nose end mill",
+        "capture": {
+          "cameraTargetCm": [
+            0,
+            0,
+            5
+          ],
+          "cameraHeightCm": 10
+        }
+      },
+      "referenceUsable": true,
+      "nativeSVG": "M0 0 L5 0 L5 20 L5 20 L5 30 L5 30 L5 70 L0 70 L-5 70 L-5 30 L-5 30 L-5 20 L-5 20 L-5 0 L-0 0 Z",
+      "nativePoints": [
+        [
+          0,
+          0
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          5,
+          20
+        ],
+        [
+          5,
+          20
+        ],
+        [
+          5,
+          30
+        ],
+        [
+          5,
+          30
+        ],
+        [
+          5,
+          70
+        ],
+        [
+          0,
+          70
+        ]
+      ]
+    },
+    {
+      "id": "fu-corner-angle30",
+      "raw": {
+        "type": "corner chamfer end mill",
+        "unit": "millimeters",
+        "geometry": {
+          "CSP": false,
+          "DC": 12,
+          "HAND": true,
+          "LB": 80,
+          "LCF": 20,
+          "NOF": 3,
+          "NT": 1,
+          "OAL": 80,
+          "RE": 0,
+          "SFDM": 12,
+          "TA": 0,
+          "TP": 0,
+          "assemblyGaugeLength": 80,
+          "chamfer-angle": 29.999999999999996,
+          "chamfer-width": 1,
+          "shoulder-diameter": 12,
+          "shoulder-length": 20,
+          "thread-profile-angle": 60,
+          "tip-diameter": 12,
+          "tip-length": 0,
+          "tip-offset": 0
+        },
+        "post-process": {
+          "break-control": false,
+          "comment": "",
+          "diameter-offset": 420,
+          "length-offset": 420,
+          "live": true,
+          "manual-tool-change": false,
+          "number": 424,
+          "turret": 0
+        }
+      },
+      "requested": {
+        "id": "fu-corner-angle30",
+        "family": "corner chamfer end mill",
+        "raw": {
+          "BMC": "hss",
+          "GRADE": "Mill Generic",
+          "description": "fu-corner-angle30",
+          "geometry": {
+            "CSP": false,
+            "DC": 12,
+            "HAND": true,
+            "LB": 80,
+            "LCF": 20,
+            "NOF": 3,
+            "NT": 1,
+            "OAL": 80,
+            "RE": 0,
+            "SFDM": 12,
+            "TA": 0,
+            "TP": 0,
+            "assemblyGaugeLength": 80,
+            "chamfer-angle": 30,
+            "chamfer-width": 1,
+            "shoulder-diameter": 12,
+            "shoulder-length": 20,
+            "thread-profile-angle": 60,
+            "tip-diameter": 12,
+            "tip-length": 0,
+            "tip-offset": 0
+          },
+          "guid": "9b466ebc-8fd3-5317-8fce-763161fb9c3f",
+          "post-process": {
+            "break-control": false,
+            "comment": "",
+            "diameter-offset": 420,
+            "length-offset": 420,
+            "live": true,
+            "manual-tool-change": false,
+            "number": 424,
+            "turret": 0
+          },
+          "product-id": "",
+          "product-link": "",
+          "type": "corner chamfer end mill",
+          "unit": "millimeters",
+          "vendor": ""
+        },
+        "capture": {
+          "cameraTargetCm": [
+            0,
+            0,
+            6
+          ],
+          "cameraHeightCm": 12
+        }
+      },
+      "referenceUsable": true,
+      "nativeSVG": "M0 0 L5 0 L6 0.57735 L6 20 L6 20 L6 80 L0 80 L-6 80 L-6 20 L-6 20 L-6 0.57735 L-5 0 L-0 0 Z",
+      "nativePoints": [
+        [
+          0,
+          0
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          6,
+          0.57735
+        ],
+        [
+          6,
+          20
+        ],
+        [
+          6,
+          20
+        ],
+        [
+          6,
+          80
+        ],
+        [
+          0,
+          80
+        ]
+      ]
+    },
+    {
+      "id": "fu-corner-angle60",
+      "raw": {
+        "type": "corner chamfer end mill",
+        "unit": "millimeters",
+        "geometry": {
+          "CSP": false,
+          "DC": 12,
+          "HAND": true,
+          "LB": 80,
+          "LCF": 20,
+          "NOF": 3,
+          "NT": 1,
+          "OAL": 80,
+          "RE": 0,
+          "SFDM": 12,
+          "TA": 0,
+          "TP": 0,
+          "assemblyGaugeLength": 80,
+          "chamfer-angle": 59.99999999999999,
+          "chamfer-width": 1,
+          "shoulder-diameter": 12,
+          "shoulder-length": 20,
+          "thread-profile-angle": 60,
+          "tip-diameter": 12,
+          "tip-length": 0,
+          "tip-offset": 0
+        },
+        "post-process": {
+          "break-control": false,
+          "comment": "",
+          "diameter-offset": 420,
+          "length-offset": 420,
+          "live": true,
+          "manual-tool-change": false,
+          "number": 425,
+          "turret": 0
+        }
+      },
+      "requested": {
+        "id": "fu-corner-angle60",
+        "family": "corner chamfer end mill",
+        "raw": {
+          "BMC": "hss",
+          "GRADE": "Mill Generic",
+          "description": "fu-corner-angle60",
+          "geometry": {
+            "CSP": false,
+            "DC": 12,
+            "HAND": true,
+            "LB": 80,
+            "LCF": 20,
+            "NOF": 3,
+            "NT": 1,
+            "OAL": 80,
+            "RE": 0,
+            "SFDM": 12,
+            "TA": 0,
+            "TP": 0,
+            "assemblyGaugeLength": 80,
+            "chamfer-angle": 60,
+            "chamfer-width": 1,
+            "shoulder-diameter": 12,
+            "shoulder-length": 20,
+            "thread-profile-angle": 60,
+            "tip-diameter": 12,
+            "tip-length": 0,
+            "tip-offset": 0
+          },
+          "guid": "fb6bf0ab-c32c-5457-9415-ffb90b12ba3e",
+          "post-process": {
+            "break-control": false,
+            "comment": "",
+            "diameter-offset": 420,
+            "length-offset": 420,
+            "live": true,
+            "manual-tool-change": false,
+            "number": 425,
+            "turret": 0
+          },
+          "product-id": "",
+          "product-link": "",
+          "type": "corner chamfer end mill",
+          "unit": "millimeters",
+          "vendor": ""
+        },
+        "capture": {
+          "cameraTargetCm": [
+            0,
+            0,
+            6
+          ],
+          "cameraHeightCm": 12
+        }
+      },
+      "referenceUsable": true,
+      "nativeSVG": "M0 0 L5 0 L6 1.73205 L6 20 L6 20 L6 80 L0 80 L-6 80 L-6 20 L-6 20 L-6 1.73205 L-5 0 L-0 0 Z",
+      "nativePoints": [
+        [
+          0,
+          0
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          6,
+          1.73205
+        ],
+        [
+          6,
+          20
+        ],
+        [
+          6,
+          20
+        ],
+        [
+          6,
+          80
+        ],
+        [
+          0,
+          80
+        ]
+      ]
+    },
+    {
+      "id": "fu-corner-chamfer-end-mill",
+      "raw": {
+        "type": "corner chamfer end mill",
+        "unit": "millimeters",
+        "geometry": {
+          "CSP": false,
+          "DC": 12,
+          "HAND": true,
+          "LB": 80,
+          "LCF": 20,
+          "NOF": 3,
+          "NT": 1,
+          "OAL": 80,
+          "RE": 0,
+          "SFDM": 12,
+          "TA": 0,
+          "TP": 0,
+          "assemblyGaugeLength": 80,
+          "chamfer-angle": 44.99999999999999,
+          "chamfer-width": 1,
+          "shoulder-diameter": 12,
+          "shoulder-length": 20,
+          "thread-profile-angle": 60,
+          "tip-diameter": 12,
+          "tip-length": 0,
+          "tip-offset": 0
+        },
+        "post-process": {
+          "break-control": false,
+          "comment": "",
+          "diameter-offset": 420,
+          "length-offset": 420,
+          "live": true,
+          "manual-tool-change": false,
+          "number": 420,
+          "turret": 0
+        }
+      },
+      "requested": {
+        "id": "fu-corner-chamfer-end-mill",
+        "family": "corner chamfer end mill",
+        "raw": {
+          "BMC": "hss",
+          "GRADE": "Mill Generic",
+          "description": "fu-corner-chamfer-end-mill",
+          "geometry": {
+            "CSP": false,
+            "DC": 12,
+            "HAND": true,
+            "LB": 80,
+            "LCF": 20,
+            "NOF": 3,
+            "NT": 1,
+            "OAL": 80,
+            "RE": 0,
+            "SFDM": 12,
+            "TA": 0,
+            "TP": 0,
+            "assemblyGaugeLength": 80,
+            "chamfer-angle": 44.99999999999999,
+            "chamfer-width": 1,
+            "shoulder-diameter": 12,
+            "shoulder-length": 20,
+            "thread-profile-angle": 60,
+            "tip-diameter": 12,
+            "tip-length": 0,
+            "tip-offset": 0
+          },
+          "guid": "35e0c707-9bcc-5828-8f3c-69a59b5db418",
+          "post-process": {
+            "break-control": false,
+            "comment": "",
+            "diameter-offset": 420,
+            "length-offset": 420,
+            "live": true,
+            "manual-tool-change": false,
+            "number": 420,
+            "turret": 0
+          },
+          "product-id": "",
+          "product-link": "",
+          "type": "corner chamfer end mill",
+          "unit": "millimeters",
+          "vendor": ""
+        },
+        "capture": {
+          "cameraTargetCm": [
+            0,
+            0,
+            6
+          ],
+          "cameraHeightCm": 12
+        }
+      },
+      "referenceUsable": true,
+      "nativeSVG": "M0 0 L5 0 L6 1 L6 20 L6 20 L6 80 L0 80 L-6 80 L-6 20 L-6 20 L-6 1 L-5 0 L-0 0 Z",
+      "nativePoints": [
+        [
+          0,
+          0
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          6,
+          1
+        ],
+        [
+          6,
+          20
+        ],
+        [
+          6,
+          20
+        ],
+        [
+          6,
+          80
+        ],
+        [
+          0,
+          80
+        ]
+      ]
+    },
+    {
+      "id": "fu-corner-shaft",
+      "raw": {
+        "type": "corner chamfer end mill",
+        "unit": "millimeters",
+        "geometry": {
+          "CSP": false,
+          "DC": 12,
+          "HAND": true,
+          "LB": 80,
+          "LCF": 20,
+          "NOF": 3,
+          "NT": 1,
+          "OAL": 80,
+          "RE": 0,
+          "SFDM": 8,
+          "TA": 0,
+          "TP": 0,
+          "assemblyGaugeLength": 80,
+          "chamfer-angle": 29.999999999999996,
+          "chamfer-width": 1.5,
+          "shoulder-diameter": 12,
+          "shoulder-length": 30,
+          "thread-profile-angle": 60,
+          "tip-diameter": 12,
+          "tip-length": 0,
+          "tip-offset": 0
+        },
+        "post-process": {
+          "break-control": false,
+          "comment": "",
+          "diameter-offset": 420,
+          "length-offset": 420,
+          "live": true,
+          "manual-tool-change": false,
+          "number": 429,
+          "turret": 0
+        },
+        "shaft": {
+          "segments": [
+            {
+              "height": 10,
+              "lower-diameter": 8,
+              "upper-diameter": 6
+            },
+            {
+              "height": 60,
+              "lower-diameter": 6,
+              "upper-diameter": 6
+            }
+          ],
+          "type": "shaft"
+        }
+      },
+      "requested": {
+        "id": "fu-corner-shaft",
+        "family": "corner chamfer end mill",
+        "raw": {
+          "BMC": "hss",
+          "GRADE": "Mill Generic",
+          "description": "fu-corner-shaft",
+          "geometry": {
+            "CSP": false,
+            "DC": 12,
+            "HAND": true,
+            "LB": 80,
+            "LCF": 20,
+            "NOF": 3,
+            "NT": 1,
+            "OAL": 80,
+            "RE": 0,
+            "SFDM": 8,
+            "TA": 0,
+            "TP": 0,
+            "assemblyGaugeLength": 80,
+            "chamfer-angle": 30,
+            "chamfer-width": 1.5,
+            "shoulder-diameter": 12,
+            "shoulder-length": 30,
+            "thread-profile-angle": 60,
+            "tip-diameter": 12,
+            "tip-length": 0,
+            "tip-offset": 0
+          },
+          "guid": "0d27629a-f2bb-5a82-9fe5-87b4e422442d",
+          "post-process": {
+            "break-control": false,
+            "comment": "",
+            "diameter-offset": 420,
+            "length-offset": 420,
+            "live": true,
+            "manual-tool-change": false,
+            "number": 429,
+            "turret": 0
+          },
+          "product-id": "",
+          "product-link": "",
+          "type": "corner chamfer end mill",
+          "unit": "millimeters",
+          "vendor": "",
+          "shaft": {
+            "segments": [
+              {
+                "height": 10,
+                "lower-diameter": 8,
+                "upper-diameter": 6
+              },
+              {
+                "height": 60,
+                "lower-diameter": 6,
+                "upper-diameter": 6
+              }
+            ]
+          }
+        },
+        "capture": {
+          "cameraTargetCm": [
+            0,
+            0,
+            6
+          ],
+          "cameraHeightCm": 12
+        }
+      },
+      "referenceUsable": true,
+      "nativeSVG": "M0 0 L4.5 0 L6 0.866025 L6 20 L6 20 L6 30 L4 30 L3 40 L3 80 L0 80 L-3 80 L-3 40 L-4 30 L-6 30 L-6 20 L-6 20 L-6 0.866025 L-4.5 0 L-0 0 Z",
+      "nativePoints": [
+        [
+          0,
+          0
+        ],
+        [
+          4.5,
+          0
+        ],
+        [
+          6,
+          0.866025
+        ],
+        [
+          6,
+          20
+        ],
+        [
+          6,
+          20
+        ],
+        [
+          6,
+          30
+        ],
+        [
+          4,
+          30
+        ],
+        [
+          3,
+          40
+        ],
+        [
+          3,
+          80
+        ],
+        [
+          0,
+          80
+        ]
+      ]
+    },
+    {
+      "id": "fu-corner-short",
+      "raw": {
+        "type": "corner chamfer end mill",
+        "unit": "millimeters",
+        "geometry": {
+          "CSP": false,
+          "DC": 12,
+          "HAND": true,
+          "LB": 80,
+          "LCF": 0.5,
+          "NOF": 3,
+          "NT": 1,
+          "OAL": 80,
+          "RE": 0,
+          "SFDM": 12,
+          "TA": 0,
+          "TP": 0,
+          "assemblyGaugeLength": 80,
+          "chamfer-angle": 44.99999999999999,
+          "chamfer-width": 2,
+          "shoulder-diameter": 12,
+          "shoulder-length": 20,
+          "thread-profile-angle": 60,
+          "tip-diameter": 12,
+          "tip-length": 0,
+          "tip-offset": 0
+        },
+        "post-process": {
+          "break-control": false,
+          "comment": "",
+          "diameter-offset": 420,
+          "length-offset": 420,
+          "live": true,
+          "manual-tool-change": false,
+          "number": 428,
+          "turret": 0
+        }
+      },
+      "requested": {
+        "id": "fu-corner-short",
+        "family": "corner chamfer end mill",
+        "raw": {
+          "BMC": "hss",
+          "GRADE": "Mill Generic",
+          "description": "fu-corner-short",
+          "geometry": {
+            "CSP": false,
+            "DC": 12,
+            "HAND": true,
+            "LB": 80,
+            "LCF": 0.5,
+            "NOF": 3,
+            "NT": 1,
+            "OAL": 80,
+            "RE": 0,
+            "SFDM": 12,
+            "TA": 0,
+            "TP": 0,
+            "assemblyGaugeLength": 80,
+            "chamfer-angle": 44.99999999999999,
+            "chamfer-width": 2,
+            "shoulder-diameter": 12,
+            "shoulder-length": 20,
+            "thread-profile-angle": 60,
+            "tip-diameter": 12,
+            "tip-length": 0,
+            "tip-offset": 0
+          },
+          "guid": "181d43ec-a46d-5d6b-b2a5-21ff08334d0b",
+          "post-process": {
+            "break-control": false,
+            "comment": "",
+            "diameter-offset": 420,
+            "length-offset": 420,
+            "live": true,
+            "manual-tool-change": false,
+            "number": 428,
+            "turret": 0
+          },
+          "product-id": "",
+          "product-link": "",
+          "type": "corner chamfer end mill",
+          "unit": "millimeters",
+          "vendor": ""
+        },
+        "capture": {
+          "cameraTargetCm": [
+            0,
+            0,
+            6
+          ],
+          "cameraHeightCm": 12
+        }
+      },
+      "referenceUsable": true,
+      "nativeSVG": "M0 0 L4 0 L6 2 L6 2 L6 2 L6 20 L6 20 L6 80 L0 80 L-6 80 L-6 20 L-6 20 L-6 2 L-6 2 L-6 2 L-4 0 L-0 0 Z",
+      "nativePoints": [
+        [
+          0,
+          0
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          6,
+          2
+        ],
+        [
+          6,
+          2
+        ],
+        [
+          6,
+          2
+        ],
+        [
+          6,
+          20
+        ],
+        [
+          6,
+          20
+        ],
+        [
+          6,
+          80
+        ],
+        [
+          0,
+          80
+        ]
+      ]
+    },
+    {
+      "id": "fu-corner-width0",
+      "raw": {
+        "type": "corner chamfer end mill",
+        "unit": "millimeters",
+        "geometry": {
+          "CSP": false,
+          "DC": 12,
+          "HAND": true,
+          "LB": 80,
+          "LCF": 20,
+          "NOF": 3,
+          "NT": 1,
+          "OAL": 80,
+          "RE": 0,
+          "SFDM": 12,
+          "TA": 0,
+          "TP": 0,
+          "assemblyGaugeLength": 80,
+          "chamfer-angle": 44.99999999999999,
+          "chamfer-width": 0,
+          "shoulder-diameter": 12,
+          "shoulder-length": 20,
+          "thread-profile-angle": 60,
+          "tip-diameter": 12,
+          "tip-length": 0,
+          "tip-offset": 0
+        },
+        "post-process": {
+          "break-control": false,
+          "comment": "",
+          "diameter-offset": 420,
+          "length-offset": 420,
+          "live": true,
+          "manual-tool-change": false,
+          "number": 427,
+          "turret": 0
+        }
+      },
+      "requested": {
+        "id": "fu-corner-width0",
+        "family": "corner chamfer end mill",
+        "raw": {
+          "BMC": "hss",
+          "GRADE": "Mill Generic",
+          "description": "fu-corner-width0",
+          "geometry": {
+            "CSP": false,
+            "DC": 12,
+            "HAND": true,
+            "LB": 80,
+            "LCF": 20,
+            "NOF": 3,
+            "NT": 1,
+            "OAL": 80,
+            "RE": 0,
+            "SFDM": 12,
+            "TA": 0,
+            "TP": 0,
+            "assemblyGaugeLength": 80,
+            "chamfer-angle": 44.99999999999999,
+            "chamfer-width": 0,
+            "shoulder-diameter": 12,
+            "shoulder-length": 20,
+            "thread-profile-angle": 60,
+            "tip-diameter": 12,
+            "tip-length": 0,
+            "tip-offset": 0
+          },
+          "guid": "34ad0a54-9a1d-5a0d-9315-fa88c3b40a9b",
+          "post-process": {
+            "break-control": false,
+            "comment": "",
+            "diameter-offset": 420,
+            "length-offset": 420,
+            "live": true,
+            "manual-tool-change": false,
+            "number": 427,
+            "turret": 0
+          },
+          "product-id": "",
+          "product-link": "",
+          "type": "corner chamfer end mill",
+          "unit": "millimeters",
+          "vendor": ""
+        },
+        "capture": {
+          "cameraTargetCm": [
+            0,
+            0,
+            6
+          ],
+          "cameraHeightCm": 12
+        }
+      },
+      "referenceUsable": true,
+      "nativeSVG": "M0 0 L6 0 L6 0 L6 20 L6 20 L6 80 L0 80 L-6 80 L-6 20 L-6 20 L-6 0 L-6 0 L-0 0 Z",
+      "nativePoints": [
+        [
+          0,
+          0
+        ],
+        [
+          6,
+          0
+        ],
+        [
+          6,
+          0
+        ],
+        [
+          6,
+          20
+        ],
+        [
+          6,
+          20
+        ],
+        [
+          6,
+          80
+        ],
+        [
+          0,
+          80
+        ]
+      ]
+    },
+    {
+      "id": "fu-corner-width2",
+      "raw": {
+        "type": "corner chamfer end mill",
+        "unit": "millimeters",
+        "geometry": {
+          "CSP": false,
+          "DC": 12,
+          "HAND": true,
+          "LB": 80,
+          "LCF": 20,
+          "NOF": 3,
+          "NT": 1,
+          "OAL": 80,
+          "RE": 0,
+          "SFDM": 12,
+          "TA": 0,
+          "TP": 0,
+          "assemblyGaugeLength": 80,
+          "chamfer-angle": 44.99999999999999,
+          "chamfer-width": 2,
+          "shoulder-diameter": 12,
+          "shoulder-length": 20,
+          "thread-profile-angle": 60,
+          "tip-diameter": 12,
+          "tip-length": 0,
+          "tip-offset": 0
+        },
+        "post-process": {
+          "break-control": false,
+          "comment": "",
+          "diameter-offset": 420,
+          "length-offset": 420,
+          "live": true,
+          "manual-tool-change": false,
+          "number": 426,
+          "turret": 0
+        }
+      },
+      "requested": {
+        "id": "fu-corner-width2",
+        "family": "corner chamfer end mill",
+        "raw": {
+          "BMC": "hss",
+          "GRADE": "Mill Generic",
+          "description": "fu-corner-width2",
+          "geometry": {
+            "CSP": false,
+            "DC": 12,
+            "HAND": true,
+            "LB": 80,
+            "LCF": 20,
+            "NOF": 3,
+            "NT": 1,
+            "OAL": 80,
+            "RE": 0,
+            "SFDM": 12,
+            "TA": 0,
+            "TP": 0,
+            "assemblyGaugeLength": 80,
+            "chamfer-angle": 44.99999999999999,
+            "chamfer-width": 2,
+            "shoulder-diameter": 12,
+            "shoulder-length": 20,
+            "thread-profile-angle": 60,
+            "tip-diameter": 12,
+            "tip-length": 0,
+            "tip-offset": 0
+          },
+          "guid": "c548008d-77c5-5112-a717-afd6dc49dafe",
+          "post-process": {
+            "break-control": false,
+            "comment": "",
+            "diameter-offset": 420,
+            "length-offset": 420,
+            "live": true,
+            "manual-tool-change": false,
+            "number": 426,
+            "turret": 0
+          },
+          "product-id": "",
+          "product-link": "",
+          "type": "corner chamfer end mill",
+          "unit": "millimeters",
+          "vendor": ""
+        },
+        "capture": {
+          "cameraTargetCm": [
+            0,
+            0,
+            6
+          ],
+          "cameraHeightCm": 12
+        }
+      },
+      "referenceUsable": true,
+      "nativeSVG": "M0 0 L4 0 L6 2 L6 20 L6 20 L6 80 L0 80 L-6 80 L-6 20 L-6 20 L-6 2 L-4 0 L-0 0 Z",
+      "nativePoints": [
+        [
+          0,
+          0
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          6,
+          2
+        ],
+        [
+          6,
+          20
+        ],
+        [
+          6,
+          20
+        ],
+        [
+          6,
+          80
+        ],
+        [
+          0,
+          80
+        ]
+      ]
+    },
+    {
+      "id": "fu-face-angle15",
+      "raw": {
+        "type": "face mill",
+        "unit": "millimeters",
+        "geometry": {
+          "CSP": false,
+          "DC": 20,
+          "DCX": 50,
+          "HAND": true,
+          "LB": 80,
+          "LCF": 6,
+          "NOF": 4,
+          "NT": 1,
+          "OAL": 80,
+          "RE": 0,
+          "SFDM": 16,
+          "TA": 15,
+          "TP": 0,
+          "assemblyGaugeLength": 80,
+          "shoulder-diameter": 23.21539,
+          "shoulder-length": 18,
+          "thread-profile-angle": 60,
+          "tip-diameter": 20,
+          "tip-length": 0,
+          "tip-offset": 0,
+          "upper-radius": 0
+        },
+        "post-process": {
+          "break-control": false,
+          "comment": "",
+          "diameter-offset": 404,
+          "length-offset": 404,
+          "live": true,
+          "manual-tool-change": false,
+          "number": 404,
+          "turret": 0
+        }
+      },
+      "requested": {
+        "id": "fu-face-angle15",
+        "raw": {
+          "BMC": "unspecified",
+          "GRADE": "Mill Generic",
+          "description": "fu-face-angle15",
+          "geometry": {
+            "CSP": false,
+            "DC": 20,
+            "DCX": 50,
+            "HAND": true,
+            "LB": 80,
+            "LCF": 6,
+            "NOF": 4,
+            "NT": 1,
+            "OAL": 80,
+            "RE": 0,
+            "SFDM": 16,
+            "TA": 15,
+            "TP": 0,
+            "assemblyGaugeLength": 80,
+            "shoulder-diameter": 50,
+            "shoulder-length": 18,
+            "thread-profile-angle": 60,
+            "tip-diameter": 50,
+            "tip-length": 0,
+            "tip-offset": 0,
+            "upper-radius": 0
+          },
+          "guid": "e75db6bc-5718-5e7f-9d03-bc9a06d8c3be",
+          "post-process": {
+            "break-control": false,
+            "comment": "",
+            "diameter-offset": 404,
+            "length-offset": 404,
+            "live": true,
+            "manual-tool-change": false,
+            "number": 404,
+            "turret": 0
+          },
+          "product-id": "",
+          "product-link": "",
+          "type": "face mill",
+          "unit": "millimeters",
+          "vendor": ""
+        },
+        "family": "face mill",
+        "capture": {
+          "cameraTargetCm": [
+            0,
+            0,
+            5
+          ],
+          "cameraHeightCm": 10
+        }
+      },
+      "referenceUsable": true,
+      "nativeSVG": "M0 0 L10 0 L25 55.9808 L8 55.9808 L8 80 L0 80 L-8 80 L-8 55.9808 L-25 55.9808 L-10 0 L-0 0 Z",
+      "nativePoints": [
+        [
+          0,
+          0
+        ],
+        [
+          10,
+          0
+        ],
+        [
+          25,
+          55.9808
+        ],
+        [
+          8,
+          55.9808
+        ],
+        [
+          8,
+          80
+        ],
+        [
+          0,
+          80
+        ]
+      ]
+    },
+    {
+      "id": "fu-face-angle30-r1",
+      "raw": {
+        "type": "face mill",
+        "unit": "millimeters",
+        "geometry": {
+          "CSP": false,
+          "DC": 43.071797,
+          "DCX": 50,
+          "HAND": true,
+          "LB": 80,
+          "LCF": 6,
+          "NOF": 4,
+          "NT": 1,
+          "OAL": 80,
+          "RE": 1,
+          "SFDM": 16,
+          "TA": 30,
+          "TP": 0,
+          "assemblyGaugeLength": 80,
+          "shoulder-diameter": 26.928202999999996,
+          "shoulder-length": 18,
+          "thread-profile-angle": 60,
+          "tip-diameter": 41.071797,
+          "tip-length": 0,
+          "tip-offset": 0,
+          "upper-radius": 0
+        },
+        "post-process": {
+          "break-control": false,
+          "comment": "",
+          "diameter-offset": 407,
+          "length-offset": 407,
+          "live": true,
+          "manual-tool-change": false,
+          "number": 407,
+          "turret": 0
+        }
+      },
+      "requested": {
+        "id": "fu-face-angle30-r1",
+        "raw": {
+          "BMC": "unspecified",
+          "GRADE": "Mill Generic",
+          "description": "fu-face-angle30-r1",
+          "geometry": {
+            "CSP": false,
+            "DC": 20,
+            "DCX": 50,
+            "HAND": true,
+            "LB": 80,
+            "LCF": 6,
+            "NOF": 4,
+            "NT": 1,
+            "OAL": 80,
+            "RE": 1,
+            "SFDM": 16,
+            "TA": 30,
+            "TP": 0,
+            "assemblyGaugeLength": 80,
+            "shoulder-diameter": 50,
+            "shoulder-length": 18,
+            "thread-profile-angle": 60,
+            "tip-diameter": 50,
+            "tip-length": 0,
+            "tip-offset": 0,
+            "upper-radius": 0
+          },
+          "guid": "b1cdf4dc-6bc1-53b9-8744-2851a669579d",
+          "post-process": {
+            "break-control": false,
+            "comment": "",
+            "diameter-offset": 407,
+            "length-offset": 407,
+            "live": true,
+            "manual-tool-change": false,
+            "number": 407,
+            "turret": 0
+          },
+          "product-id": "",
+          "product-link": "",
+          "type": "face mill",
+          "unit": "millimeters",
+          "vendor": ""
+        },
+        "family": "face mill",
+        "capture": {
+          "cameraTargetCm": [
+            0,
+            0,
+            5
+          ],
+          "cameraHeightCm": 10
+        }
+      },
+      "referenceUsable": true,
+      "nativeSVG": "M0 0 L20.9585 0 A1 1 0 0 1 21.8246 0.5 L25 6 L25 6 L13.4641 6 L13.4641 18 L8 18 L8 80 L0 80 L-8 80 L-8 18 L-13.4641 18 L-13.4641 6 L-25 6 L-25 6 L-21.8246 0.5 A1 1 0 0 1 -20.9585 0 L-0 0 Z",
+      "nativePoints": [
+        [
+          0,
+          0
+        ],
+        [
+          20.9585,
+          0
+        ],
+        [
+          20.986056332973728,
+          0.00037769151607980334
+        ],
+        [
+          21.01359179372827,
+          0.0015145903133945149
+        ],
+        [
+          21.041085469242603,
+          0.0034098329239722336
+        ],
+        [
+          21.06851647823134,
+          0.006061979922160399
+        ],
+        [
+          21.095863987003966,
+          0.009469017017861292
+        ],
+        [
+          21.12310722528788,
+          0.01362835658637307
+        ],
+        [
+          21.15022550200331,
+          0.018536839633676472
+        ],
+        [
+          21.177198220978063,
+          0.024190738195671302
+        ],
+        [
+          21.204004896590195,
+          0.030585758169543675
+        ],
+        [
+          21.23062516932672,
+          0.03771704257511199
+        ],
+        [
+          21.257038821246557,
+          0.04557917524367516
+        ],
+        [
+          21.283225791335905,
+          0.054166184931560446
+        ],
+        [
+          21.3091661907445,
+          0.06347154985524828
+        ],
+        [
+          21.33484031789105,
+          0.07348820264462863
+        ],
+        [
+          21.360228673426498,
+          0.08420853571062714
+        ],
+        [
+          21.385311975043646,
+          0.09562440702312469
+        ],
+        [
+          21.410071172121956,
+          0.10772714629478075
+        ],
+        [
+          21.43448746019639,
+          0.12050756156606712
+        ],
+        [
+          21.458542295239287,
+          0.13395594618650575
+        ],
+        [
+          21.48221740774445,
+          0.14806208618681416
+        ],
+        [
+          21.50549481660271,
+          0.1628152680363545
+        ],
+        [
+          21.5283568427585,
+          0.17820428677999756
+        ],
+        [
+          21.55078612263698,
+          0.19421745454822048
+        ],
+        [
+          21.572765621331556,
+          0.21084260943397504
+        ],
+        [
+          21.594278645541824,
+          0.22806712472958468
+        ],
+        [
+          21.615308856252007,
+          0.2458779185166554
+        ],
+        [
+          21.635840281140354,
+          0.26426146360171565
+        ],
+        [
+          21.655857326710024,
+          0.28320379779004046
+        ],
+        [
+          21.67534479013224,
+          0.30269053448985683
+        ],
+        [
+          21.69428787079278,
+          0.32270687363887574
+        ],
+        [
+          21.71267218153293,
+          0.34323761294485233
+        ],
+        [
+          21.730483759576448,
+          0.36426715943163834
+        ],
+        [
+          21.747709077134232,
+          0.38577954128195546
+        ],
+        [
+          21.764335051678568,
+          0.4077584199678973
+        ],
+        [
+          21.780349055879256,
+          0.430187102659946
+        ],
+        [
+          21.795738927193984,
+          0.4530485549050772
+        ],
+        [
+          21.810492977105703,
+          0.4763254135643282
+        ],
+        [
+          21.8246,
+          0.5
+        ],
+        [
+          25,
+          6
+        ],
+        [
+          25,
+          6
+        ],
+        [
+          13.4641,
+          6
+        ],
+        [
+          13.4641,
+          18
+        ],
+        [
+          8,
+          18
+        ],
+        [
+          8,
+          80
+        ],
+        [
+          0,
+          80
+        ]
+      ]
+    },
+    {
+      "id": "fu-face-angle45-r2",
+      "raw": {
+        "type": "face mill",
+        "unit": "millimeters",
+        "geometry": {
+          "CSP": false,
+          "DC": 38,
+          "DCX": 50,
+          "HAND": true,
+          "LB": 80,
+          "LCF": 6,
+          "NOF": 4,
+          "NT": 1,
+          "OAL": 80,
+          "RE": 2,
+          "SFDM": 16,
+          "TA": 45,
+          "TP": 0,
+          "assemblyGaugeLength": 80,
+          "shoulder-diameter": 32,
+          "shoulder-length": 18,
+          "thread-profile-angle": 60,
+          "tip-diameter": 34,
+          "tip-length": 0,
+          "tip-offset": 0,
+          "upper-radius": 0
+        },
+        "post-process": {
+          "break-control": false,
+          "comment": "",
+          "diameter-offset": 408,
+          "length-offset": 408,
+          "live": true,
+          "manual-tool-change": false,
+          "number": 408,
+          "turret": 0
+        }
+      },
+      "requested": {
+        "id": "fu-face-angle45-r2",
+        "raw": {
+          "BMC": "unspecified",
+          "GRADE": "Mill Generic",
+          "description": "fu-face-angle45-r2",
+          "geometry": {
+            "CSP": false,
+            "DC": 20,
+            "DCX": 50,
+            "HAND": true,
+            "LB": 80,
+            "LCF": 6,
+            "NOF": 4,
+            "NT": 1,
+            "OAL": 80,
+            "RE": 2,
+            "SFDM": 16,
+            "TA": 45,
+            "TP": 0,
+            "assemblyGaugeLength": 80,
+            "shoulder-diameter": 50,
+            "shoulder-length": 18,
+            "thread-profile-angle": 60,
+            "tip-diameter": 50,
+            "tip-length": 0,
+            "tip-offset": 0,
+            "upper-radius": 0
+          },
+          "guid": "b526fe59-f4df-5ab7-b3ce-f812620d5347",
+          "post-process": {
+            "break-control": false,
+            "comment": "",
+            "diameter-offset": 408,
+            "length-offset": 408,
+            "live": true,
+            "manual-tool-change": false,
+            "number": 408,
+            "turret": 0
+          },
+          "product-id": "",
+          "product-link": "",
+          "type": "face mill",
+          "unit": "millimeters",
+          "vendor": ""
+        },
+        "family": "face mill",
+        "capture": {
+          "cameraTargetCm": [
+            0,
+            0,
+            5
+          ],
+          "cameraHeightCm": 10
+        }
+      },
+      "referenceUsable": true,
+      "nativeSVG": "M0 0 L18.1716 0 A2 2 0 0 1 19.5858 0.585786 L25 6 L16 6 L16 18 L8 18 L8 80 L0 80 L-8 80 L-8 18 L-16 18 L-16 6 L-25 6 L-19.5858 0.585786 A2 2 0 0 1 -18.1716 0 L-0 0 Z",
+      "nativePoints": [
+        [
+          0,
+          0
+        ],
+        [
+          18.1716,
+          0
+        ],
+        [
+          18.210867038866102,
+          0.000385769975757011
+        ],
+        [
+          18.250118934746364,
+          0.0015424158123238385
+        ],
+        [
+          18.28934055555252,
+          0.003469491608515174
+        ],
+        [
+          18.32851678086772,
+          0.006166254452928177
+        ],
+        [
+          18.367632507775625,
+          0.009631664710342935
+        ],
+        [
+          18.406672656682787,
+          0.013864386422515862
+        ],
+        [
+          18.445622177132,
+          0.018862787823206606
+        ],
+        [
+          18.484466053604443,
+          0.024624941967245517
+        ],
+        [
+          18.52318931130835,
+          0.031148627473393198
+        ],
+        [
+          18.561777021951965,
+          0.038431329380711476
+        ],
+        [
+          18.600214309498593,
+          0.04647024011811074
+        ],
+        [
+          18.638486355901495,
+          0.05526226058670436
+        ],
+        [
+          18.67657840681642,
+          0.06480400135454811
+        ],
+        [
+          18.714475777289596,
+          0.07509178396330829
+        ],
+        [
+          18.752163857418946,
+          0.08612164234635311
+        ],
+        [
+          18.78962811798639,
+          0.09788932435771946
+        ],
+        [
+          18.826854116059053,
+          0.11039029341136786
+        ],
+        [
+          18.863827500557168,
+          0.12361973023009187
+        ],
+        [
+          18.900534017786615,
+          0.1375725347034087
+        ],
+        [
+          18.936959516933875,
+          0.15224332785371475
+        ],
+        [
+          18.97308995552136,
+          0.16762645390994724
+        ],
+        [
+          19.00891140482096,
+          0.18371598248795395
+        ],
+        [
+          19.044410055223718,
+          0.2005057108767283
+        ],
+        [
+          19.079572221563634,
+          0.21798916642963162
+        ],
+        [
+          19.114384348393436,
+          0.2361596090596776
+        ],
+        [
+          19.148833015210396,
+          0.2550100338379184
+        ],
+        [
+          19.182904941630085,
+          0.2745331736939318
+        ],
+        [
+          19.216586992506127,
+          0.2947215022173644
+        ],
+        [
+          19.24986618299395,
+          0.3155672365594573
+        ],
+        [
+          19.28272968355663,
+          0.33706234043342853
+        ],
+        [
+          19.31516482491081,
+          0.35919852721256085
+        ],
+        [
+          19.347159102910865,
+          0.38196726312479856
+        ],
+        [
+          19.378700183369425,
+          0.40535977054262107
+        ],
+        [
+          19.40977590681233,
+          0.4293670313669258
+        ],
+        [
+          19.440374293166276,
+          0.45397979050361714
+        ],
+        [
+          19.47048354637727,
+          0.4791885594315586
+        ],
+        [
+          19.50009205895816,
+          0.5049836198605135
+        ],
+        [
+          19.52918841646346,
+          0.5313550274776675
+        ],
+        [
+          19.557761401889753,
+          0.55829261578128
+        ],
+        [
+          19.5858,
+          0.585786
+        ],
+        [
+          25,
+          6
+        ],
+        [
+          16,
+          6
+        ],
+        [
+          16,
+          18
+        ],
+        [
+          8,
+          18
+        ],
+        [
+          8,
+          80
+        ],
+        [
+          0,
+          80
+        ]
+      ]
+    },
+    {
+      "id": "fu-face-angle45",
+      "raw": {
+        "type": "face mill",
+        "unit": "millimeters",
+        "geometry": {
+          "CSP": false,
+          "DC": 20,
+          "DCX": 50,
+          "HAND": true,
+          "LB": 80,
+          "LCF": 6,
+          "NOF": 4,
+          "NT": 1,
+          "OAL": 80,
+          "RE": 0,
+          "SFDM": 16,
+          "TA": 45,
+          "TP": 0,
+          "assemblyGaugeLength": 80,
+          "shoulder-diameter": 32,
+          "shoulder-length": 18,
+          "thread-profile-angle": 60,
+          "tip-diameter": 20,
+          "tip-length": 0,
+          "tip-offset": 0,
+          "upper-radius": 0
+        },
+        "post-process": {
+          "break-control": false,
+          "comment": "",
+          "diameter-offset": 405,
+          "length-offset": 405,
+          "live": true,
+          "manual-tool-change": false,
+          "number": 405,
+          "turret": 0
+        }
+      },
+      "requested": {
+        "id": "fu-face-angle45",
+        "raw": {
+          "BMC": "unspecified",
+          "GRADE": "Mill Generic",
+          "description": "fu-face-angle45",
+          "geometry": {
+            "CSP": false,
+            "DC": 20,
+            "DCX": 50,
+            "HAND": true,
+            "LB": 80,
+            "LCF": 6,
+            "NOF": 4,
+            "NT": 1,
+            "OAL": 80,
+            "RE": 0,
+            "SFDM": 16,
+            "TA": 45,
+            "TP": 0,
+            "assemblyGaugeLength": 80,
+            "shoulder-diameter": 50,
+            "shoulder-length": 18,
+            "thread-profile-angle": 60,
+            "tip-diameter": 50,
+            "tip-length": 0,
+            "tip-offset": 0,
+            "upper-radius": 0
+          },
+          "guid": "0113f967-0a3a-5984-8c93-1c2e86b35178",
+          "post-process": {
+            "break-control": false,
+            "comment": "",
+            "diameter-offset": 405,
+            "length-offset": 405,
+            "live": true,
+            "manual-tool-change": false,
+            "number": 405,
+            "turret": 0
+          },
+          "product-id": "",
+          "product-link": "",
+          "type": "face mill",
+          "unit": "millimeters",
+          "vendor": ""
+        },
+        "family": "face mill",
+        "capture": {
+          "cameraTargetCm": [
+            0,
+            0,
+            5
+          ],
+          "cameraHeightCm": 10
+        }
+      },
+      "referenceUsable": true,
+      "nativeSVG": "M0 0 L10 0 L25 15 L16 15 L16 18 L8 18 L8 80 L0 80 L-8 80 L-8 18 L-16 18 L-16 15 L-25 15 L-10 0 L-0 0 Z",
+      "nativePoints": [
+        [
+          0,
+          0
+        ],
+        [
+          10,
+          0
+        ],
+        [
+          25,
+          15
+        ],
+        [
+          16,
+          15
+        ],
+        [
+          16,
+          18
+        ],
+        [
+          8,
+          18
+        ],
+        [
+          8,
+          80
+        ],
+        [
+          0,
+          80
+        ]
+      ]
+    },
+    {
+      "id": "fu-face-angle60",
+      "raw": {
+        "type": "face mill",
+        "unit": "millimeters",
+        "geometry": {
+          "CSP": false,
+          "DC": 19.21539,
+          "DCX": 40,
+          "HAND": true,
+          "LB": 80,
+          "LCF": 6,
+          "NOF": 4,
+          "NT": 1,
+          "OAL": 80,
+          "RE": 1,
+          "SFDM": 16,
+          "TA": 60,
+          "TP": 0,
+          "assemblyGaugeLength": 80,
+          "shoulder-diameter": 40.78461,
+          "shoulder-length": 18,
+          "thread-profile-angle": 60,
+          "tip-diameter": 17.21539,
+          "tip-length": 0,
+          "tip-offset": 0,
+          "upper-radius": 0
+        },
+        "post-process": {
+          "break-control": false,
+          "comment": "",
+          "diameter-offset": 415,
+          "length-offset": 415,
+          "live": true,
+          "manual-tool-change": false,
+          "number": 415,
+          "turret": 0
+        }
+      },
+      "requested": {
+        "id": "fu-face-angle60",
+        "family": "face mill",
+        "raw": {
+          "BMC": "unspecified",
+          "GRADE": "Mill Generic",
+          "description": "fu-face-angle60",
+          "geometry": {
+            "CSP": false,
+            "DC": 20,
+            "DCX": 40,
+            "HAND": true,
+            "LB": 80,
+            "LCF": 6,
+            "NOF": 4,
+            "NT": 1,
+            "OAL": 80,
+            "RE": 1,
+            "SFDM": 16,
+            "TA": 60,
+            "TP": 0,
+            "assemblyGaugeLength": 80,
+            "shoulder-diameter": 50,
+            "shoulder-length": 18,
+            "thread-profile-angle": 60,
+            "tip-diameter": 50,
+            "tip-length": 0,
+            "tip-offset": 0,
+            "upper-radius": 0
+          },
+          "guid": "3276970d-58d7-5b2d-9cee-d60c8e36b894",
+          "post-process": {
+            "break-control": false,
+            "comment": "",
+            "diameter-offset": 415,
+            "length-offset": 415,
+            "live": true,
+            "manual-tool-change": false,
+            "number": 415,
+            "turret": 0
+          },
+          "product-id": "",
+          "product-link": "",
+          "type": "face mill",
+          "unit": "millimeters",
+          "vendor": ""
+        },
+        "capture": {
+          "cameraTargetCm": [
+            0,
+            0,
+            6
+          ],
+          "cameraHeightCm": 12
+        }
+      },
+      "referenceUsable": true,
+      "nativeSVG": "M0 0 L9.33975 0 A1 1 0 0 1 9.83975 0.133975 L20 6 L20.3923 6 L20.3923 18 L8 18 L8 80 L0 80 L-8 80 L-8 18 L-20.3923 18 L-20.3923 6 L-20 6 L-9.83975 0.133975 A1 1 0 0 1 -9.33975 0 L-0 0 Z",
+      "nativePoints": [
+        [
+          0,
+          0
+        ],
+        [
+          9.33975,
+          0
+        ],
+        [
+          9.36730434779486,
+          0.000379712402774679
+        ],
+        [
+          9.394837770665397,
+          0.0015185227210752217
+        ],
+        [
+          9.422329360108487,
+          0.0034155661579886587
+        ],
+        [
+          9.44975823938873,
+          0.0060694021247869046
+        ],
+        [
+          9.47710357939197,
+          0.009478015334890233
+        ],
+        [
+          9.504344614442626,
+          0.013638817334247766
+        ],
+        [
+          9.531460658072865,
+          0.01854864846697446
+        ],
+        [
+          9.55843111873162,
+          0.024203780274749898
+        ],
+        [
+          9.585235515421543,
+          0.03059991832815878
+        ],
+        [
+          9.611853493251967,
+          0.03773220548782119
+        ],
+        [
+          9.63826483889616,
+          0.04559522559283791
+        ],
+        [
+          9.664449495941025,
+          0.054183007573748276
+        ],
+        [
+          9.69038758011768,
+          0.06348902998687855
+        ],
+        [
+          9.716059394401286,
+          0.07350622596663658
+        ],
+        [
+          9.74144544396871,
+          0.08422698859199251
+        ],
+        [
+          9.766526451002612,
+          0.09564317666306998
+        ],
+        [
+          9.791283369330769,
+          0.10774612088346158
+        ],
+        [
+          9.815697398889462,
+          0.12052663044357359
+        ],
+        [
+          9.83975,
+          0.133975
+        ],
+        [
+          20,
+          6
+        ],
+        [
+          20.3923,
+          6
+        ],
+        [
+          20.3923,
+          18
+        ],
+        [
+          8,
+          18
+        ],
+        [
+          8,
+          80
+        ],
+        [
+          0,
+          80
+        ]
+      ]
+    },
+    {
+      "id": "fu-face-dcx30",
+      "raw": {
+        "type": "face mill",
+        "unit": "millimeters",
+        "geometry": {
+          "CSP": false,
+          "DC": 23.071797,
+          "DCX": 30,
+          "HAND": true,
+          "LB": 80,
+          "LCF": 6,
+          "NOF": 4,
+          "NT": 1,
+          "OAL": 80,
+          "RE": 1,
+          "SFDM": 16,
+          "TA": 30,
+          "TP": 0,
+          "assemblyGaugeLength": 80,
+          "shoulder-diameter": 26.928202999999996,
+          "shoulder-length": 18,
+          "thread-profile-angle": 60,
+          "tip-diameter": 21.071797,
+          "tip-length": 0,
+          "tip-offset": 0,
+          "upper-radius": 0
+        },
+        "post-process": {
+          "break-control": false,
+          "comment": "",
+          "diameter-offset": 413,
+          "length-offset": 413,
+          "live": true,
+          "manual-tool-change": false,
+          "number": 413,
+          "turret": 0
+        }
+      },
+      "requested": {
+        "id": "fu-face-dcx30",
+        "family": "face mill",
+        "raw": {
+          "BMC": "unspecified",
+          "GRADE": "Mill Generic",
+          "description": "fu-face-dcx30",
+          "geometry": {
+            "CSP": false,
+            "DC": 20,
+            "DCX": 30,
+            "HAND": true,
+            "LB": 80,
+            "LCF": 6,
+            "NOF": 4,
+            "NT": 1,
+            "OAL": 80,
+            "RE": 1,
+            "SFDM": 16,
+            "TA": 30,
+            "TP": 0,
+            "assemblyGaugeLength": 80,
+            "shoulder-diameter": 50,
+            "shoulder-length": 18,
+            "thread-profile-angle": 60,
+            "tip-diameter": 50,
+            "tip-length": 0,
+            "tip-offset": 0,
+            "upper-radius": 0
+          },
+          "guid": "1f14f163-def6-53b7-b480-ae2b94f4ddfc",
+          "post-process": {
+            "break-control": false,
+            "comment": "",
+            "diameter-offset": 413,
+            "length-offset": 413,
+            "live": true,
+            "manual-tool-change": false,
+            "number": 413,
+            "turret": 0
+          },
+          "product-id": "",
+          "product-link": "",
+          "type": "face mill",
+          "unit": "millimeters",
+          "vendor": ""
+        },
+        "capture": {
+          "cameraTargetCm": [
+            0,
+            0,
+            6
+          ],
+          "cameraHeightCm": 12
+        }
+      },
+      "referenceUsable": true,
+      "nativeSVG": "M0 0 L10.9585 0 A1 1 0 0 1 11.8246 0.5 L15 6 L15 6 L13.4641 6 L13.4641 18 L8 18 L8 80 L0 80 L-8 80 L-8 18 L-13.4641 18 L-13.4641 6 L-15 6 L-15 6 L-11.8246 0.5 A1 1 0 0 1 -10.9585 0 L-0 0 Z",
+      "nativePoints": [
+        [
+          0,
+          0
+        ],
+        [
+          10.9585,
+          0
+        ],
+        [
+          10.986056332973728,
+          0.00037769151607980334
+        ],
+        [
+          11.01359179372827,
+          0.0015145903133945149
+        ],
+        [
+          11.041085469242603,
+          0.0034098329239722336
+        ],
+        [
+          11.068516478231341,
+          0.006061979922160399
+        ],
+        [
+          11.095863987003966,
+          0.009469017017861292
+        ],
+        [
+          11.12310722528788,
+          0.01362835658637307
+        ],
+        [
+          11.15022550200331,
+          0.018536839633676472
+        ],
+        [
+          11.177198220978063,
+          0.024190738195671302
+        ],
+        [
+          11.204004896590193,
+          0.030585758169543675
+        ],
+        [
+          11.230625169326723,
+          0.03771704257511199
+        ],
+        [
+          11.257038821246558,
+          0.04557917524367516
+        ],
+        [
+          11.283225791335907,
+          0.054166184931560446
+        ],
+        [
+          11.309166190744499,
+          0.06347154985524828
+        ],
+        [
+          11.33484031789105,
+          0.07348820264462863
+        ],
+        [
+          11.360228673426498,
+          0.08420853571062714
+        ],
+        [
+          11.385311975043646,
+          0.09562440702312469
+        ],
+        [
+          11.410071172121956,
+          0.10772714629478075
+        ],
+        [
+          11.43448746019639,
+          0.12050756156606712
+        ],
+        [
+          11.458542295239289,
+          0.13395594618650575
+        ],
+        [
+          11.482217407744448,
+          0.14806208618681416
+        ],
+        [
+          11.50549481660271,
+          0.1628152680363545
+        ],
+        [
+          11.528356842758502,
+          0.17820428677999756
+        ],
+        [
+          11.550786122636978,
+          0.19421745454822048
+        ],
+        [
+          11.572765621331556,
+          0.21084260943397504
+        ],
+        [
+          11.594278645541824,
+          0.22806712472958468
+        ],
+        [
+          11.615308856252009,
+          0.2458779185166554
+        ],
+        [
+          11.635840281140355,
+          0.26426146360171565
+        ],
+        [
+          11.655857326710022,
+          0.28320379779004046
+        ],
+        [
+          11.675344790132241,
+          0.30269053448985683
+        ],
+        [
+          11.694287870792781,
+          0.32270687363887574
+        ],
+        [
+          11.712672181532929,
+          0.34323761294485233
+        ],
+        [
+          11.73048375957645,
+          0.36426715943163834
+        ],
+        [
+          11.74770907713423,
+          0.38577954128195546
+        ],
+        [
+          11.764335051678568,
+          0.4077584199678973
+        ],
+        [
+          11.780349055879256,
+          0.430187102659946
+        ],
+        [
+          11.795738927193984,
+          0.4530485549050772
+        ],
+        [
+          11.810492977105705,
+          0.4763254135643282
+        ],
+        [
+          11.8246,
+          0.5
+        ],
+        [
+          15,
+          6
+        ],
+        [
+          15,
+          6
+        ],
+        [
+          13.4641,
+          6
+        ],
+        [
+          13.4641,
+          18
+        ],
+        [
+          8,
+          18
+        ],
+        [
+          8,
+          80
+        ],
+        [
+          0,
+          80
+        ]
+      ]
+    },
+    {
+      "id": "fu-face-flat-upper",
+      "raw": {
+        "type": "face mill",
+        "unit": "millimeters",
+        "geometry": {
+          "CSP": false,
+          "DC": 50,
+          "DCX": 50,
+          "HAND": true,
+          "LB": 80,
+          "LCF": 6,
+          "NOF": 4,
+          "NT": 1,
+          "OAL": 80,
+          "RE": 1,
+          "SFDM": 16,
+          "TA": 0,
+          "TP": 0,
+          "assemblyGaugeLength": 80,
+          "shoulder-diameter": 20,
+          "shoulder-length": 18,
+          "thread-profile-angle": 60,
+          "tip-diameter": 48,
+          "tip-length": 0,
+          "tip-offset": 0,
+          "upper-radius": 2
+        },
+        "post-process": {
+          "break-control": false,
+          "comment": "",
+          "diameter-offset": 414,
+          "length-offset": 414,
+          "live": true,
+          "manual-tool-change": false,
+          "number": 414,
+          "turret": 0
+        }
+      },
+      "requested": {
+        "id": "fu-face-flat-upper",
+        "family": "face mill",
+        "raw": {
+          "BMC": "unspecified",
+          "GRADE": "Mill Generic",
+          "description": "fu-face-flat-upper",
+          "geometry": {
+            "CSP": false,
+            "DC": 20,
+            "DCX": 50,
+            "HAND": true,
+            "LB": 80,
+            "LCF": 6,
+            "NOF": 4,
+            "NT": 1,
+            "OAL": 80,
+            "RE": 1,
+            "SFDM": 16,
+            "TA": 0,
+            "TP": 0,
+            "assemblyGaugeLength": 80,
+            "shoulder-diameter": 50,
+            "shoulder-length": 18,
+            "thread-profile-angle": 60,
+            "tip-diameter": 50,
+            "tip-length": 0,
+            "tip-offset": 0,
+            "upper-radius": 2
+          },
+          "guid": "57e393e1-5c23-5bc3-9dcd-503f3efa494a",
+          "post-process": {
+            "break-control": false,
+            "comment": "",
+            "diameter-offset": 414,
+            "length-offset": 414,
+            "live": true,
+            "manual-tool-change": false,
+            "number": 414,
+            "turret": 0
+          },
+          "product-id": "",
+          "product-link": "",
+          "type": "face mill",
+          "unit": "millimeters",
+          "vendor": ""
+        },
+        "capture": {
+          "cameraTargetCm": [
+            0,
+            0,
+            6
+          ],
+          "cameraHeightCm": 12
+        }
+      },
+      "referenceUsable": true,
+      "nativeSVG": "M0 0 L24 0 A1 1 0 0 1 25 1 L25 6 L10 6 L10 18 L8 18 L8 80 L0 80 L-8 80 L-8 18 L-10 18 L-10 6 L-25 6 L-25 1 A1 1 0 0 1 -24 0 L-0 0 Z",
+      "nativePoints": [
+        [
+          0,
+          0
+        ],
+        [
+          24,
+          0
+        ],
+        [
+          24.028046256275868,
+          0.0003933736169471347
+        ],
+        [
+          24.056070447237193,
+          0.0015731849821833954
+        ],
+        [
+          24.084050524929246,
+          0.0035385058823808047
+        ],
+        [
+          24.111964476103307,
+          0.006287790106757396
+        ],
+        [
+          24.139790339535498,
+          0.009818874663554467
+        ],
+        [
+          24.167506223304738,
+          0.014128981481764114
+        ],
+        [
+          24.195090322016128,
+          0.01921471959676957
+        ],
+        [
+          24.222520933956314,
+          0.02507208781817638
+        ],
+        [
+          24.249776478167227,
+          0.03169647787773855
+        ],
+        [
+          24.27683551142485,
+          0.03908267805490051
+        ],
+        [
+          24.303676745109616,
+          0.04722487727710367
+        ],
+        [
+          24.330279061955167,
+          0.056116669691632426
+        ],
+        [
+          24.356621532662313,
+          0.06575105970540018
+        ],
+        [
+          24.38268343236509,
+          0.07612046748871326
+        ],
+        [
+          24.408444256935997,
+          0.0872167349386811
+        ],
+        [
+          24.433883739117558,
+          0.09903113209758085
+        ],
+        [
+          24.45898186446754,
+          0.11155436402112773
+        ],
+        [
+          24.48371888710524,
+          0.12477657809124632
+        ],
+        [
+          24.508075345246528,
+          0.13868737176759105
+        ],
+        [
+          24.532032076515335,
+          0.15327580077171588
+        ],
+        [
+          24.5555702330196,
+          0.16853038769745476
+        ],
+        [
+          24.578671296179806,
+          0.18443913104073983
+        ],
+        [
+          24.601317091298405,
+          0.20098951464175097
+        ],
+        [
+          24.623489801858735,
+          0.2181685175319702
+        ],
+        [
+          24.645171983542088,
+          0.23596262417839253
+        ],
+        [
+          24.666346577952005,
+          0.2543578351168345
+        ],
+        [
+          24.6869969260349,
+          0.2733396779659729
+        ],
+        [
+          24.707106781186546,
+          0.29289321881345254
+        ],
+        [
+          24.72666032203403,
+          0.3130030739650984
+        ],
+        [
+          24.745642164883165,
+          0.333653422047996
+        ],
+        [
+          24.76403737582161,
+          0.3548280164579124
+        ],
+        [
+          24.78183148246803,
+          0.3765101981412665
+        ],
+        [
+          24.79901048535825,
+          0.3986829087015942
+        ],
+        [
+          24.81556086895926,
+          0.4213287038201944
+        ],
+        [
+          24.831469612302545,
+          0.4444297669803978
+        ],
+        [
+          24.846724199228284,
+          0.46796792348466343
+        ],
+        [
+          24.861312628232408,
+          0.4919246547534706
+        ],
+        [
+          24.875223421908753,
+          0.5162811128947602
+        ],
+        [
+          24.888445635978872,
+          0.5410181355324624
+        ],
+        [
+          24.90096886790242,
+          0.5661162608824419
+        ],
+        [
+          24.912783265061318,
+          0.5915557430640039
+        ],
+        [
+          24.923879532511286,
+          0.6173165676349102
+        ],
+        [
+          24.9342489402946,
+          0.643378467337687
+        ],
+        [
+          24.943883330308367,
+          0.6697209380448328
+        ],
+        [
+          24.952775122722898,
+          0.6963232548903853
+        ],
+        [
+          24.9609173219451,
+          0.7231644885751507
+        ],
+        [
+          24.968303522122262,
+          0.7502235218327732
+        ],
+        [
+          24.974927912181823,
+          0.7774790660436857
+        ],
+        [
+          24.980785280403232,
+          0.8049096779838718
+        ],
+        [
+          24.985871018518235,
+          0.8324937766952636
+        ],
+        [
+          24.990181125336445,
+          0.8602096604645005
+        ],
+        [
+          24.993712209893243,
+          0.8880355238966924
+        ],
+        [
+          24.996461494117618,
+          0.9159494750707524
+        ],
+        [
+          24.998426815017815,
+          0.9439295527628082
+        ],
+        [
+          24.999606626383052,
+          0.971953743724131
+        ],
+        [
+          25,
+          1
+        ],
+        [
+          25,
+          6
+        ],
+        [
+          10,
+          6
+        ],
+        [
+          10,
+          18
+        ],
+        [
+          8,
+          18
+        ],
+        [
+          8,
+          80
+        ],
+        [
+          0,
+          80
+        ]
+      ]
+    },
+    {
+      "id": "fu-face-r1",
+      "raw": {
+        "type": "face mill",
+        "unit": "millimeters",
+        "geometry": {
+          "CSP": false,
+          "DC": 50,
+          "DCX": 50,
+          "HAND": true,
+          "LB": 80,
+          "LCF": 6,
+          "NOF": 4,
+          "NT": 1,
+          "OAL": 80,
+          "RE": 1,
+          "SFDM": 16,
+          "TA": 0,
+          "TP": 0,
+          "assemblyGaugeLength": 80,
+          "shoulder-diameter": 20,
+          "shoulder-length": 18,
+          "thread-profile-angle": 60,
+          "tip-diameter": 48,
+          "tip-length": 0,
+          "tip-offset": 0,
+          "upper-radius": 0
+        },
+        "post-process": {
+          "break-control": false,
+          "comment": "",
+          "diameter-offset": 406,
+          "length-offset": 406,
+          "live": true,
+          "manual-tool-change": false,
+          "number": 406,
+          "turret": 0
+        }
+      },
+      "requested": {
+        "id": "fu-face-r1",
+        "raw": {
+          "BMC": "unspecified",
+          "GRADE": "Mill Generic",
+          "description": "fu-face-r1",
+          "geometry": {
+            "CSP": false,
+            "DC": 20,
+            "DCX": 50,
+            "HAND": true,
+            "LB": 80,
+            "LCF": 6,
+            "NOF": 4,
+            "NT": 1,
+            "OAL": 80,
+            "RE": 1,
+            "SFDM": 16,
+            "TA": 0,
+            "TP": 0,
+            "assemblyGaugeLength": 80,
+            "shoulder-diameter": 50,
+            "shoulder-length": 18,
+            "thread-profile-angle": 60,
+            "tip-diameter": 50,
+            "tip-length": 0,
+            "tip-offset": 0,
+            "upper-radius": 0
+          },
+          "guid": "0ba204d5-25d0-5cd0-a9b7-73fe2d36028f",
+          "post-process": {
+            "break-control": false,
+            "comment": "",
+            "diameter-offset": 406,
+            "length-offset": 406,
+            "live": true,
+            "manual-tool-change": false,
+            "number": 406,
+            "turret": 0
+          },
+          "product-id": "",
+          "product-link": "",
+          "type": "face mill",
+          "unit": "millimeters",
+          "vendor": ""
+        },
+        "family": "face mill",
+        "capture": {
+          "cameraTargetCm": [
+            0,
+            0,
+            5
+          ],
+          "cameraHeightCm": 10
+        }
+      },
+      "referenceUsable": true,
+      "nativeSVG": "M0 0 L24 0 A1 1 0 0 1 25 1 L25 6 L10 6 L10 18 L8 18 L8 80 L0 80 L-8 80 L-8 18 L-10 18 L-10 6 L-25 6 L-25 1 A1 1 0 0 1 -24 0 L-0 0 Z",
+      "nativePoints": [
+        [
+          0,
+          0
+        ],
+        [
+          24,
+          0
+        ],
+        [
+          24.028046256275868,
+          0.0003933736169471347
+        ],
+        [
+          24.056070447237193,
+          0.0015731849821833954
+        ],
+        [
+          24.084050524929246,
+          0.0035385058823808047
+        ],
+        [
+          24.111964476103307,
+          0.006287790106757396
+        ],
+        [
+          24.139790339535498,
+          0.009818874663554467
+        ],
+        [
+          24.167506223304738,
+          0.014128981481764114
+        ],
+        [
+          24.195090322016128,
+          0.01921471959676957
+        ],
+        [
+          24.222520933956314,
+          0.02507208781817638
+        ],
+        [
+          24.249776478167227,
+          0.03169647787773855
+        ],
+        [
+          24.27683551142485,
+          0.03908267805490051
+        ],
+        [
+          24.303676745109616,
+          0.04722487727710367
+        ],
+        [
+          24.330279061955167,
+          0.056116669691632426
+        ],
+        [
+          24.356621532662313,
+          0.06575105970540018
+        ],
+        [
+          24.38268343236509,
+          0.07612046748871326
+        ],
+        [
+          24.408444256935997,
+          0.0872167349386811
+        ],
+        [
+          24.433883739117558,
+          0.09903113209758085
+        ],
+        [
+          24.45898186446754,
+          0.11155436402112773
+        ],
+        [
+          24.48371888710524,
+          0.12477657809124632
+        ],
+        [
+          24.508075345246528,
+          0.13868737176759105
+        ],
+        [
+          24.532032076515335,
+          0.15327580077171588
+        ],
+        [
+          24.5555702330196,
+          0.16853038769745476
+        ],
+        [
+          24.578671296179806,
+          0.18443913104073983
+        ],
+        [
+          24.601317091298405,
+          0.20098951464175097
+        ],
+        [
+          24.623489801858735,
+          0.2181685175319702
+        ],
+        [
+          24.645171983542088,
+          0.23596262417839253
+        ],
+        [
+          24.666346577952005,
+          0.2543578351168345
+        ],
+        [
+          24.6869969260349,
+          0.2733396779659729
+        ],
+        [
+          24.707106781186546,
+          0.29289321881345254
+        ],
+        [
+          24.72666032203403,
+          0.3130030739650984
+        ],
+        [
+          24.745642164883165,
+          0.333653422047996
+        ],
+        [
+          24.76403737582161,
+          0.3548280164579124
+        ],
+        [
+          24.78183148246803,
+          0.3765101981412665
+        ],
+        [
+          24.79901048535825,
+          0.3986829087015942
+        ],
+        [
+          24.81556086895926,
+          0.4213287038201944
+        ],
+        [
+          24.831469612302545,
+          0.4444297669803978
+        ],
+        [
+          24.846724199228284,
+          0.46796792348466343
+        ],
+        [
+          24.861312628232408,
+          0.4919246547534706
+        ],
+        [
+          24.875223421908753,
+          0.5162811128947602
+        ],
+        [
+          24.888445635978872,
+          0.5410181355324624
+        ],
+        [
+          24.90096886790242,
+          0.5661162608824419
+        ],
+        [
+          24.912783265061318,
+          0.5915557430640039
+        ],
+        [
+          24.923879532511286,
+          0.6173165676349102
+        ],
+        [
+          24.9342489402946,
+          0.643378467337687
+        ],
+        [
+          24.943883330308367,
+          0.6697209380448328
+        ],
+        [
+          24.952775122722898,
+          0.6963232548903853
+        ],
+        [
+          24.9609173219451,
+          0.7231644885751507
+        ],
+        [
+          24.968303522122262,
+          0.7502235218327732
+        ],
+        [
+          24.974927912181823,
+          0.7774790660436857
+        ],
+        [
+          24.980785280403232,
+          0.8049096779838718
+        ],
+        [
+          24.985871018518235,
+          0.8324937766952636
+        ],
+        [
+          24.990181125336445,
+          0.8602096604645005
+        ],
+        [
+          24.993712209893243,
+          0.8880355238966924
+        ],
+        [
+          24.996461494117618,
+          0.9159494750707524
+        ],
+        [
+          24.998426815017815,
+          0.9439295527628082
+        ],
+        [
+          24.999606626383052,
+          0.971953743724131
+        ],
+        [
+          25,
+          1
+        ],
+        [
+          25,
+          6
+        ],
+        [
+          10,
+          6
+        ],
+        [
+          10,
+          18
+        ],
+        [
+          8,
+          18
+        ],
+        [
+          8,
+          80
+        ],
+        [
+          0,
+          80
+        ]
+      ]
+    },
+    {
+      "id": "fu-face-shaft",
+      "raw": {
+        "type": "face mill",
+        "unit": "millimeters",
+        "geometry": {
+          "CSP": false,
+          "DC": 46.78461,
+          "DCX": 50,
+          "HAND": true,
+          "LB": 80,
+          "LCF": 6,
+          "NOF": 4,
+          "NT": 1,
+          "OAL": 80,
+          "RE": 1,
+          "SFDM": 16,
+          "TA": 15,
+          "TP": 0,
+          "assemblyGaugeLength": 80,
+          "shoulder-diameter": 23.21539,
+          "shoulder-length": 18,
+          "thread-profile-angle": 60,
+          "tip-diameter": 44.78461,
+          "tip-length": 0,
+          "tip-offset": 0,
+          "upper-radius": 0
+        },
+        "post-process": {
+          "break-control": false,
+          "comment": "",
+          "diameter-offset": 411,
+          "length-offset": 411,
+          "live": true,
+          "manual-tool-change": false,
+          "number": 411,
+          "turret": 0
+        },
+        "shaft": {
+          "segments": [
+            {
+              "height": 10,
+              "lower-diameter": 16,
+              "upper-diameter": 12
+            },
+            {
+              "height": 60,
+              "lower-diameter": 12,
+              "upper-diameter": 12
+            }
+          ],
+          "type": "shaft"
+        }
+      },
+      "requested": {
+        "id": "fu-face-shaft",
+        "raw": {
+          "BMC": "unspecified",
+          "GRADE": "Mill Generic",
+          "description": "fu-face-shaft",
+          "geometry": {
+            "CSP": false,
+            "DC": 20,
+            "DCX": 50,
+            "HAND": true,
+            "LB": 80,
+            "LCF": 6,
+            "NOF": 4,
+            "NT": 1,
+            "OAL": 80,
+            "RE": 1,
+            "SFDM": 16,
+            "TA": 15,
+            "TP": 0,
+            "assemblyGaugeLength": 80,
+            "shoulder-diameter": 50,
+            "shoulder-length": 18,
+            "thread-profile-angle": 60,
+            "tip-diameter": 50,
+            "tip-length": 0,
+            "tip-offset": 0,
+            "upper-radius": 0
+          },
+          "guid": "41b104ba-e4d8-572e-a612-0390036b1e7b",
+          "post-process": {
+            "break-control": false,
+            "comment": "",
+            "diameter-offset": 411,
+            "length-offset": 411,
+            "live": true,
+            "manual-tool-change": false,
+            "number": 411,
+            "turret": 0
+          },
+          "product-id": "",
+          "product-link": "",
+          "type": "face mill",
+          "unit": "millimeters",
+          "vendor": "",
+          "shaft": {
+            "type": "shaft",
+            "segments": [
+              {
+                "height": 10,
+                "lower-diameter": 16,
+                "upper-diameter": 12
+              },
+              {
+                "height": 60,
+                "lower-diameter": 12,
+                "upper-diameter": 12
+              }
+            ]
+          }
+        },
+        "family": "face mill",
+        "capture": {
+          "cameraTargetCm": [
+            0,
+            0,
+            5
+          ],
+          "cameraHeightCm": 10
+        }
+      },
+      "referenceUsable": true,
+      "nativeSVG": "M0 0 L22.625 0 A1 1 0 0 1 23.5909 0.741181 L25 6 L25 6 L11.6077 6 L11.6077 18 L8 18 L6 28 L6 80 L0 80 L-6 80 L-6 28 L-8 18 L-11.6077 18 L-11.6077 6 L-25 6 L-25 6 L-23.5909 0.741181 A1 1 0 0 1 -22.625 0 L-0 0 Z",
+      "nativePoints": [
+        [
+          0,
+          0
+        ],
+        [
+          22.625,
+          0
+        ],
+        [
+          22.65284683970293,
+          0.0003885182336155202
+        ],
+        [
+          22.680672061428368,
+          0.00155233256108811
+        ],
+        [
+          22.70845408400591,
+          0.003490540331018699
+        ],
+        [
+          22.73617135977031,
+          0.00620163827444653
+        ],
+        [
+          22.763802391273774,
+          0.009683523670779737
+        ],
+        [
+          22.791325747959338,
+          0.013933495978661004
+        ],
+        [
+          22.818720082782352,
+          0.018948258930499784
+        ],
+        [
+          22.84596414876719,
+          0.02472392308904936
+        ],
+        [
+          22.87303681548635,
+          0.031256008864044116
+        ],
+        [
+          22.899917085449157,
+          0.03853944998655856
+        ],
+        [
+          22.92658411038737,
+          0.04656859743839192
+        ],
+        [
+          22.953017207425038,
+          0.05533722383343265
+        ],
+        [
+          22.979195875120087,
+          0.06483852824760317
+        ],
+        [
+          23.00509980936519,
+          0.07506514149363841
+        ],
+        [
+          23.030708919135574,
+          0.08600913183660885
+        ],
+        [
+          23.05600334207157,
+          0.09766201114575412
+        ],
+        [
+          23.08096345988381,
+          0.11001474147785506
+        ],
+        [
+          23.105569913569123,
+          0.12305774208703879
+        ],
+        [
+          23.129803618425317,
+          0.13678089685558148
+        ],
+        [
+          23.153645778853242,
+          0.15117356213994237
+        ],
+        [
+          23.177077902934595,
+          0.1662245750259469
+        ],
+        [
+          23.200081816774208,
+          0.18192226198671424
+        ],
+        [
+          23.222639678595677,
+          0.19825444793661406
+        ],
+        [
+          23.244733992579395,
+          0.21520846567423235
+        ],
+        [
+          23.266347622432264,
+          0.23277116570702006
+        ],
+        [
+          23.287463804678566,
+          0.2509289264500054
+        ],
+        [
+          23.308066161661667,
+          0.2696676647906605
+        ],
+        [
+          23.328138714246478,
+          0.288972847011727
+        ],
+        [
+          23.347665894212845,
+          0.3088295000635297
+        ],
+        [
+          23.366632556330213,
+          0.3292222231770362
+        ],
+        [
+          23.38502399010423,
+          0.35013519980865226
+        ],
+        [
+          23.402825931186165,
+          0.3715522099074937
+        ],
+        [
+          23.420024572436304,
+          0.3934566424956154
+        ],
+        [
+          23.43660657463273,
+          0.41583150855144324
+        ],
+        [
+          23.452559076817195,
+          0.4386594541864157
+        ],
+        [
+          23.467869706270033,
+          0.4619227741046149
+        ],
+        [
+          23.48252658810642,
+          0.48560342533494893
+        ],
+        [
+          23.496518354486508,
+          0.5096830412252338
+        ],
+        [
+          23.509834153432276,
+          0.5341429456873206
+        ],
+        [
+          23.522463657244316,
+          0.5589641676822235
+        ],
+        [
+          23.534397070511954,
+          0.5841274559340064
+        ],
+        [
+          23.545625137710555,
+          0.6096132938610248
+        ],
+        [
+          23.55613915038008,
+          0.6354019147129362
+        ],
+        [
+          23.565930953879345,
+          0.6614733169017395
+        ],
+        [
+          23.574992953710744,
+          0.6878072795149561
+        ],
+        [
+          23.583318121410514,
+          0.7143833779989184
+        ],
+        [
+          23.5909,
+          0.741181
+        ],
+        [
+          25,
+          6
+        ],
+        [
+          25,
+          6
+        ],
+        [
+          11.6077,
+          6
+        ],
+        [
+          11.6077,
+          18
+        ],
+        [
+          8,
+          18
+        ],
+        [
+          6,
+          28
+        ],
+        [
+          6,
+          80
+        ],
+        [
+          0,
+          80
+        ]
+      ]
+    },
+    {
+      "id": "fu-face-short",
+      "raw": {
+        "type": "face mill",
+        "unit": "millimeters",
+        "geometry": {
+          "CSP": false,
+          "DC": 48.845299,
+          "DCX": 50,
+          "HAND": true,
+          "LB": 80,
+          "LCF": 1,
+          "NOF": 4,
+          "NT": 1,
+          "OAL": 80,
+          "RE": 2,
+          "SFDM": 16,
+          "TA": 30,
+          "TP": 0,
+          "assemblyGaugeLength": 80,
+          "shoulder-diameter": 21.154701000000003,
+          "shoulder-length": 18,
+          "thread-profile-angle": 60,
+          "tip-diameter": 44.845299,
+          "tip-length": 0,
+          "tip-offset": 0,
+          "upper-radius": 0
+        },
+        "post-process": {
+          "break-control": false,
+          "comment": "",
+          "diameter-offset": 409,
+          "length-offset": 409,
+          "live": true,
+          "manual-tool-change": false,
+          "number": 409,
+          "turret": 0
+        }
+      },
+      "requested": {
+        "id": "fu-face-short",
+        "raw": {
+          "BMC": "unspecified",
+          "GRADE": "Mill Generic",
+          "description": "fu-face-short",
+          "geometry": {
+            "CSP": false,
+            "DC": 20,
+            "DCX": 50,
+            "HAND": true,
+            "LB": 80,
+            "LCF": 1,
+            "NOF": 4,
+            "NT": 1,
+            "OAL": 80,
+            "RE": 2,
+            "SFDM": 16,
+            "TA": 30,
+            "TP": 0,
+            "assemblyGaugeLength": 80,
+            "shoulder-diameter": 50,
+            "shoulder-length": 18,
+            "thread-profile-angle": 60,
+            "tip-diameter": 50,
+            "tip-length": 0,
+            "tip-offset": 0,
+            "upper-radius": 0
+          },
+          "guid": "28ad9630-cad7-59ca-af32-51da05ef6e2b",
+          "post-process": {
+            "break-control": false,
+            "comment": "",
+            "diameter-offset": 409,
+            "length-offset": 409,
+            "live": true,
+            "manual-tool-change": false,
+            "number": 409,
+            "turret": 0
+          },
+          "product-id": "",
+          "product-link": "",
+          "type": "face mill",
+          "unit": "millimeters",
+          "vendor": ""
+        },
+        "family": "face mill",
+        "capture": {
+          "cameraTargetCm": [
+            0,
+            0,
+            5
+          ],
+          "cameraHeightCm": 10
+        }
+      },
+      "referenceUsable": true,
+      "nativeSVG": "M0 0 L23.2679 0 A2 2 0 0 1 25 1 L10.5774 1 L10.5774 18 L8 18 L8 80 L0 80 L-8 80 L-8 18 L-10.5774 18 L-10.5774 1 L-25 1 A2 2 0 0 1 -23.2679 0 L-0 0 Z",
+      "nativePoints": [
+        [
+          0,
+          0
+        ],
+        [
+          23.2679,
+          0
+        ],
+        [
+          23.30741525514277,
+          0.00038942984243517387
+        ],
+        [
+          23.34691510266502,
+          0.0015595111728383682
+        ],
+        [
+          23.386384121756702,
+          0.0035097871893972066
+        ],
+        [
+          23.42580690364326,
+          0.006239496500920039
+        ],
+        [
+          23.465168057601215,
+          0.009747573424084388
+        ],
+        [
+          23.504452216966737,
+          0.01403264839948104
+        ],
+        [
+          23.543644045134826,
+          0.01909304852629301
+        ],
+        [
+          23.582728241546743,
+          0.024926798215398893
+        ],
+        [
+          23.621689547663376,
+          0.03153161996064546
+        ],
+        [
+          23.6605127529222,
+          0.038904935227991544
+        ],
+        [
+          23.69918270067551,
+          0.04704386546217143
+        ],
+        [
+          23.7376842941076,
+          0.0559452332104875
+        ],
+        [
+          23.77600250212858,
+          0.06560556336329437
+        ],
+        [
+          23.814122365242564,
+          0.07602108451068723
+        ],
+        [
+          23.852029001387848,
+          0.08718773041486627
+        ],
+        [
+          23.889707611746932,
+          0.09910114159760508
+        ],
+        [
+          23.927143486523967,
+          0.11175666704219611
+        ],
+        [
+          23.96432201068751,
+          0.12514936600921778
+        ],
+        [
+          24.001228669676255,
+          0.13927400996540662
+        ],
+        [
+          24.03784905506553,
+          0.1541250846248865
+        ],
+        [
+          24.074168870192388,
+          0.16969679210195565
+        ],
+        [
+          24.110173935737038,
+          0.18598305317459074
+        ],
+        [
+          24.14585019525848,
+          0.20297750965778638
+        ],
+        [
+          24.181183720682164,
+          0.22067352688580177
+        ],
+        [
+          24.21616071773754,
+          0.2390641963023461
+        ],
+        [
+          24.25076753134336,
+          0.2581423381576897
+        ],
+        [
+          24.284990650938642,
+          0.2779005043116536
+        ],
+        [
+          24.318816715757222,
+          0.2983309811413737
+        ],
+        [
+          24.352232520043824,
+          0.3194257925527144
+        ],
+        [
+          24.385225018209603,
+          0.34117670309414994
+        ],
+        [
+          24.417781329925173,
+          0.36357522117189833
+        ],
+        [
+          24.4498887451491,
+          0.3866126023650547
+        ],
+        [
+          24.481534729089937,
+          0.4102798528394289
+        ],
+        [
+          24.51270692709982,
+          0.4345677328587543
+        ],
+        [
+          24.543393169497747,
+          0.4594667603918967
+        ],
+        [
+          24.573581476320644,
+          0.4849672148146562
+        ],
+        [
+          24.603260062000356,
+          0.5110591407047163
+        ],
+        [
+          24.63241733996477,
+          0.5377323517282571
+        ],
+        [
+          24.66104192716122,
+          0.5649764346167201
+        ],
+        [
+          24.689122648500447,
+          0.5927807532321645
+        ],
+        [
+          24.71664854121939,
+          0.621134452719635
+        ],
+        [
+          24.743608859161053,
+          0.6500264637449171
+        ],
+        [
+          24.76999307696983,
+          0.679445506816023
+        ],
+        [
+          24.795790894200618,
+          0.7093800966867263
+        ],
+        [
+          24.820992239340143,
+          0.7398185468404224
+        ],
+        [
+          24.84558727373888,
+          0.7707489740525646
+        ],
+        [
+          24.869566395452075,
+          0.8021593030298964
+        ],
+        [
+          24.89292024298839,
+          0.8340372711246657
+        ],
+        [
+          24.915639698964608,
+          0.8663704331219877
+        ],
+        [
+          24.937715893665114,
+          0.8991461660984745
+        ],
+        [
+          24.959140208504607,
+          0.9323516743502491
+        ],
+        [
+          24.97990427939285,
+          0.96597399438841
+        ],
+        [
+          25,
+          1
+        ],
+        [
+          10.5774,
+          1
+        ],
+        [
+          10.5774,
+          18
+        ],
+        [
+          8,
+          18
+        ],
+        [
+          8,
+          80
+        ],
+        [
+          0,
+          80
+        ]
+      ]
+    },
+    {
+      "id": "fu-face-shoulder",
+      "raw": {
+        "type": "face mill",
+        "unit": "millimeters",
+        "geometry": {
+          "CSP": false,
+          "DC": 46.78461,
+          "DCX": 50,
+          "HAND": true,
+          "LB": 80,
+          "LCF": 6,
+          "NOF": 4,
+          "NT": 1,
+          "OAL": 80,
+          "RE": 1,
+          "SFDM": 16,
+          "TA": 15,
+          "TP": 0,
+          "assemblyGaugeLength": 80,
+          "shoulder-diameter": 23.21539,
+          "shoulder-length": 25,
+          "thread-profile-angle": 60,
+          "tip-diameter": 44.78461,
+          "tip-length": 0,
+          "tip-offset": 0,
+          "upper-radius": 0
+        },
+        "post-process": {
+          "break-control": false,
+          "comment": "",
+          "diameter-offset": 410,
+          "length-offset": 410,
+          "live": true,
+          "manual-tool-change": false,
+          "number": 410,
+          "turret": 0
+        }
+      },
+      "requested": {
+        "id": "fu-face-shoulder",
+        "raw": {
+          "BMC": "unspecified",
+          "GRADE": "Mill Generic",
+          "description": "fu-face-shoulder",
+          "geometry": {
+            "CSP": false,
+            "DC": 20,
+            "DCX": 50,
+            "HAND": true,
+            "LB": 80,
+            "LCF": 6,
+            "NOF": 4,
+            "NT": 1,
+            "OAL": 80,
+            "RE": 1,
+            "SFDM": 16,
+            "TA": 15,
+            "TP": 0,
+            "assemblyGaugeLength": 80,
+            "shoulder-diameter": 30,
+            "shoulder-length": 25,
+            "thread-profile-angle": 60,
+            "tip-diameter": 50,
+            "tip-length": 0,
+            "tip-offset": 0,
+            "upper-radius": 0
+          },
+          "guid": "d0cd6235-a8de-5ecb-8407-15d33ac7e10f",
+          "post-process": {
+            "break-control": false,
+            "comment": "",
+            "diameter-offset": 410,
+            "length-offset": 410,
+            "live": true,
+            "manual-tool-change": false,
+            "number": 410,
+            "turret": 0
+          },
+          "product-id": "",
+          "product-link": "",
+          "type": "face mill",
+          "unit": "millimeters",
+          "vendor": ""
+        },
+        "family": "face mill",
+        "capture": {
+          "cameraTargetCm": [
+            0,
+            0,
+            5
+          ],
+          "cameraHeightCm": 10
+        }
+      },
+      "referenceUsable": true,
+      "nativeSVG": "M0 0 L22.625 0 A1 1 0 0 1 23.5909 0.741181 L25 6 L25 6 L11.6077 6 L11.6077 25 L8 25 L8 80 L0 80 L-8 80 L-8 25 L-11.6077 25 L-11.6077 6 L-25 6 L-25 6 L-23.5909 0.741181 A1 1 0 0 1 -22.625 0 L-0 0 Z",
+      "nativePoints": [
+        [
+          0,
+          0
+        ],
+        [
+          22.625,
+          0
+        ],
+        [
+          22.65284683970293,
+          0.0003885182336155202
+        ],
+        [
+          22.680672061428368,
+          0.00155233256108811
+        ],
+        [
+          22.70845408400591,
+          0.003490540331018699
+        ],
+        [
+          22.73617135977031,
+          0.00620163827444653
+        ],
+        [
+          22.763802391273774,
+          0.009683523670779737
+        ],
+        [
+          22.791325747959338,
+          0.013933495978661004
+        ],
+        [
+          22.818720082782352,
+          0.018948258930499784
+        ],
+        [
+          22.84596414876719,
+          0.02472392308904936
+        ],
+        [
+          22.87303681548635,
+          0.031256008864044116
+        ],
+        [
+          22.899917085449157,
+          0.03853944998655856
+        ],
+        [
+          22.92658411038737,
+          0.04656859743839192
+        ],
+        [
+          22.953017207425038,
+          0.05533722383343265
+        ],
+        [
+          22.979195875120087,
+          0.06483852824760317
+        ],
+        [
+          23.00509980936519,
+          0.07506514149363841
+        ],
+        [
+          23.030708919135574,
+          0.08600913183660885
+        ],
+        [
+          23.05600334207157,
+          0.09766201114575412
+        ],
+        [
+          23.08096345988381,
+          0.11001474147785506
+        ],
+        [
+          23.105569913569123,
+          0.12305774208703879
+        ],
+        [
+          23.129803618425317,
+          0.13678089685558148
+        ],
+        [
+          23.153645778853242,
+          0.15117356213994237
+        ],
+        [
+          23.177077902934595,
+          0.1662245750259469
+        ],
+        [
+          23.200081816774208,
+          0.18192226198671424
+        ],
+        [
+          23.222639678595677,
+          0.19825444793661406
+        ],
+        [
+          23.244733992579395,
+          0.21520846567423235
+        ],
+        [
+          23.266347622432264,
+          0.23277116570702006
+        ],
+        [
+          23.287463804678566,
+          0.2509289264500054
+        ],
+        [
+          23.308066161661667,
+          0.2696676647906605
+        ],
+        [
+          23.328138714246478,
+          0.288972847011727
+        ],
+        [
+          23.347665894212845,
+          0.3088295000635297
+        ],
+        [
+          23.366632556330213,
+          0.3292222231770362
+        ],
+        [
+          23.38502399010423,
+          0.35013519980865226
+        ],
+        [
+          23.402825931186165,
+          0.3715522099074937
+        ],
+        [
+          23.420024572436304,
+          0.3934566424956154
+        ],
+        [
+          23.43660657463273,
+          0.41583150855144324
+        ],
+        [
+          23.452559076817195,
+          0.4386594541864157
+        ],
+        [
+          23.467869706270033,
+          0.4619227741046149
+        ],
+        [
+          23.48252658810642,
+          0.48560342533494893
+        ],
+        [
+          23.496518354486508,
+          0.5096830412252338
+        ],
+        [
+          23.509834153432276,
+          0.5341429456873206
+        ],
+        [
+          23.522463657244316,
+          0.5589641676822235
+        ],
+        [
+          23.534397070511954,
+          0.5841274559340064
+        ],
+        [
+          23.545625137710555,
+          0.6096132938610248
+        ],
+        [
+          23.55613915038008,
+          0.6354019147129362
+        ],
+        [
+          23.565930953879345,
+          0.6614733169017395
+        ],
+        [
+          23.574992953710744,
+          0.6878072795149561
+        ],
+        [
+          23.583318121410514,
+          0.7143833779989184
+        ],
+        [
+          23.5909,
+          0.741181
+        ],
+        [
+          25,
+          6
+        ],
+        [
+          25,
+          6
+        ],
+        [
+          11.6077,
+          6
+        ],
+        [
+          11.6077,
+          25
+        ],
+        [
+          8,
+          25
+        ],
+        [
+          8,
+          80
+        ],
+        [
+          0,
+          80
+        ]
+      ]
+    },
+    {
+      "id": "fu-face-upper",
+      "raw": {
+        "type": "face mill",
+        "unit": "millimeters",
+        "geometry": {
+          "CSP": false,
+          "DC": 43.071797,
+          "DCX": 50,
+          "HAND": true,
+          "LB": 80,
+          "LCF": 6,
+          "NOF": 4,
+          "NT": 1,
+          "OAL": 80,
+          "RE": 1,
+          "SFDM": 16,
+          "TA": 30,
+          "TP": 0,
+          "assemblyGaugeLength": 80,
+          "shoulder-diameter": 26.928202999999996,
+          "shoulder-length": 18,
+          "thread-profile-angle": 60,
+          "tip-diameter": 41.071797,
+          "tip-length": 0,
+          "tip-offset": 0,
+          "upper-radius": 2
+        },
+        "post-process": {
+          "break-control": false,
+          "comment": "",
+          "diameter-offset": 412,
+          "length-offset": 412,
+          "live": true,
+          "manual-tool-change": false,
+          "number": 412,
+          "turret": 0
+        }
+      },
+      "requested": {
+        "id": "fu-face-upper",
+        "family": "face mill",
+        "raw": {
+          "BMC": "unspecified",
+          "GRADE": "Mill Generic",
+          "description": "fu-face-upper",
+          "geometry": {
+            "CSP": false,
+            "DC": 20,
+            "DCX": 50,
+            "HAND": true,
+            "LB": 80,
+            "LCF": 6,
+            "NOF": 4,
+            "NT": 1,
+            "OAL": 80,
+            "RE": 1,
+            "SFDM": 16,
+            "TA": 30,
+            "TP": 0,
+            "assemblyGaugeLength": 80,
+            "shoulder-diameter": 50,
+            "shoulder-length": 18,
+            "thread-profile-angle": 60,
+            "tip-diameter": 50,
+            "tip-length": 0,
+            "tip-offset": 0,
+            "upper-radius": 2
+          },
+          "guid": "bc6f6adc-6252-5b7c-84f0-f7c65317d7ca",
+          "post-process": {
+            "break-control": false,
+            "comment": "",
+            "diameter-offset": 412,
+            "length-offset": 412,
+            "live": true,
+            "manual-tool-change": false,
+            "number": 412,
+            "turret": 0
+          },
+          "product-id": "",
+          "product-link": "",
+          "type": "face mill",
+          "unit": "millimeters",
+          "vendor": ""
+        },
+        "capture": {
+          "cameraTargetCm": [
+            0,
+            0,
+            6
+          ],
+          "cameraHeightCm": 12
+        }
+      },
+      "referenceUsable": true,
+      "nativeSVG": "M0 0 L20.9585 0 A1 1 0 0 1 21.8246 0.5 L24.7321 5.5359 A2 2 0 0 1 25 6.5359 L13.4641 6.5359 L13.4641 18 L8 18 L8 80 L0 80 L-8 80 L-8 18 L-13.4641 18 L-13.4641 6.5359 L-25 6.5359 A2 2 0 0 1 -24.7321 5.5359 L-21.8246 0.5 A1 1 0 0 1 -20.9585 0 L-0 0 Z",
+      "nativePoints": [
+        [
+          0,
+          0
+        ],
+        [
+          20.9585,
+          0
+        ],
+        [
+          20.986056332973728,
+          0.00037769151607980334
+        ],
+        [
+          21.01359179372827,
+          0.0015145903133945149
+        ],
+        [
+          21.041085469242603,
+          0.0034098329239722336
+        ],
+        [
+          21.06851647823134,
+          0.006061979922160399
+        ],
+        [
+          21.095863987003966,
+          0.009469017017861292
+        ],
+        [
+          21.12310722528788,
+          0.01362835658637307
+        ],
+        [
+          21.15022550200331,
+          0.018536839633676472
+        ],
+        [
+          21.177198220978063,
+          0.024190738195671302
+        ],
+        [
+          21.204004896590195,
+          0.030585758169543675
+        ],
+        [
+          21.23062516932672,
+          0.03771704257511199
+        ],
+        [
+          21.257038821246557,
+          0.04557917524367516
+        ],
+        [
+          21.283225791335905,
+          0.054166184931560446
+        ],
+        [
+          21.3091661907445,
+          0.06347154985524828
+        ],
+        [
+          21.33484031789105,
+          0.07348820264462863
+        ],
+        [
+          21.360228673426498,
+          0.08420853571062714
+        ],
+        [
+          21.385311975043646,
+          0.09562440702312469
+        ],
+        [
+          21.410071172121956,
+          0.10772714629478075
+        ],
+        [
+          21.43448746019639,
+          0.12050756156606712
+        ],
+        [
+          21.458542295239287,
+          0.13395594618650575
+        ],
+        [
+          21.48221740774445,
+          0.14806208618681416
+        ],
+        [
+          21.50549481660271,
+          0.1628152680363545
+        ],
+        [
+          21.5283568427585,
+          0.17820428677999756
+        ],
+        [
+          21.55078612263698,
+          0.19421745454822048
+        ],
+        [
+          21.572765621331556,
+          0.21084260943397504
+        ],
+        [
+          21.594278645541824,
+          0.22806712472958468
+        ],
+        [
+          21.615308856252007,
+          0.2458779185166554
+        ],
+        [
+          21.635840281140354,
+          0.26426146360171565
+        ],
+        [
+          21.655857326710024,
+          0.28320379779004046
+        ],
+        [
+          21.67534479013224,
+          0.30269053448985683
+        ],
+        [
+          21.69428787079278,
+          0.32270687363887574
+        ],
+        [
+          21.71267218153293,
+          0.34323761294485233
+        ],
+        [
+          21.730483759576448,
+          0.36426715943163834
+        ],
+        [
+          21.747709077134232,
+          0.38577954128195546
+        ],
+        [
+          21.764335051678568,
+          0.4077584199678973
+        ],
+        [
+          21.780349055879256,
+          0.430187102659946
+        ],
+        [
+          21.795738927193984,
+          0.4530485549050772
+        ],
+        [
+          21.810492977105703,
+          0.4763254135643282
+        ],
+        [
+          21.8246,
+          0.5
+        ],
+        [
+          24.7321,
+          5.5359
+        ],
+        [
+          24.751163757729735,
+          5.569675311845456
+        ],
+        [
+          24.769568990964277,
+          5.6038139400929134
+        ],
+        [
+          24.787308778422343,
+          5.638303046923601
+        ],
+        [
+          24.804376449063298,
+          5.673129662721404
+        ],
+        [
+          24.820765584595783,
+          5.708280690950088
+        ],
+        [
+          24.836470021891333,
+          5.743742913078235
+        ],
+        [
+          24.851483855301996,
+          5.77950299355008
+        ],
+        [
+          24.865801438881164,
+          5.815547484800332
+        ],
+        [
+          24.879417388506724,
+          5.851862832311131
+        ],
+        [
+          24.892326583905763,
+          5.888435379709219
+        ],
+        [
+          24.904524170580032,
+          5.925251373901413
+        ],
+        [
+          24.916005561631483,
+          5.962296970246452
+        ],
+        [
+          24.92676643948718,
+          5.999558237761268
+        ],
+        [
+          24.93680275752291,
+          6.037021164359729
+        ],
+        [
+          24.94611074158491,
+          6.074671662121876
+        ],
+        [
+          24.954686891409153,
+          6.112495572591683
+        ],
+        [
+          24.962527981937612,
+          6.15047867210134
+        ],
+        [
+          24.969631064531036,
+          6.1886066771200525
+        ],
+        [
+          24.97599346807779,
+          6.226865249625364
+        ],
+        [
+          24.98161279999833,
+          6.265240002494962
+        ],
+        [
+          24.986486947144925,
+          6.30371650491695
+        ],
+        [
+          24.99061407659631,
+          6.34228028781655
+        ],
+        [
+          24.99399263634695,
+          6.380916849297189
+        ],
+        [
+          24.996621355890678,
+          6.41961166009394
+        ],
+        [
+          24.99849924669846,
+          6.458350169037238
+        ],
+        [
+          24.999625602590143,
+          6.497117808524847
+        ],
+        [
+          25,
+          6.5359
+        ],
+        [
+          13.4641,
+          6.5359
+        ],
+        [
+          13.4641,
+          18
+        ],
+        [
+          8,
+          18
+        ],
+        [
+          8,
+          80
+        ],
+        [
+          0,
+          80
+        ]
+      ]
+    },
+    {
+      "id": "fu-face-zero",
+      "raw": {
+        "type": "face mill",
+        "unit": "millimeters",
+        "geometry": {
+          "CSP": false,
+          "DC": 20,
+          "DCX": 50,
+          "HAND": true,
+          "LB": 80,
+          "LCF": 6,
+          "NOF": 4,
+          "NT": 1,
+          "OAL": 80,
+          "RE": 0,
+          "SFDM": 16,
+          "TA": 0,
+          "TP": 0,
+          "assemblyGaugeLength": 80,
+          "shoulder-diameter": 20,
+          "shoulder-length": 18,
+          "thread-profile-angle": 60,
+          "tip-diameter": 20,
+          "tip-length": 0,
+          "tip-offset": 0,
+          "upper-radius": 0
+        },
+        "post-process": {
+          "break-control": false,
+          "comment": "",
+          "diameter-offset": 403,
+          "length-offset": 403,
+          "live": true,
+          "manual-tool-change": false,
+          "number": 403,
+          "turret": 0
+        }
+      },
+      "requested": {
+        "id": "fu-face-zero",
+        "raw": {
+          "BMC": "unspecified",
+          "GRADE": "Mill Generic",
+          "description": "fu-face-zero",
+          "geometry": {
+            "CSP": false,
+            "DC": 20,
+            "DCX": 50,
+            "HAND": true,
+            "LB": 80,
+            "LCF": 6,
+            "NOF": 4,
+            "NT": 1,
+            "OAL": 80,
+            "RE": 0,
+            "SFDM": 16,
+            "TA": 0,
+            "TP": 0,
+            "assemblyGaugeLength": 80,
+            "shoulder-diameter": 50,
+            "shoulder-length": 18,
+            "thread-profile-angle": 60,
+            "tip-diameter": 50,
+            "tip-length": 0,
+            "tip-offset": 0,
+            "upper-radius": 0
+          },
+          "guid": "08c4249d-f812-559e-aa5f-c8e3eea83de8",
+          "post-process": {
+            "break-control": false,
+            "comment": "",
+            "diameter-offset": 403,
+            "length-offset": 403,
+            "live": true,
+            "manual-tool-change": false,
+            "number": 403,
+            "turret": 0
+          },
+          "product-id": "",
+          "product-link": "",
+          "type": "face mill",
+          "unit": "millimeters",
+          "vendor": ""
+        },
+        "family": "face mill",
+        "capture": {
+          "cameraTargetCm": [
+            0,
+            0,
+            5
+          ],
+          "cameraHeightCm": 10
+        }
+      },
+      "referenceUsable": true,
+      "nativeSVG": "M0 0 L10 0 L10 6 L10 6 L10 18 L8 18 L8 80 L0 80 L-8 80 L-8 18 L-10 18 L-10 6 L-10 6 L-10 0 L-0 0 Z",
+      "nativePoints": [
+        [
+          0,
+          0
+        ],
+        [
+          10,
+          0
+        ],
+        [
+          10,
+          6
+        ],
+        [
+          10,
+          6
+        ],
+        [
+          10,
+          18
+        ],
+        [
+          8,
+          18
+        ],
+        [
+          8,
+          80
+        ],
+        [
+          0,
+          80
+        ]
+      ]
+    },
+    {
+      "id": "fu-tap-left-hand",
+      "raw": {
+        "type": "tap left hand",
+        "unit": "millimeters",
+        "geometry": {
+          "CSP": false,
+          "DC": 12,
+          "HAND": false,
+          "LB": 80,
+          "LCF": 20,
+          "NOF": 3,
+          "NT": 1,
+          "OAL": 80,
+          "RE": 0,
+          "SFDM": 12,
+          "SIG": 0,
+          "TP": 1,
+          "assemblyGaugeLength": 80,
+          "shoulder-length": 20,
+          "thread-profile-angle": 60,
+          "tip-diameter": 0,
+          "tip-length": 0,
+          "tip-offset": 0
+        },
+        "post-process": {
+          "break-control": false,
+          "comment": "",
+          "diameter-offset": 422,
+          "length-offset": 422,
+          "live": true,
+          "manual-tool-change": false,
+          "number": 422,
+          "turret": 0
+        }
+      },
+      "requested": {
+        "id": "fu-tap-left-hand",
+        "family": "tap left hand",
+        "raw": {
+          "BMC": "hss",
+          "GRADE": "generic",
+          "description": "fu-tap-left-hand",
+          "geometry": {
+            "CSP": false,
+            "DC": 12,
+            "HAND": false,
+            "LB": 80,
+            "LCF": 20,
+            "NOF": 3,
+            "NT": 1,
+            "OAL": 80,
+            "RE": 0,
+            "SFDM": 12,
+            "SIG": 0,
+            "TP": 1,
+            "assemblyGaugeLength": 80,
+            "shoulder-length": 20,
+            "thread-profile-angle": 60,
+            "tip-diameter": 0,
+            "tip-length": 0,
+            "tip-offset": 0
+          },
+          "guid": "443b44d3-647b-5c84-adb6-a508fff6848c",
+          "post-process": {
+            "break-control": false,
+            "comment": "",
+            "diameter-offset": 422,
+            "length-offset": 422,
+            "live": true,
+            "manual-tool-change": false,
+            "number": 422,
+            "turret": 0
+          },
+          "product-id": "",
+          "product-link": "",
+          "type": "tap left hand",
+          "unit": "millimeters",
+          "vendor": ""
+        },
+        "capture": {
+          "cameraTargetCm": [
+            0,
+            0,
+            6
+          ],
+          "cameraHeightCm": 12
+        }
+      },
+      "referenceUsable": true,
+      "nativeSVG": "M0 0 L6 0 L6 20 L6 20 L6 80 L0 80 L-6 80 L-6 20 L-6 20 L-6 0 L-0 0 Z",
+      "nativePoints": [
+        [
+          0,
+          0
+        ],
+        [
+          6,
+          0
+        ],
+        [
+          6,
+          20
+        ],
+        [
+          6,
+          20
+        ],
+        [
+          6,
+          80
+        ],
+        [
+          0,
+          80
+        ]
+      ]
+    },
+    {
+      "id": "fu-tap-right-hand",
+      "raw": {
+        "type": "tap right hand",
+        "unit": "millimeters",
+        "geometry": {
+          "CSP": false,
+          "DC": 12,
+          "HAND": true,
+          "LB": 80,
+          "LCF": 20,
+          "NOF": 3,
+          "NT": 1,
+          "OAL": 80,
+          "RE": 0,
+          "SFDM": 12,
+          "SIG": 0,
+          "TP": 1,
+          "assemblyGaugeLength": 80,
+          "shoulder-length": 20,
+          "thread-profile-angle": 60,
+          "tip-diameter": 0,
+          "tip-length": 0,
+          "tip-offset": 0
+        },
+        "post-process": {
+          "break-control": false,
+          "comment": "",
+          "diameter-offset": 423,
+          "length-offset": 423,
+          "live": true,
+          "manual-tool-change": false,
+          "number": 423,
+          "turret": 0
+        }
+      },
+      "requested": {
+        "id": "fu-tap-right-hand",
+        "family": "tap right hand",
+        "raw": {
+          "BMC": "hss",
+          "GRADE": "generic",
+          "description": "fu-tap-right-hand",
+          "geometry": {
+            "CSP": false,
+            "DC": 12,
+            "HAND": true,
+            "LB": 80,
+            "LCF": 20,
+            "NOF": 3,
+            "NT": 1,
+            "OAL": 80,
+            "RE": 0,
+            "SFDM": 12,
+            "SIG": 0,
+            "TP": 1,
+            "assemblyGaugeLength": 80,
+            "shoulder-length": 20,
+            "thread-profile-angle": 60,
+            "tip-diameter": 0,
+            "tip-length": 0,
+            "tip-offset": 0
+          },
+          "guid": "afa96191-78d3-5a36-8dd9-f26f1f459fca",
+          "post-process": {
+            "break-control": false,
+            "comment": "",
+            "diameter-offset": 423,
+            "length-offset": 423,
+            "live": true,
+            "manual-tool-change": false,
+            "number": 423,
+            "turret": 0
+          },
+          "product-id": "",
+          "product-link": "",
+          "type": "tap right hand",
+          "unit": "millimeters",
+          "vendor": ""
+        },
+        "capture": {
+          "cameraTargetCm": [
+            0,
+            0,
+            6
+          ],
+          "cameraHeightCm": 12
+        }
+      },
+      "referenceUsable": true,
+      "nativeSVG": "M0 0 L6 0 L6 20 L6 20 L6 80 L0 80 L-6 80 L-6 20 L-6 20 L-6 0 L-0 0 Z",
+      "nativePoints": [
+        [
+          0,
+          0
+        ],
+        [
+          6,
+          0
+        ],
+        [
+          6,
+          20
+        ],
+        [
+          6,
+          20
+        ],
+        [
+          6,
+          80
+        ],
+        [
+          0,
+          80
+        ]
+      ]
+    }
+  ]
+}

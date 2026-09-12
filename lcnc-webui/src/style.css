@@ -821,6 +821,7 @@ label:has(input:disabled, select:disabled) {
 .noteWarn {
   font-size: var(--fs-sm);
   color: var(--warn);
+  white-space: normal;
 }
 
 .label {
