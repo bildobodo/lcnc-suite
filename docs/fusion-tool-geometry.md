@@ -506,6 +506,12 @@ in use.
 
 ## Remaining scope
 
+The subsequent [tool-only gap audit](fusion-tool-remaining-work.md) identifies
+additional missing circle-segment and corner-chamfer families, an explicit-zero
+bull-nose radius bug, and missing face-mill cutting geometry. It separates
+observed implementation gaps from cases that merely lack native references.
+Its required follow-up work is not implemented by the holder-preview patch.
+
 Probe geometry, unsupported thread-crest combinations and additional 3D fidelity
 still need independent references. The probe's legacy shape branch remains
 separate. The Probe WCS failure has been narrowed to reading
