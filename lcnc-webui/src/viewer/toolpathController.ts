@@ -112,11 +112,6 @@ export interface ToolpathController {
    *  writes only — never alpha (GPU cost, see ToolpathDeps.staleOpacity);
    *  call again after a theme change. */
   setStale(on: boolean): void;
-  /** Outside-limits verdict per drawn vertex for the CURRENT lines, arriving
-   *  after apply (programmed display: the worker's flags reply). Rebuilds the
-   *  overlays in place; an array whose length is not the vertex count is
-   *  dropped loudly. undefined = unchecked (overlays cleared). */
-  setOutsideFlags(feed: Uint8Array | undefined, rapid: Uint8Array | undefined): void;
   /** Drop all refs WITHOUT disposing — clearScene already freed the objects.
    *  Parallel to surfaceController.forgetAfterSceneClear (H6): stale refs
    *  would keep feedSegs/updateOverflow reporting the disposed program and
@@ -342,16 +337,15 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
   }
 
   /** Outside-limits overlays (2026-09-12): per chunk and LOD level, the
-   *  index pairs touching a flagged vertex — a level-k pair (a, b) stands
-   *  for the run a..b of full-resolution vertices, so it is flagged when
-   *  ANY vertex of that run is (prefix sum), and a decimated chord over an
-   *  excursion stays yellow. Plain yellow, opaque, its own index buffer per
-   *  level sharing the chunk's vertices; no clip planes and no box gate:
-   *  the verdict is the producing worker's joint-side one per vertex (the
-   *  drawn path is the TOOL TIP, the limits bound the JOINTS — a tip-vs-box
-   *  comparison was off by the tool length and the tilt lever). null =
-   *  unchecked: nothing drawn. Rebuilds in place (programmed display gets
-   *  its flags after apply). */
+   *  index pairs whose run ends at or passes a flagged vertex — a flag on
+   *  vertex i means "the segment ending at i had a joint outside" (the
+   *  gateway validator's verdict, the one source the marks and the count
+   *  share), so a level-k pair (a, b) standing for the run a..b is flagged
+   *  when any vertex in (a, b] is (prefix sum), and a decimated chord over
+   *  an excursion stays yellow. Plain yellow, opaque, its own index buffer
+   *  per level sharing the chunk's vertices; no clip planes, no box gate,
+   *  nothing derived from tip geometry (the drawn path is the TOOL TIP,
+   *  the limits bound the JOINTS). null = unchecked: nothing drawn. */
   function buildOverlays(s: LineSet, outside: Uint8Array | null) {
     for (const ch of s.chunks) {
       for (const o of ch.overlays) {
@@ -382,7 +376,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
         for (let q = r.start; q < r.start + r.count; q += 2) {
           const a = index[q]!, b = index[q + 1]!;
           const lo = a < b ? a : b, hi = a < b ? b : a;
-          if (pre[hi + 1]! - pre[lo]! > 0) { flagged[w++] = a; flagged[w++] = b; }
+          if (pre[hi + 1]! - pre[lo + 1]! > 0) { flagged[w++] = a; flagged[w++] = b; }
         }
         counts[ci] = w - starts[ci]!;
       }
@@ -959,17 +953,6 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       if (c.rapid) _rapidBase.set(c.rapid);
       if (toolpathBoundsBox && c.toolpathBounds) (toolpathBoundsBox.material as THREE.LineBasicMaterial).color.set(c.toolpathBounds);
       _applyStale();   // the drawn colour is the base or its muted mix — one writer
-    },
-
-    setOutsideFlags(feed, rapid) {
-      for (const s of sets) {
-        const m = s.stream === "feed" ? feed : rapid;
-        const n = s.posAttr.count;
-        if (m && m.length !== n) console.warn(`[toolpath] ${s.stream} outside flags (${m.length}) do not match the drawn vertices (${n}) — overlay dropped`);
-        buildOverlays(s, (m instanceof Uint8Array && m.length === n) ? m : null);
-      }
-      _applyVisibility();
-      deps.requestRender();
     },
 
     forgetAfterSceneClear() {

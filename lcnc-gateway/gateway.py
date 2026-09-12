@@ -51,7 +51,7 @@ from gateway_util import (
     rotary_drift_settled,
     evaluate_kins_drift,
     wcs_offset_flat_from_table,
-    evaluate_wcs_offset_drift,
+    evaluate_wcs_offset_drift, evaluate_limits_drift,
     unwritten_estop_signal,
     kins_marker_policy,
     kins_pivot_warning,
@@ -1673,6 +1673,21 @@ async def _status_poller():
                                 _trace.emit("gcode.reparse_wcsoff_drift",
                                             reason=_wdrift)
                                 _drift = _wdrift
+                            elif _wdrift is None or not _wsettled:
+                                # Soft-limit window drift (2026-09-12): the
+                                # payload's per-line records and per-vertex
+                                # outside flags were checked against the
+                                # LIVE joint window at parse time; a runtime
+                                # window change (ini.N.* pins) makes both
+                                # stale. Fires only for a live-sourced
+                                # window, so it cannot loop.
+                                _ldrift = evaluate_limits_drift(
+                                    _bulk.published_limits, st.joint_limits,
+                                    _axes_from_mask(int(getattr(st, "axis_mask", 0) or 0)))
+                                if _ldrift:
+                                    _trace.emit("gcode.reparse_limits_drift",
+                                                reason=_ldrift)
+                                    _drift = _ldrift
                 elif _drift:
                     _trace.emit("gcode.reparse_tlo_drift", reason=_drift,
                                 tool=st.tool_number)

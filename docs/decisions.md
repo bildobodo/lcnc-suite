@@ -4312,3 +4312,53 @@ toggles and outlines only (3fb74e6) — layers `reachRoom` (Machine Reach) and
 soups and the main thread draws LineSegments in the bounds colour at 0.6 so the
 bounds box stays the crisp one. One computation serves both layers.
 
+## 2026-09-12 (evening) — One source of truth for "outside the soft limits": the gateway validator ships the per-vertex verdict
+
+**Trigger:** the operator, after the morning's overlay rewrite: "so not one source of
+truth?" Correct — 35fd5b0 had two implementations of one rule (the gateway validator
+in Python from the INI window at parse time; the viewer's overlay in TypeScript from
+the live window per drawn vertex), pinned only by the shared kins twins. The project
+had already ruled on this once (the HUD flag follows the validator, not a geometric
+box). Consolidated on the gateway.
+
+**Gateway.** `check_limit_violations` keeps its per-line records and attribution rule.
+Beside it, per canon segment, the RAW verdict — "any joint beyond the window at the
+end (identity: joints are affine in the words, endpoints carry the extremes) or at
+any 4° sample (trsrn / trt world segments through the same twins)" — no parked
+exemption: motion refuses every such move, and the painted path shows what motion
+refuses while the records name culprits. `_trsrn_joint_extremes` is the shared batch
+(the per-line checker and the flags call it). After RDP the flags reduce onto the
+kept vertices: kept k_j is 1 when any canon segment in (k_{j−1}, k_j] was outside, so
+a decimated run over an excursion stays flagged. Wire keys `feed_outside` /
+`rapid_outside` (uint8 per shipped vertex, unbumped schema — live-suite rule; absent
+= unchecked). The window is now the LIVE joint window from STAT
+(`live_joint_limits`, what motion enforces) with the INI file as the offline fallback,
+and which one was used rides `__LIMITS__` → `published_limits`; a new idle drift edge
+(`evaluate_limits_drift`, after the WCS-offset edge in the chain) reparses when the
+live window leaves a live-sourced one — an INI-sourced window never drifts, so a
+persistent INI-vs-live difference cannot loop. `preview_gate.summarize` carries
+`outside_points`.
+
+**Client.** Carries, never computes: previewDecode → track `outside` (merged like
+mode, present iff every non-empty stream has it) → `splitTrackStreams`
+feedOutside/rapidOutside (segment-ending convention, a section start takes the
+opening segment's flag) → `prependEntry` (entry move 0 = unchecked) → the part-frame
+transform stamps every sample of segment i with `outside[i]` (a duplicated flip
+vertex reads 0) → `buildOverlays` paints pairs whose run (a, b] holds a flag. Removed:
+`outsideJointLimits`, `jointLimitFlags`, the worker's `flags` op, `setOutsideFlags`,
+the joint-limits transform re-run (the limits watch now only resizes the reach
+envelope). The programmed display needs no second request any more.
+
+**Gates:** gateway test_gateway_util 363 (+5: end+TLO no-parked-exemption vs the
+records' attribution, RDP reduction, live window keyed by letter in joint order,
+drift edge only for a live-sourced window, trsrn flags ride the subdivided sweep),
+test_bulk_pipeline 31 (+2); client 180 across partFrame / controller / scrubTrack /
+previewDecode / lineChunks / reach (carry through subdivision, flip duplicate 0,
+mismatch → unchecked, (a, b] rule, LOD chord); tsc probe over every touched .ts
+clean; Vite serves the workers and ThreeViewer; no browser errors. Headless worker on
+the corpus: parity_linear ships 66/66 feed + 2/2 rapid outside (it parks at Z 50 above
+the 0.01 ceiling — every move refused; the records name 3 lines), twp_g683_tilted
+0/11. OWED: gateway restart for `published_limits` + the drift edge (the worker's
+flags already reach the tab on the next reparse — the worker is a fresh subprocess
+per parse and the keys pass through); heavy gates at the stop (unchanged list).
+

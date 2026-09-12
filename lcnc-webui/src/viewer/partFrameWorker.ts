@@ -4,8 +4,8 @@
 // the heartbeat worker exactly like the P4.1 decode problem did. The math
 // lives in partFrame.ts (pure, unit-tested); this shell just marshals.
 import {
-  transformToPartFrame, lineDistances, jointLimitFlags,
-  type PartFrameMachine, type PartFrameWcs, type JointLimitList,
+  transformToPartFrame, lineDistances,
+  type PartFrameMachine, type PartFrameWcs,
 } from "./partFrame";
 import { buildLineIndex, lineIndexTransferables } from "./lineIndex";
 import { buildLodLevels } from "./lineChunks";
@@ -14,9 +14,11 @@ import type { TloEvent } from "./tloEvents";
 
 type Streams = {
   feed: { pos: Float32Array; abc: Float32Array; lines?: Uint32Array; breaks?: Uint32Array; mode?: Uint8Array;
-          frame?: Uint8Array; frames?: [number, number, number][]; wcs?: Uint8Array; src?: Uint32Array; tlo?: Uint8Array };
+          frame?: Uint8Array; frames?: [number, number, number][]; wcs?: Uint8Array; src?: Uint32Array; tlo?: Uint8Array;
+          outside?: Uint8Array };
   rapid: { pos: Float32Array; abc: Float32Array; breaks?: Uint32Array; mode?: Uint8Array;
-           frame?: Uint8Array; frames?: [number, number, number][]; wcs?: Uint8Array; src?: Uint32Array; tlo?: Uint8Array };
+           frame?: Uint8Array; frames?: [number, number, number][]; wcs?: Uint8Array; src?: Uint32Array; tlo?: Uint8Array;
+           outside?: Uint8Array };
 };
 
 /** The payload is RESIDENT here (2026-09-05): the main thread sends the
@@ -48,30 +50,9 @@ interface TransformReq {
    *  frame) instead of in the table frame — scrubTrack.roomEndOf. 0/absent
    *  = everything rides the part. */
   roomEnd?: number;
-  /** Live per-joint soft limits, joint order (2026-09-12): the reply's
-   *  `feedOutside`/`rapidOutside` carry the joint-side verdict per baked
-   *  sample. Absent/no finite pair = no verdict (unchecked ≠ clean). */
-  jointLimits?: JointLimitList;
 }
 
-/** Programmed-XYZ display (2026-09-12): the drawn vertices are the
- *  programmed ones, so their outside-limits verdict is computed here
- *  against the RESIDENT streams — same lift/kins resolution per vertex as
- *  the transform, no subdivision, no chain. Replies carry `op: "flags"`
- *  (its own id space on the main thread). */
-interface FlagsReq {
-  op: "flags";
-  id: number;
-  payloadId: number;
-  machine: PartFrameMachine;
-  wcs: PartFrameWcs;
-  wcsEvents?: WcsEpoch[];
-  wcsTable?: WcsTableRow[];
-  tloEvents?: TloEvent[];
-  jointLimits?: JointLimitList;
-}
-
-type Req = LoadReq | TransformReq | FlagsReq;
+type Req = LoadReq | TransformReq;
 
 let _resident: { id: number; streams: Streams } | null = null;
 
@@ -86,27 +67,7 @@ self.onmessage = (e: MessageEvent<Req>) => {
     _resident = { id: e.data.payloadId, streams: e.data.streams };
     return;
   }
-  if (e.data.op === "flags") {
-    const { id, payloadId, machine, wcs, wcsEvents, wcsTable, tloEvents, jointLimits } = e.data;
-    if (!_resident || _resident.id !== payloadId) {
-      self.postMessage({ op: "flags", id, needPayload: payloadId });
-      return;
-    }
-    const { feed, rapid } = _resident.streams;
-    try {
-      const epochTerms = wcsEvents?.length ? epochTermsFor(wcsEvents, wcs, wcsTable) : undefined;
-      const fo = jointLimitFlags(machine, wcs, { ...feed, tloEvents, jointLimits }, epochTerms);
-      const ro = jointLimitFlags(machine, wcs, { ...rapid, tloEvents, jointLimits }, epochTerms);
-      const transfer: Transferable[] = [];
-      if (fo) transfer.push(fo.buffer as ArrayBuffer);
-      if (ro) transfer.push(ro.buffer as ArrayBuffer);
-      self.postMessage({ op: "flags", id, feedOutside: fo, rapidOutside: ro }, { transfer });
-    } catch (err) {
-      self.postMessage({ op: "flags", id, error: String((err as Error)?.message ?? err) });
-    }
-    return;
-  }
-  const { id, payloadId, machine, wcs, wcsEvents, wcsTable, tloEvents, roomEnd, jointLimits } = e.data;
+  const { id, payloadId, machine, wcs, wcsEvents, wcsTable, tloEvents, roomEnd } = e.data;
   if (!_resident || _resident.id !== payloadId) {
     self.postMessage({ id, needPayload: payloadId });
     return;
@@ -115,8 +76,8 @@ self.onmessage = (e: MessageEvent<Req>) => {
   try {
     const epochTerms = wcsEvents?.length
       ? epochTermsFor(wcsEvents, wcs, wcsTable) : undefined;
-    const f = transformToPartFrame(machine, wcs, { ...feed, tloEvents, roomEnd, jointLimits }, undefined, epochTerms);
-    const r = transformToPartFrame(machine, wcs, { ...rapid, tloEvents, roomEnd, jointLimits }, undefined, epochTerms);
+    const f = transformToPartFrame(machine, wcs, { ...feed, tloEvents, roomEnd }, undefined, epochTerms);
+    const r = transformToPartFrame(machine, wcs, { ...rapid, tloEvents, roomEnd }, undefined, epochTerms);
     // NaN positions render as NOTHING with no error — never ship them; the
     // main thread falls back to the programmed preview and logs loudly.
     assertFinite(f.pos, "feed");

@@ -136,11 +136,11 @@ export interface PartFramePolyline {
    *  of the live work frame — so an uncommanded table rotary can never
    *  move them. Needs `src`; 0/absent = everything rides the part. */
   roomEnd?: number;
-  /** Live per-joint soft limits [min, max] in JOINT order (status
-   *  `joint_limits`; a null entry = that joint unreadable). With any finite
-   *  pair the result carries `outside` — the joint-side verdict per drawn
-   *  sample (2026-09-12). Absent/empty = unchecked, no `outside`. */
-  jointLimits?: JointLimitList;
+  /** Outside-soft-limits verdict per input vertex (2026-09-12): the
+   *  segment ENDING at vertex i had a joint beyond the window — the gateway
+   *  validator's flag, carried onto every sample of that segment. Absent =
+   *  unchecked, no `outside` in the result. */
+  outside?: Uint8Array;
 }
 
 /** Per-joint [min, max] soft-limit pairs in joint order; null/short entries
@@ -166,44 +166,14 @@ export interface PartFrameResult {
   /** Number of such duplicated flip vertices (telemetry: with them the
    *  renderer's mixed-frame count must read 0). */
   frameFlips?: number;
-  /** Per output sample: 1 = at least one joint beyond its soft limit at
-   *  that sample (outsideJointLimits over the sample's TLO-inclusive
-   *  joints — the same joint-side rule as the gateway validator). Present
-   *  iff `jointLimits` carried a finite pair. The drawn path is the TOOL
-   *  TIP while the limits bound the JOINTS, so a box-vs-vertex comparison
-   *  in tip space was off by the tool length (and the tilt lever); this is
-   *  the exact verdict per sample, subdivided rotary sweeps included. */
+  /** Per output sample: the input segment's outside flag (every sample of
+   *  segment i reads `outside[i]`; a duplicated flip vertex — a section
+   *  start no segment ends at — reads 0). Present iff the input carried
+   *  `outside` of the right length. The drawn path is the TOOL TIP while
+   *  the limits bound the JOINTS, so the verdict is never re-derived here
+   *  from tip geometry: the gateway validator is the one source
+   *  (2026-09-12). */
   outside?: Uint8Array;
-}
-
-/** "Beyond a soft limit" tolerance — gateway_util.joints_beyond_limits' eps. */
-export const JOINT_LIMIT_EPS = 1e-6;
-
-/** True when `limits` carries at least one finite [min, max] pair. */
-export function hasJointLimits(limits: JointLimitList): boolean {
-  if (!limits) return false;
-  for (const l of limits) {
-    if (l && typeof l[0] === "number" && typeof l[1] === "number" && Number.isFinite(l[0]) && Number.isFinite(l[1])) return true;
-  }
-  return false;
-}
-
-/** Any joint with a finite pair beyond [min − eps, max + eps]? null joint
- *  values (UVW from the kins boundary) and unchecked joints never flag. */
-export function outsideJointLimits(
-  jointVals: ArrayLike<number | null>, limits: JointLimitList, eps = JOINT_LIMIT_EPS,
-): boolean {
-  if (!limits) return false;
-  const n = Math.min(limits.length, jointVals.length);
-  for (let j = 0; j < n; j++) {
-    const lim = limits[j];
-    const v = jointVals[j];
-    if (!lim || v == null) continue;
-    const mn = lim[0], mx = lim[1];
-    if (typeof mn !== "number" || typeof mx !== "number" || !Number.isFinite(mn) || !Number.isFinite(mx)) continue;
-    if (v < mn - eps || v > mx + eps) return true;
-  }
-  return false;
 }
 
 /** Max rotary sweep per emitted sample. 4° ≈ 0.06% chord error at any radius. */
@@ -561,17 +531,18 @@ export function transformToPartFrame(
   // `?? 0` keeps them at zero in the pose, as before.
   const jointVals: (number | null)[] = [];
   const machineVals: number[] = [0, 0, 0, 0, 0, 0];
-  // Joint-limit verdict per sample (2026-09-12) — only with a finite pair.
-  const lims = hasJointLimits(input.jointLimits) ? input.jointLimits! : null;
-  const outOutside = lims ? new Uint8Array(total) : undefined;
+  // Outside-limits flag per sample (2026-09-12): carried from the input
+  // segment, never computed here.
+  const inOutside = input.outside && input.outside.length === n ? input.outside : null;
+  const outOutside = inOutside ? new Uint8Array(total) : undefined;
 
   let out = 0;
-  const emit = (px: number, py: number, pz: number, pa: number, pb: number, pc: number, line: number, model: KinsModel, oIn: WcsTerms, tloV: readonly number[], room: number) => {
+  const emit = (px: number, py: number, pz: number, pa: number, pb: number, pc: number, line: number, model: KinsModel, oIn: WcsTerms, tloV: readonly number[], room: number, outV: number) => {
     // Program → machine coords (per the sample's EPOCH terms + the
     // segment's TLO), then machine → joints via the kins boundary.
     liftToJoints(px, py, pz, pa, pb, pc, oIn, tloV, machineVals);
     model.inverse(machineVals, jointVals);
-    if (outOutside) outOutside[out] = outsideJointLimits(jointVals, lims) ? 1 : 0;
+    if (outOutside) outOutside[out] = outV;
 
     // Chain at those joints → tool tip in the work frame (tipInWorkFrame:
     // the TLO peel in the tool node's rotation lives there) — or, for a
@@ -594,7 +565,7 @@ export function transformToPartFrame(
   let _srcCur = input.src?.[0] ?? 0;
   emit(input.pos[0]!, input.pos[1]!, input.pos[2]!,
        input.abc[0]!, input.abc[1]!, input.abc[2]!, input.lines?.[0] ?? 0,
-       vertModel?.[0] ?? identityKins, termFor(0), tloFor(0), roomV?.[0] ?? 0);
+       vertModel?.[0] ?? identityKins, termFor(0), tloFor(0), roomV?.[0] ?? 0, inOutside?.[0] ?? 0);
   if (breakSet.has(0)) outBreaks.push(0);
   for (let i = 1; i < n; i++) {
     const j = i * 3, k = j - 3;
@@ -605,6 +576,7 @@ export function transformToPartFrame(
     const tloSeg = tloFor(i);                      // ...and its tool offset
     _srcCur = input.src?.[i] ?? i;                 // ...and its track index
     const rm = roomV?.[i] ?? 0;                    // ...and its frame
+    const ov = inOutside?.[i] ?? 0;                // ...and its outside flag
     if (roomV && rm !== roomV[i - 1] && !breakSet.has(i)) {
       // Frame flip inside a section: the previous vertex is emitted again
       // in THIS segment's frame as a section start (no connector between
@@ -612,7 +584,7 @@ export function transformToPartFrame(
       outBreaks.push(out);
       emit(input.pos[k]!, input.pos[k + 1]!, input.pos[k + 2]!,
            input.abc[k]!, input.abc[k + 1]!, input.abc[k + 2]!,
-           line, model, oSeg, tloSeg, rm);
+           line, model, oSeg, tloSeg, rm, 0);
       frameFlips++;
     }
     for (let s = 1; s <= steps; s++) {
@@ -629,6 +601,7 @@ export function transformToPartFrame(
         oSeg,
         tloSeg,
         rm,
+        ov,
       );
     }
     // Remap the section start to its output index (the segment's endpoint —
@@ -646,7 +619,7 @@ export function transformToPartFrame(
 }
 
 /** The per-vertex conversion inputs transformToPartFrame and
- *  jointLimitFlags share: tip-space live terms, the per-epoch term and
+ *  any per-vertex consumer share: tip-space live terms, the per-epoch term and
  *  per-segment TLO resolvers, and the per-vertex kins model (phase 3: RAW
  *  switchkins type + governing TWP frame → kinsForSegment, family-aware;
  *  the loud honesty warns live there; an untracked polyline — no mode
@@ -675,33 +648,6 @@ function vertexResolvers(
   return { o, termFor, tloFor, vertModel, identityKins };
 }
 
-/** Joint-limit verdict per INPUT vertex, no subdivision, no chain — the
- *  programmed-XYZ display draws the programmed vertices, so its outside-
- *  limits overlay flags those: each vertex lifted to TLO-inclusive machine
- *  coords with its epoch terms and segment TLO, then to joints through its
- *  segment's kins model (the same three resolutions the part-frame
- *  transform applies per sample). undefined when `jointLimits` carries no
- *  finite pair (unchecked ≠ clean — the caller draws nothing and says so). */
-export function jointLimitFlags(
-  machine: PartFrameMachine, wcs: PartFrameWcs, input: PartFramePolyline, epochTerms?: readonly WcsTerms[],
-): Uint8Array | undefined {
-  if (!hasJointLimits(input.jointLimits)) return undefined;
-  const lims = input.jointLimits!;
-  const n = Math.min(input.pos.length, input.abc.length) / 3 | 0;
-  const { termFor, tloFor, vertModel, identityKins } = vertexResolvers(machine, wcs, input, epochTerms);
-  const jointVals: (number | null)[] = [];
-  const machineVals: number[] = [0, 0, 0, 0, 0, 0];
-  const out = new Uint8Array(n);
-  for (let i = 0; i < n; i++) {
-    const j = i * 3;
-    liftToJoints(input.pos[j]!, input.pos[j + 1]!, input.pos[j + 2]!,
-                 input.abc[j]!, input.abc[j + 1]!, input.abc[j + 2]!,
-                 termFor(i), tloFor(i), machineVals);
-    (vertModel?.[i] ?? identityKins).inverse(machineVals, jointVals);
-    out[i] = outsideJointLimits(jointVals, lims) ? 1 : 0;
-  }
-  return out;
-}
 
 /** Cumulative polyline distance (dashed-line attribute), same algorithm as
  *  previewWorker's — exported here so the part-frame worker reuses it. */

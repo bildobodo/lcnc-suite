@@ -142,6 +142,12 @@ class BulkPipeline:
         # that skips the rotary reparse when the drifted axes are never
         # commanded. None = no rotary seed / legacy worker.
         self.published_rotary_cmd: Optional[dict] = None
+        # Soft-limit window the published payload was checked against
+        # (2026-09-12), from the worker's `__LIMITS__` line: {"source":
+        # "live"|"ini", "limits": {letter: [min, max]}}. The limits drift
+        # edge reparses when the LIVE joint window leaves a live-sourced
+        # one. None = legacy worker / nothing published.
+        self.published_limits: Optional[dict] = None
         # Parse-time switchkins state of the published payload (fifth
         # freshness input), from the worker's `__KINSSEED__` stderr line:
         # {"type": int|None, "frame": [p,t1,t2]|None} — what the parse
@@ -253,6 +259,7 @@ class BulkPipeline:
         self.published_rotary_seed = None
         self.published_kins_seed = None
         self.published_wcs_off = None
+        self.published_limits = None
         self.rotary_check_prev = None
         self.wcsoff_check_prev = None
 
@@ -488,6 +495,7 @@ class BulkPipeline:
             worker_tlo: Optional[dict] = None
             worker_rotary_seed: Optional[dict] = None
             worker_rotary_cmd: Optional[dict] = None
+            worker_limits: Optional[dict] = None
             worker_kins_seed: Optional[dict] = None
             worker_wcs_off: Optional[list] = None
             if stderr:
@@ -534,6 +542,15 @@ class BulkPipeline:
                             worker_rotary_seed = json.loads(_s[1])
                         except (IndexError, ValueError):
                             _trace.emit("gcode.abcseed_line_malformed",
+                                        level="warn", line=ln[:160])
+                    elif ln.startswith("__LIMITS__"):
+                        # Checked soft-limit window (2026-09-12) — same
+                        # malformed-→-None-loudly contract as __ABCSEED__.
+                        _s = ln.split("\t", 1)
+                        try:
+                            worker_limits = json.loads(_s[1])
+                        except (IndexError, ValueError):
+                            _trace.emit("gcode.limits_line_malformed",
                                         level="warn", line=ln[:160])
                     elif ln.startswith("__ROTCMD__"):
                         # Rotary-command boundary (2026-09-11) — same
@@ -599,6 +616,7 @@ class BulkPipeline:
             self.published_tlo = worker_tlo
             self.published_rotary_seed = worker_rotary_seed
             self.published_rotary_cmd = worker_rotary_cmd
+            self.published_limits = worker_limits
             self.published_kins_seed = worker_kins_seed
             self.published_wcs_off = worker_wcs_off
             self.preview_version += 1

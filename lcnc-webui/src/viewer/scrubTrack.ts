@@ -58,6 +58,11 @@ export interface ScrubStream {
    *  8; 0xff = before the first row → live offset governs). Absent = the
    *  program never changes tool or offset. */
   tlo?: Uint8Array;
+  /** Outside-soft-limits verdict per vertex (2026-09-12): the segment
+   *  ENDING at the vertex had a joint beyond the checked window — the
+   *  gateway validator's per-vertex flag (wire feed_outside/rapid_outside).
+   *  Absent = unchecked. */
+  outside?: Uint8Array;
   /** Per-point line trust (wire feed_lineok/rapid_lineok, W2 P6). Absent
    *  = pre-schema-4 payload. */
   lineOk?: Uint8Array;
@@ -118,6 +123,11 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
     && (nr === 0 || rapid.mode?.length === nr)
     && !!(feed.mode || rapid.mode);
   const mode = hasMode ? new Uint8Array(n) : undefined;
+  // Outside-limits flags (2026-09-12) merge like mode.
+  const hasOutside = (nf === 0 || feed.outside?.length === nf)
+    && (nr === 0 || rapid.outside?.length === nr)
+    && !!(feed.outside || rapid.outside);
+  const outside = hasOutside ? new Uint8Array(n) : undefined;
   // TWP frame indices merge like mode (present iff consistent + a frames
   // list exists to dereference into).
   const hasFrame = !!frames?.length && hasMode
@@ -204,6 +214,7 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
     lines[i] = src.lines?.[si] ?? 0;
     rapidFlag[i] = takeFeed ? 0 : 1;
     if (mode) mode[i] = src.mode?.[si] ?? 0;
+    if (outside) outside[i] = src.outside?.[si] ?? 0;
     if (frameIdx) frameIdx[i] = src.frame?.[si] ?? 0xff;
     if (brk) brk[i] = (src.brk?.[si] ?? 0) | (src.ustart?.[si] ?? 0);
     if (ustart) ustart[i] = src.ustart?.[si] ?? 0;
@@ -263,7 +274,7 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
                      unknown: countBelow(rotaryCmd.unknown) };
   }
 
-  return { pos, abc, lines, rapid: rapidFlag, mode, frame: frameIdx,
+  return { pos, abc, lines, rapid: rapidFlag, mode, outside, frame: frameIdx,
            frames: hasFrame ? frames : undefined, brk, ustart,
            wcsEpoch, wcsEvents: hasWcs ? wcsEvents : undefined,
            tlo, tloEvents: hasTlo ? tloEvents : undefined,
@@ -326,6 +337,10 @@ export interface SplitStreams {
    *  track's `tloEvents`) — the part-frame worker lifts and peels each
    *  vertex with ITS offset (schema 8). */
   feedTlo?: Uint8Array; rapidTlo?: Uint8Array;
+  /** Per-vertex outside-limits flags (same conventions: a section-start
+   *  vertex takes the OPENING segment's flag; consumers test the segment's
+   *  END vertex) — the gateway validator's verdict, painted as-is. */
+  feedOutside?: Uint8Array; rapidOutside?: Uint8Array;
   /** Source TRACK index per drawn feed vertex (ascending) — maps a track
    *  segment range to a drawn-vertex range for the positional 3D highlight
    *  (review P3), which line numbers cannot do once a called sub's numbers
@@ -344,6 +359,7 @@ export function splitTrackStreams(t: ScrubTrack): SplitStreams {
   const fFrame: number[] = [], rFrame: number[] = [];
   const fWcs: number[] = [], rWcs: number[] = [];
   const fTlo: number[] = [], rTlo: number[] = [];
+  const fOut: number[] = [], rOut: number[] = [];
   const fSrc: number[] = [], rSrc: number[] = [];
   let fLast = -2, rLast = -2;  // track index of each stream's last emitted point
 
@@ -359,6 +375,7 @@ export function splitTrackStreams(t: ScrubTrack): SplitStreams {
     const fr = t.frame?.[i] ?? 0xff;  // ...and its END point's TWP frame
     const we = t.wcsEpoch?.[i] ?? 0;  // ...and its END point's WCS epoch
     const te = t.tlo?.[i] ?? TLO_NONE;  // ...and its END point's TLO event
+    const ou = t.outside?.[i] ?? 0;     // ...and its END point's outside flag
     // Kins-flip relabel INTO i: unlike a stream-interleave section (whose
     // connector is the other stream's real move), no motion exists here at
     // all — open the section AT the relabeled vertex and draw nothing into
@@ -368,24 +385,24 @@ export function splitTrackStreams(t: ScrubTrack): SplitStreams {
       if (relabel) {
         rBreaks.push(rPos.length / 3);
         push(rPos, rAbc, i);
-        rMode.push(md); rFrame.push(fr); rWcs.push(we); rTlo.push(te); rSrc.push(i);
+        rMode.push(md); rFrame.push(fr); rWcs.push(we); rTlo.push(te); rOut.push(ou); rSrc.push(i);
         rLast = i;
         continue;
       }
       if (rLast !== i - 1) {
         rBreaks.push(rPos.length / 3);
         push(rPos, rAbc, i - 1);
-        rMode.push(md); rFrame.push(fr); rWcs.push(we); rTlo.push(te); rSrc.push(i - 1);
+        rMode.push(md); rFrame.push(fr); rWcs.push(we); rTlo.push(te); rOut.push(ou); rSrc.push(i - 1);
       }
       push(rPos, rAbc, i);
-      rMode.push(md); rFrame.push(fr); rWcs.push(we); rTlo.push(te); rSrc.push(i);
+      rMode.push(md); rFrame.push(fr); rWcs.push(we); rTlo.push(te); rOut.push(ou); rSrc.push(i);
       rLast = i;
     } else {
       if (relabel) {
         fBreaks.push(fPos.length / 3);
         fLines.push(ln);
         push(fPos, fAbc, i);
-        fMode.push(md); fFrame.push(fr); fWcs.push(we); fTlo.push(te); fSrc.push(i);
+        fMode.push(md); fFrame.push(fr); fWcs.push(we); fTlo.push(te); fOut.push(ou); fSrc.push(i);
         fLast = i;
         continue;
       }
@@ -395,11 +412,11 @@ export function splitTrackStreams(t: ScrubTrack): SplitStreams {
         // line highlight covers the move from its true start.
         fLines.push(ln);
         push(fPos, fAbc, i - 1);
-        fMode.push(md); fFrame.push(fr); fWcs.push(we); fTlo.push(te); fSrc.push(i - 1);
+        fMode.push(md); fFrame.push(fr); fWcs.push(we); fTlo.push(te); fOut.push(ou); fSrc.push(i - 1);
       }
       fLines.push(ln);
       push(fPos, fAbc, i);
-      fMode.push(md); fFrame.push(fr); fWcs.push(we); fTlo.push(te); fSrc.push(i);
+      fMode.push(md); fFrame.push(fr); fWcs.push(we); fTlo.push(te); fOut.push(ou); fSrc.push(i);
       fLast = i;
     }
   }
@@ -417,6 +434,8 @@ export function splitTrackStreams(t: ScrubTrack): SplitStreams {
     rapidWcs: t.wcsEpoch ? new Uint8Array(rWcs) : undefined,
     feedTlo: t.tlo ? new Uint8Array(fTlo) : undefined,
     rapidTlo: t.tlo ? new Uint8Array(rTlo) : undefined,
+    feedOutside: t.outside ? new Uint8Array(fOut) : undefined,
+    rapidOutside: t.outside ? new Uint8Array(rOut) : undefined,
     feedSrc: new Uint32Array(fSrc),
     rapidSrc: new Uint32Array(rSrc),
   };
@@ -894,6 +913,14 @@ export function prependEntry(
     tlo[0] = t.tlo[0] ?? TLO_NONE;
     tlo[1] = t.tlo[0] ?? TLO_NONE;
   }
+  let outside: Uint8Array | undefined;
+  if (t.outside) {
+    // The entry move was never validated (run-time motion): unchecked, 0.
+    outside = new Uint8Array(n);
+    outside.set(t.outside, 1);
+    outside[0] = 0;
+    outside[1] = 0;
+  }
   let lineOk: Uint8Array | undefined;
   if (t.lineOk) {
     // The entry move is run-time motion no program line commanded — both
@@ -928,7 +955,7 @@ export function prependEntry(
     ? { A: t.inheritedEnd.A + 1, B: t.inheritedEnd.B + 1, C: t.inheritedEnd.C + 1, unknown: t.inheritedEnd.unknown + 1 }
     : undefined;
   return { pos, abc, lines, rapid, mode, frame, frames: t.frames, brk, ustart,
-           wcsEpoch, wcsEvents: t.wcsEvents, tlo, tloEvents: t.tloEvents,
+           wcsEpoch, wcsEvents: t.wcsEvents, tlo, tloEvents: t.tloEvents, outside,
            lineOk, sub, subNames: t.subNames, cline, inheritedEnd,
            cum, count: n, lineIndex: buildLineIndex(lines, cum), timeBased: t.timeBased };
 }

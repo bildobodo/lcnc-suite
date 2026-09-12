@@ -12,9 +12,10 @@ import {
 import { makeKins as kinsForTest } from "./kins";
 import { wcsTerms } from "./partFrame";
 
-function stream(points: number[][], opts: { abc?: number[][]; lines?: number[]; seq?: number[]; tcum?: number[]; mode?: number[]; frame?: number[]; brk?: number[]; tlo?: number[] } = {}): ScrubStream {
+function stream(points: number[][], opts: { abc?: number[][]; lines?: number[]; seq?: number[]; tcum?: number[]; mode?: number[]; frame?: number[]; brk?: number[]; tlo?: number[]; outside?: number[] } = {}): ScrubStream {
   return {
     tlo: opts.tlo ? new Uint8Array(opts.tlo) : undefined,
+    outside: opts.outside ? new Uint8Array(opts.outside) : undefined,
     pos: new Float32Array(points.flat()),
     abc: opts.abc ? new Float32Array(opts.abc.flat()) : undefined,
     lines: opts.lines ? new Uint32Array(opts.lines) : undefined,
@@ -324,6 +325,22 @@ describe("kins mode plumbing (phase 2b)", () => {
     // the world-mode segment into point 2 (rapid-point start vertex + end).
     expect(Array.from(split.feedMode!)).toEqual([1, 1]);
     expect(Array.from(split.rapidMode!)).toEqual([0, 0]);
+  });
+
+  it("outside-limits flags merge like mode and split per drawn vertex (segment-ending)", () => {
+    const t = buildScrubTrack(
+      stream([[1, 0, 0], [3, 0, 0]], { seq: [1, 3], outside: [0, 1], lines: [5, 7] }),
+      stream([[2, 0, 0]], { seq: [2], outside: [1] }),
+    )!;
+    expect(Array.from(t.outside!)).toEqual([0, 1, 1]);   // track order: feed 1, rapid 2, feed 3
+    const split = splitTrackStreams(t);
+    // the feed section into point 2: start vertex + end, both stamped with the END's flag
+    expect(Array.from(split.feedOutside!)).toEqual([1, 1]);
+    expect(Array.from(split.rapidOutside!)).toEqual([1, 1]);
+    // a stream without flags → no track flags (never half a program)
+    const u = buildScrubTrack(stream([[1, 0, 0], [3, 0, 0]], { seq: [1, 3], outside: [0, 1] }), stream([[2, 0, 0]], { seq: [2] }))!;
+    expect(u.outside).toBeUndefined();
+    expect(splitTrackStreams(u).feedOutside).toBeUndefined();
   });
 
   it("prependEntry stamps the entry move with the program's initial mode", () => {

@@ -2664,34 +2664,7 @@ def check_limit_violations_trsrn(segments, limits, kins_cfg, unit_scale=1.0,
         keep.append(sg)
     if not bounds or not keep:
         return [], 0, unchecked
-    n = len(keep)
-    end, start, unknown, tlo = _segment_arrays(keep, 6)
-    ktype = np.fromiter((sg[4] for sg in keep), dtype=np.int8, count=n)
-    frame = np.array([sg[5] if sg[5] is not None else _NAN3 for sg in keep],
-                     dtype=np.float64).reshape(n, 3)
-    # Rotary subdivision per segment (the trt/client 4-degree rule, cap 256).
-    rotd = np.max(np.abs(end[:, 3:6] - start[:, 3:6]), axis=1)
-    steps = np.minimum(256, np.maximum(1, np.ceil(rotd / rot_step_deg))).astype(np.int64)
-    cnt = steps + 1
-    seg_start = np.cumsum(cnt) - cnt
-    total_samples = int(cnt.sum())
-    seg_idx = np.repeat(np.arange(n), cnt)
-    si = np.arange(total_samples) - np.repeat(seg_start, cnt)
-    tt = si / steps[seg_idx]
-    s0 = start[seg_idx]
-    w = s0 + (end[seg_idx] - s0) * tt[:, None]
-    w[:, :3] = (w[:, :3] + tlo[seg_idx]) * unit_scale
-    joints = np.empty((total_samples, 6), dtype=np.float64)
-    kt_s = ktype[seg_idx]
-    m1 = kt_s == 1
-    if m1.any():
-        tz = (tlo[:, 2] * unit_scale)[seg_idx][m1]
-        joints[m1] = _trsrn_inverse_np(w[m1], params0, 1, tz=tz)
-    m2 = ~m1
-    if m2.any():
-        joints[m2] = _trsrn_inverse_np(w[m2], params0, 2, frame=frame[seg_idx][m2])
-    jmin = np.minimum.reduceat(joints, seg_start, axis=0)
-    jmax = np.maximum.reduceat(joints, seg_start, axis=0)
+    jmin, jmax, unknown = _trsrn_joint_extremes(keep, params0, unit_scale, rot_step_deg)
     lin_unknown = unknown[:, :3].any(axis=1)
     linenos = [sg[0] for sg in keep]
     worst = {}
@@ -2724,6 +2697,234 @@ def check_limit_violations_trsrn(segments, limits, kins_cfg, unit_scale=1.0,
                 "limit": round(worst[(ln, ax)][1], 4), "kind": worst[(ln, ax)][2]}
                for ln, ax in keys[:max_report]]
     return records, len(keys), unchecked
+
+def _trsrn_joint_extremes(keep, params0, unit_scale, rot_step_deg):
+    """Per trsrn non-identity segment (type 1/2 with a frame where type 2):
+    the (n, 6) joint minima and maxima over its rotary-subdivided samples
+    (the trt/client 4-degree rule, cap 256) through the vectorized inverse
+    twin, plus the (n, 6) unknown-start mask. Shared by the per-line
+    checker and the per-segment outside flags (2026-09-12)."""
+    import numpy as np
+    n = len(keep)
+    end, start, unknown, tlo = _segment_arrays(keep, 6)
+    ktype = np.fromiter((sg[4] for sg in keep), dtype=np.int8, count=n)
+    frame = np.array([sg[5] if sg[5] is not None else _NAN3 for sg in keep],
+                     dtype=np.float64).reshape(n, 3)
+    rotd = np.max(np.abs(end[:, 3:6] - start[:, 3:6]), axis=1)
+    steps = np.minimum(256, np.maximum(1, np.ceil(rotd / rot_step_deg))).astype(np.int64)
+    cnt = steps + 1
+    seg_start = np.cumsum(cnt) - cnt
+    total_samples = int(cnt.sum())
+    seg_idx = np.repeat(np.arange(n), cnt)
+    si = np.arange(total_samples) - np.repeat(seg_start, cnt)
+    tt = si / steps[seg_idx]
+    s0 = start[seg_idx]
+    w = s0 + (end[seg_idx] - s0) * tt[:, None]
+    w[:, :3] = (w[:, :3] + tlo[seg_idx]) * unit_scale
+    joints = np.empty((total_samples, 6), dtype=np.float64)
+    kt_s = ktype[seg_idx]
+    m1 = kt_s == 1
+    if m1.any():
+        tz = (tlo[:, 2] * unit_scale)[seg_idx][m1]
+        joints[m1] = _trsrn_inverse_np(w[m1], params0, 1, tz=tz)
+    m2 = ~m1
+    if m2.any():
+        joints[m2] = _trsrn_inverse_np(w[m2], params0, 2, frame=frame[seg_idx][m2])
+    jmin = np.minimum.reduceat(joints, seg_start, axis=0)
+    jmax = np.maximum.reduceat(joints, seg_start, axis=0)
+    return jmin, jmax, unknown
+
+
+def trsrn_segment_outside_flags(segments, limits, kins_cfg, unit_scale=1.0,
+                                rot_step_deg=4.0):
+    """Per segment (the tuples check_limit_violations_trsrn takes, in the
+    same order): True when ANY rotary-subdivided sample puts a bounded joint
+    beyond [min − eps, max + eps]. The raw geometric verdict for the drawn
+    path (2026-09-12: the viewer paints these — one source of truth with
+    the per-line records), so NO parked exemption and no attribution:
+    every move whose joints are outside would be refused by motion.
+    Identity segments and frameless type-2 (unchecked) segments read
+    False — unchecked ≠ clean; the unchecked count rides the wire. numpy
+    bool array, len(segments)."""
+    import numpy as np
+    segments = list(segments)
+    out = np.zeros(len(segments), dtype=bool)
+    if not limits or not segments:
+        return out
+    bounds = []
+    for jno, letter in enumerate(_TRSRN_LETTERS):
+        b = limits.get(letter)
+        if b is not None:
+            bounds.append((jno, b[0], b[1]))
+    idx = [i for i, sg in enumerate(segments)
+           if sg[4] in (1, 2) and not (sg[4] == 2 and sg[5] is None)]
+    if not bounds or not idx:
+        return out
+    params0 = {k: float(v) for k, v in ((kins_cfg or {}).get("params") or {}).items()}
+    keep = [segments[i] for i in idx]
+    jmin, jmax, _unknown = _trsrn_joint_extremes(keep, params0, unit_scale, rot_step_deg)
+    flag = np.zeros(len(keep), dtype=bool)
+    for jno, mn, mx in bounds:
+        if mn is not None:
+            flag |= jmin[:, jno] < mn - _LIMIT_EPS
+        if mx is not None:
+            flag |= jmax[:, jno] > mx + _LIMIT_EPS
+    out[idx] = flag
+    return out
+
+
+def world_segment_outside_flags(segments, limits, kins_cfg, unit_scale=1.0,
+                                rot_step_deg=4.0):
+    """trt world-mode twin of trsrn_segment_outside_flags: per segment
+    (lineno, start9, end9, tlo3), True when any subdivided sample's joint
+    leaves a bounded window. list[bool], or None when the declared kins has
+    no twin (those segments are UNCHECKED — the caller leaves them unflagged
+    and the unchecked count says so)."""
+    ktype = (kins_cfg or {}).get("type")
+    letters = _TRT_LETTERS.get(ktype)
+    segments = list(segments)
+    if letters is None:
+        return None
+    out = [False] * len(segments)
+    if not limits or not segments:
+        return out
+    bc = ktype == "xyzbc-trt"
+    params0 = {k: float(v) for k, v in ((kins_cfg.get("params") or {}).items())}
+    bounds = []
+    for jno, letter in enumerate(letters):
+        b = limits.get(letter)
+        if b is not None:
+            bounds.append((jno, b[0], b[1]))
+    if not bounds:
+        return out
+    for k, (_lineno, start, end, tlo) in enumerate(segments):
+        start, _unknown = _fill_unknown_start(start, end)
+        rotd = max(abs(end[i] - start[i]) for i in (3, 4, 5))
+        steps = min(256, max(1, math.ceil(rotd / rot_step_deg)))
+        params = params0
+        if tlo is not None and tlo[2]:
+            params = dict(params0)
+            params["tool_offset"] = tlo[2] * unit_scale
+        for si in range(steps + 1):
+            t = si / steps
+            w = [0.0] * 6
+            for i in range(6):
+                v = start[i] + (end[i] - start[i]) * t
+                if i < 3:
+                    v = (v + (tlo[i] if tlo is not None else 0.0)) * unit_scale
+                w[i] = v
+            joints = trt_kins_inverse(w, params, bc=bc)
+            hit = False
+            for jno, mn, mx in bounds:
+                jv = joints[jno]
+                if (mn is not None and jv < mn - _LIMIT_EPS) or (mx is not None and jv > mx + _LIMIT_EPS):
+                    hit = True
+                    break
+            if hit:
+                out[k] = True
+                break
+    return out
+
+
+def segment_outside_flags(segments, limits, unit_scale=1.0):
+    """Per IDENTITY segment (the tuples check_limit_violations takes):
+    True when the segment's END — TLO-inclusive XYZ, unit-scaled; rotaries
+    raw — lies beyond a bounded axis window. Joints are affine in the words
+    under identity kins, so the endpoints carry the extremes; the start is
+    the previous segment's end and is flagged there. The raw geometric
+    verdict the viewer paints (2026-09-12), so NO parked exemption and no
+    per-line attribution — see trsrn_segment_outside_flags. Vectorized;
+    numpy bool array, len(segments)."""
+    import numpy as np
+    segments = list(segments)
+    out = np.zeros(len(segments), dtype=bool)
+    if not limits or not segments:
+        return out
+    width = len(AXIS_LETTERS)
+    end, _start, _unknown, tlo = _segment_arrays(segments, width)
+    for idx, letter in enumerate(AXIS_LETTERS):
+        b = limits.get(letter)
+        if b is None or idx >= width:
+            continue
+        mn, mx = b
+        scale = 1.0 if letter in _ROTARY_AXES else unit_scale
+        v = (end[:, idx] + tlo[:, idx] if idx < 3 else end[:, idx]) * scale
+        if mn is not None:
+            out |= v < mn - _LIMIT_EPS
+        if mx is not None:
+            out |= v > mx + _LIMIT_EPS
+    return out
+
+
+def reduce_outside_flags(flags, keep):
+    """Per-canon-segment outside flags → per KEPT vertex after decimation:
+    kept vertex k_j reads True when any canon segment in (k_{j-1}, k_j]
+    (the run its drawn segment stands for) was outside; the first kept
+    vertex covers [0, k_0]. `keep` ascending. Returns a list of 0/1."""
+    out = []
+    prev = -1
+    for k in keep:
+        v = 0
+        for i in range(prev + 1, k + 1):
+            if flags[i]:
+                v = 1
+                break
+        out.append(v)
+        prev = k
+    return out
+
+
+def live_joint_limits(stat_joints, axis_mask):
+    """The machine's ACTUAL per-joint soft-limit window from STAT
+    (joint[i].min/max_position_limit — what motion enforces), keyed by
+    axis letter in joint order: {letter: (min, max)}. Empty dict when the
+    joint info is absent or unreadable — the caller falls back to the INI
+    file's window and says so. Pure."""
+    letters = [AXIS_LETTERS[i] for i in range(9) if int(axis_mask or 0) & (1 << i)]
+    out = {}
+    if not stat_joints:
+        return out
+    for j, letter in enumerate(letters):
+        if j >= len(stat_joints):
+            break
+        jd = stat_joints[j]
+        if not isinstance(jd, dict):
+            continue
+        mn, mx = jd.get("min_position_limit"), jd.get("max_position_limit")
+        if isinstance(mn, (int, float)) and isinstance(mx, (int, float)):
+            out[letter] = (float(mn), float(mx))
+    return out
+
+
+def evaluate_limits_drift(published, live_joint_limits_list, joint_letters, eps=1e-6):
+    """Has the live per-joint soft-limit window left the window the
+    published payload's soft-limit verdicts (per-line records AND the
+    per-vertex outside flags) were checked against? `published` is the
+    worker's __LIMITS__ record ({"source": "live"|"ini", "limits": {letter:
+    [min, max]}}); only a LIVE-sourced window can drift (an INI-sourced one
+    was used because STAT had none — nothing to compare, no loop).
+    Returns "limits:<letter>" naming the first drifted joint, or None.
+    Absent data on either side makes no claim. The CALLER owns idle
+    gating and debounce. Pure."""
+    if not published or published.get("source") != "live":
+        return None
+    lims = published.get("limits") or {}
+    if not lims or not live_joint_limits_list or not joint_letters:
+        return None
+    for j, letter in enumerate(joint_letters):
+        if j >= len(live_joint_limits_list):
+            break
+        live = live_joint_limits_list[j]
+        pub = lims.get(letter)
+        if not live or not pub or len(live) < 2 or len(pub) < 2:
+            continue
+        for a, b in zip(pub[:2], live[:2]):
+            if a is None or b is None:
+                continue
+            if abs(float(a) - float(b)) > eps:
+                return f"limits:{letter}"
+    return None
+
 
 def merge_violation_records(a, b, max_report=200):
     """Union of two violation reports (identity-checked + world-checked).

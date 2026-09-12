@@ -555,15 +555,29 @@ JOINT window and does not change with kins mode — the TWP sim's HAL mux
 switches the AXIS-letter `ini.z.*` window (the WORLD pose LinuxCNC checks
 programmed moves against), never `[JOINT_2]`. It bounds the HEAD reference
 point while the drawn path is the TIP, so the yellow outside-limits overlay
-does NOT compare vertices with the box any more (that was off by the TLO in
-Z and the tilt lever under B/C): the producing worker emits a joint-side
-verdict per drawn vertex (`partFrame.outsideJointLimits` over each sample's
-TLO-inclusive joints, subdivided sweeps included; `jointLimitFlags` for the
-programmed display through a `flags` worker op) and the controller draws
-the flagged pairs as per-chunk index subsets (`buildOverlays`, prefix sum so
-a decimated LOD chord over an excursion stays yellow) — no clip planes, no
-box gate. A limits change re-runs the transform; no limits = no overlay
-(unchecked ≠ clean). The validator's per-line count stays the HUD chip.
+never compares vertices with the box (that was off by the TLO in Z and the
+tilt lever under B/C). ONE SOURCE OF TRUTH (2026-09-12 pm, operator: "so
+not one source of truth?"): the GATEWAY validator emits, next to its
+per-line records, one byte per shipped vertex — `feed_outside` /
+`rapid_outside`: the segment ENDING there had a joint beyond the window,
+raw geometric verdict with no parked exemption or attribution
+(`gateway_util.segment_outside_flags` for identity segments,
+`trsrn_segment_outside_flags` / `world_segment_outside_flags` for the
+4°-subdivided world-mode ones, `reduce_outside_flags` onto the kept
+vertices after RDP). The window is the LIVE joint window from STAT
+(`live_joint_limits`; INI file fallback offline) and rides a `__LIMITS__`
+stderr line into `published_limits`; `evaluate_limits_drift` reparses when
+the live window leaves a live-sourced one (never loops). The client only
+CARRIES the flag: previewDecode → track `outside` (merged like mode) →
+`splitTrackStreams` feedOutside/rapidOutside → the part-frame transform
+stamps every sample of a segment with its flag → `buildOverlays` draws the
+pairs whose run (a, b] holds a flagged vertex as per-chunk index subsets
+(prefix sum, so a decimated LOD chord over an excursion stays yellow) — no
+clip planes, no box gate, nothing derived from tip geometry in the
+browser. No flags on the wire = no overlay (unchecked ≠ clean). The
+per-line records keep their attribution rule (the culprit line stands
+alone) and stay the HUD chip / marks / scrub stops; the flags paint every
+move motion would refuse.
 
 **Reach envelope (2026-09-12)**: layers `reachRoom` / `reachPart`
 (Settings → Layers → Machine Reach / Part Reach, both off by default) draw

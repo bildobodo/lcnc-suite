@@ -1773,6 +1773,71 @@ class TestLineTrustMachinery(unittest.TestCase):
         self.assertIsNone(gateway_util.parse_sub_marker("plain comment"))
 
 
+class TestSegmentOutsideFlags(unittest.TestCase):
+    """2026-09-12: the per-vertex outside verdict the viewer paints — one
+    source of truth with the per-line records (same segments, same
+    window), but the RAW geometric verdict: no parked exemption, no
+    attribution."""
+
+    def test_identity_end_tlo_inclusive_no_parked_exemption(self):
+        lim = {"X": (-100.0, 100.0), "Z": (-50.0, 0.0)}
+        nine = lambda x, y, z: (x, y, z, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+        segs = [
+            (1, nine(0, 0, -10), nine(50, 0, -10), None),        # inside
+            (2, nine(50, 0, -10), nine(120, 0, -10), None),      # X moves out
+            (3, nine(120, 0, -10), nine(120, 5, -10), None),     # X PARKED out: still outside
+            (4, nine(120, 5, -10), nine(0, 0, -10), None),       # back in
+            (5, nine(0, 0, -10), nine(0, 0, -10), (0.0, 0.0, 20.0)),  # TLO lifts joint Z to +10 > 0
+        ]
+        flags = gateway_util.segment_outside_flags(segs, lim)
+        self.assertEqual(list(map(bool, flags)), [False, True, True, False, True])
+        # the per-line checker attributes line 3 to nobody (X parked) and
+        # line 5 to nobody either (a zero-length move: Z parked) — the
+        # records name culprits, the flags paint every refused move
+        recs, total = gateway_util.check_limit_violations(segs, lim)
+        self.assertEqual(sorted(r["line"] for r in recs), [2])
+        # no window → nothing flagged, never a claim
+        self.assertEqual(list(map(bool, gateway_util.segment_outside_flags(segs, {}))), [False] * 5)
+        self.assertEqual(list(gateway_util.segment_outside_flags([], lim)), [])
+
+    def test_reduce_onto_kept_vertices_covers_the_dropped_run(self):
+        flags = [0, 0, 1, 0, 0, 0, 1, 0]
+        # kept 0, 3, 5, 7: vertex 3 covers (0,3] → 1; 5 covers (3,5] → 0; 7 covers (5,7] → 1
+        self.assertEqual(gateway_util.reduce_outside_flags(flags, [0, 3, 5, 7]), [0, 1, 0, 1])
+        # the first kept vertex covers [0, k0]
+        self.assertEqual(gateway_util.reduce_outside_flags([1, 0, 0], [2]), [1])
+        self.assertEqual(gateway_util.reduce_outside_flags([0, 0, 0], [0, 1, 2]), [0, 0, 0])
+
+    def test_live_joint_limits_keyed_by_letter_in_joint_order(self):
+        joints = [{"min_position_limit": -5.0, "max_position_limit": 5.0},
+                  {"min_position_limit": -6.0, "max_position_limit": 6.0},
+                  {"min_position_limit": -2000.0, "max_position_limit": 0.01},
+                  {"min_position_limit": -360.0, "max_position_limit": 360.0},
+                  {"min_position_limit": -320.0, "max_position_limit": 320.0}]
+        # XYZAC mask (bits 0,1,2,3,5): joint 4 is C
+        lims = gateway_util.live_joint_limits(joints, 0b101111)
+        self.assertEqual(lims, {"X": (-5.0, 5.0), "Y": (-6.0, 6.0), "Z": (-2000.0, 0.01),
+                                "A": (-360.0, 360.0), "C": (-320.0, 320.0)})
+        self.assertEqual(gateway_util.live_joint_limits(None, 0b111), {})
+        self.assertEqual(gateway_util.live_joint_limits([{"min_position_limit": None, "max_position_limit": 1.0}], 0b1), {})
+
+    def test_limits_drift_only_for_a_live_sourced_window(self):
+        pub = {"source": "live", "limits": {"X": [-1500.0, 1500.0], "Z": [-2000.0, 0.01]}}
+        letters = ["X", "Y", "Z"]
+        live = [[-1500.0, 1500.0], [-2000.0, 1300.0], [-2000.0, 0.01]]
+        self.assertIsNone(gateway_util.evaluate_limits_drift(pub, live, letters))
+        moved = [[-1500.0, 1500.0], [-2000.0, 1300.0], [-2000.0, 5000.0]]
+        self.assertEqual(gateway_util.evaluate_limits_drift(pub, moved, letters), "limits:Z")
+        # an INI-sourced window never drifts (nothing live to compare — and no loop)
+        self.assertIsNone(gateway_util.evaluate_limits_drift({"source": "ini", "limits": pub["limits"]}, moved, letters))
+        # absent data makes no claim
+        self.assertIsNone(gateway_util.evaluate_limits_drift(None, moved, letters))
+        self.assertIsNone(gateway_util.evaluate_limits_drift(pub, None, letters))
+        self.assertIsNone(gateway_util.evaluate_limits_drift(pub, [[None, None], [0, 0], [None, None]], letters))
+        # a partial live pair whose known bound moved is a drift
+        self.assertEqual(gateway_util.evaluate_limits_drift(pub, [[-1500.0, 1500.0], [0, 0], [None, 5000.0]], letters), "limits:Z")
+
+
 class TestRotaryDrift(unittest.TestCase):
     """W6 rotary-pose freshness: the seed the parse posed uncommanded
     rotaries at, and the drift edge that reparses when the live pose
@@ -2886,6 +2951,24 @@ class TestTrsrnLimitCheck(unittest.TestCase):
         self.assertEqual((records[0]["axis"], records[0]["kind"]), ("X", "max"))
         self.assertGreater(records[0]["value"], 1390.5)
         self.assertLess(records[0]["value"], 1392.0)
+
+    def test_segment_outside_flags_ride_the_subdivided_sweep(self):
+        # Same G53.6 orient sweep as the next test: joint Y migrates to
+        # ~-371.6 MID-segment; a -300 bound flags the segment's outside
+        # flag even though a sample-less endpoint check would not. An
+        # identity (type 0) segment and a frameless type-2 segment read
+        # False (the caller's identity check / the unchecked count own them).
+        start = self.NINE(1300.0, -200.0, -1300.0, 0.0, 0.0, 0.0)
+        end = self.NINE(1300.0, -200.0, -1300.0, 0.0, -40.855, 130.245)
+        segs = [
+            (6, start, end, (0.0, 0.0, 100.0), 1, None),
+            (7, start, end, (0.0, 0.0, 100.0), 0, None),
+            (8, start, end, (0.0, 0.0, 100.0), 2, None),
+            (9, start, start, (0.0, 0.0, 100.0), 1, None),   # no sweep: inside
+        ]
+        flags = gateway_util.trsrn_segment_outside_flags(segs, {"Y": (-300.0, 300.0)}, self.CFG)
+        self.assertEqual(list(map(bool, flags)), [True, False, False, False])
+        self.assertEqual(list(gateway_util.trsrn_segment_outside_flags(segs, {}, self.CFG)), [False] * 4)
 
     def test_tcp_orient_sweep_checked_with_tlo(self):
         # G53.6 orient: world pinned while B/C sweep — the joints migrate

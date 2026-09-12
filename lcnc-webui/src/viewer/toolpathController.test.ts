@@ -445,10 +445,13 @@ describe("chunked draw (2026-09-11 headroom wave)", () => {
     cc.updateCulling(ctx, lookAt(5, 5, 0, [5, 5, 100]));
     expect(ovs[0]!.visible).toBe(true);
     expect(cc.overlayChunks).toBe(1);
-    // flags landing after apply (programmed display) rebuild the overlays in place
-    cc.setOutsideFlags(new Uint8Array([1, 0, 0]), new Uint8Array([1, 1]));
+    // a flag on vertex i means "the segment ENDING at i" — vertex 0 flags nothing
+    cc.apply(ctx, { ...g, feedOutside: new Uint8Array([1, 0, 0]), rapidOutside: new Uint8Array([0, 1]) });
     expect(ovs[0]!.parent).toBeNull();                       // the old overlay object is gone
-    const ovs2 = overlaysOf(ctx.workRotGroup);
+    let ovs2 = overlaysOf(ctx.workRotGroup);
+    expect(ovs2).toHaveLength(1);                             // the rapid pair only
+    cc.apply(ctx, { ...g, feedOutside: new Uint8Array([0, 1, 0]), rapidOutside: new Uint8Array([1, 1]) });
+    ovs2 = overlaysOf(ctx.workRotGroup);
     expect(ovs2).toHaveLength(2);                             // feed pair (0,1) + the rapid pair
     cc.updateCulling(ctx, lookAt(5, 5, 0, [5, 5, 100]));
     expect(cc.overlayChunks).toBe(2);
@@ -457,17 +460,17 @@ describe("chunked draw (2026-09-11 headroom wave)", () => {
     expect(rapidOv.material).toBeInstanceOf(THREE.LineBasicMaterial);
     expect(rapidOv.material).not.toBeInstanceOf(THREE.LineDashedMaterial);
     // unchecked → nothing drawn
-    cc.setOutsideFlags(undefined, undefined);
+    cc.apply(ctx, { ...g, feedOutside: undefined, rapidOutside: undefined });
     expect(overlaysOf(ctx.workRotGroup)).toHaveLength(0);
     // a length mismatch is dropped loudly, never misdrawn
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    cc.setOutsideFlags(new Uint8Array([1, 1]), undefined);
+    cc.apply(ctx, { ...g, feedOutside: new Uint8Array([1, 1]), rapidOutside: undefined });
     expect(overlaysOf(ctx.workRotGroup)).toHaveLength(0);
     expect(warn).toHaveBeenCalled();
     warn.mockRestore();
   });
 
-  it("a decimated level's chord is flagged when ANY vertex of its run is", () => {
+  it("a decimated level's chord is flagged when any vertex of its run (a, b] is", () => {
     const cc = createToolpathController({ ...(deps as any) });
     // straight 5-point feed; level 1 = the single pair (0,4); only vertex 2 flagged
     const g = {
@@ -487,7 +490,7 @@ describe("chunked draw (2026-09-11 headroom wave)", () => {
     expect(vis).toHaveLength(1);
     expect(Array.from(vis[0]!.geometry.index!.array)).toEqual([0, 4]);
     expect(cc.overlayChunks).toBe(1);
-    // close up (level 0): the two pairs touching vertex 2
+    // close up (level 0): only the pair ENDING at vertex 2
     cc.updateCulling(ctx, lookAt(2, 0, 0, [2, 0, 5]), 1000);
     expect(cc.lodMax).toBe(0);
     const vis0 = overlaysOf(ctx.workRotGroup).filter(o => o.visible);
@@ -497,7 +500,7 @@ describe("chunked draw (2026-09-11 headroom wave)", () => {
       for (let q = r.start; q < r.start + r.count; q += 2) out.push([a[q]!, a[q + 1]!]);
       return out;
     }).sort((x, y) => x[0]! - y[0]!);
-    expect(pairs).toEqual([[1, 2], [2, 3]]);
+    expect(pairs).toEqual([[1, 2]]);
   });
 
   it("setVisible(false) hides overlays too and setVisible(true) restores only the flagged ones", () => {

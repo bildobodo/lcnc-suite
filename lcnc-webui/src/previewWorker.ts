@@ -61,6 +61,10 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     let rapidWcs: Uint8Array | undefined;
     let feedTlo: Uint8Array | undefined;
     let rapidTlo: Uint8Array | undefined;
+    // Outside-limits flags (2026-09-12): through the track split when there
+    // is a track, else the wire arrays as they are (legacy strips).
+    let feedOutside: Uint8Array | undefined = d.feed.outside;
+    let rapidOutside: Uint8Array | undefined = d.rapid.outside;
     let feedSrc: Uint32Array | undefined;
     let rapidSrc: Uint32Array | undefined;
     if (scrubTrack) {
@@ -76,6 +80,7 @@ self.onmessage = async (e: MessageEvent<Req>) => {
       feedFrame = split.feedFrame; rapidFrame = split.rapidFrame;
       feedWcs = split.feedWcs; rapidWcs = split.rapidWcs;
       feedTlo = split.feedTlo; rapidTlo = split.rapidTlo;
+      feedOutside = split.feedOutside; rapidOutside = split.rapidOutside;
       feedSrc = split.feedSrc;
       rapidSrc = split.rapidSrc;
     }
@@ -100,6 +105,7 @@ self.onmessage = async (e: MessageEvent<Req>) => {
             feed_kinstype: _fm, rapid_kinstype: _rm, rapid_brk: _rb,
             rapid_ustart: _ru,
             feed_lineok: _fo, rapid_lineok: _ro, feed_sub: _fsb, rapid_sub: _rsb,
+            feed_outside: _fou, rapid_outside: _rou,
             feed_cline: _fc, rapid_cline: _rc,
             ...rest } = g;
 
@@ -139,12 +145,14 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     if (rapidWcs) transfer.push(rapidWcs.buffer as ArrayBuffer);
     if (feedTlo) transfer.push(feedTlo.buffer as ArrayBuffer);
     if (rapidTlo) transfer.push(rapidTlo.buffer as ArrayBuffer);
+    if (feedOutside) transfer.push(feedOutside.buffer as ArrayBuffer);
+    if (rapidOutside) transfer.push(rapidOutside.buffer as ArrayBuffer);
     if (feedSrc) transfer.push(feedSrc.buffer as ArrayBuffer);
     if (rapidSrc) transfer.push(rapidSrc.buffer as ArrayBuffer);
     for (const a of [...feedLod, ...rapidLod]) transfer.push(a.buffer as ArrayBuffer);
 
     self.postMessage(
-      { version, gcode: { ...rest, feedPos, rapidPos, feed_lines: feedLines, feedLineIndex, rapidDist, feedAbc, rapidAbc, feedBreaks, rapidBreaks, feedMode, rapidMode, feedFrame, rapidFrame, feedWcs, rapidWcs, feedTlo, rapidTlo, feedSrc, rapidSrc, feedLod, rapidLod, lodTols, lodMs, kinsFrames, wcsEvents, tloEvents, scrubTrack } },
+      { version, gcode: { ...rest, feedPos, rapidPos, feed_lines: feedLines, feedLineIndex, rapidDist, feedAbc, rapidAbc, feedBreaks, rapidBreaks, feedMode, rapidMode, feedFrame, rapidFrame, feedWcs, rapidWcs, feedTlo, rapidTlo, feedOutside, rapidOutside, feedSrc, rapidSrc, feedLod, rapidLod, lodTols, lodMs, kinsFrames, wcsEvents, tloEvents, scrubTrack } },
       { transfer },
     );
   } catch (err) {

@@ -48,6 +48,12 @@ export function decodePreviewStreams(g: Record<string, any>): DecodedPreview {
   const rapidUstartWire = g.rapid_ustart != null ? new Uint8Array(g.rapid_ustart as Uint8Array) : undefined;
   const feedLineOkWire = g.feed_lineok != null ? new Uint8Array(g.feed_lineok as Uint8Array) : undefined;
   const rapidLineOkWire = g.rapid_lineok != null ? new Uint8Array(g.rapid_lineok as Uint8Array) : undefined;
+  // Outside-limits verdict per wire vertex (2026-09-12): the segment ENDING
+  // there had a joint beyond the checked window (gateway validator — the
+  // ONE source the marks, the count and the painted path share). Absent =
+  // unchecked.
+  const feedOutsideWire = g.feed_outside != null ? new Uint8Array(g.feed_outside as Uint8Array) : undefined;
+  const rapidOutsideWire = g.rapid_outside != null ? new Uint8Array(g.rapid_outside as Uint8Array) : undefined;
   const feedSubWire = g.feed_sub != null ? new Uint8Array(g.feed_sub as Uint8Array) : undefined;
   const rapidSubWire = g.rapid_sub != null ? new Uint8Array(g.rapid_sub as Uint8Array) : undefined;
   const subNames = g.sub_names as string[] | undefined;
@@ -82,12 +88,12 @@ export function decodePreviewStreams(g: Record<string, any>): DecodedPreview {
     feed: { pos: feedPos, abc: feedAbc, lines: feedLines, seq: feedSeq,
             tcum: g.feed_tcum != null && (g.feed_tcum as Uint8Array).length ? toF32(g.feed_tcum) : undefined,
             mode: feedModeWire, frame: feedFrameWire, wcs: feedWcsWire, tlo: feedTloWire,
-            lineOk: feedLineOkWire, sub: feedSubWire, cline: feedClineWire },
+            lineOk: feedLineOkWire, sub: feedSubWire, cline: feedClineWire, outside: feedOutsideWire },
     rapid: { pos: rapidPos, abc: rapidAbc, lines: toU32(g.rapid_lines), seq: rapidSeq,
              tcum: g.rapid_tcum != null && (g.rapid_tcum as Uint8Array).length ? toF32(g.rapid_tcum) : undefined,
              mode: rapidModeWire, frame: rapidFrameWire, brk: rapidBrkWire,
              ustart: rapidUstartWire, wcs: rapidWcsWire, tlo: rapidTloWire,
-             lineOk: rapidLineOkWire, sub: rapidSubWire, cline: rapidClineWire },
+             lineOk: rapidLineOkWire, sub: rapidSubWire, cline: rapidClineWire, outside: rapidOutsideWire },
     kinsFrames, wcsEvents, tloEvents, subNames, rotaryCmd,
     feedPos, rapidPos, feedLines, feedAbc, rapidAbc,
   };

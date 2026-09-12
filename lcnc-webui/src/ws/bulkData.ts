@@ -149,6 +149,10 @@ export interface ScrubTrack {
    *  applied offset governs). Schema 8; absent = the program never changes
    *  tool or offset (live everywhere, the pre-8 behavior). */
   tlo?: Uint8Array;
+  /** Outside-soft-limits verdict per track point (segment ending there,
+   *  2026-09-12): the gateway validator's per-vertex flag, merged like
+   *  mode — present iff every non-empty stream carried it. */
+  outside?: Uint8Array;
   tloEvents?: import("../viewer/tloEvents").TloEvent[];
   /** Monotonic scrub parameter: SECONDS when `timeBased` (unified timeline
    *  phase 1 — per-segment feed + INI rapid velocities), else distance

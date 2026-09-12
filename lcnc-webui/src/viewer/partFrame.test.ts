@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import * as THREE from "three";
 import {
   transformToPartFrame, chainsHaveRotary, buildLineMap, wcsTerms,
-  buildChain, tipInWorkFrame, liftToJoints, jointLimitFlags, outsideJointLimits,
+  buildChain, tipInWorkFrame, liftToJoints,
   type PartFrameMachine, type PartFrameWcs, } from "./partFrame";
 import { anchorTerms } from "./partFrame";
 import { makeKins } from "./kins";
@@ -490,55 +490,27 @@ describe("room-fixed bake (2026-09-11: decouple the path from an uncommanded tab
   });
 });
 
-describe("joint-limit flags (2026-09-12: the outside-limits overlay is joint-side)", () => {
-  const LIM = [[-5, 5], [-5, 5], [-10, 0]];
-
-  it("outsideJointLimits: beyond min/max with eps; null joints and unchecked entries never flag", () => {
-    expect(outsideJointLimits([0, 0, -1], LIM)).toBe(false);
-    expect(outsideJointLimits([5 + 1e-9, 0, -1], LIM)).toBe(false);     // inside the eps
-    expect(outsideJointLimits([5.001, 0, -1], LIM)).toBe(true);
-    expect(outsideJointLimits([0, 0, -10.001], LIM)).toBe(true);
-    expect(outsideJointLimits([0, null, 99], [[-5, 5], null, null])).toBe(false);
-    expect(outsideJointLimits([99, 0], [[-5, 5]].concat([]) as any)).toBe(true);
-    expect(outsideJointLimits([99], null)).toBe(false);
-    expect(outsideJointLimits([99], [[-Infinity, Infinity]])).toBe(false);
-  });
-
-  it("the transform emits the verdict per sample (identity: joints = program + WCS + TLO)", () => {
-    const r = transformToPartFrame(MILL3, WCS0, { ...poly([[0, 0, 0], [10, 0, 0], [10, 0, -5]]), jointLimits: LIM });
-    expect(Array.from(r.outside!)).toEqual([0, 1, 1]);
-    // the programmed-display twin agrees vertex for vertex
-    const f = jointLimitFlags(MILL3, WCS0, { ...poly([[0, 0, 0], [10, 0, 0], [10, 0, -5]]), jointLimits: LIM });
-    expect(Array.from(f!)).toEqual([0, 1, 1]);
-  });
-
-  it("is TLO-inclusive: a program Z inside the window can put the JOINT above it", () => {
-    const wcs: PartFrameWcs = { ...WCS0, tool: [0, 0, 20] };
-    const pts = poly([[0, 0, 0], [0, 0, -25]]);
-    const r = transformToPartFrame(MILL3, wcs, { ...pts, jointLimits: LIM });
-    expect(Array.from(r.outside!)).toEqual([1, 0]);   // joint Z 20 > 0; joint Z −5 inside
-    expect(Array.from(jointLimitFlags(MILL3, wcs, { ...pts, jointLimits: LIM })!)).toEqual([1, 0]);
-  });
-
-  it("rides the rotary subdivision: mid-sweep samples past the C window flag, the programmed endpoints alone would not", () => {
-    // C 0 → 180 on the trunnion, C window ±100: the endpoints are 0 (in) and
-    // 180 (out); the subdivided samples flag exactly from the first one past 100.
-    const lim = [[-500, 500], [-500, 500], [-500, 500], [-360, 360], [-100, 100]];
-    const r = transformToPartFrame(TRUNNION, WCS0, { ...poly([[10, 0, 0], [10, 0, 0]], [[0, 0, 0], [0, 0, 180]]), jointLimits: lim });
+describe("outside-limits flags carry (2026-09-12: the gateway validator is the one source)", () => {
+  it("every subdivided sample of a segment reads that segment's flag; the first vertex its own", () => {
+    const r = transformToPartFrame(TRUNNION, WCS0,
+      { ...poly([[10, 0, 0], [10, 0, 0]], [[0, 0, 0], [0, 0, 180]]), outside: new Uint8Array([0, 1]) });
     const n = r.pos.length / 3;
     expect(r.outside!.length).toBe(n);
     expect(r.outside![0]).toBe(0);
-    expect(r.outside![n - 1]).toBe(1);
-    const steps = n - 1;                                   // 4°/sample → 45 steps
-    const firstOut = Array.from(r.outside!).indexOf(1);
-    expect(180 * (firstOut / steps)).toBeGreaterThan(100);
-    expect(180 * ((firstOut - 1) / steps)).toBeLessThanOrEqual(100);
+    for (let i = 1; i < n; i++) expect(r.outside![i]).toBe(1);
   });
 
-  it("no finite pair → no verdict (unchecked, not clean)", () => {
-    const pts = poly([[99, 0, 0]]);
-    expect(transformToPartFrame(MILL3, WCS0, pts).outside).toBeUndefined();
-    expect(transformToPartFrame(MILL3, WCS0, { ...pts, jointLimits: [null, null, null] }).outside).toBeUndefined();
-    expect(jointLimitFlags(MILL3, WCS0, { ...pts, jointLimits: null })).toBeUndefined();
+  it("a duplicated flip vertex (a section start no segment ends at) reads 0", () => {
+    const r = transformToPartFrame(TRUNNION, WCS0, {
+      ...poly([[0, 0, 0], [10, 0, 0], [10, 10, 0]]),
+      src: new Uint32Array([0, 1, 2]), roomEnd: 2, outside: new Uint8Array([0, 1, 1]),
+    });
+    expect(Array.from(r.breaks!)).toEqual([2]);
+    expect(Array.from(r.outside!)).toEqual([0, 1, 0, 1]);
+  });
+
+  it("absent or mismatched input flags → no verdict (unchecked, not clean)", () => {
+    expect(transformToPartFrame(MILL3, WCS0, poly([[99, 0, 0]])).outside).toBeUndefined();
+    expect(transformToPartFrame(MILL3, WCS0, { ...poly([[99, 0, 0], [1, 0, 0]]), outside: new Uint8Array([1]) }).outside).toBeUndefined();
   });
 });

@@ -1935,25 +1935,7 @@ function _pfGetWorker(): Worker {
   if (!_pfWorker) {
     _pfWorker = new Worker(new URL("./viewer/partFrameWorker.ts", import.meta.url), { type: "module" });
     _pfWorker.onmessage = (ev: MessageEvent) => {
-      const m = ev.data as { id: number; op?: string; error?: string; needPayload?: number; feedPos?: Float32Array; feedLines?: Uint32Array; feedLineIndex?: LineIndex; rapidPos?: Float32Array; rapidDist?: Float32Array; feedBreaks?: Uint32Array; rapidBreaks?: Uint32Array; feedSrc?: Uint32Array; feedRoom?: Uint8Array; rapidRoom?: Uint8Array; frameFlips?: number; feedOutside?: Uint8Array; rapidOutside?: Uint8Array; feedLod?: Uint32Array[]; rapidLod?: Uint32Array[]; lodTols?: number[]; lodMs?: number };
-      if (m.op === "flags") {
-        // Programmed-display outside-limits flags (2026-09-12): their own
-        // id space; they address the vertices apply() drew last.
-        if (m.id !== _pfFlagsReqId) return;
-        const g0 = viewerGcode.value;
-        if (!g0) return;
-        if (m.needPayload != null) {
-          if (_pfFlagsRetried) { console.error("[partFrame] flags: worker lost the payload twice — no outside-limits overlay"); return; }
-          _pfFlagsRetried = true;
-          _pfLoadedFor = null;
-          _pfRequestFlags(g0);
-          return;
-        }
-        if (m.error) { console.error("[partFrame] flags failed — no outside-limits overlay:", m.error); return; }
-        toolpath.setOutsideFlags(m.feedOutside, m.rapidOutside);
-        requestRender();
-        return;
-      }
+      const m = ev.data as { id: number; error?: string; needPayload?: number; feedPos?: Float32Array; feedLines?: Uint32Array; feedLineIndex?: LineIndex; rapidPos?: Float32Array; rapidDist?: Float32Array; feedBreaks?: Uint32Array; rapidBreaks?: Uint32Array; feedSrc?: Uint32Array; feedRoom?: Uint8Array; rapidRoom?: Uint8Array; frameFlips?: number; feedOutside?: Uint8Array; rapidOutside?: Uint8Array; feedLod?: Uint32Array[]; rapidLod?: Uint32Array[]; lodTols?: number[]; lodMs?: number };
       if (m.id !== _pfReqId) return;  // superseded
       _pfPending = false;
       const g = viewerGcode.value;
@@ -1980,7 +1962,7 @@ function _pfGetWorker(): Worker {
         // Room split (2026-09-11): per drawn vertex, baked room-fixed or on
         // the part; absent when the transform had no boundary to apply.
         feedRoom: m.feedRoom, rapidRoom: m.rapidRoom,
-        // Joint-side outside-limits verdict per baked sample (2026-09-12).
+        // The validator's outside-limits flag carried per baked sample (2026-09-12).
         feedOutside: m.feedOutside, rapidOutside: m.rapidOutside,
         // Display LOD levels cut over the BAKED vertices (the payload's own
         // levels address the programmed vertices, a different space).
@@ -2513,9 +2495,6 @@ function applyGcode(g: ViewerGcode) {
         // Room split (2026-09-11): how many leading track points inherit
         // every work-chain rotary — those identity vertices bake room-fixed.
         roomEnd: _roomEnd(g),
-        // Live joint limits (2026-09-12): the joint-side outside verdict
-        // per baked sample rides the reply.
-        jointLimits: _jointLimitsPlain(),
       });
     } catch (err) {
       // A failed post must NEVER leave the viewer with no toolpath — fall
@@ -2532,10 +2511,6 @@ function applyGcode(g: ViewerGcode) {
   // Owned by toolpathController; pass a fresh ctx with the reassigned
   // scene-graph pointers + per-program units.
   _applyProgrammed(g);
-  // The programmed vertices' joint-side outside verdict (2026-09-12) comes
-  // from the worker against the resident streams; it lands after apply.
-  _pfFlagsRetried = false;
-  _pfRequestFlags(g);
 }
 
 /** Ship the streams to the worker ONCE per program (or per recreated
@@ -2550,16 +2525,18 @@ function _pfEnsureLoaded(w: Worker, g: ViewerGcode) {
   const ra = g.rapidAbc && g.rapidAbc.length === rp.length ? g.rapidAbc : new Float32Array(rp.length);
   const feed = { pos: fp.slice(), abc: fa.slice(), lines: fl?.slice(), breaks: g.feedBreaks?.slice(),
                  mode: g.feedMode?.slice(), frame: g.feedFrame?.slice(), frames: g.kinsFrames,
-                 wcs: g.feedWcs?.slice(), src: g.feedSrc?.slice(), tlo: g.feedTlo?.slice() };
+                 wcs: g.feedWcs?.slice(), src: g.feedSrc?.slice(), tlo: g.feedTlo?.slice(),
+                 outside: g.feedOutside?.slice() };
   const rapid = { pos: rp.slice(), abc: ra.slice(), breaks: g.rapidBreaks?.slice(),
                   mode: g.rapidMode?.slice(), frame: g.rapidFrame?.slice(), frames: g.kinsFrames,
-                  wcs: g.rapidWcs?.slice(), src: g.rapidSrc?.slice(), tlo: g.rapidTlo?.slice() };
+                  wcs: g.rapidWcs?.slice(), src: g.rapidSrc?.slice(), tlo: g.rapidTlo?.slice(),
+                  outside: g.rapidOutside?.slice() };
   const transfer: ArrayBuffer[] = [
     feed.pos.buffer as ArrayBuffer, feed.abc.buffer as ArrayBuffer,
     rapid.pos.buffer as ArrayBuffer, rapid.abc.buffer as ArrayBuffer,
   ];
   for (const a of [feed.lines, feed.breaks, rapid.breaks, feed.mode, rapid.mode, feed.frame, rapid.frame,
-                   feed.wcs, rapid.wcs, feed.src, rapid.src, feed.tlo, rapid.tlo]) {
+                   feed.wcs, rapid.wcs, feed.src, rapid.src, feed.tlo, rapid.tlo, feed.outside, rapid.outside]) {
     if (a) transfer.push(a.buffer as ArrayBuffer);
   }
   _pfPayloadId++;
@@ -2577,33 +2554,11 @@ function _jointLimitsPlain(): (number[] | null)[] | null {
     ? [p[0], p[1]] : null);
 }
 
-let _pfFlagsReqId = 0;
-let _pfFlagsRetried = false;
-/** Programmed display: ask the worker for the outside-limits flags of the
- *  programmed vertices (the resident streams), applied on reply through
- *  toolpath.setOutsideFlags. */
-function _pfRequestFlags(g: ViewerGcode) {
-  const init = viewerInit.value;
-  if (!init) return;
-  const id = ++_pfFlagsReqId;
-  try {
-    const w = _pfGetWorker();
-    _pfEnsureLoaded(w, g);
-    w.postMessage({
-      op: "flags", id, payloadId: _pfPayloadId,
-      machine: _pfMachine(init), wcs: _pfWcs(),
-      wcsEvents: g.wcsEvents, wcsTable: _pv.wcsTable ?? undefined, tloEvents: g.tloEvents,
-      jointLimits: _jointLimitsPlain(),
-    });
-  } catch (err) {
-    console.error("[partFrame] flags request failed — no outside-limits overlay:", err);
-  }
-}
 
 // Part-frame vertices depend on the pivot position relative to the live work
 // origin, so a WCS change (touch-off, G10, G92, rotation) re-transforms —
 // debounced, these change rarely and never mid-cut at speed.
-function _pfScheduleWcsRefresh(force = false) {
+function _pfScheduleWcsRefresh() {
   _reachSchedule();   // the envelope follows the tool length (and the limits, below)
   // Epoch-aware programmed payloads (review P2) also re-apply on WCS/table
   // changes — but ONLY when the display rebase can differ from identity:
@@ -2612,9 +2567,8 @@ function _pfScheduleWcsRefresh(force = false) {
   // fixture live, so an identity rebase needs no geometry rebuild). W2 P5
   // gate fix: wcs_frames ships ≥1 row on every modern payload, so the old
   // bare length check re-ran a full rebuild of a 99k-point program on
-  // every G43 the toolchange sub issued. `force` (a joint-limits change)
-  // skips that shortcut: the outside verdict must be recomputed either way.
-  if (_pfAppliedMode !== "part" && !force) {
+  // every G43 the toolchange sub issued.
+  if (_pfAppliedMode !== "part") {
     const evs = viewerGcode.value?.wcsEvents;
     if (!evs?.length) return;
     if (evs.length === 1 && !evs[0]!.rewritten
@@ -2626,10 +2580,11 @@ function _pfScheduleWcsRefresh(force = false) {
   }, 300);
 }
 // Joint limits arriving or changing (rare: connect, a runtime window change)
-// re-derive the outside verdict for the current lines.
+// resize the reach envelope; the outside-limits flags follow through the
+// gateway's own limits drift edge (a reparse), never a client re-derivation.
 watch(() => JSON.stringify(_jointLimitsPlain()), (cur, prev) => {
   if (prev === undefined || cur === prev) return;
-  _pfScheduleWcsRefresh(true);
+  _reachSchedule();
 });
 
 // ---- Reach envelope (2026-09-12) ----

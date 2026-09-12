@@ -70,6 +70,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from gcode_canon import PreviewCanon, apply_var_patches
 from gateway_util import (
     scan_tool_stats, read_axis_limits, check_limit_violations,
+    live_joint_limits, segment_outside_flags, trsrn_segment_outside_flags,
+    world_segment_outside_flags, reduce_outside_flags,
     check_limit_violations_world, merge_violation_records,
     wcs_basis_terms, parse_kins_config, kins_type_flags,
     kins_nonidentity_flags, kins_frame_indices, check_limit_violations_trsrn,
@@ -326,6 +328,19 @@ def parse(ctx: dict) -> dict:
     # parse time): exactly the frame soft limits act in. Touch-off after
     # load shifts that frame — the annotations refresh on the next re-parse.
     axis_limits = read_axis_limits(ini.find, s.axis_mask)
+    # The LIVE joint window (2026-09-12) — what motion actually enforces —
+    # when STAT carries it; the INI file's window is the offline fallback.
+    # Which one was used rides a stderr line for the gateway's limits
+    # drift edge (a runtime window change reparses; a persistent INI-vs-
+    # live difference never loops because the live window IS the source).
+    _live_lims = live_joint_limits(getattr(s, "joint", None), getattr(s, "axis_mask", 0))
+    _limits_source = "ini"
+    if _live_lims:
+        axis_limits = _live_lims
+        _limits_source = "live"
+    print("__LIMITS__\t" + json.dumps({"source": _limits_source,
+                                       "limits": {k: list(v) for k, v in axis_limits.items()}}),
+          file=sys.stderr, flush=True)
     # Switchkins mode resolution (phase 2) — computed here because BOTH the
     # limit check (2c: joint-side for world segments) and the wire mode
     # arrays (2a, further down) consume it. Flags align 1:1 with the
@@ -431,6 +446,8 @@ def parse(ctx: dict) -> dict:
         feed_world = kins_nonidentity_flags(feed_types, kins_cfg)
         rapid_world = kins_nonidentity_flags(rapid_types, kins_cfg)
     _any_world = bool(feed_world and any(feed_world)) or bool(rapid_world and any(rapid_world))
+    feed_out = [0] * len(canon.feed)
+    rapid_out = [0] * len(canon.rapid)
     if axis_limits:
         def _identity_segs():
             # Unknown-start segments yield a PARTIAL start (W3 P1 +
@@ -450,6 +467,23 @@ def parse(ctx: dict) -> dict:
                     yield _lineno, ustart_start_tuple(_end, _rot_seed) if _seq in ustart_seqs else _start, _end, _tlo
         violations, violations_total = check_limit_violations(
             _identity_segs(), axis_limits, unit_scale)
+        # Per-segment OUTSIDE flags (2026-09-12): the raw joint-side verdict
+        # the viewer paints — same segments, same window, no attribution —
+        # aligned 1:1 with canon.feed / canon.rapid; reduced onto the kept
+        # vertices after decimation below. Relabel connectors stay 0.
+        _fi_idx = [i for i in range(len(canon.feed)) if not (feed_world and feed_world[i])]
+        _ri_idx = [i for i, t in enumerate(canon.rapid)
+                   if t[4] not in relabel_seqs and not (rapid_world and rapid_world[i])]
+        _f_flags = segment_outside_flags(
+            [(canon.feed[i][0], canon.feed[i][1], canon.feed[i][2], canon.feed[i][4]) for i in _fi_idx],
+            axis_limits, unit_scale)
+        _r_flags = segment_outside_flags(
+            [(canon.rapid[i][0], canon.rapid[i][1], canon.rapid[i][2], canon.rapid[i][3]) for i in _ri_idx],
+            axis_limits, unit_scale)
+        for k, i in enumerate(_fi_idx):
+            feed_out[i] = int(_f_flags[k])
+        for k, i in enumerate(_ri_idx):
+            rapid_out[i] = int(_r_flags[k])
         if _any_world and kins_cfg and kins_cfg.get("type") == "xyzacb-trsrn":
             # trsrn non-identity segments: joint-side check through the
             # trsrn twin, per-segment TYPE (1=TCP w/ TLO-in-pivot,
@@ -476,6 +510,13 @@ def parse(ctx: dict) -> dict:
                                _frames[_fi] if _fi is not None else None)
             w_records, w_total, world_unchecked = check_limit_violations_trsrn(
                 _trsrn_segs(), axis_limits, kins_cfg, unit_scale)
+            _tf_idx = [i for i in range(len(canon.feed)) if feed_world and feed_world[i]]
+            _tr_idx = [i for i, t in enumerate(canon.rapid)
+                       if t[4] not in relabel_seqs and rapid_world and rapid_world[i]]
+            _t_flags = trsrn_segment_outside_flags(list(_trsrn_segs()), axis_limits, kins_cfg, unit_scale)
+            for k, i in enumerate(_tf_idx + _tr_idx):
+                if k < len(_t_flags) and _t_flags[k]:
+                    (feed_out if k < len(_tf_idx) else rapid_out)[i] = 1
             if world_unchecked:
                 print(f"limits: {world_unchecked} type-2 segments UNCHECKED "
                       f"(no TWP frame marker — bare M430?)",
@@ -497,6 +538,14 @@ def parse(ctx: dict) -> dict:
                         yield _lineno, ustart_start_tuple(_end, _rot_seed) if _seq in ustart_seqs else _start, _end, _tlo
             w_records, w_total = check_limit_violations_world(
                 _world_segs(), axis_limits, kins_cfg, unit_scale)
+            _wf_idx = [i for i in range(len(canon.feed)) if feed_world and feed_world[i]]
+            _wr_idx = [i for i, t in enumerate(canon.rapid)
+                       if t[4] not in relabel_seqs and rapid_world and rapid_world[i]]
+            _w_flags = world_segment_outside_flags(list(_world_segs()), axis_limits, kins_cfg, unit_scale)
+            if _w_flags is not None:
+                for k, i in enumerate(_wf_idx + _wr_idx):
+                    if k < len(_w_flags) and _w_flags[k]:
+                        (feed_out if k < len(_wf_idx) else rapid_out)[i] = 1
             if w_records is None:
                 # No twin for the declared kins: those segments are
                 # UNCHECKED — carried on the wire as an explicit count
@@ -832,6 +881,7 @@ def parse(ctx: dict) -> dict:
             # CUMULATIVE time — sampling kept indices preserves the dropped
             # interior segments' durations in the next kept point's delta.
             feed_tcum = [feed_tcum[i] for i in keep]
+            feed_out = reduce_outside_flags(feed_out, keep)
     if len(rapid) > 2:
         r_anchors = [0, len(rapid) - 1]
         if rapid_mode:
@@ -863,6 +913,7 @@ def parse(ctx: dict) -> dict:
             rapid_lines = [rapid_lines[i] for i in keep]
             rapid_seq = [rapid_seq[i] for i in keep]
             rapid_tcum = [rapid_tcum[i] for i in keep]
+            rapid_out = reduce_outside_flags(rapid_out, keep)
             if rapid_mode:
                 rapid_mode = [rapid_mode[i] for i in keep]
             if rapid_brk:
@@ -1300,6 +1351,12 @@ def parse(ctx: dict) -> dict:
         if kins_end_type != 0:
             print(f"kins at end: type {kins_end_type} — the program does not "
                   f"restore identity (G69 / M428) before M2", file=sys.stderr, flush=True)
+    if axis_limits:
+        # Per-vertex outside-limits verdict (2026-09-12): the segment ENDING
+        # at each shipped vertex (its decimated run included) had a joint
+        # beyond the checked window. Absent = unchecked (no window).
+        result["feed_outside"] = np.asarray(feed_out, dtype="<u1").tobytes() if feed_out else b""
+        result["rapid_outside"] = np.asarray(rapid_out, dtype="<u1").tobytes() if rapid_out else b""
     if world_unchecked:
         # World-mode segments with no kins twin to check against —
         # unchecked ≠ clean, so the count rides the wire and the UI says

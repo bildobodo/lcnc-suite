@@ -91,6 +91,11 @@ def summarize(payload):
     out["trusted_points"] = {"trusted": trusted, "total": total}
     out["sub_names"] = list(payload.get("sub_names") or [])
     out["violations_total"] = int(payload.get("violations_total") or 0)
+    # Per-vertex outside flags (2026-09-12): the painted verdict's counts.
+    out["outside_points"] = {
+        stream: int(np.frombuffer(payload[stream + "_outside"], np.uint8).sum())
+        if payload.get(stream + "_outside") else None
+        for stream in ("feed", "rapid")}
     out["violations_world_unchecked"] = int(
         payload.get("violations_world_unchecked") or 0)
     # Schema 6 (W3): suppressed first-move endpoints on the wire, and the
