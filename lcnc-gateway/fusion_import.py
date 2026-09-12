@@ -27,7 +27,13 @@ FUSION_TYPE_MAP = {
     "ball end mill": "ball",
     "bull nose end mill": "bullnose",
     "chamfer mill": "chamfer",
+    "corner chamfer end mill": "cornerchamfer",
+    "circle segment barrel": "circlebarrel",
+    "circle segment lens": "circlelens",
+    "circle segment oval": "circleoval",
+    "circle segment taper": "circletaper",
     "drill": "drill",
+    "block drill": "blockdrill",
     "spot drill": "drill",
     "counter bore": "endmill",
     "reamer": "endmill",
@@ -103,31 +109,67 @@ def parse_fusion_library(data: dict, machine_unit: str) -> tuple[list, list]:
             "oal": _opt_scale(geom.get("OAL"), tool_scale),
             "flute_length": _opt_scale(geom.get("LCF"), tool_scale),
             "corner_radius": _opt_scale(geom.get("RE"), tool_scale),
+            "maximum_cutting_diameter": _opt_scale(geom.get("DCX"), tool_scale),
+            "upper_radius": _opt_scale(geom.get("upper-radius"), tool_scale),
             "body_length": _opt_scale(geom.get("LB"), tool_scale),
             "shaft_diameter": _opt_scale(geom.get("SFDM"), tool_scale),
             "taper_angle": geom.get("TA"),
             "point_angle": geom.get("SIG"),
             "tip_diameter": _opt_scale(geom.get("tip-diameter"), tool_scale),
+            "tip_length": _opt_scale(geom.get("tip-length"), tool_scale),
             "shoulder_length": _opt_scale(geom.get("shoulder-length"), tool_scale),
             "shoulder_diameter": _opt_scale(geom.get("shoulder-diameter"), tool_scale),
             "assembly_gauge_length": _opt_scale(geom.get("assemblyGaugeLength"), tool_scale),
             "material": entry.get("BMC"),
             "holder": holder.get("description") if holder else None,
             "fusion_type": fusion_type,
+            "fusion_guid": entry.get("guid"),
         }
+        if our_type == "tapered":
+            tool["tapered_type"] = entry.get("tapered-type")
+        if our_type == "cornerchamfer":
+            tool["chamfer_width"] = _opt_scale(geom.get("chamfer-width"), tool_scale)
+            tool["chamfer_angle"] = geom.get("chamfer-angle")
+        if fusion_type.startswith("circle segment "):
+            # Preserve these for later native validation; the UI explicitly
+            # identifies the current generic rendering as an approximation.
+            for field in ("lower-radius", "profile-radius", "axial-distance"):
+                tool[field.replace("-", "_")] = _opt_scale(geom.get(field), tool_scale)
+        if our_type == "threadmill":
+            tool.update({
+                "thread_pitch": _opt_scale(geom.get("TP"), tool_scale),
+                "thread_pitch_min": _opt_scale(geom.get("TPN"), tool_scale),
+                "thread_pitch_max": _opt_scale(geom.get("TPX"), tool_scale),
+                "number_of_teeth": geom.get("NT"),
+                "thread_profile_angle": geom.get("thread-profile-angle"),
+                "thread_tip_type": geom.get("thread-tip-type"),
+                "thread_tip_width": _opt_scale(geom.get("thread-tip-width"), tool_scale),
+                "thread_tip_radius": _opt_scale(geom.get("thread-tip-radius"), tool_scale),
+            })
         # ---- Per-type angle normalization (Fusion stores half-angles for some types) ----
-        # Source: FreeCAD Better Tool Library reverse-engineering of Fusion 360 geometry keys
-        if our_type in ("chamfer", "countersink", "centerdrill"):
+        # Verified against native Fusion CAM contours, independently by type.
+        if our_type in ("chamfer", "countersink"):
             # Fusion TA is half-angle for chamfer/countersink — double to get included angle
             if tool.get("taper_angle"):
                 tool["taper_angle"] *= 2
-        if our_type in ("countersink", "centerdrill"):
-            # Fusion SIG is half-angle for countersink/centerdrill — double to get included angle
-            if tool.get("point_angle"):
-                tool["point_angle"] *= 2
-        # (drill/spot drill SIG is already the full included angle — no adjustment needed)
+        # SIG is the full included point angle for drills, countersinks and
+        # center drills. Center-drill TA is also a full included body angle.
+
+        # A custom shaft belongs to the tool and shares its unit. Segment
+        # heights stack from shoulder-length, independently of LB/installation.
+        shaft_segs = (entry.get("shaft") or {}).get("segments", [])
+        if shaft_segs:
+            tool["shaft_segments"] = [
+                {"height": s["height"] * tool_scale,
+                 "lower_diameter": s["lower-diameter"] * tool_scale,
+                 "upper_diameter": s["upper-diameter"] * tool_scale}
+                for s in shaft_segs
+            ]
 
         # Holders carry their own `unit` independent of the tool body.
+        if holder:
+            tool["holder_gauge_length"] = _opt_scale(
+                holder.get("gaugeLength"), _fusion_unit_scale(holder.get("unit"), machine_unit))
         holder_segs = holder.get("segments", []) if holder else []
         if holder_segs:
             holder_scale = _fusion_unit_scale(holder.get("unit"), machine_unit)
@@ -139,6 +181,8 @@ def parse_fusion_library(data: dict, machine_unit: str) -> tuple[list, list]:
             ]
         # Form-mill profile coords share the tool's unit; arcs add a `center` pair.
         if our_type == "formmill":
+            # CAM compensation-point metadata, not the measured installed length.
+            tool["tip_offset"] = _opt_scale(geom.get("tip-offset"), tool_scale)
             raw_profile = geom.get("profile")
             if raw_profile and isinstance(raw_profile, list):
                 scaled_profile = []

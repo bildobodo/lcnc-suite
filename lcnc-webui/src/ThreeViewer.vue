@@ -4,7 +4,8 @@ import { computed, inject, onMounted, onUnmounted, reactive, ref, shallowRef, wa
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { Text } from "troika-three-text";
-import { buildToolProfile, splitProfileAt, buildToolGeometry, buildHolderGeometry, type ToolMeta } from "./toolGeometry";
+import { buildToolParts, buildToolGeometry, type ToolMeta } from "./toolGeometry";
+import { toolUnitsPerMillimeter } from "./toolUnits";
 import { AXIS_HEX, AXIS_CSS } from "./axisColors";
 import {
   failedParts, loadMachineAssets, getCachedGeometry, getToolMeta, setToolMeta, machineReady,
@@ -220,7 +221,6 @@ const _tofsVec = new THREE.Vector3();
 let toolMarker: THREE.Group | null = null;
 let toolCutterMesh: THREE.Mesh | null = null;
 let toolBodyMesh: THREE.Mesh | null = null;
-let holderMesh: THREE.Mesh | null = null;
 let _currentToolNum: number | null = null;
 let _lastToolMeta: ToolMeta | null = null;
 let workAxes: THREE.Group | null = null;
@@ -698,7 +698,6 @@ let buildToken = 0;
 const MAT = {
   tool: new THREE.MeshStandardMaterial({ metalness: 0.2, roughness: 0.4 }),
   cutter: new THREE.MeshStandardMaterial({ metalness: 0.2, roughness: 0.4 }),
-  holder: new THREE.MeshStandardMaterial({ metalness: 0.7, roughness: 0.3 }),
   frame: new THREE.MeshStandardMaterial({ metalness: 0.1, roughness: 0.8 }),
   axisX: new THREE.MeshStandardMaterial({ metalness: 0.1, roughness: 0.7 }),
   axisY: new THREE.MeshStandardMaterial({ metalness: 0.1, roughness: 0.7 }),
@@ -713,7 +712,6 @@ MAT.axisY.color.setHex(0x4a8f5a); // Y muted green
 MAT.axisZ.color.setHex(0x4a6f9b); // Z muted blue
 MAT.tool.color.setHex(0xc0c0c0);  // silver shaft
 MAT.cutter.color.setHex(0xffdd00); // gold cutter
-MAT.holder.color.setHex(0x888888); // steel gray holder
 
 // Mark every shared MAT.* instance so disposeObject (viewer/disposal.ts) never
 // frees them: one instance is reused across every rebuild and across machine
@@ -871,7 +869,7 @@ function ensureCoreGroups(init: ViewerInit) {
  * from its actual parent and disposed before the new one is added. Without this,
  * a tool-change landing during buildFromInit's async loadMachineAssets gap could
  * add a second marker, orphaning the first (its buildToolGeometry leaked).
- * disposeObject skips the shared MAT.tool/cutter/holder; only the per-marker
+ * disposeObject skips the shared MAT.tool/cutter; only the per-marker
  * geometry is freed.
  */
 function replaceToolMarker(newGroup: THREE.Group) {
@@ -883,11 +881,12 @@ function replaceToolMarker(newGroup: THREE.Group) {
   _toolGrp?.add(toolMarker);
 }
 
-/** Build full tool group (cutter + shaft + optional holder) */
+/** Build the physical tool. Imported holders are nominal library assemblies;
+ * live placement requires an independently calibrated spindle gauge reference.
+ * The tool group continues to use the signed active LinuxCNC tool offset. */
 function buildToolGroup(diam: number, len: number, meta: ToolMeta | null): THREE.Group {
   const grp = new THREE.Group();
-  const { pts, fluteY } = buildToolProfile(diam, len, meta);
-  const { cutter, shaft } = splitProfileAt(pts, fluteY);
+  const { cutter, shaft } = buildToolParts(diam, len, meta, _unitScale);
 
   toolCutterMesh = null;
   if (cutter.length >= 3) {
@@ -900,15 +899,6 @@ function buildToolGroup(diam: number, len: number, meta: ToolMeta | null): THREE
     grp.add(toolBodyMesh);
   }
 
-  holderMesh = null;
-  if (meta?.holder_segments?.length) {
-    const oal = meta.oal ?? len;
-    const hGeom = buildHolderGeometry(meta.holder_segments, oal);
-    if (hGeom) {
-      holderMesh = new THREE.Mesh(hGeom, MAT.holder);
-      grp.add(holderMesh);
-    }
-  }
   return grp;
 }
 
@@ -927,7 +917,7 @@ async function buildFromInit(init: ViewerInit) {
   window.__viewerDiag = { ready: false };
 
   try {
-    _unitScale = (init.units === "in" || init.units === "inch") ? 1 / 25.4 : 1;
+    _unitScale = toolUnitsPerMillimeter(init.units);
 
     scene.background = sceneBgFromTheme();
 
@@ -1229,10 +1219,10 @@ function applyState(init: ViewerInit, st: ViewerState) {
         // Same tool, same meta — check if diam/length changed
         const visMesh = toolBodyMesh ?? toolCutterMesh;
         if (!visMesh) return false;
-        const r = Math.max(0.2, diam * 0.5);
+        const r = diam * 0.5;
         const prev = (visMesh.userData.toolVis as any) || {};
-        return Math.abs((prev.r ?? 0) - r) > 0.01
-            || Math.abs((prev.L ?? 0) - visLen) > 0.5;
+        return Math.abs((prev.r ?? 0) - r) > 0.01 * _unitScale
+            || Math.abs((prev.L ?? 0) - visLen) > 0.5 * _unitScale;
       })();
 
     if (needsRebuild) {
@@ -2582,4 +2572,3 @@ defineExpose({
 }
 
 </style>
-

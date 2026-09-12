@@ -1,0 +1,237 @@
+{
+  "commandId": "IronSimulation",
+  "commandName": "Simulate",
+  "inputs": [
+    {
+      "enum": [
+        "Flute",
+        "Shaft",
+        "Holder"
+      ],
+      "name": "Tool",
+      "type": "dropdown",
+      "value": "Holder"
+    },
+    {
+      "name": "Transparent",
+      "type": "checkbox",
+      "value": false
+    },
+    {
+      "name": "Programmed Point",
+      "type": "checkbox",
+      "value": false
+    },
+    {
+      "name": "Show links",
+      "type": "checkbox",
+      "value": true
+    },
+    {
+      "name": "Show leads",
+      "type": "checkbox",
+      "value": true
+    },
+    {
+      "name": "Show cutting moves",
+      "type": "checkbox",
+      "value": true
+    },
+    {
+      "name": "Show base",
+      "type": "checkbox",
+      "value": true
+    },
+    {
+      "enum": [
+        "Auto",
+        "Always",
+        "Never"
+      ],
+      "name": "Transparent",
+      "type": "dropdown",
+      "value": "Auto"
+    },
+    {
+      "enum": [
+        "Material",
+        "Operation",
+        "Tool",
+        "Comparison"
+      ],
+      "name": "Colorization",
+      "type": "dropdown",
+      "value": "Operation"
+    },
+    {
+      "enum": [
+        "Ceramic",
+        "Metallic Paint",
+        "Mirror",
+        "Plastic Vinyl",
+        "Wall Paint"
+      ],
+      "name": "Material",
+      "type": "dropdown",
+      "value": "Ceramic"
+    },
+    {
+      "name": "Accuracy",
+      "type": "rangecommandintinput"
+    },
+    {
+      "name": "Transparent",
+      "type": "checkbox",
+      "value": false
+    },
+    {
+      "name": "Regenerate on rewind",
+      "type": "checkbox",
+      "value": false
+    },
+    {
+      "name": "Stop on collision",
+      "type": "checkbox",
+      "value": false
+    },
+    {
+      "name": "Warning:",
+      "type": "textarea"
+    },
+    {
+      "enum": [
+        "Rotate Stock",
+        "Model",
+        "Tool"
+      ],
+      "name": "Viewpoint",
+      "type": "dropdown",
+      "value": "Model"
+    },
+    {
+      "name": "Show spindle direction",
+      "type": "checkbox",
+      "value": false
+    },
+    {
+      "name": "Opacity",
+      "type": "rangecommandintinput"
+    },
+    {
+      "expression": "0.00 mm",
+      "name": "X position",
+      "type": "value",
+      "value": 0
+    },
+    {
+      "expression": "0.00 mm",
+      "name": "Y position",
+      "type": "value",
+      "value": 0
+    },
+    {
+      "expression": "15.00 mm",
+      "name": "Z position",
+      "type": "value",
+      "value": 1.5
+    },
+    {
+      "name": "Spindle speed",
+      "readOnly": true,
+      "type": "string",
+      "value": "5000 rpm CW"
+    },
+    {
+      "name": "Feedrate",
+      "readOnly": true,
+      "type": "string",
+      "value": "Rapid"
+    },
+    {
+      "name": "Movement",
+      "readOnly": true,
+      "type": "string",
+      "value": ""
+    },
+    {
+      "name": "Description",
+      "readOnly": true,
+      "type": "string",
+      "value": "Native bare-form-mill"
+    },
+    {
+      "name": "Type",
+      "readOnly": true,
+      "type": "string",
+      "value": "Trace"
+    },
+    {
+      "name": "Tool",
+      "readOnly": true,
+      "type": "string",
+      "value": "#12 - \u00d840mm form (Form Mill)"
+    },
+    {
+      "name": "Work offset",
+      "readOnly": true,
+      "type": "string",
+      "value": "#0"
+    },
+    {
+      "name": "Setup",
+      "readOnly": true,
+      "type": "string",
+      "value": "Geometry reference only"
+    },
+    {
+      "name": "Time",
+      "readOnly": true,
+      "type": "string",
+      "value": "0:00:03 (100.0%) New tool"
+    },
+    {
+      "name": "Collisions",
+      "readOnly": true,
+      "tooltip": "Specifies the number of detected collisions. Depending on the toolpath being simulated is can take quite some time before the entire toolpath has been processed. As collisions are detected this will continuously be presented in the position bar at the bottom of the window. Collisions include rapid through stock and shaft and holder touching unmachined stock. Note that problems like exceeding allowed stepover and stepdowns for tools cannot be detected.",
+      "type": "string",
+      "value": "None"
+    },
+    {
+      "name": "Volume",
+      "readOnly": true,
+      "type": "string",
+      "value": "0 mm^3 (0.0%)"
+    },
+    {
+      "name": "Start volume",
+      "readOnly": true,
+      "type": "string",
+      "value": "2.4 cm^3"
+    },
+    {
+      "name": "Machining time",
+      "readOnly": true,
+      "type": "string",
+      "value": "0:00:03"
+    },
+    {
+      "expression": "0.052 m",
+      "name": "Machining distance",
+      "type": "value",
+      "value": 5.2
+    },
+    {
+      "name": "Operations",
+      "readOnly": true,
+      "type": "string",
+      "value": "1"
+    },
+    {
+      "name": "Tool changes",
+      "readOnly": true,
+      "type": "string",
+      "value": "0"
+    }
+  ],
+  "tooltip": "Simulates the movement of the tool along toolpaths, visualizes the change in stock material, and highlights collisions between tool and stock. The simulation does not use information from the machine or post processor and is therefore less accurate. If you want a more accurate representation, ensure the setup has a simulation-ready machine selected and use Simulate with Machine."
+}

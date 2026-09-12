@@ -1,0 +1,753 @@
+{
+  "schema": 1,
+  "fusionVersion": "2705.1.15",
+  "source": "Fusion-generated Trace operations. JSON-only post records coordinates; no machine commands. Post SVG is a surrogate cylinder, not a form-shape oracle.",
+  "referenceStockTopZMm": 6,
+  "referenceTraceZMm": 0,
+  "cases": [
+    {
+      "id": "form-offset-zero",
+      "requestedTipOffset": 0,
+      "raw": {
+        "BMC": "unspecified",
+        "GRADE": "Mill Generic",
+        "description": "Form Mill",
+        "geometry": {
+          "CSP": false,
+          "DC": 40,
+          "HAND": true,
+          "LB": 179.598,
+          "LCF": 179.598,
+          "NOF": 1,
+          "NT": 1,
+          "OAL": 179.598,
+          "RE": 0,
+          "SFDM": 40,
+          "TA": 0,
+          "TP": 0,
+          "assemblyGaugeLength": 179.598,
+          "profile": [
+            {
+              "end": [
+                0,
+                0
+              ]
+            },
+            {
+              "end": [
+                20,
+                0
+              ]
+            },
+            {
+              "end": [
+                20,
+                3.79875
+              ]
+            },
+            {
+              "arc": true,
+              "ccw": false,
+              "center": [
+                26,
+                3.79875
+              ],
+              "end": [
+                23.9479,
+                9.43691
+              ]
+            },
+            {
+              "end": [
+                60.4068,
+                22.7069
+              ]
+            },
+            {
+              "end": [
+                23.9479,
+                35.9768
+              ]
+            },
+            {
+              "arc": true,
+              "ccw": false,
+              "center": [
+                26,
+                41.615
+              ],
+              "end": [
+                20,
+                41.615
+              ]
+            },
+            {
+              "end": [
+                20,
+                63.7988
+              ]
+            },
+            {
+              "arc": true,
+              "ccw": false,
+              "center": [
+                26,
+                63.7988
+              ],
+              "end": [
+                23.9479,
+                69.4369
+              ]
+            },
+            {
+              "end": [
+                60.4068,
+                82.7069
+              ]
+            },
+            {
+              "end": [
+                29.5218,
+                93.9481
+              ]
+            },
+            {
+              "arc": true,
+              "ccw": false,
+              "center": [
+                30.8898,
+                97.7069
+              ],
+              "end": [
+                29.5218,
+                101.466
+              ]
+            },
+            {
+              "end": [
+                60.4068,
+                112.707
+              ]
+            },
+            {
+              "end": [
+                36.4446,
+                121.428
+              ]
+            },
+            {
+              "end": [
+                36.4446,
+                179.598
+              ]
+            },
+            {
+              "end": [
+                0,
+                179.598
+              ]
+            }
+          ],
+          "shoulder-length": 179.598,
+          "thread-profile-angle": 60,
+          "tip-diameter": 40,
+          "tip-length": 0,
+          "tip-offset": 0
+        },
+        "guid": "34f5ac01-8d31-4a33-bb92-6b8583f24e9e",
+        "post-process": {
+          "break-control": false,
+          "comment": "",
+          "diameter-offset": 12,
+          "length-offset": 12,
+          "live": true,
+          "manual-tool-change": false,
+          "number": 12,
+          "turret": 0
+        },
+        "product-id": "",
+        "product-link": "",
+        "start-values": {
+          "presets": [
+            {
+              "description": "",
+              "f_n": 0.0666666666666666,
+              "f_z": 0.2,
+              "guid": "3948a57a-5ebd-4b07-ba12-3360cfcec804",
+              "material": {
+                "category": "all",
+                "query": "",
+                "use-hardness": false
+              },
+              "n": 5000,
+              "n_ramp": 5000,
+              "name": "Default preset",
+              "ramp-angle": 2,
+              "tool-coolant": "flood",
+              "use-stepdown": false,
+              "use-stepover": false,
+              "v_c": 628.3185307179585,
+              "v_f": 1000,
+              "v_f_leadIn": 1000,
+              "v_f_leadOut": 1000,
+              "v_f_plunge": 333.333333333333,
+              "v_f_ramp": 333.333333333333,
+              "v_f_transition": 1000
+            }
+          ]
+        },
+        "type": "form mill",
+        "unit": "millimeters",
+        "vendor": ""
+      },
+      "postTipOffset": 0,
+      "moves": [
+        {
+          "kind": "linear",
+          "xyz": [
+            0,
+            0,
+            15
+          ],
+          "feed": 1000
+        },
+        {
+          "kind": "linear",
+          "xyz": [
+            0,
+            0,
+            4
+          ],
+          "feed": 1000
+        },
+        {
+          "kind": "linear",
+          "xyz": [
+            0,
+            0,
+            -6
+          ],
+          "feed": 333.3333435058594
+        },
+        {
+          "kind": "linear",
+          "xyz": [
+            10,
+            0,
+            -6
+          ],
+          "feed": 1000
+        },
+        {
+          "kind": "linear",
+          "xyz": [
+            10,
+            0,
+            4
+          ],
+          "feed": 1000
+        },
+        {
+          "kind": "linear",
+          "xyz": [
+            10,
+            0,
+            15
+          ],
+          "feed": 1000
+        }
+      ],
+      "postCutterSVG": "M0 0 L20 0 L20 179.598 L20 179.598 L20 179.598 L0 179.598 L-20 179.598 L-20 179.598 L-20 179.598 L-20 0 L-0 0 Z"
+    },
+    {
+      "id": "form-offset-plus10",
+      "requestedTipOffset": 10,
+      "raw": {
+        "BMC": "unspecified",
+        "GRADE": "Mill Generic",
+        "description": "Form Mill",
+        "geometry": {
+          "CSP": false,
+          "DC": 40,
+          "HAND": true,
+          "LB": 179.598,
+          "LCF": 179.598,
+          "NOF": 1,
+          "NT": 1,
+          "OAL": 179.598,
+          "RE": 0,
+          "SFDM": 40,
+          "TA": 0,
+          "TP": 0,
+          "assemblyGaugeLength": 179.598,
+          "profile": [
+            {
+              "end": [
+                0,
+                0
+              ]
+            },
+            {
+              "end": [
+                20,
+                0
+              ]
+            },
+            {
+              "end": [
+                20,
+                3.79875
+              ]
+            },
+            {
+              "arc": true,
+              "ccw": false,
+              "center": [
+                26,
+                3.79875
+              ],
+              "end": [
+                23.9479,
+                9.43691
+              ]
+            },
+            {
+              "end": [
+                60.4068,
+                22.7069
+              ]
+            },
+            {
+              "end": [
+                23.9479,
+                35.9768
+              ]
+            },
+            {
+              "arc": true,
+              "ccw": false,
+              "center": [
+                26,
+                41.615
+              ],
+              "end": [
+                20,
+                41.615
+              ]
+            },
+            {
+              "end": [
+                20,
+                63.7988
+              ]
+            },
+            {
+              "arc": true,
+              "ccw": false,
+              "center": [
+                26,
+                63.7988
+              ],
+              "end": [
+                23.9479,
+                69.4369
+              ]
+            },
+            {
+              "end": [
+                60.4068,
+                82.7069
+              ]
+            },
+            {
+              "end": [
+                29.5218,
+                93.9481
+              ]
+            },
+            {
+              "arc": true,
+              "ccw": false,
+              "center": [
+                30.8898,
+                97.7069
+              ],
+              "end": [
+                29.5218,
+                101.466
+              ]
+            },
+            {
+              "end": [
+                60.4068,
+                112.707
+              ]
+            },
+            {
+              "end": [
+                36.4446,
+                121.428
+              ]
+            },
+            {
+              "end": [
+                36.4446,
+                179.598
+              ]
+            },
+            {
+              "end": [
+                0,
+                179.598
+              ]
+            }
+          ],
+          "shoulder-length": 179.598,
+          "thread-profile-angle": 60,
+          "tip-diameter": 40,
+          "tip-length": 0,
+          "tip-offset": 10
+        },
+        "guid": "34f5ac01-8d31-4a33-bb92-6b8583f24e9e",
+        "post-process": {
+          "break-control": false,
+          "comment": "",
+          "diameter-offset": 58,
+          "length-offset": 58,
+          "live": true,
+          "manual-tool-change": false,
+          "number": 58,
+          "turret": 0
+        },
+        "product-id": "",
+        "product-link": "",
+        "start-values": {
+          "presets": [
+            {
+              "description": "",
+              "f_n": 0.0666666666666666,
+              "f_z": 0.2,
+              "guid": "3948a57a-5ebd-4b07-ba12-3360cfcec804",
+              "material": {
+                "category": "all",
+                "query": "",
+                "use-hardness": false
+              },
+              "n": 5000,
+              "n_ramp": 5000,
+              "name": "Default preset",
+              "ramp-angle": 2,
+              "tool-coolant": "flood",
+              "use-stepdown": false,
+              "use-stepover": false,
+              "v_c": 628.3185307179585,
+              "v_f": 1000,
+              "v_f_leadIn": 1000,
+              "v_f_leadOut": 1000,
+              "v_f_plunge": 333.333333333333,
+              "v_f_ramp": 333.333333333333,
+              "v_f_transition": 1000
+            }
+          ]
+        },
+        "type": "form mill",
+        "unit": "millimeters",
+        "vendor": ""
+      },
+      "postTipOffset": 10,
+      "moves": [
+        {
+          "kind": "linear",
+          "xyz": [
+            0,
+            0,
+            15
+          ],
+          "feed": 1000
+        },
+        {
+          "kind": "linear",
+          "xyz": [
+            0,
+            0,
+            4
+          ],
+          "feed": 1000
+        },
+        {
+          "kind": "linear",
+          "xyz": [
+            0,
+            0,
+            -16
+          ],
+          "feed": 333.3333435058594
+        },
+        {
+          "kind": "linear",
+          "xyz": [
+            10,
+            0,
+            -16
+          ],
+          "feed": 1000
+        },
+        {
+          "kind": "linear",
+          "xyz": [
+            10,
+            0,
+            4
+          ],
+          "feed": 1000
+        },
+        {
+          "kind": "linear",
+          "xyz": [
+            10,
+            0,
+            15
+          ],
+          "feed": 1000
+        }
+      ],
+      "postCutterSVG": "M0 0 L20 0 L20 179.598 L20 179.598 L20 179.598 L0 179.598 L-20 179.598 L-20 179.598 L-20 179.598 L-20 0 L-0 0 Z"
+    },
+    {
+      "id": "form-offset-minus10",
+      "requestedTipOffset": -10,
+      "raw": {
+        "BMC": "unspecified",
+        "GRADE": "Mill Generic",
+        "description": "Form Mill",
+        "geometry": {
+          "CSP": false,
+          "DC": 40,
+          "HAND": true,
+          "LB": 179.598,
+          "LCF": 179.598,
+          "NOF": 1,
+          "NT": 1,
+          "OAL": 179.598,
+          "RE": 0,
+          "SFDM": 40,
+          "TA": 0,
+          "TP": 0,
+          "assemblyGaugeLength": 179.598,
+          "profile": [
+            {
+              "end": [
+                0,
+                0
+              ]
+            },
+            {
+              "end": [
+                20,
+                0
+              ]
+            },
+            {
+              "end": [
+                20,
+                3.79875
+              ]
+            },
+            {
+              "arc": true,
+              "ccw": false,
+              "center": [
+                26,
+                3.79875
+              ],
+              "end": [
+                23.9479,
+                9.43691
+              ]
+            },
+            {
+              "end": [
+                60.4068,
+                22.7069
+              ]
+            },
+            {
+              "end": [
+                23.9479,
+                35.9768
+              ]
+            },
+            {
+              "arc": true,
+              "ccw": false,
+              "center": [
+                26,
+                41.615
+              ],
+              "end": [
+                20,
+                41.615
+              ]
+            },
+            {
+              "end": [
+                20,
+                63.7988
+              ]
+            },
+            {
+              "arc": true,
+              "ccw": false,
+              "center": [
+                26,
+                63.7988
+              ],
+              "end": [
+                23.9479,
+                69.4369
+              ]
+            },
+            {
+              "end": [
+                60.4068,
+                82.7069
+              ]
+            },
+            {
+              "end": [
+                29.5218,
+                93.9481
+              ]
+            },
+            {
+              "arc": true,
+              "ccw": false,
+              "center": [
+                30.8898,
+                97.7069
+              ],
+              "end": [
+                29.5218,
+                101.466
+              ]
+            },
+            {
+              "end": [
+                60.4068,
+                112.707
+              ]
+            },
+            {
+              "end": [
+                36.4446,
+                121.428
+              ]
+            },
+            {
+              "end": [
+                36.4446,
+                179.598
+              ]
+            },
+            {
+              "end": [
+                0,
+                179.598
+              ]
+            }
+          ],
+          "shoulder-length": 179.598,
+          "thread-profile-angle": 60,
+          "tip-diameter": 40,
+          "tip-length": 0,
+          "tip-offset": -10
+        },
+        "guid": "34f5ac01-8d31-4a33-bb92-6b8583f24e9e",
+        "post-process": {
+          "break-control": false,
+          "comment": "",
+          "diameter-offset": 59,
+          "length-offset": 59,
+          "live": true,
+          "manual-tool-change": false,
+          "number": 59,
+          "turret": 0
+        },
+        "product-id": "",
+        "product-link": "",
+        "start-values": {
+          "presets": [
+            {
+              "description": "",
+              "f_n": 0.0666666666666666,
+              "f_z": 0.2,
+              "guid": "3948a57a-5ebd-4b07-ba12-3360cfcec804",
+              "material": {
+                "category": "all",
+                "query": "",
+                "use-hardness": false
+              },
+              "n": 5000,
+              "n_ramp": 5000,
+              "name": "Default preset",
+              "ramp-angle": 2,
+              "tool-coolant": "flood",
+              "use-stepdown": false,
+              "use-stepover": false,
+              "v_c": 628.3185307179585,
+              "v_f": 1000,
+              "v_f_leadIn": 1000,
+              "v_f_leadOut": 1000,
+              "v_f_plunge": 333.333333333333,
+              "v_f_ramp": 333.333333333333,
+              "v_f_transition": 1000
+            }
+          ]
+        },
+        "type": "form mill",
+        "unit": "millimeters",
+        "vendor": ""
+      },
+      "postTipOffset": -10,
+      "moves": [
+        {
+          "kind": "linear",
+          "xyz": [
+            0,
+            0,
+            15
+          ],
+          "feed": 1000
+        },
+        {
+          "kind": "linear",
+          "xyz": [
+            0,
+            0,
+            4
+          ],
+          "feed": 1000
+        },
+        {
+          "kind": "linear",
+          "xyz": [
+            10,
+            0,
+            4
+          ],
+          "feed": 1000
+        },
+        {
+          "kind": "linear",
+          "xyz": [
+            10,
+            0,
+            15
+          ],
+          "feed": 1000
+        }
+      ],
+      "postCutterSVG": "M0 0 L20 0 L20 179.598 L20 179.598 L20 179.598 L0 179.598 L-20 179.598 L-20 179.598 L-20 179.598 L-20 0 L-0 0 Z"
+    }
+  ]
+}

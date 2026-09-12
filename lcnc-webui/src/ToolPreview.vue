@@ -1,29 +1,23 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onBeforeUnmount, toRefs } from "vue";
 import * as THREE from "three";
-import { buildToolProfile, splitProfileAt, buildToolGeometry, type ToolMeta } from "./toolGeometry";
+import { buildToolParts, buildToolGeometry, buildHolderGeometry, type ToolMeta } from "./toolGeometry";
+import { nominalHolderBase } from "./toolHolder";
 
 const props = withDefaults(
   defineProps<{
     diameter: number;
     length: number;
-    fluteLength: number;
-    shaftDiameter?: number;
-    toolType?: string;
-    cornerRadius?: number;
-    taperAngle?: number;
-    pointAngle?: number;
-    tipDiameter?: number;
-    bodyLength?: number;
+    meta?: ToolMeta | null;
+    unitsPerMm?: number;
+    showNominalHolder?: boolean;
     width?: number;
     height?: number;
   }>(),
-  { width: 80, height: 120 }
+  { width: 80, height: 120, unitsPerMm: 1 }
 );
 
-const { diameter, length, fluteLength, shaftDiameter, toolType,
-        cornerRadius, taperAngle, pointAngle, tipDiameter, bodyLength,
-        width, height } = toRefs(props);
+const { diameter, length, meta, width, height, unitsPerMm, showNominalHolder } = toRefs(props);
 
 const container = ref<HTMLDivElement | null>(null);
 
@@ -99,33 +93,24 @@ function buildPreview() {
 
   const group = new THREE.Group();
 
-  const meta: ToolMeta = {
-    type: toolType?.value ?? "other",
-    oal: length.value,
-    flute_length: fluteLength.value,
-    body_length: bodyLength?.value ?? undefined,
-    shaft_diameter: shaftDiameter?.value ?? undefined,
-    corner_radius: cornerRadius?.value ?? undefined,
-    taper_angle: taperAngle?.value ?? undefined,
-    point_angle: pointAngle?.value ?? undefined,
-    tip_diameter: tipDiameter?.value ?? undefined,
-  };
-
-  const { pts, fluteY } = buildToolProfile(diameter.value, length.value, meta);
-  const { cutter, shaft } = splitProfileAt(pts, fluteY);
-
-  const cutterMat = new THREE.MeshStandardMaterial({
-    color: cutterColor, metalness: 0.1, roughness: 0.5,
-  });
-  const shaftMat = new THREE.MeshStandardMaterial({
-    color: shaftColor, metalness: 0.1, roughness: 0.5,
-  });
+  const { cutter, shaft } = buildToolParts(diameter.value, length.value, meta.value ?? null, unitsPerMm.value);
 
   if (cutter.length >= 3) {
-    group.add(new THREE.Mesh(buildToolGeometry(cutter), cutterMat));
+    group.add(new THREE.Mesh(buildToolGeometry(cutter), new THREE.MeshStandardMaterial({
+      color: cutterColor, metalness: 0.1, roughness: 0.5,
+    })));
   }
   if (shaft.length >= 3) {
-    group.add(new THREE.Mesh(buildToolGeometry(shaft), shaftMat));
+    group.add(new THREE.Mesh(buildToolGeometry(shaft), new THREE.MeshStandardMaterial({
+      color: shaftColor, metalness: 0.1, roughness: 0.5,
+    })));
+  }
+  const holderBase = nominalHolderBase(meta.value);
+  if (showNominalHolder.value && holderBase !== null) {
+    const holder = buildHolderGeometry(meta.value!.holder_segments!, holderBase);
+    if (holder) group.add(new THREE.Mesh(holder, new THREE.MeshStandardMaterial({
+      color: 0x888888, metalness: 0.7, roughness: 0.3,
+    })));
   }
 
   scene.add(group);
@@ -155,12 +140,11 @@ onMounted(() => {
 onBeforeUnmount(dispose);
 
 watch(
-  [diameter, length, fluteLength, shaftDiameter, toolType,
-   cornerRadius, taperAngle, pointAngle, tipDiameter, bodyLength,
-   width, height],
+  [diameter, length, meta, width, height, unitsPerMm, showNominalHolder],
   () => {
     buildPreview();
-  }
+  },
+  { deep: true }
 );
 </script>
 

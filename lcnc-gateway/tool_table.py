@@ -20,9 +20,31 @@ _TOOL_FIELD_RE = re.compile(r"([XYZD])([+-]?[\d.]+)")
 _TOOL_META_FIELDS = (
     "type", "description", "flutes", "oal", "flute_length", "shoulder_length",
     "shoulder_diameter", "corner_radius", "body_length", "shaft_diameter",
+    "maximum_cutting_diameter", "upper_radius", "chamfer_width", "chamfer_angle",
+    "lower_radius", "profile_radius", "axial_distance",
     "taper_angle", "point_angle", "tip_diameter", "material", "holder", "holder_segments",
-    "assembly_gauge_length", "profile",
+    "assembly_gauge_length", "holder_gauge_length", "profile", "shaft_segments", "fusion_type",
+    "tapered_type", "thread_pitch", "thread_pitch_min", "thread_pitch_max",
+    "number_of_teeth", "thread_profile_angle", "thread_tip_type",
+    "thread_tip_width", "thread_tip_radius",
+    "tip_offset", "tip_length", "fusion_guid",
 )
+
+
+def tool_visual_metadata(meta: dict) -> dict:
+    """Geometry sent to the viewer; measured offsets remain in status/tool.tbl."""
+    return {k: meta[k] for k in (
+        "type", "fusion_type", "oal", "flute_length", "shoulder_length",
+        "shoulder_diameter", "body_length", "shaft_diameter", "shaft_segments",
+        "taper_angle", "point_angle", "tip_diameter", "corner_radius",
+        "maximum_cutting_diameter", "upper_radius", "chamfer_width", "chamfer_angle",
+        "lower_radius", "profile_radius", "axial_distance",
+        "holder_segments", "profile", "stl_file",
+        "tapered_type", "thread_pitch", "thread_pitch_min", "thread_pitch_max",
+        "number_of_teeth", "thread_profile_angle", "thread_tip_type",
+        "thread_tip_width", "thread_tip_radius",
+        "tip_offset", "tip_length",
+    ) if k in meta}
 
 
 def parse_tool_table(path: str) -> list:

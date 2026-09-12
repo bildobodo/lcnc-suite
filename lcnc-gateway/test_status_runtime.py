@@ -4,6 +4,7 @@ import os
 import tempfile
 import unittest
 from unittest import mock
+from types import SimpleNamespace
 
 import linuxcnc
 
@@ -192,6 +193,21 @@ class TestPollStatus(unittest.TestCase):
                   "probe_input", "eoffset_z", "eoffset_enabled",
                   "comp_method", "comp_grid_version", "spindle_speed_actual"):
             self.assertIsNone(getattr(p, f), f)
+
+    def test_measured_length_and_active_offset_remain_separate_from_fusion_oal(self):
+        tool = SimpleNamespace(id=3, diameter=10.0, zoffset=-42.3)
+        stat = self._stat(tool_table=(tool,), tool_offset=(0.0, 0.0, 41.9))
+        rt = _runtime(stat=stat, library={"3": {
+            "oal": 70.0, "body_length": 70.0, "assembly_gauge_length": 100.0,
+        }})
+        first = rt.poll_status()
+        self.assertEqual(first.tool_length, 42.3)
+        self.assertEqual(first.tool_offset, [0.0, 0.0, 41.9])
+        tool.zoffset = -44.1
+        stat.tool_offset = (0.0, 0.0, -44.1)
+        second = rt.poll_status()
+        self.assertEqual(second.tool_length, 44.1)
+        self.assertEqual(second.tool_offset, [0.0, 0.0, -44.1])
 
     def test_spindle_actual_scaled_by_fb_scale(self):
         rt = _runtime(stat=self._stat(), snapshot={"spindle_speed_in": 100.0},
