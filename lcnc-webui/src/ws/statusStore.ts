@@ -11,7 +11,7 @@
 // lcncWs or its ws/ peers. All reassigned scalars (rAF buffer, RTT anchors,
 // dedupe sentinels) are private by design (A1 rule) — cross-module access is
 // function-call only (noteHeartbeatSent/notePong/...), never shared state.
-import { ref, shallowRef } from "vue";
+import { computed, ref, shallowRef } from "vue";
 import { OPERATOR_DISPLAY, OPERATOR_ERROR } from "../lcnc";
 
 export interface LcncMessage {
@@ -100,6 +100,17 @@ function _syncPreviewRefreshTimer(): void {
     previewRefreshElapsedMs.value = 0;
   }
 }
+
+// Elapsed over expected as a bar width, 0–97 %: the bar never completes on
+// its own — only the publish ends it (an honest countdown, never a fake
+// finish); 0 without an expectation. ONE derivation for the status banner
+// and the viewer HUD (operator, 2026-09-12: the banner drew a bar while the
+// HUD printed seconds — two units for the same parse).
+export const previewRefreshPct = computed(() => {
+  const e = previewRefresh.value?.expected_ms;
+  if (!e) return 0;
+  return Math.min(97, (previewRefreshElapsedMs.value / e) * 100);
+});
 
 /** Operator wording for a re-parse reason (the gateway's edge names). Pure. */
 export function previewRefreshLabel(reason: string | null | undefined): string {

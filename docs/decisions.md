@@ -4362,3 +4362,54 @@ the 0.01 ceiling — every move refused; the records name 3 lines), twp_g683_til
 flags already reach the tab on the next reparse — the worker is a fresh subprocess
 per parse and the keys pass through); heavy gates at the stop (unchanged list).
 
+
+## 2026-09-12 (late) — One shape for "in progress"; banners say the state and one verb; HUD chips stop being buttons
+
+**Operator walk-through, second pass.** Five observations on the status
+surfaces, all traced to code: (1) the banner texts were long by design
+("every banner carries its recovery path") and rendered uppercase bold, so a
+re-parse line — reason, full file path, elapsed/expected, a twelve-word tail —
+ran past any window; (2) the re-parse bar sat wherever the text ended (the text
+span did not grow, and the elapsed readout changed width every second); (3)
+"the messages button vanished briefly": `.bannerContent` was a flex item with
+no `min-width: 0`, so a long single-line banner set its minimum width to the
+full text and pushed the actions row (messages, Refresh, Home All, Abort) past
+the right edge until the text shortened — a real layout bug, one line; (4)
+progress was shown in three units: a bar in the banner, "3 s of ~12 s" in the
+HUD, "45 %" inside the scrub bar's cancel button; (5) the collision sweep had no
+re-run in any finished state — a cancel left nothing behind (no chip, no
+button), and the only manual Check lived in the declined state.
+
+**Decisions.** ONE progress shape: the global `.progressTrack`, fixed width, no
+inline numbers (they ride the tooltip) — in the banner (pinned to the right
+end of the content; the text takes the slack), in the HUD (a row under the
+re-parse chip, like the load bar), and in the scrub bar (next to a separate ×
+cancel; the bar is not a button). One fraction for the re-parse
+(`previewRefreshPct` in statusStore, exported through the barrel) and one
+wording for its times (`fmtProgressTimes`, format.ts: "00:03 of ~00:12").
+Banners compact to the state plus its one recovery verb, the explanation in
+the `title` (safety-chain, reader-stale, beyond-limit, preview-load, parse
+error, refusal, re-parse with the basename only); the safety-trip and
+config-fallback banners are unchanged — their text IS the action sequence.
+The sweep offers ↻ (manual budget) in every finished state — clear, clashes,
+partial coverage, declined, and a new "check cancelled" chip that only an
+operator's × sets (parent-driven cancels are each followed by their own
+re-run). The three underlined HUD chips (schema "Reparse", older offsets
+"Refresh", tool-length "Reparse") lose the click: the gateway now owns every
+re-parse decision — schema once per file+mtime, offset and tool-length drift
+when idle and settled — and the clicks went through the idle-only `setup`
+gate, i.e. they could only fire in the window where an edge was about to do
+the same; the one case the edge gives up on (a schema mismatch that survived
+its retry = half-upgraded install) is not fixed by clicking again, and the
+chip now says "restart the suite". The `reparse` emit and App's listener are
+gone; `reparse_preview` stays in the protocol (nothing operator-facing sends
+it). Same principle as the evening entry: one source decides, the client
+reports.
+
+**Verification.** statusStore 30 (+1: pct 50 % at half, capped 97, 0 without
+an expectation, 0 after publish), format.test.ts (new, 2), lcncWs.exports (the
+pinned surface gains `previewRefreshPct`); tsc probe over the touched .ts
+clean; Vite serves App / ThreeViewer / ScrubBar; no browser errors after the
+HMR. Live look owed from the operator: a touch-off (bar at the right end of
+the banner, never moving; same bar in the HUD; actions row never pushed out),
+a sweep cancel (chip + ↻), and the HUD chips reading as text.

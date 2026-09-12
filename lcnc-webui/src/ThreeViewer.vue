@@ -10,10 +10,10 @@ import {
   failedParts, loadMachineAssets, getCachedGeometry, getToolMeta, setToolMeta, machineReady,
 } from "./viewer/machineAssetCache";
 
-import { viewerInit, viewerGcode, status, emitTelemetry, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, type ViewerInit, type ViewerGcode } from "./lcncWs";
+import { viewerInit, viewerGcode, status, emitTelemetry, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, type ViewerInit, type ViewerGcode } from "./lcncWs";
 import { loadViewerDefaults, loadCameraDefaults, saveCameraDefaults, ALL_LAYERS, settingsVersion, type Vec3, type Layer } from "./defaults";
 import { INTERP_IDLE } from "./lcnc";
-import { fmtCoord, fmtRpm } from "./format";
+import { fmtCoord, fmtProgressTimes, fmtRpm } from "./format";
 import { useAxes } from "./useAxes";
 import { recordApply, recordRafTick, recordRender, setViewerPerfContext, setViewerPerfGl } from "./viewerPerf";
 import { disposeObject } from "./viewer/disposal";
@@ -145,9 +145,6 @@ const emit = defineEmits<{
   // Source lines with collision hits after a sweep (null = no/stale results,
   // [] = checked clean) — App forwards to GcodePanel for line markers.
   (e: "collision-lines", lines: CollisionLineMark[] | null): void;
-  // The preview was parsed against offsets that are no longer live (touch-off
-  // after load) — App re-parses it against current ones.
-  (e: "reparse"): void;
 }>();
 
 // HUD data (read from status for template)
@@ -245,9 +242,8 @@ const previewTloStale = computed(() =>
 // Preview parsed against offsets that are no longer live — a touch-off after
 // the file was loaded. Per FIXTURE on an epoch-aware payload (previewWcsStaleFor):
 // the old active-vs-active comparison lit during every TWP run because the
-// program itself switches G54→G59 at G53.x. `reparse_preview` makes them
-// agree again — but it is idle-gated, so the chip is not offered as an action
-// while the interpreter is busy.
+// program itself switches G54→G59 at G53.x. The gateway's WCS-offset drift
+// edge re-parses once idle and settled; the chip only reports the window.
 const previewWcsStale = computed(() => {
   const g = viewerGcode.value;
   const s = vst.value;
@@ -256,9 +252,6 @@ const previewWcsStale = computed(() => {
     g.wcsEvents, g.wcs_basis, s.wcs_table as WcsTableRow[] | undefined,
     { g5x: s.g5x_offset, g92: s.g92_offset, rotationDeg: s.rotation_xy });
 });
-const interpBusy = computed(() =>
-  (vst.value?.interp_state ?? INTERP_IDLE) !== INTERP_IDLE);
-
 // ---------- DOM ----------
 const host = ref<HTMLDivElement | null>(null);
 const hudVisible = ref(true);
@@ -3539,17 +3532,25 @@ defineExpose({
       <div v-if="foreignWcs.length" class="hudWarn">Program cuts in {{ foreignWcs.join(', ') }} — {{ props.g5xLabel }} active</div>
       <div v-if="rewrittenWcs.length" class="hudWarn">Program writes {{ rewrittenWcs.join(', ') }} — its preview ignores live edits there</div>
       <div v-if="kinsEndWarn" class="hudWarn" :title="kinsEndWarn.title">{{ kinsEndWarn.text }}</div>
-      <div v-if="previewSchemaStale" class="hudWarn hudAction"
-        :title="`Payload format ${previewSchemaStale.got ?? 'unstamped (older gateway)'}; this UI expects ${EXPECTED_PREVIEW_SCHEMA}. Reparse rebuilds it with the installed code.`"
-        @click="emit('reparse')">Preview from a different suite version — Reparse</div>
-      <div v-if="previewRefresh" class="hudWarn"
-        :title="'The gateway is re-parsing the program (' + previewRefresh.reason + '). The drawn path, soft-limit marks and simulation are stale until it lands.'">Preview re-parsing after {{ previewRefreshLabel(previewRefresh.reason) }} · {{ Math.floor(previewRefreshElapsedMs / 1000) }} s{{ previewRefresh.expected_ms ? ' of ~' + Math.max(1, Math.round(previewRefresh.expected_ms / 1000)) + ' s' : '' }}</div>
-      <div v-else-if="previewWcsStale" class="hudWarn" :class="{ hudAction: !interpBusy }"
-        :title="interpBusy ? 'A fixture this program uses was touched off after it was parsed — it re-parses when the run ends' : 'A fixture this program uses was touched off after it was parsed — click to re-parse'"
-        @click="!interpBusy && emit('reparse')">Preview uses older offsets{{ interpBusy ? '' : ' — Refresh' }}</div>
-      <div v-if="previewTloStale" class="hudWarn hudAction"
-        :title="`Parsed with T${previewTloStale.tool} length ${previewTloStale.parsed.toFixed(3)}, table now ${previewTloStale.live.toFixed(3)} — line limit flags are stale`"
-        @click="emit('reparse')">Preview parsed with a different T{{ previewTloStale.tool }} length — Reparse</div>
+      <!-- Stale-preview chips are REPORTS, not actions (operator, 2026-09-12:
+           "what still clickable warnings do we have? is it needed?"). The
+           gateway owns every re-parse decision — the schema edge once per
+           file, the offset / tool-length drift edges when idle — so a click
+           here could only race an edge about to fire, or repeat a schema
+           parse that already failed. One source decides; the HUD says so. -->
+      <div v-if="previewSchemaStale" class="hudWarn"
+        :title="`Payload format ${previewSchemaStale.got ?? 'unstamped (older gateway)'}; this UI expects ${EXPECTED_PREVIEW_SCHEMA}. The gateway re-parses once with the installed code; if this stays, the install is half-upgraded — restart the suite.`">Preview from a different suite version — re-parsing; if it stays, restart the suite</div>
+      <!-- Same bar as the status banner (one fraction, previewRefreshPct):
+           a fixed-width track under the chip, numbers in the tooltip. -->
+      <template v-if="previewRefresh">
+        <div class="hudWarn"
+          :title="'The gateway is re-parsing the program (' + previewRefresh.reason + ') — ' + fmtProgressTimes(previewRefreshElapsedMs, previewRefresh.expected_ms) + '. The drawn path, soft-limit marks and simulation are stale until it lands.'">Preview re-parsing · {{ previewRefreshLabel(previewRefresh.reason) }}</div>
+        <div class="progressTrack" :title="fmtProgressTimes(previewRefreshElapsedMs, previewRefresh.expected_ms)"><div class="progressFill" :style="{ width: previewRefreshPct + '%' }"></div></div>
+      </template>
+      <div v-else-if="previewWcsStale" class="hudWarn"
+        title="A fixture this program uses was touched off after it was parsed — the gateway re-parses once the interpreter is idle and the offsets have settled">Preview uses older offsets — re-parses when idle</div>
+      <div v-if="previewTloStale" class="hudWarn"
+        :title="`Parsed with T${previewTloStale.tool} length ${previewTloStale.parsed.toFixed(3)}, table now ${previewTloStale.live.toFixed(3)} — line limit flags are stale until the gateway re-parses (idle)`">Preview parsed with a different T{{ previewTloStale.tool }} length — re-parses when idle</div>
       <div v-if="toolpathOverflow" class="hudWarn"
         title="The per-line soft-limit validator flagged these moves — the same source as the marked lines in the program panel and the scrub bar's ◀ N limits ▶, which jumps between them (simulation mode, machine off). Validated against the offsets at parse time; a touch-off re-parses automatically.">{{ toolpathOverflowCount }} soft-limit violation{{ toolpathOverflowCount === 1 ? '' : 's' }}</div>
     </div>
@@ -3761,12 +3762,11 @@ defineExpose({
   white-space: normal;
 }
 
-/* A HUD warning that is also the fix for what it warns about. The HUD is
-   pointer-events:none so it never eats viewer drags — re-enable for this one. */
-.hudWarn.hudAction {
-  pointer-events: auto;
-  cursor: pointer;
-  text-decoration: underline;
+/* The re-parse bar rides the card as a row. The global track is flex:1 for
+   its row-layout home (GcodePanel); in this column that would zero its
+   height — pin it to its own height, stretched to the card's width. */
+.hudCard > .progressTrack {
+  flex: none;
 }
 
 </style>

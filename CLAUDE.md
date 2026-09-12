@@ -804,10 +804,16 @@ keeps itself current with NO manual trigger: auto-runs on program load
 (base track — marks appear before sim is entered), on sim entry (entry
 track, fresh position = fresh baseline), and on WCS/tool changes while
 idle (stale results clear + re-run, debounced; in sim ScrubBar re-checks
-with the rebuilt entry track). The only button is cancel-with-progress
-while a sweep runs — plus, when this program's AUTO sweep hit its budget,
-a "check declined — N % in 60 s" chip with a Check button that runs the
-MANUAL budget (300 s): a truncated auto sweep is not re-run on every
+with the rebuilt entry track). While a sweep runs the bar shows a
+fixed-width progress track (the SAME global track the status banner and
+the viewer HUD draw for a re-parse — one shape for "in progress", the
+numbers in the tooltip) next to a × cancel button; every FINISHED state
+(clear, N clashes, partial coverage, "check cancelled", "check declined")
+carries a ↻ re-run button with the MANUAL budget (300 s). An operator
+cancel leaves the "check cancelled" chip (parent-driven cancels — program
+change, touch-off, sim entry — are followed by their own re-run and never
+show it). "check declined — N % in 60 s" appears when this program's AUTO
+sweep hit its budget: a truncated auto sweep is not re-run on every
 touch-off (it would truncate again and own the machine for another
 budget); a new program resets it.
 
@@ -1011,6 +1017,7 @@ The `tool_touch_off.ngc` subroutine reads parameters from the LinuxCNC var file 
 - Always use `with open()` for file I/O in Python — bare `open()` in loops leaks handles until GC
 - `.get()` is a dict method — calling it on a list silently raises AttributeError. Use `[index]` for list access.
 - Read the actual CSS before speculating about visual bugs — the override might be setting the value to match the background, not just being "too subtle"
+- A flex item that holds single-line (`nowrap`) text needs `min-width: 0`, or its automatic minimum width is the full text and it pushes its siblings out of the container — the status banner's action buttons (messages, Refresh, Home All, Abort) vanished behind the right edge whenever a long banner showed. Compact banner texts to the state plus one recovery verb; the explanation goes in the `title`
 - Use direct child selectors (`.grid > label`) not descendant selectors (`.grid label`) when styling grid/container labels — descendant selectors mute nested form controls (radios, checkboxes) inside those containers
 - When adding server-synced settings sections, update `_VALID_SETTINGS_SECTIONS` in `gateway.py` — the gateway rejects unknown sections with "Unknown settings section" error
 - Don't hack around permission issues in the backend — use the proper frontend permission gate so the UI reflects machine state (dimming). The gate IS the fix, not a workaround.

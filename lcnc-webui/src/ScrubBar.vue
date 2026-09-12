@@ -572,10 +572,23 @@ const sweepToolTitle = computed(() => {
     ? "The collision sweep checks a 6 mm × 60 mm stub cylinder because no tool is loaded — load the program's tool for a real check (the program's T sequence is not consulted yet)"
     : "The collision sweep checks the LOADED tool's table dimensions for the whole program — the program's own tool changes are not consulted yet";
 });
-const checkLabel = computed(() => {
-  if (props.collisionBusy) return `${Math.round(props.collisionProgress * 100)}%`;
-  return "Check";
-});
+// Sweep progress is the same fixed-width bar the status banner and the HUD
+// draw for a re-parse (operator, 2026-09-12: a bar, seconds and a percentage
+// for "in progress" read as three different things). The number lives in
+// the tooltip; the bar is not a button — × next to it cancels.
+const sweepPct = computed(() => Math.round(props.collisionProgress * 100));
+const sweepTitle = computed(() => `Collision check running — ${sweepPct.value} % of the program swept`);
+// An operator cancel leaves a trace and a way back (the "check cancelled"
+// chip with the re-run button). Parent-driven cancels — program change,
+// touch-off, sim entry — are each followed by their own re-run and never
+// set it; the next sweep start or a new track clears it.
+const cancelledByOperator = ref(false);
+function cancelSweep() {
+  cancelledByOperator.value = true;
+  emit("cancel-check");
+}
+watch(() => props.collisionBusy, (busy) => { if (busy) cancelledByOperator.value = false; });
+watch(track, () => { cancelledByOperator.value = false; });
 
 // Sim toggle v-model: the parent-authoritative MachineToggle resets its DOM
 // checkbox when the model doesn't change — so a refused entry (machine on)
@@ -815,15 +828,25 @@ onUnmounted(() => {
         <div class="sep-v"></div>
       </template>
 
-      <MachineBtn v-if="collisionBusy" type="scrub" title="Collision check running — click to cancel"
-                  @click="emit('cancel-check')">{{ checkLabel }} &times;</MachineBtn>
+      <template v-if="collisionBusy">
+        <div class="progressTrack sweepTrack" :title="sweepTitle"><div class="progressFill" :style="{ width: sweepPct + '%' }"></div></div>
+        <MachineBtn type="scrub" title="Cancel the collision check" @click="cancelSweep">&times;</MachineBtn>
+      </template>
+      <!-- Every finished state offers the re-run (manual budget): cancelled,
+           declined, clear, partial coverage, clashes — the sweep otherwise
+           re-ran only on a touch-off, a tool change or a reload. -->
+      <template v-if="cancelledByOperator && !collisionBusy && !collisionResult && !collisionSkipped">
+        <span class="val-status warn" title="The collision check was cancelled — this program is unchecked until it runs again">check cancelled</span>
+        <MachineBtn type="scrub" title="Run the collision check again (manual budget)"
+                    :disabled="!track" @click="track && emit('check-manual', track)">&#8635;</MachineBtn>
+      </template>
       <template v-if="collisionSkipped && !collisionBusy && !collisionResult">
         <span class="val-status warn"
               :title="`The automatic collision check stopped at its ${Math.round(collisionSkipped.budgetMs / 1000)} s budget with ${pctOf(collisionSkipped.covered)} of this program swept, so it is not re-run on every touch-off. Check runs it with the longer manual budget.`">
           check declined — {{ pctOf(collisionSkipped.covered) }} in {{ Math.round(collisionSkipped.budgetMs / 1000) }} s
         </span>
         <MachineBtn type="scrub" title="Run the collision check with the longer manual budget"
-                    :disabled="!track" @click="track && emit('check-manual', track)">Check</MachineBtn>
+                    :disabled="!track" @click="track && emit('check-manual', track)">&#8635;</MachineBtn>
       </template>
       <template v-if="collisionResult && !collisionBusy && resultCurrent">
         <span v-if="collisionResult.pairCount === 0" class="val-status muted" title="No body pair moves relative to another — nothing to check">no moving pairs</span>
@@ -856,6 +879,8 @@ onUnmounted(() => {
              certified than one that found none, so the caveat cannot live
              only next to "clear". -->
         <span v-if="sweepCaveat" class="val-status warn" :title="sweepCaveat">*</span>
+        <MachineBtn type="scrub" title="Run the collision check again (manual budget)"
+                    :disabled="!track" @click="track && emit('check-manual', track)">&#8635;</MachineBtn>
       </template>
 
       <template v-if="nextTool">
@@ -955,6 +980,11 @@ onUnmounted(() => {
    bottom-anchored, so a row that came and went with each auto-sweep pushed
    the timeline up and down. */
 .scrubRow + .scrubRow { min-height: var(--touch-target-compact); }
+/* Sweep progress: one width while it runs (the global track is flex:1 for
+   its row-filling home in GcodePanel). */
+.sweepTrack {
+  flex: 0 0 120px;
+}
 /* Moving next-target readout — fixed floor so row width stays stable. */
 .navTarget {
   white-space: nowrap;

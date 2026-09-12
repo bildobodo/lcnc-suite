@@ -7,7 +7,7 @@ import { twpPoseOriented, twpPoseStale, twpDatumStale, fixtureOffDatum, stampAFo
 import { runLineState, subExecState, resolveCurrentLine } from "./trackHighlight";
 import { clearSubfileCache } from "./lcncApi";
 import { mainLinesTrusted, type ScrubTrack } from "./viewer/scrubTrack";
-import { connectWs, connected, status, send, armed, lastReply, viewerGcode, viewerInit, gcodeContent, lcncError, latency, networkLatency, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead, pushMessage, safetyTrip, acknowledgeSafetyTrip, readerStale, safetyChainIncomplete, configWarning, previewLoadError, previewParseError, previewRefusal, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, serverShuttingDown, type LcncMessage } from "./lcncWs";
+import { connectWs, connected, status, send, armed, lastReply, viewerGcode, viewerInit, gcodeContent, lcncError, latency, networkLatency, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead, pushMessage, safetyTrip, acknowledgeSafetyTrip, readerStale, safetyChainIncomplete, configWarning, previewLoadError, previewParseError, previewRefusal, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, serverShuttingDown, type LcncMessage } from "./lcncWs";
 // Lazy-load the 3D viewer so Three.js (~866 KB) + troika load as a separate async
 // chunk after first paint instead of blocking the initial bundle (P6). The viewerRef
 // methods are all `?.`-guarded, so calls during the brief load gap safely no-op.
@@ -31,7 +31,7 @@ import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineInput from "./MachineInput.vue";
 import { highlightGcode } from "./gcodeHighlight";
-import { fmtElapsed, fmtDuration, fmtDist, fmtSize } from "./format";
+import { fmtElapsed, fmtDuration, fmtDist, fmtSize, fmtProgressTimes } from "./format";
 import type { GcodeStats } from "./GcodePanel.vue";
 import type { LimitViolation } from "./ws/bulkData";
 import { Settings, MessageSquare, PowerOff, Gamepad2, Keyboard, BookOpen, ClipboardCopy, Expand, Shrink } from "lucide-vue-next";
@@ -190,20 +190,15 @@ const safetyTripReasonLabel = computed(() =>
 // its own — only the publish ends it. Expected = the gateway's last
 // measured publish of that file (or its size estimate), so a second zero
 // on the same program gets an honest countdown.
-const previewRefreshElapsedText = computed(() => fmtElapsed(Math.floor(previewRefreshElapsedMs.value / 1000)));
-const previewRefreshExpectedText = computed(() => {
-  const e = previewRefresh.value?.expected_ms;
-  return e ? fmtElapsed(Math.max(1, Math.round(e / 1000))) : '?';
-});
-const previewRefreshPct = computed(() => {
-  const e = previewRefresh.value?.expected_ms;
-  if (!e) return 0;
-  return Math.min(97, (previewRefreshElapsedMs.value / e) * 100);
-});
+const previewRefreshTimes = computed(() => fmtProgressTimes(previewRefreshElapsedMs.value, previewRefresh.value?.expected_ms));
+// Basename only: the banner is one uppercase line — the full path plus the
+// "what is stale" tail is what ran it off the right edge (operator,
+// 2026-09-12). The tail and the numbers live in the title now.
+const previewRefreshFile = computed(() => (previewRefresh.value?.file ?? '').replace(/\\/g, '/').split('/').pop() ?? '');
 const previewRefreshTitle = computed(() => {
   const pr = previewRefresh.value;
   if (!pr) return '';
-  return `The gateway re-parses the program whenever an input the preview was built from changes (fixture offsets, rotary pose, kinematics mode, tool length, the file). Reason: ${pr.reason}. Superseded parses so far: ${pr.superseded}.`;
+  return `Re-parsing ${pr.file} — ${previewRefreshTimes.value}${pr.queued ? '; another re-parse is queued behind it' : ''}. The toolpath, soft-limit marks and simulation are stale until it lands. The gateway re-parses whenever an input the preview was built from changes (fixture offsets, rotary pose, kinematics mode, tool length, soft-limit window, the file). Reason: ${pr.reason}. Superseded parses so far: ${pr.superseded}.`;
 });
 
 const machineStateColor = computed(() => {
@@ -1592,33 +1587,43 @@ watch(viewerGcode, (newGcode) => {
           <span v-if="safetyTrip" :key="'safety'" class="bannerError">
             SAFETY TRIPPED ({{ safetyTripReasonLabel }}) — Acknowledge, re-Arm if needed, then E-Stop Reset
           </span>
-          <span v-else-if="safetyChainIncomplete" :key="'safety-chain'" class="bannerError">
-            SAFETY CHAIN INCOMPLETE — {{ safetyChainIncomplete }} — check HALFILE hallib/lcnc_webui.hal, then restart the suite
+          <!-- Short form: the state and its ONE recovery verb; the why and
+               the detail ride the title (operator, 2026-09-12: the long
+               forms ran past the window and pushed the action buttons
+               off the banner). -->
+          <span v-else-if="safetyChainIncomplete" :key="'safety-chain'" class="bannerError"
+                :title="'Safety chain incomplete: ' + safetyChainIncomplete + '. Check HALFILE hallib/lcnc_webui.hal, then restart the suite.'">
+            SAFETY CHAIN INCOMPLETE — {{ safetyChainIncomplete }} — restart the suite
           </span>
           <span v-else-if="serverShuttingDown" :key="'shutdown'" class="bannerError">
             Server shutting down — start LinuxCNC again to reconnect
           </span>
-          <span v-else-if="readerStale" :key="'reader-stale'" class="bannerError">
-            HAL reader stale — UI values may be out of date. If this persists, restart the suite (the LinuxCNC session may have ended)
+          <span v-else-if="readerStale" :key="'reader-stale'" class="bannerError"
+                title="The HAL reader has not delivered a snapshot for 2 s — UI values may be out of date. If it persists the LinuxCNC session may have ended: restart the suite.">
+            HAL reader stale — restart the suite if it persists
           </span>
           <span v-else-if="configWarning" :key="'config-warning'" class="bannerError">
             Config fallback — {{ configWarning.reason }} — fix the INI, then restart the suite
           </span>
-          <span v-else-if="jointsBeyondLimit.length" :key="'beyond-limit'" class="bannerError">
-            Joint {{ jointsBeyondLimit.join(', ') }} beyond its soft limit — every other move is refused; jog that axis back inside (the jog runs in joint mode until it is)
+          <span v-else-if="jointsBeyondLimit.length" :key="'beyond-limit'" class="bannerError"
+                title="Every other move is refused while a joint sits beyond its soft limit. Jog it back inside — the jog runs in joint mode until it is.">
+            Joint {{ jointsBeyondLimit.join(', ') }} beyond its soft limit — jog it back inside
           </span>
-          <span v-else-if="previewLoadError" :key="'preview-error'" class="bannerError">
-            3D preview load failed — reload the G-code file; restart the suite if it persists
+          <span v-else-if="previewLoadError" :key="'preview-error'" class="bannerError"
+                title="The viewer could not load the preview payload. Reload the G-code file; restart the suite if it persists.">
+            3D preview load failed — reload the program
           </span>
-          <span v-else-if="previewParseError" :key="'parse-error'" class="bannerError">
-            Program won't parse — {{ previewParseError }} — no preview or simulation; fix the program or load one posted for this machine
+          <span v-else-if="previewParseError" :key="'parse-error'" class="bannerError"
+                :title="'No preview or simulation until it parses — fix the program or load one posted for this machine. ' + previewParseError">
+            Program won't parse — {{ previewParseError }}
           </span>
-          <span v-else-if="previewRefusal" :key="'preview-refused'" class="bannerError">
-            Preview stopped — {{ previewRefusal.text }} — the preview runs from the machine's live state (active fixture, kinematics), and a run would stop there too; no preview or simulation until it parses
+          <span v-else-if="previewRefusal" :key="'preview-refused'" class="bannerError"
+                :title="'The preview runs from the machine\'s live state (active fixture, kinematics) and stopped here; a run would stop at the same place. No preview or simulation until it parses. ' + previewRefusal.text">
+            Preview stopped — {{ previewRefusal.text }}
           </span>
           <span v-else-if="previewRefresh" :key="'preview-refresh'" class="bannerProgress" :title="previewRefreshTitle">
-            <span>Preview re-parsing after {{ previewRefreshLabel(previewRefresh.reason) }} — {{ previewRefresh.file }} · {{ previewRefreshElapsedText }} of ~{{ previewRefreshExpectedText }}{{ previewRefresh.queued ? ' · restart queued' : '' }} — the toolpath, soft-limit marks and simulation are stale until it lands</span>
-            <div class="progressTrack" :title="previewRefreshElapsedText + ' of ~' + previewRefreshExpectedText"><div class="progressFill" :style="{ width: previewRefreshPct + '%' }"></div></div>
+            <span>Re-parsing · {{ previewRefreshLabel(previewRefresh.reason) }} · {{ previewRefreshFile }}{{ previewRefresh.queued ? ' · queued' : '' }}</span>
+            <div class="progressTrack" :title="previewRefreshTimes"><div class="progressFill" :style="{ width: previewRefreshPct + '%' }"></div></div>
           </span>
           <span v-else-if="bannerMessage && !bannerShowAbort" :key="'msg'" :class="{ bannerError: bannerMessageKind <= 2 }">
             {{ bannerMessage }}
@@ -1658,7 +1663,6 @@ watch(viewerGcode, (newGcode) => {
           @open-settings="openSettingsTab"
           @scrub-line="scrubLine = $event"
           @collision-lines="collisionLines = $event"
-          @reparse="fire({ cmd: 'reparse_preview' }, 'setup')"
         />
       </div>
 
@@ -2439,6 +2443,12 @@ watch(viewerGcode, (newGcode) => {
 
 .bannerContent {
   flex: 1;
+  /* A flex item holding single-line text refuses to shrink below that text
+     unless told to; without this a long banner set the content's minimum
+     width and pushed the actions row (messages, Refresh, Home All, Abort)
+     past the right edge (operator, 2026-09-12: "the messages button
+     vanished briefly"). */
+  min-width: 0;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -2456,15 +2466,22 @@ watch(viewerGcode, (newGcode) => {
    Track and fill are DIVs like GcodePanel's: as inline spans the fill
    ignored its width, so the track always read as an empty grey bar after
    the ellipsis (operator, 2026-09-12; the gateway always has an expected
-   duration — a size estimate at worst — so the track is always shown). */
+   duration — a size estimate at worst — so the track is always shown).
+   The text takes the slack and the track keeps ONE width at the right
+   end, so it sits in the same place whatever the reason label or the
+   elapsed readout does (operator: "does not appear in the same place"). */
 .bannerProgress {
   display: inline-flex;
   align-items: center;
   gap: var(--gap-controls);
   width: 100%;
 }
+.bannerProgress > span:first-child {
+  flex: 1;
+  min-width: 0;
+}
 .bannerProgress > .progressTrack {
-  flex: 0 0 clamp(80px, 18%, 220px);
+  flex: 0 0 160px;
 }
 .bannerError {
   color: var(--danger);

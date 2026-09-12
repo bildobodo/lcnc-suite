@@ -12,7 +12,7 @@ import {
   handleStatusError, handleStatusMessage, latency, lcncError,
   markMessagesRead, mergeStatusPatch, messages, networkLatency, noteBulkData,
   noteFrameSample, noteHeartbeatSent, notePong, pushMessage,
-  previewRefresh, previewRefreshElapsedMs, previewRefreshLabel,
+  previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct,
   readerStale, rebaseStatusDelta, resetOnClose, resetTimingStats, safetyChainIncomplete,
   safetyTrip, status, timingStats, unreadCount,
 } from "./statusStore";
@@ -165,6 +165,19 @@ describe("preview_refresh sync (re-parse in flight)", () => {
     handleStatusMessage({ type: "status", data: {} });
     expect(previewRefresh.value).toBeNull();
     expect(previewRefreshElapsedMs.value).toBe(0);
+  });
+
+  it("previewRefreshPct: elapsed over expected, capped at 97 % (only the publish completes it), 0 without an expectation", () => {
+    handleStatusMessage({ type: "status", data: {}, preview_refresh: PR });
+    previewRefreshElapsedMs.value = 15000;
+    expect(previewRefreshPct.value).toBeCloseTo(50, 6);
+    previewRefreshElapsedMs.value = 60000;
+    expect(previewRefreshPct.value).toBe(97);
+    handleStatusMessage({ type: "status", data: {}, preview_refresh: { ...PR, started_ms: 3000, expected_ms: null } });
+    previewRefreshElapsedMs.value = 15000;
+    expect(previewRefreshPct.value).toBe(0);
+    handleStatusMessage({ type: "status", data: {} });
+    expect(previewRefreshPct.value).toBe(0);
   });
 
   it("ticks the elapsed clock locally while a parse runs and stops when it lands", () => {
