@@ -115,6 +115,7 @@ def parse_fusion_library(data: dict, machine_unit: str) -> tuple[list, list]:
             "material": entry.get("BMC"),
             "holder": holder.get("description") if holder else None,
             "fusion_type": fusion_type,
+            "fusion_guid": entry.get("guid"),
         }
         if our_type == "tapered":
             tool["tapered_type"] = entry.get("tapered-type")

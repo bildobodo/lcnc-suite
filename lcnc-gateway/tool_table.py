@@ -25,7 +25,7 @@ _TOOL_META_FIELDS = (
     "tapered_type", "thread_pitch", "thread_pitch_min", "thread_pitch_max",
     "number_of_teeth", "thread_profile_angle", "thread_tip_type",
     "thread_tip_width", "thread_tip_radius",
-    "tip_offset", "tip_length",
+    "tip_offset", "tip_length", "fusion_guid",
 )
 
 

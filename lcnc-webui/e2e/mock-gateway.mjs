@@ -253,4 +253,4 @@ ctlWss.on("connection", (ws) => {
   });
 });
 
-server.listen(PORT, () => console.log(`mock-gateway: http://localhost:${PORT}`));
+server.listen(PORT, process.env.MOCK_HOST, () => console.log(`mock-gateway: http://localhost:${PORT}`));

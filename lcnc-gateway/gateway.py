@@ -18,7 +18,7 @@ from fastapi.staticfiles import StaticFiles
 import re
 import shutil
 from urllib.parse import urlsplit
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File, HTTPException, Body, Query, Request, Depends
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File, Form, HTTPException, Body, Query, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import StreamingResponse, JSONResponse, FileResponse, Response
 
@@ -65,6 +65,7 @@ import bulk_pipeline as _bulk_mod
 from tool_store import ToolLibraryStore
 from camera_broker import CameraBroker
 from fusion_import import decode_fusion_blob
+from tool_refresh import metadata_refresh_revision, plan_metadata_refresh
 
 
 # === LIFECYCLE DIAGNOSTICS (permanent — promoted from temp probe) ===
@@ -2117,8 +2118,8 @@ def load_tool_library() -> dict:
     return _tool_lib_store.load()
 
 
-def save_tool_library(library: dict):
-    _tool_lib_store.save(library)
+def save_tool_library(library: dict, *, ini_key: Optional[str] = None):
+    _tool_lib_store.save(library, ini_key=ini_key)
 
 
 # _TOOL_META_FIELDS now lives in tool_table.py (imported at top, #33).
@@ -4430,14 +4431,59 @@ async def save_gcode(request: Request, path: str = Query(...)):
 
 # ---- Fusion 360 Tool Library Import ----
 
+def _metadata_refresh_context(machine_unit: str) -> tuple[str, str]:
+    """Use a connected, identified configuration; never refresh the default bucket."""
+    ini_key = _current_ini_path()
+    configured_ini = os.environ.get("LCNC_INI_FILE")
+    tbl_path = get_tool_tbl_path()
+    if (not configured_ini or not os.path.isabs(ini_key)
+            or os.path.realpath(ini_key) != os.path.realpath(configured_ini)
+            or not tbl_path or machine_unit not in ("mm", "in")):
+        raise ValueError("Current machine configuration is unavailable for metadata refresh")
+    return ini_key, tbl_path
+
+
+async def _plan_current_metadata_refresh(raw: bytes, parsed: list, skipped: list,
+                                         machine_unit: str) -> dict:
+    # Caller holds _cmd_lock, shared with every WS tool edit. Keep I/O, copying
+    # and JSON hashing off the event loop, just like the import decoder.
+    ini_key, tbl_path = _metadata_refresh_context(machine_unit)
+
+    def build():
+        table = parse_tool_table(tbl_path)
+        library = load_tool_library()
+        plan = plan_metadata_refresh(parsed, skipped, table, library)
+        plan["revision"] = metadata_refresh_revision(raw, table, library, ini_key, machine_unit)
+        plan["ini_key"] = ini_key
+        plan["existing_count"] = len(table)
+        return plan
+
+    plan = await asyncio.to_thread(build)
+    if _metadata_refresh_context(machine_unit) != (ini_key, tbl_path):
+        raise ValueError("Machine configuration changed; preview the library again")
+    return plan
+
+
+async def _save_refreshed_metadata(plan: dict) -> None:
+    # A disconnected HTTP request must not release _cmd_lock while its executor
+    # write is still running. Finish that write and publish its version first.
+    async def persist():
+        global _tool_table_version, _tool_meta_dirty
+        await asyncio.to_thread(save_tool_library, plan["library"], ini_key=plan["ini_key"])
+        _tool_table_version += 1
+        _tool_meta_dirty = True
+
+    task = asyncio.create_task(persist())
+    try:
+        await asyncio.shield(task)
+    except asyncio.CancelledError:
+        await task
+        raise
+
+
 @app.post("/import-tool-library", dependencies=[Depends(require_token)])
 async def import_tool_library(file: UploadFile = File(...)):
-    """Preview or apply a Fusion 360 tool library import.
-
-    Query params:
-      ?apply=true  — actually write to tool table + library (default: preview only)
-      ?overwrite=true — overwrite existing tools (default: skip)
-    """
+    """Preview full replacement and a separate, measurement-preserving refresh."""
     raw = await file.read(MAX_TOOL_LIBRARY_SIZE + 1)
     if len(raw) > MAX_TOOL_LIBRARY_SIZE:
         raise HTTPException(status_code=413, detail="Tool library too large (max 16 MB)")
@@ -4460,6 +4506,18 @@ async def import_tool_library(file: UploadFile = File(...)):
         except Exception as e:
             _trace.emit_exc("tool_tbl.recount_failed", e, tbl_path=tbl_path)
 
+    refresh = None
+    refresh_error = None
+    try:
+        if get_ini_config().get("linear_units") != machine_unit:
+            raise ValueError("Machine units are unavailable; metadata refresh is disabled")
+        async with _get_cmd_lock():
+            refresh_plan = await _plan_current_metadata_refresh(raw, parsed, skipped, machine_unit)
+        refresh = {k: refresh_plan[k] for k in ("rows", "updated", "skipped", "revision")}
+        existing_count = refresh_plan["existing_count"]
+    except (ValueError, OSError) as e:
+        refresh_error = str(e)
+
     # Build + JSON-encode the (potentially 60k-tool) response OFF the loop: the
     # harness showed the post-decode work was still tripping the watchdog after
     # the subprocess fix — the remaining ~600 ms was THIS: a 60k-dict copy loop
@@ -4471,10 +4529,35 @@ async def import_tool_library(file: UploadFile = File(...)):
                            for t in skipped]
         return json.dumps({"ok": True, "tools": parsed, "total": len(parsed),
                            "existing_count": existing_count,
+                           "metadata_refresh": refresh, "metadata_refresh_error": refresh_error,
                            "skipped_duplicates": skipped_preview}).encode()
 
     body = await asyncio.to_thread(_build_preview_body)
     return Response(content=body, media_type="application/json")
+
+
+@app.post("/import-tool-library/refresh", dependencies=[Depends(require_token)])
+async def refresh_tool_library_metadata(file: UploadFile = File(...), revision: str = Form(...)):
+    """Refresh reviewed metadata only. Never write/reload tool.tbl or send NML."""
+    raw = await file.read(MAX_TOOL_LIBRARY_SIZE + 1)
+    if len(raw) > MAX_TOOL_LIBRARY_SIZE:
+        raise HTTPException(status_code=413, detail="Tool library too large (max 16 MB)")
+    machine_unit = get_ini_config().get("linear_units")
+    try:
+        _metadata_refresh_context(machine_unit)
+        parsed, skipped = await _bulk.decode_fusion_offloaded(raw, machine_unit)
+        async with _get_cmd_lock():
+            if get_ini_config().get("linear_units") != machine_unit:
+                raise ValueError("Machine units changed; preview the library again")
+            plan = await _plan_current_metadata_refresh(raw, parsed, skipped, machine_unit)
+            if plan["revision"] != revision:
+                raise HTTPException(status_code=409, detail="Tool data changed; preview the library again")
+            if not plan["updated"]:
+                raise ValueError("No unambiguous existing tools to refresh")
+            await _save_refreshed_metadata(plan)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"ok": True, "updated": len(plan["updated"]), "skipped": len(plan["skipped"])}
 
 
 @app.post("/import-tool-library/apply", dependencies=[Depends(require_token)])
@@ -5243,7 +5326,8 @@ async def ws_endpoint(ws: WebSocket):
                     # client. tool_meta now lives at top-level (not inside data),
                     # so tool-change ticks no longer mutate the shared dict and the
                     # shared-encode path stays engaged.
-                    _tool_meta_tick = (st.tool_number != client.prev_tool_num or _tool_meta_dirty)
+                    _tool_meta_tick = (st.tool_number != client.prev_tool_num or _tool_meta_dirty
+                                       or _tool_table_version != _last_tool_table_version)
                     _use_shared = (
                         _WIRE_FORMAT == "msgpack"
                         and not _STATUS_DELTA_ENABLED

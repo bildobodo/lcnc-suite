@@ -319,17 +319,41 @@ const importPreview = ref<ImportTool[] | null>(null);
 const importSkipped = ref<ImportTool[]>([]);
 const importExistingCount = ref(0);
 const importBusy = ref(false);
-const importResult = ref<{ added: number; skipped?: number } | null>(null);
+const importResult = ref<{ added?: number; updated?: number; skipped?: number } | null>(null);
 const importFile = ref<File | null>(null);
+interface RefreshRow {
+  T: number;
+  type: string;
+  D: number;
+  description: string;
+  current_description: string;
+  current_diameter: number | null;
+  Z: number | null;
+  reason: string | null;
+  match: "guid" | "number";
+}
+const importMode = ref("metadata");
+const importRefresh = ref<{ rows: RefreshRow[]; updated: number[]; skipped: number[]; revision: string } | null>(null);
+const importRefreshError = ref<string | null>(null);
+const importError = ref<string | null>(null);
+const canConfirmImport = computed(() => !importBusy.value &&
+  (importMode.value === "replace" || !!importRefresh.value?.updated.length));
 
 async function onImportFileSelect(e: Event) {
   const input = e.target as HTMLInputElement;
   const file = input.files?.[0];
   input.value = "";
   if (!file) return;
+  await previewImportFile(file);
+}
+
+async function previewImportFile(file: File) {
   importFile.value = file;
   importBusy.value = true;
   importResult.value = null;
+  importError.value = null;
+  importRefresh.value = null;
+  importRefreshError.value = null;
   try {
     const form = new FormData();
     form.append("file", file);
@@ -347,6 +371,9 @@ async function onImportFileSelect(e: Event) {
     importPreview.value = data.tools;
     importSkipped.value = data.skipped_duplicates ?? [];
     importExistingCount.value = data.existing_count ?? 0;
+    importRefresh.value = data.metadata_refresh ?? null;
+    importRefreshError.value = data.metadata_refresh_error ?? null;
+    importMode.value = importExistingCount.value > 0 || !importRefresh.value ? "metadata" : "replace";
   } catch (err: any) {
     error.value = err.message || "Import failed";
     importPreview.value = null;
@@ -357,12 +384,16 @@ async function onImportFileSelect(e: Event) {
 }
 
 async function confirmImport() {
-  if (!importFile.value) return;
+  if (!importFile.value || !canConfirmImport.value) return;
   importBusy.value = true;
+  importError.value = null;
   try {
     const form = new FormData();
     form.append("file", importFile.value);
-    const resp = await fetch("/import-tool-library/apply", { method: "POST", headers: authHeaders(), body: form });
+    const refresh = importMode.value === "metadata";
+    if (refresh) form.append("revision", importRefresh.value!.revision);
+    const endpoint = refresh ? "/import-tool-library/refresh" : "/import-tool-library/apply";
+    const resp = await fetch(endpoint, { method: "POST", headers: authHeaders(), body: form });
     if (!resp.ok) {
       let body: any = null;
       try {
@@ -373,13 +404,14 @@ async function confirmImport() {
       throw new Error(body?.detail ? `${body.detail}` : `HTTP ${resp.status}: ${body}`);
     }
     const data = await resp.json();
-    importResult.value = { added: data.added, skipped: data.skipped };
+    importResult.value = refresh ? { updated: data.updated, skipped: data.skipped }
+      : { added: data.added, skipped: data.skipped };
     importPreview.value = null;
     importSkipped.value = [];
     importFile.value = null;
     setTimeout(fetchTools, REFETCH_AFTER_DELETE_MS);
   } catch (err: any) {
-    error.value = err.message || "Import failed";
+    importError.value = err.message || "Import failed";
   } finally {
     importBusy.value = false;
   }
@@ -390,6 +422,8 @@ function cancelImport() {
   importSkipped.value = [];
   importFile.value = null;
   importResult.value = null;
+  importRefresh.value = null;
+  importError.value = null;
 }
 
 // fmtNum → fmtCell imported from format.ts
@@ -466,7 +500,13 @@ defineExpose({ openAdd, fetchTools, triggerImport });
 
     <!-- Import result banner -->
     <div v-if="importResult" class="importBanner">
-      Imported {{ importResult.added }} tools (all Z offsets set to 0)
+      <template v-if="importResult.updated != null">
+        Updated metadata for {{ importResult.updated }} tools. Measured offsets and table diameters retained.
+      </template>
+      <template v-else>
+        Imported {{ importResult.added }} tools. Z offsets initialized from Fusion lengths.
+      </template>
+      <template v-if="importResult.skipped"> {{ importResult.skipped }} skipped.</template>
       <MachineBtn type="close" @click="importResult = null">&times;</MachineBtn>
     </div>
 
@@ -576,19 +616,46 @@ defineExpose({ openAdd, fetchTools, triggerImport });
             <MachineBtn type="close" @click="cancelImport">&times;</MachineBtn>
           </div>
           <div class="dialogContent">
-            <div class="importStats">
+            <label class="importOption">
+              Import mode
+              <MachineSelect gate="toolEdit" v-model="importMode" :disabled="importBusy">
+                <option value="metadata">Update existing tool metadata</option>
+                <option value="replace">Replace entire tool table</option>
+              </MachineSelect>
+            </label>
+            <div v-if="importMode === 'metadata'" class="importStats">
+              {{ importRefresh?.updated.length ?? 0 }} existing tools to update.
+              Tool numbers, pockets, measured offsets and table diameters are retained.
+              Match by tool number; check the current and imported descriptions below.
+              Tools with conflicts are skipped. No tools are added or removed.
+            </div>
+            <div v-else class="importStats">
               {{ importPreview.length }} tools to import.
               <template v-if="importExistingCount">
                 Will replace {{ importExistingCount }} existing tools.
               </template>
               Z offsets will use Fusion gauge lengths (measure to replace with actual values).
             </div>
+            <div v-if="importMode === 'metadata' && importRefreshError" class="importWarn">{{ importRefreshError }}</div>
+            <div v-if="importError" class="importWarn">{{ importError }}</div>
             <div v-if="importSkipped.length" class="importWarn">
               {{ importSkipped.length }} tools skipped — duplicate tool numbers
               (T{{ [...new Set(importSkipped.map(s => s.T))].join(', T') }}).
               Fix numbering in Fusion 360 and re-export.
             </div>
-            <div class="importList scroll-thin fade-scroll">
+            <div v-if="importMode === 'metadata'" class="importList scroll-thin fade-scroll">
+              <div v-for="t in importRefresh?.rows ?? []" :key="t.T" class="importRow">
+                <span class="importT mono">T{{ t.T }}</span>
+                <span class="importDesc">
+                  {{ t.current_description || '(no current description)' }} → {{ t.description || '(no Fusion description)' }}
+                  <br />
+                  <template v-if="t.reason">Skipped: {{ t.reason }}.</template>
+                  <template v-else>Update metadata; keep Z {{ fmtCell(t.Z ?? 0, 3) }}.</template>
+                  Ø{{ t.current_diameter == null ? '-' : fmtCell(t.current_diameter, 3) }} → Fusion Ø{{ fmtCell(t.D, 3) }}
+                </span>
+              </div>
+            </div>
+            <div v-else class="importList scroll-thin fade-scroll">
               <div v-for="t in importPreview" :key="t.T" class="importRow">
                 <span class="importT mono">T{{ t.T }}</span>
                 <span class="importType">{{ toolTypeLabel(t.type) }}</span>
@@ -599,8 +666,10 @@ defineExpose({ openAdd, fetchTools, triggerImport });
           </div>
           <Gate gate="setup" class="dialogActions">
             <MachineBtn type="dialogCancel" @click="cancelImport">Cancel</MachineBtn>
-            <MachineBtn type="fileSave" @click="confirmImport" :disabled="importBusy">
-              {{ importBusy ? 'Importing...' : 'Import' }}
+            <MachineBtn v-if="importError && importFile" type="fileOp" :disabled="importBusy"
+              @click="previewImportFile(importFile)">Preview again</MachineBtn>
+            <MachineBtn type="fileSave" @click="confirmImport" :disabled="!canConfirmImport">
+              {{ importBusy ? 'Importing...' : importMode === 'metadata' ? 'Update metadata' : 'Replace table' }}
             </MachineBtn>
           </Gate>
         </div>

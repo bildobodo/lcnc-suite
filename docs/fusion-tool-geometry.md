@@ -25,9 +25,10 @@ This import fix applies when decoding Fusion JSON. Previously stored, doubled
 enough provenance to distinguish them safely from manually edited values.
 **Do not use the current full-library apply route merely to refresh old angles
 while expecting measured lengths to survive.** That existing route replaces the
-table and initializes Z from LB/OAL. Existing entries need a separate metadata-only
-correction or a deliberate new measurement after a full replacement. This patch
-does not change the full-replacement behavior or any live tool table.
+table and initializes Z from LB/OAL. Existing entries can use **Update existing
+tool metadata**, described below, or need a deliberate new measurement after a
+full replacement. The geometry patches do not change the full-replacement
+behavior or any live tool table.
 
 ## Reference fixtures and tests
 
@@ -368,6 +369,52 @@ reference-case distances, not machining or complete 3D mesh tolerances.
 The cutter/shaft material split now uses a numerical boundary tolerance instead
 of a 0.01 mm visual band, preserving small fillets and planar end caps at LCF.
 
+## Refreshing existing tools without replacing measured offsets
+
+The import dialog now defaults to **Update existing tool metadata** when a table
+already exists. **Replace entire tool table** remains a separate, explicit mode
+with its existing LB/OAL initialization behavior. The completion banner now
+describes the selected action accurately; it no longer claims that replacement
+set all Z offsets to zero.
+
+The refresh preview matches existing T numbers and shows current/imported
+descriptions and diameters alongside the retained Z value. New imports preserve
+`fusion_guid`; once linked, a different or missing GUID is a conflict rather than
+an implicit reassignment. Legacy sidecars without GUIDs use the displayed number
+match, which the operator must check. Refresh skips all occurrences of duplicate
+source numbers, duplicate table numbers, unknown numbers, GUID conflicts, local
+STL overrides and differing table diameters. Only six-decimal tool-table rounding
+is allowed in the diameter comparison. A separately measured diameter therefore
+requires a deliberate resolution; metadata refresh does not change compensation.
+
+`POST /import-tool-library/refresh` writes only the selected INI's metadata
+sidecar. It never writes or reloads `tool.tbl`, sends an NML command, adds/removes
+table entries, or changes pockets, X/Y/Z/other offsets, diameter compensation or
+table remarks. Imported metadata replaces prior Fusion fields, clearing stale
+profiles, shafts or holders when absent from the new export, while keeping
+unrelated local metadata and unmatched tools. Existing measurements remain
+authoritative. The active viewer and tool-table previews receive refreshed
+metadata through the shared version notification on every client.
+
+The required review revision binds the uploaded file, parsed table, metadata,
+identified INI and machine units. Changes after preview produce HTTP 409 and the
+dialog offers **Preview again**; no automatic fallback performs a full replacement.
+Refresh requires an identified current configuration and never guesses a default
+metadata bucket. Reads and writes share the existing command lock with WS tool
+edits; I/O and plan construction run off the event loop. The save destination is
+bound to the reviewed INI before executor dispatch. A cancelled request waits for
+its outstanding write before releasing the lock. Corrupt sidecars are refused by
+the existing strict store write rather than replaced from a cached copy.
+
+`test_tool_refresh.py` exercises the real handlers and multipart HTTP route with
+fake LinuxCNC, including token authentication, missing/stale revisions, changed
+measurements, source/configuration changes, conflict handling, corrupt sidecars,
+write failure and cancellation. The table's complete original bytes (including
+X/Y/A offsets and comments) remain identical after a successful refresh. Four
+isolated Playwright tests cover default refresh, explicit replacement, stale
+review/retry and an all-conflict disabled action. These tests use a mock gateway
+and do not connect to a machine.
+
 ## Remaining scope
 
 Flat/round thread crest details and probes still need their own cutting-profile
@@ -376,8 +423,8 @@ remains separate. Creating and inspecting a Probe WCS operation input stopped
 responding through Fusion MCP; that incomplete attempt supplies no shape evidence.
 The native form-mill post remains an unsuitable shape oracle.
 
-Optional holder placement and safe metadata-only refresh of existing libraries
-remain separate work. These patches do not change live tool tables or the existing
+Optional holder placement remains separate work. These patches do not change
+live tool tables or the existing
 full-library replacement behavior described above. Already imported tools do not
 automatically acquire parameters discarded by earlier imports. Thread mills
 without pitch/profile-angle metadata retain their prior cylindrical approximation
