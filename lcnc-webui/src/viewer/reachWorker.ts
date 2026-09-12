@@ -25,7 +25,10 @@ self.onmessage = (e: MessageEvent<Req>) => {
     geom.setAttribute("position", new THREE.BufferAttribute(r.roomTris, 3));
     const roomLines = (new THREE.EdgesGeometry(geom, 8).getAttribute("position").array as Float32Array).slice();
     geom.dispose();
-    const partLines = r.part?.cage() ?? null;
+    // Reach-diagram density (operator, 2026-09-12: "must it remain a mesh?"):
+    // a ring every 16th slice (5 over the length, inner + outer so the hole
+    // reads) and a profile line every 45° — the two knobs of the cage.
+    const partLines = r.part?.cage(16, 45) ?? null;
     const transfer: Transferable[] = [roomLines.buffer as ArrayBuffer];
     if (partLines) transfer.push(partLines.buffer as ArrayBuffer);
     self.postMessage({ id, roomLines, partLines, info: r.info }, { transfer });

@@ -81,7 +81,7 @@ export interface Solid {
    *  a swept solid is a cylinder-like body the camera usually sits inside,
    *  and crease edges alone show nothing of it; null = derive crease edges
    *  from the mesh instead (a hull's rounded edges are facet creases). */
-  cage(): Float32Array | null;
+  cage(ringEvery?: number, genEveryDeg?: number): Float32Array | null;
 }
 
 const DEFAULTS = { rotStepDeg: 5, maxRotSamples: 4096, slices: 64, rays: 360 };
@@ -187,7 +187,7 @@ export class HullSolid implements Solid {
   }
 
   mesh(): Float32Array { return this.tris; }
-  cage(): Float32Array | null { return null; }
+  cage(): Float32Array | null { return null; }   // hull creases are cut by the caller
 }
 
 function dedupePoints(pts: THREE.Vector3[], q: number): THREE.Vector3[] {
@@ -219,7 +219,10 @@ export class TranslatedSolid implements Solid {
   }
   contains(p: THREE.Vector3) { return this.inner.contains(_tv.copy(p).sub(this.offset)); }
   mesh(): Float32Array { return this._shift(this.inner.mesh()); }
-  cage(): Float32Array | null { const c = this.inner.cage(); return c ? this._shift(c) : null; }
+  cage(ringEvery?: number, genEveryDeg?: number): Float32Array | null {
+    const c = this.inner.cage(ringEvery, genEveryDeg);
+    return c ? this._shift(c) : null;
+  }
   private _shift(src: Float32Array): Float32Array {
     const m = src.slice();
     for (let i = 0; i < m.length; i += 3) { m[i] = m[i]! + this.offset.x; m[i + 1] = m[i + 1]! + this.offset.y; m[i + 2] = m[i + 2]! + this.offset.z; }
