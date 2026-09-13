@@ -142,9 +142,9 @@ def guide_set(axis,rail_group,block_group,lanes,rail_start,rail_length,
             p=tuple(origin+u*centre)
             bodies.append(guide_place(block_body,p,travel,normal))
             ends.append(guide_place(block_ends,p,travel,normal))
-    add(axis+'_guide_rails',rail_group,'steel',compound(rails))
-    add(axis+'_guide_blocks',block_group,'steel',compound(bodies))
-    add(axis+'_guide_endcaps',block_group,'dark',compound(ends))
+    add(axis+'_guide_rails',rail_group,'steel',compound(rails),collision=True)
+    add(axis+'_guide_blocks',block_group,'steel',compound(bodies),collision=True)
+    add(axis+'_guide_endcaps',block_group,'dark',compound(ends),collision=True)
     guide_layout.append(dict(axis=axis,rail_group=rail_group,block_group=block_group,
         lanes=lanes,rail_start=rail_start,rail_length=rail_length,
         block_centres=block_centres,travel=travel,normal=normal,
@@ -201,7 +201,7 @@ for g in groups:
             obj.setExpression('Placement.Rotation.Angle',f'{k["sign"]} * Motion.Joint{letter}')
 
 parts=[]; local_shapes={}; objects={}
-def add(name,group,color,shape,stock=False):
+def add(name,group,color,shape,stock=False,collision=False,collide=True):
     assert not shape.isNull() and shape.isValid(), name+' invalid'
     assert len(shape.Solids)>0 and shape.Volume>0, name+' not solid'
     o=doc.addObject('PartDesign::Feature',name)
@@ -213,15 +213,20 @@ def add(name,group,color,shape,stock=False):
         o.ViewObject.ShapeColor=tuple(COL[color]); o.ViewObject.LineColor=(0.12,0.14,0.15)
     p={'id':name,'file':name+'.stl','group':group,'translate':[0,0,0],'color':COL[color]}
     if stock:p['stock']=True
+    # Collision proxy: the sweep checks one box per component (collision/<name>.stl,
+    # rebuilt below from the exported mesh) instead of the fine profile.
+    if collision:p['collision']='collision/'+name+'.stl'
+    # Decorative: never a collision body (a crash into it is not reported).
+    if not collide:p['collide']=False
     parts.append(p); local_shapes[name]=shape; objects[name]=o
 
 # Fixed bed and continuous side walls lowered by 25%, with unchanged wall thickness and spacing.
 add('bed',None,'cast',bevel(box(-4330,-3150,-1650,1450,3150,-1050),45))
-add('chip_tray',None,'dark',box(-3950,-2090,-1050,1270,2090,-990))
+add('chip_tray',None,'dark',box(-3950,-2090,-1050,1270,2090,-990),collide=False)
 add('x_side_walls',None,'paint',compound([
     bevel(box(-4220,y-440,-1050,1320,y+440,WALL_TOP),30) for y in (-2550,2550)]))
 add('leveling_pads',None,'dark',compound([
-    cyl(175,90,(x,y,-1740)) for x in (-3800,-2000,-300,1100) for y in (-2700,2700)]))
+    cyl(175,90,(x,y,-1740)) for x in (-3800,-2000,-300,1100) for y in (-2700,2700)]),collide=False)
 guide_set('x',None,'x_bridge',[(0,y+d,WALL_TOP) for y in (-2550,2550)
     for d in (-265,265)],-4190,5440,[x+BRIDGE_SHIFT_X for x in (-1405,-785)],(1,0,0),(0,0,1))
 
@@ -353,3 +358,15 @@ if OUT:
 for old_stl in STLDIR.glob('*.stl'):
     if old_stl.name not in {p['file'] for p in parts}:old_stl.unlink()
 print('DONE',len(parts),'parts',sum(x['triangles'] for x in report['parts']),'triangles',flush=True)
+
+# -- Collision proxies (2026-09-13) ------------------------------------------
+# Prismatic hardware (rails, blocks, end caps) is exported once more as ONE
+# axis-aligned box per connected component into collision/<part>.stl — the
+# mesh the sweep checks instead of the fine profile (machine.json `collision`,
+# see scripts/stl_collision_proxy.py; machineGantry.test.ts gates containment).
+import subprocess
+_proxy_tool = pathlib.Path(__file__).resolve().with_name('stl_collision_proxy.py')
+(STLDIR/'collision').mkdir(exist_ok=True)
+for _p in parts:
+    if 'collision' in _p:
+        subprocess.run(['python3', str(_proxy_tool), str(STLDIR/_p['file']), str(STLDIR/_p['collision'])], check=True)

@@ -6,7 +6,7 @@ import { Box3, Vector3 } from "three";
 import { describe, expect, it } from "vitest";
 import { buildChain, evalChainTip, tipInWorkFrame, type PartFrameMachine } from "./partFrame";
 import { TrsrnKins } from "./kins";
-import { buildCollisionModel, sweepCollisions, type CollisionBody, type CollisionMachine } from "./collision";
+import { buildCollisionModel, partCollides, partCollisionFile, sweepCollisions, type CollisionBody, type CollisionMachine } from "./collision";
 import { emptyLineIndex } from "./lineIndex";
 import type { ScrubTrack } from "../ws/bulkData";
 
@@ -48,8 +48,10 @@ function stl(file: string): Float32Array {
   }
   return pos;
 }
-const bodies: CollisionBody[] = mj.parts.map((p: any) => ({
-  ...p, group: p.group ?? "root", positions: stl(p.file),
+// Sweep bodies as the viewer builds them: decorative parts (`collide: false`)
+// are no bodies, proxied parts (`collision`) contribute their proxy mesh.
+const bodies: CollisionBody[] = mj.parts.filter((p: any) => partCollides(p)).map((p: any) => ({
+  ...p, group: p.group ?? "root", positions: stl(partCollisionFile(p)),
 }));
 const chain = buildChain(machine);
 const tmp = new Vector3();
@@ -76,8 +78,12 @@ describe("TWP wall-gantry configuration", () => {
     expect(setting("EMCIO", "TOOL_TABLE")).toBe("tool_twp_gantry.tbl");
     for (const [sec, key] of [["RS274NGC", "PARAMETER_FILE"], ["EMCIO", "TOOL_TABLE"]])
       expect(fs.existsSync(path.join(SIM, setting(sec!, key!)))).toBe(true);
-    expect(bodies).toHaveLength(32);
+    expect(mj.parts).toHaveLength(32);
+    expect(bodies).toHaveLength(30);
     expect(bodies.filter(p => p.stock).map(p => p.id)).toEqual(["work_piece"]);
+    expect(mj.parts.filter((p: any) => p.collide === false).map((p: any) => p.id)).toEqual(["chip_tray", "leveling_pads"]);
+    expect(mj.parts.filter((p: any) => p.collision).map((p: any) => p.id).sort()).toEqual(
+      ["x", "y", "z"].flatMap(a => [`${a}_guide_blocks`, `${a}_guide_endcaps`, `${a}_guide_rails`]).sort());
     expect(bodies.some(p => p.id === "x_rail_seats")).toBe(false);
   });
 
@@ -215,6 +221,34 @@ function track(points: number[][]): ScrubTrack {
     lines: new Uint32Array(points.map((_, i) => i + 1)), rapid: new Uint8Array(n),
     lineIndex: emptyLineIndex(), timeBased: false };
 }
+
+// Proxy soundness (2026-09-13): the sweep may only get MORE conservative from
+// a proxy, so every display-mesh vertex of a proxied part must lie inside one
+// of its proxy boxes (12 triangles each, as scripts/stl_collision_proxy.py
+// writes them) — and the proxy must be a small fraction of the mesh, or the
+// swap is pointless.
+it("collision proxies contain their display meshes and are boxes", () => {
+  for (const p of mj.parts.filter((q: any) => q.collision)) {
+    const fine = stl(p.file), proxy = stl(p.collision);
+    expect(proxy.length % (12 * 9)).toBe(0);
+    expect(proxy.length).toBeLessThan(fine.length / 4);   // end caps: 68 → 12 triangles each; rails: ~9,400 → 12
+    const boxes: Array<[number[], number[]]> = [];
+    for (let b = 0; b < proxy.length; b += 12 * 9) {
+      const lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity];
+      for (let v = b; v < b + 12 * 9; v += 3) for (let k = 0; k < 3; k++) {
+        lo[k] = Math.min(lo[k]!, proxy[v + k]!); hi[k] = Math.max(hi[k]!, proxy[v + k]!);
+      }
+      boxes.push([lo, hi]);
+    }
+    let outside = 0;
+    for (let v = 0; v < fine.length; v += 3) {
+      const inside = boxes.some(([lo, hi]) => [0, 1, 2].every(k =>
+        fine[v + k]! >= lo[k]! - 1e-3 && fine[v + k]! <= hi[k]! + 1e-3));
+      if (!inside) outside++;
+    }
+    expect(outside, `${p.id}: vertices outside every proxy box`).toBe(0);
+  }
+});
 
 it("sweeps linear limits and parked rotary moves without machine self-collisions", { timeout: 300_000 }, () => {
   // Index at the top, descend to the floor in the clear area beside the stock.

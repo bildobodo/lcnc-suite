@@ -131,6 +131,32 @@ the adapted TWP demonstration programs and full live validation still precede
 promotion to the default demo. The existing INI, kinematic pins and offsets
 remain applicable to this geometry update.
 
+## Collision proxies
+
+The linear guides tessellate the rail and block profiles into ~189,000 of the
+model's 204,000 triangles, and every clearance query of the collision sweep
+walked those meshes — a 1.2 M-point program's sweep took hours. The nine
+guide parts (`x/y/z_guide_rails`, `_guide_blocks`, `_guide_endcaps`) therefore
+declare a `collision` proxy in `machine.json`: `collision/<part>.stl`, one
+axis-aligned box per connected component (rail, block, cap), 744 triangles in
+all. The display mesh is unchanged; the sweep checks the box, which contains
+the part, so it can only become more conservative. `leveling_pads` and
+`chip_tray` are `collide: false` — decoration under the bed the sweep never
+sees. The head, housings, faceplate and fixture stay on their real meshes: a
+box around a ring or a tilted housing would fill the gaps between them.
+
+The proxies are derived from the exported meshes, deterministically:
+
+```sh
+python3 scripts/stl_collision_proxy.py examples/sim_config/machine-xyzacb-gantry/x_guide_rails.stl \
+        examples/sim_config/machine-xyzacb-gantry/collision/x_guide_rails.stl
+python3 scripts/stl_collision_proxy.py --check IN.stl OUT.stl   # exit 1 if OUT is stale
+```
+
+`freecad_twp_gantry.py` runs this for every proxied part after its export,
+and `machineGantry.test.ts` checks that every display-mesh vertex of a proxied
+part lies inside one of its boxes.
+
 ## Rebuild or edit
 
 FreeCAD is only needed to change geometry. The committed meshes are ready to

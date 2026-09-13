@@ -99,7 +99,8 @@
         0.15,
         0.19,
         0.22
-      ]
+      ],
+      "collide": false
     },
     {
       "id": "x_side_walls",
@@ -129,7 +130,8 @@
         0.15,
         0.19,
         0.22
-      ]
+      ],
+      "collide": false
     },
     {
       "id": "x_guide_rails",
@@ -144,7 +146,8 @@
         0.64,
         0.68,
         0.7
-      ]
+      ],
+      "collision": "collision/x_guide_rails.stl"
     },
     {
       "id": "x_guide_blocks",
@@ -159,7 +162,8 @@
         0.64,
         0.68,
         0.7
-      ]
+      ],
+      "collision": "collision/x_guide_blocks.stl"
     },
     {
       "id": "x_guide_endcaps",
@@ -174,7 +178,8 @@
         0.15,
         0.19,
         0.22
-      ]
+      ],
+      "collision": "collision/x_guide_endcaps.stl"
     },
     {
       "id": "x_saddle_plates",
@@ -249,7 +254,8 @@
         0.64,
         0.68,
         0.7
-      ]
+      ],
+      "collision": "collision/y_guide_rails.stl"
     },
     {
       "id": "y_guide_blocks",
@@ -264,7 +270,8 @@
         0.64,
         0.68,
         0.7
-      ]
+      ],
+      "collision": "collision/y_guide_blocks.stl"
     },
     {
       "id": "y_guide_endcaps",
@@ -279,7 +286,8 @@
         0.15,
         0.19,
         0.22
-      ]
+      ],
+      "collision": "collision/y_guide_endcaps.stl"
     },
     {
       "id": "y_carriage",
@@ -324,7 +332,8 @@
         0.64,
         0.68,
         0.7
-      ]
+      ],
+      "collision": "collision/z_guide_rails.stl"
     },
     {
       "id": "z_guide_blocks",
@@ -339,7 +348,8 @@
         0.64,
         0.68,
         0.7
-      ]
+      ],
+      "collision": "collision/z_guide_blocks.stl"
     },
     {
       "id": "z_guide_endcaps",
@@ -354,7 +364,8 @@
         0.15,
         0.19,
         0.22
-      ]
+      ],
+      "collision": "collision/z_guide_endcaps.stl"
     },
     {
       "id": "z_top_motor",
