@@ -5314,6 +5314,13 @@ def build_viewer_init(stl_base_url: str) -> Dict[str, Any]:
             # Optional stock flag: the ONE body class the tool may FEED into
             # (collision sweep cutting semantics). Machine parts never are.
             "stock": p.get("stock"),
+            # Collision PROXY (2026-09-13): a coarser mesh the sweep checks
+            # INSTEAD of the display mesh (it must contain it — one box per
+            # component for rails/blocks); versioned like `file`.
+            # `collide: false` keeps a decorative part out of the sweep
+            # entirely — a crash into it is then NOT reported, by declaration.
+            "collision": _stl_versioned(p["collision"]) if p.get("collision") else None,
+            "collide": p.get("collide"),
         })
 
     # INI/static fields — delivered once per connect so the per-tick status

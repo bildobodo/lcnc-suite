@@ -7,7 +7,7 @@ import { Text } from "troika-three-text";
 import { buildToolProfile, splitProfileAt, buildToolGeometry, buildHolderGeometry, type ToolMeta } from "./toolGeometry";
 import { AXIS_HEX, AXIS_CSS } from "./axisColors";
 import {
-  failedParts, loadMachineAssets, getCachedGeometry, getToolMeta, setToolMeta, machineReady,
+  failedParts, loadMachineAssets, getCachedGeometry, getCollisionGeometry, getToolMeta, setToolMeta, machineReady,
 } from "./viewer/machineAssetCache";
 
 import { viewerInit, viewerGcode, status, emitTelemetry, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, type ViewerInit, type ViewerGcode } from "./lcncWs";
@@ -31,6 +31,7 @@ import { boundsFromJointLimits, sameBox, type JointLimits, type MachineBox } fro
 import { displayDecision } from "./viewer/displayPipeline";
 import { trackHighlightRange } from "./trackHighlight";
 import type { CollisionBody, CollisionResult, CollisionLineMark } from "./viewer/collision";
+import { partCollides } from "./viewer/collision";
 import { mergeEntryResult } from "./viewer/sweepMerge";
 import { planEntryCheck } from "./viewer/sweepEntry";
 import { previewSchemaMismatch, parseTloMismatch, EXPECTED_PREVIEW_SCHEMA, type ScrubTrack } from "./ws/bulkData";
@@ -2227,7 +2228,7 @@ function _colGetWorker(): Worker {
         uncertified: result.uncertified != null,
         truncated: result.truncated?.reason ?? null,
         covered: result.truncated?.covered ?? 1,
-        hits: result.hits.length, pairs: result.pairCount,
+        hits: result.hits.length, pairs: result.pairCount, pairs_prescreened: result.pairsPrescreened,
         points: _colPendingTrack?.count ?? null,
       });
       emit("collision-lines", result.hits.map(h => ({ line: h.line, continuation: h.continuation })));
@@ -2433,8 +2434,8 @@ function _colOnVisibility() {
 // tool body dims. Bodies are re-sent only when it changes.
 function _colModelKey(init: ViewerInit): string {
   const parts = (init.parts ?? [])
-    .filter(p => !!getCachedGeometry(p.id))
-    .map(p => [p.id, p.file, p.group ?? "root", p.translate ?? null, (p as any).rotate ?? null, p.stock ? 1 : 0]);
+    .filter(p => partCollides(p) && !!getCachedGeometry(p.id))
+    .map(p => [p.id, p.file, p.collision ?? null, p.group ?? "root", p.translate ?? null, (p as any).rotate ?? null, p.stock ? 1 : 0]);
   return JSON.stringify([parts, _unitScale, _toolVisual(_pv.toolDiam, _pv.toolLen)]);
 }
 
@@ -2450,7 +2451,17 @@ function _colBuildRequest(track: ScrubTrack, id: number, side: boolean) {
   const bodies: CollisionBody[] = [];
   let skipped = 0;
   if (sendBodies) for (const p of (init.parts ?? [])) {
-    const attr = getCachedGeometry(p.id)?.getAttribute("position");
+    if (!partCollides(p)) continue;   // decorative by declaration (machine.json collide: false)
+    // Collision PROXY (machine.json `collision`): the coarser superset mesh
+    // the sweep checks instead of the display mesh. A declared proxy that
+    // did not load is reported — never silently swapped — and the display
+    // mesh stands in: sound, just slow.
+    const proxy = p.collision ? getCollisionGeometry(p.id) : undefined;
+    if (p.collision && !proxy) {
+      console.error(`[collision] proxy mesh for ${p.id} not loaded — checking its display mesh instead`);
+      emitTelemetry("collision.proxy_missing", { part: p.id });
+    }
+    const attr = (proxy ?? getCachedGeometry(p.id))?.getAttribute("position");
     if (!attr) { skipped++; continue; }  // unloaded geometry
     bodies.push({
       id: p.id,

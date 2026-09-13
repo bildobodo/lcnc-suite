@@ -57,6 +57,7 @@ export function mergeEntryResult(entry: CollisionResult, base: CollisionResult, 
     coarsened: entry.coarsened || base.coarsened,
     uncertified: entry.uncertified ?? base.uncertified,
     pairCount: base.pairCount,
+    pairsPrescreened: base.pairsPrescreened,
     bvhMs: entry.bvhMs + base.bvhMs,
     sweepMs: entry.sweepMs + base.sweepMs,
     // The entry segment is always swept whole; only the base can be partial.

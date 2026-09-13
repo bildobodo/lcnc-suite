@@ -385,13 +385,20 @@ timeout); `near`/`comp` are already loaded by the hallib and a module loads once
 **Schema** (`machine.json`):
 - `groups`: `[{id, parent, translate?}]` — transform tree under implicit
   `root`. `translate` is a static base offset (pivot/home position), in mm.
-- `parts`: `[{id, file, group, translate?, rotate?, color?, stock?}]` —
+- `parts`: `[{id, file, group, translate?, rotate?, color?, stock?, collision?, collide?}]` —
   STL meshes attached to groups. `color` is `[r,g,b]` 0–1 (STL has no
   color channel); per-part user overrides from Settings still win. Parts
   get color pickers in Settings automatically. `stock: true` marks the
   ONE body class the collision sweep may FEED into (cutting semantics);
   `rotate` is Euler radians (prefer baking static rotations into the STL,
   as fetch-model.sh does for the DMU B head).
+  `collision: "collision/<part>.stl"` (2026-09-13) names a coarser SUPERSET
+  mesh the collision sweep checks INSTEAD of the display mesh — one
+  axis-aligned box per connected component for rails/blocks/end caps
+  (`scripts/stl_collision_proxy.py`; `machineGantry.test.ts` gates that every
+  display vertex lies inside a proxy box, so the sweep can only get more
+  conservative). `collide: false` marks decor the sweep never sees — a crash
+  into such a part is NOT reported, by the model author's declaration.
 - `kinematics`: `[{group, joint, type: translate|rotate, direction: x|y|z
   or axis: [x,y,z], sign}]` — each entry drives one group from
   `joint_pos[joint]` (**joint index, not axis letter** — trivkins:
@@ -988,7 +995,22 @@ would provide one for arbitrary machines/programs. Pair scope: DERIVED from rela
 — any two bodies whose
 group-tree path crosses a kinematic DOF below their lowest common
 ancestor form a pair (tool-vs-work, tool-vs-frame, and same-side pairs
-like platter-vs-table across the A tilt); rigid pairs are skipped.
+like platter-vs-table across the A tilt); rigid pairs are skipped. A whole-program REACH PRESCREEN (2026-09-13) then
+drops pairs that can provably never come within the margin at any pose the
+sweep will evaluate: every joint's range over the track (both endpoints of
+every segment under its own kins labeling, bulge-padded on world-kins
+segments) pushed through each body's chain below the pair's LCA as a reach
+sphere (translations widen by half their range, rotations by the chord
+2ρ·sin(min(Δ/4, π/2))); reported as `pairsPrescreened`. Query side (same day, from the opt-in
+`CollisionOptions.profile`): the larger body is always the OUTER BVH
+traversal (three-mesh-bvh prunes the outer tree by the inner body's whole
+box — a wall-spanning inner box prunes nothing: 12.8 ms → 0.02 ms per
+query), each body carries its connected components' AABBs
+(`componentBoxes`) whose box-to-box distance is a valid lower bound that
+answers every above-margin query without the BVH, and a cutting pair in
+feed-begun contact owes no per-line sample. The wall gantry's ~450 pairs
+over 236k triangles made a 1.2 M-point sweep take hours; a 20k-point slice
+went 203 s → 5.1 s (docs/decisions.md 2026-09-13).
 Baseline subtraction keeps it quiet: pairs inside the margin at the
 program's FIRST pose AND at the model's REST pose (every joint at zero —
 the designed pose the machine-model tests require to be self-collision-

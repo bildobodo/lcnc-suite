@@ -4,7 +4,7 @@ import type { CollisionResult } from "./collision";
 
 const res = (over: Partial<CollisionResult>): CollisionResult => ({
   hits: [], staticContacts: [], samples: 0, coarsened: false, uncertified: null,
-  pairCount: 3, bvhMs: 1, sweepMs: 10, truncated: null, ...over,
+  pairCount: 3, pairsPrescreened: 0, bvhMs: 1, sweepMs: 10, truncated: null, ...over,
 });
 
 describe("mergeEntryResult", () => {

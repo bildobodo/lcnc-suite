@@ -33,6 +33,14 @@ export interface ViewerPart {
   // STOCK body: the one thing the tool may FEED into (collision-sweep
   // cutting semantics — see viewer/collision.ts). Machine parts never are.
   stock?: boolean;
+  // Collision PROXY mesh (2026-09-13): the sweep checks this file instead of
+  // `file` — a coarser SUPERSET (one box per component for rails/blocks) so a
+  // 100k-triangle guide does not make every clearance query walk its BVH.
+  // Versioned like `file`. Absent = the display mesh is the collision mesh.
+  collision?: string | null;
+  // `collide: false` = decorative: not a collision body at all. A crash into
+  // such a part is NOT reported — the model author's declaration.
+  collide?: boolean | null;
   // Legacy field names kept for backward compatibility with older payloads.
   parent?: string | null;
   t?: Vec3;

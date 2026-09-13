@@ -4998,3 +4998,77 @@ instance a gateway serves). Heartbeat-window liveness (see above).
 **Rollout.** feat/twp must `git merge development` before its next LinuxCNC
 restart: the installed configs load the helpers from the development
 checkout, so a not-yet-merged twp-checkout gateway is refused `no_hello`.
+
+## 2026-09-13 — the wall gantry's sweep took hours: collision proxies + a whole-program reach prescreen
+
+**Observed.** On PR #39's wall-gantry model the operator saw "sim parsing very slow,
+barely any progress" for perfmatrix-big.ngc. The gateway parse was unchanged
+(13.1 s, same as on the trunnion); the browser's collision sweep was the slow
+part: the sim-entry slice took 6.3 s for 600 samples where the trunnion took
+28 ms for 94 — ~35× per sample — so the 2.8 M-sample base sweep (199 s on the
+trunnion) was heading for ~2 h. Two causes: the model's guide hardware
+tessellates the HIWIN rail/block profiles into ~210k of 236k triangles
+(trunnion: 1,156), and 32 bodies form 454 moving pairs (trunnion: 46), each
+costing a first BVH query and periodic re-certification although a 130 mm
+program reaches a tenth of them.
+
+**Decision — two independent fixes, both correct by construction.**
+1. *Collision proxies in the model.* machine.json parts may declare
+   `collision: "collision/<part>.stl"`, a coarser mesh the sweep checks
+   INSTEAD of the display mesh, and `collide: false` for decor the sweep
+   never sees. `scripts/stl_collision_proxy.py` writes one axis-aligned box per
+   connected component (deterministic, `--check` mode); the nine guide parts
+   drop from ~223k to 840 triangles. Soundness: a box CONTAINS its component,
+   so every proxied query returns a distance ≤ the true one — the sweep can
+   only get more conservative; `machineGantry.test.ts` gates containment of
+   every display vertex. The head, housings, faceplate and fixture stay exact
+   (a box around a ring or a tilted housing would fill the gaps). The FreeCAD
+   generator emits the fields and rebuilds the proxies after export.
+2. *Whole-program reach prescreen in the engine.* Before the sweep, every
+   joint's range over the track is taken from both endpoints of every segment
+   under that segment's own kins labeling (exactly what the sweep lerps
+   between), bulge-padded with `KinsModel.jointBulge` on world-kins segments
+   (the same bound the advancement uses, over the whole segment ≥ any chunk's).
+   Each body's bounding sphere is pushed up its chain to the pair's LCA through
+   only the DOFs below it, composed as `poseTree` composes a node: a
+   translation widens the sphere by half its range, a rotation by the chord
+   its centre can swing over the range, 2ρ·sin(min(Δ/4, π/2)). Joint ranges
+   are treated as independent — an over-approximation of the reachable set,
+   never an under-approximation. A pair whose spheres stay farther apart than
+   the margin is dropped: no baseline probe, no certificate, no query;
+   `CollisionResult.pairsPrescreened` reports the count. The tool body covers
+   every program-tool variant plus the largest TLO. Pinned by
+   `collision.test.ts`: far pairs dropped with the hit intact; a pair met only
+   mid-arc (both vertices far) is kept and still found; a linear range counts
+   in full.
+
+3. *Query-side fixes, found by the new opt-in per-pair profile
+   (`CollisionOptions.profile`): 97 % of the sweep was inside distance
+   queries, a third of it in ONE far pair (spindle nose vs side walls, 12.8 ms
+   per query).* (a) three-mesh-bvh prunes the OUTER traversal by the INNER
+   body's whole bounding box, so a wall-spanning inner box prunes nothing and
+   the query walks every outer leaf; the larger body (AABB diagonal) is now
+   always the outer traversal — 0.02 ms, same answer (`BuiltBody.extent`).
+   (b) Near mechanical neighbours 12 mm apart (end caps vs walls, ram vs end
+   caps) re-certify every 10 mm of path and cost a 3 ms tree walk each because
+   their single bounding volumes span the machine; each body now carries its
+   connected components' local AABBs (`componentBoxes`, capped at 256), and
+   a component-box distance — a valid LOWER bound, since the boxes contain the
+   components and a rotated box is enclosed by its corners' AABB — answers any
+   query above the margin without the BVH. (c) A cutting pair in FEED-begun
+   contact mints no record, so it no longer owes the per-line sample; the
+   EXPLORE cadence alone watches for separation (the tool×stock pair was a
+   fifth of the sweep on a 0.7 mm-line random walk). Pinned by
+   `collision.test.ts` (componentBoxes, a rotated body's bound never hides a
+   contact, declaration order does not change the hits). Numbers, 20,000-point
+   slice of perfmatrix-big on the gantry: fine meshes before any change
+   203 s; proxies alone 94 s; proxies + query fixes 5.1 s (0.084 ms/sample —
+   the trunnion's rate); fine meshes + query fixes 8.3 s. The gantry model
+   gate went from 75 s to 1.7 s.
+
+**Rejected.** Splitting wall-spanning parts into per-component bodies (more
+pairs; the component boxes give the same pruning without changing pair
+semantics); excluding the
+guides with `collide: false` (they are on the head's path — a proxy keeps
+them real); a sampled prescreen (a sample is not a bound); lowering the
+sweep's sample floor (MIN_ADV is the guarantee's constant).

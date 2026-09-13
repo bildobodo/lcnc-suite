@@ -117,6 +117,20 @@ export interface CollisionBody {
   tool?: boolean;
 }
 
+/** The mesh a machine.json part contributes to the sweep: its collision
+ *  PROXY (`collision`, a coarser superset — one box per component for
+ *  rails/blocks) when it declares one, else its display mesh. One rule for
+ *  the viewer's body builder and the model gates (2026-09-13). */
+export function partCollisionFile(p: { file: string; collision?: string | null }): string {
+  return p.collision || p.file;
+}
+
+/** `collide: false` parts are decorative — never collision bodies. A crash
+ *  into one is NOT reported; that is the model author's declaration. */
+export function partCollides(p: { collide?: boolean | null }): boolean {
+  return p.collide !== false;
+}
+
 export interface CollisionHit {
   line: number;
   /** Track-cum of FIRST TOUCH (refined) for contact hits; closest-approach
@@ -211,6 +225,11 @@ export interface CollisionOptions {
   /** The loaded tool number — what a segment before the first M6 row
    *  (or a payload without the channel) runs with. */
   liveTool?: number | null;
+  /** Diagnostics (2026-09-13): when set, the sweep allocates and fills
+   *  per-pair distance-query counts and milliseconds, indexed like
+   *  `model.pairs` — the tool for finding which pairs a slow sweep spends its
+   *  time on. Off by default; costs nothing when absent. */
+  profile?: { queries?: Uint32Array; ms?: Float64Array };
 }
 
 export interface CollisionResult {
@@ -230,6 +249,11 @@ export interface CollisionResult {
    *  means the sweep is certified. Unchecked is not clear. */
   uncertified: string | null;
   pairCount: number;
+  /** Pairs the whole-program reach prescreen dropped before the sweep:
+   *  provably beyond the margin at every pose the sweep would evaluate
+   *  (2026-09-13). Never queried, never certified. `pairCount` still counts
+   *  them. */
+  pairsPrescreened: number;
   bvhMs: number;
   sweepMs: number;
   /** Set when the sweep stopped before the end of the track — the wall-clock
@@ -296,8 +320,72 @@ interface BuiltBody {
   localMat: THREE.Matrix4;       // static translate+rotate inside the group
   center: THREE.Vector3;         // local bounding-sphere
   radius: number;
+  /** AABB diagonal of the local mesh. The LARGER body of a pair is the outer
+   *  traversal of the closest-point query (2026-09-13): three-mesh-bvh
+   *  prunes the outer tree by the INNER body's bounding box, so an inner box
+   *  that spans the work volume (the side walls, a rail set) prunes nothing
+   *  and the query walks every outer leaf — 12.8 ms for the spindle nose
+   *  against the walls; the other way round, 0.02 ms, same answer. */
+  extent: number;
+  /** Connected components' local AABBs, 6 floats each (min xyz, max xyz).
+   *  The tight distance LOWER BOUND for multi-component bodies (two walls,
+   *  eight rails, sixteen end caps): their one bounding sphere spans the
+   *  machine and the library's node boxes are pruned by the other body's
+   *  WHOLE box, so a 12 mm mechanical neighbour cost a 3 ms tree walk every
+   *  10 mm of path. Boxes of components contain them, so the box-to-box
+   *  distance never exceeds the true one. Capped at MAX_COMPS: a soup of
+   *  unshared triangles collapses to the whole-mesh box (still valid). */
+  comps: Float32Array;
   world: THREE.Matrix4;          // scratch, updated per sample
   worldCenter: THREE.Vector3;    // scratch
+}
+
+const MAX_COMPS = 256;
+
+/** Local AABB per connected component of a triangle soup (vertices shared to
+ *  1 µm), 6 floats each — see BuiltBody.comps. Exported for tests. */
+export function componentBoxes(pos: Float32Array): Float32Array {
+  const nTri = Math.floor(pos.length / 9);
+  const parent = new Int32Array(nTri);
+  for (let i = 0; i < nTri; i++) parent[i] = i;
+  const find = (a: number): number => {
+    while (parent[a] !== a) { parent[a] = parent[parent[a]!]!; a = parent[a]!; }
+    return a;
+  };
+  const seen = new Map<string, number>();
+  for (let t = 0; t < nTri; t++) {
+    for (let v = 0; v < 3; v++) {
+      const o = t * 9 + v * 3;
+      const key = `${Math.round(pos[o]! * 1000)},${Math.round(pos[o + 1]! * 1000)},${Math.round(pos[o + 2]! * 1000)}`;
+      const prev = seen.get(key);
+      if (prev === undefined) seen.set(key, t);
+      else {
+        const ra = find(t), rb = find(prev);
+        if (ra !== rb) parent[ra] = rb;
+      }
+    }
+  }
+  const boxOf = new Map<number, number[]>();
+  for (let t = 0; t < nTri; t++) {
+    const r = find(t);
+    let b = boxOf.get(r);
+    if (!b) { b = [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity]; boxOf.set(r, b); }
+    for (let v = 0; v < 3; v++) {
+      const o = t * 9 + v * 3;
+      for (let k = 0; k < 3; k++) {
+        const c = pos[o + k]!;
+        if (c < b[k]!) b[k] = c;
+        if (c > b[k + 3]!) b[k + 3] = c;
+      }
+    }
+  }
+  let boxes = [...boxOf.values()];
+  if (boxes.length > MAX_COMPS || boxes.length === 0) {
+    const b = [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity];
+    for (const bx of boxes) for (let k = 0; k < 3; k++) { b[k] = Math.min(b[k]!, bx[k]!); b[k + 3] = Math.max(b[k + 3]!, bx[k + 3]!); }
+    boxes = boxes.length ? [b] : [];
+  }
+  return new Float32Array(boxes.flat());
 }
 
 /** Full-tree node list, parents first (unlike partFrame's chain-only build —
@@ -393,6 +481,9 @@ export interface CollisionModel {
   pairCutting: boolean[];
   /** Per pair: one body is the TOOL — never a static exclusion. */
   pairTool: boolean[];
+  /** Per pair: node index of the bodies' lowest common ancestor — the frame
+   *  the whole-program reach prescreen compares them in (2026-09-13). */
+  pairLca: number[];
   machine: CollisionMachine;
   bvhMs: number;
 }
@@ -405,6 +496,7 @@ export function buildCollisionModel(machine: CollisionMachine, bodyDefs: Collisi
 
   const bodies: BuiltBody[] = [];
   const _e = new THREE.Euler();
+  const _size = new THREE.Vector3();
   for (const def of bodyDefs) {
     const nodeIdx = idxOf.get(def.group);
     if (nodeIdx === undefined) continue;  // dangling group — same tolerance as the live scene
@@ -419,6 +511,9 @@ export function buildCollisionModel(machine: CollisionMachine, bodyDefs: Collisi
     (geom as any).boundsTree = bvh;   // lets closestPointToGeometry use both trees
     geom.computeBoundingSphere();
     const sphere = geom.boundingSphere!;
+    geom.computeBoundingBox();
+    const extent = geom.boundingBox!.getSize(_size).length();
+    const comps = componentBoxes(scaled);
     const localMat = new THREE.Matrix4();
     if (def.rotate) _e.set(def.rotate[0] ?? 0, def.rotate[1] ?? 0, def.rotate[2] ?? 0);
     else _e.set(0, 0, 0);
@@ -430,7 +525,7 @@ export function buildCollisionModel(machine: CollisionMachine, bodyDefs: Collisi
     );
     bodies.push({
       id: def.id, nodeIdx, side, bvh, geom, localMat,
-      center: sphere.center.clone(), radius: sphere.radius,
+      center: sphere.center.clone(), radius: sphere.radius, extent, comps,
       world: new THREE.Matrix4(), worldCenter: new THREE.Vector3(),
     });
   }
@@ -439,7 +534,7 @@ export function buildCollisionModel(machine: CollisionMachine, bodyDefs: Collisi
   // a DOF must sit strictly between them (below their lowest common
   // ancestor). DOFs on the LCA or above move both bodies rigidly together.
   // Returns exactly those DOFs — they drive the pair's velocity bound.
-  const pathDofsBetween = (ia: number, ib: number): PathDof[] => {
+  const pathDofsBetween = (ia: number, ib: number): { dofs: PathDof[]; lca: number } => {
     const pathA: number[] = [];
     for (let i = ia; i >= 0; i = nodes[i]!.parentIdx) pathA.push(i);
     const aSet = new Set(pathA);
@@ -455,7 +550,7 @@ export function buildCollisionModel(machine: CollisionMachine, bodyDefs: Collisi
     }
     const out: PathDof[] = [];
     for (const i of rel) for (const dof of nodes[i]!.dofs) out.push({ nodeIdx: i, dof });
-    return out;
+    return { dofs: out, lca };
   };
 
   // Cutting pairs: tool-side body × an EXPLICIT stock body. No machine part
@@ -467,25 +562,27 @@ export function buildCollisionModel(machine: CollisionMachine, bodyDefs: Collisi
 
   const pairs: Array<[number, number]> = [];
   const pairDofs: PathDof[][] = [];
+  const pairLca: number[] = [];
   const pairCutting: boolean[] = [];
   const pairTool: boolean[] = [];
   for (let a = 0; a < bodies.length; a++) {
     for (let b = a + 1; b < bodies.length; b++) {
       const A = bodies[a]!, B = bodies[b]!;
       if (A.nodeIdx === B.nodeIdx) continue;  // same group — rigid
-      const dofs = pathDofsBetween(A.nodeIdx, B.nodeIdx);
+      const { dofs, lca } = pathDofsBetween(A.nodeIdx, B.nodeIdx);
       if (!dofs.length) continue;
       // Tool-side body first when there is one — hit messages read better.
       if (B.side === "tool" && A.side !== "tool") pairs.push([b, a]);
       else pairs.push([a, b]);
       pairDofs.push(dofs);
+      pairLca.push(lca);
       pairCutting.push(
         (A.side === "tool" && isCuttingBody(B)) || (B.side === "tool" && isCuttingBody(A)),
       );
       pairTool.push(isToolBody(A) || isToolBody(B));
     }
   }
-  return { nodes, bodies, pairs, pairDofs, pairCutting, pairTool, machine, bvhMs: performance.now() - t0 };
+  return { nodes, bodies, pairs, pairDofs, pairCutting, pairTool, pairLca, machine, bvhMs: performance.now() - t0 };
 }
 
 /** One kinematic pose: evaluate every node's world matrix from joint values. */
@@ -571,7 +668,7 @@ export function* sweepCollisionsIter(
   wcs: PartFrameWcs,
   opts: CollisionOptions,
 ): Generator<number, CollisionResult, boolean | undefined> {
-  const { nodes, bodies, pairs, pairDofs, pairCutting, pairTool, machine } = model;
+  const { nodes, bodies, pairs, pairDofs, pairCutting, pairTool, pairLca, machine } = model;
   const maxSamples = opts.maxSamples ?? DEFAULTS.maxSamples;
   const clock = opts.clock ?? (() => performance.now());
   const t0 = clock();
@@ -652,13 +749,13 @@ export function* sweepCollisionsIter(
   // tool BuiltBody's geometry/BVH/sphere swap — pairs, pair DOFs and the
   // cutting flags are properties of the body's identity and stay invariant
   // (pushing K tool bodies would mint K× pairs and misattribute hits).
-  type ToolVariant = { geom: THREE.BufferGeometry; bvh: MeshBVH; center: THREE.Vector3; radius: number };
+  type ToolVariant = { geom: THREE.BufferGeometry; bvh: MeshBVH; center: THREE.Vector3; radius: number; extent: number; comps: Float32Array };
   const toolVariants = new Map<number, ToolVariant>();
   let baseVariant: ToolVariant | null = null;
   let appliedTool: number | null | undefined = undefined;
   if (toolBodyIdx >= 0 && opts.toolDims && opts.tloEvents?.length) {
     const tb = bodies[toolBodyIdx]!;
-    baseVariant = { geom: tb.geom, bvh: tb.bvh, center: tb.center, radius: tb.radius };
+    baseVariant = { geom: tb.geom, bvh: tb.bvh, center: tb.center, radius: tb.radius, extent: tb.extent, comps: tb.comps };
     for (const ev of opts.tloEvents) {
       const tn = ev.tool;
       if (tn == null || toolVariants.has(tn)) continue;
@@ -669,7 +766,10 @@ export function* sweepCollisionsIter(
       const bvh = new MeshBVH(geom);
       (geom as any).boundsTree = bvh;
       geom.computeBoundingSphere();
-      toolVariants.set(tn, { geom, bvh, center: geom.boundingSphere!.center.clone(), radius: geom.boundingSphere!.radius });
+      geom.computeBoundingBox();
+      toolVariants.set(tn, { geom, bvh, center: geom.boundingSphere!.center.clone(), radius: geom.boundingSphere!.radius,
+                             extent: geom.boundingBox!.getSize(new THREE.Vector3()).length(),
+                             comps: componentBoxes(geom.getAttribute("position").array as Float32Array) });
     }
   }
   const applyTool = (tn: number | null) => {
@@ -677,7 +777,7 @@ export function* sweepCollisionsIter(
     appliedTool = tn;
     const v = (tn != null ? toolVariants.get(tn) : undefined) ?? baseVariant;
     const tb = bodies[toolBodyIdx]!;
-    tb.geom = v.geom; tb.bvh = v.bvh; tb.center = v.center; tb.radius = v.radius;
+    tb.geom = v.geom; tb.bvh = v.bvh; tb.center = v.center; tb.radius = v.radius; tb.extent = v.extent; tb.comps = v.comps;
   };
   const toolFor = (i: number): number | null =>
     toolForIndex(track.tlo?.[i], opts.tloEvents, opts.liveTool);
@@ -758,8 +858,11 @@ export function* sweepCollisionsIter(
   const termFor = (i: number): WcsTerms =>
     (track.wcs && opts.epochTerms?.[track.wcs[i] ?? 0]) ? opts.epochTerms[track.wcs[i] ?? 0]! : o;
 
-  const poseAt = (px: number, py: number, pz: number, pa: number, pb: number, pc: number, model: KinsModel = identityKins, oSeg: WcsTerms = o, tloSeg: readonly number[] = liveTlo, toolSeg: number | null = null) => {
-    applyTool(toolSeg);
+  /** Joints for one program-space point under a segment's labeling — the
+   *  first half of poseAt, shared with the reach prescreen so both derive
+   *  joints through exactly one path. Leaves the machine coords in
+   *  machineVals (jointBulge's input) and the joints in jointVals. */
+  const liftJoints = (px: number, py: number, pz: number, pa: number, pb: number, pc: number, model: KinsModel, oSeg: WcsTerms, tloSeg: readonly number[]) => {
     liftToJoints(px, py, pz, pa, pb, pc, oSeg, tloSeg, machineVals);
     model.inverse(machineVals, kinsOut);
     for (let ji = 0; ji < kinsOut.length; ji++) {
@@ -769,6 +872,10 @@ export function* sweepCollisionsIter(
     // machine with more joints than that the tail would keep whatever a
     // PRECEDING segment's model left there — a stale pose, not a fresh one.
     for (let ji = kinsOut.length; ji < jointVals.length; ji++) jointVals[ji] = 0;
+  };
+  const poseAt = (px: number, py: number, pz: number, pa: number, pb: number, pc: number, model: KinsModel = identityKins, oSeg: WcsTerms = o, tloSeg: readonly number[] = liveTlo, toolSeg: number | null = null) => {
+    applyTool(toolSeg);
+    liftJoints(px, py, pz, pa, pb, pc, model, oSeg, tloSeg);
     poseTree(nodes, jointVals, scratch);
     for (let bi = 0; bi < bodies.length; bi++) {
       const body = bodies[bi]!;
@@ -784,15 +891,199 @@ export function* sweepCollisionsIter(
   // when provably ≥ maxT (sphere prescreen — its slack also LOWER-bounds the
   // true distance, so advancement can use it — then BVH closest-point with
   // early-out; the matrix maps B's geometry into A's local frame: A⁻¹ · B).
+  // Distance lower bound from the two bodies' component boxes, `rel` mapping
+  // B's frame into A's (see BuiltBody.comps): each B box's eight corners →
+  // an AABB in A's frame, min box-to-box gap over all component pairs.
+  const boxLowerBound = (A: BuiltBody, B: BuiltBody, rel: THREE.Matrix4): number => {
+    const ca = A.comps, cb = B.comps;
+    if (!ca.length || !cb.length) return 0;
+    const e = rel.elements;
+    let best = Infinity;
+    for (let j = 0; j < cb.length; j += 6) {
+      let x0 = Infinity, y0 = Infinity, z0 = Infinity, x1 = -Infinity, y1 = -Infinity, z1 = -Infinity;
+      for (let k = 0; k < 8; k++) {
+        const bx = (k & 1) ? cb[j + 3]! : cb[j]!, by = (k & 2) ? cb[j + 4]! : cb[j + 1]!, bz = (k & 4) ? cb[j + 5]! : cb[j + 2]!;
+        const x = e[0]! * bx + e[4]! * by + e[8]! * bz + e[12]!;
+        const y = e[1]! * bx + e[5]! * by + e[9]! * bz + e[13]!;
+        const z = e[2]! * bx + e[6]! * by + e[10]! * bz + e[14]!;
+        if (x < x0) x0 = x; if (x > x1) x1 = x;
+        if (y < y0) y0 = y; if (y > y1) y1 = y;
+        if (z < z0) z0 = z; if (z > z1) z1 = z;
+      }
+      for (let i = 0; i < ca.length; i += 6) {
+        const gx = Math.max(0, ca[i]! - x1, x0 - ca[i + 3]!);
+        const gy = Math.max(0, ca[i + 1]! - y1, y0 - ca[i + 4]!);
+        const gz = Math.max(0, ca[i + 2]! - z1, z0 - ca[i + 5]!);
+        const d = Math.sqrt(gx * gx + gy * gy + gz * gz);
+        if (d < best) { best = d; if (best === 0) return 0; }
+      }
+    }
+    return best;
+  };
+  // Closest distance between two bodies at the current pose, or a valid
+  // LOWER bound when that is already above `maxT` (sphere gap), above the
+  // margin (component boxes — exact contact is then impossible and the
+  // certificate needs only a bound), or provably beyond maxT (BVH). The
+  // larger body is the outer traversal (BuiltBody.extent).
   const pairDistance = (A: BuiltBody, B: BuiltBody, maxT: number): number => {
     const centerDist = A.worldCenter.distanceTo(B.worldCenter);
     const sphereGap = centerDist - A.radius - B.radius;
     if (sphereGap > maxT) return sphereGap;  // valid LOWER bound on true distance
-    invA.copy(A.world).invert();
-    relMat.multiplyMatrices(invA, B.world);
-    const res = A.bvh.closestPointToGeometry(B.geom, relMat, target1, target2, 0, maxT);
+    const O = A.extent >= B.extent ? A : B;
+    const I = O === A ? B : A;
+    invA.copy(O.world).invert();
+    relMat.multiplyMatrices(invA, I.world);
+    const lb = boxLowerBound(O, I, relMat);
+    if (lb > opts.margin) return lb;         // no contact possible; bound for the certificate
+    const res = O.bvh.closestPointToGeometry(I.geom, relMat, target1, target2, 0, maxT);
     return res ? target1.distance : Infinity;  // null: provably beyond maxT
   };
+
+  // ── Whole-program reach prescreen (2026-09-13) ────────────────────────
+  // A pair whose two bodies can PROVABLY never come within the margin at any
+  // pose this sweep will evaluate is dropped before it starts: no baseline
+  // probe, no certificates, no queries. Why: the wall gantry has ~450 pairs
+  // over 236k triangles, and a 130 mm program reaches a tenth of them, yet
+  // every pair used to cost a first query and periodic re-certification —
+  // hours for a 1.2 M-point sweep. Sound by construction:
+  //  1. every joint's RANGE over the program: both endpoints of every
+  //     segment under that segment's own kins labeling (exactly what
+  //     interpPose lerps between; vertex 0 under its own labeling is the
+  //     baseline pose), widened by the family's jointBulge on non-identity
+  //     segments — the mid-segment excursion a chord cannot see, the same
+  //     bound the advancement uses, taken over the whole segment (≥ any
+  //     chunk's). Zero-length and relabel segments cost nothing but are
+  //     included, which is merely conservative.
+  //  2. each body's REACH SPHERE in the pair's LCA frame: its bounding
+  //     sphere pushed up the group tree through only the DOFs below the LCA
+  //     (the ones that move the pair relatively — pathDofsBetween's set),
+  //     composed as poseTree composes a node (rotations about the node
+  //     origin, last-listed applied first, then base + translations): a
+  //     translation DOF widens it by half its range, a rotation DOF by the
+  //     chord its centre can swing over the range — 2ρ·sin(min(Δ/4, π/2)),
+  //     ρ the centre's distance from the axis. Joint ranges are treated as
+  //     independent, which over-approximates the reachable set, never under.
+  //  3. the tool body's sphere covers EVERY program-tool variant (max
+  //     tip-relative extent over the cylinders) plus the largest TLO shift
+  //     applied in the tool node's frame.
+  const nJ = jointVals.length;
+  const jLo = new Float64Array(nJ).fill(Infinity);
+  const jHi = new Float64Array(nJ).fill(-Infinity);
+  const jPad = new Float64Array(nJ);
+  const bulgeTmp = new Float64Array(nJ);
+  const rsM0: number[] = [0, 0, 0, 0, 0, 0], rsM1: number[] = [0, 0, 0, 0, 0, 0];
+  let tloMax = 0;
+  const noteJoints = () => {
+    for (let ji = 0; ji < nJ; ji++) {
+      const v = jointVals[ji]!;
+      if (v < jLo[ji]!) jLo[ji] = v;
+      if (v > jHi[ji]!) jHi[ji] = v;
+    }
+  };
+  const noteTlo = (t: readonly number[]) => {
+    const mag = Math.hypot(t[0] ?? 0, t[1] ?? 0, t[2] ?? 0);
+    if (mag > tloMax) tloMax = mag;
+  };
+  const liftJointsAt = (i: number, t: number) => {
+    const j = i * 3, k = j - 3;
+    liftJoints(
+      track.pos[k]! + (track.pos[j]! - track.pos[k]!) * t,
+      track.pos[k + 1]! + (track.pos[j + 1]! - track.pos[k + 1]!) * t,
+      track.pos[k + 2]! + (track.pos[j + 2]! - track.pos[k + 2]!) * t,
+      track.abc[k]! + (track.abc[j]! - track.abc[k]!) * t,
+      track.abc[k + 1]! + (track.abc[j + 1]! - track.abc[k + 1]!) * t,
+      track.abc[k + 2]! + (track.abc[j + 2]! - track.abc[k + 2]!) * t,
+      vertModel?.[i] ?? identityKins, termFor(i), tloFor(i));
+  };
+  if (n > 0) {
+    liftJoints(track.pos[0]!, track.pos[1]!, track.pos[2]!, track.abc[0]!, track.abc[1]!, track.abc[2]!,
+               vertModel?.[0] ?? identityKins, termFor(0), tloFor(0));
+    noteJoints();
+    noteTlo(tloFor(0));
+    for (let i = 1; i < n; i++) {
+      noteTlo(tloFor(i));
+      const segModel = vertModel?.[i] ?? identityKins;
+      const bulges = segModel.type !== "trivkins";
+      liftJointsAt(i, 0);
+      noteJoints();
+      if (bulges) for (let x = 0; x < 6; x++) rsM0[x] = machineVals[x]!;
+      liftJointsAt(i, 1);
+      noteJoints();
+      if (bulges) {
+        for (let x = 0; x < 6; x++) rsM1[x] = machineVals[x]!;
+        segModel.jointBulge(rsM0, rsM1, bulgeTmp);
+        for (let ji = 0; ji < nJ; ji++) if (bulgeTmp[ji]! > jPad[ji]!) jPad[ji] = bulgeTmp[ji]!;
+      }
+    }
+  }
+  for (let ji = 0; ji < nJ; ji++) {
+    if (jLo[ji] === Infinity) { jLo[ji] = 0; jHi[ji] = 0; }
+    jLo[ji] = jLo[ji]! - jPad[ji]!;
+    jHi[ji] = jHi[ji]! + jPad[ji]!;
+  }
+  const _rsAxis = new THREE.Vector3(), _rsProj = new THREE.Vector3(), _rsRad = new THREE.Vector3();
+  const reachSphere = (bi: number, lca: number, out: { c: THREE.Vector3; r: number }) => {
+    const body = bodies[bi]!;
+    const c = out.c;
+    let r: number;
+    if (bi === toolBodyIdx) {
+      let ext = body.center.length() + body.radius;
+      if (baseVariant) ext = Math.max(ext, baseVariant.center.length() + baseVariant.radius);
+      for (const v of toolVariants.values()) ext = Math.max(ext, v.center.length() + v.radius);
+      c.set(0, 0, 0).applyMatrix4(body.localMat);
+      r = ext + tloMax;
+    } else {
+      c.copy(body.center).applyMatrix4(body.localMat);
+      r = body.radius;
+    }
+    let ni = body.nodeIdx;
+    let guard = 0;
+    while (ni !== lca && ni >= 0 && guard++ < 64) {
+      const node = nodes[ni]!;
+      for (let di = node.dofs.length - 1; di >= 0; di--) {
+        const d = node.dofs[di]!;
+        if (!d.rotate) continue;
+        const a0 = (jLo[d.joint] ?? 0) * d.sign, a1 = (jHi[d.joint] ?? 0) * d.sign;
+        const lo = Math.min(a0, a1), hi = Math.max(a0, a1);
+        const mid = THREE.MathUtils.degToRad((lo + hi) / 2);
+        const half = THREE.MathUtils.degToRad((hi - lo) / 2);
+        _rsAxis.copy(d.axisVec).normalize();
+        _rsProj.copy(_rsAxis).multiplyScalar(c.dot(_rsAxis));
+        const rho = _rsRad.copy(c).sub(_rsProj).length();
+        c.applyAxisAngle(_rsAxis, mid);
+        r += 2 * rho * Math.sin(Math.min(half / 2, Math.PI / 2));
+      }
+      for (const d of node.dofs) {
+        if (d.rotate) continue;
+        const v0 = (jLo[d.joint] ?? 0) * d.sign, v1 = (jHi[d.joint] ?? 0) * d.sign;
+        const lo = Math.min(v0, v1), hi = Math.max(v0, v1);
+        c.addScaledVector(d.axisVec, (lo + hi) / 2);
+        r += (hi - lo) / 2;
+      }
+      c.add(node.base);
+      ni = node.parentIdx;
+    }
+    out.r = r;
+  };
+  const unreachable = new Uint8Array(pairs.length);
+  let pairsPrescreened = 0;
+  const rsA = { c: new THREE.Vector3(), r: 0 }, rsB = { c: new THREE.Vector3(), r: 0 };
+  for (let pi = 0; pi < pairs.length; pi++) {
+    const [ai, bi] = pairs[pi]!;
+    reachSphere(ai, pairLca[pi]!, rsA);
+    reachSphere(bi, pairLca[pi]!, rsB);
+    if (rsA.c.distanceTo(rsB.c) - rsA.r - rsB.r > opts.margin) {
+      unreachable[pi] = 1;
+      pairsPrescreened++;
+    }
+  }
+  // Pairs the sweep never touches: prescreened here, static after the baseline.
+  const skipPair = new Uint8Array(unreachable);
+  const prof = opts.profile;
+  if (prof) {
+    prof.queries = new Uint32Array(pairs.length);
+    prof.ms = new Float64Array(pairs.length);
+  }
 
   // Baseline pass (first pose): pairs already inside the margin here are
   // mechanical-joint proximity (slides, bearings, trunnion mounts). Reported
@@ -842,6 +1133,7 @@ export function* sweepCollisionsIter(
   const candidates: number[] = [];   // machine pairs inside the margin at the first pose
   const firstDist = new Float64Array(pairs.length);
   for (let pi = 0; pi < pairs.length; pi++) {
+    if (unreachable[pi]) continue;   // provably beyond the margin everywhere (prescreen)
     const [ai, bi] = pairs[pi]!;
     const dist = pairDistance(bodies[ai]!, bodies[bi]!, opts.margin);
     if (dist <= opts.margin) {
@@ -869,6 +1161,7 @@ export function* sweepCollisionsIter(
     poseFirst();   // leave the model where the sweep expects it
   }
   done++;
+  for (let pi = 0; pi < pairs.length; pi++) if (staticExcluded[pi]) skipPair[pi] = 1;
 
   // Full closest distance of ~1e-8 (float) never a clean 0 — see the
   // refinement pass, which shares this contact threshold.
@@ -1195,6 +1488,7 @@ export function* sweepCollisionsIter(
       coarsened,
       uncertified,
       pairCount: pairs.length,
+      pairsPrescreened,
       bvhMs: model.bvhMs,
       sweepMs: clock() - t0,
       truncated: trunc,
@@ -1267,7 +1561,7 @@ export function* sweepCollisionsIter(
       // the second interpPose is about to overwrite the buffer.
       if (segBulges) for (let x = 0; x < 6; x++) chunkM0[x] = machineVals[x]!;
       for (let pi = 0; pi < pairs.length; pi++) {
-        if (staticExcluded[pi]) continue;
+        if (skipPair[pi]) continue;
         const [ai, bi] = pairs[pi]!;
         const list = pairDofs[pi]!;
         const lev = rotLever[pi]!;
@@ -1287,7 +1581,7 @@ export function* sweepCollisionsIter(
       else jointBulge.fill(0);
 
       for (let pi = 0; pi < pairs.length; pi++) {
-        if (staticExcluded[pi]) { pairV[pi] = 0; continue; }
+        if (skipPair[pi]) { pairV[pi] = 0; continue; }
         const [ai, bi] = pairs[pi]!;
         const A = bodies[ai]!, B = bodies[bi]!;
         const list = pairDofs[pi]!;
@@ -1320,13 +1614,18 @@ export function* sweepCollisionsIter(
       // pair inside the margin keeps its absolute re-probe cadence
       // (sSafe = s + EXPLORE), which needs no conversion.
       for (let pi = 0; pi < pairs.length; pi++) {
-        if (staticExcluded[pi]) continue;
+        if (skipPair[pi]) continue;
         sQ[pi] = s0;
         if (inContact[pi]) {
           // Every LINE a pair stays in contact with gets at least one sample
           // (its continuation record — the G-code panel marks it); within a
-          // line the EXPLORE cadence carries across the chunks.
-          if (qLine[pi] !== line) sSafe[pi] = s0;
+          // line the EXPLORE cadence carries across the chunks. A cutting
+          // pair in FEED-begun contact mints no record at all (machining),
+          // so it owes no per-line sample — the EXPLORE cadence alone keeps
+          // watching for separation (2026-09-13: on a 0.7 mm-line random walk
+          // the per-line rule queried the tool×stock pair 7× more often than
+          // its cadence, a fifth of the whole sweep).
+          if (qLine[pi] !== line && !(pairCutting[pi] && !onsetRapid[pi])) sSafe[pi] = s0;
           continue;
         }
         const c = clear[pi]!;
@@ -1350,7 +1649,7 @@ export function* sweepCollisionsIter(
         }
         let step = s1 - s;
         for (let pi = 0; pi < pairs.length; pi++) {
-          if (staticExcluded[pi]) continue;
+          if (skipPair[pi]) continue;
           if (sSafe[pi]! > s + 1e-9) {
             const remain = sSafe[pi]! - s;
             if (remain < step) step = remain;
@@ -1358,7 +1657,15 @@ export function* sweepCollisionsIter(
           }
           const [ai, bi] = pairs[pi]!;
           const A = bodies[ai]!, B = bodies[bi]!;
-          const d = pairDistance(A, B, HORIZON);
+          let d: number;
+          if (prof) {
+            const tq = clock();
+            d = pairDistance(A, B, HORIZON);
+            prof.ms![pi] = prof.ms![pi]! + (clock() - tq);
+            prof.queries![pi] = prof.queries![pi]! + 1;
+          } else {
+            d = pairDistance(A, B, HORIZON);
+          }
           if (d <= opts.margin) {
             if (!inContact[pi]) {
               inContact[pi] = 1;
@@ -1410,7 +1717,7 @@ export function* sweepCollisionsIter(
       // Chunk done: what this chunk could have consumed of each carried
       // clearance since its last query (or since the chunk start).
       for (let pi = 0; pi < pairs.length; pi++) {
-        if (staticExcluded[pi] || inContact[pi]) continue;
+        if (skipPair[pi] || inContact[pi]) continue;
         clear[pi] = clear[pi]! - pairV[pi]! * (s1 - sQ[pi]!);
       }
     }

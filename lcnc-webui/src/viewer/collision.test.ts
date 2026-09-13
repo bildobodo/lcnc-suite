@@ -4,7 +4,7 @@ import { emptyLineIndex } from "./lineIndex";
 import { describe, expect, it } from "vitest";
 import {
   buildCollisionModel, sweepCollisions, sweepCollisionsIter, toolCylinderPositions, type SnapshotHandle,
-  type CollisionBody, type CollisionMachine, type CollisionResult, mergeContiguousIntervals } from "./collision";
+  type CollisionBody, type CollisionMachine, type CollisionResult, mergeContiguousIntervals, componentBoxes } from "./collision";
 import type { ScrubTrack } from "../ws/bulkData";
 
 const WCS0 = { g5x: [0, 0, 0, 0, 0, 0], g92: [], rotationDeg: 0 };
@@ -1020,3 +1020,127 @@ describe("mergeContiguousIntervals", () => {
     expect(mergeContiguousIntervals([])).toEqual([]);
   });
 });
+
+describe("whole-program reach prescreen (2026-09-13)", () => {
+  // PLUNGE plus a frame post the head and the table can never reach: both
+  // of its pairs are dropped before the sweep; the plunge hit is unchanged.
+  it("drops pairs that can provably never come within the margin and keeps the hit", () => {
+    const machine = { ...PLUNGE, groups: [...PLUNGE.groups, { id: "frame", parent: "root" }] };
+    const bodies: CollisionBody[] = [
+      ...PLUNGE_BODIES,
+      { id: "far_post", group: "frame", positions: boxPositions(10), translate: [500, 500, 0] },
+    ];
+    const model = buildCollisionModel(machine, bodies);
+    expect(model.pairs).toHaveLength(3);
+    const r = sweepCollisions(model, track([[0, 0, 0], [0, 0, -40]]), WCS0, { margin: 2 });
+    expect(r.pairCount).toBe(3);
+    expect(r.pairsPrescreened).toBe(2);
+    expect(r.hits.map(h => `${h.a}/${h.b}`)).toEqual(["spindle/vise"]);
+  });
+
+  // The adversarial lever machine: pillar at radius 100 swinging 180°, a post
+  // on its circle at 90° — far at BOTH track vertices, met only mid-arc.
+  // The rotary range bound (the chord over the whole arc) keeps the pair;
+  // the sweep then finds the clash exactly as before.
+  const ROTARY: CollisionMachine = {
+    groups: [
+      { id: "platter", parent: "root" },
+      { id: "work", parent: "platter" },
+      { id: "frame", parent: "root" },
+    ],
+    kinematics: [{ group: "platter", joint: 0, type: "rotate", direction: "z", sign: 1 }],
+    workGroup: "work",
+    toolGroup: "frame",
+    unitScale: 1,
+    axes: ["C"],
+  };
+  const pillarAnd = (post: number[]): CollisionBody[] => [
+    { id: "pillar", group: "platter", positions: boxPositions(2), translate: [100, 0, 0] },
+    { id: "post", group: "frame", positions: boxPositions(2), translate: post },
+  ];
+  const arc = track([[0, 0, 0], [0, 0, 0]], [[0, 0, 0], [0, 0, 180]], [3, 4]);
+
+  it("keeps a pair that only meets mid-arc of a rotary sweep (both endpoints far)", () => {
+    const r = sweepCollisions(buildCollisionModel(ROTARY, pillarAnd([0, 100, 0])), arc, WCS0, { margin: 1 });
+    expect(r.pairsPrescreened).toBe(0);
+    expect(r.hits).toHaveLength(1);
+    expect(r.hits[0]!.cum).toBeGreaterThan(85);
+    expect(r.hits[0]!.cum).toBeLessThan(91);
+  });
+
+  it("drops a rotary pair whose whole arc stays clear", () => {
+    // The post sits 300 out; the pillar's chord bound over 180° is its full
+    // orbit diameter (2ρ = 200) — still 100 short of the post, minus box radii.
+    const r = sweepCollisions(buildCollisionModel(ROTARY, pillarAnd([0, 300, 0])), arc, WCS0, { margin: 1 });
+    expect(r.pairsPrescreened).toBe(1);
+    expect(r.hits).toHaveLength(0);
+    expect(r.staticContacts).toHaveLength(0);
+  });
+
+  it("a pair reached only at one end of a linear range is kept", () => {
+    // The vise rides the X table; a frame post 60 mm out in X is reached only
+    // at the last vertex — the translation range must count in full.
+    const machine = { ...PLUNGE, groups: [...PLUNGE.groups, { id: "frame", parent: "root" }] };
+    const bodies: CollisionBody[] = [
+      ...PLUNGE_BODIES,
+      { id: "post", group: "frame", positions: boxPositions(10), translate: [60, 0, 0] },
+    ];
+    const r = sweepCollisions(buildCollisionModel(machine, bodies),
+      track([[0, 0, 0], [30, 0, 0], [60, 0, 0]]), WCS0, { margin: 2 });
+    expect(r.hits.map(h => `${h.a}/${h.b}`)).toContain("vise/post");
+    // vise/post kept (the X range reaches the post at its far end); the
+    // spindle never descends in this track, so BOTH its pairs are dropped.
+    expect(r.pairsPrescreened).toBe(2);
+    expect(r.pairCount).toBe(3);
+  });
+});
+
+describe("component boxes + query lower bound (2026-09-13)", () => {
+  it("componentBoxes: one AABB per connected component, whole-mesh box past the cap", () => {
+    const a = boxPositions(2);                       // centred at the origin
+    const b = new Float32Array(boxPositions(2));
+    for (let i = 0; i < b.length; i += 3) b[i] = b[i]! + 100;   // a second, disjoint box at x=100
+    const two = new Float32Array([...a, ...b]);
+    const boxes = componentBoxes(two);
+    expect(boxes.length).toBe(12);
+    const sorted = [boxes.subarray(0, 6), boxes.subarray(6, 12)].sort((u, v) => u[0]! - v[0]!);
+    expect([...sorted[0]!]).toEqual([-1, -1, -1, 1, 1, 1]);
+    expect([...sorted[1]!]).toEqual([99, -1, -1, 101, 1, 1]);
+    // A soup of unshared triangles (each translated apart) collapses to one box.
+    const soup = new Float32Array(9 * 300);
+    for (let t = 0; t < 300; t++) { soup.set([t * 10, 0, 0, t * 10 + 1, 0, 0, t * 10, 1, 0], t * 9); }
+    expect(componentBoxes(soup).length).toBe(6);
+  });
+
+  it("a rotated body's box bound never hides a real contact (corner-transformed AABB contains it)", () => {
+    // A box rotated 45° about Z presents a CORNER to the vise; the table
+    // carries the vise toward it, from 5 mm clear (also clear at the rest
+    // pose — so no static exclusion) to 1.5 mm. Its axis-aligned bounds in
+    // the vise's frame contain the rotated box, so the bound never exceeds
+    // the true distance — the exact query runs and the contact is found.
+    // The same body unrotated, ending 3.5 mm away, must stay clear.
+    const machine = { ...PLUNGE, groups: [...PLUNGE.groups, { id: "frame", parent: "root" }] };
+    const near = (rot: number[] | undefined, dx: number): CollisionBody[] => [
+      ...PLUNGE_BODIES,
+      { id: "post", group: "frame", positions: boxPositions(10), translate: [dx, 0, 0], rotate: rot },
+    ];
+    // vise half-size 5 → its +x face at x=5+X. Rotated post: the corner
+    // reaches 5·√2 ≈ 7.07 toward −x from its centre.
+    const hit = sweepCollisions(buildCollisionModel(machine, near([0, 0, Math.PI / 4], 5 + 7.07 + 5)),
+      track([[0, 0, 0], [3.5, 0, 0]]), WCS0, { margin: 2 });
+    expect(hit.hits.map(h => `${h.a}/${h.b}`)).toContain("vise/post");
+    expect(hit.staticContacts).toHaveLength(0);
+    const clear = sweepCollisions(buildCollisionModel(machine, near(undefined, 5 + 5 + 5)),
+      track([[0, 0, 0], [1.5, 0, 0]]), WCS0, { margin: 2 });
+    expect(clear.hits.filter(h => h.b === "post" || h.a === "post")).toHaveLength(0);
+  });
+
+  it("query order does not change the answer: swapping the bodies' declaration order gives the same hits", () => {
+    const fwd = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const rev = buildCollisionModel(PLUNGE, [...PLUNGE_BODIES].reverse());
+    const t = track([[0, 0, 0], [0, 0, -40]]);
+    const a = sweepCollisions(fwd, t, WCS0, { margin: 2 }), b = sweepCollisions(rev, t, WCS0, { margin: 2 });
+    expect(a.hits.map(h => [h.line, h.cum.toFixed(3), h.dist.toFixed(6)])).toEqual(b.hits.map(h => [h.line, h.cum.toFixed(3), h.dist.toFixed(6)]));
+  });
+});
+
