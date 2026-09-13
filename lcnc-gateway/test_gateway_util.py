@@ -3141,6 +3141,22 @@ class TestParseKinsConfig(unittest.TestCase):
                        "y_rot_axis": -1000.0, "z_rot_axis": -2000.0},
         })
 
+    def test_wall_gantry_example_parses_all_geometry_pins(self):
+        config = os.path.join(os.path.dirname(__file__), "..", "examples",
+                              "sim_config", "lcnc_suite_sim_twp_gantry.ini")
+        with open(config) as f:
+            halcmds = [line.partition("=")[2].strip() for line in f
+                       if line.startswith("HALCMD =")]
+        got = gateway_util.parse_kins_config("xyzacb_trsrn", halcmds)
+        self.assertEqual(got["params"], {
+            "nut_angle": 45.0, "y_pivot": 140.0, "z_pivot": 480.0,
+            "x_offset": 0.0, "y_offset": 0.0,
+            "y_rot_axis": 140.0, "z_rot_axis": -1325.0,
+        })
+        self.assertEqual(got["type"], "xyzacb-trsrn")
+        self.assertFalse(got["identity_first"])
+        self.assertIsNone(gateway_util.kins_pivot_warning(got))
+
     def test_trsrn_tool_offset_z_never_parsed(self):
         got = gateway_util.parse_kins_config(
             "xyzacb_trsrn", ["setp xyzacb_trsrn_kins.tool-offset-z 100"])

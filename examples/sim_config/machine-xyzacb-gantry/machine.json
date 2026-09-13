@@ -1,0 +1,606 @@
+{
+  "name": "TWP 45 \u2014 Wall Gantry",
+  "source": "Independent FreeCAD geometry; XYZACB-TRSRN kinematic frames from LinuxCNC/lcnc-suite (GPL-2.0-or-later).",
+  "groups": [
+    {
+      "id": "x_bridge",
+      "parent": "root",
+      "translate": [
+        -1000,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "y_saddle",
+      "parent": "x_bridge",
+      "translate": [
+        0,
+        -140.0,
+        0
+      ]
+    },
+    {
+      "id": "xyz_head",
+      "parent": "y_saddle",
+      "translate": [
+        0,
+        0,
+        1325.0
+      ]
+    },
+    {
+      "id": "c_swivel",
+      "parent": "xyz_head",
+      "translate": [
+        0,
+        140.0,
+        480.0
+      ]
+    },
+    {
+      "id": "b_nut",
+      "parent": "c_swivel"
+    },
+    {
+      "id": "tool",
+      "parent": "b_nut",
+      "translate": [
+        0,
+        -140.0,
+        -480.0
+      ]
+    },
+    {
+      "id": "a_table",
+      "parent": "root",
+      "translate": [
+        -1700.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "id": "a_work",
+      "parent": "a_table",
+      "translate": [
+        700,
+        -140.0,
+        1325.0
+      ]
+    }
+  ],
+  "parts": [
+    {
+      "id": "bed",
+      "file": "bed.stl",
+      "group": null,
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "color": [
+        0.39,
+        0.43,
+        0.46
+      ]
+    },
+    {
+      "id": "chip_tray",
+      "file": "chip_tray.stl",
+      "group": null,
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "color": [
+        0.15,
+        0.19,
+        0.22
+      ]
+    },
+    {
+      "id": "x_side_walls",
+      "file": "x_side_walls.stl",
+      "group": null,
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "color": [
+        0.78,
+        0.8,
+        0.79
+      ]
+    },
+    {
+      "id": "leveling_pads",
+      "file": "leveling_pads.stl",
+      "group": null,
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "color": [
+        0.15,
+        0.19,
+        0.22
+      ]
+    },
+    {
+      "id": "x_guide_rails",
+      "file": "x_guide_rails.stl",
+      "group": null,
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "color": [
+        0.64,
+        0.68,
+        0.7
+      ]
+    },
+    {
+      "id": "x_guide_blocks",
+      "file": "x_guide_blocks.stl",
+      "group": "x_bridge",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "color": [
+        0.64,
+        0.68,
+        0.7
+      ]
+    },
+    {
+      "id": "x_guide_endcaps",
+      "file": "x_guide_endcaps.stl",
+      "group": "x_bridge",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "color": [
+        0.15,
+        0.19,
+        0.22
+      ]
+    },
+    {
+      "id": "x_saddle_plates",
+      "file": "x_saddle_plates.stl",
+      "group": "x_bridge",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "color": [
+        0.39,
+        0.43,
+        0.46
+      ]
+    },
+    {
+      "id": "x_bridge_casting",
+      "file": "x_bridge_casting.stl",
+      "group": "x_bridge",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "color": [
+        0.78,
+        0.8,
+        0.79
+      ]
+    },
+    {
+      "id": "x_drive_housings",
+      "file": "x_drive_housings.stl",
+      "group": "x_bridge",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "color": [
+        0.12,
+        0.39,
+        0.43
+      ]
+    },
+    {
+      "id": "bridge_rear_panel",
+      "file": "bridge_rear_panel.stl",
+      "group": "x_bridge",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "color": [
+        0.15,
+        0.19,
+        0.22
+      ]
+    },
+    {
+      "id": "y_guide_rails",
+      "file": "y_guide_rails.stl",
+      "group": "x_bridge",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "color": [
+        0.64,
+        0.68,
+        0.7
+      ]
+    },
+    {
+      "id": "y_guide_blocks",
+      "file": "y_guide_blocks.stl",
+      "group": "y_saddle",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "color": [
+        0.64,
+        0.68,
+        0.7
+      ]
+    },
+    {
+      "id": "y_guide_endcaps",
+      "file": "y_guide_endcaps.stl",
+      "group": "y_saddle",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "color": [
+        0.15,
+        0.19,
+        0.22
+      ]
+    },
+    {
+      "id": "y_carriage",
+      "file": "y_carriage.stl",
+      "group": "y_saddle",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "color": [
+        0.12,
+        0.39,
+        0.43
+      ]
+    },
+    {
+      "id": "z_ram",
+      "file": "z_ram.stl",
+      "group": "xyz_head",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "color": [
+        0.78,
+        0.8,
+        0.79
+      ]
+    },
+    {
+      "id": "z_guide_rails",
+      "file": "z_guide_rails.stl",
+      "group": "xyz_head",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "color": [
+        0.64,
+        0.68,
+        0.7
+      ]
+    },
+    {
+      "id": "z_guide_blocks",
+      "file": "z_guide_blocks.stl",
+      "group": "y_saddle",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "color": [
+        0.64,
+        0.68,
+        0.7
+      ]
+    },
+    {
+      "id": "z_guide_endcaps",
+      "file": "z_guide_endcaps.stl",
+      "group": "y_saddle",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "color": [
+        0.15,
+        0.19,
+        0.22
+      ]
+    },
+    {
+      "id": "z_top_motor",
+      "file": "z_top_motor.stl",
+      "group": "xyz_head",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "color": [
+        0.15,
+        0.19,
+        0.22
+      ]
+    },
+    {
+      "id": "c_head",
+      "file": "c_head.stl",
+      "group": "c_swivel",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "color": [
+        0.12,
+        0.39,
+        0.43
+      ]
+    },
+    {
+      "id": "b_head",
+      "file": "b_head.stl",
+      "group": "b_nut",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "color": [
+        0.78,
+        0.8,
+        0.79
+      ]
+    },
+    {
+      "id": "spindle_nose",
+      "file": "spindle_nose.stl",
+      "group": "b_nut",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "color": [
+        0.64,
+        0.68,
+        0.7
+      ]
+    },
+    {
+      "id": "c_mount_ring",
+      "file": "c_mount_ring.stl",
+      "group": "xyz_head",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "color": [
+        0.64,
+        0.68,
+        0.7
+      ]
+    },
+    {
+      "id": "b_joint_ring",
+      "file": "b_joint_ring.stl",
+      "group": "b_nut",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "color": [
+        0.64,
+        0.68,
+        0.7
+      ]
+    },
+    {
+      "id": "a_headstock",
+      "file": "a_headstock.stl",
+      "group": null,
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "color": [
+        0.78,
+        0.8,
+        0.79
+      ]
+    },
+    {
+      "id": "a_bearing_ring",
+      "file": "a_bearing_ring.stl",
+      "group": null,
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "color": [
+        0.15,
+        0.19,
+        0.22
+      ]
+    },
+    {
+      "id": "a_faceplate",
+      "file": "a_faceplate.stl",
+      "group": "a_table",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "color": [
+        0.64,
+        0.68,
+        0.7
+      ]
+    },
+    {
+      "id": "a_drive_cover",
+      "file": "a_drive_cover.stl",
+      "group": null,
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "color": [
+        0.12,
+        0.39,
+        0.43
+      ]
+    },
+    {
+      "id": "fixture_plate",
+      "file": "fixture_plate.stl",
+      "group": "a_table",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "color": [
+        0.39,
+        0.43,
+        0.46
+      ]
+    },
+    {
+      "id": "fixture_ribs",
+      "file": "fixture_ribs.stl",
+      "group": "a_table",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "color": [
+        0.39,
+        0.43,
+        0.46
+      ]
+    },
+    {
+      "id": "work_piece",
+      "file": "work_piece.stl",
+      "group": "a_table",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "color": [
+        0.67,
+        0.59,
+        0.43
+      ],
+      "stock": true
+    }
+  ],
+  "kinematics": [
+    {
+      "group": "x_bridge",
+      "joint": 0,
+      "type": "translate",
+      "direction": "x",
+      "sign": 1
+    },
+    {
+      "group": "y_saddle",
+      "joint": 1,
+      "type": "translate",
+      "direction": "y",
+      "sign": 1
+    },
+    {
+      "group": "xyz_head",
+      "joint": 2,
+      "type": "translate",
+      "direction": "z",
+      "sign": 1
+    },
+    {
+      "group": "a_table",
+      "joint": 3,
+      "type": "rotate",
+      "direction": "x",
+      "sign": -1
+    },
+    {
+      "group": "b_nut",
+      "joint": 4,
+      "type": "rotate",
+      "axis": [
+        0.0,
+        0.7071067811865475,
+        0.7071067811865476
+      ],
+      "sign": 1
+    },
+    {
+      "group": "c_swivel",
+      "joint": 5,
+      "type": "rotate",
+      "direction": "z",
+      "sign": 1
+    }
+  ],
+  "workGroup": "a_work",
+  "toolGroup": "tool"
+}
