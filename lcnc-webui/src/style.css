@@ -75,6 +75,13 @@
   --hl-hover: color-mix(in oklab, var(--fg) 12%, var(--button-bg));
   --hl-selected: color-mix(in oklab, var(--fg) 15%, var(--button-bg));
   --hl-active: color-mix(in oklab, var(--fg) 20%, var(--button-bg));
+  /* Range-slider track; shared with overlays that paint their own track
+     (ScrubBar's timeline draws it over the thumb-centre travel). */
+  --range-track: color-mix(in oklab, var(--panel) 90%, var(--fg));
+  /* Range-slider thumb diameter. The thumb's centre travels from half of
+     this to width − half; overlays aligned to that travel (ScrubBar's
+     timeline) read the token — never hard-code the thumb size. */
+  --range-thumb: 16px;
   /* Surface-hover tiers (WS-C): hovers on transparent/panel surfaces — table
      rows, list items, icon buttons — where the button-bg tiers above can't
      apply. Neutral fg tint; the -info variant keeps the form-control hue
@@ -318,7 +325,7 @@ input[type="range"] {
   appearance: none;
   height: 6px;
   border-radius: var(--radius-sm);
-  background: color-mix(in oklab, var(--panel) 90%, var(--fg));
+  background: var(--range-track);
   outline: none;
   cursor: pointer;
   /* Touch: drag the thumb, never text-select ("lasso") or pop the
@@ -335,11 +342,19 @@ input[type="range"]:disabled {
   cursor: not-allowed;
 }
 
+/* A range whose track is painted by an overlay (ScrubBar's timeline): the
+   native track spans the input's full width, 8px past the thumb-centre
+   travel at each end, so overlays aligned to thumb centres can never meet
+   it — the overlay draws the track (--range-track) over the travel instead. */
+input[type="range"].rangeOverlayTrack {
+  background: transparent;
+}
+
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 16px;
-  height: 16px;
+  width: var(--range-thumb);
+  height: var(--range-thumb);
   border-radius: 50%;
   background: var(--fg);
   cursor: pointer;
@@ -351,8 +366,8 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 input[type="range"]::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
+  width: var(--range-thumb);
+  height: var(--range-thumb);
   border-radius: 50%;
   background: var(--fg);
   cursor: pointer;
@@ -584,6 +599,7 @@ label:has(input.toggle:disabled) {
 html.touch-device {
   --fs-2xs: 10px;
   --fs-xs: 11px;
+  --range-thumb: 20px;
 }
 
 html.touch-device button,
@@ -651,14 +667,6 @@ html.touch-device input[type="range"] {
     width: 28px;
     padding: 0 11px;
   }
-}
-html.touch-device input[type="range"]::-webkit-slider-thumb {
-  width: 20px;
-  height: 20px;
-}
-html.touch-device input[type="range"]::-moz-range-thumb {
-  width: 20px;
-  height: 20px;
 }
 
 /* Table rows that are tap targets (offset cells, tool rows, file lists) */

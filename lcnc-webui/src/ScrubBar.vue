@@ -913,28 +913,35 @@ onUnmounted(() => {
         <Play v-else :size="14" />
       </MachineBtn>
       <div class="sliderWrap">
-        <MachineSlider gate="scrubPos" class="sliderInput" :min="0" :max="cumMax"
+        <MachineSlider gate="scrubPos" class="sliderInput rangeOverlayTrack" :min="0" :max="cumMax"
                        :step="cumMax / 2000 || 1" v-model="sPos" :disabled="!simMode"
                        title="Scrub the program — poses the machine model, nothing moves"
                        @input="onScrubInput" />
-        <!-- Timeline overlays, non-interactive (row 2 navigates). A 16px
-             thumb travels width−16px, inset 8px each side. TICKS sit at the
-             thumb's CENTRE for their cum (full-width percentages drift up to
-             8px off the thumb toward the ends); BANDS span the thumb's
-             EDGES — from its left edge at the interval start to its right
-             edge at the end — so an extent that lasts to program end reaches
-             the track's right edge and one from the first line starts at the
-             left edge (operator: red and blue both stopped 8px short), with
-             each tick 8px inside its band's edge. Paint order: swept band,
-             limit extents (warn), clash extents (danger, on top), then the
-             ticks with their glyphs: × clash, ▲ soft limit, ● tool change. -->
-        <div class="scrubBand swept" :style="{ width: sweptFrac > 0 ? `calc((100% - 16px) * ${sweptFrac} + 16px)` : '0px' }"></div>
+        <!-- Timeline overlays, non-interactive (row 2 navigates). ONE
+             coordinate system — the thumb-centre travel: the thumb's centre
+             runs from half its diameter to width − half (--range-thumb,
+             16px / 20px on touch — read the token, never a literal), and
+             every overlay maps cum
+             onto that span: ticks at the thumb's centre for their cum, bands
+             from the centre for their start to the centre for their end, and
+             the visible TRACK itself. The native track is transparent here
+             (.rangeOverlayTrack, style.css) because it spans the input's
+             full width, half a thumb past the travel at each end — against it a
+             band either stopped short of the track's ends or began before
+             its own tick (both operator-caught, 2026-09-12/13). Now a clash's
+             red starts exactly at its × and an extent to program end reaches
+             the track's end. Paint order: track, swept band, limit extents
+             (warn), clash extents (danger, on top), the ticks with their
+             glyphs (× clash, ▲ soft limit, ● tool change), and the input's
+             thumb above them all. -->
+        <div class="scrubBand track" :class="{ dim: !simMode }"></div>
+        <div class="scrubBand swept" :style="{ left: 'calc(var(--range-thumb) / 2)', width: `calc((100% - var(--range-thumb)) * ${sweptFrac})` }"></div>
         <div v-for="(b, i) in limitBands" :key="'lb' + i" class="scrubBand limit"
-             :style="{ left: `calc((100% - 16px) * ${b[0] / 100})`, width: `calc((100% - 16px) * ${(b[1] - b[0]) / 100} + 16px)` }"></div>
+             :style="{ left: `calc(var(--range-thumb) / 2 + (100% - var(--range-thumb)) * ${b[0] / 100})`, width: `calc((100% - var(--range-thumb)) * ${(b[1] - b[0]) / 100})` }"></div>
         <div v-for="(b, i) in clashBands" :key="'cb' + i" class="scrubBand clash"
-             :style="{ left: `calc((100% - 16px) * ${b[0] / 100})`, width: `calc((100% - 16px) * ${(b[1] - b[0]) / 100} + 16px)` }"></div>
+             :style="{ left: `calc(var(--range-thumb) / 2 + (100% - var(--range-thumb)) * ${b[0] / 100})`, width: `calc((100% - var(--range-thumb)) * ${(b[1] - b[0]) / 100})` }"></div>
         <div v-for="(m, i) in marks" :key="m.kind + i" class="scrubTick" :class="[m.kind, { near: m.near }]"
-             :style="{ left: `calc(8px + (100% - 16px) * ${m.pct / 100})` }">
+             :style="{ left: `calc(var(--range-thumb) / 2 + (100% - var(--range-thumb)) * ${m.pct / 100})` }">
           <span class="scrubGlyph">
             <X v-if="m.kind === 'clash'" :size="9" :stroke-width="3" />
             <Triangle v-else-if="m.kind === 'limit'" :size="9" fill="currentColor" />
@@ -1068,12 +1075,26 @@ onUnmounted(() => {
 }
 .sliderInput {
   width: 100%;
+  /* The overlays map cum onto THIS input's box, so its box must be the
+     wrapper's box. Browsers give every range input a 2px UA margin (Firefox
+     forms.css and Chrome html.css alike); in the flex wrapper that shrank
+     the slider 4px and shifted it 2px right, so the thumb's centre travelled
+     10px .. width−10px against ticks at 8px .. width−8px — a tool-change
+     mark at the program start sat 2px left of anywhere the thumb could go
+     (operator-caught, 2026-09-13). Ranges carry no padding or border. */
+  margin: 0;
+  /* Above the overlays: the thumb covers the tick/band under it (it IS at
+     that position) and nothing paints across the thumb. */
+  position: relative;
+  z-index: 1;
 }
-/* Timeline overlays, all non-interactive. Ticks sit at the thumb's CENTRE
-   for their cum (a 16px thumb travels width−16px, inset 8px each side);
-   bands span the thumb's EDGES (inline left/width — see the template), so an
-   extent to program end reaches the track's end. Semantic tokens only:
-   info = tool change / swept, warn = soft limit, danger = clash. */
+/* Timeline overlays, all non-interactive, every one on the thumb-centre
+   travel (half --range-thumb .. width − half; inline left/width — see the
+   template). `track`
+   is the slider's visible track (the native one is transparent on this
+   slider; --range-track keeps the colour shared with every other range).
+   Semantic tokens only: info = tool change / swept, warn = soft limit,
+   danger = clash. */
 .scrubBand {
   position: absolute;
   left: 0;
@@ -1083,6 +1104,8 @@ onUnmounted(() => {
   border-radius: var(--radius-sm);
   pointer-events: none;
 }
+.scrubBand.track { left: calc(var(--range-thumb) / 2); width: calc(100% - var(--range-thumb)); background: var(--range-track); }
+.scrubBand.track.dim { opacity: var(--opacity-disabled); }   /* mirrors the disabled slider */
 .scrubBand.swept { background: color-mix(in oklab, var(--info) 40%, transparent); }
 .scrubBand.limit { background: color-mix(in oklab, var(--warn) 45%, transparent); }
 .scrubBand.clash { background: color-mix(in oklab, var(--danger) 55%, transparent); }
