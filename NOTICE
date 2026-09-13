@@ -110,5 +110,5 @@ TWP 45 wall-gantry example (2026):
   contain independently constructed geometry, released under GPL-2.0-or-later.
   XYZACB-TRSRN kinematic frames follow the LinuxCNC/David Mueller reference
   already credited above. No DMU/manufacturer meshes or photographs included.
-  Linear-guide outer dimensions reference HIWIN RGR65R / RGH65HA; the simplified
+  Linear-guide outer dimensions reference THK SRG100LC; the simplified
   solids are independently generated, not manufacturer CAD.

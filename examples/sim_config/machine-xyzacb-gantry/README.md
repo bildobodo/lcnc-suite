@@ -8,6 +8,8 @@ kinematics; it has a separate INI, parameter file and tool table.
 
 ![Wall gantry and offset universal head](overview.png)
 
+[Top view of the four X blocks and their saddle plate](x-guides.png)
+
 ## Run on the LinuxCNC host
 
 Use a checkout containing this example, with lcnc-suite installed from that
@@ -94,12 +96,23 @@ the physical slides.
 - Walls 3075 mm high with inner faces at Y=±2110 mm.
 - Two X rails per wall, two blocks per rail, four blocks under each separate
   1110 × 950 × 200 mm saddle plate; plates and crossbeam share their X centre.
-- Two Y rails/four blocks and two Z rails/four blocks. All use the same
-  simplified 63 × 53 mm rail / 126 × 295 mm block / 90 mm assembly dimensions.
+- Two Y rails/four blocks and two Z rails/four blocks. All three axes now use
+  size 100 instead of size 65: simplified THK SRG100LC dimensions, with
+  **100 × 77 mm rails, 250 × 395 mm flanged blocks and 120 mm assembly height**.
+  The mounting-hole pitch on the rails is 105 mm; the block's steel body is
+  280.2 mm long and its flange is 35 mm thick.
+- The larger blocks retain two blocks per rail and four X blocks per wall.
+  The 200 mm saddle plates and beam rise 30 mm with the taller X guides.
+  The beam and its saddle plates move 60 mm back to accommodate the larger
+  Y/Z stacks while retaining the 220 mm carriage thickness and existing
+  spindle datum. The Y carriage widens to 1020 mm. X rails extend to 5440 mm,
+  Z rails to 2425 mm; every block stays fully supported throughout travel,
+  with at least 27.5 mm to a rail end. X/Y rails use two joined segments.
 - Both head housings are Ø560 mm, with broad shoulders at the 45° cut and
   short Ø380 mm connecting bosses. The B joint has 4 mm minimum separation.
 
-`machineGantry.test.ts` checks the shipped INI and meshes, the model chain
+`machineGantry.test.ts` checks the shipped INI and meshes, guide dimensions,
+mounting-face alignment, plate symmetry and full-travel block support, the model chain
 against the oracle-backed `TrsrnKins` implementation over 303 poses, symmetric
 wall clearance, and an intended sequence of linear-limit and parked rotary
 moves through the actual collision sweep. The current BVH reports the close
@@ -112,8 +125,11 @@ The continuous wall bound includes every B/C orientation and full Y travel,
 with a 200 mm × Ø14 mm tool and a 1.3 mm housing tessellation allowance:
 at least **114 mm on either side**. Longer/wider tools need a new check.
 The CAD and compiled LinuxCNC kinematics were also checked off-machine during
-development. Live LinuxCNC startup, homing, TCP/plane switching and adapted
-TWP programs still need evaluation before promoting this to the default demo.
+development. Initial setup and operation of the example have been confirmed
+on a LinuxCNC host. This larger-guide revision has been checked off-machine;
+the adapted TWP demonstration programs and full live validation still precede
+promotion to the default demo. The existing INI, kinematic pins and offsets
+remain applicable to this geometry update.
 
 ## Rebuild or edit
 
@@ -145,6 +161,6 @@ npm run build
 
 This is a simulation concept, not a load-rated mechanical design. Geometry
 and generator are GPL-2.0-or-later; see [NOTICE](../../../NOTICE). No DMU meshes
-or manufacturer photographs are redistributed. Simplified guide dimensions
-reference [HIWIN's RGR-R series](https://www.hiwin.de/en/Products/Linear-guideways/Profile-rails/Roller-guides/Series-RGR/RGR-R/c/4515)
-and the RGH65HA dimensional table in its linear-guide catalogue.
+or manufacturer photographs are redistributed. Guide envelopes and mounting
+dimensions reference the [THK SRG100LC table, pages A1-430/431](https://tech.thk.com/en/products/pdfs/en_a01_430.pdf).
+Raceways, end caps and screw holes are simplified independent geometry.

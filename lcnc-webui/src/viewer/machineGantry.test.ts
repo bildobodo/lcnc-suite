@@ -2,7 +2,7 @@
 // through the same chain and collision engine used by the running viewer.
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { Vector3 } from "three";
+import { Box3, Vector3 } from "three";
 import { describe, expect, it } from "vitest";
 import { buildChain, evalChainTip, tipInWorkFrame, type PartFrameMachine } from "./partFrame";
 import { TrsrnKins } from "./kins";
@@ -54,6 +54,19 @@ const bodies: CollisionBody[] = mj.parts.map((p: any) => ({
 const chain = buildChain(machine);
 const tmp = new Vector3();
 
+function bodyBounds(id: string, q: number[], select = (_p: Vector3) => true): Box3 {
+  evalChainTip(chain, q, [], tmp);
+  const body = bodies.find(b => b.id === id)!;
+  const node = chain.nodes.find(n => n.id === body.group);
+  const box = new Box3();
+  for (let i = 0; i < body.positions.length; i += 3) {
+    tmp.fromArray(body.positions, i);
+    if (node) tmp.applyMatrix4(node.world);
+    if (select(tmp)) box.expandByPoint(tmp);
+  }
+  return box;
+}
+
 describe("TWP wall-gantry configuration", () => {
   it("ships its own state/model and the complete seven-pin geometry", () => {
     expect(pins).toEqual({ "nut-angle": 45, "y-pivot": 140, "z-pivot": 480,
@@ -79,6 +92,48 @@ describe("TWP wall-gantry configuration", () => {
       expect(home).toBeLessThan(limits[j]![1]!);
     }
     expect(setting("HAL", "POSTGUI_HALFILE")).toBe("hallib/limit_window.hal");
+  });
+
+  it("fits the SRG100 guides, saddle plates and carriage without losing symmetry", () => {
+    const q = [0, 0, 0, 0, 0, 0];
+    const lane = (p: Vector3) => p.y < -2550;
+    const rail = bodyBounds("x_guide_rails", q, lane);
+    const block = bodyBounds("x_guide_blocks", q, lane);
+    expect(rail.max.y - rail.min.y).toBe(100);
+    expect(rail.max.z - rail.min.z).toBe(77);
+    expect(block.max.y - block.min.y).toBe(250);
+    expect(block.max.z - rail.min.z).toBe(120);
+    const plates = bodyBounds("x_saddle_plates", q);
+    const beam = bodyBounds("x_bridge_casting", q);
+    const blocks = bodyBounds("x_guide_blocks", q);
+    expect(plates.min.z).toBe(blocks.max.z);
+    expect(beam.min.z).toBe(plates.max.z);
+    expect(plates.max.z - plates.min.z).toBe(200);
+    const centre = (b: Box3) => (b.min.x + b.max.x) / 2;
+    expect(centre(plates)).toBeCloseTo(centre(beam), 4);
+    expect(centre(plates)).toBeCloseTo(centre(blocks), 4);
+    expect(plates.min.y + plates.max.y).toBe(0);
+    const carriage = bodyBounds("y_carriage", q);
+    expect(carriage.max.x - carriage.min.x).toBe(220);
+    expect(carriage.max.y - carriage.min.y).toBe(1020);
+    expect(bodyBounds("y_guide_blocks", q).max.x).toBe(carriage.min.x);
+    expect(bodyBounds("z_guide_blocks", q).min.x).toBe(carriage.max.x);
+  });
+
+  it("keeps the longer blocks fully supported across the existing linear travels", () => {
+    for (const [j, axis] of ["x", "y", "z"].entries()) {
+      for (const value of limits[j]!) {
+        const q = [0, 0, 0, 0, 0, 0];
+        q[j] = value;
+        const rails = bodyBounds(`${axis}_guide_rails`, q);
+        const blocks = bodyBounds(`${axis}_guide_blocks`, q)
+          .union(bodyBounds(`${axis}_guide_endcaps`, q));
+        const near = blocks.min.getComponent(j) - rails.min.getComponent(j);
+        const far = rails.max.getComponent(j) - blocks.max.getComponent(j);
+        expect(near, `${axis}=${value}: start engagement`).toBeGreaterThan(27);
+        expect(far, `${axis}=${value}: end engagement`).toBeGreaterThan(27);
+      }
+    }
   });
 
   it("centres the ram at Y0 and preserves the intentional neutral tool offset", () => {

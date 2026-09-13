@@ -27,10 +27,18 @@ JOINT_BOSS_RADIUS = 190.0
 UPPER_BOTTOM = -160.0
 LOWER_TOP = 270.0
 HEAD_TOP = 400.0  # In the C/B frame; spindle nose is at -PZ.
-GUIDE = dict(series='HIWIN RGR65R / RGH65HA dimensional reference',
-             rail_width_mm=63, rail_height_mm=53, block_width_mm=126,
-             block_length_mm=295, block_body_length_mm=223,
-             assembly_height_mm=90, block_bottom_mm=12, rail_hole_pitch_mm=75)
+GUIDE = dict(series='THK SRG100LC dimensional reference',
+             rail_width_mm=100, rail_height_mm=77, block_width_mm=250,
+             block_length_mm=395, block_body_length_mm=280.2,
+             assembly_height_mm=120, block_bottom_mm=16, rail_hole_pitch_mm=105,
+             flange_thickness_mm=35, rail_counterbore_diameter_mm=39,
+             rail_counterbore_depth_mm=32)
+GUIDE_HEIGHT = GUIDE['assembly_height_mm']
+# Keep the 220 mm Y carriage and the existing ram/head datum: the two
+# thicker guide stacks move the beam 60 mm back, not the spindle forwards.
+Y_RAIL_X = -300 - GUIDE_HEIGHT * 2 - 220
+BRIDGE_SHIFT_X = Y_RAIL_X - (-700)
+BRIDGE_LIFT_Z = GUIDE_HEIGHT - 90
 WALL_BASE = -1050.0
 WALL_TOP = 2025.0  # 3075 mm wall height, 25% less than V8's 4100 mm.
 MACHINE_ZERO_Y = -PY  # C/ram centre at world Y=0 when joint Y=0.
@@ -70,30 +78,46 @@ def halfspace(t,positive):
     s.Placement=App.Placement(N*t, App.Rotation(V(0,0,1),N if positive else -N))
     return s
 
-# Common simplified RG65 section, shared by all three linear axes.
+# Common simplified SRG100 section, shared by all three linear axes.
 # Local X = travel, Y = transverse, Z = normal to the rail mounting plane.
 def guide_rail(length):
+    # Scale the independently drawn groove profile to the catalog envelope;
+    # this is a visual model, not a copy of the manufacturer's raceways.
     section=[(-29.5,0),(29.5,0),(31.5,2),(31.5,18),(27.5,23),
              (27.5,32),(31.5,37),(31.5,50),(28.5,53),(-28.5,53),
              (-31.5,50),(-31.5,37),(-27.5,32),(-27.5,23),(-31.5,18),(-31.5,2)]
+    section=[(y*GUIDE['rail_width_mm']/63,z*GUIDE['rail_height_mm']/53) for y,z in section]
     wire=Part.makePolygon([V(0,y,z) for y,z in section+[section[0]]])
     rail=Part.Face(wire).extrude(V(length,0,0))
     pitch=GUIDE['rail_hole_pitch_mm']
-    count=int((length-30)//pitch)+1
+    count=int((length-60)//pitch)+1
     edge=(length-(count-1)*pitch)/2
     # Symmetric mounting pattern; shallow counterbores keep the mesh compact.
-    cuts=[cyl(13,23,(edge+i*pitch,0,31)) for i in range(count)]
+    depth=GUIDE['rail_counterbore_depth_mm']
+    cuts=[cyl(GUIDE['rail_counterbore_diameter_mm']/2,depth+1,
+              (edge+i*pitch,0,GUIDE['rail_height_mm']-depth)) for i in range(count)]
     rail=rail.cut(compound(cuts)).removeSplitter()
     if length>3900:
-        rail=rail.cut(box(length/2-0.1,-40,-1,length/2+0.1,40,55))
+        width=GUIDE['rail_width_mm']/2+1
+        rail=rail.cut(box(length/2-0.1,-width,-1,length/2+0.1,width,GUIDE['rail_height_mm']+1))
     return rail
 
 def guide_block():
-    body=bevel(box(-111.5,-63,12,111.5,63,90),3)
-    ends=compound([bevel(box(x0,-61,12,x1,61,85),2)
-                   for x0,x1 in [(-147.5,-111.5),(111.5,147.5)]])
-    channel=box(-149,-32,0,149,32,54)
-    holes=compound([cyl(7,21,(x,y,70)) for x in (-60,0,60) for y in (-38,38)])
+    half_body=GUIDE['block_body_length_mm']/2
+    half_length=GUIDE['block_length_mm']/2
+    half_width=GUIDE['block_width_mm']/2
+    bottom=GUIDE['block_bottom_mm']
+    flange_z=GUIDE_HEIGHT-GUIDE['flange_thickness_mm']
+    # Broad mounting flange over a narrower roller body and dark end caps.
+    body=bevel(fuse([box(-half_body,-90,bottom,half_body,90,GUIDE_HEIGHT),
+                    box(-half_body,-half_width,flange_z,half_body,half_width,GUIDE_HEIGHT)]),3)
+    ends=compound([bevel(box(x0,-89,bottom,x1,89,GUIDE_HEIGHT-5),2)
+                   for x0,x1 in [(-half_length,-half_body),(half_body,half_length)]])
+    channel_width=GUIDE['rail_width_mm']/2+0.5
+    channel=box(-half_length-1,-channel_width,0,half_length+1,channel_width,GUIDE['rail_height_mm']+1)
+    # SRG100LC: six flange holes and three central blind holes, simplified.
+    holes=compound([cyl(8.9,36,(x,y,flange_z-0.5)) for x in (-100,0,100) for y in (-110,110)] +
+                   [cyl(8.9,23,(x,0,GUIDE_HEIGHT-22)) for x in (-100,0,100)])
     return body.cut(channel).cut(holes), ends.cut(channel)
 
 def guide_place(shape, origin, travel, normal):
@@ -199,26 +223,32 @@ add('x_side_walls',None,'paint',compound([
 add('leveling_pads',None,'dark',compound([
     cyl(175,90,(x,y,-1740)) for x in (-3800,-2000,-300,1100) for y in (-2700,2700)]))
 guide_set('x',None,'x_bridge',[(0,y+d,WALL_TOP) for y in (-2550,2550)
-    for d in (-265,265)],-4130,5380,[-1405,-785],(1,0,0),(0,0,1))
+    for d in (-265,265)],-4190,5440,[x+BRIDGE_SHIFT_X for x in (-1405,-785)],(1,0,0),(0,0,1))
 
 # Four X blocks on each wall carry a separate 200 mm saddle plate.
 add('x_saddle_plates','x_bridge','cast',compound([
-    bevel(box(-1650,y-475,WALL_TOP+90,-540,y+475,WALL_TOP+290),16) for y in (-2550,2550)]))
+    bevel(box(-1650+BRIDGE_SHIFT_X,y-475,WALL_TOP+GUIDE_HEIGHT,
+              -540+BRIDGE_SHIFT_X,y+475,WALL_TOP+GUIDE_HEIGHT+200),16) for y in (-2550,2550)]))
 # The crossbeam sits on both saddle plates. There are no moving columns.
-add('x_bridge_casting','x_bridge','paint',bevel(box(-1490,-2950,WALL_TOP+290,-700,2950,WALL_TOP+1240),25))
+add('x_bridge_casting','x_bridge','paint',bevel(box(-1490+BRIDGE_SHIFT_X,-2950,WALL_TOP+GUIDE_HEIGHT+200,
+    Y_RAIL_X,2950,WALL_TOP+1240+BRIDGE_LIFT_Z),25))
 add('x_drive_housings','x_bridge','accent',compound([
-    bevel(box(-1425,y-230,WALL_TOP+1240,-765,y+230,WALL_TOP+1450),18) for y in (-2550,2550)]))
-add('bridge_rear_panel','x_bridge','dark',box(-1497,-2250,WALL_TOP+380,-1491,2250,WALL_TOP+1150))
-guide_set('y','x_bridge','y_saddle',[(-700,0,z) for z in (WALL_TOP+390,WALL_TOP+1140)],
+    bevel(box(-1425+BRIDGE_SHIFT_X,y-230,WALL_TOP+1240+BRIDGE_LIFT_Z,
+              -765+BRIDGE_SHIFT_X,y+230,WALL_TOP+1450+BRIDGE_LIFT_Z),18) for y in (-2550,2550)]))
+add('bridge_rear_panel','x_bridge','dark',box(-1497+BRIDGE_SHIFT_X,-2250,WALL_TOP+380+BRIDGE_LIFT_Z,
+    -1491+BRIDGE_SHIFT_X,2250,WALL_TOP+1150+BRIDGE_LIFT_Z))
+guide_set('y','x_bridge','y_saddle',[(Y_RAIL_X,0,z+BRIDGE_LIFT_Z) for z in (WALL_TOP+390,WALL_TOP+1140)],
           -2925,5850,[PY-280,PY+280],(0,1,0),(1,0,0))
 
-# Y and Z block/rail pairs use the same 90 mm installation stack.
+# Y and Z block/rail pairs use the same 120 mm installation stack.
 # Rail-pair and block-pair centres coincide with their carriage centre lines.
-add('y_carriage','y_saddle','accent',bevel(box(-610,PY-470,WALL_TOP+90,-390,PY+470,WALL_TOP+1440),20))
-add('z_ram','xyz_head','paint',bevel(box(-300,PY-340,HEAD_TOP+PZ+10,300,PY+340,WALL_TOP+1320),22))
+add('y_carriage','y_saddle','accent',bevel(box(Y_RAIL_X+GUIDE_HEIGHT,PY-510,WALL_TOP+GUIDE_HEIGHT,
+    -300-GUIDE_HEIGHT,PY+510,WALL_TOP+1440+BRIDGE_LIFT_Z),20))
+add('z_ram','xyz_head','paint',bevel(box(-300,PY-340,HEAD_TOP+PZ+10,300,PY+340,WALL_TOP+1320+BRIDGE_LIFT_Z),22))
 guide_set('z','xyz_head','y_saddle',[(-300,y,0) for y in (PY-200,PY+200)],
-          950,2355,[WALL_TOP+465,WALL_TOP+1065],(0,0,1),(-1,0,0))
-add('z_top_motor','xyz_head','dark',bevel(box(-180,PY-210,WALL_TOP+1320,180,PY+210,WALL_TOP+1620),20))
+          920,2425,[z+BRIDGE_LIFT_Z for z in (WALL_TOP+465,WALL_TOP+1065)],(0,0,1),(-1,0,0))
+add('z_top_motor','xyz_head','dark',bevel(box(-180,PY-210,WALL_TOP+1320+BRIDGE_LIFT_Z,
+    180,PY+210,WALL_TOP+1620+BRIDGE_LIFT_Z),20))
 
 # Offset universal head following the user's section sketch. Both housings
 # are finite cylinders, so the 45-degree cut terminates at broad flat shoulders.
@@ -298,6 +328,7 @@ report={'parts':[],'reference_commit':'f8c5339','cad_pose':DEMO,
 for p in parts:
     shape=local_shapes[p['id']]
     mesh=MeshPart.meshFromShape(Shape=shape,LinearDeflection=0.65,AngularDeflection=0.14,Relative=False)
+    assert mesh.isSolid(), p['id']+' STL is not closed'
     mesh.write(str(STLDIR/p['file']))
     report['parts'].append({'id':p['id'],'valid':shape.isValid(),
         'solids':len(shape.Solids),'volume_mm3':shape.Volume,
