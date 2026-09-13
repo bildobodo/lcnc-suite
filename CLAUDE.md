@@ -817,28 +817,31 @@ keeps itself current with NO manual trigger: auto-runs on program load
 (base track — marks appear before sim is entered), on sim entry (entry
 track, fresh position = fresh baseline), and on WCS/tool changes while
 idle (stale results clear + re-run, debounced; in sim ScrubBar re-checks
-with the rebuilt entry track). SWEEP STATES (2026-09-12, stop/continue): ONE SWEEP BUTTON, first in row 2
-(❚❚ / ▶ / ↻ share a position; the progress is the TIMELINE's swept band —
-`sweptFrac`; the iterator's progress and `covered` are TRACK-AXIS
-fractions, `distToTrackCum(s) / cum[n-1]`, since the sim-bar wave, so a
-scrub shows which section is already checked; the number lives in the
-button tooltip) (the findings — limits nav, clash nav, verdict
-text — follow it, every variable-width readout AFTER the last button of
-its group). RUNNING: band = progress, ❚❚ PARKS the sweep — the click is
-acknowledged AT ONCE (`collisionStopping`: button disabled)
-until the worker's park reply, which is now bounded: the iterator yields
-on TIME (8 ms of active clock, checked per segment and every 32 samples;
-the 16-segment / 512-sample checkpoints stay as the floor — 512 in-margin
-samples were seconds), a stop during a camera pause parks immediately, and
-the snapshot's contact refinement is MEMOIZED per unchanged record (a park
-used to re-refine every record, continuation records past the cap
-included). PARKED: band = the covered fraction, ▶ continues
-exactly where it stopped — the worker keeps the suspended generator with
-every clearance certificate and contact state, `SnapshotHandle` in
-collision.ts hands out the sweep-so-far without ending it; the clashes
-found so far are marked, the verdict reads "no clash in N % swept" / "in
-N % swept". DONE: full band (the covered part when truncated), ↻ runs again
-from the start, unbounded; no result yet = no band + ↻. Row 1's line /
+with the rebuilt entry track). SWEEP STATES (2026-09-13, no button): the sweep has NO control on the bar
+— it is OPEN-ENDED (the 300 s budget and the ❚❚ / ▶ / ↻ button of
+2026-09-12 are gone, operator decision), its progress is the TIMELINE's
+swept band (`sweptFrac`; the iterator's progress and `covered` are
+TRACK-AXIS fractions, `distToTrackCum(s) / cum[n-1]`, so a scrub shows
+which section is already checked), and its findings show LIVE: the worker
+posts the UNREFINED sweep-so-far (`SnapshotHandle.peek`, `partial` on the
+progress message, at most every 500 ms and only when the record count
+changed — hits at their discovering samples, up to one step late) as
+`collisionPartial`, so ticks, bands, the tint and the code-panel marks
+appear as the sweep finds them and the verdict reads "N clashes so far";
+the refined result replaces it when the sweep ends or parks. The worker
+PAUSES for camera interaction (auto-expires after 30 s — a lost pointer-
+up) and for a HIDDEN tab (no expiry; `visibilitychange`), two independent
+holds; a ROTARY jog PARKS it (`stop`, honoured at the next checkpoint — the
+iterator yields on TIME, 8 ms of active clock, the 16-segment / 512-
+sample checkpoints as the floor; the park snapshot's refinement is
+MEMOIZED per unchanged record) and a settled pose continues it — the
+worker keeps the suspended generator with every clearance certificate and
+contact state, `SnapshotHandle.take` hands out the sweep-so-far without
+ending it; parked reads "no clash in N % swept" / "in N % swept". The
+iterator's 4 M-sample backstop is the only hard limit (`truncated`,
+reason "samples"). The findings — limits nav, clash nav, verdict text —
+keep every variable-width readout AFTER the last button of its group.
+Row 1's line /
 time readouts are FIXED slots sized PER PROGRAM (flex basis, ellipsis,
 full text in the title; line = "L" + digits of the last line + " →",
 time = "mm:ss/mm:ss" + "~"; the timer shows always — "00:00/45:00" at
@@ -847,12 +850,8 @@ slot) — a min-width floor let "L1234 (sub_name) →" eat the timeline. The
 speed slider stays in row 1 (row 2 shifts with findings). Timeline BANDS
 span the thumb's EDGES (an extent to program end reaches the track's
 end); ticks sit at thumb centres. Dragging the timeline PAUSES playback
-(`@input`). The budget
-running out (AUTO sweeps: 300 s of ACTIVE time, enforced by the worker at
-slice boundaries — a continue or ↻ is unbounded, the operator's ❚❚ is the
-bound, the iterator's 4 M-sample runaway backstop behind it), the operator's
-❚❚ and a ROTARY jog (> 0.05°) all park; nothing cancels but a superseding
-change (program, touch-off, tool). A motion-parked sweep resumes by itself
+(`@input`). Only a ROTARY jog (> 0.05°) parks; nothing cancels but a
+superseding change (program, touch-off, tool). A motion-parked sweep resumes by itself
 once the pose has held still 4.5 s with no re-parse in flight; a re-parse
 that lands drops it and starts fresh. SIM ENTRY never touches the
 program's sweep (the MAIN run, always on the BASE track): the ENTRY
@@ -935,10 +934,11 @@ was ~2 h per sweep (now 31 s, certified). Pairs inside the margin keep
 their EXPLORE re-probe cadence but are sampled at least once on every line
 they stay in contact with (the per-line continuation marks). The sweep is a
 resumable iterator (`sweepCollisionsIter`, checkpoints every 16 segments /
-512 samples) with a WALL-CLOCK budget (`maxMs`, auto 60 s / manual 300 s,
-active time only — the sweep pauses while the camera moves): on breach it stops and the result says `truncated`
+512 samples and every 8 ms of clock) with an optional WALL-CLOCK budget
+(`maxMs`, sync API + tests only — the worker runs sweeps OPEN-ENDED since
+2026-09-13): on breach it stops and the result says `truncated`
 {covered, reason} — ScrubBar reads "no clash in N % swept", never "clear".
-The sample budget (4 M) is only a runaway backstop, and its breach is now
+The sample budget (4 M) is only a runaway backstop, and its breach is
 `truncated.reason = "samples"`, no longer a silent break.
 A sweep whose guarantee does not hold — a declared kins this client
 cannot evaluate falls back to trivkins, whose bound is legitimately 0 —
@@ -1120,7 +1120,7 @@ The `tool_touch_off.ngc` subroutine reads parameters from the LinuxCNC var file 
 - A per-line `Map`/`Set` on a million-line program is a million heap objects the browser's collector marks on EVERY major GC (110–140 ms measured) and a ~1 s structured clone per worker hop — the "sometimes lags when rotating" class. Line-indexed typed arrays (`viewer/lineIndex.ts`) are the shape for anything keyed by line number
 - A background re-parse that cannot be cancelled QUEUES: an edge raised during it was not even evaluated until it published, then ran a second full parse (41–167 s live). Snapshot the running parse's inputs and supersede it; and an edge that stays true until the publish (`file_changed`) must never be allowed to cancel the parse that will clear it
 - `browser.viewer.perf` `frames`/`gap_*` are the STATUS cadence (30 Hz active, 5 Hz at the gateway's idle poll after a manual jog), NOT the frame rate — a whole record once called the Mac's viewer "30 fps capped" from them. `raf_*` is the render loop; `mt_*` (timer lateness) vs `gpu_*` (WebGL2 fences) say whether a stall is the main thread or the GPU — the CPU-side `render_*` never shows a GPU-bound draw (WebGL is out of process in Firefox and Chromium)
-- A Web Worker is off the main thread, not off the machine: the collision sweep running for minutes made the GPU trail 3–4 frames on the operator's Mac with a perfectly clean main thread. Profile before designing (the "2 h sweep" was a per-chunk certificate reset meeting 0.09 mm segments — 45 BVH queries per 0.09 mm — not mesh cost); bound every background job with a wall-clock budget that reports what it covered; and let interaction pause it
+- A Web Worker is off the main thread, not off the machine: the collision sweep running for minutes made the GPU trail 3–4 frames on the operator's Mac with a perfectly clean main thread. Profile before designing (the "2 h sweep" was a per-chunk certificate reset meeting 0.09 mm segments — 45 BVH queries per 0.09 mm — not mesh cost); let interaction (camera) and a hidden tab pause every background job, and make it report what it covered whenever it stops early (the wall-clock budget that once bounded the sweep was retired 2026-09-13 once the pauses and the carried certificates made it pointless)
 - Lazy conservative advancement must CARRY its certificates across chunk boundaries in clearance terms (d − margin, decremented by each chunk's V × L); resetting them per chunk makes the cost O(segments × pairs) regardless of geometry
 - Profile before vectorizing: 40 % of the 46 s plane-mode parse was 2.36 M pure-Python inverse-kinematics solves, another ~40 % three passes that re-stripped comments character by character; the interpreter itself was a quarter. cProfile inflates Python-call-heavy code ~2× — use it for proportions, the trace for absolute numbers
 

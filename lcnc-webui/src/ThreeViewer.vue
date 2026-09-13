@@ -2077,26 +2077,29 @@ let _colStartedAt = 0;   // performance.now() of the running sweep's post (telem
 // the machine for long: a 1.18 M-point program ran ~2 h per sweep, restarted
 // on every touch-off, and starved the operator's GPU the whole time
 // (2026-09-10). The sweep PAUSES while the camera moves and its budget
-// counts active time only, so a long budget never costs interaction.
-// Sweep budgets (2026-09-12, stop/continue): an AUTOMATIC sweep parks itself
-// after 300 s of ACTIVE time (the 60 s of the certificate-fix era bit only on
-// programs several times the 1.18 M-point one, which now sweeps in ~35 s); a
-// continue or an operator ↻ runs unbounded — the operator's ❚❚ is the bound,
-// with the iterator's 4 M-sample runaway backstop behind it.
-const SWEEP_AUTO_BUDGET_MS = 300_000;
-let _colBudget: number | null = SWEEP_AUTO_BUDGET_MS;
+// counts active time only, so a pause never costs the sweep anything.
+// Sweeps are OPEN-ENDED (2026-09-13, operator decision): the 300 s budget of
+// the certificate-fix era and the ❚❚ / ▶ / ↻ button are gone — camera
+// interaction and a hidden tab PAUSE the worker, a rotary jog PARKS it (and
+// a settled pose resumes it), and the iterator's 4 M-sample backstop is the
+// only hard limit, reported as `truncated`. A program in permanent contact
+// sweeps for minutes; that is its cost, off the main thread.
 // The modelKey the worker holds a resident BVH model for (bodies are sent
 // only when it changes); null after a worker (re)creation or a failure.
 let _colModelSent: string | null = null;
 let _colNeedBodiesRetried = false;
-// Parked sweep (stop/continue): the worker holds the suspended generator;
+// Parked sweep (a rotary jog): the worker holds the suspended generator;
 // `collisionResult` carries the sweep-so-far (truncated) so its marks show.
-const collisionStopped = ref<{ covered: number; reason: "time" | "stopped" | "motion" } | null>(null);
+const collisionStopped = ref<{ covered: number; reason: "motion" } | null>(null);
 const collisionResumable = ref(false);
-/** A stop is on its way to the worker's next checkpoint (ScrubBar shows the
- *  click acknowledged at once; the park reply clears it). */
-const collisionStopping = ref(false);
-let _colStopReason: "stopped" | "motion" | null = null;
+let _colStopPending = false;   // a stop is on its way to the worker's next checkpoint
+// Live findings (2026-09-13): the worker's UNREFINED sweep-so-far, posted
+// with its progress at most every half second while the record count
+// changes — ticks, bands, the tint and the code-panel marks show clashes as
+// the sweep finds them; the refined result replaces it when the sweep ends
+// or parks. Keyed on the track it is being swept on.
+const collisionPartial = shallowRef<CollisionResult | null>(null);
+const collisionPartialTrack = shallowRef<ScrubTrack | null>(null);
 // Entry-segment OVERLAY (sim entry, 2026-09-12 second attempt): the SIDE
 // sweep's result for an entry track built on `base`, merged with the base
 // result at display time (collisionEntryResult). The base result keeps its
@@ -2124,15 +2127,23 @@ let _colPendingTrack: ScrubTrack | null = null;
 /** The entry track's result: the overlay merged onto the base result (cums
  *  shifted by the entry length, two baselines reported). Null until both
  *  exist — a base sweep still running shows as running, not as "no result". */
+/** The base result on display: the refined one, else the live partial. */
+function _colBaseFor(trk: ScrubTrack): CollisionResult | null {
+  if (collisionResult.value && collisionTrack.value === trk) return collisionResult.value;
+  if (collisionPartial.value && collisionPartialTrack.value === trk) return collisionPartial.value;
+  return null;
+}
 const collisionEntryResult = computed<{ track: ScrubTrack; result: CollisionResult } | null>(() => {
-  const e = collisionEntry.value, b = collisionResult.value;
-  if (!e || !b || collisionTrack.value !== e.base) return null;
+  const e = collisionEntry.value;
+  const b = e ? _colBaseFor(e.base) : null;
+  if (!e || !b) return null;
   return { track: e.track, result: mergeEntryResult(e.result, b, e.shift) };
 });
 /** The result swept on exactly `trk` (base or entry-overlaid), else null. */
 function _colResultFor(trk: ScrubTrack | null): CollisionResult | null {
   if (!trk) return null;
-  if (trk === collisionTrack.value) return collisionResult.value;
+  const b = _colBaseFor(trk);
+  if (b) return b;
   const e = collisionEntryResult.value;
   return e && e.track === trk ? e.result : null;
 }
@@ -2142,7 +2153,7 @@ function _colGetWorker(): Worker {
     _colWorker = new Worker(new URL("./viewer/collisionWorker.ts", import.meta.url), { type: "module" });
     _colModelSent = null;   // a fresh worker holds no model
     _colWorker.onmessage = (ev: MessageEvent) => {
-      const m = ev.data as { id: number; progress?: number; error?: string; result?: CollisionResult; needBodies?: boolean; cancelled?: boolean; stopped?: boolean };
+      const m = ev.data as { id: number; progress?: number; partial?: CollisionResult; error?: string; result?: CollisionResult; needBodies?: boolean; cancelled?: boolean; stopped?: boolean };
       if (_colSide && m.id === _colSide.id) { _colOnSideMessage(m); return; }
       if (m.id !== _colReqId) return;  // superseded
       if (m.cancelled) return;         // our own cancel, acknowledged
@@ -2158,34 +2169,40 @@ function _colGetWorker(): Worker {
         _colNeedBodiesRetried = true;
         _colModelSent = null;
         collisionBusy.value = false;   // runCollisionCheck early-returns on busy
-        runCollisionCheck(_colPendingTrack ?? undefined, _colBudget);
+        runCollisionCheck(_colPendingTrack ?? undefined);
         return;
       }
       if (m.progress != null && !m.result) {
         collisionProgress.value = m.progress;
+        if (m.partial) {
+          collisionPartial.value = m.partial;
+          collisionPartialTrack.value = _colPendingTrack;
+          emit("collision-lines", m.partial.hits.map(h => ({ line: h.line, continuation: h.continuation })));
+          _colRetint();
+        }
         return;
       }
       if (m.stopped) {
-        // Parked (budget / operator / rotary motion): the sweep-so-far is
-        // the result on display, and the worker still holds the generator.
+        // Parked (a rotary jog): the sweep-so-far is the result on display,
+        // and the worker still holds the generator.
         collisionBusy.value = false;
-        collisionStopping.value = false;
+        _colStopPending = false;
         collisionResult.value = m.result!;
         collisionTrack.value = _colPendingTrack;
+        collisionPartial.value = null;
         collisionResumable.value = true;
-        const reason = _colStopReason ?? (m.result!.truncated?.reason === "time" ? "time" : "stopped");
-        _colStopReason = null;
-        collisionStopped.value = { covered: m.result!.truncated?.covered ?? 0, reason };
+        collisionStopped.value = { covered: m.result!.truncated?.covered ?? 0, reason: "motion" };
         emitTelemetry("collision.sweep_stopped", {
-          reason, covered: m.result!.truncated?.covered ?? 0, hits: m.result!.hits.length,
-          ms: Math.round(performance.now() - _colStartedAt), budget_ms: _colBudget,
+          reason: "motion", covered: m.result!.truncated?.covered ?? 0, hits: m.result!.hits.length,
+          ms: Math.round(performance.now() - _colStartedAt),
         });
         emit("collision-lines", m.result!.hits.map(h => ({ line: h.line, continuation: h.continuation })));
         _colRetint();
         return;
       }
       collisionBusy.value = false;
-      collisionStopping.value = false;
+      _colStopPending = false;
+      collisionPartial.value = null;
       if (m.error) {
         console.error("[collision] sweep failed:", m.error);
         emitTelemetry("collision.sweep_failed", { msg: m.error });
@@ -2209,7 +2226,7 @@ function _colGetWorker(): Worker {
         samples: result.samples, coarsened: result.coarsened,
         uncertified: result.uncertified != null,
         truncated: result.truncated?.reason ?? null,
-        covered: result.truncated?.covered ?? 1, budget_ms: _colBudget,
+        covered: result.truncated?.covered ?? 1,
         hits: result.hits.length, pairs: result.pairCount,
         points: _colPendingTrack?.count ?? null,
       });
@@ -2234,13 +2251,13 @@ function _colGetWorker(): Worker {
 // runCollisionCheck).
 function _colFail() {
   collisionBusy.value = false;
-  collisionStopping.value = false;
+  _colStopPending = false;
   collisionProgress.value = 0;
   collisionResult.value = null;
   collisionTrack.value = null;
+  collisionPartial.value = null;
   collisionResumable.value = false;
   collisionStopped.value = null;
-  _colStopReason = null;
   _colDropEntry();
   emit("collision-lines", null);
 }
@@ -2259,44 +2276,34 @@ function cancelCollisionCheck() {
   if (_colWorker && (collisionBusy.value || collisionResumable.value)) _colWorker.postMessage({ cancel: _colReqId });
   _colReqId++;
   collisionBusy.value = false;
-  collisionStopping.value = false;
+  _colStopPending = false;
   collisionProgress.value = 0;
+  collisionPartial.value = null;
   collisionResumable.value = false;
   collisionStopped.value = null;
-  _colStopReason = null;
   clearTimeout(_colSettleTimer);
 }
 
-function runCollisionCheckManual(t: ScrubTrack) {
-  cancelCollisionCheck();
-  runCollisionCheck(t, null);   // unbounded: the operator's ❚❚ is the bound
-}
-
-/** Park the running sweep at its next checkpoint; the worker keeps it
- *  resident. `collisionStopping` acknowledges the request on the bar until
- *  the park reply lands (2026-09-12: the reply used to be seconds away —
- *  512 in-margin samples between checkpoints, plus a snapshot refining
- *  every hit — and a silent wait read as "not received"; the iterator now
- *  yields on time and the refinement is memoized, but a snapshot of many
- *  fresh hits still takes a moment). */
-function stopCollisionCheck(reason: "stopped" | "motion") {
-  if (!_colWorker || !collisionBusy.value || collisionStopping.value) return;
-  _colStopReason = reason;
-  collisionStopping.value = true;
+/** Park the running sweep at its next checkpoint (a rotary jog — its track
+ *  is about to be re-parsed); the worker keeps it resident. The iterator
+ *  yields on time (8 ms) and the refinement is memoized, so the park reply
+ *  is bounded (2026-09-12: it used to be seconds away). */
+function stopCollisionCheck() {
+  if (!_colWorker || !collisionBusy.value || _colStopPending) return;
+  _colStopPending = true;
   _colWorker.postMessage({ stop: _colReqId });
 }
 
-/** Resume the parked sweep with a fresh active-time budget (null = none). */
-function continueCollisionCheck(budgetMs: number | null = null) {
+/** Resume the parked sweep where it stopped. */
+function continueCollisionCheck() {
   if (!_colWorker || collisionBusy.value || !collisionResumable.value) return;
   collisionBusy.value = true;
   collisionResumable.value = false;
   collisionStopped.value = null;
-  _colBudget = budgetMs;
   _colStartedAt = performance.now();
   _colRotaryAtStart = _rotaryNow();
-  _colWorker.postMessage({ continue: _colReqId, budgetMs });
-  if (_camMoving) _colSetPaused(true);
+  _colWorker.postMessage({ continue: _colReqId });
+  _colApplyPauses();
 }
 
 function _rotaryNow(): number[] | null {
@@ -2392,7 +2399,7 @@ watch(() => vst.value?.rotary_abc as number[] | null | undefined, (abc) => {
   if (!changed) return;
   if (collisionBusy.value && _colRotaryAtStart
       && abc.some((v, i) => Math.abs(v - (_colRotaryAtStart![i] ?? v)) > ROTARY_STOP_DEG)) {
-    stopCollisionCheck("motion");
+    stopCollisionCheck();
   }
   clearTimeout(_colSettleTimer);
   _colSettleTimer = setTimeout(_colOnRotarySettled, ROTARY_SETTLE_MS);
@@ -2400,15 +2407,25 @@ watch(() => vst.value?.rotary_abc as number[] | null | undefined, (abc) => {
 function _colOnRotarySettled() {
   if (collisionStopped.value?.reason !== "motion" || !collisionResumable.value || collisionBusy.value) return;
   if (previewRefresh.value) return;   // its payload drops this sweep and starts a fresh one
-  continueCollisionCheck(SWEEP_AUTO_BUDGET_MS);
+  continueCollisionCheck();
 }
 
-// Camera interaction in progress (OrbitControls start→end): a sweep posted
-// meanwhile starts paused; a running one is paused/resumed by the events.
+// Pauses (2026-09-13): camera interaction in progress (OrbitControls
+// start→end — a busy worker starves the GPU side of the browser) and a
+// HIDDEN tab (a sweep must not burn a core behind another window). A sweep
+// posted while either holds starts paused; a running one is paused/resumed
+// by the events. Two independent holds in the worker, both must release.
 let _camMoving = false;
-function _colSetPaused(on: boolean) {
+function _colSetPaused(why: "camera" | "hidden", on: boolean) {
   if (!_colWorker || !collisionBusy.value) return;
-  _colWorker.postMessage(on ? { pause: _colReqId } : { resume: _colReqId });
+  _colWorker.postMessage(on ? { pause: _colReqId, why } : { resume: _colReqId, why });
+}
+function _colApplyPauses() {
+  if (_camMoving) _colSetPaused("camera", true);
+  if (document.hidden) _colSetPaused("hidden", true);
+}
+function _colOnVisibility() {
+  _colSetPaused("hidden", document.hidden);
 }
 
 // Identity of the collision model the worker keeps resident: the loaded
@@ -2425,7 +2442,7 @@ function _colModelKey(init: ViewerInit): string {
  *  machine STL) go over only when the worker does not already hold this
  *  model — a touch-off used to re-post + rebuild the BVHs every time. Null
  *  when nothing can be posted (no viewer init). */
-function _colBuildRequest(track: ScrubTrack, id: number, budgetMs: number | null, side: boolean) {
+function _colBuildRequest(track: ScrubTrack, id: number, side: boolean) {
   const init = viewerInit.value;
   if (!init) return null;
   const modelKey = _colModelKey(init);
@@ -2481,7 +2498,6 @@ function _colBuildRequest(track: ScrubTrack, id: number, budgetMs: number | null
     tool: _toolVisual(_pv.toolDiam, _pv.toolLen),
     track: trackCopy,
     wcs: _pfWcs(),
-    budgetMs,   // active-time budget, enforced by the worker as a resumable park
     side: side || undefined,   // beside the main sweep (entry segment)
     options: {
       margin: COLLISION_MARGIN_MM * _unitScale,
@@ -2502,7 +2518,7 @@ function _colBuildRequest(track: ScrubTrack, id: number, budgetMs: number | null
   return { msg, transfer, modelKey, bodies: bodies.length };
 }
 
-function runCollisionCheck(trackOverride?: ScrubTrack, budgetMs: number | null = SWEEP_AUTO_BUDGET_MS) {
+function runCollisionCheck(trackOverride?: ScrubTrack) {
   // The MAIN sweep always runs the program's own (base) track; the sim
   // entry segment is a side sweep (runEntryCheck).
   // toRaw: structured clone refuses Vue Proxies. The gcode payload is
@@ -2512,24 +2528,23 @@ function runCollisionCheck(trackOverride?: ScrubTrack, budgetMs: number | null =
   const track = toRaw(trackOverride ?? viewerGcode.value?.scrubTrack ?? null) as ScrubTrack | null;
   if (!track || collisionBusy.value) return;
   const id = ++_colReqId;
-  const req = _colBuildRequest(track, id, budgetMs, false);
+  const req = _colBuildRequest(track, id, false);
   if (!req) return;
   _colPendingTrack = track;
   collisionBusy.value = true;
-  collisionStopping.value = false;
+  _colStopPending = false;
   collisionProgress.value = 0;
   collisionResult.value = null;
+  collisionPartial.value = null;
   collisionResumable.value = false;
   collisionStopped.value = null;
-  _colStopReason = null;
   _colRotaryAtStart = _rotaryNow();
-  _colBudget = budgetMs;
   _colStartedAt = performance.now();
-  emitTelemetry("collision.sweep_start", { points: track.count, bodies: req.bodies, budget_ms: budgetMs });
+  emitTelemetry("collision.sweep_start", { points: track.count, bodies: req.bodies });
   try {
     _colGetWorker().postMessage(req.msg, req.transfer);
     _colModelSent = req.modelKey;   // the worker now holds (or is building) this model
-    if (_camMoving) _colSetPaused(true);
+    _colApplyPauses();
   } catch (err) {
     // postMessage throws SYNCHRONOUSLY on an uncloneable payload
     // (DataCloneError — a Vue Proxy in the track was the live case). The
@@ -2547,7 +2562,7 @@ function runCollisionCheck(trackOverride?: ScrubTrack, budgetMs: number | null =
  *  or the main run's state. */
 function _colPostSide(slice: ScrubTrack, entry: ScrubTrack, base: ScrubTrack, shift: number, retried = false) {
   const id = -(++_colSideSeq);
-  const req = _colBuildRequest(toRaw(slice) as ScrubTrack, id, null, true);
+  const req = _colBuildRequest(toRaw(slice) as ScrubTrack, id, true);
   if (!req) return;
   if (_colSide && _colWorker) _colWorker.postMessage({ cancel: _colSide.id });
   _colSide = { id, entry, base, slice, shift, retried, startedAt: performance.now() };
@@ -3251,6 +3266,7 @@ watch(themeMode, () => {
 });
 
 onMounted(() => {
+  document.addEventListener("visibilitychange", _colOnVisibility);
   scene = new THREE.Scene();
   scene.background = sceneBgFromTheme();
 
@@ -3302,8 +3318,8 @@ onMounted(() => {
   // A running collision sweep pauses while the camera moves — the busy
   // worker starved the GPU side of the browser (2026-09-10); its budget
   // counts active time only, so the pause costs the sweep nothing.
-  controls.addEventListener("start", () => { _camMoving = true; _colSetPaused(true); });
-  controls.addEventListener("end", () => { _camMoving = false; _colSetPaused(false); });
+  controls.addEventListener("start", () => { _camMoving = true; _colSetPaused("camera", true); });
+  controls.addEventListener("end", () => { _camMoving = false; _colSetPaused("camera", false); });
 
   // Pause RAF when the document is hidden (browser tab switch / system sleep).
   // Independent of props.active, which gates Vue tab visibility within the SPA.
@@ -3371,6 +3387,7 @@ function applyViewerDefaults() {
 }
 
 onUnmounted(() => {
+  document.removeEventListener("visibilitychange", _colOnVisibility);
   document.removeEventListener("visibilitychange", _onVisibilityChange);
   setViewerPerfContext(null);
   setViewerPerfGl(null);
@@ -3832,12 +3849,10 @@ defineExpose({
       :collisionTrack="collisionTrack"
       :collisionStopped="collisionStopped"
       :collisionResumable="collisionResumable"
-      :collisionStopping="collisionStopping"
+      :collisionPartial="collisionPartial"
+      :collisionPartialTrack="collisionPartialTrack"
       :collisionEntryResult="collisionEntryResult"
-      @check-manual="runCollisionCheckManual"
       @check-entry="runEntryCheck"
-      @stop-check="stopCollisionCheck('stopped')"
-      @continue-check="continueCollisionCheck(null)"
       @pose="onScrubPose"
       @cancel-check="_colInvalidate"
     />

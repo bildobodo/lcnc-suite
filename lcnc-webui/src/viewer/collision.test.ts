@@ -305,7 +305,7 @@ describe("sweepCollisions", () => {
     const t = track(pts);
     const sync = sweepCollisions(model, t, WCS0, { margin: 2 });
     expect(sync.hits.length).toBeGreaterThan(0);
-    const snap: SnapshotHandle = { take: null };
+    const snap: SnapshotHandle = { take: null, peek: null, records: null };
     const it = sweepCollisionsIter(model, t, WCS0, { margin: 2, snapshot: snap });
     let r = it.next();
     expect(snap.take).not.toBeNull();       // installed before the first checkpoint
@@ -364,7 +364,7 @@ describe("sweepCollisions", () => {
     const pts: number[][] = [];
     for (let z = 0; z >= -45; z -= 0.5) pts.push([0, 0, z]);
     const t = track(pts);
-    const snap: SnapshotHandle = { take: null };
+    const snap: SnapshotHandle = { take: null, peek: null, records: null };
     const it = sweepCollisionsIter(model, t, WCS0, { margin: 2, snapshot: snap });
     let r = it.next();
     const ends = new Map<string, number>();
@@ -384,6 +384,37 @@ describe("sweepCollisions", () => {
     const sync = sweepCollisions(model, t, WCS0, { margin: 2 });
     expect((r.value as CollisionResult).hits.map(h => [h.line, +h.cum.toFixed(3), +h.cumEnd.toFixed(3)]))
       .toEqual(sync.hits.map(h => [h.line, +h.cum.toFixed(3), +h.cumEnd.toFixed(3)]));
+  });
+
+  it("peek: the unrefined sweep-so-far at any checkpoint — hits ⊆ the final, record count monotonic, the suspended sweep undisturbed", () => {
+    // 2026-09-13: the worker streams these while sweeping so clashes show on
+    // the timeline as they are found; no refinement, no mesh probes.
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const pts: number[][] = [];
+    for (let z = 0; z >= -45; z -= 0.5) pts.push([0, 0, z]);
+    const t = track(pts);
+    const sync = sweepCollisions(model, t, WCS0, { margin: 2 });
+    const snap: SnapshotHandle = { take: null, peek: null, records: null };
+    const it = sweepCollisionsIter(model, t, WCS0, { margin: 2, snapshot: snap });
+    let r = it.next();
+    expect(snap.peek).not.toBeNull();
+    let lastRecords = 0, peeks = 0;
+    while (!r.done) {
+      const recs = snap.records!();
+      expect(recs).toBeGreaterThanOrEqual(lastRecords);
+      lastRecords = recs;
+      const p = snap.peek!();
+      peeks++;
+      expect(p.truncated?.reason).toBe("running");
+      for (const h of p.hits) expect(sync.hits.some(x => x.line === h.line && x.a === h.a && x.b === h.b)).toBe(true);
+      r = it.next();
+    }
+    expect(peeks).toBeGreaterThan(3);
+    const full = r.value as CollisionResult;
+    expect(full.hits.map(h => [h.line, +h.cum.toFixed(3), +h.cumEnd.toFixed(3)]))
+      .toEqual(sync.hits.map(h => [h.line, +h.cum.toFixed(3), +h.cumEnd.toFixed(3)]));
+    expect(snap.peek).toBeNull();
+    expect(snap.records).toBeNull();
   });
 
   it("next(true) at a checkpoint aborts: baseline only, epilogue still returns a result", () => {

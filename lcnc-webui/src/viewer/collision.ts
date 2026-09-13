@@ -238,7 +238,7 @@ export interface CollisionResult {
    *  time on a time-based track — what the scrub bar's swept band and its
    *  "N % swept" text show). Null = the whole track was swept. A truncated
    *  sweep with no hits is NOT "clear": only the covered part is. */
-  truncated: { covered: number; reason: "time" | "samples" | "stopped" } | null;
+  truncated: { covered: number; reason: "time" | "samples" | "stopped" | "running" } | null;
 }
 
 /** Driver-side stop/continue (2026-09-12). The iterator installs `take` at
@@ -252,6 +252,14 @@ export interface CollisionResult {
  *  exactly as it found it. */
 export interface SnapshotHandle {
   take: ((reason: "time" | "stopped") => CollisionResult) | null;
+  /** The sweep-so-far WITHOUT refinement (2026-09-13, live findings on the
+   *  timeline): hits at their discovering samples — up to one sample step
+   *  late — with `truncated.reason === "running"`. Cheap: a shallow copy of
+   *  the records, no mesh probes. The refined result replaces it when the
+   *  sweep ends or parks. */
+  peek: (() => CollisionResult) | null;
+  /** Contact records so far — the driver peeks only when this changed. */
+  records: (() => number) | null;
 }
 
 // maxSamples is a RUNAWAY backstop, not the operative bound: with carried
@@ -1202,6 +1210,14 @@ export function* sweepCollisionsIter(
       }
       return buildResult(copy, { covered: frac(sweptTo), reason }, false, true);
     };
+    opts.snapshot.peek = () => {
+      // refine=false never sorts or mutates a record's samples, so a shallow
+      // copy suffices (live records carry no intervals yet).
+      const copy: typeof worst = new Map();
+      for (const [k, h] of worst) copy.set(k, { ...h });
+      return buildResult(copy, { covered: frac(sweptTo), reason: "running" }, false, false);
+    };
+    opts.snapshot.records = () => worst.size;
   }
   // Checkpoint before the first segment: an abort here leaves the baseline
   // pose only (the "aborts early" contract).
@@ -1401,6 +1417,6 @@ export function* sweepCollisionsIter(
   }
   const finalResult = buildResult(worst, truncated, true, !aborted);
   yield truncated ? truncated.covered : 1;
-  if (opts.snapshot) opts.snapshot.take = null;
+  if (opts.snapshot) { opts.snapshot.take = null; opts.snapshot.peek = null; opts.snapshot.records = null; }
   return finalResult;
 }

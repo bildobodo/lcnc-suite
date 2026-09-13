@@ -4899,3 +4899,40 @@ minutes-long sweep that parks at the 300 s budget; ▶ continues it.
 collision 47, entry 10; SFC compile of ScrubBar / GcodePanel, eslint, tsc probe
 clean. OWED: the operator's look (one clash spanning the program with the red
 band to the track's end; the slots; T13 mark + countdown on perfmatrix).
+
+## 2026-09-13 — Sweeps open-ended, no button, findings live on the timeline
+
+**Operator:** "do we actually need the start/stop button anymore? could the
+collisions appear live? do we need the 300 s?" Decisions: no button, no budget,
+live findings.
+
+- **Button gone.** ↻ re-ran what the auto-runs already re-run; ▶ existed only
+  because the budget parked sweeps; ❚❚ guarded against a GPU-starving sweep
+  that the carried certificates fixed. `check-manual` / `stop-check` /
+  `continue-check` emits, `collisionStopping`, `runCollisionCheckManual` and
+  the row-2 slot are removed; `collisionStopped.reason` is "motion" only.
+- **Budget gone.** `budgetMs` left the request, the worker and the owner
+  (`SWEEP_AUTO_BUDGET_MS`, `_colBudget`, `budget_ms` telemetry). What keeps a
+  busy worker off the operator: the CAMERA pause (30 s auto-expiry for a lost
+  pointer-up) and a new HIDDEN-TAB pause (`visibilitychange`, no expiry) — two
+  independent holds in the worker (`pause`/`resume` carry `why`), a sweep posted
+  under either starts paused; a rotary jog parks and a settled pose resumes. The
+  iterator's 4 M-sample backstop is the only hard limit. A program in permanent
+  contact sweeps for minutes; that is its cost, off the main thread.
+- **Live findings.** `SnapshotHandle.peek` builds the sweep-so-far WITHOUT
+  refinement (a shallow copy of the records; `truncated.reason = "running"`),
+  `records()` counts them; the worker attaches `partial` to a progress post at
+  most every 500 ms and only when the count changed. ThreeViewer keeps it as
+  `collisionPartial` (+ its track): `_colBaseFor` prefers the refined result and
+  falls back to the partial, so the entry overlay, the tint and the code-panel
+  marks work from it; ScrubBar's `shownResult` does the same and the verdict
+  reads "N clashes so far" / "no clash so far" while busy (the certification
+  caveat waits for the final). Hits sit at their discovering samples until the
+  refined result lands. Pinned: peek at every checkpoint — hits ⊆ final, record
+  count monotonic, the suspended sweep undisturbed, hooks cleared at the end.
+
+**Verified (suite live, single niced files):** collision 48 (+1), merge 4, entry
+10, pump 3, scan 2; SFC compile of ScrubBar / ThreeViewer, eslint, tsc probe
+clean. OWED: the operator's look (no button; clashes appearing while the band
+grows; a hidden tab pausing the sweep — the perf probe's `sweep_busy` stays
+true while the worker holds), heavy gates at the next stop.

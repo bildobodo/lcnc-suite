@@ -56,17 +56,18 @@ const props = defineProps<{
   // onto the base result, 2026-09-12). The clash UI shows the result swept
   // on exactly the displayed track, else nothing.
   collisionTrack: ScrubTrack | null;
+  /** The LIVE sweep-so-far while the base sweep runs (2026-09-13): unrefined
+   *  hits at their discovering samples, replaced by `collisionResult` when
+   *  the sweep ends or parks. Shown on `collisionPartialTrack`. */
+  collisionPartial: CollisionResult | null;
+  collisionPartialTrack: ScrubTrack | null;
   collisionEntryResult: { track: ScrubTrack; result: CollisionResult } | null;
-  /** The sweep is PARKED (2026-09-12): its budget ran out, the operator
-   *  stopped it, or a rotary jog stopped it — with the covered fraction. The
-   *  partial result is in `collisionResult` (marks show); `collisionResumable`
-   *  says the worker still holds it, so ▶ continues where it stopped. */
-  collisionStopped: { covered: number; reason: "time" | "stopped" | "motion" } | null;
+  /** The sweep is PARKED by a rotary jog (its track is about to be re-parsed)
+   *  — with the covered fraction. The partial result is in `collisionResult`
+   *  (marks show); `collisionResumable` says the worker still holds it, and
+   *  it continues by itself once the pose settles. */
+  collisionStopped: { covered: number; reason: "motion" } | null;
   collisionResumable: boolean;
-  /** A stop was sent and the worker has not parked yet: it parks at its
-   *  next checkpoint (bounded to ~a slice now, but a snapshot of many hits
-   *  still refines first). The slot acknowledges the click at once. */
-  collisionStopping: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -81,9 +82,6 @@ const emit = defineEmits<{
   // ThreeViewer's phase 3 subtracts the offset the joints were lifted
   // with, and the marker follows the tool; null = live.
   (e: "pose", joints: (number | null)[] | null, line: number | null, cum: number | null, trk: ScrubTrack | null, displayLine: number | null, plane: number[] | null, tlo: number[] | null, tool: number | null): void;
-  /** Operator-requested sweep of the BASE track, unbounded (the operator's
-   *  stop is the bound); the entry overlay, if any, stays valid. */
-  (e: "check-manual", track: ScrubTrack): void;
   /** Sim entry: the entry-extended track + the base it was built from —
    *  ThreeViewer sweeps only the ENTRY SEGMENT when the base result is
    *  current, and nothing at all when the machine sits at the first point. */
@@ -91,9 +89,6 @@ const emit = defineEmits<{
   /** A sim-time input edge (the WCS rows this track re-adds): nothing is
    *  current — followed by check-entry with the rebuilt entry track. */
   (e: "cancel-check"): void;
-  /** Park the running sweep (resumable) / resume the parked one. */
-  (e: "stop-check"): void;
-  (e: "continue-check"): void;
 }>();
 
 const st = computed<Record<string, any>>(() => status.value?.data ?? {});
@@ -638,18 +633,15 @@ const sweepToolTitle = computed(() => {
     : "The collision sweep checks the LOADED tool's table dimensions for the whole program — the program's own tool changes are not consulted yet";
 });
 // Sweep progress is drawn ON THE TIMELINE (the swept band, sweptFrac below)
-// so a scrub shows which section is already checked; the number lives in
-// the button tooltip. ❚❚ STOPS (parks) the sweep, ▶ continues it, ↻ re-runs.
-// Nothing here cancels: a sweep is only dropped by a superseding change
-// (program, touch-off, tool).
-const sweepPct = computed(() => Math.round(props.collisionProgress * 100));
+// so a scrub shows which section is already checked, and the clashes found
+// so far show as the sweep finds them (collisionPartial). There is no
+// button (2026-09-13): sweeps are open-ended, pause on camera interaction
+// and hidden tabs, park on a rotary jog and resume by themselves; a sweep is
+// only dropped by a superseding change (program, touch-off, tool).
 const stoppedTitle = computed(() => {
   const st = props.collisionStopped;
   if (!st) return "";
-  const why = st.reason === "time" ? "its time budget ran out"
-    : st.reason === "motion" ? "a rotary axis moved (it resumes by itself once the pose settles and the preview is unchanged)"
-    : "you stopped it";
-  return `The collision check is parked at ${pctOf(st.covered)} of the program — ${why}. The rest is UNCHECKED until it continues; ▶ resumes exactly where it stopped.`;
+  return `The collision check is parked at ${pctOf(st.covered)} of the program — a rotary axis moved. It continues by itself once the pose settles and the preview is unchanged; the rest is UNCHECKED until then.`;
 });
 
 // Sim toggle v-model: the parent-authoritative MachineToggle resets its DOM
@@ -704,7 +696,8 @@ const violationTargets = computed<FindingTarget[]>(() => {
 const shownResult = computed<CollisionResult | null>(() => {
   const t = track.value;
   if (!t) return null;
-  if (props.collisionTrack === t) return props.collisionResult;
+  if (props.collisionResult && props.collisionTrack === t) return props.collisionResult;
+  if (props.collisionPartial && props.collisionPartialTrack === t) return props.collisionPartial;
   const e = props.collisionEntryResult;
   return e && e.track === t ? e.result : null;
 });
@@ -715,12 +708,12 @@ const hits = computed(() => shownResult.value?.hits ?? []);
 // them next to a green "clear".
 const sweepCaveat = computed<string | null>(() => {
   const r = shownResult.value;
-  if (!r) return null;
+  if (!r || props.collisionBusy) return null;   // a live partial claims nothing yet
   const why: string[] = [];
   if (r.uncertified) why.push(r.uncertified);
   if (r.coarsened) why.push("coarsened to fit the sample budget");
-  if (r.truncated && !props.collisionResumable) {
-    why.push(`stopped at ${pctOf(r.truncated.covered)} of the program (${r.truncated.reason === "samples" ? "sample backstop" : "time budget"}) — the rest is unchecked`);
+  if (r.truncated && r.truncated.reason !== "running" && !props.collisionResumable) {
+    why.push(`stopped at ${pctOf(r.truncated.covered)} of the program (${r.truncated.reason === "samples" ? "sample backstop" : r.truncated.reason}) — the rest is unchecked`);
   }
   return why.length ? `Clearance guarantee not certified for this sweep: ${why.join("; ")}` : null;
 });
@@ -729,49 +722,6 @@ const sweepCaveat = computed<string | null>(() => {
 function pctOf(f: number): string {
   return f < 0.01 ? "<1 %" : `${Math.round(f * 100)} %`;
 }
-/** The sweep BUTTON (2026-09-12): one fixed-width button, first in row 2, in
- *  every state — ❚❚ (running), ▶ (parked), ↻ (done / no result) — so stop →
- *  continue is a toggle in place. Progress is the TIMELINE's swept band
- *  (sweptFrac), not a bar here; the tooltip carries the number. The findings
- *  — limits nav, clash nav, verdict text — follow the button, so no
- *  variable-width text sits between the timeline and a button. */
-interface SweepSlot {
-  glyph: string; title: string; disabled: boolean;
-  action: "stop" | "continue" | "rerun" | "none";
-}
-const GLYPH_STOP = "\u2759\u2759", GLYPH_CONTINUE = "\u25B6", GLYPH_RERUN = "\u21BB";
-const sweepSlot = computed<SweepSlot | null>(() => {
-  if (!track.value) return null;
-  if (props.collisionBusy) {
-    if (props.collisionStopping) return {
-      glyph: GLYPH_STOP, disabled: true, action: "none",
-      title: `Stop requested — the check parks at its next checkpoint (${sweepPct.value} % swept)`,
-    };
-    return {
-      glyph: GLYPH_STOP, disabled: false, action: "stop",
-      title: `Stop the collision check — ${sweepPct.value} % of the program swept so far; it parks where it is and can be continued`,
-    };
-  }
-  const r = shownResult.value;
-  if (r && props.collisionStopped && props.collisionResumable) return {
-    glyph: GLYPH_CONTINUE, disabled: false, action: "continue", title: stoppedTitle.value,
-  };
-  if (r) {
-    const cov = r.truncated ? r.truncated.covered : 1;
-    const secs = Math.round(r.sweepMs / 1000);
-    return {
-      glyph: GLYPH_RERUN, disabled: false, action: "rerun",
-      title: (r.truncated
-        ? `${pctOf(cov)} of the program swept in ${secs} s — the rest is UNCHECKED. `
-        : `Whole program swept in ${secs} s (${r.samples} samples, ${r.pairCount} pairs). `)
-        + "Run the collision check again from the start (no time budget)",
-    };
-  }
-  return {
-    glyph: GLYPH_RERUN, disabled: false, action: "rerun",
-    title: "No collision check result for this track yet — run one (no time budget)",
-  };
-});
 /** Swept fraction of the DISPLAYED track's axis — the timeline's swept band:
  *  the running progress, the parked/truncated covered part, 1 when done.
  *  Sweep values are BASE-relative (progress and covered are track-axis
@@ -794,13 +744,6 @@ const sweptFrac = computed(() => {
   }
   return Math.min(1, Math.max(0, f));
 });
-function sweepSlotClick() {
-  const sl = sweepSlot.value;
-  if (!sl) return;
-  if (sl.action === "stop") emit("stop-check");
-  else if (sl.action === "continue") emit("continue-check");
-  else if (sl.action === "rerun" && baseTrack.value) emit("check-manual", baseTrack.value);
-}
 
 // One navigation target per contact ONSET: an intermittent-contact line
 // (enter → exit → re-enter) yields a target per interval, so the re-entry
@@ -1015,21 +958,14 @@ onUnmounted(() => {
             :style="{ '--slot-w': posSlotCh + 'ch' }">{{ posText }}</span>
     </div>
 
-    <!-- Row 2 — the sweep button (one position in every state — see
-         sweepSlot; progress is the timeline's swept band), then findings
-         navigation (prev/next, anchored to the CURRENT timeline position).
-         Buttons keep CONSTANT labels and every variable-width readout sits
-         AFTER the last button of its group, so click positions never shift
-         while stepping through or while a sweep changes state. Wrappers
-         carry tooltips (WebKit doesn't hover disabled buttons). -->
+    <!-- Row 2 — findings navigation (prev/next, anchored to the CURRENT
+         timeline position). Buttons keep CONSTANT labels and every
+         variable-width readout sits AFTER the last button of its group, so
+         click positions never shift while stepping through or while a sweep
+         changes state. Wrappers carry tooltips (WebKit doesn't hover
+         disabled buttons). The sweep itself has no control here (2026-09-13):
+         its progress is the timeline's swept band. -->
     <div class="row-controls scrubRow">
-      <template v-if="sweepSlot">
-        <span class="btnTip" :title="sweepSlot.title">
-          <MachineBtn type="scrub" :disabled="sweepSlot.disabled" @click="sweepSlotClick">{{ sweepSlot.glyph }}</MachineBtn>
-        </span>
-        <div class="sep-v"></div>
-      </template>
-
       <template v-if="violations && violations.length">
         <span class="btnTip" title="Previous soft-limit violation (from the current timeline position)">
           <MachineBtn type="scrub" variant="warn" :disabled="!violationTargets.length || (!simMode && !machineOff)"
@@ -1050,9 +986,10 @@ onUnmounted(() => {
       </template>
 
       <!-- Verdict (2026-09-12): the timeline band says how much was swept;
-           this says what it found. Parked/truncated with no hits is "no clash in N %
-           swept" — never "clear" for a part-swept program. -->
-      <template v-if="shownResult && !collisionBusy">
+           this says what it found — LIVE while the sweep runs ("so far",
+           from the unrefined partial). Parked/truncated with no hits is "no
+           clash in N % swept" — never "clear" for a part-swept program. -->
+      <template v-if="shownResult">
         <span v-if="shownResult.pairCount === 0" class="val-status muted" title="No body pair moves relative to another — nothing to check">no moving pairs</span>
         <template v-else-if="hits.length">
           <span class="btnTip" title="Previous collision (from the current timeline position)">
@@ -1071,13 +1008,15 @@ onUnmounted(() => {
                         @click="jumpTo(targetAfter(hitTargets, sPos))">&#9654;</MachineBtn>
           </span>
           <span class="navTarget val-status mono">{{ nextHitT ? "→ " + (nextHitT.line ? "L" + nextHitT.line : "entry") + (nextHitT.reentry ? " (re-entry)" : "") + (nextHitT.rapid ? " (rapid)" : "") + ((nextHitT.dist ?? 0) > 0.001 ? ` ~${nextHitT.dist!.toFixed(1)}mm` : "") + ((nextHitT.spanEndLine ?? nextHitT.line) > nextHitT.line ? ` … through L${nextHitT.spanEndLine}` : "") : "" }}</span>
-          <span v-if="collisionStopped && collisionResumable" class="val-status warn" :title="stoppedTitle">in {{ pctOf(collisionStopped.covered) }} swept</span>
+          <span v-if="collisionBusy" class="val-status muted" title="The collision check is still running — positions refine when it ends">so far</span>
+          <span v-else-if="collisionStopped && collisionResumable" class="val-status warn" :title="stoppedTitle">in {{ pctOf(collisionStopped.covered) }} swept</span>
         </template>
+        <span v-else-if="collisionBusy" class="val-status muted" title="The collision check is still running">no clash so far</span>
         <span v-else-if="collisionStopped && collisionResumable" class="val-status warn" :title="stoppedTitle">
           no clash in {{ pctOf(collisionStopped.covered) }} swept
         </span>
         <span v-else-if="shownResult.truncated" class="val-status warn"
-              :title="`No clash in the ${pctOf(shownResult.truncated.covered)} of the program swept (${shownResult.truncated.reason === 'samples' ? 'sample backstop' : 'time budget'}) — the rest is UNCHECKED (${shownResult.samples} samples, ${shownResult.pairCount} pairs)`">
+              :title="`No clash in the ${pctOf(shownResult.truncated.covered)} of the program swept (${shownResult.truncated.reason === 'samples' ? 'sample backstop' : shownResult.truncated.reason}) — the rest is UNCHECKED (${shownResult.samples} samples, ${shownResult.pairCount} pairs)`">
           no clash in {{ pctOf(shownResult.truncated.covered) }} swept
         </span>
         <span v-else class="val-status ok" :title="`${shownResult.samples} samples, ${shownResult.pairCount} pairs${shownResult.staticContacts.length ? `; in contact from the start (excluded): ${shownResult.staticContacts.map(c => c.a + '/' + c.b).join(', ')}` : ''}`">
