@@ -30,6 +30,27 @@ import lcnc_trace as _trace
 _trace.init("gateway")
 _trace.install_crash_hooks("gateway")
 
+import session_bind as _session_bind
+
+# ---- Session binding: die with the launcher (2026-09-13) ----
+# PR_SET_PDEATHSIG when the launcher started us (LCNC_LAUNCHER_PID). The
+# launcher's EXIT trap SIGTERMs us on every path bash can trap; this covers
+# the ones it cannot (SIGKILL, desktop-session teardown) — the orphan class
+# that re-attached to a fresh LinuxCNC session. Liveness, not ppid, decides
+# "gone" (subreapers never show ppid 1).
+_launcher_bind = _session_bind.bind_to_launcher()
+_trace.emit("boot.session_bind", **_launcher_bind)
+if _launcher_bind.get("mode") == "launcher" and not _launcher_bind.get("ok", False):
+    if _launcher_bind.get("reason") == "launcher_gone":
+        print(f"[SAFETY] launcher pid={_launcher_bind.get('launcher_pid')} is already gone — "
+              f"refusing to run as an orphan", flush=True)
+        _trace.emit("boot.launcher_gone", level="error", **_launcher_bind)
+        os._exit(1)
+    print(f"[SAFETY] launcher binding degraded: {_launcher_bind}", flush=True)
+elif _launcher_bind.get("needs_poll"):
+    # Launcher alive but not our direct parent: PDEATHSIG cannot fire for it.
+    _session_bind.start_launcher_poll(int(_launcher_bind["launcher_pid"]))
+
 # Pure, linuxcnc-free helpers (importable under pytest without the binding).
 from gateway_util import (
     ALLOWED_EXTENSIONS,
@@ -317,6 +338,27 @@ CMD: Optional[linuxcnc.command] = None
 ERR: Optional[linuxcnc.error_channel] = None
 lcnc_connected = False
 _lcnc_pid: Optional[int] = None  # tracks linuxcncsvr PID
+
+# ---- Session binding (2026-09-13): one gateway process, ONE LinuxCNC instance ----
+# (linuxcncsvr pid, kernel start ticks), set on the first successful NML
+# connect and carried in the hello to both HAL helpers. When that instance
+# ends the gateway shuts down instead of re-binding to whatever linuxcncsvr
+# appears next — the path by which an orphaned gateway attached itself to a
+# fresh session. WEBUI_ALLOW_REBIND=1 restores the legacy behaviour for dev
+# harnesses that restart LinuxCNC under one gateway (never for a machine).
+_bound_instance: Optional[Tuple[int, int]] = None
+_instance_ended = False
+_ALLOW_REBIND = os.environ.get("WEBUI_ALLOW_REBIND", "").strip() == "1"
+if _ALLOW_REBIND:
+    print("[SAFETY] WEBUI_ALLOW_REBIND=1 — this gateway will re-bind to a NEW LinuxCNC "
+          "instance (dev-harness mode; never for a machine)", flush=True)
+    _trace.emit("session.rebind_allowed", level="warn")
+
+
+def _bind_once_enabled() -> bool:
+    """Bind-once + exit-on-instance-end is off only under the fake binding
+    (tests) or the explicit dev escape hatch."""
+    return not getattr(linuxcnc, "__lcnc_fake__", False) and not _ALLOW_REBIND
 
 # ---- WCS offset cache ---- moved to status_runtime (M2). Constants rebound
 # here; the cache list itself is rebound after the runtime instance exists.
@@ -725,9 +767,22 @@ _diff_status_data = _ws_fanout_mod.diff_status_data
 # they resolve these globals at call time, after this point. on_reader_connect
 # spawns the extra-pin push as a task (the recv loop dispatches the reply, so
 # the hook itself must not await).
+def _on_helper_rejected(role: str, reason: str) -> None:
+    """A HAL helper refused our hello. `stale_instance` means this process is
+    bound to a LinuxCNC instance that is not the helper's — by definition an
+    orphan of an earlier session: shut down. Everything else (duplicate,
+    unbound, helper-side ambiguity) stays visible in the safety-chain banner
+    via helper_status_reason()."""
+    _trace.emit("session.helper_rejected", level="error", role=role, reason=reason)
+    if reason == "stale_instance" and _bind_once_enabled():
+        _request_process_shutdown(f"HAL {role} rejected this gateway as stale")
+
+
 _hal_bridge = _hal_bridge_mod.HalBridge(
     set_phase=_set_phase,
     on_reader_connect=lambda: asyncio.create_task(_reader_configure_extra_pins()),
+    hello=lambda: _session_bind.make_hello(_bound_instance),
+    on_rejected=_on_helper_rejected,
 )
 _hal_connect = _hal_bridge.watchdog_connect
 _hal_disconnect = _hal_bridge.watchdog_disconnect
@@ -748,12 +803,16 @@ _estop_loop_reason: Optional[str] = None
 
 
 def _safety_chain_reason() -> Optional[str]:
+    # A helper that refused our hello (duplicate / unbound / ended) or one
+    # that predates session binding rides the same banner as the estop-loop
+    # check — the chain is not what the operator thinks it is.
+    extra = [r for r in (_estop_loop_reason, _hal_bridge.helper_status_reason()) if r]
     return evaluate_safety_chain(
         grace_expired=(time.monotonic() - _gw_start_mono) > _SAFETY_CHAIN_GRACE_SEC,
         watchdog_connected=_hal_bridge.watchdog_connected,
         reader_fresh=not _hal_bridge.reader_is_stale(),
         trip_latched_present=_hal_bridge.reader_get("trip_latched") is not None,
-        extra_reason=_estop_loop_reason,
+        extra_reason="; ".join(extra) if extra else None,
     )
 
 
@@ -1175,6 +1234,10 @@ async def _status_poller():
             # the event loop stalls poll_status long enough to flap the
             # HAL heartbeat and trip oneshot.0.out. Offload to a worker.
             if not lcnc_connected:
+                if _instance_ended:
+                    # Bound instance ended: no re-bind, shutdown in progress.
+                    await asyncio.sleep(0.5)
+                    continue
                 pid = await asyncio.to_thread(_get_lcnc_pid)
                 if pid is not None and await asyncio.to_thread(try_connect_lcnc):
                     _reconnect_fails = 0
@@ -1661,6 +1724,28 @@ def _start_status_poller():
         _status_poller_task = register_bg_task(asyncio.get_event_loop().create_task(_status_poller()))
 
 
+async def _instance_watch_loop() -> None:
+    """Client-independent liveness of the BOUND LinuxCNC instance (1 s).
+
+    The status poller only runs its instance check while clients are
+    connected — exactly the state an orphan sits in (the 2026-09-13 orphan
+    served nobody for 14 minutes and never noticed its LinuxCNC was gone).
+    One /proc stat read per second, off the loop.
+    """
+    while True:
+        await asyncio.sleep(1.0)
+        if _instance_ended or _bound_instance is None or not _bind_once_enabled():
+            continue
+        try:
+            alive = await asyncio.to_thread(_bound_instance_alive)
+        except Exception as e:
+            _trace.emit("session.watch_failed", level="warn",
+                        exc=type(e).__name__, msg=str(e))
+            continue
+        if not alive:
+            _on_instance_ended("instance watch")
+
+
 _reader_task: Optional[asyncio.Task] = None
 
 
@@ -1674,13 +1759,16 @@ def _start_reader_recv_loop():
 def _get_lcnc_pid() -> Optional[int]:
     """Return PID of linuxcncsvr if running, else None.
     Fast path: check /proc/<pid>/comm for known PID (<0.1ms).
-    Slow path: pgrep subprocess only for initial discovery (~42ms).
+    Slow path: /proc scan for the newest LIVE linuxcncsvr — the same identity
+    rule as the HAL helpers (session_bind.discover_instance; zombies are not
+    instances). No subprocess.
     """
     # Fast path: verify known PID is still alive and correct process
     if _lcnc_pid is not None:
         try:
             with open(f"/proc/{_lcnc_pid}/comm") as f:
-                if f.read().strip() == "linuxcncsvr":
+                if f.read().strip() == "linuxcncsvr" and \
+                        _session_bind.instance_for_pid(_lcnc_pid) is not None:  # not a zombie
                     return _lcnc_pid
         except FileNotFoundError:
             pass  # PID is stale — process exited, fall through to pgrep
@@ -1689,21 +1777,20 @@ def _get_lcnc_pid() -> Optional[int]:
             # is unexpected on /proc and worth surfacing.
             _trace.emit("pid.proc_comm_read_failed", level="warn",
                         pid=_lcnc_pid, exc=type(e).__name__, msg=str(e))
-    # Slow path: discover PID via pgrep (only when PID unknown or stale)
+    # Slow path: discover via /proc (only when PID unknown or stale)
     try:
-        result = subprocess.run(
-            ['pgrep', '-x', 'linuxcncsvr'],
-            capture_output=True, text=True, timeout=1,
-        )
-        if result.returncode == 0:
-            return int(result.stdout.strip().split('\n')[0])
+        inst, found = _session_bind.discover_instance()
     except Exception as e:
-        # rc != 0 from pgrep = "no match" (legit, returns None below). This
-        # except catches subprocess raising (timeout, OSError, ValueError on
-        # parse) — all worth surfacing.
-        _trace.emit("pid.pgrep_failed", level="warn",
+        _trace.emit("pid.discover_failed", level="warn",
                     exc=type(e).__name__, msg=str(e))
-    return None
+        return None
+    if len(found) > 1:
+        # Ambiguous: NML attaches to whoever owns the shm, which need not be
+        # the newest. Refuse to guess (the poller retries in 2 s).
+        _trace.emit("session.multiple_instances", level="error",
+                    pids=[i[0] for i in found])
+        return None
+    return inst[0] if inst is not None else None
 
 
 def _nml_connectable() -> bool:
@@ -1745,10 +1832,76 @@ def _self_restart():
         os._exit(1)
 
 
+_shutdown_requested = False
+
+
+def _request_process_shutdown(reason: str) -> None:
+    """End this gateway process through the normal lifespan teardown.
+
+    Signals the LAUNCHER (our parent) so the exit routes through its `_term`
+    trap and LinuxCNC sees a clean DISPLAY exit; self-SIGTERM when there is
+    no launcher parent (standalone). Idempotent. A daemon timer is the hard
+    deadline: an orphan has no launcher `_wait_or_kill`, and self-SIGTERM
+    needs a responsive event loop — if teardown hangs, os._exit ends it.
+    Under the fake binding (tests) it only records the request.
+    """
+    global _shutdown_requested
+    if _shutdown_requested:
+        return
+    _shutdown_requested = True
+    print(f"[SAFETY] shutdown requested: {reason}", flush=True)
+    _trace.emit("session.shutdown_requested", level="warn", reason=reason)
+    if getattr(linuxcnc, "__lcnc_fake__", False):
+        return
+    _deadline = threading.Timer(5.0, os._exit, [1])
+    _deadline.daemon = True
+    _deadline.start()
+    launcher_pid = _launcher_bind.get("launcher_pid") if _launcher_bind.get("mode") == "launcher" else None
+    try:
+        if launcher_pid and os.getppid() == launcher_pid:
+            os.kill(launcher_pid, signal.SIGTERM)
+        else:
+            raise ProcessLookupError("no launcher parent")
+    except (ProcessLookupError, PermissionError) as e:
+        # No launcher (standalone) or it is gone — exit cleanly via
+        # uvicorn's lifespan path ourselves.
+        print(f"Shutdown: launcher signal unavailable ({e}); self-signaling", flush=True)
+        signal.raise_signal(signal.SIGTERM)
+
+
+def _bound_instance_alive() -> bool:
+    return _bound_instance is not None and \
+        _session_bind.instance_for_pid(_bound_instance[0]) == _bound_instance
+
+
+def _on_instance_ended(where: str) -> None:
+    """The bound LinuxCNC instance died or was replaced. Never re-bind:
+    disconnect HAL and end the process (the launcher then returns to
+    LinuxCNC's Cleanup; a standalone gateway just exits)."""
+    global _instance_ended, lcnc_connected
+    if _instance_ended:
+        return
+    _instance_ended = True
+    inst = _bound_instance
+    print(f"[SAFETY] bound LinuxCNC instance pid={inst[0]} ended ({where}) — "
+          f"this gateway will not re-bind; shutting down", flush=True)
+    _trace.emit("session.instance_ended", level="error", where=where,
+                instance_pid=inst[0], instance_start=inst[1])
+    lcnc_connected = False
+    _hal_disconnect()
+    _request_process_shutdown("linuxcnc instance ended")
+
+
 def try_connect_lcnc() -> bool:
-    """Attempt to connect to LinuxCNC. Returns True on success."""
+    """Attempt to connect to LinuxCNC. Returns True on success.
+
+    Bind-once: the first success records the instance; a later connect to a
+    DIFFERENT instance is refused (and ends the process) unless rebind is
+    allowed — every caller (poller, WS endpoint, boot) inherits the rule."""
     global STAT, CMD, ERR, lcnc_connected, _lcnc_pid, _nc_files_dir, _ini_config, _ever_connected, _kins_decl_cache
-    global _machine_limits
+    global _machine_limits, _bound_instance
+    if _instance_ended:
+        return False  # bound instance ended: never re-bind
     _nc_files_dir = None        # re-resolve on reconnect
     _ini_config = None          # re-read INI config on reconnect
     _machine_limits = None      # rebuild payload bounds on reconnect (#27)
@@ -1761,9 +1914,31 @@ def try_connect_lcnc() -> bool:
         CMD = linuxcnc.command()
         ERR = linuxcnc.error_channel()
         STAT.poll()  # verify it actually works
+        _lcnc_pid = _get_lcnc_pid()
+        inst = _session_bind.instance_for_pid(_lcnc_pid)
+        if _bound_instance is None:
+            if inst is None:
+                # Can't identify the instance (no live linuxcncsvr found for
+                # the pid, or the fake binding): connect, but stay unbound —
+                # the HAL helpers will not admit an unbound gateway.
+                _trace.emit("session.bind_unresolved", level="warn", pid=_lcnc_pid)
+            else:
+                _bound_instance = inst
+                print(f"[VINIT] session bound to linuxcncsvr pid={inst[0]} start={inst[1]}", flush=True)
+                _trace.emit("session.bound", instance_pid=inst[0], instance_start=inst[1])
+        elif inst != _bound_instance and not _bound_instance_alive():
+            if _bind_once_enabled():
+                STAT = CMD = ERR = None
+                _trace.emit("session.instance_changed", level="error",
+                            old=list(_bound_instance), new=list(inst) if inst else None)
+                _on_instance_ended("reconnect saw a different instance")
+                return False
+            _trace.emit("session.rebind", level="warn",
+                        old=list(_bound_instance), new=list(inst) if inst else None)
+            print(f"[SAFETY] re-binding to a new LinuxCNC instance {inst} (WEBUI_ALLOW_REBIND)", flush=True)
+            _bound_instance = inst
         lcnc_connected = True
         _ever_connected = True
-        _lcnc_pid = _get_lcnc_pid()
         # Re-arm warn-once flags so a STAT field that disappears across a
         # reconnect produces a fresh log line instead of being suppressed.
         _status_runtime.reset_warn_flags()
@@ -1778,8 +1953,14 @@ def try_connect_lcnc() -> bool:
 
 
 def check_lcnc_instance() -> bool:
-    """Check if linuxcncsvr PID changed. Returns True if reconnect needed."""
+    """Check if linuxcncsvr PID changed. Returns True if reconnect needed
+    (legacy/rebind mode only — with bind-once the end of the bound instance
+    shuts the gateway down and this returns False)."""
     global _lcnc_pid, lcnc_connected, _tool_tbl_path, _tool_tbl_ini
+    if _bound_instance is not None and _bind_once_enabled():
+        if not _instance_ended and not _bound_instance_alive():
+            _on_instance_ended("instance check")
+        return False
     pid = _get_lcnc_pid()
     if pid == _lcnc_pid:
         if pid is None and lcnc_connected:
@@ -1801,6 +1982,7 @@ def check_lcnc_instance() -> bool:
         _hal_disconnect()
     else:
         print(f"[VINIT] check_lcnc_instance: PID changed {old_pid} -> {pid}", flush=True)
+        _trace.emit("session.rebind_legacy", level="warn", old=old_pid, new=pid)
     return True
 
 
@@ -1843,6 +2025,7 @@ if _get_lcnc_pid() is not None:
         "boot.lcnc_connect",
         dt_ms=round((time.monotonic() - _bt) * 1000, 1),
         connected=lcnc_connected,
+        bound=list(_bound_instance) if _bound_instance else None,
     )
     if lcnc_connected:
         _bt = time.monotonic()
@@ -2962,14 +3145,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             # through its `_term` trap, which forwards SIGTERM to the
             # gateway (lifespan still runs end-to-end) and then `exit 0`s
             # explicitly — identical end state as Ctrl-C.
-            print("Shutdown requested via web UI", flush=True)
-            try:
-                os.kill(os.getppid(), signal.SIGTERM)
-            except (ProcessLookupError, PermissionError) as e:
-                # Launcher already gone — fall back to self-signal so we
-                # at least exit cleanly via uvicorn's lifespan path.
-                print(f"Shutdown: launcher signal failed ({e}); self-signaling", flush=True)
-                signal.raise_signal(signal.SIGTERM)
+            _request_process_shutdown("web UI shutdown")
             return {"ok": True}
 
         if cmd == "abort":
@@ -4117,6 +4293,8 @@ async def lifespan(app: "FastAPI"):
     # during the pre-first-client window. The poller's `if not _clients`
     # branch sleeps cheaply, so running from boot is harmless.
     _start_status_poller()
+    # Bound-instance liveness, independent of connected clients (session binding).
+    register_bg_task(asyncio.create_task(_instance_watch_loop()))
     # Warm the machine-path caches now (both resolve from LCNC_INI_FILE, which the
     # launcher exports before uvicorn, and neither touches NML) so the first
     # /upload or tool op doesn't pay an INI parse / makedirs on the event loop (B4).

@@ -418,6 +418,9 @@ def start_gateway() -> subprocess.Popen:
         ],
         cwd=GATEWAY_DIR,
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        # This harness restarts LinuxCNC under ONE gateway (S1–S10); session
+        # binding would otherwise end the gateway at the first kill_lcnc().
+        env=dict(os.environ, WEBUI_ALLOW_REBIND="1"),
     )
     for _ in range(60):
         if is_gateway_running():

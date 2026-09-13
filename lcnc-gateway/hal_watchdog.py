@@ -20,6 +20,8 @@ import lcnc_trace as _trace
 _trace.init("hal_watchdog")
 _trace.install_crash_hooks("hal_watchdog")
 
+import session_bind as _sb
+
 try:
     import fcntl as _fcntl
     import struct as _struct
@@ -43,7 +45,9 @@ def _client_inq(sock) -> int:
         return -1
 
 COMP_NAME = "webui-safety"
-SOCK_PATH = "/tmp/webui-safety.sock"
+# Test override only (the stub-hal admission test runs a private socket);
+# production always uses the default path the gateway dials.
+SOCK_PATH = os.environ.get("WEBUI_SAFETY_SOCK", "/tmp/webui-safety.sock")
 
 # ---- Create HAL component ----
 try:
@@ -83,11 +87,30 @@ server.bind(SOCK_PATH)
 # Owner-only perms: this socket releases the safety trip-latch (trip_reset).
 # Without this, any local user/process could connect and clear a latched trip.
 os.chmod(SOCK_PATH, 0o600)
-server.listen(1)
+server.listen(_sb.MAX_PENDING + 1)
 server.setblocking(False)
 
 client = None
 buf = ""
+
+# ---- Session binding (2026-09-13): admit only a gateway bound to THIS session ----
+# Identity = (linuxcncsvr pid, start ticks), discovered lazily and cached
+# once — this helper never adopts a later LinuxCNC session. A connecting
+# gateway must open with a hello naming that instance and its own pid
+# (checked against SO_PEERCRED); anything else is answered `rejected` and
+# closed WITHOUT touching the admitted client's pins. A connected gateway is
+# never replaced while its socket is open (kernel EOF is the liveness
+# signal) — see session_bind.py.
+_instance = _sb.InstanceResolver("wd", emit=_trace.emit,
+                                 comm=os.environ.get("WEBUI_INSTANCE_COMM", "linuxcncsvr"))
+
+
+def _existing_healthy() -> bool:
+    return client is not None
+
+
+_gate = _sb.AdmissionGate("wd", _instance.current, _existing_healthy,
+                          expected_ended=_instance.ended, emit=_trace.emit)
 # Edge-detect state for oneshot.0.out (HAL heartbeat watchdog).
 # Start None so the first read syncs without registering a phantom
 # falling edge (oneshot.0.out is FALSE before the first heartbeat).
@@ -182,6 +205,7 @@ def _wd_extras() -> dict:
     out = {
         "msgs": _wd_msgs_processed,
         "client_inq": _client_inq(client),
+        "pending": len(_gate),
         "reset_out": bool(comp["trip-reset-out"]),
         "hb_ok": bool(comp["hb-ok-in"]),
     }
@@ -193,9 +217,85 @@ _wd_tick_agg = _trace.Aggregator(
     "wd.tick_summary", every=10, count_field="ticks", extra_fields=_wd_extras
 )
 
+def _consume_buf() -> None:
+    """Parse every complete line in `buf` and drive the pins. Called for
+    the admitted client on each recv AND right after admission (a gateway
+    pipelines its first heartbeat behind the hello)."""
+    global buf, _last_hb_recv, _last_hb_recv_true, _reset_pulse_off_at, _wd_msgs_processed
+    while "\n" in buf:
+        line, buf = buf.split("\n", 1)
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            msg = json.loads(line)
+        except Exception as _je:
+            # A single malformed line must NOT fall into the
+            # broad except below (which forces all pins LOW and
+            # trips safety). Skip it like hal_reader does — a
+            # bad byte is not a reason to ESTOP the machine.
+            print(f"[WD] bad json from gateway: {_je}", flush=True)
+            _trace.emit("wd.bad_msg", level="warn", err=str(_je))
+            continue
+        if "heartbeat" in msg:
+            # === HB-RECV DIAGNOSTICS === log inter-arrival gap
+            # for heartbeat messages. Gateway sends at ~33 ms
+            # cadence; anything past 100 ms means delivery is
+            # late from the watchdog's perspective regardless
+            # of what the gateway thinks. Logged from the
+            # process that actually drives the HAL pin, so a
+            # gap >500 ms here would directly explain a
+            # watchdog trip. Lower threshold (100 ms) catches
+            # sub-trip jitter that compounds.
+            _now = time.monotonic()
+            _new_val = bool(msg["heartbeat"])
+            # === HB-RECV DIAGNOSTICS === ring-buffer every heartbeat (P0.2: in-memory,
+            # dumped only on trip-relevant events).
+            # The HAL `oneshot` likely retriggers on rising
+            # edge only — what matters is the time between
+            # consecutive TRUE values, not raw inter-arrival.
+            # Log every message (compact format) plus a
+            # dedicated `[HB-RISING]` line for True-to-True
+            # gaps over 200 ms so trip-relevant gaps are
+            # easy to spot.
+            ts_ms = int((_now - _T0) * 1000)
+            _hb_recv_ring.append((ts_ms, _new_val))  # in-memory only (P0.2)
+            if _new_val:
+                if _last_hb_recv_true is not None:
+                    rising_gap_ms = int((_now - _last_hb_recv_true) * 1000)
+                    if rising_gap_ms > 200:
+                        _hb_recv_print(
+                            f"[HB-RISING] +{ts_ms}ms "
+                            f"True-to-True gap {rising_gap_ms}ms"
+                        )
+                        if rising_gap_ms > _HB_DUMP_GAP_MS:
+                            _hb_recv_flush(f"gap_{rising_gap_ms}ms")
+                _last_hb_recv_true = _now
+            _last_hb_recv = _now
+            comp["heartbeat"] = _new_val
+        if "connected" in msg:
+            comp["connected"] = bool(msg["connected"])
+        if "tool_changed" in msg:
+            comp["tool-changed"] = bool(msg["tool_changed"])
+        if "compensation_enable" in msg:
+            comp["compensation-enable"] = bool(msg["compensation_enable"])
+        if "compensation_method" in msg:
+            comp["compensation-method"] = int(msg["compensation_method"])
+        if msg.get("trip_reset"):
+            # Pulse the HAL latch reset (rising edge). Held TRUE
+            # until the pulse-off check above drops it next slice,
+            # so the servo-thread estop_latch sees one clean edge.
+            comp["trip-reset-out"] = True
+            _reset_pulse_off_at = time.monotonic() + _RESET_PULSE_S
+            print("[SAFETY] trip latch reset pulsed by operator", flush=True)
+            _trace.emit("wd.trip_reset")
+            _hb_recv_flush("trip_reset")  # capture pre-reset HB timeline
+        _wd_msgs_processed += 1
+
+
 try:
     while _running:
-        socks = [server]
+        socks = [server] + _gate.socks()
         if client is not None:
             socks.append(client)
 
@@ -232,21 +332,32 @@ try:
 
         for sock in readable:
             if sock is server:
-                # New gateway connection — replace any existing
+                # New connection: pending until its hello passes admission.
+                # No pin writes here — a rejected connect must not disturb
+                # the admitted gateway's heartbeat.
                 new_client, _ = server.accept()
-                new_client.setblocking(False)
-                if client is not None:
-                    try:
-                        client.close()
-                    except Exception:
-                        pass  # safe-silent: socket close in error/cleanup path
-                # Reset pins until new gateway proves itself
-                comp["connected"] = False
-                comp["heartbeat"] = False
-                comp["tool-changed"] = False
-                comp["compensation-enable"] = False
-                client = new_client
-                buf = ""
+                _gate.add(new_client)
+            elif sock in _gate:
+                admitted = _gate.handle_readable(sock)
+                if admitted is not None:
+                    # Admitted: it becomes THE gateway. Only an EOF'd (or
+                    # absent) previous client can be replaced — the gate
+                    # refuses duplicates while a client socket is open.
+                    if client is not None:
+                        try:
+                            client.close()
+                        except Exception:
+                            pass  # safe-silent: socket close in error/cleanup path
+                    # Reset pins until the new gateway proves itself
+                    comp["connected"] = False
+                    comp["heartbeat"] = False
+                    comp["tool-changed"] = False
+                    comp["compensation-enable"] = False
+                    client = admitted.sock
+                    buf = admitted.leftover
+                    _last_hb_recv = None
+                    _last_hb_recv_true = None
+                    _consume_buf()
             elif sock is client:
                 try:
                     data = client.recv(4096)
@@ -261,75 +372,7 @@ try:
                         buf = ""
                         continue
                     buf += data.decode()
-                    while "\n" in buf:
-                        line, buf = buf.split("\n", 1)
-                        line = line.strip()
-                        if not line:
-                            continue
-                        try:
-                            msg = json.loads(line)
-                        except Exception as _je:
-                            # A single malformed line must NOT fall into the
-                            # broad except below (which forces all pins LOW and
-                            # trips safety). Skip it like hal_reader does — a
-                            # bad byte is not a reason to ESTOP the machine.
-                            print(f"[WD] bad json from gateway: {_je}", flush=True)
-                            _trace.emit("wd.bad_msg", level="warn", err=str(_je))
-                            continue
-                        if "heartbeat" in msg:
-                            # === HB-RECV DIAGNOSTICS === log inter-arrival gap
-                            # for heartbeat messages. Gateway sends at ~33 ms
-                            # cadence; anything past 100 ms means delivery is
-                            # late from the watchdog's perspective regardless
-                            # of what the gateway thinks. Logged from the
-                            # process that actually drives the HAL pin, so a
-                            # gap >500 ms here would directly explain a
-                            # watchdog trip. Lower threshold (100 ms) catches
-                            # sub-trip jitter that compounds.
-                            _now = time.monotonic()
-                            _new_val = bool(msg["heartbeat"])
-                            # === HB-RECV DIAGNOSTICS === ring-buffer every heartbeat (P0.2: in-memory,
-                            # dumped only on trip-relevant events).
-                            # The HAL `oneshot` likely retriggers on rising
-                            # edge only — what matters is the time between
-                            # consecutive TRUE values, not raw inter-arrival.
-                            # Log every message (compact format) plus a
-                            # dedicated `[HB-RISING]` line for True-to-True
-                            # gaps over 200 ms so trip-relevant gaps are
-                            # easy to spot.
-                            ts_ms = int((_now - _T0) * 1000)
-                            _hb_recv_ring.append((ts_ms, _new_val))  # in-memory only (P0.2)
-                            if _new_val:
-                                if _last_hb_recv_true is not None:
-                                    rising_gap_ms = int((_now - _last_hb_recv_true) * 1000)
-                                    if rising_gap_ms > 200:
-                                        _hb_recv_print(
-                                            f"[HB-RISING] +{ts_ms}ms "
-                                            f"True-to-True gap {rising_gap_ms}ms"
-                                        )
-                                        if rising_gap_ms > _HB_DUMP_GAP_MS:
-                                            _hb_recv_flush(f"gap_{rising_gap_ms}ms")
-                                _last_hb_recv_true = _now
-                            _last_hb_recv = _now
-                            comp["heartbeat"] = _new_val
-                        if "connected" in msg:
-                            comp["connected"] = bool(msg["connected"])
-                        if "tool_changed" in msg:
-                            comp["tool-changed"] = bool(msg["tool_changed"])
-                        if "compensation_enable" in msg:
-                            comp["compensation-enable"] = bool(msg["compensation_enable"])
-                        if "compensation_method" in msg:
-                            comp["compensation-method"] = int(msg["compensation_method"])
-                        if msg.get("trip_reset"):
-                            # Pulse the HAL latch reset (rising edge). Held TRUE
-                            # until the pulse-off check above drops it next slice,
-                            # so the servo-thread estop_latch sees one clean edge.
-                            comp["trip-reset-out"] = True
-                            _reset_pulse_off_at = time.monotonic() + _RESET_PULSE_S
-                            print("[SAFETY] trip latch reset pulsed by operator", flush=True)
-                            _trace.emit("wd.trip_reset")
-                            _hb_recv_flush("trip_reset")  # capture pre-reset HB timeline
-                        _wd_msgs_processed += 1
+                    _consume_buf()
                 except Exception:
                     # Socket error — force pins LOW for safety
                     comp["connected"] = False
@@ -343,6 +386,10 @@ try:
                     client = None
                     buf = ""
 
+        # Pending clients that never presented a hello are closed here
+        # (after the readable pass, so a socket is handled at most once/tick).
+        _gate.expire()
+
         # The Aggregator above flushes wd.tick_summary every 10
         # recordings; nothing to do here. msgs counter is consumed
         # by `_wd_extras` at flush time.
@@ -350,6 +397,7 @@ except KeyboardInterrupt:
     pass  # safe-silent: Ctrl-C → graceful shutdown via finally
 finally:
     _hb_recv_flush("shutdown")  # final heartbeat timeline for post-mortem
+    _gate.close_all()
     if client:
         try:
             client.close()
