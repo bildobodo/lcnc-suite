@@ -39,8 +39,11 @@ import lcnc_trace as _trace
 _trace.init("hal_reader")
 _trace.install_crash_hooks("hal_reader")
 
+import session_bind as _sb
+
 COMP_NAME = "webui-reader"
-SOCK_PATH = "/tmp/webui-reader.sock"
+# Test override only (the stub-hal admission test runs a private socket).
+SOCK_PATH = os.environ.get("WEBUI_READER_SOCK", "/tmp/webui-reader.sock")
 POLL_HZ = 30
 SELECT_TIMEOUT = 1.0 / POLL_HZ
 
@@ -89,11 +92,26 @@ if os.path.exists(SOCK_PATH):
 server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 server.bind(SOCK_PATH)
 os.chmod(SOCK_PATH, 0o600)  # owner-only: no other local user may connect
-server.listen(1)
+server.listen(_sb.MAX_PENDING + 1)
 server.setblocking(False)
 
 client = None
 buf = ""
+
+# ---- Session binding (2026-09-13) — same rules as hal_watchdog: a client is
+# pending until its hello names THIS session's linuxcncsvr instance; pending
+# lines are only ever parsed as hello, so a stale gateway can no longer issue
+# set_p. A connected gateway is never replaced while its socket is open.
+_instance = _sb.InstanceResolver("reader", emit=_trace.emit,
+                                 comm=os.environ.get("WEBUI_INSTANCE_COMM", "linuxcncsvr"))
+
+
+def _existing_healthy() -> bool:
+    return client is not None
+
+
+_gate = _sb.AdmissionGate("reader", _instance.current, _existing_healthy,
+                          expected_ended=_instance.ended, emit=_trace.emit)
 
 
 def _format_hal_value(v) -> str:
@@ -227,9 +245,33 @@ def _stop(*_):
 signal.signal(signal.SIGTERM, _stop)
 signal.signal(signal.SIGINT, _stop)
 
+def _consume_buf() -> None:
+    """Parse every complete request line in `buf` for the admitted client.
+    Called on each recv AND right after admission (pipelined leftover)."""
+    global client, buf
+    while "\n" in buf:
+        line, buf = buf.split("\n", 1)
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            msg = json.loads(line)
+        except Exception as e:
+            print(f"[READER] bad json from gateway: {e}", flush=True)
+            continue
+        reply = _handle_request(msg)
+        try:
+            _send(client, reply)
+        except Exception:
+            _drop_client(client)
+            client = None
+            buf = ""
+            break
+
+
 try:
     while _running:
-        socks = [server]
+        socks = [server] + _gate.socks()
         if client is not None:
             socks.append(client)
 
@@ -240,11 +282,15 @@ try:
         for sock in readable:
             if sock is server:
                 new_client, _ = server.accept()
-                new_client.setblocking(False)
-                if client is not None:
-                    _drop_client(client)
-                client = new_client
-                buf = ""
+                _gate.add(new_client)  # pending until its hello passes admission
+            elif sock in _gate:
+                admitted = _gate.handle_readable(sock)
+                if admitted is not None:
+                    if client is not None:
+                        _drop_client(client)
+                    client = admitted.sock
+                    buf = admitted.leftover
+                    _consume_buf()
             elif sock is client:
                 try:
                     data = client.recv(65536)
@@ -261,24 +307,11 @@ try:
                     buf = ""
                     continue
                 buf += data.decode()
-                while "\n" in buf:
-                    line, buf = buf.split("\n", 1)
-                    line = line.strip()
-                    if not line:
-                        continue
-                    try:
-                        msg = json.loads(line)
-                    except Exception as e:
-                        print(f"[READER] bad json from gateway: {e}", flush=True)
-                        continue
-                    reply = _handle_request(msg)
-                    try:
-                        _send(client, reply)
-                    except Exception:
-                        _drop_client(client)
-                        client = None
-                        buf = ""
-                        break
+                _consume_buf()
+
+        # Pending clients that never presented a hello are closed here
+        # (after the readable pass, so a socket is handled at most once/tick).
+        _gate.expire()
 
         # Periodic snapshot push
         now = time.monotonic()
@@ -309,6 +342,7 @@ try:
 except KeyboardInterrupt:
     pass  # safe-silent: Ctrl-C → graceful shutdown via finally
 finally:
+    _gate.close_all()
     if client:
         _drop_client(client)
     server.close()

@@ -148,6 +148,11 @@ esac
 [[ -n "$TOKEN"           ]] && export LCNC_WEBUI_TOKEN="$TOKEN"
 [[ -n "$ALLOWED_ORIGINS" ]] && export LCNC_WEBUI_ALLOWED_ORIGINS="$ALLOWED_ORIGINS"
 export LCNC_WEBUI_DEV="$DEV"
+# Session binding (2026-09-13): the gateway arms PR_SET_PDEATHSIG against this
+# pid so it dies with the launcher on the paths bash cannot trap (SIGKILL,
+# desktop-session teardown) — the way a gateway became an orphan that later
+# attached itself to a fresh LinuxCNC session.
+export LCNC_LAUNCHER_PID=$$
 # In dev mode the page is served by Vite, not the gateway, so the token can't be
 # injected into index.html. Expose it to the Vite build env as VITE_WEBUI_TOKEN
 # (Vite's loadEnv picks up VITE_-prefixed process env vars) so the dev frontend
@@ -370,6 +375,82 @@ _wait_or_kill() {
     wait "$pid" 2>/dev/null || true
 }
 
+# ── Port pre-flight (session binding, 2026-09-13) ──
+# Never start on top of a stale suite process: a desktop logout once left the
+# previous session's setsid'd gateway + Vite alive; the new gateway failed to
+# bind (LinuxCNC then tore down) and the orphan attached itself to the NEW
+# session's HAL helpers. A holder that is OUR gateway/Vite — any checkout —
+# is terminated loudly (terminal + launcher.log + trace.ndjson); any other
+# holder, or one `ss` cannot name (another uid), aborts the start.
+_preflight_trace() {  # tag level key=value...
+  local tag="$1" level="$2"; shift 2
+  local now_ns fields="" kv k v
+  now_ns=$(date +%s%N)
+  for kv in "$@"; do
+    k="${kv%%=*}"; v="${kv#*=}"
+    v="${v//\\/\\\\}"; v="${v//\"/\\\"}"
+    fields+=",\"$k\":\"$v\""
+  done
+  printf '{"t_wall_ns":%s,"t_mono_ms":0,"proc":"launcher","pid":%s,"tag":"%s","level":"%s"%s}\n' \
+    "$now_ns" "$$" "$tag" "$level" "$fields" >> "$LCNC_RESOLVED_LOG_DIR/trace.ndjson" 2>/dev/null || true
+}
+_port_holders() {  # port → "<pid|?>\t<ss line>" per listener
+  local port="$1" line pid
+  ss -Hltnp "sport = :$port" 2>/dev/null | while IFS= read -r line; do
+    pid="$(printf '%s' "$line" | grep -oE 'pid=[0-9]+' | head -1 | cut -d= -f2 || true)"
+    printf '%s\t%s\n' "${pid:-?}" "$line"
+  done
+}
+_is_suite_proc() {  # pid → 0 when its cmdline is our gateway or Vite
+  local cmd
+  cmd="$(tr '\0' ' ' < "/proc/$1/cmdline" 2>/dev/null || true)"
+  case "$cmd" in
+    *uvicorn*gateway:app*|*lcnc-webui/node_modules/.bin/vite*|*"npm run dev"*) return 0 ;;
+  esac
+  return 1
+}
+_port_preflight() {  # label port
+  local label="$1" port="$2" holders pid rest cmd i
+  holders="$(_port_holders "$port")"
+  [[ -z "$holders" ]] && return 0
+  while IFS=$'\t' read -r pid rest; do
+    [[ -z "$pid" ]] && continue
+    if [[ "$pid" == "?" ]]; then
+      echo "ERROR: port $port ($label) is held by a process this user cannot see: $rest" >&2
+      echo "Refusing to start. Stop that process or change WEBUI_PORT." >&2
+      _log "preflight: :$port held by unknown owner — abort ($rest)"
+      _preflight_trace launcher.port_preflight error port="$port" action=abort_unknown_owner detail="$rest"
+      exit 1
+    fi
+    cmd="$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null | tr -d '\000-\037' | cut -c1-200 || true)"
+    if _is_suite_proc "$pid"; then
+      echo "WARNING: stale suite process pid=$pid still holds $label port $port — terminating it: $cmd" >&2
+      _log "preflight: stale suite pid=$pid on :$port — SIGTERM ($cmd)"
+      _preflight_trace launcher.port_preflight warn port="$port" action=kill_stale stale_pid="$pid" cmd="$cmd"
+      kill -TERM "$pid" 2>/dev/null || true
+      for i in $(seq 1 30); do kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done
+      if kill -0 "$pid" 2>/dev/null; then
+        _log "preflight: stale pid=$pid ignored SIGTERM — SIGKILL"
+        kill -KILL "$pid" 2>/dev/null || true
+        sleep 0.2
+      fi
+    else
+      echo "ERROR: port $port ($label) is held by pid=$pid which is not a suite process: $cmd" >&2
+      echo "Refusing to start. Stop that process or change WEBUI_PORT." >&2
+      _log "preflight: foreign pid=$pid on :$port — abort ($cmd)"
+      _preflight_trace launcher.port_preflight error port="$port" action=abort_foreign holder_pid="$pid" cmd="$cmd"
+      exit 1
+    fi
+  done <<< "$holders"
+  holders="$(_port_holders "$port")"
+  if [[ -n "$holders" ]]; then
+    echo "ERROR: port $port ($label) is still busy after terminating stale suite process(es): $holders" >&2
+    _log "preflight: :$port still busy after kill — abort"
+    _preflight_trace launcher.port_preflight error port="$port" action=abort_still_busy
+    exit 1
+  fi
+}
+
 # === OPT-IN HAL-SAMPLE PROBE (WEBUI_HAL_SAMPLE=1) === capture every
 # servo-cycle value of the safety-chain bool pins. The HAL sampler
 # component fills a FIFO every servo cycle (~1ms); halsampler drains it
@@ -488,6 +569,17 @@ _stop_proc_status_loop() {
 }
 
 # ── Dev mode: Vite hot-reload + gateway ──
+# ── Port pre-flight: stale suite processes are terminated, foreign holders abort ──
+if command -v ss >/dev/null 2>&1; then
+  _port_preflight gateway "$PORT"
+  if [[ "$DEV" == "1" ]]; then
+    _port_preflight vite "$VITE_PORT"
+  fi
+else
+  echo "WARNING: 'ss' not found — cannot check ports $PORT/$VITE_PORT for stale suite processes before start" >&2
+  _log "preflight: ss missing, port check skipped"
+fi
+
 if [[ "$DEV" == "1" ]]; then
   echo "lcnc-suite: DEV mode — Vite on :$VITE_PORT, gateway on :$PORT"
 
@@ -520,7 +612,7 @@ if [[ "$DEV" == "1" ]]; then
     _log "DEV _term: gateway reaped, exit 0"
     exit 0
   }
-  trap _term INT TERM
+  trap _term INT TERM HUP
 
   # Vite in its own session — kill the whole npm→node tree on shutdown.
   # FORCE_COLOR=1 keeps chalk's ANSI output alive through the tee pipe above
@@ -612,7 +704,7 @@ _term() {
   _log "PROD _term: gateway reaped, exit 0"
   exit 0
 }
-trap _term INT TERM
+trap _term INT TERM HUP
 
 # setsid → uvicorn cannot be reached by terminal Ctrl-C; only the trap
 # above can signal it. Gateway exit (clean or crash) propagates: when

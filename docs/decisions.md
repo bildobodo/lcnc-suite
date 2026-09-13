@@ -4936,3 +4936,65 @@ live findings.
 clean. OWED: the operator's look (no button; clashes appearing while the band
 grows; a hidden tab pausing the sweep — the perf probe's `sweep_busy` stays
 true while the worker holds), heavy gates at the next stop.
+## 2026-09-13 — a stale gateway attached itself to a fresh session: session binding
+
+**Incident.** A desktop logout (the UTM-freeze recovery) killed the
+`lcnc-suite` launcher without its EXIT trap running — no SIGTERM ever
+reached the gateway (its recovered stdout has no `Shutting down`, the trace
+no `crash.signal`), while a real pty hangup demonstrably runs that trap. Its
+`setsid`'d children survived: uvicorn on :8000, Vite on :5173, reparented
+to init inside the closing login session's scope. The next `linuxcnc` run
+failed to bind (LinuxCNC tore down with "Timeout, trying kill -9" in
+Cleanup other), and in the 3 s the new session lived the orphan reconnected
+to its hal_reader (`reader.connected after_fails=840`), kept feeding the
+watchdog heartbeat, and served the reconnecting browser from cache
+(`viewer_init.cache_hit`) with `emcStatusBuffer invalid` behind it. Nothing
+on the receiving side could tell it from the legitimate gateway: both
+helpers accepted any local connection and REPLACED the current client —
+and every accept forced the pins LOW, so a 30 Hz reconnecting orphan would
+have tripped the live session on its own.
+
+**Decision (operator).** (1) Bind-once + exit when the bound instance ends,
+launcher AND standalone mode; `WEBUI_ALLOW_REBIND=1` is the dev escape
+hatch (`test_viewer_init.py` runs one gateway across ten LinuxCNC
+restarts), logged at boot. (2) Launcher port pre-flight: terminate a holder
+only when its cmdline is our gateway/Vite (any checkout), abort loudly on
+anything else. (3) A second gateway bound to the same live instance is
+rejected (`duplicate_gateway`, banner); the live one keeps the chain.
+
+**Design (three independent layers, `lcnc-gateway/session_bind.py`).**
+Identity = `(linuxcncsvr pid, kernel start ticks)` from `/proc` — pid reuse
+cannot forge it, a zombie is not an instance (a zombie linuxcncsvr would
+otherwise keep a gateway "bound" until the script reaps it). Layer 1,
+receiver-side admission in both helpers: hello-first, `SO_PEERCRED` (fail
+closed), uid, pid, cache-once helper identity (`InstanceResolver` — a helper
+that outlived its session must never adopt the next one; a dead cached
+instance answers `instance_ended`), never replace a connected gateway.
+Liveness is the socket being open (kernel EOF), NOT a heartbeat window: the
+gateway only heartbeats while browsers are connected, so an idle
+legitimate gateway would look supersedable and two idle gateways would
+ping-pong. Rejected connects never touch pins; rejection logs are throttled
+per (reason, pid). Layer 2, gateway bind-once with a client-independent
+1 s watch loop — the status poller skips its instance check with zero
+clients, which is exactly an orphan's state (this one served nobody for 14
+minutes); `PR_SET_PDEATHSIG` via `LCNC_LAUNCHER_PID`, launcher liveness by
+`kill(pid, 0)` not ppid (subreapers); shutdown through the launcher's
+`_term` trap with a 5 s `os._exit` deadline. The bridge never dials while
+unbound, polls the verdict with a zero-timeout `select` (a bare `recv` on
+the 50 ms-timeout socket costs 50 ms per heartbeat), drains a pending
+verdict on EPIPE (a rejection racing the helper's close was otherwise lost
+and the bridge redialled at heartbeat cadence — found by the tests), and
+classifies a helper that never answers as legacy (banner, keeps working —
+new gateway vs old helper is the benign direction; old gateway vs new
+helper is cut off on its first line). Layer 3, launcher pre-flight + `trap
+_term INT TERM HUP`.
+
+**Rejected alternatives.** Helper-side no-replace alone (an orphan that
+arrives FIRST still wins); pre-flight alone (only covers our ports, not a
+gateway on another port, and only at launch); PDEATHSIG alone (standalone
+gateways and pre-fix orphans are untouched, and it says nothing about which
+instance a gateway serves). Heartbeat-window liveness (see above).
+
+**Rollout.** feat/twp must `git merge development` before its next LinuxCNC
+restart: the installed configs load the helpers from the development
+checkout, so a not-yet-merged twp-checkout gateway is refused `no_hello`.
