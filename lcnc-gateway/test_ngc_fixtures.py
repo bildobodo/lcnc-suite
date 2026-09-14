@@ -96,6 +96,25 @@ class TestSubroutineContracts(unittest.TestCase):
     source-level, no interpreter (review 2026-09-14 TWP-01/02)."""
 
     TWP_GOTO_ZERO = "examples/sim_config/twp/remap_subs/twp_goto_zero.ngc"
+    GO_TO_ZERO = "subroutines/probe_basic/go_to_zero.ngc"
+    GO_TO_HOME = "subroutines/probe_basic/go_to_home.ngc"
+
+    def _rotary_moves_are_g53(self, rel):
+        code = _sub_lines(rel)
+        rotary = [l for l in code if "G0" in l.split()
+                  and any(w[0] in "ABC" for w in l.split() if w not in ("G0", "G53"))]
+        self.assertTrue(rotary, f"{rel}: expected rotary G0 lines")
+        for l in rotary:
+            self.assertTrue(l.startswith("G53 "), f"{rel}: rotary move is not machine-coordinate: {l}")
+
+    def test_go_to_zero_rotary_moves_are_g53(self):
+        # TWP-02: the stamp is a machine-frame A; `G0 A#1` was a WORK target
+        # (stamp + G54 A offset). B/C: machine zero, the only promise.
+        self._rotary_moves_are_g53(self.GO_TO_ZERO)
+
+    def test_go_to_home_rotary_moves_are_g53(self):
+        # The precedent go_to_zero.ngc now follows.
+        self._rotary_moves_are_g53(self.GO_TO_HOME)
 
     def test_twp_goto_zero_guards_then_saves_modal_state(self):
         # TWP-01: the G59 guard precedes ANY modal change (an abort does not
