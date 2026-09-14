@@ -60,6 +60,10 @@ Preview mechanics (all edits tagged `LCNC-SUITE` in `python/remap.py`):
     program coordinates; `rotary_offsets_nonzero` covers A/B/C;
   - `M535` / `o<twp_touchoff>` (lcnc-suite original): Plane-mode touch-off
     that writes the WORKPIECE datum G54 through the plane — the one datum;
+  - `o<twp_goto_zero>` (lcnc-suite original): Plane-mode "→ Zero" — retract
+    along the tool axis to a clearance, then plane X0 Y0, under M73 modal
+    save/restore with explicit G90 + G20/G21 (TWP-01: bare MDI lines
+    inherited the caller's G91/G20);
   - `M428/M429` leave a reserved fixture for G54, `M430` selects G59 (the
     fixture rides the kins mode);
   - the "TWP already active" / "not reachable" refusals preserve the plane

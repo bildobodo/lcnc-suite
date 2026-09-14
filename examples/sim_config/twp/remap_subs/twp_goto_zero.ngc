@@ -1,0 +1,51 @@
+; LCNC-SUITE ORIGINAL — not vendored from upstream.
+;
+; Plane-mode "→ Zero": retract along the TOOL AXIS to a clearance, then X0 Y0
+; in the plane. Called by the gateway's `go_to_zero` command when the Plane
+; jog frame is active (kins 2, G59 — the plane fixture):
+;
+;     o<twp_goto_zero> call [clearance] [metric]
+;
+; #1 = clearance in MACHINE units (the gateway picks 25 mm / 1 in),
+; #2 = 1 on a metric machine, 0 on an inch machine: G21/G20 is set
+;      EXPLICITLY so #1 and the live position are read in the same units
+;      whatever the caller had in force.
+;
+; Why a subroutine (TWP-01, review 2026-09-14): the gateway used to submit
+; `G0 Z25` / `G0 X0 Y0` as bare MDI lines, inheriting the interpreter's
+; distance mode and units — under G91 that is +25 of Z and no X/Y move at
+; all; under G20 on a metric machine "25" is 25 inches. M73 saves the
+; caller's modal state and restores it at endsub (G90/G91, G20/G21, …),
+; the same shape as probe_basic/go_to_zero.ngc for the Machine frame.
+;
+; Order matters: the fixture guard comes BEFORE any modal change — an
+; `(abort,…)` does not run M73's restore, so nothing may have changed when
+; it fires. "Never lower" is decided HERE from the live plane Z (#<_z>, the
+; current position in the active fixture including offsets), not from a
+; status snapshot that may be a tick old; the M66 drains the queue first so
+; that position is current (the same reliance twp_touchoff.ngc places on
+; it). No rotary word anywhere: a rotary move would un-orient the head. An
+; interpreter error during the Z leg aborts the sub before the X/Y leg.
+o<twp_goto_zero>sub
+(WEBUI_SUB=twp_goto_zero) ;lcnc-suite: preview sub-span marker, silent in task
+
+o100 if [#5220 NE 6]
+    (abort, twp_goto_zero: G59 - the plane fixture - is not active. Select the Plane frame again)
+o100 endif
+
+M73                                        ;save caller modal state, restore at endsub
+G90                                        ;absolute distance mode
+o110 if [#2 EQ 1]
+    G21
+o110 else
+    G20
+o110 endif
+M66 L0 E0                                  ;force sync, stop read ahead: #<_z> is current
+o120 if [#<_z> LT #1]
+    G0 Z#1                                 ;retract along the tool axis — never lower
+o120 endif
+G0 X0 Y0                                   ;plane X0 Y0 (the datum, through G59)
+
+(WEBUI_SUB_END) ;lcnc-suite: preview sub-span marker
+o<twp_goto_zero>endsub
+M2

@@ -3598,23 +3598,17 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             if _shared_status is None:
                 return {"ok": False, "error": "No machine state yet — refused"}
             pstate = _live_policy_state(armed)
-            # _shared_status is the StatusPayload OBJECT (attribute access —
-            # the first cut read it as a dict and the Plane branch refused
-            # every press with "position unknown"; 2026-09-04).
-            _wp = getattr(_shared_status, "work_pos", None)
-            work_z = None
-            if isinstance(_wp, (list, tuple)) and len(_wp) > 2:
-                try:
-                    work_z = finite_float(_wp[2])
-                except (TypeError, ValueError):
-                    work_z = None
-            clearance = 1.0 if get_machine_units() == "in" else 25.0
+            # Clearance in MACHINE units; the Plane sub sets G21/G20 itself
+            # from `metric` (TWP-01) — the live plane Z is read inside the
+            # interpreter, no status snapshot is consulted any more.
+            _metric = get_machine_units() != "in"
+            clearance = 25.0 if _metric else 1.0
             # The active fixture's W1 stamp: Machine frame returns the table
             # to the touch-off angle before X/Y (goto_zero_plan).
             _stamp = None
             if pstate.g5x_index is not None:
                 _stamp = _prov_cache.get(finite_int(pstate.g5x_index, lo=1))
-            lines, why = goto_zero_plan(pstate, work_z, clearance, stamp=_stamp)
+            lines, why = goto_zero_plan(pstate, None, clearance, stamp=_stamp, metric=_metric)
             if why:
                 _trace.emit("goto.zero_refused", level="warn", reason=why,
                             kins_type=pstate.kins_type, g5x_index=pstate.g5x_index)

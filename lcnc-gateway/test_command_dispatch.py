@@ -809,23 +809,24 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
         self.assertTrue(r["ok"], r)
         self.assertEqual(self._mdi_lines(), ["O<go_to_zero> CALL [20.0000]"])
 
-    def test_plane_frame_reads_work_pos_from_the_payload_object(self):
-        # The payload is an OBJECT (attribute access): the first cut read it
-        # as a dict and refused every press with "Plane position unknown".
+    def test_plane_frame_dispatches_the_twp_goto_zero_sub(self):
+        # TWP-01: one o-call with the clearance in machine units and the
+        # units flag — the sub owns G90/G21 under M73, never bare G0 lines.
         gateway._kins_is_switchable = lambda: True
         gateway._twp_capable = lambda: True   # the TWP stack (trsrn)
         r = self._send({"cmd": "go_to_zero"}, kins_type=2, twp_active=True, g5x_index=6,
                        work_pos=[1.0, 2.0, -5.0])
         self.assertTrue(r["ok"], r)
-        self.assertEqual(self._mdi_lines(), ["G0 Z25.0000", "G0 X0 Y0"])
+        self.assertEqual(self._mdi_lines(), ["O<twp_goto_zero> CALL [25.0000] [1]"])
 
-    def test_plane_frame_without_work_pos_is_the_only_unknown_path(self):
+    def test_plane_frame_does_not_need_work_pos(self):
+        # The live plane Z is read inside the interpreter now; a payload
+        # without work_pos is not a refusal.
         gateway._kins_is_switchable = lambda: True
         gateway._twp_capable = lambda: True   # the TWP stack (trsrn)
         r = self._send({"cmd": "go_to_zero"}, kins_type=2, twp_active=True, g5x_index=6)
-        self.assertFalse(r["ok"])
-        self.assertIn("position unknown", r["error"])
-        self.assertEqual(self._mdi_lines(), [])
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(self._mdi_lines(), ["O<twp_goto_zero> CALL [25.0000] [1]"])
 
     def test_tcp_is_refused_with_its_reason(self):
         gateway._kins_is_switchable = lambda: True

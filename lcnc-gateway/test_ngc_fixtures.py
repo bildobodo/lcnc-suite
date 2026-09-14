@@ -78,5 +78,43 @@ class TestNgcFixtures(unittest.TestCase):
         self.assertEqual(strip_gcode_comments("(all comment)").strip(), "")
 
 
+def _sub_lines(rel):
+    """Code lines of one repo subroutine, comments stripped, upper-cased,
+    whitespace-collapsed; blank lines dropped."""
+    path = os.path.join(_ROOT, rel)
+    with open(path, errors="replace") as f:
+        out = []
+        for raw in f:
+            code = strip_gcode_comments(raw).strip().upper()
+            if code:
+                out.append(" ".join(code.split()))
+    return out
+
+
+class TestSubroutineContracts(unittest.TestCase):
+    """Structural contracts of the motion subroutines the UI buttons call —
+    source-level, no interpreter (review 2026-09-14 TWP-01/02)."""
+
+    TWP_GOTO_ZERO = "examples/sim_config/twp/remap_subs/twp_goto_zero.ngc"
+
+    def test_twp_goto_zero_guards_then_saves_modal_state(self):
+        # TWP-01: the G59 guard precedes ANY modal change (an abort does not
+        # run M73's restore); M73 + G90 precede every G0; both unit codes are
+        # present (explicit G21/G20 from the #2 flag); no rotary word.
+        code = _sub_lines(self.TWP_GOTO_ZERO)
+        first = lambda pred: next(i for i, l in enumerate(code) if pred(l))
+        guard = first(lambda l: "#5220" in l)
+        m73 = first(lambda l: l.startswith("M73"))
+        g90 = first(lambda l: l.startswith("G90"))
+        g0 = first(lambda l: l.startswith("G0 "))
+        self.assertLess(guard, m73)
+        self.assertLess(m73, g0); self.assertLess(g90, g0)
+        self.assertTrue(any(l == "G21" for l in code)); self.assertTrue(any(l == "G20" for l in code))
+        self.assertTrue(any("#<_Z>" in l for l in code), "never-lower reads the live plane Z")
+        for l in code:
+            if l.startswith("G0 "):
+                self.assertFalse(any(w[0] in "ABC" for w in l.split()[1:]), l)
+
+
 if __name__ == "__main__":
     unittest.main()

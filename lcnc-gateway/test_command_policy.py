@@ -870,22 +870,28 @@ class TestMachineFrameAndGoZero(unittest.TestCase):
         _, why = goto_zero_plan(state(), 0.0, 25.0, stamp={"kins": "x", "a": 1.0})
         self.assertIn("unreadable", why)
 
-    def test_go_zero_plane_retracts_along_the_tool_axis_then_xy(self):
-        lines, why = goto_zero_plan(self._twp(), -5.0, 25.0)
+    def test_go_zero_plane_calls_the_modal_safe_sub_with_clearance_and_units(self):
+        # TWP-01: bare `G0 Z25` / `G0 X0 Y0` MDI inherited G91/G20 from the
+        # caller. The Plane branch is now ONE o-call; the sub owns G90 and the
+        # units (M73 restores the caller's) and reads the live plane Z itself.
+        lines, why = goto_zero_plan(self._twp(), None, 25.0, metric=True)
         self.assertIsNone(why)
-        self.assertEqual(lines, ["G0 Z25.0000", "G0 X0 Y0"])
-        # already above the clearance: never move down first
-        lines, _ = goto_zero_plan(self._twp(), 100.0, 25.0)
-        self.assertEqual(lines[0], "G0 Z100.0000")
-        # no rotary words anywhere
-        self.assertFalse(any(ch in " ".join(lines) for ch in "ABC"))
+        self.assertEqual(lines, ["O<twp_goto_zero> CALL [25.0000] [1]"])
+        lines, _ = goto_zero_plan(self._twp(), 100.0, 1.0, metric=False)
+        self.assertEqual(lines, ["O<twp_goto_zero> CALL [1.0000] [0]"])
+        # never a raw G0, never a rotary word
+        self.assertFalse(any(l.startswith("G0") for l in lines))
+        self.assertFalse(any(ch in " ".join(lines).replace("CALL", "") for ch in "ABC"))
+        # the status snapshot's Z is no longer an input
+        self.assertEqual(goto_zero_plan(self._twp(), -5.0, 25.0)[0],
+                         goto_zero_plan(self._twp(), None, 25.0)[0])
 
     def test_go_zero_refusals(self):
         self.assertIn("TCP", goto_zero_plan(self._twp(kins_type=1), 0.0, 25.0)[1])
         self.assertIn("Plane frame", goto_zero_plan(self._twp(g5x_index=1), 0.0, 25.0)[1])
         self.assertIn("Plane", goto_zero_plan(self._twp(twp_active=False), 0.0, 25.0)[1])
         self.assertIn("unknown", goto_zero_plan(self._twp(kins_type=None), 0.0, 25.0)[1])
-        self.assertIn("unknown", goto_zero_plan(self._twp(), None, 25.0)[1])
+        self.assertIn("Clearance", goto_zero_plan(self._twp(), None, float("nan"))[1])
         p = evaluate_permissions(self._twp(kins_type=1))
         self.assertFalse(p["goZero"])
         self.assertTrue(evaluate_permissions(self._twp())["goZero"])

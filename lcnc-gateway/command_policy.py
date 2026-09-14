@@ -287,7 +287,7 @@ _R_MACHINE_FRAME = (lambda s: machine_frame_required(s) is None,
 
 
 def goto_zero_plan(s: MachineState, work_z: Optional[float], clearance: float,
-                   stamp: Optional[dict] = None):
+                   stamp: Optional[dict] = None, metric: bool = True):
     """The → Zero button under the current kinematics: (mdi_lines, None) or
     (None, refusal).
 
@@ -304,12 +304,18 @@ def goto_zero_plan(s: MachineState, work_z: Optional[float], clearance: float,
     head — it stopped somewhere else" (zeroed at a tilted A, the routine
     drove A to 0). A fixture stamped under TCP/Plane holds table-frame /
     plane numbers, not machine coordinates: refused.
-    Plane frame with its plane active and G59 selected: retract ALONG THE
-    TOOL AXIS to at least `clearance` in plane coordinates (never downward
-    — max of the live plane Z and the clearance), then X0 Y0 in the plane;
-    rotaries untouched (a rotary move would un-orient the head). TCP:
-    refused — neither the machine top nor the tool axis is a world axis
-    there. Pure; unit-tested."""
+    Plane frame with its plane active and G59 selected: the
+    o<twp_goto_zero> subroutine (examples/sim_config/twp/remap_subs) —
+    retract ALONG THE TOOL AXIS to `clearance` (machine units; `metric`
+    says which, so the sub sets G21/G20 explicitly) unless already above
+    it, then X0 Y0 in the plane; rotaries untouched (a rotary move would
+    un-orient the head). The sub runs under M73 + G90, so the caller's
+    distance mode and units cannot leak in — bare `G0 Z25` / `G0 X0 Y0`
+    MDI lines under G91 were +25 of Z and no X/Y move (TWP-01, review
+    2026-09-14). The "never lower" decision is the sub's, from the live
+    plane Z inside the interpreter; `work_z` is no longer consulted and
+    stays only for signature compatibility. TCP: refused — neither the
+    machine top nor the tool axis is a world axis there. Pure; unit-tested."""
     k = semantic_kins(s)
     if k is None:
         return None, "Kinematics mode unknown (reader stale) — refused"
@@ -336,10 +342,9 @@ def goto_zero_plan(s: MachineState, work_z: Optional[float], clearance: float,
     if not s.twp_active or s.g5x_index != 6:
         return None, ("Plane kinematics without its plane fixture — select the Plane frame "
                       "again (M430), or the Machine frame / G69")
-    if work_z is None or not math.isfinite(work_z):
-        return None, "Plane position unknown (no status yet) — refused"
-    zc = max(float(work_z), float(clearance))
-    return [f"G0 Z{zc:.4f}", "G0 X0 Y0"], None
+    if not math.isfinite(float(clearance)) or float(clearance) < 0:
+        return None, "Clearance unreadable — refused"
+    return [f"O<twp_goto_zero> CALL [{float(clearance):.4f}] [{1 if metric else 0}]"], None
 
 
 _R_GOZERO = (lambda s: goto_zero_plan(s, 0.0, 0.0)[1] is None,
