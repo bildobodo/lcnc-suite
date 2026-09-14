@@ -24,6 +24,10 @@ const props = defineProps<{
   // hidden). The industry convention (Heidenhain 3D-ROT, Siemens WCS/MCS)
   // is that the active jog/work frame is ALWAYS visibly indicated.
   kinsType?: number | null;
+  // The TWP remap stack exists (App twpCapable, twin of gateway
+  // _twp_capable): the Capture/Orient/Clear row and the reserved G59 rows
+  // are TWP facts; switchability alone (kinsType) is not (TWP-08b).
+  twpCapable?: boolean;
   twpActive?: boolean | null;
   twpDefined?: boolean | null;
   // The A table has moved since G53.x oriented the head, so the TOOL is no
@@ -69,7 +73,13 @@ const { entries } = useAxes(computed(() => props.axes));
 // actions at its tail (vertical space is plentiful there; width is the
 // constraint, and one grid keeps a single uniform rhythm).
 const isPortrait = inject<Ref<boolean>>("isPortrait", ref(false));
-const isTwpMachine = computed(() => props.kinsType != null);
+// Switchable kins at all (kins_type sampled): Zero All stays linear-only
+// there — rotary touch-off is identity + G54 only on EVERY switchable
+// machine. TWP-capable: the remap stack, which owns G59..G59.3 and gives
+// Capture/Orient/Clear their meaning — a TCP trunnion used to get both
+// surfaces just for being switchable (TWP-08b).
+const isSwitchable = computed(() => props.kinsType != null);
+const isTwpMachine = computed(() => props.twpCapable === true);
 interface SetupChunk { axes: typeof entries.value; actions: boolean }
 const axisChunks = computed<SetupChunk[]>(() => {
   const e = entries.value;
@@ -110,13 +120,13 @@ const kinsChip = computed(() => kinsModeChip({
 // operator asked for them back in this grid on 2026-09-01: "3 side by side
 // like go home / go G30 / go zero, not some weird different size".)
 
-// Zero All names LINEAR axes only on a TWP machine: a rotary work offset
+// Zero All names LINEAR axes only on a switchable machine: a rotary work offset
 // displaces the orient move (the remap issues its head move in machine
 // coordinates now, but a G54 A/B/C row still blocks plane definition), and
 // zeroing A/B/C is never what "zero the part" means there. Per-axis rotary
 // zero stays available under its own (identity + G54) gate.
 const zeroAllLetters = computed(() =>
-  isTwpMachine.value ? props.axes.filter((l) => !isRotaryAxis(l)) : [...props.axes]);
+  isSwitchable.value ? props.axes.filter((l) => !isRotaryAxis(l)) : [...props.axes]);
 function zeroAll() {
   emit("setAll", zeroAllLetters.value);
 }
@@ -134,7 +144,7 @@ function zeroAll() {
           <MachineBtn :type="homedJoints[a.index] ? 'unhome' : 'home'" @click="homedJoints[a.index] ? emit('unhomeAxis', a.index) : emit('homeAxis', a.index)"><span class="stable-width"><span :class="{ alt: homedJoints[a.index] }">Home {{ a.letter }}</span><span :class="{ alt: !homedJoints[a.index] }">Unhome {{ a.letter }}</span></span></MachineBtn>
         </template>
         <template v-if="chunk.actions">
-          <MachineBtn type="zero" class="spanAll" @click="zeroAll()" :title="isTwpMachine ? 'Zero the linear axes (rotary offsets are set per axis, Machine frame + G54 only)' : undefined">Zero All</MachineBtn>
+          <MachineBtn type="zero" class="spanAll" @click="zeroAll()" :title="isSwitchable ? 'Zero the linear axes (rotary offsets are set per axis, Machine frame + G54 only)' : undefined">Zero All</MachineBtn>
           <MachineBtn :type="isHomed ? 'unhome' : 'home'" class="spanAll" @click="isHomed ? emit('unhomeAll') : emit('homeAll')"><span class="stable-width"><span :class="{ alt: isHomed }">Home All</span><span :class="{ alt: !isHomed }">Unhome All</span></span></MachineBtn>
           <!-- Action rows: three EQUAL cells spanning the grid (never one
                button per 80px/1fr/1fr track — "→ G30" used to sit in the

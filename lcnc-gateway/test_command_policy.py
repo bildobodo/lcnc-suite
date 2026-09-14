@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 
 from command_policy import (
+    semantic_kins,
     MachineState,
     MachineLimits,
     twp_capture_check,
@@ -434,11 +435,17 @@ class TestTwpCapture(unittest.TestCase):
     that they can never disagree."""
 
     def _capture_state(self, **over):
-        base = dict(kins_switchable=True, kins_type=0, g5x_index=1,
+        base = dict(kins_switchable=True, twp_capable=True, kins_type=0, g5x_index=1,
                     twp_defined=False, rotary_offsets_clean=True,
                     g92_xyz_clean=True)
         base.update(over)
         return state(**base)
+
+    def test_switchable_non_twp_machine_cannot_capture(self):
+        # A TCP trunnion is switchable but has no G68.2 / G53.x remap: the
+        # button must not exist there, and the gate says why (TWP-08b).
+        reason = twp_capture_check(self._capture_state(twp_capable=False))
+        self.assertIsNotNone(reason); self.assertIn("TWP", reason)
 
     def test_defaults_are_closed(self):
         # A builder that forgets the capture fields gets a refusal, never an
@@ -460,8 +467,10 @@ class TestTwpCapture(unittest.TestCase):
         self.assertIsNone(twp_capture_check(self._capture_state(kins_type=2)))
 
     def test_refuses_non_switchable_machine(self):
+        # A plain mill: neither switchable nor TWP-capable.
         self.assertIn("TWP machine",
-                      twp_capture_check(self._capture_state(kins_switchable=False)))
+                      twp_capture_check(self._capture_state(kins_switchable=False,
+                                                            twp_capable=False)))
 
     def test_refuses_unknown_kins(self):
         self.assertIn("unknown",
@@ -726,6 +735,55 @@ class TestNoBarePayloadCasts(unittest.TestCase):
             "finite_int/finite_float, or add the name to ALLOWED with a reason")
 
 
+
+class TestSemanticKins(unittest.TestCase):
+    """semantic_kins — raw switchkins types resolved per kins FAMILY (TWP-08b,
+    review 2026-09-14). The policy used to read raw 0 as identity on every
+    switchable machine; on a plain xyzac-trt raw 0 is the world (TCP) kins."""
+
+    def _trt(self, raw, idf):
+        return state(kins_switchable=True, twp_capable=False, identity_first=idf,
+                     kins_type=raw, g5x_index=1)
+
+    def test_trt_without_identityfirst_raw0_is_world_raw1_is_identity(self):
+        self.assertEqual(semantic_kins(self._trt(0, False)), 1)
+        self.assertEqual(semantic_kins(self._trt(1, False)), 0)
+        # G53 routines are admitted only under the ACTUAL identity mode.
+        self.assertIsNotNone(machine_frame_required(self._trt(0, False)))
+        self.assertIsNone(machine_frame_required(self._trt(1, False)))
+        self.assertEqual(touchoff_route(self._trt(1, False), ("Z",)), ("mdi", None))
+
+    def test_trt_identityfirst_unchanged(self):
+        self.assertEqual(semantic_kins(self._trt(0, True)), 0)
+        self.assertEqual(semantic_kins(self._trt(1, True)), 1)
+        self.assertIsNone(machine_frame_required(self._trt(0, True)))
+        self.assertIn("TCP", machine_frame_required(self._trt(1, True)))
+
+    def test_trsrn_raw_modes_pass_through(self):
+        for raw in (0, 1, 2):
+            self.assertEqual(
+                semantic_kins(state(kins_switchable=True, twp_capable=True, kins_type=raw)), raw)
+
+    def test_unsupported_type_refuses_everywhere_and_is_not_unknown(self):
+        s = self._trt(2, True)   # userk on a trt: the policy has no rule for it
+        self.assertEqual(semantic_kins(s), 3)
+        for fn in (machine_frame_required, kins_runnable):
+            msg = fn(s)
+            self.assertIsNotNone(msg, fn.__name__)
+            self.assertIn("no policy rule", msg)
+            self.assertNotIn("unknown", msg)
+        route, reason = touchoff_route(s, ("Z",))
+        self.assertIsNone(route); self.assertIn("no policy rule", reason)
+        lines, why = goto_zero_plan(s, 0.0, 25.0)
+        self.assertIsNone(lines); self.assertIn("no policy rule", why)
+        # Unknown stays unknown — a different refusal.
+        self.assertIsNone(semantic_kins(self._trt(None, True)))
+        self.assertIn("unknown", machine_frame_required(self._trt(None, True)))
+
+    def test_non_switchable_is_identity_regardless_of_raw(self):
+        self.assertEqual(semantic_kins(state(kins_switchable=False, kins_type=None)), 0)
+        self.assertEqual(semantic_kins(state(kins_switchable=False, kins_type=2)), 0)
+
 if __name__ == "__main__":
     unittest.main()
 
@@ -734,7 +792,7 @@ class TestKinsRunnable(unittest.TestCase):
     """Cycle Start / run-from-line refuse a stranded Plane-kins state (2026-09-03)."""
 
     def _twp(self, **over):
-        base = dict(kins_switchable=True, kins_type=2, twp_active=True, g5x_index=6)
+        base = dict(kins_switchable=True, twp_capable=True, kins_type=2, twp_active=True, g5x_index=6)
         base.update(over)
         return state(**base)
 
@@ -779,7 +837,7 @@ class TestMachineFrameAndGoZero(unittest.TestCase):
     """G53 routines need identity kins; → Zero is mode-aware (2026-09-03)."""
 
     def _twp(self, **over):
-        base = dict(kins_switchable=True, kins_type=2, twp_active=True, g5x_index=6)
+        base = dict(kins_switchable=True, twp_capable=True, kins_type=2, twp_active=True, g5x_index=6)
         base.update(over)
         return state(**base)
 

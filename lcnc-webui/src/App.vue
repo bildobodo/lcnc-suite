@@ -586,6 +586,12 @@ const liveKinsType = computed<number | null>(() => {
   const k = st.value.kins_type;
   return k == null ? null : Math.round(Number(k));
 });
+// TWP capability: this machine runs the TWP remap stack — twin of the
+// gateway's _twp_capable (the shipped xyzacb-trsrn config IS the stack). A
+// switchable-but-TWP-less machine (a TCP trunnion) keeps the kins-frame
+// selector but never the Plane frame, the Capture/Orient/Clear row or the
+// reserved G59 rows (TWP-08b, review 2026-09-14).
+const twpCapable = computed<boolean>(() => viewerInit.value?.kins?.type === "xyzacb-trsrn");
 // TWP plane staleness: the A rotary is a WORK-side table, so rotating it after
 // the plane was defined/oriented leaves the stored frame pointing at where the
 // face USED to be. One predicate (twpPose.ts), two surfaces — the kins chip
@@ -2102,6 +2108,7 @@ watch(viewerGcode, (newGcode) => {
         :minJogVel="minJogVel"
         :iniIncrements="iniIncrements"
         :kinsType="liveKinsType"
+        :twpCapable="twpCapable"
         :twpDefined="st.twp_defined ?? null"
         :twpStale="twpStale"
         :twpOriented="twpOriented"
@@ -2125,6 +2132,7 @@ watch(viewerGcode, (newGcode) => {
         :isHomed="isHomed"
         :g5xLabel="g5xLabel"
         :kinsType="liveKinsType"
+        :twpCapable="twpCapable"
         :twpActive="st.twp_active ?? null"
         :twpDefined="st.twp_defined ?? null"
         :twpStale="twpStale"

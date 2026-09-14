@@ -34,6 +34,10 @@ const props = defineProps<{
   // EXPLICIT operator choice of jog frame, prominently indicated).
   // null kinsType = machine can't switch: selector hidden entirely.
   kinsType?: number | null;
+  // The TWP remap stack exists on this machine (App twpCapable, twin of the
+  // gateway's _twp_capable): only then is Plane a frame at all. A TCP
+  // trunnion is switchable (Machine/TCP) without any plane (TWP-08b).
+  twpCapable?: boolean;
   twpDefined?: boolean | null;
   // Head solve stale (table moved since the last orient): the Plane frame's
   // Z is then NOT the face normal — say so where the operator picks it.
@@ -438,7 +442,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               <div class="strip-radio-options">
                 <label class="radio-label" title="Identity kinematics — jog along machine axes"><MachineRadio gate="jogFrame" name="jogFrame" :modelValue="kinsType" :value="0" @update:modelValue="emit('setKinsMode', 0)" /> Machine</label>
                 <label class="radio-label" title="TCP kinematics — X/Y/Z are the work frame riding the table: jogging A keeps the tool tip on the workpiece (position only; the head orientation does not follow). Switching re-seeds the preview (a brief progress flash is expected)"><MachineRadio gate="jogFrame" name="jogFrame" :modelValue="kinsType" :value="1" @update:modelValue="emit('setKinsMode', 1)" /> TCP</label>
-                <label class="radio-label" :class="{ 'val-status': true, warn: twpStale, muted: !twpOriented }" :title="!twpOriented
+                <label v-if="twpCapable" class="radio-label" :class="{ 'val-status': true, warn: twpStale, muted: !twpOriented }" :title="!twpOriented
                   ? (twpDefined
                     ? 'Plane defined but the head has not been oriented — press Orient (or G53.1) first. A bare M430 would jog on whatever frame the kins pins last held.'
                     : 'No tilted work plane defined (G68.2 / G68.3) — nothing to jog in yet')

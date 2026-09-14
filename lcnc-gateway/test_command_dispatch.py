@@ -784,11 +784,13 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
         self.cmd = _RecordingCmd()
         gateway.CMD = self.cmd
         self._switchable = gateway._kins_is_switchable
+        self._capable = gateway._twp_capable
         self._prov = dict(gateway._prov_cache)
         gateway._prov_cache.clear()
 
     def tearDown(self):
         gateway._kins_is_switchable = self._switchable
+        gateway._twp_capable = self._capable
         gateway._prov_cache.clear()
         gateway._prov_cache.update(self._prov)
 
@@ -801,6 +803,7 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
 
     def test_machine_frame_calls_the_subroutine_at_the_stamp_angle(self):
         gateway._kins_is_switchable = lambda: True
+        gateway._twp_capable = lambda: True   # the TWP stack (trsrn)
         gateway._prov_cache[1] = {"kins": 0.0, "a": 20.0, "x": 0.0, "y": 0.0, "z": 0.0}
         r = self._send({"cmd": "go_to_zero"}, kins_type=0, twp_active=False, g5x_index=1)
         self.assertTrue(r["ok"], r)
@@ -810,6 +813,7 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
         # The payload is an OBJECT (attribute access): the first cut read it
         # as a dict and refused every press with "Plane position unknown".
         gateway._kins_is_switchable = lambda: True
+        gateway._twp_capable = lambda: True   # the TWP stack (trsrn)
         r = self._send({"cmd": "go_to_zero"}, kins_type=2, twp_active=True, g5x_index=6,
                        work_pos=[1.0, 2.0, -5.0])
         self.assertTrue(r["ok"], r)
@@ -817,6 +821,7 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
 
     def test_plane_frame_without_work_pos_is_the_only_unknown_path(self):
         gateway._kins_is_switchable = lambda: True
+        gateway._twp_capable = lambda: True   # the TWP stack (trsrn)
         r = self._send({"cmd": "go_to_zero"}, kins_type=2, twp_active=True, g5x_index=6)
         self.assertFalse(r["ok"])
         self.assertIn("position unknown", r["error"])
@@ -824,6 +829,7 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
 
     def test_tcp_is_refused_with_its_reason(self):
         gateway._kins_is_switchable = lambda: True
+        gateway._twp_capable = lambda: True   # the TWP stack (trsrn)
         r = self._send({"cmd": "go_to_zero"}, kins_type=1, twp_active=False, g5x_index=1)
         self.assertFalse(r["ok"])
         self.assertIn("TCP", r["error"])

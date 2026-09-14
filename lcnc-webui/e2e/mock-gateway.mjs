@@ -131,6 +131,14 @@ const VIEWER_INIT = {
 // monotonic gcode version drives applyGcode (new toolpath geometry).
 let _initRev = 0;
 let _gcodeVer = 0;
+// Axis set installed by `setAxes` — every later viewer_init re-ship
+// (setKins, rebuildInit) must carry it, or the six-axis strip collapses
+// back to XYZ mid-spec.
+let _axes = null;
+function initFrame() {
+  _initRev++;
+  return { ...VIEWER_INIT, data: { ...VIEWER_INIT.data, ...(_axes ? { axes: _axes } : {}), _rev: _initRev } };
+}
 
 const HALSHOW_SNAPSHOT = {
   type: "halshow_snapshot",
@@ -222,9 +230,10 @@ ctlWss.on("connection", (ws) => {
       refuseWs = false;
       state.armed = PRISTINE.armed;
       state.data = structuredClone(PRISTINE.data);
+      delete VIEWER_INIT.data.kins;   // setKins is per-spec state too
+      _axes = null;
       hellos.length = 0;   // lifecycle.spec asserts on hello COUNTS
-      _initRev++;
-      broadcast({ ...VIEWER_INIT, data: { ...VIEWER_INIT.data, _rev: _initRev } });
+      broadcast(initFrame());
       broadcast(state);
     } else if (m.op === "setAxes") {
       // WS-D 9-axis fixture: re-ship viewer_init with the given axis letters
@@ -232,7 +241,7 @@ ctlWss.on("connection", (ws) => {
       // surface (SetupStrip grid, viewer HUD DRO, OffsetPanel table) renders
       // one row/column per axis.
       const axes = Array.isArray(m.axes) && m.axes.length ? m.axes : ["X", "Y", "Z"];
-      _initRev++;
+      _axes = axes;
       state.data.work_pos = axes.map((_, i) => (i + 1) * 1.111);
       state.data.g92_offset = axes.map(() => 0);
       state.data.tool_offset = axes.map(() => 0);
@@ -242,13 +251,18 @@ ctlWss.on("connection", (ws) => {
           ...axes.map((l, i) => [l.toLowerCase(), r === 0 ? (i + 1) * 10.123 : 0]),
           ["r", 0],
         ]));
-      broadcast({ ...VIEWER_INIT, data: { ...VIEWER_INIT.data, axes, _rev: _initRev } });
+      broadcast(initFrame());
       broadcast(state);
+    } else if (m.op === "setKins") {
+      // TWP-08b: re-ship viewer_init with a kins declaration (or none) — the
+      // capability twin the strips key the Plane frame, the TWP action row
+      // and the reserved G59 rows on (App.vue twpCapable).
+      if (m.kins) VIEWER_INIT.data.kins = m.kins; else delete VIEWER_INIT.data.kins;
+      broadcast(initFrame());
     } else if (m.op === "rebuildInit") {
       // Force a real in-session scene rebuild: _rev busts ThreeViewer's
       // content-dedup so buildFromInit (clearScene + rebuild) actually runs.
-      _initRev++;
-      broadcast({ ...VIEWER_INIT, data: { ...VIEWER_INIT.data, _rev: _initRev } });
+      broadcast(initFrame());
     } else if (m.op === "loadGcode") {
       // viewer_gcode_ready → frontend fetches GET /preview?v=N → applyGcode
       // builds fresh feed/rapid/highlight geometry.

@@ -8,11 +8,17 @@ import { ctl as ctlSend, MOCK } from "./ctl";
 // what the policy decided.
 
 const PERMS_ALL = {
-  idle: true, jog: true, override: true, ready: true, pause: false,
+  idle: true, jog: true, override: true, ready: true, run: true, pause: false,
   resume: false, step: true, abort: true, probe: true, zero: true,
+  machineFrame: true, goZero: true,
   touchoff: true, touchoffRotary: true, twpCapture: true,
   surfaceComp: true, safety: true, setup: true, armed: true, always: true,
 };
+
+// Kins declarations (viewer_init.kins): the TWP stack vs a switchable TCP
+// trunnion that has no plane remap at all (TWP-08b).
+const TRSRN = { module: "xyzacb_trsrn", type: "xyzacb-trsrn", identity_first: false, params: {} };
+const TRT = { module: "xyzac-trt-kins", type: "xyzac-trt", identity_first: true, params: {} };
 
 test("Plane mode: rotary touch-off closed, reserved fixtures disabled, Zero All stays open", async ({ page }) => {
   // setAxes re-ships viewer_init to CONNECTED clients — load the page and
@@ -27,6 +33,7 @@ test("Plane mode: rotary touch-off closed, reserved fixtures disabled, Zero All 
   await expect(page.locator('input[name="wcs"][value="G59"]')).not.toBeDisabled();
   await ctlSend({ op: "quiet", on: true });
   try {
+    await ctlSend({ op: "setKins", kins: TRSRN });
     await ctlSend({ op: "status_delta", data: {
       kins_type: 2, g5x_index: 6, twp_active: true,
       permissions: { ...PERMS_ALL, touchoffRotary: false },
@@ -56,6 +63,7 @@ test("Capture/Clear plane buttons: gate-driven, Clear needs a plane (or TOOL lim
   await ctlSend({ op: "quiet", on: true });
   try {
     // TWP machine, no plane: Capture open (perm true), Clear disabled.
+    await ctlSend({ op: "setKins", kins: TRSRN });
     await ctlSend({ op: "status_delta", data: {
       kins_type: 0, g5x_index: 1, twp_defined: false,
       permissions: { ...PERMS_ALL },
@@ -79,6 +87,34 @@ test("Capture/Clear plane buttons: gate-driven, Clear needs a plane (or TOOL lim
       permissions: { ...PERMS_ALL, twpCapture: false },
     } });
     await expect(clear).not.toBeDisabled();
+  } finally {
+    await ctlSend({ op: "quiet", on: false });
+    await ctlSend({ op: "reset" });
+  }
+});
+
+test("TCP trunnion (switchable, not TWP): G59 selectable, no Plane frame, no Capture row", async ({ page }) => {
+  // TWP-08b: switchability alone used to reserve G59, offer the Plane jog
+  // frame and render Capture/Orient/Clear — on a machine with no plane remap.
+  await page.goto(MOCK);
+  await expect(page.getByRole("button", { name: "Zero X", exact: true })).toBeVisible();
+  await ctlSend({ op: "quiet", on: true });
+  try {
+    await ctlSend({ op: "setKins", kins: TRT });
+    await ctlSend({ op: "status_delta", data: {
+      kins_type: 0, g5x_index: 1, permissions: { ...PERMS_ALL },
+    } });
+    // The kins-frame selector exists (Machine / TCP) but never offers Plane.
+    await expect(page.locator('input[name="jogFrame"][value="0"]')).toHaveCount(1);
+    await expect(page.locator('input[name="jogFrame"][value="2"]')).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Capture plane" })).toHaveCount(0);
+    await expect(page.locator('input[name="wcs"][value="G59"]')).not.toBeDisabled();
+    await expect(page.locator('input[name="wcs"][value="G59.3"]')).not.toBeDisabled();
+    // The TWP stack: same status, now G59 is reserved and Plane is offered.
+    await ctlSend({ op: "setKins", kins: TRSRN });
+    await expect(page.locator('input[name="jogFrame"][value="2"]')).toHaveCount(1);
+    await expect(page.getByRole("button", { name: "Capture plane" })).toHaveCount(1);
+    await expect(page.locator('input[name="wcs"][value="G59"]')).toBeDisabled();
   } finally {
     await ctlSend({ op: "quiet", on: false });
     await ctlSend({ op: "reset" });

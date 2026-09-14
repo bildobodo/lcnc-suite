@@ -109,6 +109,31 @@ class TestExtraPinsKinsGating(unittest.TestCase):
                       "twp_pose_a", "twp_datum_seq"):
                 self.assertNotIn(f, pins, f"{f} must not be sampled for {decl}")
 
+    def test_twp_capable_is_the_pin_gate_predicate(self):
+        # TWP-08: the policy's twp_capable and the twp-helper pin
+        # registration are ONE predicate — a config that samples the TWP
+        # pins is exactly a config whose G59 rows are reserved and whose
+        # Capture button exists. Pinned against every declaration shape.
+        for decl in (
+            None,
+            {"module": "trivkins", "type": "trivkins",
+             "identity_first": False, "params": {}},
+            {"module": "xyzac-trt-kins", "type": "xyzac-trt",
+             "identity_first": True, "params": {}},
+            {"module": "weird-kins", "type": "weird",
+             "identity_first": False, "params": {}},
+            {"module": "xyzacb_trsrn", "type": "xyzacb-trsrn",
+             "identity_first": False, "params": {}},
+        ):
+            pins = self._configured_pins(decl)
+            orig = gateway._parse_kins_decl
+            gateway._parse_kins_decl = lambda d=decl: d
+            try:
+                capable = gateway._twp_capable()
+            finally:
+                gateway._parse_kins_decl = orig
+            self.assertEqual(capable, "twp_pose_a" in pins, decl)
+
     # ── Plane pose staleness (table-aware wave) ────────────────────────────
 
     def test_trsrn_requests_the_plane_pose_pin(self):

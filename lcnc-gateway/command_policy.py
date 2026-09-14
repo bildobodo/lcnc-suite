@@ -149,9 +149,41 @@ TOUCHOFF_LETTERS = LINEAR_LETTERS | ROTARY_LETTERS
 RESERVED_FIXTURES = frozenset({6, 7, 8, 9})
 
 
-def _effective_kins(s: MachineState) -> Optional[int]:
-    """0/1/2 — or None when a switchable machine's type is unknown."""
-    return 0 if not s.kins_switchable else s.kins_type
+def semantic_kins(s: MachineState) -> Optional[int]:
+    """The kinematics MODE the policy reasons about — 0 identity, 1 TCP /
+    world, 2 TOOL / plane, 3 unsupported — or None when a switchable
+    machine's type is unknown (not sampled / reader stale).
+
+    Raw `motion.switchkins-type` numbers mean different things per kins
+    FAMILY: on xyzac-trt raw 0 is the WORLD (TCP) kins unless the module was
+    loaded with `sparm=identityfirst`, so a policy that read raw 0 as
+    identity would have admitted G53 routines under TCP on a plain trt
+    (TWP-08b). The raw type is resolved here, once, from the declaration
+    (MachineState.identity_first). The shipped TWP stack (xyzacb-trsrn,
+    twp_capable) hardcodes 0/1/2 = identity/TCP/TOOL. World/identity mapping
+    mirrors gateway_util.kins_nonidentity_flags (not imported: this module
+    stays stdlib-only); one deliberate difference: that checker treats trt
+    userk (raw 2) as identity math (the stock template), while ADMISSION of
+    G53 motion under a kins the policy cannot verify must refuse — 3.
+    """
+    if not s.kins_switchable:
+        return 0
+    k = s.kins_type
+    if k is None:
+        return None
+    if s.twp_capable:
+        return k if k in (0, 1, 2) else 3
+    identity_raw = 0 if s.identity_first else 1   # sparm=identityfirst: raw 0 is identity
+    if k == identity_raw:
+        return 0
+    if k == 1 - identity_raw:
+        return 1
+    return 3
+
+
+def _unsupported_mode_msg(s: MachineState) -> str:
+    return (f"Kinematics mode {s.kins_type} has no policy rule on this kins "
+            f"family — select the identity mode (M428) first")
 
 
 def touchoff_route(s: MachineState, letters):
@@ -166,9 +198,11 @@ def touchoff_route(s: MachineState, letters):
     for l in ls:
         if l not in TOUCHOFF_LETTERS:
             return None, f"{l!r} is not an axis letter"
-    k = _effective_kins(s)
+    k = semantic_kins(s)
     if k is None:
         return None, "Kinematics mode unknown (reader stale) — touch-off refused"
+    if k == 3:
+        return None, _unsupported_mode_msg(s)
     if s.g5x_index is None:
         return None, "Active fixture unknown — touch-off refused"
     if any(l in ROTARY_LETTERS for l in ls):
@@ -194,7 +228,7 @@ def touchoff_route(s: MachineState, letters):
                       "stored as a table-frame point) — jog A to 0 or use "
                       "the Machine frame")
     if k not in (0, 1):
-        return None, f"Kinematics type {k} has no touch-off rule"
+        return None, _unsupported_mode_msg(s)
     return "mdi", None
 
 
@@ -210,10 +244,12 @@ def kins_runnable(s: MachineState) -> Optional[str]:
     and M30 are not remappable and the only end hook is the abort handler).
     A 3-axis program started here would cut in the tilted frame. The chip
     shows it (twpPose.ts kinsModeChip); this refuses to run on it. Pure."""
-    k = _effective_kins(s)
+    k = semantic_kins(s)
     if k is None:
         # Same reading as touchoff_route: unknown is not identity.
         return "Kinematics mode unknown (reader stale) — start refused"
+    if k == 3:
+        return _unsupported_mode_msg(s)
     if k == 2 and not s.twp_active:
         return ("Plane kinematics is active with no active plane — select the "
                 "Machine frame (M428) or G69 before starting")
@@ -235,9 +271,11 @@ def machine_frame_required(s: MachineState) -> Optional[str]:
     pivot lever). Only identity kinematics makes those routines mean what
     they say (2026-09-03, operator: "if I have defined a plane and press go
     zero, what will happen?"). Pure."""
-    k = _effective_kins(s)
+    k = semantic_kins(s)
     if k is None:
         return "Kinematics mode unknown (reader stale) — refused"
+    if k == 3:
+        return _unsupported_mode_msg(s)
     if k != 0:
         return ("Machine frame required — G53 moves are tilted-frame moves under "
                 "TCP or Plane kinematics; select the Machine frame (M428) first")
@@ -272,9 +310,11 @@ def goto_zero_plan(s: MachineState, work_z: Optional[float], clearance: float,
     rotaries untouched (a rotary move would un-orient the head). TCP:
     refused — neither the machine top nor the tool axis is a world axis
     there. Pure; unit-tested."""
-    k = _effective_kins(s)
+    k = semantic_kins(s)
     if k is None:
         return None, "Kinematics mode unknown (reader stale) — refused"
+    if k == 3:
+        return None, _unsupported_mode_msg(s)
     if k == 0:
         sk, a = None, 0.0
         if stamp:
@@ -328,8 +368,10 @@ _R_TOUCHOFF_ROTARY = (
 #: dimming (permissions broadcast). Every predicate is None-safe and every
 #: default is the CLOSED reading.
 _TWP_CAPTURE_RULES = (
-    (lambda s: s.kins_switchable,
-     "Not a TWP machine — plane capture needs switchable kinematics"),
+    # Capability, not switchability: a TCP trunnion is switchable and has no
+    # G68.2 / G53.x remap to capture with (TWP-08b).
+    (lambda s: s.twp_capable,
+     "Not a TWP machine — plane capture needs the xyzacb-trsrn TWP stack"),
     (lambda s: s.kins_type is not None,
      "Kinematics mode unknown (reader stale) — capture refused"),
     (lambda s: s.g5x_index is not None,
