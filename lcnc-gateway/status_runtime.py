@@ -42,6 +42,7 @@ from command_policy import (
 )
 from gateway_util import (
     joints_beyond_limits, PROV_A_EPS, atomic_write_bytes, canonical_to_joint_order,
+    twp_head_aligned,
                           resolve_loaded_file)
 from tool_table import parse_tool_table, _merge_tool_data
 
@@ -299,6 +300,9 @@ class StatusPayload:
     # rides through so the client interprets it in one place; None still means
     # "not sampled".
     twp_pose_a: Optional[float]
+    # TWP-04: the B/C stamps of the same orient (same sentinel/None rules).
+    twp_pose_b: Optional[float]
+    twp_pose_c: Optional[float]
     spindle_direction: Optional[int]
     active_file: Optional[str]
     motion_line: Optional[int]
@@ -459,6 +463,13 @@ def policy_state_from_payload(p: "StatusPayload", armed: bool,
         # Capture-plane gate inputs (2026-08-31): absent table/offset data
         # reads CLOSED, like every rule above.
         twp_defined=(getattr(p, "twp_defined", None) is True),
+        # Head aligned with the plane (TWP-04): the A/B/C orient stamp vs the
+        # live rotaries; unknown (no stamp, sentinel, missing reading) is
+        # CLOSED, never "aligned".
+        twp_aligned=(twp_head_aligned(
+            (getattr(p, "twp_pose_a", None), getattr(p, "twp_pose_b", None),
+             getattr(p, "twp_pose_c", None)),
+            getattr(p, "rotary_abc", None), getattr(p, "twp_defined", None)) is True),
         rotary_offsets_clean=capture_rotary_offsets_clean(
             getattr(p, "wcs_table", None), getattr(p, "g92_offset", None)),
         g92_xyz_clean=capture_g92_xyz_clean(getattr(p, "g92_offset", None)),
@@ -1112,6 +1123,8 @@ class StatusRuntime:
             twp_plane=assemble_twp_plane(reader_get),
             twp_datum=assemble_twp_datum(reader_get),
             twp_pose_a=reader_get("twp_pose_a"),
+            twp_pose_b=reader_get("twp_pose_b"),
+            twp_pose_c=reader_get("twp_pose_c"),
             spindle_direction=spindle_direction,
             active_file=active_file,
             motion_line=safe_get("motion_line", None),

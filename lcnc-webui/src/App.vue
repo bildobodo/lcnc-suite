@@ -3,7 +3,7 @@ import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, provi
 import type { CollisionLineMark } from "./viewer/collision";
 import { applyClientOverlay, PERMISSIONS_KEY, FIRE_KEY, type Permissions } from "./permissions";
 import { simMode } from "./simMode";
-import { twpPoseOriented, twpPoseStale, twpDatumStale, fixtureOffDatum, stampAForFixture } from "./twpPose";
+import { twpPoseOriented, twpPoseStale, twpDatumStale, fixtureOffDatum, stampAForFixture, poseAbcOf } from "./twpPose";
 import { runLineState, subExecState, resolveCurrentLine } from "./trackHighlight";
 import { clearSubfileCache } from "./lcncApi";
 import { mainLinesTrusted, type ScrubTrack } from "./viewer/scrubTrack";
@@ -597,7 +597,7 @@ const twpCapable = computed<boolean>(() => viewerInit.value?.kins?.type === "xyz
 // face USED to be. One predicate (twpPose.ts), two surfaces — the kins chip
 // here via prop, the plane overlay inside ThreeViewer.
 const twpStale = computed(() =>
-  twpPoseStale(st.value.twp_pose_a, st.value.rotary_abc?.[0], st.value.twp_defined),
+  twpPoseStale(poseAbcOf(st.value), st.value.rotary_abc, st.value.twp_defined),
 );
 // The datum moved AFTER the plane was defined: the remap's saved_work_offset
 // snapshot (echoed as twp_datum) no longer matches the live G54 row, so the
@@ -617,19 +617,20 @@ const twpOffDatum = computed(() =>
 // A head solve exists (G53.x / Orient ran this session): the pose stamp is
 // above the remap's "no orient yet" sentinel. Gates the Plane jog frame —
 // a bare M430 before any orient jogs on whatever the kins pins last held.
-const twpOriented = computed(() => twpPoseOriented(st.value.twp_pose_a, st.value.twp_defined));
-// Jog-frame selector (JogStrip): the switch is an MDI remap — M428 restores
-// identity, M429 enters TCP (world XYZ = the table-riding work frame: jog A
-// and the tool tip stays on the workpiece, the kins re-solving XYZ — the
-// Heidenhain 3D-ROT-style tracking the operator asked for), M430 enters
-// TOOL/plane kins. Switchkins preserves joint positions, so the switch
-// itself moves nothing; the ready gate (idle + homed) is what makes it a
-// safe stationary relabel.
-const _KINS_MODE_MDI: Record<number, string> = { 0: "M428", 1: "M429", 2: "M430" };
+const twpOriented = computed(() => twpPoseOriented(poseAbcOf(st.value), st.value.twp_defined));
+// Kinematics-frame selector (JogStrip): M428 restores identity, M429 enters
+// TCP (world XYZ = the table-riding work frame: jog A and the tool tip stays
+// on the workpiece, the kins re-solving XYZ — the Heidenhain 3D-ROT-style
+// tracking the operator asked for), M430 enters TOOL/plane kins. Switchkins
+// preserves joint positions, so the switch itself moves nothing; `ready`
+// (idle + homed) makes it a safe stationary relabel. Sent as the TYPED
+// `set_kins_mode` command (TWP-04): the Plane frame has a backend admission
+// rule — a plane defined AND the head still aligned with it (the A/B/C
+// orient stamp vs the live rotaries) — which the `planeFrame` permission
+// mirrors for the radio's dimming.
 function setKinsMode(t: number) {
-  const mdi = _KINS_MODE_MDI[t];
-  if (!mdi) return;
-  fire({ cmd: "mdi", text: mdi }, "ready");
+  if (t !== 0 && t !== 1 && t !== 2) return;
+  fire({ cmd: "set_kins_mode", mode: t }, t === 2 ? "planeFrame" : "ready");
 }
 // TWP re-orient: re-solve the head at the CURRENT table pose. Unlike the
 // jog-frame switch above this MOVES the rotaries, hence the probe tier.

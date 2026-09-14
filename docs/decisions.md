@@ -5072,3 +5072,35 @@ semantics); excluding the
 guides with `collide: false` (they are on the head's path — a proxy keeps
 them real); a sampled prescreen (a sample is not a bound); lowering the
 sweep's sample floor (MIN_ADV is the guarantee's constant).
+
+## 2026-09-14 — Head alignment is a three-angle stamp and a backend admission rule
+
+**Observed.** The pre-merge review (docs/reviews/twp-review-2026-09-14.md,
+TWP-04) showed `twpPoseStale` / `twpPoseOriented` comparing only the A stamp:
+a B or C jog in Machine or TCP mode after an orient left the predicates
+reporting "oriented, not stale" while the tool pointed off the plane normal,
+the Plane jog frame stayed selectable, and Plane → Zero's "retract along the
+tool axis" retracted along a frozen frame. A-staleness was a chip, never an
+admission rule.
+
+**Decision — stamp all three rotaries from READBACK; admit on alignment.**
+The remap stamps A/B/C after `yield INTERP_EXECUTE_FINISH` (the interpreter's
+position is synced to the completed moves there; an abort never resumes the
+generator) and only when the readback agrees with the solve within
+`ROTARY_READBACK_TOL_DEG`; three helper-comp pins carry them; one pure
+predicate in two languages (`gateway_util.twp_head_aligned`, `twpPose.ts`)
+compares the full stamp with the live rotaries wrap-aware, unknown never
+reading as aligned. `MachineState.twp_aligned` gates Plane → Zero and a new
+typed `set_kins_mode` command (M428/M429/M430 were raw MDI; mode 2 now runs
+`plane_frame_check`), mirrored by the `planeFrame` permission the JogStrip
+radio dims with. Alongside: TWP-08's `twp_capable` (the TWP stack, not mere
+switchability) and the family-resolved semantic mode.
+
+**Rejected.** Comparing the live tool-axis vector against the plane normal
+through the work chain (the review's general form): on this kinematics the
+head solve is a function of the three rotary joints, so the three-angle stamp
+expresses everything the vector compare would, with the existing pin pattern;
+revisit only if a case appears the stamp cannot express. Stamping the solved
+targets instead of the readback (a request is not a completion). Leaving the
+switch as raw MDI (no admission rule without a typed command).
+

@@ -8,6 +8,7 @@ from pathlib import Path
 
 from command_policy import (
     semantic_kins,
+    plane_frame_check,
     MachineState,
     MachineLimits,
     twp_capture_check,
@@ -784,6 +785,44 @@ class TestSemanticKins(unittest.TestCase):
         self.assertEqual(semantic_kins(state(kins_switchable=False, kins_type=None)), 0)
         self.assertEqual(semantic_kins(state(kins_switchable=False, kins_type=2)), 0)
 
+
+class TestPlaneFrame(unittest.TestCase):
+    """plane_frame_check / the planeFrame gate / set_kins_mode (TWP-04)."""
+
+    def _s(self, **over):
+        base = dict(kins_switchable=True, twp_capable=True, kins_type=0, g5x_index=1,
+                    twp_defined=True, twp_aligned=True)
+        base.update(over)
+        return state(**base)
+
+    def test_plane_frame_needs_capability_definition_and_alignment(self):
+        self.assertIsNone(plane_frame_check(self._s()))
+        self.assertIn("Not a TWP machine", plane_frame_check(self._s(twp_capable=False)))
+        self.assertIn("unknown", plane_frame_check(self._s(kins_type=None)))
+        self.assertIn("No tilted work plane", plane_frame_check(self._s(twp_defined=False)))
+        self.assertIn("Orient", plane_frame_check(self._s(twp_aligned=False)))
+        # A plain mill: the first rule, never a later one.
+        self.assertIn("Not a TWP machine", plane_frame_check(state()))
+
+    def test_gate_and_check_agree(self):
+        for over in (dict(), dict(twp_capable=False), dict(kins_type=None),
+                     dict(twp_defined=False), dict(twp_aligned=False),
+                     dict(is_homed=False), dict(is_idle=False, is_running=True)):
+            s = self._s(**over)
+            open_ = evaluate_permissions(s)["planeFrame"]
+            self.assertEqual(open_, plane_frame_check(s) is None and s.is_homed and s.is_idle, over)
+
+    def test_set_kins_mode_is_gated_and_schemad(self):
+        self.assertEqual(COMMAND_GATES["set_kins_mode"], "ready")
+        self.assertIsNone(check_command("set_kins_mode", self._s()))
+        self.assertIsNotNone(check_command("set_kins_mode", self._s(is_homed=False)))
+        limits = MachineLimits()
+        self.assertEqual(validate_payload("set_kins_mode", {"mode": 2}, limits), {})
+        with self.assertRaises(ValueError):
+            validate_payload("set_kins_mode", {"mode": 3}, limits)
+        with self.assertRaises(ValueError):
+            validate_payload("set_kins_mode", {"mode": "plane"}, limits)
+
 if __name__ == "__main__":
     unittest.main()
 
@@ -792,7 +831,8 @@ class TestKinsRunnable(unittest.TestCase):
     """Cycle Start / run-from-line refuse a stranded Plane-kins state (2026-09-03)."""
 
     def _twp(self, **over):
-        base = dict(kins_switchable=True, twp_capable=True, kins_type=2, twp_active=True, g5x_index=6)
+        base = dict(kins_switchable=True, twp_capable=True, kins_type=2, twp_active=True, g5x_index=6,
+                    twp_defined=True, twp_aligned=True)
         base.update(over)
         return state(**base)
 
@@ -837,7 +877,8 @@ class TestMachineFrameAndGoZero(unittest.TestCase):
     """G53 routines need identity kins; → Zero is mode-aware (2026-09-03)."""
 
     def _twp(self, **over):
-        base = dict(kins_switchable=True, twp_capable=True, kins_type=2, twp_active=True, g5x_index=6)
+        base = dict(kins_switchable=True, twp_capable=True, kins_type=2, twp_active=True, g5x_index=6,
+                    twp_defined=True, twp_aligned=True)
         base.update(over)
         return state(**base)
 
@@ -885,6 +926,14 @@ class TestMachineFrameAndGoZero(unittest.TestCase):
         # the status snapshot's Z is no longer an input
         self.assertEqual(goto_zero_plan(self._twp(), -5.0, 25.0)[0],
                          goto_zero_plan(self._twp(), None, 25.0)[0])
+
+    def test_go_zero_plane_refuses_when_head_not_aligned(self):
+        # TWP-04: the retract is "along the tool axis" only while the head
+        # still points where the last orient put it. Unknown is closed too.
+        lines, why = goto_zero_plan(self._twp(twp_aligned=False), None, 25.0)
+        self.assertIsNone(lines); self.assertIn("Orient", why)
+        self.assertFalse(evaluate_permissions(self._twp(twp_aligned=False))["goZero"])
+        self.assertIn("Orient", check_command("go_to_zero", self._twp(twp_aligned=False)))
 
     def test_go_zero_refusals(self):
         self.assertIn("TCP", goto_zero_plan(self._twp(kins_type=1), 0.0, 25.0)[1])

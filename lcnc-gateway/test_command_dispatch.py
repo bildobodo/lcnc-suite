@@ -801,6 +801,10 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
     def _mdi_lines(self):
         return [a[0] for n, a, _k in self.cmd.calls if n == "mdi"]
 
+    # A defined plane whose orient stamp matches the live rotaries (TWP-04).
+    ALIGNED = dict(twp_defined=True, twp_pose_a=0.0, twp_pose_b=0.0, twp_pose_c=0.0,
+                   rotary_abc=[0.0, 0.0, 0.0])
+
     def test_machine_frame_calls_the_subroutine_at_the_stamp_angle(self):
         gateway._kins_is_switchable = lambda: True
         gateway._twp_capable = lambda: True   # the TWP stack (trsrn)
@@ -815,7 +819,7 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
         gateway._kins_is_switchable = lambda: True
         gateway._twp_capable = lambda: True   # the TWP stack (trsrn)
         r = self._send({"cmd": "go_to_zero"}, kins_type=2, twp_active=True, g5x_index=6,
-                       work_pos=[1.0, 2.0, -5.0])
+                       work_pos=[1.0, 2.0, -5.0], **self.ALIGNED)
         self.assertTrue(r["ok"], r)
         self.assertEqual(self._mdi_lines(), ["O<twp_goto_zero> CALL [25.0000] [1]"])
 
@@ -824,9 +828,54 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
         # without work_pos is not a refusal.
         gateway._kins_is_switchable = lambda: True
         gateway._twp_capable = lambda: True   # the TWP stack (trsrn)
-        r = self._send({"cmd": "go_to_zero"}, kins_type=2, twp_active=True, g5x_index=6)
+        r = self._send({"cmd": "go_to_zero"}, kins_type=2, twp_active=True, g5x_index=6,
+                       **self.ALIGNED)
         self.assertTrue(r["ok"], r)
         self.assertEqual(self._mdi_lines(), ["O<twp_goto_zero> CALL [25.0000] [1]"])
+
+    def test_plane_frame_go_zero_refused_when_the_head_moved(self):
+        # TWP-04: a B move after the orient — the frozen frame's Z is no
+        # longer the tool axis, so the retract promise cannot be kept.
+        gateway._kins_is_switchable = lambda: True
+        gateway._twp_capable = lambda: True   # the TWP stack (trsrn)
+        r = self._send({"cmd": "go_to_zero"}, kins_type=2, twp_active=True, g5x_index=6,
+                       **{**self.ALIGNED, "rotary_abc": [0.0, 5.0, 0.0]})
+        self.assertFalse(r["ok"]); self.assertIn("Orient", r["error"])
+        self.assertEqual(self._mdi_lines(), [])
+
+    def test_set_kins_mode_0_sends_m428(self):
+        gateway._kins_is_switchable = lambda: True
+        gateway._twp_capable = lambda: True   # the TWP stack (trsrn)
+        r = self._send({"cmd": "set_kins_mode", "mode": 0}, kins_type=2, g5x_index=6)
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(self._mdi_lines(), ["M428"])
+
+    def test_set_kins_mode_2_sends_m430_when_aligned(self):
+        gateway._kins_is_switchable = lambda: True
+        gateway._twp_capable = lambda: True   # the TWP stack (trsrn)
+        r = self._send({"cmd": "set_kins_mode", "mode": 2}, kins_type=0, g5x_index=1, **self.ALIGNED)
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(self._mdi_lines(), ["M430"])
+
+    def test_set_kins_mode_2_refused_when_stale(self):
+        gateway._kins_is_switchable = lambda: True
+        gateway._twp_capable = lambda: True   # the TWP stack (trsrn)
+        # C moved since the orient
+        r = self._send({"cmd": "set_kins_mode", "mode": 2}, kins_type=0, g5x_index=1,
+                       **{**self.ALIGNED, "rotary_abc": [0.0, 0.0, 3.0]})
+        self.assertFalse(r["ok"]); self.assertIn("Orient", r["error"])
+        # no orient yet (sentinel) — unknown is closed, and says so
+        r = self._send({"cmd": "set_kins_mode", "mode": 2}, kins_type=0, g5x_index=1,
+                       **{**self.ALIGNED, "twp_pose_b": -1e9})
+        self.assertFalse(r["ok"]); self.assertIn("Orient", r["error"])
+        # no plane
+        r = self._send({"cmd": "set_kins_mode", "mode": 2}, kins_type=0, g5x_index=1,
+                       **{**self.ALIGNED, "twp_defined": False})
+        self.assertFalse(r["ok"]); self.assertIn("No tilted work plane", r["error"])
+        self.assertEqual(self._mdi_lines(), [])
+        # an out-of-range mode is a payload rejection, not a silent M-code
+        r = self._send({"cmd": "set_kins_mode", "mode": 3}, kins_type=0, g5x_index=1)
+        self.assertFalse(r["ok"])
 
     def test_tcp_is_refused_with_its_reason(self):
         gateway._kins_is_switchable = lambda: True

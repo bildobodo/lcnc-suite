@@ -49,6 +49,11 @@ export type Permissions = {
    *  the tool axis, X0 Y0 in the plane); TCP refuses. Backend:
    *  command_policy.goto_zero_plan. */
   goZero: boolean;
+  /** planeFrame: ready + the Plane jog frame is a legal selection — TWP
+   *  machine, a plane defined, the HEAD still aligned with it (the A/B/C
+   *  orient stamp vs the live rotaries). A bare M430 reuses whatever frame
+   *  the kins pins last held. Backend: command_policy.plane_frame_check. */
+  planeFrame: boolean;
   /** pause: can pause a running program */
   pause: boolean;
   /** resume: can resume a paused program */
@@ -94,7 +99,7 @@ export type Permissions = {
 
 /** All gate names, in a stable order. */
 export const GATE_NAMES = [
-  "idle", "jog", "override", "ready", "run", "machineFrame", "goZero", "pause", "resume", "step",
+  "idle", "jog", "override", "ready", "run", "machineFrame", "goZero", "planeFrame", "pause", "resume", "step",
   "abort", "probe", "zero", "touchoff", "touchoffRotary", "twpCapture",
   "surfaceComp",
   "safety", "setup", "armed", "always",
@@ -108,7 +113,7 @@ export const GATE_NAMES = [
  * wrong. `jog` never had a busy term (hold-to-move).
  */
 const BUSY_GATES: ReadonlySet<keyof Permissions> = new Set([
-  "idle", "override", "ready", "run", "machineFrame", "goZero", "probe", "zero", "touchoff", "touchoffRotary",
+  "idle", "override", "ready", "run", "machineFrame", "goZero", "planeFrame", "probe", "zero", "touchoff", "touchoffRotary",
   "twpCapture", "surfaceComp", "setup",
 ]);
 

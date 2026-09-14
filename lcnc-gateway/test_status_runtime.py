@@ -395,6 +395,11 @@ class TestPollStatus(unittest.TestCase):
         # Not sampled (any non-trsrn config) — None, never a default.
         p = _runtime(stat=self._stat()).poll_status()
         self.assertIsNone(p.twp_pose_a)
+        # TWP-04: B/C ride the same way, same sentinel rule.
+        p = _runtime(stat=self._stat(), snapshot={"twp_pose_b": -40.8, "twp_pose_c": -1e9}).poll_status()
+        self.assertEqual(p.twp_pose_b, -40.8)
+        self.assertEqual(p.twp_pose_c, -1e9)
+        self.assertIsNone(_runtime(stat=self._stat()).poll_status().twp_pose_b)
 
     def test_payload_core_fields_and_work_pos(self):
         rt = _runtime(stat=self._stat())

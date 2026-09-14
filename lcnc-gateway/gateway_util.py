@@ -1088,6 +1088,46 @@ def evaluate_wcs_provenance(prov, offset_xyz, eps=1e-6):
 #: to absorb servo dither on a parked rotary, far below any deliberate move.
 PROV_A_EPS = 0.01
 
+#: Head-alignment window, degrees: the A/B/C pose the head was last oriented
+#: at vs the live rotaries. Twin of lcnc-webui/src/twpPose.ts TWP_POSE_EPS_DEG
+#: and of the remap's ROTARY_READBACK_TOL_DEG (TWP-04).
+TWP_POSE_EPS_DEG = 0.05
+#: The remap's "no orient yet" sentinel is -1e9; anything at or below this is
+#: "none". Twin of twpPose.ts TWP_POSE_NONE_BELOW.
+TWP_POSE_NONE_BELOW = -1e8
+
+
+def rotary_delta_deg(a, b):
+    """Signed shortest angular difference a − b, degrees, in [-180, 180)."""
+    return ((float(a) - float(b) + 180.0) % 360.0) - 180.0
+
+
+def twp_head_aligned(pose_abc, live_abc, defined, tol_deg=TWP_POSE_EPS_DEG,
+                     none_below=TWP_POSE_NONE_BELOW):
+    """Is the HEAD still aligned with the plane it was last oriented into?
+
+    True: every stamped rotary (A, B, C) matches the live one within
+    `tol_deg`, wrap-aware. False: some rotary moved since the orient. None:
+    UNKNOWN — no plane, no orient yet (sentinel), a missing or non-finite
+    stamp or live reading. Unknown never reads as aligned: the caller
+    collapses None to the CLOSED gate. Python twin of twpPose.ts
+    twpPoseStale / twpPoseOriented (TWP-04, review 2026-09-14). Pure."""
+    if defined is not True:
+        return None
+    try:
+        pose = [None if v is None else float(v) for v in (pose_abc or ())][:3]
+        live = [None if v is None else float(v) for v in (live_abc or ())][:3]
+    except (TypeError, ValueError):
+        return None
+    if len(pose) < 3 or len(live) < 3:
+        return None
+    for pv, lv in zip(pose, live):
+        if pv is None or lv is None or not math.isfinite(pv) or not math.isfinite(lv):
+            return None
+        if pv <= none_below:
+            return None
+    return all(abs(rotary_delta_deg(lv, pv)) <= tol_deg for pv, lv in zip(pose, live))
+
 
 def wcs_stamp_decision(prior_valid, prior_a, prior_kins,
                        current_a, current_kins, wrote_all_xyz,

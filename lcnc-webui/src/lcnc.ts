@@ -106,6 +106,9 @@ export type WsCommand =
   // G10 L20 into the active fixture, or the Plane-mode remap that writes G54
   // through the plane — and stamps provenance. Letters upper-case.
   | { cmd: "touchoff"; axes: Record<string, number> }
+  // Kinematics-frame selector: 0 identity (M428) / 1 TCP (M429) / 2 Plane
+  // (M430). Typed so the Plane frame is admitted server-side (TWP-04).
+  | { cmd: "set_kins_mode"; mode: 0 | 1 | 2 }
   | { cmd: "set_wcs"; target: string; x?: number; y?: number; z?: number; a?: number; b?: number; c?: number; u?: number; v?: number; w?: number; r?: number }
   // Heartbeat
   | { cmd: "heartbeat" }

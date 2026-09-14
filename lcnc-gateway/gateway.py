@@ -85,7 +85,7 @@ from gateway_util import (
     wcs_stamp_decision,
     PROV_STAMPED,
 )
-from command_policy import check_command, validate_payload, MachineLimits, touchoff_route, twp_capture_check, goto_zero_plan
+from command_policy import check_command, validate_payload, MachineLimits, touchoff_route, twp_capture_check, goto_zero_plan, plane_frame_check
 from tool_table import (
     parse_tool_table,
     write_tool_table,
@@ -639,6 +639,10 @@ async def _reader_configure_extra_pins() -> None:
         # this means the TOOL is no longer normal to the plane. Raw float on
         # the wire — the remap's "no orient yet" sentinel is read client-side.
         pins["twp_pose_a"] = "twp-helper-comp.twp-pose-a"
+        # TWP-04: the head solve depends on ALL three rotaries — B/C stamps
+        # ride the same way; the alignment rule compares all three.
+        pins["twp_pose_b"] = "twp-helper-comp.twp-pose-b"
+        pins["twp_pose_c"] = "twp-helper-comp.twp-pose-c"
     try:
         await _reader_request("set_extra_pins", pins=pins)
     except Exception as e:
@@ -3583,6 +3587,38 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             await set_mode(linuxcnc.MODE_MDI)
             await _cmd_blocking(CMD.mdi, text, wait=None)
             return {"ok": True}
+
+        if cmd == "set_kins_mode":
+            # Kinematics-frame selector (JogStrip): M428 identity / M429 TCP /
+            # M430 TOOL-plane, as a TYPED command so the Plane frame has a
+            # backend admission rule (TWP-04): a bare M430 reuses whatever
+            # the kins pins last held, so it is refused unless a plane is
+            # defined and the HEAD is still aligned with it (the A/B/C orient
+            # stamp vs the live rotaries — command_policy.plane_frame_check,
+            # the same rule the planeFrame permission dims the radio with).
+            # A raw `mdi M430` stays raw, like G69.
+            require_armed(armed)
+            blocked = reject_if_auto_running()
+            if blocked:
+                return blocked
+            mode = finite_int(msg.get("mode", -1))
+            if mode not in (0, 1, 2):
+                return {"ok": False, "error": f"Invalid kinematics mode: {mode}"}
+            if _shared_status is None:
+                return {"ok": False, "error": "No machine state yet — refused"}
+            pstate = _live_policy_state(armed)
+            if mode == 2:
+                why = plane_frame_check(pstate)
+                if why:
+                    _trace.emit("kins_mode.refused", level="warn", reason=why, mode=mode,
+                                kins_type=pstate.kins_type, twp_defined=pstate.twp_defined,
+                                twp_aligned=pstate.twp_aligned)
+                    return {"ok": False, "error": why}
+            line = {0: "M428", 1: "M429", 2: "M430"}[mode]
+            await set_mode(linuxcnc.MODE_MDI)
+            await _cmd_blocking(CMD.mdi, line, wait=None)
+            _trace.emit("kins_mode.set", level="info", mode=mode, line=line)
+            return {"ok": True, "line": line}
 
         if cmd == "go_to_zero":
             # The → Zero button, mode-aware (2026-09-03): Machine frame runs

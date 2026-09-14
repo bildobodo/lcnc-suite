@@ -185,3 +185,20 @@ def calc_rotary_move_with_joint_limits(position, target, max_limit, min_limit, m
     if legal(alt):
         return pos + alt, alt
     return None, None
+
+
+#: Orient readback window, degrees (TWP-04): the joints must have LANDED on
+#: the solve before the head-solve pose is stamped. Twin of
+#: gateway_util.TWP_POSE_EPS_DEG / twpPose.ts TWP_POSE_EPS_DEG.
+ROTARY_READBACK_TOL_DEG = 0.05
+
+
+def rotary_delta_deg(a, b):
+    """Signed shortest angular difference a − b, degrees, in [-180, 180)."""
+    return ((float(a) - float(b) + 180.0) % 360.0) - 180.0
+
+
+def rotary_within(a, b, tol_deg):
+    """Are two rotary angles (degrees) the same pose within `tol_deg`, wrap
+    aware — 359.99 and −0.01 are 0.02 apart, not 360."""
+    return abs(rotary_delta_deg(a, b)) <= float(tol_deg)

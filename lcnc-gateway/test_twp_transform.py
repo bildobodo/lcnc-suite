@@ -21,6 +21,7 @@ sys.path.insert(
 )
 
 from twp_transform import (  # noqa: E402
+    rotary_within, rotary_delta_deg, ROTARY_READBACK_TOL_DEG,
     calc_rotary_move_with_joint_limits,
     compose_table_a, to_table_frame, from_table_frame,
     to_table_frame_vector, from_table_frame_vector, calc_shortest_distance)
@@ -295,6 +296,21 @@ class TestCalcRotaryMoveWithJointLimits(unittest.TestCase):
                             self.assertGreaterEqual(dist, 0.0)
                         if mode == 2:
                             self.assertLessEqual(dist, 0.0)
+
+
+class TestRotaryWithin(unittest.TestCase):
+    """The orient readback compare (TWP-04): wrap-aware, tolerance inclusive."""
+
+    def test_delta_is_shortest_signed(self):
+        self.assertAlmostEqual(rotary_delta_deg(10, 350), 20.0)
+        self.assertAlmostEqual(rotary_delta_deg(350, 10), -20.0)
+        self.assertAlmostEqual(rotary_delta_deg(-180, 180), 0.0)
+
+    def test_within(self):
+        self.assertTrue(rotary_within(359.99, -0.01, ROTARY_READBACK_TOL_DEG))
+        self.assertTrue(rotary_within(130.2455, 130.2455 + ROTARY_READBACK_TOL_DEG * 0.9, ROTARY_READBACK_TOL_DEG))
+        self.assertFalse(rotary_within(130.2455, 130.2455 + 2 * ROTARY_READBACK_TOL_DEG, ROTARY_READBACK_TOL_DEG))
+        self.assertFalse(rotary_within(0, 180, ROTARY_READBACK_TOL_DEG))
 
 
 if __name__ == "__main__":

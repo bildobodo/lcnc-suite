@@ -1,37 +1,71 @@
 import { describe, it, expect } from "vitest";
-import { twpPoseStale, twpDatumStale, kinsModeChip, fixtureOffDatum, stampAForFixture,
+import { twpPoseStale, twpPoseOriented, poseAbcOf, twpDatumStale, kinsModeChip, fixtureOffDatum, stampAForFixture,
   TWP_POSE_EPS_DEG, TWP_POSE_NONE_BELOW, TWP_DATUM_EPS, TWP_PROV_A_EPS } from "./twpPose";
 
 describe("twpPoseStale", () => {
+  const P = [10, -40.8555, 130.2455];   // an orient stamp: A, B, C
   it("makes no claim when no plane is defined", () => {
-    expect(twpPoseStale(0, 30, false)).toBe(false);
-    expect(twpPoseStale(0, 30, null)).toBe(false);
-    expect(twpPoseStale(0, 30, undefined)).toBe(false);
+    expect(twpPoseStale(P, [10, 0, 0], false)).toBe(false);
+    expect(twpPoseStale(P, [10, 0, 0], null)).toBe(false);
+    expect(twpPoseStale(P, [10, 0, 0], undefined)).toBe(false);
   });
 
-  it("treats the sentinel as no pose, not as a huge deviation", () => {
-    expect(twpPoseStale(-1e9, 0, true)).toBe(false);
-    expect(twpPoseStale(TWP_POSE_NONE_BELOW - 1, 0, true)).toBe(false);
+  it("treats a sentinel on ANY axis as no pose, not as a huge deviation", () => {
+    expect(twpPoseStale([-1e9, 0, 0], [0, 0, 0], true)).toBe(false);
+    expect(twpPoseStale([0, TWP_POSE_NONE_BELOW - 1, 0], [0, 0, 0], true)).toBe(false);
+    expect(twpPoseStale([0, 0, -1e9], [0, 0, 0], true)).toBe(false);
   });
 
-  it("makes no claim without both readings", () => {
-    expect(twpPoseStale(null, 30, true)).toBe(false);
-    expect(twpPoseStale(0, null, true)).toBe(false);
-    expect(twpPoseStale(undefined, undefined, true)).toBe(false);
-    expect(twpPoseStale(NaN, 0, true)).toBe(false);
-    expect(twpPoseStale(0, NaN, true)).toBe(false);
+  it("makes no claim without complete readings on both sides", () => {
+    expect(twpPoseStale(null, [0, 0, 0], true)).toBe(false);
+    expect(twpPoseStale(P, null, true)).toBe(false);
+    expect(twpPoseStale([10, null, 130], [10, 0, 130], true)).toBe(false);
+    expect(twpPoseStale(P, [10, undefined, 130.2455], true)).toBe(false);
+    expect(twpPoseStale([NaN, 0, 0], [0, 0, 0], true)).toBe(false);
+    expect(twpPoseStale(P, [10, -40.8555, NaN], true)).toBe(false);
+    expect(twpPoseStale([10, -40.8555], [10, -40.8555, 130.2455], true)).toBe(false);
   });
 
-  it("is quiet at and below the epsilon, stale above it", () => {
-    expect(twpPoseStale(0, TWP_POSE_EPS_DEG, true)).toBe(false);
-    expect(twpPoseStale(0, TWP_POSE_EPS_DEG * 1.5, true)).toBe(true);
-    expect(twpPoseStale(0, -TWP_POSE_EPS_DEG * 1.5, true)).toBe(true);
+  it("is quiet at and below the epsilon, stale above it — on A", () => {
+    expect(twpPoseStale(P, [10 + TWP_POSE_EPS_DEG * 0.9, -40.8555, 130.2455], true)).toBe(false);
+    expect(twpPoseStale(P, [10 + TWP_POSE_EPS_DEG * 1.5, -40.8555, 130.2455], true)).toBe(true);
+    expect(twpPoseStale(P, [10 - TWP_POSE_EPS_DEG * 1.5, -40.8555, 130.2455], true)).toBe(true);
   });
 
-  it("compares magnitudes around a nonzero definition pose", () => {
-    expect(twpPoseStale(20, 20, true)).toBe(false);
-    expect(twpPoseStale(20, 40, true)).toBe(true);
-    expect(twpPoseStale(-33.25, -33.25, true)).toBe(false);
+  it("a B or C move alone is stale (TWP-04)", () => {
+    expect(twpPoseStale(P, [10, -40.8555 + 5, 130.2455], true)).toBe(true);
+    expect(twpPoseStale(P, [10, -40.8555, 130.2455 - 5], true)).toBe(true);
+    expect(twpPoseStale(P, [10, -40.8555, 130.2455], true)).toBe(false);
+  });
+
+  it("wrapped equivalent poses are not stale", () => {
+    expect(twpPoseStale([359.99, 0, 0], [-0.01, 0, 0], true)).toBe(false);
+    expect(twpPoseStale([0, 0, -180], [0, 0, 180], true)).toBe(false);
+    expect(twpPoseStale([0, 0, 170], [0, 0, -170], true)).toBe(true);
+  });
+});
+
+describe("twpPoseOriented", () => {
+  it("false without a plane", () => {
+    expect(twpPoseOriented([0, 0, 0], false)).toBe(false);
+    expect(twpPoseOriented([0, 0, 0], null)).toBe(false);
+  });
+  it("false on the sentinel or a missing axis", () => {
+    expect(twpPoseOriented([-1e9, 0, 0], true)).toBe(false);
+    expect(twpPoseOriented([0, -1e9, 0], true)).toBe(false);
+    expect(twpPoseOriented([0, 0, null], true)).toBe(false);
+    expect(twpPoseOriented([0, 0], true)).toBe(false);
+    expect(twpPoseOriented(null, true)).toBe(false);
+    expect(twpPoseOriented([NaN, 0, 0], true)).toBe(false);
+  });
+  it("true on a full finite stamp", () => {
+    expect(twpPoseOriented([0, 0, 0], true)).toBe(true);
+    expect(twpPoseOriented([20, -40.8555, 130.2455], true)).toBe(true);
+  });
+  it("poseAbcOf lifts the three status fields", () => {
+    expect(poseAbcOf({ twp_pose_a: 1, twp_pose_b: 2, twp_pose_c: 3 })).toEqual([1, 2, 3]);
+    expect(poseAbcOf(null)).toBeNull();
+    expect(twpPoseOriented(poseAbcOf({ twp_pose_a: 1, twp_pose_b: 2 }), true)).toBe(false);
   });
 });
 

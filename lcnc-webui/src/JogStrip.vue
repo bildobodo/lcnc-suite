@@ -448,7 +448,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
                     : 'No tilted work plane defined (G68.2 / G68.3) — nothing to jog in yet')
                   : twpStale
                     ? 'TOOL kinematics — the plane frame is from the LAST orient and the table has moved since: Z is NOT the face normal. Press Orient to restore it.'
-                    : 'TOOL kinematics — jog in the tilted work plane, Z along the tool axis as of the last orient (Orient again after moving the table). Switching re-seeds the preview (a brief progress flash is expected)'"><MachineRadio gate="jogFrame" name="jogFrame" :modelValue="kinsType" :value="2" :disabled="!twpOriented" @update:modelValue="emit('setKinsMode', 2)" /> Plane{{ twpStale ? ' (stale)' : '' }}</label>
+                    : 'TOOL kinematics — jog in the tilted work plane, Z along the tool axis as of the last orient (Orient again after moving the table). Switching re-seeds the preview (a brief progress flash is expected)'"><MachineRadio gate="planeFrame" name="jogFrame" :modelValue="kinsType" :value="2" @update:modelValue="emit('setKinsMode', 2)" /> Plane{{ twpStale ? ' (stale)' : '' }}</label>
               </div>
             </div>
           </template>

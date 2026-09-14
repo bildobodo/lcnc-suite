@@ -556,6 +556,45 @@ class TestPreviewFileEdgeAction(unittest.TestCase):
         self.assertEqual(f(False, True, True, self.INF, "/nc/a.ngc", 10.0), "cancel:reparse")
 
 
+
+from gateway_util import twp_head_aligned, TWP_POSE_EPS_DEG  # noqa: E402  (TWP-04)
+
+
+class TestTwpHeadAligned(unittest.TestCase):
+    """twp_head_aligned — the backend twin of twpPose.ts (TWP-04, review
+    2026-09-14): the head solve depends on ALL three rotaries."""
+    P = (10.0, -40.8555, 130.2455)
+
+    def test_aligned_within_tolerance(self):
+        self.assertIs(twp_head_aligned(self.P, [10.0, -40.8555, 130.2455], True), True)
+        self.assertIs(twp_head_aligned(self.P, [10.0 + TWP_POSE_EPS_DEG * 0.9, -40.8555, 130.2455], True), True)
+
+    def test_b_move_alone_breaks_alignment(self):
+        self.assertIs(twp_head_aligned(self.P, [10.0, -40.8555 + 5, 130.2455], True), False)
+        self.assertIs(twp_head_aligned(self.P, [10.0, -40.8555, 130.2455 - 1], True), False)
+        self.assertIs(twp_head_aligned(self.P, [10.0 + 2 * TWP_POSE_EPS_DEG, -40.8555, 130.2455], True), False)
+
+    def test_wrap_359_vs_minus_1_is_aligned(self):
+        self.assertIs(twp_head_aligned((359.99, 0.0, 0.0), [-0.01, 0.0, 0.0], True), True)
+        self.assertIs(twp_head_aligned((0.0, 0.0, -180.0), [0.0, 0.0, 180.0], True), True)
+        self.assertIs(twp_head_aligned((0.0, 0.0, 170.0), [0.0, 0.0, -170.0], True), False)
+
+    def test_missing_reading_is_unknown_never_aligned(self):
+        self.assertIsNone(twp_head_aligned((10.0, None, 130.0), [10.0, 0.0, 130.0], True))
+        self.assertIsNone(twp_head_aligned(self.P, [10.0, -40.8555], True))
+        self.assertIsNone(twp_head_aligned(self.P, None, True))
+        self.assertIsNone(twp_head_aligned(None, [0.0, 0.0, 0.0], True))
+        self.assertIsNone(twp_head_aligned(("x", 0.0, 0.0), [0.0, 0.0, 0.0], True))
+        self.assertIsNone(twp_head_aligned((float("nan"), 0.0, 0.0), [0.0, 0.0, 0.0], True))
+
+    def test_sentinel_is_unknown(self):
+        self.assertIsNone(twp_head_aligned((-1e9, 0.0, 0.0), [0.0, 0.0, 0.0], True))
+        self.assertIsNone(twp_head_aligned((0.0, -1e9, 0.0), [0.0, 0.0, 0.0], True))
+
+    def test_no_plane_is_unknown(self):
+        self.assertIsNone(twp_head_aligned(self.P, list(self.P), False))
+        self.assertIsNone(twp_head_aligned(self.P, list(self.P), None))
+
 if __name__ == "__main__":
     unittest.main()
 

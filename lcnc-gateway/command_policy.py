@@ -89,6 +89,12 @@ class MachineState:
     #: which RAW switchkins type is identity on a non-trsrn family. Consumed
     #: by the semantic mode mapping (TWP-08b). Same default as the module's.
     identity_first: bool = False
+    #: The HEAD is still aligned with the defined plane: the A/B/C pose the
+    #: last orient stamped equals the live rotaries (gateway_util
+    #: twp_head_aligned is True). Unknown reads False (closed). Gates the
+    #: Plane jog frame and Plane → Zero — both promise motion along the tool
+    #: axis, which a frozen frame no longer is once a rotary moved (TWP-04).
+    twp_aligned: bool = False
 
 
 # Single source of truth for gate semantics (review #6): each gate is an ordered
@@ -342,6 +348,11 @@ def goto_zero_plan(s: MachineState, work_z: Optional[float], clearance: float,
     if not s.twp_active or s.g5x_index != 6:
         return None, ("Plane kinematics without its plane fixture — select the Plane frame "
                       "again (M430), or the Machine frame / G69")
+    if not s.twp_aligned:
+        # The retract is "along the tool axis" only while the head still
+        # points where the last orient put it (TWP-04).
+        return None, ("Head not aligned with the plane (a rotary moved since the last "
+                      "orient, or no orient yet) — press Orient before → Zero")
     if not math.isfinite(float(clearance)) or float(clearance) < 0:
         return None, "Clearance unreadable — refused"
     return [f"O<twp_goto_zero> CALL [{float(clearance):.4f}] [{1 if metric else 0}]"], None
@@ -349,6 +360,33 @@ def goto_zero_plan(s: MachineState, work_z: Optional[float], clearance: float,
 
 _R_GOZERO = (lambda s: goto_zero_plan(s, 0.0, 0.0)[1] is None,
              "→ Zero is not available under this kinematics mode")
+
+
+#: Plane-frame admission (TWP-04), ordered — ONE source for the handler's
+#: refusal text (set_kins_mode mode 2), the `planeFrame` gate that dims the
+#: JogStrip radio, and check_command. A bare M430 reuses whatever frame the
+#: kins pins last held, so the frame is offered only while a plane is
+#: defined and the head is still aligned with it.
+_PLANE_FRAME_RULES = (
+    (lambda s: s.twp_capable,
+     "Not a TWP machine — there is no Plane frame"),
+    (lambda s: s.kins_type is not None,
+     "Kinematics mode unknown (reader stale) — Plane frame refused"),
+    (lambda s: s.twp_defined,
+     "No tilted work plane defined (G68.2 / G68.3 or Capture) — nothing to jog in"),
+    (lambda s: s.twp_aligned,
+     "Head not aligned with the plane — press Orient (G53.x) before selecting the Plane frame"),
+)
+
+
+def plane_frame_check(s: MachineState) -> Optional[str]:
+    """May the Plane jog frame (M430) be selected? None = yes, else the
+    operator-readable refusal — the first failing _PLANE_FRAME_RULES message,
+    so the handler, the gate and the WS denial can never disagree. Pure."""
+    for ok, msg in _PLANE_FRAME_RULES:
+        if not ok(s):
+            return msg
+    return None
 
 
 _R_RUNNABLE = (lambda s: kins_runnable(s) is None,
@@ -431,6 +469,10 @@ GATE_REQUIREMENTS: Dict[str, tuple] = {
     # The → Zero button: Machine frame (subroutine) or Plane frame (retract
     # along the tool axis, then X0 Y0 in the plane); TCP refuses.
     "goZero":   _BASE + (_R_IDLE, _R_HOMED, _R_GOZERO),
+    # The Plane jog frame radio (set_kins_mode 2): TWP machine, plane
+    # defined, head aligned — see plane_frame_check. Machine/TCP stay on
+    # `ready` like the MDI remap they run.
+    "planeFrame": _BASE + (_R_IDLE, _R_HOMED) + _PLANE_FRAME_RULES,
     "pause":    _BASE + (_R_RUNNING, _R_NOT_PAUSED),
     "resume":   _BASE + (_R_PAUSED,),
     "step":     _BASE + (_R_READY_OR_PAUSED,),
@@ -528,6 +570,10 @@ COMMAND_GATES: Dict[str, str] = {
     # --- tool change (M6 — runs motion, must not contaminate via eoffset) ---
     "tool_change": "machineFrame",
     "go_to_zero": "goZero",
+    # Kinematics-frame selector (M428/M429/M430 as a typed command): `ready`
+    # for the switch itself; mode 2 is re-checked handler-side with
+    # plane_frame_check (the gate cannot see the payload).
+    "set_kins_mode": "ready",
     # --- work offsets / probing setup ---
     "set_wcs": "probe",
     "clear_wcs": "probe",
@@ -764,6 +810,7 @@ COMMAND_SCHEMA: Dict[str, Dict[str, object]] = {
     #     MDI as `G10 L2 P1 Xinf` before this.
     "set_wcs": {ax: Num() for ax in ("x", "y", "z", "a", "b", "c", "u", "v", "w", "r")},
     "touchoff": {"axes": AxisMap()},
+    "set_kins_mode": {"mode": Enum(frozenset({0, 1, 2}))},
     # --- tool table
     "save_tool":     {"tool_number": Num(lo=0, hi=TOOL_NUMBER_MAX, integer=True),
                       "pocket": Num(lo=0, hi=TOOL_NUMBER_MAX, integer=True),

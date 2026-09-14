@@ -106,7 +106,7 @@ class TestExtraPinsKinsGating(unittest.TestCase):
         ):
             pins = self._configured_pins(decl)
             for f in ("kins_pre_rot", "kins_primary_angle", "kins_secondary_angle",
-                      "twp_pose_a", "twp_datum_seq"):
+                      "twp_pose_a", "twp_pose_b", "twp_pose_c", "twp_datum_seq"):
                 self.assertNotIn(f, pins, f"{f} must not be sampled for {decl}")
 
     def test_twp_capable_is_the_pin_gate_predicate(self):
@@ -143,6 +143,9 @@ class TestExtraPinsKinsGating(unittest.TestCase):
             {"module": "xyzacb_trsrn", "type": "xyzacb-trsrn",
              "identity_first": False, "params": {}})
         self.assertEqual(pins.get("twp_pose_a"), "twp-helper-comp.twp-pose-a")
+        # TWP-04: the head solve depends on all three rotaries.
+        self.assertEqual(pins.get("twp_pose_b"), "twp-helper-comp.twp-pose-b")
+        self.assertEqual(pins.get("twp_pose_c"), "twp-helper-comp.twp-pose-c")
 
     def test_trsrn_registers_datum_seq_before_the_datum_pins(self):
         # The reader samples extra pins in insertion order; "seq changed ⇒

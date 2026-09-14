@@ -44,7 +44,7 @@ import MachineBtn from "./MachineBtn.vue";
 import CameraPip from "./CameraPip.vue";
 import ScrubBar from "./ScrubBar.vue";
 import { simMode } from "./simMode";
-import { twpPoseStale, twpDatumStale, kinsModeChip, fixtureOffDatum, stampAForFixture } from "./twpPose";
+import { twpPoseStale, twpDatumStale, kinsModeChip, fixtureOffDatum, stampAForFixture, poseAbcOf } from "./twpPose";
 import { Camera, Settings } from "lucide-vue-next";
 
 const themeMode = inject<Ref<string>>("themeMode", ref("auto"));
@@ -122,6 +122,8 @@ type ViewerState = {
   twp_datum?: number[] | null;
   twp_active?: boolean | null;
   twp_pose_a?: number | null;
+  twp_pose_b?: number | null;
+  twp_pose_c?: number | null;
   wcs_prov_a?: (number | null)[] | null;
 };
 
@@ -161,7 +163,7 @@ const hudMode = computed(() => {
   return kinsModeChip({
     kinsType: d.kins_type,
     twpActive: d.twp_active,
-    twpStale: twpPoseStale(d.twp_pose_a, d.rotary_abc?.[0], d.twp_defined),
+    twpStale: twpPoseStale(poseAbcOf(d), d.rotary_abc, d.twp_defined),
     twpDatumMoved: twpDatumStale(d.wcs_table?.[0], d.twp_datum, d.twp_defined, d.wcs_prov_a?.[0]),
     offDatum: fixtureOffDatum(d.kins_type, stampAForFixture(d.wcs_prov_a, d.g5x_index), d.rotary_abc?.[0]),
     g5xIndex: d.g5x_index,
@@ -170,7 +172,7 @@ const hudMode = computed(() => {
 const hudPlaneWord = computed(() => {
   const d = vst.value;
   if (!d?.twp_defined) return null;
-  if (twpPoseStale(d.twp_pose_a, d.rotary_abc?.[0], d.twp_defined)) return "plane stale";
+  if (twpPoseStale(poseAbcOf(d), d.rotary_abc, d.twp_defined)) return "plane stale";
   return d.twp_active ? "plane active" : "plane defined";
 });
 
@@ -900,7 +902,7 @@ function _twpRefresh() {
     return;
   }
   updateTwpPlane(d?.twp_plane, !!d?.twp_defined, d?.kins_type,
-    twpPoseStale(d?.twp_pose_a, d?.rotary_abc?.[0], d?.twp_defined),
+    twpPoseStale(poseAbcOf(d), d?.rotary_abc, d?.twp_defined),
     twpDatumStale(d?.wcs_table?.[0], d?.twp_datum, d?.twp_defined, d?.wcs_prov_a?.[0]));
 }
 

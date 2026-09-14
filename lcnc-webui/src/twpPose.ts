@@ -22,36 +22,73 @@ export const TWP_POSE_EPS_DEG = 0.05;
  */
 export const TWP_POSE_NONE_BELOW = -1e8;
 
+/** A/B/C in degrees — the orient stamp (`twp_pose_a/b/c`) or the live
+ *  `rotary_abc`. Any entry may be missing. */
+export type PoseAbc = readonly (number | null | undefined)[] | null | undefined;
+
+/** The stamp triple from a status snapshot (TWP-04: the head solve is a
+ *  function of ALL three rotaries, so B and C are stamped alongside A). */
+export function poseAbcOf(
+  d: { twp_pose_a?: number | null; twp_pose_b?: number | null; twp_pose_c?: number | null } | null | undefined,
+): PoseAbc {
+  if (!d) return null;
+  return [d.twp_pose_a, d.twp_pose_b, d.twp_pose_c];
+}
+
+/** Signed shortest angular difference a − b, degrees, in [-180, 180). */
+export function rotaryDeltaDeg(a: number, b: number): number {
+  return ((((a - b + 180) % 360) + 360) % 360) - 180;
+}
+
+/** The three stamped angles as numbers, or null when ANY is missing,
+ *  non-finite or the sentinel — unknown is not a pose. */
+function stampedPose(pose: PoseAbc): [number, number, number] | null {
+  if (!pose || pose.length < 3) return null;
+  const out: number[] = [];
+  for (let i = 0; i < 3; i++) {
+    const v = pose[i];
+    if (v == null || !Number.isFinite(v) || v <= TWP_POSE_NONE_BELOW) return null;
+    out.push(v);
+  }
+  return out as [number, number, number];
+}
+
 /**
- * True when the table has moved since the head was oriented — i.e. the tool
- * is no longer normal to the plane. Makes no claim without data: no plane,
- * no orient yet (sentinel), or a missing live reading all return false —
- * unknown is not stale.
+ * True when a rotary has moved since the head was oriented — i.e. the tool
+ * is no longer normal to the plane. Compares the FULL A/B/C stamp against
+ * the live rotaries, wrap-aware (359.99 vs −0.01 is not a move). Makes no
+ * claim without data: no plane, no orient yet (sentinel), or a missing
+ * reading all return false — unknown is not stale. Twin of
+ * gateway_util.twp_head_aligned (the backend admission rule).
  */
 export function twpPoseStale(
-  poseA: number | null | undefined,
-  liveA: number | null | undefined,
+  pose: PoseAbc,
+  live: PoseAbc,
   defined: boolean | null | undefined,
 ): boolean {
   if (!defined) return false;
-  if (poseA == null || liveA == null) return false;
-  if (!Number.isFinite(poseA) || !Number.isFinite(liveA)) return false;
-  if (poseA <= TWP_POSE_NONE_BELOW) return false;
-  return Math.abs(liveA - poseA) > TWP_POSE_EPS_DEG;
+  const p = stampedPose(pose);
+  if (!p || !live || live.length < 3) return false;
+  for (let i = 0; i < 3; i++) {
+    const l = live[i];
+    if (l == null || !Number.isFinite(l)) return false;
+  }
+  return p.some((pv, i) => Math.abs(rotaryDeltaDeg(live[i] as number, pv)) > TWP_POSE_EPS_DEG);
 }
 
 /**
  * True once the remap has published a real head-solve pose (G53.x / Orient
- * ran and stamped `twp_pose_a`) for a DEFINED plane. The Plane jog frame is
- * offered only then. Unknown (no plane, no data, sentinel) is false.
+ * completed and stamped all of `twp_pose_a/b/c`) for a DEFINED plane.
+ * Unknown (no plane, no data, any sentinel) is false. The Plane jog frame's
+ * gate is the backend's (`planeFrame`, which also requires alignment); this
+ * is the display's "a solve exists" word.
  */
 export function twpPoseOriented(
-  poseA: number | null | undefined,
+  pose: PoseAbc,
   defined: boolean | null | undefined,
 ): boolean {
   if (!defined) return false;
-  if (poseA == null || !Number.isFinite(poseA)) return false;
-  return poseA > TWP_POSE_NONE_BELOW;
+  return stampedPose(pose) !== null;
 }
 
 /** Display threshold for a moved datum — 1 µm-class noise must not warn. */

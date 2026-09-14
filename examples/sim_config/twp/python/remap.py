@@ -48,7 +48,8 @@ from util import lineno, call_pydevd
 # LCNC-SUITE: pure table-composition geometry (unit-tested off-machine)
 from twp_transform import (to_table_frame, from_table_frame,
                            to_table_frame_vector, calc_shortest_distance,
-                           calc_rotary_move_with_joint_limits)
+                           calc_rotary_move_with_joint_limits,
+                           rotary_within, ROTARY_READBACK_TOL_DEG)
 import hal
 
 
@@ -407,7 +408,7 @@ def webui_preview_reset():
     global twp_matrix, twp_flag, twp_build_params, pre_rot
     global saved_work_offset, saved_work_offset_number, orient_mode
     global twp_pose_a, webui_preview_refusal
-    twp_pose_a = None
+    _clear_pose_stamp()
     webui_preview_refusal = None
     _preview_twp_state = 0
     _preview_pre_rot = 0.0
@@ -501,9 +502,22 @@ saved_work_offset = [0,0,0]
 # go stale; the head solve can. Sentinel until the first orient - before that
 # there is no solve and "not normal" would be a claim about nothing.
 twp_pose_a = None
+# LCNC-SUITE (TWP-04, review 2026-09-14): the head solve is a function of
+# ALL three rotaries — a B/C move after the orient leaves the tool off-normal
+# just as an A move does — so the stamp is the full A/B/C readback.
+twp_pose_b = None
+twp_pose_c = None
 # LCNC-SUITE: sentinel published when no plane is defined (the pin always
 # exists, so "none" must be a value - see twp-helper-comp.py).
 TWP_POSE_NONE = -1e9
+
+
+def _clear_pose_stamp():
+    """No head solve: every rotary stamp back to None (plane cleared /
+    redefined / incremented, preview reset). One helper so no clear site
+    can forget an axis (TWP-04)."""
+    global twp_pose_a, twp_pose_b, twp_pose_c
+    twp_pose_a = twp_pose_b = twp_pose_c = None
 # orientation mode refers to the strategy used to choose from the different rotary angles for a given
 # tool-z vector. The optimization is applied to the primary axis only with mode 0 (shortest path) being
 # the default. (0=shortest_path , 1=positive_rotation only, 2=negative_rotation only, )
@@ -1010,7 +1024,7 @@ def twp_calc_euler_rot_matrix(th1, th2, th3, order):
 
 # The tilted-work-plane is created in identity mode and must NOT be updated after a switch
 def gui_update_twp(self):
-    global twp_matrix, saved_work_offset, twp_pose_a
+    global twp_matrix, saved_work_offset, twp_pose_a, twp_pose_b, twp_pose_c
     # LCNC-SUITE: the twp-helper pins are display-only (vismach) - a
     # preview interpreter has no HAL and nothing to display
     if self.task == 0:
@@ -1051,6 +1065,10 @@ def gui_update_twp(self):
     # cannot go stale; what goes stale is the tool being normal to it.
     hal.set_p("twp-helper-comp.twp-pose-a-in",
               str(twp_pose_a if twp_pose_a is not None else TWP_POSE_NONE))
+    hal.set_p("twp-helper-comp.twp-pose-b-in",
+              str(twp_pose_b if twp_pose_b is not None else TWP_POSE_NONE))
+    hal.set_p("twp-helper-comp.twp-pose-c-in",
+              str(twp_pose_c if twp_pose_c is not None else TWP_POSE_NONE))
 
 
 # NOTE: Due to easier abort handling we currently restrict the use of twp to G54
@@ -1120,7 +1138,7 @@ def reset_twp_params(self):
     global twp_pose_a
     pre_rot = 0
     # LCNC-SUITE: the plane is gone, so is the head solve it was oriented by
-    twp_pose_a = None
+    _clear_pose_stamp()
     # we must not change tool kins parameters when TOOL kins are active or we get sudden joint position changes
     # ie don't do this: kins_comp_set_pre_rot(self,0)!
     twp_flag = []
@@ -1138,7 +1156,7 @@ def reset_twp_params(self):
 # (ie do it in the ngc remap mentioned above!)
 def g53x_core(self):
     global saved_work_offset, twp_matrix, twp_flag, pre_rot
-    global twp_pose_a  # LCNC-SUITE: head-solve pose
+    global twp_pose_a, twp_pose_b, twp_pose_c  # LCNC-SUITE: head-solve pose
     global joint_letter_primary, joint_letter_secondary
     global orient_mode, _task_mode, _preview_twp_state, _preview_pre_rot
     # LCNC-SUITE: upstream returned here for the preview interpreter; the
@@ -1445,7 +1463,23 @@ def g53x_core(self):
     # resumes this generator, so the pose pin keeps its previous value (or
     # the sentinel) and the UI honestly reports the solve as stale instead
     # of claiming an orient that never finished.
-    twp_pose_a = machine_a_now
+    # LCNC-SUITE (TWP-04): the stamp is the full A/B/C READBACK, not the
+    # solved targets — the yield above synced the interpreter's position to
+    # the completed moves, so *_current is where the joints ARE. Stamped
+    # only when that readback agrees with the solve; otherwise (a move that
+    # did not land) the stamp stays cleared and the UI reads "not oriented".
+    _prim_rb, _sec_rb = get_current_rotary_positions(self)
+    if (rotary_within(degrees(_prim_rb), degrees(theta_1), ROTARY_READBACK_TOL_DEG)
+            and rotary_within(degrees(_sec_rb), degrees(theta_2), ROTARY_READBACK_TOL_DEG)):
+        _rb = {"A": get_machine_a(self),
+               joint_letter_primary: degrees(_prim_rb),
+               joint_letter_secondary: degrees(_sec_rb)}
+        twp_pose_a, twp_pose_b, twp_pose_c = _rb.get("A"), _rb.get("B"), _rb.get("C")
+    else:
+        log.warning("G53.x: rotary readback (%.3f, %.3f) deg differs from the solve "
+                    "(%.3f, %.3f) — head-solve pose NOT stamped",
+                    degrees(_prim_rb), degrees(_sec_rb), degrees(theta_1), degrees(theta_2))
+        _clear_pose_stamp()
     gui_update_twp(self)
     return INTERP_OK
 
@@ -1707,7 +1741,7 @@ def g683(self, **words):
             twp_matrix[_r,3] = _to[_r]
         log.info("G68.3: measured at A=%.6f, stored in the table frame", _a_now)
     # No head solve yet: staleness is a claim about the ORIENT, not the plane.
-    twp_pose_a = None
+    _clear_pose_stamp()
     # set twp-state to 'defined' (1)
     self.execute("M68 E2 Q1")
     if not _task_mode:
@@ -1799,7 +1833,7 @@ def g682(self, **words):
     # (to_storage_frame, just above): that is what retired the old "touch off
     # with A at 0" precondition.
     # No head solve yet, so no staleness claim to make.
-    twp_pose_a = None
+    _clear_pose_stamp()
 
     c = self.blocks[self.remap_level]
     p = c.p_number if c.p_flag else 0
@@ -2467,7 +2501,7 @@ def g684(self, **words):
         # increment itself is frame-agnostic: it right-multiplies, i.e. it is
         # expressed in the CURRENT plane's own frame, so the result inherits
         # the table frame — which is why nothing else here needs converting.)
-        twp_pose_a = None
+        _clear_pose_stamp()
         # set twp-state to 'defined' (1)
         self.execute("M68 E2 Q1")
         if not _task_mode:

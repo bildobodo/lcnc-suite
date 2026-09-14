@@ -48,6 +48,13 @@ h.newpin("twp-oz-world", hal.HAL_FLOAT, hal.HAL_OUT)
 # frame and the physical face no longer agree (surfaced as "stale" in the UI).
 h.newpin("twp-pose-a-in", hal.HAL_FLOAT, hal.HAL_IN)
 h.newpin("twp-pose-a", hal.HAL_FLOAT, hal.HAL_OUT)
+# LCNC-SUITE (TWP-04, review 2026-09-14): the head solve is a function of ALL
+# three rotaries; a B/C move after the orient leaves the tool off-normal just
+# as an A move does. Same shape as the A pins.
+h.newpin("twp-pose-b-in", hal.HAL_FLOAT, hal.HAL_IN)
+h.newpin("twp-pose-b", hal.HAL_FLOAT, hal.HAL_OUT)
+h.newpin("twp-pose-c-in", hal.HAL_FLOAT, hal.HAL_IN)
+h.newpin("twp-pose-c", hal.HAL_FLOAT, hal.HAL_OUT)
 # LCNC-SUITE: datum-write epoch. M535 (remap twp_touchoff) bumps -in AFTER it
 # published the datum through the -world-in pins; the 20 Hz pass below reads
 # it FIRST and writes the out pin LAST, so a changed twp-datum-seq in any
@@ -63,6 +70,10 @@ h.newpin("twp-datum-seq", hal.HAL_U32, hal.HAL_OUT)
 _POSE_NONE = -1e9
 h['twp-pose-a'] = _POSE_NONE
 h['twp-pose-a-in'] = _POSE_NONE
+h['twp-pose-b'] = _POSE_NONE
+h['twp-pose-b-in'] = _POSE_NONE
+h['twp-pose-c'] = _POSE_NONE
+h['twp-pose-c-in'] = _POSE_NONE
 
 h.ready()
 
@@ -132,6 +143,8 @@ try:
         h['twp-zy'] = h['twp-zy-in']
         h['twp-zz'] = h['twp-zz-in']
         h['twp-pose-a'] = h['twp-pose-a-in']  # LCNC-SUITE: display only
+        h['twp-pose-b'] = h['twp-pose-b-in']
+        h['twp-pose-c'] = h['twp-pose-c-in']
 
         _next_stat = _now + _STAT_PERIOD_S  # LCNC-SUITE
 

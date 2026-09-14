@@ -200,6 +200,9 @@ export const INPUT_DEFS = {
   // Jog-frame selector (switchable-kins machines): switching runs an MDI
   // remap (M428/M430), so it carries the MDI tier, not modeSelect's.
   jogFrame:        { gate: 'ready' },
+  // The Plane frame radio: its own backend class — plane defined AND the
+  // head still aligned with it (TWP-04, command_policy.plane_frame_check).
+  planeFrame:      { gate: 'planeFrame' },
 
   // Override sliders
   feedOverride:    { gate: 'override' },

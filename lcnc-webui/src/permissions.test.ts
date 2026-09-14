@@ -8,7 +8,7 @@ import { applyClientOverlay, type MachinePermissions } from "./permissions";
 // What the backend broadcasts for a fully-ready machine (computed armed=true):
 // every machine-state gate open except pause/resume (need running/paused).
 const MACHINE_READY: MachinePermissions = {
-  idle: true, jog: true, override: true, ready: true, run: true, machineFrame: true, goZero: true,
+  idle: true, jog: true, override: true, ready: true, run: true, machineFrame: true, goZero: true, planeFrame: true,
   pause: false, resume: false, step: true, abort: true,
   probe: true, zero: true, touchoff: true, touchoffRotary: true, twpCapture: true,
   surfaceComp: true, safety: true, setup: true,
