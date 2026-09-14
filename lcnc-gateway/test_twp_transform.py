@@ -21,6 +21,7 @@ sys.path.insert(
 )
 
 from twp_transform import (  # noqa: E402
+    calc_rotary_move_with_joint_limits,
     compose_table_a, to_table_frame, from_table_frame,
     to_table_frame_vector, from_table_frame_vector, calc_shortest_distance)
 
@@ -215,6 +216,85 @@ class TestCalcShortestDistance(unittest.TestCase):
         # extraction only fixes the else-binding; changing this would change
         # P2 semantics beyond what the fix claims.
         self.assertAlmostEqual(calc_shortest_distance(35, 35, 2), -360.0)
+
+
+class TestCalcRotaryMoveWithJointLimits(unittest.TestCase):
+    """Extracted from remap.py for TWP-03 (review 2026-09-14): upstream's
+    mode-0 over-limit branch returned the raw target without checking it —
+    (0 → 150 within ±100) came back as (150, 150)."""
+
+    def _m(self, pos, trgt, hi, lo, mode=0):
+        return calc_rotary_move_with_joint_limits(
+            math.radians(pos), math.radians(trgt), hi, lo, mode)
+
+    def _eq(self, got, theta, dist):
+        self.assertIsNotNone(got[0]); self.assertIsNotNone(got[1])
+        self.assertAlmostEqual(got[0], theta, places=6)
+        self.assertAlmostEqual(got[1], dist, places=6)
+
+    def test_review_case_150_at_pm100_refuses(self):
+        # The probe's exact call: neither +150 nor −210 fits ±100.
+        self.assertEqual(self._m(0, 150, 100, -100), (None, None))
+        self.assertEqual(self._m(0, -150, 100, -100), (None, None))
+
+    def test_inside_limits_takes_the_shortest_way(self):
+        self._eq(self._m(0, 90, 100, -100), 90, 90)
+        self._eq(self._m(0, -90, 100, -100), -90, -90)
+
+    def test_over_max_falls_back_to_the_negative_way_inside_limits(self):
+        # pos 80 → target 150: +70 lands on 150 > 100; the other way, −290,
+        # lands on −210, inside ±250 — the "longer way" upstream never took.
+        self._eq(self._m(80, 150, 100, -250), -210, -290)
+
+    def test_over_min_falls_back_to_the_positive_way(self):
+        self._eq(self._m(-80, -150, 250, -100), 210, 290)
+
+    def test_wrap_at_pm180(self):
+        self._eq(self._m(170, -170, 200, -200), 190, 20)
+        # with ±180 the short way overshoots; the long way (−340) lands on −170
+        self._eq(self._m(170, -170, 180, -180), -170, -340)
+
+    def test_asymmetric_limits(self):
+        # [-30, 300]: 0 → −90 breaks the floor; +270 fits.
+        self._eq(self._m(0, -90, 300, -30), 270, 270)
+        # [-300, 30]: 0 → 90 breaks the ceiling; −270 fits.
+        self._eq(self._m(0, 90, 30, -300), -270, -270)
+
+    def test_multi_turn_limits_prefer_the_shortest(self):
+        self._eq(self._m(350, -10, 400, -400), 350, 0)    # already equivalent
+        self._eq(self._m(350, 30, 400, -400), 390, 40)     # past 360 is fine
+
+    def test_endpoints_inclusive(self):
+        self._eq(self._m(0, 100, 100, -100), 100, 100)
+        self._eq(self._m(0, -100, 100, -100), -100, -100)
+
+    def test_mode1_and_mode2_never_change_direction(self):
+        # positive-only: 0 → −90 is +270; blocked by max 100 → no solution,
+        # never the negative way.
+        self.assertEqual(self._m(0, -90, 100, -100, 1), (None, None))
+        self._eq(self._m(0, -90, 300, -100, 1), 270, 270)
+        self.assertEqual(self._m(0, 90, 100, -100, 2), (None, None))
+        self._eq(self._m(0, 90, 100, -300, 2), -270, -270)
+
+    def test_returned_travel_matches_returned_target_and_both_limits_hold(self):
+        # Property over a grid: every non-None result is an angle equivalent
+        # to the target, inside both limits, with dist == theta − pos.
+        for lo, hi in ((-100, 100), (-30, 300), (-400, 400), (-180, 180)):
+            for pos in range(lo, hi + 1, 37):
+                for trgt in range(-180, 181, 23):
+                    for mode in (0, 1, 2):
+                        theta, dist = self._m(pos, trgt, hi, lo, mode)
+                        if theta is None:
+                            self.assertIsNone(dist)
+                            continue
+                        self.assertAlmostEqual(theta, pos + dist, places=6)
+                        self.assertGreaterEqual(theta, lo - 1e-9, (lo, hi, pos, trgt, mode))
+                        self.assertLessEqual(theta, hi + 1e-9, (lo, hi, pos, trgt, mode))
+                        self.assertAlmostEqual(((theta - trgt) + 180.0) % 360.0 - 180.0, 0.0, places=6)
+                        if mode == 1:
+                            self.assertGreaterEqual(dist, 0.0)
+                        if mode == 2:
+                            self.assertLessEqual(dist, 0.0)
 
 
 if __name__ == "__main__":

@@ -47,7 +47,8 @@ import emccanon
 from util import lineno, call_pydevd
 # LCNC-SUITE: pure table-composition geometry (unit-tested off-machine)
 from twp_transform import (to_table_frame, from_table_frame,
-                           to_table_frame_vector, calc_shortest_distance)
+                           to_table_frame_vector, calc_shortest_distance,
+                           calc_rotary_move_with_joint_limits)
 import hal
 
 
@@ -806,42 +807,12 @@ def kins_calc_jnt_angles(self, tool_z_req):
 # negative way.
 
 
-# this takes a target angle in [-pi,pi] and finds the closest move within [min_limit, max_limit]
-# from a given position in [min_limit, max_limit], returns the optimized target angle and the distance
-# from the given position to that target angle
-def calc_rotary_move_with_joint_limits(position, target, max_limit, min_limit, mode):
-    pos = degrees(position)
-    trgt = degrees(target)
-    log.debug('(Current_pos, target):  %s', (pos, trgt))
-    # calculate the shortest distance from position to target for the strategy given by
-    # the operator (ie shortest (= default), positive rotation only, negative rotation only )
-    dist = calc_shortest_distance(pos, trgt, mode)
-    # check that the result is within the rotary axis limits defined in the ini file
-    if dist >= 0: # shortest way is in the positive direction
-        if (pos + dist) <=  max_limit: # if the limits allow we rotate the joint in the positive sense
-            log.debug('Max_limit OK, target changed to: %s', (pos + dist))
-            theta = pos + dist
-        else: # if positive limits would be exceeded we need to go the longer wey in the other direction
-            if mode == 0:
-                log.debug('Max_limit reached, target remains: %s', trgt)
-                theta = trgt
-            else: # if the rotation direction was set by the operator then we can not change direction
-                theta = None
-                dist = None
-    else:  # shortest way is in the negative direction
-        if (pos + dist) >=  min_limit: # if the limits allow we rotate the joint in the negative sense
-            log.debug('Min_limit OK, target changed to:  %s', (pos + dist))
-            theta = pos + dist
-        else: # if negative limits would be exceeded we need to go the longer way int the other direction
-            if mode == 0:
-                log.debug('Min_limit reached, target remains:  %s', trgt)
-                theta = trgt
-            else: # if the rotation direction was set by the operator then we can not change direction
-                theta = None
-                dist = None
-    # we also attach the distance for this particular move and mode
-    log.debug('Angle and distance returned:  %s, %s', theta, dist)
-    return theta, dist
+# LCNC-SUITE (TWP-03, review 2026-09-14): calc_rotary_move_with_joint_limits
+# moved to twp_transform.py too. Upstream's mode-0 over-limit branch returned
+# the raw target without checking it ("Max_limit reached, target remains"):
+# (0 → 150 within ±100) came back as 150 and the controller refused the
+# orient mid-sequence. The pure version computes the other way round and
+# returns (None, None) when neither fits — see test_twp_transform.py.
 
 
 # this takes a list of joint angle pairs in [-pi,pi] and optimizes them for shortest moves

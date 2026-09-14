@@ -148,3 +148,40 @@ def calc_shortest_distance(pos, trgt, mode):
     else:  # mode 0: shortest distance either way
         dist = dist_short
     return dist
+
+
+def calc_rotary_move_with_joint_limits(position, target, max_limit, min_limit, mode):
+    """Rotary move from `position` to an angle EQUIVALENT to `target` that
+    lies inside [min_limit, max_limit] (degrees), honouring the operator's
+    P-word `mode` (0 shortest, 1 positive only, 2 negative only).
+
+    position, target in RADIANS (the solver's units); returns (theta, dist)
+    in DEGREES — theta the joint target, dist the signed travel, theta ==
+    position + dist — or (None, None) when no legal move exists.
+
+    Moved here from remap.py for TWP-03 (review 2026-09-14). Upstream's
+    mode-0 over-limit branch said "go the longer way" and then returned the
+    RAW target untested: (0 → 150 within ±100) came back as 150, an
+    out-of-limit orient the controller refused mid-sequence. The other way
+    round is now actually computed (dist ∓ 360) and accepted only inside
+    BOTH limits; modes 1/2 never change direction (None when blocked), as
+    before. A None pair is dropped by calc_angle_pairs_and_distances and an
+    empty candidate list is the remap's loud "not reachable" refusal, which
+    preserves the plane.
+    """
+    pos = math.degrees(float(position))
+    trgt = math.degrees(float(target))
+    lo, hi = float(min_limit), float(max_limit)
+    dist = calc_shortest_distance(pos, trgt, mode)
+
+    def legal(d):
+        return lo <= pos + d <= hi
+
+    if legal(dist):
+        return pos + dist, dist
+    if mode != 0:
+        return None, None
+    alt = dist - 360.0 if dist >= 0 else dist + 360.0
+    if legal(alt):
+        return pos + alt, alt
+    return None, None
