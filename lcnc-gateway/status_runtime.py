@@ -393,7 +393,9 @@ def capture_g92_xyz_clean(g92_offset) -> bool:
 
 
 def policy_state_from_payload(p: "StatusPayload", armed: bool,
-                              kins_switchable: bool = True) -> _PolicyMachineState:
+                              kins_switchable: bool = True,
+                              twp_capable: bool = False,
+                              identity_first: bool = False) -> _PolicyMachineState:
     """Build the command-policy MachineState from a status snapshot.
 
     `kins_switchable` is the machine's kins DECLARATION (gateway
@@ -401,6 +403,12 @@ def policy_state_from_payload(p: "StatusPayload", armed: bool,
     kins_type means "identity, certainly" or "unknown" (closed touch-off
     gates). Defaults to True — unknown — so a caller that does not say what
     the machine is gets the closed reading.
+
+    `twp_capable` / `identity_first` are declaration facts too (gateway
+    _twp_capable / _identity_first): whether the TWP remap stack owns
+    G59–G59.3 and plane actions exist at all, and which raw switchkins type
+    is identity on this kins family. Both default CLOSED (no TWP rules, the
+    module's own identityfirst default) — see command_policy.MachineState.
 
     The estop/enabled HAL-merge lives here (issues #14 + #19): STAT.estop/enabled
     merged with the safety chain (emc_enable_in). poll_status broadcasts the
@@ -435,6 +443,8 @@ def policy_state_from_payload(p: "StatusPayload", armed: bool,
         # Touch-off gates (2026-08-30): the kins mode × active fixture rule.
         # kins_type is the raw switchkins pin (float) — rounded here, once.
         kins_switchable=bool(kins_switchable),
+        twp_capable=bool(twp_capable),
+        identity_first=bool(identity_first),
         # getattr: a partial payload (test doubles, an older envelope) reads as
         # UNKNOWN — the closed gate — never as identity/G54.
         kins_type=(None if (_kt := getattr(p, "kins_type", None)) is None
@@ -466,12 +476,17 @@ class StatusRuntime:
         load_tool_library: Callable[[], dict],
         get_fb_scale: Callable[[], float],
         get_kins_switchable: Callable[[], bool] = lambda: True,
+        get_twp_capable: Callable[[], bool] = lambda: False,
+        get_identity_first: Callable[[], bool] = lambda: False,
         get_prov_a: Callable[[], Optional[List[Optional[float]]]] = lambda: None,
     ) -> None:
         self._get_stat = get_stat
         # Kins declaration for the touch-off gates; default "unknown" = closed
-        # (see policy_state_from_payload). The gateway wires _kins_is_switchable.
+        # (see policy_state_from_payload). The gateway wires _kins_is_switchable,
+        # _twp_capable and _identity_first (TWP-08).
         self._get_kins_switchable = get_kins_switchable
+        self._get_twp_capable = get_twp_capable
+        self._get_identity_first = get_identity_first
         self._get_prov_a = get_prov_a
         self._get_err = get_err
         self._reader_get = reader_get
@@ -1131,7 +1146,9 @@ class StatusRuntime:
         # is_estop/is_enabled for the frontend banner, and reuse it for permissions
         # (review #5 — removes the duplicate merge that lived in App.vue).
         _pstate = policy_state_from_payload(
-            payload, armed=True, kins_switchable=self._get_kins_switchable())
+            payload, armed=True, kins_switchable=self._get_kins_switchable(),
+            twp_capable=self._get_twp_capable(),
+            identity_first=self._get_identity_first())
         payload.is_estop = _pstate.is_estop
         payload.is_enabled = _pstate.is_enabled
         payload.permissions = evaluate_permissions(_pstate)

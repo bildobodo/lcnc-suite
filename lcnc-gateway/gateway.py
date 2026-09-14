@@ -601,7 +601,7 @@ async def _reader_configure_extra_pins() -> None:
     # missing-pin reminder forever. Prefix from the module name — the comp
     # creates its pins under "<module>_kins.", the same quirk
     # parse_kins_config special-cases.
-    if (_kins_decl or {}).get("type") == "xyzacb-trsrn":
+    if _twp_capable():   # the policy's twp_capable — ONE predicate (TWP-08)
         _kp = f"{_kins_decl['module']}_kins."
         pins["kins_pre_rot"] = f"{_kp}pre-rot"
         pins["kins_primary_angle"] = f"{_kp}primary-angle"
@@ -2253,6 +2253,8 @@ _status_runtime = _status_runtime_mod.StatusRuntime(
     load_tool_library=lambda: load_tool_library(),
     get_fb_scale=lambda: _fb_scale,
     get_kins_switchable=lambda: _kins_is_switchable(),
+    get_twp_capable=lambda: _twp_capable(),
+    get_identity_first=lambda: _identity_first(),
     # Raw W1 stamps (late-bound: _prov_cache is defined below). No
     # falsification pass — a hand-typed G10 under a reserved fixture is the
     # documented operator-caused escape.
@@ -3447,8 +3449,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
     # Denials are bounded + traced — never silently dropped
     # (feedback_no_silent_fallbacks).
     if _shared_status is not None:
-        _deny = check_command(cmd, _policy_state_from_payload(
-            _shared_status, armed, kins_switchable=_kins_is_switchable()))
+        _deny = check_command(cmd, _live_policy_state(armed))
         if _deny is not None:
             _trace.emit("ws.command_denied", level="warn", cmd=cmd, reason=_deny)
             return {"ok": False, "error": _deny}
@@ -3596,8 +3597,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 return blocked
             if _shared_status is None:
                 return {"ok": False, "error": "No machine state yet — refused"}
-            pstate = _policy_state_from_payload(
-                _shared_status, armed, kins_switchable=_kins_is_switchable())
+            pstate = _live_policy_state(armed)
             # _shared_status is the StatusPayload OBJECT (attribute access —
             # the first cut read it as a dict and the Plane branch refused
             # every press with "position unknown"; 2026-09-04).
@@ -4400,8 +4400,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             values = {str(k).upper(): finite_float(v) for k, v in axes_in.items()}
             if _shared_status is None:
                 return {"ok": False, "error": "No machine state yet — touch-off refused"}
-            pstate = _policy_state_from_payload(
-                _shared_status, armed, kins_switchable=_kins_is_switchable())
+            pstate = _live_policy_state(armed)
             route, reason = touchoff_route(pstate, values.keys())
             if route is None:
                 _trace.emit("touchoff.refused", level="warn", letters=sorted(values),
@@ -4491,8 +4490,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 return blocked
             if _shared_status is None:
                 return {"ok": False, "error": "No machine state yet — capture refused"}
-            pstate = _policy_state_from_payload(
-                _shared_status, armed, kins_switchable=_kins_is_switchable())
+            pstate = _live_policy_state(armed)
             _trace.emit("twp.capture_state", level="info",
                         twp_defined=pstate.twp_defined, g5x_index=pstate.g5x_index,
                         kins_type=pstate.kins_type,
@@ -5212,6 +5210,42 @@ def _kins_is_switchable() -> bool:
         return kins_marker_policy(_parse_kins_decl()) != "ignore"
     except Exception:  # noqa: BLE001 - unknown beats a confident wrong answer
         return True
+
+
+def _twp_capable() -> bool:
+    """Does this machine run the TWP remap stack? (TWP-08, review 2026-09-14)
+
+    The ONE predicate for "TWP rules apply": it gates the twp-helper pin
+    registration (_configure_extra_pins) AND the policy's twp_capable — G59
+    reserved rows, plane capture / orient / Plane-frame admission. Today that
+    is the shipped xyzacb-trsrn config (the config IS the TWP stack); a
+    switchable-but-TWP-less machine (xyzac-trt TCP trunnion) and a plain mill
+    read False and keep their ordinary fixtures. A declaration that cannot be
+    parsed reads False: no TWP rules is the safe direction here — the remap
+    itself refuses on a machine that lacks it."""
+    try:
+        return (_parse_kins_decl() or {}).get("type") == "xyzacb-trsrn"
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def _identity_first() -> bool:
+    """The kins module's `sparm=identityfirst` flag (parse_kins_config) —
+    which RAW switchkins type is identity on a non-trsrn family. False is the
+    module's own default (raw 0 = world/TCP on plain xyzac-trt)."""
+    try:
+        return bool((_parse_kins_decl() or {}).get("identity_first"))
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def _live_policy_state(armed: bool):
+    """The command-policy MachineState for the CURRENT snapshot, with every
+    declaration-derived input (switchable / TWP-capable / identity-first)
+    supplied from one place, so no handler can forget one (TWP-08)."""
+    return _policy_state_from_payload(
+        _shared_status, armed, kins_switchable=_kins_is_switchable(),
+        twp_capable=_twp_capable(), identity_first=_identity_first())
 
 
 # Cache for build_viewer_init() output. Keyed on every input that can

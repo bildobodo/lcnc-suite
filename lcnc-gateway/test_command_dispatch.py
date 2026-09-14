@@ -828,6 +828,16 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
         self.assertFalse(r["ok"])
         self.assertIn("TCP", r["error"])
 
+    def test_touchoff_g59_on_plain_mill_dispatches_g10_l20(self):
+        # TWP-08a: a trivkins mill sitting in G59 touches off with a plain
+        # G10 L20 — the reserved-row refusal is a TWP-machine rule only.
+        gateway._kins_is_switchable = lambda: False
+        gateway.STAT.g5x_index = 6
+        r = self._send({"cmd": "touchoff", "axes": {"X": 1.5}}, g5x_index=6)
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(r["route"], "mdi")
+        self.assertEqual(self._mdi_lines(), ["G10 L20 P0 X1.500000"])
+
     def test_jog_stop_during_an_executing_mdi_never_switches_mode(self):
         # Releasing the A jog while → Zero moves used to force MANUAL and
         # abort the MDI wherever it was.

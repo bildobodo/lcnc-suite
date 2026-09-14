@@ -296,7 +296,9 @@ class TestTouchoffRoute(unittest.TestCase):
     the two gates that are DEFINED through it."""
 
     def twp(self, **over):
-        base = dict(kins_switchable=True, kins_type=0, g5x_index=1,
+        # The shipped trsrn TWP machine: switchable AND TWP-capable (the
+        # remap stack owns G59..G59.3).
+        base = dict(kins_switchable=True, twp_capable=True, kins_type=0, g5x_index=1,
                     twp_active=False, a_at_zero=True)
         base.update(over)
         return state(**base)
@@ -348,6 +350,24 @@ class TestTouchoffRoute(unittest.TestCase):
                          ("mdi", None))
         self.assertEqual(touchoff_route(state(kins_switchable=False, kins_type=None), ("A",)),
                          ("mdi", None))
+
+    def test_non_switchable_g59_to_g59_3_linear_touchoff_is_mdi(self):
+        # TWP-08a (review 2026-09-14): the reserved-row rule leaked onto every
+        # machine — a plain trivkins mill runs no TWP remap, so G59..G59.3 are
+        # ordinary fixtures there and a DRO touch-off into them is plain MDI.
+        # The G54-only test above never exercised the reserved rows.
+        for g in sorted(RESERVED_FIXTURES):
+            for letters in (("X",), ("Z",), ("X", "Y", "Z")):
+                self.assertEqual(touchoff_route(state(g5x_index=g), letters),
+                                 ("mdi", None), (g, letters))
+
+    def test_switchable_non_twp_machine_admits_reserved_fixtures(self):
+        # A TCP trunnion (xyzac-trt, switchkins) is switchable but runs no TWP
+        # stack either: nothing rewrites its G59 rows, so they are the
+        # operator's. Capability, not switchability, reserves the rows.
+        for g in sorted(RESERVED_FIXTURES):
+            s = state(kins_switchable=True, kins_type=0, twp_capable=False, g5x_index=g)
+            self.assertEqual(touchoff_route(s, ("Z",)), ("mdi", None), g)
 
     def test_switchable_machine_with_unknown_kins_refuses(self):
         route, reason = touchoff_route(self.twp(kins_type=None), ("Z",))

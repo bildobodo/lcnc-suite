@@ -78,6 +78,17 @@ class MachineState:
     #: G92 X/Y/Z ≈ 0 — a live G92 would displace the captured origin
     #: (#<_x> includes it; G68.3's origin words are G54-relative).
     g92_xyz_clean: bool = False
+    #: This machine runs the TWP remap stack (gateway _twp_capable: the kins
+    #: declaration is the shipped xyzacb-trsrn config). Only then are
+    #: G59..G59.3 the remap's scratch rows and plane capture / orient real
+    #: actions; a switchable-but-TWP-less machine (a TCP trunnion) and a
+    #: plain mill keep their ordinary fixtures (TWP-08a, review 2026-09-14).
+    #: Closed default: a builder that never says gets the TWP rules off.
+    twp_capable: bool = False
+    #: The kins module's `sparm=identityfirst` flag (parse_kins_config):
+    #: which RAW switchkins type is identity on a non-trsrn family. Consumed
+    #: by the semantic mode mapping (TWP-08b). Same default as the module's.
+    identity_first: bool = False
 
 
 # Single source of truth for gate semantics (review #6): each gate is an ordered
@@ -116,6 +127,10 @@ _R_READY_OR_PAUSED = (lambda s: (s.is_idle and s.is_homed) or s.is_paused,
 #   identity (kins 0 / non-switchable): linear letters into G54–G58; rotary
 #       letters into G54 only (the remap then refuses to define a plane on a
 #       rotary offset, loudly — allowed for non-TWP workflows).
+#   The reserved rows are reserved only on a TWP-CAPABLE machine
+#       (MachineState.twp_capable): a plain mill or a TCP trunnion runs no
+#       remap that rewrites G59–G59.3, so those stay ordinary fixtures there
+#       (TWP-08a — the rule used to refuse every machine's G59 touch-off).
 #   TCP (kins 1): linear letters into G54–G58, table at A=0 — TCP world equals
 #       the table frame G54 is stored in only at the datum (remap.py
 #       to_storage_frame), so the UI refuses exactly where the remap would.
@@ -171,7 +186,7 @@ def touchoff_route(s: MachineState, letters):
             return None, ("Plane mode expects G59 (the plane fixture) active "
                           "— select the Plane frame again")
         return "plane", None
-    if s.g5x_index in RESERVED_FIXTURES:
+    if s.twp_capable and s.g5x_index in RESERVED_FIXTURES:
         return None, ("G59–G59.3 are TWP scratch rows rewritten by every "
                       "orient — touch off into G54–G58")
     if k == 1 and not s.a_at_zero:
@@ -298,7 +313,7 @@ _R_RUNNABLE = (lambda s: kins_runnable(s) is None,
 
 _R_TOUCHOFF_LINEAR = (
     lambda s: touchoff_route(s, ("X",))[0] is not None,
-    "Touch-off refused here: G59–G59.3 are TWP scratch rows (use G54–G58); "
+    "Touch-off refused here: on a TWP machine G59–G59.3 are scratch rows (use G54–G58); "
     "Plane mode needs an active plane with G59 selected; TCP needs A=0; "
     "an unknown kinematics mode refuses")
 _R_TOUCHOFF_ROTARY = (
