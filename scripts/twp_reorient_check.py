@@ -253,6 +253,16 @@ mdi("g68.2 x50 y50 z-50 q121 i30 j15")
 st = snap()
 check("plane defined", st["twp-helper-comp.twp-is-defined"] == 1)
 mdi("G53.1")
+# The pose stamp is written post-yield and reaches the helper's OUT pins on
+# its next 20 ms tick; poll until it settles so the snapshot never catches
+# the passthrough mid-tick (same wait section 4 makes) — the a/b/c pins can
+# propagate in either order (a stray -1e9 on any one is the race, not a bug).
+_t = time.time()
+while time.time() - _t < 3.0 and (
+        halget("twp-helper-comp.twp-pose-a") < -1e8
+        or halget("twp-helper-comp.twp-pose-b") < -1e8
+        or halget("twp-helper-comp.twp-pose-c") < -1e8):
+    time.sleep(0.05)
 after_orient = snap()
 print(f"  B={after_orient['xyzacb_trsrn_kins.secondary-angle']:.5f} "
       f"C={after_orient['xyzacb_trsrn_kins.primary-angle']:.5f} "
