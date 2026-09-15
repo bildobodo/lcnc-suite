@@ -238,7 +238,7 @@ function envelopeTrack(points: number[][], mode?: number[]): ScrubTrack {
     t.mode = new Uint8Array(mode);
     // A frame for every vertex; only the type-2 ones consult it. The triplet
     // is the live-validated plane from the TWP spike capture.
-    t.frame = new Uint8Array(n);
+    t.frame = new Uint32Array(n);
     t.frames = [[-1.781762, 130.2455, -40.8555]];
   }
   return t;

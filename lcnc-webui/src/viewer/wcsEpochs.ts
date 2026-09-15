@@ -201,7 +201,7 @@ const _p: number[] = [0, 0, 0, 0, 0, 0];
  *  copies. Pure. */
 export function rebasePositions(
   pos: Float32Array,
-  epochOf: Uint8Array | undefined,
+  epochOf: Uint32Array | undefined,
   terms: readonly WcsTerms[],
   active: WcsTerms,
 ): Float32Array {

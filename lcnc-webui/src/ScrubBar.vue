@@ -30,6 +30,7 @@ import { toolChangeLinesFromText } from "./viewer/toolChangeScan";
 import type { WcsTerms } from "./viewer/partFrame";
 import type { ScrubTrack } from "./ws/bulkData";
 import type { CollisionResult } from "./viewer/collision";
+import { EVENT_NONE } from "./viewer/eventIndex";
 import { mergedSweptFraction } from "./viewer/sweepMerge";
 import { limitViolationText } from "./ws/bulkData";
 import { fmtElapsed } from "./format";
@@ -481,7 +482,7 @@ watch(st, (d) => {
   const ktNow = ktLive != null ? ktLive : (t.mode?.[span?.end ?? 0] ?? null);
   const fN = t.frame?.[span?.end ?? 0];
   const frameNow = liveKinsFrame()
-    ?? ((fN != null && fN !== 0xff && t.frames) ? t.frames[fN] ?? null : null);
+    ?? ((fN != null && fN !== EVENT_NONE && t.frames) ? t.frames[fN] ?? null : null);
   const m = machineFromJoints(jp, viewerInit.value?.axes ?? [], _wcs(),
                               _kinsSpec.value, ktNow, frameNow);
   const out = _runWatcher.update({

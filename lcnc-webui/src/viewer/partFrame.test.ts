@@ -2,6 +2,7 @@
 // The machines under test mirror real machine.json content: the shipped
 // 3-axis PM-25MV config and the XYZAC trunnion sim (machine-xyzac).
 import { describe, expect, it } from "vitest";
+import { TLO_NONE } from "./tloEvents";
 import * as THREE from "three";
 import {
   transformToPartFrame, chainsHaveRotary, buildLineMap, wcsTerms,
@@ -238,7 +239,7 @@ describe("transformToPartFrame", () => {
     const wcs = { g5x: [0, 0, 0, 0, 0, 0], g92: [], rotationDeg: 0, tool: [0, 0, 0] };
     const input = {
       ...poly([[10, 5, 0], [10, 5, 0]], [[0, 0, 0], [0, 90, 0]]),
-      tlo: new Uint8Array([0xff, 0]),
+      tlo: new Uint32Array([TLO_NONE, 0]),
       tloEvents: [{ seq: 0, xyz: [0, 0, 22] as [number, number, number], tool: 3 }],
     };
     const out = transformToPartFrame(BHEAD, wcs, input);
@@ -363,7 +364,7 @@ describe("per-epoch WCS terms (review P2)", () => {
     // when the active origin is zero. Vertex 0 in the active epoch, vertex
     // 1 in a G59-like epoch at (100, -50, 25).
     const input = { ...poly([[0, 0, 0], [10, 0, 0]], undefined, [1, 2]),
-                    wcs: new Uint8Array([0, 1]) };
+                    wcs: new Uint32Array([0, 1]) };
     const terms = [
       wcsTerms(WCS0),
       wcsTerms({ g5x: [100, -50, 25, 0, 0, 0], g92: [], rotationDeg: 0 }),

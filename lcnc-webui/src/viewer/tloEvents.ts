@@ -6,7 +6,7 @@
 // length high on a fresh boot (the corpus gate's 22.000 catch; the class
 // that hid the 12.58 mm bug). The wire now ships `tlo_events` rows
 // [seq, xo, yo, zo, tool] — the offset + tool the PROGRAM put in effect —
-// resolved to a per-point index (`ScrubTrack.tlo`, 0xff = before the first
+// resolved to a per-point index (`ScrubTrack.tlo`, TLO_NONE = before the first
 // row) by the same seq rule as TWP frames and WCS epochs.
 //
 // "Before the first row" is the machine's LIVE modal G43 state: the run
@@ -17,8 +17,11 @@
 // entry inverse, part-frame lift + peel, collision tool shift, applyState
 // phase 3 under scrub) — the W3 P0 rule made per-segment.
 
-/** Fill value for "no event governs this point yet" (live state). */
-export const TLO_NONE = 0xff;
+import { EVENT_NONE } from "./eventIndex";
+
+/** Fill value for "no event governs this point yet" (live state). 32-bit
+ *  since TWP-05 (was 0xff in a u8 channel that capped at 254 events). */
+export const TLO_NONE = EVENT_NONE;
 
 export interface TloEvent {
   seq: number;

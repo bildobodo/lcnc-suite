@@ -15,6 +15,7 @@
 // the kinematic chain is evaluated at pose time, not baked per vertex.
 import { kinsForSegment, type KinsSpec } from "./kins";
 import { TLO_NONE, tloForIndex, type TloEvent } from "./tloEvents";
+import { EVENT_NONE } from "./eventIndex";
 import { buildLineIndex } from "./lineIndex";
 import {
   machineToProgram, wcsTerms,
@@ -38,9 +39,9 @@ export interface ScrubStream {
    *  no mode data. */
   mode?: Uint8Array;
   /** Per-point governing TWP frame INDEX into the track's `frames` list
-   *  (0xff = none) — resolved at ingestion from wire kins_frames by seq.
+   *  (EVENT_NONE = none) — resolved at ingestion from wire kins_frames by seq.
    *  Absent on programs without WEBUI_TWPFRAME markers. */
-  frame?: Uint8Array;
+  frame?: Uint32Array;
   /** Per-point kins-flip relabel flag (wire rapid_brk): 1 ⇒ the segment
    *  INTO this point is a switchkins frame relabel at a stationary pose —
    *  zero machine motion. Absent = legacy payload (flip segments keep the
@@ -53,11 +54,11 @@ export interface ScrubStream {
   /** Per-point WCS epoch INDEX into the payload's wcs_frames events —
    *  which basis this point was peeled against (review P2). Absent =
    *  legacy payload (single-basis semantics). */
-  wcs?: Uint8Array;
+  wcs?: Uint32Array;
   /** Per-point TLO/tool event INDEX into the payload's tlo_events (schema
-   *  8; 0xff = before the first row → live offset governs). Absent = the
+   *  8; TLO_NONE = before the first row → live offset governs). Absent = the
    *  program never changes tool or offset. */
-  tlo?: Uint8Array;
+  tlo?: Uint32Array;
   /** Outside-soft-limits verdict per vertex (2026-09-12): the segment
    *  ENDING at the vertex had a joint beyond the checked window — the
    *  gateway validator's per-vertex flag (wire feed_outside/rapid_outside).
@@ -134,7 +135,7 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
     && (nf === 0 || feed.frame?.length === nf)
     && (nr === 0 || rapid.frame?.length === nr)
     && !!(feed.frame || rapid.frame);
-  const frameIdx = hasFrame ? new Uint8Array(n) : undefined;
+  const frameIdx = hasFrame ? new Uint32Array(n) : undefined;
   // Relabel flags: a stream without brk data means "no relabels here" (the
   // worker only ever inserts them into rapid), so absence on one stream is
   // zeros, not inconsistency — but a mislengthed array is a bug upstream
@@ -158,14 +159,14 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
     && (nf === 0 || feed.wcs?.length === nf)
     && (nr === 0 || rapid.wcs?.length === nr)
     && !!(feed.wcs || rapid.wcs);
-  const wcsEpoch = hasWcs ? new Uint8Array(n) : undefined;
+  const wcsEpoch = hasWcs ? new Uint32Array(n) : undefined;
   // TLO/tool events (schema 8): like wcs — present iff consistent and an
   // events list exists to dereference into.
   const hasTlo = !!tloEvents?.length
     && (nf === 0 || feed.tlo?.length === nf)
     && (nr === 0 || rapid.tlo?.length === nr)
     && !!(feed.tlo || rapid.tlo);
-  const tlo = hasTlo ? new Uint8Array(n) : undefined;
+  const tlo = hasTlo ? new Uint32Array(n) : undefined;
   // Line trust + sub spans (W2 P6): merged like mode — present iff every
   // non-empty stream carries the channel (the worker ships both together;
   // a half-present channel is a bug upstream, dropped whole rather than
@@ -215,7 +216,7 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
     rapidFlag[i] = takeFeed ? 0 : 1;
     if (mode) mode[i] = src.mode?.[si] ?? 0;
     if (outside) outside[i] = src.outside?.[si] ?? 0;
-    if (frameIdx) frameIdx[i] = src.frame?.[si] ?? 0xff;
+    if (frameIdx) frameIdx[i] = src.frame?.[si] ?? EVENT_NONE;
     if (brk) brk[i] = (src.brk?.[si] ?? 0) | (src.ustart?.[si] ?? 0);
     if (ustart) ustart[i] = src.ustart?.[si] ?? 0;
     if (wcsEpoch) wcsEpoch[i] = src.wcs?.[si] ?? 0;
@@ -328,15 +329,15 @@ export interface SplitStreams {
   feedMode?: Uint8Array; rapidMode?: Uint8Array;
   /** Per-vertex TWP frame indices (same conventions as feedMode/rapidMode;
    *  dereference into the track's `frames`). */
-  feedFrame?: Uint8Array; rapidFrame?: Uint8Array;
+  feedFrame?: Uint32Array; rapidFrame?: Uint32Array;
   /** Per-vertex WCS epoch indices (same conventions; dereference into the
    *  track's `wcsEvents`) — which basis each drawn vertex was peeled
    *  against, consumed by the display rebase (wcsEpochs.rebasePositions). */
-  feedWcs?: Uint8Array; rapidWcs?: Uint8Array;
+  feedWcs?: Uint32Array; rapidWcs?: Uint32Array;
   /** Per-vertex TLO event indices (same conventions; dereference into the
    *  track's `tloEvents`) — the part-frame worker lifts and peels each
    *  vertex with ITS offset (schema 8). */
-  feedTlo?: Uint8Array; rapidTlo?: Uint8Array;
+  feedTlo?: Uint32Array; rapidTlo?: Uint32Array;
   /** Per-vertex outside-limits flags (same conventions: a section-start
    *  vertex takes the OPENING segment's flag; consumers test the segment's
    *  END vertex) — the gateway validator's verdict, painted as-is. */
@@ -372,7 +373,7 @@ export function splitTrackStreams(t: ScrubTrack): SplitStreams {
   for (let i = 1; i < n; i++) {
     const ln = t.lines[i]!;  // segment belongs to its END point's line
     const md = t.mode?.[i] ?? 0;  // ...and its END point's mode
-    const fr = t.frame?.[i] ?? 0xff;  // ...and its END point's TWP frame
+    const fr = t.frame?.[i] ?? EVENT_NONE;  // ...and its END point's TWP frame
     const we = t.wcsEpoch?.[i] ?? 0;  // ...and its END point's WCS epoch
     const te = t.tlo?.[i] ?? TLO_NONE;  // ...and its END point's TLO event
     const ou = t.outside?.[i] ?? 0;     // ...and its END point's outside flag
@@ -428,12 +429,12 @@ export function splitTrackStreams(t: ScrubTrack): SplitStreams {
     rapidBreaks: new Uint32Array(rBreaks),
     feedMode: t.mode ? new Uint8Array(fMode) : undefined,
     rapidMode: t.mode ? new Uint8Array(rMode) : undefined,
-    feedFrame: t.frame ? new Uint8Array(fFrame) : undefined,
-    rapidFrame: t.frame ? new Uint8Array(rFrame) : undefined,
-    feedWcs: t.wcsEpoch ? new Uint8Array(fWcs) : undefined,
-    rapidWcs: t.wcsEpoch ? new Uint8Array(rWcs) : undefined,
-    feedTlo: t.tlo ? new Uint8Array(fTlo) : undefined,
-    rapidTlo: t.tlo ? new Uint8Array(rTlo) : undefined,
+    feedFrame: t.frame ? new Uint32Array(fFrame) : undefined,
+    rapidFrame: t.frame ? new Uint32Array(rFrame) : undefined,
+    feedWcs: t.wcsEpoch ? new Uint32Array(fWcs) : undefined,
+    rapidWcs: t.wcsEpoch ? new Uint32Array(rWcs) : undefined,
+    feedTlo: t.tlo ? new Uint32Array(fTlo) : undefined,
+    rapidTlo: t.tlo ? new Uint32Array(rTlo) : undefined,
     feedOutside: t.outside ? new Uint8Array(fOut) : undefined,
     rapidOutside: t.outside ? new Uint8Array(rOut) : undefined,
     feedSrc: new Uint32Array(fSrc),
@@ -469,7 +470,7 @@ export interface ScrubSample {
 
 function _frameAt(t: ScrubTrack, i: number): [number, number, number] | null {
   const idx = t.frame?.[i];
-  return (idx != null && idx !== 0xff && t.frames) ? t.frames[idx] ?? null : null;
+  return (idx != null && idx !== EVENT_NONE && t.frames) ? t.frames[idx] ?? null : null;
 }
 
 function _tloAt(t: ScrubTrack, i: number): TloEvent | null {
@@ -598,7 +599,7 @@ export function buildEntryTrack(
   const ktEntry = base.mode?.[0] ?? liveKinsType ?? null;
   const f0 = base.frame?.[0];
   const frameEntry =
-    (f0 != null && f0 !== 0xff && base.frames) ? base.frames[f0] ?? null : null;
+    (f0 != null && f0 !== EVENT_NONE && base.frames) ? base.frames[f0] ?? null : null;
   // Epoch-0 terms (review P2): the entry lands on the track's FIRST point,
   // whose coords live in epoch 0's frame — not necessarily the live active
   // fixture's (a TWP program's first point is already in the plane frame).
@@ -826,6 +827,7 @@ export function sliceTrack(t: ScrubTrack, a: number, b: number): ScrubTrack {
   const cum = new Float32Array(n);
   for (let i = 0; i < n; i++) cum[i] = t.cum[a + i]! - base;
   const u8 = (x?: Uint8Array) => (x ? x.slice(a, a + n) : undefined);
+  const u32 = (x?: Uint32Array) => (x ? x.slice(a, a + n) : undefined);
   const out: ScrubTrack = {
     pos: t.pos.slice(a * 3, (a + n) * 3),
     abc: t.abc.slice(a * 3, (a + n) * 3),
@@ -835,17 +837,17 @@ export function sliceTrack(t: ScrubTrack, a: number, b: number): ScrubTrack {
     lineIndex: buildLineIndex(t.lines.slice(a, a + n), cum),
   };
   if (t.mode) out.mode = u8(t.mode);
-  if (t.frame) out.frame = u8(t.frame);
+  if (t.frame) out.frame = u32(t.frame);
   if (t.frames) out.frames = t.frames;
   if (t.brk) out.brk = u8(t.brk);
   if (t.ustart) out.ustart = u8(t.ustart);
-  if (t.wcsEpoch) out.wcsEpoch = u8(t.wcsEpoch);
+  if (t.wcsEpoch) out.wcsEpoch = u32(t.wcsEpoch);
   if (t.lineOk) out.lineOk = u8(t.lineOk);
   if (t.sub) out.sub = u8(t.sub);
   if (t.subNames) out.subNames = t.subNames;
   if (t.cline) out.cline = t.cline.slice(a, a + n);
   if (t.wcsEvents) out.wcsEvents = t.wcsEvents;
-  if (t.tlo) out.tlo = u8(t.tlo);
+  if (t.tlo) out.tlo = u32(t.tlo);
   if (t.outside) out.outside = u8(t.outside);
   if (t.tloEvents) out.tloEvents = t.tloEvents;
   return out;
@@ -901,12 +903,12 @@ export function prependEntry(
     mode[0] = t.mode[0] ?? 0;
     mode[1] = t.mode[0] ?? 0;
   }
-  let frame: Uint8Array | undefined;
+  let frame: Uint32Array | undefined;
   if (t.frame) {
-    frame = new Uint8Array(n);
+    frame = new Uint32Array(n);
     frame.set(t.frame, 1);
-    frame[0] = t.frame[0] ?? 0xff;
-    frame[1] = t.frame[0] ?? 0xff;
+    frame[0] = t.frame[0] ?? EVENT_NONE;
+    frame[1] = t.frame[0] ?? EVENT_NONE;
   }
   let brk: Uint8Array | undefined;
   if (t.brk) {
@@ -929,22 +931,22 @@ export function prependEntry(
     ustart[0] = 0;
     ustart[1] = 0;
   }
-  let wcsEpoch: Uint8Array | undefined;
+  let wcsEpoch: Uint32Array | undefined;
   if (t.wcsEpoch) {
     // The entry move targets the track's first point, whose coords live in
     // epoch 0's frame — the whole entry segment shares that epoch (same
     // reasoning as the initial-mode stamp above).
-    wcsEpoch = new Uint8Array(n);
+    wcsEpoch = new Uint32Array(n);
     wcsEpoch.set(t.wcsEpoch, 1);
     wcsEpoch[0] = t.wcsEpoch[0] ?? 0;
     wcsEpoch[1] = t.wcsEpoch[0] ?? 0;
   }
-  let tlo: Uint8Array | undefined;
+  let tlo: Uint32Array | undefined;
   if (t.tlo) {
     // The entry move runs under whatever offset governs the track's first
     // point (schema 8) — the same "one consistent triple" rule as mode /
     // frame / epoch above; the entry inverse uses the same value.
-    tlo = new Uint8Array(n);
+    tlo = new Uint32Array(n);
     tlo.set(t.tlo, 1);
     tlo[0] = t.tlo[0] ?? TLO_NONE;
     tlo[1] = t.tlo[0] ?? TLO_NONE;

@@ -52,6 +52,7 @@ import { MeshBVH } from "three-mesh-bvh";
 import { normalizeKinematics, type KinRuntime } from "./kinematics";
 import { liftToJoints, tipWcs, wcsTerms, type PartFrameWcs, type WcsTerms } from "./partFrame";
 import { tloForIndex, toolForIndex, type TloEvent } from "./tloEvents";
+import { EVENT_NONE } from "./eventIndex";
 import { kinsForSegment, makeKins, worldModeForSpec, type KinsModel, type KinsSpec } from "./kins";
 /** The subset of the scrub track the sweep consumes. The worker request
  *  ships a COPIED projection of the real ScrubTrack (typed arrays only —
@@ -67,8 +68,8 @@ export interface CollisionTrack {
   /** Per-segment RAW switchkins type (phase 2b, raw since phase 3) —
    *  absent = untracked. Mapped per family via kinsForSegment. */
   mode?: Uint8Array;
-  /** Per-segment governing TWP frame index into `frames` (0xff = none). */
-  frame?: Uint8Array;
+  /** Per-segment governing TWP frame index into `frames` (EVENT_NONE = none). */
+  frame?: Uint32Array;
   /** TWP frame triplets [preRot rad, primary deg, secondary deg]. */
   frames?: [number, number, number][];
   /** Kins-flip relabel flags: brk[i]=1 ⇒ segment i-1→i is a frame relabel
@@ -78,11 +79,11 @@ export interface CollisionTrack {
   /** Per-segment WCS epoch index (review P2) — selects the entry of
    *  CollisionOptions.epochTerms that converts this segment's program
    *  coords to machine coords. Absent = single-basis (live wcs terms). */
-  wcs?: Uint8Array;
+  wcs?: Uint32Array;
   /** Per-segment TLO/tool event index (schema 8) into
-   *  CollisionOptions.tloEvents (0xff = live offset governs). The lift and
+   *  CollisionOptions.tloEvents (TLO_NONE = live offset governs). The lift and
    *  the tool body's tip shift both use that segment's offset. */
-  tlo?: Uint8Array;
+  tlo?: Uint32Array;
 }
 
 export interface CollisionMachine {
@@ -853,7 +854,7 @@ export function* sweepCollisionsIter(
   const vertModel: KinsModel[] | null = track.mode
     ? Array.from(track.mode, (t, i) => {
         const fi = track.frame?.[i];
-        const fr = (fi != null && fi !== 0xff && tFrames) ? tFrames[fi] ?? null : null;
+        const fr = (fi != null && fi !== EVENT_NONE && tFrames) ? tFrames[fi] ?? null : null;
         return kinsForSegment(machine.axes, machine.kins, t, fr,
                               tloFor(i)[2] || undefined, "collision sweep");
       })

@@ -7,6 +7,7 @@
 // how divergence starts). No DOM/worker globals here.
 import { parseWcsFrames, type WcsEpoch } from "./viewer/wcsEpochs";
 import { TLO_NONE, parseTloEvents, type TloEvent } from "./viewer/tloEvents";
+import { EVENT_NONE, eventIdxFor } from "./viewer/eventIndex";
 import type { ScrubStream } from "./viewer/scrubTrack";
 import type { RotaryCmd } from "./ws/bulkData";
 
@@ -68,8 +69,8 @@ export function decodePreviewStreams(g: Record<string, any>): DecodedPreview {
     ? wireFrames.map((f) => [f[1], f[2], f[3]] as [number, number, number])
     : undefined;
   const frameSeqs = kinsFrames ? wireFrames!.map(f => f[0]) : undefined;
-  const feedFrameWire = eventIdxFor(feedSeq, frameSeqs, 0xff);
-  const rapidFrameWire = eventIdxFor(rapidSeq, frameSeqs, 0xff);
+  const feedFrameWire = eventIdxFor(feedSeq, frameSeqs, EVENT_NONE);
+  const rapidFrameWire = eventIdxFor(rapidSeq, frameSeqs, EVENT_NONE);
   // WCS epochs (review P2): wire wcs_frames rows → per-vertex epoch index.
   const wcsEvents = parseWcsFrames(g.wcs_frames as number[][] | undefined);
   const epochSeqs = wcsEvents?.map(e => e.seq);
@@ -117,26 +118,6 @@ export function parseRotaryCmd(v: unknown): RotaryCmd | undefined {
     out[l] = s;
     const sv = seed[l];
     if (typeof sv === "number" && Number.isFinite(sv)) out.seed[l] = sv;
-  }
-  return out;
-}
-
-// Seq-keyed event resolution, shared by TWP frames and WCS epochs: an
-// event at seq N governs segments with seq > N; same-seq ties: last
-// recorded wins (stable sort on seq alone). `none` is the fill value.
-function eventIdxFor(
-  seq: Uint32Array | undefined, eventSeqs: number[] | undefined, none: number,
-): Uint8Array | undefined {
-  if (!eventSeqs?.length || !seq) return undefined;
-  const evs = eventSeqs.map((s, i) => [s, i] as const).sort((a, b) => a[0] - b[0]);
-  const out = new Uint8Array(seq.length).fill(none);
-  for (let v = 0; v < seq.length; v++) {
-    let idx = none;
-    for (const [es, ei] of evs) {
-      if (es < seq[v]!) idx = Math.min(ei, 0xfe);
-      else break;
-    }
-    out[v] = idx;
   }
   return out;
 }

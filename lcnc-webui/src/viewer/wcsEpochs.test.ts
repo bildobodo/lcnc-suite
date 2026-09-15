@@ -102,7 +102,7 @@ describe("rebasePositions", () => {
 
   it("returns the INPUT untouched when every epoch matches the active frame", () => {
     const pos = new Float32Array([1, 2, 3, 4, 5, 6]);
-    const same = rebasePositions(pos, new Uint8Array([0, 0]), [ACTIVE], ACTIVE);
+    const same = rebasePositions(pos, new Uint32Array([0, 0]), [ACTIVE], ACTIVE);
     expect(same).toBe(pos);
     expect(rebasePositions(pos, undefined, [ACTIVE], ACTIVE)).toBe(pos);
   });
@@ -112,7 +112,7 @@ describe("rebasePositions", () => {
     // epoch 1 = G59 at (100, -50, 25) → its program coords are (-90, 55, -25).
     const t1 = wcsTerms({ g5x: [100, -50, 25, 0, 0, 0], g92: [], rotationDeg: 0 });
     const pos = new Float32Array([10, 5, 0, -90, 55, -25]);
-    const out = rebasePositions(pos, new Uint8Array([0, 1]), [ACTIVE, t1], ACTIVE);
+    const out = rebasePositions(pos, new Uint32Array([0, 1]), [ACTIVE, t1], ACTIVE);
     expect(out).not.toBe(pos);
     expect([out[0], out[1], out[2]]).toEqual([10, 5, 0]);
     expect(out[3]).toBeCloseTo(10, 5);
@@ -124,7 +124,7 @@ describe("rebasePositions", () => {
     const tRot = wcsTerms({ g5x: [3, -4, 1, 0, 0, 0], g92: [2, 0, 0, 0, 0, 0], rotationDeg: 30 });
     const tAct = wcsTerms({ g5x: [-7, 2, 5, 0, 0, 0], g92: [], rotationDeg: -15 });
     const pos = new Float32Array([12, -8, 4]);
-    const out = rebasePositions(pos, new Uint8Array([0]), [tRot], tAct);
+    const out = rebasePositions(pos, new Uint32Array([0]), [tRot], tAct);
     const m: number[] = [0, 0, 0, 0, 0, 0];
     const p: number[] = [0, 0, 0, 0, 0, 0];
     programToMachine(12, -8, 4, 0, 0, 0, tRot, m);
@@ -139,13 +139,13 @@ describe("rebasePositions", () => {
       [ev({ idx: 1, rewritten: true, g5x: [50, 0, 0, 0, 0, 0] })], LIVE, undefined);
     expect([terms[0]!.tx, terms[0]!.ty, terms[0]!.tz]).toEqual([0, 0, 0]);
     const active = wcsTerms(tipWcs(LIVE));
-    const out = rebasePositions(new Float32Array([0, 0, 0]), new Uint8Array([0]),
+    const out = rebasePositions(new Float32Array([0, 0, 0]), new Uint32Array([0]),
                                 terms, active);
     // Only the OFFSET delta survives (epoch z 0 vs active z 9); the live
     // tool (z 100) appears on NEITHER side — a tool-bearing `active` would
     // be the double count the old "TLO cancels" invariant guarded against.
     expect(out[2]).toBeCloseTo(-9, 5);
-    const wrong = rebasePositions(new Float32Array([0, 0, 0]), new Uint8Array([0]),
+    const wrong = rebasePositions(new Float32Array([0, 0, 0]), new Uint32Array([0]),
                                   terms, wcsTerms(LIVE));
     expect(wrong[2]).toBeCloseTo(-109, 5);
   });

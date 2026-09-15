@@ -14,10 +14,10 @@ import type { TloEvent } from "./tloEvents";
 
 type Streams = {
   feed: { pos: Float32Array; abc: Float32Array; lines?: Uint32Array; breaks?: Uint32Array; mode?: Uint8Array;
-          frame?: Uint8Array; frames?: [number, number, number][]; wcs?: Uint8Array; src?: Uint32Array; tlo?: Uint8Array;
+          frame?: Uint32Array; frames?: [number, number, number][]; wcs?: Uint32Array; src?: Uint32Array; tlo?: Uint32Array;
           outside?: Uint8Array };
   rapid: { pos: Float32Array; abc: Float32Array; breaks?: Uint32Array; mode?: Uint8Array;
-           frame?: Uint8Array; frames?: [number, number, number][]; wcs?: Uint8Array; src?: Uint32Array; tlo?: Uint8Array;
+           frame?: Uint32Array; frames?: [number, number, number][]; wcs?: Uint32Array; src?: Uint32Array; tlo?: Uint32Array;
            outside?: Uint8Array };
 };
 

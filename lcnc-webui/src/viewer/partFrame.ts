@@ -31,6 +31,7 @@ import type { ViewerInit } from "../ws/bulkData";
 import { normalizeKinematics, type KinRuntime } from "./kinematics";
 import { kinsForSegment, makeKins, type KinsModel, type KinsSpec, worldModeForSpec } from "./kins";
 import { tloForIndex, type TloEvent } from "./tloEvents";
+import { EVENT_NONE } from "./eventIndex";
 
 export interface PartFrameMachine {
   groups: Array<{ id: string; parent: string; translate?: [number, number, number] | number[] }>;
@@ -112,23 +113,23 @@ export interface PartFramePolyline {
    *  it per the declared kins family (kinsForSegment). Absent = no
    *  mode data — every segment derives as trivkins, as before. */
   mode?: Uint8Array;
-  /** Per-vertex governing TWP frame index into `frames` (0xff = none) —
+  /** Per-vertex governing TWP frame index into `frames` (EVENT_NONE = none) —
    *  TOOL-mode (type 2) segments need it to pin the plane frame. */
-  frame?: Uint8Array;
+  frame?: Uint32Array;
   /** TWP frame triplets [preRot rad, primary deg, secondary deg]. */
   frames?: [number, number, number][];
   /** Per-vertex WCS epoch index (review P2) — selects which entry of the
    *  transform's `epochTerms` converts this vertex's program coords to
    *  machine coords. Absent = single-basis (the live `wcs` terms). */
-  wcs?: Uint8Array;
+  wcs?: Uint32Array;
   /** Per-vertex source TRACK index (review P3) — carried through
    *  subdivision so the positional highlight keeps its address space. */
   src?: Uint32Array;
-  /** Per-vertex TLO/tool event index into `tloEvents` (schema 8; 0xff =
+  /** Per-vertex TLO/tool event index into `tloEvents` (schema 8; TLO_NONE =
    *  before the first row → the live `wcs.tool` governs). The segment
    *  ENDING at vertex i lifts AND peels with that offset. Absent = live
    *  offset throughout (pre-8 behavior). */
-  tlo?: Uint8Array;
+  tlo?: Uint32Array;
   tloEvents?: TloEvent[];
   /** Room split (2026-09-11): vertices with `src` < roomEnd whose segment
    *  is identity-kins bake ROOM-FIXED — in the work group's frame with
@@ -640,7 +641,7 @@ function vertexResolvers(
   const vertModel: KinsModel[] | null = input.mode
     ? Array.from(input.mode, (t, i) => {
         const fi = input.frame?.[i];
-        const fr = (fi != null && fi !== 0xff && inFrames) ? inFrames[fi] ?? null : null;
+        const fr = (fi != null && fi !== EVENT_NONE && inFrames) ? inFrames[fi] ?? null : null;
         return kinsForSegment(axisLetters, machine.kins, t, fr,
                               tloFor(i)[2] || undefined, "part-frame preview");
       })

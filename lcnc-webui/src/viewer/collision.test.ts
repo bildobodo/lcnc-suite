@@ -6,6 +6,7 @@ import {
   buildCollisionModel, sweepCollisions, sweepCollisionsIter, toolCylinderPositions, restoreBaseTool, type SnapshotHandle,
   type CollisionBody, type CollisionMachine, type CollisionResult, type CollisionOptions, mergeContiguousIntervals, componentBoxes } from "./collision";
 import type { ScrubTrack } from "../ws/bulkData";
+import { TLO_NONE } from "./tloEvents";
 
 const WCS0 = { g5x: [0, 0, 0, 0, 0, 0], g92: [], rotationDeg: 0 };
 
@@ -926,7 +927,7 @@ describe("per-epoch WCS terms (review P2)", () => {
     // it must stay silent.
     const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
     const t = { ...track([[0, 0, 0], [0, 0, -13]], undefined, [7, 8]),
-                wcs: new Uint8Array([0, 0]) };
+                wcs: new Uint32Array([0, 0]) };
     const epochTerms = [{ ox: 0, oy: 0, oz: -30, oa: 0, ob: 0, oc: 0, tx: 0, ty: 0, tz: 0, cth: 1, sth: 0 }];
     const hit = sweepCollisions(model, t, WCS0, { margin: 2, epochTerms });
     expect(hit.hits.length).toBeGreaterThan(0);
@@ -965,7 +966,7 @@ describe("per-segment tool offset (schema 8)", () => {
     const bodies: CollisionBody[] = [...PLUNGE_BODIES, TOOL_BODIES[1]!];
     const m = buildCollisionModel(PLUNGE, bodies);
     const t = track([[0, 0, 0], [0, 0, -48], [0, 0, 0], [0, 0, -48]], undefined, [1, 2, 3, 4]);
-    t.tlo = new Uint8Array([0xff, 0xff, 0, 0]);
+    t.tlo = new Uint32Array([TLO_NONE, TLO_NONE, 0, 0]);
     t.tloEvents = [{ seq: 0, xyz: [0, 0, 22], tool: 3 }];
     const r = sweepCollisions(m, t, WCS0, { margin: 0.5, tloEvents: t.tloEvents });
     const pairsOn = (line: number) => r.hits.filter(h => h.line === line).map(h => h.a).sort();
@@ -990,7 +991,7 @@ describe("per-segment tool dims (schema 8)", () => {
     const t = track([[0, 0, 0], [0, 0, -45], [0, 0, 0], [0, 0, -45]], undefined, [1, 2, 3, 4]);
     // The event governs the segment ENDING at vertex 3 (line 4) only — the
     // retract (line 3) still runs under the thin tool.
-    t.tlo = new Uint8Array([0xff, 0xff, 0xff, 0]);
+    t.tlo = new Uint32Array([TLO_NONE, TLO_NONE, TLO_NONE, 0]);
     t.tloEvents = [{ seq: 0, xyz: [0, 0, 0], tool: 2 }];
     const r = sweepCollisions(m, t, WCS0, {
       margin: 0.5, tloEvents: t.tloEvents, liveTool: 1,
@@ -1158,10 +1159,10 @@ describe("tool geometry lifetime (TWP-06/07, review 2026-09-14)", () => {
     { id: "vise", group: "table", positions: boxPositions(2), translate: [0, 0, 1] },
     { id: "tool", group: "head", positions: toolCylinderPositions(2, 2), tool: true },
   ]);
-  const approach = (n: number): ScrubTrack & { tlo: Uint8Array } => {
+  const approach = (n: number): ScrubTrack & { tlo: Uint32Array } => {
     const pts = Array.from({ length: n }, (_, i) => [20 - 15 * i / (n - 1), 0, 0]);
     const t = track(pts, undefined, undefined, pts.map(() => 1));
-    return { ...t, tlo: new Uint8Array(n) };
+    return { ...t, tlo: new Uint32Array(n) };
   };
   type TloEvents = NonNullable<CollisionOptions["tloEvents"]>;
   const DIMS = { 1: { diam: 20, len: 2 }, 2: { diam: 2, len: 2 } };
@@ -1290,7 +1291,7 @@ describe("tool geometry lifetime (TWP-06/07, review 2026-09-14)", () => {
       // Every segment alone, under its own tool/TLO: no certificate can
       // carry across a boundary here by construction.
       const seg = track([[t.pos[3 * (i - 1)]!, 0, 0], [t.pos[3 * i]!, 0, 0]], undefined, [i, i + 1], [1, 1]);
-      seg.tlo = new Uint8Array([t.tlo[i]!, t.tlo[i]!]);
+      seg.tlo = new Uint32Array([t.tlo[i]!, t.tlo[i]!]);
       for (const h of sweepCollisions(makeModel(), seg, WCS0, opts({ tloEvents: events })).hits) {
         ref.add(`${i + 1}/${h.a}/${h.b}`);
       }

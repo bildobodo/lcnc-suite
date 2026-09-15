@@ -106,9 +106,9 @@ export interface ScrubTrack {
    *  family via viewer/kins.ts worldModeForSpec. Absent = no mode data
    *  (untracked program/config — pose derivation stays trivkins). */
   mode?: Uint8Array;
-  /** count — governing TWP frame INDEX into `frames` per segment (0xff =
+  /** count — governing TWP frame INDEX into `frames` per segment (EVENT_NONE =
    *  none). Present only on programs with WEBUI_TWPFRAME markers. */
-  frame?: Uint8Array;
+  frame?: Uint32Array;
   /** TWP frame value triplets [preRot rad, primary deg, secondary deg],
    *  dereferenced by `frame` (wire kins_frames minus the seq column). */
   frames?: [number, number, number][];
@@ -128,7 +128,7 @@ export interface ScrubTrack {
   /** count — WCS epoch index of the segment ending here (into `wcsEvents`):
    *  which basis the point was peeled against (review P2). Absent = legacy
    *  payload (single-basis semantics). */
-  wcsEpoch?: Uint8Array;
+  wcsEpoch?: Uint32Array;
   /** count — per-point line trust (W2 P6, wire feed_lineok/rapid_lineok):
    *  1 ⇒ this point's `lines` entry is a line of THIS file that could have
    *  produced this motion (exists, can move, stream-compatible, not in a
@@ -153,10 +153,10 @@ export interface ScrubTrack {
    *  snapshot). */
   wcsEvents?: import("../viewer/wcsEpochs").WcsEpoch[];
   /** count — TLO/tool event index of the segment ending here (into
-   *  `tloEvents`; 0xff = before the program's first G43/M6 → the LIVE
+   *  `tloEvents`; TLO_NONE = before the program's first G43/M6 → the LIVE
    *  applied offset governs). Schema 8; absent = the program never changes
    *  tool or offset (live everywhere, the pre-8 behavior). */
-  tlo?: Uint8Array;
+  tlo?: Uint32Array;
   /** Outside-soft-limits verdict per track point (segment ending there,
    *  2026-09-12): the gateway validator's per-vertex flag, merged like
    *  mode — present iff every non-empty stream carried it. */
@@ -318,15 +318,15 @@ export interface ViewerGcode {
   // routes non-identity segments through the machine's declared kins.
   feedMode?: Uint8Array;
   rapidMode?: Uint8Array;
-  // Per-vertex governing TWP frame index for the DRAWN streams (0xff =
+  // Per-vertex governing TWP frame index for the DRAWN streams (EVENT_NONE =
   // none; dereference into kinsFrames). Present iff kins_frames arrived.
-  feedFrame?: Uint8Array;
-  rapidFrame?: Uint8Array;
+  feedFrame?: Uint32Array;
+  rapidFrame?: Uint32Array;
   // Per-vertex WCS epoch index for the DRAWN streams (dereference into
   // wcsEvents) — consumed by the display rebase. Present iff wcs_frames
   // arrived with an epoch-aware track.
-  feedWcs?: Uint8Array;
-  rapidWcs?: Uint8Array;
+  feedWcs?: Uint32Array;
+  rapidWcs?: Uint32Array;
   // Source TRACK index per drawn feed vertex (ascending; subdivided in
   // part-frame mode) — the positional 3D highlight's address space
   // (review P3). Present iff the track-derived streams were built.
@@ -454,8 +454,8 @@ export interface ViewerGcode {
   tlo_events?: number[][];
   tloEvents?: import("../viewer/tloEvents").TloEvent[];
   // Per-vertex TLO event index for the DRAWN streams (like feedWcs).
-  feedTlo?: Uint8Array;
-  rapidTlo?: Uint8Array;
+  feedTlo?: Uint32Array;
+  rapidTlo?: Uint32Array;
   // Per-point line trust + marked-sub spans (W2 P6, schema 4): u8 wire
   // bytes, index-aligned with feed/rapid — consumed via the merged track
   // (previewWorker strips them into scrubTrack.lineOk / .sub / .subNames,

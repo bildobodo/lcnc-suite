@@ -55,12 +55,12 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     let rapidBreaks: Uint32Array | undefined;
     let feedMode: Uint8Array | undefined;
     let rapidMode: Uint8Array | undefined;
-    let feedFrame: Uint8Array | undefined;
-    let rapidFrame: Uint8Array | undefined;
-    let feedWcs: Uint8Array | undefined;
-    let rapidWcs: Uint8Array | undefined;
-    let feedTlo: Uint8Array | undefined;
-    let rapidTlo: Uint8Array | undefined;
+    let feedFrame: Uint32Array | undefined;
+    let rapidFrame: Uint32Array | undefined;
+    let feedWcs: Uint32Array | undefined;
+    let rapidWcs: Uint32Array | undefined;
+    let feedTlo: Uint32Array | undefined;
+    let rapidTlo: Uint32Array | undefined;
     // Outside-limits flags (2026-09-12): through the track split when there
     // is a track, else the wire arrays as they are (legacy strips).
     let feedOutside: Uint8Array | undefined = d.feed.outside;
