@@ -20,7 +20,7 @@ const PERMS_ALL = {
 const TRSRN = { module: "xyzacb_trsrn", type: "xyzacb-trsrn", identity_first: false, params: {} };
 const TRT = { module: "xyzac-trt-kins", type: "xyzac-trt", identity_first: true, params: {} };
 
-test("Plane mode: rotary touch-off closed, reserved fixtures disabled, Zero All stays open", async ({ page }) => {
+test("Plane mode: rotary touch-off closed, reserved fixtures disabled, Zero XYZ stays open", async ({ page }) => {
   // setAxes re-ships viewer_init to CONNECTED clients — load the page and
   // wait for the first axis rows before asking for the 6-axis set.
   await page.goto(MOCK);
@@ -40,7 +40,9 @@ test("Plane mode: rotary touch-off closed, reserved fixtures disabled, Zero All 
     } });
     await expect(zeroA).toBeDisabled();
     await expect(zeroX).not.toBeDisabled();
-    await expect(page.getByRole("button", { name: "Zero All" })).not.toBeDisabled();
+    // D-02: on a switchable machine the button names its axis set.
+    await expect(page.getByRole("button", { name: "Zero XYZ" })).not.toBeDisabled();
+    await expect(page.getByRole("button", { name: "Go to WCS 0" })).toBeVisible();
     await expect(page.locator('input[name="wcs"][value="G59"]')).toBeDisabled();
     await expect(page.locator('input[name="wcs"][value="G59.3"]')).toBeDisabled();
     await expect(page.locator('input[name="wcs"][value="G54"]')).not.toBeDisabled();

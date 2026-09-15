@@ -127,6 +127,13 @@ const kinsChip = computed(() => kinsModeChip({
 // zero stays available under its own (identity + G54) gate.
 const zeroAllLetters = computed(() =>
   isSwitchable.value ? props.axes.filter((l) => !isRotaryAxis(l)) : [...props.axes]);
+// The button names its actual axis set (review 2026-09-14 D-02): "Zero
+// XYZ" where the rotaries are excluded, "Zero All" only where it is all.
+const zeroAllLabel = computed(() => {
+  if (!isSwitchable.value) return "Zero All";
+  const l = zeroAllLetters.value;
+  return l.length <= 3 ? `Zero ${l.join("")}` : "Zero linear";
+});
 function zeroAll() {
   emit("setAll", zeroAllLetters.value);
 }
@@ -144,15 +151,18 @@ function zeroAll() {
           <MachineBtn :type="homedJoints[a.index] ? 'unhome' : 'home'" @click="homedJoints[a.index] ? emit('unhomeAxis', a.index) : emit('homeAxis', a.index)"><span class="stable-width"><span :class="{ alt: homedJoints[a.index] }">Home {{ a.letter }}</span><span :class="{ alt: !homedJoints[a.index] }">Unhome {{ a.letter }}</span></span></MachineBtn>
         </template>
         <template v-if="chunk.actions">
-          <MachineBtn type="zero" class="spanAll" @click="zeroAll()" :title="isSwitchable ? 'Zero the linear axes (rotary offsets are set per axis, Machine frame + G54 only)' : undefined">Zero All</MachineBtn>
+          <MachineBtn type="zero" class="spanAll" @click="zeroAll()" :title="isSwitchable ? 'Zero the LINEAR axes only (rotary offsets are set per axis, Machine frame + G54 only)' : undefined">{{ zeroAllLabel }}</MachineBtn>
           <MachineBtn :type="isHomed ? 'unhome' : 'home'" class="spanAll" @click="isHomed ? emit('unhomeAll') : emit('homeAll')"><span class="stable-width"><span :class="{ alt: isHomed }">Home All</span><span :class="{ alt: !isHomed }">Unhome All</span></span></MachineBtn>
           <!-- Action rows: three EQUAL cells spanning the grid (never one
-               button per 80px/1fr/1fr track — "→ G30" used to sit in the
-               80px column). -->
+               button per 80px/1fr/1fr track — the G30 button used to sit in
+               the 80px column). Labels name the DESTINATION with a motion
+               verb (review 2026-09-14 D-02): an arrow said nothing about
+               moving, "Home" read as reference homing. MCS/WCS = machine /
+               work coordinate system, the WCS selector's own term. -->
           <div class="actionRow">
-            <MachineBtn type="goTo" @click="emit('goToG30')">→ G30</MachineBtn>
-            <MachineBtn type="goTo" @click="emit('goToHome')">→ Home</MachineBtn>
-            <MachineBtn type="goZero" @click="emit('goToZero')" title="Machine frame: Z to machine top (G53 Z0 — skipped when Z is already at or above it, never lowered), table back to the fixture's touch-off angle, then X/Y to work zero. Plane frame: retract along the tool axis to a clearance (never lowered), then X0 Y0 in the plane, rotaries untouched. TCP: not available.">→ Zero</MachineBtn>
+            <MachineBtn type="goTo" @click="emit('goToG30')" title="MOVES to the G30 position: Z up to machine top first (never lowered), then X/Y, then Z. X/Y/Z only — rotaries untouched. Machine frame only.">Go to G30</MachineBtn>
+            <MachineBtn type="goTo" @click="emit('goToHome')" title="MOVES to MACHINE ZERO (G53 X0 Y0 Z0, rotaries to 0; Z up first, never lowered) — the machine coordinate origin, not reference homing and not the INI home positions. Machine frame only.">Go to MCS 0</MachineBtn>
+            <MachineBtn type="goZero" @click="emit('goToZero')" title="MOVES to WORK ZERO. Machine frame: Z to machine top (G53 Z0 — skipped when Z is already at or above it, never lowered), table back to the fixture's touch-off angle, then X/Y to work zero. Plane frame: retract along the tool axis to a clearance (never lowered), then X0 Y0 in the plane, rotaries untouched. TCP: not available.">Go to WCS 0</MachineBtn>
           </div>
           <div v-if="isTwpMachine" class="actionRow">
             <!-- Capture plane: the one-button manual definition — align the

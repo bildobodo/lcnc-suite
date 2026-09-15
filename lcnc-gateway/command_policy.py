@@ -343,7 +343,7 @@ def goto_zero_plan(s: MachineState, work_z: Optional[float], clearance: float,
             return None, "Fixture provenance unreadable — refused"
         return [f"O<go_to_zero> CALL [{a:.4f}]"], None
     if k == 1:
-        return None, ("→ Zero under TCP: neither the machine top nor the tool axis is a "
+        return None, ("Go to WCS 0 under TCP: neither the machine top nor the tool axis is a "
                       "world axis here — select the Machine frame or the Plane frame first")
     if not s.twp_active or s.g5x_index != 6:
         return None, ("Plane kinematics without its plane fixture — select the Plane frame "
@@ -352,14 +352,14 @@ def goto_zero_plan(s: MachineState, work_z: Optional[float], clearance: float,
         # The retract is "along the tool axis" only while the head still
         # points where the last orient put it (TWP-04).
         return None, ("Head not aligned with the plane (a rotary moved since the last "
-                      "orient, or no orient yet) — press Orient before → Zero")
+                      "orient, or no orient yet) — press Orient before Go to WCS 0")
     if not math.isfinite(float(clearance)) or float(clearance) < 0:
         return None, "Clearance unreadable — refused"
     return [f"O<twp_goto_zero> CALL [{float(clearance):.4f}] [{1 if metric else 0}]"], None
 
 
 _R_GOZERO = (lambda s: goto_zero_plan(s, 0.0, 0.0)[1] is None,
-             "→ Zero is not available under this kinematics mode")
+             "Go to WCS 0 (→ Zero) is not available under this kinematics mode")
 
 
 #: Plane-frame admission (TWP-04), ordered — ONE source for the handler's

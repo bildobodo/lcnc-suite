@@ -438,7 +438,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
           </div>
           <template v-if="kinsType != null">
             <div class="strip-radio-group stack-tight">
-              <span class="label-muted">Jog frame</span>
+              <span class="label-muted" title="Selects the machine's KINEMATICS — for jogging, MDI and programs alike: Machine (M428, identity), TCP (M429, world XYZ rides the table) or the tilted Plane (M430, which also selects G59). Not the Manual/MDI/Auto task mode above.">Kinematics frame</span>
               <div class="strip-radio-options">
                 <label class="radio-label" title="Identity kinematics — jog along machine axes"><MachineRadio gate="jogFrame" name="jogFrame" :modelValue="kinsType" :value="0" @update:modelValue="emit('setKinsMode', 0)" /> Machine</label>
                 <label class="radio-label" title="TCP kinematics — X/Y/Z are the work frame riding the table: jogging A keeps the tool tip on the workpiece (position only; the head orientation does not follow). Switching re-seeds the preview (a brief progress flash is expected)"><MachineRadio gate="jogFrame" name="jogFrame" :modelValue="kinsType" :value="1" @update:modelValue="emit('setKinsMode', 1)" /> TCP</label>
