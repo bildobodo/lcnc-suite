@@ -512,6 +512,37 @@ def evaluate_permissions(s: MachineState) -> Dict[str, bool]:
             for gate, reqs in GATE_REQUIREMENTS.items()}
 
 
+def _gate_reason(gate: str, s: MachineState) -> Optional[str]:
+    """The FIRST unmet requirement's operator-readable message for `gate` in
+    state `s`, None when the gate is open — the one resolver check_command
+    (a denied command) and permission_reasons (a dimmed control) share, so
+    the two can never explain the same closed gate differently."""
+    for ok, message in GATE_REQUIREMENTS[gate]:
+        if not ok(s):
+            # The composite rules' reasons name the exact stranded state.
+            if ok is _R_RUNNABLE[0]:
+                return kins_runnable(s) or message
+            if ok is _R_MACHINE_FRAME[0]:
+                return machine_frame_required(s) or message
+            if ok is _R_GOZERO[0]:
+                return goto_zero_plan(s, 0.0, 0.0)[1] or message
+            return message
+    return None
+
+
+def permission_reasons(s: MachineState) -> Dict[str, str]:
+    """Why each CLOSED gate is closed (U-06, review 2026-09-14): a dimmed
+    control used to have no reachable explanation — the reason lived only in
+    the denial a command the control could not send would have produced.
+    Broadcast beside `permissions`; open gates are absent. Pure."""
+    out: Dict[str, str] = {}
+    for gate in GATE_REQUIREMENTS:
+        r = _gate_reason(gate, s)
+        if r is not None:
+            out[gate] = r
+    return out
+
+
 # Each mutating command -> the permission gate it requires. ``always`` means the
 # command is never blocked by machine state (its own handler-side guard — e.g.
 # ``require_armed`` or a confirmation dialog — is the gate). Read-only queries
@@ -635,17 +666,7 @@ def check_command(cmd: str, state: MachineState) -> Optional[str]:
         return None
     # Decision AND message from the one GATE_REQUIREMENTS table: deny on the
     # first unmet requirement (review #6 — no separate reason chain to drift).
-    for ok, message in GATE_REQUIREMENTS[gate]:
-        if not ok(state):
-            # The runnable rule's reason names the exact stranded state.
-            if ok is _R_RUNNABLE[0]:
-                return kins_runnable(state) or message
-            if ok is _R_MACHINE_FRAME[0]:
-                return machine_frame_required(state) or message
-            if ok is _R_GOZERO[0]:
-                return goto_zero_plan(state, 0.0, 0.0)[1] or message
-            return message
-    return None
+    return _gate_reason(gate, state)
 
 
 # ---------------------------------------------------------------------------

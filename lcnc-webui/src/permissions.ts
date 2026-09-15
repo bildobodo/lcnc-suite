@@ -1,4 +1,4 @@
-import { inject, type ComputedRef, type InjectionKey } from "vue";
+import { computed, inject, type ComputedRef, type InjectionKey } from "vue";
 
 /**
  * Permission classes — which controls are enabled in which machine state.
@@ -161,6 +161,49 @@ export function applyClientOverlay(
       && (sim ? SIM_GATES.has(g) : true);
   }
   return out;
+}
+
+/** Why a gate is closed, per gate (U-06, review 2026-09-14) — the backend's
+ *  first-unmet message (`status.permission_reasons`) under the client-local
+ *  overlay's own reasons. Open gates are absent. */
+export type PermissionReasons = Partial<Record<keyof Permissions, string>>;
+
+export const CLIENT_REASONS = {
+  notArmed: "Not armed — press Arm",
+  settling: "Settling — a command is still in flight",
+  sim: "Simulation mode — exit the simulation for machine actions",
+} as const;
+
+/** The reasons twin of applyClientOverlay: the client-local terms explain
+ *  themselves (armed / busy / sim), else the backend's reason rides through.
+ *  A gate closed by the backend without a shipped reason (an older gateway)
+ *  stays unexplained — dimmed as before, never a made-up sentence. */
+export function applyClientOverlayReasons(
+  machine: Partial<Record<string, string>> | null | undefined,
+  armed: boolean,
+  busy: boolean,
+  sim: boolean = false,
+): PermissionReasons {
+  const out: PermissionReasons = {};
+  for (const g of GATE_NAMES) {
+    if (g === "always") continue;
+    if (!armed) { out[g] = CLIENT_REASONS.notArmed; continue; }
+    if (sim && !SIM_GATES.has(g)) { out[g] = CLIENT_REASONS.sim; continue; }
+    if (busy && BUSY_GATES.has(g)) { out[g] = CLIENT_REASONS.settling; continue; }
+    const r = machine?.[g];
+    if (r) out[g] = r;
+  }
+  return out;
+}
+
+export const PERMISSION_REASONS_KEY = Symbol("permissionReasons") as InjectionKey<ComputedRef<PermissionReasons>>;
+const _noReasons = computed<PermissionReasons>(() => ({}));
+
+/** Composable: the per-gate reasons from the ancestor provider; an empty
+ *  map when none (standalone / tests) — a control then simply has no
+ *  explanation to offer. */
+export function usePermissionReasons(): ComputedRef<PermissionReasons> {
+  return inject(PERMISSION_REASONS_KEY, _noReasons);
 }
 
 /** Valid gate names (excludes `always`) — used by main.ts data-gate guard. */

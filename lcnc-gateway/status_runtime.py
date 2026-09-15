@@ -39,6 +39,7 @@ import lcnc_trace as _trace
 from command_policy import (
     MachineState as _PolicyMachineState,
     evaluate_permissions,
+    permission_reasons,
 )
 from gateway_util import (
     joints_beyond_limits, PROV_A_EPS, atomic_write_bytes, canonical_to_joint_order,
@@ -359,6 +360,10 @@ class StatusPayload:
     # shared broadcast, so per-client `armed`/`busy` are overlaid client-side).
     # Trailing default so the (unreachable) bare constructor stays valid.
     permissions: Optional[Dict[str, bool]] = None
+    # Why each CLOSED gate is closed (U-06, review 2026-09-14): the same
+    # first-unmet message a denied command would carry, so a dimmed control
+    # can explain itself. Open gates absent.
+    permission_reasons: Optional[Dict[str, str]] = None
     # estop/enabled merged with the HAL safety chain (issue #14). Computed ONCE
     # in policy_state_from_payload and broadcast here so the frontend banner/DRO
     # consume the same merged truth the command policy uses — no duplicated merge
@@ -1165,6 +1170,7 @@ class StatusRuntime:
         payload.is_estop = _pstate.is_estop
         payload.is_enabled = _pstate.is_enabled
         payload.permissions = evaluate_permissions(_pstate)
+        payload.permission_reasons = permission_reasons(_pstate)
         return payload
 
     def poll_and_serialize(self):

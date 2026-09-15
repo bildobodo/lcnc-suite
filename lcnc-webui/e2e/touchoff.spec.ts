@@ -156,3 +156,35 @@ test("keypad names its target; a frame/fixture change while open cancels it with
   }
 });
 
+test("a disabled control explains itself: the reason on hover and on tap", async ({ page }) => {
+  // U-06 (review 2026-09-14): a disabled <button> swallowed pointer events —
+  // the reason existed only in a denial it could not send.
+  await page.goto(MOCK);
+  const btn = page.getByRole("button", { name: "Go to WCS 0" });
+  await expect(btn).toBeVisible();
+  await ctlSend({ op: "quiet", on: true });
+  try {
+    await ctlSend({ op: "status_delta", data: {
+      permissions: { ...PERMS_ALL, goZero: false },
+      permission_reasons: { goZero: "Go to WCS 0 under TCP: neither the machine top nor the tool axis is a world axis here — select the Machine frame or the Plane frame first" },
+    } });
+    await expect(btn).toBeDisabled();
+    const tip = page.locator(".btnTip", { has: btn });
+    await expect(tip).toHaveAttribute("title", /under TCP/);
+    const messages = page.getByRole("button", { name: /^Messages \(/ });
+    const before = await messages.getAttribute("title");
+    await tip.click();
+    await expect(messages).not.toHaveAttribute("title", before ?? "");
+    await messages.click();
+    await expect(page.locator(".msgText").first()).toContainText("under TCP");
+    // Open again: no wrapper, plain button.
+    await page.keyboard.press("Escape");
+    await ctlSend({ op: "status_delta", data: { permissions: { ...PERMS_ALL }, permission_reasons: {} } });
+    await expect(btn).not.toBeDisabled();
+    await expect(page.locator(".btnTip", { has: btn })).toHaveCount(0);
+  } finally {
+    await ctlSend({ op: "quiet", on: false });
+    await ctlSend({ op: "reset" });
+  }
+});
+

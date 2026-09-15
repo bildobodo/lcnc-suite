@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { applyClientOverlayReasons, CLIENT_REASONS } from "./permissions";
 import { applyClientOverlay, type MachinePermissions } from "./permissions";
 
 // The policy itself (which machine state opens which gate) now lives on the
@@ -139,3 +140,25 @@ describe("machineFrame / goZero gates", () => {
     expect(applyClientOverlay({ ...MACHINE_READY, machineFrame: false }, true, false).machineFrame).toBe(false);
   });
 });
+
+describe("applyClientOverlayReasons (U-06, review 2026-09-14)", () => {
+  const backend = { goZero: "Go to WCS 0 under TCP …", ready: "Machine not homed" };
+  it("names the client-local terms and passes the backend's reason through otherwise", () => {
+    const r = applyClientOverlayReasons(backend, true, false, false);
+    expect(r.goZero).toBe("Go to WCS 0 under TCP …");
+    expect(r.ready).toBe("Machine not homed");
+    expect(r.jog).toBeUndefined();          // open on the backend, no client term
+    expect(r.always).toBeUndefined();
+    expect(applyClientOverlayReasons(backend, false, false, false).jog).toBe(CLIENT_REASONS.notArmed);
+    expect(applyClientOverlayReasons(backend, true, true, false).ready).toBe(CLIENT_REASONS.settling);
+    expect(applyClientOverlayReasons(backend, true, true, false).jog).toBeUndefined();   // jog has no busy term
+    const sim = applyClientOverlayReasons(backend, true, false, true);
+    expect(sim.ready).toBe(CLIENT_REASONS.sim);
+    expect(sim.setup).toBeUndefined();      // stays open in sim
+  });
+  it("a closed gate without a shipped reason stays unexplained, never invented", () => {
+    expect(applyClientOverlayReasons(null, true, false, false)).toEqual({});
+    expect(applyClientOverlayReasons({}, true, false, false).goZero).toBeUndefined();
+  });
+});
+

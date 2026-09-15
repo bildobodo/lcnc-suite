@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 
 from command_policy import (
+    permission_reasons,
     semantic_kins,
     plane_frame_check,
     MachineState,
@@ -842,6 +843,32 @@ class TestPlaneFrame(unittest.TestCase):
             validate_payload("set_kins_mode", {"mode": 3}, limits)
         with self.assertRaises(ValueError):
             validate_payload("set_kins_mode", {"mode": "plane"}, limits)
+
+
+class TestPermissionReasons(unittest.TestCase):
+    """permission_reasons (U-06): every closed gate carries the reason a
+    denied command under it would carry; open gates carry nothing."""
+
+    def test_closed_gates_have_reasons_open_gates_none(self):
+        for over in (dict(), dict(is_homed=False), dict(armed=False), dict(eoffset_enabled=True),
+                     dict(kins_switchable=True, twp_capable=True, kins_type=1, g5x_index=1)):
+            s = state(**over)
+            perms = evaluate_permissions(s)
+            reasons = permission_reasons(s)
+            for gate, open_ in perms.items():
+                if open_:
+                    self.assertNotIn(gate, reasons, (over, gate))
+                else:
+                    self.assertTrue(reasons.get(gate), (over, gate))
+
+    def test_reason_equals_the_denied_command_message(self):
+        s = state(kins_switchable=True, twp_capable=True, kins_type=1, g5x_index=1)
+        self.assertEqual(permission_reasons(s)["goZero"], check_command("go_to_zero", s))
+        self.assertEqual(permission_reasons(s)["machineFrame"], check_command("tool_change", s))
+        self.assertIn("TCP", permission_reasons(s)["goZero"])
+        s2 = state(is_homed=False)
+        self.assertEqual(permission_reasons(s2)["ready"], check_command("mdi", s2))
+        self.assertEqual(permission_reasons(s2)["ready"], "Machine not homed")
 
 if __name__ == "__main__":
     unittest.main()

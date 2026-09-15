@@ -1175,8 +1175,5 @@ onUnmounted(() => {
   min-width: 9ch;
   text-align: left;
 }
-/* Tooltip wrapper for a disabled button — layout-neutral flex item. */
-.btnTip {
-  display: inline-flex;
-}
+/* .btnTip (tooltip wrapper for a disabled button) is global now — style.css (U-06). */
 </style>

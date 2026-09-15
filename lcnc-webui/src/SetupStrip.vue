@@ -9,7 +9,7 @@ import { touchoffTargetLabel, type TouchoffExpect } from "./useTouchoffMath";
 import { keypadState, closeKeypad } from "./useNumberKeypad";
 import { usePermissions } from "./permissions";
 import { pushMessage } from "./lcncWs";
-import { OPERATOR_ERROR } from "./lcnc";
+import { OPERATOR_DISPLAY, OPERATOR_ERROR } from "./lcnc";
 
 // Match HUD precision (3 decimals linear, 2 rotary) without the unit suffix
 // so the keypad parser still receives a clean numeric string. (Deliberately
@@ -231,7 +231,7 @@ function zeroAll() {
         <span v-if="kinsChip" class="val-status kinsChip" :class="kinsChip.cls"
               :title="kinsChip.title">{{ kinsChip.text }}</span>
         <div class="strip-radio-options">
-          <label v-for="g in g5xOptions" :key="g" class="radio-label" :title="wcsReserved(g) ? RESERVED_TITLE : undefined">
+          <label v-for="g in g5xOptions" :key="g" class="radio-label" :title="wcsReserved(g) ? RESERVED_TITLE : undefined" @click="wcsReserved(g) && pushMessage(OPERATOR_DISPLAY, RESERVED_TITLE)">
             <MachineRadio gate="wcsSelect" name="wcs" :value="g" :modelValue="g5xLabel" :disabled="wcsReserved(g)" @update:modelValue="(v: string | number | undefined) => { if (v != null) emit('setG5x', String(v)) }" />
             <span :class="{ muted: wcsReserved(g) }">{{ g }}</span>
           </label>

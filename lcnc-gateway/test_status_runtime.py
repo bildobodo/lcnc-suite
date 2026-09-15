@@ -199,12 +199,16 @@ class TestPollStatus(unittest.TestCase):
         # Default builder = unknown machine = closed gates, even in G54.
         p2 = _runtime(stat=self._stat(g5x_index=1)).poll_status()
         self.assertFalse(p2.permissions["touchoff"])
+        # U-06: a closed gate ships its reason beside the bool; open gates none.
+        self.assertIn("unknown", p2.permission_reasons["touchoff"])
+        self.assertNotIn("always", p2.permission_reasons)
         # Declared non-switchable: identity, certainly — open in G54.
         rt = _runtime(stat=self._stat(g5x_index=1))
         rt._get_kins_switchable = lambda: False
         p3 = rt.poll_status()
         self.assertTrue(p3.permissions["touchoff"])
         self.assertTrue(p3.permissions["touchoffRotary"])
+        self.assertNotIn("touchoff", p3.permission_reasons)
         # Tilted table: a_at_zero False.
         stat = self._stat(actual_position=(0, 0, 0, 35.0, 0, 0, 0, 0, 0))
         ps = status_runtime.policy_state_from_payload(

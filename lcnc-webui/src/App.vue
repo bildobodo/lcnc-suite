@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, provide, reactive, ref, watch } from "vue";
 import type { CollisionLineMark } from "./viewer/collision";
-import { applyClientOverlay, PERMISSIONS_KEY, FIRE_KEY, type Permissions } from "./permissions";
+import { applyClientOverlay, applyClientOverlayReasons, PERMISSIONS_KEY, PERMISSION_REASONS_KEY, FIRE_KEY, type Permissions, type PermissionReasons } from "./permissions";
 import { simMode } from "./simMode";
 import { twpPoseOriented, twpPoseStale, twpDatumStale, fixtureOffDatum, stampAForFixture, poseAbcOf } from "./twpPose";
 import { runLineState, subExecState, resolveCurrentLine } from "./trackHighlight";
@@ -53,6 +53,7 @@ import {
   TRAJ_MODE_FREE, TRAJ_MODE_TELEOP,
   SPINDLE_FORWARD, SPINDLE_REVERSE,
   OPERATOR_DISPLAY,
+  OPERATOR_ERROR,
   cooldownFor, isNeverDebounced,
 } from "./lcnc";
 
@@ -566,6 +567,12 @@ const permissions = computed(() => {
   return next;
 });
 provide(PERMISSIONS_KEY, permissions);
+// Why each closed gate is closed (U-06): the backend's reasons under the
+// client-local overlay's own — what a dimmed control shows on hover and
+// says on tap (MachineBtn), and what fire() reports when it drops a send.
+const permissionReasons = computed<PermissionReasons>(() =>
+  applyClientOverlayReasons(st.value.permission_reasons, armed.value, busy.value, simMode.value));
+provide(PERMISSION_REASONS_KEY, permissionReasons);
 
 // Provide a probing flag so catalog-aware MachineBtn instances with
 // `whileProbing: true` self-disable while a probe op is in flight. Replaces
@@ -1199,7 +1206,11 @@ async function fire(payload: any, gate?: keyof Permissions, cooldownMs?: number)
     return;
   }
   if (gate && !permissions.value[gate]) {
+    // Loud in the message center too (U-06): a control that looked live and
+    // did nothing is the same silence as an unexplained dimmed one.
+    const why = permissionReasons.value[gate] ?? `gate '${gate}' is closed`;
     console.warn(`[fire] ${cmd} dropped: gate '${gate}' is closed`);
+    pushMessage(OPERATOR_ERROR, `${cmd} not sent — ${why}`);
     return;
   }
   const hold = cooldownMs ?? cooldownFor(cmd);
@@ -1224,7 +1235,9 @@ async function fireBatch(payloads: any[], gate?: keyof Permissions) {
     return;
   }
   if (gate && !permissions.value[gate]) {
+    const why = permissionReasons.value[gate] ?? `gate '${gate}' is closed`;
     console.warn(`[fireBatch] ${payloads[0]?.cmd} dropped: gate '${gate}' is closed`);
+    pushMessage(OPERATOR_ERROR, `${payloads[0]?.cmd} not sent — ${why}`);
     return;
   }
   busy.value = true;
