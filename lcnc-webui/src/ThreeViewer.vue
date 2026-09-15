@@ -2140,7 +2140,7 @@ const collisionEntryResult = computed<{ track: ScrubTrack; result: CollisionResu
   const e = collisionEntry.value;
   const b = e ? _colBaseFor(e.base) : null;
   if (!e || !b) return null;
-  return { track: e.track, result: mergeEntryResult(e.result, b, e.shift) };
+  return { track: e.track, result: mergeEntryResult(e.result, b, e.shift, e.base.cum[e.base.count - 1]!) };
 });
 /** The result swept on exactly `trk` (base or entry-overlaid), else null. */
 function _colResultFor(trk: ScrubTrack | null): CollisionResult | null {

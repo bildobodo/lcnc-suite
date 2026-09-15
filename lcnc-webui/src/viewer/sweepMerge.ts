@@ -11,7 +11,7 @@
 // every cum lives on the ENTRY track's axis. Pure.
 import type { CollisionHit, CollisionResult } from "./collision";
 
-export function mergeEntryResult(entry: CollisionResult, base: CollisionResult, shift: number): CollisionResult {
+export function mergeEntryResult(entry: CollisionResult, base: CollisionResult, shift: number, baseLen: number): CollisionResult {
   const shifted: CollisionHit[] = base.hits.map(h => ({
     ...h,
     cum: h.cum + shift,
@@ -60,7 +60,44 @@ export function mergeEntryResult(entry: CollisionResult, base: CollisionResult, 
     pairsPrescreened: base.pairsPrescreened,
     bvhMs: entry.bvhMs + base.bvhMs,
     sweepMs: entry.sweepMs + base.sweepMs,
-    // The entry segment is always swept whole; only the base can be partial.
-    truncated: base.truncated,
+    truncated: mergedTruncated(entry.truncated, base.truncated, shift, baseLen),
   };
+}
+
+/** The merged result's `truncated`, as a conservative checked PREFIX of the
+ *  merged axis (entry length `shift` + base length `baseLen`) — the shape
+ *  the timeline band and the "N % swept" wording consume (TWP-12, review
+ *  2026-09-14: the entry's own truncation was dropped, and a base fraction
+ *  was reported on the wrong axis). A partial entry ends the prefix inside
+ *  the entry move (the base's coverage is NOT credited past a gap — the
+ *  checked region [0, covered·shift] ∪ [shift, …] is not a prefix); a
+ *  complete entry followed by a partial base rescales the base fraction
+ *  onto the merged axis. Both complete → null. Pure. */
+export function mergedTruncated(
+  entry: CollisionResult["truncated"], base: CollisionResult["truncated"],
+  shift: number, baseLen: number,
+): CollisionResult["truncated"] {
+  const total = Math.max(0, shift) + Math.max(0, baseLen);
+  if (entry) {
+    const covered = total > 0 ? (Math.min(1, Math.max(0, entry.covered)) * Math.max(0, shift)) / total : 0;
+    return { covered, reason: entry.reason };
+  }
+  if (base) {
+    const covered = total > 0 ? (Math.max(0, shift) + Math.min(1, Math.max(0, base.covered)) * Math.max(0, baseLen)) / total : 0;
+    return { covered, reason: base.reason };
+  }
+  return null;
+}
+
+/** The timeline's swept-band fraction on the DISPLAYED track. Sweep values
+ *  are BASE-relative (the running progress, the parked `covered`) unless
+ *  they were already merged onto the entry axis (a merged result's
+ *  `truncated`, see mergedTruncated). `shift`/`baseMax` re-base the former;
+ *  `cumMax` is the displayed track's length. Pure. */
+export function mergedSweptFraction(
+  f: number, alreadyMerged: boolean, shift: number, baseMax: number, cumMax: number,
+): number {
+  if (!(cumMax > 0)) return 0;
+  const out = alreadyMerged ? f : (shift + f * baseMax) / cumMax;
+  return Math.min(1, Math.max(0, out));
 }

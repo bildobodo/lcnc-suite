@@ -30,6 +30,7 @@ import { toolChangeLinesFromText } from "./viewer/toolChangeScan";
 import type { WcsTerms } from "./viewer/partFrame";
 import type { ScrubTrack } from "./ws/bulkData";
 import type { CollisionResult } from "./viewer/collision";
+import { mergedSweptFraction } from "./viewer/sweepMerge";
 import { limitViolationText } from "./ws/bulkData";
 import { fmtElapsed } from "./format";
 import { Play, Pause, X, Triangle, Circle } from "lucide-vue-next";
@@ -702,6 +703,11 @@ const shownResult = computed<CollisionResult | null>(() => {
   return e && e.track === t ? e.result : null;
 });
 const hits = computed(() => shownResult.value?.hits ?? []);
+// What the displayed track IS, for the coverage wording: on the entry track
+// a merged result's fraction covers the whole route (TWP-12), never "the
+// program" alone.
+const routeWord = computed(() =>
+  baseTrack.value && track.value !== baseTrack.value ? "route (entry move + program)" : "program");
 // Reasons this sweep's no-missed-crossing guarantee does NOT hold. Null when
 // it does. Both cases mean the same thing to an operator — the result is a
 // sample, not a proof — so they share one marker rather than hiding one of
@@ -713,7 +719,7 @@ const sweepCaveat = computed<string | null>(() => {
   if (r.uncertified) why.push(r.uncertified);
   if (r.coarsened) why.push("coarsened to fit the sample budget");
   if (r.truncated && r.truncated.reason !== "running" && !props.collisionResumable) {
-    why.push(`stopped at ${pctOf(r.truncated.covered)} of the program (${r.truncated.reason === "samples" ? "sample backstop" : r.truncated.reason}) — the rest is unchecked`);
+    why.push(`stopped at ${pctOf(r.truncated.covered)} of the ${routeWord.value} (${r.truncated.reason === "samples" ? "sample backstop" : r.truncated.reason}) — the rest is unchecked`);
   }
   return why.length ? `Clearance guarantee not certified for this sweep: ${why.join("; ")}` : null;
 });
@@ -724,24 +730,24 @@ function pctOf(f: number): string {
 }
 /** Swept fraction of the DISPLAYED track's axis — the timeline's swept band:
  *  the running progress, the parked/truncated covered part, 1 when done.
- *  Sweep values are BASE-relative (progress and covered are track-axis
- *  fractions since 2026-09-12); on the entry track they are re-based past
- *  the entry segment. */
+ *  Sweep values are BASE-relative (progress and the parked `covered` are
+ *  base-track fractions since 2026-09-12) and are re-based past the entry
+ *  segment on the entry track — EXCEPT a merged result's `truncated`, which
+ *  mergeEntryResult already expresses on the merged axis (TWP-12). */
 const sweptFrac = computed(() => {
   const t = track.value, b = baseTrack.value;
   if (!t || cumMax.value <= 0) return 0;
   let f: number;
+  let merged = false;
   if (props.collisionBusy) f = props.collisionProgress;
   else {
     const r = shownResult.value;
     if (!r) return 0;
-    f = props.collisionStopped && props.collisionResumable ? props.collisionStopped.covered
-      : r.truncated ? r.truncated.covered : 1;
+    if (props.collisionStopped && props.collisionResumable) f = props.collisionStopped.covered;
+    else if (r.truncated) { f = r.truncated.covered; merged = !!(b && t !== b); }
+    else f = 1;
   }
-  if (b && t !== b && t.count > 1) {
-    const shift = t.cum[1]!, baseMax = b.cum[b.count - 1]!;
-    f = (shift + f * baseMax) / cumMax.value;
-  }
+  if (b && t !== b && t.count > 1) return mergedSweptFraction(f, merged, t.cum[1]!, b.cum[b.count - 1]!, cumMax.value);
   return Math.min(1, Math.max(0, f));
 });
 
@@ -1023,7 +1029,7 @@ onUnmounted(() => {
           no clash in {{ pctOf(collisionStopped.covered) }} swept
         </span>
         <span v-else-if="shownResult.truncated" class="val-status warn"
-              :title="`No clash in the ${pctOf(shownResult.truncated.covered)} of the program swept (${shownResult.truncated.reason === 'samples' ? 'sample backstop' : shownResult.truncated.reason}) — the rest is UNCHECKED (${shownResult.samples} samples, ${shownResult.pairCount} pairs)`">
+              :title="`No clash in the ${pctOf(shownResult.truncated.covered)} of the ${routeWord} swept (${shownResult.truncated.reason === 'samples' ? 'sample backstop' : shownResult.truncated.reason}) — the rest is UNCHECKED (${shownResult.samples} samples, ${shownResult.pairCount} pairs)`">
           no clash in {{ pctOf(shownResult.truncated.covered) }} swept
         </span>
         <span v-else class="val-status ok" :title="`${shownResult.samples} samples, ${shownResult.pairCount} pairs${shownResult.staticContacts.length ? `; in contact from the start (excluded): ${shownResult.staticContacts.map(c => c.a + '/' + c.b).join(', ')}` : ''}`">
