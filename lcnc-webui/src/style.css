@@ -722,6 +722,9 @@ label:has(input:disabled, select:disabled) {
 .btnTip { display: inline-flex; }
 .btnTip--block { display: flex; width: 100%; }
 .btnTip > :disabled { pointer-events: none; }
+/* The wrapper is the only focusable thing left when a control is disabled
+   (R-05), so it takes the same focus ring as the other help affordance. */
+.btnTip:focus-visible { outline: 2px solid var(--info); outline-offset: 1px; }
 
 /* .fs-reset:disabled opacity intentionally removed — Gate.vue fieldset handles disabled opacity
    via the fieldset:disabled rule above. Keeping it here would cause double-dimming (0.4 × 0.4). */

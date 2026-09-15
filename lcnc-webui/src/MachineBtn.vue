@@ -2,7 +2,7 @@
 import { computed, inject, onBeforeUnmount, ref, useAttrs, useSlots, type ComputedRef, type StyleValue } from 'vue';
 import Btn from './Btn.vue';
 import { Square } from 'lucide-vue-next';
-import { usePermissions, usePermissionReasons } from './permissions';
+import { usePermissions, usePermissionReasons, explainKeydown } from './permissions';
 import { BUTTON_TYPES, HOLD_FIRE_MS, type ButtonType, type ButtonDef } from './machineControls';
 import { armed, pushMessage } from './lcncWs';
 import { OPERATOR_DISPLAY } from './lcnc';
@@ -66,6 +66,16 @@ const wrapped = computed(() => isDisabled.value && !!disabledReason.value && arm
 function explain() {
   if (wrapped.value && disabledReason.value) pushMessage(OPERATOR_DISPLAY, disabledReason.value);
 }
+// R-05 (implementation review 2026-09-15): the wrapper carried the reason on
+// hover and on tap, which leaves a keyboard user tabbing straight past a
+// disabled control AND its explanation. While wrapped it is a focusable help
+// affordance — Enter and Space say why, exactly as the tap does. The inner
+// control stays `disabled`, so the default-deny path is untouched and the
+// machine action remains unreachable; the wrapper appears only while the
+// control is disabled WITH a reason, so an enabled strip's tab order is
+// unchanged.
+const explainLabel = computed(() =>
+  disabledReason.value ? `Why is this unavailable? ${disabledReason.value}` : undefined);
 const resolvedVariant = computed(() => props.variant ?? def.value.variant);
 const resolvedIcon = computed(() => props.icon ?? def.value.icon);
 const resolvedMuted = computed(() => props.muted ?? def.value.muted);
@@ -159,7 +169,9 @@ onBeforeUnmount(() => clearTimeout(holdTimer));
 </script>
 
 <template>
-  <span v-if="wrapped" class="btnTip" :class="[wrapperAttrs.class, { 'btnTip--block': block }]" :style="wrapperAttrs.style" :title="disabledReason" @click="explain">
+  <span v-if="wrapped" class="btnTip" :class="[wrapperAttrs.class, { 'btnTip--block': block }]" :style="wrapperAttrs.style"
+        role="button" tabindex="0" :aria-label="explainLabel" :title="disabledReason"
+        @click="explain" @keydown="(e: KeyboardEvent) => explainKeydown(e, explain)">
     <Btn
       v-bind="passAttrs"
       :variant="resolvedVariant"

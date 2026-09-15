@@ -199,11 +199,58 @@ test("keypad names its target; a frame/fixture change while open cancels it with
   }
 });
 
+test("a disabled control explains itself to the keyboard, and sends no command", async ({ page }) => {
+  // R-05 (implementation review 2026-09-15): the explanation was reachable by
+  // pointer only — the wrapper was a plain span, and its child is disabled, so
+  // a keyboard user tabbed past both the control and its reason.
+  await page.goto(MOCK);
+  // exact: the disabled control's own name — the help wrapper beside it is a
+  // button too, and quotes the reason (which names the control).
+  const btn = page.getByRole("button", { name: "Go to WCS 0", exact: true });
+  await expect(btn).toBeVisible();
+  await ctlSend({ op: "quiet", on: true });
+  try {
+    await ctlSend({ op: "status_delta", data: {
+      permissions: { ...PERMS_ALL, goZero: false },
+      permission_reasons: { goZero: "Go to WCS 0 under TCP: select the Machine frame or the Plane frame first" },
+    } });
+    await expect(btn).toBeDisabled();
+    const tip = page.locator(".btnTip", { has: btn });
+    // Focusable, and it says what it is for.
+    await expect(tip).toHaveAttribute("tabindex", "0");
+    await expect(tip).toHaveAttribute("aria-label", /Why is this unavailable\?.*Machine frame/);
+    await tip.focus();
+    await expect(tip).toBeFocused();
+    await page.keyboard.press("Enter");
+    const messages = page.getByRole("button", { name: /^Messages \(/ });
+    await messages.click();
+    await expect(page.locator(".msgText").first()).toContainText("select the Machine frame");
+    await messages.click();
+    // Space explains too — and neither key reaches the machine. (Escape is
+    // deliberately NOT used to close anything here: it is the E-Stop
+    // shortcut, which fires from anywhere by design.)
+    await ctlSend({ op: "clearCmds" });
+    await tip.focus();
+    await page.keyboard.press(" ");
+    await messages.click();
+    await expect(page.locator(".msgText")).toHaveCount(2);
+    const sent = await ctlSend({ op: "lastCmds" }) as { cmds?: { cmd?: string }[] };
+    expect((sent.cmds ?? []).map(c => c.cmd)).toEqual([]);
+    await messages.click();
+    // Enabled again: no wrapper, so the tab order is the plain control's.
+    await ctlSend({ op: "status_delta", data: { permissions: { ...PERMS_ALL }, permission_reasons: {} } });
+    await expect(page.locator(".btnTip", { has: btn })).toHaveCount(0);
+  } finally {
+    await ctlSend({ op: "quiet", on: false });
+    await ctlSend({ op: "reset" });
+  }
+});
+
 test("a disabled control explains itself: the reason on hover and on tap", async ({ page }) => {
   // U-06 (review 2026-09-14): a disabled <button> swallowed pointer events —
   // the reason existed only in a denial it could not send.
   await page.goto(MOCK);
-  const btn = page.getByRole("button", { name: "Go to WCS 0" });
+  const btn = page.getByRole("button", { name: "Go to WCS 0", exact: true });
   await expect(btn).toBeVisible();
   await ctlSend({ op: "quiet", on: true });
   try {

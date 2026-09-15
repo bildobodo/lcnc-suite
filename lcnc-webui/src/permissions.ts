@@ -231,6 +231,23 @@ export function useFire(): FireFn {
   return fire;
 }
 
+/**
+ * Keyboard activation for a "why is this unavailable?" affordance (R-05,
+ * implementation review 2026-09-15).
+ *
+ * A control that is disabled cannot be focused, so the reason beside it has
+ * to be reachable on its own: the wrapper (MachineBtn) or the label (a
+ * disabled radio) takes `tabindex="0"` + `role="button"` WHILE DISABLED and
+ * calls this from @keydown. Space is prevented from scrolling the strip. The
+ * disabled control itself is never re-enabled — this hands over the
+ * explanation, not the action.
+ */
+export function explainKeydown(e: KeyboardEvent, say: () => void): void {
+  if (e.key !== "Enter" && e.key !== " " && e.key !== "Spacebar") return;
+  e.preventDefault();
+  say();
+}
+
 /** Composable: inject permissions from ancestor provider */
 export function usePermissions(): ComputedRef<Permissions> {
   const perms = inject(PERMISSIONS_KEY);

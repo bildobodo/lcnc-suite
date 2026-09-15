@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { usePermissionReasons } from "./permissions";
+import { usePermissionReasons, explainKeydown } from "./permissions";
 import { pushMessage } from "./lcncWs";
 import { OPERATOR_DISPLAY } from "./lcnc";
 import { computed, inject, ref, watch, onMounted, onUnmounted, type Ref, type Component } from "vue";
@@ -469,7 +469,10 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               <div class="strip-radio-options">
                 <label class="radio-label" title="Identity kinematics — jog along machine axes"><MachineRadio gate="jogFrame" name="jogFrame" :modelValue="kinsMode ?? undefined" :value="0" @update:modelValue="emit('setKinsMode', 0)" /> Machine</label>
                 <label class="radio-label" title="TCP kinematics — X/Y/Z are the work frame riding the table: jogging A keeps the tool tip on the workpiece (position only; the head orientation does not follow). Switching re-seeds the preview (a brief progress flash is expected)"><MachineRadio gate="jogFrame" name="jogFrame" :modelValue="kinsMode ?? undefined" :value="1" @update:modelValue="emit('setKinsMode', 1)" /> TCP</label>
-                <label v-if="twpCapable" class="radio-label" :class="{ 'val-status': true, warn: twpStale, muted: !twpOriented }" :title="planeTitle" @click="explainPlane"><MachineRadio gate="planeFrame" name="jogFrame" :modelValue="kinsMode ?? undefined" :value="2" @update:modelValue="emit('setKinsMode', 2)" /> Plane{{ twpStale ? ' (stale)' : '' }}</label>
+                <label v-if="twpCapable" class="radio-label" :class="{ 'val-status': true, warn: twpStale, muted: !twpOriented }" :title="planeTitle"
+                       :tabindex="can.planeFrame ? undefined : 0" :role="can.planeFrame ? undefined : 'button'"
+                       :aria-label="can.planeFrame ? undefined : `Why is the Plane frame unavailable? ${planeTitle}`"
+                       @click="explainPlane" @keydown="(e: KeyboardEvent) => explainKeydown(e, explainPlane)"><MachineRadio gate="planeFrame" name="jogFrame" :modelValue="kinsMode ?? undefined" :value="2" @update:modelValue="emit('setKinsMode', 2)" /> Plane{{ twpStale ? ' (stale)' : '' }}</label>
               </div>
             </div>
           </template>

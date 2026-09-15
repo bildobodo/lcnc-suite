@@ -7,7 +7,7 @@ import { useAxes, isRotaryAxis } from "./useAxes";
 import { kinsModeChip, type OffDatum } from "./twpPose";
 import { touchoffTargetLabel, type TouchoffExpect } from "./useTouchoffMath";
 import { keypadState, closeKeypad } from "./useNumberKeypad";
-import { usePermissions } from "./permissions";
+import { usePermissions, explainKeydown } from "./permissions";
 import { pushMessage } from "./lcncWs";
 import { OPERATOR_DISPLAY, OPERATOR_ERROR } from "./lcnc";
 
@@ -235,7 +235,11 @@ function zeroAll() {
         <span v-if="kinsChip" class="val-status kinsChip" :class="kinsChip.cls"
               :title="kinsChip.title">{{ kinsChip.text }}</span>
         <div class="strip-radio-options">
-          <label v-for="g in g5xOptions" :key="g" class="radio-label" :title="wcsReserved(g) ? RESERVED_TITLE : undefined" @click="wcsReserved(g) && pushMessage(OPERATOR_DISPLAY, RESERVED_TITLE)">
+          <label v-for="g in g5xOptions" :key="g" class="radio-label" :title="wcsReserved(g) ? RESERVED_TITLE : undefined"
+                 :tabindex="wcsReserved(g) ? 0 : undefined" :role="wcsReserved(g) ? 'button' : undefined"
+                 :aria-label="wcsReserved(g) ? `Why is ${g} unavailable? ${RESERVED_TITLE}` : undefined"
+                 @click="wcsReserved(g) && pushMessage(OPERATOR_DISPLAY, RESERVED_TITLE)"
+                 @keydown="(e: KeyboardEvent) => wcsReserved(g) && explainKeydown(e, () => pushMessage(OPERATOR_DISPLAY, RESERVED_TITLE))">
             <MachineRadio gate="wcsSelect" name="wcs" :value="g" :modelValue="g5xLabel" :disabled="wcsReserved(g)" @update:modelValue="(v: string | number | undefined) => { if (v != null) emit('setG5x', String(v)) }" />
             <span :class="{ muted: wcsReserved(g) }">{{ g }}</span>
           </label>
