@@ -7,6 +7,7 @@ import {
   type CollisionBody, type CollisionMachine, type CollisionResult, type CollisionOptions, mergeContiguousIntervals, componentBoxes } from "./collision";
 import type { ScrubTrack } from "../ws/bulkData";
 import { TLO_NONE } from "./tloEvents";
+import { runSweepSlice } from "./sweepPump";
 
 const WCS0 = { g5x: [0, 0, 0, 0, 0, 0], g92: [], rotationDeg: 0 };
 
@@ -1299,6 +1300,48 @@ describe("tool geometry lifetime (TWP-06/07, review 2026-09-14)", () => {
     expect(ref.size).toBeGreaterThan(0);
     const got = new Set(full.hits.map(h => `${h.line}/${h.a}/${h.b}`));
     expect([...got].sort()).toEqual([...ref].sort());
+  });
+});
+
+describe("initialization checkpoints (TWP-11, review 2026-09-14)", () => {
+  // 20 k points along X, far from any contact: the prescreen's joint-range
+  // scan is the dominant pre-sweep cost and must yield on the way.
+  const big = (n: number) => track(Array.from({ length: n }, (_, i) => [i * 0.01, 0, 0]));
+  const TOOLED: CollisionBody[] = [
+    { id: "vise", group: "table", positions: boxPositions(10) },
+    { id: "tool", group: "head", positions: toolCylinderPositions(6, 20), tool: true },
+  ];
+
+  it("yields checkpoints during the prescreen, before the baseline, on a large track", () => {
+    const it = sweepCollisionsIter(buildCollisionModel(PLUNGE, PLUNGE_BODIES), big(20000), WCS0, { margin: 2 });
+    let zeros = 0;
+    let r = it.next();
+    while (!r.done && r.value === 0) { zeros++; r = it.next(); }
+    // 4 in the joint-range scan (every 4096 of 20 k) + the pre-segment one.
+    expect(zeros).toBeGreaterThanOrEqual(5);
+    while (!r.done) r = it.next();
+    expect(r.value.hits).toEqual([]);
+    expect(r.value.truncated).toBeNull();
+  });
+
+  it("an abort during the prescreen ends with an empty stopped result and the base tool installed", () => {
+    const m = buildCollisionModel(PLUNGE, TOOLED);
+    const it = sweepCollisionsIter(m, big(20000), WCS0, { margin: 2 });
+    const first = it.next();
+    expect(first.done).toBe(false);
+    expect(first.value).toBe(0);
+    const r = it.next(true);
+    expect(r.done).toBe(true);
+    const res = r.value as CollisionResult;
+    expect(res.samples).toBe(0);
+    expect(res.hits).toEqual([]);
+    expect(res.truncated).toEqual({ covered: 0, reason: "stopped" });
+    expect(m.bodies[m.toolBodyIdx]!.geom).toBe(m.baseTool!.geom);
+    // Through the worker's driver: a cancel lands at the first checkpoint.
+    const slice = runSweepSlice(sweepCollisionsIter(m, big(20000), WCS0, { margin: 2 }), 10_000, () => true);
+    expect(slice.done).toBe(true);
+    expect(slice.cancelled).toBe(true);
+    expect(slice.checkpoints).toBeLessThanOrEqual(2);
   });
 });
 

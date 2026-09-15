@@ -266,8 +266,11 @@ export interface CollisionResult {
   truncated: { covered: number; reason: "time" | "samples" | "stopped" | "running" } | null;
 }
 
-/** Driver-side stop/continue (2026-09-12). The iterator installs `take` at
- *  its start and clears it when it returns. While the generator is
+/** Driver-side stop/continue (2026-09-12). The iterator installs `take` once
+ *  its initialization (the reach prescreen and the baseline) is done —
+ *  initialization checkpoints exist (TWP-11) but a stop arriving during them
+ *  parks at the first checkpoint after — and clears it when it returns.
+ *  While the generator is
  *  SUSPENDED at a checkpoint the driver may call `take(reason)` to get the
  *  sweep-so-far as a CollisionResult — `truncated` set with that reason and
  *  the covered fraction — WITHOUT ending the generator: resuming it
@@ -1035,12 +1038,21 @@ export function* sweepCollisionsIter(
       track.abc[k + 2]! + (track.abc[j + 2]! - track.abc[k + 2]!) * t,
       vertModel?.[i] ?? identityKins, termFor(i), tloFor(i));
   };
+  // Initialization checkpoints (TWP-11, review 2026-09-14): the joint-range
+  // scan is 2n inverse-kinematics evaluations and ran to completion before
+  // the first yield — 50–100 ms per 100 k points, more under a world kins
+  // — so a cancel or pause could not land until it was done. A checkpoint
+  // every 4096 vertices (and every 256 pairs below) keeps the ack latency
+  // in the same class as the sweep's own. An abort here returns the empty
+  // stopped result: nothing was posed or queried yet.
+  let abortedEarly = false;
   if (n > 0) {
     liftJoints(track.pos[0]!, track.pos[1]!, track.pos[2]!, track.abc[0]!, track.abc[1]!, track.abc[2]!,
                vertModel?.[0] ?? identityKins, termFor(0), tloFor(0));
     noteJoints();
     noteTlo(tloFor(0));
     for (let i = 1; i < n; i++) {
+      if ((i & 4095) === 0 && (yield 0) === true) { abortedEarly = true; break; }
       noteTlo(tloFor(i));
       const segModel = vertModel?.[i] ?? identityKins;
       const bulges = segModel.type !== "trivkins";
@@ -1108,7 +1120,8 @@ export function* sweepCollisionsIter(
   const unreachable = new Uint8Array(pairs.length);
   let pairsPrescreened = 0;
   const rsA = { c: new THREE.Vector3(), r: 0 }, rsB = { c: new THREE.Vector3(), r: 0 };
-  for (let pi = 0; pi < pairs.length; pi++) {
+  for (let pi = 0; pi < pairs.length && !abortedEarly; pi++) {
+    if ((pi & 255) === 255 && (yield 0) === true) { abortedEarly = true; break; }
     const [ai, bi] = pairs[pi]!;
     reachSphere(ai, pairLca[pi]!, rsA);
     reachSphere(bi, pairLca[pi]!, rsB);
@@ -1116,6 +1129,14 @@ export function* sweepCollisionsIter(
       unreachable[pi] = 1;
       pairsPrescreened++;
     }
+  }
+  if (abortedEarly) {
+    // Nothing posed, nothing queried, no certificate or contact state to
+    // report; the driver discards a cancelled sweep's value anyway.
+    restoreBaseTool(model);
+    return { hits: [], staticContacts: [], samples: 0, coarsened: false, uncertified,
+             pairCount: pairs.length, pairsPrescreened, bvhMs: model.bvhMs,
+             sweepMs: clock() - t0, truncated: { covered: 0, reason: "stopped" } };
   }
   // Pairs the sweep never touches: prescreened here, static after the baseline.
   const skipPair = new Uint8Array(unreachable);
