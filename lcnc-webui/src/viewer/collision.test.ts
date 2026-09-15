@@ -3,8 +3,8 @@ import * as THREE from "three";
 import { emptyLineIndex } from "./lineIndex";
 import { describe, expect, it } from "vitest";
 import {
-  buildCollisionModel, sweepCollisions, sweepCollisionsIter, toolCylinderPositions, type SnapshotHandle,
-  type CollisionBody, type CollisionMachine, type CollisionResult, mergeContiguousIntervals, componentBoxes } from "./collision";
+  buildCollisionModel, sweepCollisions, sweepCollisionsIter, toolCylinderPositions, restoreBaseTool, type SnapshotHandle,
+  type CollisionBody, type CollisionMachine, type CollisionResult, type CollisionOptions, mergeContiguousIntervals, componentBoxes } from "./collision";
 import type { ScrubTrack } from "../ws/bulkData";
 
 const WCS0 = { g5x: [0, 0, 0, 0, 0, 0], g92: [], rotationDeg: 0 };
@@ -1141,6 +1141,163 @@ describe("component boxes + query lower bound (2026-09-13)", () => {
     const t = track([[0, 0, 0], [0, 0, -40]]);
     const a = sweepCollisions(fwd, t, WCS0, { margin: 2 }), b = sweepCollisions(rev, t, WCS0, { margin: 2 });
     expect(a.hits.map(h => [h.line, h.cum.toFixed(3), h.dist.toFixed(6)])).toEqual(b.hits.map(h => [h.line, h.cum.toFixed(3), h.dist.toFixed(6)]));
+  });
+});
+
+describe("tool geometry lifetime (TWP-06/07, review 2026-09-14)", () => {
+  // The review probes' fixture: a tool on an X-driven head approaches a
+  // fixed vise (cube 2 at z 0..2) from X 20 to X 5; the tool cylinder
+  // (tip at the head origin, +Z) is swapped per segment. Ø20 touches the
+  // vise at X ≈ 11; Ø2 never reaches it (X 5 > 2).
+  const M: CollisionMachine = {
+    groups: [{ id: "table", parent: "root" }, { id: "part", parent: "table" }, { id: "head", parent: "root" }],
+    kinematics: [{ group: "head", joint: 0, type: "translate", direction: "x", sign: 1 }],
+    workGroup: "part", toolGroup: "head", unitScale: 1, axes: ["X", "Y", "Z"],
+  };
+  const makeModel = () => buildCollisionModel(M, [
+    { id: "vise", group: "table", positions: boxPositions(2), translate: [0, 0, 1] },
+    { id: "tool", group: "head", positions: toolCylinderPositions(2, 2), tool: true },
+  ]);
+  const approach = (n: number): ScrubTrack & { tlo: Uint8Array } => {
+    const pts = Array.from({ length: n }, (_, i) => [20 - 15 * i / (n - 1), 0, 0]);
+    const t = track(pts, undefined, undefined, pts.map(() => 1));
+    return { ...t, tlo: new Uint8Array(n) };
+  };
+  type TloEvents = NonNullable<CollisionOptions["tloEvents"]>;
+  const DIMS = { 1: { diam: 20, len: 2 }, 2: { diam: 2, len: 2 } };
+  const EVENTS: TloEvents = [{ seq: 0, xyz: [0, 0, 0], tool: 2 }, { seq: 1, xyz: [0, 0, 0], tool: 1 }];
+  const opts = (extra: Partial<CollisionOptions> = {}): CollisionOptions =>
+    ({ margin: 0.1, tloEvents: EVENTS, toolDims: DIMS, liveTool: 2, ...extra });
+  const finish = (it: ReturnType<typeof sweepCollisionsIter>): CollisionResult => {
+    let r = it.next(); while (!r.done) r = it.next(); return r.value;
+  };
+  const onsets = (r: CollisionResult) => r.hits.filter(h => h.continuation === undefined).length;
+  const contactLines = (r: CollisionResult) => [...new Set(r.hits.map(h => h.line))].sort((a, b) => a - b);
+  // A clock that always says "yieldMs elapsed": checkpoints at every
+  // segment and every SAMPLES_PER_CLOCK samples.
+  const eagerClock = () => { let t = 0; return () => (t += 1000); };
+
+  it("a small→large tool change mid-approach finds the later contact (TWP-06)", () => {
+    const t = approach(40); t.tlo.fill(1, 5);          // Ø20 from vertex 5 on
+    const changed = sweepCollisions(makeModel(), t, WCS0, opts());
+    const large = approach(40); large.tlo.fill(1);     // Ø20 throughout
+    const expected = sweepCollisions(makeModel(), large, WCS0, opts());
+    expect(onsets(expected)).toBe(1);
+    expect(onsets(changed)).toBe(1);
+    expect(contactLines(changed)).toEqual(contactLines(expected));
+    expect(changed.hits[0]!.b).toBe("vise");
+  });
+
+  it("a tool-offset change mid-approach invalidates the carried clearance, both directions (TWP-06)", () => {
+    // TLO 50 lifts the Ø20 body 50 below the vise: a clearance of ~48
+    // carried past the G43 change hid the contact after the offset went
+    // back to 0 (and the reverse: a contact found under TLO 0 must END at
+    // a change to 50, never be carried).
+    const ev: TloEvents = [{ seq: 0, xyz: [0, 0, 50], tool: 1 }, { seq: 1, xyz: [0, 0, 0], tool: 1 }];
+    const t = approach(40); t.tlo.fill(1, 5);          // TLO 50 → 0 at vertex 5
+    const r = sweepCollisions(makeModel(), t, WCS0, opts({ tloEvents: ev }));
+    expect(onsets(r)).toBe(1);
+    const back = approach(40); back.tlo.fill(0, 30);   // TLO 0 → 50 at vertex 30 (in contact by then)
+    back.tlo.fill(1, 0, 30);
+    const r2 = sweepCollisions(makeModel(), back, WCS0, opts({ tloEvents: ev }));
+    expect(onsets(r2)).toBe(1);
+    expect(Math.max(...contactLines(r2))).toBeLessThanOrEqual(31);   // contact ends at the lift
+    // No change at all: no contact under TLO 50.
+    const lifted = approach(40);
+    expect(sweepCollisions(makeModel(), lifted, WCS0, opts({ tloEvents: ev })).hits).toEqual([]);
+  });
+
+  it("interleaving a side run at the initial checkpoint leaves the main run's findings unchanged (TWP-07)", () => {
+    const large = approach(2); large.tlo.fill(1);
+    const standalone = sweepCollisions(makeModel(), large, WCS0, opts());
+    const shared = makeModel();
+    const main = sweepCollisionsIter(shared, large, WCS0, opts());
+    main.next();                                        // parked at the initial yield, Ø20 installed
+    const side = sweepCollisionsIter(shared, approach(2), WCS0, opts());   // Ø2 (live tool)
+    side.next();                                        // its baseline re-installed Ø2 on the shared body
+    const mixed = finish(main);
+    finish(side);
+    expect(mixed.hits.length).toBe(standalone.hits.length);
+    expect(mixed.hits.length).toBe(1);
+  });
+
+  it("interleaving a side run at ANY checkpoint of the main run leaves its findings unchanged (TWP-07)", () => {
+    const large = approach(40); large.tlo.fill(1);
+    const standalone = sweepCollisions(makeModel(), large, WCS0, opts());
+    let total = 0;
+    { const it = sweepCollisionsIter(makeModel(), large, WCS0, opts({ yieldMs: 0, clock: eagerClock() }));
+      let r = it.next(); while (!r.done) { total++; r = it.next(); } }
+    expect(total).toBeGreaterThan(3);                   // segment + in-segment checkpoints exist
+    for (let k = 1; k <= total; k++) {
+      const shared = makeModel();
+      const main = sweepCollisionsIter(shared, large, WCS0, opts({ yieldMs: 0, clock: eagerClock() }));
+      for (let i = 0; i < k; i++) main.next();
+      finish(sweepCollisionsIter(shared, approach(2), WCS0, opts()));   // poses + re-tools the shared model
+      const m = finish(main);
+      expect(contactLines(m), `interleaved at checkpoint ${k}`).toEqual(contactLines(standalone));
+    }
+  });
+
+  it("after interleaved runs the model wears its base tool and a fallback sweep matches a fresh model (TWP-07)", () => {
+    const shared = makeModel();
+    const original = shared.bodies[shared.toolBodyIdx]!.geom;
+    expect(shared.baseTool!.geom).toBe(original);
+    const large = approach(2); large.tlo.fill(1);
+    const main = sweepCollisionsIter(shared, large, WCS0, opts()); main.next();
+    const side = sweepCollisionsIter(shared, approach(2), WCS0, opts()); side.next();
+    finish(main); finish(side);
+    expect(shared.bodies[shared.toolBodyIdx]!.geom).toBe(original);
+    // The response's counterexample: a subsequent sweep with the fallback
+    // (base) tool and no events must agree with a fresh model — 0 hits.
+    const fallback = sweepCollisions(shared, approach(2), WCS0, { margin: 0.1 }).hits.length;
+    expect(fallback).toBe(sweepCollisions(makeModel(), approach(2), WCS0, { margin: 0.1 }).hits.length);
+    expect(fallback).toBe(0);
+  });
+
+  it("restoreBaseTool puts the base cylinder back on a model a dropped run left mid-sweep (TWP-07)", () => {
+    const shared = makeModel();
+    const original = shared.bodies[shared.toolBodyIdx]!.geom;
+    const large = approach(40); large.tlo.fill(1);
+    const it = sweepCollisionsIter(shared, large, WCS0, opts({ yieldMs: 0, clock: eagerClock() }));
+    it.next(); it.next(); it.next();                    // parked mid-sweep wearing Ø20
+    expect(shared.bodies[shared.toolBodyIdx]!.geom).not.toBe(original);
+    expect(restoreBaseTool(shared)).toBe(true);
+    expect(shared.bodies[shared.toolBodyIdx]!.geom).toBe(original);
+    expect(restoreBaseTool(shared)).toBe(false);        // idempotent
+    // A run that completes restores it by itself.
+    finish(sweepCollisionsIter(shared, large, WCS0, opts()));
+    expect(shared.bodies[shared.toolBodyIdx]!.geom).toBe(original);
+  });
+
+  it("agrees with a reference sweep that starts fresh at every tool/TLO boundary (TWP-06)", () => {
+    // 30 points X 20 → 5: the tool alternates Ø2/Ø20 every 5 vertices and
+    // the tool offset toggles 0/30 every 7 — boundaries of both kinds, some
+    // inside the contact zone (X ≤ 11).
+    const n = 30;
+    const t = approach(n);
+    const events: TloEvents = [];
+    const idxOf = new Map<string, number>();
+    for (let i = 0; i < n; i++) {
+      const tool = Math.floor(i / 5) % 2 ? 1 : 2;
+      const z = Math.floor(i / 7) % 2 ? 30 : 0;
+      const key = `${tool}/${z}`;
+      if (!idxOf.has(key)) { idxOf.set(key, events.length); events.push({ seq: events.length, xyz: [0, 0, z], tool }); }
+      t.tlo[i] = idxOf.get(key)!;
+    }
+    const full = sweepCollisions(makeModel(), t, WCS0, opts({ tloEvents: events }));
+    const ref = new Set<string>();
+    for (let i = 1; i < n; i++) {
+      // Every segment alone, under its own tool/TLO: no certificate can
+      // carry across a boundary here by construction.
+      const seg = track([[t.pos[3 * (i - 1)]!, 0, 0], [t.pos[3 * i]!, 0, 0]], undefined, [i, i + 1], [1, 1]);
+      seg.tlo = new Uint8Array([t.tlo[i]!, t.tlo[i]!]);
+      for (const h of sweepCollisions(makeModel(), seg, WCS0, opts({ tloEvents: events })).hits) {
+        ref.add(`${i + 1}/${h.a}/${h.b}`);
+      }
+    }
+    expect(ref.size).toBeGreaterThan(0);
+    const got = new Set(full.hits.map(h => `${h.line}/${h.a}/${h.b}`));
+    expect([...got].sort()).toEqual([...ref].sort());
   });
 });
 

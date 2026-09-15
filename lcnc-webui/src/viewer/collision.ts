@@ -271,9 +271,12 @@ export interface CollisionResult {
  *  sweep-so-far as a CollisionResult — `truncated` set with that reason and
  *  the covered fraction — WITHOUT ending the generator: resuming it
  *  afterwards continues the sweep with every certificate and contact state
- *  intact. The refinement runs on COPIES of the hit records and the loop
- *  re-poses every sample itself, so a snapshot leaves the suspended sweep
- *  exactly as it found it. */
+ *  intact. The refinement runs on COPIES of the hit records, and every
+ *  checkpoint sits BEFORE the pose of the sample it precedes (TWP-07 — the
+ *  in-segment checkpoint used to sit between the pose and its distance
+ *  queries, so a refinement probe or a side sweep re-posed the shared model
+ *  under them), so the loop re-poses after every resume and a snapshot
+ *  leaves the suspended sweep exactly as it found it. */
 export interface SnapshotHandle {
   take: ((reason: "time" | "stopped") => CollisionResult) | null;
   /** The sweep-so-far WITHOUT refinement (2026-09-13, live findings on the
@@ -468,9 +471,48 @@ interface PathDof {
   dof: KinRuntime;
 }
 
+/** A tool body's swappable geometry (schema 8): the model's BASE cylinder
+ *  (the live tool) or a per-program-tool variant. The base is owned by the
+ *  MODEL (TWP-07, review 2026-09-14): an iterator that captured "whatever
+ *  the shared body wears right now" as its base could inherit another run's
+ *  program tool and restore THAT at completion — a later fallback sweep on
+ *  the resident model then reported the wrong tool's contacts. */
+export interface ToolVariant {
+  geom: THREE.BufferGeometry; bvh: MeshBVH; center: THREE.Vector3; radius: number; extent: number; comps: Float32Array;
+}
+
+function toolVariantOf(b: BuiltBody): ToolVariant {
+  return { geom: b.geom, bvh: b.bvh, center: b.center, radius: b.radius, extent: b.extent, comps: b.comps };
+}
+
+/** Install `v` on the model's tool body unless it already wears it. The
+ *  test is geometry IDENTITY on the shared body, never a per-run cache
+ *  (TWP-07: two iterators on one resident model kept divergent
+ *  bookkeeping, so a run resumed after a side sweep believed its tool was
+ *  installed while the body wore the other run's). Returns true if swapped. */
+export function installToolVariant(model: CollisionModel, v: ToolVariant): boolean {
+  if (model.toolBodyIdx < 0) return false;
+  const tb = model.bodies[model.toolBodyIdx]!;
+  if (tb.geom === v.geom) return false;
+  tb.geom = v.geom; tb.bvh = v.bvh; tb.center = v.center; tb.radius = v.radius; tb.extent = v.extent; tb.comps = v.comps;
+  return true;
+}
+
+/** Hand the model back wearing its BASE tool. A resident model outlives
+ *  every sweep — completion, a dropped parked run, an error path — and each
+ *  of those must leave it as built. Returns true if a swap was needed. */
+export function restoreBaseTool(model: CollisionModel): boolean {
+  return model.baseTool ? installToolVariant(model, model.baseTool) : false;
+}
+
 export interface CollisionModel {
   nodes: Node[];
   bodies: BuiltBody[];
+  /** Index of the ONE tool body (id "tool" / `tool: true`), −1 when none. */
+  toolBodyIdx: number;
+  /** The tool body's geometry as BUILT (the live tool's cylinder) — what
+   *  every sweep restores at completion (see restoreBaseTool). */
+  baseTool: ToolVariant | null;
   pairs: Array<[number, number]>;  // indices into bodies (tool-side first when there is one)
   /** Per pair: the DOFs strictly between the two bodies (below their LCA) —
    *  exactly the motion that changes their relative pose. */
@@ -582,7 +624,9 @@ export function buildCollisionModel(machine: CollisionMachine, bodyDefs: Collisi
       pairTool.push(isToolBody(A) || isToolBody(B));
     }
   }
-  return { nodes, bodies, pairs, pairDofs, pairCutting, pairTool, pairLca, machine, bvhMs: performance.now() - t0 };
+  const toolBodyIdx = bodies.findIndex(b => isToolBody(b) || b.id === "tool");
+  const baseTool = toolBodyIdx >= 0 ? toolVariantOf(bodies[toolBodyIdx]!) : null;
+  return { nodes, bodies, toolBodyIdx, baseTool, pairs, pairDofs, pairCutting, pairTool, pairLca, machine, bvhMs: performance.now() - t0 };
 }
 
 /** One kinematic pose: evaluate every node's world matrix from joint values. */
@@ -742,20 +786,17 @@ export function* sweepCollisionsIter(
   // for the live marker and partFrame makes for the drawn tip. It used to
   // be baked into the cylinder verts once per sweep, which could not follow
   // a per-segment offset.
-  const toolBodyIdx = bodies.findIndex(b => b.id === "tool");
+  const toolBodyIdx = model.toolBodyIdx;
   const _tloMat = new THREE.Matrix4();
   // Per-program-tool body VARIANTS (schema 8): the segment's tool number
   // (toolForIndex) selects the cylinder the tool body wears. Only the ONE
   // tool BuiltBody's geometry/BVH/sphere swap — pairs, pair DOFs and the
   // cutting flags are properties of the body's identity and stay invariant
   // (pushing K tool bodies would mint K× pairs and misattribute hits).
-  type ToolVariant = { geom: THREE.BufferGeometry; bvh: MeshBVH; center: THREE.Vector3; radius: number; extent: number; comps: Float32Array };
+  // The BASE is the model's own (TWP-07), never "what the body wears now".
   const toolVariants = new Map<number, ToolVariant>();
-  let baseVariant: ToolVariant | null = null;
-  let appliedTool: number | null | undefined = undefined;
-  if (toolBodyIdx >= 0 && opts.toolDims && opts.tloEvents?.length) {
-    const tb = bodies[toolBodyIdx]!;
-    baseVariant = { geom: tb.geom, bvh: tb.bvh, center: tb.center, radius: tb.radius, extent: tb.extent, comps: tb.comps };
+  const baseVariant: ToolVariant | null = model.baseTool;
+  if (toolBodyIdx >= 0 && baseVariant && opts.toolDims && opts.tloEvents?.length) {
     for (const ev of opts.tloEvents) {
       const tn = ev.tool;
       if (tn == null || toolVariants.has(tn)) continue;
@@ -773,11 +814,9 @@ export function* sweepCollisionsIter(
     }
   }
   const applyTool = (tn: number | null) => {
-    if (!baseVariant || tn === appliedTool) return;
-    appliedTool = tn;
+    if (!baseVariant) return;
     const v = (tn != null ? toolVariants.get(tn) : undefined) ?? baseVariant;
-    const tb = bodies[toolBodyIdx]!;
-    tb.geom = v.geom; tb.bvh = v.bvh; tb.center = v.center; tb.radius = v.radius; tb.extent = v.extent; tb.comps = v.comps;
+    installToolVariant(model, v);   // geometry identity on the SHARED body, no private cache
   };
   const toolFor = (i: number): number | null =>
     toolForIndex(track.tlo?.[i], opts.tloEvents, opts.liveTool);
@@ -1476,11 +1515,12 @@ export function* sweepCollisionsIter(
       .sort((x, y) => x.cum - y.cum)
       .map(({ pi: _pi, samples: _s, ...rest }) => rest);
 
-    // Hand the model back wearing its BASE tool body: a caller that reuses
-    // the model (tests, a future cached build) must not inherit the last
-    // segment's program tool. (Final result only — a snapshot leaves the
-    // suspended loop's tool alone; it re-poses every sample anyway.)
-    if (final) applyTool(null);
+    // Hand the model back wearing its BASE tool body — the model's own
+    // (TWP-07): a caller that reuses the model (the resident worker model,
+    // tests) must not inherit the last segment's program tool. (Final
+    // result only — a snapshot leaves the suspended loop's tool alone; the
+    // loop re-installs its tool at every pose, which follows every resume.)
+    if (final) restoreBaseTool(model);
     return {
       hits,
       staticContacts,
@@ -1518,6 +1558,11 @@ export function* sweepCollisionsIter(
   const abortAtStart = (yield 0) === true;
   if (abortAtStart) aborted = true;
   lastYield = clock();
+  // Tool geometry / tool offset of the previous segment (TWP-06): a carried
+  // clearance certificate is only valid while the tool body's geometry and
+  // its −TLO shift are those it was measured with.
+  let prevTool = toolFor(0);
+  let prevTlo = tloFor(0);
   outer:
   for (let i = 1; i < n && !abortAtStart; i++) {
     // i > 1 for the time-based checkpoint: a segment-1 checkpoint has
@@ -1534,6 +1579,24 @@ export function* sweepCollisionsIter(
     const c0 = dcum[i - 1]!, c1 = dcum[i]!;
     const L = c1 - c0;
     if (L <= 1e-9) continue;
+    // Tool-geometry / tool-offset discontinuity (TWP-06, review 2026-09-14):
+    // a carried clearance was measured with the PREVIOUS segment's tool
+    // body. A different program tool swaps the cylinder; a different tool
+    // offset shifts the body by −TLO in the tool node. Either invalidates
+    // every tool pair's certificate: their clearance is zeroed so the
+    // chunk-start block re-queries them at this segment's start, and pairs
+    // in contact are forced to re-query too (a swap to a thinner tool is a
+    // separation the d > 2·margin rule then verifies; a swap to a fatter
+    // one is contact it measures — onset state is never guessed). Kins/WCS
+    // relabels (brk vertices) are zero-width and stationary, not a
+    // discontinuity of this kind; non-tool pairs are unaffected.
+    const segTool = toolFor(i), segTlo = tloFor(i);
+    const toolBoundary = segTool !== prevTool
+      || segTlo[0] !== prevTlo[0] || segTlo[1] !== prevTlo[1] || segTlo[2] !== prevTlo[2];
+    if (toolBoundary) {
+      for (let pi = 0; pi < pairs.length; pi++) if (pairTool[pi] && !skipPair[pi]) clear[pi] = 0;
+    }
+    prevTool = segTool; prevTlo = segTlo;
     const j = i * 3, k = j - 3;
     const dA = Math.abs(track.abc[j]! - track.abc[k]!);
     const dB = Math.abs(track.abc[j + 1]! - track.abc[k + 1]!);
@@ -1617,6 +1680,9 @@ export function* sweepCollisionsIter(
         if (skipPair[pi]) continue;
         sQ[pi] = s0;
         if (inContact[pi]) {
+          // A tool/TLO boundary re-measures in-contact tool pairs at once
+          // (TWP-06) — see the segment head.
+          if (toolBoundary && ch === 0 && pairTool[pi]) { sSafe[pi] = s0; continue; }
           // Every LINE a pair stays in contact with gets at least one sample
           // (its continuation record — the G-code panel marks it); within a
           // line the EXPLORE cadence carries across the chunks. A cutting
@@ -1634,15 +1700,18 @@ export function* sweepCollisionsIter(
 
       let s = s0;
       for (;;) {
-        interpPose(i, (s - c0) / L);
         done++;
-        sweptTo = s;
+        // Checkpoint BEFORE the pose (TWP-07): a yield between interpPose and
+        // the distance queries let whatever ran in between — a side sweep,
+        // a snapshot's refinement probe — re-pose the shared model under
+        // this sample's queries. Progress reports the last COMPLETED sample.
         if ((done & (SAMPLES_PER_CLOCK - 1)) === 0
             && ((done & (SAMPLES_PER_YIELD - 1)) === 0 || clock() - lastYield >= yieldMs)) {
-          if (overBudget()) { truncated = { covered: frac(s), reason: "time" }; break outer; }
-          if ((yield frac(s)) === true) { aborted = true; break outer; }
+          if (overBudget()) { truncated = { covered: frac(sweptTo), reason: "time" }; break outer; }
+          if ((yield frac(sweptTo)) === true) { aborted = true; break outer; }
           lastYield = clock();
         }
+        interpPose(i, (s - c0) / L);
         if (done > maxSamples && !budgetExceeded) {
           budgetExceeded = true;
           coarsened = true;  // honest: from here on, fixed EXPLORE steps
@@ -1706,6 +1775,7 @@ export function* sweepCollisionsIter(
           const remain = sSafe[pi]! - s;
           if (remain < step) step = remain;
         }
+        sweptTo = s;   // this sample's queries are complete
         if (budgetExceeded) step = Math.min(step, EXPLORE);
         if (s >= s1 - 1e-9) break;
         s = Math.min(s1, s + Math.max(step, MIN_ADV));

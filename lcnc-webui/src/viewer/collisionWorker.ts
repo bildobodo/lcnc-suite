@@ -36,7 +36,7 @@
 // the owner omits `bodies` when it knows the worker holds the model; a
 // worker that does not (recreated after a failure) answers `needBodies`
 // instead of guessing.
-import {
+import { restoreBaseTool,
   buildCollisionModel, sweepCollisionsIter, toolCylinderPositions,
   type CollisionBody, type CollisionMachine, type CollisionModel, type CollisionOptions,
   type CollisionResult, type CollisionTrack, type SnapshotHandle,
@@ -109,6 +109,9 @@ interface Run {
   lastPeekRecords: number;
   /** Re-entry point for `continue`. */
   pump: () => void;
+  /** The (resident) model this run poses — restored to its base tool
+   *  whenever the run ends without its own epilogue (TWP-07). */
+  model: CollisionModel;
 }
 
 let _resident: { key: string; model: CollisionModel } | null = null;
@@ -125,8 +128,11 @@ self.onmessage = (e: MessageEvent<CollisionReq | CollisionCancel | CollisionPaus
     if (_side && _side.id === d.cancel) { _side.cancelled = true; return; }
     if (_run && _run.id === d.cancel) {
       if (_run.stopped) {
-        // A parked sweep is not pumping: nothing will read the flag — drop it.
+        // A parked sweep is not pumping: nothing will read the flag — drop
+        // it. Its generator never runs its epilogue, so the resident model
+        // would keep wearing the run's program tool (TWP-07): restore here.
         clearSnapshot(_run.snapshot);
+        restoreBaseTool(_run.model);
         _run = null;
         self.postMessage({ id: d.cancel, cancelled: true });
       } else {
@@ -165,7 +171,7 @@ self.onmessage = (e: MessageEvent<CollisionReq | CollisionCancel | CollisionPaus
     if (_side) _side.cancelled = true;   // a newer entry segment supersedes it
   } else if (_run) {
     // A new request supersedes the running sweep — or drops a parked one.
-    if (_run.stopped) { clearSnapshot(_run.snapshot); _run = null; }
+    if (_run.stopped) { clearSnapshot(_run.snapshot); restoreBaseTool(_run.model); _run = null; }
     else _run.cancelled = true;
   }
   const { id, machine, tool, track, wcs, options, modelKey } = d;
@@ -203,6 +209,7 @@ self.onmessage = (e: MessageEvent<CollisionReq | CollisionCancel | CollisionPaus
       pausedCam: false, pausedCamAt: 0, pausedHidden: false, activeMs: 0, sliceStart: 0,
       snapshot: { take: null, peek: null, records: null },
       stopped: false, stopRequested: false, lastPeekAt: 0, lastPeekRecords: 0, pump: () => {},
+      model,
     };
     // The slot this run lives in — cleared only if it still holds this run
     // (a superseding request may have replaced it while a slice ran).
@@ -242,6 +249,7 @@ self.onmessage = (e: MessageEvent<CollisionReq | CollisionCancel | CollisionPaus
         run.sliceStart = 0;
       } catch (err) {
         release();
+        restoreBaseTool(run.model);   // the epilogue never ran (TWP-07)
         self.postMessage({ id, error: String((err as Error)?.message ?? err) });
         return;
       }
