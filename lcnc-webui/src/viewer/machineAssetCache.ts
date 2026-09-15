@@ -17,6 +17,7 @@ import { ref } from "vue";
 import * as THREE from "three";
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
 import { loadGeometryFromIDB, storeGeometryInIDB, pruneStaleVersions } from "../geometryCache";
+import { createMachineNormalProcessor, MACHINE_NORMALS_VERSION } from "./machineNormals";
 import { type ToolMeta } from "../toolGeometry";
 
 // ---- Central caches (shared across ALL ThreeViewer instances) ----
@@ -80,6 +81,8 @@ export function loadMachineAssets(init: any, onProgress?: (msg: string) => void)
 
   _loadPromise = (async () => {
     const abort = new AbortController();
+    const normalProcessor = createMachineNormalProcessor();
+    abort.signal.addEventListener("abort", normalProcessor.dispose, { once: true });
     const timer = setTimeout(() => abort.abort(new DOMException("STL fetch timed out after 120s", "TimeoutError")), 120_000);
     try {
       const base = init.stl_base_url;
@@ -107,10 +110,12 @@ export function loadMachineAssets(init: any, onProgress?: (msg: string) => void)
         } else {
           onProgress?.(`Fetching ${p.id}…`);
           geom = await fetchAndParseStl(url, abort.signal);
-          geom.computeVertexNormals();
-          // Fire-and-forget: don't block first paint on the IDB write.
-          storeGeometryInIDB(url, geom).catch(e => console.warn("[idb] store", e));
           onProgress?.(`✓ ${p.id} (${((performance.now() - t0) / 1000).toFixed(1)}s)`);
+        }
+        if (geom.userData.machineNormalsVersion !== MACHINE_NORMALS_VERSION) {
+          geom = await normalProcessor.process(geom);
+          // Also upgrades existing IDB hits; subsequent loads skip smoothing.
+          storeGeometryInIDB(url, geom).catch(e => console.warn("[idb] store", e));
         }
         geom.userData._shared = true;
         // Deliberately NOT generation-gated: a superseded load's geometry is
@@ -146,6 +151,7 @@ export function loadMachineAssets(init: any, onProgress?: (msg: string) => void)
       throw err;
     } finally {
       clearTimeout(timer);
+      normalProcessor.dispose();
     }
   })();
 

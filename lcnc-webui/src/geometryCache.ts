@@ -17,6 +17,7 @@ const DB_VERSION = 1;
 
 interface StoredGeometry {
   positions: Float32Array;
+  machineNormalsVersion?: number;
   normals?: Float32Array;
   indices?: Uint16Array | Uint32Array;
 }
@@ -55,6 +56,7 @@ export async function loadGeometryFromIDB(key: string): Promise<BufferGeometry |
         if (data.indices) {
           geom.setIndex(new BufferAttribute(data.indices, 1));
         }
+        geom.userData.machineNormalsVersion = data.machineNormalsVersion;
         resolve(geom);
       };
       req.onerror = () => reject(req.error);
@@ -74,6 +76,7 @@ export async function storeGeometryInIDB(key: string, geom: BufferGeometry): Pro
   const indexAttr = geom.index;
   const data: StoredGeometry = {
     positions: positionAttr.array as Float32Array,
+    machineNormalsVersion: geom.userData.machineNormalsVersion,
     normals: normalAttr ? (normalAttr.array as Float32Array) : undefined,
     indices: indexAttr ? (indexAttr.array as Uint16Array | Uint32Array) : undefined,
   };

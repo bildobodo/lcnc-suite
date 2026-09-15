@@ -103,6 +103,8 @@ const VIEWER_INIT = {
   },
 };
 
+let activeViewerInit = VIEWER_INIT;
+
 // viewer.spec.ts forces in-session scene rebuilds: ThreeViewer dedups
 // viewer_init by content, so a monotonic _rev busts the dedup and drives a
 // real buildFromInit (clearScene + rebuild) without a page reload. A
@@ -155,7 +157,7 @@ let refuseWs = false;
 wss.on("connection", (ws) => {
   ws.on("error", () => {}); // page teardown mid-write is routine in e2e
   ws.send(JSON.stringify(state));
-  ws.send(JSON.stringify(VIEWER_INIT));
+  ws.send(JSON.stringify(activeViewerInit));
   ws.on("message", (buf) => {
     let msg = null;
     try { msg = JSON.parse(String(buf)); } catch { /* non-JSON — fall through */ }
@@ -201,6 +203,7 @@ ctlWss.on("connection", (ws) => {
       // one — silently, as a passing test that depended on the previous spec.
       quiet = false;
       refuseWs = false;
+      activeViewerInit = VIEWER_INIT;
       state.armed = PRISTINE.armed;
       state.data = structuredClone(PRISTINE.data);
       hellos.length = 0;   // lifecycle.spec asserts on hello COUNTS
@@ -225,6 +228,11 @@ ctlWss.on("connection", (ws) => {
         ]));
       broadcast({ ...VIEWER_INIT, data: { ...VIEWER_INIT.data, axes, _rev: _initRev } });
       broadcast(state);
+    } else if (m.op === "setViewerInit") {
+      // Persist a real-STL fixture for reload/cache tests in serial-viewer.
+      _initRev++;
+      activeViewerInit = { type: "viewer_init", data: { ...m.data, _rev: _initRev } };
+      broadcast(activeViewerInit);
     } else if (m.op === "rebuildInit") {
       // Force a real in-session scene rebuild: _rev busts ThreeViewer's
       // content-dedup so buildFromInit (clearScene + rebuild) actually runs.
