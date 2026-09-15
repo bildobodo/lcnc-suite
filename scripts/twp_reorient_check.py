@@ -68,7 +68,11 @@ PINS = ["twp-helper-comp.twp-is-defined", "twp-helper-comp.twp-is-active",
         "twp-helper-comp.twp-ox", "twp-helper-comp.twp-oy", "twp-helper-comp.twp-oz",
         "twp-helper-comp.twp-zx", "twp-helper-comp.twp-zy", "twp-helper-comp.twp-zz",
         "twp-helper-comp.twp-xx", "twp-helper-comp.twp-xy", "twp-helper-comp.twp-xz",
-        "twp-helper-comp.twp-pose-a", "motion.switchkins-type",
+        "twp-helper-comp.twp-pose-a",
+        # TWP-04 (2026-09-14): the head solve depends on all three rotaries;
+        # B/C are stamped alongside A from the post-move readback.
+        "twp-helper-comp.twp-pose-b", "twp-helper-comp.twp-pose-c",
+        "motion.switchkins-type",
         "xyzacb_trsrn_kins.pre-rot", "xyzacb_trsrn_kins.primary-angle",
         "xyzacb_trsrn_kins.secondary-angle"]
 
@@ -256,6 +260,16 @@ print(f"  B={after_orient['xyzacb_trsrn_kins.secondary-angle']:.5f} "
       f"pose_a={after_orient['twp-helper-comp.twp-pose-a']:.3f}")
 check("TWP active", after_orient["twp-helper-comp.twp-is-active"] == 1)
 check("TOOL kins entered", after_orient["motion.switchkins-type"] == 2)
+# TWP-04: the B/C stamps equal the solve the kins pins hold (the remap
+# writes them only when the joint READBACK agrees with the solve).
+check("pose stamp carries B (TWP-04)",
+      abs(after_orient["twp-helper-comp.twp-pose-b"]
+          - after_orient["xyzacb_trsrn_kins.secondary-angle"]) < 0.05,
+      f"pose_b={after_orient['twp-helper-comp.twp-pose-b']:.3f}")
+check("pose stamp carries C (TWP-04)",
+      abs(after_orient["twp-helper-comp.twp-pose-c"]
+          - after_orient["xyzacb_trsrn_kins.primary-angle"]) < 0.05,
+      f"pose_c={after_orient['twp-helper-comp.twp-pose-c']:.3f}")
 
 err0 = angle_between(plane_normal_machine(after_orient, 0.0),
                      tool_axis_from_head(after_orient))
@@ -329,6 +343,10 @@ print(f"  took {dt:.1f}s   B={done['xyzacb_trsrn_kins.secondary-angle']:.5f} "
       f"pose_a={done['twp-helper-comp.twp-pose-a']:.3f}")
 check("staleness cleared (pose_a -> 35)",
       abs(done["twp-helper-comp.twp-pose-a"] - 35.0) < 1e-3)
+check("re-orient re-stamped B/C from readback (TWP-04)",
+      abs(done["twp-helper-comp.twp-pose-b"] - done["xyzacb_trsrn_kins.secondary-angle"]) < 0.05
+      and abs(done["twp-helper-comp.twp-pose-c"] - done["xyzacb_trsrn_kins.primary-angle"]) < 0.05,
+      f"pose_b={done['twp-helper-comp.twp-pose-b']:.3f} pose_c={done['twp-helper-comp.twp-pose-c']:.3f}")
 check("still in TOOL kins", done["motion.switchkins-type"] == 2)
 check("TWP still active", done["twp-helper-comp.twp-is-active"] == 1)
 check("head actually moved",
