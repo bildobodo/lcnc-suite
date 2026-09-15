@@ -1138,8 +1138,19 @@ def parse(ctx: dict) -> dict:
             _tt_mtime = os.path.getmtime(_tt_path)
         except OSError:
             _tt_mtime = None   # honest None — the drift edge skips mtime then
+    # The APPLIED tool offset this parse was seeded with + the loaded tool
+    # (TWP-09, review 2026-09-14): the drift edge compares the live applied
+    # offset with THIS, like with like — the table row is only what a bare
+    # G43 would apply; `G43 H<other>` or `G43.1` never matched it and the
+    # gateway reparsed every debounce interval forever.
+    _applied = getattr(s, "tool_offset", None)
+    try:
+        _applied_tlo = [float(_applied[i]) for i in range(3)] if _applied is not None else None
+    except (TypeError, IndexError, ValueError):
+        _applied_tlo = None
     print("__TLO__\t" + json.dumps(
-        {"table_path": _tt_path, "table_mtime": _tt_mtime, "tlos": parse_tlos}),
+        {"table_path": _tt_path, "table_mtime": _tt_mtime, "tlos": parse_tlos,
+         "applied_tlo": _applied_tlo, "loaded_tool": _spindle_tool}),
         file=sys.stderr, flush=True)
     if _rot_seed is not None:
         # Rotary pose this parse was seeded with (W6) — the gateway's

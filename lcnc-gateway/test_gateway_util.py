@@ -2747,6 +2747,41 @@ class TestEvaluateTloDrift(unittest.TestCase):
             gateway_util.evaluate_tlo_drift(meta5, 100.0, 3, 156.5596, table_rows=rows),
             "table_row")
 
+    # ---- TWP-09 (review 2026-09-14): applied vs APPLIED, like with like ----
+    META8 = dict(META, applied_tlo=[0.0, 0.0, 20.0], loaded_tool=3)
+
+    def test_g43_h_not_matching_t_settles_after_one_reparse(self):
+        # T3 loaded, `G43 H7` applied (20, not T3's row 156.56): the row
+        # compare reparsed forever. The parse recorded applied 20; live is 20.
+        for _ in range(3):
+            self.assertIsNone(gateway_util.evaluate_tlo_drift(self.META8, 100.0, 3, 20.0))
+
+    def test_g43_1_dynamic_settles(self):
+        meta = dict(self.META8, applied_tlo=[0.0, 0.0, 12.5])
+        self.assertIsNone(gateway_util.evaluate_tlo_drift(meta, 100.0, 3, 12.5))
+        self.assertEqual(gateway_util.evaluate_tlo_drift(meta, 100.0, 3, 13.0), "tool_offset")
+
+    def test_g49_after_parse_is_one_drift_then_settles(self):
+        self.assertEqual(gateway_util.evaluate_tlo_drift(self.META8, 100.0, 3, 0.0), "tool_offset")
+        meta0 = dict(self.META8, applied_tlo=[0.0, 0.0, 0.0])
+        self.assertIsNone(gateway_util.evaluate_tlo_drift(meta0, 100.0, 3, 0.0))
+        # No live reading: no claim.
+        self.assertIsNone(gateway_util.evaluate_tlo_drift(self.META8, 100.0, 3, None))
+
+    def test_loaded_tool_change_is_drift(self):
+        self.assertEqual(gateway_util.evaluate_tlo_drift(self.META8, 100.0, 5, 20.0), "tool_loaded")
+        self.assertIsNone(gateway_util.evaluate_tlo_drift(self.META8, 100.0, 3, 20.0))
+        self.assertIsNone(gateway_util.evaluate_tlo_drift(self.META8, 100.0, None, 20.0))
+
+    def test_legacy_meta_without_applied_keeps_row_compare(self):
+        self.assertEqual(gateway_util.evaluate_tlo_drift(self.META, 100.0, 3, 56.6346), "tool_offset")
+        self.assertIsNone(gateway_util.evaluate_tlo_drift(self.META, 100.0, 3, 156.5596))
+
+    def test_table_row_still_catches_a_not_loaded_program_tool(self):
+        rows = [(3, 156.5596), (7, 60.0)]
+        self.assertEqual(
+            gateway_util.evaluate_tlo_drift(self.META8, 100.0, 3, 20.0, table_rows=rows), "table_row")
+
     def test_table_rows_none_keeps_old_behaviour(self):
         self.assertIsNone(
             gateway_util.evaluate_tlo_drift(self.META, 100.0, 3, 156.5596, table_rows=None))

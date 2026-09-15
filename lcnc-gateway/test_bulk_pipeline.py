@@ -108,6 +108,16 @@ class TestSchemaStampRecording(unittest.TestCase):
         self.assertEqual(b.published_tlo["tlos"], [[3, 0.0, 0.0, 22.0, 6.0]])
         self.assertEqual(b.published_schema, 8)
 
+    def test_tlo_line_records_applied_and_loaded_tool(self):
+        # TWP-09: the parse-time APPLIED offset + loaded tool ride the meta
+        # (passthrough — the drift edge reads them by key).
+        b = self._refresh(
+            b'__TLO__\t{"table_path": "/cfg/tool.tbl", "table_mtime": 5.0,'
+            b' "tlos": [[3, 0.0, 0.0, 22.0, 6.0]], "applied_tlo": [0.0, 0.0, 20.0],'
+            b' "loaded_tool": 3}\n__SCHEMA__\t8\n')
+        self.assertEqual(b.published_tlo["applied_tlo"], [0.0, 0.0, 20.0])
+        self.assertEqual(b.published_tlo["loaded_tool"], 3)
+
     def test_rotcmd_line_recorded_at_publish(self):
         b = self._refresh(
             b'__ROTCMD__\t{"A": 12, "B": null, "C": null, "unknown": null,'
