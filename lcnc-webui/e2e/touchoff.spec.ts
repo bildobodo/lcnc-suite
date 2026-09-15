@@ -122,3 +122,37 @@ test("TCP trunnion (switchable, not TWP): G59 selectable, no Plane frame, no Cap
     await ctlSend({ op: "reset" });
   }
 });
+
+test("keypad names its target; a frame/fixture change while open cancels it with a message", async ({ page }) => {
+  // U-03 (review 2026-09-14): the heading says which axis, frame and datum
+  // the value writes, and a target change mid-entry never lands the value
+  // elsewhere — the keypad closes and the message center says why.
+  await page.goto(MOCK);
+  const zInput = page.locator("input.setupInput").nth(2);
+  await expect(zInput).toBeVisible();
+  await ctlSend({ op: "quiet", on: true });
+  try {
+    await ctlSend({ op: "setKins", kins: TRSRN });
+    await ctlSend({ op: "status_delta", data: {
+      kins_type: 2, g5x_index: 6, twp_active: true,
+      permissions: { ...PERMS_ALL, touchoffRotary: false },
+    } });
+    await zInput.click();
+    const strip = page.locator(".nkStrip");
+    await expect(strip).toBeVisible();
+    await expect(strip.locator(".sub")).toHaveText("Touch off Z · Plane · updates G54");
+    const messages = page.getByRole("button", { name: /^Messages \(/ });
+    const before = await messages.getAttribute("title");
+    // The program's M2 restores G54 and identity: a different target.
+    await ctlSend({ op: "status_delta", data: { kins_type: 0, g5x_index: 1 } });
+    await expect(strip).toHaveCount(0);
+    await expect(messages).not.toHaveAttribute("title", before ?? "");
+    // Re-opened, the heading names the NEW target.
+    await zInput.click();
+    await expect(strip.locator(".sub")).toHaveText("Touch off Z · Machine · G54");
+  } finally {
+    await ctlSend({ op: "quiet", on: false });
+    await ctlSend({ op: "reset" });
+  }
+});
+

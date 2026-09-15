@@ -85,7 +85,7 @@ from gateway_util import (
     wcs_stamp_decision,
     PROV_STAMPED,
 )
-from command_policy import check_command, validate_payload, MachineLimits, touchoff_route, twp_capture_check, goto_zero_plan, plane_frame_check
+from command_policy import check_command, validate_payload, MachineLimits, touchoff_route, twp_capture_check, goto_zero_plan, plane_frame_check, touchoff_target_text
 from tool_table import (
     parse_tool_table,
     write_tool_table,
@@ -4431,6 +4431,27 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             if _shared_status is None:
                 return {"ok": False, "error": "No machine state yet — touch-off refused"}
             pstate = _live_policy_state(armed)
+            # U-03 (review 2026-09-14): the keypad names the target it was
+            # opened under and the request carries it; if the live mode or
+            # fixture differs now (a program's M2 flipped the fixture, another
+            # client switched the frame while the operator typed), the value
+            # must not land on a different target.
+            _expect = msg.get("expect")
+            if isinstance(_expect, dict):
+                _ek = _expect.get("kins_type")
+                _eg = _expect.get("g5x_index")
+                _kins_diff = _ek is not None and (pstate.kins_type is None
+                                                   or finite_int(_ek) != pstate.kins_type)
+                _fix_diff = _eg is not None and (pstate.g5x_index is None
+                                                  or finite_int(_eg) != pstate.g5x_index)
+                if _kins_diff or _fix_diff:
+                    reason = (f"Touch-off target changed while you were entering: was "
+                              f"{touchoff_target_text(_ek, _eg)}, now "
+                              f"{touchoff_target_text(pstate.kins_type, pstate.g5x_index)} — re-enter the value")
+                    _trace.emit("touchoff.refused", level="warn", letters=sorted(values),
+                                reason=reason, kins_type=pstate.kins_type,
+                                g5x_index=pstate.g5x_index, expect=_expect)
+                    return {"ok": False, "error": reason}
             route, reason = touchoff_route(pstate, values.keys())
             if route is None:
                 _trace.emit("touchoff.refused", level="warn", letters=sorted(values),

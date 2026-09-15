@@ -884,6 +884,34 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
         self.assertFalse(r["ok"])
         self.assertIn("TCP", r["error"])
 
+    def test_touchoff_refuses_when_expect_disagrees_with_live_state(self):
+        # U-03: the keypad was opened under Plane · G59; by confirm time the
+        # machine is Machine · G54 — the value must not land there.
+        gateway._kins_is_switchable = lambda: True
+        gateway._twp_capable = lambda: True   # the TWP stack (trsrn)
+        gateway.STAT.g5x_index = 1
+        r = self._send({"cmd": "touchoff", "axes": {"X": 1.5}, "expect": {"kins_type": 2, "g5x_index": 6}},
+                       kins_type=0, g5x_index=1)
+        self.assertFalse(r["ok"], r)
+        self.assertIn("target changed", r["error"])
+        self.assertIn("Plane · G59", r["error"]); self.assertIn("Machine · G54", r["error"])
+        self.assertEqual(self._mdi_lines(), [])
+        # A fixture-only change refuses too; a matching expect goes through.
+        r = self._send({"cmd": "touchoff", "axes": {"X": 1.5}, "expect": {"kins_type": 0, "g5x_index": 2}},
+                       kins_type=0, g5x_index=1)
+        self.assertFalse(r["ok"]); self.assertIn("target changed", r["error"])
+        r = self._send({"cmd": "touchoff", "axes": {"X": 1.5}, "expect": {"kins_type": 0, "g5x_index": 1}},
+                       kins_type=0, g5x_index=1)
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(self._mdi_lines(), ["G10 L20 P0 X1.500000"])
+
+    def test_touchoff_without_expect_is_unchanged(self):
+        gateway._kins_is_switchable = lambda: True
+        gateway._twp_capable = lambda: True   # the TWP stack (trsrn)
+        gateway.STAT.g5x_index = 1
+        r = self._send({"cmd": "touchoff", "axes": {"X": 1.5}}, kins_type=0, g5x_index=1)
+        self.assertTrue(r["ok"], r)
+
     def test_touchoff_g59_on_plain_mill_dispatches_g10_l20(self):
         # TWP-08a: a trivkins mill sitting in G59 touches off with a plain
         # G10 L20 — the reserved-row refusal is a TWP-machine rule only.

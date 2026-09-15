@@ -28,29 +28,51 @@ export function touchoffGate(letters: readonly string[]): keyof Permissions {
   return letters.some((l) => isRotaryAxis(l)) ? "touchoffRotary" : "touchoff";
 }
 
+/** The target the operator saw while entering a value (U-03, review
+ *  2026-09-14): the gateway refuses the touch-off when the live kinematics
+ *  mode or fixture differs at confirm time — the value must never land on
+ *  another target. Nulls = "no claim" for that dimension. */
+export interface TouchoffExpect { kins_type: number | null; g5x_index: number | null }
+
+/** The keypad's heading for a DRO touch-off: which axis, which frame, which
+ *  datum the value will write ("Touch off Z · Plane · updates G54"). Pure. */
+export function touchoffTargetLabel(
+  letter: string,
+  ctx: { kinsType: number | null | undefined; g5xLabel: string; twpActive?: boolean | null },
+): string {
+  const L = letter.toUpperCase();
+  const k = ctx.kinsType == null || !Number.isFinite(ctx.kinsType) ? null : Math.round(ctx.kinsType);
+  const fixture = ctx.g5xLabel || "fixture ?";
+  if (k == null) return `Touch off ${L} · ${fixture}`;
+  if (k === 0) return `Touch off ${L} · Machine · ${fixture}`;
+  if (k === 1) return `Touch off ${L} · TCP · ${fixture}`;
+  if (k === 2) return ctx.twpActive ? `Touch off ${L} · Plane · updates G54` : `Touch off ${L} · TOOL kins, no plane`;
+  return `Touch off ${L} · kins ${k} · ${fixture}`;
+}
+
 export function useTouchoffMath(opts: UseTouchoffMathOptions) {
-  function _fireTouchoff(axes: Record<string, number>) {
+  function _fireTouchoff(axes: Record<string, number>, expect?: TouchoffExpect) {
     const letters = Object.keys(axes);
     if (!letters.length) return;
-    opts.fire({ cmd: "touchoff", axes }, touchoffGate(letters));
+    opts.fire({ cmd: "touchoff", axes, ...(expect ? { expect } : {}) }, touchoffGate(letters));
   }
 
-  function setAxis(axis: number, value: number = 0) {
+  function setAxis(axis: number, value: number = 0, expect?: TouchoffExpect) {
     // Resolve through the MACHINE's axis list, not the canonical letter
     // string: on a lathe ["X","Z"], index 1 is Z.
     const axisName = opts.axes.value[axis];
     if (!axisName) return;
-    _fireTouchoff({ [axisName.toUpperCase()]: value });
+    _fireTouchoff({ [axisName.toUpperCase()]: value }, expect);
   }
 
   /** Zero the given letters (default: every configured axis) in ONE command. */
-  function setAll(letters?: readonly string[]) {
+  function setAll(letters?: readonly string[], expect?: TouchoffExpect) {
     const want = letters ?? opts.axes.value;
     const axes: Record<string, number> = {};
     for (const l of want) {
       if (opts.axes.value.includes(l)) axes[l.toUpperCase()] = 0;
     }
-    _fireTouchoff(axes);
+    _fireTouchoff(axes, expect);
   }
 
   function setG5x(gcode: string) {

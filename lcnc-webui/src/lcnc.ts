@@ -105,7 +105,9 @@ export type WsCommand =
   // Operator touch-off (DRO inputs / Zero buttons): the gateway routes it —
   // G10 L20 into the active fixture, or the Plane-mode remap that writes G54
   // through the plane — and stamps provenance. Letters upper-case.
-  | { cmd: "touchoff"; axes: Record<string, number> }
+  // `expect` (U-03): the kinematics mode × fixture the operator saw while
+  // entering; the gateway refuses when the live target differs.
+  | { cmd: "touchoff"; axes: Record<string, number>; expect?: { kins_type: number | null; g5x_index: number | null } }
   // Kinematics-frame selector: 0 identity (M428) / 1 TCP (M429) / 2 Plane
   // (M430). Typed so the Plane frame is admitted server-side (TWP-04).
   | { cmd: "set_kins_mode"; mode: 0 | 1 | 2 }

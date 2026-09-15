@@ -752,6 +752,28 @@ class VarNumbers:
     declares AND outside WRITABLE_VAR_DENY_RANGES."""
 
 
+@dataclass(frozen=True)
+class ExpectMap:
+    """touchoff's optional `expect` mapping (U-03, review 2026-09-14): the
+    kinematics mode and fixture the operator SAW while entering the value
+    (`kins_type`, `g5x_index`; int or null). The handler refuses when the
+    live state differs — the value must never land on another target."""
+
+
+EXPECT_KEYS = frozenset({"kins_type", "g5x_index"})
+
+
+def touchoff_target_text(kins_type, g5x_index) -> str:
+    """Operator wording for a touch-off target: "Plane · G59", "Machine ·
+    G54", "TCP · G55", "kins ? · G54". Pure."""
+    names = {0: "Machine", 1: "TCP", 2: "Plane"}
+    k = None if kins_type is None else names.get(int(round(float(kins_type))), f"kins {kins_type}")
+    g = None if g5x_index is None else int(g5x_index)
+    gname = None if g is None else (["G54", "G55", "G56", "G57", "G58", "G59", "G59.1", "G59.2", "G59.3"][g - 1]
+                                     if 1 <= g <= 9 else f"fixture {g}")
+    return " · ".join(x for x in (k, gname) if x) or "unknown"
+
+
 def _axis_index(_l: MachineLimits):
     return (_l.n_axes - 1) if _l.n_axes else None
 
@@ -809,7 +831,7 @@ COMMAND_SCHEMA: Dict[str, Dict[str, object]] = {
     # --- work offsets: these become G10 L2 words. Unbounded floats reached the
     #     MDI as `G10 L2 P1 Xinf` before this.
     "set_wcs": {ax: Num() for ax in ("x", "y", "z", "a", "b", "c", "u", "v", "w", "r")},
-    "touchoff": {"axes": AxisMap()},
+    "touchoff": {"axes": AxisMap(), "expect": ExpectMap()},
     "set_kins_mode": {"mode": Enum(frozenset({0, 1, 2}))},
     # --- tool table
     "save_tool":     {"tool_number": Num(lo=0, hi=TOOL_NUMBER_MAX, integer=True),
@@ -912,6 +934,14 @@ def validate_payload(cmd: str, msg: Dict, limits: MachineLimits) -> Dict[str, ob
                 if letter not in TOUCHOFF_LETTERS:
                     raise ValueError(f"{cmd}: {key!r} is not an axis letter")
                 _check_number(cmd, f"{field}.{letter}", val, Num(), limits)
+        elif isinstance(spec, ExpectMap):
+            if not isinstance(raw, dict):
+                raise ValueError(f"{cmd}: {field} must be a mapping")
+            for key, val in raw.items():
+                if key not in EXPECT_KEYS:
+                    raise ValueError(f"{cmd}: {field}.{key} is not an expected-target key")
+                if val is not None:
+                    _check_number(cmd, f"{field}.{key}", val, Num(integer=True), limits)
         elif isinstance(spec, VarNumbers):
             if not isinstance(raw, dict):
                 raise ValueError(f"{cmd}: {field} must be a mapping")

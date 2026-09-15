@@ -1,10 +1,15 @@
 <script setup lang="ts">
-import { computed, inject, ref, type Ref } from "vue";
+import { computed, inject, ref, watch, type Ref } from "vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineInput from "./MachineInput.vue";
 import MachineRadio from "./MachineRadio.vue";
 import { useAxes, isRotaryAxis } from "./useAxes";
 import { kinsModeChip, type OffDatum } from "./twpPose";
+import { touchoffTargetLabel, type TouchoffExpect } from "./useTouchoffMath";
+import { keypadState, closeKeypad } from "./useNumberKeypad";
+import { usePermissions } from "./permissions";
+import { pushMessage } from "./lcncWs";
+import { OPERATOR_ERROR } from "./lcnc";
 
 // Match HUD precision (3 decimals linear, 2 rotary) without the unit suffix
 // so the keypad parser still receives a clean numeric string. (Deliberately
@@ -51,8 +56,8 @@ const emit = defineEmits<{
   (e: "unhomeAll"): void;
   (e: "homeAxis", joint: number): void;
   (e: "unhomeAxis", joint: number): void;
-  (e: "setAxis", axis: number, value: number): void;
-  (e: "setAll", letters: string[]): void;
+  (e: "setAxis", axis: number, value: number, expect: TouchoffExpect): void;
+  (e: "setAll", letters: string[], expect: TouchoffExpect): void;
   (e: "setG5x", gcode: string): void;
   (e: "goToG30"): void;
   (e: "goToHome"): void;
@@ -63,6 +68,31 @@ const emit = defineEmits<{
 }>();
 
 const { entries } = useAxes(computed(() => props.axes));
+const can = usePermissions();
+const rootEl = ref<HTMLElement | null>(null);
+
+// Touch-off target (U-03, review 2026-09-14): the keypad's heading names the
+// axis, the frame and the datum the value will write ("Touch off Z · Plane ·
+// updates G54"), and the request carries the mode × fixture the operator
+// saw, which the gateway verifies at confirm time.
+function targetLabel(letter: string): string {
+  return touchoffTargetLabel(letter, { kinsType: props.kinsType, g5xLabel: props.g5xLabel, twpActive: props.twpActive });
+}
+function expectNow(): TouchoffExpect {
+  return { kins_type: props.kinsType ?? null, g5x_index: props.g5xIndex ?? null };
+}
+// A keypad opened on one of THIS strip's inputs targets the route it was
+// opened under. If that route changes while the operator types — a program's
+// M2 flipping the fixture, another client switching the frame, the gate
+// closing — the value must not land on a different target: cancel and say so.
+const touchoffContextKey = computed(() =>
+  `${props.kinsType ?? "-"}|${props.g5xLabel}|${props.twpActive ? 1 : 0}|${can.value.touchoff ? 1 : 0}|${can.value.touchoffRotary ? 1 : 0}`);
+watch(touchoffContextKey, () => {
+  if (!keypadState.open || !keypadState.trigger || !rootEl.value?.contains(keypadState.trigger)) return;
+  const label = keypadState.label;
+  closeKeypad();
+  pushMessage(OPERATOR_ERROR, `Touch-off cancelled — the target changed while you were entering (${label}). Re-enter the value.`);
+});
 // The strip's height fits 6 grid rows. Pack each column FULL (6 axis rows)
 // before starting the next; the 3 action rows (Zero All / Home All / goto)
 // ride the last column when ≤3 axis rows remain there, else get their own.
@@ -135,19 +165,19 @@ const zeroAllLabel = computed(() => {
   return l.length <= 3 ? `Zero ${l.join("")}` : "Zero linear";
 });
 function zeroAll() {
-  emit("setAll", zeroAllLetters.value);
+  emit("setAll", zeroAllLetters.value, expectNow());
 }
 </script>
 
 <template>
-  <div class="stripSection">
+  <div class="stripSection" ref="rootEl">
     <div class="sub">Setup</div>
     <div class="setupContent row-sections">
       <!-- Axis grids: 6 axis rows per column (machine order); actions fill the tail -->
       <div v-for="(chunk, ci) in axisChunks" :key="ci" class="setupGrid">
         <template v-for="a in chunk.axes" :key="a.letter">
-          <MachineInput :gate="isRotaryAxis(a.letter) ? 'touchoffRotary' : 'touchoff'" type="number" :label="a.letter" :value="fmtAxisInput(workPos[a.index], a.letter)" @input="emit('setAxis', a.index, +($event.target as HTMLInputElement).value)" class="setupInput" />
-          <MachineBtn :type="isRotaryAxis(a.letter) ? 'zeroRotary' : 'zero'" @click="emit('setAxis', a.index, 0)">Zero {{ a.letter }}</MachineBtn>
+          <MachineInput :gate="isRotaryAxis(a.letter) ? 'touchoffRotary' : 'touchoff'" type="number" :label="targetLabel(a.letter)" :value="fmtAxisInput(workPos[a.index], a.letter)" @input="emit('setAxis', a.index, +($event.target as HTMLInputElement).value, expectNow())" class="setupInput" />
+          <MachineBtn :type="isRotaryAxis(a.letter) ? 'zeroRotary' : 'zero'" @click="emit('setAxis', a.index, 0, expectNow())">Zero {{ a.letter }}</MachineBtn>
           <MachineBtn :type="homedJoints[a.index] ? 'unhome' : 'home'" @click="homedJoints[a.index] ? emit('unhomeAxis', a.index) : emit('homeAxis', a.index)"><span class="stable-width"><span :class="{ alt: homedJoints[a.index] }">Home {{ a.letter }}</span><span :class="{ alt: !homedJoints[a.index] }">Unhome {{ a.letter }}</span></span></MachineBtn>
         </template>
         <template v-if="chunk.actions">

@@ -639,6 +639,26 @@ class TestPayloadSchema(unittest.TestCase):
 
     # ---- touchoff: letters structural, values finite ----
 
+    def test_touchoff_expect_is_schemad(self):
+        # U-03: the expected target rides the payload; only its two keys,
+        # int or null.
+        self.assertEqual(validate_payload("touchoff", {"axes": {"Z": 0.0},
+                                                       "expect": {"kins_type": 2, "g5x_index": 6}}, self.LIM), {})
+        self.assertEqual(validate_payload("touchoff", {"axes": {"Z": 0.0},
+                                                       "expect": {"kins_type": None, "g5x_index": None}}, self.LIM), {})
+        self.assertIn("not an expected-target key",
+                      self._reject("touchoff", {"axes": {"Z": 0.0}, "expect": {"mode": 2}}))
+        self.assertIn("must be a mapping", self._reject("touchoff", {"axes": {"Z": 0.0}, "expect": [2, 6]}))
+        self.assertIn("whole number", self._reject("touchoff", {"axes": {"Z": 0.0}, "expect": {"kins_type": 1.5}}))
+
+    def test_touchoff_target_text(self):
+        from command_policy import touchoff_target_text
+        self.assertEqual(touchoff_target_text(2, 6), "Plane · G59")
+        self.assertEqual(touchoff_target_text(0, 1), "Machine · G54")
+        self.assertEqual(touchoff_target_text(None, 1), "G54")
+        self.assertEqual(touchoff_target_text(None, None), "unknown")
+        self.assertEqual(touchoff_target_text(1, 9), "TCP · G59.3")
+
     def test_touchoff_axes_map(self):
         self.assertEqual(validate_payload("touchoff", {"axes": {"Z": 0.0, "x": 12.5}}, self.LIM), {})
         self.assertIn("not an axis letter", self._reject("touchoff", {"axes": {"Q": 1.0}}))
