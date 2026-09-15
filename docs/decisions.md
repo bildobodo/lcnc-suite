@@ -5159,3 +5159,43 @@ document-level tap handler for disabled buttons (browsers differ on whether a
 disabled control's ancestors see the event; the wrapper + `pointer-events:
 none` on the disabled child is deterministic).
 
+## 2026-09-15 — Review fix waves 1–4: live gates GREEN on the TWP simulator
+
+**Prep.** Stopped the gantry session, launched `lcnc_suite_sim_twp.ini`
+headless (`LCNC_WEBUI_BROWSER=0`, launcher setsid). A headless keeper
+(scratchpad, the browser stand-in — hello + 0.8 s heartbeats + arm +
+estop_reset + machine_on + home_all + auto confirm_tool_change) brought the
+machine up; it decodes msgpack status (the first cut spammed machine_on
+because it never parsed the binary frames and so skipped estop_reset).
+
+**Results (all GREEN, feat/twp 62e8cae).**
+- preview_gate check (twp_simple_example): CLEAN — TWP-05/09/10 flip no golden field.
+- sim_parity gate (twp.json): GREEN 21/21, numbers within 0.04 mm of the
+  2026-09-05 run — the preview/collision changes preserve joint parity.
+- twp_buttons_check: 40 pass / 4 skip (the skips are above-Z0 positioning +
+  the M600 toolsetter run). TWP-01 Plane→Zero retract, TWP-02 A-returns-to-
+  stamp, TWP-08 the whole gate matrix.
+- twp_reorient_check: ALL PASS incl. the new B/C pose-stamp assertions
+  (TWP-04). The first run flaked 2/N — a snapshot race in the CHECK reading
+  the helper's 20 Hz passthrough mid-tick (pose_a read the sentinel while
+  b/c were already correct); 62e8cae settles the pins first, then stable.
+- twp_capture_check, twp_touchoff_plane_check: ALL PASS.
+- TWP-10: a bare G30 sets the A/B/C commanded boundary at its seq on the
+  wire (rotary_cmd A=2) — the boundary the old prefilter missed.
+- TWP-09: G43.1 with a loaded tool whose table row differs → exactly one
+  gcode.reparse_tlo_drift (reason tool_offset) then 16 s silence; the loop
+  is gone.
+- perf_matrix (headless set): every scenario n=0 lag windows, 0 safety
+  events, RSS stable ~81 MB. permission_reasons (U-06) adds 160 B to a
+  4190 B status frame — three closed gates only, not every gate.
+
+**Not forced live, covered otherwise.** TWP-03 no-solution orient (B ±185 /
+C ±320 make a blind unreachable plane fiddly): the pure solver is grid-
+tested incl. the review's exact 150-at-±100 case, and the reorient check's
+section 3 exercises the refusal plumbing (a refused orient leaves the plane
+intact, kins identity). TWP-01 abort-between-legs: the sub runs end-to-end
+in twp_buttons_check and an abort mid o-sub is atomic (the guard precedes
+any modal change). Client-only fixes (TWP-05/06/07/11/12) are pinned by the
+788-test vitest suite; the operator's browser look rides the M-05 walk-
+through. Suite left RUNNING, machine armed/on/homed, keeper connected.
+
