@@ -785,14 +785,21 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
         gateway.CMD = self.cmd
         self._switchable = gateway._kins_is_switchable
         self._capable = gateway._twp_capable
+        self._reader_get = gateway._reader_get
         self._prov = dict(gateway._prov_cache)
         gateway._prov_cache.clear()
 
     def tearDown(self):
         gateway._kins_is_switchable = self._switchable
         gateway._twp_capable = self._capable
+        gateway._reader_get = self._reader_get
         gateway._prov_cache.clear()
         gateway._prov_cache.update(self._prov)
+
+    def _reader(self, **pins):
+        """Scripted HAL-reader snapshot — the controller's own answer, as
+        distinct from the published status payload (R-02)."""
+        gateway._reader_get = pins.get
 
     def _send(self, msg, **state):
         gateway._shared_status = _payload(**state)
@@ -903,7 +910,7 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
         r = self._send({"cmd": "touchoff", "axes": {"X": 1.5}, "expect": {"kins_type": 0, "g5x_index": 1}},
                        kins_type=0, g5x_index=1)
         self.assertTrue(r["ok"], r)
-        self.assertEqual(self._mdi_lines(), ["G10 L20 P0 X1.500000"])
+        self.assertEqual(self._mdi_lines(), ["G10 L20 P1 X1.500000"])
 
     def test_touchoff_without_expect_is_unchanged(self):
         gateway._kins_is_switchable = lambda: True
@@ -911,6 +918,93 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
         gateway.STAT.g5x_index = 1
         r = self._send({"cmd": "touchoff", "axes": {"X": 1.5}}, kins_type=0, g5x_index=1)
         self.assertTrue(r["ok"], r)
+
+    def test_touchoff_refuses_when_the_controller_moved_past_the_published_snapshot(self):
+        """R-02 (implementation review 2026-09-15): the published snapshot and
+        the keypad both say G54 while STAT has already reached G55. Checking
+        the snapshot alone accepted it and the P0 write landed on G55."""
+        gateway._kins_is_switchable = lambda: True
+        gateway._twp_capable = lambda: True
+        gateway.STAT.g5x_index = 2                      # controller: G55
+        r = self._send({"cmd": "touchoff", "axes": {"X": 1.5},
+                        "expect": {"kins_type": 0, "g5x_index": 1}},
+                       kins_type=0, g5x_index=1)        # snapshot: G54
+        self.assertFalse(r["ok"], r)
+        self.assertIn("target changed", r["error"])
+        self.assertIn("Machine · G55", r["error"])
+        self.assertEqual(self._mdi_lines(), [])
+
+    def test_touchoff_refuses_when_the_controller_kins_moved_past_the_snapshot(self):
+        """The same window on the kinematics half: the reader pin is read at
+        the write boundary, not as published."""
+        gateway._kins_is_switchable = lambda: True
+        gateway._twp_capable = lambda: True
+        gateway.STAT.g5x_index = 1
+        self._reader(kins_type=1.0)                     # controller: TCP
+        r = self._send({"cmd": "touchoff", "axes": {"X": 1.5},
+                        "expect": {"kins_type": 0, "g5x_index": 1}},
+                       kins_type=0, g5x_index=1)        # snapshot: Machine
+        self.assertFalse(r["ok"], r)
+        self.assertIn("target changed", r["error"])
+        self.assertEqual(self._mdi_lines(), [])
+
+    def test_touchoff_refuses_a_route_change_even_without_an_expectation(self):
+        """A legacy client carries no expectation, but the route computed from
+        the stale snapshot must still be the route the controller is in: the
+        plain G10 of a Machine-frame touch-off is not what a Plane-frame
+        machine needs."""
+        gateway._kins_is_switchable = lambda: True
+        gateway._twp_capable = lambda: True
+        gateway.STAT.g5x_index = 6
+        self._reader(kins_type=2.0)                     # controller: Plane
+        r = self._send({"cmd": "touchoff", "axes": {"X": 1.5}},
+                       kins_type=0, g5x_index=1, twp_active=True)
+        self.assertFalse(r["ok"], r)
+        self.assertEqual(self._mdi_lines(), [])
+
+    def test_touchoff_names_the_fixture_it_validated(self):
+        """The write is `G10 L20 P<n>`, never P0: a fixture change after the
+        check can no longer redirect the datum (G10 L20 computes the offset
+        for the NAMED system — interp_convert.cc convert_setup)."""
+        gateway._kins_is_switchable = lambda: True
+        gateway._twp_capable = lambda: True
+        gateway.STAT.g5x_index = 3
+        self._reader(z_eoffset=0.0)   # a Z touch-off adds the comp offset back
+        r = self._send({"cmd": "touchoff", "axes": {"Z": -4.25},
+                        "expect": {"kins_type": 0, "g5x_index": 3}},
+                       kins_type=0, g5x_index=3)
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(r["index"], 3)
+        self.assertEqual(self._mdi_lines(), ["G10 L20 P3 Z-4.250000"])
+
+    def test_touchoff_does_not_adopt_a_readback_from_a_different_row(self):
+        """If the active fixture changed across the write, STAT.g5x_offset
+        describes a different row — the cache must not take it."""
+        gateway._kins_is_switchable = lambda: True
+        gateway._twp_capable = lambda: True
+        gateway.STAT.g5x_index = 1
+        before = [row.copy() for row in gateway._wcs_cache]
+
+        class _FlippingStat:
+            """Answers G54 until the G10 has been sent, G55 from then on."""
+            def __init__(self, stat, cmd):
+                self._stat, self._cmd = stat, cmd
+                self.g5x_offset = [99.0, 99.0, 99.0]
+                self.g5x_index = 1
+            def poll(self):
+                wrote = any(n == "mdi" for n, _a, _k in self._cmd.calls)
+                self.g5x_index = 2 if wrote else 1
+            def __getattr__(self, name):
+                return getattr(self._stat, name)
+
+        gateway.STAT = _FlippingStat(gateway.STAT, self.cmd)
+        r = self._send({"cmd": "touchoff", "axes": {"X": 1.5},
+                        "expect": {"kins_type": 0, "g5x_index": 1}},
+                       kins_type=0, g5x_index=1)
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(r["index"], 1)
+        self.assertEqual(self._mdi_lines(), ["G10 L20 P1 X1.500000"])
+        self.assertEqual([row.copy() for row in gateway._wcs_cache], before)
 
     def test_touchoff_g59_on_plain_mill_dispatches_g10_l20(self):
         # TWP-08a: a trivkins mill sitting in G59 touches off with a plain
@@ -920,7 +1014,7 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
         r = self._send({"cmd": "touchoff", "axes": {"X": 1.5}}, g5x_index=6)
         self.assertTrue(r["ok"], r)
         self.assertEqual(r["route"], "mdi")
-        self.assertEqual(self._mdi_lines(), ["G10 L20 P0 X1.500000"])
+        self.assertEqual(self._mdi_lines(), ["G10 L20 P6 X1.500000"])
 
     def test_jog_stop_during_an_executing_mdi_never_switches_mode(self):
         # Releasing the A jog while → Zero moves used to force MANUAL and

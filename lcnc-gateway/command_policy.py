@@ -795,6 +795,30 @@ def touchoff_target_text(kins_type, g5x_index) -> str:
     return " · ".join(x for x in (k, gname) if x) or "unknown"
 
 
+def touchoff_expect_check(s: MachineState, expect) -> Optional[str]:
+    """Does the touch-off target the keypad was opened under still hold in
+    state `s`? None = yes (or no expectation was carried), else the operator
+    wording for the refusal. Pure.
+
+    U-03 captured the expectation client-side; R-02 (implementation review
+    2026-09-15) is WHERE it is checked: against the published status snapshot
+    it accepted a G54 touch-off that the controller had already moved to G55.
+    The handler therefore calls this twice — once on the snapshot as a cheap
+    pre-check, once on state polled fresh from the controller immediately
+    before the write."""
+    if not isinstance(expect, dict):
+        return None
+    ek = expect.get("kins_type")
+    eg = expect.get("g5x_index")
+    kins_diff = ek is not None and (s.kins_type is None or int(ek) != int(s.kins_type))
+    fix_diff = eg is not None and (s.g5x_index is None or int(eg) != int(s.g5x_index))
+    if not (kins_diff or fix_diff):
+        return None
+    return (f"Touch-off target changed while you were entering: was "
+            f"{touchoff_target_text(ek, eg)}, now "
+            f"{touchoff_target_text(s.kins_type, s.g5x_index)} — re-enter the value")
+
+
 def _axis_index(_l: MachineLimits):
     return (_l.n_axes - 1) if _l.n_axes else None
 

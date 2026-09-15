@@ -21,6 +21,7 @@ from command_policy import (
     READ_ONLY_COMMANDS,
     GATE_REQUIREMENTS,
     touchoff_route,
+    touchoff_expect_check,
     kins_runnable,
     machine_frame_required, goto_zero_plan,
     RESERVED_FIXTURES,
@@ -992,3 +993,44 @@ class TestMachineFrameAndGoZero(unittest.TestCase):
         self.assertFalse(p["goZero"])
         self.assertTrue(evaluate_permissions(self._twp())["goZero"])
         self.assertIn("TCP", check_command("go_to_zero", self._twp(kins_type=1)))
+
+
+class TestTouchoffExpectCheck(unittest.TestCase):
+    """R-02 (implementation review 2026-09-15): the pure half of the
+    write-boundary target check. The handler runs it twice — on the published
+    snapshot and on state polled from the controller — so the rule itself
+    lives in one tested place."""
+
+    def _s(self, **over):
+        return state(**over)
+
+    def test_no_expectation_is_never_a_refusal(self):
+        for e in (None, {}, "nonsense", 7):
+            self.assertIsNone(touchoff_expect_check(self._s(kins_type=0, g5x_index=1), e))
+
+    def test_matching_target_passes(self):
+        s = self._s(kins_type=0, g5x_index=1)
+        self.assertIsNone(touchoff_expect_check(s, {"kins_type": 0, "g5x_index": 1}))
+
+    def test_fixture_change_is_refused_and_names_both_targets(self):
+        s = self._s(kins_type=0, g5x_index=2)
+        why = touchoff_expect_check(s, {"kins_type": 0, "g5x_index": 1})
+        self.assertIsNotNone(why)
+        self.assertIn("Machine · G54", why)
+        self.assertIn("Machine · G55", why)
+
+    def test_kins_change_is_refused(self):
+        s = self._s(kins_type=2, g5x_index=6)
+        why = touchoff_expect_check(s, {"kins_type": 0, "g5x_index": 6})
+        self.assertIsNotNone(why)
+        self.assertIn("Plane · G59", why)
+
+    def test_a_partial_expectation_checks_only_what_it_names(self):
+        s = self._s(kins_type=1, g5x_index=1)
+        self.assertIsNone(touchoff_expect_check(s, {"g5x_index": 1}))
+        self.assertIsNotNone(touchoff_expect_check(s, {"kins_type": 0}))
+
+    def test_unknown_live_field_refuses_rather_than_assuming(self):
+        s = self._s(kins_type=None, g5x_index=None)
+        self.assertIsNotNone(touchoff_expect_check(s, {"kins_type": 0}))
+        self.assertIsNotNone(touchoff_expect_check(s, {"g5x_index": 1}))

@@ -12,7 +12,7 @@ import threading
 from pathlib import Path
 import linuxcnc
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace as _dc_replace
 from typing import Any, Dict, Optional, List, Tuple
 from fastapi.staticfiles import StaticFiles
 import re
@@ -85,7 +85,7 @@ from gateway_util import (
     wcs_stamp_decision,
     PROV_STAMPED,
 )
-from command_policy import check_command, validate_payload, MachineLimits, touchoff_route, twp_capture_check, goto_zero_plan, plane_frame_check, touchoff_target_text
+from command_policy import check_command, validate_payload, MachineLimits, touchoff_route, twp_capture_check, goto_zero_plan, plane_frame_check, touchoff_target_text, touchoff_expect_check
 from tool_table import (
     parse_tool_table,
     write_tool_table,
@@ -4437,21 +4437,12 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             # client switched the frame while the operator typed), the value
             # must not land on a different target.
             _expect = msg.get("expect")
-            if isinstance(_expect, dict):
-                _ek = _expect.get("kins_type")
-                _eg = _expect.get("g5x_index")
-                _kins_diff = _ek is not None and (pstate.kins_type is None
-                                                   or finite_int(_ek) != pstate.kins_type)
-                _fix_diff = _eg is not None and (pstate.g5x_index is None
-                                                  or finite_int(_eg) != pstate.g5x_index)
-                if _kins_diff or _fix_diff:
-                    reason = (f"Touch-off target changed while you were entering: was "
-                              f"{touchoff_target_text(_ek, _eg)}, now "
-                              f"{touchoff_target_text(pstate.kins_type, pstate.g5x_index)} — re-enter the value")
-                    _trace.emit("touchoff.refused", level="warn", letters=sorted(values),
-                                reason=reason, kins_type=pstate.kins_type,
-                                g5x_index=pstate.g5x_index, expect=_expect)
-                    return {"ok": False, "error": reason}
+            reason = touchoff_expect_check(pstate, _expect)
+            if reason:
+                _trace.emit("touchoff.refused", level="warn", letters=sorted(values),
+                            reason=reason, kins_type=pstate.kins_type,
+                            g5x_index=pstate.g5x_index, expect=_expect, stage="snapshot")
+                return {"ok": False, "error": reason}
             route, reason = touchoff_route(pstate, values.keys())
             if route is None:
                 _trace.emit("touchoff.refused", level="warn", letters=sorted(values),
@@ -4459,6 +4450,36 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                             g5x_index=pstate.g5x_index)
                 return {"ok": False, "error": reason}
             await set_mode(linuxcnc.MODE_MDI)
+            # R-02 (implementation review 2026-09-15): the checks above ran on
+            # the PUBLISHED snapshot, which lags the controller — one stale
+            # frame was enough to accept a G54 touch-off while STAT already
+            # said G55, and the P0 write then landed on G55 with ok:true. Re-
+            # derive the two target fields from the controller ITSELF (STAT
+            # poll + the 30 Hz reader pin) at the write boundary and re-run
+            # both rules on that state; the route must still be the same one.
+            # What cannot change under us afterwards: handle_command holds
+            # _cmd_lock for the whole dispatch, so no other web client's
+            # command interleaves, and no shipped config declares a
+            # [HALUI]MDI_COMMAND that could write from outside. The explicit
+            # fixture in the G10 below covers the remainder.
+            _fstate = _controller_touchoff_state(pstate)
+            reason = touchoff_expect_check(_fstate, _expect)
+            if not reason:
+                _route2, _r2 = touchoff_route(_fstate, values.keys())
+                if _route2 is None:
+                    reason = _r2
+                elif _route2 != route:
+                    reason = (f"Touch-off target changed while you were entering: was "
+                              f"{touchoff_target_text(pstate.kins_type, pstate.g5x_index)}, now "
+                              f"{touchoff_target_text(_fstate.kins_type, _fstate.g5x_index)} "
+                              f"— re-enter the value")
+            if reason:
+                _trace.emit("touchoff.refused", level="warn", letters=sorted(values),
+                            reason=reason, kins_type=_fstate.kins_type,
+                            g5x_index=_fstate.g5x_index, expect=_expect, stage="controller",
+                            snapshot_kins=pstate.kins_type, snapshot_g5x=pstate.g5x_index)
+                return {"ok": False, "error": reason}
+            pstate = _fstate
             if route == "plane":
                 extra = sorted(l for l in values if l not in ("X", "Y", "Z"))
                 if extra:
@@ -4487,18 +4508,34 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                     # absorb it; an undelivered value is unknown, not 0.
                     return {"ok": False, "error": "Z eoffset not delivered by the HAL reader — touch-off refused"}
                 values["Z"] = values["Z"] + finite_float(z_eoff)
-            STAT.poll()
-            p = finite_int(getattr(STAT, "g5x_index", 0))
+            p = finite_int(pstate.g5x_index if pstate.g5x_index is not None else 0)
             if not 1 <= p <= 9:
                 return {"ok": False, "error": f"Active fixture index {p} out of range"}
             ci = p - 1
             prewrite = [finite_float(_wcs_cache[ci].get(k, 0.0)) for k in ("x", "y", "z")]
             words = " ".join(f"{l}{v:.6f}" for l, v in values.items())
-            rc = await _cmd_blocking(CMD.mdi, f"G10 L20 P0 {words}", wait=5)
+            # NAME the fixture (R-02): `P0` means "whatever is active when the
+            # interpreter reaches this line", so a fixture change after the
+            # check above would silently redirect the datum. `P<n>` writes the
+            # row the operator was shown — G10 L20 computes the offset for the
+            # NAMED system from the current position either way
+            # (interp_convert.cc convert_setup: p_int 0 → origin_index, then
+            # find_current_in_system(p_int)), so for the normal case where the
+            # named row IS active this is the same write as before.
+            rc = await _cmd_blocking(CMD.mdi, f"G10 L20 P{p} {words}", wait=5)
             if _cmd_rc_failed(rc):
                 _trace.emit("touchoff.mdi_failed", level="warn", rc=rc, words=words)
                 return {"ok": False, "error": "Touch-off failed — see the error channel"}
             STAT.poll()
+            _p_after = finite_int(getattr(STAT, "g5x_index", p))
+            if _p_after != p:
+                # The row we wrote is no longer the active one, so STAT's
+                # g5x_offset describes a DIFFERENT row: adopting it would
+                # poison the cache. The write itself was correct (explicit P).
+                _trace.emit("touchoff.fixture_changed_after_write", level="warn",
+                            wrote=p, active=_p_after, words=words)
+                return {"ok": True, "route": "mdi", "index": p,
+                        "table": [row.copy() for row in _wcs_cache]}
             off = list(getattr(STAT, "g5x_offset", None) or [])
             if len(off) < 3:
                 _trace.emit("touchoff.no_readback", level="warn", index=p)
@@ -5288,6 +5325,36 @@ def _identity_first() -> bool:
         return bool((_parse_kins_decl() or {}).get("identity_first"))
     except Exception:  # noqa: BLE001
         return False
+
+
+def _controller_touchoff_state(base):
+    """`base` with its two touch-off target fields re-read from the CONTROLLER
+    (R-02, implementation review 2026-09-15).
+
+    The published snapshot lags: it is rebuilt at status-poll cadence, so an
+    active-fixture change the interpreter has already made can sit one frame
+    behind — long enough for a keypad entry validated against it to be written
+    somewhere else. STAT.poll() is the controller's own answer for the fixture;
+    kins_type is the same 30 Hz reader pin the payload is built from, read now
+    rather than as published. A field the controller does not offer keeps the
+    snapshot's value (a non-switchable machine has no kins pin at all, and a
+    stat without g5x_index is the test binding) — this refreshes what it can
+    and never invents what it cannot."""
+    g5x, kins = base.g5x_index, base.kins_type
+    try:
+        STAT.poll()
+        _g = getattr(STAT, "g5x_index", None)
+        if _g is not None:
+            g5x = int(_g)
+    except Exception as e:  # noqa: BLE001 - a poll failure keeps the snapshot value
+        _trace.emit_exc("touchoff.stat_poll_failed", e)
+    _k = _reader_get("kins_type")
+    if _k is not None:
+        kins = int(round(float(_k)))
+    if (g5x, kins) != (base.g5x_index, base.kins_type):
+        _trace.emit("touchoff.state_refreshed", level="info",
+                    snapshot=[base.kins_type, base.g5x_index], controller=[kins, g5x])
+    return _dc_replace(base, g5x_index=g5x, kins_type=kins)
 
 
 def _live_policy_state(armed: bool):
