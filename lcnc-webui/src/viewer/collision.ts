@@ -729,8 +729,17 @@ export function* sweepCollisionsIter(
   // guarantee constants (MIN_ADV, EXPLORE, chunking) are spatial, and on a
   // time axis a fast rapid would compress a 20 mm window into 0.25 s.
   // Hits are converted back to track-cum at the end (scrub-to-hit target).
+  // Aborted during INITIALIZATION — before any pose or query (R-04,
+  // implementation review 2026-09-15). The per-vertex passes below are the
+  // first substantial work the sweep does, and they used to run to
+  // completion before the first checkpoint: a cancel or pause could not be
+  // acknowledged for ~400 ms on a million-point TWP track. Every one of them
+  // now yields, and an abort there returns the same empty stopped result the
+  // prescreen's does.
+  let abortedInit = false;
   const dcum = new Float32Array(n);
   for (let i = 1; i < n; i++) {
+    if ((i & 65535) === 0 && (yield 0) === true) { abortedInit = true; break; }
     if (track.brk?.[i]) {
       // Frame relabel — a re-expression, not travel: contributing its
       // program-space jump would stretch the sweep's spatial guarantee
@@ -846,39 +855,64 @@ export function* sweepCollisionsIter(
   // kinsBulge.test.ts.
   const identityKins = makeKins(machine.axes);
   const jointBulge = new Float64Array(jointVals.length);
-  // Raw wire types → per-vertex world flags for THIS machine's family
-  // (worldModeForSpec) — the uncertified check below indexes these.
-  const modeWorld = track.mode
-    ? Array.from(track.mode, (t) => worldModeForSpec(t, machine.kins))
-    : null;
-  // Per-vertex kins model (phase 3): RAW type + governing TWP frame via
-  // kinsForSegment (family-aware; loud fallbacks live there).
-  const tFrames = track.frames;
-  const vertModel: KinsModel[] | null = track.mode
-    ? Array.from(track.mode, (t, i) => {
-        const fi = track.frame?.[i];
-        const fr = (fi != null && fi !== EVENT_NONE && tFrames) ? tFrames[fi] ?? null : null;
-        return kinsForSegment(machine.axes, machine.kins, t, fr,
-                              tloFor(i)[2] || undefined, "collision sweep");
-      })
-    : null;
+  // Per-vertex kins models for THIS machine's family, and the certification
+  // check that needs each vertex's world flag, in ONE checkpointed pass.
+  //
+  // A vertex's model is fully determined by (raw type, TWP frame index, TLO
+  // event index), and those change a handful of times in a program while the
+  // vertices number millions — so resolve on CHANGE and reuse the model for
+  // the run (R-04: this pass used to call kinsForSegment per vertex, and its
+  // trsrn branch builds a memo key by joining seven pivot floats, so the
+  // memoized construction was paid for with an unmemoized lookup). Repeats
+  // of a context seen earlier hit the small per-sweep map.
+  //
   // The guarantee is certified per FAMILY, so it can only be claimed for a
   // segment whose model is the one the machine declared. kinsForSegment falls
   // back to trivkins — loudly, but still — for a kins type this client cannot
   // evaluate or a plane segment with no frame; that model's bulge is
   // legitimately 0, which would then be silently wrong for the real machine.
   // Report it instead of assuming it: unchecked is not clear.
+  const tFrames = track.frames;
+  let vertModel: KinsModel[] | null = null;
   let uncertified: string | null = null;
-  if (modeWorld && vertModel) {
-    for (let i = 0; i < modeWorld.length; i++) {
-      if (!modeWorld[i]) continue;
-      const m = vertModel[i];
-      if (m && m.type !== "trivkins") continue;
-      uncertified = `non-identity segments fell back to trivkins (declared `
-        + `${machine.kins?.type ?? "unknown"}) — poses and clearance bounds `
-        + `are identity approximations`;
-      break;
+  if (track.mode && !abortedInit) {
+    const vm = new Array<KinsModel>(n);
+    const worldLut: (boolean | undefined)[] = [];
+    const modelByCtx = new Map<string, KinsModel>();
+    let pType = -1, pFrame = -1, pTlo = -1;
+    let cur: KinsModel | null = null;
+    for (let i = 0; i < n; i++) {
+      if ((i & 65535) === 0 && i > 0 && (yield 0) === true) { abortedInit = true; break; }
+      const ty = track.mode[i]!;
+      const world = worldLut[ty] ?? (worldLut[ty] = worldModeForSpec(ty, machine.kins));
+      const fi = track.frame?.[i] ?? EVENT_NONE;
+      const li = track.tlo?.[i] ?? EVENT_NONE;
+      if (cur === null || ty !== pType || fi !== pFrame || li !== pTlo) {
+        const key = ty + "|" + fi + "|" + li;
+        let m = modelByCtx.get(key);
+        if (!m) {
+          const fr = (fi !== EVENT_NONE && tFrames) ? tFrames[fi] ?? null : null;
+          m = kinsForSegment(machine.axes, machine.kins, ty, fr,
+                             tloFor(i)[2] || undefined, "collision sweep");
+          modelByCtx.set(key, m);
+        }
+        cur = m; pType = ty; pFrame = fi; pTlo = li;
+      }
+      vm[i] = cur;
+      if (world && uncertified === null && cur.type === "trivkins") {
+        uncertified = `non-identity segments fell back to trivkins (declared `
+          + `${machine.kins?.type ?? "unknown"}) — poses and clearance bounds `
+          + `are identity approximations`;
+      }
     }
+    if (!abortedInit) vertModel = vm;
+  }
+  if (abortedInit) {
+    // Nothing posed, nothing queried (same contract as the prescreen abort).
+    restoreBaseTool(model);
+    return { hits: [], staticContacts: [], samples: 0, coarsened: false, uncertified: null,
+             pairCount: model.pairs.length, pairsPrescreened: 0, bvhMs: model.bvhMs,
+             sweepMs: clock() - t0, truncated: { covered: 0, reason: "stopped" } };
   }
   const kinsOut: (number | null)[] = [];
   const scratch = {

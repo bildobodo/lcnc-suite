@@ -1405,6 +1405,85 @@ describe("initialization checkpoints (TWP-11, review 2026-09-14)", () => {
     expect(r.value.truncated).toBeNull();
   });
 
+  // R-04 (implementation review 2026-09-15): the per-vertex passes that run
+  // BEFORE the prescreen — the distance parameterization and the kins-model
+  // selection — used to finish first, so on a million-point TWP track the
+  // first checkpoint was ~400 ms away. A TWP track (mode 2 + frames) is the
+  // case that matters: its model selection is the expensive one.
+  const twpTrack = (n: number, frames: number): ScrubTrack => {
+    const base = track(Array.from({ length: n }, (_, i) => [i * 0.01, 0, 0]));
+    const frame = new Uint32Array(n);
+    for (let i = 0; i < n; i++) frame[i] = Math.floor(i / Math.ceil(n / frames));
+    return { ...base, mode: new Uint8Array(n).fill(2), frame,
+             frames: Array.from({ length: frames }, (_, k) => [k, k, k] as [number, number, number]) };
+  };
+  const TRSRN: CollisionMachine = { ...PLUNGE, axes: ["X", "Y", "Z", "A", "B", "C"],
+    kins: { type: "xyzacb-trsrn", identityFirst: false,
+            trsrn: { yPivot: 50, zPivot: 120, xOffset: 0, yOffset: 0,
+                     yRotAxis: -1000, zRotAxis: -2000, nutAngle: 55 } } };
+
+  it("checkpoints the per-vertex passes that run before the prescreen", () => {
+    // Counting reads of the TWP frame table shows how much work the sweep
+    // does before its FIRST checkpoint: per-vertex model selection reads it
+    // once per vertex, so a first checkpoint that lands after that pass has
+    // already read all 200 k. The fix yields long before, and resolves a
+    // model per (type, frame, TLO) context rather than per vertex.
+    const n = 200_000;
+    const tr = twpTrack(n, 4);
+    let frameReads = 0;
+    tr.frames = new Proxy(tr.frames!, {
+      get(target, prop, recv) {
+        if (typeof prop === "string" && /^\d+$/.test(prop)) frameReads++;
+        return Reflect.get(target, prop, recv);
+      },
+    });
+    const it = sweepCollisionsIter(buildCollisionModel(TRSRN, PLUNGE_BODIES), tr, WCS0, { margin: 2 });
+    const first = it.next();
+    expect(first.done).toBe(false);
+    expect(first.value).toBe(0);
+    expect(frameReads).toBeLessThan(n / 10);
+    // And the whole initialization keeps yielding on the way to the sweep.
+    let zeros = 1, r = it.next();
+    while (!r.done && r.value === 0) { zeros++; r = it.next(); }
+    expect(zeros).toBeGreaterThanOrEqual(8);
+    // Model selection never re-resolved a context it had already built.
+    expect(frameReads).toBeLessThanOrEqual(64);
+  });
+
+  it("an abort during the per-vertex passes returns the stopped result", () => {
+    const m = buildCollisionModel(TRSRN, TOOLED);
+    const it = sweepCollisionsIter(m, twpTrack(200_000, 4), WCS0, { margin: 2 });
+    expect(it.next().value).toBe(0);
+    const r = it.next(true);
+    expect(r.done).toBe(true);
+    const res = r.value as CollisionResult;
+    expect(res.samples).toBe(0);
+    expect(res.hits).toEqual([]);
+    expect(res.truncated).toEqual({ covered: 0, reason: "stopped" });
+    expect(m.bodies[m.toolBodyIdx]!.geom).toBe(m.baseTool!.geom);
+  });
+
+  it("resolves one kins model per (type, frame, tool-offset) context", () => {
+    // Same findings as a sweep that re-resolved per vertex — the caching is
+    // an identity of contexts, not an approximation. A TWP track whose
+    // frames alternate between two values must still see both models.
+    const n = 4000;
+    const base = track(Array.from({ length: n }, (_, i) => [i * 0.01, 0, 0]));
+    const frame = new Uint32Array(n);
+    for (let i = 0; i < n; i++) frame[i] = i % 2;          // alternating, worst case
+    const alt: ScrubTrack = { ...base, mode: new Uint8Array(n).fill(2), frame,
+      frames: [[0, 0, 0], [0, 30, 0]] as [number, number, number][] };
+    const runs: ScrubTrack = { ...alt, frame: Uint32Array.from({ length: n }, (_, i) => (i < n / 2 ? 0 : 1)) };
+    const a = sweepCollisions(buildCollisionModel(TRSRN, PLUNGE_BODIES), alt, WCS0, { margin: 2 });
+    const b = sweepCollisions(buildCollisionModel(TRSRN, PLUNGE_BODIES), runs, WCS0, { margin: 2 });
+    // Both complete and stay certified: the second frame's model was really
+    // built, not carried over from the first.
+    expect(a.uncertified).toBeNull();
+    expect(b.uncertified).toBeNull();
+    expect(a.samples).toBeGreaterThan(0);
+    expect(b.samples).toBeGreaterThan(0);
+  });
+
   it("an abort during the prescreen ends with an empty stopped result and the base tool installed", () => {
     const m = buildCollisionModel(PLUNGE, TOOLED);
     const it = sweepCollisionsIter(m, big(20000), WCS0, { margin: 2 });
