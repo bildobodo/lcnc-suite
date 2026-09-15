@@ -5104,3 +5104,58 @@ revisit only if a case appears the stamp cannot express. Stamping the solved
 targets instead of the readback (a request is not a completion). Leaving the
 switch as raw MDI (no admission rule without a typed command).
 
+## 2026-09-15 — Review fix waves 2–4: collision lifetime, 32-bit event indices, drift context, operator surface
+
+**Observed.** The 2026-09-14 pre-merge review (docs/reviews/twp-review-2026-09-14.md,
+its inline comments and the comments-response) reproduced twelve defects at
+1aa0730. Wave 1 (motion: TWP-01/02/03/04, TWP-08) is recorded in the entry above
+this one. Waves 2–4 closed the rest offline; every offline gate (build, lint,
+788 vitest, the gateway suite, 19 Playwright specs) is green at 14345bb. Live
+checks on the TWP simulator (buttons matrix, reorient/capture/touch-off checks,
+corpus gate, preview goldens `check`, perf matrix) are owed at the next restart.
+
+**Decision — collision (TWP-06/07/12, 785ffee, 40ef49c).** The tool body's base
+variant is owned by the MODEL (`CollisionModel.baseTool`, `restoreBaseTool`);
+installation tests geometry identity on the shared body, never a per-run cache
+(two iterators on one resident model — a side sweep started mid-run — kept
+divergent bookkeeping and the second run restored the first's program tool as
+its "base"); the in-segment checkpoint sits BEFORE the pose it precedes; a
+tool-number or tool-offset change between segments zeroes every tool pair's
+carried clearance (in-contact pairs re-query too; contact/onset state is never
+guessed); a dropped parked run and the error path restore the base tool. The
+entry/base merge reports a conservative checked PREFIX of the merged axis.
+Reference: a sweep started fresh at every tool/TLO boundary agrees with the
+optimized sweep on multi-tool tracks (pinned).
+
+**Decision — preview (TWP-05/09/10, 5a02441, d626a66, 52d210f).** The three
+per-vertex event channels are Uint32Array with one sentinel (`EVENT_NONE`);
+resolution is one forward pointer over the seq-sorted events (per-stream seq is
+ascending by construction). The parse worker records the APPLIED tool offset and
+the loaded tool in the `__TLO__` meta; the drift edge compares applied-now with
+applied-then (a `G43 H` not matching `T`, or `G43.1`, reparsed every debounce
+interval forever). Bare G28/G30 reach the rotary-command prefilter.
+
+**Decision — operator surface (TWP-11, D-01/D-02, U-03, U-06; 0bc4245,
+6e0320b, 7f7450f, 14345bb).** Initialization checkpoints every 4096 vertices /
+256 pairs (100 k-point probe, this VM: first checkpoint was the whole scan,
+~50–65 ms; now 25 checkpoints, the first after 3–6 ms warm and ~36 ms on a
+cold JIT — the review's probe measures the cold case; an abort there returns
+the empty stopped result). Labels: "Kinematics frame", "Go
+to G30 / Go to MCS 0 / Go to WCS 0", "Zero XYZ" on a switchable machine. The
+keypad names its target ("Touch off Z · Plane · updates G54"), cancels with a
+message when the target changes while open, and the request carries the target
+the operator saw (`expect`), which the gateway verifies. Every closed gate ships
+its reason (`permission_reasons`, the same first-unmet message a denied command
+carries); a dimmed control is wrapped in `.btnTip` with the reason as title and
+a tap handler (touch → message center) — only while armed: disarmed, the whole
+UI is dimmed and Arm is the obvious next step. `fire()` reports a dropped send.
+
+**Rejected.** A per-run pose-state refactor of the collision model (the three
+local edits close the defect; the response's restoration counterexample is
+pinned). A 16-bit index with an overflow branch (a second silent ceiling).
+Comparing applied compensation with the table row (the row is only what a bare
+G43 would apply). Wrapping every disabled control while disarmed (noise). A
+document-level tap handler for disabled buttons (browsers differ on whether a
+disabled control's ancestors see the event; the wrapper + `pointer-events:
+none` on the disabled child is deterministic).
+
