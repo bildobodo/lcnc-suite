@@ -3262,7 +3262,12 @@ def line_trust_flags(line_numbers, cls, is_rapid_stream):
 #: `_AXIS_WORD`, which requires a digit/dot/sign right after the letter and
 #: so misses `A#100`, `A[#1+2]` and `A#<ang>` — the forms a post that
 #: parameterises its rotary uses.
-_ROT_CANDIDATE_RE = re.compile(r"[ABC]\s*[-+]?[\d.#\[]", re.I)
+# Candidate-line prefilter for rotary_word_lines: a rotary WORD, or a bare
+# G28/G30 (TWP-10, review 2026-09-14: those command every axis — the
+# per-line classifier already said so — but the prefilter searched only for
+# A/B/C words, so a bare `G30` never reached it and an equal-to-seed
+# reference return was never a rotary boundary).
+_ROT_CANDIDATE_RE = re.compile(r"[ABC]\s*[-+]?[\d.#\[]|G\s*0*(?:28|30)(?![.\d])", re.I)
 _ROT_WORD_RE = re.compile(r"[ABC](?=[-+]?[\d.#\[])")
 _ANY_AXIS_WORD_RE = re.compile(r"[XYZABCUVW](?=[-+]?[\d.#\[])")
 _OWORD_NAME_RE = re.compile(r"O<[^>]*>", re.I)

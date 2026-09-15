@@ -3660,6 +3660,24 @@ class TestRotaryCommands(unittest.TestCase):
         self.assertEqual(gateway_util.rotary_word_lines(text), {3: "AC", 6: "B"})
         self.assertEqual(gateway_util.rotary_word_lines(""), {})
         self.assertEqual(gateway_util.rotary_word_lines("G0 X1\nG1 Y2\n"), {})
+        # TWP-10: bare G28/G30 reach the scan (they command every axis);
+        # storage, explicit-axis and commented forms are unchanged.
+        self.assertEqual(
+            gateway_util.rotary_word_lines("G0 X0\nG30\nG28.1\nG28 X0\n(G30)\ng 28\nG1 A5\n"),
+            {2: "ABC", 6: "ABC", 7: "A"})
+
+    def test_storage_and_explicit_axis_forms_unchanged(self):
+        self.assertEqual(gateway_util.rotary_word_lines("G28.1\nG30.1\nG28 X0\nG28 A#1\n(G30)\n"),
+                         {4: "A"})
+
+    def test_bare_g30_equal_to_the_seed_is_the_commanded_boundary(self):
+        # The review probe: a bare G30 whose reference angle equals the seed
+        # moves nothing (the endpoint test is blind) — only the text can
+        # tell, and the prefilter dropped the line. Now: A commanded at 2.
+        r = gateway_util.first_rotary_commands(
+            self._streams(self._seg(1, 1), self._seg(2, 2), self._seg(3, 3)),
+            {"A": 0.0}, gateway_util.rotary_word_lines("G0 X0\nG30\nG1 X5\n"))
+        self.assertEqual(r, {"A": 2, "unknown": None})
         # CRLF endings and a word after a comment on the same line
         self.assertEqual(gateway_util.rotary_word_lines("G0 X1\r\nG1 X5 (r) A10\r\n"), {2: "A"})
 
