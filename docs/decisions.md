@@ -5199,3 +5199,96 @@ any modal change). Client-only fixes (TWP-05/06/07/11/12) are pinned by the
 788-test vitest suite; the operator's browser look rides the M-05 walk-
 through. Suite left RUNNING, machine armed/on/homed, keeper connected.
 
+
+## 2026-09-15 evening — implementation review at 584083b: R-01..R-05 fixed and live-verified
+
+**Observed.** An independent follow-up review of the fix waves held the merge
+at `584083b` with five findings, all reproduced here with its own probes
+before any code changed: the typed kinematics selector sent the opposite
+command on the shipped TCP trunnion; the touch-off target was validated
+against the published status snapshot and then written with `P0`; carried
+collision clearance survived an unknown-start gap; the collision sweep's
+per-vertex initialization blocked the first checkpoint for ~400 ms on a
+million-point TWP track; and the disabled-control explanation was reachable
+by pointer only.
+
+**Decision — what the fixes are, and what each one refused to assume.**
+
+- **R-01.** Which raw switchkins type is identity depends on the kins family
+  and `sparm=identityfirst` (confirmed against 2.9.4 `xyzac-trt-kins.c`
+  switchkinsSetup, not from memory), and which M-code selects that type
+  depends on the machine's own remaps. Both are now resolved:
+  `raw_kins_for_semantic` (the inverse of `semantic_kins`, round-trip
+  tested) and `kins_mode_commands`, which scrapes `#<kinstype> = N` from
+  each REMAP'd .ngc through SUBROUTINE_PATH. A mode with no mapping is a
+  refusal naming the gap. After the MDI the pin is READ BACK and a
+  disagreement is reported. Client side, `semanticKinsMode` gives the
+  radios, the mode chips, the touch-off label and the end-of-program kins
+  warning the FRAME rather than the raw number; the touch-off `expect`
+  payload deliberately keeps the raw type, which is what the gateway
+  compares against its own pin.
+- **R-02.** The expect check moved to the write boundary and re-derives its
+  two fields from the controller (STAT poll + the reader pin), re-running
+  the route rule as well, so a request carrying no expectation is still
+  refused when the route changed. The write names its fixture — `G10 L20
+  P<n>`, verified against `interp_convert.cc convert_setup` to be the
+  identical write when that row is active — and a readback from a different
+  row is no longer adopted. Rejected: an interpreter-side o-sub guard.
+  `handle_command` holds `_cmd_lock` for the whole dispatch and no shipped
+  config declares a `[HALUI]MDI_COMMAND`, so the only writer left inside the
+  window is an external NML client, which the explicit `P` already handles.
+- **R-03.** `brk` carries both a stationary relabel and an unknown start
+  (`ustart` is ORed in), and the zero-length guard skipped the segment
+  before the TWP-06 tool/TLO invalidation could run. Every pair's
+  certificate is now invalidated at every break, not just the tool's: after
+  unknown motion nothing measured before it is a statement about now.
+- **R-04.** The pre-prescreen passes yield every 65536 vertices, and the
+  per-vertex kins model is resolved once per (type, frame, TLO) context
+  instead of per vertex. First checkpoint 397 ms → 17 ms at a million
+  points; whole initialization 608 ms → 256 ms.
+- **R-05.** While a control is disabled with a reason its wrapper is a
+  focusable help affordance (Enter/Space → the same message center entry),
+  through one shared `explainKeydown`. The control stays disabled.
+
+**Live evidence (lcnc_suite_sim_twp, feat/twp @ 84024bf).**
+- `twp_adverse_check.py` (NEW — the review's owed adverse paths): 14 pass,
+  0 fail. Plane → Zero from a G91 caller and from a G20 caller both land at
+  plane X0 Y0 with the clearance read in millimetres and restore the
+  caller's modal state; a clearance below the current Z does not lower Z; a
+  retract past the Z soft limit refuses and the X/Y leg never runs; an abort
+  during the Z leg leaves X/Y untouched with plane, fixture and kinematics
+  intact and the next call works; an unreachable plane (`q121 i0 j120`, past
+  a 55° nutating head's reach) refuses with "Requested tool orientation not
+  reachable", keeps the plane DEFINED, demotes to identity with the plane
+  inactive, and never moves a rotary.
+- twp_buttons_check 40 pass / 4 skip; twp_reorient_check, twp_capture_check,
+  twp_touchoff_plane_check ALL PASS; preview_gate check CLEAN; sim_parity
+  GREEN 21/21; perf_matrix two runs — one stochastic 54.3 ms lag window in
+  `fusion_near_limit` on the first, zero lag windows anywhere on the second,
+  no safety events either time, RSS slightly below the previous artifact.
+- Typed `set_kins_mode` on the trsrn stack: mode 1 → M429 → pin 1, mode 0 →
+  M428 → pin 0, mode 2 without a plane refused with the TWP-04 reason.
+
+**Live evidence (lcnc_suite_sim_5axis_tcp — R-01's other half).** On the
+shipped trunnion the mapping is genuinely reversed, and the operator now
+gets the frame they picked: Machine → M429 → switchkins-type 0 (identity),
+TCP → M428 → type 1 (trt world), both directions twice, and Plane refused
+("Not a TWP machine"). Before the fix, Machine sent M428 and landed in TCP.
+The deployed TCP INI's DISPLAY was pointed at the worktree launcher for this
+run and restored afterwards.
+
+**Harness lessons.** Two "failures" in the first adverse run were the
+harness, not the product: plane-frame moves written with G53 (under TOOL
+kins G53 addresses the PLANE, so a `G53 Z-80` was a 105 mm tool-axis
+traverse into the Z limit), and plane pins snapshotted before
+twp-helper-comp's 20 Hz passthrough had caught up — the same early-snapshot
+class as the pose-stamp flake (62e8cae). Both are fixed in the script.
+Separately: Escape is the E-Stop shortcut and fires from anywhere by
+design, so browser specs must not use it to dismiss anything.
+
+**Still owed.** The M-05 operator walk-through (desktop + simulated touch)
+and M-06's browser-side measurement of collision-worker acknowledgement —
+both the operator's, both main-promotion criteria. R-02's stale-snapshot
+case and R-03/R-04/R-05 are pinned offline (801 vitest, gateway suite, 20
+Playwright); forcing a stale published frame live would mean instrumenting
+the status poller, which would prove less than the dispatch test does.
