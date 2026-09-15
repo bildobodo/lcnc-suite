@@ -1585,6 +1585,22 @@ export function* sweepCollisionsIter(
   // its −TLO shift are those it was measured with.
   let prevTool = toolFor(0);
   let prevTlo = tloFor(0);
+  // A break crossed since the last swept segment (R-03, implementation review
+  // 2026-09-15). `brk` carries TWO things: a kins/WCS relabel, which is a
+  // stationary re-expression, and an unknown START (scrubTrack ORs `ustart`
+  // in) — an endpoint the machine reached by a path no parse can know, e.g.
+  // the motion around an M6. Both arrive as a zero-length segment, which the
+  // L <= eps guard below skips, so clearance measured BEFORE the break used
+  // to survive it: the sweep then strode past real contact in the known
+  // motion after the gap (the review's probe: 0 hits combined, 1 hit on the
+  // suffix alone). Carried clearance is a statement about a distance that was
+  // actually measured, and after unknown motion there is no such statement —
+  // for ANY pair, not just the tool's (a tool change moves the table too).
+  // So: remember the break and invalidate everything at the next real
+  // segment. Relabels pay the same single re-query; there are a handful per
+  // program, which is why this does not need the two flags separated on the
+  // wire.
+  let pendingBreak = false;
   outer:
   for (let i = 1; i < n && !abortAtStart; i++) {
     // i > 1 for the time-based checkpoint: a segment-1 checkpoint has
@@ -1600,6 +1616,7 @@ export function* sweepCollisionsIter(
     const isRapid = track.rapid[i] === 1;
     const c0 = dcum[i - 1]!, c1 = dcum[i]!;
     const L = c1 - c0;
+    if (track.brk?.[i]) pendingBreak = true;
     if (L <= 1e-9) continue;
     // Tool-geometry / tool-offset discontinuity (TWP-06, review 2026-09-14):
     // a carried clearance was measured with the PREVIOUS segment's tool
@@ -1615,8 +1632,13 @@ export function* sweepCollisionsIter(
     const segTool = toolFor(i), segTlo = tloFor(i);
     const toolBoundary = segTool !== prevTool
       || segTlo[0] !== prevTlo[0] || segTlo[1] !== prevTlo[1] || segTlo[2] !== prevTlo[2];
-    if (toolBoundary) {
-      for (let pi = 0; pi < pairs.length; pi++) if (pairTool[pi] && !skipPair[pi]) clear[pi] = 0;
+    const breakBoundary = pendingBreak;
+    pendingBreak = false;
+    if (toolBoundary || breakBoundary) {
+      for (let pi = 0; pi < pairs.length; pi++) {
+        if (skipPair[pi]) continue;
+        if (breakBoundary || pairTool[pi]) clear[pi] = 0;
+      }
     }
     prevTool = segTool; prevTlo = segTlo;
     const j = i * 3, k = j - 3;
@@ -1703,8 +1725,12 @@ export function* sweepCollisionsIter(
         sQ[pi] = s0;
         if (inContact[pi]) {
           // A tool/TLO boundary re-measures in-contact tool pairs at once
-          // (TWP-06) — see the segment head.
-          if (toolBoundary && ch === 0 && pairTool[pi]) { sSafe[pi] = s0; continue; }
+          // (TWP-06), a break re-measures EVERY pair (R-03) — see the
+          // segment head. Contact carried across either is not a measurement
+          // of this segment; the d > 2·margin rule verifies any separation.
+          if (ch === 0 && (breakBoundary || (toolBoundary && pairTool[pi]))) {
+            sSafe[pi] = s0; continue;
+          }
           // Every LINE a pair stays in contact with gets at least one sample
           // (its continuation record — the G-code panel marks it); within a
           // line the EXPLORE cadence carries across the chunks. A cutting

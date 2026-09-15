@@ -6,6 +6,7 @@ import {
   buildCollisionModel, sweepCollisions, sweepCollisionsIter, toolCylinderPositions, restoreBaseTool, type SnapshotHandle,
   type CollisionBody, type CollisionMachine, type CollisionResult, type CollisionOptions, mergeContiguousIntervals, componentBoxes } from "./collision";
 import type { ScrubTrack } from "../ws/bulkData";
+import { buildScrubTrack } from "./scrubTrack";
 import { TLO_NONE } from "./tloEvents";
 import { runSweepSlice } from "./sweepPump";
 
@@ -1143,6 +1144,86 @@ describe("component boxes + query lower bound (2026-09-13)", () => {
     const t = track([[0, 0, 0], [0, 0, -40]]);
     const a = sweepCollisions(fwd, t, WCS0, { margin: 2 }), b = sweepCollisions(rev, t, WCS0, { margin: 2 });
     expect(a.hits.map(h => [h.line, h.cum.toFixed(3), h.dist.toFixed(6)])).toEqual(b.hits.map(h => [h.line, h.cum.toFixed(3), h.dist.toFixed(6)]));
+  });
+});
+
+describe("clearance across a break (R-03, implementation review 2026-09-15)", () => {
+  // The review's fixture: a tool on an X-driven head and a fixed vise, with
+  // an UNKNOWN-START gap in the middle of the approach. `brk` carries both a
+  // stationary relabel and an unknown start (scrubTrack ORs `ustart` in), and
+  // the gap segment is zero-width — so clearance measured before it used to
+  // survive it and the sweep strode past real contact after it.
+  const M: CollisionMachine = {
+    groups: [{ id: "table", parent: "root" }, { id: "part", parent: "table" }, { id: "head", parent: "root" }],
+    kinematics: [{ group: "head", joint: 0, type: "translate", direction: "x", sign: 1 }],
+    workGroup: "part", toolGroup: "head", unitScale: 1, axes: ["X", "Y", "Z"],
+  };
+  const makeModel = (extra: CollisionBody[] = []) => buildCollisionModel(M, [
+    { id: "vise", group: "table", positions: boxPositions(2), translate: [0, 0, 1] },
+    { id: "tool", group: "head", positions: toolCylinderPositions(2, 2), tool: true },
+    ...extra,
+  ]);
+  const xs = (points: number[], brk?: number[]): ScrubTrack => {
+    const base = track(points.map(x => [x, 0, 0]), undefined, undefined, points.map(() => 1));
+    return brk ? { ...base, brk: new Uint8Array(brk) } : base;
+  };
+  const pairsOf = (r: CollisionResult) =>
+    [...new Set(r.hits.map(h => [h.a, h.b].sort().join("|")))].sort();
+
+  it("does not carry clearance across an unknown-start gap", () => {
+    // Exactly the review's probe, through the REAL stream merger: the
+    // unknown-start flag becomes brk on the way to the worker.
+    const points = [20, 19, 5, 0];
+    const merged = buildScrubTrack({ pos: new Float32Array() }, {
+      pos: new Float32Array(points.flatMap(x => [x, 0, 0])),
+      abc: new Float32Array(points.length * 3),
+      lines: new Uint32Array(points.map((_, i) => i + 1)),
+      seq: new Uint32Array(points.map((_, i) => i + 1)),
+      ustart: new Uint8Array([0, 0, 1, 0]),
+    })!;
+    expect([...merged.brk!]).toEqual([0, 0, 1, 0]);
+    const combined = sweepCollisions(makeModel(), merged, WCS0, { margin: 0.1 });
+    // The known motion after the gap, swept on its own, is the ground truth.
+    const suffix = sweepCollisions(makeModel(), xs([5, 0]), WCS0, { margin: 0.1 });
+    expect(suffix.hits.length).toBe(1);
+    expect(combined.hits.length).toBe(suffix.hits.length);
+    expect(pairsOf(combined)).toEqual(pairsOf(suffix));
+  });
+
+  it("finds a same-tool re-entry after a gap", () => {
+    // In contact, out of contact, unknown gap, back into contact: the second
+    // approach is its own onset and must be reported.
+    const tr = xs([0, 10, 9, 0], [0, 0, 1, 0]);
+    const r = sweepCollisions(makeModel(), tr, WCS0, { margin: 0.1 });
+    const onsets = r.hits.filter(h => h.continuation === undefined);
+    expect(onsets.length).toBeGreaterThanOrEqual(1);
+    // The approach AFTER the gap (the last segment, line 4) is found.
+    expect(r.hits.some(h => h.line === 4)).toBe(true);
+  });
+
+  it("invalidates non-tool pairs too", () => {
+    // A shroud on the head (z 8..10) and a wide post on the table (z 5..11,
+    // half-width 3) touch at |X| <= 4, well clear of the tool (z 0..2),
+    // which reaches the vise only at |X| <= 2 — so this suffix exercises the
+    // NON-tool pair alone. The old invalidation covered tool
+    // pairs only; after unknown motion the whole machine may have moved.
+    const extra: CollisionBody[] = [
+      { id: "shroud", group: "head", positions: boxPositions(2), translate: [0, 0, 9] },
+      { id: "post", group: "table", positions: boxPositions(6), translate: [0, 0, 8] },
+    ];
+    const combined = sweepCollisions(makeModel(extra), xs([20, 19, 5, 3], [0, 0, 1, 0]), WCS0, { margin: 0.1 });
+    const suffix = sweepCollisions(makeModel(extra), xs([5, 3]), WCS0, { margin: 0.1 });
+    expect(pairsOf(suffix)).toEqual(["post|shroud"]);
+    expect(pairsOf(combined)).toEqual(pairsOf(suffix));
+  });
+
+  it("reports the same findings with and without a relabel break", () => {
+    // A relabel is a stationary re-expression: invalidating there is
+    // conservative (one extra query), never a change of findings.
+    const withBrk = sweepCollisions(makeModel(), xs([20, 10, 10, 0], [0, 0, 1, 0]), WCS0, { margin: 0.1 });
+    const without = sweepCollisions(makeModel(), xs([20, 10, 10, 0]), WCS0, { margin: 0.1 });
+    expect(pairsOf(withBrk)).toEqual(pairsOf(without));
+    expect(withBrk.hits.length).toBe(without.hits.length);
   });
 });
 
