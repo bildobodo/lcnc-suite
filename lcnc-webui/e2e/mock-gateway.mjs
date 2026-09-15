@@ -180,6 +180,9 @@ let quiet = false;
 // in its own SERIAL playwright project (dependencies) — these globals would
 // otherwise interfere with parallel specs.
 const hellos = [];
+// Commands the UI SENT, newest last (R-01: a spec asserts which frame the
+// kinematics selector emits, and that a refused control emits nothing).
+const cmds = [];
 let refuseWs = false;
 
 wss.on("connection", (ws) => {
@@ -194,6 +197,10 @@ wss.on("connection", (ws) => {
       hellos.push(msg);
       if (hellos.length > 50) hellos.shift();
       if (refuseWs) { try { ws.close(1001, "server shutdown"); } catch { /* ignore */ } return; }
+    }
+    if (cmd && cmd !== "heartbeat") {
+      cmds.push(msg);
+      if (cmds.length > 50) cmds.shift();
     }
     if (cmd === "heartbeat") ws.send(JSON.stringify({ type: "pong" }));
     if (cmd === "halshow_live") ws.send(JSON.stringify(HALSHOW_SNAPSHOT));
@@ -233,6 +240,7 @@ ctlWss.on("connection", (ws) => {
       delete VIEWER_INIT.data.kins;   // setKins is per-spec state too
       _axes = null;
       hellos.length = 0;   // lifecycle.spec asserts on hello COUNTS
+      cmds.length = 0;
       broadcast(initFrame());
       broadcast(state);
     } else if (m.op === "setAxes") {
@@ -270,6 +278,11 @@ ctlWss.on("connection", (ws) => {
       broadcast({ type: "viewer_gcode_ready", version: _gcodeVer, file: "/leak.ngc" });
     } else if (m.op === "raw") {
       broadcast(m.frame);
+    } else if (m.op === "lastCmds") {
+      ws.send(JSON.stringify({ ok: true, op: m.op, cmds }));
+      return;
+    } else if (m.op === "clearCmds") {
+      cmds.length = 0;
     } else if (m.op === "lastHellos") {
       ws.send(JSON.stringify({ ok: true, op: m.op, hellos }));
       return;

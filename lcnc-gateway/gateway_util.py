@@ -16,7 +16,7 @@ import re
 import tempfile
 import hmac
 from urllib.parse import urlsplit
-from typing import Iterable, Optional
+from typing import Dict, Iterable, Optional
 
 
 # File-upload allow-list. Lives here (not gateway.py) so validate_extension is
@@ -3630,6 +3630,54 @@ def find_unmarked_subs(source_text, search_dirs, max_read=65536):
 
 #: Bare o-word subroutine name — no path separators ever (W5 subfile route).
 SUBFILE_NAME_RE = re.compile(r"^[a-z0-9_.\-]+$", re.IGNORECASE)
+
+
+_REMAP_MCODE_RE = re.compile(r"^\s*(M\d+)\b", re.I)
+_REMAP_NGC_RE = re.compile(r"\bngc\s*=\s*([A-Za-z0-9_.\-]+)")
+#: `#<kinstype> = N` — the switchkins type an M-code's remap selects. The
+#: remap sets this local and passes it to M-code 428/429/430's HAL pin write,
+#: so it is the machine's own statement of what that M-code does.
+_KINSTYPE_ASSIGN_RE = re.compile(r"^\s*#<kinstype>\s*=\s*([-+]?\d+)", re.I | re.M)
+
+
+def kins_mode_commands(remap_lines, source_for) -> Dict[int, str]:
+    """{raw switchkins type: the M-code word that selects it} for this machine.
+
+    R-01 (implementation review 2026-09-15): which M-code enters which
+    kinematics is a per-CONFIGURATION fact, not a family constant. The TWP
+    fork's remaps set identity on M428 and TCP on M429; the shipped TCP
+    trunnion (examples/sim_config/remap_subs, adapted from LinuxCNC's own
+    table-rotary-tilting sample) does the OPPOSITE — M428 selects the trt
+    world kins, M429 identity. A hardcoded table is therefore right for one
+    of the two and silently reversed on the other.
+
+    `remap_lines` are the INI's [RS274NGC]REMAP entries verbatim;
+    `source_for(name)` returns the named .ngc's text (SUBROUTINE_PATH
+    resolution, the interpreter's own lookup) or None. Only `ngc=` remaps of
+    M-codes are considered — a `python=` remap has no scrapeable assignment
+    — and the first M-code claiming a type wins, so a config with duplicates
+    is deterministic. Pure: all I/O is the caller's `source_for`.
+    """
+    out: Dict[int, str] = {}
+    for line in remap_lines or []:
+        m = _REMAP_MCODE_RE.match(str(line))
+        if not m:
+            continue
+        ngc = _REMAP_NGC_RE.search(str(line))
+        if not ngc:
+            continue
+        try:
+            text = source_for(ngc.group(1))
+        except Exception:  # noqa: BLE001 - an unreadable sub is simply not a mapping
+            text = None
+        if not text:
+            continue
+        hit = _KINSTYPE_ASSIGN_RE.search(text)
+        if not hit:
+            continue
+        raw = int(hit.group(1))
+        out.setdefault(raw, m.group(1).upper())
+    return out
 
 
 def resolve_subfile(name, search_dirs):

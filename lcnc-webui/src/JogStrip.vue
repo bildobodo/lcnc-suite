@@ -36,7 +36,11 @@ const props = defineProps<{
   // — Heidenhain 3D-ROT manual setting, Siemens WCS/MCS softkey — is an
   // EXPLICIT operator choice of jog frame, prominently indicated).
   // null kinsType = machine can't switch: selector hidden entirely.
+  // kinsType is the RAW switchkins pin; kinsMode is the FRAME it means on
+  // this kins family (App.kinsMode) — the radios show and emit frames,
+  // because the raw numbers differ per family (R-01).
   kinsType?: number | null;
+  kinsMode?: number | null;
   // The TWP remap stack exists on this machine (App twpCapable, twin of the
   // gateway's _twp_capable): only then is Plane a frame at all. A TCP
   // trunnion is switchable (Machine/TCP) without any plane (TWP-08b).
@@ -461,11 +465,11 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
           </div>
           <template v-if="kinsType != null">
             <div class="strip-radio-group stack-tight">
-              <span class="label-muted" title="Selects the machine's KINEMATICS — for jogging, MDI and programs alike: Machine (M428, identity), TCP (M429, world XYZ rides the table) or the tilted Plane (M430, which also selects G59). Not the Manual/MDI/Auto task mode above.">Kinematics frame</span>
+              <span class="label-muted" title="Selects the machine's KINEMATICS — for jogging, MDI and programs alike: Machine (identity), TCP (world XYZ rides the table) or the tilted Plane (which also selects G59). The M-code each frame uses is this machine's own remap. Not the Manual/MDI/Auto task mode above.">Kinematics frame</span>
               <div class="strip-radio-options">
-                <label class="radio-label" title="Identity kinematics — jog along machine axes"><MachineRadio gate="jogFrame" name="jogFrame" :modelValue="kinsType" :value="0" @update:modelValue="emit('setKinsMode', 0)" /> Machine</label>
-                <label class="radio-label" title="TCP kinematics — X/Y/Z are the work frame riding the table: jogging A keeps the tool tip on the workpiece (position only; the head orientation does not follow). Switching re-seeds the preview (a brief progress flash is expected)"><MachineRadio gate="jogFrame" name="jogFrame" :modelValue="kinsType" :value="1" @update:modelValue="emit('setKinsMode', 1)" /> TCP</label>
-                <label v-if="twpCapable" class="radio-label" :class="{ 'val-status': true, warn: twpStale, muted: !twpOriented }" :title="planeTitle" @click="explainPlane"><MachineRadio gate="planeFrame" name="jogFrame" :modelValue="kinsType" :value="2" @update:modelValue="emit('setKinsMode', 2)" /> Plane{{ twpStale ? ' (stale)' : '' }}</label>
+                <label class="radio-label" title="Identity kinematics — jog along machine axes"><MachineRadio gate="jogFrame" name="jogFrame" :modelValue="kinsMode ?? undefined" :value="0" @update:modelValue="emit('setKinsMode', 0)" /> Machine</label>
+                <label class="radio-label" title="TCP kinematics — X/Y/Z are the work frame riding the table: jogging A keeps the tool tip on the workpiece (position only; the head orientation does not follow). Switching re-seeds the preview (a brief progress flash is expected)"><MachineRadio gate="jogFrame" name="jogFrame" :modelValue="kinsMode ?? undefined" :value="1" @update:modelValue="emit('setKinsMode', 1)" /> TCP</label>
+                <label v-if="twpCapable" class="radio-label" :class="{ 'val-status': true, warn: twpStale, muted: !twpOriented }" :title="planeTitle" @click="explainPlane"><MachineRadio gate="planeFrame" name="jogFrame" :modelValue="kinsMode ?? undefined" :value="2" @update:modelValue="emit('setKinsMode', 2)" /> Plane{{ twpStale ? ' (stale)' : '' }}</label>
               </div>
             </div>
           </template>

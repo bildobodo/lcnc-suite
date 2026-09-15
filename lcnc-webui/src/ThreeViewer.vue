@@ -24,7 +24,7 @@ import type { LineIndex } from "./viewer/lineIndex";
 import { MACHINE_PALETTE, defaultPartHex } from "./viewer/palette";
 import { toolDimsFor } from "./viewer/tloEvents";
 import { boundsOf, epochTermsFor, previewWcsStaleFor, rebasePositions, usedWcsRowsKey, type WcsTableRow } from "./viewer/wcsEpochs";
-import { specFromWire, worldModeForSpec } from "./viewer/kins";
+import { specFromWire, worldModeForSpec, semanticKinsMode } from "./viewer/kins";
 import { workMarkers, markerInputsChanged, newMarkerInputsPrev, G5X_NAMES, chainRotaryLetters, type ProgramZeroPose } from "./viewer/programZero";
 import { roomEndOf, sliceTrack } from "./viewer/scrubTrack";
 import { boundsFromJointLimits, sameBox, type JointLimits, type MachineBox } from "./viewer/machineBounds";
@@ -160,12 +160,15 @@ const vst = computed(() => status.value?.data ?? null);
 const hudMode = computed(() => {
   const d = vst.value;
   if (!d || d.kins_type == null) return null;
+  // The FRAME the raw pin means on this family (R-01) — the strip chip is
+  // derived the same way, so the HUD and the strip cannot disagree.
+  const mode = semanticKinsMode(d.kins_type, viewerInit.value?.kins);
   return kinsModeChip({
-    kinsType: d.kins_type,
+    kinsType: mode,
     twpActive: d.twp_active,
     twpStale: twpPoseStale(poseAbcOf(d), d.rotary_abc, d.twp_defined),
     twpDatumMoved: twpDatumStale(d.wcs_table?.[0], d.twp_datum, d.twp_defined, d.wcs_prov_a?.[0]),
-    offDatum: fixtureOffDatum(d.kins_type, stampAForFixture(d.wcs_prov_a, d.g5x_index), d.rotary_abc?.[0]),
+    offDatum: fixtureOffDatum(mode, stampAForFixture(d.wcs_prov_a, d.g5x_index), d.rotary_abc?.[0]),
     g5xIndex: d.g5x_index,
   });
 });
@@ -221,12 +224,17 @@ const rewrittenWcs = computed<string[]>(() => {
 // strands the machine in that frame and the NEXT program runs there too.
 const kinsEndWarn = computed<{ text: string; title: string } | null>(() => {
   const k = viewerGcode.value?.kins_end_type;
-  if (k == null || k === 0) return null;
-  const mode = k === 1 ? "TCP" : "TOOL (plane)";
-  const fix = k === 1 ? "M428" : "G69 (or M428)";
+  if (k == null) return null;
+  // Which FRAME that raw type is depends on the kins family (R-01): on a trt
+  // without `sparm=identityfirst` raw 0 is the world kins, so "0 means
+  // identity, nothing to restore" was exactly backwards there.
+  const m = semanticKinsMode(k, viewerInit.value?.kins);
+  if (m === 0) return null;
+  const mode = m === 1 ? "TCP" : m === 2 ? "TOOL (plane)" : `an unsupported (type ${k})`;
+  const fix = m === 2 ? "G69, or select the Machine frame," : "select the Machine frame";
   return {
-    text: `Program ends in ${mode} kinematics — add ${fix} before M2`,
-    title: `The program's last kinematics switch leaves type ${k} in effect. M2 restores G54 but not the kinematics pin, so after the run the machine stays in the ${mode} frame and Cycle Start is refused until the Machine frame is restored.`,
+    text: `Program ends in ${mode} kinematics — ${m === 2 ? "add G69" : "restore the Machine frame"} before M2`,
+    title: `The program's last kinematics switch leaves switchkins type ${k} in effect. M2 restores G54 but not the kinematics pin, so after the run the machine stays in the ${mode} frame and Cycle Start is refused until the Machine frame is restored — ${fix} before M2.`,
   };
 });
 

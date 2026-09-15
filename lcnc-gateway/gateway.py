@@ -56,6 +56,7 @@ from gateway_util import (
     ALLOWED_EXTENSIONS,
     SUBFILE_NAME_RE,
     resolve_subfile,
+    kins_mode_commands,
     parse_kins_config,
     sanitize_filename,
     validate_extension,
@@ -85,7 +86,7 @@ from gateway_util import (
     wcs_stamp_decision,
     PROV_STAMPED,
 )
-from command_policy import check_command, validate_payload, MachineLimits, touchoff_route, twp_capture_check, goto_zero_plan, plane_frame_check, touchoff_target_text, touchoff_expect_check
+from command_policy import check_command, validate_payload, MachineLimits, touchoff_route, twp_capture_check, goto_zero_plan, plane_frame_check, touchoff_target_text, touchoff_expect_check, raw_kins_for_semantic
 from tool_table import (
     parse_tool_table,
     write_tool_table,
@@ -3589,14 +3590,25 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             return {"ok": True}
 
         if cmd == "set_kins_mode":
-            # Kinematics-frame selector (JogStrip): M428 identity / M429 TCP /
-            # M430 TOOL-plane, as a TYPED command so the Plane frame has a
-            # backend admission rule (TWP-04): a bare M430 reuses whatever
-            # the kins pins last held, so it is refused unless a plane is
-            # defined and the HEAD is still aligned with it (the A/B/C orient
-            # stamp vs the live rotaries — command_policy.plane_frame_check,
-            # the same rule the planeFrame permission dims the radio with).
-            # A raw `mdi M430` stays raw, like G69.
+            # Kinematics-frame selector (JogStrip), as a TYPED command so the
+            # Plane frame has a backend admission rule (TWP-04): a bare M430
+            # reuses whatever the kins pins last held, so it is refused unless
+            # a plane is defined and the HEAD is still aligned with it (the
+            # A/B/C orient stamp vs the live rotaries —
+            # command_policy.plane_frame_check, the same rule the planeFrame
+            # permission dims the radio with). A raw `mdi M430` stays raw,
+            # like G69.
+            #
+            # `mode` is SEMANTIC (0 Machine / 1 TCP / 2 Plane). Both halves of
+            # the translation to a command are per-configuration (R-01,
+            # implementation review 2026-09-15): which RAW switchkins type is
+            # identity depends on the kins family and `sparm=identityfirst`,
+            # and which M-code selects that raw type depends on the machine's
+            # own remaps. The shipped TCP trunnion is the counterexample to
+            # the table this used to hardcode — there M428 selects the trt
+            # world kins and M429 identity, so "Machine" sent M428 and landed
+            # in TCP. Resolve raw from the family, the command from the
+            # remaps, and then VERIFY the pin actually reached that raw type.
             require_armed(armed)
             blocked = reject_if_auto_running()
             if blocked:
@@ -3614,11 +3626,36 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                                 kins_type=pstate.kins_type, twp_defined=pstate.twp_defined,
                                 twp_aligned=pstate.twp_aligned)
                     return {"ok": False, "error": why}
-            line = {0: "M428", 1: "M429", 2: "M430"}[mode]
+            _raw = raw_kins_for_semantic(mode, _twp_capable(), _identity_first())
+            if _raw is None:
+                why = (f"{_KINS_MODE_NAMES[mode]} kinematics does not exist on this "
+                       f"machine's kins family — refused")
+                _trace.emit("kins_mode.refused", level="warn", reason=why, mode=mode)
+                return {"ok": False, "error": why}
+            _cmds = _kins_mode_commands()
+            line = _cmds.get(_raw)
+            if not line:
+                why = (f"No M-code on this machine selects switchkins type {_raw} "
+                       f"({_KINS_MODE_NAMES[mode]}) — the INI's [RS274NGC]REMAP "
+                       f"entries define none")
+                _trace.emit("kins_mode.refused", level="warn", reason=why, mode=mode,
+                            raw=_raw, known=_cmds)
+                return {"ok": False, "error": why}
             await set_mode(linuxcnc.MODE_MDI)
             await _cmd_blocking(CMD.mdi, line, wait=None)
-            _trace.emit("kins_mode.set", level="info", mode=mode, line=line)
-            return {"ok": True, "line": line}
+            # The scrape says what the remap SHOULD do; the pin says what
+            # happened. A mismatch is reported, never assumed away — the
+            # operator would otherwise jog in a frame the UI misnames.
+            _got = await _settle_kins_type(_raw)
+            if _got is not None and _got != _raw:
+                why = (f"{line} did not select {_KINS_MODE_NAMES[mode]} kinematics: "
+                       f"motion.switchkins-type reads {_got}, expected {_raw}")
+                _trace.emit("kins_mode.readback_mismatch", level="error", mode=mode,
+                            line=line, raw=_raw, got=_got)
+                return {"ok": False, "error": why}
+            _trace.emit("kins_mode.set", level="info", mode=mode, line=line, raw=_raw,
+                        verified=_got is not None)
+            return {"ok": True, "line": line, "mode": mode, "kins_type": _raw}
 
         if cmd == "go_to_zero":
             # The → Zero button, mode-aware (2026-09-03): Machine frame runs
@@ -5325,6 +5362,75 @@ def _identity_first() -> bool:
         return bool((_parse_kins_decl() or {}).get("identity_first"))
     except Exception:  # noqa: BLE001
         return False
+
+
+#: Operator wording for a semantic kinematics mode (R-01). The M-CODE is
+#: deliberately absent: it is a per-configuration fact resolved at run time.
+_KINS_MODE_NAMES = {0: "Machine (identity)", 1: "TCP (world)", 2: "Plane (TOOL)"}
+
+_kins_mode_cmd_cache: Optional[Dict[int, str]] = None
+
+
+def _kins_mode_commands() -> Dict[int, str]:
+    """{raw switchkins type: M-code word} for the running configuration.
+
+    Built from the INI's [RS274NGC]REMAP entries and the remap subs' own
+    `#<kinstype> = N` assignment (gateway_util.kins_mode_commands, pure),
+    resolved through SUBROUTINE_PATH exactly like the interpreter. Cached
+    for the session: neither the INI nor the subs it names can change under
+    a running LinuxCNC without a restart. Empty when nothing could be read —
+    the handler refuses rather than falling back to a guessed table (R-01:
+    the guess was reversed on the shipped TCP trunnion)."""
+    global _kins_mode_cmd_cache
+    if _kins_mode_cmd_cache is not None:
+        return _kins_mode_cmd_cache
+    cmds: Dict[int, str] = {}
+    try:
+        ini_filename = getattr(STAT, "ini_filename", None) if STAT else None
+        if ini_filename:
+            _ini = linuxcnc.ini(ini_filename)
+            dirs = get_ini_config().get("subroutine_paths", [])
+
+            def _source(name: str) -> Optional[str]:
+                path = resolve_subfile(name, dirs)
+                if not path:
+                    return None
+                with open(path, encoding="utf-8", errors="replace") as fh:
+                    return fh.read()
+
+            cmds = kins_mode_commands(_ini.findall("RS274NGC", "REMAP") or [], _source)
+            _kins_mode_cmd_cache = cmds
+            _trace.emit("kins_mode.commands", level="info", commands=cmds)
+    except Exception as e:  # noqa: BLE001 - an unreadable INI leaves the map empty (refusal)
+        _trace.emit_exc("kins_mode.commands_failed", e)
+    return cmds
+
+
+async def _settle_kins_type(expect_raw: int, timeout_s: float = 1.0) -> Optional[int]:
+    """The live motion.switchkins-type once it has reached `expect_raw`, or
+    its last reading at the deadline. None when this machine does not sample
+    the pin at all (non-switchable, or the reader has never delivered) — the
+    caller reports "unverified" rather than inventing agreement.
+
+    The MDI has already completed when this runs; the 30 Hz reader snapshot
+    needs a tick or two to carry the new pin value."""
+    if _reader_get("kins_type") is None:
+        # The pin is not sampled on this machine (non-switchable, or no
+        # snapshot has ever arrived). Waiting cannot make it appear: whole
+        # snapshots arrive at 30 Hz, so a registered pin is there from the
+        # first one.
+        return None
+    deadline = time.monotonic() + timeout_s
+    got = None
+    while True:
+        raw = _reader_get("kins_type")
+        if raw is not None:
+            got = int(round(float(raw)))
+            if got == expect_raw:
+                return got
+        if time.monotonic() >= deadline:
+            return got
+        await asyncio.sleep(0.02)
 
 
 def _controller_touchoff_state(base):

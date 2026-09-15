@@ -3,6 +3,7 @@
 """
 
 import re
+import os
 import unittest
 from pathlib import Path
 
@@ -22,10 +23,12 @@ from command_policy import (
     GATE_REQUIREMENTS,
     touchoff_route,
     touchoff_expect_check,
+    raw_kins_for_semantic,
     kins_runnable,
     machine_frame_required, goto_zero_plan,
     RESERVED_FIXTURES,
 )
+from gateway_util import kins_mode_commands
 
 
 def _gateway_src() -> str:
@@ -1034,3 +1037,117 @@ class TestTouchoffExpectCheck(unittest.TestCase):
         s = self._s(kins_type=None, g5x_index=None)
         self.assertIsNotNone(touchoff_expect_check(s, {"kins_type": 0}))
         self.assertIsNotNone(touchoff_expect_check(s, {"g5x_index": 1}))
+
+
+class TestRawKinsForSemantic(unittest.TestCase):
+    """R-01: the inverse of semantic_kins. The operator picks a FRAME; the
+    pin carries a raw type whose meaning is per-family."""
+
+    def test_twp_stack_is_identity_tcp_tool_in_order(self):
+        self.assertEqual([raw_kins_for_semantic(s, True, False) for s in (0, 1, 2)], [0, 1, 2])
+        # identity_first is a non-trsrn flag and must not disturb the stack
+        self.assertEqual([raw_kins_for_semantic(s, True, True) for s in (0, 1, 2)], [0, 1, 2])
+
+    def test_trt_with_identityfirst_has_raw_0_as_identity(self):
+        # xyzac-trt-kins.c switchkinsSetup: "switchkins-type 0 is IDENTITY"
+        self.assertEqual(raw_kins_for_semantic(0, False, True), 0)
+        self.assertEqual(raw_kins_for_semantic(1, False, True), 1)
+
+    def test_trt_without_identityfirst_has_raw_0_as_the_world_kins(self):
+        self.assertEqual(raw_kins_for_semantic(0, False, False), 1)
+        self.assertEqual(raw_kins_for_semantic(1, False, False), 0)
+
+    def test_plane_exists_only_on_the_twp_stack(self):
+        self.assertIsNone(raw_kins_for_semantic(2, False, True))
+        self.assertIsNone(raw_kins_for_semantic(2, False, False))
+
+    def test_an_unknown_semantic_mode_is_none(self):
+        for s in (-1, 3, 7):
+            self.assertIsNone(raw_kins_for_semantic(s, True, False))
+
+    def test_round_trips_with_semantic_kins_on_every_family(self):
+        for twp in (False, True):
+            for ident in (False, True):
+                for sem in (0, 1, 2):
+                    raw = raw_kins_for_semantic(sem, twp, ident)
+                    if raw is None:
+                        continue
+                    s = state(kins_switchable=True, twp_capable=twp,
+                              identity_first=ident, kins_type=raw)
+                    self.assertEqual(semantic_kins(s), sem,
+                                     f"twp={twp} identity_first={ident} semantic={sem}")
+
+
+class TestKinsModeCommands(unittest.TestCase):
+    """The scrape that turns a machine's own remaps into {raw type: M-code}
+    (gateway_util, pure — the file reads are the caller's)."""
+
+    TWP = {   # examples/sim_config/twp/remap_subs
+        "428remap": "o<428remap> sub\n  #<kinstype> = 0        ; identity\n",
+        "429remap": "o<429remap> sub\n  #<kinstype> = 1        ; TCP\n",
+        "430remap": "o<430remap> sub\n  #<kinstype> = 2        ; TOOL\n",
+    }
+    TRT = {   # examples/sim_config/remap_subs — the opposite convention
+        "428remap": ";M428 by remap: kinstype==1\n  #<kinstype> = 1\n",
+        "429remap": ";M429 by remap: kinstype==0\n  #<kinstype> = 0\n",
+        "430remap": "  #<kinstype> = 2\n",
+    }
+    LINES = ["M428 modalgroup=10 ngc=428remap",
+             "M429 modalgroup=10 ngc=429remap",
+             "M430 modalgroup=10 ngc=430remap",
+             "M530 modalgroup=10 python=g53x_core",
+             "G68.2 modalgroup=1 argspec=pqxyzijkr python=g682"]
+
+    def test_the_two_shipped_conventions_come_out_opposite(self):
+        self.assertEqual(kins_mode_commands(self.LINES, self.TWP.get),
+                         {0: "M428", 1: "M429", 2: "M430"})
+        self.assertEqual(kins_mode_commands(self.LINES, self.TRT.get),
+                         {1: "M428", 0: "M429", 2: "M430"})
+
+    def test_python_remaps_and_g_codes_contribute_nothing(self):
+        self.assertEqual(kins_mode_commands(["M530 modalgroup=10 python=g53x_core",
+                                             "G68.2 modalgroup=1 python=g682"], self.TWP.get),
+                         {})
+
+    def test_an_unreadable_or_silent_sub_is_simply_not_a_mapping(self):
+        self.assertEqual(kins_mode_commands(self.LINES, lambda _n: None), {})
+        self.assertEqual(kins_mode_commands(self.LINES, lambda _n: "o<x> sub\nM2\n"), {})
+
+        def _boom(_n):
+            raise OSError("unreadable")
+        self.assertEqual(kins_mode_commands(self.LINES, _boom), {})
+
+    def test_the_first_m_code_claiming_a_type_wins(self):
+        src = {"a": "#<kinstype> = 0", "b": "#<kinstype> = 0"}
+        self.assertEqual(kins_mode_commands(["M428 ngc=a", "M429 ngc=b"], src.get),
+                         {0: "M428"})
+
+    def test_no_remaps_at_all_is_an_empty_map_not_a_default(self):
+        self.assertEqual(kins_mode_commands([], self.TWP.get), {})
+        self.assertEqual(kins_mode_commands(None, self.TWP.get), {})
+
+
+class TestShippedRemapsDeclareTheirKinsTypes(unittest.TestCase):
+    """The scrape against the ACTUAL shipped remap files — the review's
+    observation, as a test: the two configurations really do disagree."""
+
+    def _cmds(self, subdir):
+        root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..",
+                            "examples", "sim_config", subdir, "remap_subs")
+
+        def _source(name):
+            path = os.path.join(root, name + ".ngc")
+            if not os.path.isfile(path):
+                return None
+            with open(path, encoding="utf-8", errors="replace") as fh:
+                return fh.read()
+        lines = ["M428 modalgroup=10 ngc=428remap",
+                 "M429 modalgroup=10 ngc=429remap",
+                 "M430 modalgroup=10 ngc=430remap"]
+        return kins_mode_commands(lines, _source)
+
+    def test_the_twp_fork_selects_identity_with_m428(self):
+        self.assertEqual(self._cmds("twp"), {0: "M428", 1: "M429", 2: "M430"})
+
+    def test_the_tcp_trunnion_selects_its_world_kins_with_m428(self):
+        self.assertEqual(self._cmds("."), {1: "M428", 0: "M429", 2: "M430"})

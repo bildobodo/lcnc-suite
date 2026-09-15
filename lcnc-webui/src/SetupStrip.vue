@@ -28,7 +28,11 @@ const props = defineProps<{
   // Live switchkins mode (null = machine has no switchable kins — chip
   // hidden). The industry convention (Heidenhain 3D-ROT, Siemens WCS/MCS)
   // is that the active jog/work frame is ALWAYS visibly indicated.
+  // RAW switchkins pin (the touch-off `expect` payload's field — the
+  // gateway compares it against its own pin) and the FRAME it means on this
+  // family, which is what the operator is shown (R-01).
   kinsType?: number | null;
+  kinsMode?: number | null;
   // The TWP remap stack exists (App twpCapable, twin of gateway
   // _twp_capable): the Capture/Orient/Clear row and the reserved G59 rows
   // are TWP facts; switchability alone (kinsType) is not (TWP-08b).
@@ -76,7 +80,7 @@ const rootEl = ref<HTMLElement | null>(null);
 // updates G54"), and the request carries the mode × fixture the operator
 // saw, which the gateway verifies at confirm time.
 function targetLabel(letter: string): string {
-  return touchoffTargetLabel(letter, { kinsType: props.kinsType, g5xLabel: props.g5xLabel, twpActive: props.twpActive });
+  return touchoffTargetLabel(letter, { kinsType: props.kinsMode, g5xLabel: props.g5xLabel, twpActive: props.twpActive });
 }
 function expectNow(): TouchoffExpect {
   return { kins_type: props.kinsType ?? null, g5x_index: props.g5xIndex ?? null };
@@ -139,7 +143,7 @@ const RESERVED_TITLE = "Reserved for the tilted-work-plane remap — rewritten b
 // kins type) with zero indication anywhere. ONE derivation (twpPose.ts
 // kinsModeChip) shared with the viewer HUD; "datum moved" rides in it.
 const kinsChip = computed(() => kinsModeChip({
-  kinsType: props.kinsType, twpActive: props.twpActive,
+  kinsType: props.kinsMode, twpActive: props.twpActive,
   twpStale: props.twpStale, twpDatumMoved: props.twpDatumMoved,
   offDatum: props.twpOffDatum, g5xIndex: props.g5xIndex,
 }));
@@ -215,11 +219,11 @@ function zeroAll() {
                               : 'Orient the head into the defined plane (G53.1 equivalent). The rotaries MOVE.'">Orient</MachineBtn>
             <!-- Clear plane: plain G69 — idempotent, restores identity kins +
                  G54, moves nothing. Also the TOOL-kins-limbo recovery. -->
-            <MachineBtn type="twpClear" :disabled="!twpDefined && kinsType !== 2"
+            <MachineBtn type="twpClear" :disabled="!twpDefined && kinsMode !== 2"
                         @click="emit('twpClear')"
                         :title="twpDefined
                           ? 'Discard the tilted work plane (G69): back to identity kinematics and G54.'
-                          : kinsType === 2
+                          : kinsMode === 2
                             ? 'TOOL kinematics without a plane — G69 restores identity kinematics and G54.'
                             : 'No plane defined — nothing to clear.'">Clear plane</MachineBtn>
           </div>

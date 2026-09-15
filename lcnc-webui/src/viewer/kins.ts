@@ -654,6 +654,29 @@ export function worldModeForSpec(kinstype: number | undefined, spec?: KinsSpec |
   return worldModeForType(t, !!spec.identityFirst);
 }
 
+/** The kins wire declaration, as `viewer_init.kins` carries it — the two
+ *  fields that decide what a raw switchkins type MEANS. */
+export type KinsFamilyWire = { type?: string; identity_first?: boolean } | null | undefined;
+
+/** RAW switchkins type → the SEMANTIC frame the operator picks: 0 Machine
+ *  (identity), 1 TCP (world), 2 Plane (TOOL). `null` when the type has no
+ *  such meaning on this family — an unknown type, or userk (2) on a family
+ *  that has no plane mode — so the selector shows nothing rather than a
+ *  wrong frame.
+ *
+ *  R-01 (implementation review 2026-09-15): the strip bound its Machine and
+ *  TCP radios to raw 0 and 1 directly, which is the right mapping only on
+ *  the TWP stack and on a trt loaded with `sparm=identityfirst`. Client twin
+ *  of command_policy.semantic_kins; the inverse (frame → command) is the
+ *  gateway's, resolved from the machine's own remaps. */
+export function semanticKinsMode(raw: number | null | undefined, kins: KinsFamilyWire): number | null {
+  if (raw == null || !Number.isFinite(raw)) return null;
+  const t = Math.round(raw);
+  if (kins?.type === "xyzacb-trsrn") return t === 0 || t === 1 || t === 2 ? t : null;
+  if (t !== 0 && t !== 1) return null;   // userk / unknown on a two-mode family
+  return worldModeForType(t, !!kins?.identity_first) ? 1 : 0;
+}
+
 // Once-per-context loud fallback for a TOOL-mode (type 2) segment with no
 // governing WEBUI_TWPFRAME marker: the plane frame lives only in the kins
 // pins (bare M430), so the pose falls back to trivkins — wrong by

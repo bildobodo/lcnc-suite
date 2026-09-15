@@ -4,6 +4,7 @@ import type { CollisionLineMark } from "./viewer/collision";
 import { applyClientOverlay, applyClientOverlayReasons, PERMISSIONS_KEY, PERMISSION_REASONS_KEY, FIRE_KEY, type Permissions, type PermissionReasons } from "./permissions";
 import { simMode } from "./simMode";
 import { twpPoseOriented, twpPoseStale, twpDatumStale, fixtureOffDatum, stampAForFixture, poseAbcOf } from "./twpPose";
+import { semanticKinsMode } from "./viewer/kins";
 import { runLineState, subExecState, resolveCurrentLine } from "./trackHighlight";
 import { clearSubfileCache } from "./lcncApi";
 import { mainLinesTrusted, type ScrubTrack } from "./viewer/scrubTrack";
@@ -448,6 +449,12 @@ const gcodeUnmarkedSubs = ref<string[]>([]);
 // Load-time lint: the kins type the program's last switch leaves in effect
 // (null = the program never switches; 0 = restored before M2).
 const gcodeKinsEnd = ref<number | null>(null);
+// The FRAME the program's last kinematics marker leaves in effect — null when
+// no program/marker, 0 when it ends in identity (nothing to restore). Raw
+// type 0 is NOT identity on every family (R-01), so the stats row asks the
+// family, like the viewer's own warning does.
+const gcodeKinsEndMode = computed<number | null>(() =>
+  gcodeKinsEnd.value == null ? 0 : semanticKinsMode(gcodeKinsEnd.value, viewerInit.value?.kins));
 // Soft-limit stats row: identity-check result plus the honest TCP hole —
 // world segments with no kins twin are NOT validated and must never read
 // as "OK" (unchecked ≠ clean).
@@ -593,6 +600,15 @@ const liveKinsType = computed<number | null>(() => {
   const k = st.value.kins_type;
   return k == null ? null : Math.round(Number(k));
 });
+// The FRAME that raw type means on this machine's kins family — 0 Machine,
+// 1 TCP, 2 Plane (viewer/kins.semanticKinsMode, the client twin of the
+// gateway's semantic_kins). Raw numbers are family-dependent: on an
+// xyzac-trt without `sparm=identityfirst` raw 0 is the WORLD kins, so a
+// selector bound to raw names the frame wrongly (R-01). Everything the
+// operator SEES uses this; the touch-off `expect` payload keeps the raw
+// type, which is what the gateway compares against its own pin.
+const kinsMode = computed<number | null>(() =>
+  semanticKinsMode(liveKinsType.value, viewerInit.value?.kins));
 // TWP capability: this machine runs the TWP remap stack — twin of the
 // gateway's _twp_capable (the shipped xyzacb-trsrn config IS the stack). A
 // switchable-but-TWP-less machine (a TCP trunnion) keeps the kins-frame
@@ -618,7 +634,9 @@ const twpDatumMoved = computed(() =>
 // live table A (twpPose.fixtureOffDatum — the Machine-mode mirror of twpStale).
 // Same chip/HUD derivation as the other flags via kinsModeChip.
 const twpOffDatum = computed(() =>
-  fixtureOffDatum(liveKinsType.value, stampAForFixture(st.value.wcs_prov_a, st.value.g5x_index),
+  // Semantic mode: "is this identity kinematics" is the question, not "is
+  // the raw pin 0" (R-01).
+  fixtureOffDatum(kinsMode.value, stampAForFixture(st.value.wcs_prov_a, st.value.g5x_index),
     st.value.rotary_abc?.[0]),
 );
 // A head solve exists (G53.x / Orient ran this session): the pose stamp is
@@ -1899,11 +1917,11 @@ watch(viewerGcode, (newGcode) => {
                       {{ kinsFlipStatus.text }}
                     </span>
                   </template>
-                  <template v-if="gcodeKinsEnd != null && gcodeKinsEnd !== 0">
+                  <template v-if="gcodeKinsEndMode !== 0">
                     <span class="statsLabel">Kinematics at end</span>
                     <span class="statsValue val-status warn"
                           :title="'The program\'s last kinematics switch leaves type ' + gcodeKinsEnd + ' in effect. M2 restores G54 but not the kinematics pin, so after the run the machine stays in this frame and Cycle Start is refused until the Machine frame is restored.'">
-                      {{ gcodeKinsEnd === 1 ? 'TCP' : 'TOOL (plane)' }} — not restored before M2 (add {{ gcodeKinsEnd === 1 ? 'M428' : 'G69 or M428' }})
+                      {{ gcodeKinsEndMode === 1 ? 'TCP' : gcodeKinsEndMode === 2 ? 'TOOL (plane)' : 'unsupported' }} — not restored before M2 ({{ gcodeKinsEndMode === 2 ? 'add G69, or select the Machine frame' : 'select the Machine frame' }})
                     </span>
                   </template>
                   <template v-if="previewRefusal">
@@ -2122,6 +2140,7 @@ watch(viewerGcode, (newGcode) => {
         :minJogVel="minJogVel"
         :iniIncrements="iniIncrements"
         :kinsType="liveKinsType"
+        :kinsMode="kinsMode"
         :twpCapable="twpCapable"
         :twpDefined="st.twp_defined ?? null"
         :twpStale="twpStale"
@@ -2146,6 +2165,7 @@ watch(viewerGcode, (newGcode) => {
         :isHomed="isHomed"
         :g5xLabel="g5xLabel"
         :kinsType="liveKinsType"
+        :kinsMode="kinsMode"
         :twpCapable="twpCapable"
         :twpActive="st.twp_active ?? null"
         :twpDefined="st.twp_defined ?? null"

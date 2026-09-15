@@ -19,6 +19,11 @@ const PERMS_ALL = {
 // trunnion that has no plane remap at all (TWP-08b).
 const TRSRN = { module: "xyzacb_trsrn", type: "xyzacb-trsrn", identity_first: false, params: {} };
 const TRT = { module: "xyzac-trt-kins", type: "xyzac-trt", identity_first: true, params: {} };
+// The same trunnion loaded WITHOUT `sparm=identityfirst`, where raw
+// switchkins type 0 is the WORLD kins and 1 is identity (xyzac-trt-kins.c
+// switchkinsSetup) — the configuration that tells a frame selector bound to
+// raw numbers apart from one bound to frames (R-01).
+const TRT_WORLD_FIRST = { module: "xyzac-trt-kins", type: "xyzac-trt", identity_first: false, params: {} };
 
 test("Plane mode: rotary touch-off closed, reserved fixtures disabled, Zero XYZ stays open", async ({ page }) => {
   // setAxes re-ships viewer_init to CONNECTED clients — load the page and
@@ -117,6 +122,44 @@ test("TCP trunnion (switchable, not TWP): G59 selectable, no Plane frame, no Cap
     await expect(page.locator('input[name="jogFrame"][value="2"]')).toHaveCount(1);
     await expect(page.getByRole("button", { name: "Capture plane" })).toHaveCount(1);
     await expect(page.locator('input[name="wcs"][value="G59"]')).toBeDisabled();
+  } finally {
+    await ctlSend({ op: "quiet", on: false });
+    await ctlSend({ op: "reset" });
+  }
+});
+
+test("kinematics selector shows the FRAME the raw type means, and emits frames", async ({ page }) => {
+  // R-01 (implementation review 2026-09-15): the radios were bound to the raw
+  // switchkins pin, which means different frames on different kins families.
+  // On a trt WITHOUT identityfirst, raw 0 is the trt world kins — the strip
+  // showed "Machine" while the machine was in TCP.
+  await page.goto(MOCK);
+  await expect(page.getByRole("button", { name: "Zero X", exact: true })).toBeVisible();
+  const machine = page.locator('input[name="jogFrame"][value="0"]');
+  const tcp = page.locator('input[name="jogFrame"][value="1"]');
+  await ctlSend({ op: "quiet", on: true });
+  try {
+    await ctlSend({ op: "setKins", kins: TRT_WORLD_FIRST });
+    await ctlSend({ op: "status_delta", data: {
+      kins_type: 0, g5x_index: 1, permissions: { ...PERMS_ALL },
+    } });
+    await expect(tcp).toBeChecked();
+    await expect(machine).not.toBeChecked();
+    await ctlSend({ op: "status_delta", data: { kins_type: 1 } });
+    await expect(machine).toBeChecked();
+    await expect(tcp).not.toBeChecked();
+    // Picking a frame sends the FRAME; the gateway resolves the M-code from
+    // this machine's own remaps.
+    await ctlSend({ op: "clearCmds" });
+    await tcp.click();
+    await expect.poll(async () => {
+      const r = await ctlSend({ op: "lastCmds" }) as { cmds?: { cmd?: string; mode?: number }[] };
+      return (r.cmds ?? []).filter(c => c.cmd === "set_kins_mode").map(c => c.mode);
+    }).toEqual([1]);
+    // The TWP stack maps raw straight through, so the same pin reads as Plane.
+    await ctlSend({ op: "setKins", kins: TRSRN });
+    await ctlSend({ op: "status_delta", data: { kins_type: 2, twp_active: true } });
+    await expect(page.locator('input[name="jogFrame"][value="2"]')).toBeChecked();
   } finally {
     await ctlSend({ op: "quiet", on: false });
     await ctlSend({ op: "reset" });

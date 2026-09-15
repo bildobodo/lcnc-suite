@@ -187,9 +187,32 @@ def semantic_kins(s: MachineState) -> Optional[int]:
     return 3
 
 
+def raw_kins_for_semantic(semantic: int, twp_capable: bool,
+                          identity_first: bool) -> Optional[int]:
+    """The RAW switchkins type that means `semantic` (0 identity, 1 TCP /
+    world, 2 TOOL / plane) on this kins family — the inverse of
+    semantic_kins, and the reason the two live side by side.
+
+    R-01 (implementation review 2026-09-15): the frame the operator picks is
+    semantic, the pin is raw, and the two differ per family — on xyzac-trt
+    raw 0 is the WORLD kins unless the module was loaded with
+    `sparm=identityfirst`. 2 exists only on the TWP stack. None = this
+    family has no such mode, which the caller must refuse rather than
+    approximate. Pure; round-trips with semantic_kins by construction
+    (tested)."""
+    if semantic == 2:
+        return 2 if twp_capable else None
+    if semantic not in (0, 1):
+        return None
+    if twp_capable:
+        return semantic
+    identity_raw = 0 if identity_first else 1   # sparm=identityfirst: raw 0 is identity
+    return identity_raw if semantic == 0 else 1 - identity_raw
+
+
 def _unsupported_mode_msg(s: MachineState) -> str:
     return (f"Kinematics mode {s.kins_type} has no policy rule on this kins "
-            f"family — select the identity mode (M428) first")
+            f"family — select the Machine (identity) frame first")
 
 
 def touchoff_route(s: MachineState, letters):
@@ -258,7 +281,7 @@ def kins_runnable(s: MachineState) -> Optional[str]:
         return _unsupported_mode_msg(s)
     if k == 2 and not s.twp_active:
         return ("Plane kinematics is active with no active plane — select the "
-                "Machine frame (M428) or G69 before starting")
+                "Machine frame or G69 before starting")
     if k == 2 and s.g5x_index is not None and s.g5x_index != 6:
         return ("Plane kinematics is active but G54 (not G59, the plane fixture) "
                 "is selected — a program ended with TOOL kinematics on. Select the "
@@ -284,12 +307,16 @@ def machine_frame_required(s: MachineState) -> Optional[str]:
         return _unsupported_mode_msg(s)
     if k != 0:
         return ("Machine frame required — G53 moves are tilted-frame moves under "
-                "TCP or Plane kinematics; select the Machine frame (M428) first")
+                "TCP or Plane kinematics; select the Machine frame first")
     return None
 
 
+# The M-code that SELECTS the Machine frame is configuration-dependent
+# (R-01: the shipped trt remaps M428 to its world kins), so operator wording
+# names the frame — the JogStrip radio and the typed set_kins_mode command
+# own the number.
 _R_MACHINE_FRAME = (lambda s: machine_frame_required(s) is None,
-                    "Machine frame required — select the Machine frame (M428) first")
+                    "Machine frame required — select the Machine frame first")
 
 
 def goto_zero_plan(s: MachineState, work_z: Optional[float], clearance: float,

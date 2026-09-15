@@ -7,6 +7,7 @@ off-machine. Requires the gateway venv (fastapi/msgspec are real deps):
     .venv/bin/python3 -m unittest test_command_dispatch
 """
 import asyncio
+import os
 import unittest
 from types import SimpleNamespace
 
@@ -15,6 +16,7 @@ linuxcnc = fake_linuxcnc.install()   # MUST precede `import gateway`
 import gateway  # noqa: E402  (import after the fake is installed)
 import fusion_import  # noqa: E402
 import bulk_pipeline  # noqa: E402
+from gateway_util import kins_mode_commands  # noqa: E402
 
 
 def _run(coro):
@@ -786,6 +788,8 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
         self._switchable = gateway._kins_is_switchable
         self._capable = gateway._twp_capable
         self._reader_get = gateway._reader_get
+        self._identity_first = gateway._identity_first
+        self._kins_cmd_cache = gateway._kins_mode_cmd_cache
         self._prov = dict(gateway._prov_cache)
         gateway._prov_cache.clear()
 
@@ -793,6 +797,8 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
         gateway._kins_is_switchable = self._switchable
         gateway._twp_capable = self._capable
         gateway._reader_get = self._reader_get
+        gateway._identity_first = self._identity_first
+        gateway._kins_mode_cmd_cache = self._kins_cmd_cache
         gateway._prov_cache.clear()
         gateway._prov_cache.update(self._prov)
 
@@ -800,6 +806,41 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
         """Scripted HAL-reader snapshot — the controller's own answer, as
         distinct from the published status payload (R-02)."""
         gateway._reader_get = pins.get
+
+    # The two shipped switchkins configurations, read from the remap subs
+    # THEMSELVES rather than restated here (R-01): the point of the finding is
+    # that the M-code → switchkins-type mapping is a per-configuration fact,
+    # so a test that hardcodes it would be testing the same assumption that
+    # was wrong. Asserted against literals in
+    # test_command_policy.TestShippedRemapsDeclareTheirKinsTypes.
+    @staticmethod
+    def _shipped_cmds(subdir):
+        root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..",
+                            "examples", "sim_config", subdir, "remap_subs")
+
+        def _source(name):
+            path = os.path.join(root, name + ".ngc")
+            if not os.path.isfile(path):
+                return None
+            with open(path, encoding="utf-8", errors="replace") as fh:
+                return fh.read()
+        return kins_mode_commands(["M428 modalgroup=10 ngc=428remap",
+                                   "M429 modalgroup=10 ngc=429remap",
+                                   "M430 modalgroup=10 ngc=430remap"], _source)
+
+    @property
+    def TWP_CMDS(self):
+        return self._shipped_cmds("twp")
+
+    @property
+    def TRT_CMDS(self):
+        return self._shipped_cmds(".")
+
+    def _kins_config(self, cmds, *, twp, identity_first=False):
+        gateway._kins_is_switchable = lambda: True
+        gateway._twp_capable = lambda: twp
+        gateway._identity_first = lambda: identity_first
+        gateway._kins_mode_cmd_cache = dict(cmds)
 
     def _send(self, msg, **state):
         gateway._shared_status = _payload(**state)
@@ -851,18 +892,73 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
         self.assertEqual(self._mdi_lines(), [])
 
     def test_set_kins_mode_0_sends_m428(self):
-        gateway._kins_is_switchable = lambda: True
-        gateway._twp_capable = lambda: True   # the TWP stack (trsrn)
+        self._kins_config(self.TWP_CMDS, twp=True)   # the TWP stack (trsrn)
         r = self._send({"cmd": "set_kins_mode", "mode": 0}, kins_type=2, g5x_index=6)
         self.assertTrue(r["ok"], r)
         self.assertEqual(self._mdi_lines(), ["M428"])
 
     def test_set_kins_mode_2_sends_m430_when_aligned(self):
-        gateway._kins_is_switchable = lambda: True
-        gateway._twp_capable = lambda: True   # the TWP stack (trsrn)
+        self._kins_config(self.TWP_CMDS, twp=True)   # the TWP stack (trsrn)
         r = self._send({"cmd": "set_kins_mode", "mode": 2}, kins_type=0, g5x_index=1, **self.ALIGNED)
         self.assertTrue(r["ok"], r)
         self.assertEqual(self._mdi_lines(), ["M430"])
+
+    def test_machine_and_tcp_send_the_shipped_trt_configuration_commands(self):
+        """R-01 (implementation review 2026-09-15): on the shipped TCP
+        trunnion (xyzac-trt-kins sparm=identityfirst) M428's remap selects
+        switchkins type 1 — the trt WORLD kins — and M429 selects identity.
+        The handler used to map mode 0 → M428 unconditionally, so picking
+        Machine entered TCP and picking TCP entered Machine."""
+        self._kins_config(self.TRT_CMDS, twp=False, identity_first=True)
+        r = self._send({"cmd": "set_kins_mode", "mode": 0}, kins_type=1, g5x_index=1)
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(r["kins_type"], 0)          # identityfirst: raw 0 IS identity
+        self.assertEqual(self._mdi_lines(), ["M429"])
+        self.cmd.calls.clear()
+        r = self._send({"cmd": "set_kins_mode", "mode": 1}, kins_type=0, g5x_index=1)
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(r["kins_type"], 1)
+        self.assertEqual(self._mdi_lines(), ["M428"])
+
+    def test_a_trt_without_identityfirst_maps_the_other_way(self):
+        """Same remaps, no sparm: raw 0 is the world kins and raw 1 identity
+        (xyzac-trt-kins.c switchkinsSetup), so Machine is M428 here."""
+        self._kins_config(self.TRT_CMDS, twp=False, identity_first=False)
+        r = self._send({"cmd": "set_kins_mode", "mode": 0}, kins_type=0, g5x_index=1)
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(r["kins_type"], 1)
+        self.assertEqual(self._mdi_lines(), ["M428"])
+
+    def test_plane_is_refused_on_a_family_that_has_no_plane_mode(self):
+        self._kins_config(self.TRT_CMDS, twp=False, identity_first=True)
+        r = self._send({"cmd": "set_kins_mode", "mode": 2}, kins_type=0, g5x_index=1)
+        self.assertFalse(r["ok"], r)
+        self.assertEqual(self._mdi_lines(), [])
+
+    def test_refuses_when_no_remap_selects_the_wanted_type(self):
+        """A configuration whose remaps cannot reach a mode gets a refusal
+        naming the gap — never a guessed M-code."""
+        self._kins_config({0: "M429"}, twp=False, identity_first=True)
+        r = self._send({"cmd": "set_kins_mode", "mode": 1}, kins_type=0, g5x_index=1)
+        self.assertFalse(r["ok"], r)
+        self.assertIn("REMAP", r["error"])
+        self.assertEqual(self._mdi_lines(), [])
+
+    def test_a_readback_that_disagrees_with_the_scrape_is_reported(self):
+        """The remap source says what SHOULD happen; the pin says what did."""
+        self._kins_config(self.TWP_CMDS, twp=True)
+        self._reader(kins_type=2.0)                  # pin never leaves TOOL
+        r = self._send({"cmd": "set_kins_mode", "mode": 0}, kins_type=2, g5x_index=6)
+        self.assertFalse(r["ok"], r)
+        self.assertIn("switchkins-type", r["error"])
+        self.assertEqual(self._mdi_lines(), ["M428"])
+
+    def test_a_verified_readback_reports_the_raw_type(self):
+        self._kins_config(self.TWP_CMDS, twp=True)
+        self._reader(kins_type=0.0)
+        r = self._send({"cmd": "set_kins_mode", "mode": 0}, kins_type=2, g5x_index=6)
+        self.assertTrue(r["ok"], r)
+        self.assertEqual((r["mode"], r["kins_type"]), (0, 0))
 
     def test_set_kins_mode_2_refused_when_stale(self):
         gateway._kins_is_switchable = lambda: True
