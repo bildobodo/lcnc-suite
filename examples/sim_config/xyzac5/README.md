@@ -1,4 +1,4 @@
-# Compact 500 — conventional XYZAC trunnion mill
+# 5 Axis XYZAC
 
 An original, compact machine example for LCNC Suite: a deep cast-style bed,
 wide rear column, horizontal X saddle, vertical Z spindle head and Y table.
@@ -8,6 +8,9 @@ joints, guide blocks and kinematic hierarchy are easy to inspect. Ball-screw
 assemblies are omitted from the model. The spindle housing meets the thick
 Z carrier directly, without an intermediate spacer. Its cylindrical cartridge
 and short, stepped steel nose follow the TWP example's spindle proportions.
+The cartridge and nose flange have the same diameter. The bearing pedestals
+have tangent sides flowing into a circular crown; each pedestal is centred
+directly above its Y rail and pair of guide blocks.
 Three diagonal rear buttresses are fused into the column casting and sit on
 an extended foot and foundation, with the rear levelling feet underneath.
 
@@ -25,6 +28,8 @@ No third-party CAD meshes are redistributed.
 | Platter | Ø400 mm; top surface at the A/C intersection in the neutral pose |
 | Guide system | Size 45; two rails and four long flanged blocks on each linear axis |
 | Rail / block dimensions | 45 × 38 mm rail; 120 × 171.2 mm block; 60 mm assembly height |
+| Y rail spacing | 920 mm between centres, directly under the bearing pedestals |
+| Spindle cartridge / flange | Ø220 mm each, flush at the interface |
 | X / Z carrier plate | 100 mm each; head mounted directly to the Z plate |
 | Y carrier plate | 140 mm thick, 1160 mm wide |
 | Yoke cheeks / crossplate | 110 / 110 mm |
@@ -44,14 +49,14 @@ no hardware drivers and no second Vismach window. It listens on localhost.
 From the repository root, materialize the model and run the config:
 
 ```sh
-git lfs pull --include="examples/sim_config/machine-xyzac-compact/*.stl"
+git lfs pull --include="examples/sim_config/machine-5axis-xyzac/*.stl"
 cd examples/sim_config
-linuxcnc lcnc_suite_sim_5axis_compact.ini
+linuxcnc lcnc_suite_sim_5axis_xyzac.ini
 ```
 
 For a separate writable configuration, copy the **whole** `sim_config`
-directory into a new `~/linuxcnc/configs/lcnc_suite_compact5` directory. Retain
-all siblings: `hallib`, `remap_subs`, `compact5`, and `machine-xyzac-compact`.
+directory into a new `~/linuxcnc/configs/lcnc_suite_xyzac5` directory. Retain
+all siblings: `hallib`, `remap_subs`, `xyzac5`, and `machine-5axis-xyzac`.
 Make `hallib/lcnc_webui.hal` a symlink back to the installed repository, as
 described in the [shared setup guide](../README.md), so safety-chain updates
 continue to arrive. Run the INI with that config directory as the working
@@ -103,14 +108,14 @@ tool is collision-free; check the program with the suite's collision tools.
 
 ## Regenerate / inspect
 
-The source is [`scripts/freecad_compact5.py`](../../../scripts/freecad_compact5.py).
+The source is [`scripts/freecad_5axis_xyzac.py`](../../../scripts/freecad_5axis_xyzac.py).
 It generates 30 named, closed STL parts, `machine.json` and `dimensions.json`.
 Each STL is local to its group. Run with FreeCAD's Python runtime:
 
 ```sh
-COMPACT5_CAD_DIR=/tmp/compact5 freecadcmd scripts/freecad_compact5.py
-COMPACT5_CAD_DIR=/tmp/compact5 freecadcmd scripts/freecad_check_compact5.py
-python3 scripts/test_compact5.py
+XYZAC5_CAD_DIR=/tmp/xyzac5 freecadcmd scripts/freecad_5axis_xyzac.py
+XYZAC5_CAD_DIR=/tmp/xyzac5 freecadcmd scripts/freecad_check_5axis_xyzac.py
+python3 scripts/test_5axis_xyzac.py
 ```
 
 Use an absolute path to `freecadcmd` if it is not on PATH. The optional output
@@ -127,7 +132,7 @@ The optional exact-solid FreeCAD checker tests 72 discrete retracted
 rotary/travel and lower working poses (not continuous swept volumes).
 The current acceptance run found no interpenetration across 1953 candidate
 solid-pair checks. Additional interface checks verify that the column/foot,
-bearing/ring and spindle-head/Z-plate contacts have no volume overlap or
+bearing/ring, cartridge/nose and spindle-head/Z-plate contacts have no volume overlap or
 duplicate outward-facing planar surfaces. X and Z carrier thicknesses match,
 and the spindle head contacts the Z plate directly. The buttresses form one
 connected column solid, with the foot and foundation extending past their

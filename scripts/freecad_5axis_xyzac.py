@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 """Original compact XYZAC machining centre. Run with FreeCAD's freecadcmd.
 
-Set COMPACT5_CAD_DIR for optional FCStd, STEP and embedded-preview data.
+Set XYZAC5_CAD_DIR for optional FCStd, STEP and embedded-preview data.
 The exported STL coordinates are local to the machine.json groups.
 This is an illustrative machine, not manufacturing drawings or an OEM copy.
 """
@@ -15,8 +15,8 @@ import MeshPart
 import Part
 
 ROOT = Path(__file__).resolve().parents[1]
-DEST = ROOT / 'examples/sim_config/machine-xyzac-compact'
-OUT = Path(os.environ['COMPACT5_CAD_DIR']) if os.environ.get('COMPACT5_CAD_DIR') else None
+DEST = ROOT / 'examples/sim_config/machine-5axis-xyzac'
+OUT = Path(os.environ['XYZAC5_CAD_DIR']) if os.environ.get('XYZAC5_CAD_DIR') else None
 DEST.mkdir(parents=True, exist_ok=True)
 if OUT:
     OUT.mkdir(parents=True, exist_ok=True)
@@ -31,6 +31,8 @@ Z_PLATE_BACK = 255
 BEARING_INNER = 365
 BEARING_WIDTH = 190
 BEARING_OUTER = BEARING_INNER + BEARING_WIDTH
+Y_GUIDE_X = BEARING_INNER + BEARING_WIDTH / 2
+SPINDLE_RADIUS = 110
 YOKE_INNER = 235
 YOKE_OUTER = 345
 BED_REAR_Y = 1470
@@ -81,7 +83,7 @@ KINS = [dict(group='x_saddle', joint=0, type='translate', direction='x', sign=1)
         dict(group='z_head', joint=2, type='translate', direction='z', sign=1),
         dict(group='a_yoke', joint=3, type='rotate', direction='x', sign=1),
         dict(group='c_platter', joint=4, type='rotate', direction='z', sign=1)]
-doc = App.newDocument('Compact_5_Axis')
+doc = App.newDocument('Five_Axis_XYZAC')
 motion = doc.addObject('Spreadsheet::Sheet', 'Motion')
 motion.set('A1', 'Axis'); motion.set('B1', 'Position'); motion.set('C1', 'Limits')
 for row, (axis, value, limits) in enumerate(zip('XYZAC', POSE, LIMITS), 2):
@@ -147,7 +149,7 @@ column = fuse([column, *ribs])
 assert len(column.Solids) == 1, 'Column ribs must join the main casting'
 add('rear_column', None, 'paint', column)
 add('column_foot', None, 'cast', bevel(box(-740, 535, -540, 740, FOOT_REAR_Y, -405), 12))
-rail_seats = compound([box(x-75, -515, -540, x+75, 515, -520) for x in (-320, 320)])
+rail_seats = compound([box(x-75, -515, -540, x+75, 515, -520) for x in (-Y_GUIDE_X, Y_GUIDE_X)])
 add('chip_pan', None, 'dark', bevel(box(-600, -690, -539, 600, 505, -527), 4).cut(rail_seats))
 
 # Shared 45 mm profile and long flanged blocks, two rails / four blocks per axis.
@@ -197,7 +199,7 @@ def guides(axis, fixed, moving, lanes, start, length, centres, travel, normal):
 
 
 add('y_rail_seats', None, 'cast', rail_seats)
-guides('y', None, 'y_table', [(-320, 0, -520), (320, 0, -520)], -500, 1000,
+guides('y', None, 'y_table', [(-Y_GUIDE_X, 0, -520), (Y_GUIDE_X, 0, -520)], -500, 1000,
        [-150, 150], (0, 1, 0), (0, 0, 1))
 add('y_saddle', 'y_table', 'paint', bevel(box(-580, -280, -460, 580, 280, -320), 12))
 guides('x', None, 'x_saddle', [(0, X_GUIDE_Y, 400), (0, X_GUIDE_Y, 990)], -690, 1380,
@@ -213,21 +215,29 @@ add('spindle_head', 'z_head', 'paint', head)
 add('spindle_motor_cover', 'z_head', 'accent', bevel(box(-125, -112, 445, 125, 125, 585), 16))
 # Short steel taper, shoulder and bolt flange, following the TWP spindle's
 # stepped outline at a smaller scale. The cartridge itself is cylindrical.
-add('spindle_cartridge', 'z_head', 'dark', cyl(90, 50, (0, 0, 35)))
+add('spindle_cartridge', 'z_head', 'dark', cyl(SPINDLE_RADIUS, 50, (0, 0, 35)))
 nose = fuse([Part.makeCone(50, 70, 20, V(0, 0, 0)),
-             cyl(70, 8, (0, 0, 20)), cyl(110, 7, (0, 0, 28))])
+             cyl(70, 8, (0, 0, 20)), cyl(SPINDLE_RADIUS, 7, (0, 0, 28))])
 nose = nose.cut(cyl(20, 18, (0, 0, -1))).cut(compound([
     cyl(4, 5, (96*math.cos(math.radians(a)), 96*math.sin(math.radians(a)), 27))
     for a in range(0, 360, 45)]))
 add('spindle_nose', 'z_head', 'steel', nose)
 
-# Symmetric bearing pedestals, bored for actual shafts. A rotates about X.
-support_profile = [(-250, -320), (250, -320), (190, -120), (155, 40),
-                   (130, 115), (-130, 115), (-155, 40), (-190, -120)]
+# Tangent sides flow into a true circular crown without projecting shoulders.
+# For the right base point p, the tangent point t satisfies p.t = radius**2.
+support_radius, base_y, base_z = 165, 250, -320
+base_d2 = base_y**2 + base_z**2
+tangent_scale = support_radius * math.sqrt(base_d2 - support_radius**2) / base_d2
+tangent_y = support_radius**2 / base_d2 * base_y - tangent_scale * base_z
+tangent_z = support_radius**2 / base_d2 * base_z + tangent_scale * base_y
 supports, rings, covers = [], [], []
 for x0 in (-BEARING_OUTER, BEARING_INNER):
-    body = fuse([yz_profile(support_profile, x0, BEARING_WIDTH),
-                 cyl(165, BEARING_WIDTH, (x0, 0, 0), (1, 0, 0))])
+    left, right = V(x0, -base_y, base_z), V(x0, base_y, base_z)
+    tr, tl = V(x0, tangent_y, tangent_z), V(x0, -tangent_y, tangent_z)
+    crown = Part.Arc(tr, V(x0, 0, support_radius), tl).toShape()
+    outline = Part.Wire([Part.makeLine(left, right), Part.makeLine(right, tr),
+                         crown, Part.makeLine(tl, left)])
+    body = Part.Face(outline).extrude(V(BEARING_WIDTH, 0, 0))
     body = bevel(body, 7).cut(cyl(124, BEARING_WIDTH+2, (x0-1, 0, 0), (1, 0, 0)))
     supports.append(body)
     # Rings project from the inner face instead of sharing its exposed plane.
@@ -260,7 +270,7 @@ add('fixture_blank', 'c_platter', 'stock', bevel(box(-65, -65, 0, 65, 65, 60), 3
 doc.recompute()
 assert not any('Invalid' in o.State for o in doc.Objects)
 assert abs(cadgroups['z_head'].Placement.Base.z - POSE[2]) < 1e-7
-machine = dict(name='Compact 500 — XYZAC Trunnion',
+machine = dict(name='5 Axis XYZAC',
                source='Original illustrative FreeCAD design, GPL-2.0-or-later; no OEM meshes.',
                groups=GROUPS, parts=parts, kinematics=KINS, workGroup='c_platter', toolGroup='tool')
 with (DEST / 'machine.json').open('w') as f:
@@ -270,6 +280,7 @@ report = dict(joint_limits=LIMITS, cad_pose=POSE, table_diameter=400,
               structure=dict(x_plate_thickness=100, z_plate_thickness=Z_PLATE_BACK-Z_PLATE_FRONT,
                              y_plate_thickness=140, yoke_cheek_thickness=YOKE_OUTER-YOKE_INNER,
                              yoke_crossplate_thickness=110, bearing_width=BEARING_WIDTH,
+                             y_rail_spacing=2*Y_GUIDE_X, spindle_cartridge_diameter=2*SPINDLE_RADIUS,
                              spindle_axis_to_z_plate=Z_PLATE_FRONT, floor_z=FLOOR_Z,
                              rear_ribs=[dict(x_start=x, width=width) for x, width in RIB_SPANS],
                              rib_rear_y=RIB_REAR_Y, bed_rear_y=BED_REAR_Y),
@@ -293,7 +304,7 @@ for obsolete in DEST.glob('*.stl'):
     if obsolete.name not in {p['file'] for p in parts}:
         obsolete.unlink()
 if OUT:
-    doc.saveAs(str(OUT / 'Compact_500_XYZAC.FCStd'))
+    doc.saveAs(str(OUT / '5_Axis_XYZAC.FCStd'))
     stepdoc = App.newDocument('STEP_Export')
     stepobjs = []
     for p in parts:
@@ -301,7 +312,7 @@ if OUT:
         o = stepdoc.addObject('PartDesign::Feature', p['id']); o.Shape = s; stepobjs.append(o)
     stepdoc.recompute()
     import Import
-    Import.export(stepobjs, str(OUT / 'Compact_500_XYZAC.step'))
+    Import.export(stepobjs, str(OUT / '5_Axis_XYZAC.step'))
     App.closeDocument(stepdoc.Name)
     with (OUT / 'preview-data.json').open('w') as f:
         json.dump(preview, f, separators=(',', ':'))

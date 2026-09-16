@@ -1,5 +1,5 @@
 ; SPDX-License-Identifier: GPL-2.0-or-later
-; Compact 500 AIR-MOTION example. Home all five axes first.
+; 5 Axis XYZAC AIR-MOTION example. Home all five axes first.
 ; Dedicated G54 is reset to the A/C intersection, platter top at A=C=0.
 ; Uses the supplied T1 (100 mm gauge length). Confirm the manual tool change.
 G21 G17 G90 G94 G40 G49 G80 G92.1

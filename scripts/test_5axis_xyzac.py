@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
-"""Off-machine acceptance: python3 scripts/test_compact5.py (C compiler needed).
+"""Off-machine acceptance: python3 scripts/test_5axis_xyzac.py (C compiler needed).
 
 Checks the shipped meshes/config, guide coverage, and actual model frame tree
 against the source-pinned LinuxCNC C oracle. No alternate runtime kinematics.
@@ -18,13 +18,13 @@ from gen_kins_fixtures import compile_harness, run_oracle
 
 ROOT = Path(__file__).resolve().parents[1]
 SIM = ROOT / 'examples/sim_config'
-MODEL = SIM / 'machine-xyzac-compact'
+MODEL = SIM / 'machine-5axis-xyzac'
 with (MODEL / 'machine.json').open() as f:
     MACHINE = json.load(f)
 with (MODEL / 'dimensions.json').open() as f:
     DIMENSIONS = json.load(f)
 INI = configparser.ConfigParser(strict=False)
-INI.read(SIM / 'lcnc_suite_sim_5axis_compact.ini')
+INI.read(SIM / 'lcnc_suite_sim_5axis_xyzac.ini')
 
 
 def identity():
@@ -64,7 +64,7 @@ def tip_in_work(joints, length):
     return [sum(work[j][i]*tip[j] for j in range(3)) for i in range(3)]
 
 
-class CompactAcceptance(unittest.TestCase):
+class XYZACAcceptance(unittest.TestCase):
     def test_config_and_closed_export_manifest(self):
         self.assertEqual(INI['KINS']['KINEMATICS'], 'xyzac-trt-kins sparm=identityfirst')
         self.assertEqual(INI['DISPLAY']['WEBUI_MACHINE_DIR'], MODEL.name)
@@ -79,7 +79,7 @@ class CompactAcceptance(unittest.TestCase):
             self.assertGreaterEqual(DIMENSIONS['joint_limits'][j][1], home)
         for section, key in [('EMCIO', 'TOOL_TABLE'), ('RS274NGC', 'PARAMETER_FILE'), ('DISPLAY', 'OPEN_FILE')]:
             self.assertTrue((SIM / INI[section][key]).is_file())
-        with (SIM / 'lcnc_suite_sim_5axis_compact.ini').open() as f:
+        with (SIM / 'lcnc_suite_sim_5axis_xyzac.ini').open() as f:
             ini_text = f.read()
         for pin, value in DIMENSIONS['pins'].items():
             self.assertIn(f'setp xyzac-trt-kins.{pin} {value}', ini_text)
@@ -126,7 +126,7 @@ class CompactAcceptance(unittest.TestCase):
         rng = random.Random(500)
         joints = [[rng.uniform(*limits) for limits in DIMENSIONS['joint_limits']] for _ in range(2000)]
         worst = 0.0
-        with tempfile.TemporaryDirectory(prefix='compact5-oracle-') as temp:
+        with tempfile.TemporaryDirectory(prefix='xyzac5-oracle-') as temp:
             exe = compile_harness(Path(temp))
             for length in (0, 60, 100, 180):
                 params = (0, 0, 0, 0, 0, 0, length)

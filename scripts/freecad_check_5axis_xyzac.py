@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
-"""Optional exact-solid acceptance after freecad_compact5.py.
+"""Optional exact-solid acceptance after freecad_5axis_xyzac.py.
 
-Run COMPACT5_CAD_DIR=/tmp/compact5 freecadcmd scripts/freecad_check_compact5.py.
+Run XYZAC5_CAD_DIR=/tmp/xyzac5 freecadcmd scripts/freecad_check_5axis_xyzac.py.
 Checks 72 discrete poses, not continuous swept volumes. Bearing/mounting
 contacts are permitted; different-group solids must not interpenetrate.
 Does not save changes to the input FCStd or certify arbitrary programs.
@@ -9,8 +9,8 @@ Does not save changes to the input FCStd or certify arbitrary programs.
 import FreeCAD as App, Part
 import os, json, math
 from pathlib import Path
-out=Path(os.environ.get('COMPACT5_CAD_DIR', '/tmp/compact5'))
-doc=App.openDocument(str(out/'Compact_500_XYZAC.FCStd'))
+out=Path(os.environ.get('XYZAC5_CAD_DIR', '/tmp/xyzac5'))
+doc=App.openDocument(str(out/'5_Axis_XYZAC.FCStd'))
 parts=[o for o in doc.Objects if 'SimulationGroup' in o.PropertiesList]
 by_label = {o.Label.replace(' ', '_'): o for o in parts}
 
@@ -27,7 +27,8 @@ def world_shape(obj):
 interfaces = []
 for first, second in [('rear_column', 'column_foot'),
                       ('a_bearing_pedestals', 'a_bearing_rings'),
-                      ('spindle_head', 'z_slide')]:
+                      ('spindle_head', 'z_slide'),
+                      ('spindle_cartridge', 'spindle_nose')]:
     a, b = world_shape(by_label[first]), world_shape(by_label[second])
     volume = a.common(b).Volume
     assert volume < 0.1, f'{first}/{second}: overlapping solids'
@@ -51,6 +52,17 @@ assert abs(by_label['z_slide'].Shape.BoundBox.YLength -
            by_label['x_saddle'].Shape.BoundBox.YLength) < 1e-6
 assert abs(by_label['spindle_head'].Shape.BoundBox.YMax -
            by_label['z_slide'].Shape.BoundBox.YMin) < 1e-6
+# The flange sits flush with the cartridge. Each Y rail and its two blocks
+# support the corresponding bearing pedestal along the same X centreline.
+for axis in ('XLength', 'YLength'):
+    assert abs(getattr(by_label['spindle_cartridge'].Shape.BoundBox, axis) -
+               getattr(by_label['spindle_nose'].Shape.BoundBox, axis)) < 1e-6
+bearing_centres = sorted(s.BoundBox.Center.x for s in by_label['a_bearing_pedestals'].Shape.Solids)
+for name in ('y_guide_rails', 'y_rail_seats', 'y_guide_blocks'):
+    centres = sorted(s.BoundBox.Center.x for s in by_label[name].Shape.Solids)
+    expected = sorted(bearing_centres * (2 if name == 'y_guide_blocks' else 1))
+    assert len(centres) == len(expected)
+    assert all(abs(a-b) < 1e-6 for a, b in zip(centres, expected)), name
 # The rear buttresses are part of the casting and land above a supported foot.
 assert len(by_label['rear_column'].Shape.Solids) == 1
 assert by_label['column_foot'].Shape.BoundBox.YMax >= by_label['rear_column'].Shape.BoundBox.YMax + 20 - 1e-6

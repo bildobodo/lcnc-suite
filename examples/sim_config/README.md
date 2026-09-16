@@ -30,7 +30,7 @@ Edit `hallib/lcnc_webui.hal`:
 
 ## Key files
 
-- `lcnc_suite_sim_5axis_compact.ini` — [Compact 500](compact5/README.md), an
+- `lcnc_suite_sim_5axis_xyzac.ini` — [5 Axis XYZAC](xyzac5/README.md), an
   original XYZAC example with a two-sided A yoke, Ø400 mm C platter,
   500/400/400 mm travel, size-45 guides, switchable TCP and an air-motion demo.
   Includes FreeCAD source and dedicated tool/variable files.

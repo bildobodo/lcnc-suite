@@ -1094,7 +1094,7 @@ The `[RS274NGC] SUBROUTINE_PATH` must include paths to the subroutine directorie
 
 The 3D viewer loads a machine model — a directory containing `machine.json` plus STL files — describing the kinematic hierarchy, STL parts, and how joints drive the model.
 
-The [Compact 500 five-axis example](examples/sim_config/compact5/README.md)
+The [5 Axis XYZAC five-axis example](examples/sim_config/xyzac5/README.md)
 ships an original XYZAC machine with a two-sided trunnion yoke, Ø400 mm
 platter, size-45 linear guides and 500/400/400 mm travel. It includes a
 FreeCAD generator, 30 STL parts, a switchable-TCP INI and an air-motion demo.

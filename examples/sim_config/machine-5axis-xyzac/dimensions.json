@@ -43,12 +43,12 @@
         "axis": "y",
         "lanes": [
           [
-            -320,
+            -460.0,
             0,
             -520
           ],
           [
-            320,
+            460.0,
             0,
             -520
           ]
@@ -201,7 +201,7 @@
       "solids": 2,
       "closed": true,
       "triangles": 7680,
-      "volume_mm3": 3142331.8651295365
+      "volume_mm3": 3142331.8651295374
     },
     {
       "id": "y_guide_blocks",
@@ -209,7 +209,7 @@
       "solids": 4,
       "closed": true,
       "triangles": 7280,
-      "volume_mm3": 1655715.3061396517
+      "volume_mm3": 1655715.3061396526
     },
     {
       "id": "y_guide_endcaps",
@@ -217,7 +217,7 @@
       "solids": 8,
       "closed": true,
       "triangles": 544,
-      "volume_mm3": 390274.133333333
+      "volume_mm3": 390274.13333333295
     },
     {
       "id": "y_saddle",
@@ -313,7 +313,7 @@
       "solids": 1,
       "closed": true,
       "triangles": 416,
-      "volume_mm3": 1272345.0247038663
+      "volume_mm3": 1900663.5554218246
     },
     {
       "id": "spindle_nose",
@@ -328,8 +328,8 @@
       "valid": true,
       "solids": 2,
       "closed": true,
-      "triangles": 1312,
-      "volume_mm3": 47567027.87594447
+      "triangles": 1624,
+      "volume_mm3": 48846974.85616677
     },
     {
       "id": "a_bearing_rings",
@@ -395,6 +395,8 @@
     "yoke_cheek_thickness": 110,
     "yoke_crossplate_thickness": 110,
     "bearing_width": 190,
+    "y_rail_spacing": 920.0,
+    "spindle_cartridge_diameter": 220,
     "spindle_axis_to_z_plate": 155,
     "floor_z": -905,
     "rear_ribs": [
