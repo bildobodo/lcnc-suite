@@ -45,12 +45,12 @@
           [
             -320,
             0,
-            -460
+            -520
           ],
           [
             320,
             0,
-            -460
+            -520
           ]
         ],
         "rail_start": -500,
@@ -79,12 +79,12 @@
         "lanes": [
           [
             0,
-            540,
+            475,
             400
           ],
           [
             0,
-            540,
+            475,
             990
           ]
         ],
@@ -114,20 +114,20 @@
         "lanes": [
           [
             -130,
-            380,
+            315,
             0
           ],
           [
             130,
-            380,
+            315,
             0
           ]
         ],
-        "rail_start": 300,
+        "rail_start": 325,
         "rail_length": 820,
         "block_centres": [
-          300,
-          520
+          325,
+          545
         ],
         "travel": [
           0,
@@ -161,15 +161,15 @@
       "solids": 1,
       "closed": true,
       "triangles": 212,
-      "volume_mm3": 831607505.3333329
+      "volume_mm3": 831607505.333333
     },
     {
       "id": "rear_column",
       "valid": true,
       "solids": 1,
       "closed": true,
-      "triangles": 264,
-      "volume_mm3": 812918066.9335726
+      "triangles": 216,
+      "volume_mm3": 845015626.3811858
     },
     {
       "id": "column_foot",
@@ -177,15 +177,15 @@
       "solids": 1,
       "closed": true,
       "triangles": 44,
-      "volume_mm3": 68813976.0
+      "volume_mm3": 75358656.0
     },
     {
       "id": "chip_pan",
       "valid": true,
       "solids": 1,
       "closed": true,
-      "triangles": 44,
-      "volume_mm3": 17131317.33333333
+      "triangles": 92,
+      "volume_mm3": 13464117.333333343
     },
     {
       "id": "y_rail_seats",
@@ -225,7 +225,7 @@
       "solids": 1,
       "closed": true,
       "triangles": 44,
-      "volume_mm3": 38669695.99999999
+      "volume_mm3": 90417536.0
     },
     {
       "id": "x_guide_rails",
@@ -257,7 +257,7 @@
       "solids": 1,
       "closed": true,
       "triangles": 44,
-      "volume_mm3": 40391333.33333332
+      "volume_mm3": 40391333.33333333
     },
     {
       "id": "z_guide_rails",
@@ -273,7 +273,7 @@
       "solids": 4,
       "closed": true,
       "triangles": 7280,
-      "volume_mm3": 1655715.306139651
+      "volume_mm3": 1655715.3061396508
     },
     {
       "id": "z_guide_endcaps",
@@ -281,7 +281,7 @@
       "solids": 8,
       "closed": true,
       "triangles": 544,
-      "volume_mm3": 390274.13333333307
+      "volume_mm3": 390274.1333333334
     },
     {
       "id": "z_slide",
@@ -289,87 +289,15 @@
       "solids": 1,
       "closed": true,
       "triangles": 44,
-      "volume_mm3": 6567834.666666663
-    },
-    {
-      "id": "y_screw",
-      "valid": true,
-      "solids": 1,
-      "closed": true,
-      "triangles": 416,
-      "volume_mm3": 1520530.84433746
-    },
-    {
-      "id": "y_screw_bearings",
-      "valid": true,
-      "solids": 2,
-      "closed": true,
-      "triangles": 24,
-      "volume_mm3": 904800.0
-    },
-    {
-      "id": "y_screw_nut",
-      "valid": true,
-      "solids": 1,
-      "closed": true,
-      "triangles": 840,
-      "volume_mm3": 99070.12433095407
-    },
-    {
-      "id": "x_screw",
-      "valid": true,
-      "solids": 1,
-      "closed": true,
-      "triangles": 416,
-      "volume_mm3": 2007100.7145254472
-    },
-    {
-      "id": "x_screw_bearings",
-      "valid": true,
-      "solids": 2,
-      "closed": true,
-      "triangles": 24,
-      "volume_mm3": 726000.0000000005
-    },
-    {
-      "id": "x_screw_nut",
-      "valid": true,
-      "solids": 1,
-      "closed": true,
-      "triangles": 840,
-      "volume_mm3": 99070.12433095418
-    },
-    {
-      "id": "z_screw",
-      "valid": true,
-      "solids": 1,
-      "closed": true,
-      "triangles": 416,
-      "volume_mm3": 904778.6842338606
-    },
-    {
-      "id": "z_screw_bearings",
-      "valid": true,
-      "solids": 2,
-      "closed": true,
-      "triangles": 24,
-      "volume_mm3": 518400.0
-    },
-    {
-      "id": "z_screw_nut",
-      "valid": true,
-      "solids": 1,
-      "closed": true,
-      "triangles": 840,
-      "volume_mm3": 118243.26429581265
+      "volume_mm3": 22825770.66666667
     },
     {
       "id": "spindle_head",
       "valid": true,
       "solids": 1,
       "closed": true,
-      "triangles": 104,
-      "volume_mm3": 50085674.66666668
+      "triangles": 44,
+      "volume_mm3": 36879109.333333336
     },
     {
       "id": "spindle_motor_cover",
@@ -400,8 +328,8 @@
       "valid": true,
       "solids": 2,
       "closed": true,
-      "triangles": 1280,
-      "volume_mm3": 32416082.96058581
+      "triangles": 1312,
+      "volume_mm3": 47567027.87594447
     },
     {
       "id": "a_bearing_rings",
@@ -409,7 +337,7 @@
       "solids": 2,
       "closed": true,
       "triangles": 1680,
-      "volume_mm3": 521403.84953098954
+      "volume_mm3": 1056781.5031851442
     },
     {
       "id": "a_drive_covers",
@@ -417,15 +345,15 @@
       "solids": 2,
       "closed": true,
       "triangles": 832,
-      "volume_mm3": 1628601.6316209454
+      "volume_mm3": 2290221.0444669574
     },
     {
       "id": "a_yoke_casting",
       "valid": true,
       "solids": 1,
       "closed": true,
-      "triangles": 1100,
-      "volume_mm3": 32870995.760525286
+      "triangles": 1252,
+      "volume_mm3": 50271086.03230089
     },
     {
       "id": "a_trunnion_shafts",
@@ -433,7 +361,7 @@
       "solids": 2,
       "closed": true,
       "triangles": 832,
-      "volume_mm3": 10332038.503199577
+      "volume_mm3": 19000352.368911073
     },
     {
       "id": "c_bearing_lip",
@@ -460,6 +388,16 @@
       "volume_mm3": 1008384.0
     }
   ],
+  "structure": {
+    "x_plate_thickness": 100,
+    "z_plate_thickness": 100,
+    "y_plate_thickness": 140,
+    "yoke_cheek_thickness": 110,
+    "yoke_crossplate_thickness": 110,
+    "bearing_width": 190,
+    "spindle_axis_to_z_plate": 155,
+    "floor_z": -905
+  },
   "pins": {
     "x-rot-point": 0,
     "y-rot-point": 0,

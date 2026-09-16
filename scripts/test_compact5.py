@@ -91,6 +91,8 @@ class CompactAcceptance(unittest.TestCase):
         self.assertIn(MACHINE['workGroup'], groups)
         self.assertIn(MACHINE['toolGroup'], groups)
         self.assertEqual(len({p['id'] for p in MACHINE['parts']}), len(MACHINE['parts']))
+        self.assertEqual({p['file'] for p in MACHINE['parts']}, {p.name for p in MODEL.glob('*.stl')},
+                         'Removed components must not leave stale STL exports')
         reports = {p['id']: p for p in DIMENSIONS['parts']}
         for part in MACHINE['parts']:
             self.assertIn(part['group'] or 'root', groups)

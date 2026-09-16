@@ -12,6 +12,45 @@ from pathlib import Path
 out=Path(os.environ.get('COMPACT5_CAD_DIR', '/tmp/compact5'))
 doc=App.openDocument(str(out/'Compact_500_XYZAC.FCStd'))
 parts=[o for o in doc.Objects if 'SimulationGroup' in o.PropertiesList]
+by_label = {o.Label.replace(' ', '_'): o for o in parts}
+
+
+def world_shape(obj):
+    shape = obj.Shape.copy()
+    shape.Placement = obj.getGlobalPlacement()
+    return shape
+
+
+# These pairs share a rigid group, so a motion-only collision test misses
+# overlapping accents/feet. Require real mating interfaces with no volume
+# overlap and no coincident outward-facing planar surfaces (z-fighting).
+interfaces = []
+for first, second in [('rear_column', 'column_foot'),
+                      ('a_bearing_pedestals', 'a_bearing_rings'),
+                      ('spindle_head', 'z_slide')]:
+    a, b = world_shape(by_label[first]), world_shape(by_label[second])
+    volume = a.common(b).Volume
+    assert volume < 0.1, f'{first}/{second}: overlapping solids'
+    gap = a.distToShape(b)[0]
+    assert gap < 1e-6, f'{first}/{second}: floating interface ({gap} mm)'
+    outward_overlap = 0.0
+    for fa in a.Faces:
+        if type(fa.Surface).__name__ != 'Plane':
+            continue
+        for fb in b.Faces:
+            if type(fb.Surface).__name__ != 'Plane':
+                continue
+            if fa.normalAt(0, 0).dot(fb.normalAt(0, 0)) < 0.999:
+                continue
+            outward_overlap += fa.common(fb).Area
+    assert outward_overlap < 0.01, f'{first}/{second}: duplicate outward faces'
+    interfaces.append(dict(parts=[first, second], overlap_mm3=volume,
+                           mating_gap_mm=gap, outward_overlap_mm2=outward_overlap))
+
+assert abs(by_label['z_slide'].Shape.BoundBox.YLength -
+           by_label['x_saddle'].Shape.BoundBox.YLength) < 1e-6
+assert abs(by_label['spindle_head'].Shape.BoundBox.YMax -
+           by_label['z_slide'].Shape.BoundBox.YMin) < 1e-6
 # All different-group pairs: mounting/bearing interfaces may touch but must not penetrate.
 poses=[]
 for x in (-250,0,250):
@@ -35,6 +74,6 @@ for index,q in enumerate(poses):
    common=sa.common(sb)
    if common.Volume>0.1:collisions.append(dict(pose=q,a=a.Label,b=b.Label,volume=common.Volume))
  print('POSE',index+1,'/',len(poses),'collisions',len(collisions),flush=True)
-with (out/'clearance-validation.json').open('w') as f:json.dump(dict(poses=len(poses),completed=index+1,boolean_checks=checks,collisions=collisions),f,indent=2)
+with (out/'clearance-validation.json').open('w') as f:json.dump(dict(poses=len(poses),completed=index+1,boolean_checks=checks,collisions=collisions,interfaces=interfaces),f,indent=2)
 print('RESULT',checks,len(collisions),flush=True)
 assert not collisions, 'Unexpected interpenetration: see clearance-validation.json'

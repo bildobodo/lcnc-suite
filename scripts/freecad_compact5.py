@@ -23,6 +23,16 @@ if OUT:
 V = App.Vector
 LIMITS = [[-250, 250], [-200, 200], [100, 500], [-110, 110], [-36000, 36000]]
 POSE = [0, 0, 350, 0, 0]
+FLOOR_Z = -905
+X_GUIDE_Y = 475
+Z_GUIDE_Y = 315
+Z_PLATE_FRONT = 155
+Z_PLATE_BACK = 255
+BEARING_INNER = 365
+BEARING_WIDTH = 190
+BEARING_OUTER = BEARING_INNER + BEARING_WIDTH
+YOKE_INNER = 235
+YOKE_OUTER = 345
 GUIDE = dict(reference='HIWIN HGW45HC / HGR45 envelope; independently drawn simplified profile',
              rail_width=45, rail_height=38, block_width=120, block_length=171.2,
              body_length=128.8, assembly_height=60, hole_pitch=105)
@@ -112,19 +122,22 @@ def add(name, group, color, shape, stock=False):
 
 # Six levelling feet, deep bed, wide rear casting. Recesses leave thick ribs.
 add('levelling_feet', None, 'dark', compound([
-    cyl(85, 45, (x, y, -845)) for x in (-630, 630) for y in (-620, 50, 740)]))
-bed = bevel(box(-770, -790, -800, 770, 920, -480), 25)
-bed = bed.cut(compound([bevel(box(x-170, -802, -735, x+170, -748, -565), 18)
+    cyl(85, 45, (x, y, FLOOR_Z)) for x in (-630, 630) for y in (-620, 50, 740)]))
+bed = bevel(box(-770, -790, -860, 770, 920, -540), 25)
+bed = bed.cut(compound([bevel(box(x-170, -802, -795, x+170, -748, -625), 18)
                        for x in (-465, 0, 465)]))
 add('machine_bed', None, 'cast', bed)
-column = yz_profile([(560, -480), (920, -480), (920, 1190), (620, 1190),
-                     (540, 1090), (540, 270), (560, 220)], -720, 1440)
+# The column sits ON its foot. The lower leg stays back for trunnion clearance;
+# the forward upper face brings both head slides closer to the spindle axis.
+column = yz_profile([(560, -405), (900, -405), (900, 1190), (555, 1190),
+                     (X_GUIDE_Y, 1090), (X_GUIDE_Y, 350), (540, 200)], -720, 1440)
 column = bevel(column, 14)
 column = column.cut(compound([bevel(box(x-145, 850, -280, x+145, 935, 950), 20)
                              for x in (-470, 0, 470)]))
 add('rear_column', None, 'paint', column)
-add('column_foot', None, 'cast', bevel(box(-740, 545, -480, 740, 920, -355), 12))
-add('chip_pan', None, 'dark', bevel(box(-600, -690, -479, 600, 505, -467), 4))
+add('column_foot', None, 'cast', bevel(box(-740, 535, -540, 740, 915, -405), 12))
+rail_seats = compound([box(x-75, -515, -540, x+75, 515, -520) for x in (-320, 320)])
+add('chip_pan', None, 'dark', bevel(box(-600, -690, -539, 600, 505, -527), 4).cut(rail_seats))
 
 # Shared 45 mm profile and long flanged blocks, two rails / four blocks per axis.
 def rail(length):
@@ -172,37 +185,19 @@ def guides(axis, fixed, moving, lanes, start, length, centres, travel, normal):
                         fixed=fixed, moving=moving, rails=2, blocks=4))
 
 
-add('y_rail_seats', None, 'cast', compound([
-    box(x-75, -515, -480, x+75, 515, -460) for x in (-320, 320)]))
-guides('y', None, 'y_table', [(-320, 0, -460), (320, 0, -460)], -500, 1000,
+add('y_rail_seats', None, 'cast', rail_seats)
+guides('y', None, 'y_table', [(-320, 0, -520), (320, 0, -520)], -500, 1000,
        [-150, 150], (0, 1, 0), (0, 0, 1))
-add('y_saddle', 'y_table', 'paint', bevel(box(-470, -260, -400, 470, 260, -320), 12))
-guides('x', None, 'x_saddle', [(0, 540, 400), (0, 540, 990)], -690, 1380,
+add('y_saddle', 'y_table', 'paint', bevel(box(-580, -280, -460, 580, 280, -320), 12))
+guides('x', None, 'x_saddle', [(0, X_GUIDE_Y, 400), (0, X_GUIDE_Y, 990)], -690, 1380,
        [-150, 150], (1, 0, 0), (0, -1, 0))
-add('x_saddle', 'x_saddle', 'cast', bevel(box(-245, 380, 300, 245, 480, 1130), 10))
-guides('z', 'x_saddle', 'z_head', [(-130, 380, 0), (130, 380, 0)], 300, 820,
-       [300, 520], (0, 0, 1), (0, -1, 0))
-add('z_slide', 'z_head', 'paint', bevel(box(-205, 280, 208, 205, 320, 615), 8))
+add('x_saddle', 'x_saddle', 'cast', bevel(box(-245, Z_GUIDE_Y, 325, 245, X_GUIDE_Y-60, 1155), 10))
+guides('z', 'x_saddle', 'z_head', [(-130, Z_GUIDE_Y, 0), (130, Z_GUIDE_Y, 0)], 325, 820,
+       [325, 545], (0, 0, 1), (0, -1, 0))
+add('z_slide', 'z_head', 'paint', bevel(box(-205, Z_PLATE_FRONT, 85, 205, Z_PLATE_BACK, 645), 8))
 
-# Visible ballscrews / bearing supports; nuts move with their corresponding slides.
-add('y_screw', None, 'steel', cyl(22, 1000, (0, -500, -430), (0, 1, 0)))
-add('y_screw_bearings', None, 'dark', compound([
-    box(-58, y, -460, 58, y+65, -400) for y in (-550, 485)]))
-add('y_screw_nut', 'y_table', 'accent', cyl(30, 85, (0, -42.5, -430), (0, 1, 0)).cut(
-    cyl(23, 87, (0, -43.5, -430), (0, 1, 0))))
-add('x_screw', None, 'steel', cyl(22, 1320, (-660, 510, 695), (1, 0, 0)))
-add('x_screw_bearings', None, 'dark', compound([
-    box(x, 480, 640, x+55, 540, 750) for x in (-700, 645)]))
-add('x_screw_nut', 'x_saddle', 'accent', cyl(30, 85, (-42.5, 510, 695), (1, 0, 0)).cut(
-    cyl(23, 87, (-43.5, 510, 695), (1, 0, 0))))
-add('z_screw', 'x_saddle', 'steel', cyl(20, 720, (0, 350, 350)))
-add('z_screw_bearings', 'x_saddle', 'dark', compound([
-    box(-48, 320, z, 48, 380, z+45) for z in (310, 1070)]))
-add('z_screw_nut', 'z_head', 'accent', cyl(30, 82, (0, 350, 379)).cut(cyl(21, 84, (0, 350, 378))))
-
-# Deep head casting, large cartridge and compact motor cover; fixed vertical spindle.
-head = fuse([bevel(box(-175, -145, 85, 175, 155, 445), 22),
-             bevel(box(-160, 90, 165, 160, 280, 480), 14)])
+# The head casting mounts directly to the full-thickness Z plate, without a spacer.
+head = bevel(box(-175, -145, 85, 175, Z_PLATE_FRONT, 445), 22)
 add('spindle_head', 'z_head', 'paint', head)
 add('spindle_motor_cover', 'z_head', 'accent', bevel(box(-125, -112, 445, 125, 125, 585), 16))
 add('spindle_cartridge', 'z_head', 'dark', fuse([
@@ -211,30 +206,33 @@ nose = cyl(65, 15).cut(cyl(20, 17, (0, 0, -1)))
 add('spindle_nose', 'z_head', 'steel', nose)
 
 # Symmetric bearing pedestals, bored for actual shafts. A rotates about X.
-support_profile = [(-225, -320), (225, -320), (175, -120), (140, 35),
-                   (115, 100), (-115, 100), (-140, 35), (-175, -120)]
+support_profile = [(-250, -320), (250, -320), (190, -120), (155, 40),
+                   (130, 115), (-130, 115), (-155, 40), (-190, -120)]
 supports, rings, covers = [], [], []
-for x0 in (-455, 315):
-    body = fuse([yz_profile(support_profile, x0, 140), cyl(146, 140, (x0, 0, 0), (1, 0, 0))])
-    body = bevel(body, 7).cut(cyl(108, 142, (x0-1, 0, 0), (1, 0, 0)))
+for x0 in (-BEARING_OUTER, BEARING_INNER):
+    body = fuse([yz_profile(support_profile, x0, BEARING_WIDTH),
+                 cyl(165, BEARING_WIDTH, (x0, 0, 0), (1, 0, 0))])
+    body = bevel(body, 7).cut(cyl(124, BEARING_WIDTH+2, (x0-1, 0, 0), (1, 0, 0)))
     supports.append(body)
-    inner = x0+132 if x0 < 0 else x0
-    rings.append(cyl(147, 8, (inner, 0, 0), (1, 0, 0)).cut(cyl(106, 10, (inner-1, 0, 0), (1, 0, 0))))
-    outer = -473 if x0 < 0 else 455
-    covers.append(cyl(120, 18, (outer, 0, 0), (1, 0, 0)))
+    # Rings project from the inner face instead of sharing its exposed plane.
+    inner = -BEARING_INNER if x0 < 0 else BEARING_INNER-12
+    rings.append(cyl(170, 12, (inner, 0, 0), (1, 0, 0)).cut(cyl(122, 14, (inner-1, 0, 0), (1, 0, 0))))
+    outer = -BEARING_OUTER-20 if x0 < 0 else BEARING_OUTER
+    covers.append(cyl(135, 20, (outer, 0, 0), (1, 0, 0)))
 add('a_bearing_pedestals', 'y_table', 'paint', compound(supports))
 add('a_bearing_rings', 'y_table', 'steel', compound(rings))
 add('a_drive_covers', 'y_table', 'accent', compound(covers))
 # One connected, thick U-shaped yoke. The bottom and both cheeks are structural.
-yoke = fuse([bevel(box(-295, -175, -210, 295, 175, -135), 10),
-             bevel(box(-300, -140, -180, -235, 140, 0), 9),
-             bevel(box(235, -140, -180, 300, 140, 0), 9),
-             cyl(130, 65, (-300, 0, 0), (1, 0, 0)),
-             cyl(130, 65, (235, 0, 0), (1, 0, 0)),
+yoke = fuse([bevel(box(-340, -175, -235, 340, 175, -125), 10),
+             bevel(box(-YOKE_OUTER, -150, -200, -YOKE_INNER, 150, 0), 9),
+             bevel(box(YOKE_INNER, -150, -200, YOKE_OUTER, 150, 0), 9),
+             cyl(150, YOKE_OUTER-YOKE_INNER, (-YOKE_OUTER, 0, 0), (1, 0, 0)),
+             cyl(150, YOKE_OUTER-YOKE_INNER, (YOKE_INNER, 0, 0), (1, 0, 0)),
              cyl(185, 85, (0, 0, -135))])
 add('a_yoke_casting', 'a_yoke', 'accent', yoke)
 add('a_trunnion_shafts', 'a_yoke', 'steel', compound([
-    cyl(103, 155, (-455, 0, 0), (1, 0, 0)), cyl(103, 155, (300, 0, 0), (1, 0, 0))]))
+    cyl(120, BEARING_OUTER-YOKE_OUTER, (-BEARING_OUTER, 0, 0), (1, 0, 0)),
+    cyl(120, BEARING_OUTER-YOKE_OUTER, (YOKE_OUTER, 0, 0), (1, 0, 0))]))
 add('c_bearing_lip', 'a_yoke', 'dark', cyl(191, 8, (0, 0, -50)))
 platter = cyl(200, 40, (0, 0, -40))
 slots = [box(-205, y-6, -12, 205, y+6, 1) for y in (-120, -60, 0, 60, 120)]
@@ -253,8 +251,12 @@ with (DEST / 'machine.json').open('w') as f:
     json.dump(machine, f, indent=2); f.write('\n')
 report = dict(joint_limits=LIMITS, cad_pose=POSE, table_diameter=400,
               guides=dict(GUIDE, layout=layouts), parts=[],
+              structure=dict(x_plate_thickness=100, z_plate_thickness=Z_PLATE_BACK-Z_PLATE_FRONT,
+                             y_plate_thickness=140, yoke_cheek_thickness=YOKE_OUTER-YOKE_INNER,
+                             yoke_crossplate_thickness=110, bearing_width=BEARING_WIDTH,
+                             spindle_axis_to_z_plate=Z_PLATE_FRONT, floor_z=FLOOR_Z),
               pins={k: 0 for k in ('x-rot-point', 'y-rot-point', 'z-rot-point', 'y-offset', 'z-offset')})
-preview = dict(machine, initialPose=POSE, jointLimits=LIMITS, parts=[])
+preview = dict(machine, initialPose=POSE, jointLimits=LIMITS, floorZ=FLOOR_Z, parts=[])
 for p in parts:
     shape = shapes[p['id']]
     mesh = MeshPart.meshFromShape(Shape=shape, LinearDeflection=0.3, AngularDeflection=0.12, Relative=False)
@@ -268,6 +270,10 @@ for p in parts:
     print(p['id'], mesh.CountFacets, flush=True)
 with (DEST / 'dimensions.json').open('w') as f:
     json.dump(report, f, indent=2); f.write('\n')
+# Remove exports of components intentionally removed from this generated model.
+for obsolete in DEST.glob('*.stl'):
+    if obsolete.name not in {p['file'] for p in parts}:
+        obsolete.unlink()
 if OUT:
     doc.saveAs(str(OUT / 'Compact_500_XYZAC.FCStd'))
     stepdoc = App.newDocument('STEP_Export')
