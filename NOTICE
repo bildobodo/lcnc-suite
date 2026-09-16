@@ -1,5 +1,5 @@
 NOTICE — Third-Party Code and Attribution
-=========================================
+==================================
 
 This project incorporates and depends on code from the following
 GPL-licensed projects. Their original authors retain copyright
@@ -116,3 +116,11 @@ FreeCAD CAM tool geometry reference data
    independently implements their dimensional constraints; no FCStd models or
    FreeCAD runtime binaries are bundled. The custom-native fixture is an
    independently constructed LCNC test model.
+
+TWP 45 wall-gantry example (2026):
+  scripts/freecad_twp_gantry.py and examples/sim_config/machine-xyzacb-gantry/
+  contain independently constructed geometry, released under GPL-2.0-or-later.
+  XYZACB-TRSRN kinematic frames follow the LinuxCNC/David Mueller reference
+  already credited above. No DMU/manufacturer meshes or photographs included.
+  Linear-guide outer dimensions reference THK SRG100LC; the simplified
+  solids are independently generated, not manufacturer CAD.

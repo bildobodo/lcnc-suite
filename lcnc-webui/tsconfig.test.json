@@ -37,6 +37,7 @@
     "src/viewer/programZero.test.ts",
     "src/viewer/machineModel.test.ts",
     "src/viewer/machineTrsrn.test.ts",
+    "src/viewer/machineGantry.test.ts",
     "src/viewer/simReplay.corpus.test.ts",
     "src/tsconfigCoverage.test.ts",
     "scripts/simDump.ts",

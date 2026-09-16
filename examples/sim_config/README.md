@@ -41,6 +41,9 @@ Edit `hallib/lcnc_webui.hal`:
   (`sim_tcp.var`). The reference config for the suite's TCP support.
 - `lcnc_suite_sim_twp.ini` — the TWP (tilted work plane) machine. Needs a
   one-time `halcompile --install` first; see "TWP variant" below.
+- `lcnc_suite_sim_twp_gantry.ini` — separate 45° wall-gantry candidate for
+  the future TWP demo, with its own offsets/tool table and 32 STL parts.
+  See [setup, coordinates and CAD source](machine-xyzacb-gantry/README.md).
 - `hallib/lcnc_webui.hal` — HAL wiring for safety watchdog, e-stop chain, tool change, compensation
 - Other HAL files — sim-specific (homing, spindle, etc.)
 
