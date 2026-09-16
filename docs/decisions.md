@@ -5399,9 +5399,11 @@ change. Physical-machine and actual-touchscreen validation continue to gate
 **Decision (user approved).** Integrate the separate TWP wall-gantry example
 (PR #39, `1a065a6`) and viewer lighting/ground grid (PR #40, `b4ca5c3`) into
 `development`, retaining the TWP foundation at `9a52016` and the intervening
-remote Fusion/FreeCAD tool-import work at `e8d924f`. Retarget #39 from
-`feat/twp` to `development` for completion. The gantry remains an explicitly
-selected simulation example; the existing default configuration is unchanged.
+remote Fusion/FreeCAD tool-import work at `e8d924f`. Both PR heads are ancestors
+of the published `21f5e34`. GitHub marks #40 merged. Close #39 as integrated:
+its original base remains `feat/twp`, because GitHub rejects retargeting to
+`development` once all its commits are already included there. The gantry
+remains an explicitly selected simulation example; the existing default configuration is unchanged.
 Its README records the remaining program-offset adaptations and live checks.
 
 **Integration corrections.** Preserve rotary parser seeding with the generic
