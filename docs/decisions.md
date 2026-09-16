@@ -5292,3 +5292,61 @@ both the operator's, both main-promotion criteria. R-02's stale-snapshot
 case and R-03/R-04/R-05 are pinned offline (801 vitest, gateway suite, 20
 Playwright); forcing a stale published frame live would mean instrumenting
 the status poller, which would prove less than the dispatch test does.
+
+## 2026-09-16 — R-06/R-07: the keyboard affordance was reaching the machine
+
+**Observed.** The 16 September review of `926dc6d` found two regressions from
+R-05's keyboard access, and both reproduce here with its spec unchanged.
+Pressing Space on the refusal-explanation affordance displayed the reason AND
+recorded `cycle_start`, because `explainKeydown` prevented the default but the
+event still bubbled to the window, where Space is Cycle Start by default. And
+the Plane radio, once ENABLED, could no longer be selected from the keyboard:
+its label's keydown handler was installed unconditionally, so the same
+`preventDefault` swallowed the radio's native activation while `explainPlane`
+did nothing (the gate was open).
+
+**Root cause is older than the affordance.** A probe with an ENABLED button
+focused recorded `cycle_start` and NO `go_to_zero`: the global shortcut map
+claimed Space from every focused control, and its own `preventDefault`
+suppressed the native activation. Tabbing to any button and pressing Space ran
+the loaded program instead of the button. R-05 added a focusable element,
+which is how the review found it.
+
+**Decision.** Fix the rule where it belongs and keep a local guard as well,
+because they protect different things:
+- `useKeyboardShortcuts`: Space and Enter ACTIVATE the focused control and are
+  not shortcuts while a control has focus (`button, [role=button], a[href],
+  input, select, textarea, summary, [contenteditable]`), and an event a
+  component already handled (`defaultPrevented`) is left alone. E-Stop is
+  checked before both and stays deliberately global.
+- `explainKeydown` stops propagation: asking for an explanation can never be a
+  machine action, whatever the shortcut map says.
+- The Plane label installs its handler only while `!can.planeFrame`. The
+  reserved-fixture labels already guarded that way.
+
+**Rejected.** Treating a focused `span[role=button]` as an "input" in
+`isInputFocused`. It would have fixed the reported case and left the same
+hazard on every ordinary button, which is the larger half of the defect.
+
+**Also corrected.** The keyboard test asserted that NO command was recorded
+while the mock records read-only requests too — the review saw it fail on a
+background `get_tool_table`, which then skipped the dependent viewer test.
+Assertions now deny machine actions by name and allow a named read-only set,
+so they fail closed when a new command appears. Full browser suite: 26 passed,
+`serial-viewer` included.
+
+**Tests.** Four, all failing against the pre-fix build (verified by rebuilding
+the dist from the pre-fix source — Playwright serves the BUILD, so swapping
+sources alone proves nothing): the loaded-program / paused / running states
+with Space and Enter; ordinary activation still working; keyboard selection of
+an enabled Plane radio versus explanation of a disabled one; and a unit test
+that `explainKeydown` consumes Enter/Space and ignores every other key.
+
+**Known limit, deliberate.** Hold-to-fire motion buttons (→ Zero, → Home,
+probe, spindle) have no keyboard activation: the hold is the intent. A
+keyboard user cannot start those moves at all.
+
+**Gates.** 803 vitest, gateway suite, build, lint, 26 browser tests. This
+round is client keyboard handling only; the live gates at 84024bf/926dc6d
+stand. Owed, both the operator's: M-05's walk-through, M-06's browser-side
+responsiveness measurement.
