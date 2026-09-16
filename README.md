@@ -1094,6 +1094,11 @@ The `[RS274NGC] SUBROUTINE_PATH` must include paths to the subroutine directorie
 
 The 3D viewer loads a machine model — a directory containing `machine.json` plus STL files — describing the kinematic hierarchy, STL parts, and how joints drive the model.
 
+The [Compact 500 five-axis example](examples/sim_config/compact5/README.md)
+ships an original XYZAC machine with a two-sided trunnion yoke, Ø400 mm
+platter, size-45 linear guides and 500/400/400 mm travel. It includes a
+FreeCAD generator, 39 STL parts, a switchable-TCP INI and an air-motion demo.
+
 **Point your INI at your own model directory** with `[DISPLAY] WEBUI_MACHINE_DIR = ~/my_machine_model` (`~` is expanded). Unset, the gateway uses the shipped default `lcnc-gateway/machine/` (a 3-axis PM-25MV, STLs tracked with Git LFS) — don't edit that in place, a `git pull` overwrites it. The shipped 5-axis example (`examples/sim_config/machine-xyzac/`) is a complete rotary reference, wired up by its sim INIs. `machine.json` is mtime-cached and hot-reloads on the next viewer init — no restart needed; a missing or unparseable file raises the operator config-warning banner and falls back to the default geometry.
 
 #### Schema

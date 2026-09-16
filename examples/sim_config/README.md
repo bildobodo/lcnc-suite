@@ -30,6 +30,10 @@ Edit `hallib/lcnc_webui.hal`:
 
 ## Key files
 
+- `lcnc_suite_sim_5axis_compact.ini` — [Compact 500](compact5/README.md), an
+  original XYZAC example with a two-sided A yoke, Ø400 mm C platter,
+  500/400/400 mm travel, size-45 guides, switchable TCP and an air-motion demo.
+  Includes FreeCAD source and dedicated tool/variable files.
 - `lcnc_suite_sim.ini` — INI with all required RS274NGC, HAL, and display settings
 - `lcnc_suite_sim_5axis.ini` / `lcnc_suite_sim_9axis.ini` — WS-D axis-layout
   verification variants (XYZAC / XYZABCUVW). Extra joints home instantly

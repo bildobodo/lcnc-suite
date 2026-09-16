@@ -1,0 +1,35 @@
+; SPDX-License-Identifier: GPL-2.0-or-later
+; Compact 500 AIR-MOTION example. Home all five axes first.
+; Dedicated G54 is reset to the A/C intersection, platter top at A=C=0.
+; Uses the supplied T1 (100 mm gauge length). Confirm the manual tool change.
+G21 G17 G90 G94 G40 G49 G80 G92.1
+M5 M9
+M429
+G53 G0 Z500
+G53 G0 X0 Y0 A0 C0
+T1 M6
+G10 L2 P1 X0 Y0 Z0 A0 C0
+G54 G43 H1
+G0 X0 Y0 Z300
+; Linear axes at clear height; Y table moves opposite to the programmed Y.
+G1 X160 Y120 F2500
+X-160 Y-120
+X0 Y0
+; Full trunnion demonstration with the nose retracted.
+G53 G0 Z500
+G1 A-110 C90 F1200
+A110 C270
+A0 C0
+; Same physical point at the mode switch. Small tilts keep XYZ inside travel.
+G0 Z260
+M428
+; TCP keeps the programmed tip at X0 Y0 Z260 relative to the platter.
+G1 A25 C90 F600
+A-25 C180
+A0 C360
+; End aligned before returning to identity and machine-coordinate retract.
+G1 C0
+M429
+G53 G0 Z500
+G49
+M2

@@ -1,0 +1,470 @@
+{
+  "joint_limits": [
+    [
+      -250,
+      250
+    ],
+    [
+      -200,
+      200
+    ],
+    [
+      100,
+      500
+    ],
+    [
+      -110,
+      110
+    ],
+    [
+      -36000,
+      36000
+    ]
+  ],
+  "cad_pose": [
+    0,
+    0,
+    350,
+    0,
+    0
+  ],
+  "table_diameter": 400,
+  "guides": {
+    "reference": "HIWIN HGW45HC / HGR45 envelope; independently drawn simplified profile",
+    "rail_width": 45,
+    "rail_height": 38,
+    "block_width": 120,
+    "block_length": 171.2,
+    "body_length": 128.8,
+    "assembly_height": 60,
+    "hole_pitch": 105,
+    "layout": [
+      {
+        "axis": "y",
+        "lanes": [
+          [
+            -320,
+            0,
+            -460
+          ],
+          [
+            320,
+            0,
+            -460
+          ]
+        ],
+        "rail_start": -500,
+        "rail_length": 1000,
+        "block_centres": [
+          -150,
+          150
+        ],
+        "travel": [
+          0,
+          1,
+          0
+        ],
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "fixed": null,
+        "moving": "y_table",
+        "rails": 2,
+        "blocks": 4
+      },
+      {
+        "axis": "x",
+        "lanes": [
+          [
+            0,
+            540,
+            400
+          ],
+          [
+            0,
+            540,
+            990
+          ]
+        ],
+        "rail_start": -690,
+        "rail_length": 1380,
+        "block_centres": [
+          -150,
+          150
+        ],
+        "travel": [
+          1,
+          0,
+          0
+        ],
+        "normal": [
+          0,
+          -1,
+          0
+        ],
+        "fixed": null,
+        "moving": "x_saddle",
+        "rails": 2,
+        "blocks": 4
+      },
+      {
+        "axis": "z",
+        "lanes": [
+          [
+            -130,
+            380,
+            0
+          ],
+          [
+            130,
+            380,
+            0
+          ]
+        ],
+        "rail_start": 300,
+        "rail_length": 820,
+        "block_centres": [
+          300,
+          520
+        ],
+        "travel": [
+          0,
+          0,
+          1
+        ],
+        "normal": [
+          0,
+          -1,
+          0
+        ],
+        "fixed": "x_saddle",
+        "moving": "z_head",
+        "rails": 2,
+        "blocks": 4
+      }
+    ]
+  },
+  "parts": [
+    {
+      "id": "levelling_feet",
+      "valid": true,
+      "solids": 6,
+      "closed": true,
+      "triangles": 2496,
+      "volume_mm3": 6128461.86899029
+    },
+    {
+      "id": "machine_bed",
+      "valid": true,
+      "solids": 1,
+      "closed": true,
+      "triangles": 212,
+      "volume_mm3": 831607505.3333329
+    },
+    {
+      "id": "rear_column",
+      "valid": true,
+      "solids": 1,
+      "closed": true,
+      "triangles": 264,
+      "volume_mm3": 812918066.9335726
+    },
+    {
+      "id": "column_foot",
+      "valid": true,
+      "solids": 1,
+      "closed": true,
+      "triangles": 44,
+      "volume_mm3": 68813976.0
+    },
+    {
+      "id": "chip_pan",
+      "valid": true,
+      "solids": 1,
+      "closed": true,
+      "triangles": 44,
+      "volume_mm3": 17131317.33333333
+    },
+    {
+      "id": "y_rail_seats",
+      "valid": true,
+      "solids": 2,
+      "closed": true,
+      "triangles": 24,
+      "volume_mm3": 6180000.0
+    },
+    {
+      "id": "y_guide_rails",
+      "valid": true,
+      "solids": 2,
+      "closed": true,
+      "triangles": 7680,
+      "volume_mm3": 3142331.8651295365
+    },
+    {
+      "id": "y_guide_blocks",
+      "valid": true,
+      "solids": 4,
+      "closed": true,
+      "triangles": 7280,
+      "volume_mm3": 1655715.3061396517
+    },
+    {
+      "id": "y_guide_endcaps",
+      "valid": true,
+      "solids": 8,
+      "closed": true,
+      "triangles": 544,
+      "volume_mm3": 390274.133333333
+    },
+    {
+      "id": "y_saddle",
+      "valid": true,
+      "solids": 1,
+      "closed": true,
+      "triangles": 44,
+      "volume_mm3": 38669695.99999999
+    },
+    {
+      "id": "x_guide_rails",
+      "valid": true,
+      "solids": 2,
+      "closed": true,
+      "triangles": 11040,
+      "volume_mm3": 4331316.027409339
+    },
+    {
+      "id": "x_guide_blocks",
+      "valid": true,
+      "solids": 4,
+      "closed": true,
+      "triangles": 7280,
+      "volume_mm3": 1655715.3061396529
+    },
+    {
+      "id": "x_guide_endcaps",
+      "valid": true,
+      "solids": 8,
+      "closed": true,
+      "triangles": 544,
+      "volume_mm3": 390274.13333333284
+    },
+    {
+      "id": "x_saddle",
+      "valid": true,
+      "solids": 1,
+      "closed": true,
+      "triangles": 44,
+      "volume_mm3": 40391333.33333332
+    },
+    {
+      "id": "z_guide_rails",
+      "valid": true,
+      "solids": 2,
+      "closed": true,
+      "triangles": 6840,
+      "volume_mm3": 2571258.3245595894
+    },
+    {
+      "id": "z_guide_blocks",
+      "valid": true,
+      "solids": 4,
+      "closed": true,
+      "triangles": 7280,
+      "volume_mm3": 1655715.306139651
+    },
+    {
+      "id": "z_guide_endcaps",
+      "valid": true,
+      "solids": 8,
+      "closed": true,
+      "triangles": 544,
+      "volume_mm3": 390274.13333333307
+    },
+    {
+      "id": "z_slide",
+      "valid": true,
+      "solids": 1,
+      "closed": true,
+      "triangles": 44,
+      "volume_mm3": 6567834.666666663
+    },
+    {
+      "id": "y_screw",
+      "valid": true,
+      "solids": 1,
+      "closed": true,
+      "triangles": 416,
+      "volume_mm3": 1520530.84433746
+    },
+    {
+      "id": "y_screw_bearings",
+      "valid": true,
+      "solids": 2,
+      "closed": true,
+      "triangles": 24,
+      "volume_mm3": 904800.0
+    },
+    {
+      "id": "y_screw_nut",
+      "valid": true,
+      "solids": 1,
+      "closed": true,
+      "triangles": 840,
+      "volume_mm3": 99070.12433095407
+    },
+    {
+      "id": "x_screw",
+      "valid": true,
+      "solids": 1,
+      "closed": true,
+      "triangles": 416,
+      "volume_mm3": 2007100.7145254472
+    },
+    {
+      "id": "x_screw_bearings",
+      "valid": true,
+      "solids": 2,
+      "closed": true,
+      "triangles": 24,
+      "volume_mm3": 726000.0000000005
+    },
+    {
+      "id": "x_screw_nut",
+      "valid": true,
+      "solids": 1,
+      "closed": true,
+      "triangles": 840,
+      "volume_mm3": 99070.12433095418
+    },
+    {
+      "id": "z_screw",
+      "valid": true,
+      "solids": 1,
+      "closed": true,
+      "triangles": 416,
+      "volume_mm3": 904778.6842338606
+    },
+    {
+      "id": "z_screw_bearings",
+      "valid": true,
+      "solids": 2,
+      "closed": true,
+      "triangles": 24,
+      "volume_mm3": 518400.0
+    },
+    {
+      "id": "z_screw_nut",
+      "valid": true,
+      "solids": 1,
+      "closed": true,
+      "triangles": 840,
+      "volume_mm3": 118243.26429581265
+    },
+    {
+      "id": "spindle_head",
+      "valid": true,
+      "solids": 1,
+      "closed": true,
+      "triangles": 104,
+      "volume_mm3": 50085674.66666668
+    },
+    {
+      "id": "spindle_motor_cover",
+      "valid": true,
+      "solids": 1,
+      "closed": true,
+      "triangles": 44,
+      "volume_mm3": 7995821.333333335
+    },
+    {
+      "id": "spindle_cartridge",
+      "valid": true,
+      "solids": 1,
+      "closed": true,
+      "triangles": 1154,
+      "volume_mm3": 2014960.979344729
+    },
+    {
+      "id": "spindle_nose",
+      "valid": true,
+      "solids": 1,
+      "closed": true,
+      "triangles": 840,
+      "volume_mm3": 180248.87849971434
+    },
+    {
+      "id": "a_bearing_pedestals",
+      "valid": true,
+      "solids": 2,
+      "closed": true,
+      "triangles": 1280,
+      "volume_mm3": 32416082.96058581
+    },
+    {
+      "id": "a_bearing_rings",
+      "valid": true,
+      "solids": 2,
+      "closed": true,
+      "triangles": 1680,
+      "volume_mm3": 521403.84953098954
+    },
+    {
+      "id": "a_drive_covers",
+      "valid": true,
+      "solids": 2,
+      "closed": true,
+      "triangles": 832,
+      "volume_mm3": 1628601.6316209454
+    },
+    {
+      "id": "a_yoke_casting",
+      "valid": true,
+      "solids": 1,
+      "closed": true,
+      "triangles": 1100,
+      "volume_mm3": 32870995.760525286
+    },
+    {
+      "id": "a_trunnion_shafts",
+      "valid": true,
+      "solids": 2,
+      "closed": true,
+      "triangles": 832,
+      "volume_mm3": 10332038.503199577
+    },
+    {
+      "id": "c_bearing_lip",
+      "valid": true,
+      "solids": 1,
+      "closed": true,
+      "triangles": 416,
+      "volume_mm3": 916867.5327648739
+    },
+    {
+      "id": "c_faceplate",
+      "valid": true,
+      "solids": 1,
+      "closed": true,
+      "triangles": 5576,
+      "volume_mm3": 4749292.649521441
+    },
+    {
+      "id": "fixture_blank",
+      "valid": true,
+      "solids": 1,
+      "closed": true,
+      "triangles": 44,
+      "volume_mm3": 1008384.0
+    }
+  ],
+  "pins": {
+    "x-rot-point": 0,
+    "y-rot-point": 0,
+    "z-rot-point": 0,
+    "y-offset": 0,
+    "z-offset": 0
+  }
+}
