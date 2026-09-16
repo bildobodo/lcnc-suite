@@ -1849,6 +1849,7 @@ watch(viewerGcode, (newGcode) => {
                 ref="toolTableRef"
                 :currentTool="st.tool_number ?? null"
                 :iniFilename="ini.ini_filename ?? null"
+                :linearUnit="linearUnit"
                 hideHeader
               />
             </div>

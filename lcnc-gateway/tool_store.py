@@ -77,7 +77,7 @@ class ToolLibraryStore:
                 self._save_all(all_data)
             return all_data.get(ini, {})
 
-    def save(self, library: dict) -> None:
+    def save(self, library: dict, *, ini_key: Optional[str] = None) -> None:
         """Persist tool metadata for the current INI config.
 
         Strict re-read (raises on any I/O / parse failure) rather than the cached
@@ -95,5 +95,7 @@ class ToolLibraryStore:
                     )
             else:
                 all_data = {}
-            all_data[self._ini_key()] = library
+            # A reviewed import binds its destination before executor dispatch.
+            # A configuration switch must not redirect that write to another INI.
+            all_data[self._ini_key() if ini_key is None else ini_key] = library
             self._save_all(all_data)

@@ -1,0 +1,626 @@
+{
+  "schema": 1,
+  "audited_commit": "96218e757ebfa65e510eadf3fee054610c916b8b",
+  "date": "2026-09-12",
+  "fusion_version": "2705.1.15",
+  "scope": "Tool-only gap audit. Detached Tool JSON roundtrips are schema evidence, not validated CAM operations or native contours. No probe selection getter, user library mutation, live machine action or document changes.",
+  "official_type_reference": "https://help.autodesk.com/cloudhelp/ENU/Fusion-CAM/files/MFG-TOOL-LIBRARY-SUPPORTED-TOOLS.htm",
+  "post_reference_counts": {
+    "total": 76,
+    "usable": 71,
+    "by_type": {
+      "ball end mill": 2,
+      "boring bar": 1,
+      "bull nose end mill": 2,
+      "chamfer mill": 10,
+      "counter bore": 1,
+      "counter sink": 3,
+      "dovetail mill": 6,
+      "drill": 1,
+      "face mill": 2,
+      "flat end mill": 5,
+      "form mill": 1,
+      "lollipop mill": 1,
+      "radius mill": 5,
+      "reamer": 1,
+      "slot mill": 9,
+      "spot drill": 1,
+      "tap right hand": 1,
+      "tapered mill": 9,
+      "thread mill": 11,
+      "center drill": 4
+    },
+    "usable_by_type": {
+      "ball end mill": 2,
+      "boring bar": 1,
+      "bull nose end mill": 2,
+      "chamfer mill": 10,
+      "counter bore": 1,
+      "counter sink": 3,
+      "dovetail mill": 6,
+      "drill": 1,
+      "face mill": 2,
+      "flat end mill": 5,
+      "lollipop mill": 1,
+      "radius mill": 5,
+      "reamer": 1,
+      "slot mill": 9,
+      "spot drill": 1,
+      "tap right hand": 1,
+      "tapered mill": 9,
+      "thread mill": 7,
+      "center drill": 4
+    }
+  },
+  "roundtrips": [
+    {
+      "requested": {
+        "type": "circle segment barrel",
+        "unit": "millimeters",
+        "description": "Detached type audit",
+        "post-process": {
+          "number": 1
+        },
+        "geometry": {
+          "DC": 12,
+          "OAL": 80,
+          "LB": 80,
+          "LCF": 20,
+          "SFDM": 12,
+          "shoulder-length": 20
+        }
+      },
+      "canonical_type": "circle segment barrel",
+      "canonical_geometry": {
+        "CSP": false,
+        "DC": 12,
+        "HAND": true,
+        "LB": 80,
+        "LCF": 20,
+        "NOF": 3,
+        "NT": 1,
+        "OAL": 80,
+        "RE": 0,
+        "SFDM": 12,
+        "TA": 0,
+        "TP": 0,
+        "assemblyGaugeLength": 80,
+        "axial-distance": 10,
+        "lower-radius": 1,
+        "profile-radius": 48,
+        "shoulder-diameter": 12,
+        "shoulder-length": 20,
+        "thread-profile-angle": 60,
+        "tip-diameter": 12,
+        "tip-length": 0,
+        "tip-offset": 0,
+        "upper-radius": 1
+      },
+      "canonical_unit": "millimeters",
+      "lcnc_type": "other"
+    },
+    {
+      "requested": {
+        "type": "circle segment lens",
+        "unit": "millimeters",
+        "description": "Detached type audit",
+        "post-process": {
+          "number": 1
+        },
+        "geometry": {
+          "DC": 12,
+          "OAL": 80,
+          "LB": 80,
+          "LCF": 20,
+          "SFDM": 12,
+          "shoulder-length": 20
+        }
+      },
+      "canonical_type": "circle segment lens",
+      "canonical_geometry": {
+        "CSP": false,
+        "DC": 12,
+        "HAND": true,
+        "LB": 80,
+        "LCF": 20,
+        "NOF": 3,
+        "NT": 1,
+        "OAL": 80,
+        "RE": 1.2,
+        "SFDM": 12,
+        "TA": 0,
+        "TP": 0,
+        "assemblyGaugeLength": 80,
+        "axial-distance": 1,
+        "lower-radius": 12,
+        "profile-radius": 100,
+        "shoulder-diameter": 12,
+        "shoulder-length": 20,
+        "thread-profile-angle": 60,
+        "tip-diameter": 9.6,
+        "tip-length": 0,
+        "tip-offset": 0,
+        "upper-radius": 1
+      },
+      "canonical_unit": "millimeters",
+      "lcnc_type": "other"
+    },
+    {
+      "requested": {
+        "type": "circle segment oval",
+        "unit": "millimeters",
+        "description": "Detached type audit",
+        "post-process": {
+          "number": 1
+        },
+        "geometry": {
+          "DC": 12,
+          "OAL": 80,
+          "LB": 80,
+          "LCF": 20,
+          "SFDM": 12,
+          "shoulder-length": 20
+        }
+      },
+      "canonical_type": "circle segment oval",
+      "canonical_geometry": {
+        "CSP": false,
+        "DC": 12,
+        "HAND": true,
+        "LB": 80,
+        "LCF": 20,
+        "NOF": 3,
+        "NT": 1,
+        "OAL": 80,
+        "RE": 0,
+        "SFDM": 12,
+        "TA": 0,
+        "TP": 0,
+        "assemblyGaugeLength": 80,
+        "axial-distance": 1,
+        "lower-radius": 2,
+        "profile-radius": 180,
+        "shoulder-diameter": 12,
+        "shoulder-length": 20,
+        "thread-profile-angle": 60,
+        "tip-diameter": 12,
+        "tip-length": 0,
+        "tip-offset": 0,
+        "upper-radius": 1
+      },
+      "canonical_unit": "millimeters",
+      "lcnc_type": "other"
+    },
+    {
+      "requested": {
+        "type": "circle segment taper",
+        "unit": "millimeters",
+        "description": "Detached type audit",
+        "post-process": {
+          "number": 1
+        },
+        "geometry": {
+          "DC": 12,
+          "OAL": 80,
+          "LB": 80,
+          "LCF": 20,
+          "SFDM": 12,
+          "shoulder-length": 20
+        }
+      },
+      "canonical_type": "circle segment taper",
+      "canonical_geometry": {
+        "CSP": false,
+        "DC": 12,
+        "HAND": true,
+        "LB": 80,
+        "LCF": 20,
+        "NOF": 3,
+        "NT": 1,
+        "OAL": 80,
+        "RE": 0,
+        "SFDM": 12,
+        "TA": 20,
+        "TP": 0,
+        "assemblyGaugeLength": 80,
+        "axial-distance": 1,
+        "lower-radius": 3,
+        "profile-radius": 375,
+        "shoulder-diameter": 12,
+        "shoulder-length": 20,
+        "thread-profile-angle": 60,
+        "tip-diameter": 0,
+        "tip-length": 0,
+        "tip-offset": 0,
+        "upper-radius": 6
+      },
+      "canonical_unit": "millimeters",
+      "lcnc_type": "other"
+    },
+    {
+      "requested": {
+        "type": "corner chamfer end mill",
+        "unit": "millimeters",
+        "description": "Detached type audit",
+        "post-process": {
+          "number": 1
+        },
+        "geometry": {
+          "DC": 12,
+          "OAL": 80,
+          "LB": 80,
+          "LCF": 20,
+          "SFDM": 12,
+          "shoulder-length": 20
+        }
+      },
+      "canonical_type": "corner chamfer end mill",
+      "canonical_geometry": {
+        "CSP": false,
+        "DC": 12,
+        "HAND": true,
+        "LB": 80,
+        "LCF": 20,
+        "NOF": 3,
+        "NT": 1,
+        "OAL": 80,
+        "RE": 0,
+        "SFDM": 12,
+        "TA": 0,
+        "TP": 0,
+        "assemblyGaugeLength": 80,
+        "chamfer-angle": 44.99999999999999,
+        "chamfer-width": 1,
+        "shoulder-diameter": 12,
+        "shoulder-length": 20,
+        "thread-profile-angle": 60,
+        "tip-diameter": 12,
+        "tip-length": 0,
+        "tip-offset": 0
+      },
+      "canonical_unit": "millimeters",
+      "lcnc_type": "other"
+    },
+    {
+      "requested": {
+        "type": "block drill",
+        "unit": "millimeters",
+        "description": "Detached type audit",
+        "post-process": {
+          "number": 1
+        },
+        "geometry": {
+          "DC": 12,
+          "OAL": 80,
+          "LB": 80,
+          "LCF": 20,
+          "SFDM": 12,
+          "shoulder-length": 20
+        }
+      },
+      "canonical_type": "block drill",
+      "canonical_geometry": {
+        "CSP": false,
+        "DC": 12,
+        "HAND": true,
+        "LB": 80,
+        "LCF": 20,
+        "NOF": 3,
+        "NT": 1,
+        "OAL": 80,
+        "RE": 0,
+        "SFDM": 12,
+        "SIG": 0,
+        "TP": 0,
+        "assemblyGaugeLength": 80,
+        "shoulder-length": 20,
+        "thread-profile-angle": 60,
+        "tip-diameter": 0,
+        "tip-length": 0,
+        "tip-offset": 0
+      },
+      "canonical_unit": "millimeters",
+      "lcnc_type": "other"
+    },
+    {
+      "requested": {
+        "type": "engraving cutter",
+        "unit": "millimeters",
+        "description": "Detached type audit",
+        "post-process": {
+          "number": 1
+        },
+        "geometry": {
+          "DC": 12,
+          "OAL": 80,
+          "LB": 80,
+          "LCF": 20,
+          "SFDM": 12,
+          "shoulder-length": 20
+        }
+      },
+      "canonical_type": "unspecified",
+      "canonical_geometry": {
+        "CSP": false,
+        "DC": 0,
+        "HAND": true,
+        "LB": 0,
+        "LCF": 0,
+        "NOF": 1,
+        "NT": 1,
+        "OAL": 0,
+        "RE": 0,
+        "SFDM": 0,
+        "TA": 0,
+        "TP": 0,
+        "assemblyGaugeLength": 0,
+        "shoulder-length": 0,
+        "thread-profile-angle": 60,
+        "tip-diameter": 0,
+        "tip-length": 0,
+        "tip-offset": 0
+      },
+      "canonical_unit": "millimeters",
+      "lcnc_type": "other"
+    },
+    {
+      "requested": {
+        "type": "tap left hand",
+        "unit": "millimeters",
+        "description": "Detached type audit",
+        "post-process": {
+          "number": 1
+        },
+        "geometry": {
+          "DC": 12,
+          "OAL": 80,
+          "LB": 80,
+          "LCF": 20,
+          "SFDM": 12,
+          "shoulder-length": 20
+        }
+      },
+      "canonical_type": "tap left hand",
+      "canonical_geometry": {
+        "CSP": false,
+        "DC": 12,
+        "HAND": false,
+        "LB": 80,
+        "LCF": 20,
+        "NOF": 3,
+        "NT": 1,
+        "OAL": 80,
+        "RE": 0,
+        "SFDM": 12,
+        "SIG": 0,
+        "TP": 1,
+        "assemblyGaugeLength": 80,
+        "shoulder-length": 20,
+        "thread-profile-angle": 60,
+        "tip-diameter": 0,
+        "tip-length": 0,
+        "tip-offset": 0
+      },
+      "canonical_unit": "millimeters",
+      "lcnc_type": "tap"
+    },
+    {
+      "requested": {
+        "type": "bull nose end mill",
+        "unit": "millimeters",
+        "description": "Detached zero radius audit",
+        "post-process": {
+          "number": 1
+        },
+        "geometry": {
+          "DC": 10,
+          "OAL": 70,
+          "LB": 70,
+          "LCF": 20,
+          "SFDM": 10,
+          "RE": 0
+        }
+      },
+      "canonical_type": "bull nose end mill",
+      "canonical_geometry": {
+        "CSP": false,
+        "DC": 10,
+        "HAND": true,
+        "LB": 70,
+        "LCF": 20,
+        "NOF": 4,
+        "NT": 1,
+        "OAL": 70,
+        "RE": 0,
+        "SFDM": 10,
+        "TA": 0,
+        "TP": 0,
+        "assemblyGaugeLength": 70,
+        "shoulder-diameter": 10,
+        "shoulder-length": 35,
+        "thread-profile-angle": 60,
+        "tip-diameter": 10,
+        "tip-length": 0,
+        "tip-offset": 0
+      },
+      "canonical_unit": "millimeters",
+      "lcnc_type": "bullnose"
+    }
+  ],
+  "current_renderer_observations": {
+    "bullZero": {
+      "exportedRadius": 0,
+      "diameter": 10,
+      "firstOffAxis": [
+        4,
+        0
+      ],
+      "profile": [
+        [
+          0,
+          0
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          4.195090322016128,
+          0.01921471959676957
+        ],
+        [
+          4.38268343236509,
+          0.07612046748871326
+        ],
+        [
+          4.555570233019602,
+          0.16853038769745476
+        ],
+        [
+          4.707106781186548,
+          0.2928932188134524
+        ],
+        [
+          4.831469612302545,
+          0.4444297669803977
+        ],
+        [
+          4.923879532511287,
+          0.6173165676349102
+        ],
+        [
+          4.98078528040323,
+          0.8049096779838717
+        ],
+        [
+          5,
+          0.9999999999999999
+        ],
+        [
+          5,
+          20
+        ],
+        [
+          5,
+          20
+        ],
+        [
+          5,
+          35
+        ],
+        [
+          5,
+          35
+        ],
+        [
+          5,
+          70
+        ],
+        [
+          0,
+          70
+        ]
+      ]
+    },
+    "faceRadiusIgnored": true,
+    "faceAngleCuttingPoints": [
+      [
+        0,
+        0
+      ],
+      [
+        25,
+        0
+      ],
+      [
+        25,
+        6
+      ]
+    ],
+    "faceAngleShoulderDiameter": 50.104722,
+    "probeBackwardEdges": [
+      {
+        "from": [
+          3.6739403974420594e-16,
+          6
+        ],
+        "to": [
+          2.25,
+          3
+        ]
+      }
+    ]
+  },
+  "renderer_input_geometry": {
+    "bull-zero": {
+      "D": 10.0,
+      "type": "bullnose",
+      "oal": 70.0,
+      "flute_length": 20.0,
+      "corner_radius": 0.0,
+      "body_length": 70.0,
+      "shaft_diameter": 10.0,
+      "taper_angle": 0,
+      "point_angle": null,
+      "tip_diameter": 10.0,
+      "shoulder_length": 35.0,
+      "shoulder_diameter": 10.0
+    },
+    "probe": {
+      "D": 6.0,
+      "type": "probe",
+      "oal": 50.0,
+      "flute_length": 12.0,
+      "corner_radius": 3.0,
+      "body_length": 50.0,
+      "shaft_diameter": 4.5,
+      "taper_angle": 0,
+      "point_angle": null,
+      "tip_diameter": 0.0,
+      "shoulder_length": 12.0,
+      "shoulder_diameter": null
+    },
+    "face-baseline": {
+      "D": 50.0,
+      "type": "facemill",
+      "oal": 130.0,
+      "flute_length": 6.0,
+      "corner_radius": 0.0,
+      "body_length": 50.0,
+      "shaft_diameter": 40.0,
+      "taper_angle": 0,
+      "point_angle": null,
+      "tip_diameter": 50.0,
+      "shoulder_length": 20.0,
+      "shoulder_diameter": 50.0
+    },
+    "face-re": {
+      "D": 50.0,
+      "type": "facemill",
+      "oal": 130.0,
+      "flute_length": 6.0,
+      "corner_radius": 0.5,
+      "body_length": 50.0,
+      "shaft_diameter": 40.0,
+      "taper_angle": 0,
+      "point_angle": null,
+      "tip_diameter": 49.0,
+      "shoulder_length": 20.0,
+      "shoulder_diameter": 50.0
+    },
+    "face-ta": {
+      "D": 50.0,
+      "type": "facemill",
+      "oal": 130.0,
+      "flute_length": 6.0,
+      "corner_radius": 0.0,
+      "body_length": 50.0,
+      "shaft_diameter": 40.0,
+      "taper_angle": 0.5,
+      "point_angle": null,
+      "tip_diameter": 50.0,
+      "shoulder_length": 20.0,
+      "shoulder_diameter": 50.104722
+    }
+  }
+}

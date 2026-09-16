@@ -1,0 +1,43 @@
+{
+  "operation": "Native sim-thread-flat-angle90",
+  "fusion_version": "2705.1.15",
+  "raw": {
+    "geometry": {
+      "CSP": false,
+      "DC": 9.139999999999999,
+      "HAND": true,
+      "LB": 77,
+      "LCF": 6,
+      "NOF": 3,
+      "NT": 3,
+      "OAL": 77,
+      "RE": 0,
+      "SFDM": 9.525,
+      "TA": 0,
+      "TP": 2,
+      "TPN": 0,
+      "TPX": 2,
+      "assemblyGaugeLength": 77,
+      "shoulder-diameter": 7.14,
+      "shoulder-length": 22,
+      "thread-profile-angle": 90,
+      "thread-tip-type": "flat",
+      "thread-tip-width": 0.8,
+      "tip-diameter": 9.139999999999999,
+      "tip-length": 0,
+      "tip-offset": 0
+    },
+    "post-process": {
+      "break-control": false,
+      "comment": "0",
+      "diameter-offset": 204,
+      "length-offset": 204,
+      "live": true,
+      "manual-tool-change": false,
+      "number": 204,
+      "turret": 0
+    },
+    "type": "thread mill",
+    "unit": "millimeters"
+  }
+}

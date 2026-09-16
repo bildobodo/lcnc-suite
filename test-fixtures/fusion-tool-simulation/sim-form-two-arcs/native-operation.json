@@ -1,0 +1,112 @@
+{
+  "operation": "Native sim-form-two-arcs",
+  "fusion_version": "2705.1.15",
+  "raw": {
+    "geometry": {
+      "CSP": false,
+      "DC": 16,
+      "HAND": true,
+      "LB": 25,
+      "LCF": 25,
+      "NOF": 1,
+      "NT": 1,
+      "OAL": 25,
+      "RE": 0,
+      "SFDM": 16,
+      "TA": 0,
+      "TP": 0,
+      "assemblyGaugeLength": 25,
+      "profile": [
+        {
+          "end": [
+            0,
+            0
+          ]
+        },
+        {
+          "end": [
+            4,
+            0
+          ]
+        },
+        {
+          "end": [
+            4,
+            2
+          ]
+        },
+        {
+          "arc": true,
+          "ccw": false,
+          "center": [
+            6,
+            2
+          ],
+          "end": [
+            6,
+            4
+          ]
+        },
+        {
+          "end": [
+            8,
+            4
+          ]
+        },
+        {
+          "end": [
+            8,
+            7
+          ]
+        },
+        {
+          "arc": true,
+          "ccw": true,
+          "center": [
+            6,
+            7
+          ],
+          "end": [
+            6,
+            9
+          ]
+        },
+        {
+          "end": [
+            4,
+            9
+          ]
+        },
+        {
+          "end": [
+            4,
+            25
+          ]
+        },
+        {
+          "end": [
+            0,
+            25
+          ]
+        }
+      ],
+      "shoulder-length": 25,
+      "thread-profile-angle": 60,
+      "tip-diameter": 16,
+      "tip-length": 0,
+      "tip-offset": 0
+    },
+    "post-process": {
+      "break-control": false,
+      "comment": "",
+      "diameter-offset": 207,
+      "length-offset": 207,
+      "live": true,
+      "manual-tool-change": false,
+      "number": 207,
+      "turret": 0
+    },
+    "type": "form mill",
+    "unit": "millimeters"
+  }
+}

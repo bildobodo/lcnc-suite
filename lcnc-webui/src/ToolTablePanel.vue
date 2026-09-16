@@ -11,6 +11,11 @@ import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineInput from "./MachineInput.vue";
 import MachineSelect from "./MachineSelect.vue";
+import MachineToggle from "./MachineToggle.vue";
+import type { ToolMeta } from "./toolGeometry";
+import { nominalHolderBase } from "./toolHolder";
+import { toolUnitsPerMillimeter } from "./toolUnits";
+import { toolPreviewNotice } from "./toolPreviewNotice";
 // Async on purpose (WS-E / F10-finish): ToolPreview is the ONLY statically
 // eager three.js importer left — this edge alone kept the 866 kB three
 // chunk in the entry graph (static import + modulepreload in index.html),
@@ -25,13 +30,15 @@ const REFETCH_AFTER_DELETE_MS = 300;
 const props = defineProps<{
   currentTool: number | null;
   iniFilename: string | null;
+  linearUnit: string;
   hideHeader?: boolean;
 }>();
 
 const fire = useFire();
 const toolChangeMode = ref<ToolChangeMode>(loadMachineDefaults().toolChangeMode);
+const unitsPerMm = computed(() => toolUnitsPerMillimeter(props.linearUnit));
 
-interface Tool {
+interface Tool extends ToolMeta {
   T: number;
   P: number;
   Z: number;
@@ -155,8 +162,12 @@ const editForm = ref({
   holder: "",
 });
 const isNewTool = ref(false);
+const showNominalHolder = ref(false);
+const editPreviewMeta = computed(() => ({ ...editTool.value, ...editForm.value }));
+const hasNominalHolder = computed(() => nominalHolderBase(editPreviewMeta.value) !== null);
 
 function openEdit(tool: Tool) {
+  showNominalHolder.value = false;
   editError.value = null;
   saving.value = false;
   editTool.value = tool;
@@ -183,6 +194,7 @@ function openEdit(tool: Tool) {
 }
 
 function openAdd() {
+  showNominalHolder.value = false;
   editError.value = null;
   saving.value = false;
   const maxT = tools.value.reduce((m, t) => Math.max(m, t.T), 0);
@@ -313,20 +325,46 @@ interface ImportTool {
 }
 
 const importPreview = ref<ImportTool[] | null>(null);
+const importPreviewByNumber = computed(() => new Map(importPreview.value?.map(t => [t.T, t])));
 const importSkipped = ref<ImportTool[]>([]);
 const importExistingCount = ref(0);
+const importSource = ref("Fusion 360");
 const importBusy = ref(false);
-const importResult = ref<{ added: number; skipped?: number } | null>(null);
+const importResult = ref<{ added?: number; updated?: number; skipped?: number } | null>(null);
 const importFile = ref<File | null>(null);
+interface RefreshRow {
+  T: number;
+  type: string;
+  D: number;
+  description: string;
+  current_description: string;
+  current_diameter: number | null;
+  Z: number | null;
+  reason: string | null;
+  match: "guid" | "identity" | "number";
+}
+const importMode = ref("metadata");
+const importRefresh = ref<{ rows: RefreshRow[]; updated: number[]; skipped: number[]; revision: string } | null>(null);
+const importRefreshError = ref<string | null>(null);
+const importError = ref<string | null>(null);
+const canConfirmImport = computed(() => !importBusy.value &&
+  (importMode.value === "replace" || !!importRefresh.value?.updated.length));
 
 async function onImportFileSelect(e: Event) {
   const input = e.target as HTMLInputElement;
   const file = input.files?.[0];
   input.value = "";
   if (!file) return;
+  await previewImportFile(file);
+}
+
+async function previewImportFile(file: File) {
   importFile.value = file;
   importBusy.value = true;
   importResult.value = null;
+  importError.value = null;
+  importRefresh.value = null;
+  importRefreshError.value = null;
   try {
     const form = new FormData();
     form.append("file", file);
@@ -342,8 +380,12 @@ async function onImportFileSelect(e: Event) {
     }
     const data = await resp.json();
     importPreview.value = data.tools;
+    importSource.value = data.tools.some((t: ToolMeta) => t.source_format === "freecad") ? "FreeCAD" : "Fusion 360";
     importSkipped.value = data.skipped_duplicates ?? [];
     importExistingCount.value = data.existing_count ?? 0;
+    importRefresh.value = data.metadata_refresh ?? null;
+    importRefreshError.value = data.metadata_refresh_error ?? null;
+    importMode.value = importExistingCount.value > 0 || !importRefresh.value ? "metadata" : "replace";
   } catch (err: any) {
     error.value = err.message || "Import failed";
     importPreview.value = null;
@@ -354,12 +396,16 @@ async function onImportFileSelect(e: Event) {
 }
 
 async function confirmImport() {
-  if (!importFile.value) return;
+  if (!importFile.value || !canConfirmImport.value) return;
   importBusy.value = true;
+  importError.value = null;
   try {
     const form = new FormData();
     form.append("file", importFile.value);
-    const resp = await fetch("/import-tool-library/apply", { method: "POST", headers: authHeaders(), body: form });
+    const refresh = importMode.value === "metadata";
+    if (refresh) form.append("revision", importRefresh.value!.revision);
+    const endpoint = refresh ? "/import-tool-library/refresh" : "/import-tool-library/apply";
+    const resp = await fetch(endpoint, { method: "POST", headers: authHeaders(), body: form });
     if (!resp.ok) {
       let body: any = null;
       try {
@@ -370,13 +416,14 @@ async function confirmImport() {
       throw new Error(body?.detail ? `${body.detail}` : `HTTP ${resp.status}: ${body}`);
     }
     const data = await resp.json();
-    importResult.value = { added: data.added, skipped: data.skipped };
+    importResult.value = refresh ? { updated: data.updated, skipped: data.skipped }
+      : { added: data.added, skipped: data.skipped };
     importPreview.value = null;
     importSkipped.value = [];
     importFile.value = null;
     setTimeout(fetchTools, REFETCH_AFTER_DELETE_MS);
   } catch (err: any) {
-    error.value = err.message || "Import failed";
+    importError.value = err.message || "Import failed";
   } finally {
     importBusy.value = false;
   }
@@ -387,6 +434,8 @@ function cancelImport() {
   importSkipped.value = [];
   importFile.value = null;
   importResult.value = null;
+  importRefresh.value = null;
+  importError.value = null;
 }
 
 // fmtNum → fmtCell imported from format.ts
@@ -438,7 +487,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
 <template>
   <div :class="['container', 'stack-controls', { compact: hideHeader }]">
     <!-- Hidden file input for import (works via triggerImport / header button) -->
-    <input ref="importInputRef" type="file" accept=".json" @change="onImportFileSelect" hidden />
+    <input ref="importInputRef" type="file" accept=".json,.zip,.fctb,.fctl" @change="onImportFileSelect" hidden />
 
     <!-- Header -->
     <div v-if="!hideHeader" class="header">
@@ -463,7 +512,13 @@ defineExpose({ openAdd, fetchTools, triggerImport });
 
     <!-- Import result banner -->
     <div v-if="importResult" class="importBanner">
-      Imported {{ importResult.added }} tools (all Z offsets set to 0)
+      <template v-if="importResult.updated != null">
+        Updated metadata for {{ importResult.updated }} tools. Measured offsets and table diameters retained.
+      </template>
+      <template v-else>
+        Imported {{ importResult.added }} tools. {{ importSource === "FreeCAD" ? "Z offsets initialized to zero; measure tools before use." : "Z offsets initialized from Fusion lengths." }}
+      </template>
+      <template v-if="importResult.skipped"> {{ importResult.skipped }} skipped.</template>
       <MachineBtn type="close" @click="importResult = null">&times;</MachineBtn>
     </div>
 
@@ -521,8 +576,8 @@ defineExpose({ openAdd, fetchTools, triggerImport });
                 <div class="sub">Dimensions</div>
                 <label>Total Length</label>
                 <MachineInput gate="toolEditNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.oal" placeholder="mm" />
-                <label>Shoulder Len</label>
-                <MachineInput gate="toolEditNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.body_length" placeholder="mm" />
+                <label for="tool-below-holder">Length Below Holder</label>
+                <MachineInput id="tool-below-holder" gate="toolEditNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.body_length" />
                 <label>Flute Len</label>
                 <MachineInput gate="toolEditNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.flute_length" placeholder="mm" />
                 <label>Shaft Ø</label>
@@ -541,23 +596,24 @@ defineExpose({ openAdd, fetchTools, triggerImport });
             </div>
 
             <!-- Right column: parametric preview -->
-            <div class="editPreviewCol">
+            <div class="editPreviewCol stack-controls">
               <div class="editPreviewCanvas inset-panel">
                 <ToolPreview
-                  :diameter="editForm.D || 6"
-                  :length="editForm.oal || Math.abs(editForm.Z) || 50"
-                  :flute-length="editForm.flute_length || (editForm.oal || 50) * 0.6"
-                  :shaft-diameter="editForm.shaft_diameter ?? undefined"
-                  :tool-type="editForm.type || 'other'"
-                  :corner-radius="editForm.corner_radius ?? undefined"
-                  :taper-angle="editForm.taper_angle ?? undefined"
-                  :point-angle="editForm.point_angle ?? undefined"
-                  :tip-diameter="editForm.tip_diameter ?? undefined"
-                  :body-length="editForm.body_length ?? undefined"
+                  :diameter="editForm.D || 6 * unitsPerMm"
+                  :length="editForm.oal || Math.abs(editForm.Z) || 50 * unitsPerMm"
+                  :meta="editPreviewMeta"
+                  :show-nominal-holder="showNominalHolder && hasNominalHolder"
+                  :units-per-mm="unitsPerMm"
                   :width="160"
                   :height="280"
                 />
               </div>
+              <MachineToggle v-if="hasNominalHolder" gate="toolEdit"
+                v-model="showNominalHolder" label="Show Fusion holder"
+                help="Nominal library assembly. Actual stickout depends on clamping; this preview does not change measured offsets or the machine view." />
+              <span v-if="showNominalHolder && hasNominalHolder">Nominal Fusion assembly</span>
+              <span v-else>Tool only</span>
+              <span v-if="toolPreviewNotice(editPreviewMeta, unitsPerMm)" class="noteWarn">{{ toolPreviewNotice(editPreviewMeta, unitsPerMm) }}</span>
             </div>
           </div>
 
@@ -575,35 +631,69 @@ defineExpose({ openAdd, fetchTools, triggerImport });
       <div v-if="importPreview" class="dialogOverlay" @click.self="cancelImport">
         <div class="dialog md importDialog">
           <div class="dialogHeader">
-            <span class="dialogTitle">Import Tool Library</span>
+            <span class="dialogTitle">Import {{ importSource }} Tool Library</span>
             <MachineBtn type="close" @click="cancelImport">&times;</MachineBtn>
           </div>
           <div class="dialogContent">
-            <div class="importStats">
+            <label class="importOption">
+              Import mode
+              <MachineSelect gate="toolEdit" v-model="importMode" :disabled="importBusy">
+                <option value="metadata">Update existing tool metadata</option>
+                <option value="replace">Replace entire tool table</option>
+              </MachineSelect>
+            </label>
+            <div v-if="importMode === 'metadata'" class="importStats">
+              {{ importRefresh?.updated.length ?? 0 }} existing tools to update.
+              Tool numbers, pockets, measured offsets and table diameters are retained.
+              Match by tool number; check the current and imported descriptions below.
+              Tools with conflicts are skipped. No tools are added or removed.
+            </div>
+            <div v-else class="importStats">
               {{ importPreview.length }} tools to import.
               <template v-if="importExistingCount">
                 Will replace {{ importExistingCount }} existing tools.
               </template>
-              Z offsets will use Fusion gauge lengths (measure to replace with actual values).
+              {{ importSource === "FreeCAD" ? "Z offsets start at zero. Measure tools before use; library dimensions do not describe the installed length." : "Z offsets will use Fusion gauge lengths (measure to replace with actual values)." }}
             </div>
+            <div v-if="importMode === 'metadata' && importRefreshError" class="importWarn">{{ importRefreshError }}</div>
+            <div v-if="importError" class="importWarn">{{ importError }}</div>
             <div v-if="importSkipped.length" class="importWarn">
               {{ importSkipped.length }} tools skipped — duplicate tool numbers
               (T{{ [...new Set(importSkipped.map(s => s.T))].join(', T') }}).
-              Fix numbering in Fusion 360 and re-export.
+              Fix numbering in {{ importSource }} and re-export.
             </div>
-            <div class="importList scroll-thin fade-scroll">
+            <div v-if="importMode === 'metadata'" class="importList scroll-thin fade-scroll">
+              <div v-for="t in importRefresh?.rows ?? []" :key="t.T" class="importRow">
+                <span class="importT mono">T{{ t.T }}</span>
+                <span class="importDesc">
+                  {{ t.current_description || '(no current description)' }} → {{ t.description || '(no imported description)' }}
+                  <br />
+                  <template v-if="t.reason">Skipped: {{ t.reason }}.</template>
+                  <template v-else>Update metadata; keep Z {{ fmtCell(t.Z ?? 0, 3) }}.</template>
+                  Ø{{ t.current_diameter == null ? '-' : fmtCell(t.current_diameter, 3) }} → {{ importSource }} Ø{{ fmtCell(t.D, 3) }}
+                  <span v-if="toolPreviewNotice(importPreviewByNumber.get(t.T), unitsPerMm)" class="noteWarn">
+                    <br />{{ toolPreviewNotice(importPreviewByNumber.get(t.T), unitsPerMm) }}
+                  </span>
+                </span>
+              </div>
+            </div>
+            <div v-else class="importList scroll-thin fade-scroll">
               <div v-for="t in importPreview" :key="t.T" class="importRow">
                 <span class="importT mono">T{{ t.T }}</span>
                 <span class="importType">{{ toolTypeLabel(t.type) }}</span>
                 <span class="importDia mono">Ø{{ fmtCell(t.D, 2) }}</span>
-                <span class="importDesc">{{ t.description || '-' }}</span>
+                <span class="importDesc">{{ t.description || '-' }}
+                  <span v-if="toolPreviewNotice(t, unitsPerMm)" class="noteWarn"><br />{{ toolPreviewNotice(t, unitsPerMm) }}</span>
+                </span>
               </div>
             </div>
           </div>
           <Gate gate="setup" class="dialogActions">
             <MachineBtn type="dialogCancel" @click="cancelImport">Cancel</MachineBtn>
-            <MachineBtn type="fileSave" @click="confirmImport" :disabled="importBusy">
-              {{ importBusy ? 'Importing...' : 'Import' }}
+            <MachineBtn v-if="importError && importFile" type="fileOp" :disabled="importBusy"
+              @click="previewImportFile(importFile)">Preview again</MachineBtn>
+            <MachineBtn type="fileSave" @click="confirmImport" :disabled="!canConfirmImport">
+              {{ importBusy ? 'Importing...' : importMode === 'metadata' ? 'Update metadata' : 'Replace table' }}
             </MachineBtn>
           </Gate>
         </div>
@@ -647,7 +737,9 @@ defineExpose({ openAdd, fetchTools, triggerImport });
             <td class="colNum mono">{{ fmtCell(tool.Z, 6) }}</td>
             <td class="colType">{{ toolTypeLabel(tool.type) }}</td>
             <td class="colSm mono">{{ tool.flutes ?? "-" }}</td>
-            <td class="colDesc" :title="tool.description">{{ tool.description || tool.remark || "-" }}</td>
+            <td class="colDesc" :title="toolPreviewNotice(tool, unitsPerMm) || tool.description">{{ tool.description || tool.remark || "-" }}
+              <span v-if="toolPreviewNotice(tool, unitsPerMm)" class="noteWarn"><br />{{ tool.source_format === "freecad" ? "Imported geometry" : "Approximate preview" }}</span>
+            </td>
             <td class="colAction colEdit">
               <MachineBtn type="manage" @click.stop="openEdit(tool)" title="Edit tool"><Pencil :size="14" /></MachineBtn>
             </td>
@@ -661,7 +753,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
             </td>
           </tr>
           <tr v-if="!loading && filteredTools.length === 0">
-            <td colspan="9" class="emptyState">No tools loaded. Add tools manually or import a Fusion 360 library.</td>
+            <td colspan="9" class="emptyState">No tools loaded. Add tools manually or import a Fusion 360 or FreeCAD library.</td>
           </tr>
         </tbody>
       </table>
@@ -678,19 +770,14 @@ defineExpose({ openAdd, fetchTools, triggerImport });
       <div v-if="hoverTool" class="toolHoverPreview"
            :style="{ left: hoverPos.x + 'px', top: hoverPos.y + 'px' }">
         <ToolPreview
-          :diameter="hoverTool.D || 6"
-          :length="hoverTool.oal || Math.abs(hoverTool.Z) || 50"
-          :flute-length="hoverTool.flute_length || (hoverTool.oal || 50) * 0.6"
-          :shaft-diameter="hoverTool.shaft_diameter ?? undefined"
-          :tool-type="hoverTool.type || 'other'"
-          :corner-radius="hoverTool.corner_radius ?? undefined"
-          :taper-angle="hoverTool.taper_angle ?? undefined"
-          :point-angle="hoverTool.point_angle ?? undefined"
-          :tip-diameter="hoverTool.tip_diameter ?? undefined"
-          :body-length="hoverTool.body_length ?? undefined"
+          :diameter="hoverTool.D || 6 * unitsPerMm"
+          :length="hoverTool.oal || Math.abs(hoverTool.Z) || 50 * unitsPerMm"
+          :meta="hoverTool"
+          :units-per-mm="unitsPerMm"
           :width="100"
           :height="160"
         />
+        <span v-if="toolPreviewNotice(hoverTool, unitsPerMm)" class="noteWarn">{{ hoverTool.source_format === "freecad" ? "Imported geometry" : "Approximate preview" }}</span>
       </div>
     </Teleport>
   </div>
@@ -782,6 +869,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
 }
 
 .editPreviewCol {
+  width: calc(160px + var(--gap-controls) * 2);
   flex-shrink: 0;
   align-self: flex-start;
 }
@@ -790,7 +878,6 @@ defineExpose({ openAdd, fetchTools, triggerImport });
   display: flex;
   justify-content: center;
   padding: var(--gap-controls);
-  margin-bottom: var(--gap-section);
 }
 
 .editFooter {

@@ -1,0 +1,46 @@
+[
+  {
+    "id": "sim-thread-point-three",
+    "family": "thread"
+  },
+  {
+    "id": "sim-thread-flat-three",
+    "family": "thread"
+  },
+  {
+    "id": "sim-thread-round-three",
+    "family": "thread"
+  },
+  {
+    "id": "sim-thread-point-angle90",
+    "family": "thread"
+  },
+  {
+    "id": "sim-thread-flat-angle90",
+    "family": "thread"
+  },
+  {
+    "id": "sim-thread-round-angle90",
+    "family": "thread"
+  },
+  {
+    "id": "sim-form-stepped",
+    "family": "form"
+  },
+  {
+    "id": "sim-form-two-arcs",
+    "family": "form"
+  },
+  {
+    "id": "sim-thread-round-long",
+    "family": "thread"
+  },
+  {
+    "id": "sim-thread-flat-long",
+    "family": "thread"
+  },
+  {
+    "id": "sim-thread-round-small",
+    "family": "thread"
+  }
+]

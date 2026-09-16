@@ -1,0 +1,88 @@
+{
+  "operation": "Native sim-form-stepped",
+  "fusion_version": "2705.1.15",
+  "raw": {
+    "geometry": {
+      "CSP": false,
+      "DC": 16,
+      "HAND": true,
+      "LB": 20,
+      "LCF": 20,
+      "NOF": 1,
+      "NT": 1,
+      "OAL": 20,
+      "RE": 0,
+      "SFDM": 16,
+      "TA": 0,
+      "TP": 0,
+      "assemblyGaugeLength": 20,
+      "profile": [
+        {
+          "end": [
+            0,
+            0
+          ]
+        },
+        {
+          "end": [
+            5,
+            0
+          ]
+        },
+        {
+          "end": [
+            5,
+            3
+          ]
+        },
+        {
+          "end": [
+            8,
+            3
+          ]
+        },
+        {
+          "end": [
+            8,
+            10
+          ]
+        },
+        {
+          "end": [
+            4,
+            10
+          ]
+        },
+        {
+          "end": [
+            4,
+            20
+          ]
+        },
+        {
+          "end": [
+            0,
+            20
+          ]
+        }
+      ],
+      "shoulder-length": 20,
+      "thread-profile-angle": 60,
+      "tip-diameter": 16,
+      "tip-length": 0,
+      "tip-offset": 0
+    },
+    "post-process": {
+      "break-control": false,
+      "comment": "",
+      "diameter-offset": 206,
+      "length-offset": 206,
+      "live": true,
+      "manual-tool-change": false,
+      "number": 206,
+      "turret": 0
+    },
+    "type": "form mill",
+    "unit": "millimeters"
+  }
+}

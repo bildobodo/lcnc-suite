@@ -1,0 +1,42 @@
+{
+  "operation": "Native sim-thread-point-three",
+  "fusion_version": "2705.1.15",
+  "raw": {
+    "geometry": {
+      "CSP": false,
+      "DC": 9.139999999999999,
+      "HAND": true,
+      "LB": 77,
+      "LCF": 5.25,
+      "NOF": 3,
+      "NT": 3,
+      "OAL": 77,
+      "RE": 0,
+      "SFDM": 9.525,
+      "TA": 0,
+      "TP": 1.75,
+      "TPN": 0,
+      "TPX": 1.75,
+      "assemblyGaugeLength": 77,
+      "shoulder-diameter": 6.108910999999999,
+      "shoulder-length": 22,
+      "thread-profile-angle": 60,
+      "thread-tip-type": "point",
+      "tip-diameter": 9.139999999999999,
+      "tip-length": 0,
+      "tip-offset": 0
+    },
+    "post-process": {
+      "break-control": false,
+      "comment": "0",
+      "diameter-offset": 200,
+      "length-offset": 200,
+      "live": true,
+      "manual-tool-change": false,
+      "number": 200,
+      "turret": 0
+    },
+    "type": "thread mill",
+    "unit": "millimeters"
+  }
+}
