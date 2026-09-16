@@ -160,6 +160,20 @@ class TestPollStatus(unittest.TestCase):
         base.update(over)
         return _Stat(**base)
 
+    def test_joint_limits_ride_the_payload_live(self):
+        # The viewer's machine-bounds box follows THESE (2026-09-12), not the
+        # INI file: the TWP sim muxes its Z window by kins mode in HAL.
+        stat = self._stat(joint=[
+            {"min_position_limit": -5000.0, "max_position_limit": 5000.0},
+            {"min_position_limit": -5000.0, "max_position_limit": 5000.0},
+            {"min_position_limit": -2000.0, "max_position_limit": 0.01}])
+        p = _runtime(stat=stat).poll_status()
+        self.assertEqual(p.joint_limits, [[-5000.0, 5000.0], [-5000.0, 5000.0], [-2000.0, 0.01]])
+        # a joint without limits is None INSIDE the list; no joint info → None
+        stat = self._stat(joint=[{"min_position_limit": -1.0, "max_position_limit": 1.0}, {}, {}])
+        self.assertEqual(_runtime(stat=stat).poll_status().joint_limits, [[-1.0, 1.0], None, None])
+        self.assertIsNone(_runtime(stat=self._stat()).poll_status().joint_limits)
+
     def test_kins_type_rides_reader_snapshot_absent_is_none(self):
         # Live switchkins pin: raw float from the reader snapshot when the
         # gateway configured it (switchable kins), honest None otherwise —
@@ -168,6 +182,188 @@ class TestPollStatus(unittest.TestCase):
         self.assertEqual(p.kins_type, 1.0)
         p = _runtime(stat=self._stat()).poll_status()
         self.assertIsNone(p.kins_type)
+
+    def test_policy_state_carries_the_touchoff_inputs(self):
+        # The touch-off gates (2026-08-30) read kins mode × fixture × table
+        # pose from the SAME snapshot the broadcast carries: raw pin rounded,
+        # 1-based fixture, plane state, A within the provenance window. The
+        # kins declaration is NOT a status field — unknown (closed) unless the
+        # gateway wires it.
+        stat = self._stat(g5x_index=6, actual_position=(0, 0, 0, 0.004, 0, 0, 0, 0, 0))
+        p = _runtime(stat=stat, snapshot={"kins_type": 2.0, "twp_active": 1}).poll_status()
+        ps = status_runtime.policy_state_from_payload(p, armed=True, kins_switchable=True)
+        self.assertEqual((ps.kins_type, ps.g5x_index, ps.twp_active, ps.a_at_zero),
+                         (2, 6, True, True))
+        self.assertFalse(p.permissions["touchoff"] is False and False)  # sanity: key exists
+        self.assertIn("touchoff", p.permissions)
+        # Default builder = unknown machine = closed gates, even in G54.
+        p2 = _runtime(stat=self._stat(g5x_index=1)).poll_status()
+        self.assertFalse(p2.permissions["touchoff"])
+        # U-06: a closed gate ships its reason beside the bool; open gates none.
+        self.assertIn("unknown", p2.permission_reasons["touchoff"])
+        self.assertNotIn("always", p2.permission_reasons)
+        # Declared non-switchable: identity, certainly — open in G54.
+        rt = _runtime(stat=self._stat(g5x_index=1))
+        rt._get_kins_switchable = lambda: False
+        p3 = rt.poll_status()
+        self.assertTrue(p3.permissions["touchoff"])
+        self.assertTrue(p3.permissions["touchoffRotary"])
+        self.assertNotIn("touchoff", p3.permission_reasons)
+        # Tilted table: a_at_zero False.
+        stat = self._stat(actual_position=(0, 0, 0, 35.0, 0, 0, 0, 0, 0))
+        ps = status_runtime.policy_state_from_payload(
+            _runtime(stat=stat).poll_status(), armed=True, kins_switchable=False)
+        self.assertFalse(ps.a_at_zero)
+
+    def test_work_pos_uses_world_coords_under_nonzero_kins(self):
+        # Kins mode 2 (TOOL/plane): joints != world. The DRO math must read
+        # canonical actual_position (forward-kins output), not joint values —
+        # a tip at the plane origin reads 0 (operator-caught: it did not).
+        stat = self._stat(
+            joint_actual_position=(111.0, 222.0, 333.0),      # joint space
+            actual_position=(1.0, 2.0, 3.0, 0, 0, 0, 0, 0, 0),  # world
+            g5x_offset=(1.0, 2.0, 3.0), g92_offset=(0.0,) * 9,
+            tool_offset=(0.0, 0.0, 0.0))
+        p = _runtime(stat=stat, snapshot={"kins_type": 2.0}).poll_status()
+        self.assertEqual(p.work_pos[:3], [0.0, 0.0, 0.0])
+        # machine_pos stays the joint truth (recorded limitation).
+        self.assertEqual(p.machine_pos[:3], [111.0, 222.0, 333.0])
+
+    def test_work_pos_keeps_joint_path_on_identity(self):
+        # Identity (or unknown/non-switchable): encoder-live joints stay the
+        # source — they update with the machine off, actual_position freezes.
+        stat = self._stat(
+            joint_actual_position=(11.0, 22.0, 33.0),
+            actual_position=(99.0, 99.0, 99.0, 0, 0, 0, 0, 0, 0),
+            g5x_offset=(1.0, 2.0, 3.0), g92_offset=(0.0,) * 9,
+            tool_offset=(0.0, 0.0, 0.0))
+        p = _runtime(stat=stat, snapshot={"kins_type": 0.0}).poll_status()
+        self.assertEqual(p.work_pos[:3], [10.0, 20.0, 30.0])
+        p2 = _runtime(stat=stat).poll_status()  # no kins pin sampled
+        self.assertEqual(p2.work_pos[:3], [10.0, 20.0, 30.0])
+
+    def test_work_pos_blank_when_world_missing_under_kins2(self):
+        # No actual_position while kins != 0: DRO blank, never joint-frame
+        # numbers posing as plane coordinates.
+        stat = self._stat(joint_actual_position=(11.0, 22.0, 33.0),
+                          actual_position=None)
+        p = _runtime(stat=stat, snapshot={"kins_type": 2.0}).poll_status()
+        self.assertIsNone(p.work_pos)
+
+    def test_seed_wcs_row_xyz_writes_xyz_only_in_place(self):
+        cache = [{"x": 1.0, "y": 2.0, "z": 3.0, "a": 4.0, "b": 5.0, "c": 6.0, "r": 7.0}
+                 for _ in range(9)]
+        same = cache
+        status_runtime.seed_wcs_row_xyz(cache, 0, [10.0, 20.0, 30.0])
+        self.assertIs(cache, same)                       # gateway holds the same list
+        self.assertEqual((cache[0]["x"], cache[0]["y"], cache[0]["z"]), (10.0, 20.0, 30.0))
+        self.assertEqual((cache[0]["a"], cache[0]["b"], cache[0]["c"], cache[0]["r"]),
+                         (4.0, 5.0, 6.0, 7.0))            # rotary/R untouched
+        self.assertEqual(cache[1]["x"], 1.0)               # other rows untouched
+
+    def test_seed_wcs_row_xyz_refuses_non_finite_and_bad_index(self):
+        cache = [{"x": 0.0, "y": 0.0, "z": 0.0} for _ in range(9)]
+        with self.assertRaises(ValueError):
+            status_runtime.seed_wcs_row_xyz(cache, 0, [float("nan"), 0.0, 0.0])
+        with self.assertRaises(ValueError):
+            status_runtime.seed_wcs_row_xyz(cache, 9, [0.0, 0.0, 0.0])
+        with self.assertRaises(ValueError):
+            status_runtime.seed_wcs_row_xyz(cache, 0, [1.0, 2.0])
+        self.assertEqual(cache[0], {"x": 0.0, "y": 0.0, "z": 0.0})  # never a partial row
+
+    def test_datum_changed_none_when_unreadable_true_past_eps_false_within(self):
+        f = status_runtime.datum_changed
+        self.assertIsNone(f(None, [0, 0, 0]))
+        self.assertIsNone(f([0, 0, 0], None))
+        self.assertIsNone(f([0, 0], [0, 0, 0]))
+        self.assertFalse(f([1, 2, 3], [1, 2, 3 + 1e-7]))
+        self.assertTrue(f([1, 2, 3], [1, 2, 3.5]))
+
+    def test_datum_seq_advanced_none_when_unreadable_true_on_any_change(self):
+        # The datum-write epoch: None = no claim (helper predates the pin),
+        # any change counts (the counter wraps; the reader floats it).
+        f = status_runtime.datum_seq_advanced
+        self.assertIsNone(f(None, 5.0))
+        self.assertIsNone(f(5.0, None))
+        self.assertFalse(f(5.0, 5))
+        self.assertTrue(f(5.0, 6.0))
+        self.assertTrue(f(4294967295.0, 0.0))   # wrap
+
+    def test_own_var_file_write_does_not_reseed_axis_rows(self):
+        # The gateway writing provenance/probe vars bumps the var-file mtime;
+        # mark_var_file_written adopts it so the next poll keeps the rows the
+        # gateway seeded from the live datum (disk holds shutdown-stale values).
+        rt = _runtime(stat=self._stat())
+        with tempfile.NamedTemporaryFile("w", suffix=".var", delete=False) as f:
+            f.write("5221\t0.0\n")
+            path = f.name
+        try:
+            rt.mark_var_file_written(path)
+            self.assertEqual(rt._wcs_var_file_mtime, os.path.getmtime(path))
+            rt.mark_var_file_written(path + ".missing")
+            self.assertIsNone(rt._wcs_var_file_mtime)
+        finally:
+            os.remove(path)
+
+    def test_wcs_prov_a_rides_the_injected_getter_absent_is_none(self):
+        p = _runtime(stat=self._stat()).poll_status()
+        self.assertIsNone(p.wcs_prov_a)
+        rt = _runtime(stat=self._stat())
+        rt._get_prov_a = lambda: [0.0, None, 30.0] + [None] * 6
+        p2 = rt.poll_status()
+        self.assertEqual(p2.wcs_prov_a[:3], [0.0, None, 30.0])
+
+    def test_capture_clean_helpers_closed_on_none(self):
+        # Absent/short/malformed inputs read DIRTY — a gate that cannot see
+        # the offsets refuses, never assumes clean.
+        f = status_runtime.capture_rotary_offsets_clean
+        g = status_runtime.capture_g92_xyz_clean
+        self.assertFalse(f(None, None))
+        self.assertFalse(f([], [0.0] * 9))
+        self.assertFalse(f([{"x": 0}], [0.0] * 9))          # row missing a/b/c
+        self.assertFalse(f([{"a": 0, "b": 0, "c": 0}], [0.0] * 3))  # short g92
+        self.assertFalse(g(None))
+        self.assertFalse(g([0.0, 0.0]))
+
+    def test_capture_clean_helpers_read_the_offsets(self):
+        f = status_runtime.capture_rotary_offsets_clean
+        g = status_runtime.capture_g92_xyz_clean
+        row = [{"x": 1.0, "y": 2.0, "z": 3.0, "a": 0.0, "b": 0.0, "c": 0.0}]
+        self.assertTrue(f(row, [0.0] * 9))
+        self.assertTrue(g([0.0] * 9))
+        self.assertFalse(f([{"a": 5.0, "b": 0.0, "c": 0.0}], [0.0] * 9))
+        self.assertFalse(f(row, [0, 0, 0, 0.5, 0, 0, 0, 0, 0]))  # G92 rotary
+        self.assertFalse(g([1.0, 0, 0, 0, 0, 0, 0, 0, 0]))
+        # Linear work offsets and a G92 rotary=0 tail are fine.
+        self.assertTrue(g([0, 0, 0, 5.0, 0, 0, 0, 0, 0]))  # rotary g92 is not XYZ's business
+
+    def test_policy_state_carries_the_capture_inputs(self):
+        # twp_defined + the two clean flags ride the same snapshot the
+        # broadcast carries. The default _stat has G92 X=0.5 — deliberately
+        # used as the dirty case; a zeroed G92 with a clean G54 row is open.
+        p = _runtime(stat=self._stat(),
+                     snapshot={"kins_type": 0.0, "twp_defined": 1}).poll_status()
+        ps = status_runtime.policy_state_from_payload(p, armed=True, kins_switchable=True)
+        self.assertTrue(ps.twp_defined)
+        self.assertFalse(ps.g92_xyz_clean)  # G92 X=0.5 in the default stat
+        clean = self._stat(g92_offset=(0.0,) * 9)  # 9-wide like real STAT (short reads closed)
+        p2 = _runtime(stat=clean, snapshot={"kins_type": 0.0}).poll_status()
+        ps2 = status_runtime.policy_state_from_payload(p2, armed=True, kins_switchable=True)
+        self.assertFalse(ps2.twp_defined)
+        self.assertTrue(ps2.g92_xyz_clean)
+        # rotary_offsets_clean reads the broadcast wcs_table's G54 row (the
+        # var-file cache — zeros in these tests) + the G92 rotary tail.
+        self.assertTrue(ps2.rotary_offsets_clean)
+        # A partial payload (older envelope / test double) reads CLOSED.
+        from types import SimpleNamespace
+        bare = SimpleNamespace(estop=0, enabled=1, homed=True, paused=False,
+                               interp_state=None, eoffset_enabled=False,
+                               emc_enable_in=None, rotary_at_zero=True)
+        psb = status_runtime.policy_state_from_payload(bare, armed=True,
+                                                       kins_switchable=True)
+        self.assertFalse(psb.twp_defined)
+        self.assertFalse(psb.rotary_offsets_clean)
+        self.assertFalse(psb.g92_xyz_clean)
 
     def test_twp_frame_pins_ride_the_snapshot_raw_and_absent_is_none(self):
         # The three TWP plane-frame pins reach the client UNCONVERTED, with
@@ -189,6 +385,25 @@ class TestPollStatus(unittest.TestCase):
         self.assertIsNone(p.kins_pre_rot)
         self.assertIsNone(p.kins_primary_angle)
         self.assertIsNone(p.kins_secondary_angle)
+
+    def test_twp_pose_a_rides_the_snapshot_raw_including_the_sentinel(self):
+        # The plane's assumed table pose. The remap's "no plane defined"
+        # sentinel (-1e9) must reach the client UNTOUCHED — the client owns
+        # the one place that decides what counts as "no pose", so a gateway
+        # that mapped it to None here would give the same answer as "not
+        # sampled" for two very different states.
+        p = _runtime(stat=self._stat(), snapshot={"twp_pose_a": 20.0}).poll_status()
+        self.assertEqual(p.twp_pose_a, 20.0)
+        p = _runtime(stat=self._stat(), snapshot={"twp_pose_a": -1e9}).poll_status()
+        self.assertEqual(p.twp_pose_a, -1e9)
+        # Not sampled (any non-trsrn config) — None, never a default.
+        p = _runtime(stat=self._stat()).poll_status()
+        self.assertIsNone(p.twp_pose_a)
+        # TWP-04: B/C ride the same way, same sentinel rule.
+        p = _runtime(stat=self._stat(), snapshot={"twp_pose_b": -40.8, "twp_pose_c": -1e9}).poll_status()
+        self.assertEqual(p.twp_pose_b, -40.8)
+        self.assertEqual(p.twp_pose_c, -1e9)
+        self.assertIsNone(_runtime(stat=self._stat()).poll_status().twp_pose_b)
 
     def test_payload_core_fields_and_work_pos(self):
         rt = _runtime(stat=self._stat())

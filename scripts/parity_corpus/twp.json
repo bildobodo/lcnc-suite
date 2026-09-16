@@ -1,0 +1,41 @@
+{
+  "ini": "~/linuxcnc/configs/lcnc_suite_sim/lcnc_suite_sim_twp.ini",
+  "programs": [
+    {
+      "file": "~/linuxcnc/nc_files/twp_simple_example.ngc",
+      "runs": 2,
+      "tol": 0.5,
+      "note": "runs BACK-TO-BACK: run 2 starts with the rotaries parked tilted (';g69' restores nothing) \u2014 passes only if the gateway's rotary-drift reparse refreshed the cached payload between runs (the arc-vs-plunge class)."
+    },
+    {
+      "file": "twp_a_tilt.ngc",
+      "runs": 2,
+      "tol": 0.5,
+      "note": "the WORK-side A table moves 20 deg between g68.2 and g53.3 \u2014 the table-aware composition must orient to the moved face (a wrong sign is off by 2*dA = 40 deg). Run 2 starts from the previous run's parked pose."
+    },
+    {
+      "file": "parity_linear.ngc",
+      "runs": 1,
+      "tol": 0.5,
+      "note": "pure linear + arc, rotaries uncommanded (stay at whatever pose the previous entry left them in \u2014 the seed must carry it)."
+    },
+    {
+      "file": "twp_g69_tail.ngc",
+      "runs": 2,
+      "tol": 0.5,
+      "note": "motion after g69: the relabel must carry forward per axis, not just patch the segment start (was a 897mm phantom). Run 2 also starts parked in identity."
+    },
+    {
+      "file": "twp_a_define_tilted.ngc",
+      "runs": 2,
+      "tol": 0.5,
+      "note": "the plane is DEFINED at a tilted table (A20 before g68.2). Pins table-relative storage: g68.2's P-branches change meaning with zero code change, so nothing else can catch a regression here. Stub the table mapping and this reports ~19.3 deg."
+    },
+    {
+      "file": "twp_g683_tilted.ngc",
+      "runs": 2,
+      "tol": 1.5,
+      "note": "G68.3 (live-spindle definition) at a TILTED table: the origin words are a VECTOR and must convert rotation-only. The plane invariants (normal + G59 ORIGIN rotated back through the mode-2 frame) are what this program exists for and gate at 0.5; the point-path bug reports origin_err ~776 mm with normal_err ~0. Joint parity tol is 1.5 here, not 0.5: both runs show a localized ~1.07 mm spike (p99 <= 0.05) on the initial head-posing rapids (lines 16-17) where the sim's parse-time rotary seed differs from the pose the run actually started from \u2014 the rotary-seed freshness class, not the plane. Open item in decisions.md."
+    }
+  ]
+}

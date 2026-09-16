@@ -105,8 +105,90 @@ class TestExtraPinsKinsGating(unittest.TestCase):
              "identity_first": False, "params": {}},
         ):
             pins = self._configured_pins(decl)
-            for f in ("kins_pre_rot", "kins_primary_angle", "kins_secondary_angle"):
+            for f in ("kins_pre_rot", "kins_primary_angle", "kins_secondary_angle",
+                      "twp_pose_a", "twp_pose_b", "twp_pose_c", "twp_datum_seq"):
                 self.assertNotIn(f, pins, f"{f} must not be sampled for {decl}")
+
+    def test_twp_capable_is_the_pin_gate_predicate(self):
+        # TWP-08: the policy's twp_capable and the twp-helper pin
+        # registration are ONE predicate — a config that samples the TWP
+        # pins is exactly a config whose G59 rows are reserved and whose
+        # Capture button exists. Pinned against every declaration shape.
+        for decl in (
+            None,
+            {"module": "trivkins", "type": "trivkins",
+             "identity_first": False, "params": {}},
+            {"module": "xyzac-trt-kins", "type": "xyzac-trt",
+             "identity_first": True, "params": {}},
+            {"module": "weird-kins", "type": "weird",
+             "identity_first": False, "params": {}},
+            {"module": "xyzacb_trsrn", "type": "xyzacb-trsrn",
+             "identity_first": False, "params": {}},
+        ):
+            pins = self._configured_pins(decl)
+            orig = gateway._parse_kins_decl
+            gateway._parse_kins_decl = lambda d=decl: d
+            try:
+                capable = gateway._twp_capable()
+            finally:
+                gateway._parse_kins_decl = orig
+            self.assertEqual(capable, "twp_pose_a" in pins, decl)
+
+    # ── Plane pose staleness (table-aware wave) ────────────────────────────
+
+    def test_trsrn_requests_the_plane_pose_pin(self):
+        # The machine-frame A the plane assumes; the UI compares it against
+        # the live table pose to warn that the stored frame is stale.
+        pins = self._configured_pins(
+            {"module": "xyzacb_trsrn", "type": "xyzacb-trsrn",
+             "identity_first": False, "params": {}})
+        self.assertEqual(pins.get("twp_pose_a"), "twp-helper-comp.twp-pose-a")
+        # TWP-04: the head solve depends on all three rotaries.
+        self.assertEqual(pins.get("twp_pose_b"), "twp-helper-comp.twp-pose-b")
+        self.assertEqual(pins.get("twp_pose_c"), "twp-helper-comp.twp-pose-c")
+
+    def test_trsrn_registers_datum_seq_before_the_datum_pins(self):
+        # The reader samples extra pins in insertion order; "seq changed ⇒
+        # datum current" holds only if the seq is read BEFORE the datum
+        # pins (the helper writes the datum first, the seq last).
+        pins = self._configured_pins(
+            {"module": "xyzacb_trsrn", "type": "xyzacb-trsrn",
+             "identity_first": False, "params": {}})
+        self.assertEqual(pins.get("twp_datum_seq"), "twp-helper-comp.twp-datum-seq")
+        order = list(pins)
+        for f in ("twp_ox", "twp_oy", "twp_oz"):
+            self.assertLess(order.index("twp_datum_seq"), order.index(f), order)
+
+
+class TestHealthArmedClients(unittest.TestCase):
+    """`/health` reports armed client COUNT so a harness can check, before it
+    starts, whether anyone can answer an M6 (this config has no HAL loopback
+    for the tool-change half, so an unattended run would just block).
+
+    The regression it pins: `_clients` is Dict[int, ClientState], and a first
+    cut iterated the dict — yielding int KEYS — with
+    `getattr(c, "armed", False)`, which silently reported zero armed clients
+    forever. A silent fallback inside the feature built to remove one."""
+
+    def _health(self, states):
+        orig = dict(gateway._clients)
+        gateway._clients.clear()
+        gateway._clients.update(states)
+        try:
+            return gateway.health()
+        finally:
+            gateway._clients.clear()
+            gateway._clients.update(orig)
+
+    def test_counts_armed_client_values_not_dict_keys(self):
+        class _C:
+            def __init__(self, armed): self.armed = armed
+        h = self._health({1: _C(True), 2: _C(False), 3: _C(True)})
+        self.assertEqual((h["clients"], h["armed_clients"]), (3, 2))
+
+    def test_no_clients_reports_zero(self):
+        h = self._health({})
+        self.assertEqual((h["clients"], h["armed_clients"]), (0, 0))
 
 
 if __name__ == "__main__":

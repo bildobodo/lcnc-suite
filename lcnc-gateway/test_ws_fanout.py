@@ -35,6 +35,12 @@ class TestBuildStatusEnvelope(unittest.TestCase):
     def test_reader_stale_flag(self):
         self.assertTrue(
             build_status_envelope(**self.BASE, reader_stale=True)["reader_stale"])
+
+    def test_preview_refresh_rides_only_while_a_parse_runs(self):
+        pr = {"reason": "drift", "file": "a.ngc", "expected_ms": 1234,
+              "started_ms": 1, "queued": False, "superseded": 0}
+        self.assertEqual(build_status_envelope(**self.BASE, preview_refresh=pr)["preview_refresh"], pr)
+        self.assertNotIn("preview_refresh", build_status_envelope(**self.BASE))
         self.assertNotIn(
             "reader_stale", build_status_envelope(**self.BASE, reader_stale=False))
 

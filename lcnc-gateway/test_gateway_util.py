@@ -12,6 +12,8 @@ import unittest
 
 import gateway_util
 from gateway_util import (
+    inflight_doomed_reason, rotary_hold_update, rotary_hold_settled,
+    joints_beyond_limits,
     sanitize_filename,
     validate_extension,
     validate_path_within,
@@ -361,6 +363,238 @@ class TestResolveLoadedFile(unittest.TestCase):
             self.assertEqual(prev, want)
 
 
+class TestVectorizedLimitChecks(unittest.TestCase):
+    """The vectorized soft-limit checkers (2026-09-05) are pinned to their
+    scalar twins — the per-segment Python loops the worker ran before —
+    on randomized segment sets exercising both trsrn kins types, plane
+    frames, frameless type-2, identity segments, unknown / partial starts,
+    None TLO, parked axes, repeated line numbers, one-sided bounds and both
+    unit scales: identical records, totals and unchecked counts. The
+    vectorized inverse twin is pinned to the (oracle-pinned) scalar inverse
+    to 1e-9 on random poses."""
+
+    CFG = {"type": "xyzacb-trsrn", "identity_first": False,
+           "params": {"nut_angle": 55.0, "y_pivot": 50.0, "z_pivot": 120.0,
+                      "x_offset": 0.0, "y_offset": 0.0,
+                      "y_rot_axis": -1000.0, "z_rot_axis": -2000.0}}
+    LIMITS = {"X": (-1400.0, 1400.0), "Y": (-700.0, 700.0), "Z": (-1400.0, 50.0),
+              "A": (-90.0, 40.0), "B": (-50.0, 50.0), "C": (-180.0, 180.0)}
+    ONE_SIDED = {"X": (None, 1400.0), "C": (-180.0, None), "Y": (None, None)}
+
+    @staticmethod
+    def _segments(rng, n, trsrn):
+        segs = []
+        for _ in range(n):
+            lineno = rng.randint(1, 10)
+            base = [rng.uniform(-1500, 1500), rng.uniform(-800, 800),
+                    rng.uniform(-1500, 100), rng.uniform(-100, 50),
+                    rng.uniform(-60, 60), rng.uniform(-200, 200), 0.0, 0.0, 0.0]
+            start = list(base)
+            for k in range(6):
+                if rng.random() < 0.6:   # 40 % of axes parked per segment
+                    start[k] = base[k] + rng.uniform(-30, 30)
+            r = rng.random()
+            if r < 0.1:
+                st = None
+            elif r < 0.25:
+                st = tuple(None if rng.random() < 0.5 else v for v in start)
+            else:
+                st = tuple(start)
+            tlo = None if rng.random() < 0.3 else (0.0, 0.0, rng.uniform(0, 120))
+            if trsrn:
+                kt = rng.choice([0, 1, 2, 2, 2])
+                frame = None
+                if kt == 2 and rng.random() >= 0.15:
+                    frame = (rng.uniform(-3, 3), rng.uniform(-180, 180), rng.uniform(-90, 90))
+                segs.append((lineno, st, tuple(base), tlo, kt, frame))
+            else:
+                segs.append((lineno, st, tuple(base), tlo))
+        return segs
+
+    def test_trsrn_checker_matches_scalar_twin(self):
+        import random
+        for seed in range(12):
+            rng = random.Random(seed)
+            segs = self._segments(rng, 120, True)
+            for limits in (self.LIMITS, self.ONE_SIDED, {}):
+                for scale in (1.0, 25.4):
+                    got = gateway_util.check_limit_violations_trsrn(
+                        iter(segs), limits, self.CFG, scale)
+                    want = gateway_util._check_limit_violations_trsrn_scalar(
+                        iter(segs), limits, self.CFG, scale)
+                    self.assertEqual(got, want, f"seed {seed} limits {limits} scale {scale}")
+            # Something must actually be flagged for the comparison to mean anything.
+            _, total, unchecked = gateway_util.check_limit_violations_trsrn(segs, self.LIMITS, self.CFG)
+            self.assertGreater(total, 0)
+            self.assertGreater(unchecked, 0)
+
+    def test_identity_checker_matches_scalar_twin(self):
+        import random
+        for seed in range(12):
+            rng = random.Random(100 + seed)
+            segs = self._segments(rng, 150, False)
+            for limits in (self.LIMITS, self.ONE_SIDED, {}):
+                for scale in (1.0, 25.4):
+                    got = gateway_util.check_limit_violations(iter(segs), limits, scale)
+                    want = gateway_util._check_limit_violations_scalar(iter(segs), limits, scale)
+                    self.assertEqual(got, want, f"seed {seed} limits {limits} scale {scale}")
+            _, total = gateway_util.check_limit_violations(segs, self.LIMITS)
+            self.assertGreater(total, 0)
+
+    def test_max_report_cap_and_total_match(self):
+        import random
+        rng = random.Random(7)
+        segs = [(i, (0.0,) * 9, (5000.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0), None, 2,
+                 (0.0, 10.0, 5.0)) for i in range(1, 300)]
+        got = gateway_util.check_limit_violations_trsrn(segs, {"X": (-1.0, 1.0)}, self.CFG, max_report=50)
+        want = gateway_util._check_limit_violations_trsrn_scalar(segs, {"X": (-1.0, 1.0)}, self.CFG, max_report=50)
+        self.assertEqual(got, want)
+        self.assertEqual(len(got[0]), 50)
+        self.assertEqual(got[1], 299)
+        isegs = [(i, (0.0,) * 9, (5000.0,) + (0.0,) * 8, None) for i in range(1, 300)]
+        got = gateway_util.check_limit_violations(isegs, {"X": (-1.0, 1.0)}, max_report=50)
+        want = gateway_util._check_limit_violations_scalar(isegs, {"X": (-1.0, 1.0)}, max_report=50)
+        self.assertEqual(got, want)
+        self.assertEqual((len(got[0]), got[1]), (50, 299))
+
+    def test_vectorized_inverse_matches_scalar_inverse(self):
+        import random
+        import numpy as np
+        rng = random.Random(3)
+        params = dict(self.CFG["params"])
+        params["pre_rot"] = 0.4
+        for mode in (1, 2):
+            worlds, expect, tz, frames = [], [], [], []
+            for _ in range(400):
+                w = [rng.uniform(-1500, 1500), rng.uniform(-800, 800), rng.uniform(-1500, 100),
+                     rng.uniform(-100, 50), rng.uniform(-60, 60), rng.uniform(-200, 200)]
+                p = dict(params)
+                if mode == 1:
+                    p["tool_offset_z"] = rng.uniform(0, 120)
+                    tz.append(p["tool_offset_z"])
+                else:
+                    fr = (rng.uniform(-3, 3), rng.uniform(-180, 180), rng.uniform(-90, 90))
+                    p["pre_rot"], p["primary_angle"], p["secondary_angle"] = fr
+                    frames.append(fr)
+                worlds.append(w)
+                expect.append(gateway_util.trsrn_kins_inverse(w, p, mode))
+            got = gateway_util._trsrn_inverse_np(
+                np.array(worlds), params, mode,
+                tz=np.array(tz) if mode == 1 else None,
+                frame=np.array(frames) if mode == 2 else None)
+            np.testing.assert_allclose(got, np.array(expect), rtol=0, atol=1e-9)
+
+
+class TestInflightStaleReason(unittest.TestCase):
+    """cancel-and-restart: the in-flight edges mirror the post-publish
+    drift edges (same evaluators, order and settle guards)."""
+    INF = {"rotary_seed": {"A": 0.0, "B": 0.0, "C": 0.0},
+           "kins_seed": {"type": 0, "frame": None},
+           "wcs_off": [0.0] * 99}
+
+    def test_no_snapshot_makes_no_claim(self):
+        self.assertIsNone(gateway_util.inflight_stale_reason(
+            None, [5.0, 0.0, 0.0], [5.0, 0.0, 0.0], 0, None, [0.0] * 99, [0.0] * 99))
+
+    def test_quiet_inputs_are_not_stale(self):
+        self.assertIsNone(gateway_util.inflight_stale_reason(
+            self.INF, [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], 0, None, [0.0] * 99, [0.0] * 99))
+
+    def test_rotary_drift_needs_a_settled_pose(self):
+        moving = gateway_util.inflight_stale_reason(
+            self.INF, [5.0, 0.0, 0.0], [4.0, 0.0, 0.0], 0, None, [0.0] * 99, [0.0] * 99)
+        self.assertIsNone(moving)
+        settled = gateway_util.inflight_stale_reason(
+            self.INF, [5.0, 0.0, 0.0], [5.0, 0.0, 0.0], 0, None, [0.0] * 99, [0.0] * 99)
+        self.assertEqual(settled, "rotary:A")
+
+    def test_kins_step_is_immediate(self):
+        self.assertEqual(gateway_util.inflight_stale_reason(
+            self.INF, [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], 2, [0.0, 30.0, 15.0], [0.0] * 99, [0.0] * 99),
+            "kins:type")
+
+    def test_wcs_offset_drift_needs_a_settled_table(self):
+        live = [0.0] * 99
+        live[0] = 12.5   # G54 x
+        burst = gateway_util.inflight_stale_reason(
+            self.INF, [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], 0, None, live, [0.0] * 99)
+        self.assertIsNone(burst)
+        settled = gateway_util.inflight_stale_reason(
+            self.INF, [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], 0, None, live, list(live))
+        self.assertTrue(settled and settled.startswith("wcsoff:"), settled)
+
+
+class TestPreviewFileEdgeAction(unittest.TestCase):
+    """The file/reparse edge of the poll loop with a parse in flight."""
+    INF = {"file": "/nc/a.ngc", "mtime": 10.0}
+
+    def test_no_edge_or_no_file(self):
+        f = gateway_util.preview_file_edge_action
+        self.assertIsNone(f(False, False, False, None, "/nc/a.ngc", 10.0))
+        self.assertIsNone(f(True, True, False, None, "", 10.0))
+
+    def test_schedules_when_nothing_runs(self):
+        f = gateway_util.preview_file_edge_action
+        self.assertEqual(f(True, False, False, None, "/nc/a.ngc", 10.0), "schedule")
+        self.assertEqual(f(False, True, False, None, "/nc/a.ngc", 10.0), "schedule")
+
+    def test_running_parse_for_this_file_is_left_to_finish(self):
+        # The live catch: file_changed stays true until the publish.
+        f = gateway_util.preview_file_edge_action
+        self.assertIsNone(f(True, False, True, self.INF, "/nc/a.ngc", 10.0))
+        # ...also when a supersede already queued a restart behind it.
+        self.assertIsNone(f(True, True, True, self.INF, "/nc/a.ngc", 10.0))
+
+    def test_other_file_or_edited_file_supersedes(self):
+        f = gateway_util.preview_file_edge_action
+        self.assertEqual(f(True, False, True, self.INF, "/nc/b.ngc", 10.0), "cancel:file")
+        self.assertEqual(f(True, False, True, self.INF, "/nc/a.ngc", 11.0), "cancel:file")
+        self.assertEqual(f(True, False, True, None, "/nc/a.ngc", 10.0), "cancel:file")
+
+    def test_operator_reparse_during_a_parse_supersedes(self):
+        f = gateway_util.preview_file_edge_action
+        self.assertEqual(f(False, True, True, self.INF, "/nc/a.ngc", 10.0), "cancel:reparse")
+
+
+
+from gateway_util import twp_head_aligned, TWP_POSE_EPS_DEG  # noqa: E402  (TWP-04)
+
+
+class TestTwpHeadAligned(unittest.TestCase):
+    """twp_head_aligned — the backend twin of twpPose.ts (TWP-04, review
+    2026-09-14): the head solve depends on ALL three rotaries."""
+    P = (10.0, -40.8555, 130.2455)
+
+    def test_aligned_within_tolerance(self):
+        self.assertIs(twp_head_aligned(self.P, [10.0, -40.8555, 130.2455], True), True)
+        self.assertIs(twp_head_aligned(self.P, [10.0 + TWP_POSE_EPS_DEG * 0.9, -40.8555, 130.2455], True), True)
+
+    def test_b_move_alone_breaks_alignment(self):
+        self.assertIs(twp_head_aligned(self.P, [10.0, -40.8555 + 5, 130.2455], True), False)
+        self.assertIs(twp_head_aligned(self.P, [10.0, -40.8555, 130.2455 - 1], True), False)
+        self.assertIs(twp_head_aligned(self.P, [10.0 + 2 * TWP_POSE_EPS_DEG, -40.8555, 130.2455], True), False)
+
+    def test_wrap_359_vs_minus_1_is_aligned(self):
+        self.assertIs(twp_head_aligned((359.99, 0.0, 0.0), [-0.01, 0.0, 0.0], True), True)
+        self.assertIs(twp_head_aligned((0.0, 0.0, -180.0), [0.0, 0.0, 180.0], True), True)
+        self.assertIs(twp_head_aligned((0.0, 0.0, 170.0), [0.0, 0.0, -170.0], True), False)
+
+    def test_missing_reading_is_unknown_never_aligned(self):
+        self.assertIsNone(twp_head_aligned((10.0, None, 130.0), [10.0, 0.0, 130.0], True))
+        self.assertIsNone(twp_head_aligned(self.P, [10.0, -40.8555], True))
+        self.assertIsNone(twp_head_aligned(self.P, None, True))
+        self.assertIsNone(twp_head_aligned(None, [0.0, 0.0, 0.0], True))
+        self.assertIsNone(twp_head_aligned(("x", 0.0, 0.0), [0.0, 0.0, 0.0], True))
+        self.assertIsNone(twp_head_aligned((float("nan"), 0.0, 0.0), [0.0, 0.0, 0.0], True))
+
+    def test_sentinel_is_unknown(self):
+        self.assertIsNone(twp_head_aligned((-1e9, 0.0, 0.0), [0.0, 0.0, 0.0], True))
+        self.assertIsNone(twp_head_aligned((0.0, -1e9, 0.0), [0.0, 0.0, 0.0], True))
+
+    def test_no_plane_is_unknown(self):
+        self.assertIsNone(twp_head_aligned(self.P, list(self.P), False))
+        self.assertIsNone(twp_head_aligned(self.P, list(self.P), None))
+
 if __name__ == "__main__":
     unittest.main()
 
@@ -586,6 +820,33 @@ class TestCheckLimitViolations(unittest.TestCase):
         recs2, total2 = gateway_util.check_limit_violations(
             [(4, end, end, self.TLO0)], self.LIMITS, 25.4)
         self.assertEqual((recs2, total2), ([], 0))
+
+    def test_ustart_seeded_rotary_is_parked_not_flagged(self):
+        # The false "toolpath exceeds soft limits" in sim (2026-08-30):
+        # the ustart vertex carries the PARSE-TIME rotary seed for every
+        # rotary the program did not command, and that seed is wherever
+        # the previous run parked (corpus twp_g69_tail run2 vertex 0 ==
+        # run1's end pose). A fully-None start checked it unconditionally.
+        limits = dict(self.LIMITS); limits["C"] = (-320.0, 320.0)
+        end = (0.0, 0.0, -1.0 / 25.4, 0.0, 0.0, -383.163, 0.0, 0.0, 0.0)
+        seed = {"A": 0.0, "B": 0.0, "C": -383.163}
+        start = gateway_util.ustart_start_tuple(end, seed)
+        self.assertEqual(start[5], -383.163)         # parked at the seed: known
+        self.assertIsNone(start[0])                  # linear: unknown path, always checked
+        self.assertEqual(start[3], 0.0)              # A also sits at its seed: parked too
+        recs, total = gateway_util.check_limit_violations(
+            [(12, start, end, self.TLO0)], limits, 25.4)
+        self.assertEqual((recs, total), ([], 0))
+        # Same endpoint but the PROGRAM commanded C there (seed elsewhere):
+        # that is motion into the limit and must flag.
+        start2 = gateway_util.ustart_start_tuple(end, {"A": 0.0, "B": 0.0, "C": 0.0})
+        self.assertIsNone(start2[5])
+        recs2, total2 = gateway_util.check_limit_violations(
+            [(12, start2, end, self.TLO0)], limits, 25.4)
+        self.assertEqual(total2, 1)
+        self.assertEqual((recs2[0]["axis"], recs2[0]["kind"]), ("C", "min"))
+        # No seed at all keeps the legacy fully-unknown convention.
+        self.assertEqual(gateway_util.ustart_start_tuple(end, None), (None,) * 9)
 
     def test_max_report_caps_records_but_not_total(self):
         segs = [self._seg(i, a=-101.0) for i in range(1, 12)]
@@ -941,11 +1202,150 @@ class TestInsertKinsRelabels(unittest.TestCase):
         events = [(1, 2)]
         return rapid, events, p0, p1
 
+    # ---- the relabel CARRY (post-g69 phantom, 2026-08-29) ----------------
+    # A relabel re-expresses a POSITION; every axis the following blocks do
+    # not command keeps the pre-flip number in the un-resynced offline
+    # interpreter. Correcting only the post-flip START is what turned a
+    # zero-length hold into 897 mm of invented travel.
+
+    def _carry_fixture(self, tail_end=None):
+        """identity rapid -> flip -> a tuple that HOLDS every axis."""
+        p0 = self._seg9(50.0, 0.0, 100.0)
+        tail = p0 if tail_end is None else tail_end
+        rapid = [(5, self._seg9(0, 0, 0), p0, None, 1),
+                 (8, p0, tail, None, 2)]
+        frames = [(1,) + tuple(self.FRAME[k] for k in
+                               ("pre_rot", "primary_angle", "secondary_angle"))]
+        return rapid, [(1, 2)], frames, p0
+
+    def test_flip_into_a_held_segment_keeps_it_zero_length(self):
+        # The g69-tail shape: the post-flip block commands only an axis that
+        # is already at its target, so canon records start == end. Relabeling
+        # the start alone manufactured the phantom; both ends must move.
+        rapid, events, frames, p0 = self._carry_fixture()
+        _f, r2, _e, _fr, _w, brks, unres, carry = \
+            gateway_util.insert_flip_relabels(
+                [], rapid, events, frames, [], self.TRSRN, unit_scale=1.0)
+        self.assertEqual((unres, len(brks)), (0, 1))
+        tail = [t for t in r2 if t[4] == 4][0]
+        self.assertNotEqual(tail[1], p0)          # start relabeled
+        for i in range(6):                        # and STILL zero length
+            self.assertAlmostEqual(tail[2][i], tail[1][i], places=9)
+        self.assertGreaterEqual(carry, 1)         # and it is reported
+
+    def test_carry_retires_per_axis_on_the_first_commanded_move(self):
+        # X is commanded away, Y/Z are held: X takes its raw value, Y/Z carry.
+        tail_end = self._seg9(-25.0, 0.0, 100.0)
+        rapid, events, frames, p0 = self._carry_fixture(tail_end)
+        _f, r2, _e, _fr, _w, _b, unres, _c = \
+            gateway_util.insert_flip_relabels(
+                [], rapid, events, frames, [], self.TRSRN, unit_scale=1.0)
+        self.assertEqual(unres, 0)
+        tail = [t for t in r2 if t[4] == 4][0]
+        self.assertAlmostEqual(tail[2][0], tail_end[0], places=9)   # retired
+        for i in (1, 2):                                            # carried
+            self.assertAlmostEqual(tail[2][i] - tail[1][i],
+                                   tail_end[i] - p0[i], places=9)
+
+    def test_carry_survives_a_g43_tlo_change_on_a_held_axis(self):
+        # The "G43-retires-carry" ledger edge, closed by pin: a G43 between
+        # carry establishment and a later held tuple changes the tuple's
+        # tlo, and the canon's lo-peel shifts its RAW z by the same delta
+        # so the WORLD pose is unchanged. _retire compares in world with
+        # the tuple's own tlo, so the held axis must stay carried — both
+        # ends corrected, zero length preserved — never spuriously retired.
+        p0 = self._seg9(50.0, 0.0, 100.0)
+        p0_g43 = self._seg9(50.0, 0.0, 80.0)      # same world z: 80 + 20
+        rapid = [(5, self._seg9(0, 0, 0), p0, None, 1),
+                 (8, p0, p0, None, 2),                    # held (tlo 0)
+                 (9, p0_g43, p0_g43, (0.0, 0.0, 20.0), 3)]  # held, after G43
+        frames = [(1,) + tuple(self.FRAME[k] for k in
+                               ("pre_rot", "primary_angle", "secondary_angle"))]
+        _f, r2, _e, _fr, _w, _b, unres, carry = \
+            gateway_util.insert_flip_relabels(
+                [], rapid, [(1, 2)], frames, [], self.TRSRN, unit_scale=1.0)
+        self.assertEqual(unres, 0)
+        held = [t for t in r2 if t[4] == 4][0]
+        after = [t for t in r2 if t[4] == 6][0]
+        for i in range(6):                        # still zero length
+            self.assertAlmostEqual(after[2][i], after[1][i], places=9)
+        for i in range(3):                        # same correction as before the G43
+            self.assertAlmostEqual(after[2][i] - p0_g43[i], held[2][i] - p0[i], places=9)
+        self.assertGreaterEqual(carry, 2)
+
+    def test_carry_retires_across_a_g43_when_the_axis_is_commanded(self):
+        # Same shape, but the post-G43 tuple really moves Z (raw delta is
+        # not the tlo delta): Z retires and takes its raw value.
+        p0 = self._seg9(50.0, 0.0, 100.0)
+        p0_g43 = self._seg9(50.0, 0.0, 80.0)
+        moved = self._seg9(50.0, 0.0, 70.0)       # world 90: commanded
+        rapid = [(5, self._seg9(0, 0, 0), p0, None, 1),
+                 (8, p0, p0, None, 2),
+                 (9, p0_g43, moved, (0.0, 0.0, 20.0), 3)]
+        frames = [(1,) + tuple(self.FRAME[k] for k in
+                               ("pre_rot", "primary_angle", "secondary_angle"))]
+        _f, r2, _e, _fr, _w, _b, unres, _c = \
+            gateway_util.insert_flip_relabels(
+                [], rapid, [(1, 2)], frames, [], self.TRSRN, unit_scale=1.0)
+        self.assertEqual(unres, 0)
+        after = [t for t in r2 if t[4] == 6][0]
+        self.assertAlmostEqual(after[2][2], moved[2], places=9)    # Z retired: raw
+        for i in (0, 1):                                            # X/Y still carried
+            self.assertAlmostEqual(after[2][i] - after[1][i], moved[i] - p0_g43[i], places=9)
+
+    def test_a_recommand_to_the_same_number_does_not_resurrect_the_carry(self):
+        # Retirement compares against the FIXED anchor, never a running
+        # position: once X has left, a later block putting X back on the
+        # anchor value must not pick the correction up again.
+        p0 = self._seg9(50.0, 0.0, 100.0)
+        moved = self._seg9(-25.0, 0.0, 100.0)
+        rapid = [(5, self._seg9(0, 0, 0), p0, None, 1),
+                 (8, p0, moved, None, 2),
+                 (9, moved, p0, None, 3)]
+        frames = [(1,) + tuple(self.FRAME[k] for k in
+                               ("pre_rot", "primary_angle", "secondary_angle"))]
+        _f, r2, _e, _fr, _w, _b, unres, _c = \
+            gateway_util.insert_flip_relabels(
+                [], rapid, [(1, 2)], frames, [], self.TRSRN, unit_scale=1.0)
+        self.assertEqual(unres, 0)
+        back = [t for t in r2 if t[4] == 6][0]
+        self.assertAlmostEqual(back[2][0], p0[0], places=9)
+
+    def test_relabel_never_manufactures_motion(self):
+        # The invariant, as a property over every fixture shape in this class:
+        # an axis whose RAW delta is zero has a zero delta afterwards too.
+        for tail_end in (None, self._seg9(-25.0, 0.0, 100.0),
+                         self._seg9(50.0, 12.0, 100.0)):
+            rapid, events, frames, _p0 = self._carry_fixture(tail_end)
+            raw = {t[4] * 2: (t[1], t[2]) for t in rapid}
+            _f, r2, _e, _fr, _w, _b, unres, _c = \
+                gateway_util.insert_flip_relabels(
+                    [], rapid, events, frames, [], self.TRSRN, unit_scale=1.0)
+            self.assertEqual(unres, 0)
+            for t in r2:
+                if t[4] not in raw:
+                    continue          # inserted relabel vertex
+                r_s, r_e = raw[t[4]]
+                for i in range(6):
+                    if abs(r_e[i] - r_s[i]) < 1e-12:
+                        self.assertAlmostEqual(t[2][i], t[1][i], places=9,
+                                               msg=f"axis {i} gained motion")
+
+    def test_unresolved_flip_drops_the_carry_and_counts_it(self):
+        # A frameless type-2 side cannot be evaluated: never guess — the raw
+        # segment is kept, the carry is dropped, and the count rides out.
+        rapid, events, _frames, _p0 = self._carry_fixture()
+        _f, r2, _e, _fr, _w, brks, unres, carry = \
+            gateway_util.insert_flip_relabels(
+                [], rapid, events, [], [], self.TRSRN, unit_scale=1.0)
+        self.assertEqual((unres, brks, carry), (1, set(), 0))
+        self.assertEqual([t[1] for t in r2], [t[1] for t in rapid])
+
     def test_trsrn_flip_inserts_joint_invariant_relabel(self):
         rapid, events, p0, _p1 = self._flip_fixture(True)
         frames = [(1,) + tuple(self.FRAME[k] for k in
                                ("pre_rot", "primary_angle", "secondary_angle"))]
-        feed2, rapid2, ev2, fr2, _w2, brks, unres = gateway_util.insert_flip_relabels(
+        feed2, rapid2, ev2, fr2, _w2, brks, unres, _carry = gateway_util.insert_flip_relabels(
             [], rapid, events, frames, [], self.TRSRN, unit_scale=1.0)
         self.assertEqual(unres, 0)
         self.assertEqual(len(rapid2), 3)
@@ -970,9 +1370,49 @@ class TestInsertKinsRelabels(unittest.TestCase):
         self.assertGreater(
             max(abs(ins[2][i] - p0[i]) for i in range(3)), 1.0)
 
+    def test_seeded_start_skips_k0_correction_when_labels_match(self):
+        # Fifth input: a parse under PARKED TOOL kins carries a synthetic
+        # seed event/frame at seq -1 and start_type/start_frame naming the
+        # live labeling. The canon start is ALREADY expressed in it, so
+        # the k=0 correction must be an identity (it used to convert FROM
+        # a hardcoded type 0 — wrong the moment the parse KNOWS better).
+        p0 = self._seg9(50.0, 0.0, 100.0)
+        rapid = [(5, self._seg9(0, 0, 0), p0, None, 1)]
+        fv = tuple(self.FRAME[k] for k in
+                   ("pre_rot", "primary_angle", "secondary_angle"))
+        _f, r2, _e, _fr, _w2, brks, unres, _carry = gateway_util.insert_flip_relabels(
+            [], rapid, [(-1, 2)], [(-1,) + fv], [], self.TRSRN,
+            unit_scale=1.0, start_type=2, start_frame=fv)
+        self.assertEqual((len(r2), brks, unres), (1, set(), 0))
+        self.assertEqual(tuple(r2[0][1]), rapid[0][1],
+                         "start already in the live labeling — untouched")
+
+    def test_seeded_start_converts_from_live_labeling(self):
+        # The program's own pre-motion marker returns to identity (a
+        # leading g69) while the machine is parked in TOOL kins: the k=0
+        # correction must convert the start FROM the seed labeling TO the
+        # program's — joint-invariant across the relabel.
+        start2 = self._seg9(50.0, 0.0, 100.0)   # expressed in TOOL labeling
+        rapid = [(5, start2, self._seg9(0, 0, 100.0), None, 1)]
+        fv = tuple(self.FRAME[k] for k in
+                   ("pre_rot", "primary_angle", "secondary_angle"))
+        _f, r2, _e, _fr, _w2, _brks, unres, _carry = gateway_util.insert_flip_relabels(
+            [], rapid, [(-1, 2), (0, 0)], [(-1,) + fv], [], self.TRSRN,
+            unit_scale=1.0, start_type=2, start_frame=fv)
+        self.assertEqual(unres, 0)
+        patched = list(r2[0][1][:6])
+        j_seed = gateway_util.trsrn_kins_inverse(
+            list(start2[:6]), dict(self.GEO, **self.FRAME), 2)
+        j_new = gateway_util.trsrn_kins_inverse(list(patched), dict(self.GEO), 0)
+        for a, b in zip(j_seed, j_new):
+            self.assertAlmostEqual(a, b, places=6)
+        self.assertGreater(
+            max(abs(patched[i] - start2[i]) for i in range(3)), 1.0,
+            "the relabel is a real displacement in this fixture")
+
     def test_frameless_type2_flip_is_unresolved_not_guessed(self):
         rapid, events, _p0, _p1 = self._flip_fixture(False)
-        feed2, rapid2, _ev2, _fr2, _w2, brks, unres = gateway_util.insert_flip_relabels(
+        feed2, rapid2, _ev2, _fr2, _w2, brks, unres, _carry = gateway_util.insert_flip_relabels(
             [], rapid, events, [], [], self.TRSRN, unit_scale=1.0)
         self.assertEqual(unres, 1)
         self.assertEqual(len(rapid2), 2, "no vertex may be invented")
@@ -983,14 +1423,14 @@ class TestInsertKinsRelabels(unittest.TestCase):
     def test_unknown_family_is_unresolved(self):
         rapid, events, _p0, _p1 = self._flip_fixture(True)
         cfg = {"type": "5axiskins", "params": {}}
-        _f, rapid2, _e, _fr, _w2, brks, unres = gateway_util.insert_flip_relabels(
+        _f, rapid2, _e, _fr, _w2, brks, unres, _carry = gateway_util.insert_flip_relabels(
             [], rapid, events, [], [], cfg, unit_scale=1.0)
         self.assertEqual((len(rapid2), brks, unres), (2, set(), 1))
 
     def test_no_events_is_passthrough_with_doubled_seqs(self):
         rapid = [(5, self._seg9(0, 0, 0), self._seg9(1, 0, 0), None, 1)]
         feed = [(6, self._seg9(1, 0, 0), self._seg9(2, 0, 0), 0.1, None, 2)]
-        f2, r2, e2, fr2, _w2, brks, unres = gateway_util.insert_flip_relabels(
+        f2, r2, e2, fr2, _w2, brks, unres, _carry = gateway_util.insert_flip_relabels(
             feed, rapid, [], [], [], self.TRSRN, unit_scale=1.0)
         self.assertEqual(([t[5] for t in f2], [t[4] for t in r2]), ([4], [2]))
         self.assertEqual((e2, fr2, brks, unres), ([], [], set(), 0))
@@ -1006,7 +1446,7 @@ class TestInsertKinsRelabels(unittest.TestCase):
         rapid = [(4, self._seg9(0, 0, 0), w_end + (0.0, 0.0, 0.0), None, 1)]
         feed = [(7, w_end + (0.0, 0.0, 0.0), self._seg9(0, 0, 50) , 0.1, None, 2)]
         events = [(1, 1)]  # flip to type 1 = identity on plain sparm
-        f2, r2, _e2, _fr2, _w2, brks, unres = gateway_util.insert_flip_relabels(
+        f2, r2, _e2, _fr2, _w2, brks, unres, _carry = gateway_util.insert_flip_relabels(
             feed, rapid, events, [], [], cfg, unit_scale=1.0)
         self.assertEqual(unres, 0)
         self.assertEqual(len(r2), 2, "relabel vertex inserted into rapid")
@@ -1036,7 +1476,7 @@ class TestInsertKinsRelabels(unittest.TestCase):
         events = [(0, 2)]   # marker at seq 0 governs seq 1
         frames = [(0,) + tuple(self.FRAME[k] for k in
                                ("pre_rot", "primary_angle", "secondary_angle"))]
-        f2, r2, _e2, _fr2, _w2, brks, unres = gateway_util.insert_flip_relabels(
+        f2, r2, _e2, _fr2, _w2, brks, unres, _carry = gateway_util.insert_flip_relabels(
             feed, [], events, frames, [], self.TRSRN, unit_scale=1.0)
         self.assertEqual((unres, len(f2), len(r2), brks), (0, 1, 0, set()))
         # No vertex inserted — the start is PATCHED in place: joints under
@@ -1048,8 +1488,22 @@ class TestInsertKinsRelabels(unittest.TestCase):
             list(patched[:6]), dict(self.GEO, **self.FRAME), 2)
         for a, b in zip(j_new, p0[:6]):
             self.assertAlmostEqual(a, b, places=6)
-        # The end is untouched — geometry on the wire is endpoint-only.
-        self.assertEqual(f2[0][2], p1)
+        # The END is carried, per axis. This tuple commands X (50 -> 0) but
+        # HOLDS Y and Z, and a held axis keeps the interpreter's stale
+        # pre-relabel number — which after the relabel denotes a DIFFERENT
+        # physical place. So X takes its raw commanded value (it means what
+        # it says in the new labeling) while Y and Z carry the correction.
+        # The old assertion here ("the end is untouched") pinned the
+        # incomplete behaviour: leaving held axes raw is what manufactured
+        # the 897 mm post-g69 phantom out of a zero-length hold.
+        self.assertAlmostEqual(f2[0][2][0], p1[0], places=9)   # X: commanded
+        self.assertNotAlmostEqual(f2[0][2][1], p1[1], places=6)  # Y: carried
+        self.assertNotAlmostEqual(f2[0][2][2], p1[2], places=6)  # Z: carried
+        # The carry is the SAME displacement the start got, so the segment's
+        # held axes keep exactly their raw delta (here: zero).
+        for i in (1, 2):
+            self.assertAlmostEqual(f2[0][2][i] - f2[0][1][i],
+                                   p1[i] - p0[i], places=9)
         # The phantom class this kills: the raw start was ~a machine-frame
         # jump away from where the segment really begins.
         self.assertGreater(max(abs(patched[i] - p0[i]) for i in range(3)), 1.0)
@@ -1057,7 +1511,7 @@ class TestInsertKinsRelabels(unittest.TestCase):
     def test_preamble_marker_without_twin_is_unresolved(self):
         p0 = self._seg9(50.0, 0.0, 100.0)
         rapid = [(7, p0, self._seg9(0, 0, 100), None, 1)]
-        _f2, r2, _e2, _fr2, _w2, brks, unres = gateway_util.insert_flip_relabels(
+        _f2, r2, _e2, _fr2, _w2, brks, unres, _carry = gateway_util.insert_flip_relabels(
             [], rapid, [(0, 2)], [], [], {"type": "5axiskins", "params": {}},
             unit_scale=1.0)
         self.assertEqual((unres, brks), (1, set()))
@@ -1071,7 +1525,7 @@ class TestInsertKinsRelabels(unittest.TestCase):
         rapid = [(7, p1, p1, None, 1)]
         frames = [(0,) + tuple(self.FRAME[k] for k in
                                ("pre_rot", "primary_angle", "secondary_angle"))]
-        _f2, r2, _e2, _fr2, _w2, brks, unres = gateway_util.insert_flip_relabels(
+        _f2, r2, _e2, _fr2, _w2, brks, unres, _carry = gateway_util.insert_flip_relabels(
             [], rapid, [(0, 2)], frames, [], self.TRSRN, unit_scale=1.0,
             ustart_seqs={1})
         self.assertEqual((unres, brks), (0, set()))
@@ -1085,7 +1539,7 @@ class TestInsertKinsRelabels(unittest.TestCase):
         rapid = [(4, self._seg9(0, 0, 0), self._seg9(10, 0, 5), None, 1),
                  (8, self._seg9(10, 0, 5), self._seg9(20, 0, 5), None, 2)]
         events = [(1, 1)]
-        _f2, r2, _e2, _fr2, _w2, brks, unres = gateway_util.insert_flip_relabels(
+        _f2, r2, _e2, _fr2, _w2, brks, unres, _carry = gateway_util.insert_flip_relabels(
             [], rapid, events, [], [], cfg, unit_scale=1.0)
         self.assertEqual((len(r2), brks, unres), (2, set(), 0))
 
@@ -1104,7 +1558,7 @@ class TestInsertKinsRelabels(unittest.TestCase):
                  (8, p0, p1, None, 2)]
         wcs = [(0, 1, self._basis((51.2, -7.9, -55.1))),
                (1, 6, self._basis((63.4, -33.7, -31.1)))]
-        f2, r2, _e2, _fr2, w2, brks, unres = gateway_util.insert_flip_relabels(
+        f2, r2, _e2, _fr2, w2, brks, unres, _carry = gateway_util.insert_flip_relabels(
             [], rapid, [], [], wcs, {"type": "not-a-family"}, unit_scale=1.0)
         self.assertEqual((unres, len(r2), f2), (0, 3, []))
         ins = r2[1]
@@ -1123,7 +1577,7 @@ class TestInsertKinsRelabels(unittest.TestCase):
                                ("pre_rot", "primary_angle", "secondary_angle"))]
         wcs = [(0, 1, self._basis((0, 0, 0))),
                (1, 6, self._basis((10, 20, 30)))]
-        _f2, r2, _e2, _fr2, _w2, brks, unres = gateway_util.insert_flip_relabels(
+        _f2, r2, _e2, _fr2, _w2, brks, unres, _carry = gateway_util.insert_flip_relabels(
             [], rapid, events, frames, wcs, self.TRSRN, unit_scale=1.0)
         self.assertEqual((unres, len(r2), len(brks)), (0, 3, 1))
         self.assertNotEqual(r2[1][2], p0, "kins flip relabels the pose")
@@ -1131,7 +1585,7 @@ class TestInsertKinsRelabels(unittest.TestCase):
     def test_single_epoch_and_no_kins_returns_early(self):
         rapid = [(4, self._seg9(0, 0, 0), self._seg9(1, 0, 0), None, 1)]
         wcs = [(0, 1, self._basis((5, 5, 5)))]
-        _f2, r2, _e2, _fr2, w2, brks, unres = gateway_util.insert_flip_relabels(
+        _f2, r2, _e2, _fr2, w2, brks, unres, _carry = gateway_util.insert_flip_relabels(
             [], rapid, [], [], wcs, None, unit_scale=1.0)
         self.assertEqual((len(r2), brks, unres), (1, set(), 0))
         self.assertEqual(w2, [(0, 1, wcs[0][2])], "seqs doubled, values kept")
@@ -1152,7 +1606,7 @@ class TestInsertKinsRelabels(unittest.TestCase):
         events = [(1, 2)]
         frames = [(1,) + tuple(self.FRAME[k] for k in
                                ("pre_rot", "primary_angle", "secondary_angle"))]
-        _f2, r2, _e2, _fr2, _w2, brks, unres = gateway_util.insert_flip_relabels(
+        _f2, r2, _e2, _fr2, _w2, brks, unres, _carry = gateway_util.insert_flip_relabels(
             [], rapid, events, frames, [], self.TRSRN, unit_scale=1.0)
         self.assertEqual((unres, len(r2), brks), (0, 3, {3}))
         ins = r2[1]
@@ -1177,7 +1631,7 @@ class TestInsertKinsRelabels(unittest.TestCase):
                  (8, p0_shift, p1, None, 2)]
         wcs = [(0, 1, self._basis((51.2, -7.9, -55.1))),
                (1, 6, self._basis((63.4, -33.7, -31.1)))]
-        _f2, r2, _e2, _fr2, _w2, brks, unres = gateway_util.insert_flip_relabels(
+        _f2, r2, _e2, _fr2, _w2, brks, unres, _carry = gateway_util.insert_flip_relabels(
             [], rapid, [], [], wcs, {"type": "not-a-family"}, unit_scale=1.0)
         self.assertEqual((unres, len(r2), brks), (0, 3, {3}))
         ins = r2[1]
@@ -1201,7 +1655,7 @@ class TestInsertKinsRelabels(unittest.TestCase):
                  (8, w_tilt_n + (0.0,) * 3, self._seg9(0, 0, 50),
                   (0.0, 0.0, 20.0), 2)]
         events = [(1, 1)]  # flip to identity
-        _f2, r2, _e2, _fr2, _w2, brks, unres = gateway_util.insert_flip_relabels(
+        _f2, r2, _e2, _fr2, _w2, brks, unres, _carry = gateway_util.insert_flip_relabels(
             [], rapid, events, [], [], cfg, unit_scale=1.0)
         self.assertEqual((unres, len(r2), brks), (0, 3, {3}))
         ins = r2[1]
@@ -1213,6 +1667,26 @@ class TestInsertKinsRelabels(unittest.TestCase):
         expect = [j5[0], j5[1], j5[2] - 20.0, j5[3], 0.0, j5[4]]
         for i in range(6):
             self.assertAlmostEqual(ins[2][i], expect[i], places=9)
+
+
+class TestEventBoundaryIndices(unittest.TestCase):
+    """Schema 8 RDP anchors at tlo_events boundaries (both sides, like
+    mode_boundary_indices), keyed on the resolved per-segment event index."""
+
+    def test_boundary_anchors_both_vertices(self):
+        seqs = [1, 2, 3, 4, 5]
+        events = [(2, 0, 0, 22, 3)]        # governs seq > 2
+        self.assertEqual(gateway_util.event_boundary_indices(seqs, events), {1, 2})
+
+    def test_no_events_or_no_seqs(self):
+        self.assertEqual(gateway_util.event_boundary_indices([1, 2], []), set())
+        self.assertEqual(gateway_util.event_boundary_indices([], [(1, 0, 0, 1, -1)]), set())
+
+    def test_two_events_two_boundaries_same_seq_last_wins(self):
+        seqs = [1, 2, 3, 4, 5, 6]
+        events = [(2, 0, 0, 22, -1), (2, 0, 0, 22, 3), (4, 0, 0, 0, 3)]
+        # index 1 governs 3..4 (last row at seq 2), index 2 governs 5..6
+        self.assertEqual(gateway_util.event_boundary_indices(seqs, events), {1, 2, 3, 4})
 
 
 class TestShouldShipAbc(unittest.TestCase):
@@ -1339,6 +1813,105 @@ class TestLineTrustMachinery(unittest.TestCase):
         self.assertIsNone(gateway_util.parse_sub_marker("plain comment"))
 
 
+class TestSegmentOutsideFlags(unittest.TestCase):
+    """2026-09-12: the per-vertex outside verdict the viewer paints — one
+    source of truth with the per-line records (same segments, same
+    window), but the RAW geometric verdict: no parked exemption, no
+    attribution."""
+
+    def test_identity_end_tlo_inclusive_no_parked_exemption(self):
+        lim = {"X": (-100.0, 100.0), "Z": (-50.0, 0.0)}
+        nine = lambda x, y, z: (x, y, z, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+        segs = [
+            (1, nine(0, 0, -10), nine(50, 0, -10), None),        # inside
+            (2, nine(50, 0, -10), nine(120, 0, -10), None),      # X moves out
+            (3, nine(120, 0, -10), nine(120, 5, -10), None),     # X PARKED out: still outside
+            (4, nine(120, 5, -10), nine(0, 0, -10), None),       # back in
+            (5, nine(0, 0, -10), nine(0, 0, -10), (0.0, 0.0, 20.0)),  # TLO lifts joint Z to +10 > 0
+        ]
+        flags = gateway_util.segment_outside_flags(segs, lim)
+        self.assertEqual(list(map(bool, flags)), [False, True, True, False, True])
+        # the per-line checker attributes line 3 to nobody (X parked) and
+        # line 5 to nobody either (a zero-length move: Z parked) — the
+        # records name culprits, the flags paint every refused move
+        recs, total = gateway_util.check_limit_violations(segs, lim)
+        self.assertEqual(sorted(r["line"] for r in recs), [2])
+        # no window → nothing flagged, never a claim
+        self.assertEqual(list(map(bool, gateway_util.segment_outside_flags(segs, {}))), [False] * 5)
+        self.assertEqual(list(gateway_util.segment_outside_flags([], lim)), [])
+
+    def test_reduce_onto_kept_vertices_covers_the_dropped_run(self):
+        flags = [0, 0, 1, 0, 0, 0, 1, 0]
+        # kept 0, 3, 5, 7: vertex 3 covers (0,3] → 1; 5 covers (3,5] → 0; 7 covers (5,7] → 1
+        self.assertEqual(gateway_util.reduce_outside_flags(flags, [0, 3, 5, 7]), [0, 1, 0, 1])
+        # the first kept vertex covers [0, k0]
+        self.assertEqual(gateway_util.reduce_outside_flags([1, 0, 0], [2]), [1])
+        self.assertEqual(gateway_util.reduce_outside_flags([0, 0, 0], [0, 1, 2]), [0, 0, 0])
+
+    def test_live_joint_limits_keyed_by_letter_in_joint_order(self):
+        joints = [{"min_position_limit": -5.0, "max_position_limit": 5.0},
+                  {"min_position_limit": -6.0, "max_position_limit": 6.0},
+                  {"min_position_limit": -2000.0, "max_position_limit": 0.01},
+                  {"min_position_limit": -360.0, "max_position_limit": 360.0},
+                  {"min_position_limit": -320.0, "max_position_limit": 320.0}]
+        # XYZAC mask (bits 0,1,2,3,5): joint 4 is C
+        lims = gateway_util.live_joint_limits(joints, 0b101111)
+        self.assertEqual(lims, {"X": (-5.0, 5.0), "Y": (-6.0, 6.0), "Z": (-2000.0, 0.01),
+                                "A": (-360.0, 360.0), "C": (-320.0, 320.0)})
+        self.assertEqual(gateway_util.live_joint_limits(None, 0b111), {})
+        self.assertEqual(gateway_util.live_joint_limits([{"min_position_limit": None, "max_position_limit": 1.0}], 0b1), {})
+
+    def test_limits_drift_only_for_a_live_sourced_window(self):
+        pub = {"source": "live", "limits": {"X": [-1500.0, 1500.0], "Z": [-2000.0, 0.01]}}
+        letters = ["X", "Y", "Z"]
+        live = [[-1500.0, 1500.0], [-2000.0, 1300.0], [-2000.0, 0.01]]
+        self.assertIsNone(gateway_util.evaluate_limits_drift(pub, live, letters))
+        moved = [[-1500.0, 1500.0], [-2000.0, 1300.0], [-2000.0, 5000.0]]
+        self.assertEqual(gateway_util.evaluate_limits_drift(pub, moved, letters), "limits:Z")
+        # an INI-sourced window never drifts (nothing live to compare — and no loop)
+        self.assertIsNone(gateway_util.evaluate_limits_drift({"source": "ini", "limits": pub["limits"]}, moved, letters))
+        # absent data makes no claim
+        self.assertIsNone(gateway_util.evaluate_limits_drift(None, moved, letters))
+        self.assertIsNone(gateway_util.evaluate_limits_drift(pub, None, letters))
+        self.assertIsNone(gateway_util.evaluate_limits_drift(pub, [[None, None], [0, 0], [None, None]], letters))
+        # a partial live pair whose known bound moved is a drift
+        self.assertEqual(gateway_util.evaluate_limits_drift(pub, [[-1500.0, 1500.0], [0, 0], [None, 5000.0]], letters), "limits:Z")
+
+
+class TestInflightDoomedAndRotaryHold(unittest.TestCase):
+    """2026-09-12: cancel a doomed parse at once, restart only once settled."""
+
+    def test_doomed_when_pose_leaves_the_inflight_seed_no_settle_needed(self):
+        inflight = {"rotary_seed": {"A": 0.0, "B": 0.0, "C": 0.0}}
+        self.assertEqual(inflight_doomed_reason(inflight, [0.0, 0.0, 0.0]), None)
+        self.assertEqual(inflight_doomed_reason(inflight, [0.005, 0.0, 0.0]), None)   # within eps
+        self.assertEqual(inflight_doomed_reason(inflight, [3.2, 0.0, 0.0]), "rotary:A")
+        self.assertEqual(inflight_doomed_reason(inflight, [0.0, 1.0, -2.0]), "rotary:BC")
+
+    def test_no_claim_without_a_snapshot_or_live_data(self):
+        self.assertIsNone(inflight_doomed_reason(None, [1.0, 0.0, 0.0]))
+        self.assertIsNone(inflight_doomed_reason({"rotary_seed": {"A": 0.0}}, None))
+        self.assertIsNone(inflight_doomed_reason({}, [1.0, 0.0, 0.0]))
+
+    def test_hold_keeps_its_stamp_while_still_and_restamps_on_motion(self):
+        h0 = rotary_hold_update(None, [0.0, 0.0, 0.0], 10.0)
+        self.assertEqual(h0, {"abc": [0.0, 0.0, 0.0], "since": 10.0})
+        h1 = rotary_hold_update(h0, [0.004, 0.0, 0.0], 10.5)
+        self.assertIs(h1, h0)                                    # servo dither: same hold
+        h2 = rotary_hold_update(h1, [0.5, 0.0, 0.0], 11.0)
+        self.assertEqual(h2["since"], 11.0)                      # moved: restamped
+        self.assertEqual(h2["abc"], [0.5, 0.0, 0.0])
+        self.assertIsNone(rotary_hold_update(h2, None, 12.0))    # no rotary data
+
+    def test_settled_after_min_hold_never_without_a_hold_always_without_rotaries(self):
+        h = rotary_hold_update(None, [20.0, 0.0, 0.0], 100.0)
+        self.assertFalse(rotary_hold_settled(h, [20.0, 0.0, 0.0], 100.5))
+        self.assertTrue(rotary_hold_settled(h, [20.0, 0.0, 0.0], 101.0))
+        self.assertFalse(rotary_hold_settled(None, [20.0, 0.0, 0.0], 101.0))   # no sample yet: no silent go
+        self.assertTrue(rotary_hold_settled(None, None, 101.0))               # 3-axis: nothing can move
+        self.assertTrue(rotary_hold_settled(None, [], 101.0))
+
+
 class TestRotaryDrift(unittest.TestCase):
     """W6 rotary-pose freshness: the seed the parse posed uncommanded
     rotaries at, and the drift edge that reparses when the live pose
@@ -1356,6 +1929,97 @@ class TestRotaryDrift(unittest.TestCase):
         # Absent/partial live data → None, same as rotary_sync_initcode.
         self.assertIsNone(gateway_util.rotary_seed_values(self.MASK6, None))
         self.assertIsNone(gateway_util.rotary_seed_values(self.MASK6, (1.0, 2.0)))
+
+    def test_prov_param_numbers_match_the_var_file_stride(self):
+        # The claim the whole feature rests on: fixture blocks are 20 wide
+        # and the interpreter defines only the first ten, so 5231+ is free.
+        # G54 -> 5231..5235, and the next fixture starts 20 later, landing
+        # clear of G55's own row (G55_X = 5241, G55_R = 5250).
+        p54 = gateway_util.wcs_prov_params(1)
+        self.assertEqual(p54, {"stamped": 5231, "kins": 5232, "a": 5233,
+                               "x": 5234, "y": 5235, "z": 5236})
+        self.assertEqual(gateway_util.wcs_prov_params(2)["stamped"], 5251)
+        self.assertEqual(gateway_util.wcs_prov_params(9)["stamped"], 5391)
+        # Every slot must miss every DEFINED fixture row (base+0..9).
+        defined = {5221 + 20 * k + j for k in range(9) for j in range(10)}
+        for i in range(1, 10):
+            for n in gateway_util.wcs_prov_params(i).values():
+                self.assertNotIn(n, defined, f"#{n} collides with a fixture row")
+        for bad in (0, 10):
+            with self.assertRaises(ValueError):
+                gateway_util.wcs_prov_params(bad)
+
+    def test_provenance_is_believed_only_while_it_is_true(self):
+        ev = gateway_util.evaluate_wcs_provenance
+        good = {"stamped": 1.0, "kins": 0, "a": 20.0,
+                "x": 1.0, "y": 2.0, "z": 3.0}
+        self.assertEqual(ev(good, [1.0, 2.0, 3.0]),
+                         ("valid", {"kins": 0, "a": 20.0}))
+        # THE case this exists for: something we do not control rewrote the
+        # offset (a program's G10 L2, another GUI, a typed MDI line) and
+        # left our stamp behind. Believing it would apply a 20 deg table
+        # correction to an offset that was never touched off there.
+        kind, info = ev(good, [1.0, 2.0, 99.0])
+        self.assertEqual(kind, "stale")
+        self.assertEqual(info["recorded_xyz"], [1.0, 2.0, 3.0])
+        self.assertEqual(info["live_xyz"], [1.0, 2.0, 99.0])
+        # Never stamped -> absent, which is a DIFFERENT answer from stale
+        # and callers must not collapse them. THE case that killed the
+        # sentinel design: a fresh/round-tripped var file is all zeros, and
+        # kins 0 is a VALID value (identity) — so the all-zero row must read
+        # as absent on the strength of the flag alone, never as "touched off
+        # in identity kins at A=0".
+        self.assertEqual(ev({"stamped": 0.0, "kins": 0.0, "a": 0.0,
+                             "x": 0.0, "y": 0.0, "z": 0.0}, [0, 0, 0])[0],
+                         "absent")
+        self.assertEqual(ev(None, [0, 0, 0]), ("absent", None))
+        self.assertEqual(ev({}, [0, 0, 0]), ("absent", None))
+        self.assertEqual(ev({"kins": 0}, [0, 0, 0]), ("absent", None))
+        # ...and with the flag set, kins 0 IS identity and must survive a
+        # falsy-check bug: a `if not kins` would read it as absent.
+        self.assertEqual(ev({"stamped": 1.0, "kins": 0.0, "a": 0.0,
+                             "x": 0, "y": 0, "z": 0}, [0, 0, 0]),
+                         ("valid", {"kins": 0, "a": 0.0}))
+        # Float noise from the var file round-trip must not read as stale.
+        self.assertEqual(ev(good, [1.0 + 1e-9, 2.0, 3.0])[0], "valid")
+        # No live triple to check against: a stamp exists but nothing can
+        # falsify it — "unknown", NOT a stale verdict manufactured from
+        # substituted zeros (the first cut did exactly that).
+        kind, info = ev(good, None)
+        self.assertEqual(kind, "unknown")
+        self.assertEqual(info["recorded_xyz"], [1.0, 2.0, 3.0])
+        self.assertNotIn("live_xyz", info)
+        self.assertEqual(ev(good, [1.0, 2.0])[0], "unknown")
+
+    def test_override_pins_the_pose_for_goldens(self):
+        # A preview golden must be a property of the CODE, not of wherever
+        # the table was parked when the gate ran. Live pose A=35 (a session
+        # left it there), pinned back to the datum:
+        live = [1.0, 2.0, 3.0, 35.0, -41.28, -3.0]
+        pinned = gateway_util.override_rotary_position(
+            live, {"A": 0.0, "B": 0.0, "C": 0.0})
+        self.assertEqual(list(pinned), [1.0, 2.0, 3.0, 0.0, 0.0, 0.0])
+        # BOTH consumers must see the same pose — a seeded pose that
+        # disagrees with the recorded seed makes the payload lie about its
+        # own baseline, which is why the substitution happens at the input.
+        self.assertEqual(
+            gateway_util.rotary_seed_values(self.MASK6, pinned),
+            {"A": 0.0, "B": 0.0, "C": 0.0})
+        self.assertEqual(
+            gateway_util.rotary_sync_initcode(self.MASK6, pinned),
+            "G53 G0 A0.000000000 B0.000000000 C0.000000000")
+        # XYZ are untouched: this pins the rotary pose, nothing else.
+        self.assertEqual(list(pinned)[:3], [1.0, 2.0, 3.0])
+        # A partial pose keeps the live value for letters it omits.
+        self.assertEqual(
+            list(gateway_util.override_rotary_position(live, {"B": 0.0})),
+            [1.0, 2.0, 3.0, 35.0, 0.0, -3.0])
+        # No pose / no live data → unchanged, so the gateway (which never
+        # passes one) keeps the live read exactly as before.
+        self.assertIs(gateway_util.override_rotary_position(live, None), live)
+        self.assertIs(gateway_util.override_rotary_position(live, {}), live)
+        self.assertIsNone(
+            gateway_util.override_rotary_position(None, {"A": 0.0}))
 
     def test_drift_detects_moved_letters(self):
         seed = {"A": 0.0, "B": 0.0, "C": 0.0}
@@ -1405,6 +2069,65 @@ class TestRotaryDrift(unittest.TestCase):
             gateway_util.rotary_drift_settled([0.0, None, 0.0], [0.0, 0.0, 0.0]))
 
 
+class TestKinsSeed(unittest.TestCase):
+    """Fifth freshness input: seeding the parse-time switchkins state from
+    the live pin, and the drift edge that reparses when the live state
+    leaves the published assumption (the 855-unit class: M2 restores G54
+    but NOT the kins type)."""
+
+    FRAME = [-1.781762, 130.2455, -40.8555]
+
+    def test_seed_noop_on_identity_or_untracked(self):
+        ev, fr = gateway_util.seed_kins_events([(5, 2)], [(5, 1, 2, 3)], None, None)
+        self.assertEqual(ev, [(5, 2)])
+        self.assertEqual(fr, [(5, 1, 2, 3)])
+        ev, fr = gateway_util.seed_kins_events([], [], 0, self.FRAME)
+        self.assertEqual((ev, fr), ([], []))
+
+    def test_seed_prepends_before_every_seq(self):
+        ev, fr = gateway_util.seed_kins_events([(5, 0)], [], 2, self.FRAME)
+        self.assertEqual(ev[0], (-1, 2))
+        self.assertEqual(fr, [(-1, *self.FRAME)])
+        # The seed governs every segment; the program's own marker still
+        # overrides from its seq on (kins_type_flags applies es < s).
+        flags = gateway_util.kins_type_flags([0, 4, 6], ev)
+        self.assertEqual(flags, [2, 2, 0])
+
+    def test_seed_type2_frameless_and_type1(self):
+        # Frameless TOOL seed: event only — degrades exactly like a bare
+        # M430 (unchecked segments, honestly).
+        ev, fr = gateway_util.seed_kins_events([], [], 2, None)
+        self.assertEqual((ev, fr), ([(-1, 2)], []))
+        # TCP seed never carries a frame.
+        ev, fr = gateway_util.seed_kins_events([], [], 1, self.FRAME)
+        self.assertEqual((ev, fr), ([(-1, 1)], []))
+
+    def test_kins_drift_type_and_frame(self):
+        seed = {"type": 0, "frame": None}
+        self.assertEqual(
+            gateway_util.evaluate_kins_drift(seed, 2, self.FRAME), "kins:type")
+        self.assertIsNone(gateway_util.evaluate_kins_drift(seed, 0, None))
+        seed2 = {"type": 2, "frame": list(self.FRAME)}
+        self.assertIsNone(
+            gateway_util.evaluate_kins_drift(seed2, 2, list(self.FRAME)))
+        moved = [self.FRAME[0] + 0.001, self.FRAME[1], self.FRAME[2]]
+        self.assertEqual(
+            gateway_util.evaluate_kins_drift(seed2, 2, moved), "kins:frame")
+        # Type change wins over frame comparison.
+        self.assertEqual(
+            gateway_util.evaluate_kins_drift(seed2, 0, None), "kins:type")
+
+    def test_kins_drift_no_claim_without_data(self):
+        self.assertIsNone(gateway_util.evaluate_kins_drift(None, 2, None))
+        self.assertIsNone(
+            gateway_util.evaluate_kins_drift({"type": None, "frame": None}, 2, None))
+        self.assertIsNone(
+            gateway_util.evaluate_kins_drift({"type": 2, "frame": self.FRAME}, None, None))
+        # TOOL kins with either frame side absent: no frame claim.
+        self.assertIsNone(
+            gateway_util.evaluate_kins_drift({"type": 2, "frame": None}, 2, self.FRAME))
+        self.assertIsNone(
+            gateway_util.evaluate_kins_drift({"type": 2, "frame": self.FRAME}, 2, None))
 class TestWcsOffsetDrift(unittest.TestCase):
     """WCS-offset drift edge (live-caught): a touch-off changes the offsets
     the payload's abc peel and soft-limit flags were baked with, with NO
@@ -1621,6 +2344,72 @@ class TestCallerAttribution(unittest.TestCase):
             (0, "g533remap", "g53.3"), (0, None, None), (0, "square", None)])
 
 
+class TestRefusalPayload(unittest.TestCase):
+    """A remap refusal in preview (2026-09-05): the operator-facing record."""
+
+    def test_direct_refusal_uses_program_line(self):
+        r = gateway_util.refusal_payload(
+            {"line": 3, "file": "a.ngc", "call_level": 0,
+             "message": "G68.2 ERROR: Must be in G54 to define TWP."}, [], {})
+        self.assertEqual(r, {"line": 3, "message": "G68.2 ERROR: Must be in G54 to define TWP."})
+
+    def test_refusal_inside_marked_sub_attributes_caller_line(self):
+        # G53.3 → g533remap.ngc → M530: the refusal reports the WRAPPER's
+        # line; the open span's verified caller line is the operator's.
+        events = [(4, "g533remap", "g53.3")]
+        r = gateway_util.refusal_payload(
+            {"line": 26, "file": "g533remap.ngc", "call_level": 1,
+             "message": "No TWP defined"}, events, {0: 9})
+        self.assertEqual(r, {"line": 9, "sub": "g533remap", "sub_line": 26,
+                             "message": "No TWP defined"})
+
+    def test_refusal_inside_unattributed_sub_reports_sub_name(self):
+        events = [(4, "square", None), (5, None, None), (7, "g533remap", "g53.3")]
+        r = gateway_util.refusal_payload(
+            {"line": 26, "file": "g533remap.ngc", "call_level": 1,
+             "message": "No TWP defined"}, events, {0: 3})   # only the CLOSED span attributed
+        self.assertEqual(r, {"line": None, "sub": "g533remap", "sub_line": 26,
+                             "message": "No TWP defined"})
+
+    def test_closed_span_does_not_claim_the_refusal(self):
+        events = [(4, "square", None), (5, None, None)]
+        r = gateway_util.refusal_payload({"line": 12, "message": "x"}, events, {0: 3})
+        self.assertEqual(r, {"line": 12, "message": "x"})
+
+    def test_garbage_refusal_never_guesses_a_line(self):
+        self.assertEqual(gateway_util.refusal_payload({"line": -1, "message": ""}, None, None),
+                         {"line": None, "message": "refused"})
+
+    def test_linetext_unique_site_recovers_the_trigger_line(self):
+        # sequence_number reads 0 inside a remap and the canon never fires
+        # next_line for a remap trigger line: the trigger block's TEXT is
+        # matched to the ONE main-file line carrying it.
+        src = "g54\n(setup)\nG68.2 X50 Y50 Z-50 Q121 I30 J15 ; plane\ng53.3 x0y0z100\nm2\n"
+        r = gateway_util.refusal_payload(
+            {"line": 0, "linetext": "g68.2 x50 y50 z-50 q121 i30 j15",
+             "message": "G68.2 ERROR: Must be in G54 to define TWP."}, [], {}, source_text=src)
+        self.assertEqual(r["line"], 3)
+
+    def test_gword_unique_site_is_the_second_resort(self):
+        src = "g54\ng68.2 x1 y2 z3 q0 i0 j0\nm2\n"
+        r = gateway_util.refusal_payload(
+            {"line": 0, "linetext": None, "message": "G68.2 ERROR: nope"}, [], {}, source_text=src)
+        self.assertEqual(r["line"], 2)
+
+    def test_ambiguous_or_absent_sites_never_guess(self):
+        src = "g68.2 x1\ng68.2 x2\nm2\n"
+        r = gateway_util.refusal_payload(
+            {"line": 0, "linetext": "g68.2 x9", "message": "G68.2 ERROR: nope"}, [], {}, source_text=src)
+        self.assertIsNone(r["line"])
+        r = gateway_util.refusal_payload({"line": 0, "message": "Must be in G54"}, [], {}, source_text=src)
+        self.assertIsNone(r["line"])
+        # Inside a sub span the text scan is not attempted (sub-file numbering).
+        r = gateway_util.refusal_payload(
+            {"line": 0, "linetext": "g68.2 x1", "message": "G68.2 ERROR"},
+            [(4, "g533remap", "g53.3")], {}, source_text=src)
+        self.assertEqual(r, {"line": None, "sub": "g533remap", "sub_line": None, "message": "G68.2 ERROR"})
+
+
 class TestRotarySyncInitcode(unittest.TestCase):
     """Schema-5 fix for the parity gate's wave-2 find: the offline interp
     starts every axis at program-zero of the active fixture, so an axis
@@ -1686,6 +2475,8 @@ class TestCanonFirstMoveRearm(unittest.TestCase):
         c._last_wcs_basis = None
         c.sub_events = []
         c.unknown_start = []
+        c.tlo_events = []
+        c.cur_tool = -1
         c.rotation_xy = 0.0
         c.xo = c.yo = c.zo = 0.0
         c.ao = c.bo = c.co = 0.0
@@ -1757,6 +2548,97 @@ class TestCanonFirstMoveRearm(unittest.TestCase):
         self.assertEqual(len(c.unknown_start), 2)
         self.assertEqual(c.unknown_start[1], c.rapid[2][4])
 
+
+
+class TestTloEvents(unittest.TestCase):
+    """Schema 8: the canon records every G43/G43.1/G49 and executed M6 on a
+    program line as a (seq, xo, yo, zo, tool) event — the per-segment TLO
+    source the client used to lack (one live wcs.tool for the whole track:
+    the fresh-boot 22.000 gate catch). Seq convention = the other channels."""
+
+    def _canon(self):
+        import gcode_canon
+        from unittest import mock
+        c, ns = TestCanonFirstMoveRearm._canon(self)
+        c.feedrate = 1.0
+        c.tools_used = set()
+        c.tool_changes = 0
+        c.tool_change_events = []
+        # change_tool defers to StatMixin (needs a live stat object) — bypass.
+        p = mock.patch.object(gcode_canon.StatMixin, "change_tool", lambda self, idx: None)
+        p.start()
+        self.addCleanup(p.stop)
+        return c, ns
+
+    def _prog(self, c, ns, lineno):
+        c.next_line(ns(sequence_number=lineno))
+
+    def test_g43_records_event_at_current_seq_governing_later_segments(self):
+        c, ns = self._canon()
+        self._prog(c, ns, 1)
+        c.straight_feed(1, 0, 0, 0, 0, 0, 0, 0, 0)          # seq 1
+        self._prog(c, ns, 2)
+        c.tool_offset(0, 0, 22, 0, 0, 0, 0, 0, 0)         # G43 H..
+        self._prog(c, ns, 3)
+        c.straight_feed(2, 0, 0, 0, 0, 0, 0, 0, 0)          # seq 2
+        self.assertEqual(c.tlo_events, [(1, 0, 0, 22, -1)])
+        # governs seq > 1 only: the first feed carries 0, the second 22
+        self.assertEqual(c.feed[0][4], (0.0, 0.0, 0.0))
+        self.assertEqual(c.feed[1][4], (0, 0, 22))
+        self.assertLess(c.tlo_events[0][0], c.feed[1][5])
+
+    def test_m6_then_g43_same_seq_last_row_wins(self):
+        c, ns = self._canon()
+        self._prog(c, ns, 3)
+        c.change_tool(3)
+        c.tool_offset(0, 0, 22, 0, 0, 0, 0, 0, 0)
+        self.assertEqual(c.tlo_events, [(0, 0.0, 0.0, 0.0, 3), (0, 0, 0, 22, 3)])
+        self.assertEqual(c.tlo_events[-1], (0, 0, 0, 22, 3))  # last wins
+
+    def test_g49_when_already_zero_is_recorded(self):
+        c, ns = self._canon()
+        self._prog(c, ns, 4)
+        c.tool_offset(0, 0, 0, 0, 0, 0, 0, 0, 0)
+        self.assertEqual(c.tlo_events, [(0, 0, 0, 0, -1)])
+
+    def test_m6_before_any_g43_carries_current_tlo_and_tool(self):
+        c, ns = self._canon()
+        self._prog(c, ns, 2)
+        c.tool_offset(0, 0, 10, 0, 0, 0, 0, 0, 0)
+        self._prog(c, ns, 5)
+        c.change_tool(7)
+        self.assertEqual(c.tlo_events[-1], (0, 0, 0, 10, 7))
+
+    def test_initcode_lines_never_record(self):
+        c, ns = self._canon()
+        self._prog(c, ns, 0)                                # initcodes
+        c.tool_offset(0, 0, 5, 0, 0, 0, 0, 0, 0)
+        c.change_tool(2)
+        self.assertEqual(c.tlo_events, [])
+        self.assertEqual((c.xo, c.yo, c.zo), (0, 0, 5))     # state still applied
+        self.assertEqual(c.cur_tool, 2)
+
+    def test_no_m6_leaves_tool_minus_one(self):
+        c, ns = self._canon()
+        self._prog(c, ns, 1)
+        c.tool_offset(0, 0, 1, 0, 0, 0, 0, 0, 0)
+        self.assertEqual(c.tlo_events[0][4], -1)
+
+    def test_post_g43_traverse_is_ustart_and_carries_the_new_tlo(self):
+        c, ns = self._canon()
+        self._prog(c, ns, 1)
+        c.straight_feed(1, 0, 0, 0, 0, 0, 0, 0, 0)          # seq 1
+        self._prog(c, ns, 2)
+        c.tool_offset(0, 0, 22, 0, 0, 0, 0, 0, 0)
+        # lo-peel identity: world (raw + tlo) is continuous across the G43 —
+        # the property the carry-retire closure rests on (pinned against the
+        # real interpreter by the canon fixture).
+        self.assertAlmostEqual(c.lo[2] + c.zo, c.feed[0][2][2] + 0.0, places=9)
+        self._prog(c, ns, 3)
+        c.straight_traverse(5, 0, 0, 0, 0, 0, 0, 0, 0)      # seq 2, ustart
+        self.assertEqual(c.unknown_start, [2])
+        self.assertEqual(c.rapid[0][3], (0, 0, 22))
+        self.assertEqual(c.rapid[0][1], c.rapid[0][2])      # zero-length
 
 class TestFindUnmarkedSubs(unittest.TestCase):
     """W3 P5 advisory: external o-calls whose sub files carry no WEBUI_SUB
@@ -1847,6 +2729,64 @@ class TestEvaluateTloDrift(unittest.TestCase):
         self.assertIsNone(gateway_util.evaluate_tlo_drift(self.META, 100.0, 5, 42.0))
         self.assertIsNone(gateway_util.evaluate_tlo_drift(self.META, 100.0, 0, 42.0))
         self.assertIsNone(gateway_util.evaluate_tlo_drift(self.META, 100.0, None, 42.0))
+
+    def test_other_tool_row_drift_detected(self):
+        # Schema 8: T7 is NOT loaded (T3 is), yet its row moved 80 → 60 —
+        # the sim poses T7's segments with the parse row, so it is stale.
+        rows = [(3, 156.5596), (7, 60.0), (9, 1.0)]
+        self.assertEqual(
+            gateway_util.evaluate_tlo_drift(self.META, 100.0, 3, 156.5596, table_rows=rows),
+            "table_row")
+        # Matching rows: clean; rows for tools the program never touches: ignored.
+        rows_ok = [(3, 156.5596), (7, 80.0), (9, 999.0)]
+        self.assertIsNone(
+            gateway_util.evaluate_tlo_drift(self.META, 100.0, 3, 156.5596, table_rows=rows_ok))
+        # A 5-tuple parse row (diameter column) reads the same.
+        meta5 = dict(self.META, tlos=[[3, 0.0, 0.0, 156.5596, 6.0], [7, 0.0, 0.0, 80.0, 8.0]])
+        self.assertEqual(
+            gateway_util.evaluate_tlo_drift(meta5, 100.0, 3, 156.5596, table_rows=rows),
+            "table_row")
+
+    # ---- TWP-09 (review 2026-09-14): applied vs APPLIED, like with like ----
+    META8 = dict(META, applied_tlo=[0.0, 0.0, 20.0], loaded_tool=3)
+
+    def test_g43_h_not_matching_t_settles_after_one_reparse(self):
+        # T3 loaded, `G43 H7` applied (20, not T3's row 156.56): the row
+        # compare reparsed forever. The parse recorded applied 20; live is 20.
+        for _ in range(3):
+            self.assertIsNone(gateway_util.evaluate_tlo_drift(self.META8, 100.0, 3, 20.0))
+
+    def test_g43_1_dynamic_settles(self):
+        meta = dict(self.META8, applied_tlo=[0.0, 0.0, 12.5])
+        self.assertIsNone(gateway_util.evaluate_tlo_drift(meta, 100.0, 3, 12.5))
+        self.assertEqual(gateway_util.evaluate_tlo_drift(meta, 100.0, 3, 13.0), "tool_offset")
+
+    def test_g49_after_parse_is_one_drift_then_settles(self):
+        self.assertEqual(gateway_util.evaluate_tlo_drift(self.META8, 100.0, 3, 0.0), "tool_offset")
+        meta0 = dict(self.META8, applied_tlo=[0.0, 0.0, 0.0])
+        self.assertIsNone(gateway_util.evaluate_tlo_drift(meta0, 100.0, 3, 0.0))
+        # No live reading: no claim.
+        self.assertIsNone(gateway_util.evaluate_tlo_drift(self.META8, 100.0, 3, None))
+
+    def test_loaded_tool_change_is_drift(self):
+        self.assertEqual(gateway_util.evaluate_tlo_drift(self.META8, 100.0, 5, 20.0), "tool_loaded")
+        self.assertIsNone(gateway_util.evaluate_tlo_drift(self.META8, 100.0, 3, 20.0))
+        self.assertIsNone(gateway_util.evaluate_tlo_drift(self.META8, 100.0, None, 20.0))
+
+    def test_legacy_meta_without_applied_keeps_row_compare(self):
+        self.assertEqual(gateway_util.evaluate_tlo_drift(self.META, 100.0, 3, 56.6346), "tool_offset")
+        self.assertIsNone(gateway_util.evaluate_tlo_drift(self.META, 100.0, 3, 156.5596))
+
+    def test_table_row_still_catches_a_not_loaded_program_tool(self):
+        rows = [(3, 156.5596), (7, 60.0)]
+        self.assertEqual(
+            gateway_util.evaluate_tlo_drift(self.META8, 100.0, 3, 20.0, table_rows=rows), "table_row")
+
+    def test_table_rows_none_keeps_old_behaviour(self):
+        self.assertIsNone(
+            gateway_util.evaluate_tlo_drift(self.META, 100.0, 3, 156.5596, table_rows=None))
+        self.assertIsNone(
+            gateway_util.evaluate_tlo_drift(self.META, 100.0, 3, 156.5596, table_rows=[]))
 
     def test_missing_mtimes_skip_the_file_signal(self):
         meta = dict(self.META, table_mtime=None)
@@ -1991,6 +2931,110 @@ class TestLineAttribution(unittest.TestCase):
         self.assertEqual(bad, [1, 2, 3])
 
 
+class TestWcsRewriteTargets(unittest.TestCase):
+    """The value comparison in wcs_event_rewritten cannot see a G10 L2 that
+    writes the SAME numbers the var row already holds — the corpus programs
+    re-assert their own offsets on every run. The source-text scan settles
+    it: a fixture the PROGRAM writes is program-owned whatever the numbers
+    say, so the client re-adds the parse snapshot and a touch-off between
+    parse and display cannot move the preview off the machine's real path."""
+
+    def test_explicit_fixture_is_reported(self):
+        ex, act = gateway_util.wcs_rewrite_targets("g10 l2 p1 x10 y20\nG0 X0\n")
+        self.assertEqual((ex, act), ({1}, False))
+
+    def test_p0_means_the_active_fixture_so_every_epoch_counts(self):
+        # P0 is not statically knowable -> cannot tell must degrade to the
+        # snapshot, never to trusting the live row.
+        ex, act = gateway_util.wcs_rewrite_targets("G10 L2 P0 X1300 Y-200\n")
+        self.assertEqual((ex, act), (set(), True))
+
+    def test_l20_counts_too(self):
+        ex, _a = gateway_util.wcs_rewrite_targets("g10 l20 p3 z0\n")
+        self.assertEqual(ex, {3})
+
+    def test_commented_out_g10_does_not_count(self):
+        for line in ("(g10 l2 p1 x5)", "; g10 l2 p1 x5", "G0 X0 (g10 l2 p2 y1)"):
+            ex, act = gateway_util.wcs_rewrite_targets(line)
+            self.assertEqual((ex, act), (set(), False), line)
+
+    def test_rewrite_to_identical_values_is_still_a_rewrite(self):
+        # The exact corpus shape: the var row already holds what the program
+        # writes, so the value comparison says "not rewritten" — and the
+        # source scan is what keeps it honest.
+        basis = ([1300.0, -200.0, -1400.0, 0, 0, 0, 0, 0, 0],
+                 [0.0] * 9, 0.0)
+        rows = {1: ([1300.0, -200.0, -1400.0, 0, 0, 0, 0, 0, 0], 0.0)}
+        self.assertFalse(gateway_util.wcs_event_rewritten(
+            basis, 1, rows, [0.0] * 9, 1.0))
+        ex, act = gateway_util.wcs_rewrite_targets("g10 l2 p0 x1300 y-200 z-1400\n")
+        self.assertTrue(act, "the source scan must catch what the values cannot")
+
+    def test_rs274_spelling_is_whitespace_and_order_free(self):
+        # Review find: the first regex required a spaced, L-before-P phrase
+        # with word boundaries — legal RS274 walked straight past it.
+        for line in ("G10L2P1X5", "N10G10L2P1X5", "G10 P1 L2 X5",
+                     "g 1 0 l 2 p 1 x 5", "G10L20P1Z0", "G010 L2 P1"):
+            ex, act = gateway_util.wcs_rewrite_targets(line)
+            self.assertEqual((ex, act), ({1}, False), line)
+
+    def test_dynamic_words_degrade_to_the_snapshot(self):
+        # P#100 / P[...] / L[...] / missing P: not statically knowable, so
+        # every epoch counts — cannot tell must degrade to the snapshot,
+        # never to trusting the live row.
+        for line in ("G10 L2 P#100 X5", "G10 L2 P[#100+1] X5",
+                     "G10 L[#5] P1 X5", "G10 L2 P#<fix> X5", "G10 L2 X5"):
+            ex, act = gateway_util.wcs_rewrite_targets(line)
+            self.assertEqual((ex, act), (set(), True), line)
+
+    def test_non_wcs_g10_forms_do_not_count(self):
+        # L1 (tool table), L10/L11 (tool offsets), G100 (not G10), G1 with a
+        # P word, and a letter inside a named parameter.
+        for line in ("G10 L1 P3 Z-5", "G10 L10 P2 Z0", "G10 L11 P2 Z0",
+                     "G100 L2 P1", "G1 P1 L2 X5", "#<g10_l2_p1> = 3"):
+            ex, act = gateway_util.wcs_rewrite_targets(line)
+            self.assertEqual((ex, act), (set(), False), line)
+
+
+class TestWcsStampDecision(unittest.TestCase):
+    """The stamp claims ONE table pose for a fixture's whole X/Y/Z. A partial
+    write merging into components established elsewhere has no single pose —
+    stamping lies, keeping the old stamp misfires 'stale', clearing is the
+    one honest state (and the caller makes it loud)."""
+
+    D = staticmethod(gateway_util.wcs_stamp_decision)
+
+    def test_full_triple_always_stamps(self):
+        self.assertEqual(self.D(True, 0.0, 0, 20.0, 0, True), "stamp")
+        self.assertEqual(self.D(False, 0.0, 0, 20.0, 2, True), "stamp")
+
+    def test_partial_at_the_same_pose_and_kins_stamps(self):
+        self.assertEqual(self.D(True, 20.0, 0, 20.004, 0, False), "stamp")
+
+    def test_partial_at_a_different_pose_clears(self):
+        # THE mixed-angle case: X/Y probed at A=0, Z touched off at A=20.
+        self.assertEqual(self.D(True, 0.0, 0, 20.0, 0, False), "clear")
+        # ...and an R-only edit at A=0 over a valid A=20 stamp.
+        self.assertEqual(self.D(True, 20.0, 0, 0.0, 0, False), "clear")
+
+    def test_partial_under_a_different_kins_clears(self):
+        self.assertEqual(self.D(True, 0.0, 0, 0.0, 1, False), "clear")
+
+    def test_partial_with_no_prior_stamp(self):
+        # At the identity datum the unstamped components are exactly what the
+        # historical rule assumes, so stamping claims nothing new.
+        self.assertEqual(self.D(False, 0.0, 0, 0.0, 0, False), "stamp")
+        # Tilted, or under non-identity kins: the old components' pose is
+        # unknown — do not manufacture one.
+        self.assertEqual(self.D(False, 0.0, 0, 20.0, 0, False), "clear")
+        self.assertEqual(self.D(False, 0.0, 0, 0.0, 1, False), "clear")
+
+    def test_prior_invalidated_by_a_foreign_write(self):
+        # prior_valid=False even though a stamp exists: a program's G10 moved
+        # the row. Same rules as no prior stamp.
+        self.assertEqual(self.D(False, 20.0, 0, 20.0, 0, False), "clear")
+
+
 class TestTrsrnLimitCheck(unittest.TestCase):
     """Phase 3 close-out: joint-side soft limits for trsrn TCP/TOOL segs."""
 
@@ -2016,6 +3060,24 @@ class TestTrsrnLimitCheck(unittest.TestCase):
         self.assertEqual((records[0]["axis"], records[0]["kind"]), ("X", "max"))
         self.assertGreater(records[0]["value"], 1390.5)
         self.assertLess(records[0]["value"], 1392.0)
+
+    def test_segment_outside_flags_ride_the_subdivided_sweep(self):
+        # Same G53.6 orient sweep as the next test: joint Y migrates to
+        # ~-371.6 MID-segment; a -300 bound flags the segment's outside
+        # flag even though a sample-less endpoint check would not. An
+        # identity (type 0) segment and a frameless type-2 segment read
+        # False (the caller's identity check / the unchecked count own them).
+        start = self.NINE(1300.0, -200.0, -1300.0, 0.0, 0.0, 0.0)
+        end = self.NINE(1300.0, -200.0, -1300.0, 0.0, -40.855, 130.245)
+        segs = [
+            (6, start, end, (0.0, 0.0, 100.0), 1, None),
+            (7, start, end, (0.0, 0.0, 100.0), 0, None),
+            (8, start, end, (0.0, 0.0, 100.0), 2, None),
+            (9, start, start, (0.0, 0.0, 100.0), 1, None),   # no sweep: inside
+        ]
+        flags = gateway_util.trsrn_segment_outside_flags(segs, {"Y": (-300.0, 300.0)}, self.CFG)
+        self.assertEqual(list(map(bool, flags)), [True, False, False, False])
+        self.assertEqual(list(gateway_util.trsrn_segment_outside_flags(segs, {}, self.CFG)), [False] * 4)
 
     def test_tcp_orient_sweep_checked_with_tlo(self):
         # G53.6 orient: world pinned while B/C sweep — the joints migrate
@@ -2046,6 +3108,24 @@ class TestTrsrnLimitCheck(unittest.TestCase):
         records, total, unchecked = gateway_util.check_limit_violations_trsrn(
             [seg], {"X": (-1.0, 1.0)}, self.CFG)
         self.assertEqual((records, total, unchecked), ([], 0, 0))
+
+    def test_ustart_seeded_rotary_parked_under_tcp(self):
+        # Joint-side twin of the identity case: a TCP ustart endpoint whose
+        # C sits at the parse-time seed past the C limit. The seed slot is
+        # KNOWN (parked) so C is exempt; the unknown linear axes are still
+        # checked (X past its bound flags).
+        end = self.NINE(1400.0, -200.0, -1300.0, 0.0, 0.0, -383.163)
+        start = gateway_util.ustart_start_tuple(end, {"A": 0.0, "B": 0.0, "C": -383.163})
+        seg = (12, start, end, (0.0, 0.0, 100.0), 1, None)
+        records, total, unchecked = gateway_util.check_limit_violations_trsrn(
+            [seg], {"C": (-320.0, 320.0), "X": (-2000.0, 1390.0)}, self.CFG)
+        self.assertEqual(unchecked, 0)
+        self.assertEqual([(r["axis"], r["kind"]) for r in records], [("X", "max")])
+        # Fully-unknown start (no seed): C is checked as before.
+        records2, total2, _ = gateway_util.check_limit_violations_trsrn(
+            [(12, None, end, (0.0, 0.0, 100.0), 1, None)],
+            {"C": (-320.0, 320.0)}, self.CFG)
+        self.assertEqual([(r["axis"], r["kind"]) for r in records2], [("C", "min")])
 
 
 class TestParseKinsConfig(unittest.TestCase):
@@ -2481,3 +3561,193 @@ class TestWorldLimitCheck(unittest.TestCase):
         self.assertEqual(total, 2)
         self.assertEqual(records[0]["value"], -25.0)
         self.assertEqual(records[1]["axis"], "C")
+
+
+class TestJointsBeyondLimits(unittest.TestCase):
+    def test_inside_is_empty(self):
+        self.assertEqual(joints_beyond_limits([0.0, -5.0, -1999.0], [(-5000, 5000), (-5000, 5000), (-2000, 0.01)]), [])
+
+    def test_beyond_ceiling_and_floor(self):
+        lims = [(-5000, 5000), (-5000, 5000), (-2000, 0.01)]
+        self.assertEqual(joints_beyond_limits([0.0, 0.0, 0.057], lims), [2])      # the live case
+        self.assertEqual(joints_beyond_limits([0.0, 0.0, -2000.5], lims), [2])
+        self.assertEqual(joints_beyond_limits([5001.0, 0.0, 0.0], lims), [0])
+
+    def test_eps_and_unknowns_never_flag(self):
+        self.assertEqual(joints_beyond_limits([0.01 + 5e-7], [(-2000, 0.01)]), [])
+        self.assertEqual(joints_beyond_limits([9.0], [(None, 0.01)]), [])
+        self.assertEqual(joints_beyond_limits([9.0], [None]), [])
+        self.assertEqual(joints_beyond_limits([9.0, 9.0], [(-1, 1)]), [0])     # short limits → later joints unknown
+        self.assertEqual(joints_beyond_limits([float("nan")], [(-1, 1)]), [])
+
+
+class TestDriftGateOpen(unittest.TestCase):
+    """The idle drift edges share one gate; motion closes it (2026-09-03)."""
+
+    def _open(self, **over):
+        kw = dict(active_file="/x.ngc", refresh_running=False, preview_available=True,
+                  interp_idle=True, current_vel=0.0, since_last_check_s=2.5)
+        kw.update(over)
+        return gateway_util.drift_gate_open(**kw)
+
+    def test_open_when_idle_still_and_debounced(self):
+        self.assertTrue(self._open())
+
+    def test_motion_closes_it_even_when_interp_reads_idle(self):
+        # A short program's tail: interp IDLE while the motion queue drains.
+        self.assertFalse(self._open(current_vel=12.5))
+
+    def test_each_precondition_closes_it(self):
+        self.assertFalse(self._open(active_file=""))
+        self.assertFalse(self._open(refresh_running=True))
+        self.assertFalse(self._open(preview_available=False))
+        self.assertFalse(self._open(interp_idle=False))
+        self.assertFalse(self._open(since_last_check_s=1.9))
+
+    def test_debounce_is_a_parameter(self):
+        self.assertTrue(self._open(since_last_check_s=0.6, debounce_s=0.5))
+
+
+class TestProgramEndKinsType(unittest.TestCase):
+    """The load-time lint input: what the program itself leaves the kins in."""
+
+    def test_no_markers_is_not_applicable(self):
+        self.assertIsNone(gateway_util.program_end_kins_type([]))
+        self.assertIsNone(gateway_util.program_end_kins_type(None))
+
+    def test_last_marker_wins(self):
+        self.assertEqual(gateway_util.program_end_kins_type([(3, 0), (9, 2)]), 2)
+        self.assertEqual(gateway_util.program_end_kins_type([(3, 2), (40, 0)]), 0)
+        self.assertEqual(gateway_util.program_end_kins_type([(3, 1)]), 1)
+
+    def test_garbage_is_none_not_a_guess(self):
+        self.assertIsNone(gateway_util.program_end_kins_type([(3, "x")]))
+
+
+class TestRotaryCommands(unittest.TestCase):
+    """The rotary-boundary wire field (2026-09-11): which source lines
+    command a rotary axis, and where the program first commands each."""
+
+    def test_rotary_letters_on_line_forms(self):
+        f = gateway_util.rotary_letters_on_line
+        self.assertEqual(f("G0 A0"), "A")
+        self.assertEqual(f("G1 X5 B#100"), "B")
+        self.assertEqual(f("G1 A[#1+2]"), "A")
+        self.assertEqual(f("G0 A#<ang>"), "A")
+        self.assertEqual(f("N10G1X5C-3.5"), "C")
+        self.assertEqual(f("G1 A 10"), "A")
+        self.assertEqual(f("G0 X1 A0 C90"), "AC")
+        self.assertEqual(f("G1 X1 (A5)"), "")
+        self.assertEqual(f("G1 X1 ;A5"), "")
+        self.assertEqual(f("G10 L2 P1 A30"), "")
+        self.assertEqual(f("N10G10L2P1A30"), "")
+        self.assertEqual(f("G92 C0"), "")
+        self.assertEqual(f("G92.1"), "")
+        self.assertEqual(f("o<a1> call"), "")
+        self.assertEqual(f("#<_a_angle> = 5"), "")
+        self.assertEqual(f("X[ABS[#1]] Y[ACOS[0.5]] Z[ATAN[1]/[2]]"), "")
+        self.assertEqual(f("G28"), "ABC")
+        self.assertEqual(f("G30"), "ABC")
+        self.assertEqual(f("G28.1"), "")
+        self.assertEqual(f("G28 X0"), "")
+        self.assertEqual(f("G28 A#1"), "A")
+        self.assertEqual(f(""), "")
+        self.assertEqual(f("   "), "")
+        self.assertEqual(f("G1 X5 (rough) A10"), "A")   # a word AFTER an inline comment
+
+    def test_rotary_word_lines_numbers_the_candidate_lines(self):
+        text = "G21 G90\nG0 X0 Y0\nG0 A0 C0 (safe)\nG1 X5\n(A5 in a comment)\nG1 B[#1]\nM2\n"
+        self.assertEqual(gateway_util.rotary_word_lines(text), {3: "AC", 6: "B"})
+        self.assertEqual(gateway_util.rotary_word_lines(""), {})
+        self.assertEqual(gateway_util.rotary_word_lines("G0 X1\nG1 Y2\n"), {})
+        # TWP-10: bare G28/G30 reach the scan (they command every axis);
+        # storage, explicit-axis and commented forms are unchanged.
+        self.assertEqual(
+            gateway_util.rotary_word_lines("G0 X0\nG30\nG28.1\nG28 X0\n(G30)\ng 28\nG1 A5\n"),
+            {2: "ABC", 6: "ABC", 7: "A"})
+
+    def test_storage_and_explicit_axis_forms_unchanged(self):
+        self.assertEqual(gateway_util.rotary_word_lines("G28.1\nG30.1\nG28 X0\nG28 A#1\n(G30)\n"),
+                         {4: "A"})
+
+    def test_bare_g30_equal_to_the_seed_is_the_commanded_boundary(self):
+        # The review probe: a bare G30 whose reference angle equals the seed
+        # moves nothing (the endpoint test is blind) — only the text can
+        # tell, and the prefilter dropped the line. Now: A commanded at 2.
+        r = gateway_util.first_rotary_commands(
+            self._streams(self._seg(1, 1), self._seg(2, 2), self._seg(3, 3)),
+            {"A": 0.0}, gateway_util.rotary_word_lines("G0 X0\nG30\nG1 X5\n"))
+        self.assertEqual(r, {"A": 2, "unknown": None})
+        # CRLF endings and a word after a comment on the same line
+        self.assertEqual(gateway_util.rotary_word_lines("G0 X1\r\nG1 X5 (r) A10\r\n"), {2: "A"})
+
+    def _seg(self, seq, line, a=0.0, b=0.0, c=0.0, cons=True):
+        return (seq, line, (a, b, c), cons)
+
+    def _streams(self, *segs):
+        # one stream in seq order
+        return [([s[0] for s in segs], [s[1] for s in segs], [s[2] for s in segs], [s[3] for s in segs])]
+
+    def test_xyz_only_program_inherits_everything(self):
+        r = gateway_util.first_rotary_commands(
+            self._streams(self._seg(1, 1), self._seg(2, 2), self._seg(3, 3)),
+            {"A": 0.0, "B": 0.0, "C": 0.0}, {})
+        self.assertEqual(r, {"A": None, "B": None, "C": None, "unknown": None})
+
+    def test_explicit_zero_at_the_seed_is_found_by_the_text(self):
+        # `G0 A0 C0` at seed 0: the values cannot tell — the words can.
+        r = gateway_util.first_rotary_commands(
+            self._streams(self._seg(1, 1), self._seg(2, 2), self._seg(3, 3)),
+            {"A": 0.0, "B": 0.0, "C": 0.0}, {2: "AC"})
+        self.assertEqual(r, {"A": 2, "B": None, "C": 2, "unknown": None})
+
+    def test_value_moved_away_from_the_seed_is_a_command(self):
+        r = gateway_util.first_rotary_commands(
+            self._streams(self._seg(1, 1), self._seg(2, 2, a=30.0), self._seg(3, 3, a=30.0, c=10.0)),
+            {"A": 0.0, "B": 0.0, "C": 0.0}, {})
+        self.assertEqual(r, {"A": 2, "B": None, "C": 3, "unknown": None})
+
+    def test_seed_epsilon_and_non_zero_seed(self):
+        r = gateway_util.first_rotary_commands(
+            self._streams(self._seg(1, 1, a=35.0000001), self._seg(2, 2, a=35.1)),
+            {"A": 35.0}, {})
+        self.assertEqual(r, {"A": 2, "unknown": None})
+
+    def test_relabel_vertices_never_command(self):
+        r = gateway_util.first_rotary_commands(
+            self._streams(self._seg(2, 1), self._seg(3, 0, a=30.0), self._seg(4, 2, a=30.0)),
+            {"A": 0.0}, {}, relabel_seqs={3})
+        self.assertEqual(r, {"A": 4, "unknown": None})
+
+    def test_unknown_where_the_text_cannot_be_consulted(self):
+        # seq 2 lies inside a marked sub span (not consultable) with A still
+        # pending -> unknown = 2; A is later found by value at 4 and still
+        # reported (a command is a command); B never.
+        r = gateway_util.first_rotary_commands(
+            self._streams(self._seg(1, 1), self._seg(2, 7, cons=False), self._seg(3, 8, cons=False),
+                          self._seg(4, 3, a=30.0)),
+            {"A": 0.0, "B": 0.0}, {})
+        self.assertEqual(r, {"A": 4, "B": None, "unknown": 2})
+
+    def test_no_unknown_once_every_letter_is_commanded(self):
+        r = gateway_util.first_rotary_commands(
+            self._streams(self._seg(1, 1), self._seg(2, 2, a=1.0), self._seg(3, 0, cons=False)),
+            {"A": 0.0}, {})
+        self.assertEqual(r, {"A": 2, "unknown": None})
+
+    def test_value_inside_a_span_counts_even_when_not_consultable(self):
+        r = gateway_util.first_rotary_commands(
+            self._streams(self._seg(1, 1), self._seg(2, 5, a=12.0, cons=False)),
+            {"A": 0.0}, {})
+        self.assertEqual(r, {"A": 2, "unknown": None})
+
+    def test_two_streams_merge_by_seq(self):
+        feed = ([2, 4], [2, 4], [(0, 0, 0), (0, 0, 0)], [True, True])
+        rapid = ([1, 3], [1, 3], [(0, 0, 0), (0, 0, 20.0)], [True, True])
+        r = gateway_util.first_rotary_commands([feed, rapid], {"A": 0.0, "C": 0.0}, {4: "A"})
+        self.assertEqual(r, {"A": 4, "C": 3, "unknown": None})
+
+    def test_no_seed_no_claim(self):
+        self.assertEqual(gateway_util.first_rotary_commands(self._streams(self._seg(1, 1)), None, {}),
+                         {"unknown": None})
+        self.assertEqual(gateway_util.first_rotary_commands([], {"A": 0.0}, {}), {"A": None, "unknown": None})

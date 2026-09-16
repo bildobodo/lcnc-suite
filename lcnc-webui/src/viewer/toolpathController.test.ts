@@ -1,9 +1,10 @@
 // Unit tests for viewer/toolpathController.ts (A3.4). THREE geometry/material
 // ops are pure JS → headless. troika labels are faked (they need a font loader).
 // Covers the disposal-on-rebuild contract (the hardest part: shared geometry +
-// ad-hoc materials must all be freed), the feedLineMap fallback, label
+// ad-hoc materials must all be freed), the line-index fallback, label
 // unregistration, and the overflow flag.
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { buildLineIndex } from "./lineIndex";
 import * as THREE from "three";
 import { ref, type Ref } from "vue";
 import { disposeObject } from "./disposal";
@@ -25,18 +26,26 @@ function makeDeps(overflow: Ref<boolean>) {
     makeLabel: vi.fn(() => fakeLabel()),
     disposeObject,
     colors: () => ({ feed: "#22b8cf", rapid: "#f5a623", toolpathBounds: "#f5a623" }),
+    sceneBackground: () => new THREE.Color(SCENE_BG),
+    sceneForeground: () => new THREE.Color(SCENE_FG),
     axisCss: { x: "#f00", y: "#0f0", z: "#00f" },
     overflow,
   };
 }
+const SCENE_BG = "#102030";
+const SCENE_FG = "#e6edf3";
 
-function makeCtx(over: Partial<ToolpathCtx> = {}): ToolpathCtx & { workRotGroup: THREE.Group } {
+function makeCtx(over: Partial<ToolpathCtx> = {}): ToolpathCtx & { workRotGroup: THREE.Group; pathAnchor: THREE.Group; pathRot: THREE.Group } {
+  const pathAnchor = new THREE.Group();
+  const pathRot = new THREE.Group();
+  pathAnchor.add(pathRot);
   return {
     scene: new THREE.Scene(),
     workOrigin: new THREE.Group(),
     workRotGroup: new THREE.Group(),
+    pathAnchor, pathRot,
+    roomOrigin: null, roomRotGroup: null, roomAnchor: null, roomRot: null,
     pathAlwaysOnTop: false,
-    machineBounds: { origin: [0, 0, 0], size: [100, 100, 100] },
     units: "mm",
     ...over,
   } as any;
@@ -111,24 +120,109 @@ describe("toolpathController.apply", () => {
 });
 
 describe("highlight", () => {
-  it("builds the feedLineMap from feed_lines when the worker map is absent, and ranges it", () => {
+  it("builds the line index from feed_lines when the worker index is absent, and ranges it", () => {
     const ctx = makeCtx();
-    c.apply(ctx, GCODE);   // no g.feedLineMap → built from feed_lines [10,11,12]
-    c.setHighlight(11);    // line 11 → point index 1
-    const hl = ctx.workRotGroup.children.find(o => o.renderOrder === 12) as THREE.Line;
-    // effectiveLine 11 has range {start:1,end:1}; drawRange start = max(0, 0) = 0, count = 1.
-    expect(hl.geometry.drawRange).toMatchObject({ start: 0, count: 1 });
+    c.apply(ctx, GCODE);   // no g.feedLineIndex → built from feed_lines [10,11,12]
+    // motion_line runs ~1 line ahead under G64 blending, so line 12 lights
+    // line 11 (point index 1): the lit vertex range is [max(0, 0), 1] → ONE
+    // pair (0,1) in the highlight's own index buffer (drawRange counts
+    // index entries). Line 11 itself would light line 10 = point 0 alone,
+    // which draws nothing (a single vertex is no segment).
+    c.setHighlight(11);
+    const hl = ctx.workRotGroup.children.find(o => o.renderOrder === 12) as THREE.LineSegments;
+    expect(hl.geometry.drawRange.count).toBe(0);
+    c.setHighlight(12);
+    expect(hl.geometry.drawRange).toMatchObject({ start: 0, count: 2 });
+    expect(Array.from((hl.geometry.index!.array as Uint32Array).subarray(0, 2))).toEqual([0, 1]);
     c.setHighlight(null);
     expect(hl.geometry.drawRange.count).toBe(0);
   });
 
-  it("prefers the worker-provided feedLineMap (Map) over rebuilding", () => {
+  it("prefers the worker-provided line index (typed arrays) over rebuilding", () => {
     const ctx = makeCtx();
-    const workerMap = new Map([[99, { start: 2, end: 2 }]]);
-    c.apply(ctx, { ...GCODE, feedLineMap: workerMap });
+    const workerIndex = buildLineIndex(new Uint32Array([1, 1, 99]));   // line 99 → point 2 only
+    c.apply(ctx, { ...GCODE, feedLineIndex: workerIndex });
     c.setHighlight(99);
-    const hl = ctx.workRotGroup.children.find(o => o.renderOrder === 12) as THREE.Line;
-    expect(hl.geometry.drawRange).toMatchObject({ start: 1, count: 2 });
+    const hl = ctx.workRotGroup.children.find(o => o.renderOrder === 12) as THREE.LineSegments;
+    // point 2 only → vertex range [1, 2] → the pair (1,2)
+    expect(hl.geometry.drawRange).toMatchObject({ start: 0, count: 2 });
+    expect(Array.from((hl.geometry.index!.array as Uint32Array).subarray(0, 2))).toEqual([1, 2]);
+  });
+});
+
+describe("stale mute", () => {
+  // The mute is an OPAQUE colour write — never alpha: a million blended
+  // segments held the Mac's GPU three frames behind during every re-parse
+  // (viewerPerf, 2026-09-09). Since 2026-09-12 it is ONE neutral grey for
+  // every stream (the background lifted toward the foreground by the
+  // token), not a dim version of each stream's own hue.
+  const greyOf = (keep: number) => new THREE.Color(SCENE_BG).lerp(new THREE.Color(SCENE_FG), keep).getHex();
+  const rapidLineOf = (g: THREE.Group) => g.children.find(c =>
+    (c as any).isLine && c.renderOrder === 10 && (c as any).material instanceof THREE.LineDashedMaterial) as THREE.Line;
+
+  it("setStale turns feed AND rapid the same grey at the host's token and survives a rebuild", () => {
+    const ctx = makeCtx();
+    (deps as any).staleOpacity = () => 0.4;
+    c.apply(ctx, GCODE);
+    const feedMat = () => feedLineOf(ctx.workRotGroup).material as THREE.LineBasicMaterial;
+    const rapidMat = () => rapidLineOf(ctx.workRotGroup).material as THREE.LineDashedMaterial;
+    expect(feedMat().color.getHex()).toBe(new THREE.Color("#22b8cf").getHex());
+    c.setStale(true);
+    expect(feedMat().color.getHex()).toBe(greyOf(0.4));
+    expect(rapidMat().color.getHex()).toBe(greyOf(0.4));
+    expect(feedMat().transparent).toBe(false);
+    expect(feedMat().opacity).toBe(1);
+    c.apply(ctx, { ...GCODE });        // a publish while still stale keeps the new lines muted
+    expect(feedMat().color.getHex()).toBe(greyOf(0.4));
+    c.setStale(false);
+    expect(feedMat().color.getHex()).toBe(new THREE.Color("#22b8cf").getHex());
+    expect(rapidMat().color.getHex()).toBe(new THREE.Color("#f5a623").getHex());
+    expect(feedMat().transparent).toBe(false);
+  });
+
+  it("a colour change while muted stays grey and the new colour returns on un-mute", () => {
+    const ctx = makeCtx();
+    (deps as any).staleOpacity = () => 0.4;
+    c.apply(ctx, GCODE);
+    const feedMat = () => feedLineOf(ctx.workRotGroup).material as THREE.LineBasicMaterial;
+    c.setStale(true);
+    c.setColors({ feed: "#ff0000" });
+    expect(feedMat().color.getHex()).toBe(greyOf(0.4));
+    c.setStale(false);
+    expect(feedMat().color.getHex()).toBe(0xff0000);
+  });
+
+  it("the outside-limits overlays are hidden while stale and come back", () => {
+    const ctx = makeCtx();
+    // vertex 1 of feed and vertex 0 of rapid flagged → overlays in both streams
+    c.apply(ctx, { ...GCODE, feedOutside: new Uint8Array([0, 1, 0]), rapidOutside: new Uint8Array([1, 0]) });
+    const overlays = () => ctx.workRotGroup.children.filter(o => (o as any).isLineSegments && o.renderOrder === 10
+      && (o as any).material.color.getHex() === 0xffcc00) as THREE.LineSegments[];
+    const cam = new THREE.PerspectiveCamera(50, 1, 0.1, 1000); cam.position.set(5, 5, 100); cam.lookAt(5, 5, 0); cam.updateMatrixWorld();
+    c.updateCulling(ctx, cam, 1000);
+    expect(overlays().length).toBeGreaterThan(0);
+    expect(overlays().some(o => o.visible)).toBe(true);
+    c.setStale(true);
+    expect(overlays().every(o => !o.visible)).toBe(true);
+    c.updateCulling(ctx, cam, 1000);            // a culling pass while stale keeps them hidden
+    expect(overlays().every(o => !o.visible)).toBe(true);
+    c.setStale(false);
+    expect(overlays().some(o => o.visible)).toBe(true);
+  });
+
+  it("the validator's count rides beside the flag and clears with it", () => {
+    const count = ref(0);
+    const cc = createToolpathController({ ...(deps as any), overflowCount: count });
+    const ctx = makeCtx();
+    cc.apply(ctx, { ...GCODE, violations_total: 3 });
+    expect(overflow.value).toBe(true);
+    expect(count.value).toBe(3);
+    cc.apply(ctx, { ...GCODE, violations_total: undefined });
+    expect(count.value).toBe(0);
+    cc.apply(ctx, { ...GCODE, violations_total: 2 });
+    cc.forgetAfterSceneClear();
+    expect(count.value).toBe(0);
+    expect(overflow.value).toBe(false);
   });
 });
 
@@ -139,12 +233,12 @@ describe("overflow / visibility / colours", () => {
     // contradicted the validator (and the real run) on a G53 retract.
     // A geometrically "overflowing" bbox with a CLEAN validator must not
     // flag…
-    const ctx = makeCtx({ machineBounds: { origin: [0, 0, 0], size: [5, 5, 5] } });
-    c.apply(ctx, { ...GCODE, violations_total: 0 });
+    const ctx = makeCtx();
+    c.apply(ctx, { ...GCODE, violations_total: 0, feedOutside: new Uint8Array([1, 1, 1]) });
     expect(overflow.value).toBe(false);
-    // …and validator findings flag regardless of the box.
-    const ctx2 = makeCtx({ machineBounds: { origin: [0, 0, 0], size: [100, 100, 100] } });
-    c.apply(ctx2, { ...GCODE, violations_total: 3 });
+    // …and validator findings flag regardless of the geometry.
+    const ctx2 = makeCtx();
+    c.apply(ctx2, { ...GCODE, violations_total: 3, feedOutside: new Uint8Array([0, 0, 0]) });
     expect(overflow.value).toBe(true);
   });
 
@@ -152,7 +246,7 @@ describe("overflow / visibility / colours", () => {
     // null/absent = the INI had no limits to check against — unchecked ≠
     // clean, and the stats dialog says "Not validated"; the HUD must not
     // claim either way.
-    const ctx = makeCtx({ machineBounds: { origin: [0, 0, 0], size: [5, 5, 5] } });
+    const ctx = makeCtx();
     c.apply(ctx, { ...GCODE, violations_total: undefined });
     expect(overflow.value).toBe(false);
   });
@@ -192,9 +286,10 @@ describe("overflow / visibility / colours", () => {
     c.apply(ctx, GCODE);
     const feed = feedLineOf(ctx.workRotGroup);
     const geomSpy = vi.spyOn(feed.geometry as THREE.BufferGeometry, "dispose");
-    // Bounds box is the only LineSegments here (overflow edges need clip planes);
-    // its EdgesGeometry was previously missed by dispose().
-    const boundsBox = ctx.workRotGroup.children.find(o => (o as any).isLineSegments) as THREE.LineSegments;
+    // The bounds box is the LineSegments that is NOT a path chunk (renderOrder
+    // 10); overflow edges need clip planes. Its EdgesGeometry was previously
+    // missed by dispose().
+    const boundsBox = ctx.workRotGroup.children.find(o => (o as any).isLineSegments && o.renderOrder !== 10) as THREE.LineSegments;
     const boundsGeomSpy = vi.spyOn(boundsBox.geometry as THREE.BufferGeometry, "dispose");
     c.dispose();
     expect(geomSpy).toHaveBeenCalled();
@@ -221,5 +316,380 @@ describe("overflow / visibility / colours", () => {
     expect(geomSpy).not.toHaveBeenCalled();
     expect(feedLineOf(ctx2.workRotGroup)).toBeTruthy();
     expect(c.feedSegs).toBe(3);
+  });
+});
+
+describe("baked-toolpath anchor (2026-09-03 run-time jump)", () => {
+  it("apply with anchor parents the lines under pathRot and poses the anchor in the same call", () => {
+    const ctx = makeCtx();
+    c.apply(ctx, GCODE, { ox: 1300, oy: -200, oz: -1400, thetaDeg: 90 });
+    const fl = feedLineOf(ctx.pathRot);
+    expect(fl).toBeDefined();
+    expect(feedLineOf(ctx.workRotGroup)).toBeUndefined();
+    expect(ctx.pathAnchor.position.toArray()).toEqual([1300, -200, -1400]);
+    expect(ctx.pathRot.rotation.z).toBeCloseTo(Math.PI / 2, 12);
+    // the bounds box rides the same parent as the lines
+    expect(ctx.workRotGroup.children.some(o => (o as any).isLineSegments || (o as any).isLine)).toBe(false);
+  });
+  it("apply without an anchor keeps raw program coordinates under the live workRotGroup", () => {
+    const ctx = makeCtx();
+    c.apply(ctx, GCODE, null);
+    expect(feedLineOf(ctx.workRotGroup)).toBeDefined();
+    expect(feedLineOf(ctx.pathRot)).toBeUndefined();
+    expect(ctx.pathAnchor.position.toArray()).toEqual([0, 0, 0]);
+  });
+  it("a re-bake moves the anchor and replaces the lines together — never one without the other", () => {
+    const ctx = makeCtx();
+    c.apply(ctx, GCODE, { ox: 0, oy: 0, oz: 45.6, thetaDeg: 0 });
+    const first = feedLineOf(ctx.pathRot);
+    c.apply(ctx, GCODE, { ox: 1300, oy: -200, oz: -1400, thetaDeg: 0 });
+    const second = feedLineOf(ctx.pathRot);
+    expect(second).toBeDefined();
+    expect(second).not.toBe(first);
+    expect(first.parent).toBeNull();                       // old lines detached
+    expect(ctx.pathAnchor.position.toArray()).toEqual([1300, -200, -1400]);
+    // only NEW feed chunks (non-dashed, 3 points) remain under the anchor —
+    // the same number as after the first apply, none of them the old object
+    // (the highlight line shares feed's positions at renderOrder 12; rapid is dashed)
+    const feedChunks = (g: THREE.Group) => g.children.filter(o => (o as any).isLine && o.renderOrder === 10
+      && !((o as any).material instanceof THREE.LineDashedMaterial)
+      && (o as THREE.Line).geometry.getAttribute("position")?.count === 3);
+    const now = feedChunks(ctx.pathRot);
+    expect(now.length).toBeGreaterThan(0);
+    expect(now).not.toContain(first);
+    expect(now.every(o => o.parent === ctx.pathRot)).toBe(true);
+  });
+  it("switching from baked to raw moves the lines back under workRotGroup", () => {
+    const ctx = makeCtx();
+    c.apply(ctx, GCODE, { ox: 5, oy: 5, oz: 5, thetaDeg: 0 });
+    c.apply(ctx, GCODE, null);
+    expect(feedLineOf(ctx.pathRot)).toBeUndefined();
+    expect(feedLineOf(ctx.workRotGroup)).toBeDefined();
+  });
+});
+
+describe("chunked draw (2026-09-11 headroom wave)", () => {
+  // Overlays are the plain-yellow objects (2026-09-12: built from per-vertex
+  // outside flags, no clip planes); chunks are everything else at renderOrder 10.
+  const isOverlay = (o: THREE.Object3D) => (o as any).material?.color?.getHex?.() === 0xffcc00;
+  const chunksOf = (g: THREE.Group) => g.children.filter(o => (o as any).isLineSegments && o.renderOrder === 10
+    && !isOverlay(o)) as THREE.LineSegments[];
+  const overlaysOf = (g: THREE.Group) => g.children.filter(o => (o as any).isLineSegments && o.renderOrder === 10
+    && isOverlay(o)) as THREE.LineSegments[];
+  const lookAt = (x: number, y: number, z: number, from: [number, number, number]) => {
+    const cam = new THREE.PerspectiveCamera(50, 1, 0.1, 10000);
+    cam.position.set(...from);
+    cam.lookAt(x, y, z);
+    cam.updateMatrixWorld();
+    return cam;
+  };
+
+  it("splits each stream into chunks sharing one position attribute, each with its own sphere and draw range", () => {
+    const cc = createToolpathController({ ...(deps as any) });
+    const ctx = makeCtx();
+    cc.apply(ctx, GCODE);                 // feed: 2 segments → 2 chunks; rapid: 1 segment → 1 chunk
+    const chunks = chunksOf(ctx.workRotGroup);
+    expect(chunks).toHaveLength(3);
+    expect(cc.chunks).toBe(3);
+    expect(cc.drawSegs).toBe(3);
+    expect(cc.feedSegs).toBe(3);          // still VERTICES (trace-row compatibility)
+    const feedChunks = chunks.filter(o => !((o as any).material instanceof THREE.LineDashedMaterial));
+    expect(feedChunks).toHaveLength(2);
+    expect(feedChunks[0]!.geometry.attributes.position).toBe(feedChunks[1]!.geometry.attributes.position);
+    expect(feedChunks[0]!.geometry.index).toBe(feedChunks[1]!.geometry.index);
+    expect(feedChunks[0]!.geometry.drawRange).toEqual({ start: 0, count: 2 });
+    expect(feedChunks[1]!.geometry.drawRange).toEqual({ start: 2, count: 2 });
+    for (const ch of chunks) {
+      expect(ch.geometry.boundingSphere).not.toBeNull();
+      expect(ch.frustumCulled).toBe(true);
+    }
+    // the first feed chunk covers (0,0,0)-(10,0,0): centre x = 5, radius 5
+    expect(feedChunks[0]!.geometry.boundingSphere!.center.x).toBeCloseTo(5, 9);
+    expect(feedChunks[0]!.geometry.boundingSphere!.radius).toBeCloseTo(5, 9);
+    // one material per stream, shared by its chunks
+    expect(feedChunks[0]!.material).toBe(feedChunks[1]!.material);
+  });
+
+  it("a rebuild disposes every chunk and the highlight (registry teardown)", () => {
+    const cc = createToolpathController({ ...(deps as any) });
+    const ctx = makeCtx();
+    cc.apply(ctx, GCODE);
+    const spies = chunksOf(ctx.workRotGroup).map(o => vi.spyOn(o.geometry, "dispose"));
+    const before = ctx.workRotGroup.children.length;
+    cc.apply(ctx, GCODE);
+    for (const sp of spies) expect(sp).toHaveBeenCalled();
+    expect(ctx.workRotGroup.children.length).toBe(before);   // replaced, not accumulated
+    cc.dispose();
+    expect(chunksOf(ctx.workRotGroup)).toHaveLength(0);
+    expect(cc.chunks).toBe(0);
+  });
+
+  it("outside-limits overlays: per chunk, only the pairs touching a flagged vertex; none where nothing is flagged", () => {
+    const cc = createToolpathController({ ...(deps as any) });
+    // feed (0,0,0)-(2,0,0)-(2,2,0) → 2 chunks (one pair each); rapid (50,50,0)-(60,50,0) → 1 chunk
+    const g = {
+      feedPos: new Float32Array([0, 0, 0, 2, 0, 0, 2, 2, 0]),
+      rapidPos: new Float32Array([50, 50, 0, 60, 50, 0]),
+      feed_lines: [1, 2, 3],
+      bounds: { min: [0, 0, 0], max: [60, 50, 0] },
+      feedOutside: new Uint8Array([0, 0, 1]),   // only vertex 2 → only the pair (1,2)
+      rapidOutside: new Uint8Array([0, 0]),
+    } as any;
+    const ctx = makeCtx();
+    cc.apply(ctx, g);
+    const ovs = overlaysOf(ctx.workRotGroup);
+    expect(ovs).toHaveLength(1);
+    expect(ovs[0]!.geometry.drawRange.count).toBe(2);
+    expect(Array.from(ovs[0]!.geometry.index!.array).sort()).toEqual([1, 2]);
+    expect(ovs[0]!.geometry.attributes.position).toBe(chunksOf(ctx.workRotGroup)[0]!.geometry.attributes.position);
+    cc.updateCulling(ctx, lookAt(5, 5, 0, [5, 5, 100]));
+    expect(ovs[0]!.visible).toBe(true);
+    expect(cc.overlayChunks).toBe(1);
+    // a flag on vertex i means "the segment ENDING at i" — vertex 0 flags nothing
+    cc.apply(ctx, { ...g, feedOutside: new Uint8Array([1, 0, 0]), rapidOutside: new Uint8Array([0, 1]) });
+    expect(ovs[0]!.parent).toBeNull();                       // the old overlay object is gone
+    let ovs2 = overlaysOf(ctx.workRotGroup);
+    expect(ovs2).toHaveLength(1);                             // the rapid pair only
+    cc.apply(ctx, { ...g, feedOutside: new Uint8Array([0, 1, 0]), rapidOutside: new Uint8Array([1, 1]) });
+    ovs2 = overlaysOf(ctx.workRotGroup);
+    expect(ovs2).toHaveLength(2);                             // feed pair (0,1) + the rapid pair
+    cc.updateCulling(ctx, lookAt(5, 5, 0, [5, 5, 100]));
+    expect(cc.overlayChunks).toBe(2);
+    // the rapid overlay is solid LineBasic (no dashes) sharing the rapid vertices
+    const rapidOv = ovs2.find(o => o.geometry.boundingSphere!.center.x > 40)!;
+    expect(rapidOv.material).toBeInstanceOf(THREE.LineBasicMaterial);
+    expect(rapidOv.material).not.toBeInstanceOf(THREE.LineDashedMaterial);
+    // unchecked → nothing drawn
+    cc.apply(ctx, { ...g, feedOutside: undefined, rapidOutside: undefined });
+    expect(overlaysOf(ctx.workRotGroup)).toHaveLength(0);
+    // a length mismatch is dropped loudly, never misdrawn
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    cc.apply(ctx, { ...g, feedOutside: new Uint8Array([1, 1]), rapidOutside: undefined });
+    expect(overlaysOf(ctx.workRotGroup)).toHaveLength(0);
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it("a decimated level's chord is flagged when any vertex of its run (a, b] is", () => {
+    const cc = createToolpathController({ ...(deps as any) });
+    // straight 5-point feed; level 1 = the single pair (0,4); only vertex 2 flagged
+    const g = {
+      feedPos: new Float32Array([0, 0, 0, 1, 0, 0, 2, 0, 0, 3, 0, 0, 4, 0, 0]),
+      feed_lines: [1, 2, 3, 4, 5],
+      feedLod: [new Uint32Array([0, 4])],
+      lodTols: [0.01],
+      bounds: { min: [0, 0, 0], max: [4, 0, 0] },
+      feedOutside: new Uint8Array([0, 0, 1, 0, 0]),
+    } as any;
+    const ctx = makeCtx();
+    cc.apply(ctx, g);
+    const far = lookAt(2, 0, 0, [2, 0, 10000]);
+    cc.updateCulling(ctx, far, 1000);
+    expect(cc.lodMax).toBe(1);
+    const vis = overlaysOf(ctx.workRotGroup).filter(o => o.visible);
+    expect(vis).toHaveLength(1);
+    expect(Array.from(vis[0]!.geometry.index!.array)).toEqual([0, 4]);
+    expect(cc.overlayChunks).toBe(1);
+    // close up (level 0): only the pair ENDING at vertex 2
+    cc.updateCulling(ctx, lookAt(2, 0, 0, [2, 0, 5]), 1000);
+    expect(cc.lodMax).toBe(0);
+    const vis0 = overlaysOf(ctx.workRotGroup).filter(o => o.visible);
+    const pairs = vis0.flatMap(o => {
+      const a = o.geometry.index!.array; const r = o.geometry.drawRange;
+      const out: number[][] = [];
+      for (let q = r.start; q < r.start + r.count; q += 2) out.push([a[q]!, a[q + 1]!]);
+      return out;
+    }).sort((x, y) => x[0]! - y[0]!);
+    expect(pairs).toEqual([[1, 2]]);
+  });
+
+  it("setVisible(false) hides overlays too and setVisible(true) restores only the flagged ones", () => {
+    const cc = createToolpathController({ ...(deps as any) });
+    const g = {
+      feedPos: new Float32Array([0, 0, 0, 2, 0, 0]), feed_lines: [1, 2],
+      rapidPos: new Float32Array([50, 50, 0, 60, 50, 0]), bounds: { min: [0, 0, 0], max: [60, 50, 0] },
+      feedOutside: new Uint8Array([0, 0]), rapidOutside: new Uint8Array([1, 1]),
+    } as any;
+    const ctx = makeCtx();
+    cc.apply(ctx, g);
+    cc.updateCulling(ctx, lookAt(5, 5, 0, [5, 5, 100]));
+    cc.setVisible(false);
+    expect(overlaysOf(ctx.workRotGroup).every(o => !o.visible)).toBe(true);
+    expect(chunksOf(ctx.workRotGroup).every(o => !o.visible)).toBe(true);
+    cc.setVisible(true);
+    const ovs = overlaysOf(ctx.workRotGroup);
+    expect(ovs).toHaveLength(1);                                       // only the rapid pair is flagged
+    expect(ovs[0]!.geometry.boundingSphere!.center.x).toBeGreaterThan(40);
+    expect(ovs[0]!.visible).toBe(true);
+    expect(chunksOf(ctx.workRotGroup).every(o => o.visible)).toBe(true);
+  });
+
+  it("counts the chunks inside the camera frustum for the perf probe", () => {
+    const cc = createToolpathController({ ...(deps as any) });
+    const ctx = makeCtx();
+    cc.apply(ctx, GCODE);
+    cc.updateCulling(ctx, lookAt(5, 5, 0, [5, 5, 100]));
+    expect(cc.chunksVisible).toBe(3);
+    cc.updateCulling(ctx, lookAt(5000, 5000, 0, [5000, 5000, 10]));   // looking elsewhere
+    expect(cc.chunksVisible).toBe(0);
+  });
+});
+
+describe("room-fixed split (2026-09-11)", () => {
+  // Feed: A(0,0,0) B(10,0,0) | B'(10,0,0) C(10,10,0): B' is the part-frame
+  // worker's duplicated flip vertex (a break); vertices 0,1 room, 2,3 table.
+  const G = {
+    feedPos: new Float32Array([0, 0, 0, 10, 0, 0, 10, 0, 0, 10, 10, 0]),
+    feedBreaks: new Uint32Array([2]),
+    feedRoom: new Uint8Array([1, 1, 0, 0]),
+    feed_lines: [1, 1, 2, 2],
+    rapidPos: new Float32Array([0, 0, 5, 0, 0, 0]),
+    rapidRoom: new Uint8Array([1, 1]),
+    bounds: { min: [0, 0, 0], max: [10, 10, 0] },
+  } as any;
+  function roomCtx(over: Partial<ToolpathCtx> = {}) {
+    const roomOrigin = new THREE.Group(), roomRotGroup = new THREE.Group();
+    roomOrigin.add(roomRotGroup);
+    const roomAnchor = new THREE.Group(), roomRot = new THREE.Group();
+    roomAnchor.add(roomRot);
+    return makeCtx({ roomOrigin, roomRotGroup, roomAnchor, roomRot, ...over }) as ReturnType<typeof makeCtx> & {
+      roomOrigin: THREE.Group; roomRotGroup: THREE.Group; roomAnchor: THREE.Group; roomRot: THREE.Group };
+  }
+  const feedChunksOf = (g: THREE.Group) => g.children.filter(o => (o as any).isLineSegments && o.renderOrder === 10
+    && !((o as any).material instanceof THREE.LineDashedMaterial)) as THREE.LineSegments[];
+  const pairsOf = (l: THREE.LineSegments) => {
+    const idx = l.geometry.index!.array as Uint32Array;
+    const { start, count } = l.geometry.drawRange;
+    return Array.from(idx.subarray(start, start + count));
+  };
+
+  it("baked: room pairs hang under roomRot (posed with the same anchor), table pairs under pathRot", () => {
+    const ctx = roomCtx();
+    c.apply(ctx, G, { ox: 100, oy: 0, oz: 0, thetaDeg: 90 });
+    const room = feedChunksOf(ctx.roomRot);
+    const table = feedChunksOf(ctx.pathRot);
+    expect(room.flatMap(pairsOf).sort()).toEqual([0, 1]);
+    expect(table.flatMap(pairsOf).sort()).toEqual([2, 3]);
+    expect(room[0]!.geometry.attributes.position).toBe(table[0]!.geometry.attributes.position);
+    expect(ctx.roomAnchor.position.x).toBe(100);
+    expect(ctx.roomRot.rotation.z).toBeCloseTo(Math.PI / 2, 12);
+    expect(c.roomSegs).toBe(2);        // feed (0,1) + rapid (0,1)
+    expect(c.drawSegs).toBe(3);
+    expect(c.frameMixed).toBe(0);
+  });
+
+  it("programmed: room pairs hang under the live roomRotGroup, table pairs under workRotGroup", () => {
+    const ctx = roomCtx();
+    c.apply(ctx, G, null);
+    expect(feedChunksOf(ctx.roomRotGroup).flatMap(pairsOf).sort()).toEqual([0, 1]);
+    expect(feedChunksOf(ctx.workRotGroup).flatMap(pairsOf).sort()).toEqual([2, 3]);
+    expect(feedChunksOf(ctx.roomRot)).toHaveLength(0);
+  });
+
+  it("without room parents every pair rides the table (no work-chain rotary)", () => {
+    const ctx = makeCtx();
+    c.apply(ctx, G, null);
+    expect(feedChunksOf(ctx.workRotGroup).flatMap(pairsOf).sort()).toEqual([0, 1, 2, 3]);
+    expect(c.roomSegs).toBe(0);
+  });
+
+  it("a flip WITHOUT the duplicated break vertex is dropped and counted, never drawn across frames", () => {
+    const ctx = roomCtx();
+    c.apply(ctx, { ...G, feedBreaks: undefined }, null);
+    expect(c.frameMixed).toBe(1);
+    expect(feedChunksOf(ctx.roomRotGroup).flatMap(pairsOf).sort()).toEqual([0, 1]);
+    expect(feedChunksOf(ctx.workRotGroup).flatMap(pairsOf).sort()).toEqual([2, 3]);
+  });
+
+  it("the highlight lights each frame's pairs in its own object and never the flip connector", () => {
+    const ctx = roomCtx();
+    c.apply(ctx, G, null);
+    const hlRoom = ctx.roomRotGroup.children.find(o => o.renderOrder === 12) as THREE.LineSegments;
+    const hlTable = ctx.workRotGroup.children.find(o => o.renderOrder === 12) as THREE.LineSegments;
+    expect(hlRoom && hlTable).toBeTruthy();
+    c.setHighlight(2);                     // lights line 1 (previous-line rule) = vertices 0..1 → room pair (0,1)
+    expect(pairsOf(hlRoom)).toEqual([0, 1]);
+    expect(hlTable.geometry.drawRange.count).toBe(0);
+    c.setHighlight(3);                     // lights line 2 = vertices 2..3; the range reaches back to 1: (1,2) is a break → skipped
+    expect(hlRoom.geometry.drawRange.count).toBe(0);
+    expect(pairsOf(hlTable)).toEqual([2, 3]);
+    c.setHighlight(null);
+    expect(hlTable.geometry.drawRange.count).toBe(0);
+  });
+
+  it("an all-room program parents the bounds box under the room parent", () => {
+    const ctx = roomCtx();
+    c.apply(ctx, { ...G, feedRoom: new Uint8Array([1, 1, 1, 1]) }, null);
+    const box = (g: THREE.Group) => g.children.find(o => (o as any).isLineSegments && o.renderOrder !== 10 && o.renderOrder !== 12);
+    expect(box(ctx.roomRotGroup)).toBeTruthy();
+    expect(box(ctx.workRotGroup)).toBeUndefined();
+  });
+});
+
+describe("display LOD (2026-09-11)", () => {
+  // A straight 5-point feed: level 1 collapses it to the single pair (0,4).
+  const G = {
+    feedPos: new Float32Array([0, 0, 0, 1, 0, 0, 2, 0, 0, 3, 0, 0, 4, 0, 0]),
+    feed_lines: [1, 2, 3, 4, 5],
+    feedLod: [new Uint32Array([0, 4])],
+    lodTols: [0.01],
+    bounds: { min: [0, 0, 0], max: [4, 0, 0] },
+  } as any;
+  const cam = (dist: number) => {
+    const c = new THREE.PerspectiveCamera(50, 1, 0.1, 1e6);
+    c.position.set(2, 0, dist);
+    c.lookAt(2, 0, 0);
+    c.updateMatrixWorld();
+    return c;
+  };
+  const visibleFeed = (g: THREE.Group) => g.children.filter(o => (o as any).isLineSegments && o.renderOrder === 10 && o.visible) as THREE.LineSegments[];
+
+  it("far away the coarse level draws (one segment), close up level 0 (four), with hysteresis in between", () => {
+    const ctx = makeCtx();
+    c.apply(ctx, G);
+    expect(c.drawSegs).toBe(4);                           // level 0 until the first culling pass
+    c.updateCulling(ctx, cam(10000), 1000);               // ~9 units per pixel: tol 0.01 ≪ half a pixel
+    expect(c.lodMax).toBe(1);
+    expect(c.drawSegs).toBe(1);
+    const vis = visibleFeed(ctx.workRotGroup);
+    expect(vis).toHaveLength(1);
+    expect(vis[0]!.geometry.drawRange.count).toBe(2);
+    c.updateCulling(ctx, cam(5), 1000);                    // 0.005 units per pixel: 0.01 > half a pixel → level 0
+    expect(c.lodMax).toBe(0);
+    expect(c.drawSegs).toBe(4);
+    // hysteresis: at 0.5 px exactly the level stays where it is
+    c.updateCulling(ctx, cam(10000), 1000);
+    expect(c.lodMax).toBe(1);
+    const dHalf = 0.01 / (0.5 * 2 * Math.tan(THREE.MathUtils.degToRad(25)) / 1000);   // distance where tol == 0.5 px
+    c.updateCulling(ctx, cam(dHalf * 0.9), 1000);         // just under the up-threshold but within the 1.25 band → keep level 1
+    expect(c.lodMax).toBe(1);
+    c.updateCulling(ctx, cam(dHalf * 0.5), 1000);         // well inside → back to level 0
+    expect(c.lodMax).toBe(0);
+  });
+
+  it("every level's geometry is disposed on rebuild and the highlight stays at level 0", () => {
+    const ctx = makeCtx();
+    c.apply(ctx, G);
+    const all = ctx.workRotGroup.children.filter(o => (o as any).isLineSegments && o.renderOrder === 10) as THREE.LineSegments[];
+    expect(all.length).toBeGreaterThan(c.chunks);          // level-1 objects exist (invisible) beside level 0
+    const spies = all.map(o => vi.spyOn(o.geometry, "dispose"));
+    c.updateCulling(ctx, cam(10000), 1000);
+    c.setHighlight(3);                                     // lights line 2 = vertex 1 → pair (0,1) in the full-resolution buffer
+    const hl = ctx.workRotGroup.children.find(o => o.renderOrder === 12) as THREE.LineSegments;
+    expect(Array.from((hl.geometry.index!.array as Uint32Array).subarray(0, 2))).toEqual([0, 1]);
+    c.apply(ctx, G);
+    for (const sp of spies) expect(sp).toHaveBeenCalled();
+  });
+
+  it("a level pair spanning a room/table flip is dropped and counted (programmed-path guard)", () => {
+    const roomOrigin = new THREE.Group(), roomRotGroup = new THREE.Group(); roomOrigin.add(roomRotGroup);
+    const roomAnchor = new THREE.Group(), roomRot = new THREE.Group(); roomAnchor.add(roomRot);
+    const ctx = makeCtx({ roomOrigin, roomRotGroup, roomAnchor, roomRot });
+    c.apply(ctx, { ...G, feedRoom: new Uint8Array([1, 1, 0, 0, 0]), feedBreaks: new Uint32Array([2]) });
+    expect(c.frameMixed).toBe(1);                          // the (0,4) level pair crosses the flip
+    c.updateCulling(ctx, cam(10000), 1000);
+    expect(c.drawSegs).toBe(0);                            // nothing at level 1 in either frame… 
+    c.updateCulling(ctx, cam(5), 1000);
+    expect(c.drawSegs).toBe(3);                            // …level 0 draws (0,1) room + (2,3),(3,4) table
   });
 });

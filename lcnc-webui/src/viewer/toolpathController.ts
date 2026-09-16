@@ -1,18 +1,27 @@
 // Toolpath controller (frontend split, A3.4 — extracted from ThreeViewer.vue).
 //
 // The largest controller: owns the rendered program preview — feed + rapid
-// polylines (geometry shared with the clipped "overflow" overlay), the
-// highlight line (shares feed's position attribute, independent drawRange), the
-// toolpath bounding box + axis labels + out-of-bounds edges, the source-line→
-// point-range map, and the machine-bounds overflow check.
+// polylines drawn as CHUNKS (viewer/lineChunks.ts: a few dozen contiguous
+// index ranges over ONE shared position attribute, each its own object with an
+// explicit bounding sphere so frustum culling and display LOD work per
+// chunk; the outside-limits overlay is a per-chunk index SUBSET of the pairs
+// touching a vertex the producing worker flagged beyond a joint limit —
+// joint-side, TLO-inclusive, no clip planes), the highlight line (shares
+// feed's position attribute,
+// independent drawRange), the toolpath bounding box + axis labels + out-of-
+// bounds edges, the source-line→point-range map, and the machine-bounds
+// overflow check.
 //
 // Factory deps are STABLE references (created once, mutated in place): the two
 // clip-plane arrays (transformed per-frame by the orchestrator), the billboard-
 // label registry, the troika label factory, the live colour getter, the
 // disposeObject helper, and the overflow ref the HUD reads. Per-call ToolpathCtx
 // carries the REASSIGNED scene-graph pointers (scene/workOrigin/workRotGroup)
-// plus per-program data (pathAlwaysOnTop/machineBounds/units) — never cached.
+// plus per-program data (pathAlwaysOnTop/units) — never cached.
 import * as THREE from "three";
+import { buildLineIndex, emptyLineIndex, lineHas, lineRange, type LineIndex } from "./lineIndex";
+import { binPairs, buildFrameIndex, CHUNK_MAX, chunkBounds, chunkGrid, cumulativeDistances, splitPairsByFrame, unionBounds } from "./lineChunks";
+import type { AnchorTerms } from "./partFrame";
 import type { Ref } from "vue";
 import type { Text } from "troika-three-text";
 import type { ViewerGcode } from "../lcncWs";
@@ -29,21 +38,61 @@ export interface ToolpathDeps {
   makeLabel: (text: string, color: string, fontSize: number) => Text;
   disposeObject: (o: THREE.Object3D) => void;
   colors: () => Colors;              // reads viewerDefaults.colors fresh each call
+  /** How much of the path colour survives the stale mute (the
+   *  --opacity-disabled token, read by the host). Applied as an OPAQUE colour
+   *  mix toward `sceneBackground`, never as alpha: a million blended
+   *  segments held the Mac's GPU three frames behind during every re-parse
+   *  (viewerPerf, 2026-09-09) while the same lines opaque ran at 60 fps. */
+  staleOpacity?: () => number;
+  /** The scene's background and foreground (theme `--bg` / `--fg`): the
+   *  stale grey is the background lifted toward the foreground by
+   *  `staleOpacity` — one neutral grey for every stale stream, on every
+   *  theme (operator, 2026-09-12: "make it a real grey", not a dim cyan). */
+  sceneBackground: () => THREE.Color;
+  sceneForeground: () => THREE.Color;
   axisCss: { x: string; y: string; z: string };
   overflow: Ref<boolean>;            // HUD warning flag, owned by ThreeViewer for the template
+  /** The validator's violation count behind the flag (the HUD chip shows it). */
+  overflowCount?: Ref<number>;
+  /** Spatial grid cells (≈ chunks) per stream — lineChunks.spatialChunks. */
+  chunkCells?: number;
 }
 
 export interface ToolpathCtx {
   scene: THREE.Scene | null;
   workOrigin: THREE.Group | null;
   workRotGroup: THREE.Group | null;
+  /** Baked-toolpath anchor (sibling of workOrigin under the work group):
+   *  posed ONLY by apply(), from the terms the geometry was baked with, so
+   *  the lines and their origin can never disagree for a frame. */
+  pathAnchor: THREE.Group | null;
+  /** XY-rotation child of pathAnchor — the lines' actual parent. */
+  pathRot: THREE.Group | null;
+  /** Room-fixed parents (2026-09-11), one-to-one with the table side:
+   *  roomOrigin/roomRotGroup follow the LIVE offsets (programmed path),
+   *  roomAnchor/roomRot are posed by apply() from a bake's own terms. All
+   *  null when the work chain has no rotary — then every vertex rides. */
+  roomOrigin: THREE.Group | null;
+  roomRotGroup: THREE.Group | null;
+  roomAnchor: THREE.Group | null;
+  roomRot: THREE.Group | null;
   pathAlwaysOnTop: boolean;
-  machineBounds: { origin: Vec3; size: Vec3 } | undefined;
   units: string | undefined;
 }
 
 export interface ToolpathController {
-  apply(ctx: ToolpathCtx, g: ViewerGcode): void;
+  /** `anchor` = the WCS terms the vertices in `g` were baked against
+   *  (part-frame output, or a programmed multi-epoch rebase): the lines are
+   *  parented under ctx.pathRot and pathAnchor/pathRot are posed from it in
+   *  the same call. null = raw program coordinates (no bake): the lines hang
+   *  under the LIVE workRotGroup, whose re-add IS the transform. */
+  apply(ctx: ToolpathCtx, g: ViewerGcode, anchor?: AnchorTerms | null): void;
+  /** Per rendered frame: picks each chunk's display LOD level from the
+   *  world size of a device pixel at its distance (`heightPx` =
+   *  drawing-buffer height; a level switch flips visibility) and counts the
+   *  chunks inside the camera frustum for the perf probe. ~100 sphere
+   *  tests; cheaper than tracking dirtiness. */
+  updateCulling(ctx: ToolpathCtx, camera: THREE.Camera, heightPx?: number): void;
   setHighlight(curLine: number | null): void;
   /** Positional highlight (review P3): light the drawn-feed vertices whose
    *  source TRACK index falls in [start, end] — line numbers cannot address
@@ -55,27 +104,112 @@ export interface ToolpathController {
   setAlwaysOnTop(on: boolean): void;
   /** Live-update feed/rapid/toolpath-bounds colours on existing lines. */
   setColors(c: { feed?: string; rapid?: string; toolpathBounds?: string }): void;
+  /** Mute the drawn path while it is known not to match the machine's
+   *  live inputs — a re-parse in flight, or offsets / tool length changed
+   *  since the parse. Sticky across apply(). Every stream turns the one
+   *  stale grey (rapids keep their dashes) and the outside-bounds overlays
+   *  are hidden — the bounds verdict is as stale as the path. Opaque colour
+   *  writes only — never alpha (GPU cost, see ToolpathDeps.staleOpacity);
+   *  call again after a theme change. */
+  setStale(on: boolean): void;
   /** Drop all refs WITHOUT disposing — clearScene already freed the objects.
    *  Parallel to surfaceController.forgetAfterSceneClear (H6): stale refs
    *  would keep feedSegs/updateOverflow reporting the disposed program and
    *  double-dispose on the next apply(). Call from ensureCoreGroups. */
   forgetAfterSceneClear(): void;
   dispose(): void;
+  /** Vertex counts of the drawn streams (the probe's `feed_segs`/`rapid_segs`
+   *  rows — kept as vertices so the trace history stays comparable). */
   readonly feedSegs: number;
   readonly rapidSegs: number;
+  /** Segments actually submitted at the current draw ranges (both streams). */
+  readonly drawSegs: number;
+  readonly chunks: number;
+  /** From the last updateCulling: chunks inside the frustum / overlays drawn. */
+  readonly chunksVisible: number;
+  readonly overlayChunks: number;
+  /** Segments dropped because their endpoints lie in different frames —
+   *  must read 0 (see lineChunks.FrameIndex.mixed). */
+  readonly frameMixed: number;
+  /** Segments drawn room-fixed (both streams). */
+  readonly roomSegs: number;
+  /** Display LOD: the finest/coarsest level any chunk currently draws, and
+   *  the worker time the levels cost (ms). */
+  readonly lodMin: number;
+  readonly lodMax: number;
+  readonly lodMs: number;
+}
+
+/** The scrub/line highlight, one per frame present: an indexed LineSegments
+ *  over the feed position attribute with its OWN small index buffer, filled
+ *  per highlight with the pairs of the lit vertex range that belong to this
+ *  frame (a strip drawRange would draw a connector across a frame flip, and
+ *  the spatially binned draw index is not in vertex order). */
+interface Highlight { frame: 0 | 1; line: THREE.LineSegments; idx: Uint32Array; attr: THREE.BufferAttribute }
+const HL_CAP = 1 << 15;   // pairs per highlight (a line run is far smaller; beyond it the cue truncates)
+
+/** One drawn stream in one frame: its chunks (objects sharing the stream's
+ *  position attribute + this set's index attribute), materials, and the
+ *  per-chunk local boxes the overlay gate tests. */
+/** One chunk (a grid cell) of a set: one geometry PER LOD LEVEL sharing the
+ *  stream's position attribute and that level's index attribute, only the
+ *  current level's objects visible — a level switch is a visibility flip
+ *  (no VAO rebind), and disposing every level's geometry frees every index
+ *  buffer (a swapped-out index attribute would otherwise leak its GL
+ *  buffer: Three only deletes a geometry's CURRENT index on dispose). */
+interface Chunk {
+  lines: THREE.LineSegments[];             // per level
+  overlays: (THREE.LineSegments | null)[]; // per level — null where nothing is flagged
+  counts: number[];                        // index entries per level (0 = nothing at that level)
+  ovCounts: number[];                      // flagged index entries per level
+  level: number;
+}
+
+interface LineSet {
+  stream: "feed" | "rapid";
+  frame: 0 | 1;
+  parent: THREE.Group;
+  mat: THREE.LineBasicMaterial | THREE.LineDashedMaterial;
+  overMat: THREE.LineBasicMaterial | null;  // built with the overlays (buildOverlays)
+  bounds: Float32Array;                  // 6 per chunk (union over levels), parent-local coordinates
+  tols: number[];                        // tolerance of level k ≥ 1 (machine units)
+  chunks: Chunk[];
+  posAttr: THREE.BufferAttribute;        // the shared vertices (overlays rebuild from them)
+  levels: ReturnType<typeof binPairs>[]; // binned pairs per level, chunk order (level 0 first)
+  used: number[];                        // grid cell of each chunk
+  pairs: number;                         // level-0 segments
+}
+
+/** A level is used when its tolerance is under this many pixels (device
+ *  px) at the chunk's nearest point; stepping back to a finer level waits
+ *  until the current level's tolerance exceeds LOD_PX × LOD_HYST. */
+const LOD_PX = 0.5;
+const LOD_HYST = 1.25;
+
+const _sph = new THREE.Sphere();
+const _camPos = new THREE.Vector3();
+const _frustum = new THREE.Frustum();
+const _projView = new THREE.Matrix4();
+const _camInv = new THREE.Matrix4();
+
+function sphereOfBox(b: Float32Array, o: number): THREE.Sphere {
+  if (b[o]! > b[o + 3]!) return new THREE.Sphere(new THREE.Vector3(), 0);
+  const cx = (b[o]! + b[o + 3]!) / 2, cy = (b[o + 1]! + b[o + 4]!) / 2, cz = (b[o + 2]! + b[o + 5]!) / 2;
+  const dx = b[o + 3]! - cx, dy = b[o + 4]! - cy, dz = b[o + 5]! - cz;
+  return new THREE.Sphere(new THREE.Vector3(cx, cy, cz), Math.sqrt(dx * dx + dy * dy + dz * dz));
 }
 
 export function createToolpathController(deps: ToolpathDeps): ToolpathController {
-  let feedLine: THREE.Line | null = null;
-  let rapidLine: THREE.Line | null = null;
-  let feedOverflow: THREE.Line | null = null;
-  let rapidOverflow: THREE.Line | null = null;
-  let highlightLine: THREE.Line | null = null;
-  let feedSharedGeom: THREE.BufferGeometry | null = null;
-  let rapidSharedGeom: THREE.BufferGeometry | null = null;
-  let highlightGeom: THREE.BufferGeometry | null = null;
+  let sets: LineSet[] = [];
+  let feedPosAttr: THREE.BufferAttribute | null = null;
+  let rapidPosAttr: THREE.BufferAttribute | null = null;
+  let highlights: Highlight[] = [];
+  // Per feed vertex (drawn order): opens a section / draws room-fixed —
+  // the highlight's pair filter.
+  let feedIsBreak: Uint8Array | null = null;
+  let feedRoomMask: Uint8Array | null = null;
   // g-code line number → { start, end } point-index range in feed arrays
-  let feedLineMap: Map<number, { start: number; end: number }> = new Map();
+  let feedLineIndex: LineIndex = emptyLineIndex();
   // Source track index per drawn feed vertex (ascending) — the positional
   // highlight's address space. Absent on legacy/track-less payloads.
   let feedSrc: Uint32Array | null = null;
@@ -91,120 +225,180 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
   let toolpathVisible = true;
   let toolpathBoundsVisible = false;
   let pathAlwaysOnTop = true;
+  let pathStale = false;
+  let _chunksVisible = 0;
+  let _overlayChunks = 0;
+  let _frameMixed = 0;
+  let _lodMin = 0;
+  let _lodMax = 0;
+  let _lodMs = 0;
+  // The lines' own colours (deps.colors at apply/setColors time). The drawn
+  // material colour is ONE writer's output: these, or their mix toward the
+  // background while stale.
+  const _feedBase = new THREE.Color();
+  const _rapidBase = new THREE.Color();
+  const _grey = new THREE.Color();
 
-  function makeLine(points: number[][] | Float32Array, colorHex: number | string, dashed = false, opacity = 1.0, lineDist?: Float32Array, breaks?: Uint32Array) {
-    const geom = new THREE.BufferGeometry();
-    // This geometry is reused by the overflow line (same object) and its position
-    // attribute by the highlight line — but it is PER-PROGRAM, not externally
-    // owned: apply() disposes it on program change, and disposeObject frees it
-    // on scene teardown. So it is deliberately NOT marked userData._shared (that
-    // flag is only for the STL cache + MAT.*, which must survive a rebuild).
-    // Prefer the flat Float32Array produced off-thread by previewWorker (P4.1);
-    // fall back to flattening nested points (WS path / older payloads).
-    const flat = points instanceof Float32Array ? points : new Float32Array(points.flat());
-    geom.setAttribute("position", new THREE.BufferAttribute(flat, 3));
-
-    // Sectioned stream (track-derived): `breaks` lists section-START vertex
-    // indices — no segment may be drawn into them (the connector would be a
-    // FALSE move skipping the other stream's motion, e.g. a feed drawn from
-    // the pre-G0-lift position). An index buffer of real segment pairs +
-    // LineSegments renders exactly the true segments; strip rendering stays
-    // for break-less (legacy) data.
-    if (breaks && breaks.length) {
-      const n = flat.length / 3;
-      const isBreak = new Uint8Array(n);
-      for (const b of breaks) if (b < n) isBreak[b] = 1;
-      const idx = new Uint32Array(Math.max(0, n - 1) * 2);
-      let w = 0;
-      for (let i = 1; i < n; i++) {
-        if (isBreak[i]) continue;
-        idx[w++] = i - 1; idx[w++] = i;
-      }
-      geom.setIndex(new THREE.BufferAttribute(idx.subarray(0, w).slice(), 1));
-    }
-
-    // Important: stable bounds so Three doesn't cull it incorrectly
-    geom.computeBoundingSphere();
-
-    let mat: THREE.LineBasicMaterial | THREE.LineDashedMaterial;
-
-    if (dashed) {
-      mat = new THREE.LineDashedMaterial({
-        color: colorHex,
-        dashSize: 10,
-        gapSize: 6,
-        transparent: opacity < 1,
-        opacity,
-      });
-      mat.depthTest = !pathAlwaysOnTop;
-      mat.depthWrite = false;
+  function _applyStale() {
+    const keep = pathStale ? (deps.staleOpacity ? deps.staleOpacity() : 0.4) : 1.0;
+    if (keep < 1) {
+      // ONE neutral grey for everything stale: the background lifted toward
+      // the foreground by the disabled-opacity token — reads as grey on every
+      // theme instead of "a dim version of the path's own colour".
+      _grey.copy(deps.sceneBackground()).lerp(deps.sceneForeground(), keep);
+      for (const s of sets) s.mat.color.copy(_grey);
     } else {
-      mat = new THREE.LineBasicMaterial({ color: colorHex, transparent: opacity < 1, opacity });
-      mat.depthTest = !pathAlwaysOnTop;
-      mat.depthWrite = false;
+      for (const s of sets) s.mat.color.copy(s.stream === "feed" ? _feedBase : _rapidBase);
     }
-
-    // Indexed geometry = segment pairs → LineSegments; plain strip → Line.
-    const line = geom.index ? new THREE.LineSegments(geom, mat) : new THREE.Line(geom, mat);
-    line.renderOrder = 10;
-
-    // Bounding sphere is computed above; parent (workRotGroup) transforms apply
-    // to it via matrixWorld at cull time, so workOrigin/WCS-rotation changes
-    // don't require recomputation. Culling skips draw work when zoomed in.
-    line.frustumCulled = true;
-
-    if (dashed) {
-      if (lineDist) {
-        // Worker-precomputed (P4.1) — set the attribute directly instead of scanning
-        // every point on the main thread. The overflow line shares this geometry, so
-        // it reuses the attribute too (see makeOverflowLine).
-        geom.setAttribute("lineDistance", new THREE.Float32BufferAttribute(lineDist, 1));
-      } else {
-        (line as any).computeLineDistances?.();
-      }
-    }
-    return line;
   }
 
-  /** Yellow dashed overlay sharing geometry with a toolpath line, clipped to show only outside machine bounds. */
-  function makeOverflowLine(geom: THREE.BufferGeometry): THREE.Line | null {
-    if (deps.boundsClipPlanes.length === 0) return null;
-    const mat = new THREE.LineDashedMaterial({
-      color: 0xffcc00,
-      dashSize: 3,
-      gapSize: 2,
-      transparent: true,
-      opacity: 0.9,
-      depthTest: !pathAlwaysOnTop,
-      depthWrite: false,
-      clipIntersection: true,
-      clippingPlanes: deps.boundsClipPlanes,
-    });
-    // Mirror the owner's object type: an indexed (sectioned) geometry rendered
-    // as a strip would re-draw the false connectors this geometry exists to skip.
-    const line = geom.index ? new THREE.LineSegments(geom, mat) : new THREE.Line(geom, mat);
-    line.renderOrder = 10;
-    line.frustumCulled = true;
-    // Idempotent: rapid channel already has lineDistance from rapidLine; feed channel doesn't.
-    if (!geom.attributes.lineDistance) {
-      if (geom.index) {
-        // Three's computeLineDistances refuses indexed geometry — build the
-        // vertex-cumulative distances directly (dash phase across skipped
-        // section gaps is irrelevant; only per-segment deltas matter).
-        const p = geom.attributes.position!.array as Float32Array;
-        const n = p.length / 3;
-        const d = new Float32Array(n);
-        for (let i = 1; i < n; i++) {
-          const j = i * 3, k = j - 3;
-          const dx = p[j]! - p[k]!, dy = p[j + 1]! - p[k + 1]!, dz = p[j + 2]! - p[k + 2]!;
-          d[i] = d[i - 1]! + Math.sqrt(dx * dx + dy * dy + dz * dz);
+  /** Build one stream-in-frame set: chunk objects over the shared position
+   *  attribute. `index` lists the real segment pairs (viewer/lineChunks.ts
+   *  buildFrameIndex — section breaks are already index-skipped: the
+   *  connector into a section start would be a FALSE move skipping the other
+   *  stream's motion). Each chunk's geometry is PER-PROGRAM, not externally
+   *  owned: apply() disposes it on program change, and disposeObject frees it
+   *  on scene teardown — so it is deliberately NOT marked userData._shared
+   *  (that flag is only for the STL cache + MAT.*, which survive a rebuild).
+   *  Disposing one chunk releases the shared GL buffers; the sibling chunks
+   *  go in the same pass, so nothing dangles. */
+  function makeSet(
+    stream: "feed" | "rapid", frame: 0 | 1, parent: THREE.Group,
+    posAttr: THREE.BufferAttribute, index0: Uint32Array, lod: Uint32Array[], tols: number[],
+    colorHex: string, dashed: boolean, distAttr: THREE.BufferAttribute | null,
+    outside: Uint8Array | null,
+  ): LineSet | null {
+    if (index0.length < 2) return null;
+    let mat: THREE.LineBasicMaterial | THREE.LineDashedMaterial;
+    if (dashed) {
+      mat = new THREE.LineDashedMaterial({ color: colorHex, dashSize: 10, gapSize: 6 });
+    } else {
+      mat = new THREE.LineBasicMaterial({ color: colorHex });
+    }
+    mat.depthTest = !pathAlwaysOnTop;
+    mat.depthWrite = false;
+    // Dashed rapids need a per-vertex distance; the worker precomputes it
+    // (P4.1), the legacy/WS path gets it here (indexed geometry cannot use
+    // Three's computeLineDistances).
+    if (dashed && !distAttr) distAttr = new THREE.Float32BufferAttribute(cumulativeDistances(posAttr.array as Float32Array), 1);
+    const pos = posAttr.array as Float32Array;
+    // One grid from the level-0 pairs, every level binned into it (the index
+    // buffers are permuted, the vertex order is not) so chunk c is the same
+    // cell at every level; a cell used at any level becomes a chunk.
+    const grid = chunkGrid(index0, pos, deps.chunkCells ?? CHUNK_MAX);
+    const levels = [index0, ...lod.slice(0, tols.length)].map(l => binPairs(l, pos, grid));
+    const attrs = levels.map(b => new THREE.BufferAttribute(b.index, 1));
+    const used: number[] = [];
+    for (let c = 0; c < grid.cells; c++) if (levels.some(b => b.plan[c]!.count > 0)) used.push(c);
+    const bounds = new Float32Array(used.length * 6);
+    bounds.fill(Infinity); for (let c = 0; c < used.length; c++) bounds.fill(-Infinity, c * 6 + 3, c * 6 + 6);
+    for (const b of levels) {
+      const bl = chunkBounds(b.index, pos, used.map(c => b.plan[c]!));
+      for (let c = 0; c < used.length; c++) {
+        if (bl[c * 6]! > bl[c * 6 + 3]!) continue;
+        for (let k = 0; k < 3; k++) {
+          if (bl[c * 6 + k]! < bounds[c * 6 + k]!) bounds[c * 6 + k] = bl[c * 6 + k]!;
+          if (bl[c * 6 + 3 + k]! > bounds[c * 6 + 3 + k]!) bounds[c * 6 + 3 + k] = bl[c * 6 + 3 + k]!;
         }
-        geom.setAttribute("lineDistance", new THREE.Float32BufferAttribute(d, 1));
-      } else {
-        line.computeLineDistances();
       }
     }
-    return line;
+    const set: LineSet = {
+      stream, frame, parent, mat, overMat: null, bounds, tols: tols.slice(0, levels.length - 1),
+      chunks: [], posAttr, levels, used, pairs: index0.length >> 1,
+    };
+    for (let ci = 0; ci < used.length; ci++) {
+      const cell = used[ci]!;
+      const chunk: Chunk = { lines: [], overlays: [], counts: [], ovCounts: [], level: 0 };
+      for (let k = 0; k < levels.length; k++) {
+        const range = levels[k]!.plan[cell]!;
+        const geom = new THREE.BufferGeometry();
+        geom.setAttribute("position", posAttr);
+        if (dashed) geom.setAttribute("lineDistance", distAttr!);
+        geom.setIndex(attrs[k]!);
+        geom.setDrawRange(range.start, range.count);
+        // Explicit sphere: a null one makes Three compute it over the WHOLE
+        // shared attribute — every chunk would then carry the full program's
+        // sphere and culling could never fire.
+        geom.boundingSphere = sphereOfBox(bounds, ci * 6);
+        const line = new THREE.LineSegments(geom, mat);
+        line.renderOrder = 10;
+        line.frustumCulled = true;
+        line.visible = toolpathVisible && k === 0 && range.count > 0;
+        parent.add(line);
+        chunk.lines.push(line);
+        chunk.overlays.push(null);
+        chunk.ovCounts.push(0);
+        chunk.counts.push(range.count);
+      }
+      set.chunks.push(chunk);
+    }
+    buildOverlays(set, outside);
+    return set;
+  }
+
+  /** Outside-limits overlays (2026-09-12): per chunk and LOD level, the
+   *  index pairs whose run ends at or passes a flagged vertex — a flag on
+   *  vertex i means "the segment ending at i had a joint outside" (the
+   *  gateway validator's verdict, the one source the marks and the count
+   *  share), so a level-k pair (a, b) standing for the run a..b is flagged
+   *  when any vertex in (a, b] is (prefix sum), and a decimated chord over
+   *  an excursion stays yellow. Plain yellow, opaque, its own index buffer
+   *  per level sharing the chunk's vertices; no clip planes, no box gate,
+   *  nothing derived from tip geometry (the drawn path is the TOOL TIP,
+   *  the limits bound the JOINTS). null = unchecked: nothing drawn. */
+  function buildOverlays(s: LineSet, outside: Uint8Array | null) {
+    for (const ch of s.chunks) {
+      for (const o of ch.overlays) {
+        if (!o) continue;
+        o.parent?.remove(o);
+        o.geometry.dispose();
+      }
+      ch.overlays = ch.lines.map(() => null);
+      ch.ovCounts = ch.lines.map(() => 0);
+    }
+    s.overMat?.dispose();
+    s.overMat = null;
+    const nV = s.posAttr.count;
+    if (!outside || outside.length !== nV) return;
+    const pre = new Uint32Array(nV + 1);
+    for (let i = 0; i < nV; i++) pre[i + 1] = pre[i]! + (outside[i] ? 1 : 0);
+    if (pre[nV] === 0) return;
+    s.overMat = new THREE.LineBasicMaterial({ color: 0xffcc00, depthTest: !pathAlwaysOnTop, depthWrite: false });
+    const nC = s.used.length;
+    const starts = new Uint32Array(nC), counts = new Uint32Array(nC);
+    for (let k = 0; k < s.levels.length; k++) {
+      const { index, plan } = s.levels[k]!;
+      const flagged = new Uint32Array(index.length);
+      let w = 0;
+      for (let ci = 0; ci < nC; ci++) {
+        const r = plan[s.used[ci]!]!;
+        starts[ci] = w;
+        for (let q = r.start; q < r.start + r.count; q += 2) {
+          const a = index[q]!, b = index[q + 1]!;
+          const lo = a < b ? a : b, hi = a < b ? b : a;
+          if (pre[hi + 1]! - pre[lo + 1]! > 0) { flagged[w++] = a; flagged[w++] = b; }
+        }
+        counts[ci] = w - starts[ci]!;
+      }
+      if (w === 0) continue;
+      const attr = new THREE.BufferAttribute(flagged.slice(0, w), 1);
+      for (let ci = 0; ci < nC; ci++) {
+        if (counts[ci] === 0) continue;
+        const ch = s.chunks[ci]!;
+        const geom = new THREE.BufferGeometry();
+        geom.setAttribute("position", s.posAttr);
+        geom.setIndex(attr);
+        geom.setDrawRange(starts[ci]!, counts[ci]!);
+        geom.boundingSphere = sphereOfBox(s.bounds, ci * 6);
+        const ov = new THREE.LineSegments(geom, s.overMat);
+        ov.renderOrder = 10;
+        ov.frustumCulled = true;
+        ov.visible = false;
+        s.parent.add(ov);
+        ch.overlays[k] = ov;
+        ch.ovCounts[k] = counts[ci]!;
+      }
+    }
   }
 
   function rebuildOverflowEdges(size: Vec3, offset: Vec3): THREE.LineSegments | null {
@@ -228,18 +422,38 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     return lines;
   }
 
-  /** Detach + free the five toolpath lines. deps.disposeObject frees private
-   *  geometry AND materials (A2); the shared feed/rapid/highlight geoms are
-   *  deliberately not _shared, so one pass releases everything (a second
-   *  visit via the geometry-sharing overflow lines is idempotent). */
+  // Parent of the current program's lines + bounds (baked anchor or the
+  // live workRotGroup) — set by apply(), read by rebuildToolpathBounds.
+  let _lineParent: THREE.Group | null = null;
+
+  /** Detach + free every chunk object and the highlight. Chunk geometries
+   *  are private per program (disposing one releases the shared GL buffers;
+   *  its siblings go in the same pass), the two materials of a set are
+   *  disposed ONCE per set — not once per chunk through deps.disposeObject,
+   *  which would re-dispose a shared material per object (idempotent in
+   *  Three, but a wrong shape for the disposal contract tests). */
   function teardownLines() {
-    for (const old of [feedLine, rapidLine, feedOverflow, rapidOverflow, highlightLine]) {
-      if (!old) continue;
-      old.parent?.remove(old);
-      deps.disposeObject(old);
+    for (const s of sets) {
+      for (const ch of s.chunks) {
+        for (const o of [...ch.lines, ...ch.overlays]) {
+          if (!o) continue;
+          o.parent?.remove(o);
+          o.geometry.dispose();
+        }
+      }
+      s.mat.dispose();
+      s.overMat?.dispose();
     }
-    feedLine = rapidLine = feedOverflow = rapidOverflow = highlightLine = null;
-    feedSharedGeom = rapidSharedGeom = highlightGeom = null;
+    for (const h of highlights) {
+      h.line.parent?.remove(h.line);
+      h.line.geometry.dispose();
+      (h.line.material as THREE.Material).dispose();
+    }
+    sets = [];
+    highlights = [];
+    feedIsBreak = feedRoomMask = null;
+    feedPosAttr = rapidPosAttr = null;
+    _chunksVisible = _overlayChunks = _frameMixed = 0;
   }
 
   /** Detach + free the bounds box, its labels, and the overflow edges.
@@ -269,7 +483,10 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
   }
 
   function rebuildToolpathBounds(ctx: ToolpathCtx) {
-    const workRotGroup = ctx.workRotGroup;
+    // The bounds box is in the SAME coordinates as the drawn vertices, so
+    // it hangs under the same parent (the baked anchor when there is one;
+    // the room parent when EVERY drawn segment is room-fixed).
+    const workRotGroup = _lineParent ?? ctx.workRotGroup;
     teardownBounds();
     if (!toolpathBBox || !workRotGroup) return;
 
@@ -341,14 +558,97 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
   // limits) = unchecked, and the stats dialog already says "Not
   // validated" — the HUD must not claim either way.
   function updateOverflowFromValidator(g: ViewerGcode) {
-    deps.overflow.value = (g.violations_total ?? 0) > 0;
+    const n = typeof g.violations_total === "number" && g.violations_total > 0 ? g.violations_total : 0;
+    deps.overflow.value = n > 0;
+    if (deps.overflowCount) deps.overflowCount.value = n;
+  }
+
+  /** Only the chunk's current level draws; the overlay of that level only
+   *  where it has flagged pairs, and never while the path is stale (its
+   *  limits verdict is stale too). */
+  function _chunkVis(s: LineSet, ci: number) {
+    const ch = s.chunks[ci]!;
+    for (let k = 0; k < ch.lines.length; k++) {
+      const on = toolpathVisible && k === ch.level && ch.counts[k]! > 0;
+      ch.lines[k]!.visible = on;
+      const ov = ch.overlays[k];
+      if (ov) ov.visible = on && !pathStale && (ch.ovCounts[k] ?? 0) > 0;
+    }
+  }
+
+  function _applyVisibility() {
+    for (const s of sets) for (let ci = 0; ci < s.chunks.length; ci++) _chunkVis(s, ci);
+    for (const h of highlights) h.line.visible = toolpathVisible;
+  }
+
+  function makeHighlight(frame: 0 | 1, parent: THREE.Group, posAttr: THREE.BufferAttribute, bounds: Float32Array): Highlight {
+    const geom = new THREE.BufferGeometry();
+    // Per-program (not externally owned): disposed by teardownLines.
+    geom.setAttribute("position", posAttr);
+    const idx = new Uint32Array(HL_CAP * 2);
+    const attr = new THREE.BufferAttribute(idx, 1);
+    attr.setUsage(THREE.DynamicDrawUsage);
+    geom.setIndex(attr);
+    geom.setDrawRange(0, 0);   // hidden until motion_line updates
+    geom.boundingSphere = sphereOfBox(unionBounds(bounds), 0);
+    const mat = new THREE.LineBasicMaterial({ color: 0xff3333 });
+    mat.depthTest = !pathAlwaysOnTop;
+    mat.depthWrite = false;
+    const line = new THREE.LineSegments(geom, mat);
+    line.renderOrder = 12;
+    line.frustumCulled = true;
+    line.visible = toolpathVisible;
+    parent.add(line);
+    return { frame, line, idx, attr };
+  }
+
+  /** Light the feed vertex range [s, s+count) — every pair (v, v+1) inside
+   *  it that does not cross a section break or a frame flip goes to the
+   *  highlight of its frame. */
+  function _setHighlightVertexRange(s: number, count: number) {
+    const e = s + count - 1;
+    for (const h of highlights) {
+      let w = 0;
+      if (count >= 2 && feedPosAttr) {
+        const last = Math.min(e, feedPosAttr.count - 1);
+        for (let v = Math.max(0, s); v < last; v++) {
+          if (feedIsBreak?.[v + 1]) continue;
+          const f = feedRoomMask?.[v + 1] ?? 0;
+          if ((feedRoomMask?.[v] ?? 0) !== f || f !== h.frame) continue;
+          if (w >= HL_CAP * 2) break;
+          h.idx[w++] = v; h.idx[w++] = v + 1;
+        }
+      }
+      h.attr.clearUpdateRanges();
+      if (w > 0) h.attr.addUpdateRange(0, w);
+      h.attr.needsUpdate = true;
+      h.line.geometry.setDrawRange(0, w);
+    }
   }
 
   return {
-    apply(ctx, g) {
+    apply(ctx, g, anchor = null) {
       if (!ctx.scene || !ctx.workOrigin) return;
       pathAlwaysOnTop = ctx.pathAlwaysOnTop;
       const workRotGroup = ctx.workRotGroup;
+      // Baked geometry rides its OWN anchor, posed here and nowhere else —
+      // the pose and the vertices change in the same call (the run-time
+      // "jump then return" was the live origin moving ahead of a re-bake).
+      const baked = anchor != null && ctx.pathAnchor != null && ctx.pathRot != null;
+      const lineParent: THREE.Group | null = baked ? ctx.pathRot : workRotGroup;
+      // Room-fixed parent, same rule: a bake's own anchor, else the live
+      // origin — under the MACHINE frame. null = the machine has no work-
+      // chain rotary (every vertex rides, as before).
+      const roomParent: THREE.Group | null = baked ? ctx.roomRot : ctx.roomRotGroup;
+      _lineParent = lineParent;
+      if (baked) {
+        ctx.pathAnchor!.position.set(anchor!.ox, anchor!.oy, anchor!.oz);
+        ctx.pathRot!.rotation.z = THREE.MathUtils.degToRad(anchor!.thetaDeg);
+        if (ctx.roomAnchor && ctx.roomRot) {
+          ctx.roomAnchor.position.set(anchor!.ox, anchor!.oy, anchor!.oz);
+          ctx.roomRot.rotation.z = THREE.MathUtils.degToRad(anchor!.thetaDeg);
+        }
+      }
 
       // Program change: free every replaced line (geometry + material).
       teardownLines();
@@ -359,6 +659,8 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       // so the fallback accepts only the nested-list shape. feed_lines is
       // index-aligned to the point index either way.
       const _legacyPts = (v: unknown): number[][] => (Array.isArray(v) ? (v as number[][]) : []);
+      const _flat = (d: number[][] | Float32Array): Float32Array =>
+        d instanceof Float32Array ? d : new Float32Array(d.flat());
       const feedData: number[][] | Float32Array = g.feedPos ?? _legacyPts(g.feed);
       const rapidData: number[][] | Float32Array = g.rapidPos ?? _legacyPts(g.rapid);
       const feedLines = (Array.isArray(g.feed_lines) || g.feed_lines instanceof Uint32Array) ? g.feed_lines : [];
@@ -368,62 +670,90 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       // Prefer the line→point-range map built off-thread by previewWorker (P4.1); fall
       // back to building it here for the WS/legacy path that carries no worker map.
       feedSrc = g.feedSrc instanceof Uint32Array ? g.feedSrc : null;
-      if (g.feedLineMap instanceof Map) {
-        feedLineMap = g.feedLineMap;
-      } else {
-        feedLineMap = new Map();
-        for (let i = 0; i < feedLines.length; i++) {
-          const ln = feedLines[i]!;
-          const entry = feedLineMap.get(ln);
-          if (entry) entry.end = i;
-          else feedLineMap.set(ln, { start: i, end: i });
-        }
-      }
+      feedLineIndex = (g.feedLineIndex && g.feedLineIndex.start instanceof Uint32Array)
+        ? g.feedLineIndex
+        : buildLineIndex(feedLines);
 
-      // Feed + Rapid toolpath lines — geometry is shared with the overflow overlay.
+      // Feed + Rapid toolpath chunks — each chunk's geometry is shared with its
+      // overflow overlay. Section breaks (track-derived streams) index-skip the
+      // false connectors across feed/rapid interleaves; absent on legacy data,
+      // every consecutive pair is a segment.
       const feedColor = deps.colors().feed ?? "#22b8cf";
       const rapidColor = deps.colors().rapid ?? "#f5a623";
-      if (_pointCount(feedData) >= 2) {
-        // Section breaks (track-derived streams) index-skip the false
-        // connectors across feed/rapid interleaves; absent on legacy data.
-        feedLine = makeLine(feedData, feedColor, false, 1.0, undefined, g.feedBreaks);
-        feedSharedGeom = feedLine.geometry as THREE.BufferGeometry;
-        workRotGroup!.add(feedLine);
-        feedOverflow = makeOverflowLine(feedSharedGeom);
-        if (feedOverflow) workRotGroup!.add(feedOverflow);
+      _feedBase.set(feedColor);
+      _rapidBase.set(rapidColor);
+      // Per stream: real segment pairs split by frame (viewer/lineChunks.ts
+      // buildFrameIndex — a room mask only counts when a room parent exists),
+      // each frame's pairs as one chunked set under its own parent.
+      const roomMaskOf = (m: Uint8Array | undefined, n: number): Uint8Array | null =>
+        (roomParent && m instanceof Uint8Array && m.length === n) ? m : null;
+      // Outside-limits flags must address THESE vertices; a length mismatch
+      // (flags from another vertex set) is dropped loudly, never misdrawn.
+      const outsideOf = (m: Uint8Array | undefined, n: number, stream: string): Uint8Array | null => {
+        if (!(m instanceof Uint8Array)) return null;
+        if (m.length !== n) { console.warn(`[toolpath] ${stream} outside flags (${m.length}) do not match the drawn vertices (${n}) — overlay dropped`); return null; }
+        return m;
+      };
+      // Display LOD levels the producing worker cut over these vertices (see
+      // lineChunks.buildLodLevels), split per frame here; absent = level 0.
+      const lodTols = Array.isArray(g.lodTols) ? g.lodTols.filter(t => typeof t === "number" && t > 0) : [];
+      const levelsByFrame = (lod: Uint32Array[] | undefined, room: Uint8Array | null): { table: Uint32Array[]; room: Uint32Array[] } => {
+        const out = { table: [] as Uint32Array[], room: [] as Uint32Array[] };
+        if (!Array.isArray(lod)) return out;
+        for (let k = 0; k < lodTols.length && k < lod.length; k++) {
+          const sp = splitPairsByFrame(lod[k]!, room);
+          out.table.push(sp.table); out.room.push(sp.room);
+          _frameMixed += sp.mixed;
+        }
+        return out;
+      };
+      _lodMs = typeof g.lodMs === "number" ? g.lodMs : 0;
+      if (lineParent && _pointCount(feedData) >= 2) {
+        const flat = _flat(feedData);
+        const n = flat.length / 3;
+        feedPosAttr = new THREE.BufferAttribute(flat, 3);
+        const rm = roomMaskOf(g.feedRoom, n);
+        const fi = buildFrameIndex(n, g.feedBreaks ?? null, rm);
+        _frameMixed += fi.mixed;
+        const lv = levelsByFrame(g.feedLod, rm);
+        const ov = outsideOf(g.feedOutside, n, "feed");
+        const st = makeSet("feed", 0, lineParent, feedPosAttr, fi.table, lv.table, lodTols, feedColor, false, null, ov);
+        if (st) sets.push(st);
+        const sr = roomParent ? makeSet("feed", 1, roomParent, feedPosAttr, fi.room, lv.room, lodTols, feedColor, false, null, ov) : null;
+        if (sr) sets.push(sr);
+        feedIsBreak = new Uint8Array(n);
+        if (g.feedBreaks) for (const b of g.feedBreaks) if (b < n) feedIsBreak[b] = 1;
+        feedRoomMask = roomMaskOf(g.feedRoom, n);
       }
-      if (_pointCount(rapidData) >= 2) {
-        // Pass the worker-precomputed lineDistance when the flat buffer is in use (P4.1);
-        // undefined on the WS/legacy path → makeLine falls back to computeLineDistances.
-        const _rapidDist = rapidData === g.rapidPos ? g.rapidDist : undefined;
-        rapidLine = makeLine(rapidData, rapidColor, true, 1.0, _rapidDist, g.rapidBreaks);
-        rapidSharedGeom = rapidLine.geometry as THREE.BufferGeometry;
-        workRotGroup!.add(rapidLine);
-        rapidOverflow = makeOverflowLine(rapidSharedGeom);
-        if (rapidOverflow) workRotGroup!.add(rapidOverflow);
+      if (lineParent && _pointCount(rapidData) >= 2) {
+        const flat = _flat(rapidData);
+        const n = flat.length / 3;
+        rapidPosAttr = new THREE.BufferAttribute(flat, 3);
+        // Worker-precomputed lineDistance when the flat buffer is in use (P4.1);
+        // undefined on the WS/legacy path → the set computes its own.
+        const _rapidDist = rapidData === g.rapidPos && g.rapidDist instanceof Float32Array ? g.rapidDist : undefined;
+        const distAttr = _rapidDist ? new THREE.Float32BufferAttribute(_rapidDist, 1) : null;
+        const rm = roomMaskOf(g.rapidRoom, n);
+        const fi = buildFrameIndex(n, g.rapidBreaks ?? null, rm);
+        _frameMixed += fi.mixed;
+        const lv = levelsByFrame(g.rapidLod, rm);
+        const ov = outsideOf(g.rapidOutside, n, "rapid");
+        const st = makeSet("rapid", 0, lineParent, rapidPosAttr, fi.table, lv.table, lodTols, rapidColor, true, distAttr, ov);
+        if (st) sets.push(st);
+        const sr = roomParent ? makeSet("rapid", 1, roomParent, rapidPosAttr, fi.room, lv.room, lodTols, rapidColor, true, distAttr, ov) : null;
+        if (sr) sets.push(sr);
       }
+      // Every drawn segment room-fixed ⇒ the bounds box rides the room parent.
+      if (roomParent && sets.length && sets.every(s => s.frame === 1)) _lineParent = roomParent;
+      _applyStale();   // sticky across rebuilds: a re-parse in flight keeps the new lines muted too
 
-      // Highlight line — shares feed's position attribute; independent drawRange.
-      // Reuses the feed bounding sphere so frustum culling matches the full toolpath
-      // extents (conservative: drawn subset is always inside the full bounds).
-      // Deliberately a plain strip (no section index): a single source line's
-      // vertex range sits inside one feed section except when one line mixes
-      // feed→rapid→feed (canned cycles) — there the highlight bridges its own
-      // rapid gap, an acceptable "where is this line" cue.
-      if (feedSharedGeom) {
-        highlightGeom = new THREE.BufferGeometry();
-        // Per-program (not externally owned): disposed by apply() on program
-        // change and by disposeObject on teardown — deliberately not _shared.
-        highlightGeom.setAttribute("position", feedSharedGeom.attributes.position!);
-        highlightGeom.boundingSphere = feedSharedGeom.boundingSphere;
-        highlightGeom.setDrawRange(0, 0); // hidden until motion_line updates
-        const hlMat = new THREE.LineBasicMaterial({ color: 0xff3333 });
-        hlMat.depthTest = !pathAlwaysOnTop;
-        hlMat.depthWrite = false;
-        highlightLine = new THREE.Line(highlightGeom, hlMat);
-        highlightLine.renderOrder = 12;
-        highlightLine.frustumCulled = true;
-        workRotGroup!.add(highlightLine);
+      // Highlights — one per frame that has feed segments, sharing feed's
+      // position attribute (see Highlight); sphere = that frame's feed extents.
+      if (feedPosAttr) {
+        for (const st of sets) {
+          if (st.stream !== "feed") continue;
+          highlights.push(makeHighlight(st.frame, st.parent, feedPosAttr, st.bounds));
+        }
       }
 
       // Toolpath bounding boxes (work coordinates). `toolpathBBox` is the cut
@@ -486,37 +816,79 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       rebuildToolpathBounds(ctx);
 
       // Apply stored toolpath visibility (may have been set before lines existed)
-      if (!toolpathVisible) {
-        if (feedLine) feedLine.visible = false;
-        if (rapidLine) rapidLine.visible = false;
-        if (feedOverflow) feedOverflow.visible = false;
-        if (rapidOverflow) rapidOverflow.visible = false;
-        if (highlightLine) highlightLine.visible = false;
-      }
+      _applyVisibility();
 
       deps.requestRender();
     },
 
+    updateCulling(_ctx, camera, heightPx = 1000) {
+      if (sets.length === 0) { _chunksVisible = _overlayChunks = 0; _lodMin = _lodMax = 0; return; }
+      camera.updateMatrixWorld();
+      _camInv.copy(camera.matrixWorld).invert();
+      _projView.multiplyMatrices(camera.projectionMatrix, _camInv);
+      _frustum.setFromProjectionMatrix(_projView);
+      camera.getWorldPosition(_camPos);
+      // World units per DEVICE pixel at a distance d: perspective = 2·d·tan(fov/2)/h,
+      // orthographic = the frustum height over the viewport.
+      const pc = camera as THREE.PerspectiveCamera;
+      const oc = camera as THREE.OrthographicCamera;
+      const persp = !!pc.isPerspectiveCamera;
+      const tanHalf = persp ? Math.tan(THREE.MathUtils.degToRad(pc.fov) / 2) : 0;
+      const h = Math.max(1, heightPx);
+      const orthoWupp = (!persp && oc.isOrthographicCamera) ? Math.abs(oc.top - oc.bottom) / (oc.zoom || 1) / h : 0;
+      let visible = 0, overlaysOn = 0, lodMin = Infinity, lodMax = 0;
+      for (const s of sets) {
+        s.parent.updateWorldMatrix(true, false);
+        for (let ci = 0; ci < s.chunks.length; ci++) {
+          const ch = s.chunks[ci]!;
+          _sph.copy(ch.lines[0]!.geometry.boundingSphere!).applyMatrix4(s.parent.matrixWorld);
+          if (_frustum.intersectsSphere(_sph)) visible++;
+          let changed = false;
+          // LOD: the coarsest level whose tolerance is under LOD_PX device
+          // pixels at the chunk's NEAREST point (conservative); stepping back
+          // to a finer level only once the current one clearly exceeds it.
+          if (s.tols.length) {
+            const d = persp ? Math.max(1e-6, _sph.center.distanceTo(_camPos) - _sph.radius) : 0;
+            const wupp = persp ? 2 * d * tanHalf / h : orthoWupp;
+            let target = 0;
+            for (let k = 1; k <= s.tols.length; k++) {
+              if (s.tols[k - 1]! <= LOD_PX * wupp) target = k; else break;
+            }
+            if (target < ch.level && s.tols[ch.level - 1]! <= LOD_PX * LOD_HYST * wupp) target = ch.level;
+            if (target !== ch.level) { ch.level = target; changed = true; }
+          }
+          if (changed) _chunkVis(s, ci);
+          const ov = ch.overlays[ch.level];
+          if (ov?.visible) overlaysOn++;
+          if (ch.level < lodMin) lodMin = ch.level;
+          if (ch.level > lodMax) lodMax = ch.level;
+        }
+      }
+      _chunksVisible = visible;
+      _overlayChunks = overlaysOn;
+      _lodMin = lodMin === Infinity ? 0 : lodMin;
+      _lodMax = lodMax;
+    },
+
     setHighlight(curLine) {
+      if (!highlights.length) return;
       // motion_line can be ~1 line ahead during G64 blending; try previous line first
-      if (highlightLine && curLine != null) {
-        const effectiveLine = feedLineMap.has(curLine - 1) ? curLine - 1 : curLine;
-        const range = feedLineMap.get(effectiveLine);
+      if (curLine != null) {
+        const effectiveLine = lineHas(feedLineIndex, curLine - 1) ? curLine - 1 : curLine;
+        const range = lineRange(feedLineIndex, effectiveLine);
         if (range) {
           const s = Math.max(0, range.start - 1);
-          highlightLine.geometry.setDrawRange(s, range.end - s + 1);
-        } else {
-          highlightLine.geometry.setDrawRange(0, 0);
+          _setHighlightVertexRange(s, range.end - s + 1);
+          return;
         }
-      } else {
-        if (highlightLine) highlightLine.geometry.setDrawRange(0, 0);
       }
+      _setHighlightVertexRange(0, 0);
     },
 
     setHighlightTrackRange(range) {
-      if (!highlightLine) return;
+      if (!highlights.length) return;
       if (!range || !feedSrc || feedSrc.length === 0) {
-        highlightLine.geometry.setDrawRange(0, 0);
+        _setHighlightVertexRange(0, 0);
         return;
       }
       const [i0, i1] = range;
@@ -535,21 +907,23 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       }
       const last = lo;
       if (feedSrc[first]! > i1 || feedSrc[last]! < i0) {
-        highlightLine.geometry.setDrawRange(0, 0);  // run is all-rapid — no feed to light
+        _setHighlightVertexRange(0, 0);  // run is all-rapid — no feed to light
         return;
       }
       const s = Math.max(0, first - 1);
-      highlightLine.geometry.setDrawRange(s, last - s + 1);
+      _setHighlightVertexRange(s, last - s + 1);
     },
 
 
+    setStale(on) {
+      pathStale = on;
+      _applyStale();
+      _applyVisibility();
+    },
+
     setVisible(on) {
       toolpathVisible = on;
-      if (feedLine) feedLine.visible = on;
-      if (rapidLine) rapidLine.visible = on;
-      if (feedOverflow) feedOverflow.visible = on;
-      if (rapidOverflow) rapidOverflow.visible = on;
-      if (highlightLine) highlightLine.visible = on;
+      _applyVisibility();
     },
 
     setBoundsVisible(on) {
@@ -562,41 +936,38 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     setAlwaysOnTop(on) {
       pathAlwaysOnTop = on;
       const dt = !on; // depthTest: false = always on top
-      if (feedLine) {
-        const m = feedLine.material as THREE.LineBasicMaterial;
-        m.depthTest = dt; m.depthWrite = false; m.needsUpdate = true;
-      }
-      if (rapidLine) {
-        const m = rapidLine.material as THREE.LineDashedMaterial;
-        m.depthTest = dt; m.depthWrite = false; m.needsUpdate = true;
-      }
-      for (const ol of [feedOverflow, rapidOverflow]) {
-        if (ol) {
-          const m = ol.material as THREE.LineDashedMaterial;
+      for (const s of sets) {
+        for (const m of [s.mat, s.overMat]) {
+          if (!m) continue;
           m.depthTest = dt; m.depthWrite = false; m.needsUpdate = true;
         }
       }
-      if (highlightLine) {
-        const m = highlightLine.material as THREE.LineBasicMaterial;
+      for (const h of highlights) {
+        const m = h.line.material as THREE.LineBasicMaterial;
         m.depthTest = dt; m.depthWrite = false; m.needsUpdate = true;
       }
     },
 
     setColors(c) {
-      if (feedLine && c.feed) (feedLine.material as THREE.LineBasicMaterial).color.set(c.feed);
-      if (rapidLine && c.rapid) (rapidLine.material as THREE.LineDashedMaterial).color.set(c.rapid);
+      if (c.feed) _feedBase.set(c.feed);
+      if (c.rapid) _rapidBase.set(c.rapid);
       if (toolpathBoundsBox && c.toolpathBounds) (toolpathBoundsBox.material as THREE.LineBasicMaterial).color.set(c.toolpathBounds);
+      _applyStale();   // the drawn colour is the base or its muted mix — one writer
     },
 
     forgetAfterSceneClear() {
-      feedLine = rapidLine = feedOverflow = rapidOverflow = highlightLine = null;
-      feedSharedGeom = rapidSharedGeom = highlightGeom = null;
+      sets = [];
+      highlights = [];
+      feedIsBreak = feedRoomMask = null;
+      feedPosAttr = rapidPosAttr = null;
+      _chunksVisible = _overlayChunks = _frameMixed = 0;
       toolpathBoundsBox = toolpathOverflowEdges = null;
       toolpathBoundsLabels = null;
       toolpathBBox = null;
       motionBBox = null;
-      feedLineMap = new Map();
+      feedLineIndex = emptyLineIndex();
       deps.overflow.value = false;
+      if (deps.overflowCount) deps.overflowCount.value = 0;
     },
 
     dispose() {
@@ -604,11 +975,25 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       teardownBounds();
       toolpathBBox = null;
       motionBBox = null;
-      feedLineMap = new Map();
+      feedLineIndex = emptyLineIndex();
       deps.overflow.value = false;
+      if (deps.overflowCount) deps.overflowCount.value = 0;
     },
 
-    get feedSegs() { return feedSharedGeom?.getAttribute("position")?.count ?? 0; },
-    get rapidSegs() { return rapidSharedGeom?.getAttribute("position")?.count ?? 0; },
+    get feedSegs() { return feedPosAttr?.count ?? 0; },
+    get rapidSegs() { return rapidPosAttr?.count ?? 0; },
+    get drawSegs() {
+      let n = 0;
+      for (const s of sets) for (const ch of s.chunks) n += ch.counts[ch.level]! >> 1;
+      return n;
+    },
+    get chunks() { let n = 0; for (const s of sets) n += s.chunks.length; return n; },
+    get lodMin() { return _lodMin; },
+    get lodMax() { return _lodMax; },
+    get lodMs() { return _lodMs; },
+    get chunksVisible() { return _chunksVisible; },
+    get overlayChunks() { return _overlayChunks; },
+    get frameMixed() { return _frameMixed; },
+    get roomSegs() { let n = 0; for (const s of sets) if (s.frame === 1) n += s.pairs; return n; },
   };
 }

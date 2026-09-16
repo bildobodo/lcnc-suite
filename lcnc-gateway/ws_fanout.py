@@ -14,9 +14,9 @@ Owns the per-client fan-out machinery the status broadcast rides on:
   modularization plan's "no generic event bus" requirement: when safety
   metadata is attached it is visible in the signature, never implied.
 
-The per-client status loop itself still lives in gateway.py (it orchestrates
-connection lifecycle, settings/policy side effects, and the hb-stall safety
-action); it consumes this module's pieces. ``set_phase`` is injected for
+The per-client status loop and command worker still live in gateway.py (they
+orchestrate connection lifecycle, settings/policy side effects, and the
+hb-stall safety action); they consume this module's pieces. ``set_phase`` is injected for
 stall forensics. This module never imports gateway.
 """
 import asyncio
@@ -124,6 +124,16 @@ class ClientState:
     # + total frame count say definitively what reached us and when.
     frames_rx: int = 0         # every frame received from this client
     hb_ring: "collections.deque" = field(default_factory=lambda: collections.deque(maxlen=12))  # monotonic hb arrival times
+    # The command this client's worker is executing (None = idle) and when it
+    # started — reported on hb-stall / queue-full / disconnect events so a
+    # long handler is named, not reconstructed (2026-09-03).
+    cmd_inflight: Optional[str] = None
+    cmd_inflight_since_mono: float = 0.0
+    # The sub-task running that command (2026-09-05): an abort/estop from any
+    # client cancels it (gateway._preempt_inflight) and records who did, so
+    # the worker can reply "Preempted by <cmd>" instead of nothing.
+    cmd_inflight_task: Optional["asyncio.Task"] = None
+    cmd_preempted_by: Optional[str] = None
 
 
 def diff_status_data(last: Dict[str, Any], current: Dict[str, Any]) -> Dict[str, Any]:
@@ -154,6 +164,7 @@ def build_status_envelope(
     config_warning: Optional[dict] = None,
     probe_results: Optional[dict] = None,
     rfl_status: Optional[dict] = None,
+    preview_refresh: Optional[dict] = None,
 ) -> dict:
     """Assemble the per-tick status envelope.
 
@@ -186,6 +197,10 @@ def build_status_envelope(
         # RFL guard progress (measuring / safe_z / starting / failures)
         # — top-level sibling of `data`, same pattern as safety_trip.
         msg["rfl_status"] = rfl_status
+    if preview_refresh is not None:
+        # A preview re-parse is running (bulk_pipeline.preview_refresh_status):
+        # reason, file, expected_ms, started_ms, queued, superseded.
+        msg["preview_refresh"] = preview_refresh
     return msg
 
 

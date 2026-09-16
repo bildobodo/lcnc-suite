@@ -29,6 +29,7 @@ Per run:
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -39,10 +40,11 @@ _HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, _HERE)
 sys.path.insert(0, os.path.join(_HERE, "..", "lcnc-gateway"))
 
+from gateway_util import strip_gcode_comments, parse_kins_config  # noqa: E402
 import msgspec  # noqa: E402
 import numpy as np  # noqa: E402
 
-from twp_parity import run_preview, sample_run  # noqa: E402
+from twp_parity import run_preview, sample_run, truth_plane_invariants  # noqa: E402
 
 _WEBUI = os.path.join(_HERE, "..", "lcnc-webui")
 
@@ -110,8 +112,12 @@ def compare_files(truth_path, sim_path, tol):
     S, nulls = load_sim_joints(sim_path)
     if T.size == 0 or S.size == 0:
         return False, "empty trajectory (truth or sim) — nothing to certify"
-    j = min(T.shape[1], S.shape[1])
-    T, S = T[:, :j], S[:, :j]
+    if T.shape[1] != S.shape[1]:
+        # Never narrow silently: a sim that shipped 3-column joints on a
+        # 6-joint machine would otherwise be compared on XYZ alone and pass
+        # with a whole rotary channel unchecked.
+        return False, (f"joint width mismatch: truth {T.shape[1]} vs sim "
+                       f"{S.shape[1]} columns — refusing to certify")
     t2s_max, t2s_p99 = path_deviation(T, S)
     s2t_max, s2t_p99 = path_deviation(S, T)
     ok = t2s_max <= tol and s2t_max <= tol
@@ -174,6 +180,79 @@ def cmd_compare(a):
     return 0 if ok else 1
 
 
+# (?<![A-Za-z]) not \b: RS274 words abut ("G1X5M6") and \b sees no boundary
+# between the 5 and the M — a digit before M is the normal case, only a
+# letter is not (comments are already stripped).
+_TOOLCHANGE_RE = re.compile(r"(?<![A-Za-z])M\s*0*6(?!\d)", re.IGNORECASE)
+
+
+def program_needs_toolchange(path):
+    """Does this program stop for a tool change? Comments stripped, and M600/
+    M601 are matched FIRST so the toolsetter remaps never read as a bare M6
+    (they call M6 internally and stop the same way)."""
+    try:
+        with open(path) as f:
+            text = f.read()
+    except OSError:
+        return False
+    for raw in text.splitlines():
+        line = strip_gcode_comments(raw)
+        if re.search(r"\bM\s*0*60[01]\b", line, re.IGNORECASE):
+            return True
+        if _TOOLCHANGE_RE.search(line):
+            return True
+    return False
+
+
+def _preflight_toolchange(corpus, cdir, port):
+    """Say the dependency out loud BEFORE burning 180 s per program on it.
+
+    This config deliberately does not self-loop the tool-change handshake
+    (hallib/core_sim_6.hal: `tool-change-request` has no reader,
+    `tool-change-confirmed` is driven only by webui-safety.tool-changed), so
+    an M6 blocks until a CLIENT confirms it — and confirm_tool_change
+    requires an ARMED one. An unattended gate would simply hang there. We
+    refuse instead of auto-answering: a machine that stops for the operator
+    is a fact about the machine, not an inconvenience for the harness."""
+    needs = []
+    for entry in corpus.get("programs", []):
+        ngc = os.path.expanduser(entry["file"])
+        if not os.path.isabs(ngc):
+            ngc = os.path.normpath(os.path.join(cdir, ngc))
+        if program_needs_toolchange(ngc):
+            needs.append(os.path.basename(ngc))
+    if not needs:
+        return
+    armed, reachable, reports = None, False, False
+    try:
+        with urllib.request.urlopen(
+                f"http://127.0.0.1:{port}/health", timeout=2.0) as r:
+            reachable = True
+            _h = json.loads(r.read())
+            reports = "armed_clients" in _h
+            armed = _h.get("armed_clients")
+    except Exception:
+        pass
+    if armed:
+        return
+    if not reachable:
+        detail = f"the gateway is not answering on port {port}"
+    elif not reports:
+        detail = ("the gateway is running but does not report armed_clients "
+                  "— it predates this check, so restart it to use the "
+                  "pre-flight (proceeding blind would just hang)")
+    else:
+        detail = "no armed client is connected"
+    sys.exit(
+        f"sim_parity: {len(needs)} corpus program(s) stop for a tool change "
+        f"({', '.join(needs)}) and {detail}.\n"
+        f"  This config routes M6 through webui-safety.tool-changed "
+        f"(hallib/lcnc_webui.hal), and the gateway's confirm_tool_change "
+        f"requires an ARMED client — nothing else answers, so the capture "
+        f"would hang for 180 s per run and report nothing.\n"
+        f"  Open the web UI and arm it, then re-run.")
+
+
 def cmd_gate(a):
     corpus = json.load(open(a.corpus))
     cdir = os.path.dirname(os.path.abspath(a.corpus))
@@ -181,6 +260,7 @@ def cmd_gate(a):
     out_dir = a.out_dir or os.path.join(cdir, "runs")
     os.makedirs(out_dir, exist_ok=True)
     import linuxcnc  # noqa: F401  (sample_run needs it; fail early if absent)
+    _preflight_toolchange(corpus, cdir, a.port)
     fails = 0
     for entry in corpus["programs"]:
         ngc = os.path.expanduser(entry["file"])
@@ -207,11 +287,41 @@ def cmd_gate(a):
                 c.mode(_l.MODE_AUTO)
                 c.wait_complete()
                 c.program_open(ngc)
-                raw = fetch_gateway_payload(a.port, ngc)
+                # Per-run isolation, same as the capture below: a payload
+                # that never settles must fail THIS run, not the corpus.
+                try:
+                    raw = fetch_gateway_payload(a.port, ngc)
+                except SystemExit as e:
+                    fails += 1
+                    print(f"[FAIL] {tag}: {e}")
+                    continue
             with open(payload_path, "wb") as f:
                 f.write(raw)
-            # 2. the real run.
-            sample_run(ini, ngc, truth_path)
+            # 1b. REFUSE a partial parse. The worker ships parse_error /
+            # error_line when the interpreter stopped early; the payload then
+            # describes only a PREFIX of the program. A truncation whose
+            # missing tail happens to carry no motion still passes every
+            # geometric check — which is exactly how a two-line G-code comment
+            # once shipped a truncated preview through a green gate. Certify
+            # nothing we could not parse.
+            _pd = msgspec.msgpack.decode(raw)
+            if _pd.get("parse_error"):
+                fails += 1
+                print(f"[FAIL] {tag}: payload carries parse_error "
+                      f"{_pd['parse_error']!r} at line {_pd.get('error_line')}"
+                      f" — PARTIAL parse, refusing to certify")
+                continue
+            # 2. the real run. A run that cannot complete (an unanswered M6 is
+            # the usual cause on this config) fails THIS run only — one
+            # program must not destroy the other results, which is what a
+            # bare SystemExit propagating out of sample_run used to do.
+            try:
+                sample_run(ini, ngc, truth_path)
+            except SystemExit as e:
+                fails += 1
+                print(f"[FAIL] {tag}: capture aborted ({e}) — see the "
+                      f"tool-change note above if this program has an M6")
+                continue
             # 3. the sim replay of the SAME pre-run payload + start state.
             r = subprocess.run(
                 ["npx", "vite-node", "scripts/simDump.ts", "--",
@@ -225,6 +335,23 @@ def cmd_gate(a):
             ok, rep = compare_files(truth_path, sim_path, tol)
             print(("[PASS] " if ok else "[FAIL] ") + f"{tag}: {rep}")
             fails += 0 if ok else 1
+            # 4b. text-derived plane invariants on the REAL run. Joint parity
+            # is blind to a remap defect — truth and sim share the remap and
+            # agree perfectly while both cut in the wrong place (the G68.3
+            # origin bug: normal_err ~0, square 776 mm away). Gated here so
+            # the corpus, not a separate manual command, is what catches it.
+            _ini_obj = linuxcnc.ini(ini)
+            _kins = parse_kins_config(_ini_obj.find("KINS", "KINEMATICS"),
+                                      _ini_obj.findall("HAL", "HALCMD") or [])
+            _frames = [f for f in (_pd.get("kins_frames") or []) if f[0] >= 0]
+            inv_ok, inv_rep = truth_plane_invariants(
+                _kins, ngc, truth_path, frame=_frames[-1] if _frames else None)
+            if inv_ok is None:
+                print(f"[----] {tag}: plane invariants: {inv_rep}")
+            else:
+                print(("[PASS] " if inv_ok else "[FAIL] ")
+                      + f"{tag}: plane invariants: {inv_rep}")
+                fails += 0 if inv_ok else 1
     print(f"\nsim parity gate: {'GREEN' if fails == 0 else f'{fails} FAILURE(S)'}")
     return 1 if fails else 0
 

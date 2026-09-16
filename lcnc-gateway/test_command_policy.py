@@ -3,12 +3,17 @@
 """
 
 import re
+import os
 import unittest
 from pathlib import Path
 
 from command_policy import (
+    permission_reasons,
+    semantic_kins,
+    plane_frame_check,
     MachineState,
     MachineLimits,
+    twp_capture_check,
     evaluate_permissions,
     check_command,
     validate_payload,
@@ -16,7 +21,14 @@ from command_policy import (
     COMMAND_SCHEMA,
     READ_ONLY_COMMANDS,
     GATE_REQUIREMENTS,
+    touchoff_route,
+    touchoff_expect_check,
+    raw_kins_for_semantic,
+    kins_runnable,
+    machine_frame_required, goto_zero_plan,
+    RESERVED_FIXTURES,
 )
+from gateway_util import kins_mode_commands
 
 
 def _gateway_src() -> str:
@@ -85,6 +97,10 @@ def state(**over) -> MachineState:
         armed=True, is_estop=False, is_enabled=True, is_homed=True,
         is_idle=True, is_running=False, is_paused=False, eoffset_enabled=False,
         rotary_at_zero=True,
+        # A plain (non-switchable) machine sitting in G54 with the table at
+        # zero — the touch-off gates are open here; TWP tests override.
+        kins_switchable=False, kins_type=None, g5x_index=1, twp_active=False,
+        a_at_zero=True,
     )
     base.update(over)
     return MachineState(**base)
@@ -280,6 +296,232 @@ class TestCheckCommand(unittest.TestCase):
         self.assertIsNotNone(check_command("machine_on", state(is_estop=True)))
 
 
+class TestTouchoffRoute(unittest.TestCase):
+    """Touch-off under kinematics modes (2026-08-30). The datum lives in G54
+    (table frame); G59..G59.3 are the TWP remap's scratch rows; Plane mode
+    routes to the remap. Every branch of touchoff_route is pinned here, plus
+    the two gates that are DEFINED through it."""
+
+    def twp(self, **over):
+        # The shipped trsrn TWP machine: switchable AND TWP-capable (the
+        # remap stack owns G59..G59.3).
+        base = dict(kins_switchable=True, twp_capable=True, kins_type=0, g5x_index=1,
+                    twp_active=False, a_at_zero=True)
+        base.update(over)
+        return state(**base)
+
+    # ---- the live poison case ----
+    def test_plane_mode_rotary_touchoff_refused(self):
+        # Zero All in Plane mode wrote A/B/C into G59 (the var file held
+        # A -46.5 B -162.8 C 268.3) and the orient then landed the head
+        # solution+offset. This is the exact request; it must refuse.
+        s = self.twp(kins_type=2, g5x_index=6, twp_active=True)
+        for letters in (("A",), ("X", "Y", "Z", "A", "B", "C"), ("C",)):
+            route, reason = touchoff_route(s, letters)
+            self.assertIsNone(route, letters)
+            self.assertIn("Machine", reason)
+
+    def test_plane_mode_linear_routes_to_remap(self):
+        s = self.twp(kins_type=2, g5x_index=6, twp_active=True)
+        self.assertEqual(touchoff_route(s, ("Z",)), ("plane", None))
+        self.assertEqual(touchoff_route(s, ("x", "y", "z")), ("plane", None))
+
+    def test_plane_mode_needs_active_plane_and_g59(self):
+        route, reason = touchoff_route(self.twp(kins_type=2, g5x_index=6, twp_active=False), ("Z",))
+        self.assertIsNone(route); self.assertIn("Orient", reason)
+        route, reason = touchoff_route(self.twp(kins_type=2, g5x_index=1, twp_active=True), ("Z",))
+        self.assertIsNone(route); self.assertIn("G59", reason)
+
+    # ---- identity ----
+    def test_identity_linear_into_operator_fixtures(self):
+        for g in range(1, 6):
+            self.assertEqual(touchoff_route(self.twp(g5x_index=g), ("X", "Y", "Z")), ("mdi", None))
+
+    def test_identity_reserved_rows_refused(self):
+        for g in RESERVED_FIXTURES:
+            route, reason = touchoff_route(self.twp(g5x_index=g), ("Z",))
+            self.assertIsNone(route, g)
+            self.assertIn("scratch", reason)
+
+    def test_rotary_identity_g54_only(self):
+        self.assertEqual(touchoff_route(self.twp(g5x_index=1), ("A",)), ("mdi", None))
+        route, reason = touchoff_route(self.twp(g5x_index=2), ("A",))
+        self.assertIsNone(route); self.assertIn("G54", reason)
+        route, reason = touchoff_route(self.twp(kins_type=1, g5x_index=1), ("B",))
+        self.assertIsNone(route); self.assertIn("Machine", reason)
+
+    def test_non_switchable_machine_is_identity(self):
+        # A trivkins mill has no kins pin at all: kins_type None means
+        # identity, certainly — not unknown.
+        self.assertEqual(touchoff_route(state(kins_switchable=False, kins_type=None), ("Z",)),
+                         ("mdi", None))
+        self.assertEqual(touchoff_route(state(kins_switchable=False, kins_type=None), ("A",)),
+                         ("mdi", None))
+
+    def test_non_switchable_g59_to_g59_3_linear_touchoff_is_mdi(self):
+        # TWP-08a (review 2026-09-14): the reserved-row rule leaked onto every
+        # machine — a plain trivkins mill runs no TWP remap, so G59..G59.3 are
+        # ordinary fixtures there and a DRO touch-off into them is plain MDI.
+        # The G54-only test above never exercised the reserved rows.
+        for g in sorted(RESERVED_FIXTURES):
+            for letters in (("X",), ("Z",), ("X", "Y", "Z")):
+                self.assertEqual(touchoff_route(state(g5x_index=g), letters),
+                                 ("mdi", None), (g, letters))
+
+    def test_switchable_non_twp_machine_admits_reserved_fixtures(self):
+        # A TCP trunnion (xyzac-trt, switchkins) is switchable but runs no TWP
+        # stack either: nothing rewrites its G59 rows, so they are the
+        # operator's. Capability, not switchability, reserves the rows.
+        for g in sorted(RESERVED_FIXTURES):
+            s = state(kins_switchable=True, kins_type=0, twp_capable=False, g5x_index=g)
+            self.assertEqual(touchoff_route(s, ("Z",)), ("mdi", None), g)
+
+    def test_switchable_machine_with_unknown_kins_refuses(self):
+        route, reason = touchoff_route(self.twp(kins_type=None), ("Z",))
+        self.assertIsNone(route); self.assertIn("unknown", reason)
+
+    # ---- TCP ----
+    def test_tcp_linear_at_datum_allowed(self):
+        self.assertEqual(touchoff_route(self.twp(kins_type=1, a_at_zero=True), ("Z",)), ("mdi", None))
+
+    def test_tcp_tilted_table_refused(self):
+        # The remap's to_storage_frame admits kins 1 only at A=0; the UI
+        # refuses where the remap would, not three steps later.
+        route, reason = touchoff_route(self.twp(kins_type=1, a_at_zero=False), ("Z",))
+        self.assertIsNone(route); self.assertIn("A=0", reason)
+
+    def test_tcp_reserved_rows_refused(self):
+        route, _ = touchoff_route(self.twp(kins_type=1, g5x_index=6), ("Z",))
+        self.assertIsNone(route)
+
+    # ---- inputs ----
+    def test_unknown_letter_and_empty(self):
+        self.assertIsNone(touchoff_route(self.twp(), ("Q",))[0])
+        self.assertIsNone(touchoff_route(self.twp(), ())[0])
+        self.assertIsNone(touchoff_route(self.twp(g5x_index=None), ("Z",))[0])
+
+    # ---- the gates are the route ----
+    def test_gates_follow_the_route(self):
+        cases = [
+            self.twp(), self.twp(g5x_index=6), self.twp(kins_type=1),
+            self.twp(kins_type=1, a_at_zero=False),
+            self.twp(kins_type=2, g5x_index=6, twp_active=True),
+            self.twp(kins_type=2, g5x_index=6, twp_active=False),
+            self.twp(kins_type=None), state(),
+        ]
+        for s in cases:
+            p = evaluate_permissions(s)
+            self.assertEqual(p["touchoff"], touchoff_route(s, ("X",))[0] is not None, s)
+            self.assertEqual(p["touchoffRotary"], touchoff_route(s, ("A",))[0] is not None, s)
+
+    def test_gates_inherit_probe(self):
+        for over in (dict(is_homed=False), dict(eoffset_enabled=True),
+                     dict(is_idle=False, is_running=True), dict(armed=False)):
+            p = evaluate_permissions(state(**over))
+            self.assertFalse(p["touchoff"], over)
+            self.assertFalse(p["touchoffRotary"], over)
+
+    def test_bare_state_closes_touchoff(self):
+        # Defaults: switchable + unknown kins + unknown fixture = closed.
+        bare = MachineState(armed=True, is_estop=False, is_enabled=True, is_homed=True,
+                            is_idle=True, is_running=False, is_paused=False,
+                            eoffset_enabled=False)
+        p = evaluate_permissions(bare)
+        self.assertFalse(p["touchoff"]); self.assertFalse(p["touchoffRotary"])
+
+    def test_touchoff_command_is_gated_on_touchoff(self):
+        self.assertEqual(COMMAND_GATES["touchoff"], "touchoff")
+        self.assertIsNone(check_command("touchoff", state()))
+        self.assertIsNotNone(check_command("touchoff", self.twp(g5x_index=6)))
+
+
+class TestTwpCapture(unittest.TestCase):
+    """twp_capture_check — the Capture-plane admission rule (2026-08-31).
+    The `twpCapture` gate is defined through the check; the last test pins
+    that they can never disagree."""
+
+    def _capture_state(self, **over):
+        base = dict(kins_switchable=True, twp_capable=True, kins_type=0, g5x_index=1,
+                    twp_defined=False, rotary_offsets_clean=True,
+                    g92_xyz_clean=True)
+        base.update(over)
+        return state(**base)
+
+    def test_switchable_non_twp_machine_cannot_capture(self):
+        # A TCP trunnion is switchable but has no G68.2 / G53.x remap: the
+        # button must not exist there, and the gate says why (TWP-08b).
+        reason = twp_capture_check(self._capture_state(twp_capable=False))
+        self.assertIsNotNone(reason); self.assertIn("TWP", reason)
+
+    def test_defaults_are_closed(self):
+        # A builder that forgets the capture fields gets a refusal, never an
+        # open gate (rotary_offsets_clean / g92_xyz_clean default False).
+        s = state(kins_switchable=True, kins_type=0, g5x_index=1)
+        self.assertIsNotNone(twp_capture_check(s))
+
+    def test_happy_g54_identity(self):
+        self.assertIsNone(twp_capture_check(self._capture_state()))
+
+    def test_happy_from_tcp_any_table_angle(self):
+        # The stated workflow: align in the TCP jog frame, tip on the face.
+        # No A=0 rule — g683 converts a live tilt into the table frame itself.
+        self.assertIsNone(twp_capture_check(
+            self._capture_state(kins_type=1, a_at_zero=False)))
+
+    def test_happy_from_dead_tool_kins(self):
+        # TOOL kins without a plane (the limbo state): G69 normalizes.
+        self.assertIsNone(twp_capture_check(self._capture_state(kins_type=2)))
+
+    def test_refuses_non_switchable_machine(self):
+        # A plain mill: neither switchable nor TWP-capable.
+        self.assertIn("TWP machine",
+                      twp_capture_check(self._capture_state(kins_switchable=False,
+                                                            twp_capable=False)))
+
+    def test_refuses_unknown_kins(self):
+        self.assertIn("unknown",
+                      twp_capture_check(self._capture_state(kins_type=None)))
+
+    def test_refuses_unknown_fixture(self):
+        self.assertIn("unknown",
+                      twp_capture_check(self._capture_state(g5x_index=None)))
+
+    def test_refuses_plane_already_defined(self):
+        # User decision 2026-08-31: refuse, never silently discard.
+        r = twp_capture_check(self._capture_state(twp_defined=True))
+        self.assertIn("Clear plane", r)
+
+    def test_refuses_g55(self):
+        # G69 inside the sub FORCES G54 — starting from G55 would silently
+        # switch the datum fixture, so it must refuse above the sub.
+        r = twp_capture_check(self._capture_state(g5x_index=2))
+        self.assertIn("G54", r)
+
+    def test_refuses_reserved_fixture(self):
+        self.assertIsNotNone(twp_capture_check(self._capture_state(g5x_index=6)))
+
+    def test_refuses_rotary_offsets(self):
+        r = twp_capture_check(self._capture_state(rotary_offsets_clean=False))
+        self.assertIn("rotary", r)
+
+    def test_refuses_g92_xyz(self):
+        r = twp_capture_check(self._capture_state(g92_xyz_clean=False))
+        self.assertIn("G92", r)
+
+    def test_gate_and_check_agree(self):
+        # The twpCapture gate must be exactly `probe`-tier + the check.
+        for s in (self._capture_state(),
+                  self._capture_state(twp_defined=True),
+                  self._capture_state(g5x_index=2),
+                  self._capture_state(kins_type=None),
+                  self._capture_state(rotary_offsets_clean=False),
+                  state()):
+            perms = evaluate_permissions(s)
+            self.assertEqual(perms["twpCapture"],
+                             perms["probe"] and twp_capture_check(s) is None,
+                             f"gate/check disagree for {s}")
+
+
 class TestSingleSource(unittest.TestCase):
     """#6: the decision (evaluate_permissions) and the deny message
     (check_command) both derive from GATE_REQUIREMENTS — no parallel chain."""
@@ -400,6 +642,35 @@ class TestPayloadSchema(unittest.TestCase):
         # The table CONSTRAINS; it does not enumerate.
         self.assertEqual(validate_payload("estop", {"anything": 1}, self.LIM), {})
 
+    # ---- touchoff: letters structural, values finite ----
+
+    def test_touchoff_expect_is_schemad(self):
+        # U-03: the expected target rides the payload; only its two keys,
+        # int or null.
+        self.assertEqual(validate_payload("touchoff", {"axes": {"Z": 0.0},
+                                                       "expect": {"kins_type": 2, "g5x_index": 6}}, self.LIM), {})
+        self.assertEqual(validate_payload("touchoff", {"axes": {"Z": 0.0},
+                                                       "expect": {"kins_type": None, "g5x_index": None}}, self.LIM), {})
+        self.assertIn("not an expected-target key",
+                      self._reject("touchoff", {"axes": {"Z": 0.0}, "expect": {"mode": 2}}))
+        self.assertIn("must be a mapping", self._reject("touchoff", {"axes": {"Z": 0.0}, "expect": [2, 6]}))
+        self.assertIn("whole number", self._reject("touchoff", {"axes": {"Z": 0.0}, "expect": {"kins_type": 1.5}}))
+
+    def test_touchoff_target_text(self):
+        from command_policy import touchoff_target_text
+        self.assertEqual(touchoff_target_text(2, 6), "Plane · G59")
+        self.assertEqual(touchoff_target_text(0, 1), "Machine · G54")
+        self.assertEqual(touchoff_target_text(None, 1), "G54")
+        self.assertEqual(touchoff_target_text(None, None), "unknown")
+        self.assertEqual(touchoff_target_text(1, 9), "TCP · G59.3")
+
+    def test_touchoff_axes_map(self):
+        self.assertEqual(validate_payload("touchoff", {"axes": {"Z": 0.0, "x": 12.5}}, self.LIM), {})
+        self.assertIn("not an axis letter", self._reject("touchoff", {"axes": {"Q": 1.0}}))
+        self.assertIn("finite", self._reject("touchoff", {"axes": {"Z": float("nan")}}))
+        self.assertIn("non-empty", self._reject("touchoff", {"axes": {}}))
+        self.assertIn("non-empty", self._reject("touchoff", {"axes": [1, 2]}))
+
     # ---- set_probe_vars: machine-declared, system space denied ----
 
     def test_system_parameter_space_denied_even_when_declared(self):
@@ -490,5 +761,393 @@ class TestNoBarePayloadCasts(unittest.TestCase):
             "finite_int/finite_float, or add the name to ALLOWED with a reason")
 
 
+
+class TestSemanticKins(unittest.TestCase):
+    """semantic_kins — raw switchkins types resolved per kins FAMILY (TWP-08b,
+    review 2026-09-14). The policy used to read raw 0 as identity on every
+    switchable machine; on a plain xyzac-trt raw 0 is the world (TCP) kins."""
+
+    def _trt(self, raw, idf):
+        return state(kins_switchable=True, twp_capable=False, identity_first=idf,
+                     kins_type=raw, g5x_index=1)
+
+    def test_trt_without_identityfirst_raw0_is_world_raw1_is_identity(self):
+        self.assertEqual(semantic_kins(self._trt(0, False)), 1)
+        self.assertEqual(semantic_kins(self._trt(1, False)), 0)
+        # G53 routines are admitted only under the ACTUAL identity mode.
+        self.assertIsNotNone(machine_frame_required(self._trt(0, False)))
+        self.assertIsNone(machine_frame_required(self._trt(1, False)))
+        self.assertEqual(touchoff_route(self._trt(1, False), ("Z",)), ("mdi", None))
+
+    def test_trt_identityfirst_unchanged(self):
+        self.assertEqual(semantic_kins(self._trt(0, True)), 0)
+        self.assertEqual(semantic_kins(self._trt(1, True)), 1)
+        self.assertIsNone(machine_frame_required(self._trt(0, True)))
+        self.assertIn("TCP", machine_frame_required(self._trt(1, True)))
+
+    def test_trsrn_raw_modes_pass_through(self):
+        for raw in (0, 1, 2):
+            self.assertEqual(
+                semantic_kins(state(kins_switchable=True, twp_capable=True, kins_type=raw)), raw)
+
+    def test_unsupported_type_refuses_everywhere_and_is_not_unknown(self):
+        s = self._trt(2, True)   # userk on a trt: the policy has no rule for it
+        self.assertEqual(semantic_kins(s), 3)
+        for fn in (machine_frame_required, kins_runnable):
+            msg = fn(s)
+            self.assertIsNotNone(msg, fn.__name__)
+            self.assertIn("no policy rule", msg)
+            self.assertNotIn("unknown", msg)
+        route, reason = touchoff_route(s, ("Z",))
+        self.assertIsNone(route); self.assertIn("no policy rule", reason)
+        lines, why = goto_zero_plan(s, 0.0, 25.0)
+        self.assertIsNone(lines); self.assertIn("no policy rule", why)
+        # Unknown stays unknown — a different refusal.
+        self.assertIsNone(semantic_kins(self._trt(None, True)))
+        self.assertIn("unknown", machine_frame_required(self._trt(None, True)))
+
+    def test_non_switchable_is_identity_regardless_of_raw(self):
+        self.assertEqual(semantic_kins(state(kins_switchable=False, kins_type=None)), 0)
+        self.assertEqual(semantic_kins(state(kins_switchable=False, kins_type=2)), 0)
+
+
+class TestPlaneFrame(unittest.TestCase):
+    """plane_frame_check / the planeFrame gate / set_kins_mode (TWP-04)."""
+
+    def _s(self, **over):
+        base = dict(kins_switchable=True, twp_capable=True, kins_type=0, g5x_index=1,
+                    twp_defined=True, twp_aligned=True)
+        base.update(over)
+        return state(**base)
+
+    def test_plane_frame_needs_capability_definition_and_alignment(self):
+        self.assertIsNone(plane_frame_check(self._s()))
+        self.assertIn("Not a TWP machine", plane_frame_check(self._s(twp_capable=False)))
+        self.assertIn("unknown", plane_frame_check(self._s(kins_type=None)))
+        self.assertIn("No tilted work plane", plane_frame_check(self._s(twp_defined=False)))
+        self.assertIn("Orient", plane_frame_check(self._s(twp_aligned=False)))
+        # A plain mill: the first rule, never a later one.
+        self.assertIn("Not a TWP machine", plane_frame_check(state()))
+
+    def test_gate_and_check_agree(self):
+        for over in (dict(), dict(twp_capable=False), dict(kins_type=None),
+                     dict(twp_defined=False), dict(twp_aligned=False),
+                     dict(is_homed=False), dict(is_idle=False, is_running=True)):
+            s = self._s(**over)
+            open_ = evaluate_permissions(s)["planeFrame"]
+            self.assertEqual(open_, plane_frame_check(s) is None and s.is_homed and s.is_idle, over)
+
+    def test_set_kins_mode_is_gated_and_schemad(self):
+        self.assertEqual(COMMAND_GATES["set_kins_mode"], "ready")
+        self.assertIsNone(check_command("set_kins_mode", self._s()))
+        self.assertIsNotNone(check_command("set_kins_mode", self._s(is_homed=False)))
+        limits = MachineLimits()
+        self.assertEqual(validate_payload("set_kins_mode", {"mode": 2}, limits), {})
+        with self.assertRaises(ValueError):
+            validate_payload("set_kins_mode", {"mode": 3}, limits)
+        with self.assertRaises(ValueError):
+            validate_payload("set_kins_mode", {"mode": "plane"}, limits)
+
+
+class TestPermissionReasons(unittest.TestCase):
+    """permission_reasons (U-06): every closed gate carries the reason a
+    denied command under it would carry; open gates carry nothing."""
+
+    def test_closed_gates_have_reasons_open_gates_none(self):
+        for over in (dict(), dict(is_homed=False), dict(armed=False), dict(eoffset_enabled=True),
+                     dict(kins_switchable=True, twp_capable=True, kins_type=1, g5x_index=1)):
+            s = state(**over)
+            perms = evaluate_permissions(s)
+            reasons = permission_reasons(s)
+            for gate, open_ in perms.items():
+                if open_:
+                    self.assertNotIn(gate, reasons, (over, gate))
+                else:
+                    self.assertTrue(reasons.get(gate), (over, gate))
+
+    def test_reason_equals_the_denied_command_message(self):
+        s = state(kins_switchable=True, twp_capable=True, kins_type=1, g5x_index=1)
+        self.assertEqual(permission_reasons(s)["goZero"], check_command("go_to_zero", s))
+        self.assertEqual(permission_reasons(s)["machineFrame"], check_command("tool_change", s))
+        self.assertIn("TCP", permission_reasons(s)["goZero"])
+        s2 = state(is_homed=False)
+        self.assertEqual(permission_reasons(s2)["ready"], check_command("mdi", s2))
+        self.assertEqual(permission_reasons(s2)["ready"], "Machine not homed")
+
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestKinsRunnable(unittest.TestCase):
+    """Cycle Start / run-from-line refuse a stranded Plane-kins state (2026-09-03)."""
+
+    def _twp(self, **over):
+        base = dict(kins_switchable=True, twp_capable=True, kins_type=2, twp_active=True, g5x_index=6,
+                    twp_defined=True, twp_aligned=True)
+        base.update(over)
+        return state(**base)
+
+    def test_plain_machine_and_identity_and_tcp_run(self):
+        self.assertIsNone(kins_runnable(state()))
+        self.assertIsNone(kins_runnable(self._twp(kins_type=0, g5x_index=1)))
+        self.assertIsNone(kins_runnable(self._twp(kins_type=1, g5x_index=1)))
+
+    def test_plane_kins_with_its_plane_and_g59_runs(self):
+        self.assertIsNone(kins_runnable(self._twp()))
+        self.assertTrue(evaluate_permissions(self._twp())["run"])
+
+    def test_plane_kins_without_a_plane_refuses(self):
+        r = kins_runnable(self._twp(twp_active=False, g5x_index=1))
+        self.assertIn("no active plane", r)
+        self.assertFalse(evaluate_permissions(self._twp(twp_active=False, g5x_index=1))["run"])
+
+    def test_plane_kins_with_g54_selected_refuses_the_post_m2_state(self):
+        # The live 2026-09-03 state: M2 restored G54, kins stayed 2, plane active.
+        s = self._twp(g5x_index=1)
+        r = kins_runnable(s)
+        self.assertIn("G54", r)
+        self.assertIn("M430", r)
+        p = evaluate_permissions(s)
+        self.assertFalse(p["run"])
+        self.assertTrue(p["ready"])   # MDI (M428/M430/G69) stays available to fix it
+
+    def test_check_command_names_the_exact_reason(self):
+        s = self._twp(g5x_index=1)
+        self.assertIn("G54", check_command("cycle_start", s))
+        self.assertIn("G54", check_command("auto_run", s))
+        self.assertIsNone(check_command("cycle_start", self._twp()))
+
+    def test_unknown_kins_type_on_a_switchable_machine_refuses(self):
+        # None = reader stale: unknown is not identity (touchoff_route's rule).
+        r = kins_runnable(self._twp(kins_type=None))
+        self.assertIn("unknown", r)
+        self.assertIsNone(kins_runnable(state(kins_switchable=False, kins_type=None)))
+
+
+class TestMachineFrameAndGoZero(unittest.TestCase):
+    """G53 routines need identity kins; → Zero is mode-aware (2026-09-03)."""
+
+    def _twp(self, **over):
+        base = dict(kins_switchable=True, twp_capable=True, kins_type=2, twp_active=True, g5x_index=6,
+                    twp_defined=True, twp_aligned=True)
+        base.update(over)
+        return state(**base)
+
+    def test_machine_frame_rule(self):
+        self.assertIsNone(machine_frame_required(state()))                      # plain machine
+        self.assertIsNone(machine_frame_required(self._twp(kins_type=0)))
+        self.assertIn("Machine frame required", machine_frame_required(self._twp(kins_type=1)))
+        self.assertIn("Machine frame required", machine_frame_required(self._twp()))
+        self.assertIn("unknown", machine_frame_required(self._twp(kins_type=None)))
+        p = evaluate_permissions(self._twp())
+        self.assertFalse(p["machineFrame"]); self.assertTrue(p["ready"])
+        self.assertIn("Machine frame", check_command("tool_change", self._twp()))
+
+    def test_go_zero_machine_frame_uses_the_subroutine_at_the_stamp_angle(self):
+        # unstamped → the documented A=0 rule
+        self.assertEqual(goto_zero_plan(state(), 12.0, 25.0), (["O<go_to_zero> CALL [0.0000]"], None))
+        self.assertEqual(goto_zero_plan(self._twp(kins_type=0), None, 25.0), (["O<go_to_zero> CALL [0.0000]"], None))
+        # stamped at A 20 in identity → the table goes back to 20 before X/Y
+        lines, why = goto_zero_plan(self._twp(kins_type=0), None, 25.0, stamp={"kins": 0.0, "a": 20.0})
+        self.assertIsNone(why)
+        self.assertEqual(lines, ["O<go_to_zero> CALL [20.0000]"])
+        self.assertEqual(goto_zero_plan(state(), 0.0, 25.0, stamp={"kins": 0, "a": -15.42})[0],
+                         ["O<go_to_zero> CALL [-15.4200]"])
+
+    def test_go_zero_refuses_a_fixture_stamped_under_another_kins(self):
+        _, why = goto_zero_plan(self._twp(kins_type=0), None, 25.0, stamp={"kins": 1.0, "a": 0.0})
+        self.assertIn("TCP", why)
+        _, why = goto_zero_plan(self._twp(kins_type=0), None, 25.0, stamp={"kins": 2.0, "a": 0.0})
+        self.assertIn("Plane", why)
+        _, why = goto_zero_plan(state(), 0.0, 25.0, stamp={"kins": "x", "a": 1.0})
+        self.assertIn("unreadable", why)
+
+    def test_go_zero_plane_calls_the_modal_safe_sub_with_clearance_and_units(self):
+        # TWP-01: bare `G0 Z25` / `G0 X0 Y0` MDI inherited G91/G20 from the
+        # caller. The Plane branch is now ONE o-call; the sub owns G90 and the
+        # units (M73 restores the caller's) and reads the live plane Z itself.
+        lines, why = goto_zero_plan(self._twp(), None, 25.0, metric=True)
+        self.assertIsNone(why)
+        self.assertEqual(lines, ["O<twp_goto_zero> CALL [25.0000] [1]"])
+        lines, _ = goto_zero_plan(self._twp(), 100.0, 1.0, metric=False)
+        self.assertEqual(lines, ["O<twp_goto_zero> CALL [1.0000] [0]"])
+        # never a raw G0, never a rotary word
+        self.assertFalse(any(l.startswith("G0") for l in lines))
+        self.assertFalse(any(ch in " ".join(lines).replace("CALL", "") for ch in "ABC"))
+        # the status snapshot's Z is no longer an input
+        self.assertEqual(goto_zero_plan(self._twp(), -5.0, 25.0)[0],
+                         goto_zero_plan(self._twp(), None, 25.0)[0])
+
+    def test_go_zero_plane_refuses_when_head_not_aligned(self):
+        # TWP-04: the retract is "along the tool axis" only while the head
+        # still points where the last orient put it. Unknown is closed too.
+        lines, why = goto_zero_plan(self._twp(twp_aligned=False), None, 25.0)
+        self.assertIsNone(lines); self.assertIn("Orient", why)
+        self.assertFalse(evaluate_permissions(self._twp(twp_aligned=False))["goZero"])
+        self.assertIn("Orient", check_command("go_to_zero", self._twp(twp_aligned=False)))
+
+    def test_go_zero_refusals(self):
+        self.assertIn("TCP", goto_zero_plan(self._twp(kins_type=1), 0.0, 25.0)[1])
+        self.assertIn("Plane frame", goto_zero_plan(self._twp(g5x_index=1), 0.0, 25.0)[1])
+        self.assertIn("Plane", goto_zero_plan(self._twp(twp_active=False), 0.0, 25.0)[1])
+        self.assertIn("unknown", goto_zero_plan(self._twp(kins_type=None), 0.0, 25.0)[1])
+        self.assertIn("Clearance", goto_zero_plan(self._twp(), None, float("nan"))[1])
+        p = evaluate_permissions(self._twp(kins_type=1))
+        self.assertFalse(p["goZero"])
+        self.assertTrue(evaluate_permissions(self._twp())["goZero"])
+        self.assertIn("TCP", check_command("go_to_zero", self._twp(kins_type=1)))
+
+
+class TestTouchoffExpectCheck(unittest.TestCase):
+    """R-02 (implementation review 2026-09-15): the pure half of the
+    write-boundary target check. The handler runs it twice — on the published
+    snapshot and on state polled from the controller — so the rule itself
+    lives in one tested place."""
+
+    def _s(self, **over):
+        return state(**over)
+
+    def test_no_expectation_is_never_a_refusal(self):
+        for e in (None, {}, "nonsense", 7):
+            self.assertIsNone(touchoff_expect_check(self._s(kins_type=0, g5x_index=1), e))
+
+    def test_matching_target_passes(self):
+        s = self._s(kins_type=0, g5x_index=1)
+        self.assertIsNone(touchoff_expect_check(s, {"kins_type": 0, "g5x_index": 1}))
+
+    def test_fixture_change_is_refused_and_names_both_targets(self):
+        s = self._s(kins_type=0, g5x_index=2)
+        why = touchoff_expect_check(s, {"kins_type": 0, "g5x_index": 1})
+        self.assertIsNotNone(why)
+        self.assertIn("Machine · G54", why)
+        self.assertIn("Machine · G55", why)
+
+    def test_kins_change_is_refused(self):
+        s = self._s(kins_type=2, g5x_index=6)
+        why = touchoff_expect_check(s, {"kins_type": 0, "g5x_index": 6})
+        self.assertIsNotNone(why)
+        self.assertIn("Plane · G59", why)
+
+    def test_a_partial_expectation_checks_only_what_it_names(self):
+        s = self._s(kins_type=1, g5x_index=1)
+        self.assertIsNone(touchoff_expect_check(s, {"g5x_index": 1}))
+        self.assertIsNotNone(touchoff_expect_check(s, {"kins_type": 0}))
+
+    def test_unknown_live_field_refuses_rather_than_assuming(self):
+        s = self._s(kins_type=None, g5x_index=None)
+        self.assertIsNotNone(touchoff_expect_check(s, {"kins_type": 0}))
+        self.assertIsNotNone(touchoff_expect_check(s, {"g5x_index": 1}))
+
+
+class TestRawKinsForSemantic(unittest.TestCase):
+    """R-01: the inverse of semantic_kins. The operator picks a FRAME; the
+    pin carries a raw type whose meaning is per-family."""
+
+    def test_twp_stack_is_identity_tcp_tool_in_order(self):
+        self.assertEqual([raw_kins_for_semantic(s, True, False) for s in (0, 1, 2)], [0, 1, 2])
+        # identity_first is a non-trsrn flag and must not disturb the stack
+        self.assertEqual([raw_kins_for_semantic(s, True, True) for s in (0, 1, 2)], [0, 1, 2])
+
+    def test_trt_with_identityfirst_has_raw_0_as_identity(self):
+        # xyzac-trt-kins.c switchkinsSetup: "switchkins-type 0 is IDENTITY"
+        self.assertEqual(raw_kins_for_semantic(0, False, True), 0)
+        self.assertEqual(raw_kins_for_semantic(1, False, True), 1)
+
+    def test_trt_without_identityfirst_has_raw_0_as_the_world_kins(self):
+        self.assertEqual(raw_kins_for_semantic(0, False, False), 1)
+        self.assertEqual(raw_kins_for_semantic(1, False, False), 0)
+
+    def test_plane_exists_only_on_the_twp_stack(self):
+        self.assertIsNone(raw_kins_for_semantic(2, False, True))
+        self.assertIsNone(raw_kins_for_semantic(2, False, False))
+
+    def test_an_unknown_semantic_mode_is_none(self):
+        for s in (-1, 3, 7):
+            self.assertIsNone(raw_kins_for_semantic(s, True, False))
+
+    def test_round_trips_with_semantic_kins_on_every_family(self):
+        for twp in (False, True):
+            for ident in (False, True):
+                for sem in (0, 1, 2):
+                    raw = raw_kins_for_semantic(sem, twp, ident)
+                    if raw is None:
+                        continue
+                    s = state(kins_switchable=True, twp_capable=twp,
+                              identity_first=ident, kins_type=raw)
+                    self.assertEqual(semantic_kins(s), sem,
+                                     f"twp={twp} identity_first={ident} semantic={sem}")
+
+
+class TestKinsModeCommands(unittest.TestCase):
+    """The scrape that turns a machine's own remaps into {raw type: M-code}
+    (gateway_util, pure — the file reads are the caller's)."""
+
+    TWP = {   # examples/sim_config/twp/remap_subs
+        "428remap": "o<428remap> sub\n  #<kinstype> = 0        ; identity\n",
+        "429remap": "o<429remap> sub\n  #<kinstype> = 1        ; TCP\n",
+        "430remap": "o<430remap> sub\n  #<kinstype> = 2        ; TOOL\n",
+    }
+    TRT = {   # examples/sim_config/remap_subs — the opposite convention
+        "428remap": ";M428 by remap: kinstype==1\n  #<kinstype> = 1\n",
+        "429remap": ";M429 by remap: kinstype==0\n  #<kinstype> = 0\n",
+        "430remap": "  #<kinstype> = 2\n",
+    }
+    LINES = ["M428 modalgroup=10 ngc=428remap",
+             "M429 modalgroup=10 ngc=429remap",
+             "M430 modalgroup=10 ngc=430remap",
+             "M530 modalgroup=10 python=g53x_core",
+             "G68.2 modalgroup=1 argspec=pqxyzijkr python=g682"]
+
+    def test_the_two_shipped_conventions_come_out_opposite(self):
+        self.assertEqual(kins_mode_commands(self.LINES, self.TWP.get),
+                         {0: "M428", 1: "M429", 2: "M430"})
+        self.assertEqual(kins_mode_commands(self.LINES, self.TRT.get),
+                         {1: "M428", 0: "M429", 2: "M430"})
+
+    def test_python_remaps_and_g_codes_contribute_nothing(self):
+        self.assertEqual(kins_mode_commands(["M530 modalgroup=10 python=g53x_core",
+                                             "G68.2 modalgroup=1 python=g682"], self.TWP.get),
+                         {})
+
+    def test_an_unreadable_or_silent_sub_is_simply_not_a_mapping(self):
+        self.assertEqual(kins_mode_commands(self.LINES, lambda _n: None), {})
+        self.assertEqual(kins_mode_commands(self.LINES, lambda _n: "o<x> sub\nM2\n"), {})
+
+        def _boom(_n):
+            raise OSError("unreadable")
+        self.assertEqual(kins_mode_commands(self.LINES, _boom), {})
+
+    def test_the_first_m_code_claiming_a_type_wins(self):
+        src = {"a": "#<kinstype> = 0", "b": "#<kinstype> = 0"}
+        self.assertEqual(kins_mode_commands(["M428 ngc=a", "M429 ngc=b"], src.get),
+                         {0: "M428"})
+
+    def test_no_remaps_at_all_is_an_empty_map_not_a_default(self):
+        self.assertEqual(kins_mode_commands([], self.TWP.get), {})
+        self.assertEqual(kins_mode_commands(None, self.TWP.get), {})
+
+
+class TestShippedRemapsDeclareTheirKinsTypes(unittest.TestCase):
+    """The scrape against the ACTUAL shipped remap files — the review's
+    observation, as a test: the two configurations really do disagree."""
+
+    def _cmds(self, subdir):
+        root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..",
+                            "examples", "sim_config", subdir, "remap_subs")
+
+        def _source(name):
+            path = os.path.join(root, name + ".ngc")
+            if not os.path.isfile(path):
+                return None
+            with open(path, encoding="utf-8", errors="replace") as fh:
+                return fh.read()
+        lines = ["M428 modalgroup=10 ngc=428remap",
+                 "M429 modalgroup=10 ngc=429remap",
+                 "M430 modalgroup=10 ngc=430remap"]
+        return kins_mode_commands(lines, _source)
+
+    def test_the_twp_fork_selects_identity_with_m428(self):
+        self.assertEqual(self._cmds("twp"), {0: "M428", 1: "M429", 2: "M430"})
+
+    def test_the_tcp_trunnion_selects_its_world_kins_with_m428(self):
+        self.assertEqual(self._cmds("."), {1: "M428", 0: "M429", 2: "M430"})

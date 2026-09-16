@@ -32,15 +32,36 @@ const MIME = {
   ".woff2": "font/woff2", ".png": "image/png", ".wasm": "application/wasm",
 };
 
-// A tiny toolpath preview (viewer.spec.ts, A2). previewWorker fetches
+// A toolpath preview (viewer.spec.ts, A2). previewWorker fetches
 // GET /preview, msgpack-decodes it, and ThreeViewer.applyGcode builds feed /
 // rapid / highlight geometries from it — the per-program geometry whose
-// disposal-on-rebuild the leak probe checks.
+// disposal-on-rebuild the leak probe checks. The feed is a zigzag over the
+// mock machine's 100 mm box (the camera frames that box, and a chunk the
+// frustum culls is never uploaded, so it must all be in view) in 12.5 mm
+// segments: the controller bins a flat program into an 8 × 8 spatial grid
+// (lineChunks.chunkGrid, 64 cells), so every cell holds segments and the
+// drawn path is 64 CHUNKS — the probe then covers the chunked-draw
+// disposal path (2026-09-12), not a single line. Every vertex is a real
+// corner (1 mm alternation, far above the coarsest LOD tolerance of
+// ~0.07 mm): a collinear row would decimate to one chord per row at the
+// level the framed view draws, leaving most cells empty there — and a
+// chunk with nothing to draw at the drawn level is never uploaded.
+function zigzag() {
+  const feed = [], feed_lines = [];
+  for (let r = 0; r < 64; r++) {
+    const y = (r * 100) / 63;
+    for (let c = 0; c <= 8; c++) {
+      const x = (r % 2 === 0 ? c : 8 - c) * 12.5;
+      feed.push([x, y + (c % 2), 0]);
+      feed_lines.push(feed.length);
+    }
+  }
+  return { feed, feed_lines };
+}
 const PREVIEW = msgpackEncode({
   file: "/leak.ngc",
-  feed: [[0, 0, 0], [10, 0, 0], [10, 10, 0], [0, 10, 0]],
+  ...zigzag(),
   rapid: [[0, 0, 5], [0, 0, 0]],
-  feed_lines: [1, 2, 3, 4],
 });
 
 const server = createServer(async (req, res) => {
@@ -79,6 +100,7 @@ const state = {
     permissions: {
       idle: true, jog: true, override: true, ready: true, pause: false,
       resume: false, step: true, abort: true, probe: true, zero: true,
+      touchoff: true, touchoffRotary: true, twpCapture: true,
       surfaceComp: true, safety: true, setup: true, armed: true, always: true,
     },
   },
@@ -109,6 +131,14 @@ const VIEWER_INIT = {
 // monotonic gcode version drives applyGcode (new toolpath geometry).
 let _initRev = 0;
 let _gcodeVer = 0;
+// Axis set installed by `setAxes` — every later viewer_init re-ship
+// (setKins, rebuildInit) must carry it, or the six-axis strip collapses
+// back to XYZ mid-spec.
+let _axes = null;
+function initFrame() {
+  _initRev++;
+  return { ...VIEWER_INIT, data: { ...VIEWER_INIT.data, ...(_axes ? { axes: _axes } : {}), _rev: _initRev } };
+}
 
 const HALSHOW_SNAPSHOT = {
   type: "halshow_snapshot",
@@ -150,6 +180,9 @@ let quiet = false;
 // in its own SERIAL playwright project (dependencies) — these globals would
 // otherwise interfere with parallel specs.
 const hellos = [];
+// Commands the UI SENT, newest last (R-01: a spec asserts which frame the
+// kinematics selector emits, and that a refused control emits nothing).
+const cmds = [];
 let refuseWs = false;
 
 wss.on("connection", (ws) => {
@@ -164,6 +197,10 @@ wss.on("connection", (ws) => {
       hellos.push(msg);
       if (hellos.length > 50) hellos.shift();
       if (refuseWs) { try { ws.close(1001, "server shutdown"); } catch { /* ignore */ } return; }
+    }
+    if (cmd && cmd !== "heartbeat") {
+      cmds.push(msg);
+      if (cmds.length > 50) cmds.shift();
     }
     if (cmd === "heartbeat") ws.send(JSON.stringify({ type: "pong" }));
     if (cmd === "halshow_live") ws.send(JSON.stringify(HALSHOW_SNAPSHOT));
@@ -200,9 +237,11 @@ ctlWss.on("connection", (ws) => {
       refuseWs = false;
       state.armed = PRISTINE.armed;
       state.data = structuredClone(PRISTINE.data);
+      delete VIEWER_INIT.data.kins;   // setKins is per-spec state too
+      _axes = null;
       hellos.length = 0;   // lifecycle.spec asserts on hello COUNTS
-      _initRev++;
-      broadcast({ ...VIEWER_INIT, data: { ...VIEWER_INIT.data, _rev: _initRev } });
+      cmds.length = 0;
+      broadcast(initFrame());
       broadcast(state);
     } else if (m.op === "setAxes") {
       // WS-D 9-axis fixture: re-ship viewer_init with the given axis letters
@@ -210,7 +249,7 @@ ctlWss.on("connection", (ws) => {
       // surface (SetupStrip grid, viewer HUD DRO, OffsetPanel table) renders
       // one row/column per axis.
       const axes = Array.isArray(m.axes) && m.axes.length ? m.axes : ["X", "Y", "Z"];
-      _initRev++;
+      _axes = axes;
       state.data.work_pos = axes.map((_, i) => (i + 1) * 1.111);
       state.data.g92_offset = axes.map(() => 0);
       state.data.tool_offset = axes.map(() => 0);
@@ -220,13 +259,18 @@ ctlWss.on("connection", (ws) => {
           ...axes.map((l, i) => [l.toLowerCase(), r === 0 ? (i + 1) * 10.123 : 0]),
           ["r", 0],
         ]));
-      broadcast({ ...VIEWER_INIT, data: { ...VIEWER_INIT.data, axes, _rev: _initRev } });
+      broadcast(initFrame());
       broadcast(state);
+    } else if (m.op === "setKins") {
+      // TWP-08b: re-ship viewer_init with a kins declaration (or none) — the
+      // capability twin the strips key the Plane frame, the TWP action row
+      // and the reserved G59 rows on (App.vue twpCapable).
+      if (m.kins) VIEWER_INIT.data.kins = m.kins; else delete VIEWER_INIT.data.kins;
+      broadcast(initFrame());
     } else if (m.op === "rebuildInit") {
       // Force a real in-session scene rebuild: _rev busts ThreeViewer's
       // content-dedup so buildFromInit (clearScene + rebuild) actually runs.
-      _initRev++;
-      broadcast({ ...VIEWER_INIT, data: { ...VIEWER_INIT.data, _rev: _initRev } });
+      broadcast(initFrame());
     } else if (m.op === "loadGcode") {
       // viewer_gcode_ready → frontend fetches GET /preview?v=N → applyGcode
       // builds fresh feed/rapid/highlight geometry.
@@ -234,6 +278,11 @@ ctlWss.on("connection", (ws) => {
       broadcast({ type: "viewer_gcode_ready", version: _gcodeVer, file: "/leak.ngc" });
     } else if (m.op === "raw") {
       broadcast(m.frame);
+    } else if (m.op === "lastCmds") {
+      ws.send(JSON.stringify({ ok: true, op: m.op, cmds }));
+      return;
+    } else if (m.op === "clearCmds") {
+      cmds.length = 0;
     } else if (m.op === "lastHellos") {
       ws.send(JSON.stringify({ ok: true, op: m.op, hellos }));
       return;

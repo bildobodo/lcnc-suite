@@ -1,20 +1,28 @@
 {
   "brk_count": 0,
+  "cline_lines": [],
   "kins_frames": 0,
   "kinstype_present": false,
   "lines_untrusted": false,
+  "outside_points": {
+    "feed": 0,
+    "rapid": 0
+  },
   "points": {
     "feed": 37883,
-    "rapid": 1
+    "rapid": 4
   },
-  "preview_schema": 5,
+  "preview_schema": 9,
+  "rotary_cmd": null,
   "ships_abc": false,
   "sub_names": [],
   "swept_axes": [],
   "trusted_points": {
-    "total": 37884,
-    "trusted": 37884
+    "total": 37887,
+    "trusted": 37887
   },
+  "unmarked_subs": [],
+  "ustart_count": 3,
   "violations_total": 0,
   "violations_world_unchecked": 0,
   "wcs_epochs": {

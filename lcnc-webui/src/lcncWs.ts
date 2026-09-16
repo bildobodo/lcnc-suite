@@ -48,6 +48,7 @@ export const serverShuttingDown = ref(false);
 // Status stream, message center, timing stats (split out, A1.5).
 export {
   status, lcncError, safetyTrip, readerStale, safetyChainIncomplete, configWarning,
+  previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, type PreviewRefresh,
   latency, networkLatency, timingStats, messages, unreadCount,
   resetTimingStats, getTimingCsv, dismissMessage, clearAllMessages, markMessagesRead,
   pushMessage,
@@ -58,6 +59,7 @@ export {
 // sees "preview is stale" rather than a possibly outdated toolpath.
 export {
   viewerInit, viewerGcode, toolTableVersion, gcodeContent, previewLoadError, previewParseError,
+  previewRefusal,
   type ViewerPart, type KinematicsList, type ViewerInit, type ViewerGcode,
 } from "./ws/bulkData";
 // Browser → server telemetry batcher (A1.3). Its four lifecycle/error

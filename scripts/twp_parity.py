@@ -66,21 +66,36 @@ WORKER = os.path.join(_HERE, "..", "lcnc-gateway", "gcode_parse_worker.py")
 
 # ─────────────────────────── stage 1: preview ───────────────────────────
 
-def run_preview(ini_path, ngc, g5x_index=1, units="mm"):
+def run_preview(ini_path, ngc, g5x_index=1, units="mm", rotary_pose=None):
     """Spawn the real parse worker exactly as the gateway does.
 
     INI_FILE_NAME must be in the environment or the interpreter initialises
     with NO remap table and every TWP code comes back "Unknown g code used"
     with an empty payload — a failure mode that looks like a broken program.
     """
+    # LinuxCNC runs its display (and therefore the gateway that spawns this
+    # worker) with cwd = the CONFIG DIRECTORY — verified on the live sim, and
+    # the INIs already depend on it (`USER_M_PATH = ./`). Offline we must
+    # reproduce that or every relative path in the INI resolves against
+    # whatever directory the gate happened to start in. When it does not
+    # resolve, `[PYTHON]TOPLEVEL` fails to load, the interpreter comes up with
+    # NO remap table, and `g68.2` returns "Bad character 'g' used" — an empty
+    # payload that the gate then reports as ELEVEN DRIFTED FIELDS instead of
+    # "your program did not parse". Paths are absolutised first, because they
+    # were given relative to the caller's cwd, not the config dir.
+    ini_path = os.path.abspath(ini_path)
+    ngc = os.path.abspath(ngc)
     env = dict(os.environ)
     env["INI_FILE_NAME"] = ini_path
     env.setdefault("PYTHONPATH", "/usr/lib/python")
     ctx = {"file": ngc, "ini_path": ini_path, "units": units,
            "var_patches": {}, "g5x_index": g5x_index}
+    if rotary_pose:
+        ctx["rotary_pose"] = rotary_pose
     p = subprocess.run([sys.executable, WORKER],
                        input=msgspec.msgpack.encode(ctx),
-                       capture_output=True, env=env)
+                       capture_output=True, env=env,
+                       cwd=os.path.dirname(ini_path))
     if p.returncode != 0:
         raise SystemExit(f"parse worker rc={p.returncode}\n{p.stderr.decode()[:2000]}")
     out = msgspec.msgpack.decode(p.stdout)
@@ -564,7 +579,214 @@ def parse_g682(path):
     return None, None
 
 
-def check_square(tips, want_side=None, tol=0.05, want_normal=None):
+def parse_g683(path):
+    """The G68.3 definition as the PROGRAM TEXT states it, or None.
+
+    Returns (origin_vector_xyz, b_deg, c_deg, a_deg, g54_xyz): the X/Y/Z
+    words on the g68.3 line (a vector from the active work offset, machine
+    frame at definition), the head pose (last `b`/`c` words before it — G68.3
+    measures the LIVE spindle), the table pose (last `a` word before it) and
+    the G54 the program wrote (`g10 l2 p0 ...`, so the parse is independent
+    of whatever var-file row a previous session left).
+    """
+    import re
+    b = c = a = 0.0
+    g54 = [0.0, 0.0, 0.0]
+
+    def word(src, letter):
+        m = re.search(rf"(?<![a-z#<]){letter}\s*(-?[\d.]+)", src, re.I)
+        return float(m.group(1)) if m else None
+
+    with open(path) as f:
+        for ln in f:
+            src = ln.split(";")[0].split("(")[0]
+            if re.search(r"\bg10\s*l2\s*p0\b", src, re.I):
+                g54 = [word(src, k) or 0.0 for k in "xyz"]
+                continue
+            if re.search(r"\bg68\.3\b", src, re.I):
+                v = [word(src, k) or 0.0 for k in "xyz"]
+                return v, b, c, a, g54
+            for k in "bca":
+                w = word(src, k)
+                if w is not None:
+                    if k == "b": b = w
+                    elif k == "c": c = w
+                    else: a = w
+    return None
+
+
+def trsrn_tool_dir(b_deg, c_deg, nut_deg):
+    """Tool axis in MACHINE coords from the head pose: +Z rotated about the
+    nutating B axis [0, sin(nut), cos(nut)] by B, then about machine Z by C.
+    Derived from the head GEOMETRY, not from the kins twin — the independent
+    half of the G68.3 invariant (live-validated by twp_reorient_check to
+    ~1e-5 deg against the comp)."""
+    nut = math.radians(nut_deg)
+    k = np.array([0.0, math.sin(nut), math.cos(nut)])
+    v = np.array([0.0, 0.0, 1.0])
+    bb = math.radians(b_deg)
+    r = (v * math.cos(bb) + np.cross(k, v) * math.sin(bb)
+         + k * float(np.dot(k, v)) * (1 - math.cos(bb)))
+    return _axis_rot(3, c_deg) @ r
+
+
+def g683_expectation(path, nut_deg, square_z=100.0):
+    """(want_normal, want_centroid) in the TABLE frame for a G68.3 program.
+
+    Table-frame plane origin = G54_table + Rx(A)·v (the origin words are a
+    VECTOR from the work offset, so only the rotation part of the table map
+    applies — the pivot line never enters; the 2026-08-29 review found the
+    remap pushing this vector through the POINT path, an origin error of
+    (I-Rx(A))·pivot ≈ 776 mm at A=20 that no frame-independent invariant
+    could see). Normal = Rx(A)·tool_dir(B, C). The square (square.ngc) is
+    traced centred on the plane origin at plane-Z = square_z, so its
+    centroid must sit at origin + square_z·normal. Rx written out here via
+    twp_parity's own _axis_rot — never imported from the module under test.
+    G54 is read as a table-frame point (the program's own G10 is unstamped,
+    so the remap applies the documented A=0 rule to it)."""
+    g = parse_g683(path)
+    if g is None:
+        return None, None
+    v, b, c, a, g54 = g
+    rx = _axis_rot(1, a)
+    n_t = rx @ trsrn_tool_dir(b, c, nut_deg)
+    origin_t = np.asarray(g54, float) + rx @ np.asarray(v, float)
+    return n_t, origin_t + square_z * n_t
+
+
+def plane_origin_expectation(ngc, a_orient_deg, params):
+    """Expected MACHINE-frame plane origin at orient time, from the text.
+
+    Table-frame origin = G54_table + v for G68.2 (words are workpiece
+    intent) or G54_table + Rx(A_def)·v for G68.3 (origin words are a
+    machine-frame VECTOR at the definition pose, converted rotation-only —
+    the 2026-08-29 review find: pushed through the POINT path this picked
+    up (I-Rx(A))·pivot ≈ 776 mm). Mapped to machine coords about the table
+    axis LINE at the ORIENT pose. G54 is read from the program's own g10 l2
+    line as a table-frame point (unstamped -> the documented A=0 rule).
+    Returns (origin_machine, normal_table) or (None, None)."""
+    piv = np.array([0.0, float(params["y_rot_axis"]), float(params["z_rot_axis"])])
+    q, ijk = parse_g682(ngc)
+    if q:
+        n_t = g682_normal(q, ijk)
+        g = parse_g683(ngc)     # reuses the G54 / v parse; g68.3 absent -> None
+        import re
+        W, v = [0.0] * 3, [0.0] * 3
+        with open(ngc) as f:
+            for ln in f:
+                src = ln.split(";")[0].split("(")[0]
+                if re.search(r"\bg10\s*l2\s*p0\b", src, re.I):
+                    W = [float((re.search(rf"(?<![a-z#<]){k}\s*(-?[\d.]+)", src, re.I) or [None, 0]).group(1) or 0.0) if re.search(rf"(?<![a-z#<]){k}\s*(-?[\d.]+)", src, re.I) else 0.0 for k in "xyz"]
+                if re.search(r"\bg68\.2\b", src, re.I):
+                    v = [float(re.search(rf"(?<![a-z#<]){k}\s*(-?[\d.]+)", src, re.I).group(1)) if re.search(rf"(?<![a-z#<]){k}\s*(-?[\d.]+)", src, re.I) else 0.0 for k in "xyz"]
+                    break
+        origin_t = np.asarray(W, float) + np.asarray(v, float)
+    else:
+        g = parse_g683(ngc)
+        if g is None:
+            return None, None
+        v, b, c, a_def, W = g
+        n_t = _axis_rot(1, a_def) @ trsrn_tool_dir(b, c, float(params["nut_angle"]))
+        origin_t = np.asarray(W, float) + _axis_rot(1, a_def) @ np.asarray(v, float)
+    origin_m = piv + _axis_rot(1, -float(a_orient_deg)) @ (origin_t - piv)
+    return origin_m, n_t
+
+
+def truth_plane_invariants(kins, ngc, truth_path, side=100.0, frame=None):
+    """Text-derived plane invariants on a REAL run.
+
+    (ok, report) — or (None, reason) when the program defines no plane, so
+    the caller gates nothing rather than passing a vacuous check. This is
+    what lets the sim-parity GATE see a remap defect: truth and sim both
+    run the same remap and agree with each other perfectly while both cut
+    in the wrong place.
+
+    Two checks, each with an INDEPENDENT half:
+      normal    — the traced square's fitted normal (per-line endpoints
+                  through the mode-1 twin, table frame) vs the normal the
+                  text asks for (G68.2 Euler words / G68.3 head pose).
+      origin    — the G59 row the remap WROTE (the TOOL samples' own g5x),
+                  rotated back to the machine frame through the mode-2
+                  frame R (Jacobian of the mode-2 twin at the payload's
+                  frame triple — exact, the map is affine), vs the origin
+                  the text asks for (plane_origin_expectation). A pure
+                  translation of the plane is invisible to every
+                  frame-independent invariant; THIS sees it. Needs
+                  `frame` (the payload's kins_frames row); without it the
+                  origin is reported UNCHECKED, never assumed.
+    A centroid-through-the-head-model check was tried first and carried a
+    constant ~14 mm head-geometry term in every program including the
+    known-good ones; the G59 row is the clean oracle.
+    """
+    params = kins.get("params") or {}
+    q, ijk = parse_g682(ngc)
+    wn = g682_normal(q, ijk) if q else None
+    if wn is None:
+        wn, _wc = g683_expectation(ngc, float(params.get("nut_angle", 0.0)))
+    if wn is None:
+        return None, "no g68.2/g68.3 in the program — no plane to gate"
+    if truth_tip([0.0] * 6, kins) is None:
+        return None, f"no Python twin for kins {kins.get('type')!r} — UNCHECKED"
+    with open(truth_path) as f:
+        first = f.readline()
+    hdr = json.loads(first) if first.strip() else {}
+    rows = [r for r in (json.loads(l) for l in open(truth_path) if l.strip())
+            if not r.get("header")]
+    moving = [r for r in rows if r["interp"] != linuxcnc.INTERP_IDLE]
+    if not moving:
+        return False, "truth capture contains no motion"
+    endpoint, last_i = {}, {}
+    for i, r in enumerate(moving):
+        ln = r["motion_line"]
+        nxt = moving[i + 1] if i + 1 < len(moving) else None
+        if nxt is None or nxt["motion_line"] != ln:
+            src = r if nxt is None else nxt
+            # Per-row tool offset (schema 8): the capture records the applied
+            # offset on every sample, so a program whose G43 lands after
+            # motion starts is tipped with the RIGHT offset per row — row 0's
+            # value used to be applied to the whole capture.
+            tlo = float((src.get("tool_offset") or [0, 0, 0])[2])
+            endpoint[ln] = truth_tip(src["joints"], kins, tool_z=tlo)
+            last_i[ln] = i
+    order = sorted(endpoint, key=lambda ln: last_i[ln])
+    inv = check_square([endpoint[ln] for ln in order], side, tol=0.2,
+                       want_normal=wn)
+    parts = [f"normal_err {inv.get('normal_err_deg')} deg"]
+    ok = bool(inv.get("normal_match")) and bool(inv.get("planar"))
+    # origin: the G59 row vs the text. Read from the TOOL-kins samples'
+    # own per-sample `g5x` (the offset in force while cutting), NOT the
+    # header's wcs_table — that is a capture-START snapshot and on run 1
+    # of a program still holds the previous program's G59.
+    tool_rows = [r for r in moving if r.get("g5x_index") == 6
+                 and isinstance(r.get("g5x"), list) and len(r["g5x"]) >= 3]
+    g59 = ({"x": tool_rows[-1]["g5x"][0], "y": tool_rows[-1]["g5x"][1],
+            "z": tool_rows[-1]["g5x"][2]} if tool_rows else None)
+    if frame is None or kins.get("type") != "xyzacb-trsrn" or not tool_rows \
+            or not isinstance(g59, dict):
+        parts.append("origin UNCHECKED (no frame/G59/TOOL samples)")
+    else:
+        pf = frame_params(params, frame)
+        j0 = list(tool_rows[-1]["joints"])
+        base = np.array(trsrn_kins_forward(j0, pf, 2)[:3])
+        R = np.zeros((3, 3))
+        for i in range(3):
+            jj = list(j0)
+            jj[i] += 1.0
+            R[:, i] = np.array(trsrn_kins_forward(jj, pf, 2)[:3]) - base
+        origin_m, _n = plane_origin_expectation(ngc, j0[3], params)
+        if origin_m is None:
+            parts.append("origin UNCHECKED (text has no origin)")
+        else:
+            got = R.T @ np.array([g59["x"], g59["y"], g59["z"]], float)
+            err = float(np.linalg.norm(got - origin_m))
+            parts.append(f"origin_err {err:.4f} mm")
+            ok = ok and err <= 0.5
+    parts.append(f"planarity {inv.get('planarity_dev')}")
+    return ok, " | ".join(parts)
+
+
+def check_square(tips, want_side=None, tol=0.05, want_normal=None,
+                 want_centroid=None, centroid_tol=0.5):
     """Geometry of a traced square, in whatever frame the points are given.
 
     Isolates the square itself — the longest run of consecutive segments whose
@@ -609,6 +831,13 @@ def check_square(tips, want_side=None, tol=0.05, want_normal=None):
         res["normal_expected"] = [round(v, 6) for v in wn]
         res["normal_err_deg"] = round(math.degrees(math.acos(min(1.0, cosang))), 4)
         res["normal_match"] = res["normal_err_deg"] <= 0.5
+    if want_centroid is not None:
+        # The one invariant that is NOT frame-independent, on purpose: a pure
+        # translation of the whole square passes every other check here.
+        wc = np.asarray(want_centroid, float)
+        res["centroid_expected"] = [round(float(v), 4) for v in wc]
+        res["centroid_err_mm"] = round(float(np.linalg.norm(cen - wc)), 4)
+        res["centroid_match"] = res["centroid_err_mm"] <= centroid_tol
     return res
 
 
@@ -660,10 +889,15 @@ def cmd_check(a):
                   f" -> j={[round(v,2) for v in j]} tip={[round(v,2) for v in tip]}")
         q, ijk = parse_g682(a.file)
         wn = g682_normal(q, ijk) if q else None
+        wc = None
         if wn is not None:
             print(f"  G68.2 Q{int(q)} I/J/K={ijk} -> plane normal "
                   f"{[round(v,6) for v in wn]}")
-        inv = check_square([t for _j, t in der], a.side, want_normal=wn)
+        else:
+            wn, wc = g683_expectation(
+                a.file, float((kins.get("params") or {}).get("nut_angle", 0.0)))
+        inv = check_square([t for _j, t in der], a.side, want_normal=wn,
+                           want_centroid=wc)
         for k, v in inv.items():
             print(f"  {k:16s}: {v}")
     return 0
@@ -690,9 +924,10 @@ def cmd_compare(a):
     if not moving:
         raise SystemExit("truth capture contains no motion")
 
-    _tlo0 = float((moving[0].get("tool_offset") or [0, 0, 0])[2])
     for r in moving:
-        r["tip"] = truth_tip(r["joints"], kins, tool_z=_tlo0)
+        # Per-row tool offset (schema 8) — see truth_plane_invariants.
+        r["tip"] = truth_tip(r["joints"], kins,
+                             tool_z=float((r.get("tool_offset") or [0, 0, 0])[2]))
 
     # Endpoint per executed line (W3 P6): the FIRST sample AFTER the line's
     # run — the transition sample where motion_line moves on. The previous
@@ -719,6 +954,11 @@ def cmd_compare(a):
 
     q, ijk = parse_g682(a.file)
     wn = g682_normal(q, ijk) if q else None
+    wc = None
+    if wn is None:
+        # G68.3 programs: normal AND centroid expected from the text.
+        wn, wc = g683_expectation(
+            a.file, float((kins.get("params") or {}).get("nut_angle", 0.0)))
 
     print("== truth ==")
     print(f"  samples={len(rows)} moving={len(moving)}")
@@ -731,17 +971,27 @@ def cmd_compare(a):
     order = sorted(endpoint, key=lambda ln: [i for i, r in enumerate(moving)
                                              if r["motion_line"] == ln][-1])
     inv = check_square([endpoint[ln] for ln in order], a.side, tol=0.2,
-                       want_normal=wn)
+                       want_normal=wn, want_centroid=wc)
     for k in ("sides", "side_match", "planarity_dev", "planar", "normal",
-              "normal_err_deg", "normal_match"):
+              "normal_err_deg", "normal_match", "centroid",
+              "centroid_expected", "centroid_err_mm", "centroid_match"):
         if k in inv:
             print(f"  {k:16s}: {inv[k]}")
 
     basis = (pay.get("wcs_basis") or {}).get("g5x") or [0, 0, 0]
-    # TLO as the machine had it during the capture — the client applies it too.
-    tlo_z = float((moving[0].get("tool_offset") or [0, 0, 0])[2])
-    print(f"  tool_offset_z  : {tlo_z}")
+    # TLO as the machine had it during the capture — per row since schema 8
+    # (the client applies the program's own G43 per segment); print the
+    # distinct set so an in-program change is visible in the report.
+    _tlos = sorted({float((r.get("tool_offset") or [0, 0, 0])[2]) for r in moving})
+    print(f"  tool_offset_z  : {_tlos[0] if len(_tlos) == 1 else _tlos}")
     verdicts = []
+    # A plane the text asked for and the machine did not cut in is a failed
+    # compare, whatever the joints say: truth and sim share the remap, so
+    # joint parity is blind to a wrong plane — these are the only checks
+    # with an INDEPENDENT half.
+    for k in ("normal_match", "centroid_match"):
+        if k in inv:
+            verdicts.append(bool(inv[k]))
     all_der_joints = []
     all_der_tips = []
     all_der_lines = []

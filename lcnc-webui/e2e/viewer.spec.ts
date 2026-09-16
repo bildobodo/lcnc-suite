@@ -63,12 +63,19 @@ test("a clean rebuild frees AND re-applies the loaded program's toolpath geometr
   await expect.poll(() => geometries(page), { timeout: 15000, intervals: [150] })
     .toBeGreaterThan(empty + 1);
   const loaded = await settledGeometries(page);
+  // The mock feed zigzags through every cell of the controller's 8 × 8 chunk
+  // grid, so the program is drawn as 64 level-0 chunk geometries (plus rapid
+  // and highlight). Pin that the multi-chunk path is what this spec covers:
+  // a leak there accumulates dozens of geometries per cycle, not ~3. (LOD
+  // levels ≥ 1 are uploaded only when drawn at that zoom, so renderer.info
+  // cannot see them here — their disposal is the controller unit tests'.)
+  expect(loaded - empty, "the mock program should draw as many chunks").toBeGreaterThanOrEqual(48);
 
   // Repeat several clean rebuilds. Steady-state invariant: the count returns
   // to `loaded` every cycle — the rebuild disposed the old per-program
-  // geometry (feed/rapid/highlight ≈ 3) AND re-applied the program preview.
+  // geometry (64 feed chunks + rapid + highlight) AND re-applied the preview.
   //  * A leak that survives clearScene (the old userData._shared mis-tag)
-  //    accumulates ~3/cycle → upper bound goes RED by cycle 1-2.
+  //    accumulates dozens per cycle → upper bound goes RED by cycle 1.
   //  * A rebuild that loses the preview (no re-apply after
   //    toolpath.forgetAfterSceneClear) settles at ~loaded-3 → lower bound RED.
   for (let i = 0; i < 4; i++) {

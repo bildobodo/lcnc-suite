@@ -75,6 +75,13 @@
   --hl-hover: color-mix(in oklab, var(--fg) 12%, var(--button-bg));
   --hl-selected: color-mix(in oklab, var(--fg) 15%, var(--button-bg));
   --hl-active: color-mix(in oklab, var(--fg) 20%, var(--button-bg));
+  /* Range-slider track; shared with overlays that paint their own track
+     (ScrubBar's timeline draws it over the thumb-centre travel). */
+  --range-track: color-mix(in oklab, var(--panel) 90%, var(--fg));
+  /* Range-slider thumb diameter. The thumb's centre travels from half of
+     this to width − half; overlays aligned to that travel (ScrubBar's
+     timeline) read the token — never hard-code the thumb size. */
+  --range-thumb: 16px;
   /* Surface-hover tiers (WS-C): hovers on transparent/panel surfaces — table
      rows, list items, icon buttons — where the button-bg tiers above can't
      apply. Neutral fg tint; the -info variant keeps the form-control hue
@@ -318,7 +325,7 @@ input[type="range"] {
   appearance: none;
   height: 6px;
   border-radius: var(--radius-sm);
-  background: color-mix(in oklab, var(--panel) 90%, var(--fg));
+  background: var(--range-track);
   outline: none;
   cursor: pointer;
   /* Touch: drag the thumb, never text-select ("lasso") or pop the
@@ -335,11 +342,19 @@ input[type="range"]:disabled {
   cursor: not-allowed;
 }
 
+/* A range whose track is painted by an overlay (ScrubBar's timeline): the
+   native track spans the input's full width, 8px past the thumb-centre
+   travel at each end, so overlays aligned to thumb centres can never meet
+   it — the overlay draws the track (--range-track) over the travel instead. */
+input[type="range"].rangeOverlayTrack {
+  background: transparent;
+}
+
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 16px;
-  height: 16px;
+  width: var(--range-thumb);
+  height: var(--range-thumb);
   border-radius: 50%;
   background: var(--fg);
   cursor: pointer;
@@ -351,8 +366,8 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 input[type="range"]::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
+  width: var(--range-thumb);
+  height: var(--range-thumb);
   border-radius: 50%;
   background: var(--fg);
   cursor: pointer;
@@ -584,6 +599,7 @@ label:has(input.toggle:disabled) {
 html.touch-device {
   --fs-2xs: 10px;
   --fs-xs: 11px;
+  --range-thumb: 20px;
 }
 
 html.touch-device button,
@@ -652,14 +668,6 @@ html.touch-device input[type="range"] {
     padding: 0 11px;
   }
 }
-html.touch-device input[type="range"]::-webkit-slider-thumb {
-  width: 20px;
-  height: 20px;
-}
-html.touch-device input[type="range"]::-moz-range-thumb {
-  width: 20px;
-  height: 20px;
-}
 
 /* Table rows that are tap targets (offset cells, tool rows, file lists) */
 html.touch-device .dataTable th,
@@ -690,9 +698,12 @@ html.touch-device .codeLine {
   align-items: center;
 }
 
+/* A disabled radio/select keeps its label REACHABLE (U-06, review
+   2026-09-14): the label carries the reason (title + tap handler) — with
+   pointer-events none the explanation existed exactly where it could never
+   be read. The disabled input itself still refuses. */
 label:has(input:disabled, select:disabled) {
   opacity: var(--opacity-disabled);
-  pointer-events: none;
 }
 
 .fs-reset {
@@ -701,6 +712,19 @@ label:has(input:disabled, select:disabled) {
   margin: 0;
   min-inline-size: 0;
 }
+
+/* Tooltip wrapper for a disabled control (U-06): a disabled <button>
+   swallows pointer events, so hover titles never showed and a tap did
+   nothing. The wrapper is the layout item (class/style move onto it) and
+   carries the reason: title for hover, click for touch (MachineBtn). The
+   disabled child is taken out of hit-testing so the wrapper always receives
+   the event, in every browser. Promoted from ScrubBar's scoped rule. */
+.btnTip { display: inline-flex; }
+.btnTip--block { display: flex; width: 100%; }
+.btnTip > :disabled { pointer-events: none; }
+/* The wrapper is the only focusable thing left when a control is disabled
+   (R-05), so it takes the same focus ring as the other help affordance. */
+.btnTip:focus-visible { outline: 2px solid var(--info); outline-offset: 1px; }
 
 /* .fs-reset:disabled opacity intentionally removed — Gate.vue fieldset handles disabled opacity
    via the fieldset:disabled rule above. Keeping it here would cause double-dimming (0.4 × 0.4). */
@@ -852,7 +876,7 @@ label:has(input:disabled, select:disabled) {
    machine controls are locked (permissions.ts SIM_GATES). */
 .simBanner {
   position: absolute;
-  top: var(--gap-controls);
+  top: var(--gap-section);   /* the viewer-overlay offset (HUD, sim bar) */
   left: 50%;
   transform: translateX(-50%);
   z-index: 11;
@@ -1113,11 +1137,16 @@ label:has(input:disabled, select:disabled) {
   padding-left: 10px;
 }
 
-/* Line flagged by offline validation (soft-limit overtravel; collision
-   results reuse this in later dry-run stages). Warn-tinted line number so
-   the marker survives next to active/selected backgrounds. */
+/* Line flagged by offline validation — tinted line number so the marker
+   survives next to active/selected backgrounds: soft-limit overtravel is
+   warn, a collision-sweep contact is danger (same colours as the scrub
+   bar's timeline marks; a line with both reads danger — later rule wins). */
 .codeLine.violation .lineNumber {
   color: var(--warn);
+  opacity: 1;
+}
+.codeLine.collision .lineNumber {
+  color: var(--danger);
   opacity: 1;
 }
 
@@ -1256,6 +1285,10 @@ label:has(input:disabled, select:disabled) {
     align-items: start;
   }
   .strip-radio-grid > .strip-radio-group { display: contents; }
+  /* A column that stacks several radio groups in landscape (JogStrip's
+     Mode + Jog frame) dissolves the same way so its groups become grid rows. */
+  .strip-radio-grid > .strip-radio-col,
+  .strip-radio-grid > .strip-radio-col > .strip-radio-group { display: contents; }
 }
 
 /* SafetyStrip stays visible when strip scrolls.
@@ -1306,6 +1339,17 @@ label:has(input:disabled, select:disabled) {
   overflow: hidden;
 }
 
+/* Translucent overlay card (the viewer HUD, the sim bar): the scene reads
+   through at 85 % panel, blurred so text stays legible over a busy toolpath.
+   One chrome for every card that floats over the 3D view. */
+.overlay-card {
+  background: color-mix(in oklab, var(--panel) 85%, transparent);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
 /* ── Display utilities ── */
 
 /* Tabular numeric value (slider readouts, override %, RPM, durations).
@@ -1326,6 +1370,9 @@ label:has(input:disabled, select:disabled) {
 
 /* Muted label (section headers, units, field labels) */
 .label-muted    { font-size: var(--fs-2xs); opacity: var(--opacity-muted); white-space: nowrap; }
+/* Opacity-only muting — dims without changing type size (e.g. the reserved-
+   WCS radio text, which must stay --fs-base with its siblings). */
+.muted          { opacity: var(--opacity-muted); }
 .label-muted.md { font-size: var(--fs-md); }
 
 /* Status key/value row — label left, value right (safety detail, tool

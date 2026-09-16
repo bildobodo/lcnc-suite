@@ -29,7 +29,9 @@
 import * as THREE from "three";
 import type { ViewerInit } from "../ws/bulkData";
 import { normalizeKinematics, type KinRuntime } from "./kinematics";
-import { kinsForSegment, makeKins, type KinsModel, type KinsSpec } from "./kins";
+import { kinsForSegment, makeKins, type KinsModel, type KinsSpec, worldModeForSpec } from "./kins";
+import { tloForIndex, type TloEvent } from "./tloEvents";
+import { EVENT_NONE } from "./eventIndex";
 
 export interface PartFrameMachine {
   groups: Array<{ id: string; parent: string; translate?: [number, number, number] | number[] }>;
@@ -55,13 +57,47 @@ export interface PartFrameWcs {
   g92: number[];
   /** Live XY rotation, degrees. */
   rotationDeg: number;
-  /** Live TCP tool offset (G43), machine-frame XYZ — stat.tool_offset.
-   *  When provided, programToMachine produces TRUE JOINT-SPACE values
-   *  (joint = tip + TLO, what the servos actually hold under G43) and
-   *  machineToProgram inverts TLO-inclusive live joints correctly. Omit for
-   *  tip-space math (path placement). Rotary TLO components are out of
-   *  scope (matches applyState phase 3 and the gateway limit check). */
+  /** LIVE applied TCP tool offset (G43), machine-frame XYZ —
+   *  stat.tool_offset. Since schema 8 the offset is PER-SEGMENT state
+   *  (tloEvents on the track/polyline); this live value is the fallback
+   *  for segments before the program's first G43/M6 row (the run inherits
+   *  the machine's modal G43 state) and for payloads without the channel.
+   *  Consumers resolve it through tloEvents.tloForIndex and lift with
+   *  liftToJoints — never through wcsTerms' tx/ty/tz on epoch terms (those
+   *  are tip-space). Rotary TLO components are out of scope (matches
+   *  applyState phase 3 and the gateway limit check). */
   tool?: number[];
+}
+
+/** The same WCS with the tool offset stripped — TIP-space terms. Every
+ *  per-segment consumer builds its terms from this and adds the segment's
+ *  own offset via liftToJoints, so the offset can never ride twice. */
+export function tipWcs(wcs: PartFrameWcs): PartFrameWcs {
+  return wcs.tool ? { g5x: wcs.g5x, g92: wcs.g92, rotationDeg: wcs.rotationDeg } : wcs;
+}
+
+/** Program coords → TRUE JOINT-SPACE machine values: programToMachine under
+ *  TIP-space terms, then + the segment's tool offset (joint = tip + TLO,
+ *  what the servos hold under G43). ONE lift for every consumer (scrub
+ *  pose, entry inverse, part-frame, collision) — schema 8. */
+export function liftToJoints(
+  px: number, py: number, pz: number, pa: number, pb: number, pc: number,
+  oTip: WcsTerms, tlo: readonly number[], out: number[],
+): void {
+  programToMachine(px, py, pz, pa, pb, pc, oTip, out);
+  out[0]! += tlo[0] ?? 0;
+  out[1]! += tlo[1] ?? 0;
+  out[2]! += tlo[2] ?? 0;
+}
+
+/** Exact inverse of liftToJoints: TLO-inclusive machine values → program
+ *  coords under TIP-space terms. */
+export function jointsToProgram(
+  mx: number, my: number, mz: number, ma: number, mb: number, mc: number,
+  oTip: WcsTerms, tlo: readonly number[], out: number[],
+): void {
+  machineToProgram(mx - (tlo[0] ?? 0), my - (tlo[1] ?? 0), mz - (tlo[2] ?? 0),
+                   ma, mb, mc, oTip, out);
 }
 
 export interface PartFramePolyline {
@@ -77,35 +113,75 @@ export interface PartFramePolyline {
    *  it per the declared kins family (kinsForSegment). Absent = no
    *  mode data — every segment derives as trivkins, as before. */
   mode?: Uint8Array;
-  /** Per-vertex governing TWP frame index into `frames` (0xff = none) —
+  /** Per-vertex governing TWP frame index into `frames` (EVENT_NONE = none) —
    *  TOOL-mode (type 2) segments need it to pin the plane frame. */
-  frame?: Uint8Array;
+  frame?: Uint32Array;
   /** TWP frame triplets [preRot rad, primary deg, secondary deg]. */
   frames?: [number, number, number][];
   /** Per-vertex WCS epoch index (review P2) — selects which entry of the
    *  transform's `epochTerms` converts this vertex's program coords to
    *  machine coords. Absent = single-basis (the live `wcs` terms). */
-  wcs?: Uint8Array;
+  wcs?: Uint32Array;
   /** Per-vertex source TRACK index (review P3) — carried through
    *  subdivision so the positional highlight keeps its address space. */
   src?: Uint32Array;
+  /** Per-vertex TLO/tool event index into `tloEvents` (schema 8; TLO_NONE =
+   *  before the first row → the live `wcs.tool` governs). The segment
+   *  ENDING at vertex i lifts AND peels with that offset. Absent = live
+   *  offset throughout (pre-8 behavior). */
+  tlo?: Uint32Array;
+  tloEvents?: TloEvent[];
+  /** Room split (2026-09-11): vertices with `src` < roomEnd whose segment
+   *  is identity-kins bake ROOM-FIXED — in the work group's frame with
+   *  every work-chain rotary at zero (the scene's machineFrameGrp) instead
+   *  of the live work frame — so an uncommanded table rotary can never
+   *  move them. Needs `src`; 0/absent = everything rides the part. */
+  roomEnd?: number;
+  /** Outside-soft-limits verdict per input vertex (2026-09-12): the
+   *  segment ENDING at vertex i had a joint beyond the window — the gateway
+   *  validator's flag, carried onto every sample of that segment. Absent =
+   *  unchecked, no `outside` in the result. */
+  outside?: Uint8Array;
 }
+
+/** Per-joint [min, max] soft-limit pairs in joint order; null/short entries
+ *  are unchecked joints. */
+export type JointLimitList = ReadonlyArray<ReadonlyArray<number> | null | undefined> | null | undefined;
 
 export interface PartFrameResult {
   pos: Float32Array;
   lines?: Uint32Array;
-  /** Input breaks remapped to output (subdivided) vertex indices. */
+  /** Input breaks remapped to output (subdivided) vertex indices — plus one
+   *  at every room/table flip inside a section (see `room`). */
   breaks?: Uint32Array;
   /** Input src carried per output sample (subdivided samples share their
    *  segment's src, keeping the array ascending). */
   src?: Uint32Array;
+  /** Per output sample: 1 = baked room-fixed, 0 = on the part. Present iff
+   *  the split was applied (roomEnd > 0, a work-chain rotary, src given).
+   *  At a flip INSIDE a section the previous vertex is emitted AGAIN in the
+   *  new frame as a break (no connector between the two frames' copies of
+   *  one point), then the segment's samples follow — the boundary move
+   *  itself draws in the frame of its END vertex, the existing convention. */
+  room?: Uint8Array;
+  /** Number of such duplicated flip vertices (telemetry: with them the
+   *  renderer's mixed-frame count must read 0). */
+  frameFlips?: number;
+  /** Per output sample: the input segment's outside flag (every sample of
+   *  segment i reads `outside[i]`; a duplicated flip vertex — a section
+   *  start no segment ends at — reads 0). Present iff the input carried
+   *  `outside` of the right length. The drawn path is the TOOL TIP while
+   *  the limits bound the JOINTS, so the verdict is never re-derived here
+   *  from tip geometry: the gateway validator is the one source
+   *  (2026-09-12). */
+  outside?: Uint8Array;
 }
 
 /** Max rotary sweep per emitted sample. 4° ≈ 0.06% chord error at any radius. */
 export const DEFAULT_ROT_STEP_DEG = 4;
 const MAX_SUBDIV = 256;  // per segment — bounds memory on pathological programs
 
-type Node = {
+export type ChainNode = {
   id: string;
   parentIdx: number;               // -1 = root
   base: THREE.Vector3;             // static translate, unit-scaled
@@ -114,10 +190,23 @@ type Node = {
   world: THREE.Matrix4;
 };
 
+/** The evaluation-ordered work+tool chain of one machine (buildChain). The
+ *  node matrices are scratch: tipInWorkFrame overwrites them per call. */
+export interface Chain {
+  nodes: ChainNode[]; workIdx: number; toolIdx: number;
+  /** Room frame (2026-09-11): the node whose frame the machine-frame group
+   *  hangs under — the PARENT of the work chain's topmost rotary node (-1 =
+   *  root) — and the static offset from it down to the work group with all
+   *  rotations zero (a plain sum of base translates: the scene's
+   *  machineFrameGrp is built the same way). hasRoom = the work chain has
+   *  a rotary at all; without one the room frame IS the work frame. */
+  linIdx: number; roomOffset: THREE.Vector3; hasRoom: boolean;
+}
+
 /** Resolve the group tree into an evaluation-ordered node list (parents first).
  *  Only nodes on the root→workGroup / root→toolGroup chains are kept — the
  *  rest of the machine can't affect the relative tool/work pose. */
-function buildChain(machine: PartFrameMachine): { nodes: Node[]; workIdx: number; toolIdx: number } {
+export function buildChain(machine: PartFrameMachine): Chain {
   const defs = new Map(machine.groups.map(g => [g.id, g]));
   const wanted = new Set<string>();
   for (const tip of [machine.workGroup, machine.toolGroup]) {
@@ -129,7 +218,7 @@ function buildChain(machine: PartFrameMachine): { nodes: Node[]; workIdx: number
     }
   }
   const kin = normalizeKinematics(machine.kinematics);
-  const nodes: Node[] = [];
+  const nodes: ChainNode[] = [];
   const idxOf = new Map<string, number>();
   // Parents-first insertion; machine.json order already satisfies this, the
   // outer loop just retries until the set converges (cycles bail via `hops`).
@@ -162,11 +251,107 @@ function buildChain(machine: PartFrameMachine): { nodes: Node[]; workIdx: number
     }
     remaining = next;
   }
+  const workIdx = idxOf.get(machine.workGroup) ?? -1;
+  let workRotTop = -1;
+  for (let i = workIdx; i >= 0; i = nodes[i]!.parentIdx) {
+    if (nodes[i]!.dofs.some(d => d.rotate)) workRotTop = i;
+  }
+  const roomOffset = new THREE.Vector3();
+  let linIdx = -1;
+  if (workRotTop >= 0) {
+    linIdx = nodes[workRotTop]!.parentIdx;
+    for (let i = workIdx; i >= 0; i = nodes[i]!.parentIdx) {
+      roomOffset.add(nodes[i]!.base);
+      if (i === workRotTop) break;
+    }
+  }
   return {
     nodes,
-    workIdx: idxOf.get(machine.workGroup) ?? -1,
+    workIdx,
     toolIdx: idxOf.get(machine.toolGroup) ?? -1,
+    linIdx, roomOffset, hasRoom: workRotTop >= 0,
   };
+}
+
+// Scratch for tipInWorkFrame (allocation-free; one JS context at a time).
+const _tipPos = new THREE.Vector3();
+const _tipQuat = new THREE.Quaternion();
+const _tipStep = new THREE.Quaternion();
+const _tipInvWork = new THREE.Matrix4();
+const SCALE1 = new THREE.Vector3(1, 1, 1);
+
+/** The chain at `jointVals` → the TOOL TIP in the WORK group's LOCAL frame.
+ *
+ *  Nodes evaluate parents-first from their static base + composed DOFs,
+ *  exactly like the live applyState (translations add, rotations
+ *  right-multiply). With a tool offset the joints are TLO-inclusive (the
+ *  tool group's origin sits at the JOINT position), so the TLO is
+ *  subtracted to reach the tip — in the TOOL's frame: applyState phase 3
+ *  shifts _toolGrp.position local to the rotated spindle chain and the
+ *  collision worker bakes −TLO into tool-local cylinder verts, so the
+ *  offset is rotated by the tool node's world rotation before the world
+ *  subtraction. A world-axis subtraction is off by a constant rigid offset
+ *  whenever the spindle chain is tilted (W3 P0, operator-caught: 12.58 mm
+ *  at B=−40.86/C=130.25 with TLO z=22). Column-major elements directly;
+ *  transformDirection would normalize.
+ *
+ *  ONE rule for three consumers: the part-frame preview (per vertex, via
+ *  transformToPartFrame), the program-zero markers (viewer/programZero.ts)
+ *  and, by contract, the live scene. `out` is returned. */
+export function tipInWorkFrame(
+  chain: Chain, jointVals: ArrayLike<number | null>, tlo: readonly number[], out: THREE.Vector3,
+): THREE.Vector3 {
+  evalChainTip(chain, jointVals, tlo, out);
+  _tipInvWork.copy(chain.nodes[chain.workIdx]!.world).invert();
+  return out.applyMatrix4(_tipInvWork);
+}
+
+/** The chain at `jointVals` → the tool tip in the ROOM frame (2026-09-11):
+ *  the work group's frame with every work-chain rotary at zero — the frame
+ *  the scene's machineFrameGrp represents. Same evaluation as
+ *  tipInWorkFrame; only the final frame differs: the parent of the topmost
+ *  work-chain rotary (its matrix carries the live table TRAVEL, never table
+ *  rotation), minus the static offset down to the work group. */
+export function tipInRoomFrame(
+  chain: Chain, jointVals: ArrayLike<number | null>, tlo: readonly number[], out: THREE.Vector3,
+): THREE.Vector3 {
+  evalChainTip(chain, jointVals, tlo, out);
+  if (chain.linIdx >= 0) {
+    _tipInvWork.copy(chain.nodes[chain.linIdx]!.world).invert();
+    out.applyMatrix4(_tipInvWork);
+  }
+  return out.sub(chain.roomOffset);
+}
+
+/** Evaluate every node of the chain at `jointVals` (matrices left in the
+ *  nodes) and return the tool tip in the ROOT frame. */
+export function evalChainTip(
+  chain: Chain, jointVals: ArrayLike<number | null>, tlo: readonly number[], out: THREE.Vector3,
+): THREE.Vector3 {
+  const { nodes, toolIdx } = chain;
+  for (const node of nodes) {
+    _tipPos.copy(node.base);
+    _tipQuat.identity();
+    for (const d of node.dofs) {
+      const v = (jointVals[d.joint] ?? 0) * d.sign;
+      if (d.rotate) {
+        _tipStep.setFromAxisAngle(d.axisVec, THREE.MathUtils.degToRad(v));
+        _tipQuat.multiply(_tipStep);
+      } else {
+        _tipPos.addScaledVector(d.axisVec, v);
+      }
+    }
+    node.local.compose(_tipPos, _tipQuat, SCALE1);
+    if (node.parentIdx >= 0) node.world.multiplyMatrices(nodes[node.parentIdx]!.world, node.local);
+    else node.world.copy(node.local);
+  }
+  const we = nodes[toolIdx]!.world.elements;
+  const tx = tlo[0] ?? 0, ty = tlo[1] ?? 0, tz = tlo[2] ?? 0;
+  out.setFromMatrixPosition(nodes[toolIdx]!.world);
+  out.x -= we[0]! * tx + we[4]! * ty + we[8]! * tz;
+  out.y -= we[1]! * tx + we[5]! * ty + we[9]! * tz;
+  out.z -= we[2]! * tx + we[6]! * ty + we[10]! * tz;
+  return out;
 }
 
 /** Precomputed live-WCS terms for program→machine conversion. Every element
@@ -188,6 +373,22 @@ export interface WcsTerms {
   oa: number; ob: number; oc: number;
   tx: number; ty: number; tz: number;
   cth: number; sth: number;
+}
+
+/** The scene-graph anchor of a drawn toolpath: where program (0,0,0) sits in
+ *  the work group (g5x + Rz(θ)·g92, z = g5x_z + g92_z) and the XY rotation.
+ *  ONE formula for applyState's live work origin AND the anchor a baked
+ *  toolpath is parented under (2026-09-03: the lines hung under the LIVE
+ *  origin while their vertices were peeled against the origin at bake
+ *  time — a G10 L2 / fixture switch mid-run moved the anchor at once and
+ *  the vertices ≥300 ms later: the whole path jumped, then returned). */
+export interface AnchorTerms { ox: number; oy: number; oz: number; thetaDeg: number }
+
+export function anchorTerms(wcs: PartFrameWcs, out?: AnchorTerms): AnchorTerms {
+  const t = wcsTerms(wcs);
+  const o = out ?? { ox: 0, oy: 0, oz: 0, thetaDeg: 0 };
+  o.ox = t.ox; o.oy = t.oy; o.oz = t.oz; o.thetaDeg = wcs.rotationDeg || 0;
+  return o;
 }
 
 export function wcsTerms(wcs: PartFrameWcs): WcsTerms {
@@ -260,7 +461,8 @@ export function transformToPartFrame(
   const n = Math.min(input.pos.length, input.abc.length) / 3 | 0;
   if (n === 0) return { pos: new Float32Array(0), lines: input.lines && new Uint32Array(0), src: input.src && new Uint32Array(0) };
 
-  const { nodes, workIdx, toolIdx } = buildChain(machine);
+  const chain = buildChain(machine);
+  const { workIdx, toolIdx } = chain;
   if (workIdx < 0 || toolIdx < 0) {
     // Chain unresolvable (broken machine.json) — loud, and fall back to the
     // programmed polyline rather than rendering garbage.
@@ -273,14 +475,16 @@ export function transformToPartFrame(
   // still be empty — the transform then runs offset-free and re-runs when
   // g5x/g92 first arrive (ThreeViewer's WCS-change refresh). A bare [0]!
   // here turned that race into NaN vertices — invisible geometry, no error.
-  const o = wcsTerms(wcs);
+  // TIP-space terms: the tool offset is per-vertex (schema 8) and enters
+  // through liftToJoints / the peel below with ONE source per vertex —
+  // the old code lifted with the epoch terms' (live) tool but peeled with
+  // the active terms' (live) tool, an asymmetry that was invisible only
+  // because both were the same value.
+  const { o, termFor, tloFor, vertModel, identityKins } = vertexResolvers(machine, wcs, input, epochTerms);
   // Output peel stays in the LIVE ACTIVE frame — the rendered polyline hangs
   // under the single workOrigin group. Per-epoch terms (review P2) only
   // steer the INPUT side: program coords → machine coords per vertex.
   const { ox, oy, oz, cth, sth } = o;
-  const inWcs = input.wcs;
-  const termFor = (i: number): WcsTerms =>
-    (inWcs && epochTerms?.[inWcs[i] ?? 0]) ? epochTerms[inWcs[i] ?? 0]! : o;
 
   // Section starts: segments INTO these vertices are false connectors across
   // stream interleaves — a single un-subdivided sample keeps the vertex (the
@@ -288,7 +492,20 @@ export function transformToPartFrame(
   const breakSet = new Set<number>();
   if (input.breaks) for (const b of input.breaks) breakSet.add(b);
 
-  // Pass 1 — sample count (subdivide segments by their largest rotary delta).
+  // Room split (2026-09-11): per input vertex, does its segment bake
+  // room-fixed? Only identity-kins segments before the rotary boundary; a
+  // world-kins segment rides the part whatever its track index (TCP/plane
+  // make the machine track the part). Needs a work-chain rotary to matter.
+  const roomEnd = input.roomEnd ?? 0;
+  const roomV = (roomEnd > 0 && chain.hasRoom && input.src) ? new Uint8Array(n) : null;
+  if (roomV) {
+    for (let i = 0; i < n; i++) {
+      roomV[i] = (input.src![i]! < roomEnd && !worldModeForSpec(input.mode?.[i], machine.kins)) ? 1 : 0;
+    }
+  }
+
+  // Pass 1 — sample count (subdivide segments by their largest rotary delta;
+  // a room/table flip inside a section adds one duplicated vertex).
   let total = 1;
   const segSamples = new Uint16Array(Math.max(0, n - 1));
   for (let i = 1; i < n; i++) {
@@ -300,90 +517,48 @@ export function transformToPartFrame(
       : Math.min(MAX_SUBDIV, Math.max(1, Math.ceil(Math.max(da, db, dc) / rotStepDeg)));
     segSamples[i - 1] = steps;
     total += steps;
+    if (roomV && roomV[i] !== roomV[i - 1] && !breakSet.has(i)) total++;
   }
 
   const outPos = new Float32Array(total * 3);
   const outLines = input.lines ? new Uint32Array(total) : undefined;
   const outSrc = input.src ? new Uint32Array(total) : undefined;
+  const outRoom = roomV ? new Uint8Array(total) : undefined;
+  let frameFlips = 0;
 
   // Scratch (allocation-free inner loop).
-  const pos = new THREE.Vector3();
-  const quat = new THREE.Quaternion();
-  const step = new THREE.Quaternion();
   const tool = new THREE.Vector3();
-  const invWork = new THREE.Matrix4();
-  const SCALE1 = new THREE.Vector3(1, 1, 1);
   // UVW joints come back null from the kins boundary; the DOF loop's
   // `?? 0` keeps them at zero in the pose, as before.
   const jointVals: (number | null)[] = [];
-  const axisLetters = machine.axes.length ? machine.axes : ["X", "Y", "Z", "A", "B", "C"];
-  // Per-vertex kins model (phase 3): RAW switchkins type + governing TWP
-  // frame → kinsForSegment (family-aware routing; the loud honesty warns
-  // live there). An untracked polyline (no mode array) stays trivkins
-  // throughout. Live TLO feeds the model's pivot math where the family
-  // uses it (trt world, trsrn TCP).
-  const identityKins = makeKins(axisLetters);
-  const inFrames = input.frames;
-  const vertModel: KinsModel[] | null = input.mode
-    ? Array.from(input.mode, (t, i) => {
-        const fi = input.frame?.[i];
-        const fr = (fi != null && fi !== 0xff && inFrames) ? inFrames[fi] ?? null : null;
-        return kinsForSegment(axisLetters, machine.kins, t, fr,
-                              wcs.tool?.[2] || undefined, "part-frame preview");
-      })
-    : null;
   const machineVals: number[] = [0, 0, 0, 0, 0, 0];
+  // Outside-limits flag per sample (2026-09-12): carried from the input
+  // segment, never computed here.
+  const inOutside = input.outside && input.outside.length === n ? input.outside : null;
+  const outOutside = inOutside ? new Uint8Array(total) : undefined;
 
   let out = 0;
-  const emit = (px: number, py: number, pz: number, pa: number, pb: number, pc: number, line: number, model: KinsModel, oIn: WcsTerms) => {
-    // Program → machine coords (per the sample's EPOCH terms), then machine
-    // → joints via the kins boundary.
-    programToMachine(px, py, pz, pa, pb, pc, oIn, machineVals);
+  const emit = (px: number, py: number, pz: number, pa: number, pb: number, pc: number, line: number, model: KinsModel, oIn: WcsTerms, tloV: readonly number[], room: number, outV: number) => {
+    // Program → machine coords (per the sample's EPOCH terms + the
+    // segment's TLO), then machine → joints via the kins boundary.
+    liftToJoints(px, py, pz, pa, pb, pc, oIn, tloV, machineVals);
     model.inverse(machineVals, jointVals);
+    if (outOutside) outOutside[out] = outV;
 
-    // Evaluate chain nodes (parents first): base + composed DOFs, exactly
-    // like the live applyState — translations add, rotations right-multiply.
-    for (const node of nodes) {
-      pos.copy(node.base);
-      quat.identity();
-      for (const d of node.dofs) {
-        const v = (jointVals[d.joint] ?? 0) * d.sign;
-        if (d.rotate) {
-          step.setFromAxisAngle(d.axisVec, THREE.MathUtils.degToRad(v));
-          quat.multiply(step);
-        } else {
-          pos.addScaledVector(d.axisVec, v);
-        }
-      }
-      node.local.compose(pos, quat, SCALE1);
-      if (node.parentIdx >= 0) node.world.multiplyMatrices(nodes[node.parentIdx]!.world, node.local);
-      else node.world.copy(node.local);
-    }
-
-    // Tool tip world position, then into the work frame, then peel WCS.
-    // With wcs.tool set the joints above are TLO-inclusive, so the tool
-    // group's origin sits at the JOINT position — subtract the TLO to get
-    // the tip. The TLO lives in the TOOL's frame (applyState phase 3
-    // shifts _toolGrp.position, local to the rotated spindle chain;
-    // collisionWorker bakes −TLO into tool-local cylinder verts), so it
-    // must be rotated by the tool node's world rotation before the world
-    // subtraction — a world-axis subtraction is off by a constant rigid
-    // offset whenever the spindle chain is tilted (W3 P0, operator-caught:
-    // 12.58 mm at B=−40.86/C=130.25 with TLO z=22). Column-major elements
-    // directly; transformDirection would normalize.
-    const we = nodes[toolIdx]!.world.elements;
-    tool.setFromMatrixPosition(nodes[toolIdx]!.world);
-    tool.x -= we[0]! * o.tx + we[4]! * o.ty + we[8]! * o.tz;
-    tool.y -= we[1]! * o.tx + we[5]! * o.ty + we[9]! * o.tz;
-    tool.z -= we[2]! * o.tx + we[6]! * o.ty + we[10]! * o.tz;
-    invWork.copy(nodes[workIdx]!.world).invert();
-    tool.applyMatrix4(invWork);
+    // Chain at those joints → tool tip in the work frame (tipInWorkFrame:
+    // the TLO peel in the tool node's rotation lives there) — or, for a
+    // room-fixed sample, in the zero-rotary work frame — then peel WCS.
+    // Both frames peel the same live terms, so both anchors pose from the
+    // same anchorTerms.
+    if (room) tipInRoomFrame(chain, jointVals, tloV, tool);
+    else tipInWorkFrame(chain, jointVals, tloV, tool);
     const rx = tool.x - ox, ry = tool.y - oy;
     outPos[out * 3] = rx * cth + ry * sth;
     outPos[out * 3 + 1] = -rx * sth + ry * cth;
     outPos[out * 3 + 2] = tool.z - oz;
     if (outLines) outLines[out] = line;
     if (outSrc) outSrc[out] = _srcCur;
+    if (outRoom) outRoom[out] = room;
     out++;
   };
 
@@ -391,7 +566,7 @@ export function transformToPartFrame(
   let _srcCur = input.src?.[0] ?? 0;
   emit(input.pos[0]!, input.pos[1]!, input.pos[2]!,
        input.abc[0]!, input.abc[1]!, input.abc[2]!, input.lines?.[0] ?? 0,
-       vertModel?.[0] ?? identityKins, termFor(0));
+       vertModel?.[0] ?? identityKins, termFor(0), tloFor(0), roomV?.[0] ?? 0, inOutside?.[0] ?? 0);
   if (breakSet.has(0)) outBreaks.push(0);
   for (let i = 1; i < n; i++) {
     const j = i * 3, k = j - 3;
@@ -399,7 +574,20 @@ export function transformToPartFrame(
     const line = input.lines?.[i] ?? 0;
     const model = vertModel?.[i] ?? identityKins;  // segment mode: all its samples share it
     const oSeg = termFor(i);                       // ...and its epoch terms
+    const tloSeg = tloFor(i);                      // ...and its tool offset
     _srcCur = input.src?.[i] ?? i;                 // ...and its track index
+    const rm = roomV?.[i] ?? 0;                    // ...and its frame
+    const ov = inOutside?.[i] ?? 0;                // ...and its outside flag
+    if (roomV && rm !== roomV[i - 1] && !breakSet.has(i)) {
+      // Frame flip inside a section: the previous vertex is emitted again
+      // in THIS segment's frame as a section start (no connector between
+      // the two frames' copies of one point), then the segment follows.
+      outBreaks.push(out);
+      emit(input.pos[k]!, input.pos[k + 1]!, input.pos[k + 2]!,
+           input.abc[k]!, input.abc[k + 1]!, input.abc[k + 2]!,
+           line, model, oSeg, tloSeg, rm, 0);
+      frameFlips++;
+    }
     for (let s = 1; s <= steps; s++) {
       const t = s / steps;
       emit(
@@ -412,6 +600,9 @@ export function transformToPartFrame(
         line,
         model,
         oSeg,
+        tloSeg,
+        rm,
+        ov,
       );
     }
     // Remap the section start to its output index (the segment's endpoint —
@@ -421,10 +612,43 @@ export function transformToPartFrame(
 
   return {
     pos: outPos, lines: outLines,
-    breaks: input.breaks ? Uint32Array.from(outBreaks) : undefined,
+    breaks: (input.breaks || outBreaks.length) ? Uint32Array.from(outBreaks) : undefined,
     src: outSrc,
+    room: outRoom, frameFlips: outRoom ? frameFlips : undefined,
+    outside: outOutside,
   };
 }
+
+/** The per-vertex conversion inputs transformToPartFrame and
+ *  any per-vertex consumer share: tip-space live terms, the per-epoch term and
+ *  per-segment TLO resolvers, and the per-vertex kins model (phase 3: RAW
+ *  switchkins type + governing TWP frame → kinsForSegment, family-aware;
+ *  the loud honesty warns live there; an untracked polyline — no mode
+ *  array — stays trivkins throughout; live TLO feeds the model's pivot
+ *  math where the family uses it: trt world, trsrn TCP). */
+function vertexResolvers(
+  machine: PartFrameMachine, wcs: PartFrameWcs, input: PartFramePolyline, epochTerms?: readonly WcsTerms[],
+) {
+  const o = wcsTerms(tipWcs(wcs));
+  const inWcs = input.wcs;
+  const termFor = (i: number): WcsTerms =>
+    (inWcs && epochTerms?.[inWcs[i] ?? 0]) ? epochTerms[inWcs[i] ?? 0]! : o;
+  const tloFor = (i: number): readonly number[] =>
+    tloForIndex(input.tlo?.[i], input.tloEvents, wcs.tool);
+  const axisLetters = machine.axes.length ? machine.axes : ["X", "Y", "Z", "A", "B", "C"];
+  const identityKins = makeKins(axisLetters);
+  const inFrames = input.frames;
+  const vertModel: KinsModel[] | null = input.mode
+    ? Array.from(input.mode, (t, i) => {
+        const fi = input.frame?.[i];
+        const fr = (fi != null && fi !== EVENT_NONE && inFrames) ? inFrames[fi] ?? null : null;
+        return kinsForSegment(axisLetters, machine.kins, t, fr,
+                              tloFor(i)[2] || undefined, "part-frame preview");
+      })
+    : null;
+  return { o, termFor, tloFor, vertModel, identityKins };
+}
+
 
 /** Cumulative polyline distance (dashed-line attribute), same algorithm as
  *  previewWorker's — exported here so the part-frame worker reuses it. */
@@ -441,6 +665,8 @@ export function lineDistances(pos: Float32Array): Float32Array {
 }
 
 /** Source-line → point-index range map over (possibly subdivided) lines. */
+/** Map form of the per-line range (tests only since 2026-09-05 — the
+ *  runtime ships viewer/lineIndex.ts typed arrays instead). */
 export function buildLineMap(lines: Uint32Array | undefined): Map<number, { start: number; end: number }> {
   const m = new Map<number, { start: number; end: number }>();
   if (!lines) return m;

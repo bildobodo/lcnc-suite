@@ -1,4 +1,4 @@
-import { inject, type ComputedRef, type InjectionKey } from "vue";
+import { computed, inject, type ComputedRef, type InjectionKey } from "vue";
 
 /**
  * Permission classes — which controls are enabled in which machine state.
@@ -30,8 +30,30 @@ export type Permissions = {
   jog: boolean;
   /** override: feed/spindle/rapid overrides (works during execution) */
   override: boolean;
-  /** ready: idle + homed (MDI, cycle start, spindle direction, coolant) */
+  /** ready: idle + homed (MDI, spindle direction, coolant) */
   ready: boolean;
+  /** run: ready + the kinematics-runnable rule — Cycle Start / run-from-line.
+   *  Plane (TOOL) kinematics without its plane, or with an operator fixture
+   *  selected (what a program's M2 leaves behind: G54 restored, kins type
+   *  not), must not start a program in the tilted frame. Backend:
+   *  command_policy.kins_runnable. */
+  run: boolean;
+  /** machineFrame: ready + identity kinematics — the G53-moving routines
+   *  (go-to Home/G30, tool change / toolsetter, probing cycles). Under TCP
+   *  or Plane kinematics G53 addresses the tilted / table-riding world
+   *  frame and a rotary word swings the head at fixed XYZ joints. Backend:
+   *  command_policy.machine_frame_required. */
+  machineFrame: boolean;
+  /** goZero: ready + a → Zero plan exists for the kinematics mode — Machine
+   *  frame (subroutine) or Plane frame with its plane and G59 (retract along
+   *  the tool axis, X0 Y0 in the plane); TCP refuses. Backend:
+   *  command_policy.goto_zero_plan. */
+  goZero: boolean;
+  /** planeFrame: ready + the Plane jog frame is a legal selection — TWP
+   *  machine, a plane defined, the HEAD still aligned with it (the A/B/C
+   *  orient stamp vs the live rotaries). A bare M430 reuses whatever frame
+   *  the kins pins last held. Backend: command_policy.plane_frame_check. */
+  planeFrame: boolean;
   /** pause: can pause a running program */
   pause: boolean;
   /** resume: can resume a paused program */
@@ -44,6 +66,20 @@ export type Permissions = {
   probe: boolean;
   /** zero: idle + no eoffset (zeroing with comp active bakes offset into G5x) */
   zero: boolean;
+  /** touchoff: probe + the kins-mode × fixture rule for LINEAR letters —
+   *  identity/TCP into G54–G58 (TCP only with the table at A=0), Plane mode
+   *  only with the plane active and G59 selected (routed to the remap, which
+   *  writes G54 through the plane). G59–G59.3 are the TWP remap's scratch
+   *  rows and never a touch-off target. Backend: command_policy.touchoff_route. */
+  touchoff: boolean;
+  /** touchoffRotary: probe + Machine (identity) jog frame + G54 — a rotary
+   *  offset under TCP/Plane kinematics displaces the orient move. */
+  touchoffRotary: boolean;
+  /** twpCapture: probe + the Capture-plane admission rule — TWP machine,
+   *  G54 active, NO plane defined (refuse, never silently discard — user
+   *  decision 2026-08-31), no rotary/G92 offsets. One button: G69 → G68.3
+   *  at the tool tip → no-move G53.1 P0. Backend: twp_capture_check. */
+  twpCapture: boolean;
   /** surfaceComp: probe + every rotary parked at zero — may START surface-map
    *  work (scan a new map, switch compensation ON). The map is a machine-Z
    *  shim applied after kinematics, valid only with the tool normal to the
@@ -63,8 +99,10 @@ export type Permissions = {
 
 /** All gate names, in a stable order. */
 export const GATE_NAMES = [
-  "idle", "jog", "override", "ready", "pause", "resume", "step",
-  "abort", "probe", "zero", "surfaceComp", "safety", "setup", "armed", "always",
+  "idle", "jog", "override", "ready", "run", "machineFrame", "goZero", "planeFrame", "pause", "resume", "step",
+  "abort", "probe", "zero", "touchoff", "touchoffRotary", "twpCapture",
+  "surfaceComp",
+  "safety", "setup", "armed", "always",
 ] as const;
 
 /**
@@ -75,7 +113,8 @@ export const GATE_NAMES = [
  * wrong. `jog` never had a busy term (hold-to-move).
  */
 const BUSY_GATES: ReadonlySet<keyof Permissions> = new Set([
-  "idle", "override", "ready", "probe", "zero", "surfaceComp", "setup",
+  "idle", "override", "ready", "run", "machineFrame", "goZero", "planeFrame", "probe", "zero", "touchoff", "touchoffRotary",
+  "twpCapture", "surfaceComp", "setup",
 ]);
 
 /**
@@ -99,6 +138,7 @@ export type MachinePermissions = Partial<Record<keyof Permissions, boolean>>;
  * gates also require `!busy`. Absent backend perms (before the first status)
  * yield all-false except `always` — the safe default.
  */
+let _warnedNoRun = false;
 export function applyClientOverlay(
   machine: MachinePermissions | null | undefined,
   armed: boolean,
@@ -106,6 +146,14 @@ export function applyClientOverlay(
   sim: boolean = false,
 ): Permissions {
   const out = {} as Permissions;
+  // Mixed-version window (2026-09-03): a gateway that predates the `run`
+  // class ships no `run` key. Read it as `ready` (its old gate) and say so
+  // once, instead of dimming Cycle Start until the restart.
+  if (machine && machine.ready !== undefined
+      && (machine.run === undefined || machine.machineFrame === undefined || machine.goZero === undefined)) {
+    if (!_warnedNoRun) { _warnedNoRun = true; console.warn("[permissions] backend ships no 'run' / 'machineFrame' / 'goZero' class — using 'ready' until the gateway restarts"); }
+    machine = { run: machine.ready, machineFrame: machine.ready, goZero: machine.ready, ...machine };
+  }
   for (const g of GATE_NAMES) {
     if (g === "always") { out[g] = true; continue; }
     out[g] = !!machine?.[g] && armed
@@ -113,6 +161,49 @@ export function applyClientOverlay(
       && (sim ? SIM_GATES.has(g) : true);
   }
   return out;
+}
+
+/** Why a gate is closed, per gate (U-06, review 2026-09-14) — the backend's
+ *  first-unmet message (`status.permission_reasons`) under the client-local
+ *  overlay's own reasons. Open gates are absent. */
+export type PermissionReasons = Partial<Record<keyof Permissions, string>>;
+
+export const CLIENT_REASONS = {
+  notArmed: "Not armed — press Arm",
+  settling: "Settling — a command is still in flight",
+  sim: "Simulation mode — exit the simulation for machine actions",
+} as const;
+
+/** The reasons twin of applyClientOverlay: the client-local terms explain
+ *  themselves (armed / busy / sim), else the backend's reason rides through.
+ *  A gate closed by the backend without a shipped reason (an older gateway)
+ *  stays unexplained — dimmed as before, never a made-up sentence. */
+export function applyClientOverlayReasons(
+  machine: Partial<Record<string, string>> | null | undefined,
+  armed: boolean,
+  busy: boolean,
+  sim: boolean = false,
+): PermissionReasons {
+  const out: PermissionReasons = {};
+  for (const g of GATE_NAMES) {
+    if (g === "always") continue;
+    if (!armed) { out[g] = CLIENT_REASONS.notArmed; continue; }
+    if (sim && !SIM_GATES.has(g)) { out[g] = CLIENT_REASONS.sim; continue; }
+    if (busy && BUSY_GATES.has(g)) { out[g] = CLIENT_REASONS.settling; continue; }
+    const r = machine?.[g];
+    if (r) out[g] = r;
+  }
+  return out;
+}
+
+export const PERMISSION_REASONS_KEY = Symbol("permissionReasons") as InjectionKey<ComputedRef<PermissionReasons>>;
+const _noReasons = computed<PermissionReasons>(() => ({}));
+
+/** Composable: the per-gate reasons from the ancestor provider; an empty
+ *  map when none (standalone / tests) — a control then simply has no
+ *  explanation to offer. */
+export function usePermissionReasons(): ComputedRef<PermissionReasons> {
+  return inject(PERMISSION_REASONS_KEY, _noReasons);
 }
 
 /** Valid gate names (excludes `always`) — used by main.ts data-gate guard. */
@@ -138,6 +229,31 @@ export function useFire(): FireFn {
   const fire = inject(FIRE_KEY);
   if (!fire) throw new Error("useFire() called without provider — ensure App.vue provides FIRE_KEY");
   return fire;
+}
+
+/**
+ * Keyboard activation for a "why is this unavailable?" affordance (R-05,
+ * implementation review 2026-09-15).
+ *
+ * Install it ONLY while the control is unavailable: on an ENABLED control the
+ * preventDefault above would swallow the native activation — Space on an
+ * enabled radio stopped selecting it (R-07).
+ *
+ * A control that is disabled cannot be focused, so the reason beside it has
+ * to be reachable on its own: the wrapper (MachineBtn) or the label (a
+ * disabled radio) takes `tabindex="0"` + `role="button"` WHILE DISABLED and
+ * calls this from @keydown. Space is prevented from scrolling the strip. The
+ * disabled control itself is never re-enabled — this hands over the
+ * explanation, not the action.
+ */
+export function explainKeydown(e: KeyboardEvent, say: () => void): void {
+  if (e.key !== "Enter" && e.key !== " " && e.key !== "Spacebar") return;
+  e.preventDefault();
+  // The key is CONSUMED here (R-06): it reached a help affordance, so it must
+  // not also travel to the window's shortcut map, where Space is Cycle Start
+  // by default. Asking for an explanation can never be a machine action.
+  e.stopPropagation();
+  say();
 }
 
 /** Composable: inject permissions from ancestor provider */

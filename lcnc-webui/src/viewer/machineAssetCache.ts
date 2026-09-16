@@ -85,44 +85,54 @@ export function loadMachineAssets(init: any, onProgress?: (msg: string) => void)
       const base = init.stl_base_url;
       const parts = init.parts ?? [];
       const urlFor = (file: string) => base.endsWith("/") ? `${base}${file}` : `${base}/${file}`;
-      const toFetch = parts.filter((p: any) => !_geometryCache.has(p.id));
+      // One asset per DISPLAY mesh plus one per collision PROXY mesh
+      // (2026-09-13, machine.json `collision`): the proxy is cached under its
+      // own key (collisionKey) so the sweep's body builder can pick it up
+      // with getCollisionGeometry; both ride the same fetch/IDB/version path.
+      type Asset = { key: string; id: string; file: string; label: string };
+      const assets: Asset[] = [];
+      for (const p of parts as any[]) {
+        assets.push({ key: p.id, id: p.id, file: p.file, label: p.id });
+        if (p.collision) assets.push({ key: collisionKey(p.id), id: p.id, file: p.collision, label: `${p.id} (collision proxy)` });
+      }
+      const toFetch = assets.filter(a => !_geometryCache.has(a.key));
 
       // Drop IndexedDB entries whose ?v= no longer matches the active set.
       // Bounds the cache as users update STLs (?v=mtime changes → new key).
       // safe-silent: best-effort cache GC; pruneStaleVersions warns internally
-      pruneStaleVersions(new Set(parts.map((p: any) => urlFor(p.file)))).catch(() => {});
+      pruneStaleVersions(new Set(assets.map(a => urlFor(a.file)))).catch(() => {});
 
       if (toFetch.length === 0) {
         onProgress?.("All STLs already cached");
       }
 
-      const results = await Promise.allSettled(toFetch.map(async (p: any) => {
-        const url = urlFor(p.file);
+      const results = await Promise.allSettled(toFetch.map(async (a) => {
+        const url = urlFor(a.file);
         const t0 = performance.now();
         // L2: parsed geometry from IndexedDB. Same-version key (?v=mtime)
         // means no re-fetch + no re-parse on reconnect / reload.
         let geom = await loadGeometryFromIDB(url);
         if (geom) {
-          onProgress?.(`✓ ${p.id} (cache, ${((performance.now() - t0) / 1000).toFixed(2)}s)`);
+          onProgress?.(`✓ ${a.label} (cache, ${((performance.now() - t0) / 1000).toFixed(2)}s)`);
         } else {
-          onProgress?.(`Fetching ${p.id}…`);
+          onProgress?.(`Fetching ${a.label}…`);
           geom = await fetchAndParseStl(url, abort.signal);
           geom.computeVertexNormals();
           // Fire-and-forget: don't block first paint on the IDB write.
           storeGeometryInIDB(url, geom).catch(e => console.warn("[idb] store", e));
-          onProgress?.(`✓ ${p.id} (${((performance.now() - t0) / 1000).toFixed(1)}s)`);
+          onProgress?.(`✓ ${a.label} (${((performance.now() - t0) / 1000).toFixed(1)}s)`);
         }
         geom.userData._shared = true;
         // Deliberately NOT generation-gated: a superseded load's geometry is
         // still valid for its own part ids, and discarding it would re-fetch
         // work already paid for. See the id-collision note on _geometryCache.
-        _geometryCache.set(p.id, geom);
+        _geometryCache.set(a.key, geom);
       }));
 
       const failed: string[] = [];
       results.forEach((r, i) => {
         if (r.status === "rejected") {
-          const id = toFetch[i].id;
+          const id = toFetch[i]!.label;
           failed.push(id);
           console.error(`[STL] failed to load ${id}:`, r.reason);
         }
@@ -154,6 +164,16 @@ export function loadMachineAssets(init: any, onProgress?: (msg: string) => void)
 
 export function getCachedGeometry(id: string): THREE.BufferGeometry | undefined {
   return _geometryCache.get(id);
+}
+
+/** Cache key of a part's collision PROXY mesh (machine.json `collision`). */
+export function collisionKey(id: string): string {
+  return `${id}::collision`;
+}
+
+/** The part's collision proxy geometry, if it declared one and it loaded. */
+export function getCollisionGeometry(id: string): THREE.BufferGeometry | undefined {
+  return _geometryCache.get(collisionKey(id));
 }
 
 // ToolMeta cache accessors (replace the former direct _toolMetaCache access from

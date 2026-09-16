@@ -33,7 +33,7 @@ export const HOLD_FIRE_MS = 500;
 
 export const BUTTON_TYPES = {
   // Program control
-  start:          { gate: 'ready',    variant: 'primary', size: 'md' },
+  start:          { gate: 'run',      variant: 'primary', size: 'md' },
   step:           { gate: 'step',     variant: 'default', size: 'md' },
   pause:          { gate: 'pause',    variant: 'default', size: 'md' },
   resume:         { gate: 'resume',   variant: 'default', size: 'md' },
@@ -41,12 +41,13 @@ export const BUTTON_TYPES = {
 
   // MDI / motion
   mdi:            { gate: 'ready',    variant: 'primary', size: 'md' },
-  goTo:           { gate: 'ready',    variant: 'default', size: 'md', hold: true },
+  goTo:           { gate: 'machineFrame', variant: 'default', size: 'md', hold: true },   // → Home / → G30: G53 routines
+  goZero:         { gate: 'goZero',   variant: 'default', size: 'md', hold: true },   // → Zero: mode-aware (gateway go_to_zero)
   home:           { gate: 'zero',     variant: 'default', size: 'md', hold: true },
   unhome:         { gate: 'zero',     variant: 'default', size: 'md', hold: true },
 
   // Probe
-  probe:          { gate: 'probe',    variant: 'default', size: 'md', whileProbing: true, hold: true },
+  probe:          { gate: 'machineFrame',    variant: 'default', size: 'md', whileProbing: true, hold: true },
   probeReset:     { gate: 'probe',    variant: 'danger',  size: 'md', whileProbing: true },
   // Surface-map scan: `probe` plus every rotary parked at zero. The map is a
   // machine-Z shim valid only with the tool normal to the mapped surface and
@@ -54,9 +55,9 @@ export const BUTTON_TYPES = {
   surfaceScan:    { gate: 'surfaceComp', variant: 'default', size: 'md', whileProbing: true, hold: true },
 
   // Tool
-  toolLoad:       { gate: 'ready',    variant: 'default', size: 'md' },
-  toolMeasure:    { gate: 'ready',    variant: 'default', size: 'md', whileProbing: true, hold: true },
-  toolUnload:     { gate: 'ready',    variant: 'default', size: 'md', whileProbing: true },
+  toolLoad:       { gate: 'machineFrame',    variant: 'default', size: 'md' },
+  toolMeasure:    { gate: 'machineFrame',    variant: 'default', size: 'md', whileProbing: true, hold: true },
+  toolUnload:     { gate: 'machineFrame',    variant: 'default', size: 'md', whileProbing: true },
 
   // Spindle
   spindleFwd:      { gate: 'ready',    variant: 'default', size: 'md', hold: true },
@@ -87,9 +88,32 @@ export const BUTTON_TYPES = {
 
   // WCS selection
   wcs:            { gate: 'probe',    variant: 'default', size: 'sm' },
+  // TWP re-orient: re-solves the head at the current table pose. It MOVES the
+  // rotaries, so it carries the probe tier (idle + homed + no eoffset), not
+  // jogFrame's — a jog-frame switch is a stationary relabel, this is motion.
+  // hold: like every other motion-initiating button (home, goTo, zero…) —
+  // it sits next to the WCS radios on a touch-first strip.
+  twpReorient:    { gate: 'probe',    variant: 'default', size: 'md', hold: true },
 
-  // Zero / touchoff (sends G10 L20 MDI — needs homed + !eoffset)
-  zero:           { gate: 'probe',    variant: 'default', size: 'md', hold: true },
+  // Zero / touchoff — the `touchoff` command (gateway-routed G10 L20 or the
+  // Plane-mode remap; needs homed + !eoffset + the kins-mode × fixture rule).
+  // Linear and rotary letters carry different rules, hence two types.
+  zero:           { gate: 'touchoff', variant: 'default', size: 'md', hold: true },
+  zeroRotary:     { gate: 'touchoffRotary', variant: 'default', size: 'md', hold: true },
+
+  // One-button plane capture at the tool tip (workflow 2): the gateway's
+  // twp_capture command drives G69 → G68.3 at the tip → M530 Q2 (adopt the
+  // current pose — a plain G53.1 may pick the other rotary branch) → plane
+  // touch-off (M535, XYZ zero → DRO 0 at the tip, datum in G54) as separate
+  // MDIs (remapped G-codes never run inside an o-sub from MDI).
+  // hold: the orient is a G53 G0 — zero-length by construction,
+  // still motion. Gate = the backend's twp_capture_check verbatim.
+  twpCapture:     { gate: 'twpCapture', variant: 'default', size: 'md', hold: true },
+  // Clear plane: plain MDI G69 (idempotent, guardless, restores identity
+  // kins + G54 — nothing to refuse, hence no typed command). `ready` tier:
+  // a stationary relabel like the jog-frame switch, not motion. hold: a
+  // tap-guard on a setup-destroying action.
+  twpClear:       { gate: 'ready',    variant: 'default', size: 'md', hold: true },
 
   // Macros
   macro:          { gate: 'probe',    variant: 'default', size: 'lg' },
@@ -159,7 +183,12 @@ export const INPUT_DEFS = {
   jogWheel:        { gate: 'jog' },
   jogAxis:         { gate: 'jog' },
   mdiText:         { gate: 'ready' },
-  touchoff:        { gate: 'probe',    mono: true, align: 'right', size: 'sm' },
+  touchoff:        { gate: 'touchoff', mono: true, align: 'right', size: 'sm' },
+  touchoffRotary:  { gate: 'touchoffRotary', mono: true, align: 'right', size: 'sm' },
+  // WCS selector radios: selecting a fixture is a plain modal (G54..), the
+  // probe tier like the `wcs` button; the reserved rows are disabled per
+  // option in SetupStrip, not by a gate.
+  wcsSelect:       { gate: 'probe' },
   stripInput:      { gate: 'always',   mono: true, align: 'right', size: 'md' },
   scrubPos:        { gate: 'always' },  // scrub timeline — display-only, see BUTTON_TYPES.scrub
   simToggle:       { gate: 'always' },  // simulation mode toggle — entry rules live in ScrubBar
@@ -168,6 +197,12 @@ export const INPUT_DEFS = {
 
   // Mode selection
   modeSelect:      { gate: 'idle' },
+  // Jog-frame selector (switchable-kins machines): switching runs an MDI
+  // remap (M428/M430), so it carries the MDI tier, not modeSelect's.
+  jogFrame:        { gate: 'ready' },
+  // The Plane frame radio: its own backend class — plane defined AND the
+  // head still aligned with it (TWP-04, command_policy.plane_frame_check).
+  planeFrame:      { gate: 'planeFrame' },
 
   // Override sliders
   feedOverride:    { gate: 'override' },

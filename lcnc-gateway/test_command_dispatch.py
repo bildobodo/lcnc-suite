@@ -7,6 +7,7 @@ off-machine. Requires the gateway venv (fastapi/msgspec are real deps):
     .venv/bin/python3 -m unittest test_command_dispatch
 """
 import asyncio
+import os
 import unittest
 from types import SimpleNamespace
 
@@ -15,6 +16,7 @@ linuxcnc = fake_linuxcnc.install()   # MUST precede `import gateway`
 import gateway  # noqa: E402  (import after the fake is installed)
 import fusion_import  # noqa: E402
 import bulk_pipeline  # noqa: E402
+from gateway_util import kins_mode_commands  # noqa: E402
 
 
 def _run(coro):
@@ -173,7 +175,11 @@ class TestNotOverBlocked(unittest.TestCase):
     LinuxCNC-touching handler has to run."""
 
     def test_ready_machine_passes_every_common_command(self):
-        st = gateway._policy_state_from_payload(_payload(), armed=True)
+        # A plain (non-switchable) machine, as the gateway's own call sites
+        # say via kins_switchable=_kins_is_switchable(); the builder's default
+        # (True + no kins reading) is the CLOSED "unknown" state, which the
+        # run / machineFrame gates refuse by design.
+        st = gateway._policy_state_from_payload(_payload(), armed=True, kins_switchable=False)
         for cmd in ("mdi", "cycle_start", "jog_cont", "save_tool", "set_wcs",
                     "home", "spindle_forward", "set_feed_override"):
             self.assertIsNone(
@@ -233,6 +239,35 @@ class TestHandlerExecution(unittest.TestCase):
         args = self.cmd.args_of("jog")
         self.assertEqual(args[0], linuxcnc.JOG_STOP)
         self.assertEqual(args[2], 5)
+
+    def test_jog_beyond_soft_limit_switches_to_joint_mode(self):
+        # A joint outside its own window (TWP sim after a +Z jog under TOOL
+        # kins ran joint Z to +0.057 past a 0.01 ceiling): motion refuses
+        # every world-mode move; the jog must go to FREE and jog the JOINT.
+        gateway.STAT.axis_mask = 0b111111
+        gateway.STAT.motion_mode = linuxcnc.TRAJ_MODE_TELEOP
+        gateway._shared_status = _payload(joints_beyond_limit=["Z"])
+        r = _run(gateway.handle_command({"cmd": "jog_cont", "axis": 2, "vel": -5.0}, True))
+        self.assertTrue(r["ok"])
+        self.assertEqual(self.cmd.args_of("teleop_enable"), (0,))
+        args = self.cmd.args_of("jog")
+        self.assertEqual(args[1], 1)      # joint jog
+        self.assertEqual(args[2], 2)      # joint 2 = Z
+        # jog_stop follows the RUNNING jog's mode, never switches
+        self.cmd.calls.clear()
+        gateway.STAT.motion_mode = getattr(linuxcnc, "TRAJ_MODE_FREE", 1)
+        r = _run(gateway.handle_command({"cmd": "jog_stop", "axis": 2}, True))
+        self.assertTrue(r["ok"])
+        self.assertIsNone(self.cmd.args_of("teleop_enable"))
+        self.assertEqual(self.cmd.args_of("jog")[1], 1)
+
+    def test_jog_back_inside_restores_teleop(self):
+        gateway.STAT.axis_mask = 0b111111
+        gateway.STAT.motion_mode = getattr(linuxcnc, "TRAJ_MODE_FREE", 1)   # left there by the recovery jog (fake binding lacks the constant)
+        gateway._shared_status = _payload(joints_beyond_limit=[], homed=True)
+        r = _run(gateway.handle_command({"cmd": "jog_cont", "axis": 2, "vel": -5.0}, True))
+        self.assertTrue(r["ok"])
+        self.assertEqual(self.cmd.args_of("teleop_enable"), (1,))
 
     def test_joint_mode_jog_passes_list_index_through(self):
         # No motion_mode attr -> _jog_joint_flag defaults to joint jog (1):
@@ -739,3 +774,417 @@ class TestFusionWorkerSubprocess(unittest.TestCase):
     def test_worker_invalid_library_maps_to_valueerror(self):
         with self.assertRaises(ValueError):
             gateway._bulk._run_fusion_worker_blocking(b'{"nope":1}', "mm", timeout=30.0)
+
+
+class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
+    """2026-09-04: the → Zero handler through the REAL payload shape, and the
+    jog-stop / mode-switch holes that made it 'sometimes work'."""
+
+    def setUp(self):
+        gateway.lcnc_connected = True
+        gateway.STAT = linuxcnc.stat()
+        self.cmd = _RecordingCmd()
+        gateway.CMD = self.cmd
+        self._switchable = gateway._kins_is_switchable
+        self._capable = gateway._twp_capable
+        self._reader_get = gateway._reader_get
+        self._identity_first = gateway._identity_first
+        self._kins_cmd_cache = gateway._kins_mode_cmd_cache
+        self._prov = dict(gateway._prov_cache)
+        gateway._prov_cache.clear()
+
+    def tearDown(self):
+        gateway._kins_is_switchable = self._switchable
+        gateway._twp_capable = self._capable
+        gateway._reader_get = self._reader_get
+        gateway._identity_first = self._identity_first
+        gateway._kins_mode_cmd_cache = self._kins_cmd_cache
+        gateway._prov_cache.clear()
+        gateway._prov_cache.update(self._prov)
+
+    def _reader(self, **pins):
+        """Scripted HAL-reader snapshot — the controller's own answer, as
+        distinct from the published status payload (R-02)."""
+        gateway._reader_get = pins.get
+
+    # The two shipped switchkins configurations, read from the remap subs
+    # THEMSELVES rather than restated here (R-01): the point of the finding is
+    # that the M-code → switchkins-type mapping is a per-configuration fact,
+    # so a test that hardcodes it would be testing the same assumption that
+    # was wrong. Asserted against literals in
+    # test_command_policy.TestShippedRemapsDeclareTheirKinsTypes.
+    @staticmethod
+    def _shipped_cmds(subdir):
+        root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..",
+                            "examples", "sim_config", subdir, "remap_subs")
+
+        def _source(name):
+            path = os.path.join(root, name + ".ngc")
+            if not os.path.isfile(path):
+                return None
+            with open(path, encoding="utf-8", errors="replace") as fh:
+                return fh.read()
+        return kins_mode_commands(["M428 modalgroup=10 ngc=428remap",
+                                   "M429 modalgroup=10 ngc=429remap",
+                                   "M430 modalgroup=10 ngc=430remap"], _source)
+
+    @property
+    def TWP_CMDS(self):
+        return self._shipped_cmds("twp")
+
+    @property
+    def TRT_CMDS(self):
+        return self._shipped_cmds(".")
+
+    def _kins_config(self, cmds, *, twp, identity_first=False):
+        gateway._kins_is_switchable = lambda: True
+        gateway._twp_capable = lambda: twp
+        gateway._identity_first = lambda: identity_first
+        gateway._kins_mode_cmd_cache = dict(cmds)
+
+    def _send(self, msg, **state):
+        gateway._shared_status = _payload(**state)
+        return _run(gateway.handle_command(msg, True))
+
+    def _mdi_lines(self):
+        return [a[0] for n, a, _k in self.cmd.calls if n == "mdi"]
+
+    # A defined plane whose orient stamp matches the live rotaries (TWP-04).
+    ALIGNED = dict(twp_defined=True, twp_pose_a=0.0, twp_pose_b=0.0, twp_pose_c=0.0,
+                   rotary_abc=[0.0, 0.0, 0.0])
+
+    def test_machine_frame_calls_the_subroutine_at_the_stamp_angle(self):
+        gateway._kins_is_switchable = lambda: True
+        gateway._twp_capable = lambda: True   # the TWP stack (trsrn)
+        gateway._prov_cache[1] = {"kins": 0.0, "a": 20.0, "x": 0.0, "y": 0.0, "z": 0.0}
+        r = self._send({"cmd": "go_to_zero"}, kins_type=0, twp_active=False, g5x_index=1)
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(self._mdi_lines(), ["O<go_to_zero> CALL [20.0000]"])
+
+    def test_plane_frame_dispatches_the_twp_goto_zero_sub(self):
+        # TWP-01: one o-call with the clearance in machine units and the
+        # units flag — the sub owns G90/G21 under M73, never bare G0 lines.
+        gateway._kins_is_switchable = lambda: True
+        gateway._twp_capable = lambda: True   # the TWP stack (trsrn)
+        r = self._send({"cmd": "go_to_zero"}, kins_type=2, twp_active=True, g5x_index=6,
+                       work_pos=[1.0, 2.0, -5.0], **self.ALIGNED)
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(self._mdi_lines(), ["O<twp_goto_zero> CALL [25.0000] [1]"])
+
+    def test_plane_frame_does_not_need_work_pos(self):
+        # The live plane Z is read inside the interpreter now; a payload
+        # without work_pos is not a refusal.
+        gateway._kins_is_switchable = lambda: True
+        gateway._twp_capable = lambda: True   # the TWP stack (trsrn)
+        r = self._send({"cmd": "go_to_zero"}, kins_type=2, twp_active=True, g5x_index=6,
+                       **self.ALIGNED)
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(self._mdi_lines(), ["O<twp_goto_zero> CALL [25.0000] [1]"])
+
+    def test_plane_frame_go_zero_refused_when_the_head_moved(self):
+        # TWP-04: a B move after the orient — the frozen frame's Z is no
+        # longer the tool axis, so the retract promise cannot be kept.
+        gateway._kins_is_switchable = lambda: True
+        gateway._twp_capable = lambda: True   # the TWP stack (trsrn)
+        r = self._send({"cmd": "go_to_zero"}, kins_type=2, twp_active=True, g5x_index=6,
+                       **{**self.ALIGNED, "rotary_abc": [0.0, 5.0, 0.0]})
+        self.assertFalse(r["ok"]); self.assertIn("Orient", r["error"])
+        self.assertEqual(self._mdi_lines(), [])
+
+    def test_set_kins_mode_0_sends_m428(self):
+        self._kins_config(self.TWP_CMDS, twp=True)   # the TWP stack (trsrn)
+        r = self._send({"cmd": "set_kins_mode", "mode": 0}, kins_type=2, g5x_index=6)
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(self._mdi_lines(), ["M428"])
+
+    def test_set_kins_mode_2_sends_m430_when_aligned(self):
+        self._kins_config(self.TWP_CMDS, twp=True)   # the TWP stack (trsrn)
+        r = self._send({"cmd": "set_kins_mode", "mode": 2}, kins_type=0, g5x_index=1, **self.ALIGNED)
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(self._mdi_lines(), ["M430"])
+
+    def test_machine_and_tcp_send_the_shipped_trt_configuration_commands(self):
+        """R-01 (implementation review 2026-09-15): on the shipped TCP
+        trunnion (xyzac-trt-kins sparm=identityfirst) M428's remap selects
+        switchkins type 1 — the trt WORLD kins — and M429 selects identity.
+        The handler used to map mode 0 → M428 unconditionally, so picking
+        Machine entered TCP and picking TCP entered Machine."""
+        self._kins_config(self.TRT_CMDS, twp=False, identity_first=True)
+        r = self._send({"cmd": "set_kins_mode", "mode": 0}, kins_type=1, g5x_index=1)
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(r["kins_type"], 0)          # identityfirst: raw 0 IS identity
+        self.assertEqual(self._mdi_lines(), ["M429"])
+        self.cmd.calls.clear()
+        r = self._send({"cmd": "set_kins_mode", "mode": 1}, kins_type=0, g5x_index=1)
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(r["kins_type"], 1)
+        self.assertEqual(self._mdi_lines(), ["M428"])
+
+    def test_a_trt_without_identityfirst_maps_the_other_way(self):
+        """Same remaps, no sparm: raw 0 is the world kins and raw 1 identity
+        (xyzac-trt-kins.c switchkinsSetup), so Machine is M428 here."""
+        self._kins_config(self.TRT_CMDS, twp=False, identity_first=False)
+        r = self._send({"cmd": "set_kins_mode", "mode": 0}, kins_type=0, g5x_index=1)
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(r["kins_type"], 1)
+        self.assertEqual(self._mdi_lines(), ["M428"])
+
+    def test_plane_is_refused_on_a_family_that_has_no_plane_mode(self):
+        self._kins_config(self.TRT_CMDS, twp=False, identity_first=True)
+        r = self._send({"cmd": "set_kins_mode", "mode": 2}, kins_type=0, g5x_index=1)
+        self.assertFalse(r["ok"], r)
+        self.assertEqual(self._mdi_lines(), [])
+
+    def test_refuses_when_no_remap_selects_the_wanted_type(self):
+        """A configuration whose remaps cannot reach a mode gets a refusal
+        naming the gap — never a guessed M-code."""
+        self._kins_config({0: "M429"}, twp=False, identity_first=True)
+        r = self._send({"cmd": "set_kins_mode", "mode": 1}, kins_type=0, g5x_index=1)
+        self.assertFalse(r["ok"], r)
+        self.assertIn("REMAP", r["error"])
+        self.assertEqual(self._mdi_lines(), [])
+
+    def test_a_readback_that_disagrees_with_the_scrape_is_reported(self):
+        """The remap source says what SHOULD happen; the pin says what did."""
+        self._kins_config(self.TWP_CMDS, twp=True)
+        self._reader(kins_type=2.0)                  # pin never leaves TOOL
+        r = self._send({"cmd": "set_kins_mode", "mode": 0}, kins_type=2, g5x_index=6)
+        self.assertFalse(r["ok"], r)
+        self.assertIn("switchkins-type", r["error"])
+        self.assertEqual(self._mdi_lines(), ["M428"])
+
+    def test_a_verified_readback_reports_the_raw_type(self):
+        self._kins_config(self.TWP_CMDS, twp=True)
+        self._reader(kins_type=0.0)
+        r = self._send({"cmd": "set_kins_mode", "mode": 0}, kins_type=2, g5x_index=6)
+        self.assertTrue(r["ok"], r)
+        self.assertEqual((r["mode"], r["kins_type"]), (0, 0))
+
+    def test_set_kins_mode_2_refused_when_stale(self):
+        gateway._kins_is_switchable = lambda: True
+        gateway._twp_capable = lambda: True   # the TWP stack (trsrn)
+        # C moved since the orient
+        r = self._send({"cmd": "set_kins_mode", "mode": 2}, kins_type=0, g5x_index=1,
+                       **{**self.ALIGNED, "rotary_abc": [0.0, 0.0, 3.0]})
+        self.assertFalse(r["ok"]); self.assertIn("Orient", r["error"])
+        # no orient yet (sentinel) — unknown is closed, and says so
+        r = self._send({"cmd": "set_kins_mode", "mode": 2}, kins_type=0, g5x_index=1,
+                       **{**self.ALIGNED, "twp_pose_b": -1e9})
+        self.assertFalse(r["ok"]); self.assertIn("Orient", r["error"])
+        # no plane
+        r = self._send({"cmd": "set_kins_mode", "mode": 2}, kins_type=0, g5x_index=1,
+                       **{**self.ALIGNED, "twp_defined": False})
+        self.assertFalse(r["ok"]); self.assertIn("No tilted work plane", r["error"])
+        self.assertEqual(self._mdi_lines(), [])
+        # an out-of-range mode is a payload rejection, not a silent M-code
+        r = self._send({"cmd": "set_kins_mode", "mode": 3}, kins_type=0, g5x_index=1)
+        self.assertFalse(r["ok"])
+
+    def test_tcp_is_refused_with_its_reason(self):
+        gateway._kins_is_switchable = lambda: True
+        gateway._twp_capable = lambda: True   # the TWP stack (trsrn)
+        r = self._send({"cmd": "go_to_zero"}, kins_type=1, twp_active=False, g5x_index=1)
+        self.assertFalse(r["ok"])
+        self.assertIn("TCP", r["error"])
+
+    def test_touchoff_refuses_when_expect_disagrees_with_live_state(self):
+        # U-03: the keypad was opened under Plane · G59; by confirm time the
+        # machine is Machine · G54 — the value must not land there.
+        gateway._kins_is_switchable = lambda: True
+        gateway._twp_capable = lambda: True   # the TWP stack (trsrn)
+        gateway.STAT.g5x_index = 1
+        r = self._send({"cmd": "touchoff", "axes": {"X": 1.5}, "expect": {"kins_type": 2, "g5x_index": 6}},
+                       kins_type=0, g5x_index=1)
+        self.assertFalse(r["ok"], r)
+        self.assertIn("target changed", r["error"])
+        self.assertIn("Plane · G59", r["error"]); self.assertIn("Machine · G54", r["error"])
+        self.assertEqual(self._mdi_lines(), [])
+        # A fixture-only change refuses too; a matching expect goes through.
+        r = self._send({"cmd": "touchoff", "axes": {"X": 1.5}, "expect": {"kins_type": 0, "g5x_index": 2}},
+                       kins_type=0, g5x_index=1)
+        self.assertFalse(r["ok"]); self.assertIn("target changed", r["error"])
+        r = self._send({"cmd": "touchoff", "axes": {"X": 1.5}, "expect": {"kins_type": 0, "g5x_index": 1}},
+                       kins_type=0, g5x_index=1)
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(self._mdi_lines(), ["G10 L20 P1 X1.500000"])
+
+    def test_touchoff_without_expect_is_unchanged(self):
+        gateway._kins_is_switchable = lambda: True
+        gateway._twp_capable = lambda: True   # the TWP stack (trsrn)
+        gateway.STAT.g5x_index = 1
+        r = self._send({"cmd": "touchoff", "axes": {"X": 1.5}}, kins_type=0, g5x_index=1)
+        self.assertTrue(r["ok"], r)
+
+    def test_touchoff_refuses_when_the_controller_moved_past_the_published_snapshot(self):
+        """R-02 (implementation review 2026-09-15): the published snapshot and
+        the keypad both say G54 while STAT has already reached G55. Checking
+        the snapshot alone accepted it and the P0 write landed on G55."""
+        gateway._kins_is_switchable = lambda: True
+        gateway._twp_capable = lambda: True
+        gateway.STAT.g5x_index = 2                      # controller: G55
+        r = self._send({"cmd": "touchoff", "axes": {"X": 1.5},
+                        "expect": {"kins_type": 0, "g5x_index": 1}},
+                       kins_type=0, g5x_index=1)        # snapshot: G54
+        self.assertFalse(r["ok"], r)
+        self.assertIn("target changed", r["error"])
+        self.assertIn("Machine · G55", r["error"])
+        self.assertEqual(self._mdi_lines(), [])
+
+    def test_touchoff_refuses_when_the_controller_kins_moved_past_the_snapshot(self):
+        """The same window on the kinematics half: the reader pin is read at
+        the write boundary, not as published."""
+        gateway._kins_is_switchable = lambda: True
+        gateway._twp_capable = lambda: True
+        gateway.STAT.g5x_index = 1
+        self._reader(kins_type=1.0)                     # controller: TCP
+        r = self._send({"cmd": "touchoff", "axes": {"X": 1.5},
+                        "expect": {"kins_type": 0, "g5x_index": 1}},
+                       kins_type=0, g5x_index=1)        # snapshot: Machine
+        self.assertFalse(r["ok"], r)
+        self.assertIn("target changed", r["error"])
+        self.assertEqual(self._mdi_lines(), [])
+
+    def test_touchoff_refuses_a_route_change_even_without_an_expectation(self):
+        """A legacy client carries no expectation, but the route computed from
+        the stale snapshot must still be the route the controller is in: the
+        plain G10 of a Machine-frame touch-off is not what a Plane-frame
+        machine needs."""
+        gateway._kins_is_switchable = lambda: True
+        gateway._twp_capable = lambda: True
+        gateway.STAT.g5x_index = 6
+        self._reader(kins_type=2.0)                     # controller: Plane
+        r = self._send({"cmd": "touchoff", "axes": {"X": 1.5}},
+                       kins_type=0, g5x_index=1, twp_active=True)
+        self.assertFalse(r["ok"], r)
+        self.assertEqual(self._mdi_lines(), [])
+
+    def test_touchoff_names_the_fixture_it_validated(self):
+        """The write is `G10 L20 P<n>`, never P0: a fixture change after the
+        check can no longer redirect the datum (G10 L20 computes the offset
+        for the NAMED system — interp_convert.cc convert_setup)."""
+        gateway._kins_is_switchable = lambda: True
+        gateway._twp_capable = lambda: True
+        gateway.STAT.g5x_index = 3
+        self._reader(z_eoffset=0.0)   # a Z touch-off adds the comp offset back
+        r = self._send({"cmd": "touchoff", "axes": {"Z": -4.25},
+                        "expect": {"kins_type": 0, "g5x_index": 3}},
+                       kins_type=0, g5x_index=3)
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(r["index"], 3)
+        self.assertEqual(self._mdi_lines(), ["G10 L20 P3 Z-4.250000"])
+
+    def test_touchoff_does_not_adopt_a_readback_from_a_different_row(self):
+        """If the active fixture changed across the write, STAT.g5x_offset
+        describes a different row — the cache must not take it."""
+        gateway._kins_is_switchable = lambda: True
+        gateway._twp_capable = lambda: True
+        gateway.STAT.g5x_index = 1
+        before = [row.copy() for row in gateway._wcs_cache]
+
+        class _FlippingStat:
+            """Answers G54 until the G10 has been sent, G55 from then on."""
+            def __init__(self, stat, cmd):
+                self._stat, self._cmd = stat, cmd
+                self.g5x_offset = [99.0, 99.0, 99.0]
+                self.g5x_index = 1
+            def poll(self):
+                wrote = any(n == "mdi" for n, _a, _k in self._cmd.calls)
+                self.g5x_index = 2 if wrote else 1
+            def __getattr__(self, name):
+                return getattr(self._stat, name)
+
+        gateway.STAT = _FlippingStat(gateway.STAT, self.cmd)
+        r = self._send({"cmd": "touchoff", "axes": {"X": 1.5},
+                        "expect": {"kins_type": 0, "g5x_index": 1}},
+                       kins_type=0, g5x_index=1)
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(r["index"], 1)
+        self.assertEqual(self._mdi_lines(), ["G10 L20 P1 X1.500000"])
+        self.assertEqual([row.copy() for row in gateway._wcs_cache], before)
+
+    def test_touchoff_g59_on_plain_mill_dispatches_g10_l20(self):
+        # TWP-08a: a trivkins mill sitting in G59 touches off with a plain
+        # G10 L20 — the reserved-row refusal is a TWP-machine rule only.
+        gateway._kins_is_switchable = lambda: False
+        gateway.STAT.g5x_index = 6
+        r = self._send({"cmd": "touchoff", "axes": {"X": 1.5}}, g5x_index=6)
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(r["route"], "mdi")
+        self.assertEqual(self._mdi_lines(), ["G10 L20 P6 X1.500000"])
+
+    def test_jog_stop_during_an_executing_mdi_never_switches_mode(self):
+        # Releasing the A jog while → Zero moves used to force MANUAL and
+        # abort the MDI wherever it was.
+        gateway.STAT.task_mode = linuxcnc.MODE_MDI
+        gateway.STAT.interp_state = linuxcnc.INTERP_READING
+        r = self._send({"cmd": "jog_stop", "axis": 3})
+        self.assertTrue(r["ok"])
+        self.assertIsNone(self.cmd.args_of("mode"), "mode switch would abort the MDI")
+        self.assertIsNone(self.cmd.args_of("jog"))
+        r = self._send({"cmd": "jog_stop_multi", "axes": [0, 3]})
+        self.assertTrue(r["ok"])
+        self.assertIsNone(self.cmd.args_of("mode"))
+
+    def test_mode_switch_ignored_while_jogging_is_refused_loudly(self):
+        # emcTaskSetMode ignores the request while a jog is active and still
+        # answers DONE; task stays MANUAL. The MDI must NOT be issued and the
+        # reply must carry the reason (it used to be ok:true + "Must be in MDI
+        # mode" in the trace, → Zero pressed while the A jog was held).
+        gateway.STAT.task_mode = linuxcnc.MODE_MANUAL   # the fake never changes it
+        r = self._send({"cmd": "mdi", "text": "G0 X1"})
+        self.assertFalse(r["ok"])
+        self.assertIn("jog", r["error"].lower())
+        self.assertIsNone(self.cmd.args_of("mdi"), "MDI issued into the wrong mode")
+
+    def test_jog_stop_without_an_active_jog_is_a_noop(self):
+        # A late release with nothing the gateway started still moving: no
+        # mode switch (that aborted a fresh MDI), no CMD.jog.
+        gateway._active_jogs.clear()
+        gateway.STAT.task_mode = linuxcnc.MODE_MANUAL
+        r = self._send({"cmd": "jog_stop", "axis": 3})
+        self.assertTrue(r["ok"])
+        self.assertIsNone(self.cmd.args_of("jog"))
+        self.assertIsNone(self.cmd.args_of("mode"))
+        r = self._send({"cmd": "jog_stop_multi", "axes": [0, 3]})
+        self.assertTrue(r["ok"])
+        self.assertIsNone(self.cmd.args_of("jog"))
+
+    def test_mdi_clears_active_jogs_so_a_late_stop_cannot_abort_it(self):
+        gateway._active_jogs.clear()
+        self._send({"cmd": "jog_cont", "axis": 3, "vel": 2.0})
+        self.assertIn(3, gateway._active_jogs)
+        self._send({"cmd": "mdi", "text": "G0 X1"})       # a switch to MDI means no jog is active
+        self.assertEqual(gateway._active_jogs, set())
+        self.cmd.calls.clear()
+        r = self._send({"cmd": "jog_stop", "axis": 3})
+        self.assertTrue(r["ok"])
+        self.assertIsNone(self.cmd.args_of("mode"))
+        self.assertIsNone(self.cmd.args_of("jog"))
+
+    def test_jog_stop_still_stops_a_real_jog_in_manual(self):
+        gateway._active_jogs.clear()
+        self._send({"cmd": "jog_cont", "axis": 3, "vel": 1.0})
+        self.cmd.calls.clear()
+        gateway.STAT.task_mode = linuxcnc.MODE_MANUAL
+        gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
+        r = self._send({"cmd": "jog_stop", "axis": 3})
+        self.assertTrue(r["ok"])
+        self.assertIsNotNone(self.cmd.args_of("jog"))
+
+    def test_refused_mode_switch_is_a_loud_reply_not_a_silent_mdi(self):
+        class _RefusingCmd(_RecordingCmd):
+            def __getattr__(self, name):
+                if name == "mode":
+                    def refuse(*a, **k):
+                        self.calls.append(("mode", a, k)); return None
+                    return refuse
+                if name == "wait_complete":
+                    return lambda *a, **k: getattr(linuxcnc, "RCS_ERROR", 3)
+                return super().__getattr__(name)
+        gateway.CMD = self.cmd = _RefusingCmd()
+        gateway.STAT.task_mode = linuxcnc.MODE_MANUAL
+        gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
+        r = self._send({"cmd": "mdi", "text": "G0 X0"})
+        self.assertFalse(r["ok"])
+        self.assertIn("refused the mode switch", r["error"])
+        self.assertEqual(self._mdi_lines(), [])

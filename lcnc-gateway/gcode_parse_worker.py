@@ -70,15 +70,21 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from gcode_canon import PreviewCanon, apply_var_patches
 from gateway_util import (
     scan_tool_stats, read_axis_limits, check_limit_violations,
+    live_joint_limits, segment_outside_flags, trsrn_segment_outside_flags,
+    world_segment_outside_flags, reduce_outside_flags,
     check_limit_violations_world, merge_violation_records,
     wcs_basis_terms, parse_kins_config, kins_type_flags,
     kins_nonidentity_flags, kins_frame_indices, check_limit_violations_trsrn,
-    kins_marker_policy, mode_boundary_indices,
+    kins_marker_policy, mode_boundary_indices, event_boundary_indices,
     classify_motion_lines, line_trust_flags, resolve_sub_indices,
-    attribute_sub_callers, resolve_sub_callers,
+    attribute_sub_callers, resolve_sub_callers, refusal_payload,
     insert_flip_relabels, read_var_wcs_rows, wcs_event_rewritten,
+    wcs_rewrite_targets, ustart_start_tuple,
     PREVIEW_SCHEMA, should_ship_abc, rotary_sync_initcode,
-    rotary_seed_values, wcs_offset_flat_from_var,
+    rotary_seed_values, override_rotary_position,
+    rotary_word_lines, first_rotary_commands, seq_boundary_indices,
+    LINE_NONE, LINE_RAPID, LINE_FEED, LINE_EITHER,
+    seed_kins_events, program_end_kins_type, wcs_offset_flat_from_var,
     find_unmarked_subs, resolve_subroutine_dirs,
 )
 
@@ -216,9 +222,16 @@ def parse(ctx: dict) -> dict:
         # suppression (re-armed at the first real program line), so it
         # seeds position without recording any motion. XYZ deliberately
         # not synced — see rotary_sync_initcode's docstring.
+        # LCNC-SUITE: `rotary_pose` pins that live read to a stated pose.
+        # Only the offline gates set it — the gateway never does, so live
+        # behaviour is unchanged — and it is what makes a preview golden a
+        # property of the CODE instead of a property of wherever the table
+        # was parked when the gate ran. Applied once, at the shared input,
+        # so the seeded pose and the recorded seed cannot disagree.
+        _actual_pos = override_rotary_position(
+            getattr(s, "actual_position", None), ctx.get("rotary_pose"))
         _rot_sync = rotary_sync_initcode(
-            getattr(s, "axis_mask", 0),
-            getattr(s, "actual_position", None))
+            getattr(s, "axis_mask", 0), _actual_pos)
         if _rot_sync:
             initcodes.append(_rot_sync)
         # The seeded values, captured at the same read (W6): stderr snapshot
@@ -226,8 +239,7 @@ def parse(ctx: dict) -> dict:
         # leaves the rotaries elsewhere makes every uncommanded-rotary
         # segment of this payload stale (the arc-vs-plunge class).
         _rot_seed = rotary_seed_values(
-            getattr(s, "axis_mask", 0),
-            getattr(s, "actual_position", None))
+            getattr(s, "axis_mask", 0), _actual_pos)
         wcs_code = _WCS_CODES.get(g5x_index if isinstance(g5x_index, int) else 0)
         if wcs_code:
             initcodes.append(wcs_code)
@@ -256,6 +268,13 @@ def parse(ctx: dict) -> dict:
             # parse_partial event WITHOUT decoding the (multi-MB) stdout payload.
             print(f"__PARTIAL__\t{seq}\t{parse_error}", file=sys.stderr, flush=True)
         print(f"gcode.parse feed={len(canon.feed)} rapid={len(canon.rapid)} parse_ms={(t1-t0)*1000:.0f}", file=sys.stderr, flush=True)
+        # Remap refusal in preview (2026-09-05): the gcode module's
+        # CANON_ERROR is a stub and the fork's refusals `yield INTERP_EXIT`,
+        # which gcode.parse reports as 1 (< MIN_ERROR) — a refused program
+        # parses as an EMPTY success. The fork records the first refusal on
+        # its module; re-fetched here because a worker's FIRST parse imports
+        # the module DURING gcode.parse (the pre-parse handle above is None).
+        _refusal = getattr(sys.modules.get("remap"), "webui_preview_refusal", None)
     finally:
         shutil.rmtree(td, ignore_errors=True)
 
@@ -309,6 +328,19 @@ def parse(ctx: dict) -> dict:
     # parse time): exactly the frame soft limits act in. Touch-off after
     # load shifts that frame — the annotations refresh on the next re-parse.
     axis_limits = read_axis_limits(ini.find, s.axis_mask)
+    # The LIVE joint window (2026-09-12) — what motion actually enforces —
+    # when STAT carries it; the INI file's window is the offline fallback.
+    # Which one was used rides a stderr line for the gateway's limits
+    # drift edge (a runtime window change reparses; a persistent INI-vs-
+    # live difference never loops because the live window IS the source).
+    _live_lims = live_joint_limits(getattr(s, "joint", None), getattr(s, "axis_mask", 0))
+    _limits_source = "ini"
+    if _live_lims:
+        axis_limits = _live_lims
+        _limits_source = "live"
+    print("__LIMITS__\t" + json.dumps({"source": _limits_source,
+                                       "limits": {k: list(v) for k, v in axis_limits.items()}}),
+          file=sys.stderr, flush=True)
     # Switchkins mode resolution (phase 2) — computed here because BOTH the
     # limit check (2c: joint-side for world segments) and the wire mode
     # arrays (2a, further down) consume it. Flags align 1:1 with the
@@ -319,9 +351,15 @@ def parse(ctx: dict) -> dict:
     world_unchecked = 0
     relabel_seqs = set()
     flips_unresolved = 0
+    flips_carry_spans = 0
     flips_handled = False
     kins_active = False
-    if canon.kins_events:
+    live_kins_type = ctx.get("kins_type")
+    live_kins_frame = ctx.get("kins_frame")
+    # The program's OWN markers, before the live seed is prepended: the
+    # load-time "does not restore identity before M2" lint reads these.
+    kins_end_type = program_end_kins_type(list(canon.kins_events))
+    if canon.kins_events or live_kins_type not in (None, 0):
         kins_cfg = parse_kins_config(ini.find("KINS", "KINEMATICS"),
                                      ini.findall("HAL", "HALCMD") or [])
         if kins_marker_policy(kins_cfg) == "ignore":
@@ -337,6 +375,18 @@ def parse(ctx: dict) -> dict:
                   file=sys.stderr, flush=True)
         else:
             kins_active = True
+            # FIFTH freshness input: seed the startup kins state from the
+            # live pin (ctx, sampled by the gateway via hal_reader). The
+            # 855-unit class: a markerless program run while the machine
+            # is PARKED in TOOL kins (the demo's M2 restores G54, not the
+            # kins type) used to parse as identity throughout.
+            if live_kins_type not in (None, 0):
+                canon.kins_events, canon.kins_frames = seed_kins_events(
+                    canon.kins_events, canon.kins_frames,
+                    live_kins_type, live_kins_frame)
+                print(f"kins seeded from live pin: type={live_kins_type} "
+                      f"frame={'yes' if canon.kins_frames and canon.kins_frames[0][0] == -1 else 'no'}",
+                      file=sys.stderr, flush=True)
     if kins_active or len(canon.wcs_events) > 1:
         # Flip relabels (W8 phantom jump + review P2): a switchkins flip
         # relabels the frame at a stationary pose but the offline interp
@@ -354,22 +404,33 @@ def parse(ctx: dict) -> dict:
         # marker-ignore mode the kins events are dropped here (enforcing
         # the policy) while epoch flips are still handled.
         (canon.feed, canon.rapid, canon.kins_events, canon.kins_frames,
-         canon.wcs_events, relabel_seqs, flips_unresolved) = insert_flip_relabels(
+         canon.wcs_events, relabel_seqs, flips_unresolved,
+         flips_carry_spans) = insert_flip_relabels(
             canon.feed, canon.rapid,
             canon.kins_events if kins_active else [],
             canon.kins_frames if kins_active else [],
             canon.wcs_events, kins_cfg, unit_scale,
-            ustart_seqs=set(canon.unknown_start))
+            ustart_seqs=set(canon.unknown_start),
+            # Fifth input: the initcode pose is expressed under the LIVE
+            # parse-time kins — the k=0 correction converts FROM it.
+            start_type=(live_kins_type if (kins_active and
+                                           live_kins_type is not None) else 0),
+            start_frame=(live_kins_frame if (kins_active and
+                                             live_kins_type == 2) else None))
         flips_handled = True
         # Sub-span markers re-key with the same seq doubling (W2 P6) — their
         # strict `<` comparisons must stay aligned with the doubled per-point
         # seqs (inserted relabel vertices at odd seqs resolve consistently).
         canon.sub_events = [(_ev[0] * 2,) + tuple(_ev[1:])
                             for _ev in canon.sub_events]
-        if relabel_seqs or flips_unresolved:
+        # TLO/tool events (schema 8) re-key the same way.
+        canon.tlo_events = [(_ev[0] * 2,) + tuple(_ev[1:])
+                            for _ev in canon.tlo_events]
+        if relabel_seqs or flips_unresolved or flips_carry_spans:
             print(f"flips: {len(relabel_seqs)} relabel vertices inserted "
                   f"({len(canon.wcs_events)} wcs epochs), {flips_unresolved} "
-                  f"UNRESOLVED (no twin/frame — those keep the raw segment)",
+                  f"UNRESOLVED (no twin/frame — those keep the raw segment), "
+                  f"{flips_carry_spans} segment(s) moved by the relabel carry",
                   file=sys.stderr, flush=True)
     # Unknown-start seqs (W3 P1) in the same seq space as the tuples —
     # doubled iff the relabel pass ran and doubled everything else.
@@ -385,20 +446,44 @@ def parse(ctx: dict) -> dict:
         feed_world = kins_nonidentity_flags(feed_types, kins_cfg)
         rapid_world = kins_nonidentity_flags(rapid_types, kins_cfg)
     _any_world = bool(feed_world and any(feed_world)) or bool(rapid_world and any(rapid_world))
+    feed_out = [0] * len(canon.feed)
+    rapid_out = [0] * len(canon.rapid)
     if axis_limits:
         def _identity_segs():
-            # Unknown-start segments yield start=None (W3 P1): the endpoint
-            # is a commanded pose reached via an unknown path, so the
-            # checkers treat every axis as moved-to instead of skipping the
-            # zero-length tuple as "parked".
+            # Unknown-start segments yield a PARTIAL start (W3 P1 +
+            # ustart_start_tuple): None for the axes reached via an unknown
+            # path (moved-to, always checked) and the endpoint value for a
+            # rotary still parked at the parse-time seed (never commanded —
+            # the previous run's park pose, exempt like any parked axis).
+            # Relabel connectors (relabel_seqs → wire `brk`) are skipped
+            # outright: the machine does not move at a kins/epoch flip.
             for _i, (_lineno, _start, _end, _rate, _tlo, _seq) in enumerate(canon.feed):
                 if not (feed_world and feed_world[_i]):
                     yield _lineno, _start, _end, _tlo
             for _i, (_lineno, _start, _end, _tlo, _seq) in enumerate(canon.rapid):
+                if _seq in relabel_seqs:
+                    continue  # kins/epoch RELABEL connector — a coordinate re-expression, not motion
                 if not (rapid_world and rapid_world[_i]):
-                    yield _lineno, None if _seq in ustart_seqs else _start, _end, _tlo
+                    yield _lineno, ustart_start_tuple(_end, _rot_seed) if _seq in ustart_seqs else _start, _end, _tlo
         violations, violations_total = check_limit_violations(
             _identity_segs(), axis_limits, unit_scale)
+        # Per-segment OUTSIDE flags (2026-09-12): the raw joint-side verdict
+        # the viewer paints — same segments, same window, no attribution —
+        # aligned 1:1 with canon.feed / canon.rapid; reduced onto the kept
+        # vertices after decimation below. Relabel connectors stay 0.
+        _fi_idx = [i for i in range(len(canon.feed)) if not (feed_world and feed_world[i])]
+        _ri_idx = [i for i, t in enumerate(canon.rapid)
+                   if t[4] not in relabel_seqs and not (rapid_world and rapid_world[i])]
+        _f_flags = segment_outside_flags(
+            [(canon.feed[i][0], canon.feed[i][1], canon.feed[i][2], canon.feed[i][4]) for i in _fi_idx],
+            axis_limits, unit_scale)
+        _r_flags = segment_outside_flags(
+            [(canon.rapid[i][0], canon.rapid[i][1], canon.rapid[i][2], canon.rapid[i][3]) for i in _ri_idx],
+            axis_limits, unit_scale)
+        for k, i in enumerate(_fi_idx):
+            feed_out[i] = int(_f_flags[k])
+        for k, i in enumerate(_ri_idx):
+            rapid_out[i] = int(_r_flags[k])
         if _any_world and kins_cfg and kins_cfg.get("type") == "xyzacb-trsrn":
             # trsrn non-identity segments: joint-side check through the
             # trsrn twin, per-segment TYPE (1=TCP w/ TLO-in-pivot,
@@ -416,13 +501,22 @@ def parse(ctx: dict) -> dict:
                         yield (_lineno, _start, _end, _tlo, feed_types[_i],
                                _frames[_fi] if _fi is not None else None)
                 for _i, (_lineno, _start, _end, _tlo, _seq) in enumerate(canon.rapid):
+                    if _seq in relabel_seqs:
+                        continue  # relabel connector, not motion (see _identity_segs)
                     if rapid_world and rapid_world[_i]:
                         _fi = _r_frame[_i]
-                        yield (_lineno, None if _seq in ustart_seqs else _start,
+                        yield (_lineno, ustart_start_tuple(_end, _rot_seed) if _seq in ustart_seqs else _start,
                                _end, _tlo, rapid_types[_i],
                                _frames[_fi] if _fi is not None else None)
             w_records, w_total, world_unchecked = check_limit_violations_trsrn(
                 _trsrn_segs(), axis_limits, kins_cfg, unit_scale)
+            _tf_idx = [i for i in range(len(canon.feed)) if feed_world and feed_world[i]]
+            _tr_idx = [i for i, t in enumerate(canon.rapid)
+                       if t[4] not in relabel_seqs and rapid_world and rapid_world[i]]
+            _t_flags = trsrn_segment_outside_flags(list(_trsrn_segs()), axis_limits, kins_cfg, unit_scale)
+            for k, i in enumerate(_tf_idx + _tr_idx):
+                if k < len(_t_flags) and _t_flags[k]:
+                    (feed_out if k < len(_tf_idx) else rapid_out)[i] = 1
             if world_unchecked:
                 print(f"limits: {world_unchecked} type-2 segments UNCHECKED "
                       f"(no TWP frame marker — bare M430?)",
@@ -438,10 +532,20 @@ def parse(ctx: dict) -> dict:
                     if feed_world and feed_world[_i]:
                         yield _lineno, _start, _end, _tlo
                 for _i, (_lineno, _start, _end, _tlo, _seq) in enumerate(canon.rapid):
+                    if _seq in relabel_seqs:
+                        continue  # relabel connector, not motion (see _identity_segs)
                     if rapid_world and rapid_world[_i]:
-                        yield _lineno, None if _seq in ustart_seqs else _start, _end, _tlo
+                        yield _lineno, ustart_start_tuple(_end, _rot_seed) if _seq in ustart_seqs else _start, _end, _tlo
             w_records, w_total = check_limit_violations_world(
                 _world_segs(), axis_limits, kins_cfg, unit_scale)
+            _wf_idx = [i for i in range(len(canon.feed)) if feed_world and feed_world[i]]
+            _wr_idx = [i for i, t in enumerate(canon.rapid)
+                       if t[4] not in relabel_seqs and rapid_world and rapid_world[i]]
+            _w_flags = world_segment_outside_flags(list(_world_segs()), axis_limits, kins_cfg, unit_scale)
+            if _w_flags is not None:
+                for k, i in enumerate(_wf_idx + _wr_idx):
+                    if k < len(_w_flags) and _w_flags[k]:
+                        (feed_out if k < len(_wf_idx) else rapid_out)[i] = 1
             if w_records is None:
                 # No twin for the declared kins: those segments are
                 # UNCHECKED — carried on the wire as an explicit count
@@ -517,6 +621,7 @@ def parse(ctx: dict) -> dict:
     feed = []
     feed_lines = []
     feed_abc = []
+    feed_abc_raw = []     # machine-frame rotary endpoints (the boundary test compares these)
     feed_seq = []
     feed_tcum = []
     _ftc = 0.0
@@ -533,6 +638,7 @@ def parse(ctx: dict) -> dict:
             (end[2] - e[2]) * unit_scale,
         ])
         feed_abc.append([end[3] - e[3], end[4] - e[4], end[5] - e[5]])
+        feed_abc_raw.append(end[3:6])
         feed_lines.append(lineno)
         feed_seq.append(seq)
         sdx = (end[0] - start[0]) * unit_scale
@@ -552,6 +658,7 @@ def parse(ctx: dict) -> dict:
 
     rapid = []
     rapid_abc = []
+    rapid_abc_raw = []
     rapid_lines = []
     rapid_seq = []
     rapid_tcum = []
@@ -577,6 +684,7 @@ def parse(ctx: dict) -> dict:
             (end[2] - e[2]) * unit_scale,
         ])
         rapid_abc.append([end[3] - e[3], end[4] - e[4], end[5] - e[5]])
+        rapid_abc_raw.append(end[3:6])
         rapid_lines.append(lineno)
         rapid_seq.append(seq)
         sdx = (end[0] - start[0]) * unit_scale
@@ -588,6 +696,62 @@ def parse(ctx: dict) -> dict:
         rapid_tcum.append(_rtc)
 
     total_rapid_time = _rtc if time_axis else 0.0
+
+    # Per-line motion classification (W2 P6) and the unmarked-sub advisory
+    # (W3 P5) — computed here, ahead of the rotary boundary that consults
+    # them; reused by the per-point trust flags on the shipped lists below.
+    _line_cls = classify_motion_lines(_src_text)
+    unmarked_subs = []
+    if _src_text:
+        unmarked_subs = find_unmarked_subs(
+            _src_text,
+            resolve_subroutine_dirs(ini.find("RS274NGC", "SUBROUTINE_PATH"),
+                                    ini_path))
+        if unmarked_subs:
+            print(f"unmarked subs: {unmarked_subs} — line highlight may be "
+                  f"unreliable during their motion (add WEBUI_SUB markers)",
+                  file=sys.stderr, flush=True)
+
+    # Rotary boundary (2026-09-11, "decouple the path from A in machine
+    # mode"): where the PROGRAM first commands each rotary axis. Every
+    # segment before that inherits the parse-time seed for the axis, so the
+    # client may draw it room-fixed under identity kins instead of riding
+    # the table until the next reparse re-bakes it. The value test uses the
+    # RAW canon endpoints (machine-frame degrees); the text test is
+    # consulted only where a line number is provably this file's: at
+    # sub-span depth 0, motion kind matching the stream, and no unmarked
+    # external sub in play (an unmarked sub's colliding line could carry —
+    # or lack — an A word the main file does not). See
+    # first_rotary_commands for the "unknown" contract.
+    _rot_cmd = None
+    _rot_bounds = []
+    if _rot_seed is not None:
+        _cls_arr = np.asarray(_line_cls, dtype=np.int64)
+        _span_idx = {_ev[1]: 0 for _ev in canon.sub_events if _ev[1] is not None}
+
+        def _consultable(lines, seqs, is_rapid):
+            ln = np.asarray(lines, dtype=np.int64)
+            ok = (ln >= 1) & (ln <= _cls_arr.size)
+            if _cls_arr.size:
+                kinds = _cls_arr[np.clip(ln - 1, 0, _cls_arr.size - 1)]
+                ok &= (kinds == LINE_EITHER) | (kinds == (LINE_RAPID if is_rapid else LINE_FEED))
+            else:
+                ok &= False
+            if unmarked_subs:
+                ok &= False
+            elif _span_idx and ln.size:
+                # 0xff = outside every marked span (resolve_sub_indices)
+                ok &= np.asarray(resolve_sub_indices(seqs, canon.sub_events, _span_idx),
+                                 dtype=np.int64) == 0xff
+            return ok
+
+        _rot_cmd = first_rotary_commands(
+            [(feed_seq, feed_lines, feed_abc_raw, _consultable(feed_lines, feed_seq, False)),
+             (rapid_seq, rapid_lines, rapid_abc_raw, _consultable(rapid_lines, rapid_seq, True))],
+            _rot_seed, rotary_word_lines(_src_text), relabel_seqs)
+        _rot_bounds = sorted({v for v in _rot_cmd.values() if v is not None})
+        print("__ROTCMD__\t" + json.dumps({**_rot_cmd, "seed": _rot_seed}),
+              file=sys.stderr, flush=True)
 
     # Flip relabel flags for the wire (W8 phantom jump + review P2 epochs).
     # brk[i]=1 means the segment INTO point i is a frame relabel — zero
@@ -687,6 +851,12 @@ def parse(ctx: dict) -> dict:
         # (both flip vertices: see mode_boundary_indices).
         if feed_mode:
             anchors = sorted(set(anchors) | mode_boundary_indices(feed_mode))
+        if canon.tlo_events:
+            # TLO/tool event boundaries (schema 8): a G43 followed by a feed
+            # has no vertex of its own — anchor both sides so the offset
+            # change survives decimation (see event_boundary_indices).
+            anchors = sorted(set(anchors)
+                             | event_boundary_indices(feed_seq, canon.tlo_events))
         if relabel_seqs:
             # A relabel vertex's exec-order predecessor (seq+1 = the inserted
             # vertex) must survive too: dropping it would extend the brk
@@ -694,6 +864,12 @@ def parse(ctx: dict) -> dict:
             # mode, so mode_boundary_indices alone cannot anchor these.
             anchors = sorted(set(anchors)
                              | {i for i, s in enumerate(feed_seq) if s + 1 in relabel_seqs})
+        if _rot_bounds:
+            # Rotary-command boundaries (2026-09-11): both flip vertices,
+            # like mode boundaries — the client stamps a segment with its
+            # END vertex, so a collapsed run across the boundary would draw
+            # real inherited motion riding the table.
+            anchors = sorted(set(anchors) | seq_boundary_indices(feed_seq, _rot_bounds))
         keep = _rdp_keep(_rdp_points(feed, feed_abc), anchors, eps_sq)
         if len(keep) < len(feed):
             feed = [feed[i] for i in keep]
@@ -705,10 +881,14 @@ def parse(ctx: dict) -> dict:
             # CUMULATIVE time — sampling kept indices preserves the dropped
             # interior segments' durations in the next kept point's delta.
             feed_tcum = [feed_tcum[i] for i in keep]
+            feed_out = reduce_outside_flags(feed_out, keep)
     if len(rapid) > 2:
         r_anchors = [0, len(rapid) - 1]
         if rapid_mode:
             r_anchors = sorted(set(r_anchors) | mode_boundary_indices(rapid_mode))
+        if canon.tlo_events:
+            r_anchors = sorted(set(r_anchors)
+                               | event_boundary_indices(rapid_seq, canon.tlo_events))
         if relabel_seqs:
             # Relabel vertices AND their in-stream predecessors (see the feed
             # anchor note): a dropped relabel vertex loses the brk flag; a
@@ -716,6 +896,8 @@ def parse(ctx: dict) -> dict:
             r_anchors = sorted(set(r_anchors)
                                | {i for i, s in enumerate(rapid_seq)
                                   if s in relabel_seqs or s + 1 in relabel_seqs})
+        if _rot_bounds:
+            r_anchors = sorted(set(r_anchors) | seq_boundary_indices(rapid_seq, _rot_bounds))
         if ustart_seqs:
             # Unknown-start vertices are ZERO-LENGTH (collinear by
             # construction — plain RDP would silently drop them) and their
@@ -731,6 +913,7 @@ def parse(ctx: dict) -> dict:
             rapid_lines = [rapid_lines[i] for i in keep]
             rapid_seq = [rapid_seq[i] for i in keep]
             rapid_tcum = [rapid_tcum[i] for i in keep]
+            rapid_out = reduce_outside_flags(rapid_out, keep)
             if rapid_mode:
                 rapid_mode = [rapid_mode[i] for i in keep]
             if rapid_brk:
@@ -863,12 +1046,12 @@ def parse(ctx: dict) -> dict:
     # highlight's kill switch — now means NO shipped point trusts; a main
     # program that calls subs keeps its own lines highlightable (pre-
     # schema-4 payloads disabled the whole highlight instead).
-    _line_cls = classify_motion_lines(_src_text)
     feed_lineok = line_trust_flags(feed_lines, _line_cls, False)
     rapid_lineok = line_trust_flags(rapid_lines, _line_cls, True)
     sub_names = []
     feed_sub = rapid_sub = None
     feed_cline = rapid_cline = None
+    _caller_map = {}
     if canon.sub_events:
         for _ev in canon.sub_events:
             _nm = _ev[1]
@@ -913,20 +1096,8 @@ def parse(ctx: dict) -> dict:
               f"line (marked subs: {sub_names or 'none'})",
               file=sys.stderr, flush=True)
 
-    # Unmarked-sub advisory (W3 P5): external o-calls whose files carry no
-    # WEBUI_SUB marker — their motion's line numbers collide with the main
-    # file's and can false-positively trust. File-level hint only, no
-    # per-point reattribution (markers remain the only trust mechanism).
-    unmarked_subs = []
-    if _src_text:
-        unmarked_subs = find_unmarked_subs(
-            _src_text,
-            resolve_subroutine_dirs(ini.find("RS274NGC", "SUBROUTINE_PATH"),
-                                    ini_path))
-        if unmarked_subs:
-            print(f"unmarked subs: {unmarked_subs} — line highlight may be "
-                  f"unreliable during their motion (add WEBUI_SUB markers)",
-                  file=sys.stderr, flush=True)
+    # (Unmarked-sub advisory, W3 P5: computed above, ahead of the rotary
+    # boundary, into `unmarked_subs`.)
 
     # Include "file" so this dict is the EXACT GET /preview wire shape: the
     # gateway publishes these bytes verbatim (no decode + re-encode), which is
@@ -936,10 +1107,12 @@ def parse(ctx: dict) -> dict:
     # Parse-time TLO snapshot (W2 P4): the tool-table rows this parse baked
     # into its per-line limit flags (canon TLO modeling reads s.tool_table),
     # for the tools the program touches plus the spindle tool. Rides the
-    # payload as `parse_tlos` (client staleness hint) AND stderr as a
-    # `__TLO__` line (the gateway's drift edge — the payload bytes are
-    # passthrough and never decoded there). table_mtime anchors the broad
-    # drift signal: any re-measure writes the file (G10 L1 saves through).
+    # payload as `parse_tlos` (client staleness hint + per-tool DIMS for the
+    # collision sweep / scrub marker since schema 8: [id, xo, yo, zo,
+    # diameter]) AND stderr as a `__TLO__` line (the gateway's drift edge —
+    # the payload bytes are passthrough and never decoded there).
+    # table_mtime anchors the broad drift signal: any re-measure writes the
+    # file (G10 L1 saves through).
     _tlo_tools = set(int(t) for t in canon.tools_used)
     _spindle_tool = int(getattr(s, "tool_in_spindle", 0) or 0)
     if _spindle_tool > 0:
@@ -953,7 +1126,7 @@ def parse(ctx: dict) -> dict:
         if _tid > 0 and _tid in _tlo_tools and _tid not in _tlo_seen:
             _tlo_seen.add(_tid)
             parse_tlos.append([_tid, float(_t.xoffset), float(_t.yoffset),
-                               float(_t.zoffset)])
+                               float(_t.zoffset), float(_t.diameter)])
     _tt_file = ini.find("EMCIO", "TOOL_TABLE")
     _tt_path = None
     _tt_mtime = None
@@ -965,14 +1138,32 @@ def parse(ctx: dict) -> dict:
             _tt_mtime = os.path.getmtime(_tt_path)
         except OSError:
             _tt_mtime = None   # honest None — the drift edge skips mtime then
+    # The APPLIED tool offset this parse was seeded with + the loaded tool
+    # (TWP-09, review 2026-09-14): the drift edge compares the live applied
+    # offset with THIS, like with like — the table row is only what a bare
+    # G43 would apply; `G43 H<other>` or `G43.1` never matched it and the
+    # gateway reparsed every debounce interval forever.
+    _applied = getattr(s, "tool_offset", None)
+    try:
+        _applied_tlo = [float(_applied[i]) for i in range(3)] if _applied is not None else None
+    except (TypeError, IndexError, ValueError):
+        _applied_tlo = None
     print("__TLO__\t" + json.dumps(
-        {"table_path": _tt_path, "table_mtime": _tt_mtime, "tlos": parse_tlos}),
+        {"table_path": _tt_path, "table_mtime": _tt_mtime, "tlos": parse_tlos,
+         "applied_tlo": _applied_tlo, "loaded_tool": _spindle_tool}),
         file=sys.stderr, flush=True)
     if _rot_seed is not None:
         # Rotary pose this parse was seeded with (W6) — the gateway's
         # drift edge. Absent line = no rotary sync (3-axis config).
         print("__ABCSEED__\t" + json.dumps(_rot_seed),
               file=sys.stderr, flush=True)
+    # Switchkins state this parse ASSUMED (fifth freshness input): the ctx
+    # values verbatim — None type on untracked configs, where the drift
+    # edge then makes no claim. (kins_marker_policy gating in the gateway
+    # means a type can only arrive on configs whose kins can switch.)
+    print("__KINSSEED__\t" + json.dumps(
+        {"type": live_kins_type, "frame": live_kins_frame}),
+        file=sys.stderr, flush=True)
     # WCS offsets this parse baked (abc peel + soft-limit flags): the
     # gateway's offset-drift edge reparses when a touch-off moves them
     # with no pose change — the rotary Zero-All double-count class, and
@@ -1033,6 +1224,14 @@ def parse(ctx: dict) -> dict:
                   "rotation": _basis[2],
               },
               "parse_error": parse_error, "error_line": error_line}
+    if _rot_cmd is not None:
+        # Rotary-command boundary (2026-09-11): per rotary letter the seq of
+        # the segment that first COMMANDS it (None = never — every vertex
+        # inherits the seed for that axis), "unknown" = the seq from which
+        # the text can no longer tell (a client treats everything at/after
+        # it as commanded), and the seed itself. Absent = no rotary seed
+        # (3-axis config / legacy) — the client keeps today's picture.
+        result["rotary_cmd"] = {**_rot_cmd, "seed": _rot_seed}
     if ship_abc:
         # Per-vertex abc (degrees, per-epoch-peeled program coords),
         # index-aligned with feed/rapid. Present whenever abc is NEEDED to
@@ -1100,6 +1299,14 @@ def parse(ctx: dict) -> dict:
         # geometry. Unhandled ≠ handled — the count rides the wire so
         # the sweep/UI can say so instead of implying a clean track.
         result["kins_flips_unresolved"] = flips_unresolved
+    if flips_carry_spans:
+        # Segments whose geometry a relabel CARRY moved (the post-g69 class):
+        # an axis the post-flip blocks never command keeps the pre-flip value
+        # in the un-resynced offline interpreter, so the correction is carried
+        # until that axis is re-commanded. Canon-endpoint replay cannot tell
+        # "held" from "commanded to exactly the stale value", so the reach of
+        # the carry rides the wire instead of being silently assumed.
+        result["kins_carry_spans"] = flips_carry_spans
     if canon.wcs_events:
         # WCS epoch rows (review P2), execution-ordered: [seq, g5x_index,
         # rotation_deg, rewritten, g5x x6, g92 x6] — MACHINE units, the
@@ -1111,15 +1318,56 @@ def parse(ctx: dict) -> dict:
         # row when motion exists, so absence unambiguously means a legacy
         # payload. A handful of small rows — GC discipline intact.
         _e0_g92 = canon.wcs_events[0][2][1]
+        # The value comparison alone misses a G10 L2 that writes the SAME
+        # numbers the var row already holds — a program re-asserting its own
+        # offsets every run then reads as operator-owned, and the client
+        # re-adds the LIVE row, so a touch-off between parse and display
+        # moves the preview somewhere the machine will never go. Union in
+        # what the SOURCE says the program writes.
+        _wr_explicit, _wr_active = wcs_rewrite_targets(_src_text)
         result["wcs_frames"] = []
         for _eseq, _eidx, _ebasis in canon.wcs_events:
-            _rw = wcs_event_rewritten(_ebasis, _eidx, var_wcs_rows,
-                                      _e0_g92, unit_scale)
+            _rw = (wcs_event_rewritten(_ebasis, _eidx, var_wcs_rows,
+                                       _e0_g92, unit_scale)
+                   or _wr_active or (_eidx in _wr_explicit))
             result["wcs_frames"].append(
                 [int(_eseq), int(_eidx or 0), float(_ebasis[2]),
                  1 if _rw else 0]
                 + [float(v) for v in _basis_to_machine(_ebasis[0], unit_scale)[:6]]
                 + [float(v) for v in _basis_to_machine(_ebasis[1], unit_scale)[:6]])
+    if canon.tlo_events:
+        # TLO/tool event rows (schema 8), execution-ordered: [seq, xo, yo,
+        # zo, tool] — MACHINE units, the offset + tool the program itself
+        # put in effect at that point (G43/G43.1/G49 and executed M6 on
+        # program lines; tool -1 = no M6 executed yet, inherit the loaded
+        # tool). A row at seq N governs segments with seq > N; two rows at
+        # one seq resolve last-wins. Segments BEFORE the first row run
+        # under the machine's LIVE modal G43 state (the client resolves
+        # "no row" to the live applied offset — the parse's fresh
+        # interpreter starting at 0 is not what the machine runs with).
+        # Absent = the program never changes tool or offset; the client
+        # applies the live offset throughout, exactly as pre-8.
+        result["tlo_events"] = [
+            [int(_s), float(_xo) * unit_scale, float(_yo) * unit_scale,
+             float(_zo) * unit_scale, int(_tool)]
+            for _s, _xo, _yo, _zo, _tool in canon.tlo_events]
+    if kins_end_type is not None and kins_active:
+        # Load-time lint (2026-09-03): the type the program's LAST switchkins
+        # marker leaves in effect. M2 restores G54 but not the kins pin, so a
+        # program ending in TOOL/TCP kins strands the machine in that frame
+        # (the demo's `;g69`). Present only when the program itself switched
+        # — absent = not applicable, never "0 = fine". kins_active: on a
+        # non-switchable declaration the markers are stale noise (above).
+        result["kins_end_type"] = kins_end_type
+        if kins_end_type != 0:
+            print(f"kins at end: type {kins_end_type} — the program does not "
+                  f"restore identity (G69 / M428) before M2", file=sys.stderr, flush=True)
+    if axis_limits:
+        # Per-vertex outside-limits verdict (2026-09-12): the segment ENDING
+        # at each shipped vertex (its decimated run included) had a joint
+        # beyond the checked window. Absent = unchecked (no window).
+        result["feed_outside"] = np.asarray(feed_out, dtype="<u1").tobytes() if feed_out else b""
+        result["rapid_outside"] = np.asarray(rapid_out, dtype="<u1").tobytes() if rapid_out else b""
     if world_unchecked:
         # World-mode segments with no kins twin to check against —
         # unchecked ≠ clean, so the count rides the wire and the UI says
@@ -1130,10 +1378,32 @@ def parse(ctx: dict) -> dict:
         # with no WEBUI_SUB markers — the stats dialog shows one info-tier
         # hint. Present only when non-empty.
         result["unmarked_subs"] = unmarked_subs
+    if _refusal:
+        # Present only when a remap refused the program — the operator's
+        # reason for an otherwise clean, EMPTY payload (task would refuse
+        # the same line). Machine-readable stderr twin for the gateway
+        # trace, like __PARTIAL__.
+        _pr = refusal_payload(_refusal, canon.sub_events, _caller_map,
+                              source_text=_src_text)
+        result["parse_refused"] = _pr
+        print(f"__REFUSED__\t{_pr.get('line') or ''}\t{_pr['message']}",
+              file=sys.stderr, flush=True)
     return result
 
 
+def _on_sigterm(signum, frame):
+    # The gateway cancels a superseded parse with SIGTERM
+    # (bulk_pipeline.cancel_inflight): leave through SystemExit so parse()'s
+    # `finally` removes the temp var-file dir. Raised inside a canon
+    # callback it propagates out of gcode.parse (gcodemodule counts the
+    # failed callback and returns); the gateway ignores the exit code of a
+    # parse it cancelled, and kills after 2 s if this never ran.
+    raise SystemExit(143)
+
+
 def main() -> None:
+    import signal
+    signal.signal(signal.SIGTERM, _on_sigterm)
     t_main = time.monotonic()
     raw = sys.stdin.buffer.read()
     try:

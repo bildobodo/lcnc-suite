@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { usePermissionReasons, explainKeydown } from "./permissions";
+import { pushMessage } from "./lcncWs";
+import { OPERATOR_DISPLAY } from "./lcnc";
 import { computed, inject, ref, watch, onMounted, onUnmounted, type Ref, type Component } from "vue";
 import { send } from "./lcncWs";
 import { usePermissions } from "./permissions";
@@ -29,6 +32,27 @@ const props = defineProps<{
   iniIncrements: number[] | null;
   jogDisabled: boolean;
   taskMode: number;
+  // Jog-frame selector (switchable-kins machines only; industry convention
+  // — Heidenhain 3D-ROT manual setting, Siemens WCS/MCS softkey — is an
+  // EXPLICIT operator choice of jog frame, prominently indicated).
+  // null kinsType = machine can't switch: selector hidden entirely.
+  // kinsType is the RAW switchkins pin; kinsMode is the FRAME it means on
+  // this kins family (App.kinsMode) — the radios show and emit frames,
+  // because the raw numbers differ per family (R-01).
+  kinsType?: number | null;
+  kinsMode?: number | null;
+  // The TWP remap stack exists on this machine (App twpCapable, twin of the
+  // gateway's _twp_capable): only then is Plane a frame at all. A TCP
+  // trunnion is switchable (Machine/TCP) without any plane (TWP-08b).
+  twpCapable?: boolean;
+  twpDefined?: boolean | null;
+  // Head solve stale (table moved since the last orient): the Plane frame's
+  // Z is then NOT the face normal — say so where the operator picks it.
+  twpStale?: boolean;
+  // A head solve exists this session (G53.x / Orient ran): the Plane frame
+  // is only OFFERED then — a bare M430 before any orient jogs on whatever
+  // frame the kins pins last held (the stale-pin trap).
+  twpOriented?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -38,9 +62,30 @@ const emit = defineEmits<{
   (e: "resetJogVel"): void;
   (e: "resetAngularJogVel"): void;
   (e: "modeChange", mode: number): void;
+  (e: "setKinsMode", type: number): void;
 }>();
 
 const can = usePermissions();
+// Plane radio title (U-06): the gate's own reason while it is closed —
+// the same sentence the gateway would deny set_kins_mode with — else the
+// frame's description; a tap on the disabled radio's label puts the reason
+// in the message center (touch has no hover).
+const reasons = usePermissionReasons();
+const planeTitle = computed(() => {
+  if (!can.value.planeFrame && reasons.value.planeFrame) return reasons.value.planeFrame;
+  if (!props.twpOriented) {
+    return props.twpDefined
+      ? "Plane defined but the head has not been oriented — press Orient (or G53.1) first. A bare M430 would jog on whatever frame the kins pins last held."
+      : "No tilted work plane defined (G68.2 / G68.3) — nothing to jog in yet";
+  }
+  return props.twpStale
+    ? "TOOL kinematics — the plane frame is from the LAST orient and the table has moved since: Z is NOT the face normal. Press Orient to restore it."
+    : "TOOL kinematics — jog in the tilted work plane, Z along the tool axis as of the last orient (Orient again after moving the table). Switching re-seeds the preview (a brief progress flash is expected)";
+});
+function explainPlane() {
+  if (!can.value.planeFrame) pushMessage(OPERATOR_DISPLAY, planeTitle.value);
+}
+
 const isDisabled = computed(() => !can.value[INPUT_DEFS.jogWheel.gate] || props.jogDisabled);
 
 const isPortrait = inject<Ref<boolean>>("isPortrait", ref(false));
@@ -388,13 +433,49 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
 
         <div class="sep modeColSep"></div>
 
-        <div class="modeCol stack-tight strip-radio-group">
-          <span class="label-muted">Mode</span>
-          <div class="strip-radio-options">
-            <label class="radio-label"><MachineRadio gate="modeSelect" name="taskMode" :modelValue="taskMode" :value="TASK_MODE_MANUAL" @update:modelValue="emit('modeChange', TASK_MODE_MANUAL)" /> Manual</label>
-            <label class="radio-label"><MachineRadio gate="modeSelect" name="taskMode" :modelValue="taskMode" :value="TASK_MODE_MDI" @update:modelValue="emit('modeChange', TASK_MODE_MDI)" /> MDI</label>
-            <label class="radio-label"><MachineRadio gate="modeSelect" name="taskMode" :modelValue="taskMode" :value="TASK_MODE_AUTO" @update:modelValue="emit('modeChange', TASK_MODE_AUTO)" /> Auto</label>
+        <!-- Mode + jog frame share ONE column (space): task mode radios, then
+             the jog-frame radios beneath them (the TWP action buttons —
+             Capture / Orient / Clear — live in the Setup strip's action rows,
+             2026-09-01: operator wants them in the grid, three equal buttons).
+             Jog-frame selector: switchable-kins machines only (Heidenhain
+             3D-ROT / Siemens WCS-MCS convention — the jog frame is an
+             explicit, indicated operator choice). The radio reflects the
+             ACTUAL kins type: an earlier version folded TCP into "Machine",
+             so a machine parked in TCP displayed as Machine and one click
+             on that radio silently dropped it to identity.
+             Machine = identity (M428).
+             TCP = M429: world XYZ is the table-riding work frame — jog A
+               and the tool tip stays put on the workpiece (position
+               tracking; the head's orientation does not follow).
+             Plane = TOOL kins (M430): X/Y/Z jog in the tilted plane, Z
+               along the tool axis AS OF THE LAST ORIENT — the frame is
+               frozen in the kins pins at G53.x, so after a table move it
+               is stale until Orient. Always VISIBLE on a TWP machine (so
+               the operator learns it exists), ENABLED only once a head
+               solve exists: a bare M430 reuses whatever pins the last
+               session left. -->
+        <div class="modeCol stack-controls strip-radio-col">
+          <div class="strip-radio-group stack-tight">
+            <span class="label-muted">Mode</span>
+            <div class="strip-radio-options">
+              <label class="radio-label"><MachineRadio gate="modeSelect" name="taskMode" :modelValue="taskMode" :value="TASK_MODE_MANUAL" @update:modelValue="emit('modeChange', TASK_MODE_MANUAL)" /> Manual</label>
+              <label class="radio-label"><MachineRadio gate="modeSelect" name="taskMode" :modelValue="taskMode" :value="TASK_MODE_MDI" @update:modelValue="emit('modeChange', TASK_MODE_MDI)" /> MDI</label>
+              <label class="radio-label"><MachineRadio gate="modeSelect" name="taskMode" :modelValue="taskMode" :value="TASK_MODE_AUTO" @update:modelValue="emit('modeChange', TASK_MODE_AUTO)" /> Auto</label>
+            </div>
           </div>
+          <template v-if="kinsType != null">
+            <div class="strip-radio-group stack-tight">
+              <span class="label-muted" title="Selects the machine's KINEMATICS — for jogging, MDI and programs alike: Machine (identity), TCP (world XYZ rides the table) or the tilted Plane (which also selects G59). The M-code each frame uses is this machine's own remap. Not the Manual/MDI/Auto task mode above.">Kinematics frame</span>
+              <div class="strip-radio-options">
+                <label class="radio-label" title="Identity kinematics — jog along machine axes"><MachineRadio gate="jogFrame" name="jogFrame" :modelValue="kinsMode ?? undefined" :value="0" @update:modelValue="emit('setKinsMode', 0)" /> Machine</label>
+                <label class="radio-label" title="TCP kinematics — X/Y/Z are the work frame riding the table: jogging A keeps the tool tip on the workpiece (position only; the head orientation does not follow). Switching re-seeds the preview (a brief progress flash is expected)"><MachineRadio gate="jogFrame" name="jogFrame" :modelValue="kinsMode ?? undefined" :value="1" @update:modelValue="emit('setKinsMode', 1)" /> TCP</label>
+                <label v-if="twpCapable" class="radio-label" :class="{ 'val-status': true, warn: twpStale, muted: !twpOriented }" :title="planeTitle"
+                       :tabindex="can.planeFrame ? undefined : 0" :role="can.planeFrame ? undefined : 'button'"
+                       :aria-label="can.planeFrame ? undefined : `Why is the Plane frame unavailable? ${planeTitle}`"
+                       @click="explainPlane" @keydown="(e: KeyboardEvent) => { if (!can.planeFrame) explainKeydown(e, explainPlane); }"><MachineRadio gate="planeFrame" name="jogFrame" :modelValue="kinsMode ?? undefined" :value="2" @update:modelValue="emit('setKinsMode', 2)" /> Plane{{ twpStale ? ' (stale)' : '' }}</label>
+              </div>
+            </div>
+          </template>
         </div>
       </div>
     </div>

@@ -12,8 +12,10 @@
 //   rewritten epoch → the PARSE SNAPSHOT: the program writes these offsets
 //     itself (G10 L2 — the normal TWP path writes the plane origin into
 //     G59), so the live table row is not authoritative — following it would
-//     render a position the machine will never visit. Live tool terms stay
-//     live in both cases (TLO is not fixture state).
+//     render a position the machine will never visit. Tool terms are NOT
+//     part of epoch terms (schema 8): the tool offset is per-SEGMENT state
+//     (viewer/tloEvents.ts), added by each consumer through liftToJoints —
+//     epoch terms are TIP-space, so the offset can never ride twice.
 //
 // Mirrors the kinsForSegment routing-point pattern: one place resolves
 // "which terms govern this vertex", consumed by the part-frame transform,
@@ -74,10 +76,9 @@ export function epochWcsList(
         g5x: AXIS_KEYS.map(k => Number(row[k] ?? 0)),
         g92: live.g92,
         rotationDeg: Number(row.r ?? 0),
-        tool: live.tool,
       };
     }
-    return { g5x: ev.g5x, g92: ev.g92, rotationDeg: ev.rotationDeg, tool: live.tool };
+    return { g5x: ev.g5x, g92: ev.g92, rotationDeg: ev.rotationDeg };
   });
 }
 
@@ -120,6 +121,64 @@ export function usedWcsRowsKey(
   return out;
 }
 
+/** Parse-time basis as the wire ships it (`wcs_basis`, machine units). */
+export interface WcsBasis { g5x: readonly number[]; g92: readonly number[]; rotation?: number }
+
+/** The gateway's evaluate_wcs_offset_drift eps — the client used 1e-4 and
+ *  a chip could outlive the auto-reparse it was pointing at. */
+export const WCS_STALE_EPS = 1e-3;
+
+function _arrDiffers(a: readonly number[] | undefined, b: readonly (number | undefined)[] | undefined,
+                     eps: number): boolean {
+  if (!Array.isArray(a) || !Array.isArray(b)) return false;
+  const n = Math.min(a.length, b.length);
+  for (let i = 0; i < n; i++) {
+    if (Math.abs(Number(a[i] ?? 0) - Number(b[i] ?? 0)) > eps) return true;
+  }
+  return false;
+}
+
+/**
+ * "Preview parsed against offsets that are no longer live" — per FIXTURE.
+ *
+ * The old check compared the parse-time ACTIVE basis with the live ACTIVE
+ * offset, so any program that switches fixtures (every G53.x moves to G59)
+ * or rewrites the active row lit the chip mid-run with nothing the
+ * operator changed (touch-off is idle-gated — during a run only the
+ * program can change offsets, and its writes are the `rewritten` epochs).
+ *
+ * Epoch-aware payload: stale ⇔ some NON-rewritten epoch's fixture row
+ * (x..c + r) in the live table differs from that epoch's parse snapshot,
+ * or the live g92 differs from a non-rewritten epoch's snapshot. Rewritten
+ * epochs never count — the program owns them (the "Program writes …" chip
+ * says so). Legacy payload (no events): the active-basis comparison.
+ * Pure; unit-tested.
+ */
+export function previewWcsStaleFor(
+  events: readonly WcsEpoch[] | undefined,
+  basis: WcsBasis | null | undefined,
+  table: readonly WcsTableRow[] | undefined,
+  live: { g5x?: readonly number[]; g92?: readonly number[]; rotationDeg?: number } | null | undefined,
+  eps: number = WCS_STALE_EPS,
+): boolean {
+  if (!live) return false;
+  if (events?.length) {
+    for (const ev of events) {
+      if (ev.rewritten || ev.idx < 1) continue;
+      const row = table?.[ev.idx - 1];
+      if (!row) continue;   // no table yet: no claim
+      const liveRow = AXIS_KEYS.map(k => Number(row[k] ?? 0));
+      if (_arrDiffers(ev.g5x, liveRow, eps)) return true;
+      if (Math.abs(Number(row.r ?? 0) - ev.rotationDeg) > eps) return true;
+      if (_arrDiffers(ev.g92, live.g92, eps)) return true;
+    }
+    return false;
+  }
+  if (!basis) return false;
+  return _arrDiffers(basis.g5x, live.g5x, eps) || _arrDiffers(basis.g92, live.g92, eps)
+    || Math.abs((basis.rotation ?? 0) - (live.rotationDeg ?? 0)) > eps;
+}
+
 function termsClose(a: WcsTerms, b: WcsTerms): boolean {
   return Math.abs(a.ox - b.ox) < 1e-9 && Math.abs(a.oy - b.oy) < 1e-9
     && Math.abs(a.oz - b.oz) < 1e-9 && Math.abs(a.oa - b.oa) < 1e-9
@@ -134,14 +193,15 @@ const _p: number[] = [0, 0, 0, 0, 0, 0];
  *
  *  The rendered polyline hangs under ONE scene group (workOrigin = the live
  *  ACTIVE fixture's terms), so a vertex peeled against epoch e must be
- *  re-based:  v_display = active⁻¹( epoch_e(v) ).  TLO terms cancel (same
- *  live tool on both sides). Fast path: no epoch data, or every epoch's
+ *  re-based:  v_display = active⁻¹( epoch_e(v) ).  Both `terms` and
+ *  `active` are TIP-space (schema 8: no tool offset in any WCS terms —
+ *  callers build `active` from tipWcs(live)). Fast path: no epoch data, or every epoch's
  *  terms already equal the active terms (the overwhelmingly common
  *  single-fixture case) → the INPUT array is returned untouched, zero
  *  copies. Pure. */
 export function rebasePositions(
   pos: Float32Array,
-  epochOf: Uint8Array | undefined,
+  epochOf: Uint32Array | undefined,
   terms: readonly WcsTerms[],
   active: WcsTerms,
 ): Float32Array {

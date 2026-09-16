@@ -14,12 +14,14 @@
 // letters → joint slots via viewer_init.axes. No baked subdivision needed —
 // the kinematic chain is evaluated at pose time, not baked per vertex.
 import { kinsForSegment, type KinsSpec } from "./kins";
+import { TLO_NONE, tloForIndex, type TloEvent } from "./tloEvents";
+import { EVENT_NONE } from "./eventIndex";
+import { buildLineIndex } from "./lineIndex";
 import {
-  buildLineMap, machineToProgram, programToMachine, wcsTerms,
-  type PartFrameWcs, type WcsTerms,
-} from "./partFrame";
+  machineToProgram, wcsTerms,
+  type PartFrameWcs, type WcsTerms, liftToJoints, jointsToProgram, tipWcs } from "./partFrame";
 import type { WcsEpoch } from "./wcsEpochs";
-import type { ScrubTrack } from "../ws/bulkData";
+import type { RotaryCmd, ScrubTrack } from "../ws/bulkData";
 
 export type { ScrubTrack };
 
@@ -37,9 +39,9 @@ export interface ScrubStream {
    *  no mode data. */
   mode?: Uint8Array;
   /** Per-point governing TWP frame INDEX into the track's `frames` list
-   *  (0xff = none) — resolved at ingestion from wire kins_frames by seq.
+   *  (EVENT_NONE = none) — resolved at ingestion from wire kins_frames by seq.
    *  Absent on programs without WEBUI_TWPFRAME markers. */
-  frame?: Uint8Array;
+  frame?: Uint32Array;
   /** Per-point kins-flip relabel flag (wire rapid_brk): 1 ⇒ the segment
    *  INTO this point is a switchkins frame relabel at a stationary pose —
    *  zero machine motion. Absent = legacy payload (flip segments keep the
@@ -52,7 +54,16 @@ export interface ScrubStream {
   /** Per-point WCS epoch INDEX into the payload's wcs_frames events —
    *  which basis this point was peeled against (review P2). Absent =
    *  legacy payload (single-basis semantics). */
-  wcs?: Uint8Array;
+  wcs?: Uint32Array;
+  /** Per-point TLO/tool event INDEX into the payload's tlo_events (schema
+   *  8; TLO_NONE = before the first row → live offset governs). Absent = the
+   *  program never changes tool or offset. */
+  tlo?: Uint32Array;
+  /** Outside-soft-limits verdict per vertex (2026-09-12): the segment
+   *  ENDING at the vertex had a joint beyond the checked window — the
+   *  gateway validator's per-vertex flag (wire feed_outside/rapid_outside).
+   *  Absent = unchecked. */
+  outside?: Uint8Array;
   /** Per-point line trust (wire feed_lineok/rapid_lineok, W2 P6). Absent
    *  = pre-schema-4 payload. */
   lineOk?: Uint8Array;
@@ -78,7 +89,9 @@ const DEG_AS_MM = 1;
 export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
                                 frames?: [number, number, number][],
                                 wcsEvents?: WcsEpoch[],
-                                subNames?: string[]): ScrubTrack | null {
+                                subNames?: string[],
+                                tloEvents?: TloEvent[],
+                                rotaryCmd?: RotaryCmd): ScrubTrack | null {
   const nf = (feed.pos.length / 3) | 0;
   const nr = (rapid.pos.length / 3) | 0;
   const n = nf + nr;
@@ -111,13 +124,18 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
     && (nr === 0 || rapid.mode?.length === nr)
     && !!(feed.mode || rapid.mode);
   const mode = hasMode ? new Uint8Array(n) : undefined;
+  // Outside-limits flags (2026-09-12) merge like mode.
+  const hasOutside = (nf === 0 || feed.outside?.length === nf)
+    && (nr === 0 || rapid.outside?.length === nr)
+    && !!(feed.outside || rapid.outside);
+  const outside = hasOutside ? new Uint8Array(n) : undefined;
   // TWP frame indices merge like mode (present iff consistent + a frames
   // list exists to dereference into).
   const hasFrame = !!frames?.length && hasMode
     && (nf === 0 || feed.frame?.length === nf)
     && (nr === 0 || rapid.frame?.length === nr)
     && !!(feed.frame || rapid.frame);
-  const frameIdx = hasFrame ? new Uint8Array(n) : undefined;
+  const frameIdx = hasFrame ? new Uint32Array(n) : undefined;
   // Relabel flags: a stream without brk data means "no relabels here" (the
   // worker only ever inserts them into rapid), so absence on one stream is
   // zeros, not inconsistency — but a mislengthed array is a bug upstream
@@ -141,7 +159,14 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
     && (nf === 0 || feed.wcs?.length === nf)
     && (nr === 0 || rapid.wcs?.length === nr)
     && !!(feed.wcs || rapid.wcs);
-  const wcsEpoch = hasWcs ? new Uint8Array(n) : undefined;
+  const wcsEpoch = hasWcs ? new Uint32Array(n) : undefined;
+  // TLO/tool events (schema 8): like wcs — present iff consistent and an
+  // events list exists to dereference into.
+  const hasTlo = !!tloEvents?.length
+    && (nf === 0 || feed.tlo?.length === nf)
+    && (nr === 0 || rapid.tlo?.length === nr)
+    && !!(feed.tlo || rapid.tlo);
+  const tlo = hasTlo ? new Uint32Array(n) : undefined;
   // Line trust + sub spans (W2 P6): merged like mode — present iff every
   // non-empty stream carries the channel (the worker ships both together;
   // a half-present channel is a bug upstream, dropped whole rather than
@@ -161,6 +186,12 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
     && !!(feed.cline || rapid.cline);
   const cline = hasCline ? new Uint16Array(n) : undefined;
 
+  // Rotary-command boundary → per-axis inherited prefix lengths: needs the
+  // merged seq per point (present whenever both streams carry seq; a
+  // single non-empty stream may be a legacy seq-less payload → no claim).
+  const seqAvail = !!rotaryCmd && (nf === 0 || fseq?.length === nf) && (nr === 0 || rseq?.length === nr);
+  const mergedSeq = seqAvail ? new Uint32Array(n) : undefined;
+
   let fi = 0, ri = 0;
   let prevFT = 0, prevRT = 0;   // per-stream previous cumulative time
   for (let i = 0; i < n; i++) {
@@ -172,6 +203,7 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
     const src = takeFeed ? feed : rapid;
     const si = takeFeed ? fi++ : ri++;
     const s3 = si * 3, d3 = i * 3;
+    if (mergedSeq) mergedSeq[i] = (takeFeed ? fseq![si] : rseq![si]) ?? 0;
     pos[d3] = src.pos[s3]!;
     pos[d3 + 1] = src.pos[s3 + 1]!;
     pos[d3 + 2] = src.pos[s3 + 2]!;
@@ -183,10 +215,12 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
     lines[i] = src.lines?.[si] ?? 0;
     rapidFlag[i] = takeFeed ? 0 : 1;
     if (mode) mode[i] = src.mode?.[si] ?? 0;
-    if (frameIdx) frameIdx[i] = src.frame?.[si] ?? 0xff;
+    if (outside) outside[i] = src.outside?.[si] ?? 0;
+    if (frameIdx) frameIdx[i] = src.frame?.[si] ?? EVENT_NONE;
     if (brk) brk[i] = (src.brk?.[si] ?? 0) | (src.ustart?.[si] ?? 0);
     if (ustart) ustart[i] = src.ustart?.[si] ?? 0;
     if (wcsEpoch) wcsEpoch[i] = src.wcs?.[si] ?? 0;
+    if (tlo) tlo[i] = src.tlo?.[si] ?? TLO_NONE;
     if (lineOk) lineOk[i] = src.lineOk?.[si] ?? 0;
     if (sub) sub[i] = src.sub?.[si] ?? 0xff;
     if (cline) cline[i] = src.cline?.[si] ?? 0;
@@ -225,17 +259,48 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
     }
   }
 
-  const lineCum = new Map<number, number>();
-  for (let i = 0; i < n; i++) {
-    const ln = lines[i]!;
-    if (ln && !lineCum.has(ln)) lineCum.set(ln, cum[i]!);
+  let inheritedEnd: ScrubTrack["inheritedEnd"];
+  if (mergedSeq && rotaryCmd) {
+    // The merged track is seq-ascending: points inheriting an axis are the
+    // prefix with seq < that axis's first-command seq (all n when never
+    // commanded). A letter the wire does not carry (not a machine axis) is
+    // "never commanded" too — it cannot make a vertex ride.
+    const countBelow = (b: number | null | undefined): number => {
+      if (b == null) return n;
+      let lo = 0, hi = n;
+      while (lo < hi) { const mid = (lo + hi) >> 1; if (mergedSeq[mid]! < b) lo = mid + 1; else hi = mid; }
+      return lo;
+    };
+    inheritedEnd = { A: countBelow(rotaryCmd.A), B: countBelow(rotaryCmd.B), C: countBelow(rotaryCmd.C),
+                     unknown: countBelow(rotaryCmd.unknown) };
   }
 
-  return { pos, abc, lines, rapid: rapidFlag, mode, frame: frameIdx,
+  return { pos, abc, lines, rapid: rapidFlag, mode, outside, frame: frameIdx,
            frames: hasFrame ? frames : undefined, brk, ustart,
            wcsEpoch, wcsEvents: hasWcs ? wcsEvents : undefined,
+           tlo, tloEvents: hasTlo ? tloEvents : undefined,
            lineOk, sub, subNames: hasSub ? subNames : undefined, cline,
-           cum, count: n, lineCum, lineSpan: buildLineMap(lines), timeBased };
+           inheritedEnd,
+           cum, count: n, lineIndex: buildLineIndex(lines, cum), timeBased };
+}
+
+/** How many leading track points draw ROOM-FIXED under identity kins: the
+ *  minimum of the inherited prefix over the rotary letters of the WORK
+ *  chain and `unknown`. Head-chain rotaries (a B/C spindle) do not move the
+ *  work, so a `G0 B30` must not make an A-inherited path ride the table.
+ *  0 when the track carries no boundary (legacy / no rotary seed) — today's
+ *  picture — or when the work chain has no rotary at all (nothing to
+ *  decouple from). */
+export function roomEndOf(t: Pick<ScrubTrack, "inheritedEnd" | "count"> | null | undefined,
+                          workLetters: readonly string[]): number {
+  const ie = t?.inheritedEnd;
+  if (!ie || workLetters.length === 0) return 0;
+  let end = ie.unknown;
+  for (const l of workLetters) {
+    const v = ie[l as "A" | "B" | "C"];
+    if (v != null && v < end) end = v;
+  }
+  return Math.max(0, Math.min(end, t!.count));
 }
 
 /** Drawn-preview streams re-derived from the merged track.
@@ -264,16 +329,27 @@ export interface SplitStreams {
   feedMode?: Uint8Array; rapidMode?: Uint8Array;
   /** Per-vertex TWP frame indices (same conventions as feedMode/rapidMode;
    *  dereference into the track's `frames`). */
-  feedFrame?: Uint8Array; rapidFrame?: Uint8Array;
+  feedFrame?: Uint32Array; rapidFrame?: Uint32Array;
   /** Per-vertex WCS epoch indices (same conventions; dereference into the
    *  track's `wcsEvents`) — which basis each drawn vertex was peeled
    *  against, consumed by the display rebase (wcsEpochs.rebasePositions). */
-  feedWcs?: Uint8Array; rapidWcs?: Uint8Array;
+  feedWcs?: Uint32Array; rapidWcs?: Uint32Array;
+  /** Per-vertex TLO event indices (same conventions; dereference into the
+   *  track's `tloEvents`) — the part-frame worker lifts and peels each
+   *  vertex with ITS offset (schema 8). */
+  feedTlo?: Uint32Array; rapidTlo?: Uint32Array;
+  /** Per-vertex outside-limits flags (same conventions: a section-start
+   *  vertex takes the OPENING segment's flag; consumers test the segment's
+   *  END vertex) — the gateway validator's verdict, painted as-is. */
+  feedOutside?: Uint8Array; rapidOutside?: Uint8Array;
   /** Source TRACK index per drawn feed vertex (ascending) — maps a track
    *  segment range to a drawn-vertex range for the positional 3D highlight
    *  (review P3), which line numbers cannot do once a called sub's numbers
    *  collide with the main file's. */
   feedSrc?: Uint32Array;
+  /** Same for the drawn rapid vertices (2026-09-11): the room/table split
+   *  tests `src < roomEnd` per drawn vertex of both streams. */
+  rapidSrc?: Uint32Array;
 }
 
 export function splitTrackStreams(t: ScrubTrack): SplitStreams {
@@ -283,7 +359,9 @@ export function splitTrackStreams(t: ScrubTrack): SplitStreams {
   const fMode: number[] = [], rMode: number[] = [];
   const fFrame: number[] = [], rFrame: number[] = [];
   const fWcs: number[] = [], rWcs: number[] = [];
-  const fSrc: number[] = [];
+  const fTlo: number[] = [], rTlo: number[] = [];
+  const fOut: number[] = [], rOut: number[] = [];
+  const fSrc: number[] = [], rSrc: number[] = [];
   let fLast = -2, rLast = -2;  // track index of each stream's last emitted point
 
   const push = (pos: number[], abc: number[], i: number) => {
@@ -295,8 +373,10 @@ export function splitTrackStreams(t: ScrubTrack): SplitStreams {
   for (let i = 1; i < n; i++) {
     const ln = t.lines[i]!;  // segment belongs to its END point's line
     const md = t.mode?.[i] ?? 0;  // ...and its END point's mode
-    const fr = t.frame?.[i] ?? 0xff;  // ...and its END point's TWP frame
+    const fr = t.frame?.[i] ?? EVENT_NONE;  // ...and its END point's TWP frame
     const we = t.wcsEpoch?.[i] ?? 0;  // ...and its END point's WCS epoch
+    const te = t.tlo?.[i] ?? TLO_NONE;  // ...and its END point's TLO event
+    const ou = t.outside?.[i] ?? 0;     // ...and its END point's outside flag
     // Kins-flip relabel INTO i: unlike a stream-interleave section (whose
     // connector is the other stream's real move), no motion exists here at
     // all — open the section AT the relabeled vertex and draw nothing into
@@ -306,24 +386,24 @@ export function splitTrackStreams(t: ScrubTrack): SplitStreams {
       if (relabel) {
         rBreaks.push(rPos.length / 3);
         push(rPos, rAbc, i);
-        rMode.push(md); rFrame.push(fr); rWcs.push(we);
+        rMode.push(md); rFrame.push(fr); rWcs.push(we); rTlo.push(te); rOut.push(ou); rSrc.push(i);
         rLast = i;
         continue;
       }
       if (rLast !== i - 1) {
         rBreaks.push(rPos.length / 3);
         push(rPos, rAbc, i - 1);
-        rMode.push(md); rFrame.push(fr); rWcs.push(we);
+        rMode.push(md); rFrame.push(fr); rWcs.push(we); rTlo.push(te); rOut.push(ou); rSrc.push(i - 1);
       }
       push(rPos, rAbc, i);
-      rMode.push(md); rFrame.push(fr); rWcs.push(we);
+      rMode.push(md); rFrame.push(fr); rWcs.push(we); rTlo.push(te); rOut.push(ou); rSrc.push(i);
       rLast = i;
     } else {
       if (relabel) {
         fBreaks.push(fPos.length / 3);
         fLines.push(ln);
         push(fPos, fAbc, i);
-        fMode.push(md); fFrame.push(fr); fWcs.push(we); fSrc.push(i);
+        fMode.push(md); fFrame.push(fr); fWcs.push(we); fTlo.push(te); fOut.push(ou); fSrc.push(i);
         fLast = i;
         continue;
       }
@@ -333,11 +413,11 @@ export function splitTrackStreams(t: ScrubTrack): SplitStreams {
         // line highlight covers the move from its true start.
         fLines.push(ln);
         push(fPos, fAbc, i - 1);
-        fMode.push(md); fFrame.push(fr); fWcs.push(we); fSrc.push(i - 1);
+        fMode.push(md); fFrame.push(fr); fWcs.push(we); fTlo.push(te); fOut.push(ou); fSrc.push(i - 1);
       }
       fLines.push(ln);
       push(fPos, fAbc, i);
-      fMode.push(md); fFrame.push(fr); fWcs.push(we); fSrc.push(i);
+      fMode.push(md); fFrame.push(fr); fWcs.push(we); fTlo.push(te); fOut.push(ou); fSrc.push(i);
       fLast = i;
     }
   }
@@ -349,11 +429,16 @@ export function splitTrackStreams(t: ScrubTrack): SplitStreams {
     rapidBreaks: new Uint32Array(rBreaks),
     feedMode: t.mode ? new Uint8Array(fMode) : undefined,
     rapidMode: t.mode ? new Uint8Array(rMode) : undefined,
-    feedFrame: t.frame ? new Uint8Array(fFrame) : undefined,
-    rapidFrame: t.frame ? new Uint8Array(rFrame) : undefined,
-    feedWcs: t.wcsEpoch ? new Uint8Array(fWcs) : undefined,
-    rapidWcs: t.wcsEpoch ? new Uint8Array(rWcs) : undefined,
+    feedFrame: t.frame ? new Uint32Array(fFrame) : undefined,
+    rapidFrame: t.frame ? new Uint32Array(rFrame) : undefined,
+    feedWcs: t.wcsEpoch ? new Uint32Array(fWcs) : undefined,
+    rapidWcs: t.wcsEpoch ? new Uint32Array(rWcs) : undefined,
+    feedTlo: t.tlo ? new Uint32Array(fTlo) : undefined,
+    rapidTlo: t.tlo ? new Uint32Array(rTlo) : undefined,
+    feedOutside: t.outside ? new Uint8Array(fOut) : undefined,
+    rapidOutside: t.outside ? new Uint8Array(rOut) : undefined,
     feedSrc: new Uint32Array(fSrc),
+    rapidSrc: new Uint32Array(rSrc),
   };
 }
 
@@ -374,13 +459,23 @@ export interface ScrubSample {
   /** WCS epoch index of the segment (into the track's wcsEvents), or null
    *  when the track has no epoch data (legacy payload — single-basis). */
   wcsEpoch: number | null;
+  /** TLO/tool event governing the segment (schema 8), or null = the LIVE
+   *  applied offset governs (before the program's first G43/M6, or no
+   *  channel). Consumers resolve through tloEvents.tloForIndex semantics:
+   *  `sample.tlo?.xyz ?? wcs.tool`. */
+  tlo: TloEvent | null;
   /** Upper track index of the segment the sample falls in. */
   index: number;
 }
 
 function _frameAt(t: ScrubTrack, i: number): [number, number, number] | null {
   const idx = t.frame?.[i];
-  return (idx != null && idx !== 0xff && t.frames) ? t.frames[idx] ?? null : null;
+  return (idx != null && idx !== EVENT_NONE && t.frames) ? t.frames[idx] ?? null : null;
+}
+
+function _tloAt(t: ScrubTrack, i: number): TloEvent | null {
+  const idx = t.tlo?.[i];
+  return (idx != null && idx !== TLO_NONE && t.tloEvents) ? t.tloEvents[idx] ?? null : null;
 }
 
 /** Interpolated track state at scrub parameter `s` (clamped to [0, cumMax]).
@@ -395,6 +490,7 @@ export function sampleTrack(t: ScrubTrack, s: number, out: ScrubSample): ScrubSa
     out.kinstype = t.mode ? t.mode[0]! : null;
     out.frame = _frameAt(t, 0); out.index = 0;
     out.wcsEpoch = t.wcsEpoch ? t.wcsEpoch[0]! : null;
+    out.tlo = _tloAt(t, 0);
     return out;
   }
   if (s >= t.cum[last]!) {
@@ -405,6 +501,7 @@ export function sampleTrack(t: ScrubTrack, s: number, out: ScrubSample): ScrubSa
     out.kinstype = t.mode ? t.mode[last]! : null;
     out.frame = _frameAt(t, last); out.index = last;
     out.wcsEpoch = t.wcsEpoch ? t.wcsEpoch[last]! : null;
+    out.tlo = _tloAt(t, last);
     return out;
   }
   // Smallest i with cum[i] >= s (cum[0] = 0 < s here, so lo starts at 1).
@@ -431,6 +528,7 @@ export function sampleTrack(t: ScrubTrack, s: number, out: ScrubSample): ScrubSa
   out.kinstype = t.mode ? t.mode[lo]! : null;
   out.frame = _frameAt(t, lo);
   out.wcsEpoch = t.wcsEpoch ? t.wcsEpoch[lo]! : null;
+  out.tlo = _tloAt(t, lo);
   out.index = lo;
   return out;
 }
@@ -501,13 +599,16 @@ export function buildEntryTrack(
   const ktEntry = base.mode?.[0] ?? liveKinsType ?? null;
   const f0 = base.frame?.[0];
   const frameEntry =
-    (f0 != null && f0 !== 0xff && base.frames) ? base.frames[f0] ?? null : null;
+    (f0 != null && f0 !== EVENT_NONE && base.frames) ? base.frames[f0] ?? null : null;
   // Epoch-0 terms (review P2): the entry lands on the track's FIRST point,
   // whose coords live in epoch 0's frame — not necessarily the live active
   // fixture's (a TWP program's first point is already in the plane frame).
   const entryTerms = epochTerms?.[base.wcsEpoch?.[0] ?? 0];
+  // Point 0's tool offset (schema 8) — the fourth member of the "one
+  // consistent triple": the entry lands where vertex 0 lifts from.
+  const entryTlo = tloForIndex(base.tlo?.[0], base.tloEvents, wcs.tool);
   const entry = machineJointsToProgram(liveJoints, axes, wcs, kins,
-                                       ktEntry, frameEntry, entryTerms);
+                                       ktEntry, frameEntry, entryTerms, entryTlo);
   const t = prependEntry(base, entry, rates);
   return t === base ? null : t;
 }
@@ -538,14 +639,21 @@ export function programEndLine(text: string | null | undefined): number | null {
  *  is either a called file's colliding lineno or a stale id. Null for
  *  legacy tracks without the per-point channel (callers fall back to the
  *  wholesale flag, pre-W2 behavior). */
-export function mainLinesTrusted(t: ScrubTrack): Set<number> | null {
+export function mainLinesTrusted(t: ScrubTrack): Uint8Array | null {
   if (!t.lineOk) return null;
-  const s = new Set<number>();
+  // A bitmap over line numbers (lineMaskHas), not a Set: one entry per
+  // trusted line was 1.18 M heap objects on the big program.
+  let max = 0;
   for (let i = 0; i < t.count; i++) {
     const ln = t.lines[i] ?? 0;
-    if (t.lineOk[i] === 1 && ln > 0) s.add(ln);
+    if (t.lineOk[i] === 1 && ln > max) max = ln;
   }
-  return s;
+  const mask = new Uint8Array(max + 1);
+  for (let i = 0; i < t.count; i++) {
+    const ln = t.lines[i] ?? 0;
+    if (t.lineOk[i] === 1 && ln > 0) mask[ln] = 1;
+  }
+  return mask;
 }
 
 /** Live machine joints → program-space [x,y,z,a,b,c]: joints → machine
@@ -563,23 +671,32 @@ export function machineJointsToProgram(
   kins?: KinsSpec, kinstype?: number | null,
   frame?: readonly number[] | null,
   terms?: WcsTerms,
+  tlo?: readonly number[],
 ): [number, number, number, number, number, number] {
   const m = [0, 0, 0, 0, 0, 0];
+  // The offset the track's FIRST segment runs under (schema 8) — the same
+  // value jointsForSample lifts that point with, so the entry round-trips
+  // to the live joints by construction; live `wcs.tool` when unknown.
+  const tl = tlo ?? tloForIndex(undefined, undefined, wcs.tool);
   const model = kinsForSegment(axes, kins, kinstype ?? null, frame,
-                               wcs.tool?.[2] || undefined, "entry move");
+                               tl[2] || undefined, "entry move");
   model.forward(joints, m);
   const out: [number, number, number, number, number, number] = [0, 0, 0, 0, 0, 0];
   // `terms` override (review P2): the entry inverse must land in the frame
   // of the track point it connects to — epoch 0's terms on an epoch-aware
-  // track, not necessarily the live ACTIVE fixture's.
-  machineToProgram(m[0]!, m[1]!, m[2]!, m[3]!, m[4]!, m[5]!, terms ?? wcsTerms(wcs), out);
+  // track, not necessarily the live ACTIVE fixture's. Terms are TIP-space.
+  jointsToProgram(m[0]!, m[1]!, m[2]!, m[3]!, m[4]!, m[5]!, terms ?? wcsTerms(tipWcs(wcs)), tl, out);
   return out;
 }
 
 /** Live joints → machine axis values through the kins boundary (forward
  *  only — no WCS peel). The projection converts machine → program PER
  *  CANDIDATE SEGMENT (each has its own epoch terms), so the two halves of
- *  machineJointsToProgram are split here. */
+ *  machineJointsToProgram are split here. Uses the LIVE tool offset on
+ *  purpose (schema 8 changes nothing here): the run playhead inverts the
+ *  machine's PHYSICAL joints under its ACTUAL G43 state at that instant —
+ *  the track's per-segment offsets are the parse-time prediction of that
+ *  same state, not a substitute for it. */
 export function machineFromJoints(
   joints: ArrayLike<number>, axes: string[], wcs: PartFrameWcs,
   kins?: KinsSpec, kinstype?: number | null, frame?: readonly number[] | null,
@@ -639,7 +756,12 @@ export function projectOntoTrack(
     i1 = lo;
     if (t.cum[i0 - 1]! > win.hi) return null;  // window past the segment
   }
-  const liveTerms = wcsTerms(wcs);
+  const liveTerms = wcsTerms(tipWcs(wcs));
+  // The live joints are physical under the machine's ACTUAL G43 state:
+  // strip the LIVE tool offset once, up front, then every per-epoch
+  // conversion runs in TIP space (epoch terms carry no tool, schema 8).
+  const lt = wcs.tool ?? [];
+  const mx = machine[0]! - (lt[0] ?? 0), my = machine[1]! - (lt[1] ?? 0), mz = machine[2]! - (lt[2] ?? 0);
   // Per-epoch machine→program conversions precomputed FLAT (W2 P5): the
   // previous lazy Map paid a hash lookup per segment — real money on a 99k
   // segment full-track scan. Slot 0 = live terms (no-epoch fallback);
@@ -647,12 +769,10 @@ export function projectOntoTrack(
   const nE = epochTerms?.length ?? 0;
   const pFlat = new Float64Array((nE + 1) * 6);
   const _tmp: number[] = [0, 0, 0, 0, 0, 0];
-  machineToProgram(machine[0]!, machine[1]!, machine[2]!,
-                   machine[3]!, machine[4]!, machine[5]!, liveTerms, _tmp);
+  machineToProgram(mx, my, mz, machine[3]!, machine[4]!, machine[5]!, liveTerms, _tmp);
   pFlat.set(_tmp, 0);
   for (let e = 0; e < nE; e++) {
-    machineToProgram(machine[0]!, machine[1]!, machine[2]!,
-                     machine[3]!, machine[4]!, machine[5]!,
+    machineToProgram(mx, my, mz, machine[3]!, machine[4]!, machine[5]!,
                      epochTerms![e] ?? liveTerms, _tmp);
     pFlat.set(_tmp, (e + 1) * 6);
   }
@@ -696,10 +816,47 @@ export function lineRunAround(t: ScrubTrack, i: number): [number, number] {
   return [a, b];
 }
 
+/** The sub-track of points [a, b) — every per-point channel sliced, cum
+ *  re-based to 0 at `a`, the shared lists (frames, sub names, WCS/TLO
+ *  events) kept by reference. The collision sweep uses it for the ENTRY
+ *  SEGMENT alone (2026-09-12): sim entry used to re-sweep the whole program
+ *  for the one segment that is new. Pure. */
+export function sliceTrack(t: ScrubTrack, a: number, b: number): ScrubTrack {
+  const n = Math.max(0, Math.min(b, t.count) - a);
+  const base = t.cum[a] ?? 0;
+  const cum = new Float32Array(n);
+  for (let i = 0; i < n; i++) cum[i] = t.cum[a + i]! - base;
+  const u8 = (x?: Uint8Array) => (x ? x.slice(a, a + n) : undefined);
+  const u32 = (x?: Uint32Array) => (x ? x.slice(a, a + n) : undefined);
+  const out: ScrubTrack = {
+    pos: t.pos.slice(a * 3, (a + n) * 3),
+    abc: t.abc.slice(a * 3, (a + n) * 3),
+    lines: t.lines.slice(a, a + n),
+    rapid: t.rapid.slice(a, a + n),
+    cum, timeBased: t.timeBased, count: n,
+    lineIndex: buildLineIndex(t.lines.slice(a, a + n), cum),
+  };
+  if (t.mode) out.mode = u8(t.mode);
+  if (t.frame) out.frame = u32(t.frame);
+  if (t.frames) out.frames = t.frames;
+  if (t.brk) out.brk = u8(t.brk);
+  if (t.ustart) out.ustart = u8(t.ustart);
+  if (t.wcsEpoch) out.wcsEpoch = u32(t.wcsEpoch);
+  if (t.lineOk) out.lineOk = u8(t.lineOk);
+  if (t.sub) out.sub = u8(t.sub);
+  if (t.subNames) out.subNames = t.subNames;
+  if (t.cline) out.cline = t.cline.slice(a, a + n);
+  if (t.wcsEvents) out.wcsEvents = t.wcsEvents;
+  if (t.tlo) out.tlo = u32(t.tlo);
+  if (t.outside) out.outside = u8(t.outside);
+  if (t.tloEvents) out.tloEvents = t.tloEvents;
+  return out;
+}
+
 /** New track with the ENTRY MOVE prepended: the rapid the machine will make
  *  from its live position (program coords) to the program's first point —
  *  run-time-only motion no parse can know, and the classic crash. The entry
- *  point gets line 0 ("entry" in the UI) and a rapid flag; cum and lineCum
+ *  point gets line 0 ("entry" in the UI) and a rapid flag; cum and the line index
  *  shift by the entry length (SECONDS on a time-based track, given rapid
  *  `rates`; distance otherwise). Returns the original track unchanged when
  *  the machine already sits at the first point. */
@@ -746,12 +903,12 @@ export function prependEntry(
     mode[0] = t.mode[0] ?? 0;
     mode[1] = t.mode[0] ?? 0;
   }
-  let frame: Uint8Array | undefined;
+  let frame: Uint32Array | undefined;
   if (t.frame) {
-    frame = new Uint8Array(n);
+    frame = new Uint32Array(n);
     frame.set(t.frame, 1);
-    frame[0] = t.frame[0] ?? 0xff;
-    frame[1] = t.frame[0] ?? 0xff;
+    frame[0] = t.frame[0] ?? EVENT_NONE;
+    frame[1] = t.frame[0] ?? EVENT_NONE;
   }
   let brk: Uint8Array | undefined;
   if (t.brk) {
@@ -774,15 +931,33 @@ export function prependEntry(
     ustart[0] = 0;
     ustart[1] = 0;
   }
-  let wcsEpoch: Uint8Array | undefined;
+  let wcsEpoch: Uint32Array | undefined;
   if (t.wcsEpoch) {
     // The entry move targets the track's first point, whose coords live in
     // epoch 0's frame — the whole entry segment shares that epoch (same
     // reasoning as the initial-mode stamp above).
-    wcsEpoch = new Uint8Array(n);
+    wcsEpoch = new Uint32Array(n);
     wcsEpoch.set(t.wcsEpoch, 1);
     wcsEpoch[0] = t.wcsEpoch[0] ?? 0;
     wcsEpoch[1] = t.wcsEpoch[0] ?? 0;
+  }
+  let tlo: Uint32Array | undefined;
+  if (t.tlo) {
+    // The entry move runs under whatever offset governs the track's first
+    // point (schema 8) — the same "one consistent triple" rule as mode /
+    // frame / epoch above; the entry inverse uses the same value.
+    tlo = new Uint32Array(n);
+    tlo.set(t.tlo, 1);
+    tlo[0] = t.tlo[0] ?? TLO_NONE;
+    tlo[1] = t.tlo[0] ?? TLO_NONE;
+  }
+  let outside: Uint8Array | undefined;
+  if (t.outside) {
+    // The entry move was never validated (run-time motion): unchecked, 0.
+    outside = new Uint8Array(n);
+    outside.set(t.outside, 1);
+    outside[0] = 0;
+    outside[1] = 0;
   }
   let lineOk: Uint8Array | undefined;
   if (t.lineOk) {
@@ -809,24 +984,32 @@ export function prependEntry(
     cline[1] = 0;
   }
   for (let i = 0; i < t.count; i++) cum[i + 1] = t.cum[i]! + entryLen;
-  const lineCum = new Map<number, number>();
-  for (const [ln, c] of t.lineCum) lineCum.set(ln, c + entryLen);
+  // Rebuilt from the shifted arrays: the entry vertices carry line 0 (never
+  // mapped), every other line's first point moved one index up and its cum
+  // by entryLen — exactly the shifted map this used to build by hand.
+  // The entry vertex IS the live pose: it inherits every axis by
+  // construction, so each inherited prefix grows by one.
+  const inheritedEnd = t.inheritedEnd
+    ? { A: t.inheritedEnd.A + 1, B: t.inheritedEnd.B + 1, C: t.inheritedEnd.C + 1, unknown: t.inheritedEnd.unknown + 1 }
+    : undefined;
   return { pos, abc, lines, rapid, mode, frame, frames: t.frames, brk, ustart,
-           wcsEpoch, wcsEvents: t.wcsEvents,
-           lineOk, sub, subNames: t.subNames, cline,
-           cum, count: n, lineCum, lineSpan: buildLineMap(lines), timeBased: t.timeBased };
+           wcsEpoch, wcsEvents: t.wcsEvents, tlo, tloEvents: t.tloEvents, outside,
+           lineOk, sub, subNames: t.subNames, cline, inheritedEnd,
+           cum, count: n, lineIndex: buildLineIndex(lines, cum), timeBased: t.timeBased };
 }
 
 const _machineVals: number[] = [0, 0, 0, 0, 0, 0];
 
-/** Per-joint pose values for a track sample: program → machine via the live
- *  WCS (TLO-inclusive), then machine coords → joints through the kins
- *  boundary. A sample whose raw kinstype maps to non-identity for the
- *  declared kins family (worldModeForSpec) routes through the machine's
- *  declared kins with live TLO in the pivot math; identity/untracked
- *  samples use the trivkins permutation as before. UVW and unknown
- *  letters yield null — the caller falls back to the live joint position
- *  rather than inventing a value. Fills `out`. */
+/** Per-joint pose values for a track sample: program → machine via the
+ *  sample's epoch terms (tip-space) + the sample's TOOL OFFSET (schema 8:
+ *  the event governing the segment, else the live applied offset), then
+ *  machine coords → joints through the kins boundary. A sample whose raw
+ *  kinstype maps to non-identity for the declared kins family
+ *  (worldModeForSpec) routes through the machine's declared kins with the
+ *  same per-segment TLO in the pivot math; identity/untracked samples use
+ *  the trivkins permutation as before. UVW and unknown letters yield null —
+ *  the caller falls back to the live joint position rather than inventing
+ *  a value. Fills `out`. */
 export function jointsForSample(
   sample: ScrubSample, wcs: PartFrameWcs, axes: string[], out: (number | null)[],
   kins?: KinsSpec, epochTerms?: readonly WcsTerms[],
@@ -836,9 +1019,10 @@ export function jointsForSample(
   // wcsEpochs.epochTermsFor), not the live active fixture's. A legacy
   // track (wcsEpoch null) or a missing terms list keeps today's behavior.
   const o: WcsTerms = (sample.wcsEpoch != null && epochTerms?.[sample.wcsEpoch])
-    ? epochTerms[sample.wcsEpoch]! : wcsTerms(wcs);
-  programToMachine(sample.px, sample.py, sample.pz, sample.pa, sample.pb, sample.pc, o, _machineVals);
+    ? epochTerms[sample.wcsEpoch]! : wcsTerms(tipWcs(wcs));
+  const tlo = sample.tlo?.xyz ?? tloForIndex(undefined, undefined, wcs.tool);
+  liftToJoints(sample.px, sample.py, sample.pz, sample.pa, sample.pb, sample.pc, o, tlo, _machineVals);
   const model = kinsForSegment(axes, kins, sample.kinstype, sample.frame,
-                               wcs.tool?.[2] || undefined, "scrub pose");
+                               tlo[2] || undefined, "scrub pose");
   return model.inverse(_machineVals, out);
 }

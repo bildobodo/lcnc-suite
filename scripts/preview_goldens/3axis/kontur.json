@@ -1,13 +1,19 @@
 {
   "brk_count": 0,
+  "cline_lines": [],
   "kins_frames": 0,
   "kinstype_present": false,
   "lines_untrusted": false,
+  "outside_points": {
+    "feed": 0,
+    "rapid": 0
+  },
   "points": {
     "feed": 1253,
-    "rapid": 2
+    "rapid": 4
   },
-  "preview_schema": 5,
+  "preview_schema": 9,
+  "rotary_cmd": null,
   "ships_abc": false,
   "sub_names": [
     "m600",
@@ -15,9 +21,11 @@
   ],
   "swept_axes": [],
   "trusted_points": {
-    "total": 1255,
-    "trusted": 1255
+    "total": 1257,
+    "trusted": 1257
   },
+  "unmarked_subs": [],
+  "ustart_count": 2,
   "violations_total": 0,
   "violations_world_unchecked": 0,
   "wcs_epochs": {

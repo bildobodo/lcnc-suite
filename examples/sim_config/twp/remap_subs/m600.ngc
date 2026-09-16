@@ -1,0 +1,39 @@
+;M600 for the TWP config (lcnc-suite, 2026-09-04): the bundled
+; tool_length_probe/m600.ngc runs tool_touch_off, which retracts and
+; positions with G53. Under switched kinematics G53 addresses the
+; kinematics' WORLD frame (the tilted plane frame in TOOL mode, the
+; table-riding frame in TCP), so the toolsetter moves land in the wrong
+; place. This wrapper shadows the bundle's (first on SUBROUTINE_PATH):
+; save the switchkins type, force identity (M428), measure, restore
+; (M430 re-selects G59, M429 TCP). Under task the HAL pin is the truth;
+; the preview parse has no HAL and reads the interpreter mirror
+; #<_webui_kinstype> every switch site maintains — so the preview restores
+; the same type the machine will (a type-2 span after the change keeps
+; the plane frame the last G53.x pinned). Identity in → identity out:
+; nothing changes for the common case (the UI only offers Measure / Load
+; in the Machine frame — machineFrame gate; this covers a PROGRAM's M6/
+; M600 while tilted).
+o<m600> sub
+(WEBUI_SUB=m600) ;lcnc-suite: preview sub-span marker, silent in task
+#<saved_kins> = 0
+o100 if [EXISTS[#<_webui_kinstype>]]
+  #<saved_kins> = #<_webui_kinstype>
+o100 endif
+o110 if [#<_task> EQ 1]
+o111   if [EXISTS[#<_hal[motion.switchkins-type]>]]
+         #<saved_kins> = #<_hal[motion.switchkins-type]>
+o111   endif
+o110 endif
+o120 if [#<saved_kins> NE 0]
+  M428                      ; identity kinematics for the G53 moves (marker + mirror inside)
+o120 endif
+#2000 = 1
+o<tool_touch_off> call
+o130 if [#<saved_kins> EQ 2]
+  M430                      ; TOOL kinematics + G59 again (the plane frame is still pinned)
+o130 elseif [#<saved_kins> EQ 1]
+  M429                      ; TCP again
+o130 endif
+(WEBUI_SUB_END) ;lcnc-suite: preview sub-span marker
+o<m600> endsub
+M2 (end program)

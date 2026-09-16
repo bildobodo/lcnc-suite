@@ -13,6 +13,7 @@
 // private to this module by design (A1 rule).
 import { computed, markRaw, ref } from "vue";
 import { decode as msgpackDecode } from "@msgpack/msgpack";
+import type { LineIndex } from "../viewer/lineIndex";
 import type { Vec3 } from "../defaults";
 
 // Viewer payloads. Static `viewer_init` (machine description, INI config,
@@ -32,6 +33,14 @@ export interface ViewerPart {
   // STOCK body: the one thing the tool may FEED into (collision-sweep
   // cutting semantics — see viewer/collision.ts). Machine parts never are.
   stock?: boolean;
+  // Collision PROXY mesh (2026-09-13): the sweep checks this file instead of
+  // `file` — a coarser SUPERSET (one box per component for rails/blocks) so a
+  // 100k-triangle guide does not make every clearance query walk its BVH.
+  // Versioned like `file`. Absent = the display mesh is the collision mesh.
+  collision?: string | null;
+  // `collide: false` = decorative: not a collision body at all. A crash into
+  // such a part is NOT reported — the model author's declaration.
+  collide?: boolean | null;
   // Legacy field names kept for backward compatibility with older payloads.
   parent?: string | null;
   t?: Vec3;
@@ -74,6 +83,18 @@ export interface ViewerInit {
 // Execution-ordered feed+rapid merge for the program scrub (stage 2), built
 // off-thread by previewWorker from the per-point seq wire data. Program-space
 // samples; the pose is derived per frame in viewer/scrubTrack.ts.
+/** Rotary-command boundary (wire `rotary_cmd`, 2026-09-11): per rotary
+ *  letter the seq of the segment that first COMMANDS it (null = never —
+ *  every point inherits the parse-time seed for that axis), `unknown` = the
+ *  seq from which the parser can no longer tell (treat everything at/after
+ *  it as commanded), and the seed pose the parse was made at. Keys present
+ *  only for the machine's rotary axes. */
+export interface RotaryCmd {
+  A?: number | null; B?: number | null; C?: number | null;
+  unknown: number | null;
+  seed: { A?: number; B?: number; C?: number };
+}
+
 export interface ScrubTrack {
   pos: Float32Array;        // count*3 program XYZ, execution order
   abc: Float32Array;        // count*3 degrees (zeros when the wire had no abc)
@@ -85,9 +106,9 @@ export interface ScrubTrack {
    *  family via viewer/kins.ts worldModeForSpec. Absent = no mode data
    *  (untracked program/config — pose derivation stays trivkins). */
   mode?: Uint8Array;
-  /** count — governing TWP frame INDEX into `frames` per segment (0xff =
+  /** count — governing TWP frame INDEX into `frames` per segment (EVENT_NONE =
    *  none). Present only on programs with WEBUI_TWPFRAME markers. */
-  frame?: Uint8Array;
+  frame?: Uint32Array;
   /** TWP frame value triplets [preRot rad, primary deg, secondary deg],
    *  dereferenced by `frame` (wire kins_frames minus the seq column). */
   frames?: [number, number, number][];
@@ -107,7 +128,7 @@ export interface ScrubTrack {
   /** count — WCS epoch index of the segment ending here (into `wcsEvents`):
    *  which basis the point was peeled against (review P2). Absent = legacy
    *  payload (single-basis semantics). */
-  wcsEpoch?: Uint8Array;
+  wcsEpoch?: Uint32Array;
   /** count — per-point line trust (W2 P6, wire feed_lineok/rapid_lineok):
    *  1 ⇒ this point's `lines` entry is a line of THIS file that could have
    *  produced this motion (exists, can move, stream-compatible, not in a
@@ -131,19 +152,38 @@ export interface ScrubTrack {
    *  see viewer/wcsEpochs.ts for the re-add rules (live row vs rewritten
    *  snapshot). */
   wcsEvents?: import("../viewer/wcsEpochs").WcsEpoch[];
+  /** count — TLO/tool event index of the segment ending here (into
+   *  `tloEvents`; TLO_NONE = before the program's first G43/M6 → the LIVE
+   *  applied offset governs). Schema 8; absent = the program never changes
+   *  tool or offset (live everywhere, the pre-8 behavior). */
+  tlo?: Uint32Array;
+  /** Outside-soft-limits verdict per track point (segment ending there,
+   *  2026-09-12): the gateway validator's per-vertex flag, merged like
+   *  mode — present iff every non-empty stream carried it. */
+  outside?: Uint8Array;
+  tloEvents?: import("../viewer/tloEvents").TloEvent[];
   /** Monotonic scrub parameter: SECONDS when `timeBased` (unified timeline
    *  phase 1 — per-segment feed + INI rapid velocities), else distance
    *  (mm, 1° ≙ 1 mm — legacy payloads / no INI MAX_VELOCITY). */
   cum: Float32Array;
   timeBased: boolean;
   count: number;
-  /** Source line → cum of its first track point (built off-thread; Maps
-   *  survive structured clone). Lets the UI place line-anchored marks —
-   *  soft-limit violations — on the timeline without an O(track) scan. */
-  lineCum: Map<number, number>;
-  /** Source line → track point index range — the run playhead projects the
-   *  live position onto the current line's span for smooth motion. */
-  lineSpan: Map<number, { start: number; end: number }>;
+  /** Per rotary axis, how many LEADING track points inherit the parse-time
+   *  seed for it (the track is seq-ascending, so the inherited set is a
+   *  prefix): the count of points with seq < the axis's first-command seq
+   *  (`count` when never commanded), plus `unknown` (count when the parser
+   *  could always tell). Present iff the wire carried `rotary_cmd` and the
+   *  streams carried seq. A consumer takes the minimum over the rotary
+   *  letters on the WORK chain and `unknown` — identity-kins vertices before
+   *  that index sit at G54 + words in the room whatever the table does. */
+  inheritedEnd?: { A: number; B: number; C: number; unknown: number };
+  /** Source line → first/last track point index and the cum of the first
+   *  point, as typed arrays (viewer/lineIndex.ts; built off-thread,
+   *  transferred — the Maps it replaced were one heap object per line:
+   *  GC hitches + a 0.9 s clone per publish on a 1.18 M-line program).
+   *  Line-anchored timeline marks (soft-limit violations, tool changes)
+   *  and the run playhead's current-line span both read it. */
+  lineIndex: LineIndex;
 }
 
 // One per-line soft-limit overtravel record from the parse worker. `value`
@@ -180,8 +220,15 @@ export interface LimitViolation {
 // the first recorded segment (the 962 mm phantom); 7 = call-site line
 // attribution (feed_cline/rapid_cline, W4) — sub-span points whose
 // unique main-file call/trigger line text-verifies highlight THAT line
-// instead of going dark (pre-7 payloads show chip-only).
-export const EXPECTED_PREVIEW_SCHEMA = 7;
+// instead of going dark (pre-7 payloads show chip-only); 8 = per-segment
+// TLO/tool events (tlo_events → scrubTrack.tlo / tloEvents) + a diameter
+// column on parse_tlos — pre-8 the client applied ONE live tool offset to
+// the whole track (a program applying its own G43 before motion posed
+// every joint a tool length high on a fresh boot: the 22.000 gate catch);
+// 9 = the gateway validator's per-vertex outside-limits verdict
+// (feed_outside/rapid_outside → track.outside → the yellow overlay) — the
+// client carries the flags and derives nothing (one source of truth).
+export const EXPECTED_PREVIEW_SCHEMA = 9;
 
 /** Non-null when the loaded payload was parsed with a DIFFERENT tool length
  *  than the live table now holds for the spindle tool (W2 P4): the per-line
@@ -189,7 +236,10 @@ export const EXPECTED_PREVIEW_SCHEMA = 7;
  *  re-measure invalidates them. The gateway auto-reparses when idle; this
  *  hint is the honest in-run signal (compare uses the live table row via
  *  status tool_length, which is G43-state-independent). Values in machine
- *  units; magnitudes compared (status ships |zoffset|). Pure. */
+ *  units; magnitudes compared (status ships |zoffset|). Scope: the LOADED
+ *  tool only — status carries no other tool's length, so other program
+ *  tools are the gateway drift edge's job (evaluate_tlo_drift compares
+ *  every parse row against the live table). Pure. */
 export function parseTloMismatch(
   g: ViewerGcode | null | undefined,
   toolNumber: number | null | undefined,
@@ -268,19 +318,51 @@ export interface ViewerGcode {
   // routes non-identity segments through the machine's declared kins.
   feedMode?: Uint8Array;
   rapidMode?: Uint8Array;
-  // Per-vertex governing TWP frame index for the DRAWN streams (0xff =
+  // Per-vertex governing TWP frame index for the DRAWN streams (EVENT_NONE =
   // none; dereference into kinsFrames). Present iff kins_frames arrived.
-  feedFrame?: Uint8Array;
-  rapidFrame?: Uint8Array;
+  feedFrame?: Uint32Array;
+  rapidFrame?: Uint32Array;
   // Per-vertex WCS epoch index for the DRAWN streams (dereference into
   // wcsEvents) — consumed by the display rebase. Present iff wcs_frames
   // arrived with an epoch-aware track.
-  feedWcs?: Uint8Array;
-  rapidWcs?: Uint8Array;
+  feedWcs?: Uint32Array;
+  rapidWcs?: Uint32Array;
   // Source TRACK index per drawn feed vertex (ascending; subdivided in
   // part-frame mode) — the positional 3D highlight's address space
   // (review P3). Present iff the track-derived streams were built.
   feedSrc?: Uint32Array;
+  /** Same for the drawn rapid vertices (2026-09-11) — the room/table split
+   *  needs a track index per drawn vertex of BOTH streams. */
+  rapidSrc?: Uint32Array;
+  /** Per drawn vertex (aligned with feedPos/rapidPos AS DRAWN — post-
+   *  subdivision in part-frame mode): 1 = the vertex draws ROOM-FIXED (in
+   *  the machine frame at G54 + words: an identity-kins vertex before the
+   *  program's first command of every work-chain rotary), 0 = it rides the
+   *  part. Built by the part-frame worker (with a duplicated vertex + break
+   *  at every flip) or by the programmed path from src < roomEnd. Absent =
+   *  everything rides (legacy / no boundary / no work-chain rotary). */
+  feedRoom?: Uint8Array;
+  rapidRoom?: Uint8Array;
+  /** Outside-soft-limits verdict per drawn vertex (2026-09-12, from the
+   *  part-frame worker: the TLO-inclusive joints of every baked sample —
+   *  or, in programmed display, of every programmed vertex — against the
+   *  live `joint_limits`). Absent = unchecked (no limits, legacy payload,
+   *  or the flags reply still in flight). */
+  feedOutside?: Uint8Array;
+  rapidOutside?: Uint8Array;
+  /** Display LOD levels (viewer/lineChunks.ts decimatePairs): per level ≥ 1
+   *  the decimated segment PAIRS over the same drawn vertices (both frames
+   *  concatenated; the renderer splits by frame and bins by cell), and the
+   *  tolerance each level was cut at (machine units). Built by the worker
+   *  that produced the drawn vertices (previewWorker for the programmed
+   *  path, partFrameWorker for the bake). Absent = level 0 only. */
+  feedLod?: Uint32Array[];
+  rapidLod?: Uint32Array[];
+  lodTols?: number[];
+  /** Worker time spent on the levels, ms (perf context). */
+  lodMs?: number;
+  /** Rotary-command boundary (passthrough of the wire key, see RotaryCmd). */
+  rotary_cmd?: RotaryCmd | null;
   // WCS epoch events parsed from wire wcs_frames (previewWorker) — the
   // per-section bases this preview was peeled against (review P2).
   wcsEvents?: import("../viewer/wcsEpochs").WcsEpoch[];
@@ -308,6 +390,11 @@ export interface ViewerGcode {
   // unchecked ≠ clean, so the stats dialog must say "not validated" for
   // these instead of implying the violations list covered them.
   violations_world_unchecked?: number;
+  // Load-time lint: the switchkins type the program's LAST marker leaves in
+  // effect (M2 restores G54, not the kins pin). Present only when the program
+  // itself switches kinematics; non-zero = it does not restore Machine before
+  // M2 and the next program would run in the tilted/TCP frame.
+  kins_end_type?: number;
   // Stage 2 (program scrub): execution-ordered feed+rapid merge built
   // off-thread by previewWorker. null/absent = no track (no program, or a
   // stale pre-seq payload) — the scrub bar doesn't offer itself.
@@ -321,7 +408,7 @@ export interface ViewerGcode {
   tool_change_lines?: [number, number][];
   // P4.1: source-line → point-index range map, built off-thread by previewWorker
   // (Maps survive structured clone) so ThreeViewer skips the O(points) build.
-  feedLineMap?: Map<number, { start: number; end: number }>;
+  feedLineIndex?: LineIndex;
   // P4.1: cumulative lineDistance for the dashed rapid line, computed off-thread so
   // ThreeViewer sets the attribute directly instead of Three.computeLineDistances().
   rapidDist?: Float32Array;
@@ -354,12 +441,21 @@ export interface ViewerGcode {
   // be compared straight against the live status values. Differing means the
   // preview is STALE — a touch-off after load — and `reparse_preview` fixes it.
   wcs_basis?: { g5x: number[]; g92: number[]; rotation: number } | null;
-  // Parse-time tool-table rows [[tool, xo, yo, zo]…] for the tools the
-  // program touches plus the spindle tool (W2 P4) — the offsets the
-  // per-line limit flags were baked with, in machine units. Compared
-  // against the live table via parseTloMismatch(); the gateway also
-  // auto-reparses on drift when idle. Absent = pre-schema-3 payload.
-  parse_tlos?: [number, number, number, number][];
+  // Parse-time tool-table rows [[tool, xo, yo, zo, diameter]…] for the
+  // tools the program touches plus the spindle tool (W2 P4; diameter since
+  // schema 8) — the offsets the per-line limit flags were baked with, in
+  // machine units, and the dims the sweep/marker use for program tools.
+  // Compared against the live table via parseTloMismatch(); the gateway
+  // also auto-reparses on drift when idle. Absent = pre-schema-3 payload.
+  parse_tlos?: [number, number, number, number, number?][];
+  // TLO/tool event rows [seq, xo, yo, zo, tool] (schema 8; machine units;
+  // present only when the program changes tool or offset) — decoded into
+  // `tloEvents` + the per-point track index. See viewer/tloEvents.ts.
+  tlo_events?: number[][];
+  tloEvents?: import("../viewer/tloEvents").TloEvent[];
+  // Per-vertex TLO event index for the DRAWN streams (like feedWcs).
+  feedTlo?: Uint32Array;
+  rapidTlo?: Uint32Array;
   // Per-point line trust + marked-sub spans (W2 P6, schema 4): u8 wire
   // bytes, index-aligned with feed/rapid — consumed via the merged track
   // (previewWorker strips them into scrubTrack.lineOk / .sub / .subNames,
@@ -408,6 +504,11 @@ export interface ViewerGcode {
   // family, or a frameless type-2 side): those segments keep the phantom
   // geometry. Present only when > 0 — unresolved ≠ handled.
   kins_flips_unresolved?: number;
+  // Tuples whose shipped geometry a frame-relabel CARRY moved (the g69-tail
+  // fix): canon-endpoint replay cannot tell "axis held" from "axis
+  // commanded to exactly the stale value", so the reach of every carry is
+  // reported rather than assumed. Present only when > 0.
+  kins_carry_spans?: number;
   // WCS epoch rows (review P2): [seq, g5x_index, rotation_deg, rewritten,
   // g5x x6, g92 x6] in machine units — the basis each epoch's endpoints
   // were peeled against. ≥1 row whenever motion exists; absence = legacy
@@ -420,6 +521,15 @@ export interface ViewerGcode {
   // instead of at cycle start. null/absent = clean parse.
   parse_error?: string | null;
   error_line?: number | null;
+  // A TWP remap REFUSED the program in preview (2026-09-05). The preview
+  // interpreter runs from the machine's LIVE state (active fixture, kins),
+  // and the fork's refusal paths `yield INTERP_EXIT` — an EMPTY success to
+  // gcode.parse (its CANON_ERROR is a stub). `line` is the main-file line
+  // (the verified caller line when the refusal happened inside a marked sub
+  // span; null when unattributable), `sub` / `sub_line` name that span and
+  // the refusal's own line in that file. Absent = no refusal. Task would
+  // refuse the same line — the preview is correct; this is its reason.
+  parse_refused?: { line: number | null; sub?: string | null; sub_line?: number | null; message: string } | null;
   [key: string]: any;  // stats fields are folded in by GcodePanel watcher
 }
 
@@ -452,6 +562,20 @@ export const previewParseError = computed<string | null>(() => {
   const g = viewerGcode.value;
   if (!g?.parse_error) return null;
   return g.error_line != null ? `${g.parse_error} (line ${g.error_line})` : g.parse_error;
+});
+
+// A remap refusal in preview (distinct from the interpreter abort above: the
+// payload is a structurally clean EMPTY parse). Derived from the payload, so
+// it clears when a new program loads or a state change reparses this one.
+export const previewRefusal = computed<{ line: number | null; sub: string | null; message: string; text: string } | null>(() => {
+  const r = viewerGcode.value?.parse_refused;
+  if (!r || !r.message) return null;
+  const line = typeof r.line === "number" ? r.line : null;
+  const sub = r.sub ?? null;
+  const where = line != null ? `line ${line}`
+    : sub ? `inside ${sub}.ngc${r.sub_line != null ? ` line ${r.sub_line}` : ""}`
+    : "an unknown line";
+  return { line, sub, message: r.message, text: `${r.message} (${where})` };
 });
 
 let _gcodeContentFile: string | null = null;

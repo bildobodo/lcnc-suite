@@ -4,6 +4,7 @@
 // between re-probe ticks, and no unstrided full-track scan may run after
 // the single escape transition.
 import { describe, expect, it } from "vitest";
+import { emptyLineIndex } from "./lineIndex";
 import {
   createRunWatcher, RUN_ESCAPE_D2, REPROBE_MS, STRIDE_TARGET,
 } from "./runWatcher";
@@ -25,7 +26,7 @@ function lineTrack(n: number): ScrubTrack {
   }
   return {
     pos, abc, cum, lines, rapid, count: n, timeBased: false,
-    lineCum: new Map(), lineSpan: new Map(),
+    lineIndex: emptyLineIndex(),
   } as unknown as ScrubTrack;
 }
 

@@ -1,25 +1,29 @@
 // Unit tests for viewer/scrubTrack.ts — the execution-ordered scrub track.
 import { describe, expect, it, vi } from "vitest";
+import { emptyLineIndex, lineCumOf, lineMaskLines, lineRange } from "./lineIndex";
 import {
   buildScrubTrack, sampleTrack, jointsForSample,
   machineJointsToProgram, prependEntry, splitTrackStreams,
   displayLineForPoint, atTrackEnd,
   programEndLine, mainLinesTrusted,
-  projectOntoTrack, lineRunAround,
-  type ScrubSample, type ScrubStream, type ScrubTrack,
+  projectOntoTrack, lineRunAround, sliceTrack,
+  type ScrubSample, type ScrubStream, type ScrubTrack, roomEndOf,
 } from "./scrubTrack";
 import { makeKins as kinsForTest } from "./kins";
+import { EVENT_NONE } from "./eventIndex";
 import { wcsTerms } from "./partFrame";
 
-function stream(points: number[][], opts: { abc?: number[][]; lines?: number[]; seq?: number[]; tcum?: number[]; mode?: number[]; frame?: number[]; brk?: number[] } = {}): ScrubStream {
+function stream(points: number[][], opts: { abc?: number[][]; lines?: number[]; seq?: number[]; tcum?: number[]; mode?: number[]; frame?: number[]; brk?: number[]; tlo?: number[]; outside?: number[] } = {}): ScrubStream {
   return {
+    tlo: opts.tlo ? new Uint32Array(opts.tlo) : undefined,
+    outside: opts.outside ? new Uint8Array(opts.outside) : undefined,
     pos: new Float32Array(points.flat()),
     abc: opts.abc ? new Float32Array(opts.abc.flat()) : undefined,
     lines: opts.lines ? new Uint32Array(opts.lines) : undefined,
     seq: opts.seq ? new Uint32Array(opts.seq) : undefined,
     tcum: opts.tcum ? new Float32Array(opts.tcum) : undefined,
     mode: opts.mode ? new Uint8Array(opts.mode) : undefined,
-    frame: opts.frame ? new Uint8Array(opts.frame) : undefined,
+    frame: opts.frame ? new Uint32Array(opts.frame) : undefined,
     brk: opts.brk ? new Uint8Array(opts.brk) : undefined,
   };
 }
@@ -27,7 +31,7 @@ function stream(points: number[][], opts: { abc?: number[][]; lines?: number[]; 
 const EMPTY = stream([]);
 
 function freshSample(): ScrubSample {
-  return { px: 0, py: 0, pz: 0, pa: 0, pb: 0, pc: 0, line: 0, rapid: false, kinstype: null, frame: null, wcsEpoch: null, index: 0 };
+  return { px: 0, py: 0, pz: 0, pa: 0, pb: 0, pc: 0, line: 0, rapid: false, kinstype: null, frame: null, wcsEpoch: null, tlo: null, index: 0 };
 }
 
 describe("buildScrubTrack", () => {
@@ -81,7 +85,7 @@ describe("buildScrubTrack", () => {
       stream([[20, 0, 0]], { seq: [2], lines: [7], tcum: [0.5] }))!;
     expect(t.timeBased).toBe(true);
     expect(Array.from(t.cum)).toEqual([0, 0.5, 2.5]);
-    expect(t.lineCum.get(9)).toBeCloseTo(2.5, 5);
+    expect(lineCumOf(t.lineIndex, 9)).toBeCloseTo(2.5, 5);
   });
 
   it("falls back to the distance axis when a non-empty stream lacks tcum", () => {
@@ -95,9 +99,10 @@ describe("buildScrubTrack", () => {
   it("maps each source line to the cum of its first track point", () => {
     const t = buildScrubTrack(
       stream([[0, 0, 0], [10, 0, 0], [20, 0, 0]], { lines: [4, 7, 7] }), EMPTY)!;
-    expect(t.lineCum.get(4)).toBe(0);
-    expect(t.lineCum.get(7)).toBe(10);   // first occurrence, not the last
-    expect(t.lineCum.has(0)).toBe(false); // 0 = unknown line, never mapped
+    expect(lineCumOf(t.lineIndex, 4)).toBe(0);
+    expect(lineCumOf(t.lineIndex, 7)).toBe(10);   // first occurrence, not the last
+    expect(lineCumOf(t.lineIndex, 0)).toBeUndefined(); // 0 = unknown line, never mapped
+    expect(lineRange(t.lineIndex, 7)).toEqual({ start: 1, end: 2 });
   });
 
   it("cum is monotonic and linear distance wins when larger", () => {
@@ -161,7 +166,7 @@ describe("prependEntry", () => {
   const base = buildScrubTrack(
     stream([[10, 0, 0], [20, 0, 0]], { lines: [5, 7] }), EMPTY)!;
 
-  it("prepends a rapid entry segment and shifts cum + lineCum", () => {
+  it("prepends a rapid entry segment and shifts cum + the line index", () => {
     const t = prependEntry(base, [10, -30, 0, 0, 0, 0]);
     expect(t.count).toBe(3);
     expect([t.pos[0], t.pos[1]]).toEqual([10, -30]);
@@ -169,8 +174,8 @@ describe("prependEntry", () => {
     expect(t.rapid[1]).toBe(1);          // the entry MOVE is a rapid
     expect(t.cum[1]).toBeCloseTo(30, 5); // entry length
     expect(t.cum[2]).toBeCloseTo(40, 5);
-    expect(t.lineCum.get(5)).toBeCloseTo(30, 5);
-    expect(t.lineCum.get(7)).toBeCloseTo(40, 5);
+    expect(lineCumOf(t.lineIndex, 5)).toBeCloseTo(30, 5);
+    expect(lineCumOf(t.lineIndex, 7)).toBeCloseTo(40, 5);
   });
 
   it("counts a pure rotary entry (1° ≙ 1 mm) and skips a no-op entry", () => {
@@ -323,6 +328,22 @@ describe("kins mode plumbing (phase 2b)", () => {
     expect(Array.from(split.rapidMode!)).toEqual([0, 0]);
   });
 
+  it("outside-limits flags merge like mode and split per drawn vertex (segment-ending)", () => {
+    const t = buildScrubTrack(
+      stream([[1, 0, 0], [3, 0, 0]], { seq: [1, 3], outside: [0, 1], lines: [5, 7] }),
+      stream([[2, 0, 0]], { seq: [2], outside: [1] }),
+    )!;
+    expect(Array.from(t.outside!)).toEqual([0, 1, 1]);   // track order: feed 1, rapid 2, feed 3
+    const split = splitTrackStreams(t);
+    // the feed section into point 2: start vertex + end, both stamped with the END's flag
+    expect(Array.from(split.feedOutside!)).toEqual([1, 1]);
+    expect(Array.from(split.rapidOutside!)).toEqual([1, 1]);
+    // a stream without flags → no track flags (never half a program)
+    const u = buildScrubTrack(stream([[1, 0, 0], [3, 0, 0]], { seq: [1, 3], outside: [0, 1] }), stream([[2, 0, 0]], { seq: [2] }))!;
+    expect(u.outside).toBeUndefined();
+    expect(splitTrackStreams(u).feedOutside).toBeUndefined();
+  });
+
   it("prependEntry stamps the entry move with the program's initial mode", () => {
     const t = buildScrubTrack(
       stream([[10, 0, 0], [20, 0, 0]], { seq: [1, 2], mode: [1, 1] }),
@@ -335,7 +356,7 @@ describe("kins mode plumbing (phase 2b)", () => {
   it("carries TWP frames through track, sample, split and entry", () => {
     const frames: [number, number, number][] = [[-1.78, 130.2, -40.9]];
     const t = buildScrubTrack(
-      stream([[0, 0, 0], [10, 0, 0]], { seq: [1, 2], mode: [2, 2], frame: [0xff, 0] }),
+      stream([[0, 0, 0], [10, 0, 0]], { seq: [1, 2], mode: [2, 2], frame: [EVENT_NONE, 0] }),
       EMPTY, frames,
     )!;
     expect(t.frames).toBe(frames);
@@ -348,7 +369,7 @@ describe("kins mode plumbing (phase 2b)", () => {
     const split = splitTrackStreams(t);
     expect(Array.from(split.feedFrame!)).toEqual([0, 0]);
     const withEntry = prependEntry(t, [5, 5, 5, 0, 0, 0]);
-    expect(Array.from(withEntry.frame!)).toEqual([0xff, 0xff, 0]);
+    expect(Array.from(withEntry.frame!)).toEqual([EVENT_NONE, EVENT_NONE, 0]);
     expect(withEntry.frames).toBe(frames);
   });
 
@@ -564,7 +585,7 @@ describe("displayLineForPoint / atTrackEnd (W3 P4)", () => {
   it("mainLinesTrusted: the set live motion_line must belong to (W5)", () => {
     const t = T();
     t.lineOk = new Uint8Array([1, 0, 0, 0]);
-    expect(Array.from(mainLinesTrusted(t)!)).toEqual([4]);
+    expect(lineMaskLines(mainLinesTrusted(t)!)).toEqual([4]);
     t.lineOk = undefined;             // legacy track → null, wholesale fallback
     expect(mainLinesTrusted(t)).toBe(null);
   });
@@ -715,7 +736,7 @@ describe("wcs epochs on the track (review P2)", () => {
     EMPTY,
     { ...stream([[0, 0, 0], [10, 0, 0], [20, 0, 0]],
                 { seq: [1, 2, 3], mode: [0, 0, 0] }),
-      wcs: new Uint8Array([0, 0, 1]) },
+      wcs: new Uint32Array([0, 0, 1]) },
     undefined, EVS,
   )!;
 
@@ -823,7 +844,7 @@ describe("abc pose reconstruction through epoch terms (W2 P3)", () => {
       EMPTY,
       { ...stream([[0, 0, 0], [15, 0, 0]],
                   { seq: [1, 2], abc: [[0, 0, 0], [0, 0, 0]] }),
-        wcs: new Uint8Array([0, 0]) },
+        wcs: new Uint32Array([0, 0]) },
       undefined, EVS,
     )!;
     const live = { g5x: [], g92: [], rotationDeg: 0 };
@@ -880,7 +901,7 @@ describe("positional run playhead (review P3)", () => {
     const t = buildScrubTrack(
       EMPTY,
       { ...stream([[0, 0, 0], [10, 0, 0]], { seq: [1, 2] }),
-        wcs: new Uint8Array([0, 0]) },
+        wcs: new Uint32Array([0, 0]) },
       undefined,
       [{ seq: 0, idx: 6, rotationDeg: 0, rewritten: true,
          g5x: [100, 0, 0, 0, 0, 0], g92: [0, 0, 0, 0, 0, 0] }],
@@ -919,5 +940,152 @@ describe("positional run playhead (review P3)", () => {
     // Two feed sections (each opened by a rapid): start vertex carries the
     // opening segment's track index.
     expect(Array.from(split.feedSrc!)).toEqual([0, 1, 2, 3]);
+  });
+});
+
+describe("sliceTrack", () => {
+  it("cuts [a, b) with every per-point channel, cum re-based to 0, shared lists kept", () => {
+    const t: ScrubTrack = {
+      pos: new Float32Array([0, 0, 0, 1, 0, 0, 3, 0, 0, 6, 0, 0]),
+      abc: new Float32Array(12), lines: new Uint32Array([1, 2, 3, 4]), rapid: new Uint8Array([0, 1, 0, 0]),
+      cum: new Float32Array([0, 1, 3, 6]), timeBased: false, count: 4, lineIndex: emptyLineIndex(),
+      mode: new Uint8Array([0, 2, 2, 0]), tlo: new Uint32Array([0, 0, 1, 1]), tloEvents: [],
+    };
+    const s = sliceTrack(t, 1, 3);
+    expect(s.count).toBe(2);
+    expect(Array.from(s.pos)).toEqual([1, 0, 0, 3, 0, 0]);
+    expect(Array.from(s.lines)).toEqual([2, 3]);
+    expect(Array.from(s.rapid)).toEqual([1, 0]);
+    expect(Array.from(s.cum)).toEqual([0, 2]);
+    expect(Array.from(s.mode!)).toEqual([2, 2]);
+    expect(Array.from(s.tlo!)).toEqual([0, 1]);
+    expect(s.tloEvents).toBe(t.tloEvents);
+    expect(s.timeBased).toBe(false);
+    expect(s.frame).toBeUndefined();
+    expect(sliceTrack(t, 3, 9).count).toBe(1);   // clamped to the track
+  });
+});
+
+describe("tlo events on the track (schema 8)", () => {
+  const EVS = [{ seq: 1, xyz: [0, 0, 22] as [number, number, number], tool: 3 }];
+
+  it("merges the per-point index when every non-empty stream carries it and events exist", () => {
+    const feed = stream([[10, 0, 0], [30, 0, 0]], { seq: [2, 4], tlo: [0, 0] });
+    const rapid = stream([[0, 0, 0], [20, 0, 0]], { seq: [1, 3], tlo: [EVENT_NONE, 0] });
+    const t = buildScrubTrack(feed, rapid, undefined, undefined, undefined, EVS)!;
+    expect(Array.from(t.tlo!)).toEqual([EVENT_NONE, 0, 0, 0]);
+    expect(t.tloEvents).toBe(EVS);
+  });
+
+  it("drops the channel — never guesses — without an events list or on a mislengthed stream", () => {
+    const feed = stream([[10, 0, 0]], { seq: [2], tlo: [0] });
+    const rapid = stream([[0, 0, 0]], { seq: [1], tlo: [EVENT_NONE] });
+    expect(buildScrubTrack(feed, rapid)!.tlo).toBeUndefined();
+    const bad = stream([[0, 0, 0]], { seq: [1], tlo: [EVENT_NONE, 0] });
+    expect(buildScrubTrack(feed, bad, undefined, undefined, undefined, EVS)!.tlo).toBeUndefined();
+  });
+
+  it("splits back onto the drawn streams and rides the entry move from point 0", () => {
+    const feed = stream([[10, 0, 0], [30, 0, 0]], { seq: [2, 4], tlo: [0, 0] });
+    const rapid = stream([[0, 0, 0], [20, 0, 0]], { seq: [1, 3], tlo: [EVENT_NONE, 0] });
+    const t = buildScrubTrack(feed, rapid, undefined, undefined, undefined, EVS)!;
+    const split = splitTrackStreams(t);
+    expect(split.feedTlo!.length).toBe(split.feedPos.length / 3);
+    expect(split.rapidTlo!.length).toBe(split.rapidPos.length / 3);
+    const e = prependEntry(t, [-5, 0, 0, 0, 0, 0]);
+    expect(Array.from(e.tlo!.slice(0, 3))).toEqual([EVENT_NONE, EVENT_NONE, 0]);
+    expect(e.tloEvents).toBe(EVS);
+  });
+});
+
+describe("per-segment tool offset in the pose chain (schema 8)", () => {
+  const AXES = ["X", "Y", "Z"];
+  const EVS = [{ seq: 1, xyz: [0, 0, 22] as [number, number, number], tool: 3 }];
+  // rapid seq 1 (before the G43 row) → feed seq 2 (after it)
+  const feed = stream([[10, 0, -5]], { seq: [2], tlo: [0], lines: [4] });
+  const rapid = stream([[0, 0, 0]], { seq: [1], tlo: [EVENT_NONE], lines: [3] });
+  const track = buildScrubTrack(feed, rapid, undefined, undefined, undefined, EVS)!;
+  const wcs = { g5x: [100, 0, 0, 0, 0, 0], g92: [], rotationDeg: 0, tool: [0, 0, 0] };
+
+  it("pre-event sample lifts with the LIVE offset, post-event with the event's (the 22.000 shape)", () => {
+    const s = freshSample();
+    const j: (number | null)[] = [];
+    sampleTrack(track, 0, s);
+    expect(s.tlo).toBeNull();
+    jointsForSample(s, wcs, AXES, j);
+    expect(j[2]).toBeCloseTo(0, 9);                 // z 0 + live 0
+    sampleTrack(track, track.cum[1]!, s);
+    expect(s.tlo?.xyz).toEqual([0, 0, 22]);
+    jointsForSample(s, wcs, AXES, j);
+    expect(j[0]).toBeCloseTo(110, 9);
+    expect(j[2]).toBeCloseTo(-5 + 22, 9);           // z −5 + the program's G43
+    // A live offset changes nothing after the event — the program's own
+    // G43 governs (fresh boot vs. a session carrying TLO 22 agree).
+    jointsForSample(s, { ...wcs, tool: [0, 0, 22] }, AXES, j);
+    expect(j[2]).toBeCloseTo(17, 9);
+  });
+
+  it("entry inverse uses point 0's offset and round-trips to the live joints", () => {
+    const liveJoints = [130, 0, 40];
+    const withEvent0 = buildScrubTrack(
+      stream([[10, 0, -5]], { seq: [2], tlo: [0] }), stream([[0, 0, 0]], { seq: [1], tlo: [0] }),
+      undefined, undefined, undefined, EVS)!;
+    const e = machineJointsToProgram(liveJoints, AXES, wcs, undefined, null, null, undefined, [0, 0, 22]);
+    expect(e[2]).toBeCloseTo(40 - 22, 9);
+    const t = prependEntry(withEvent0, e);
+    const s = freshSample();
+    const j: (number | null)[] = [];
+    sampleTrack(t, 0, s);
+    jointsForSample(s, wcs, AXES, j);
+    expect(j[0]).toBeCloseTo(130, 9);
+    expect(j[2]).toBeCloseTo(40, 9);
+  });
+});
+
+describe("rotary-command boundary → inherited prefix (2026-09-11)", () => {
+  // Merged track seq order: rapid 1, feed 2, rapid 3, feed 4 → points 0..3.
+  const feed = () => stream([[10, 0, 0], [30, 0, 0]], { seq: [2, 4], lines: [5, 9], abc: [[0, 0, 0], [30, 0, 0]] });
+  const rapid = () => stream([[0, 0, 0], [20, 0, 0]], { seq: [1, 3], lines: [3, 7], abc: [[0, 0, 0], [0, 0, 0]] });
+
+  it("counts the leading points with seq below each axis's first-command seq; null = all", () => {
+    const t = buildScrubTrack(feed(), rapid(), undefined, undefined, undefined, undefined,
+      { A: 4, B: null, unknown: null, seed: { A: 0, B: 0 } })!;
+    expect(t.inheritedEnd).toEqual({ A: 3, B: 4, C: 4, unknown: 4 });
+  });
+  it("unknown caps the prefix; a boundary at the first seq inherits nothing", () => {
+    const t = buildScrubTrack(feed(), rapid(), undefined, undefined, undefined, undefined,
+      { A: null, unknown: 3, seed: { A: 0 } })!;
+    expect(t.inheritedEnd).toEqual({ A: 4, B: 4, C: 4, unknown: 2 });
+    const t1 = buildScrubTrack(feed(), rapid(), undefined, undefined, undefined, undefined,
+      { A: 1, unknown: null, seed: { A: 0 } })!;
+    expect(t1.inheritedEnd!.A).toBe(0);
+  });
+  it("absent boundary → no inheritedEnd (legacy picture)", () => {
+    expect(buildScrubTrack(feed(), rapid())!.inheritedEnd).toBeUndefined();
+  });
+  it("roomEndOf takes the minimum over the WORK-chain letters and unknown; a head rotary does not count", () => {
+    const t = { count: 100, inheritedEnd: { A: 60, B: 10, C: 100, unknown: 80 } };
+    expect(roomEndOf(t, ["A"])).toBe(60);          // trsrn: B is on the head
+    expect(roomEndOf(t, ["A", "C"])).toBe(60);     // xyzac table A + C
+    expect(roomEndOf(t, ["B"])).toBe(10);
+    expect(roomEndOf({ count: 100, inheritedEnd: { A: 100, B: 100, C: 100, unknown: 30 } }, ["A"])).toBe(30);
+    expect(roomEndOf(t, [])).toBe(0);              // no rotary on the work chain: nothing to decouple
+    expect(roomEndOf({ count: 5 }, ["A"])).toBe(0);
+    expect(roomEndOf(null, ["A"])).toBe(0);
+  });
+  it("prependEntry grows every prefix by one (the entry vertex is the live pose)", () => {
+    const t = buildScrubTrack(feed(), rapid(), undefined, undefined, undefined, undefined,
+      { A: 4, unknown: null, seed: { A: 0 } })!;
+    const e = prependEntry(t, [-5, 0, 0, 0, 0, 0]);
+    expect(e.count).toBe(5);
+    expect(e.inheritedEnd).toEqual({ A: 4, B: 5, C: 5, unknown: 5 });
+  });
+  it("splitTrackStreams stamps a rapid src per drawn rapid vertex (section starts take the previous point)", () => {
+    const t = buildScrubTrack(feed(), rapid())!;
+    const sp = splitTrackStreams(t);
+    // rapid segments end at track points 0 (none: first point) and 2 (from point 1):
+    // section opens with point 1 (src 1), then point 2 (src 2)
+    expect(Array.from(sp.rapidSrc!)).toEqual([1, 2]);
+    expect(Array.from(sp.feedSrc!)).toEqual([0, 1, 2, 3]);
   });
 });

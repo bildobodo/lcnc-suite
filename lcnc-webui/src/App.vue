@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, provide, reactive, ref, watch } from "vue";
-import { applyClientOverlay, PERMISSIONS_KEY, FIRE_KEY, type Permissions } from "./permissions";
+import type { CollisionLineMark } from "./viewer/collision";
+import { applyClientOverlay, applyClientOverlayReasons, PERMISSIONS_KEY, PERMISSION_REASONS_KEY, FIRE_KEY, type Permissions, type PermissionReasons } from "./permissions";
 import { simMode } from "./simMode";
+import { twpPoseOriented, twpPoseStale, twpDatumStale, fixtureOffDatum, stampAForFixture, poseAbcOf } from "./twpPose";
+import { semanticKinsMode } from "./viewer/kins";
 import { runLineState, subExecState, resolveCurrentLine } from "./trackHighlight";
 import { clearSubfileCache } from "./lcncApi";
 import { mainLinesTrusted, type ScrubTrack } from "./viewer/scrubTrack";
-import { connectWs, connected, status, send, armed, lastReply, viewerGcode, viewerInit, gcodeContent, lcncError, latency, networkLatency, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead, pushMessage, safetyTrip, acknowledgeSafetyTrip, readerStale, safetyChainIncomplete, configWarning, previewLoadError, previewParseError, serverShuttingDown, type LcncMessage } from "./lcncWs";
+import { connectWs, connected, status, send, armed, lastReply, viewerGcode, viewerInit, gcodeContent, lcncError, latency, networkLatency, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead, pushMessage, safetyTrip, acknowledgeSafetyTrip, readerStale, safetyChainIncomplete, configWarning, previewLoadError, previewParseError, previewRefusal, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, serverShuttingDown, type LcncMessage } from "./lcncWs";
 // Lazy-load the 3D viewer so Three.js (~866 KB) + troika load as a separate async
 // chunk after first paint instead of blocking the initial bundle (P6). The viewerRef
 // methods are all `?.`-guarded, so calls during the brief load gap safely no-op.
@@ -29,7 +32,7 @@ import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineInput from "./MachineInput.vue";
 import { highlightGcode } from "./gcodeHighlight";
-import { fmtElapsed, fmtDuration, fmtDist, fmtSize } from "./format";
+import { fmtElapsed, fmtDuration, fmtDist, fmtSize, fmtProgressTimes } from "./format";
 import type { GcodeStats } from "./GcodePanel.vue";
 import type { LimitViolation } from "./ws/bulkData";
 import { Settings, MessageSquare, PowerOff, Gamepad2, Keyboard, BookOpen, ClipboardCopy, Expand, Shrink } from "lucide-vue-next";
@@ -51,6 +54,7 @@ import {
   TRAJ_MODE_FREE, TRAJ_MODE_TELEOP,
   SPINDLE_FORWARD, SPINDLE_REVERSE,
   OPERATOR_DISPLAY,
+  OPERATOR_ERROR,
   cooldownFor, isNeverDebounced,
 } from "./lcnc";
 
@@ -183,6 +187,22 @@ const TRIP_REASON_LABELS: Record<string, string> = {
 const safetyTripReasonLabel = computed(() =>
   safetyTrip.value ? (TRIP_REASON_LABELS[safetyTrip.value.reason] ?? safetyTrip.value.reason) : '');
 
+// Preview re-parse banner (2026-09-05): elapsed is the client's own clock
+// since first sight (statusStore ticks it); the bar never reaches 100 % on
+// its own — only the publish ends it. Expected = the gateway's last
+// measured publish of that file (or its size estimate), so a second zero
+// on the same program gets an honest countdown.
+const previewRefreshTimes = computed(() => fmtProgressTimes(previewRefreshElapsedMs.value, previewRefresh.value?.expected_ms));
+// Basename only: the banner is one uppercase line — the full path plus the
+// "what is stale" tail is what ran it off the right edge (operator,
+// 2026-09-12). The tail and the numbers live in the title now.
+const previewRefreshFile = computed(() => (previewRefresh.value?.file ?? '').replace(/\\/g, '/').split('/').pop() ?? '');
+const previewRefreshTitle = computed(() => {
+  const pr = previewRefresh.value;
+  if (!pr) return '';
+  return `Re-parsing ${pr.file} — ${previewRefreshTimes.value}${pr.queued ? '; another re-parse is queued behind it' : ''}. The toolpath, soft-limit marks and simulation are stale until it lands. The gateway re-parses whenever an input the preview was built from changes (fixture offsets, rotary pose, kinematics mode, tool length, soft-limit window, the file). Reason: ${pr.reason}. Superseded parses so far: ${pr.superseded}.`;
+});
+
 const machineStateColor = computed(() => {
   if (safetyTrip.value) return '--state-danger';
   if (safetyChainIncomplete.value) return '--state-danger';
@@ -191,6 +211,8 @@ const machineStateColor = computed(() => {
   if (configWarning.value) return '--state-warn';
   if (previewLoadError.value) return '--state-warn';
   if (previewParseError.value) return '--state-warn';
+  if (previewRefusal.value) return '--state-warn';
+  if (previewRefresh.value) return '--state-warn';
   return STATE_COLORS[machineState.value];
 });
 
@@ -250,6 +272,8 @@ const bannerFlashMode = computed<'none' | 'pulse' | 'flash'>(() => {
   if (configWarning.value) return 'pulse';
   if (previewLoadError.value) return 'pulse';
   if (previewParseError.value) return 'pulse';
+  if (previewRefusal.value) return 'pulse';
+  if (previewRefresh.value) return 'pulse';
   if (s === 'unhomed' || s === 'toolchange' || s === 'idle') return 'pulse';
   return 'none';
 });
@@ -403,10 +427,34 @@ const gcodeStats = ref<GcodeStats | null>(null);
 const gcodeViolations = ref<LimitViolation[] | null>(null);
 const gcodeViolationsTotal = ref(0);
 const gcodeWorldUnchecked = ref(0);
+// Kins-flip honesty counts from the parse worker: flips no twin could
+// resolve (segments keep phantom geometry) and frame-relabel CARRY spans
+// (geometry corrected under an assumption canon replay cannot verify —
+// "axis held" vs "commanded to the stale value"). Both ride the wire;
+// shipping a count nobody displays is the delivery gap the review found.
+const gcodeKinsUnresolved = ref(0);
+const gcodeKinsCarrySpans = ref(0);
+const kinsFlipStatus = computed(() => {
+  const u = gcodeKinsUnresolved.value, cs = gcodeKinsCarrySpans.value;
+  if (!u && !cs) return null;
+  const parts: string[] = [];
+  if (u) parts.push(`${u} flip${u === 1 ? "" : "s"} unresolved`);
+  if (cs) parts.push(`${cs} relabel-carry span${cs === 1 ? "" : "s"} estimated`);
+  return { cls: u ? "warn" : "muted", text: parts.join(" · ") };
+});
 // Called external subs with no WEBUI_SUB markers (W3 P5): their motion's
 // line numbers collide with the main file's — one info-tier stats hint,
 // no per-point behavior change (markers are the only trust mechanism).
 const gcodeUnmarkedSubs = ref<string[]>([]);
+// Load-time lint: the kins type the program's last switch leaves in effect
+// (null = the program never switches; 0 = restored before M2).
+const gcodeKinsEnd = ref<number | null>(null);
+// The FRAME the program's last kinematics marker leaves in effect — null when
+// no program/marker, 0 when it ends in identity (nothing to restore). Raw
+// type 0 is NOT identity on every family (R-01), so the stats row asks the
+// family, like the viewer's own warning does.
+const gcodeKinsEndMode = computed<number | null>(() =>
+  gcodeKinsEnd.value == null ? 0 : semanticKinsMode(gcodeKinsEnd.value, viewerInit.value?.kins));
 // Soft-limit stats row: identity-check result plus the honest TCP hole —
 // world segments with no kins twin are NOT validated and must never read
 // as "OK" (unchecked ≠ clean).
@@ -424,7 +472,7 @@ const softLimitStatus = computed(() => {
 // Source line at the viewer's scrub position (null = not scrubbing).
 const scrubLine = ref<number | null>(null);
 // Source lines with collision hits from the viewer's sweep (null = none run).
-const collisionLines = ref<number[] | null>(null);
+const collisionLines = ref<CollisionLineMark[] | null>(null);
 
 // Donut chart (distance breakdown) lives in StatsDonut.vue.
 
@@ -492,7 +540,7 @@ const linesUntrustedReason = computed<string>(
 // W5: the set of main-file lines the track's per-point trust vouches for —
 // the only lines a live motion_line value may ever display as (motion ids
 // carry no file identity; see trackHighlight.resolveCurrentLine).
-const trustedLines = computed<Set<number> | null>(() => {
+const trustedLines = computed<Uint8Array | null>(() => {
   const t = (viewerGcode.value as { scrubTrack?: ScrubTrack | null } | null)?.scrubTrack;
   return t ? mainLinesTrusted(t) : null;
 });
@@ -526,6 +574,12 @@ const permissions = computed(() => {
   return next;
 });
 provide(PERMISSIONS_KEY, permissions);
+// Why each closed gate is closed (U-06): the backend's reasons under the
+// client-local overlay's own — what a dimmed control shows on hover and
+// says on tap (MachineBtn), and what fire() reports when it drops a send.
+const permissionReasons = computed<PermissionReasons>(() =>
+  applyClientOverlayReasons(st.value.permission_reasons, armed.value, busy.value, simMode.value));
+provide(PERMISSION_REASONS_KEY, permissionReasons);
 
 // Provide a probing flag so catalog-aware MachineBtn instances with
 // `whileProbing: true` self-disable while a probe op is in flight. Replaces
@@ -540,6 +594,89 @@ const isHomed = computed(() => {
 });
 
 const motionMode = computed(() => st.value.motion_mode ?? TRAJ_MODE_FREE);
+// Live switchkins type as a clean int (null = no switchable kins on this
+// machine / not sampled — the kins-mode surfaces hide themselves then).
+const liveKinsType = computed<number | null>(() => {
+  const k = st.value.kins_type;
+  return k == null ? null : Math.round(Number(k));
+});
+// The FRAME that raw type means on this machine's kins family — 0 Machine,
+// 1 TCP, 2 Plane (viewer/kins.semanticKinsMode, the client twin of the
+// gateway's semantic_kins). Raw numbers are family-dependent: on an
+// xyzac-trt without `sparm=identityfirst` raw 0 is the WORLD kins, so a
+// selector bound to raw names the frame wrongly (R-01). Everything the
+// operator SEES uses this; the touch-off `expect` payload keeps the raw
+// type, which is what the gateway compares against its own pin.
+const kinsMode = computed<number | null>(() =>
+  semanticKinsMode(liveKinsType.value, viewerInit.value?.kins));
+// TWP capability: this machine runs the TWP remap stack — twin of the
+// gateway's _twp_capable (the shipped xyzacb-trsrn config IS the stack). A
+// switchable-but-TWP-less machine (a TCP trunnion) keeps the kins-frame
+// selector but never the Plane frame, the Capture/Orient/Clear row or the
+// reserved G59 rows (TWP-08b, review 2026-09-14).
+const twpCapable = computed<boolean>(() => viewerInit.value?.kins?.type === "xyzacb-trsrn");
+// TWP plane staleness: the A rotary is a WORK-side table, so rotating it after
+// the plane was defined/oriented leaves the stored frame pointing at where the
+// face USED to be. One predicate (twpPose.ts), two surfaces — the kins chip
+// here via prop, the plane overlay inside ThreeViewer.
+const twpStale = computed(() =>
+  twpPoseStale(poseAbcOf(st.value), st.value.rotary_abc, st.value.twp_defined),
+);
+// The datum moved AFTER the plane was defined: the remap's saved_work_offset
+// snapshot (echoed as twp_datum) no longer matches the live G54 row, so the
+// plane overlay and the NEXT ORIENT still use the old datum. Honest surface
+// only — the snapshot semantics are deliberate upstream behavior.
+const twpDatumMoved = computed(() =>
+  twpDatumStale(st.value.wcs_table?.[0] as { x?: number; y?: number; z?: number } | undefined,
+    st.value.twp_datum, st.value.twp_defined, st.value.wcs_prov_a?.[0]),
+);
+// Identity-kins fixture off the part: the ACTIVE fixture's W1 stamp A vs the
+// live table A (twpPose.fixtureOffDatum — the Machine-mode mirror of twpStale).
+// Same chip/HUD derivation as the other flags via kinsModeChip.
+const twpOffDatum = computed(() =>
+  // Semantic mode: "is this identity kinematics" is the question, not "is
+  // the raw pin 0" (R-01).
+  fixtureOffDatum(kinsMode.value, stampAForFixture(st.value.wcs_prov_a, st.value.g5x_index),
+    st.value.rotary_abc?.[0]),
+);
+// A head solve exists (G53.x / Orient ran this session): the pose stamp is
+// above the remap's "no orient yet" sentinel. Gates the Plane jog frame —
+// a bare M430 before any orient jogs on whatever the kins pins last held.
+const twpOriented = computed(() => twpPoseOriented(poseAbcOf(st.value), st.value.twp_defined));
+// Kinematics-frame selector (JogStrip): M428 restores identity, M429 enters
+// TCP (world XYZ = the table-riding work frame: jog A and the tool tip stays
+// on the workpiece, the kins re-solving XYZ — the Heidenhain 3D-ROT-style
+// tracking the operator asked for), M430 enters TOOL/plane kins. Switchkins
+// preserves joint positions, so the switch itself moves nothing; `ready`
+// (idle + homed) makes it a safe stationary relabel. Sent as the TYPED
+// `set_kins_mode` command (TWP-04): the Plane frame has a backend admission
+// rule — a plane defined AND the head still aligned with it (the A/B/C
+// orient stamp vs the live rotaries) — which the `planeFrame` permission
+// mirrors for the radio's dimming.
+function setKinsMode(t: number) {
+  if (t !== 0 && t !== 1 && t !== 2) return;
+  fire({ cmd: "set_kins_mode", mode: t }, t === 2 ? "planeFrame" : "ready");
+}
+// TWP re-orient: re-solve the head at the CURRENT table pose. Unlike the
+// jog-frame switch above this MOVES the rotaries, hence the probe tier.
+// Same MDI channel the switchkins remaps use; the o-sub carries the whole
+// sequence so a failure aborts as one action and surfaces on the error
+// channel like any other MDI. Q1 inside tells g53x_core this is a re-orient,
+// so the "TWP already active" refusal is skipped rather than raced.
+function twpReorient() {
+  fire({ cmd: "mdi", text: "o<twp_reorient> call" }, "probe");
+}
+// Capture plane (workflow 2, one button): typed command — the gateway
+// re-checks twp_capture_check server-side and surfaces the refusal reason;
+// the o-sub samples the tip itself after its own sync (no poll race here).
+function twpCapture() {
+  fire({ cmd: "twp_capture" }, "twpCapture");
+}
+// Clear plane: plain G69 like the other TWP MDI verbs — idempotent,
+// guardless, moves nothing (stationary relabel → ready tier).
+function twpClear() {
+  fire({ cmd: "mdi", text: "G69" }, "ready");
+}
 const isTeleop = computed(() => motionMode.value === TRAJ_MODE_TELEOP);
 
 const interpState = computed(() => st.value.interp_state ?? INTERP_IDLE);
@@ -788,23 +925,23 @@ const toolTableRef = ref<InstanceType<typeof ToolTablePanel> | null>(null);
 // The vars must land before the M600 that reads them — one latch, in order.
 function measureAuto() {
   const t = st.value.tool_number;
-  if (!permissions.value.ready || st.value.probing || !t) return;
+  if (!permissions.value.machineFrame || st.value.probing || !t) return;
   fireBatch([
     { cmd: "set_probe_vars", vars: buildToolsetterVarMap() },
     { cmd: "mdi", text: `T${t} M600` },
-  ], 'ready');
+  ], 'machineFrame');
 }
 
 function unloadTool() {
-  if (!permissions.value.ready) return;
+  if (!permissions.value.machineFrame) return;
   const mode = loadMachineDefaults().toolChangeMode;
   if (mode === "m600") {
     fireBatch([
       { cmd: "set_probe_vars", vars: buildToolsetterVarMap() },
       { cmd: "mdi", text: "T0 M600" },
-    ], 'ready');
+    ], 'machineFrame');
   } else {
-    fire({ cmd: "mdi", text: "T0 M6 G49" }, 'ready');
+    fire({ cmd: "mdi", text: "T0 M6 G49" }, 'machineFrame');
   }
 }
 
@@ -1087,7 +1224,11 @@ async function fire(payload: any, gate?: keyof Permissions, cooldownMs?: number)
     return;
   }
   if (gate && !permissions.value[gate]) {
+    // Loud in the message center too (U-06): a control that looked live and
+    // did nothing is the same silence as an unexplained dimmed one.
+    const why = permissionReasons.value[gate] ?? `gate '${gate}' is closed`;
     console.warn(`[fire] ${cmd} dropped: gate '${gate}' is closed`);
+    pushMessage(OPERATOR_ERROR, `${cmd} not sent — ${why}`);
     return;
   }
   const hold = cooldownMs ?? cooldownFor(cmd);
@@ -1112,7 +1253,9 @@ async function fireBatch(payloads: any[], gate?: keyof Permissions) {
     return;
   }
   if (gate && !permissions.value[gate]) {
+    const why = permissionReasons.value[gate] ?? `gate '${gate}' is closed`;
     console.warn(`[fireBatch] ${payloads[0]?.cmd} dropped: gate '${gate}' is closed`);
+    pushMessage(OPERATOR_ERROR, `${payloads[0]?.cmd} not sent — ${why}`);
     return;
   }
   busy.value = true;
@@ -1135,7 +1278,7 @@ function onRunProbe({ vars, macro }: { vars: Record<string, number>; macro: stri
 provide(FIRE_KEY, fire);
 
 // Touch-off math + Z-eoffset compensation. See useTouchoffMath.ts.
-const { setAxis, setAll, setG5x } = useTouchoffMath({ axes, st, fire });
+const { setAxis, setAll, setG5x } = useTouchoffMath({ axes, fire });
 
 function homeAll() {
   fire({ cmd: "home_all" }, 'idle');
@@ -1144,6 +1287,14 @@ function homeAll() {
 function unhomeAll() {
   fire({ cmd: "unhome_all" }, 'idle');
 }
+
+// Joint letters outside their own soft-limit window (status
+// joints_beyond_limit): motion refuses every world-mode move meanwhile, the
+// gateway jogs in joint mode until they are back inside — the banner says so.
+const jointsBeyondLimit = computed<string[]>(() => {
+  const j = st.value.joints_beyond_limit;
+  return Array.isArray(j) ? j.map(String) : [];
+});
 
 const homedJoints = computed<boolean[]>(() => {
   const hj = st.value.homed_joints;
@@ -1161,7 +1312,7 @@ function unhomeAxis(joint: number) {
 
 
 function cycleStart() {
-  fire({ cmd: "cycle_start" }, 'ready');
+  fire({ cmd: "cycle_start" }, 'run');
 }
 
 function runFromLine(opts: import("./gcodeRfl").RflRunOptions) {
@@ -1171,14 +1322,15 @@ function runFromLine(opts: import("./gcodeRfl").RflRunOptions) {
     spindle_dir: opts.spindleDir !== "off" ? opts.spindleDir : undefined,
     spindle_speed: opts.spindleDir !== "off" ? opts.spindleSpeed : undefined,
     // RFL × M600 guard: measure this tool via MDI first (gateway bg sequence),
-    // retract to G53 Z0, and rapid to the derived start XY before AUTO_RUN.
+    // retract to G53 Z0 (never lowered — skipped when already at/above it),
+    // and rapid to the derived start XY before AUTO_RUN.
     pre_tool: opts.preTool > 0 ? opts.preTool : undefined,
     safe_z: opts.safeZ || undefined,
     entry_x: opts.entry?.x ?? undefined,
     entry_y: opts.entry?.y ?? undefined,
     entry_wcs: opts.entry?.wcs ?? undefined,
     entry_units: opts.entry?.units ?? undefined,
-  }, 'ready');
+  }, 'run');
 }
 
 function cycleStep() {
@@ -1410,7 +1562,10 @@ watch(viewerGcode, (newGcode) => {
   gcodeViolations.value = newGcode?.violations ?? null;
   gcodeViolationsTotal.value = newGcode?.violations_total ?? 0;
   gcodeWorldUnchecked.value = newGcode?.violations_world_unchecked ?? 0;
+  gcodeKinsUnresolved.value = newGcode?.kins_flips_unresolved ?? 0;
+  gcodeKinsCarrySpans.value = newGcode?.kins_carry_spans ?? 0;
   gcodeUnmarkedSubs.value = newGcode?.unmarked_subs ?? [];
+  gcodeKinsEnd.value = newGcode?.kins_end_type ?? null;
   // New payload = program change or reparse — sub files may have been
   // edited, so the inline sub view must re-fetch (W5).
   clearSubfileCache();
@@ -1470,23 +1625,43 @@ watch(viewerGcode, (newGcode) => {
           <span v-if="safetyTrip" :key="'safety'" class="bannerError">
             SAFETY TRIPPED ({{ safetyTripReasonLabel }}) — Acknowledge, re-Arm if needed, then E-Stop Reset
           </span>
-          <span v-else-if="safetyChainIncomplete" :key="'safety-chain'" class="bannerError">
-            SAFETY CHAIN INCOMPLETE — {{ safetyChainIncomplete }} — check HALFILE hallib/lcnc_webui.hal, then restart the suite
+          <!-- Short form: the state and its ONE recovery verb; the why and
+               the detail ride the title (operator, 2026-09-12: the long
+               forms ran past the window and pushed the action buttons
+               off the banner). -->
+          <span v-else-if="safetyChainIncomplete" :key="'safety-chain'" class="bannerError"
+                :title="'Safety chain incomplete: ' + safetyChainIncomplete + '. Check HALFILE hallib/lcnc_webui.hal, then restart the suite.'">
+            SAFETY CHAIN INCOMPLETE — {{ safetyChainIncomplete }} — restart the suite
           </span>
           <span v-else-if="serverShuttingDown" :key="'shutdown'" class="bannerError">
             Server shutting down — start LinuxCNC again to reconnect
           </span>
-          <span v-else-if="readerStale" :key="'reader-stale'" class="bannerError">
-            HAL reader stale — UI values may be out of date. If this persists, restart the suite (the LinuxCNC session may have ended)
+          <span v-else-if="readerStale" :key="'reader-stale'" class="bannerError"
+                title="The HAL reader has not delivered a snapshot for 2 s — UI values may be out of date. If it persists the LinuxCNC session may have ended: restart the suite.">
+            HAL reader stale — restart the suite if it persists
           </span>
           <span v-else-if="configWarning" :key="'config-warning'" class="bannerError">
             Config fallback — {{ configWarning.reason }} — fix the INI, then restart the suite
           </span>
-          <span v-else-if="previewLoadError" :key="'preview-error'" class="bannerError">
-            3D preview load failed — reload the G-code file; restart the suite if it persists
+          <span v-else-if="jointsBeyondLimit.length" :key="'beyond-limit'" class="bannerError"
+                title="Every other move is refused while a joint sits beyond its soft limit. Jog it back inside — the jog runs in joint mode until it is.">
+            Joint {{ jointsBeyondLimit.join(', ') }} beyond its soft limit — jog it back inside
           </span>
-          <span v-else-if="previewParseError" :key="'parse-error'" class="bannerError">
-            Program won't parse — {{ previewParseError }} — no preview or simulation; fix the program or load one posted for this machine
+          <span v-else-if="previewLoadError" :key="'preview-error'" class="bannerError"
+                title="The viewer could not load the preview payload. Reload the G-code file; restart the suite if it persists.">
+            3D preview load failed — reload the program
+          </span>
+          <span v-else-if="previewParseError" :key="'parse-error'" class="bannerError"
+                :title="'No preview or simulation until it parses — fix the program or load one posted for this machine. ' + previewParseError">
+            Program won't parse — {{ previewParseError }}
+          </span>
+          <span v-else-if="previewRefusal" :key="'preview-refused'" class="bannerError"
+                :title="'The preview runs from the machine\'s live state (active fixture, kinematics) and stopped here; a run would stop at the same place. No preview or simulation until it parses. ' + previewRefusal.text">
+            Preview stopped — {{ previewRefusal.text }}
+          </span>
+          <span v-else-if="previewRefresh" :key="'preview-refresh'" class="bannerProgress" :title="previewRefreshTitle">
+            <span>Re-parsing · {{ previewRefreshLabel(previewRefresh.reason) }} · {{ previewRefreshFile }}{{ previewRefresh.queued ? ' · queued' : '' }}</span>
+            <div class="progressTrack" :title="previewRefreshTimes"><div class="progressFill" :style="{ width: previewRefreshPct + '%' }"></div></div>
           </span>
           <span v-else-if="bannerMessage && !bannerShowAbort" :key="'msg'" :class="{ bannerError: bannerMessageKind <= 2 }">
             {{ bannerMessage }}
@@ -1526,7 +1701,6 @@ watch(viewerGcode, (newGcode) => {
           @open-settings="openSettingsTab"
           @scrub-line="scrubLine = $event"
           @collision-lines="collisionLines = $event"
-          @reparse="fire({ cmd: 'reparse_preview' }, 'setup')"
         />
       </div>
 
@@ -1585,7 +1759,7 @@ watch(viewerGcode, (newGcode) => {
               :surfaceLayerVisible="viewerLayers.surface"
               :rotaryTilted="st.rotary_at_zero === false"
               @toggleSurfaceLayer="(on: boolean) => { viewerLayers.surface = on; viewerRef?.setLayerVisible?.('surface', on); saveViewerDefaults({ ...loadViewerDefaults(), layers: { ...loadViewerDefaults().layers, surface: on } }); }"
-              @mdi="fire({ cmd: 'mdi', text: $event }, 'ready')"
+              @mdi="fire({ cmd: 'mdi', text: $event }, 'machineFrame')"
               @abort="fire({ cmd: 'abort' }, 'abort')"
               @simTrip="send({ cmd: 'simulate_probe_trip' })"
               @setProbeVars="fire({ cmd: 'set_probe_vars', vars: $event }, 'setup')"
@@ -1736,6 +1910,27 @@ watch(viewerGcode, (newGcode) => {
                   <span class="statsValue val-status" :class="softLimitStatus.cls">
                     {{ softLimitStatus.text }}
                   </span>
+                  <template v-if="kinsFlipStatus">
+                    <span class="statsLabel">Kins frames</span>
+                    <span class="statsValue val-status" :class="kinsFlipStatus.cls"
+                          title="Unresolved: a kinematics switch this client has no twin for — those segments keep uncorrected geometry. Carry spans: geometry after a frame relabel was corrected assuming uncommanded axes HELD; canon replay cannot tell that from a command to the same stale value.">
+                      {{ kinsFlipStatus.text }}
+                    </span>
+                  </template>
+                  <template v-if="gcodeKinsEndMode !== 0">
+                    <span class="statsLabel">Kinematics at end</span>
+                    <span class="statsValue val-status warn"
+                          :title="'The program\'s last kinematics switch leaves type ' + gcodeKinsEnd + ' in effect. M2 restores G54 but not the kinematics pin, so after the run the machine stays in this frame and Cycle Start is refused until the Machine frame is restored.'">
+                      {{ gcodeKinsEndMode === 1 ? 'TCP' : gcodeKinsEndMode === 2 ? 'TOOL (plane)' : 'unsupported' }} — not restored before M2 ({{ gcodeKinsEndMode === 2 ? 'add G69, or select the Machine frame' : 'select the Machine frame' }})
+                    </span>
+                  </template>
+                  <template v-if="previewRefusal">
+                    <span class="statsLabel">Parse</span>
+                    <span class="statsValue val-status warn"
+                          title="A kinematics/TWP remap refused the program in the preview, which runs from the machine's live state (active fixture, kinematics). A run would refuse the same line.">
+                      refused — {{ previewRefusal.text }}
+                    </span>
+                  </template>
                   <template v-if="gcodeUnmarkedSubs.length">
                     <span class="statsLabel">Line tracking</span>
                     <span class="statsValue val-status muted"
@@ -1944,6 +2139,13 @@ watch(viewerGcode, (newGcode) => {
         :jogIncrement="jogIncrement"
         :minJogVel="minJogVel"
         :iniIncrements="iniIncrements"
+        :kinsType="liveKinsType"
+        :kinsMode="kinsMode"
+        :twpCapable="twpCapable"
+        :twpDefined="st.twp_defined ?? null"
+        :twpStale="twpStale"
+        :twpOriented="twpOriented"
+        @setKinsMode="setKinsMode"
         :jogDisabled="!permissions.jog"
         :taskMode="taskMode"
         @update:jogVel="jogVel = $event"
@@ -1962,6 +2164,19 @@ watch(viewerGcode, (newGcode) => {
         :homedJoints="homedJoints"
         :isHomed="isHomed"
         :g5xLabel="g5xLabel"
+        :kinsType="liveKinsType"
+        :kinsMode="kinsMode"
+        :twpCapable="twpCapable"
+        :twpActive="st.twp_active ?? null"
+        :twpDefined="st.twp_defined ?? null"
+        :twpStale="twpStale"
+        :twpOriented="twpOriented"
+        :twpDatumMoved="twpDatumMoved"
+        :twpOffDatum="twpOffDatum"
+        :g5xIndex="st.g5x_index ?? null"
+        @twpOrient="twpReorient"
+        @twpCapture="twpCapture"
+        @twpClear="twpClear"
         @homeAll="homeAll"
         @unhomeAll="unhomeAll"
         @homeAxis="homeAxis"
@@ -1969,9 +2184,9 @@ watch(viewerGcode, (newGcode) => {
         @setAxis="setAxis"
         @setAll="setAll"
         @setG5x="setG5x"
-        @goToG30="fire({ cmd: 'mdi', text: 'O<go_to_g30> CALL' }, 'ready')"
-        @goToHome="fire({ cmd: 'mdi', text: 'O<go_to_home> CALL' }, 'ready')"
-        @goToZero="fire({ cmd: 'mdi', text: 'O<go_to_zero> CALL' }, 'ready')"
+        @goToG30="fire({ cmd: 'mdi', text: 'O<go_to_g30> CALL' }, 'machineFrame')"
+        @goToHome="fire({ cmd: 'mdi', text: 'O<go_to_home> CALL' }, 'machineFrame')"
+        @goToZero="fire({ cmd: 'go_to_zero' }, 'goZero')"
       />
 
       <!-- G-code keypad: replaces every strip section except SafetyStrip
@@ -2270,17 +2485,46 @@ watch(viewerGcode, (newGcode) => {
 
 .bannerContent {
   flex: 1;
+  /* A flex item holding single-line text refuses to shrink below that text
+     unless told to; without this a long banner set the content's minimum
+     width and pushed the actions row (messages, Refresh, Home All, Abort)
+     past the right edge (operator, 2026-09-12: "the messages button
+     vanished briefly"). */
+  min-width: 0;
   cursor: pointer;
   display: flex;
   align-items: center;
 }
 
-.bannerContent span {
+.bannerContent > span,
+.bannerProgress > span:first-child {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+/* Re-parse banner: text + a progress track side by side (layout only —
+   .progressTrack/.progressFill are the global program-progress styles).
+   Track and fill are DIVs like GcodePanel's: as inline spans the fill
+   ignored its width, so the track always read as an empty grey bar after
+   the ellipsis (operator, 2026-09-12; the gateway always has an expected
+   duration — a size estimate at worst — so the track is always shown).
+   The text takes the slack and the track keeps ONE width at the right
+   end, so it sits in the same place whatever the reason label or the
+   elapsed readout does (operator: "does not appear in the same place"). */
+.bannerProgress {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gap-controls);
+  width: 100%;
+}
+.bannerProgress > span:first-child {
+  flex: 1;
+  min-width: 0;
+}
+.bannerProgress > .progressTrack {
+  flex: 0 0 160px;
+}
 .bannerError {
   color: var(--danger);
 }

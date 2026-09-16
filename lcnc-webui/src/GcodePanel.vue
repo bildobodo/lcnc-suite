@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
+import type { CollisionLineMark } from "./viewer/collision";
 import { listFiles, uploadFile, saveFile, fetchSubfile, type FileEntry } from "./lcncApi";
 import { splitSubLines, expansionAllowed, totalRows, rowAt, rowForMain, rowForSub, type SubExpansion } from "./subRows";
 import { usePermissions } from "./permissions";
@@ -55,9 +56,10 @@ const props = defineProps<{
   // Source line at the viewer's scrub position (offline dry run stage 2).
   // Highlights + auto-scrolls like the run highlight; null = not scrubbing.
   scrubLine?: number | null;
-  // Lines flagged by the viewer's collision sweep (stage 3) — marked with
-  // the same warn-tinted line numbers as soft-limit violations.
-  collisionLines?: number[] | null;
+  // Lines flagged by the viewer's collision sweep (stage 3) — danger-tinted
+  // line numbers (soft-limit violations are warn-tinted; a line with both
+  // reads danger), the same colours as the scrub bar's timeline marks.
+  collisionLines?: CollisionLineMark[] | null;
   // Marked-span execution state for the inline sub view (W5): while a
   // marked o-call span executes (run playhead or sim scrub), the called
   // file's lines render INDENTED under the call line with the executing
@@ -327,13 +329,18 @@ const violationsByLine = computed(() => {
   return m;
 });
 
-const collisionLineSet = computed(() => new Set(props.collisionLines ?? []));
+const collisionLineSet = computed(() => new Map((props.collisionLines ?? []).map(m => [m.line, m])));
 
 function lineMarkTitle(lineNum: number): string | undefined {
   const parts: string[] = [];
   const v = violationsByLine.value.get(lineNum);
   if (v) parts.push(v.map(violationText).join("; "));
-  if (collisionLineSet.value.has(lineNum)) parts.push("collision clearance hit — see viewer Check results");
+  const cm = collisionLineSet.value.get(lineNum);
+  if (cm) parts.push(cm.continuation !== undefined
+    ? (cm.continuation === 0
+      ? "still in contact (began in the entry move) — see viewer Check results"
+      : `still in contact (began L${cm.continuation}) — see viewer Check results`)
+    : "collision clearance hit — see viewer Check results");
   return parts.length ? parts.join(" · ") : undefined;
 }
 
@@ -795,7 +802,8 @@ async function saveEdit() {
                      : subActiveLine === item.lineNum,
                    selected: item.kind === 'main' && selectedLine === item.lineNum,
                    selectable: item.kind === 'main' && runFromLine && gcodeContent,
-                   violation: item.kind === 'main' && (violationsByLine.has(item.lineNum) || collisionLineSet.has(item.lineNum))
+                   violation: item.kind === 'main' && violationsByLine.has(item.lineNum),
+                   collision: item.kind === 'main' && collisionLineSet.has(item.lineNum)
                  }"
                  :title="item.kind === 'main' ? lineMarkTitle(item.lineNum) : undefined"
                  @click="item.kind === 'main' && onLineClick(item.lineNum)">
@@ -883,7 +891,7 @@ async function saveEdit() {
 
           <div class="dialogSection">
             <MachineToggle gate="displaySetting" v-model="dialogSafeZ"
-                           label="Retract to safe Z (G53 Z0) before positioning" />
+                           label="Retract to safe Z (G53 Z0, skipped when already at or above it) before positioning" />
           </div>
 
           <div class="dialogSection">

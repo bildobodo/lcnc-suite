@@ -5,22 +5,46 @@
 ; a nonexistent A-word on any 5-axis layout that isn't XYZAC (e.g. XYZBC
 ; nutating-head machines -> "Bad character 'A'"). Probe each rotary's INI
 ; section instead: [AXIS_x]MAX_LIMIT exists iff the axis is configured.
+; Local modification (lcnc-suite, 2026-09-04): optional #1 = the A angle to
+; return the table to (default 0 = the documented A=0 rule). In identity
+; kinematics a fixture is a fixed point in the ROOM, the part's datum only
+; at the table angle it was touched off at — the gateway passes that angle
+; from the fixture's provenance stamp (command_policy.goto_zero_plan).
+; Order: Z up (only when below machine zero — never lowered, see the guard
+; below), then the rotaries, THEN X/Y — the tip lands on the part's
+; datum, not on the room point at A=0 ("G54 did not align anymore with the
+; head — it stopped somewhere else").
+; Local modification (lcnc-suite, 2026-09-14, review TWP-02): the rotary
+; moves are MACHINE coordinates (G53). The stamp is a machine-frame A
+; (gateway _stamp_wcs_provenance reads the JOINT), but `G0 A#1` was a
+; work-coordinate target: with a G54 A+10 offset it landed the table at
+; stamp+10. B/C carry no stamp, so machine zero is the only target this
+; routine can promise under identity kinematics — go_to_home.ngc makes
+; the same choice.
 o<go_to_zero> sub
 
 M73
 G90
-G53 G0 Z0
-G0 X0 Y0
+; lcnc-suite: a retract never lowers Z. #<_abs_z> is the frame a G53 Z word
+; addresses — program Z + G92 + G5x + TLO on both sides (interp_namedparams.cc
+; NP_ABS_Z, interp_find.cc find_ends G_53). Machine Z0 is the top of travel
+; only on machines that home at the top; anywhere else a bare G53 Z0 is a
+; descent (TWP sim, 2026-09-04).
+o100 if [#<_abs_z> LT 0]
+    G53 G0 Z0
+o100 endif
 
 o110 if [EXISTS[#<_ini[axis_a]max_limit>]]
-    G0 A0
+    G53 G0 A#1
 o110 endif
 o120 if [EXISTS[#<_ini[axis_b]max_limit>]]
-    G0 B0
+    G53 G0 B0
 o120 endif
 o130 if [EXISTS[#<_ini[axis_c]max_limit>]]
-    G0 C0
+    G53 G0 C0
 o130 endif
+
+G0 X0 Y0
 
 o<go_to_zero> endsub
 

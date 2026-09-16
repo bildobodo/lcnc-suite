@@ -12,7 +12,7 @@ import threading
 from pathlib import Path
 import linuxcnc
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace as _dc_replace
 from typing import Any, Dict, Optional, List, Tuple
 from fastapi.staticfiles import StaticFiles
 import re
@@ -56,6 +56,7 @@ from gateway_util import (
     ALLOWED_EXTENSIONS,
     SUBFILE_NAME_RE,
     resolve_subfile,
+    kins_mode_commands,
     parse_kins_config,
     sanitize_filename,
     validate_extension,
@@ -68,18 +69,24 @@ from gateway_util import (
     evaluate_safety_chain,
     PREVIEW_SCHEMA,
     evaluate_tlo_drift,
-    evaluate_rotary_drift,
+    evaluate_rotary_drift, drift_gate_open, inflight_stale_reason, preview_file_edge_action,
     rotary_drift_settled,
+    evaluate_kins_drift,
     wcs_offset_flat_from_table,
-    evaluate_wcs_offset_drift,
+    evaluate_wcs_offset_drift, evaluate_limits_drift,
+    inflight_doomed_reason, rotary_hold_update, rotary_hold_settled,
     unwritten_estop_signal,
     kins_marker_policy,
     kins_pivot_warning,
     rotary_model_warning,
     parse_telemetry_batch,
     TELEMETRY_BODY_MAX,
+    wcs_prov_params,
+    evaluate_wcs_provenance,
+    wcs_stamp_decision,
+    PROV_STAMPED,
 )
-from command_policy import check_command, validate_payload, MachineLimits
+from command_policy import check_command, validate_payload, MachineLimits, touchoff_route, twp_capture_check, goto_zero_plan, plane_frame_check, touchoff_target_text, touchoff_expect_check, raw_kins_for_semantic
 from tool_table import (
     parse_tool_table,
     write_tool_table,
@@ -277,6 +284,38 @@ _msgpack_encoder = _ws_fanout_mod.msgpack_encoder
 _WS_INIT_LIMIT = int(os.environ.get("WEBUI_WS_INIT_CONCURRENCY", "20"))
 _ws_init_sem = asyncio.Semaphore(_WS_INIT_LIMIT)
 
+# ── Per-client command worker (2026-09-03) ──
+# The WS reader handles liveness/bookkeeping frames only; every command is
+# queued to ONE per-client worker task, in order. A handler that awaits
+# inside _cmd_lock (a plane touch-off waits up to 30 s for its MDI plus a 3 s
+# datum settle; Capture chains four such waits) used to run INSIDE the reader
+# loop, so the client's own heartbeats sat unread in the socket until it
+# returned and status_loop disarmed the client 3 s later — six operator-
+# visible false disarms (safety.hb_stall_disarmed, arrival gaps 3.3–4.0 s,
+# each 0.2 s after touchoff.plane / twp.capture). Liveness never queues
+# behind work; the event loop itself was never the problem (_cmd_blocking
+# runs on a thread).
+_WS_CMD_QUEUE_MAX = 32
+# Stop-class commands are never rejected by backpressure ("no stop command
+# may be droppable", docs/decisions.md) — a 4× hard cap still bounds a
+# broken client.
+_WS_STOP_CMDS = frozenset({"jog_stop", "jog_stop_multi", "abort", "estop"})
+# abort/estop SUPERSEDE the work this client queued before them and PREEMPT
+# any in-flight non-stop handler on EVERY client (2026-09-05): a stop must
+# never wait behind a 30 s MDI wait, and abort/E-Stop are machine-global, so
+# every in-flight handler's assumptions are void. jog_stop/jog_stop_multi
+# stay plain FIFO — no supersede, no preempt — because a stray jog_stop
+# during an MDI is a certified no-op class (twp_buttons_check) and reordering
+# it ahead of the jog_cont it belongs to would be an unbounded jog.
+_WS_PREEMPT_CMDS = frozenset({"abort", "estop"})
+# Never cancelled by a preempt: the stops themselves, and `arm` — its disarm
+# branch jog-stops under _cmd_lock and flips client.armed; cancelling it
+# would leave the flip with no reply.
+_WS_NO_PREEMPT = _WS_STOP_CMDS | {"arm"}
+# Client heartbeat budget (s): status_loop disarms an armed client whose
+# last heartbeat is older than this. Module-level so tests can shrink it.
+_HB_STALL_SEC = 3.0
+
 
 # ── Auth / origin controls (issue #17) ──
 # Pre-shared token: empty string disables auth (loopback/dev). The launcher
@@ -463,6 +502,16 @@ _estop_hold = False  # hold connected=FALSE during UI e-stop
 # their own larger timeouts (5s) because the interpreter can legitimately
 # take longer to acknowledge a parsed block.
 _CMD_WAIT_TIMEOUT = 2.0
+# CMD.wait_complete() holds the GIL for its whole wait (2.9.4 emcmodule.cc:
+# the poll loop esleep()s with no Py_BEGIN_ALLOW_THREADS), so a long wait on
+# the to_thread worker freezes the event loop — heartbeat task included.
+# _cmd_blocking therefore waits in slices this long: each return releases
+# the GIL, and a cancel (abort/estop preemption, disconnect) lands after
+# the current slice instead of after the whole wait.
+_CMD_WAIT_SLICE = 0.05
+# wait_complete() rc when _cmd_blocking gave up the wait on cancel — treated
+# as failed by _cmd_rc_failed (the handler is being cancelled anyway).
+_RC_WAIT_CANCELLED = -2
 
 def _snapshot_trip(trip_ts_ns: int) -> None:
     """Write a forensic bundle when a HAL safety trip fires. Runs in a
@@ -553,11 +602,48 @@ async def _reader_configure_extra_pins() -> None:
     # missing-pin reminder forever. Prefix from the module name — the comp
     # creates its pins under "<module>_kins.", the same quirk
     # parse_kins_config special-cases.
-    if (_kins_decl or {}).get("type") == "xyzacb-trsrn":
+    if _twp_capable():   # the policy's twp_capable — ONE predicate (TWP-08)
         _kp = f"{_kins_decl['module']}_kins."
         pins["kins_pre_rot"] = f"{_kp}pre-rot"
         pins["kins_primary_angle"] = f"{_kp}primary-angle"
         pins["kins_secondary_angle"] = f"{_kp}secondary-angle"
+        # TWP state + plane definition from the twp-helper comp (P3
+        # operator surface: mode chip, plane visualization). Same trsrn
+        # gate: the shipped trsrn config IS the TWP stack; a trsrn config
+        # without the helper comp would park these in the reader's
+        # missing-pin reminder — loud, and correct (its TWP state would
+        # be unknowable).
+        pins["twp_defined"] = "twp-helper-comp.twp-is-defined"
+        pins["twp_active"] = "twp-helper-comp.twp-is-active"
+        # Plane position = work offset (twp-o*-world) + origin vector
+        # (twp-o*), both in the TABLE frame: the plane is stored relative to
+        # the A table, so the sum is a table-frame point and the viewer draws
+        # it inside the work group, which is that same frame. Both halves ride
+        # the snapshot; status assembles the sum.
+        # Datum-write epoch (2026-09-05): M535 bumps it AFTER publishing the
+        # datum. Registered BEFORE the datum pins on purpose — the reader
+        # samples extra pins in insertion order, and "seq changed ⇒ datum
+        # current" needs the seq read first (the helper writes the datum,
+        # then the seq). test_extra_pins pins the order.
+        pins["twp_datum_seq"] = "twp-helper-comp.twp-datum-seq"
+        for _f, _p in (("twp_ox", "twp-ox-world"), ("twp_oy", "twp-oy-world"),
+                       ("twp_oz", "twp-oz-world"),
+                       ("twp_pox", "twp-ox"), ("twp_poy", "twp-oy"),
+                       ("twp_poz", "twp-oz"),
+                       ("twp_zx", "twp-zx"), ("twp_zy", "twp-zy"),
+                       ("twp_zz", "twp-zz"),
+                       ("twp_xx", "twp-xx"), ("twp_xy", "twp-xy"),
+                       ("twp_xz", "twp-xz")):
+            pins[_f] = f"twp-helper-comp.{_p}"
+        # Machine-frame A (deg) the HEAD was last oriented at. The plane
+        # itself rides the workpiece and cannot go stale; a live A away from
+        # this means the TOOL is no longer normal to the plane. Raw float on
+        # the wire — the remap's "no orient yet" sentinel is read client-side.
+        pins["twp_pose_a"] = "twp-helper-comp.twp-pose-a"
+        # TWP-04: the head solve depends on ALL three rotaries — B/C stamps
+        # ride the same way; the alignment rule compares all three.
+        pins["twp_pose_b"] = "twp-helper-comp.twp-pose-b"
+        pins["twp_pose_c"] = "twp-helper-comp.twp-pose-c"
     try:
         await _reader_request("set_extra_pins", pins=pins)
     except Exception as e:
@@ -624,7 +710,8 @@ async def _heartbeat_loop():
     Toggles at POLL_HZ while clients are connected.  When no clients remain
     the loop yields to _disconnect_grace which manages the grace period.
     E-Stop is handled via the independent command path (ws.receive →
-    handle_command) so a stuck status_loop does not block safety controls.
+    per-client cmd_worker → handle_command) so a stuck status_loop does not
+    block safety controls.
     """
     global _hal_last_hb
     _hb_expected = 1.0 / POLL_HZ
@@ -741,10 +828,35 @@ def _phase_ring_snapshot() -> List[Tuple[float, str]]:
 # (not rebinds — rebinding wouldn't track reassignment), so call sites read
 # _bulk.<attr> directly. Deps late-bound: STAT rebinds on reconnect, and
 # get_machine_units/_build_wcs_rotation_patches are defined further down.
+def _live_kins_for_parse():
+    """(live switchkins type, live plane frame [p,t1,t2]) for the parse ctx
+    — the fifth freshness input. Reader-sourced, same pins the status
+    snapshot carries; None on untracked configs / absent snapshot (the
+    worker then seeds nothing, honestly)."""
+    kt = _reader_get("kins_type")
+    fr = (_reader_get("kins_pre_rot"), _reader_get("kins_primary_angle"),
+          _reader_get("kins_secondary_angle"))
+    frame = [float(v) for v in fr] if all(v is not None for v in fr) else None
+    return (int(round(kt)) if kt is not None else None, frame)
+
+
+def _live_kins_frame_of(st):
+    """Status-snapshot view of the live plane frame — all three pins or
+    nothing (a partial frame makes no claim)."""
+    f = (st.kins_pre_rot, st.kins_primary_angle, st.kins_secondary_angle)
+    return [float(v) for v in f] if all(v is not None for v in f) else None
+
+
 _bulk = _bulk_mod.BulkPipeline(
     get_stat=lambda: STAT,
     get_machine_units=lambda: get_machine_units(),
     build_wcs_rotation_patches=lambda: _build_wcs_rotation_patches(),
+    get_live_kins=lambda: _live_kins_for_parse(),
+    # The fixture cache + g92 the var-file patches come from, flattened
+    # like the worker's __WCSOFF__ line — the in-flight supersede compares
+    # a touch-off against exactly what the running parse was seeded with.
+    get_wcs_off_flat=lambda: wcs_offset_flat_from_table(
+        _wcs_cache, getattr(STAT, "g92_offset", None)),
 )
 
 
@@ -1068,6 +1180,16 @@ def _start_heartbeat():
 # when multiple clients are connected.
 
 _shared_status: Optional["StatusPayload"] = None
+# Wire axis indices with a jog the GATEWAY started and has not stopped. A
+# jog_stop for an axis not in here is a no-op (traced): it used to force
+# MODE_MANUAL, and a stop arriving in the ~30 ms before STAT showed a fresh
+# MDI executing aborted that MDI (the operator's finger leaving the A button
+# a beat after pressing → Zero — 2026-09-04/05, seen racing at poll
+# granularity even with the interp-busy guard). A successful switch to MDI /
+# AUTO clears it: task refuses those while a jog is active, so success means
+# none is. Jogs started by other UIs (halui, axis) are not in here — the
+# gateway never stops what it did not start; the HAL chain owns motion safety.
+_active_jogs: set = set()
 _shared_status_dict: Optional[dict] = None  # cached asdict(_shared_status)
 
 # ---- Program-elapsed timer (server-authoritative) ----
@@ -1246,6 +1368,7 @@ async def _status_poller():
                     # so a reader that connected before LinuxCNC did must be
                     # reconfigured now.
                     register_bg_task(asyncio.create_task(_reader_configure_extra_pins()))
+                    register_bg_task(asyncio.create_task(_ensure_prov_var_rows()))
                     _poll_fails = 0
                 else:
                     if pid is not None and _ever_connected:
@@ -1268,6 +1391,7 @@ async def _status_poller():
                             _reconnect_fails = 0
                             _hal_connect()
                             register_bg_task(asyncio.create_task(_reader_configure_extra_pins()))
+                            register_bg_task(asyncio.create_task(_ensure_prov_var_rows()))
                     else:
                         STAT = CMD = ERR = None
                         lcnc_connected = False
@@ -1315,6 +1439,13 @@ async def _status_poller():
                         surface_scan_done = True
                         continue  # consume — don't forward to frontend as an error
                 errs.append((kind, text))
+                # LinuxCNC's operator channel also rides the trace (2026-09-04):
+                # a refused MDI / mode switch used to be visible only in the
+                # operator's browser, so an aborted → Zero was undiagnosable
+                # from runlogs. OPERATOR_TEXT/DISPLAY (12/13) are messages;
+                # everything else (NML/operator errors) is a warn.
+                _trace.emit("nml.error", level="info" if kind in (12, 13) else "warn",
+                            kind=kind, text=str(text)[:240])
 
             # INI-change invalidation (issue #29): if the active INI changed
             # under a persistent gateway, the surface/comp caches hold the
@@ -1434,9 +1565,88 @@ async def _status_poller():
             file_changed = bool(st.active_file) and (
                 st.active_file != _bulk.last_file or _cur_mtime != _bulk.last_mtime
             )
-            if file_changed and not _bulk.refresh_running:
-                _bulk.refresh_running = True
-                register_bg_task(asyncio.create_task(_bulk.refresh_gcode_preview(st.active_file)))
+            # reparse_pending: an operator Reparse that arrived during an
+            # in-flight parse (or any Reparse — the flag is the request,
+            # the cache keys are no longer cleared for it).
+            _now = time.monotonic()
+            _bulk.rotary_hold = rotary_hold_update(_bulk.rotary_hold, st.rotary_abc, _now)
+            _fe = preview_file_edge_action(
+                file_changed, _bulk.reparse_pending, _bulk.refresh_running,
+                _bulk.inflight, st.active_file, _cur_mtime)
+            if _fe == "schedule" and not rotary_hold_settled(_bulk.rotary_hold, st.rotary_abc, _now):
+                # A parse spawned mid-jog seeds the moving pose and is doomed
+                # on the next tick (inflight_doomed_reason below): the START
+                # waits for the rotary pose to hold still for 1 s. Linear
+                # motion never defers — the payload does not depend on XYZ.
+                if not _bulk.reparse_wait_noted:
+                    _bulk.reparse_wait_noted = True
+                    _trace.emit("gcode.parse_waits_for_settle", live=st.rotary_abc)
+                _fe = None
+            if _fe is not None:
+                if _fe == "schedule":
+                    _bulk.reparse_wait_noted = False
+                    _bulk.schedule_refresh(
+                        st.active_file,
+                        _bulk.reparse_pending_reason or ("file" if file_changed else "reparse"),
+                        _spawn_preview_task)
+                else:
+                    # The running parse is for another file/mtime, or the
+                    # operator asked for a fresh one: its result is stale
+                    # before it lands. Cancel it; this branch re-fires as
+                    # soon as the flag clears (cancel_inflight is idempotent
+                    # per parse). A running parse for THIS file+mtime is
+                    # left alone (preview_file_edge_action) — file_changed
+                    # holds until it publishes.
+                    _bulk.cancel_inflight(_fe.split(":", 1)[1])
+            elif (
+                # Doomed in-flight parse (2026-09-12): the rotary pose has
+                # ALREADY left the running parse's seed — its result is wrong
+                # whatever happens next, so cancel NOW (every tick, no settle,
+                # no debounce) instead of letting it run through the whole
+                # jog. reparse_pending restarts it, and the settle gate above
+                # holds that restart until the pose has come to rest.
+                _bulk.refresh_running
+                and _bulk.inflight is not None
+                and bool(st.active_file)
+                and (_doom := inflight_doomed_reason(_bulk.inflight, st.rotary_abc)) is not None
+            ):
+                _trace.emit("gcode.inflight_doomed", reason=_doom,
+                            seed=_bulk.inflight.get("rotary_seed"), live=st.rotary_abc)
+                _bulk.reparse_pending = True
+                _bulk.reparse_pending_reason = _doom
+                _bulk.cancel_inflight(_doom)
+            elif (
+                # In-flight supersede (2026-09-05): the drift edges below are
+                # gated on `not refresh_running`, so an edge raised DURING a
+                # parse — a touch-off while the rotary-drift parse from
+                # → Zero still runs, i.e. every zeroing sequence live — was
+                # not even evaluated until that parse published, and then
+                # queued a second full parse behind it (41–167 s to a
+                # correct preview on the 1.18 M-line program). Evaluate the
+                # same edges against the RUNNING parse's input snapshot and
+                # cancel it when one fires; reparse_pending restarts it with
+                # fresh inputs. Same idle gate, settle guards and 2 s
+                # debounce (inflight_stale_reason, pure).
+                _bulk.refresh_running
+                and _bulk.inflight is not None
+                and bool(st.active_file)
+                and drift_gate_open(
+                    st.active_file, False, True,
+                    st.interp_state == linuxcnc.INTERP_IDLE, st.current_vel,
+                    time.monotonic() - _bulk.tlo_check_ts)
+            ):
+                _bulk.tlo_check_ts = time.monotonic()
+                _wflat = wcs_offset_flat_from_table(st.wcs_table, st.g92_offset)
+                _stale = inflight_stale_reason(
+                    _bulk.inflight, st.rotary_abc, _bulk.rotary_check_prev,
+                    st.kins_type, _live_kins_frame_of(st), _wflat,
+                    _bulk.wcsoff_check_prev)
+                _bulk.rotary_check_prev = st.rotary_abc
+                _bulk.wcsoff_check_prev = _wflat
+                if _stale:
+                    _bulk.reparse_pending = True
+                    _bulk.reparse_pending_reason = _stale
+                    _bulk.cancel_inflight(_stale)
             elif (
                 # Schema edge (P1): the published payload's wire-format stamp
                 # disagrees with the schema this gateway was started with —
@@ -1455,8 +1665,7 @@ async def _status_poller():
                 _bulk.schema_reparse_attempted = (_bulk.last_file, _bulk.last_mtime)
                 _trace.emit("gcode.schema_stale_reparse", level="warn",
                             published=_bulk.published_schema, expected=PREVIEW_SCHEMA)
-                _bulk.refresh_running = True
-                register_bg_task(asyncio.create_task(_bulk.refresh_gcode_preview(st.active_file)))
+                _bulk.schedule_refresh(st.active_file, "schema", _spawn_preview_task)
             elif (
                 # TLO drift edge (W2 P4): the per-line limit flags bake the
                 # parse-time tool table, so a toolsetter re-measure after
@@ -1464,24 +1673,37 @@ async def _status_poller():
                 # Idle-gated — never reparse under a run (the client's
                 # parse_tlos hint covers that window) — and debounced to one
                 # check per 2 s so MDI/touch-off sequences settle first.
-                bool(st.active_file)
-                and not _bulk.refresh_running
-                and _bulk.preview_available()
-                and _bulk.published_tlo is not None
-                and st.interp_state == linuxcnc.INTERP_IDLE
-                and time.monotonic() - _bulk.tlo_check_ts >= 2.0
+                # The rotary / kins / WCS-offset edges below share this
+                # gate. They used to sit under `published_tlo is not None`
+                # too, so a payload whose __TLO__ line was absent or
+                # malformed never re-seeded its rotary pose at all.
+                drift_gate_open(
+                    st.active_file, _bulk.refresh_running, _bulk.preview_available(),
+                    st.interp_state == linuxcnc.INTERP_IDLE, st.current_vel,
+                    time.monotonic() - _bulk.tlo_check_ts)
             ):
                 _bulk.tlo_check_ts = time.monotonic()
+                _drift = None
                 _tlo_meta = _bulk.published_tlo
-                _tt_path = _tlo_meta.get("table_path")
-                try:
-                    _tt_cur = os.path.getmtime(_tt_path) if _tt_path else None
-                except OSError:
-                    _tt_cur = None
-                _tofs = st.tool_offset
-                _drift = evaluate_tlo_drift(
-                    _tlo_meta, _tt_cur, st.tool_number,
-                    _tofs[2] if _tofs and len(_tofs) > 2 else None)
+                if _tlo_meta is not None:
+                    _tt_path = _tlo_meta.get("table_path")
+                    try:
+                        _tt_cur = os.path.getmtime(_tt_path) if _tt_path else None
+                    except OSError:
+                        _tt_cur = None
+                    _tofs = st.tool_offset
+                    # Live table rows for every program tool (schema 8): a
+                    # re-measure of a tool that is NOT loaded stales the
+                    # per-segment pose too. STAT was polled this tick.
+                    try:
+                        _rows = [(int(t.id), float(t.zoffset))
+                                 for t in (getattr(STAT, "tool_table", None) or [])]
+                    except (AttributeError, TypeError, ValueError):
+                        _rows = None
+                    _drift = evaluate_tlo_drift(
+                        _tlo_meta, _tt_cur, st.tool_number,
+                        _tofs[2] if _tofs and len(_tofs) > 2 else None,
+                        table_rows=_rows)
                 if _drift is None:
                     # Rotary-pose drift (W6): the payload poses every
                     # uncommanded-rotary segment at the PARSE-time pose; a
@@ -1510,45 +1732,83 @@ async def _status_poller():
                                     live=st.rotary_abc)
                         _drift = _rdrift
                     elif _rdrift is None:
-                        # WCS-offset drift: a touch-off changes the
-                        # offsets the payload's abc peel and soft-limit
-                        # flags were baked with, with NO pose change — no
-                        # other edge sees it (live-caught: Zero All on a
-                        # tilted head wrote the rotary pose into G54's
-                        # rotary offsets; the client re-added them onto
-                        # the payload's unpeeled values and the sim posed
-                        # A at double the real angle). Burst-settled: a
-                        # multi-G10 Zero All reparses once, after the
-                        # last write.
-                        _wflat = wcs_offset_flat_from_table(
-                            st.wcs_table, st.g92_offset)
-                        _wdrift = evaluate_wcs_offset_drift(
-                            _bulk.published_wcs_off, _wflat)
-                        _wsettled = (_wflat is not None
-                                     and _wflat == _bulk.wcsoff_check_prev)
-                        _bulk.wcsoff_check_prev = _wflat
-                        if _wdrift and _wsettled:
-                            _trace.emit("gcode.reparse_wcsoff_drift",
-                                        reason=_wdrift)
-                            _drift = _wdrift
+                        # Switchkins drift (fifth freshness input): the
+                        # payload's segment modes start from the PARSE-time
+                        # switchkins type (and, in TOOL kins, its plane
+                        # frame). An M428/M430 or G53.x/G69 issued after
+                        # load — or a program parking the machine in TOOL
+                        # kins — makes that stale (the 855-unit class). A
+                        # type/frame change is a discrete step (no settle
+                        # needed); same idle gate and 2 s debounce.
+                        _kdrift = evaluate_kins_drift(
+                            _bulk.published_kins_seed, st.kins_type,
+                            _live_kins_frame_of(st))
+                        if _kdrift:
+                            _trace.emit("gcode.reparse_kins_drift",
+                                        reason=_kdrift,
+                                        seed=_bulk.published_kins_seed,
+                                        live=st.kins_type)
+                            _drift = _kdrift
+                        else:
+                            # WCS-offset drift: a touch-off changes the
+                            # offsets the payload's abc peel and soft-limit
+                            # flags were baked with, with NO pose change —
+                            # no other edge sees it (live-caught: Zero All
+                            # on a tilted head wrote the rotary pose into
+                            # G54's rotary offsets; the client re-added
+                            # them onto the payload's unpeeled values and
+                            # the sim posed A at double the real angle).
+                            # Burst-settled: a multi-G10 Zero All reparses
+                            # once, after the last write.
+                            _wflat = wcs_offset_flat_from_table(
+                                st.wcs_table, st.g92_offset)
+                            _wdrift = evaluate_wcs_offset_drift(
+                                _bulk.published_wcs_off, _wflat)
+                            _wsettled = (_wflat is not None
+                                         and _wflat == _bulk.wcsoff_check_prev)
+                            _bulk.wcsoff_check_prev = _wflat
+                            if _wdrift and _wsettled:
+                                _trace.emit("gcode.reparse_wcsoff_drift",
+                                            reason=_wdrift)
+                                _drift = _wdrift
+                            elif _wdrift is None or not _wsettled:
+                                # Soft-limit window drift (2026-09-12): the
+                                # payload's per-line records and per-vertex
+                                # outside flags were checked against the
+                                # LIVE joint window at parse time; a runtime
+                                # window change (ini.N.* pins) makes both
+                                # stale. Fires only for a live-sourced
+                                # window, so it cannot loop.
+                                _ldrift = evaluate_limits_drift(
+                                    _bulk.published_limits, st.joint_limits,
+                                    _axes_from_mask(int(getattr(st, "axis_mask", 0) or 0)))
+                                if _ldrift:
+                                    _trace.emit("gcode.reparse_limits_drift",
+                                                reason=_ldrift)
+                                    _drift = _ldrift
                 elif _drift:
                     _trace.emit("gcode.reparse_tlo_drift", reason=_drift,
                                 tool=st.tool_number)
                 if _drift:
-                    _bulk.refresh_running = True
-                    register_bg_task(asyncio.create_task(_bulk.refresh_gcode_preview(st.active_file)))
-            elif not st.active_file and _bulk.last_file is not None:
-                _bulk.preview_pending = None
-                _bulk.preview_bytes = None
-                _bulk.preview_bytes_gz = None
-                _bulk.preview_version += 1
-                _bulk.last_file = None
-                _bulk.last_mtime = None
-                _bulk.published_schema = None
-                _bulk.schema_reparse_attempted = None
-                _bulk.published_tlo = None
-                _bulk.published_rotary_seed = None
-                _bulk.published_wcs_off = None
+                    # The specific edge ("wcsoff:G54:x", "rotary:A", "kins:type",
+                    # "tlo:…") is the reason the trace and the operator's
+                    # banner carry — not the bare "drift" it used to be.
+                    _bulk.schedule_refresh(st.active_file, _drift, _spawn_preview_task)
+            elif not st.active_file and (_bulk.last_file is not None
+                                         or _bulk.preview_available()):
+                # Unload: one contract (clear_preview — it was dead code
+                # diverged from an inline copy here). The preview_available
+                # term keeps the branch reachable when the keys were cleared
+                # by something other than an unload.
+                _bulk.clear_preview()
+                _bulk.reparse_pending = False
+
+            # A reserved TWP fixture (G59..G59.3) active on identity kins at
+            # boot — the previous session shut down (or aborted) in Plane
+            # mode. The var file persisted #5220=6, so the DRO reads the
+            # plane frame's TOOL-frame numbers on a machine that is not in
+            # that frame. Banner now, restore G54 once the machine is ready.
+            _reserved_fixture_heal_tick(st)
 
             # Safety-trip detection via the servo-thread HAL latch level
             # (webui-hb-latch.fault-out, issue #34). The latch is sticky and
@@ -1997,6 +2257,13 @@ _status_runtime = _status_runtime_mod.StatusRuntime(
     get_tool_tbl_path=lambda: get_tool_tbl_path(),
     load_tool_library=lambda: load_tool_library(),
     get_fb_scale=lambda: _fb_scale,
+    get_kins_switchable=lambda: _kins_is_switchable(),
+    get_twp_capable=lambda: _twp_capable(),
+    get_identity_first=lambda: _identity_first(),
+    # Raw W1 stamps (late-bound: _prov_cache is defined below). No
+    # falsification pass — a hand-typed G10 under a reserved fixture is the
+    # documented operator-caused escape.
+    get_prov_a=lambda: [(_prov_cache.get(i) or {}).get("a") for i in range(1, 10)],
 )
 safe_get = _status_runtime.safe_get
 normalize_homed = _status_runtime.normalize_homed
@@ -2590,29 +2857,111 @@ def read_machine_limits_from_ini(stat_obj):
 async def _cmd_blocking(cmd_fn, *args, wait=_CMD_WAIT_TIMEOUT) -> int:
     """Run a blocking CMD.* call + optional wait_complete() on a worker thread.
 
-    Every `CMD.* + wait_complete()` pair must go through here. The LinuxCNC C
-    extension holds the GIL during its blocking sections; calling it directly
-    from the event-loop thread starves `_heartbeat_loop` and trips the HAL
-    watchdog. `asyncio.to_thread` isolates the blocking section so heartbeats
-    and status polls keep firing. Returns wait_complete()'s int result (0 ok,
-    1 failed, -1 timeout) or 0 when wait=None.
+    Every `CMD.* + wait_complete()` pair must go through here. Returns
+    wait_complete()'s int result — linuxcnc.RCS_DONE (1) on success,
+    linuxcnc.RCS_ERROR (3) when the command was rejected, -1 on timeout,
+    _RC_WAIT_CANCELLED (-2) when the wait was abandoned on cancel — or 0
+    when wait=None. (An earlier version of this docstring said "0 ok, 1
+    failed", which is not the API: the first rc check written against it
+    counted every success as a failure. Use _cmd_rc_failed.)
+
+    GIL fact (2.9.4 emcmodule.cc, verified 2026-09-05): the binding's
+    wait_complete() is a C poll loop that esleep()s WITHOUT releasing the
+    GIL — `asyncio.to_thread` isolates nothing for that half; a
+    wait_complete(30) would freeze the event loop (heartbeat task, status
+    loop) for as long as the command ran. Live it never showed because every
+    awaited command so far completes in ms. So the wait runs in
+    _CMD_WAIT_SLICE slices: repeated wait_complete(t) calls re-poll the same
+    stored serial (N slices ≡ one long wait to 10 ms), each return lets the
+    loop breathe, and a cancel lands after the current slice. The command
+    WRITE `cmd_fn(*args)` is never interrupted.
 
     Caller must hold `_cmd_lock` — NML command channel is not thread-safe.
     """
+    cancel = threading.Event()
+
     def _run():
         cmd_fn(*args)
-        if wait is not None:
-            return CMD.wait_complete(wait)
-        return 0
-    return await asyncio.to_thread(_run)
+        if wait is None:
+            return 0
+        deadline = time.monotonic() + float(wait)
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return -1
+            rc = CMD.wait_complete(min(_CMD_WAIT_SLICE, remaining))
+            if rc != -1:
+                return rc
+            if cancel.is_set():
+                return _RC_WAIT_CANCELLED
+    # Shield-and-wait (2026-09-03): the caller holds _cmd_lock via `async
+    # with`, which RELEASES on CancelledError — but a thread cannot be
+    # cancelled, so a plain `await to_thread()` would free the lock while
+    # CMD.mdi / wait_complete is still running on the thread, and the next
+    # holder (the disconnect jog-stop, another client's worker) would call
+    # NML concurrently — the corruption the lock exists to prevent. Handlers
+    # are cancellable (disconnect, abort/estop preemption), so on cancel we
+    # flag the slice loop, keep the lock until the thread actually returns
+    # (bounded by one slice + one NML call), then propagate. asyncio.wait
+    # retrieves the inner result so nothing is reported as never-retrieved.
+    inner = asyncio.ensure_future(asyncio.to_thread(_run))
+    try:
+        return await asyncio.shield(inner)
+    except asyncio.CancelledError:
+        cancel.set()
+        await asyncio.wait({inner})
+        raise
+
+
+_MODE_NAMES = {1: "MANUAL", 2: "AUTO", 3: "MDI"}
 
 
 async def set_mode(mode: int):
-    """Switch LinuxCNC task mode. Caller must hold `_cmd_lock`."""
+    """Switch LinuxCNC task mode. Caller must hold `_cmd_lock`.
+
+    A refused or timed-out switch RAISES (ValueError → the dispatcher's
+    bounded ok:false reply). It used to discard the rc while nine other
+    call sites checked theirs — a handler then issued its MDI into the
+    wrong mode and reported ok (2026-09-04)."""
     STAT.poll()
     if safe_get("task_mode", None) == mode:
+        if mode in (linuxcnc.MODE_MDI, linuxcnc.MODE_AUTO):
+            _active_jogs.clear()   # task cannot be in MDI/AUTO with a jog active
         return
-    await _cmd_blocking(CMD.mode, mode)
+    rc = await _cmd_blocking(CMD.mode, mode)
+    if _cmd_rc_failed(rc):
+        _trace.emit("task.mode_switch_refused", level="warn", mode=mode, rc=rc)
+        raise ValueError(f"LinuxCNC refused the mode switch to {_MODE_NAMES.get(mode, mode)} (rc={rc})")
+    # rc DONE does not mean the mode changed: emcTaskSetMode IGNORES the
+    # request while a jog is active ("Ignoring task mode change while jogging",
+    # an operator error, rc still DONE) — the handler then issued its MDI into
+    # MANUAL, LinuxCNC answered "Must be in MDI mode", and the reply was ok
+    # (2026-09-05, → Zero pressed while the A jog was still held). Verify the
+    # mode actually took; a stat without task_mode (the test binding) cannot
+    # be verified and is not treated as a failure.
+    STAT.poll()
+    actual = safe_get("task_mode", None)
+    if actual is not None and actual != mode:
+        _trace.emit("task.mode_switch_ignored", level="warn", mode=mode, actual=actual,
+                    msg="task ignored the mode switch (a jog is active?)")
+        raise ValueError(
+            f"LinuxCNC ignored the mode switch to {_MODE_NAMES.get(mode, mode)} "
+            f"(task stays {_MODE_NAMES.get(actual, actual)}) — a jog is still active: "
+            f"release the jog, then try again")
+    if mode in (linuxcnc.MODE_MDI, linuxcnc.MODE_AUTO):
+        _active_jogs.clear()   # the switch took (or is unverifiable): no jog is active
+
+
+def _jog_stop_would_abort_mdi(mode, interp, cmd: str) -> bool:
+    """A jog-stop arriving while an MDI EXECUTES: no jog can be in flight
+    (jogging requires MANUAL), and forcing MANUAL runs LinuxCNC's
+    mdi_execute_abort — the → Zero move stopped wherever it was when the
+    operator lifted the finger off the A jog (2026-09-04, "sometimes it
+    doesn't"). Skip the switch, say so in the trace, never silently."""
+    if mode == linuxcnc.MODE_MDI and interp != linuxcnc.INTERP_IDLE:
+        _trace.emit("jog.stop_skipped_mdi_busy", level="info", cmd=cmd, interp_state=interp)
+        return True
+    return False
 
 def reject_if_auto_running() -> Optional[Dict[str, Any]]:
     STAT.poll()
@@ -2639,6 +2988,14 @@ def reject_if_auto_running() -> Optional[Dict[str, Any]]:
 
 
 
+def _spawn_preview_task(coro):
+    """spawn callable for BulkPipeline.schedule_refresh — the gateway's
+    background-task registry + loop, kept out of bulk_pipeline."""
+    task = asyncio.create_task(coro)
+    register_bg_task(task)
+    return task
+
+
 def _jog_joint_flag() -> int:
     """Return the joint_flag for CMD.jog() based on current trajectory mode.
     0 = Cartesian axis (TRAJ_MODE_TELEOP), 1 = joint (TRAJ_MODE_FREE, safe default)."""
@@ -2646,6 +3003,47 @@ def _jog_joint_flag() -> int:
     if safe_get("motion_mode", None) == linuxcnc.TRAJ_MODE_TELEOP:
         return 0
     return 1
+
+
+def _trace_jog(cmd: str, axis: int, jf: int, **extra) -> None:
+    """One `jog.cmd` event per NEW jog (never per stop): what was issued and
+    what task/motion looked like at that instant. A jog that "did nothing"
+    (matrix, 2026-09-05: jog_cont A, no disarm, no refusal, A never moved)
+    is undiagnosable without it."""
+    STAT.poll()
+    _trace.emit("jog.cmd", level="info", cmd=cmd, axis=axis, jf=jf,
+                arg=_jog_axis_arg(axis, jf),
+                task_mode=safe_get("task_mode", None), motion_mode=safe_get("motion_mode", None),
+                interp=safe_get("interp_state", None), **extra)
+
+
+async def _jog_mode_flag() -> int:
+    """joint_flag for a NEW jog, after putting motion in the right mode.
+
+    While any joint sits outside its own soft-limit window (status
+    `joints_beyond_limit`, see gateway_util.joints_beyond_limits) motion
+    refuses every world-mode move — teleop jogs and MDI alike — and LinuxCNC's
+    own hint is "switch to joint mode to jog off soft limit". So: beyond →
+    FREE (joint) mode, jog the joint; back inside and homed → TELEOP again.
+    Both transitions are traced. jog_stop never switches mode (a stop must
+    address the jog that is running): it keeps using _jog_joint_flag()."""
+    STAT.poll()
+    beyond = getattr(_shared_status, "joints_beyond_limit", None) or []
+    teleop = safe_get("motion_mode", None) == linuxcnc.TRAJ_MODE_TELEOP
+    if beyond:
+        if teleop:
+            rc = await _cmd_blocking(CMD.teleop_enable, 0, wait=2)
+            _trace.emit("jog.joint_mode_beyond_limit", level="warn", joints=list(beyond),
+                        rc=rc, msg="joint(s) outside their soft-limit window — jogging in joint mode")
+        return 1
+    if not teleop and bool(getattr(_shared_status, "homed", False)):
+        rc = await _cmd_blocking(CMD.teleop_enable, 1, wait=2)
+        _trace.emit("jog.teleop_restored", level="info", rc=rc)
+        STAT.poll()
+        if safe_get("motion_mode", None) == linuxcnc.TRAJ_MODE_TELEOP:
+            return 0
+        return 1
+    return 0 if teleop else 1
 
 
 def _jog_axis_arg(idx: int, jf: int) -> int:
@@ -2698,6 +3096,13 @@ async def _jog_stop_for_client() -> None:
     """
     if not bool(safe_get("enabled", False)):
         return
+    if not _active_jogs:
+        # The gateway started no jog that is still running: nothing to stop,
+        # and a forced MANUAL here is what aborted a fresh MDI on a disarm
+        # (2026-09-03 follow-up, closed by construction).
+        _trace.emit("jog.stop_for_client_noop", level="info")
+        return
+    STAT.poll()
     mode = safe_get("task_mode", None)
     interp = safe_get("interp_state", None)
     if mode == linuxcnc.MODE_AUTO and interp != linuxcnc.INTERP_IDLE:
@@ -2705,11 +3110,13 @@ async def _jog_stop_for_client() -> None:
     homed = normalize_homed(safe_get("homed", None))
     if not homed:
         return  # nothing to jog-stop if not homed
+    if _jog_stop_would_abort_mdi(mode, interp, "jog_stop_for_client"):
+        return  # an MDI is executing — no jog can be in flight; a mode switch would abort it
     await set_mode(linuxcnc.MODE_MANUAL)
     jf = _jog_joint_flag()
-    _nj = getattr(STAT, "joints", 3) if STAT else 3
-    for ax in range(_nj):
+    for ax in sorted(_active_jogs):
         await _cmd_blocking(CMD.jog, linuxcnc.JOG_STOP, jf, _jog_axis_arg(ax, jf), wait=None)
+    _active_jogs.clear()
 
 
 def require_armed(armed: bool):
@@ -2909,18 +3316,32 @@ async def _rfl_sequence(start_line: int, pre_tool: int, safe_z: bool,
             flag_armed = True
         if safe_z:
             _rfl_phase("safe_z")
-            ok, why = await _rfl_mdi_step("G53 G0 Z0", timeout_s=120.0)
-            if not ok:
-                _rfl_phase("safe_z_failed", False, why)
-                return
+            # "Safe Z" = at or above machine Z0 (the controlled point, TLO
+            # included — the frame G53 addresses; stat.position IS
+            # motion.traj.position, the value the interp synchs #<_abs_z>
+            # from). Never LOWER Z to get there: on a config whose Z window
+            # extends above 0 (the TWP sim before its limits were narrowed) a
+            # bare G53 Z0 from above was a descent (2026-09-04). Same
+            # predicate as the #<_abs_z> guard in go_to_zero/home/g30.ngc.
             STAT.poll()
             pos = safe_get("position", None)
-            if pos and abs(float(pos[2])) > 0.5:
-                # Move ended early (an abort mid-move leaves interp idle with no
-                # error text) — machine is NOT at safe height; refuse to start.
-                _rfl_phase("safe_z_failed", False,
-                           f"Z did not reach machine zero (at {float(pos[2]):.2f})")
-                return
+            z_now = float(pos[2]) if pos else None
+            if z_now is not None and z_now >= 0.0:
+                _trace.emit("rfl.safe_z_already_above", z=round(z_now, 3))
+            else:
+                ok, why = await _rfl_mdi_step("G53 G0 Z0", timeout_s=120.0)
+                if not ok:
+                    _rfl_phase("safe_z_failed", False, why)
+                    return
+                STAT.poll()
+                pos = safe_get("position", None)
+                if pos and float(pos[2]) < -0.5:
+                    # Move ended early (an abort mid-move leaves interp idle
+                    # with no error text) — machine is BELOW safe height;
+                    # refuse to start.
+                    _rfl_phase("safe_z_failed", False,
+                               f"Z did not reach safe height (at {float(pos[2]):.2f}, needs >= 0)")
+                    return
         if entry and (entry.get("x") is not None or entry.get("y") is not None):
             # Position preamble: rapid to the XY the program expects at line N
             # (at safe height — the handler forces safe_z on whenever entry is
@@ -3033,7 +3454,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
     # Denials are bounded + traced — never silently dropped
     # (feedback_no_silent_fallbacks).
     if _shared_status is not None:
-        _deny = check_command(cmd, _policy_state_from_payload(_shared_status, armed))
+        _deny = check_command(cmd, _live_policy_state(armed))
         if _deny is not None:
             _trace.emit("ws.command_denied", level="warn", cmd=cmd, reason=_deny)
             return {"ok": False, "error": _deny}
@@ -3167,6 +3588,109 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             await set_mode(linuxcnc.MODE_MDI)
             await _cmd_blocking(CMD.mdi, text, wait=None)
             return {"ok": True}
+
+        if cmd == "set_kins_mode":
+            # Kinematics-frame selector (JogStrip), as a TYPED command so the
+            # Plane frame has a backend admission rule (TWP-04): a bare M430
+            # reuses whatever the kins pins last held, so it is refused unless
+            # a plane is defined and the HEAD is still aligned with it (the
+            # A/B/C orient stamp vs the live rotaries —
+            # command_policy.plane_frame_check, the same rule the planeFrame
+            # permission dims the radio with). A raw `mdi M430` stays raw,
+            # like G69.
+            #
+            # `mode` is SEMANTIC (0 Machine / 1 TCP / 2 Plane). Both halves of
+            # the translation to a command are per-configuration (R-01,
+            # implementation review 2026-09-15): which RAW switchkins type is
+            # identity depends on the kins family and `sparm=identityfirst`,
+            # and which M-code selects that raw type depends on the machine's
+            # own remaps. The shipped TCP trunnion is the counterexample to
+            # the table this used to hardcode — there M428 selects the trt
+            # world kins and M429 identity, so "Machine" sent M428 and landed
+            # in TCP. Resolve raw from the family, the command from the
+            # remaps, and then VERIFY the pin actually reached that raw type.
+            require_armed(armed)
+            blocked = reject_if_auto_running()
+            if blocked:
+                return blocked
+            mode = finite_int(msg.get("mode", -1))
+            if mode not in (0, 1, 2):
+                return {"ok": False, "error": f"Invalid kinematics mode: {mode}"}
+            if _shared_status is None:
+                return {"ok": False, "error": "No machine state yet — refused"}
+            pstate = _live_policy_state(armed)
+            if mode == 2:
+                why = plane_frame_check(pstate)
+                if why:
+                    _trace.emit("kins_mode.refused", level="warn", reason=why, mode=mode,
+                                kins_type=pstate.kins_type, twp_defined=pstate.twp_defined,
+                                twp_aligned=pstate.twp_aligned)
+                    return {"ok": False, "error": why}
+            _raw = raw_kins_for_semantic(mode, _twp_capable(), _identity_first())
+            if _raw is None:
+                why = (f"{_KINS_MODE_NAMES[mode]} kinematics does not exist on this "
+                       f"machine's kins family — refused")
+                _trace.emit("kins_mode.refused", level="warn", reason=why, mode=mode)
+                return {"ok": False, "error": why}
+            _cmds = _kins_mode_commands()
+            line = _cmds.get(_raw)
+            if not line:
+                why = (f"No M-code on this machine selects switchkins type {_raw} "
+                       f"({_KINS_MODE_NAMES[mode]}) — the INI's [RS274NGC]REMAP "
+                       f"entries define none")
+                _trace.emit("kins_mode.refused", level="warn", reason=why, mode=mode,
+                            raw=_raw, known=_cmds)
+                return {"ok": False, "error": why}
+            await set_mode(linuxcnc.MODE_MDI)
+            await _cmd_blocking(CMD.mdi, line, wait=None)
+            # The scrape says what the remap SHOULD do; the pin says what
+            # happened. A mismatch is reported, never assumed away — the
+            # operator would otherwise jog in a frame the UI misnames.
+            _got = await _settle_kins_type(_raw)
+            if _got is not None and _got != _raw:
+                why = (f"{line} did not select {_KINS_MODE_NAMES[mode]} kinematics: "
+                       f"motion.switchkins-type reads {_got}, expected {_raw}")
+                _trace.emit("kins_mode.readback_mismatch", level="error", mode=mode,
+                            line=line, raw=_raw, got=_got)
+                return {"ok": False, "error": why}
+            _trace.emit("kins_mode.set", level="info", mode=mode, line=line, raw=_raw,
+                        verified=_got is not None)
+            return {"ok": True, "line": line, "mode": mode, "kins_type": _raw}
+
+        if cmd == "go_to_zero":
+            # The → Zero button, mode-aware (2026-09-03): Machine frame runs
+            # the probe_basic subroutine; Plane frame retracts ALONG THE TOOL
+            # AXIS to a clearance (never downward) then X0 Y0 in the plane,
+            # rotaries untouched; TCP refuses. The plan is command_policy.
+            # goto_zero_plan (pure, tested) — the gate, the dimming and this
+            # handler read one rule.
+            require_armed(armed)
+            blocked = reject_if_auto_running()
+            if blocked:
+                return blocked
+            if _shared_status is None:
+                return {"ok": False, "error": "No machine state yet — refused"}
+            pstate = _live_policy_state(armed)
+            # Clearance in MACHINE units; the Plane sub sets G21/G20 itself
+            # from `metric` (TWP-01) — the live plane Z is read inside the
+            # interpreter, no status snapshot is consulted any more.
+            _metric = get_machine_units() != "in"
+            clearance = 25.0 if _metric else 1.0
+            # The active fixture's W1 stamp: Machine frame returns the table
+            # to the touch-off angle before X/Y (goto_zero_plan).
+            _stamp = None
+            if pstate.g5x_index is not None:
+                _stamp = _prov_cache.get(finite_int(pstate.g5x_index, lo=1))
+            lines, why = goto_zero_plan(pstate, None, clearance, stamp=_stamp, metric=_metric)
+            if why:
+                _trace.emit("goto.zero_refused", level="warn", reason=why,
+                            kins_type=pstate.kins_type, g5x_index=pstate.g5x_index)
+                return {"ok": False, "error": why}
+            await set_mode(linuxcnc.MODE_MDI)
+            for line in lines:
+                await _cmd_blocking(CMD.mdi, line, wait=None)
+            _trace.emit("goto.zero", level="info", kins_type=pstate.kins_type, lines=lines)
+            return {"ok": True, "lines": lines}
 
         if cmd == "save_tool":
             require_armed(armed)
@@ -3412,8 +3936,10 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             axis = finite_int(msg.get("axis"), lo=0)
             vel = finite_float(msg.get("vel", 0.0))
             await set_mode(linuxcnc.MODE_MANUAL)
-            jf = _jog_joint_flag()
-            await _cmd_blocking(CMD.jog, linuxcnc.JOG_CONTINUOUS, jf, _jog_axis_arg(axis, jf), vel, wait=None)
+            jf = await _jog_mode_flag()
+            rc = await _cmd_blocking(CMD.jog, linuxcnc.JOG_CONTINUOUS, jf, _jog_axis_arg(axis, jf), vel, wait=None)
+            _active_jogs.add(axis)
+            _trace_jog("jog_cont", axis, jf, vel=vel, rc=rc)
             return {"ok": True}
 
         if cmd == "jog_stop":
@@ -3425,14 +3951,23 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             # 2 / Issue E1. In AUTO+running a jog cannot be in flight
             # (jogging requires MANUAL/TELEOP) and a forced mode switch
             # would interrupt the program — skip that case explicitly.
+            axis = finite_int(msg.get("axis"), lo=0)
+            if axis not in _active_jogs:
+                # Nothing the gateway started is moving on this axis: a late
+                # release. No mode switch — that is what aborted a fresh MDI.
+                _trace.emit("jog.stop_without_jog", level="info", cmd="jog_stop", axis=axis)
+                return {"ok": True}
+            STAT.poll()   # fresh: the guard below must not read a 30 ms-old snapshot
             mode = safe_get("task_mode", None)
             interp = safe_get("interp_state", None)
             if mode == linuxcnc.MODE_AUTO and interp != linuxcnc.INTERP_IDLE:
                 return {"ok": True}
-            axis = finite_int(msg.get("axis"), lo=0)
+            if _jog_stop_would_abort_mdi(mode, interp, "jog_stop"):
+                return {"ok": True}
             await set_mode(linuxcnc.MODE_MANUAL)
             jf = _jog_joint_flag()
             await _cmd_blocking(CMD.jog, linuxcnc.JOG_STOP, jf, _jog_axis_arg(axis, jf), wait=None)
+            _active_jogs.discard(axis)
             return {"ok": True}
 
         if cmd == "jog_cont_multi":
@@ -3444,24 +3979,34 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
 
             axes = msg.get("axes", [])
             await set_mode(linuxcnc.MODE_MANUAL)
-            jf = _jog_joint_flag()
+            jf = await _jog_mode_flag()
             for entry in axes:
-                await _cmd_blocking(CMD.jog, linuxcnc.JOG_CONTINUOUS, jf, _jog_axis_arg(finite_int(entry["axis"], lo=0), jf), finite_float(entry["vel"]), wait=None)
+                _ax = finite_int(entry["axis"], lo=0)
+                await _cmd_blocking(CMD.jog, linuxcnc.JOG_CONTINUOUS, jf, _jog_axis_arg(_ax, jf), finite_float(entry["vel"]), wait=None)
+                _active_jogs.add(_ax)
             return {"ok": True}
 
         if cmd == "jog_stop_multi":
             # Stopping motion is always allowed — see jog_stop above for the
             # same audit rationale (Phase 2 / Issue E1). In AUTO+running we
             # have no jog in flight and must not switch modes.
+            axes = [finite_int(a, lo=0) for a in msg.get("axes", [])]
+            active = [a for a in axes if a in _active_jogs]
+            if not active:
+                _trace.emit("jog.stop_without_jog", level="info", cmd="jog_stop_multi", axes=axes)
+                return {"ok": True}
+            STAT.poll()
             mode = safe_get("task_mode", None)
             interp = safe_get("interp_state", None)
             if mode == linuxcnc.MODE_AUTO and interp != linuxcnc.INTERP_IDLE:
                 return {"ok": True}
-            axes = msg.get("axes", [])
+            if _jog_stop_would_abort_mdi(mode, interp, "jog_stop_multi"):
+                return {"ok": True}
             await set_mode(linuxcnc.MODE_MANUAL)
             jf = _jog_joint_flag()
-            for a in axes:
-                await _cmd_blocking(CMD.jog, linuxcnc.JOG_STOP, jf, _jog_axis_arg(finite_int(a, lo=0), jf), wait=None)
+            for a in active:
+                await _cmd_blocking(CMD.jog, linuxcnc.JOG_STOP, jf, _jog_axis_arg(a, jf), wait=None)
+                _active_jogs.discard(a)
             return {"ok": True}
 
         if cmd == "jog_incr":
@@ -3475,8 +4020,10 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             vel = abs(finite_float(msg.get("vel", 0.0)))  # speed only; distance carries direction
             dist = finite_float(msg.get("distance", 0.0))
             await set_mode(linuxcnc.MODE_MANUAL)
-            jf = _jog_joint_flag()
-            await _cmd_blocking(CMD.jog, linuxcnc.JOG_INCREMENT, jf, _jog_axis_arg(axis, jf), vel, dist, wait=None)
+            jf = await _jog_mode_flag()
+            rc = await _cmd_blocking(CMD.jog, linuxcnc.JOG_INCREMENT, jf, _jog_axis_arg(axis, jf), vel, dist, wait=None)
+            _active_jogs.add(axis)
+            _trace_jog("jog_incr", axis, jf, vel=vel, dist=dist, rc=rc)
             return {"ok": True}
 
         if cmd == "jog_incr_multi":
@@ -3488,9 +4035,11 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
 
             axes = msg.get("axes", [])
             await set_mode(linuxcnc.MODE_MANUAL)
-            jf = _jog_joint_flag()
+            jf = await _jog_mode_flag()
             for entry in axes:
-                await _cmd_blocking(CMD.jog, linuxcnc.JOG_INCREMENT, jf, _jog_axis_arg(finite_int(entry["axis"], lo=0), jf), abs(finite_float(entry["vel"])), finite_float(entry["distance"]), wait=None)
+                _ax = finite_int(entry["axis"], lo=0)
+                await _cmd_blocking(CMD.jog, linuxcnc.JOG_INCREMENT, jf, _jog_axis_arg(_ax, jf), abs(finite_float(entry["vel"])), finite_float(entry["distance"]), wait=None)
+                _active_jogs.add(_ax)
             return {"ok": True}
 
         if cmd == "home_all":
@@ -3671,6 +4220,14 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             # observed via the status stream (interp_state + file) and the preview
             # re-parses from disk independently — same contract as the tool_change
             # fire-and-forget path. Open failures surface on the error channel.
+            # CORRECTION (perf matrix 2026-09-12, wait=None in place): the phase
+            # still owned a 51 ms lag.window on the 40 MB file. The binding's
+            # send (emcSendCommand) waits for task to ECHO the command's serial
+            # number before returning, sleeping with the GIL held, and task
+            # echoes only after its cycle has handled the open — so the "send"
+            # scales with task's open time, not with our polling. Under the
+            # 500 ms budget by ~10×; the off-loop candidate is a subprocess or
+            # a GIL-releasing send, not more wait tuning.
             _set_phase("load_file.program_open")
             await _cmd_blocking(CMD.program_open, abs_path, wait=None)
             return {"ok": True, "path": abs_path}
@@ -3708,6 +4265,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                     str_vars = {str(k): finite_float(v) for k, v in vars_to_set.items()}
                     _trace.emit("probe.set_vars", vars=str_vars)
                     await asyncio.to_thread(_write_var_file_updates, var_file, str_vars)
+                    _status_runtime.mark_var_file_written(var_file)
                     file_ok = True
             # 2) Best-effort: set in interpreter memory via MDI (requires armed + machine on + idle)
             # Split into chunks ≤250 chars to fit LinuxCNC's 256-char MDI buffer
@@ -3768,9 +4326,15 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             # was unload-then-load. Clearing the cache keys makes the edge fire
             # on the next tick — one action that refreshes the render, the
             # soft-limit annotations and the collision/scrub basis together.
-            _bulk.last_file = None
-            _bulk.last_mtime = None
-            _trace.emit("gcode.reparse_requested")
+            # The request is a FLAG, not a cache-key wipe: clearing the keys
+            # was swallowed whenever a parse was already in flight (its
+            # completion rewrote them — replied ok, nothing respawned), and
+            # it also made the poller's unload branch unreachable.
+            _bulk.reparse_pending = True
+            _trace.emit("gcode.reparse_requested",
+                        deferred=bool(_bulk.refresh_running))
+            if _bulk.refresh_running:
+                _trace.emit("gcode.reparse_deferred")
             return {"ok": True}
 
         # ---- Surface compensation + HAL handshakes ----
@@ -3848,7 +4412,16 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 STAT.poll()
                 indices = [STAT.g5x_index]  # 1-based
             elif target == "all":
-                indices = list(range(1, 10))
+                # On a TWP (switchable-kins) config the reserved rows G59..G59.3
+                # are the remap's — zeroing them under an active plane destroys
+                # it. `all` is the operator's fixtures; `reserved` below is the
+                # explicit recovery for the scratch rows.
+                indices = list(range(1, 6)) if _kins_is_switchable() else list(range(1, 10))
+            elif target == "reserved":
+                if _reader_get("twp_active"):
+                    return {"ok": False, "error": "A tilted work plane is active — "
+                            "G59..G59.3 hold its frame. G69 first."}
+                indices = [6, 7, 8, 9]
             elif target in _G5X_MAP:
                 indices = [_G5X_MAP[target]]
             else:
@@ -3859,12 +4432,285 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             zero_parts = " ".join(f"{k.upper()}0" for k in machine_axes) + " R0"
             for p in indices:
                 await _cmd_blocking(CMD.mdi, f"G10 L2 P{p} {zero_parts}", wait=5)
+            # A cleared offset is still an ESTABLISHED one — zeros touched
+            # off at whatever pose the table is at now. Stamping it keeps
+            # the record true; leaving the previous stamp behind would make
+            # it describe an offset that no longer exists. (Full-triple
+            # write, so the mixed-angle decision always stamps.)
+            await _stamp_wcs_provenance(
+                indices, {p: [0.0, 0.0, 0.0] for p in indices},
+                wrote_all_xyz=True)
             # Update cache immediately
             for p in indices:
                 ci = p - 1
                 if 0 <= ci < 9:
                     _wcs_cache[ci] = {"name": _WCS_NAMES[ci], **{k: 0.0 for k in _WCS_AXIS_KEYS}, "r": 0.0}
             return {"ok": True, "table": [row.copy() for row in _wcs_cache]}
+
+        if cmd == "touchoff":
+            # Operator touch-off from the DRO / Zero buttons. Was a client-built
+            # `G10 L20 P0 …` MDI: opaque to the gateway, never provenance-
+            # stamped, and in Plane mode it wrote the TOOL-frame numbers (and
+            # Zero All's rotary words) into G59 — the remap's scratch row —
+            # which the next orient then read as a rotary offset. The route
+            # decision is command_policy.touchoff_route (pure, tested); the
+            # Plane route hands the point to the remap, which writes G54
+            # THROUGH the plane (o<twp_touchoff>).
+            require_armed(armed)
+            require_no_eoffset()
+            blocked = reject_if_auto_running()
+            if blocked:
+                return blocked
+            axes_in = msg.get("axes")
+            if not isinstance(axes_in, dict) or not axes_in:
+                return {"ok": False, "error": "No axis values provided"}
+            values = {str(k).upper(): finite_float(v) for k, v in axes_in.items()}
+            if _shared_status is None:
+                return {"ok": False, "error": "No machine state yet — touch-off refused"}
+            pstate = _live_policy_state(armed)
+            # U-03 (review 2026-09-14): the keypad names the target it was
+            # opened under and the request carries it; if the live mode or
+            # fixture differs now (a program's M2 flipped the fixture, another
+            # client switched the frame while the operator typed), the value
+            # must not land on a different target.
+            _expect = msg.get("expect")
+            reason = touchoff_expect_check(pstate, _expect)
+            if reason:
+                _trace.emit("touchoff.refused", level="warn", letters=sorted(values),
+                            reason=reason, kins_type=pstate.kins_type,
+                            g5x_index=pstate.g5x_index, expect=_expect, stage="snapshot")
+                return {"ok": False, "error": reason}
+            route, reason = touchoff_route(pstate, values.keys())
+            if route is None:
+                _trace.emit("touchoff.refused", level="warn", letters=sorted(values),
+                            reason=reason, kins_type=pstate.kins_type,
+                            g5x_index=pstate.g5x_index)
+                return {"ok": False, "error": reason}
+            await set_mode(linuxcnc.MODE_MDI)
+            # R-02 (implementation review 2026-09-15): the checks above ran on
+            # the PUBLISHED snapshot, which lags the controller — one stale
+            # frame was enough to accept a G54 touch-off while STAT already
+            # said G55, and the P0 write then landed on G55 with ok:true. Re-
+            # derive the two target fields from the controller ITSELF (STAT
+            # poll + the 30 Hz reader pin) at the write boundary and re-run
+            # both rules on that state; the route must still be the same one.
+            # What cannot change under us afterwards: handle_command holds
+            # _cmd_lock for the whole dispatch, so no other web client's
+            # command interleaves, and no shipped config declares a
+            # [HALUI]MDI_COMMAND that could write from outside. The explicit
+            # fixture in the G10 below covers the remainder.
+            _fstate = _controller_touchoff_state(pstate)
+            reason = touchoff_expect_check(_fstate, _expect)
+            if not reason:
+                _route2, _r2 = touchoff_route(_fstate, values.keys())
+                if _route2 is None:
+                    reason = _r2
+                elif _route2 != route:
+                    reason = (f"Touch-off target changed while you were entering: was "
+                              f"{touchoff_target_text(pstate.kins_type, pstate.g5x_index)}, now "
+                              f"{touchoff_target_text(_fstate.kins_type, _fstate.g5x_index)} "
+                              f"— re-enter the value")
+            if reason:
+                _trace.emit("touchoff.refused", level="warn", letters=sorted(values),
+                            reason=reason, kins_type=_fstate.kins_type,
+                            g5x_index=_fstate.g5x_index, expect=_expect, stage="controller",
+                            snapshot_kins=pstate.kins_type, snapshot_g5x=pstate.g5x_index)
+                return {"ok": False, "error": reason}
+            pstate = _fstate
+            if route == "plane":
+                extra = sorted(l for l in values if l not in ("X", "Y", "Z"))
+                if extra:
+                    return {"ok": False, "error": f"Plane-mode touch-off takes X/Y/Z only (got {extra})"}
+                mask = (1 if "X" in values else 0) | (2 if "Y" in values else 0) | (4 if "Z" in values else 0)
+                line = (f"o<twp_touchoff> call [{mask}] [{values.get('X', 0.0):.6f}] "
+                        f"[{values.get('Y', 0.0):.6f}] [{values.get('Z', 0.0):.6f}]")
+                _datum_before = _status_runtime_mod.assemble_twp_datum(_reader_get)
+                _seq_before = _reader_get("twp_datum_seq")
+                rc = await _cmd_blocking(CMD.mdi, line, wait=30)
+                if _cmd_rc_failed(rc):
+                    _trace.emit("touchoff.plane_failed", level="warn", rc=rc, line=line)
+                    return {"ok": False, "error": "Plane touch-off failed — see the error channel"}
+                # The remap wrote G54 (a NON-active row: G59 is active) and its
+                # own provenance in the INTERPRETER — neither STAT nor the var
+                # file carries it. Seed our G54 row + stamp from the datum the
+                # remap published, once it has settled.
+                _adopt_m535_datum(await _settle_datum_after_m535(_datum_before, before_seq=_seq_before),
+                                  step="touchoff.plane")
+                _trace.emit("touchoff.plane", level="info", mask=mask, values=values)
+                return {"ok": True, "route": "plane", "index": 6}
+            if "Z" in values:
+                z_eoff = _reader_get("z_eoffset")
+                if z_eoff is None:
+                    # The comp eoffset must be added back so the WCS does not
+                    # absorb it; an undelivered value is unknown, not 0.
+                    return {"ok": False, "error": "Z eoffset not delivered by the HAL reader — touch-off refused"}
+                values["Z"] = values["Z"] + finite_float(z_eoff)
+            p = finite_int(pstate.g5x_index if pstate.g5x_index is not None else 0)
+            if not 1 <= p <= 9:
+                return {"ok": False, "error": f"Active fixture index {p} out of range"}
+            ci = p - 1
+            prewrite = [finite_float(_wcs_cache[ci].get(k, 0.0)) for k in ("x", "y", "z")]
+            words = " ".join(f"{l}{v:.6f}" for l, v in values.items())
+            # NAME the fixture (R-02): `P0` means "whatever is active when the
+            # interpreter reaches this line", so a fixture change after the
+            # check above would silently redirect the datum. `P<n>` writes the
+            # row the operator was shown — G10 L20 computes the offset for the
+            # NAMED system from the current position either way
+            # (interp_convert.cc convert_setup: p_int 0 → origin_index, then
+            # find_current_in_system(p_int)), so for the normal case where the
+            # named row IS active this is the same write as before.
+            rc = await _cmd_blocking(CMD.mdi, f"G10 L20 P{p} {words}", wait=5)
+            if _cmd_rc_failed(rc):
+                _trace.emit("touchoff.mdi_failed", level="warn", rc=rc, words=words)
+                return {"ok": False, "error": "Touch-off failed — see the error channel"}
+            STAT.poll()
+            _p_after = finite_int(getattr(STAT, "g5x_index", p))
+            if _p_after != p:
+                # The row we wrote is no longer the active one, so STAT's
+                # g5x_offset describes a DIFFERENT row: adopting it would
+                # poison the cache. The write itself was correct (explicit P).
+                _trace.emit("touchoff.fixture_changed_after_write", level="warn",
+                            wrote=p, active=_p_after, words=words)
+                return {"ok": True, "route": "mdi", "index": p,
+                        "table": [row.copy() for row in _wcs_cache]}
+            off = list(getattr(STAT, "g5x_offset", None) or [])
+            if len(off) < 3:
+                _trace.emit("touchoff.no_readback", level="warn", index=p)
+                return {"ok": True, "route": "mdi", "index": p,
+                        "table": [row.copy() for row in _wcs_cache]}
+            for i, k in enumerate(_WCS_AXIS_KEYS):
+                if i < len(off):
+                    _wcs_cache[ci][k] = finite_float(off[i])
+            # Stamp the RESULTING triple (a Z-only touch-off leaves X/Y as
+            # they were) — same contract as set_wcs.
+            wrote_all = {"X", "Y", "Z"} <= set(values)
+            prov = await _stamp_wcs_provenance(
+                [p], {p: [finite_float(off[i]) for i in range(3)]},
+                wrote_all_xyz=wrote_all, prewrite_by_index={p: prewrite})
+            _trace.emit("touchoff.mdi", level="info", index=p, words=words,
+                        provenance=prov.get(p))
+            resp = {"ok": True, "route": "mdi", "index": p,
+                    "table": [row.copy() for row in _wcs_cache]}
+            if prov.get(p) == "cleared_mixed_angle":
+                resp["provenance"] = {"index": p, "action": prov[p]}
+            return resp
+
+        if cmd == "twp_capture":
+            # One-button plane capture at the tool tip: G69 normalize ->
+            # G68.3 with origin at the current tip -> no-move G53.1 P0.
+            # The gateway drives the sequence as SEPARATE blocking MDIs:
+            # a pure-NGC o-sub wrapper was tried first and failed —
+            # remapped G-CODES silently never execute inside an o-sub
+            # called from MDI (empirical on 2.9.4: rc clean, no effect,
+            # no error; the M-code remaps M530/M535 in subs are fine, and
+            # upstream only ever calls G68.x/G53.x at program top level).
+            # Between steps the tip is read from STAT — safe because G69
+            # left the machine idle in identity/G54 and the policy already
+            # guaranteed G92/rotary-offset-clean; each rc is checked and
+            # each failure names its step.
+            require_armed(armed)
+            require_no_eoffset()
+            blocked = reject_if_auto_running()
+            if blocked:
+                return blocked
+            if _shared_status is None:
+                return {"ok": False, "error": "No machine state yet — capture refused"}
+            pstate = _live_policy_state(armed)
+            _trace.emit("twp.capture_state", level="info",
+                        twp_defined=pstate.twp_defined, g5x_index=pstate.g5x_index,
+                        kins_type=pstate.kins_type,
+                        rotary_clean=pstate.rotary_offsets_clean,
+                        g92_clean=pstate.g92_xyz_clean)
+            reason = twp_capture_check(pstate)
+            if reason is not None:
+                _trace.emit("twp.capture_refused", level="warn", reason=reason,
+                            kins_type=pstate.kins_type, g5x_index=pstate.g5x_index)
+                return {"ok": False, "error": reason}
+            await set_mode(linuxcnc.MODE_MDI)
+            STAT.poll()
+            rot = finite_float(getattr(STAT, "rotation_xy", 0.0) or 0.0)
+            if abs(rot) > 1e-9:
+                # G68.3's origin words assume an unrotated G54 — honest
+                # refusal beats a silently displaced plane origin.
+                return {"ok": False, "error": "G54 carries a G10 R rotation — "
+                        "clear it (G10 L2 P1 R0) before capturing"}
+            rc = await _cmd_blocking(CMD.mdi, "G69", wait=10)
+            if _cmd_rc_failed(rc):
+                _trace.emit("twp.capture_failed", level="warn", rc=rc, step="G69")
+                return {"ok": False, "error": "Capture plane failed at G69 — see the error channel"}
+            STAT.poll()
+            if finite_int(getattr(STAT, "g5x_index", 0)) != 1:
+                return {"ok": False, "error": "Capture: G69 did not land in G54 — refusing"}
+            _g92 = list(getattr(STAT, "g92_offset", None) or [])
+            if any(abs(finite_float(v)) > 1e-6 for v in _g92[:3]):
+                return {"ok": False, "error": "A G92 X/Y/Z offset appeared — G92.1 before capturing"}
+            _pos = list(getattr(STAT, "actual_position", None) or [])
+            _g5x = list(getattr(STAT, "g5x_offset", None) or [])
+            _tofs = list(getattr(STAT, "tool_offset", None) or [])
+            if len(_pos) < 3 or len(_g5x) < 3 or len(_tofs) < 3:
+                return {"ok": False, "error": "Machine position unreadable — capture refused"}
+            tip = [finite_float(_pos[i]) - finite_float(_g5x[i]) - finite_float(_tofs[i])
+                   for i in range(3)]
+            line = f"G68.3 X{tip[0]:.6f} Y{tip[1]:.6f} Z{tip[2]:.6f}"
+            rc = await _cmd_blocking(CMD.mdi, line, wait=10)
+            if _cmd_rc_failed(rc):
+                _trace.emit("twp.capture_failed", level="warn", rc=rc,
+                            step="G68.3", line=line)
+                return {"ok": False, "error": "Capture plane failed at G68.3 — see the error channel"}
+            # Settle: the helper comp promotes twp-is-defined at 1 kHz from
+            # the M68 the remap queued — bounded wait on the reader
+            # snapshot (<=2 s), never a blind dwell, loud on timeout.
+            for _ in range(40):
+                if _reader_get("twp_defined"):
+                    break
+                await asyncio.sleep(0.05)
+            else:
+                _trace.emit("twp.capture_failed", level="warn", step="settle")
+                return {"ok": False, "error": "Capture: the plane definition "
+                        "did not settle — see the error channel"}
+            # M530 Q2 = ADOPT the current head pose (fork extension): the
+            # plane was built FROM the live rotaries one step ago, so the
+            # current pose is a solution — Q2 verifies normality and uses it
+            # verbatim. A plain G53.1 P0 may pick the OTHER (B,C) branch
+            # (observed live: a 168-deg C swing with the tip on the part).
+            # G69 already left identity kins, the wrapper's demote is moot.
+            rc = await _cmd_blocking(CMD.mdi, "M530 P0 Q2", wait=30)
+            if _cmd_rc_failed(rc):
+                _trace.emit("twp.capture_failed", level="warn", rc=rc, step="M530 Q2")
+                return {"ok": False, "error": "Capture plane failed at the orient — see the error channel"}
+            # The orient's kins switch and twp-is-active promote ride the
+            # helper comp like the definition did — same bounded settle, so
+            # the caller (and the operator's next action) sees TOOL kins
+            # actually in force, or an honest failure.
+            for _ in range(40):
+                _kt = _reader_get("kins_type")
+                if _kt is not None and int(round(finite_float(_kt))) == 2:
+                    break
+                await asyncio.sleep(0.05)
+            else:
+                _trace.emit("twp.capture_failed", level="warn", step="orient_settle",
+                            kins_type=_reader_get("kins_type"))
+                return {"ok": False, "error": "Capture: the orient did not enter TOOL "
+                        "kinematics — see the error channel"}
+            # Final step: touch off THROUGH the plane at the tip (the proven
+            # M535 path, all-XYZ zero). G68.3's origin words alone do not pin
+            # the plane-frame READING to 0 — the kins-2 world carries pivot
+            # terms, so the DRO at the captured tip read a residual (live:
+            # ~36 mm at B20 C-15 with no TLO). Zeroing through the plane
+            # makes the DRO read 0,0,0 at the tip BY CONSTRUCTION and puts
+            # the ONE datum (G54, table frame) at the tip — the operator's
+            # ask verbatim ("touch off the plane at the tool tip"). The
+            # remap stamps the provenance itself (kins 0 / A 0).
+            _datum_before = _status_runtime_mod.assemble_twp_datum(_reader_get)
+            _seq_before = _reader_get("twp_datum_seq")
+            rc = await _cmd_blocking(CMD.mdi, "o<twp_touchoff> call [7] [0] [0] [0]", wait=30)
+            if _cmd_rc_failed(rc):
+                _trace.emit("twp.capture_failed", level="warn", rc=rc, step="M535 zero")
+                return {"ok": False, "error": "Capture: the plane touch-off failed — see the error channel"}
+            _adopt_m535_datum(await _settle_datum_after_m535(_datum_before, before_seq=_seq_before),
+                              step="twp.capture")
+            _trace.emit("twp.capture", level="info", tip=tip)
+            return {"ok": True}
 
         if cmd == "set_wcs":
             require_armed(armed)
@@ -3888,13 +4734,40 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             if not parts:
                 return {"ok": False, "error": "No axis values provided"}
             await set_mode(linuxcnc.MODE_MDI)
-            await _cmd_blocking(CMD.mdi, f"G10 L2 P{p} {' '.join(parts)}", wait=5)
             ci = p - 1
+            # Capture the PRE-write triple first: the mixed-angle decision
+            # needs it to falsify the prior stamp (a foreign G10 between our
+            # writes shows up as a mismatch here).
+            prewrite = [finite_float(_wcs_cache[ci].get(k, 0.0))
+                        for k in ("x", "y", "z")]
+            await _cmd_blocking(CMD.mdi, f"G10 L2 P{p} {' '.join(parts)}", wait=5)
             for axis in all_keys:
                 val = msg.get(axis)
                 if val is not None:
                     _wcs_cache[ci][axis] = finite_float(val)
-            return {"ok": True, "table": [row.copy() for row in _wcs_cache]}
+            # Stamp AFTER the cache update, and from the cache: a touch-off
+            # may name only some axes (Z alone is the common one), so the
+            # values just written are not the offset's X/Y/Z. The stamp has
+            # to carry the RESULTING triple or the staleness check compares
+            # against something that was never the offset.
+            wrote_all = all(msg.get(k) is not None for k in ("x", "y", "z"))
+            prov = await _stamp_wcs_provenance(
+                [p], {p: [finite_float(_wcs_cache[ci].get(k, 0.0))
+                          for k in ("x", "y", "z")]},
+                wrote_all_xyz=wrote_all, prewrite_by_index={p: prewrite},
+                # Typed values are fixture-frame statements, not measurements
+                # at the live pose — stamp table frame (kins 0 / A 0). A
+                # partial typed edit onto a fixture stamped at a real pose
+                # falsifies the stamp exactly as a pose change would (the
+                # override feeds the mixed-angle decision too).
+                pose_override=(0.0, 0.0))
+            resp = {"ok": True, "table": [row.copy() for row in _wcs_cache]}
+            if prov.get(p) == "cleared_mixed_angle":
+                # Surface it: the operator mixed table poses in one fixture,
+                # so the any-angle touch-off guarantee no longer holds for it
+                # (the documented A=0 rule applies until a full re-touch).
+                resp["provenance"] = {"index": p, "action": prov[p]}
+            return resp
 
         return {"ok": False, "error": f"Unknown cmd: {cmd}"}
 
@@ -3921,6 +4794,84 @@ _config_warning_reason = ""
 # kins declared without INI-HALCMD pivot params, rotary axes on a model
 # that articulates none. Rides the same config_warning banner; "" = clean.
 _viewer_config_warning = ""
+# Reserved-fixture-at-boot heal (2026-08-30): the previous session left
+# G59..G59.3 active (Plane mode shut down / aborted) and the var file kept
+# #5220. Evaluated ONCE, on the first status carrying a fixture index; the
+# heal (a bare `G54`, a pure modal — no motion) runs when `ready` first
+# opens. Rides the config_warning banner until then; "" = clean.
+_reserved_fixture_warning = ""
+_reserved_heal_checked = False
+_reserved_heal_pending: Optional[int] = None
+_reserved_heal_inflight = False
+_reserved_heal_last_try = 0.0
+
+
+def _reserved_fixture_heal_tick(st) -> None:
+    """Status-loop hook: detect once, heal when the machine can take an MDI."""
+    global _reserved_fixture_warning, _reserved_heal_checked, _reserved_heal_pending
+    if not _reserved_heal_checked:
+        if st.g5x_index is None:
+            return
+        _reserved_heal_checked = True
+        try:
+            idx = int(st.g5x_index)
+        except (TypeError, ValueError):
+            return
+        if idx in (6, 7, 8, 9) and not st.twp_active and _kins_is_switchable():
+            name = _WCS_NAMES[idx - 1] if 0 < idx <= len(_WCS_NAMES) else f"G5x[{idx}]"
+            _reserved_heal_pending = idx
+            _reserved_fixture_warning = (
+                f"{name} (a TWP scratch row) was active at the last shutdown — "
+                f"the DRO reads a dead plane frame; restoring G54 once the machine is homed")
+            _trace.emit("twp.reserved_fixture_on_boot", level="warn", index=idx)
+        return
+    if _reserved_heal_pending is None or _reserved_heal_inflight:
+        return
+    if st.twp_active:
+        # An orient happened first — the row is the live plane's now.
+        _trace.emit("twp.reserved_fixture_heal_superseded", level="info",
+                    index=_reserved_heal_pending)
+        _reserved_heal_pending = None
+        _reserved_fixture_warning = ""
+        return
+    if st.g5x_index is not None and int(st.g5x_index) not in (6, 7, 8, 9):
+        # The operator (or a program) selected a fixture already.
+        _trace.emit("twp.reserved_fixture_heal_superseded", level="info",
+                    index=_reserved_heal_pending, now=int(st.g5x_index))
+        _reserved_heal_pending = None
+        _reserved_fixture_warning = ""
+        return
+    if not (st.permissions or {}).get("ready"):
+        return
+    if time.monotonic() - _reserved_heal_last_try < 5.0:
+        return
+    try:
+        asyncio.get_running_loop().create_task(_reserved_fixture_heal())
+    except RuntimeError as exc:  # no loop — should not happen in the status loop
+        _trace.emit("twp.reserved_fixture_heal_failed", level="warn", error=repr(exc))
+
+
+async def _reserved_fixture_heal() -> None:
+    global _reserved_fixture_warning, _reserved_heal_pending, _reserved_heal_inflight
+    global _reserved_heal_last_try
+    _reserved_heal_inflight = True
+    _reserved_heal_last_try = time.monotonic()
+    try:
+        if reject_if_auto_running():
+            return
+        await set_mode(linuxcnc.MODE_MDI)
+        rc = await _cmd_blocking(CMD.mdi, "G54", wait=5)
+        if _cmd_rc_failed(rc):
+            _trace.emit("twp.reserved_fixture_heal_failed", level="warn",
+                        index=_reserved_heal_pending, rc=rc)
+            return
+        _trace.emit("twp.reserved_fixture_healed", level="info", index=_reserved_heal_pending)
+        _reserved_heal_pending = None
+        _reserved_fixture_warning = ""
+    except Exception as exc:  # noqa: BLE001 - a failed heal is loud, not fatal
+        _trace.emit("twp.reserved_fixture_heal_failed", level="warn", error=repr(exc))
+    finally:
+        _reserved_heal_inflight = False
 
 
 def _set_units_fallback(active: bool, reason: str = "") -> None:
@@ -4049,6 +5000,478 @@ def _axes_from_mask(mask: int) -> List[str]:
     return [_AXIS_LETTERS[i] for i in range(9) if mask & (1 << i)]
 
 
+#: Fixture index -> the stamp THIS GATEWAY believes it last wrote
+#: ({"kins","a","x","y","z"}). Seeded from the var file at connect
+#: (_ensure_prov_var_rows), updated only by successful stamps, dropped by
+#: clears — the gateway is the only stamper by design, so this cannot go
+#: stale w.r.t. its own writes; foreign writes are caught by comparing the
+#: cached xyz against the live row (the falsifiability rule).
+_prov_cache: Dict[int, Dict[str, float]] = {}
+#: var-file paths whose provenance rows have been verified present.
+_prov_rows_ensured: set = set()
+#: None = not yet checked; False = seeding failed, stamps will NOT survive a
+#: restart (announced at stamp time — see _stamp_wcs_provenance).
+_prov_rows_ok: Optional[bool] = None
+
+
+async def _stamp_wcs_provenance(indices, values_by_index,
+                                wrote_all_xyz=True, prewrite_by_index=None,
+                                pose_override=None):
+    """Record the machine state each offset was established in (W1).
+
+    LinuxCNC records nothing about this, and on a rotary machine the same
+    three numbers mean different things depending on the table angle and
+    the active kinematics. Without it, "touch off with A at 0" can only be
+    a documented precondition; with it, a wrong touch-off is detectable.
+
+    Stamped only for machines that HAVE an A rotary — on a 3-axis mill
+    there is nothing that could go stale, and writing rows there would be
+    noise an operator has to wonder about.
+
+    `pose_override` = (kins, a): recorded IN PLACE of the live sample —
+    including as input to the mixed-angle decision. A TYPED fixture value is
+    a fixture-frame statement, not a measurement at the current pose, so
+    set_wcs passes (0.0, 0.0) (table frame by definition; 2026-08-31,
+    closing the decisions.md follow-up). Touch-offs keep the live sample:
+    they ARE measurements at the current pose.
+
+    The live pose is read from the JOINT, not from actual_position. Joints are
+    the physical invariant and kinematics are labelings: under TOOL/TCP
+    kins the world XYZ are relabeled, and while A happens to be passthrough
+    in this kins family, recording a labeled value as if it were physical
+    is exactly the class of mistake this whole feature exists to catch.
+
+    `values_by_index` maps fixture index -> the RESULTING [x, y, z] triple;
+    `prewrite_by_index` maps it to the triple BEFORE this write, and
+    `wrote_all_xyz` says whether the write named all three axes. Together
+    they feed wcs_stamp_decision: a PARTIAL write merging into components
+    established at a different table pose has no single pose, so the fixture
+    is CLEARED (loudly) instead of stamped with a confident lie — see the
+    helper's docstring for the full matrix.
+
+    Never raises into the caller: a failed stamp must not fail the
+    touch-off the operator actually asked for. It is traced instead, and a
+    missing stamp reads as "absent" downstream, which is honest.
+
+    Returns {index: "stamped" | "cleared_mixed_angle" | "failed"} plus the
+    pose recorded, for the caller to surface in its response.
+    """
+    out = {}
+    try:
+        STAT.poll()
+        mask = int(getattr(STAT, "axis_mask", 0))
+        if not (mask & (1 << 3)):
+            return out  # no A axis: nothing to record
+        if pose_override is not None:
+            kins_val, a_val = float(pose_override[0]), float(pose_override[1])
+            return await _stamp_wcs_rows(indices, values_by_index, wrote_all_xyz,
+                                         prewrite_by_index, a_val, kins_val, out)
+        # Joint index of A = configured axes below it (trivkins compaction,
+        # the same layout canonical_to_joint_order documents). NEVER a
+        # hardcoded 3: on XYZBC-style masks the slot moves. Gantry
+        # duplicate-joint configs are outside this mapping (and outside the
+        # proven envelope) — there joint_actual_position has more entries
+        # than axes and no per-axis compaction exists.
+        a_joint = bin(mask & 0b111).count("1")
+        joints = getattr(STAT, "joint_actual_position", None)
+        if not joints or len(joints) <= a_joint:
+            _trace.emit("wcs.provenance_skipped", level="warn",
+                        reason="no joint position")
+            return out
+        a_val = float(joints[a_joint])
+        kins = _reader_get("kins_type")
+        # A machine with no switchable kins is always identity: a known 0,
+        # not a guess. A switchable machine whose reader snapshot is missing
+        # is genuinely unknown — record NOTHING rather than a plausible 0,
+        # so it reads as absent downstream instead of as a confident lie.
+        if kins is None:
+            if _kins_is_switchable():
+                _trace.emit("wcs.provenance_skipped", level="warn",
+                            reason="kins_type unavailable from reader")
+                return out
+            kins_val = 0.0
+        else:
+            kins_val = float(kins)
+        return await _stamp_wcs_rows(indices, values_by_index, wrote_all_xyz,
+                                     prewrite_by_index, a_val, kins_val, out)
+    except Exception as exc:  # noqa: BLE001 - never break a touch-off
+        _trace.emit("wcs.provenance_stamp_failed", level="warn", error=repr(exc))
+    return out
+
+
+async def _stamp_wcs_rows(indices, values_by_index, wrote_all_xyz,
+                          prewrite_by_index, a_val, kins_val, out):
+    """The shared stamp/clear row loop for _stamp_wcs_provenance — one
+    implementation for both pose sources (live sample vs pose_override),
+    so the mixed-angle decision can never diverge between them."""
+    try:
+        if _prov_rows_ok is False:
+            # The rows could not be seeded into the var file, so whatever is
+            # stamped now evaporates at the next LinuxCNC save/restart.
+            # Announce that AT STAMP TIME — a stamp that will silently
+            # degrade to "assumed A=0" later is the one non-fail-safe hole.
+            _trace.emit("wcs.provenance_not_persistent", level="warn",
+                        indices=list(indices))
+        stamped_ok = []
+        for p in indices:
+            xyz = values_by_index.get(p)
+            if xyz is None:
+                continue
+            prior = _prov_cache.get(p)
+            prior_valid = False
+            if prior is not None:
+                pre = (prewrite_by_index or {}).get(p)
+                # The prior stamp is believed only while its recorded triple
+                # still matched the row this write replaced — a foreign G10
+                # in between falsifies it.
+                prior_valid = pre is not None and all(
+                    abs(float(prior[k]) - float(pre[i])) <= 1e-6
+                    for i, k in enumerate(("x", "y", "z")))
+            action = wcs_stamp_decision(
+                prior_valid,
+                prior["a"] if prior else 0.0,
+                prior["kins"] if prior else 0.0,
+                a_val, kins_val, wrote_all_xyz)
+            n = wcs_prov_params(p)
+            if action == "clear":
+                rc = await _cmd_blocking(
+                    CMD.mdi, f"#{n['stamped']}=0.000000", wait=5)
+                if _cmd_rc_failed(rc):
+                    out[p] = "failed"
+                    _trace.emit("wcs.provenance_stamp_failed", level="warn",
+                                index=p, rc=rc, action="clear")
+                    continue
+                _prov_cache.pop(p, None)
+                out[p] = "cleared_mixed_angle"
+                _trace.emit("wcs.provenance_cleared_mixed_angle", level="warn",
+                            index=p, current_a=a_val, current_kins=kins_val,
+                            prior_a=prior["a"] if prior else None,
+                            prior_valid=prior_valid)
+                continue
+            # The flag goes LAST: if this line is interrupted part-way the
+            # record stays unflagged, and an incomplete record must read as
+            # absent rather than as a half-truth.
+            rc = await _cmd_blocking(
+                CMD.mdi,
+                f"#{n['kins']}={kins_val:.6f} #{n['a']}={a_val:.6f} "
+                f"#{n['x']}={xyz[0]:.6f} #{n['y']}={xyz[1]:.6f} "
+                f"#{n['z']}={xyz[2]:.6f} #{n['stamped']}={PROV_STAMPED:.6f}",
+                wait=5)
+            if _cmd_rc_failed(rc):
+                # wait_complete said no (1) or timed out (-1): the record may
+                # not exist. No success trace, no cache update — the next
+                # decision must not believe a stamp that may not be there.
+                out[p] = "failed"
+                _trace.emit("wcs.provenance_stamp_failed", level="warn",
+                            index=p, rc=rc, action="stamp")
+                continue
+            _prov_cache[p] = {"kins": kins_val, "a": a_val,
+                              "x": float(xyz[0]), "y": float(xyz[1]),
+                              "z": float(xyz[2])}
+            out[p] = "stamped"
+            stamped_ok.append(p)
+        if stamped_ok:
+            _trace.emit("wcs.provenance_stamped", level="info",
+                        indices=stamped_ok, kins=kins_val, a=a_val)
+    except Exception as exc:  # noqa: BLE001 - never break a touch-off
+        _trace.emit("wcs.provenance_stamp_failed", level="warn", error=repr(exc))
+    return out
+
+
+async def _ensure_prov_var_rows() -> None:
+    """Make the provenance parameter rows PERSIST, or say loudly they won't.
+
+    LinuxCNC's parameter save keeps only rows already present in the var
+    file — an MDI `#5231=...` writes interp memory, but the value survives a
+    restart only if the row exists on disk. The shipped var templates carry
+    the rows; a var file from before this feature (or another config's) does
+    not, and a stamp made there would silently evaporate at shutdown — the
+    one place where the "absent record → assume A=0" fallback is NOT
+    fail-safe, because the operator touched off tilted and was told it
+    worked.
+
+    So at connect: verify all 54 rows exist in the live var file, append the
+    missing ones as ZEROS (0 in the stamped slot IS the documented absent
+    value — no data is invented) via the same atomic writer the probe vars
+    use, and re-read to verify. Memoized per resolved path; the reconnect
+    paths re-run it so an INI switch is re-checked. Failure sets
+    _prov_rows_ok=False, which the stamper announces per-stamp.
+
+    Also seeds _prov_cache from the rows found, so the mixed-angle decision
+    knows about stamps made in previous sessions.
+    """
+    global _prov_rows_ok
+    try:
+        if STAT is None:
+            return
+        STAT.poll()
+        if not (int(getattr(STAT, "axis_mask", 0) or 0) & (1 << 3)):
+            return  # no A rotary: the stamp records nothing that can go stale
+        path = _resolve_var_file_path()
+        if not path or path in _prov_rows_ensured:
+            return
+        keys = [str(n) for i in range(1, 10)
+                for n in wcs_prov_params(i).values()]
+        have = await asyncio.to_thread(_read_var_file, path, set(keys))
+        missing = [k for k in keys if k not in have]
+        if missing:
+            await asyncio.to_thread(
+                _write_var_file_updates, path, {k: 0.0 for k in missing})
+            _status_runtime.mark_var_file_written(path)
+            re_read = await asyncio.to_thread(_read_var_file, path, set(missing))
+            still = [k for k in missing if k not in re_read]
+            if still:
+                _prov_rows_ok = False
+                _trace.emit("wcs.provenance_seed_failed", level="warn",
+                            path=path, still_missing=len(still))
+                return
+            _trace.emit("wcs.provenance_rows_seeded", level="info",
+                        path=path, count=len(missing))
+        else:
+            _trace.emit("wcs.provenance_rows_ok", level="info", path=path)
+        _prov_rows_ok = True
+        _prov_rows_ensured.add(path)
+        for i in range(1, 10):
+            n = wcs_prov_params(i)
+            row = {k: have.get(str(v)) for k, v in n.items()}
+            if row["stamped"] is None or \
+                    abs(float(row["stamped"]) - PROV_STAMPED) > 1e-9:
+                continue
+            _prov_cache[i] = {k: float(row[k])
+                              for k in ("kins", "a", "x", "y", "z")}
+    except Exception as exc:  # noqa: BLE001 - a failed check must be loud, not fatal
+        _prov_rows_ok = False
+        _trace.emit("wcs.provenance_seed_failed", level="warn", error=repr(exc))
+
+
+async def _settle_datum_after_m535(before, *, before_seq=None, timeout_s: float = 3.0,
+                                   period_s: float = 0.05):
+    """Wait for the helper's datum pins to reflect the G54 the remap just
+    wrote (M535: G10 L2 P1 + saved_work_offset + gui_update_twp; the helper
+    republishes at 20 Hz). Keyed on the datum-write EPOCH (2026-09-05):
+    M535 bumps twp-datum-seq AFTER publishing the datum, the helper copies
+    it LAST in its pass and the reader samples it FIRST, so a changed seq
+    in a snapshot proves the datum in that snapshot is current — a touch-off
+    landing on the SAME datum settles in one tick instead of burning the
+    whole timeout (3089 / 3082 ms per same-datum touch-off, measured
+    2026-09-03). A helper without the pin (seq None on either side) falls
+    back to the value-keyed test, said once (twp.datum_seq_unavailable). On
+    timeout the current value is adopted anyway with a warn trace, so a real
+    lag stays loud through the chip. Unreadable pins → None (no seeding,
+    traced). Never a dwell."""
+    now = None
+    now_seq = None
+    t0 = time.monotonic()
+    seq_said = False
+    for _ in range(max(1, int(timeout_s / period_s))):
+        # Same snapshot for both reads (no await between them).
+        now_seq = _reader_get("twp_datum_seq")
+        now = _status_runtime_mod.assemble_twp_datum(_reader_get)
+        adv = _status_runtime_mod.datum_seq_advanced(before_seq, now_seq)
+        if adv is True:
+            _trace.emit("twp.datum_settled", ms=round((time.monotonic() - t0) * 1000),
+                        seq_before=before_seq, seq_now=now_seq,
+                        changed=_status_runtime_mod.datum_changed(before, now))
+            return now
+        if adv is None:
+            if not seq_said:
+                seq_said = True
+                _trace.emit("twp.datum_seq_unavailable", level="warn",
+                            seq_before=before_seq, seq_now=now_seq)
+            if _status_runtime_mod.datum_changed(before, now) is True:
+                return now
+        await asyncio.sleep(period_s)
+    if now is None:
+        _trace.emit("twp.datum_unreadable", level="warn")
+        return None
+    _trace.emit("twp.datum_settle_timeout", level="warn", before=before, now=now,
+                seq_before=before_seq, seq_now=now_seq)
+    return now
+
+
+def _adopt_m535_datum(datum, *, step: str) -> None:
+    """After M535 wrote G54 through the plane: seed the gateway's G54 row and
+    its provenance from the datum the remap published. Exact by M535's own
+    contract — it writes G54 == saved_work_offset literally and stamps
+    kins 0 / A 0 (table frame == machine frame), so the helper pins ARE the
+    row. STAT cannot help (only the ACTIVE fixture's offset is broadcast,
+    and G59 is active here) and the var file is written at shutdown."""
+    if datum is None:
+        _trace.emit("wcs.row_seed_skipped", level="warn", index=1, step=step,
+                    reason="datum unreadable")
+        return
+    try:
+        _status_runtime_mod.seed_wcs_row_xyz(_wcs_cache, 0, datum)
+    except ValueError as exc:
+        _trace.emit("wcs.row_seed_failed", level="warn", index=1, step=step, error=str(exc))
+        return
+    _prov_cache[1] = {"kins": 0.0, "a": 0.0,
+                      "x": float(datum[0]), "y": float(datum[1]), "z": float(datum[2])}
+    _trace.emit("wcs.row_seeded_from_datum", level="info", index=1, step=step,
+                xyz=[float(v) for v in datum[:3]])
+
+
+def _cmd_rc_failed(rc) -> bool:
+    """Did a _cmd_blocking(..., wait=N) call fail? RCS_DONE (1) and the
+    wait=None sentinel 0 are success; RCS_ERROR (3) and -1 (timeout) are
+    not. RCS_EXEC (2) cannot come back from wait_complete with a timeout —
+    it returns -1 instead — but is treated as failure too: not done is
+    not done."""
+    # getattr: the fake binding the dispatch tests run under has no RCS_*
+    # constants (real value 1) — a bare attribute read turned every
+    # rc check into an AttributeError reply (2026-09-04).
+    return rc not in (0, getattr(linuxcnc, "RCS_DONE", 1))
+
+
+def _kins_is_switchable() -> bool:
+    """Does this machine have switchable kinematics at all?
+
+    Distinguishes "identity, certainly" from "unknown" when the reader has
+    no kins_type — the difference between a recordable fact and a guess.
+    Same predicate that decides whether to sample motion.switchkins-type in
+    the first place, so the two cannot disagree about what this machine is.
+    """
+    try:
+        return kins_marker_policy(_parse_kins_decl()) != "ignore"
+    except Exception:  # noqa: BLE001 - unknown beats a confident wrong answer
+        return True
+
+
+def _twp_capable() -> bool:
+    """Does this machine run the TWP remap stack? (TWP-08, review 2026-09-14)
+
+    The ONE predicate for "TWP rules apply": it gates the twp-helper pin
+    registration (_configure_extra_pins) AND the policy's twp_capable — G59
+    reserved rows, plane capture / orient / Plane-frame admission. Today that
+    is the shipped xyzacb-trsrn config (the config IS the TWP stack); a
+    switchable-but-TWP-less machine (xyzac-trt TCP trunnion) and a plain mill
+    read False and keep their ordinary fixtures. A declaration that cannot be
+    parsed reads False: no TWP rules is the safe direction here — the remap
+    itself refuses on a machine that lacks it."""
+    try:
+        return (_parse_kins_decl() or {}).get("type") == "xyzacb-trsrn"
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def _identity_first() -> bool:
+    """The kins module's `sparm=identityfirst` flag (parse_kins_config) —
+    which RAW switchkins type is identity on a non-trsrn family. False is the
+    module's own default (raw 0 = world/TCP on plain xyzac-trt)."""
+    try:
+        return bool((_parse_kins_decl() or {}).get("identity_first"))
+    except Exception:  # noqa: BLE001
+        return False
+
+
+#: Operator wording for a semantic kinematics mode (R-01). The M-CODE is
+#: deliberately absent: it is a per-configuration fact resolved at run time.
+_KINS_MODE_NAMES = {0: "Machine (identity)", 1: "TCP (world)", 2: "Plane (TOOL)"}
+
+_kins_mode_cmd_cache: Optional[Dict[int, str]] = None
+
+
+def _kins_mode_commands() -> Dict[int, str]:
+    """{raw switchkins type: M-code word} for the running configuration.
+
+    Built from the INI's [RS274NGC]REMAP entries and the remap subs' own
+    `#<kinstype> = N` assignment (gateway_util.kins_mode_commands, pure),
+    resolved through SUBROUTINE_PATH exactly like the interpreter. Cached
+    for the session: neither the INI nor the subs it names can change under
+    a running LinuxCNC without a restart. Empty when nothing could be read —
+    the handler refuses rather than falling back to a guessed table (R-01:
+    the guess was reversed on the shipped TCP trunnion)."""
+    global _kins_mode_cmd_cache
+    if _kins_mode_cmd_cache is not None:
+        return _kins_mode_cmd_cache
+    cmds: Dict[int, str] = {}
+    try:
+        ini_filename = getattr(STAT, "ini_filename", None) if STAT else None
+        if ini_filename:
+            _ini = linuxcnc.ini(ini_filename)
+            dirs = get_ini_config().get("subroutine_paths", [])
+
+            def _source(name: str) -> Optional[str]:
+                path = resolve_subfile(name, dirs)
+                if not path:
+                    return None
+                with open(path, encoding="utf-8", errors="replace") as fh:
+                    return fh.read()
+
+            cmds = kins_mode_commands(_ini.findall("RS274NGC", "REMAP") or [], _source)
+            _kins_mode_cmd_cache = cmds
+            _trace.emit("kins_mode.commands", level="info", commands=cmds)
+    except Exception as e:  # noqa: BLE001 - an unreadable INI leaves the map empty (refusal)
+        _trace.emit_exc("kins_mode.commands_failed", e)
+    return cmds
+
+
+async def _settle_kins_type(expect_raw: int, timeout_s: float = 1.0) -> Optional[int]:
+    """The live motion.switchkins-type once it has reached `expect_raw`, or
+    its last reading at the deadline. None when this machine does not sample
+    the pin at all (non-switchable, or the reader has never delivered) — the
+    caller reports "unverified" rather than inventing agreement.
+
+    The MDI has already completed when this runs; the 30 Hz reader snapshot
+    needs a tick or two to carry the new pin value."""
+    if _reader_get("kins_type") is None:
+        # The pin is not sampled on this machine (non-switchable, or no
+        # snapshot has ever arrived). Waiting cannot make it appear: whole
+        # snapshots arrive at 30 Hz, so a registered pin is there from the
+        # first one.
+        return None
+    deadline = time.monotonic() + timeout_s
+    got = None
+    while True:
+        raw = _reader_get("kins_type")
+        if raw is not None:
+            got = int(round(float(raw)))
+            if got == expect_raw:
+                return got
+        if time.monotonic() >= deadline:
+            return got
+        await asyncio.sleep(0.02)
+
+
+def _controller_touchoff_state(base):
+    """`base` with its two touch-off target fields re-read from the CONTROLLER
+    (R-02, implementation review 2026-09-15).
+
+    The published snapshot lags: it is rebuilt at status-poll cadence, so an
+    active-fixture change the interpreter has already made can sit one frame
+    behind — long enough for a keypad entry validated against it to be written
+    somewhere else. STAT.poll() is the controller's own answer for the fixture;
+    kins_type is the same 30 Hz reader pin the payload is built from, read now
+    rather than as published. A field the controller does not offer keeps the
+    snapshot's value (a non-switchable machine has no kins pin at all, and a
+    stat without g5x_index is the test binding) — this refreshes what it can
+    and never invents what it cannot."""
+    g5x, kins = base.g5x_index, base.kins_type
+    try:
+        STAT.poll()
+        _g = getattr(STAT, "g5x_index", None)
+        if _g is not None:
+            g5x = int(_g)
+    except Exception as e:  # noqa: BLE001 - a poll failure keeps the snapshot value
+        _trace.emit_exc("touchoff.stat_poll_failed", e)
+    _k = _reader_get("kins_type")
+    if _k is not None:
+        kins = int(round(float(_k)))
+    if (g5x, kins) != (base.g5x_index, base.kins_type):
+        _trace.emit("touchoff.state_refreshed", level="info",
+                    snapshot=[base.kins_type, base.g5x_index], controller=[kins, g5x])
+    return _dc_replace(base, g5x_index=g5x, kins_type=kins)
+
+
+def _live_policy_state(armed: bool):
+    """The command-policy MachineState for the CURRENT snapshot, with every
+    declaration-derived input (switchable / TWP-capable / identity-first)
+    supplied from one place, so no handler can forget one (TWP-08)."""
+    return _policy_state_from_payload(
+        _shared_status, armed, kins_switchable=_kins_is_switchable(),
+        twp_capable=_twp_capable(), identity_first=_identity_first())
+
+
 # Cache for build_viewer_init() output. Keyed on every input that can
 # change at runtime: stl_base_url (per-client host header), INI path +
 # mtime, STAT.axis_mask, STAT.max_velocity (frontend uses it as a jog-
@@ -4149,6 +5572,13 @@ def build_viewer_init(stl_base_url: str) -> Dict[str, Any]:
             # Optional stock flag: the ONE body class the tool may FEED into
             # (collision sweep cutting semantics). Machine parts never are.
             "stock": p.get("stock"),
+            # Collision PROXY (2026-09-13): a coarser mesh the sweep checks
+            # INSTEAD of the display mesh (it must contain it — one box per
+            # component for rails/blocks); versioned like `file`.
+            # `collide: false` keeps a decorative part out of the sweep
+            # entirely — a crash into it is then NOT reported, by declaration.
+            "collision": _stl_versioned(p["collision"]) if p.get("collision") else None,
+            "collide": p.get("collide"),
         })
 
     # INI/static fields — delivered once per connect so the per-tick status
@@ -4284,6 +5714,12 @@ def register_bg_task(t: asyncio.Task) -> asyncio.Task:
 
 @asynccontextmanager
 async def lifespan(app: "FastAPI"):
+    # A lifespan begins not-shutting-down. Production has one lifespan per
+    # process; the in-process test harness opens many, and the flag set by
+    # the previous teardown silently skipped every later disarm jog-stop
+    # (found by test_arm_is_never_preempted, 2026-09-05).
+    global _shutting_down
+    _shutting_down = False
     _trace.emit("boot.lifespan_ready")
     # Asyncio loop exists only after lifespan startup — wire the
     # unhandled-task hook here so uvicorn's own handler is preserved.
@@ -4306,6 +5742,11 @@ async def lifespan(app: "FastAPI"):
     # One-shot estop-loop writer check (review B2 stretch): runs after the
     # safety-chain grace window, feeds _safety_chain_reason's extra_reason.
     register_bg_task(asyncio.create_task(_estop_loop_check_once()))
+    # Touch-off provenance rows: the boot-time try_connect_lcnc() ran before
+    # the loop existed, so the reconnect-site registrations never fire for a
+    # machine that was already up. Run the (memoized, connection-checked)
+    # heal once here too.
+    register_bg_task(asyncio.create_task(_ensure_prov_var_rows()))
     # Opt-in event-loop attribution (issue #35): with WEBUI_ASYNCIO_DEBUG=1 asyncio
     # logs "Executing <coro …> took N seconds" for any callback holding the loop
     # >50 ms (half the [HB-WAKE] threshold), naming the exact culprit behind a
@@ -4347,7 +5788,6 @@ async def lifespan(app: "FastAPI"):
     # Order matters. Each step is bounded so a stuck client/socket can't block
     # the rest. Total worst case ~5s — sized to fit uvicorn's
     # --timeout-graceful-shutdown 5 in the launcher.
-    global _shutting_down
     _shutting_down = True
     # Re-anchored to module-level _T0 so [SHUTDOWN] deltas line up with
     # [BOOT]/[CONN]/[SHUTDOWN-PROBE] on a single timeline.
@@ -4547,7 +5987,17 @@ app.mount("/assets", StaticFiles(directory=str(MACHINE_DIR), html=False), name="
 
 @app.get("/health")
 def health():
-    return {"ok": True}
+    # `armed_clients` lets a harness check, BEFORE it starts, whether anyone
+    # can answer an M6: this config has no HAL loopback for the tool-change
+    # half, so confirm_tool_change (armed-only) is the sole path and an
+    # unattended run would otherwise just block. Counts, never identities.
+    # _clients is Dict[int, ClientState] — iterate VALUES. (`getattr(c,
+    # "armed", False)` over the dict silently counted zero armed clients
+    # forever, which is the exact silent-fallback shape this endpoint exists
+    # to eliminate; assert the attribute instead of defaulting it.)
+    return {"ok": True,
+            "clients": len(_clients),
+            "armed_clients": sum(1 for c in _clients.values() if c.armed)}
 
 
 @app.post("/telemetry")
@@ -5303,6 +6753,124 @@ async def get_g30():
     return await loop.run_in_executor(None, _read_g30_vars)
 
 
+def _retrieve_task_exc(t: asyncio.Task) -> None:
+    """Done-callback for per-command sub-tasks: retrieve the exception so a
+    sub-task that fails while its worker is being cancelled is never logged
+    as "Task exception was never retrieved" (crash.asyncio_unhandled). The
+    worker reads it again via inflight.exception() — retrieval is idempotent."""
+    if not t.cancelled():
+        t.exception()
+
+
+def _preempt_inflight(by: str, from_client: int) -> int:
+    """abort/estop from ANY client cancels every client's in-flight non-stop
+    handler (2026-09-05, docs/decisions.md). The cancel propagates into
+    _cmd_blocking, which keeps _cmd_lock until the current wait slice
+    returns — so the stop runs after the current NML call, not after a 30 s
+    MDI wait. Stop-class commands and `arm` are never cancelled
+    (_WS_NO_PREEMPT). The victim's worker replies "Preempted by <by>" and
+    traces ws.command_preempted; this site traces the fan-out once."""
+    victims = []
+    now = time.monotonic()
+    for cid, c in list(_clients.items()):
+        t = c.cmd_inflight_task
+        if t is None or t.done() or c.cmd_inflight in _WS_NO_PREEMPT:
+            continue
+        c.cmd_preempted_by = by
+        t.cancel()
+        victims.append({"client_id": cid, "cmd": c.cmd_inflight,
+                        "ran_ms": round((now - c.cmd_inflight_since_mono) * 1000)})
+    if victims:
+        _trace.emit("ws.command_preempt", level="warn", by=by,
+                    from_client=from_client, victims=victims)
+    return len(victims)
+
+
+async def _execute_client_command(client_id: int, client, ws: WebSocket, msg: Dict[str, Any]) -> None:
+    """ONE queued command for ONE client — run by that client's cmd_worker in
+    ws_endpoint, never by the reader (2026-09-03, see _WS_CMD_QUEUE_MAX).
+
+    Verbatim the block that used to sit inline in the receive loop: the
+    `arm` handshake (its disarm branch takes _cmd_lock for the jog-stop,
+    which is exactly why it cannot stay in the reader) and the dispatch
+    through handle_command with the bounded-error catch, the unload_file
+    cache reset and the reply send. `client.armed` is read at EXECUTION
+    time. `handle_command` resolves as a module global so tests can stand
+    in a slow/raising handler.
+    """
+    if msg.get("cmd") == "arm":
+        want_armed = bool(msg.get("armed", False))
+        # Re-arm gate: operator must acknowledge a sticky safety trip
+        # before the machine can come back up. Disarming is always
+        # allowed.
+        if want_armed and _unacked_trip is not None:
+            await ws_send_json(ws, {
+                "type": "reply",
+                "ok": False,
+                "error": "Safety trip not acknowledged",
+            })
+            return
+        _was_armed = client.armed
+        client.armed = want_armed
+        client.last_hb = time.time()  # reset on arm change
+        client.last_hb_mono = time.monotonic()
+        # Symmetry with auto-disarm paths (Phase 2 / E1.2 + E2):
+        # explicit disarm must jog-stop any in-flight jog from this
+        # client AND register an armed-resume hold (so a deliberate
+        # disarm-then-Ctrl-R can still restore armed state). Closes
+        # the released-jog-button hazard and matches the "all paths
+        # to disarmed do the same thing" principle.
+        if _was_armed and not client.armed:
+            if CMD is not None and not _shutting_down:
+                try:
+                    async with _get_cmd_lock():
+                        await _jog_stop_for_client()
+                except Exception as _e:
+                    _trace.emit(
+                        "safety.explicit_disarm_jog_stop_failed", level="error",
+                        client_id=client_id, exc=type(_e).__name__, err=str(_e),
+                    )
+            _register_armed_resume_hold(client.session_id, client_id)
+            _trace.emit(
+                "safety.explicit_disarmed",
+                client_id=client_id,
+            )
+        elif not _was_armed and client.armed:
+            _trace.emit(
+                "safety.explicit_armed",
+                client_id=client_id,
+            )
+        await ws_send_json(ws, {"type": "reply", "ok": True, "armed": client.armed})
+        return
+
+    _set_phase(f"handle_command cmd={msg.get('cmd', '?')} client#{client_id}")
+    try:
+        reply = await handle_command(msg, client.armed)
+    except (ValueError, TypeError, KeyError, PermissionError, OverflowError) as _val_e:
+        # Malformed payload or failed precondition (bad numeric cast,
+        # missing field, not-armed). Return a bounded structured error
+        # rather than letting it bubble out of the receive loop — an
+        # uncaught exception here would tear down the socket and trip
+        # the armed-disconnect side effects in `finally` (issue #27).
+        _trace.emit("ws.command_invalid", level="warn",
+                    client_id=client_id, cmd=msg.get("cmd"),
+                    exc=type(_val_e).__name__, msg=str(_val_e))
+        reply = {"ok": False, "error": f"{type(_val_e).__name__}: {_val_e}"}
+    else:
+        if msg.get("cmd") == "unload_file" and reply.get("ok"):
+            # reset_interpreter doesn't clear stat.file, so the shared
+            # poller's file-change edge won't fire. Clear the shared
+            # cache and bump the version so every client's status_loop
+            # sends an empty viewer_gcode on the next cycle.
+            _bulk.preview_pending = None
+            _bulk.preview_bytes = None
+            _bulk.preview_bytes_gz = None
+            _bulk.preview_version += 1
+            _bulk.last_file = None
+            _bulk.last_mtime = None
+    await ws_send_json(ws, {"type": "reply", "cmd": msg.get("cmd"), **reply})
+
+
 @app.websocket("/ws")
 async def ws_endpoint(ws: WebSocket):
     _conn_t0 = time.monotonic()  # === LIFECYCLE DIAGNOSTICS anchor for [CONN] deltas ===
@@ -5432,9 +7000,7 @@ async def ws_endpoint(ws: WebSocket):
                         "file": initial_file,
                     })
                     _gcode_path = "cache-hit-sent"
-                elif not _bulk.refresh_running:
-                    _bulk.refresh_running = True
-                    register_bg_task(asyncio.create_task(_bulk.refresh_gcode_preview(initial_file)))
+                elif _bulk.schedule_refresh(initial_file, "connect", _spawn_preview_task):
                     _gcode_path = "refresh-scheduled"
                 else:
                     _gcode_path = "refresh-already-running"
@@ -5593,14 +7159,17 @@ async def ws_endpoint(ws: WebSocket):
                         safety_trip=_unacked_trip,
                         reader_stale=_reader_is_stale(),
                         safety_chain=_safety_chain_reason(),
+                        preview_refresh=_bulk.preview_refresh_status(),
                         config_warning=(
                             {
                                 "reason": (_config_warning_reason or _units_fallback_reason
-                                           or _viewer_config_warning),
+                                           or _viewer_config_warning
+                                           or _reserved_fixture_warning),
                                 "units": _units_fallback_active,
                             }
                             if (_units_fallback_active or _config_warning_active
-                                or _viewer_config_warning) else None
+                                or _viewer_config_warning
+                                or _reserved_fixture_warning) else None
                         ),
                         probe_results=client.probe_results,
                         rfl_status=_rfl_status,
@@ -5819,7 +7388,7 @@ async def ws_endpoint(ws: WebSocket):
                         # 3 s budget while heartbeats arrived on schedule → false
                         # disarm. time.monotonic() is immune in both directions
                         # (a backward step also can't keep a dead client "fresh").
-                        if time.monotonic() - _clients[client_id].last_hb_mono > 3.0:
+                        if time.monotonic() - _clients[client_id].last_hb_mono > _HB_STALL_SEC:
                             if client.armed:
                                 client.armed = False
                                 try:
@@ -5853,6 +7422,12 @@ async def ws_endpoint(ws: WebSocket):
                                     last_hb_arrival_ms_ago=round((_now_m - _ring[-1]) * 1000) if _ring else None,
                                     hb_arrival_gaps_ms=_gaps,
                                     frames_rx_total=_c.frames_rx,
+                                    # Which handler (if any) this client's worker
+                                    # was running — the forensic the 2026-09-03
+                                    # touchoff/capture stall hunt lacked.
+                                    inflight_cmd=_c.cmd_inflight,
+                                    inflight_ms=(round((_now_m - _c.cmd_inflight_since_mono) * 1000)
+                                                 if _c.cmd_inflight else None),
                                 )
                                 try:
                                     await ws_send_json(ws, {"type": "reply", "ok": False, "error": "Heartbeat timeout \u2014 disarmed for safety", "armed": False})
@@ -5905,6 +7480,92 @@ async def ws_endpoint(ws: WebSocket):
             _set_phase(f"status_loop.exit client#{client_id}")
 
         status_task = register_bg_task(asyncio.create_task(status_loop()))
+
+        # Per-client command worker (2026-09-03): the reader below handles
+        # liveness/bookkeeping frames only and queues everything else here.
+        # One worker per client keeps per-client order (arm → jog_cont,
+        # jog_cont → jog_stop); the reader returns to ws.receive() at once,
+        # so this client's heartbeats can never wait behind a handler (the
+        # touchoff/capture false-disarm class — see _WS_CMD_QUEUE_MAX).
+        cmd_queue = asyncio.Queue()
+
+        async def cmd_worker():
+            _set_phase(f"ws.worker.entry client#{client_id}")
+            while True:
+                _set_phase(f"ws.worker.idle client#{client_id}")
+                _wmsg, _enq = await cmd_queue.get()
+                _wcmd = _wmsg.get("cmd")
+                client.cmd_inflight = _wcmd
+                client.cmd_inflight_since_mono = time.monotonic()
+                client.cmd_preempted_by = None
+                _queued_ms = round((client.cmd_inflight_since_mono - _enq) * 1000)
+                if _queued_ms > 500:
+                    _trace.emit("ws.command_queue_wait", client_id=client_id,
+                                cmd=_wcmd, queued_ms=_queued_ms)
+                # Each command runs as its OWN task (2026-09-05) so an
+                # abort/estop can cancel it (_preempt_inflight) without
+                # killing this worker. asyncio.wait never propagates THIS
+                # task's cancel to the sub-task, so the disconnect path
+                # cancels it explicitly below.
+                inflight = register_bg_task(asyncio.create_task(
+                    _execute_client_command(client_id, client, ws, _wmsg)))
+                inflight.add_done_callback(_retrieve_task_exc)
+                client.cmd_inflight_task = inflight
+                try:
+                    _set_phase(f"ws.worker.handle cmd={_wcmd} client#{client_id}")
+                    try:
+                        await asyncio.wait({inflight})
+                    except asyncio.CancelledError:
+                        inflight.cancel()
+                        _trace.emit("ws.command_cancelled_on_disconnect", level="warn",
+                                    client_id=client_id, cmd=_wcmd,
+                                    ran_ms=round((time.monotonic() - client.cmd_inflight_since_mono) * 1000))
+                        raise
+                    _ran_ms = round((time.monotonic() - client.cmd_inflight_since_mono) * 1000)
+                    if inflight.cancelled():
+                        _by = client.cmd_preempted_by
+                        if _by:
+                            _trace.emit("ws.command_preempted", level="warn", client_id=client_id,
+                                        cmd=_wcmd, by=_by, ran_ms=_ran_ms)
+                            try:
+                                await ws_send_json(ws, {"type": "reply", "cmd": _wcmd, "ok": False,
+                                                        "error": f"Preempted by {_by}"})
+                            except Exception as _we2:  # noqa: BLE001
+                                _trace.emit("ws.command_error_reply_failed", level="warn",
+                                            client_id=client_id, cmd=_wcmd, exc=type(_we2).__name__)
+                        else:
+                            # Lifespan shutdown cancels bg tasks directly.
+                            _trace.emit("ws.command_cancelled", level="warn", client_id=client_id,
+                                        cmd=_wcmd, ran_ms=_ran_ms)
+                        continue
+                    _we = inflight.exception()
+                    if _we is None:
+                        if _ran_ms > 1000:
+                            # Names the slow handler in trace.ndjson — the
+                            # forensic the hb-stall hunt had to reconstruct.
+                            _trace.emit("ws.command_slow", client_id=client_id, cmd=_wcmd, ms=_ran_ms)
+                    elif isinstance(_we, WebSocketDisconnect):
+                        # Peer vanished under the reply send; the reader's
+                        # receive() sees the same disconnect and tears down.
+                        _trace.emit("ws.command_reply_lost", level="warn", client_id=client_id, cmd=_wcmd)
+                        return
+                    else:  # never kill the socket silently
+                        _trace.emit("ws.command_exception", level="error", client_id=client_id,
+                                    cmd=_wcmd, exc=type(_we).__name__, msg=str(_we))
+                        try:
+                            await ws_send_json(ws, {"type": "reply", "cmd": _wcmd, "ok": False,
+                                                    "error": f"{type(_we).__name__}: {_we}"})
+                        except Exception as _we2:  # noqa: BLE001
+                            _trace.emit("ws.command_error_reply_failed", level="warn",
+                                        client_id=client_id, cmd=_wcmd, exc=type(_we2).__name__)
+                finally:
+                    client.cmd_inflight = None
+                    client.cmd_inflight_since_mono = 0.0
+                    client.cmd_inflight_task = None
+                    client.cmd_preempted_by = None
+                    _set_phase(f"ws.worker.done cmd={_wcmd} client#{client_id}")
+
+        cmd_task = register_bg_task(asyncio.create_task(cmd_worker()))
 
     _disc_reason = "unknown"
     # Captured on `cmd:"hello"`; the finally block uses this to register
@@ -6017,51 +7678,6 @@ async def ws_endpoint(ws: WebSocket):
                                     "session.resume_granted",
                                     client_id=client_id, session_id=_sid,
                                 )
-                await ws_send_json(ws, {"type": "reply", "ok": True, "armed": client.armed})
-                continue
-
-            if msg.get("cmd") == "arm":
-                want_armed = bool(msg.get("armed", False))
-                # Re-arm gate: operator must acknowledge a sticky safety trip
-                # before the machine can come back up. Disarming is always
-                # allowed.
-                if want_armed and _unacked_trip is not None:
-                    await ws_send_json(ws, {
-                        "type": "reply",
-                        "ok": False,
-                        "error": "Safety trip not acknowledged",
-                    })
-                    continue
-                _was_armed = client.armed
-                client.armed = want_armed
-                client.last_hb = time.time()  # reset on arm change
-                client.last_hb_mono = time.monotonic()
-                # Symmetry with auto-disarm paths (Phase 2 / E1.2 + E2):
-                # explicit disarm must jog-stop any in-flight jog from this
-                # client AND register an armed-resume hold (so a deliberate
-                # disarm-then-Ctrl-R can still restore armed state). Closes
-                # the released-jog-button hazard and matches the "all paths
-                # to disarmed do the same thing" principle.
-                if _was_armed and not client.armed:
-                    if CMD is not None and not _shutting_down:
-                        try:
-                            async with _get_cmd_lock():
-                                await _jog_stop_for_client()
-                        except Exception as _e:
-                            _trace.emit(
-                                "safety.explicit_disarm_jog_stop_failed", level="error",
-                                client_id=client_id, exc=type(_e).__name__, err=str(_e),
-                            )
-                    _register_armed_resume_hold(_disc_session_id, client_id)
-                    _trace.emit(
-                        "safety.explicit_disarmed",
-                        client_id=client_id,
-                    )
-                elif not _was_armed and client.armed:
-                    _trace.emit(
-                        "safety.explicit_armed",
-                        client_id=client_id,
-                    )
                 await ws_send_json(ws, {"type": "reply", "ok": True, "armed": client.armed})
                 continue
 
@@ -6183,32 +7799,47 @@ async def ws_endpoint(ws: WebSocket):
             # visible to the coverage contract in test_command_policy — which was
             # structurally scoped to the dispatched ladder and could not see them.
 
-            _set_phase(f"handle_command cmd={msg.get('cmd', '?')} client#{client_id}")
-            try:
-                reply = await handle_command(msg, client.armed)
-            except (ValueError, TypeError, KeyError, PermissionError, OverflowError) as _val_e:
-                # Malformed payload or failed precondition (bad numeric cast,
-                # missing field, not-armed). Return a bounded structured error
-                # rather than letting it bubble out of the receive loop — an
-                # uncaught exception here would tear down the socket and trip
-                # the armed-disconnect side effects in `finally` (issue #27).
-                _trace.emit("ws.command_invalid", level="warn",
-                            client_id=client_id, cmd=msg.get("cmd"),
-                            exc=type(_val_e).__name__, msg=str(_val_e))
-                reply = {"ok": False, "error": f"{type(_val_e).__name__}: {_val_e}"}
-            else:
-                if msg.get("cmd") == "unload_file" and reply.get("ok"):
-                    # reset_interpreter doesn't clear stat.file, so the shared
-                    # poller's file-change edge won't fire. Clear the shared
-                    # cache and bump the version so every client's status_loop
-                    # sends an empty viewer_gcode on the next cycle.
-                    _bulk.preview_pending = None
-                    _bulk.preview_bytes = None
-                    _bulk.preview_bytes_gz = None
-                    _bulk.preview_version += 1
-                    _bulk.last_file = None
-                    _bulk.last_mtime = None
-            await ws_send_json(ws, {"type": "reply", "cmd": msg.get("cmd"), **reply})
+            # Everything else runs on this client's command worker (above):
+            # the reader must be back at ws.receive() immediately so the
+            # client's heartbeats are never queued behind a handler. Bounded
+            # queue, replied + traced when full — never a silent drop; stop-
+            # class commands get 4× the headroom and are never rejected first.
+            _rcmd = msg.get("cmd")
+            if _rcmd in _WS_PREEMPT_CMDS:
+                # A stop supersedes the work this client sent before it: drop
+                # the queued non-stop commands (replied + traced, never
+                # silent), keep stops/arm in their FIFO order ahead of this
+                # one, and cancel every client's in-flight handler. All on
+                # the loop thread — the worker is either parked in get() or
+                # inside its sub-task, never touching the queue.
+                _kept, _sup = [], []
+                while True:
+                    try:
+                        _qm, _qt = cmd_queue.get_nowait()
+                    except asyncio.QueueEmpty:
+                        break
+                    (_kept if _qm.get("cmd") in _WS_NO_PREEMPT else _sup).append((_qm, _qt))
+                for _qm, _qt in _kept:
+                    cmd_queue.put_nowait((_qm, _qt))
+                for _qm, _qt in _sup:
+                    await ws_send_json(ws, {"type": "reply", "cmd": _qm.get("cmd"), "ok": False,
+                                            "error": f"Superseded by {_rcmd}"})
+                if _sup:
+                    _trace.emit("ws.command_superseded", level="warn", client_id=client_id,
+                                by=_rcmd, count=len(_sup), cmds=[m.get("cmd") for m, _ in _sup])
+                _preempt_inflight(by=_rcmd, from_client=client_id)
+            _depth = cmd_queue.qsize()
+            _cap = _WS_CMD_QUEUE_MAX * (4 if _rcmd in _WS_STOP_CMDS else 1)
+            if _depth >= _cap:
+                _trace.emit("ws.command_queue_full", level="warn", client_id=client_id,
+                            cmd=_rcmd, depth=_depth, inflight_cmd=client.cmd_inflight,
+                            inflight_ms=(round((time.monotonic() - client.cmd_inflight_since_mono) * 1000)
+                                         if client.cmd_inflight else None))
+                await ws_send_json(ws, {"type": "reply", "cmd": _rcmd, "ok": False,
+                                        "error": f"Command queue full ({_depth} pending) — command dropped"})
+                continue
+            _set_phase(f"ws.enqueue cmd={_rcmd} client#{client_id}")
+            cmd_queue.put_nowait((msg, time.monotonic()))
 
     except (WebSocketDisconnect, RuntimeError) as _disc_e:
         _set_phase(f"ws_endpoint.WebSocketDisconnect_caught client#{client_id}")
@@ -6251,6 +7882,25 @@ async def ws_endpoint(ws: WebSocket):
         _last_hb_at_drop = _clients[client_id].last_hb_mono if client_id in _clients else None
         _clients.pop(client_id, None)
         _halshow_topology_sent.pop(client_id, None)
+        # Command worker: cancel FIRST — the armed jog-stop below needs
+        # _cmd_lock, which an in-flight handler may hold; _cmd_blocking keeps
+        # the lock until the NML call returns, so this is a request, not a
+        # wait (never awaited here: the SIGTERM path must not linger behind a
+        # 30 s wait_complete; the lifespan bg-task gather covers it). Queued
+        # commands are dropped and said so.
+        _set_phase(f"ws_endpoint.finally.cancel_cmd_worker client#{client_id}")
+        _inflight_at_drop = client.cmd_inflight
+        cmd_task.cancel()
+        _dropped = []
+        while True:
+            try:
+                _dm, _ = cmd_queue.get_nowait()
+            except asyncio.QueueEmpty:
+                break
+            _dropped.append(_dm.get("cmd"))
+        if _dropped:
+            _trace.emit("ws.command_dropped_on_disconnect", level="warn",
+                        client_id=client_id, count=len(_dropped), cmds=_dropped)
         # Disconnect of an armed client: jog-stop any in-flight jog this
         # client started, then register a 10s armed-resume hold keyed by
         # session_id so a Ctrl-R / Wi-Fi blip can transparently re-arm.
@@ -6316,6 +7966,8 @@ async def ws_endpoint(ws: WebSocket):
             cleanup_ms=round((time.monotonic() - _finally_t0) * 1000, 1),
             session_ms=round((time.monotonic() - _conn_t0) * 1000, 1),
             remaining_clients=len(_clients),
+            queue_dropped=len(_dropped),
+            inflight_at_drop=_inflight_at_drop,
         )
 
 

@@ -9,7 +9,9 @@
 // points.flat(), no per-point allocation on the UI thread.
 import { decode as msgpackDecode } from "@msgpack/msgpack";
 import { buildScrubTrack, splitTrackStreams } from "./viewer/scrubTrack";
+import { buildLodLevels } from "./viewer/lineChunks";
 import { decodePreviewStreams } from "./previewDecode";
+import { buildLineIndex, lineIndexTransferables } from "./viewer/lineIndex";
 
 interface Req { version: number; url: string }
 
@@ -41,8 +43,8 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     // and the scrub bar simply doesn't offer itself.
     const d = decodePreviewStreams(g);
     let { feedPos, rapidPos, feedLines, feedAbc, rapidAbc } = d;
-    const { kinsFrames, wcsEvents } = d;
-    const scrubTrack = buildScrubTrack(d.feed, d.rapid, kinsFrames, wcsEvents, d.subNames);
+    const { kinsFrames, wcsEvents, tloEvents } = d;
+    const scrubTrack = buildScrubTrack(d.feed, d.rapid, kinsFrames, wcsEvents, d.subNames, tloEvents, d.rotaryCmd);
 
     // Drawn-preview streams re-derived from the merged track (sectioned, with
     // break indices) — the raw endpoint strips draw FALSE connectors across
@@ -53,11 +55,18 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     let rapidBreaks: Uint32Array | undefined;
     let feedMode: Uint8Array | undefined;
     let rapidMode: Uint8Array | undefined;
-    let feedFrame: Uint8Array | undefined;
-    let rapidFrame: Uint8Array | undefined;
-    let feedWcs: Uint8Array | undefined;
-    let rapidWcs: Uint8Array | undefined;
+    let feedFrame: Uint32Array | undefined;
+    let rapidFrame: Uint32Array | undefined;
+    let feedWcs: Uint32Array | undefined;
+    let rapidWcs: Uint32Array | undefined;
+    let feedTlo: Uint32Array | undefined;
+    let rapidTlo: Uint32Array | undefined;
+    // Outside-limits flags (2026-09-12): through the track split when there
+    // is a track, else the wire arrays as they are (legacy strips).
+    let feedOutside: Uint8Array | undefined = d.feed.outside;
+    let rapidOutside: Uint8Array | undefined = d.rapid.outside;
     let feedSrc: Uint32Array | undefined;
+    let rapidSrc: Uint32Array | undefined;
     if (scrubTrack) {
       const hadAbc = feedAbc != null || rapidAbc != null;
       const split = splitTrackStreams(scrubTrack);
@@ -70,10 +79,23 @@ self.onmessage = async (e: MessageEvent<Req>) => {
       feedMode = split.feedMode; rapidMode = split.rapidMode;
       feedFrame = split.feedFrame; rapidFrame = split.rapidFrame;
       feedWcs = split.feedWcs; rapidWcs = split.rapidWcs;
+      feedTlo = split.feedTlo; rapidTlo = split.rapidTlo;
+      feedOutside = split.feedOutside; rapidOutside = split.rapidOutside;
       feedSrc = split.feedSrc;
+      rapidSrc = split.rapidSrc;
     }
-    const feedLineMap = _buildFeedLineMap(feedLines ?? g.feed_lines);
+    // Typed line index instead of a Map (viewer/lineIndex.ts): transferred,
+    // not cloned — the Map clone alone was 0.9 s per publish on 1.18 M lines.
+    const feedLineIndex = buildLineIndex(feedLines ?? g.feed_lines);
     const rapidDist = _lineDistances(rapidPos);  // dashed rapid line's lineDistance (P4.1)
+    // Display LOD levels over the drawn vertices (viewer/lineChunks.ts): the
+    // programmed path draws these arrays as they are, so its levels are cut
+    // here. Runs break at the section breaks; a room/table flip (decided on
+    // the main thread) is not known here — the renderer drops any level pair
+    // whose endpoints differ in frame.
+    const _tLod = performance.now();
+    const { feedLod, rapidLod, lodTols } = buildLodLevels(feedPos, feedBreaks, rapidPos, rapidBreaks);
+    const lodMs = Math.round(performance.now() - _tLod);
 
     // Drop the nested arrays from the passthrough; the flat typed arrays replace
     // them. Everything else (file, stats fields) is small and cloned as-is.
@@ -83,6 +105,7 @@ self.onmessage = async (e: MessageEvent<Req>) => {
             feed_kinstype: _fm, rapid_kinstype: _rm, rapid_brk: _rb,
             rapid_ustart: _ru,
             feed_lineok: _fo, rapid_lineok: _ro, feed_sub: _fsb, rapid_sub: _rsb,
+            feed_outside: _fou, rapid_outside: _rou,
             feed_cline: _fc, rapid_cline: _rc,
             ...rest } = g;
 
@@ -96,16 +119,19 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     if (rapidAbc) transfer.push(rapidAbc.buffer as ArrayBuffer);
     if (feedBreaks) transfer.push(feedBreaks.buffer as ArrayBuffer);
     if (rapidBreaks) transfer.push(rapidBreaks.buffer as ArrayBuffer);
+    transfer.push(...lineIndexTransferables(feedLineIndex));
     if (scrubTrack) {
       transfer.push(
         scrubTrack.pos.buffer as ArrayBuffer, scrubTrack.abc.buffer as ArrayBuffer,
         scrubTrack.lines.buffer as ArrayBuffer, scrubTrack.rapid.buffer as ArrayBuffer,
         scrubTrack.cum.buffer as ArrayBuffer,
+        ...lineIndexTransferables(scrubTrack.lineIndex),
       );
       if (scrubTrack.mode) transfer.push(scrubTrack.mode.buffer as ArrayBuffer);
       if (scrubTrack.frame) transfer.push(scrubTrack.frame.buffer as ArrayBuffer);
       if (scrubTrack.brk) transfer.push(scrubTrack.brk.buffer as ArrayBuffer);
       if (scrubTrack.wcsEpoch) transfer.push(scrubTrack.wcsEpoch.buffer as ArrayBuffer);
+      if (scrubTrack.tlo) transfer.push(scrubTrack.tlo.buffer as ArrayBuffer);
       if (scrubTrack.lineOk) transfer.push(scrubTrack.lineOk.buffer as ArrayBuffer);
       if (scrubTrack.sub) transfer.push(scrubTrack.sub.buffer as ArrayBuffer);
       if (scrubTrack.cline) transfer.push(scrubTrack.cline.buffer as ArrayBuffer);
@@ -117,10 +143,16 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     if (rapidFrame) transfer.push(rapidFrame.buffer as ArrayBuffer);
     if (feedWcs) transfer.push(feedWcs.buffer as ArrayBuffer);
     if (rapidWcs) transfer.push(rapidWcs.buffer as ArrayBuffer);
+    if (feedTlo) transfer.push(feedTlo.buffer as ArrayBuffer);
+    if (rapidTlo) transfer.push(rapidTlo.buffer as ArrayBuffer);
+    if (feedOutside) transfer.push(feedOutside.buffer as ArrayBuffer);
+    if (rapidOutside) transfer.push(rapidOutside.buffer as ArrayBuffer);
     if (feedSrc) transfer.push(feedSrc.buffer as ArrayBuffer);
+    if (rapidSrc) transfer.push(rapidSrc.buffer as ArrayBuffer);
+    for (const a of [...feedLod, ...rapidLod]) transfer.push(a.buffer as ArrayBuffer);
 
     self.postMessage(
-      { version, gcode: { ...rest, feedPos, rapidPos, feed_lines: feedLines, feedLineMap, rapidDist, feedAbc, rapidAbc, feedBreaks, rapidBreaks, feedMode, rapidMode, feedFrame, rapidFrame, feedWcs, rapidWcs, feedSrc, kinsFrames, wcsEvents, scrubTrack } },
+      { version, gcode: { ...rest, feedPos, rapidPos, feed_lines: feedLines, feedLineIndex, rapidDist, feedAbc, rapidAbc, feedBreaks, rapidBreaks, feedMode, rapidMode, feedFrame, rapidFrame, feedWcs, rapidWcs, feedTlo, rapidTlo, feedOutside, rapidOutside, feedSrc, rapidSrc, feedLod, rapidLod, lodTols, lodMs, kinsFrames, wcsEvents, tloEvents, scrubTrack } },
       { transfer },
     );
   } catch (err) {
@@ -148,17 +180,3 @@ function _lineDistances(pos: Float32Array): Float32Array {
   return d;
 }
 
-// Build the source-line → point-index range map off the main thread (P4.1). A Map
-// survives structured clone, and it has one entry per source line (far fewer than
-// points), so cloning it is cheap while the O(points) build moves off the UI thread.
-function _buildFeedLineMap(feed_lines: unknown): Map<number, { start: number; end: number }> {
-  const m = new Map<number, { start: number; end: number }>();
-  if (!Array.isArray(feed_lines) && !(feed_lines instanceof Uint32Array)) return m;
-  for (let i = 0; i < feed_lines.length; i++) {
-    const ln = feed_lines[i]!;
-    const entry = m.get(ln);
-    if (entry) entry.end = i;
-    else m.set(ln, { start: i, end: i });
-  }
-  return m;
-}

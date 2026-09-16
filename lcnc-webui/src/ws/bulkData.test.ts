@@ -29,7 +29,7 @@ const {
   fetchCompGrid, fetchSurfacePoints, gcodeContent,
   handleToolTableChanged, handleViewerGcode, handleViewerGcodeReady, handleViewerInit,
   previewLoadError, resetBulkVersionsOnClose, toolTableVersion, viewerGcode, viewerInit,
-  previewSchemaMismatch, EXPECTED_PREVIEW_SCHEMA, parseTloMismatch,
+  previewSchemaMismatch, EXPECTED_PREVIEW_SCHEMA, parseTloMismatch, previewRefusal,
 } = await import("./bulkData");
 
 type FetchCall = { url: string; signal: AbortSignal };
@@ -82,6 +82,25 @@ describe("bulkData frame handlers", () => {
     expect(viewerGcode.value).toEqual({ file: null });
     expect(gcodeContent.value).toBeNull();
     expect(fetchCalls.filter(c => c.url.startsWith("/gcode"))).toHaveLength(0);
+  });
+});
+
+describe("previewRefusal (remap refusal in preview, 2026-09-05)", () => {
+  it("derives from parse_refused and clears on a clean payload", () => {
+    viewerGcode.value = { file: "/a.ngc", parse_refused: {
+      line: 3, message: "G68.2 ERROR: Must be in G54 to define TWP." } } as any;
+    expect(previewRefusal.value).toEqual({
+      line: 3, sub: null, message: "G68.2 ERROR: Must be in G54 to define TWP.",
+      text: "G68.2 ERROR: Must be in G54 to define TWP. (line 3)" });
+    viewerGcode.value = { file: "/a.ngc", parse_refused: {
+      line: null, sub: "g533remap", sub_line: 26, message: "No TWP defined" } } as any;
+    expect(previewRefusal.value?.text).toBe("No TWP defined (inside g533remap.ngc line 26)");
+    viewerGcode.value = { file: "/a.ngc", parse_refused: { line: null, message: "x" } } as any;
+    expect(previewRefusal.value?.text).toBe("x (an unknown line)");
+    viewerGcode.value = { file: "/a.ngc" } as any;
+    expect(previewRefusal.value).toBeNull();
+    viewerGcode.value = null;
+    expect(previewRefusal.value).toBeNull();
   });
 });
 

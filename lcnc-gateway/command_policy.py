@@ -25,6 +25,7 @@ Keep this file pure: stdlib only, no ``linuxcnc`` import, no import-time side
 effects, so it is unit-testable on a plain developer machine.
 """
 
+import math
 from dataclasses import dataclass
 from typing import Dict, Optional
 
@@ -47,6 +48,53 @@ class MachineState:
     #: gate, not the open one — the machine is built in exactly one place
     #: (policy_state_from_payload), which always sets it.
     rotary_at_zero: bool = False
+    #: Kinematics-mode inputs for the touch-off gates (2026-08-30). Every
+    #: field defaults to the CLOSED reading: an unknown kins on a switchable
+    #: machine, an unknown fixture, no active plane, a table not known to be
+    #: at zero — each refuses. `kins_switchable` defaults True so a builder
+    #: that never says what the machine is gets "unknown" (closed), never
+    #: "identity" (open); the one real builder (policy_state_from_payload)
+    #: always sets it from the kins declaration.
+    kins_switchable: bool = True
+    #: Live motion.switchkins-type, rounded (0 identity / 1 TCP / 2 TOOL);
+    #: None = not sampled or reader stale.
+    kins_type: Optional[int] = None
+    #: Active fixture, 1-based (G54 = 1 … G59.3 = 9); None = unknown.
+    g5x_index: Optional[int] = None
+    #: twp-helper-comp twp-is-active (a plane is defined AND the head was
+    #: oriented into it).
+    twp_active: bool = False
+    #: Table A within PROV_A_EPS of zero — the TCP touch-off admission rule
+    #: the remap enforces later (to_storage_frame: kins 1 only at A=0).
+    a_at_zero: bool = False
+    #: A tilted-work-plane is DEFINED (twp-helper-comp twp-is-defined).
+    #: Capture refuses rather than silently discarding it (user decision
+    #: 2026-08-31: Clear plane first).
+    twp_defined: bool = False
+    #: G54's A/B/C row ≈ 0 AND G92's rotary components ≈ 0 — the states g683
+    #: refuses loudly; the gate closes the Capture button for the same reason
+    #: so the operator sees why BEFORE pressing.
+    rotary_offsets_clean: bool = False
+    #: G92 X/Y/Z ≈ 0 — a live G92 would displace the captured origin
+    #: (#<_x> includes it; G68.3's origin words are G54-relative).
+    g92_xyz_clean: bool = False
+    #: This machine runs the TWP remap stack (gateway _twp_capable: the kins
+    #: declaration is the shipped xyzacb-trsrn config). Only then are
+    #: G59..G59.3 the remap's scratch rows and plane capture / orient real
+    #: actions; a switchable-but-TWP-less machine (a TCP trunnion) and a
+    #: plain mill keep their ordinary fixtures (TWP-08a, review 2026-09-14).
+    #: Closed default: a builder that never says gets the TWP rules off.
+    twp_capable: bool = False
+    #: The kins module's `sparm=identityfirst` flag (parse_kins_config):
+    #: which RAW switchkins type is identity on a non-trsrn family. Consumed
+    #: by the semantic mode mapping (TWP-08b). Same default as the module's.
+    identity_first: bool = False
+    #: The HEAD is still aligned with the defined plane: the A/B/C pose the
+    #: last orient stamped equals the live rotaries (gateway_util
+    #: twp_head_aligned is True). Unknown reads False (closed). Gates the
+    #: Plane jog frame and Plane → Zero — both promise motion along the tool
+    #: axis, which a frozen frame no longer is once a rotary moved (TWP-04).
+    twp_aligned: bool = False
 
 
 # Single source of truth for gate semantics (review #6): each gate is an ordered
@@ -73,6 +121,363 @@ _R_PAUSED = (lambda s: s.is_paused, "No program paused to resume")
 _R_READY_OR_PAUSED = (lambda s: (s.is_idle and s.is_homed) or s.is_paused,
                       "Must be homed and idle, or paused, to step")
 
+
+# ---------------------------------------------------------------------------
+# Touch-off under kinematics modes (2026-08-30)
+#
+# A touch-off writes the ACTIVE fixture (G10 L20 P0). On a TWP machine that is
+# only sometimes the datum: G59–G59.3 are the remap's scratch rows (rewritten by
+# every orient), Plane mode (kins 2) expresses positions in the TOOL frame, and
+# a rotary offset displaces the orient move. The datum lives in ONE place — G54
+# in the table frame — and these rules keep every touch-off pointed at it:
+#   identity (kins 0 / non-switchable): linear letters into G54–G58; rotary
+#       letters into G54 only (the remap then refuses to define a plane on a
+#       rotary offset, loudly — allowed for non-TWP workflows).
+#   The reserved rows are reserved only on a TWP-CAPABLE machine
+#       (MachineState.twp_capable): a plain mill or a TCP trunnion runs no
+#       remap that rewrites G59–G59.3, so those stay ordinary fixtures there
+#       (TWP-08a — the rule used to refuse every machine's G59 touch-off).
+#   TCP (kins 1): linear letters into G54–G58, table at A=0 — TCP world equals
+#       the table frame G54 is stored in only at the datum (remap.py
+#       to_storage_frame), so the UI refuses exactly where the remap would.
+#   Plane (kins 2): linear letters, plane active, G59 active → routed to the
+#       remap (o<twp_touchoff>), which transforms the touched point back
+#       through the plane and writes G54 — never G59.
+#   anything else refuses with the reason.
+# The two gates below are STATE-only (check_command sees no payload); the
+# per-letter decision is touchoff_route, called by the handler. The gates are
+# DEFINED through the route so the two can never disagree.
+# ---------------------------------------------------------------------------
+LINEAR_LETTERS = frozenset("XYZUVW")
+ROTARY_LETTERS = frozenset("ABC")
+TOUCHOFF_LETTERS = LINEAR_LETTERS | ROTARY_LETTERS
+#: G59..G59.3 — owned by the TWP remap (g53x_core writes them at every orient).
+RESERVED_FIXTURES = frozenset({6, 7, 8, 9})
+
+
+def semantic_kins(s: MachineState) -> Optional[int]:
+    """The kinematics MODE the policy reasons about — 0 identity, 1 TCP /
+    world, 2 TOOL / plane, 3 unsupported — or None when a switchable
+    machine's type is unknown (not sampled / reader stale).
+
+    Raw `motion.switchkins-type` numbers mean different things per kins
+    FAMILY: on xyzac-trt raw 0 is the WORLD (TCP) kins unless the module was
+    loaded with `sparm=identityfirst`, so a policy that read raw 0 as
+    identity would have admitted G53 routines under TCP on a plain trt
+    (TWP-08b). The raw type is resolved here, once, from the declaration
+    (MachineState.identity_first). The shipped TWP stack (xyzacb-trsrn,
+    twp_capable) hardcodes 0/1/2 = identity/TCP/TOOL. World/identity mapping
+    mirrors gateway_util.kins_nonidentity_flags (not imported: this module
+    stays stdlib-only); one deliberate difference: that checker treats trt
+    userk (raw 2) as identity math (the stock template), while ADMISSION of
+    G53 motion under a kins the policy cannot verify must refuse — 3.
+    """
+    if not s.kins_switchable:
+        return 0
+    k = s.kins_type
+    if k is None:
+        return None
+    if s.twp_capable:
+        return k if k in (0, 1, 2) else 3
+    identity_raw = 0 if s.identity_first else 1   # sparm=identityfirst: raw 0 is identity
+    if k == identity_raw:
+        return 0
+    if k == 1 - identity_raw:
+        return 1
+    return 3
+
+
+def raw_kins_for_semantic(semantic: int, twp_capable: bool,
+                          identity_first: bool) -> Optional[int]:
+    """The RAW switchkins type that means `semantic` (0 identity, 1 TCP /
+    world, 2 TOOL / plane) on this kins family — the inverse of
+    semantic_kins, and the reason the two live side by side.
+
+    R-01 (implementation review 2026-09-15): the frame the operator picks is
+    semantic, the pin is raw, and the two differ per family — on xyzac-trt
+    raw 0 is the WORLD kins unless the module was loaded with
+    `sparm=identityfirst`. 2 exists only on the TWP stack. None = this
+    family has no such mode, which the caller must refuse rather than
+    approximate. Pure; round-trips with semantic_kins by construction
+    (tested)."""
+    if semantic == 2:
+        return 2 if twp_capable else None
+    if semantic not in (0, 1):
+        return None
+    if twp_capable:
+        return semantic
+    identity_raw = 0 if identity_first else 1   # sparm=identityfirst: raw 0 is identity
+    return identity_raw if semantic == 0 else 1 - identity_raw
+
+
+def _unsupported_mode_msg(s: MachineState) -> str:
+    return (f"Kinematics mode {s.kins_type} has no policy rule on this kins "
+            f"family — select the Machine (identity) frame first")
+
+
+def touchoff_route(s: MachineState, letters):
+    """Where a touch-off of `letters` goes in state `s`.
+
+    Returns ("mdi", None) for a plain G10 L20 into the active fixture,
+    ("plane", None) for the Plane-mode remap route, or (None, reason).
+    Pure; reasons are operator-readable and surface verbatim."""
+    ls = [str(l).upper() for l in letters]
+    if not ls:
+        return None, "No axis given"
+    for l in ls:
+        if l not in TOUCHOFF_LETTERS:
+            return None, f"{l!r} is not an axis letter"
+    k = semantic_kins(s)
+    if k is None:
+        return None, "Kinematics mode unknown (reader stale) — touch-off refused"
+    if k == 3:
+        return None, _unsupported_mode_msg(s)
+    if s.g5x_index is None:
+        return None, "Active fixture unknown — touch-off refused"
+    if any(l in ROTARY_LETTERS for l in ls):
+        if k != 0:
+            return None, ("Rotary touch-off needs the Machine (identity) jog "
+                          "frame — a rotary offset under TCP/Plane kinematics "
+                          "displaces the orient move")
+        if s.g5x_index != 1:
+            return None, "Rotary offsets are allowed in G54 only"
+    if k == 2:
+        if not s.twp_active:
+            return None, ("Plane jog frame without an active plane — Orient "
+                          "first (G53.x), or switch to the Machine frame")
+        if s.g5x_index != 6:
+            return None, ("Plane mode expects G59 (the plane fixture) active "
+                          "— select the Plane frame again")
+        return "plane", None
+    if s.twp_capable and s.g5x_index in RESERVED_FIXTURES:
+        return None, ("G59–G59.3 are TWP scratch rows rewritten by every "
+                      "orient — touch off into G54–G58")
+    if k == 1 and not s.a_at_zero:
+        return None, ("TCP touch-off needs the table at A=0 (the fixture is "
+                      "stored as a table-frame point) — jog A to 0 or use "
+                      "the Machine frame")
+    if k not in (0, 1):
+        return None, _unsupported_mode_msg(s)
+    return "mdi", None
+
+
+def kins_runnable(s: MachineState) -> Optional[str]:
+    """May a program START under the current kinematics state? None = yes,
+    else the operator-readable refusal.
+
+    Plane (TOOL) kinematics is a frozen frame: without an active plane the
+    axes follow whatever the kins pins last held, and with an operator
+    fixture selected the positions are tilted-frame numbers against
+    table-frame offsets. Both are what a program's M2 leaves behind — G54
+    restored, the kins TYPE not (it is a HAL pin, not interpreter state; M2
+    and M30 are not remappable and the only end hook is the abort handler).
+    A 3-axis program started here would cut in the tilted frame. The chip
+    shows it (twpPose.ts kinsModeChip); this refuses to run on it. Pure."""
+    k = semantic_kins(s)
+    if k is None:
+        # Same reading as touchoff_route: unknown is not identity.
+        return "Kinematics mode unknown (reader stale) — start refused"
+    if k == 3:
+        return _unsupported_mode_msg(s)
+    if k == 2 and not s.twp_active:
+        return ("Plane kinematics is active with no active plane — select the "
+                "Machine frame or G69 before starting")
+    if k == 2 and s.g5x_index is not None and s.g5x_index != 6:
+        return ("Plane kinematics is active but G54 (not G59, the plane fixture) "
+                "is selected — a program ended with TOOL kinematics on. Select the "
+                "Plane frame again (M430 selects G59), or the Machine frame / G69")
+    return None
+
+
+def machine_frame_required(s: MachineState) -> Optional[str]:
+    """May a G53-moving routine run? None = yes, else the refusal.
+
+    The go-to (Home / G30), tool-change / toolsetter and probing subroutines
+    retract and position with G53. Under switched kinematics G53 addresses
+    the kinematics' WORLD frame: the tilted plane frame in TOOL mode, the
+    table-riding frame in TCP — "G53 Z0" is then not the top of travel, and
+    a rotary word swings the head at fixed XYZ joints (the tip sweeps the
+    pivot lever). Only identity kinematics makes those routines mean what
+    they say (2026-09-03, operator: "if I have defined a plane and press go
+    zero, what will happen?"). Pure."""
+    k = semantic_kins(s)
+    if k is None:
+        return "Kinematics mode unknown (reader stale) — refused"
+    if k == 3:
+        return _unsupported_mode_msg(s)
+    if k != 0:
+        return ("Machine frame required — G53 moves are tilted-frame moves under "
+                "TCP or Plane kinematics; select the Machine frame first")
+    return None
+
+
+# The M-code that SELECTS the Machine frame is configuration-dependent
+# (R-01: the shipped trt remaps M428 to its world kins), so operator wording
+# names the frame — the JogStrip radio and the typed set_kins_mode command
+# own the number.
+_R_MACHINE_FRAME = (lambda s: machine_frame_required(s) is None,
+                    "Machine frame required — select the Machine frame first")
+
+
+def goto_zero_plan(s: MachineState, work_z: Optional[float], clearance: float,
+                   stamp: Optional[dict] = None, metric: bool = True):
+    """The → Zero button under the current kinematics: (mdi_lines, None) or
+    (None, refusal).
+
+    Machine frame: the probe_basic subroutine (G53 Z0 retract — skipped when
+    the controlled point is already at/above machine zero, `#<_abs_z>`: a
+    retract never lowers Z — then rotaries to the fixture's touch-off pose,
+    then X0 Y0) — `stamp` is the active
+    fixture's W1 provenance ({"kins","a",...}, None when unstamped). In
+    identity kinematics a fixture is a fixed point in the ROOM, the part's
+    datum only at the table angle it was touched off at, so the table goes
+    back to the STAMP angle (0 when unstamped = the documented A=0 rule)
+    BEFORE X/Y — the tip lands on the part's datum, where the viewer draws
+    the triad. 2026-09-04, operator: "G54 did not align anymore with the
+    head — it stopped somewhere else" (zeroed at a tilted A, the routine
+    drove A to 0). A fixture stamped under TCP/Plane holds table-frame /
+    plane numbers, not machine coordinates: refused.
+    Plane frame with its plane active and G59 selected: the
+    o<twp_goto_zero> subroutine (examples/sim_config/twp/remap_subs) —
+    retract ALONG THE TOOL AXIS to `clearance` (machine units; `metric`
+    says which, so the sub sets G21/G20 explicitly) unless already above
+    it, then X0 Y0 in the plane; rotaries untouched (a rotary move would
+    un-orient the head). The sub runs under M73 + G90, so the caller's
+    distance mode and units cannot leak in — bare `G0 Z25` / `G0 X0 Y0`
+    MDI lines under G91 were +25 of Z and no X/Y move (TWP-01, review
+    2026-09-14). The "never lower" decision is the sub's, from the live
+    plane Z inside the interpreter; `work_z` is no longer consulted and
+    stays only for signature compatibility. TCP: refused — neither the
+    machine top nor the tool axis is a world axis there. Pure; unit-tested."""
+    k = semantic_kins(s)
+    if k is None:
+        return None, "Kinematics mode unknown (reader stale) — refused"
+    if k == 3:
+        return None, _unsupported_mode_msg(s)
+    if k == 0:
+        sk, a = None, 0.0
+        if stamp:
+            try:
+                sk = int(round(float(stamp.get("kins") or 0)))
+                a = float(stamp.get("a") or 0.0)
+            except (TypeError, ValueError):
+                return None, "Fixture provenance unreadable — refused"
+        if sk not in (None, 0):
+            return None, (f"The active fixture was touched off in "
+                          f"{'TCP' if sk == 1 else 'Plane'} kinematics — its numbers are not "
+                          f"machine coordinates; select that frame, or touch off again here")
+        if not math.isfinite(a):
+            return None, "Fixture provenance unreadable — refused"
+        return [f"O<go_to_zero> CALL [{a:.4f}]"], None
+    if k == 1:
+        return None, ("Go to WCS 0 under TCP: neither the machine top nor the tool axis is a "
+                      "world axis here — select the Machine frame or the Plane frame first")
+    if not s.twp_active or s.g5x_index != 6:
+        return None, ("Plane kinematics without its plane fixture — select the Plane frame "
+                      "again (M430), or the Machine frame / G69")
+    if not s.twp_aligned:
+        # The retract is "along the tool axis" only while the head still
+        # points where the last orient put it (TWP-04).
+        return None, ("Head not aligned with the plane (a rotary moved since the last "
+                      "orient, or no orient yet) — press Orient before Go to WCS 0")
+    if not math.isfinite(float(clearance)) or float(clearance) < 0:
+        return None, "Clearance unreadable — refused"
+    return [f"O<twp_goto_zero> CALL [{float(clearance):.4f}] [{1 if metric else 0}]"], None
+
+
+_R_GOZERO = (lambda s: goto_zero_plan(s, 0.0, 0.0)[1] is None,
+             "Go to WCS 0 (→ Zero) is not available under this kinematics mode")
+
+
+#: Plane-frame admission (TWP-04), ordered — ONE source for the handler's
+#: refusal text (set_kins_mode mode 2), the `planeFrame` gate that dims the
+#: JogStrip radio, and check_command. A bare M430 reuses whatever frame the
+#: kins pins last held, so the frame is offered only while a plane is
+#: defined and the head is still aligned with it.
+_PLANE_FRAME_RULES = (
+    (lambda s: s.twp_capable,
+     "Not a TWP machine — there is no Plane frame"),
+    (lambda s: s.kins_type is not None,
+     "Kinematics mode unknown (reader stale) — Plane frame refused"),
+    (lambda s: s.twp_defined,
+     "No tilted work plane defined (G68.2 / G68.3 or Capture) — nothing to jog in"),
+    (lambda s: s.twp_aligned,
+     "Head not aligned with the plane — press Orient (G53.x) before selecting the Plane frame"),
+)
+
+
+def plane_frame_check(s: MachineState) -> Optional[str]:
+    """May the Plane jog frame (M430) be selected? None = yes, else the
+    operator-readable refusal — the first failing _PLANE_FRAME_RULES message,
+    so the handler, the gate and the WS denial can never disagree. Pure."""
+    for ok, msg in _PLANE_FRAME_RULES:
+        if not ok(s):
+            return msg
+    return None
+
+
+_R_RUNNABLE = (lambda s: kins_runnable(s) is None,
+               "Kinematics state not runnable (Plane kinematics without its plane "
+               "or fixture) — select the Machine frame / G69, or the Plane frame")
+
+
+_R_TOUCHOFF_LINEAR = (
+    lambda s: touchoff_route(s, ("X",))[0] is not None,
+    "Touch-off refused here: on a TWP machine G59–G59.3 are scratch rows (use G54–G58); "
+    "Plane mode needs an active plane with G59 selected; TCP needs A=0; "
+    "an unknown kinematics mode refuses")
+_R_TOUCHOFF_ROTARY = (
+    lambda s: touchoff_route(s, ("A",))[0] is not None,
+    "Rotary touch-off is allowed in the Machine jog frame and G54 only")
+
+
+#: Capture-plane admission rules, ordered — ONE source for three consumers:
+#: twp_capture_check (the handler's refusal text), the twpCapture gate below
+#: (check_command surfaces the FIRST failing rule's message verbatim, so a
+#: denied WS command names its exact reason, not a summary), and the button
+#: dimming (permissions broadcast). Every predicate is None-safe and every
+#: default is the CLOSED reading.
+_TWP_CAPTURE_RULES = (
+    # Capability, not switchability: a TCP trunnion is switchable and has no
+    # G68.2 / G53.x remap to capture with (TWP-08b).
+    (lambda s: s.twp_capable,
+     "Not a TWP machine — plane capture needs the xyzacb-trsrn TWP stack"),
+    (lambda s: s.kins_type is not None,
+     "Kinematics mode unknown (reader stale) — capture refused"),
+    (lambda s: s.g5x_index is not None,
+     "Active fixture unknown — capture refused"),
+    (lambda s: not s.twp_defined,
+     "A plane is already defined — press Clear plane first"),
+    (lambda s: s.g5x_index == 1,
+     "Capture defines the plane on the G54 datum — select G54 first "
+     "(G59–G59.3 are TWP scratch rows)"),
+    (lambda s: s.rotary_offsets_clean,
+     "A rotary (A/B/C) work or G92 offset is in effect — clear it "
+     "(G10 L2 P1 A0 B0 C0 / G92.1) before capturing"),
+    (lambda s: s.g92_xyz_clean,
+     "A G92 X/Y/Z offset is in effect — G92.1 before capturing"),
+)
+
+
+def twp_capture_check(s: MachineState) -> Optional[str]:
+    """May "Capture plane" fire? None = yes, else the operator-readable refusal.
+
+    The one-button manual TWP definition: G69 normalize, G68.3 with origin
+    at the current tool tip, no-move G53.1 P0 — driven by the gateway as
+    separate blocking MDIs (remapped G-codes never execute inside an o-sub
+    called from MDI). First failing _TWP_CAPTURE_RULES message, so the
+    handler, the gate and the WS denial can never disagree.
+
+    No A=0 rule and no kins-mode rule beyond "known": capture from the TCP
+    jog frame is the stated workflow (align the spindle with the tip held on
+    the face), and the sequence's G69 normalizes kins + fixture before the
+    tip sample; g683 converts a live table tilt into the table frame itself."""
+    for ok, msg in ((f(s), m) for f, m in _TWP_CAPTURE_RULES):
+        if not ok:
+            return msg
+    return None
+
+
 _BASE = (_R_ARMED, _R_NOT_ESTOP, _R_ENABLED)
 
 # gate -> ordered requirements (armed/estop/enabled first → sensible messages).
@@ -81,12 +486,35 @@ GATE_REQUIREMENTS: Dict[str, tuple] = {
     "jog":      _BASE + (_R_IDLE, _R_HOMED),
     "override": _BASE,
     "ready":    _BASE + (_R_IDLE, _R_HOMED),
+    # Program start (Cycle Start / run-from-line): `ready` plus the
+    # kinematics-runnable rule above — a stranded Plane-kins state (post-M2)
+    # must not start a program in the tilted frame (2026-09-03).
+    "run":      _BASE + (_R_IDLE, _R_HOMED, _R_RUNNABLE),
+    # G53-moving routines (go-to Home/G30, tool change / toolsetter, probing
+    # cycles): identity kinematics only — see machine_frame_required.
+    "machineFrame": _BASE + (_R_IDLE, _R_HOMED, _R_MACHINE_FRAME),
+    # The → Zero button: Machine frame (subroutine) or Plane frame (retract
+    # along the tool axis, then X0 Y0 in the plane); TCP refuses.
+    "goZero":   _BASE + (_R_IDLE, _R_HOMED, _R_GOZERO),
+    # The Plane jog frame radio (set_kins_mode 2): TWP machine, plane
+    # defined, head aligned — see plane_frame_check. Machine/TCP stay on
+    # `ready` like the MDI remap they run.
+    "planeFrame": _BASE + (_R_IDLE, _R_HOMED) + _PLANE_FRAME_RULES,
     "pause":    _BASE + (_R_RUNNING, _R_NOT_PAUSED),
     "resume":   _BASE + (_R_PAUSED,),
     "step":     _BASE + (_R_READY_OR_PAUSED,),
     "abort":    _BASE,
     "probe":    _BASE + (_R_IDLE, _R_HOMED, _R_NO_EOFFSET),
     "zero":     _BASE + (_R_IDLE, _R_NO_EOFFSET),
+    # Touch-off (G10 L20 / the Plane-mode remap route): `probe` plus the
+    # kins-mode × fixture rule above. Two classes because the per-axis
+    # controls differ: rotary letters are identity + G54 only.
+    "touchoff":       _BASE + (_R_IDLE, _R_HOMED, _R_NO_EOFFSET, _R_TOUCHOFF_LINEAR),
+    "touchoffRotary": _BASE + (_R_IDLE, _R_HOMED, _R_NO_EOFFSET, _R_TOUCHOFF_ROTARY),
+    # One-button plane capture at the tool tip (o<twp_capture>): plane from
+    # the live rotaries, origin at the tip, no-move orient. Defined through
+    # twp_capture_check above.
+    "twpCapture": _BASE + (_R_IDLE, _R_HOMED, _R_NO_EOFFSET) + _TWP_CAPTURE_RULES,
     # May the operator START surface-map work — probe a new map, or switch
     # compensation ON? `probe` plus "the tool is normal to the mapped surface
     # and the map's grid is aligned to the work". Deliberately NOT the gate on
@@ -104,11 +532,42 @@ GATE_REQUIREMENTS: Dict[str, tuple] = {
 
 
 def evaluate_permissions(s: MachineState) -> Dict[str, bool]:
-    """The 14 permission classes for `s`, derived from GATE_REQUIREMENTS — the
+    """The permission classes for `s` (one per GATE_REQUIREMENTS entry), derived from GATE_REQUIREMENTS — the
     same table check_command() reports denials from, so a gate's decision and its
     deny message can't drift (review #6)."""
     return {gate: all(ok(s) for ok, _ in reqs)
             for gate, reqs in GATE_REQUIREMENTS.items()}
+
+
+def _gate_reason(gate: str, s: MachineState) -> Optional[str]:
+    """The FIRST unmet requirement's operator-readable message for `gate` in
+    state `s`, None when the gate is open — the one resolver check_command
+    (a denied command) and permission_reasons (a dimmed control) share, so
+    the two can never explain the same closed gate differently."""
+    for ok, message in GATE_REQUIREMENTS[gate]:
+        if not ok(s):
+            # The composite rules' reasons name the exact stranded state.
+            if ok is _R_RUNNABLE[0]:
+                return kins_runnable(s) or message
+            if ok is _R_MACHINE_FRAME[0]:
+                return machine_frame_required(s) or message
+            if ok is _R_GOZERO[0]:
+                return goto_zero_plan(s, 0.0, 0.0)[1] or message
+            return message
+    return None
+
+
+def permission_reasons(s: MachineState) -> Dict[str, str]:
+    """Why each CLOSED gate is closed (U-06, review 2026-09-14): a dimmed
+    control used to have no reachable explanation — the reason lived only in
+    the denial a command the control could not send would have produced.
+    Broadcast beside `permissions`; open gates are absent. Pure."""
+    out: Dict[str, str] = {}
+    for gate in GATE_REQUIREMENTS:
+        r = _gate_reason(gate, s)
+        if r is not None:
+            out[gate] = r
+    return out
 
 
 # Each mutating command -> the permission gate it requires. ``always`` means the
@@ -141,8 +600,8 @@ COMMAND_GATES: Dict[str, str] = {
     "unhome": "zero",
     "unhome_all": "zero",
     # --- program execution ---
-    "cycle_start": "ready",
-    "auto_run": "ready",
+    "cycle_start": "run",
+    "auto_run": "run",
     "auto_step": "step",
     "cycle_pause": "pause",
     "cycle_resume": "resume",
@@ -167,10 +626,19 @@ COMMAND_GATES: Dict[str, str] = {
     "set_block_delete": "override",
     "set_optional_stop": "override",
     # --- tool change (M6 — runs motion, must not contaminate via eoffset) ---
-    "tool_change": "probe",
+    "tool_change": "machineFrame",
+    "go_to_zero": "goZero",
+    # Kinematics-frame selector (M428/M429/M430 as a typed command): `ready`
+    # for the switch itself; mode 2 is re-checked handler-side with
+    # plane_frame_check (the gate cannot see the payload).
+    "set_kins_mode": "ready",
     # --- work offsets / probing setup ---
     "set_wcs": "probe",
     "clear_wcs": "probe",
+    # Operator touch-off from the DRO (was a client-built `G10 L20 P0` MDI
+    # under `probe`; now routed + stamped server-side, see touchoff_route).
+    "touchoff": "touchoff",
+    "twp_capture": "twpCapture",
     "set_probe_vars": "ready",
     # --- tool-table edits (no machine-enabled needed) ---
     "save_tool": "setup",
@@ -225,10 +693,7 @@ def check_command(cmd: str, state: MachineState) -> Optional[str]:
         return None
     # Decision AND message from the one GATE_REQUIREMENTS table: deny on the
     # first unmet requirement (review #6 — no separate reason chain to drift).
-    for ok, message in GATE_REQUIREMENTS[gate]:
-        if not ok(state):
-            return message
-    return None
+    return _gate_reason(gate, state)
 
 
 # ---------------------------------------------------------------------------
@@ -323,9 +788,62 @@ class Text:
 
 
 @dataclass(frozen=True)
+class AxisMap:
+    """touchoff's `axes` mapping: axis LETTER -> finite value. Letters are
+    structural (an unknown one is rejected, never dropped); values are the
+    operator's DRO entries, unbounded like set_wcs' words."""
+
+
+@dataclass(frozen=True)
 class VarNumbers:
     """set_probe_vars' `vars` mapping: keys must be var numbers this machine
     declares AND outside WRITABLE_VAR_DENY_RANGES."""
+
+
+@dataclass(frozen=True)
+class ExpectMap:
+    """touchoff's optional `expect` mapping (U-03, review 2026-09-14): the
+    kinematics mode and fixture the operator SAW while entering the value
+    (`kins_type`, `g5x_index`; int or null). The handler refuses when the
+    live state differs — the value must never land on another target."""
+
+
+EXPECT_KEYS = frozenset({"kins_type", "g5x_index"})
+
+
+def touchoff_target_text(kins_type, g5x_index) -> str:
+    """Operator wording for a touch-off target: "Plane · G59", "Machine ·
+    G54", "TCP · G55", "kins ? · G54". Pure."""
+    names = {0: "Machine", 1: "TCP", 2: "Plane"}
+    k = None if kins_type is None else names.get(int(round(float(kins_type))), f"kins {kins_type}")
+    g = None if g5x_index is None else int(g5x_index)
+    gname = None if g is None else (["G54", "G55", "G56", "G57", "G58", "G59", "G59.1", "G59.2", "G59.3"][g - 1]
+                                     if 1 <= g <= 9 else f"fixture {g}")
+    return " · ".join(x for x in (k, gname) if x) or "unknown"
+
+
+def touchoff_expect_check(s: MachineState, expect) -> Optional[str]:
+    """Does the touch-off target the keypad was opened under still hold in
+    state `s`? None = yes (or no expectation was carried), else the operator
+    wording for the refusal. Pure.
+
+    U-03 captured the expectation client-side; R-02 (implementation review
+    2026-09-15) is WHERE it is checked: against the published status snapshot
+    it accepted a G54 touch-off that the controller had already moved to G55.
+    The handler therefore calls this twice — once on the snapshot as a cheap
+    pre-check, once on state polled fresh from the controller immediately
+    before the write."""
+    if not isinstance(expect, dict):
+        return None
+    ek = expect.get("kins_type")
+    eg = expect.get("g5x_index")
+    kins_diff = ek is not None and (s.kins_type is None or int(ek) != int(s.kins_type))
+    fix_diff = eg is not None and (s.g5x_index is None or int(eg) != int(s.g5x_index))
+    if not (kins_diff or fix_diff):
+        return None
+    return (f"Touch-off target changed while you were entering: was "
+            f"{touchoff_target_text(ek, eg)}, now "
+            f"{touchoff_target_text(s.kins_type, s.g5x_index)} — re-enter the value")
 
 
 def _axis_index(_l: MachineLimits):
@@ -385,6 +903,8 @@ COMMAND_SCHEMA: Dict[str, Dict[str, object]] = {
     # --- work offsets: these become G10 L2 words. Unbounded floats reached the
     #     MDI as `G10 L2 P1 Xinf` before this.
     "set_wcs": {ax: Num() for ax in ("x", "y", "z", "a", "b", "c", "u", "v", "w", "r")},
+    "touchoff": {"axes": AxisMap(), "expect": ExpectMap()},
+    "set_kins_mode": {"mode": Enum(frozenset({0, 1, 2}))},
     # --- tool table
     "save_tool":     {"tool_number": Num(lo=0, hi=TOOL_NUMBER_MAX, integer=True),
                       "pocket": Num(lo=0, hi=TOOL_NUMBER_MAX, integer=True),
@@ -478,6 +998,22 @@ def validate_payload(cmd: str, msg: Dict, limits: MachineLimits) -> Dict[str, ob
                 raise ValueError(
                     f"{cmd}: {field} is {len(raw)} characters, maximum {cap} "
                     f"(LinuxCNC truncates longer input mid-word)")
+        elif isinstance(spec, AxisMap):
+            if not isinstance(raw, dict) or not raw:
+                raise ValueError(f"{cmd}: {field} must be a non-empty mapping")
+            for key, val in raw.items():
+                letter = str(key).upper()
+                if letter not in TOUCHOFF_LETTERS:
+                    raise ValueError(f"{cmd}: {key!r} is not an axis letter")
+                _check_number(cmd, f"{field}.{letter}", val, Num(), limits)
+        elif isinstance(spec, ExpectMap):
+            if not isinstance(raw, dict):
+                raise ValueError(f"{cmd}: {field} must be a mapping")
+            for key, val in raw.items():
+                if key not in EXPECT_KEYS:
+                    raise ValueError(f"{cmd}: {field}.{key} is not an expected-target key")
+                if val is not None:
+                    _check_number(cmd, f"{field}.{key}", val, Num(integer=True), limits)
         elif isinstance(spec, VarNumbers):
             if not isinstance(raw, dict):
                 raise ValueError(f"{cmd}: {field} must be a mapping")
@@ -495,4 +1031,8 @@ def validate_payload(cmd: str, msg: Dict, limits: MachineLimits) -> Dict[str, ob
                     raise ValueError(
                         f"{cmd}: #{num} is not in this machine's var file — "
                         f"declare it there to make it configurable")
+        else:
+            # A spec class this chain does not know would otherwise pass
+            # every value through silently — the opposite of a bounds check.
+            raise TypeError(f"{cmd}: {field} has an unhandled schema spec {spec!r}")
     return corrections

@@ -93,6 +93,20 @@ G0 X10 Y0 Z5
 G1 X20 Y0 F500
 M2
 """,
+    # Mid-program tool change + G43, then G49 (schema 8 tlo_events): pins
+    # WHEN the interpreter fires tool_offset relative to next_line, that
+    # the post-G43 traverse is a zero-length unknown-start vertex, the
+    # seq convention of the events, and the lo-peel continuity the carry
+    # closure rests on. The fixture ini's tool.tbl has T2 Z=47.690467.
+    "tlo_midprogram": """G0 X10 Y0 Z5
+G1 X20 Y0 F500
+T2 M6 G43 H2
+G0 X30 Y0 Z5
+G1 X40 Y0 F500
+G49
+G1 X50 Y0 F500
+M2
+""",
 }
 
 
@@ -118,6 +132,20 @@ class _Recorder(PreviewCanon):
     def __init__(self, *a, **k):
         super().__init__(*a, **k)
         self.basis_at_first_motion = None
+        # Every tool_offset callback with the line it fired on (schema 8):
+        # whether the interpreter fires one for init/initcodes is exactly
+        # the kind of fact that must come from the real thing.
+        self.tool_offset_calls = []
+
+    def tool_offset(self, *a):
+        # [lineno, seq, xo, yo, zo, lo_z_before, tlo_z_before, lo_z_after]:
+        # the lo-peel identity (lo_before + tlo_before == lo_after + zo) is
+        # what the relabel-carry closure rests on — pinned on the real thing.
+        lo_before, tlo_before = self.lo[2], self.zo
+        super().tool_offset(*a)
+        self.tool_offset_calls.append(
+            [self.lineno, self.seq] + [float(v) for v in a[:3]]
+            + [float(lo_before), float(tlo_before), float(self.lo[2])])
 
     def straight_traverse(self, *a):
         if self.basis_at_first_motion is None:
@@ -155,6 +183,18 @@ def run_one(name, source, initcodes, var_path, stat):
         "rapid_endpoints": [list(seg[2][:6]) for seg in canon.rapid[:4]],
         "feed_count": len(canon.feed),
         "rapid_count": len(canon.rapid),
+        # Schema 8: per-segment tool offsets + the event channel.
+        "tlo_events": [list(e) for e in canon.tlo_events],
+        "tool_offset_calls": canon.tool_offset_calls,
+        "feed_tlos": [list(seg[4]) for seg in canon.feed],
+        "rapid_tlos": [list(seg[3]) for seg in canon.rapid],
+        "feed_seqs": [seg[5] for seg in canon.feed],
+        "rapid_seqs": [seg[4] for seg in canon.rapid],
+        "feed_starts": [list(seg[1][:3]) for seg in canon.feed],
+        "feed_ends": [list(seg[2][:3]) for seg in canon.feed],
+        "rapid_starts": [list(seg[1][:3]) for seg in canon.rapid],
+        "rapid_ends": [list(seg[2][:3]) for seg in canon.rapid],
+        "unknown_start": list(canon.unknown_start),
     }
 
 

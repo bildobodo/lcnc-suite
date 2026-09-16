@@ -31,7 +31,7 @@ import math
 import os
 import time
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Sequence
 
 import linuxcnc
 
@@ -39,8 +39,12 @@ import lcnc_trace as _trace
 from command_policy import (
     MachineState as _PolicyMachineState,
     evaluate_permissions,
+    permission_reasons,
 )
-from gateway_util import atomic_write_bytes, canonical_to_joint_order, resolve_loaded_file
+from gateway_util import (
+    joints_beyond_limits, PROV_A_EPS, atomic_write_bytes, canonical_to_joint_order,
+    twp_head_aligned,
+                          resolve_loaded_file)
 from tool_table import parse_tool_table, _merge_tool_data
 
 WCS_BASES = [5220, 5240, 5260, 5280, 5300, 5320, 5340, 5360, 5380]
@@ -70,6 +74,87 @@ def rotary_at_zero(canonical_pos: Optional[List[float]], axis_mask: int) -> Opti
     if not configured:
         return True          # 3-axis machine: nothing can be tilted
     return all(abs(canonical_pos[s]) <= ROTARY_ZERO_TOL_DEG for s in configured)
+
+
+#: Reader field names for the TWP plane. The drawn position is the SUM of
+#: the work offset (twp_o* — helper's -world pins) and the plane-origin
+#: vector (twp_po* — "from the work-offset to the twp origin"): upstream's
+#: vismach composition. Both halves are in the TABLE frame — the plane is
+#: stored relative to the A table, datum'd to coincide with machine coords
+#: at A=0 — so the sum is a table-frame point, which is exactly the frame
+#: the viewer's work group draws in. All-or-nothing: a partial set is not
+#: a plane.
+_TWP_PLANE_FIELDS = ("twp_ox", "twp_oy", "twp_oz",
+                     "twp_pox", "twp_poy", "twp_poz",
+                     "twp_zx", "twp_zy", "twp_zz",
+                     "twp_xx", "twp_xy", "twp_xz")
+
+
+def assemble_twp_datum(reader_get) -> Optional[List[float]]:
+    """The WORKPIECE datum the plane is built on — the remap's saved work
+    offset (G54 at definition, or the last Plane-mode touch-off), published
+    by the helper as twp-o*-world, TABLE frame. The viewer draws it as the
+    G54 triad while a reserved fixture is active; None unless all three."""
+    vals = [reader_get(k) for k in _TWP_PLANE_FIELDS[:3]]
+    if any(v is None for v in vals):
+        return None
+    return [float(v) for v in vals]
+
+
+def datum_changed(before: Optional[Sequence[float]], now: Optional[Sequence[float]],
+                  eps: float = 1e-6) -> Optional[bool]:
+    """Did the helper's datum move between two reads? None when either side
+    is unreadable (no claim), True once any of X/Y/Z differs by more than
+    eps. The settle after M535 keys on this — never on a fixed dwell."""
+    if before is None or now is None or len(before) < 3 or len(now) < 3:
+        return None
+    return any(abs(float(now[i]) - float(before[i])) > eps for i in range(3))
+
+
+def datum_seq_advanced(before_seq, now_seq) -> Optional[bool]:
+    """Did the helper's datum-write epoch (twp-helper-comp.twp-datum-seq,
+    bumped by M535 AFTER it published the datum) move between two reads?
+    None when either side is unreadable — a helper that predates the pin,
+    or no snapshot — so the caller can say so and fall back to the
+    value-keyed test. Any change counts: the counter wraps, the reader
+    floats it, and floats hold integers exactly far beyond 2^32."""
+    if before_seq is None or now_seq is None:
+        return None
+    return float(now_seq) != float(before_seq)
+
+
+def seed_wcs_row_xyz(wcs_cache: List[Dict[str, Any]], index0: int,
+                     xyz: Sequence[float]) -> None:
+    """Overwrite x/y/z of ONE cached fixture row in place (the gateway holds
+    the same list object). Used after the remap wrote a NON-ACTIVE fixture
+    (M535: G10 L2 P1 while G59 is active) — STAT only refreshes the active
+    row and the var file is written at shutdown, so without this the row
+    froze at the pre-touch-off value and twpDatumStale fired for a datum
+    that never moved. ValueError on a non-finite value or bad index: never
+    a partial row."""
+    if not (0 <= index0 < len(wcs_cache)):
+        raise ValueError(f"wcs row index {index0} out of range")
+    vals = []
+    for v in xyz[:3]:
+        f = float(v)
+        if not math.isfinite(f):
+            raise ValueError(f"non-finite datum component {v!r}")
+        vals.append(f)
+    if len(vals) < 3:
+        raise ValueError("datum needs three components")
+    row = wcs_cache[index0]
+    row["x"], row["y"], row["z"] = vals
+
+
+def assemble_twp_plane(reader_get) -> Optional[List[float]]:
+    """The live TWP plane [ox,oy,oz, zx,zy,zz, xx,xy,xz] in the TABLE frame
+    (origin already composed: work offset + plane-origin vector) from the
+    helper comp's display pins, or None unless every component is present."""
+    vals = [reader_get(k) for k in _TWP_PLANE_FIELDS]
+    if any(v is None for v in vals):
+        return None
+    f = [float(v) for v in vals]
+    return [f[0] + f[3], f[1] + f[4], f[2] + f[5]] + f[6:]
 
 
 def to_float_list(x) -> Optional[List[float]]:
@@ -132,6 +217,18 @@ class StatusPayload:
     emc_enable_in: Optional[bool]
     homed: Optional[bool]  # LinuxCNC stat truth (normalized)
     homed_joints: Optional[list]  # per-joint homed mask (configured joints only)
+    # Joint LETTERS whose position lies outside the joint's own soft-limit
+    # window (gateway_util.joints_beyond_limits). Non-empty ⇒ motion refuses
+    # every world-mode move; the gateway jogs in joint mode meanwhile and the
+    # UI says so. None = STAT exposes no joint limits (never silently empty).
+    joints_beyond_limit: Optional[List[str]]
+    # Per-joint soft-limit window [min, max] (machine units / degrees) as
+    # STAT reports it, joint order — LIVE (2026-09-12): the TWP sim switches
+    # its Z window by kins mode through a HAL mux (hallib/limit_window.hal),
+    # which the INI file the viewer used to draw its machine-bounds box never
+    # showed. None = STAT exposes no joint info; a joint whose limits are
+    # unreadable is None inside the list (never a synthetic number).
+    joint_limits: Optional[List[Optional[List[float]]]]
 
     # task/motion
     task_mode: Optional[int]
@@ -147,11 +244,15 @@ class StatusPayload:
     call_level: Optional[int]     # subroutine nesting depth
 
     # offsets and positions
-    g5x_index: Optional[int]  # 0=G54, 1=G55, 2=G56, etc.
+    g5x_index: Optional[int]  # 1-based: 1=G54, 2=G55 … 6=G59 … 9=G59.3 (STAT.g5x_index)
     g5x_offset: Optional[List[float]]
     g92_offset: Optional[List[float]]
     rotation_xy: Optional[float]
     wcs_table: Optional[List[Dict[str, Any]]]  # all 9 WCS slots (G54–G59.3) w/ per-axis + rotation
+    # W1 provenance: the table angle each fixture was touched off at (9 entries,
+    # None = no stamp). The client refuses a datum-moved claim on a tilted stamp
+    # (the row is not table-frame there).
+    wcs_prov_a: Optional[List[Optional[float]]]
     joint_pos: Optional[List[float]]
     tool_offset: Optional[List[float]]
     machine_pos: Optional[List[float]]
@@ -183,6 +284,26 @@ class StatusPayload:
     kins_pre_rot: Optional[float]
     kins_primary_angle: Optional[float]
     kins_secondary_angle: Optional[float]
+    # Live TWP state from the twp-helper comp (P3 operator surface).
+    # Sampled only on xyzacb-trsrn configs; None = not sampled, never a
+    # default. twp_plane is the FULL plane definition — [ox,oy,oz (machine
+    # frame), zx,zy,zz (plane normal), xx,xy,xz (plane X)] — assembled
+    # all-or-nothing from the helper's nine display pins.
+    twp_defined: Optional[bool]
+    twp_active: Optional[bool]
+    twp_plane: Optional[List[float]]
+    # The datum the plane rides on (G54 as the remap holds it), TABLE frame —
+    # the helper's twp-o*-world pins. None = not sampled.
+    twp_datum: Optional[List[float]]
+    # Machine-frame A (deg) the HEAD was last oriented at (G53.x). The plane
+    # is stored table-relative and rides the workpiece, so it cannot go stale;
+    # the head solve can. Raw — the remap's "no orient yet" sentinel (-1e9)
+    # rides through so the client interprets it in one place; None still means
+    # "not sampled".
+    twp_pose_a: Optional[float]
+    # TWP-04: the B/C stamps of the same orient (same sentinel/None rules).
+    twp_pose_b: Optional[float]
+    twp_pose_c: Optional[float]
     spindle_direction: Optional[int]
     active_file: Optional[str]
     motion_line: Optional[int]
@@ -239,6 +360,10 @@ class StatusPayload:
     # shared broadcast, so per-client `armed`/`busy` are overlaid client-side).
     # Trailing default so the (unreachable) bare constructor stays valid.
     permissions: Optional[Dict[str, bool]] = None
+    # Why each CLOSED gate is closed (U-06, review 2026-09-14): the same
+    # first-unmet message a denied command would carry, so a dimmed control
+    # can explain itself. Open gates absent.
+    permission_reasons: Optional[Dict[str, str]] = None
     # estop/enabled merged with the HAL safety chain (issue #14). Computed ONCE
     # in policy_state_from_payload and broadcast here so the frontend banner/DRO
     # consume the same merged truth the command policy uses — no duplicated merge
@@ -247,8 +372,52 @@ class StatusPayload:
     is_enabled: Optional[bool] = None
 
 
-def policy_state_from_payload(p: "StatusPayload", armed: bool) -> _PolicyMachineState:
+_CAPTURE_OFFSET_EPS = 1e-6  # matches the remap's rotary_offsets_nonzero
+
+
+def capture_rotary_offsets_clean(wcs_table, g92_offset) -> bool:
+    """G54's A/B/C row AND G92's rotary components all ~0 — the capture-gate
+    mirror of the remap's rotary_offsets_nonzero (g683 refuses those states
+    loudly; the button closes for them with the reason). None/absent/short
+    inputs read DIRTY (closed): a gate that cannot see the offsets must
+    refuse, never assume clean. Pure; unit-tested."""
+    try:
+        row = wcs_table[0]
+        rot = [float(row[k]) for k in ("a", "b", "c")]
+        g92r = [float(g92_offset[i]) for i in range(3, 6)]
+    except (TypeError, KeyError, IndexError, ValueError):
+        return False
+    return all(abs(v) <= _CAPTURE_OFFSET_EPS for v in rot + g92r)
+
+
+def capture_g92_xyz_clean(g92_offset) -> bool:
+    """G92 X/Y/Z all ~0 — a live G92 would displace the captured plane origin
+    (#<_x> includes it; G68.3's origin words are G54-relative). None/short
+    reads DIRTY (closed). Pure; unit-tested."""
+    try:
+        g92l = [float(g92_offset[i]) for i in range(3)]
+    except (TypeError, IndexError, ValueError):
+        return False
+    return all(abs(v) <= _CAPTURE_OFFSET_EPS for v in g92l)
+
+
+def policy_state_from_payload(p: "StatusPayload", armed: bool,
+                              kins_switchable: bool = True,
+                              twp_capable: bool = False,
+                              identity_first: bool = False) -> _PolicyMachineState:
     """Build the command-policy MachineState from a status snapshot.
+
+    `kins_switchable` is the machine's kins DECLARATION (gateway
+    _kins_is_switchable), not a status field: it decides whether a missing
+    kins_type means "identity, certainly" or "unknown" (closed touch-off
+    gates). Defaults to True — unknown — so a caller that does not say what
+    the machine is gets the closed reading.
+
+    `twp_capable` / `identity_first` are declaration facts too (gateway
+    _twp_capable / _identity_first): whether the TWP remap stack owns
+    G59–G59.3 and plane actions exist at all, and which raw switchkins type
+    is identity on this kins family. Both default CLOSED (no TWP rules, the
+    module's own identityfirst default) — see command_policy.MachineState.
 
     The estop/enabled HAL-merge lives here (issues #14 + #19): STAT.estop/enabled
     merged with the safety chain (emc_enable_in). poll_status broadcasts the
@@ -280,6 +449,35 @@ def policy_state_from_payload(p: "StatusPayload", armed: bool) -> _PolicyMachine
         # "no compensation active" (permissive is correct), while an absent
         # rotary reading means "I don't know how the tool is oriented".
         rotary_at_zero=(p.rotary_at_zero is True),
+        # Touch-off gates (2026-08-30): the kins mode × active fixture rule.
+        # kins_type is the raw switchkins pin (float) — rounded here, once.
+        kins_switchable=bool(kins_switchable),
+        twp_capable=bool(twp_capable),
+        identity_first=bool(identity_first),
+        # getattr: a partial payload (test doubles, an older envelope) reads as
+        # UNKNOWN — the closed gate — never as identity/G54.
+        kins_type=(None if (_kt := getattr(p, "kins_type", None)) is None
+                   else int(round(float(_kt)))),
+        g5x_index=(None if (_gi := getattr(p, "g5x_index", None)) is None else int(_gi)),
+        twp_active=(getattr(p, "twp_active", None) is True),
+        # Table A at the datum within the provenance window; an absent
+        # canonical position reads as NOT at zero (closed), like the rotary
+        # rule above.
+        a_at_zero=((_ra := getattr(p, "rotary_abc", None)) is not None and len(_ra) > 0
+                   and abs(float(_ra[0])) <= PROV_A_EPS),
+        # Capture-plane gate inputs (2026-08-31): absent table/offset data
+        # reads CLOSED, like every rule above.
+        twp_defined=(getattr(p, "twp_defined", None) is True),
+        # Head aligned with the plane (TWP-04): the A/B/C orient stamp vs the
+        # live rotaries; unknown (no stamp, sentinel, missing reading) is
+        # CLOSED, never "aligned".
+        twp_aligned=(twp_head_aligned(
+            (getattr(p, "twp_pose_a", None), getattr(p, "twp_pose_b", None),
+             getattr(p, "twp_pose_c", None)),
+            getattr(p, "rotary_abc", None), getattr(p, "twp_defined", None)) is True),
+        rotary_offsets_clean=capture_rotary_offsets_clean(
+            getattr(p, "wcs_table", None), getattr(p, "g92_offset", None)),
+        g92_xyz_clean=capture_g92_xyz_clean(getattr(p, "g92_offset", None)),
     )
 
 
@@ -293,8 +491,19 @@ class StatusRuntime:
         get_tool_tbl_path: Callable[[], Optional[str]],
         load_tool_library: Callable[[], dict],
         get_fb_scale: Callable[[], float],
+        get_kins_switchable: Callable[[], bool] = lambda: True,
+        get_twp_capable: Callable[[], bool] = lambda: False,
+        get_identity_first: Callable[[], bool] = lambda: False,
+        get_prov_a: Callable[[], Optional[List[Optional[float]]]] = lambda: None,
     ) -> None:
         self._get_stat = get_stat
+        # Kins declaration for the touch-off gates; default "unknown" = closed
+        # (see policy_state_from_payload). The gateway wires _kins_is_switchable,
+        # _twp_capable and _identity_first (TWP-08).
+        self._get_kins_switchable = get_kins_switchable
+        self._get_twp_capable = get_twp_capable
+        self._get_identity_first = get_identity_first
+        self._get_prov_a = get_prov_a
         self._get_err = get_err
         self._reader_get = reader_get
         self._get_tool_tbl_path = get_tool_tbl_path
@@ -343,6 +552,16 @@ class StatusRuntime:
         """Re-resolve the var-file path on next use (reconnect, P2.1)."""
         self._var_file_path_cache_key = None
         self._var_file_path_cache_val = None
+
+    def mark_var_file_written(self, path: str) -> None:
+        """The GATEWAY just wrote the var file (provenance rows, probe vars).
+        Adopt its new mtime so the next poll does not reseed all nine axis
+        rows from disk — those disk rows are the shutdown-stale values and
+        would clobber a row the gateway seeded from the live datum."""
+        try:
+            self._wcs_var_file_mtime = os.path.getmtime(path)
+        except OSError:
+            self._wcs_var_file_mtime = None
 
     def invalidate_wcs_mtime(self) -> None:
         """Force re-seed of the WCS cache from the var file on next poll."""
@@ -589,11 +808,16 @@ class StatusRuntime:
         g92 = to_float_list(safe_get("g92_offset", None))
         rotation_xy = safe_get("rotation_xy", None)
 
-        # Update WCS cache: re-seed from var file whenever its mtime changes.
-        # LinuxCNC rewrites the var file on interpreter sync (program end, MDI
-        # completion that wrote vars, probe macros). This catches writes to
-        # inactive slots. Active slot is overwritten from STAT below — mid-motion
-        # authoritative source.
+        # Update WCS cache: re-seed from the var file whenever its mtime
+        # changes. LinuxCNC writes that file ONLY at shutdown (decisions.md
+        # 2026-08-20; gcode_canon.py), so this path catches DISK writers — the
+        # gateway's own provenance/probe-var writes (which call
+        # mark_var_file_written so they do not reseed axis rows they never
+        # wrote) and foreign editors — never an interpreter-side G10 to an
+        # inactive slot. The active slot is overwritten from STAT below (the
+        # mid-motion authoritative source); an inactive slot written by the
+        # remap (M535 → G10 L2 P1 while G59 is active) is seeded by the
+        # gateway from the helper's datum pins (seed_wcs_row_xyz).
         try:
             _vfp = self.resolve_var_file_path()
             if _vfp:
@@ -660,9 +884,29 @@ class StatusRuntime:
         # subtracting from the joint-ordered machine_pos (a plain index-wise
         # subtraction silently took B's offset from C's angle on XYZBC, and C's
         # from nothing on XYZAC — "Zero B/C does nothing").
+        # ---- kins-mode work_pos source (2026-08-31, operator-caught) ----
+        # The subtraction below is the trivkins identity: joints == world.
+        # Under switchable kins mode 1/2 (TCP/TOOL) the world coords come
+        # from the FORWARD KINS — subtracting G59 from joint values produced
+        # DRO numbers that never read 0 at the plane origin. So: non-zero
+        # live kins type sources the math from canonical actual_position
+        # (the trajectory's forward-kins world output); identity keeps the
+        # encoder-live joint path (updates with the machine off). A missing
+        # world position under kins != 0 leaves the DRO BLANK (None) — never
+        # joint-frame numbers posing as plane coordinates.
+        _kt_raw = reader_get("kins_type")
+        _kins_nonzero = _kt_raw is not None and int(round(float(_kt_raw))) != 0
+        pos_src = machine_pos
+        if _kins_nonzero:
+            pos_src = canonical_to_joint_order(_canon_pos, axis_mask)
+            if pos_src is None:
+                if not getattr(self, "_world_pos_warned", False):
+                    _trace.emit("poller.world_pos_missing", level="warn",
+                                msg="kins mode != 0 but STAT has no actual_position — work_pos blank")
+                    self._world_pos_warned = True
         work_pos = None
-        if machine_pos is not None:
-            work_pos = machine_pos.copy()
+        if pos_src is not None:
+            work_pos = pos_src.copy()
 
             g5x_j = canonical_to_joint_order(g5x, axis_mask)
             if g5x_j is not None:
@@ -695,6 +939,33 @@ class StatusRuntime:
 
         # RAW joint positions (for driving the machine model / spindle nose)
         jpos = safe_get("joint_actual_position", None)
+        joints_beyond_limit = None
+        jinfo = safe_get("joint", None)
+        if jpos is not None and jinfo:
+            try:
+                nj_lim = int(safe_get("joints", 0) or 0) or len(jinfo)
+                lims = [(j.get("min_position_limit"), j.get("max_position_limit"))
+                        if isinstance(j, dict) else (None, None) for j in jinfo[:nj_lim]]
+                jl = [L for i, L in enumerate("XYZABCUVW") if int(axis_mask) & (1 << i)]
+                joints_beyond_limit = [jl[i] if i < len(jl) else f"J{i}"
+                                       for i in joints_beyond_limits(list(jpos)[:nj_lim], lims)]
+            except (TypeError, ValueError, AttributeError) as exc:
+                _trace.emit("poller.joint_limits_unreadable", level="warn", error=repr(exc))
+                joints_beyond_limit = None
+        joint_limits = None
+        if jinfo:
+            try:
+                nj_lim = int(safe_get("joints", 0) or 0) or len(jinfo)
+                joint_limits = []
+                for j in jinfo[:nj_lim]:
+                    mn = j.get("min_position_limit") if isinstance(j, dict) else None
+                    mx = j.get("max_position_limit") if isinstance(j, dict) else None
+                    joint_limits.append(
+                        [float(mn), float(mx)]
+                        if isinstance(mn, (int, float)) and isinstance(mx, (int, float)) else None)
+            except (TypeError, ValueError, AttributeError) as exc:
+                _trace.emit("poller.joint_limits_unreadable", level="warn", error=repr(exc))
+                joint_limits = None
         if jpos is None:
             jpos = safe_get("joint_position", None)
         joint_pos = to_float_list(jpos)
@@ -809,6 +1080,8 @@ class StatusRuntime:
             emc_enable_in=reader_get("emc_enable_in"),
             homed=homed,
             homed_joints=homed_joints,
+            joints_beyond_limit=joints_beyond_limit,
+            joint_limits=joint_limits,
             task_mode=safe_get("task_mode", None),
             interp_state=safe_get("interp_state", None),
             paused=bool(safe_get("paused", False)),
@@ -825,6 +1098,7 @@ class StatusRuntime:
             g92_offset=g92,
             rotation_xy=rotation_xy,
             wcs_table=[row.copy() for row in self.wcs_cache],
+            wcs_prov_a=self._get_prov_a(),
             joint_pos=joint_pos,
             tool_offset=tool_offset,
             machine_pos=machine_pos,
@@ -847,6 +1121,15 @@ class StatusRuntime:
             kins_pre_rot=reader_get("kins_pre_rot"),
             kins_primary_angle=reader_get("kins_primary_angle"),
             kins_secondary_angle=reader_get("kins_secondary_angle"),
+            twp_defined=(None if (_twpd := reader_get("twp_defined")) is None
+                         else bool(_twpd)),
+            twp_active=(None if (_twpa := reader_get("twp_active")) is None
+                        else bool(_twpa)),
+            twp_plane=assemble_twp_plane(reader_get),
+            twp_datum=assemble_twp_datum(reader_get),
+            twp_pose_a=reader_get("twp_pose_a"),
+            twp_pose_b=reader_get("twp_pose_b"),
+            twp_pose_c=reader_get("twp_pose_c"),
             spindle_direction=spindle_direction,
             active_file=active_file,
             motion_line=safe_get("motion_line", None),
@@ -880,10 +1163,14 @@ class StatusRuntime:
         # One safety-merge: build the policy state once, broadcast its merged
         # is_estop/is_enabled for the frontend banner, and reuse it for permissions
         # (review #5 — removes the duplicate merge that lived in App.vue).
-        _pstate = policy_state_from_payload(payload, armed=True)
+        _pstate = policy_state_from_payload(
+            payload, armed=True, kins_switchable=self._get_kins_switchable(),
+            twp_capable=self._get_twp_capable(),
+            identity_first=self._get_identity_first())
         payload.is_estop = _pstate.is_estop
         payload.is_enabled = _pstate.is_enabled
         payload.permissions = evaluate_permissions(_pstate)
+        payload.permission_reasons = permission_reasons(_pstate)
         return payload
 
     def poll_and_serialize(self):

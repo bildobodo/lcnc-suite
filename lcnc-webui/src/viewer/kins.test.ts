@@ -5,7 +5,7 @@
 // interface. (Non-trivial models get compiled-C-oracle fixtures instead;
 // trivkins is the identity permutation by definition.)
 import { describe, expect, it, vi } from "vitest";
-import { kinsFor, kinsForSegment, makeKins, specFromWire, warnWorldWithoutSpec, worldModeForSpec, worldModeForType } from "./kins";
+import { kinsFor, kinsForSegment, makeKins, semanticKinsMode, specFromWire, warnWorldWithoutSpec, worldModeForSpec, worldModeForType } from "./kins";
 
 describe("trivkins boundary", () => {
   it("XYZAC: letter-skipping permutation both ways (C = joint 4, slot 5)", () => {
@@ -185,5 +185,59 @@ describe("kinsForSegment (phase 3 per-segment routing)", () => {
     const a = kinsForSegment(AXES6, TRSRN, 2, FRAME, 100, "test");
     const b = kinsForSegment(AXES6, TRSRN, 2, FRAME, 100, "test");
     expect(a).toBe(b);
+  });
+});
+
+describe("kins memo eviction (schema 8)", () => {
+  it("keeps a hot key resident across hundreds of distinct TLO keys", () => {
+    const axes = ["X", "Y", "Z", "A", "C"];
+    const spec = specFromWire({ type: "xyzac-trt", params: { y_rot_point: 1, z_rot_point: 2 } });
+    const hot = kinsFor(axes, spec, 22);
+    // 300 distinct offsets: a clear-at-cap memo would drop `hot` several
+    // times over; oldest-key eviction keeps it as long as it is re-used.
+    for (let i = 1; i <= 300; i++) {
+      kinsFor(axes, spec, 1000 + i);
+      if (i % 50 === 0) expect(kinsFor(axes, spec, 22)).toBe(hot);
+    }
+    expect(kinsFor(axes, spec, 22)).toBe(hot);
+  });
+});
+
+describe("semanticKinsMode (R-01, implementation review 2026-09-15)", () => {
+  const TRSRN = { type: "xyzacb-trsrn", identity_first: false };
+  const TRT_IDFIRST = { type: "xyzac-trt", identity_first: true };
+  const TRT = { type: "xyzac-trt", identity_first: false };
+
+  it("passes the TWP stack's three modes through", () => {
+    expect([0, 1, 2].map(t => semanticKinsMode(t, TRSRN))).toEqual([0, 1, 2]);
+  });
+
+  it("reads raw 0 as Machine on a trt loaded with identityfirst", () => {
+    // xyzac-trt-kins.c switchkinsSetup: "switchkins-type 0 is IDENTITY"
+    expect(semanticKinsMode(0, TRT_IDFIRST)).toBe(0);
+    expect(semanticKinsMode(1, TRT_IDFIRST)).toBe(1);
+  });
+
+  it("reads raw 0 as TCP on a trt without it", () => {
+    expect(semanticKinsMode(0, TRT)).toBe(1);
+    expect(semanticKinsMode(1, TRT)).toBe(0);
+  });
+
+  it("has no frame for a type the family does not define", () => {
+    expect(semanticKinsMode(2, TRT_IDFIRST)).toBeNull();   // userk
+    expect(semanticKinsMode(3, TRSRN)).toBeNull();
+    expect(semanticKinsMode(null, TRSRN)).toBeNull();
+    expect(semanticKinsMode(undefined, TRSRN)).toBeNull();
+  });
+
+  it("falls back to the kins module's own default with no declaration", () => {
+    // Same reading as the gateway's semantic_kins with identity_first False.
+    expect(semanticKinsMode(0, null)).toBe(1);
+    expect(semanticKinsMode(1, null)).toBe(0);
+  });
+
+  it("rounds a float pin reading", () => {
+    expect(semanticKinsMode(2.0, TRSRN)).toBe(2);
+    expect(semanticKinsMode(0.9999, TRSRN)).toBe(1);
   });
 });

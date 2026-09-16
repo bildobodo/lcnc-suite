@@ -65,6 +65,25 @@ export function useKeyboardShortcuts(opts: UseKeyboardShortcutsOptions) {
     return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || !!(el as HTMLElement).isContentEditable;
   }
 
+  // Space and Enter ACTIVATE whatever control has focus — they belong to that
+  // control, not to the global shortcut map (R-06, implementation review
+  // 2026-09-16). Without this, tabbing to ANY control and pressing Space ran
+  // the Space shortcut instead: with the default mapping that is Cycle Start,
+  // so a focused button started the loaded program AND never fired itself
+  // (the shortcut's preventDefault suppressed the native activation). The
+  // review found it through the new refusal-explanation affordance, which is
+  // focusable by design, but a plain enabled button behaved the same way —
+  // this is the rule for both. E-Stop is checked BEFORE this and stays
+  // deliberately global.
+  const ACTIVATION_KEYS = new Set([" ", "Spacebar", "Enter"]);
+  const INTERACTIVE_SEL = 'button, [role="button"], a[href], input, select, textarea, summary, [contenteditable="true"]';
+
+  function isActivationOnControl(e: KeyboardEvent): boolean {
+    if (!ACTIVATION_KEYS.has(e.key)) return false;
+    const el = document.activeElement as HTMLElement | null;
+    return !!el && typeof el.closest === "function" && !!el.closest(INTERACTIVE_SEL);
+  }
+
   function onKeyDown(e: KeyboardEvent) {
     const action = reverseKeyMap.value.get(e.key);
     if (!action) return;
@@ -76,6 +95,11 @@ export function useKeyboardShortcuts(opts: UseKeyboardShortcutsOptions) {
       else if (opts.canResetEstop.value) opts.send({ cmd: "estop_reset" });
       return;
     }
+
+    // Already handled by a component (the refusal explanation stops
+    // propagation; this is the backstop for anything that only prevents the
+    // default), or an activation key on a focused control.
+    if (e.defaultPrevented || isActivationOnControl(e)) return;
 
     if (isInputFocused()) return;
 

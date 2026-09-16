@@ -1,0 +1,68 @@
+# Soft-limit windows per kinematics mode — the TWP sim (xyzacb_trsrn switchkins).
+#
+# [AXIS_*]/[JOINT_*] hold the IDENTITY (type-0) window = the physical travel.
+# motion checks every programmed move's WORLD pose against [AXIS_*] in every
+# kins mode (command.c inRange → axis_check_constraints) and the joints against
+# [JOINT_*]; under TCP/TOOL the world pose is a rotated frame (plane Z + G59 ≈
+# 509 on the demo plane; the demo's orient puts world X at 1544 with the head
+# at joint X 1300), so the AXIS windows must open there while the JOINT windows
+# keep protecting the slides. switchkins.adoc "INI file limit settings"
+# prescribes the ini.<letter>.* pins for exactly this; driving them from the
+# live switchkins type covers every switch site (M428/9/30, G53.x, G69,
+# on_abort, twp_reorient) without touching a remap. in0 = ±5000 (the X/Y/Z
+# window the corpus gate was shipped against), so world-mode behaviour is
+# byte-identical to the shipped gate results; in1 = the [AXIS_*] travel, read
+# from the INI (the launcher runs this file with `halcmd -i`), so the two can
+# never drift apart. Z alone was muxed on 2026-09-05, when X/Y were still
+# ±5000 in the INI; the model-derived travels of 2026-09-12 (X ±1500,
+# Y −2000..1300) made X and Y need it too — every TCP corpus run aborted on
+# "Linear move … would exceed X's positive limit" until they were.
+#
+# WHY A POSTGUI FILE (run by the lcnc-suite display after `halcmd start`):
+# linking a fresh signal (value 0) to ini.z.min_limit changes the limit, inihal
+# turns that into a motion command, and at [HAL]HALCMD time the servo thread is
+# not started yet — task blocks on usrmot forever and the boot times out
+# (observed 2026-09-05). With the threads running the mux outputs already carry
+# the type-0 values when the ini pins are linked, so inihal sees no change.
+# The comparator is wcomp (window −0.5..0.5 ⇒ type 0): near and comp are
+# already loaded by the sim's hallib and a HAL module loads once.
+loadrt wcomp names=limit-identity
+loadrt mux2 names=x-min-limit-sel,x-max-limit-sel,y-min-limit-sel,y-max-limit-sel,z-min-limit-sel,z-max-limit-sel
+addf limit-identity servo-thread
+addf x-min-limit-sel servo-thread
+addf x-max-limit-sel servo-thread
+addf y-min-limit-sel servo-thread
+addf y-max-limit-sel servo-thread
+addf z-min-limit-sel servo-thread
+addf z-max-limit-sel servo-thread
+setp limit-identity.min -0.5
+setp limit-identity.max 0.5
+# in1 = the identity travel (the INI's own numbers); in0 = the world-mode window
+setp x-min-limit-sel.in1 [AXIS_X]MIN_LIMIT
+setp x-max-limit-sel.in1 [AXIS_X]MAX_LIMIT
+setp y-min-limit-sel.in1 [AXIS_Y]MIN_LIMIT
+setp y-max-limit-sel.in1 [AXIS_Y]MAX_LIMIT
+setp z-min-limit-sel.in1 [AXIS_Z]MIN_LIMIT
+setp z-max-limit-sel.in1 [AXIS_Z]MAX_LIMIT
+setp x-min-limit-sel.in0 -5000
+setp x-max-limit-sel.in0 5000
+setp y-min-limit-sel.in0 -5000
+setp y-max-limit-sel.in0 5000
+setp z-min-limit-sel.in0 -5000
+setp z-max-limit-sel.in0 5000
+net :kinstype-select => limit-identity.in
+net limit-is-identity limit-identity.out => x-min-limit-sel.sel x-max-limit-sel.sel y-min-limit-sel.sel y-max-limit-sel.sel z-min-limit-sel.sel z-max-limit-sel.sel
+# the mux outputs first (the running thread has already computed them), the
+# ini pins last — their value does not change on link
+net x-min-limit x-min-limit-sel.out
+net x-max-limit x-max-limit-sel.out
+net y-min-limit y-min-limit-sel.out
+net y-max-limit y-max-limit-sel.out
+net z-min-limit z-min-limit-sel.out
+net z-max-limit z-max-limit-sel.out
+net x-min-limit => ini.x.min_limit
+net x-max-limit => ini.x.max_limit
+net y-min-limit => ini.y.min_limit
+net y-max-limit => ini.y.max_limit
+net z-min-limit => ini.z.min_limit
+net z-max-limit => ini.z.max_limit

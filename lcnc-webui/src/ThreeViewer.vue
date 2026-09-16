@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, inject, onMounted, onUnmounted, reactive, ref, shallowRef, watch, type Ref } from "vue";
+import { computed, inject, onMounted, onUnmounted, reactive, ref, shallowRef, toRaw, watch, type Ref } from "vue";
 
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
@@ -7,23 +7,33 @@ import { Text } from "troika-three-text";
 import { buildToolProfile, splitProfileAt, buildToolGeometry, buildHolderGeometry, type ToolMeta } from "./toolGeometry";
 import { AXIS_HEX, AXIS_CSS } from "./axisColors";
 import {
-  failedParts, loadMachineAssets, getCachedGeometry, getToolMeta, setToolMeta, machineReady,
+  failedParts, loadMachineAssets, getCachedGeometry, getCollisionGeometry, getToolMeta, setToolMeta, machineReady,
 } from "./viewer/machineAssetCache";
 
-import { viewerInit, viewerGcode, status, emitTelemetry, type ViewerInit, type ViewerGcode } from "./lcncWs";
+import { viewerInit, viewerGcode, status, emitTelemetry, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, type ViewerInit, type ViewerGcode } from "./lcncWs";
 import { loadViewerDefaults, loadCameraDefaults, saveCameraDefaults, ALL_LAYERS, settingsVersion, type Vec3, type Layer } from "./defaults";
 import { INTERP_IDLE } from "./lcnc";
-import { fmtCoord, fmtRpm } from "./format";
+import { fmtCoord, fmtProgressTimes, fmtRpm } from "./format";
 import { useAxes } from "./useAxes";
-import { recordApply, recordRender, setViewerPerfContext } from "./viewerPerf";
+import { recordApply, recordRafTick, recordRender, setViewerPerfContext, setViewerPerfGl } from "./viewerPerf";
 import { disposeObject } from "./viewer/disposal";
 import { normalizeKinematics, type KinRuntime } from "./viewer/kinematics";
-import { lineDistances, wcsTerms, type PartFrameMachine, type PartFrameWcs } from "./viewer/partFrame";
-import { boundsOf, epochTermsFor, rebasePositions, usedWcsRowsKey, type WcsTableRow } from "./viewer/wcsEpochs";
-import { specFromWire } from "./viewer/kins";
+import { lineDistances, tipWcs, wcsTerms, type PartFrameMachine, type PartFrameWcs, anchorTerms, type AnchorTerms } from "./viewer/partFrame";
+import type { ReachInfo } from "./viewer/reachEnvelope";
+import type { LineIndex } from "./viewer/lineIndex";
+import { MACHINE_PALETTE, defaultPartHex } from "./viewer/palette";
+import { toolDimsFor } from "./viewer/tloEvents";
+import { boundsOf, epochTermsFor, previewWcsStaleFor, rebasePositions, usedWcsRowsKey, type WcsTableRow } from "./viewer/wcsEpochs";
+import { specFromWire, worldModeForSpec, semanticKinsMode } from "./viewer/kins";
+import { workMarkers, markerInputsChanged, newMarkerInputsPrev, G5X_NAMES, chainRotaryLetters, type ProgramZeroPose } from "./viewer/programZero";
+import { roomEndOf, sliceTrack } from "./viewer/scrubTrack";
+import { boundsFromJointLimits, sameBox, type JointLimits, type MachineBox } from "./viewer/machineBounds";
 import { displayDecision } from "./viewer/displayPipeline";
 import { trackHighlightRange } from "./trackHighlight";
-import type { CollisionBody, CollisionResult } from "./viewer/collision";
+import type { CollisionBody, CollisionResult, CollisionLineMark } from "./viewer/collision";
+import { partCollides } from "./viewer/collision";
+import { mergeEntryResult } from "./viewer/sweepMerge";
+import { planEntryCheck } from "./viewer/sweepEntry";
 import { previewSchemaMismatch, parseTloMismatch, EXPECTED_PREVIEW_SCHEMA, type ScrubTrack } from "./ws/bulkData";
 import { createBackplotController } from "./viewer/backplotController";
 import { createSurfaceController } from "./viewer/surfaceController";
@@ -34,6 +44,7 @@ import MachineBtn from "./MachineBtn.vue";
 import CameraPip from "./CameraPip.vue";
 import ScrubBar from "./ScrubBar.vue";
 import { simMode } from "./simMode";
+import { twpPoseStale, twpDatumStale, kinsModeChip, fixtureOffDatum, stampAForFixture, poseAbcOf } from "./twpPose";
 import { Camera, Settings } from "lucide-vue-next";
 
 const themeMode = inject<Ref<string>>("themeMode", ref("auto"));
@@ -95,6 +106,25 @@ type ViewerState = {
   current_vel?: number | null;
   spindle_speed?: number | null;
   spindle_direction?: number | null;
+
+  // Kinematics-mode inputs for the active-fixture triad (2026-08-30): the
+  // fixture's numbers are table-frame on identity/TCP but TOOL-frame under
+  // kins 2 with a reserved fixture (G59..G59.3) active. All ride the same
+  // status `data` object _twpRefresh already reads untyped.
+  kins_type?: number | null;
+  g5x_index?: number | null;
+  kins_pre_rot?: number | null;
+  kins_primary_angle?: number | null;
+  kins_secondary_angle?: number | null;
+  rotary_abc?: number[] | null;
+  twp_defined?: boolean | null;
+  /** The datum the plane rides on (the remap's G54), TABLE frame. */
+  twp_datum?: number[] | null;
+  twp_active?: boolean | null;
+  twp_pose_a?: number | null;
+  twp_pose_b?: number | null;
+  twp_pose_c?: number | null;
+  wcs_prov_a?: (number | null)[] | null;
 };
 
 
@@ -119,17 +149,38 @@ const emit = defineEmits<{
   (e: "scrub-line", line: number | null): void;
   // Source lines with collision hits after a sweep (null = no/stale results,
   // [] = checked clean) — App forwards to GcodePanel for line markers.
-  (e: "collision-lines", lines: number[] | null): void;
-  // The preview was parsed against offsets that are no longer live (touch-off
-  // after load) — App re-parses it against current ones.
-  (e: "reparse"): void;
+  (e: "collision-lines", lines: CollisionLineMark[] | null): void;
 }>();
 
 // HUD data (read from status for template)
 const vst = computed(() => status.value?.data ?? null);
+// HUD mode line: the kins/TWP mode is otherwise visible only in the strip
+// radios and the tiny fixture labels (operator-caught). ONE derivation with
+// SetupStrip's chip (kinsModeChip) so the two can never disagree.
+const hudMode = computed(() => {
+  const d = vst.value;
+  if (!d || d.kins_type == null) return null;
+  // The FRAME the raw pin means on this family (R-01) — the strip chip is
+  // derived the same way, so the HUD and the strip cannot disagree.
+  const mode = semanticKinsMode(d.kins_type, viewerInit.value?.kins);
+  return kinsModeChip({
+    kinsType: mode,
+    twpActive: d.twp_active,
+    twpStale: twpPoseStale(poseAbcOf(d), d.rotary_abc, d.twp_defined),
+    twpDatumMoved: twpDatumStale(d.wcs_table?.[0], d.twp_datum, d.twp_defined, d.wcs_prov_a?.[0]),
+    offDatum: fixtureOffDatum(mode, stampAForFixture(d.wcs_prov_a, d.g5x_index), d.rotary_abc?.[0]),
+    g5xIndex: d.g5x_index,
+  });
+});
+const hudPlaneWord = computed(() => {
+  const d = vst.value;
+  if (!d?.twp_defined) return null;
+  if (twpPoseStale(poseAbcOf(d), d.rotary_abc, d.twp_defined)) return "plane stale";
+  return d.twp_active ? "plane active" : "plane defined";
+});
 
 // g5x index (1..9) -> label, matching the gateway's _G5X_MAP.
-const WCS_LABELS = ["G54", "G55", "G56", "G57", "G58", "G59", "G59.1", "G59.2", "G59.3"];
+const WCS_LABELS = G5X_NAMES;
 const wcsLabel = (idx: number) => WCS_LABELS[idx - 1] ?? `G5x#${idx}`;
 
 // Fixtures the program actually CUTS IN that are not the active one.
@@ -168,6 +219,25 @@ const rewrittenWcs = computed<string[]>(() => {
   return idxs.map(wcsLabel);
 });
 
+// Load-time lint (2026-09-03): the program switches kinematics and its last
+// marker is not identity — M2 restores G54 but not the kins pin, so the run
+// strands the machine in that frame and the NEXT program runs there too.
+const kinsEndWarn = computed<{ text: string; title: string } | null>(() => {
+  const k = viewerGcode.value?.kins_end_type;
+  if (k == null) return null;
+  // Which FRAME that raw type is depends on the kins family (R-01): on a trt
+  // without `sparm=identityfirst` raw 0 is the world kins, so "0 means
+  // identity, nothing to restore" was exactly backwards there.
+  const m = semanticKinsMode(k, viewerInit.value?.kins);
+  if (m === 0) return null;
+  const mode = m === 1 ? "TCP" : m === 2 ? "TOOL (plane)" : `an unsupported (type ${k})`;
+  const fix = m === 2 ? "G69, or select the Machine frame," : "select the Machine frame";
+  return {
+    text: `Program ends in ${mode} kinematics — ${m === 2 ? "add G69" : "restore the Machine frame"} before M2`,
+    title: `The program's last kinematics switch leaves switchkins type ${k} in effect. M2 restores G54 but not the kinematics pin, so after the run the machine stays in the ${mode} frame and Cycle Start is refused until the Machine frame is restored — ${fix} before M2.`,
+  };
+});
+
 // Preview payload from a different wire-format generation than this client
 // build (P1) — a gateway that outlived a code upgrade keeps serving its
 // cached payload (keyed on file+mtime only), and a hot-reloaded client would
@@ -183,25 +253,18 @@ const previewTloStale = computed(() =>
   parseTloMismatch(viewerGcode.value, vst.value?.tool_number, vst.value?.tool_length));
 
 // Preview parsed against offsets that are no longer live — a touch-off after
-// the file was loaded. The parse basis rides the wire in MACHINE units for
-// exactly this comparison; `reparse_preview` makes them agree again.
-const WCS_STALE_EPS = 1e-4;
+// the file was loaded. Per FIXTURE on an epoch-aware payload (previewWcsStaleFor):
+// the old active-vs-active comparison lit during every TWP run because the
+// program itself switches G54→G59 at G53.x. The gateway's WCS-offset drift
+// edge re-parses once idle and settled; the chip only reports the window.
 const previewWcsStale = computed(() => {
-  const b: any = (viewerGcode.value as any)?.wcs_basis;
+  const g = viewerGcode.value;
   const s = vst.value;
-  if (!b || !s) return false;
-  const cmp = (was: number[] | undefined, now: any) => {
-    if (!Array.isArray(was) || !Array.isArray(now)) return false;
-    const n = Math.min(was.length, now.length);
-    for (let i = 0; i < n; i++) {
-      if (Math.abs((was[i] ?? 0) - (now[i] ?? 0)) > WCS_STALE_EPS) return true;
-    }
-    return false;
-  };
-  return cmp(b.g5x, s.g5x_offset) || cmp(b.g92, s.g92_offset)
-    || Math.abs((b.rotation ?? 0) - (s.rotation_xy ?? 0)) > WCS_STALE_EPS;
+  if (!g || !s) return false;
+  return previewWcsStaleFor(
+    g.wcsEvents, g.wcs_basis, s.wcs_table as WcsTableRow[] | undefined,
+    { g5x: s.g5x_offset, g92: s.g92_offset, rotationDeg: s.rotation_xy });
 });
-
 // ---------- DOM ----------
 const host = ref<HTMLDivElement | null>(null);
 const hudVisible = ref(true);
@@ -225,6 +288,33 @@ const GIZMO_SIZE = 140; // pixels
 const groups: Record<string, THREE.Group> = {};
 let workOrigin: THREE.Group | null = null;
 let workRotGroup: THREE.Group | null = null;  // rotated sub-group for stock/axes (WCS rotation)
+// Baked-toolpath anchor: sibling of workOrigin, posed ONLY by toolpath.apply
+// from the terms the drawn vertices were baked with (viewer/partFrame.ts
+// anchorTerms). workOrigin keeps following the LIVE offsets for stock,
+// surface map and axes; the toolpath must not, or it jumps ahead of its
+// own re-bake (2026-09-03, operator-caught during a TWP run).
+let pathAnchor: THREE.Group | null = null;
+let pathRot: THREE.Group | null = null;
+// The MACHINE frame node (the machine-bounds clip planes and the chunked
+// path's overlay gate live in it): the work group's frame with every rotary
+// DOF of the work chain at zero — machine coordinates by the machine.json
+// convention (each model's chains carry the frame: joints-at-zero puts the
+// tool tip on the work group's origin). A child of the PARENT of the work
+// chain's topmost rotary node, so it follows table travel but never table
+// rotation. 2026-09-11: the bounds box used to ride _workGrp and rotated
+// with A — physically wrong on a rotary work chain (machine limits are
+// joint limits, fixed in the room). Without a rotary on the work chain it
+// IS _workGrp (3-axis and head-rotary-only machines: unchanged).
+let machineFrameGrp: THREE.Group | null = null;
+// Room-fixed toolpath parents under machineFrameGrp (2026-09-11), mirroring
+// the table side one-to-one: roomOrigin/roomRotGroup follow the LIVE
+// offsets (the programmed path), roomAnchor/roomRot are posed only by
+// toolpath.apply from a bake's own terms. null when the work chain has no
+// rotary (machineFrameGrp IS _workGrp — nothing to decouple).
+let roomOrigin: THREE.Group | null = null;
+let roomRotGroup: THREE.Group | null = null;
+let roomAnchor: THREE.Group | null = null;
+let roomRot: THREE.Group | null = null;
 let _workGrp: THREE.Group | null = null;   // resolved from init.workGroup
 let _toolGrp: THREE.Group | null = null;   // resolved from init.toolGroup
 
@@ -260,11 +350,45 @@ let holderMesh: THREE.Mesh | null = null;
 let _currentToolNum: number | null = null;
 let _lastToolMeta: ToolMeta | null = null;
 let workAxes: THREE.Group | null = null;
+// The active-fixture triad's OWN group under _workGrp (table frame). It used
+// to hang under workRotGroup ← workOrigin, i.e. at the raw fixture numbers —
+// wrong under TOOL kinematics with G59 active (TOOL-frame numbers drawn as
+// table coordinates: "the work origin hangs in space"). workOrigin itself
+// stays at the raw numbers on purpose: the toolpath is right there by
+// cancellation (partFrame peels the same offset). See activeFixtureFrame.ts.
+let workAxesGroup: THREE.Group | null = null;
+// The muted "program zero (machine)" marker: under identity kins, while the
+// table sits away from the active fixture's touch-off angle, the room-fixed
+// spot identity kins will send the tool to at program zero — the OTHER
+// answer to "where is zero" (viewer/programZero.ts). Same shape as the
+// triad: arrows in `ghostAxes` (the workzero layer toggles them), posed
+// through `ghostGroup`.
+let ghostAxes: THREE.Group | null = null;
+let ghostGroup: THREE.Group | null = null;
+// Marker labels (billboarded troika text, registered in _billboardLabels):
+// three near-identical unlabeled triads were genuinely ambiguous
+// (operator-caught) — each marker now says what it is. The active-fixture
+// label is dynamic (fixture name from g5x_index, "· machine" when the
+// stamp cannot place it on the part).
+let workAxesLabel: Text | null = null;
+let ghostLabel: Text | null = null;
+let twpPlaneLabel: Text | null = null;
+// Program-zero marker inputs: the part-frame machine (built once per
+// viewer_init — _pfMachine JSON-copies, and programZero memoizes the chain
+// by object identity) and the marker-only repaint diff.
+let _markerMachine: PartFrameMachine | null = null;
+let _markerDirty = true;
+const _pvMarker = newMarkerInputsPrev();
+const _markerScratch: { primary: ProgramZeroPose; ghost: ProgramZeroPose } = {
+  primary: { pos: [0, 0, 0], x: [0, 0, 0], y: [0, 0, 0], z: [0, 0, 0] },
+  ghost: { pos: [0, 0, 0], x: [0, 0, 0], y: [0, 0, 0], z: [0, 0, 0] },
+};
 // Surface map (probe heightmap) — owned by surfaceController.
 const surface = createSurfaceController();
 // Toolpath preview (feed/rapid/highlight lines, bounds box/labels/overflow) —
 // owned by toolpathController. The HUD overflow flag stays here for the template.
 const toolpathOverflow = ref(false);
+const toolpathOverflowCount = ref(0);   // the validator's violation count behind the flag
 
 // Pending layer visibility: stores calls made before scene objects exist
 let pendingLayers: Map<Layer, boolean> | null = new Map();
@@ -280,6 +404,9 @@ let trackingMode: "none" | "tool" | "wcs" = "none";
 // flight and a non-zero tracking delta force a frame.
 let _needsRender = true;
 function requestRender() { _needsRender = true; }
+// renderer.info of the last main render (perf probe context).
+let _glCalls = 0;
+let _glLines = 0;
 
 // Fresh per-call snapshot of the reassigned scene-graph pointers for the viewer
 // controllers (they must never cache these — see viewer/viewerContext.ts).
@@ -322,6 +449,36 @@ let pathAlwaysOnTop = true; // default; overridden by setPathAlwaysOnTop()
 // 1 for mm machines, 1/25.4 for inch machines. Set in buildFromInit() from viewer_init.units.
 let _unitScale = 1;
 
+// ---- TWP plane visualization (P3.4) ----
+// The live tilted-work-plane, drawn from the twp-helper comp's plane pins
+// (status twp_plane: [ox,oy,oz, zx,zy,zz, xx,xy,xz], TABLE frame — the
+// frame in which a table-fixed feature has constant coordinates, datum'd
+// to coincide with machine coords at A=0; see status_runtime
+// assemble_twp_plane and remap.py gui_update_twp).
+// The group is attached under _workGrp (the A table's work group), whose
+// local frame IS the table frame — applyState rotates it by the live A, so
+// the plane rides the workpiece and is exact at EVERY table angle. The
+// earlier MACHINE-frame pins drawn in this same rotating group double-
+// counted A (wrong by the table angle, cancelling only at A=0); the
+// table-frame storage is what removed that, not a change here. Not the
+// scene root either: model chains carry static base translates (trsrn head
+// chain at (-1000,1000,2000)), so a scene-root attach lands the plane a
+// frame-offset away from the machine (operator-caught: invisible below the
+// floor). Same attach rule as machineBoundsMesh. Heidenhain's simulation
+// and the upstream TWP VTK GUI both draw this; the marker comments only
+// ever carried it as numbers. Info-blue while TOOL kins is active;
+// warn-amber when a plane is defined but the kins is back to identity
+// (defined-but-inactive — the parked-in-TWP trap made visible). During
+// simulation the PROGRAM's plane (viewer/twpPlaneFrame.ts) replaces it.
+let twpPlaneGroup: THREE.Group | null = null;
+let twpNormalArrow: THREE.ArrowHelper | null = null;
+let twpPlaneMat: THREE.MeshBasicMaterial | null = null;
+let twpGridMat: THREE.LineBasicMaterial | null = null;
+let _twpLayerOn = true;
+const _TWP_ACTIVE_HEX = 0x4aa3ff;   // matches the info-blue family
+const _TWP_INACTIVE_HEX = 0xffb347; // matches the warn-amber family
+const _TWP_STALE_HEX = 0xcc3333;    // matches the danger family
+
 // ---- Backplot (live toolpath history) — owned by backplotController ----
 const backplot = createBackplotController(requestRender);
 // Reused scratch vectors for the per-tick backplot append — avoids allocating
@@ -357,21 +514,64 @@ const toolpath = createToolpathController({
   colors: () => viewerDefaults.colors,
   axisCss: AXIS_CSS,
   overflow: toolpathOverflow,
+  overflowCount: toolpathOverflowCount,
+  // Stale-path opacity from the design token (never a bare number here).
+  staleOpacity: () => {
+    const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--opacity-disabled"));
+    return Number.isFinite(v) ? v : 0.4;
+  },
+  // The stale grey = background lifted toward the foreground by the token,
+  // OPAQUE — see ToolpathDeps.staleOpacity.
+  sceneBackground: () => (scene?.background instanceof THREE.Color ? scene.background : sceneBgFromTheme()),
+  sceneForeground: () => cssColor("--fg", "#e6edf3"),
+});
+// A stale drawn path is muted (2026-09-05): while the gateway re-parses,
+// or while the payload's fixture offsets / tool length are known to
+// differ from the live ones, the operator sees "not current" on the
+// geometry itself, not only in a chip.
+const pathStaleNow = computed(() => !!previewRefresh.value || previewWcsStale.value || !!previewTloStale.value);
+watch(pathStaleNow, (stale) => { toolpath.setStale(stale); requestRender(); }, { immediate: true });
+// Machine bounds from the LIVE joint limits (status `joint_limits`, joint
+// order → letters via viewer_init.axes), else the INI-derived viewer_init
+// box. Memoized by value so the watcher fires only on a real change.
+let _lastLiveBounds: MachineBox | null = null;
+const liveMachineBounds = computed<MachineBox | null>(() => {
+  const b = boundsFromJointLimits(vst.value?.joint_limits as JointLimits | null | undefined, viewerInit.value?.axes ?? []);
+  if (sameBox(b, _lastLiveBounds)) return _lastLiveBounds;
+  _lastLiveBounds = b;
+  return b;
+});
+const effectiveBounds = computed<{ origin: Vec3; size: Vec3 } | undefined>(() => {
+  const live = liveMachineBounds.value;
+  if (live) return { origin: live.origin as Vec3, size: live.size as Vec3 };
+  const mb = viewerInit.value?.machine_bounds;
+  return (mb?.origin && mb?.size) ? { origin: mb.origin as Vec3, size: mb.size as Vec3 } : undefined;
+});
+watch(effectiveBounds, (mb) => {
+  if (!machineBoundsMesh) return;   // buildFromInit applies the first box itself
+  applyMachineBounds(mb);
+  requestRender();
 });
 // Reused ctx object: a fresh object per call is avoidable gen-0 churn (GC
 // pauses here are object-count driven). Safe to mutate in place —
 // controllers read ctx fields synchronously and never retain it (contract in
 // viewerContext.ts).
 const _toolpathCtx: ToolpathCtx = {
-  scene: null, workOrigin: null, workRotGroup: null,
-  pathAlwaysOnTop: false, machineBounds: undefined, units: undefined,
+  scene: null, workOrigin: null, workRotGroup: null, pathAnchor: null, pathRot: null,
+  roomOrigin: null, roomRotGroup: null, roomAnchor: null, roomRot: null,
+  pathAlwaysOnTop: false, units: undefined,
 };
 function toolpathCtx(): ToolpathCtx {
   _toolpathCtx.scene = scene;
   _toolpathCtx.workOrigin = workOrigin;
   _toolpathCtx.workRotGroup = workRotGroup;
+  _toolpathCtx.pathAnchor = pathAnchor;
+  _toolpathCtx.pathRot = pathRot;
+  _toolpathCtx.roomOrigin = roomOrigin;
+  _toolpathCtx.roomRotGroup = roomRotGroup;
+  _toolpathCtx.roomAnchor = roomAnchor;
+  _toolpathCtx.roomRot = roomRot;
   _toolpathCtx.pathAlwaysOnTop = pathAlwaysOnTop;
-  _toolpathCtx.machineBounds = viewerInit.value?.machine_bounds;
   _toolpathCtx.units = viewerInit.value?.units;
   return _toolpathCtx;
 }
@@ -620,8 +820,9 @@ function setView(p: ViewPreset) {
   if (!camera || !controls) return;
 
   if (p === "reset") {
-    if (!_iniBox || !_workGrp) return;
-    tweenFrameToBounds(_iniBox.clone().translate(_workGrp.position));
+    const b = _boundsWorldBox();
+    if (!b) return;
+    tweenFrameToBounds(b);
     return;
   }
 
@@ -683,6 +884,95 @@ function switchProjection() {
   controls.update();
 }
 
+// TWP plane pose/tint update (P3.4). Signature-gated: the status watcher
+// calls this every tick, but pose math + re-render run only when the plane
+// values, kins type, or layer toggle actually changed.
+let _twpSig = "";
+const _fixM = new THREE.Matrix4(), _fixX = new THREE.Vector3(), _fixY = new THREE.Vector3(), _fixZ = new THREE.Vector3();
+const _twpZ = new THREE.Vector3();
+const _twpX = new THREE.Vector3();
+const _twpY = new THREE.Vector3();
+const _twpM = new THREE.Matrix4();
+
+// The PROGRAM's plane while simulating (from ScrubBar), null otherwise.
+let _scrubPlane: number[] | null = null;
+
+function _twpRefresh() {
+  const d: any = status.value?.data;
+  if (simMode.value || _scrubJoints) {
+    // Simulating: the model shows the PROGRAM, so the overlay must too.
+    // No plane data for this point means the program has not established
+    // one there — HIDE it. Falling through to live status would put a
+    // machine fact on screen beside a simulated machine, which is the
+    // incoherence this exists to remove. Staleness is a claim about the
+    // live setup and is meaningless here, so it is never applied in sim.
+    updateTwpPlane(_scrubPlane, _scrubPlane != null, 2, false, false);
+    return;
+  }
+  updateTwpPlane(d?.twp_plane, !!d?.twp_defined, d?.kins_type,
+    twpPoseStale(poseAbcOf(d), d?.rotary_abc, d?.twp_defined),
+    twpDatumStale(d?.wcs_table?.[0], d?.twp_datum, d?.twp_defined, d?.wcs_prov_a?.[0]));
+}
+
+function updateTwpPlane(plane: unknown, defined: boolean, ktype: unknown, stale: boolean, datumStale = false) {
+  if (!twpPlaneGroup) return;
+  const ok = defined && Array.isArray(plane) && plane.length === 9 &&
+    (plane as unknown[]).every((v) => Number.isFinite(Number(v)));
+  const k = ktype == null ? -1 : Math.round(Number(ktype));
+  // `stale` joins the signature or the tint would never repaint — a boolean,
+  // so live A jitter under the eps costs nothing.
+  const sig = ok
+    ? `${(plane as number[]).map((v) => Number(v).toFixed(4)).join(",")}|${k}|${_twpLayerOn}|${stale}|${datumStale}|${simMode.value}`
+    : `off|${simMode.value}`;
+  if (sig === _twpSig) return;
+  _twpSig = sig;
+  if (!ok || !_twpLayerOn) {
+    if (twpPlaneGroup.visible) { twpPlaneGroup.visible = false; requestRender(); }
+    return;
+  }
+  const p = (plane as number[]).map(Number);
+  _twpZ.set(p[3]!, p[4]!, p[5]!);
+  if (_twpZ.lengthSq() < 1e-9) {
+    // A defined plane with a zero normal is not drawable — hide, honestly.
+    if (twpPlaneGroup.visible) { twpPlaneGroup.visible = false; requestRender(); }
+    return;
+  }
+  _twpZ.normalize();
+  _twpX.set(p[6]!, p[7]!, p[8]!);
+  _twpX.addScaledVector(_twpZ, -_twpX.dot(_twpZ));
+  if (_twpX.lengthSq() < 1e-9) {
+    // Degenerate X (parallel to the normal): any in-plane X will do for
+    // drawing — derive one from the least-aligned world axis.
+    _twpX.set(1, 0, 0);
+    if (Math.abs(_twpZ.x) > 0.9) _twpX.set(0, 1, 0);
+    _twpX.addScaledVector(_twpZ, -_twpX.dot(_twpZ));
+  }
+  _twpX.normalize();
+  _twpY.crossVectors(_twpZ, _twpX);
+  _twpM.makeBasis(_twpX, _twpY, _twpZ);
+  twpPlaneGroup.quaternion.setFromRotationMatrix(_twpM);
+  twpPlaneGroup.position.set(p[0]!, p[1]!, p[2]!);   // machine units = world units
+  // The tint is an ATTENTION signal, not a claim: the plane itself still
+  // rides the workpiece when the head solve goes stale, and the CHIP title
+  // says which claim it is (head off-normal vs. a datum G54 has since
+  // left). 2026-08-31 moved head-stale onto the 48 mm +Z arrow alone on the
+  // "plane is not the stale thing" argument — semantically right, visually
+  // invisible beside a 300 mm quad (operator: "why does a stale plane not
+  // become red anymore?"). Either claim paints quad + grid; the arrow keeps
+  // the head-stale tint as the pointer to WHAT is off.
+  const hex = (stale || datumStale) ? _TWP_STALE_HEX : k === 2 ? _TWP_ACTIVE_HEX : _TWP_INACTIVE_HEX;
+  if (twpNormalArrow) {
+    (twpNormalArrow.line.material as THREE.LineBasicMaterial).color
+      .setHex(stale ? _TWP_STALE_HEX : AXIS_HEX.z);
+    (twpNormalArrow.cone.material as THREE.MeshBasicMaterial).color
+      .setHex(stale ? _TWP_STALE_HEX : AXIS_HEX.z);
+  }
+  if (twpPlaneMat) twpPlaneMat.color.setHex(hex);
+  if (twpGridMat) twpGridMat.color.setHex(hex);
+  twpPlaneGroup.visible = true;
+  requestRender();
+}
+
 function setLayerVisible(layer: Layer, on: boolean) {
   if (pendingLayers) {
     pendingLayers.set(layer, on);
@@ -704,11 +994,30 @@ function setLayerVisible(layer: Layer, on: boolean) {
     case "toolpathBounds":
       toolpath.setBoundsVisible(on);
       break;
+    case "reachRoom":
+      _reachRoomOn = on;
+      if (reachRoomMesh) reachRoomMesh.visible = on;
+      if (on) _reachRequest();
+      break;
+    case "reachPart":
+      _reachPartOn = on;
+      if (reachPartMesh) reachPartMesh.visible = on;
+      if (on) _reachRequest();
+      break;
     case "tool":
       if (toolMarker) toolMarker.visible = on;
       break;
     case "workzero":
+      // One layer for both "where is zero" markers: the active triad and
+      // the muted "program zero (machine)" ghost (a tenth toggle for a
+      // second marker of the same question would be toggle sprawl).
       if (workAxes) workAxes.visible = on;
+      if (ghostAxes) ghostAxes.visible = on;
+      break;
+    case "workplane":
+      _twpLayerOn = on;
+      _twpSig = "";   // force the next refresh to re-evaluate visibility
+      _twpRefresh();
       break;
     case "hud":
       hudVisible.value = on;
@@ -747,12 +1056,12 @@ const MAT = {
   axisZ: new THREE.MeshStandardMaterial({ metalness: 0.1, roughness: 0.7 }),
 };
 
-// light gray frame
-MAT.frame.color.setHex(0xbfbfbf);
-// muted red/green/blue axes
-MAT.axisX.color.setHex(0x9b4a4a); // X muted red
-MAT.axisY.color.setHex(0x4a8f5a); // Y muted green
-MAT.axisZ.color.setHex(0x4a6f9b); // Z muted blue
+// Machine-part defaults come from viewer/palette.ts (one table for the
+// scene build, the live recolor and the settings pickers).
+MAT.frame.color.setHex(MACHINE_PALETTE.frame);
+MAT.axisX.color.setHex(MACHINE_PALETTE.x);
+MAT.axisY.color.setHex(MACHINE_PALETTE.y);
+MAT.axisZ.color.setHex(MACHINE_PALETTE.z);
 MAT.tool.color.setHex(0xc0c0c0);  // silver shaft
 MAT.cutter.color.setHex(0xffdd00); // gold cutter
 MAT.holder.color.setHex(0x888888); // steel gray holder
@@ -779,6 +1088,48 @@ function clearScene() {
   }
 }
 
+/** The box the viewer currently draws and clips against (live joint limits
+ *  or the INI fallback) — what toolpathCtx hands the overlay gate. */
+let _effectiveBounds: { origin: Vec3; size: Vec3 } | undefined;
+
+/** Apply a machine-bounds box: the wireframe mesh, the six outward clip
+ *  planes (rebuilt IN PLACE — the toolpath materials hold these arrays by
+ *  reference), the camera's reframe box and the overlay gate's box. All in
+ *  machine coordinates under machineFrameGrp. */
+function applyMachineBounds(mb: { origin: Vec3; size: Vec3 } | undefined) {
+  _effectiveBounds = mb;
+  if (!machineBoundsMesh || !mb?.size || !mb?.origin) {
+    if (!mb) console.warn("No machine bounds (live joint limits or viewer_init); bounds box will remain default");
+    return;
+  }
+  applyBox(machineBoundsMesh, mb.size, mb.origin);
+  // Clipping planes for the outside-bounds overlay (normals point outward),
+  // stored in MACHINE-frame local space and transformed to world space each
+  // rendered frame in animate().
+  const [bx, by, bz] = mb.origin;
+  const [bsx, bsy, bsz] = mb.size;
+  if (bsx > 0 && bsy > 0 && bsz > 0) {
+    _localBoundsPlanes.length = 0;
+    _localBoundsPlanes.push(
+      new THREE.Plane(new THREE.Vector3(-1, 0, 0),  bx),
+      new THREE.Plane(new THREE.Vector3( 1, 0, 0), -(bx + bsx)),
+      new THREE.Plane(new THREE.Vector3(0, -1, 0),  by),
+      new THREE.Plane(new THREE.Vector3(0,  1, 0), -(by + bsy)),
+      new THREE.Plane(new THREE.Vector3(0, 0, -1),  bz),
+      new THREE.Plane(new THREE.Vector3(0, 0,  1), -(bz + bsz)),
+    );
+    boundsClipPlanes.length = 0;
+    insideBoundsClipPlanes.length = 0;
+    for (const p of _localBoundsPlanes) {
+      boundsClipPlanes.push(p.clone());
+      insideBoundsClipPlanes.push(p.clone().negate());
+    }
+  }
+  if (_iniBox) {
+    _iniBox.set(new THREE.Vector3(bx, by, bz), new THREE.Vector3(bx + bsx, by + bsy, bz + bsz));
+  }
+}
+
 function applyBox(mesh: THREE.Object3D, size: Vec3, origin: Vec3) {
   const [sx, sy, sz] = size;
   const [ox, oy, oz] = origin;
@@ -796,7 +1147,12 @@ function ensureCoreGroups(init: ViewerInit) {
   workOrigin = null;
   workRotGroup = null;
   workAxes = null;
+  workAxesGroup = null;
+  ghostAxes = null;
+  ghostGroup = null;
   machineBoundsMesh = null;
+  reachRoomMesh = reachPartMesh = null;   // disposed with the scene; rebuilt from _reachData
+  twpNormalArrow = null;
   machineMeshes = [];
   _machineEdgeLines = [];
   _edgesBuilt = false;
@@ -855,6 +1211,46 @@ function ensureCoreGroups(init: ViewerInit) {
   _toolGrp = groups[init.toolGroup ?? "tool"] ?? groups.root;
   _toolBase.copy(_toolGrp.position);
 
+  // Machine frame (see the declaration comment): parent = the parent of the
+  // topmost rotary node on the work chain; static offset = the base
+  // translates from the work group up to that rotary node (rotations are
+  // zero there, so the composition is a plain sum). Linear DOFs BELOW the
+  // topmost rotary (a slide riding a rotary table) are not tracked — none
+  // of the shipped models has one.
+  {
+    const workId = init.workGroup ?? grpDefs[0]?.id ?? "root";
+    const parentOf: Record<string, string> = {};
+    for (const g of grpDefs) parentOf[g.id] = g.parent;
+    const rotGroups = new Set(normalizeKinematicsCached(init.kinematics).filter(k => k.rotate).map(k => k.group));
+    let topRot: string | null = null;
+    for (let id: string | undefined = workId; id && id !== "root" && groups[id]; id = parentOf[id]) {
+      if (rotGroups.has(id)) topRot = id;
+    }
+    if (topRot) {
+      const linId = parentOf[topRot];
+      const linGrp = (linId && linId !== "root" && groups[linId]) ? groups[linId]! : groups.root!;
+      machineFrameGrp = new THREE.Group();
+      for (let id: string | undefined = workId; id && id !== "root" && groups[id]; id = parentOf[id]) {
+        machineFrameGrp.position.add(_groupBase[id] ?? groups[id]!.position);
+        if (id === topRot) break;
+      }
+      linGrp.add(machineFrameGrp);
+    } else {
+      machineFrameGrp = _workGrp;
+    }
+  }
+  roomOrigin = roomRotGroup = roomAnchor = roomRot = null;
+  if (machineFrameGrp && machineFrameGrp !== _workGrp) {
+    roomOrigin = new THREE.Group();
+    machineFrameGrp.add(roomOrigin);
+    roomRotGroup = new THREE.Group();
+    roomOrigin.add(roomRotGroup);
+    roomAnchor = new THREE.Group();
+    machineFrameGrp.add(roomAnchor);
+    roomRot = new THREE.Group();
+    roomAnchor.add(roomRot);
+  }
+
   // Work origin (DRO zero frame) — attached to the work/table group
   workOrigin = new THREE.Group();
   _workGrp.add(workOrigin);
@@ -865,6 +1261,13 @@ function ensureCoreGroups(init: ViewerInit) {
   workRotGroup = new THREE.Group();
   workOrigin.add(workRotGroup);
 
+  // Baked-toolpath anchor (see the declaration comment): same parent as
+  // workOrigin, posed by toolpath.apply only.
+  pathAnchor = new THREE.Group();
+  _workGrp.add(pathAnchor);
+  pathRot = new THREE.Group();
+  pathAnchor.add(pathRot);
+
   // Work zero XYZ arrows (color identifies axis — no text labels)
   workAxes = new THREE.Group();
   const _al = 60 * _unitScale;
@@ -873,7 +1276,85 @@ function ensureCoreGroups(init: ViewerInit) {
   workAxes.add(new THREE.ArrowHelper(new THREE.Vector3(0,1,0), new THREE.Vector3(), _al, AXIS_HEX.y, _ah, _aw));
   workAxes.add(new THREE.ArrowHelper(new THREE.Vector3(0,0,1), new THREE.Vector3(), _al, AXIS_HEX.z, _ah, _aw));
 
-  workRotGroup.add(workAxes);
+  // Posed by placeWorkMarkers (NOT under workOrigin — see the declaration
+  // comment).
+  workAxesGroup = new THREE.Group();
+  workAxesGroup.add(workAxes);
+  workAxesLabel = mkTextLabel("", "#" + AXIS_HEX.z.toString(16).padStart(6, "0"), _al * 0.28);
+  workAxesLabel.position.set(0, 0, _al * 1.35);
+  workAxesGroup.add(workAxesLabel);
+  _billboardLabels.push(workAxesLabel);
+  _workGrp.add(workAxesGroup);
+
+  // The muted "program zero (machine)" marker — the same arrows at 0.6× and
+  // half opacity, its own posed group; viewer/programZero.ts decides when.
+  ghostAxes = new THREE.Group();
+  const _dl = _al * 0.6;
+  for (const [dir, hex] of [[[1, 0, 0], AXIS_HEX.x], [[0, 1, 0], AXIS_HEX.y], [[0, 0, 1], AXIS_HEX.z]] as const) {
+    const ah = new THREE.ArrowHelper(new THREE.Vector3(...dir), new THREE.Vector3(), _dl, hex, _dl * 0.15, _dl * 0.08);
+    (ah.line.material as THREE.LineBasicMaterial).transparent = true;
+    (ah.line.material as THREE.LineBasicMaterial).opacity = 0.5;
+    (ah.cone.material as THREE.MeshBasicMaterial).transparent = true;
+    (ah.cone.material as THREE.MeshBasicMaterial).opacity = 0.5;
+    ghostAxes.add(ah);
+  }
+  ghostLabel = mkTextLabel("program zero (machine)", "#" + AXIS_HEX.z.toString(16).padStart(6, "0"), _dl * 0.35);
+  (ghostLabel as unknown as { fillOpacity: number }).fillOpacity = 0.6;
+  ghostLabel.position.set(0, 0, _dl * 1.4);
+  ghostAxes.add(ghostLabel);
+  _billboardLabels.push(ghostLabel);
+  ghostGroup = new THREE.Group();
+  ghostGroup.add(ghostAxes);
+  ghostGroup.visible = false;
+  _workGrp.add(ghostGroup);
+
+  // ---- TWP plane (P3.4) — machine frame, hidden until a plane is defined ----
+  {
+    twpPlaneGroup = new THREE.Group();
+    twpPlaneGroup.visible = false;
+    const _ps = 300 * _unitScale;   // 300 mm-equivalent square
+    twpPlaneMat = new THREE.MeshBasicMaterial({
+      color: _TWP_ACTIVE_HEX, transparent: true, opacity: 0.12,
+      side: THREE.DoubleSide, depthWrite: false,
+    });
+    twpPlaneGroup.add(new THREE.Mesh(new THREE.PlaneGeometry(_ps, _ps), twpPlaneMat));
+    // Grid: hand-built LineSegments (GridHelper bakes vertex colors, which
+    // would defeat the active/inactive tint swap).
+    {
+      const div = 10, half = _ps / 2, pos: number[] = [];
+      for (let i = 0; i <= div; i++) {
+        const c = -half + (i * _ps) / div;
+        pos.push(c, -half, 0, c, half, 0, -half, c, 0, half, c, 0);
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+      twpGridMat = new THREE.LineBasicMaterial({
+        color: _TWP_ACTIVE_HEX, transparent: true, opacity: 0.35, depthWrite: false,
+      });
+      twpPlaneGroup.add(new THREE.LineSegments(g, twpGridMat));
+    }
+    // Origin triad in the PLANE's frame — Z is the plane normal (= tool
+    // axis when TOOL kins is active).
+    // 48 (was 80): the ACTIVE triad (60) is the DRO's truth and must
+    // dominate — the plane's dominant cue is the 300 mm quad, not its triad.
+    const _tl = 48 * _unitScale, _th = _tl * 0.15, _tw = _tl * 0.08;
+    twpPlaneGroup.add(new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(), _tl, AXIS_HEX.x, _th, _tw));
+    twpPlaneGroup.add(new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), new THREE.Vector3(), _tl, AXIS_HEX.y, _th, _tw));
+    // +Z is the TOOL-NORMAL claim, so it is the element that carries the
+    // stale warning (see updateTwpPlane) — keep a handle on it.
+    twpNormalArrow = new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1), new THREE.Vector3(), _tl, AXIS_HEX.z, _th, _tw);
+    twpPlaneGroup.add(twpNormalArrow);
+    twpPlaneLabel = mkTextLabel("Plane", "#" + _TWP_ACTIVE_HEX.toString(16).padStart(6, "0"), _tl * 0.45);
+    twpPlaneLabel.position.set(0, 0, _tl * 1.5);
+    twpPlaneGroup.add(twpPlaneLabel);
+    _billboardLabels.push(twpPlaneLabel);
+    // _workGrp local frame = machine coordinates (see header comment) — and
+    // the fresh group starts hidden, so the stale signature must be cleared
+    // or an unchanged status would skip re-showing it after a rebuild.
+    _workGrp!.add(twpPlaneGroup);
+    _twpSig = "";
+    _twpRefresh();
+  }
 
   // ---- Backplot line (tool history in WORK coordinates) ----
   // Rebuild under the fresh _workGrp (reassigned each rebuild); the controller
@@ -898,8 +1379,16 @@ function ensureCoreGroups(init: ViewerInit) {
       edgeGeom,
       new THREE.LineBasicMaterial({ color: boundsColor })
     );
-    _workGrp!.add(machineBoundsMesh);
+    // MACHINE frame, never the rotating work group: the clip planes that
+    // decide the yellow outside-bounds overlay live there (7a04909), and the
+    // box that stayed under _workGrp swung with A while the clipping did not
+    // — "yellow while inside the box" (operator, 2026-09-12). On rotary-free
+    // work chains machineFrameGrp IS _workGrp.
+    (machineFrameGrp ?? _workGrp)!.add(machineBoundsMesh);
   }
+  // Reach envelope layer (2026-09-12): the cached solids re-hang under the
+  // rebuilt frame groups; a new machine model recomputes (inputs key).
+  if (_reachRoomOn || _reachPartOn) _reachRequest();
 
   // Apply tool colors
   MAT.tool.color.set(viewerDefaults.colors.tool ?? "#c0c0c0");
@@ -954,10 +1443,13 @@ function buildToolGroup(diam: number, len: number, meta: ToolMeta | null): THREE
   return grp;
 }
 
-function sceneBgFromTheme(): THREE.Color {
-  const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
-  return new THREE.Color(bg);
+/** A theme colour token (`--bg`, `--fg`, `--danger`, …) as a THREE colour.
+ *  The tokens are plain hex per theme — THREE cannot parse color-mix(). */
+function cssColor(name: string, fallback: string): THREE.Color {
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return new THREE.Color(v || fallback);
 }
+function sceneBgFromTheme(): THREE.Color { return cssColor("--bg", "#0b0f14"); }
 
 async function buildFromInit(init: ViewerInit) {
   if (!scene) return;
@@ -981,36 +1473,14 @@ async function buildFromInit(init: ViewerInit) {
     scene.add(dl);
 
     ensureCoreGroups(init);
-    // Apply machine bounds from viewer_init (INI-derived)
-    const mb = init.machine_bounds;
-    if (machineBoundsMesh && mb?.size && mb?.origin) {
-      applyBox(machineBoundsMesh, mb.size as Vec3, mb.origin as Vec3);
-
-      // Build clipping planes for overflow visualization (normals point outward)
-      // Stored in _workGrp local space; transformed to world space each frame in animate()
-      const [bx, by, bz] = mb.origin as Vec3;
-      const [bsx, bsy, bsz] = mb.size as Vec3;
-      if (bsx > 0 && bsy > 0 && bsz > 0) {
-        _localBoundsPlanes.length = 0;
-        _localBoundsPlanes.push(
-          new THREE.Plane(new THREE.Vector3(-1, 0, 0),  bx),
-          new THREE.Plane(new THREE.Vector3( 1, 0, 0), -(bx + bsx)),
-          new THREE.Plane(new THREE.Vector3(0, -1, 0),  by),
-          new THREE.Plane(new THREE.Vector3(0,  1, 0), -(by + bsy)),
-          new THREE.Plane(new THREE.Vector3(0, 0, -1),  bz),
-          new THREE.Plane(new THREE.Vector3(0, 0,  1), -(bz + bsz)),
-        );
-        boundsClipPlanes.length = 0;
-        insideBoundsClipPlanes.length = 0;
-        for (const p of _localBoundsPlanes) {
-          boundsClipPlanes.push(p.clone());
-          insideBoundsClipPlanes.push(p.clone().negate());
-        }
-      }
-
-    } else {
-      console.warn("No machine_bounds in viewer_init; bounds box will remain default");
-    }
+    // Program-zero markers evaluate the same chain the part-frame worker
+    // gets; one instance per build so the memoized chain stays warm.
+    _markerMachine = _pfMachine(init);
+    _markerDirty = true;
+    // Machine bounds: the LIVE joint limits when the status carries them
+    // (the TWP sim's Z window follows the kins mode through a HAL mux), else
+    // the INI-derived viewer_init box. Re-applied by the watcher on change.
+    applyMachineBounds(effectiveBounds.value);
 
     // Load all STL assets via the central cache (first caller fetches, others await same Promise)
     await loadMachineAssets(init);
@@ -1073,7 +1543,7 @@ async function buildFromInit(init: ViewerInit) {
     // Falls back to STL mesh world bounds if no bounds data present.
     {
       let autoBox = new THREE.Box3();
-      const mb = init.machine_bounds;
+      const mb = _effectiveBounds ?? init.machine_bounds;
       if (mb?.size && mb?.origin) {
         const [ox, oy, oz] = mb.origin as [number, number, number];
         const [sx, sy, sz] = mb.size as [number, number, number];
@@ -1115,6 +1585,30 @@ async function buildFromInit(init: ViewerInit) {
       rapid_segs: toolpath.rapidSegs,
       backplot_pts: backplot.count,
       backplot_full: backplot.isFull,
+      // What else was running when the window closed — a busy worker is
+      // off the main thread but not off the machine (2026-09-09: the GPU
+      // trailed 3–4 frames after every publish with the sweep re-running).
+      sweep_busy: collisionBusy.value,
+      sweep_pct: collisionBusy.value ? Math.round(collisionProgress.value * 100) : null,
+      pf_pending: _pfPending,
+      path_stale: pathStaleNow.value,
+      // Chunked draw (2026-09-11): what the GPU was actually handed —
+      // segments at the current draw ranges, chunk count, chunks inside the
+      // frustum and outside-bounds overlays drawn (both from the last
+      // updateCulling), draw calls / line primitives of the last main
+      // render, and which display path built the lines.
+      draw_segs: toolpath.drawSegs,
+      room_segs: toolpath.roomSegs,
+      lod_min: toolpath.lodMin,
+      lod_max: toolpath.lodMax,
+      lod_ms: toolpath.lodMs,
+      chunks: toolpath.chunks,
+      chunks_visible: toolpath.chunksVisible,
+      overlay_chunks: toolpath.overlayChunks,
+      frame_mixed: toolpath.frameMixed,
+      gl_calls: _glCalls,
+      gl_lines: _glLines,
+      display_mode: _pfAppliedMode,
       // Three.js resource counts — monotonic growth over a long run is a
       // geometry/texture leak (the "~1 hr in" stutter suspect). Ride the 3 s
       // probe so leak detection shares one event line with heap + gap.
@@ -1216,8 +1710,10 @@ function applyState(init: ViewerInit, st: ViewerState) {
 
   // Phase 3 — tool spatial compensation: put the tool TIP at TCP by shifting
   // the tool group by -tool_offset relative to its (base or DOF-composed)
-  // position.
-  const tofs = st.tool_offset;
+  // position. Under a scrub pose the SAMPLE's offset is what its joints were
+  // lifted with (schema 8) — live tool_offset would put the tip a tool-length
+  // delta off the path after an in-program G43 (the fresh-boot 22.000 class).
+  const tofs = (_scrubJoints && _scrubTlo) ? _scrubTlo : st.tool_offset;
   if (tofs && tofs.length >= 3) {
     _toolGrp.position.sub(_tofsVec.set(tofs[0] ?? 0, tofs[1] ?? 0, tofs[2] ?? 0));
   }
@@ -1227,38 +1723,43 @@ function applyState(init: ViewerInit, st: ViewerState) {
   // effective origin is g5x + Rz(θ)·g92 — workRotGroup (child) applies the
   // rotation to program coords AND the g92 vector's share lives here. A
   // plain g5x+g92 sum deviates whenever G92 and G10 R are both active.
-  const g5x = st.g5x_offset ?? [];
-  const g92 = st.g92_offset ?? [];
-  const thRad = (st.rotation_xy ?? 0) * Math.PI / 180;
-  const cthW = Math.cos(thRad), sthW = Math.sin(thRad);
-  const g92x = g92[0] ?? 0, g92y = g92[1] ?? 0;
-
-  const ox = (g5x[0] ?? 0) + g92x * cthW - g92y * sthW;
-  const oy = (g5x[1] ?? 0) + g92x * sthW + g92y * cthW;
-  const oz = (g5x[2] ?? 0) + (g92[2] ?? 0);
-
+  // ONE formula with the baked-toolpath anchor (anchorTerms) so the live
+  // origin and a baked path's anchor can never disagree; scratch objects
+  // keep the per-frame loop allocation-free.
+  _liveWcs.g5x = st.g5x_offset ?? _EMPTY_NUMS;
+  _liveWcs.g92 = st.g92_offset ?? _EMPTY_NUMS;
+  _liveWcs.rotationDeg = st.rotation_xy ?? 0;
+  anchorTerms(_liveWcs, _liveAnchor);
   if (workOrigin) {
-    workOrigin.position.set(ox, oy, oz);
+    workOrigin.position.set(_liveAnchor.ox, _liveAnchor.oy, _liveAnchor.oz);
+    if (roomOrigin) roomOrigin.position.set(_liveAnchor.ox, _liveAnchor.oy, _liveAnchor.oz);
   }
   if (workRotGroup) {
-    workRotGroup.rotation.z = (st.rotation_xy ?? 0) * Math.PI / 180;
+    workRotGroup.rotation.z = _liveAnchor.thetaDeg * Math.PI / 180;
+    if (roomRotGroup) roomRotGroup.rotation.z = _liveAnchor.thetaDeg * Math.PI / 180;
   }
+  // The active-fixture triad and the machine ghost are posed by
+  // placeWorkMarkers at the tail of this function (after the render diff).
 
   // ---- Tool visual: parametric profile (TIP stays at local z=0) ----
   {
-    const toolNum = st.tool_number ?? null;
-    const meta: ToolMeta | null = st.tool_meta ?? null;
-    // Design default: absent tool dimensions draw a generic 6×60 mm placeholder
-    // marker — a viewer position cue, not a claim about the real tool geometry.
-    const diam = st.tool_diameter || 6.0 * _unitScale;
-    // `||`, not `??`: tool_length 0 (no tool / no offset) means "unknown",
-    // and a 0-length marker collapses to the 40 mm minimum — 15 mm short of
-    // the raised spindle nose, leaving the tool floating detached. The
-    // collision body already used `||`; display and check must agree.
-    const rawLen = st.tool_length || 60.0 * _unitScale;
-    const sinkIntoHolder = 20 * _unitScale;
-    const minVisualLen = 40 * _unitScale;
-    const visLen = Math.max(minVisualLen, rawLen + sinkIntoHolder);
+    const liveToolNum = st.tool_number ?? null;
+    // While scrubbing, the marker wears the SAMPLE's tool (schema 8): dims
+    // from the parse-time table row, meta only if that tool was ever loaded
+    // this session (getToolMeta) — never the loaded tool's meta on another
+    // tool's dims. Leaving sim restores the loaded tool.
+    const scrubTool = (_scrubJoints && _scrubTool != null && _scrubTool > 0 && _scrubTool !== liveToolNum)
+      ? _scrubTool : null;
+    const toolNum = scrubTool ?? liveToolNum;
+    const meta: ToolMeta | null = scrubTool != null
+      ? (getToolMeta(scrubTool) ?? null) : (st.tool_meta ?? null);
+    let diamRaw: number | null | undefined = st.tool_diameter;
+    let lenRaw: number | null | undefined = st.tool_length;
+    if (scrubTool != null) {
+      const d = toolDimsFor(scrubTool, viewerGcode.value?.parse_tlos, _unitScale, { diam: null, len: null });
+      diamRaw = d.diam; lenRaw = d.len;
+    }
+    const { diam, len: visLen } = _toolVisual(diamRaw, lenRaw);
 
     // Determine if we need a rebuild
     const needsRebuild = (toolNum !== _currentToolNum && _toolGrp)
@@ -1282,7 +1783,7 @@ function applyState(init: ViewerInit, st: ViewerState) {
       }
       if (meta) {
         _lastToolMeta = meta;
-        if (toolNum != null) setToolMeta(toolNum, meta);
+        if (toolNum != null && scrubTool == null) setToolMeta(toolNum, meta);
       } else if (toolNum != null) {
         _lastToolMeta = getToolMeta(toolNum) ?? null;
       }
@@ -1307,7 +1808,11 @@ function applyState(init: ViewerInit, st: ViewerState) {
   // fabricate machine motion history in the backplot.
   if (toolMarker && _workGrp && !_scrubJoints) {
     toolMarker.getWorldPosition(_bpWorld);
-    // worldToLocal mutates its argument in place, so convert a copy.
+    // worldToLocal mutates its argument in place, so convert a copy. Refresh
+    // the work group's world matrix through its ANCESTORS first: the tool
+    // chain was just walked by getWorldPosition, but the table chain was
+    // not, and a stale a_table rotation put backplot points one frame off.
+    _workGrp.updateWorldMatrix(true, false);
     _bpLocal.copy(_bpWorld);
     _workGrp.worldToLocal(_bpLocal);
     backplot.push(_bpLocal.x, _bpLocal.y, _bpLocal.z);
@@ -1343,16 +1848,16 @@ function applyState(init: ViewerInit, st: ViewerState) {
   let changed = false;
   if (_numArrChanged(_pv.jointPos, st.joint_pos)) { _pv.jointPos = st.joint_pos ? [...st.joint_pos] : null; changed = true; }
   if (_numArrChanged(_pv.machinePos, st.machine_pos)) { _pv.machinePos = st.machine_pos ? [...st.machine_pos] : null; changed = true; }
-  if (_numArrChanged(_pv.g5x, st.g5x_offset)) { _pv.g5x = st.g5x_offset ? [...st.g5x_offset] : null; changed = true; _pfScheduleWcsRefresh(); _colOnInputChange(); }
-  if (_numArrChanged(_pv.g92, st.g92_offset)) { _pv.g92 = st.g92_offset ? [...st.g92_offset] : null; changed = true; _pfScheduleWcsRefresh(); _colOnInputChange(); }
+  if (_numArrChanged(_pv.g5x, st.g5x_offset)) { _pv.g5x = st.g5x_offset ? [...st.g5x_offset] : null; changed = true; _markerDirty = true; _pfScheduleWcsRefresh(); _colOnInputChange(); }
+  if (_numArrChanged(_pv.g92, st.g92_offset)) { _pv.g92 = st.g92_offset ? [...st.g92_offset] : null; changed = true; _markerDirty = true; _pfScheduleWcsRefresh(); _colOnInputChange(); }
   // tool_offset is a transform input (joint-space math is G43-inclusive):
   // refresh the part-frame preview and re-run the sweep like any WCS change.
-  if (_numArrChanged(_pv.toolOffset, st.tool_offset)) { _pv.toolOffset = st.tool_offset ? [...st.tool_offset] : null; changed = true; _pfScheduleWcsRefresh(); _colOnInputChange(); }
+  if (_numArrChanged(_pv.toolOffset, st.tool_offset)) { _pv.toolOffset = st.tool_offset ? [...st.tool_offset] : null; changed = true; _markerDirty = true; _pfScheduleWcsRefresh(); _colOnInputChange(); }
   if (toolNum !== _pv.toolNum) { _pv.toolNum = toolNum; changed = true; }
   if (toolDiam !== _pv.toolDiam) { _pv.toolDiam = toolDiam; changed = true; _colOnInputChange(); }
   if (toolLen !== _pv.toolLen) { _pv.toolLen = toolLen; changed = true; _colOnInputChange(); }
   if (motionLine !== _pv.motionLine) { _pv.motionLine = motionLine; changed = true; }
-  if (rotationXy !== _pv.rotationXy) { _pv.rotationXy = rotationXy; changed = true; _pfScheduleWcsRefresh(); _colOnInputChange(); }
+  if (rotationXy !== _pv.rotationXy) { _pv.rotationXy = rotationXy; changed = true; _markerDirty = true; _pfScheduleWcsRefresh(); _colOnInputChange(); }
   // Fixture-table edits (review P2): only the rows the payload's
   // non-rewritten epochs actually RE-ADD participate in the change key
   // (W2 P5 — wcs_frames ships on every modern payload, so keying on the
@@ -1370,7 +1875,41 @@ function applyState(init: ViewerInit, st: ViewerState) {
   // tool_meta is null on the vast majority of ticks; the gateway sends a fresh
   // object only on a real change, so a reference compare is sufficient + cheap.
   if (toolMeta !== _pv.toolMeta) { _pv.toolMeta = toolMeta; changed = true; }
+  // Program-zero markers: their inputs (kins type, fixture index, plane
+  // pins, table pose, stamps, scrub) were never in this diff, so an M428
+  // re-posed the triad without a repaint until the next jog (operator-
+  // caught). Placed AFTER the diff so _pfWcs() reads the refreshed terms.
+  if (markerInputsChanged(_pvMarker, st, !!_scrubJoints)) _markerDirty = true;
+  if (_markerDirty) { _markerDirty = false; placeWorkMarkers(st); changed = true; }
   if (changed) _needsRender = true;
+}
+
+/** Pose the active-fixture triad and the machine ghost from the rule table
+ *  in viewer/programZero.ts (pure — the scene only draws its answer). The
+ *  groups hang under _workGrp, so a part-riding pose rides the table and
+ *  the ghost's table-local coordinates hold it still in the room. */
+function placeWorkMarkers(st: ViewerState) {
+  if (!_markerMachine || !workAxesGroup || !ghostGroup) return;
+  const trio = (typeof st.kins_pre_rot === "number" && typeof st.kins_primary_angle === "number"
+    && typeof st.kins_secondary_angle === "number")
+    ? [st.kins_pre_rot, st.kins_primary_angle, st.kins_secondary_angle] : null;
+  const m = workMarkers({
+    machine: _markerMachine, wcs: _pfWcs(), kinsType: st.kins_type, g5xIndex: st.g5x_index,
+    frame: trio, rotaryAbc: st.rotary_abc, provA: st.wcs_prov_a, scrub: !!_scrubJoints,
+  }, _markerScratch);
+  _poseMarker(workAxesGroup, m.primary?.pose ?? null);
+  if (m.primary && workAxesLabel && workAxesLabel.text !== m.primary.label) {
+    workAxesLabel.text = m.primary.label;
+    workAxesLabel.sync();
+  }
+  _poseMarker(ghostGroup, m.ghost);
+}
+function _poseMarker(g: THREE.Group, p: ProgramZeroPose | null) {
+  if (!p) { g.visible = false; return; }
+  g.position.set(p.pos[0], p.pos[1], p.pos[2]);
+  _fixM.makeBasis(_fixX.set(...p.x), _fixY.set(...p.y), _fixZ.set(...p.z));
+  g.quaternion.setFromRotationMatrix(_fixM);
+  g.visible = true;
 }
 
 // ---- Part-frame ("path on part") preview — rotary-aware toolpath ----
@@ -1383,17 +1922,37 @@ function applyState(init: ViewerInit, st: ViewerState) {
 // programmed (machine) space — that is the correct space for machine limits.
 let _pfWorker: Worker | null = null;
 let _pfReqId = 0;
+let _pfPending = false;   // a part-frame transform is in flight (perf-probe context)
+// Resident-payload bookkeeping (item 7, 2026-09-05): which ViewerGcode the
+// worker currently holds, and its id on the wire. A transform request
+// carries only the terms; the streams cross once per program.
+let _pfLoadedFor: ViewerGcode | null = null;
+let _pfPayloadId = 0;
 let _pfAppliedMode: "part" | "programmed" | null = null;
+// The anchor the in-flight part-frame request was baked against — applied
+// together with its reply (never from live status).
+let _pfAnchorFor: { id: number; anchor: AnchorTerms } | null = null;
+const _EMPTY_NUMS: number[] = [];
+const _liveWcs: PartFrameWcs = { g5x: _EMPTY_NUMS, g92: _EMPTY_NUMS, rotationDeg: 0 };
+const _liveAnchor: AnchorTerms = { ox: 0, oy: 0, oz: 0, thetaDeg: 0 };
 let _pfWcsTimer: ReturnType<typeof setTimeout> | undefined;
 
 function _pfGetWorker(): Worker {
   if (!_pfWorker) {
     _pfWorker = new Worker(new URL("./viewer/partFrameWorker.ts", import.meta.url), { type: "module" });
     _pfWorker.onmessage = (ev: MessageEvent) => {
-      const m = ev.data as { id: number; error?: string; feedPos?: Float32Array; feedLines?: Uint32Array; feedLineMap?: Map<number, { start: number; end: number }>; rapidPos?: Float32Array; rapidDist?: Float32Array; feedBreaks?: Uint32Array; rapidBreaks?: Uint32Array; feedSrc?: Uint32Array };
+      const m = ev.data as { id: number; error?: string; needPayload?: number; feedPos?: Float32Array; feedLines?: Uint32Array; feedLineIndex?: LineIndex; rapidPos?: Float32Array; rapidDist?: Float32Array; feedBreaks?: Uint32Array; rapidBreaks?: Uint32Array; feedSrc?: Uint32Array; feedRoom?: Uint8Array; rapidRoom?: Uint8Array; frameFlips?: number; feedOutside?: Uint8Array; rapidOutside?: Uint8Array; feedLod?: Uint32Array[]; rapidLod?: Uint32Array[]; lodTols?: number[]; lodMs?: number };
       if (m.id !== _pfReqId) return;  // superseded
+      _pfPending = false;
       const g = viewerGcode.value;
       if (!g) return;
+      if (m.needPayload != null) {
+        // The worker does not hold this program (recreated, or a transform
+        // that raced a program change): re-send the streams and retry once.
+        _pfLoadedFor = null;
+        applyGcode(g);
+        return;
+      }
       if (m.error) {
         console.error("[partFrame] transform failed — programmed preview used:", m.error);
         _applyProgrammed(g);
@@ -1402,10 +1961,18 @@ function _pfGetWorker(): Worker {
       }
       const out: ViewerGcode = {
         ...g,
-        feedPos: m.feedPos, feed_lines: m.feedLines, feedLineMap: m.feedLineMap,
+        feedPos: m.feedPos, feed_lines: m.feedLines, feedLineIndex: m.feedLineIndex,
         rapidPos: m.rapidPos, rapidDist: m.rapidDist,
         feedBreaks: m.feedBreaks, rapidBreaks: m.rapidBreaks,
         feedSrc: m.feedSrc,
+        // Room split (2026-09-11): per drawn vertex, baked room-fixed or on
+        // the part; absent when the transform had no boundary to apply.
+        feedRoom: m.feedRoom, rapidRoom: m.rapidRoom,
+        // The validator's outside-limits flag carried per baked sample (2026-09-12).
+        feedOutside: m.feedOutside, rapidOutside: m.rapidOutside,
+        // Display LOD levels cut over the BAKED vertices (the payload's own
+        // levels address the programmed vertices, a different space).
+        feedLod: m.feedLod, rapidLod: m.rapidLod, lodTols: m.lodTols, lodMs: m.lodMs,
       };
       if ((g.wcsEvents?.length ?? 0) > 1) {
         // Multi-epoch payload: the shipped bounds boxes mix frames. The
@@ -1425,7 +1992,15 @@ function _pfGetWorker(): Worker {
             : fb)
           : null;
       }
-      toolpath.apply(toolpathCtx(), out);
+      if (!_pfAnchorFor || _pfAnchorFor.id !== m.id) {
+        // Cannot happen (the anchor is stored with the request id) — but a
+        // baked path under the live origin is the exact bug this guards.
+        console.error("[partFrame] reply without its anchor — programmed preview used");
+        _applyProgrammed(g);
+        requestRender();
+        return;
+      }
+      toolpath.apply(toolpathCtx(), out, _pfAnchorFor.anchor);
       requestRender();
     };
     _pfWorker.onerror = (ev) => {
@@ -1453,6 +2028,41 @@ function _pfMachine(init: ViewerInit): PartFrameMachine {
   }));
 }
 
+/** The DISPLAYED tool dims — ONE formula for the marker and the collision
+ *  body (they must agree: the body used to be shorter than the drawn tool).
+ *  Design default: absent dims draw a generic 6×60 placeholder — a position
+ *  cue, not a claim about the real tool. `||`, not `??`: a 0 length means
+ *  "unknown", and a 0-length marker collapses to the 40 mm minimum — 15 mm
+ *  short of the raised spindle nose, leaving the tool floating detached.
+ *  Visual length = raw + the shank's sink into the holder, floored. */
+function _toolVisual(diamRaw: number | null | undefined, lenRaw: number | null | undefined): { diam: number; len: number } {
+  const diam = diamRaw || 6.0 * _unitScale;
+  const rawLen = lenRaw || 60.0 * _unitScale;
+  return { diam, len: Math.max(40 * _unitScale, rawLen + 20 * _unitScale) };
+}
+
+/** Per-program-tool dims for the sweep (schema 8): every tool a tlo_events
+ *  row names that has a parse-time table row. Absent channel → undefined
+ *  (the sweep keeps the loaded tool / stub body throughout, and the bar
+ *  says so). */
+function _programToolDims(): Record<number, { diam: number; len: number }> | undefined {
+  const g = viewerGcode.value;
+  if (!g?.tloEvents?.length || !g.parse_tlos?.length) return undefined;
+  const out: Record<number, { diam: number; len: number }> = {};
+  for (const ev of g.tloEvents) {
+    if (ev.tool == null || ev.tool <= 0 || out[ev.tool]) continue;
+    const d = toolDimsFor(ev.tool, g.parse_tlos, _unitScale, { diam: null, len: null });
+    if (d.known) out[ev.tool] = _toolVisual(d.diam, d.len);
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+const programTools = computed<Array<{ num: number; diam: number }> | null>(() => {
+  const dims = _programToolDims();
+  if (!dims) return null;
+  return Object.entries(dims).map(([n, d]) => ({ num: Number(n), diam: d.diam }))
+    .sort((a, b) => a.num - b.num);
+});
+
 function _pfWcs(): PartFrameWcs {
   // tool: live TCP offset — makes the transform joint-space-exact (G43).
   // The part-frame tip peel and the collision worker's tool-body shift
@@ -1473,6 +2083,51 @@ function _pfWcs(): PartFrameWcs {
 const COLLISION_MARGIN_MM = 2;
 let _colWorker: Worker | null = null;
 let _colReqId = 0;
+let _colStartedAt = 0;   // performance.now() of the running sweep's post (telemetry)
+// The AUTO sweep runs on load and on WCS/tool changes and must never own
+// the machine for long: a 1.18 M-point program ran ~2 h per sweep, restarted
+// on every touch-off, and starved the operator's GPU the whole time
+// (2026-09-10). The sweep PAUSES while the camera moves and its budget
+// counts active time only, so a pause never costs the sweep anything.
+// Sweeps are OPEN-ENDED (2026-09-13, operator decision): the 300 s budget of
+// the certificate-fix era and the ❚❚ / ▶ / ↻ button are gone — camera
+// interaction and a hidden tab PAUSE the worker, a rotary jog PARKS it (and
+// a settled pose resumes it), and the iterator's 4 M-sample backstop is the
+// only hard limit, reported as `truncated`. A program in permanent contact
+// sweeps for minutes; that is its cost, off the main thread.
+// The modelKey the worker holds a resident BVH model for (bodies are sent
+// only when it changes); null after a worker (re)creation or a failure.
+let _colModelSent: string | null = null;
+let _colNeedBodiesRetried = false;
+// Parked sweep (a rotary jog): the worker holds the suspended generator;
+// `collisionResult` carries the sweep-so-far (truncated) so its marks show.
+const collisionStopped = ref<{ covered: number; reason: "motion" } | null>(null);
+const collisionResumable = ref(false);
+let _colStopPending = false;   // a stop is on its way to the worker's next checkpoint
+// Live findings (2026-09-13): the worker's UNREFINED sweep-so-far, posted
+// with its progress at most every half second while the record count
+// changes — ticks, bands, the tint and the code-panel marks show clashes as
+// the sweep finds them; the refined result replaces it when the sweep ends
+// or parks. Keyed on the track it is being swept on.
+const collisionPartial = shallowRef<CollisionResult | null>(null);
+const collisionPartialTrack = shallowRef<ScrubTrack | null>(null);
+// Entry-segment OVERLAY (sim entry, 2026-09-12 second attempt): the SIDE
+// sweep's result for an entry track built on `base`, merged with the base
+// result at display time (collisionEntryResult). The base result keeps its
+// own identity, so a sim entry never cancels the program's sweep and a
+// re-entry never re-sweeps it (viewer/sweepEntry.ts pins the plan).
+const collisionEntry = shallowRef<{ track: ScrubTrack; base: ScrubTrack; result: CollisionResult; shift: number } | null>(null);
+let _colSide: { id: number; entry: ScrubTrack; base: ScrubTrack; slice: ScrubTrack; shift: number; retried: boolean; startedAt: number } | null = null;
+let _colSideSeq = 0;   // side ids are NEGATIVE — their own space beside _colReqId
+// Rotary pose at the start of the current leg / as last seen: a rotary jog
+// parks the sweep (its track is about to be re-parsed); a settled pose with
+// an unchanged preview resumes it. Linear jogs never touch it — the program's
+// track does not depend on where X/Y/Z sit.
+const ROTARY_STOP_DEG = 0.05;
+const ROTARY_SETTLE_MS = 4_500;   // > the gateway's 2 s debounce × 2 settled checks
+let _colRotaryAtStart: number[] | null = null;
+let _colRotaryLast: number[] | null = null;
+let _colSettleTimer: ReturnType<typeof setTimeout> | undefined;
 const collisionBusy = ref(false);
 const collisionProgress = ref(0);
 const collisionResult = ref<CollisionResult | null>(null);
@@ -1480,18 +2135,85 @@ const collisionResult = ref<CollisionResult | null>(null);
 // meaningful against it (shallowRef: tracks hold Maps + typed arrays).
 const collisionTrack = shallowRef<ScrubTrack | null>(null);
 let _colPendingTrack: ScrubTrack | null = null;
+/** The entry track's result: the overlay merged onto the base result (cums
+ *  shifted by the entry length, two baselines reported). Null until both
+ *  exist — a base sweep still running shows as running, not as "no result". */
+/** The base result on display: the refined one, else the live partial. */
+function _colBaseFor(trk: ScrubTrack): CollisionResult | null {
+  if (collisionResult.value && collisionTrack.value === trk) return collisionResult.value;
+  if (collisionPartial.value && collisionPartialTrack.value === trk) return collisionPartial.value;
+  return null;
+}
+const collisionEntryResult = computed<{ track: ScrubTrack; result: CollisionResult } | null>(() => {
+  const e = collisionEntry.value;
+  const b = e ? _colBaseFor(e.base) : null;
+  if (!e || !b) return null;
+  return { track: e.track, result: mergeEntryResult(e.result, b, e.shift, e.base.cum[e.base.count - 1]!) };
+});
+/** The result swept on exactly `trk` (base or entry-overlaid), else null. */
+function _colResultFor(trk: ScrubTrack | null): CollisionResult | null {
+  if (!trk) return null;
+  const b = _colBaseFor(trk);
+  if (b) return b;
+  const e = collisionEntryResult.value;
+  return e && e.track === trk ? e.result : null;
+}
 
 function _colGetWorker(): Worker {
   if (!_colWorker) {
     _colWorker = new Worker(new URL("./viewer/collisionWorker.ts", import.meta.url), { type: "module" });
+    _colModelSent = null;   // a fresh worker holds no model
     _colWorker.onmessage = (ev: MessageEvent) => {
-      const m = ev.data as { id: number; progress?: number; error?: string; result?: CollisionResult };
+      const m = ev.data as { id: number; progress?: number; partial?: CollisionResult; error?: string; result?: CollisionResult; needBodies?: boolean; cancelled?: boolean; stopped?: boolean };
+      if (_colSide && m.id === _colSide.id) { _colOnSideMessage(m); return; }
       if (m.id !== _colReqId) return;  // superseded
+      if (m.cancelled) return;         // our own cancel, acknowledged
+      if (m.needBodies) {
+        // The worker holds no model for the key we assumed it had: re-send
+        // the bodies once. A second ask in a row is a bug, not a retry.
+        if (_colNeedBodiesRetried) {
+          console.error("[collision] worker asked for bodies twice — sweep not run");
+          emitTelemetry("collision.sweep_failed", { msg: "worker asked for bodies twice" });
+          _colFail();
+          return;
+        }
+        _colNeedBodiesRetried = true;
+        _colModelSent = null;
+        collisionBusy.value = false;   // runCollisionCheck early-returns on busy
+        runCollisionCheck(_colPendingTrack ?? undefined);
+        return;
+      }
       if (m.progress != null && !m.result) {
         collisionProgress.value = m.progress;
+        if (m.partial) {
+          collisionPartial.value = m.partial;
+          collisionPartialTrack.value = _colPendingTrack;
+          emit("collision-lines", m.partial.hits.map(h => ({ line: h.line, continuation: h.continuation })));
+          _colRetint();
+        }
+        return;
+      }
+      if (m.stopped) {
+        // Parked (a rotary jog): the sweep-so-far is the result on display,
+        // and the worker still holds the generator.
+        collisionBusy.value = false;
+        _colStopPending = false;
+        collisionResult.value = m.result!;
+        collisionTrack.value = _colPendingTrack;
+        collisionPartial.value = null;
+        collisionResumable.value = true;
+        collisionStopped.value = { covered: m.result!.truncated?.covered ?? 0, reason: "motion" };
+        emitTelemetry("collision.sweep_stopped", {
+          reason: "motion", covered: m.result!.truncated?.covered ?? 0, hits: m.result!.hits.length,
+          ms: Math.round(performance.now() - _colStartedAt),
+        });
+        emit("collision-lines", m.result!.hits.map(h => ({ line: h.line, continuation: h.continuation })));
+        _colRetint();
         return;
       }
       collisionBusy.value = false;
+      _colStopPending = false;
+      collisionPartial.value = null;
       if (m.error) {
         console.error("[collision] sweep failed:", m.error);
         emitTelemetry("collision.sweep_failed", { msg: m.error });
@@ -1500,36 +2222,256 @@ function _colGetWorker(): Worker {
         emit("collision-lines", null);
         return;
       }
-      collisionResult.value = m.result!;
+      const result = m.result!;
+      collisionResult.value = result;
       collisionTrack.value = _colPendingTrack;
-      emit("collision-lines", m.result!.hits.map(h => h.line));
+      collisionResumable.value = false;
+      collisionStopped.value = null;
+      _colNeedBodiesRetried = false;
+      // Off-thread but not free: a sweep is a busy worker for its whole
+      // duration — the viewer perf probe's `sweep_busy` context field says
+      // whether one overlapped a slow window; this row says how long it ran.
+      emitTelemetry("collision.sweep_done", {
+        ms: Math.round(performance.now() - _colStartedAt),
+        bvh_ms: Math.round(result.bvhMs), sweep_ms: Math.round(result.sweepMs),
+        samples: result.samples, coarsened: result.coarsened,
+        uncertified: result.uncertified != null,
+        truncated: result.truncated?.reason ?? null,
+        covered: result.truncated?.covered ?? 1,
+        hits: result.hits.length, pairs: result.pairCount, pairs_prescreened: result.pairsPrescreened,
+        points: _colPendingTrack?.count ?? null,
+      });
+      emit("collision-lines", result.hits.map(h => ({ line: h.line, continuation: h.continuation })));
+      _colRetint();
+    };
+    // A worker-level failure (module load, OOM, uncaught throw) never
+    // replies — without this the busy flag stayed set and the Check chip
+    // read 0% until a program change (the part-frame worker already had it).
+    _colWorker.onerror = (ev: ErrorEvent) => {
+      console.error("[collision] worker error:", ev.message);
+      emitTelemetry("collision.sweep_failed", { msg: `worker error: ${ev.message}` });
+      _colFail();
     };
   }
   return _colWorker;
 }
 
+// Reset every sweep state the busy flag guards — the one place a failed
+// sweep unwinds to, so no failure path can leave `collisionBusy` pinned
+// (runCollisionCheck early-returns on it, and every auto-run goes through
+// runCollisionCheck).
+function _colFail() {
+  collisionBusy.value = false;
+  _colStopPending = false;
+  collisionProgress.value = 0;
+  collisionResult.value = null;
+  collisionTrack.value = null;
+  collisionPartial.value = null;
+  collisionResumable.value = false;
+  collisionStopped.value = null;
+  _colDropEntry();
+  emit("collision-lines", null);
+}
+
 function cancelCollisionCheck() {
   // The sweep is synchronous inside the worker — a cancel message would sit
   // unread until it finished. Terminate + lazy recreate is the honest cancel.
-  if (_colWorker) {
-    _colWorker.terminate();
-    _colWorker = null;
+  if (collisionBusy.value) {
+    emitTelemetry("collision.sweep_cancelled", {
+      ran_ms: Math.round(performance.now() - _colStartedAt), progress: collisionProgress.value,
+    });
   }
+  // The worker drives the sweep in slices (sweepPump) and reads a cancel
+  // between them: no terminate, so the resident BVH model survives for the
+  // next sweep (it used to be terminated + recreated + rebuilt per cancel).
+  if (_colWorker && (collisionBusy.value || collisionResumable.value)) _colWorker.postMessage({ cancel: _colReqId });
   _colReqId++;
   collisionBusy.value = false;
+  _colStopPending = false;
   collisionProgress.value = 0;
+  collisionPartial.value = null;
+  collisionResumable.value = false;
+  collisionStopped.value = null;
+  clearTimeout(_colSettleTimer);
 }
 
-function runCollisionCheck(trackOverride?: ScrubTrack) {
+/** Park the running sweep at its next checkpoint (a rotary jog — its track
+ *  is about to be re-parsed); the worker keeps it resident. The iterator
+ *  yields on time (8 ms) and the refinement is memoized, so the park reply
+ *  is bounded (2026-09-12: it used to be seconds away). */
+function stopCollisionCheck() {
+  if (!_colWorker || !collisionBusy.value || _colStopPending) return;
+  _colStopPending = true;
+  _colWorker.postMessage({ stop: _colReqId });
+}
+
+/** Resume the parked sweep where it stopped. */
+function continueCollisionCheck() {
+  if (!_colWorker || collisionBusy.value || !collisionResumable.value) return;
+  collisionBusy.value = true;
+  collisionResumable.value = false;
+  collisionStopped.value = null;
+  _colStartedAt = performance.now();
+  _colRotaryAtStart = _rotaryNow();
+  _colWorker.postMessage({ continue: _colReqId });
+  _colApplyPauses();
+}
+
+function _rotaryNow(): number[] | null {
+  const a = vst.value?.rotary_abc;
+  return Array.isArray(a) ? a.slice() : null;
+}
+
+/** Sim entry (2026-09-12). The entry-extended track differs from the base
+ *  by ONE segment (live position → first point). With a complete base
+ *  result on hand, only that segment is swept and merged; with the machine
+ *  already at the first point (identical track) nothing runs at all. A base
+ *  sweep still running or parked falls back to the full entry-track sweep
+ *  (the worker holds one sweep). */
+function runEntryCheck(entry: ScrubTrack, base: ScrubTrack | null) {
+  // The program's own sweep is never cancelled for a sim entry; the entry
+  // segment runs BESIDE it as a side sweep (viewer/sweepEntry.ts).
+  const plan = planEntryCheck({
+    entry, base,
+    mainTrack: collisionTrack.value, hasMainResult: !!collisionResult.value,
+    mainBusy: collisionBusy.value, mainResumable: collisionResumable.value,
+    pendingTrack: _colPendingTrack,
+    overlayTrack: collisionEntry.value?.track ?? null, sideTrack: _colSide?.entry ?? null,
+  });
+  if (!base) return;
+  if (plan.runBase) { cancelCollisionCheck(); runCollisionCheck(base); }
+  if (plan.runSide && entry.count >= 2) _colPostSide(sliceTrack(entry, 0, 2), entry, base, entry.cum[1]!);
+}
+
+/** Drop the entry overlay (and a side sweep in flight): a touch-off, a new
+ *  program or a failure makes it stale; ScrubBar re-asks on the next entry. */
+function _colDropEntry() {
+  if (_colSide && _colWorker) _colWorker.postMessage({ cancel: _colSide.id });
+  _colSide = null;
+  collisionEntry.value = null;
+}
+
+/** ScrubBar's own input edge while simulating (WCS rows it re-adds): nothing
+ *  is current — the base result, the overlay, the marks. */
+function _colInvalidate() {
+  cancelCollisionCheck();
+  collisionResult.value = null;
+  collisionTrack.value = null;
+  _colDropEntry();
+  emit("collision-lines", null);
+  _updateClashTint(null, null);
+}
+
+function _colOnSideMessage(m: { id: number; progress?: number; error?: string; result?: CollisionResult; needBodies?: boolean; cancelled?: boolean }) {
+  const side = _colSide!;
+  if (m.progress != null && !m.result) return;
+  if (m.cancelled) { _colSide = null; return; }
+  if (m.needBodies) {
+    if (side.retried) {
+      console.error("[collision] worker asked for bodies twice — entry sweep not run");
+      emitTelemetry("collision.entry_failed", { msg: "worker asked for bodies twice" });
+      _colSide = null;
+      return;
+    }
+    _colModelSent = null;
+    _colPostSide(side.slice, side.entry, side.base, side.shift, true);
+    return;
+  }
+  _colSide = null;
+  if (m.error) {
+    console.error("[collision] entry sweep failed:", m.error);
+    emitTelemetry("collision.entry_failed", { msg: m.error });
+    return;
+  }
+  const result = m.result!;
+  collisionEntry.value = { track: side.entry, base: side.base, result, shift: side.shift };
+  emitTelemetry("collision.entry_done", {
+    ms: Math.round(performance.now() - side.startedAt), hits: result.hits.length,
+    static: result.staticContacts.length, samples: result.samples,
+  });
+  _colRetint();
+}
+
+/** Re-apply the clash tint at the current scrub position after a result
+ *  lands (the pose watcher only runs on scrub moves). */
+function _colRetint() {
+  _updateClashTint(_scrubLineNo, _scrubCum);
+}
+
+// A rotary jog parks the running sweep (its track is about to be re-parsed);
+// once the pose has held still and no re-parse is in flight, it resumes.
+// A re-parse that does land drops the parked sweep and starts a fresh one
+// (the viewerGcode watcher). Keyed on VALUES: full status frames re-send an
+// unchanged pose as a new array.
+watch(() => vst.value?.rotary_abc as number[] | null | undefined, (abc) => {
+  if (!Array.isArray(abc)) return;
+  const changed = !_colRotaryLast || abc.some((v, i) => Math.abs(v - (_colRotaryLast![i] ?? v)) > ROTARY_STOP_DEG);
+  _colRotaryLast = abc.slice();
+  if (!changed) return;
+  if (collisionBusy.value && _colRotaryAtStart
+      && abc.some((v, i) => Math.abs(v - (_colRotaryAtStart![i] ?? v)) > ROTARY_STOP_DEG)) {
+    stopCollisionCheck();
+  }
+  clearTimeout(_colSettleTimer);
+  _colSettleTimer = setTimeout(_colOnRotarySettled, ROTARY_SETTLE_MS);
+});
+function _colOnRotarySettled() {
+  if (collisionStopped.value?.reason !== "motion" || !collisionResumable.value || collisionBusy.value) return;
+  if (previewRefresh.value) return;   // its payload drops this sweep and starts a fresh one
+  continueCollisionCheck();
+}
+
+// Pauses (2026-09-13): camera interaction in progress (OrbitControls
+// start→end — a busy worker starves the GPU side of the browser) and a
+// HIDDEN tab (a sweep must not burn a core behind another window). A sweep
+// posted while either holds starts paused; a running one is paused/resumed
+// by the events. Two independent holds in the worker, both must release.
+let _camMoving = false;
+function _colSetPaused(why: "camera" | "hidden", on: boolean) {
+  if (!_colWorker || !collisionBusy.value) return;
+  _colWorker.postMessage(on ? { pause: _colReqId, why } : { resume: _colReqId, why });
+}
+function _colApplyPauses() {
+  if (_camMoving) _colSetPaused("camera", true);
+  if (document.hidden) _colSetPaused("hidden", true);
+}
+function _colOnVisibility() {
+  _colSetPaused("hidden", document.hidden);
+}
+
+// Identity of the collision model the worker keeps resident: the loaded
+// parts (id, file, group, placement, stock flag), the unit scale and the
+// tool body dims. Bodies are re-sent only when it changes.
+function _colModelKey(init: ViewerInit): string {
+  const parts = (init.parts ?? [])
+    .filter(p => partCollides(p) && !!getCachedGeometry(p.id))
+    .map(p => [p.id, p.file, p.collision ?? null, p.group ?? "root", p.translate ?? null, (p as any).rotate ?? null, p.stock ? 1 : 0]);
+  return JSON.stringify([parts, _unitScale, _toolVisual(_pv.toolDiam, _pv.toolLen)]);
+}
+
+/** The worker request for one sweep of `track`. Bodies (copies of every
+ *  machine STL) go over only when the worker does not already hold this
+ *  model — a touch-off used to re-post + rebuild the BVHs every time. Null
+ *  when nothing can be posted (no viewer init). */
+function _colBuildRequest(track: ScrubTrack, id: number, side: boolean) {
   const init = viewerInit.value;
-  // ScrubBar passes its active track (base + entry move captured at sim
-  // entry); the bare-Check fallback sweeps the parse-time track.
-  const track = trackOverride ?? viewerGcode.value?.scrubTrack;
-  if (!init || !track || collisionBusy.value) return;
+  if (!init) return null;
+  const modelKey = _colModelKey(init);
+  const sendBodies = !_colWorker || _colModelSent !== modelKey;
   const bodies: CollisionBody[] = [];
   let skipped = 0;
-  for (const p of (init.parts ?? [])) {
-    const attr = getCachedGeometry(p.id)?.getAttribute("position");
+  if (sendBodies) for (const p of (init.parts ?? [])) {
+    if (!partCollides(p)) continue;   // decorative by declaration (machine.json collide: false)
+    // Collision PROXY (machine.json `collision`): the coarser superset mesh
+    // the sweep checks instead of the display mesh. A declared proxy that
+    // did not load is reported — never silently swapped — and the display
+    // mesh stands in: sound, just slow.
+    const proxy = p.collision ? getCollisionGeometry(p.id) : undefined;
+    if (p.collision && !proxy) {
+      console.error(`[collision] proxy mesh for ${p.id} not loaded — checking its display mesh instead`);
+      emitTelemetry("collision.proxy_missing", { part: p.id });
+    }
+    const attr = (proxy ?? getCachedGeometry(p.id))?.getAttribute("position");
     if (!attr) { skipped++; continue; }  // unloaded geometry
     bodies.push({
       id: p.id,
@@ -1545,11 +2487,6 @@ function runCollisionCheck(trackOverride?: ScrubTrack) {
     });
   }
   if (skipped) console.warn(`[collision] ${skipped} machine part(s) not loaded — checked without them`);
-  const id = ++_colReqId;
-  _colPendingTrack = track;
-  collisionBusy.value = true;
-  collisionProgress.value = 0;
-  collisionResult.value = null;
   // Track arrays are copied — transferring the originals would detach the
   // buffers viewerGcode (and the scrub bar) still read.
   const trackCopy = {
@@ -1560,6 +2497,7 @@ function runCollisionCheck(trackOverride?: ScrubTrack) {
     frames: track.frames,         // small list — structured-cloned, not transferred
     brk: track.brk?.slice(),      // kins-flip relabel flags — excluded from the sweep
     wcs: track.wcsEpoch?.slice(), // per-segment WCS epoch (terms in options below)
+    tlo: track.tlo?.slice(),      // per-segment TLO/tool event (events in options below)
   };
   // ArrayBuffer[] (not Transferable[]): every entry is a buffer, and the
   // TS-only Transferable name trips eslint's no-undef in SFC scripts.
@@ -1569,23 +2507,19 @@ function runCollisionCheck(trackOverride?: ScrubTrack) {
     trackCopy.lines.buffer as ArrayBuffer, trackCopy.rapid.buffer as ArrayBuffer,
     trackCopy.cum.buffer as ArrayBuffer,
   ];
-  _colGetWorker().postMessage({
+  const msg = {
     id,
     machine: _pfMachine(init),           // same shape as CollisionMachine
-    bodies,
+    bodies: sendBodies ? bodies : undefined,
+    modelKey,
     // The DISPLAYED marker dims — same visual-length formula as the marker
     // build (min length + shank sink into the holder). Using the raw tool
     // length made the collision body SHORTER than the tool on screen: the
     // model visibly touched while the sweep saw clearance.
-    tool: (() => {
-      const rawLen = _pv.toolLen || 60 * _unitScale;
-      return {
-        diam: _pv.toolDiam || 6 * _unitScale,
-        len: Math.max(40 * _unitScale, rawLen + 20 * _unitScale),
-      };
-    })(),
+    tool: _toolVisual(_pv.toolDiam, _pv.toolLen),
     track: trackCopy,
     wcs: _pfWcs(),
+    side: side || undefined,   // beside the main sweep (entry segment)
     options: {
       margin: COLLISION_MARGIN_MM * _unitScale,
       // Per-epoch re-add terms (review P2) — the sweep converts each
@@ -1594,8 +2528,74 @@ function runCollisionCheck(trackOverride?: ScrubTrack) {
       epochTerms: track.wcsEvents?.length
         ? epochTermsFor(track.wcsEvents, _pfWcs(), _pv.wcsTable ?? undefined)
         : undefined,
+      tloEvents: track.tloEvents,
+      // Per-program-tool bodies (schema 8): the sweep swaps the tool
+      // cylinder to each segment's tool; the live tool is the pre-first-M6
+      // fallback.
+      toolDims: _programToolDims(),
+      liveTool: _pv.toolNum,
     },
-  }, transfer);
+  };
+  return { msg, transfer, modelKey, bodies: bodies.length };
+}
+
+function runCollisionCheck(trackOverride?: ScrubTrack) {
+  // The MAIN sweep always runs the program's own (base) track; the sim
+  // entry segment is a side sweep (runEntryCheck).
+  // toRaw: structured clone refuses Vue Proxies. The gcode payload is
+  // markRaw'd on arrival, but a track that ever passed through a deep ref
+  // arrives with its nested arrays proxied — unwrap at the boundary so the
+  // post below cannot throw on a caller's reactivity choice.
+  const track = toRaw(trackOverride ?? viewerGcode.value?.scrubTrack ?? null) as ScrubTrack | null;
+  if (!track || collisionBusy.value) return;
+  const id = ++_colReqId;
+  const req = _colBuildRequest(track, id, false);
+  if (!req) return;
+  _colPendingTrack = track;
+  collisionBusy.value = true;
+  _colStopPending = false;
+  collisionProgress.value = 0;
+  collisionResult.value = null;
+  collisionPartial.value = null;
+  collisionResumable.value = false;
+  collisionStopped.value = null;
+  _colRotaryAtStart = _rotaryNow();
+  _colStartedAt = performance.now();
+  emitTelemetry("collision.sweep_start", { points: track.count, bodies: req.bodies });
+  try {
+    _colGetWorker().postMessage(req.msg, req.transfer);
+    _colModelSent = req.modelKey;   // the worker now holds (or is building) this model
+    _colApplyPauses();
+  } catch (err) {
+    // postMessage throws SYNCHRONOUSLY on an uncloneable payload
+    // (DataCloneError — a Vue Proxy in the track was the live case). The
+    // busy flag was already set above; a throw here used to pin the Check
+    // chip at 0% and short-circuit every later sweep. Unwind and say so.
+    console.error("[collision] postMessage failed — sweep not run:", err);
+    emitTelemetry("collision.post_failed", { msg: String(err) });
+    _colFail();
+  }
+}
+
+/** Side sweep of the ENTRY SEGMENT (sim entry): runs beside the main sweep
+ *  in the worker — milliseconds for a two-point slice — and its result
+ *  becomes the overlay merged at display time. Never touches the busy flag
+ *  or the main run's state. */
+function _colPostSide(slice: ScrubTrack, entry: ScrubTrack, base: ScrubTrack, shift: number, retried = false) {
+  const id = -(++_colSideSeq);
+  const req = _colBuildRequest(toRaw(slice) as ScrubTrack, id, true);
+  if (!req) return;
+  if (_colSide && _colWorker) _colWorker.postMessage({ cancel: _colSide.id });
+  _colSide = { id, entry, base, slice, shift, retried, startedAt: performance.now() };
+  emitTelemetry("collision.entry_start", { bodies: req.bodies, shift });
+  try {
+    _colGetWorker().postMessage(req.msg, req.transfer);
+    _colModelSent = req.modelKey;
+  } catch (err) {
+    console.error("[collision] entry sweep post failed:", err);
+    emitTelemetry("collision.entry_failed", { msg: String(err) });
+    _colSide = null;
+  }
 }
 
 // The sweep keeps itself current — no manual trigger. Auto-runs: on
@@ -1611,7 +2611,7 @@ function _colScheduleAuto() {
     if (!machineReady.value) return;         // geometry loading — machineReady watcher retries
     if ((status.value?.data?.interp_state ?? INTERP_IDLE) !== INTERP_IDLE) return;
     if (!viewerGcode.value?.scrubTrack) return;
-    if (collisionBusy.value) cancelCollisionCheck();
+    if (collisionBusy.value || collisionResumable.value) cancelCollisionCheck();
     runCollisionCheck();
   }, 400);
 }
@@ -1620,10 +2620,11 @@ function _colScheduleAuto() {
 // honestly and re-run (debounced; touch-off sequences change several
 // values in quick succession).
 function _colOnInputChange() {
-  if (!collisionResult.value && !collisionBusy.value) return;
+  if (!collisionResult.value && !collisionBusy.value && !collisionEntry.value && !_colSide) return;
   cancelCollisionCheck();
   collisionResult.value = null;
   collisionTrack.value = null;
+  _colDropEntry();
   emit("collision-lines", null);
   _updateClashTint(null, null);
   _colScheduleAuto();
@@ -1634,6 +2635,7 @@ watch(viewerGcode, () => {
   cancelCollisionCheck();
   collisionResult.value = null;
   collisionTrack.value = null;
+  _colDropEntry();
   emit("collision-lines", null);
   _updateClashTint(null, null);
   _colScheduleAuto();
@@ -1664,12 +2666,40 @@ function _partFrameEligible(g: ViewerGcode): boolean {
  *  is also what retires the false "outside travel" tint on TWP programs.
  *  Single-epoch payloads take the zero-copy fast path inside
  *  rebasePositions. */
+/** Leading track points that draw ROOM-FIXED (scrubTrack.roomEndOf): the
+ *  inherited prefix over the WORK chain's rotary letters and `unknown`.
+ *  0 without a boundary, a track, or a work-chain rotary. */
+function _roomEnd(g: ViewerGcode): number {
+  const m = _markerMachine;
+  if (!m || !g.scrubTrack) return 0;
+  return roomEndOf(g.scrubTrack, chainRotaryLetters(m).work);
+}
+
+/** Programmed-path room masks (2026-09-11): the drawn vertex order is the
+ *  track's, so `src < roomEnd` and an identity-kins segment ⇒ room. In
+ *  programmed mode a world-labelled segment only exists when the operator
+ *  forced "Programmed XYZ" on a TCP program (already not path-on-part);
+ *  it rides, as before. */
+function _programmedRoomMask(src: Uint32Array | undefined, mode: Uint8Array | undefined, roomEnd: number): Uint8Array | undefined {
+  if (roomEnd <= 0 || !src) return undefined;
+  const spec = specFromWire(viewerInit.value?.kins);
+  const out = new Uint8Array(src.length);
+  for (let i = 0; i < src.length; i++) {
+    out[i] = (src[i]! < roomEnd && !worldModeForSpec(mode?.[i], spec)) ? 1 : 0;
+  }
+  return out;
+}
+
 function _applyProgrammed(g: ViewerGcode) {
-  let out = g;
+  const roomEnd = _roomEnd(g);
+  const feedRoom = _programmedRoomMask(g.feedSrc, g.feedMode, roomEnd);
+  const rapidRoom = _programmedRoomMask(g.rapidSrc, g.rapidMode, roomEnd);
+  let out: ViewerGcode = (feedRoom || rapidRoom) ? { ...g, feedRoom, rapidRoom } : g;
+  let anchor: AnchorTerms | null = null;
   if (g.wcsEvents?.length && (g.feedWcs || g.rapidWcs) && (g.feedPos || g.rapidPos)) {
     const live = _pfWcs();
     const terms = epochTermsFor(g.wcsEvents, live, _pv.wcsTable ?? undefined);
-    const active = wcsTerms(live);
+    const active = wcsTerms(tipWcs(live));   // tip-space like the epoch terms (schema 8)
     const fp = g.feedPos ? rebasePositions(g.feedPos, g.feedWcs, terms, active) : g.feedPos;
     const rp = g.rapidPos ? rebasePositions(g.rapidPos, g.rapidWcs, terms, active) : g.rapidPos;
     if (fp !== g.feedPos || rp !== g.rapidPos) {
@@ -1689,52 +2719,39 @@ function _applyProgrammed(g: ViewerGcode) {
         : null;
       out = { ...g, feedPos: fp, rapidPos: rp,
               rapidDist: rp ? lineDistances(rp) : g.rapidDist,
-              bounds, motion_bounds: motion };
+              bounds, motion_bounds: motion, feedRoom, rapidRoom };
+      // Rebased against `live` — anchor the lines to those terms, not to
+      // the live origin (same invariant as the part-frame reply).
+      anchor = anchorTerms(live);
     }
   }
-  toolpath.apply(toolpathCtx(), out);
+  toolpath.apply(toolpathCtx(), out, anchor);
 }
 
 function applyGcode(g: ViewerGcode) {
   if (_partFrameEligible(g)) {
     _pfAppliedMode = "part";
     const id = ++_pfReqId;
-    const fp = g.feedPos ?? new Float32Array(0);
-    const fa = g.feedAbc && g.feedAbc.length === fp.length ? g.feedAbc : new Float32Array(fp.length);
-    const fl = g.feed_lines instanceof Uint32Array ? g.feed_lines : undefined;
-    const rp = g.rapidPos ?? new Float32Array(0);
-    const ra = g.rapidAbc && g.rapidAbc.length === rp.length ? g.rapidAbc : new Float32Array(rp.length);
-    // Copies: the transfer must not detach viewerGcode's raw buffers — they
-    // are re-read on every WCS/mode change.
-    const feed = { pos: fp.slice(), abc: fa.slice(), lines: fl?.slice(), breaks: g.feedBreaks?.slice(),
-                   mode: g.feedMode?.slice(), frame: g.feedFrame?.slice(), frames: g.kinsFrames,
-                   wcs: g.feedWcs?.slice(), src: g.feedSrc?.slice() };
-    const rapid = { pos: rp.slice(), abc: ra.slice(), breaks: g.rapidBreaks?.slice(),
-                    mode: g.rapidMode?.slice(), frame: g.rapidFrame?.slice(), frames: g.kinsFrames,
-                    wcs: g.rapidWcs?.slice() };
-    const transfer: ArrayBuffer[] = [
-      feed.pos.buffer as ArrayBuffer, feed.abc.buffer as ArrayBuffer,
-      rapid.pos.buffer as ArrayBuffer, rapid.abc.buffer as ArrayBuffer,
-    ];
-    if (feed.lines) transfer.push(feed.lines.buffer as ArrayBuffer);
-    if (feed.breaks) transfer.push(feed.breaks.buffer as ArrayBuffer);
-    if (rapid.breaks) transfer.push(rapid.breaks.buffer as ArrayBuffer);
-    if (feed.mode) transfer.push(feed.mode.buffer as ArrayBuffer);
-    if (rapid.mode) transfer.push(rapid.mode.buffer as ArrayBuffer);
-    if (feed.frame) transfer.push(feed.frame.buffer as ArrayBuffer);
-    if (rapid.frame) transfer.push(rapid.frame.buffer as ArrayBuffer);
-    if (feed.wcs) transfer.push(feed.wcs.buffer as ArrayBuffer);
-    if (rapid.wcs) transfer.push(rapid.wcs.buffer as ArrayBuffer);
-    if (feed.src) transfer.push(feed.src.buffer as ArrayBuffer);
+    _pfPending = true;
+    // The terms the worker peels against — the reply hangs under THIS
+    // anchor, not under whatever the live origin is by then.
+    _pfAnchorFor = { id, anchor: anchorTerms(_pfWcs()) };
     try {
-      _pfGetWorker().postMessage({
-        id, machine: _pfMachine(viewerInit.value!), wcs: _pfWcs(),
+      const w = _pfGetWorker();
+      _pfEnsureLoaded(w, g);
+      w.postMessage({
+        op: "transform", id, payloadId: _pfPayloadId,
+        machine: _pfMachine(viewerInit.value!), wcs: _pfWcs(),
         // Epochs (review P2): events + the live table let the worker build
         // per-epoch re-add terms next to the per-vertex `wcs` indices.
         wcsEvents: g.wcsEvents,
         wcsTable: _pv.wcsTable ?? undefined,
-        feed, rapid,
-      }, transfer);
+        // Per-segment TLO/tool events (schema 8) for the `tlo` indices.
+        tloEvents: g.tloEvents,
+        // Room split (2026-09-11): how many leading track points inherit
+        // every work-chain rotary — those identity vertices bake room-fixed.
+        roomEnd: _roomEnd(g),
+      });
     } catch (err) {
       // A failed post must NEVER leave the viewer with no toolpath — fall
       // back to the programmed preview and say so.
@@ -1746,15 +2763,59 @@ function applyGcode(g: ViewerGcode) {
   }
   _pfAppliedMode = "programmed";
   ++_pfReqId;  // invalidate any in-flight part-frame reply
+  _pfPending = false;
   // Owned by toolpathController; pass a fresh ctx with the reassigned
-  // scene-graph pointers + per-program machine bounds/units.
+  // scene-graph pointers + per-program units.
   _applyProgrammed(g);
 }
+
+/** Ship the streams to the worker ONCE per program (or per recreated
+ *  worker). Copies: the transfer must not detach viewerGcode's raw buffers —
+ *  they are still read by the programmed-mode path and the sweep. */
+function _pfEnsureLoaded(w: Worker, g: ViewerGcode) {
+  if (_pfLoadedFor === g) return;
+  const fp = g.feedPos ?? new Float32Array(0);
+  const fa = g.feedAbc && g.feedAbc.length === fp.length ? g.feedAbc : new Float32Array(fp.length);
+  const fl = g.feed_lines instanceof Uint32Array ? g.feed_lines : undefined;
+  const rp = g.rapidPos ?? new Float32Array(0);
+  const ra = g.rapidAbc && g.rapidAbc.length === rp.length ? g.rapidAbc : new Float32Array(rp.length);
+  const feed = { pos: fp.slice(), abc: fa.slice(), lines: fl?.slice(), breaks: g.feedBreaks?.slice(),
+                 mode: g.feedMode?.slice(), frame: g.feedFrame?.slice(), frames: g.kinsFrames,
+                 wcs: g.feedWcs?.slice(), src: g.feedSrc?.slice(), tlo: g.feedTlo?.slice(),
+                 outside: g.feedOutside?.slice() };
+  const rapid = { pos: rp.slice(), abc: ra.slice(), breaks: g.rapidBreaks?.slice(),
+                  mode: g.rapidMode?.slice(), frame: g.rapidFrame?.slice(), frames: g.kinsFrames,
+                  wcs: g.rapidWcs?.slice(), src: g.rapidSrc?.slice(), tlo: g.rapidTlo?.slice(),
+                  outside: g.rapidOutside?.slice() };
+  const transfer: ArrayBuffer[] = [
+    feed.pos.buffer as ArrayBuffer, feed.abc.buffer as ArrayBuffer,
+    rapid.pos.buffer as ArrayBuffer, rapid.abc.buffer as ArrayBuffer,
+  ];
+  for (const a of [feed.lines, feed.breaks, rapid.breaks, feed.mode, rapid.mode, feed.frame, rapid.frame,
+                   feed.wcs, rapid.wcs, feed.src, rapid.src, feed.tlo, rapid.tlo, feed.outside, rapid.outside]) {
+    if (a) transfer.push(a.buffer as ArrayBuffer);
+  }
+  _pfPayloadId++;
+  w.postMessage({ op: "load", payloadId: _pfPayloadId, streams: { feed, rapid } }, transfer);
+  _pfLoadedFor = g;
+}
+
+/** The live per-joint limits as plain arrays (structured clone refuses Vue
+ *  proxies); null when the status carries none — the worker then emits no
+ *  verdict and the overlay stays empty (unchecked ≠ clean). */
+function _jointLimitsPlain(): (number[] | null)[] | null {
+  const jl = vst.value?.joint_limits as unknown;
+  if (!Array.isArray(jl)) return null;
+  return jl.map(p => (Array.isArray(p) && p.length === 2 && typeof p[0] === "number" && typeof p[1] === "number")
+    ? [p[0], p[1]] : null);
+}
+
 
 // Part-frame vertices depend on the pivot position relative to the live work
 // origin, so a WCS change (touch-off, G10, G92, rotation) re-transforms —
 // debounced, these change rarely and never mid-cut at speed.
 function _pfScheduleWcsRefresh() {
+  _reachSchedule();   // the envelope follows the tool length (and the limits, below)
   // Epoch-aware programmed payloads (review P2) also re-apply on WCS/table
   // changes — but ONLY when the display rebase can differ from identity:
   // more than one epoch, a program-rewritten epoch 0, or an epoch-0
@@ -1773,6 +2834,137 @@ function _pfScheduleWcsRefresh() {
   _pfWcsTimer = setTimeout(() => {
     if (viewerGcode.value) applyGcode(viewerGcode.value);
   }, 300);
+}
+// Joint limits arriving or changing (rare: connect, a runtime window change)
+// resize the reach envelope; the outside-limits flags follow through the
+// gateway's own limits drift edge (a reparse), never a client re-derivation.
+watch(() => JSON.stringify(_jointLimitsPlain()), (cur, prev) => {
+  if (prev === undefined || cur === prev) return;
+  _reachSchedule();
+});
+
+// ---- Reach envelope (2026-09-12) ----
+// Two OUTLINES from the live joint limits, the machine.json chain and the
+// live tool length (viewer/reachEnvelope.ts, computed in reachWorker.ts):
+// where the tool tip can be in the machine frame (layer "reachRoom", under
+// machineFrameGrp like the bounds box) and where it can be relative to
+// the part — the room solid swept through every work-chain rotary (layer
+// "reachPart", rides _workGrp). Lines only (operator, 2026-09-12: no fills);
+// never a certificate; both off by default; computed once for both and
+// recomputed only when the inputs change while either is on.
+let _reachWorker: Worker | null = null;
+let _reachReqId = 0;
+let _reachRoomOn = false;
+let _reachPartOn = false;
+let _reachKey = "";                       // inputs the cached data was computed from
+let _reachPendingKey = "";
+let _reachData: { roomLines: Float32Array; partLines: Float32Array | null; info: ReachInfo } | null = null;
+let reachRoomMesh: THREE.Group | null = null;
+let reachPartMesh: THREE.Group | null = null;
+let _reachTimer: ReturnType<typeof setTimeout> | undefined;
+
+function _reachInputsKey(): string | null {
+  const init = viewerInit.value;
+  const lim = _jointLimitsPlain();
+  if (!init || !lim) return null;
+  return JSON.stringify({ l: lim, t: _pv.toolOffset ?? [], m: _pfMachine(init) });
+}
+
+function _reachGetWorker(): Worker {
+  if (!_reachWorker) {
+    _reachWorker = new Worker(new URL("./viewer/reachWorker.ts", import.meta.url), { type: "module" });
+    _reachWorker.onmessage = (ev: MessageEvent) => {
+      const m = ev.data as { id: number; error?: string; roomLines?: Float32Array; partLines?: Float32Array | null; info?: ReachInfo };
+      if (m.id !== _reachReqId) return;   // superseded
+      if (m.error || !m.roomLines || !m.info) {
+        console.error("[reach] envelope not computed:", m.error ?? "empty reply");
+        _reachData = null; _reachKey = "";
+        _reachBuildMeshes();
+        return;
+      }
+      _reachData = { roomLines: m.roomLines, partLines: m.partLines ?? null, info: m.info };
+      _reachKey = _reachPendingKey;
+      console.info(`[reach] envelope: ${m.info.samples} tilt samples × ${m.info.corners} corners, ${m.info.hullFaces} hull faces, part sweep ${m.partLines ? "yes" : "no"}, ${m.info.ms} ms`
+        + (m.info.notes.length ? ` — notes: ${m.info.notes.join("; ")}` : ""));
+      _reachBuildMeshes();
+      requestRender();
+    };
+    _reachWorker.onerror = (ev) => { console.error("[reach] worker error:", ev.message); };
+  }
+  return _reachWorker;
+}
+
+function _reachSchedule() {
+  if (!_reachRoomOn && !_reachPartOn) return;
+  clearTimeout(_reachTimer);
+  _reachTimer = setTimeout(_reachRequest, 500);
+}
+
+/** Compute (or re-hang the cached) envelope for the current inputs. */
+function _reachRequest() {
+  if (!_reachRoomOn && !_reachPartOn) return;
+  const key = _reachInputsKey();
+  if (!key) {
+    // No limits yet (or no model): nothing honest to draw. Says so once per
+    // distinct situation through the empty scene, not a stale shape.
+    if (_reachData) { _reachData = null; _reachKey = ""; _reachBuildMeshes(); }
+    return;
+  }
+  if (key === _reachKey && _reachData) { _reachBuildMeshes(); return; }
+  if (key === _reachPendingKey && _reachReqId > 0 && !_reachData) return;   // already in flight
+  const init = viewerInit.value!;
+  const id = ++_reachReqId;
+  _reachPendingKey = key;
+  try {
+    _reachGetWorker().postMessage({ id, machine: _pfMachine(init), jointLimits: _jointLimitsPlain(), tlo: [...(_pv.toolOffset ?? [])] });
+  } catch (err) {
+    console.error("[reach] request failed:", err);
+  }
+}
+
+function _reachDispose(g: THREE.Group | null) {
+  if (!g) return;
+  g.parent?.remove(g);
+  g.traverse(o => {
+    const mesh = o as THREE.Mesh;
+    mesh.geometry?.dispose?.();
+    (mesh.material as THREE.Material | undefined)?.dispose?.();
+  });
+}
+
+/** One outline as a line-segment soup the worker built (hull creases or
+ *  the swept solid's cage), in the bounds colour, slightly transparent so
+ *  the bounds box stays the crisp one. */
+function _reachSolidGroup(lines: Float32Array, color: string): THREE.Group {
+  const geom = new THREE.BufferGeometry();
+  geom.setAttribute("position", new THREE.BufferAttribute(lines, 3));
+  const edges = new THREE.LineSegments(geom, new THREE.LineBasicMaterial({
+    color, transparent: true, opacity: 0.6, depthWrite: false,
+  }));
+  edges.renderOrder = 3;
+  const g = new THREE.Group();
+  g.add(edges);
+  return g;
+}
+
+/** (Re)build the scene objects from the cached solids under the current
+ *  frame groups; clears them when there is nothing to show. */
+function _reachBuildMeshes() {
+  _reachDispose(reachRoomMesh); _reachDispose(reachPartMesh);
+  reachRoomMesh = reachPartMesh = null;
+  const d = _reachData;
+  const roomParent = machineFrameGrp ?? _workGrp;
+  if (!d || !roomParent) { requestRender(); return; }
+  const color = viewerDefaults.colors.bounds ?? "#ffffff";
+  reachRoomMesh = _reachSolidGroup(d.roomLines, color);
+  reachRoomMesh.visible = _reachRoomOn;
+  roomParent.add(reachRoomMesh);
+  if (d.partLines && _workGrp && _workGrp !== roomParent) {
+    reachPartMesh = _reachSolidGroup(d.partLines, color);
+    reachPartMesh.visible = _reachPartOn;
+    _workGrp.add(reachPartMesh);
+  }
+  requestRender();
 }
 
 // ---------- lifecycle ----------
@@ -1817,13 +3009,22 @@ let pendingState: any = null;
 // through the exact same compose path as live motion — no second kinematics
 // implementation. null entries (UVW/unknown letters) keep the live joint.
 let _scrubJoints: (number | null)[] | null = null;
+// The scrub sample's tool offset + tool number (schema 8): applyState phase
+// 3 subtracts THIS offset while a scrub pose is shown (the sample's joints
+// were lifted with it), and the marker wears the sample's tool. null = live.
+let _scrubTlo: number[] | null = null;
+let _scrubTool: number | null = null;
 let _scrubLineNo: number | null = null;
 // Last full status applied — requeued when the scrub pose changes so the
 // model re-poses immediately instead of waiting for the next status tick.
 let _lastState: ViewerState | null = null;
 
-function onScrubPose(joints: (number | null)[] | null, line: number | null, cum: number | null, trk: ScrubTrack | null, displayLine: number | null = null) {
+function onScrubPose(joints: (number | null)[] | null, line: number | null, cum: number | null, trk: ScrubTrack | null, displayLine: number | null = null, plane: number[] | null = null, tlo: number[] | null = null, tool: number | null = null) {
   _scrubJoints = joints;
+  _scrubTlo = joints ? tlo : null;
+  _scrubTool = joints ? tool : null;
+  _scrubPlane = plane;
+  _twpRefresh();
   // RAW sample line: keys the clash tint and the 3D path highlight, whose
   // data (collision hits, drawn feed_lines) carries the same sub-relative
   // numbering — self-consistent. The TEXT panel gets only the per-point-
@@ -1832,11 +3033,13 @@ function onScrubPose(joints: (number | null)[] | null, line: number | null, cum:
   _scrubLineNo = joints ? line : null;
   _scrubTrackRef = joints ? trk : null;
   emit("scrub-line", joints ? displayLine : null);
-  _updateClashTint(_scrubLineNo, joints ? cum : null);
+  _scrubCum = joints ? cum : null;
+  _updateClashTint(_scrubLineNo, _scrubCum);
   if (_lastState && !pendingState) pendingState = _lastState;
   requestRender();
 }
 let _scrubTrackRef: ScrubTrack | null = null;
+let _scrubCum: number | null = null;
 
 // ---- Clash-pair tint: while the scrub sits on a line with a reported
 // collision, the involved bodies glow danger-red (emissive add — works on
@@ -1867,8 +3070,7 @@ function _tintMesh(mesh: THREE.Mesh, on: boolean) {
       mesh.userData._preClashEmissive = mat.emissive.getHex();
     }
     if (_dangerHex == null) {
-      const v = getComputedStyle(document.documentElement).getPropertyValue("--danger").trim();
-      _dangerHex = v ? new THREE.Color(v).getHex() : 0xcc3333;
+      _dangerHex = cssColor("--danger", "#cc3333").getHex();
     }
     mat.emissive.setHex(_dangerHex);
     mesh.userData._clashOn = true;
@@ -1895,18 +3097,30 @@ function _tintMesh(mesh: THREE.Mesh, on: boolean) {
 const CONTACT_TINT_EPS = 1e-3;
 function _updateClashTint(line: number | null, cum: number | null) {
   const want = new Set<string>();
-  if (line != null && cum != null && _scrubTrackRef && _scrubTrackRef === collisionTrack.value) {
-    for (const h of collisionResult.value?.hits ?? []) {
-      if (h.line !== line || h.dist > CONTACT_TINT_EPS) continue;
-      // Contact within a line can be intermittent — glow only INSIDE a
-      // refined interval, never across the verified-clear gaps between.
-      const ivs = h.intervals ?? [[h.cum, h.cumEnd] as [number, number]];
-      for (const [en, ex] of ivs) {
-        if (cum >= en - CONTACT_TINT_EPS && cum <= ex + CONTACT_TINT_EPS) {
-          want.add(h.a);
-          want.add(h.b);
-          break;
+  const res = _colResultFor(_scrubTrackRef);
+  if (line != null && cum != null && res) {
+    // A line with records of its own decides by its refined intervals; a
+    // line WITHOUT one (past the MAX_HITS cap of a contact that never
+    // separates) glows while the cum sits inside an onset's SPAN — the
+    // contact has provably not cleared there (2026-09-12).
+    const lineHasRecord = res.hits.some(h => h.line === line && h.dist <= CONTACT_TINT_EPS);
+    for (const h of res.hits) {
+      if (h.dist > CONTACT_TINT_EPS) continue;
+      if (h.line === line) {
+        // Contact within a line can be intermittent — glow only INSIDE a
+        // refined interval, never across the verified-clear gaps between.
+        const ivs = h.intervals ?? [[h.cum, h.cumEnd] as [number, number]];
+        for (const [en, ex] of ivs) {
+          if (cum >= en - CONTACT_TINT_EPS && cum <= ex + CONTACT_TINT_EPS) {
+            want.add(h.a);
+            want.add(h.b);
+            break;
+          }
         }
+      } else if (!lineHasRecord && h.continuation === undefined && h.spanCumEnd != null
+                 && cum > h.cumEnd && cum <= h.spanCumEnd + CONTACT_TINT_EPS) {
+        want.add(h.a);
+        want.add(h.b);
       }
     }
   }
@@ -1929,10 +3143,22 @@ function _updateClashTint(line: number | null, cum: number | null) {
 }
 let _needsReframe = false;
 let _iniBox: THREE.Box3 | null = null;
+/** The machine-bounds box in WORLD space: `_iniBox` is machine coordinates,
+ *  which live in machineFrameGrp's frame (the table's travel node with the
+ *  work-chain rotaries zeroed) — the node the box mesh and the clip planes
+ *  hang under. `_workGrp.position` was that group's LOCAL offset: 1700 mm
+ *  off in +X on the TWP machine and turning with A (2026-09-12). */
+function _boundsWorldBox(): THREE.Box3 | null {
+  const g = machineFrameGrp ?? _workGrp;
+  if (!_iniBox || !g) return null;
+  g.updateWorldMatrix(true, false);
+  return _iniBox.clone().applyMatrix4(g.matrixWorld);
+}
 
 function animate() {
   if (props.active === false) return; // paused — don't schedule next frame
   raf = requestAnimationFrame(animate);
+  recordRafTick();   // render-loop cadence + GPU fence poll (viewerPerf)
 
   // Apply pending state before render (natural frame dropping —
   // if multiple status updates arrive between frames, only the latest is used).
@@ -1946,10 +3172,10 @@ function animate() {
     pendingState = null;
 
     // Re-frame after first status update so camera accounts for actual axis positions
-    if (_needsReframe && _iniBox && _workGrp) {
+    if (_needsReframe && _iniBox) {
       _needsReframe = false;
-      const box = _iniBox.clone().translate(_workGrp.position);
-      frameToBounds(box);
+      const box = _boundsWorldBox();
+      if (box) frameToBounds(box);
     }
   }
 
@@ -1964,8 +3190,8 @@ function animate() {
     _trackTarget.set(0, 0, 0);
     if (trackingMode === "tool" && toolMarker) {
       toolMarker.getWorldPosition(_trackTarget);
-    } else if (trackingMode === "wcs" && workOrigin) {
-      workOrigin.getWorldPosition(_trackTarget);
+    } else if (trackingMode === "wcs" && (workAxesGroup ?? workOrigin)) {
+      (workAxesGroup ?? workOrigin)!.getWorldPosition(_trackTarget);
     }
     const delta = _trackTarget.sub(controls.target);
     if (delta.lengthSq() > 1e-12) {
@@ -1980,13 +3206,14 @@ function animate() {
   // toggle, tracking delta, …) or a tween is in flight.
   if (!_needsRender && !_tweenRaf) return;
 
-  // Update overflow clipping planes to track _workGrp world transform
-  // (only runs when we're actually rendering — C4 lazy clip planes).
-  if (_localBoundsPlanes.length > 0 && _localBoundsPlanes.length === boundsClipPlanes.length && _workGrp) {
-    _workGrp.updateMatrixWorld();
+  // Update overflow clipping planes to track the MACHINE frame's world
+  // transform (table travel, never table rotation — see machineFrameGrp).
+  // Only runs when we're actually rendering — C4 lazy clip planes.
+  if (_localBoundsPlanes.length > 0 && _localBoundsPlanes.length === boundsClipPlanes.length && machineFrameGrp) {
+    machineFrameGrp.updateWorldMatrix(true, false);  // ancestors too — the table's travel this frame
     for (let i = 0; i < _localBoundsPlanes.length; i++) {
       boundsClipPlanes[i]!.copy(_localBoundsPlanes[i]!);
-      boundsClipPlanes[i]!.applyMatrix4(_workGrp.matrixWorld);
+      boundsClipPlanes[i]!.applyMatrix4(machineFrameGrp.matrixWorld);
       insideBoundsClipPlanes[i]!.copy(boundsClipPlanes[i]!).negate();
     }
   }
@@ -2012,9 +3239,16 @@ function animate() {
   // bottom transitions. The tween writes camera.position/quaternion directly
   // each frame; controls.update() runs once at tween completion to re-sync.
   if (!_tweenRaf) controls?.update();
+  // Per-chunk overlay gate + frustum count (viewer/lineChunks.ts): decides
+  // which outside-bounds overlays are drawn this frame at the current pose.
+  if (camera) toolpath.updateCulling(toolpathCtx(), camera, renderer?.domElement.height ?? 1000);
   const _tRender = performance.now();
   renderer?.render(scene!, camera!);
   recordRender(performance.now() - _tRender);
+  // Draw-call counts of the MAIN pass (info auto-resets per render(), and the
+  // gizmo pass below would zero them) — read here for the perf probe.
+  _glCalls = renderer?.info.render.calls ?? 0;
+  _glLines = renderer?.info.render.lines ?? 0;
 
   // Orientation gizmo — always ortho, render into bottom-right viewport
   // (top-left is the HUD, top-right is the ViewCube + quick-grid).
@@ -2048,10 +3282,12 @@ function animate() {
 
 watch(themeMode, () => {
   if (scene) scene.background = sceneBgFromTheme();
+  toolpath.setStale(pathStaleNow.value);   // the muted mix follows the background
   requestRender();
 });
 
 onMounted(() => {
+  document.addEventListener("visibilitychange", _colOnVisibility);
   scene = new THREE.Scene();
   scene.background = sceneBgFromTheme();
 
@@ -2069,6 +3305,7 @@ onMounted(() => {
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.localClippingEnabled = true;
+  setViewerPerfGl(renderer.getContext());   // GPU completion fences (WebGL2 only)
 
   // Leak probe (A2): live renderer resource counts for e2e/viewer.spec.ts.
   // Read straight off renderer.info so it reflects actual GPU-tracked
@@ -2099,6 +3336,11 @@ onMounted(() => {
 
   // Render-on-demand: any user-initiated camera move flags a render.
   controls.addEventListener("change", requestRender);
+  // A running collision sweep pauses while the camera moves — the busy
+  // worker starved the GPU side of the browser (2026-09-10); its budget
+  // counts active time only, so the pause costs the sweep nothing.
+  controls.addEventListener("start", () => { _camMoving = true; _colSetPaused("camera", true); });
+  controls.addEventListener("end", () => { _camMoving = false; _colSetPaused("camera", false); });
 
   // Pause RAF when the document is hidden (browser tab switch / system sleep).
   // Independent of props.active, which gates Vue tab visibility within the SPA.
@@ -2166,12 +3408,17 @@ function applyViewerDefaults() {
 }
 
 onUnmounted(() => {
+  document.removeEventListener("visibilitychange", _colOnVisibility);
   document.removeEventListener("visibilitychange", _onVisibilityChange);
   setViewerPerfContext(null);
+  setViewerPerfGl(null);
   clearTimeout(_pfWcsTimer);
   clearTimeout(_colAutoTimer);
   _pfWorker?.terminate();
   _pfWorker = null;
+  _reachWorker?.terminate();
+  _reachWorker = null;
+  _pfLoadedFor = null;
   _colWorker?.terminate();
   _colWorker = null;
   resizeObs?.disconnect();
@@ -2268,6 +3515,7 @@ watch(
     if (tm && msg.data.tool_number != null) {
       setToolMeta(msg.data.tool_number, tm);
     }
+    _twpRefresh();
   },
 );
 
@@ -2323,10 +3571,9 @@ watch(() => props.compGrid, () => {
 /** Live-update a machine part's color without rebuilding the scene.
  *  Pass `null` as color to revert to the built-in default. */
 function setMachinePartColor(partId: string, color: string | null) {
-  const dirColorMap: Record<string, number> = { x: 0x9b4a4a, y: 0x4a8f5a, z: 0x4a6f9b };
   const grp = _partGroupMap[partId];
   const dir = grp ? _groupDirMap[grp] : null;
-  const defaultHex = (dir ? dirColorMap[dir] : null) ?? 0xbfbfbf;
+  const defaultHex = defaultPartHex(dir);
   // machine.json default color (if any) beats the direction-derived fallback
   const partColor = viewerInit.value?.parts?.find((p) => p.id === partId)?.color;
 
@@ -2479,6 +3726,7 @@ function applyPathColors(c: PathColors) {
   toolpath.setColors({ feed: c.feed, rapid: c.rapid, toolpathBounds: c.toolpathBounds });
   if (c.backplot) backplot.setColor(c.backplot);
   if (machineBoundsMesh && c.bounds) (machineBoundsMesh.material as THREE.LineBasicMaterial).color.set(c.bounds);
+  if (c.bounds) for (const g of [reachRoomMesh, reachPartMesh]) g?.traverse(o => { const m = (o as THREE.Mesh).material as THREE.Material & { color?: THREE.Color }; m?.color?.set(c.bounds!); });
 }
 
 /** Exposed instant path-colour update (parity with setToolColors). */
@@ -2520,7 +3768,7 @@ defineExpose({
          spindle read exactly like the axis rows. Tool is static context and
          stays a smaller single line. All text sizes scale with --hud-scale
          (settings: HUD scale). -->
-    <div v-show="hudVisible" class="hud hudCard stack-tight" :class="`hudScale-${hudCfg.scale}`">
+    <div v-show="hudVisible" class="hud hudCard overlay-card stack-tight" :class="`hudScale-${hudCfg.scale}`">
       <div class="hudGrid" :class="{ noMach: !hudCfg.showMachine }">
         <span class="hudHead"></span>
         <span class="hudHead">Work · {{ props.g5xLabel || '-' }}</span>
@@ -2551,19 +3799,39 @@ defineExpose({
         <div class="loadBarFill" :style="{ width: spindleLoadFillPct + '%' }"></div>
       </div>
 
+      <!-- The mode/datum chip leads the warnings (operator, 2026-09-12: the
+           readout, the tool line and the load bar are the readout; the chip
+           and the warnings are the "what to know" block — keep them together). -->
+      <div v-if="hudMode" class="hudMode val-status" :class="hudMode.cls" :title="hudMode.title">
+        {{ hudMode.text }} · {{ props.g5xLabel || '-' }}<template v-if="hudPlaneWord"> · {{ hudPlaneWord }}</template>
+      </div>
+
       <div v-if="vst?.eoffset_enabled" class="hudWarn">Comp Z {{ vst.eoffset_z != null ? vst.eoffset_z.toFixed(3) : '---' }}</div>
       <div v-if="vst?.rotation_xy" class="hudWarn">Rotation {{ vst.rotation_xy.toFixed(1) }}°</div>
       <div v-if="foreignWcs.length" class="hudWarn">Program cuts in {{ foreignWcs.join(', ') }} — {{ props.g5xLabel }} active</div>
-      <div v-if="rewrittenWcs.length" class="hudWarn">Program writes {{ rewrittenWcs.join(', ') }} — live edits there don't move its preview</div>
-      <div v-if="previewSchemaStale" class="hudWarn hudAction"
-        :title="`Payload format ${previewSchemaStale.got ?? 'unstamped (older gateway)'}; this UI expects ${EXPECTED_PREVIEW_SCHEMA}. Reparse rebuilds it with the installed code.`"
-        @click="emit('reparse')">Preview from a different suite version — Reparse</div>
-      <div v-if="previewWcsStale" class="hudWarn hudAction" @click="emit('reparse')">Preview uses older offsets — Refresh</div>
-      <div v-if="previewTloStale" class="hudWarn hudAction"
-        :title="`Parsed with T${previewTloStale.tool} length ${previewTloStale.parsed.toFixed(3)}, table now ${previewTloStale.live.toFixed(3)} — line limit flags are stale`"
-        @click="emit('reparse')">Preview parsed with a different T{{ previewTloStale.tool }} length — Reparse</div>
+      <div v-if="rewrittenWcs.length" class="hudWarn">Program writes {{ rewrittenWcs.join(', ') }} — its preview ignores live edits there</div>
+      <div v-if="kinsEndWarn" class="hudWarn" :title="kinsEndWarn.title">{{ kinsEndWarn.text }}</div>
+      <!-- Stale-preview chips are REPORTS, not actions (operator, 2026-09-12:
+           "what still clickable warnings do we have? is it needed?"). The
+           gateway owns every re-parse decision — the schema edge once per
+           file, the offset / tool-length drift edges when idle — so a click
+           here could only race an edge about to fire, or repeat a schema
+           parse that already failed. One source decides; the HUD says so. -->
+      <div v-if="previewSchemaStale" class="hudWarn"
+        :title="`Payload format ${previewSchemaStale.got ?? 'unstamped (older gateway)'}; this UI expects ${EXPECTED_PREVIEW_SCHEMA}. The gateway re-parses once with the installed code; if this stays, the install is half-upgraded — restart the suite.`">Preview from a different suite version — re-parsing; if it stays, restart the suite</div>
+      <!-- Same bar as the status banner (one fraction, previewRefreshPct):
+           a fixed-width track under the chip, numbers in the tooltip. -->
+      <template v-if="previewRefresh">
+        <div class="hudWarn"
+          :title="'The gateway is re-parsing the program (' + previewRefresh.reason + ') — ' + fmtProgressTimes(previewRefreshElapsedMs, previewRefresh.expected_ms) + '. The drawn path, soft-limit marks and simulation are stale until it lands.'">Preview re-parsing · {{ previewRefreshLabel(previewRefresh.reason) }}</div>
+        <div class="progressTrack" :title="fmtProgressTimes(previewRefreshElapsedMs, previewRefresh.expected_ms)"><div class="progressFill" :style="{ width: previewRefreshPct + '%' }"></div></div>
+      </template>
+      <div v-else-if="previewWcsStale" class="hudWarn"
+        title="A fixture this program uses was touched off after it was parsed — the gateway re-parses once the interpreter is idle and the offsets have settled">Preview uses older offsets — re-parses when idle</div>
+      <div v-if="previewTloStale" class="hudWarn"
+        :title="`Parsed with T${previewTloStale.tool} length ${previewTloStale.parsed.toFixed(3)}, table now ${previewTloStale.live.toFixed(3)} — line limit flags are stale until the gateway re-parses (idle)`">Preview parsed with a different T{{ previewTloStale.tool }} length — re-parses when idle</div>
       <div v-if="toolpathOverflow" class="hudWarn"
-        title="The per-line soft-limit validator flagged moves outside the machine's travel — the same source of truth as the marked code lines and the scrub bar's findings">Toolpath exceeds soft limits</div>
+        title="The per-line soft-limit validator flagged these moves — the same source as the marked lines in the program panel and the scrub bar's ◀ N limits ▶, which jumps between them (simulation mode, machine off). Validated against the offsets at parse time; a touch-off re-parses automatically.">{{ toolpathOverflowCount }} soft-limit violation{{ toolpathOverflowCount === 1 ? '' : 's' }}</div>
     </div>
 
     <!-- View navigation cube (top-right) -->
@@ -2597,11 +3865,17 @@ defineExpose({
     <ScrubBar
       :collisionBusy="collisionBusy"
       :collisionProgress="collisionProgress"
+      :sweepTool="{ num: _pv.toolNum, diam: _pv.toolDiam, programTools }"
       :collisionResult="collisionResult"
       :collisionTrack="collisionTrack"
+      :collisionStopped="collisionStopped"
+      :collisionResumable="collisionResumable"
+      :collisionPartial="collisionPartial"
+      :collisionPartialTrack="collisionPartialTrack"
+      :collisionEntryResult="collisionEntryResult"
+      @check-entry="runEntryCheck"
       @pose="onScrubPose"
-      @check="runCollisionCheck"
-      @cancel-check="cancelCollisionCheck"
+      @cancel-check="_colInvalidate"
     />
 
     <!-- STL load failure chip (bottom-left, never blocks render) -->
@@ -2624,7 +3898,7 @@ defineExpose({
   position: absolute;
   z-index: 1;
   top: 156px;
-  right: 12px;
+  right: var(--gap-section);
   width: 140px;
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -2634,8 +3908,8 @@ defineExpose({
 .stlFailedChip {
   position: absolute;
   z-index: 1;
-  bottom: 12px;
-  left: 12px;
+  bottom: var(--gap-section);
+  left: var(--gap-section);
   padding: var(--gap-tight) var(--gap-controls);
   border-radius: var(--radius-xl);
   background: color-mix(in oklab, var(--warn) 20%, var(--panel));
@@ -2660,25 +3934,24 @@ defineExpose({
   background: color-mix(in oklab, var(--panel) 70%, transparent);
 }
 
+/* Every overlay on the viewer sits --gap-section (12px) from its frame —
+   the HUD, the quick grid, the STL chip, the sim bar and banner alike. */
 .hud {
   position: absolute;
   z-index: 1;
-  top: 12px;
-  left: 12px;
+  top: var(--gap-section);
+  left: var(--gap-section);
+  max-width: calc(100% - 2 * var(--gap-section));
   pointer-events: none;
   user-select: none;
 }
 
-/* Single HUD card. Every font-size below multiplies a --fs-* token by
-   --hud-scale so the whole card scales coherently from one setting. */
+/* Single HUD card (chrome from the global .overlay-card, shared with the
+   sim bar). Every font-size below multiplies a --fs-* token by --hud-scale
+   so the whole card scales coherently from one setting. */
 .hudCard {
   --hud-scale: 1;
-  background: color-mix(in oklab, var(--panel) 85%, transparent);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
   padding: var(--gap-controls) var(--gap-section);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
   font-variant-numeric: tabular-nums;
   line-height: 1.3;
 }
@@ -2736,6 +4009,16 @@ defineExpose({
 }
 
 /* Tool context line: T · Ø · L in G-code notation — no word labels. */
+/* Mode line: colour semantics come from the global .val-status.ok/warn/bad/
+   muted classes; only layout is local (the HUD's width-0/min-width trick so
+   a long text cannot widen the card). */
+.hudMode {
+  font-size: calc(var(--fs-md) * var(--hud-scale));
+  text-align: left;
+  width: 0;
+  min-width: 100%;
+  white-space: normal;
+}
 .hudCtx {
   font-size: calc(var(--fs-md) * var(--hud-scale));
   font-weight: var(--fw-medium);
@@ -2750,14 +4033,20 @@ defineExpose({
   font-size: calc(var(--fs-md) * var(--hud-scale));
   font-weight: var(--fw-medium);
   color: var(--warn);
+  /* The card is shrink-to-fit, so a long single-line chip used to set the
+     card's width (the DRO grid followed it out to the viewer edge). A
+     flex-column child with width:0 contributes nothing to the card's
+     intrinsic width, then stretches to the width the grid set and wraps. */
+  width: 0;
+  min-width: 100%;
+  white-space: normal;
 }
 
-/* A HUD warning that is also the fix for what it warns about. The HUD is
-   pointer-events:none so it never eats viewer drags — re-enable for this one. */
-.hudWarn.hudAction {
-  pointer-events: auto;
-  cursor: pointer;
-  text-decoration: underline;
+/* The re-parse bar rides the card as a row. The global track is flex:1 for
+   its row-layout home (GcodePanel); in this column that would zero its
+   height — pin it to its own height, stretched to the card's width. */
+.hudCard > .progressTrack {
+  flex: none;
 }
 
 </style>

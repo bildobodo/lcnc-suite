@@ -13,6 +13,7 @@
 // then fall back to the line-number path, suppressed when the payload's
 // line attribution is untrusted.
 import { shallowRef } from "vue";
+import { lineMaskHas } from "./viewer/lineIndex";
 
 export const trackHighlightRange = shallowRef<[number, number] | null>(null);
 
@@ -77,15 +78,17 @@ export function resolveCurrentLine(o: {
   running: boolean;
   motionLine: number | null | undefined;
   linesUntrusted: boolean;
-  trustedLines: Set<number> | null;
+  /** Bitmap over line numbers (viewer/lineIndex.ts lineMaskHas) — one
+   *  byte per line instead of a Set entry per trusted line. */
+  trustedLines: Uint8Array | null;
 }): number | null {
   const ml = o.motionLine ?? 0;
   if (o.rls) {
     if (o.rls.trusted) return o.rls.line;
-    if (o.rls.offPath && o.running && ml > 0 && o.trustedLines?.has(ml)) return ml;
+    if (o.rls.offPath && o.running && ml > 0 && lineMaskHas(o.trustedLines, ml)) return ml;
     return null;
   }
   if (!o.running || ml <= 0) return null;
-  if (o.trustedLines) return o.trustedLines.has(ml) ? ml : null;
+  if (o.trustedLines) return lineMaskHas(o.trustedLines, ml) ? ml : null;
   return o.linesUntrusted ? null : ml;   // legacy track — wholesale gate
 }

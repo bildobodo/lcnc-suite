@@ -13,6 +13,8 @@ subroutines/        G-code subroutines shipped with the project
 
 Gateway connects to LinuxCNC via Python bindings (`linuxcnc.stat`, `linuxcnc.command`, `linuxcnc.error_channel`). WebUI connects to gateway via WebSocket at `/ws`.
 
+The bundled routines retract with `G53 G0 Z0` and assume **machine Z0 is the top of travel** (LinuxCNC's convention: `[AXIS_Z] MAX_LIMIT` at or just above 0 — true on every shipped config). The suite's own retracts (→ Zero / → Home / → G30, run-from-line safe-Z) additionally never LOWER Z (`#<_abs_z>` guard); the upstream toolsetter/probe files keep the bare idiom, so a config whose Z0 is not the top must not run them (recorded 2026-09-05).
+
 ## Frontend Structure (lcnc-webui/src/)
 
 - `App.vue` — Root component, sidebar + multi-panel tab layout, state management
@@ -49,7 +51,7 @@ Gateway connects to LinuxCNC via Python bindings (`linuxcnc.stat`, `linuxcnc.com
 - `SetupStrip.vue` — Bottom strip: DRO display, axis touchoff, homing grid, WCS selector
 - `OverridesStrip.vue` — Bottom strip: Feed/Spindle/Rapid override sliders
 - `SpindleStrip.vue` — Bottom strip: FWD/REV/STOP, RPM input, actual speed, coolant toggles
-- `ToolStrip.vue` — Bottom strip: Tool # input, Measure/Manual/Load/Abort, probe status
+- `ToolStrip.vue` — Bottom strip: READ-ONLY tool info (Tool Table nav button + T / Pocket / Diameter / Z-offset / Type / Description for the loaded tool). The tool-CHANGE dialog lives in `App.vue` (`confirmToolChange`), "Measure Current"/"Unload" are App-level actions, and tool editing is in `ToolTablePanel.vue`
 - `ToolsetterSettings.vue` — Toolsetter configuration panel (used in SettingsPanel Machine sub-tab)
 - `GamepadLiveInput.vue` — Gamepad input visualization (SettingsPanel Gamepad sub-tab)
 - `DebugTab.vue` — Debug/diagnostics tab (SettingsPanel Debug sub-tab)
@@ -62,8 +64,9 @@ Gateway connects to LinuxCNC via Python bindings (`linuxcnc.stat`, `linuxcnc.com
 - `useGamepad.ts` — Gamepad polling composable (analog sticks + buttons; X/Y/Z resolved by letter)
 - `useJogPointers.ts` — Jogging pointer event management composable
 - `ws/bulkData.ts` — Shared wire types for `viewer_init` / `viewer_gcode` payloads (ViewerInit, ViewerPart, KinematicsList)
+- `viewer/programZero.ts` — The program-zero markers (pure, tested). INVARIANT: program zero = where the tool TIP lands when the control is commanded to program (0,0,0), evaluated through the machine.json chain (work + tool) at the joint set the mode implies, expressed in the work group's local frame — `transformToPartFrame`'s per-vertex rule (`buildChain` + `tipInWorkFrame`, exported from partFrame.ts), so the markers and the path-on-part preview agree by construction and linear table DOFs are table-attached / rotary DOFs room-fixed with no per-machine reasoning (the old `W(live)⁻¹·W0·P` counter-transform drifted by the slide travel on moving-table chains). `workMarkers` rule table: the active-fixture triad is program zero ON THE PART in every mode — identity: the chain at the fixture's W1 stamp A (absent = A0 rule), riding the table; TCP: the numbers; TOOL + reserved fixture: the plane compose (`activeFixturePose`). The muted `program zero (machine)` ghost draws only under identity kins while live A ≠ stamp A (`fixtureOffDatum`): the room-fixed spot identity kins will actually use. Bound `fixtureRidesOnA`: the stamp records A only, so a work chain with other rotaries (xyzac: A+C) gets the machine placement at the live pose, labelled `· machine`, one console warn. Identity evaluations hold tool-chain rotaries at 0 (control point's zero, what the DRO reads). `markerInputsChanged` is the marker-only repaint diff (M428 used to re-pose without a paint).
 - `viewer/kins.ts` — Kinematics boundary: machine axis coords ↔ joint values behind one swappable KinsModel interface (trivkins = letter→slot permutation; TCP+TWP plan phase 1c adds real kins mirrors pinned by compiled-C-oracle fixtures). ALL offline joint derivation (partFrame emit, collision poseAt, scrub jointsForSample, entry-move machineJointsToProgram) goes through it — never inline `"XYZABC".indexOf` letter mapping again. KinsSpec is plain data (crosses postMessage); construct models at the use site via makeKins/kinsFor.
-- `viewer/` — ThreeViewer support modules: `machineAssetCache.ts` (machine STL fetch/parse with L1 in-memory + L2 IndexedDB caches, single-flight dedup, `failedParts` surface), `geometryCache.ts` (the IndexedDB layer), `disposal.ts` (scene teardown that skips `userData._shared`), `viewerContext.ts` (fresh-snapshot scene pointers), plus backplot/surface/toolpath controllers
+- `viewer/` — ThreeViewer support modules: `machineAssetCache.ts` (machine STL fetch/parse with L1 in-memory + L2 IndexedDB caches, single-flight dedup, `failedParts` surface), `geometryCache.ts` (the IndexedDB layer), `disposal.ts` (scene teardown that skips `userData._shared`), `viewerContext.ts` (fresh-snapshot scene pointers), `lineIndex.ts` (per-line point ranges + cum as direct-indexed typed arrays — replaced three 1.18 M-entry Maps and a Set that cost 110–140 ms per major GC and a 0.9 s clone per publish; `ScrubTrack.lineIndex`, `ViewerGcode.feedLineIndex`, `mainLinesTrusted` mask), plus backplot/surface/toolpath controllers. `partFrameWorker.ts` keeps the program's streams RESIDENT (one `load` per program, small `transform` requests per WCS change; `needPayload` reply → re-send)
 
 ### Main Tabs
 
@@ -78,7 +81,7 @@ Horizontally scrollable strip with six components (wrapped in `<Gate gate="armed
 3. **SetupStrip** — DRO display, axis touchoff, homing grid, WCS selector
 4. **OverridesStrip** — Feed/Spindle/Rapid override sliders
 5. **SpindleStrip** — FWD/REV/STOP, RPM input, actual speed, coolant toggles
-6. **ToolStrip** — Tool # input, Measure/Manual/Load/Abort buttons, probe status, tool context (T# D# Z#)
+6. **ToolStrip** — Read-only loaded-tool info + a Tool Table nav button (the change dialog and measure/unload actions are App-level, not here)
 
 ## Safety System — Three Layers
 
@@ -88,7 +91,7 @@ Horizontally scrollable strip with six components (wrapped in `<Gate gate="armed
 2. **Heartbeat watchdog** — client heartbeat timeout (3s) → auto-disarm + abort
 3. **HAL watchdog** — retriggerable `oneshot` (0.5s, self-healing) + servo-thread `estop_latch` (`webui-hb-latch`, operator-cleared) in a three-stage AND chain → latched ESTOP
 
-HAL heartbeat runs in an independent asyncio task (`_heartbeat_loop`), decoupled from status processing. Two concurrent paths per client: command path (always responsive) and status path (can be slow without affecting safety). Additional: server-authoritative arming, backend `require_armed()`, `fire()` 200ms anti-spam, auto-stop jogs on focus loss.
+HAL heartbeat runs in an independent asyncio task (`_heartbeat_loop`), decoupled from status processing. Three tasks per client (2026-09-03): the **reader** (liveness and bookkeeping frames only — `heartbeat`, `hello`, `safety_trip_ack`, settings, diagnostics, `tab_visibility` — it never awaits a handler or `_cmd_lock`), the **command worker** (one per client, in order, bounded queue `_WS_CMD_QUEUE_MAX`; stop-class commands are never the ones rejected; `arm` is queued too, so a disarm lands after the in-flight command; each command runs as its own sub-task, and `abort`/`estop` SUPERSEDE the client's queued non-stop commands — replied "Superseded by abort", traced `ws.command_superseded` — and PREEMPT every client's in-flight non-stop handler via `_preempt_inflight` — victim replied "Preempted by abort", traced `ws.command_preempt`/`ws.command_preempted`; `jog_stop` stays plain FIFO, never reordered ahead of its `jog_cont`; stops and `arm` are never cancelled), and the **status loop** (can be slow without affecting safety; owns the 3 s client hb-stall disarm, now reporting the in-flight command). Before the split a handler waiting inside `_cmd_lock` (plane touch-off, Capture) parked the reader and the client's OWN heartbeats went unread → false hb-stall disarms. `_cmd_blocking` holds `_cmd_lock` through a cancel (shield-and-wait) so a disconnect can never let two NML calls overlap, and waits in `_CMD_WAIT_SLICE` (50 ms) slices: the binding's `wait_complete()` holds the GIL for its whole wait (2.9.4 emcmodule.cc — `to_thread` isolates nothing for that half), so one slice is the most the event loop can be frozen by an awaited command, and a cancel lands after the current slice rather than after a 30 s wait. Additional: server-authoritative arming, backend `require_armed()`, `fire()` 200ms anti-spam, auto-stop jogs on focus loss.
 
 **Trip latching (issue #34).** `oneshot.0.out` self-heals when heartbeats resume, so the sticky latch lives in the HAL **servo thread** as an `estop_latch` (`webui-hb-latch`): its `ok-in` is `oneshot.0.out`, so it latches `ok-out` FALSE the instant the oneshot drops — in the *same ~1 ms cycle* — and stays FALSE until the operator clicks E-Stop Reset. This replaced an earlier `hal_watchdog.py` 100 ms Python edge-detector that **lost the race** against a ~1 ms oneshot re-arm (a heartbeat blip after a brief stall sampled `oneshot.0.out` already back TRUE → never saw the falling edge → silent auto-recovery from ESTOP). The latch is owned by HAL, so it survives both gateway *and* watchdog freezes/restarts. The gateway reads the sticky latch **level** `webui-hb-latch.fault-out` (snapshot field `trip_latched`) and runs `gateway_util.evaluate_trip_latch` (pure, unit-tested) — a clean FALSE→TRUE after a known-good baseline sets the `_unacked_trip` dict, broadcast as `status_msg.safety_trip` (a boot-faulted first-sight TRUE is audited as `safety.latch_faulted_on_connect`, not bannered). The frontend shows it in the existing `.statusBanner` (text + Acknowledge button; flash-danger while `safetyTrip` is set). Arm is rejected while `_unacked_trip is not None`. Recovery (enforced order): banner-Acknowledge clears `_unacked_trip` (both Arm and E-Stop Reset are rejected while it is set — a client that stayed armed through the trip must still acknowledge before it can leave ESTOP) → re-Arm if armed was lost → E-Stop Reset sends `{"trip_reset": true}` IPC to `hal_watchdog.py`, which pulses `webui-safety.trip-reset-out` → `webui-hb-latch.reset` rising edge → latch clears → 20 ms later `CMD.state(STATE_ESTOP_RESET)` → Machine On. (`hal_watchdog.py`'s `hb-ok-in` edge detection now only emits best-effort `wd.hb_edge`/`trip-count` forensics — no longer in the safety or banner path.)
 
@@ -159,8 +162,15 @@ TIER 4 — Machine idle (requires base + isIdle)
   zero ───────────────── base + isIdle + !busy + !eoffset             Home, Unhome
 
 TIER 5 — Full ready (requires everything)
-  ready ──────────────── base + isIdle + !busy + isHomed              MDI, Cycle Start, Spindle, Coolant
-  probe ──────────────── base + isIdle + !busy + isHomed + !eoffset   Probe ops, tool change, touch-off, WCS edit, macros
+  ready ──────────────── base + isIdle + !busy + isHomed              MDI, Spindle, Coolant
+  run ────────────────── ready + kins runnable (Plane kins needs its plane + G59; unknown mode refuses)   Cycle Start, Run from line
+  machineFrame ───────── ready + identity kins (G53 routines: → Home/G30, tool load/measure/unload, probe ops)
+  goZero ─────────────── ready + a → Zero plan for the mode (Machine: subroutine — Z to machine zero only when below it, rotaries to the fixture's STAMP angle before X/Y; Plane: retract along the tool axis, X0 Y0 in the plane; TCP refuses). A retract NEVER lowers Z (`#<_abs_z>` guard in go_to_zero/home/g30.ngc + the RFL safe-Z step)
+  probe ──────────────── base + isIdle + !busy + isHomed + !eoffset   Probe ops, tool change, WCS edit, macros
+  touchoff ───────────── probe + kins-mode × fixture rule (linear)     DRO touch-off / Zero (linear letters)
+  touchoffRotary ─────── probe + identity kins + G54                    DRO touch-off / Zero (A/B/C)
+  twpCapture ─────────── probe + capture rules (TWP machine, G54, no     Capture plane (one-button workflow 2)
+                         plane defined, offsets clean)
 ```
 
 **State transition map — when gates open:**
@@ -173,6 +183,56 @@ Homed             → + ready, probe, step (TIER 5)
 Running           → abort, override, pause, step remain; idle/ready/jog close
 Paused            → abort, override, resume, step remain; pause closes
 ```
+
+**Touch-off under kinematics modes (2026-08-30):** a touch-off is the gateway
+command `touchoff {axes}`, never a client-built `G10 L20` (`useTouchoffMath.ts`
+→ `command_policy.touchoff_route`, pure): identity → G54–G58 (rotary letters
+G54 only); TCP → G54–G58 with the table at A=0 (`to_storage_frame`'s own
+admission rule); Plane (kins 2) → G59 with the plane active, routed to the
+remap (`o<twp_touchoff>` → `M535`) which writes the WORKPIECE datum G54
+THROUGH the plane (`G59' = G59 + current − v`, `M' = R_tool⁻¹·G59'`, table
+frame at the LIVE A, minus the plane's origin vector) and stamps G54's W1
+provenance table-frame; the gateway then seeds its G54 row from the
+helper's datum pins once `twp-helper-comp.twp-datum-seq` (a datum-WRITE
+epoch M535 bumps AFTER publishing; the helper copies it last, the reader
+samples it first) has advanced — never a dwell, never the value alone
+(`twp.datum_settled`; a same-datum touch-off replies in ~85 ms). G59–G59.3 are the TWP remap's scratch rows — never a
+touch-off target, disabled in the WCS selector on TWP configs, rewritten
+COMPLETELY (`A0 B0 C0 R0`) by every orient; the orient move is `G53 G0 B C`.
+The fixture rides the kins mode (M428/M429 → G54 when leaving a reserved row,
+M430 → G59); a reserved fixture active on identity kins at boot is bannered
+and healed with one `G54` at `ready`. The viewer draws ONE work-system
+marker, the active fixture, where the PART's zero physically is in every
+kins mode (`viewer/programZero.ts`: identity = the chain at the fixture's
+W1 stamp A, riding the table; TCP = the numbers; Plane = the plane compose
+via `viewer/activeFixtureFrame.ts`), never moves `workOrigin` (the toolpath
+anchor), and shows no inactive fixture — the survey found no UI that does.
+Under identity kins with the table away from the touch-off angle, a muted
+`program zero (machine)` ghost marks the room-fixed spot identity kins will
+send the tool to, and the chip/HUD says `MACHINE · off datum`
+(`fixtureOffDatum`, the Machine-mode mirror of head-stale). The datum lives
+in ONE place: G54, table frame; `twp_datum` (the remap's snapshot) feeds
+only the plane overlay and the datum-moved chip. Record: docs/decisions.md
+2026-08-30 and 2026-09-02 (program zero rides the part).
+
+**Motion-button certification**: `scripts/twp_buttons_check.py` drives every
+motion button (→ Zero, → Home/G30, Zero All, tool measure/load, probe op, Cycle
+Start) through the WebSocket in Machine / TCP / Plane and asserts reply +
+machine outcome as one PASS/FAIL/SKIP table — the acceptance gate for any
+change touching a motion button, next to the corpus gate. The gateway tracks the
+jogs IT started (`_active_jogs`): a `jog_stop` for an axis with no active jog is a
+traced no-op — it used to force MANUAL, which aborted an MDI issued a beat
+earlier (the operator's finger leaving the A jog after pressing → Zero); a
+verified switch to MDI/AUTO clears the set (task refuses those while jogging);
+every new jog emits `jog.cmd`. `set_mode` raises on refusal AND when task
+ignored the switch (jog active — "release the jog"); LinuxCNC operator errors
+ride the trace as `nml.error`. A retract NEVER lowers Z: the `G53 G0 Z0` in go_to_zero/home/g30
+is guarded by `#<_abs_z> LT 0` (the same four offset terms a G53 Z word
+subtracts — interp_namedparams NP_ABS_Z / interp_find G_53) and the RFL safe-Z
+step skips when already at/above; the matrix certifies the frame premise
+(`#<_abs_z>` == machine-frame Z with a TLO active) and both branches from
+above/below machine zero (the above rows SKIP with the reason on a Z0-at-top
+config).
 
 **LinuxCNC enforces very little** — mode sequence (MDI needs MODE_MDI) and state transitions only. Our gates enforce: armed state (web-safety invention), idle-vs-running checks, homing requirements, and eoffset contamination prevention. The `set_mode()` + `reject_if_auto_running()` functions in gateway.py are the real backend gatekeepers.
 
@@ -285,25 +345,60 @@ Trivkins boundary: G43 along machine Z vs the tilted-spindle marker —
 consistent at B0, divergent tilted+TLO (TCP out of scope; see its
 README).
 
-A third example, the TWP machine `machine-xyzacb-trsrn/`
-(+ `lcnc_suite_sim_twp.ini` and the `twp/` remap fork), lives on the
-**`feat/twp` branch**, not development — the whole TWP product (machine
-model, sim config, remap stack, parity corpus, goldens) was split out
-there 2026-08-24; see docs/decisions.md for the split record and
-topology. The oracle-pinned trsrn kins twins (`viewer/kins.ts`,
-`gateway_util.py`, `scripts/kins_oracle/`) STAY on development as
-dormant shared infrastructure — they are inert without a TWP config.
+A third example, `machine-xyzacb-trsrn/` (+ `lcnc_suite_sim_twp.ini`), is
+the TWP machine and IS tracked — its source is LinuxCNC's own GPL-2
+vismach (David Mueller), unlike the DMU. Generated by
+`scripts/vismach_to_stl_trsrn.py`, gated by `machineTrsrn.test.ts`. It is
+the SPLIT rotary layout — the third topology: A is a work-side rotary
+FACEPLATE (axis along machine X), while B (nutating, `[0, sin55°,
+cos55°]`) and C (swivel about Z) are both tool-side. Geometry is DERIVED
+from the seven kins pins the INI `setp`s, and the head is built to an
+invariant rather than to sampling: rotation about the nutation axis
+preserves the coordinate ALONG it, so keeping every B-side body at
+n·p ≤ −2 and every C-side body at n·p ≥ +2 makes the joint
+collision-free for ALL B at any C by construction (the generator asserts
+it and refuses to write a violating model). The work frame is SPLIT from
+the faceplate (`a_work` under `a_table`): the A rotation must happen
+about the real axis, but the work ORIGIN must sit at machine zero or
+tool-vs-work relative pose carries the constant nose-to-table offset and
+the toolpath draws 2.3 m from the tool. Carries a `stock: true` 600 mm
+cube. Its frame is schematic ABOVE the kinematics — a head moving in all
+three linear axes cannot be supported by any static structure the schema
+expresses, so the column is a portal the ram passes through with
+clearance: a crash body, not a fake bearing. Requires a one-time
+`halcompile --install scripts/kins_oracle/xyzacb_trsrn.comp`
+(deliberately not in install.sh — see examples/sim_config/README.md).
+
+TWP sim travels (2026-09-05): **Z0 is the TOP of travel** — joints-at-zero is the
+parked pose (nose 2000 above the A axis; stock top at machine −1400), type-0
+window `[AXIS_Z]/[JOINT_2] −2000..0.01` (HOME 0 strictly inside, DMU precedent),
+X/Y ±5000 on purpose (the joint-side soft-limit case). LinuxCNC checks the
+WORLD pose against `[AXIS_*]` in EVERY kins mode, so under TCP/TOOL (rotated
+world frames) the X, Y and Z axis windows are lifted to ±5000 by `hallib/limit_window.hal`
+(`wcomp` window on `:kinstype-select` → `mux2` → `ini.z.min_limit/max_limit`,
+the switchkins.adoc pattern), a `[HAL]POSTGUI_HALFILE` that the `lcnc-suite`
+launcher runs after `halcmd start` the way axis does — a `[HAL]HALCMD` net onto
+an `ini.*` pin runs before the servo thread exists and blocks task (boot
+timeout); `near`/`comp` are already loaded by the hallib and a module loads once while the joint window keeps protecting the slide;
+`machineTrsrn.test.ts` reads the INI and ties the window to the model.
 
 **Schema** (`machine.json`):
 - `groups`: `[{id, parent, translate?}]` — transform tree under implicit
   `root`. `translate` is a static base offset (pivot/home position), in mm.
-- `parts`: `[{id, file, group, translate?, rotate?, color?, stock?}]` —
+- `parts`: `[{id, file, group, translate?, rotate?, color?, stock?, collision?, collide?}]` —
   STL meshes attached to groups. `color` is `[r,g,b]` 0–1 (STL has no
   color channel); per-part user overrides from Settings still win. Parts
   get color pickers in Settings automatically. `stock: true` marks the
   ONE body class the collision sweep may FEED into (cutting semantics);
   `rotate` is Euler radians (prefer baking static rotations into the STL,
   as fetch-model.sh does for the DMU B head).
+  `collision: "collision/<part>.stl"` (2026-09-13) names a coarser SUPERSET
+  mesh the collision sweep checks INSTEAD of the display mesh — one
+  axis-aligned box per connected component for rails/blocks/end caps
+  (`scripts/stl_collision_proxy.py`; `machineGantry.test.ts` gates that every
+  display vertex lies inside a proxy box, so the sweep can only get more
+  conservative). `collide: false` marks decor the sweep never sees — a crash
+  into such a part is NOT reported, by the model author's declaration.
 - `kinematics`: `[{group, joint, type: translate|rotate, direction: x|y|z
   or axis: [x,y,z], sign}]` — each entry drives one group from
   `joint_pos[joint]` (**joint index, not axis letter** — trivkins:
@@ -348,12 +443,24 @@ survive RDP; `viewer/partFrame.ts`
 rotary segments (~4°/sample) and transforms each sample into the work
 frame by evaluating the machine.json chain — same normalize code as the
 live scene (`viewer/kinematics.ts`), so the preview overlays the backplot
-by construction. TLO rule (W3 P0): the tool-length offset subtracts in
-the TOOL NODE'S WORLD ROTATION — the same frame as applyState phase 3
-(local .position under the rotated spindle chain) and the collision
-worker (tool-local cylinder verts); three consumers, one rule. A
-world-axis subtraction is off by a constant rigid offset whenever the
-spindle chain is tilted (operator-caught: 12.58 mm at the TWP hold). Settings → 3D Viewer → "Path on part" (default) vs
+by construction. TLO rule (W3 P0 + schema 8): the tool-length offset is
+PER-SEGMENT state — the wire's `tlo_events` rows ([seq, xo, yo, zo, tool],
+recorded by the canon at every G43/G43.1/G49 and executed M6 on a program
+line; the LIVE applied offset governs segments before the first row, which
+the run inherits as modal G43 state) — resolved by ONE function
+(`viewer/tloEvents.ts` tloForIndex) and LIFTED by one (`partFrame.ts`
+liftToJoints, on TIP-space terms: epoch terms carry no tool, so the offset
+can never ride twice). It subtracts in the TOOL NODE'S WORLD ROTATION —
+the same frame in applyState phase 3 (local .position under the rotated
+spindle chain; the scrub SAMPLE's offset while a scrub pose is shown), the
+part-frame tip peel (lift and peel from the same per-vertex value) and the
+collision sweep (a per-pose tool-local translation of the tool body, no
+longer baked into its verts). A world-axis subtraction is off by a
+constant rigid offset whenever the spindle chain is tilted (operator-
+caught: 12.58 mm at the TWP hold); ONE live offset for the whole track
+posed every post-G43 joint a tool length high on a fresh boot (the corpus
+gate's 22.000 catch). The sweep and the scrub marker also wear the tool the
+program has active per segment (`parse_tlos` rows carry diameter). Settings → 3D Viewer → "Path on part" (default) vs
 "Programmed XYZ". The transform re-runs on live WCS changes (debounced —
 part-frame vertices depend on pivot-vs-work-origin). Machine-limit
 overflow + bounds boxes stay in programmed/machine space (the correct
@@ -370,7 +477,11 @@ worker checks every canon segment — pre-RDP, since decimation can shave
 extremes — against per-axis INI limits. Pure helpers in `gateway_util.py`
 (`read_axis_limits`: `AXIS_<letter>` preferred, `JOINT_<n>` fallback in
 joint order; `check_limit_violations`: machine-frame, joint-side — TLO
-added back to XYZ — all axes incl. rotary; both unit-tested).
+added back to XYZ — all axes incl. rotary; both unit-tested; VECTORIZED
+with numpy since 2026-09-05 — the per-segment Python loops stay as
+`_check_limit_violations_scalar` / `_check_limit_violations_trsrn_scalar`
+oracle twins pinned by `TestVectorizedLimitChecks`, and the trsrn inverse
+has a vectorized twin `_trsrn_inverse_np` pinned to the scalar to 1e-9).
 WORLD-mode (TCP) segments (phase 2c): joints ≠ words, so those segments
 route through `check_limit_violations_world` — rotary-subdivided (4°,
 mid-segment extremes are the point: the phase-0 capture's joint X hit
@@ -398,12 +509,32 @@ unchecked ≠ clean, and the stats dialog says "Not validated". UI is
 centralized in the scrub bar's second row: warn-variant prev/next
 navigation ("◀ | N limits → L10 | ▶", anchored to the CURRENT timeline
 position — scrubbing re-anchors it; collision hits get the same in
-danger-red) and warn timeline marks, plus warn-tinted line numbers in
-GcodePanel (`.codeLine.violation`, global — collision hits reuse it) and
+danger-red) and timeline marks — one tick per kind plus a lucide glyph
+under the track in the tick's colour (▲ limit, × clash, ● tool change;
+the dark theme cannot separate red from amber) and extent BANDS (warn over
+the violating line's cum span, danger over every contact interval, red
+wins) — plus warn-tinted line numbers in GcodePanel (`.codeLine.violation`,
+global; collision hits are danger via `.codeLine.collision`) and
 a Soft limits row in the program stats dialog. Limitation: validated
 against the parse-time WCS — touch-off after load requires a file reload
 to re-validate (the live overflow box remains the coarse always-current
 check).
+
+**Preview refusals are loud (2026-09-05)**: the preview interpreter runs
+from the machine's LIVE state (active fixture, kinematics), so a TWP remap
+can refuse a program in preview exactly as a run would (G68.2 while the
+machine sits in G59 with a plane active: "Must be in G54"). In the preview
+module `CANON_ERROR` is a stub and every remap refusal `yield INTERP_EXIT`
+(= 1 < MIN_ERROR), so `gcode.parse` reports an EMPTY success — the fork's
+`_canon_error` records the first refusal (`webui_preview_refusal`), the
+worker ships `parse_refused {line, message[, sub, sub_line]}` + the
+`__REFUSED__` stderr twin (`gcode.parse_refused` trace), and the client's
+`previewRefusal` feeds the "Preview stopped — …" banner and a "Parse" stats
+row. Line attribution is the unique-site rule (inside a marked sub span →
+the span's verified caller line; else the one main-file line matching the
+trigger text or the message's G-word), because `sequence_number` reads 0
+inside a remap, `linetext` is empty in preview and the canon never fires
+`next_line` for a remap trigger line — `line: null` rather than a guess.
 
 **Sectioned preview streams**: the wire ships feed/rapid as separate
 endpoint lists, which loses their interleaving — rendered as plain strips,
@@ -419,7 +550,119 @@ start indices); `makeLine` turns breaks into an index buffer +
 `transformToPartFrame` never subdivides a break segment (breaks are
 remapped through subdivision). Track-less legacy payloads keep the old
 strips (no seq = no honest interleaving — same degradation as the scrub
-bar).
+bar). ANCHOR INVARIANT: baked geometry (part-frame output, or a programmed
+multi-epoch rebase) hangs under its OWN `pathAnchor`/`pathRot`, posed only
+by `toolpath.apply` from `anchorTerms` of the WCS it was baked with —
+never from live status. `workOrigin` (stock, surface map, axes) keeps
+following the live offsets. A mid-run G10 L2 / fixture switch used to move
+the live origin ahead of the 300 ms re-bake: the whole path jumped, then
+returned.
+
+**Machine bounds (2026-09-12)**: the drawn box, the toolpath-bounds clip
+planes and the camera reframe all use ONE box in the MACHINE frame
+(`machineFrameGrp`): the LIVE per-joint limits the status
+carries as `joint_limits` (`viewer/machineBounds.ts` boundsFromJointLimits,
+joint order → letters via `viewer_init.axes`), with the INI-derived
+`viewer_init.machine_bounds` as the documented fallback. The box is the
+JOINT window and does not change with kins mode — the TWP sim's HAL mux
+switches the AXIS-letter `ini.z.*` window (the WORLD pose LinuxCNC checks
+programmed moves against), never `[JOINT_2]`. It bounds the HEAD reference
+point while the drawn path is the TIP, so the yellow outside-limits overlay
+never compares vertices with the box (that was off by the TLO in Z and the
+tilt lever under B/C). ONE SOURCE OF TRUTH (2026-09-12 pm, operator: "so
+not one source of truth?"): the GATEWAY validator emits, next to its
+per-line records, one byte per shipped vertex — `feed_outside` /
+`rapid_outside`: the segment ENDING there had a joint beyond the window,
+raw geometric verdict with no parked exemption or attribution
+(`gateway_util.segment_outside_flags` for identity segments,
+`trsrn_segment_outside_flags` / `world_segment_outside_flags` for the
+4°-subdivided world-mode ones, `reduce_outside_flags` onto the kept
+vertices after RDP). The window is the LIVE joint window from STAT
+(`live_joint_limits`; INI file fallback offline) and rides a `__LIMITS__`
+stderr line into `published_limits`; `evaluate_limits_drift` reparses when
+the live window leaves a live-sourced one (never loops). The client only
+CARRIES the flag: previewDecode → track `outside` (merged like mode) →
+`splitTrackStreams` feedOutside/rapidOutside → the part-frame transform
+stamps every sample of a segment with its flag → `buildOverlays` draws the
+pairs whose run (a, b] holds a flagged vertex as per-chunk index subsets
+(prefix sum, so a decimated LOD chord over an excursion stays yellow) — no
+clip planes, no box gate, nothing derived from tip geometry in the
+browser. No flags on the wire = no overlay (unchecked ≠ clean). The
+per-line records keep their attribution rule (the culprit line stands
+alone) and stay the HUD chip / marks / scrub stops; the flags paint every
+move motion would refuse.
+
+**Reach envelope (2026-09-12)**: layers `reachRoom` / `reachPart`
+(Settings → Layers → Machine Reach / Part Reach, both off by default) draw
+the reachable-volume OUTLINES — lines only, no fills — from the live joint
+limits, the machine.json chain and the live tool length — no program: `viewer/reachEnvelope.ts` (pure) hulls the travel box's corners
+through the chain at every head-rotary sample (ROOM solid, under
+`machineFrameGrp` like the bounds box; the box is what LinuxCNC enforces on
+the joints, the hull is where the TIP can be), then sweeps that solid about
+each work-chain rotary over its limit range — per-slice ray spans and a
+circular min/max angle window; radial-table solids chain for a second
+rotary — into the work frame (PART solid, rides `_workGrp`). The 5-D
+workspace (position + tool direction) projects onto these two 3-D solids;
+which tilt reaches a point is not shown, and no collision is subtracted
+(the sweep answers that per program). `reachWorker.ts` computes off-thread
+(~0.5 s on the trsrn model, one computation serves both layers), only
+when the inputs change while either layer is on; the worker ships line
+soups (hull creases at 8°, the swept solid's cage), never triangles. Three's quickhull produced non-supporting faces on this input (8
+translated copies of one orbit): `HullSolid` deduplicates, jitters 1e-3,
+VALIDATES every plane against the hull's own vertices and rebuilds with a
+fresh seed, dropping faces that still fail (noted in the reply). Outlines:
+the swept solid ships a CAGE (rings, generators, spokes — a body the camera
+sits inside has no silhouette; crease edges showed only its caps and the
+layer read as "still a cube"), the hull draws its 8° facet creases (the
+head-lever fillets). With no tool loaded the room solid on the trsrn model
+IS the travel box plus the 130 mm pivot lever — the honest answer. The TWP
+sim's travels are model-derived since 2026-09-12 (X ±1500, Y −2000..1300
+asymmetric — the head homes 1 m in front of the trunnion axis — Z
+−2000..0.01; the upstream ±5000 was a 10 m box); every corpus and demo
+program was validator-probed inside them. The box never hangs
+under the rotating work group (7a04909 moved the planes but not the mesh —
+"yellow while inside the box"). A stale path is ONE neutral grey
+(`--bg` lifted toward `--fg` by `--opacity-disabled`, opaque) with the
+overlays hidden; the soft-limit HUD chip shows the validator's count and is
+not clickable (the scrub bar navigates violations).
+
+**Chunked draw, display LOD, room-fixed prefix (2026-09-12)**: the drawn
+streams are CHUNKS (`viewer/lineChunks.ts`, pure): real segment pairs
+(`buildFrameIndex`, breaks index-skipped) binned SPATIALLY into ≤ 64 grid
+cells by a counting sort — the index buffer is permuted, the vertex order
+(the highlight's and `feedSrc`'s address space) never is — each cell one
+object per LOD LEVEL with an explicit bounding sphere (a null one makes
+Three compute the whole shared attribute's sphere per chunk). Per rendered
+frame `toolpath.updateCulling` hides each chunk's outside-bounds overlay
+whose box lies inside the machine bounds at the parent's current pose (the
+overlay used to be a full second draw of every segment) and picks the
+coarsest LOD level under 0.5 device px at the chunk's nearest point. Levels
+are Douglas–Peucker pair lists over the SAME vertices (`decimatePairs`,
+runs end at breaks and frame flips; tolerances `[1e-4, 5e-4] × envelope
+diagonal`), cut by the worker that produced the vertices (`buildLodLevels`
+in previewWorker for the programmed path, partFrameWorker for the bake);
+highlight/scrub/sweep stay at full resolution. The machine-bounds clip
+planes and the box live in `machineFrameGrp` = the work group's frame with
+every WORK-chain rotary at zero (machine coordinates; a child of the parent
+of the topmost work-chain rotary, offset by the base translates; `_workGrp`
+itself without one) — never under the rotating table. ROOM-FIXED PREFIX:
+the parse worker ships `rotary_cmd` (per rotary letter the seq of the
+segment that first COMMANDS it — raw endpoint moved from the seed, or the
+source line carries the letter as a word, `rotary_word_lines` /
+`first_rotary_commands` in gateway_util — plus `unknown` and the seed);
+`ScrubTrack.inheritedEnd` (per-axis leading-point counts), `roomEndOf(track,
+work-chain letters)`; identity-kins vertices before it bake in the room
+frame (`tipInRoomFrame`; the part-frame bake DUPLICATES the previous vertex
+as a break at every flip inside a section) and hang under roomOrigin/
+roomRotGroup (live) or roomAnchor/roomRot (baked) beneath `machineFrameGrp`,
+so an uncommanded table rotary never moves them; world-kins segments and
+everything from the first command on ride the part as before. A payload
+without the key keeps the old picture. Follow-on hooks: `published_rotary_cmd`
+in the bulk pipeline (skip the rotary reparse when the drifted axes are never
+commanded), `rapidSrc`, `roomEnd` plumbing. Schema bump for the key is owed at
+the next suite stop (never bump `PREVIEW_SCHEMA` while the suite is live: the
+fresh worker emits the new number against the running gateway's imported old
+one and the schema-mismatch edge reparses forever).
 
 **Program scrub (offline dry run, stage 2 + unified-timeline phase 1)**: a
 timeline bar overlaid on the 3D viewer (`ScrubBar.vue`, hosted in
@@ -434,7 +677,11 @@ client-built entry move) and the track merge diffs them per stream.
 `timeBased: false` (no INI velocity / legacy payload) falls back to the
 distance axis (1° ≙ 1 mm), honest not guessed. Tool-change events ride
 the wire as `tool_change_lines` (canon M6 only — preview-skipped M600
-remaps contribute none) and render as info-blue timeline marks.
+remaps contribute none) and the client unions them with a TEXT scan for
+M6 / M600 / M601 lines (`viewer/toolChangeScan.ts`, tool from the T word
+on or before the line; "T13 M600" had no mark) — a change line has no
+motion, so its mark sits at the next line with one; info-blue ● marks +
+the "T13 in 2:41" countdown.
 **Phase 2 (run-time display)**: the bar stays visible during a REAL run
 as a read-only surface — every control is dead via the existing gating,
 a RUNNING chip marks the mode, the playhead follows `motion_line` on the
@@ -506,7 +753,12 @@ rotary seed as an `__ABCSEED__` stderr line and the gateway's idle
 drift edge (`evaluate_rotary_drift`, 0.01°) auto-reparses when the live
 pose leaves it (a run parking the table tilted made the cached preview
 orient from a pose the next run never visits — the arc-vs-plunge
-class). Acceptance standard: `scripts/sim_parity.py gate --corpus
+class). A parse IN FLIGHT whose rotary seed the live pose has left is
+cancelled at once, every tick, no settle (`inflight_doomed_reason` — it
+used to run through the whole jog); the RESTART waits until the rotary
+pose has held still 1 s (`rotary_hold_update`/`rotary_hold_settled`, the
+schedule gate in the poller), and linear motion never defers or dooms a
+parse — the payload does not depend on where X/Y/Z sit. Acceptance standard: `scripts/sim_parity.py gate --corpus
 scripts/parity_corpus/<config>.json` — per run it saves the RUNNING
 gateway's cached payload, captures the real run (twp_parity
 sample_run; truth file opens with a context header), replays the
@@ -515,6 +767,43 @@ simDump.ts` via vite-node — decodePreviewStreams/buildEntryTrack are
 single pure implementations shared with the browser), and gates on
 bidirectional 6D joint-space path deviation (deg ≙ mm; wall-clock never
 compared; per-program tolerance absorbs G64 blending).
+
+**Re-parse cancel-and-restart + visibility (2026-09-05)**: every drift
+edge above used to be gated on "no parse running", so an edge raised
+DURING a parse (a touch-off while the rotary-drift parse from → Zero
+still ran — every zeroing sequence, live) was not evaluated until that
+parse published and then queued a second full parse behind it: 41–167 s
+to a correct preview on a 1.18 M-line program. Now `BulkPipeline.inflight`
+holds the running parse's input snapshot (rotary seed, kins seed, flat
+WCS offsets, file + mtime) and the poll loop evaluates the same edges
+against it under the same idle gate, settle guards and 2 s debounce
+(`inflight_stale_reason`, pure); a hit CANCELS the worker
+(`cancel_inflight`: SIGTERM — inside `gcode.parse` the handler's
+SystemExit becomes `interp_error` → exit 3 within ~100 ms, temp dir
+removed; SIGKILL fallback after 2 s; `gcode.reparse_superseded` /
+`gcode.parse_cancelled`) and `reparse_pending` restarts it under the
+specific edge (`wcsoff:G54:x`, `rotary:A`, `kins:type`, …) — the
+scheduled reason is that edge, never a bare "drift". A running parse for
+the CURRENT file+mtime is never superseded by its own file edge
+(`preview_file_edge_action` — `file_changed` holds until the publish;
+the first acceptance run killed every load parse 33 ms after spawn).
+The worker timeout is `max(60 s, 3× expected)` where expected = the last
+measured publish of that path, else 1.2 ms/byte (the flat 60 s sat 14 s
+above the plane-mode parse). While a parse runs the status envelope
+carries `preview_refresh` {reason, file, expected_ms, started_ms,
+queued, superseded}: App.vue shows a warn banner with the reason in
+operator wording (`previewRefreshLabel`), a locally ticked elapsed clock
+and a progress track that never reaches 100 % on its own, the viewer HUD
+shows the same chip, and the drawn toolpath is MUTED
+(`toolpathController.setStale`: an OPAQUE colour mix toward the scene
+background at the `--opacity-disabled` ratio — never alpha; a million
+blended segments held the Mac's GPU 3 frames behind during every re-parse,
+measured with the viewerPerf probe 2026-09-09) while a parse runs
+or the payload's offsets / tool length are known stale. Parse speed on
+the same program (identity, this VM): ~23 s → ~15 s quiet / ~23 s while
+a VM-local tab decodes the previous publish — the comment-strip fast
+path, the canon's WCS snapshot only on a setter call, and the vectorized
+limit checks (below).
 
 **Entry move + auto-check**: at sim entry the live machine position is
 captured (joints→machine→program via `machineToProgram`, the exact
@@ -537,8 +826,70 @@ keeps itself current with NO manual trigger: auto-runs on program load
 (base track — marks appear before sim is entered), on sim entry (entry
 track, fresh position = fresh baseline), and on WCS/tool changes while
 idle (stale results clear + re-run, debounced; in sim ScrubBar re-checks
-with the rebuilt entry track). The only button is cancel-with-progress
-while a sweep runs.
+with the rebuilt entry track). SWEEP STATES (2026-09-13, no button): the sweep has NO control on the bar
+— it is OPEN-ENDED (the 300 s budget and the ❚❚ / ▶ / ↻ button of
+2026-09-12 are gone, operator decision), its progress is the TIMELINE's
+swept band (`sweptFrac`; the iterator's progress and `covered` are
+TRACK-AXIS fractions, `distToTrackCum(s) / cum[n-1]`, so a scrub shows
+which section is already checked), and its findings show LIVE: the worker
+posts the UNREFINED sweep-so-far (`SnapshotHandle.peek`, `partial` on the
+progress message, at most every 500 ms and only when the record count
+changed — hits at their discovering samples, up to one step late) as
+`collisionPartial`, so ticks, bands, the tint and the code-panel marks
+appear as the sweep finds them and the verdict reads "N clashes so far";
+the refined result replaces it when the sweep ends or parks. The worker
+PAUSES for camera interaction (auto-expires after 30 s — a lost pointer-
+up) and for a HIDDEN tab (no expiry; `visibilitychange`), two independent
+holds; a ROTARY jog PARKS it (`stop`, honoured at the next checkpoint — the
+iterator yields on TIME, 8 ms of active clock, the 16-segment / 512-
+sample checkpoints as the floor; the park snapshot's refinement is
+MEMOIZED per unchanged record) and a settled pose continues it — the
+worker keeps the suspended generator with every clearance certificate and
+contact state, `SnapshotHandle.take` hands out the sweep-so-far without
+ending it; parked reads "no clash in N % swept" / "in N % swept". The
+iterator's 4 M-sample backstop is the only hard limit (`truncated`,
+reason "samples"). The findings — limits nav, clash nav, verdict text —
+keep every variable-width readout AFTER the last button of its group.
+Row 1's line /
+time readouts are FIXED slots sized PER PROGRAM (flex basis, ellipsis,
+full text in the title; line = "L" + digits of the last line + " →",
+time = "mm:ss/mm:ss" + "~"; the timer shows always — "00:00/45:00" at
+idle, never "live"; the mode chip is gone — "off path" shows in the line
+slot) — a min-width floor let "L1234 (sub_name) →" eat the timeline. The
+speed slider stays in row 1 (row 2 shifts with findings). Timeline BANDS
+span the thumb's EDGES (an extent to program end reaches the track's
+end); ticks sit at thumb centres. Dragging the timeline PAUSES playback
+(`@input`). Only a ROTARY jog (> 0.05°) parks; nothing cancels but a
+superseding change (program, touch-off, tool). A motion-parked sweep resumes by itself
+once the pose has held still 4.5 s with no re-parse in flight; a re-parse
+that lands drops it and starts fresh. SIM ENTRY never touches the
+program's sweep (the MAIN run, always on the BASE track): the ENTRY
+SEGMENT (the live position → first point rapid, `sliceTrack`) is a SIDE
+sweep in the worker (`side: true` — beside a running or parked main run,
+milliseconds) whose result is the entry OVERLAY, merged onto the base
+result AT DISPLAY TIME (`collisionEntryResult` = `sweepMerge.ts`: base
+cums shift by the entry length; ONE contact seen by both sweeps — an
+entry onset still in contact at the entry's end + a base onset for the
+same pair from the first point — counts ONCE: the entry record keeps the
+onset and the base's span, the base's first-line record becomes its
+continuation (line 0 = the entry move); TWO baselines, both reported — the live
+pose's and the first point's static contacts). `viewer/sweepEntry.ts`
+(pure, pinned) decides what runs: base unknown → base + side; base
+current / running / parked → side only; overlay already swept for this
+entry track → nothing; machine at the first point → the track IS the
+base, nothing new. The entry track STAYS after sim exit — the entry move
+is the rapid the next cycle start will make from where the machine sits,
+and its verdict must not vanish with the mode (operator-caught: a clash
+in sim, "clear" on exit); a run start or program change drops it, and
+when the machine moves outside sim ScrubBar rebuilds it from the settled
+pose (500 ms) and re-asks for the segment. The base result keeps its
+identity, so a re-entry sweeps only the new segment.
+The first attempt cancelled a base sweep at 59 % for that one segment and
+re-swept the whole program on every re-entry; its full entry-track sweep
+also had the LIVE pose as its only baseline, so a program that starts in
+contact reported a continuation record per line (200 capped hits at 3 %)
+and every park refined thousands of them — refinement is now bounded to
+the reported set (MAX_HITS, onsets first) and skipped on a driver abort.
 
 **Collision sweep (offline dry run, stage 3)**: the scrub bar's Check
 button sweeps the machine model through the scrub track off-thread
@@ -583,8 +934,21 @@ fixed 5 mm/4° sampling provably missed). NOTE that 0.25 is a fixed floor
 (`MIN_ADV`) in a parameterization where 1° ≙ 1 mm, so on a metre-scale
 machine a forced 0.25° step is ~8.7 mm of surface travel: the bound
 removes the systematic blind spot, not the sampling floor (recorded in
-docs/decisions.md). Sample budget 60k remains as a
-safety net (degrades to fixed explore steps, result says `coarsened`).
+docs/decisions.md). Certificates CARRY across chunk boundaries (2026-09-10):
+a query's clearance d − margin is decremented by each chunk's V × Lc and
+re-expressed in the next chunk's V, so a far pair costs nothing until the
+motion could have closed the gap — the old per-chunk reset re-queried every
+pair at every segment, which on a program of a million 0.09 mm segments
+was ~2 h per sweep (now 31 s, certified). Pairs inside the margin keep
+their EXPLORE re-probe cadence but are sampled at least once on every line
+they stay in contact with (the per-line continuation marks). The sweep is a
+resumable iterator (`sweepCollisionsIter`, checkpoints every 16 segments /
+512 samples and every 8 ms of clock) with an optional WALL-CLOCK budget
+(`maxMs`, sync API + tests only — the worker runs sweeps OPEN-ENDED since
+2026-09-13): on breach it stops and the result says `truncated`
+{covered, reason} — ScrubBar reads "no clash in N % swept", never "clear".
+The sample budget (4 M) is only a runaway backstop, and its breach is
+`truncated.reason = "samples"`, no longer a silent break.
 A sweep whose guarantee does not hold — a declared kins this client
 cannot evaluate falls back to trivkins, whose bound is legitimately 0 —
 reports `uncertified` with the reason, surfaced in ScrubBar on BOTH the
@@ -597,11 +961,19 @@ return moves brush parts twice — user-caught): hits carry
 `intervals` ([enter, exit][], every boundary bisected; in-contact
 samples cluster with gaps > the in-margin stride = verified
 separations); the clash tint tests interval membership and the
-timeline marks/navigates every interval ONSET, so a re-entry is its
-own clash stop. Near-miss hits keep their closest-approach sample.
+timeline marks/navigates every interval ONSET, so a re-entry is its own clash
+stop. The clash COUNT, the marks and prev/next all read ONE list
+(`viewer/clashTargets.ts`; a same-line re-entry is labelled) and contiguous
+refined windows are merged (`mergeContiguousIntervals`) — count ≡ ticks ≡ stops. Near-miss hits keep their closest-approach sample.
 Hits during RAPID segments are flagged `rapid` — always real. ThreeViewer owns the worker (geometry from machineAssetCache, tool
-dims from live status); cancel = worker terminate + lazy recreate (a sync
-sweep can't observe a cancel message). Results reflect check-time
+dims from live status); the worker drives the iterator in 40 ms slices
+(`viewer/sweepPump.ts`) and reads `{cancel}` / `{pause}` / `{resume}`
+between them — no terminate, the BVH model stays RESIDENT under a
+`modelKey` (STL copies are re-sent only when it changes; a worker that
+lacks the model answers `needBodies`); OrbitControls start/end pause and
+resume a running sweep, because a busy worker is off the main thread but
+not off the machine (it starved the Mac's GPU 3–4 frames behind,
+2026-09-10). Results reflect check-time
 WCS/tool and clear on program change; GcodePanel reuses
 `.codeLine.violation` markers via `collisionLines`. SEMANTIC LIMIT (no
 stock model): a program cutting at the work surface reports tool-vs-
@@ -623,11 +995,41 @@ would provide one for arbitrary machines/programs. Pair scope: DERIVED from rela
 — any two bodies whose
 group-tree path crosses a kinematic DOF below their lowest common
 ancestor form a pair (tool-vs-work, tool-vs-frame, and same-side pairs
-like platter-vs-table across the A tilt); rigid pairs are skipped.
-Baseline subtraction keeps it quiet: pairs already inside the margin at
-the program's FIRST pose (slides, bearings, trunnion mounts — found
-automatically, no annotations) are reported once as `staticContacts` and
-excluded from per-line reporting. Test fixture:
+like platter-vs-table across the A tilt); rigid pairs are skipped. A whole-program REACH PRESCREEN (2026-09-13) then
+drops pairs that can provably never come within the margin at any pose the
+sweep will evaluate: every joint's range over the track (both endpoints of
+every segment under its own kins labeling, bulge-padded on world-kins
+segments) pushed through each body's chain below the pair's LCA as a reach
+sphere (translations widen by half their range, rotations by the chord
+2ρ·sin(min(Δ/4, π/2))); reported as `pairsPrescreened`. Query side (same day, from the opt-in
+`CollisionOptions.profile`): the larger body is always the OUTER BVH
+traversal (three-mesh-bvh prunes the outer tree by the inner body's whole
+box — a wall-spanning inner box prunes nothing: 12.8 ms → 0.02 ms per
+query), each body carries its connected components' AABBs
+(`componentBoxes`) whose box-to-box distance is a valid lower bound that
+answers every above-margin query without the BVH, and a cutting pair in
+feed-begun contact owes no per-line sample. The wall gantry's ~450 pairs
+over 236k triangles made a 1.2 M-point sweep take hours; a 20k-point slice
+went 203 s → 5.1 s (docs/decisions.md 2026-09-13).
+Baseline subtraction keeps it quiet: pairs inside the margin at the
+program's FIRST pose AND at the model's REST pose (every joint at zero —
+the designed pose the machine-model tests require to be self-collision-
+free but for the designed bearings; slides, bearings, trunnion mounts —
+found automatically, no annotations) are reported once as
+`staticContacts` and excluded from per-line reporting. A pair CLEAR at
+rest but touching at the first pose is a crash the program starts in
+(operator-caught 2026-09-12: the entry rapid drove the ram into the
+column; the first-pose-only rule filed the pair as static, never queried
+it again, and its tint and extent stopped at L1): seeded as an onset on
+the first line and checked throughout. NEVER a TOOL pair either
+(operator decision, same day): the tool is no one's mechanical neighbour
+(`CollisionBody.tool`, set by the worker on the parametric cutter;
+`pairTool` in the model). An onset whose contact persists past its own
+line carries `spanCumEnd` (where it finally ends, over ALL records — the
+report keeps MAX_HITS = 200 records, onsets first, and a contact that
+never separates over thousands of lines is a record per LINE): the tint
+and the timeline's red extent read it for lines with no record of their
+own. Test fixture:
 `~/linuxcnc/nc_files/5axis_collision_test.ngc` — in-limits program whose
 low rapid traverse rams the trunnion (stage 1 quiet, stage 3 flags it).
 
@@ -652,7 +1054,7 @@ low rapid traverse rams the trunnion (stage 1 quiet, stage 3 flags it).
   - All tiers inherit `font-size: var(--fs-base)` from `.dialog` base — never set font-size on dialog body content
   - Safety dialogs add `.safetyDialog` (z-index 1010) and omit `@click.self` on overlay
 - Gateway `tool_change` handler is fire-and-forget (no `CMD.wait_complete()` — blocks heartbeat loop)
-- Toolsetter settings live in SettingsPanel (Machine sub-tab), tool actions in sidebar ToolStrip
+- Toolsetter settings live in SettingsPanel (Machine sub-tab); tool ACTIONS live in App.vue (tool-change dialog, Measure/Unload) and ToolTablePanel, not in the read-only ToolStrip
 - **Tool geometry**: Per-tool STL files in `machine/tools/`, loaded via `STLLoader`. Fallback: simple cylinder from diameter + length. Vertex colors split cutter (gold) / shaft (silver) by `flute_length` / `shoulder_length` Z thresholds. STL origin convention: tool tip at (0,0,0), extends in +Z.
 - **No `:deep()` visual overrides** — scoped CSS may use `:deep()` for layout properties (flex, width, height, padding) but NEVER for visual properties (background, color, border, box-shadow). Visual overrides bypass Btn.vue's state system. If a button state looks wrong, fix it in Btn.vue.
 - **Gate.vue** — renders `<fieldset :disabled="!allow">` with `.fs-reset` styling (chrome-only: no border/padding/margin). Browser-enforced default-deny: disabled propagates to all descendants. The outer Gate (`gate="armed"`) wraps the entire main area. `#exempt` slot reserved for safety section only (Arm, E-Stop). All buttons use MachineBtn catalog types; `<Btn>` is never used directly in templates.
@@ -706,20 +1108,23 @@ The `tool_touch_off.ngc` subroutine reads parameters from the LinuxCNC var file 
 
 ## Build Verification
 
-**ALWAYS run `npm run build` (in `lcnc-webui/`) after any TypeScript/Vue change.** This uses `vue-tsc -b` which is stricter than `vue-tsc --noEmit` — it catches unused imports (TS6133) and declaration emit issues that `--noEmit` misses. Zero TS errors is a hard requirement. Never use `vue-tsc --noEmit` as the sole verification step.
+**ALWAYS run `npm run build` (in `lcnc-webui/`) after any TypeScript/Vue change.** This uses `vue-tsc -b` which is stricter than `vue-tsc --noEmit` — it catches unused imports (TS6133) and declaration emit issues that `--noEmit` misses. Zero TS errors is a hard requirement. Never use `vue-tsc --noEmit` as the sole verification step. `-b` builds THREE projects: `tsconfig.app.json` (DOM, `src/**` minus the node-side tests), `tsconfig.node.json` (the vite/vitest/playwright configs) and `tsconfig.test.json` (the node-side tests, `scripts/simDump.ts`, `e2e/**`) — a test that imports `node:fs` goes in the app exclude AND the test include; `src/tsconfigCoverage.test.ts` enforces both lists and refuses stale entries.
 
 ## Lessons Learned
 
 - Normalize camera direction vectors before scaling by distance — non-unit vectors (iso, dimetric) cause distance drift on repeated clicks
 - ThreeViewer in hidden v-show tabs: guard `if (w === 0 || h === 0) return` in resize() or canvas gets 0x0
 - Don't use CSS grid overlay (visibility:hidden) for tab panes with ThreeViewer — ResizeObserver feedback loops
-- `CMD.wait_complete()` in gateway blocks the WebSocket receive loop → heartbeat timeout → disarm. Use fire-and-forget instead.
+- `CMD.wait_complete()` in a gateway handler blocks that client's command worker (commands are serialized per client), never the reader — heartbeats keep flowing since 2026-09-03. Keep waits bounded anyway: the worker is FIFO, so a 30 s wait delays that client's next command (incl. abort) by up to 30 s.
 - Scoped CSS styles (e.g. `button.primary` in App.vue) don't apply in child components — put shared button styles in global `style.css`
 - HAL access is now in a sibling process (`hal_reader.py`) — the gateway never imports `hal`. Benchmarks (`hal.get_value` ~2 µs; `hal.get_info_pins()` ~1 ms typical with ~276 ms tails under load) remain accurate but the gateway no longer pays the cost on its hot path. See GitHub issue #9 and `hal-cost-benchmarks.md` for history. Custom mirror components (direct pointer reads, <1 µs) are theoretically faster but introduce orphan-cleanup complexity and silent-fallback risk; do not re-introduce without measured perf pressure.
 - Never use `:deep()` to override visual CSS properties (background, color, border) in scoped styles — it bypasses Btn.vue's design system. Layout overrides (flex, width, padding) are acceptable.
 - Always use `with open()` for file I/O in Python — bare `open()` in loops leaks handles until GC
 - `.get()` is a dict method — calling it on a list silently raises AttributeError. Use `[index]` for list access.
 - Read the actual CSS before speculating about visual bugs — the override might be setting the value to match the background, not just being "too subtle"
+- A flex item that holds single-line (`nowrap`) text needs `min-width: 0`, or its automatic minimum width is the full text and it pushes its siblings out of the container — the status banner's action buttons (messages, Refresh, Home All, Abort) vanished behind the right edge whenever a long banner showed. Compact banner texts to the state plus one recovery verb; the explanation goes in the `title`
+- A `min-width` floor on a readout slot is not a fixed slot: content past the floor still grows it and `text-overflow: ellipsis` never engages. A readout that must not move its siblings gets `flex: 0 0 <w>` + `overflow: hidden` (ScrubBar row 1 ate the timeline). Same family: a control that changes state must keep its geometry — one slot, one button position, variable-width text AFTER the last button of its group
+- Every overlay on the 3D viewer keeps `--gap-section` from the frame and floats on the global `.overlay-card` (85 % panel + blur: HUD card, sim bar) — never hard-code the 12px or copy the chrome into a component; the bar sat 8px in on an opaque panel while the HUD sat 12px in on a translucent one
 - Use direct child selectors (`.grid > label`) not descendant selectors (`.grid label`) when styling grid/container labels — descendant selectors mute nested form controls (radios, checkboxes) inside those containers
 - When adding server-synced settings sections, update `_VALID_SETTINGS_SECTIONS` in `gateway.py` — the gateway rejects unknown sections with "Unknown settings section" error
 - Don't hack around permission issues in the backend — use the proper frontend permission gate so the UI reflects machine state (dimming). The gate IS the fix, not a workaround.
@@ -730,7 +1135,18 @@ The `tool_touch_off.ngc` subroutine reads parameters from the LinuxCNC var file 
 - ThreeViewer `buildFromInit` creates scene objects as visible after `onMounted` already applied layer defaults — must re-apply at end of `buildFromInit` using fresh `loadViewerDefaults()`
 - Never re-derive RS274/interp semantics from docs or memory — mirror the interpreter's own source and pin it with differential golden tests (`rs274.test.ts` + `TestRs274EffectiveOffset`, oracle = `rs274.interpret.Translated.rotate_and_translate`). Two latent bugs came from re-derivation: combined `g5x+g92` origin (wrong under G92+G10 R together) and TLO missing from the scrub joint transform (sim pose off in Z by exactly the G43 offset while `applyState` phase 3 subtracted it anyway)
 - Mode overrides must swap COMPLETE state objects, not single fields: `_scrubJoints` substituting joints inside `applyState` while `tool_offset`/WCS stayed live is how the TLO pose bug hid — every phase of a shared code path must be audited when one input is overridden per-mode
+- Three deletes only a geometry's CURRENT index attribute on dispose: an index attribute swapped out with `setIndex` and never current at dispose time leaks its GL buffer. Give each LOD level its own geometry object (visibility flip) instead of swapping indices.
+- Program-order index ranges are not spatially compact (a pocketing pass sweeps the whole part every 40 k segments): bin segments spatially before expecting frustum culling or a bounds gate to fire. Per-object cost (~5–15 µs) bounds the chunk count — ~64, not hundreds.
+- A benchmark program can be adversarial to an optimisation by construction: `perfmatrix-big.ngc` is a random walk (median turn 52°), so no honest decimation collapses it; read a perf lever on a real CAM program too.
+- Machine bounds are joint limits, fixed in the room: anything expressing them (clip planes, the bounds box) lives in the machine frame (the work chain with its rotaries zeroed), never under the rotating work group.
+- Never bump a wire schema constant while the suite is live when the producer is a fresh subprocess and the consumer imported the constant at start — the mismatch edge loops. Ship the new key (ignored by old readers), bump at the stop.
 - Surface-map Z compensation (`axis.z.eoffset`) is a **3-axis feature**: a machine-Z shim applied after kinematics, valid only with the tool normal to the mapped surface (A=0) and the map's XY grid aligned to the work (C=0 — the map does not ride the platter). Probing or applying it tilted is directionally wrong; enforcement gate deferred (recorded in dry-run memory)
+- A per-line `Map`/`Set` on a million-line program is a million heap objects the browser's collector marks on EVERY major GC (110–140 ms measured) and a ~1 s structured clone per worker hop — the "sometimes lags when rotating" class. Line-indexed typed arrays (`viewer/lineIndex.ts`) are the shape for anything keyed by line number
+- A background re-parse that cannot be cancelled QUEUES: an edge raised during it was not even evaluated until it published, then ran a second full parse (41–167 s live). Snapshot the running parse's inputs and supersede it; and an edge that stays true until the publish (`file_changed`) must never be allowed to cancel the parse that will clear it
+- `browser.viewer.perf` `frames`/`gap_*` are the STATUS cadence (30 Hz active, 5 Hz at the gateway's idle poll after a manual jog), NOT the frame rate — a whole record once called the Mac's viewer "30 fps capped" from them. `raf_*` is the render loop; `mt_*` (timer lateness) vs `gpu_*` (WebGL2 fences) say whether a stall is the main thread or the GPU — the CPU-side `render_*` never shows a GPU-bound draw (WebGL is out of process in Firefox and Chromium)
+- A Web Worker is off the main thread, not off the machine: the collision sweep running for minutes made the GPU trail 3–4 frames on the operator's Mac with a perfectly clean main thread. Profile before designing (the "2 h sweep" was a per-chunk certificate reset meeting 0.09 mm segments — 45 BVH queries per 0.09 mm — not mesh cost); let interaction (camera) and a hidden tab pause every background job, and make it report what it covered whenever it stops early (the wall-clock budget that once bounded the sweep was retired 2026-09-13 once the pauses and the carried certificates made it pointless)
+- Lazy conservative advancement must CARRY its certificates across chunk boundaries in clearance terms (d − margin, decremented by each chunk's V × L); resetting them per chunk makes the cost O(segments × pairs) regardless of geometry
+- Profile before vectorizing: 40 % of the 46 s plane-mode parse was 2.36 M pure-Python inverse-kinematics solves, another ~40 % three passes that re-stripped comments character by character; the interpreter itself was a quarter. cProfile inflates Python-call-heavy code ~2× — use it for proportions, the trace for absolute numbers
 
 ## Production DISPLAY Integration
 
@@ -763,6 +1179,10 @@ which lcnc-suite    # should print ~/.local/bin/lcnc-suite
 3. Reads `WEBUI_*` config from INI `[DISPLAY]` section via `inivar`
 4. Production (`WEBUI_DEV=0`): exports `LCNC_WEBUI_DIST_DIR`, `exec`s uvicorn serving API + built frontend
 5. Dev (`WEBUI_DEV=1`): starts Vite on :5173 (hot-reload) + gateway on :8000, cleans up both on exit
+   Before either: runs every `[HAL]POSTGUI_HALFILE` with `halcmd -i <ini> -f`, the way axis/gmoccapy
+   do — after `halcmd start`, and after WAITING for milltask's `inihal` component to be ready (the
+   linuxcnc script spawns milltask in the background and this launcher is up in milliseconds, so
+   `ini.*` pins may not exist yet). A failing file aborts the display loudly.
 6. LinuxCNC blocks on the display process; SIGTERM triggers clean HAL shutdown
 
 **INI configuration** (`[DISPLAY]` section):

@@ -1,11 +1,14 @@
 // Unit tests for viewer/collision.ts — synthetic machines with box bodies.
 import * as THREE from "three";
+import { emptyLineIndex } from "./lineIndex";
 import { describe, expect, it } from "vitest";
 import {
-  buildCollisionModel, sweepCollisions, toolCylinderPositions,
-  type CollisionBody, type CollisionMachine,
-} from "./collision";
+  buildCollisionModel, sweepCollisions, sweepCollisionsIter, toolCylinderPositions, restoreBaseTool, type SnapshotHandle,
+  type CollisionBody, type CollisionMachine, type CollisionResult, type CollisionOptions, mergeContiguousIntervals, componentBoxes } from "./collision";
 import type { ScrubTrack } from "../ws/bulkData";
+import { buildScrubTrack } from "./scrubTrack";
+import { TLO_NONE } from "./tloEvents";
+import { runSweepSlice } from "./sweepPump";
 
 const WCS0 = { g5x: [0, 0, 0, 0, 0, 0], g92: [], rotationDeg: 0 };
 
@@ -34,7 +37,7 @@ function track(points: number[][], abc?: number[][], lines?: number[], rapid?: n
     pos, abc: abcArr,
     lines: new Uint32Array(lines ?? points.map((_, i) => i + 1)),
     rapid: rapid ? new Uint8Array(rapid) : new Uint8Array(n), cum, count: n,
-    lineCum: new Map(), lineSpan: new Map(), timeBased: false,
+    lineIndex: emptyLineIndex(), timeBased: false,
   };
 }
 
@@ -211,6 +214,221 @@ describe("sweepCollisions", () => {
     const r = sweepCollisions(model, track(
       [[0, 0, 0], [0, 0, -45]]), WCS0, { margin: 2 }, undefined, () => true);
     expect(r.samples).toBe(1);  // only the baseline pose before the first segment
+    expect(r.truncated).toBeNull();   // an abort is the caller's decision, not a budget
+  });
+
+  // A 40-segment plunge (1 mm each, clear of the work): long enough to pass
+  // the every-16-segments checkpoint where the budgets are checked.
+  const plunge40 = () => track(Array.from({ length: 41 }, (_, i) => [0, 0, 60 - i]));
+
+  it("stops at the wall-clock budget and says how much it swept — never a silent 'clear'", () => {
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const r = sweepCollisions(model, plunge40(), WCS0, { margin: 2, maxMs: 0 });
+    expect(r.truncated).not.toBeNull();
+    expect(r.truncated!.reason).toBe("time");
+    expect(r.truncated!.covered).toBeGreaterThan(0);
+    expect(r.truncated!.covered).toBeLessThan(1);
+    expect(r.hits).toHaveLength(0);
+  });
+
+  it("the budget runs on the caller's clock — a paused sweep spends none of it", () => {
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    // A clock that never advances: even a 1 ms budget is never exceeded.
+    const frozen = sweepCollisions(model, plunge40(), WCS0, { margin: 2, maxMs: 1, clock: () => 0 });
+    expect(frozen.truncated).toBeNull();
+    expect(frozen.sweepMs).toBe(0);
+    // A clock that jumps 100 ms per read: the 50 ms budget is over at the
+    // first checkpoint that looks.
+    let t = 0;
+    const racing = sweepCollisions(model, plunge40(), WCS0, { margin: 2, maxMs: 50, clock: () => (t += 100) });
+    expect(racing.truncated?.reason).toBe("time");
+    expect(racing.truncated!.covered).toBeLessThan(1);
+  });
+
+  it("the hard sample backstop stops the sweep and says so instead of breaking out silently", () => {
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const r = sweepCollisions(model, plunge40(), WCS0, { margin: 2, maxSamples: 2 });
+    expect(r.coarsened).toBe(true);
+    expect(r.truncated).not.toBeNull();
+    expect(r.truncated!.reason).toBe("samples");
+    expect(r.truncated!.covered).toBeLessThan(1);
+    expect(r.samples).toBeLessThanOrEqual(10);
+  });
+
+  it("a completed sweep carries no truncation claim", () => {
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const r = sweepCollisions(model, plunge40(), WCS0, { margin: 2, maxMs: 60_000 });
+    expect(r.truncated).toBeNull();
+  });
+
+  it("the iterator yields progress checkpoints and returns the sync sweep's result", () => {
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const t = track([[0, 0, 0], [0, 0, -45]]);
+    const sync = sweepCollisions(model, t, WCS0, { margin: 2 });
+    const it = sweepCollisionsIter(model, t, WCS0, { margin: 2 });
+    const progress: number[] = [];
+    let r = it.next();
+    while (!r.done) { progress.push(r.value); r = it.next(); }
+    expect(progress[0]).toBe(0);
+    expect(progress[progress.length - 1]).toBe(1);
+    expect(r.value.hits.map(h => [h.line, h.a, h.b, +h.cum.toFixed(3)]))
+      .toEqual(sync.hits.map(h => [h.line, h.a, h.b, +h.cum.toFixed(3)]));
+    expect(r.value.samples).toBe(sync.samples);
+    expect(r.value.truncated).toBeNull();
+  });
+
+  it("progress and covered are fractions of the TRACK axis, not of the sweep's distance parameter", () => {
+    // 2026-09-12: the scrub bar draws the swept section on its timeline,
+    // whose axis is TIME on a time-based track. A track whose cum runs at
+    // double pace over its second half: the count-based checkpoints at
+    // segments 16 and 32 must yield cum[15]/cumMax and cum[31]/cumMax — the
+    // distance fractions would be 15/40 and 31/40.
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const t = plunge40();
+    for (let i = 21; i < t.count; i++) t.cum[i] = t.cum[20]! + 2 * (i - 20);
+    const cumMax = t.cum[t.count - 1]!;   // 60
+    const it = sweepCollisionsIter(model, t, WCS0, { margin: 2, clock: () => 0 });
+    const progress: number[] = [];
+    let r = it.next();
+    while (!r.done) { progress.push(r.value); r = it.next(); }
+    expect(progress).toHaveLength(4);   // start, segments 16 and 32, end (frozen clock = the floor)
+    expect(progress[1]).toBeCloseTo(t.cum[15]! / cumMax, 6);   // 0.25, not 0.375
+    expect(progress[2]).toBeCloseTo(t.cum[31]! / cumMax, 6);   // 0.7, not 0.775
+    expect(progress[3]).toBe(1);
+  });
+
+  it("stop/continue via the snapshot hook: every snapshot is a truncated sweep-so-far, continuing ends in the uninterrupted result", () => {
+    // 2026-09-12: the worker parks a sweep (budget, operator stop, rotary
+    // motion) by simply not resuming the generator, snapshots the sweep-so-
+    // far through opts.snapshot, and resumes it later. The snapshots must
+    // not disturb the suspended sweep: the final result equals the sync one.
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const pts: number[][] = [];
+    for (let z = 0; z >= -45; z -= 0.5) pts.push([0, 0, z]);   // 90 short segments → checkpoints every 16
+    const t = track(pts);
+    const sync = sweepCollisions(model, t, WCS0, { margin: 2 });
+    expect(sync.hits.length).toBeGreaterThan(0);
+    const snap: SnapshotHandle = { take: null, peek: null, records: null };
+    const it = sweepCollisionsIter(model, t, WCS0, { margin: 2, snapshot: snap });
+    let r = it.next();
+    expect(snap.take).not.toBeNull();       // installed before the first checkpoint
+    const covered: number[] = [], hitCounts: number[] = [];
+    while (!r.done) {
+      const partial = snap.take!("stopped");   // taken while SUSPENDED at this checkpoint
+      expect(partial.truncated?.reason).toBe("stopped");
+      expect(partial.truncated!.covered).toBeGreaterThanOrEqual(covered[covered.length - 1] ?? 0);
+      expect(partial.hits.length).toBeGreaterThanOrEqual(hitCounts[hitCounts.length - 1] ?? 0);
+      for (const h of partial.hits) expect(sync.hits.some(x => x.line === h.line && x.a === h.a && x.b === h.b)).toBe(true);
+      covered.push(partial.truncated!.covered); hitCounts.push(partial.hits.length);
+      r = it.next();
+    }
+    expect(covered.length).toBeGreaterThan(3);
+    expect(covered[0]).toBe(0);
+    expect(hitCounts[hitCounts.length - 1]).toBe(sync.hits.length);   // the last snapshot already knew every hit
+    const full = r.value as CollisionResult;
+    expect(full.truncated).toBeNull();
+    expect(full.hits.map(h => [h.line, h.a, h.b, +h.cum.toFixed(3), +h.cumEnd.toFixed(3)]))
+      .toEqual(sync.hits.map(h => [h.line, h.a, h.b, +h.cum.toFixed(3), +h.cumEnd.toFixed(3)]));
+    expect(full.samples).toBe(sync.samples);
+    expect(snap.take).toBeNull();           // cleared when the generator returned
+  });
+
+  it("time-based checkpoints: an advancing clock yields between the count-based floors, a frozen clock keeps the floor", () => {
+    // 2026-09-12: the worker parks/cancels only at a checkpoint, and 512
+    // in-margin samples were seconds — the operator's ❚❚ looked ignored.
+    // The count-based checkpoints stay as the floor (a fake clock that
+    // never advances must still yield); `yieldMs` of clock time adds one.
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const yieldsWith = (clock: () => number): number[] => {
+      const it = sweepCollisionsIter(model, plunge40(), WCS0, { margin: 2, clock, yieldMs: 8 });
+      const out: number[] = [];
+      let r = it.next();
+      while (!r.done) { out.push(r.value); r = it.next(); }
+      return out;
+    };
+    const frozen = yieldsWith(() => 0);
+    // start, segments 16 and 32, end — the floor for a 40-segment track
+    expect(frozen).toHaveLength(4);
+    let t = 0;
+    const advancing = yieldsWith(() => (t += 5));   // 5 ms per read → a checkpoint every other segment
+    expect(advancing.length).toBeGreaterThan(frozen.length * 3);
+    for (let i = 1; i < advancing.length; i++) expect(advancing[i]).toBeGreaterThanOrEqual(advancing[i - 1]!);
+    expect(advancing[0]).toBe(0);
+    expect(advancing[advancing.length - 1]).toBe(1);
+  });
+
+  it("refinement memo: repeated snapshots at one checkpoint are identical, later snapshots never move a hit's extent backwards", () => {
+    // 2026-09-12: every park snapshots by refining every record again —
+    // records whose inputs have not changed reuse their refinement. The
+    // memo must be invisible: a second take at the same checkpoint equals
+    // the first, and a record that gained samples refines to an extent at
+    // least as long as before.
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const pts: number[][] = [];
+    for (let z = 0; z >= -45; z -= 0.5) pts.push([0, 0, z]);
+    const t = track(pts);
+    const snap: SnapshotHandle = { take: null, peek: null, records: null };
+    const it = sweepCollisionsIter(model, t, WCS0, { margin: 2, snapshot: snap });
+    let r = it.next();
+    const ends = new Map<string, number>();
+    let sawTwo = 0;
+    while (!r.done) {
+      const a = snap.take!("stopped"), b = snap.take!("stopped");
+      expect(b.hits).toEqual(a.hits);   // the memo answers the second take
+      for (const h of a.hits) {
+        const k = `${h.line}/${h.a}/${h.b}`;
+        const prev = ends.get(k);
+        if (prev !== undefined) { expect(h.cumEnd).toBeGreaterThanOrEqual(prev - 1e-9); sawTwo++; }
+        ends.set(k, h.cumEnd);
+      }
+      r = it.next();
+    }
+    expect(sawTwo).toBeGreaterThan(0);   // some record was snapshotted at two checkpoints
+    const sync = sweepCollisions(model, t, WCS0, { margin: 2 });
+    expect((r.value as CollisionResult).hits.map(h => [h.line, +h.cum.toFixed(3), +h.cumEnd.toFixed(3)]))
+      .toEqual(sync.hits.map(h => [h.line, +h.cum.toFixed(3), +h.cumEnd.toFixed(3)]));
+  });
+
+  it("peek: the unrefined sweep-so-far at any checkpoint — hits ⊆ the final, record count monotonic, the suspended sweep undisturbed", () => {
+    // 2026-09-13: the worker streams these while sweeping so clashes show on
+    // the timeline as they are found; no refinement, no mesh probes.
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const pts: number[][] = [];
+    for (let z = 0; z >= -45; z -= 0.5) pts.push([0, 0, z]);
+    const t = track(pts);
+    const sync = sweepCollisions(model, t, WCS0, { margin: 2 });
+    const snap: SnapshotHandle = { take: null, peek: null, records: null };
+    const it = sweepCollisionsIter(model, t, WCS0, { margin: 2, snapshot: snap });
+    let r = it.next();
+    expect(snap.peek).not.toBeNull();
+    let lastRecords = 0, peeks = 0;
+    while (!r.done) {
+      const recs = snap.records!();
+      expect(recs).toBeGreaterThanOrEqual(lastRecords);
+      lastRecords = recs;
+      const p = snap.peek!();
+      peeks++;
+      expect(p.truncated?.reason).toBe("running");
+      for (const h of p.hits) expect(sync.hits.some(x => x.line === h.line && x.a === h.a && x.b === h.b)).toBe(true);
+      r = it.next();
+    }
+    expect(peeks).toBeGreaterThan(3);
+    const full = r.value as CollisionResult;
+    expect(full.hits.map(h => [h.line, +h.cum.toFixed(3), +h.cumEnd.toFixed(3)]))
+      .toEqual(sync.hits.map(h => [h.line, +h.cum.toFixed(3), +h.cumEnd.toFixed(3)]));
+    expect(snap.peek).toBeNull();
+    expect(snap.records).toBeNull();
+  });
+
+  it("next(true) at a checkpoint aborts: baseline only, epilogue still returns a result", () => {
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const it = sweepCollisionsIter(model, track([[0, 0, 0], [0, 0, -45]]), WCS0, { margin: 2 });
+    it.next();                       // to the first checkpoint (baseline posed)
+    let r = it.next(true);           // abort there
+    while (!r.done) r = it.next();   // the epilogue's final progress yield
+    const res = r.value as CollisionResult;
+    expect(res.samples).toBe(1);
+    expect(res.truncated).toBeNull();
   });
 
   it("moves pairs in contact at the first pose to staticContacts instead of flooding lines", () => {
@@ -230,6 +448,72 @@ describe("sweepCollisions", () => {
     expect(r.hits.every(h => [h.a, h.b].sort().join("/") !== "drawbar/spindle")).toBe(true);
     // … while the genuine plunge hit is still attributed normally.
     expect(r.hits.some(h => [h.a, h.b].sort().join("/") === "spindle/vise")).toBe(true);
+  });
+
+  it("a TOOL body in contact at the first pose is an onset on the first line, never a static exclusion — and a later rapid through the same body still reports", () => {
+    // 2026-09-12 (operator decision): the tool is no one's mechanical
+    // neighbour. The excluded pair used to silence a program that starts on
+    // the platter AND every later rapid through it — an excluded pair is
+    // never queried again. Geometry: the tool box hangs 50 below the head,
+    // i.e. inside the vise at the start pose.
+    const bodies = (toolFlag: boolean): CollisionBody[] => [
+      { id: "vise", group: "table", positions: boxPositions(10) },
+      { id: "spindle", group: "head", positions: boxPositions(10) },
+      { id: "tool", group: "head", positions: boxPositions(10), translate: [0, 0, -50], tool: toolFlag || undefined },
+    ];
+    // L7 feed X through the vise (in contact from the start), L8 feed Z up
+    // and out of it, L9 RAPID back down into it.
+    // (per-POINT arrays: segment i carries lines[i] / rapid[i])
+    const prog = () => track([[0, 0, 0], [10, 0, 0], [10, 0, 30], [10, 0, 0]], undefined, [0, 7, 8, 9], [0, 0, 0, 1]);
+    const r = sweepCollisions(buildCollisionModel(PLUNGE, bodies(true)), prog(), WCS0, { margin: 2 });
+    expect(r.staticContacts).toEqual([]);
+    const onsets = r.hits.filter(h => h.continuation === undefined && [h.a, h.b].sort().join("/") === "tool/vise");
+    expect(onsets.map(h => [h.line, h.rapid])).toEqual([[7, false], [9, true]]);
+    expect(onsets[0]!.cum).toBe(0);                       // in contact from the program's first point
+    expect(onsets[0]!.spanEndLine).toBe(8);               // still touching while L8 retracts
+    // The control: the same body WITHOUT the flag is a machine part — the
+    // old rule: one static contact, and the L9 rapid plunge reports NOTHING.
+    const c = sweepCollisions(buildCollisionModel(PLUNGE, bodies(false)), prog(), WCS0, { margin: 2 });
+    expect(c.staticContacts.map(x => [x.a, x.b].sort().join("/"))).toEqual(["tool/vise"]);
+    expect(c.hits.filter(h => [h.a, h.b].sort().join("/") === "tool/vise")).toEqual([]);
+  });
+
+  it("a machine pair touching at the program's first pose but CLEAR at the model's rest pose is a crash from the start, not a static contact", () => {
+    // 2026-09-12 (operator-caught: the entry rapid drove the portal into the
+    // X slide; the base sweep filed the pair as static and never looked at
+    // it again). Rest pose = every joint at zero. The beam sits at z 5..15 on
+    // the table; the head box is at 45..55 at Z=0 (clear) and at 5..15 when
+    // the program starts at Z −40 (touching).
+    const bodies: CollisionBody[] = [
+      { id: "vise", group: "table", positions: boxPositions(10) },
+      { id: "spindle", group: "head", positions: boxPositions(10) },
+      { id: "beam", group: "table", positions: boxPositions(10), translate: [0, 0, 10] },
+    ];
+    const model = buildCollisionModel(PLUNGE, bodies);
+    // L1 feed X through the beam (in contact from the start), L2 feed Z up
+    // and out of it, L3 RAPID back down into it. (per-point arrays)
+    const r = sweepCollisions(model, track(
+      [[0, 0, -40], [10, 0, -40], [10, 0, 0], [10, 0, -40]], undefined, [0, 1, 2, 3], [0, 0, 0, 1]), WCS0, { margin: 2 });
+    expect(r.staticContacts.map(c => [c.a, c.b].sort().join("/"))).not.toContain("beam/spindle");
+    const beam = r.hits.filter(h => [h.a, h.b].sort().join("/") === "beam/spindle");
+    const onsets = beam.filter(h => h.continuation === undefined);
+    expect(onsets.map(h => [h.line, h.rapid])).toEqual([[1, false], [3, true]]);
+    expect(onsets[0]!.cum).toBe(0);
+    expect(onsets[0]!.spanEndLine).toBe(2);
+    // The span end: the contact persists into L2 (rising out of the beam),
+    // so the onset carries where it finally ends — past its own line's end
+    // (L1 ends at cum 10) and before L2's end (cum 50).
+    expect(onsets[0]!.spanCumEnd).toBeGreaterThan(onsets[0]!.cumEnd);
+    expect(onsets[0]!.spanCumEnd!).toBeGreaterThan(10);
+    expect(onsets[0]!.spanCumEnd!).toBeLessThan(50);
+    expect(onsets[1]!.spanCumEnd).toBeUndefined();   // the L3 re-entry ends on its own line
+    // Control: the SAME pair touching at rest too (the beam raised to the
+    // head's rest height) is a mechanical neighbour — static, never a hit.
+    const raised: CollisionBody[] = [bodies[0]!, bodies[1]!, { ...bodies[2]!, translate: [0, 0, 50] }];
+    const c = sweepCollisions(buildCollisionModel(PLUNGE, raised), track(
+      [[0, 0, 0], [10, 0, 0]], undefined, [0, 1], [0, 0]), WCS0, { margin: 2 });
+    expect(c.staticContacts.map(x => [x.a, x.b].sort().join("/"))).toEqual(["beam/spindle"]);
+    expect(c.hits.filter(h => [h.a, h.b].sort().join("/") === "beam/spindle")).toEqual([]);
   });
 
   it("catches a graze narrower than the old fixed sample step", () => {
@@ -390,6 +674,45 @@ describe("contact-window refinement (glow window)", () => {
     expect(l26.cum).toBeLessThan(45.5);       // in contact from line start
     expect(l26.cumEnd).toBeGreaterThan(49);   // ends at separation (~50)...
     expect(l26.cumEnd).toBeLessThan(51);      // ...never the line end (90)
+    // The line-26 record is a CONTINUATION of the line-25 onset (the pair
+    // never separated between the lines); the onset spans through 26.
+    expect(l26.continuation).toBe(25);
+    const l25 = res.hits.find(h => h.line === 25 && h.dist < 1e-3)!;
+    expect(l25.continuation).toBeUndefined();
+    expect(l25.spanEndLine).toBe(26);
+  });
+
+  it("through-contact across lines: one onset spanning to the last in-contact line, continuations for the rest", () => {
+    // L25 plunges into contact; L26/L27 traverse INSIDE it; L28 retracts.
+    // Operator-caught: a beam rammed into the portal was re-reported on
+    // every following line. One clash (the onset), three continuations.
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const t = track(
+      [[0, 0, 0], [0, 0, -45], [2, 0, -45], [4, 0, -45], [4, 0, 0]],
+      undefined, [25, 25, 26, 27, 28]);
+    const res = sweepCollisions(model, t, WCS0, { margin: 2 });
+    const contact = res.hits.filter(h => h.dist < 1e-3);
+    const onsets = contact.filter(h => h.continuation === undefined);
+    expect(onsets).toHaveLength(1);
+    expect(onsets[0]!.line).toBe(25);
+    expect(onsets[0]!.spanEndLine).toBe(28);
+    const conts = contact.filter(h => h.continuation !== undefined);
+    expect(conts.map(h => h.line).sort()).toEqual([26, 27, 28]);
+    expect(conts.every(h => h.continuation === 25)).toBe(true);
+  });
+
+  it("verified separation (>2×margin) then re-entry two lines later yields two onset records", () => {
+    // L25 plunge (contact), L26 retract to clear, L27 lateral clear,
+    // L28 plunge again — the second touch is a NEW clash.
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const t = track(
+      [[0, 0, 0], [0, 0, -45], [0, 0, 0], [5, 0, 0], [5, 0, -45]],
+      undefined, [25, 25, 26, 27, 28]);
+    const res = sweepCollisions(model, t, WCS0, { margin: 2 });
+    const onsets = res.hits.filter(h => h.dist < 1e-3 && h.continuation === undefined).map(h => h.line);
+    expect(onsets.sort()).toEqual([25, 28]);
+    const l26 = res.hits.find(h => h.line === 26 && h.dist < 1e-3)!;
+    expect(l26.continuation).toBe(25);
   });
 
   it("intermittent contact on ONE line yields separate refined intervals", () => {
@@ -448,6 +771,7 @@ describe("contact-window refinement (glow window)", () => {
     const res = sweepCollisions(model, t, WCS0, { margin: 2 });
     const l26 = res.hits.find(h => h.line === 26 && h.dist < 1e-3)!;
     expect(l26).toBeDefined();
+    expect(l26.continuation).toBe(25);   // carried in from the line-25 sweep
     // L26 spans cum 180..360; contact ends near C=120 -> cum ~240.
     expect(l26.cum).toBeLessThan(185);
     expect(l26.cumEnd).toBeGreaterThan(230);
@@ -605,7 +929,7 @@ describe("per-epoch WCS terms (review P2)", () => {
     // it must stay silent.
     const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
     const t = { ...track([[0, 0, 0], [0, 0, -13]], undefined, [7, 8]),
-                wcs: new Uint8Array([0, 0]) };
+                wcs: new Uint32Array([0, 0]) };
     const epochTerms = [{ ox: 0, oy: 0, oz: -30, oa: 0, ob: 0, oc: 0, tx: 0, ty: 0, tz: 0, cth: 1, sth: 0 }];
     const hit = sweepCollisions(model, t, WCS0, { margin: 2, epochTerms });
     expect(hit.hits.length).toBeGreaterThan(0);
@@ -613,3 +937,571 @@ describe("per-epoch WCS terms (review P2)", () => {
     expect(miss.hits).toHaveLength(0);
   });
 });
+
+describe("per-segment tool offset (schema 8)", () => {
+  // The parametric tool body (tip at its local origin) under the PLUNGE
+  // head: with a live TLO the swept joints are tip + TLO, so the body must
+  // be shifted back per pose or the tip floats a tool length above the path.
+  const TOOL_BODIES: CollisionBody[] = [
+    { id: "vise", group: "table", positions: boxPositions(10) },
+    { id: "tool", group: "head", positions: toolCylinderPositions(6, 20) },
+  ];
+  // Tool tip at head origin z=50+Z, work box top at +5 → contact at Z=−45.
+  const plunge = track([[0, 0, 0], [0, 0, -50]], undefined, [1, 2]);
+
+  it("the tip lands on the path under a live TLO — same first touch as without", () => {
+    const m = buildCollisionModel(PLUNGE, TOOL_BODIES);
+    const r0 = sweepCollisions(m, plunge, WCS0, { margin: 0.5 });
+    const r22 = sweepCollisions(m, plunge, { ...WCS0, tool: [0, 0, 22] }, { margin: 0.5 });
+    expect(r0.hits.length).toBe(1);
+    expect(r22.hits.length).toBe(1);
+    expect(r22.hits[0]!.cum).toBeCloseTo(r0.hits[0]!.cum, 1);
+    expect(r0.hits[0]!.cum).toBeCloseTo(45, 0.5);
+  });
+
+  it("a mid-track event changes the housing height but not the tip", () => {
+    // Spindle housing box (bottom at 40+Z) + tool body; plunge twice: line 2
+    // under the live offset (0) contacts the vise at Z=−35 (housing) and
+    // the tool tip at −45; line 4 under the program's G43 (22) lifts the
+    // HOUSING 22 higher (contact at −57 — beyond the −40 plunge) while the
+    // tool tip still lands at −45. So line 4 reports the tool, not the housing.
+    const bodies: CollisionBody[] = [...PLUNGE_BODIES, TOOL_BODIES[1]!];
+    const m = buildCollisionModel(PLUNGE, bodies);
+    const t = track([[0, 0, 0], [0, 0, -48], [0, 0, 0], [0, 0, -48]], undefined, [1, 2, 3, 4]);
+    t.tlo = new Uint32Array([TLO_NONE, TLO_NONE, 0, 0]);
+    t.tloEvents = [{ seq: 0, xyz: [0, 0, 22], tool: 3 }];
+    const r = sweepCollisions(m, t, WCS0, { margin: 0.5, tloEvents: t.tloEvents });
+    const pairsOn = (line: number) => r.hits.filter(h => h.line === line).map(h => h.a).sort();
+    expect(pairsOn(2)).toEqual(["spindle", "tool"]);
+    expect(pairsOn(4)).toEqual(["tool"]);
+  });
+});
+
+describe("per-segment tool dims (schema 8)", () => {
+  // A pillar the FAT tool (Ø30) hits and the THIN one (Ø6) clears: the
+  // track passes the pillar twice — under T1 (thin, live) and, after an
+  // M6 row, under T2 (fat). Only the fat pass reports.
+  const PILLAR: CollisionBody[] = [
+    // pillar top at +5 (box centred at origin), offset 12 in X on the table
+    { id: "pillar", group: "table", positions: boxPositions(10), translate: [12, 0, 0] },
+    { id: "tool", group: "head", positions: toolCylinderPositions(6, 20) },
+  ];
+  it("swaps the tool body to the segment's tool", () => {
+    const m = buildCollisionModel(PLUNGE, PILLAR);
+    // Tip at head origin z=50+Z: plunge at X=0 to Z=−45 → tip at +5 (pillar
+    // top height) but 12 mm off in X: thin tool (r 3) clears, fat (r 15) hits.
+    const t = track([[0, 0, 0], [0, 0, -45], [0, 0, 0], [0, 0, -45]], undefined, [1, 2, 3, 4]);
+    // The event governs the segment ENDING at vertex 3 (line 4) only — the
+    // retract (line 3) still runs under the thin tool.
+    t.tlo = new Uint32Array([TLO_NONE, TLO_NONE, TLO_NONE, 0]);
+    t.tloEvents = [{ seq: 0, xyz: [0, 0, 0], tool: 2 }];
+    const r = sweepCollisions(m, t, WCS0, {
+      margin: 0.5, tloEvents: t.tloEvents, liveTool: 1,
+      toolDims: { 1: { diam: 6, len: 20 }, 2: { diam: 30, len: 20 } },
+    });
+    const lines = [...new Set(r.hits.map(h => h.line))].sort();
+    expect(lines).toEqual([4]);
+    // Without dims the base (thin) body is used throughout: nothing reports.
+    const r2 = sweepCollisions(m, t, WCS0, { margin: 0.5, tloEvents: t.tloEvents, liveTool: 1 });
+    expect(r2.hits).toEqual([]);
+  });
+});
+
+describe("mergeContiguousIntervals", () => {
+  it("windows meeting at one boundary are one contact (the sample-gap split)", () => {
+    expect(mergeContiguousIntervals([[45, 50], [50, 60]])).toEqual([[45, 60]]);
+    expect(mergeContiguousIntervals([[45, 50.001], [50.0025, 60]])).toEqual([[45, 60]]);
+  });
+  it("keeps a verified separation apart", () => {
+    expect(mergeContiguousIntervals([[45, 50], [110, 120]])).toEqual([[45, 50], [110, 120]]);
+    expect(mergeContiguousIntervals([[45, 50], [50.01, 60]])).toHaveLength(2);
+  });
+  it("chains and never mutates its input", () => {
+    const input: Array<[number, number]> = [[0, 1], [1, 2], [2, 3], [10, 11]];
+    expect(mergeContiguousIntervals(input)).toEqual([[0, 3], [10, 11]]);
+    expect(input).toEqual([[0, 1], [1, 2], [2, 3], [10, 11]]);
+    expect(mergeContiguousIntervals([])).toEqual([]);
+  });
+});
+
+describe("whole-program reach prescreen (2026-09-13)", () => {
+  // PLUNGE plus a frame post the head and the table can never reach: both
+  // of its pairs are dropped before the sweep; the plunge hit is unchanged.
+  it("drops pairs that can provably never come within the margin and keeps the hit", () => {
+    const machine = { ...PLUNGE, groups: [...PLUNGE.groups, { id: "frame", parent: "root" }] };
+    const bodies: CollisionBody[] = [
+      ...PLUNGE_BODIES,
+      { id: "far_post", group: "frame", positions: boxPositions(10), translate: [500, 500, 0] },
+    ];
+    const model = buildCollisionModel(machine, bodies);
+    expect(model.pairs).toHaveLength(3);
+    const r = sweepCollisions(model, track([[0, 0, 0], [0, 0, -40]]), WCS0, { margin: 2 });
+    expect(r.pairCount).toBe(3);
+    expect(r.pairsPrescreened).toBe(2);
+    expect(r.hits.map(h => `${h.a}/${h.b}`)).toEqual(["spindle/vise"]);
+  });
+
+  // The adversarial lever machine: pillar at radius 100 swinging 180°, a post
+  // on its circle at 90° — far at BOTH track vertices, met only mid-arc.
+  // The rotary range bound (the chord over the whole arc) keeps the pair;
+  // the sweep then finds the clash exactly as before.
+  const ROTARY: CollisionMachine = {
+    groups: [
+      { id: "platter", parent: "root" },
+      { id: "work", parent: "platter" },
+      { id: "frame", parent: "root" },
+    ],
+    kinematics: [{ group: "platter", joint: 0, type: "rotate", direction: "z", sign: 1 }],
+    workGroup: "work",
+    toolGroup: "frame",
+    unitScale: 1,
+    axes: ["C"],
+  };
+  const pillarAnd = (post: number[]): CollisionBody[] => [
+    { id: "pillar", group: "platter", positions: boxPositions(2), translate: [100, 0, 0] },
+    { id: "post", group: "frame", positions: boxPositions(2), translate: post },
+  ];
+  const arc = track([[0, 0, 0], [0, 0, 0]], [[0, 0, 0], [0, 0, 180]], [3, 4]);
+
+  it("keeps a pair that only meets mid-arc of a rotary sweep (both endpoints far)", () => {
+    const r = sweepCollisions(buildCollisionModel(ROTARY, pillarAnd([0, 100, 0])), arc, WCS0, { margin: 1 });
+    expect(r.pairsPrescreened).toBe(0);
+    expect(r.hits).toHaveLength(1);
+    expect(r.hits[0]!.cum).toBeGreaterThan(85);
+    expect(r.hits[0]!.cum).toBeLessThan(91);
+  });
+
+  it("drops a rotary pair whose whole arc stays clear", () => {
+    // The post sits 300 out; the pillar's chord bound over 180° is its full
+    // orbit diameter (2ρ = 200) — still 100 short of the post, minus box radii.
+    const r = sweepCollisions(buildCollisionModel(ROTARY, pillarAnd([0, 300, 0])), arc, WCS0, { margin: 1 });
+    expect(r.pairsPrescreened).toBe(1);
+    expect(r.hits).toHaveLength(0);
+    expect(r.staticContacts).toHaveLength(0);
+  });
+
+  it("a pair reached only at one end of a linear range is kept", () => {
+    // The vise rides the X table; a frame post 60 mm out in X is reached only
+    // at the last vertex — the translation range must count in full.
+    const machine = { ...PLUNGE, groups: [...PLUNGE.groups, { id: "frame", parent: "root" }] };
+    const bodies: CollisionBody[] = [
+      ...PLUNGE_BODIES,
+      { id: "post", group: "frame", positions: boxPositions(10), translate: [60, 0, 0] },
+    ];
+    const r = sweepCollisions(buildCollisionModel(machine, bodies),
+      track([[0, 0, 0], [30, 0, 0], [60, 0, 0]]), WCS0, { margin: 2 });
+    expect(r.hits.map(h => `${h.a}/${h.b}`)).toContain("vise/post");
+    // vise/post kept (the X range reaches the post at its far end); the
+    // spindle never descends in this track, so BOTH its pairs are dropped.
+    expect(r.pairsPrescreened).toBe(2);
+    expect(r.pairCount).toBe(3);
+  });
+});
+
+describe("component boxes + query lower bound (2026-09-13)", () => {
+  it("componentBoxes: one AABB per connected component, whole-mesh box past the cap", () => {
+    const a = boxPositions(2);                       // centred at the origin
+    const b = new Float32Array(boxPositions(2));
+    for (let i = 0; i < b.length; i += 3) b[i] = b[i]! + 100;   // a second, disjoint box at x=100
+    const two = new Float32Array([...a, ...b]);
+    const boxes = componentBoxes(two);
+    expect(boxes.length).toBe(12);
+    const sorted = [boxes.subarray(0, 6), boxes.subarray(6, 12)].sort((u, v) => u[0]! - v[0]!);
+    expect([...sorted[0]!]).toEqual([-1, -1, -1, 1, 1, 1]);
+    expect([...sorted[1]!]).toEqual([99, -1, -1, 101, 1, 1]);
+    // A soup of unshared triangles (each translated apart) collapses to one box.
+    const soup = new Float32Array(9 * 300);
+    for (let t = 0; t < 300; t++) { soup.set([t * 10, 0, 0, t * 10 + 1, 0, 0, t * 10, 1, 0], t * 9); }
+    expect(componentBoxes(soup).length).toBe(6);
+  });
+
+  it("a rotated body's box bound never hides a real contact (corner-transformed AABB contains it)", () => {
+    // A box rotated 45° about Z presents a CORNER to the vise; the table
+    // carries the vise toward it, from 5 mm clear (also clear at the rest
+    // pose — so no static exclusion) to 1.5 mm. Its axis-aligned bounds in
+    // the vise's frame contain the rotated box, so the bound never exceeds
+    // the true distance — the exact query runs and the contact is found.
+    // The same body unrotated, ending 3.5 mm away, must stay clear.
+    const machine = { ...PLUNGE, groups: [...PLUNGE.groups, { id: "frame", parent: "root" }] };
+    const near = (rot: number[] | undefined, dx: number): CollisionBody[] => [
+      ...PLUNGE_BODIES,
+      { id: "post", group: "frame", positions: boxPositions(10), translate: [dx, 0, 0], rotate: rot },
+    ];
+    // vise half-size 5 → its +x face at x=5+X. Rotated post: the corner
+    // reaches 5·√2 ≈ 7.07 toward −x from its centre.
+    const hit = sweepCollisions(buildCollisionModel(machine, near([0, 0, Math.PI / 4], 5 + 7.07 + 5)),
+      track([[0, 0, 0], [3.5, 0, 0]]), WCS0, { margin: 2 });
+    expect(hit.hits.map(h => `${h.a}/${h.b}`)).toContain("vise/post");
+    expect(hit.staticContacts).toHaveLength(0);
+    const clear = sweepCollisions(buildCollisionModel(machine, near(undefined, 5 + 5 + 5)),
+      track([[0, 0, 0], [1.5, 0, 0]]), WCS0, { margin: 2 });
+    expect(clear.hits.filter(h => h.b === "post" || h.a === "post")).toHaveLength(0);
+  });
+
+  it("query order does not change the answer: swapping the bodies' declaration order gives the same hits", () => {
+    const fwd = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const rev = buildCollisionModel(PLUNGE, [...PLUNGE_BODIES].reverse());
+    const t = track([[0, 0, 0], [0, 0, -40]]);
+    const a = sweepCollisions(fwd, t, WCS0, { margin: 2 }), b = sweepCollisions(rev, t, WCS0, { margin: 2 });
+    expect(a.hits.map(h => [h.line, h.cum.toFixed(3), h.dist.toFixed(6)])).toEqual(b.hits.map(h => [h.line, h.cum.toFixed(3), h.dist.toFixed(6)]));
+  });
+});
+
+describe("clearance across a break (R-03, implementation review 2026-09-15)", () => {
+  // The review's fixture: a tool on an X-driven head and a fixed vise, with
+  // an UNKNOWN-START gap in the middle of the approach. `brk` carries both a
+  // stationary relabel and an unknown start (scrubTrack ORs `ustart` in), and
+  // the gap segment is zero-width — so clearance measured before it used to
+  // survive it and the sweep strode past real contact after it.
+  const M: CollisionMachine = {
+    groups: [{ id: "table", parent: "root" }, { id: "part", parent: "table" }, { id: "head", parent: "root" }],
+    kinematics: [{ group: "head", joint: 0, type: "translate", direction: "x", sign: 1 }],
+    workGroup: "part", toolGroup: "head", unitScale: 1, axes: ["X", "Y", "Z"],
+  };
+  const makeModel = (extra: CollisionBody[] = []) => buildCollisionModel(M, [
+    { id: "vise", group: "table", positions: boxPositions(2), translate: [0, 0, 1] },
+    { id: "tool", group: "head", positions: toolCylinderPositions(2, 2), tool: true },
+    ...extra,
+  ]);
+  const xs = (points: number[], brk?: number[]): ScrubTrack => {
+    const base = track(points.map(x => [x, 0, 0]), undefined, undefined, points.map(() => 1));
+    return brk ? { ...base, brk: new Uint8Array(brk) } : base;
+  };
+  const pairsOf = (r: CollisionResult) =>
+    [...new Set(r.hits.map(h => [h.a, h.b].sort().join("|")))].sort();
+
+  it("does not carry clearance across an unknown-start gap", () => {
+    // Exactly the review's probe, through the REAL stream merger: the
+    // unknown-start flag becomes brk on the way to the worker.
+    const points = [20, 19, 5, 0];
+    const merged = buildScrubTrack({ pos: new Float32Array() }, {
+      pos: new Float32Array(points.flatMap(x => [x, 0, 0])),
+      abc: new Float32Array(points.length * 3),
+      lines: new Uint32Array(points.map((_, i) => i + 1)),
+      seq: new Uint32Array(points.map((_, i) => i + 1)),
+      ustart: new Uint8Array([0, 0, 1, 0]),
+    })!;
+    expect([...merged.brk!]).toEqual([0, 0, 1, 0]);
+    const combined = sweepCollisions(makeModel(), merged, WCS0, { margin: 0.1 });
+    // The known motion after the gap, swept on its own, is the ground truth.
+    const suffix = sweepCollisions(makeModel(), xs([5, 0]), WCS0, { margin: 0.1 });
+    expect(suffix.hits.length).toBe(1);
+    expect(combined.hits.length).toBe(suffix.hits.length);
+    expect(pairsOf(combined)).toEqual(pairsOf(suffix));
+  });
+
+  it("finds a same-tool re-entry after a gap", () => {
+    // In contact, out of contact, unknown gap, back into contact: the second
+    // approach is its own onset and must be reported.
+    const tr = xs([0, 10, 9, 0], [0, 0, 1, 0]);
+    const r = sweepCollisions(makeModel(), tr, WCS0, { margin: 0.1 });
+    const onsets = r.hits.filter(h => h.continuation === undefined);
+    expect(onsets.length).toBeGreaterThanOrEqual(1);
+    // The approach AFTER the gap (the last segment, line 4) is found.
+    expect(r.hits.some(h => h.line === 4)).toBe(true);
+  });
+
+  it("invalidates non-tool pairs too", () => {
+    // A shroud on the head (z 8..10) and a wide post on the table (z 5..11,
+    // half-width 3) touch at |X| <= 4, well clear of the tool (z 0..2),
+    // which reaches the vise only at |X| <= 2 — so this suffix exercises the
+    // NON-tool pair alone. The old invalidation covered tool
+    // pairs only; after unknown motion the whole machine may have moved.
+    const extra: CollisionBody[] = [
+      { id: "shroud", group: "head", positions: boxPositions(2), translate: [0, 0, 9] },
+      { id: "post", group: "table", positions: boxPositions(6), translate: [0, 0, 8] },
+    ];
+    const combined = sweepCollisions(makeModel(extra), xs([20, 19, 5, 3], [0, 0, 1, 0]), WCS0, { margin: 0.1 });
+    const suffix = sweepCollisions(makeModel(extra), xs([5, 3]), WCS0, { margin: 0.1 });
+    expect(pairsOf(suffix)).toEqual(["post|shroud"]);
+    expect(pairsOf(combined)).toEqual(pairsOf(suffix));
+  });
+
+  it("reports the same findings with and without a relabel break", () => {
+    // A relabel is a stationary re-expression: invalidating there is
+    // conservative (one extra query), never a change of findings.
+    const withBrk = sweepCollisions(makeModel(), xs([20, 10, 10, 0], [0, 0, 1, 0]), WCS0, { margin: 0.1 });
+    const without = sweepCollisions(makeModel(), xs([20, 10, 10, 0]), WCS0, { margin: 0.1 });
+    expect(pairsOf(withBrk)).toEqual(pairsOf(without));
+    expect(withBrk.hits.length).toBe(without.hits.length);
+  });
+});
+
+describe("tool geometry lifetime (TWP-06/07, review 2026-09-14)", () => {
+  // The review probes' fixture: a tool on an X-driven head approaches a
+  // fixed vise (cube 2 at z 0..2) from X 20 to X 5; the tool cylinder
+  // (tip at the head origin, +Z) is swapped per segment. Ø20 touches the
+  // vise at X ≈ 11; Ø2 never reaches it (X 5 > 2).
+  const M: CollisionMachine = {
+    groups: [{ id: "table", parent: "root" }, { id: "part", parent: "table" }, { id: "head", parent: "root" }],
+    kinematics: [{ group: "head", joint: 0, type: "translate", direction: "x", sign: 1 }],
+    workGroup: "part", toolGroup: "head", unitScale: 1, axes: ["X", "Y", "Z"],
+  };
+  const makeModel = () => buildCollisionModel(M, [
+    { id: "vise", group: "table", positions: boxPositions(2), translate: [0, 0, 1] },
+    { id: "tool", group: "head", positions: toolCylinderPositions(2, 2), tool: true },
+  ]);
+  const approach = (n: number): ScrubTrack & { tlo: Uint32Array } => {
+    const pts = Array.from({ length: n }, (_, i) => [20 - 15 * i / (n - 1), 0, 0]);
+    const t = track(pts, undefined, undefined, pts.map(() => 1));
+    return { ...t, tlo: new Uint32Array(n) };
+  };
+  type TloEvents = NonNullable<CollisionOptions["tloEvents"]>;
+  const DIMS = { 1: { diam: 20, len: 2 }, 2: { diam: 2, len: 2 } };
+  const EVENTS: TloEvents = [{ seq: 0, xyz: [0, 0, 0], tool: 2 }, { seq: 1, xyz: [0, 0, 0], tool: 1 }];
+  const opts = (extra: Partial<CollisionOptions> = {}): CollisionOptions =>
+    ({ margin: 0.1, tloEvents: EVENTS, toolDims: DIMS, liveTool: 2, ...extra });
+  const finish = (it: ReturnType<typeof sweepCollisionsIter>): CollisionResult => {
+    let r = it.next(); while (!r.done) r = it.next(); return r.value;
+  };
+  const onsets = (r: CollisionResult) => r.hits.filter(h => h.continuation === undefined).length;
+  const contactLines = (r: CollisionResult) => [...new Set(r.hits.map(h => h.line))].sort((a, b) => a - b);
+  // A clock that always says "yieldMs elapsed": checkpoints at every
+  // segment and every SAMPLES_PER_CLOCK samples.
+  const eagerClock = () => { let t = 0; return () => (t += 1000); };
+
+  it("a small→large tool change mid-approach finds the later contact (TWP-06)", () => {
+    const t = approach(40); t.tlo.fill(1, 5);          // Ø20 from vertex 5 on
+    const changed = sweepCollisions(makeModel(), t, WCS0, opts());
+    const large = approach(40); large.tlo.fill(1);     // Ø20 throughout
+    const expected = sweepCollisions(makeModel(), large, WCS0, opts());
+    expect(onsets(expected)).toBe(1);
+    expect(onsets(changed)).toBe(1);
+    expect(contactLines(changed)).toEqual(contactLines(expected));
+    expect(changed.hits[0]!.b).toBe("vise");
+  });
+
+  it("a tool-offset change mid-approach invalidates the carried clearance, both directions (TWP-06)", () => {
+    // TLO 50 lifts the Ø20 body 50 below the vise: a clearance of ~48
+    // carried past the G43 change hid the contact after the offset went
+    // back to 0 (and the reverse: a contact found under TLO 0 must END at
+    // a change to 50, never be carried).
+    const ev: TloEvents = [{ seq: 0, xyz: [0, 0, 50], tool: 1 }, { seq: 1, xyz: [0, 0, 0], tool: 1 }];
+    const t = approach(40); t.tlo.fill(1, 5);          // TLO 50 → 0 at vertex 5
+    const r = sweepCollisions(makeModel(), t, WCS0, opts({ tloEvents: ev }));
+    expect(onsets(r)).toBe(1);
+    const back = approach(40); back.tlo.fill(0, 30);   // TLO 0 → 50 at vertex 30 (in contact by then)
+    back.tlo.fill(1, 0, 30);
+    const r2 = sweepCollisions(makeModel(), back, WCS0, opts({ tloEvents: ev }));
+    expect(onsets(r2)).toBe(1);
+    expect(Math.max(...contactLines(r2))).toBeLessThanOrEqual(31);   // contact ends at the lift
+    // No change at all: no contact under TLO 50.
+    const lifted = approach(40);
+    expect(sweepCollisions(makeModel(), lifted, WCS0, opts({ tloEvents: ev })).hits).toEqual([]);
+  });
+
+  it("interleaving a side run at the initial checkpoint leaves the main run's findings unchanged (TWP-07)", () => {
+    const large = approach(2); large.tlo.fill(1);
+    const standalone = sweepCollisions(makeModel(), large, WCS0, opts());
+    const shared = makeModel();
+    const main = sweepCollisionsIter(shared, large, WCS0, opts());
+    main.next();                                        // parked at the initial yield, Ø20 installed
+    const side = sweepCollisionsIter(shared, approach(2), WCS0, opts());   // Ø2 (live tool)
+    side.next();                                        // its baseline re-installed Ø2 on the shared body
+    const mixed = finish(main);
+    finish(side);
+    expect(mixed.hits.length).toBe(standalone.hits.length);
+    expect(mixed.hits.length).toBe(1);
+  });
+
+  it("interleaving a side run at ANY checkpoint of the main run leaves its findings unchanged (TWP-07)", () => {
+    const large = approach(40); large.tlo.fill(1);
+    const standalone = sweepCollisions(makeModel(), large, WCS0, opts());
+    let total = 0;
+    { const it = sweepCollisionsIter(makeModel(), large, WCS0, opts({ yieldMs: 0, clock: eagerClock() }));
+      let r = it.next(); while (!r.done) { total++; r = it.next(); } }
+    expect(total).toBeGreaterThan(3);                   // segment + in-segment checkpoints exist
+    for (let k = 1; k <= total; k++) {
+      const shared = makeModel();
+      const main = sweepCollisionsIter(shared, large, WCS0, opts({ yieldMs: 0, clock: eagerClock() }));
+      for (let i = 0; i < k; i++) main.next();
+      finish(sweepCollisionsIter(shared, approach(2), WCS0, opts()));   // poses + re-tools the shared model
+      const m = finish(main);
+      expect(contactLines(m), `interleaved at checkpoint ${k}`).toEqual(contactLines(standalone));
+    }
+  });
+
+  it("after interleaved runs the model wears its base tool and a fallback sweep matches a fresh model (TWP-07)", () => {
+    const shared = makeModel();
+    const original = shared.bodies[shared.toolBodyIdx]!.geom;
+    expect(shared.baseTool!.geom).toBe(original);
+    const large = approach(2); large.tlo.fill(1);
+    const main = sweepCollisionsIter(shared, large, WCS0, opts()); main.next();
+    const side = sweepCollisionsIter(shared, approach(2), WCS0, opts()); side.next();
+    finish(main); finish(side);
+    expect(shared.bodies[shared.toolBodyIdx]!.geom).toBe(original);
+    // The response's counterexample: a subsequent sweep with the fallback
+    // (base) tool and no events must agree with a fresh model — 0 hits.
+    const fallback = sweepCollisions(shared, approach(2), WCS0, { margin: 0.1 }).hits.length;
+    expect(fallback).toBe(sweepCollisions(makeModel(), approach(2), WCS0, { margin: 0.1 }).hits.length);
+    expect(fallback).toBe(0);
+  });
+
+  it("restoreBaseTool puts the base cylinder back on a model a dropped run left mid-sweep (TWP-07)", () => {
+    const shared = makeModel();
+    const original = shared.bodies[shared.toolBodyIdx]!.geom;
+    const large = approach(40); large.tlo.fill(1);
+    const it = sweepCollisionsIter(shared, large, WCS0, opts({ yieldMs: 0, clock: eagerClock() }));
+    it.next(); it.next(); it.next();                    // parked mid-sweep wearing Ø20
+    expect(shared.bodies[shared.toolBodyIdx]!.geom).not.toBe(original);
+    expect(restoreBaseTool(shared)).toBe(true);
+    expect(shared.bodies[shared.toolBodyIdx]!.geom).toBe(original);
+    expect(restoreBaseTool(shared)).toBe(false);        // idempotent
+    // A run that completes restores it by itself.
+    finish(sweepCollisionsIter(shared, large, WCS0, opts()));
+    expect(shared.bodies[shared.toolBodyIdx]!.geom).toBe(original);
+  });
+
+  it("agrees with a reference sweep that starts fresh at every tool/TLO boundary (TWP-06)", () => {
+    // 30 points X 20 → 5: the tool alternates Ø2/Ø20 every 5 vertices and
+    // the tool offset toggles 0/30 every 7 — boundaries of both kinds, some
+    // inside the contact zone (X ≤ 11).
+    const n = 30;
+    const t = approach(n);
+    const events: TloEvents = [];
+    const idxOf = new Map<string, number>();
+    for (let i = 0; i < n; i++) {
+      const tool = Math.floor(i / 5) % 2 ? 1 : 2;
+      const z = Math.floor(i / 7) % 2 ? 30 : 0;
+      const key = `${tool}/${z}`;
+      if (!idxOf.has(key)) { idxOf.set(key, events.length); events.push({ seq: events.length, xyz: [0, 0, z], tool }); }
+      t.tlo[i] = idxOf.get(key)!;
+    }
+    const full = sweepCollisions(makeModel(), t, WCS0, opts({ tloEvents: events }));
+    const ref = new Set<string>();
+    for (let i = 1; i < n; i++) {
+      // Every segment alone, under its own tool/TLO: no certificate can
+      // carry across a boundary here by construction.
+      const seg = track([[t.pos[3 * (i - 1)]!, 0, 0], [t.pos[3 * i]!, 0, 0]], undefined, [i, i + 1], [1, 1]);
+      seg.tlo = new Uint32Array([t.tlo[i]!, t.tlo[i]!]);
+      for (const h of sweepCollisions(makeModel(), seg, WCS0, opts({ tloEvents: events })).hits) {
+        ref.add(`${i + 1}/${h.a}/${h.b}`);
+      }
+    }
+    expect(ref.size).toBeGreaterThan(0);
+    const got = new Set(full.hits.map(h => `${h.line}/${h.a}/${h.b}`));
+    expect([...got].sort()).toEqual([...ref].sort());
+  });
+});
+
+describe("initialization checkpoints (TWP-11, review 2026-09-14)", () => {
+  // 20 k points along X, far from any contact: the prescreen's joint-range
+  // scan is the dominant pre-sweep cost and must yield on the way.
+  const big = (n: number) => track(Array.from({ length: n }, (_, i) => [i * 0.01, 0, 0]));
+  const TOOLED: CollisionBody[] = [
+    { id: "vise", group: "table", positions: boxPositions(10) },
+    { id: "tool", group: "head", positions: toolCylinderPositions(6, 20), tool: true },
+  ];
+
+  it("yields checkpoints during the prescreen, before the baseline, on a large track", () => {
+    const it = sweepCollisionsIter(buildCollisionModel(PLUNGE, PLUNGE_BODIES), big(20000), WCS0, { margin: 2 });
+    let zeros = 0;
+    let r = it.next();
+    while (!r.done && r.value === 0) { zeros++; r = it.next(); }
+    // 4 in the joint-range scan (every 4096 of 20 k) + the pre-segment one.
+    expect(zeros).toBeGreaterThanOrEqual(5);
+    while (!r.done) r = it.next();
+    expect(r.value.hits).toEqual([]);
+    expect(r.value.truncated).toBeNull();
+  });
+
+  // R-04 (implementation review 2026-09-15): the per-vertex passes that run
+  // BEFORE the prescreen — the distance parameterization and the kins-model
+  // selection — used to finish first, so on a million-point TWP track the
+  // first checkpoint was ~400 ms away. A TWP track (mode 2 + frames) is the
+  // case that matters: its model selection is the expensive one.
+  const twpTrack = (n: number, frames: number): ScrubTrack => {
+    const base = track(Array.from({ length: n }, (_, i) => [i * 0.01, 0, 0]));
+    const frame = new Uint32Array(n);
+    for (let i = 0; i < n; i++) frame[i] = Math.floor(i / Math.ceil(n / frames));
+    return { ...base, mode: new Uint8Array(n).fill(2), frame,
+             frames: Array.from({ length: frames }, (_, k) => [k, k, k] as [number, number, number]) };
+  };
+  const TRSRN: CollisionMachine = { ...PLUNGE, axes: ["X", "Y", "Z", "A", "B", "C"],
+    kins: { type: "xyzacb-trsrn", identityFirst: false,
+            trsrn: { yPivot: 50, zPivot: 120, xOffset: 0, yOffset: 0,
+                     yRotAxis: -1000, zRotAxis: -2000, nutAngle: 55 } } };
+
+  it("checkpoints the per-vertex passes that run before the prescreen", () => {
+    // Counting reads of the TWP frame table shows how much work the sweep
+    // does before its FIRST checkpoint: per-vertex model selection reads it
+    // once per vertex, so a first checkpoint that lands after that pass has
+    // already read all 200 k. The fix yields long before, and resolves a
+    // model per (type, frame, TLO) context rather than per vertex.
+    const n = 200_000;
+    const tr = twpTrack(n, 4);
+    let frameReads = 0;
+    tr.frames = new Proxy(tr.frames!, {
+      get(target, prop, recv) {
+        if (typeof prop === "string" && /^\d+$/.test(prop)) frameReads++;
+        return Reflect.get(target, prop, recv);
+      },
+    });
+    const it = sweepCollisionsIter(buildCollisionModel(TRSRN, PLUNGE_BODIES), tr, WCS0, { margin: 2 });
+    const first = it.next();
+    expect(first.done).toBe(false);
+    expect(first.value).toBe(0);
+    expect(frameReads).toBeLessThan(n / 10);
+    // And the whole initialization keeps yielding on the way to the sweep.
+    let zeros = 1, r = it.next();
+    while (!r.done && r.value === 0) { zeros++; r = it.next(); }
+    expect(zeros).toBeGreaterThanOrEqual(8);
+    // Model selection never re-resolved a context it had already built.
+    expect(frameReads).toBeLessThanOrEqual(64);
+  });
+
+  it("an abort during the per-vertex passes returns the stopped result", () => {
+    const m = buildCollisionModel(TRSRN, TOOLED);
+    const it = sweepCollisionsIter(m, twpTrack(200_000, 4), WCS0, { margin: 2 });
+    expect(it.next().value).toBe(0);
+    const r = it.next(true);
+    expect(r.done).toBe(true);
+    const res = r.value as CollisionResult;
+    expect(res.samples).toBe(0);
+    expect(res.hits).toEqual([]);
+    expect(res.truncated).toEqual({ covered: 0, reason: "stopped" });
+    expect(m.bodies[m.toolBodyIdx]!.geom).toBe(m.baseTool!.geom);
+  });
+
+  it("resolves one kins model per (type, frame, tool-offset) context", () => {
+    // Same findings as a sweep that re-resolved per vertex — the caching is
+    // an identity of contexts, not an approximation. A TWP track whose
+    // frames alternate between two values must still see both models.
+    const n = 4000;
+    const base = track(Array.from({ length: n }, (_, i) => [i * 0.01, 0, 0]));
+    const frame = new Uint32Array(n);
+    for (let i = 0; i < n; i++) frame[i] = i % 2;          // alternating, worst case
+    const alt: ScrubTrack = { ...base, mode: new Uint8Array(n).fill(2), frame,
+      frames: [[0, 0, 0], [0, 30, 0]] as [number, number, number][] };
+    const runs: ScrubTrack = { ...alt, frame: Uint32Array.from({ length: n }, (_, i) => (i < n / 2 ? 0 : 1)) };
+    const a = sweepCollisions(buildCollisionModel(TRSRN, PLUNGE_BODIES), alt, WCS0, { margin: 2 });
+    const b = sweepCollisions(buildCollisionModel(TRSRN, PLUNGE_BODIES), runs, WCS0, { margin: 2 });
+    // Both complete and stay certified: the second frame's model was really
+    // built, not carried over from the first.
+    expect(a.uncertified).toBeNull();
+    expect(b.uncertified).toBeNull();
+    expect(a.samples).toBeGreaterThan(0);
+    expect(b.samples).toBeGreaterThan(0);
+  });
+
+  it("an abort during the prescreen ends with an empty stopped result and the base tool installed", () => {
+    const m = buildCollisionModel(PLUNGE, TOOLED);
+    const it = sweepCollisionsIter(m, big(20000), WCS0, { margin: 2 });
+    const first = it.next();
+    expect(first.done).toBe(false);
+    expect(first.value).toBe(0);
+    const r = it.next(true);
+    expect(r.done).toBe(true);
+    const res = r.value as CollisionResult;
+    expect(res.samples).toBe(0);
+    expect(res.hits).toEqual([]);
+    expect(res.truncated).toEqual({ covered: 0, reason: "stopped" });
+    expect(m.bodies[m.toolBodyIdx]!.geom).toBe(m.baseTool!.geom);
+    // Through the worker's driver: a cancel lands at the first checkpoint.
+    const slice = runSweepSlice(sweepCollisionsIter(m, big(20000), WCS0, { margin: 2 }), 10_000, () => true);
+    expect(slice.done).toBe(true);
+    expect(slice.cancelled).toBe(true);
+    expect(slice.checkpoints).toBeLessThanOrEqual(2);
+  });
+});
+

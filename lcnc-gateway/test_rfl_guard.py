@@ -1,7 +1,8 @@
 """RFL × M600 guard (run-from-line toolchange): the background sequence must
 measure via MDI first, verify tool + applied offset + error-free window before
 arming the one-shot #3116 flag, refuse to start on any failure, never leave a
-stale flag behind, and verify the safe-Z move actually reached machine zero."""
+stale flag behind, and verify the safe-Z step leaves Z at or above machine
+zero — never lowering it (a retract never lowers Z, 2026-09-04)."""
 import asyncio
 import os
 import sys
@@ -148,14 +149,35 @@ class TestRflSequence(_SeqHarness):
         await gateway._rfl_sequence(120, pre_tool=0, safe_z=True,
                                     spindle_dir=None, spindle_speed=0)
         self.assertEqual(self.mdi_calls, ["G53 G0 Z0"])
-        self.assertEqual(self.auto_run_calls, [])    # refused: not at safe height
+        self.assertEqual(self.auto_run_calls, [])    # refused: still below safe height
         self.assertEqual(gateway._rfl_status["phase"], "safe_z_failed")
 
-    async def test_safe_z_ok_starts_program(self):
-        gateway.STAT.position = (0.0, 0.0, 0.0)
+    async def test_safe_z_reached_from_below_starts(self):
+        gateway.STAT.position = (0.0, 0.0, -42.0)
+        # poll 1 (decide) leaves Z at -42 → the retract is sent; poll 2 (verify)
+        # sees the move landed at machine zero.
+        gateway.STAT._script = [{}, {"position": (0.0, 0.0, 0.0)}]
         await gateway._rfl_sequence(7, pre_tool=0, safe_z=True,
                                     spindle_dir=None, spindle_speed=0)
         self.assertEqual(self.mdi_calls, ["G53 G0 Z0"])
+        self.assertEqual(len(self.auto_run_calls), 1)
+        self.assertEqual(gateway._rfl_status["phase"], "running")
+
+    async def test_safe_z_at_zero_skips_mdi_and_starts(self):
+        gateway.STAT.position = (0.0, 0.0, 0.0)
+        await gateway._rfl_sequence(7, pre_tool=0, safe_z=True,
+                                    spindle_dir=None, spindle_speed=0)
+        self.assertEqual(self.mdi_calls, [])          # already at safe height
+        self.assertEqual(len(self.auto_run_calls), 1)
+        self.assertEqual(gateway._rfl_status["phase"], "running")
+
+    async def test_safe_z_above_zero_skips_mdi(self):
+        # A config whose Z window extends above machine zero: "retract" must
+        # never LOWER Z to reach Z0.
+        gateway.STAT.position = (0.0, 0.0, 50.0)
+        await gateway._rfl_sequence(7, pre_tool=0, safe_z=True,
+                                    spindle_dir=None, spindle_speed=0)
+        self.assertEqual(self.mdi_calls, [])
         self.assertEqual(len(self.auto_run_calls), 1)
         self.assertEqual(gateway._rfl_status["phase"], "running")
 
@@ -229,7 +251,8 @@ class TestRflEntry(unittest.TestCase):
 
 class TestRflSequenceEntry(_SeqHarness):
     async def test_entry_positions_then_runs(self):
-        gateway.STAT.position = (12.5, -3.0, 0.0)
+        gateway.STAT.position = (12.5, -3.0, -100.0)   # below safe height → retract sent
+        gateway.STAT._script = [{}, {"position": (12.5, -3.0, 0.0)}]
         gateway.STAT.g5x_offset = (0.0,) * 9
         gateway.STAT.g92_offset = (0.0,) * 9
         await gateway._rfl_sequence(50, pre_tool=0, safe_z=True,

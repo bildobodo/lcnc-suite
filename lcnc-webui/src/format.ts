@@ -55,6 +55,14 @@ export function fmtElapsed(s: number): string {
   return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
 }
 
+/** Progress readout for a timed job: elapsed of the expected duration
+ *  ("00:03 of ~00:12"), elapsed alone when nothing was expected. One
+ *  wording for the status banner, the viewer HUD and their tooltips. */
+export function fmtProgressTimes(elapsedMs: number, expectedMs: number | null | undefined): string {
+  const el = fmtElapsed(Math.max(0, Math.floor(elapsedMs / 1000)));
+  return expectedMs ? `${el} of ~${fmtElapsed(Math.max(1, Math.round(expectedMs / 1000)))}` : `${el} elapsed`;
+}
+
 /** Duration — human-readable abbreviated (5s, 3m 12s, 2h 15m) */
 export function fmtDuration(secs: number): string {
   if (secs < 60) return `${Math.round(secs)}s`;

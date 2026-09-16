@@ -1,0 +1,49 @@
+; lcnc-suite abort handler for the TWP config.
+;
+; The suite's normal on_abort (subroutines/probe_basic/on_abort.ngc) does the
+; safety tidy-up, and upstream's on_abort_no_twp_reset.ngc carries a
+; workaround this machine cannot do without. Pointing ON_ABORT_COMMAND at
+; either one alone loses the other half, so this does both.
+;
+; THE WORKAROUND (upstream, LinuxCNC issues #2745 / #2908): after some aborts
+; stat.gcodes and parameter[5250] fall out of sync, so the interpreter's idea
+; of the active work system stops matching the machine's. On a TWP config that
+; is not cosmetic — G53.x puts the plane origin in G59..G59.3 and then
+; switches to it, so a desynced index makes the next G53.x unable to find its
+; plane. The symptom is "no TWP defined" with the machine left in limbo,
+; cleared only by reloading the program. Cycling through at least three
+; indexes and restoring the stored one resynchronises them.
+;
+; NOTE: remapped codes cannot run here — only plain and custom M-codes.
+; This deliberately does NOT reset the TWP state (upstream's default): an
+; operator who aborts mid-job usually wants the plane still defined. Use
+; on_abort_with_twp_reset.ngc instead to clear it.
+
+o<on_abort_twp> sub
+
+(WEBUI_SUB=on_abort_twp) ;lcnc-suite: preview sub-span marker, silent in task
+
+; --- suite safety tidy-up (from probe_basic on_abort) ---
+M5   (Spindle Stop)
+M9   (Coolant Off)
+M50 P1
+G90  (Absolute Positioning)
+G40  (Cancel Cutter Radius Compensation)
+
+; --- WCS-index resync (from upstream on_abort_no_twp_reset) ---
+; store the current offset index
+#1 = #5220
+; we must switch through at least 3 indexes
+G59.3
+G59.2
+G59.1
+; restore the index from above
+o101 if [#1 GT 6]
+ G[59+[#1-6]/10]
+o101 else
+ G[53+#1]
+o101 endif
+
+(WEBUI_SUB_END) ;lcnc-suite: preview sub-span marker
+o<on_abort_twp> endsub
+M2

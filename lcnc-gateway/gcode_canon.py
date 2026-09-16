@@ -82,6 +82,13 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         # kins markers: an event at seq N governs segments with seq > N.
         self.wcs_events = []
         self._last_wcs_basis = None
+        # The basis can only change through the three canon setters below
+        # (the interpreter never writes the offset attributes directly —
+        # rs274.interpret.Translated owns them and only its setters assign).
+        # They raise this flag; _next_seq re-snapshots ONLY when it is set.
+        # Before: a 19-getattr snapshot + two 9-tuple compares on EVERY
+        # segment — 60 % of the canon's share of a 1.18 M-line parse.
+        self._wcs_dirty = True
         # Subroutine span markers `(WEBUI_SUB=name [CALLER=tok])` /
         # `(WEBUI_SUB_END)` from our shipped subs and the TWP remap
         # wrappers (W2 P6): [(seq_at_marker, name | None, caller_token |
@@ -106,6 +113,23 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         # start==end tuple; the segment INTO it is unknown-path (client
         # brk semantics, `rapid_ustart` on the wire).
         self.unknown_start = []
+        # TLO / tool EVENTS (schema 8 — the sixth run-time state input):
+        # [(seq, xo, yo, zo, tool)] in execution order, CANON units, recorded
+        # at every G43/G43.1/G49 (tool_offset) and every executed M6
+        # (change_tool) on a PROGRAM line. Same seq convention as the other
+        # channels — a row at seq N governs segments with seq > N; two rows
+        # at one seq (`m6 t3 g43 h3`) resolve last-wins. Rows carry FULL
+        # state (a G43 row the current tool, an M6 row the current tlo).
+        # `tool` is -1 until the first executed M6 (= inherit the loaded
+        # tool). Segments BEFORE the first row run under the machine's LIVE
+        # modal G43 state, which no parse can know — the client resolves
+        # "no row yet" to the live applied offset; the parse's fresh
+        # interpreter starting at 0 is NOT what the machine runs with, so an
+        # initcode-driven tool_offset (lineno 0) must never become "the
+        # program asserted 0" (the ustart lineno rule). Absent = the program
+        # never changes tool or offset.
+        self.tlo_events = []
+        self.cur_tool = -1
         self.xo = self.yo = self.zo = 0.0
         self.ao = self.bo = self.co = 0.0
         self.uo = self.vo = self.wo = 0.0
@@ -115,6 +139,9 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
 
     # Axis-offset attribute suffixes, canonical order (rs274.interpret).
     _WCS_SUFFIXES = ("x", "y", "z", "a", "b", "c", "u", "v", "w")
+    # Class default so a canon built without __init__ (test harnesses) still
+    # snapshots on its first segment; __init__ sets it too.
+    _wcs_dirty = True
 
     def wcs_basis(self):
         """The WCS state right now: (g5x9, g929, rotation_xy).
@@ -186,6 +213,9 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         self.tool_change_events.append((self.lineno, idx))
         if idx > 0:
             self.tools_used.add(idx)
+        self.cur_tool = idx
+        if (self.lineno or 0) >= 1:
+            self.tlo_events.append((self.seq, self.xo, self.yo, self.zo, idx))
 
     def tool_offset(self, xo, yo, zo, ao, bo, co, uo, vo, wo):
         self.first_move = True
@@ -196,6 +226,10 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         self.xo, self.yo, self.zo = xo, yo, zo
         self.ao, self.bo, self.co = ao, bo, co
         self.uo, self.vo, self.wo = uo, vo, wo
+        # G49 when already zero IS recorded: the program asserting zero
+        # differs from "inherit live" (see tlo_events in __init__).
+        if (self.lineno or 0) >= 1:
+            self.tlo_events.append((self.seq, xo, yo, zo, self.cur_tool))
 
     # rotate_and_translate keeps straight moves in the same translated frame
     # gcode.arc_to_segments produces for arcs; WCS offsets subtract once at
@@ -213,12 +247,28 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
             self._last_motion_g5x = idx
             if idx is not None and idx not in self.wcs_used:
                 self.wcs_used.append(idx)
-        basis = self.wcs_basis()
-        if basis != self._last_wcs_basis:
-            self._last_wcs_basis = basis
-            self.wcs_events.append((self.seq, idx, basis))
+        if self._wcs_dirty:
+            self._wcs_dirty = False
+            basis = self.wcs_basis()
+            if basis != self._last_wcs_basis:
+                self._last_wcs_basis = basis
+                self.wcs_events.append((self.seq, idx, basis))
         self.seq += 1
         return self.seq
+
+    # WCS basis writers (rs274.interpret.Translated): the ONLY paths that
+    # change what wcs_basis() returns — flag, then let the parent assign.
+    def set_g5x_offset(self, *args, **kw):
+        self._wcs_dirty = True
+        return super().set_g5x_offset(*args, **kw)
+
+    def set_g92_offset(self, *args, **kw):
+        self._wcs_dirty = True
+        return super().set_g92_offset(*args, **kw)
+
+    def set_xy_rotation(self, *args, **kw):
+        self._wcs_dirty = True
+        return super().set_xy_rotation(*args, **kw)
 
     def straight_traverse(self, x, y, z, a, b, c, u, v, w):
         if self.suppress > 0: return

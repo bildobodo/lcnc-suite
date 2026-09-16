@@ -31,18 +31,32 @@
 // Noise control (baseline subtraction): mechanically-joined neighbors —
 // slides, bearings, trunnion mounts — sit inside the margin PERMANENTLY;
 // per-line reporting would flood every line of every program. Pairs already
-// within the margin at the program's FIRST pose are therefore reported once
-// as `staticContacts` and excluded from the per-line sweep. A program that
-// genuinely starts in a crashed pose still surfaces there — "in contact
-// from the start" is exactly what's true.
+// within the margin at the program's FIRST pose AND at the model's REST pose
+// (every joint at zero — the designed pose machineModel.test.ts requires to
+// be self-collision-free but for the designed joints) are therefore reported
+// once as `staticContacts` and excluded from the per-line sweep. A pair
+// clear at rest but touching at the first pose is a CRASH the program
+// starts in (operator-caught 2026-09-12: the entry rapid drove the portal
+// into the X slide and the base sweep filed the pair as "in contact from
+// the start (excluded)", never queried it again, and its tint and extent
+// stopped at the program's first line): seeded as an onset on the first
+// line, like the tool rule below, and checked throughout. NEVER the tool
+// (2026-09-12, operator decision): the tool is no one's mechanical
+// neighbour, so a tool pair in contact at the first pose is a contact ONSET
+// on the first line — the same cut-or-crash ambiguity the sweep reports
+// anywhere else — and the pair stays checked. Excluding it silenced a
+// program that starts on the platter ("clear" + a tooltip) AND every later
+// rapid through it: an excluded pair is never queried again.
 import * as THREE from "three";
 import { MeshBVH } from "three-mesh-bvh";
 import { normalizeKinematics, type KinRuntime } from "./kinematics";
-import { programToMachine, wcsTerms, type PartFrameWcs, type WcsTerms } from "./partFrame";
+import { liftToJoints, tipWcs, wcsTerms, type PartFrameWcs, type WcsTerms } from "./partFrame";
+import { tloForIndex, toolForIndex, type TloEvent } from "./tloEvents";
+import { EVENT_NONE } from "./eventIndex";
 import { kinsForSegment, makeKins, worldModeForSpec, type KinsModel, type KinsSpec } from "./kins";
 /** The subset of the scrub track the sweep consumes. The worker request
  *  ships a COPIED projection of the real ScrubTrack (typed arrays only —
- *  lineCum/lineSpan Maps and the time-axis fields never cross), so the
+ *  line index and the time-axis fields never cross), so the
  *  boundary type says exactly that instead of posing as the full track. */
 export interface CollisionTrack {
   pos: Float32Array;
@@ -54,8 +68,8 @@ export interface CollisionTrack {
   /** Per-segment RAW switchkins type (phase 2b, raw since phase 3) —
    *  absent = untracked. Mapped per family via kinsForSegment. */
   mode?: Uint8Array;
-  /** Per-segment governing TWP frame index into `frames` (0xff = none). */
-  frame?: Uint8Array;
+  /** Per-segment governing TWP frame index into `frames` (EVENT_NONE = none). */
+  frame?: Uint32Array;
   /** TWP frame triplets [preRot rad, primary deg, secondary deg]. */
   frames?: [number, number, number][];
   /** Kins-flip relabel flags: brk[i]=1 ⇒ segment i-1→i is a frame relabel
@@ -65,7 +79,11 @@ export interface CollisionTrack {
   /** Per-segment WCS epoch index (review P2) — selects the entry of
    *  CollisionOptions.epochTerms that converts this segment's program
    *  coords to machine coords. Absent = single-basis (live wcs terms). */
-  wcs?: Uint8Array;
+  wcs?: Uint32Array;
+  /** Per-segment TLO/tool event index (schema 8) into
+   *  CollisionOptions.tloEvents (TLO_NONE = live offset governs). The lift and
+   *  the tool body's tip shift both use that segment's offset. */
+  tlo?: Uint32Array;
 }
 
 export interface CollisionMachine {
@@ -95,6 +113,23 @@ export interface CollisionBody {
    *  programs cut stock sitting above the fixture, so tool contact with any
    *  machine body is a crash by definition. */
   stock?: boolean;
+  /** The TOOL body (the parametric cutter the worker attaches to the tool
+   *  group). Never baseline-excluded — see the header. */
+  tool?: boolean;
+}
+
+/** The mesh a machine.json part contributes to the sweep: its collision
+ *  PROXY (`collision`, a coarser superset — one box per component for
+ *  rails/blocks) when it declares one, else its display mesh. One rule for
+ *  the viewer's body builder and the model gates (2026-09-13). */
+export function partCollisionFile(p: { file: string; collision?: string | null }): string {
+  return p.collision || p.file;
+}
+
+/** `collide: false` parts are decorative — never collision bodies. A crash
+ *  into one is NOT reported; that is the model author's declaration. */
+export function partCollides(p: { collide?: boolean | null }): boolean {
+  return p.collide !== false;
 }
 
 export interface CollisionHit {
@@ -119,7 +154,28 @@ export interface CollisionHit {
    *  Feed-move contact with the work-holding (platter) can be legitimate
    *  cutting; there is no stock model to tell the difference. */
   rapid: boolean;
+  /** Set when this record's contact BEGAN on an earlier line and never
+   *  separated (verified: the pair never cleared 2× the margin): the value
+   *  is that onset line. The pair is still in contact here — this is NOT a
+   *  new event (operator-caught: a beam rammed into the portal on the entry
+   *  move was re-reported on every following line). Absent = this record
+   *  IS the onset. Records are still one per (line, pair) so the clash tint
+   *  and the G-code line marks show the full extent. */
+  continuation?: number;
+  /** On an ONSET record: the last line the contact persists through
+   *  (== line when the contact ends on its own line). */
+  spanEndLine?: number;
+  /** On an ONSET record whose contact persists past its own line: the track
+   *  cum where it finally ends (the last continuation's exit — over ALL
+   *  records, past the MAX_HITS cap too). The tint and the timeline's red
+   *  extent read it for lines that have no record of their own (a contact
+   *  that never separates over thousands of lines keeps only the first
+   *  200 records). Absent when the contact ends on the onset line. */
+  spanCumEnd?: number;
 }
+
+/** What the G-code panel marks: every line in contact, onset or not. */
+export interface CollisionLineMark { line: number; continuation?: number }
 
 export interface CollisionOptions {
   /** Clearance margin in machine units — pairs closer than this are hits. */
@@ -130,12 +186,51 @@ export interface CollisionOptions {
   /** Folded into the explore cadence (1° ≙ 1 mm); kept for callers. */
   rotStepDeg?: number;
   /** Safety budget on pose evaluations — on breach the sweep degrades to
-   *  fixed explore steps (result says `coarsened`); never truncates. */
+   *  fixed explore steps (result says `coarsened`). The hard backstop at
+   *  4× this count STOPS the sweep and says so (`truncated.reason ===
+   *  "samples"`) — it used to break out silently. */
   maxSamples?: number;
+  /** Wall-clock budget (ms). On breach the sweep STOPS where it is and the
+   *  result says `truncated` with the covered fraction — never silently: a
+   *  program too large for the budget reports "N % swept", not "clear".
+   *  (2026-09-10: a 1.18 M-point program ran ~2 h per sweep, restarted on
+   *  every touch-off, and starved the operator's GPU the whole time.) */
+  maxMs?: number;
+  /** Snapshot hook for a driver that parks and resumes the sweep (the
+   *  collision worker): see SnapshotHandle. Absent = no snapshots. */
+  snapshot?: SnapshotHandle;
+  /** The clock the budget (and `sweepMs`) runs on — default performance.now.
+   *  The worker passes an ACTIVE-time clock that stands still while the
+   *  sweep is paused for camera interaction, so a pause never eats the budget. */
+  clock?: () => number;
+  /** Time between iterator checkpoints (ms, on `clock`; default YIELD_MS).
+   *  The count-based checkpoints (every 16 segments / SAMPLES_PER_YIELD
+   *  samples) stay as the FLOOR — a frozen clock still yields — this is the
+   *  ceiling on how long a stop/cancel/park waits (2026-09-12: with pairs
+   *  inside the margin every 0.25 units queries the meshes, and 512 such
+   *  samples were seconds between checkpoints — the operator's ❚❚ looked
+   *  ignored). */
+  yieldMs?: number;
   /** Per-epoch WCS re-add terms (review P2), indexed by the track's `wcs`
    *  bytes — built by wcsEpochs.epochTermsFor from the payload's wcs_frames
    *  + the live table. Absent = single-basis (the live `wcs` terms). */
   epochTerms?: WcsTerms[];
+  /** Per-segment TLO/tool events (schema 8), indexed by the track's `tlo`
+   *  bytes. Absent = the live `wcs.tool` governs every segment. */
+  tloEvents?: TloEvent[];
+  /** Dims (machine units, the DISPLAYED marker formula) per PROGRAM tool
+   *  number: the tool body is swapped to the segment's tool as the sweep
+   *  walks the track (schema 8). Tools without an entry keep the base body
+   *  (the loaded tool / stub the caller built). */
+  toolDims?: Record<number, { diam: number; len: number }>;
+  /** The loaded tool number — what a segment before the first M6 row
+   *  (or a payload without the channel) runs with. */
+  liveTool?: number | null;
+  /** Diagnostics (2026-09-13): when set, the sweep allocates and fills
+   *  per-pair distance-query counts and milliseconds, indexed like
+   *  `model.pairs` — the tool for finding which pairs a slow sweep spends its
+   *  time on. Off by default; costs nothing when absent. */
+  profile?: { queries?: Uint32Array; ms?: Float64Array };
 }
 
 export interface CollisionResult {
@@ -155,11 +250,63 @@ export interface CollisionResult {
    *  means the sweep is certified. Unchecked is not clear. */
   uncertified: string | null;
   pairCount: number;
+  /** Pairs the whole-program reach prescreen dropped before the sweep:
+   *  provably beyond the margin at every pose the sweep would evaluate
+   *  (2026-09-13). Never queried, never certified. `pairCount` still counts
+   *  them. */
+  pairsPrescreened: number;
   bvhMs: number;
   sweepMs: number;
+  /** Set when the sweep stopped before the end of the track — the wall-clock
+   *  budget (`time`), the hard sample backstop (`samples`) or a driver park
+   *  (`stopped`). `covered` is the swept fraction of the TRACK'S AXIS (0..1;
+   *  time on a time-based track — what the scrub bar's swept band and its
+   *  "N % swept" text show). Null = the whole track was swept. A truncated
+   *  sweep with no hits is NOT "clear": only the covered part is. */
+  truncated: { covered: number; reason: "time" | "samples" | "stopped" | "running" } | null;
 }
 
-const DEFAULTS = { linStepMm: 5, rotStepDeg: 4, maxSamples: 60_000 };
+/** Driver-side stop/continue (2026-09-12). The iterator installs `take` once
+ *  its initialization (the reach prescreen and the baseline) is done —
+ *  initialization checkpoints exist (TWP-11) but a stop arriving during them
+ *  parks at the first checkpoint after — and clears it when it returns.
+ *  While the generator is
+ *  SUSPENDED at a checkpoint the driver may call `take(reason)` to get the
+ *  sweep-so-far as a CollisionResult — `truncated` set with that reason and
+ *  the covered fraction — WITHOUT ending the generator: resuming it
+ *  afterwards continues the sweep with every certificate and contact state
+ *  intact. The refinement runs on COPIES of the hit records, and every
+ *  checkpoint sits BEFORE the pose of the sample it precedes (TWP-07 — the
+ *  in-segment checkpoint used to sit between the pose and its distance
+ *  queries, so a refinement probe or a side sweep re-posed the shared model
+ *  under them), so the loop re-poses after every resume and a snapshot
+ *  leaves the suspended sweep exactly as it found it. */
+export interface SnapshotHandle {
+  take: ((reason: "time" | "stopped") => CollisionResult) | null;
+  /** The sweep-so-far WITHOUT refinement (2026-09-13, live findings on the
+   *  timeline): hits at their discovering samples — up to one sample step
+   *  late — with `truncated.reason === "running"`. Cheap: a shallow copy of
+   *  the records, no mesh probes. The refined result replaces it when the
+   *  sweep ends or parks. */
+  peek: (() => CollisionResult) | null;
+  /** Contact records so far — the driver peeks only when this changed. */
+  records: (() => number) | null;
+}
+
+// maxSamples is a RUNAWAY backstop, not the operative bound: with carried
+// clearance certificates a certified sample costs ~10 µs, and a program of a
+// million short segments needs at least one sample per segment — the old
+// 60 k (sized for ~1 ms samples) truncated such a program at 9 % in 3 s.
+// The wall-clock budget (`maxMs`) is what bounds a sweep's cost now.
+const DEFAULTS = { linStepMm: 5, rotStepDeg: 4, maxSamples: 4_000_000 };
+/** Samples between iterator checkpoints inside one segment: a long segment
+ *  (a slow plunge, a full rotary turn) must still yield to its driver. The
+ *  count is the floor; YIELD_MS of active time also yields (the clock is
+ *  read every SAMPLES_PER_CLOCK samples — one read per sample would be
+ *  measurable on a million certified 10 µs samples). */
+const SAMPLES_PER_YIELD = 512;
+const SAMPLES_PER_CLOCK = 32;
+const YIELD_MS = 8;
 const MAX_HITS = 200;
 
 interface Node {
@@ -180,8 +327,72 @@ interface BuiltBody {
   localMat: THREE.Matrix4;       // static translate+rotate inside the group
   center: THREE.Vector3;         // local bounding-sphere
   radius: number;
+  /** AABB diagonal of the local mesh. The LARGER body of a pair is the outer
+   *  traversal of the closest-point query (2026-09-13): three-mesh-bvh
+   *  prunes the outer tree by the INNER body's bounding box, so an inner box
+   *  that spans the work volume (the side walls, a rail set) prunes nothing
+   *  and the query walks every outer leaf — 12.8 ms for the spindle nose
+   *  against the walls; the other way round, 0.02 ms, same answer. */
+  extent: number;
+  /** Connected components' local AABBs, 6 floats each (min xyz, max xyz).
+   *  The tight distance LOWER BOUND for multi-component bodies (two walls,
+   *  eight rails, sixteen end caps): their one bounding sphere spans the
+   *  machine and the library's node boxes are pruned by the other body's
+   *  WHOLE box, so a 12 mm mechanical neighbour cost a 3 ms tree walk every
+   *  10 mm of path. Boxes of components contain them, so the box-to-box
+   *  distance never exceeds the true one. Capped at MAX_COMPS: a soup of
+   *  unshared triangles collapses to the whole-mesh box (still valid). */
+  comps: Float32Array;
   world: THREE.Matrix4;          // scratch, updated per sample
   worldCenter: THREE.Vector3;    // scratch
+}
+
+const MAX_COMPS = 256;
+
+/** Local AABB per connected component of a triangle soup (vertices shared to
+ *  1 µm), 6 floats each — see BuiltBody.comps. Exported for tests. */
+export function componentBoxes(pos: Float32Array): Float32Array {
+  const nTri = Math.floor(pos.length / 9);
+  const parent = new Int32Array(nTri);
+  for (let i = 0; i < nTri; i++) parent[i] = i;
+  const find = (a: number): number => {
+    while (parent[a] !== a) { parent[a] = parent[parent[a]!]!; a = parent[a]!; }
+    return a;
+  };
+  const seen = new Map<string, number>();
+  for (let t = 0; t < nTri; t++) {
+    for (let v = 0; v < 3; v++) {
+      const o = t * 9 + v * 3;
+      const key = `${Math.round(pos[o]! * 1000)},${Math.round(pos[o + 1]! * 1000)},${Math.round(pos[o + 2]! * 1000)}`;
+      const prev = seen.get(key);
+      if (prev === undefined) seen.set(key, t);
+      else {
+        const ra = find(t), rb = find(prev);
+        if (ra !== rb) parent[ra] = rb;
+      }
+    }
+  }
+  const boxOf = new Map<number, number[]>();
+  for (let t = 0; t < nTri; t++) {
+    const r = find(t);
+    let b = boxOf.get(r);
+    if (!b) { b = [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity]; boxOf.set(r, b); }
+    for (let v = 0; v < 3; v++) {
+      const o = t * 9 + v * 3;
+      for (let k = 0; k < 3; k++) {
+        const c = pos[o + k]!;
+        if (c < b[k]!) b[k] = c;
+        if (c > b[k + 3]!) b[k + 3] = c;
+      }
+    }
+  }
+  let boxes = [...boxOf.values()];
+  if (boxes.length > MAX_COMPS || boxes.length === 0) {
+    const b = [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity];
+    for (const bx of boxes) for (let k = 0; k < 3; k++) { b[k] = Math.min(b[k]!, bx[k]!); b[k + 3] = Math.max(b[k + 3]!, bx[k + 3]!); }
+    boxes = boxes.length ? [b] : [];
+  }
+  return new Float32Array(boxes.flat());
 }
 
 /** Full-tree node list, parents first (unlike partFrame's chain-only build —
@@ -264,9 +475,48 @@ interface PathDof {
   dof: KinRuntime;
 }
 
+/** A tool body's swappable geometry (schema 8): the model's BASE cylinder
+ *  (the live tool) or a per-program-tool variant. The base is owned by the
+ *  MODEL (TWP-07, review 2026-09-14): an iterator that captured "whatever
+ *  the shared body wears right now" as its base could inherit another run's
+ *  program tool and restore THAT at completion — a later fallback sweep on
+ *  the resident model then reported the wrong tool's contacts. */
+export interface ToolVariant {
+  geom: THREE.BufferGeometry; bvh: MeshBVH; center: THREE.Vector3; radius: number; extent: number; comps: Float32Array;
+}
+
+function toolVariantOf(b: BuiltBody): ToolVariant {
+  return { geom: b.geom, bvh: b.bvh, center: b.center, radius: b.radius, extent: b.extent, comps: b.comps };
+}
+
+/** Install `v` on the model's tool body unless it already wears it. The
+ *  test is geometry IDENTITY on the shared body, never a per-run cache
+ *  (TWP-07: two iterators on one resident model kept divergent
+ *  bookkeeping, so a run resumed after a side sweep believed its tool was
+ *  installed while the body wore the other run's). Returns true if swapped. */
+export function installToolVariant(model: CollisionModel, v: ToolVariant): boolean {
+  if (model.toolBodyIdx < 0) return false;
+  const tb = model.bodies[model.toolBodyIdx]!;
+  if (tb.geom === v.geom) return false;
+  tb.geom = v.geom; tb.bvh = v.bvh; tb.center = v.center; tb.radius = v.radius; tb.extent = v.extent; tb.comps = v.comps;
+  return true;
+}
+
+/** Hand the model back wearing its BASE tool. A resident model outlives
+ *  every sweep — completion, a dropped parked run, an error path — and each
+ *  of those must leave it as built. Returns true if a swap was needed. */
+export function restoreBaseTool(model: CollisionModel): boolean {
+  return model.baseTool ? installToolVariant(model, model.baseTool) : false;
+}
+
 export interface CollisionModel {
   nodes: Node[];
   bodies: BuiltBody[];
+  /** Index of the ONE tool body (id "tool" / `tool: true`), −1 when none. */
+  toolBodyIdx: number;
+  /** The tool body's geometry as BUILT (the live tool's cylinder) — what
+   *  every sweep restores at completion (see restoreBaseTool). */
+  baseTool: ToolVariant | null;
   pairs: Array<[number, number]>;  // indices into bodies (tool-side first when there is one)
   /** Per pair: the DOFs strictly between the two bodies (below their LCA) —
    *  exactly the motion that changes their relative pose. */
@@ -275,6 +525,11 @@ export interface CollisionModel {
    *  these pairs is CUTTING — expected machining, not reported; contact
    *  whose onset falls in a RAPID is a crash and reports normally. */
   pairCutting: boolean[];
+  /** Per pair: one body is the TOOL — never a static exclusion. */
+  pairTool: boolean[];
+  /** Per pair: node index of the bodies' lowest common ancestor — the frame
+   *  the whole-program reach prescreen compares them in (2026-09-13). */
+  pairLca: number[];
   machine: CollisionMachine;
   bvhMs: number;
 }
@@ -287,6 +542,7 @@ export function buildCollisionModel(machine: CollisionMachine, bodyDefs: Collisi
 
   const bodies: BuiltBody[] = [];
   const _e = new THREE.Euler();
+  const _size = new THREE.Vector3();
   for (const def of bodyDefs) {
     const nodeIdx = idxOf.get(def.group);
     if (nodeIdx === undefined) continue;  // dangling group — same tolerance as the live scene
@@ -301,6 +557,9 @@ export function buildCollisionModel(machine: CollisionMachine, bodyDefs: Collisi
     (geom as any).boundsTree = bvh;   // lets closestPointToGeometry use both trees
     geom.computeBoundingSphere();
     const sphere = geom.boundingSphere!;
+    geom.computeBoundingBox();
+    const extent = geom.boundingBox!.getSize(_size).length();
+    const comps = componentBoxes(scaled);
     const localMat = new THREE.Matrix4();
     if (def.rotate) _e.set(def.rotate[0] ?? 0, def.rotate[1] ?? 0, def.rotate[2] ?? 0);
     else _e.set(0, 0, 0);
@@ -312,7 +571,7 @@ export function buildCollisionModel(machine: CollisionMachine, bodyDefs: Collisi
     );
     bodies.push({
       id: def.id, nodeIdx, side, bvh, geom, localMat,
-      center: sphere.center.clone(), radius: sphere.radius,
+      center: sphere.center.clone(), radius: sphere.radius, extent, comps,
       world: new THREE.Matrix4(), worldCenter: new THREE.Vector3(),
     });
   }
@@ -321,7 +580,7 @@ export function buildCollisionModel(machine: CollisionMachine, bodyDefs: Collisi
   // a DOF must sit strictly between them (below their lowest common
   // ancestor). DOFs on the LCA or above move both bodies rigidly together.
   // Returns exactly those DOFs — they drive the pair's velocity bound.
-  const pathDofsBetween = (ia: number, ib: number): PathDof[] => {
+  const pathDofsBetween = (ia: number, ib: number): { dofs: PathDof[]; lca: number } => {
     const pathA: number[] = [];
     for (let i = ia; i >= 0; i = nodes[i]!.parentIdx) pathA.push(i);
     const aSet = new Set(pathA);
@@ -337,33 +596,41 @@ export function buildCollisionModel(machine: CollisionMachine, bodyDefs: Collisi
     }
     const out: PathDof[] = [];
     for (const i of rel) for (const dof of nodes[i]!.dofs) out.push({ nodeIdx: i, dof });
-    return out;
+    return { dofs: out, lca };
   };
 
   // Cutting pairs: tool-side body × an EXPLICIT stock body. No machine part
   // is ever implicitly cuttable — the platter is workholding, not stock.
   const stockIds = new Set(bodyDefs.filter(d => d.stock).map(d => d.id));
+  const toolIds = new Set(bodyDefs.filter(b => b.tool).map(b => b.id));
   const isCuttingBody = (b: BuiltBody) => stockIds.has(b.id);
+  const isToolBody = (b: BuiltBody) => toolIds.has(b.id);
 
   const pairs: Array<[number, number]> = [];
   const pairDofs: PathDof[][] = [];
+  const pairLca: number[] = [];
   const pairCutting: boolean[] = [];
+  const pairTool: boolean[] = [];
   for (let a = 0; a < bodies.length; a++) {
     for (let b = a + 1; b < bodies.length; b++) {
       const A = bodies[a]!, B = bodies[b]!;
       if (A.nodeIdx === B.nodeIdx) continue;  // same group — rigid
-      const dofs = pathDofsBetween(A.nodeIdx, B.nodeIdx);
+      const { dofs, lca } = pathDofsBetween(A.nodeIdx, B.nodeIdx);
       if (!dofs.length) continue;
       // Tool-side body first when there is one — hit messages read better.
       if (B.side === "tool" && A.side !== "tool") pairs.push([b, a]);
       else pairs.push([a, b]);
       pairDofs.push(dofs);
+      pairLca.push(lca);
       pairCutting.push(
         (A.side === "tool" && isCuttingBody(B)) || (B.side === "tool" && isCuttingBody(A)),
       );
+      pairTool.push(isToolBody(A) || isToolBody(B));
     }
   }
-  return { nodes, bodies, pairs, pairDofs, pairCutting, machine, bvhMs: performance.now() - t0 };
+  const toolBodyIdx = bodies.findIndex(b => isToolBody(b) || b.id === "tool");
+  const baseTool = toolBodyIdx >= 0 ? toolVariantOf(bodies[toolBodyIdx]!) : null;
+  return { nodes, bodies, toolBodyIdx, baseTool, pairs, pairDofs, pairCutting, pairTool, pairLca, machine, bvhMs: performance.now() - t0 };
 }
 
 /** One kinematic pose: evaluate every node's world matrix from joint values. */
@@ -388,8 +655,35 @@ function poseTree(nodes: Node[], jointVals: number[], scratch: {
   }
 }
 
-/** Sweep the track. `shouldYield` is polled between segments — return true to
- *  abort (the worker maps a cancel message onto it). `onProgress` gets 0..1. */
+/**
+ * Refinement can split ONE continuous contact into windows that meet at a
+ * boundary: the clusters are seeded from in-contact samples (pushed only at
+ * dist ≤ CONTACT_EPS), so a sample gap wider than CLUSTER_GAP opens two
+ * clusters even when every probe between them is still in contact. The exit
+ * walk of the first then reaches the next cluster's first sample unbracketed
+ * and the entry walk of the second starts there — the two boundaries land on
+ * the SAME cum. Two boundaries within twice the bisection tolerance (1e-3)
+ * are one boundary; the windows are one contact. Operator-caught 2026-09-03
+ * as "one clash reported, two marks on the timeline". Pure; unit-tested.
+ */
+export function mergeContiguousIntervals(
+  ivs: ReadonlyArray<readonly [number, number]>,
+  eps = 2e-3,
+): Array<[number, number]> {
+  const out: Array<[number, number]> = [];
+  for (const iv of ivs) {
+    const last = out[out.length - 1];
+    if (last && iv[0] - last[1] <= eps) last[1] = Math.max(last[1], iv[1]);
+    else out.push([iv[0], iv[1]]);
+  }
+  return out;
+}
+
+/** Sweep the track to completion (or to its budget). `onProgress` gets 0..1
+ *  at the iterator's checkpoints; `shouldAbort` is polled there — true stops
+ *  the sweep with what was swept so far (an abort is the caller's decision,
+ *  so `truncated` stays null). Drives `sweepCollisionsIter`; tests and the
+ *  envelope gates use this form. */
 export function sweepCollisions(
   model: CollisionModel,
   track: CollisionTrack,
@@ -398,9 +692,36 @@ export function sweepCollisions(
   onProgress?: (frac: number) => void,
   shouldAbort?: () => boolean,
 ): CollisionResult {
-  const { nodes, bodies, pairs, pairDofs, pairCutting, machine } = model;
+  const it = sweepCollisionsIter(model, track, wcs, opts);
+  let r = it.next();
+  while (!r.done) {
+    onProgress?.(r.value);
+    r = it.next(shouldAbort?.() === true);
+  }
+  return r.value;
+}
+
+/** The sweep as a resumable iterator: yields its progress (0..1 of the
+ *  track's axis — see `truncated.covered`) at
+ *  checkpoints — before the first segment, every 16 segments, every
+ *  SAMPLES_PER_YIELD samples inside a segment, whenever `yieldMs` of clock
+ *  time has passed since the last checkpoint (checked per segment and every
+ *  SAMPLES_PER_CLOCK samples), and once at the end — and returns the result. `next(true)` at a checkpoint aborts. The worker drives
+ *  it in time slices so a cancel message lands between checkpoints instead
+ *  of needing the worker terminated (and the BVH model rebuilt). The
+ *  wall-clock budget (`opts.maxMs`) is checked at the same checkpoints. */
+export function* sweepCollisionsIter(
+  model: CollisionModel,
+  track: CollisionTrack,
+  wcs: PartFrameWcs,
+  opts: CollisionOptions,
+): Generator<number, CollisionResult, boolean | undefined> {
+  const { nodes, bodies, pairs, pairDofs, pairCutting, pairTool, pairLca, machine } = model;
   const maxSamples = opts.maxSamples ?? DEFAULTS.maxSamples;
-  const t0 = performance.now();
+  const clock = opts.clock ?? (() => performance.now());
+  const t0 = clock();
+  const yieldMs = opts.yieldMs ?? YIELD_MS;
+  let lastYield: number;   // set after the baseline checkpoint
   const n = track.count;
 
   // The sweep runs in its own DISTANCE parameterization (mm, 1° ≙ 1 mm) —
@@ -408,8 +729,17 @@ export function sweepCollisions(
   // guarantee constants (MIN_ADV, EXPLORE, chunking) are spatial, and on a
   // time axis a fast rapid would compress a 20 mm window into 0.25 s.
   // Hits are converted back to track-cum at the end (scrub-to-hit target).
+  // Aborted during INITIALIZATION — before any pose or query (R-04,
+  // implementation review 2026-09-15). The per-vertex passes below are the
+  // first substantial work the sweep does, and they used to run to
+  // completion before the first checkpoint: a cancel or pause could not be
+  // acknowledged for ~400 ms on a million-point TWP track. Every one of them
+  // now yields, and an abort there returns the same empty stopped result the
+  // prescreen's does.
+  let abortedInit = false;
   const dcum = new Float32Array(n);
   for (let i = 1; i < n; i++) {
+    if ((i & 65535) === 0 && (yield 0) === true) { abortedInit = true; break; }
     if (track.brk?.[i]) {
       // Frame relabel — a re-expression, not travel: contributing its
       // program-space jump would stretch the sweep's spatial guarantee
@@ -430,7 +760,6 @@ export function sweepCollisions(
     );
     dcum[i] = dcum[i - 1]! + Math.max(lin, rot);
   }
-  const totalCum = n > 0 ? dcum[n - 1]! : 0;
 
   // Dist-parameter → track-cum (linear within a segment; monotonic).
   const distToTrackCum = (s: number): number => {
@@ -457,7 +786,53 @@ export function sweepCollisions(
   const CHUNK_ROT_DEG = 22.5;  // lever bounds are computed per chunk; ≤22.5° keeps drift factors small
   let coarsened = false;
 
-  const o = wcsTerms(wcs);
+  // TIP-space terms; the tool offset is per segment (schema 8) and enters
+  // through liftToJoints + the tool body's tip shift below, ONE source.
+  const o = wcsTerms(tipWcs(wcs));
+  const liveTlo = tloForIndex(undefined, undefined, wcs.tool);
+  const tloFor = (i: number): readonly number[] =>
+    tloForIndex(track.tlo?.[i], opts.tloEvents, wcs.tool);
+  // The parametric tool body (id "tool", tip at its local origin): the
+  // swept joints are G43-inclusive, which poses the tool GROUP at the joint
+  // position (tip + TLO), so the body is shifted by −TLO in the tool node's
+  // LOCAL frame per pose — the same subtraction applyState phase 3 makes
+  // for the live marker and partFrame makes for the drawn tip. It used to
+  // be baked into the cylinder verts once per sweep, which could not follow
+  // a per-segment offset.
+  const toolBodyIdx = model.toolBodyIdx;
+  const _tloMat = new THREE.Matrix4();
+  // Per-program-tool body VARIANTS (schema 8): the segment's tool number
+  // (toolForIndex) selects the cylinder the tool body wears. Only the ONE
+  // tool BuiltBody's geometry/BVH/sphere swap — pairs, pair DOFs and the
+  // cutting flags are properties of the body's identity and stay invariant
+  // (pushing K tool bodies would mint K× pairs and misattribute hits).
+  // The BASE is the model's own (TWP-07), never "what the body wears now".
+  const toolVariants = new Map<number, ToolVariant>();
+  const baseVariant: ToolVariant | null = model.baseTool;
+  if (toolBodyIdx >= 0 && baseVariant && opts.toolDims && opts.tloEvents?.length) {
+    for (const ev of opts.tloEvents) {
+      const tn = ev.tool;
+      if (tn == null || toolVariants.has(tn)) continue;
+      const dims = opts.toolDims[tn];
+      if (!dims) continue;
+      const geom = new THREE.BufferGeometry();
+      geom.setAttribute("position", new THREE.BufferAttribute(toolCylinderPositions(dims.diam, dims.len), 3));
+      const bvh = new MeshBVH(geom);
+      (geom as any).boundsTree = bvh;
+      geom.computeBoundingSphere();
+      geom.computeBoundingBox();
+      toolVariants.set(tn, { geom, bvh, center: geom.boundingSphere!.center.clone(), radius: geom.boundingSphere!.radius,
+                             extent: geom.boundingBox!.getSize(new THREE.Vector3()).length(),
+                             comps: componentBoxes(geom.getAttribute("position").array as Float32Array) });
+    }
+  }
+  const applyTool = (tn: number | null) => {
+    if (!baseVariant) return;
+    const v = (tn != null ? toolVariants.get(tn) : undefined) ?? baseVariant;
+    installToolVariant(model, v);   // geometry identity on the SHARED body, no private cache
+  };
+  const toolFor = (i: number): number | null =>
+    toolForIndex(track.tlo?.[i], opts.tloEvents, opts.liveTool);
   const machineVals: number[] = [0, 0, 0, 0, 0, 0];
   // Chunk-start machine coords. machineVals is shared scratch that the second
   // interpPose overwrites, so the bulge bound needs its own copy of the first
@@ -480,39 +855,64 @@ export function sweepCollisions(
   // kinsBulge.test.ts.
   const identityKins = makeKins(machine.axes);
   const jointBulge = new Float64Array(jointVals.length);
-  // Raw wire types → per-vertex world flags for THIS machine's family
-  // (worldModeForSpec) — the uncertified check below indexes these.
-  const modeWorld = track.mode
-    ? Array.from(track.mode, (t) => worldModeForSpec(t, machine.kins))
-    : null;
-  // Per-vertex kins model (phase 3): RAW type + governing TWP frame via
-  // kinsForSegment (family-aware; loud fallbacks live there).
-  const tFrames = track.frames;
-  const vertModel: KinsModel[] | null = track.mode
-    ? Array.from(track.mode, (t, i) => {
-        const fi = track.frame?.[i];
-        const fr = (fi != null && fi !== 0xff && tFrames) ? tFrames[fi] ?? null : null;
-        return kinsForSegment(machine.axes, machine.kins, t, fr,
-                              wcs.tool?.[2] || undefined, "collision sweep");
-      })
-    : null;
+  // Per-vertex kins models for THIS machine's family, and the certification
+  // check that needs each vertex's world flag, in ONE checkpointed pass.
+  //
+  // A vertex's model is fully determined by (raw type, TWP frame index, TLO
+  // event index), and those change a handful of times in a program while the
+  // vertices number millions — so resolve on CHANGE and reuse the model for
+  // the run (R-04: this pass used to call kinsForSegment per vertex, and its
+  // trsrn branch builds a memo key by joining seven pivot floats, so the
+  // memoized construction was paid for with an unmemoized lookup). Repeats
+  // of a context seen earlier hit the small per-sweep map.
+  //
   // The guarantee is certified per FAMILY, so it can only be claimed for a
   // segment whose model is the one the machine declared. kinsForSegment falls
   // back to trivkins — loudly, but still — for a kins type this client cannot
   // evaluate or a plane segment with no frame; that model's bulge is
   // legitimately 0, which would then be silently wrong for the real machine.
   // Report it instead of assuming it: unchecked is not clear.
+  const tFrames = track.frames;
+  let vertModel: KinsModel[] | null = null;
   let uncertified: string | null = null;
-  if (modeWorld && vertModel) {
-    for (let i = 0; i < modeWorld.length; i++) {
-      if (!modeWorld[i]) continue;
-      const m = vertModel[i];
-      if (m && m.type !== "trivkins") continue;
-      uncertified = `non-identity segments fell back to trivkins (declared `
-        + `${machine.kins?.type ?? "unknown"}) — poses and clearance bounds `
-        + `are identity approximations`;
-      break;
+  if (track.mode && !abortedInit) {
+    const vm = new Array<KinsModel>(n);
+    const worldLut: (boolean | undefined)[] = [];
+    const modelByCtx = new Map<string, KinsModel>();
+    let pType = -1, pFrame = -1, pTlo = -1;
+    let cur: KinsModel | null = null;
+    for (let i = 0; i < n; i++) {
+      if ((i & 65535) === 0 && i > 0 && (yield 0) === true) { abortedInit = true; break; }
+      const ty = track.mode[i]!;
+      const world = worldLut[ty] ?? (worldLut[ty] = worldModeForSpec(ty, machine.kins));
+      const fi = track.frame?.[i] ?? EVENT_NONE;
+      const li = track.tlo?.[i] ?? EVENT_NONE;
+      if (cur === null || ty !== pType || fi !== pFrame || li !== pTlo) {
+        const key = ty + "|" + fi + "|" + li;
+        let m = modelByCtx.get(key);
+        if (!m) {
+          const fr = (fi !== EVENT_NONE && tFrames) ? tFrames[fi] ?? null : null;
+          m = kinsForSegment(machine.axes, machine.kins, ty, fr,
+                             tloFor(i)[2] || undefined, "collision sweep");
+          modelByCtx.set(key, m);
+        }
+        cur = m; pType = ty; pFrame = fi; pTlo = li;
+      }
+      vm[i] = cur;
+      if (world && uncertified === null && cur.type === "trivkins") {
+        uncertified = `non-identity segments fell back to trivkins (declared `
+          + `${machine.kins?.type ?? "unknown"}) — poses and clearance bounds `
+          + `are identity approximations`;
+      }
     }
+    if (!abortedInit) vertModel = vm;
+  }
+  if (abortedInit) {
+    // Nothing posed, nothing queried (same contract as the prescreen abort).
+    restoreBaseTool(model);
+    return { hits: [], staticContacts: [], samples: 0, coarsened: false, uncertified: null,
+             pairCount: model.pairs.length, pairsPrescreened: 0, bvhMs: model.bvhMs,
+             sweepMs: clock() - t0, truncated: { covered: 0, reason: "stopped" } };
   }
   const kinsOut: (number | null)[] = [];
   const scratch = {
@@ -535,8 +935,12 @@ export function sweepCollisions(
   const termFor = (i: number): WcsTerms =>
     (track.wcs && opts.epochTerms?.[track.wcs[i] ?? 0]) ? opts.epochTerms[track.wcs[i] ?? 0]! : o;
 
-  const poseAt = (px: number, py: number, pz: number, pa: number, pb: number, pc: number, model: KinsModel = identityKins, oSeg: WcsTerms = o) => {
-    programToMachine(px, py, pz, pa, pb, pc, oSeg, machineVals);
+  /** Joints for one program-space point under a segment's labeling — the
+   *  first half of poseAt, shared with the reach prescreen so both derive
+   *  joints through exactly one path. Leaves the machine coords in
+   *  machineVals (jointBulge's input) and the joints in jointVals. */
+  const liftJoints = (px: number, py: number, pz: number, pa: number, pb: number, pc: number, model: KinsModel, oSeg: WcsTerms, tloSeg: readonly number[]) => {
+    liftToJoints(px, py, pz, pa, pb, pc, oSeg, tloSeg, machineVals);
     model.inverse(machineVals, kinsOut);
     for (let ji = 0; ji < kinsOut.length; ji++) {
       jointVals[ji] = kinsOut[ji] ?? 0;  // UVW: 0, as the preview transform
@@ -545,9 +949,17 @@ export function sweepCollisions(
     // machine with more joints than that the tail would keep whatever a
     // PRECEDING segment's model left there — a stale pose, not a fresh one.
     for (let ji = kinsOut.length; ji < jointVals.length; ji++) jointVals[ji] = 0;
+  };
+  const poseAt = (px: number, py: number, pz: number, pa: number, pb: number, pc: number, model: KinsModel = identityKins, oSeg: WcsTerms = o, tloSeg: readonly number[] = liveTlo, toolSeg: number | null = null) => {
+    applyTool(toolSeg);
+    liftJoints(px, py, pz, pa, pb, pc, model, oSeg, tloSeg);
     poseTree(nodes, jointVals, scratch);
-    for (const body of bodies) {
+    for (let bi = 0; bi < bodies.length; bi++) {
+      const body = bodies[bi]!;
       body.world.multiplyMatrices(nodes[body.nodeIdx]!.world, body.localMat);
+      if (bi === toolBodyIdx && (tloSeg[0] || tloSeg[1] || tloSeg[2])) {
+        body.world.multiply(_tloMat.makeTranslation(-(tloSeg[0] ?? 0), -(tloSeg[1] ?? 0), -(tloSeg[2] ?? 0)));
+      }
       body.worldCenter.copy(body.center).applyMatrix4(body.world);
     }
   };
@@ -556,52 +968,317 @@ export function sweepCollisions(
   // when provably ≥ maxT (sphere prescreen — its slack also LOWER-bounds the
   // true distance, so advancement can use it — then BVH closest-point with
   // early-out; the matrix maps B's geometry into A's local frame: A⁻¹ · B).
+  // Distance lower bound from the two bodies' component boxes, `rel` mapping
+  // B's frame into A's (see BuiltBody.comps): each B box's eight corners →
+  // an AABB in A's frame, min box-to-box gap over all component pairs.
+  const boxLowerBound = (A: BuiltBody, B: BuiltBody, rel: THREE.Matrix4): number => {
+    const ca = A.comps, cb = B.comps;
+    if (!ca.length || !cb.length) return 0;
+    const e = rel.elements;
+    let best = Infinity;
+    for (let j = 0; j < cb.length; j += 6) {
+      let x0 = Infinity, y0 = Infinity, z0 = Infinity, x1 = -Infinity, y1 = -Infinity, z1 = -Infinity;
+      for (let k = 0; k < 8; k++) {
+        const bx = (k & 1) ? cb[j + 3]! : cb[j]!, by = (k & 2) ? cb[j + 4]! : cb[j + 1]!, bz = (k & 4) ? cb[j + 5]! : cb[j + 2]!;
+        const x = e[0]! * bx + e[4]! * by + e[8]! * bz + e[12]!;
+        const y = e[1]! * bx + e[5]! * by + e[9]! * bz + e[13]!;
+        const z = e[2]! * bx + e[6]! * by + e[10]! * bz + e[14]!;
+        if (x < x0) x0 = x; if (x > x1) x1 = x;
+        if (y < y0) y0 = y; if (y > y1) y1 = y;
+        if (z < z0) z0 = z; if (z > z1) z1 = z;
+      }
+      for (let i = 0; i < ca.length; i += 6) {
+        const gx = Math.max(0, ca[i]! - x1, x0 - ca[i + 3]!);
+        const gy = Math.max(0, ca[i + 1]! - y1, y0 - ca[i + 4]!);
+        const gz = Math.max(0, ca[i + 2]! - z1, z0 - ca[i + 5]!);
+        const d = Math.sqrt(gx * gx + gy * gy + gz * gz);
+        if (d < best) { best = d; if (best === 0) return 0; }
+      }
+    }
+    return best;
+  };
+  // Closest distance between two bodies at the current pose, or a valid
+  // LOWER bound when that is already above `maxT` (sphere gap), above the
+  // margin (component boxes — exact contact is then impossible and the
+  // certificate needs only a bound), or provably beyond maxT (BVH). The
+  // larger body is the outer traversal (BuiltBody.extent).
   const pairDistance = (A: BuiltBody, B: BuiltBody, maxT: number): number => {
     const centerDist = A.worldCenter.distanceTo(B.worldCenter);
     const sphereGap = centerDist - A.radius - B.radius;
     if (sphereGap > maxT) return sphereGap;  // valid LOWER bound on true distance
-    invA.copy(A.world).invert();
-    relMat.multiplyMatrices(invA, B.world);
-    const res = A.bvh.closestPointToGeometry(B.geom, relMat, target1, target2, 0, maxT);
+    const O = A.extent >= B.extent ? A : B;
+    const I = O === A ? B : A;
+    invA.copy(O.world).invert();
+    relMat.multiplyMatrices(invA, I.world);
+    const lb = boxLowerBound(O, I, relMat);
+    if (lb > opts.margin) return lb;         // no contact possible; bound for the certificate
+    const res = O.bvh.closestPointToGeometry(I.geom, relMat, target1, target2, 0, maxT);
     return res ? target1.distance : Infinity;  // null: provably beyond maxT
   };
 
+  // ── Whole-program reach prescreen (2026-09-13) ────────────────────────
+  // A pair whose two bodies can PROVABLY never come within the margin at any
+  // pose this sweep will evaluate is dropped before it starts: no baseline
+  // probe, no certificates, no queries. Why: the wall gantry has ~450 pairs
+  // over 236k triangles, and a 130 mm program reaches a tenth of them, yet
+  // every pair used to cost a first query and periodic re-certification —
+  // hours for a 1.2 M-point sweep. Sound by construction:
+  //  1. every joint's RANGE over the program: both endpoints of every
+  //     segment under that segment's own kins labeling (exactly what
+  //     interpPose lerps between; vertex 0 under its own labeling is the
+  //     baseline pose), widened by the family's jointBulge on non-identity
+  //     segments — the mid-segment excursion a chord cannot see, the same
+  //     bound the advancement uses, taken over the whole segment (≥ any
+  //     chunk's). Zero-length and relabel segments cost nothing but are
+  //     included, which is merely conservative.
+  //  2. each body's REACH SPHERE in the pair's LCA frame: its bounding
+  //     sphere pushed up the group tree through only the DOFs below the LCA
+  //     (the ones that move the pair relatively — pathDofsBetween's set),
+  //     composed as poseTree composes a node (rotations about the node
+  //     origin, last-listed applied first, then base + translations): a
+  //     translation DOF widens it by half its range, a rotation DOF by the
+  //     chord its centre can swing over the range — 2ρ·sin(min(Δ/4, π/2)),
+  //     ρ the centre's distance from the axis. Joint ranges are treated as
+  //     independent, which over-approximates the reachable set, never under.
+  //  3. the tool body's sphere covers EVERY program-tool variant (max
+  //     tip-relative extent over the cylinders) plus the largest TLO shift
+  //     applied in the tool node's frame.
+  const nJ = jointVals.length;
+  const jLo = new Float64Array(nJ).fill(Infinity);
+  const jHi = new Float64Array(nJ).fill(-Infinity);
+  const jPad = new Float64Array(nJ);
+  const bulgeTmp = new Float64Array(nJ);
+  const rsM0: number[] = [0, 0, 0, 0, 0, 0], rsM1: number[] = [0, 0, 0, 0, 0, 0];
+  let tloMax = 0;
+  const noteJoints = () => {
+    for (let ji = 0; ji < nJ; ji++) {
+      const v = jointVals[ji]!;
+      if (v < jLo[ji]!) jLo[ji] = v;
+      if (v > jHi[ji]!) jHi[ji] = v;
+    }
+  };
+  const noteTlo = (t: readonly number[]) => {
+    const mag = Math.hypot(t[0] ?? 0, t[1] ?? 0, t[2] ?? 0);
+    if (mag > tloMax) tloMax = mag;
+  };
+  const liftJointsAt = (i: number, t: number) => {
+    const j = i * 3, k = j - 3;
+    liftJoints(
+      track.pos[k]! + (track.pos[j]! - track.pos[k]!) * t,
+      track.pos[k + 1]! + (track.pos[j + 1]! - track.pos[k + 1]!) * t,
+      track.pos[k + 2]! + (track.pos[j + 2]! - track.pos[k + 2]!) * t,
+      track.abc[k]! + (track.abc[j]! - track.abc[k]!) * t,
+      track.abc[k + 1]! + (track.abc[j + 1]! - track.abc[k + 1]!) * t,
+      track.abc[k + 2]! + (track.abc[j + 2]! - track.abc[k + 2]!) * t,
+      vertModel?.[i] ?? identityKins, termFor(i), tloFor(i));
+  };
+  // Initialization checkpoints (TWP-11, review 2026-09-14): the joint-range
+  // scan is 2n inverse-kinematics evaluations and ran to completion before
+  // the first yield — 50–100 ms per 100 k points, more under a world kins
+  // — so a cancel or pause could not land until it was done. A checkpoint
+  // every 4096 vertices (and every 256 pairs below) keeps the ack latency
+  // in the same class as the sweep's own. An abort here returns the empty
+  // stopped result: nothing was posed or queried yet.
+  let abortedEarly = false;
+  if (n > 0) {
+    liftJoints(track.pos[0]!, track.pos[1]!, track.pos[2]!, track.abc[0]!, track.abc[1]!, track.abc[2]!,
+               vertModel?.[0] ?? identityKins, termFor(0), tloFor(0));
+    noteJoints();
+    noteTlo(tloFor(0));
+    for (let i = 1; i < n; i++) {
+      if ((i & 4095) === 0 && (yield 0) === true) { abortedEarly = true; break; }
+      noteTlo(tloFor(i));
+      const segModel = vertModel?.[i] ?? identityKins;
+      const bulges = segModel.type !== "trivkins";
+      liftJointsAt(i, 0);
+      noteJoints();
+      if (bulges) for (let x = 0; x < 6; x++) rsM0[x] = machineVals[x]!;
+      liftJointsAt(i, 1);
+      noteJoints();
+      if (bulges) {
+        for (let x = 0; x < 6; x++) rsM1[x] = machineVals[x]!;
+        segModel.jointBulge(rsM0, rsM1, bulgeTmp);
+        for (let ji = 0; ji < nJ; ji++) if (bulgeTmp[ji]! > jPad[ji]!) jPad[ji] = bulgeTmp[ji]!;
+      }
+    }
+  }
+  for (let ji = 0; ji < nJ; ji++) {
+    if (jLo[ji] === Infinity) { jLo[ji] = 0; jHi[ji] = 0; }
+    jLo[ji] = jLo[ji]! - jPad[ji]!;
+    jHi[ji] = jHi[ji]! + jPad[ji]!;
+  }
+  const _rsAxis = new THREE.Vector3(), _rsProj = new THREE.Vector3(), _rsRad = new THREE.Vector3();
+  const reachSphere = (bi: number, lca: number, out: { c: THREE.Vector3; r: number }) => {
+    const body = bodies[bi]!;
+    const c = out.c;
+    let r: number;
+    if (bi === toolBodyIdx) {
+      let ext = body.center.length() + body.radius;
+      if (baseVariant) ext = Math.max(ext, baseVariant.center.length() + baseVariant.radius);
+      for (const v of toolVariants.values()) ext = Math.max(ext, v.center.length() + v.radius);
+      c.set(0, 0, 0).applyMatrix4(body.localMat);
+      r = ext + tloMax;
+    } else {
+      c.copy(body.center).applyMatrix4(body.localMat);
+      r = body.radius;
+    }
+    let ni = body.nodeIdx;
+    let guard = 0;
+    while (ni !== lca && ni >= 0 && guard++ < 64) {
+      const node = nodes[ni]!;
+      for (let di = node.dofs.length - 1; di >= 0; di--) {
+        const d = node.dofs[di]!;
+        if (!d.rotate) continue;
+        const a0 = (jLo[d.joint] ?? 0) * d.sign, a1 = (jHi[d.joint] ?? 0) * d.sign;
+        const lo = Math.min(a0, a1), hi = Math.max(a0, a1);
+        const mid = THREE.MathUtils.degToRad((lo + hi) / 2);
+        const half = THREE.MathUtils.degToRad((hi - lo) / 2);
+        _rsAxis.copy(d.axisVec).normalize();
+        _rsProj.copy(_rsAxis).multiplyScalar(c.dot(_rsAxis));
+        const rho = _rsRad.copy(c).sub(_rsProj).length();
+        c.applyAxisAngle(_rsAxis, mid);
+        r += 2 * rho * Math.sin(Math.min(half / 2, Math.PI / 2));
+      }
+      for (const d of node.dofs) {
+        if (d.rotate) continue;
+        const v0 = (jLo[d.joint] ?? 0) * d.sign, v1 = (jHi[d.joint] ?? 0) * d.sign;
+        const lo = Math.min(v0, v1), hi = Math.max(v0, v1);
+        c.addScaledVector(d.axisVec, (lo + hi) / 2);
+        r += (hi - lo) / 2;
+      }
+      c.add(node.base);
+      ni = node.parentIdx;
+    }
+    out.r = r;
+  };
+  const unreachable = new Uint8Array(pairs.length);
+  let pairsPrescreened = 0;
+  const rsA = { c: new THREE.Vector3(), r: 0 }, rsB = { c: new THREE.Vector3(), r: 0 };
+  for (let pi = 0; pi < pairs.length && !abortedEarly; pi++) {
+    if ((pi & 255) === 255 && (yield 0) === true) { abortedEarly = true; break; }
+    const [ai, bi] = pairs[pi]!;
+    reachSphere(ai, pairLca[pi]!, rsA);
+    reachSphere(bi, pairLca[pi]!, rsB);
+    if (rsA.c.distanceTo(rsB.c) - rsA.r - rsB.r > opts.margin) {
+      unreachable[pi] = 1;
+      pairsPrescreened++;
+    }
+  }
+  if (abortedEarly) {
+    // Nothing posed, nothing queried, no certificate or contact state to
+    // report; the driver discards a cancelled sweep's value anyway.
+    restoreBaseTool(model);
+    return { hits: [], staticContacts: [], samples: 0, coarsened: false, uncertified,
+             pairCount: pairs.length, pairsPrescreened, bvhMs: model.bvhMs,
+             sweepMs: clock() - t0, truncated: { covered: 0, reason: "stopped" } };
+  }
+  // Pairs the sweep never touches: prescreened here, static after the baseline.
+  const skipPair = new Uint8Array(unreachable);
+  const prof = opts.profile;
+  if (prof) {
+    prof.queries = new Uint32Array(pairs.length);
+    prof.ms = new Float64Array(pairs.length);
+  }
+
   // Baseline pass (first pose): pairs already inside the margin here are
-  // mechanical-joint proximity (slides, bearings, trunnion mounts) — or a
-  // program that starts in contact. Reported once, excluded from the sweep.
-  // CUTTING pairs are never baseline-excluded (a tool parked on the work is
-  // normal) — they instead seed the in-contact state for onset tracking.
+  // mechanical-joint proximity (slides, bearings, trunnion mounts). Reported
+  // once, excluded from the sweep. CUTTING pairs are never baseline-excluded
+  // (a tool parked on the work is normal) — they instead seed the in-contact
+  // state for onset tracking. TOOL pairs are never excluded either: contact
+  // here is an ONSET on the first line (see the header) — the seeded latch
+  // makes the sweep's first sample record it and the following lines'
+  // records continuations of it.
+  // The onset belongs to the first segment WITH length: a zero-length
+  // unknown-start rapid (schema 6) carries no sample.
+  let firstSeg = 1;
+  while (firstSeg < n - 1 && dcum[firstSeg]! - dcum[firstSeg - 1]! <= 1e-9) firstSeg++;
   const staticExcluded = new Uint8Array(pairs.length);
   const inContact = new Uint8Array(pairs.length);
   const onsetRapid = new Uint8Array(pairs.length);
+  // The line a pair's CURRENT contact began on (-1 = not in contact) — the
+  // same latch the cutting semantics use for onsetRapid, now read by the
+  // non-cutting branch too: a record minted on a later line while the pair
+  // never separated is a CONTINUATION, not a new clash.
+  const onsetLine = new Int32Array(pairs.length).fill(-1);
   const staticContacts: CollisionResult["staticContacts"] = [];
-  poseAt(track.pos[0]!, track.pos[1]!, track.pos[2]!,
-         track.abc[0]!, track.abc[1]!, track.abc[2]!, vertModel?.[0] ?? identityKins,
-         termFor(0));
+  // Contact from the program's first point: an ONSET on the first line the
+  // sweep's first sample records; later lines' records are continuations.
+  const seedOnset = (pi: number) => {
+    inContact[pi] = 1;
+    onsetLine[pi] = track.lines[firstSeg] ?? 0;
+    onsetRapid[pi] = track.rapid[firstSeg] === 1 ? 1 : 0;
+  };
+  const poseFirst = () => poseAt(track.pos[0]!, track.pos[1]!, track.pos[2]!,
+                                 track.abc[0]!, track.abc[1]!, track.abc[2]!, vertModel?.[0] ?? identityKins,
+                                 termFor(0), tloFor(0), toolFor(0));
+  // The model's REST pose — every joint at zero, raw (no kins, no WCS, no
+  // TLO): the second baseline that tells a mechanical neighbour (touching
+  // here too) from a crash pose (clear here). A classification probe, not
+  // a sweep sample — `done` does not count it.
+  const poseRest = () => {
+    jointVals.fill(0);
+    poseTree(nodes, jointVals, scratch);
+    for (let bi = 0; bi < bodies.length; bi++) {
+      const body = bodies[bi]!;
+      body.world.multiplyMatrices(nodes[body.nodeIdx]!.world, body.localMat);
+      body.worldCenter.copy(body.center).applyMatrix4(body.world);
+    }
+  };
+  poseFirst();
+  const candidates: number[] = [];   // machine pairs inside the margin at the first pose
+  const firstDist = new Float64Array(pairs.length);
   for (let pi = 0; pi < pairs.length; pi++) {
+    if (unreachable[pi]) continue;   // provably beyond the margin everywhere (prescreen)
     const [ai, bi] = pairs[pi]!;
     const dist = pairDistance(bodies[ai]!, bodies[bi]!, opts.margin);
     if (dist <= opts.margin) {
       if (pairCutting[pi]) {
         inContact[pi] = 1;  // engaged from the start — a later retract is benign
+      } else if (pairTool[pi]) {
+        seedOnset(pi);
       } else {
-        staticExcluded[pi] = 1;
-        staticContacts.push({ a: bodies[ai]!.id, b: bodies[bi]!.id, dist });
+        candidates.push(pi);
+        firstDist[pi] = dist;
       }
     }
   }
+  if (candidates.length) {
+    poseRest();
+    for (const pi of candidates) {
+      const [ai, bi] = pairs[pi]!;
+      if (pairDistance(bodies[ai]!, bodies[bi]!, opts.margin) <= opts.margin) {
+        staticExcluded[pi] = 1;   // touching at rest too: a slide, a bearing, a mount
+        staticContacts.push({ a: bodies[ai]!.id, b: bodies[bi]!.id, dist: firstDist[pi]! });
+      } else {
+        seedOnset(pi);            // clear at rest: the program starts crashed
+      }
+    }
+    poseFirst();   // leave the model where the sweep expects it
+  }
   done++;
+  for (let pi = 0; pi < pairs.length; pi++) if (staticExcluded[pi]) skipPair[pi] = 1;
 
   // Full closest distance of ~1e-8 (float) never a clean 0 — see the
   // refinement pass, which shares this contact threshold.
   const CONTACT_EPS = 1e-4;
+  const keyFor = (line: number, pi: number) => {
+    const [ai, bi] = pairs[pi]!;
+    return `${line}|${bodies[ai]!.id}|${bodies[bi]!.id}`;
+  };
   const recordHit = (line: number, cum: number, rapid: boolean, pi: number, dist: number) => {
     const [ai, bi] = pairs[pi]!;
-    const key = `${line}|${bodies[ai]!.id}|${bodies[bi]!.id}`;
+    const key = keyFor(line, pi);
     const prev = worst.get(key);
     if (!prev || dist < prev.dist) {
-      const rec = { line, cum, cumEnd: cum, a: bodies[ai]!.id, b: bodies[bi]!.id, dist, rapid, pi,
-                    samples: prev ? prev.samples : [] };
+      const rec: CollisionHit & { pi: number; samples: number[] } = {
+        line, cum, cumEnd: cum, a: bodies[ai]!.id, b: bodies[bi]!.id, dist, rapid, pi,
+        samples: prev ? prev.samples : [] };
+      // Continuation: the pair's contact began on an EARLIER line and has
+      // not separated since. A worse sample on the same line keeps the
+      // record's existing verdict.
+      const cont = prev ? prev.continuation
+        : (onsetLine[pi]! >= 0 && onsetLine[pi] !== line ? onsetLine[pi]! : undefined);
+      if (cont !== undefined) rec.continuation = cont;
       if (prev) rec.cumEnd = Math.max(prev.cumEnd, cum);
       if (dist <= CONTACT_EPS) rec.samples.push(cum);
       worst.set(key, rec);
@@ -650,6 +1327,8 @@ export function sweepCollisions(
       track.abc[k + 2]! + (track.abc[j + 2]! - track.abc[k + 2]!) * u,
       vertModel?.[lo] ?? identityKins,
       termFor(lo),
+      tloFor(lo),
+      toolFor(lo),
     );
     const [ai, bi] = pairs[pi]!;
     return pairDistance(bodies[ai]!, bodies[bi]!, opts.margin);
@@ -666,6 +1345,17 @@ export function sweepCollisions(
   // no margin crossing wider than MIN_ADV of path parameter is missed.
   const pairV = new Float64Array(pairs.length);
   const sSafe = new Float64Array(pairs.length);
+  // Carried clearance certificates (2026-09-10). A distance query leaves a
+  // pair with clearance (d − margin); a chunk can consume at most V × Lc of
+  // it (V bounds the relative surface speed per unit of path). The remainder
+  // CARRIES into the next chunk, re-expressed in that chunk's V — the old
+  // per-chunk reset re-queried every pair at every chunk boundary, which on
+  // a program of a million 0.1 mm segments was 45 BVH queries per 0.1 mm
+  // (2.85 ms per segment, ~2 h per sweep). Same guarantee: the bound is
+  // summed piecewise over the chunks the pair skipped.
+  const clear = new Float64Array(pairs.length);   // clearance left since the last query
+  const sQ = new Float64Array(pairs.length);      // path parameter of that query (or chunk start)
+  const qLine = new Int32Array(pairs.length).fill(-1);   // line of that query (per-line contact marks)
   const rotLever = pairDofs.map(list => new Float64Array(list.length));
   const jv0: number[] = new Array(jointVals.length).fill(0);
   const jv1: number[] = new Array(jointVals.length).fill(0);
@@ -682,150 +1372,27 @@ export function sweepCollisions(
       track.abc[k + 2]! + (track.abc[j + 2]! - track.abc[k + 2]!) * t,
       vertModel?.[i] ?? identityKins,
       termFor(i),
+      tloFor(i),
+      toolFor(i),
     );
   };
 
-  outer:
-  for (let i = 1; i < n; i++) {
-    if (shouldAbort?.()) break;
-    const line = track.lines[i]!;
-    const isRapid = track.rapid[i] === 1;
-    const c0 = dcum[i - 1]!, c1 = dcum[i]!;
-    const L = c1 - c0;
-    if (L <= 1e-9) continue;
-    const j = i * 3, k = j - 3;
-    const dA = Math.abs(track.abc[j]! - track.abc[k]!);
-    const dB = Math.abs(track.abc[j + 1]! - track.abc[k + 1]!);
-    const dC = Math.abs(track.abc[j + 2]! - track.abc[k + 2]!);
-    // Chunk on the SUMMED rotary sweep, not the largest single one. The ×2
-    // lever-drift inflation below is justified by rotRad ≤ 0.4 rad giving
-    // 1/(1−rotRad) ≤ 1.65; with three rotaries turning at once, capping only
-    // the largest let the per-chunk total reach 67.5° and 1−rotRad go
-    // NEGATIVE — the argument stopped holding exactly on the machines that
-    // sweep three rotaries. Costs nothing when one rotary moves (the common
-    // case), where sum == max.
-    const chunks = Math.max(1, Math.ceil((dA + dB + dC) / CHUNK_ROT_DEG));
-    const segModel = vertModel?.[i] ?? identityKins;
-    const segBulges = segModel.type !== "trivkins";
-
-    for (let ch = 0; ch < chunks; ch++) {
-      const s0 = c0 + (L * ch) / chunks;
-      const s1 = c0 + (L * (ch + 1)) / chunks;
-      const Lc = s1 - s0;
-
-      // Chunk endpoint joint values + start-pose rotary levers.
-      interpPose(i, (s0 - c0) / L);
-      for (let x = 0; x < jointVals.length; x++) jv0[x] = jointVals[x]!;
-      // poseAt left this endpoint's machine coords in machineVals; keep them,
-      // the second interpPose is about to overwrite the buffer.
-      if (segBulges) for (let x = 0; x < 6; x++) chunkM0[x] = machineVals[x]!;
-      for (let pi = 0; pi < pairs.length; pi++) {
-        if (staticExcluded[pi]) continue;
-        const [ai, bi] = pairs[pi]!;
-        const list = pairDofs[pi]!;
-        const lev = rotLever[pi]!;
-        for (let di = 0; di < list.length; di++) {
-          const pd = list[di]!;
-          lev[di] = pd.dof.rotate
-            ? Math.max(leverFor(pd, bodies[ai]!), leverFor(pd, bodies[bi]!))
-            : 0;
-        }
-      }
-      interpPose(i, (s1 - c0) / L);
-      for (let x = 0; x < jointVals.length; x++) jv1[x] = jointVals[x]!;
-      // How far each joint can stray from the straight line between the two
-      // endpoint values just measured — the excursion jv1−jv0 cannot see.
-      // Zero under identity kins, so identity segments pay nothing.
-      if (segBulges) segModel.jointBulge(chunkM0, machineVals, jointBulge);
-      else jointBulge.fill(0);
-
-      for (let pi = 0; pi < pairs.length; pi++) {
-        if (staticExcluded[pi]) { pairV[pi] = 0; continue; }
-        const [ai, bi] = pairs[pi]!;
-        const A = bodies[ai]!, B = bodies[bi]!;
-        const list = pairDofs[pi]!;
-        // Each linear DOF on this pair's path contributes its endpoint delta
-        // PLUS its own mid-chunk bulge — per joint, so a pair riding only X
-        // pays only X's. The budget then flows into the rotary lever+trans
-        // recursion below, which needs it too.
-        let trans = 0;
-        let rotRadLever = 0;
-        for (let di = 0; di < list.length; di++) {
-          const pd = list[di]!;
-          const dJ = Math.abs((jv1[pd.dof.joint] ?? 0) - (jv0[pd.dof.joint] ?? 0));
-          if (!pd.dof.rotate) trans += dJ + (jointBulge[pd.dof.joint] ?? 0);
-          else {
-            const lever = Math.max(rotLever[pi]![di]!, leverFor(pd, A), leverFor(pd, B));
-            rotRadLever += (dJ * Math.PI / 180) * (lever + trans);
-          }
-        }
-        // Soundness: within the chunk, the true lever exceeds the endpoint
-        // lever by at most the chunk's own relative displacement — the
-        // recursion leverTrue ≤ (leverEnd + trans) / (1 − rotRad) with
-        // rotRad ≤ 0.4 (22.5° chunks) is bounded by ×1.65; ×2 gives slack.
-        pairV[pi] = (trans + rotRadLever * 2) / Lc;
-      }
-
-      // Certificates: a distance query at s proves the pair cannot reach
-      // the margin before sSafe = s + (d − margin)/V — no re-query needed
-      // until then (lazy conservative advancement). V changes per chunk, so
-      // certificates never carry across chunk boundaries.
-      sSafe.fill(s0);
-
-      let s = s0;
-      for (;;) {
-        interpPose(i, (s - c0) / L);
-        done++;
-        if (done > maxSamples && !budgetExceeded) {
-          budgetExceeded = true;
-          coarsened = true;  // honest: from here on, fixed EXPLORE steps
-        }
-        let step = s1 - s;
-        for (let pi = 0; pi < pairs.length; pi++) {
-          if (staticExcluded[pi]) continue;
-          if (sSafe[pi]! > s + 1e-9) {
-            const remain = sSafe[pi]! - s;
-            if (remain < step) step = remain;
-            continue;  // certificate still valid — skip the query
-          }
-          const [ai, bi] = pairs[pi]!;
-          const A = bodies[ai]!, B = bodies[bi]!;
-          const d = pairDistance(A, B, HORIZON);
-          if (d <= opts.margin) {
-            if (!inContact[pi]) {
-              inContact[pi] = 1;
-              onsetRapid[pi] = isRapid ? 1 : 0;
-            }
-            if (pairCutting[pi]) {
-              // Cutting pair (tool × workGroup body): feed contact is
-              // MACHINING — never reported. A contact whose ONSET fell in a
-              // rapid is the gouge class and reports for that rapid; a
-              // retract leaving contact begun on a feed (or present from
-              // the program start) is benign.
-              if (isRapid && onsetRapid[pi]) recordHit(line, s, true, pi, d);
-            } else {
-              recordHit(line, s, isRapid, pi, d);
-            }
-            sSafe[pi] = s + EXPLORE;  // re-probe cadence inside the contact
-          } else {
-            if (inContact[pi] && d > opts.margin * 2) {
-              inContact[pi] = 0;
-              onsetRapid[pi] = 0;
-            }
-            const bound = d === Infinity ? HORIZON : d;
-            sSafe[pi] = s + Math.max(MIN_ADV, (bound - opts.margin) / Math.max(pairV[pi]!, 1e-9));
-          }
-          const remain = sSafe[pi]! - s;
-          if (remain < step) step = remain;
-        }
-        if (budgetExceeded) step = Math.min(step, EXPLORE);
-        if (s >= s1 - 1e-9) break;
-        s = Math.min(s1, s + Math.max(step, MIN_ADV));
-        if (done > maxSamples * 4) break outer;  // hard runaway backstop
-      }
-    }
-    if (onProgress && (i & 15) === 0) onProgress(Math.min(1, c1 / (totalCum || 1)));
-  }
+  const maxMs = opts.maxMs ?? Infinity;
+  let truncated: CollisionResult["truncated"] = null;
+  // Driver abort (next(true)): the result is discarded by every driver, so
+  // the epilogue must not refine — a cancelled sweep with thousands of
+  // contact records used to spend 10+ s refining them before the worker
+  // could start the sweep that superseded it (trace 2026-09-12: 14 s at 0 %).
+  let aborted = false;
+  let sweptTo = 0;   // dist parameter reached — the covered fraction on truncation
+  const overBudget = (): boolean => clock() - t0 > maxMs;
+  // Progress and `covered` are fractions of the TRACK's axis (time on a
+  // time-based track): the scrub bar draws the swept section on its
+  // timeline (2026-09-12), so the sweep's own distance parameter converts
+  // through distToTrackCum here — only at checkpoints, so the binary search
+  // is free. On a distance track the two axes coincide.
+  const trackMax = n > 0 ? track.cum[n - 1]! : 0;
+  const frac = (s: number): number => Math.min(1, distToTrackCum(s) / (trackMax || 1));
   // Contact refinement: a penetrating hit's discovering sample can sit up
   // to one sample step PAST true contact — jumping to it would show the
   // tool already buried. Walk back by the local sample step to the last
@@ -871,86 +1438,444 @@ export function sweepCollisions(
     }
     return c;
   };
-  for (const h of worst.values()) {
-    if (h.dist > CONTACT_EPS || h.cum <= 0) continue;  // near-misses keep their closest-approach sample
-    const floor = lineStartDist(h.cum, h.line);
-    const ceil = lineEndDist(Math.max(h.cumEnd, h.cum), h.line);
-
-    // Contact within one line can be INTERMITTENT. The advancement loop
-    // samples every EXPLORE step while a pair sits inside the margin
-    // (certificates cannot stride there), so gaps wider than the stride
-    // between in-contact samples are VERIFIED separations — cluster the
-    // samples into candidate intervals, then refine every boundary.
-    const CLUSTER_GAP = EXPLORE * 2 + MIN_ADV;
-    h.samples.sort((x, y) => x - y);
-    const clusters: Array<[number, number]> = [];
-    for (const s of h.samples) {
-      const last = clusters[clusters.length - 1];
-      if (!last || s - last[1] > CLUSTER_GAP) clusters.push([s, s]);
-      else last[1] = s;
-    }
-    if (!clusters.length) clusters.push([h.cum, Math.max(h.cum, h.cumEnd)]);
-    // Pathological chatter cap — merge the tail rather than grow unbounded.
-    while (clusters.length > 16) {
-      const t = clusters.pop()!;
-      clusters[clusters.length - 1]![1] = t[1];
-    }
-
-    const intervals: Array<[number, number]> = [];
-    for (let ci = 0; ci < clusters.length; ci++) {
-      const [cs, ce] = clusters[ci]!;
-      // ENTRY: walk back toward the previous interval's exit / line start.
-      const efloor = ci === 0 ? floor : intervals[ci - 1]![1];
-      let hi = cs, lo = hi, guard = 0, bracketed = false;
-      while (guard++ < 128 && lo > efloor) {
-        lo = Math.max(efloor, lo - back);
-        if (distAtCum(lo, h.pi) > CONTACT_EPS) { bracketed = true; break; }
-        hi = lo;  // still in contact — earliest known contact moves back
+  // The result — built from a set of hit RECORDS so it can run twice: on the
+  // originals when the sweep ends, and on COPIES for a snapshot of the sweep-
+  // so-far while the generator is parked (SnapshotHandle). Everything below
+  // reads the loop's live state (sweptTo, done, coarsened, uncertified, the
+  // static contacts) at call time.
+  // Refinement memo (2026-09-12): a park snapshots the sweep-so-far by
+  // re-running buildResult on COPIES of every record, and the refinement
+  // below is its cost — mesh probes per contact boundary, for every record
+  // including the continuation records past the MAX_HITS cap (a long
+  // penetration is one record per line). A record whose inputs have not
+  // changed since it was last refined — its raw extent and sample count;
+  // records only ever GAIN samples — refines to the same intervals, so the
+  // second and every later snapshot (and the final result) reuse them.
+  // Values are DIST cum (captured before the track-cum conversion below).
+  const refined = new Map<string, { sig: string; cum: number; cumEnd: number; intervals: Array<[number, number]> }>();
+  const buildResult = (recs: typeof worst, trunc: CollisionResult["truncated"], final: boolean, refine: boolean): CollisionResult => {
+    // The REPORTED set first — onsets first when the cap bites: a long
+    // penetration's continuation records must never evict a genuinely
+    // distinct later clash — and only it is refined (2026-09-12: every
+    // record was, continuation records past the cap included — a program
+    // in contact from its first point is one record per LINE, and a park
+    // or the final result refined thousands of them at ~30 mesh probes
+    // each). Selection on the raw cums: refinement moves an onset back by
+    // under one sample step, so the order is the same but for near-ties.
+    const entries = [...recs.entries()];
+    const onsetE = entries.filter(([, h]) => h.continuation === undefined).sort((x, y) => x[1].cum - y[1].cum);
+    const contE = entries.filter(([, h]) => h.continuation !== undefined).sort((x, y) => x[1].cum - y[1].cum);
+    const selected = [...onsetE, ...contE].slice(0, MAX_HITS);
+    for (const [key, h] of selected) {
+      if (!refine) break;
+      if (h.dist > CONTACT_EPS || h.cum <= 0) continue;  // near-misses keep their closest-approach sample
+      const sig = `${h.samples.length},${h.cum},${h.cumEnd}`;
+      const memo = refined.get(key);
+      if (memo && memo.sig === sig) {
+        h.cum = memo.cum;
+        h.cumEnd = memo.cumEnd;
+        h.intervals = memo.intervals.map(iv => [iv[0], iv[1]] as [number, number]);
+        continue;
       }
-      const entry = bracketed ? bisectBoundary(hi, lo, h.pi) : hi;
-      // EXIT: walk forward toward the next cluster / line end.
-      const eceil = ci === clusters.length - 1 ? ceil : clusters[ci + 1]![0];
-      let elo = Math.max(ce, entry), ehi = elo;
-      guard = 0;
-      let exitBracketed = false;
-      while (guard++ < 128 && ehi < eceil) {
-        ehi = Math.min(eceil, ehi + back);
-        if (distAtCum(ehi, h.pi) > CONTACT_EPS) { exitBracketed = true; break; }
-        elo = ehi;
+      const floor = lineStartDist(h.cum, h.line);
+      const ceil = lineEndDist(Math.max(h.cumEnd, h.cum), h.line);
+
+      // Contact within one line can be INTERMITTENT. The advancement loop
+      // samples every EXPLORE step while a pair sits inside the margin
+      // (certificates cannot stride there), so gaps wider than the stride
+      // between in-contact samples are VERIFIED separations — cluster the
+      // samples into candidate intervals, then refine every boundary.
+      const CLUSTER_GAP = EXPLORE * 2 + MIN_ADV;
+      h.samples.sort((x, y) => x - y);
+      const clusters: Array<[number, number]> = [];
+      for (const s of h.samples) {
+        const last = clusters[clusters.length - 1];
+        if (!last || s - last[1] > CLUSTER_GAP) clusters.push([s, s]);
+        else last[1] = s;
       }
-      const exit = exitBracketed ? bisectBoundary(elo, ehi, h.pi) : ehi;
-      intervals.push([entry, exit]);
+      if (!clusters.length) clusters.push([h.cum, Math.max(h.cum, h.cumEnd)]);
+      // Pathological chatter cap — merge the tail rather than grow unbounded.
+      while (clusters.length > 16) {
+        const t = clusters.pop()!;
+        clusters[clusters.length - 1]![1] = t[1];
+      }
+
+      const intervals: Array<[number, number]> = [];
+      for (let ci = 0; ci < clusters.length; ci++) {
+        const [cs, ce] = clusters[ci]!;
+        // ENTRY: walk back toward the previous interval's exit / line start.
+        const efloor = ci === 0 ? floor : intervals[ci - 1]![1];
+        let hi = cs, lo = hi, guard = 0, bracketed = false;
+        while (guard++ < 128 && lo > efloor) {
+          lo = Math.max(efloor, lo - back);
+          if (distAtCum(lo, h.pi) > CONTACT_EPS) { bracketed = true; break; }
+          hi = lo;  // still in contact — earliest known contact moves back
+        }
+        const entry = bracketed ? bisectBoundary(hi, lo, h.pi) : hi;
+        // EXIT: walk forward toward the next cluster / line end.
+        const eceil = ci === clusters.length - 1 ? ceil : clusters[ci + 1]![0];
+        let elo = Math.max(ce, entry), ehi = elo;
+        guard = 0;
+        let exitBracketed = false;
+        while (guard++ < 128 && ehi < eceil) {
+          ehi = Math.min(eceil, ehi + back);
+          if (distAtCum(ehi, h.pi) > CONTACT_EPS) { exitBracketed = true; break; }
+          elo = ehi;
+        }
+        const exit = exitBracketed ? bisectBoundary(elo, ehi, h.pi) : ehi;
+        intervals.push([entry, exit]);
+      }
+      const merged = mergeContiguousIntervals(intervals);
+      h.cum = merged[0]![0];
+      h.cumEnd = merged[merged.length - 1]![1];
+      h.intervals = merged;
+      refined.set(key, { sig, cum: h.cum, cumEnd: h.cumEnd,
+                         intervals: merged.map(iv => [iv[0], iv[1]] as [number, number]) });
     }
-    h.cum = intervals[0]![0];
-    h.cumEnd = intervals[intervals.length - 1]![1];
-    h.intervals = intervals;
+    // Where each onset's contact finally ENDS, over ALL records (dist cum —
+    // refined for selected records, the raw last in-contact sample for the
+    // rest): the span the tint and the red extent paint past the cap.
+    const spanEndDist = new Map<string, number>();
+    for (const h of recs.values()) {
+      if (h.continuation === undefined) continue;
+      const key = keyFor(h.continuation, h.pi);
+      spanEndDist.set(key, Math.max(spanEndDist.get(key) ?? -Infinity, h.cumEnd));
+    }
+    // Hits leave the sweep in TRACK cum (time on a time-based track) — the
+    // scrub-to-hit target must live on the slider's axis.
+    for (const [key, h] of selected) {
+      const se = h.continuation === undefined ? spanEndDist.get(key) : undefined;
+      if (se !== undefined && se > h.cumEnd) h.spanCumEnd = distToTrackCum(se);
+      else delete h.spanCumEnd;
+      h.cum = distToTrackCum(h.cum);
+      h.cumEnd = Math.max(h.cum, distToTrackCum(h.cumEnd));
+      if (h.intervals) {
+        for (const iv of h.intervals) {
+          iv[0] = distToTrackCum(iv[0]);
+          iv[1] = Math.max(iv[0], distToTrackCum(iv[1]));
+        }
+      }
+    }
+
+    // Back-fill spanEndLine on every onset: the last line its contact persists
+    // through (continuations point at their onset by line + pair) — over ALL
+    // records: a continuation past the cap still extends its onset's span.
+    for (const h of recs.values()) {
+      if (h.continuation === undefined) continue;
+      const onset = recs.get(keyFor(h.continuation, h.pi));
+      if (onset) onset.spanEndLine = Math.max(onset.spanEndLine ?? onset.line, h.line);
+    }
+
+    // Re-sorted by cum after refinement (ScrubBar relies on cum order).
+    const hits = selected.map(([, h]) => h)
+      .sort((x, y) => x.cum - y.cum)
+      .map(({ pi: _pi, samples: _s, ...rest }) => rest);
+
+    // Hand the model back wearing its BASE tool body — the model's own
+    // (TWP-07): a caller that reuses the model (the resident worker model,
+    // tests) must not inherit the last segment's program tool. (Final
+    // result only — a snapshot leaves the suspended loop's tool alone; the
+    // loop re-installs its tool at every pose, which follows every resume.)
+    if (final) restoreBaseTool(model);
+    return {
+      hits,
+      staticContacts,
+      samples: done,
+      coarsened,
+      uncertified,
+      pairCount: pairs.length,
+      pairsPrescreened,
+      bvhMs: model.bvhMs,
+      sweepMs: clock() - t0,
+      truncated: trunc,
+    };
+    };
+
+  if (opts.snapshot) {
+    opts.snapshot.take = (reason) => {
+      const copy: typeof worst = new Map();
+      for (const [k, h] of worst) {
+        copy.set(k, { ...h, samples: h.samples.slice(),
+                      intervals: h.intervals?.map(iv => [iv[0], iv[1]] as [number, number]) });
+      }
+      return buildResult(copy, { covered: frac(sweptTo), reason }, false, true);
+    };
+    opts.snapshot.peek = () => {
+      // refine=false never sorts or mutates a record's samples, so a shallow
+      // copy suffices (live records carry no intervals yet).
+      const copy: typeof worst = new Map();
+      for (const [k, h] of worst) copy.set(k, { ...h });
+      return buildResult(copy, { covered: frac(sweptTo), reason: "running" }, false, false);
+    };
+    opts.snapshot.records = () => worst.size;
   }
-  // Hits leave the sweep in TRACK cum (time on a time-based track) — the
-  // scrub-to-hit target must live on the slider's axis.
-  for (const h of worst.values()) {
-    h.cum = distToTrackCum(h.cum);
-    h.cumEnd = Math.max(h.cum, distToTrackCum(h.cumEnd));
-    if (h.intervals) {
-      for (const iv of h.intervals) {
-        iv[0] = distToTrackCum(iv[0]);
-        iv[1] = Math.max(iv[0], distToTrackCum(iv[1]));
+  // Checkpoint before the first segment: an abort here leaves the baseline
+  // pose only (the "aborts early" contract).
+  const abortAtStart = (yield 0) === true;
+  if (abortAtStart) aborted = true;
+  lastYield = clock();
+  // Tool geometry / tool offset of the previous segment (TWP-06): a carried
+  // clearance certificate is only valid while the tool body's geometry and
+  // its −TLO shift are those it was measured with.
+  let prevTool = toolFor(0);
+  let prevTlo = tloFor(0);
+  // A break crossed since the last swept segment (R-03, implementation review
+  // 2026-09-15). `brk` carries TWO things: a kins/WCS relabel, which is a
+  // stationary re-expression, and an unknown START (scrubTrack ORs `ustart`
+  // in) — an endpoint the machine reached by a path no parse can know, e.g.
+  // the motion around an M6. Both arrive as a zero-length segment, which the
+  // L <= eps guard below skips, so clearance measured BEFORE the break used
+  // to survive it: the sweep then strode past real contact in the known
+  // motion after the gap (the review's probe: 0 hits combined, 1 hit on the
+  // suffix alone). Carried clearance is a statement about a distance that was
+  // actually measured, and after unknown motion there is no such statement —
+  // for ANY pair, not just the tool's (a tool change moves the table too).
+  // So: remember the break and invalidate everything at the next real
+  // segment. Relabels pay the same single re-query; there are a handful per
+  // program, which is why this does not need the two flags separated on the
+  // wire.
+  let pendingBreak = false;
+  outer:
+  for (let i = 1; i < n && !abortAtStart; i++) {
+    // i > 1 for the time-based checkpoint: a segment-1 checkpoint has
+    // swept nothing, and a budget check there would report 0 % covered for
+    // a sweep that merely started late (scheduler pause between the
+    // baseline yield and the first resume).
+    if ((i & 15) === 0 || (i > 1 && clock() - lastYield >= yieldMs)) {
+      if (overBudget()) { truncated = { covered: frac(sweptTo), reason: "time" }; break; }
+      if ((yield frac(dcum[i - 1]!)) === true) { aborted = true; break; }
+      lastYield = clock();
+    }
+    const line = track.lines[i]!;
+    const isRapid = track.rapid[i] === 1;
+    const c0 = dcum[i - 1]!, c1 = dcum[i]!;
+    const L = c1 - c0;
+    if (track.brk?.[i]) pendingBreak = true;
+    if (L <= 1e-9) continue;
+    // Tool-geometry / tool-offset discontinuity (TWP-06, review 2026-09-14):
+    // a carried clearance was measured with the PREVIOUS segment's tool
+    // body. A different program tool swaps the cylinder; a different tool
+    // offset shifts the body by −TLO in the tool node. Either invalidates
+    // every tool pair's certificate: their clearance is zeroed so the
+    // chunk-start block re-queries them at this segment's start, and pairs
+    // in contact are forced to re-query too (a swap to a thinner tool is a
+    // separation the d > 2·margin rule then verifies; a swap to a fatter
+    // one is contact it measures — onset state is never guessed). Kins/WCS
+    // relabels (brk vertices) are zero-width and stationary, not a
+    // discontinuity of this kind; non-tool pairs are unaffected.
+    const segTool = toolFor(i), segTlo = tloFor(i);
+    const toolBoundary = segTool !== prevTool
+      || segTlo[0] !== prevTlo[0] || segTlo[1] !== prevTlo[1] || segTlo[2] !== prevTlo[2];
+    const breakBoundary = pendingBreak;
+    pendingBreak = false;
+    if (toolBoundary || breakBoundary) {
+      for (let pi = 0; pi < pairs.length; pi++) {
+        if (skipPair[pi]) continue;
+        if (breakBoundary || pairTool[pi]) clear[pi] = 0;
+      }
+    }
+    prevTool = segTool; prevTlo = segTlo;
+    const j = i * 3, k = j - 3;
+    const dA = Math.abs(track.abc[j]! - track.abc[k]!);
+    const dB = Math.abs(track.abc[j + 1]! - track.abc[k + 1]!);
+    const dC = Math.abs(track.abc[j + 2]! - track.abc[k + 2]!);
+    // Chunk on the SUMMED rotary sweep, not the largest single one. The ×2
+    // lever-drift inflation below is justified by rotRad ≤ 0.4 rad giving
+    // 1/(1−rotRad) ≤ 1.65; with three rotaries turning at once, capping only
+    // the largest let the per-chunk total reach 67.5° and 1−rotRad go
+    // NEGATIVE — the argument stopped holding exactly on the machines that
+    // sweep three rotaries. Costs nothing when one rotary moves (the common
+    // case), where sum == max.
+    const chunks = Math.max(1, Math.ceil((dA + dB + dC) / CHUNK_ROT_DEG));
+    const segModel = vertModel?.[i] ?? identityKins;
+    const segBulges = segModel.type !== "trivkins";
+
+    for (let ch = 0; ch < chunks; ch++) {
+      const s0 = c0 + (L * ch) / chunks;
+      const s1 = c0 + (L * (ch + 1)) / chunks;
+      const Lc = s1 - s0;
+
+      // Chunk endpoint joint values + start-pose rotary levers.
+      interpPose(i, (s0 - c0) / L);
+      for (let x = 0; x < jointVals.length; x++) jv0[x] = jointVals[x]!;
+      // poseAt left this endpoint's machine coords in machineVals; keep them,
+      // the second interpPose is about to overwrite the buffer.
+      if (segBulges) for (let x = 0; x < 6; x++) chunkM0[x] = machineVals[x]!;
+      for (let pi = 0; pi < pairs.length; pi++) {
+        if (skipPair[pi]) continue;
+        const [ai, bi] = pairs[pi]!;
+        const list = pairDofs[pi]!;
+        const lev = rotLever[pi]!;
+        for (let di = 0; di < list.length; di++) {
+          const pd = list[di]!;
+          lev[di] = pd.dof.rotate
+            ? Math.max(leverFor(pd, bodies[ai]!), leverFor(pd, bodies[bi]!))
+            : 0;
+        }
+      }
+      interpPose(i, (s1 - c0) / L);
+      for (let x = 0; x < jointVals.length; x++) jv1[x] = jointVals[x]!;
+      // How far each joint can stray from the straight line between the two
+      // endpoint values just measured — the excursion jv1−jv0 cannot see.
+      // Zero under identity kins, so identity segments pay nothing.
+      if (segBulges) segModel.jointBulge(chunkM0, machineVals, jointBulge);
+      else jointBulge.fill(0);
+
+      for (let pi = 0; pi < pairs.length; pi++) {
+        if (skipPair[pi]) { pairV[pi] = 0; continue; }
+        const [ai, bi] = pairs[pi]!;
+        const A = bodies[ai]!, B = bodies[bi]!;
+        const list = pairDofs[pi]!;
+        // Each linear DOF on this pair's path contributes its endpoint delta
+        // PLUS its own mid-chunk bulge — per joint, so a pair riding only X
+        // pays only X's. The budget then flows into the rotary lever+trans
+        // recursion below, which needs it too.
+        let trans = 0;
+        let rotRadLever = 0;
+        for (let di = 0; di < list.length; di++) {
+          const pd = list[di]!;
+          const dJ = Math.abs((jv1[pd.dof.joint] ?? 0) - (jv0[pd.dof.joint] ?? 0));
+          if (!pd.dof.rotate) trans += dJ + (jointBulge[pd.dof.joint] ?? 0);
+          else {
+            const lever = Math.max(rotLever[pi]![di]!, leverFor(pd, A), leverFor(pd, B));
+            rotRadLever += (dJ * Math.PI / 180) * (lever + trans);
+          }
+        }
+        // Soundness: within the chunk, the true lever exceeds the endpoint
+        // lever by at most the chunk's own relative displacement — the
+        // recursion leverTrue ≤ (leverEnd + trans) / (1 − rotRad) with
+        // rotRad ≤ 0.4 (22.5° chunks) is bounded by ×1.65; ×2 gives slack.
+        pairV[pi] = (trans + rotRadLever * 2) / Lc;
+      }
+
+      // Certificates: a distance query at s proves the pair cannot reach
+      // the margin before sSafe = s + (d − margin)/V — no re-query needed
+      // until then (lazy conservative advancement). V changes per chunk, so
+      // the carried clearance is re-expressed in THIS chunk's V here; a
+      // pair inside the margin keeps its absolute re-probe cadence
+      // (sSafe = s + EXPLORE), which needs no conversion.
+      for (let pi = 0; pi < pairs.length; pi++) {
+        if (skipPair[pi]) continue;
+        sQ[pi] = s0;
+        if (inContact[pi]) {
+          // A tool/TLO boundary re-measures in-contact tool pairs at once
+          // (TWP-06), a break re-measures EVERY pair (R-03) — see the
+          // segment head. Contact carried across either is not a measurement
+          // of this segment; the d > 2·margin rule verifies any separation.
+          if (ch === 0 && (breakBoundary || (toolBoundary && pairTool[pi]))) {
+            sSafe[pi] = s0; continue;
+          }
+          // Every LINE a pair stays in contact with gets at least one sample
+          // (its continuation record — the G-code panel marks it); within a
+          // line the EXPLORE cadence carries across the chunks. A cutting
+          // pair in FEED-begun contact mints no record at all (machining),
+          // so it owes no per-line sample — the EXPLORE cadence alone keeps
+          // watching for separation (2026-09-13: on a 0.7 mm-line random walk
+          // the per-line rule queried the tool×stock pair 7× more often than
+          // its cadence, a fifth of the whole sweep).
+          if (qLine[pi] !== line && !(pairCutting[pi] && !onsetRapid[pi])) sSafe[pi] = s0;
+          continue;
+        }
+        const c = clear[pi]!;
+        sSafe[pi] = c > 0 ? s0 + c / Math.max(pairV[pi]!, 1e-9) : s0;
+      }
+
+      let s = s0;
+      for (;;) {
+        done++;
+        // Checkpoint BEFORE the pose (TWP-07): a yield between interpPose and
+        // the distance queries let whatever ran in between — a side sweep,
+        // a snapshot's refinement probe — re-pose the shared model under
+        // this sample's queries. Progress reports the last COMPLETED sample.
+        if ((done & (SAMPLES_PER_CLOCK - 1)) === 0
+            && ((done & (SAMPLES_PER_YIELD - 1)) === 0 || clock() - lastYield >= yieldMs)) {
+          if (overBudget()) { truncated = { covered: frac(sweptTo), reason: "time" }; break outer; }
+          if ((yield frac(sweptTo)) === true) { aborted = true; break outer; }
+          lastYield = clock();
+        }
+        interpPose(i, (s - c0) / L);
+        if (done > maxSamples && !budgetExceeded) {
+          budgetExceeded = true;
+          coarsened = true;  // honest: from here on, fixed EXPLORE steps
+        }
+        let step = s1 - s;
+        for (let pi = 0; pi < pairs.length; pi++) {
+          if (skipPair[pi]) continue;
+          if (sSafe[pi]! > s + 1e-9) {
+            const remain = sSafe[pi]! - s;
+            if (remain < step) step = remain;
+            continue;  // certificate still valid — skip the query
+          }
+          const [ai, bi] = pairs[pi]!;
+          const A = bodies[ai]!, B = bodies[bi]!;
+          let d: number;
+          if (prof) {
+            const tq = clock();
+            d = pairDistance(A, B, HORIZON);
+            prof.ms![pi] = prof.ms![pi]! + (clock() - tq);
+            prof.queries![pi] = prof.queries![pi]! + 1;
+          } else {
+            d = pairDistance(A, B, HORIZON);
+          }
+          if (d <= opts.margin) {
+            if (!inContact[pi]) {
+              inContact[pi] = 1;
+              onsetRapid[pi] = isRapid ? 1 : 0;
+              onsetLine[pi] = line;
+              // Re-entry promotion: a genuine onset on a line whose record
+              // was minted as a continuation (contact carried in, separated,
+              // came back on the same line) is a real clash — never hidden.
+              const ex = worst.get(keyFor(line, pi));
+              if (ex && ex.continuation !== undefined) delete ex.continuation;
+            }
+            if (pairCutting[pi]) {
+              // Cutting pair (tool × workGroup body): feed contact is
+              // MACHINING — never reported. A contact whose ONSET fell in a
+              // rapid is the gouge class and reports for that rapid; a
+              // retract leaving contact begun on a feed (or present from
+              // the program start) is benign.
+              if (isRapid && onsetRapid[pi]) recordHit(line, s, true, pi, d);
+            } else {
+              recordHit(line, s, isRapid, pi, d);
+            }
+            sSafe[pi] = s + EXPLORE;  // re-probe cadence inside the contact
+            clear[pi] = 0;
+            sQ[pi] = s;
+            qLine[pi] = line;
+          } else {
+            if (inContact[pi] && d > opts.margin * 2) {
+              inContact[pi] = 0;
+              onsetRapid[pi] = 0;
+              onsetLine[pi] = -1;  // verified separation: the next touch is a new onset
+            }
+            const bound = d === Infinity ? HORIZON : d;
+            clear[pi] = bound - opts.margin;
+            sQ[pi] = s;
+            qLine[pi] = line;
+            sSafe[pi] = s + Math.max(MIN_ADV, (bound - opts.margin) / Math.max(pairV[pi]!, 1e-9));
+          }
+          const remain = sSafe[pi]! - s;
+          if (remain < step) step = remain;
+        }
+        sweptTo = s;   // this sample's queries are complete
+        if (budgetExceeded) step = Math.min(step, EXPLORE);
+        if (s >= s1 - 1e-9) break;
+        s = Math.min(s1, s + Math.max(step, MIN_ADV));
+        if (done > maxSamples * 4) {   // hard runaway backstop — said, never silent
+          truncated = { covered: frac(s), reason: "samples" };
+          break outer;
+        }
+      }
+      // Chunk done: what this chunk could have consumed of each carried
+      // clearance since its last query (or since the chunk start).
+      for (let pi = 0; pi < pairs.length; pi++) {
+        if (skipPair[pi] || inContact[pi]) continue;
+        clear[pi] = clear[pi]! - pairV[pi]! * (s1 - sQ[pi]!);
       }
     }
   }
-  onProgress?.(1);
-
-  const hits = [...worst.values()]
-    .sort((x, y) => x.cum - y.cum)
-    .slice(0, MAX_HITS)
-    .map(({ pi: _pi, samples: _s, ...rest }) => rest);
-  return {
-    hits,
-    staticContacts,
-    samples: done,
-    coarsened,
-    uncertified,
-    pairCount: pairs.length,
-    bvhMs: model.bvhMs,
-    sweepMs: performance.now() - t0,
-  };
+  const finalResult = buildResult(worst, truncated, true, !aborted);
+  yield truncated ? truncated.covered : 1;
+  if (opts.snapshot) { opts.snapshot.take = null; opts.snapshot.peek = null; opts.snapshot.records = null; }
+  return finalResult;
 }

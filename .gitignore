@@ -45,3 +45,7 @@ ARCHITECTURE_HANDOFF.md
 ISSUE_35_HANDOFF.md
 PERFORMANCE_MODULARIZATION_HANDOFF.md
 examples/sim_config/probe-results-interptest.txt
+
+# Debian orig-source tarballs pulled in for source verification (92 MB, one
+# careless `git add .` from a bad commit)
+*.orig.tar.gz

@@ -16,7 +16,7 @@ import re
 import tempfile
 import hmac
 from urllib.parse import urlsplit
-from typing import Iterable, Optional
+from typing import Dict, Iterable, Optional
 
 
 # File-upload allow-list. Lives here (not gateway.py) so validate_extension is
@@ -58,8 +58,19 @@ ALLOWED_EXTENSIONS = {".ngc", ".nc", ".gcode", ".tap", ".txt"}
 # call-site line attribution (`feed_cline`/`rapid_cline` u16, W4): points
 # inside a marked sub span whose UNIQUE main-file call/trigger line is
 # text-verified carry that line, so the highlight tracks the o-call or
-# remap trigger instead of going dark — pre-7 payloads show chip-only.
-PREVIEW_SCHEMA = 7
+# remap trigger instead of going dark — pre-7 payloads show chip-only;
+# 8 = per-segment TLO/tool events (`tlo_events` [seq, xo, yo, zo, tool],
+# machine units, present only when the program changes tool or offset)
+# and a diameter column on `parse_tlos` — the sixth run-time state input:
+# pre-8 the client applied ONE live tool offset to the whole track, so a
+# program applying its own G43 before motion posed every joint a tool
+# length high on a fresh boot (the corpus gate's 22.000 catch); 9 = the
+# validator's per-vertex outside-limits verdict on the wire
+# (`feed_outside`/`rapid_outside`, one byte per shipped vertex: the
+# segment ENDING there put a joint beyond the live joint window) and the
+# `__LIMITS__` stderr line naming the window it was judged against —
+# the client draws the overlay from the flags and derives nothing.
+PREVIEW_SCHEMA = 9
 
 
 def sanitize_filename(name: str) -> str:
@@ -865,6 +876,39 @@ def mode_boundary_indices(mode):
     return out
 
 
+def seq_boundary_indices(seqs, bounds):
+    """Vertex indices that must survive decimation at every seq BOUNDARY in
+    `bounds` (the rotary-command seqs, 2026-09-11): the segment at seq >= b
+    is governed differently from the one before, so — exactly as
+    mode_boundary_indices — BOTH the last vertex before the boundary and
+    the first at/after it anchor, or a collinear run collapses across it
+    and the client (which stamps a segment with its END vertex) draws real
+    inherited motion riding the table. Vectorized (searchsorted + diff):
+    a 2 M-vertex stream is one C pass. Pure."""
+    import numpy as np
+    if not bounds or not len(seqs):
+        return set()
+    b = np.asarray(sorted(set(int(x) for x in bounds)), dtype=np.int64)
+    governed = np.searchsorted(b, np.asarray(seqs, dtype=np.int64), side="right")
+    flips = np.flatnonzero(np.diff(governed) != 0)     # change between i and i+1
+    return set(int(i) for i in flips) | set(int(i) + 1 for i in flips)
+
+
+def event_boundary_indices(seqs, events):
+    """Vertex indices that must survive decimation at a seq-keyed EVENT
+    boundary (schema 8: tlo_events). Same rule as mode_boundary_indices —
+    both the last vertex governed by the old event and the first governed
+    by the new one anchor — applied to the per-segment event index that
+    kins_frame_indices resolves (None before the first event). A G43
+    followed by a FEED makes no vertex of its own (only a traverse does,
+    via first_move), so a collinear run across the change would otherwise
+    collapse into one segment carrying the wrong offset. Pure."""
+    if not events or not seqs:
+        return set()
+    idx = kins_frame_indices(seqs, events)
+    return mode_boundary_indices([-1 if i is None else i for i in idx])
+
+
 def should_ship_abc(kins_marked, raw_abc, peeled_abc, eps=1e-9):
     """Whether per-vertex A/B/C must ride the preview wire (W2 P3).
 
@@ -943,6 +987,214 @@ def rotary_sync_initcode(axis_mask, actual_position):
     return "G53 G0 " + " ".join(words)
 
 
+# ── touch-off provenance (W1) ───────────────────────────────────────────
+# NOTHING in LinuxCNC records the machine state an offset was established
+# in. That is fine on a 3-axis mill and false on a rotary table: an offset
+# touched off at A=20 is only true at A=20, and the same three numbers mean
+# different things depending on whether TCP kinematics were active when
+# they were set. The TWP stack read the active offset as a TABLE-frame
+# point and therefore carried a STANDING PRECONDITION — "touch off with A
+# at 0" — that no code could check. This is what makes it checkable.
+#
+# Storage: LinuxCNC's fixture table is 20 parameters wide but the
+# interpreter defines only the first ten (G54 X..R = 5221..5230, then
+# G55_X at 5241). The second ten are unassigned, and any parameter present
+# in the var file persists across a restart. So every fixture has ten free,
+# persistent, G-code-readable slots at 5231 + (i-1)*20 — verified against
+# the var file's own layout, whose gaps (5230->5241, 5250->5261, ...) are
+# exactly this stride.
+WCS_PROV_BASE = 5231
+WCS_PROV_STRIDE = 20
+#: value of the `stamped` slot that means "this record is present".
+PROV_STAMPED = 1.0
+
+
+def wcs_prov_params(index):
+    """Provenance parameter numbers for fixture `index` (1=G54 .. 9=G59.3).
+
+    `stamped` is a PRESENCE FLAG, not a sentinel value in the data. That is
+    deliberate and was learned the hard way: the first cut used -1e9 in the
+    `kins` slot to mean "never recorded", and a var-file round-trip brought
+    it back as 0.000000 — which is a perfectly valid kins type (identity).
+    A never-stamped offset would have read as "touched off in identity kins
+    at A=0", confidently and wrongly. A flag whose absent value is the 0
+    that a fresh var file is already full of cannot fail that way.
+
+    `kins` and `a` are the state at touch-off. `x`/`y`/`z` are the offset
+    values AS WRITTEN, which is what makes the record falsifiable — see
+    evaluate_wcs_provenance. Pure.
+    """
+    i = int(index)
+    if not 1 <= i <= 9:
+        raise ValueError(f"fixture index out of range: {index}")
+    b = WCS_PROV_BASE + (i - 1) * WCS_PROV_STRIDE
+    return {"stamped": b, "kins": b + 1, "a": b + 2,
+            "x": b + 3, "y": b + 4, "z": b + 5}
+
+
+def evaluate_wcs_provenance(prov, offset_xyz, eps=1e-6):
+    """Is the recorded touch-off provenance still TRUE of this offset?
+
+    We stamp only the writes we control (the gateway's own G10 L2). A
+    program's `G10 L2`, another GUI, or a hand-typed MDI line changes the
+    offset and leaves the stamp behind — and a STALE provenance is worse
+    than none, because it reads as authoritative while describing an offset
+    that no longer exists. So the stamp carries the values it was written
+    for, and is believed only while they still match.
+
+    `prov` is {kins, a, x, y, z} as read from the parameters; `offset_xyz`
+    is the fixture's live X/Y/Z. Returns one of:
+
+      ("valid", {"kins": int, "a": float})  -- trustworthy
+      ("absent", None)                      -- never stamped (sentinel/missing)
+      ("stale",  {...})                     -- stamped, but the offset moved
+                                               underneath it; includes the
+                                               recorded values so the caller
+                                               can say what changed.
+
+    Absence and staleness are DIFFERENT answers and callers must not
+    collapse them: absent means "unknown, proceed by the old rules", stale
+    means "someone changed this behind our back", which is worth saying out
+    loud. A stamp with NO live offset to check against is a fourth answer,
+    ("unknown", {...recorded}) — the stamp exists but nothing can falsify
+    it right now, so no claim is made either way. (The first cut here
+    substituted zeros for the missing live triple, which could MANUFACTURE
+    a "stale" verdict — live_xyz=[0,0,0] — out of absent data.) Pure.
+    """
+    if not prov:
+        return ("absent", None)
+    try:
+        stamped = float(prov["stamped"])
+        kins = float(prov["kins"])
+        a = float(prov["a"])
+        rec = [float(prov["x"]), float(prov["y"]), float(prov["z"])]
+    except (KeyError, TypeError, ValueError):
+        return ("absent", None)
+    # The flag is the ONLY presence test. A fresh var file is all zeros, so
+    # "never stamped" needs no magic value that a round-trip could mangle.
+    if abs(stamped - PROV_STAMPED) > 1e-9:
+        return ("absent", None)
+    if offset_xyz is None or len(offset_xyz) < 3:
+        return ("unknown", {"kins": int(round(kins)), "a": a,
+                            "recorded_xyz": rec})
+    live = [float(v) for v in offset_xyz[:3]]
+    if any(abs(r - l) > eps for r, l in zip(rec, live)):
+        return ("stale", {"kins": int(round(kins)), "a": a,
+                          "recorded_xyz": rec, "live_xyz": live})
+    return ("valid", {"kins": int(round(kins)), "a": a})
+
+
+#: Table-pose agreement window for provenance stamping, degrees. Wide enough
+#: to absorb servo dither on a parked rotary, far below any deliberate move.
+PROV_A_EPS = 0.01
+
+#: Head-alignment window, degrees: the A/B/C pose the head was last oriented
+#: at vs the live rotaries. Twin of lcnc-webui/src/twpPose.ts TWP_POSE_EPS_DEG
+#: and of the remap's ROTARY_READBACK_TOL_DEG (TWP-04).
+TWP_POSE_EPS_DEG = 0.05
+#: The remap's "no orient yet" sentinel is -1e9; anything at or below this is
+#: "none". Twin of twpPose.ts TWP_POSE_NONE_BELOW.
+TWP_POSE_NONE_BELOW = -1e8
+
+
+def rotary_delta_deg(a, b):
+    """Signed shortest angular difference a − b, degrees, in [-180, 180)."""
+    return ((float(a) - float(b) + 180.0) % 360.0) - 180.0
+
+
+def twp_head_aligned(pose_abc, live_abc, defined, tol_deg=TWP_POSE_EPS_DEG,
+                     none_below=TWP_POSE_NONE_BELOW):
+    """Is the HEAD still aligned with the plane it was last oriented into?
+
+    True: every stamped rotary (A, B, C) matches the live one within
+    `tol_deg`, wrap-aware. False: some rotary moved since the orient. None:
+    UNKNOWN — no plane, no orient yet (sentinel), a missing or non-finite
+    stamp or live reading. Unknown never reads as aligned: the caller
+    collapses None to the CLOSED gate. Python twin of twpPose.ts
+    twpPoseStale / twpPoseOriented (TWP-04, review 2026-09-14). Pure."""
+    if defined is not True:
+        return None
+    try:
+        pose = [None if v is None else float(v) for v in (pose_abc or ())][:3]
+        live = [None if v is None else float(v) for v in (live_abc or ())][:3]
+    except (TypeError, ValueError):
+        return None
+    if len(pose) < 3 or len(live) < 3:
+        return None
+    for pv, lv in zip(pose, live):
+        if pv is None or lv is None or not math.isfinite(pv) or not math.isfinite(lv):
+            return None
+        if pv <= none_below:
+            return None
+    return all(abs(rotary_delta_deg(lv, pv)) <= tol_deg for pv, lv in zip(pose, live))
+
+
+def wcs_stamp_decision(prior_valid, prior_a, prior_kins,
+                       current_a, current_kins, wrote_all_xyz,
+                       eps_deg=PROV_A_EPS):
+    """Should this touch-off write STAMP the fixture, or CLEAR its stamp?
+
+    The stamp records ONE (kins, A) per fixture, claiming the whole X/Y/Z
+    triple was established there. A PARTIAL write (the everyday Z-only
+    touch-off) merges new components into old ones — and if the old ones
+    were established at a different table pose, no single pose describes
+    the result. Stamping it would be the confident lie; keeping the old
+    stamp would misfire the 'stale' signal (which means "someone changed
+    this behind our back", not "we updated it ourselves"). Clearing is the
+    one state whose downstream semantics — "unknown, the documented A=0
+    rule applies" — are exactly true, and the caller makes it loud.
+
+    Returns "stamp" or "clear":
+      - full X/Y/Z write            -> stamp (whole triple is ours, here)
+      - partial, prior stamp valid,
+        same pose and same kins     -> stamp (merge is pose-consistent)
+      - partial, no prior stamp,
+        at the A=0 identity datum   -> stamp (claims exactly what the
+                                       historical assumption already claims
+                                       for the unstamped components)
+      - anything else               -> clear
+
+    A clear at the datum is harmless by construction (assumed A=0 IS the
+    truth there), so ties break toward clearing. Pure.
+    """
+    if wrote_all_xyz:
+        return "stamp"
+    if prior_valid and abs(float(prior_a) - float(current_a)) <= eps_deg \
+            and int(round(prior_kins)) == int(round(current_kins)):
+        return "stamp"
+    if not prior_valid and abs(float(current_a)) <= eps_deg \
+            and int(round(current_kins)) == 0:
+        return "stamp"
+    return "clear"
+
+
+def override_rotary_position(actual_position, pose):
+    """`actual_position` with its A/B/C slots replaced by `pose`.
+
+    The preview seeds its rotary pose from the LIVE machine, which is right
+    for the gateway and wrong for a GOLDEN: it makes the recorded payload a
+    function of wherever the table happened to be parked when the gate ran.
+    Observed here — a golden generated with the table at A=0 drifts as soon
+    as a session leaves it at A=35, reported as `swept_axes [] -> ['B','C']`
+    with nothing to say the cause was the machine and not the code.
+
+    Substituting at the shared INPUT rather than at each call site is
+    deliberate: `rotary_sync_initcode` (what the interp is seeded with) and
+    `rotary_seed_values` (what the drift edge later compares against) must
+    describe the same pose or the payload lies about its own baseline.
+
+    `pose` is {letter: degrees}; letters absent from it keep their live
+    value. Returns a list, or None if there is nothing to override. Pure.
+    """
+    if actual_position is None or not pose:
+        return actual_position
+    out = list(actual_position)
+    for slot, letter in ((3, "A"), (4, "B"), (5, "C")):
+        if letter in pose and slot < len(out):
+            out[slot] = float(pose[letter])
+    return out
+
+
 def rotary_seed_values(axis_mask, actual_position):
     """The rotary {letter: value} the sync initcode seeds (schema 5) — the
     parse-time snapshot the gateway's drift edge compares against the live
@@ -958,6 +1210,58 @@ def rotary_seed_values(axis_mask, actual_position):
             except (TypeError, IndexError, ValueError):
                 return None
     return out or None
+
+
+
+def drift_gate_open(active_file, refresh_running, preview_available, interp_idle,
+                    current_vel, since_last_check_s, debounce_s=2.0):
+    """May the idle drift edges (TLO / rotary / kins / WCS-offset) evaluate now?
+
+    One predicate for all four edges. `interp_idle` alone is a single poll
+    sample: LinuxCNC reports INTERP_IDLE as soon as the interpreter has read
+    the last block, while the motion queue still drains — a short program's
+    tail is "idle" with the axes moving, and a kins 0→2 step or a G10 L2 from
+    the program would otherwise schedule a reparse MID-RUN (the preview would
+    swap under a running program). The rotary edge already required
+    `not current_vel`; this hoists it to the shared gate (2026-09-03). Pure.
+    """
+    return (bool(active_file)
+            and not refresh_running
+            and bool(preview_available)
+            and bool(interp_idle)
+            and not current_vel
+            and since_last_check_s >= debounce_s)
+
+def joints_beyond_limits(joint_pos, limits, eps=1e-6):
+    """Indices of joints whose position lies OUTSIDE [min, max] (by more than
+    eps). `limits` is a sequence of (min, max) per joint (STAT.joint[i]
+    min_position_limit / max_position_limit); a None entry on either side
+    means unknown → never flagged. Pure.
+
+    Why this exists (2026-09-05, TWP sim, Z0 = top of travel): under TCP/TOOL
+    kins the WORLD Z window is lifted, so a +Z teleop jog toward the top can
+    drive joint Z past its ceiling; motion's backup check then aborts the jog
+    ("Exceeded POSITIVE soft limit … Hint: switch to joint mode to jog off
+    soft limit") and REFUSES every further world-mode move — teleop jogs and
+    MDI alike — while the joint sits outside its window. STAT's per-joint
+    max_soft_limit flag read 0 in that state; the position vs its limits is
+    the truth. The gateway jogs in JOINT mode while this list is non-empty."""
+    out = []
+    for i, pos in enumerate(joint_pos or []):
+        if i >= len(limits or []):
+            break
+        lim = limits[i]
+        if not lim or lim[0] is None or lim[1] is None or pos is None:
+            continue
+        try:
+            p, lo, hi = float(pos), float(lim[0]), float(lim[1])
+        except (TypeError, ValueError):
+            continue
+        if not (math.isfinite(p) and math.isfinite(lo) and math.isfinite(hi)):
+            continue
+        if p < lo - eps or p > hi + eps:
+            out.append(i)
+    return out
 
 
 def evaluate_rotary_drift(seed, rotary_abc, eps=0.01):
@@ -986,6 +1290,86 @@ def evaluate_rotary_drift(seed, rotary_abc, eps=0.01):
     return ("rotary:" + drifted) if drifted else None
 
 
+
+def program_end_kins_type(program_events):
+    """The switchkins type a program LEAVES the machine in, from its own
+    `(WEBUI_KINSTYPE=n)` markers (execution-ordered (seq, type) pairs, BEFORE
+    the live seed is prepended): the last marker's type, or None when the
+    program never switches — a markerless program is not at fault for the
+    mode it was started in (the live seed is the operator's state). Non-zero
+    = the program does not restore identity before M2: M2 restores G54 but
+    not the kins pin, so the next program would run in that frame (the trap
+    the TWP demo walks into). Pure; unit-tested.
+    """
+    if not program_events:
+        return None
+    try:
+        return int(program_events[-1][1])
+    except (TypeError, ValueError, IndexError):
+        return None
+
+def seed_kins_events(events, frames, live_type, live_frame):
+    """Seed the parse-time kins state from the LIVE machine (the FIFTH
+    run-time freshness input — the 855-unit class: a plain-G54 program run
+    after the TWP demo executes under TOOL kins because M2 restores G54
+    but NOT the switchkins type, while the parse hard-assumed startup
+    type 0).
+
+    Prepends a synthetic marker event at seq -1 (strictly before every
+    canon seq, and still strictly before after the relabel pass doubles
+    seqs) so the ONE existing resolution path (kins_type_flags /
+    kins_frame_indices) applies it — no second code path. A type-2 seed
+    also prepends the live plane frame when the reader supplied one; a
+    frameless type-2 seed degrades exactly like a bare M430 (segments ride
+    the wire as unchecked, honestly). A program whose own first marker
+    fires before any motion simply overrides the seed.
+
+    live_type None (untracked/absent) or 0 (identity — the flags' default)
+    seeds nothing. Returns (events, frames) as NEW lists. Pure."""
+    if live_type in (None, 0):
+        return list(events), list(frames)
+    ev = [(-1, int(live_type))] + list(events)
+    fr = list(frames)
+    if int(live_type) == 2 and live_frame is not None and len(live_frame) == 3 \
+            and all(isinstance(v, (int, float)) for v in live_frame):
+        fr = [(-1, float(live_frame[0]), float(live_frame[1]),
+               float(live_frame[2]))] + fr
+    return ev, fr
+
+
+def evaluate_kins_drift(seed, live_type, live_frame, eps=1e-4):
+    """Has the machine's switchkins STATE moved since the preview was
+    parsed? (Fifth freshness input, drift side.)
+
+    seed       -- the worker's __KINSSEED__ snapshot
+                  {"type": int|None, "frame": [p,t1,t2]|None}: what the
+                  parse ASSUMED (ctx values, echoed verbatim).
+    live_type  -- current motion.switchkins-type (status snapshot).
+    live_frame -- current [pre_rot, primary, secondary] pins, or None.
+
+    Returns "kins:type" when the live type left the seeded one,
+    "kins:frame" when both sit in TOOL kins (2) but the plane frame pins
+    moved past eps, else None. Either side absent makes no claim (an
+    untracked config must never develop a drift edge). The CALLER owns
+    idle-gating and debounce, same contract as evaluate_rotary_drift.
+    Pure."""
+    if not seed or live_type is None:
+        return None
+    seed_type = seed.get("type")
+    if seed_type is None:
+        return None
+    if int(live_type) != int(seed_type):
+        return "kins:type"
+    if int(live_type) == 2:
+        sf = seed.get("frame")
+        if sf is None or live_frame is None or len(sf) != 3 \
+                or len(live_frame) != 3:
+            return None
+        for a, b in zip(sf, live_frame):
+            if a is None or b is None:
+                return None
+            if abs(float(a) - float(b)) > eps:
+                return "kins:frame"
 #: Flat WCS-offset snapshot layout: 9 rows (G54..G59.3) × 10 slots
 #: (x y z a b c u v w r) + 9 g92 slots = 99 entries.
 _WCSOFF_ROW_KEYS = ("x", "y", "z", "a", "b", "c", "u", "v", "w", "r")
@@ -1064,6 +1448,104 @@ def evaluate_wcs_offset_drift(snap_flat, live_flat, eps=1e-3):
     return None
 
 
+
+def preview_file_edge_action(file_changed, reparse_pending, refresh_running, inflight,
+                             active_file, cur_mtime):
+    """What the poll loop's file/reparse edge does this tick (pure).
+
+    Returns "schedule" (start a parse now), "cancel:file" (the running
+    parse is for another file or mtime — supersede it), "cancel:reparse"
+    (an operator Reparse arrived during a parse — supersede it), or None
+    (nothing to do: no edge, or the running parse IS this file+mtime and
+    must be left to finish).
+
+    The last case is the 2026-09-05 live catch: `file_changed` stays true
+    until the parse PUBLISHES (last_file/last_mtime move at publish), so a
+    branch that cancelled whenever a parse was running killed every load
+    parse ~33 ms after its spawn, forever — the first supersede wave never
+    delivered a preview on the acceptance run."""
+    if not active_file:
+        return None
+    if not (file_changed or reparse_pending):
+        return None
+    if not refresh_running:
+        return "schedule"
+    inf = inflight or {}
+    same = inf.get("file") == active_file and inf.get("mtime") == cur_mtime
+    if file_changed and not same:
+        return "cancel:file"
+    if reparse_pending and not file_changed:
+        return "cancel:reparse"
+    return None
+
+def inflight_stale_reason(inflight, rotary_abc, rotary_prev, kins_type, kins_frame,
+                          wcs_flat, wcs_prev):
+    """Does an edge raised DURING a running parse stale that parse?
+    (cancel-and-restart, 2026-09-05.) `inflight` is bulk_pipeline's input
+    snapshot of the running parse — {"rotary_seed", "kins_seed",
+    "wcs_off"} in the published seeds' shapes — and the live arguments are
+    the same samples the post-publish drift edges use. Same rules, same
+    order, same settle guards as those edges: rotary drift only once the
+    pose held still across two checks, WCS-offset drift only once the
+    table held still (a multi-G10 Zero All restarts once), kins type/frame
+    as a discrete step. TLO drift is NOT evaluated in flight (it cannot
+    come from the zeroing workflow; the post-publish edge still catches
+    it). Returns the reason string or None; an absent snapshot makes no
+    claim. Pure."""
+    if not inflight:
+        return None
+    r = evaluate_rotary_drift(inflight.get("rotary_seed"), rotary_abc)
+    if r and rotary_drift_settled(rotary_prev, rotary_abc):
+        return r
+    k = evaluate_kins_drift(inflight.get("kins_seed"), kins_type, kins_frame)
+    if k:
+        return k
+    w = evaluate_wcs_offset_drift(inflight.get("wcs_off"), wcs_flat)
+    if w and wcs_flat is not None and wcs_flat == wcs_prev:
+        return w
+    return None
+
+def inflight_doomed_reason(inflight, rotary_abc, eps=0.01):
+    """Has the ROTARY pose already left the running parse's seed? (2026-09-12)
+
+    Evaluated EVERY tick with NO settle guard, unlike inflight_stale_reason:
+    a parse whose rotary seed no longer matches the live pose is wrong
+    whatever happens next, so the cancel need not wait for the jog to end
+    (it used to run — a full core plus gzip — through the whole jog and be
+    cancelled 2–4 s after the pose came to rest). Only the RESTART waits for
+    the pose to settle (rotary_hold_settled). Linear motion never dooms a
+    parse: the payload does not depend on where X/Y/Z sit. Returns
+    "rotary:<letters>" or None; an absent snapshot or absent live data makes
+    no claim. Pure."""
+    if not inflight:
+        return None
+    return evaluate_rotary_drift(inflight.get("rotary_seed"), rotary_abc, eps=eps)
+
+def rotary_hold_update(hold, rotary_abc, now, eps=0.01):
+    """How long has the live rotary pose held still? `hold` is
+    {"abc": [...], "since": t} or None. Returns the SAME hold while the pose
+    stays within eps of it, a fresh hold stamped `now` when the pose moved
+    (or none existed). No rotary data → None (rotary_hold_settled treats
+    that as "nothing can move"). Pure."""
+    if not rotary_abc:
+        return None
+    prev = (hold or {}).get("abc")
+    if prev and len(prev) == len(rotary_abc) and all(
+            abs(a - b) <= eps for a, b in zip(prev, rotary_abc)):
+        return hold
+    return {"abc": list(rotary_abc), "since": now}
+
+def rotary_hold_settled(hold, rotary_abc, now, min_s=1.0):
+    """May a (re)parse start now? The rotary pose must have held still for
+    min_s (a parse spawned mid-jog is doomed on the next tick — see
+    inflight_doomed_reason). A config with no rotary data is always settled;
+    a config WITH rotary data and no hold yet is NOT (no silent go). Pure."""
+    if not rotary_abc:
+        return True
+    if not hold:
+        return False
+    return (now - hold.get("since", now)) >= min_s
+
 def rotary_drift_settled(prev_abc, rotary_abc, eps=0.01):
     """Is the live rotary pose STATIONARY between two consecutive drift
     checks? The drift edge must never fire mid-jog: interp is IDLE while
@@ -1085,7 +1567,8 @@ def rotary_drift_settled(prev_abc, rotary_abc, eps=0.01):
     return True
 
 
-def evaluate_tlo_drift(meta, cur_mtime, tool_number, applied_tlo_z, eps=1e-4):
+def evaluate_tlo_drift(meta, cur_mtime, tool_number, applied_tlo_z, eps=1e-4,
+                       table_rows=None):
     """Has the tool-length picture moved since the preview was parsed? (W2 P4)
 
     The per-line limit validator bakes the PARSE-TIME tool table into its
@@ -1096,25 +1579,63 @@ def evaluate_tlo_drift(meta, cur_mtime, tool_number, applied_tlo_z, eps=1e-4):
     - "table_mtime": the tool-table FILE changed since the parse snapshot
       (G10 L1 writes through to disk) — the broad signal, catches every
       tool.
-    - "tool_offset": the APPLIED offset of the loaded tool differs from the
-      parse-time row. Guarded to a loaded tool with a non-trivially-applied
-      offset — G49 zeroes the applied vector and must not read as drift.
+    - "tool_offset": the APPLIED offset now differs from the applied offset
+      the parse was SEEDED with (`meta["applied_tlo"]`, TWP-09 — like with
+      like: a `G43 H7` with T3 loaded, or a `G43.1`, never matched T3's
+      table row and reparsed every debounce interval forever). A G49 after
+      the parse is one honest drift, then the fresh meta settles. Legacy
+      meta without the key keeps the row comparison, guarded to a loaded
+      tool with a non-trivially-applied offset (G49 ≠ drift there).
+    - "tool_loaded": a different tool is in the spindle than at parse time
+      (`meta["loaded_tool"]`).
+
+    - "table_row": a parse row for ANY tool the program touches differs
+      from the live table's Z for that id (schema 8: the per-segment TLO
+      the sim poses with comes from the parse-time rows, so a re-measure
+      of a NOT-loaded program tool stales the pose too). `table_rows`
+      = [(id, zoffset), ...] from STAT.tool_table; None = skip (legacy).
 
     `meta` is the worker's parse-time snapshot {"table_mtime": float|None,
-    "tlos": [[tool, xo, yo, zo], ...]}. Returns the reason string or None.
-    The CALLER owns idle-gating and debounce. Pure.
+    "tlos": [[tool, xo, yo, zo(, diameter)], ...]}. Returns the reason
+    string or None. The CALLER owns idle-gating and debounce. Pure.
     """
     if not meta:
         return None
     m0 = meta.get("table_mtime")
     if m0 is not None and cur_mtime is not None and cur_mtime != m0:
         return "table_mtime"
-    if tool_number and applied_tlo_z is not None and abs(applied_tlo_z) > eps:
+    applied_then = meta.get("applied_tlo")
+    if applied_then is not None:
+        try:
+            z_then = float(applied_then[2])
+        except (TypeError, IndexError, ValueError):
+            z_then = None
+        if (z_then is not None and applied_tlo_z is not None
+                and abs(float(applied_tlo_z) - z_then) > eps):
+            return "tool_offset"
+        loaded_then = meta.get("loaded_tool")
+        if (loaded_then is not None and tool_number is not None
+                and int(loaded_then) != int(tool_number)):
+            return "tool_loaded"
+    elif tool_number and applied_tlo_z is not None and abs(applied_tlo_z) > eps:
         for row in meta.get("tlos") or []:
             if row and row[0] == tool_number:
                 if abs(float(row[3]) - applied_tlo_z) > eps:
                     return "tool_offset"
                 break
+    if table_rows:
+        live = {}
+        for tid, z in table_rows:
+            try:
+                live.setdefault(int(tid), float(z))
+            except (TypeError, ValueError):
+                continue
+        for row in meta.get("tlos") or []:
+            if not row:
+                continue
+            lz = live.get(int(row[0]))
+            if lz is not None and abs(float(row[3]) - lz) > eps:
+                return "table_row"
     return None
 
 
@@ -1152,6 +1673,68 @@ def read_var_wcs_rows(path):
         rows[i + 1] = ([params.get(base + 1 + j, 0.0) for j in range(9)],
                        params.get(base + 10, 0.0))
     return rows
+
+
+#: RS274 is whitespace-insensitive ("spaces and tabs are allowed anywhere on a
+#: line and do not change its meaning") and word order is free, so the scan
+#: below strips whitespace and looks for WORDS, not for a spaced, ordered
+#: phrase. A word is a letter followed by a numeric literal, a parameter
+#: (#n / #<name>) or a bracketed expression. The first regex here (a `\b`-
+#: anchored `G\s*10 ... L ... P` phrase) missed `N10G10L2P1X5` (no boundary
+#: between the 0 of N10 and the G), `G10 P1 L2` (free word order), and every
+#: `P#100` / `P[...]` form — the exact writes this scan exists to catch.
+_G10_WORD_RE = re.compile(r"G0*10(?![0-9.])")
+_L_WORD_RE = re.compile(r"L(\d+|#|\[)")
+_P_WORD_RE = re.compile(r"P(\d+|#|\[)")
+_NAMED_PARAM_RE = re.compile(r"#<[^>]*>")
+
+
+def wcs_rewrite_targets(text):
+    """Fixtures the PROGRAM TEXT writes: (explicit_indices, writes_active).
+
+    The value comparison in `wcs_event_rewritten` cannot see a G10 L2 that
+    writes the SAME numbers the var file already holds — and a program that
+    re-asserts its own offsets every run (the corpus does exactly this) then
+    looks operator-owned, so the client re-adds the LIVE row and a touch-off
+    between parse and display moves the preview somewhere the machine will
+    never go. The source text settles it: a fixture the program writes is
+    program-owned whatever the numbers say.
+
+    `P0` means "the active fixture", which is not statically knowable, so it
+    returns writes_active=True and the caller must treat EVERY epoch as
+    rewritten — cannot tell degrades to the snapshot, never to the live row.
+    The same degradation applies to anything the text cannot settle: a
+    dynamic P or L word (`P#100`, `L[#5]`), or a G10 with no P at all.
+    Scope: the caller hands in the MAIN file only — a G10 inside a called
+    sub is invisible here (differing values are still caught by the value
+    comparison). Pure; comments stripped first so a commented-out G10 does
+    not count."""
+    explicit, active = set(), False
+    for raw in (text or "").splitlines():
+        line = strip_gcode_comments(raw)
+        # Whitespace-free, upper-cased, named params neutralised so a letter
+        # inside `#<name>` can never read as a word.
+        s = _NAMED_PARAM_RE.sub("#0", re.sub(r"\s+", "", line)).upper()
+        if not _G10_WORD_RE.search(s):
+            continue
+        lw = _L_WORD_RE.search(s)
+        if lw is None:
+            continue                 # a G10 with no L word writes nothing
+        if not lw.group(1).isdigit():
+            active = True            # dynamic L: cannot tell -> snapshot
+            continue
+        if int(lw.group(1)) not in (2, 20):
+            continue                 # L1 tool table, L10/L11 tool offsets
+        pw = _P_WORD_RE.search(s)
+        if pw is None or not pw.group(1).isdigit():
+            active = True            # missing/dynamic P: cannot tell
+            continue
+        p = int(pw.group(1))
+        if p == 0:
+            active = True
+        else:
+            explicit.add(p)
+    return explicit, active
 
 
 def wcs_event_rewritten(basis, g5x_index, var_rows, epoch0_g92, unit_scale,
@@ -1240,7 +1823,8 @@ def _kins_flip_pose(kins_cfg, ktype, frame, tlo, unit_scale, world=None, joints=
 
 
 def insert_flip_relabels(feed, rapid, kins_events, kins_frames, wcs_events,
-                         kins_cfg, unit_scale=1.0, ustart_seqs=frozenset()):
+                         kins_cfg, unit_scale=1.0, ustart_seqs=frozenset(),
+                         start_type=0, start_frame=None):
     """Insert the RELABELED start vertex at every kins or WCS-epoch flip.
 
     KINS flips (the W8 phantom-jump defect): a switchkins flip swaps the
@@ -1288,11 +1872,23 @@ def insert_flip_relabels(feed, rapid, kins_events, kins_frames, wcs_events,
     start is a synthetic copy of its end, and relabeling it would turn a
     zero-length vertex into a phantom segment.
 
+    A relabel re-expresses a POSITION, so it must be CARRIED FORWARD: every
+    axis the following blocks leave uncommanded keeps the pre-flip value in
+    the un-resynced interpreter, and correcting only the post-flip segment's
+    start manufactures motion the moment that segment holds an axis. See the
+    carry block below. Relabel invariant, enforced by construction: a relabel
+    may neither create nor destroy motion — an axis whose RAW segment delta is
+    zero has a zero delta afterwards too.
+
     Returns (feed2, rapid2, events2, frames2, wcs_events2, relabel_seqs,
-    unresolved): `relabel_seqs` = doubled seqs of the inserted vertices;
-    `unresolved` counts kins flips this family/frame data could NOT
-    evaluate — those keep the raw (wrong) segment, and the caller must
-    ship the count rather than pretend the track is clean. Pure.
+    unresolved, carry_spans): `relabel_seqs` = doubled seqs of the inserted
+    vertices; `unresolved` counts kins flips this family/frame data could NOT
+    evaluate — those keep the raw (wrong) segment and drop the carry, and the
+    caller must ship the count rather than pretend the track is clean;
+    `carry_spans` counts tuples whose shipped geometry the carry moved, which
+    the caller ships too: canon-endpoint replay cannot tell "axis held" from
+    "axis commanded to exactly the stale value", so the reach of every carry
+    is reported rather than assumed. Pure.
     """
     feed = [list(t) for t in feed]
     rapid = [list(t) for t in rapid]
@@ -1304,7 +1900,7 @@ def insert_flip_relabels(feed, rapid, kins_events, kins_frames, wcs_events,
     for t in rapid:
         t[4] *= 2
     if (not kins_events and len(wcs_events) < 2) or (not feed and not rapid):
-        return feed, rapid, events2, frames2, wcs_events2, set(), 0
+        return feed, rapid, events2, frames2, wcs_events2, set(), 0, 0
 
     # Execution-ordered view: (seq2, stream_list, index). Both lists are
     # seq-ascending (canon appends in execution order), so a plain merge
@@ -1322,6 +1918,62 @@ def insert_flip_relabels(feed, rapid, kins_events, kins_frames, wcs_events,
     inserts = []  # (position-in-rapid, tuple) collected, applied afterwards
     unresolved = 0
 
+    # ---- the relabel CARRY (the post-g69 phantom, 2026-08-29) --------------
+    # A relabel re-expresses a POSITION, and the offline interpreter is never
+    # resynced — so every axis the following blocks do not command keeps the
+    # PRE-flip value for as long as it stays uncommanded. Patching only the
+    # post-flip segment's start (what this function used to do) therefore
+    # manufactures motion the moment that segment holds an axis: the trailing
+    # `g0 a0` of a g69 tail is start==end, and moving only its start invented
+    # 897 mm of travel. The k=0 branch already knew this hazard ("relabeling
+    # it would turn a zero-length vertex into a phantom segment"); the k-loop
+    # did not.
+    #
+    # So the correction is carried forward per axis until that axis is
+    # re-commanded:
+    #   corr[i]   raw -> true, in CANON units (a displacement: world/unit_scale,
+    #             so it is invariant to any per-tuple TLO difference)
+    #   live[i]   the correction still applies
+    #   anchor[i] the RAW WORLD value when it was established. Retirement
+    #             compares against this FIXED anchor, never a running
+    #             position, so a later re-command to the same number cannot
+    #             resurrect a retired axis.
+    # Retirement is evaluated on the start AND on the end, against the same
+    # anchor, which is what makes the relabel invariant hold by construction:
+    # an axis with a zero raw delta gets the same treatment at both ends.
+    corr = [0.0] * 6
+    live = [False] * 6
+    anchor = [0.0] * 6
+    carry_spans = 0          # tuples whose shipped geometry the carry moved
+    _EPS = 1e-9
+
+    def _world(coords, tlo):
+        out = [0.0] * 6
+        for i in range(6):
+            v = float(coords[i])
+            if i < 3:
+                v = (v + (tlo[i] if tlo is not None else 0.0)) * unit_scale
+            out[i] = v
+        return out
+
+    def _retire(coords, tlo):
+        """Drop the carry for every axis that has left its anchor."""
+        w = _world(coords, tlo)
+        for i in range(6):
+            if live[i] and abs(w[i] - anchor[i]) > _EPS:
+                live[i] = False
+
+    def _apply(coords):
+        if not any(live):
+            return list(coords), False
+        out = list(coords)
+        moved = False
+        for i in range(6):
+            if live[i]:
+                out[i] = float(coords[i]) + corr[i]
+                moved = True
+        return out, moved
+
     # k=0 seed correction (W3 P2 — the 962 mm phantom): markers that fire
     # BEFORE the first recorded segment produce no k-loop flip (types[] and
     # fidx[] are uniform from index 0), yet merged[0]'s canon start is still
@@ -1334,91 +1986,130 @@ def insert_flip_relabels(feed, rapid, kins_events, kins_frames, wcs_events,
     # limit subdivision without touching geometry. Skipped for an
     # unknown-start first tuple (start is a synthetic copy of its end —
     # relabeling it would fabricate a segment out of a zero-length vertex).
+    # The FROM side of the k=0 correction is the PARSE-TIME LIVE labeling
+    # (start_type/start_frame — the fifth freshness input), not a
+    # hardcoded 0: the initcode pose comes from actual_position, which is
+    # expressed under whatever kins the machine is parked in. Pre-seed
+    # code assumed startup type 0 — correct only while the parse itself
+    # assumed it. A seeded parse whose first segment carries the seed
+    # labeling converts FROM==TO (identity, no patch), exactly right.
+    _sfr = tuple(start_frame) if start_frame is not None else None
     ustart2 = {s * 2 for s in ustart_seqs}
-    if merged and (types[0] != 0 or fidx[0] is not None) \
-            and merged[0][0] not in ustart2:
-        _seq0, lst_0, i_0 = merged[0]
-        nxt = lst_0[i_0]
-        nxt_start = nxt[1]
-        tlo_n = nxt[4] if lst_0 is feed else nxt[3]
-        fr_n = frames_vals[fidx[0]] if fidx[0] is not None else None
-        w0 = [0.0] * 6
-        for i in range(6):
-            v = float(nxt_start[i])
-            if i < 3:
-                v = (v + (tlo_n[i] if tlo_n is not None else 0.0)) * unit_scale
-            w0[i] = v
-        j = _kins_flip_pose(kins_cfg, 0, None, tlo_n, unit_scale, world=w0)
-        w1 = None if j is None else \
-            _kins_flip_pose(kins_cfg, types[0], fr_n, tlo_n, unit_scale, joints=j)
-        if w1 is None:
-            unresolved += 1
-        else:
-            start = list(nxt_start)
-            for i in range(3):
-                start[i] = w1[i] / unit_scale - (tlo_n[i] if tlo_n is not None else 0.0)
-            for i in range(3, 6):
-                start[i] = w1[i]
-            if max(abs(start[i] - float(nxt_start[i])) for i in range(6)) >= 1e-9:
-                lst_0[i_0] = list(nxt)
-                lst_0[i_0][1] = tuple(start)
+    _fr0 = frames_vals[fidx[0]] if merged and fidx[0] is not None else None
 
-    for k in range(1, len(merged)):
-        kins_flip = types[k] != types[k - 1] or fidx[k] != fidx[k - 1]
-        if not kins_flip and eidx[k] == eidx[k - 1]:
-            continue
+    for k in range(len(merged)):
         seq_n, lst_n, i_n = merged[k]
         nxt = lst_n[i_n]
-        # Seed from the TRUE canon start of the first post-flip segment (W2
-        # P2): the interpreter's own `lo` tracks through moves the canon
-        # SUPPRESSES (a G43 shift, a deduped first move), which the previous
-        # tuple's END never sees — seeding from prev[2] relabeled a pose the
-        # position bookkeeping had already left whenever such a move sat
-        # between the two tuples. nxt's start coords were TLO-peeled with
-        # nxt's OWN tlo, so that same tlo un-peels them (and parameterizes
-        # BOTH twin sides: one instant, one pin state — the TLO fold makes
-        # the recovered joints invariant to which consistent tlo is used,
-        # while mixing prev's tlo into nxt's coords would shift the physical
-        # pose by any G43 delta at the boundary).
         nxt_start = nxt[1]
+        nxt_end = nxt[2]
         tlo_n = nxt[4] if lst_n is feed else nxt[3]
-        if kins_flip:
+
+        if k == 0:
+            # k=0 is a PATCH IN PLACE, never an insertion: the wire ships
+            # endpoints only, so re-expressing the very first start corrects
+            # time/distance/limit subdivision without inventing geometry.
+            kins_flip = ((types[0] != start_type or _fr0 != _sfr)
+                         and seq_n not in ustart2)
+            flip = kins_flip
+            fr_p, fr_n = _sfr, _fr0
+            type_p = start_type
+        else:
+            kins_flip = types[k] != types[k - 1] or fidx[k] != fidx[k - 1]
+            flip = kins_flip or eidx[k] != eidx[k - 1]
             fr_p = frames_vals[fidx[k - 1]] if fidx[k - 1] is not None else None
             fr_n = frames_vals[fidx[k]] if fidx[k] is not None else None
-            w0 = [0.0] * 6
-            for i in range(6):
-                v = float(nxt_start[i])
-                if i < 3:
-                    v = (v + (tlo_n[i] if tlo_n is not None else 0.0)) * unit_scale
-                w0[i] = v
-            j = _kins_flip_pose(kins_cfg, types[k - 1], fr_p, tlo_n, unit_scale, world=w0)
+            type_p = types[k - 1]
+
+        # Retire first, so an axis this tuple has already left cannot be
+        # corrected, then carry what survives into the start.
+        _retire(nxt_start, tlo_n)
+        start_c, start_moved = _apply(nxt_start)
+
+        end = None
+        if flip and kins_flip:
+            # The FROM side is the TRUE pre-flip pose — raw PLUS any live
+            # carry — so a relabel that follows another relabel composes.
+            w0 = _world(start_c, tlo_n)
+            j = _kins_flip_pose(kins_cfg, type_p, fr_p, tlo_n, unit_scale,
+                                world=w0)
             w1 = None if j is None else \
-                _kins_flip_pose(kins_cfg, types[k], fr_n, tlo_n, unit_scale, joints=j)
+                _kins_flip_pose(kins_cfg, types[k], fr_n, tlo_n, unit_scale,
+                                joints=j)
             if w1 is None:
+                # Never guess: drop the carry entirely and let the caller
+                # ship the count rather than pretend the track is clean.
                 unresolved += 1
+                corr[:] = [0.0] * 6
+                live[:] = [False] * 6
                 continue
-            # Back to canon units, TLO peeled — the shape of its neighbours.
             end = list(nxt_start)
             for i in range(3):
                 end[i] = w1[i] / unit_scale - (tlo_n[i] if tlo_n is not None else 0.0)
             for i in range(3, 6):
                 end[i] = w1[i]
-            if eidx[k] == eidx[k - 1] and \
-                    max(abs(end[i] - float(nxt_start[i])) for i in range(6)) < 1e-9:
-                continue  # relabel lands where the segment already starts
-            end = tuple(end)
-        else:
-            # Epoch-only flip: the machine holds still at a fixture switch —
-            # the relabel is the true post-flip start verbatim; only its
-            # EPOCH (and thus the basis subtracted at extraction) differs.
-            end = tuple(nxt_start)
+            # Establish the carry: raw -> true, anchored at the raw pose it
+            # was computed from.
+            _raw_w = _world(nxt_start, tlo_n)
+            for i in range(6):
+                corr[i] = end[i] - float(nxt_start[i])
+                anchor[i] = _raw_w[i]
+                live[i] = abs(corr[i]) > _EPS
+            start_c = list(end)
+        elif flip:
+            # Epoch-only flip: the machine holds still at a fixture switch, so
+            # the relabel is the post-flip start verbatim (carry included);
+            # only its EPOCH differs.
+            end = list(start_c)
+        elif not any(live):
+            continue          # nothing to relabel and nothing to carry
+
+        # The tuple's own motion retires whatever it commands; an axis with a
+        # zero raw delta keeps the same live state at both ends, so a relabel
+        # can never create or destroy motion.
+        _retire(nxt_end, tlo_n)
+        end_c, end_moved = _apply(nxt_end)
+
+        if start_moved or end_moved:
+            carry_spans += 1
+
+        if not flip:
+            # Carry-only tuple: no vertex, no relabel — just the corrected
+            # geometry.
+            lst_n[i_n] = list(nxt)
+            lst_n[i_n][1] = tuple(start_c)
+            lst_n[i_n][2] = tuple(end_c)
+            continue
+
+        if k == 0:
+            if max(abs(start_c[i] - float(nxt_start[i]))
+                   for i in range(6)) >= _EPS:
+                lst_n[i_n] = list(nxt)
+                lst_n[i_n][1] = tuple(start_c)
+                lst_n[i_n][2] = tuple(end_c)
+            continue
+
+        if kins_flip and eidx[k] == eidx[k - 1] and \
+                max(abs(start_c[i] - float(nxt_start[i]))
+                    for i in range(6)) < _EPS:
+            continue  # relabel lands where the segment already starts
+        end = tuple(start_c)
+        # The relabel vertex is seeded from the TRUE canon start of the first
+        # post-flip segment (W2 P2): the interpreter's own `lo` tracks through
+        # moves the canon SUPPRESSES (a G43 shift, a deduped first move), which
+        # the previous tuple's END never sees. nxt's start coords were TLO-peeled
+        # with nxt's OWN tlo, so that same tlo un-peels them (and parameterizes
+        # BOTH twin sides: the TLO fold makes the recovered joints invariant to
+        # which consistent tlo is used, while mixing prev's tlo into nxt's coords
+        # would shift the physical pose by any G43 delta at the boundary).
         rl_seq = seq_n - 1
-        # Zero-length rapid AT the relabeled pose; the next segment now
-        # really starts there.
+        # Zero-length rapid AT the relabeled pose; the next segment now really
+        # STARTS there — and, via the carry, ENDS where it truly ends instead
+        # of snapping back to the un-relabeled position (the g69-tail phantom).
         inserts.append((i_n if lst_n is rapid else None,
                         [nxt[0], end, end, tlo_n, rl_seq]))
         lst_n[i_n] = list(nxt)
         lst_n[i_n][1] = end
+        lst_n[i_n][2] = tuple(end_c)
         relabel_seqs.add(rl_seq)
 
     # Apply rapid insertions back-to-front so indices stay valid; flips whose
@@ -1432,7 +2123,8 @@ def insert_flip_relabels(feed, rapid, kins_events, kins_frames, wcs_events,
                 pos += 1
             rapid.insert(pos, tup)
     return ([tuple(t) for t in feed], [tuple(t) for t in rapid],
-            events2, frames2, wcs_events2, relabel_seqs, unresolved)
+            events2, frames2, wcs_events2, relabel_seqs, unresolved,
+            carry_spans)
 
 
 def trt_kins_forward(joints, params, bc=False):
@@ -1655,6 +2347,61 @@ def trsrn_kins_inverse(world, params, mode):
 _TRT_LETTERS = {"xyzac-trt": ("X", "Y", "Z", "A", "C"),
                 "xyzbc-trt": ("X", "Y", "Z", "B", "C")}
 _JOINT_MOVE_EPS = 1e-9
+_USTART_SEED_EPS = 1e-5   # degrees — a rotary "at the seed" (initcode %f round-trip)
+
+
+def ustart_start_tuple(end, seed_abc, eps=_USTART_SEED_EPS):
+    """Partial START tuple for an UNKNOWN-START segment (W3 P1 endpoint-only
+    rapid): None for every axis the run reaches via a path no parse can
+    know — XYZ/UVW, and any rotary the program COMMANDED away from the
+    parse-time seed — but the endpoint value itself for a rotary that still
+    SITS at the seed. That axis was never commanded: it is parked live
+    state, not motion, and the checkers' parked-axis rule must exempt it.
+    Before this the whole tuple was None, so the seeded, uncommanded rotary
+    was checked unconditionally — and the seed is wherever the PREVIOUS run
+    parked (corpus: twp_g69_tail run2 vertex 0 carries run1's end pose;
+    that program walks machine C ~153 deg per orient with no unwind, so a
+    few back-to-back runs put the parked C past the ±320 limit and the
+    HUD reported an exceedance on a pose the fresh run never visits).
+    seed_abc: {"A": deg, ...} (rotary_seed_values) or None → fully unknown,
+    the pre-existing convention. Pure."""
+    n = len(end)
+    out = [None] * n
+    if seed_abc:
+        for slot, letter in ((3, "A"), (4, "B"), (5, "C")):
+            sv = seed_abc.get(letter)
+            if slot < n and sv is not None and abs(float(end[slot]) - float(sv)) <= eps:
+                out[slot] = end[slot]
+    return tuple(out)
+
+
+def _fill_unknown_start(start, end):
+    """(filled_start, unknown_axis_indices) for the joint-side checkers:
+    an axis is UNKNOWN when start is None or its slot is None (see
+    ustart_start_tuple); filled_start substitutes the endpoint there so the
+    sweep interpolation degenerates to the endpoint sample. Pure."""
+    n = len(end)
+    if start is None:
+        return list(end), set(range(n))
+    unknown = set()
+    filled = []
+    for i in range(n):
+        sv = start[i] if i < len(start) else None
+        if sv is None:
+            unknown.add(i)
+            filled.append(end[i])
+        else:
+            filled.append(sv)
+    return filled, unknown
+
+
+def _joint_unknown(jno, letter, unknown_axes):
+    """Parked-joint exemption applies only to KNOWN motion: linear joints
+    are unknown if any linear axis is (they mix under world kins); a
+    rotary joint is its own axis (passthrough in every twin)."""
+    if jno < 3:
+        return bool(unknown_axes & {0, 1, 2})
+    return AXIS_LETTERS.index(letter) in unknown_axes
 
 
 def check_limit_violations_world(segments, limits, kins_cfg, unit_scale=1.0,
@@ -1702,13 +2449,13 @@ def check_limit_violations_world(segments, limits, kins_cfg, unit_scale=1.0,
     jmin = [0.0] * 5
     jmax = [0.0] * 5
     for lineno, start, end, tlo in segments:
-        # start=None = UNKNOWN-PATH segment (W3 P1): only the endpoint is
-        # known, so sample it alone and skip the joint-moved attribution —
+        # start=None (or None slots — ustart_start_tuple) = UNKNOWN-PATH
+        # axes (W3 P1): only the endpoint is known there, so sample it
+        # alone and skip the joint-moved attribution for those joints —
         # the machine does move there, so an out-of-bounds endpoint joint
-        # must flag its line.
-        unknown = start is None
-        if unknown:
-            start = end
+        # must flag its line. A rotary slot that IS known (parked at the
+        # parse-time seed) keeps the parked exemption.
+        start, unknown_axes = _fill_unknown_start(start, end)
         rotd = max(abs(end[i] - start[i]) for i in (3, 4, 5))
         steps = min(256, max(1, math.ceil(rotd / rot_step_deg)))
         params = params0
@@ -1734,7 +2481,8 @@ def check_limit_violations_world(segments, limits, kins_cfg, unit_scale=1.0,
                     elif joints[j] > jmax[j]:
                         jmax[j] = joints[j]
         for jno, letter, mn, mx in bounds:
-            if not unknown and jmax[jno] - jmin[jno] <= _JOINT_MOVE_EPS:
+            if (not _joint_unknown(jno, letter, unknown_axes)
+                    and jmax[jno] - jmin[jno] <= _JOINT_MOVE_EPS):
                 continue  # joint parked this segment — culprit line already flagged
             if mn is not None and jmin[jno] < mn - _LIMIT_EPS:
                 key = (lineno, letter)
@@ -1758,9 +2506,13 @@ def check_limit_violations_world(segments, limits, kins_cfg, unit_scale=1.0,
 _TRSRN_LETTERS = ("X", "Y", "Z", "A", "B", "C")
 
 
-def check_limit_violations_trsrn(segments, limits, kins_cfg, unit_scale=1.0,
-                                 rot_step_deg=4.0, max_report=200):
-    """JOINT-side soft limits for xyzacb-trsrn non-identity segments.
+def _check_limit_violations_trsrn_scalar(segments, limits, kins_cfg, unit_scale=1.0,
+                                         rot_step_deg=4.0, max_report=200):
+    """SCALAR ORACLE TWIN of check_limit_violations_trsrn (per-segment Python
+    loop). Kept verbatim so the vectorized checker below is pinned to it in
+    tests (TestVectorizedLimitChecks); never called by the worker.
+
+    JOINT-side soft limits for xyzacb-trsrn non-identity segments.
 
     Sibling of check_limit_violations_world with the trsrn twist: the raw
     switchkins TYPE picks the joint mapping per segment — type 1 (TCP)
@@ -1804,12 +2556,11 @@ def check_limit_violations_trsrn(segments, limits, kins_cfg, unit_scale=1.0,
             continue
         if ktype not in (1, 2):
             continue  # identity segs belong to the caller's identity check
-        # start=None = UNKNOWN-PATH (W3 P1): endpoint-only sample, no
-        # joint-moved attribution skip — same convention as the identity
-        # and trt checkers.
-        unknown = start is None
-        if unknown:
-            start = end
+        # start=None / None slots = UNKNOWN-PATH axes (W3 P1): endpoint-
+        # only sample, no joint-moved attribution skip for those joints —
+        # same convention as the identity and trt checkers (see
+        # ustart_start_tuple for the seeded-rotary exemption).
+        start, unknown_axes = _fill_unknown_start(start, end)
         params = dict(params0)
         tz = (tlo[2] if tlo is not None else 0.0) * unit_scale
         if ktype == 1:
@@ -1841,7 +2592,8 @@ def check_limit_violations_trsrn(segments, limits, kins_cfg, unit_scale=1.0,
                     elif joints[j] > jmax[j]:
                         jmax[j] = joints[j]
         for jno, letter, mn, mx in bounds:
-            if not unknown and jmax[jno] - jmin[jno] <= _JOINT_MOVE_EPS:
+            if (not _joint_unknown(jno, letter, unknown_axes)
+                    and jmax[jno] - jmin[jno] <= _JOINT_MOVE_EPS):
                 continue  # joint parked this segment — culprit line already flagged
             if mn is not None and jmin[jno] < mn - _LIMIT_EPS:
                 key = (lineno, letter)
@@ -1860,6 +2612,423 @@ def check_limit_violations_trsrn(segments, limits, kins_cfg, unit_scale=1.0,
                 "limit": round(worst[(ln, ax)][1], 4), "kind": worst[(ln, ax)][2]}
                for ln, ax in keys[:max_report]]
     return records, len(keys), unchecked
+
+
+_ZERO3 = (0.0, 0.0, 0.0)
+_NAN3 = (float("nan"),) * 3
+
+
+def _segment_arrays(segs, width):
+    """(end, start, unknown, tlo) as numpy arrays for a list of canon-shaped
+    segment tuples whose slots [1]=start, [2]=end, [3]=tlo. end/start are
+    (n, width) float64; unknown is (n, width) bool marking start=None /
+    None slots (W3 P1 unknown-path axes — see ustart_start_tuple), where
+    start carries the ENDPOINT value like _fill_unknown_start; tlo is
+    (n, 3) with zeros for None. Tuples shorter than `width` pad with NaN
+    (never compared equal, never flagged — the scalar twins skip those
+    slots). Fast path: one array build per field; only rows with a None
+    take the per-row fallback."""
+    import numpy as np
+    n = len(segs)
+    unknown = np.zeros((n, width), dtype=bool)
+    nan_row = (float("nan"),) * width
+
+    def _rows(field):
+        out = []
+        bad = []
+        for i, sg in enumerate(segs):
+            v = sg[field]
+            if v is None or len(v) < width or None in v[:width]:
+                bad.append(i)
+                out.append(nan_row)
+            else:
+                out.append(v[:width])
+        return np.array(out, dtype=np.float64).reshape(n, width), bad
+
+    end, _bad_end = _rows(2)
+    start, bad_start = _rows(1)
+    for i in bad_start:
+        st = segs[i][1]
+        if st is None:
+            unknown[i, :] = True
+            start[i, :] = end[i, :]
+            continue
+        for k in range(width):
+            v = st[k] if k < len(st) else None
+            if v is None:
+                unknown[i, k] = True
+                start[i, k] = end[i, k]
+            else:
+                start[i, k] = v
+    tlo = np.array([sg[3] if sg[3] is not None else _ZERO3 for sg in segs],
+                   dtype=np.float64).reshape(n, 3)
+    return end, start, unknown, tlo
+
+
+def _trsrn_inverse_np(w, params0, mode, tz=None, frame=None):
+    """Vectorized twin of trsrn_kins_inverse for S world samples.
+
+    w: (S, 6) TLO-inclusive world [x y z a b c]; mode 1 takes `tz` (S,)
+    per-sample tool_offset_z, mode 2 `frame` (S, 3) per-sample
+    (pre_rot rad, primary deg, secondary deg). Returns (S, 6) joints.
+    The expressions are the scalar twin's, term for term and in the same
+    operation order (no reassociation), so the two agree to the ULP; the
+    scalar (oracle-pinned to the compiled comp) stays the reference in
+    tests. Mode 2 ignores TLO by upstream design, like the scalar.
+    """
+    import numpy as np
+    ly = params0.get("y_pivot", 0.0)
+    lz = params0.get("z_pivot", 0.0)
+    dx = params0.get("x_offset", 0.0)
+    dy = params0.get("y_offset", 0.0)
+    dray = params0.get("y_rot_axis", 0.0) - (dy + ly)
+    draz = params0.get("z_rot_axis", 0.0) - lz
+    qx, qy, qz = w[:, 0], w[:, 1], w[:, 2]
+    wa, wb, wc = w[:, 3], w[:, 4], w[:, 5]
+    nu = params0.get("nut_angle", 0.0)
+    sv, cv = math.sin(math.radians(nu)), math.cos(math.radians(nu))
+    sw, cw = np.sin(np.radians(wa)), np.cos(np.radians(wa))
+    if mode == 1:
+        tc = params0.get("pre_rot", 0.0)  # radians (upstream set_p convention)
+        stc, ctc = math.sin(tc), math.cos(tc)
+        ss, cs = np.sin(np.radians(wb)), np.cos(np.radians(wb))
+        sp, cp = np.sin(np.radians(wc)), np.cos(np.radians(wc))
+        dt = tz if tz is not None else params0.get("tool_offset_z", 0.0)
+    else:
+        tc, th1, th2 = frame[:, 0], frame[:, 1], frame[:, 2]
+        stc, ctc = np.sin(tc), np.cos(tc)
+        ss, cs = np.sin(np.radians(th2)), np.cos(np.radians(th2))
+        sp, cp = np.sin(np.radians(th1)), np.cos(np.radians(th1))
+        dt = params0.get("tool_offset_z", 0.0)
+    cvss, svss = cv * ss, sv * ss
+    r = cs + sv * sv * (1 - cs)
+    s = cs + cv * cv * (1 - cs)
+    t = sv * cv * (1 - cs)
+    if mode == 1:
+        j0 = ((cp * svss - sp * t) * (dt + lz) + cp * dx
+              - (cp * cvss + sp * r) * ly - dy * sp - dx + qx)
+        j1 = (cp * dy + dx * sp - cw * (dray + dy + ly - qy)
+              + (sp * svss + cp * t) * (dt + lz)
+              - (cvss * sp - cp * r) * ly
+              - (draz + dt + lz - qz) * sw + dray)
+        j2 = ((dt + lz) * s + ly * t - cw * (draz + dt + lz - qz)
+              + (dray + dy + ly - qy) * sw + draz)
+    else:
+        j0 = (cp * dx - (cp * cvss + sp * r) * ly + (cp * svss - sp * t) * lz
+              + ((cp * cs - cvss * sp) * ctc
+                 - (cp * cvss + sp * r) * stc) * qx
+              - ((cp * cvss + sp * r) * ctc + (cp * cs - cvss * sp) * stc) * qy
+              + (cp * svss - sp * t) * qz - dy * sp - dx)
+        j1 = (cp * dy - (cvss * sp - cp * r) * ly + (sp * svss + cp * t) * lz
+              + ((cp * cvss + cs * sp) * ctc - (cvss * sp - cp * r) * stc) * qx
+              - ((cvss * sp - cp * r) * ctc + (cp * cvss + cs * sp) * stc) * qy
+              + (sp * svss + cp * t) * qz + dx * sp - dy - ly)
+        j2 = (-(ctc * svss - stc * t) * qx + (stc * svss + ctc * t) * qy
+              + lz * s + qz * s + ly * t - lz)
+    out = np.empty((w.shape[0], 6), dtype=np.float64)
+    out[:, 0] = j0
+    out[:, 1] = j1
+    out[:, 2] = j2
+    out[:, 3:6] = w[:, 3:6]
+    return out
+
+
+def check_limit_violations_trsrn(segments, limits, kins_cfg, unit_scale=1.0,
+                                 rot_step_deg=4.0, max_report=200):
+    """JOINT-side soft limits for xyzacb-trsrn non-identity segments —
+    VECTORIZED (2026-09-05). Contract, rules and return shape are exactly
+    _check_limit_violations_trsrn_scalar's (read its docstring); this one
+    builds every rotary-subdivided sample of every segment as one numpy
+    batch, runs the vectorized inverse twin once per mode, and reduces
+    per-segment joint extremes with reduceat. Only the VIOLATING segments
+    go through Python (in segment order, so the per-(line, axis) worst
+    record resolves identically). Pinned to the scalar twin by
+    TestVectorizedLimitChecks. Why: 1.18 M plane-mode segments cost ~18 s
+    in the scalar loop (2.36 M inverse solves in pure Python) — 40 % of a
+    46 s re-parse the operator waits on after every touch-off.
+    """
+    import numpy as np
+    segments = list(segments)
+    if not limits or not segments:
+        return [], 0, sum(1 for s in segments if s[4] == 2 and s[5] is None)
+    params0 = {k: float(v) for k, v in ((kins_cfg or {}).get("params") or {}).items()}
+    bounds = []
+    for jno, letter in enumerate(_TRSRN_LETTERS):
+        b = limits.get(letter)
+        if b is not None:
+            bounds.append((jno, letter, b[0], b[1]))
+    keep = []
+    unchecked = 0
+    for sg in segments:
+        kt = sg[4]
+        if kt == 2 and sg[5] is None:
+            unchecked += 1
+            continue
+        if kt not in (1, 2):
+            continue  # identity segs belong to the caller's identity check
+        keep.append(sg)
+    if not bounds or not keep:
+        return [], 0, unchecked
+    jmin, jmax, unknown = _trsrn_joint_extremes(keep, params0, unit_scale, rot_step_deg)
+    lin_unknown = unknown[:, :3].any(axis=1)
+    linenos = [sg[0] for sg in keep]
+    worst = {}
+    for jno, letter, mn, mx in bounds:
+        unk = lin_unknown if jno < 3 else unknown[:, jno]
+        # Parked-joint exemption applies only to KNOWN motion (see
+        # _joint_unknown): a known joint that did not move this segment
+        # was flagged on its culprit line already.
+        exempt = (~unk) & ((jmax[:, jno] - jmin[:, jno]) <= _JOINT_MOVE_EPS)
+        below = (~exempt) & (jmin[:, jno] < mn - _LIMIT_EPS) if mn is not None else None
+        above = (~exempt) & (jmax[:, jno] > mx + _LIMIT_EPS) if mx is not None else None
+        if below is None and above is None:
+            continue
+        either = below if above is None else (above if below is None else (below | above))
+        for i in np.flatnonzero(either):
+            key = (linenos[i], letter)
+            if below is not None and below[i]:
+                v = float(jmin[i, jno])
+                rec = worst.get(key)
+                if rec is None or v < rec[0]:
+                    worst[key] = [v, mn, "min"]
+            if above is not None and above[i]:
+                v = float(jmax[i, jno])
+                rec = worst.get(key)
+                if rec is None or v > rec[0]:
+                    worst[key] = [v, mx, "max"]
+    order = {letter: i for i, letter in enumerate(AXIS_LETTERS)}
+    keys = sorted(worst, key=lambda k: (k[0], order.get(k[1], 9)))
+    records = [{"line": ln, "axis": ax, "value": round(worst[(ln, ax)][0], 4),
+                "limit": round(worst[(ln, ax)][1], 4), "kind": worst[(ln, ax)][2]}
+               for ln, ax in keys[:max_report]]
+    return records, len(keys), unchecked
+
+def _trsrn_joint_extremes(keep, params0, unit_scale, rot_step_deg):
+    """Per trsrn non-identity segment (type 1/2 with a frame where type 2):
+    the (n, 6) joint minima and maxima over its rotary-subdivided samples
+    (the trt/client 4-degree rule, cap 256) through the vectorized inverse
+    twin, plus the (n, 6) unknown-start mask. Shared by the per-line
+    checker and the per-segment outside flags (2026-09-12)."""
+    import numpy as np
+    n = len(keep)
+    end, start, unknown, tlo = _segment_arrays(keep, 6)
+    ktype = np.fromiter((sg[4] for sg in keep), dtype=np.int8, count=n)
+    frame = np.array([sg[5] if sg[5] is not None else _NAN3 for sg in keep],
+                     dtype=np.float64).reshape(n, 3)
+    rotd = np.max(np.abs(end[:, 3:6] - start[:, 3:6]), axis=1)
+    steps = np.minimum(256, np.maximum(1, np.ceil(rotd / rot_step_deg))).astype(np.int64)
+    cnt = steps + 1
+    seg_start = np.cumsum(cnt) - cnt
+    total_samples = int(cnt.sum())
+    seg_idx = np.repeat(np.arange(n), cnt)
+    si = np.arange(total_samples) - np.repeat(seg_start, cnt)
+    tt = si / steps[seg_idx]
+    s0 = start[seg_idx]
+    w = s0 + (end[seg_idx] - s0) * tt[:, None]
+    w[:, :3] = (w[:, :3] + tlo[seg_idx]) * unit_scale
+    joints = np.empty((total_samples, 6), dtype=np.float64)
+    kt_s = ktype[seg_idx]
+    m1 = kt_s == 1
+    if m1.any():
+        tz = (tlo[:, 2] * unit_scale)[seg_idx][m1]
+        joints[m1] = _trsrn_inverse_np(w[m1], params0, 1, tz=tz)
+    m2 = ~m1
+    if m2.any():
+        joints[m2] = _trsrn_inverse_np(w[m2], params0, 2, frame=frame[seg_idx][m2])
+    jmin = np.minimum.reduceat(joints, seg_start, axis=0)
+    jmax = np.maximum.reduceat(joints, seg_start, axis=0)
+    return jmin, jmax, unknown
+
+
+def trsrn_segment_outside_flags(segments, limits, kins_cfg, unit_scale=1.0,
+                                rot_step_deg=4.0):
+    """Per segment (the tuples check_limit_violations_trsrn takes, in the
+    same order): True when ANY rotary-subdivided sample puts a bounded joint
+    beyond [min − eps, max + eps]. The raw geometric verdict for the drawn
+    path (2026-09-12: the viewer paints these — one source of truth with
+    the per-line records), so NO parked exemption and no attribution:
+    every move whose joints are outside would be refused by motion.
+    Identity segments and frameless type-2 (unchecked) segments read
+    False — unchecked ≠ clean; the unchecked count rides the wire. numpy
+    bool array, len(segments)."""
+    import numpy as np
+    segments = list(segments)
+    out = np.zeros(len(segments), dtype=bool)
+    if not limits or not segments:
+        return out
+    bounds = []
+    for jno, letter in enumerate(_TRSRN_LETTERS):
+        b = limits.get(letter)
+        if b is not None:
+            bounds.append((jno, b[0], b[1]))
+    idx = [i for i, sg in enumerate(segments)
+           if sg[4] in (1, 2) and not (sg[4] == 2 and sg[5] is None)]
+    if not bounds or not idx:
+        return out
+    params0 = {k: float(v) for k, v in ((kins_cfg or {}).get("params") or {}).items()}
+    keep = [segments[i] for i in idx]
+    jmin, jmax, _unknown = _trsrn_joint_extremes(keep, params0, unit_scale, rot_step_deg)
+    flag = np.zeros(len(keep), dtype=bool)
+    for jno, mn, mx in bounds:
+        if mn is not None:
+            flag |= jmin[:, jno] < mn - _LIMIT_EPS
+        if mx is not None:
+            flag |= jmax[:, jno] > mx + _LIMIT_EPS
+    out[idx] = flag
+    return out
+
+
+def world_segment_outside_flags(segments, limits, kins_cfg, unit_scale=1.0,
+                                rot_step_deg=4.0):
+    """trt world-mode twin of trsrn_segment_outside_flags: per segment
+    (lineno, start9, end9, tlo3), True when any subdivided sample's joint
+    leaves a bounded window. list[bool], or None when the declared kins has
+    no twin (those segments are UNCHECKED — the caller leaves them unflagged
+    and the unchecked count says so)."""
+    ktype = (kins_cfg or {}).get("type")
+    letters = _TRT_LETTERS.get(ktype)
+    segments = list(segments)
+    if letters is None:
+        return None
+    out = [False] * len(segments)
+    if not limits or not segments:
+        return out
+    bc = ktype == "xyzbc-trt"
+    params0 = {k: float(v) for k, v in ((kins_cfg.get("params") or {}).items())}
+    bounds = []
+    for jno, letter in enumerate(letters):
+        b = limits.get(letter)
+        if b is not None:
+            bounds.append((jno, b[0], b[1]))
+    if not bounds:
+        return out
+    for k, (_lineno, start, end, tlo) in enumerate(segments):
+        start, _unknown = _fill_unknown_start(start, end)
+        rotd = max(abs(end[i] - start[i]) for i in (3, 4, 5))
+        steps = min(256, max(1, math.ceil(rotd / rot_step_deg)))
+        params = params0
+        if tlo is not None and tlo[2]:
+            params = dict(params0)
+            params["tool_offset"] = tlo[2] * unit_scale
+        for si in range(steps + 1):
+            t = si / steps
+            w = [0.0] * 6
+            for i in range(6):
+                v = start[i] + (end[i] - start[i]) * t
+                if i < 3:
+                    v = (v + (tlo[i] if tlo is not None else 0.0)) * unit_scale
+                w[i] = v
+            joints = trt_kins_inverse(w, params, bc=bc)
+            hit = False
+            for jno, mn, mx in bounds:
+                jv = joints[jno]
+                if (mn is not None and jv < mn - _LIMIT_EPS) or (mx is not None and jv > mx + _LIMIT_EPS):
+                    hit = True
+                    break
+            if hit:
+                out[k] = True
+                break
+    return out
+
+
+def segment_outside_flags(segments, limits, unit_scale=1.0):
+    """Per IDENTITY segment (the tuples check_limit_violations takes):
+    True when the segment's END — TLO-inclusive XYZ, unit-scaled; rotaries
+    raw — lies beyond a bounded axis window. Joints are affine in the words
+    under identity kins, so the endpoints carry the extremes; the start is
+    the previous segment's end and is flagged there. The raw geometric
+    verdict the viewer paints (2026-09-12), so NO parked exemption and no
+    per-line attribution — see trsrn_segment_outside_flags. Vectorized;
+    numpy bool array, len(segments)."""
+    import numpy as np
+    segments = list(segments)
+    out = np.zeros(len(segments), dtype=bool)
+    if not limits or not segments:
+        return out
+    width = len(AXIS_LETTERS)
+    end, _start, _unknown, tlo = _segment_arrays(segments, width)
+    for idx, letter in enumerate(AXIS_LETTERS):
+        b = limits.get(letter)
+        if b is None or idx >= width:
+            continue
+        mn, mx = b
+        scale = 1.0 if letter in _ROTARY_AXES else unit_scale
+        v = (end[:, idx] + tlo[:, idx] if idx < 3 else end[:, idx]) * scale
+        if mn is not None:
+            out |= v < mn - _LIMIT_EPS
+        if mx is not None:
+            out |= v > mx + _LIMIT_EPS
+    return out
+
+
+def reduce_outside_flags(flags, keep):
+    """Per-canon-segment outside flags → per KEPT vertex after decimation:
+    kept vertex k_j reads True when any canon segment in (k_{j-1}, k_j]
+    (the run its drawn segment stands for) was outside; the first kept
+    vertex covers [0, k_0]. `keep` ascending. Returns a list of 0/1."""
+    out = []
+    prev = -1
+    for k in keep:
+        v = 0
+        for i in range(prev + 1, k + 1):
+            if flags[i]:
+                v = 1
+                break
+        out.append(v)
+        prev = k
+    return out
+
+
+def live_joint_limits(stat_joints, axis_mask):
+    """The machine's ACTUAL per-joint soft-limit window from STAT
+    (joint[i].min/max_position_limit — what motion enforces), keyed by
+    axis letter in joint order: {letter: (min, max)}. Empty dict when the
+    joint info is absent or unreadable — the caller falls back to the INI
+    file's window and says so. Pure."""
+    letters = [AXIS_LETTERS[i] for i in range(9) if int(axis_mask or 0) & (1 << i)]
+    out = {}
+    if not stat_joints:
+        return out
+    for j, letter in enumerate(letters):
+        if j >= len(stat_joints):
+            break
+        jd = stat_joints[j]
+        if not isinstance(jd, dict):
+            continue
+        mn, mx = jd.get("min_position_limit"), jd.get("max_position_limit")
+        if isinstance(mn, (int, float)) and isinstance(mx, (int, float)):
+            out[letter] = (float(mn), float(mx))
+    return out
+
+
+def evaluate_limits_drift(published, live_joint_limits_list, joint_letters, eps=1e-6):
+    """Has the live per-joint soft-limit window left the window the
+    published payload's soft-limit verdicts (per-line records AND the
+    per-vertex outside flags) were checked against? `published` is the
+    worker's __LIMITS__ record ({"source": "live"|"ini", "limits": {letter:
+    [min, max]}}); only a LIVE-sourced window can drift (an INI-sourced one
+    was used because STAT had none — nothing to compare, no loop).
+    Returns "limits:<letter>" naming the first drifted joint, or None.
+    Absent data on either side makes no claim. The CALLER owns idle
+    gating and debounce. Pure."""
+    if not published or published.get("source") != "live":
+        return None
+    lims = published.get("limits") or {}
+    if not lims or not live_joint_limits_list or not joint_letters:
+        return None
+    for j, letter in enumerate(joint_letters):
+        if j >= len(live_joint_limits_list):
+            break
+        live = live_joint_limits_list[j]
+        pub = lims.get(letter)
+        if not live or not pub or len(live) < 2 or len(pub) < 2:
+            continue
+        for a, b in zip(pub[:2], live[:2]):
+            if a is None or b is None:
+                continue
+            if abs(float(a) - float(b)) > eps:
+                return f"limits:{letter}"
+    return None
 
 
 def merge_violation_records(a, b, max_report=200):
@@ -1897,7 +3066,16 @@ _SETTINGS_GCODES = re.compile(r"\bg\s*0*(?:10|92(?:\.[123])?|52)\b", re.I)
 
 
 def strip_gcode_comments(line: str) -> str:
-    """Drop ``;`` trailing comments and ``(...)`` inline comments."""
+    """Drop ``;`` trailing comments and ``(...)`` inline comments.
+
+    Fast path (2026-09-05): a line with neither ``(`` nor ``;`` is returned
+    as-is — the character loop below would rebuild it unchanged. Nearly
+    every line of CAM output is such a line, and this function runs three
+    times per source line per parse (line classification, G10 target
+    scan, sub-caller attribution): on a 1.18 M-line program the loop was
+    ~10 s of a 23 s parse."""
+    if "(" not in line and ";" not in line:
+        return line
     out, depth = [], 0
     for ch in line:
         if ch == "(":
@@ -2076,6 +3254,156 @@ def line_trust_flags(line_numbers, cls, is_rapid_stream):
     return out
 
 
+#: Rotary-command text scan (2026-09-11, "decouple the path from A in
+#: machine mode"). A rotary axis WORD candidate: the letter followed by a
+#: value start (number, sign, `#` parameter or `[` expression). Runs over
+#: the WHOLE source once (C speed) as a prefilter — an XYZ-only CAM file
+#: pays one scan and no per-line work; the per-line test decides. NOT
+#: `_AXIS_WORD`, which requires a digit/dot/sign right after the letter and
+#: so misses `A#100`, `A[#1+2]` and `A#<ang>` — the forms a post that
+#: parameterises its rotary uses.
+# Candidate-line prefilter for rotary_word_lines: a rotary WORD, or a bare
+# G28/G30 (TWP-10, review 2026-09-14: those command every axis — the
+# per-line classifier already said so — but the prefilter searched only for
+# A/B/C words, so a bare `G30` never reached it and an equal-to-seed
+# reference return was never a rotary boundary).
+_ROT_CANDIDATE_RE = re.compile(r"[ABC]\s*[-+]?[\d.#\[]|G\s*0*(?:28|30)(?![.\d])", re.I)
+_ROT_WORD_RE = re.compile(r"[ABC](?=[-+]?[\d.#\[])")
+_ANY_AXIS_WORD_RE = re.compile(r"[XYZABCUVW](?=[-+]?[\d.#\[])")
+_OWORD_NAME_RE = re.compile(r"O<[^>]*>", re.I)
+#: On a whitespace-free upper-cased line: G10 / G92(.1/.2/.3) / G52 — their
+#: axis words write offsets, never motion (`_SETTINGS_GCODES` needs word
+#: boundaries that a stripped `N10G10L2P1A30` no longer has).
+_SETTINGS_WORD_RE = re.compile(r"G0*(?:10|92(?:\.[123])?|52)(?![\d.])")
+#: A bare return-to-reference: G28/G30 with no axis words home every axis;
+#: the `.1` forms only store the reference.
+_BARE_HOME_RE = re.compile(r"G0*(?:28|30)(?![.\d])")
+
+
+def rotary_letters_on_line(raw):
+    """Rotary axis letters (a subset of "ABC", sorted) that this source line
+    COMMANDS: a letter followed by a number, `#` parameter or `[` expression,
+    after comments are stripped, named params (`#<name>` -> `#0`) and o-word
+    names (`o<name>` -> `O0`) are neutralised so a letter inside them can
+    never read as a word, and whitespace removed (`A 10` and `X5A10` are
+    both words). Settings lines (G10/G92/G52) command nothing: their axis
+    words write offsets. A bare `G28`/`G30` (no axis words) homes every axis
+    -> "ABC". Pure."""
+    s = strip_gcode_comments(raw)
+    if not s.strip():
+        return ""
+    s = _NAMED_PARAM_RE.sub("#0", s)
+    s = _OWORD_NAME_RE.sub("O0", s)
+    s = re.sub(r"\s+", "", s).upper()
+    if _SETTINGS_WORD_RE.search(s):
+        return ""
+    letters = "".join(sorted(set(_ROT_WORD_RE.findall(s))))
+    if not letters and _BARE_HOME_RE.search(s) and not _ANY_AXIS_WORD_RE.search(s):
+        return "ABC"
+    return letters
+
+
+def rotary_word_lines(source_text):
+    """{1-based line number: letters} for every MAIN-file line that commands
+    a rotary axis (rotary_letters_on_line). One regex pass over the whole
+    text finds the candidate lines; only those are examined. Pure."""
+    out = {}
+    text = source_text or ""
+    line_no, pos, done = 1, 0, 0
+    for m in _ROT_CANDIDATE_RE.finditer(text):
+        line_no += text.count("\n", pos, m.start())
+        pos = m.start()
+        if line_no == done:
+            continue
+        done = line_no
+        ls = text.rfind("\n", 0, pos) + 1
+        le = text.find("\n", pos)
+        letters = rotary_letters_on_line(text[ls:(len(text) if le < 0 else le)])
+        if letters:
+            out[line_no] = letters
+    return out
+
+
+def first_rotary_commands(streams, seed, rot_lines, relabel_seqs=(), eps=_USTART_SEED_EPS):
+    """Where the PROGRAM first commands each rotary axis (2026-09-11, the
+    rotary-boundary wire field): {"A": seq | None, "B": ..., "C": ...,
+    "unknown": seq | None}, one key per letter in `seed`.
+
+    Every segment before an axis's first command INHERITS the parse-time
+    seed pose for that axis (the interp was seeded with the live machine),
+    so a client may hold those vertices ROOM-FIXED under identity kins
+    instead of riding the table until a reparse re-bakes them. The client
+    cannot derive this: an explicit `G0 A0 C0` at the top of a 5-axis post
+    equals the seed value yet must ride the part (the run moves A back to
+    0), while an XYZ-only program must stay in the room.
+
+    Two tests per segment, either one commands the letter at that seq:
+      (a) the RAW canon endpoint (machine-frame degrees — never the
+          per-epoch peeled wire value) differs from the seed by > eps: the
+          axis moved, so it was commanded (a mid-program `G10 L2` rotary
+          offset write also moves it: reported as commanded — conservative,
+          the segment rides);
+      (b) the segment's source line carries the letter as a word (the
+          explicit-equal-to-seed case — only the text can tell) — consulted
+          only where the line number can be trusted to be THIS file's:
+          `consultable` = lineno >= 1, at sub-span depth 0, the line's
+          motion kind matches the stream, and no unmarked external sub in
+          play.
+    "unknown" = the first non-relabel seq whose text cannot be consulted
+    while some letter is still uncommanded there: from that seq on the
+    answer is "cannot tell" (unchecked != clean) and a client must treat
+    everything after it as commanded (rides the part). Letters found after
+    it by either test are still reported (a genuine command is a command);
+    a client takes the minimum over the letters it cares about and unknown.
+
+    streams: iterable of (seqs, lines, abc, consultable) — one per canon
+    stream, index-aligned per stream (abc = raw [a,b,c] per endpoint); any
+    seq order (they are merged by seq value). relabel_seqs: the inserted
+    flip-relabel vertices (stationary, never a command). Vectorized: an
+    XYZ-only 1.18 M-line program is three numpy passes. Pure."""
+    import numpy as np
+    letters = [l for l in ("A", "B", "C") if seed and seed.get(l) is not None]
+    out = {l: None for l in letters}
+    out["unknown"] = None
+    if not letters:
+        return out
+    col = {"A": 0, "B": 1, "C": 2}
+    rel = np.asarray(sorted(relabel_seqs), dtype=np.int64) if relabel_seqs else None
+    prepared = []
+    for seqs, lines, abc, consultable in streams:
+        seqs = np.asarray(seqs, dtype=np.int64)
+        if seqs.size == 0:
+            continue
+        lines = np.asarray(lines, dtype=np.int64)
+        abc = np.asarray(abc, dtype=np.float64).reshape(-1, 3)
+        cons = np.asarray(consultable, dtype=bool)
+        skip = np.isin(seqs, rel) if rel is not None and rel.size else np.zeros(seqs.shape, dtype=bool)
+        prepared.append((seqs, lines, abc, cons, skip))
+    for l in letters:
+        text_lines = np.asarray([ln for ln, ls in (rot_lines or {}).items() if l in ls], dtype=np.int64)
+        best = None
+        for seqs, lines, abc, cons, skip in prepared:
+            hit = (np.abs(abc[:, col[l]] - float(seed[l])) > eps) & ~skip
+            if text_lines.size:
+                hit |= cons & np.isin(lines, text_lines)
+            idx = np.flatnonzero(hit)
+            if idx.size:
+                s0 = int(seqs[idx].min())
+                best = s0 if best is None else min(best, s0)
+        out[l] = best
+    # Some letter is still uncommanded at seq s iff s < max over letters of
+    # (found seq, or +inf when never found).
+    horizon = max((out[l] if out[l] is not None else np.iinfo(np.int64).max) for l in letters)
+    unk = None
+    for seqs, lines, abc, cons, skip in prepared:
+        cand = np.flatnonzero(~cons & ~skip & (seqs < horizon))
+        if cand.size:
+            s0 = int(seqs[cand].min())
+            unk = s0 if unk is None else min(unk, s0)
+    out["unknown"] = unk
+    return out
+
+
 def resolve_sub_indices(seqs, sub_events, name_index):
     """Per-point subroutine index for one canon stream (W2 P6). Pure.
 
@@ -2164,6 +3492,70 @@ def attribute_sub_callers(sub_events, source_text):
     return out, unattributed
 
 
+def _norm_gcode_line(text):
+    return re.sub(r"\s+", "", strip_gcode_comments(text or "")).lower()
+
+
+def refusal_payload(refusal, sub_events, caller_by_event, source_text=None):
+    """Operator-facing record of a remap refusal in PREVIEW (2026-09-05).
+
+    refusal         -- the fork's webui_preview_refusal: {"line": the
+                       interp's sequence_number at the refusal, "file",
+                       "call_level", "message"}.
+    sub_events      -- canon triples [(seq, name|None, caller_token|None)].
+    caller_by_event -- attribute_sub_callers' map (depth-0 start-event
+                       index → verified main-file line).
+    source_text     -- the main program's text, for the UNIQUE-site match:
+                       the interp's sequence_number reads 0 inside a remap
+                       (measured 2026-09-05) and the canon never fires
+                       next_line for a remap trigger line (W4), so outside a
+                       sub span the line is recovered from the refusal's
+                       `linetext` (the trigger block's text) — the ONE
+                       comment-stripped main-file line with that text — or,
+                       failing that, the one line carrying the G-word the
+                       message opens with ("G68.2 ERROR: …"). Zero or
+                       several candidates yield None: never a guess.
+
+    Returns {"line": main-file line or None, "message"} — plus "sub" and
+    "sub_line" when the parse ended INSIDE a marked sub span: the refusal's
+    own line is that file's numbering (a G53.x refusal reports the
+    g533remap.ngc wrapper line), so `line` becomes the span's verified
+    caller line, or None when the site is not unique. Never a guessed
+    line. Pure."""
+    msg = str((refusal or {}).get("message") or "refused")
+    own = (refusal or {}).get("line")
+    own = int(own) if isinstance(own, (int, float)) and own > 0 else None
+    depth = 0
+    open_idx = None
+    open_name = None
+    for idx, ev in enumerate(sub_events or ()):
+        name = ev[1]
+        if name is None:
+            depth = max(0, depth - 1)
+            if depth == 0:
+                open_idx, open_name = None, None
+            continue
+        if depth == 0:
+            open_idx, open_name = idx, name
+        depth += 1
+    if open_name is not None:
+        caller = (caller_by_event or {}).get(open_idx)
+        return {"line": int(caller) if caller else None, "sub": open_name,
+                "sub_line": own, "message": msg}
+    if own is None and source_text:
+        lines = [_norm_gcode_line(ln) for ln in source_text.splitlines()]
+        want = _norm_gcode_line((refusal or {}).get("linetext") or "")
+        hits = [i + 1 for i, ln in enumerate(lines) if want and ln == want]
+        if not hits:
+            m = re.match(r"\s*(g\d+(?:\.\d+)?)\b", msg, re.IGNORECASE)
+            if m:
+                rx = re.compile(r"(?<![a-z0-9_.])" + re.escape(m.group(1).lower()) + r"(?![0-9.])")
+                hits = [i + 1 for i, ln in enumerate(lines) if rx.search(ln)]
+        if len(hits) == 1:
+            own = hits[0]
+    return {"line": own, "message": msg}
+
+
 def resolve_sub_callers(seqs, sub_events, caller_by_event):
     """Per-point call-site line for one canon stream (W4). Pure.
 
@@ -2240,6 +3632,54 @@ def find_unmarked_subs(source_text, search_dirs, max_read=65536):
 SUBFILE_NAME_RE = re.compile(r"^[a-z0-9_.\-]+$", re.IGNORECASE)
 
 
+_REMAP_MCODE_RE = re.compile(r"^\s*(M\d+)\b", re.I)
+_REMAP_NGC_RE = re.compile(r"\bngc\s*=\s*([A-Za-z0-9_.\-]+)")
+#: `#<kinstype> = N` — the switchkins type an M-code's remap selects. The
+#: remap sets this local and passes it to M-code 428/429/430's HAL pin write,
+#: so it is the machine's own statement of what that M-code does.
+_KINSTYPE_ASSIGN_RE = re.compile(r"^\s*#<kinstype>\s*=\s*([-+]?\d+)", re.I | re.M)
+
+
+def kins_mode_commands(remap_lines, source_for) -> Dict[int, str]:
+    """{raw switchkins type: the M-code word that selects it} for this machine.
+
+    R-01 (implementation review 2026-09-15): which M-code enters which
+    kinematics is a per-CONFIGURATION fact, not a family constant. The TWP
+    fork's remaps set identity on M428 and TCP on M429; the shipped TCP
+    trunnion (examples/sim_config/remap_subs, adapted from LinuxCNC's own
+    table-rotary-tilting sample) does the OPPOSITE — M428 selects the trt
+    world kins, M429 identity. A hardcoded table is therefore right for one
+    of the two and silently reversed on the other.
+
+    `remap_lines` are the INI's [RS274NGC]REMAP entries verbatim;
+    `source_for(name)` returns the named .ngc's text (SUBROUTINE_PATH
+    resolution, the interpreter's own lookup) or None. Only `ngc=` remaps of
+    M-codes are considered — a `python=` remap has no scrapeable assignment
+    — and the first M-code claiming a type wins, so a config with duplicates
+    is deterministic. Pure: all I/O is the caller's `source_for`.
+    """
+    out: Dict[int, str] = {}
+    for line in remap_lines or []:
+        m = _REMAP_MCODE_RE.match(str(line))
+        if not m:
+            continue
+        ngc = _REMAP_NGC_RE.search(str(line))
+        if not ngc:
+            continue
+        try:
+            text = source_for(ngc.group(1))
+        except Exception:  # noqa: BLE001 - an unreadable sub is simply not a mapping
+            text = None
+        if not text:
+            continue
+        hit = _KINSTYPE_ASSIGN_RE.search(text)
+        if not hit:
+            continue
+        raw = int(hit.group(1))
+        out.setdefault(raw, m.group(1).upper())
+    return out
+
+
 def resolve_subfile(name, search_dirs):
     """Absolute path of `<name>.ngc` through the resolved SUBROUTINE_PATH
     dirs, first hit wins — LinuxCNC's own lookup rule (W5: source for the
@@ -2314,9 +3754,13 @@ def read_axis_limits(ini_find, axis_mask: int):
     return limits
 
 
-def check_limit_violations(segments, limits, unit_scale: float = 1.0,
-                           max_report: int = 200):
-    """Check canon motion segments against per-axis soft limits.
+def _check_limit_violations_scalar(segments, limits, unit_scale: float = 1.0,
+                                   max_report: int = 200):
+    """SCALAR ORACLE TWIN of check_limit_violations (per-segment Python
+    loop). Kept verbatim so the vectorized checker below is pinned to it in
+    tests (TestVectorizedLimitChecks); never called by the worker.
+
+    Check canon motion segments against per-axis soft limits.
 
     segments   -- iterable of (lineno, start9, end9, tlo3): start9/end9 =
                   canon tuples in canon linear units (inches) / degrees,
@@ -2371,7 +3815,9 @@ def check_limit_violations(segments, limits, unit_scale: float = 1.0,
             # first-move endpoint) — the machine moves there via a path no
             # parse can know, so every axis counts as moved-to and the
             # parked-axis attribution skip must not hide an out-of-bounds
-            # endpoint.
+            # endpoint. A PARTIAL start (ustart_start_tuple: None slots =
+            # unknown, a rotary parked at the parse-time seed keeps its
+            # value) exempts only the parked seed slots.
             if start is not None and idx < len(start) and start[idx] == v:
                 continue  # axis parked this segment — culprit line already flagged
             if idx < 3 and tlo is not None:
@@ -2391,6 +3837,80 @@ def check_limit_violations(segments, limits, unit_scale: float = 1.0,
                     worst[key] = [v, mx, "max", letter]
                 elif rec[2] == "max" and v > rec[0]:
                     rec[0] = v
+    total = len(worst)
+    records = [
+        {"line": line, "axis": rec[3], "value": round(rec[0], 4),
+         "limit": round(rec[1], 4), "kind": rec[2]}
+        for (line, _idx), rec in sorted(worst.items())
+    ]
+    return records[:max_report], total
+
+
+def check_limit_violations(segments, limits, unit_scale: float = 1.0,
+                           max_report: int = 200):
+    """Canon motion segments against per-axis soft limits — VECTORIZED
+    (2026-09-05). Contract, attribution rule and return shape are exactly
+    _check_limit_violations_scalar's (read its docstring); the per-axis
+    parked test, TLO add-back, unit scale and bound compares run as numpy
+    column ops, and only the VIOLATING segments go through Python, in
+    segment order, so the kind-locked per-(line, axis) worst record
+    resolves identically. Pinned to the scalar twin by
+    TestVectorizedLimitChecks. Why: ~2 s of every identity re-parse of a
+    1.18 M-line program.
+    """
+    import numpy as np
+    if not limits:
+        return [], 0
+    segments = list(segments)
+    if not segments:
+        return [], 0
+    plan = []
+    for idx, letter in enumerate(AXIS_LETTERS):
+        b = limits.get(letter)
+        if b is None:
+            continue
+        mn, mx = b
+        scale = 1.0 if letter in _ROTARY_AXES else unit_scale
+        plan.append((idx, letter, scale,
+                     None if mn is None else mn - _LIMIT_EPS,
+                     None if mx is None else mx + _LIMIT_EPS,
+                     mn, mx))
+    width = len(AXIS_LETTERS)
+    end, start, unknown, tlo = _segment_arrays(segments, width)
+    # _segment_arrays fills unknown START slots with the endpoint; the
+    # identity rule compares start == end to mean PARKED, so those slots
+    # must read as not-parked (None never equals a float in the scalar).
+    start = np.where(unknown, np.nan, start)
+    linenos = [sg[0] for sg in segments]
+    worst = {}  # (line, axis_idx) -> [value, limit, kind, letter]
+    for idx, letter, scale, mn_eps, mx_eps, mn, mx in plan:
+        if idx >= width:
+            continue
+        raw = end[:, idx]
+        parked = start[:, idx] == raw
+        v = raw + tlo[:, idx] if idx < 3 else raw
+        v = v * scale
+        below = (~parked) & (v < mn_eps) if mn_eps is not None else None
+        above = (~parked) & (v > mx_eps) if mx_eps is not None else None
+        if below is not None and above is not None:
+            above = above & ~below   # the scalar's elif
+        either = below if above is None else (above if below is None else (below | above))
+        if either is None:
+            continue
+        for i in np.flatnonzero(either):
+            key = (linenos[i], idx)
+            val = float(v[i])
+            rec = worst.get(key)
+            if below is not None and below[i]:
+                if rec is None:
+                    worst[key] = [val, mn, "min", letter]
+                elif rec[2] == "min" and val < rec[0]:
+                    rec[0] = val
+            else:
+                if rec is None:
+                    worst[key] = [val, mx, "max", letter]
+                elif rec[2] == "max" and val > rec[0]:
+                    rec[0] = val
     total = len(worst)
     records = [
         {"line": line, "axis": rec[3], "value": round(rec[0], 4),

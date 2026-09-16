@@ -145,16 +145,17 @@ def write_stl(path, tris):
 
 # ── model geometry (transcribed from xyzac-trt-gui) ──
 
+# Muted machine palette — MUST equal lcnc-webui/src/viewer/palette.ts
+# (palette.test.ts pins the emitted machine.json against it). Keys are the
+# ROLE a part plays; linear slides carry no color at all so the viewer's
+# axis rule (X red / Y green / Z blue, muted) applies.
 COLORS = {
-    "green":   [0.0, 1.0, 0.0],
-    "teal":    [0.0, 0.5, 0.5],
-    "yellow":  [1.0, 1.0, 0.0],
-    "silver":  [0.8, 0.8, 0.8],
-    "gray":    [0.4, 0.4, 0.4],
-    "orange":  [1.0, 0.5, 0.0],
-    "white":   [1.0, 1.0, 1.0],
-    "blue":    [0.3, 0.5, 1.0],
-    "magenta": [1.0, 0.0, 1.0],
+    "frame":   [0.612, 0.612, 0.612],   # 0x9c9c9c
+    "base":    [0.486, 0.486, 0.486],   # 0x7c7c7c
+    "rotaryA": [0.549, 0.478, 0.388],   # 0x8c7a63 bronze
+    "rotaryC": [0.478, 0.463, 0.565],   # 0x7a7690 slate
+    "marks":   [0.788, 0.788, 0.788],   # 0xc9c9c9
+    "slide":   None,                    # linear axis: no color, axis rule
 }
 
 
@@ -232,16 +233,16 @@ def build_meshes():
     )
 
     return {
-        "base_frame":      (None,         "green",   base_green),
-        "base_drives":     (None,         "yellow",  base_yellow),
-        "base_spindle":    (None,         "teal",    base_teal),
-        "knee":            ("knee",       "yellow",  knee_yellow),
-        "saddle":          ("saddle",     "silver",  saddle_silver),
-        "table":           ("table",      "gray",    table_gray),
-        "a_trunnion":      ("a_assembly", "orange",  a_orange),
-        "c_base":          ("c_assembly", "blue",    c_base_blue),
-        "c_platter":       ("c_platter",  "magenta", platter_magenta),
-        "c_platter_marks": ("c_platter",  "white",   platter_white),
+        "base_frame":      (None,         "frame",   base_green),
+        "base_drives":     (None,         "frame",   base_yellow),
+        "base_spindle":    (None,         "frame",   base_teal),
+        "knee":            ("knee",       "slide",   knee_yellow),
+        "saddle":          ("saddle",     "slide",   saddle_silver),
+        "table":           ("table",      "slide",   table_gray),
+        "a_trunnion":      ("a_assembly", "rotaryA", a_orange),
+        "c_base":          ("c_assembly", "rotaryC", c_base_blue),
+        "c_platter":       ("c_platter",  "rotaryC", platter_magenta),
+        "c_platter_marks": ("c_platter",  "marks",   platter_white),
     }
 
 
@@ -252,13 +253,15 @@ def main():
     parts = []
     for part_id, (group, color, tris) in meshes.items():
         write_stl(OUT_DIR / f"{part_id}.stl", tris)
-        parts.append({
+        part = {
             "id": part_id,
             "file": f"{part_id}.stl",
             "group": group,
             "translate": [0, 0, 0],
-            "color": COLORS[color],
-        })
+        }
+        if COLORS[color] is not None:
+            part["color"] = COLORS[color]
+        parts.append(part)
         total += len(tris)
 
     machine = {

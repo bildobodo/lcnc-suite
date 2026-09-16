@@ -1,0 +1,52 @@
+{
+  "brk_count": 1,
+  "cline_lines": [
+    7,
+    9
+  ],
+  "kins_frames": 1,
+  "kinstype_present": true,
+  "lines_untrusted": false,
+  "outside_points": {
+    "feed": null,
+    "rapid": 0
+  },
+  "points": {
+    "feed": 0,
+    "rapid": 9
+  },
+  "preview_schema": 9,
+  "rotary_cmd": {
+    "A": null,
+    "B": 4,
+    "C": 4,
+    "seed": {
+      "A": 0.0,
+      "B": 0.0,
+      "C": 0.0
+    },
+    "unknown": 4
+  },
+  "ships_abc": true,
+  "sub_names": [
+    "g69remap",
+    "g533remap",
+    "square"
+  ],
+  "swept_axes": [
+    "B",
+    "C"
+  ],
+  "trusted_points": {
+    "total": 9,
+    "trusted": 1
+  },
+  "unmarked_subs": [],
+  "ustart_count": 1,
+  "violations_total": 0,
+  "violations_world_unchecked": 0,
+  "wcs_epochs": {
+    "count": 2,
+    "rewritten": 2
+  }
+}
