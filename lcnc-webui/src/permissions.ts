@@ -235,6 +235,10 @@ export function useFire(): FireFn {
  * Keyboard activation for a "why is this unavailable?" affordance (R-05,
  * implementation review 2026-09-15).
  *
+ * Install it ONLY while the control is unavailable: on an ENABLED control the
+ * preventDefault above would swallow the native activation — Space on an
+ * enabled radio stopped selecting it (R-07).
+ *
  * A control that is disabled cannot be focused, so the reason beside it has
  * to be reachable on its own: the wrapper (MachineBtn) or the label (a
  * disabled radio) takes `tabindex="0"` + `role="button"` WHILE DISABLED and
@@ -245,6 +249,10 @@ export function useFire(): FireFn {
 export function explainKeydown(e: KeyboardEvent, say: () => void): void {
   if (e.key !== "Enter" && e.key !== " " && e.key !== "Spacebar") return;
   e.preventDefault();
+  // The key is CONSUMED here (R-06): it reached a help affordance, so it must
+  // not also travel to the window's shortcut map, where Space is Cycle Start
+  // by default. Asking for an explanation can never be a machine action.
+  e.stopPropagation();
   say();
 }
 

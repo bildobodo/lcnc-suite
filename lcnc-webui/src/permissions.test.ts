@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { applyClientOverlayReasons, CLIENT_REASONS } from "./permissions";
+import { applyClientOverlayReasons, CLIENT_REASONS, explainKeydown } from "./permissions";
 import { applyClientOverlay, type MachinePermissions } from "./permissions";
 
 // The policy itself (which machine state opens which gate) now lives on the
@@ -162,3 +162,39 @@ describe("applyClientOverlayReasons (U-06, review 2026-09-14)", () => {
   });
 });
 
+
+describe("explainKeydown (R-05 access, R-06 containment)", () => {
+  const ev = (key: string) => {
+    const calls = { prevented: 0, stopped: 0 };
+    const e = {
+      key,
+      preventDefault: () => { calls.prevented++; },
+      stopPropagation: () => { calls.stopped++; },
+    } as unknown as KeyboardEvent;
+    return { e, calls };
+  };
+
+  it("explains on Enter and Space, and consumes the key", () => {
+    for (const key of ["Enter", " ", "Spacebar"]) {
+      const { e, calls } = ev(key);
+      let said = 0;
+      explainKeydown(e, () => { said++; });
+      expect(said).toBe(1);
+      // preventDefault alone left the key travelling to the window, where
+      // Space is Cycle Start by default — asking why started the program.
+      expect(calls.prevented).toBe(1);
+      expect(calls.stopped).toBe(1);
+    }
+  });
+
+  it("ignores every other key, so ordinary shortcuts still work", () => {
+    for (const key of ["a", "Escape", "ArrowUp", "Tab"]) {
+      const { e, calls } = ev(key);
+      let said = 0;
+      explainKeydown(e, () => { said++; });
+      expect(said).toBe(0);
+      expect(calls.prevented).toBe(0);
+      expect(calls.stopped).toBe(0);
+    }
+  });
+});

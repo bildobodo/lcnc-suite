@@ -472,7 +472,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
                 <label v-if="twpCapable" class="radio-label" :class="{ 'val-status': true, warn: twpStale, muted: !twpOriented }" :title="planeTitle"
                        :tabindex="can.planeFrame ? undefined : 0" :role="can.planeFrame ? undefined : 'button'"
                        :aria-label="can.planeFrame ? undefined : `Why is the Plane frame unavailable? ${planeTitle}`"
-                       @click="explainPlane" @keydown="(e: KeyboardEvent) => explainKeydown(e, explainPlane)"><MachineRadio gate="planeFrame" name="jogFrame" :modelValue="kinsMode ?? undefined" :value="2" @update:modelValue="emit('setKinsMode', 2)" /> Plane{{ twpStale ? ' (stale)' : '' }}</label>
+                       @click="explainPlane" @keydown="(e: KeyboardEvent) => { if (!can.planeFrame) explainKeydown(e, explainPlane); }"><MachineRadio gate="planeFrame" name="jogFrame" :modelValue="kinsMode ?? undefined" :value="2" @update:modelValue="emit('setKinsMode', 2)" /> Plane{{ twpStale ? ' (stale)' : '' }}</label>
               </div>
             </div>
           </template>

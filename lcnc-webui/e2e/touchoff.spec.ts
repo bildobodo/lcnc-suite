@@ -15,6 +15,27 @@ const PERMS_ALL = {
   surfaceComp: true, safety: true, setup: true, armed: true, always: true,
 };
 
+// Commands the UI may send on its own while a test is merely looking at the
+// screen — status/table reads, never a machine action. Asserting "nothing was
+// sent" over the raw log is wrong: the mock records these too, and the review
+// of 2026-09-16 saw the keyboard test fail on a background get_tool_table.
+// The assertion that matters is "no MACHINE action", with this allow-list as
+// the backstop that fails closed when a new command appears.
+const READ_ONLY_CMDS = ["hello", "heartbeat", "get_tool_table", "halshow_live", "timing_log"];
+const MACHINE_CMDS = ["cycle_start", "cycle_pause", "cycle_resume", "abort", "jog_cont",
+                      "jog_incr", "jog_stop", "go_to_zero", "touchoff", "set_kins_mode",
+                      "home_all", "machine_on", "estop", "mdi", "twp_capture"];
+
+async function recordedCmds(): Promise<string[]> {
+  const sent = await ctlSend({ op: "lastCmds" }) as { cmds?: { cmd?: string }[] };
+  return (sent.cmds ?? []).map(c => c.cmd ?? "");
+}
+
+function expectNoMachineAction(cmds: string[]) {
+  for (const machine of MACHINE_CMDS) expect(cmds).not.toContain(machine);
+  expect(cmds.filter(c => !READ_ONLY_CMDS.includes(c))).toEqual([]);
+}
+
 // Kins declarations (viewer_init.kins): the TWP stack vs a switchable TCP
 // trunnion that has no plane remap at all (TWP-08b).
 const TRSRN = { module: "xyzacb_trsrn", type: "xyzacb-trsrn", identity_first: false, params: {} };
@@ -234,12 +255,131 @@ test("a disabled control explains itself to the keyboard, and sends no command",
     await page.keyboard.press(" ");
     await messages.click();
     await expect(page.locator(".msgText")).toHaveCount(2);
-    const sent = await ctlSend({ op: "lastCmds" }) as { cmds?: { cmd?: string }[] };
-    expect((sent.cmds ?? []).map(c => c.cmd)).toEqual([]);
+    expectNoMachineAction(await recordedCmds());
     await messages.click();
     // Enabled again: no wrapper, so the tab order is the plain control's.
     await ctlSend({ op: "status_delta", data: { permissions: { ...PERMS_ALL }, permission_reasons: {} } });
     await expect(page.locator(".btnTip", { has: btn })).toHaveCount(0);
+  } finally {
+    await ctlSend({ op: "quiet", on: false });
+    await ctlSend({ op: "reset" });
+  }
+});
+
+test("asking why never starts, pauses or resumes a program", async ({ page }) => {
+  // R-06 (implementation review 2026-09-16): explainKeydown prevented the
+  // default but the event still bubbled to the window, where Space is Cycle
+  // Start by default — so asking a disabled control why it is disabled STARTED
+  // THE LOADED PROGRAM. The earlier test could not see it: with no file loaded
+  // the cycle branch falls through.
+  await page.goto(MOCK);
+  const btn = page.getByRole("button", { name: "Go to WCS 0", exact: true });
+  await expect(btn).toBeVisible();
+  await ctlSend({ op: "quiet", on: true });
+  try {
+    const REASON = { goZero: "Go to WCS 0 under TCP: select the Machine frame or the Plane frame first" };
+    // Every state the cycle shortcut has a branch for: ready with a program
+    // loaded, paused, and running.
+    for (const [label, perms] of [
+      ["ready with a program loaded", { ...PERMS_ALL, goZero: false }],
+      ["paused", { ...PERMS_ALL, goZero: false, resume: true, pause: false }],
+      ["running", { ...PERMS_ALL, goZero: false, pause: true, resume: false }],
+    ] as const) {
+      await ctlSend({ op: "status_delta", data: {
+        active_file: "/loaded.ngc", permissions: perms, permission_reasons: REASON,
+      } });
+      await expect(btn).toBeDisabled();
+      const tip = page.locator(".btnTip", { has: btn });
+      await ctlSend({ op: "clearCmds" });
+      await tip.focus();
+      await page.keyboard.press(" ");
+      const messages = page.getByRole("button", { name: /^Messages \(/ });
+      await messages.click();
+      await expect(page.locator(".msgText").first()).toContainText("select the Machine frame");
+      await messages.click();
+      expectNoMachineAction(await recordedCmds());
+      // Enter is the other activation key.
+      await ctlSend({ op: "clearCmds" });
+      await tip.focus();
+      await page.keyboard.press("Enter");
+      expectNoMachineAction(await recordedCmds());
+      expect(label.length).toBeGreaterThan(0);   // names the case in a failure
+    }
+  } finally {
+    await ctlSend({ op: "quiet", on: false });
+    await ctlSend({ op: "reset" });
+  }
+});
+
+test("Space on a focused control never reaches the Cycle Start shortcut", async ({ page }) => {
+  // The same root cause as R-06 on an ORDINARY ENABLED button, which predates
+  // the help affordance: the global map claimed Space, so tabbing to any
+  // button and pressing it started the loaded program — and the button itself
+  // never fired, because the shortcut's preventDefault suppressed the native
+  // activation. (→ Zero is hold-to-fire, so ITS action is deliberately
+  // pointer-only; what must not happen is a different machine action.)
+  await page.goto(MOCK);
+  const btn = page.getByRole("button", { name: "Go to WCS 0", exact: true });
+  await expect(btn).toBeVisible();
+  await ctlSend({ op: "quiet", on: true });
+  try {
+    await ctlSend({ op: "status_delta", data: {
+      active_file: "/loaded.ngc", permissions: { ...PERMS_ALL },
+    } });
+    await expect(btn).toBeEnabled();
+    await ctlSend({ op: "clearCmds" });
+    await btn.focus();
+    await page.keyboard.press(" ");
+    await page.waitForTimeout(300);
+    expectNoMachineAction(await recordedCmds());
+    // …and ordinary activation still works: Space on a plain button presses it
+    // (the Messages button opens its dialog — a UI-only action, so this half
+    // stays honest about sending nothing).
+    const messages = page.getByRole("button", { name: /^Messages \(/ });
+    await messages.focus();
+    await page.keyboard.press(" ");
+    await expect(page.getByText(/^Messages \(\d+\)$/)).toBeVisible();
+    expectNoMachineAction(await recordedCmds());
+    await page.getByRole("button", { name: "×", exact: true }).first().click();
+  } finally {
+    await ctlSend({ op: "quiet", on: false });
+    await ctlSend({ op: "reset" });
+  }
+});
+
+test("Space selects an ENABLED Plane radio; the explanation is only for the disabled one", async ({ page }) => {
+  // R-07: the label's keydown handler was installed unconditionally, so its
+  // preventDefault swallowed the native radio activation once Plane became
+  // available — the radio could be clicked but not chosen from the keyboard.
+  await page.goto(MOCK);
+  await expect(page.getByRole("button", { name: "Zero X", exact: true })).toBeVisible();
+  await ctlSend({ op: "quiet", on: true });
+  try {
+    await ctlSend({ op: "setKins", kins: TRSRN });
+    await ctlSend({ op: "status_delta", data: {
+      kins_type: 0, g5x_index: 1, twp_defined: true, twp_active: true,
+      twp_pose_a: 0, twp_pose_b: 0, twp_pose_c: 0, rotary_abc: [0, 0, 0],
+      permissions: { ...PERMS_ALL },
+    } });
+    const plane = page.locator('input[name="jogFrame"][value="2"]');
+    await expect(plane).toBeEnabled();
+    await ctlSend({ op: "clearCmds" });
+    await plane.focus();
+    await page.keyboard.press(" ");
+    await expect.poll(async () => {
+      const sent = await ctlSend({ op: "lastCmds" }) as { cmds?: { cmd?: string; mode?: number }[] };
+      return (sent.cmds ?? []).filter(c => c.cmd === "set_kins_mode").map(c => c.mode);
+    }).toEqual([2]);
+    // Disabled again: the same key explains instead, and commands nothing.
+    await ctlSend({ op: "status_delta", data: {
+      permissions: { ...PERMS_ALL, planeFrame: false },
+      permission_reasons: { planeFrame: "Head not aligned with the plane — press Orient" },
+    } });
+    await expect(plane).toBeDisabled();
+    await ctlSend({ op: "clearCmds" });
+    await page.locator("label", { has: plane }).focus();
+    await page.keyboard.press(" ");
+    expectNoMachineAction(await recordedCmds());
   } finally {
     await ctlSend({ op: "quiet", on: false });
     await ctlSend({ op: "reset" });
