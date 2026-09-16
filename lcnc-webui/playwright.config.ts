@@ -1,5 +1,7 @@
 import { defineConfig } from "@playwright/test";
 
+const toolSpecs = /(freecad-import|tool-geometry|tool-holder|tool-import)\.spec\.ts/;
+
 // Smoke E2E (issue #26). Serves the BUILT frontend with `vite preview` and no
 // gateway, so it verifies the app shell renders and the default-deny gating
 // holds while disconnected — exactly the state a fresh load starts in.
@@ -17,7 +19,7 @@ export default defineConfig({
     headless: true,
   },
   projects: [
-    { name: "chromium", use: { browserName: "chromium" }, testIgnore: /(lifecycle|viewer|nine-axis|touchoff)\.spec\.ts/ },
+    { name: "chromium", use: { browserName: "chromium" }, testIgnore: [/(lifecycle|viewer|nine-axis|touchoff)\.spec\.ts/, toolSpecs] },
     // Mock-global-state specs run strictly ONE FILE AT A TIME via project
     // dependency CHAINING. fullyParallel:false alone is NOT enough — it only
     // serializes tests within a file; separate files still land on parallel
@@ -30,9 +32,20 @@ export default defineConfig({
     //  • viewer.spec.ts — renderer.info leak probe needs a settled renderer;
     //    runs LAST, after all axis churn.
     {
-      name: "serial-lifecycle",
+      // Import/holder specs broadcast tool tables and reset the shared mock.
+      // Serialize FILES too: fullyParallel:false only serializes each file's
+      // tests, while workers:1 prevents competing fixture broadcasts.
+      name: "serial-tools",
       use: { browserName: "chromium" },
       dependencies: ["chromium"],
+      testMatch: toolSpecs,
+      fullyParallel: false,
+      workers: 1,
+    },
+    {
+      name: "serial-lifecycle",
+      use: { browserName: "chromium" },
+      dependencies: ["serial-tools"],
       testMatch: /lifecycle\.spec\.ts/,
       fullyParallel: false,
     },

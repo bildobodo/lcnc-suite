@@ -33,6 +33,11 @@
   },
   "include": [
     "src/shims.d.ts",
+    "src/freecadGeometry.test.ts",
+    "src/toolGeometry.test.ts",
+    "src/toolHolder.test.ts",
+    "src/toolPreviewNotice.test.ts",
+    "src/toolSimulationGeometry.test.ts",
     "src/viewer/palette.test.ts",
     "src/viewer/programZero.test.ts",
     "src/viewer/machineModel.test.ts",

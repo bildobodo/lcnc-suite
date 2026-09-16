@@ -48,6 +48,9 @@ async function geometryCount(page: Page) {
   return previous;
 }
 
+// Keep the entire preview visible: in the default short viewport, toggling
+// scrolls the dialog and screenshots capture its header/footer over the canvas.
+test.use({ viewport: { width: 1600, height: 1200 } });
 test.beforeEach(async () => { await ctl({ op: "reset" }); });
 
 test("holder is opt-in in the library preview and never auto-attached to the live tool", async ({ page }) => {
@@ -56,14 +59,16 @@ test("holder is opt-in in the library preview and never auto-attached to the liv
   await expect(toggle).not.toBeChecked();
   await expect(page.getByText("Tool only", { exact: true })).toBeVisible();
   const canvas = page.locator(".editPreviewCanvas canvas");
-  const before = await canvas.screenshot();
+  await expect(canvas).toBeInViewport({ ratio: 1 });
+  const before = await canvas.screenshot({ path: test.info().outputPath("tool-only-before.png") });
   await toggle.check();
   await expect(page.getByText("Nominal Fusion assembly", { exact: true })).toBeVisible();
   const withHolder = await canvas.screenshot();
   expect(withHolder.equals(before)).toBe(false);
   await page.locator(".editDialog").screenshot({ path: test.info().outputPath("nominal-holder.png") });
   await toggle.uncheck();
-  expect((await canvas.screenshot()).equals(before)).toBe(true);
+  await expect(canvas).toBeInViewport({ ratio: 1 });
+  expect((await canvas.screenshot({ path: test.info().outputPath("tool-only-after.png") })).equals(before)).toBe(true);
 
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
   await page.getByTitle("Edit tool", { exact: true }).click();

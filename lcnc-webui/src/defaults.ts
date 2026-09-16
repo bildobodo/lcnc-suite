@@ -23,8 +23,8 @@ export const STEP_RAPID_OVERRIDE = 25;
 
 export type Vec3 = [number, number, number];
 
-export type Layer = "backplot" | "toolpath" | "machine" | "bounds" | "toolpathBounds" | "reachRoom" | "reachPart" | "workzero" | "hud" | "surface" | "tool" | "workplane";
-export const ALL_LAYERS: Layer[] = ["backplot", "toolpath", "machine", "bounds", "toolpathBounds", "reachRoom", "reachPart", "workzero", "hud", "surface", "tool", "workplane"];
+export type Layer = "backplot" | "toolpath" | "machine" | "bounds" | "toolpathBounds" | "reachRoom" | "reachPart" | "workzero" | "hud" | "surface" | "tool" | "workplane" | "groundGrid";
+export const ALL_LAYERS: Layer[] = ["backplot", "toolpath", "machine", "bounds", "toolpathBounds", "reachRoom", "reachPart", "workzero", "hud", "surface", "tool", "workplane", "groundGrid"];
 
 export type TrackMode = "none" | "tool" | "wcs";
 export type Projection = "perspective" | "parallel";

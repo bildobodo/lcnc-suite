@@ -28,7 +28,7 @@ vi.mock("./machineNormals", () => ({
 }));
 
 const {
-  loadMachineAssets, getCachedGeometry, machineReady, failedParts,
+  loadMachineAssets, getCachedGeometry, getCollisionGeometry, machineReady, failedParts,
   getToolMeta, setToolMeta,
 } = await import("./machineAssetCache");
 
@@ -53,6 +53,24 @@ describe("tool meta accessors", () => {
 });
 
 describe("loadMachineAssets", () => {
+  it("keeps display meshes and collision proxies separate through normal-cache migration", async () => {
+    const display = new THREE.BoxGeometry(10, 20, 30).toNonIndexed();
+    const proxy = new THREE.BoxGeometry(8, 18, 28).toNonIndexed();
+    const displayPositions = display.getAttribute("position").array.slice();
+    const proxyPositions = proxy.getAttribute("position").array.slice();
+    idb.loadGeometryFromIDB.mockResolvedValueOnce(display).mockResolvedValueOnce(proxy);
+    const part = { id: "gantry-proxy", file: "guide.stl", collision: "collision/guide.stl" };
+    await loadMachineAssets({ stl_base_url: "/gantry/", parts: [part] });
+    expect(getCachedGeometry(part.id)).toBe(display);
+    expect(getCollisionGeometry(part.id)).toBe(proxy);
+    expect(display.getAttribute("position").array).toEqual(displayPositions);
+    expect(proxy.getAttribute("position").array).toEqual(proxyPositions);
+    expect(idb.storeGeometryInIDB).toHaveBeenCalledWith("/gantry/guide.stl", display);
+    expect(idb.storeGeometryInIDB).toHaveBeenCalledWith("/gantry/collision/guide.stl", proxy);
+    expect(normals.process).toHaveBeenCalledTimes(2);
+    expect(failedParts.value).toEqual([]);
+  });
+
   it("upgrades faceted IDB entries without fetching the STL again", async () => {
     const fetchSpy = vi.fn();
     vi.stubGlobal("fetch", fetchSpy);

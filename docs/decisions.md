@@ -5393,3 +5393,39 @@ requiring explicit coordinate/offset semantics and motion validation. Their
 addition must preserve backend admission and show which datum a result will
 change. Physical-machine and actual-touchscreen validation continue to gate
 `development → main` under the existing project policy.
+
+## 2026-09-16 — Integrate PRs #39 and #40 into development
+
+**Decision (user approved).** Integrate the separate TWP wall-gantry example
+(PR #39, `1a065a6`) and viewer lighting/ground grid (PR #40, `b4ca5c3`) into
+`development`, retaining the TWP foundation at `9a52016` and the intervening
+remote Fusion/FreeCAD tool-import work at `e8d924f`. Retarget #39 from
+`feat/twp` to `development` for completion. The gantry remains an explicitly
+selected simulation example; the existing default configuration is unchanged.
+Its README records the remaining program-offset adaptations and live checks.
+
+**Integration corrections.** Preserve rotary parser seeding with the generic
+tool-import worker, TWP dispatch tests, dynamic machine bounds, stale-path
+theme updates and collision visibility listeners. Capture the static assembly
+for the ground grid independently of live joint limits. Register `groundGrid`
+alongside all TWP/reach layers. Preserve separate display/proxy cache entries
+through normal migration, covered by an added regression test. The browser
+mock retains its active model and axis selection through reconnect/rebuild.
+
+**Test infrastructure.** Include five new Node-based tool geometry/import
+tests in the Node TypeScript project and exclude them from the DOM project.
+Serialize tool browser specs that broadcast/reset the shared mock; concurrent
+fixtures otherwise overwrite each other's tool tables. Give the holder
+visual test enough viewport height to show the complete preview and assert
+its visibility: the previous short viewport captured dialog chrome over
+its scrolled canvas. Keep the exact before/after image comparison.
+
+**Validation.** Production build, TypeScript, ESLint and scoped-CSS audit pass.
+Frontend unit run: 1,506 passed, with the sole configuration-coverage failure
+corrected; the focused rerun passes all 16 configuration/cache tests,
+including the added proxy regression (1,508 tests covered in total).
+All 33 Playwright tests pass with the normal two-worker CI configuration.
+Gateway: 908 tests and 278 subtests pass under the fake LinuxCNC binding;
+`test_viewer_init.py` remains the documented on-machine exclusion. Tests run
+in an isolated worktree; no LinuxCNC session is started or restarted. These
+checks do not replace M-05/M-06 or physical-machine acceptance recorded above.
