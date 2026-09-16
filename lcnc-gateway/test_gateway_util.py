@@ -1,8 +1,9 @@
-"""Unit tests for gateway_util — the pure, linuxcnc-free helpers.
+"""Unit tests for gateway_util and optional real-rs274 canon checks.
 
-Written as unittest.TestCase so they run with zero extra install via
+Written as unittest.TestCase so they also run without pytest via
 ``python3 -m unittest test_gateway_util`` and are also discovered by pytest
-(``pytest test_gateway_util.py``).
+(``pytest test_gateway_util.py``). Vectorized checks require NumPy; tests
+against the real canon skip when the LinuxCNC rs274 package is unavailable.
 """
 
 import math
@@ -2325,6 +2326,7 @@ class TestCallerAttribution(unittest.TestCase):
                                              events, caller_map),
             [0, 3, 3, 3, 0, 0])
 
+    @unittest.skipUnless(_HAVE_RS274, "rs274 (LinuxCNC python) not importable")
     def test_canon_records_caller_token(self):
         import types
         import gcode_canon
@@ -2451,6 +2453,7 @@ class TestRotarySyncInitcode(unittest.TestCase):
             self.MASK6, (0, 0, 0, 1.0, None, 2.0)))
 
 
+@unittest.skipUnless(_HAVE_RS274, "rs274 (LinuxCNC python) not importable")
 class TestCanonFirstMoveRearm(unittest.TestCase):
     """The rotary-sync initcode consumes the canon's one first-move
     suppression; next_line must re-arm it at the first REAL program line
@@ -2550,6 +2553,7 @@ class TestCanonFirstMoveRearm(unittest.TestCase):
 
 
 
+@unittest.skipUnless(_HAVE_RS274, "rs274 (LinuxCNC python) not importable")
 class TestTloEvents(unittest.TestCase):
     """Schema 8: the canon records every G43/G43.1/G49 and executed M6 on a
     program line as a (seq, xo, yo, zo, tool) event — the per-segment TLO

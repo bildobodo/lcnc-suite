@@ -5431,3 +5431,11 @@ Gateway: 908 tests and 278 subtests pass under the fake LinuxCNC binding;
 `test_viewer_init.py` remains the documented on-machine exclusion. Tests run
 in an isolated worktree; no LinuxCNC session is started or restarted. These
 checks do not replace M-05/M-06 or physical-machine acceptance recorded above.
+
+**Cloud-CI follow-up.** GitHub's frontend job passes. Its bare backend runner
+exposed missing NumPy and eleven newly added tests requiring real `rs274`
+modules. Pin NumPy 2.2.4 in CI only (runtime still uses the system install),
+and apply the existing explicit `rs274`-availability guard to those canon
+tests. With `rs274` unavailable, the local reproduction passes 893 tests and
+278 subtests, with 15 canon/oracle tests explicitly skipped. With the real
+modules available, those same 15 tests pass separately; none are removed.

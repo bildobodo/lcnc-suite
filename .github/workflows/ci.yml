@@ -45,9 +45,11 @@ jobs:
           python-version: "3.13"
       # gateway.py's module-level third-party imports are only fastapi + msgspec
       # + click; the fake linuxcnc (conftest.py) stands in for the real binding,
-      # and machine/ is committed so the StaticFiles mount resolves. Heavy deps
-      # (numpy/cv2/PIL) are lazily imported by camera/viewer code the tests don't
-      # exercise.
+      # and machine/ is committed so the StaticFiles mount resolves. NumPy is
+      # required by the vectorized limit/rotary checks. Install it only in this
+      # isolated CI environment; runtime keeps the system LinuxCNC NumPy.
+      # cv2/PIL remain lazy camera dependencies outside this test subset.
+      # Tests using the real rs274 canon explicitly skip when it is absent.
       # python-multipart is required by FastAPI to analyze the upload route at
       # import time (UploadFile/Form), even though no test posts a file.
       # PINNED to the versions the dev venv runs (unpinned installs drifted:
@@ -57,4 +59,5 @@ jobs:
       - run: >
           pip install fastapi==0.136.1 starlette==1.0.0 httpx==0.28.1
           msgspec==0.21.1 click==8.3.3 python-multipart==0.0.28 pytest==9.0.3
+          numpy==2.2.4
       - run: python -m pytest
