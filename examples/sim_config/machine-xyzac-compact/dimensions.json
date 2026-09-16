@@ -161,15 +161,15 @@
       "solids": 1,
       "closed": true,
       "triangles": 212,
-      "volume_mm3": 831607505.333333
+      "volume_mm3": 1101960005.3333323
     },
     {
       "id": "rear_column",
       "valid": true,
       "solids": 1,
       "closed": true,
-      "triangles": 216,
-      "volume_mm3": 845015626.3811858
+      "triangles": 380,
+      "volume_mm3": 1212694267.4587739
     },
     {
       "id": "column_foot",
@@ -177,7 +177,7 @@
       "solids": 1,
       "closed": true,
       "triangles": 44,
-      "volume_mm3": 75358656.0
+      "volume_mm3": 182097576.0
     },
     {
       "id": "chip_pan",
@@ -312,16 +312,16 @@
       "valid": true,
       "solids": 1,
       "closed": true,
-      "triangles": 1154,
-      "volume_mm3": 2014960.979344729
+      "triangles": 416,
+      "volume_mm3": 1272345.0247038663
     },
     {
       "id": "spindle_nose",
       "valid": true,
       "solids": 1,
       "closed": true,
-      "triangles": 840,
-      "volume_mm3": 180248.87849971434
+      "triangles": 5038,
+      "volume_mm3": 594561.0704575854
     },
     {
       "id": "a_bearing_pedestals",
@@ -396,7 +396,23 @@
     "yoke_crossplate_thickness": 110,
     "bearing_width": 190,
     "spindle_axis_to_z_plate": 155,
-    "floor_z": -905
+    "floor_z": -905,
+    "rear_ribs": [
+      {
+        "x_start": -670,
+        "width": 260
+      },
+      {
+        "x_start": -100,
+        "width": 200
+      },
+      {
+        "x_start": 410,
+        "width": 260
+      }
+    ],
+    "rib_rear_y": 1420,
+    "bed_rear_y": 1470
   },
   "pins": {
     "x-rot-point": 0,

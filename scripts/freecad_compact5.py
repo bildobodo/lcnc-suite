@@ -33,6 +33,10 @@ BEARING_WIDTH = 190
 BEARING_OUTER = BEARING_INNER + BEARING_WIDTH
 YOKE_INNER = 235
 YOKE_OUTER = 345
+BED_REAR_Y = 1470
+FOOT_REAR_Y = 1450
+RIB_REAR_Y = 1420
+RIB_SPANS = [(-670, 260), (-100, 200), (410, 260)]
 GUIDE = dict(reference='HIWIN HGW45HC / HGR45 envelope; independently drawn simplified profile',
              rail_width=45, rail_height=38, block_width=120, block_length=171.2,
              body_length=128.8, assembly_height=60, hole_pitch=105)
@@ -120,10 +124,10 @@ def add(name, group, color, shape, stock=False):
     parts.append(p); shapes[name] = shape; objects[name] = o
 
 
-# Six levelling feet, deep bed, wide rear casting. Recesses leave thick ribs.
+# Rear feet and foundation extend beneath the diagonal column buttresses.
 add('levelling_feet', None, 'dark', compound([
-    cyl(85, 45, (x, y, FLOOR_Z)) for x in (-630, 630) for y in (-620, 50, 740)]))
-bed = bevel(box(-770, -790, -860, 770, 920, -540), 25)
+    cyl(85, 45, (x, y, FLOOR_Z)) for x in (-630, 630) for y in (-620, 250, 1290)]))
+bed = bevel(box(-770, -790, -860, 770, BED_REAR_Y, -540), 25)
 bed = bed.cut(compound([bevel(box(x-170, -802, -795, x+170, -748, -625), 18)
                        for x in (-465, 0, 465)]))
 add('machine_bed', None, 'cast', bed)
@@ -132,10 +136,17 @@ add('machine_bed', None, 'cast', bed)
 column = yz_profile([(560, -405), (900, -405), (900, 1190), (555, 1190),
                      (X_GUIDE_Y, 1090), (X_GUIDE_Y, 350), (540, 200)], -720, 1440)
 column = bevel(column, 14)
-column = column.cut(compound([bevel(box(x-145, 850, -280, x+145, 935, 950), 20)
-                             for x in (-470, 0, 470)]))
+# Recesses BETWEEN the ribs keep their roots fully connected to the column.
+column = column.cut(compound([bevel(box(x-105, 800, -250, x+105, 920, 950), 20)
+                             for x in (-255, 255)]))
+rib_profile = [(860, -405), (RIB_REAR_Y, -405), (RIB_REAR_Y, -230),
+               (1040, 1020), (900, 1100), (860, 1100)]
+ribs = [bevel(yz_profile(rib_profile, x, width), 14) for x, width in RIB_SPANS]
+# A single casting: internal overlapping faces are removed by the solid union.
+column = fuse([column, *ribs])
+assert len(column.Solids) == 1, 'Column ribs must join the main casting'
 add('rear_column', None, 'paint', column)
-add('column_foot', None, 'cast', bevel(box(-740, 535, -540, 740, 915, -405), 12))
+add('column_foot', None, 'cast', bevel(box(-740, 535, -540, 740, FOOT_REAR_Y, -405), 12))
 rail_seats = compound([box(x-75, -515, -540, x+75, 515, -520) for x in (-320, 320)])
 add('chip_pan', None, 'dark', bevel(box(-600, -690, -539, 600, 505, -527), 4).cut(rail_seats))
 
@@ -200,9 +211,14 @@ add('z_slide', 'z_head', 'paint', bevel(box(-205, Z_PLATE_FRONT, 85, 205, Z_PLAT
 head = bevel(box(-175, -145, 85, 175, Z_PLATE_FRONT, 445), 22)
 add('spindle_head', 'z_head', 'paint', head)
 add('spindle_motor_cover', 'z_head', 'accent', bevel(box(-125, -112, 445, 125, 125, 585), 16))
-add('spindle_cartridge', 'z_head', 'dark', fuse([
-    cyl(112, 28, (0, 0, 57)), Part.makeCone(65, 100, 42, V(0, 0, 15))]))
-nose = cyl(65, 15).cut(cyl(20, 17, (0, 0, -1)))
+# Short steel taper, shoulder and bolt flange, following the TWP spindle's
+# stepped outline at a smaller scale. The cartridge itself is cylindrical.
+add('spindle_cartridge', 'z_head', 'dark', cyl(90, 50, (0, 0, 35)))
+nose = fuse([Part.makeCone(50, 70, 20, V(0, 0, 0)),
+             cyl(70, 8, (0, 0, 20)), cyl(110, 7, (0, 0, 28))])
+nose = nose.cut(cyl(20, 18, (0, 0, -1))).cut(compound([
+    cyl(4, 5, (96*math.cos(math.radians(a)), 96*math.sin(math.radians(a)), 27))
+    for a in range(0, 360, 45)]))
 add('spindle_nose', 'z_head', 'steel', nose)
 
 # Symmetric bearing pedestals, bored for actual shafts. A rotates about X.
@@ -254,7 +270,9 @@ report = dict(joint_limits=LIMITS, cad_pose=POSE, table_diameter=400,
               structure=dict(x_plate_thickness=100, z_plate_thickness=Z_PLATE_BACK-Z_PLATE_FRONT,
                              y_plate_thickness=140, yoke_cheek_thickness=YOKE_OUTER-YOKE_INNER,
                              yoke_crossplate_thickness=110, bearing_width=BEARING_WIDTH,
-                             spindle_axis_to_z_plate=Z_PLATE_FRONT, floor_z=FLOOR_Z),
+                             spindle_axis_to_z_plate=Z_PLATE_FRONT, floor_z=FLOOR_Z,
+                             rear_ribs=[dict(x_start=x, width=width) for x, width in RIB_SPANS],
+                             rib_rear_y=RIB_REAR_Y, bed_rear_y=BED_REAR_Y),
               pins={k: 0 for k in ('x-rot-point', 'y-rot-point', 'z-rot-point', 'y-offset', 'z-offset')})
 preview = dict(machine, initialPose=POSE, jointLimits=LIMITS, floorZ=FLOOR_Z, parts=[])
 for p in parts:

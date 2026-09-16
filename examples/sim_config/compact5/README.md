@@ -6,7 +6,10 @@ The table carries a **connected U-shaped A yoke supported by bearings on both
 sides**, with a C rotary platter inside it. The frame is left exposed so the
 joints, guide blocks and kinematic hierarchy are easy to inspect. Ball-screw
 assemblies are omitted from the model. The spindle housing meets the thick
-Z carrier directly, without an intermediate spacer.
+Z carrier directly, without an intermediate spacer. Its cylindrical cartridge
+and short, stepped steel nose follow the TWP example's spindle proportions.
+Three diagonal rear buttresses are fused into the column casting and sit on
+an extended foot and foundation, with the rear levelling feet underneath.
 
 This is independently drawn example geometry under GPL-2.0-or-later, not a
 replica of a particular manufacturer's machine or a production-ready design.
@@ -26,7 +29,8 @@ No third-party CAD meshes are redistributed.
 | Y carrier plate | 140 mm thick, 1160 mm wide |
 | Yoke cheeks / crossplate | 110 / 110 mm |
 | Bearing pedestals | 190 mm axial width per side |
-| Frame envelope | About 1540 × 1710 × 2095 mm including feet |
+| Rear buttresses | Two outer ribs, 260 mm thick; central rib, 200 mm thick |
+| Frame envelope | About 1540 × 2260 × 2095 mm including feet |
 | Supplied tool | T1, Ø12 mm, 100 mm gauge length |
 | Example blank | 130 × 130 × 60 mm on the platter |
 
@@ -121,11 +125,13 @@ compiled LinuxCNC C oracle, inverse roundtrips, and 3723 sampled TCP demo poses
 against the joint limits. It requires Python 3 and a C compiler, not FreeCAD.
 The optional exact-solid FreeCAD checker tests 72 discrete retracted
 rotary/travel and lower working poses (not continuous swept volumes).
-The current acceptance run found no interpenetration across 1959 candidate
+The current acceptance run found no interpenetration across 1953 candidate
 solid-pair checks. Additional interface checks verify that the column/foot,
 bearing/ring and spindle-head/Z-plate contacts have no volume overlap or
 duplicate outward-facing planar surfaces. X and Z carrier thicknesses match,
-and the spindle head contacts the Z plate directly. A live LinuxCNC startup must
+and the spindle head contacts the Z plate directly. The buttresses form one
+connected column solid, with the foot and foundation extending past their
+rear ends. A live LinuxCNC startup must
 still be checked on a Linux host; it cannot be executed on macOS.
 
 ## Design references

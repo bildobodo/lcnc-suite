@@ -51,6 +51,10 @@ assert abs(by_label['z_slide'].Shape.BoundBox.YLength -
            by_label['x_saddle'].Shape.BoundBox.YLength) < 1e-6
 assert abs(by_label['spindle_head'].Shape.BoundBox.YMax -
            by_label['z_slide'].Shape.BoundBox.YMin) < 1e-6
+# The rear buttresses are part of the casting and land above a supported foot.
+assert len(by_label['rear_column'].Shape.Solids) == 1
+assert by_label['column_foot'].Shape.BoundBox.YMax >= by_label['rear_column'].Shape.BoundBox.YMax + 20 - 1e-6
+assert by_label['machine_bed'].Shape.BoundBox.YMax >= by_label['column_foot'].Shape.BoundBox.YMax + 20 - 1e-6
 # All different-group pairs: mounting/bearing interfaces may touch but must not penetrate.
 poses=[]
 for x in (-250,0,250):
