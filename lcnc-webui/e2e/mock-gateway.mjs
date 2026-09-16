@@ -125,6 +125,8 @@ const VIEWER_INIT = {
   },
 };
 
+let activeViewerInit = VIEWER_INIT;
+
 // viewer.spec.ts forces in-session scene rebuilds: ThreeViewer dedups
 // viewer_init by content, so a monotonic _rev busts the dedup and drives a
 // real buildFromInit (clearScene + rebuild) without a page reload. A
@@ -137,7 +139,8 @@ let _gcodeVer = 0;
 let _axes = null;
 function initFrame() {
   _initRev++;
-  return { ...VIEWER_INIT, data: { ...VIEWER_INIT.data, ...(_axes ? { axes: _axes } : {}), _rev: _initRev } };
+  activeViewerInit = { ...activeViewerInit, data: { ...activeViewerInit.data, ...(_axes ? { axes: _axes } : {}), _rev: _initRev } };
+  return activeViewerInit;
 }
 
 const HALSHOW_SNAPSHOT = {
@@ -188,7 +191,7 @@ let refuseWs = false;
 wss.on("connection", (ws) => {
   ws.on("error", () => {}); // page teardown mid-write is routine in e2e
   ws.send(JSON.stringify(state));
-  ws.send(JSON.stringify(VIEWER_INIT));
+  ws.send(JSON.stringify(activeViewerInit));
   ws.on("message", (buf) => {
     let msg = null;
     try { msg = JSON.parse(String(buf)); } catch { /* non-JSON — fall through */ }
@@ -238,6 +241,7 @@ ctlWss.on("connection", (ws) => {
       // one — silently, as a passing test that depended on the previous spec.
       quiet = false;
       refuseWs = false;
+      activeViewerInit = VIEWER_INIT;
       state.armed = PRISTINE.armed;
       state.data = structuredClone(PRISTINE.data);
       delete VIEWER_INIT.data.kins;   // setKins is per-spec state too
@@ -268,8 +272,13 @@ ctlWss.on("connection", (ws) => {
       // TWP-08b: re-ship viewer_init with a kins declaration (or none) — the
       // capability twin the strips key the Plane frame, the TWP action row
       // and the reserved G59 rows on (App.vue twpCapable).
-      if (m.kins) VIEWER_INIT.data.kins = m.kins; else delete VIEWER_INIT.data.kins;
+      if (m.kins) activeViewerInit.data.kins = m.kins; else delete activeViewerInit.data.kins;
       broadcast(initFrame());
+    } else if (m.op === "setViewerInit") {
+      // Persist a real-STL fixture for reload/cache tests in serial-viewer.
+      _initRev++;
+      activeViewerInit = { type: "viewer_init", data: { ...m.data, _rev: _initRev } };
+      broadcast(activeViewerInit);
     } else if (m.op === "rebuildInit") {
       // Force a real in-session scene rebuild: _rev busts ThreeViewer's
       // content-dedup so buildFromInit (clearScene + rebuild) actually runs.

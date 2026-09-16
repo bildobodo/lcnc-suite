@@ -10,11 +10,22 @@ import * as THREE from "three";
 
 const idb = vi.hoisted(() => ({
   loadGeometryFromIDB: vi.fn<(url: string) => Promise<THREE.BufferGeometry | null>>(
-    async () => new THREE.BufferGeometry()),
+    async () => new THREE.BoxGeometry(1, 1, 1).toNonIndexed()),
   storeGeometryInIDB: vi.fn(async () => {}),
   pruneStaleVersions: vi.fn(async () => {}),
 }));
 vi.mock("../geometryCache", () => idb);
+const normals = vi.hoisted(() => ({
+  process: vi.fn(async (geom: THREE.BufferGeometry) => {
+    geom.userData.machineNormalsVersion = 1;
+    return geom;
+  }),
+  dispose: vi.fn(),
+}));
+vi.mock("./machineNormals", () => ({
+  MACHINE_NORMALS_VERSION: 1,
+  createMachineNormalProcessor: () => normals,
+}));
 
 const {
   loadMachineAssets, getCachedGeometry, machineReady, failedParts,
@@ -22,8 +33,10 @@ const {
 } = await import("./machineAssetCache");
 
 beforeEach(() => {
-  idb.loadGeometryFromIDB.mockImplementation(async () => new THREE.BufferGeometry());
+  idb.loadGeometryFromIDB.mockImplementation(async () => new THREE.BoxGeometry(1, 1, 1).toNonIndexed());
   idb.storeGeometryInIDB.mockClear();
+  normals.process.mockClear();
+  normals.dispose.mockClear();
 });
 
 afterEach(() => {
@@ -40,6 +53,28 @@ describe("tool meta accessors", () => {
 });
 
 describe("loadMachineAssets", () => {
+  it("upgrades faceted IDB entries without fetching the STL again", async () => {
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    await loadMachineAssets({ stl_base_url: "/old-normals/", parts: [{ id: "old-normals", file: "head.stl" }] });
+    const geometry = getCachedGeometry("old-normals")!;
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(normals.process).toHaveBeenCalledOnce();
+    expect(geometry.userData.machineNormalsVersion).toBe(1);
+    expect(idb.storeGeometryInIDB).toHaveBeenCalledWith("/old-normals/head.stl", geometry);
+    expect(normals.dispose).toHaveBeenCalledOnce();
+  });
+
+  it("reuses already-smoothed IDB entries without processing or writing", async () => {
+    const geometry = new THREE.BoxGeometry().toNonIndexed();
+    geometry.userData.machineNormalsVersion = 1;
+    idb.loadGeometryFromIDB.mockResolvedValueOnce(geometry);
+    await loadMachineAssets({ stl_base_url: "/new-normals/", parts: [{ id: "new-normals", file: "head.stl" }] });
+    expect(normals.process).not.toHaveBeenCalled();
+    expect(idb.storeGeometryInIDB).not.toHaveBeenCalled();
+    expect(getCachedGeometry("new-normals")).toBe(geometry);
+  });
+
   it("caches geometry, tags it _shared, sets machineReady, no failures", async () => {
     const init = { stl_base_url: "/m1/", parts: [{ id: "m1-x", file: "x.stl" }] };
     await loadMachineAssets(init);
@@ -77,7 +112,7 @@ describe("loadMachineAssets", () => {
     const oldDone = new Promise<void>(res => { releaseOld = res; });
     idb.loadGeometryFromIDB.mockImplementation(async (url: string) => {
       if (url.includes("/old/")) { await oldDone; throw new Error("old part failed"); }
-      return new THREE.BufferGeometry();
+      return new THREE.BoxGeometry(1, 1, 1).toNonIndexed();
     });
     vi.stubGlobal("fetch", async () => { throw new Error("no network in test"); });
 
@@ -116,7 +151,7 @@ describe("loadMachineAssets", () => {
 
     // Second load with the SAME init must NOT return the pinned failed
     // promise — the network is back (IDB hit) and the part loads.
-    idb.loadGeometryFromIDB.mockImplementation(async () => new THREE.BufferGeometry());
+    idb.loadGeometryFromIDB.mockImplementation(async () => new THREE.BoxGeometry(1, 1, 1).toNonIndexed());
     await loadMachineAssets(init);
     expect(getCachedGeometry("m6-flaky")).toBeInstanceOf(THREE.BufferGeometry);
     expect(failedParts.value).toEqual([]);
@@ -130,7 +165,7 @@ describe("loadMachineAssets", () => {
     const bad: any = { stl_base_url: "/m5/", parts: { not: "an array, .filter throws" } };
     await expect(loadMachineAssets(bad)).rejects.toBeTruthy();
     // A subsequent valid load is NOT deduped to the rejected promise.
-    idb.loadGeometryFromIDB.mockImplementation(async () => new THREE.BufferGeometry());
+    idb.loadGeometryFromIDB.mockImplementation(async () => new THREE.BoxGeometry(1, 1, 1).toNonIndexed());
     await loadMachineAssets({ stl_base_url: "/m5b/", parts: [{ id: "m5-ok", file: "ok.stl" }] });
     expect(getCachedGeometry("m5-ok")).toBeDefined();
   });

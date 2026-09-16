@@ -40,6 +40,7 @@ import { createBackplotController } from "./viewer/backplotController";
 import { createSurfaceController } from "./viewer/surfaceController";
 import { createToolpathController, type ToolpathCtx } from "./viewer/toolpathController";
 import type { ViewerCtx } from "./viewer/viewerContext";
+import { createMachineLighting, MACHINE_SURFACE, createGroundGrid, updateGroundGridColors, createMachineEdgeMaterial } from "./viewer/sceneAppearance";
 import ViewCube from "./ViewCube.vue";
 import MachineBtn from "./MachineBtn.vue";
 import CameraPip from "./CameraPip.vue";
@@ -577,6 +578,8 @@ function toolpathCtx(): ToolpathCtx {
 }
 let _machineEdgeLines: THREE.LineSegments[] = [];
 let machineEdges = false;
+let groundGrid: THREE.GridHelper | null = null;
+let themeMedia: MediaQueryList | null = null;
 let _groupDirMap: Record<string, string | null> = {};  // group → direction (x/y/z/null)
 let _partGroupMap: Record<string, string | null> = {};  // partId → group
 
@@ -988,6 +991,9 @@ function setLayerVisible(layer: Layer, on: boolean) {
       for (const m of machineMeshes) m.visible = on;
       for (const e of _machineEdgeLines) e.visible = on && machineEdges;
       break;
+    case "groundGrid":
+      if (groundGrid) groundGrid.visible = on;
+      break;
     case "bounds":
       if (machineBoundsMesh) machineBoundsMesh.visible = on;
       break;
@@ -1049,10 +1055,10 @@ let buildToken = 0;
 const MAT = {
   tool: new THREE.MeshStandardMaterial({ metalness: 0.2, roughness: 0.4 }),
   cutter: new THREE.MeshStandardMaterial({ metalness: 0.2, roughness: 0.4 }),
-  frame: new THREE.MeshStandardMaterial({ metalness: 0.1, roughness: 0.8 }),
-  axisX: new THREE.MeshStandardMaterial({ metalness: 0.1, roughness: 0.7 }),
-  axisY: new THREE.MeshStandardMaterial({ metalness: 0.1, roughness: 0.7 }),
-  axisZ: new THREE.MeshStandardMaterial({ metalness: 0.1, roughness: 0.7 }),
+  frame: new THREE.MeshStandardMaterial(MACHINE_SURFACE),
+  axisX: new THREE.MeshStandardMaterial(MACHINE_SURFACE),
+  axisY: new THREE.MeshStandardMaterial(MACHINE_SURFACE),
+  axisZ: new THREE.MeshStandardMaterial(MACHINE_SURFACE),
 };
 
 // Machine-part defaults come from viewer/palette.ts (one table for the
@@ -1079,6 +1085,7 @@ for (const m of Object.values(MAT)) m.userData._shared = true;
 // materials leaked on every reconnect rebuild.
 
 function clearScene() {
+  groundGrid = null;
   if (!scene) return;
   while (scene.children.length) {
     const c = scene.children.pop()!;
@@ -1455,14 +1462,14 @@ async function buildFromInit(init: ViewerInit) {
 
     scene.background = sceneBgFromTheme();
 
-    // lights (no grid)
-    scene.add(new THREE.AmbientLight());
-
-    const dl = new THREE.DirectionalLight();
-    dl.position.set(800, -800, 1200);
-    scene.add(dl);
+    scene.add(createMachineLighting());
 
     ensureCoreGroups(init);
+    // Capture the static assembly before the async load: live status can move
+    // groups during that await. Grid placement must not depend on axis pose.
+    scene.updateMatrixWorld(true);
+    const baseFrames = new Map(Object.entries(groups).map(([id, group]) => [id, group.matrixWorld.clone()]));
+    const modelBounds = new THREE.Box3();
     // Program-zero markers evaluate the same chain the part-frame worker
     // gets; one instance per build so the memoized chain stays warm.
     _markerMachine = _pfMachine(init);
@@ -1526,6 +1533,13 @@ async function buildFromInit(init: ViewerInit) {
       const parent = (grp ? groups[grp] : groups.root) ?? groups.root!;
       parent.add(mesh);
       machineMeshes.push(mesh);
+      if (!p.stock) {
+        mesh.updateMatrix();
+        if (!geom.boundingBox) geom.computeBoundingBox();
+        const base = baseFrames.get(grp ?? "root") ?? baseFrames.get("root")!;
+        const assembled = base.clone().multiply(mesh.matrix);
+        modelBounds.union(geom.boundingBox!.clone().applyMatrix4(assembled));
+      }
     }
 
     // Auto-frame to machine work envelope — use raw INI data (not setFromObject) so
@@ -1542,6 +1556,9 @@ async function buildFromInit(init: ViewerInit) {
       } else if (machineMeshes.length > 0) {
         for (const m of machineMeshes) autoBox.expandByObject(m);
       }
+      groundGrid = createGroundGrid(modelBounds.isEmpty() ? autoBox : modelBounds, _unitScale);
+      if (groundGrid) scene.add(groundGrid);
+      updateSceneTheme();
       _iniBox = autoBox.clone();
       frameToBounds(autoBox);
       _needsReframe = true;
@@ -1551,6 +1568,20 @@ async function buildFromInit(init: ViewerInit) {
         meshCount: machineMeshes.length,
         boundsValid: !autoBox.isEmpty(),
         timestamp: Date.now(),
+        getAppearance: () => ({
+          grid: groundGrid ? {
+            visible: groundGrid.visible,
+            position: groundGrid.position.toArray(),
+            color: Array.from(groundGrid.geometry.getAttribute("color").array).slice(0, 3),
+          } : null,
+          outlinedParts: _machineEdgeLines.filter(e => e.visible).length,
+          parts: machineMeshes.map(mesh => ({
+            id: mesh.userData.partId as string,
+            normalsVersion: mesh.geometry.userData.machineNormalsVersion as number,
+            position: mesh.getWorldPosition(new THREE.Vector3()).toArray(),
+            color: (mesh.material as THREE.MeshStandardMaterial).color.getHexString(),
+          })),
+        }),
         getRenderInfo: () => {
           if (!renderer) return null;
           const m = renderer.info.memory;
@@ -3270,14 +3301,26 @@ function animate() {
   _needsRender = false;
 }
 
-watch(themeMode, () => {
-  if (scene) scene.background = sceneBgFromTheme();
+function sceneForegroundFromTheme(): THREE.Color {
+  return new THREE.Color(getComputedStyle(document.documentElement).getPropertyValue("--fg").trim());
+}
+
+function updateSceneTheme() {
+  const background = sceneBgFromTheme();
+  const foreground = sceneForegroundFromTheme();
+  if (scene) scene.background = background;
+  if (groundGrid) updateGroundGridColors(groundGrid, background, foreground);
+  for (const edge of _machineEdgeLines) (edge.material as THREE.LineBasicMaterial).color.copy(foreground);
   toolpath.setStale(pathStaleNow.value);   // the muted mix follows the background
   requestRender();
-});
+}
+
+watch(themeMode, updateSceneTheme, { flush: "post" });
 
 onMounted(() => {
   document.addEventListener("visibilitychange", _colOnVisibility);
+  themeMedia = window.matchMedia("(prefers-color-scheme: dark)");
+  themeMedia.addEventListener("change", updateSceneTheme);
   scene = new THREE.Scene();
   scene.background = sceneBgFromTheme();
 
@@ -3399,6 +3442,7 @@ function applyViewerDefaults() {
 
 onUnmounted(() => {
   document.removeEventListener("visibilitychange", _colOnVisibility);
+  themeMedia?.removeEventListener("change", updateSceneTheme);
   document.removeEventListener("visibilitychange", _onVisibilityChange);
   setViewerPerfContext(null);
   setViewerPerfGl(null);
@@ -3593,11 +3637,6 @@ function setMachinePartColor(partId: string, color: string | null) {
       else mat.color.setHex(defaultHex);
     }
   }
-  // Sync edge line colors
-  for (const edge of _machineEdgeLines) {
-    if (edge.userData.partId !== partId) continue;
-    (edge.material as THREE.LineBasicMaterial).color.set(color ?? defaultHex);
-  }
   // Render-on-demand: an idle machine produces no status-diff renders, so the
   // color change must request its own frame or it stays invisible until the
   // camera moves.
@@ -3676,14 +3715,13 @@ async function buildEdgesLazy() {
 
     const edgesGeom = new THREE.BufferGeometry();
     edgesGeom.setAttribute("position", new THREE.Float32BufferAttribute(edgePositions, 3));
-    const mat = mesh.material as THREE.MeshStandardMaterial;
-    const edgeMat = new THREE.LineBasicMaterial({ color: mat.color.clone() });
+    const edgeMat = createMachineEdgeMaterial(sceneForegroundFromTheme());
     const edgeLine = new THREE.LineSegments(edgesGeom, edgeMat);
     edgeLine.position.copy(mesh.position);
     edgeLine.rotation.copy(mesh.rotation);
     edgeLine.scale.copy(mesh.scale);
     edgeLine.userData.partId = partId;
-    edgeLine.visible = machineEdges;
+    edgeLine.visible = machineEdges && mesh.visible;
     mesh.parent?.add(edgeLine);
     _machineEdgeLines.push(edgeLine);
   }
@@ -3697,7 +3735,7 @@ function setMachineEdges(on: boolean) {
   if (on && !_edgesBuilt) {
     buildEdgesLazy();
   } else {
-    for (const e of _machineEdgeLines) e.visible = on;
+    for (const e of _machineEdgeLines) e.visible = on && machineMeshes.some(m => m.userData.partId === e.userData.partId && m.visible);
   }
   requestRender();
 }

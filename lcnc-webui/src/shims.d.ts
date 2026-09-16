@@ -26,6 +26,11 @@ interface ViewerDiag {
   boundsValid?: boolean;
   timestamp?: number;
   error?: string;
+  getAppearance?: () => {
+    grid: { visible: boolean; position: number[]; color: number[] } | null;
+    outlinedParts: number;
+    parts: { id: string; normalsVersion: number; position: number[]; color: string }[];
+  };
   // Snapshot of THREE.WebGLRenderer.info — set when the renderer exists.
   // Returns null when there is no renderer yet (pre-init or after teardown).
   getRenderInfo?: () => {

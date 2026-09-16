@@ -221,7 +221,7 @@ Five theme modes selectable at runtime: Auto (follows OS), Light, Dark, High-Con
 |-----------------|--------------------------|
 | ![Toolpath](docs/screenshots/toolpath.png) | ![Surface map](docs/screenshots/surfacemap.png) |
 
-The Three.js viewer renders the full machine model from STL files alongside the G-code toolpath (rapids in red, feeds in cyan). The surface compensation tab overlays a probe height-map directly on the workpiece and shows a 3D surface plot with the interpolated Z values used for live compensation.
+The Three.js viewer renders the full machine model from STL files alongside the G-code toolpath (rapids in red, feeds in cyan). Machine surfaces use studio lighting, smooth shading with sharp edges preserved, and subtle outlines. **Settings → 3D Viewer → Layers → Ground Grid** toggles the grid below the machine; it follows the display theme and stays fixed during axis motion. Existing browser-cached models receive the shading update automatically. The surface compensation tab overlays a probe height-map directly on the workpiece and shows a 3D surface plot with the interpolated Z values used for live compensation.
 
 ---
 

@@ -275,6 +275,7 @@ const LAYER_LABELS: { key: Layer; label: string }[] = [
   { key: "reachRoom", label: "Machine Reach" },
   { key: "reachPart", label: "Part Reach" },
   { key: "machine", label: "Machine" },
+  { key: "groundGrid", label: "Ground Grid" },
   { key: "tool", label: "Tool" },
   { key: "hud", label: "HUD" },
 ];
