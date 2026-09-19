@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { ctl as ctlSend, MOCK } from "./ctl";
 
 // Touch-off under kinematics modes (2026-08-30): the backend broadcasts two
@@ -21,7 +21,8 @@ const PERMS_ALL = {
 // of 2026-09-16 saw the keyboard test fail on a background get_tool_table.
 // The assertion that matters is "no MACHINE action", with this allow-list as
 // the backstop that fails closed when a new command appears.
-const READ_ONLY_CMDS = ["hello", "heartbeat", "get_tool_table", "halshow_live", "timing_log"];
+const READ_ONLY_CMDS = ["hello", "heartbeat", "get_tool_table", "halshow_live", "timing_log",
+                       "tab_visibility"]; // Advisory status-delivery hint; no machine state change.
 const MACHINE_CMDS = ["cycle_start", "cycle_pause", "cycle_resume", "abort", "jog_cont",
                       "jog_incr", "jog_stop", "go_to_zero", "touchoff", "set_kins_mode",
                       "home_all", "machine_on", "estop", "mdi", "twp_capture"];
@@ -45,6 +46,123 @@ const TRT = { module: "xyzac-trt-kins", type: "xyzac-trt", identity_first: true,
 // switchkinsSetup) — the configuration that tells a frame selector bound to
 // raw numbers apart from one bound to frames (R-01).
 const TRT_WORLD_FIRST = { module: "xyzac-trt-kins", type: "xyzac-trt", identity_first: false, params: {} };
+
+async function stripGeometry(page: Page) {
+  return page.locator('[data-strip="jog"], [data-strip="setup"]').evaluateAll(strips =>
+    strips.flatMap(strip => {
+      const origin = strip.getBoundingClientRect();
+      return [...strip.querySelectorAll('button, input.setupInput')].map(control => {
+        const box = control.getBoundingClientRect();
+        return { label: control.textContent?.trim() || 'touch-off input',
+          x: box.x - origin.x, y: box.y - origin.y, width: box.width, height: box.height };
+      });
+    }));
+}
+
+test.describe('strip layout', () => {
+  test.afterEach(async () => { await ctlSend({ op: 'reset' }); });
+  for (const profile of [
+    { name: 'XYZ', axes: ['X', 'Y', 'Z'], kins: null },
+    { name: 'XYZAC', axes: ['X', 'Y', 'Z', 'A', 'C'], kins: TRT },
+    { name: 'XYZABC TWP', axes: ['X', 'Y', 'Z', 'A', 'B', 'C'], kins: TRSRN },
+  ]) {
+    for (const layout of ['landscape', 'landscape touch', 'portrait touch']) {
+      const portrait = layout === 'portrait touch';
+      test(`${profile.name} ${layout}: unhome preserves control geometry`, async ({ page }, testInfo) => {
+        await ctlSend({ op: 'reset' });
+        await page.setViewportSize(portrait ? { width: 900, height: 1200 } : { width: 1600, height: 1000 });
+        await page.goto(MOCK);
+        await expect(page.getByRole('button', { name: 'Zero X', exact: true })).toBeVisible();
+        if (layout.includes('touch')) await page.evaluate(() => document.documentElement.classList.add('touch-device'));
+        await ctlSend({ op: 'setAxes', axes: profile.axes });
+        await ctlSend({ op: 'setKins', kins: profile.kins });
+        const homed = {
+          homed: profile.axes.map(() => 1), task_mode: 1,
+          homed_joints: profile.axes.map(() => true),
+          kins_type: profile.kins ? 0 : null, g5x_index: 1,
+          permissions: { ...PERMS_ALL }, permission_reasons: {},
+        };
+        await ctlSend({ op: 'status_delta', data: homed });
+        const setup = page.locator('[data-strip="setup"]');
+        await expect(setup.getByRole('button', { name: 'Unhome All', exact: true })).toBeEnabled();
+        await expect(setup.getByRole('button', { name: 'Unhome Z', exact: true })).toBeEnabled();
+        await page.evaluate(() => document.fonts.ready);
+        // Aggregate actions always follow ALL axis rows, followed by travel
+        // and plane actions. No half-empty action column between axis groups.
+        const footer = await setup.evaluate(el => {
+          const axes = el.querySelector('.axisGrids')!.getBoundingClientRect();
+          const rows = [...el.querySelectorAll('.actionRow')].map(row => {
+            const box = row.getBoundingClientRect();
+            return { x: box.x, y: box.y, width: box.width, bottom: box.bottom };
+          });
+          return { axesBottom: axes.bottom, bottom: el.getBoundingClientRect().bottom, rows };
+        });
+        expect(footer.rows).toHaveLength(profile.kins === TRSRN ? 3 : 2);
+        expect(footer.rows[0]!.y).toBeGreaterThanOrEqual(footer.axesBottom);
+        for (let row = 1; row < footer.rows.length; row++) {
+          expect(footer.rows[row]!.y).toBeGreaterThanOrEqual(footer.rows[row - 1]!.bottom);
+          expect(footer.rows[row]!.width).toBeCloseTo(footer.rows[0]!.width, 0);
+        }
+        expect(footer.rows.at(-1)!.bottom).toBeLessThanOrEqual(footer.bottom + 1);
+        // WCS choices must also fit the fixed landscape height on touch.
+        const clipped = await setup.evaluate(el => {
+          const root = el.getBoundingClientRect();
+          return [...el.querySelectorAll('button, input.setupInput, .wcsCol label')]
+            .filter(control => {
+              const box = control.getBoundingClientRect();
+              return box.right > root.right + 1 || box.bottom > root.bottom + 1;
+            }).map(control => control.textContent?.trim());
+        });
+        expect(clipped).toEqual([]);
+        await setup.screenshot({ path: testInfo.outputPath('setup-homed.png') });
+        const before = await stripGeometry(page);
+        await ctlSend({ op: 'status_delta', data: {
+          homed: profile.axes.map(() => 0),
+          homed_joints: profile.axes.map(() => false),
+          permissions: { ...PERMS_ALL, jog: !profile.kins, touchoff: false,
+            touchoffRotary: false, machineFrame: false, goZero: false, twpCapture: false },
+          permission_reasons: Object.fromEntries(['jog', 'touchoff', 'touchoffRotary',
+            'machineFrame', 'goZero', 'twpCapture'].map(gate => [gate, 'Home all axes first'])),
+        } });
+        await expect(setup.getByRole('button', { name: 'Home All', exact: true })).toBeEnabled();
+        await expect(setup.getByRole('button', { name: 'Home Z', exact: true })).toBeEnabled();
+        await expect(setup.getByRole('button', { name: 'Zero X', exact: true })).toBeDisabled();
+        const after = await stripGeometry(page);
+        expect(after).toHaveLength(before.length);
+        for (let i = 0; i < before.length; i++) {
+          for (const key of ['x', 'y', 'width', 'height'] as const) {
+            expect(Math.abs(after[i]![key] - before[i]![key]), `${before[i]!.label}: ${key}`)
+              .toBeLessThanOrEqual(1);
+          }
+        }
+        await setup.screenshot({ path: testInfo.outputPath('setup-unhomed.png') });
+        await page.locator('.jogBtns').screenshot({ path: testInfo.outputPath('jog-unhomed.png') });
+        // Re-enabling must restore both the controls and their original footprint.
+        await ctlSend({ op: 'status_delta', data: homed });
+        await expect(setup.getByRole('button', { name: 'Zero X', exact: true })).toBeEnabled();
+        expect(await stripGeometry(page)).toEqual(before);
+        if (layout === 'landscape') {
+          // The compact footer must preserve the actual touch-off axis set:
+          // Zero All on XYZ, Zero XYZ (never rotary offsets) on switchable kins.
+          const zero = setup.getByRole('button', { name: profile.kins ? 'Zero XYZ' : 'Zero All', exact: true });
+          await zero.scrollIntoViewIfNeeded();
+          const box = (await zero.boundingBox())!;
+          await ctlSend({ op: 'clearCmds' });
+          await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+          await page.mouse.down();
+          try {
+            await expect.poll(async () => {
+              const sent = await ctlSend({ op: 'lastCmds' }) as { cmds: { cmd: string; axes?: Record<string, number> }[] };
+              return sent.cmds.filter(c => c.cmd === 'touchoff').map(c => c.axes);
+            }).toEqual([{ X: 0, Y: 0, Z: 0 }]);
+          } finally {
+            await page.mouse.up();
+          }
+        }
+      });
+    }
+  }
+});
 
 test("Plane mode: rotary touch-off closed, reserved fixtures disabled, Zero XYZ stays open", async ({ page }) => {
   // setAxes re-ships viewer_init to CONNECTED clients — load the page and
@@ -417,4 +535,3 @@ test("a disabled control explains itself: the reason on hover and on tap", async
     await ctlSend({ op: "reset" });
   }
 });
-

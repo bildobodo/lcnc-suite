@@ -2,9 +2,13 @@ import { defineConfig } from "@playwright/test";
 
 const toolSpecs = /(freecad-import|tool-geometry|tool-holder|tool-import)\.spec\.ts/;
 
-// Smoke E2E (issue #26). Serves the BUILT frontend with `vite preview` and no
-// gateway, so it verifies the app shell renders and the default-deny gating
-// holds while disconnected — exactly the state a fresh load starts in.
+if (process.env.CI && process.argv.some(arg => arg.startsWith('--update-snapshots') || arg === '-u')) {
+  throw new Error('CI must compare committed visual references, never update them.');
+}
+
+// Browser suite: the BUILT frontend with a plain preview for disconnected
+// smoke tests and a mock gateway for state, layout and visual regression
+// tests. No LinuxCNC instance is used.
 //
 //   npm run build && npm run test:e2e
 //
@@ -14,12 +18,20 @@ export default defineConfig({
   fullyParallel: true,
   timeout: 30_000,
   expect: { timeout: 10_000 },
+  updateSnapshots: 'none',
+  snapshotPathTemplate: '{testDir}/__screenshots__/{testFilePath}/{arg}{ext}',
+  reporter: [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL: "http://localhost:4173",
     headless: true,
+    deviceScaleFactor: 1,
+    locale: 'en-GB',
+    timezoneId: 'UTC',
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
   },
   projects: [
-    { name: "chromium", use: { browserName: "chromium" }, testIgnore: [/(lifecycle|viewer|nine-axis|touchoff)\.spec\.ts/, toolSpecs] },
+    { name: "chromium", use: { browserName: "chromium" }, testIgnore: [/(lifecycle|viewer|nine-axis|touchoff|layout|layout-audit|visual)\.spec\.ts/, toolSpecs] },
     // Mock-global-state specs run strictly ONE FILE AT A TIME via project
     // dependency CHAINING. fullyParallel:false alone is NOT enough — it only
     // serializes tests within a file; separate files still land on parallel
@@ -66,9 +78,25 @@ export default defineConfig({
       fullyParallel: false,
     },
     {
-      name: "serial-viewer",
+      name: "serial-layout",
       use: { browserName: "chromium" },
       dependencies: ["serial-touchoff"],
+      testMatch: /(?:layout|layout-audit)\.spec\.ts/,
+      fullyParallel: false,
+      workers: 1,
+    },
+    {
+      name: "serial-visual",
+      use: { browserName: "chromium" },
+      dependencies: ["serial-layout"],
+      testMatch: /visual\.spec\.ts/,
+      fullyParallel: false,
+      workers: 1,
+    },
+    {
+      name: "serial-viewer",
+      use: { browserName: "chromium" },
+      dependencies: ["serial-visual"],
       testMatch: /viewer\.spec\.ts/,
       fullyParallel: false,
     },

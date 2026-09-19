@@ -97,15 +97,10 @@ watch(touchoffContextKey, () => {
   closeKeypad();
   pushMessage(OPERATOR_ERROR, `Touch-off cancelled — the target changed while you were entering (${label}). Re-enter the value.`);
 });
-// The strip's height fits 6 grid rows. Pack each column FULL (6 axis rows)
-// before starting the next; the 3 action rows (Zero All / Home All / goto)
-// ride the last column when ≤3 axis rows remain there, else get their own.
-// 3-axis: XYZ+actions in one column (pixel-identical to the classic
-// layout); 9-axis: XYZABC | UVW+actions.
-// Portrait stacks the grids vertically, where a column split just reads as
-// an odd gap mid-list — so portrait renders ONE grid with all axes and the
-// actions at its tail (vertical space is plentiful there; width is the
-// constraint, and one grid keeps a single uniform rhythm).
+// Keep axes above a fixed action footer: XYZ | AC on the trunnion and
+// XYZ | ABC on the gantry. Three axis rows leave room for the aggregate,
+// travel and optional plane rows within the strip's six-row budget.
+// Portrait uses one axis list; its strip scrolls vertically.
 const isPortrait = inject<Ref<boolean>>("isPortrait", ref(false));
 // Switchable kins at all (kins_type sampled): Zero All stays linear-only
 // there — rotary touch-off is identity + G54 only on EVERY switchable
@@ -114,16 +109,11 @@ const isPortrait = inject<Ref<boolean>>("isPortrait", ref(false));
 // surfaces just for being switchable (TWP-08b).
 const isSwitchable = computed(() => props.kinsType != null);
 const isTwpMachine = computed(() => props.twpCapable === true);
-interface SetupChunk { axes: typeof entries.value; actions: boolean }
-const axisChunks = computed<SetupChunk[]>(() => {
+const axisChunks = computed(() => {
   const e = entries.value;
-  if (isPortrait.value) return [{ axes: e, actions: true }];
-  const out: SetupChunk[] = [];
-  for (let i = 0; i < e.length; i += 6) out.push({ axes: e.slice(i, i + 6), actions: false });
-  const last = out[out.length - 1];
-  const actionRows = isTwpMachine.value ? 4 : 3;  // + the TWP action row
-  if (last && last.axes.length <= 6 - actionRows) last.actions = true;
-  else out.push({ axes: [], actions: true }); // no axes yet, or a full last column
+  if (isPortrait.value) return [e];
+  const out: (typeof e)[] = [];
+  for (let i = 0; i < e.length; i += 3) out.push(e.slice(i, i + 3));
   return out;
 });
 
@@ -177,64 +167,67 @@ function zeroAll() {
   <div class="stripSection" ref="rootEl">
     <div class="sub">Setup</div>
     <div class="setupContent row-sections">
-      <!-- Axis grids: 6 axis rows per column (machine order); actions fill the tail -->
-      <div v-for="(chunk, ci) in axisChunks" :key="ci" class="setupGrid">
-        <template v-for="a in chunk.axes" :key="a.letter">
-          <MachineInput :gate="isRotaryAxis(a.letter) ? 'touchoffRotary' : 'touchoff'" type="number" :label="targetLabel(a.letter)" :value="fmtAxisInput(workPos[a.index], a.letter)" @input="emit('setAxis', a.index, +($event.target as HTMLInputElement).value, expectNow())" class="setupInput" />
-          <MachineBtn :type="isRotaryAxis(a.letter) ? 'zeroRotary' : 'zero'" @click="emit('setAxis', a.index, 0, expectNow())">Zero {{ a.letter }}</MachineBtn>
-          <MachineBtn :type="homedJoints[a.index] ? 'unhome' : 'home'" @click="homedJoints[a.index] ? emit('unhomeAxis', a.index) : emit('homeAxis', a.index)"><span class="stable-width"><span :class="{ alt: homedJoints[a.index] }">Home {{ a.letter }}</span><span :class="{ alt: !homedJoints[a.index] }">Unhome {{ a.letter }}</span></span></MachineBtn>
-        </template>
-        <template v-if="chunk.actions">
-          <MachineBtn type="zero" class="spanAll" @click="zeroAll()" :title="isSwitchable ? 'Zero the LINEAR axes only (rotary offsets are set per axis, Machine frame + G54 only)' : undefined">{{ zeroAllLabel }}</MachineBtn>
-          <MachineBtn :type="isHomed ? 'unhome' : 'home'" class="spanAll" @click="isHomed ? emit('unhomeAll') : emit('homeAll')"><span class="stable-width"><span :class="{ alt: isHomed }">Home All</span><span :class="{ alt: !isHomed }">Unhome All</span></span></MachineBtn>
-          <!-- Action rows: three EQUAL cells spanning the grid (never one
-               button per 80px/1fr/1fr track — the G30 button used to sit in
-               the 80px column). Labels name the DESTINATION with a motion
-               verb (review 2026-09-14 D-02): an arrow said nothing about
-               moving, "Home" read as reference homing. MCS/WCS = machine /
-               work coordinate system, the WCS selector's own term. -->
-          <div class="actionRow">
-            <MachineBtn type="goTo" @click="emit('goToG30')" title="MOVES to the G30 position: Z up to machine top first (never lowered), then X/Y, then Z. X/Y/Z only — rotaries untouched. Machine frame only.">Go to G30</MachineBtn>
-            <MachineBtn type="goTo" @click="emit('goToHome')" title="MOVES to MACHINE ZERO (G53 X0 Y0 Z0, rotaries to 0; Z up first, never lowered) — the machine coordinate origin, not reference homing and not the INI home positions. Machine frame only.">Go to MCS 0</MachineBtn>
-            <MachineBtn type="goZero" @click="emit('goToZero')" title="MOVES to WORK ZERO. Machine frame: Z to machine top (G53 Z0 — skipped when Z is already at or above it, never lowered), table back to the fixture's touch-off angle, then X/Y to work zero. Plane frame: retract along the tool axis to a clearance (never lowered), then X0 Y0 in the plane, rotaries untouched. TCP: not available.">Go to WCS 0</MachineBtn>
+      <div class="setupControls stack-tight">
+        <div class="axisGrids row-controls">
+          <div v-for="(chunk, ci) in axisChunks" :key="ci" class="setupGrid">
+            <template v-for="a in chunk" :key="a.letter">
+              <MachineInput :gate="isRotaryAxis(a.letter) ? 'touchoffRotary' : 'touchoff'" type="number" :label="targetLabel(a.letter)" :value="fmtAxisInput(workPos[a.index], a.letter)" @input="emit('setAxis', a.index, +($event.target as HTMLInputElement).value, expectNow())" class="setupInput" />
+              <MachineBtn :type="isRotaryAxis(a.letter) ? 'zeroRotary' : 'zero'" @click="emit('setAxis', a.index, 0, expectNow())">Zero {{ a.letter }}</MachineBtn>
+              <MachineBtn :type="homedJoints[a.index] ? 'unhome' : 'home'" @click="homedJoints[a.index] ? emit('unhomeAxis', a.index) : emit('homeAxis', a.index)"><span class="stable-width"><span :class="{ alt: homedJoints[a.index] }">Home {{ a.letter }}</span><span :class="{ alt: !homedJoints[a.index] }">Unhome {{ a.letter }}</span></span></MachineBtn>
+            </template>
           </div>
-          <div v-if="isTwpMachine" class="actionRow">
-            <!-- Capture plane: the one-button manual definition — align the
-                 spindle normal to the face (TCP jog), tip on the datum point,
-                 press. The backend gate (twp_capture_check) dims it with the
-                 reason — plane already defined, not G54, offsets in effect. -->
-            <MachineBtn type="twpCapture" @click="emit('twpCapture')"
-                        :title="twpDefined
-                          ? 'A plane is already defined — press Clear plane first (no silent discard).'
-                          : 'Capture the plane at the tool tip: orient the spindle normal to the face, touch the datum point, press. Defines the plane from the live spindle direction, sets the workpiece datum (G54) at the tip through the plane, and enters the Plane frame with the DRO reading 0 — nothing moves.'">Capture plane</MachineBtn>
-            <!-- Orient: works from a DEFINED plane (first orient) and
-                 re-orients after a table move. Hold-to-fire: the rotaries MOVE. -->
-            <MachineBtn type="twpReorient" :disabled="!twpDefined" @click="emit('twpOrient')"
-                        :title="!twpDefined
-                          ? 'Define a plane first (Capture plane, G68.2 / G68.3)'
-                          : twpStale
-                            ? 'Re-solve the head at the current table pose — the tool becomes normal to the plane again. The rotaries MOVE.'
-                            : twpOriented
-                              ? 'Re-solve the head at the current table pose. The orientation is current, so this should move very little.'
-                              : 'Orient the head into the defined plane (G53.1 equivalent). The rotaries MOVE.'">Orient</MachineBtn>
-            <!-- Clear plane: plain G69 — idempotent, restores identity kins +
-                 G54, moves nothing. Also the TOOL-kins-limbo recovery. -->
-            <MachineBtn type="twpClear" :disabled="!twpDefined && kinsMode !== 2"
-                        @click="emit('twpClear')"
-                        :title="twpDefined
-                          ? 'Discard the tilted work plane (G69): back to identity kinematics and G54.'
-                          : kinsMode === 2
-                            ? 'TOOL kinematics without a plane — G69 restores identity kinematics and G54.'
-                            : 'No plane defined — nothing to clear.'">Clear plane</MachineBtn>
-          </div>
-        </template>
+        </div>
+        <div class="actionRow aggregateRow">
+          <MachineBtn type="zero" @click="zeroAll()" :title="isSwitchable ? 'Zero the LINEAR axes only (rotary offsets are set per axis, Machine frame + G54 only)' : undefined">{{ zeroAllLabel }}</MachineBtn>
+          <MachineBtn :type="isHomed ? 'unhome' : 'home'" @click="isHomed ? emit('unhomeAll') : emit('homeAll')"><span class="stable-width"><span :class="{ alt: isHomed }">Home All</span><span :class="{ alt: !isHomed }">Unhome All</span></span></MachineBtn>
+        </div>
+        <!-- Action rows: three EQUAL cells spanning the grid (never one
+             button per 80px/1fr/1fr track — the G30 button used to sit in
+             the 80px column). Labels name the DESTINATION with a motion
+             verb (review 2026-09-14 D-02): an arrow said nothing about
+             moving, "Home" read as reference homing. MCS/WCS = machine /
+             work coordinate system, the WCS selector's own term. -->
+        <div class="actionRow">
+          <MachineBtn type="goTo" @click="emit('goToG30')" title="MOVES to the G30 position: Z up to machine top first (never lowered), then X/Y, then Z. X/Y/Z only — rotaries untouched. Machine frame only.">Go to G30</MachineBtn>
+          <MachineBtn type="goTo" @click="emit('goToHome')" title="MOVES to MACHINE ZERO (G53 X0 Y0 Z0, rotaries to 0; Z up first, never lowered) — the machine coordinate origin, not reference homing and not the INI home positions. Machine frame only.">Go to MCS 0</MachineBtn>
+          <MachineBtn type="goZero" @click="emit('goToZero')" title="MOVES to WORK ZERO. Machine frame: Z to machine top (G53 Z0 — skipped when Z is already at or above it, never lowered), table back to the fixture's touch-off angle, then X/Y to work zero. Plane frame: retract along the tool axis to a clearance (never lowered), then X0 Y0 in the plane, rotaries untouched. TCP: not available.">Go to WCS 0</MachineBtn>
+        </div>
+        <div v-if="isTwpMachine" class="actionRow">
+          <!-- Capture plane: the one-button manual definition — align the
+               spindle normal to the face (TCP jog), tip on the datum point,
+               press. The backend gate (twp_capture_check) dims it with the
+               reason — plane already defined, not G54, offsets in effect. -->
+          <MachineBtn type="twpCapture" @click="emit('twpCapture')"
+                      :title="twpDefined
+                        ? 'A plane is already defined — press Clear plane first (no silent discard).'
+                        : 'Capture the plane at the tool tip: orient the spindle normal to the face, touch the datum point, press. Defines the plane from the live spindle direction, sets the workpiece datum (G54) at the tip through the plane, and enters the Plane frame with the DRO reading 0 — nothing moves.'">Capture plane</MachineBtn>
+          <!-- Orient: works from a DEFINED plane (first orient) and
+               re-orients after a table move. Hold-to-fire: the rotaries MOVE. -->
+          <MachineBtn type="twpReorient" :disabled="!twpDefined" @click="emit('twpOrient')"
+                      :title="!twpDefined
+                        ? 'Define a plane first (Capture plane, G68.2 / G68.3)'
+                        : twpStale
+                          ? 'Re-solve the head at the current table pose — the tool becomes normal to the plane again. The rotaries MOVE.'
+                          : twpOriented
+                            ? 'Re-solve the head at the current table pose. The orientation is current, so this should move very little.'
+                            : 'Orient the head into the defined plane (G53.1 equivalent). The rotaries MOVE.'">Orient</MachineBtn>
+          <!-- Clear plane: plain G69 — idempotent, restores identity kins +
+               G54, moves nothing. Also the TOOL-kins-limbo recovery. -->
+          <MachineBtn type="twpClear" :disabled="!twpDefined && kinsMode !== 2"
+                      @click="emit('twpClear')"
+                      :title="twpDefined
+                        ? 'Discard the tilted work plane (G69): back to identity kinematics and G54.'
+                        : kinsMode === 2
+                          ? 'TOOL kinematics without a plane — G69 restores identity kinematics and G54.'
+                          : 'No plane defined — nothing to clear.'">Clear plane</MachineBtn>
+        </div>
       </div>
 
       <div class="wcsCol stack-tight strip-radio-group">
         <span class="label-muted">WCS</span>
         <span v-if="kinsChip" class="val-status kinsChip" :class="kinsChip.cls"
               :title="kinsChip.title">{{ kinsChip.text }}</span>
-        <div class="strip-radio-options">
+        <div class="strip-radio-options wcsOptions">
           <label v-for="g in g5xOptions" :key="g" class="radio-label" :title="wcsReserved(g) ? RESERVED_TITLE : undefined"
                  :tabindex="wcsReserved(g) ? 0 : undefined" :role="wcsReserved(g) ? 'button' : undefined"
                  :aria-label="wcsReserved(g) ? `Why is ${g} unavailable? ${RESERVED_TITLE}` : undefined"
@@ -251,13 +244,14 @@ function zeroAll() {
 
 <style scoped>
 .setupContent > * { flex-shrink: 0; }
+.axisGrids { align-items: start; }
 .setupGrid {
+  flex: 1;
   display: grid;
   grid-template-columns: 80px 1fr 1fr;
   /* Columns get --gap-controls: Zero X and Home X are consequential
      neighbors (fat-finger slip = unplanned homing move). Rows stay
-     --gap-tight — 6 axis rows at touch min-height already fill the
-     280px strip; 8px row gaps would overflow it. */
+     --gap-tight — axes and action footer share the six-row height budget. */
   gap: var(--gap-tight) var(--gap-controls);
   align-content: start;
 }
@@ -265,14 +259,28 @@ function zeroAll() {
    so the md buttons define the 32px track and the input stretches to it —
    axis rows and the action rows in the neighbouring column now match. */
 .setupInput { width: 100%; }
-.spanAll { grid-column: 1 / -1; }
 /* Three equal cells across the whole grid (layout only): the goto row and
    the TWP action row are structurally identical. */
-.actionRow { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--gap-controls); }
+.actionRow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gap-controls); }
+.aggregateRow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+/* Portrait has less width: destination labels wrap instead of clipping or
+   changing the track sizes when a disabled-reason wrapper appears. */
+.actionRow :deep(button) { white-space: normal; }
 .wcsCol { justify-content: flex-start; }
 /* Chip inherits .val-status visuals; only the alignment is local (the
    column reads left-to-right, not right-aligned like status rows). */
 .kinsChip { text-align: left; }
+
+@media (orientation: landscape) {
+  /* Nine fixtures plus the mode chip exceed the strip height on touch.
+     Keep every choice reachable, with G54–G58 in the first column. */
+  .wcsOptions {
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-rows: repeat(5, auto);
+    column-gap: var(--gap-controls);
+  }
+}
 
 @media (orientation: portrait) {
   .setupContent { flex-direction: column; }

@@ -14,6 +14,8 @@ export default tseslint.config(
     ignores: [
       "dist/**",
       "node_modules/**",
+      "playwright-report/**",
+      "test-results/**",
       "**/*.d.ts",
       "*.config.ts",
       "*.config.js",

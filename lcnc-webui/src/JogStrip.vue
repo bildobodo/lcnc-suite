@@ -606,7 +606,10 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
   .jogBtns  { display: grid; grid-template-columns: repeat(4, 1fr); }
   .xyWrap   { grid-column: 1 / -1; }
   .axisCluster { display: contents; }
-  .axisCol  { height: auto; grid-template-rows: 48px 48px; min-width: 0; }
+  /* Arrow + label + button padding need more than the former fixed 48px.
+     Let content set the row floor so both enabled and explained/disabled
+     buttons fit without clipping the arrow or the axis letter. */
+  .axisCol  { height: auto; grid-template-rows: repeat(2, minmax(48px, auto)); min-width: 0; }
   /* Both ABC and UVW present → Z spans both band rows (Z+ / Z- each get
      a full band, single-column width) */
   .zCol.zTall { grid-column: 1; grid-row: 2 / span 2; grid-template-rows: 1fr 1fr; }

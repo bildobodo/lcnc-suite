@@ -9,6 +9,9 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "test:layout": "playwright test --project=serial-layout --no-deps",
+    "test:visual": "playwright test --project=serial-visual --no-deps",
+    "test:visual:update": "npm run test:visual -- --update-snapshots=all",
     "lint": "eslint . && npm run lint:css",
     "lint:css": "python3 ../scripts/audit-scoped-css.py"
   },

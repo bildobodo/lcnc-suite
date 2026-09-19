@@ -27,8 +27,8 @@ test.afterAll(async () => {
 test("9-axis machine: SetupStrip renders a zero/home group per axis, HUD shows all letters", async ({ page }) => {
   await ctl({ op: "setAxes", axes: NINE });
 
-  // SetupStrip: every axis gets its Zero button (XYZ+ABC in column 1, UVW in
-  // column 2), each visible — not clipped away by the grid layout.
+  // SetupStrip: every axis gets its Zero button (XYZ | ABC | UVW),
+  // each visible — not clipped away by the grid layout.
   for (const l of NINE) {
     await expect(page.getByRole("button", { name: `Zero ${l}`, exact: true })).toBeVisible();
   }
@@ -48,16 +48,16 @@ test("9-axis machine: SetupStrip renders a zero/home group per axis, HUD shows a
     hud.locator(".hudAxis", { hasText: /^A$/ }).locator("xpath=following-sibling::span[1]"),
   ).toContainText("°");
 
-  // Bounding-box check for the packed layout (6 axis rows per column, then
-  // the next column; actions ride the last column): rows stack without
+  // Bounding-box check for the packed layout (3 axis rows per column,
+  // shared actions below): rows stack without
   // overlap WITHIN a column (1px rounding tolerance), and each next
-  // column starts to the right of the previous one. 9 axes → XYZABC | UVW.
+  // column starts to the right of the previous one. 9 axes → XYZ | ABC | UVW.
   const zeroBox = async (l: string) => {
     const b = await page.getByRole("button", { name: `Zero ${l}`, exact: true }).boundingBox();
     expect(b, `Zero ${l} has a box`).not.toBeNull();
     return b!;
   };
-  const columns = [["X", "Y", "Z", "A", "B", "C"], ["U", "V", "W"]];
+  const columns = [["X", "Y", "Z"], ["A", "B", "C"], ["U", "V", "W"]];
   const firstBoxes = [];
   for (const col of columns) {
     let prev = await zeroBox(col[0]!);

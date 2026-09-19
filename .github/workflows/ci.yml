@@ -33,7 +33,10 @@ jobs:
         if: always()
         with:
           name: frontend-test-evidence
-          path: runlogs/test-suite/
+          path: |
+            runlogs/test-suite/
+            lcnc-webui/playwright-report/
+            lcnc-webui/test-results/
 
   backend:
     runs-on: ubuntu-latest

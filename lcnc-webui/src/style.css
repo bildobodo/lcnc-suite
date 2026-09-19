@@ -721,7 +721,12 @@ label:has(input:disabled, select:disabled) {
    the event, in every browser. Promoted from ScrubBar's scoped rule. */
 .btnTip { display: inline-flex; }
 .btnTip--block { display: flex; width: 100%; }
-.btnTip > :disabled { pointer-events: none; }
+.btnTip > :disabled {
+  pointer-events: none;
+  /* The wrapper takes the grid/flex slot when a reason is shown. Its
+     button must fill that slot just as the unwrapped control did. */
+  flex: 1;
+}
 /* The wrapper is the only focusable thing left when a control is disabled
    (R-05), so it takes the same focus ring as the other help affordance. */
 .btnTip:focus-visible { outline: 2px solid var(--info); outline-offset: 1px; }
