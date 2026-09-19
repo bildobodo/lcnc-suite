@@ -17,7 +17,7 @@ import { twpPlaneForSample } from "./twpPlaneFrame";
 import { TWP_PROV_A_EPS } from "../twpPose";
 import type { PartFrameMachine, PartFrameWcs } from "./partFrame";
 
-const DIR = path.resolve(__dirname, "../../../examples/sim_config/machine-xyzacb-trsrn");
+const DIR = path.resolve(__dirname, "../../../scripts/test_fixtures/legacy_sim/machine-xyzacb-trsrn");
 const mj = JSON.parse(fs.readFileSync(path.join(DIR, "machine.json"), "utf8"));
 const SPEC = specFromWire({
   type: "xyzacb-trsrn",

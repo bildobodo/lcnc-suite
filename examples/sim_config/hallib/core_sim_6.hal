@@ -1,6 +1,6 @@
 # core HAL config file for simulation — 6-joint variant (XYZABC).
 # Same as core_sim_5.hal plus the joint-5 loopback, for the TWP machine
-# (lcnc_suite_sim_twp.ini). Extra joints home instantly, so no home-switch
+# (lcnc_suite_sim_6axis_twp_xyzabc.ini). Extra joints home instantly, so no home-switch
 # comps are needed.
 #
 # TWO DELIBERATE DIFFERENCES from core_sim_5.hal, both load-bearing:

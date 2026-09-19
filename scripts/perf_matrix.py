@@ -52,7 +52,7 @@ import websockets  # noqa: E402
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 TRACE = os.path.join(REPO, "runlogs", "trace.ndjson")
 INI = os.environ.get("LCNC_INI_FILE",
-                     "/home/cnc/linuxcnc/configs/lcnc_suite_sim/lcnc_suite_sim.ini")
+                     "/home/cnc/linuxcnc/configs/lcnc_suite_sim/lcnc_suite_sim_3axis_xyz.ini")
 
 
 def ini_get(key: str) -> str:

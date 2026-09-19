@@ -8,7 +8,7 @@ import * as THREE from "three";
 import { displayDecision } from "./displayPipeline";
 import { transformToPartFrame, type PartFrameMachine } from "./partFrame";
 
-// XYZAC trunnion (mirrors examples/sim_config/machine-xyzac) — the rotary
+// XYZAC trunnion (mirrors scripts/test_fixtures/legacy_sim/machine-xyzac) — the rotary
 // machine fixture shared with partFrame.test.ts.
 const TRUNNION: PartFrameMachine = {
   groups: [

@@ -1,0 +1,67 @@
+{
+  "profiles": [
+    {
+      "id": "3axis_xyz",
+      "name": "3 Axis XYZ",
+      "ini": "lcnc_suite_sim_3axis_xyz.ini",
+      "previous_ini": "lcnc_suite_sim.ini",
+      "state_dir": "xyz3",
+      "programs": [
+        "xyz3/blank.ngc"
+      ],
+      "modes": [
+        "identity"
+      ]
+    },
+    {
+      "id": "5axis_xyzac",
+      "name": "5 Axis XYZAC",
+      "ini": "lcnc_suite_sim_5axis_xyzac.ini",
+      "state_dir": "xyzac5",
+      "programs": [
+        "xyzac5/demo.ngc"
+      ],
+      "modes": [
+        "identity",
+        "tcp"
+      ]
+    },
+    {
+      "id": "6axis_twp_xyzabc",
+      "name": "6 Axis TWP XYZABC",
+      "ini": "lcnc_suite_sim_6axis_twp_xyzabc.ini",
+      "previous_ini": "lcnc_suite_sim_twp_gantry.ini",
+      "state_dir": "xyzabc6",
+      "programs": [
+        "xyzabc6/twp_simple_example.ngc"
+      ],
+      "modes": [
+        "identity",
+        "tcp",
+        "twp"
+      ]
+    }
+  ],
+  "shared": [
+    "hallib",
+    "remap_subs",
+    "twp",
+    "machine-5axis-xyzac",
+    "machine-xyzacb-gantry"
+  ],
+  "retired": [
+    "lcnc_suite_sim.ini",
+    "lcnc_suite_sim_5axis.ini",
+    "lcnc_suite_sim_5axis_tcp.ini",
+    "lcnc_suite_sim_9axis.ini",
+    "lcnc_suite_sim_twp.ini",
+    "lcnc_suite_sim_twp_gantry.ini",
+    "lcnc_suite_sim_dmu160p.ini",
+    "machine-xyzac",
+    "machine-xyzacb-trsrn",
+    "machine-dmu160p"
+  ],
+  "documents": [
+    "xyzac5/README.md"
+  ]
+}

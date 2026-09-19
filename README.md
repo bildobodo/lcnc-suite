@@ -287,8 +287,8 @@ The message panel shows a persistent log of all LinuxCNC errors and operator mes
 
 Run this on a fresh machine — no prior clone needed. The installer fetches
 dependencies, clones the repo into `~/lcnc-suite/`, sets up the Python venv
-and npm packages, and drops a sample sim config into
-`~/linuxcnc/configs/lcnc_suite_sim/` so you can boot LinuxCNC immediately.
+and npm packages, and installs the three supported simulation examples into
+`~/linuxcnc/configs/lcnc_suite_sim/`, including updates to existing installations.
 
 ```bash
 wget -O install.sh https://raw.githubusercontent.com/bildobodo/lcnc-suite/main/install.sh && bash install.sh
@@ -298,7 +298,7 @@ After it finishes:
 
 ```bash
 cd ~/lcnc-suite/lcnc-webui && npm run build       # build frontend for production
-linuxcnc ~/linuxcnc/configs/lcnc_suite_sim/lcnc_suite_sim.ini   # try the sim
+linuxcnc ~/linuxcnc/configs/lcnc_suite_sim/lcnc_suite_sim_3axis_xyz.ini   # try the sim
 ```
 
 Pass a positional arg to override the clone location:
@@ -317,7 +317,7 @@ cd lcnc-webui && npm run build && cd ..
 
 ### Option C: Manual
 
-**Prerequisites:** LinuxCNC 2.8+ with Python bindings, Python 3.9+, Node.js 18+ (22.x LTS recommended), npm, git-lfs
+**Prerequisites:** LinuxCNC 2.9+ with Python bindings and `halcompile` for the examples, Python 3.9+, Node.js 18+ (22.x LTS recommended), npm, git-lfs
 
 ```bash
 # 1. Clone
@@ -339,8 +339,17 @@ npm install
 npm run build
 cd ..
 
-# 5. (Optional) Drop the sample sim config so you can boot LinuxCNC immediately
-cp -r examples/sim_config ~/linuxcnc/configs/lcnc_suite_sim
+# 5. Put the launcher and HAL helpers on PATH.
+mkdir -p ~/.local/bin
+ln -sf "$PWD/lcnc-suite" ~/.local/bin/lcnc-suite
+ln -sf "$PWD/lcnc-gateway/hal_watchdog.py" ~/.local/bin/hal_watchdog.py
+ln -sf "$PWD/lcnc-gateway/hal_reader.py" ~/.local/bin/hal_reader.py
+ln -sf "$PWD/subroutines/surfacemap/compensation.py" ~/.local/bin/compensation.py
+export PATH="$HOME/.local/bin:$PATH"
+
+# 6. Install/update the three examples while LinuxCNC is stopped.
+python3 scripts/install_examples.py
+sudo halcompile --install examples/sim_config/twp/xyzacb_trsrn.comp
 ```
 
 ### Run the sim
@@ -353,7 +362,7 @@ DISPLAY launcher and halcmd/haltcl find them via PATH. No further
 configuration needed:
 
 ```bash
-linuxcnc ~/linuxcnc/configs/lcnc_suite_sim/lcnc_suite_sim.ini
+linuxcnc ~/linuxcnc/configs/lcnc_suite_sim/lcnc_suite_sim_3axis_xyz.ini
 ```
 
 Sanity check the PATH symlink (most shells include `~/.local/bin` by
@@ -370,8 +379,8 @@ To use lcnc-suite with your own machine config, copy the sample as a
 starting point and edit axis limits, kinematics, and HAL files:
 
 ```bash
-cp -r ~/linuxcnc/configs/lcnc_suite_sim ~/linuxcnc/configs/my_machine
-# then edit my_machine/lcnc_suite_sim.ini (rename if you like)
+cp -aL ~/linuxcnc/configs/lcnc_suite_sim ~/linuxcnc/configs/my_machine
+# then edit my_machine/lcnc_suite_sim_3axis_xyz.ini (rename if you like)
 ```
 
 The two reference sections below describe what the `[DISPLAY]` keys do
@@ -467,7 +476,7 @@ All three must be TRUE for the machine to stay enabled. See [Setting Up the HAL 
 
 ```bash
 # Sim (installed by install.sh)
-linuxcnc ~/linuxcnc/configs/lcnc_suite_sim/lcnc_suite_sim.ini
+linuxcnc ~/linuxcnc/configs/lcnc_suite_sim/lcnc_suite_sim_3axis_xyz.ini
 
 # Or your own machine
 linuxcnc your_machine.ini
@@ -495,6 +504,21 @@ If you prefer to manage processes separately:
 ```
 
 This starts the gateway on :8000 and Vite dev server on :5173. Logs go to `runlogs/`.
+
+## Tests and acceptance gates
+
+The [test suite](docs/testing.md) has one entry point for offline checks and
+explicit live-simulator acceptance. Recorded parity replay is already part
+of the frontend unit tests; a fresh live run also checks the running parser,
+gateway cache and controller motion.
+
+```bash
+python3 scripts/test_suite.py list
+python3 scripts/test_suite.py offline
+```
+
+Live tests require the matching TWP simulator and an explicit motion option.
+See [testing.md](docs/testing.md) for setup and the limits of each result.
 
 ## WebSocket API
 
@@ -1096,7 +1120,7 @@ The `[RS274NGC] SUBROUTINE_PATH` must include paths to the subroutine directorie
 
 The 3D viewer loads a machine model — a directory containing `machine.json` plus STL files — describing the kinematic hierarchy, STL parts, and how joints drive the model.
 
-**Point your INI at your own model directory** with `[DISPLAY] WEBUI_MACHINE_DIR = ~/my_machine_model` (`~` is expanded). Unset, the gateway uses the shipped default `lcnc-gateway/machine/` (a 3-axis PM-25MV, STLs tracked with Git LFS) — don't edit that in place, a `git pull` overwrites it. The shipped 5-axis example (`examples/sim_config/machine-xyzac/`) is a complete rotary reference, wired up by its sim INIs. `machine.json` is mtime-cached and hot-reloads on the next viewer init — no restart needed; a missing or unparseable file raises the operator config-warning banner and falls back to the default geometry.
+**Point your INI at your own model directory** with `[DISPLAY] WEBUI_MACHINE_DIR = ~/my_machine_model` (`~` is expanded). Unset, the gateway uses the shipped default `lcnc-gateway/machine/` (a 3-axis PM-25MV, STLs tracked with Git LFS) — don't edit that in place, a `git pull` overwrites it. The shipped 5-axis example (`examples/sim_config/machine-5axis-xyzac/`) is a complete rotary reference, wired up by its sim INIs. `machine.json` is mtime-cached and hot-reloads on the next viewer init — no restart needed; a missing or unparseable file raises the operator config-warning banner and falls back to the default geometry.
 
 #### Schema
 
@@ -1226,11 +1250,20 @@ The trunnion's `translate` positions the A-axis rotation center. The C table is 
 | `rotate` with `direction` | Drives `group.rotation[direction]` (degrees) | A rotates around X, B around Y, C around Z |
 | `rotate` with `axis` | Drives rotation around arbitrary vector | `"axis": [0, 0.707, 0.707]` for a 45° tilted axis |
 
+### Installed simulation examples
+
+`install.sh` installs **3 Axis XYZ**, the new **5 Axis XYZAC** (identity/TCP),
+and **6 Axis TWP XYZABC** (45° gantry), including upgrades of an existing suite.
+Each has isolated offsets/tool tables. Replaced configurations are backed up
+outside the LinuxCNC chooser; retired models remain only as regression fixtures.
+See [example setup and migration](examples/sim_config/README.md) and
+[test commands](docs/testing.md).
+
 ### 5-Axis and TCP (switchkins)
 
 Plain 5-axis — trivkins, joints follow the axis words — needs nothing beyond a rotary `machine.json` like the trunnion example above. The toolpath preview, program scrub, and collision sweep are rotary-aware out of the box (per-vertex A/B/C, the "Path on part" view, rotary-subdivided transforms).
 
-**TCP (tool-center-point control)** via LinuxCNC's switchable kinematics is supported end-to-end for the `xyzac-trt-kins` / `xyzbc-trt-kins` trunnion families. The offline stack (preview, simulation scrub, collision sweep, soft-limit validation) mirrors those kinematics in TypeScript and Python, pinned against the compiled LinuxCNC C source by generated fixture tests. Reference config: [`examples/sim_config/lcnc_suite_sim_5axis_tcp.ini`](examples/sim_config/lcnc_suite_sim_5axis_tcp.ini) with the `M428`/`M429`/`M430` toggle remaps in [`examples/sim_config/remap_subs/`](examples/sim_config/remap_subs/). A TCP config needs five things:
+**TCP (tool-center-point control)** via LinuxCNC's switchable kinematics is supported end-to-end for the `xyzac-trt-kins` / `xyzbc-trt-kins` trunnion families. The offline stack (preview, simulation scrub, collision sweep, soft-limit validation) mirrors those kinematics in TypeScript and Python, pinned against the compiled LinuxCNC C source by generated fixture tests. Reference config: [`examples/sim_config/lcnc_suite_sim_5axis_xyzac.ini`](examples/sim_config/lcnc_suite_sim_5axis_xyzac.ini) with the `M428`/`M429` toggle remaps in [`examples/sim_config/remap_subs/`](examples/sim_config/remap_subs/). A TCP config needs five things:
 
 **1. The switchable kins module** (`[KINS]`):
 ```ini
@@ -1242,8 +1275,13 @@ KINEMATICS = xyzac-trt-kins sparm=identityfirst
 ```ini
 [HAL]
 HALCMD = net :kinstype-select motion.analog-out-02 => motion.switchkins-type
-HALCMD = setp xyzac-trt-kins.y-offset 20
-HALCMD = setp xyzac-trt-kins.z-offset 10
+HALCMD = setp xyzac-trt-kins.x-rot-point 0
+HALCMD = setp xyzac-trt-kins.y-rot-point 0
+HALCMD = setp xyzac-trt-kins.z-rot-point 0
+HALCMD = setp xyzac-trt-kins.x-offset 0
+HALCMD = setp xyzac-trt-kins.y-offset 0
+HALCMD = setp xyzac-trt-kins.z-offset 0
+HALCMD = net xyzac-tool-offset motion.tooloffset.z => xyzac-trt-kins.tool-offset
 ```
 (The `motion.analog-out-*` pin number must exist — check `num_aio` on your motmod line. Never `setp` the kins `tool-offset` pin statically: net it from `motion.tooloffset.z`, it's live TLO.)
 
@@ -1254,9 +1292,8 @@ HAL_PIN_VARS = 1
 SUBROUTINE_PATH = <...>:~/lcnc-suite/examples/sim_config/remap_subs
 REMAP=M428 modalgroup=10 ngc=428remap
 REMAP=M429 modalgroup=10 ngc=429remap
-REMAP=M430 modalgroup=10 ngc=430remap
 ```
-In the TWP configs (and this suite's jog-frame selector) `M428` = identity, `M429` = TCP, `M430` = TOOL/plane kinematics — note upstream's trt sample numbers them differently (M429 identity, M428 trt, M430 userkins). The shipped remaps self-diagnose missing prerequisites (`HAL_PIN_VARS`, the switchkins net) with a `(debug, …)` message and a program STOP instead of failing cryptically.
+In the 6-axis TWP config, `M428` = identity, `M429` = TCP and `M430` = plane. In the new 5-axis XYZAC config, `M429` = identity and `M428` = TCP; it does not provide TWP or expose M430. The UI maps semantic modes to each family. The shipped remaps self-diagnose missing prerequisites (`HAL_PIN_VARS`, the switchkins net) with a `(debug, …)` message and a program STOP instead of failing cryptically.
 
 **4. The `(WEBUI_KINSTYPE=n)` marker convention.** Each shipped remap emits a marker comment at the exact point it switches `motion.switchkins-type`. Comments are the one execution-ordered channel the offline parse receives (remapped M-codes never appear in the interpreter's active-code lists, and `M68` is swallowed by the preview canon), so these markers are how the preview/sim/collision stack knows which segments run under which kins. If you write your **own** switchkins M-codes, emit the same comment — `(WEBUI_KINSTYPE=1)` etc., as a full comment on its own — right where you set the pin. Programs that switch kins **without** markers degrade honestly: the offline stack treats the moves as untracked (posing programmed coords directly) and warns in the browser console; the live 3D model is always correct either way (it's joint-driven).
 
@@ -1264,7 +1301,7 @@ In the TWP configs (and this suite's jog-frame selector) `M428` = identity, `M42
 
 What you get on marker-tagged TCP programs: simulation scrub and "Path on part" pose through the real kinematics, the collision sweep checks the true joint-space motion, and **soft limits are validated joint-side** — under TCP the joints swing past the programmed words (a program whose X words stayed inside ±20 was measured driving joint X to −22.4), so word-side checking would miss real overtravel. If a config declares a kins module the suite has no twin for, those segments are counted and reported as "N TCP segments not validated" in the program stats — never silently passed.
 
-Known limits: nutating-head (tilted-axis) kinematics have no TCP twin yet (viewer models with an arbitrary `axis: [x, y, z]` rotation render and articulate fine — trivkins only), and gantry dual-joint / lathe modes are outside the proven envelope.
+The `xyzacb-trsrn` nutating-head family additionally supports TCP and TWP in the [6 Axis TWP XYZABC example](examples/sim_config/machine-xyzacb-gantry/README.md). Its remaps differ from the XYZAC trunnion; use the matching profile. See [test scope and remaining limitations](docs/testing.md).
 
 ### Polling Rate
 

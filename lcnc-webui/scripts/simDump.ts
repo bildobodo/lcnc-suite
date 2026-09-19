@@ -9,7 +9,7 @@
 // that step outside the gate (the W3 P3 lesson).
 //
 // Usage (from lcnc-webui/):
-//   npx vite-node scripts/simDump.ts <payload.msgpack> <truth.ndjson> <out.jsonl> [--no-entry]
+//   node scripts/runSimDump.mjs <payload.msgpack> <truth.ndjson> <out.jsonl> [--no-entry]
 //
 // <truth.ndjson>'s FIRST line is the context header sample_run writes
 // (axes, kins wire decl, PartFrameWcs, wcs_table rows, start_joints) —
@@ -35,7 +35,7 @@ const args = process.argv.slice(2).filter(a => a !== "--");
 const noEntry = args.includes("--no-entry");
 const [payloadPath, truthPath, outPath] = args.filter(a => !a.startsWith("--"));
 if (!payloadPath || !truthPath || !outPath) {
-  fail("usage: vite-node scripts/simDump.ts <payload.msgpack> <truth.ndjson> <out.jsonl> [--no-entry]");
+  fail("usage: node scripts/runSimDump.mjs <payload.msgpack> <truth.ndjson> <out.jsonl> [--no-entry]");
 }
 
 const payload = msgpackDecode(new Uint8Array(readFileSync(payloadPath))) as Record<string, any>;

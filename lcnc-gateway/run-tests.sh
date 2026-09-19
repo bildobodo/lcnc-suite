@@ -14,11 +14,6 @@ cd "$(dirname "$0")"
 PY=.venv/bin/python3
 [ -x "$PY" ] || PY=python3
 
-exec "$PY" -m unittest "$@" \
-  test_gateway_util \
-  test_command_policy \
-  test_command_dispatch \
-  test_ngc_fixtures \
-  test_twp_transform \
-  test_twp_prov \
-  test_twp_params
+# pyproject.toml owns discovery and the on-machine exclusion. A hand-written
+# list silently omitted new test files (including most TWP regression tests).
+exec "$PY" -m pytest "$@"

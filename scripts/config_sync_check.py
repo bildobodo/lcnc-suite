@@ -1,13 +1,8 @@
 #!/usr/bin/env python3
 """Deployed-config drift checker (W2 P7).
 
-install.sh copies ``examples/sim_config`` to ``~/linuxcnc/configs/
-lcnc_suite_sim`` ONCE and keeps the operator's copy on later runs — so
-repo fixes to the INI/HAL templates silently never arrive. The observed
-case (review report 4): the repo's TCP INI gained
-``HALCMD = setp xyzac-trt-kins.x-offset 0`` while the deployed copy kept
-the 5-of-6 pin set, and the suite booted with a "config fallback" banner
-until the line was hand-carried over.
+install.sh deploys the three profiles in profiles.json and links shared
+code/models to the checkout. INI limits/settings and mutable state stay local.
 
 This tool prints the EXACT drifted lines per file so that carry-over is a
 copy-paste, not an investigation. It is warn-only by design: local edits
@@ -20,6 +15,7 @@ decides what to merge. Expected local divergence never reports:
   WEBUI_DEV/HOST/PORT/BROWSER, LOG_DIR, ALLOWED_ORIGINS, CAMERA_*);
 - files symlinked back into the repo (in sync by construction — the
   lcnc_webui.hal safety glue).
+- comment-only edits (migrated INIs can retain older documentation).
 
 Exit code: 0 = no drift, 1 = drift reported, 2 = usage/environment error.
 install.sh runs it warn-only (non-zero never aborts an install).
@@ -27,6 +23,10 @@ install.sh runs it warn-only (non-zero never aborts an install).
 import argparse
 import difflib
 import os
+import json
+from pathlib import Path
+
+from install_examples import render_ini
 import re
 import sys
 
@@ -69,11 +69,11 @@ def drifted_lines(repo_text, deployed_text):
             continue
         for i in range(a0, a1):
             ln = sm.a[i]
-            if ln.strip() and not LOCAL_LINE_RE.match(ln):
+            if ln.strip() and not ln.lstrip().startswith(("#", ";")) and not LOCAL_LINE_RE.match(ln):
                 missing.append((i + 1, ln))
         for j in range(b0, b1):
             ln = sm.b[j]
-            if ln.strip() and not LOCAL_LINE_RE.match(ln):
+            if ln.strip() and not ln.lstrip().startswith(("#", ";")) and not LOCAL_LINE_RE.match(ln):
                 local.append((j + 1, ln))
     return missing, local
 
@@ -90,6 +90,10 @@ def check(repo_dir, deployed_dir, out=sys.stdout):
               f"(nothing installed — nothing to check)", file=out)
         return 0
     drift_files = 0
+    manifest = Path(repo_dir) / "profiles.json"
+    catalog = json.loads(manifest.read_text()) if manifest.is_file() else None
+    selected = ({p["ini"] for p in catalog["profiles"]}
+                | {f for p in catalog["profiles"] for f in p["programs"]}) if catalog else None
     for root, _dirs, files in os.walk(repo_dir):
         for name in sorted(files):
             ext = os.path.splitext(name)[1].lower()
@@ -97,6 +101,9 @@ def check(repo_dir, deployed_dir, out=sys.stdout):
                 continue
             rpath = os.path.join(root, name)
             rel = os.path.relpath(rpath, repo_dir)
+            if selected is not None and rel not in selected and not any(
+                    rel.startswith(folder + os.sep) for folder in catalog["shared"]):
+                continue
             dpath = os.path.join(deployed_dir, rel)
             if not os.path.exists(dpath):
                 drift_files += 1
@@ -110,6 +117,8 @@ def check(repo_dir, deployed_dir, out=sys.stdout):
             try:
                 with open(rpath, errors="replace") as f:
                     rtext = f.read()
+                    if catalog and ext == ".ini":
+                        rtext = render_ini(rtext, rtext, Path(repo_dir).resolve().parents[1])
                 with open(dpath, errors="replace") as f:
                     dtext = f.read()
             except OSError as e:

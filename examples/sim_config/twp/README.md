@@ -5,9 +5,15 @@ GPL-2 fork of the upstream LinuxCNC Tilted Work Plane remap stack
 from LinuxCNC master @493926b56c
 `configs/sim/axis/vismach/5axis/twp/` (David Mueller, GPL v2 — see file
 headers; this pre-2026 revision uses stdlib configparser and runs on
-LinuxCNC 2.9.4). The matching kins comp is vendored at
-`scripts/kins_oracle/xyzacb_trsrn.comp` (install with
-`halcompile --install`).
+LinuxCNC 2.9.4). The installable kinematics component is `twp/xyzacb_trsrn.comp` in this example
+folder; `install.sh` compiles it with `halcompile --install`. The separate
+`scripts/kins_oracle/xyzacb_trsrn.comp` is a test oracle and must not be installed.
+
+The active example is **6 Axis TWP XYZABC** (45° gantry). Its demonstration is
+`xyzabc6/twp_simple_example.ngc`. The old 55° demonstration remains only under
+`scripts/test_fixtures/legacy_sim/`; validation numbers below describe that
+historical fixture. Current live acceptance uses `scripts/test_suite.py live-twp`.
+
 
 ## What the fork changes (and why)
 

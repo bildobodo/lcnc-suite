@@ -1,10 +1,8 @@
 # TWP 45 wall-gantry example
 
-An independently drawn replacement candidate for the TWP demo: two continuous
-walls support a travelling crossbeam, with a substantial offset 45° universal
-head and an A-axis faceplate. The existing `lcnc_suite_sim_twp.ini` remains
-available. This example shares its TWP remaps, six-joint HAL and switchable
-kinematics; it has a separate INI, parameter file and tool table.
+The supported **6 Axis TWP XYZABC** example: two continuous walls support a
+travelling crossbeam, with an offset 45° universal head and an A-axis faceplate.
+It replaces the old 55° example for installation and live acceptance tests.
 
 ![Wall gantry and offset universal head](overview.png)
 
@@ -19,7 +17,7 @@ checkout as described in the [main README](../../../README.md). From its root:
 git lfs pull
 sudo halcompile --install examples/sim_config/twp/xyzacb_trsrn.comp
 cd examples/sim_config
-linuxcnc lcnc_suite_sim_twp_gantry.ini
+linuxcnc lcnc_suite_sim_6axis_twp_xyzabc.ini
 ```
 
 Compile the runtime component once, and again when that `.comp` changes.
@@ -32,13 +30,11 @@ the INI directory, which is also the LinuxCNC display/gateway working
 directory. The remap and suite subroutine paths likewise follow this layout.
 If launching the gateway manually from elsewhere, set
 `LCNC_WEBUI_MACHINE_DIR` to this model directory's absolute path.
-`install.sh` preserves an already deployed sim directory; re-running it does
-not add new example INIs to that existing copy. Do not copy just this INI
-into the old deployed directory without its model, state files and referenced
-subroutine paths.
+`install.sh` also deploys this profile on upgrades, resolves suite paths and
+backs up the previous installation. See [installation and state migration](../README.md).
 
 Arm, reset E-stop, enable and home all axes in the usual way. Startup is empty
-and parked at all joints zero. The new `sim_twp_gantry.var` seeds G54 at the
+and parked at all joints zero. The new `xyzabc6/sim.var` seeds G54 at the
 centre of the 600 mm stock's top face at A=0:
 
 | Datum / pose | X | Y | Z |
@@ -49,14 +45,14 @@ centre of the 600 mm stock's top face at A=0:
 
 At the last pose, the nose is 850 mm above the A axis. The supplied T1 has
 200 mm gauge length and 14 mm diameter, leaving its tip 50 mm above the
-stock. The tool is defined in `tool_twp_gantry.tbl`, not baked into an STL.
+stock. The tool is defined in `xyzabc6/tool.tbl`, not baked into an STL.
 Normal tool loading and G43 apply; identity/TCP/plane coordinates are different
 after switching modes.
 
-The old `twp/demos/simple_example.ngc` sets its own old-machine offsets.
-It is **not adapted to this gantry**. Its programs and saved offsets must be
-reworked before using them here. This example is intended to be selected and
-evaluated alongside the existing demo before a later replacement.
+Use `xyzabc6/twp_simple_example.ngc` for the gantry exercise. Its datum and T1
+match this example. The historical 55° program is archived in
+`scripts/test_fixtures/legacy_sim/twp/demos/simple_example.ngc`; it is not
+installed with this example.
 
 ## Kinematic contract
 

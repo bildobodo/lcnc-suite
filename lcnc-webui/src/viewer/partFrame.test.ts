@@ -32,7 +32,7 @@ const MILL3: PartFrameMachine = {
   axes: ["X", "Y", "Z"],
 };
 
-// XYZAC trunnion knee mill (examples/sim_config/machine-xyzac/machine.json).
+// XYZAC trunnion knee mill (scripts/test_fixtures/legacy_sim/machine-xyzac/machine.json).
 const TRUNNION: PartFrameMachine = {
   groups: [
     { id: "knee", parent: "root", translate: [0, 0, 200] },

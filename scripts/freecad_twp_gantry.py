@@ -307,7 +307,7 @@ add('work_piece','a_table','stock',box(300,-300,0,900,300,600),True)
 doc.recompute()
 assert not any('Invalid' in o.State for o in doc.Objects), 'invalid document expressions'
 assert abs(cadgroups['xyz_head'].Placement.Base.z-(MACHINE_ZERO_Z+DEMO[2]))<1e-6
-machine={'name':'TWP 45 — Wall Gantry',
+machine={'name':'6 Axis TWP XYZABC',
  'source':'Independent FreeCAD geometry; XYZACB-TRSRN kinematic frames from LinuxCNC/lcnc-suite (GPL-2.0-or-later).',
  'groups':groups,'parts':parts,'kinematics':kins,
  'workGroup':'a_work','toolGroup':'tool'}

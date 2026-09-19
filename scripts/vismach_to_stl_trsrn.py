@@ -45,7 +45,7 @@ across the working envelope — it is a body the head can crash into, not a
 fake support. Nothing here claims a bearing that does not exist.
 
 Usage:  python3 scripts/vismach_to_stl_trsrn.py
-Output: examples/sim_config/machine-xyzacb-trsrn/*.stl + machine.json
+Output: scripts/test_fixtures/legacy_sim/machine-xyzacb-trsrn/*.stl + machine.json
 """
 
 import json
@@ -77,7 +77,7 @@ _NU = math.radians(NUT_ANGLE)
 NUT_AXIS = (0.0, math.sin(_NU), math.cos(_NU))
 
 OUT_DIR = (Path(__file__).resolve().parent.parent
-           / "examples" / "sim_config" / "machine-xyzacb-trsrn")
+           / "scripts" / "test_fixtures" / "legacy_sim" / "machine-xyzacb-trsrn")
 
 
 # ── mesh primitives (lists of ((v1, v2, v3)) triangles, CCW outward) ──

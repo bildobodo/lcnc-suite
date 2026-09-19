@@ -2,7 +2,7 @@
 
 Adapted from LinuxCNC 2.9.4's
 `sample-configs/sim/axis/vismach/5axis/table-rotary-tilting/remap_subs`
-(GPL v2+). Referenced by `lcnc_suite_sim_5axis_tcp.ini`.
+(GPL v2+). Referenced by `lcnc_suite_sim_5axis_xyzac.ini`.
 
 | Code | Effect (`motion.switchkins-type` via `motion.analog-out-02`) |
 |------|--------------------------------------------------------------|

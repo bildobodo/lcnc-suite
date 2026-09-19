@@ -1,4 +1,4 @@
-// The wall gantry is a separate TWP candidate. Exercise the shipped assets
+// The wall gantry is the supported six-axis TWP example. Exercise the shipped assets
 // through the same chain and collision engine used by the running viewer.
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -13,7 +13,7 @@ import type { ScrubTrack } from "../ws/bulkData";
 const SIM = path.resolve(__dirname, "../../../examples/sim_config");
 const DIR = path.join(SIM, "machine-xyzacb-gantry");
 const mj = JSON.parse(fs.readFileSync(path.join(DIR, "machine.json"), "utf8"));
-const ini = fs.readFileSync(path.join(SIM, "lcnc_suite_sim_twp_gantry.ini"), "utf8");
+const ini = fs.readFileSync(path.join(SIM, "lcnc_suite_sim_6axis_twp_xyzabc.ini"), "utf8");
 function setting(section: string, key: string): string {
   const body = ini.split(/^\[/m).find(s => s.startsWith(`${section}]`));
   const match = body?.match(new RegExp(`^${key}\\s*=([^\\n]*)`, "m"));
@@ -74,8 +74,8 @@ describe("TWP wall-gantry configuration", () => {
     expect(pins).toEqual({ "nut-angle": 45, "y-pivot": 140, "z-pivot": 480,
       "x-offset": 0, "y-offset": 0, "y-rot-axis": 140, "z-rot-axis": -1325 });
     expect(setting("DISPLAY", "WEBUI_MACHINE_DIR")).toBe("machine-xyzacb-gantry");
-    expect(setting("RS274NGC", "PARAMETER_FILE")).toBe("sim_twp_gantry.var");
-    expect(setting("EMCIO", "TOOL_TABLE")).toBe("tool_twp_gantry.tbl");
+    expect(setting("RS274NGC", "PARAMETER_FILE")).toBe("xyzabc6/sim.var");
+    expect(setting("EMCIO", "TOOL_TABLE")).toBe("xyzabc6/tool.tbl");
     for (const [sec, key] of [["RS274NGC", "PARAMETER_FILE"], ["EMCIO", "TOOL_TABLE"]])
       expect(fs.existsSync(path.join(SIM, setting(sec!, key!)))).toBe(true);
     expect(mj.parts).toHaveLength(32);
@@ -150,7 +150,7 @@ describe("TWP wall-gantry configuration", () => {
     expect(tip.y - c.y).toBe(-140);
     for (let j = 0; j < 3; j++) expect(mj.kinematics.find((k: any) => k.joint === j))
       .toMatchObject({ group: ["x_bridge", "y_saddle", "xyz_head"][j], sign: 1 });
-    const vars = Object.fromEntries(fs.readFileSync(path.join(SIM, "sim_twp_gantry.var"), "utf8")
+    const vars = Object.fromEntries(fs.readFileSync(path.join(SIM, "xyzabc6/sim.var"), "utf8")
       .trim().split("\n").map(s => s.trim().split(/\s+/).map(Number)));
     // G54 is the centre of the stock's top at A0, expressed in machine coords.
     expect([vars[5221], vars[5222], vars[5223]]).toEqual([-100, 140, -725]);

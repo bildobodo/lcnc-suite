@@ -1,0 +1,372 @@
+{
+  "name": "5 Axis XYZAC",
+  "source": "Original illustrative FreeCAD design, GPL-2.0-or-later; no OEM meshes.",
+  "groups": [
+    {
+      "id": "y_table",
+      "parent": "root"
+    },
+    {
+      "id": "a_yoke",
+      "parent": "y_table"
+    },
+    {
+      "id": "c_platter",
+      "parent": "a_yoke"
+    },
+    {
+      "id": "x_saddle",
+      "parent": "root"
+    },
+    {
+      "id": "z_head",
+      "parent": "x_saddle"
+    },
+    {
+      "id": "tool",
+      "parent": "z_head"
+    }
+  ],
+  "parts": [
+    {
+      "id": "levelling_feet",
+      "file": "levelling_feet.stl",
+      "group": null,
+      "color": [
+        0.16,
+        0.2,
+        0.23
+      ]
+    },
+    {
+      "id": "machine_bed",
+      "file": "machine_bed.stl",
+      "group": null,
+      "color": [
+        0.32,
+        0.37,
+        0.4
+      ]
+    },
+    {
+      "id": "rear_column",
+      "file": "rear_column.stl",
+      "group": null,
+      "color": [
+        0.8,
+        0.82,
+        0.81
+      ]
+    },
+    {
+      "id": "column_foot",
+      "file": "column_foot.stl",
+      "group": null,
+      "color": [
+        0.32,
+        0.37,
+        0.4
+      ]
+    },
+    {
+      "id": "chip_pan",
+      "file": "chip_pan.stl",
+      "group": null,
+      "color": [
+        0.16,
+        0.2,
+        0.23
+      ]
+    },
+    {
+      "id": "y_rail_seats",
+      "file": "y_rail_seats.stl",
+      "group": null,
+      "color": [
+        0.32,
+        0.37,
+        0.4
+      ]
+    },
+    {
+      "id": "y_guide_rails",
+      "file": "y_guide_rails.stl",
+      "group": null,
+      "color": [
+        0.65,
+        0.7,
+        0.72
+      ]
+    },
+    {
+      "id": "y_guide_blocks",
+      "file": "y_guide_blocks.stl",
+      "group": "y_table",
+      "color": [
+        0.65,
+        0.7,
+        0.72
+      ]
+    },
+    {
+      "id": "y_guide_endcaps",
+      "file": "y_guide_endcaps.stl",
+      "group": "y_table",
+      "color": [
+        0.12,
+        0.4,
+        0.43
+      ]
+    },
+    {
+      "id": "y_saddle",
+      "file": "y_saddle.stl",
+      "group": "y_table",
+      "color": [
+        0.8,
+        0.82,
+        0.81
+      ]
+    },
+    {
+      "id": "x_guide_rails",
+      "file": "x_guide_rails.stl",
+      "group": null,
+      "color": [
+        0.65,
+        0.7,
+        0.72
+      ]
+    },
+    {
+      "id": "x_guide_blocks",
+      "file": "x_guide_blocks.stl",
+      "group": "x_saddle",
+      "color": [
+        0.65,
+        0.7,
+        0.72
+      ]
+    },
+    {
+      "id": "x_guide_endcaps",
+      "file": "x_guide_endcaps.stl",
+      "group": "x_saddle",
+      "color": [
+        0.12,
+        0.4,
+        0.43
+      ]
+    },
+    {
+      "id": "x_saddle",
+      "file": "x_saddle.stl",
+      "group": "x_saddle",
+      "color": [
+        0.32,
+        0.37,
+        0.4
+      ]
+    },
+    {
+      "id": "z_guide_rails",
+      "file": "z_guide_rails.stl",
+      "group": "x_saddle",
+      "color": [
+        0.65,
+        0.7,
+        0.72
+      ]
+    },
+    {
+      "id": "z_guide_blocks",
+      "file": "z_guide_blocks.stl",
+      "group": "z_head",
+      "color": [
+        0.65,
+        0.7,
+        0.72
+      ]
+    },
+    {
+      "id": "z_guide_endcaps",
+      "file": "z_guide_endcaps.stl",
+      "group": "z_head",
+      "color": [
+        0.12,
+        0.4,
+        0.43
+      ]
+    },
+    {
+      "id": "z_slide",
+      "file": "z_slide.stl",
+      "group": "z_head",
+      "color": [
+        0.8,
+        0.82,
+        0.81
+      ]
+    },
+    {
+      "id": "spindle_head",
+      "file": "spindle_head.stl",
+      "group": "z_head",
+      "color": [
+        0.8,
+        0.82,
+        0.81
+      ]
+    },
+    {
+      "id": "spindle_motor_cover",
+      "file": "spindle_motor_cover.stl",
+      "group": "z_head",
+      "color": [
+        0.12,
+        0.4,
+        0.43
+      ]
+    },
+    {
+      "id": "spindle_cartridge",
+      "file": "spindle_cartridge.stl",
+      "group": "z_head",
+      "color": [
+        0.16,
+        0.2,
+        0.23
+      ]
+    },
+    {
+      "id": "spindle_nose",
+      "file": "spindle_nose.stl",
+      "group": "z_head",
+      "color": [
+        0.65,
+        0.7,
+        0.72
+      ]
+    },
+    {
+      "id": "a_bearing_pedestals",
+      "file": "a_bearing_pedestals.stl",
+      "group": "y_table",
+      "color": [
+        0.8,
+        0.82,
+        0.81
+      ]
+    },
+    {
+      "id": "a_bearing_rings",
+      "file": "a_bearing_rings.stl",
+      "group": "y_table",
+      "color": [
+        0.65,
+        0.7,
+        0.72
+      ]
+    },
+    {
+      "id": "a_drive_covers",
+      "file": "a_drive_covers.stl",
+      "group": "y_table",
+      "color": [
+        0.12,
+        0.4,
+        0.43
+      ]
+    },
+    {
+      "id": "a_yoke_casting",
+      "file": "a_yoke_casting.stl",
+      "group": "a_yoke",
+      "color": [
+        0.12,
+        0.4,
+        0.43
+      ]
+    },
+    {
+      "id": "a_trunnion_shafts",
+      "file": "a_trunnion_shafts.stl",
+      "group": "a_yoke",
+      "color": [
+        0.65,
+        0.7,
+        0.72
+      ]
+    },
+    {
+      "id": "c_bearing_lip",
+      "file": "c_bearing_lip.stl",
+      "group": "a_yoke",
+      "color": [
+        0.16,
+        0.2,
+        0.23
+      ]
+    },
+    {
+      "id": "c_faceplate",
+      "file": "c_faceplate.stl",
+      "group": "c_platter",
+      "color": [
+        0.65,
+        0.7,
+        0.72
+      ]
+    },
+    {
+      "id": "fixture_blank",
+      "file": "fixture_blank.stl",
+      "group": "c_platter",
+      "color": [
+        0.72,
+        0.62,
+        0.43
+      ],
+      "stock": true
+    }
+  ],
+  "kinematics": [
+    {
+      "group": "x_saddle",
+      "joint": 0,
+      "type": "translate",
+      "direction": "x",
+      "sign": 1
+    },
+    {
+      "group": "y_table",
+      "joint": 1,
+      "type": "translate",
+      "direction": "y",
+      "sign": -1
+    },
+    {
+      "group": "z_head",
+      "joint": 2,
+      "type": "translate",
+      "direction": "z",
+      "sign": 1
+    },
+    {
+      "group": "a_yoke",
+      "joint": 3,
+      "type": "rotate",
+      "direction": "x",
+      "sign": 1
+    },
+    {
+      "group": "c_platter",
+      "joint": 4,
+      "type": "rotate",
+      "direction": "z",
+      "sign": 1
+    }
+  ],
+  "workGroup": "c_platter",
+  "toolGroup": "tool"
+}

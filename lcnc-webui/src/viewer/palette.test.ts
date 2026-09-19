@@ -6,8 +6,8 @@ import { MACHINE_PALETTE, defaultPartHex, paletteCss, paletteRgb } from "./palet
 // import the palette), so they are pinned here: a part's color must be ONE
 // of the palette entries, or absent (linear slide → the axis rule).
 const MODELS = [
-  "../../../examples/sim_config/machine-xyzac/machine.json",
-  "../../../examples/sim_config/machine-xyzacb-trsrn/machine.json",
+  "../../../scripts/test_fixtures/legacy_sim/machine-xyzac/machine.json",
+  "../../../scripts/test_fixtures/legacy_sim/machine-xyzacb-trsrn/machine.json",
 ];
 
 describe("machine palette", () => {

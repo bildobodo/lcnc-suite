@@ -6,9 +6,9 @@ set -euo pipefail
 #
 # Checks for missing system dependencies, offers to install them
 # via apt, then clones the repo (if needed), sets up the Python
-# venv and Node.js packages, and drops a sample sim config into
+# venv and Node.js packages, and installs three simulation examples into
 # ~/linuxcnc/configs/lcnc_suite_sim/ so you can boot LinuxCNC
-# immediately.
+# after building the frontend.
 #
 # Usage:
 #   # From a fresh machine (no clone yet) — one-line bootstrap:
@@ -17,10 +17,10 @@ set -euo pipefail
 #   # Or inside an existing clone:
 #   ./install.sh [target-dir]   # default: current dir if a clone, else ~/lcnc-suite
 #
-# The script will prompt for sudo when system packages are needed.
+# The script uses sudo for system packages and the TWP realtime component.
 # ============================================================
 
-# Don't run the whole script as root — only the apt parts need sudo
+# Run as the normal user; packages and the realtime component use sudo.
 if [[ "$EUID" -eq 0 ]]; then
   echo "ERROR: Do not run this script as root or with sudo."
   echo "       Run as your normal user:  ./install.sh"
@@ -147,11 +147,19 @@ if [[ "$NEED_NODE" -eq 0 ]]; then
   fi
 fi
 
+# --- realtime component compiler for the shipped TWP example ---
+if command -v halcompile >/dev/null 2>&1; then
+  ok "halcompile"
+else
+  APT_PACKAGES+=(linuxcnc-uspace-dev)
+  fail "halcompile — will install LinuxCNC development tools"
+fi
+
 # --- linuxcnc python bindings ---
 if python3 -c "import linuxcnc" 2>/dev/null; then
   ok "linuxcnc python bindings"
 else
-  MANUAL_FIXES+=("linuxcnc python bindings not found — install LinuxCNC 2.8+ first")
+  MANUAL_FIXES+=("linuxcnc python bindings not found — install LinuxCNC 2.9+ first")
   fail "linuxcnc python bindings (requires LinuxCNC)"
 fi
 
@@ -331,47 +339,16 @@ esac
 # ============================================================
 step 5 "Installing sample sim config"
 
-if [[ -d "$SIM_CONFIG_DIR" ]]; then
-  ok "Sim config already present at $SIM_CONFIG_DIR — keeping it (delete to reinstall from template)"
-else
-  info "Copying sample sim config → $SIM_CONFIG_DIR"
-  mkdir -p "$(dirname "$SIM_CONFIG_DIR")"
-  cp -r "$TARGET_DIR/examples/sim_config" "$SIM_CONFIG_DIR"
-  ok "Sim config installed (INI, HAL files, seeded sim.var)"
-fi
+# All three supported examples are installed on fresh installs AND upgrades.
+# The helper refuses an active LinuxCNC session and snapshots local changes.
+python3 "$TARGET_DIR/scripts/install_examples.py" --repo "$TARGET_DIR" --destination "$SIM_CONFIG_DIR"
 
-# Symlink the shared suite/safety HAL glue back to the repo template. Unlike the
-# per-machine .ini, lcnc_webui.hal is identical across installs and carries the
-# safety chain, so it MUST track the repo: the scripts it loads (hal_watchdog.py,
-# hal_reader.py) are themselves symlinked and live, so a stale config copy that
-# nets to a pin those scripts renamed fails the HAL load (this exact drift bit the
-# #34 trip-latch rollout — `Pin 'webui-safety.trip-latch' does not exist`).
-# Re-linked on every run so existing installs pick up template changes too.
-if [[ -d "$SIM_CONFIG_DIR/hallib" ]]; then
-  HAL_LINK="$SIM_CONFIG_DIR/hallib/lcnc_webui.hal"
-  # If a REGULAR file (not our symlink) is already there, it may be operator-
-  # customized — back it up before linking the template rather than silently
-  # clobbering it. The suite still needs the live safety glue, so we link anyway;
-  # the operator can merge their changes from the .bak.
-  if [[ -e "$HAL_LINK" && ! -L "$HAL_LINK" ]]; then
-    HAL_BAK="$HAL_LINK.bak.$(date +%Y%m%d%H%M%S)"
-    if cp -p "$HAL_LINK" "$HAL_BAK" 2>/dev/null; then
-      warn "Existing lcnc_webui.hal was a regular file — backed up to $(basename "$HAL_BAK") before linking the template (merge any local edits from it)"
-    else
-      # No silent fallback: a failed backup must not masquerade as a successful
-      # one — the operator's edits are about to be replaced by the template link.
-      warn "Existing lcnc_webui.hal is a regular file and the backup copy FAILED — local edits in it will be LOST when the template is linked"
-    fi
-  fi
-  ln -sf "$TARGET_DIR/examples/sim_config/hallib/lcnc_webui.hal" "$HAL_LINK"
-  ok "Linked lcnc_webui.hal → repo template (safety glue stays in sync)"
-fi
+info "Building the 6-axis TWP kinematics component..."
+sudo halcompile --install "$TARGET_DIR/examples/sim_config/twp/xyzacb_trsrn.comp"
+ok "TWP kinematics installed"
 
-# Drift check (W2 P7, warn-only): the sim config above is a COPY kept across
-# installs, so repo template fixes never arrive on their own — a deployed TCP
-# INI missing one repo-added HALCMD line booted with a config-fallback banner
-# (review report 4). The checker prints the exact drifted lines; local edits
-# are legitimate, so this never aborts an install.
+# Local INI settings stay operator-owned. Report functional template drift;
+# shared code follows the checkout and per-install secrets are excluded.
 if python3 "$TARGET_DIR/scripts/config_sync_check.py" \
      --repo "$TARGET_DIR/examples/sim_config" --deployed "$SIM_CONFIG_DIR"; then
   ok "Deployed sim config matches the repo templates"
@@ -396,15 +373,16 @@ echo -e "
        cd $TARGET_DIR/lcnc-webui && npm run build
 
     2. Try the sim:
-       linuxcnc $SIM_CONFIG_DIR/lcnc_suite_sim.ini
+       linuxcnc $SIM_CONFIG_DIR/lcnc_suite_sim_3axis_xyz.ini
+       # Or select lcnc_suite_sim_5axis_xyzac.ini / lcnc_suite_sim_6axis_twp_xyzabc.ini
 
     3. Adjust the sample config for your real machine:
        - Copy $SIM_CONFIG_DIR/ to a new dir under ~/linuxcnc/configs/
-       - Edit lcnc_suite_sim.ini (axis limits, kinematics, HAL files)
+       - Edit lcnc_suite_sim_3axis_xyz.ini (axis limits, kinematics, HAL files)
        - Keep the [DISPLAY] WEBUI_* lines and the lcnc_webui.hal include
-       - hallib/lcnc_webui.hal is a symlink to the repo (shared safety glue);
-         to customize it per-machine, replace the symlink with a real copy:
-         cp --remove-destination \"\$(readlink hallib/lcnc_webui.hal)\" hallib/lcnc_webui.hal
+       - hallib/ links to the repo (shared suite HAL); for custom HAL, first
+         replace the directory link in your machine copy with its own files:
+         cp -aL hallib hallib.local && rm hallib && mv hallib.local hallib
 
   ${BOLD}See README.md for full configuration details.${NC}
 "

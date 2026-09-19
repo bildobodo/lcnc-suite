@@ -19,7 +19,6 @@ this a check rather than a restatement.
 
 Run with the machine homed, armed and out of E-stop.
 """
-import json
 import os
 import math
 import atexit
@@ -28,6 +27,7 @@ import sys
 import time
 
 import linuxcnc
+from test_support.live_session import SimulatorClient
 
 # Table axis line + nutation: read from the RUNNING INI (below), never a
 # constant copied from the code under test — a hardcoded pivot here would
@@ -36,7 +36,8 @@ import linuxcnc
 Y_ROT_AXIS = Z_ROT_AXIS = NUT_ANGLE = None
 O_TABLE = [100.0, 50.0, -200.0]      # the physical feature, table frame
 TILT = 20.0                           # the second touch-off angle
-GATEWAY = "http://127.0.0.1:8000"
+GW_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "lcnc-gateway")
+_ws_client = None
 
 c = linuxcnc.command()
 s = linuxcnc.stat()
@@ -135,23 +136,30 @@ def machine_from_table(p, a_deg):
 
 def set_wcs(x, y, z):
     """Touch off G54 through the GATEWAY — the path that stamps provenance."""
-    payload = json.dumps({"cmd": "set_wcs", "target": "G54",
-                          "x": x, "y": y, "z": z})
-    # The gateway venv, not sys.executable: this script runs under the
-    # system python (which has the linuxcnc bindings) while the WS client
-    # needs `websockets`, which only the venv has.
-    r = subprocess.run([os.path.join(GW_DIR, ".venv/bin/python3"),
-                        WS_SEND, payload],
-                       capture_output=True, text=True, cwd=GW_DIR)
-    if r.returncode != 0:
-        raise SystemExit(f"set_wcs failed: {r.stderr[:400]}")
+    global _ws_client
+    if _ws_client is None:
+        _ws_client = SimulatorClient(os.environ.get("LCNC_WS_TOKEN", ""))
+        _ws_client.start()
+    # NML completion can precede the gateway's policy snapshot. The old
+    # external helper's startup latency hid this race; wait for the same
+    # settled joint pose and idle state that the UI's admission gate sees.
+    s.poll()
+    target = list(s.joint_actual_position[:6])
+    deadline = time.monotonic() + 5
+    while time.monotonic() < deadline:
+        status = _ws_client.status
+        joints = status.get("joint_pos") or []
+        if (status.get("interp_state") == linuxcnc.INTERP_IDLE
+                and status.get("inpos") is True and len(joints) >= 6
+                and all(abs(a - b) < 1e-5 for a, b in zip(target, joints))):
+            break
+        time.sleep(0.05)
+    else:
+        raise SystemExit("Gateway did not observe the idle touch-off pose")
+    _ws_client.request("set_wcs", target="G54", x=x, y=y, z=z)
     time.sleep(1.5)
 
 
-WS_SEND = sys.argv[1] if len(sys.argv) > 1 else None
-GW_DIR = sys.argv[2] if len(sys.argv) > 2 else None
-if not WS_SEND or not GW_DIR or not os.path.isdir(GW_DIR):
-    raise SystemExit("usage: twp_touchoff_check.py <ws_send.py> <gateway_dir>")
 sys.path.insert(0, GW_DIR)
 from gateway_util import parse_kins_config, wcs_prov_params  # noqa: E402
 
@@ -245,6 +253,9 @@ def _teardown():
         print("  (teardown: g69, A0, G54 + provenance restored)")
     except SystemExit as e:
         print(f"  (teardown incomplete: {e})")
+    finally:
+        if _ws_client is not None:
+            _ws_client.close()
 
 
 atexit.register(_teardown)

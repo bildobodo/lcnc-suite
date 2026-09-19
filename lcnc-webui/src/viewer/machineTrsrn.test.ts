@@ -22,7 +22,7 @@ import {
 } from "./collision";
 import type { ScrubTrack } from "../ws/bulkData";
 
-const DIR = path.resolve(__dirname, "../../../examples/sim_config/machine-xyzacb-trsrn");
+const DIR = path.resolve(__dirname, "../../../scripts/test_fixtures/legacy_sim/machine-xyzacb-trsrn");
 const AXES = ["X", "Y", "Z", "A", "B", "C"];
 
 const mj = JSON.parse(fs.readFileSync(path.join(DIR, "machine.json"), "utf8"));
@@ -41,7 +41,7 @@ const MZ = [-1000, 1000, 2000];
 // ini.z.* lift under TCP/TOOL kins relies on the joint window being the
 // physical one). 2026-09-05: Z0 became the top of travel (−2000..0.01).
 const INI = fs.readFileSync(
-  path.resolve(__dirname, "../../../examples/sim_config/lcnc_suite_sim_twp.ini"), "utf8");
+  path.resolve(__dirname, "../../../scripts/test_fixtures/legacy_sim/lcnc_suite_sim_twp.ini"), "utf8");
 function iniFloat(section: string, key: string): number {
   const body = INI.split(/^\[/m).find(s => s.startsWith(`${section}]`));
   const m = body?.match(new RegExp(`^${key}\\s*=\\s*(-?[\\d.]+)`, "m"));

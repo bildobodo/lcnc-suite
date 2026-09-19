@@ -3221,7 +3221,7 @@ class TestParseKinsConfig(unittest.TestCase):
 
     def test_wall_gantry_example_parses_all_geometry_pins(self):
         config = os.path.join(os.path.dirname(__file__), "..", "examples",
-                              "sim_config", "lcnc_suite_sim_twp_gantry.ini")
+                              "sim_config", "lcnc_suite_sim_6axis_twp_xyzabc.ini")
         with open(config) as f:
             halcmds = [line.partition("=")[2].strip() for line in f
                        if line.startswith("HALCMD =")]

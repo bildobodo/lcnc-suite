@@ -32,7 +32,7 @@ COMPOSE; knee mill (Z moves the knee, sign -1); the real tool is drawn by
 ThreeViewer at the toolGroup.
 
 Usage:  python3 scripts/vismach_to_stl.py
-Output: examples/sim_config/machine-xyzac/*.stl + machine.json
+Output: scripts/test_fixtures/legacy_sim/machine-xyzac/*.stl + machine.json
 """
 
 import json
@@ -57,7 +57,7 @@ SHAFT_X1 = 75.0           # shaft outer |x| end
 PILLAR_X0, PILLAR_X1 = 59.0, 73.0
 PAD_X0, PAD_X1 = 55.0, 77.0
 
-OUT_DIR = Path(__file__).resolve().parent.parent / "examples" / "sim_config" / "machine-xyzac"
+OUT_DIR = Path(__file__).resolve().parent.parent / "scripts" / "test_fixtures" / "legacy_sim" / "machine-xyzac"
 
 
 # ── mesh primitives (lists of ((v1, v2, v3)) triangles, CCW outward) ──

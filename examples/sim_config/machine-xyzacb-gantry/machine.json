@@ -1,5 +1,5 @@
 {
-  "name": "TWP 45 \u2014 Wall Gantry",
+  "name": "6 Axis TWP XYZABC",
   "source": "Independent FreeCAD geometry; XYZACB-TRSRN kinematic frames from LinuxCNC/lcnc-suite (GPL-2.0-or-later).",
   "groups": [
     {

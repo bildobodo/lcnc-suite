@@ -18,7 +18,7 @@ import {
 } from "./collision";
 import type { ScrubTrack } from "../ws/bulkData";
 
-const DIR = path.resolve(__dirname, "../../../examples/sim_config/machine-xyzac");
+const DIR = path.resolve(__dirname, "../../../scripts/test_fixtures/legacy_sim/machine-xyzac");
 
 function parseBinSTL(buf: Buffer): Float32Array {
   const n = buf.readUInt32LE(80);

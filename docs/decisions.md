@@ -5439,3 +5439,133 @@ and apply the existing explicit `rs274`-availability guard to those canon
 tests. With `rs274` unavailable, the local reproduction passes 893 tests and
 278 subtests, with 15 canon/oracle tests explicitly skipped. With the real
 modules available, those same 15 tests pass separately; none are removed.
+
+## 2026-09-16 — Make parity and TWP gates part of the suite workflow
+
+**Decision.** The existing committed gate scripts and reference trajectories
+need one documented entry point, alongside the ordinary tests. Add
+`scripts/test_suite.py` (`list`, `offline`, `live-twp`) and [setup/evidence
+instructions](testing.md). Backend discovery replaces the seven-module list
+in `run-tests.sh`. CI calls the same offline entry point and uploads the
+reports and logs, including on failure. Live motion remains an explicit,
+separate simulator command; partial `--gate` runs identify omitted checks.
+
+**Close local-only dependencies.** Replay uses the installed Vite runner,
+without downloading an undeclared `vite-node` package. The touch-off gate
+uses the shared armed WebSocket test client instead of an external
+`ws_send.py`. The client handles the gateway's untagged hello/arm replies,
+keeps heartbeats flowing and confirms simulated tool changes. Setup waits
+for the controller and gateway to observe state transitions; touch-off waits
+for the gateway's idle joint pose before requesting a WCS change. Fourteen
+backend tests cover discovery, fixture isolation, target refusals, output
+preservation and command/reply handling. Product motion code is unchanged.
+
+**Evidence.** Each run has its own report, code/configuration hashes, logs,
+copied programs and fresh parity captures under `runlogs/test-suite/`.
+The 33 committed parity artifacts and preview goldens stay unchanged.
+Failed setup attempts are retained instead of being overwritten by reruns.
+
+**Validation on `2924982` plus these test-infrastructure changes.** Backend:
+922 tests and 280 subtests pass. Frontend: lint, production build, 1,508 unit
+tests and all 33 Playwright tests pass. The final full live run passes all
+nine gate groups: preview goldens; 11 path comparisons and 10 independent
+plane checks; 40 button checks with four explicit skips; reorient; capture;
+touch-off; plane touch-off; G68.3; and 14 adverse-path checks. No incomplete
+teardown is reported. Reports are respectively under
+`runlogs/test-suite/20260916T190400Z-offline/`,
+`runlogs/test-suite/20260916T184653Z-offline/` and
+`runlogs/test-suite/20260916T190535Z-live-twp/`. These are local results; the
+updated cloud workflow has not been pushed or run yet.
+
+**Local configuration migration.** Installed TWP and gantry INIs now point
+their launcher, assets, remaps, subroutines and TWP helper at the main
+`/home/cnc/lcnc-suite` checkout. Previous INIs and runtime data are preserved
+under `runlogs/test-suite-config-backups/20260916T184418Z/`, with a manifest.
+After testing, `sim_twp.var`, its backup and `tool.tbl` were restored and
+hash-verified against that snapshot; the post-test values are retained with
+the live report. The gantry was restarted from the main checkout, in E-stop
+with no loaded program. This is a startup check, not gantry motion acceptance.
+The old TWP/gantry worktrees are retained. An unrelated Git-ignored DMU test
+still used the removed `ScrubTrack` fields and blocked this checkout's build;
+its exact bytes and original path are preserved under
+`runlogs/local-test-backups/20260916-dmu-legacy/`. It needs a separate update
+before being reintroduced; it is not certified by the public suite.
+
+**Scope still open.** The 45-degree gantry requires its own live corpus;
+the current corpus is specific to the standard 55-degree TWP fixture.
+Actual M600 measurement and the three above-Z-zero button cases are not
+covered by the automatic button run. The existing G68.3 initial rotary-seed
+excursion retains its existing 1.5 path tolerance and remains a follow-up.
+M-05/M-06 operator guidance, browser responsiveness, physical-machine and
+touchscreen acceptance remain as recorded above.
+
+## 2026-09-19 — Three installed examples and gantry acceptance
+
+**Catalog.** `examples/sim_config/profiles.json` defines the active examples:
+`3 Axis XYZ`, `5 Axis XYZAC`, and `6 Axis TWP XYZABC`. The 5-axis model is
+PR #41 at `12bd68ed4cf42240ac3dfe2bbcc8e5c4c37ac828` (still the current PR head
+when checked on September 19). The six-axis model is the newer 45° wall gantry
+from PR #39. Each profile has its own INI, parameter file and tool table.
+The old trunnion, 9-axis and 55° TWP profiles/models are historical regression
+fixtures under `scripts/test_fixtures/legacy_sim/`, outside the installed
+catalog. The local unlicensed DMU is archived under
+`runlogs/example-migration-20260917/local-only/`, with original-path hashes.
+
+**Installation.** `install.sh` installs all three examples on fresh installs
+and upgrades and builds the TWP runtime component. `scripts/install_examples.py`
+handles the same example migration independently of dependency installation.
+It carries over the old XYZ/gantry INIs and mutable state, preserves local
+settings, manages suite paths, and links shared HAL/remaps/models to the
+checkout. The new XYZAC example never inherits the retired trunnion's tool
+lengths or offsets. Modified installations are backed up outside the LinuxCNC
+chooser under `~/linuxcnc/config-backups/lcnc_suite_sim/`; the local pre-migration
+snapshot is `20260917T170958.629703Z/config/`. Both the repository example folder
+and the installed folder now contain exactly three active INIs. The final
+configuration sync check reports no functional drift.
+
+**Test integration.** Backend discovery includes installer fresh/upgrade,
+state-preservation and refusal tests. The shared offline runner also executes
+PR #41's 5-axis acceptance: closed meshes, guide engagement, 8,000 model-frame
+comparisons against the compiled LinuxCNC oracle and 3,723 demo poses inside
+joint limits. Backend CI fetches LFS assets for that gate. Current live TWP
+acceptance uses `scripts/parity_corpus/twp_gantry.json`, G54 `X-100 Y140 Z-725`,
+T1 `Z200 D14`, and a separate `preview_goldens/twp_gantry/` baseline. The runner
+requires the matching gantry profile and rejects the retired 55° fixture.
+Program loading now requires a controller acknowledgement and matching active
+filename before waiting for cached preview bytes, so a load failure is reported
+at its source. All 31 relocated legacy files and 34 historical reference
+artifacts were verified byte-for-byte against HEAD (LFS object hashes for STLs).
+
+**Validation.** Full backend: 925 tests plus 280 subtests; the separate 5-axis
+model gate also passes. Frontend lint, production build, 1,508 unit tests and
+33 browser tests pass. Reports are under
+`runlogs/test-suite/20260917T171938Z-offline/` and
+`runlogs/test-suite/20260917T171942Z-offline/`. After the final installer/catalog
+adjustments, the 17 focused installer/runner tests and the 5-axis model gate
+were checked again. The XYZ simulator passed homing and a commanded move to
+`[10, 10, -10]`. The new XYZAC simulator completed the full identity/TCP demo
+and returned to `[0, 0, 500, 0, 0]`; G64 blends its A reversals to approximately
+−109°/+109°, so the startup smoke check records these extrema rather than
+expecting exact-stop endpoints. This did not change any parity thresholds.
+
+The gantry passes **all nine live gates**, including all 11 trajectory runs
+and 10 independent plane checks, mode/button behavior, reorientation, capture,
+Machine/Plane touch-off, G68.3 and adverse paths. Evidence:
+`runlogs/example-migration-20260919/acceptance/live-gantry/report.json`;
+startup and state-restoration records are linked from
+`runlogs/example-migration-20260919/verification.json`. The 40-pass/4-skip button
+matrix still excludes actual M600 measurement and three unreachable above-Z0
+cases. All simulator sessions were stopped and their saved parameter/tool
+files restored after testing. This supersedes the earlier statement that the
+gantry lacks its own live corpus; it is not physical-machine certification.
+
+**Still open.** The new 5-axis PR supplies identity/TCP, not G68.2/TWP. No TWP
+label or head-specific remap has been added to that trunnion. A real 5-axis TWP
+implementation remains a separate capability decision and acceptance task.
+The G68.3 initial rotary-seed excursion also remains open: the gantry's first
+run measured a maximum 1.081 in the existing joint-path metric, within the
+inherited 1.5 tolerance; plane origins/normals passed independently. No
+historical goldens or tolerances were relaxed. Operator guidance, plane probing,
+M600 measurement and touchscreen/performance acceptance remain separate work.
+PR #41's example content is incorporated by this change; the source PR was
+still open and draft when checked on 2026-09-19.

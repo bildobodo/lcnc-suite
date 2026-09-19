@@ -13,7 +13,7 @@ Usage
     .venv/bin/python test_viewer_init.py
 
     # LinuxCNC config (override via LCNC_TEST_INI env var):
-    #   defaults to examples/sim_config/lcnc_suite_sim.ini
+    #   defaults to examples/sim_config/lcnc_suite_sim_3axis_xyz.ini
 
 Scenarios
 ---------
@@ -158,7 +158,7 @@ GATEWAY_PORT = 8000
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 _REPO_ROOT = os.path.dirname(_SCRIPT_DIR)
 GATEWAY_DIR = os.environ.get("LCNC_TEST_GATEWAY_DIR", _SCRIPT_DIR)
-LCNC_INI = os.environ.get("LCNC_TEST_INI", os.path.join(_REPO_ROOT, "examples", "sim_config", "lcnc_suite_sim.ini"))
+LCNC_INI = os.environ.get("LCNC_TEST_INI", os.path.join(_REPO_ROOT, "examples", "sim_config", "lcnc_suite_sim_3axis_xyz.ini"))
 NUM_CLIENTS = 3
 TIMEOUT = 30  # seconds per scenario
 

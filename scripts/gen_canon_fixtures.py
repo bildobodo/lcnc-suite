@@ -37,7 +37,7 @@ GATEWAY = ROOT / "lcnc-gateway"
 sys.path.insert(0, str(GATEWAY))
 
 INI = os.environ.get("CANON_FIXTURE_INI",
-                     "/home/cnc/linuxcnc/configs/lcnc_suite_sim/lcnc_suite_sim.ini")
+                     "/home/cnc/linuxcnc/configs/lcnc_suite_sim/lcnc_suite_sim_3axis_xyz.ini")
 os.environ.setdefault("INI_FILE_NAME", INI)
 
 import linuxcnc          # noqa: E402

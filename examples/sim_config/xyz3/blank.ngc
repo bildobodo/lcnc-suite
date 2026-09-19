@@ -1,0 +1,5 @@
+%
+(3 Axis XYZ — empty startup program)
+G21 G17 G90 G40 G49 G80
+M2
+%

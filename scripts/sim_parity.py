@@ -13,7 +13,7 @@ Per run:
   2. capture the real run (twp_parity.sample_run — sim configs only,
      machine on + homed, refuses otherwise) with its W6 context header;
   3. replay the payload through the ACTUAL client code
-     (lcnc-webui/scripts/simDump.ts via vite-node);
+     (lcnc-webui/scripts/simDump.ts via the installed Vite module runner);
   4. compare joint-space PATHS bidirectionally (deg ≙ mm): truth samples
      against the sim polyline AND sim samples against the truth polyline
      — one direction alone misses an excursion the other path never
@@ -285,8 +285,20 @@ def cmd_gate(a):
                 import linuxcnc as _l
                 c = _l.command()
                 c.mode(_l.MODE_AUTO)
-                c.wait_complete()
+                if c.wait_complete(10) != _l.RCS_DONE:
+                    print(f"[FAIL] {tag}: controller did not acknowledge AUTO mode")
+                    return 1
+                if not os.path.isfile(ngc):
+                    print(f"[FAIL] {tag}: corpus program is missing: {ngc}")
+                    return 1
                 c.program_open(ngc)
+                loaded = c.wait_complete(10)
+                stat = _l.stat()
+                stat.poll()
+                if loaded != _l.RCS_DONE or stat.file != ngc:
+                    print(f"[FAIL] {tag}: controller did not load {ngc}; "
+                          f"command result={loaded}, active file={stat.file!r}")
+                    return 1
                 # Per-run isolation, same as the capture below: a payload
                 # that never settles must fail THIS run, not the corpus.
                 try:
@@ -324,7 +336,7 @@ def cmd_gate(a):
                 continue
             # 3. the sim replay of the SAME pre-run payload + start state.
             r = subprocess.run(
-                ["npx", "vite-node", "scripts/simDump.ts", "--",
+                ["node", "scripts/runSimDump.mjs",
                  payload_path, truth_path, sim_path],
                 cwd=_WEBUI, capture_output=True, text=True)
             if r.returncode != 0:
