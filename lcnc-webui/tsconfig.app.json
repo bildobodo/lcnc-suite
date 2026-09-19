@@ -19,6 +19,7 @@
   // by vitest as before). Keep the two lists in step —
   // src/tsconfigCoverage.test.ts enforces it and refuses stale entries.
   "exclude": [
+    "src/exampleToolLibrary.test.ts",
     "src/freecadGeometry.test.ts",
     "src/toolGeometry.test.ts",
     "src/toolHolder.test.ts",

@@ -6349,7 +6349,7 @@ async def apply_tool_library_import(
         library: dict = {}
         for tool in parsed:
             t_num = tool["T"]
-            z_init = (0.0 if tool.get("source_format") == "freecad"
+            z_init = (0.0 if tool.get("is_example") or tool.get("source_format") == "freecad"
                       else tool.get("body_length") or tool.get("oal") or 0.0)
             tbl_tools.append({
                 "T": t_num,

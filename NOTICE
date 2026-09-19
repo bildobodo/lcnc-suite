@@ -116,7 +116,9 @@ FreeCAD CAM tool geometry reference data
    records evaluated meridians and volumes from those templates. The importer
    independently implements their dimensional constraints; no FCStd models or
    FreeCAD runtime binaries are bundled. The custom-native fixture is an
-   independently constructed LCNC test model.
+   independently constructed LCNC test model. The bundled example library at
+   lcnc-webui/public/examples/tools/fusion-freecad.json includes bit parameters
+   from these references and that independent custom mesh.
 
 TWP 45 wall-gantry example (2026):
   scripts/freecad_twp_gantry.py and examples/sim_config/machine-xyzacb-gantry/

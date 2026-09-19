@@ -18,6 +18,7 @@ _TOOL_FIELD_RE = re.compile(r"([XYZD])([+-]?[\d.]+)")
 
 # Sidecar metadata fields kept in tool_library.json (beyond tool.tbl's T/P/Z/D).
 _TOOL_META_FIELDS = (
+    "is_example",
     "type", "description", "flutes", "oal", "flute_length", "shoulder_length",
     "shoulder_diameter", "corner_radius", "body_length", "shaft_diameter",
     "maximum_cutting_diameter", "upper_radius", "chamfer_width", "chamfer_angle",

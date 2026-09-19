@@ -1,6 +1,6 @@
 import { defineConfig } from "@playwright/test";
 
-const toolSpecs = /(freecad-import|tool-geometry|tool-holder|tool-import)\.spec\.ts/;
+const toolSpecs = /(example-tool-library|freecad-import|tool-geometry|tool-holder|tool-import)\.spec\.ts/;
 
 // Smoke E2E (issue #26). Serves the BUILT frontend with `vite preview` and no
 // gateway, so it verifies the app shell renders and the default-deny gating
