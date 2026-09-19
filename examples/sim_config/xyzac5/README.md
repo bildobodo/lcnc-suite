@@ -8,7 +8,9 @@ joints, guide blocks and kinematic hierarchy are easy to inspect. Ball-screw
 assemblies are omitted from the model. The spindle housing meets the thick
 Z carrier directly, without an intermediate spacer. Its cylindrical cartridge
 and short, stepped steel nose follow the TWP example's spindle proportions.
-The cartridge and nose flange have the same diameter. The bearing pedestals
+The cartridge and nose flange have the same diameter. The nose has a closed
+front face so tools without a holder mesh meet the spindle without an exposed
+socket; the tool frame remains at the same Z=0 gauge plane. The bearing pedestals
 have tangent sides flowing into a circular crown; each pedestal is centred
 directly above its Y rail and pair of guide blocks.
 Three diagonal rear buttresses are fused into the column casting and sit on

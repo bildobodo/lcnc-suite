@@ -218,7 +218,9 @@ add('spindle_motor_cover', 'z_head', 'accent', bevel(box(-125, -112, 445, 125, 1
 add('spindle_cartridge', 'z_head', 'dark', cyl(SPINDLE_RADIUS, 50, (0, 0, 35)))
 nose = fuse([Part.makeCone(50, 70, 20, V(0, 0, 0)),
              cyl(70, 8, (0, 0, 20)), cyl(SPINDLE_RADIUS, 7, (0, 0, 28))])
-nose = nose.cut(cyl(20, 18, (0, 0, -1))).cut(compound([
+# A closed front face also supports the viewer's tools without a holder mesh.
+# The tool frame stays at Z=0; an internal holder socket is not modelled.
+nose = nose.cut(compound([
     cyl(4, 5, (96*math.cos(math.radians(a)), 96*math.sin(math.radians(a)), 27))
     for a in range(0, 360, 45)]))
 add('spindle_nose', 'z_head', 'steel', nose)
