@@ -320,8 +320,8 @@
       "valid": true,
       "solids": 1,
       "closed": true,
-      "triangles": 5038,
-      "volume_mm3": 594561.0704575854
+      "triangles": 4618,
+      "volume_mm3": 615923.9005019962
     },
     {
       "id": "a_bearing_pedestals",
