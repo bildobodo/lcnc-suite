@@ -1833,7 +1833,8 @@ watch(viewerGcode, (newGcode) => {
                   </div>
                   <div class="row-tight toolTabManage">
                     <MachineBtn type="manage" @click="toolTableRef?.openAdd()">+ Add</MachineBtn>
-                    <MachineBtn type="manage" @click="toolTableRef?.triggerImport()">Import</MachineBtn>
+                    <MachineBtn type="manage" :disabled="toolTableRef?.importBusy" @click="toolTableRef?.triggerImport()">Import</MachineBtn>
+                    <MachineBtn type="manage" :disabled="toolTableRef?.importBusy" @click="toolTableRef?.previewExampleLibrary()">Examples</MachineBtn>
                     <MachineBtn type="manage" @click="toolTableRef?.fetchTools()">Refresh</MachineBtn>
                   </div>
                 </div>

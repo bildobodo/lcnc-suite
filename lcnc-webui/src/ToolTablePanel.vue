@@ -16,6 +16,7 @@ import type { ToolMeta } from "./toolGeometry";
 import { nominalHolderBase } from "./toolHolder";
 import { toolUnitsPerMillimeter } from "./toolUnits";
 import { toolPreviewNotice } from "./toolPreviewNotice";
+import { summarizeToolImport } from "./toolImportSummary";
 // Async on purpose (WS-E / F10-finish): ToolPreview is the ONLY statically
 // eager three.js importer left — this edge alone kept the 866 kB three
 // chunk in the entry graph (static import + modulepreload in index.html),
@@ -62,7 +63,7 @@ interface Tool extends ToolMeta {
 
 const tools = ref<Tool[]>([]);
 const loading = ref(false);
-const error = ref<string | null>(null);
+const tableError = ref<string | null>(null);
 // Renumber is one transactional command (issue #30) — keep the modal open until
 // its reply so a rejection is shown rather than leaving partial state.
 const saving = ref(false);
@@ -106,7 +107,7 @@ function toggleSort(key: "T" | "D" | "Z") {
 // Fetch tool table from gateway
 function fetchTools() {
   loading.value = true;
-  error.value = null;
+  tableError.value = null;
   send({ cmd: "get_tool_table" });
 }
 
@@ -121,7 +122,7 @@ watch(lastReply, (reply) => {
     tools.value = reply.tools;
     loading.value = false;
   } else if (reply.ok === false && reply.error) {
-    error.value = reply.error;
+    tableError.value = reply.error;
     loading.value = false;
   }
 });
@@ -313,6 +314,8 @@ function cancelDelete() {
 
 // ---- Import ----
 interface ImportTool {
+  source_format?: string;
+  is_example?: boolean;
   T: number;
   D: number;
   type: string;
@@ -328,7 +331,8 @@ const importPreview = ref<ImportTool[] | null>(null);
 const importPreviewByNumber = computed(() => new Map(importPreview.value?.map(t => [t.T, t])));
 const importSkipped = ref<ImportTool[]>([]);
 const importExistingCount = ref(0);
-const importSource = ref("Fusion 360");
+const importSummary = ref(summarizeToolImport([]));
+const importSource = computed(() => importSummary.value.sourceLabel);
 const importBusy = ref(false);
 const importResult = ref<{ added?: number; updated?: number; skipped?: number } | null>(null);
 const importFile = ref<File | null>(null);
@@ -346,6 +350,8 @@ interface RefreshRow {
 const importMode = ref("metadata");
 const importRefresh = ref<{ rows: RefreshRow[]; updated: number[]; skipped: number[]; revision: string } | null>(null);
 const importRefreshError = ref<string | null>(null);
+// Table refreshes must not erase an unrelated download/preview failure.
+// Show import failures in the dialog, or in the panel if preview never opened.
 const importError = ref<string | null>(null);
 const canConfirmImport = computed(() => !importBusy.value &&
   (importMode.value === "replace" || !!importRefresh.value?.updated.length));
@@ -380,14 +386,14 @@ async function previewImportFile(file: File) {
     }
     const data = await resp.json();
     importPreview.value = data.tools;
-    importSource.value = data.tools.some((t: ToolMeta) => t.source_format === "freecad") ? "FreeCAD" : "Fusion 360";
+    importSummary.value = summarizeToolImport(data.tools);
     importSkipped.value = data.skipped_duplicates ?? [];
     importExistingCount.value = data.existing_count ?? 0;
     importRefresh.value = data.metadata_refresh ?? null;
     importRefreshError.value = data.metadata_refresh_error ?? null;
     importMode.value = importExistingCount.value > 0 || !importRefresh.value ? "metadata" : "replace";
   } catch (err: any) {
-    error.value = err.message || "Import failed";
+    importError.value = err.message || "Import failed";
     importPreview.value = null;
     importSkipped.value = [];
   } finally {
@@ -442,7 +448,27 @@ function cancelImport() {
 
 const importInputRef = ref<HTMLInputElement | null>(null);
 function triggerImport() {
+  if (importBusy.value) return;
   importInputRef.value?.click();
+}
+
+async function previewExampleLibrary() {
+  if (importBusy.value) return;
+  importBusy.value = true;
+  importError.value = null;
+  importResult.value = null;
+  try {
+    // Vite copies this small, self-contained library into every production build.
+    // Fetch it on demand and use the same reviewed import as an uploaded file.
+    const response = await fetch(`${import.meta.env.BASE_URL}examples/tools/fusion-freecad.json`);
+    if (!response.ok) throw new Error(`Example library unavailable (HTTP ${response.status})`);
+    const file = new File([await response.blob()], "fusion-freecad-examples.json", { type: "application/json" });
+    await previewImportFile(file);
+  } catch (err: unknown) {
+    importError.value = err instanceof Error ? err.message : "Could not load example tools";
+  } finally {
+    importBusy.value = false;
+  }
 }
 
 // ---- Hover preview ----
@@ -481,7 +507,7 @@ function onToolTap(tool: Tool, e: MouseEvent) {
   hoverTool.value = tool;
 }
 
-defineExpose({ openAdd, fetchTools, triggerImport });
+defineExpose({ openAdd, fetchTools, triggerImport, previewExampleLibrary, importBusy });
 </script>
 
 <template>
@@ -494,7 +520,8 @@ defineExpose({ openAdd, fetchTools, triggerImport });
       <div class="sub">Tool Table</div>
       <div class="row-tight">
         <MachineBtn type="manage" @click="openAdd">+ Add</MachineBtn>
-        <MachineBtn type="manage" @click="triggerImport">Import</MachineBtn>
+        <MachineBtn type="manage" :disabled="importBusy" @click="triggerImport">Import</MachineBtn>
+        <MachineBtn type="manage" :disabled="importBusy" @click="previewExampleLibrary">Examples</MachineBtn>
         <MachineBtn type="manage" @click="fetchTools" :disabled="loading">Refresh</MachineBtn>
       </div>
     </div>
@@ -508,7 +535,11 @@ defineExpose({ openAdd, fetchTools, triggerImport });
     />
 
     <!-- Error banner -->
-    <div v-if="error" class="errorBanner">{{ error }}</div>
+    <div v-if="tableError" class="errorBanner">{{ tableError }}</div>
+    <div v-if="importError && !importPreview" class="errorBanner row-controls" role="alert">
+      <span>{{ importError }}</span>
+      <MachineBtn type="close" aria-label="Dismiss import error" @click="importError = null">&times;</MachineBtn>
+    </div>
 
     <!-- Import result banner -->
     <div v-if="importResult" class="importBanner">
@@ -516,7 +547,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
         Updated metadata for {{ importResult.updated }} tools. Measured offsets and table diameters retained.
       </template>
       <template v-else>
-        Imported {{ importResult.added }} tools. {{ importSource === "FreeCAD" ? "Z offsets initialized to zero; measure tools before use." : "Z offsets initialized from Fusion lengths." }}
+        Imported {{ importResult.added }} tools. {{ importSummary.resultNotice }}
       </template>
       <template v-if="importResult.skipped"> {{ importResult.skipped }} skipped.</template>
       <MachineBtn type="close" @click="importResult = null">&times;</MachineBtn>
@@ -631,10 +662,14 @@ defineExpose({ openAdd, fetchTools, triggerImport });
       <div v-if="importPreview" class="dialogOverlay" @click.self="cancelImport">
         <div class="dialog md importDialog">
           <div class="dialogHeader">
-            <span class="dialogTitle">Import {{ importSource }} Tool Library</span>
+            <span class="dialogTitle">{{ importSummary.isExample ? 'Example Tool Library' : `Import ${importSource} Tool Library` }}</span>
             <MachineBtn type="close" @click="cancelImport">&times;</MachineBtn>
           </div>
           <div class="dialogContent">
+            <div v-if="importSummary.isExample" class="importStats">
+              {{ importSummary.fusion }} Fusion 360 and {{ importSummary.freecad }} FreeCAD examples.
+              Tool geometry without holders or cutting presets. Review before importing.
+            </div>
             <label class="importOption">
               Import mode
               <MachineSelect gate="toolEdit" v-model="importMode" :disabled="importBusy">
@@ -653,7 +688,7 @@ defineExpose({ openAdd, fetchTools, triggerImport });
               <template v-if="importExistingCount">
                 Will replace {{ importExistingCount }} existing tools.
               </template>
-              {{ importSource === "FreeCAD" ? "Z offsets start at zero. Measure tools before use; library dimensions do not describe the installed length." : "Z offsets will use Fusion gauge lengths (measure to replace with actual values)." }}
+              {{ importSummary.replacementNotice }}
             </div>
             <div v-if="importMode === 'metadata' && importRefreshError" class="importWarn">{{ importRefreshError }}</div>
             <div v-if="importError" class="importWarn">{{ importError }}</div>

@@ -1,6 +1,6 @@
 import { defineConfig } from "@playwright/test";
 
-const toolSpecs = /(freecad-import|tool-geometry|tool-holder|tool-import)\.spec\.ts/;
+const toolSpecs = /(example-tool-library|freecad-import|tool-geometry|tool-holder|tool-import)\.spec\.ts/;
 
 if (process.env.CI && process.argv.some(arg => arg.startsWith('--update-snapshots') || arg === '-u')) {
   throw new Error('CI must compare committed visual references, never update them.');

@@ -6,6 +6,8 @@ A modern, UI-agnostic WebSocket gateway for LinuxCNC with a reference Vue 3 web 
 
 > **FreeCAD CAM tools:** import standard libraries or native custom shapes with the [FreeCAD import guide](docs/freecad-tool-import.md).
 
+> **Example tools:** **Tools → Examples** previews 36 bundled Fusion and FreeCAD tools, including form cutters and a custom mesh. See the [example library guide](docs/example-tool-library.md).
+
 ## Table of Contents
 
 - [Overview](#overview)
