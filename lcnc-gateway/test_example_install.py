@@ -40,7 +40,10 @@ class ExampleInstallTest(unittest.TestCase):
             self.assertEqual(config["EMC", "MACHINE"], profile["name"])
             self.assertEqual(config["DISPLAY", "WEBUI_HOST"], "127.0.0.1")
             self.assertTrue(Path(config["DISPLAY", "DISPLAY"]).is_file())
-            for key in [("RS274NGC", "PARAMETER_FILE"), ("EMCIO", "TOOL_TABLE")]:
+            for key in [("RS274NGC", "PARAMETER_FILE"), ("EMCIO", "TOOL_TABLE"),
+                        ("TRAJ", "POSITION_FILE")]:
+                if key not in config:
+                    continue
                 path = self.dest / config[key]
                 self.assertTrue(path.is_file())
                 self.assertFalse(path.is_symlink())
@@ -82,6 +85,42 @@ class ExampleInstallTest(unittest.TestCase):
         (self.dest / "xyzac5/sim.var").write_text("local offsets")
         self.assertIsNone(self.install())
         self.assertEqual((self.dest / "xyzac5/sim.var").read_text(), "local offsets")
+
+    def test_upgrade_adds_start_position_without_resetting_local_state(self):
+        self.install()
+        ini = self.dest / "lcnc_suite_sim_5axis_xyzac.ini"
+        position = self.dest / "xyzac5/position.txt"
+        # Reproduce the original installation: no POSITION_FILE in its INI.
+        ini.write_text(ini.read_text().replace(
+            "POSITION_FILE = xyzac5/position.txt\n", "").replace(
+            "WEBUI_DEV = 0", "WEBUI_DEV = 1"))
+        position.unlink()
+        offsets = self.dest / "xyzac5/sim.var"
+        offsets.write_text("5221 42\n")
+        backup = self.install()
+        self.assertNotIn("POSITION_FILE =", (backup / "config" / ini.name).read_text())
+        config = installer.values(ini.read_text())
+        self.assertEqual(config["TRAJ", "POSITION_FILE"], "xyzac5/position.txt")
+        self.assertEqual(config["DISPLAY", "WEBUI_DEV"], "1")
+        self.assertEqual(offsets.read_text(), "5221 42\n")
+        self.assertEqual(position.read_bytes(), (SOURCE / "xyzac5/position.txt").read_bytes())
+        # Once the controller has saved a different pose, updates preserve it.
+        saved = "\n".join(map(str, [10, 20, 350, 15, 45] + [0] * 11)) + "\n"
+        position.write_text(saved)
+        self.assertIsNone(self.install())
+        self.assertEqual(position.read_text(), saved)
+
+    def test_upgrade_migrates_existing_position_file(self):
+        self.dest.mkdir(parents=True)
+        name = "lcnc_suite_sim_5axis_xyzac.ini"
+        (self.dest / name).write_text((SOURCE / name).read_text().replace(
+            "xyzac5/position.txt", "old-position.txt"))
+        saved = "\n".join(map(str, [10, 20, 350, 15, 45] + [0] * 11)) + "\n"
+        (self.dest / "old-position.txt").write_text(saved)
+        self.install()
+        self.assertEqual((self.dest / "xyzac5/position.txt").read_text(), saved)
+        self.assertEqual(installer.values((self.dest / name).read_text())[
+            "TRAJ", "POSITION_FILE"], "xyzac5/position.txt")
 
     def test_refuses_live_install_and_backup_inside_chooser_before_writing(self):
         with patch.object(installer, "assert_stopped", side_effect=RuntimeError("Stop LinuxCNC")):

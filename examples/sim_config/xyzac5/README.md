@@ -64,12 +64,20 @@ linuxcnc ~/linuxcnc/configs/lcnc_suite_sim/lcnc_suite_sim_5axis_xyzac.ini
 ```
 
 Shared HAL, remaps and models track the checkout through directory links;
-`xyzac5/sim.var` and `xyzac5/tool.tbl` remain writable local files. See the
+`xyzac5/sim.var`, `xyzac5/tool.tbl` and `xyzac5/position.txt` remain writable
+local files. See the
 [shared setup and migration guide](../README.md).
+
+The first launch starts at X0 Y0 Z500 A0 C0, inside the joint limits, with
+E-stop active and all joints unhomed. LinuxCNC's `[TRAJ] POSITION_FILE`
+restores the simulated joint positions on subsequent launches; the installer
+preserves this file. The initial file has 16 joint entries, as required by
+LinuxCNC 2.9, including zeros for the unused joints. `HOME` alone does not
+initialize the cold-start position.
 
 Connect and arm the UI, reset E-stop, switch on and **home all axes**. Homing
 is instantaneous and switchless: Z establishes its retracted 500 mm position
-first, then X/Y and A/C. Before homing, feedback is not a valid machine pose.
+first, then X/Y and A/C. Restoring positions does not replace homing.
 The supplied program is loaded but is not started automatically. Start it and
 confirm the T1 manual tool change when prompted.
 

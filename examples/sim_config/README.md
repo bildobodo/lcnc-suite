@@ -48,6 +48,10 @@ saved parameters, tool tables, network settings and local INI adjustments.
 The new 5-axis model starts with its own state; it never inherits tool lengths
 or offsets from the retired trunnion. Subsequent runs preserve all three
 profiles' parameters, tool tables and locally edited demonstration programs.
+The 5-axis example also keeps joint positions in `xyzac5/position.txt`.
+Fresh installs and upgrades without that file receive X0 Y0 Z500 A0 C0,
+so Z starts within its 100–500 mm limits before homing. Existing saved joint
+positions are preserved; all axes still require homing after startup.
 
 Before replacing files, the complete previous installation is saved under
 `~/linuxcnc/config-backups/lcnc_suite_sim/<timestamp>/config/`. Backups are

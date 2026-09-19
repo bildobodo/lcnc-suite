@@ -33,6 +33,7 @@ def render_ini(text, template, repo):
     managed = {key: ref[key] for key in (
         ("EMC", "MACHINE"), ("RS274NGC", "PARAMETER_FILE"),
         ("RS274NGC", "SUBROUTINE_PATH"), ("EMCIO", "TOOL_TABLE"),
+        ("TRAJ", "POSITION_FILE"),
         ("DISPLAY", "WEBUI_MACHINE_DIR"), ("PYTHON", "PATH_APPEND"),
         ("PYTHON", "TOPLEVEL")) if key in ref}
     managed[("DISPLAY", "DISPLAY")] = str(repo / "lcnc-suite")
@@ -42,12 +43,18 @@ def render_ini(text, template, repo):
         if key in managed:
             managed[key] = ":".join(str((source / p).resolve())
                                     for p in managed[key].split(":"))
-    if values(text).get(("DISPLAY", "OPEN_FILE")) == "~/linuxcnc/nc_files/blank.ngc":
+    local = values(text)
+    if local.get(("DISPLAY", "OPEN_FILE")) == "~/linuxcnc/nc_files/blank.ngc":
         managed[("DISPLAY", "OPEN_FILE")] = ref[("DISPLAY", "OPEN_FILE")]
     section, output = "", []
     for line in text.splitlines():
         if line.strip().startswith("[") and line.strip().endswith("]"):
             section = line.strip()[1:-1].upper()
+            output.append(line)
+            # Older installed INIs can lack a newly introduced state path.
+            output.extend(f"{key[1]} = {value}" for key, value in managed.items()
+                          if key[0] == section and key not in local)
+            continue
         elif "=" in line and not line.lstrip().startswith(("#", ";")):
             key = (section, line.split("=", 1)[0].strip().upper())
             if key in managed:
@@ -87,11 +94,15 @@ def install(repo, destination, backup_root):
         text = existing.read_text() if existing.is_file() else template
         writes[name] = render_ini(text, template, repo).encode()
         old = values(text)
+        ref = values(template)
         for filename, key in (("sim.var", ("RS274NGC", "PARAMETER_FILE")),
-                              ("tool.tbl", ("EMCIO", "TOOL_TABLE"))):
+                              ("tool.tbl", ("EMCIO", "TOOL_TABLE")),
+                              ("position.txt", ("TRAJ", "POSITION_FILE"))):
+            if key not in ref:
+                continue
             rel = profile["state_dir"] + "/" + filename
             if not (destination / rel).exists():
-                candidate = Path(old[key]).expanduser()
+                candidate = Path(old.get(key, rel)).expanduser()
                 if not candidate.is_absolute():
                     candidate = destination / candidate
                 seed = candidate if existing.is_file() and candidate.is_file() else source / rel

@@ -65,6 +65,20 @@ def tip_in_work(joints, length):
 
 
 class XYZACAcceptance(unittest.TestCase):
+    def test_cold_start_positions_are_inside_limits_before_homing(self):
+        positions = [float(value) for value in
+                     (SIM / INI['TRAJ']['POSITION_FILE']).read_text().split()]
+        # LinuxCNC 2.9 emcPositionLoad reads all EMCMOT_MAX_JOINTS entries,
+        # including inactive joints; a five-entry file is ignored entirely.
+        self.assertEqual(len(positions), 16)
+        self.assertTrue(all(math.isfinite(value) for value in positions))
+        for joint, axis in enumerate('XYZAC'):
+            position = positions[joint]
+            for section in (f'JOINT_{joint}', f'AXIS_{axis}'):
+                self.assertLessEqual(float(INI[section]['MIN_LIMIT']), position)
+                self.assertLessEqual(position, float(INI[section]['MAX_LIMIT']))
+        self.assertEqual(positions[:5], [0, 0, 500, 0, 0])
+
     def test_config_and_closed_export_manifest(self):
         self.assertEqual(INI['KINS']['KINEMATICS'], 'xyzac-trt-kins sparm=identityfirst')
         self.assertEqual(INI['DISPLAY']['WEBUI_MACHINE_DIR'], MODEL.name)
