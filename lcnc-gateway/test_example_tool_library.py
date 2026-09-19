@@ -6,12 +6,12 @@ from pathlib import Path
 import unittest
 from unittest.mock import AsyncMock, patch
 
-from tool_import import decode_tool_blob
+from tool_import import decode_tool_blob, initial_z_offset
 from tool_refresh import plan_metadata_refresh
 from tool_table import _TOOL_META_FIELDS, _merge_tool_data, tool_visual_metadata
 
 ROOT = Path(__file__).resolve().parent.parent
-SAMPLE = ROOT / 'lcnc-webui/public/examples/tools/fusion-freecad.json'
+SAMPLE = ROOT / 'examples/sim_config/tool-libraries/fusion-freecad.json'
 with SAMPLE.open('rb') as f:
     RAW = f.read()
 DATA = json.loads(RAW)
@@ -45,10 +45,15 @@ class TestExampleLibrary(unittest.TestCase):
     def test_geometry_and_identities_survive_machine_unit_conversion_and_sidecar(self):
         mm = decode_tool_blob(RAW, 'mm')[0]
         inch = decode_tool_blob(RAW, 'in')[0]
-        for a, b in zip(mm, inch):
+        for entry, a, b in zip(DATA['tools'], mm, inch):
             with self.subTest(tool=a['T']):
                 self.assertAlmostEqual(a['D'], b['D'] * 25.4)
                 self.assertAlmostEqual(a['oal'], b['oal'] * 25.4)
+                self.assertGreater(a['example_z_offset'], 0)
+                self.assertLess(a['example_z_offset'], a['oal'])
+                self.assertAlmostEqual(a['example_z_offset'], b['example_z_offset'] * 25.4)
+                expected = entry['example_z_mm']
+                self.assertEqual(a['example_z_offset'], expected)
                 self.assertEqual(a.get('fusion_guid'), b.get('fusion_guid'))
                 self.assertEqual(a.get('source_id'), b.get('source_id'))
                 meta = {k: b[k] for k in _TOOL_META_FIELDS if k in b}
@@ -67,8 +72,33 @@ class TestExampleLibrary(unittest.TestCase):
         self.assertFalse(plan['updated'])
         self.assertIn('Duplicate', plan['rows'][0]['reason'])
 
+    def test_nominal_exposed_length_is_separate_from_cutter_geometry(self):
+        data = copy.deepcopy(DATA)
+        baseline = decode_tool_blob(RAW, 'mm')[0][0]
+        data['tools'][0]['example_z_mm'] = 48
+        tool = decode_tool_blob(json.dumps(data).encode(), 'mm')[0][0]
+        self.assertEqual(initial_z_offset(tool), 48)
+        self.assertEqual({k: v for k, v in tool.items() if k != 'example_z_offset'},
+                         {k: v for k, v in baseline.items() if k != 'example_z_offset'})
+        # Existing version-1 examples without explicit lengths still load.
+        data['version'] = 1
+        del data['tools'][0]['example_z_mm']
+        tool = decode_tool_blob(json.dumps(data).encode(), 'mm')[0][0]
+        self.assertEqual(initial_z_offset(tool), 76)
+
+    def test_rejects_invalid_or_non_example_setup_lengths(self):
+        for value in (None, True, 0, -10, '120', float('nan'), float('inf')):
+            data = copy.deepcopy(DATA)
+            data['tools'][0]['example_z_mm'] = value
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                decode_tool_blob(json.dumps(data).encode(), 'mm')
+        data = copy.deepcopy(DATA)
+        data['is_example'] = False
+        with self.assertRaisesRegex(ValueError, 'example_z_mm'):
+            decode_tool_blob(json.dumps(data).encode(), 'mm')
+
     def test_rejects_bad_versions_sources_numbering_and_shapes(self):
-        mutations = [lambda d: d.update(version=2), lambda d: d.update(version=True),
+        mutations = [lambda d: d.update(version=3), lambda d: d.update(version=True),
                      lambda d: d.update(is_example='yes'),
                      lambda d: d.update(tools=[]), lambda d: d.update(tools=d['tools'] * 60),
                      lambda d: d['tools'][0].update(source='lcnc-tool-library'),
@@ -91,7 +121,7 @@ class TestExampleRoutes(unittest.IsolatedAsyncioTestCase):
     setUp = refresh_fixture.TestMetadataRefreshRoutes.setUp
     upload = refresh_fixture.TestMetadataRefreshRoutes.upload
 
-    async def test_preview_is_read_only_and_apply_initializes_all_examples_to_zero(self):
+    async def test_preview_is_read_only_and_apply_uses_reviewed_nominal_lengths(self):
         import gateway
         data = json.loads((await gateway.import_tool_library(self.upload(RAW))).body)
         self.assertEqual(data['total'], 36)
@@ -100,7 +130,8 @@ class TestExampleRoutes(unittest.IsolatedAsyncioTestCase):
             result = await gateway.apply_tool_library_import(self.upload(RAW))
             self.assertEqual(result['added'], 36)
             _, table, library = persist.call_args.args
-            self.assertTrue(all(t['Z'] == 0 for t in table))
+            self.assertEqual([t['Z'] for t in table], [initial_z_offset(t) for t in data['tools']])
+            self.assertTrue(all(t['Z'] > 0 for t in table))
             self.assertEqual(library['1001']['oal'], 76)
             self.assertTrue(all(t['is_example'] for t in library.values()))
         self.assertEqual(self.table.read_bytes(), self.table_bytes)

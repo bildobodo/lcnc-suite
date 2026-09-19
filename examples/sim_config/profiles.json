@@ -63,5 +63,8 @@
   ],
   "documents": [
     "xyzac5/README.md"
+  ],
+  "tool_libraries": [
+    "tool-libraries/fusion-freecad.json"
   ]
 }

@@ -99,6 +99,8 @@ import status_runtime as _status_runtime_mod
 from status_runtime import StatusPayload
 import bulk_pipeline as _bulk_mod
 from tool_store import ToolLibraryStore
+from tool_import import initial_z_offset
+from tool_files import list_entries as list_tool_files, resolve_entry as resolve_tool_file, EXTENSIONS as TOOL_LIBRARY_EXTENSIONS
 from camera_broker import CameraBroker
 from tool_refresh import metadata_refresh_revision, plan_metadata_refresh
 
@@ -2582,6 +2584,7 @@ def get_nc_files_dir() -> str:
             ini = linuxcnc.ini(ini_path)
             prefix = ini.find("DISPLAY", "PROGRAM_PREFIX")
             if prefix:
+                prefix = os.path.expanduser(prefix)
                 if not os.path.isabs(prefix):
                     prefix = os.path.join(os.path.dirname(ini_path), prefix)
                 prefix = os.path.realpath(prefix)
@@ -2692,8 +2695,14 @@ def _tool_lib_error(event: str, level: str, e: Exception) -> None:
 # owns the mtime cache + the strict refuse-to-clobber write; the current-INI key
 # (_current_ini_path → STAT) and trace are injected. Thin wrappers below keep the
 # existing call sites stable.
+def _tool_library_seed_path():
+    table = get_tool_tbl_path()
+    return Path(table).with_suffix('.seed.json') if table else None
+
+
 _tool_lib_store = ToolLibraryStore(TOOL_LIBRARY_PATH, _current_ini_path,
-                                   on_error=_tool_lib_error)
+                                   on_error=_tool_lib_error,
+                                   seed_path=_tool_library_seed_path)
 
 
 def load_tool_library() -> dict:
@@ -6356,8 +6365,7 @@ async def apply_tool_library_import(
         library: dict = {}
         for tool in parsed:
             t_num = tool["T"]
-            z_init = (0.0 if tool.get("is_example") or tool.get("source_format") == "freecad"
-                      else tool.get("body_length") or tool.get("oal") or 0.0)
+            z_init = initial_z_offset(tool)
             tbl_tools.append({
                 "T": t_num,
                 "P": t_num,
@@ -6382,6 +6390,45 @@ async def apply_tool_library_import(
     await _persist_imported_tools(tbl_path, tbl_tools, library)
 
     return {"ok": True, "added": len(parsed), "skipped": len(_skipped)}
+
+
+def get_tool_library_dir():
+    ini_path = os.environ.get('LCNC_INI_FILE')
+    if ini_path:
+        configured = linuxcnc.ini(ini_path).find('DISPLAY', 'TOOL_LIBRARY_DIR')
+        if configured:
+            path = Path(configured).expanduser()
+            return path if path.is_absolute() else Path(ini_path).parent / path
+    return Path(get_nc_files_dir())
+
+
+@app.get('/tool-library-files', dependencies=[Depends(require_token)])
+def list_tool_library_files(subdir: str = ''):
+    try:
+        return list_tool_files(get_tool_library_dir(), subdir)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except (FileNotFoundError, NotADirectoryError):
+        raise HTTPException(status_code=404, detail=f'Tool-library directory not found: {get_tool_library_dir()}')
+    except PermissionError:
+        raise HTTPException(status_code=403, detail='Permission denied')
+
+
+@app.get('/tool-library-file', dependencies=[Depends(require_token)])
+def get_tool_library_file(path: str):
+    try:
+        _, target = resolve_tool_file(get_tool_library_dir(), path)
+        if not target.is_file():
+            raise HTTPException(status_code=404, detail='Tool library not found')
+        if target.suffix.lower() not in TOOL_LIBRARY_EXTENSIONS:
+            raise HTTPException(status_code=400, detail='Unsupported tool-library extension')
+        if target.stat().st_size > MAX_TOOL_LIBRARY_SIZE:
+            raise HTTPException(status_code=413, detail='Tool library too large (max 16 MB)')
+        return FileResponse(target, filename=target.name, media_type='application/octet-stream')
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except PermissionError:
+        raise HTTPException(status_code=403, detail='Permission denied')
 
 
 @app.get("/files")

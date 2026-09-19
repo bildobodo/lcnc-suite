@@ -57,6 +57,23 @@ class TestToolLibraryStore(unittest.TestCase):
         self.assertEqual(store.load(), {})            # degrades to empty
         self.assertEqual(events[0], ("tool_lib.corrupt", "error"))
 
+    def test_first_run_geometry_does_not_override_saved_or_empty_libraries(self):
+        with tempfile.TemporaryDirectory() as directory:
+            seed = Path(directory) / 'tool.seed.json'
+            seed.write_text(json.dumps({'1001': {'type': 'endmill'}}))
+            ini = ['/ini-A']
+            store = ToolLibraryStore(self.path, lambda: ini[0], seed_path=lambda: seed)
+            self.assertEqual(store.load(), {'1001': {'type': 'endmill'}})
+            self.assertFalse(self.path.exists())  # Read-only boot path.
+            store.save({'1001': {'type': 'drill'}})
+            self.assertEqual(store.load(), {'1001': {'type': 'drill'}})
+            store.save({})
+            self.assertEqual(store.load(), {})
+            ini[0] = '/ini-B'
+            self.assertEqual(store.load(), {'1001': {'type': 'endmill'}})
+            seed.unlink()
+            self.assertEqual(store.load(), {})
+
 
 if __name__ == "__main__":
     unittest.main()

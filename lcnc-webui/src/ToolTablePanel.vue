@@ -9,6 +9,8 @@ import { authHeaders } from "./auth";
 import { Pencil, Trash2 } from "lucide-vue-next";
 import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
+import FileBrowser from "./FileBrowser.vue";
+import { listToolLibraries, readToolLibrary, type FileEntry } from "./lcncApi";
 import MachineInput from "./MachineInput.vue";
 import MachineSelect from "./MachineSelect.vue";
 import MachineToggle from "./MachineToggle.vue";
@@ -33,6 +35,7 @@ const props = defineProps<{
   iniFilename: string | null;
   linearUnit: string;
   hideHeader?: boolean;
+  dialogTarget?: string;
 }>();
 
 const fire = useFire();
@@ -314,6 +317,7 @@ function cancelDelete() {
 
 // ---- Import ----
 interface ImportTool {
+  example_z_offset?: number;
   source_format?: string;
   is_example?: boolean;
   T: number;
@@ -365,6 +369,7 @@ async function onImportFileSelect(e: Event) {
 }
 
 async function previewImportFile(file: File) {
+  showImportBrowser.value = false;
   importFile.value = file;
   importBusy.value = true;
   importResult.value = null;
@@ -447,28 +452,21 @@ function cancelImport() {
 // fmtNum → fmtCell imported from format.ts
 
 const importInputRef = ref<HTMLInputElement | null>(null);
-function triggerImport() {
-  if (importBusy.value) return;
-  importInputRef.value?.click();
+const showImportBrowser = ref(false);
+const importSubdir = ref("");
+async function selectLibrary(entry: FileEntry, signal: AbortSignal) {
+  const file = await readToolLibrary(entry, signal);
+  if (!signal.aborted) await previewImportFile(file);
+}
+function toggleImportBrowser() {
+  if (!importBusy.value) {
+    showImportBrowser.value = !showImportBrowser.value;
+    onToolLeave();
+  }
 }
 
-async function previewExampleLibrary() {
-  if (importBusy.value) return;
-  importBusy.value = true;
-  importError.value = null;
-  importResult.value = null;
-  try {
-    // Vite copies this small, self-contained library into every production build.
-    // Fetch it on demand and use the same reviewed import as an uploaded file.
-    const response = await fetch(`${import.meta.env.BASE_URL}examples/tools/fusion-freecad.json`);
-    if (!response.ok) throw new Error(`Example library unavailable (HTTP ${response.status})`);
-    const file = new File([await response.blob()], "fusion-freecad-examples.json", { type: "application/json" });
-    await previewImportFile(file);
-  } catch (err: unknown) {
-    importError.value = err instanceof Error ? err.message : "Could not load example tools";
-  } finally {
-    importBusy.value = false;
-  }
+function uploadLibrary() {
+  if (!importBusy.value) importInputRef.value?.click();
 }
 
 // ---- Hover preview ----
@@ -507,12 +505,12 @@ function onToolTap(tool: Tool, e: MouseEvent) {
   hoverTool.value = tool;
 }
 
-defineExpose({ openAdd, fetchTools, triggerImport, previewExampleLibrary, importBusy });
+defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, importBusy });
 </script>
 
 <template>
   <div :class="['container', 'stack-controls', { compact: hideHeader }]">
-    <!-- Hidden file input for import (works via triggerImport / header button) -->
+    <!-- Upload uses the client picker directly, like program loading. -->
     <input ref="importInputRef" type="file" accept=".json,.zip,.fctb,.fctl" @change="onImportFileSelect" hidden />
 
     <!-- Header -->
@@ -520,13 +518,15 @@ defineExpose({ openAdd, fetchTools, triggerImport, previewExampleLibrary, import
       <div class="sub">Tool Table</div>
       <div class="row-tight">
         <MachineBtn type="manage" @click="openAdd">+ Add</MachineBtn>
-        <MachineBtn type="manage" :disabled="importBusy" @click="triggerImport">Import</MachineBtn>
-        <MachineBtn type="manage" :disabled="importBusy" @click="previewExampleLibrary">Examples</MachineBtn>
-        <MachineBtn type="manage" @click="fetchTools" :disabled="loading">Refresh</MachineBtn>
+        <MachineBtn type="fileOp" :disabled="importBusy" @click="toggleImportBrowser">
+          <span class="stable-width"><span :class="{ alt: !showImportBrowser }">Hide Files</span><span :class="{ alt: showImportBrowser }">Browse</span></span>
+        </MachineBtn>
+        <MachineBtn type="fileOp" :disabled="importBusy" @click="uploadLibrary">Upload</MachineBtn>
       </div>
     </div>
 
     <MachineInput
+      v-show="!showImportBrowser"
       gate="toolSearch"
       type="text"
       v-model="searchText"
@@ -534,8 +534,14 @@ defineExpose({ openAdd, fetchTools, triggerImport, previewExampleLibrary, import
       class="toolSearch"
     />
 
+    <FileBrowser v-if="showImportBrowser" v-model:subdir="importSubdir" label="Server tool libraries"
+      empty-text="No tool libraries found" :load-directory="listToolLibraries" :select-file="selectLibrary" />
+
     <!-- Error banner -->
-    <div v-if="tableError" class="errorBanner">{{ tableError }}</div>
+    <div v-if="tableError" class="errorBanner row-controls" role="alert">
+      <span>{{ tableError }}</span>
+      <MachineBtn type="manage" :disabled="loading" @click="fetchTools">Retry</MachineBtn>
+    </div>
     <div v-if="importError && !importPreview" class="errorBanner row-controls" role="alert">
       <span>{{ importError }}</span>
       <MachineBtn type="close" aria-label="Dismiss import error" @click="importError = null">&times;</MachineBtn>
@@ -659,6 +665,7 @@ defineExpose({ openAdd, fetchTools, triggerImport, previewExampleLibrary, import
       </div>
 
     <!-- Import preview dialog -->
+    <Teleport v-if="importPreview" :to="dialogTarget ?? 'body'" :disabled="!dialogTarget">
       <div v-if="importPreview" class="dialogOverlay" @click.self="cancelImport">
         <div class="dialog md importDialog">
           <div class="dialogHeader">
@@ -716,7 +723,7 @@ defineExpose({ openAdd, fetchTools, triggerImport, previewExampleLibrary, import
               <div v-for="t in importPreview" :key="t.T" class="importRow">
                 <span class="importT mono">T{{ t.T }}</span>
                 <span class="importType">{{ toolTypeLabel(t.type) }}</span>
-                <span class="importDia mono">Ø{{ fmtCell(t.D, 2) }}</span>
+                <span class="importDia mono">Ø{{ fmtCell(t.D, 2) }}<template v-if="t.example_z_offset != null"><br />Z {{ fmtCell(t.example_z_offset, 2) }}</template></span>
                 <span class="importDesc">{{ t.description || '-' }}
                   <span v-if="toolPreviewNotice(t, unitsPerMm)" class="noteWarn"><br />{{ toolPreviewNotice(t, unitsPerMm) }}</span>
                 </span>
@@ -733,9 +740,10 @@ defineExpose({ openAdd, fetchTools, triggerImport, previewExampleLibrary, import
           </Gate>
         </div>
       </div>
+    </Teleport>
 
     <!-- Table -->
-    <div class="tableWrap dataTable scroll-thin fade-scroll">
+    <div v-show="!showImportBrowser" class="tableWrap dataTable scroll-thin fade-scroll">
       <table>
         <thead>
           <tr>
@@ -923,8 +931,9 @@ defineExpose({ openAdd, fetchTools, triggerImport, previewExampleLibrary, import
 }
 
 /* ---- Import dialog ---- */
-.importDialog {
-  max-width: 440px;
+.dialog.importDialog {
+  width: 760px;
+  max-width: calc(100% - 2 * var(--gap-panel));
 }
 
 .importStats {

@@ -41,6 +41,13 @@ change work offsets and exercise kinematics; they are simulation fixtures.
 See [5-axis setup and geometry](xyzac5/README.md) and
 [6-axis gantry coordinates](machine-xyzacb-gantry/README.md).
 
+All three profiles use `~/linuxcnc/nc_files` as the Program browser root
+(`DISPLAY.PROGRAM_PREFIX`). The browser displays the server path and reserves
+most of the program panel for the file list while Browse is open. An upgrade
+corrects the initial 5-axis profile's `xyzac5` browser root, which accidentally
+exposed machine state instead of the shared programs. Custom program folders
+are preserved. Restart the suite after changing this INI setting.
+
 ## Updating existing installations
 
 The installer renames the old 3-axis and gantry INIs and carries over their
@@ -69,3 +76,13 @@ Historical model/config fixtures live in `scripts/test_fixtures/legacy_sim/`.
 They preserve existing numerical and recorded tests and are not installed.
 New live acceptance uses the three profiles above. See
 [the shared test suite](../../docs/testing.md).
+
+## Tool libraries
+
+Fresh installations include the 36 Fusion / FreeCAD example tools with nominal
+Z lengths and geometry, plus each machine’s original demo tools. Existing tool
+tables remain untouched on upgrade. The library is installed as
+`~/linuxcnc/nc_files/fusion-freecad.json`. **Tools → Browse** uses the same server
+folder as Program, showing library files instead of G-code;
+**Upload** opens a file picker on the client. See the repository
+[tool library guide](../../docs/example-tool-library.md) for import and offset details.

@@ -17,11 +17,14 @@ from gateway_util import atomic_write_bytes
 
 class ToolLibraryStore:
     def __init__(self, path, ini_key: Callable[[], str],
-                 on_error: Optional[Callable[[str, str, Exception], None]] = None):
+                 on_error: Optional[Callable[[str, str, Exception], None]] = None,
+                 seed_path: Optional[Callable] = None):
         self._path = path
         self._ini_key = ini_key
         self._on_error = on_error            # (event, level, exc) -> None
         self._cache: Optional[Tuple[float, dict]] = None  # (mtime, data)
+        self._seed_path = seed_path
+        self._seed_cache = None
         # Guards _cache + the file RMW. Once the gateway offloads load()/save()
         # to executor threads (B3), the status hot path can read concurrently
         # with a WS tool-command write — without this lock that races the mtime
@@ -75,7 +78,24 @@ class ToolLibraryStore:
             if all_data and not any(k.startswith("/") for k in all_data) and any(k.isdigit() for k in all_data):
                 all_data = {ini: all_data}
                 self._save_all(all_data)
-            return all_data.get(ini, {})
+            if ini in all_data:
+                return all_data[ini]  # An explicitly saved empty table stays empty.
+            # Fresh example installations carry geometry beside their tool.tbl.
+            # Never overlay a saved library, including legacy flat libraries.
+            path = self._seed_path() if self._seed_path else None
+            if path is None or not path.is_file():
+                return {}
+            try:
+                key = (str(path), path.stat().st_mtime_ns)
+                if self._seed_cache is None or self._seed_cache[0] != key:
+                    data = json.loads(path.read_text())
+                    if not isinstance(data, dict):
+                        raise ValueError('Tool metadata seed must be an object')
+                    self._seed_cache = (key, data)
+                return self._seed_cache[1]
+            except (OSError, ValueError) as e:
+                self._emit('tool_lib.seed_failed', 'warn', e)
+                return {}
 
     def save(self, library: dict, *, ini_key: Optional[str] = None) -> None:
         """Persist tool metadata for the current INI config.

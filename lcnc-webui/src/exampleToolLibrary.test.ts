@@ -11,21 +11,21 @@ const libraries = JSON.parse(execFileSync("python3", ["-c", `
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from tool_import import decode_tool_blob
+from tool_import import decode_tool_blob, initial_z_offset
 from tool_store import ToolLibraryStore
 from tool_table import _merge_tool_data, tool_visual_metadata
-with Path('../lcnc-webui/public/examples/tools/fusion-freecad.json').open('rb') as f: raw=f.read()
+with Path('../examples/sim_config/tool-libraries/fusion-freecad.json').open('rb') as f: raw=f.read()
 result={}
 for unit in ['mm','in']:
  tools,_=decode_tool_blob(raw,unit)
  with TemporaryDirectory() as d:
   store=ToolLibraryStore(Path(d)/'tools.json',lambda:'/test.ini')
   store.save({str(t['T']):t for t in tools});meta=store.load()
-  result[unit]=[dict(table=_merge_tool_data([dict(T=t['T'],P=0,D=t['D'],Z=-42.3)],meta)[0],
+  result[unit]=[dict(nominalZ=initial_z_offset(t),table=_merge_tool_data([dict(T=t['T'],P=0,D=t['D'],Z=-42.3)],meta)[0],
    viewer=tool_visual_metadata(meta[str(t['T'])])) for t in tools]
 print(json.dumps(result))
 `], { cwd: fileURLToPath(new URL("../../lcnc-gateway/", import.meta.url)), encoding: "utf8", maxBuffer: 5e6 })) as
-  Record<"mm" | "in", { table: ToolMeta & { T: number; D: number; Z: number }; viewer: ToolMeta }[]>;
+  Record<"mm" | "in", { nominalZ: number; table: ToolMeta & { T: number; D: number; Z: number }; viewer: ToolMeta }[]>;
 
 describe("every bundled example renders through both tool consumers", () => {
   for (const [index, mm] of libraries.mm.entries()) {
@@ -47,9 +47,18 @@ describe("every bundled example renders through both tool consumers", () => {
           expect(positions.array).toEqual(b.getAttribute("position").array);
           a.computeBoundingBox();
           bound.union(a.boundingBox!);
+          // The working portion of ordinary Fusion cutters remains outside
+          // the spindle. Form profiles include their shaft in the cutter mesh.
+          if (key === 'cutter' && c.table.type !== 'formmill') {
+            expect(a.boundingBox!.max.z).toBeLessThan(c.nominalZ);
+          }
           a.dispose(); b.dispose();
         }
         expect(bound.isEmpty()).toBe(false);
+        // No holder is modeled. Once the tip is at -Z, the tool must cross
+        // the spindle face (z=0); a larger-than-OAL offset leaves it floating.
+        expect(bound.max.z - c.nominalZ).toBeGreaterThan(0);
+        expect(bound.min.z - c.nominalZ).toBeLessThan(0);
         bound.min.divideScalar(scale); bound.max.divideScalar(scale);
         expect(bound.min.z).toBeCloseTo(0, 4);
         expect(bound.max.z).toBeCloseTo(c.table.oal! / scale, 4);

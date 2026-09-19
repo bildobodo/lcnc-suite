@@ -1683,7 +1683,7 @@ watch(viewerGcode, (newGcode) => {
     </div>
 
     <!-- ══ Content area — outer Gate wraps tabs ══ -->
-    <Gate gate="armed" class="content">
+    <Gate gate="armed" class="content" id="content-dialog-area">
       <!-- ══ Left pane — 3D Viewer (always visible) ══ -->
       <div class="viewerPane">
         <ThreeViewer
@@ -1825,7 +1825,7 @@ watch(viewerGcode, (newGcode) => {
           <template #tools>
             <div class="toolsTab">
               <div class="toolTabActions stack-controls">
-                <div class="toolTabRow">
+                <div class="toolTabRow stack-controls">
                   <div class="row-tight">
                     <MachineBtn type="toolMeasure" @click="measureAuto">Measure Current</MachineBtn>
                     <MachineBtn type="toolUnload" @click="unloadTool">Unload</MachineBtn>
@@ -1833,9 +1833,10 @@ watch(viewerGcode, (newGcode) => {
                   </div>
                   <div class="row-tight toolTabManage">
                     <MachineBtn type="manage" @click="toolTableRef?.openAdd()">+ Add</MachineBtn>
-                    <MachineBtn type="manage" :disabled="toolTableRef?.importBusy" @click="toolTableRef?.triggerImport()">Import</MachineBtn>
-                    <MachineBtn type="manage" :disabled="toolTableRef?.importBusy" @click="toolTableRef?.previewExampleLibrary()">Examples</MachineBtn>
-                    <MachineBtn type="manage" @click="toolTableRef?.fetchTools()">Refresh</MachineBtn>
+                    <MachineBtn type="fileOp" :disabled="toolTableRef?.importBusy" @click="toolTableRef?.toggleImportBrowser()">
+                      <span class="stable-width"><span :class="{ alt: !toolTableRef?.showImportBrowser }">Hide Files</span><span :class="{ alt: toolTableRef?.showImportBrowser }">Browse</span></span>
+                    </MachineBtn>
+                    <MachineBtn type="fileOp" :disabled="toolTableRef?.importBusy" @click="toolTableRef?.uploadLibrary()">Upload</MachineBtn>
                   </div>
                 </div>
                 <div class="row-tight">
@@ -1847,6 +1848,7 @@ watch(viewerGcode, (newGcode) => {
                 </div>
               </div>
               <ToolTablePanel
+                dialog-target="#content-dialog-area"
                 ref="toolTableRef"
                 :currentTool="st.tool_number ?? null"
                 :iniFilename="ini.ini_filename ?? null"
@@ -2695,14 +2697,11 @@ watch(viewerGcode, (newGcode) => {
 }
 
 .toolTabRow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--gap-controls);
+  align-items: flex-start;
 }
 
 .toolTabManage {
-  margin-left: auto;
+  flex-wrap: wrap;
 }
 
 /* ── Portrait layout ─────────────────────────────────────────── */

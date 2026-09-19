@@ -37,6 +37,12 @@ export interface FilesResponse {
   entries: FileEntry[];
 }
 
+export interface DirectoryListing {
+  directory: string;
+  subdir: string;
+  entries: FileEntry[];
+}
+
 export interface UploadResponse {
   ok: boolean;
   path: string;
@@ -44,12 +50,24 @@ export interface UploadResponse {
   size: number;
 }
 
-export async function listFiles(subdir: string = ""): Promise<FilesResponse> {
+export async function listFiles(subdir: string = "", signal?: AbortSignal): Promise<FilesResponse> {
   const url = new URL(`${getBaseUrl()}/files`);
   if (subdir) url.searchParams.set("subdir", subdir);
-  const resp = await fetch(url.toString());
+  const resp = await fetch(url.toString(), { signal });
   if (!resp.ok) await throwHttpError(resp);
   return resp.json();
+}
+
+export async function listToolLibraries(subdir = "", signal?: AbortSignal): Promise<DirectoryListing> {
+  const resp = await fetch(`/tool-library-files?subdir=${encodeURIComponent(subdir)}`, { headers: authHeaders(), signal });
+  if (!resp.ok) await throwHttpError(resp);
+  return resp.json();
+}
+
+export async function readToolLibrary(entry: FileEntry, signal?: AbortSignal): Promise<File> {
+  const resp = await fetch(`/tool-library-file?path=${encodeURIComponent(entry.path)}`, { headers: authHeaders(), signal });
+  if (!resp.ok) await throwHttpError(resp);
+  return new File([await resp.blob()], entry.name);
 }
 
 /** ---------- subroutine source (W5 inline sub view) ---------- */

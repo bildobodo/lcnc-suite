@@ -1,3 +1,39 @@
-T1 P1 Z0 D6 ; Example end mill
-T2 P2 Z0 D3 ; Example probe
+T1 P1 Z50 D6 ; Example end mill
+T2 P2 Z40 D3 ; Example probe
 T3 P3 Z22 D6 ; Example tool
+T1001 P1001 Z50.000000 D12.000000 ; Example / Fusion / Flat end mill - 12 mm
+T1002 P1002 Z40.000000 D8.000000 ; Example / Fusion / Ball end mill - 8 mm
+T1003 P1003 Z45.000000 D10.000000 ; Example / Fusion / Bullnose - 10 mm, R1
+T1004 P1004 Z6.000000 D0.350000 ; Example / Fusion / Micro drill - 0.35 mm
+T1005 P1005 Z60.000000 D14.000000 ; Example / Fusion / Spot drill
+T1006 P1006 Z35.000000 D10.000000 ; Example / Fusion / Center drill
+T1007 P1007 Z45.000000 D10.000000 ; Example / Fusion / Countersink - 90 deg
+T1008 P1008 Z65.000000 D10.000000 ; Example / Fusion / Chamfer mill - small tip
+T1009 P1009 Z50.000000 D12.000000 ; Example / Fusion / Corner chamfer end mill
+T1010 P1010 Z45.000000 D13.000000 ; Example / Fusion / Dovetail - rounded edge
+T1011 P1011 Z55.000000 D38.000000 ; Example / Fusion / Face mill - 45 deg, R2
+T1012 P1012 Z120.000000 D12.000000 ; Example / Fusion / Lollipop - 12 mm
+T1013 P1013 Z30.000000 D10.000000 ; Example / Fusion / Slot mill - full round
+T1014 P1014 Z65.000000 D3.000000 ; Example / Fusion / Corner rounding mill
+T1015 P1015 Z45.000000 D3.239136 ; Example / Fusion / Tapered ballnose - R2
+T1016 P1016 Z50.000000 D6.000000 ; Example / Fusion / Tapered bullnose
+T1017 P1017 Z50.000000 D9.140000 ; Example / Fusion / Thread mill - 3 flat crests
+T1018 P1018 Z50.000000 D9.140000 ; Example / Fusion / Thread mill - 3 round crests
+T1019 P1019 Z50.000000 D12.000000 ; Example / Fusion / Right-hand tap
+T1020 P1020 Z145.000000 D40.000000 ; Example / Fusion / Form mill - multi-lobe profile
+T1021 P1021 Z50.000000 D12.000000 ; Example / Fusion / Block drill
+T2001 P2001 Z40.000000 D5.000000 ; Example / FreeCAD / Flat end mill - 5 mm
+T2002 P2002 Z45.000000 D5.000000 ; Example / FreeCAD / Ball end mill - 5 mm
+T2003 P2003 Z45.000000 D5.000000 ; Example / FreeCAD / Bullnose - 5 mm, R1.5
+T2004 P2004 Z35.000000 D3.000000 ; Example / FreeCAD / Drill - 3 mm
+T2005 P2005 Z40.000000 D5.000000 ; Example / FreeCAD / Reamer - 5 mm
+T2006 P2006 Z40.000000 D8.000000 ; Example / FreeCAD / Tap - 8 mm
+T2007 P2007 Z20.000000 D12.000000 ; Example / FreeCAD / Chamfer mill
+T2008 P2008 Z12.000000 D10.000000 ; Example / FreeCAD / V-bit - 90 deg
+T2009 P2009 Z35.000000 D20.000000 ; Example / FreeCAD / Dovetail - 20 mm
+T2010 P2010 Z40.000000 D15.000000 ; Example / FreeCAD / Radius mill
+T2011 P2011 Z38.000000 D100.000000 ; Example / FreeCAD / Slitting saw - 100 mm
+T2012 P2012 Z40.000000 D6.000000 ; Example / FreeCAD / Ball probe - 6 mm
+T2013 P2013 Z40.000000 D1.587500 ; Example / FreeCAD / Tapered ballnose
+T2014 P2014 Z35.000000 D5.000000 ; Example / FreeCAD / Single-tooth thread mill
+T2015 P2015 Z25.000000 D10.000000 ; Example / FreeCAD / Custom body with axial bore

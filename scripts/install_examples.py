@@ -44,6 +44,16 @@ def render_ini(text, template, repo):
             managed[key] = ":".join(str((source / p).resolve())
                                     for p in managed[key].split(":"))
     local = values(text)
+    # The initial XYZAC example accidentally used its mutable state directory
+    # as the program browser root. Migrate that shipped default only; custom
+    # program folders belong to the operator.
+    if (ref.get(("EMC", "MACHINE")) == "5 Axis XYZAC"
+            and local.get(("DISPLAY", "PROGRAM_PREFIX")) in ("xyzac5", "./xyzac5")):
+        managed[("DISPLAY", "PROGRAM_PREFIX")] = ref[("DISPLAY", "PROGRAM_PREFIX")]
+    if local.get(("DISPLAY", "TOOL_LIBRARY_DIR"), "") in ("", "tool-libraries", "./tool-libraries"):
+        managed[("DISPLAY", "TOOL_LIBRARY_DIR")] = managed.get(("DISPLAY", "PROGRAM_PREFIX"),
+            local.get(("DISPLAY", "PROGRAM_PREFIX")) or ref.get(("DISPLAY", "PROGRAM_PREFIX"))
+            or "~/linuxcnc/nc_files")
     if local.get(("DISPLAY", "OPEN_FILE")) == "~/linuxcnc/nc_files/blank.ngc":
         managed[("DISPLAY", "OPEN_FILE")] = ref[("DISPLAY", "OPEN_FILE")]
     section, output = "", []
@@ -75,6 +85,12 @@ def assert_stopped():
             raise RuntimeError("Stop LinuxCNC before updating the installed examples")
 
 
+def resolve_directory(value, ini_directory):
+    """Resolve a configured folder, with the same home/relative rules as the UI."""
+    path = Path.home() / value[2:] if value.startswith("~/") else Path(value).expanduser()
+    return path if path.is_absolute() else ini_directory / path
+
+
 def install(repo, destination, backup_root):
     repo, destination, backup_root = (Path(p).expanduser().resolve()
                                       for p in (repo, destination, backup_root))
@@ -84,7 +100,7 @@ def install(repo, destination, backup_root):
     if backup_root.is_relative_to(destination.parent):
         raise ValueError("Backups must be outside the LinuxCNC configs directory")
     catalog = json.loads((source / "profiles.json").read_text())
-    writes, links = {}, {}
+    writes, links, libraries = {}, {}, {}
     for profile in catalog["profiles"]:
         name = profile["ini"]
         current = destination / name
@@ -93,6 +109,16 @@ def install(repo, destination, backup_root):
         template = (source / name).read_text()
         text = existing.read_text() if existing.is_file() else template
         writes[name] = render_ini(text, template, repo).encode()
+        rendered = values(writes[name].decode())
+        library_dir = resolve_directory(rendered["DISPLAY", "TOOL_LIBRARY_DIR"], destination)
+        for rel in catalog.get("tool_libraries", []):
+            target = library_dir / Path(rel).name
+            if not target.exists():
+                # Preserve a previously installed/edited example when moving
+                # from the old configuration-local folder into nc_files.
+                previous_library = destination / rel
+                seed = previous_library if previous_library.is_file() else source / rel
+                libraries[target] = seed.read_bytes()
         old = values(text)
         ref = values(template)
         for filename, key in (("sim.var", ("RS274NGC", "PARAMETER_FILE")),
@@ -107,6 +133,12 @@ def install(repo, destination, backup_root):
                     candidate = destination / candidate
                 seed = candidate if existing.is_file() and candidate.is_file() else source / rel
                 writes[rel] = seed.read_bytes()
+                if filename == 'tool.tbl' and seed == source / rel:
+                    # Seed geometry only together with a fresh example table.
+                    # Upgrades/migrations retain existing measured tools/metadata.
+                    metadata = str(Path(rel).with_suffix('.seed.json'))
+                    if not (destination / metadata).exists():
+                        writes[metadata] = (source / metadata).read_bytes()
         for rel in profile["programs"]:
             # User-edited programs remain local, just like offsets/tool tables.
             if not (destination / rel).exists():
@@ -126,7 +158,7 @@ def install(repo, destination, backup_root):
     retired = [destination / rel for rel in catalog["retired"]
                if (destination / rel).exists() or (destination / rel).is_symlink()]
     assert_stopped()
-    if not (writes or links or retired):
+    if not (writes or links or retired or libraries):
         return None
     backup = None
     if destination.exists():
@@ -150,6 +182,14 @@ def install(repo, destination, backup_root):
             shutil.rmtree(path)
     for rel, target in links.items():
         (destination / rel).symlink_to(target, target_is_directory=True)
+    for path, content in libraries.items():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        # Exclusive creation protects a library that appeared since planning.
+        try:
+            with path.open('xb') as stream:
+                stream.write(content)
+        except FileExistsError:
+            pass
     return backup
 
 

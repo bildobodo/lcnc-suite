@@ -2,11 +2,11 @@ import { describe, expect, it } from "vitest";
 import { summarizeToolImport } from "./toolImportSummary";
 
 describe("tool import source and offset wording", () => {
-  it("identifies a mixed example library and zero offsets", () => {
+  it("identifies a mixed example library and nominal lengths", () => {
     const summary = summarizeToolImport([{ is_example: true }, { is_example: true, source_format: "freecad" }]);
     expect(summary).toMatchObject({ fusion: 1, freecad: 1, isExample: true, sourceLabel: "Fusion 360 + FreeCAD" });
-    expect(summary.replacementNotice).toContain("Z offsets start at zero");
-    expect(summary.resultNotice).toContain("initialized to zero");
+    expect(summary.replacementNotice).toContain("nominal example lengths for simulation");
+    expect(summary.resultNotice).toContain("nominal example lengths for simulation");
   });
   it("retains each real source's offset policy", () => {
     expect(summarizeToolImport([{}]).replacementNotice).toContain("Fusion gauge lengths");

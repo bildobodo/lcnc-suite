@@ -12,7 +12,7 @@ def parse_mixed_library(data, unit):
     Each entry goes through its source adapter. Global deduplication also catches
     number collisions between CAD systems, so metadata refresh can refuse them.
     """
-    if type(data.get('version')) is not int or data['version'] != 1 or unit not in ('mm', 'in'):
+    if type(data.get('version')) is not int or data['version'] not in (1, 2) or unit not in ('mm', 'in'):
         raise ValueError('Unsupported LCNC tool library version or machine units')
     entries = data.get('tools')
     if not isinstance(entries, list) or not 1 <= len(entries) <= MAX_TOOLS:
@@ -38,6 +38,14 @@ def parse_mixed_library(data, unit):
                 raise ValueError('Unknown source (expected fusion360 or freecad)')
             if not math.isfinite(tool['D']) or tool['D'] <= 0:
                 raise ValueError('Tool diameter must be finite and positive')
+            if 'example_z_mm' in entry:
+                nominal = entry['example_z_mm']
+                if not example or type(nominal) not in (int, float) or not math.isfinite(nominal) or nominal <= 0:
+                    raise ValueError('example_z_mm requires an example library and a finite positive number')
+                tool['example_z_offset'] = float(nominal) / (25.4 if unit == 'in' else 1.0)
+            elif example:
+                # Compatibility with earlier example files without setup values.
+                tool['example_z_offset'] = max(tool.get('body_length') or 0, tool['oal'])
             # Reject overflow from unit conversions before it reaches the UI.
             json.dumps(tool, allow_nan=False)
         except (ValueError, TypeError, AttributeError, IndexError, KeyError, OverflowError) as e:
@@ -46,6 +54,15 @@ def parse_mixed_library(data, unit):
             tool['is_example'] = True
         result.append(tool)
     return _deduplicate(result)
+
+
+def initial_z_offset(tool):
+    """Replacement-table policy; metadata refresh never calls this helper."""
+    if tool.get('is_example'):
+        return tool['example_z_offset']
+    if tool.get('source_format') == 'freecad':
+        return 0.0
+    return tool.get('body_length') or tool.get('oal') or 0.0
 
 
 def decode_tool_blob(raw, unit):

@@ -16,6 +16,7 @@ import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineInput from "./MachineInput.vue";
 import MachineToggle from "./MachineToggle.vue";
+import FileBrowser from "./FileBrowser.vue";
 export interface GcodeStats {
   feedMoves: number;
   rapidMoves: number;
@@ -350,40 +351,18 @@ function violationText(v: LimitViolation): string {
 
 /** ---------- File browser ---------- */
 const showBrowser = ref(false);
-const files = ref<FileEntry[]>([]);
 const currentSubdir = ref("");
 const loading = ref(false);
 const uploadError = ref<string | null>(null);
 const dragOver = ref(false);
 
-async function toggleBrowser() {
+function toggleBrowser() {
   showBrowser.value = !showBrowser.value;
-  if (showBrowser.value) await refreshFiles();
 }
 
-async function refreshFiles() {
-  loading.value = true;
-  uploadError.value = null;
-  try {
-    const resp = await listFiles(currentSubdir.value);
-    files.value = resp.entries;
-  } catch (e: any) {
-    uploadError.value = `Failed to list files: ${e.message}`;
-  } finally {
-    loading.value = false;
-  }
-}
-
-function navigateInto(entry: FileEntry) {
-  currentSubdir.value = entry.path;
-  refreshFiles();
-}
-
-function navigateUp() {
-  const parts = currentSubdir.value.split("/");
-  parts.pop();
-  currentSubdir.value = parts.join("/");
-  refreshFiles();
+async function browsePrograms(subdir: string, signal: AbortSignal) {
+  const data = await listFiles(subdir, signal);
+  return { directory: data.nc_dir, subdir: data.subdir, entries: data.entries };
 }
 
 function selectFile(entry: FileEntry) {
@@ -406,7 +385,7 @@ async function handleUpload(file: File) {
   try {
     const resp = await uploadFile(file);
     emit("loadFile", resp.path);
-    if (showBrowser.value) await refreshFiles();
+    showBrowser.value = false;
   } catch (e: any) {
     uploadError.value = `Upload failed: ${e.message}`;
   } finally {
@@ -436,12 +415,6 @@ function onDrop(e: DragEvent) {
   if (!can.value.setup) return;
   const file = e.dataTransfer?.files[0];
   if (file) handleUpload(file);
-}
-
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 /** ---------- Run from line ---------- */
@@ -729,28 +702,13 @@ async function saveEdit() {
     <!-- Soft-limit violations surface in the viewer's scrub bar (yellow
          findings button + timeline marks) and as warn line numbers here. -->
 
-    <!-- File browser (collapsible) -->
-    <Gate v-if="showBrowser" gate="setup" class="fileBrowser">
-        <div class="browserHeader">
-          <MachineBtn v-if="currentSubdir" type="inline" class="backBtn" @click="navigateUp">..</MachineBtn>
-          <span class="browserPath">{{ currentSubdir || '/' }}</span>
-        </div>
-        <div class="sep"></div>
-        <div class="fileList scroll-thin fade-scroll">
-          <div v-for="entry in files" :key="entry.name" class="fileItem"
-               :class="{ directory: entry.type === 'directory', activeItem: entry.type === 'file' && entry.path === activeFile }"
-               @click="entry.type === 'directory' ? navigateInto(entry) : selectFile(entry)">
-            <span class="fileIcon">{{ entry.type === 'directory' ? '/' : '' }}</span>
-            <span class="fileEntryName">{{ entry.name }}</span>
-            <span v-if="entry.size != null" class="fileSize">{{ formatSize(entry.size) }}</span>
-          </div>
-          <div v-if="files.length === 0 && !loading" class="emptyBrowser">No program files found</div>
-          <div v-if="loading" class="emptyBrowser">Loading...</div>
-        </div>
-    </Gate>
+    <!-- Shared file browser: same navigation and file rows as Tools. -->
+    <FileBrowser v-if="showBrowser" v-model:subdir="currentSubdir" label="Server programs"
+      empty-text="No program files found" :active-file="activeFile"
+      :load-directory="browsePrograms" :select-file="selectFile" />
 
     <!-- Code area wrapper (drop overlay target) -->
-    <div class="codeArea">
+    <div v-show="!showBrowser || activeFile || editing" class="codeArea">
       <!-- Drop overlay -->
       <div v-if="dragOver" class="dropOverlay stack-sections" :class="{ denied: !can.setup }">
         <svg v-if="can.setup" class="dropIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -1043,92 +1001,6 @@ async function saveEdit() {
   border-radius: var(--radius-lg);
   font-size: var(--fs-base);
   color: var(--danger);
-}
-
-/* File browser */
-.fileBrowser {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  background: color-mix(in oklab, var(--panel) 70%, transparent);
-  max-height: 200px;
-  display: flex;
-  flex-direction: column;
-}
-
-.browserHeader {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-controls);
-  padding: var(--gap-tight) var(--gap-controls);
-  font-size: var(--fs-sm);
-  opacity: var(--opacity-muted);
-}
-
-.backBtn {
-  font-size: var(--fs-sm);
-  padding: 2px 8px;
-  border-radius: var(--radius-md);
-}
-
-.backBtn:hover {
-  border-color: var(--accent);
-}
-
-.browserPath {
-  font-size: var(--fs-sm);
-}
-
-.fileList {
-  overflow-y: auto;
-  flex: 1;
-}
-
-.fileItem {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-controls);
-  padding: var(--gap-tight) var(--gap-controls);
-  cursor: pointer;
-  font-size: var(--fs-base);
-  transition: background 0.1s;
-}
-
-.fileItem:hover {
-  background: var(--hl-surface);
-}
-
-.fileItem.activeItem {
-  background: color-mix(in oklab, var(--info) 15%, var(--panel));
-}
-
-.fileItem.directory .fileEntryName {
-  font-weight: var(--fw-semibold);
-}
-
-.fileIcon {
-  opacity: var(--opacity-muted);
-  width: 10px;
-  text-align: center;
-}
-
-.fileEntryName {
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.fileSize {
-  font-size: var(--fs-sm);
-  opacity: var(--opacity-muted);
-  flex-shrink: 0;
-}
-
-.emptyBrowser {
-  padding: var(--gap-section);
-  text-align: center;
-  font-size: var(--fs-base);
-  opacity: var(--opacity-muted);
 }
 
 /* Code area wrapper */
