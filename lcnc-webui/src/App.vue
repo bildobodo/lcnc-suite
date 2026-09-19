@@ -941,7 +941,7 @@ function unloadTool() {
       { cmd: "mdi", text: "T0 M600" },
     ], 'machineFrame');
   } else {
-    fire({ cmd: "mdi", text: "T0 M6 G49" }, 'machineFrame');
+    fire({ cmd: "tool_change", tool_number: 0 }, 'machineFrame');
   }
 }
 

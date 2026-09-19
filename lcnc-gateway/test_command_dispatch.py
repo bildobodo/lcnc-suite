@@ -209,6 +209,29 @@ class TestHandlerExecution(unittest.TestCase):
         gateway._shared_status = _payload()   # ready -> passes policy
         return _run(gateway.handle_command(msg, True))
 
+    def test_tool_change_queues_offset_after_m6_without_waiting_for_operator(self):
+        # M6's end-of-block synchronization waits for tool-changed; G43 in
+        # that SAME block would update the offset before the confirmation.
+        # A blocking wait here would prevent confirm/abort from taking the lock.
+        gateway.STAT.task_mode = linuxcnc.MODE_MDI
+        gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
+        r = self._send({"cmd": "tool_change", "tool_number": 1002})
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(self.cmd.calls, [
+            ("mdi", ("T1002 M6",), {}),
+            ("mdi", ("G43 H1002",), {}),
+        ])
+
+    def test_unload_queues_g49_after_m6_confirmation(self):
+        gateway.STAT.task_mode = linuxcnc.MODE_MDI
+        gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
+        r = self._send({"cmd": "tool_change", "tool_number": 0})
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(self.cmd.calls, [
+            ("mdi", ("T0 M6",), {}),
+            ("mdi", ("G49",), {}),
+        ])
+
     def test_jog_cont_reaches_cmd_jog_with_parsed_args(self):
         r = self._send({"cmd": "jog_cont", "axis": 2, "vel": 3.5})
         self.assertTrue(r["ok"])

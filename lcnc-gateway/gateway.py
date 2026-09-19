@@ -3854,7 +3854,14 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 return blocked
             tool_num = finite_int(msg["tool_number"], lo=0)
             await set_mode(linuxcnc.MODE_MDI)
-            await _cmd_blocking(CMD.mdi, f"T{tool_num} M6 G43", wait=None)
+            # Separate interpreter blocks are essential: within `Tn M6 G43`
+            # LinuxCNC can execute SET_OFFSET while M6 is still waiting for
+            # tool-changed (SET_OFFSET waits for motion, not toolchanger IO).
+            # The M6 block's finish/synch barrier holds the next MDI until the
+            # change completes. LinuxCNC owns this queue and clears it on abort;
+            # never wait for the operator here while holding _cmd_lock.
+            await _cmd_blocking(CMD.mdi, f"T{tool_num} M6", wait=None)
+            await _cmd_blocking(CMD.mdi, f"G43 H{tool_num}" if tool_num else "G49", wait=None)
             return {"ok": True}
 
         if cmd == "auto_step":
