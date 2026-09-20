@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, watch, onUnmounted } from "vue";
 import { usePermissions, useFire } from "./permissions";
 import { fmtOffset } from "./format";
-import { openKeypad, newKeypadOwnerId } from "./useNumberKeypad";
+import { openKeypad, closeKeypadIf, keypadState, newKeypadOwnerId } from "./useNumberKeypad";
 import { G5X_LABELS } from "./wcs";
 import MachineBtn from "./MachineBtn.vue";
 
@@ -46,23 +46,41 @@ const hasComp = computed(() => props.eoffsetZ != null && props.eoffsetZ !== 0);
 // ─── Cell editing ────────────────────────────────────────────
 // `set_wcs` is a probe-tier write on the backend (command_policy) — the
 // panel used the ready tier and a raw send; both go through fire() now.
-const keypadOwner = newKeypadOwnerId("wcs");
-function startEditCell(wcs: string, axis: string, current: number) {
+// Every cell is its OWN keypad owner (implementation review UI-I03): the
+// session is bound to one fixture × axis, its draft stays with that cell,
+// and confirm asks — fresh, at confirm time — that the panel is visible,
+// the gate open and the row still present. A hidden panel (tab switch)
+// LOCKS the session through the trigger cell (inputSession.ts poll), so the
+// keypad never stays up for a target the operator cannot see.
+const panelEl = ref<HTMLElement | null>(null);
+const ownerPrefix = newKeypadOwnerId("wcs");
+function cellOwner(wcs: string, axis: string): string { return `${ownerPrefix}:${wcs}:${axis}`; }
+function startEditCell(wcs: string, axis: string, current: number, e: Event) {
   if (!can.value.probe) return;
   // Read-only when source data is null/missing — see fmtOffset() in format.ts.
   // Editing a "—" cell with a synthesized 0 would silently replace missing
   // data with a real value the user didn't intend.
   if (!Number.isFinite(current)) return;
+  const ownerId = cellOwner(wcs, axis);
+  // A second tap on the cell already being edited keeps its expression.
+  if (keypadState.open && keypadState.ownerId === ownerId && !keypadState.locked) return;
   const unit = axis === "r" ? "°" : props.linearUnit ?? "";
   openKeypad({
     value: current,
     label: `${wcs} ${axis.toUpperCase()}`,
     context: unit ? `${wcs} · ${axis.toUpperCase()} · ${unit}` : `${wcs} · ${axis.toUpperCase()}`,
-    ownerId: keypadOwner,
-    canConfirm: () => !!can.value.probe,
+    ownerId,
+    trigger: e.currentTarget as HTMLElement,
+    canConfirm: () => !!can.value.probe
+      && !!panelEl.value && panelEl.value.offsetParent !== null
+      && props.wcsTable.some(r => r.name === wcs),
     onConfirm: (v) => { fire({ cmd: "set_wcs", target: wcs, [axis]: v }, "probe"); },
   });
 }
+function ownsKeypad(): boolean { return keypadState.open && keypadState.ownerId.startsWith(`${ownerPrefix}:`); }
+// The gate closing ends the cell's session (same rule as MachineInput).
+watch(() => can.value.probe, (ok) => { if (!ok && ownsKeypad()) closeKeypadIf(keypadState.ownerId, "WCS edit gate closed while the keypad was open"); });
+onUnmounted(() => { if (ownsKeypad()) closeKeypadIf(keypadState.ownerId); });
 
 // ─── Clear actions ───────────────────────────────────────────
 // Both are hold-to-fire like Zero/Home (operator decision 2026-09-19); the
@@ -80,7 +98,7 @@ function clearAll() {
 </script>
 
 <template>
-  <div class="offsetPanel stack-sections">
+  <div ref="panelEl" class="offsetPanel stack-sections">
     <!-- Header -->
     <div class="header row-controls">
       <span class="sub">Work Coordinate Offsets</span>
@@ -117,7 +135,8 @@ function clearAll() {
                   warn: axis === 'r' && row[axis] !== 0,
                   editableCell: can.probe && Number.isFinite(Number(row[axis]))
                 }"
-                @click="startEditCell(row.name as string, axis, Number(row[axis]))">
+                :data-input-area="cellOwner(row.name as string, axis)"
+                @click="startEditCell(row.name as string, axis, Number(row[axis]), $event)">
               <span class="cellValue">{{ fmtOffset(Number(row[axis])) }}</span>
             </td>
           </tr>

@@ -6,6 +6,7 @@ import { usePermissions, usePermissionReasons, explainKeydown } from './permissi
 import { BUTTON_TYPES, HOLD_FIRE_MS, type ButtonType, type ButtonDef } from './machineControls';
 import { armed, pushMessage } from './lcncWs';
 import { OPERATOR_DISPLAY } from './lcnc';
+import { showBtnHint } from './btnHint';
 
 defineOptions({ inheritAttrs: false });
 
@@ -105,23 +106,12 @@ const HOLD_MOVE_SLOP = 10; // px
 
 // ── Transient hint (review "Hold verständlich") ──
 // "Hold to activate" after a short tap on a hold button; "Busy — try again"
-// when the busy latch will drop the click. Anchored above the control via a
-// body Teleport (no layout change), gone after HINT_MS.
-const HINT_MS = 1500;
-const hint = ref<string | null>(null);
-const hintPos = ref({ left: 0, top: 0 });
-let hintTimer = 0;
+// when the busy latch will drop the click. ONE app-wide hint (btnHint.ts,
+// rendered by FloatingOverlays.vue): a per-button Teleport made this
+// component a fragment root, which strips every parent's scoped CSS from
+// the rendered button (implementation review UI-I07).
 const btnRef = ref<{ $el?: HTMLElement } | null>(null);
-function showHint(text: string) {
-  const el = btnRef.value?.$el;
-  if (el instanceof HTMLElement) {
-    const r = el.getBoundingClientRect();
-    hintPos.value = { left: r.left + r.width / 2, top: r.top - 4 };
-  }
-  hint.value = text;
-  clearTimeout(hintTimer);
-  hintTimer = window.setTimeout(() => { hint.value = null; }, HINT_MS);
-}
+function showHint(text: string) { showBtnHint(btnRef.value?.$el, text); }
 const STOP_TYPES = new Set(['abort', 'bannerAbort', 'estop', 'arm', 'machineOn']);
 function busyWillDrop(): boolean {
   return busy.value && def.value.gate !== 'always' && !STOP_TYPES.has(props.type);
@@ -231,7 +221,7 @@ function onHoldContextMenu(e: Event) {
   if (holdEnabled.value) e.preventDefault();
 }
 
-onBeforeUnmount(() => { clearTimeout(holdTimer); clearTimeout(hintTimer); disarmHoldGuards(); });
+onBeforeUnmount(() => { clearTimeout(holdTimer); disarmHoldGuards(); });
 </script>
 
 <template>
@@ -287,8 +277,4 @@ onBeforeUnmount(() => { clearTimeout(holdTimer); clearTimeout(hintTimer); disarm
     <template v-if="useAbortDefault"><Square :size="14" /> Abort</template>
     <slot v-else />
   </Btn>
-  <Teleport to="body">
-    <span v-if="hint" class="btnHint overlay-card" role="status" data-btn-hint
-          :style="{ left: hintPos.left + 'px', top: hintPos.top + 'px' }">{{ hint }}</span>
-  </Teleport>
 </template>

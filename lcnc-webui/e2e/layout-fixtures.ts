@@ -117,10 +117,14 @@ export function stripStateRefs(state: StripState): string[] {
 }
 
 /** Frame dimensions a state may legitimately change: a macro bar takes a
- * row above the strip, so the viewer and content shrink and the strip
- * moves up. Nothing else, ever. */
-export function stripStateExempt(state: StripState): string[] {
-  return state === 'macro-bar' ? ['viewer.height', 'content.height', 'strip.y'] : [];
+ * row above the strip in landscape (viewer and content lose height, the
+ * strip moves up) and a column beside it in portrait (viewer and content
+ * lose width and move right). Nothing else, ever. */
+export function stripStateExempt(state: StripState, portrait = false): string[] {
+  if (state !== 'macro-bar') return [];
+  return portrait
+    ? ['viewer.x', 'viewer.width', 'viewer.clientWidth', 'content.x', 'content.width', 'content.clientWidth']
+    : ['viewer.height', 'viewer.clientHeight', 'content.height', 'content.clientHeight', 'strip.y'];
 }
 
 const MACRO_FIXTURE = { macros: [{ id: 'm1', name: 'Face Top', command: 'G0 Z5', params: [] }] };
@@ -205,7 +209,10 @@ export async function leaveStripState(page: Page, profile: Profile, state: Strip
     case 'kins-chip':
       await ctl({ op: 'setKins', kins: profile.kins });
       await ctl({ op: 'status_delta', data: { kins_type: profile.kins ? 0 : null } });
-      await expect(page.locator('.kinsChip')).toHaveCount(0);
+      // The chip is a FIXED slot on switchable-kins machines (WP6, P2): it
+      // stays rendered — "MACHINE" under identity kinematics — so the WCS
+      // radios never shift; leaving the mode means it no longer reads TCP.
+      await expect(page.locator('.kinsChip')).not.toHaveText(/TCP/);
       break;
   }
   await settleLayout(page);

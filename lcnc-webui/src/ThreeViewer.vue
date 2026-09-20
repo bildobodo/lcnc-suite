@@ -632,6 +632,7 @@ function resetBackplot() {
 // 0.4 m envelope 0.94 m away while its 2.2 m base lay under the eye.
 const _corner = new THREE.Vector3();
 function _modelRadiusAbout(center: THREE.Vector3): number {
+  if (!scene) return 0;
   scene.updateMatrixWorld(true);
   let r = 0;
   for (const mesh of machineMeshes) {
@@ -651,6 +652,7 @@ function _modelRadiusAbout(center: THREE.Vector3): number {
 /** World AABB per non-stock part — the e2e camera gate's "outside every
  *  part" oracle (window.__viewerDiag.getPartBounds). */
 function _partWorldBounds(): { id: string; min: number[]; max: number[] }[] {
+  if (!scene) return [];
   scene.updateMatrixWorld(true);
   const out: { id: string; min: number[]; max: number[] }[] = [];
   const box = new THREE.Box3();

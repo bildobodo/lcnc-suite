@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { computed, onUnmounted, ref, useAttrs, watch } from 'vue';
-import { Keyboard } from 'lucide-vue-next';
+import { computed, onUnmounted, ref, useAttrs, watch, type InputHTMLAttributes } from 'vue';
 import { usePermissions } from './permissions';
 import { INPUT_DEFS, INPUT_SIZE_STYLES, type InputType, type InputDef } from './machineControls';
 import { openKeypad, keypadState, closeKeypadIf, newKeypadOwnerId } from './useNumberKeypad';
-import { openTextSession, closeTextSessionIf, lockTextSessionIf, onOwnerFocusOut, inputSession, dropDraft, type TextTarget } from './inputSession';
+import { openTextSession, closeTextSessionIf, inputSession, dropDraft, showInputGlyph, hideInputGlyph, placeInputGlyph, type TextTarget } from './inputSession';
 import { isTouchDevice } from './touchDetect';
 import { connected } from './lcncWs';
 import type { EntryConstraints } from './mathEval';
@@ -76,6 +75,9 @@ const isKeypadActive = computed(() => keypadState.open && keypadState.ownerId ==
 
 function openKeypadFromInput(e: Event) {
   if (isDisabled.value) return;
+  // Already this field's session (a second tap on the same field): keep
+  // the expression the operator is typing — re-opening would reset it.
+  if (isKeypadActive.value && !keypadState.locked) return;
   openKeypad({
     value: keypadDisplayValue.value ?? null,
     label: props.label,
@@ -101,6 +103,10 @@ function openKeypadFromInput(e: Event) {
 const textEl = ref<HTMLInputElement | null>(null);
 const sessionEnabled = computed(() => !isNumber.value && !props.noSession);
 const isTextActive = computed(() => sessionEnabled.value && inputSession.kind !== null && inputSession.ownerId === ownerId);
+// Touch: the OS keyboard is suppressed wherever the strip keyboard serves
+// the field; otherwise the caller's inputmode (if any) passes through.
+const textInputMode = computed<InputHTMLAttributes['inputmode']>(() =>
+  isTouchDevice.value && !props.noSession ? 'none' : (attrs.inputmode as InputHTMLAttributes['inputmode']));
 
 function fireInput() {
   const el = textEl.value;
@@ -121,6 +127,8 @@ function textTarget(): TextTarget {
     clear() { const e = el(); if (!e) return; e.value = ''; fireInput(); },
     moveCursor(d) { const e = el(); if (!e) return; const p = Math.max(0, Math.min(e.value.length, (e.selectionStart ?? 0) + d)); e.setSelectionRange(p, p); },
     canConfirm: () => !isDisabled.value && !!textEl.value?.isConnected && textEl.value.offsetParent !== null,
+    // Hidden-but-mounted (tab switch) → the session locks (inputSession poll).
+    isVisible: () => !!textEl.value && textEl.value.offsetParent !== null,
   };
 }
 function openText() {
@@ -134,45 +142,30 @@ function openText() {
 // the keyboard glyph — never focus (UI-15a).
 function onTextClick() { if (!isTextActive.value) openText(); }
 
-// Keyboard glyph (non-touch): appears while the field is focused, anchored
-// at its right edge through a body Teleport; it belongs to the focus area.
-const glyphVisible = ref(false);
-const glyphPos = ref({ left: 0, top: 0 });
-function placeGlyph() {
-  const el = textEl.value;
-  if (!el) return;
-  const r = el.getBoundingClientRect();
-  glyphPos.value = { left: r.right - 2, top: r.top + r.height / 2 };
-}
+// Keyboard glyph (non-touch): shown while the field is focused, rendered
+// once by FloatingOverlays.vue at the field's right edge (inputSession
+// inputGlyph); it belongs to this field's focus area.
+function placeGlyph() { if (textEl.value) placeInputGlyph(ownerId, textEl.value); }
 function onTextFocus() {
   if (isTouchDevice.value || isDisabled.value || props.noSession) return;
   if (!props.sessionOpen && !sessionEnabled.value) return;
-  glyphVisible.value = true;
-  placeGlyph();
+  if (!textEl.value) return;
+  showInputGlyph(ownerId, textEl.value, openText);
   document.addEventListener('scroll', placeGlyph, true);
   window.addEventListener('resize', placeGlyph);
 }
 function hideGlyph() {
-  glyphVisible.value = false;
+  hideInputGlyph(ownerId);
   document.removeEventListener('scroll', placeGlyph, true);
   window.removeEventListener('resize', placeGlyph);
 }
+// The session's own leave rule (focus out of the area) lives in
+// inputSession.ts for field, glyph and keys alike; the glyph just follows
+// the field's focus.
 function onTextFocusOut(e: FocusEvent) {
   const rel = e.relatedTarget as Element | null;
   if (!rel || !rel.closest?.(`[data-input-area="${CSS.escape(ownerId)}"]`)) hideGlyph();
-  onOwnerFocusOut(ownerId, e);
 }
-
-// Hidden-but-mounted owner (tab switch): lock the session, keep it.
-let visTimer = 0;
-watch(isTextActive, (active) => {
-  clearInterval(visTimer);
-  if (!active) return;
-  visTimer = window.setInterval(() => {
-    const el = textEl.value;
-    lockTextSessionIf(ownerId, !el || el.offsetParent === null);
-  }, 300);
-});
 
 // The gate closing mid-entry (disarm, machine state change) ends the session
 // through the same owner path as unmount — the value can no longer be
@@ -187,12 +180,12 @@ onUnmounted(() => {
   closeKeypadIf(ownerId);
   closeTextSessionIf(ownerId);
   dropDraft(ownerId);
-  clearInterval(visTimer);
   hideGlyph();
 });
 
-// The text branch renders a fragment (input + teleported glyph), so a
-// parent's `$el` would be a fragment anchor: expose the element itself.
+// Both branches render a single <input> root (a parent's `$el` and its
+// scoped CSS reach it); the accessor is the explicit API for parents that
+// drive a session on the field (App's MDI line).
 defineExpose({ inputElement: () => textEl.value ?? inputEl.value });
 </script>
 
@@ -218,29 +211,20 @@ defineExpose({ inputElement: () => textEl.value ?? inputEl.value });
   >
   <!-- Text-like inputs: standard editable field + the on-screen keyboard
        session (tap / glyph opens it; the physical keyboard keeps working). -->
-  <template v-else>
-    <input
-      ref="textEl"
-      v-bind="attrs"
-      :style="catalogStyle"
-      v-model="model"
-      :disabled="isDisabled"
-      :inputmode="isTouchDevice && !noSession ? 'none' : (attrs.inputmode as string | undefined)"
-      lang="en"
-      class="inputField"
-      :class="{ 'keypad-active': isTextActive }"
-      :data-input-area="ownerId"
-      @click="onTextClick"
-      @focus="onTextFocus"
-      @focusout="onTextFocusOut"
-    >
-    <Teleport to="body">
-      <button v-if="glyphVisible" type="button" class="inputAction" :data-input-area="ownerId"
-              aria-label="Open keyboard" title="Open keyboard"
-              :style="{ left: glyphPos.left + 'px', top: glyphPos.top + 'px' }"
-              @pointerdown.prevent @click="openText">
-        <Keyboard :size="14" />
-      </button>
-    </Teleport>
-  </template>
+  <input
+    v-else
+    ref="textEl"
+    v-bind="attrs"
+    :style="catalogStyle"
+    v-model="model"
+    :disabled="isDisabled"
+    :inputmode="textInputMode"
+    lang="en"
+    class="inputField"
+    :class="{ 'keypad-active': isTextActive }"
+    :data-input-area="ownerId"
+    @click="onTextClick"
+    @focus="onTextFocus"
+    @focusout="onTextFocusOut"
+  >
 </template>

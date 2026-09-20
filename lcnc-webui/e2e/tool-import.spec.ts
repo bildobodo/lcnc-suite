@@ -50,6 +50,10 @@ test("full replacement requires selecting that mode and shows length replacement
   await page.getByLabel("Import mode").selectOption("replace");
   await expect(page.getByText(/Z offsets will use Fusion gauge lengths/)).toBeVisible();
   await page.getByRole("button", { name: "Replace table", exact: true }).click();
+  // WP6 (P1): replacing a table with existing tools asks first.
+  const replaceConfirm = page.locator(".dialog", { hasText: "Replace entire tool table?" });
+  await expect(replaceConfirm).toBeVisible();
+  await replaceConfirm.getByRole("button", { name: "Replace table", exact: true }).click();
   await expect(page.getByText(/Z offsets initialized from Fusion lengths/)).toBeVisible();
   expect(applied).toBe(true);
 });

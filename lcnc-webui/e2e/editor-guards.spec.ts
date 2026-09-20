@@ -122,7 +122,7 @@ test("program change during a delayed save: no reload of the new program from A"
 
 test("program change while CodeMirror is still loading: the view shows A and is usable", async ({ page }) => {
   let delayNext = false;
-  await page.route("**/assets/*.js", async (route: Route) => {
+  await page.route("**/static/*.js", async (route: Route) => {
     if (delayNext) await new Promise(r => setTimeout(r, 1200));
     await route.continue();
   });
@@ -146,7 +146,7 @@ test("program change while CodeMirror is still loading: the view shows A and is 
 
 test("a discarded session's pending import installs nothing", async ({ page }) => {
   let delayNext = false;
-  await page.route("**/assets/*.js", async (route: Route) => {
+  await page.route("**/static/*.js", async (route: Route) => {
     if (delayNext) await new Promise(r => setTimeout(r, 1200));
     await route.continue();
   });

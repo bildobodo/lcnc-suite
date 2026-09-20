@@ -32,7 +32,8 @@ describe("text keyboard pages (UI-15b)", () => {
 
   it("fills spare letter cells from I J K P R Q H D L N O E in order", () => {
     const xyz = codePage(["X", "Y", "Z"]).filter(Boolean) as string[];
-    expect(xyz.slice(17, 23)).toEqual(["I", "J", "K", "P", "R", "Q"]);
+    // 12 digits + 5 command letters + the 3 axes precede the fill.
+    expect(xyz.slice(20, 26)).toEqual(["I", "J", "K", "P", "R", "Q"]);
     const nine = codePage(["X", "Y", "Z", "A", "B", "C", "U", "V", "W"]).filter(Boolean) as string[];
     expect(nine).not.toContain("I");
   });

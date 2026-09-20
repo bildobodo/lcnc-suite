@@ -5603,8 +5603,13 @@ Operator decisions of 2026-09-19 recorded here as the rules they became:
   superseded, queue-full). Dialogs close only on THEIR reply; `send()` /
   `fire()` return the id or null (nothing sent → never a pending).
 - **Strip band always reserved**: landscape `overflow-x: scroll`, portrait
-  `scrollbar-gutter: stable`. The layout gate measures the frame's outer
-  and inner sizes across every strip state, with two negative controls.
+  `overflow-y: scroll` (not `scrollbar-gutter: stable`: the strip is a
+  `<fieldset>` whose inner scroll box ignores the gutter in Chromium — the
+  sticky Safety section measured 252 → 262 px when the overflow vanished).
+  The layout gate measures the frame's outer and inner sizes across every
+  strip state, with two negative controls, in a test browser that SHOWS
+  scrollbar bands (`ignoreDefaultArgs: ["--hide-scrollbars"]` — headless
+  Chromium hides them, which had made the whole gate vacuous).
 - **Default camera framing** = max(travel rule, model sphere + near) about
   the travel box's centre, for both projections and Reset's endpoint; the
   promise is the DEFAULT frame only (no camera-collision system).
@@ -5622,3 +5627,34 @@ Operator decisions of 2026-09-19 recorded here as the rules they became:
   `.btnHint`, `.warnBanner`/`.errorBanner` global, `--viewcube-size`,
   `wcs.ts`, `DEFAULT_AXES`; the CSS linter is nesting-aware, parses
   `color-mix()` arguments and has fixtures pinned in the offline gate.
+
+Implementation review round 1 (Codex, same day, UI-I01–I09) added three
+rules:
+
+- **Catalog components are single-root.** A Teleport next to the button in
+  `MachineBtn` (the hint) and next to the input in `MachineInput` (the
+  glyph) made both fragment roots; Vue then no longer stamps the parent's
+  scoped-CSS id on the rendered element, so every `.nkKey`/`.tkKey`/
+  `.safetyBtn`/`.mdiInput` rule silently stopped applying. The hint and the
+  glyph are ONE app-wide element each (`btnHint.ts`, `inputSession.ts
+  inputGlyph`), rendered once by `FloatingOverlays.vue`.
+- **Leaving an input session is decided by the pointer first.** A
+  pointerdown outside every input area hides the helper (number keypad and
+  text keyboard alike); focus ARRIVING outside the owner's area (Tab out of
+  the field or out of a key, in either direction) hides it too. A
+  pointerdown on another owner's field is a switch, not a leave: hiding on
+  the pointerdown re-flowed the strip between finger-down and finger-up
+  (the number keypad's owner section moves when the other sections return)
+  and the click landed on a different control. Consequently a tab TAP
+  closes the helper (draft kept); the hidden-owner LOCK is the backstop for
+  non-pointer hiding only. The owner's veto is asked fresh at confirm
+  (DOM visibility is not reactive), and an offset cell is its own owner.
+- **Portrait text keyboard at 150 % on 900 × 1200 does not fit** without
+  scrolling: the sticky SafetyStrip (263 px) and the wrapped header (90 px)
+  leave ~370 px under the title, six 44-px content rows alone need 284.
+  Measured, not claimed: page/action/navigation rows stay within the
+  viewport, 2.5 content rows sit below the fold and are reached by the
+  strip's own scroll. Folding the navigation row (−48 px) cannot close a
+  ~120 px gap; a smaller key or a wider strip is excluded by the plan, so
+  the acceptance rule for 150 % is recorded as this measurement — open
+  with the reviewer.

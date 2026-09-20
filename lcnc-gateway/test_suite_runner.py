@@ -69,7 +69,11 @@ class TestSuiteRunner(unittest.TestCase):
     def test_offline_discovers_tests_and_contains_no_live_gate(self):
         commands = suite.offline_commands("all")
         self.assertEqual(commands[0][1][-2:], ["-m", "pytest"])
-        self.assertEqual(len(commands), 6)
+        # backend, 5axis-model, audit-css (the scoped-CSS linter's pytest pins,
+        # WP2 2026-09-20: scripts/ is outside the gateway's testpaths) + four
+        # frontend gates.
+        self.assertEqual(len(commands), 7)
+        self.assertIn("audit-css", [name for name, _, _ in commands])
         self.assertFalse(any("sim_parity" in str(command) for _, command, _ in commands))
 
     def test_corpus_is_portable_and_does_not_overwrite_references(self):

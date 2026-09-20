@@ -301,15 +301,18 @@ test("default framing keeps the eye outside a bed/column model for every directi
   }
   const afterReset = await settledCamera(page);
   expect(Math.abs(dist(afterReset.position, afterReset.target) - expected)).toBeLessThan(1.5);
-  // Orthographic: same pose, still outside; Reset lands there again.
+  // The OTHER projection (the settings default is parallel, so the first
+  // switch lands on perspective): same pose, still outside; Reset lands
+  // there again; then back to the default.
+  const startOrtho = cam0.ortho;
   await page.evaluate(() => window.__viewerDiag!.switchProjection!());
-  expect((await camera(page))!.ortho).toBe(true);
+  expect((await camera(page))!.ortho).toBe(!startOrtho);
   await page.evaluate(() => window.__viewerDiag!.setView!("reset"));
-  const ortho = await settledCamera(page);
-  expect(insidePart(ortho.position, parts)).toBeNull();
-  expect(Math.abs(dist(ortho.position, ortho.target) - expected)).toBeLessThan(1.5);
+  const other = await settledCamera(page);
+  expect(insidePart(other.position, parts)).toBeNull();
+  expect(Math.abs(dist(other.position, other.target) - expected)).toBeLessThan(1.5);
   await page.evaluate(() => window.__viewerDiag!.switchProjection!());
-  expect((await camera(page))!.ortho).toBe(false);
+  expect((await camera(page))!.ortho).toBe(startOrtho);
 
   // Negative control: the OLD travel-box distance from diagonally below
   // puts the eye inside the bed — the fixture discriminates.

@@ -171,7 +171,10 @@ for (const viewport of VIEWPORTS) {
         visibleRows: list.clientHeight / row.height, scrolls: list.scrollHeight > list.clientHeight };
     });
     expect(Math.abs(geometry.bottom - geometry.panelBottom)).toBeLessThan(2);
-    expect(geometry.visibleRows).toBeGreaterThanOrEqual(5);
+    // The floor was 5 rows in a browser without scrollbar bands; the strip's
+    // always-present band (WP4) takes 10 px from the pane, which at 800 px
+    // height is a sixth of a row (touch-landscape: 4.83 rows).
+    expect(geometry.visibleRows).toBeGreaterThanOrEqual(4.5);
     expect(geometry.scrolls).toBe(true);
     await tab.screenshot({ path: info.outputPath('tools-shared-browser.png') });
     const last = browser.getByRole('button', { name: 'example-59.json', exact: true });
@@ -210,7 +213,7 @@ for (const viewport of VIEWPORTS) {
     try {
       for (const state of STRIP_STATES) {
         await enterStripState(page, profile, state);
-        const issues = frameChanges(frame0, await measureFrame(page), stripStateExempt(state));
+        const issues = frameChanges(frame0, await measureFrame(page), stripStateExempt(state, viewport.height > viewport.width));
         for (const sel of stripStateRefs(state)) {
           const root = page.locator(sel);
           const snap = await measureLayout(root, sel);
@@ -235,34 +238,46 @@ test('negative control (landscape): an auto scrollbar band lets the keypad chang
   const pre = await page.locator('.strip').evaluate(el => ({ scrollWidth: el.scrollWidth, clientWidth: el.clientWidth }));
   expect(pre.scrollWidth, 'fixture must overflow horizontally for the band to matter').toBeGreaterThan(pre.clientWidth);
   const frameOk = await measureFrame(page);
-  await enterStripState(page, PROFILES[1], 'keypad-setup');
+  // The keypad from a PANEL field leaves Safety + keypad only: the strip no
+  // longer overflows, so an auto band would vanish — exactly the regression.
+  await enterStripState(page, PROFILES[1], 'keypad-panel');
   expect(frameChanges(frameOk, await measureFrame(page))).toEqual([]);
-  await leaveStripState(page, PROFILES[1], 'keypad-setup');
+  await leaveStripState(page, PROFILES[1], 'keypad-panel');
   await page.addStyleTag({ content: '.strip { overflow-x: auto !important; }' });
   await settleLayout(page);
   const frameAuto = await measureFrame(page);
-  await enterStripState(page, PROFILES[1], 'keypad-setup');
+  await enterStripState(page, PROFILES[1], 'keypad-panel');
   const changes = frameChanges(frameAuto, await measureFrame(page));
   expect(changes.some(c => /strip\.height|viewer\.height/.test(c.detail)), changes.map(c => c.detail).join('\n')).toBe(true);
 });
 
-test('negative control (portrait): without a stable gutter the keypad re-flows the pinned controls', async ({ page }) => {
+test('negative control (portrait): without the always-present band the keypad re-flows the pinned controls', async ({ page }) => {
   test.skip(process.platform === 'darwin', 'overlay scrollbars have no band to lose');
   await openLayout(page, PROFILES[1], VIEWPORTS[3]);
   const pre = await page.locator('.strip').evaluate(el => ({ scrollHeight: el.scrollHeight, clientHeight: el.clientHeight }));
   expect(pre.scrollHeight, 'fixture must overflow vertically for the band to matter').toBeGreaterThan(pre.clientHeight);
   const frameOk = await measureFrame(page);
   const safetyOk = await measureLayout(page.locator(PANELS.safety), 'safety');
-  await enterStripState(page, PROFILES[1], 'keypad-setup');
+  await enterStripState(page, PROFILES[1], 'keypad-panel');
   expect(frameChanges(frameOk, await measureFrame(page))).toEqual([]);
   expect(layoutChanges(safetyOk, await measureLayout(page.locator(PANELS.safety), 'safety'))).toEqual([]);
-  await leaveStripState(page, PROFILES[1], 'keypad-setup');
-  await page.addStyleTag({ content: '.wrap > .strip { scrollbar-gutter: auto !important; }' });
+  await leaveStripState(page, PROFILES[1], 'keypad-panel');
+  // `scrollbar-gutter: stable` would be the natural fix, but the strip is a
+  // <fieldset> whose inner scroll box ignores it in Chromium — the control
+  // removes the always-present band exactly as that "fix" would have.
+  await page.addStyleTag({ content: '.wrap > .strip { overflow-y: auto !important; }' });
   await settleLayout(page);
   const frameAuto = await measureFrame(page);
   const safetyAuto = await measureLayout(page.locator(PANELS.safety), 'safety');
-  await enterStripState(page, PROFILES[1], 'keypad-setup');
-  const frameDiff = frameChanges(frameAuto, await measureFrame(page));
-  expect(frameDiff.some(c => /strip\.clientWidth/.test(c.detail)), frameDiff.map(c => c.detail).join('\n')).toBe(true);
-  expect(layoutChanges(safetyAuto, await measureLayout(page.locator(PANELS.safety), 'safety')).length).toBeGreaterThan(0);
+  await enterStripState(page, PROFILES[1], 'keypad-panel');
+  // The strip is a <fieldset>: its `clientWidth` does NOT follow the band of
+  // its anonymous inner scroll box (measured 268 px with and without the
+  // band), so the frame measure cannot see this change — the pinned Safety
+  // controls, which fill the inner width, are the witness (252 → 262 px).
+  const safetyDiff = layoutChanges(safetyAuto, await measureLayout(page.locator(PANELS.safety), 'safety'));
+  expect(safetyDiff.length, safetyDiff.map(c => c.detail).join('\n')).toBeGreaterThan(0);
+  // …while the strip's OUTER box stays 280 px: the original UI-08 class, which
+  // a bounding-box compare alone could never see.
+  const outer = frameChanges(frameAuto, await measureFrame(page)).filter(c => /^strip\.(x|y|width|height) /.test(c.detail));
+  expect(outer, outer.map(c => c.detail).join('\n')).toEqual([]);
 });

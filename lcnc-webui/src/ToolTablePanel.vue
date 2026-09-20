@@ -676,7 +676,8 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
                       <option v-for="tt in TOOL_TYPES" :key="tt" :value="tt">{{ toolTypeLabel(tt) }}</option>
                     </MachineSelect>
                     <label>Description</label>
-                    <MachineInput gate="toolEdit" type="text" v-model="editForm.description" class="full" />
+                    <MachineInput gate="toolEdit" type="text" v-model="editForm.description" class="full"
+                      label="Description" :context="fieldContext('Description', 'count')" />
                     <label>Diameter</label>
                     <MachineInput gate="toolEditNum" type="number" v-model.number="editForm.D" min="0"
                       label="Diameter" :context="fieldContext('Diameter', 'len')" :placeholder="linearUnit" />
@@ -687,7 +688,8 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
                     <MachineInput gate="toolEditNum" type="number" v-model.number="editForm.flutes" min="0" integer
                       label="Flutes" :context="fieldContext('Flutes', 'count')" />
                     <label>Material</label>
-                    <MachineInput gate="toolEdit" type="text" v-model="editForm.material" placeholder="hss, carbide..." class="full" />
+                    <MachineInput gate="toolEdit" type="text" v-model="editForm.material" placeholder="hss, carbide..." class="full"
+                      label="Material" :context="fieldContext('Material', 'count')" />
                   </div>
                 </div>
 
@@ -719,7 +721,8 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
                     <MachineInput gate="toolEditNum" type="number" v-model.number="editForm.point_angle" min="0" max="180"
                       label="Point" :context="fieldContext('Point', 'deg')" placeholder="deg" />
                     <label>Holder</label>
-                    <MachineInput gate="toolEdit" type="text" v-model="editForm.holder" placeholder="Holder name" class="full spanRest" />
+                    <MachineInput gate="toolEdit" type="text" v-model="editForm.holder" placeholder="Holder name" class="full spanRest"
+                      label="Holder" :context="fieldContext('Holder', 'count')" />
                   </div>
                 </div>
               </div>

@@ -122,8 +122,16 @@ for (const viewport of VIEWPORTS) {
     const footer = dialog.locator(".dialogActions");
     await footer.scrollIntoViewIfNeeded();
     await expect(footer.getByRole("button", { name: "Save", exact: true })).toBeVisible();
+    // The content scrolls inside the dialog (its height is the content
+    // area's): measured at BOTH scroll ends, so every field is proven
+    // unclipped and non-overlapping once it is in view.
+    const content = dialog.locator(".dialogContent");
+    await content.evaluate(el => { el.scrollTop = 0; });
     const snap = await measureLayout(dialog, `tool-edit-${viewport.name}`);
     await assertLayout(dialog, snap, info);
+    await content.evaluate(el => { el.scrollTop = el.scrollHeight; });
+    await assertLayout(dialog, await measureLayout(dialog, `tool-edit-${viewport.name}-scrolled`), info);
+    await content.evaluate(el => { el.scrollTop = 0; });
     await dialog.screenshot({ path: info.outputPath(`tool-edit-${viewport.name}.png`) });
     await page.getByRole("button", { name: "Cancel", exact: true }).click();
     await expect(dialog).toHaveCount(0);
@@ -157,7 +165,9 @@ test("add: ok:false keeps the draft, a delayed ok closes, a double click sends o
   await desc.fill("draft description");
   const add = dialog.getByRole("button", { name: "Add", exact: true });
   await add.click();
-  await add.click({ force: true }).catch(() => {});
+  // The second click of a double click: the button already reads "Saving…"
+  // and is disabled — a forced click on the old name must not wait 30 s.
+  await add.click({ force: true, timeout: 300 }).catch(() => {});
   await expect(dialog.getByRole("button", { name: "Saving…", exact: true })).toBeDisabled();
   await expect.poll(async () => (await toolCmds("add_tool")).length).toBe(1);
   const [sent] = await toolCmds("add_tool");

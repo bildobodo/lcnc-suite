@@ -60,7 +60,7 @@ each file once, under `serial-guards` only.
 | `keyboard-guards.spec.ts` | Escape sends exactly `estop` (never `estop_reset`) from the keypad, the editor, every dialog and during a key capture; Space/Enter/Backspace send nothing behind a dialog, the keypad or the editor; pause/resume via Space unchanged; a jog key released after a field opened mid-jog still sends `jog_stop`; the modal registry matches the DOM's `.dialogOverlay` count (self-test); the KeyboardTab edits a copy. |
 | `editor-guards.spec.ts` | The edit session is bound to its file: external program changes keep buffer A and raise the conflict banner, Save writes A only, a delayed save never reloads B from A, the CodeMirror import is bound to the session, an older save reply never touches a newer session, dirty Discard asks; upload name conflict → Cancel / Rename / Replace. |
 | `touch-hold.spec.ts` | Hold-to-fire under real touch events (CDP `Input.dispatchTouchEvent`, `hasTouch`): tap → nothing + "Hold to activate", complete hold → exactly one command, slide-off / touchCancel / hidden page → cancelled, a new hold starts from zero; the teleported tool dialog is usable by touch (scroll, keypad, confirm, footer). |
-| `input-session.spec.ts` | The unified input session (WP8): one layout per target, drafts per owner, outside tap/tab closes without confirming, text entry by touch only, page switches within the strip budget. |
+| `input-session.spec.ts` | The unified input session (WP8): one layout per target, drafts per owner (also across number → text → number), outside tap / Tab out of the field or out of a key hides both helpers without confirming, focus returns to the field after OK/Cancel, text entry with REAL touch taps (`hasTouch`), page switches within the strip budget. Keys are pressed with real pointer input (`click`/`tap`), never `dispatchEvent`, so a covered key fails. Portrait 900 × 1200: at 100 % the whole keyboard fits without scrolling; at 150 % (= 600 × 800 CSS px) the measured rule is: page, action and navigation rows within the viewport, at most three content rows below the fold (measured 2.5), reached by the strip's own scroll — the sticky SafetyStrip plus the wrapped header leave ~370 px, less than six 44-px rows need (UI-I08, open with Codex). |
 
 Every case sets its own preconditions (`ctl reset` + its status envelope); a
 spec must pass alone AND inside the full `npm run test:e2e`.
@@ -73,13 +73,21 @@ and enters every state the bottom strip can show: the number keypad from a
 setup field and from a panel field, the G-code keyboard, a macro bar, the
 E-Stop / unhomed / message banners and the kins chip. The frame and the
 always-visible reference controls (Safety, plus the keypad's owner section)
-must not move; a macro bar may only take its own row (`viewer.height`,
-`content.height`, `strip.y`). Two negative controls prove the gate sees the
-original defect: injecting `overflow-x: auto` on the landscape strip (the
-band disappears with the hidden sections → strip/viewer height change) and
-`scrollbar-gutter: auto` on the portrait strip (inner width and pinned
-controls change). Both assert their overflow precondition and skip on
-macOS overlay scrollbars.
+must not move; a macro bar may only take its own row in landscape
+(`viewer.height`, `content.height`, `strip.y`) or its own column in
+portrait (`viewer.x`, `viewer.width`, `content.x`, `content.width`, and
+their client sizes). Two negative controls prove the gate sees the original
+defect, using the keypad from a PANEL field (Safety + keypad only, so the
+strip's overflow — and with it an auto band — is gone): injecting
+`overflow-x: auto` on the landscape strip (strip/viewer height change) and
+`overflow-y: auto` on the portrait strip (inner width and pinned controls
+change; the portrait fix is `overflow-y: scroll` — the strip is a
+`<fieldset>` whose inner scroll box ignores `scrollbar-gutter: stable` in
+Chromium). Both assert their overflow precondition and skip on macOS overlay
+scrollbars. The test browser SHOWS scrollbar bands (`launchOptions:
+ignoreDefaultArgs ["--hide-scrollbars"]` in `playwright.config.ts`):
+headless Chromium hides them by default, and with no band the whole gate
+passes on nothing.
 
 ## Camera gate (default framing only)
 

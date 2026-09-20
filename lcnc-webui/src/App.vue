@@ -37,6 +37,7 @@ import type { LimitViolation } from "./ws/bulkData";
 import { Settings, MessageSquare, PowerOff, Gamepad2, Keyboard, BookOpen, ClipboardCopy, Expand, Shrink } from "lucide-vue-next";
 import GcodeReferenceDialog from "./GcodeReferenceDialog.vue";
 import NumberKeypadStrip from "./NumberKeypadStrip.vue";
+import FloatingOverlays from "./FloatingOverlays.vue";
 import { keypadState } from "./useNumberKeypad";
 import { activeKind, openTextSession, closeTextSessionIf, lockTextSessionIf, EDITOR_OWNER, type TextTarget } from "./inputSession";
 import { loadViewerDefaults, saveViewerDefaults, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadGamepadDefaults, saveGamepadDefaults, settingsVersion, type ThemeMode, type GamepadDefaults, type Layer, type TrackMode, type Projection } from "./defaults";
@@ -357,11 +358,10 @@ function stripVis(section: string): boolean {
 }
 
 const mdiInputRef = ref<any>(null);
-const gcodePanelRef = ref<any>(null);
 
 function _mdiInputEl(): HTMLInputElement | null {
-  // MachineInput's text branch is a fragment (input + teleported glyph), so
-  // `$el` is a fragment anchor — the component exposes its element instead.
+  // MachineInput exposes its <input> (its single root, so `$el` is the
+  // same element — the accessor is the explicit API).
   const el = mdiInputRef.value?.inputElement?.() ?? mdiInputRef.value?.$el;
   if (el instanceof HTMLInputElement) return el;
   return el?.querySelector?.("input") ?? null;
@@ -399,6 +399,7 @@ function mdiTarget(): TextTarget {
       el.setSelectionRange(p, p);
     },
     canConfirm: () => !!permissions.value.ready,
+    isVisible: () => { const el = _mdiInputEl(); return !!el && el.offsetParent !== null; },
   };
 }
 function openMdiSession() {
@@ -1436,7 +1437,7 @@ const {
 registerModal(statsDialogOpen);
 registerModal(settingsDialogOpen);
 registerModal(messagesDialogOpen);
-registerModal(gcodeRefOpen);
+// gcodeRefOpen: GcodeReferenceDialog renders the overlay and registers itself.
 registerModal(showShutdownConfirm);
 registerModal(toolChangeRequested);
 registerModal(() => macroParamDialog.value !== null);
@@ -1782,7 +1783,6 @@ watch(viewerGcode, (newGcode) => {
         <TabPanel :tabs="contentTabs" :modelValue="activeTab" @update:modelValue="activeTab = $event">
           <template #gcode>
             <GcodePanel
-              ref="gcodePanelRef"
               :activeFile="activeFile"
               :gcodeContent="gcodeContent"
               :gcodeStats="gcodeStats"
@@ -2179,7 +2179,7 @@ watch(viewerGcode, (newGcode) => {
     </Gate>
 
     <!-- ══ Bottom Action Strip — default-deny Gate, SafetyStrip exempt + sticky ══ -->
-    <Gate gate="armed" class="strip bordered-panel scroll-thin">
+    <Gate gate="armed" class="strip bordered-panel scroll-thin" tabindex="-1">
       <template #exempt>
       <SafetyStrip
         :armed="armed"
@@ -2332,7 +2332,7 @@ watch(viewerGcode, (newGcode) => {
       <!-- Number keypad: swaps in like the G-code keypad, but keeps the
            section that owns the edited field visible (see stripVis). Last in
            DOM so it renders directly right of whichever section survives. -->
-      <NumberKeypadStrip v-if="keypadState.open" />
+      <NumberKeypadStrip v-if="keypadState.open" v-show="!keypadState.locked" />
 
       <!-- Scroll-edge affordance: fades in at the far edge while strip
            sections are scrolled out of view (strip-more class, JS-toggled).
@@ -2340,6 +2340,8 @@ watch(viewerGcode, (newGcode) => {
       <div class="stripFade" aria-hidden="true"></div>
     </Gate><!-- /strip -->
 
+    <!-- The app-wide floating hint and keyboard glyph (single instances). -->
+    <FloatingOverlays />
   </div>
 </template>
 <style scoped>
@@ -2385,6 +2387,10 @@ watch(viewerGcode, (newGcode) => {
   overflow-y: hidden;
   border-radius: var(--radius-container);
 }
+
+/* Programmatic focus target (the keypad's fallback when the field that
+   opened it is gone): no ring — that focus operates nothing. */
+.strip:focus { outline: none; }
 
 .strip {
   display: flex;
@@ -2807,12 +2813,16 @@ watch(viewerGcode, (newGcode) => {
     width: 280px;
     flex-direction: column;
     overflow-x: hidden;
-    overflow-y: auto;
-    /* Portrait scrolls vertically: reserve the vertical band so hiding
-       sections (keypad open) never widens the inner column and re-flows
-       every control in it (the root box stayed 280 px — only the INNER
-       width moved, which a bounding-box compare cannot see, UI-08). */
-    scrollbar-gutter: stable;
+    /* Portrait scrolls vertically: the vertical band is ALWAYS present so
+       hiding sections (keypad open) never widens the inner column and
+       re-flows every control in it (the root box stayed 280 px — only the
+       INNER width moved, which a bounding-box compare cannot see, UI-08).
+       `overflow-y: scroll`, not `scrollbar-gutter: stable`: the strip is a
+       <fieldset> (Gate), whose scroll container is its anonymous inner box,
+       and Chromium does not reserve the gutter there — the sticky Safety
+       section measured 252 → 262 px when the overflow vanished (layout
+       gate, 2026-09-20). Same rule as landscape's `overflow-x: scroll`. */
+    overflow-y: scroll;
     /* scroll axis is vertical here: top padding moves into the sticky
        SafetyStrip, left padding is restored (no horizontal scroll) */
     padding: 0 var(--gap-controls) var(--gap-controls) var(--gap-controls);

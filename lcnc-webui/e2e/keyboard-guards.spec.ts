@@ -53,6 +53,9 @@ async function openReady(page: Page) {
   await expect(page.locator("input.setupInput").first()).toBeVisible();
   await ctl({ op: "quiet", on: true });
   await ctl({ op: "status_delta", data: { active_file: "/A.ngc", permissions: PERMS_ALL } });
+  // The mock sends no settings on its own; the Settings dialog's tabs render
+  // only once the server's settings_init arrived (defaults for every section).
+  await ctl({ op: "raw", frame: { type: "settings_init", settings: {} } });
   await expect(page.locator(".safetyStrip")).toBeVisible();
   await ctl({ op: "clearCmds" });
 }
@@ -184,12 +187,17 @@ test("documented remainder: Tab leaves the dialog (no focus trap in this wave)",
   await page.keyboard.press("Tab");
   const inside = await page.evaluate(() => !!document.activeElement?.closest(".dialog"));
   // A focus trap is on the follow-up list; the guard spec records that the
-  // background is reachable by Tab. What matters here: no machine action.
+  // background is reachable by Tab and that Space activates the focused
+  // background control NATIVELY (observed: the Arm/Disarm toggle is the next
+  // Tab stop after the teleported dialog — `arm` is recorded; disarming is
+  // the safe direction). What matters here: no MOTION command.
   expect(typeof inside).toBe("boolean");
   await ctl({ op: "clearCmds" });
   await page.keyboard.press(" ");
   await settle(page);
-  expectNoMachineAction(await recordedCmds());
+  const cmds = await recordedCmds();
+  for (const machine of MACHINE_CMDS) expect(cmds).not.toContain(machine);
+  expect(cmds.filter(c => !READ_ONLY_CMDS.includes(c) && c !== "arm")).toEqual([]);
 });
 
 test("editor open: Space never starts the program", async ({ page }) => {
@@ -221,6 +229,8 @@ test("pause and resume via Space are unchanged", async ({ page }) => {
   await ctl({ op: "status_delta", data: { interp_state: 3, paused: true, permissions: { ...PERMS_ALL, run: false, pause: false, resume: true } } });
   await expect(page.locator(".safetyStrip .statusRow").filter({ hasText: "Interp" })
     .locator(".stable-width > span:not(.alt)")).toHaveText("PAUSED");
+  // fire()'s 200 ms busy latch after the pause would drop a second Space.
+  await page.waitForTimeout(250);
   await ctl({ op: "clearCmds" });
   await page.keyboard.press(" ");
   await expect.poll(recordedCmds).toContain("cycle_resume");

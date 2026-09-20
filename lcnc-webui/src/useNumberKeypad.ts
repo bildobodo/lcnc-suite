@@ -4,8 +4,15 @@
 // Owner model (WP0/WP6, UI-11 + UI-13): every keypad session belongs to ONE
 // owner (the field that opened it). The owner's constraints ride along, the
 // owner can revoke the session (unmount, gate closed) and confirm() asks the
-// owner's canConfirm() before delivering a value — an old callback is never
-// applied to a target that no longer exists or is no longer writable.
+// owner's canConfirm() — fresh, at confirm time — before delivering a value:
+// an old callback is never applied to a target that no longer exists, is
+// hidden or is no longer writable.
+//
+// Lifecycle (WP8, UI-15): the session LOCKS while its owner is hidden but
+// mounted (inputSession.ts polls the trigger's visibility — the strip hides,
+// the expression stays) and HIDES without confirming when the pointer or
+// the focus leaves the input area; the unconfirmed expression is then filed
+// as the owner's DRAFT and offered back, marked, on re-open.
 import { reactive } from 'vue';
 import type { EntryConstraints } from './mathEval';
 
@@ -21,6 +28,8 @@ export interface KeypadOpts {
   constraints?: EntryConstraints | null;
   /** Owner veto at confirm time (target disabled/removed) — the keypad cancels. */
   canConfirm?: () => boolean;
+  /** The element that opened the keypad: focus returns to it after OK /
+   *  Cancel, and its visibility drives the session lock. */
   trigger?: HTMLElement | null;
   onConfirm: (value: number) => void;
   onCancel?: () => void;
@@ -28,6 +37,8 @@ export interface KeypadOpts {
 
 export const keypadState = reactive({
   open: false,
+  /** Owner hidden but mounted (tab switch): strip hidden, session kept. */
+  locked: false,
   label: '',
   context: '',
   ownerId: '',
@@ -42,6 +53,12 @@ export const keypadState = reactive({
   trigger: null as HTMLElement | null,
   onConfirm: null as ((v: number) => void) | null,
   onCancel: null as (() => void) | null,
+  /** Set by closeKeypad(keepDraft = true): the strip files its unconfirmed
+   *  expression as the owner's draft while it unmounts. */
+  keepDraft: false,
+  /** Bumped by the visibility poll so the strip's owner-veto readout
+   *  re-evaluates — DOM visibility (offsetParent) is not reactive. */
+  probeTick: 0,
 });
 
 let _ownerSeq = 0;
@@ -67,12 +84,19 @@ export function openKeypad(opts: KeypadOpts): void {
   keypadState.trigger = opts.trigger ?? null;
   keypadState.onConfirm = opts.onConfirm;
   keypadState.onCancel = opts.onCancel ?? null;
+  keypadState.keepDraft = false;
+  keypadState.locked = false;
   keypadState.seq++;
   keypadState.open = true;
 }
 
-export function closeKeypad(): void {
+/** End the session. `keepDraft` = the owner's unconfirmed expression is
+ *  filed as a draft (pointer/focus left, a text helper took over); false =
+ *  confirmed, cancelled or the owner ended it — nothing to offer back. */
+export function closeKeypad(keepDraft = false): void {
+  keypadState.keepDraft = keepDraft;
   keypadState.open = false;
+  keypadState.locked = false;
   keypadState.ownerId = '';
   keypadState.constraints = null;
   keypadState.canConfirm = null;
@@ -81,15 +105,43 @@ export function closeKeypad(): void {
   keypadState.onCancel = null;
 }
 
+/** Hide without confirming (the pointer or the focus left the input area,
+ *  UI-15a): the draft stays with its owner, onCancel runs, no value passes. */
+export function hideKeypad(reason?: string): void {
+  if (!keypadState.open) return;
+  if (reason) console.warn(`[keypad] hidden: ${reason}`);
+  const onCancel = keypadState.onCancel;
+  closeKeypad(true);
+  onCancel?.();
+}
+
 /**
  * Close the keypad only if `ownerId` owns the current session (owner
  * unmounted, its gate closed, its dialog dismissed). A keypad opened for a
- * DIFFERENT field stays. Runs the owner's onCancel so pending state clears.
+ * DIFFERENT field stays. Runs the owner's onCancel so pending state clears;
+ * the owner's draft is dropped — the session ended by the owner's rule.
  */
 export function closeKeypadIf(ownerId: string, reason?: string): boolean {
   if (!keypadState.open || keypadState.ownerId !== ownerId) return false;
   if (reason) console.warn(`[keypad] closed: ${reason}`);
-  keypadState.onCancel?.();
-  closeKeypad();
+  const onCancel = keypadState.onCancel;
+  _drafts.delete(ownerId);
+  closeKeypad(false);
+  onCancel?.();
   return true;
 }
+
+// ── Number drafts (UI-15) ──
+// A number owner's unconfirmed expression, kept while another field is
+// edited or the helper was hidden, and offered back — visibly as a draft —
+// when the owner is re-opened. Short-lived: dropped on confirm, cancel,
+// owner end (unmount, gate closed, disconnect).
+const _drafts = new Map<string, string>();
+export function saveDraft(ownerId: string, expr: string): void {
+  if (ownerId && expr.trim()) _drafts.set(ownerId, expr); else _drafts.delete(ownerId);
+}
+export function takeDraft(ownerId: string): string | null {
+  return _drafts.get(ownerId) ?? null;
+}
+export function dropDraft(ownerId: string): void { _drafts.delete(ownerId); }
+export function clearDrafts(): void { _drafts.clear(); }

@@ -678,6 +678,7 @@ function editorTarget(): TextTarget {
     redo() { const e = v(); if (!e || !_cm) return; _cm.redo(e); e.focus(); },
     tab() { const e = v(); if (!e || !_cm) return; _cm.insertTab(e); e.focus(); },
     canConfirm: () => editing.value && !!_editorView,
+    isVisible: () => !!editorHost.value && editorHost.value.offsetParent !== null,
   };
 }
 function openEditorSession() {
@@ -736,6 +737,15 @@ async function saveEdit() {
       // External program change while saving: the editor stays on A, the
       // banner keeps naming the conflict, and B is NOT reloaded from A.
       pushMessage(OPERATOR_DISPLAY, `Saved ${name} — the loaded program is ${props.activeFile?.split("/").pop() ?? "another file"}`);
+      return;
+    }
+    if (_editorView && _editorView.state.doc.toString() !== text) {
+      // Typed while the save was in flight (implementation review UI-I02):
+      // the saved text is the new baseline, the newer edits stay in the
+      // editor as unsaved — the reply never destroys them. The loaded
+      // program is refreshed from the saved file as after any save.
+      pushMessage(OPERATOR_DISPLAY, `Saved ${name} — newer edits are still unsaved`);
+      emit("loadFile", path);
       return;
     }
     _endSession();

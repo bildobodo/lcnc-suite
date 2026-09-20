@@ -111,6 +111,10 @@ test("server library requires review and renders source shapes with nominal Z of
   await expectUncovered(page.locator('.importDialog'));
   await page.locator(".importDialog").screenshot({ path: test.info().outputPath("example-library-review.png") });
   await page.getByRole("button", { name: "Replace table", exact: true }).click();
+  // WP6 (P1): replacing a table with existing tools asks first.
+  const replaceConfirm = page.locator(".dialog", { hasText: "Replace entire tool table?" });
+  await expect(replaceConfirm).toBeVisible();
+  await replaceConfirm.getByRole("button", { name: "Replace table", exact: true }).click();
   await expect(page.getByText(/Imported 36 tools. Z offsets initialized from nominal example lengths/)).toBeVisible();
   expect(applies).toBe(1);
   await expect.poll(async () => { await publishTable(); return page.getByTitle("Edit tool", { exact: true }).count(); }).toBe(36);

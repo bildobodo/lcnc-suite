@@ -29,6 +29,11 @@ export default defineConfig({
   use: {
     baseURL: "http://localhost:4173",
     headless: true,
+    // Headless Chromium hides scrollbars by default, so no scrollbar BAND
+    // exists and the strip-band gate (WP4: the band must be reserved, the
+    // negative controls must see it vanish) would pass on nothing. Real
+    // Linux/Windows browsers show the band; so does the test browser.
+    launchOptions: { ignoreDefaultArgs: ["--hide-scrollbars"] },
     deviceScaleFactor: 1,
     locale: 'en-GB',
     timezoneId: 'UTC',

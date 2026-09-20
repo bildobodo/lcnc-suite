@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onMounted } from 'vue';
+import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import { keypadState, closeKeypad } from './useNumberKeypad';
 import { evaluate, fmtEval, validateEntry } from './mathEval';
 import { saveDraft, takeDraft, dropDraft } from './inputSession';
 import { armed } from './lcncWs';
+import { DEFAULT_COOLDOWN_MS } from './lcnc';
 import MachineBtn from './MachineBtn.vue';
 
 const expr = ref('');
@@ -46,6 +47,10 @@ function loadFromState() {
 }
 onMounted(loadFromState);
 watch(() => keypadState.seq, loadFromState);
+// The session ended without a verdict (pointer/focus left the area, a text
+// helper took over — closeKeypad(keepDraft)): the expression stays with its
+// owner as a draft. Confirm/Cancel clear `_dirty` first, so they never file.
+onBeforeUnmount(() => { if (keypadState.keepDraft && _dirty && _owner) saveDraft(_owner, expr.value); });
 
 // Live result from the expression — null means invalid/incomplete.
 const result = computed(() => evaluate(expr.value));
@@ -59,7 +64,12 @@ const isIncomplete = computed(() => /[+\-*/]\s*$/.test(expr.value.trim()));
 // ONE admissibility check (UI-11) feeds the readout, the OK button and
 // confirm() itself: expression validity, the owner's min/max/integer
 // contract and the owner's veto (target disabled or gone).
-const targetValid = computed(() => keypadState.canConfirm ? keypadState.canConfirm() : true);
+// DOM visibility is not reactive: the session poll (inputSession.ts) bumps
+// probeTick so a hidden or unmounted owner shows in the readout too.
+const targetValid = computed(() => {
+  void keypadState.probeTick; void keypadState.locked;
+  return keypadState.canConfirm ? keypadState.canConfirm() : true;
+});
 const verdict = computed(() => validateEntry(expr.value, keypadState.constraints, targetValid.value));
 
 const previewText = computed(() => {
@@ -114,39 +124,54 @@ function evalExpr() {
 }
 
 // Focus goes back to the field that opened the keypad when it is still in
-// the document and operable; otherwise to the strip, never to a stale node.
-function returnFocus() {
-  const t = keypadState.trigger;
-  if (t && t.isConnected && !(t as HTMLInputElement).disabled && t.offsetParent !== null) {
-    t.focus();
-    return;
-  }
-  document.querySelector<HTMLElement>('.strip')?.focus();
+// the document and operable; otherwise to the strip (tabindex -1), never to
+// a stale node. The trigger is captured BEFORE closeKeypad() clears it.
+// The field's own confirm closes its gate for fire()'s busy latch
+// (DEFAULT_COOLDOWN_MS): the DOM `disabled` lands a render later and DROPS
+// the focus the field just took (a disabled element cannot hold focus), so
+// the focus is taken again once the latch has passed — only if nothing
+// else took it meanwhile; the strip is the fallback for a field that is gone.
+function tryFocus(t: HTMLElement | null): boolean {
+  if (!t || !t.isConnected || t.offsetParent === null) return false;
+  t.focus();
+  return document.activeElement === t;
+}
+function returnFocus(t: HTMLElement | null) {
+  tryFocus(t);
+  window.setTimeout(() => {
+    if (document.activeElement !== document.body && document.activeElement !== null) return;
+    if (!tryFocus(t)) document.querySelector<HTMLElement>('.strip')?.focus();
+  }, DEFAULT_COOLDOWN_MS + 100);
 }
 
 function confirm() {
   // Re-validated HERE, not only on the button: physical Enter and a touch on
   // OK both land in this function, so a disabled OK is never the only
-  // barrier. An inadmissible value keeps the entry and closes nothing.
-  const v = validateEntry(expr.value, keypadState.constraints, targetValid.value);
+  // barrier. An inadmissible value keeps the entry and closes nothing. The
+  // owner's veto is asked FRESH (not the cached readout computed): a target
+  // hidden since the last poll must not receive the value.
+  const ownerOk = keypadState.canConfirm ? keypadState.canConfirm() : true;
+  const v = validateEntry(expr.value, keypadState.constraints, ownerOk);
   if (v.value === null) {
-    if (!targetValid.value) { cancel(); return; }  // owner vetoed — cancel path
+    if (!ownerOk) { cancel(); return; }  // owner vetoed — cancel path
     console.warn(`[keypad] not confirmed: ${v.reason}`);
     return;
   }
   const onConfirm = keypadState.onConfirm;
+  const trigger = keypadState.trigger;
   dropDraft(_owner); _dirty = false; isDraft.value = false;
   closeKeypad();
   onConfirm?.(v.value);
-  returnFocus();
+  returnFocus(trigger);
 }
 
 function cancel() {
   const onCancel = keypadState.onCancel;
+  const trigger = keypadState.trigger;
   dropDraft(_owner); _dirty = false; isDraft.value = false;
   closeKeypad();
   onCancel?.();
-  returnFocus();
+  returnFocus(trigger);
 }
 
 // Same press pattern as TextKeypadStrip: keys act on pointerdown with

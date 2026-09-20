@@ -287,7 +287,10 @@ function zeroAll() {
 
 @media (orientation: portrait) {
   .setupContent { flex-direction: column; }
-  /* Narrow input column to fit 280px strip width */
-  .setupGrid { grid-template-columns: 70px 1fr 1fr; }
+  /* Narrow input column to fit the 280 px strip column: 280 − 2 × 8 padding
+     − border − the reserved scrollbar band (~14 px, WP4) ≈ 248 px inside;
+     "Unhome X" needs 84 px, so the input column and the grid gap give way
+     (--gap-tight is the minimum between clickables): (248 − 64 − 8) / 2 = 88. */
+  .setupGrid { grid-template-columns: 64px 1fr 1fr; gap: var(--gap-tight); }
 }
 </style>

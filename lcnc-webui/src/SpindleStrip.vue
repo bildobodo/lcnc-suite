@@ -85,6 +85,10 @@ const emit = defineEmits<{
 /* .coolToggles — replaced by row-sections utility (same shape) */
 
 @media (orientation: portrait) {
-  .spDirRow > * { flex: 1; }
+  /* Three equal columns. Not `> * { flex: 1 }`: a flex share is added to
+     each item's padding+border, so a disabled button's reason wrapper (a
+     padding-less span) came out 11 px narrower than its neighbours and the
+     row re-flowed on every spindle state change (layout gate, 2026-09-20). */
+  .spDirRow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 </style>

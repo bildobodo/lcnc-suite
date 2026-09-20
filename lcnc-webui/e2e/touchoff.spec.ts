@@ -214,7 +214,7 @@ test("Capture/Clear plane buttons: gate-driven, Clear needs a plane (or TOOL lim
       kins_type: 0, g5x_index: 1, twp_defined: false,
       permissions: { ...PERMS_ALL },
     } });
-    const capture = page.getByRole("button", { name: "Capture plane" });
+    const capture = page.getByRole("button", { name: "Capture plane", exact: true });
     const clear = page.getByRole("button", { name: "Clear plane" });
     await expect(capture).toBeVisible();
     await expect(capture).not.toBeDisabled();
@@ -253,13 +253,13 @@ test("TCP trunnion (switchable, not TWP): G59 selectable, no Plane frame, no Cap
     // The kins-frame selector exists (Machine / TCP) but never offers Plane.
     await expect(page.locator('input[name="jogFrame"][value="0"]')).toHaveCount(1);
     await expect(page.locator('input[name="jogFrame"][value="2"]')).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "Capture plane" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Capture plane", exact: true })).toHaveCount(0);
     await expect(page.locator('input[name="wcs"][value="G59"]')).not.toBeDisabled();
     await expect(page.locator('input[name="wcs"][value="G59.3"]')).not.toBeDisabled();
     // The TWP stack: same status, now G59 is reserved and Plane is offered.
     await ctlSend({ op: "setKins", kins: TRSRN });
     await expect(page.locator('input[name="jogFrame"][value="2"]')).toHaveCount(1);
-    await expect(page.getByRole("button", { name: "Capture plane" })).toHaveCount(1);
+    await expect(page.getByRole("button", { name: "Capture plane", exact: true })).toHaveCount(1);
     await expect(page.locator('input[name="wcs"][value="G59"]')).toBeDisabled();
   } finally {
     await ctlSend({ op: "quiet", on: false });
@@ -633,6 +633,8 @@ test("Offsets Clear: disabled without a real selection, hold-to-fire, hold cance
   await expect(page.locator("input.setupInput").first()).toBeVisible();
   await ctlSend({ op: "quiet", on: true });
   try {
+    // The default fixture ships no wcs_table; setAxes fills the nine rows.
+    await ctlSend({ op: "setAxes", axes: ["X", "Y", "Z"] });
     // No g5x_index yet → the label is "-" → nothing selected → Clear disabled with a reason.
     await page.getByRole("button", { name: "Offsets", exact: true }).click();
     const clear = page.getByRole("button", { name: /^Clear (–|G5)/ });
@@ -721,9 +723,13 @@ test("surface map: empty state without a toast, error with retry, points load wi
     await ctlSend({ op: "clearCmds" });
     await page.getByRole("button", { name: /Reload Data|Loading…/ }).click();
     const sent = async () => ((await ctlSend({ op: "lastCmds" })).cmds ?? []) as { cmd?: string; req_id?: string }[];
+    // The panel's own auto-fetch (view change, points/grid version) may send
+    // a request after the click: the App correlates replies with the LATEST
+    // request, so the test answers the latest one too.
+    const last = async (cmd: string) => [...(await sent())].reverse().find(c => c.cmd === cmd)!;
     await expect.poll(async () => (await sent()).some(c => c.cmd === "get_probe_results") && (await sent()).some(c => c.cmd === "get_comp_grid")).toBe(true);
-    const points = (await sent()).find(c => c.cmd === "get_probe_results")!;
-    const grid = (await sent()).find(c => c.cmd === "get_comp_grid")!;
+    const points = await last("get_probe_results");
+    const grid = await last("get_comp_grid");
     // No grid yet is a STATE (ok, comp_grid null): empty text, no message.
     await ctlSend({ op: "raw", frame: { type: "reply", cmd: "get_comp_grid", req_id: grid.req_id, ok: true, comp_grid: null, reason: "no grid file" } });
     await ctlSend({ op: "raw", frame: { type: "reply", cmd: "get_probe_results", req_id: points.req_id, ok: true, points: [] } });
@@ -734,10 +740,15 @@ test("surface map: empty state without a toast, error with retry, points load wi
     await ctlSend({ op: "clearCmds" });
     await page.getByRole("button", { name: /Reload Data|Loading…/ }).click();
     await expect.poll(async () => (await sent()).length).toBeGreaterThanOrEqual(2);
-    const points2 = (await sent()).find(c => c.cmd === "get_probe_results")!;
-    const grid2 = (await sent()).find(c => c.cmd === "get_comp_grid")!;
-    await ctlSend({ op: "raw", frame: { type: "reply", cmd: "get_comp_grid", req_id: grid2.req_id, ok: false, error: "Invalid grid file" } });
+    const points2 = await last("get_probe_results");
+    // Points first: their arrival activates the surface viewer, which asks
+    // for the grid once more — the LATEST grid request is the one whose
+    // reply the panel shows, so it is answered after the points landed.
     await ctlSend({ op: "raw", frame: { type: "reply", cmd: "get_probe_results", req_id: points2.req_id, ok: true, points: [[0, 0, 0], [10, 0, 0.1], [0, 10, -0.1], [10, 10, 0]] } });
+    await expect(page.getByText("No surface map recorded yet", { exact: true })).toHaveCount(0);
+    await page.waitForTimeout(300);
+    const grid2 = await last("get_comp_grid");
+    await ctlSend({ op: "raw", frame: { type: "reply", cmd: "get_comp_grid", req_id: grid2.req_id, ok: false, error: "Invalid grid file" } });
     await expect(page.getByText(/Grid: Invalid grid file/)).toBeVisible();
     await expect(page.getByText("No surface map recorded yet", { exact: true })).toHaveCount(0);
     await ctlSend({ op: "clearCmds" });
