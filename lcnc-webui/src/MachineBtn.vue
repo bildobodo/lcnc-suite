@@ -164,6 +164,7 @@ function cancelHold(reason: string) {
   if (!holding.value) return;
   clearTimeout(holdTimer);
   holding.value = false;
+  disarmHoldGuards();
   console.warn(`[hold] ${props.type} cancelled after ${Math.round(performance.now() - holdStartTs)} ms: ${reason} (hold ${HOLD_FIRE_MS} ms to fire)`);
 }
 const cancelHoldUp = () => {
@@ -172,6 +173,19 @@ const cancelHoldUp = () => {
 };
 const cancelHoldLeave = () => cancelHold("pointer left the button");
 const cancelHoldCancel = () => cancelHold("pointer cancelled (drag-scroll / gesture took it)");
+
+// A hold that loses the page (tab hidden, window blur) is over: the timer
+// must not fire later as a surprise. Listeners live only for the hold.
+const cancelHoldHidden = () => { if (document.visibilityState === 'hidden') cancelHold("page hidden during the hold"); };
+const cancelHoldBlur = () => cancelHold("window lost focus during the hold");
+function armHoldGuards() {
+  document.addEventListener('visibilitychange', cancelHoldHidden);
+  window.addEventListener('blur', cancelHoldBlur);
+}
+function disarmHoldGuards() {
+  document.removeEventListener('visibilitychange', cancelHoldHidden);
+  window.removeEventListener('blur', cancelHoldBlur);
+}
 
 function onHoldPointerDown(e: PointerEvent) {
   if (!holdEnabled.value || e.button !== 0) return;
@@ -183,9 +197,11 @@ function onHoldPointerDown(e: PointerEvent) {
   holdStartY = e.clientY;
   holdStartTs = performance.now();
   holding.value = true;
+  armHoldGuards();
   clearTimeout(holdTimer);
   holdTimer = window.setTimeout(() => {
     holding.value = false;
+    disarmHoldGuards();
     // Gate may have closed mid-hold (disarm, probe started) — re-check.
     if (isDisabled.value) {
       console.warn(`[hold] ${props.type} not fired: gate '${def.value.gate}' closed during the hold`);
@@ -215,7 +231,7 @@ function onHoldContextMenu(e: Event) {
   if (holdEnabled.value) e.preventDefault();
 }
 
-onBeforeUnmount(() => { clearTimeout(holdTimer); clearTimeout(hintTimer); });
+onBeforeUnmount(() => { clearTimeout(holdTimer); clearTimeout(hintTimer); disarmHoldGuards(); });
 </script>
 
 <template>

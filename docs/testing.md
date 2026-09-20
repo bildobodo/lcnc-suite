@@ -47,6 +47,40 @@ entry — the backend pytest starts in `lcnc-gateway/` with
 wrong fixture expectation turns that entry red; `python3
 scripts/audit-scoped-css.py --paths <files…>` scans just the given files.
 
+## Guard specs (serial-guards)
+
+Four specs share one filter (`guardSpecs` in `playwright.config.ts`) and run
+one file at a time under the `serial-guards` project, between
+`serial-touchoff` and `serial-layout`; the parallel `chromium` project
+ignores them through the same constant. `npx playwright test --list` shows
+each file once, under `serial-guards` only.
+
+| Spec | Pins |
+| --- | --- |
+| `keyboard-guards.spec.ts` | Escape sends exactly `estop` (never `estop_reset`) from the keypad, the editor, every dialog and during a key capture; Space/Enter/Backspace send nothing behind a dialog, the keypad or the editor; pause/resume via Space unchanged; a jog key released after a field opened mid-jog still sends `jog_stop`; the modal registry matches the DOM's `.dialogOverlay` count (self-test); the KeyboardTab edits a copy. |
+| `editor-guards.spec.ts` | The edit session is bound to its file: external program changes keep buffer A and raise the conflict banner, Save writes A only, a delayed save never reloads B from A, the CodeMirror import is bound to the session, an older save reply never touches a newer session, dirty Discard asks; upload name conflict → Cancel / Rename / Replace. |
+| `touch-hold.spec.ts` | Hold-to-fire under real touch events (CDP `Input.dispatchTouchEvent`, `hasTouch`): tap → nothing + "Hold to activate", complete hold → exactly one command, slide-off / touchCancel / hidden page → cancelled, a new hold starts from zero; the teleported tool dialog is usable by touch (scroll, keypad, confirm, footer). |
+| `input-session.spec.ts` | The unified input session (WP8): one layout per target, drafts per owner, outside tap/tab closes without confirming, text entry by touch only, page switches within the strip budget. |
+
+Every case sets its own preconditions (`ctl reset` + its status envelope); a
+spec must pass alone AND inside the full `npm run test:e2e`.
+
+## Frame / strip states (layout gate)
+
+`layout.spec.ts` (serial-layout) measures the FRAME — the strip, the viewer
+pane and the content area, bounding box AND `clientWidth`/`clientHeight` —
+and enters every state the bottom strip can show: the number keypad from a
+setup field and from a panel field, the G-code keyboard, a macro bar, the
+E-Stop / unhomed / message banners and the kins chip. The frame and the
+always-visible reference controls (Safety, plus the keypad's owner section)
+must not move; a macro bar may only take its own row (`viewer.height`,
+`content.height`, `strip.y`). Two negative controls prove the gate sees the
+original defect: injecting `overflow-x: auto` on the landscape strip (the
+band disappears with the hidden sections → strip/viewer height change) and
+`scrollbar-gutter: auto` on the portrait strip (inner width and pinned
+controls change). Both assert their overflow precondition and skip on
+macOS overlay scrollbars.
+
 ## Camera gate (default framing only)
 
 `src/viewer/cameraFraming.ts` is the one rule for the default camera pose:

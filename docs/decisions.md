@@ -5569,3 +5569,56 @@ historical goldens or tolerances were relaxed. Operator guidance, plane probing,
 M600 measurement and touchscreen/performance acceptance remain separate work.
 PR #41's example content is incorporated by this change; the source PR was
 still open and draft when checked on 2026-09-19.
+
+
+## 2026-09-20 — WebUI review wave: keyboard, editor session, keypad contract, strip band, camera, offsets
+
+Branch `feat/ui-review-wave` (from `development`), plan agreed with a
+four-round external review (`docs/reviews/ui-optimierungen.review.md`).
+Operator decisions of 2026-09-19 recorded here as the rules they became:
+
+- **Escape is reserved for E-Stop** and not re-bindable; E-Stop RESET is a
+  button only. The E-Stop key handler is a capture listener registered at
+  App setup so no child can swallow it (the Keyboard tab's key capture used
+  to). Behind any dialog or the number keypad the global shortcut map lets
+  nothing but E-Stop through (`modalRegistry.ts`; every `.dialogOverlay`
+  registers, the guard spec compares registry and DOM). Space/Enter belong
+  to whatever has focus; Cycle Start needs gate `run` and no open editor;
+  jog key-up is never filtered.
+- **The editor buffer belongs to its file** (`{id, path, original}`): an
+  external program change raises a conflict banner, Save writes only the
+  session's file, CodeMirror's view creation is bound to the session,
+  Discard asks when dirty. Browse/Unload/Upload are disabled while editing.
+- **Keypad field contract**: one number token per literal (`1.2.3` is
+  refused, never prefix-parsed), `validateEntry()` is the single
+  admissibility check for readout, OK and `confirm()` (min/max/integer,
+  never clamped); empty is 0, shown as "= 0". Sessions have an owner
+  (`ownerId`), the owner's veto at confirm, focus returns to the owner.
+- **Upload never replaces silently**: `POST /upload?overwrite=0|1`, the
+  no-replace publish is an `os.link` (409 on a clash, exactly one winner of
+  two concurrent uploads), a filesystem that cannot link REFUSES — no copy
+  fallback, since it would expose a partial file under the final name.
+- **Request correlation**: every command carries a per-tab `req_id`; the
+  gateway echoes it on every reply path (ok, invalid, arm, preempted,
+  superseded, queue-full). Dialogs close only on THEIR reply; `send()` /
+  `fire()` return the id or null (nothing sent → never a pending).
+- **Strip band always reserved**: landscape `overflow-x: scroll`, portrait
+  `scrollbar-gutter: stable`. The layout gate measures the frame's outer
+  and inner sizes across every strip state, with two negative controls.
+- **Default camera framing** = max(travel rule, model sphere + near) about
+  the travel box's centre, for both projections and Reset's endpoint; the
+  promise is the DEFAULT frame only (no camera-collision system).
+  `polygonOffset` untouched.
+- **Offsets Clear / Clear All** are hold-to-fire (probe tier) like Zero /
+  Home; a hold is bound to its target (`holdKey`) and its gate for its whole
+  duration; a short tap says "Hold to activate", a busy-latch drop says
+  "Busy — try again" at the control.
+- **Gates follow the backend** (home* → zero, set_probe_vars → ready,
+  clear_wcs/set_wcs → probe, confirm_tool_change → armed, sent once per
+  request); no raw `send()` for a state-changing command remains in the
+  panels. A missing compensation grid is a state (`ok, comp_grid: null`),
+  not an error toast.
+- **Design system**: z-index scale, `.dialog.md.wide`, `.overlay-card.warn`,
+  `.btnHint`, `.warnBanner`/`.errorBanner` global, `--viewcube-size`,
+  `wcs.ts`, `DEFAULT_AXES`; the CSS linter is nesting-aware, parses
+  `color-mix()` arguments and has fixtures pinned in the offline gate.
