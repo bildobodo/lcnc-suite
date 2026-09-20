@@ -754,3 +754,29 @@ Geprüft: [Plan, Fassung 3 mit Revision R3](/home/cnc/.claude/plans/das-aktuelle
 **Geltung des Agreements:** Die vereinbarten Lösungen, Reihenfolge und Prüfkriterien sind für die Umsetzung akzeptiert. Die alphabetische ABC-Seite und die übrige Tastaturbelegung sind damit ein akzeptierter Entwurf; ihre tatsächliche Bedienbarkeit, Dialoginteraktion, Touch-Ereignisse und Geometrie müssen die vorgesehenen Tests und Sichtprüfungen noch bestehen. Die begrenzte Kamera-Zusage (Default-Framing), die zurückgestellte vollständige Dialog-Fokusführung und die spätere physische Touchscreen-Abnahme bleiben wie dokumentiert.
 
 Diese Runde umfasste Dokument-/Quellcodeabgleich und kleine lokale Proben zu Zeichenmengen, Seitenbelegung, Maßen und Testfilter. Es wurden keine Builds, Browser-/Volltests oder Maschinenbefehle ausgeführt und keine Produktdateien geändert. **Die Planabstimmung ist abgeschlossen; die Implementierungsabnahme folgt separat.**
+
+## Umsetzung · 20. September 2026 · Claude
+
+Branch `feat/ui-review-wave` (von `development` 8de45e9), ein Commit je Arbeitspaket
+(WP0 9135eba, WP1 5016d13, WP2 18bb416, WP3 6fd2d6c, WP4 a8913b4, WP5 efa2e3c,
+WP6 246ed60, WP7 41a3dbc, WP8 dcf9564 + fb48f32). Plan-Fassung 3/R3 liegt als
+`docs/reviews/ui-optimierungen.plan.md` daneben (mit der 404,5-px-Korrektur aus Runde 4).
+
+**Bewusste Abweichungen vom Plan (zur Prüfung im Implementierungs-Review):**
+
+| Stelle | Plan | Umsetzung | Grund |
+|---|---|---|---|
+| UI-15a Tastatur-Glyph | globales Muster `.inputWithAction`: Wrapper um das `.inputField` mit nachgestelltem Icon-Button | globales Muster `.inputAction`: das Glyph wird von `MachineInput` per Body-Teleport am rechten Feldrand verankert (nur ohne Touch, nur bei Fokus, gehört zum Fokusbereich) | Ein Wrapper um jedes der ~20 Textfelder verändert deren Layout-Kontext (Grid-Zelle, Flex-Item mit `flex: 1`, `.w-full`) und damit die Layout-Gates; das verankerte Glyph lässt jede Feldgeometrie unverändert. Öffnen bleibt ausschließlich Tap/Klick oder Glyph, nie Fokus. |
+| UI-10 „No grid file" | Client bildet `ok:false "No grid file"` auf `grid: 'empty'` ab | Gateway antwortet `ok: true, comp_grid: null, reason: "no grid file"`; Client bildet `null` auf `'empty'` ab; „Invalid grid file" bleibt `ok:false` → `'error'` | Jede `ok:false`-Antwort landet generisch im Message-Center (`lcncWs`); genau dieser Toast war der P1-Befund. Fehlen ist ein Zustand, kein Fehler. |
+| Wizard „Restart" | Bestätigungsdialog | Restart ist immer gerendert (deaktiviert bei 0 Erfassungen) und braucht einen zweiten Druck innerhalb von 3 s („Press again to restart") | Ein verschachtelter Overlay-Dialog im Wizard-Dialog würde vom `.dialog` geclippt; feste Slots (P2) sind damit ebenfalls erfüllt. |
+| WP3 Save-Fluss | Disconnect → „outcome unknown — table reloaded" | Meldung „outcome unknown, the table reloads on reconnect"; der Reload läuft über den bestehenden `connected`-Watcher | gleiche Semantik, kein zweiter Reload-Pfad |
+
+**Noch offen (Suite lief während der gesamten Umsetzung live — keine Builds, Vitest, Playwright, vgl. Plan „Alle schweren Gates erst nach Suite-Stopp"):**
+
+1. `cd lcnc-webui && npm run build && npm run lint && npx vitest run` — die TS-Prüfung ist bislang nur statisch (Diff-Durchsicht) erfolgt.
+2. `npx playwright test --list` (Abnahme UI-15d: jede Guard-Spec genau einmal unter `serial-guards`), dann `npm run test:e2e`.
+3. Visuelle Referenzen erneuern (Linux, nach Sichtprüfung): `npm run test:visual:update` — neu sind `tool-edit-<viewport>.png`, geändert die Portrait-Referenzen (WP4).
+4. `python3 scripts/test_suite.py offline` — Report enthält `audit-css`.
+5. Live-Sichtprüfung auf dem XYZAC-Sim gemäß Plan-Tabelle (Kamera von unten + Reset + zweite Pose; Numpad; Tool-Dialog mit FreeCAD-Tool inkl. Keypad; Offset-Clear per Hold mit WCS-Wechsel; Leertaste/Escape bei offenem Numpad; Text-Tastatur Landscape/Portrait, Dark/High-Contrast, Zoom 150 %).
+
+Bereits grün (leichtgewichtig, während der Suite): `pytest test_upload_conflict.py` (8), `pytest test_ws_command_worker.py -k ReqIdEcho` (2), `pytest scripts/test_audit_scoped_css.py` (11), `npm run lint:css`.
