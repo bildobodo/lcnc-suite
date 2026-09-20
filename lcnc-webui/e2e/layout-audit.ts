@@ -1,4 +1,4 @@
-import { expect, type Locator, type TestInfo } from '@playwright/test';
+import { expect, type Locator, type Page, type TestInfo } from '@playwright/test';
 
 export interface ControlBox {
   id: string;
@@ -72,6 +72,51 @@ export async function measureLayout(root: Locator, name: string,
     if (!controls.length) issues.push({ kind: 'empty', controls: [], detail: `${name}: no visible controls` });
     return { name, width: bounds.width, height: bounds.height, controls, issues };
   }, { name, selector });
+}
+
+// ── Frame envelope (WP4, UI-08) ──
+// The three boxes whose geometry must not react to what the strip shows:
+// the strip itself, the viewer pane and the content area. Each carries its
+// bounding box AND its inner usable size (clientWidth/clientHeight): in
+// portrait the strip's outer 280 px never changed while a vanished
+// vertical scrollbar band widened its inner column and re-flowed every
+// control — a bounding-box compare was blind to it.
+export interface FrameBox {
+  x: number; y: number; width: number; height: number;
+  clientWidth: number; clientHeight: number;
+}
+export interface FrameSnapshot { strip: FrameBox; viewer: FrameBox; content: FrameBox }
+export type FrameKey = keyof FrameSnapshot;
+export type FrameDimension = keyof FrameBox;
+
+export async function measureFrame(page: Page): Promise<FrameSnapshot> {
+  return page.evaluate(() => {
+    const box = (sel: string): FrameBox => {
+      const el = document.querySelector<HTMLElement>(sel);
+      if (!el) throw new Error(`measureFrame: ${sel} not found`);
+      const r = el.getBoundingClientRect();
+      return { x: r.x, y: r.y, width: r.width, height: r.height,
+        clientWidth: el.clientWidth, clientHeight: el.clientHeight };
+    };
+    return { strip: box('.strip'), viewer: box('.viewerPane'), content: box('.content') };
+  });
+}
+
+/** Frame differences beyond `tolerance` px, as layout issues. `exempt`
+ * names dimensions that MAY change for a state ("viewer.height" while a
+ * macro bar takes its row); everything else is a regression. */
+export function frameChanges(before: FrameSnapshot, after: FrameSnapshot, exempt: string[] = [],
+  tolerance = 1): LayoutIssue[] {
+  const out: LayoutIssue[] = [];
+  for (const key of ['strip', 'viewer', 'content'] as const) {
+    for (const dim of ['x', 'y', 'width', 'height', 'clientWidth', 'clientHeight'] as const) {
+      if (exempt.includes(`${key}.${dim}`)) continue;
+      const a = before[key][dim], b = after[key][dim];
+      if (Math.abs(a - b) > tolerance) out.push({ kind: 'frame-change', controls: [key],
+        detail: `${key}.${dim} ${a.toFixed(2)} → ${b.toFixed(2)}px` });
+    }
+  }
+  return out;
 }
 
 /** Compare only within one viewport/profile. Labels and enabled state may

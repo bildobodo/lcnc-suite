@@ -1,7 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { ctl } from './ctl';
-import { measureLayout, assertLayout, layoutChanges, type LayoutSnapshot } from './layout-audit';
-import { PROFILES, VIEWPORTS, PANELS, openLayout, setLayoutState, settleLayout, type LayoutState } from './layout-fixtures';
+import { measureLayout, assertLayout, layoutChanges, measureFrame, frameChanges, type LayoutSnapshot } from './layout-audit';
+import { PROFILES, VIEWPORTS, PANELS, openLayout, setLayoutState, settleLayout, type LayoutState,
+  STRIP_STATES, enterStripState, leaveStripState, stripStateRefs, stripStateExempt } from './layout-fixtures';
 
 test.afterEach(async () => { await ctl({ op: 'reset' }); });
 
@@ -191,3 +192,77 @@ for (const viewport of VIEWPORTS) {
     expect((await browser.boundingBox())!.height).toBeCloseTo(geometry.height, 0);
   });
 }
+
+// ── Strip states: the frame never reacts to what the strip shows (WP4) ──
+// Entering the keypad (setup field or a panel field), the G-code keyboard,
+// a macro bar, each banner and the kins chip — and leaving again — must
+// keep the strip / viewer / content boxes (outer and INNER sizes) and the
+// always-visible reference controls exactly where the homed baseline had
+// them. The only exemptions are the rows a macro bar legitimately takes.
+for (const viewport of VIEWPORTS) {
+  test(`${viewport.name}: strip states keep the frame and the pinned controls invariant`, async ({ page }, info) => {
+    const profile = PROFILES[1];
+    await openLayout(page, profile, viewport);
+    const frame0 = await measureFrame(page);
+    const refs0: Record<string, LayoutSnapshot> = {};
+    for (const sel of [PANELS.safety, PANELS.setup]) refs0[sel] = await measureLayout(page.locator(sel), sel);
+    const evidence: { state: string; frame: unknown; issues: unknown[] }[] = [];
+    try {
+      for (const state of STRIP_STATES) {
+        await enterStripState(page, profile, state);
+        const issues = frameChanges(frame0, await measureFrame(page), stripStateExempt(state));
+        for (const sel of stripStateRefs(state)) {
+          const root = page.locator(sel);
+          const snap = await measureLayout(root, sel);
+          issues.push(...snap.issues, ...layoutChanges(refs0[sel]!, snap));
+        }
+        evidence.push({ state, frame: await measureFrame(page), issues });
+        expect(issues, `${state}: ${issues.map(i => i.detail).join('\n')}`).toEqual([]);
+        await leaveStripState(page, profile, state);
+        const after = frameChanges(frame0, await measureFrame(page));
+        expect(after, `after ${state}: ${after.map(i => i.detail).join('\n')}`).toEqual([]);
+      }
+    } finally {
+      await info.attach('strip-states.json', { body: JSON.stringify(evidence, null, 2), contentType: 'application/json' });
+    }
+  });
+}
+
+test('negative control (landscape): an auto scrollbar band lets the keypad change the strip height', async ({ page }) => {
+  // macOS overlay scrollbars have no band — the control cannot fire there.
+  test.skip(process.platform === 'darwin', 'overlay scrollbars have no band to lose');
+  await openLayout(page, PROFILES[1], VIEWPORTS[1]);
+  const pre = await page.locator('.strip').evaluate(el => ({ scrollWidth: el.scrollWidth, clientWidth: el.clientWidth }));
+  expect(pre.scrollWidth, 'fixture must overflow horizontally for the band to matter').toBeGreaterThan(pre.clientWidth);
+  const frameOk = await measureFrame(page);
+  await enterStripState(page, PROFILES[1], 'keypad-setup');
+  expect(frameChanges(frameOk, await measureFrame(page))).toEqual([]);
+  await leaveStripState(page, PROFILES[1], 'keypad-setup');
+  await page.addStyleTag({ content: '.strip { overflow-x: auto !important; }' });
+  await settleLayout(page);
+  const frameAuto = await measureFrame(page);
+  await enterStripState(page, PROFILES[1], 'keypad-setup');
+  const changes = frameChanges(frameAuto, await measureFrame(page));
+  expect(changes.some(c => /strip\.height|viewer\.height/.test(c.detail)), changes.map(c => c.detail).join('\n')).toBe(true);
+});
+
+test('negative control (portrait): without a stable gutter the keypad re-flows the pinned controls', async ({ page }) => {
+  test.skip(process.platform === 'darwin', 'overlay scrollbars have no band to lose');
+  await openLayout(page, PROFILES[1], VIEWPORTS[3]);
+  const pre = await page.locator('.strip').evaluate(el => ({ scrollHeight: el.scrollHeight, clientHeight: el.clientHeight }));
+  expect(pre.scrollHeight, 'fixture must overflow vertically for the band to matter').toBeGreaterThan(pre.clientHeight);
+  const frameOk = await measureFrame(page);
+  const safetyOk = await measureLayout(page.locator(PANELS.safety), 'safety');
+  await enterStripState(page, PROFILES[1], 'keypad-setup');
+  expect(frameChanges(frameOk, await measureFrame(page))).toEqual([]);
+  expect(layoutChanges(safetyOk, await measureLayout(page.locator(PANELS.safety), 'safety'))).toEqual([]);
+  await leaveStripState(page, PROFILES[1], 'keypad-setup');
+  await page.addStyleTag({ content: '.wrap > .strip { scrollbar-gutter: auto !important; }' });
+  await settleLayout(page);
+  const frameAuto = await measureFrame(page);
+  const safetyAuto = await measureLayout(page.locator(PANELS.safety), 'safety');
+  await enterStripState(page, PROFILES[1], 'keypad-setup');
+  const frameDiff = frameChanges(frameAuto, await measureFrame(page));
+  expect(frameDiff.some(c => /strip\.clientWidth/.test(c.detail)), frameDiff.map(c => c.detail).join('\n')).toBe(true);
+  expect(layoutChanges(safetyAuto, await measureLayout(page.locator(PANELS.safety), 'safety')).length).toBeGreaterThan(0);
+});

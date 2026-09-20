@@ -2337,7 +2337,15 @@ watch(viewerGcode, (newGcode) => {
      element */
   padding: var(--gap-controls) var(--gap-controls) var(--gap-controls) 0;
   gap: var(--gap-controls);
-  overflow-x: auto;
+  /* ALWAYS reserve the horizontal scrollbar band (WP4, review B): with
+     `auto`, opening the number keypad hides every non-owner section, the
+     overflow disappears, the band (8–11 px, UA-defined) goes with it and
+     the strip gets shorter — the viewer pane grew every time the keypad
+     opened. `scroll` keeps the band whether or not there is overflow, so
+     the strip's height is invariant across keypad/keyboard swaps.
+     (scrollbar-gutter only reserves the BLOCK-axis band — it cannot fix
+     this axis.) The e2e layout gate injects `auto` as a negative control. */
+  overflow-x: scroll;
   overflow-y: hidden;
   border-radius: var(--radius-container);
 }
@@ -2736,6 +2744,11 @@ watch(viewerGcode, (newGcode) => {
     flex-direction: column;
     overflow-x: hidden;
     overflow-y: auto;
+    /* Portrait scrolls vertically: reserve the vertical band so hiding
+       sections (keypad open) never widens the inner column and re-flows
+       every control in it (the root box stayed 280 px — only the INNER
+       width moved, which a bounding-box compare cannot see, UI-08). */
+    scrollbar-gutter: stable;
     /* scroll axis is vertical here: top padding moves into the sticky
        SafetyStrip, left padding is restored (no horizontal scroll) */
     padding: 0 var(--gap-controls) var(--gap-controls) var(--gap-controls);
