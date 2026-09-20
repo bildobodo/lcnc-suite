@@ -31,6 +31,16 @@ interface ViewerDiag {
     outlinedParts: number;
     parts: { id: string; normalsVersion: number; position: number[]; color: string }[];
   };
+  // Camera gate (WP5): the default frame must start outside every non-stock
+  // part for every orbit direction — e2e/viewer.spec.ts drives these.
+  getCamera?: () => { position: number[]; target: number[]; near: number; far: number;
+    ortho: boolean; minDistance: number } | null;
+  getPartBounds?: () => { id: string; min: number[]; max: number[] }[];
+  getFrameBox?: () => { min: number[]; max: number[] } | null;
+  setView?: (preset: string) => void;
+  setViewDirection?: (dir: number[], distance?: number) => void;
+  switchProjection?: () => void;
+  defaultFrameDir?: number[];
   // Snapshot of THREE.WebGLRenderer.info — set when the renderer exists.
   // Returns null when there is no renderer yet (pre-init or after teardown).
   getRenderInfo?: () => {

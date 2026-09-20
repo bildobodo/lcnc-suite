@@ -47,6 +47,25 @@ entry — the backend pytest starts in `lcnc-gateway/` with
 wrong fixture expectation turns that entry red; `python3
 scripts/audit-scoped-css.py --paths <files…>` scans just the given files.
 
+## Camera gate (default framing only)
+
+`src/viewer/cameraFraming.ts` is the one rule for the default camera pose:
+target = the travel box's centre, eye distance = max(2.345 × maxDim,
+1.05 × model radius + near), where the model radius is the bounding sphere
+of every non-stock part about the target at the scene's pose. `viewer.spec.ts`
+(serial-viewer) drives a bed/column fixture far larger than its travel box
+through `window.__viewerDiag` (getCamera / getPartBounds / setView /
+setViewDirection / switchProjection) and asserts the eye is outside every
+part at the default frame, in all 26 ViewCube directions, after every
+preset, in both projections and at Reset's endpoint — plus a negative
+control (the old travel-box distance from diagonally below lands inside the
+bed). Unit tests: `cameraFraming.test.ts`.
+
+The promise is exactly that: the DEFAULT frame starts outside the model.
+Dolly, pan, later machine motion and the linear Reset tween between two
+poses are not covered — this is not a camera-collision system, and
+`polygonOffset` was left as it is.
+
 ## Browser layout regression checks
 
 Layout checks run automatically in `npm run test:e2e` and therefore in the

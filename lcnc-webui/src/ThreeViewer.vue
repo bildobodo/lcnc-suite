@@ -15,6 +15,7 @@ import { viewerInit, viewerGcode, status, emitTelemetry, previewRefresh, preview
 import { loadViewerDefaults, loadCameraDefaults, saveCameraDefaults, ALL_LAYERS, settingsVersion, type Vec3, type Layer } from "./defaults";
 import { INTERP_IDLE } from "./lcnc";
 import { fmtCoord, fmtProgressTimes, fmtRpm, fmtNum } from "./format";
+import { framePose as defaultFramePose, DEFAULT_FRAME_DIR } from "./viewer/cameraFraming";
 import { useAxes, DEFAULT_AXES } from "./useAxes";
 import { recordApply, recordRafTick, recordRender, setViewerPerfContext, setViewerPerfGl } from "./viewerPerf";
 import { disposeObject } from "./viewer/disposal";
@@ -624,18 +625,71 @@ function resetBackplot() {
   backplot.reset();
 }
 
+// ── Default framing (WP5, review C) ──
+// The radius of the machine MODEL (every non-stock mesh's world AABB
+// corners) about a point — measured after scene.updateMatrixWorld(true),
+// at the pose the scene is in. The travel box alone framed the XYZAC sim's
+// 0.4 m envelope 0.94 m away while its 2.2 m base lay under the eye.
+const _corner = new THREE.Vector3();
+function _modelRadiusAbout(center: THREE.Vector3): number {
+  scene.updateMatrixWorld(true);
+  let r = 0;
+  for (const mesh of machineMeshes) {
+    if (mesh.userData.stock) continue;
+    const geom = mesh.geometry;
+    if (!geom.boundingBox) geom.computeBoundingBox();
+    const bb = geom.boundingBox!;
+    for (let i = 0; i < 8; i++) {
+      _corner.set(i & 1 ? bb.max.x : bb.min.x, i & 2 ? bb.max.y : bb.min.y, i & 4 ? bb.max.z : bb.min.z);
+      _corner.applyMatrix4(mesh.matrixWorld);
+      r = Math.max(r, _corner.distanceTo(center));
+    }
+  }
+  return r;
+}
+
+/** World AABB per non-stock part — the e2e camera gate's "outside every
+ *  part" oracle (window.__viewerDiag.getPartBounds). */
+function _partWorldBounds(): { id: string; min: number[]; max: number[] }[] {
+  scene.updateMatrixWorld(true);
+  const out: { id: string; min: number[]; max: number[] }[] = [];
+  const box = new THREE.Box3();
+  for (const mesh of machineMeshes) {
+    if (mesh.userData.stock) continue;
+    box.setFromObject(mesh);
+    out.push({ id: String(mesh.userData.partId), min: box.min.toArray(), max: box.max.toArray() });
+  }
+  return out;
+}
+
+/** The ONE default pose for a travel box: target = its centre, eye along
+ *  the default direction at max(travel rule, model sphere + near), near/far
+ *  and the orbit floor from cameraFraming.ts — for both projections. */
+function _framePose(box: THREE.Box3) {
+  const size = new THREE.Vector3(); box.getSize(size);
+  const center = new THREE.Vector3(); box.getCenter(center);
+  const maxDim = Math.max(size.x, size.y, size.z);
+  const radius = _modelRadiusAbout(center);
+  const pose = defaultFramePose([center.x, center.y, center.z], maxDim, radius);
+  return { center, maxDim, radius, pose, position: new THREE.Vector3(...pose.position) };
+}
+
+function _applyFrameLimits(near: number, far: number, minDistance: number) {
+  if (!camera || !controls) return;
+  camera.near = near;
+  camera.far = far;
+  controls.minDistance = minDistance;
+}
+
 // Frame camera to show the given bounding box.
 // Handles both PerspectiveCamera (moves camera) and OrthographicCamera (sets frustum).
 function frameToBounds(box: THREE.Box3) {
   if (!camera || !controls || box.isEmpty()) return;
-  const size = new THREE.Vector3(); box.getSize(size);
-  const center = new THREE.Vector3(); box.getCenter(center);
-  const maxDim = Math.max(size.x, size.y, size.z);
+  const { center, maxDim, pose, position } = _framePose(box);
 
   controls.target.copy(center);
   camera.up.set(0, 0, 1);
-  camera.near = Math.max(0.1, maxDim / 1000);
-  camera.far  = Math.max(200000, maxDim * 20);
+  _applyFrameLimits(pose.near, pose.far, pose.minDistance);
 
   if (camera instanceof THREE.OrthographicCamera) {
     const aspect = host.value ? (host.value.clientWidth / host.value.clientHeight) || 1 : 1;
@@ -643,11 +697,8 @@ function frameToBounds(box: THREE.Box3) {
     camera.top    =  halfH;  camera.bottom = -halfH;
     camera.right  =  halfH * aspect; camera.left = -halfH * aspect;
     camera.zoom   = 1;
-    camera.position.set(center.x + maxDim, center.y - maxDim, center.z + maxDim);
-  } else {
-    // 1.5× offset → distance ≈ 2.35 × maxDim, fills ~90% of 45° FOV
-    camera.position.set(center.x + maxDim * 1.5, center.y - maxDim * 1.5, center.z + maxDim);
   }
+  camera.position.copy(position);
 
   camera.updateProjectionMatrix();
   controls.update();
@@ -749,17 +800,16 @@ let _frameTween: FrameTween | null = null;
 
 function tweenFrameToBounds(box: THREE.Box3) {
   if (!camera || !controls || box.isEmpty()) return;
-  const size = new THREE.Vector3(); box.getSize(size);
-  const center = new THREE.Vector3(); box.getCenter(center);
-  const maxDim = Math.max(size.x, size.y, size.z);
+  const { center, maxDim, pose, position } = _framePose(box);
 
   // near/far don't need lerping — they only affect culling planes. Set immediately.
-  camera.near = Math.max(0.1, maxDim / 1000);
-  camera.far  = Math.max(200000, maxDim * 20);
+  // The ENDPOINT is the default pose (outside the model); the linear path
+  // between the current eye and it is not certified — see cameraFraming.ts.
+  _applyFrameLimits(pose.near, pose.far, pose.minDistance);
 
   const tgtEnd = center.clone();
   const upEnd = new THREE.Vector3(0, 0, 1);
-  let posEnd: THREE.Vector3;
+  const posEnd: THREE.Vector3 = position;
   let ortho: FrameTween["ortho"] = null;
 
   if (camera instanceof THREE.OrthographicCamera) {
@@ -772,9 +822,6 @@ function tweenFrameToBounds(box: THREE.Box3) {
       leftStart: camera.left, leftEnd: -halfH * aspect,
       zoomStart: camera.zoom, zoomEnd: 1,
     };
-    posEnd = new THREE.Vector3(center.x + maxDim, center.y - maxDim, center.z + maxDim);
-  } else {
-    posEnd = new THREE.Vector3(center.x + maxDim * 1.5, center.y - maxDim * 1.5, center.z + maxDim);
   }
 
   _frameTween = {
@@ -1524,6 +1571,7 @@ async function buildFromInit(init: ViewerInit) {
 
       const mesh = new THREE.Mesh(geom, mat);
       mesh.userData.partId = p.id;  // tag for live color updates
+      mesh.userData.stock = !!p.stock;  // excluded from the default-framing model sphere
       const t = p.translate ?? p.t;
       if (t) mesh.position.set(t[0] * _unitScale, t[1] * _unitScale, t[2] * _unitScale);
       const r = p.rotate ?? p.r;
@@ -1568,6 +1616,29 @@ async function buildFromInit(init: ViewerInit) {
         meshCount: machineMeshes.length,
         boundsValid: !autoBox.isEmpty(),
         timestamp: Date.now(),
+        // Camera gate (WP5): where the eye is, where the parts are, and the
+        // same view entry points the ViewCube / presets use.
+        getCamera: () => camera && controls ? {
+          position: camera.position.toArray(), target: controls.target.toArray(),
+          near: camera.near, far: camera.far, ortho: camera instanceof THREE.OrthographicCamera,
+          minDistance: controls.minDistance,
+        } : null,
+        getPartBounds: _partWorldBounds,
+        getFrameBox: () => { const b = _boundsWorldBox(); return b ? { min: b.min.toArray(), max: b.max.toArray() } : null; },
+        setView: (p: string) => setView(p as ViewPreset),
+        setViewDirection: (dir: number[], distance?: number) => {
+          if (!camera || !controls) return;
+          if (distance != null) {
+            const d = new THREE.Vector3(dir[0]!, dir[1]!, dir[2]!).normalize();
+            camera.position.copy(controls.target).addScaledVector(d, distance);
+            controls.update();
+            requestRender();
+            return;
+          }
+          applyViewDirection(new THREE.Vector3(dir[0]!, dir[1]!, dir[2]!), new THREE.Vector3(0, 0, 1), false);
+        },
+        switchProjection,
+        defaultFrameDir: [...DEFAULT_FRAME_DIR],
         getAppearance: () => ({
           grid: groundGrid ? {
             visible: groundGrid.visible,
