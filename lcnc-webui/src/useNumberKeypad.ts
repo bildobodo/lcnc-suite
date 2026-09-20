@@ -50,7 +50,14 @@ export function newKeypadOwnerId(prefix = 'field'): string {
   return `${prefix}-${++_ownerSeq}`;
 }
 
+// inputSession.ts registers here so a number keypad opening ends any text
+// helper (one helper at a time) — a callback, not an import, because that
+// module imports this one.
+let _onOpen: (() => void) | null = null;
+export function onKeypadOpen(cb: () => void): void { _onOpen = cb; }
+
 export function openKeypad(opts: KeypadOpts): void {
+  _onOpen?.();
   keypadState.label = opts.label ?? '';
   keypadState.context = opts.context ?? '';
   keypadState.ownerId = opts.ownerId ?? newKeypadOwnerId('anon');

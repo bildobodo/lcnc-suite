@@ -3,6 +3,7 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import type { CollisionLineMark } from "./viewer/collision";
 import { listFiles, uploadFile, saveFile, fetchSubfile, UploadConflictError, type FileEntry } from "./lcncApi";
 import { registerModal } from "./modalRegistry";
+import { openTextSession, closeTextSessionIf, inputSession, EDITOR_OWNER, type TextTarget } from "./inputSession";
 import { splitSubLines, expansionAllowed, totalRows, rowAt, rowForMain, rowForSub, type SubExpansion } from "./subRows";
 import { usePermissions } from "./permissions";
 import { loadMachineDefaults, saveMachineDefaults, settingsVersion, STEP_RPM } from "./defaults";
@@ -565,7 +566,7 @@ const editorHost = ref<HTMLDivElement | null>(null);
 const saving = ref(false);
 const saveError = ref<string | null>(null);
 let _editorView: any = null;
-let _deleteCharBackward: any = null;
+let _cm: { deleteCharBackward: any; undo: any; redo: any; cursorCharLeft: any; cursorCharRight: any; insertTab: any } | null = null;
 
 // ── Edit SESSION (WP0, UI-01) ──
 // The buffer belongs to the file it was opened on, never to "the loaded
@@ -609,14 +610,14 @@ async function enterEdit() {
   try {
     // Dynamic import: CM6 stays out of the initial bundle (P6 pattern) — it loads
     // only when someone actually edits.
-    const [{ EditorState }, { EditorView, keymap, lineNumbers }, { defaultKeymap, history, historyKeymap, deleteCharBackward }, { gcodeEditorLanguage }] =
+    const [{ EditorState }, { EditorView, keymap, lineNumbers }, { defaultKeymap, history, historyKeymap, deleteCharBackward, undo, redo, cursorCharLeft, cursorCharRight, insertTab }, { gcodeEditorLanguage }] =
       await Promise.all([
         import("@codemirror/state"),
         import("@codemirror/view"),
         import("@codemirror/commands"),
         import("./gcodeCmLanguage"),
       ]);
-    _deleteCharBackward = deleteCharBackward;
+    _cm = { deleteCharBackward, undo, redo, cursorCharLeft, cursorCharRight, insertTab };
     // Bound to the SESSION, not to props.activeFile: an external program
     // change during the import leaves session A valid (its view is created
     // with A's text and the conflict banner shows); only a discarded or
@@ -645,6 +646,10 @@ async function enterEdit() {
     // Focus on entry so the caret is visible immediately — without this
     // there is no insertion-point indication until the first tap/click.
     _editorView.focus();
+    // The editor is a CODE target of the strip keyboard from the moment it
+    // exists (Edit is the deliberate act); a tap into it re-opens a closed
+    // helper (WP8).
+    openEditorSession();
   } catch (e: any) {
     // No silent empty editor: a failed chunk load (offline, stale deploy) left
     // edit mode open with nothing in it and no message. Surface in the banner.
@@ -661,20 +666,27 @@ function _destroyEditor() {
   _editorView = null;
 }
 
-// ── G-code keypad strip routing (App calls these while editing) ──
-function keypadInsert(text: string) {
-  const v = _editorView;
-  if (!v) return;
-  v.dispatch(v.state.replaceSelection(text));
-  v.focus();
+// ── The editor as a text-keyboard target (WP8) ──
+function editorTarget(): TextTarget {
+  const v = () => _editorView;
+  return {
+    insert(text) { const e = v(); if (!e) return; e.dispatch(e.state.replaceSelection(text)); e.focus(); },
+    backspace() { const e = v(); if (!e || !_cm) return; _cm.deleteCharBackward(e); e.focus(); },
+    enter() { const e = v(); if (!e) return; e.dispatch(e.state.replaceSelection("\n")); e.focus(); },
+    moveCursor(d) { const e = v(); if (!e || !_cm) return; (d < 0 ? _cm.cursorCharLeft : _cm.cursorCharRight)(e); e.focus(); },
+    undo() { const e = v(); if (!e || !_cm) return; _cm.undo(e); e.focus(); },
+    redo() { const e = v(); if (!e || !_cm) return; _cm.redo(e); e.focus(); },
+    tab() { const e = v(); if (!e || !_cm) return; _cm.insertTab(e); e.focus(); },
+    canConfirm: () => editing.value && !!_editorView,
+  };
 }
-function keypadBackspace() {
-  const v = _editorView;
-  if (!v || !_deleteCharBackward) return;
-  _deleteCharBackward(v);
-  v.focus();
+function openEditorSession() {
+  if (!editing.value || !_editorView) return;
+  openTextSession({ ownerId: EDITOR_OWNER, kind: "code", context: `Editor · ${sessionName.value}`, target: editorTarget(), enterLabel: "newline" });
 }
-defineExpose({ keypadInsert, keypadBackspace });
+function onEditorPointerUp() {
+  if (editing.value && _editorView && !(inputSession.kind && inputSession.ownerId === EDITOR_OWNER)) openEditorSession();
+}
 
 // Discard asks first when the buffer differs from what was opened; a clean
 // buffer closes at once.
@@ -682,6 +694,7 @@ const showDiscardConfirm = ref(false);
 registerModal(showDiscardConfirm);
 
 function _endSession() {
+  closeTextSessionIf(EDITOR_OWNER);
   editing.value = false;
   saveError.value = null;
   _session = null;
@@ -861,7 +874,7 @@ async function saveEdit() {
             <MachineBtn type="inline" @click="discardEdit">Discard</MachineBtn>
           </span>
         </div>
-        <div ref="editorHost" class="editorHost"></div>
+        <div ref="editorHost" class="editorHost" :data-input-area="EDITOR_OWNER" @pointerup="onEditorPointerUp"></div>
         <div class="editActions">
           <MachineBtn type="fileSave" class="actionBtn" @click="saveEdit" :disabled="saving">{{ saving ? 'Saving...' : 'Save' }}</MachineBtn>
           <MachineBtn type="fileOp" class="actionBtn" @click="discardEdit" :disabled="saving">Discard</MachineBtn>

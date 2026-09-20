@@ -149,7 +149,7 @@ export async function enterStripState(page: Page, profile: Profile, state: Strip
     case 'gcode-keypad':
       await page.getByRole('button', { name: 'MDI', exact: true }).click();
       await page.locator('.mdiInput').click();
-      await expect(page.locator('.gkStrip')).toBeVisible();
+      await expect(page.locator('.tkStrip')).toBeVisible();
       break;
     case 'macro-bar':
       await ctl({ op: 'raw', frame: { type: 'settings_init', settings: { macros: MACRO_FIXTURE } } });
@@ -189,7 +189,7 @@ export async function leaveStripState(page: Page, profile: Profile, state: Strip
     case 'gcode-keypad':
       // A pointerdown outside the MDI tab and the keyboard ends the session.
       await page.locator('header.hdr').dispatchEvent('pointerdown', { button: 0 });
-      await expect(page.locator('.gkStrip')).toHaveCount(0);
+      await expect(page.locator('.tkStrip')).toHaveCount(0);
       await page.getByRole('button', { name: 'Program', exact: true }).click();
       break;
     case 'macro-bar':

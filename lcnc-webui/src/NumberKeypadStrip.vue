@@ -2,6 +2,7 @@
 import { ref, computed, watch, nextTick, onMounted } from 'vue';
 import { keypadState, closeKeypad } from './useNumberKeypad';
 import { evaluate, fmtEval, validateEntry } from './mathEval';
+import { saveDraft, takeDraft, dropDraft } from './inputSession';
 import { armed } from './lcncWs';
 import MachineBtn from './MachineBtn.vue';
 
@@ -21,9 +22,26 @@ watch(armed, (isArmed) => { if (!isArmed) cancel(); });
 // and take keyboard focus even when it's already open and the new field has
 // the same value as the old one (retargeting between fields in the owner
 // section, e.g. zero-to-zero).
+// Drafts (UI-15): retargeting from number A to number B files A's edited,
+// unconfirmed expression; re-opening A offers it back, marked "draft".
+let _owner = '';
+let _dirty = false;
+const isDraft = ref(false);
 function loadFromState() {
-  expr.value = keypadState.initial;
-  replacing.value = !!keypadState.initial; // only replace when pre-populated
+  if (_owner && _owner !== keypadState.ownerId && _dirty) saveDraft(_owner, expr.value);
+  _owner = keypadState.ownerId;
+  const draft = _owner ? takeDraft(_owner) : null;
+  if (draft !== null) {
+    expr.value = draft;
+    isDraft.value = true;
+    replacing.value = false;
+    _dirty = true;
+  } else {
+    expr.value = keypadState.initial;
+    isDraft.value = false;
+    replacing.value = !!keypadState.initial; // only replace when pre-populated
+    _dirty = false;
+  }
   nextTick(() => rootEl.value?.focus());
 }
 onMounted(loadFromState);
@@ -69,15 +87,17 @@ const displayExpr = computed(() =>
 // ── Keypad actions ──────────────────────────────────────────────────────────
 
 function append(s: string) {
+  _dirty = true;
   if (replacing.value) { expr.value = s; replacing.value = false; return; }
   expr.value += s;
 }
 
-function del() { replacing.value = false; expr.value = expr.value.slice(0, -1); }
+function del() { _dirty = true; replacing.value = false; expr.value = expr.value.slice(0, -1); }
 
-function clear() { replacing.value = false; expr.value = ''; }
+function clear() { _dirty = true; replacing.value = false; expr.value = ''; }
 
 function negate() {
+  _dirty = true;
   replacing.value = false;
   if (!expr.value) { expr.value = '-'; return; }
   if (expr.value.startsWith('-')) {
@@ -115,6 +135,7 @@ function confirm() {
     return;
   }
   const onConfirm = keypadState.onConfirm;
+  dropDraft(_owner); _dirty = false; isDraft.value = false;
   closeKeypad();
   onConfirm?.(v.value);
   returnFocus();
@@ -122,12 +143,13 @@ function confirm() {
 
 function cancel() {
   const onCancel = keypadState.onCancel;
+  dropDraft(_owner); _dirty = false; isDraft.value = false;
   closeKeypad();
   onCancel?.();
   returnFocus();
 }
 
-// Same press pattern as GcodeKeypadStrip: keys act on pointerdown with
+// Same press pattern as TextKeypadStrip: keys act on pointerdown with
 // preventDefault — snappier on touch, and focus stays on the keypad root
 // so physical-keyboard input keeps working between taps.
 function press(e: PointerEvent, fn: () => void) {
@@ -160,6 +182,7 @@ function onKeydown(e: KeyboardEvent) {
     ref="rootEl"
     class="stripSection nkStrip"
     tabindex="-1"
+    :data-input-area="keypadState.ownerId"
     @keydown="onKeydown"
   >
     <div class="sub">{{ heading }}</div>
@@ -169,6 +192,7 @@ function onKeydown(e: KeyboardEvent) {
          expression never moves when the preview appears, and an
          overflowing expression clips at its left (oldest) end. -->
     <div class="inputField nkDisplay row-tight">
+      <span v-if="isDraft" class="nkPreview label-muted" data-draft>draft</span>
       <span class="nkPreview" :class="{ invalid: previewInvalid }">{{ previewText }}</span>
       <span class="nkExpr">{{ displayExpr }}</span>
     </div>
@@ -232,7 +256,7 @@ function onKeydown(e: KeyboardEvent) {
   color: var(--danger);
   opacity: var(--opacity-secondary);
 }
-/* Fixed --key-size square keys (shared with GcodeKeypadStrip) — identical
+/* Fixed --key-size square keys (shared with TextKeypadStrip) — identical
    in both orientations. Actions live in the same grid, explicitly placed
    in a 6th column; keys auto-place around them. */
 .nkGrid {

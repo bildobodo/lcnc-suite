@@ -12,15 +12,16 @@
 // the DOM's `.dialogOverlay` count with `modalCount` (self-test): a dialog
 // that forgot to register shows up as a mismatch, never as a silent gap.
 import { computed, getCurrentInstance, onUnmounted, ref, watch, type Ref } from "vue";
-import { keypadState } from "./useNumberKeypad";
+import { helperOpen } from "./inputSession";
 
 const openCount = ref(0);
 
 /** Number of registered dialogs currently open (keypad excluded). */
 export const modalCount = computed(() => openCount.value);
 
-/** True while any registered dialog or the number keypad is open. */
-export const modalOpen = computed(() => openCount.value > 0 || keypadState.open);
+/** True while any registered dialog or an input helper (number keypad or
+ *  text keyboard) is open. */
+export const modalOpen = computed(() => openCount.value > 0 || helperOpen.value);
 
 /**
  * Register a dialog's open state. Call from a component's setup; the entry

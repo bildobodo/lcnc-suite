@@ -19,8 +19,7 @@ import SafetyStrip from "./SafetyStrip.vue";
 import JogStrip from "./JogStrip.vue";
 import StatsDonut from "./StatsDonut.vue";
 import SetupStrip from "./SetupStrip.vue";
-import GcodeKeypadStrip from "./GcodeKeypadStrip.vue";
-import { isTouchDevice } from "./touchDetect";
+import TextKeypadStrip from "./TextKeypadStrip.vue";
 import OverridesStrip from "./OverridesStrip.vue";
 import SpindleStrip from "./SpindleStrip.vue";
 import ToolStrip from "./ToolStrip.vue";
@@ -39,6 +38,7 @@ import { Settings, MessageSquare, PowerOff, Gamepad2, Keyboard, BookOpen, Clipbo
 import GcodeReferenceDialog from "./GcodeReferenceDialog.vue";
 import NumberKeypadStrip from "./NumberKeypadStrip.vue";
 import { keypadState } from "./useNumberKeypad";
+import { activeKind, openTextSession, closeTextSessionIf, lockTextSessionIf, EDITOR_OWNER, type TextTarget } from "./inputSession";
 import { loadViewerDefaults, saveViewerDefaults, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadGamepadDefaults, saveGamepadDefaults, settingsVersion, type ThemeMode, type GamepadDefaults, type Layer, type TrackMode, type Projection } from "./defaults";
 import { buildToolsetterVarMap } from "./toolsetterVars";
 import { useGamepad } from "./useGamepad";
@@ -327,27 +327,20 @@ const {
   // `mdi` call site (issue #31 — it was raw here and gated at every other).
 } = useMdiHistory({ fire: (c) => { fire(c, 'ready'); } });
 
-// ── G-code keypad strip (touch text entry for MDI + G-code editor) ──
-// Shown in the bottom strip in place of Jog/Overrides/Spindle/Tool while
-// the MDI field is focused or the editor is open; Safety and Setup stay.
-// Keypad keys fire on pointerdown.prevent, so pressing them never blurs
-// the MDI input. MDI focus wins over an open editor (last interaction).
-const mdiKeypadActive = ref(false);
+// ── Input helpers in the bottom strip (WP8, UI-15) ──
+// ONE session (inputSession.ts): the number keypad OR the text/code
+// keyboard, owned by one target. The strip is derived from it alone —
+// `mdiKeypadActive` / `gcodeEditActive` / `keypadState.open` used to be
+// three competing truths (an open number keypad hid the code keyboard even
+// with an active text target). The editor still reports `editingChange` for
+// the keyboard-shortcut guard (Cycle Start never runs an edited buffer).
 const gcodeEditActive = ref(false);
-// Editor mode requires the Program tab to be VISIBLE — an editor left open
-// in a background tab must not hold the strip hostage (operator-reported:
-// "setup does not come back"). It re-appears when the tab does.
-const gcodeKeypadMode = computed<"mdi" | "editor" | null>(() =>
-  mdiKeypadActive.value ? "mdi"
-  : gcodeEditActive.value && activeTab.value === "gcode" ? "editor"
-  : null
-);
 
-// Number keypad swap-in: like the G-code keypad, it replaces the strip
-// sections — except the section that owns the trigger field (identified by
-// the data-strip attribute on each strip component), which stays visible so
-// the operator keeps context and can retarget between its fields. Sidepanel/
-// dialog triggers have no owning section → only SafetyStrip + keypad remain.
+// Number keypad swap-in: it replaces the strip sections except the section
+// that owns the trigger field (data-strip on each strip component), which
+// stays visible so the operator keeps context and can retarget between its
+// fields. Sidepanel/dialog triggers have no owning section → only
+// SafetyStrip + keypad remain. The text keyboard replaces every section.
 const numKeypadOwner = computed(() =>
   keypadState.open
     ? keypadState.trigger?.closest("[data-strip]")?.getAttribute("data-strip") ?? null
@@ -357,22 +350,12 @@ const numKeypadOwner = computed(() =>
 // section hidden, it lands directly right of the owner (or of SafetyStrip)
 // without any reordering logic.
 function stripVis(section: string): boolean {
-  if (gcodeKeypadMode.value) return false;
-  if (!keypadState.open) return true;
-  return numKeypadOwner.value === section;
+  const k = activeKind.value;
+  if (k === "code" || k === "text") return false;
+  if (k === "number") return numKeypadOwner.value === section;
+  return true;
 }
 
-// MDI keypad dismissal: blur alone can't close it — tapping empty space
-// doesn't move focus off the input (only focusable targets do), so a
-// document-level tap anywhere outside the MDI tab and the keypad ends the
-// session explicitly.
-function onDocPointerDownDismissKeypad(e: PointerEvent) {
-  if (!mdiKeypadActive.value) return;
-  const t = e.target as HTMLElement | null;
-  if (t?.closest(".gkStrip, .mdiTab")) return;
-  mdiKeypadActive.value = false;
-  _mdiInputEl()?.blur();
-}
 const mdiInputRef = ref<any>(null);
 const gcodePanelRef = ref<any>(null);
 
@@ -382,39 +365,52 @@ function _mdiInputEl(): HTMLInputElement | null {
   return el?.querySelector?.("input") ?? null;
 }
 
-function gkInsert(text: string) {
-  if (gcodeKeypadMode.value === "editor") { gcodePanelRef.value?.keypadInsert(text); return; }
-  const el = _mdiInputEl();
-  const cur = mdiText.value;
-  const start = el?.selectionStart ?? cur.length;
-  const end = el?.selectionEnd ?? cur.length;
-  mdiText.value = cur.slice(0, start) + text + cur.slice(end);
-  nextTick(() => {
-    const p = start + text.length;
-    el?.setSelectionRange(p, p);
-  });
+// The MDI line as a CODE target: Enter = Send (the gated MDI path), Clr
+// clears the line; the physical keyboard keeps working in parallel.
+const MDI_OWNER = "mdi-input";
+function mdiTarget(): TextTarget {
+  return {
+    insert(text) {
+      const el = _mdiInputEl();
+      const cur = mdiText.value;
+      const start = el?.selectionStart ?? cur.length;
+      const end = el?.selectionEnd ?? cur.length;
+      mdiText.value = cur.slice(0, start) + text + cur.slice(end);
+      nextTick(() => { const p = start + text.length; el?.setSelectionRange(p, p); });
+    },
+    backspace() {
+      const el = _mdiInputEl();
+      const cur = mdiText.value;
+      let start = el?.selectionStart ?? cur.length;
+      const end = el?.selectionEnd ?? cur.length;
+      if (start === end && start > 0) start -= 1;
+      if (start === end) return;
+      mdiText.value = cur.slice(0, start) + cur.slice(end);
+      nextTick(() => el?.setSelectionRange(start, start));
+    },
+    enter() { handleMdiSend(); },
+    clear() { mdiText.value = ""; },
+    moveCursor(d) {
+      const el = _mdiInputEl();
+      if (!el) return;
+      const p = Math.max(0, Math.min(mdiText.value.length, (el.selectionStart ?? 0) + d));
+      el.setSelectionRange(p, p);
+    },
+    canConfirm: () => !!permissions.value.ready,
+  };
 }
-
-function gkBackspace() {
-  if (gcodeKeypadMode.value === "editor") { gcodePanelRef.value?.keypadBackspace(); return; }
-  const el = _mdiInputEl();
-  const cur = mdiText.value;
-  let start = el?.selectionStart ?? cur.length;
-  const end = el?.selectionEnd ?? cur.length;
-  if (start === end && start > 0) start -= 1;
-  if (start === end) return;
-  mdiText.value = cur.slice(0, start) + cur.slice(end);
-  nextTick(() => el?.setSelectionRange(start, start));
+function openMdiSession() {
+  if (!permissions.value.ready) return;
+  openTextSession({ ownerId: MDI_OWNER, kind: "code", context: "MDI", target: mdiTarget(), enterLabel: "Send" });
 }
-
-function gkEnter() {
-  if (gcodeKeypadMode.value === "editor") { gcodePanelRef.value?.keypadInsert("\n"); return; }
-  handleMdiSend();
-}
-
-function gkClear() {
-  if (gcodeKeypadMode.value === "mdi") mdiText.value = "";
-}
+// Gate closes → the MDI session ends (its value could not be sent anyway).
+watch(() => permissions.value.ready, (ok) => { if (!ok) closeTextSessionIf(MDI_OWNER, "MDI unavailable"); });
+// Hidden-but-mounted owners (tab switch): the editor's and the MDI line's
+// sessions LOCK while their tab is not visible — helper hidden, draft kept.
+watch(activeTab, (tab) => {
+  lockTextSessionIf(EDITOR_OWNER, tab !== "gcode");
+  lockTextSessionIf(MDI_OWNER, tab !== "mdi");
+});
 
 // Viewer state (initialized from saved defaults, persisted on every change)
 const viewerLayers = reactive<Record<Layer, boolean>>({ ..._vd.layers });
@@ -1069,13 +1065,11 @@ function checkAutoDisarm() {
 onMounted(() => {
   document.addEventListener("pointerdown", noteActivity, { capture: true, passive: true });
   document.addEventListener("keydown", noteActivity, { capture: true, passive: true });
-  document.addEventListener("pointerdown", onDocPointerDownDismissKeypad, { capture: true, passive: true });
   autoDisarmTimer = window.setInterval(checkAutoDisarm, 30_000);
 });
 onUnmounted(() => {
   document.removeEventListener("pointerdown", noteActivity, true);
   document.removeEventListener("keydown", noteActivity, true);
-  document.removeEventListener("pointerdown", onDocPointerDownDismissKeypad, true);
   clearInterval(autoDisarmTimer);
 });
 
@@ -1114,7 +1108,7 @@ onMounted(attachScrollFades);
 watch(() => userMacros.value.length, () => nextTick(attachScrollFades));
 // Strip content swaps (keypad in/out) change scrollWidth without resizing
 // the strip itself — re-check the edge fades.
-watch([gcodeKeypadMode, () => keypadState.open], () => nextTick(attachScrollFades));
+watch(activeKind, () => nextTick(attachScrollFades));
 onUnmounted(() => {
   fadeRo?.disconnect();
   fadeRo = null;
@@ -1857,12 +1851,11 @@ watch(viewerGcode, (newGcode) => {
                   type="text"
                   class="mdiInput"
                   :value="mdiText"
-                  :inputmode="isTouchDevice ? 'none' : undefined"
+                  :session-owner="MDI_OWNER"
+                  :session-open="openMdiSession"
                   @input="mdiText = ($event.target as HTMLInputElement).value"
                   @keyup.enter="handleMdiSend"
                   @keydown="onMdiKeydown"
-                  @focus="mdiKeypadActive = true"
-                  @blur="mdiKeypadActive = false"
                   placeholder="G-code command (↑↓ history)"
                 />
                 <MachineBtn type="mdi" @click="handleMdiSend">Send</MachineBtn>
@@ -2274,20 +2267,12 @@ watch(viewerGcode, (newGcode) => {
         @goToZero="fire({ cmd: 'go_to_zero' }, 'goZero')"
       />
 
-      <!-- G-code keypad: replaces every strip section except SafetyStrip
-           while the MDI field is focused or the G-code editor is open —
-           none of them are usable mid-typing, and the active WCS stays
-           visible in the HUD. SafetyStrip is pinned first, so nothing
-           shifts when the keypad swaps in/out. -->
-      <GcodeKeypadStrip
-        v-if="gcodeKeypadMode && !keypadState.open"
-        :axes="axes"
-        :mode="gcodeKeypadMode"
-        @key="gkInsert"
-        @backspace="gkBackspace"
-        @enter="gkEnter"
-        @clear="gkClear"
-      />
+      <!-- Text/code keyboard: replaces every strip section except
+           SafetyStrip while a text session is open (MDI line, editor,
+           search/description fields) — none of them are usable mid-typing,
+           and the active WCS stays visible in the HUD. SafetyStrip is
+           pinned first, so nothing shifts when the keyboard swaps in/out. -->
+      <TextKeypadStrip v-if="activeKind === 'code' || activeKind === 'text'" :axes="axes" />
 
       <OverridesStrip
         v-show="stripVis('overrides')"

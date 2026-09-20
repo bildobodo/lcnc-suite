@@ -731,6 +731,30 @@ label:has(input:disabled, select:disabled) {
    carries the reason: title for hover, click for touch (MachineBtn). The
    disabled child is taken out of hit-testing so the wrapper always receives
    the event, in every browser. Promoted from ScrubBar's scoped rule. */
+/* Keyboard glyph beside a FOCUSED text field on non-touch devices (WP8,
+   UI-15a): opens the on-screen keyboard explicitly — opening is never bound
+   to focus. MachineInput anchors it through a body Teleport at the field's
+   right edge, so the field's own layout never changes. */
+.inputAction {
+  position: fixed;
+  z-index: var(--z-float);
+  transform: translate(-100%, -50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  color: var(--fg);
+  opacity: var(--opacity-secondary);
+  cursor: pointer;
+}
+.inputAction:hover,
+.inputAction:focus-visible { opacity: 1; background: var(--hl-hover); }
+
 /* Transient hint at a control (WP6, review "Hold verständlich"): a short tap
    on a hold-to-fire button says "Hold to activate", a click that the busy
    latch dropped says "Busy — try again" — for ~1.5 s, above the control.
