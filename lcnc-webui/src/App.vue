@@ -32,7 +32,7 @@ import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineInput from "./MachineInput.vue";
 import { highlightGcode } from "./gcodeHighlight";
-import { fmtElapsed, fmtDuration, fmtDist, fmtSize, fmtProgressTimes } from "./format";
+import { fmtElapsed, fmtDuration, fmtDist, fmtSize, fmtProgressTimes, fmtNum } from "./format";
 import type { GcodeStats } from "./GcodePanel.vue";
 import type { LimitViolation } from "./ws/bulkData";
 import { Settings, MessageSquare, PowerOff, Gamepad2, Keyboard, BookOpen, ClipboardCopy, Expand, Shrink } from "lucide-vue-next";
@@ -2018,7 +2018,7 @@ watch(viewerGcode, (newGcode) => {
           <div class="dialogTitle">{{ !toolChangeTool ? 'Remove Tool from Spindle' : 'Load Tool into Spindle' }}</div>
           <div class="dialogBody">
             <template v-if="toolChangeTool">
-              <strong>T{{ toolChangeTool }}</strong><template v-if="st.tool_change_info"> D{{ st.tool_change_info.D?.toFixed(3) ?? '—' }} Z{{ st.tool_change_info.Z?.toFixed(3) ?? '—' }}</template><br>
+              <strong>T{{ toolChangeTool }}</strong><template v-if="st.tool_change_info"> D{{ fmtNum(st.tool_change_info.D, 3) }} Z{{ fmtNum(st.tool_change_info.Z, 3) }}</template><br>
               <template v-if="st.tool_change_info?.description">{{ st.tool_change_info.description }}<br></template>
               Insert tool and press Confirm
             </template>
@@ -2077,7 +2077,7 @@ watch(viewerGcode, (newGcode) => {
             </template>
             <template v-else-if="st.eoffset_z != null">
               Z axis will move by approximately
-              <strong>{{ (st.eoffset_z * -1).toFixed(4) }}</strong> mm.<br>
+              <strong>{{ fmtNum(st.eoffset_z * -1, 4) }}</strong> mm.<br>
               Ensure tool is clear of the workpiece.
             </template>
             <template v-else>

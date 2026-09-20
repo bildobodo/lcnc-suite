@@ -795,7 +795,7 @@ async function saveEdit() {
       </div>
       <span class="progressLabel">
         <span class="val-slot" :style="{ '--slot-w': lineDigits + 'ch' }">{{ currentLine ?? 0 }}</span> / {{ lineCount }}
-        <span class="progressPct">(<span class="val-slot pctSlot">{{ progressPercent.toFixed(0) }}</span>%)</span>
+        <span class="progressPct">(<span class="val-slot pctSlot">{{ Math.round(progressPercent) }}</span>%)</span>
       </span>
       <!-- Attributed span (W4): a non-null currentLine alongside subName can
            only be the sub's call/trigger line (a trusted own-line point is

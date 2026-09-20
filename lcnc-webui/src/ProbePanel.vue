@@ -1159,7 +1159,7 @@ function fmtR(key: string): string {
             <span class="compDot" :class="{ on: eoffsetEnabled }"></span>
             <span>Compensation: <b class="stable-width"><span :class="{ alt: !eoffsetEnabled }">ON</span><span :class="{ alt: eoffsetEnabled }">OFF</span></b></span>
           </div>
-          <span v-if="eoffsetZ != null" class="compValue mono">Z: {{ eoffsetZ.toFixed(4) }}</span>
+          <span v-if="eoffsetZ != null" class="compValue mono">Z: {{ fmtNum(eoffsetZ, 4) }}</span>
           <div class="sep"></div>
           <div class="sub">Method</div>
           <div class="radioGroup">

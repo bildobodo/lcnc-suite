@@ -1,0 +1,110 @@
+"""Pins scripts/audit-scoped-css.py against fixtures (WP2, UI-06).
+
+Every category has a hit AND a non-hit fixture, the template range is
+nesting-aware, and the production sources must scan clean. Runs inside the
+offline gate as the explicit `audit-css` entry of scripts/test_suite.py
+(pytest in lcnc-gateway/ has testpaths=["."] and never discovers scripts/).
+
+    python3 -m pytest scripts/test_audit_scoped_css.py
+"""
+from __future__ import annotations
+
+import importlib.util
+from pathlib import Path
+
+import pytest
+
+ROOT = Path(__file__).resolve().parent.parent
+FIXTURES = ROOT / "scripts/test_fixtures/audit_css"
+STYLE = ROOT / "lcnc-webui/src/style.css"
+
+
+def _load():
+    spec = importlib.util.spec_from_file_location("audit_scoped_css", ROOT / "scripts/audit-scoped-css.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+@pytest.fixture(scope="module")
+def audit():
+    return _load()
+
+
+def _drift(audit, name: str):
+    _, drift, _ = audit.run([FIXTURES / name], style=STYLE)
+    return [(cat, ln) for cat, _f, ln, _msg in drift]
+
+
+def _cats(audit, name: str):
+    return sorted(cat for cat, _ in _drift(audit, name))
+
+
+def test_template_range_is_nesting_aware(audit):
+    rng = audit.template_range(str(FIXTURES / "nested_template.vue"))
+    lines = (FIXTURES / "nested_template.vue").read_text().splitlines()
+    assert rng is not None
+    assert lines[rng[0] - 1].startswith("<template>")
+    assert lines[rng[1] - 1].startswith("</template>"), "range ended at the NESTED close tag"
+    # The real App.vue: the range must reach the top-level close (last line
+    # starting with </template>), not the first nested one.
+    app = ROOT / "lcnc-webui/src/App.vue"
+    app_lines = app.read_text().splitlines()
+    top_close = max(i + 1 for i, l in enumerate(app_lines) if l.startswith("</template>"))
+    assert audit.template_range(str(app))[1] == top_close
+
+
+def test_hlpct_flags_the_two_real_keyboardtab_rules(audit):
+    hits = _drift(audit, "hlpct_bad.vue")
+    assert [c for c, _ in hits] == ["HLPCT", "HLPCT"], hits
+
+
+def test_hlpct_accepts_the_token_as_a_colour(audit):
+    assert "HLPCT" not in _cats(audit, "hlpct_ok.vue")
+
+
+def test_hl_in_percent_slot_parser(audit):
+    f = audit.hl_in_percent_slot
+    assert f("color-mix(in oklab, var(--fg) var(--hl-hover), var(--bg))") == ["var(--fg) var(--hl-hover)"]
+    assert f("color-mix(in oklab, var(--hl-hover) 50%, transparent)") == []
+    assert f("color-mix(in oklab, var(--hl-hover), var(--bg))") == []
+    assert f("var(--hl-hover)") == []
+    # nested function in the colour slot, percent slot still checked
+    assert f("color-mix(in srgb, rgb(1, 2, 3) var(--hl-active), red)") == ["rgb(1, 2, 3) var(--hl-active)"]
+
+
+def test_zindex_literal_hit_token_ok_audit_ok_suppressed(audit):
+    hits = _drift(audit, "zindex.vue")
+    assert hits == [("ZINDEX", 9)], hits
+
+
+def test_important_hit_and_suppressed(audit):
+    hits = _drift(audit, "important.vue")
+    assert hits == [("IMPORTANT", 9)], hits
+
+
+def test_inline_static_style_hit_bindings_ok_audit_ok_suppressed(audit):
+    hits = _drift(audit, "inline.vue")
+    assert hits == [("INLINE", 7)], hits
+
+
+def test_tofixed_in_template_only(audit):
+    hits = _drift(audit, "tofixed.vue")
+    assert hits == [("TOFIXED", 8)], hits
+
+
+def test_tofixed_seen_after_a_nested_template_close(audit):
+    hits = _drift(audit, "nested_template.vue")
+    assert ("TOFIXED", 13) in hits, hits
+
+
+def test_clean_fixture_has_no_findings(audit):
+    assert _drift(audit, "clean.vue") == []
+
+
+def test_production_sources_scan_clean(audit):
+    files = sorted((ROOT / "lcnc-webui/src").rglob("*.vue"))
+    assert files, "no .vue sources found"
+    leaks, drift, definite = audit.run(files, style=STYLE)
+    assert definite == 0, [l for l in leaks if l[0] == "DEFINITE"]
+    assert drift == [], drift

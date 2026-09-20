@@ -408,13 +408,13 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
       <div class="speedGroup row-sections strip-slider-group">
         <div class="speedCol stack-controls">
           <span class="label-muted">{{ abcAxes.length > 0 ? 'Linear' : 'Speed' }}</span>
-          <span class="val-mono val-slot">{{ (jogVel * 60).toFixed(0) }}</span>
+          <span class="val-mono val-slot">{{ Math.round(jogVel * 60) }}</span>
           <MachineSlider gate="jogSpeed" :disabled="isDisabled" :min="minJogVel" :max="maxJogVel" :step="0.1" :modelValue="jogVel" @update:modelValue="(v: number | undefined) => { if (v != null) emit('update:jogVel', v) }" class="vSlider" />
           <MachineBtn type="jogSpeedReset" :disabled="isDisabled" @click="emit('resetJogVel')">Reset</MachineBtn>
         </div>
         <div v-if="abcAxes.length > 0" class="speedCol stack-controls">
           <span class="label-muted">Rotary</span>
-          <span class="val-mono val-slot">{{ (angularJogVel * 60).toFixed(0) }}°</span>
+          <span class="val-mono val-slot">{{ Math.round(angularJogVel * 60) }}°</span>
           <MachineSlider gate="jogSpeed" :disabled="isDisabled" :min="minAngularJogVel" :max="maxAngularJogVel" :step="0.1" :modelValue="angularJogVel" @update:modelValue="(v: number | undefined) => { if (v != null) emit('update:angularJogVel', v) }" class="vSlider" />
           <MachineBtn type="jogSpeedReset" :disabled="isDisabled" @click="emit('resetAngularJogVel')">Reset</MachineBtn>
         </div>

@@ -14,7 +14,7 @@ import {
 import { viewerInit, viewerGcode, status, emitTelemetry, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, type ViewerInit, type ViewerGcode } from "./lcncWs";
 import { loadViewerDefaults, loadCameraDefaults, saveCameraDefaults, ALL_LAYERS, settingsVersion, type Vec3, type Layer } from "./defaults";
 import { INTERP_IDLE } from "./lcnc";
-import { fmtCoord, fmtProgressTimes, fmtRpm } from "./format";
+import { fmtCoord, fmtProgressTimes, fmtRpm, fmtNum } from "./format";
 import { useAxes, DEFAULT_AXES } from "./useAxes";
 import { recordApply, recordRafTick, recordRender, setViewerPerfContext, setViewerPerfGl } from "./viewerPerf";
 import { disposeObject } from "./viewer/disposal";
@@ -3834,8 +3834,8 @@ defineExpose({
         {{ hudMode.text }} · {{ props.g5xLabel || '-' }}<template v-if="hudPlaneWord"> · {{ hudPlaneWord }}</template>
       </div>
 
-      <div v-if="vst?.eoffset_enabled" class="hudWarn">Comp Z {{ vst.eoffset_z != null ? vst.eoffset_z.toFixed(3) : '---' }}</div>
-      <div v-if="vst?.rotation_xy" class="hudWarn">Rotation {{ vst.rotation_xy.toFixed(1) }}°</div>
+      <div v-if="vst?.eoffset_enabled" class="hudWarn">Comp Z {{ fmtNum(vst.eoffset_z, 3) }}</div>
+      <div v-if="vst?.rotation_xy" class="hudWarn">Rotation {{ fmtNum(vst.rotation_xy, 1) }}°</div>
       <div v-if="foreignWcs.length" class="hudWarn">Program cuts in {{ foreignWcs.join(', ') }} — {{ props.g5xLabel }} active</div>
       <div v-if="rewrittenWcs.length" class="hudWarn">Program writes {{ rewrittenWcs.join(', ') }} — its preview ignores live edits there</div>
       <div v-if="kinsEndWarn" class="hudWarn" :title="kinsEndWarn.title">{{ kinsEndWarn.text }}</div>
@@ -3857,7 +3857,7 @@ defineExpose({
       <div v-else-if="previewWcsStale" class="hudWarn"
         title="A fixture this program uses was touched off after it was parsed — the gateway re-parses once the interpreter is idle and the offsets have settled">Preview uses older offsets — re-parses when idle</div>
       <div v-if="previewTloStale" class="hudWarn"
-        :title="`Parsed with T${previewTloStale.tool} length ${previewTloStale.parsed.toFixed(3)}, table now ${previewTloStale.live.toFixed(3)} — line limit flags are stale until the gateway re-parses (idle)`">Preview parsed with a different T{{ previewTloStale.tool }} length — re-parses when idle</div>
+        :title="`Parsed with T${previewTloStale.tool} length ${fmtNum(previewTloStale.parsed, 3)}, table now ${fmtNum(previewTloStale.live, 3)} — line limit flags are stale until the gateway re-parses (idle)`">Preview parsed with a different T{{ previewTloStale.tool }} length — re-parses when idle</div>
       <div v-if="toolpathOverflow" class="hudWarn"
         title="The per-line soft-limit validator flagged these moves — the same source as the marked lines in the program panel and the scrub bar's ◀ N limits ▶, which jumps between them (simulation mode, machine off). Validated against the offsets at parse time; a touch-off re-parses automatically.">{{ toolpathOverflowCount }} soft-limit violation{{ toolpathOverflowCount === 1 ? '' : 's' }}</div>
     </div>

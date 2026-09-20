@@ -23,6 +23,30 @@ coverage, 8,000 poses against the compiled LinuxCNC C oracle and demo limits.
 A C compiler and Git LFS assets are required. Installer tests cover fresh
 installs, upgrades, state preservation and retirement outside the chooser.
 
+## Scoped-CSS / design-token linter
+
+`npm run lint:css` (= `python3 scripts/audit-scoped-css.py`) scans every
+`.vue` under `lcnc-webui/src` for scoped-class leaks and token drift:
+TOKEN (gap/opacity/font-size/radius/hex literals), HOVER (off-tier
+color-mix percentages), DEEP (visual `:deep()` overrides), STACK
+(re-implemented stack utilities), HLPCT (a `--hl-*` COLOUR token in the
+percent slot of `color-mix()` — parsed per argument), ZINDEX (literal
+`z-index`), IMPORTANT, INLINE (static `style=` in the template) and
+TOFIXED (`.toFixed(` in the template — formatting belongs in `format.ts`).
+The template range is nesting-aware (a nested `<template v-if>` no longer
+ends the scan). `audit-ok: <reason>` on or above the line suppresses one
+finding, visibly.
+
+The linter's own pins live in `scripts/test_audit_scoped_css.py` over the
+fixtures in `scripts/test_fixtures/audit_css/` (a hit and a non-hit per
+category, the real KeyboardTab rules that started HLPCT, a `.toFixed` after
+a nested `</template>`), plus "the production sources scan clean".
+`scripts/test_suite.py offline` runs them as the explicit `audit-css`
+entry — the backend pytest starts in `lcnc-gateway/` with
+`testpaths = ["."]` and would never discover `scripts/`. A deliberately
+wrong fixture expectation turns that entry red; `python3
+scripts/audit-scoped-css.py --paths <files…>` scans just the given files.
+
 ## Browser layout regression checks
 
 Layout checks run automatically in `npm run test:e2e` and therefore in the

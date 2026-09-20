@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
+import { fmtNum } from "./format";
 import { usePermissions } from "./permissions";
 import {
   loadToolsetterDefaults, saveToolsetterDefaults,
@@ -137,11 +138,11 @@ watch(settingsVersion, () => { loadTsParams(); });
     <!-- Tool Change Position (G30) -->
     <div class="sub span">Tool Change Position (G30)<HelpIcon>G30 tool change position — where the machine moves before a tool change (M6). Read-only, set in the LinuxCNC var file. (#5181–#5183)</HelpIcon></div>
     <label>X</label>
-    <span class="mono">{{ g30X != null ? g30X.toFixed(3) : '—' }}</span>
+    <span class="mono">{{ fmtNum(g30X, 3) }}</span>
     <label>Y</label>
-    <span class="mono">{{ g30Y != null ? g30Y.toFixed(3) : '—' }}</span>
+    <span class="mono">{{ fmtNum(g30Y, 3) }}</span>
     <label>Z</label>
-    <span class="mono">{{ g30Z != null ? g30Z.toFixed(3) : '—' }}</span>
+    <span class="mono">{{ fmtNum(g30Z, 3) }}</span>
     <div class="row-tight span">
       <!-- hold=false: records the current position (var write), no motion -->
       <MachineBtn type="probe" :hold="false" @click="setG30">Set Current Position</MachineBtn>
