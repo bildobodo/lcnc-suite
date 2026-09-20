@@ -20,7 +20,6 @@ The bundled routines retract with `G53 G0 Z0` and assume **machine Z0 is the top
 - `App.vue` — Root component, sidebar + multi-panel tab layout, state management
 - `TabPanel.vue` — Reusable tab-panel (props: tabs, modelValue; uses v-show)
 - `ThreeViewer.vue` — Three.js 3D viewer (Z-up, OrbitControls, ResizeObserver)
-- `Toolbar.vue` — View preset buttons and layer toggles
 - `GcodePanel.vue` — G-code viewer with syntax highlighting, inline editor, program controls, run-from-line
 - `GcodeReferenceDialog.vue` — Searchable G/M-code reference dialog
 - `ProbePanel.vue` — Probe operations grid, calls `O<probe_*> CALL` via MDI
@@ -28,7 +27,11 @@ The bundled routines retract with `G53 G0 Z0` and assume **machine Z0 is the top
 - `ToolPreview.vue` — Small orthographic Three.js canvas for tool side-view preview
 - `toolGeometry.ts` — Shared tool geometry utilities (vertex colors, fallback cylinder)
 - `toolTypes.ts` — Shared TOOL_TYPE_LABELS map (18 types) + toolTypeLabel() function
-- `format.ts` — Shared formatters (fmtCoord, fmtNum, fmtCell, fmtOffset, fmtRpm, fmtElapsed, fmtDuration, fmtDist, fmtSize)
+- `format.ts` — Shared formatters (fmtCoord, fmtAxisValue, fmtNum, fmtCell, fmtOffset, fmtRpm, fmtElapsed, fmtDuration, fmtDist, fmtSize)
+- `wcs.ts` — ONE source for fixture names: `G5X_LABELS`, `g5xLabel(idx)` (1-based g5x_index → "G54"…"G59.3", "-" for none), `RESERVED_WCS` (the TWP scratch rows). App's label, the WCS selector and the viewer's fixture markers all read it.
+- `mathEval.ts` — Safe expression evaluator for the number keypad (one decimal literal per number token — `1.2.3` is refused, never prefix-parsed) + `validateEntry(expr, constraints)`, the ONE admissibility check (min/max/integer, empty = 0 visibly) behind the keypad's readout, OK button and confirm()
+- `useNumberKeypad.ts` — Number-keypad session singleton with an OWNER model: `openKeypad({ownerId, constraints, canConfirm, context})`, `closeKeypadIf(ownerId)` (unmount / gate closed), owner veto at confirm; `MachineInput` is the standard owner
+- `modalRegistry.ts` — `registerModal(isOpen)` in every component that renders a `.dialogOverlay`; `modalOpen` (dialogs or keypad) makes the global shortcut map pass nothing but E-Stop. The guard spec compares the DOM's overlay count with the registry (a forgotten registration is a test failure, not a silent gap)
 - `gcodeHighlight.ts` — G-code syntax tokenizer + highlighter (shared by GcodePanel + MDI history)
 - `OffsetPanel.vue` — WCS offset table editor (G54–G59.3), inline cell editing, auxiliary rows (G92, Tool, Comp)
 - `CameraPip.vue` — Picture-in-picture camera overlay with MJPEG feed, SVG crosshair/circle/grid overlay
@@ -44,6 +47,7 @@ The bundled routines retract with `G53 G0 Z0` and assume **machine Z0 is the top
 - `lcncApi.ts` — REST helpers for file listing and upload
 - `lcnc.ts` — LinuxCNC constants (TASK_MODE_*, INTERP_*, SPINDLE_*) and WsCommand union type
 - `defaults.ts` — Server-synced settings with section registry pattern (no localStorage)
+- `useKeyboardShortcuts.ts` — Global shortcut map. **Escape is the reserved E-Stop key**: a capture listener registered at App setup (before any child mounts its own), not re-bindable (`normalizeKeyboardMapping` pins it, KeyboardTab shows it fixed, its key-capture lets Escape through); E-Stop RESET is button-only. Space/Enter belong to any focused element; behind a dialog or the keypad (`modalOpen`) nothing but E-Stop passes; Cycle Start needs gate `run` and no open editor; jog KEYUP is never filtered (a field opened mid-jog must not swallow the `jog_stop`)
 - `main.ts` — Vue app entry point with settings migration
 - `style.css` — Global styles, theme vars, design tokens
 - `SafetyStrip.vue` — Bottom strip: Arm/Disarm, E-Stop, Machine On/Off, status display (in #exempt slot)
@@ -1052,8 +1056,7 @@ low rapid traverse rams the trunnion (stage 1 quiet, stage 3 flags it).
 - **Shared modules** — `format.ts` (9 formatters: fmtCoord, fmtNum, fmtCell, fmtOffset, fmtRpm, fmtElapsed, fmtDuration, fmtDist, fmtSize), `toolTypes.ts` (TOOL_TYPE_LABELS + toolTypeLabel()), `gcodeHighlight.ts` (highlightGcode). Never duplicate formatters or tool type labels in components.
 - **Global utility classes** — `.mono` (font-mono), `.emptyState` (centered muted text), `.statusDot` (8px indicator with `.probing`/`.tripped` states), `.sub` (section heading — no margin, parent flex gap handles spacing), `.sep` (horizontal divider). Always use these instead of scoped equivalents. For horizontal dividers, always use `<div class="sep">` — never manual `border-bottom` as section separators.
 - `defaults.ts` section registry: `registerSection<T>(name, fallback, migrateFn)` + `loadSection`/`saveSection`. All sections are server-synced. Server is the single source of truth. Gateway sends `settings_init` on every WS connect. `sendBeacon` flushes pending saves on page exit. New sections must be added to `_VALID_SETTINGS_SECTIONS` in `gateway.py` and `SERVER_SECTIONS` in `main.ts`.
-- localStorage is used in two intentional places only: (a) `lcncWs.ts` message history — intentionally per-tab so sessions don't cross-talk; (b) `defaults.ts:resetAllDefaults` removes pre-server-sync localStorage keys (migration cleanup — safe to delete ~2027+). Do not introduce additional localStorage usage.
-- ViewPreset type is duplicated in ThreeViewer.vue and Toolbar.vue — update both when adding presets
+- localStorage is used in three intentional places only: (a) `ws/statusStore.ts` message history — intentionally per-tab so sessions don't cross-talk; (b) `main.ts` one-time migration of pre-server-sync keys to the server; (c) `defaults.ts:resetAllDefaults` removes those legacy keys (migration cleanup — safe to delete ~2027+). Do not introduce additional localStorage usage.
 - Camera Z-up: `camera.up.set(0, 0, 1)`, except top view uses `(0, 1, 0)` to avoid gimbal lock
 - ThreeViewer uses ResizeObserver (not window resize) to handle v-show tab switching
 - **Dialog tiers** — three sizes, two internal structures:
@@ -1062,7 +1065,16 @@ low rapid traverse rams the trunnion (stage 1 quiet, stage 3 flags it).
   - `.dialog.lg` (large panels, 70vw×70vh): `padding: 0`, uses `.dialogHeader` + `.dialogContent` (+ custom footer if needed)
   - `.dialog.lg.dialog-full` = 90% height variant
   - All tiers inherit `font-size: var(--fs-base)` from `.dialog` base — never set font-size on dialog body content
-  - Safety dialogs add `.safetyDialog` (z-index 1010) and omit `@click.self` on overlay
+  - `.dialog.md.wide` = 760px mid tier for two-column content (tool edit, library import)
+  - Safety dialogs add `.safetyDialog` (`--z-modal-top`) and omit `@click.self` on overlay
+  - Every component that renders a `.dialogOverlay` calls `registerModal()` (modalRegistry.ts); Escape never closes a dialog (it is E-Stop)
+- **z-index scale** — `--z-base` (0) / `--z-raised` (1, sticky cells, viewer overlays) / `--z-fade` (2) / `--z-pane-overlay` (5) / `--z-float` (10, PIP, sim bar) / `--z-banner` (11) / `--z-modal` (1000) / `--z-modal-top` (1010). Never a literal.
+- **Viewer overlay chrome** — `.overlay-card` (HUD, sim bar) and `.overlay-card.warn` (sim banner, STL-failed chip): one chrome, components add layout only. `--viewcube-size` (140px) is the ViewCube edge the quick grid offsets by.
+- **Utilities** — `.w-full` (width: 100%) instead of an inline `style="width: 100%"`.
+- **Axis fallback** — `DEFAULT_AXES` in `useAxes.ts` is the only pre-`viewer_init` axis set; never a local `["X","Y","Z"]`.
+- **Number fields** — `MachineInput type="number"` opens the keypad with the field's contract: `min`/`max` attrs and the explicit `integer` prop (never `step`), plus `label`/`context` for the readout. Out-of-range values are refused, never clamped.
+- **Program upload** — `POST /upload` never replaces an existing program unless `overwrite=1` (409 → Cancel / Rename / Replace dialog); the no-replace publish is an `os.link`, and a filesystem that cannot link REFUSES the upload (no copy fallback — a partial file must never appear under the final name).
+- **Editor session** — the G-code editor's buffer is bound to the file it was opened on (`{id, path, original}`): an external program change raises a conflict banner, Save writes only the session's file, Discard asks when dirty.
 - Gateway `tool_change` handler is fire-and-forget (no `CMD.wait_complete()` — blocks heartbeat loop)
 - Toolsetter settings live in SettingsPanel (Machine sub-tab); tool ACTIONS live in App.vue (tool-change dialog, Measure/Unload) and ToolTablePanel, not in the read-only ToolStrip
 - **Tool geometry**: Per-tool STL files in `machine/tools/`, loaded via `STLLoader`. Fallback: simple cylinder from diameter + length. Vertex colors split cutter (gold) / shaft (silver) by `flute_length` / `shoulder_length` Z thresholds. STL origin convention: tool tip at (0,0,0), extends in +Z.

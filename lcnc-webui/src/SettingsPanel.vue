@@ -686,7 +686,7 @@ function resetMachineColor(id: string) {
               v-model="spindleLoadPin"
               @change="saveMachine()"
               placeholder="e.g. spindle-load-conv.load-percentage"
-              style="width: 100%"
+              class="w-full"
             />
           </div>
           <div class="sep"></div>

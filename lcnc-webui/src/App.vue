@@ -49,6 +49,7 @@ import { useTouchoffMath } from "./useTouchoffMath";
 import { useMacros } from "./useMacros";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
 import { modalOpen, registerModal } from "./modalRegistry";
+import { g5xLabel as fixtureLabel } from "./wcs";
 import { forceStopAllJogs, initJogPointerSafety, destroyJogPointerSafety, activeJogKeys } from "./useJogPointers";
 import {
   INTERP_IDLE, INTERP_READING, INTERP_PAUSED, INTERP_WAITING,
@@ -709,17 +710,8 @@ _clockHandle = setInterval(_updateClock, 1000);
 onUnmounted(() => { if (_clockHandle) clearInterval(_clockHandle); });
 
 /** ---------- display helpers for machine states ---------- */
-// G5x work coordinate system (G54, G55, etc.)
-const g5xLabel = computed(() => {
-  const idx = st.value.g5x_index;
-  if (idx == null) return "-";
-  // LinuxCNC g5x_index is 1-based: 1=G54, 2=G55, 3=G56, 4=G57, 5=G58, 6=G59, 7=G59.1, 8=G59.2, 9=G59.3
-  if (idx >= 1 && idx <= 6) return `G${53 + idx}`;
-  if (idx === 7) return "G59.1";
-  if (idx === 8) return "G59.2";
-  if (idx === 9) return "G59.3";
-  return `G5x[${idx}]`;
-});
+// G5x work coordinate system (G54, G55, etc.) — one source: wcs.ts.
+const g5xLabel = computed(() => fixtureLabel(st.value.g5x_index));
 
 // Override values (raw 0.0-2.0 scale). Returns null until status delivers a
 // real value — never synthesise a default. The watchers below guard with
@@ -2375,7 +2367,7 @@ watch(viewerGcode, (newGcode) => {
   opacity: 0;
   transition: opacity 0.2s;
   pointer-events: none;
-  z-index: 1;
+  z-index: var(--z-raised);
 }
 .strip > .stripFade,
 .macroBar > .stripFade { right: 0; }
@@ -2658,7 +2650,7 @@ watch(viewerGcode, (newGcode) => {
   color: var(--danger);
 }
 
-.safetyDialog { z-index: 1010; }
+.safetyDialog { z-index: var(--z-modal-top); }
 
 /* ─── MDI tab ─── */
 .mdiTab {

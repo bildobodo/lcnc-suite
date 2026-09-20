@@ -156,10 +156,11 @@ function toggleSort(key: "code" | "name") {
   opacity: var(--opacity-muted);
 }
 
-.refEmpty {
+/* Specificity over `.refTable td` (0,1,1) instead of !important. */
+.refTable td.refEmpty {
   text-align: center;
   opacity: var(--opacity-muted);
-  padding: var(--gap-panel) !important;
+  padding: var(--gap-panel);
 }
 
 .refFooter {

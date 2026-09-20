@@ -1067,7 +1067,7 @@ onUnmounted(() => {
   left: var(--gap-section);
   right: var(--gap-section);
   bottom: var(--gap-section);
-  z-index: 10;
+  z-index: var(--z-float);
   padding: var(--gap-tight) var(--gap-controls);
 }
 .scrubRow {
@@ -1093,7 +1093,7 @@ onUnmounted(() => {
   /* Above the overlays: the thumb covers the tick/band under it (it IS at
      that position) and nothing paints across the thumb. */
   position: relative;
-  z-index: 1;
+  z-index: var(--z-raised);
 }
 /* Timeline overlays, all non-interactive, every one on the thumb-centre
    travel (half --range-thumb .. width − half; inline left/width — see the

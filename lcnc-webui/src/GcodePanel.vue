@@ -1170,7 +1170,7 @@ async function saveEdit() {
 .dropOverlay {
   position: absolute;
   inset: 0;
-  z-index: 5;
+  z-index: var(--z-pane-overlay);
   align-items: center;
   justify-content: center;
   border: 2px dashed var(--info);
@@ -1326,7 +1326,7 @@ async function saveEdit() {
 .gcodeTooltip {
   position: fixed;
   transform: translate(-50%, -100%) translateY(-6px);
-  z-index: 1000;
+  z-index: var(--z-modal);
   max-width: 320px;
   padding: var(--gap-tight) var(--gap-controls);
   border-radius: var(--radius-lg);

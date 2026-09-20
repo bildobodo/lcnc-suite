@@ -15,7 +15,7 @@ import {
   KEYBOARD_ACTION_LABELS, formatKeyName, ESTOP_KEY,
 } from "./defaults";
 import { viewerInit } from "./lcncWs";
-import { isRotaryAxis } from "./useAxes";
+import { isRotaryAxis, DEFAULT_AXES } from "./useAxes";
 import MachineBtn from "./MachineBtn.vue";
 import MachineToggle from "./MachineToggle.vue";
 
@@ -52,7 +52,7 @@ function saveKb() {
 const COMMAND_ACTIONS: KeyboardAction[] = ["cycle", "abort"];
 const machineAxes = computed<string[]>(() => {
   const axes = viewerInit.value?.axes;
-  return Array.isArray(axes) && axes.length ? axes : ["X", "Y", "Z"];
+  return Array.isArray(axes) && axes.length ? axes : [...DEFAULT_AXES];
 });
 function jogActionsFor(letters: string[]): KeyboardAction[] {
   return letters.flatMap(l => [`jog_${l.toLowerCase()}+`, `jog_${l.toLowerCase()}-`] as KeyboardAction[]);
@@ -230,7 +230,7 @@ onUnmounted(() => {
 }
 
 .kbKeyCell:hover {
-  background: color-mix(in oklab, var(--fg) var(--hl-hover), var(--bg));
+  background: var(--hl-surface);
 }
 
 .kbKeyCell.kbFixed {
@@ -239,7 +239,7 @@ onUnmounted(() => {
 }
 
 .kbKeyCell.listening {
-  background: color-mix(in oklab, var(--info) var(--hl-selected), var(--bg));
+  background: var(--hl-surface-info);
   outline: 1px solid var(--info);
 }
 

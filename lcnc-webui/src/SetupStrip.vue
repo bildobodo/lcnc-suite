@@ -10,14 +10,13 @@ import { keypadState, closeKeypad } from "./useNumberKeypad";
 import { usePermissions, explainKeydown } from "./permissions";
 import { pushMessage } from "./lcncWs";
 import { OPERATOR_DISPLAY, OPERATOR_ERROR } from "./lcnc";
+import { G5X_LABELS, RESERVED_WCS } from "./wcs";
+import { fmtAxisValue } from "./format";
 
 // Match HUD precision (3 decimals linear, 2 rotary) without the unit suffix
-// so the keypad parser still receives a clean numeric string. (Deliberately
-// NOT fmtCoord: no ° suffix here.)
-function fmtAxisInput(val: number | undefined, letter: string): string {
-  if (val == null || !Number.isFinite(val)) return "";
-  return isRotaryAxis(letter) ? val.toFixed(2) : val.toFixed(3);
-}
+// so the keypad parser still receives a clean numeric string — format.ts
+// fmtAxisValue (deliberately NOT fmtCoord: no ° suffix here).
+const fmtAxisInput = fmtAxisValue;
 
 const props = defineProps<{
   axes: string[];
@@ -117,12 +116,12 @@ const axisChunks = computed(() => {
   return out;
 });
 
-const g5xOptions = ["G54", "G55", "G56", "G57", "G58", "G59", "G59.1", "G59.2", "G59.3"];
+const g5xOptions = G5X_LABELS;
 // G59..G59.3 are the TWP remap's scratch rows — g53x_core rewrites them at
 // every orient, and a touch-off into them evaporates (XYZ) or poisons the
 // next orient (A/B/C). On a TWP machine (switchable kins present) they are
 // not an operator choice; the Plane jog frame selects G59 itself.
-const RESERVED_WCS = new Set(["G59", "G59.1", "G59.2", "G59.3"]);
+// (RESERVED_WCS lives in wcs.ts — one source with the labels.)
 function wcsReserved(g: string): boolean {
   return isTwpMachine.value && RESERVED_WCS.has(g);
 }

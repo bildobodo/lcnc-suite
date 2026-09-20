@@ -257,7 +257,7 @@ onMounted(() => {
 <style scoped>
 .cameraPip {
   position: absolute;
-  z-index: 10;
+  z-index: var(--z-float);
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--radius-2xl);

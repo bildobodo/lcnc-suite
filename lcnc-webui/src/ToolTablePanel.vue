@@ -671,7 +671,7 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
     <!-- Import preview dialog -->
     <Teleport v-if="importPreview" :to="dialogTarget ?? 'body'" :disabled="!dialogTarget">
       <div v-if="importPreview" class="dialogOverlay" @click.self="cancelImport">
-        <div class="dialog md importDialog">
+        <div class="dialog md wide importDialog">
           <div class="dialogHeader">
             <span class="dialogTitle">{{ importSummary.isExample ? 'Example Tool Library' : `Import ${importSource} Tool Library` }}</span>
             <MachineBtn type="close" @click="cancelImport">&times;</MachineBtn>
@@ -934,11 +934,7 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
   padding: var(--gap-section) var(--gap-panel);
 }
 
-/* ---- Import dialog ---- */
-.dialog.importDialog {
-  width: 760px;
-  max-width: calc(100% - 2 * var(--gap-panel));
-}
+/* ---- Import dialog ---- (width: the global .dialog.md.wide tier) */
 
 .importStats {
   font-size: var(--fs-base);
@@ -1026,7 +1022,7 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
   font-variant-numeric: tabular-nums;
   position: sticky;
   left: 0;
-  z-index: 1;
+  z-index: var(--z-raised);
   background: var(--panel);
 }
 
@@ -1049,7 +1045,7 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
   width: 42px;
   text-align: center;
   position: sticky;
-  z-index: 1;
+  z-index: var(--z-raised);
   background: var(--panel);
   right: 0;
 }
@@ -1058,12 +1054,12 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
   right: 58px;
 }
 
-</style>
 
-<style>
+/* Hover preview card — teleported to <body>, but rendered by THIS component,
+   so the scoped data-v attribute still lands on it (no unscoped block). */
 .toolHoverPreview {
   position: fixed;
-  z-index: 1000;
+  z-index: var(--z-modal);
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);

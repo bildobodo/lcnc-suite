@@ -329,13 +329,15 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+/* --viewcube-size is the one token ThreeViewer's quick grid offsets by;
+   CANVAS_PX above is the canvas resolution at that CSS size. */
 .viewCube {
   position: absolute;
-  z-index: 1;
-  top: 12px;
-  right: 12px;
-  width: 140px;
-  height: 140px;
+  z-index: var(--z-raised);
+  top: var(--gap-section);
+  right: var(--gap-section);
+  width: var(--viewcube-size);
+  height: var(--viewcube-size);
   cursor: pointer;
 }
 </style>

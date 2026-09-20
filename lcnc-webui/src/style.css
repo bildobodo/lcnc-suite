@@ -143,6 +143,18 @@
      keys (Send, Clear, Cancel, OK) beside the square character keys. */
   --key-action-w: 70px;
 
+  /* z-index scale — every stacking literal reads one of these (WP1). */
+  --z-base:         0;    /* the viewer host / a stacking-context root */
+  --z-raised:       1;    /* sticky cells, viewer overlays, thumb over track */
+  --z-fade:         2;    /* scroll-edge fades */
+  --z-pane-overlay: 5;    /* drop target over a pane */
+  --z-float:        10;   /* floating cards on the viewer (PIP, sim bar) */
+  --z-banner:       11;   /* transient banner above the floating cards */
+  --z-modal:        1000; /* dialog overlays, popovers, hover cards */
+  --z-modal-top:    1010; /* safety dialogs above every other dialog */
+  /* ViewCube edge (CSS px) — ThreeViewer's quick grid offsets by it. */
+  --viewcube-size: 140px;
+
   /* Shadows */
   --shadow-sm:  0 4px 12px rgba(0, 0, 0, 0.15);  /* popovers, floating panels, PIP */
   --shadow-md:  0 4px 24px rgba(0, 0, 0, 0.35);  /* dialogs */
@@ -785,7 +797,7 @@ label:has(input:disabled, select:disabled) {
   opacity: 0;
   transition: opacity 0.2s;
   pointer-events: none;
-  z-index: 2;
+  z-index: var(--z-fade);
 }
 /* Eased ramp, not linear: stays light through most of the height and
    commits to opaque only near the edge — the edge itself reaches full
@@ -879,18 +891,15 @@ label:has(input:disabled, select:disabled) {
 
 /* Simulation-mode banner (viewer overlay) — must be unmissable: while it
    shows, the 3D model poses along the program, NOT the live machine, and
-   machine controls are locked (permissions.ts SIM_GATES). */
+   machine controls are locked (permissions.ts SIM_GATES). Chrome from
+   .overlay-card.warn (the template carries both classes); layout here. */
 .simBanner {
   position: absolute;
   top: var(--gap-section);   /* the viewer-overlay offset (HUD, sim bar) */
   left: 50%;
   transform: translateX(-50%);
-  z-index: 11;
+  z-index: var(--z-banner);
   padding: var(--gap-tight) var(--gap-panel);
-  background: color-mix(in oklab, var(--warn) 25%, var(--panel));
-  border: 1px solid var(--warn);
-  border-radius: var(--radius-lg);
-  color: var(--warn);
   font-weight: var(--fw-semibold);
   letter-spacing: 0.5px;
   white-space: nowrap;
@@ -931,7 +940,7 @@ label:has(input:disabled, select:disabled) {
   min-width: 140px;
   max-height: calc(100vh - 32px);
   overflow-y: auto;
-  z-index: 1000;
+  z-index: var(--z-modal);
 }
 
 .helpIcon {
@@ -993,7 +1002,7 @@ label:has(input:disabled, select:disabled) {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: var(--z-modal);
 }
 
 .dialog {
@@ -1021,6 +1030,13 @@ label:has(input:disabled, select:disabled) {
 .dialog.md > .dialogActions {
   padding: var(--gap-controls) var(--gap-section);
   margin-top: 0;
+}
+
+/* Wide mid-tier: structured content with two columns or a preview beside a
+   form (tool edit, library import). Same internals as .dialog.md. */
+.dialog.md.wide {
+  width: 760px;
+  max-width: calc(100% - 2 * var(--gap-panel));
 }
 
 .dialog.lg {
@@ -1305,7 +1321,7 @@ label:has(input:disabled, select:disabled) {
 .safetyStrip {
   position: sticky;
   left: 0;
-  z-index: 1;
+  z-index: var(--z-raised);
   background: var(--panel);
   padding-left: var(--gap-controls);
 }
@@ -1354,6 +1370,13 @@ label:has(input:disabled, select:disabled) {
   border-radius: var(--radius-xl);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
+}
+/* Warn-tinted overlay card: the sim banner and the STL-failed chip — one
+   chrome for every "attention" overlay on the viewer. */
+.overlay-card.warn {
+  background: color-mix(in oklab, var(--warn) 20%, var(--panel));
+  border-color: var(--warn);
+  color: var(--warn);
 }
 
 /* ── Display utilities ── */
@@ -1547,7 +1570,7 @@ label:has(input:disabled, select:disabled) {
   position: sticky;
   top: 0;
   background: var(--panel);
-  z-index: 1;
+  z-index: var(--z-raised);
 }
 
 .dataTable th {

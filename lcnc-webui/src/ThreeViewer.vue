@@ -15,7 +15,7 @@ import { viewerInit, viewerGcode, status, emitTelemetry, previewRefresh, preview
 import { loadViewerDefaults, loadCameraDefaults, saveCameraDefaults, ALL_LAYERS, settingsVersion, type Vec3, type Layer } from "./defaults";
 import { INTERP_IDLE } from "./lcnc";
 import { fmtCoord, fmtProgressTimes, fmtRpm } from "./format";
-import { useAxes } from "./useAxes";
+import { useAxes, DEFAULT_AXES } from "./useAxes";
 import { recordApply, recordRafTick, recordRender, setViewerPerfContext, setViewerPerfGl } from "./viewerPerf";
 import { disposeObject } from "./viewer/disposal";
 import { normalizeKinematics, type KinRuntime } from "./viewer/kinematics";
@@ -3565,7 +3565,7 @@ watch(
 // Format coordinate for HUD display
 // formatCoord → fmtCoord imported from format.ts
 
-const hudAxes = computed(() => props.axes ?? ["X", "Y", "Z"]);
+const hudAxes = computed(() => props.axes ?? [...DEFAULT_AXES]);
 // One grid row per axis in machine order — primary/abc/uvw grouping is not
 // needed in the tabular HUD, entries already carry letter + status index.
 const { entries: hudEntries } = useAxes(hudAxes);
@@ -3885,7 +3885,7 @@ defineExpose({
 
     <!-- SIMULATION mode banner — unmissable: the model is posed along the
          program, NOT the machine, and motion controls are locked. -->
-    <div v-if="simMode" class="simBanner">
+    <div v-if="simMode" class="simBanner overlay-card warn">
       SIMULATION &mdash; model shows the program, not the machine
     </div>
 
@@ -3907,7 +3907,7 @@ defineExpose({
     />
 
     <!-- STL load failure chip (bottom-left, never blocks render) -->
-    <div v-if="failedParts.length" class="stlFailedChip" :title="failedParts.join(', ')">
+    <div v-if="failedParts.length" class="stlFailedChip overlay-card warn" :title="failedParts.join(', ')">
       {{ failedParts.length }} machine part{{ failedParts.length === 1 ? '' : 's' }} failed to load (see console)
     </div>
 
@@ -3921,35 +3921,34 @@ defineExpose({
   height: 100%;
 }
 
-/* Quick-access 2×2 grid under the ViewCube (cube bottom edge ≈ 152px). */
+/* Quick-access 2×2 grid under the ViewCube: the cube sits --gap-section
+   from the top and is --viewcube-size tall (one token, ViewCube.vue reads
+   the same one), the grid starts --gap-tight below its bottom edge. */
 .viewerQuickGrid {
   position: absolute;
-  z-index: 1;
-  top: 156px;
+  z-index: var(--z-raised);
+  top: calc(var(--gap-section) + var(--viewcube-size) + var(--gap-tight));
   right: var(--gap-section);
-  width: 140px;
+  width: var(--viewcube-size);
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--gap-tight);
 }
 
+/* Chrome from the global .overlay-card.warn — layout only here. */
 .stlFailedChip {
   position: absolute;
-  z-index: 1;
+  z-index: var(--z-raised);
   bottom: var(--gap-section);
   left: var(--gap-section);
   padding: var(--gap-tight) var(--gap-controls);
-  border-radius: var(--radius-xl);
-  background: color-mix(in oklab, var(--warn) 20%, var(--panel));
-  border: 1px solid var(--warn);
-  color: var(--warn);
   font-size: var(--fs-base);
   pointer-events: auto;
 }
 
 .viewerHost {
   position: relative;
-  z-index: 0;
+  z-index: var(--z-base);
   width: 100%;
   height: 100%;
   border-radius: var(--radius-container);
@@ -3966,7 +3965,7 @@ defineExpose({
    the HUD, the quick grid, the STL chip, the sim bar and banner alike. */
 .hud {
   position: absolute;
-  z-index: 1;
+  z-index: var(--z-raised);
   top: var(--gap-section);
   left: var(--gap-section);
   max-width: calc(100% - 2 * var(--gap-section));

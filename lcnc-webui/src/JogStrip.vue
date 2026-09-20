@@ -597,7 +597,9 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
 
   /* XY grid: full width, square via aspect-ratio */
   .jogBtns  { flex-wrap: wrap; align-self: auto; gap: var(--gap-controls); }
-  .xyWrap   { flex: 0 0 100%; width: 100% !important; aspect-ratio: 1; height: auto; }
+  /* No !important: the JS inline size is cleared in portrait (xySize → 0,
+     see the isPortrait watcher), so this rule is the only width source. */
+  .xyWrap   { flex: 0 0 100%; width: 100%; aspect-ratio: 1; height: auto; }
 
   /* Axis area below the pad: 4 equal columns — Z leftmost at the same
      width as the others, ABC / UVW pairs fill columns 2-4 (one band row

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { fmtSize } from "./format";
 import type { FileEntry, DirectoryListing } from "./lcncApi";
 import { usePermissions } from "./permissions";
 import Gate from "./Gate.vue";
@@ -59,11 +60,8 @@ async function select(entry: FileEntry) {
   } finally { busy.value = false; }
 }
 
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
+// File sizes: format.ts fmtSize (one formatter, not a local copy).
+const formatSize = fmtSize;
 
 onMounted(() => browse());
 </script>
