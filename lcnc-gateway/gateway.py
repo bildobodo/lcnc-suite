@@ -6979,6 +6979,13 @@ def _preempt_inflight(by: str, from_client: int) -> int:
     return len(victims)
 
 
+def _req_echo(msg: Dict[str, Any]) -> Dict[str, Any]:
+    """`{"req_id": …}` to splice into a reply when the command carried one
+    (UI-12 request correlation), else `{}` — replies never invent an id."""
+    rid = msg.get("req_id") if isinstance(msg, dict) else None
+    return {"req_id": rid} if rid is not None else {}
+
+
 async def _execute_client_command(client_id: int, client, ws: WebSocket, msg: Dict[str, Any]) -> None:
     """ONE queued command for ONE client — run by that client's cmd_worker in
     ws_endpoint, never by the reader (2026-09-03, see _WS_CMD_QUEUE_MAX).
@@ -6991,6 +6998,12 @@ async def _execute_client_command(client_id: int, client, ws: WebSocket, msg: Di
     time. `handle_command` resolves as a module global so tests can stand
     in a slow/raising handler.
     """
+    # Request correlation (UI-12): a client that must match a reply to the
+    # command it sent puts a `req_id` on the wire; EVERY reply path echoes it
+    # verbatim (ok, ok:false, invalid, preempted, superseded, queue-full —
+    # the last three live in the worker/reader below). Commands without one
+    # get replies without one, so older clients see no change.
+    _echo = _req_echo(msg)
     if msg.get("cmd") == "arm":
         want_armed = bool(msg.get("armed", False))
         # Re-arm gate: operator must acknowledge a sticky safety trip
@@ -6999,8 +7012,10 @@ async def _execute_client_command(client_id: int, client, ws: WebSocket, msg: Di
         if want_armed and _unacked_trip is not None:
             await ws_send_json(ws, {
                 "type": "reply",
+                "cmd": "arm",
                 "ok": False,
                 "error": "Safety trip not acknowledged",
+                **_echo,
             })
             return
         _was_armed = client.armed
@@ -7033,7 +7048,7 @@ async def _execute_client_command(client_id: int, client, ws: WebSocket, msg: Di
                 "safety.explicit_armed",
                 client_id=client_id,
             )
-        await ws_send_json(ws, {"type": "reply", "ok": True, "armed": client.armed})
+        await ws_send_json(ws, {"type": "reply", "cmd": "arm", "ok": True, "armed": client.armed, **_echo})
         return
 
     _set_phase(f"handle_command cmd={msg.get('cmd', '?')} client#{client_id}")
@@ -7061,7 +7076,7 @@ async def _execute_client_command(client_id: int, client, ws: WebSocket, msg: Di
             _bulk.preview_version += 1
             _bulk.last_file = None
             _bulk.last_mtime = None
-    await ws_send_json(ws, {"type": "reply", "cmd": msg.get("cmd"), **reply})
+    await ws_send_json(ws, {"type": "reply", "cmd": msg.get("cmd"), **_echo, **reply})
 
 
 @app.websocket("/ws")
@@ -7683,6 +7698,7 @@ async def ws_endpoint(ws: WebSocket):
                 _set_phase(f"ws.worker.idle client#{client_id}")
                 _wmsg, _enq = await cmd_queue.get()
                 _wcmd = _wmsg.get("cmd")
+                _wecho = _req_echo(_wmsg)
                 client.cmd_inflight = _wcmd
                 client.cmd_inflight_since_mono = time.monotonic()
                 client.cmd_preempted_by = None
@@ -7717,7 +7733,7 @@ async def ws_endpoint(ws: WebSocket):
                                         cmd=_wcmd, by=_by, ran_ms=_ran_ms)
                             try:
                                 await ws_send_json(ws, {"type": "reply", "cmd": _wcmd, "ok": False,
-                                                        "error": f"Preempted by {_by}"})
+                                                        "error": f"Preempted by {_by}", **_wecho})
                             except Exception as _we2:  # noqa: BLE001
                                 _trace.emit("ws.command_error_reply_failed", level="warn",
                                             client_id=client_id, cmd=_wcmd, exc=type(_we2).__name__)
@@ -7742,7 +7758,7 @@ async def ws_endpoint(ws: WebSocket):
                                     cmd=_wcmd, exc=type(_we).__name__, msg=str(_we))
                         try:
                             await ws_send_json(ws, {"type": "reply", "cmd": _wcmd, "ok": False,
-                                                    "error": f"{type(_we).__name__}: {_we}"})
+                                                    "error": f"{type(_we).__name__}: {_we}", **_wecho})
                         except Exception as _we2:  # noqa: BLE001
                             _trace.emit("ws.command_error_reply_failed", level="warn",
                                         client_id=client_id, cmd=_wcmd, exc=type(_we2).__name__)
@@ -8011,7 +8027,7 @@ async def ws_endpoint(ws: WebSocket):
                     cmd_queue.put_nowait((_qm, _qt))
                 for _qm, _qt in _sup:
                     await ws_send_json(ws, {"type": "reply", "cmd": _qm.get("cmd"), "ok": False,
-                                            "error": f"Superseded by {_rcmd}"})
+                                            "error": f"Superseded by {_rcmd}", **_req_echo(_qm)})
                 if _sup:
                     _trace.emit("ws.command_superseded", level="warn", client_id=client_id,
                                 by=_rcmd, count=len(_sup), cmds=[m.get("cmd") for m, _ in _sup])
@@ -8024,7 +8040,8 @@ async def ws_endpoint(ws: WebSocket):
                             inflight_ms=(round((time.monotonic() - client.cmd_inflight_since_mono) * 1000)
                                          if client.cmd_inflight else None))
                 await ws_send_json(ws, {"type": "reply", "cmd": _rcmd, "ok": False,
-                                        "error": f"Command queue full ({_depth} pending) — command dropped"})
+                                        "error": f"Command queue full ({_depth} pending) — command dropped",
+                                        **_req_echo(msg)})
                 continue
             _set_phase(f"ws.enqueue cmd={_rcmd} client#{client_id}")
             cmd_queue.put_nowait((msg, time.monotonic()))

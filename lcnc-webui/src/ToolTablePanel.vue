@@ -2,7 +2,7 @@
 import { ref, computed, watch, onMounted, defineAsyncComponent } from "vue";
 import { send, lastReply, connected, toolTableVersion } from "./lcncWs";
 import { useFire } from "./permissions";
-import { loadMachineDefaults, STEP_DEFAULT, type ToolChangeMode } from "./defaults";
+import { loadMachineDefaults, type ToolChangeMode } from "./defaults";
 import { TOOL_TYPE_LABELS, toolTypeLabel } from "./toolTypes";
 import { fmtCell } from "./format";
 import { authHeaders } from "./auth";
@@ -28,8 +28,11 @@ import { registerModal } from "./modalRegistry";
 const ToolPreview = defineAsyncComponent(() => import("./ToolPreview.vue"));
 
 const FETCH_DELAY_MS = 500;
-const REFETCH_AFTER_SAVE_MS = 400;
 const REFETCH_AFTER_DELETE_MS = 300;
+// Parametric preview canvas in the edit dialog — one constant drives the
+// canvas size AND the preview column's width (--preview-w).
+const PREVIEW_W = 160;
+const PREVIEW_H = 280;
 
 const props = defineProps<{
   currentTool: number | null;
@@ -68,10 +71,14 @@ interface Tool extends ToolMeta {
 const tools = ref<Tool[]>([]);
 const loading = ref(false);
 const tableError = ref<string | null>(null);
-// Renumber is one transactional command (issue #30) — keep the modal open until
-// its reply so a rejection is shown rather than leaving partial state.
+// Every tool write (add / save / renumber / delete) keeps its dialog open
+// until the CORRELATED reply (UI-12): the command goes out with a req_id
+// (fire() returns it), the reply that carries the same id closes the dialog
+// or shows its error; a reply with another id — an older session's, a
+// second tab's — is ignored. `cmd` alone cannot tell two sessions apart.
 const saving = ref(false);
 const editError = ref<string | null>(null);
+const saveSession = ref<{ id: string; cmd: string } | null>(null);
 const filterType = ref("");
 const searchText = ref("");
 const sortKey = ref<"T" | "D" | "Z">("T");
@@ -171,11 +178,20 @@ const isNewTool = ref(false);
 const showNominalHolder = ref(false);
 const editPreviewMeta = computed(() => ({ ...editTool.value, ...editForm.value }));
 const hasNominalHolder = computed(() => nominalHolderBase(editPreviewMeta.value) !== null);
+const editNotice = computed(() => toolPreviewNotice(editPreviewMeta.value, unitsPerMm.value));
+// Keypad readout context per field: "T12 · Diameter · mm" (UI-13).
+type FieldUnit = "len" | "deg" | "count" | "";
+function fieldContext(name: string, unit: FieldUnit): string {
+  const who = isNewTool.value ? "New tool" : `T${editTool.value?.T ?? "?"}`;
+  const u = unit === "len" ? props.linearUnit : unit === "deg" ? "°" : "";
+  return u ? `${who} · ${name} · ${u}` : `${who} · ${name}`;
+}
 
 function openEdit(tool: Tool) {
   showNominalHolder.value = false;
   editError.value = null;
   saving.value = false;
+  saveSession.value = null;
   editTool.value = tool;
   editForm.value = {
     T: tool.T,
@@ -203,6 +219,7 @@ function openAdd() {
   showNominalHolder.value = false;
   editError.value = null;
   saving.value = false;
+  saveSession.value = null;
   const maxT = tools.value.reduce((m, t) => Math.max(m, t.T), 0);
   editTool.value = { T: 0, P: 0, Z: 0, D: 0, remark: "", type: "", description: "",
     flutes: null, oal: null, flute_length: null, corner_radius: null,
@@ -241,47 +258,62 @@ function buildToolMsg(form: typeof editForm.value) {
 }
 
 function saveEdit() {
-  if (!editTool.value) return;
+  if (!editTool.value || saving.value) return;   // belt and braces: one send per session
   const orig = editTool.value;
   const form = editForm.value;
+  editError.value = null;
 
-  if (!isNewTool.value && form.T !== orig.T) {
-    // Renumber: one transactional backend command (issue #30). Keep the modal
-    // open until its reply so a rejection (duplicate target, tool in spindle)
-    // is shown instead of silently leaving a duplicate / lost tool, which the
-    // old add_tool+delete_tool client sequence could do on a dropped send.
-    editError.value = null;
-    saving.value = true;
-    send({ cmd: "renumber_tool", old_tool_number: orig.T, ...buildToolMsg(form) });
-    return;
-  }
-
-  if (isNewTool.value) {
-    send({ cmd: "add_tool", ...buildToolMsg(form) });
-  } else {
-    send({ cmd: "save_tool", ...buildToolMsg(form) });
-  }
-
-  editTool.value = null;
-  setTimeout(fetchTools, REFETCH_AFTER_SAVE_MS);
+  // Renumber is one transactional backend command (issue #30); add and
+  // save take the same reply-driven path (UI-12): the dialog stays open —
+  // fields editable until the send actually happened, disabled while the
+  // reply is pending — and closes only on ITS ok.
+  const payload = !isNewTool.value && form.T !== orig.T
+    ? { cmd: "renumber_tool" as const, old_tool_number: orig.T, ...buildToolMsg(form) }
+    : isNewTool.value
+      ? { cmd: "add_tool" as const, ...buildToolMsg(form) }
+      : { cmd: "save_tool" as const, ...buildToolMsg(form) };
+  const id = fire(payload, "setup");
+  if (id === null) return;                       // nothing sent — fire() said why; no pending
+  saveSession.value = { id, cmd: payload.cmd };
+  saving.value = true;
 }
 
-// Renumber reply (issue #30): close the modal on success, surface the error and
-// keep it open on failure. Correlated by the echoed cmd name (issue #28).
+// The reply for OUR request (matched by req_id, never by cmd alone) closes
+// the dialog on ok and reloads; an ok:false keeps the draft and shows why.
 watch(lastReply, (reply) => {
-  if (!reply || !saving.value || reply.cmd !== "renumber_tool") return;
+  const s = saveSession.value;
+  if (!reply || !s || reply.req_id !== s.id) return;
+  saveSession.value = null;
   saving.value = false;
   if (reply.ok) {
     editTool.value = null;
     fetchTools();
   } else {
-    editError.value = reply.error || "Renumber failed";
+    editError.value = reply.error || `${s.cmd} failed`;
+  }
+});
+
+// Disconnect while a write is pending: the outcome is unknown — never a
+// blind resend. The draft stays, the table reloads on reconnect (watcher
+// above), the operator decides.
+watch(connected, (val) => {
+  if (val) return;
+  if (saveSession.value) {
+    saveSession.value = null;
+    saving.value = false;
+    editError.value = "Connection lost — outcome unknown, the table reloads on reconnect";
+  }
+  if (deleteSession.value) {
+    deleteSession.value = null;
+    deleteError.value = "Connection lost — outcome unknown, the table reloads on reconnect";
   }
 });
 
 function cancelEditModal() {
+  if (saving.value) return;   // a pending write owns the dialog until its reply
   editTool.value = null;
   saving.value = false;
+  saveSession.value = null;
   editError.value = null;
 }
 
@@ -302,20 +334,40 @@ function requestToolChange(toolNum: number) {
 // ---- Delete ----
 const deletingTool = ref<number | null>(null);
 registerModal(() => deletingTool.value != null);
+const deleteSession = ref<{ id: string } | null>(null);
+const deleteError = ref<string | null>(null);
 
 function requestDelete(toolNum: number) {
+  deleteError.value = null;
+  deleteSession.value = null;
   deletingTool.value = toolNum;
 }
 
+// Same correlated flow as the edit dialog: the confirm waits for ITS reply.
 function confirmDelete() {
-  if (deletingTool.value == null) return;
-  send({ cmd: "delete_tool", tool_number: deletingTool.value });
-  deletingTool.value = null;
-  setTimeout(fetchTools, REFETCH_AFTER_DELETE_MS);
+  if (deletingTool.value == null || deleteSession.value) return;
+  deleteError.value = null;
+  const id = fire({ cmd: "delete_tool", tool_number: deletingTool.value }, "setup");
+  if (id === null) return;
+  deleteSession.value = { id };
 }
 
+watch(lastReply, (reply) => {
+  const s = deleteSession.value;
+  if (!reply || !s || reply.req_id !== s.id) return;
+  deleteSession.value = null;
+  if (reply.ok) {
+    deletingTool.value = null;
+    fetchTools();
+  } else {
+    deleteError.value = reply.error || "Delete failed";
+  }
+});
+
 function cancelDelete() {
+  if (deleteSession.value) return;
   deletingTool.value = null;
+  deleteError.value = null;
 }
 
 // ---- Import ----
@@ -570,103 +622,130 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
           <div class="dialogBody">
             Remove tool <strong>T{{ deletingTool }}</strong> from the tool table?
           </div>
+          <div v-if="deleteError" class="errorBanner" role="alert"><span>{{ deleteError }}</span></div>
           <Gate gate="setup" class="dialogActions">
-            <MachineBtn type="dialogCancel" @click="cancelDelete">Cancel</MachineBtn>
-            <MachineBtn type="reset" @click="confirmDelete">Delete</MachineBtn>
+            <MachineBtn type="dialogCancel" :disabled="!!deleteSession" @click="cancelDelete">Cancel</MachineBtn>
+            <MachineBtn type="reset" :disabled="!!deleteSession" @click="confirmDelete">{{ deleteSession ? 'Deleting…' : 'Delete' }}</MachineBtn>
           </Gate>
         </div>
       </div>
 
-    <!-- Edit / Add modal -->
-      <!-- No @click.self dismiss: this is a data-entry form — a mis-grab
-           on the overlay must not silently discard edits. Cancel/× only. -->
+    <!-- Edit / Add modal — teleported to the content area like the import
+         dialog (it used to live inside the 540 px side pane), on the
+         .dialog.md.wide tier with the global header / content / actions
+         structure. No @click.self dismiss: this is a data-entry form — a
+         mis-grab on the overlay must not silently discard edits. -->
+    <Teleport v-if="editTool" :to="dialogTarget ?? 'body'" :disabled="!dialogTarget">
       <div v-if="editTool" class="dialogOverlay">
-        <div class="dialog lg editDialog">
-          <!-- Header -->
+        <div class="dialog md wide editDialog">
           <div class="dialogHeader">
             <span class="dialogTitle">{{ isNewTool ? "Add Tool" : `Edit Tool T${editTool.T}` }}</span>
-            <MachineBtn type="close" @click="cancelEditModal">&times;</MachineBtn>
+            <MachineBtn type="close" :disabled="saving" @click="cancelEditModal">&times;</MachineBtn>
           </div>
 
-          <!-- Body: two columns -->
-          <div class="editBody scroll-thin">
-            <!-- Left column: form fields -->
-            <div class="editFields">
-              <div class="editGrid">
-                <div class="sub">General</div>
-                <label>Tool #</label>
-                <MachineInput gate="toolEditNum" type="number" v-model.number="editForm.T" min="1" integer label="Tool #" />
-                <label>Pocket</label>
-                <MachineInput gate="toolEditNum" type="number" v-model.number="editForm.P" min="0" integer label="Pocket" />
-                <label>Type</label>
-                <MachineSelect gate="toolEdit" v-model="editForm.type">
-                  <option value="">-</option>
-                  <option v-for="tt in TOOL_TYPES" :key="tt" :value="tt">{{ toolTypeLabel(tt) }}</option>
-                </MachineSelect>
-                <label>Description</label>
-                <MachineInput gate="toolEdit" type="text" v-model="editForm.description" />
-                <label>Diameter</label>
-                <MachineInput gate="toolEditNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.D" />
-                <label>Z Offset</label>
-                <MachineInput gate="toolEditNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.Z" />
-                <label>Flutes</label>
-                <MachineInput gate="toolEditNum" type="number" min="0" integer v-model.number="editForm.flutes" label="Flutes" />
-                <label>Material</label>
-                <MachineInput gate="toolEdit" type="text" v-model="editForm.material" placeholder="hss, carbide..." />
+          <div class="dialogContent scroll-thin stack-sections">
+            <div v-if="editError" class="errorBanner" role="alert"><span>{{ editError }}</span></div>
 
-                <div class="sub">Dimensions</div>
-                <label>Total Length</label>
-                <MachineInput gate="toolEditNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.oal" placeholder="mm" />
-                <label for="tool-below-holder">Length Below Holder</label>
-                <MachineInput id="tool-below-holder" gate="toolEditNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.body_length" />
-                <label>Flute Len</label>
-                <MachineInput gate="toolEditNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.flute_length" placeholder="mm" />
-                <label>Shaft Ø</label>
-                <MachineInput gate="toolEditNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.shaft_diameter" placeholder="mm" />
-                <label>Corner R</label>
-                <MachineInput gate="toolEditNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.corner_radius" placeholder="mm" />
-                <label>Tip Ø</label>
-                <MachineInput gate="toolEditNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.tip_diameter" placeholder="mm" />
-                <label>Taper °</label>
-                <MachineInput gate="toolEditNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.taper_angle" placeholder="deg" />
-                <label>Point °</label>
-                <MachineInput gate="toolEditNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.point_angle" placeholder="deg" />
-                <label>Holder</label>
-                <MachineInput gate="toolEdit" type="text" v-model="editForm.holder" placeholder="Holder name" />
+            <div class="editColumns row-sections">
+              <!-- Fields: two sections, each a .paramGrid; the preview column
+                   wraps below them when the dialog is narrower than both. -->
+              <div class="editFields stack-sections">
+                <div class="stack-controls">
+                  <div class="sub">General</div>
+                  <div class="paramGrid editGrid">
+                    <label>Tool #</label>
+                    <MachineInput gate="toolEditNum" type="number" v-model.number="editForm.T" min="1" integer
+                      label="Tool #" :context="fieldContext('Tool #', 'count')" />
+                    <label>Pocket</label>
+                    <MachineInput gate="toolEditNum" type="number" v-model.number="editForm.P" min="0" integer
+                      label="Pocket" :context="fieldContext('Pocket', 'count')" />
+                    <label>Type</label>
+                    <MachineSelect gate="toolEdit" v-model="editForm.type" class="full">
+                      <option value="">-</option>
+                      <option v-for="tt in TOOL_TYPES" :key="tt" :value="tt">{{ toolTypeLabel(tt) }}</option>
+                    </MachineSelect>
+                    <label>Description</label>
+                    <MachineInput gate="toolEdit" type="text" v-model="editForm.description" class="full" />
+                    <label>Diameter</label>
+                    <MachineInput gate="toolEditNum" type="number" v-model.number="editForm.D" min="0"
+                      label="Diameter" :context="fieldContext('Diameter', 'len')" :placeholder="linearUnit" />
+                    <label>Z Offset</label>
+                    <MachineInput gate="toolEditNum" type="number" v-model.number="editForm.Z"
+                      label="Z Offset" :context="fieldContext('Z Offset', 'len')" :placeholder="linearUnit" />
+                    <label>Flutes</label>
+                    <MachineInput gate="toolEditNum" type="number" v-model.number="editForm.flutes" min="0" integer
+                      label="Flutes" :context="fieldContext('Flutes', 'count')" />
+                    <label>Material</label>
+                    <MachineInput gate="toolEdit" type="text" v-model="editForm.material" placeholder="hss, carbide..." class="full" />
+                  </div>
+                </div>
+
+                <div class="stack-controls">
+                  <div class="sub">Dimensions</div>
+                  <div class="paramGrid twoCol editGrid">
+                    <label>Total Length</label>
+                    <MachineInput gate="toolEditNum" type="number" v-model.number="editForm.oal" min="0"
+                      label="Total Length" :context="fieldContext('Total Length', 'len')" :placeholder="linearUnit" />
+                    <label for="tool-below-holder">Below Holder</label>
+                    <MachineInput id="tool-below-holder" gate="toolEditNum" type="number" v-model.number="editForm.body_length" min="0"
+                      label="Length Below Holder" :context="fieldContext('Below Holder', 'len')" :placeholder="linearUnit" />
+                    <label>Flute Len</label>
+                    <MachineInput gate="toolEditNum" type="number" v-model.number="editForm.flute_length" min="0"
+                      label="Flute Length" :context="fieldContext('Flute Length', 'len')" :placeholder="linearUnit" />
+                    <label>Shaft Ø</label>
+                    <MachineInput gate="toolEditNum" type="number" v-model.number="editForm.shaft_diameter" min="0"
+                      label="Shaft Ø" :context="fieldContext('Shaft Ø', 'len')" :placeholder="linearUnit" />
+                    <label>Corner R</label>
+                    <MachineInput gate="toolEditNum" type="number" v-model.number="editForm.corner_radius" min="0"
+                      label="Corner R" :context="fieldContext('Corner R', 'len')" :placeholder="linearUnit" />
+                    <label>Tip Ø</label>
+                    <MachineInput gate="toolEditNum" type="number" v-model.number="editForm.tip_diameter" min="0"
+                      label="Tip Ø" :context="fieldContext('Tip Ø', 'len')" :placeholder="linearUnit" />
+                    <label>Taper °</label>
+                    <MachineInput gate="toolEditNum" type="number" v-model.number="editForm.taper_angle" min="0" max="180"
+                      label="Taper" :context="fieldContext('Taper', 'deg')" placeholder="deg" />
+                    <label>Point °</label>
+                    <MachineInput gate="toolEditNum" type="number" v-model.number="editForm.point_angle" min="0" max="180"
+                      label="Point" :context="fieldContext('Point', 'deg')" placeholder="deg" />
+                    <label>Holder</label>
+                    <MachineInput gate="toolEdit" type="text" v-model="editForm.holder" placeholder="Holder name" class="full spanRest" />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Parametric preview: its own column, its width from the
+                   canvas size, never squeezed against the fields. -->
+              <div class="editPreviewCol stack-controls" :style="{ '--preview-w': PREVIEW_W + 'px' }">
+                <div class="editPreviewCanvas inset-panel">
+                  <ToolPreview
+                    :diameter="editForm.D || 6 * unitsPerMm"
+                    :length="editForm.oal || Math.abs(editForm.Z) || 50 * unitsPerMm"
+                    :meta="editPreviewMeta"
+                    :show-nominal-holder="showNominalHolder && hasNominalHolder"
+                    :units-per-mm="unitsPerMm"
+                    :width="PREVIEW_W"
+                    :height="PREVIEW_H"
+                  />
+                </div>
+                <MachineToggle v-if="hasNominalHolder" gate="toolEdit"
+                  v-model="showNominalHolder" label="Show Fusion holder"
+                  help="Nominal library assembly. Actual stickout depends on clamping; this preview does not change measured offsets or the machine view." />
+                <span class="label-muted">{{ showNominalHolder && hasNominalHolder ? 'Nominal Fusion assembly' : 'Tool only' }}</span>
               </div>
             </div>
 
-            <!-- Right column: parametric preview -->
-            <div class="editPreviewCol stack-controls">
-              <div class="editPreviewCanvas inset-panel">
-                <ToolPreview
-                  :diameter="editForm.D || 6 * unitsPerMm"
-                  :length="editForm.oal || Math.abs(editForm.Z) || 50 * unitsPerMm"
-                  :meta="editPreviewMeta"
-                  :show-nominal-holder="showNominalHolder && hasNominalHolder"
-                  :units-per-mm="unitsPerMm"
-                  :width="160"
-                  :height="280"
-                />
-              </div>
-              <MachineToggle v-if="hasNominalHolder" gate="toolEdit"
-                v-model="showNominalHolder" label="Show Fusion holder"
-                help="Nominal library assembly. Actual stickout depends on clamping; this preview does not change measured offsets or the machine view." />
-              <span v-if="showNominalHolder && hasNominalHolder">Nominal Fusion assembly</span>
-              <span v-else>Tool only</span>
-              <span v-if="toolPreviewNotice(editPreviewMeta, unitsPerMm)" class="noteWarn">{{ toolPreviewNotice(editPreviewMeta, unitsPerMm) }}</span>
-            </div>
+            <!-- Geometry notice (FreeCAD / approximate preview): a full-width
+                 row under BOTH columns, never wrapped into the preview column. -->
+            <div v-if="editNotice" class="noteWarn editNotice">{{ editNotice }}</div>
           </div>
 
-          <!-- Footer -->
-          <div v-if="editError" class="errorBanner">{{ editError }}</div>
-          <div class="sep"></div>
-          <Gate gate="setup" class="editFooter">
-            <MachineBtn type="dialogCancel" @click="cancelEditModal">Cancel</MachineBtn>
-            <MachineBtn type="fileSave" :disabled="saving" @click="saveEdit">{{ isNewTool ? "Add" : "Save" }}</MachineBtn>
+          <Gate gate="setup" class="dialogActions">
+            <MachineBtn type="dialogCancel" :disabled="saving" @click="cancelEditModal">Cancel</MachineBtn>
+            <MachineBtn type="fileSave" :disabled="saving" @click="saveEdit">{{ saving ? 'Saving…' : isNewTool ? "Add" : "Save" }}</MachineBtn>
           </Gate>
         </div>
       </div>
+    </Teleport>
 
     <!-- Import preview dialog -->
     <Teleport v-if="importPreview" :to="dialogTarget ?? 'body'" :disabled="!dialogTarget">
@@ -851,16 +930,6 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
 
 /* .actions — replaced by row-tight utility (same shape) */
 
-.errorBanner {
-  background: color-mix(in oklab, var(--danger) 30%, var(--bg));
-  color: var(--danger);
-  padding: var(--gap-tight) var(--gap-controls);
-  border-radius: var(--radius-xl);
-  font-size: var(--fs-base);
-  margin-bottom: var(--gap-tight);
-  flex-shrink: 0;
-}
-
 .importBanner {
   display: flex;
   align-items: center;
@@ -874,50 +943,18 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
   flex-shrink: 0;
 }
 
-/* ---- Edit dialog ---- */
-.editDialog {
-  min-width: 420px;
-  max-width: 480px;
-  max-height: 90%;
-}
-
-.editBody {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  display: flex;
-  gap: var(--gap-panel);
-  padding: var(--gap-panel);
+/* ---- Edit dialog (layout only; chrome = .dialog.md.wide + .paramGrid) ---- */
+.editColumns {
+  flex-wrap: wrap;   /* the preview column drops below the fields when narrow */
 }
 
 .editFields {
-  flex: 1;
+  flex: 1 1 360px;
   min-width: 0;
 }
 
-.editGrid {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: var(--gap-controls);
-  align-items: center;
-}
-
-.editGrid > label {
-  font-size: var(--fs-sm);
-  opacity: var(--opacity-muted);
-}
-
-.editGrid > .sub {
-  grid-column: 1 / -1;
-}
-
-.editGrid > .sub + label {
-  /* no extra top margin on first label after sub */
-}
-
 .editPreviewCol {
-  width: calc(160px + var(--gap-controls) * 2);
-  flex-shrink: 0;
+  flex: 0 0 calc(var(--preview-w) + 2 * var(--gap-controls));
   align-self: flex-start;
 }
 
@@ -927,11 +964,13 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
   padding: var(--gap-controls);
 }
 
-.editFooter {
-  display: flex;
-  gap: var(--gap-controls);
-  justify-content: flex-end;
-  padding: var(--gap-section) var(--gap-panel);
+/* Text fields fill their track; .paramGrid caps inputs at 100px for numbers. */
+.editGrid > .full { max-width: none; }
+/* The last text field of the two-column grid takes the remaining tracks. */
+.editGrid > .spanRest { grid-column: 2 / -1; }
+
+.editNotice {
+  flex-shrink: 0;
 }
 
 /* ---- Import dialog ---- (width: the global .dialog.md.wide tier) */

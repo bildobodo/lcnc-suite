@@ -221,7 +221,9 @@ export const PERMISSIONS_KEY = Symbol("permissions") as InjectionKey<ComputedRef
  * ended up with two policies. Providing it removes that reason without hoisting
  * `busy` out of App.vue. Same shape as PERMISSIONS_KEY above.
  */
-export type FireFn = (payload: any, gate?: keyof Permissions, cooldownMs?: number) => void;
+/** Returns the `req_id` the command went out with, or null when nothing
+ *  was sent (gate closed, busy latch, no transport) — never a pending. */
+export type FireFn = (payload: any, gate?: keyof Permissions, cooldownMs?: number) => string | null;
 export const FIRE_KEY = Symbol("fire") as InjectionKey<FireFn>;
 
 /** Composable: inject the gated send path from the ancestor provider. */

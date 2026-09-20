@@ -118,3 +118,22 @@ export async function assertLayout(root: Locator, snapshot: LayoutSnapshot, info
   }
   expect(issues, `${snapshot.name}: layout defects\n${issues.map(issue => issue.detail).join('\n')}`).toEqual([]);
 }
+
+/** A dialog must be the hit target at its corners and centre: nothing
+ * (strip, banner, another overlay) may cover it, in any viewport. */
+export async function expectDialogUncovered(dialog: Locator): Promise<void> {
+  await expect(dialog).toHaveCount(1);
+  const covered = await dialog.evaluate(el => {
+    const r = el.getBoundingClientRect();
+    const pts: [number, number][] = [
+      [r.left + 2, r.top + 2], [r.right - 2, r.top + 2],
+      [r.left + 2, r.bottom - 2], [r.right - 2, r.bottom - 2],
+      [r.left + r.width / 2, r.top + r.height / 2],
+    ];
+    return pts.filter(([x, y]) => {
+      const hit = document.elementFromPoint(x, y);
+      return !hit || !el.contains(hit);
+    }).map(([x, y]) => `${Math.round(x)},${Math.round(y)}`);
+  });
+  expect(covered, `dialog covered at ${covered.join(' ')}`).toEqual([]);
+}

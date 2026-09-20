@@ -1209,12 +1209,12 @@ watch(spindleSpeed, (v) => {
  *
  * A drop is logged, not silent — the same honesty rule the backend follows.
  */
-async function fire(payload: any, gate?: keyof Permissions, cooldownMs?: number) {
+function fire(payload: any, gate?: keyof Permissions, cooldownMs?: number): string | null {
   const cmd = String(payload?.cmd ?? "");
   const neverDebounced = isNeverDebounced(cmd);
   if (busy.value && !neverDebounced) {
     console.warn(`[fire] ${cmd} dropped: another command is settling`);
-    return;
+    return null;
   }
   if (gate && !permissions.value[gate]) {
     // Loud in the message center too (U-06): a control that looked live and
@@ -1222,13 +1222,13 @@ async function fire(payload: any, gate?: keyof Permissions, cooldownMs?: number)
     const why = permissionReasons.value[gate] ?? `gate '${gate}' is closed`;
     console.warn(`[fire] ${cmd} dropped: gate '${gate}' is closed`);
     pushMessage(OPERATOR_ERROR, `${cmd} not sent — ${why}`);
-    return;
+    return null;
   }
   const hold = cooldownMs ?? cooldownFor(cmd);
-  if (hold <= 0) { send(payload); return; }   // no latch: nothing to release
+  if (hold <= 0) return send(payload);   // no latch: nothing to release
   busy.value = true;
   try {
-    send(payload);
+    return send(payload);
   } finally {
     window.setTimeout(() => (busy.value = false), hold);
   }

@@ -496,3 +496,61 @@ class TestCmdBlockingSlicedWait(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestReqIdEcho(unittest.TestCase):
+    """UI-12 request correlation: a `req_id` on a command comes back on EVERY
+    reply path, verbatim; a command without one gets a reply without one."""
+
+    @staticmethod
+    def _blocking_mdi(ev):
+        async def h(msg, armed):
+            if msg.get("cmd") == "mdi":
+                await ev.wait()
+            if msg.get("cmd") == "bad":
+                raise ValueError("nope")
+            return {"ok": True, "text": msg.get("text")}
+        return h
+
+    def test_ok_invalid_and_absent(self):
+        with _Harness():
+            with TestClient(gateway.app) as client:
+                ev = client.portal.call(asyncio.Event)
+                client.portal.call(ev.set)
+                gateway.handle_command = self._blocking_mdi(ev)
+                with client.websocket_connect("/ws") as ws:
+                    _arm(ws)
+                    ws.send_json({"cmd": "mdi", "text": "a", "req_id": "t-1"})
+                    fr = _drain(ws, 4.0, 0.5, stop=lambda f: _is_reply(f, "mdi"))[-1][1]
+                    self.assertTrue(fr.get("ok") and fr.get("req_id") == "t-1", fr)
+                    ws.send_json({"cmd": "bad", "req_id": "t-2"})
+                    fr = _drain(ws, 4.0, 0.5, stop=lambda f: _is_reply(f, "bad"))[-1][1]
+                    self.assertFalse(fr.get("ok"))
+                    self.assertEqual(fr.get("req_id"), "t-2", fr)
+                    ws.send_json({"cmd": "mdi", "text": "b"})
+                    fr = _drain(ws, 4.0, 0.5, stop=lambda f: _is_reply(f, "mdi"))[-1][1]
+                    self.assertTrue(fr.get("ok") and "req_id" not in fr, fr)
+
+    def test_superseded_preempted_and_queue_full(self):
+        with _Harness():
+            with TestClient(gateway.app) as client:
+                ev = client.portal.call(asyncio.Event)
+                gateway.handle_command = self._blocking_mdi(ev)
+                with client.websocket_connect("/ws") as ws:
+                    _arm(ws)
+                    n = 1 + gateway._WS_CMD_QUEUE_MAX + 1
+                    for i in range(n):
+                        ws.send_json({"cmd": "mdi", "text": f"c{i}", "req_id": f"r{i}"})
+                    frames = _drain(ws, 1.5, 0.5)
+                    full = [f for _t, f in frames if _is_reply(f, "mdi") and "queue full" in str(f.get("error", ""))]
+                    self.assertEqual(len(full), 1, full)
+                    self.assertEqual(full[0].get("req_id"), f"r{n - 1}", full[0])
+                    ws.send_json({"cmd": "abort", "req_id": "r-abort"})
+                    frames = _drain(ws, 3.0, 0.5, stop=lambda f: _is_reply(f, "abort"))
+                    self.assertEqual(frames[-1][1].get("req_id"), "r-abort", frames[-1][1])
+                    mdi = [f for _t, f in frames if _is_reply(f, "mdi")]
+                    by_err = {f.get("error"): f for f in mdi}
+                    self.assertEqual(by_err["Preempted by abort"].get("req_id"), "r0", by_err)
+                    sup = sorted(f.get("req_id") for f in mdi if f.get("error") == "Superseded by abort")
+                    self.assertEqual(sup, sorted(f"r{i}" for i in range(1, n - 1)), sup)
+                    client.portal.call(ev.set)

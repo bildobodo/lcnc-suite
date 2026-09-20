@@ -309,11 +309,28 @@ function onFrame(data: string | ArrayBuffer) {
     }
 }
 
-export function send(obj: WsCommand) {
+// Request correlation (UI-12): every command carries a per-tab monotonic
+// `req_id`; the gateway echoes it on EVERY reply path (ok, ok:false,
+// preempted, superseded, queue-full), so a dialog matches the reply to the
+// command IT sent — `lastReply.cmd` alone cannot tell two sessions apart.
+const _tabId = Math.random().toString(36).slice(2, 8);
+let _reqSeq = 0;
+export function nextReqId(): string {
+  return `${_tabId}-${++_reqSeq}`;
+}
+
+/**
+ * Send a command. Returns the `req_id` it went out with, or null when
+ * NOTHING was handed to the transport (no worker yet) — a null never
+ * creates a pending state in a caller.
+ */
+export function send(obj: WsCommand): string | null {
   // Classify here (main thread) where the structured command is visible.
   // Mutating/motion commands must not be queued+replayed across a reconnect
   // (issue #18); the worker drops them if the socket is closed.
-  sendCommand(JSON.stringify(obj), obj.cmd, !isQueueSafe(obj.cmd));
+  const req_id = nextReqId();
+  const posted = sendCommand(JSON.stringify({ ...obj, req_id }), obj.cmd, !isQueueSafe(obj.cmd));
+  return posted ? req_id : null;
 }
 
 export function saveSettings(section: string, data: any) {

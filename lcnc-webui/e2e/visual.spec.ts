@@ -49,3 +49,33 @@ for (const profile of PROFILES) {
     });
   }
 }
+
+// Tool edit dialog references (WP3): one per viewport, the preview canvas
+// masked (WebGL rasterisation is not part of the layout contract).
+const barrel = { T: 416, P: 7, Z: -42.3, D: 12, type: "circlebarrel",
+  fusion_type: "circle segment barrel", description: "Imported barrel cutter",
+  oal: 80, flute_length: 20, shoulder_length: 20, shaft_diameter: 12,
+  lower_radius: 1, upper_radius: 1, profile_radius: 48, axial_distance: 10 };
+for (const viewport of VIEWPORTS) {
+  test(`${viewport.name}: tool edit dialog reference image`, async ({ page }, info) => {
+    test.skip(process.platform !== 'linux', 'Visual references use Linux Chromium; geometry tests are portable.');
+    await openLayout(page, PROFILES[0], viewport);
+    await page.addStyleTag({ content: fontCss });
+    await page.evaluate(() => document.fonts.ready);
+    await page.getByRole('button', { name: 'Tools', exact: true }).click();
+    await expect.poll(async () => {
+      await ctl({ op: 'raw', frame: { type: 'reply', cmd: 'get_tool_table', ok: true, tools: [barrel] } });
+      return page.getByTitle('Edit tool', { exact: true }).count();
+    }).toBe(1);
+    await page.getByTitle('Edit tool', { exact: true }).click();
+    const dialog = page.locator('.editDialog');
+    await expect(dialog.locator('.editPreviewCanvas canvas')).toBeVisible();
+    await settleLayout(page);
+    await assertLayout(dialog, await measureLayout(dialog, `tool-edit-${viewport.name}`), info);
+    await expect(dialog).toHaveScreenshot(`tool-edit-${viewport.name}.png`, {
+      animations: 'disabled', caret: 'hide', scale: 'css',
+      threshold: 0.2, maxDiffPixelRatio: 0.002,
+      mask: [dialog.locator('.editPreviewCanvas canvas')],
+    });
+  });
+}

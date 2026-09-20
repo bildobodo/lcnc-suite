@@ -123,10 +123,12 @@ export function connectTransport(url: string, onEvent: (m: any) => void): void {
  * (it sees the structured command) and the worker drops dropIfClosed sends
  * when the socket is closed. No-op when no worker exists.
  */
-export function sendCommand(payload: string, cmd: string, dropIfClosed: boolean): void {
+export function sendCommand(payload: string, cmd: string, dropIfClosed: boolean): boolean {
   if (wsWorker) {
     wsWorker.postMessage({ type: "send", payload, cmd, dropIfClosed });
+    return true;
   }
+  return false;
 }
 
 /** Relay config to the worker (hidden state, immediate heartbeat, resume). */
