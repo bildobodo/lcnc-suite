@@ -360,7 +360,9 @@ const mdiInputRef = ref<any>(null);
 const gcodePanelRef = ref<any>(null);
 
 function _mdiInputEl(): HTMLInputElement | null {
-  const el = mdiInputRef.value?.$el;
+  // MachineInput's text branch is a fragment (input + teleported glyph), so
+  // `$el` is a fragment anchor — the component exposes its element instead.
+  const el = mdiInputRef.value?.inputElement?.() ?? mdiInputRef.value?.$el;
   if (el instanceof HTMLInputElement) return el;
   return el?.querySelector?.("input") ?? null;
 }
@@ -403,8 +405,6 @@ function openMdiSession() {
   if (!permissions.value.ready) return;
   openTextSession({ ownerId: MDI_OWNER, kind: "code", context: "MDI", target: mdiTarget(), enterLabel: "Send" });
 }
-// Gate closes → the MDI session ends (its value could not be sent anyway).
-watch(() => permissions.value.ready, (ok) => { if (!ok) closeTextSessionIf(MDI_OWNER, "MDI unavailable"); });
 // Hidden-but-mounted owners (tab switch): the editor's and the MDI line's
 // sessions LOCK while their tab is not visible — helper hidden, draft kept.
 watch(activeTab, (tab) => {
@@ -575,6 +575,9 @@ provide(PERMISSIONS_KEY, permissions);
 // MachineBtn shows "Busy — try again" at the control when this latch would
 // drop its click (fire()); read-only for children.
 provide("busy", busy);
+// Gate closes → the MDI session ends (its value could not be sent anyway).
+// (Declared after `permissions`: the watch getter runs at setup time.)
+watch(() => permissions.value.ready, (ok) => { if (!ok) closeTextSessionIf(MDI_OWNER, "MDI unavailable"); });
 // Why each closed gate is closed (U-06): the backend's reasons under the
 // client-local overlay's own — what a dimmed control shows on hover and
 // says on tap (MachineBtn), and what fire() reports when it drops a send.

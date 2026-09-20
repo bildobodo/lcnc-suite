@@ -147,11 +147,11 @@ export function inArea(node: EventTarget | null, ownerId: string): boolean {
   return !!el.closest(`[data-input-area="${CSS.escape(ownerId)}"]`);
 }
 
-let _pointerDownInside = false;
 function onDocPointerDown(e: PointerEvent): void {
-  if (!inputSession.kind) { _pointerDownInside = false; return; }
-  _pointerDownInside = inArea(e.target, inputSession.ownerId);
-  if (!_pointerDownInside && !inputSession.locked) closeTextSession("pointer down outside the input area", true);
+  if (!inputSession.kind) return;
+  if (!inArea(e.target, inputSession.ownerId) && !inputSession.locked) {
+    closeTextSession("pointer down outside the input area", true);
+  }
 }
 
 /** Owner fields call this from @focusout: focus left the area → close.
@@ -160,7 +160,8 @@ function onDocPointerDown(e: PointerEvent): void {
 export function onOwnerFocusOut(ownerId: string, e: FocusEvent): void {
   if (!inputSession.kind || inputSession.ownerId !== ownerId) return;
   const rel = e.relatedTarget;
-  if (rel == null) { if (_pointerDownInside) return; return; }  // null: nothing focusable took focus — the pointer rule decides
+  // null: nothing focusable took focus — the pointer rule (above) decides.
+  if (rel == null) return;
   if (!inArea(rel, ownerId)) closeTextSession("focus left the input area", true);
 }
 

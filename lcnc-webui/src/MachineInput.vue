@@ -190,6 +190,10 @@ onUnmounted(() => {
   clearInterval(visTimer);
   hideGlyph();
 });
+
+// The text branch renders a fragment (input + teleported glyph), so a
+// parent's `$el` would be a fragment anchor: expose the element itself.
+defineExpose({ inputElement: () => textEl.value ?? inputEl.value });
 </script>
 
 <template>
