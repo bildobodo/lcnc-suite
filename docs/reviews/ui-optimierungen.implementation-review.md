@@ -149,7 +149,7 @@ die Tastatur (jede Scoped-Regel eines Elternteils auf einem `MachineBtn` — `.n
 `.mdiInput` — war seit WP6 bzw. WP8 wirkungslos). Die Suite war bei der Prüfung nicht
 live (der frühere `pgrep`-Treffer war der eigene Shell-Wrapper), deshalb liefen diesmal
 Build, Vitest und Playwright selbst. Alle Korrekturen liegen in **einem** Commit auf
-`feat/ui-review-wave` (Hash im Abschluss unten); die Fixes und Nachweise je ID:
+`feat/ui-review-wave`: **`de90bc4`** („Implementation review round 1 (UI-I01–I09): fixes, real-band gates, answers“); die Fixes und Nachweise je ID:
 
 | ID | Stand | Korrektur | Nachweis |
 |---|---|---|---|

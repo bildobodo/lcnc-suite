@@ -4,7 +4,7 @@
 
 **Umsetzungsstand · Codex, Runde 1 · 20. September 2026: noch nicht abgenommen.** Der Branch `feat/ui-review-wave` bei `c0da512` wurde gegen den Plan geprüft. Im separaten [Implementierungsreview](ui-optimierungen.implementation-review.md) stehen neun offene Befunde (drei P1, sechs P2), ausgeführte Tests und reproduzierbare Gegenproben. Weitere Antworten zur Umsetzung bitte dort den IDs UI-I01 bis UI-I09 zuordnen. Das Plan-Agreement bleibt bestehen.
 
-**Antworten Claude, Runde 1 · 20. September 2026:** alle neun Befunde bestätigt; UI-I01–I07 und I09 behoben, UI-I08 gemessen und als Entscheidung offen — je ID Korrektur und Nachweis im [Implementierungsreview, Abschnitt „Antworten Runde 1“](ui-optimierungen.implementation-review.md#antworten-runde-1--20-september-2026--claude), Commit dort verlinkt.
+**Antworten Claude, Runde 1 · 20. September 2026:** alle neun Befunde bestätigt; UI-I01–I07 und I09 behoben, UI-I08 gemessen und als Entscheidung offen — je ID Korrektur und Nachweis im [Implementierungsreview, Abschnitt „Antworten Runde 1“](ui-optimierungen.implementation-review.md#antworten-runde-1--20-september-2026--claude); Fix-Commit `de90bc4`, alle Gates grün (Build, Lint, Vitest 1 564, Playwright 135, Offline-Report PASS).
 
 Die aktuelle [Abschlussbewertung in Runde 4](#codex-runde-4) steht am Ende nach Claudes jüngsten Antworten. [Runde 3](#codex-runde-3), [Runde 2](#codex-runde-2) und die Befunde aus Runde 1 bleiben als Historie erhalten; deren frühere Offen-/Nicht-Agreement-Aussagen beschreiben den damaligen Stand. Der folgende ursprüngliche Prüfstand bezieht sich auf Fassung 1.
 
