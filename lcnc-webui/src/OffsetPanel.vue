@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted } from "vue";
-import { usePermissions, useFire } from "./permissions";
+import { usePermissions, useFire, usePermissionReasons, CLIENT_REASONS } from "./permissions";
 import { fmtOffset } from "./format";
-import { openKeypad, closeKeypadIf, keypadState, newKeypadOwnerId } from "./useNumberKeypad";
+import { openKeypad, closeKeypadIf, keypadState, newKeypadOwnerId, dropDrafts } from "./useNumberKeypad";
 import { G5X_LABELS } from "./wcs";
 import MachineBtn from "./MachineBtn.vue";
 
 import Gate from "./Gate.vue";
 
 const can = usePermissions();
+const reasons = usePermissionReasons();
 const fire = useFire();
 
 type WcsRow = { name: string; [axis: string]: string | number };
@@ -78,9 +79,18 @@ function startEditCell(wcs: string, axis: string, current: number, e: Event) {
   });
 }
 function ownsKeypad(): boolean { return keypadState.open && keypadState.ownerId.startsWith(`${ownerPrefix}:`); }
-// The gate closing ends the cell's session (same rule as MachineInput).
-watch(() => can.value.probe, (ok) => { if (!ok && ownsKeypad()) closeKeypadIf(keypadState.ownerId, "WCS edit gate closed while the keypad was open"); });
-onUnmounted(() => { if (ownsKeypad()) closeKeypadIf(keypadState.ownerId); });
+// The gate closing ends EVERY cell's context (same rule as MachineInput):
+// the open session, when one of our cells holds the keypad, and every
+// filed cell draft — a draft parked on G54/X must not outlive the gate that
+// admitted it (review round 2, UI-I05 B). The busy latch after a command
+// ("settling") is not an end: the gate re-opens in DEFAULT_COOLDOWN_MS.
+const gateEnded = computed(() => !can.value.probe && reasons.value.probe !== CLIENT_REASONS.settling);
+function endCells(reason?: string) {
+  if (ownsKeypad()) closeKeypadIf(keypadState.ownerId, reason);
+  dropDrafts(id => id.startsWith(`${ownerPrefix}:`));
+}
+watch(gateEnded, (ended) => { if (ended) endCells("WCS edit gate closed while the keypad was open"); });
+onUnmounted(() => endCells());
 
 // ─── Clear actions ───────────────────────────────────────────
 // Both are hold-to-fire like Zero/Home (operator decision 2026-09-19); the

@@ -31,7 +31,13 @@
   --panel-min-w-wide: 540px;
   --panel-min-h: 400px;
   --panel-h-portrait: 500px;
-  --viewer-min-h-portrait: 500px;
+  /* Portrait viewer floor: 500 px, or 45 % of the content column when that
+     is less — at 150 % zoom on 900 × 1200 (800 CSS px tall) a fixed 500 px
+     left the side pane 126 px, less than its tab row, and the MDI line —
+     the on-screen keyboard's readout — fell below the fold (review UI-I08).
+     Column-relative, not vh: Chromium does not scale viewport units under
+     CSS `zoom` (the test's 150 % emulation), a percentage follows both. */
+  --viewer-min-h-portrait: min(500px, 45%);
 
   /* Font stacks
    * --font-sans is the UI default — every interactive element inherits this.

@@ -1,0 +1,311 @@
+Round 2: reviewed revision
+==========================
+2026-09-20
+feat/ui-review-wave
+7a1436a2d8f7ce6c6d10305d464dd1d73baaed93
+Regular build, current repository mock, scrollbar bands visible.
+
+Build: exit 0
+=============
+> lcnc-webui@0.0.0 build
+> vue-tsc -b && vite build
+
+vite v7.3.5 building client environment for production...
+transforming...
+✓ 2015 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                 0.59 kB │ gzip:   0.33 kB
+dist/static/wsWorker-DRl7CGxM.js                3.57 kB
+dist/static/previewWorker-C1MOziwn.js          27.94 kB
+dist/static/partFrameWorker-CSLyKB3b.js        45.52 kB
+dist/static/machineNormalsWorker-DL0aYzwZ.js   74.14 kB
+dist/static/edgeWorker-eka59H6v.js             83.09 kB
+dist/static/reachWorker-DyxK9g4-.js           108.18 kB
+dist/static/collisionWorker-DvVWZz9I.js       174.25 kB
+dist/static/ToolPreview-h0nbom5n.css            0.09 kB │ gzip:   0.10 kB
+dist/static/ThreeViewer-DIaekQ1G.css            6.31 kB │ gzip:   1.62 kB
+dist/static/index-96EXh3Ik.css                 75.80 kB │ gzip:  13.64 kB
+dist/static/gcodeCmLanguage-DpdBibDy.js         1.03 kB │ gzip:   0.53 kB
+dist/static/ToolPreview-XINYSNxM.js             2.16 kB │ gzip:   1.20 kB
+dist/static/toolGeometry-BickdEPO.js            9.05 kB │ gzip:   3.34 kB
+dist/static/msgpack-BkQaaVuN.js                13.97 kB │ gzip:   4.25 kB
+dist/static/index-BE60FhhY.js                  28.84 kB │ gzip:   9.54 kB
+dist/static/index-CX_61fY8.js                  48.96 kB │ gzip:  16.39 kB
+dist/static/index-tky6Dhx3.js                  50.88 kB │ gzip:  17.70 kB
+dist/static/ThreeViewer-C0ELz2-h.js           120.84 kB │ gzip:  45.46 kB
+dist/static/index-o9DEOgyx.js                 200.76 kB │ gzip:  65.35 kB
+dist/static/index-C6MFL1w-.js                 524.21 kB │ gzip: 164.01 kB
+dist/static/three-CfffMm-P.js                 865.77 kB │ gzip: 237.89 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 4.29s
+
+Lint: exit 0
+============
+> lcnc-webui@0.0.0 lint
+> eslint . && npm run lint:css
+
+
+> lcnc-webui@0.0.0 lint:css
+> python3 ../scripts/audit-scoped-css.py
+
+OK: no definite scoped-CSS leaks, no token drift. (use --all to see ROOT? candidates)
+
+Vitest: exit 0
+==============
+RUN  v4.1.8 /home/cnc/lcnc-suite/lcnc-webui
+
+
+ Test Files  68 passed (68)
+      Tests  1564 passed (1564)
+   Start at  17:21:56
+   Duration  27.02s (transform 1.20s, setup 0ms, import 2.95s, tests 34.37s, environment 3ms)
+
+Regular Playwright: 135 distinct cases passed
+=============================================
+First command: npx playwright test --workers=2 --max-failures=5
+121 passes, terminated with SIGTERM / exit 143; no failed test reported.
+Remainder: --project=serial-layout --project=serial-visual --project=serial-viewer --no-deps --workers=1
+--grep: negative control (portrait), reference image, a clean rebuild, studio model, default framing
+14 passes, exit 0.
+
+[chromium] › e2e/armed.spec.ts:12:1 › connected + armed + ready lifts default-deny on machine controls
+[chromium] › e2e/frames.spec.ts:21:1 › status_delta merges onto prior status and updates the rendered DRO
+[chromium] › e2e/frames.spec.ts:47:1 › halshow snapshot renders pins and halshow_update applies the delta
+[chromium] › e2e/frames.spec.ts:40:1 › pong drives the network-latency pill
+[chromium] › e2e/smoke.spec.ts:7:1 › app shell mounts with no gateway connected
+[chromium] › e2e/smoke.spec.ts:14:1 › default-deny: no armed gate is enabled while disconnected
+[chromium] › e2e/smoke.spec.ts:22:1 › Arm control stays reachable in the exempt slot
+[serial-tools] › e2e/example-tool-library.spec.ts:80:1 › server library requires review and renders source shapes with nominal Z offsets
+[serial-tools] › e2e/example-tool-library.spec.ts:133:1 › Upload opens the client picker directly without fetching server folders
+[serial-tools] › e2e/example-tool-library.spec.ts:149:1 › preview errors survive table refresh and can be dismissed and retried
+[serial-tools] › e2e/example-tool-library.spec.ts:181:1 › a slow server folder does not block client import or cancel
+[serial-tools] › e2e/example-tool-library.spec.ts:206:3 › server browser navigation, download retry and layout 1024x768
+[serial-tools] › e2e/example-tool-library.spec.ts:206:3 › server browser navigation, download retry and layout 900x1200
+[serial-tools] › e2e/freecad-import.spec.ts:19:1 › FreeCAD preview retains measured offsets, renders a custom shape, and explains new lengths
+[serial-tools] › e2e/tool-geometry.spec.ts:60:1 › unverified geometry is visible in the table, editor and both import modes
+[serial-tools] › e2e/tool-geometry.spec.ts:105:3 › desktop: the tool edit dialog keeps labels, fields and footer usable
+[serial-tools] › e2e/tool-geometry.spec.ts:105:3 › compact: the tool edit dialog keeps labels, fields and footer usable
+[serial-tools] › e2e/tool-geometry.spec.ts:105:3 › touch-landscape: the tool edit dialog keeps labels, fields and footer usable
+[serial-tools] › e2e/tool-geometry.spec.ts:105:3 › touch-portrait: the tool edit dialog keeps labels, fields and footer usable
+[serial-tools] › e2e/tool-geometry.spec.ts:161:1 › add: ok:false keeps the draft, a delayed ok closes, a double click sends once
+[serial-tools] › e2e/tool-geometry.spec.ts:195:1 › an old session's late reply never closes a newer dialog
+[serial-tools] › e2e/tool-geometry.spec.ts:220:1 › disconnect while saving: outcome unknown, no blind resend, draft kept
+[serial-tools] › e2e/tool-geometry.spec.ts:234:1 › delete waits for its own reply and shows a refusal in place
+[serial-tools] › e2e/tool-holder.spec.ts:56:1 › holder is opt-in in the library preview and never auto-attached to the live tool
+[serial-tools] › e2e/tool-holder.spec.ts:87:1 › a tool-only export offers no holder toggle
+[serial-tools] › e2e/tool-import.spec.ts:21:1 › existing tools default to reviewed metadata refresh, not full replacement
+[serial-tools] › e2e/tool-import.spec.ts:43:1 › full replacement requires selecting that mode and shows length replacement
+[serial-tools] › e2e/tool-import.spec.ts:61:1 › stale review stays visible as an error and never falls back to replacement
+[serial-tools] › e2e/tool-import.spec.ts:78:1 › an all-conflict preview cannot submit a metadata refresh
+[serial-lifecycle] › e2e/lifecycle.spec.ts:37:1 › reload while armed requests armed-resume with the same session id
+[serial-lifecycle] › e2e/lifecycle.spec.ts:56:1 › explicit server_shutdown frame shows the shutdown banner
+[serial-lifecycle] › e2e/lifecycle.spec.ts:71:1 › server-going-away close (1001) shows the shutdown banner without any frame
+[serial-nine-axis] › e2e/nine-axis.spec.ts:27:1 › 9-axis machine: SetupStrip renders a zero/home group per axis, HUD shows all letters
+[serial-nine-axis] › e2e/nine-axis.spec.ts:77:1 › lathe [X,Z]: renders exactly those axes — Z present, no phantom Y
+[serial-nine-axis] › e2e/nine-axis.spec.ts:88:1 › reset returns the mock to the XYZ baseline
+[serial-touchoff] › e2e/touchoff.spec.ts:71:7 › strip layout › XYZ landscape: unhome preserves control geometry
+[serial-touchoff] › e2e/touchoff.spec.ts:71:7 › strip layout › XYZ landscape touch: unhome preserves control geometry
+[serial-touchoff] › e2e/touchoff.spec.ts:71:7 › strip layout › XYZ portrait touch: unhome preserves control geometry
+[serial-touchoff] › e2e/touchoff.spec.ts:71:7 › strip layout › XYZAC landscape: unhome preserves control geometry
+[serial-touchoff] › e2e/touchoff.spec.ts:71:7 › strip layout › XYZAC landscape touch: unhome preserves control geometry
+[serial-touchoff] › e2e/touchoff.spec.ts:71:7 › strip layout › XYZAC portrait touch: unhome preserves control geometry
+[serial-touchoff] › e2e/touchoff.spec.ts:71:7 › strip layout › XYZABC TWP landscape: unhome preserves control geometry
+[serial-touchoff] › e2e/touchoff.spec.ts:71:7 › strip layout › XYZABC TWP landscape touch: unhome preserves control geometry
+[serial-touchoff] › e2e/touchoff.spec.ts:71:7 › strip layout › XYZABC TWP portrait touch: unhome preserves control geometry
+[serial-touchoff] › e2e/touchoff.spec.ts:167:1 › Plane mode: rotary touch-off closed, reserved fixtures disabled, Zero XYZ stays open
+[serial-touchoff] › e2e/touchoff.spec.ts:206:1 › Capture/Clear plane buttons: gate-driven, Clear needs a plane (or TOOL limbo)
+[serial-touchoff] › e2e/touchoff.spec.ts:242:1 › TCP trunnion (switchable, not TWP): G59 selectable, no Plane frame, no Capture row
+[serial-touchoff] › e2e/touchoff.spec.ts:270:1 › kinematics selector shows the FRAME the raw type means, and emits frames
+[serial-touchoff] › e2e/touchoff.spec.ts:308:1 › keypad names its target; a frame/fixture change while open cancels it with a message
+[serial-touchoff] › e2e/touchoff.spec.ts:341:1 › a disabled control explains itself to the keyboard, and sends no command
+[serial-touchoff] › e2e/touchoff.spec.ts:387:1 › asking why never starts, pauses or resumes a program
+[serial-touchoff] › e2e/touchoff.spec.ts:432:1 › Space on a focused control never reaches the Cycle Start shortcut
+[serial-touchoff] › e2e/touchoff.spec.ts:468:1 › Space selects an ENABLED Plane radio; the explanation is only for the disabled one
+[serial-touchoff] › e2e/touchoff.spec.ts:507:1 › a disabled control explains itself: the reason on hover and on tap
+[serial-touchoff] › e2e/touchoff.spec.ts:545:1 › keypad refuses 1.2.3 on a touch-off field, shows empty as 0, confirms a valid value once
+[serial-touchoff] › e2e/touchoff.spec.ts:580:1 › tool number field: minimum 1 and whole numbers only, on Enter and on OK
+[serial-touchoff] › e2e/touchoff.spec.ts:631:1 › Offsets Clear: disabled without a real selection, hold-to-fire, hold cancels when the target moves
+[serial-touchoff] › e2e/touchoff.spec.ts:681:1 › tool-change confirm: once per request, retry after a refusal, nothing without a request
+[serial-touchoff] › e2e/touchoff.spec.ts:713:1 › surface map: empty state without a toast, error with retry, points load without a grid
+[serial-touchoff] › e2e/touchoff.spec.ts:763:1 › keypad owner: dialog close, gate change and a second field end or retarget the session
+[serial-guards] › e2e/editor-guards.spec.ts:66:1 › external program change keeps buffer A, shows the conflict, saves A only
+[serial-guards] › e2e/editor-guards.spec.ts:96:1 › program change during a delayed save: no reload of the new program from A
+[serial-guards] › e2e/editor-guards.spec.ts:123:1 › program change while CodeMirror is still loading: the view shows A and is usable
+[serial-guards] › e2e/editor-guards.spec.ts:147:1 › a discarded session's pending import installs nothing
+[serial-guards] › e2e/editor-guards.spec.ts:168:1 › an older save reply never touches a newer session
+[serial-guards] › e2e/editor-guards.spec.ts:193:1 › discard: clean closes at once, dirty asks and Cancel keeps the edit
+[serial-guards] › e2e/editor-guards.spec.ts:208:1 › an upload finishing after Edit raises the conflict, never loses the buffer
+[serial-guards] › e2e/editor-guards.spec.ts:229:3 › upload name conflict › Cancel / Rename / Replace
+[serial-guards] › e2e/input-session.spec.ts:83:1 › MDI → number → MDI: exactly one helper at a time, the title names the owner
+[serial-guards] › e2e/input-session.spec.ts:120:1 › number A → number B: A is not confirmed, its draft returns marked as draft
+[serial-guards] › e2e/input-session.spec.ts:144:1 › number → text → number keeps the draft; a tap outside hides the keypad, OK and Cancel return focus
+[serial-guards] › e2e/input-session.spec.ts:186:1 › tap outside, Tab outside (from the field and from a key) and Close hide the keyboard without confirming; a re-tap re-opens
+[serial-guards] › e2e/input-session.spec.ts:232:1 › Send from the keyboard is the MDI path; Enter in a search field never reaches the machine
+[serial-guards] › e2e/input-session.spec.ts:259:1 › editor → number → editor keeps the buffer; a hidden tab locks, not ends, the session
+[serial-guards] › e2e/input-session.spec.ts:309:1 › offset cell: leaving the tab closes the keypad with its draft; only the visible cell's OK writes, once
+[serial-guards] › e2e/input-session.spec.ts:346:3 › touch › touch-only entry of code, expressions, braces and an umlaut description; correction mid-text
+[serial-guards] › e2e/input-session.spec.ts:397:1 › a page switch keeps the field's selection
+[serial-guards] › e2e/input-session.spec.ts:409:3 › landscape light: every page fits the strip budget and never changes the frame
+[serial-guards] › e2e/input-session.spec.ts:409:3 › landscape dark: every page fits the strip budget and never changes the frame
+[serial-guards] › e2e/input-session.spec.ts:427:3 › portrait, touch › every page: 44 px keys, no overflow, reachable without scrolling at 100 % and 150 %
+[serial-guards] › e2e/keyboard-guards.spec.ts:77:1 › positive control: Space on the bare page sends cycle_start
+[serial-guards] › e2e/keyboard-guards.spec.ts:84:1 › number keypad open: Space/Backspace send nothing, Escape sends exactly estop
+[serial-guards] › e2e/keyboard-guards.spec.ts:102:1 › repeated Escape in E-Stop never sends estop_reset
+[serial-guards] › e2e/keyboard-guards.spec.ts:117:1 › settings dialog and key capture: only Escape passes, and it cancels the capture
+[serial-guards] › e2e/keyboard-guards.spec.ts:151:1 › tool dialog, messages and reference dialogs block Space/Enter/Backspace
+[serial-guards] › e2e/keyboard-guards.spec.ts:181:1 › documented remainder: Tab leaves the dialog (no focus trap in this wave)
+[serial-guards] › e2e/keyboard-guards.spec.ts:203:1 › editor open: Space never starts the program
+[serial-guards] › e2e/keyboard-guards.spec.ts:220:1 › pause and resume via Space are unchanged
+[serial-guards] › e2e/keyboard-guards.spec.ts:239:1 › a jog key released after a field opened mid-jog still sends jog_stop
+[serial-guards] › e2e/keyboard-guards.spec.ts:259:1 › keyboard tab: a capture edits a local copy, no page error, a server change refreshes it
+[serial-guards] › e2e/touch-hold.spec.ts:53:1 › a short tap sends nothing and says why; a complete hold sends exactly one command
+[serial-guards] › e2e/touch-hold.spec.ts:70:1 › sliding off, a scroll-cancel and a hidden page cancel the hold; the next hold starts from zero
+[serial-guards] › e2e/touch-hold.spec.ts:112:1 › teleported tool dialog under touch: scroll the form, keypad on a field, confirm from the strip, footer reachable
+[serial-layout] › e2e/layout-audit.spec.ts:4:1 › layout guard finds injected overlaps, clipping, collapsed and missing controls
+[serial-layout] › e2e/layout-audit.spec.ts:24:1 › layout guard catches clipping by an inner container and tolerates intentional page scrolling
+[serial-layout] › e2e/layout.spec.ts:11:5 › 3axis-xyz desktop: control panels stay usable across machine states
+[serial-layout] › e2e/layout.spec.ts:11:5 › 3axis-xyz compact: control panels stay usable across machine states
+[serial-layout] › e2e/layout.spec.ts:11:5 › 3axis-xyz touch-landscape: control panels stay usable across machine states
+[serial-layout] › e2e/layout.spec.ts:11:5 › 3axis-xyz touch-portrait: control panels stay usable across machine states
+[serial-layout] › e2e/layout.spec.ts:11:5 › 5axis-xyzac desktop: control panels stay usable across machine states
+[serial-layout] › e2e/layout.spec.ts:11:5 › 5axis-xyzac compact: control panels stay usable across machine states
+[serial-layout] › e2e/layout.spec.ts:11:5 › 5axis-xyzac touch-landscape: control panels stay usable across machine states
+[serial-layout] › e2e/layout.spec.ts:11:5 › 5axis-xyzac touch-portrait: control panels stay usable across machine states
+[serial-layout] › e2e/layout.spec.ts:11:5 › 6axis-twp desktop: control panels stay usable across machine states
+[serial-layout] › e2e/layout.spec.ts:11:5 › 6axis-twp compact: control panels stay usable across machine states
+[serial-layout] › e2e/layout.spec.ts:11:5 › 6axis-twp touch-landscape: control panels stay usable across machine states
+[serial-layout] › e2e/layout.spec.ts:11:5 › 6axis-twp touch-portrait: control panels stay usable across machine states
+[serial-layout] › e2e/layout.spec.ts:42:1 › layout guard detects the original shrinking disabled-button regression
+[serial-layout] › e2e/layout.spec.ts:56:3 › desktop: program browser shows its root and uses the available panel
+[serial-layout] › e2e/layout.spec.ts:120:3 › desktop: tools reuse the program file browser with a full tool table
+[serial-layout] › e2e/layout.spec.ts:56:3 › compact: program browser shows its root and uses the available panel
+[serial-layout] › e2e/layout.spec.ts:120:3 › compact: tools reuse the program file browser with a full tool table
+[serial-layout] › e2e/layout.spec.ts:56:3 › touch-landscape: program browser shows its root and uses the available panel
+[serial-layout] › e2e/layout.spec.ts:120:3 › touch-landscape: tools reuse the program file browser with a full tool table
+[serial-layout] › e2e/layout.spec.ts:56:3 › touch-portrait: program browser shows its root and uses the available panel
+[serial-layout] › e2e/layout.spec.ts:120:3 › touch-portrait: tools reuse the program file browser with a full tool table
+[serial-layout] › e2e/layout.spec.ts:206:3 › desktop: strip states keep the frame and the pinned controls invariant
+[serial-layout] › e2e/layout.spec.ts:206:3 › compact: strip states keep the frame and the pinned controls invariant
+[serial-layout] › e2e/layout.spec.ts:206:3 › touch-landscape: strip states keep the frame and the pinned controls invariant
+[serial-layout] › e2e/layout.spec.ts:206:3 › touch-portrait: strip states keep the frame and the pinned controls invariant
+[serial-layout] › e2e/layout.spec.ts:234:1 › negative control (landscape): an auto scrollbar band lets the keypad change the strip height
+[serial-layout] › e2e/layout.spec.ts:254:1 › negative control (portrait): without the always-present band the keypad re-flows the pinned controls
+[serial-visual] › e2e/visual.spec.ts:23:5 › 3axis-xyz desktop: Jog and Setup reference images
+[serial-visual] › e2e/visual.spec.ts:23:5 › 3axis-xyz touch-portrait: Jog and Setup reference images
+[serial-visual] › e2e/visual.spec.ts:23:5 › 5axis-xyzac desktop: Jog and Setup reference images
+[serial-visual] › e2e/visual.spec.ts:23:5 › 5axis-xyzac touch-portrait: Jog and Setup reference images
+[serial-visual] › e2e/visual.spec.ts:23:5 › 6axis-twp desktop: Jog and Setup reference images
+[serial-visual] › e2e/visual.spec.ts:23:5 › 6axis-twp touch-portrait: Jog and Setup reference images
+[serial-visual] › e2e/visual.spec.ts:60:3 › desktop: tool edit dialog reference image
+[serial-visual] › e2e/visual.spec.ts:60:3 › compact: tool edit dialog reference image
+[serial-visual] › e2e/visual.spec.ts:60:3 › touch-landscape: tool edit dialog reference image
+[serial-visual] › e2e/visual.spec.ts:60:3 › touch-portrait: tool edit dialog reference image
+[serial-viewer] › e2e/viewer.spec.ts:49:1 › a clean rebuild frees AND re-applies the loaded program's toolpath geometry
+[serial-viewer] › e2e/viewer.spec.ts:121:1 › studio model keeps a themed, persistent ground grid through motion and rebuilds
+[serial-viewer] › e2e/viewer.spec.ts:249:1 › default framing keeps the eye outside a bed/column model for every direction, preset, projection and reset
+
+Original 9 plus first 2 additional probes: 8 pass, 3 fail
+=========================================================
+Running 11 tests using 1 worker
+
+(node:260633) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:260633) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+NUMBER_OUTSIDE 0
+  ✓   1 ../../../../tmp/ui-review-r2-harness/round1.probes.spec.ts:21:5 › number closes on outside pointer (1.2s)
+RETURNED_DRAFT 123
+  ✓   2 ../../../../tmp/ui-review-r2-harness/round1.probes.spec.ts:30:5 › number draft survives number to text and back (1.2s)
+NUMBER_FOCUS <body>
+    <div id="app" data-v-app=""><div data-v-8425043f="" class="wrap stack-controls"><header data-v-8425043f="" class="hdr"><div data-v-8425043f="" class=
+  ✓   3 ../../../../tmp/ui-review-r2-harness/round1.probes.spec.ts:44:5 › number confirm returns focus to its original field (1.4s)
+HIDDEN_OFFSET {"openN":0,"cmds":{"ok":true,"op":"lastCmds","cmds":[{"cmd":"get_tool_table","req_id":"8y3okm-3"},{"cmd":"get_tool_table","req_id":"8y3okm-4"}]}}
+  ✓   4 ../../../../tmp/ui-review-r2-harness/round1.probes.spec.ts:54:5 › hidden offset owner cannot confirm a write (1.2s)
+SAVE_AFTER_TYPING {"body":"G0 X0\nM2\n","editors":1}
+  ✓   5 ../../../../tmp/ui-review-r2-harness/round1.probes.spec.ts:68:5 › save response preserves edits typed after the request (2.2s)
+TEXT_BUTTON_TAB_OUT {
+  active: '<button data-v-906476cc="" data-v-8425043f="" class="b-icon md" title="Messages (0)"><svg data-v-8425043f="" xmlns="http://www.w3.org/2000/svg" width=',
+  keyboard: false
+}
+  ✓   6 ../../../../tmp/ui-review-r2-harness/round1.probes.spec.ts:94:5 › Tab out from a keyboard button closes the text helper (1.2s)
+KEY_SCOPED_STYLES {
+  scopes: [ 'data-v-fe29bc54', 'data-v-8425043f' ],
+  buttonAttrs: [
+    'data-v-906476cc',
+    'data-v-fe29bc54',
+    'class',
+    'aria-label',
+    'title'
+  ],
+  paddingLeft: '0px',
+  gridRow: '3 / 5'
+}
+  ✓   7 ../../../../tmp/ui-review-r2-harness/round1.probes.spec.ts:110:5 › keyboard button keeps its parent scoped sizing rules (1.1s)
+SEARCH_KEY_HIT {
+  hit: '<button data-v-906476cc="" data-v-fe29bc54="" class="b lg default mono tkKey" aria-label="g" title="g">g</button>',
+  keyboard: true
+}
+  ✓   8 ../../../../tmp/ui-review-r2-harness/round1.probes.spec.ts:127:7 › real touch › reference search can receive a real keyboard tap (1.4s)
+PORTRAIT_ACTUAL_BOUNDS { bottom: 1344.875, top: 653.125, inner: 1200 }
+  ✘   9 ../../../../tmp/ui-review-r2-harness/round1.probes.spec.ts:143:7 › real touch › portrait at 150 percent keeps the full helper within the viewport (1.2s)
+(node:260859) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:260859) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+EMPTY_DRAFT {"original":"12.345","returned":"12.345","draft":0}
+  ✘  10 ../../../../tmp/ui-review-r2-harness/round2.probes.spec.ts:13:5 › Clear remains an unconfirmed zero draft after switching number to text (4.0s)
+(node:260974) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:260974) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+DRAFT_AFTER_GATE {"original":"10.1230","returned":"17","draft":1}
+  ✘  11 ../../../../tmp/ui-review-r2-harness/round2.probes.spec.ts:30:5 › Offset draft ends when its gate closes while another cell owns the keypad (4.3s)
+
+Focus gap: first reproduction
+=============================
+Running 1 test using 1 worker
+
+(node:261394) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:261394) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+FOCUS_GAP_COMMANDS [{"cmd":"get_tool_table","req_id":"j9edx4-3"},{"cmd":"touchoff","axes":{"X":17},"expect":{"kins_type":null,"g5x_index":null},"req_id":"j9edx4-4"},{"cmd":"get_tool_table","req_id":"j9edx4-5"},{"cmd":"cycle_start","req_id":"j9edx4-6"}]
+  ✘  1 ../../../../tmp/ui-review-r2-harness/round2.probes.spec.ts:50:5 › Space during the delayed numeric focus return cannot start a program (1.1s)
+
+Focus gap: three isolated repetitions
+=====================================
+Running 3 tests using 1 worker
+
+(node:261725) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:261725) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+FOCUS_GAP_COMMANDS [{"cmd":"get_tool_table","req_id":"a30kyi-3"},{"cmd":"touchoff","axes":{"X":17},"expect":{"kins_type":null,"g5x_index":null},"req_id":"a30kyi-4"},{"cmd":"get_tool_table","req_id":"a30kyi-5"},{"cmd":"cycle_start","req_id":"a30kyi-6"}]
+  ✘  1 ../../../../tmp/ui-review-r2-harness/round2.probes.spec.ts:50:5 › Space during the delayed numeric focus return cannot start a program (1.1s)
+(node:261802) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:261802) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+FOCUS_GAP_COMMANDS [{"cmd":"get_tool_table","req_id":"vyqrwz-3"},{"cmd":"touchoff","axes":{"X":17},"expect":{"kins_type":null,"g5x_index":null},"req_id":"vyqrwz-4"},{"cmd":"get_tool_table","req_id":"vyqrwz-5"},{"cmd":"cycle_start","req_id":"vyqrwz-6"}]
+  ✘  2 ../../../../tmp/ui-review-r2-harness/round2.probes.spec.ts:50:5 › Space during the delayed numeric focus return cannot start a program (1.1s)
+(node:261883) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:261883) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+FOCUS_GAP_COMMANDS [{"cmd":"get_tool_table","req_id":"am6yii-3"},{"cmd":"touchoff","axes":{"X":17},"expect":{"kins_type":null,"g5x_index":null},"req_id":"am6yii-4"},{"cmd":"get_tool_table","req_id":"am6yii-5"},{"cmd":"cycle_start","req_id":"am6yii-6"}]
+  ✘  3 ../../../../tmp/ui-review-r2-harness/round2.probes.spec.ts:50:5 › Space during the delayed numeric focus return cannot start a program (1.2s)
+
+Existing offline report verified
+================================
+{
+  "source": "runlogs/test-suite/20260920T150715Z-offline/report.json",
+  "status": "pass",
+  "checked_matching_product_test_files": 49,
+  "report_commit": "c0da512fd9d0b5023242b8ff0cdb901df6094428",
+  "note": "Report was produced with the fixes in the working tree before the fix commit. Current product/test hashes match. Backend/model not rerun in round 2."
+}

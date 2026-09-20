@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref, useAttrs, watch, type InputHTMLAttributes } from 'vue';
-import { usePermissions } from './permissions';
+import { usePermissions, usePermissionReasons, CLIENT_REASONS } from './permissions';
 import { INPUT_DEFS, INPUT_SIZE_STYLES, type InputType, type InputDef } from './machineControls';
 import { openKeypad, keypadState, closeKeypadIf, newKeypadOwnerId } from './useNumberKeypad';
 import { openTextSession, closeTextSessionIf, inputSession, dropDraft, showInputGlyph, hideInputGlyph, placeInputGlyph, type TextTarget } from './inputSession';
@@ -32,6 +32,7 @@ const props = defineProps<{
 const attrs = useAttrs();
 const model = defineModel<string | number | null>();
 const can = usePermissions();
+const reasons = usePermissionReasons();
 const def = computed((): InputDef => INPUT_DEFS[props.gate]);
 const isDisabled = computed(() => !can.value[def.value.gate] || props.disabled);
 const isNumber = computed(() => attrs.type === 'number');
@@ -167,11 +168,18 @@ function onTextFocusOut(e: FocusEvent) {
   if (!rel || !rel.closest?.(`[data-input-area="${CSS.escape(ownerId)}"]`)) hideGlyph();
 }
 
-// The gate closing mid-entry (disarm, machine state change) ends the session
-// through the same owner path as unmount — the value can no longer be
-// delivered to this field, so the helper must not stay up promising it.
-watch(isDisabled, (off) => {
-  if (!off) return;
+// The gate closing mid-entry (disarm, machine state change) ends the
+// field's context through the same owner path as unmount: the open session
+// — the value can no longer be delivered to this field, so the helper must
+// not stay up promising it — AND the field's filed draft. NOT an end: the
+// busy latch after any fire() ("settling", DEFAULT_COOLDOWN_MS) closes every
+// busy gate for 200 ms and re-opens it — the draft parked on this field
+// while a sibling's value was confirmed survives that (review round 2,
+// UI-I05 B, and the draft rule of UI-15 would be void otherwise).
+const settling = computed(() => reasons.value[def.value.gate] === CLIENT_REASONS.settling);
+const ownerEnded = computed(() => !!props.disabled || (!can.value[def.value.gate] && !settling.value));
+watch(ownerEnded, (ended) => {
+  if (!ended) return;
   closeKeypadIf(ownerId, 'field disabled while the keypad was open');
   closeTextSessionIf(ownerId, 'field disabled while the keyboard was open');
 });

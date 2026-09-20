@@ -183,6 +183,56 @@ test("number → text → number keeps the draft; a tap outside hides the keypad
   expectNoMachineAction((await cmds()).filter(c => c !== "touchoff"));
 });
 
+test("drafts: Clear is a draft of 0; a sibling's OK (busy latch) is not an owner end, the field's gate ending is", async ({ page }) => {
+  // Review round 2, UI-I05 A + B for MachineInput owners.
+  await open(page);
+  await page.getByRole("button", { name: "MDI", exact: true }).click();
+  const x = page.locator("input.setupInput").nth(0), y = page.locator("input.setupInput").nth(1);
+  const xBefore = await x.inputValue();
+  const nk = page.locator(".nkStrip"), tk = page.locator(".tkStrip");
+  // Clear, leave for a text session, come back: the empty entry is the
+  // draft "0", visibly — not the field's old value.
+  await x.click();
+  await key(nk, "C");
+  await expect(nk.locator(".nkExpr")).toHaveText("0");
+  await page.locator(".mdiInput").click();
+  await expect(tk).toBeVisible();
+  await key(tk, "Close keyboard");
+  await x.click();
+  await expect(nk.locator("[data-draft]")).toHaveText("draft");
+  await expect(nk.locator(".nkExpr")).toHaveText("0");
+  await expect(nk.locator(".nkPreview:not([data-draft])")).toHaveText("= 0");
+  // Type on, park it behind Y, confirm Y: the touch-off's busy latch closes
+  // X's gate for 200 ms and re-opens it — X's draft survives that.
+  await page.keyboard.type("12");
+  await y.click();
+  await expect(nk.locator(".sub")).toContainText("Touch off Y");
+  await page.keyboard.type("5");
+  await key(nk, "OK");
+  await expect(nk).toHaveCount(0);
+  await expect.poll(async () => (await sentCmds()).filter(c => c.cmd === "touchoff")).toEqual([
+    expect.objectContaining({ cmd: "touchoff", axes: { Y: 5 } }),
+  ]);
+  await expect(y).toBeFocused();
+  await x.click();
+  await expect(nk.locator("[data-draft]")).toHaveText("draft");
+  await expect(nk.locator(".nkExpr")).toHaveText("12");
+  // Park it again, then end the gate itself: X's draft ends with it even
+  // though Y holds the keypad — and Y's session ends too (same gate).
+  await y.click();
+  await expect(nk.locator(".sub")).toContainText("Touch off Y");
+  await ctl({ op: "status_delta", data: { permissions: { ...PERMS_ALL, touchoff: false } } });
+  await expect(nk).toHaveCount(0);
+  await ctl({ op: "status_delta", data: { permissions: PERMS_ALL } });
+  await expect(x).toBeEnabled();
+  await x.click();
+  await expect(nk).toBeVisible();
+  await expect(nk.locator("[data-draft]")).toHaveCount(0);
+  await expect(nk.locator(".nkExpr")).toHaveText(xBefore);
+  await key(nk, "Cancel");
+  expectNoMachineAction((await cmds()).filter(c => c !== "touchoff"));
+});
+
 test("tap outside, Tab outside (from the field and from a key) and Close hide the keyboard without confirming; a re-tap re-opens", async ({ page }) => {
   await open(page);
   const mdi = await openMdi(page);
@@ -341,6 +391,45 @@ test("offset cell: leaving the tab closes the keypad with its draft; only the vi
   expectNoMachineAction((await cmds()).filter(c => c !== "set_wcs"));
 });
 
+test("offset drafts end with the probe gate, not with a sibling cell's OK", async ({ page }) => {
+  // Review round 2, UI-I05 B for the offset panel's cell owners.
+  await open(page);
+  await ctl({ op: "setAxes", axes: ["X", "Y", "Z"] });
+  await page.getByRole("button", { name: "Offsets", exact: true }).click();
+  const cells = page.locator(".offsetPanel td.editableCell");
+  const nk = page.locator(".nkStrip");
+  await cells.first().click();
+  await expect(nk.locator(".sub")).toContainText("G54 · X");
+  await page.keyboard.type("17");
+  await cells.nth(1).click();
+  await expect(nk.locator(".sub")).toContainText("G54 · Y");
+  await page.keyboard.type("5");
+  await key(nk, "OK");
+  await expect(nk).toHaveCount(0);
+  await expect.poll(async () => (await sentCmds()).filter(c => c.cmd === "set_wcs")).toEqual([
+    expect.objectContaining({ cmd: "set_wcs", target: "G54", y: 5 }),
+  ]);
+  // The write's busy latch closed `probe` for 200 ms: not an owner end —
+  // X still offers its draft.
+  await cells.first().click();
+  await expect(nk).toBeVisible();
+  await expect(nk.locator("[data-draft]")).toHaveText("draft");
+  await expect(nk.locator(".nkExpr")).toHaveText("17");
+  // Parked behind Y again, the gate ends: every cell draft goes with it.
+  await cells.nth(1).click();
+  await expect(nk.locator(".sub")).toContainText("G54 · Y");
+  await ctl({ op: "status_delta", data: { permissions: { ...PERMS_ALL, probe: false } } });
+  await expect(nk).toHaveCount(0);
+  await ctl({ op: "status_delta", data: { permissions: PERMS_ALL } });
+  await expect(cells.first()).toBeVisible();
+  await cells.first().click();
+  await expect(nk).toBeVisible();
+  await expect(nk.locator("[data-draft]")).toHaveCount(0);
+  await expect(nk.locator(".nkExpr")).not.toHaveText("17");
+  await key(nk, "Cancel");
+  expectNoMachineAction((await cmds()).filter(c => c !== "set_wcs"));
+});
+
 test.describe("touch", () => {
   test.use({ hasTouch: true });
   test("touch-only entry of code, expressions, braces and an umlaut description; correction mid-text", async ({ page }) => {
@@ -447,33 +536,37 @@ test.describe("portrait, touch", () => {
           const r = el.getBoundingClientRect();
           const row = (sel: string) => el.querySelector(sel)!.getBoundingClientRect().bottom;
           const strip = el.closest(".strip")!;
+          const h = (sel: string) => document.querySelector(sel)?.getBoundingClientRect().height ?? 0;
           return {
             bottom: r.bottom, inner: window.innerHeight, overflow: el.scrollWidth > el.clientWidth + 1,
             pages: row(".tkPages"), actions: row(".tkActions"), nav: row(".tkNav"),
             stripScroll: strip.scrollHeight - strip.clientHeight,
+            // What took the space above the keyboard (named in a failure).
+            budget: { top: r.top, height: r.height, header: h("header.hdr"), banner: h(".statusBanner"),
+              safety: h(".safetyStrip"), detail: h(".statusDetail"), stripTop: strip.getBoundingClientRect().top, stripScrollTop: strip.scrollTop },
           };
         });
         expect(fits.overflow, "horizontal overflow").toBe(false);
-        if (zoom === "1") {
-          expect(fits.bottom, "keyboard bottom at zoom 1").toBeLessThanOrEqual(fits.inner + 1);
-        } else {
-          // 150 % on 900 × 1200 (= 600 × 800 CSS px): the sticky SafetyStrip
-          // and the wrapped header leave ~370 px under the title, the six
-          // content rows alone need 284 — measured, not claimed (UI-I08).
-          // Hard part: page switch, Enter/Send, Backspace, Shift, Space and
-          // the navigation row are within the viewport without scrolling;
-          // the content rows below the fold (measured: 120 CSS px, two and a
-          // half rows) are reached by the strip's own vertical scroll with
-          // SafetyStrip staying put.
-          for (const [name, bottom] of Object.entries({ pages: fits.pages, actions: fits.actions, nav: fits.nav })) {
-            expect(bottom, `${name} row within the viewport at zoom 1.5`).toBeLessThanOrEqual(fits.inner + 1);
-          }
-          expect(fits.bottom - fits.inner, "content rows below the fold").toBeLessThanOrEqual(3 * 48 * 1.5);
-          expect(fits.stripScroll, "the strip scrolls exactly the hidden part").toBeGreaterThan(0);
-        }
+        // The agreed criterion (plan WP8, UI-I08): the whole helper within
+        // the viewport at 100 % AND at 150 % (= 600 × 800 CSS px). What
+        // makes it fit at 150 % is the sticky Safety section folding its
+        // status detail away while a helper is open (title + the three
+        // safety buttons stay) — measured below, never a smaller key, a
+        // wider strip or a WP4 exception; the strip needs no scroll for it.
+        expect(fits.bottom, `keyboard bottom within the viewport at zoom ${zoom}: ${JSON.stringify(fits.budget)}`).toBeLessThanOrEqual(fits.inner + 1);
+        expect(fits.stripScroll, `no hidden strip part at zoom ${zoom}`).toBeLessThanOrEqual(1);
       }
-      await expect(mdi).toBeVisible();
-      await expect(page.locator(".safetyStrip")).toBeVisible();
+      // The field being edited (the readout), the state banner and the
+      // safety controls stay in view; the Safety detail is folded away.
+      await expect(mdi).toBeInViewport();
+      await expect(page.locator(".statusBanner")).toBeInViewport();
+      for (const btn of await page.locator(".safetyBtns button").all()) await expect(btn).toBeInViewport();
+      await expect(page.locator(".safetyStrip .statusDetail")).toHaveCount(0);
     }
+    // Helper closed: the full detail returns.
+    await tapKey(page.locator(".tkStrip"), "Close keyboard");
+    await expect(page.locator(".tkStrip")).toHaveCount(0);
+    await expect(page.locator(".safetyStrip .statusRow")).toHaveCount(8);
+    await expect(page.locator(".safetyStrip .codesRow")).toHaveCount(1);
   });
 });

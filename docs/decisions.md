@@ -5658,3 +5658,54 @@ rules:
   ~120 px gap; a smaller key or a wider strip is excluded by the plan, so
   the acceptance rule for 150 % is recorded as this measurement — open
   with the reviewer.
+
+## 2026-09-20 evening — Implementation review round 2: the focus return is a guarded transition, drafts end with their owner, the portrait keyboard fits at 150 %
+
+Codex's second round (docs/reviews/ui-optimierungen.implementation-review.md)
+closed six of nine findings and kept three open; all three are fixed here.
+
+- **The focus return after keypad OK/Cancel is a guarded transition**
+  (UI-I06, raised to P1). The field's own confirm disables it for the busy
+  latch, the DOM `disabled` lands a render later and drops the focus the
+  field just took; between the latch's end and the fixed 300 ms re-focus
+  timer the document was unfocused — and an unfocused document is where the
+  shortcut map reads Space as Cycle Start (`touchoff` followed by
+  `cycle_start`, 3 of 3 in the review's probe). `returnFocusTo`
+  (inputSession.ts) sets `focusReturn.pending`, which the modal guard
+  includes (nothing but E-Stop passes), until focus has LANDED: on the field
+  as soon as it can hold it again, on whatever the operator focused
+  meanwhile (another owner is never robbed), or on the strip when the field
+  is gone or not focusable — decided per animation frame against the live
+  DOM, 2 s backstop, no fixed delay. The regular test hammers Space from the
+  confirm until the field holds focus.
+- **A draft ends with its OWNER's context, and the busy latch is not an
+  end** (UI-I05). `''` is a draft (the entry after C is the value 0, shown
+  "= 0"); `closeKeypadIf(owner)` drops the owner's draft whether or not it
+  holds the keypad and closes only its own session; `dropDrafts(match)`
+  ends a panel's cells at once (OffsetPanel gate end / unmount). Making the
+  drop owner-scoped exposed a rule the wave had left implicit: the busy
+  latch after ANY `fire()` closes every busy gate for 200 ms, so "disabled
+  = owner end" would have wiped every filed draft on every neighbour's OK
+  (and the UI-15 draft rule would have been void). "Gate end" is now
+  `!can[gate] && reason !== CLIENT_REASONS.settling` — the client overlay
+  already names the latch. Side effect, intended: the active session no
+  longer dies to a sibling's command latch either.
+- **The portrait keyboard fits at 150 % on 900 × 1200 — by folding the
+  Safety detail, and the readout stays in view** (UI-I08). The plan's
+  criterion (`bottom(.tkStrip) ≤ innerHeight` at 100 % and 150 %) is back
+  in the test. What fits it: SafetyStrip folds its status detail (172 CSS
+  px) while a helper is open in portrait — title and the three safety
+  buttons stay, the banner names the machine state. A four-row compact form
+  was measured first and rejected: it fits with a three-line header
+  (1173/1200) and misses by 17 px with a four-line one (1218/1200), and the
+  header's wrap count at 600 CSS px follows its pill texts (the NET latency
+  pill flipped it between two runs). The fold leaves ≥ 47 CSS px for that.
+  Second finding of the same measurement: the MDI line — the keyboard's
+  readout — sat below the fold at 150 %, because the portrait viewer's
+  fixed 500 px floor left the side pane 126 px (less than its two-line tab
+  row). The floor is `min(500px, 45%)` of the content column now (not
+  binding at 100 % on the fixture — references unchanged); a percentage,
+  not `vh`, because Chromium does not scale viewport units under CSS `zoom`
+  (the tests' 150 % emulation). Not claimed, measured: a NUMBER keypad
+  under its strip owner section at 150 % (Setup 343 + keypad 313 CSS px)
+  still needs the strip's scroll — the plan never promised it.

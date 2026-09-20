@@ -2,9 +2,8 @@
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import { keypadState, closeKeypad } from './useNumberKeypad';
 import { evaluate, fmtEval, validateEntry } from './mathEval';
-import { saveDraft, takeDraft, dropDraft } from './inputSession';
+import { saveDraft, takeDraft, dropDraft, returnFocusTo } from './inputSession';
 import { armed } from './lcncWs';
-import { DEFAULT_COOLDOWN_MS } from './lcnc';
 import MachineBtn from './MachineBtn.vue';
 
 const expr = ref('');
@@ -123,27 +122,10 @@ function evalExpr() {
   if (v !== null) { expr.value = fmtEval(v); replacing.value = true; }
 }
 
-// Focus goes back to the field that opened the keypad when it is still in
-// the document and operable; otherwise to the strip (tabindex -1), never to
-// a stale node. The trigger is captured BEFORE closeKeypad() clears it.
-// The field's own confirm closes its gate for fire()'s busy latch
-// (DEFAULT_COOLDOWN_MS): the DOM `disabled` lands a render later and DROPS
-// the focus the field just took (a disabled element cannot hold focus), so
-// the focus is taken again once the latch has passed — only if nothing
-// else took it meanwhile; the strip is the fallback for a field that is gone.
-function tryFocus(t: HTMLElement | null): boolean {
-  if (!t || !t.isConnected || t.offsetParent === null) return false;
-  t.focus();
-  return document.activeElement === t;
-}
-function returnFocus(t: HTMLElement | null) {
-  tryFocus(t);
-  window.setTimeout(() => {
-    if (document.activeElement !== document.body && document.activeElement !== null) return;
-    if (!tryFocus(t)) document.querySelector<HTMLElement>('.strip')?.focus();
-  }, DEFAULT_COOLDOWN_MS + 100);
-}
-
+// Focus goes back to the field that opened the keypad (returnFocusTo in
+// inputSession.ts: a guarded transition — the field's own confirm disables
+// it for the busy latch, and until focus has landed again the shortcut map
+// stays closed). The trigger is captured BEFORE closeKeypad() clears it.
 function confirm() {
   // Re-validated HERE, not only on the button: physical Enter and a touch on
   // OK both land in this function, so a disabled OK is never the only
@@ -162,7 +144,7 @@ function confirm() {
   dropDraft(_owner); _dirty = false; isDraft.value = false;
   closeKeypad();
   onConfirm?.(v.value);
-  returnFocus(trigger);
+  returnFocusTo(trigger);
 }
 
 function cancel() {
@@ -171,7 +153,7 @@ function cancel() {
   dropDraft(_owner); _dirty = false; isDraft.value = false;
   closeKeypad();
   onCancel?.();
-  returnFocus(trigger);
+  returnFocusTo(trigger);
 }
 
 // Same press pattern as TextKeypadStrip: keys act on pointerdown with

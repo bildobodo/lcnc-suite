@@ -25,7 +25,7 @@
 import { computed, reactive, watch } from "vue";
 import { keypadState, closeKeypad, closeKeypadIf, hideKeypad, onKeypadOpen } from "./useNumberKeypad";
 
-export { saveDraft, takeDraft, dropDraft, clearDrafts } from "./useNumberKeypad";
+export { saveDraft, takeDraft, dropDraft, dropDrafts, clearDrafts } from "./useNumberKeypad";
 
 export type SessionKind = "number" | "code" | "text";
 /** The G-code editor's fixed owner id (App locks it with the tab). */
@@ -85,9 +85,58 @@ export const activeKind = computed<SessionKind | null>(() => {
   return null;
 });
 
-/** True while ANY helper is up (number or text) — the shortcut map lets
- *  nothing but E-Stop through then (modalRegistry). */
-export const helperOpen = computed(() => activeKind.value !== null);
+// ── Focus return after OK / Cancel (UI-I06) ──
+// The number keypad hands focus back to the field that opened it. The
+// field's OWN confirm closes its gate for fire()'s busy latch: the DOM
+// `disabled` lands a render later and drops the focus the field just took
+// (a disabled element cannot hold focus), so for the latch's duration the
+// document has NO focused element — and the shortcut map reads an
+// unfocused document as an operating position where Space is Cycle Start
+// (review round 2: `touchoff` followed by `cycle_start`, 3 of 3, in the
+// window between the latch's end and a fixed re-focus delay). The return
+// is therefore a guarded TRANSITION: `focusReturn.pending` keeps the modal
+// guard up (modalRegistry → nothing but E-Stop passes) from the close
+// until focus has LANDED — on the field as soon as it can hold it again,
+// on whatever the operator focused meanwhile (another owner is never
+// robbed), or on the strip (tabindex -1) when the field is gone or not
+// focusable (an offset cell) — decided per animation frame against the
+// live DOM, never by a fixed delay, with a 2 s backstop.
+export const focusReturn = reactive({ pending: false });
+let _returnSeq = 0;
+const FOCUS_RETURN_MAX_MS = 2000;
+function fallbackFocus(): void { document.querySelector<HTMLElement>(".strip")?.focus(); }
+function canHold(t: HTMLElement): boolean {
+  return t.isConnected && t.offsetParent !== null && !t.matches(":disabled");
+}
+export function returnFocusTo(target: HTMLElement | null): void {
+  const seq = ++_returnSeq;
+  const started = performance.now();
+  focusReturn.pending = true;
+  const end = () => { if (seq === _returnSeq) focusReturn.pending = false; };
+  // Take it at once when the field can hold it — the render that disables
+  // it (busy latch) has not happened yet; the frame loop sees the drop.
+  if (target && canHold(target)) target.focus();
+  const tick = () => {
+    if (seq !== _returnSeq) return;                        // a newer return took over
+    const active = document.activeElement;
+    const unfocused = !active || active === document.body || active === document.documentElement;
+    if (!unfocused && active !== target) { end(); return; }   // the operator moved on
+    if (!target || !target.isConnected) { if (unfocused) fallbackFocus(); end(); return; }
+    if (canHold(target)) {
+      if (active !== target) target.focus();
+      if (document.activeElement !== target) fallbackFocus();  // not focusable (a table cell)
+      end(); return;
+    }
+    if (performance.now() - started > FOCUS_RETURN_MAX_MS) { if (unfocused) fallbackFocus(); end(); return; }
+    requestAnimationFrame(tick);                           // still settling (disabled / hidden)
+  };
+  requestAnimationFrame(tick);
+}
+
+/** True while ANY helper is up (number or text) or a focus return is in
+ *  flight — the shortcut map lets nothing but E-Stop through then
+ *  (modalRegistry). */
+export const helperOpen = computed(() => activeKind.value !== null || focusReturn.pending);
 
 function endText(reason?: string): void {
   const t = inputSession.target;

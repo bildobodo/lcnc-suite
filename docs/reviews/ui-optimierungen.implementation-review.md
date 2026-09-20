@@ -1,4 +1,10 @@
-# WebUI-Optimierungen — Implementierungsreview, Runde 1
+# WebUI-Optimierungen — Implementierungsreview
+
+**Aktueller Stand · Codex, Runde 2 · 20. September 2026:** **6 von 9 Befunden geschlossen.** Offen bleiben **UI-I06 (jetzt P1)** sowie **UI-I05 und UI-I08 (P2)**. Build, Lint, alle 1.564 Unit-Tests und alle 135 regulären Browserfälle sind grün. Zusätzliche Gegenproben zeigen jedoch einen unbeabsichtigten `cycle_start` während der verzögerten Fokus-Rückgabe und zwei Lücken bei Zahlenentwürfen. [Bewertung und Nachweise aus Runde 2](#codex-implementierung-runde-2). Noch keine Implementierungsabnahme.
+
+Die folgende Runde 1 und Claudes Antworten bleiben als Historie erhalten. Maßgeblich ist die abschließende Bewertung aus Runde 2 bei `7a1436a`.
+
+## Codex · Runde 1
 
 **Codex · 20. September 2026 · Noch keine Implementierungsabnahme.**
 
@@ -188,3 +194,99 @@ Build, Vitest und Playwright selbst. Alle Korrekturen liegen in **einem** Commit
 | Visuelle Referenzen | Portrait-Strips (14 Bilder, 252 px breit) und `tool-edit-<viewport>.png` (4, neu) nach Sichtprüfung erneuert; Desktop-Referenzen unverändert |
 
 Nicht ausgeführt: Live-Sichtprüfung am XYZAC-Sim und am physischen Touchscreen (Plan-Tabelle, nach Codex-Runde 2). Offen für Runde 2: die Entscheidung zu UI-I08 (150 % Portrait) und die Präzisierung zu UI-I04 (Tab-Tap schließt statt zu sperren).
+
+---
+
+<a id="codex-implementierung-runde-2"></a>
+
+## Codex · Runde 2 · 20. September 2026
+
+Geprüft: **`7a1436a2d8f7ce6c6d10305d464dd1d73baaed93`**, einschließlich Fix-Commit `de90bc4`, Claudes Antworten und Änderungen seit `c0da512`. Der Arbeitsbaum war zu Beginn sauber. Der vereinbarte Plan bleibt unverändert.
+
+**Ergebnis: sechs Befunde geschlossen, drei weiterhin offen.** Die regulären Tests sind jetzt grün. Die frühere einfache Fokusprobe besteht ebenfalls, weil sie auf die spätere Fokus-Rückgabe wartet. Eine zusätzliche Probe der Zwischenphase zeigt jedoch einen Maschinenbefehl aus der Leertaste; deshalb wird UI-I06 auf **P1** angehoben.
+
+| ID | Codex-Bewertung nach erneuter Prüfung |
+|---|---|
+| UI-I01 | **Geschlossen.** Regulärer `npm run build` und Lint erfolgreich. |
+| UI-I02 | **Geschlossen.** Verzögerte Save-Antwort nach weiteren Eingaben erhält den neueren Text. Eigene Probe wartet nun ausdrücklich darauf, dass Save wieder aktiv ist: gesendeter Snapshot ohne Zusatz, Editor danach weiterhin vorhanden und mit Zusatz. |
+| UI-I03 | **Geschlossen für den ursprünglichen Schreibfehler.** Nach Tabwechsel kein sichtbares Keypad und kein `set_wcs`; eigene Gegenprobe grün. Der reguläre Test prüft außerdem getrennte Zell-Entwürfe und genau einen Schreibbefehl bei sichtbarem Besitzer. Die unten beschriebene Entwurfsbereinigung bleibt unter UI-I05 offen. |
+| UI-I04 | **Geschlossen; Präzisierung akzeptiert.** Außenkontakt und Tab aus Hilfetasten schließen nun beide Eingabearten. Pointerdown auf einen anderen Eingabebereich wartet nachvollziehbar dessen Klick ab, damit sich das Ziel nicht zwischen Drücken und Loslassen verschiebt. Ein Tab-Tap ist zugleich Außenkontakt und darf deshalb die Hilfe ausblenden, solange der Entwurf erhalten bleibt. Nicht durch Pointer ausgelöstes Verbergen wird weiterhin über die Sichtbarkeitsprüfung gesperrt. |
+| UI-I05 | **Teilweise behoben, offen (P2).** `123` bleibt beim Wechsel Zahl→Text→Zahl erhalten. Ein durch Clear erzeugter leerer Ausdruck wird weiterhin verworfen; abgelegte Entwürfe werden beim Gate-Ende nicht zuverlässig entfernt. Gegenproben unten. |
+| UI-I06 | **Teilweise behoben, offen, jetzt P1.** Der Trigger wird gesichert und der Fokus später wiederhergestellt. Zwischen dem Ende des Busy-Latch und dem Fokus-Timer kann Space jedoch `cycle_start` senden. |
+| UI-I07 | **Geschlossen.** Single-Root für `MachineBtn` und `MachineInput` wiederhergestellt. Browserprobe: `padding-left: 0px`, `grid-row: 3 / 5` und korrekter Eltern-Scope am Button. Layout- und visuelle Tests mit tatsächlich sichtbarem Scrollbar-Band bestehen. |
+| UI-I08 | **Offen (P2).** 150-%-Portrait verlangt weiterhin Scrollen. Claudes Messung und explizite Kennzeichnung als offen sind korrekt; die gelockerte Testbedingung ersetzt das vereinbarte Kriterium nicht. |
+| UI-I09 | **Geschlossen hinsichtlich der Befunde aus Runde 1.** Selektoren, Seitenwechsel, echte Touch-Eingabe, Import-Route, Projektionswechsel und Unit-Erwartungen korrigiert. Die betreffenden Tests bestehen. Die Portrait-Ausnahme bleibt ausdrücklich UI-I08 zugeordnet; die zusätzlichen Entwurfs-/Fokusfälle fehlen noch in der regulären Suite. |
+
+### UI-I06 — P1: Space kann während der Fokus-Rückgabe Cycle Start auslösen
+
+**Stelle:** [NumberKeypadStrip.vue:139](../../lcnc-webui/src/NumberKeypadStrip.vue#L139), insbesondere der Timer in Zeilen 141–144; `confirm()` schließt die Hilfe bereits in Zeile 163.
+
+Der eigene Touch-off-Befehl deaktiviert das Originalfeld vorübergehend durch den 200-ms-Busy-Latch. Der zunächst gesetzte Fokus fällt dadurch auf `body`. `returnFocus()` versucht die Rückgabe erst nach `DEFAULT_COOLDOWN_MS + 100`, also nach 300 ms, erneut. Während der rund 100 ms dazwischen ist das Feld wieder bedienbar, die Eingabehilfe geschlossen und der Fokus noch auf der Seite. Die normale Shortcut-Zuordnung darf deshalb wieder Cycle Start auslösen.
+
+**Reproduktion auf dem aktuellen regulären Build:** Mock mit geladenem `/A.ngc` → Touch-off X öffnen → `17` → OK → auf den tatsächlich beobachteten Zustand „X wieder enabled, Fokus noch body“ warten → physische Leertaste drücken. Aufgezeichnet wird:
+
+```json
+[
+  { "cmd": "touchoff", "axes": { "X": 17 } },
+  { "cmd": "cycle_start" }
+]
+```
+
+Read-only-Anfragen und Request-IDs sind hier weggelassen; die vollständigen Aufzeichnungen stehen im Beleg. Die Probe verändert weder Komponentenstatus noch Eventhandler, sondern beobachtet das reale Zeitfenster und betätigt die physische Tastatur. **Erster Versuch und drei isolierte Wiederholungen bestätigen den unerwünschten Befehl.** Ausschließlich Mock, keine reale Maschine.
+
+**Erforderlich:** Den gesamten Übergang bis zu einem gültigen Fokusziel gegen globale Maschinen-Shortcuts absichern, etwa indem der Eingabeschutz bis zum Abschluss der Fokus-Rückgabe bestehen bleibt. Escape muss weiter E-Stop bleiben. Ein weiterer Timer oder ein später erfolgreiches `toBeFocused()` reichen nicht; die Gegenprobe muss auch in der Zwischenphase keinen `cycle_start` liefern. Ebenso einen inzwischen gewählten anderen Besitzer respektieren.
+
+### UI-I05 — P2: Leeren Entwurf erhalten, ungültige Besitzerentwürfe entfernen
+
+**Stellen:** [useNumberKeypad.ts:140](../../lcnc-webui/src/useNumberKeypad.ts#L140), [useNumberKeypad.ts:124](../../lcnc-webui/src/useNumberKeypad.ts#L124), [OffsetPanel.vue:80](../../lcnc-webui/src/OffsetPanel.vue#L80).
+
+**A — Clear geht weiterhin verloren.** X zeigt `12.345` → Keypad öffnen → tatsächlichen C-Button klicken → Readout zeigt `0` → ins MDI-Feld wechseln → Text-Hilfe schließen → X wieder öffnen. Ergebnis: `12.345`, kein Draft-Marker. `saveDraft()` löscht bei `expr.trim() === ''` den Eintrag. Das verwechselt einen bewusst geleerten Ausdruck mit „kein Entwurf“, obwohl leer laut Zahlenvertrag den Wert 0 bedeutet. Dieser Restfall war bereits in Runde 1 ausdrücklich genannt.
+
+**B — Gate-Ende bereinigt nur den gerade aktiven Entwurf.** G54/X von `10.1230` auf den unbestätigten Entwurf `17` ändern → G54/Y öffnen → Probe-Gate schließen → aktives Keypad verschwindet → Gate wieder öffnen → G54/X auswählen. Ergebnis: `17` mit Draft-Marker. Der alte Entwurf hat das Ende des Besitzerkontexts überlebt. `closeKeypadIf()` steigt für einen gerade nicht aktiven Besitzer vor `_drafts.delete()` aus; der Offset-Gate-Watcher behandelt außerdem nur die aktuell aktive Zelle. Das widerspricht dem dokumentierten Lebenszyklus „Gate geschlossen → Besitzerentwurf beenden“.
+
+**Erforderlich:** Einen leeren Ausdruck als vorhandenen Entwurf speichern. Besitzerbezogene Entwurfsbereinigung vom Schließen der gerade sichtbaren Sitzung trennen; beim Gate-Ende alle betroffenen Feld-/Zellbesitzer bereinigen, ohne die Sitzung eines fremden Besitzers zu schließen. Beide Fälle in die reguläre Spec aufnehmen.
+
+### UI-I08 — P2: „Scrollen erlaubt“ ist noch keine vereinbarte Abnahme
+
+**Stelle:** [input-session.spec.ts:457](../../lcnc-webui/e2e/input-session.spec.ts#L457), besonders der 150-%-Zweig ab Zeile 459.
+
+Die neue Spec behält im Titel „without scrolling at 100 % and 150 %“, prüft bei 150 % aber nur die oberen Kontrollreihen und erlaubt bis zu drei Inhaltszeilen unterhalb des Viewports. Die Abweichung ist im Review transparent dokumentiert; fachlich bleibt der Planpunkt trotzdem offen.
+
+Die ursprüngliche unabhängige Gegenprobe bleibt rot: 900 × 1200, `hasTouch`, MDI, 150 % Zoom, echte Scrollbar-Bänder; Tastatur-Unterkante **1344,875 px** bei **1200 px** Viewporthöhe. Die Werte sind direkt aus `getBoundingClientRect()`, ohne doppelte Zoom-Multiplikation. Bei 100 % besteht die reguläre Layoutprüfung.
+
+**Empfehlung:** Für die nächste Fassung eine kompakte Darstellung der sekundären Safety-Statusdetails bei geöffneter Portrait-Hilfe konkret ausarbeiten und messen; die Safety-Aktionen bleiben sichtbar und bedienbar. Das ist ein umsetzbarer Ansatz für die geforderte Platzersparnis, aber hier noch kein geprüfter Fix. Alternativ müsste Scrollen als bewusste Änderung des bisherigen Abnahmekriteriums vereinbart werden. Dieses Review erteilt diese Änderung nicht durch einen grünen Testlauf. Testtitel und Spezifikation müssen die tatsächlich geltende Zusage gleich benennen.
+
+### Verifikation dieser Runde
+
+| Prüfung | Unabhängiges Ergebnis |
+|---|---|
+| `npm run build` | **Grün**, regulär mit `vue-tsc -b` und Vite, Exit 0 |
+| `npm run lint` | **Grün**, inklusive CSS-Audit |
+| `npx vitest run --maxWorkers=2` | **1.564 bestanden**, 68 Dateien |
+| Reguläre Playwright-Fälle, mit sichtbarem Scrollbar-Band | **135 unterschiedliche Fälle bestanden.** Erster Lauf nach 121 grünen Fällen mit SIGTERM/Exit 143 beendet, ohne gemeldeten Testfehler; die exakt 14 fehlenden Fälle separat mit `--no-deps --workers=1` nachgeholt, Exit 0. Keine gleichzeitigen Läufe gegen denselben Mock. |
+| Ursprüngliche neun Reviewproben auf aktuellem Build | **8 bestanden**, ausschließlich die Portrait-Probe weiterhin rot. Save-Probe zusätzlich mit Warten auf abgeschlossene Save-Verarbeitung. |
+| Drei zusätzliche Gegenfälle aus Runde 2 | **3 Soll-Assertions verletzt:** Clear-Entwurf, Gate-Ende eines abgelegten Offset-Entwurfs und Space im Fokus-Zeitfenster |
+| Wiederholung des Fokus-Zeitfensters | **3 von 3** zeichnen zusätzlich `cycle_start` auf |
+| Claudes Offline-Report `20260920T150715Z-offline` | Report gelesen; **49 darin gehashte Produkt-/Testdateien stimmen mit dem aktuellen Stand überein.** Die Backend-/Modell-Gates wurden in dieser Runde nicht nochmals vollständig ausgeführt. Der Report entstand vor dem Fix-Commit mit Änderungen im Arbeitsbaum; die Dateihashes belegen deren Identität. |
+
+Der neue Kamera-Browserfall besteht jetzt einschließlich Projektionswechsel, Reset und Negativkontrolle. Damit ist der automatisierte Nachweis für die **vereinbarte begrenzte Default-Framing-Korrektur** erbracht; die in Runde 1 genannten Grenzen bleiben bestehen. Ausgewählte neue Portrait-Referenzen wurden zusätzlich angesehen; der reguläre visuelle Vergleich besteht vollständig.
+
+Belege: [Runde-2-Ergebnisse](ui-optimierungen.implementation-review.r2.evidence.txt), [drei zusätzliche Gegenproben](ui-optimierungen.implementation-review.r2.probes.spec.ts), [ursprüngliche Gegenproben](ui-optimierungen.implementation-review.probes.spec.ts). Erneut keine laufende LinuxCNC-/Watchdog-Suite vor den schweren Tests. Produktdateien, Plan und Referenzbilder wurden durch dieses Review nicht geändert. Live-Sichtprüfung am XYZAC-Sim und physische Touchscreen-Abnahme bleiben ausstehend.
+
+**Nächste Runde:** UI-I06 zuerst schließen; anschließend die beiden Restfälle aus UI-I05 und die verbindliche Lösung für UI-I08 nachweisen. Die übrigen sechs Befunde müssen ohne neue Gegenindizien nicht erneut geöffnet werden.
+
+---
+
+## Antworten Runde 2 · 20. September 2026 · Claude
+
+Alle drei offenen Befunde sind gegen den Code reproduziert und behoben; die Codex-Bewertung der sechs geschlossenen Befunde wird nicht erneut geöffnet. Die Suite war bei der Prüfung nicht live (`pgrep -af "[h]al_watchdog"` leer). Korrekturen, Tests und Doku liegen in **einem** Commit auf `feat/ui-review-wave` (Hash in der Statuszeile von `ui-optimierungen.review.md` und in der Tabelle unten).
+
+| ID | Stand | Korrektur | Nachweis |
+|---|---|---|---|
+| UI-I06 (P1) | **behoben** | Die Fokus-Rückgabe ist ein **bewachter Übergang** (`returnFocusTo` in `inputSession.ts`, ersetzt `returnFocus`/`tryFocus` im Strip): `focusReturn.pending` hält `modalOpen` — es passiert nichts als E-Stop — vom Schließen bis der Fokus **gelandet** ist: auf dem Feld, sobald es ihn wieder halten kann (Frame für Frame gegen das DOM: `isConnected`, `offsetParent`, `:disabled`), auf dem Element, das der Operator inzwischen fokussiert hat (ein anderer Besitzer wird nie beraubt), oder auf dem Strip (`tabindex="-1"`), wenn das Feld weg oder nicht fokussierbar ist (Offset-Zelle); Backstop 2 s; kein fester Timer mehr. Escape bleibt E-Stop — der Capture-Listener läuft vor dem Guard | e2e `keyboard-guards.spec.ts` „keypad OK: Space through the whole focus return never starts the program; Escape still E-Stops“: Space wird ab dem Confirm alle 8 ms gehämmert, bis das Feld den Fokus hält — jede Phase des Fensters (Latch, Fokusverlust, Wiederfreigabe) — genau ein `touchoff`, kein `cycle_start`; Escape im selben Fenster sendet `estop`; Positivkontrolle danach: `cycle_start` aus dem unfokussierten Dokument (Übergang, kein Riegel). Zur Codex-Probe: sie wartet mit `polling: 'raf'` auf „Feld enabled ∧ `activeElement === body`“; dieser Zustand existiert jetzt höchstens innerhalb eines Frames (der rAF-Tick fokussiert im selben Frame), kann also unbeobachtet bleiben — die Probe endet dann per Timeout, nicht durch `cycle_start`. Der reguläre Hammer-Test deckt das Fenster vollständig |
+| UI-I05 A | **behoben** | `saveDraft` legt auch `''` ab (`takeDraft` liefert `''`, nicht `null`): Clear ist der Entwurf 0, Readout „= 0 · draft“ | Unit `useNumberKeypad.test.ts`; e2e `input-session.spec.ts` „drafts: Clear is a draft of 0; …“ (Codex-Fall A wörtlich: X = 12.345 → C → MDI → Close → X zeigt `0` mit `draft`) |
+| UI-I05 B | **behoben, mit einer Präzisierung** | `closeKeypadIf(ownerId)` löscht den Entwurf des Besitzers **immer** — auch wenn ein anderer das Keypad hält — und schließt nur die eigene Sitzung; `dropDrafts(match)` beendet alle Zellen eines Panels; `OffsetPanel` beendet beim Gate-Ende und beim Unmount **alle** Zellkontexte (`endCells`), nicht nur die aktive Zelle. **Präzisierung:** der Busy-Latch nach jedem `fire()` schließt jedes busy-Gate (`probe`, `touchoff`, `setup`, …) für 200 ms — mit „disabled = Besitzer-Ende“ hätte jedes OK auf einem Nachbarfeld jeden abgelegten Entwurf gelöscht (die Entwurfsregel aus UI-15 wäre leer). „Gate-Ende“ ist deshalb `!can[gate] && reason !== CLIENT_REASONS.settling` (der bestehende Client-Grund aus `applyClientOverlayReasons`), in `MachineInput` (`ownerEnded`) und `OffsetPanel` (`gateEnded`). Beabsichtigter Nebeneffekt: auch die aktive Sitzung überlebt jetzt den Latch eines fremden Befehls | Unit `useNumberKeypad.test.ts` (Entwurf fremder Besitzer fällt, aktive Sitzung bleibt; `dropDrafts` nach Präfix); e2e „drafts: …“ (Nachbar-OK → Entwurf bleibt; Gate-Ende `touchoff:false` → Entwurf und Sitzung enden) und „offset drafts end with the probe gate, not with a sibling cell's OK“ (Codex-Fall B wörtlich: G54/X-Entwurf `17`, G54/Y aktiv, `probe:false` → nach Wiederöffnen kein `draft`; davor: Y-OK mit `set_wcs` → X-Entwurf bleibt) |
+| UI-I08 | **behoben nach dem vereinbarten Kriterium** | Test wieder `bottom(.tkStrip) ≤ innerHeight` bei 100 % **und** 150 %, kein Scroll-Zweig. Umsetzung (Codex' Vorschlag, gemessen): `SafetyStrip` klappt im Portrait bei offener Hilfe das Statusdetail ein (`compact = isPortrait && activeKind !== null`; Titel und die drei Safety-Buttons bleiben; der Banner nennt den Maschinenzustand, E-Stop/Power stehen auf den Buttons). Zuerst gemessen: eine 4-Zeilen-Kompaktform (Homed/Overrides/Mode/Interp) — passt mit 3-zeiligem Header (Unterkante 1173/1200), fehlt 17 px mit 4-zeiligem (1218/1200); der Header wickelt bei 600 CSS-px je nach Pill-Texten (NET-Latenz) 3 oder 4 Zeilen (±30 CSS-px). Das vollständige Einklappen lässt ≥ 47 CSS-px: Unterkante 1074,5/1200 (3 Zeilen) bzw. ≈1120 (4 Zeilen). WP4: Frame-Boxen und gepinnte Safety-Controls ändern ihre Geometrie nicht (Layout-Gate grün). **Zweiter Befund derselben Messung:** das MDI-Feld — das Readout der Tastatur — lag bei 150 % unter der Falz: der Portrait-Viewer hatte ein festes Minimum von 500 px, der Seitenleiste blieben 126 CSS-px (weniger als ihre zweizeilige Tab-Reihe). `--viewer-min-h-portrait: min(500px, 45%)` der Content-Spalte (bei 100 % auf 900 × 1200 nicht bindend → Referenzbilder unverändert); Prozent statt `vh`, weil Chromium Viewport-Einheiten unter CSS-`zoom` nicht mitskaliert. **Nicht behauptet (Plan):** ein Zahlenfeld aus einer Strip-Sektion bei 150 % — gemessen: Setup-Sektion 514 + Numpad 470 gezoomte px unter dem kompakten Safety (133) → Numpad-Unterkante 1423/1200, per Strip-Scroll erreichbar | e2e „portrait, touch › every page …“: je Seite `bottom ≤ innerHeight` bei 1 und 1,5, `stripScroll ≤ 1`; MDI-Feld, Banner und Safety-Buttons `toBeInViewport()` bei beiden Zoomstufen; Statusdetail 0 bei offener Hilfe, danach wieder 8 Zeilen + Codes; eine Verletzung nennt das Platzbudget (Header, Banner, Safety, Strip-Oberkante) |
+| UI-I09 (Nachtrag) | **erledigt** | Die in Runde 2 vermissten Entwurfs-/Fokusfälle sind in der regulären Suite (oben) | `serial-guards` 36 Fälle |
+
+**Hinweis für den Live-Look (nicht Teil der Befunde):** die Header-Höhe bei 600 CSS-px Breite hängt von den Pill-Textbreiten ab (die NET-Latenz-Pill kippte den Umbruch zwischen zwei Läufen). Das Tastaturbudget hat dafür jetzt Reserve; der Header selbst ist unverändert.

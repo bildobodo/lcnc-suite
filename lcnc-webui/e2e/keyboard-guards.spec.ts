@@ -99,6 +99,52 @@ test("number keypad open: Space/Backspace send nothing, Escape sends exactly est
   await expect(page.locator(".nkStrip")).toBeVisible();
 });
 
+test("keypad OK: Space through the whole focus return never starts the program; Escape still E-Stops", async ({ page }) => {
+  // Review round 2 (UI-I06): the field's own confirm disables it for the
+  // busy latch, the focus it just took drops to body, and between the
+  // latch's end and a fixed re-focus delay Space reached the shortcut map
+  // (`touchoff` followed by `cycle_start`, 3 of 3). The return is now a
+  // guarded transition: Space is hammered from the confirm until focus has
+  // landed on the field — every phase of the window — and nothing but the
+  // touch-off may be sent. Escape stays E-Stop throughout.
+  await openReady(page);
+  const x = page.locator("input.setupInput").first();
+  const nk = page.locator(".nkStrip");
+  await x.click();
+  await expect(nk).toBeVisible();
+  await page.keyboard.type("17");
+  await page.keyboard.press("Enter");
+  await expect(nk).toHaveCount(0);
+  const t0 = Date.now();
+  while (Date.now() - t0 < 700) {
+    // Stop once the field holds focus again (Space there would re-open the keypad).
+    if (await x.evaluate(el => document.activeElement === el)) break;
+    await page.keyboard.press(" ");
+    await page.waitForTimeout(8);
+  }
+  if (await nk.count()) await nk.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(x).toBeFocused();
+  let cmds = await recordedCmds();
+  expect(cmds.filter(c => c === "touchoff")).toHaveLength(1);
+  expect(cmds).not.toContain("cycle_start");
+  expectNoMachineAction(cmds.filter(c => c !== "touchoff"));
+  // Escape inside the same window sends estop (the guard never holds E-Stop).
+  await ctl({ op: "clearCmds" });
+  await x.click();
+  await page.keyboard.type("18");
+  await nk.getByRole("button", { name: "OK", exact: true }).click();
+  await page.keyboard.press("Escape");
+  await expect.poll(recordedCmds).toContain("estop");
+  await expect(x).toBeFocused();
+  cmds = await recordedCmds();
+  expect(cmds).not.toContain("cycle_start");
+  // Positive control: with the return landed, an unfocused page is an
+  // operating position again — the guard is a transition, not a latch.
+  await focusBody(page);
+  await page.keyboard.press(" ");
+  await expect.poll(recordedCmds).toContain("cycle_start");
+});
+
 test("repeated Escape in E-Stop never sends estop_reset", async ({ page }) => {
   await openReady(page);
   await ctl({ op: "status_delta", data: { estop: true, is_estop: true } });

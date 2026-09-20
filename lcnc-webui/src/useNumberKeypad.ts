@@ -116,16 +116,19 @@ export function hideKeypad(reason?: string): void {
 }
 
 /**
- * Close the keypad only if `ownerId` owns the current session (owner
- * unmounted, its gate closed, its dialog dismissed). A keypad opened for a
- * DIFFERENT field stays. Runs the owner's onCancel so pending state clears;
- * the owner's draft is dropped — the session ended by the owner's rule.
+ * The owner's rule ended its context (unmounted, its gate closed, its
+ * dialog dismissed, removed from the document): its DRAFT is dropped
+ * whether or not it holds the keypad right now — a filed draft must not
+ * outlive the context that admitted it (implementation review round 2,
+ * UI-I05 B) — and the keypad closes only when THIS owner holds it. A keypad
+ * opened for a different field stays. Runs the owner's onCancel so pending
+ * state clears. Returns whether a session was closed.
  */
 export function closeKeypadIf(ownerId: string, reason?: string): boolean {
+  _drafts.delete(ownerId);
   if (!keypadState.open || keypadState.ownerId !== ownerId) return false;
   if (reason) console.warn(`[keypad] closed: ${reason}`);
   const onCancel = keypadState.onCancel;
-  _drafts.delete(ownerId);
   closeKeypad(false);
   onCancel?.();
   return true;
@@ -137,11 +140,22 @@ export function closeKeypadIf(ownerId: string, reason?: string): boolean {
 // when the owner is re-opened. Short-lived: dropped on confirm, cancel,
 // owner end (unmount, gate closed, disconnect).
 const _drafts = new Map<string, string>();
+/** File the owner's unconfirmed expression. An EMPTY expression is a draft
+ *  too: it is the entry after "C" — the value 0, shown as "= 0" — not "no
+ *  draft" (implementation review round 2, UI-I05 A). */
 export function saveDraft(ownerId: string, expr: string): void {
-  if (ownerId && expr.trim()) _drafts.set(ownerId, expr); else _drafts.delete(ownerId);
+  if (ownerId) _drafts.set(ownerId, expr);
 }
+/** The owner's draft, or null when none is filed ('' is a filed draft). */
 export function takeDraft(ownerId: string): string | null {
   return _drafts.get(ownerId) ?? null;
 }
 export function dropDraft(ownerId: string): void { _drafts.delete(ownerId); }
+/** Drop every draft whose owner matches — a panel ending all its cells'
+ *  contexts at once (its gate closed, it unmounted). */
+export function dropDrafts(match: (ownerId: string) => boolean): void {
+  for (const id of [..._drafts.keys()]) if (match(id)) _drafts.delete(id);
+}
 export function clearDrafts(): void { _drafts.clear(); }
+/** Test/diagnostics: the owners with a filed draft. */
+export function draftOwners(): string[] { return [..._drafts.keys()]; }
