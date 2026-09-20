@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, inject, onBeforeUnmount, ref, useAttrs, useSlots, type ComputedRef, type StyleValue } from 'vue';
+import { computed, inject, onBeforeUnmount, ref, useAttrs, useSlots, watch, type ComputedRef, type Ref, type StyleValue } from 'vue';
 import Btn from './Btn.vue';
 import { Square } from 'lucide-vue-next';
 import { usePermissions, usePermissionReasons, explainKeydown } from './permissions';
@@ -27,6 +27,10 @@ const props = withDefaults(defineProps<{
   /** Why THIS instance is disabled when its own `disabled` prop closes it
    *  (U-06) — the catalog gate's reason is looked up automatically. */
   reason?: string;
+  /** Identity of the hold's TARGET (the selected WCS, the axis…): when it
+   *  changes during a hold the hold is cancelled — a new, complete hold is
+   *  needed for the new target (UI-02). */
+  holdKey?: string;
 }>(), {
   // Catalog-aware props: undefined means "use catalog default"
   // Vue coerces absent booleans to false — we need undefined to detect "not passed"
@@ -45,6 +49,9 @@ const reasons = usePermissionReasons();
 // dummy ref so the inject doesn't throw — `whileProbing` simply has no
 // effect when no provider exists.
 const probing = inject<ComputedRef<boolean>>('probing', computed(() => false));
+// App.vue's busy latch: a click while it is set is dropped by fire() —
+// say so at the control instead of only on the console.
+const busy = inject<Ref<boolean>>('busy', ref(false));
 const def = computed(() => BUTTON_TYPES[props.type] as ButtonDef);
 const isDisabled = computed(() =>
   !can.value[def.value.gate]
@@ -96,9 +103,41 @@ let holdStartX = 0;
 let holdStartY = 0;
 const HOLD_MOVE_SLOP = 10; // px
 
+// ── Transient hint (review "Hold verständlich") ──
+// "Hold to activate" after a short tap on a hold button; "Busy — try again"
+// when the busy latch will drop the click. Anchored above the control via a
+// body Teleport (no layout change), gone after HINT_MS.
+const HINT_MS = 1500;
+const hint = ref<string | null>(null);
+const hintPos = ref({ left: 0, top: 0 });
+let hintTimer = 0;
+const btnRef = ref<{ $el?: HTMLElement } | null>(null);
+function showHint(text: string) {
+  const el = btnRef.value?.$el;
+  if (el instanceof HTMLElement) {
+    const r = el.getBoundingClientRect();
+    hintPos.value = { left: r.left + r.width / 2, top: r.top - 4 };
+  }
+  hint.value = text;
+  clearTimeout(hintTimer);
+  hintTimer = window.setTimeout(() => { hint.value = null; }, HINT_MS);
+}
+const STOP_TYPES = new Set(['abort', 'bannerAbort', 'estop', 'arm', 'machineOn']);
+function busyWillDrop(): boolean {
+  return busy.value && def.value.gate !== 'always' && !STOP_TYPES.has(props.type);
+}
+
 const passAttrs = computed(() => {
   let a: Record<string, unknown> = attrs;
   if (holdEnabled.value) { const { onClick: _onClick, ...rest } = a; a = rest; }
+  else if (typeof a.onClick === 'function' || Array.isArray(a.onClick)) {
+    // Machine-action buttons: note a busy-latch drop at the control.
+    const orig = a.onClick;
+    a = { ...a, onClick: (e: Event) => {
+      if (busyWillDrop()) showHint('Busy — try again');
+      if (Array.isArray(orig)) orig.forEach((f: (e: Event) => void) => f(e)); else (orig as (e: Event) => void)(e);
+    } };
+  }
   // Wrapped: class/style belong to the wrapper (it is the layout item now —
   // a grid placement like .spanAll must land on it).
   if (wrapped.value) { const { class: _c, style: _s, ...rest } = a; a = rest; }
@@ -127,7 +166,10 @@ function cancelHold(reason: string) {
   holding.value = false;
   console.warn(`[hold] ${props.type} cancelled after ${Math.round(performance.now() - holdStartTs)} ms: ${reason} (hold ${HOLD_FIRE_MS} ms to fire)`);
 }
-const cancelHoldUp = () => cancelHold("released before the hold time");
+const cancelHoldUp = () => {
+  if (holding.value) showHint('Hold to activate');
+  cancelHold("released before the hold time");
+};
 const cancelHoldLeave = () => cancelHold("pointer left the button");
 const cancelHoldCancel = () => cancelHold("pointer cancelled (drag-scroll / gesture took it)");
 
@@ -149,9 +191,17 @@ function onHoldPointerDown(e: PointerEvent) {
       console.warn(`[hold] ${props.type} not fired: gate '${def.value.gate}' closed during the hold`);
       return;
     }
+    if (busyWillDrop()) showHint('Busy — try again');
     callClickHandler(e);
   }, HOLD_FIRE_MS);
 }
+
+// A hold is bound to its target and its gate for its whole duration: the
+// target changing (selection moved, UI-02) or the gate closing — even if
+// it re-opens before the timer fires — cancels it. The check at timer
+// expiry alone let a 500 ms window retarget a hold.
+watch(() => props.holdKey, () => cancelHold("target changed during the hold"));
+watch(isDisabled, (off) => { if (off) cancelHold("gate closed during the hold"); });
 
 function onHoldPointerMove(e: PointerEvent) {
   if (!holding.value) return;
@@ -165,7 +215,7 @@ function onHoldContextMenu(e: Event) {
   if (holdEnabled.value) e.preventDefault();
 }
 
-onBeforeUnmount(() => clearTimeout(holdTimer));
+onBeforeUnmount(() => { clearTimeout(holdTimer); clearTimeout(hintTimer); });
 </script>
 
 <template>
@@ -173,6 +223,7 @@ onBeforeUnmount(() => clearTimeout(holdTimer));
         role="button" tabindex="0" :aria-label="explainLabel" :title="disabledReason"
         @click="explain" @keydown="(e: KeyboardEvent) => explainKeydown(e, explain)">
     <Btn
+      ref="btnRef"
       v-bind="passAttrs"
       :variant="resolvedVariant"
       :size="def.size"
@@ -193,6 +244,7 @@ onBeforeUnmount(() => clearTimeout(holdTimer));
   </span>
   <Btn
     v-else
+    ref="btnRef"
     v-bind="passAttrs"
     :variant="resolvedVariant"
     :size="def.size"
@@ -219,4 +271,8 @@ onBeforeUnmount(() => clearTimeout(holdTimer));
     <template v-if="useAbortDefault"><Square :size="14" /> Abort</template>
     <slot v-else />
   </Btn>
+  <Teleport to="body">
+    <span v-if="hint" class="btnHint overlay-card" role="status" data-btn-hint
+          :style="{ left: hintPos.left + 'px', top: hintPos.top + 'px' }">{{ hint }}</span>
+  </Teleport>
 </template>

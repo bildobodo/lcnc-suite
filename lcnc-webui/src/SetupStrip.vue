@@ -203,6 +203,7 @@ function zeroAll() {
           <!-- Orient: works from a DEFINED plane (first orient) and
                re-orients after a table move. Hold-to-fire: the rotaries MOVE. -->
           <MachineBtn type="twpReorient" :disabled="!twpDefined" @click="emit('twpOrient')"
+                      :reason="!twpDefined ? 'Define a plane first (Capture plane, G68.2 / G68.3)' : undefined"
                       :title="!twpDefined
                         ? 'Define a plane first (Capture plane, G68.2 / G68.3)'
                         : twpStale
@@ -213,6 +214,7 @@ function zeroAll() {
           <!-- Clear plane: plain G69 — idempotent, restores identity kins +
                G54, moves nothing. Also the TOOL-kins-limbo recovery. -->
           <MachineBtn type="twpClear" :disabled="!twpDefined && kinsMode !== 2"
+                      :reason="!twpDefined && kinsMode !== 2 ? 'No plane defined — nothing to clear' : undefined"
                       @click="emit('twpClear')"
                       :title="twpDefined
                         ? 'Discard the tilted work plane (G69): back to identity kinematics and G54.'
@@ -224,8 +226,10 @@ function zeroAll() {
 
       <div class="wcsCol stack-tight strip-radio-group">
         <span class="label-muted">WCS</span>
-        <span v-if="kinsChip" class="val-status kinsChip" :class="kinsChip.cls"
-              :title="kinsChip.title">{{ kinsChip.text }}</span>
+        <!-- Fixed slot on switchable-kins machines: the chip appearing must
+             not push the WCS radios down (P2). -->
+        <span v-if="isSwitchable" class="val-status kinsChip" :class="kinsChip?.cls"
+              :title="kinsChip?.title">{{ kinsChip?.text ?? '\u00a0' }}</span>
         <div class="strip-radio-options wcsOptions">
           <label v-for="g in g5xOptions" :key="g" class="radio-label" :title="wcsReserved(g) ? RESERVED_TITLE : undefined"
                  :tabindex="wcsReserved(g) ? 0 : undefined" :role="wcsReserved(g) ? 'button' : undefined"

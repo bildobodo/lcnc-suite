@@ -129,6 +129,8 @@ const props = defineProps<{
   gamepadMappingSource?: MappingSource | null;
   keyboardConfig?: KeyboardDefaults;
   initialTab?: string | null;
+  /** Teleport target for nested confirm dialogs (App: #content-dialog-area). */
+  dialogTarget?: string;
 }>();
 
 const emit = defineEmits<{
@@ -816,6 +818,7 @@ function resetMachineColor(id: string) {
         <div v-if="!serverSettingsReady" class="settingsLoading">Waiting for server settings…</div>
         <div v-else class="stack-panel scrollContent scroll-thin fade-scroll">
           <GamepadTab
+            :dialogTarget="dialogTarget"
             :gamepad-config="props.gamepadConfig"
             :gamepad-connected="props.gamepadConnected"
             :gamepad-name="props.gamepadName"

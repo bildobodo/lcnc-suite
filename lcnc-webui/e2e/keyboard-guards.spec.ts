@@ -245,3 +245,24 @@ test("a jog key released after a field opened mid-jog still sends jog_stop", asy
   await page.keyboard.up("ArrowRight");
   await expect.poll(recordedCmds).toContain("jog_stop");
 });
+
+test("keyboard tab: a capture edits a local copy, no page error, a server change refreshes it", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", e => errors.push(e.message));
+  await openReady(page);
+  await page.getByTitle("Settings", { exact: true }).click();
+  const dialog = page.locator(".dialogOverlay").first();
+  await dialog.getByRole("button", { name: "Keyboard", exact: true }).click();
+  const abortCell = dialog.locator("tr").filter({ hasText: "Abort" }).locator(".kbKeyCell");
+  await expect(abortCell).toHaveText("⌫");
+  await abortCell.click();
+  await ctl({ op: "clearCmds" });
+  await page.keyboard.press("F9");
+  await expect(abortCell).toHaveText("F9");
+  // The edit went out as a save (the copy was emitted), not as a mutation of the store.
+  await expect.poll(async () => ((await ctl({ op: "lastCmds" })).cmds ?? []).some((c: any) => c.cmd === "save_settings" && c.section === "keyboard")).toBe(true);
+  // A server-side change (another tab) refreshes the copy.
+  await ctl({ op: "raw", frame: { type: "settings_changed", settings: { keyboard: { jogEnabled: false, buttonsEnabled: true, mapping: { abort: "F10", cycle: " ", estop: "Escape" } } } } });
+  await expect(abortCell).toHaveText("F10");
+  expect(errors).toEqual([]);
+});

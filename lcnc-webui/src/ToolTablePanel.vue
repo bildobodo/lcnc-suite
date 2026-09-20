@@ -462,8 +462,19 @@ async function previewImportFile(file: File) {
   }
 }
 
+// Replacing the whole table is destructive: it asks first (P1). The
+// confirm dialog is registered like every other overlay.
+const replaceConfirm = ref(false);
+registerModal(replaceConfirm);
+function requestImport() {
+  if (!importFile.value || !canConfirmImport.value) return;
+  if (importMode.value === "replace" && importExistingCount.value > 0) { replaceConfirm.value = true; return; }
+  confirmImport();
+}
+
 async function confirmImport() {
   if (!importFile.value || !canConfirmImport.value) return;
+  replaceConfirm.value = false;
   importBusy.value = true;
   importError.value = null;
   try {
@@ -817,9 +828,21 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
             <MachineBtn type="dialogCancel" @click="cancelImport">Cancel</MachineBtn>
             <MachineBtn v-if="importError && importFile" type="fileOp" :disabled="importBusy"
               @click="previewImportFile(importFile)">Preview again</MachineBtn>
-            <MachineBtn type="fileSave" @click="confirmImport" :disabled="!canConfirmImport">
+            <MachineBtn type="fileSave" @click="requestImport" :disabled="!canConfirmImport">
               {{ importBusy ? 'Importing...' : importMode === 'metadata' ? 'Update metadata' : 'Replace table' }}
             </MachineBtn>
+          </Gate>
+        </div>
+      </div>
+      <div v-if="replaceConfirm" class="dialogOverlay" @click.self="replaceConfirm = false">
+        <div class="dialog">
+          <div class="dialogTitle danger">Replace entire tool table?</div>
+          <div class="dialogBody">
+            {{ importExistingCount }} existing tool{{ importExistingCount === 1 ? '' : 's' }} — measured offsets included — will be removed and replaced by {{ importPreview?.length ?? 0 }} imported tools.
+          </div>
+          <Gate gate="setup" class="dialogActions">
+            <MachineBtn type="dialogCancel" @click="replaceConfirm = false">Cancel</MachineBtn>
+            <MachineBtn type="reset" @click="confirmImport">Replace table</MachineBtn>
           </Gate>
         </div>
       </div>

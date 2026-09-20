@@ -771,10 +771,12 @@ async function saveEdit() {
 
     <!-- Program control -->
     <div class="row-tight">
-      <MachineBtn type="start" class="ctrlBtn" @click="onStartClick" :disabled="!activeFile || editing">
+      <MachineBtn type="start" class="ctrlBtn" @click="onStartClick" :disabled="!activeFile || editing"
+        :reason="editing ? 'Finish or discard the edit first' : !activeFile ? 'No program loaded' : undefined">
         <Play :size="14" class="ctrlIcon" /> {{ selectedLine && selectedLine > 1 ? `Start L${selectedLine}` : 'Start' }}
       </MachineBtn>
-      <MachineBtn type="step" class="ctrlBtn" @click="emit('cycleStep')" :disabled="!(activeFile || can.resume) || editing">
+      <MachineBtn type="step" class="ctrlBtn" @click="emit('cycleStep')" :disabled="!(activeFile || can.resume) || editing"
+        :reason="editing ? 'Finish or discard the edit first' : !(activeFile || can.resume) ? 'No program loaded' : undefined">
         <SkipForward :size="14" class="ctrlIcon" /> Step
       </MachineBtn>
       <MachineBtn :type="isPaused ? 'resume' : 'pause'" class="ctrlBtn"
@@ -1128,35 +1130,8 @@ async function saveEdit() {
 }
 
 
-/* Error banner */
-/* Warn-tier sibling of .errorBanner below (same structure, --warn tokens).
-   Used for "this information is not trustworthy" notices, as distinct from
-   an operation that failed. */
-.warnBanner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--gap-controls);
-  padding: var(--gap-tight) var(--gap-controls);
-  background: color-mix(in oklab, var(--warn) 15%, var(--panel));
-  border: 1px solid color-mix(in srgb, var(--warn) 25%, transparent);
-  border-radius: var(--radius-lg);
-  font-size: var(--fs-base);
-  color: var(--warn);
-}
-
-.errorBanner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--gap-controls);
-  padding: var(--gap-tight) var(--gap-controls);
-  background: color-mix(in oklab, var(--err) 15%, var(--panel));
-  border: 1px solid color-mix(in srgb, var(--err) 25%, transparent);
-  border-radius: var(--radius-lg);
-  font-size: var(--fs-base);
-  color: var(--danger);
-}
+/* .warnBanner / .errorBanner — global (style.css), shared with the tool
+   table, the file browser and the dialogs. */
 
 /* Code area wrapper */
 .codeArea {

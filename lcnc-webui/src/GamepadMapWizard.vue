@@ -183,6 +183,25 @@ function skip() {
   advance();
 }
 
+// Restart throws captures away: it arms for a second press (a nested
+// confirm overlay inside this dialog would be clipped), and the button is
+// ALWAYS rendered (disabled with nothing captured) so Skip / Save Profile
+// keep their slot (P2).
+const restartArmed = ref(false);
+let restartTimer = 0;
+function requestRestart() {
+  if (capturedCount.value === 0) return;
+  if (!restartArmed.value) {
+    restartArmed.value = true;
+    clearTimeout(restartTimer);
+    restartTimer = window.setTimeout(() => { restartArmed.value = false; }, 3000);
+    return;
+  }
+  restartArmed.value = false;
+  clearTimeout(restartTimer);
+  restart();
+}
+
 function restart() {
   capButtons.value = {};
   capSticks.value = {};
@@ -204,7 +223,7 @@ function save() {
 }
 
 onMounted(() => { timer = window.setInterval(tick, 50); });
-onBeforeUnmount(() => { window.clearInterval(timer); });
+onBeforeUnmount(() => { window.clearInterval(timer); clearTimeout(restartTimer); });
 </script>
 
 <template>
@@ -230,9 +249,10 @@ onBeforeUnmount(() => { window.clearInterval(timer); });
       </div>
       <div class="dialogActions">
         <MachineBtn type="dialogCancel" @click="emit('cancel')">Cancel</MachineBtn>
-        <MachineBtn v-if="capturedCount > 0" type="inlineMd" @click="restart">Restart</MachineBtn>
+        <MachineBtn type="inlineMd" :disabled="capturedCount === 0" reason="Nothing captured yet"
+                    :warning="restartArmed" @click="requestRestart">{{ restartArmed ? 'Press again to restart' : 'Restart' }}</MachineBtn>
         <MachineBtn v-if="phase !== 'done'" type="inlineMd" @click="skip">Skip</MachineBtn>
-        <MachineBtn v-if="phase === 'done'" type="dialogConfirm" @click="save">Save Profile</MachineBtn>
+        <MachineBtn v-else type="dialogConfirm" @click="save">Save Profile</MachineBtn>
       </div>
     </div>
   </div>

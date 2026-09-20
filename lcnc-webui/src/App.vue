@@ -576,6 +576,9 @@ const permissions = computed(() => {
   return next;
 });
 provide(PERMISSIONS_KEY, permissions);
+// MachineBtn shows "Busy — try again" at the control when this latch would
+// drop its click (fire()); read-only for children.
+provide("busy", busy);
 // Why each closed gate is closed (U-06): the backend's reasons under the
 // client-local overlay's own — what a dimmed control shows on hover and
 // says on tap (MachineBtn), and what fire() reports when it drops a send.
@@ -755,9 +758,22 @@ const activeMcodes = computed(() => {
 // Tool change dialog (global — tool changes can happen from any context)
 const toolChangeRequested = computed(() => !!st.value.tool_change_requested);
 const toolChangeTool = computed(() => st.value.tool_change_tool ?? null);
-// Discrete confirm action — route through fire() so an accidental double-click
-// is debounced (issue #31). No gate: it happens mid tool-change, not at idle.
-function confirmToolChange() { fire({ cmd: "confirm_tool_change" }); }
+// Confirm exactly once per request (UI-05): `confirmSent` holds the req_id
+// of the confirm that actually went out (fire() returns null when nothing
+// was sent — never a pending). It clears when the request ends, when the
+// gateway refuses it (retry allowed) and on disconnect. Gate `armed`: the
+// change happens mid-program, never at idle/ready.
+const confirmSent = ref<string | null>(null);
+function confirmToolChange() {
+  if (!toolChangeRequested.value || confirmSent.value) return;
+  const id = fire({ cmd: "confirm_tool_change" }, 'armed');
+  if (id) confirmSent.value = id;
+}
+watch(toolChangeRequested, (req) => { if (!req) confirmSent.value = null; });
+watch(lastReply, (r) => {
+  if (r && confirmSent.value && r.req_id === confirmSent.value && r.ok === false) confirmSent.value = null;
+});
+watch(connected, (c) => { if (!c) confirmSent.value = null; });
 
 const feedSlider = ref(100);
 const spindleSlider = ref(100);
@@ -900,7 +916,7 @@ const {
   requestCompToggle,
   confirmCompToggle,
   cancelCompToggle,
-} = useDialogState({ markMessagesRead, send });
+} = useDialogState({ markMessagesRead, send, fire });
 
 // Macro state + execution. See useMacros.ts. The provide() call below has
 // to run here in App.vue's setup so SettingsPanel (the consumer) sees it
@@ -918,7 +934,11 @@ const toolTableRef = ref<InstanceType<typeof ToolTablePanel> | null>(null);
 // The vars must land before the M600 that reads them — one latch, in order.
 function measureAuto() {
   const t = st.value.tool_number;
-  if (!permissions.value.machineFrame || st.value.probing || !t) return;
+  if (!t) { pushMessage(OPERATOR_ERROR, "Measure Current — no tool loaded"); return; }
+  if (!permissions.value.machineFrame || st.value.probing) {
+    pushMessage(OPERATOR_ERROR, `Measure Current not sent — ${permissionReasons.value.machineFrame ?? (st.value.probing ? "a probe is running" : "not available")}`);
+    return;
+  }
   fireBatch([
     { cmd: "set_probe_vars", vars: buildToolsetterVarMap() },
     { cmd: "mdi", text: `T${t} M600` },
@@ -926,7 +946,10 @@ function measureAuto() {
 }
 
 function unloadTool() {
-  if (!permissions.value.machineFrame) return;
+  if (!permissions.value.machineFrame) {
+    pushMessage(OPERATOR_ERROR, `Unload not sent — ${permissionReasons.value.machineFrame ?? "not available"}`);
+    return;
+  }
   const mode = loadMachineDefaults().toolChangeMode;
   if (mode === "m600") {
     fireBatch([
@@ -1273,12 +1296,13 @@ provide(FIRE_KEY, fire);
 // Touch-off math + Z-eoffset compensation. See useTouchoffMath.ts.
 const { setAxis, setAll, setG5x } = useTouchoffMath({ axes, fire });
 
+// Homing is ZERO-tier on the backend (idle + !eoffset), not idle.
 function homeAll() {
-  fire({ cmd: "home_all" }, 'idle');
+  fire({ cmd: "home_all" }, 'zero');
 }
 
 function unhomeAll() {
-  fire({ cmd: "unhome_all" }, 'idle');
+  fire({ cmd: "unhome_all" }, 'zero');
 }
 
 // Joint letters outside their own soft-limit window (status
@@ -1295,11 +1319,11 @@ const homedJoints = computed<boolean[]>(() => {
 });
 
 function homeAxis(joint: number) {
-  fire({ cmd: "home", joint }, 'idle');
+  fire({ cmd: "home", joint }, 'zero');
 }
 
 function unhomeAxis(joint: number) {
-  fire({ cmd: "unhome", joint }, 'idle');
+  fire({ cmd: "unhome", joint }, 'zero');
 }
 
 
@@ -1545,19 +1569,64 @@ const surfacePoints = ref<[number, number, number][] | null>(null);
 /** ---------- Compensation grid (from compensation.py) ---------- */
 const compGrid = ref<{ x: number[]; y: number[]; zi: number[][]; method: number } | null>(null);
 
+// One state per channel (UI-10): the owner knows whether a request is in
+// flight, whether the answer was "nothing recorded yet" (a state, shown as
+// an empty state — never a toast) or a real failure (shown with the reason
+// and a Retry). Correlated by req_id, so a stale reply cannot flip it.
+type SurfaceLoad = "unknown" | "loading" | "empty" | "ready" | "error";
+const surfaceState = reactive({
+  points: "unknown" as SurfaceLoad, pointsError: null as string | null,
+  grid: "unknown" as SurfaceLoad, gridError: null as string | null,
+});
+let _probeReq: string | null = null;
+let _gridReq: string | null = null;
+
 function requestProbeResults() {
-  send({ cmd: "get_probe_results" });
+  const id = send({ cmd: "get_probe_results" });
+  if (id) { _probeReq = id; surfaceState.points = "loading"; }
 }
 
+// Independent of the grid: a missing grid never blocks the points.
 function requestCompGrid() {
-  send({ cmd: "get_comp_grid" });
+  const id = send({ cmd: "get_comp_grid" });
+  if (id) { _gridReq = id; surfaceState.grid = "loading"; }
 }
 
 // Listen for get_probe_results / get_comp_grid replies
 watch(lastReply, (r: any) => {
-  if (r?.ok && r.points) surfacePoints.value = r.points;
-  if (r?.ok && r.comp_grid) compGrid.value = r.comp_grid;
+  if (!r) return;
+  if (r.req_id && r.req_id === _probeReq) {
+    _probeReq = null;
+    if (r.ok) {
+      surfacePoints.value = Array.isArray(r.points) ? r.points : [];
+      surfaceState.points = surfacePoints.value!.length ? "ready" : "empty";
+      surfaceState.pointsError = null;
+    } else {
+      surfaceState.points = "error";
+      surfaceState.pointsError = r.error ?? "unknown error";
+    }
+  } else if (r.ok && r.points) {
+    surfacePoints.value = r.points;   // pushed by another path — data only
+  }
+  if (r.req_id && r.req_id === _gridReq) {
+    _gridReq = null;
+    if (r.ok) {
+      compGrid.value = r.comp_grid ?? null;
+      surfaceState.grid = r.comp_grid ? "ready" : "empty";
+      surfaceState.gridError = null;
+    } else {
+      surfaceState.grid = "error";
+      surfaceState.gridError = r.error ?? "unknown error";
+    }
+  } else if (r.ok && r.comp_grid) {
+    compGrid.value = r.comp_grid;
+  }
 }, { flush: "sync" });
+watch(connected, (c) => {
+  if (c) return;
+  if (_probeReq) { _probeReq = null; surfaceState.points = "error"; surfaceState.pointsError = "connection lost"; }
+  if (_gridReq) { _gridReq = null; surfaceState.grid = "error"; surfaceState.gridError = "connection lost"; }
+});
 
 /** ---------- G-code stats watcher ---------- */
 // Content is fetched over HTTP by lcncWs (see gcodeContent ref). Here we only
@@ -1676,14 +1745,16 @@ watch(viewerGcode, (newGcode) => {
           </span>
         </Transition>
       </div>
+      <!-- Abort is ALWAYS the last action: a stop must not move when a
+           message count or a Refresh appears beside it (P2). -->
       <div class="bannerActions row-controls">
         <MachineBtn v-if="safetyTrip" type="dialogConfirm" @click="acknowledgeSafetyTrip">Acknowledge</MachineBtn>
-        <MachineBtn v-if="bannerShowAbort" type="bannerAbort" @click="fire({ cmd: 'abort' }, 'abort')" />
         <MachineBtn v-if="machineState === 'unhomed'" type="bannerHome" @click="homeAll">Home All</MachineBtn>
         <MachineBtn v-if="unreadCount > 0" type="bannerAction" @click="messagesDialogOpen = true; markMessagesRead()">
           {{ unreadCount }} message{{ unreadCount === 1 ? '' : 's' }}
         </MachineBtn>
         <MachineBtn v-if="needsRefresh" type="bannerAction" @click="reloadPage">Refresh</MachineBtn>
+        <MachineBtn v-if="bannerShowAbort" type="bannerAbort" @click="fire({ cmd: 'abort' }, 'abort')" />
       </div>
     </div>
 
@@ -1761,18 +1832,19 @@ watch(viewerGcode, (newGcode) => {
               :compGridVersion="st.comp_grid_version ?? 0"
               :surfacePoints="surfacePoints"
               :compGrid="compGrid"
+              :surfaceState="surfaceState"
               :surfaceLayerVisible="viewerLayers.surface"
               :rotaryTilted="st.rotary_at_zero === false"
               @toggleSurfaceLayer="(on: boolean) => { viewerLayers.surface = on; viewerRef?.setLayerVisible?.('surface', on); saveViewerDefaults({ ...loadViewerDefaults(), layers: { ...loadViewerDefaults().layers, surface: on } }); }"
               @mdi="fire({ cmd: 'mdi', text: $event }, 'machineFrame')"
               @abort="fire({ cmd: 'abort' }, 'abort')"
               @simTrip="send({ cmd: 'simulate_probe_trip' })"
-              @setProbeVars="fire({ cmd: 'set_probe_vars', vars: $event }, 'setup')"
+              @setProbeVars="fire({ cmd: 'set_probe_vars', vars: $event }, 'ready')"
               @runProbe="onRunProbe($event)"
               @getProbeResults="requestProbeResults"
               @getCompGrid="requestCompGrid"
               @setCompensation="requestCompToggle"
-              @setCompMethod="send({ cmd: 'set_compensation_method', method: $event })"
+              @setCompMethod="fire({ cmd: 'set_compensation_method', method: $event }, 'probe')"
             />
           </template>
 
@@ -1824,6 +1896,7 @@ watch(viewerGcode, (newGcode) => {
               :eoffsetEnabled="!!st.eoffset_enabled"
               :rotationXy="st.rotation_xy ?? null"
               :wcsTable="st.wcs_table ?? []"
+              :linearUnit="linearUnit"
             />
           </template>
 
@@ -1832,7 +1905,7 @@ watch(viewerGcode, (newGcode) => {
               <div class="toolTabActions stack-controls">
                 <div class="toolTabRow stack-controls">
                   <div class="row-tight">
-                    <MachineBtn type="toolMeasure" @click="measureAuto">Measure Current</MachineBtn>
+                    <MachineBtn type="toolMeasure" :disabled="!st.tool_number" reason="No tool loaded" @click="measureAuto">Measure Current</MachineBtn>
                     <MachineBtn type="toolUnload" @click="unloadTool">Unload</MachineBtn>
                     <MachineBtn type="abort" @click="fire({ cmd: 'abort' }, 'abort')" />
                   </div>
@@ -1968,6 +2041,7 @@ watch(viewerGcode, (newGcode) => {
           </div>
           <div class="dialogContent">
             <SettingsPanel
+              dialog-target="#content-dialog-area"
               :initialTab="settingsInitialTab"
               :gamepadConnected="gamepad.gamepadConnected.value"
               :gamepadName="gamepad.gamepadName.value"
@@ -2027,8 +2101,10 @@ watch(viewerGcode, (newGcode) => {
             </template>
           </div>
           <div class="dialogActions">
+            <MachineBtn type="toolChangeConfirm" :disabled="!toolChangeRequested || !!confirmSent"
+                        :reason="confirmSent ? 'Confirmation sent — waiting for the controller' : undefined"
+                        @click="confirmToolChange">{{ confirmSent ? 'Confirming…' : 'Confirm' }}</MachineBtn>
             <MachineBtn type="abort" @click="fire({ cmd: 'abort' }, 'abort')" />
-            <MachineBtn type="dialogBase" @click="confirmToolChange">Confirm</MachineBtn>
           </div>
         </div>
       </div>
@@ -2162,7 +2238,7 @@ watch(viewerGcode, (newGcode) => {
         @update:jogIncrement="jogIncrement = $event"
         @resetJogVel="jogVel = defaultJogVel"
         @resetAngularJogVel="angularJogVel = defaultAngularJogVel"
-        @modeChange="send({ cmd: 'set_mode', mode: $event })"
+        @modeChange="fire({ cmd: 'set_mode', mode: $event }, 'idle')"
       />
 
       <SetupStrip

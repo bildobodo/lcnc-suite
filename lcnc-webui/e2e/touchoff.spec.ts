@@ -618,3 +618,166 @@ test("tool number field: minimum 1 and whole numbers only, on Enter and on OK", 
     await ctlSend({ op: "reset" });
   }
 });
+
+// ── WP6: hold target binding, hold hint, tool-change confirm, surface states, keypad owner ──
+
+async function holdOn(page: Page, locator: ReturnType<Page["locator"]>, ms: number) {
+  const box = (await locator.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(ms);
+}
+
+test("Offsets Clear: disabled without a real selection, hold-to-fire, hold cancels when the target moves", async ({ page }) => {
+  await page.goto(MOCK);
+  await expect(page.locator("input.setupInput").first()).toBeVisible();
+  await ctlSend({ op: "quiet", on: true });
+  try {
+    // No g5x_index yet → the label is "-" → nothing selected → Clear disabled with a reason.
+    await page.getByRole("button", { name: "Offsets", exact: true }).click();
+    const clear = page.getByRole("button", { name: /^Clear (–|G5)/ });
+    await expect(clear).toBeDisabled();
+    await expect(page.locator(".btnTip", { has: clear })).toHaveAttribute("title", /Select a coordinate system/);
+    // The active fixture selects itself once the status names one.
+    await ctlSend({ op: "status_delta", data: { g5x_index: 2, permissions: PERMS_ALL } });
+    await expect(clear).toBeEnabled();
+    await expect(clear).toHaveText(/Clear\s+G55/);
+    await ctlSend({ op: "clearCmds" });
+    // A tap is not a hold: hint shown, nothing sent.
+    await clear.click();
+    await expect(page.locator("[data-btn-hint]")).toHaveText("Hold to activate");
+    await page.waitForTimeout(300);
+    expect(await recordedCmds()).not.toContain("clear_wcs");
+    // Selection moves mid-hold (pin another row) → cancelled, nothing sent.
+    await holdOn(page, clear, 200);
+    await page.locator("tbody tr", { hasText: "G57" }).locator("td").first().dispatchEvent("click");
+    await page.waitForTimeout(600);
+    await page.mouse.up();
+    expect(await recordedCmds()).not.toContain("clear_wcs");
+    await expect(clear).toHaveText(/Clear\s+G57/);
+    // Gate closes during the hold → cancelled even though it re-opens.
+    await holdOn(page, clear, 150);
+    await ctlSend({ op: "status_delta", data: { permissions: { ...PERMS_ALL, probe: false } } });
+    await page.waitForTimeout(100);
+    await ctlSend({ op: "status_delta", data: { permissions: PERMS_ALL } });
+    await page.waitForTimeout(500);
+    await page.mouse.up();
+    expect(await recordedCmds()).not.toContain("clear_wcs");
+    // A complete hold sends exactly one clear_wcs for the pinned target.
+    await holdOn(page, clear, 700);
+    await page.mouse.up();
+    const sent = await ctlSend({ op: "lastCmds" }) as { cmds?: { cmd?: string; target?: string }[] };
+    const clears = (sent.cmds ?? []).filter(c => c.cmd === "clear_wcs");
+    expect(clears).toHaveLength(1);
+    expect(clears[0]!.target).toBe("G57");
+  } finally {
+    await ctlSend({ op: "quiet", on: false });
+    await ctlSend({ op: "reset" });
+  }
+});
+
+test("tool-change confirm: once per request, retry after a refusal, nothing without a request", async ({ page }) => {
+  await page.goto(MOCK);
+  await expect(page.locator("input.setupInput").first()).toBeVisible();
+  await ctlSend({ op: "quiet", on: true });
+  try {
+    await ctlSend({ op: "status_delta", data: { tool_change_requested: true, tool_change_tool: 3, permissions: PERMS_ALL } });
+    const dialog = page.locator(".safetyDialog .dialog", { hasText: "Load Tool into Spindle" });
+    await expect(dialog).toBeVisible();
+    await ctlSend({ op: "clearCmds" });
+    const confirm = dialog.getByRole("button", { name: /Confirm/ });
+    await confirm.click();
+    await expect(dialog.getByRole("button", { name: "Confirming…", exact: true })).toBeDisabled();
+    await confirm.click({ force: true }).catch(() => {});
+    await page.waitForTimeout(200);
+    const sent = await ctlSend({ op: "lastCmds" }) as { cmds?: { cmd?: string; req_id?: string }[] };
+    const confirms = (sent.cmds ?? []).filter(c => c.cmd === "confirm_tool_change");
+    expect(confirms).toHaveLength(1);
+    // Refusal → the button comes back; a second confirm goes out.
+    await ctlSend({ op: "raw", frame: { type: "reply", cmd: "confirm_tool_change", req_id: confirms[0]!.req_id, ok: false, error: "not pending" } });
+    await expect(dialog.getByRole("button", { name: "Confirm", exact: true })).toBeEnabled();
+    await dialog.getByRole("button", { name: "Confirm", exact: true }).click();
+    await expect.poll(async () => ((await ctlSend({ op: "lastCmds" })).cmds ?? []).filter((c: any) => c.cmd === "confirm_tool_change").length).toBe(2);
+    // Request ends → dialog gone; nothing more is sent.
+    await ctlSend({ op: "status_delta", data: { tool_change_requested: false, tool_change_tool: null } });
+    await expect(dialog).toHaveCount(0);
+    expect(((await ctlSend({ op: "lastCmds" })).cmds ?? []).filter((c: any) => c.cmd === "confirm_tool_change").length).toBe(2);
+  } finally {
+    await ctlSend({ op: "quiet", on: false });
+    await ctlSend({ op: "reset" });
+  }
+});
+
+test("surface map: empty state without a toast, error with retry, points load without a grid", async ({ page }) => {
+  await page.goto(MOCK);
+  await expect(page.locator("input.setupInput").first()).toBeVisible();
+  await ctlSend({ op: "quiet", on: true });
+  try {
+    await ctlSend({ op: "status_delta", data: { permissions: PERMS_ALL } });
+    await page.getByRole("button", { name: "Probing", exact: true }).click();
+    await page.getByRole("button", { name: "Surface", exact: true }).click();
+    const messages = page.getByRole("button", { name: /^Messages \(/ });
+    const before = await messages.getAttribute("title");
+    await ctlSend({ op: "clearCmds" });
+    await page.getByRole("button", { name: /Reload Data|Loading…/ }).click();
+    const sent = async () => ((await ctlSend({ op: "lastCmds" })).cmds ?? []) as { cmd?: string; req_id?: string }[];
+    await expect.poll(async () => (await sent()).some(c => c.cmd === "get_probe_results") && (await sent()).some(c => c.cmd === "get_comp_grid")).toBe(true);
+    const points = (await sent()).find(c => c.cmd === "get_probe_results")!;
+    const grid = (await sent()).find(c => c.cmd === "get_comp_grid")!;
+    // No grid yet is a STATE (ok, comp_grid null): empty text, no message.
+    await ctlSend({ op: "raw", frame: { type: "reply", cmd: "get_comp_grid", req_id: grid.req_id, ok: true, comp_grid: null, reason: "no grid file" } });
+    await ctlSend({ op: "raw", frame: { type: "reply", cmd: "get_probe_results", req_id: points.req_id, ok: true, points: [] } });
+    await expect(page.getByText("No surface map recorded yet", { exact: true })).toBeVisible();
+    await expect(page.getByText("No compensation grid yet", { exact: true })).toBeVisible();
+    expect(await messages.getAttribute("title")).toBe(before);
+    // A damaged grid file is an error with a retry; the points still load.
+    await ctlSend({ op: "clearCmds" });
+    await page.getByRole("button", { name: /Reload Data|Loading…/ }).click();
+    await expect.poll(async () => (await sent()).length).toBeGreaterThanOrEqual(2);
+    const points2 = (await sent()).find(c => c.cmd === "get_probe_results")!;
+    const grid2 = (await sent()).find(c => c.cmd === "get_comp_grid")!;
+    await ctlSend({ op: "raw", frame: { type: "reply", cmd: "get_comp_grid", req_id: grid2.req_id, ok: false, error: "Invalid grid file" } });
+    await ctlSend({ op: "raw", frame: { type: "reply", cmd: "get_probe_results", req_id: points2.req_id, ok: true, points: [[0, 0, 0], [10, 0, 0.1], [0, 10, -0.1], [10, 10, 0]] } });
+    await expect(page.getByText(/Grid: Invalid grid file/)).toBeVisible();
+    await expect(page.getByText("No surface map recorded yet", { exact: true })).toHaveCount(0);
+    await ctlSend({ op: "clearCmds" });
+    await page.getByRole("button", { name: "Retry", exact: true }).click();
+    await expect.poll(async () => (await sent()).map(c => c.cmd)).toContain("get_comp_grid");
+  } finally {
+    await ctlSend({ op: "quiet", on: false });
+    await ctlSend({ op: "reset" });
+  }
+});
+
+test("keypad owner: dialog close, gate change and a second field end or retarget the session", async ({ page }) => {
+  await page.goto(MOCK);
+  await expect(page.locator("input.setupInput").first()).toBeVisible();
+  await ctlSend({ op: "quiet", on: true });
+  try {
+    await ctlSend({ op: "status_delta", data: { permissions: PERMS_ALL } });
+    await page.getByRole("button", { name: "Tools", exact: true }).click();
+    await page.getByRole("button", { name: "+ Add", exact: true }).click();
+    const dialog = page.locator(".editDialog");
+    const field = (name: string) => dialog.locator("label", { hasText: name }).locator("xpath=following-sibling::input[1]");
+    await field("Diameter").click();
+    const strip = page.locator(".nkStrip");
+    await expect(strip.locator(".sub")).toHaveText("New tool · Diameter · mm");
+    // Second field retargets: the header names it, the first draft is not confirmed.
+    await page.keyboard.type("12");
+    await field("Flutes").click();
+    await expect(strip.locator(".sub")).toHaveText("New tool · Flutes");
+    await expect(field("Diameter")).toHaveValue("0");
+    // Closing the dialog while the keypad is open ends the session.
+    await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+    await expect(strip).toHaveCount(0);
+    // Gate change while open on a strip field closes it too.
+    await page.locator("input.setupInput").first().click();
+    await expect(strip).toBeVisible();
+    await ctlSend({ op: "status_delta", data: { permissions: { ...PERMS_ALL, touchoff: false } } });
+    await expect(strip).toHaveCount(0);
+    await ctlSend({ op: "status_delta", data: { permissions: PERMS_ALL } });
+  } finally {
+    await ctlSend({ op: "quiet", on: false });
+    await ctlSend({ op: "reset" });
+  }
+});

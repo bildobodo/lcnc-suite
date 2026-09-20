@@ -14,12 +14,17 @@
 
 import { ref, watch } from "vue";
 import type { WsCommand } from "./lcnc";
+import type { Permissions } from "./permissions";
 
 interface UseDialogStateOptions {
   /** Called when the messages dialog opens via openDialog("messages"). */
   markMessagesRead: () => void;
-  /** Called when the operator confirms a compensation toggle. */
+  /** Raw transport (kept for callers that need it). */
   send: (cmd: WsCommand) => void;
+  /** The gated send path (App.vue's fire) — this composable runs in App's
+   *  setup, where useFire() cannot inject, so it is handed in explicitly.
+   *  The compensation toggle is `ready`-tier on the backend. */
+  fire?: (payload: any, gate?: keyof Permissions) => string | null;
 }
 
 export function useDialogState(opts: UseDialogStateOptions) {
@@ -80,7 +85,9 @@ export function useDialogState(opts: UseDialogStateOptions) {
   }
   function confirmCompToggle() {
     if (compConfirmPending.value !== null) {
-      opts.send({ cmd: "set_compensation", enable: compConfirmPending.value });
+      const payload = { cmd: "set_compensation" as const, enable: compConfirmPending.value };
+      if (opts.fire) opts.fire(payload, "ready");
+      else opts.send(payload);
       compConfirmPending.value = null;
     }
   }

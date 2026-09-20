@@ -38,7 +38,8 @@ const emit = defineEmits<{
         <MachineBtn type="spindleRev" :active="isReverse" @click="emit('spindleRev', rpmInput)">
           <span class="btn-label"><RotateCcw :size="14" /> Rev</span>
         </MachineBtn>
-        <MachineBtn type="spindleStop" :active="isSpinning" :disabled="!isSpinning" @click="emit('spindleStop')">
+        <MachineBtn type="spindleStop" :active="isSpinning" :disabled="!isSpinning"
+                    :reason="!isSpinning ? 'Spindle is already stopped' : undefined" @click="emit('spindleStop')">
           <span class="btn-label"><Square :size="14" /> Stop</span>
         </MachineBtn>
         <MachineBtn type="spindleFwd" :active="isForward" @click="emit('spindleFwd', rpmInput)">

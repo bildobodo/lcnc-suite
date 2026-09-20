@@ -3437,7 +3437,11 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             config_dir = os.path.dirname(ini_path) if ini_path else ""
             path = os.path.join(config_dir, "probe-results-grid.json")
             if not os.path.isfile(path):
-                return {"ok": False, "error": "No grid file"}
+                # No grid yet (nothing scanned) is a STATE, not a failure:
+                # every ok:false lands in the operator's message center, and
+                # "Reload Data" on a fresh machine raised "No grid file" each
+                # time (UI-10). A damaged grid file below stays an error.
+                return {"ok": True, "comp_grid": None, "reason": "no grid file"}
 
             def _load_grid():
                 with open(path, "r") as f:

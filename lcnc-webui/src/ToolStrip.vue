@@ -25,12 +25,20 @@ const emit = defineEmits<{
 }>();
 
 const tools = ref<ToolEntry[]>([]);
+const tableError = ref<string | null>(null);
 
 function fetchTools() { send({ cmd: "get_tool_table" }); }
 
+// Only OUR command's reply (the gateway echoes cmd): an unrelated failed
+// command must not touch this strip, and a failed table read is shown,
+// not rendered as "---" placeholders.
 watch(lastReply, (reply) => {
-  if (reply?.ok && Array.isArray(reply.tools)) {
+  if (!reply || reply.cmd !== "get_tool_table") return;
+  if (reply.ok && Array.isArray(reply.tools)) {
     tools.value = reply.tools;
+    tableError.value = null;
+  } else if (reply.ok === false) {
+    tableError.value = reply.error ?? "Tool table unavailable";
   }
 });
 
@@ -48,6 +56,7 @@ const currentToolData = computed(() =>
     <div class="stripSection">
       <div class="sub">Tool</div>
       <MachineBtn type="nav" @click="emit('openToolTable')" block>Tool Table</MachineBtn>
+      <div v-if="tableError" class="noteWarn" role="alert">Tool table: {{ tableError }}</div>
 
       <div v-if="currentTool > 0" class="toolInfo inset-panel stack-tight">
         <div class="statusRow"><span class="label-muted md">Tool</span><span class="val-status md mono">T{{ currentTool }}</span></div>

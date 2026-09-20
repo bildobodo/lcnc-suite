@@ -88,6 +88,11 @@ export const BUTTON_TYPES = {
 
   // WCS selection
   wcs:            { gate: 'probe',    variant: 'default', size: 'sm' },
+  // Offsets tab: clear one fixture / all — `clear_wcs` is probe-tier on the
+  // backend (command_policy), and a destructive write gets the same hold as
+  // Zero / Home (operator decision 2026-09-19).
+  wcsClear:       { gate: 'probe',    variant: 'default', size: 'md', hold: true },
+  wcsClearAll:    { gate: 'probe',    variant: 'danger',  size: 'md', hold: true },
   // TWP re-orient: re-solves the head at the current table pose. It MOVES the
   // rotaries, so it carries the probe tier (idle + homed + no eoffset), not
   // jogFrame's — a jog-frame switch is a stationary relabel, this is motion.
@@ -153,7 +158,11 @@ export const BUTTON_TYPES = {
   inlineMd:       { gate: 'always',  variant: 'default', size: 'md' },
   bannerAction:   { gate: 'always',  variant: 'default', size: 'md' },
   bannerAbort:    { gate: 'abort',   variant: 'danger',  size: 'md' },
-  bannerHome:     { gate: 'idle',    variant: 'default', size: 'md', hold: true },
+  // Banner Home All: `home_all` is ZERO-tier on the backend (idle + !eoffset).
+  bannerHome:     { gate: 'zero',    variant: 'default', size: 'md', hold: true },
+  // Manual tool-change confirm: meaningful only while iocontrol asks for one;
+  // the state gate is `armed` (it happens mid-program, never idle/ready).
+  toolChangeConfirm: { gate: 'armed', variant: 'primary', size: 'md' },
   headerIcon:     { gate: 'always',  variant: 'default', size: 'md',  icon: true },
 
   // ── Number keypad ──

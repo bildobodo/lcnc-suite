@@ -138,6 +138,7 @@ onMounted(() => browse());
 .fileEntryName { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fileSize { font-size: var(--fs-sm); opacity: var(--opacity-muted); flex-shrink: 0; }
 .emptyBrowser { padding: var(--gap-section); text-align: center; font-size: var(--fs-base); opacity: var(--opacity-muted); }
-.errorBanner { padding: var(--gap-tight) var(--gap-controls); color: var(--danger); font-size: var(--fs-base); flex-shrink: 0; }
+/* Chrome from the global .errorBanner; layout only here. */
+.errorBanner { flex-shrink: 0; }
 .errorBanner span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 </style>
