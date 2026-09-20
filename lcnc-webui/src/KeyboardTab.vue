@@ -12,7 +12,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import {
   type KeyboardDefaults, type KeyboardAction,
-  KEYBOARD_ACTION_LABELS, formatKeyName,
+  KEYBOARD_ACTION_LABELS, formatKeyName, ESTOP_KEY,
 } from "./defaults";
 import { viewerInit } from "./lcncWs";
 import { isRotaryAxis } from "./useAxes";
@@ -24,10 +24,16 @@ const emit = defineEmits<{
   (e: "setKeyboardConfig", cfg: KeyboardDefaults): void;
 }>();
 
-// Local mirror of the prop so the table inputs stay reactive while edits
-// propagate back through `setKeyboardConfig`.
-const kbConfig = ref<KeyboardDefaults>(props.kbConfig);
-watch(() => props.kbConfig, (cfg) => { kbConfig.value = cfg; });
+// Local COPY of the prop so the table inputs stay reactive while edits
+// propagate back through `setKeyboardConfig`. A shallow copy of the config
+// plus its mapping (UI-04): mirroring the prop object itself let every key
+// capture mutate the parent's store in place before the emit, and
+// structuredClone throws DataCloneError on a Vue proxy.
+function cloneKb(cfg: KeyboardDefaults): KeyboardDefaults {
+  return { ...cfg, mapping: { ...cfg.mapping } };
+}
+const kbConfig = ref<KeyboardDefaults>(cloneKb(props.kbConfig));
+watch(() => props.kbConfig, (cfg) => { kbConfig.value = cloneKb(cfg); }, { deep: true });
 
 const listeningAction = ref<KeyboardAction | null>(null);
 const captureError = ref("");
@@ -42,7 +48,8 @@ function saveKb() {
 // order; before viewer_init arrives we fall back to XYZ so the tab isn't
 // empty while disconnected. Bindings stored for absent axes stay saved but
 // inert (the runtime resolver ignores letters not in the axis list).
-const COMMAND_ACTIONS: KeyboardAction[] = ["estop", "cycle", "abort"];
+// `estop` is rendered as a fixed row (Escape, reserved) — see the template.
+const COMMAND_ACTIONS: KeyboardAction[] = ["cycle", "abort"];
 const machineAxes = computed<string[]>(() => {
   const axes = viewerInit.value?.axes;
   return Array.isArray(axes) && axes.length ? axes : ["X", "Y", "Z"];
@@ -60,6 +67,7 @@ const hasRotaryAxes = computed(() => ROTARY_JOG_ACTIONS.value.length > 0);
 const MODIFIER_KEYS = new Set(["Shift", "Control", "Alt", "Meta"]);
 
 function startCapture(action: KeyboardAction) {
+  if (action === "estop") return;  // fixed to Escape — not re-bindable
   listeningAction.value = action;
   captureError.value = "";
   if (captureErrorTimer) clearTimeout(captureErrorTimer);
@@ -67,6 +75,10 @@ function startCapture(action: KeyboardAction) {
 
 function handleCapture(e: KeyboardEvent) {
   if (!listeningAction.value) return;
+  // Escape is the reserved E-Stop key: it passes through UNTOUCHED (no
+  // preventDefault, no stopPropagation — this capture listener used to
+  // swallow it while binding a key, UI-03) and merely cancels the capture.
+  if (e.key === ESTOP_KEY) { cancelCapture(); return; }
   e.preventDefault();
   e.stopPropagation();
 
@@ -171,11 +183,16 @@ onUnmounted(() => {
               </tr>
             </template>
             <tr class="kbSep"><td colspan="3"></td></tr>
-            <!-- E-Stop is NEVER dimmed: it fires regardless of the master toggle
-                 (useKeyboardShortcuts bypasses it by design) — dimming it here showed
-                 a safety control as disabled while it was actually active. -->
-            <tr v-for="action in COMMAND_ACTIONS" :key="action" :class="{ inactive: !kbConfig.buttonsEnabled && action !== 'estop' }">
-              <td class="kbMapAction">{{ KEYBOARD_ACTION_LABELS[action] }}<span v-if="action === 'estop'" class="kbAlways"> — always active</span></td>
+            <!-- E-Stop is NEVER dimmed and NEVER re-bound: Escape is reserved
+                 (operator decision 2026-09-19) and fires regardless of the
+                 master toggle. A fixed row — no capture cell, no unbind. -->
+            <tr>
+              <td class="kbMapAction">{{ KEYBOARD_ACTION_LABELS.estop }}<span class="kbAlways"> — always active, reserved</span></td>
+              <td class="kbKeyCell kbFixed" :title="`${formatKeyName(ESTOP_KEY)} is reserved for E-Stop and cannot be changed`">{{ formatKeyName(ESTOP_KEY) }}</td>
+              <td class="kbUnbind"></td>
+            </tr>
+            <tr v-for="action in COMMAND_ACTIONS" :key="action" :class="{ inactive: !kbConfig.buttonsEnabled }">
+              <td class="kbMapAction">{{ KEYBOARD_ACTION_LABELS[action] }}</td>
               <td class="kbKeyCell"
                   :class="{ listening: listeningAction === action }"
                   @click="startCapture(action)">
@@ -214,6 +231,11 @@ onUnmounted(() => {
 
 .kbKeyCell:hover {
   background: color-mix(in oklab, var(--fg) var(--hl-hover), var(--bg));
+}
+
+.kbKeyCell.kbFixed {
+  cursor: default;
+  opacity: var(--opacity-muted);
 }
 
 .kbKeyCell.listening {

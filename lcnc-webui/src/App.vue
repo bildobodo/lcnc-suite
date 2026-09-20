@@ -48,6 +48,7 @@ import { useMdiHistory } from "./useMdiHistory";
 import { useTouchoffMath } from "./useTouchoffMath";
 import { useMacros } from "./useMacros";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
+import { modalOpen, registerModal } from "./modalRegistry";
 import { forceStopAllJogs, initJogPointerSafety, destroyJogPointerSafety, activeJogKeys } from "./useJogPointers";
 import {
   INTERP_IDLE, INTERP_READING, INTERP_PAUSED, INTERP_WAITING,
@@ -1410,11 +1411,23 @@ const {
   axes,
   permissions,
   canEstop,
-  canResetEstop,
   activeFile,
+  modalOpen,
+  editing: gcodeEditActive,
   send,
   fire,
 });
+
+// Every dialog App renders registers its open state (WP0, UI-03): while any
+// is open — or the keypad — the shortcut map lets only E-Stop through.
+registerModal(statsDialogOpen);
+registerModal(settingsDialogOpen);
+registerModal(messagesDialogOpen);
+registerModal(gcodeRefOpen);
+registerModal(showShutdownConfirm);
+registerModal(toolChangeRequested);
+registerModal(() => macroParamDialog.value !== null);
+registerModal(() => compConfirmPending.value !== null);
 
 /** ---------- gamepad jogging ---------- */
 const gamepadConfig = ref<GamepadDefaults>(loadGamepadDefaults());

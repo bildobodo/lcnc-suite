@@ -535,3 +535,86 @@ test("a disabled control explains itself: the reason on hover and on tap", async
     await ctlSend({ op: "reset" });
   }
 });
+
+// ── WP0 / UI-11: the keypad's field contract ──────────────────────────────
+// ONE admissibility check feeds the readout, the OK button and confirm():
+// an invalid expression (`1.2.3` used to confirm as 1.2 through parseFloat's
+// prefix), a constraint violation and a fraction in an integer field are not
+// confirmable by touch OR by physical Enter, and send nothing.
+
+test("keypad refuses 1.2.3 on a touch-off field, shows empty as 0, confirms a valid value once", async ({ page }) => {
+  await page.goto(MOCK);
+  const zInput = page.locator("input.setupInput").nth(2);
+  await expect(zInput).toBeVisible();
+  await ctlSend({ op: "quiet", on: true });
+  try {
+    await ctlSend({ op: "status_delta", data: { permissions: PERMS_ALL } });
+    await ctlSend({ op: "clearCmds" });
+    await zInput.click();
+    const strip = page.locator(".nkStrip");
+    await expect(strip).toBeVisible();
+    // Fresh entry replaces the pre-filled value.
+    await page.keyboard.type("1.2.3");
+    await expect(strip.locator(".nkExpr")).toHaveText("1.2.3");
+    await expect(strip.locator(".nkPreview")).toHaveText("invalid");
+    const ok = strip.getByRole("button", { name: "OK", exact: true });
+    await expect(ok).toBeDisabled();
+    await page.keyboard.press("Enter");
+    await expect(strip).toBeVisible();
+    expect(await recordedCmds()).not.toContain("touchoff");
+    // C → empty → "= 0" is visible, not implied.
+    await strip.getByRole("button", { name: "C", exact: true }).dispatchEvent("pointerdown", { button: 0 });
+    await expect(strip.locator(".nkPreview")).toHaveText("= 0");
+    await expect(ok).toBeEnabled();
+    await page.keyboard.type("5");
+    await page.keyboard.press("Enter");
+    await expect(strip).toHaveCount(0);
+    const cmds = await recordedCmds();
+    expect(cmds.filter(c => c === "touchoff")).toHaveLength(1);
+  } finally {
+    await ctlSend({ op: "quiet", on: false });
+    await ctlSend({ op: "reset" });
+  }
+});
+
+test("tool number field: minimum 1 and whole numbers only, on Enter and on OK", async ({ page }) => {
+  await page.goto(MOCK);
+  await expect(page.locator("input.setupInput").first()).toBeVisible();
+  await ctlSend({ op: "quiet", on: true });
+  try {
+    await page.getByRole("button", { name: "Tools", exact: true }).click();
+    await page.getByRole("button", { name: "+ Add", exact: true }).click();
+    const dialog = page.locator(".dialogOverlay").last();
+    const toolNo = dialog.locator("label", { hasText: "Tool #" }).locator("xpath=following-sibling::input[1]");
+    const before = await toolNo.inputValue();
+    await toolNo.click();
+    const strip = page.locator(".nkStrip");
+    await expect(strip).toBeVisible();
+    await expect(strip.locator(".sub")).toContainText("Tool #");
+    const ok = strip.getByRole("button", { name: "OK", exact: true });
+    await page.keyboard.type("0");
+    await expect(strip.locator(".nkPreview")).toContainText("minimum 1");
+    await expect(ok).toBeDisabled();
+    await page.keyboard.press("Enter");
+    await expect(strip).toBeVisible();
+    await ok.dispatchEvent("pointerdown", { button: 0 });
+    await expect(strip).toBeVisible();
+    await expect(toolNo).toHaveValue(before);
+    await strip.getByRole("button", { name: "C", exact: true }).dispatchEvent("pointerdown", { button: 0 });
+    await expect(strip.locator(".nkPreview")).toContainText("= 0 · minimum 1");
+    await page.keyboard.type("2.5");
+    await expect(strip.locator(".nkPreview")).toContainText("whole number required");
+    await page.keyboard.press("Enter");
+    await expect(strip).toBeVisible();
+    await strip.getByRole("button", { name: "C", exact: true }).dispatchEvent("pointerdown", { button: 0 });
+    await page.keyboard.type("3");
+    await page.keyboard.press("Enter");
+    await expect(strip).toHaveCount(0);
+    await expect(toolNo).toHaveValue("3");
+    // Focus returned to the field that opened the keypad.
+    await expect(toolNo).toBeFocused();
+  } finally {
+    await ctlSend({ op: "quiet", on: false });
+    await ctlSend({ op: "reset" });
+  }
+});

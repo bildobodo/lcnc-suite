@@ -19,6 +19,7 @@ import { nominalHolderBase } from "./toolHolder";
 import { toolUnitsPerMillimeter } from "./toolUnits";
 import { toolPreviewNotice } from "./toolPreviewNotice";
 import { summarizeToolImport } from "./toolImportSummary";
+import { registerModal } from "./modalRegistry";
 // Async on purpose (WS-E / F10-finish): ToolPreview is the ONLY statically
 // eager three.js importer left — this edge alone kept the 866 kB three
 // chunk in the entry graph (static import + modulepreload in index.html),
@@ -146,6 +147,7 @@ watch(toolTableVersion, () => fetchTools());
 
 // ---- Edit modal ----
 const editTool = ref<Tool | null>(null);
+registerModal(() => editTool.value !== null);
 const editForm = ref({
   T: 0,
   P: 0,
@@ -299,6 +301,7 @@ function requestToolChange(toolNum: number) {
 
 // ---- Delete ----
 const deletingTool = ref<number | null>(null);
+registerModal(() => deletingTool.value != null);
 
 function requestDelete(toolNum: number) {
   deletingTool.value = toolNum;
@@ -332,6 +335,7 @@ interface ImportTool {
 }
 
 const importPreview = ref<ImportTool[] | null>(null);
+registerModal(() => importPreview.value !== null);
 const importPreviewByNumber = computed(() => new Map(importPreview.value?.map(t => [t.T, t])));
 const importSkipped = ref<ImportTool[]>([]);
 const importExistingCount = ref(0);
@@ -591,9 +595,9 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
               <div class="editGrid">
                 <div class="sub">General</div>
                 <label>Tool #</label>
-                <MachineInput gate="toolEditNum" type="number" v-model.number="editForm.T" min="1" />
+                <MachineInput gate="toolEditNum" type="number" v-model.number="editForm.T" min="1" integer label="Tool #" />
                 <label>Pocket</label>
-                <MachineInput gate="toolEditNum" type="number" v-model.number="editForm.P" min="0" />
+                <MachineInput gate="toolEditNum" type="number" v-model.number="editForm.P" min="0" integer label="Pocket" />
                 <label>Type</label>
                 <MachineSelect gate="toolEdit" v-model="editForm.type">
                   <option value="">-</option>
@@ -606,7 +610,7 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
                 <label>Z Offset</label>
                 <MachineInput gate="toolEditNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.Z" />
                 <label>Flutes</label>
-                <MachineInput gate="toolEditNum" type="number" :step="STEP_DEFAULT" v-model.number="editForm.flutes" />
+                <MachineInput gate="toolEditNum" type="number" min="0" integer v-model.number="editForm.flutes" label="Flutes" />
                 <label>Material</label>
                 <MachineInput gate="toolEdit" type="text" v-model="editForm.material" placeholder="hss, carbide..." />
 

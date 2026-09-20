@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, reactive, computed, inject, watch, type Ref, type ComputedRef } from "vue";
+import { registerModal } from "./modalRegistry";
 import { defaultPartHex } from "./viewer/palette";
 import TabPanel from "./TabPanel.vue";
 import Gate from "./Gate.vue";
@@ -100,6 +101,7 @@ function deleteMacro(id: string) {
 // Deletion is confirmed via dialog — the trash button is a ~30px icon
 // target and macro deletion is irreversible.
 const macroDeleteId = ref<string | null>(null);
+registerModal(() => macroDeleteId.value !== null);
 const macroDeleteName = computed(() => macros.value.find(m => m.id === macroDeleteId.value)?.name ?? "");
 function confirmMacroDelete() {
   if (macroDeleteId.value) deleteMacro(macroDeleteId.value);
@@ -141,6 +143,7 @@ const emit = defineEmits<{
 
 // ─── Per-tab reset ──────────────────────────────────────────────
 const resetTarget = ref<string | null>(null);
+registerModal(() => resetTarget.value !== null);
 
 const resetLabels: Record<string, string> = {
   viewer: "3D Viewer", machine: "Machine",

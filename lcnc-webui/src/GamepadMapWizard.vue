@@ -13,8 +13,11 @@ import {
   type RawBinding, type StickBinding, type RawSample,
 } from "./gamepadProfile";
 import MachineBtn from "./MachineBtn.vue";
+import { registerModal } from "./modalRegistry";
 
 const props = defineProps<{ gamepadName: string }>();
+// The wizard IS its overlay: mounted means open (WP0 modal guard).
+registerModal(() => true);
 const emit = defineEmits<{
   (e: "save", profile: GamepadProfile): void;
   (e: "cancel"): void;

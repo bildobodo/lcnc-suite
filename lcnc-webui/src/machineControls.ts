@@ -218,6 +218,9 @@ export const INPUT_DEFS = {
   // Toolsetter parameters
   toolsetterParam: { gate: 'always',   mono: true, align: 'right' },
 
+  // Program upload — the rename field in the name-conflict dialog (UI-09)
+  uploadName:      { gate: 'setup' },
+
   // Tool table editing
   toolEdit:        { gate: 'setup' },
   toolEditNum:     { gate: 'setup',    mono: true, align: 'right' },

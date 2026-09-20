@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted } from 'vue';
 import { keypadState, closeKeypad } from './useNumberKeypad';
-import { evaluate, fmtEval } from './mathEval';
+import { evaluate, fmtEval, validateEntry } from './mathEval';
 import { armed } from './lcncWs';
 import MachineBtn from './MachineBtn.vue';
 
@@ -38,17 +38,28 @@ const isSimpleNumber = computed(() => /^-?[0-9]*\.?[0-9]*$/.test(expr.value.trim
 // Expression ending with an operator is incomplete (waiting for right operand), not invalid.
 const isIncomplete = computed(() => /[+\-*/]\s*$/.test(expr.value.trim()));
 
+// ONE admissibility check (UI-11) feeds the readout, the OK button and
+// confirm() itself: expression validity, the owner's min/max/integer
+// contract and the owner's veto (target disabled or gone).
+const targetValid = computed(() => keypadState.canConfirm ? keypadState.canConfirm() : true);
+const verdict = computed(() => validateEntry(expr.value, keypadState.constraints, targetValid.value));
+
 const previewText = computed(() => {
-  if (!expr.value.trim()) return '';
   const v = result.value;
+  // Empty = 0 (the value after "C") — visible, not implied.
+  if (!expr.value.trim()) return verdict.value.value === null ? `= 0 · ${verdict.value.reason}` : '= 0';
   if (v === null) return isIncomplete.value ? '' : 'invalid';
+  if (verdict.value.value === null) return `${isSimpleNumber.value ? '' : '= ' + fmtEval(v) + ' · '}${verdict.value.reason}`;
   if (isSimpleNumber.value) return '';
   return '= ' + fmtEval(v);
 });
 
 const previewInvalid = computed(() =>
-  result.value === null && !isIncomplete.value && !!expr.value.trim()
+  (result.value === null && !isIncomplete.value && !!expr.value.trim())
+  || (verdict.value.value === null && !isIncomplete.value)
 );
+
+const heading = computed(() => keypadState.context || keypadState.label || 'Enter value');
 
 // Display expression with human-friendly operator symbols.
 const displayExpr = computed(() =>
@@ -82,18 +93,38 @@ function evalExpr() {
   if (v !== null) { expr.value = fmtEval(v); replacing.value = true; }
 }
 
-function confirm() {
-  // Empty expression (after C) confirms as 0.
-  const v = expr.value.trim() ? result.value : 0;
-  if (v !== null) {
-    keypadState.onConfirm?.(v);
-    closeKeypad();
+// Focus goes back to the field that opened the keypad when it is still in
+// the document and operable; otherwise to the strip, never to a stale node.
+function returnFocus() {
+  const t = keypadState.trigger;
+  if (t && t.isConnected && !(t as HTMLInputElement).disabled && t.offsetParent !== null) {
+    t.focus();
+    return;
   }
+  document.querySelector<HTMLElement>('.strip')?.focus();
+}
+
+function confirm() {
+  // Re-validated HERE, not only on the button: physical Enter and a touch on
+  // OK both land in this function, so a disabled OK is never the only
+  // barrier. An inadmissible value keeps the entry and closes nothing.
+  const v = validateEntry(expr.value, keypadState.constraints, targetValid.value);
+  if (v.value === null) {
+    if (!targetValid.value) { cancel(); return; }  // owner vetoed — cancel path
+    console.warn(`[keypad] not confirmed: ${v.reason}`);
+    return;
+  }
+  const onConfirm = keypadState.onConfirm;
+  closeKeypad();
+  onConfirm?.(v.value);
+  returnFocus();
 }
 
 function cancel() {
-  keypadState.onCancel?.();
+  const onCancel = keypadState.onCancel;
   closeKeypad();
+  onCancel?.();
+  returnFocus();
 }
 
 // Same press pattern as GcodeKeypadStrip: keys act on pointerdown with
@@ -106,8 +137,13 @@ function press(e: PointerEvent, fn: () => void) {
 
 // Physical keyboard support — keydown bubbles from any child key to the root.
 function onKeydown(e: KeyboardEvent) {
-  if (e.key === 'Escape') { e.preventDefault(); cancel(); return; }
-  if (e.key === 'Enter') { e.preventDefault(); confirm(); return; }
+  // Escape is E-Stop everywhere (operator decision 2026-09-19) — it must
+  // reach the window's capture listener untouched; the keypad only closes
+  // via Cancel/OK. Space never leaves this root: with the keypad focused it
+  // used to reach the shortcut map, where Space is Cycle Start (WP0, P0).
+  if (e.key === 'Escape') return;
+  if (e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); e.stopPropagation(); return; }
+  if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); confirm(); return; }
   if (e.key === 'Backspace') { e.preventDefault(); del(); return; }
   if (e.key === 'Delete') { e.preventDefault(); clear(); return; }
   if (/^[0-9.]$/.test(e.key)) { e.preventDefault(); append(e.key); return; }
@@ -126,7 +162,7 @@ function onKeydown(e: KeyboardEvent) {
     tabindex="-1"
     @keydown="onKeydown"
   >
-    <div class="sub">{{ keypadState.label || 'Enter value' }}</div>
+    <div class="sub">{{ heading }}</div>
     <!-- Expression display — .inputField look, so the entry target is
          unmistakable (it's the same visual as the field being edited).
          Single line: result preview left, expression pinned right — the
@@ -169,7 +205,7 @@ function onKeydown(e: KeyboardEvent) {
              grid-placed; the digit/operator keys auto-place around them. -->
         <MachineBtn type="numOp" class="nkKey nkCancel" @pointerdown.prevent="press($event, cancel)" @contextmenu.prevent>Cancel</MachineBtn>
         <MachineBtn type="numEq" class="nkKey nkEq" :disabled="result === null" @pointerdown.prevent="press($event, evalExpr)" @contextmenu.prevent>═</MachineBtn>
-        <MachineBtn type="numKey" variant="primary" class="nkKey nkOk" :disabled="result === null && !!expr.trim()" @pointerdown.prevent="press($event, confirm)" @contextmenu.prevent>OK</MachineBtn>
+        <MachineBtn type="numKey" variant="primary" class="nkKey nkOk" :disabled="verdict.value === null" @pointerdown.prevent="press($event, confirm)" @contextmenu.prevent>OK</MachineBtn>
     </div>
   </div>
 </template>

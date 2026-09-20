@@ -1419,6 +1419,7 @@ label:has(input:disabled, select:disabled) {
 .radio-label    { display: flex; align-items: center; gap: var(--gap-tight); font-size: var(--fs-base); cursor: pointer; white-space: nowrap; }
 
 /* Stable-width toggle: both labels overlap in same grid cell; hidden one sizes but doesn't show */
+.w-full         { width: 100%; }
 .stable-width   { display: inline-grid; }
 .stable-width > * { grid-area: 1 / 1; display: flex; align-items: center; justify-content: center; }
 .stable-width > .alt { visibility: hidden; }

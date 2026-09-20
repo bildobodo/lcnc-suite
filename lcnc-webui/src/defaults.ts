@@ -680,6 +680,22 @@ export interface KeyboardDefaults {
   mapping: Record<KeyboardAction, string>;
 }
 
+/** The E-Stop key is reserved: Escape, everywhere, not re-bindable (operator
+ *  decision 2026-09-19). useKeyboardShortcuts handles it in a capture
+ *  listener; KeyboardTab shows it fixed. */
+export const ESTOP_KEY = "Escape";
+
+/** Pin `estop` to Escape and free Escape from any other action — applied on
+ *  load and on every save, so a stored mapping can never move E-Stop. */
+export function normalizeKeyboardMapping(mapping: Record<KeyboardAction, string>): Record<KeyboardAction, string> {
+  const out = { ...mapping };
+  for (const action of Object.keys(out) as KeyboardAction[]) {
+    if (action !== "estop" && out[action] === ESTOP_KEY) out[action] = "";
+  }
+  out.estop = ESTOP_KEY;
+  return out;
+}
+
 const KEYBOARD_FALLBACK: KeyboardDefaults = {
   jogEnabled: false,
   buttonsEnabled: true,
@@ -723,7 +739,7 @@ registerSection<KeyboardDefaults>("keyboard", KEYBOARD_FALLBACK, (saved, fb) => 
   return {
     jogEnabled: saved.jogEnabled ?? fb.jogEnabled,
     buttonsEnabled,
-    mapping,
+    mapping: normalizeKeyboardMapping(mapping),
   };
 });
 

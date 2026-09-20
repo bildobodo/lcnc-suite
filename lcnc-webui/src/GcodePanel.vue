@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import type { CollisionLineMark } from "./viewer/collision";
-import { listFiles, uploadFile, saveFile, fetchSubfile, type FileEntry } from "./lcncApi";
+import { listFiles, uploadFile, saveFile, fetchSubfile, UploadConflictError, type FileEntry } from "./lcncApi";
+import { registerModal } from "./modalRegistry";
 import { splitSubLines, expansionAllowed, totalRows, rowAt, rowForMain, rowForSub, type SubExpansion } from "./subRows";
 import { usePermissions } from "./permissions";
-import { loadMachineDefaults, saveMachineDefaults, STEP_RPM } from "./defaults";
+import { loadMachineDefaults, saveMachineDefaults, settingsVersion, STEP_RPM } from "./defaults";
 import { scanToolchangesBefore, scanEntryPositionBefore, type RflToolchangeScan, type RflEntryScan, type RflRunOptions } from "./gcodeRfl";
 import { highlightGcode, type Token } from "./gcodeHighlight";
 import { limitViolationText, type LimitViolation } from "./ws/bulkData";
 import { isTouchDevice } from "./touchDetect";
-import { emitTelemetry } from "./lcncWs";
+import { emitTelemetry, pushMessage } from "./lcncWs";
+import { OPERATOR_DISPLAY } from "./lcnc";
 import { GCODE_LOOKUP, GCODE_REFERENCE } from "./gcodeReference";
 import { Play, SkipForward, Pause } from "lucide-vue-next";
 import Gate from "./Gate.vue";
@@ -366,6 +368,7 @@ async function browsePrograms(subdir: string, signal: AbortSignal) {
 }
 
 function selectFile(entry: FileEntry) {
+  if (editing.value) return;  // the editor's session owns the loaded program
   emit("loadFile", entry.path);
   showBrowser.value = false;
 }
@@ -379,19 +382,54 @@ function unloadFile() {
 }
 
 /** ---------- Upload ---------- */
-async function handleUpload(file: File) {
+// Name-conflict dialog (UI-09): the gateway never replaces an existing
+// program unless told to. Cancel / Rename (re-send under a new name) /
+// Replace (overwrite=1) — the operator decides, never the upload path.
+const uploadConflict = ref<{ file: File; filename: string; newName: string } | null>(null);
+registerModal(() => uploadConflict.value !== null);
+
+async function handleUpload(file: File, opts: { overwrite?: boolean; name?: string } = {}) {
+  if (editing.value) return;
   uploadError.value = null;
   loading.value = true;
   try {
-    const resp = await uploadFile(file);
+    const resp = await uploadFile(file, opts);
+    uploadConflict.value = null;
     emit("loadFile", resp.path);
     showBrowser.value = false;
   } catch (e: any) {
-    uploadError.value = `Upload failed: ${e.message}`;
+    if (e instanceof UploadConflictError) {
+      uploadConflict.value = { file, filename: e.filename, newName: e.filename };
+    } else {
+      uploadError.value = `Upload failed: ${e.message}`;
+    }
   } finally {
     loading.value = false;
   }
 }
+
+function uploadRename() {
+  const c = uploadConflict.value;
+  if (!c) return;
+  const name = c.newName.trim();
+  if (!name || name === c.filename) return;
+  uploadConflict.value = null;
+  handleUpload(c.file, { name });
+}
+
+function uploadReplace() {
+  const c = uploadConflict.value;
+  if (!c) return;
+  uploadConflict.value = null;
+  handleUpload(c.file, { overwrite: true, name: c.filename });
+}
+
+const uploadRenameValid = computed(() => {
+  const c = uploadConflict.value;
+  if (!c) return false;
+  const name = c.newName.trim();
+  return !!name && name !== c.filename && /\.(ngc|nc|gcode|tap|txt)$/i.test(name);
+});
 
 function onFileSelect(event: Event) {
   const input = event.target as HTMLInputElement;
@@ -412,7 +450,7 @@ function onDragLeave(_e: DragEvent) {
 
 function onDrop(e: DragEvent) {
   dragOver.value = false;
-  if (!can.value.setup) return;
+  if (!can.value.setup || editing.value) return;
   const file = e.dataTransfer?.files[0];
   if (file) handleUpload(file);
 }
@@ -420,6 +458,7 @@ function onDrop(e: DragEvent) {
 /** ---------- Run from line ---------- */
 const selectedLine = ref<number | null>(null);
 const showRunDialog = ref(false);
+registerModal(showRunDialog);
 const dialogSpindleDir = ref<"off" | "forward" | "reverse">("forward");
 const dialogSpindleSpeed = ref(10000);
 const dialogSafeZ = ref(true);
@@ -446,11 +485,18 @@ const rflBlocked = computed(() => {
   return !!s && s.count > 0 && rflPreTool.value === 0;
 });
 
-onMounted(() => {
+function readRflDefaults() {
   const mach = loadMachineDefaults();
   dialogSpindleDir.value = mach.rflSpindleDir;
   dialogSpindleSpeed.value = mach.rflSpindleRpm;
   dialogSafeZ.value = mach.rflSafeZ;
+}
+// Server-synced settings arrive after setup (settings_init on every WS
+// connect): re-read, or the dialog keeps a stale snapshot.
+watch(settingsVersion, readRflDefaults);
+
+onMounted(() => {
+  readRflDefaults();
   window.addEventListener("blur", dismissTooltip);
   window.addEventListener("resize", dismissTooltip);
 });
@@ -521,12 +567,41 @@ const saveError = ref<string | null>(null);
 let _editorView: any = null;
 let _deleteCharBackward: any = null;
 
+// ── Edit SESSION (WP0, UI-01) ──
+// The buffer belongs to the file it was opened on, never to "the loaded
+// program": saveEdit used to read props.activeFile before AND after the
+// HTTP call, so a program switch mid-edit saved buffer A into file B.
+// A session is {id, path, original}; every async continuation (CodeMirror
+// import, save reply) checks that ITS session is still the current one.
+interface EditSession { id: number; path: string; original: string }
+let _session: EditSession | null = null;
+let _sessionSeq = 0;
+const sessionPath = ref<string | null>(null);
+const sessionName = computed(() => sessionPath.value?.split("/").pop() ?? "");
+// External program change while editing: the buffer stays, a banner names
+// the conflict. "Keep editing" acknowledges THIS loaded file; a further
+// change raises it again.
+const conflictAckFile = ref<string | null>(null);
+const editConflict = computed(() =>
+  editing.value && sessionPath.value != null && props.activeFile !== sessionPath.value
+  && props.activeFile !== conflictAckFile.value);
+function keepEditing() { conflictAckFile.value = props.activeFile; }
+watch(() => props.activeFile, () => { if (!editing.value) conflictAckFile.value = null; });
+
 // App swaps the bottom strip for the G-code keypad while the editor is open.
 watch(editing, (v) => emit("editingChange", v));
 
+function _isDirty(): boolean {
+  return !!_editorView && !!_session && _editorView.state.doc.toString() !== _session.original;
+}
+
 async function enterEdit() {
-  if (!props.gcodeContent || !props.activeFile) return;
+  if (!props.gcodeContent || !props.activeFile || editing.value) return;
   saveError.value = null;
+  const session: EditSession = { id: ++_sessionSeq, path: props.activeFile, original: props.gcodeContent };
+  _session = session;
+  sessionPath.value = session.path;
+  conflictAckFile.value = null;
   editing.value = true;
   await nextTick();  // v-if mounts the host div
   if (!editorHost.value) return;
@@ -542,7 +617,11 @@ async function enterEdit() {
         import("./gcodeCmLanguage"),
       ]);
     _deleteCharBackward = deleteCharBackward;
-    if (!editing.value || !editorHost.value || _editorView) return;  // discarded while loading
+    // Bound to the SESSION, not to props.activeFile: an external program
+    // change during the import leaves session A valid (its view is created
+    // with A's text and the conflict banner shows); only a discarded or
+    // replaced session aborts — the stale import installs nothing.
+    if (_session !== session || !editing.value || !editorHost.value || _editorView) return;
     const theme = EditorView.theme({
       "&": { backgroundColor: "var(--bg)", color: "var(--fg)", height: "100%" },
       ".cm-scroller": { fontFamily: "var(--font-mono)", overflow: "auto" },
@@ -555,7 +634,7 @@ async function enterEdit() {
     }, { dark: true });
     _editorView = new EditorView({
       state: EditorState.create({
-        doc: props.gcodeContent,
+        doc: session.original,
         extensions: [lineNumbers(), history(), keymap.of([...defaultKeymap, ...historyKeymap]), theme, gcodeEditorLanguage],
       }),
       parent: editorHost.value,
@@ -574,7 +653,7 @@ async function enterEdit() {
     return;
   }
   const _dt = performance.now() - _t;
-  if (_dt > 250) emitTelemetry("edit.seed_blocked", { ms: Math.round(_dt), bytes: props.gcodeContent.length });
+  if (_dt > 250) emitTelemetry("edit.seed_blocked", { ms: Math.round(_dt), bytes: session.original.length });
 }
 
 function _destroyEditor() {
@@ -597,28 +676,61 @@ function keypadBackspace() {
 }
 defineExpose({ keypadInsert, keypadBackspace });
 
-function discardEdit() {
+// Discard asks first when the buffer differs from what was opened; a clean
+// buffer closes at once.
+const showDiscardConfirm = ref(false);
+registerModal(showDiscardConfirm);
+
+function _endSession() {
   editing.value = false;
   saveError.value = null;
+  _session = null;
+  sessionPath.value = null;
+  conflictAckFile.value = null;
+  showDiscardConfirm.value = false;
   _destroyEditor();
 }
+
+function discardEdit() {
+  if (_isDirty()) { showDiscardConfirm.value = true; return; }
+  _endSession();
+}
+
+function confirmDiscard() { _endSession(); }
 
 onUnmounted(_destroyEditor);
 
 async function saveEdit() {
-  if (!props.activeFile || !_editorView) return;
+  const session = _session;
+  if (!session || !_editorView || saving.value) return;
+  const path = session.path;
+  const name = path.split("/").pop() ?? path;
   saving.value = true;
   saveError.value = null;
   try {
     // doc.toString() materializes the full text once at save — a one-off cost,
     // sent as a raw body (no JSON.stringify pass).
-    await saveFile(props.activeFile, _editorView.state.doc.toString());
-    editing.value = false;
-    _destroyEditor();
-    emit("loadFile", props.activeFile);
+    const text: string = _editorView.state.doc.toString();
+    await saveFile(path, text);
+    if (_session !== session) {
+      // A newer session replaced this one (or it was discarded) while the
+      // save was in flight: the file is saved, nothing else is touched.
+      pushMessage(OPERATOR_DISPLAY, `Saved ${name}`);
+      return;
+    }
+    session.original = text;
+    if (props.activeFile !== path) {
+      // External program change while saving: the editor stays on A, the
+      // banner keeps naming the conflict, and B is NOT reloaded from A.
+      pushMessage(OPERATOR_DISPLAY, `Saved ${name} — the loaded program is ${props.activeFile?.split("/").pop() ?? "another file"}`);
+      return;
+    }
+    _endSession();
+    emit("loadFile", path);
   } catch (e: any) {
-    saveError.value = `Save failed: ${e.message}`;
-    emitTelemetry("edit.save_failed", { file: props.activeFile, msg: String(e?.message ?? e) });
+    if (_session === session) saveError.value = `Save failed: ${e.message}`;
+    else pushMessage(OPERATOR_DISPLAY, `Save of ${name} failed: ${e?.message ?? e}`);
+    emitTelemetry("edit.save_failed", { file: path, msg: String(e?.message ?? e) });
   } finally {
     saving.value = false;
   }
@@ -635,13 +747,16 @@ async function saveEdit() {
           <MachineBtn type="fileOp" class="actionBtn" @click="reloadFile" :disabled="!activeFile || loading || editing">
             Reload
           </MachineBtn>
-          <MachineBtn type="fileOp" class="actionBtn" @click="unloadFile" :disabled="!activeFile || loading">
+          <MachineBtn type="fileOp" class="actionBtn" @click="unloadFile" :disabled="!activeFile || loading || editing"
+            :reason="editing ? 'Finish or discard the edit first' : undefined">
             Unload
           </MachineBtn>
-          <MachineBtn type="fileOp" class="actionBtn" @click="toggleBrowser" :disabled="loading">
+          <MachineBtn type="fileOp" class="actionBtn" @click="toggleBrowser" :disabled="loading || editing"
+            :reason="editing ? 'Finish or discard the edit first' : undefined">
             <span class="stable-width"><span :class="{ alt: !showBrowser }">Hide Files</span><span :class="{ alt: showBrowser }">Browse</span></span>
           </MachineBtn>
-          <MachineBtn type="fileOp" class="actionBtn" @click="($refs.fileInput as HTMLInputElement).click()">
+          <MachineBtn type="fileOp" class="actionBtn" @click="($refs.fileInput as HTMLInputElement).click()" :disabled="editing"
+            :reason="editing ? 'Finish or discard the edit first' : undefined">
             Upload
           </MachineBtn>
           <input ref="fileInput" type="file" accept=".ngc,.nc,.gcode,.tap,.txt" @change="onFileSelect" hidden />
@@ -735,6 +850,15 @@ async function saveEdit() {
           <span>{{ saveError }}</span>
           <MachineBtn type="close" @click="saveError = null">&times;</MachineBtn>
         </div>
+        <!-- The loaded program changed under an open session: the buffer is
+             kept and stays bound to its file; nothing is saved elsewhere. -->
+        <div v-if="editConflict" class="warnBanner" data-edit-conflict>
+          <span>Program changed to {{ fileName }} — you are editing {{ sessionName }}</span>
+          <span class="row-tight">
+            <MachineBtn type="inline" @click="keepEditing">Keep editing</MachineBtn>
+            <MachineBtn type="inline" @click="discardEdit">Discard</MachineBtn>
+          </span>
+        </div>
         <div ref="editorHost" class="editorHost"></div>
         <div class="editActions">
           <MachineBtn type="fileSave" class="actionBtn" @click="saveEdit" :disabled="saving">{{ saving ? 'Saving...' : 'Save' }}</MachineBtn>
@@ -792,6 +916,37 @@ async function saveEdit() {
         </svg>
         <div class="emptyText">No program loaded</div>
         <div class="emptyHint">Drag &amp; drop a file here, or use Upload / Browse above</div>
+      </div>
+    </div>
+
+    <!-- Discard unsaved edits -->
+    <div v-if="showDiscardConfirm" class="dialogOverlay" @click.self="showDiscardConfirm = false">
+      <div class="dialog">
+        <div class="dialogTitle danger">Discard changes?</div>
+        <div class="dialogBody">{{ sessionName }} has unsaved changes.</div>
+        <div class="dialogActions">
+          <MachineBtn type="dialogCancel" @click="showDiscardConfirm = false">Cancel</MachineBtn>
+          <MachineBtn type="dialogDanger" @click="confirmDiscard">Discard</MachineBtn>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upload name conflict (UI-09): the gateway refused to replace. -->
+    <div v-if="uploadConflict" class="dialogOverlay" @click.self="uploadConflict = null">
+      <div class="dialog">
+        <div class="dialogTitle danger">Program exists</div>
+        <div class="dialogBody">
+          <strong>{{ uploadConflict.filename }}</strong> already exists on the server.
+        </div>
+        <label class="uploadRename paramGrid">
+          <span>New name</span>
+          <MachineInput gate="uploadName" type="text" v-model="uploadConflict.newName" class="w-full" />
+        </label>
+        <Gate gate="setup" class="dialogActions">
+          <MachineBtn type="dialogCancel" @click="uploadConflict = null">Cancel</MachineBtn>
+          <MachineBtn type="fileOp" :disabled="!uploadRenameValid" @click="uploadRename">Rename</MachineBtn>
+          <MachineBtn type="reset" @click="uploadReplace">Replace</MachineBtn>
+        </Gate>
       </div>
     </div>
 
@@ -1105,6 +1260,14 @@ async function saveEdit() {
   gap: var(--gap-controls);
   justify-content: flex-end;
 }
+
+/* Upload-conflict rename row: label + field, left-aligned inside the
+   centred confirm dialog (layout only — .paramGrid supplies the look). */
+.uploadRename {
+  text-align: left;
+  margin-bottom: var(--gap-controls);
+}
+.uploadRename input { max-width: none; }
 
 /* Run from line */
 .codeLine.selectable {

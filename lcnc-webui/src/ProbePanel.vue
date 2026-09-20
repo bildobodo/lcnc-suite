@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, inject, onMounted, onUnmounted, watch, type Ref } from "vue";
+import { registerModal } from "./modalRegistry";
 import MachineBtn from "./MachineBtn.vue";
 import { fmtNum } from "./format";
 import { AXIS_HEX, AXIS_CSS } from "./axisColors";
@@ -57,6 +58,7 @@ const probeView = ref<"outside" | "inside" | "boss" | "ridge" | "angle" | "cal" 
 
 // ─── Reset confirmation ──────────────────────────────────────────
 const resetTarget = ref<string | null>(null);
+registerModal(() => resetTarget.value !== null);
 function confirmReset() {
   const target = resetTarget.value;
   resetTarget.value = null;

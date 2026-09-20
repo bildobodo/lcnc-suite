@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
+import { registerModal } from "./modalRegistry";
 import { GCODE_REFERENCE, GCODE_GROUPS, type GcodeEntry } from "./gcodeReference";
 import MachineBtn from "./MachineBtn.vue";
 import MachineInput from "./MachineInput.vue";
@@ -7,6 +8,7 @@ import MachineSelect from "./MachineSelect.vue";
 
 const props = defineProps<{ open: boolean; initialSearch?: string }>();
 const emit = defineEmits<{ (e: "close"): void }>();
+registerModal(() => props.open);
 
 const search = ref("");
 const filterGroup = ref("");

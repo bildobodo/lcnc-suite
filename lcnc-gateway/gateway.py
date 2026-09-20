@@ -4,6 +4,7 @@ import gzip
 import json
 import math
 import time
+import errno
 import os
 import subprocess
 import tempfile
@@ -6072,7 +6073,47 @@ def _safe_unlink(path: str) -> None:
 _upload_file_opener = os.fdopen
 
 
-async def _atomic_stream_write(chunks, dest_path: str, max_bytes: int) -> int:
+# errno values that mean "this filesystem cannot hard-link" — the no-replace
+# publish is then REFUSED rather than emulated (a copy fallback would expose a
+# partial file under the final name, breaking the never-a-partial-file
+# contract). ENOTSUP/EOPNOTSUPP alias on Linux; both spelled out for clarity.
+_LINK_UNSUPPORTED_ERRNOS = frozenset(
+    e for e in (
+        getattr(errno, "EPERM", None), getattr(errno, "ENOTSUP", None),
+        getattr(errno, "EOPNOTSUPP", None), getattr(errno, "EXDEV", None),
+        getattr(errno, "EMLINK", None),
+    ) if e is not None
+)
+
+
+def _publish_no_replace(tmp: str, dest_path: str) -> None:
+    """Publish ``tmp`` as ``dest_path`` WITHOUT replacing an existing file.
+
+    ``os.link`` is atomic and fails with EEXIST when the name is taken — so two
+    concurrent uploads of the same name race to exactly one winner. The temp is
+    unlinked by the caller either way. Raises HTTPException 409 on a name clash
+    and 500 (traced ``upload.no_replace_unsupported``) when the filesystem
+    cannot link; the destination never exists partially on either path.
+    """
+    try:
+        os.link(tmp, dest_path)
+    except FileExistsError:
+        raise HTTPException(status_code=409, detail={
+            "error": "exists", "filename": os.path.basename(dest_path),
+        })
+    except OSError as e:
+        if e.errno in _LINK_UNSUPPORTED_ERRNOS:
+            _trace.emit("upload.no_replace_unsupported", level="error",
+                        dest=dest_path, errno=e.errno, msg=str(e))
+            raise HTTPException(
+                status_code=500,
+                detail="filesystem does not support atomic no-replace publish",
+            )
+        raise
+
+
+async def _atomic_stream_write(chunks, dest_path: str, max_bytes: int,
+                               replace: bool = True) -> int:
     """Stream an async iterator of byte chunks to ``dest_path`` atomically and
     bounded, keeping the event loop free. Shared core for ``POST /upload``
     (multipart) and ``PUT /save`` (raw body) — one machinery, not two.
@@ -6084,7 +6125,9 @@ async def _atomic_stream_write(chunks, dest_path: str, max_bytes: int) -> int:
 
     Bounded: rejects with 413 the instant the running byte count exceeds
     ``max_bytes`` (no oversized buffering). Atomic + durable: writes to a
-    ``.part`` temp in the destination dir, fsyncs, then ``os.replace`` — and
+    ``.part`` temp in the destination dir, fsyncs, then publishes — with
+    ``os.replace`` when ``replace`` is set, else ``os.link`` which refuses an
+    existing name with 409 (UI-09: an upload never silently overwrites) — and
     removes the temp on ANY failure, so LinuxCNC never sees a partial file.
     Returns the number of bytes written.
     """
@@ -6113,8 +6156,13 @@ async def _atomic_stream_write(chunks, dest_path: str, max_bytes: int) -> int:
                 await loop.run_in_executor(io_ex, lambda: (f.flush(), os.fsync(f.fileno())))
             finally:
                 await loop.run_in_executor(io_ex, f.close)
-            await loop.run_in_executor(io_ex, os.replace, tmp, dest_path)
-            tmp = None  # published — don't unlink in finally
+            if replace:
+                await loop.run_in_executor(io_ex, os.replace, tmp, dest_path)
+                tmp = None  # published — don't unlink in finally
+            else:
+                await loop.run_in_executor(io_ex, _publish_no_replace, tmp, dest_path)
+                # linked — the temp name is unlinked in finally; the data is
+                # already durable under dest_path.
             return written
         finally:
             if tmp is not None:
@@ -6124,7 +6172,8 @@ async def _atomic_stream_write(chunks, dest_path: str, max_bytes: int) -> int:
 
 
 async def _atomic_stream_upload(file: "UploadFile", dest_path: str,
-                                max_bytes: int, chunk_size: int = 1 << 20) -> int:
+                                max_bytes: int, chunk_size: int = 1 << 20,
+                                replace: bool = True) -> int:
     """Multipart-upload adapter over _atomic_stream_write: reads are async
     (Starlette's threadpool — yields to the loop between chunks)."""
     async def _chunks():
@@ -6133,12 +6182,17 @@ async def _atomic_stream_upload(file: "UploadFile", dest_path: str,
             if not chunk:
                 return
             yield chunk
-    return await _atomic_stream_write(_chunks(), dest_path, max_bytes)
+    return await _atomic_stream_write(_chunks(), dest_path, max_bytes, replace=replace)
 
 
 @app.post("/upload", dependencies=[Depends(require_token)])
-async def upload_gcode(file: UploadFile = File(...)):
-    """Upload a G-code file to the NC files directory."""
+async def upload_gcode(file: UploadFile = File(...), overwrite: int = Query(0)):
+    """Upload a G-code file to the NC files directory.
+
+    ``overwrite=0`` (default) never replaces an existing program: a name clash
+    answers 409 ``{"error": "exists", "filename"}`` and the client asks the
+    operator (Cancel / Rename / Replace). ``overwrite=1`` replaces atomically.
+    """
     if not file.filename:
         raise HTTPException(status_code=400, detail="No filename provided")
 
@@ -6156,7 +6210,8 @@ async def upload_gcode(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="Invalid filename")
 
     try:
-        size = await _atomic_stream_upload(file, dest_path, MAX_UPLOAD_SIZE)
+        size = await _atomic_stream_upload(file, dest_path, MAX_UPLOAD_SIZE,
+                                           replace=bool(overwrite))
     except HTTPException:
         raise
     except Exception as e:
