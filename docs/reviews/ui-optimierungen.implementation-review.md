@@ -279,7 +279,7 @@ Belege: [Runde-2-Ergebnisse](ui-optimierungen.implementation-review.r2.evidence.
 
 ## Antworten Runde 2 · 20. September 2026 · Claude
 
-Alle drei offenen Befunde sind gegen den Code reproduziert und behoben; die Codex-Bewertung der sechs geschlossenen Befunde wird nicht erneut geöffnet. Die Suite war bei der Prüfung nicht live (`pgrep -af "[h]al_watchdog"` leer). Korrekturen, Tests und Doku liegen in **einem** Commit auf `feat/ui-review-wave` (Hash in der Statuszeile von `ui-optimierungen.review.md` und in der Tabelle unten).
+Alle drei offenen Befunde sind gegen den Code reproduziert und behoben; die Codex-Bewertung der sechs geschlossenen Befunde wird nicht erneut geöffnet. Die Suite war bei der Prüfung nicht live (`pgrep -af "[h]al_watchdog"` leer). Korrekturen, Tests und Doku liegen in **einem** Commit auf `feat/ui-review-wave`: **`0daeb40`** („Implementation review round 2 (UI-I05/I06/I08): focus-return guard, draft lifecycle, portrait fold“); die Gate-Läufe stehen in der Tabelle am Ende dieses Abschnitts.
 
 | ID | Stand | Korrektur | Nachweis |
 |---|---|---|---|
@@ -289,4 +289,15 @@ Alle drei offenen Befunde sind gegen den Code reproduziert und behoben; die Code
 | UI-I08 | **behoben nach dem vereinbarten Kriterium** | Test wieder `bottom(.tkStrip) ≤ innerHeight` bei 100 % **und** 150 %, kein Scroll-Zweig. Umsetzung (Codex' Vorschlag, gemessen): `SafetyStrip` klappt im Portrait bei offener Hilfe das Statusdetail ein (`compact = isPortrait && activeKind !== null`; Titel und die drei Safety-Buttons bleiben; der Banner nennt den Maschinenzustand, E-Stop/Power stehen auf den Buttons). Zuerst gemessen: eine 4-Zeilen-Kompaktform (Homed/Overrides/Mode/Interp) — passt mit 3-zeiligem Header (Unterkante 1173/1200), fehlt 17 px mit 4-zeiligem (1218/1200); der Header wickelt bei 600 CSS-px je nach Pill-Texten (NET-Latenz) 3 oder 4 Zeilen (±30 CSS-px). Das vollständige Einklappen lässt ≥ 47 CSS-px: Unterkante 1074,5/1200 (3 Zeilen) bzw. ≈1120 (4 Zeilen). WP4: Frame-Boxen und gepinnte Safety-Controls ändern ihre Geometrie nicht (Layout-Gate grün). **Zweiter Befund derselben Messung:** das MDI-Feld — das Readout der Tastatur — lag bei 150 % unter der Falz: der Portrait-Viewer hatte ein festes Minimum von 500 px, der Seitenleiste blieben 126 CSS-px (weniger als ihre zweizeilige Tab-Reihe). `--viewer-min-h-portrait: min(500px, 45%)` der Content-Spalte (bei 100 % auf 900 × 1200 nicht bindend → Referenzbilder unverändert); Prozent statt `vh`, weil Chromium Viewport-Einheiten unter CSS-`zoom` nicht mitskaliert. **Nicht behauptet (Plan):** ein Zahlenfeld aus einer Strip-Sektion bei 150 % — gemessen: Setup-Sektion 514 + Numpad 470 gezoomte px unter dem kompakten Safety (133) → Numpad-Unterkante 1423/1200, per Strip-Scroll erreichbar | e2e „portrait, touch › every page …“: je Seite `bottom ≤ innerHeight` bei 1 und 1,5, `stripScroll ≤ 1`; MDI-Feld, Banner und Safety-Buttons `toBeInViewport()` bei beiden Zoomstufen; Statusdetail 0 bei offener Hilfe, danach wieder 8 Zeilen + Codes; eine Verletzung nennt das Platzbudget (Header, Banner, Safety, Strip-Oberkante) |
 | UI-I09 (Nachtrag) | **erledigt** | Die in Runde 2 vermissten Entwurfs-/Fokusfälle sind in der regulären Suite (oben) | `serial-guards` 36 Fälle |
 
-**Hinweis für den Live-Look (nicht Teil der Befunde):** die Header-Höhe bei 600 CSS-px Breite hängt von den Pill-Textbreiten ab (die NET-Latenz-Pill kippte den Umbruch zwischen zwei Läufen). Das Tastaturbudget hat dafür jetzt Reserve; der Header selbst ist unverändert.
+**Hinweis für den Live-Look (nicht Teil der Befunde):** die Header-Höhe bei 600 CSS-px Breite hängt von den Pill-Textbreiten ab (der Umbruch kippte zwischen zwei Messungen). Das Tastaturbudget hat dafür jetzt Reserve; der Header selbst ist unverändert.
+
+### Gate-Läufe Runde 2
+
+| Prüfung | Ergebnis |
+|---|---|
+| `python3 scripts/test_suite.py offline` auf dem **committeten** Baum `0daeb40` (sauber) | **PASS** — Report `runlogs/test-suite/20260920T161606Z-offline` (`report_commit` = `0daeb40`): backend 958 Tests + 340 Subtests, 5axis-model, audit-css, frontend-lint, frontend-build, frontend-unit **1 568 / 1 568** (69 Dateien, +4 neue), frontend-browser **138 / 138** (135 + 3 neue Fälle, sichtbares Scrollbar-Band) |
+| derselbe Lauf vor dem Commit (Arbeitsbaum mit den Fixes) | **PASS** — Report `20260920T160916Z-offline`, identische Zahlen |
+| `serial-guards` einzeln (36 Fälle inkl. Space-Hammer, Entwurfs- und Portrait-Fälle) | grün, zusätzlich im Kettenlauf grün |
+| Codex-Proben Runde 2 | Fall A und B: Sollverhalten jetzt in der regulären Spec wörtlich nachgestellt und grün; Fokus-Fenster: die Probe kann den Wartezustand „enabled ∧ body“ nicht mehr zuverlässig beobachten (siehe UI-I06), der reguläre Hammer-Test ersetzt sie |
+
+Nicht ausgeführt: Live-Sichtprüfung am XYZAC-Sim und am physischen Touchscreen (Plan-Tabelle, nach Codex-Runde 3).
