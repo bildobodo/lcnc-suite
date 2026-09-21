@@ -1,0 +1,297 @@
+Codex — UI consistency follow-up, 2026-09-21
+Branch: feat/ui-review-wave
+Product HEAD: 17ec84964a7d8c5d2ebc6222eada478fdc08066c
+No product changes since the fresh complete offline gate in audit round 3:
+runlogs/test-suite/20260920T170633Z-offline/report.json (PASS).
+This follow-up used that regular build; it did not repeat the full gate suite.
+Host process check before browser run: pgrep -af 'linuxcnc|hal_watchdog|milltask|linuxcncsvr'
+returned no matches, exit 1. No live machine commands. Local mock only.
+Command in lcnc-webui:
+npx playwright test audit-keyboard-activation.spec.ts --project=chromium --no-deps --workers=1 --repeat-each=3 --reporter=list --output=../runlogs/ui-consistency-20260921/artifacts
+Exit: 1. Six desired-behavior assertions fail (two scenarios, three repetitions each).
+A: real Tab navigation reaches numeric Cancel, verified focus; trusted Enter submits touchoff X=17.
+B: native focus() on Close keyboard; trusted Enter and Space leave the helper open; a pointer click closes it.
+Probe source is preserved in docs/reviews/ui-optimierungen.keyboard-activation.probes.spec.ts.
+Temporary e2e spec removed after verifying content identity.
+Raw log follows (ANSI colors removed):
+
+[WebServer] (node:5464) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:5494) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 6 tests using 1 worker
+
+(node:5506) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:5506) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+NUMERIC_CANCEL_ENTER {"focusedCancel":true,"commands":[{"cmd":"get_tool_table","req_id":"grfm8m-3"},{"cmd":"get_tool_table","req_id":"grfm8m-4"},{"cmd":"touchoff","axes":{"X":17},"expect":{"kins_type":null,"g5x_index":null},"req_id":"grfm8m-5"}]}
+  ✘  1 [chromium] › e2e/audit-keyboard-activation.spec.ts:19:1 › real Tab to numeric Cancel then Enter cancels without confirming the value (1.7s)
+(node:5589) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:5589) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+TEXT_CLOSE_ACTIVATION {"countAfterEnter":1,"countAfterSpace":1,"closedByPointer":true}
+  ✘  2 [chromium] › e2e/audit-keyboard-activation.spec.ts:41:1 › focused Close keyboard button responds to native Enter like its pointer action (1.4s)
+(node:5669) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:5669) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+NUMERIC_CANCEL_ENTER {"focusedCancel":true,"commands":[{"cmd":"get_tool_table","req_id":"gd38ft-3"},{"cmd":"get_tool_table","req_id":"gd38ft-4"},{"cmd":"touchoff","axes":{"X":17},"expect":{"kins_type":null,"g5x_index":null},"req_id":"gd38ft-5"}]}
+  ✘  3 [chromium] › e2e/audit-keyboard-activation.spec.ts:19:1 › real Tab to numeric Cancel then Enter cancels without confirming the value (1.6s)
+(node:5749) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:5749) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+TEXT_CLOSE_ACTIVATION {"countAfterEnter":1,"countAfterSpace":1,"closedByPointer":true}
+  ✘  4 [chromium] › e2e/audit-keyboard-activation.spec.ts:41:1 › focused Close keyboard button responds to native Enter like its pointer action (1.6s)
+(node:5829) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:5829) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+NUMERIC_CANCEL_ENTER {"focusedCancel":true,"commands":[{"cmd":"get_tool_table","req_id":"nzqgq1-3"},{"cmd":"get_tool_table","req_id":"nzqgq1-4"},{"cmd":"touchoff","axes":{"X":17},"expect":{"kins_type":null,"g5x_index":null},"req_id":"nzqgq1-5"}]}
+  ✘  5 [chromium] › e2e/audit-keyboard-activation.spec.ts:19:1 › real Tab to numeric Cancel then Enter cancels without confirming the value (1.6s)
+(node:5905) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:5905) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+TEXT_CLOSE_ACTIVATION {"countAfterEnter":1,"countAfterSpace":1,"closedByPointer":true}
+  ✘  6 [chromium] › e2e/audit-keyboard-activation.spec.ts:41:1 › focused Close keyboard button responds to native Enter like its pointer action (1.6s)
+
+
+  1) [chromium] › e2e/audit-keyboard-activation.spec.ts:19:1 › real Tab to numeric Cancel then Enter cancels without confirming the value 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  -  1
+    + Received  + 13
+
+    - Array []
+    + Array [
+    +   Object {
+    +     "axes": Object {
+    +       "X": 17,
+    +     },
+    +     "cmd": "touchoff",
+    +     "expect": Object {
+    +       "g5x_index": null,
+    +       "kins_type": null,
+    +     },
+    +     "req_id": "grfm8m-5",
+    +   },
+    + ]
+
+      36 |   const sent = (await ctl({ op: 'lastCmds' })).cmds ?? [];
+      37 |   console.log('NUMERIC_CANCEL_ENTER', JSON.stringify({ focusedCancel: reached, commands: sent }));
+    > 38 |   expect(sent.filter((c: { cmd: string }) => c.cmd === 'touchoff')).toEqual([]);
+         |                                                                     ^
+      39 | });
+      40 |
+      41 | test('focused Close keyboard button responds to native Enter like its pointer action', async ({ page }) => {
+        at /home/cnc/lcnc-suite/lcnc-webui/e2e/audit-keyboard-activation.spec.ts:38:69
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../runlogs/ui-consistency-20260921/artifacts/audit-keyboard-activation--a7775-ithout-confirming-the-value-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../runlogs/ui-consistency-20260921/artifacts/audit-keyboard-activation--a7775-ithout-confirming-the-value-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../runlogs/ui-consistency-20260921/artifacts/audit-keyboard-activation--a7775-ithout-confirming-the-value-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace ../runlogs/ui-consistency-20260921/artifacts/audit-keyboard-activation--a7775-ithout-confirming-the-value-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › e2e/audit-keyboard-activation.spec.ts:41:1 › focused Close keyboard button responds to native Enter like its pointer action 
+
+    Error: Enter should activate the focused Close button
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 0
+    Received: 1
+
+      58 |   await expect(tk).toHaveCount(0);
+      59 |   console.log('TEXT_CLOSE_ACTIVATION', JSON.stringify({ countAfterEnter, countAfterSpace, closedByPointer: true }));
+    > 60 |   expect(countAfterEnter, 'Enter should activate the focused Close button').toBe(0);
+         |                                                                             ^
+      61 | });
+      62 |
+        at /home/cnc/lcnc-suite/lcnc-webui/e2e/audit-keyboard-activation.spec.ts:60:77
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../runlogs/ui-consistency-20260921/artifacts/audit-keyboard-activation--5f4ea-ter-like-its-pointer-action-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../runlogs/ui-consistency-20260921/artifacts/audit-keyboard-activation--5f4ea-ter-like-its-pointer-action-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../runlogs/ui-consistency-20260921/artifacts/audit-keyboard-activation--5f4ea-ter-like-its-pointer-action-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace ../runlogs/ui-consistency-20260921/artifacts/audit-keyboard-activation--5f4ea-ter-like-its-pointer-action-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [chromium] › e2e/audit-keyboard-activation.spec.ts:19:1 › real Tab to numeric Cancel then Enter cancels without confirming the value 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  -  1
+    + Received  + 13
+
+    - Array []
+    + Array [
+    +   Object {
+    +     "axes": Object {
+    +       "X": 17,
+    +     },
+    +     "cmd": "touchoff",
+    +     "expect": Object {
+    +       "g5x_index": null,
+    +       "kins_type": null,
+    +     },
+    +     "req_id": "gd38ft-5",
+    +   },
+    + ]
+
+      36 |   const sent = (await ctl({ op: 'lastCmds' })).cmds ?? [];
+      37 |   console.log('NUMERIC_CANCEL_ENTER', JSON.stringify({ focusedCancel: reached, commands: sent }));
+    > 38 |   expect(sent.filter((c: { cmd: string }) => c.cmd === 'touchoff')).toEqual([]);
+         |                                                                     ^
+      39 | });
+      40 |
+      41 | test('focused Close keyboard button responds to native Enter like its pointer action', async ({ page }) => {
+        at /home/cnc/lcnc-suite/lcnc-webui/e2e/audit-keyboard-activation.spec.ts:38:69
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../runlogs/ui-consistency-20260921/artifacts/audit-keyboard-activation--a7775-ithout-confirming-the-value-chromium-repeat1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../runlogs/ui-consistency-20260921/artifacts/audit-keyboard-activation--a7775-ithout-confirming-the-value-chromium-repeat1/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../runlogs/ui-consistency-20260921/artifacts/audit-keyboard-activation--a7775-ithout-confirming-the-value-chromium-repeat1/trace.zip
+    Usage:
+
+        npx playwright show-trace ../runlogs/ui-consistency-20260921/artifacts/audit-keyboard-activation--a7775-ithout-confirming-the-value-chromium-repeat1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [chromium] › e2e/audit-keyboard-activation.spec.ts:41:1 › focused Close keyboard button responds to native Enter like its pointer action 
+
+    Error: Enter should activate the focused Close button
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 0
+    Received: 1
+
+      58 |   await expect(tk).toHaveCount(0);
+      59 |   console.log('TEXT_CLOSE_ACTIVATION', JSON.stringify({ countAfterEnter, countAfterSpace, closedByPointer: true }));
+    > 60 |   expect(countAfterEnter, 'Enter should activate the focused Close button').toBe(0);
+         |                                                                             ^
+      61 | });
+      62 |
+        at /home/cnc/lcnc-suite/lcnc-webui/e2e/audit-keyboard-activation.spec.ts:60:77
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../runlogs/ui-consistency-20260921/artifacts/audit-keyboard-activation--5f4ea-ter-like-its-pointer-action-chromium-repeat1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../runlogs/ui-consistency-20260921/artifacts/audit-keyboard-activation--5f4ea-ter-like-its-pointer-action-chromium-repeat1/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../runlogs/ui-consistency-20260921/artifacts/audit-keyboard-activation--5f4ea-ter-like-its-pointer-action-chromium-repeat1/trace.zip
+    Usage:
+
+        npx playwright show-trace ../runlogs/ui-consistency-20260921/artifacts/audit-keyboard-activation--5f4ea-ter-like-its-pointer-action-chromium-repeat1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) [chromium] › e2e/audit-keyboard-activation.spec.ts:19:1 › real Tab to numeric Cancel then Enter cancels without confirming the value 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  -  1
+    + Received  + 13
+
+    - Array []
+    + Array [
+    +   Object {
+    +     "axes": Object {
+    +       "X": 17,
+    +     },
+    +     "cmd": "touchoff",
+    +     "expect": Object {
+    +       "g5x_index": null,
+    +       "kins_type": null,
+    +     },
+    +     "req_id": "nzqgq1-5",
+    +   },
+    + ]
+
+      36 |   const sent = (await ctl({ op: 'lastCmds' })).cmds ?? [];
+      37 |   console.log('NUMERIC_CANCEL_ENTER', JSON.stringify({ focusedCancel: reached, commands: sent }));
+    > 38 |   expect(sent.filter((c: { cmd: string }) => c.cmd === 'touchoff')).toEqual([]);
+         |                                                                     ^
+      39 | });
+      40 |
+      41 | test('focused Close keyboard button responds to native Enter like its pointer action', async ({ page }) => {
+        at /home/cnc/lcnc-suite/lcnc-webui/e2e/audit-keyboard-activation.spec.ts:38:69
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../runlogs/ui-consistency-20260921/artifacts/audit-keyboard-activation--a7775-ithout-confirming-the-value-chromium-repeat2/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../runlogs/ui-consistency-20260921/artifacts/audit-keyboard-activation--a7775-ithout-confirming-the-value-chromium-repeat2/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../runlogs/ui-consistency-20260921/artifacts/audit-keyboard-activation--a7775-ithout-confirming-the-value-chromium-repeat2/trace.zip
+    Usage:
+
+        npx playwright show-trace ../runlogs/ui-consistency-20260921/artifacts/audit-keyboard-activation--a7775-ithout-confirming-the-value-chromium-repeat2/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6) [chromium] › e2e/audit-keyboard-activation.spec.ts:41:1 › focused Close keyboard button responds to native Enter like its pointer action 
+
+    Error: Enter should activate the focused Close button
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 0
+    Received: 1
+
+      58 |   await expect(tk).toHaveCount(0);
+      59 |   console.log('TEXT_CLOSE_ACTIVATION', JSON.stringify({ countAfterEnter, countAfterSpace, closedByPointer: true }));
+    > 60 |   expect(countAfterEnter, 'Enter should activate the focused Close button').toBe(0);
+         |                                                                             ^
+      61 | });
+      62 |
+        at /home/cnc/lcnc-suite/lcnc-webui/e2e/audit-keyboard-activation.spec.ts:60:77
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../runlogs/ui-consistency-20260921/artifacts/audit-keyboard-activation--5f4ea-ter-like-its-pointer-action-chromium-repeat2/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../runlogs/ui-consistency-20260921/artifacts/audit-keyboard-activation--5f4ea-ter-like-its-pointer-action-chromium-repeat2/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../runlogs/ui-consistency-20260921/artifacts/audit-keyboard-activation--5f4ea-ter-like-its-pointer-action-chromium-repeat2/trace.zip
+    Usage:
+
+        npx playwright show-trace ../runlogs/ui-consistency-20260921/artifacts/audit-keyboard-activation--5f4ea-ter-like-its-pointer-action-chromium-repeat2/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6 failed
+    [chromium] › e2e/audit-keyboard-activation.spec.ts:19:1 › real Tab to numeric Cancel then Enter cancels without confirming the value 
+    [chromium] › e2e/audit-keyboard-activation.spec.ts:41:1 › focused Close keyboard button responds to native Enter like its pointer action 
+    [chromium] › e2e/audit-keyboard-activation.spec.ts:19:1 › real Tab to numeric Cancel then Enter cancels without confirming the value 
+    [chromium] › e2e/audit-keyboard-activation.spec.ts:41:1 › focused Close keyboard button responds to native Enter like its pointer action 
+    [chromium] › e2e/audit-keyboard-activation.spec.ts:19:1 › real Tab to numeric Cancel then Enter cancels without confirming the value 
+    [chromium] › e2e/audit-keyboard-activation.spec.ts:41:1 › focused Close keyboard button responds to native Enter like its pointer action 

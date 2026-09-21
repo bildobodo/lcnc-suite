@@ -213,6 +213,21 @@ export const VALID_GATES: ReadonlySet<string> =
 /** Injection key for provide/inject */
 export const PERMISSIONS_KEY = Symbol("permissions") as InjectionKey<ComputedRef<Permissions>>;
 
+/** The gates as an input session's OWNER lives by them: the backend's
+ *  classes under `armed` and sim, WITHOUT the per-tab busy debounce. An
+ *  owner's context (its open session, its filed draft) ends when ITS gate
+ *  closes for real — the 200 ms latch after any fire() is not that (review
+ *  round 2), and a real backend revocation INSIDE the latch must still
+ *  count (review round 3, UI-I05): the displayed reason names only the
+ *  highest-priority cause ("settling" wins), so it cannot tell the two
+ *  apart — this evaluation can. */
+export const OWNER_PERMISSIONS_KEY = Symbol("ownerPermissions") as InjectionKey<ComputedRef<Permissions>>;
+export function useOwnerPermissions(): ComputedRef<Permissions> {
+  const perms = inject(OWNER_PERMISSIONS_KEY);
+  if (!perms) throw new Error("useOwnerPermissions() called without provider — ensure App.vue provides OWNER_PERMISSIONS_KEY");
+  return perms;
+}
+
 /**
  * The ONE client path for a state-changing command (issue #31): permission
  * re-check + the busy latch, with per-command transport policy from lcnc.ts.

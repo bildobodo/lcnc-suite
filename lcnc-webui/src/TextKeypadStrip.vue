@@ -26,12 +26,11 @@ const enterTitle = computed(() =>
 const tabOrClear = computed<"tab" | "clear" | null>(() =>
   target.value?.tab ? "tab" : target.value?.clear ? "clear" : null);
 
-// Keys act on pointerdown with preventDefault: the press must never take
-// focus from the owner field (a focus change would be a "leave").
-function press(e: PointerEvent, fn: () => void) {
-  if (e.button !== 0) return;
-  fn();
-}
+// Keys act on CLICK — the one event a pointer (tap/click) and the keyboard
+// (Enter/Space on a focused key) both produce, exactly once — with
+// pointerdown default-prevented: the press must never take focus from the
+// owner field (a focus change would be a "leave"). Acting on pointerdown
+// left a focused key dead to Enter/Space (implementation review UI-I10).
 function insert(k: string) { target.value?.insert(k); }
 function setPage(p: KeyPage) { inputSession.page = p; }
 function keyLabel(k: string): string {
@@ -51,7 +50,7 @@ function keyLabel(k: string): string {
       <div class="tkContent" :data-page="inputSession.page">
         <template v-for="(k, i) in keys" :key="`${inputSession.page}-${i}`">
           <MachineBtn v-if="k !== null" type="numKey" class="tkKey" :aria-label="keyLabel(k)" :title="keyLabel(k)"
-                      @pointerdown.prevent="press($event, () => insert(k))" @contextmenu.prevent>{{ k }}</MachineBtn>
+                      @pointerdown.prevent @click="insert(k)" @contextmenu.prevent>{{ k }}</MachineBtn>
           <span v-else class="tkEmpty" aria-hidden="true"></span>
         </template>
       </div>
@@ -60,46 +59,46 @@ function keyLabel(k: string): string {
       <div class="tkActions">
         <MachineBtn type="numOp" class="tkKey tkShift" :selected="inputSession.shift" :aria-pressed="inputSession.shift"
                     aria-label="Shift" title="Shift (upper case)"
-                    @pointerdown.prevent="press($event, () => { inputSession.shift = !inputSession.shift; })" @contextmenu.prevent>
+                    @pointerdown.prevent @click="inputSession.shift = !inputSession.shift" @contextmenu.prevent>
           <ArrowBigUp :size="16" />
         </MachineBtn>
         <MachineBtn type="numOp" class="tkKey tkBksp" aria-label="Backspace" title="Backspace"
-                    @pointerdown.prevent="press($event, () => target?.backspace())" @contextmenu.prevent>
+                    @pointerdown.prevent @click="target?.backspace()" @contextmenu.prevent>
           <Delete :size="16" />
         </MachineBtn>
         <MachineBtn type="numKey" variant="primary" class="tkKey tkEnter" :aria-label="enterTitle" :title="enterTitle"
-                    @pointerdown.prevent="press($event, () => target?.enter())" @contextmenu.prevent>
+                    @pointerdown.prevent @click="target?.enter()" @contextmenu.prevent>
           <CornerDownLeft v-if="inputSession.enterLabel === 'newline'" :size="16" />
           <template v-else>{{ inputSession.enterLabel }}</template>
         </MachineBtn>
         <MachineBtn type="numOp" class="tkKey tkSpace" aria-label="Space" title="Space"
-                    @pointerdown.prevent="press($event, () => insert(' '))" @contextmenu.prevent>Space</MachineBtn>
+                    @pointerdown.prevent @click="insert(' ')" @contextmenu.prevent>Space</MachineBtn>
       </div>
 
       <!-- Navigation rail / row: cursor, undo/redo, Tab or Clr. Cells stay
            (disabled) when the owner does not offer the action. -->
       <div class="tkNav">
         <MachineBtn type="numOp" class="tkKey" :disabled="!target?.moveCursor" aria-label="Cursor left" title="Cursor left"
-                    @pointerdown.prevent="press($event, () => target?.moveCursor?.(-1))" @contextmenu.prevent><ArrowLeft :size="16" /></MachineBtn>
+                    @pointerdown.prevent @click="target?.moveCursor?.(-1)" @contextmenu.prevent><ArrowLeft :size="16" /></MachineBtn>
         <MachineBtn type="numOp" class="tkKey" :disabled="!target?.moveCursor" aria-label="Cursor right" title="Cursor right"
-                    @pointerdown.prevent="press($event, () => target?.moveCursor?.(1))" @contextmenu.prevent><ArrowRight :size="16" /></MachineBtn>
+                    @pointerdown.prevent @click="target?.moveCursor?.(1)" @contextmenu.prevent><ArrowRight :size="16" /></MachineBtn>
         <MachineBtn type="numOp" class="tkKey" :disabled="!target?.undo" aria-label="Undo" title="Undo"
-                    @pointerdown.prevent="press($event, () => target?.undo?.())" @contextmenu.prevent><Undo2 :size="16" /></MachineBtn>
+                    @pointerdown.prevent @click="target?.undo?.()" @contextmenu.prevent><Undo2 :size="16" /></MachineBtn>
         <MachineBtn type="numOp" class="tkKey" :disabled="!target?.redo" aria-label="Redo" title="Redo"
-                    @pointerdown.prevent="press($event, () => target?.redo?.())" @contextmenu.prevent><Redo2 :size="16" /></MachineBtn>
+                    @pointerdown.prevent @click="target?.redo?.()" @contextmenu.prevent><Redo2 :size="16" /></MachineBtn>
         <MachineBtn v-if="tabOrClear === 'tab'" type="numOp" class="tkKey" aria-label="Tab" title="Insert a tab"
-                    @pointerdown.prevent="press($event, () => target?.tab?.())" @contextmenu.prevent>Tab</MachineBtn>
+                    @pointerdown.prevent @click="target?.tab?.()" @contextmenu.prevent>Tab</MachineBtn>
         <MachineBtn v-else type="numOp" class="tkKey" :disabled="tabOrClear !== 'clear'" aria-label="Clear line" title="Clear the line"
-                    @pointerdown.prevent="press($event, () => target?.clear?.())" @contextmenu.prevent>Clr</MachineBtn>
+                    @pointerdown.prevent @click="target?.clear?.()" @contextmenu.prevent>Clr</MachineBtn>
       </div>
 
       <!-- Page rail / row: Code · ABC · 123 · #+= · close. -->
       <div class="tkPages">
         <MachineBtn v-for="p in PAGE_ORDER" :key="p" type="numOp" class="tkKey" :selected="inputSession.page === p"
                     :aria-pressed="inputSession.page === p" :aria-label="`${PAGE_LABELS[p]} keys`" :title="`${PAGE_LABELS[p]} keys`"
-                    @pointerdown.prevent="press($event, () => setPage(p))" @contextmenu.prevent>{{ PAGE_LABELS[p] }}</MachineBtn>
+                    @pointerdown.prevent @click="setPage(p)" @contextmenu.prevent>{{ PAGE_LABELS[p] }}</MachineBtn>
         <MachineBtn type="numOp" class="tkKey tkClose" aria-label="Close keyboard" title="Close keyboard"
-                    @pointerdown.prevent="press($event, () => closeTextSession('closed by the operator', true))" @contextmenu.prevent>
+                    @pointerdown.prevent @click="closeTextSession('closed by the operator', true)" @contextmenu.prevent>
           <X :size="16" />
         </MachineBtn>
       </div>

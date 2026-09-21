@@ -5709,3 +5709,44 @@ closed six of nine findings and kept three open; all three are fixed here.
   (the tests' 150 % emulation). Not claimed, measured: a NUMBER keypad
   under its strip owner section at 150 % (Setup 343 + keypad 313 CSS px)
   still needs the strip's scroll — the plan never promised it.
+
+## 2026-09-21 — Implementation review round 3 + UI-I10: owner gates without the latch, keys act on click, portrait edit mode folds
+
+Codex's third round (docs/reviews/ui-optimierungen.implementation-review.md)
+kept two P2 findings open and its follow-up audit added a P1; all three are
+fixed here. The UX proposals it filed alongside (UX-01–UX-12) are decisions
+for the operator and were not implemented.
+
+- **An input owner's context follows the OWNER gates, not the displayed
+  reason** (UI-I05). Round 2 exempted the busy latch by reading the reason
+  map, where "settling" outranks a backend reason — so a real revocation
+  INSIDE the 200 ms latch was invisible and a draft outlived its context.
+  `OWNER_PERMISSIONS_KEY` / `useOwnerPermissions()` is the backend's
+  classes under armed and sim WITHOUT the latch term; `MachineInput`
+  (`ownerEnded`) and `OffsetPanel` (`gateEnded`) watch that. The latch
+  alone still keeps drafts; a revocation inside it ends session and drafts.
+  Harness fact: the status store applies frames per animation frame, so a
+  close and re-open within one frame is no state — the regression tests
+  space the two frames 50 ms apart.
+- **Keys act on click** (UI-I10, P1). Both helpers' keys acted on
+  `pointerdown`, and the number keypad's root confirmed on Enter whatever
+  key held focus: real Tab to Cancel + Enter sent the touch-off; Enter/Space
+  on a Tab-focused text key did nothing. Now every key acts on the CLICK —
+  the one event a pointer and the keyboard produce, exactly once — with
+  `pointerdown` default-prevented so a press never moves focus off the
+  owner field or the keypad root; the root handles Enter/Space only while
+  no key holds focus (the entry itself). Escape stays E-Stop, the shortcut
+  map keeps handing activation keys to the focused element, the modal
+  guard stays up.
+- **Portrait edit mode folds the idle program controls** (UI-I08, second
+  half). With the editor as the keyboard's owner, the side pane at 150 % on
+  900 × 1200 had 13.5 px left for the editor host — the first line was
+  clipped by `overflow: hidden` while a viewport-rectangle check passed.
+  `compactEdit = isPortrait && editing && !can.pause && !can.resume` folds
+  the file ops (all disabled by the session guard), the run controls
+  (Start/Step say "Finish or discard the edit first") and the progress row;
+  a running or paused program brings Pause/Abort back, and the banner
+  carries Abort in any case. Measured: 7.2 editor lines visible at 150 %
+  (22.4 at 100 %), first line, Save, Discard and the reference search field
+  hit at their centres. Landscape is unchanged. The acceptance judges
+  readouts by `elementFromPoint`, never by `toBeInViewport` alone.

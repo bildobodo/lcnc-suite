@@ -156,21 +156,28 @@ function cancel() {
   returnFocusTo(trigger);
 }
 
-// Same press pattern as TextKeypadStrip: keys act on pointerdown with
-// preventDefault — snappier on touch, and focus stays on the keypad root
-// so physical-keyboard input keeps working between taps.
-function press(e: PointerEvent, fn: () => void) {
-  if (e.button !== 0) return;
-  fn();
-}
+// Same activation pattern as TextKeypadStrip: keys act on CLICK — the one
+// event a pointer (tap/click) and the keyboard (Enter/Space on a focused
+// key) both produce, exactly once — with pointerdown default-prevented so
+// a press never takes focus from the keypad root (physical-keyboard input
+// keeps working between taps). Acting on pointerdown left a Tab-focused
+// key dead to Enter/Space (implementation review UI-I10).
 
 // Physical keyboard support — keydown bubbles from any child key to the root.
 function onKeydown(e: KeyboardEvent) {
   // Escape is E-Stop everywhere (operator decision 2026-09-19) — it must
   // reach the window's capture listener untouched; the keypad only closes
-  // via Cancel/OK. Space never leaves this root: with the keypad focused it
-  // used to reach the shortcut map, where Space is Cycle Start (WP0, P0).
+  // via Cancel/OK.
   if (e.key === 'Escape') return;
+  const activation = e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar';
+  // A FOCUSED key (Tab-navigated) activates its OWN action with Enter/Space
+  // — the native click; the root's confirm is for the entry itself (root
+  // focused). Enter on a focused Cancel confirmed the value (UI-I10, P1).
+  // The key stays on the focused button: the shortcut map hands activation
+  // keys to whatever has focus, and the helper keeps the modal guard up.
+  if (activation && (e.target as HTMLElement | null)?.closest?.('button')) return;
+  // Space never leaves this root otherwise: with the root focused it used
+  // to reach the shortcut map, where Space is Cycle Start (WP0, P0).
   if (e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); e.stopPropagation(); return; }
   if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); confirm(); return; }
   if (e.key === 'Backspace') { e.preventDefault(); del(); return; }
@@ -208,35 +215,35 @@ function onKeydown(e: KeyboardEvent) {
          a full-width bottom row (Cancel | ═ | OK). -->
     <div class="nkGrid">
         <!-- Row 1 -->
-        <MachineBtn type="numKey" class="nkKey" @pointerdown.prevent="press($event, () => append('7'))" @contextmenu.prevent>7</MachineBtn>
-        <MachineBtn type="numKey" class="nkKey" @pointerdown.prevent="press($event, () => append('8'))" @contextmenu.prevent>8</MachineBtn>
-        <MachineBtn type="numKey" class="nkKey" @pointerdown.prevent="press($event, () => append('9'))" @contextmenu.prevent>9</MachineBtn>
-        <MachineBtn type="numOp"  class="nkKey" @pointerdown.prevent="press($event, () => append('/'))" @contextmenu.prevent>÷</MachineBtn>
-        <MachineBtn type="numDel" class="nkKey" @pointerdown.prevent="press($event, del)" @contextmenu.prevent>⌫</MachineBtn>
+        <MachineBtn type="numKey" class="nkKey" @pointerdown.prevent @click="append('7')" @contextmenu.prevent>7</MachineBtn>
+        <MachineBtn type="numKey" class="nkKey" @pointerdown.prevent @click="append('8')" @contextmenu.prevent>8</MachineBtn>
+        <MachineBtn type="numKey" class="nkKey" @pointerdown.prevent @click="append('9')" @contextmenu.prevent>9</MachineBtn>
+        <MachineBtn type="numOp"  class="nkKey" @pointerdown.prevent @click="append('/')" @contextmenu.prevent>÷</MachineBtn>
+        <MachineBtn type="numDel" class="nkKey" @pointerdown.prevent @click="del" @contextmenu.prevent>⌫</MachineBtn>
         <!-- Row 2 -->
-        <MachineBtn type="numKey" class="nkKey" @pointerdown.prevent="press($event, () => append('4'))" @contextmenu.prevent>4</MachineBtn>
-        <MachineBtn type="numKey" class="nkKey" @pointerdown.prevent="press($event, () => append('5'))" @contextmenu.prevent>5</MachineBtn>
-        <MachineBtn type="numKey" class="nkKey" @pointerdown.prevent="press($event, () => append('6'))" @contextmenu.prevent>6</MachineBtn>
-        <MachineBtn type="numOp"  class="nkKey" @pointerdown.prevent="press($event, () => append('*'))" @contextmenu.prevent>×</MachineBtn>
-        <MachineBtn type="numClr" class="nkKey" @pointerdown.prevent="press($event, clear)" @contextmenu.prevent>C</MachineBtn>
+        <MachineBtn type="numKey" class="nkKey" @pointerdown.prevent @click="append('4')" @contextmenu.prevent>4</MachineBtn>
+        <MachineBtn type="numKey" class="nkKey" @pointerdown.prevent @click="append('5')" @contextmenu.prevent>5</MachineBtn>
+        <MachineBtn type="numKey" class="nkKey" @pointerdown.prevent @click="append('6')" @contextmenu.prevent>6</MachineBtn>
+        <MachineBtn type="numOp"  class="nkKey" @pointerdown.prevent @click="append('*')" @contextmenu.prevent>×</MachineBtn>
+        <MachineBtn type="numClr" class="nkKey" @pointerdown.prevent @click="clear" @contextmenu.prevent>C</MachineBtn>
         <!-- Row 3 -->
-        <MachineBtn type="numKey" class="nkKey" @pointerdown.prevent="press($event, () => append('1'))" @contextmenu.prevent>1</MachineBtn>
-        <MachineBtn type="numKey" class="nkKey" @pointerdown.prevent="press($event, () => append('2'))" @contextmenu.prevent>2</MachineBtn>
-        <MachineBtn type="numKey" class="nkKey" @pointerdown.prevent="press($event, () => append('3'))" @contextmenu.prevent>3</MachineBtn>
-        <MachineBtn type="numOp"  class="nkKey" @pointerdown.prevent="press($event, () => append('-'))" @contextmenu.prevent>−</MachineBtn>
-        <MachineBtn type="numOp"  class="nkKey" @pointerdown.prevent="press($event, negate)" @contextmenu.prevent>±</MachineBtn>
+        <MachineBtn type="numKey" class="nkKey" @pointerdown.prevent @click="append('1')" @contextmenu.prevent>1</MachineBtn>
+        <MachineBtn type="numKey" class="nkKey" @pointerdown.prevent @click="append('2')" @contextmenu.prevent>2</MachineBtn>
+        <MachineBtn type="numKey" class="nkKey" @pointerdown.prevent @click="append('3')" @contextmenu.prevent>3</MachineBtn>
+        <MachineBtn type="numOp"  class="nkKey" @pointerdown.prevent @click="append('-')" @contextmenu.prevent>−</MachineBtn>
+        <MachineBtn type="numOp"  class="nkKey" @pointerdown.prevent @click="negate" @contextmenu.prevent>±</MachineBtn>
         <!-- Row 4 -->
-        <MachineBtn type="numOp"  class="nkKey" @pointerdown.prevent="press($event, () => append('('))" @contextmenu.prevent><span class="mono">(</span></MachineBtn>
-        <MachineBtn type="numKey" class="nkKey" @pointerdown.prevent="press($event, () => append('0'))" @contextmenu.prevent>0</MachineBtn>
-        <MachineBtn type="numKey" class="nkKey" @pointerdown.prevent="press($event, () => append('.'))" @contextmenu.prevent>.</MachineBtn>
-        <MachineBtn type="numOp"  class="nkKey" @pointerdown.prevent="press($event, () => append('+'))" @contextmenu.prevent>+</MachineBtn>
-        <MachineBtn type="numOp"  class="nkKey" @pointerdown.prevent="press($event, () => append(')'))" @contextmenu.prevent><span class="mono">)</span></MachineBtn>
+        <MachineBtn type="numOp"  class="nkKey" @pointerdown.prevent @click="append('(')" @contextmenu.prevent><span class="mono">(</span></MachineBtn>
+        <MachineBtn type="numKey" class="nkKey" @pointerdown.prevent @click="append('0')" @contextmenu.prevent>0</MachineBtn>
+        <MachineBtn type="numKey" class="nkKey" @pointerdown.prevent @click="append('.')" @contextmenu.prevent>.</MachineBtn>
+        <MachineBtn type="numOp"  class="nkKey" @pointerdown.prevent @click="append('+')" @contextmenu.prevent>+</MachineBtn>
+        <MachineBtn type="numOp"  class="nkKey" @pointerdown.prevent @click="append(')')" @contextmenu.prevent><span class="mono">)</span></MachineBtn>
         <!-- Actions — same key types as the G-code keyboard's ops column
              (numOp + primary numKey), so both strips look alike. Explicitly
              grid-placed; the digit/operator keys auto-place around them. -->
-        <MachineBtn type="numOp" class="nkKey nkCancel" @pointerdown.prevent="press($event, cancel)" @contextmenu.prevent>Cancel</MachineBtn>
-        <MachineBtn type="numEq" class="nkKey nkEq" :disabled="result === null" @pointerdown.prevent="press($event, evalExpr)" @contextmenu.prevent>═</MachineBtn>
-        <MachineBtn type="numKey" variant="primary" class="nkKey nkOk" :disabled="verdict.value === null" @pointerdown.prevent="press($event, confirm)" @contextmenu.prevent>OK</MachineBtn>
+        <MachineBtn type="numOp" class="nkKey nkCancel" @pointerdown.prevent @click="cancel" @contextmenu.prevent>Cancel</MachineBtn>
+        <MachineBtn type="numEq" class="nkKey nkEq" :disabled="result === null" @pointerdown.prevent @click="evalExpr" @contextmenu.prevent>═</MachineBtn>
+        <MachineBtn type="numKey" variant="primary" class="nkKey nkOk" :disabled="verdict.value === null" @pointerdown.prevent @click="confirm" @contextmenu.prevent>OK</MachineBtn>
     </div>
   </div>
 </template>

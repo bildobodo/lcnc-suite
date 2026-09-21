@@ -145,6 +145,80 @@ test("keypad OK: Space through the whole focus return never starts the program; 
   await expect.poll(recordedCmds).toContain("cycle_start");
 });
 
+/** Real Tab navigation until `target` holds focus (bounded). */
+async function tabTo(page: Page, target: import("@playwright/test").Locator, limit = 40): Promise<boolean> {
+  for (let i = 0; i < limit; i++) {
+    if (await target.evaluate(el => el === document.activeElement)) return true;
+    await page.keyboard.press("Tab");
+  }
+  return target.evaluate(el => el === document.activeElement);
+}
+
+test("a focused key acts as itself: Enter on Cancel cancels, Space on a digit appends, Enter on OK confirms once; text keys act on Enter/Space", async ({ page }) => {
+  // Review UI-I10 (P1): the keypad root's Enter handler confirmed the value
+  // whichever key held focus — Tab to Cancel + Enter sent a touch-off — and
+  // the text keyboard's keys, acting on pointerdown only, were dead to a
+  // native Enter/Space. Keys act on click now: pointer and keyboard, once.
+  await openReady(page);
+  const x = page.locator("input.setupInput").first();
+  const nk = page.locator(".nkStrip");
+  await x.click();
+  await expect(nk).toBeFocused();
+  await page.keyboard.type("17");
+  expect(await tabTo(page, nk.getByRole("button", { name: "Cancel", exact: true })), "Cancel reached by real Tab navigation").toBe(true);
+  await page.keyboard.press("Enter");
+  await expect(nk).toHaveCount(0);
+  await settle(page);
+  expectNoMachineAction(await recordedCmds());
+  await expect(x).toBeFocused();
+  // Cancel is Cancel: the draft is gone, the field re-opens with its value.
+  await x.click();
+  await expect(nk).toBeFocused();
+  await expect(nk.locator("[data-draft]")).toHaveCount(0);
+  // Space on a focused digit key appends — the native activation — once each.
+  expect(await tabTo(page, nk.getByRole("button", { name: "7", exact: true }))).toBe(true);
+  await page.keyboard.press(" ");
+  await expect(nk.locator(".nkExpr")).toHaveText("7");
+  await page.keyboard.press(" ");
+  await expect(nk.locator(".nkExpr")).toHaveText("77");
+  // Enter on the focused OK confirms exactly once.
+  expect(await tabTo(page, nk.getByRole("button", { name: "OK", exact: true }))).toBe(true);
+  await page.keyboard.press("Enter");
+  await expect(nk).toHaveCount(0);
+  await expect.poll(async () => (await recordedCmds()).filter(c => c === "touchoff").length).toBe(1);
+  await expect(x).toBeFocused();
+  // Enter on the ROOT — the entry itself — still confirms.
+  await x.click();
+  await expect(nk).toBeFocused();
+  await page.keyboard.type("5");
+  await page.keyboard.press("Enter");
+  await expect(nk).toHaveCount(0);
+  await expect.poll(async () => (await recordedCmds()).filter(c => c === "touchoff").length).toBe(2);
+  await expect(x).toBeFocused();
+  // Text keyboard: a focused key acts on Enter and on Space, once; a
+  // focused Close closes — the same action the pointer click runs.
+  await page.getByRole("button", { name: "MDI", exact: true }).click();
+  const mdi = page.locator(".mdiInput");
+  await mdi.click();
+  const tk = page.locator(".tkStrip");
+  await expect(tk).toBeVisible();
+  await tk.getByRole("button", { name: "G", exact: true }).focus();
+  await page.keyboard.press("Enter");
+  await expect(mdi).toHaveValue("G");
+  await tk.getByRole("button", { name: "1", exact: true }).focus();
+  await page.keyboard.press(" ");
+  await expect(mdi).toHaveValue("G1");
+  await expect(tk).toBeVisible();
+  await tk.getByRole("button", { name: "Close keyboard", exact: true }).focus();
+  await page.keyboard.press("Enter");
+  await expect(tk).toHaveCount(0);
+  await expect(mdi).toHaveValue("G1");
+  await settle(page);
+  const cmds = await recordedCmds();
+  expect(cmds.filter(c => c === "touchoff")).toHaveLength(2);
+  expectNoMachineAction(cmds.filter(c => c !== "touchoff"));
+});
+
 test("repeated Escape in E-Stop never sends estop_reset", async ({ page }) => {
   await openReady(page);
   await ctl({ op: "status_delta", data: { estop: true, is_estop: true } });

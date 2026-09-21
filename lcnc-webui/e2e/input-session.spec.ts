@@ -229,7 +229,29 @@ test("drafts: Clear is a draft of 0; a sibling's OK (busy latch) is not an owner
   await expect(nk).toBeVisible();
   await expect(nk.locator("[data-draft]")).toHaveCount(0);
   await expect(nk.locator(".nkExpr")).toHaveText(xBefore);
+  // A REAL revocation INSIDE the latch (review round 3): X drafts again,
+  // Y's OK starts the latch (X disabled by it), the backend closes and
+  // re-opens the gate before the latch ends — X's context ended, its draft
+  // is gone. The owner gate is read without the latch term, not from the
+  // displayed reason (where "settling" outranks the backend).
+  await page.keyboard.type("12");
+  await y.click();
+  await expect(nk.locator(".sub")).toContainText("Touch off Y");
+  await page.keyboard.type("6");
+  await key(nk, "OK");
+  await expect(x).toBeDisabled();   // inside the latch
+  await ctl({ op: "status_delta", data: { permissions: { ...PERMS_ALL, touchoff: false } } });
+  // Two frames, not one batch: status frames are applied per animation
+  // frame, so a close and a re-open inside ONE frame is no state at all.
+  await page.waitForTimeout(50);
+  await ctl({ op: "status_delta", data: { permissions: PERMS_ALL } });
+  await expect(x).toBeEnabled();
+  await x.click();
+  await expect(nk).toBeVisible();
+  await expect(nk.locator("[data-draft]")).toHaveCount(0);
+  await expect(nk.locator(".nkExpr")).toHaveText(xBefore);
   await key(nk, "Cancel");
+  expect((await cmds()).filter(c => c === "touchoff")).toHaveLength(2);
   expectNoMachineAction((await cmds()).filter(c => c !== "touchoff"));
 });
 
@@ -426,7 +448,25 @@ test("offset drafts end with the probe gate, not with a sibling cell's OK", asyn
   await expect(nk).toBeVisible();
   await expect(nk.locator("[data-draft]")).toHaveCount(0);
   await expect(nk.locator(".nkExpr")).not.toHaveText("17");
+  // A real revocation INSIDE the write's latch (round 3) ends every cell
+  // context too: X drafts, Y's OK starts the latch (the cells lose their
+  // editable state), `probe` closes and re-opens within it.
+  await page.keyboard.type("17");
+  await cells.nth(1).click();
+  await expect(nk.locator(".sub")).toContainText("G54 · Y");
+  await page.keyboard.type("6");
+  await key(nk, "OK");
+  await expect(cells).toHaveCount(0);   // inside the latch
+  await ctl({ op: "status_delta", data: { permissions: { ...PERMS_ALL, probe: false } } });
+  await page.waitForTimeout(50);        // a second frame (see above)
+  await ctl({ op: "status_delta", data: { permissions: PERMS_ALL } });
+  await expect(cells.first()).toBeVisible();
+  await cells.first().click();
+  await expect(nk).toBeVisible();
+  await expect(nk.locator("[data-draft]")).toHaveCount(0);
+  await expect(nk.locator(".nkExpr")).not.toHaveText("17");
   await key(nk, "Cancel");
+  expect((await cmds()).filter(c => c === "set_wcs")).toHaveLength(2);
   expectNoMachineAction((await cmds()).filter(c => c !== "set_wcs"));
 });
 
@@ -568,5 +608,76 @@ test.describe("portrait, touch", () => {
     await expect(page.locator(".tkStrip")).toHaveCount(0);
     await expect(page.locator(".safetyStrip .statusRow")).toHaveCount(8);
     await expect(page.locator(".safetyStrip .codesRow")).toHaveCount(1);
+  });
+
+  test("editor and search as owners: the readout stays visible and hit-testable at 100 % and 150 %; portrait edit mode folds the idle program controls", async ({ page }) => {
+    // Review round 3 (UI-I08): with the EDITOR as owner the side pane had
+    // 13.5 px left for the editor host at 150 % — the first line was
+    // clipped by its overflow: hidden (a viewport rectangle alone passes).
+    // Portrait edit mode now folds the file ops, the run controls and the
+    // progress row while nothing runs; the readout is judged by HIT-TEST.
+    await page.route("**/gcode?*", route => route.fulfill({ contentType: "text/plain", body: "G0 X0\nG1 X10 F100\nM2\n" }));
+    await open(page, { width: 900, height: 1200 });
+    await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 7, file: "/A.ngc" } });
+    await expect(page.locator(".codeLine").first()).toBeVisible();
+    // Touch sizing is set by the first touch — before the first Edit tap.
+    await page.getByRole("button", { name: "Program", exact: true }).tap();
+    const tk = page.locator(".tkStrip");
+    const hitAt = (sel: string, within: string) => page.evaluate(([sel, within]) => {
+      const el = document.querySelector(sel); if (!el) return false;
+      const r = el.getBoundingClientRect();
+      const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+      return !!hit && !!hit.closest(within) && r.bottom <= window.innerHeight + 1;
+    }, [sel, within] as const);
+    for (const zoom of ["1", "1.5"]) {
+      await page.evaluate(z => { document.documentElement.style.zoom = z; }, zoom);
+      if (!(await tk.count())) {
+        await page.getByRole("button", { name: "Edit", exact: true }).tap();
+        await expect(page.locator(".cm-content")).toBeVisible();
+      }
+      await expect(tk).toBeVisible();
+      await expect(tk.locator(".sub")).toHaveText("Editor · A.ngc");
+      // Folded while nothing runs: no Start/Step row, no progress row, no file ops.
+      await expect(page.getByRole("button", { name: /^Start/ })).toHaveCount(0);
+      await expect(page.locator(".progressLabel")).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "Upload", exact: true })).toHaveCount(0);
+      for (const p of ["Code keys", "ABC keys", "123 keys", "#+= keys"]) {
+        await tapKey(tk, p);
+        const fits = await tk.evaluate(el => ({ bottom: el.getBoundingClientRect().bottom, inner: window.innerHeight }));
+        expect(fits.bottom, `keyboard bottom at zoom ${zoom} (${p})`).toBeLessThanOrEqual(fits.inner + 1);
+      }
+      await tapKey(tk, "Code keys");
+      const lines = await page.evaluate(() => document.querySelector(".cm-scroller")!.getBoundingClientRect().height / document.querySelector(".cm-line")!.getBoundingClientRect().height);
+      console.log(`EDITOR_LINES zoom ${zoom}: ${lines.toFixed(2)}`);
+      expect(lines, `editor lines visible at zoom ${zoom}`).toBeGreaterThanOrEqual(3);
+      expect(await hitAt(".cm-line", ".cm-content"), `first code line hit at its centre at zoom ${zoom}`).toBe(true);
+      expect(await hitAt(".editActions button:first-child", ".editActions"), `Save hit at zoom ${zoom}`).toBe(true);
+      expect(await hitAt(".editActions button:last-child", ".editActions"), `Discard hit at zoom ${zoom}`).toBe(true);
+      // A key lands in the editor (touch only).
+      await page.locator(".cm-line").first().tap();
+      await page.keyboard.press("End");
+      await tapKey(tk, ";");
+      await expect(page.locator(".cm-line").first()).toContainText(";");
+    }
+    // Discard (dirty → the dialog asks): the controls return with the viewer.
+    await page.locator(".editActions").getByRole("button", { name: "Discard", exact: true }).tap();
+    await page.locator(".dialogOverlay").getByRole("button", { name: "Discard", exact: true }).tap();
+    await expect(page.locator(".cm-content")).toHaveCount(0);
+    await expect(tk).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /^Start/ })).toHaveCount(1);
+    await expect(page.locator(".progressLabel")).toHaveCount(1);
+    // A search field (the reference dialog) as owner at 150 %: the field is
+    // hit at its centre and takes a key.
+    await page.getByTitle("G-code Reference", { exact: true }).tap();
+    const search = page.locator(".refSearch");
+    await search.tap();
+    await expect(tk).toBeVisible();
+    expect(await hitAt(".refSearch", ".refSearch"), "search field hit at its centre at zoom 1.5").toBe(true);
+    await tapKey(tk, "ABC keys");
+    await tapKey(tk, "g");
+    await expect(search).toHaveValue("g");
+    await tapKey(tk, "Close keyboard");
+    await expect(tk).toHaveCount(0);
+    expectNoMachineAction(await cmds());
   });
 });

@@ -1,0 +1,319 @@
+Codex implementation audit round 3 — 2026-09-20
+Branch: feat/ui-review-wave
+Reviewed HEAD: 17ec84964a7d8c5d2ebc6222eada478fdc08066c
+Product fix: 0daeb4000e314ee012ab6bccd5c7c97821313b82
+git diff 0daeb40 HEAD -- lcnc-webui lcnc-gateway scripts: empty, exit 0.
+At initial inspection LinuxCNC and hal_watchdog were running. No heavy gates started then.
+User then reported LinuxCNC stopped. Host process check (pgrep -af linuxcnc|hal_watchdog|milltask|linuxcncsvr) returned no matches, exit 1.
+All tests below ran after that check, offline or against localhost:4173/4174. No real machine commands.
+
+FRESH OFFLINE GATE — python3 scripts/test_suite.py offline — exit 0
+Report directory: /home/cnc/lcnc-suite/runlogs/test-suite/20260920T170633Z-offline
+{
+  "mode": "offline",
+  "started": "2026-09-20T17:06:33.257182+00:00",
+  "root": "/home/cnc/lcnc-suite",
+  "gates": [
+    {
+      "name": "backend",
+      "command": [
+        "/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python3",
+        "-m",
+        "pytest"
+      ],
+      "cwd": "/home/cnc/lcnc-suite/lcnc-gateway",
+      "log": "backend.log",
+      "started": "2026-09-20T17:06:33.261739+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 31.5,
+      "finished": "2026-09-20T17:07:04.756917+00:00",
+      "notes": []
+    },
+    {
+      "name": "5axis-model",
+      "command": [
+        "/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python3",
+        "/home/cnc/lcnc-suite/scripts/test_5axis_xyzac.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite",
+      "log": "5axis-model.log",
+      "started": "2026-09-20T17:07:04.757213+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 0.57,
+      "finished": "2026-09-20T17:07:05.325309+00:00",
+      "notes": []
+    },
+    {
+      "name": "audit-css",
+      "command": [
+        "/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python3",
+        "-m",
+        "pytest",
+        "/home/cnc/lcnc-suite/scripts/test_audit_scoped_css.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite",
+      "log": "audit-css.log",
+      "started": "2026-09-20T17:07:05.325762+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 0.57,
+      "finished": "2026-09-20T17:07:05.893262+00:00",
+      "notes": []
+    },
+    {
+      "name": "frontend-lint",
+      "command": [
+        "npm",
+        "run",
+        "lint"
+      ],
+      "cwd": "/home/cnc/lcnc-suite/lcnc-webui",
+      "log": "frontend-lint.log",
+      "started": "2026-09-20T17:07:05.893491+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 3.64,
+      "finished": "2026-09-20T17:07:09.531661+00:00",
+      "notes": []
+    },
+    {
+      "name": "frontend-build",
+      "command": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "cwd": "/home/cnc/lcnc-suite/lcnc-webui",
+      "log": "frontend-build.log",
+      "started": "2026-09-20T17:07:09.531869+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 9.55,
+      "finished": "2026-09-20T17:07:19.079703+00:00",
+      "notes": []
+    },
+    {
+      "name": "frontend-unit",
+      "command": [
+        "npm",
+        "test"
+      ],
+      "cwd": "/home/cnc/lcnc-suite/lcnc-webui",
+      "log": "frontend-unit.log",
+      "started": "2026-09-20T17:07:19.079941+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 26.0,
+      "finished": "2026-09-20T17:07:45.083895+00:00",
+      "notes": []
+    },
+    {
+      "name": "frontend-browser",
+      "command": [
+        "npm",
+        "run",
+        "test:e2e"
+      ],
+      "cwd": "/home/cnc/lcnc-suite/lcnc-webui",
+      "log": "frontend-browser.log",
+      "started": "2026-09-20T17:07:45.084102+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 297.98,
+      "finished": "2026-09-20T17:12:43.063376+00:00",
+      "notes": []
+    }
+  ],
+  "commit": "17ec84964a7d8c5d2ebc6222eada478fdc08066c",
+  "tracked_changes": [],
+  "runner_sha256": "705e6e79a6be911d052d25c882469f2e1080036b458fde4380844b7df8eacc6e",
+  "status": "pass",
+  "changed_file_sha256": {},
+  "not_run": [],
+  "finished": "2026-09-20T17:12:43.063979+00:00"
+}
+
+backend:
+958 passed, 340 subtests passed in 31.25s
+
+5axis-model:
+test_all_guide_blocks_stay_on_rails (__main__.XYZACAcceptance.test_all_guide_blocks_stay_on_rails) ... ok
+test_cold_start_positions_are_inside_limits_before_homing (__main__.XYZACAcceptance.test_cold_start_positions_are_inside_limits_before_homing) ... ok
+test_config_and_closed_export_manifest (__main__.XYZACAcceptance.test_config_and_closed_export_manifest) ... ok
+test_frame_tree_matches_linuxcnc_with_tool_compensation (__main__.XYZACAcceptance.test_frame_tree_matches_linuxcnc_with_tool_compensation) ... 8000 frame/oracle comparisons + inverse roundtrips; worst error 1.14e-13 mm; 3723 TCP demo poses inside joint limits
+ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.540s
+
+OK
+
+audit-css:
+============================= test session starts ==============================
+platform linux -- Python 3.13.5, pytest-9.0.3, pluggy-1.6.0
+rootdir: /home/cnc/lcnc-suite
+plugins: anyio-4.13.0
+collected 11 items
+
+scripts/test_audit_scoped_css.py ...........                             [100%]
+
+============================== 11 passed in 0.47s ==============================
+
+frontend-lint:
+
+> lcnc-webui@0.0.0 lint
+> eslint . && npm run lint:css
+
+
+> lcnc-webui@0.0.0 lint:css
+> python3 ../scripts/audit-scoped-css.py
+
+OK: no definite scoped-CSS leaks, no token drift. (use --all to see ROOT? candidates)
+
+frontend-build:
+dist/static/ThreeViewer-DmCDYMHg.js           120.84 kB │ gzip:  45.46 kB
+dist/static/index-o9DEOgyx.js                 200.76 kB │ gzip:  65.35 kB
+dist/static/index-BxEPZ2ey.js                 525.12 kB │ gzip: 164.30 kB
+dist/static/three-CfffMm-P.js                 865.77 kB │ gzip: 237.89 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 4.38s
+
+frontend-unit:
+
+
+ RUN  v4.1.8 /home/cnc/lcnc-suite/lcnc-webui
+
+
+ Test Files  69 passed (69)
+      Tests  1568 passed (1568)
+   Start at  19:07:19
+   Duration  25.82s (transform 1.69s, setup 0ms, import 3.83s, tests 34.76s, environment 3ms)
+
+
+frontend-browser:
+  ✓  135 [serial-visual] › e2e/visual.spec.ts:60:3 › touch-portrait: tool edit dialog reference image (2.0s)
+(node:294130) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:294130) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  136 [serial-viewer] › e2e/viewer.spec.ts:49:1 › a clean rebuild frees AND re-applies the loaded program's toolpath geometry (3.8s)
+  ✓  137 [serial-viewer] › e2e/viewer.spec.ts:121:1 › studio model keeps a themed, persistent ground grid through motion and rebuilds (3.4s)
+  ✓  138 [serial-viewer] › e2e/viewer.spec.ts:249:1 › default framing keeps the eye outside a bed/column model for every direction, preset, projection and reset (8.2s)
+
+  138 passed (5.0m)
+
+ADDITIONAL AUDIT PROBES — never concurrent with another mock run
+Run 1 command: npx playwright test audit-r1.probes.spec.ts audit-r2.probes.spec.ts audit-r3.probes.spec.ts --project=chromium --no-deps --workers=1 --grep-invert "Space during the delayed numeric focus return" --reporter=list
+Run 1 exit 1: 17 passed, 3 failed. Two preliminary setup problems were corrected, not classified as product findings:
+- Offset fallback probe omitted setAxes, which supplies wcs_table in this mock; no editable cells existed. Fixed fixture; 3/3 subsequent runs pass.
+- Editor probe did not establish touch mode before its first Edit tap; sizing changes on first touch. Touch initialization added; subsequent editor probes reach edit mode and expose actual clipping.
+Old round-2 focus probe excluded: it waits for an unguarded-timing-era DOM condition. Replaced with trusted Space/Backspace observations, including enabled field + body focus + guard true.
+Run 2 command: npx playwright test audit-r3.probes.spec.ts --project=chromium --no-deps --workers=1 --grep "an offset cell|a real backend gate|editor: readout" --repeat-each=3 --reporter=list
+Run 2 exit 1: 3 passed (offset fallback); 6 failed (backend-gate draft and clipped editor, 3 repetitions each).
+Run 3 command: npx playwright test audit-r3.probes.spec.ts --project=chromium --no-deps --workers=1 --grep "portrait readout" --reporter=list
+Run 3 exit 1: 2 passed (MDI/search); 1 failed (editor). Added read-only geometry logging to explain ancestor clipping.
+
+RUN 1 — selected raw results; full log: /home/cnc/lcnc-suite/runlogs/test-suite/20260920T170633Z-offline/audit-probes-1.log
+  ✓   1 [chromium] › e2e/audit-r1.probes.spec.ts:21:1 › number closes on outside pointer (1.2s)
+  ✓   2 [chromium] › e2e/audit-r1.probes.spec.ts:30:1 › number draft survives number to text and back (1.3s)
+  ✓   3 [chromium] › e2e/audit-r1.probes.spec.ts:44:1 › number confirm returns focus to its original field (1.3s)
+  ✓   4 [chromium] › e2e/audit-r1.probes.spec.ts:54:1 › hidden offset owner cannot confirm a write (1.4s)
+  ✓   5 [chromium] › e2e/audit-r1.probes.spec.ts:68:1 › save response preserves edits typed after the request (2.1s)
+  ✓   6 [chromium] › e2e/audit-r1.probes.spec.ts:94:1 › Tab out from a keyboard button closes the text helper (1.2s)
+  ✓   7 [chromium] › e2e/audit-r1.probes.spec.ts:110:1 › keyboard button keeps its parent scoped sizing rules (1.2s)
+  ✓   8 [chromium] › e2e/audit-r1.probes.spec.ts:127:3 › real touch › reference search can receive a real keyboard tap (1.4s)
+PORTRAIT_ACTUAL_BOUNDS { bottom: 1074.5, top: 382.75, inner: 1200 }
+  ✓   9 [chromium] › e2e/audit-r1.probes.spec.ts:143:3 › real touch › portrait at 150 percent keeps the full helper within the viewport (1.3s)
+EMPTY_DRAFT {"original":"12.345","returned":"0","draft":1}
+  ✓  10 [chromium] › e2e/audit-r2.probes.spec.ts:20:1 › Clear remains an unconfirmed zero draft after switching number to text (1.5s)
+DRAFT_AFTER_GATE {"original":"10.1230","returned":"10.123","draft":0}
+  ✓  11 [chromium] › e2e/audit-r2.probes.spec.ts:37:1 › Offset draft ends when its gate closes while another cell owns the keypad (1.5s)
+FOCUS_OBSERVATIONS_SUMMARY {"body_keys": 10, "all_body_keys_trusted_and_guarded": true, "reenabled_body_samples": [{"key": " ", "trusted": true, "body": true, "guard": true, "disabled": false}, {"key": "Backspace", "trusted": true, "body": true, "guard": true, "disabled": false}]}
+  ✓  12 [chromium] › e2e/audit-r3.probes.spec.ts:33:3 › focus return 1: trusted Space/Backspace on body stay guarded; Escape works (2.1s)
+FOCUS_OBSERVATIONS_SUMMARY {"body_keys": 12, "all_body_keys_trusted_and_guarded": true, "reenabled_body_samples": [{"key": " ", "trusted": true, "body": true, "guard": true, "disabled": false}, {"key": "Backspace", "trusted": true, "body": true, "guard": true, "disabled": false}]}
+  ✓  13 [chromium] › e2e/audit-r3.probes.spec.ts:33:3 › focus return 2: trusted Space/Backspace on body stay guarded; Escape works (2.1s)
+FOCUS_OBSERVATIONS_SUMMARY {"body_keys": 12, "all_body_keys_trusted_and_guarded": true, "reenabled_body_samples": [{"key": " ", "trusted": true, "body": true, "guard": true, "disabled": false}, {"key": "Backspace", "trusted": true, "body": true, "guard": true, "disabled": false}]}
+  ✓  14 [chromium] › e2e/audit-r3.probes.spec.ts:33:3 › focus return 3: trusted Space/Backspace on body stay guarded; Escape works (2.1s)
+  ✓  15 [chromium] › e2e/audit-r3.probes.spec.ts:86:1 › a different field chosen during focus return keeps its focus and text session (1.7s)
+  ✘  16 [chromium] › e2e/audit-r3.probes.spec.ts:105:1 › an offset cell that cannot hold focus falls back to the strip, never body (30.4s)
+BACKEND_GATE_DURING_BUSY {"elapsed":93,"returned":"17","drafts":1}
+  ✘  17 [chromium] › e2e/audit-r3.probes.spec.ts:120:1 › a real backend gate closure during the busy latch ends parked drafts (11.7s)
+PORTRAIT_OWNER_PAGE {"owner":"MDI","pageName":"Code keys","top":382.75,"bottom":1074.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"MDI","pageName":"ABC keys","top":382.75,"bottom":1074.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"MDI","pageName":"123 keys","top":427.75,"bottom":1119.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"MDI","pageName":"#+= keys","top":427.75,"bottom":1119.5,"height":1200,"scroll":0,"misses":[]}
+  ✓  18 [chromium] › e2e/audit-r3.probes.spec.ts:148:5 › portrait readout and real touch › MDI: readout and every keyboard page remain usable at 150 percent (2.2s)
+  ✘  19 [chromium] › e2e/audit-r3.probes.spec.ts:148:5 › portrait readout and real touch › editor: readout and every keyboard page remain usable at 150 percent (11.3s)
+PORTRAIT_OWNER_PAGE {"owner":"search","pageName":"Code keys","top":382.75,"bottom":1099.25,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"search","pageName":"ABC keys","top":382.75,"bottom":1099.25,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"search","pageName":"123 keys","top":427.75,"bottom":1144.25,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"search","pageName":"#+= keys","top":427.75,"bottom":1144.25,"height":1200,"scroll":0,"misses":[]}
+  ✓  20 [chromium] › e2e/audit-r3.probes.spec.ts:148:5 › portrait readout and real touch › search: readout and every keyboard page remain usable at 150 percent (2.3s)
+    Error: expect(locator).toHaveCount(expected) failed
+    Error: expect(locator).toBeVisible() failed
+  3 failed
+  17 passed (1.4m)
+
+RUN 2 — selected raw results; full log: /home/cnc/lcnc-suite/runlogs/test-suite/20260920T170633Z-offline/audit-probes-2.log
+  ✓  1 [chromium] › e2e/audit-r3.probes.spec.ts:105:1 › an offset cell that cannot hold focus falls back to the strip, never body (1.7s)
+BACKEND_GATE_DURING_BUSY {"elapsed":91,"returned":"17","drafts":1}
+  ✘  2 [chromium] › e2e/audit-r3.probes.spec.ts:121:1 › a real backend gate closure during the busy latch ends parked drafts (11.6s)
+PORTRAIT_OWNER_PAGE {"owner":"editor","pageName":"Code keys","top":427.75,"bottom":1119.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"editor","pageName":"ABC keys","top":427.75,"bottom":1119.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"editor","pageName":"123 keys","top":427.75,"bottom":1119.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"editor","pageName":"#+= keys","top":427.75,"bottom":1119.5,"height":1200,"scroll":0,"misses":[]}
+  ✘  3 [chromium] › e2e/audit-r3.probes.spec.ts:149:5 › portrait readout and real touch › editor: readout and every keyboard page remain usable at 150 percent (2.4s)
+  ✓  4 [chromium] › e2e/audit-r3.probes.spec.ts:105:1 › an offset cell that cannot hold focus falls back to the strip, never body (1.7s)
+BACKEND_GATE_DURING_BUSY {"elapsed":104,"returned":"17","drafts":1}
+  ✘  5 [chromium] › e2e/audit-r3.probes.spec.ts:121:1 › a real backend gate closure during the busy latch ends parked drafts (11.6s)
+PORTRAIT_OWNER_PAGE {"owner":"editor","pageName":"Code keys","top":427.75,"bottom":1119.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"editor","pageName":"ABC keys","top":427.75,"bottom":1119.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"editor","pageName":"123 keys","top":427.75,"bottom":1119.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"editor","pageName":"#+= keys","top":427.75,"bottom":1119.5,"height":1200,"scroll":0,"misses":[]}
+  ✘  6 [chromium] › e2e/audit-r3.probes.spec.ts:149:5 › portrait readout and real touch › editor: readout and every keyboard page remain usable at 150 percent (2.1s)
+  ✓  7 [chromium] › e2e/audit-r3.probes.spec.ts:105:1 › an offset cell that cannot hold focus falls back to the strip, never body (1.7s)
+BACKEND_GATE_DURING_BUSY {"elapsed":89,"returned":"17","drafts":1}
+  ✘  8 [chromium] › e2e/audit-r3.probes.spec.ts:121:1 › a real backend gate closure during the busy latch ends parked drafts (11.6s)
+PORTRAIT_OWNER_PAGE {"owner":"editor","pageName":"Code keys","top":382.75,"bottom":1074.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"editor","pageName":"ABC keys","top":427.75,"bottom":1119.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"editor","pageName":"123 keys","top":427.75,"bottom":1119.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"editor","pageName":"#+= keys","top":427.75,"bottom":1119.5,"height":1200,"scroll":0,"misses":[]}
+  ✘  9 [chromium] › e2e/audit-r3.probes.spec.ts:149:5 › portrait readout and real touch › editor: readout and every keyboard page remain usable at 150 percent (2.0s)
+    Error: expect(locator).toHaveCount(expected) failed
+    Error: expect(locator).toHaveCount(expected) failed
+    Error: expect(locator).toHaveCount(expected) failed
+  6 failed
+  3 passed (51.7s)
+
+RUN 3 — selected raw results; full log: /home/cnc/lcnc-suite/runlogs/test-suite/20260920T170633Z-offline/audit-probes-3.log
+PORTRAIT_OWNER_PAGE {"owner":"MDI","pageName":"Code keys","top":382.75,"bottom":1074.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"MDI","pageName":"ABC keys","top":427.75,"bottom":1119.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"MDI","pageName":"123 keys","top":427.75,"bottom":1119.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"MDI","pageName":"#+= keys","top":427.75,"bottom":1119.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_READOUT {"owner":"MDI","hit":true,"target":{"x":469,"y":861,"width":178.90625,"height":54,"top":861,"right":647.90625,"bottom":915,"left":469},"covering":"<input data-v-8425043f=\"\" type=\"text\" class=\"mdiInput inputField keypad-active\" placeholder=\"G-code command (↑↓ history)\" lang=\"en\" data-input-area=\"mdi-input\" value=\"\" inputmode=\"none\">"}
+  ✓  1 [chromium] › e2e/audit-r3.probes.spec.ts:149:5 › portrait readout and real touch › MDI: readout and every keyboard page remain usable at 150 percent (2.2s)
+PORTRAIT_OWNER_PAGE {"owner":"editor","pageName":"Code keys","top":382.75,"bottom":1074.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"editor","pageName":"ABC keys","top":427.75,"bottom":1119.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"editor","pageName":"123 keys","top":427.75,"bottom":1119.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"editor","pageName":"#+= keys","top":427.75,"bottom":1119.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_READOUT {"owner":"editor","hit":false,"target":{"x":499,"y":1101.5,"width":361,"height":25.1875,"top":1101.5,"right":860,"bottom":1126.6875,"left":499},"covering":"<div data-v-b74a50f0=\"\" class=\"stack-controls editArea\"><!----><!----><div data-v-b74a50f0=\"\" class=\"editorHost\" data-input-area=\"gcode-editor\"><div class=\"cm-editor cm-focused ͼ1 ͼ3 ͼa\"><div class=\"c","host":{"x":469,"y":1095.5,"width":406,"height":13.5,"top":1095.5,"right":875,"bottom":1109,"left":469},"scroller":{"x":469,"y":1095.5,"width":406,"height":13.5,"top":1095.5,"right":875,"bottom":1109,"left":469},"actions":{"x":469,"y":1121,"width":406,"height":54,"top":1121,"right":875,"bottom":1175,"left":469}}
+  ✘  2 [chromium] › e2e/audit-r3.probes.spec.ts:149:5 › portrait readout and real touch › editor: readout and every keyboard page remain usable at 150 percent (2.0s)
+PORTRAIT_OWNER_PAGE {"owner":"search","pageName":"Code keys","top":427.75,"bottom":1144.25,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"search","pageName":"ABC keys","top":427.75,"bottom":1144.25,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"search","pageName":"123 keys","top":427.75,"bottom":1144.25,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"search","pageName":"#+= keys","top":427.75,"bottom":1144.25,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_READOUT {"owner":"search","hit":true,"target":{"x":505,"y":425.296875,"width":334,"height":54,"top":425.296875,"right":839,"bottom":479.296875,"left":505},"covering":"<input data-v-df64f724=\"\" type=\"text\" placeholder=\"Search codes, names, descriptions…\" class=\"refSearch inputField keypad-active\" inputmode=\"none\" lang=\"en\" data-input-area=\"text-17\">"}
+  ✓  3 [chromium] › e2e/audit-r3.probes.spec.ts:149:5 › portrait readout and real touch › search: readout and every keyboard page remain usable at 150 percent (2.1s)
+  1 failed
+  2 passed (9.3s)
+
+RESULT: 7/9 implementation findings closed. UI-I06 closed; UI-I05 and UI-I08 remain P2.
+UI-I05: backend permission false->true occurs inside the 200 ms busy overlay; gate-close reason is hidden by Settling and cached X=17 survives (93, 91, 104, 89 ms observed close/reopen sequences).
+UI-I08: helper fits all four pages, but editor host/scroller at 150% is 13.5 device px tall; first line is 25.1875 px, only 7.5 px intersect host. toBeInViewport passes; actual center hit fails because overflow:hidden clips it.
+Live XYZAC simulator visibility/interaction and physical touch acceptance remain outside these offline checks.

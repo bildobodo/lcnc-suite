@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, provide, reactive, ref, watch } from "vue";
 import type { CollisionLineMark } from "./viewer/collision";
-import { applyClientOverlay, applyClientOverlayReasons, PERMISSIONS_KEY, PERMISSION_REASONS_KEY, FIRE_KEY, type Permissions, type PermissionReasons } from "./permissions";
+import { applyClientOverlay, applyClientOverlayReasons, PERMISSIONS_KEY, OWNER_PERMISSIONS_KEY, PERMISSION_REASONS_KEY, FIRE_KEY, type Permissions, type PermissionReasons } from "./permissions";
 import { simMode } from "./simMode";
 import { twpPoseOriented, twpPoseStale, twpDatumStale, fixtureOffDatum, stampAForFixture, poseAbcOf } from "./twpPose";
 import { semanticKinsMode } from "./viewer/kins";
@@ -573,6 +573,19 @@ const permissions = computed(() => {
   return next;
 });
 provide(PERMISSIONS_KEY, permissions);
+// The same gates WITHOUT the busy debounce — what an input OWNER's context
+// (MachineInput, OffsetPanel cells) lives by: a real backend revocation ends
+// it even inside the latch, the latch alone never does (review round 3,
+// UI-I05). Memoized like `permissions`.
+let _prevOwnerPerms: Permissions | null = null;
+const ownerPermissions = computed(() => {
+  const next = applyClientOverlay(st.value.permissions, armed.value, false, simMode.value);
+  const keys = Object.keys(next) as (keyof typeof next)[];
+  if (_prevOwnerPerms && keys.every(k => _prevOwnerPerms![k] === next[k])) return _prevOwnerPerms;
+  _prevOwnerPerms = next;
+  return next;
+});
+provide(OWNER_PERMISSIONS_KEY, ownerPermissions);
 // MachineBtn shows "Busy — try again" at the control when this latch would
 // drop its click (fire()); read-only for children.
 provide("busy", busy);

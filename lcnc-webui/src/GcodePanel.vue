@@ -11,6 +11,7 @@ import { scanToolchangesBefore, scanEntryPositionBefore, type RflToolchangeScan,
 import { highlightGcode, type Token } from "./gcodeHighlight";
 import { limitViolationText, type LimitViolation } from "./ws/bulkData";
 import { isTouchDevice } from "./touchDetect";
+import { useMediaMql } from "./useMediaMql";
 import { emitTelemetry, pushMessage } from "./lcncWs";
 import { OPERATOR_DISPLAY } from "./lcnc";
 import { GCODE_LOOKUP, GCODE_REFERENCE } from "./gcodeReference";
@@ -563,6 +564,15 @@ function confirmRunFromLine() {
 // size — the same virtualization principle as the read-only viewer above.
 const editing = ref(false);
 const editorHost = ref<HTMLDivElement | null>(null);
+// Portrait edit mode folds the file ops, the run controls and the progress
+// row: none can act while a session is open (Start/Step/Browse/Upload say
+// "Finish or discard the edit first"), and the side pane is what the
+// editor — the on-screen keyboard's readout — must fit in at 150 % on
+// 900 × 1200 (review round 3, UI-I08: 13.5 px were left for it). A
+// running or paused program brings the controls back (Pause/Abort must
+// stay reachable here; the banner carries Abort in any case).
+const isPortrait = useMediaMql("(orientation: portrait)");
+const compactEdit = computed(() => isPortrait.value && editing.value && !can.value.pause && !can.value.resume);
 const saving = ref(false);
 const saveError = ref<string | null>(null);
 let _editorView: any = null;
@@ -763,7 +773,7 @@ async function saveEdit() {
 <template>
   <div class="container stack-controls" @dragover.prevent="onDragOver" @dragleave="onDragLeave" @drop.prevent="onDrop">
     <div class="header stack-tight">
-      <div class="headerActions">
+      <div v-if="!compactEdit" class="headerActions">
           <MachineBtn type="fileOp" class="actionBtn" @click="enterEdit" :disabled="!activeFile || editing">
             Edit
           </MachineBtn>
@@ -792,8 +802,8 @@ async function saveEdit() {
       </div>
     </div>
 
-    <!-- Program control -->
-    <div class="row-tight">
+    <!-- Program control (folded in portrait edit mode — see compactEdit) -->
+    <div v-if="!compactEdit" class="row-tight">
       <MachineBtn type="start" class="ctrlBtn" @click="onStartClick" :disabled="!activeFile || editing"
         :reason="editing ? 'Finish or discard the edit first' : !activeFile ? 'No program loaded' : undefined">
         <Play :size="14" class="ctrlIcon" /> {{ selectedLine && selectedLine > 1 ? `Start L${selectedLine}` : 'Start' }}
@@ -814,7 +824,7 @@ async function saveEdit() {
     </div>
 
     <!-- Progress bar -->
-    <div class="row-controls" v-if="gcodeContent">
+    <div class="row-controls" v-if="gcodeContent && !compactEdit">
       <div class="progressTrack">
         <div class="progressFill" :style="{ width: progressPercent + '%' }"></div>
       </div>

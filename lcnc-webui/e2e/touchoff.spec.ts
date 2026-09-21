@@ -563,7 +563,7 @@ test("keypad refuses 1.2.3 on a touch-off field, shows empty as 0, confirms a va
     await expect(strip).toBeVisible();
     expect(await recordedCmds()).not.toContain("touchoff");
     // C → empty → "= 0" is visible, not implied.
-    await strip.getByRole("button", { name: "C", exact: true }).dispatchEvent("pointerdown", { button: 0 });
+    await strip.getByRole("button", { name: "C", exact: true }).click();
     await expect(strip.locator(".nkPreview")).toHaveText("= 0");
     await expect(ok).toBeEnabled();
     await page.keyboard.type("5");
@@ -597,16 +597,17 @@ test("tool number field: minimum 1 and whole numbers only, on Enter and on OK", 
     await expect(ok).toBeDisabled();
     await page.keyboard.press("Enter");
     await expect(strip).toBeVisible();
-    await ok.dispatchEvent("pointerdown", { button: 0 });
+    // A real press on the disabled OK (force: no actionability wait) does nothing.
+    await ok.click({ force: true });
     await expect(strip).toBeVisible();
     await expect(toolNo).toHaveValue(before);
-    await strip.getByRole("button", { name: "C", exact: true }).dispatchEvent("pointerdown", { button: 0 });
+    await strip.getByRole("button", { name: "C", exact: true }).click();
     await expect(strip.locator(".nkPreview")).toContainText("= 0 · minimum 1");
     await page.keyboard.type("2.5");
     await expect(strip.locator(".nkPreview")).toContainText("whole number required");
     await page.keyboard.press("Enter");
     await expect(strip).toBeVisible();
-    await strip.getByRole("button", { name: "C", exact: true }).dispatchEvent("pointerdown", { button: 0 });
+    await strip.getByRole("button", { name: "C", exact: true }).click();
     await page.keyboard.type("3");
     await page.keyboard.press("Enter");
     await expect(strip).toHaveCount(0);

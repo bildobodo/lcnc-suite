@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted } from "vue";
-import { usePermissions, useFire, usePermissionReasons, CLIENT_REASONS } from "./permissions";
+import { usePermissions, useFire, useOwnerPermissions } from "./permissions";
 import { fmtOffset } from "./format";
 import { openKeypad, closeKeypadIf, keypadState, newKeypadOwnerId, dropDrafts } from "./useNumberKeypad";
 import { G5X_LABELS } from "./wcs";
@@ -9,7 +9,7 @@ import MachineBtn from "./MachineBtn.vue";
 import Gate from "./Gate.vue";
 
 const can = usePermissions();
-const reasons = usePermissionReasons();
+const ownerCan = useOwnerPermissions();
 const fire = useFire();
 
 type WcsRow = { name: string; [axis: string]: string | number };
@@ -83,8 +83,10 @@ function ownsKeypad(): boolean { return keypadState.open && keypadState.ownerId.
 // the open session, when one of our cells holds the keypad, and every
 // filed cell draft — a draft parked on G54/X must not outlive the gate that
 // admitted it (review round 2, UI-I05 B). The busy latch after a command
-// ("settling") is not an end: the gate re-opens in DEFAULT_COOLDOWN_MS.
-const gateEnded = computed(() => !can.value.probe && reasons.value.probe !== CLIENT_REASONS.settling);
+// is not an end (the gate re-opens in DEFAULT_COOLDOWN_MS), a real backend
+// revocation inside it is — hence the OWNER permissions, which carry no
+// latch term (round 3).
+const gateEnded = computed(() => !ownerCan.value.probe);
 function endCells(reason?: string) {
   if (ownsKeypad()) closeKeypadIf(keypadState.ownerId, reason);
   dropDrafts(id => id.startsWith(`${ownerPrefix}:`));

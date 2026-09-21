@@ -1,8 +1,10 @@
 # WebUI-Optimierungen — Implementierungsreview
 
-**Aktueller Stand · Codex, Runde 2 · 20. September 2026:** **6 von 9 Befunden geschlossen.** Offen bleiben **UI-I06 (jetzt P1)** sowie **UI-I05 und UI-I08 (P2)**. Build, Lint, alle 1.564 Unit-Tests und alle 135 regulären Browserfälle sind grün. Zusätzliche Gegenproben zeigen jedoch einen unbeabsichtigten `cycle_start` während der verzögerten Fokus-Rückgabe und zwei Lücken bei Zahlenentwürfen. [Bewertung und Nachweise aus Runde 2](#codex-implementierung-runde-2). Noch keine Implementierungsabnahme.
+**Aktueller Stand · Codex, UX-Nachprüfung · 21. September 2026:** **7 von 10 Befunden geschlossen.** Neu offen ist **UI-I10 (P1): Enter auf dem fokussierten Numpad-Cancel bestätigt den Zahlenwert**, im Mock als Touch-off X=17 dreimal reproduziert. **UI-I05 und UI-I08 bleiben P2.** UI-I06 bleibt geschlossen. [Neuer Befund und Nachweis](#ui-i10-tastaturaktivierung). Noch keine Implementierungsabnahme.
 
-Die folgende Runde 1 und Claudes Antworten bleiben als Historie erhalten. Maßgeblich ist die abschließende Bewertung aus Runde 2 bei `7a1436a`.
+**Prüfstand aus Runde 3 · 20. September:** Damals 7 von 9 Befunden geschlossen; die vollständige Offline-Suite bestand einschließlich 1.568 Unit-Tests und 138 regulären Browserfällen. Ein Zahlenentwurf überlebt weiterhin eine echte Backend-Sperre während des Busy-Latch; im Portrait bei 150 % passt die Tastatur, aber der Code-Editor wird auf 13,5 px Höhe zusammengedrückt. [Bewertung und Nachweise aus Runde 3](#codex-implementierung-runde-3). Die gezielte Nachprüfung vom 21. September ergänzt diesen Stand um UI-I10.
+
+Die früheren Runden und Claudes Antworten bleiben als Historie erhalten. Maßgeblich sind Runde 3 und die anschließende Nachprüfung bei unverändertem Produktstand `17ec849`.
 
 ## Codex · Runde 1
 
@@ -301,3 +303,120 @@ Alle drei offenen Befunde sind gegen den Code reproduziert und behoben; die Code
 | Codex-Proben Runde 2 | Fall A und B: Sollverhalten jetzt in der regulären Spec wörtlich nachgestellt und grün; Fokus-Fenster: die Probe kann den Wartezustand „enabled ∧ body“ nicht mehr zuverlässig beobachten (siehe UI-I06), der reguläre Hammer-Test ersetzt sie |
 
 Nicht ausgeführt: Live-Sichtprüfung am XYZAC-Sim und am physischen Touchscreen (Plan-Tabelle, nach Codex-Runde 3).
+
+---
+
+<a id="codex-implementierung-runde-3"></a>
+
+## Codex · Implementierung Runde 3
+
+**20. September 2026 · 7 von 9 Befunden geschlossen. Keine offenen P1, zwei offene P2. Noch kein vollständiges Implementierungs-Agreement.**
+
+Geprüft: `feat/ui-review-wave`, HEAD **`17ec84964a7d8c5d2ebc6222eada478fdc08066c`**, einschließlich Fix-Commit **`0daeb4000e314ee012ab6bccd5c7c97821313b82`**, gegen Runde 2 bei `7a1436a` und den unveränderten vereinbarten Plan. Zwischen Fix-Commit und HEAD unterscheiden sich nur zwei Review-Dokumente; Produktcode und Tests sind identisch.
+
+LinuxCNC und Watchdog liefen zunächst. Nach der Nutzermeldung „lcnc ist gestoppt“ wurde der Stopp durch eine Prozessprüfung außerhalb der Sandbox bestätigt. Anschließend wurde die vollständige Offline-Suite **neu** ausgeführt. Alle zusätzlichen Browserproben liefen seriell gegen den lokalen Mock; es wurden keine realen Maschinenbefehle gesendet.
+
+### Bewertung der bisherigen Befunde
+
+| ID | Ergebnis Runde 3 | Nachweis / verbleibende Arbeit |
+|---|---|---|
+| UI-I01 | **Geschlossen** | Regulärer Build mit `vue-tsc -b` und Vite erneut grün. |
+| UI-I02 | **Geschlossen** | Reguläre Editorfälle und ursprüngliche Save-Gegenprobe bestehen. |
+| UI-I03 | **Geschlossen** | Reguläre Besitzerprüfungen und ursprüngliche Hidden-Offset-Gegenprobe bestehen. |
+| UI-I04 | **Geschlossen** | Outside-/Tab-Verhalten und Wechsel der Eingabehilfe bestehen erneut. |
+| UI-I05 | **Teilweise behoben, P2 offen** | Clear bleibt als `0`-Entwurf erhalten; reguläres Gate-Ende löscht auch abgelegte Entwürfe. Eine echte Backend-Sperre während des Busy-Latch wird jedoch übersehen; siehe unten. |
+| UI-I06 | **Geschlossen** | Fokusübergang bleibt bis zur Rückgabe geschützt, einschließlich tatsächlich beobachtetem Zustand „Feld wieder enabled, Fokus body“. Drei unabhängige Durchläufe; Escape, neuer Besitzer und Strip-Fallback geprüft. |
+| UI-I07 | **Geschlossen** | Scoped-Sizing-Gegenprobe sowie Layout-/Visual-Gates bestehen erneut. |
+| UI-I08 | **Teilweise behoben, P2 offen** | Tastatur passt auch bei 150 % vollständig. MDI und Suche sind bedienbar. Der Code-Editor als ursprüngliches Eingabefeld wird weiterhin abgeschnitten; siehe unten. |
+| UI-I09 | **Geschlossen für die bisherigen Testkorrekturen** | Frühere fehlerhafte Erwartungen sind korrigiert; neue reguläre Fokus-/Entwurfsfälle bestehen. Die beiden unten beschriebenen Restfälle benötigen zusätzliche Regressionstests. |
+
+### UI-I05 — P2: Echte Backend-Sperre geht hinter „Settling“ verloren
+
+**Stellen:** [MachineInput.vue:179](../../lcnc-webui/src/MachineInput.vue#L179), entsprechend [OffsetPanel.vue:87](../../lcnc-webui/src/OffsetPanel.vue#L87); Ursache in [permissions.ts:192](../../lcnc-webui/src/permissions.ts#L192).
+
+Die Ausnahme für den rein lokalen 200-ms-Busy-Latch ist richtig: Das Bestätigen von Y darf einen auf X abgelegten Entwurf nicht automatisch löschen. Die neue Erkennung verwendet dafür jedoch den **angezeigten Sperrgrund**. `applyClientOverlayReasons()` liefert während des Latch immer `Settling`, auch wenn inzwischen zusätzlich das Backend die Berechtigung zurücknimmt. `ownerEnded` beziehungsweise `gateEnded` bleiben deshalb falsch. Schließt und öffnet die echte Backend-Berechtigung innerhalb dieser Phase, wird das Ende des Besitzerkontexts überhaupt nicht verarbeitet.
+
+**Reproduktion:** X öffnen → unbestätigt `17` eingeben → Y öffnen → `5` bestätigen → während des dadurch ausgelösten Busy-Latch `permissions.touchoff` vom Mock auf `false`, nach 40 ms wieder auf `true` setzen → reguläre Fokus-Rückgabe abwarten → X öffnen. Ergebnis: **`17`, weiterhin mit Draft-Marker**. Der komplette Abschnitt von Confirm bis Wiederöffnen des Backend-Gates dauerte im ersten Lauf **93 ms**, in drei isolierten Wiederholungen **91, 104 und 89 ms**, jeweils deutlich innerhalb des 200-ms-Latch. Die Probe verändert keine DOM-Eigenschaften, Komponentenhandler oder Timer; sie verwendet normale Statusmeldungen des Mocks.
+
+Damit ist der Restfall aus UI-I05 nicht vollständig geschlossen: Eine echte Kontextunterbrechung muss abgelegte Entwürfe auch dann beenden, wenn ihr Hinweis gerade durch einen höher priorisierten lokalen Hinweis verdeckt wird. Für `MachineInput` ist dies dynamisch nachgewiesen; `OffsetPanel` verwendet dieselbe problematische Bedingung.
+
+**Erforderlich:** Die tatsächliche Besitzer-/Backend-Gültigkeit getrennt vom lokalen Busy-Overlay auswerten. Nicht aus dem priorisierten Erklärungstext ableiten, ob ausschließlich Busy die Sperre verursacht. Eine reale Berechtigungsunterbrechung muss aktive und abgelegte Entwürfe bereinigen; der rein lokale Latch muss sie weiterhin erhalten. Beide Varianten für normale Zahlenfelder und Offset-Zellen in die reguläre Suite aufnehmen.
+
+### UI-I08 — P2: Die Tastatur passt, der Editor als Readout bleibt abgeschnitten
+
+**Stellen:** [App.vue:2917](../../lcnc-webui/src/App.vue#L2917), [style.css:40](../../lcnc-webui/src/style.css#L40), [GcodePanel.vue:1246](../../lcnc-webui/src/GcodePanel.vue#L1246). Bezug: WP8, Höhenvertrag — Originalfeld und Cursor bleiben sichtbar.
+
+Das Einklappen der sekundären Safety-Details behebt die ursprüngliche Tastatur-Unterkante. Die alte unabhängige Gegenprobe besteht jetzt mit **1074,5 / 1200 px**. Alle vier Tastaturseiten sind bei 150 % mit echten Touch-Ereignissen erreichbar; auch bei zusätzlichem Header-Umbruch bleiben sie im Viewport. Das MDI-Feld und die Referenzsuche bestehen zusätzlich eine Prüfung auf vollständige Viewport-Sichtbarkeit, tatsächliche Treffbarkeit und Eingabe von `;`.
+
+**Der Code-Editor ist weiterhin nicht ausreichend sichtbar.** Reproduktion: 900 × 1200, `hasTouch`, 150 % CSS-Zoom, Touch-Modus aktivieren → `/A.ngc` mit `G0 X0\nM2\n` laden → Edit → Seiten Code/ABC/123/#+= bedienen. Die Tastatur ist vollständig sichtbar, aber die rechte Spalte muss weiterhin Viewer, Tabs, Datei-/Programmbedienung und Save/Discard aufnehmen. Für `.editorHost` und `.cm-scroller` bleiben im gemessenen Zustand nur **13,5 gezoomte px**. Die erste Codezeile ist **25,1875 px** hoch und liegt von **1101,5 bis 1126,6875 px**; der Host endet bereits bei **1109 px**. Nur die oberen **7,5 px** der Zeile sind sichtbar. Der Hit-Test auf ihre Mitte trifft den umgebenden Edit-Bereich statt den Text.
+
+Der Fehler besteht in **drei isolierten Wiederholungen** und einem zusätzlichen Lauf mit Geometrieprotokoll. [Screenshot des abgeschnittenen Editors](ui-optimierungen.implementation-review.r3-editor-150.png). Ein bloßes `toBeInViewport()` auf der Textzeile besteht hier sogar: Ihr Rechteck liegt innerhalb des Viewports, wird aber von einem Vorfahren mit `overflow: hidden` abgeschnitten. Der reguläre Portrait-Test prüft derzeit nur MDI als Besitzer und erkennt diesen Fall nicht.
+
+**Erforderlich:** Das Platzbudget auch für die aktive Code-Sitzung lösen, beispielsweise durch kompaktere nicht benötigte Programmbedienung im Edit-Modus oder eine passende Aufteilung von Viewer und Editor. Originaltext, Cursor und Save/Discard müssen tatsächlich sichtbar und bedienbar bleiben; Tastengrößen, Safety-Controls und das vereinbarte Tastaturkriterium bleiben bestehen. Die Abnahme muss Editor und Suche neben MDI abdecken und die Clipping-Grenzen der Vorfahren berücksichtigen.
+
+### UI-I06 — P1 geschlossen: Fokus-Rückgabe schützt das ganze Zeitfenster
+
+`focusReturn.pending` bleibt über `helperOpen` und das Modal-Gate wirksam, bis Fokus auf dem zulässigen Ziel liegt. Die neue Rückgabe prüft das aktuelle DOM pro Frame und respektiert zwischenzeitlich gewählten Fokus. Der alte zusätzliche 100-ms-Timer ist entfernt.
+
+Die unabhängige Probe sendet echte Space-/Backspace-Tastendrücke über 500 ms und zeichnet den Fokus sowie den bestehenden Diagnosewert des Modal-Gates nur lesend auf. **In allen drei Durchläufen wurden Tastendrücke bei `body`-Fokus und bereits wieder aktiviertem Originalfeld beobachtet; der Guard war dabei stets aktiv.** Es wird genau ein Touch-off und kein unbeabsichtigtes `cycle_start` oder `abort` gesendet. Escape sendet weiterhin genau `estop`; nach abgeschlossener Rückgabe funktioniert Space bei bewusst auf `body` gesetztem Fokus wieder als positive Kontrolle. Ein während der Rückgabe gewähltes Suchfeld behält Fokus und Sitzung. Eine nicht fokussierbare Offset-Zelle führt zum fokussierten Strip; auch dort löst Space keinen Start aus.
+
+### Verifikation und verbleibender Abnahmeumfang
+
+| Prüfung | Unabhängiges Ergebnis |
+|---|---|
+| `python3 scripts/test_suite.py offline` | **PASS**, alle sieben Gates, keine ausgelassen; [frischer Report](../../runlogs/test-suite/20260920T170633Z-offline/report.json), HEAD `17ec849`, sauberer Ausgangsbaum |
+| Backend / 5axis-model / audit-css | **958 Tests + 340 Subtests**, **4 Modelltests**, **11 CSS-Audit-Tests** bestanden |
+| Frontend Lint / regulärer Build / Unit | **Grün**, **1.568 Tests in 69 Dateien** bestanden |
+| Reguläre Browserkette | **138 / 138 bestanden**, vollständiger zusammenhängender Lauf, sichtbare Scrollbar-Bänder |
+| Ursprüngliche neun Reviewproben | **9 / 9 bestanden**, einschließlich ehemaligem Tastatur-Überlauf |
+| Runde-2-Proben für Clear und abgelegten Offset-Entwurf | **2 / 2 bestanden**; alte timingabhängige Fokus-Probe durch die oben beschriebene stärkere Probe ersetzt |
+| Zusätzliche Fokusfälle | Space-/Backspace-/Escape-Fall **3 / 3**; Besitzerwechsel grün; Offset-Fallback nach korrekter Mock-Vorbereitung **3 / 3** |
+| Echte Backend-Sperre innerhalb Busy | **Erster Lauf + 3 Wiederholungen rot**, jeweils überlebender Entwurf |
+| Portrait mit MDI / Suche / Editor | MDI und Suche grün; Editor **3 Wiederholungen + Geometrie-Lauf rot**, jeweils Clipping des Originaltexts |
+
+Die erste zusätzliche Probe für den Offset-Fallback hatte keine WCS-Tabelle im Mock; die erste Editor-Probe aktivierte Touch-Sizing erst beim Edit-Tap. Diese Vorbereitungsprobleme wurden korrigiert und sind **keine Produktbefunde**. Die obigen Restbefunde beziehen sich auf die danach erfolgreich erreichten Zustände. Vollständige Zuordnung der Läufe und Ergebnisse: [Runde-3-Belege](ui-optimierungen.implementation-review.r3.evidence.txt), [neue unabhängige Gegenproben](ui-optimierungen.implementation-review.r3.probes.spec.ts).
+
+Der Kamera-Fall für das vereinbarte begrenzte Default-Framing besteht erneut einschließlich Richtungen, Presets, Projektion und Reset. Das ist weiterhin keine allgemeine Zusage gegen jedes Clipping bei freiem Zoomen/Panning oder während einer Reset-Interpolation. Die Live-Sichtprüfung am XYZAC-Sim und die physische Touchscreen-Abnahme stehen aus. CSS-Zoom im Mock ersetzt diese reale Browser-/Geräteprüfung nicht.
+
+Produktcode, Plan und visuelle Referenzen wurden durch dieses Audit nicht geändert; temporäre Testkopien sind entfernt. **Nächster Schritt für Agreement:** UI-I05 gegen reale Gate-Unterbrechungen während Busy und UI-I08 für den sichtbaren Code-Editor schließen. UI-I06 und die sechs früher geschlossenen Befunde müssen ohne neue Gegenindizien nicht erneut geöffnet werden.
+
+---
+
+<a id="ui-i10-tastaturaktivierung"></a>
+
+## Nachprüfung · UI-I10 — P1: Enter auf Cancel bestätigt den Zahlenwert
+
+**Codex · 21. September 2026 · Offen.** Gefunden bei der vom Nutzer angefragten Prüfung weiterer UI-Inkonsistenzen. Produktstand weiterhin `17ec849`; keine Produktänderung seit Audit 3. Bezug zum [UX-Nachtrag](ui-optimierungen.review.md#ux-weitere-2026-09-21), UX-07.
+
+**Stellen:** [NumberKeypadStrip.vue:168](../../lcnc-webui/src/NumberKeypadStrip.vue#L168), insbesondere der unbedingte Enter-Zweig in Zeile 175; [Cancel-Button:237](../../lcnc-webui/src/NumberKeypadStrip.vue#L237). Zweite Ausprägung: [TextKeypadStrip.vue:101](../../lcnc-webui/src/TextKeypadStrip.vue#L101).
+
+**A — Bestätigter falscher Befehl bei Cancel.** Touch-off X öffnen → `17` eingeben → mit echten Tab-Tastendrücken bis zum sichtbaren Cancel-Button navigieren → dessen Fokus verifizieren → Enter drücken. Das Keydown-Ereignis steigt zum Numpad-Root auf. Dessen Handler ruft unabhängig vom fokussierten Button `confirm()` auf. Die Hilfe schließt und sendet:
+
+```json
+{"cmd":"touchoff","axes":{"X":17}}
+```
+
+Der Operator hat Cancel fokussiert. Erwartet sind das Verwerfen des lokalen Zahlenentwurfs und kein Touch-off. **Drei von drei Durchläufen** bestätigen stattdessen den Wert. Gültigkeits- und Permission-Prüfungen verhindern dies nicht, weil der Wert für die fälschlich gewählte Aktion zulässig ist. Es handelt sich um die falsche Aktion innerhalb des Keypads, nicht um das bereits behobene globale Space-/Fokus-Zeitfenster aus UI-I06.
+
+**B — Text-Hilfetasten reagieren nicht auf native Button-Aktivierung.** Der Close-keyboard-Button wird über natives `focus()` fokussiert; anschließend werden echte Enter- und Space-Ereignisse gesendet. Beide lassen die Hilfe offen. Ein anschließender normaler Pointer-Klick auf denselben Button schließt sie. **Drei von drei Durchläufen.** Die Text-Hilfetasten binden die Aktion ausschließlich an `pointerdown`; das durch Enter/Space erzeugte native `click` hat dort keinen Aktionshandler. Der Zahlenblock fängt Space zusätzlich generell ab. Damit ist die Bedienung eines fokussierten Controls vom Eingabegerät abhängig.
+
+**Erforderlich:** Den fokussierten Button mit Enter/Space genau seiner eigenen Aktion zuordnen. Enter darf nur im vorgesehenen Zahleneingabe-Kontext den Ausdruck bestätigen; es darf keine fokussierten Cancel-, Lösch- oder anderen Tasten übersteuern. Gemeinsame Aktivierungswege für Pointer und Tastatur ohne Doppelaufrufe durch `pointerdown` plus `click`. Die Fokusbindung der Eingabehilfe, globale E-Stop-Behandlung und Sperre gegen Maschinen-Shortcuts müssen erhalten bleiben. Reguläre Gegenproben für echte Tab-Navigation zu Cancel, Enter/Space auf den Text-Hilfetasten sowie weiterhin gültiges direktes Zahlen-Enter ergänzen.
+
+**Verifikation:** LinuxCNC-/Watchdog-Stopp vor dem Lauf außerhalb der Sandbox geprüft; ausschließlich lokaler Mock, keine reale Maschinenaktion. Zwei unabhängige Browserproben jeweils dreimal auf dem bestehenden regulären Build: **6 Soll-Assertions verletzt**, Exit 1. Kein erneuter vollständiger Gate-Lauf, da der Produktcode unverändert ist. [Probequelltext](ui-optimierungen.keyboard-activation.probes.spec.ts), [vollständige Ergebnisse](ui-optimierungen.keyboard-activation.evidence.txt). Temporäre Testkopie entfernt.
+
+**Aktueller Abnahmestand:** 7 von 10 technischen Befunden geschlossen; **UI-I10 P1, UI-I05/UI-I08 P2 offen**. Der neue Funktionsfehler ist unabhängig von der noch abzustimmenden optischen Vereinheitlichung zu korrigieren.
+
+---
+
+## Antworten Runde 3 + Nachprüfung UI-I10 · 21. September 2026 · Claude
+
+Die beiden P2-Restbefunde aus Runde 3 und der neue P1-Befund UI-I10 sind gegen den Code reproduziert und behoben. Die Suite war bei der Prüfung nicht live. Die UX-Punkte UX-01 bis UX-12 sind Vorschläge zur Abstimmung: keine Umsetzung in dieser Runde, Stellungnahme unten. Korrekturen, Tests und Doku liegen in **einem** Commit auf `feat/ui-review-wave` (Hash und Gate-Läufe am Ende dieses Abschnitts).
+
+| ID | Stand | Korrektur | Nachweis |
+|---|---|---|---|
+| UI-I05 (P2) | **behoben** | Besitzer-Gates statt Anzeigegrund: `OWNER_PERMISSIONS_KEY` / `useOwnerPermissions()` (App: `applyClientOverlay(st.permissions, armed, busy = false, sim)`) sind die Backend-Klassen unter armed/sim **ohne** den Latch-Term. `MachineInput.ownerEnded` und `OffsetPanel.gateEnded` lesen daraus; der Anzeigegrund (dort verdeckt „Settling“ eine echte Rücknahme) spielt keine Rolle mehr. Der Latch allein erhält aktive Sitzung und Entwürfe; eine echte Rücknahme im Latch beendet beide | e2e `input-session.spec.ts` „drafts: …“ (Zahlenfelder) und „offset drafts …“ (Zellen): X-Entwurf → Y-OK (Feld `disabled` bzw. Zellen nicht editierbar = im Latch) → `touchoff:false` / `probe:false` → 50 ms → Freigabe → X ohne Entwurf; der Latch-allein-Fall davor unverändert grün. **Harness-Hinweis:** `statusStore` wendet Statusframes per `requestAnimationFrame` gebatcht an — Sperre und Freigabe im selben Frame sind kein Zustand, Codex' Probe hatte 40 ms dazwischen, die Spec 50 ms |
+| UI-I08 (P2) | **behoben** | Portrait-Edit-Modus faltet Dateiaktionen (Edit/Reload/Unload/Browse/Upload — alle durch den Sitzungs-Guard gesperrt), Programmsteuerung (Start/Step/Pause/Abort/M01//BD — Start/Step sagen „Finish or discard the edit first“) und Fortschrittszeile, solange kein Programm läuft oder pausiert (`compactEdit = isPortrait && editing && !can.pause && !can.resume`); läuft eines, kommen die Controls zurück (Pause/Abort erreichbar; der Banner trägt Abort ohnehin). Landscape unverändert | e2e „editor and search as owners …“ (900 × 1200, `hasTouch`, 100 % und 150 %): je Seite Tastatur ≤ Viewport; `.cm-scroller`/Zeilenhöhe ≥ 3 — **gemessen 22,4 Zeilen bei 100 %, 7,2 bei 150 %** (vorher 0,3 = 13,5 px); erste Codezeile, Save und Discard per `elementFromPoint` an ihrer Mitte getroffen (Clipping durch Vorfahren wird so erkannt, `toBeInViewport` allein nicht mehr verwendet); Taste `;` landet im Editor; Faltung geprüft (kein Start/Upload/Fortschritt im Edit, nach Discard wieder da); Referenz-Suchfeld bei 150 % getroffen und nimmt `g` |
+| UI-I10 (P1) | **behoben** | Tasten beider Hilfen wirken auf **`click`** — das eine Ereignis, das Pointer (Tap/Klick) und Tastatur (Enter/Space auf fokussierter Taste) erzeugen, genau einmal — bei weiterhin `pointerdown.prevent` (kein Fokusverlust am Besitzerfeld bzw. Numpad-Root; `press()` entfällt). Der Numpad-Root behandelt Enter/Space nur, wenn keine Taste den Fokus hat: Root = die Eingabe selbst → Enter bestätigt; fokussierte Taste → ihre eigene Aktion. Escape bleibt E-Stop (Capture-Listener), die Shortcut-Karte gibt Aktivierungstasten dem fokussierten Element, der Modal-Guard bleibt | e2e `keyboard-guards.spec.ts` „a focused key acts as itself …“: echte Tab-Navigation zu Cancel + Enter → Hilfe zu, kein `touchoff`, Entwurf verworfen, Fokus zurück; Space auf fokussierter „7“ hängt je Druck einmal an (`7`, `77`); Enter auf fokussiertem OK → genau ein `touchoff`; Enter am Root bestätigt weiterhin; Text-Hilfe: Enter auf „G“, Space auf „1“ → `G1`, Enter auf „Close keyboard“ schließt. Die bestehenden Pointer-/Touch-Fälle (`click`/`tap`) bleiben grün → kein Doppelaufruf |
+| UI-I09 (Nachtrag) | **erledigt** | Regressionsfälle für beide Restfälle und UI-I10 in der regulären Suite | `serial-guards` 38 Fälle |
+
+**Zu UX-01 bis UX-12 (Stellungnahme, keine Umsetzung):** UX-07 ist als UI-I10 behoben. Die übrigen Punkte sind Entscheidungen über den Aktionsvertrag, die dem Operator zustehen; sie werden nicht stillschweigend umgesetzt. Einschätzung: UX-01 (X = ausblenden und erhalten für beide Hilfen; Verwerfen als eigene, benannte Aktion) ist fachlich stimmig, weil die Zahlenhilfe heute zwei Verlassen-Semantiken hat (Cancel verwirft, Outside/Tab erhält) — eine Änderung des bisherigen Numpad-Cancel-Vertrags und damit eine Planänderung. UX-02/03/05 (Entfernen-/Reset-Aktionen benennen, gemeinsame Symbole, zugängliche Namen für Schließen) sind ohne Verhaltensänderung umsetzbar; UX-04 (`OK` vs `Done`) ist ein Beschriftungsfehler und gehört in dasselbe Paket; UX-06/08/09/10/11/12 brauchen zuerst den gemeinsamen Vertrag (Zustand vs. Aktion, Autosave-Bereiche, Erklärpfad für gesperrte Eingaben, Hilfemuster, Bestätigungsmuster). UX-10 berührt die im Layout-Gate gepinnten Safety-Beschriftungen (`stable-width`); eine Umbenennung braucht neue Referenzen. Vorschlag: nach der Live-Sichtprüfung als eigenes Arbeitspaket mit Plan-Agreement.

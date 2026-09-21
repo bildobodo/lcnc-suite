@@ -132,7 +132,7 @@ const MACRO_FIXTURE = { macros: [{ id: 'm1', name: 'Face Top', command: 'G0 Z5',
 async function keypadCancel(page: Page) {
   const strip = page.locator('.nkStrip');
   if (await strip.count()) {
-    await strip.getByRole('button', { name: 'Cancel', exact: true }).dispatchEvent('pointerdown', { button: 0 });
+    await strip.getByRole('button', { name: 'Cancel', exact: true }).click();
     await expect(strip).toHaveCount(0);
   }
 }
