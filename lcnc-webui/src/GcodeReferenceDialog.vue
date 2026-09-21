@@ -58,6 +58,7 @@ function toggleSort(key: "code" | "name") {
           gate="search"
           type="text"
           v-model="search"
+          label="Search G-code reference"
           placeholder="Search codes, names, descriptions…"
           class="refSearch"
         />

@@ -5750,3 +5750,72 @@ for the operator and were not implemented.
   (22.4 at 100 %), first line, Save, Discard and the reference search field
   hit at their centres. Landscape is unchanged. The acceptance judges
   readouts by `elementFromPoint`, never by `toBeInViewport` alone.
+
+## 2026-09-21 evening — Implementation review round 4: an explicit close returns focus, the MDI line has one writer, text fields carry a field contract
+
+Codex's fourth round (docs/reviews/ui-optimierungen.implementation-review.md,
+"Codex · Implementierungsrunde 4") confirmed UI-I05 and UI-I08 closed, left
+the UI-I10 close path open (P1) and added UI-I11 (P2); the operator's report
+that the MDI line is offered as a login field (Firefox on macOS with the
+Apple password manager) became UX-13. Plan: Fassung 4 of
+docs/reviews/ui-optimierungen.plan.md — this is WP-A of five packages; the
+UX packages (X + Discard on the number keypad, action labels on Arm/Power,
+save status, reachable disable reasons and help, hold hints) follow as
+WP-B … WP-E, one commit each.
+
+- **An explicit close returns focus through the guarded transition.** The
+  text keyboard's X activated by Tab + Enter/Space unmounted with focus on
+  it: focus fell to `body`, the helper's modal guard fell with the session,
+  and the next Space sent `cycle_start` (Codex, 6/6). `TextTarget` gained
+  `focusEl()` (the owner's element — the field, the CodeMirror content) and
+  `closeTextSessionByOperator` reads it BEFORE the session ends and hands it
+  to `returnFocusTo`, the same rAF-polled transition the number keypad uses
+  (`focusReturn.pending` keeps the guard up until focus has landed). Only
+  the X and a plain text field's Done take this path; the leave paths
+  (outside pointerdown, focus arriving outside, a switch) never pull focus
+  back — that would rob a target the operator chose. A pointer close
+  already holds focus on the field and ends at the first frame.
+- **The MDI line sends on keydown and hands focus back after a send.** The
+  line sent on `keyup.enter`: after the focus return, the keyup of the very
+  Enter that activated the X would have landed in the line and sent the
+  draft the operator was only closing the helper on. `onMdiKeydown` sends
+  on keydown (`e.repeat` and an IME's committing Enter never send) and the
+  keyup meets no handler. The send also disables the line for the busy
+  latch and drops the focus it held — an unfocused document is where Space
+  is Cycle Start (the UI-I06 class) — so `useMdiHistory`'s `afterSend`
+  returns focus through the same guarded transition; the regression test
+  turned this up when ArrowDown after a send met no field.
+- **One writer per text field.** The MDI line was the only text caller
+  bound `:value` + `@input`; `MachineInput`'s text branch carried
+  `v-model="model"` beside `v-bind="attrs"` — two writers on one element:
+  `useModel` ran local-mode for a `value` caller (its emit reached nobody),
+  `vModelText.mounted` blanked the field and `patchProps` re-asserted the
+  caller's `value` on every patch. Every physically typed character was
+  lost (Codex, 3/3). The MDI line is `v-model` like every other text field
+  (one ref for the physical keyboard, the on-screen keys and the history),
+  and the text branch is attrs-first with ONE writer like the number
+  branch: `:value` = the caller's `value` if it passes one, else the model;
+  the native input event writes the model (`update:modelValue` for
+  v-model callers), a `:value` caller's own `onInput` stays bound through
+  the attrs. IME composition is write-through on purpose: skipping model
+  writes while composing would let an unrelated patch clobber the
+  composition. The commit names the topology, not a losing interleaving —
+  the interleaving could not be pinned statically; the regression test is
+  the arbiter.
+- **Field contract (UX-13).** Every catalog input is a technical field:
+  `autocomplete="off"`, `autocorrect="off"`, `autocapitalize="off"`,
+  `spellcheck="false"`, `name` = the catalog key (`mdiText`, `search`,
+  `toolEdit`, …) and an accessible name — `aria-label` from the `label`
+  prop (which reached only the helper's heading before) or a wired
+  `<label for>` (tool editor, macro editor, macro run dialog). 0 of 14 text
+  fields had an accessible name; 1 of 14 a wired label. No manager-specific
+  attribute (`data-1p-ignore` is 1Password's). NOT claimed: that the
+  password manager stops offering the line — `autocomplete="off"` binds no
+  manager; the acceptance is the operator's, in Firefox/macOS with the
+  iCloud Passwords extension on and off and in a fresh profile.
+- Tests: keyboard-guards "an explicit close by keyboard returns focus …"
+  (X by Enter and by Space, Done, the editor's X; the next Space types),
+  input-session "physical typing into the MDI line …" and "field contract:
+  …" (a DOM scan across four surfaces, ≥ 4 fields). No component unit
+  test: `@vue/test-utils`/jsdom are not in the tree (Vitest runs in the
+  node environment) — a DOM environment is a separate decision.

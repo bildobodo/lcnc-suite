@@ -219,6 +219,70 @@ test("a focused key acts as itself: Enter on Cancel cancels, Space on a digit ap
   expectNoMachineAction(cmds.filter(c => c !== "touchoff"));
 });
 
+test("an explicit close by keyboard returns focus: Enter/Space on the keyboard's X, Done in a search field and the editor's X leave the owner focused; the next Space types, never starts the program", async ({ page }) => {
+  // Review round 4 (UI-I10 rest): the X activated by Tab + Enter/Space
+  // unmounted with focus ON it — focus fell to body, the helper's modal
+  // guard fell with the session, and the next Space was Cycle Start (6/6).
+  // The X hands focus back through the guarded return now, and the MDI
+  // line sends on keydown, so the Enter that activated the X never sends.
+  await page.route("**/gcode?*", route => route.fulfill({ contentType: "text/plain", body: "G0 X0\nM2\n" }));
+  await openReady(page);
+  await page.getByRole("button", { name: "MDI", exact: true }).click();
+  const mdi = page.locator(".mdiInput");
+  const tk = page.locator(".tkStrip");
+  await mdi.click();
+  await expect(tk).toBeVisible();
+  await tk.getByRole("button", { name: "G", exact: true }).click();
+  await tk.getByRole("button", { name: "1", exact: true }).click();
+  await expect(mdi).toHaveValue("G1");
+  let expected = "G1";
+  for (const activation of ["Enter", " "]) {
+    if (!(await tk.count())) { await mdi.click(); await expect(tk).toBeVisible(); }
+    await tk.getByRole("button", { name: "Close keyboard", exact: true }).focus();
+    await page.keyboard.press(activation);
+    await expect(tk).toHaveCount(0);
+    await expect(mdi).toHaveValue(expected);
+    await expect(mdi).toBeFocused();
+    await expect.poll(() => page.evaluate(() => (window as any).__modalRegistry.open())).toBe(false);
+    // Continuing to type is typing — the Space lands in the line.
+    await page.keyboard.press(" ");
+    expected += " ";
+    await expect(mdi).toHaveValue(expected);
+  }
+  await settle(page);
+  expectNoMachineAction(await recordedCmds());
+  // A plain text field: Done by Enter leaves the search field focused.
+  await page.getByTitle("G-code Reference", { exact: true }).click();
+  const overlay = page.locator(".dialogOverlay").first();
+  const search = overlay.locator("input.inputField").first();
+  await search.click();
+  await expect(tk).toBeVisible();
+  await tk.getByRole("button", { name: "g", exact: true }).click();
+  await tk.getByRole("button", { name: "Done", exact: true }).focus();
+  await page.keyboard.press("Enter");
+  await expect(tk).toHaveCount(0);
+  await expect(search).toBeFocused();
+  await page.keyboard.press(" ");
+  await expect(search).toHaveValue("g ");
+  await overlay.getByRole("button", { name: /^(Cancel|×)$/ }).first().click();
+  await expect(overlay).toHaveCount(0);
+  // The editor: its X hands focus to the CodeMirror content.
+  await page.getByRole("button", { name: "Program", exact: true }).click();
+  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 1, file: "/A.ngc" } });
+  await expect(page.locator(".codeLine").first()).toBeVisible();
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  const content = page.locator(".cm-content");
+  await expect(content).toBeVisible();
+  await expect(tk).toBeVisible();
+  await tk.getByRole("button", { name: "Close keyboard", exact: true }).focus();
+  await page.keyboard.press("Enter");
+  await expect(tk).toHaveCount(0);
+  await expect(content).toBeFocused();
+  await page.keyboard.press(" ");
+  await settle(page);
+  expectNoMachineAction(await recordedCmds());
+});
+
 test("repeated Escape in E-Stop never sends estop_reset", async ({ page }) => {
   await openReady(page);
   await ctl({ op: "status_delta", data: { estop: true, is_estop: true } });

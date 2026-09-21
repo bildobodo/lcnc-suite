@@ -686,6 +686,7 @@ function resetMachineColor(id: string) {
               gate="displaySetting"
               type="text"
               v-model="spindleLoadPin"
+              label="Spindle load HAL pin"
               @change="saveMachine()"
               placeholder="e.g. spindle-load-conv.load-percentage"
               class="w-full"
@@ -782,12 +783,12 @@ function resetMachineColor(id: string) {
               <div class="sub">{{ macros.some(m => m.id === editingMacro!.id) ? 'Edit' : 'New' }} Macro</div>
               <div class="stack-controls fieldGroup">
                 <div class="row-controls inputRow">
-                  <span class="inputLabel">Name</span>
-                  <MachineInput gate="macroEdit" type="text" v-model="editingMacro.name" placeholder="e.g. Face Top" />
+                  <label class="inputLabel" for="macro-edit-name">Name</label>
+                  <MachineInput id="macro-edit-name" gate="macroEdit" type="text" v-model="editingMacro.name" placeholder="e.g. Face Top" />
                 </div>
                 <div class="row-controls inputRow">
-                  <span class="inputLabel">Command</span>
-                  <MachineInput gate="macroEdit" type="text" v-model="editingMacro.command" placeholder="e.g. G0 Z{depth} F{feed}" />
+                  <label class="inputLabel" for="macro-edit-command">Command</label>
+                  <MachineInput id="macro-edit-command" gate="macroEdit" type="text" v-model="editingMacro.command" placeholder="e.g. G0 Z{depth} F{feed}" />
                 </div>
                 <div class="macroParamHint">
                   Use <code>{"{name}"}</code> for parameters. Users will be prompted for values.
@@ -797,8 +798,8 @@ function resetMachineColor(id: string) {
                   <div class="sub">Parameters</div>
                   <div v-for="p in editingMacro.params" :key="p.name" class="macroParamEditRow">
                     <code class="macroParamBadge">{{"{"}}{{ p.name }}{{"}"}}</code>
-                    <MachineInput gate="macroEdit" type="text" v-model="p.label" placeholder="Display label" />
-                    <MachineInput gate="macroEdit" type="text" v-model="p.default" placeholder="Default value" />
+                    <MachineInput gate="macroEdit" type="text" v-model="p.label" placeholder="Display label" :label="`${p.name} display label`" />
+                    <MachineInput gate="macroEdit" type="text" v-model="p.default" placeholder="Default value" :label="`${p.name} default value`" />
                   </div>
                 </div>
               </div>

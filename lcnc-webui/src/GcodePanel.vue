@@ -689,6 +689,9 @@ function editorTarget(): TextTarget {
     tab() { const e = v(); if (!e || !_cm) return; _cm.insertTab(e); e.focus(); },
     canConfirm: () => editing.value && !!_editorView,
     isVisible: () => !!editorHost.value && editorHost.value.offsetParent !== null,
+    // Explicit close (the X key) hands focus to the content the view itself
+    // focuses — its DOM focus handler restores the selection.
+    focusEl: () => _editorView?.contentDOM ?? null,
   };
 }
 function openEditorSession() {

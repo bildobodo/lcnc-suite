@@ -328,6 +328,72 @@ test("Send from the keyboard is the MDI path; Enter in a search field never reac
   expectNoMachineAction(await cmds());
 });
 
+test("physical typing into the MDI line is kept with the helper open and closed; Enter sends the whole line once, the history recalls it, on-screen keys append", async ({ page }) => {
+  // Review round 4 (UI-I11): `:value` + `@input` against MachineInput's own
+  // model left two writers on the element — every typed character was
+  // wiped. The line is v-model now: one ref for the physical keyboard, the
+  // on-screen keys and the history.
+  await open(page);
+  const mdi = await openMdi(page);
+  const tk = page.locator(".tkStrip");
+  await page.keyboard.type("G1 X7");
+  await expect(mdi).toHaveValue("G1 X7");
+  await key(tk, "Close keyboard");
+  await expect(tk).toHaveCount(0);
+  await expect(mdi).toHaveValue("G1 X7");
+  await expect(mdi).toBeFocused();
+  await page.keyboard.type(" F1");
+  await expect(mdi).toHaveValue("G1 X7 F1");
+  await page.keyboard.press("Enter");
+  await expect.poll(async () => (await sentCmds()).filter(c => c.cmd === "mdi").map(c => c.text)).toEqual(["G1 X7 F1"]);
+  await expect(mdi).toHaveValue("");
+  // The send disabled the line for the busy latch (focus dropped); the
+  // guarded return lands it back on the line — the next keys are MDI.
+  await expect(mdi).toBeFocused();
+  await page.keyboard.press("ArrowDown");   // into the history (newest first)
+  await expect(mdi).toHaveValue("G1 X7 F1");
+  await mdi.click();
+  await expect(tk).toBeVisible();
+  await key(tk, "Space");
+  await key(tk, "Z");
+  await expect(mdi).toHaveValue("G1 X7 F1 Z");
+  expect((await cmds()).filter(c => c === "mdi")).toHaveLength(1);
+});
+
+test("field contract: every text field is a technical field — no autofill, autocorrect, autocapitalize or spellcheck, a stable name and an accessible name", async ({ page }) => {
+  // UX-13: the operator's browser offered the MDI line as a login field.
+  // MachineInput sets the contract for every catalog text field; a caller's
+  // own attribute would win, so the scan reads the DOM, not the component.
+  await open(page);
+  await ctl({ op: "raw", frame: { type: "settings_init", settings: {} } });
+  const seen = new Set<string>();
+  async function scan(where: string) {
+    const fields = await page.locator("input.inputField:not([readonly]):visible").all();
+    expect(fields.length, `${where}: at least one text field`).toBeGreaterThan(0);
+    for (const f of fields) {
+      const name = await f.getAttribute("name");
+      await expect(f, where).toHaveAttribute("autocomplete", "off");
+      await expect(f, where).toHaveAttribute("autocorrect", "off");
+      await expect(f, where).toHaveAttribute("autocapitalize", "off");
+      await expect(f, where).toHaveAttribute("spellcheck", "false");
+      expect(name, `${where}: name`).toMatch(/\S/);
+      await expect(f, `${where}: accessible name`).toHaveAccessibleName(/\S/);
+      seen.add(`${where}:${name}`);
+    }
+  }
+  await page.getByRole("button", { name: "MDI", exact: true }).click();
+  await scan("MDI");
+  await page.getByRole("button", { name: "Tools", exact: true }).click();
+  await scan("Tools");
+  await page.getByTitle("G-code Reference", { exact: true }).click();
+  await scan("Reference");
+  await page.locator(".dialogOverlay").first().getByRole("button", { name: /^(Cancel|×)$/ }).first().click();
+  await page.getByTitle("Settings", { exact: true }).click();
+  await page.locator(".dialogOverlay").first().getByRole("button", { name: "Machine", exact: true }).click();
+  await scan("Settings · Machine");
+  expect(seen.size).toBeGreaterThanOrEqual(4);
+});
+
 test("editor → number → editor keeps the buffer; a hidden tab locks, not ends, the session", async ({ page }) => {
   await page.route("**/gcode?*", route => route.fulfill({ contentType: "text/plain", body: "G0 X0\nM2\n" }));
   await open(page);

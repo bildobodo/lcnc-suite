@@ -3,7 +3,7 @@ import { computed, onUnmounted, ref, useAttrs, watch, type InputHTMLAttributes }
 import { usePermissions, useOwnerPermissions } from './permissions';
 import { INPUT_DEFS, INPUT_SIZE_STYLES, type InputType, type InputDef } from './machineControls';
 import { openKeypad, keypadState, closeKeypadIf, newKeypadOwnerId } from './useNumberKeypad';
-import { openTextSession, closeTextSessionIf, inputSession, dropDraft, showInputGlyph, hideInputGlyph, placeInputGlyph, type TextTarget } from './inputSession';
+import { openTextSession, closeTextSessionIf, returnFocusTo, inputSession, dropDraft, showInputGlyph, hideInputGlyph, placeInputGlyph, type TextTarget } from './inputSession';
 import { isTouchDevice } from './touchDetect';
 import { connected } from './lcncWs';
 import type { EntryConstraints } from './mathEval';
@@ -50,6 +50,19 @@ const catalogStyle = computed(() => {
 const keypadDisplayValue = computed(() =>
   attrs.value !== undefined ? (attrs.value as string | number | undefined) : model.value
 );
+// Text branch: ONE writer of the element's value, attrs-first like the
+// number branch — the caller's `value` when it passes one, else the model.
+// A `v-model="model"` next to `v-bind="attrs"` was a second writer:
+// `useModel` ran local-mode for a `:value` caller (its emit reached nobody),
+// vModelText's mounted hook blanked the field and every patch re-asserted
+// the caller's stale `value` — the MDI line lost each typed character
+// (implementation review round 4, UI-I11). The native input event writes
+// the model (→ `update:modelValue` for v-model callers); a `:value` caller's
+// own `onInput` is bound through the attrs beside it.
+const textValue = computed(() =>
+  attrs.value !== undefined ? (attrs.value as string | number) : (model.value ?? '')
+);
+function onNativeInput(e: Event) { model.value = (e.target as HTMLInputElement).value; }
 
 // Field contract handed to the keypad: min/max from the attrs (never
 // clamped there — an out-of-range value is refused), integer from the prop.
@@ -124,12 +137,15 @@ function textTarget(): TextTarget {
     backspace() { const e = el(); if (!e) return; let s = e.selectionStart ?? e.value.length; const n = e.selectionEnd ?? s; if (s === n && s > 0) s -= 1; if (s === n) return; e.setRangeText('', s, n, 'end'); fireInput(); },
     // Plain text: Enter is "done" — the value is already in the field, the
     // helper closes; never a machine action (search fields, descriptions).
-    enter() { closeTextSessionIf(ownerId, 'done'); textEl.value?.focus(); },
+    // The focus goes back through the guarded transition (UI-I10): the Done
+    // key may hold focus when Enter/Space activated it.
+    enter() { const el = textEl.value; if (closeTextSessionIf(ownerId, 'done')) returnFocusTo(el); },
     clear() { const e = el(); if (!e) return; e.value = ''; fireInput(); },
     moveCursor(d) { const e = el(); if (!e) return; const p = Math.max(0, Math.min(e.value.length, (e.selectionStart ?? 0) + d)); e.setSelectionRange(p, p); },
     canConfirm: () => !isDisabled.value && !!textEl.value?.isConnected && textEl.value.offsetParent !== null,
     // Hidden-but-mounted (tab switch) → the session locks (inputSession poll).
     isVisible: () => !!textEl.value && textEl.value.offsetParent !== null,
+    focusEl: () => textEl.value,
   };
 }
 function openText() {
@@ -192,6 +208,16 @@ onUnmounted(() => {
   hideGlyph();
 });
 
+// ── Field contract (UX-13) ──
+// Every catalog input is a TECHNICAL field (G-code, HAL pins, file and tool
+// names, search terms): no autofill, no autocorrect/autocapitalize, no
+// spellcheck, a stable `name` (the catalog key) and an accessible name from
+// the `label` prop — which used to reach only the helper's heading, never
+// the DOM. The defaults sit BEFORE `v-bind="attrs"` in the templates, so a
+// caller's own attribute wins. A password manager reading the MDI line as
+// a login field was the operator's report; `autocomplete="off"` is no
+// guarantee against every manager — the acceptance is in the browser.
+
 // Both branches render a single <input> root (a parent's `$el` and its
 // scoped CSS reach it); the accessor is the explicit API for parents that
 // drive a session on the field (App's MDI line).
@@ -203,6 +229,9 @@ defineExpose({ inputElement: () => textEl.value ?? inputEl.value });
   <input
     v-if="isNumber"
     ref="inputEl"
+    autocomplete="off"
+    :name="gate"
+    :aria-label="label"
     v-bind="attrs"
     type="text"
     :style="catalogStyle"
@@ -223,15 +252,22 @@ defineExpose({ inputElement: () => textEl.value ?? inputEl.value });
   <input
     v-else
     ref="textEl"
+    autocomplete="off"
+    autocorrect="off"
+    autocapitalize="off"
+    spellcheck="false"
+    :name="gate"
+    :aria-label="label"
     v-bind="attrs"
     :style="catalogStyle"
-    v-model="model"
+    :value="textValue"
     :disabled="isDisabled"
     :inputmode="textInputMode"
     lang="en"
     class="inputField"
     :class="{ 'keypad-active': isTextActive }"
     :data-input-area="ownerId"
+    @input="onNativeInput"
     @click="onTextClick"
     @focus="onTextFocus"
     @focusout="onTextFocusOut"

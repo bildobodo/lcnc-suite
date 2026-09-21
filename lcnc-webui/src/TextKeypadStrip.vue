@@ -10,7 +10,7 @@
 import { computed } from "vue";
 import { X, ArrowBigUp, Delete, CornerDownLeft, ArrowLeft, ArrowRight, Undo2, Redo2 } from "lucide-vue-next";
 import MachineBtn from "./MachineBtn.vue";
-import { inputSession, closeTextSession } from "./inputSession";
+import { inputSession, closeTextSessionByOperator } from "./inputSession";
 import { pageKeys, PAGE_ORDER, PAGE_LABELS, type KeyPage } from "./textKeyboardPages";
 
 const props = defineProps<{
@@ -98,7 +98,7 @@ function keyLabel(k: string): string {
                     :aria-pressed="inputSession.page === p" :aria-label="`${PAGE_LABELS[p]} keys`" :title="`${PAGE_LABELS[p]} keys`"
                     @pointerdown.prevent @click="setPage(p)" @contextmenu.prevent>{{ PAGE_LABELS[p] }}</MachineBtn>
         <MachineBtn type="numOp" class="tkKey tkClose" aria-label="Close keyboard" title="Close keyboard"
-                    @pointerdown.prevent @click="closeTextSession('closed by the operator', true)" @contextmenu.prevent>
+                    @pointerdown.prevent @click="closeTextSessionByOperator('closed by the operator')" @contextmenu.prevent>
           <X :size="16" />
         </MachineBtn>
       </div>

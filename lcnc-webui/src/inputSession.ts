@@ -48,6 +48,10 @@ export interface TextTarget {
   canConfirm(): boolean;
   /** Owner mounted but hidden (tab switch)? false LOCKS the session. */
   isVisible?(): boolean;
+  /** The element that takes focus back after an EXPLICIT close (the X key,
+   *  Enter = done): the field, the editor's content — read before the
+   *  session ends. Absent → the strip fallback of `returnFocusTo`. */
+  focusEl?(): HTMLElement | null;
   /** The session ended (close, outside tap, owner gone) — no value passes. */
   onClose?(): void;
 }
@@ -167,11 +171,28 @@ export function openTextSession(opts: TextSessionOpts): void {
   inputSession.seq++;
 }
 
-/** Close the text helper without confirming anything. */
+/** Close the text helper without confirming anything — the LEAVE paths
+ *  (pointerdown outside, focus arriving outside, a switch): focus stays
+ *  wherever the operator put it, never pulled back. */
 export function closeTextSession(reason?: string, byUser = false): void {
   if (!inputSession.kind) return;
   if (byUser) inputSession.closedByUser = inputSession.ownerId;
   endText(reason);
+}
+
+/** The operator's EXPLICIT close (the X key). Activated by Tab + Enter/Space
+ *  the key holds focus and unmounts with the strip: focus fell to `body`,
+ *  the helper's modal guard fell with the session, and the next Space was
+ *  Cycle Start (implementation review round 4, UI-I10). The owner's focus
+ *  element is read BEFORE the session ends and handed to the same guarded
+ *  transition the number keypad uses — a pointer close already holds focus
+ *  on the field and ends at the first frame. */
+export function closeTextSessionByOperator(reason?: string): void {
+  if (!inputSession.kind) return;
+  const el = inputSession.target?.focusEl?.() ?? null;
+  inputSession.closedByUser = inputSession.ownerId;
+  endText(reason);
+  returnFocusTo(el);
 }
 
 /** Close only when `ownerId` owns the session (unmount, gate closed). */

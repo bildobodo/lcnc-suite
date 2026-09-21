@@ -39,7 +39,7 @@ import GcodeReferenceDialog from "./GcodeReferenceDialog.vue";
 import NumberKeypadStrip from "./NumberKeypadStrip.vue";
 import FloatingOverlays from "./FloatingOverlays.vue";
 import { keypadState } from "./useNumberKeypad";
-import { activeKind, openTextSession, closeTextSessionIf, lockTextSessionIf, EDITOR_OWNER, type TextTarget } from "./inputSession";
+import { activeKind, openTextSession, closeTextSessionIf, lockTextSessionIf, EDITOR_OWNER, type TextTarget, returnFocusTo } from "./inputSession";
 import { loadViewerDefaults, saveViewerDefaults, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadGamepadDefaults, saveGamepadDefaults, settingsVersion, type ThemeMode, type GamepadDefaults, type Layer, type TrackMode, type Projection } from "./defaults";
 import { buildToolsetterVarMap } from "./toolsetterVars";
 import { useGamepad } from "./useGamepad";
@@ -326,7 +326,14 @@ const {
   // MDI is a state-changing command: route it through the ONE client path so
   // it carries the permission re-check and the busy latch, like every other
   // `mdi` call site (issue #31 — it was raw here and gated at every other).
-} = useMdiHistory({ fire: (c) => { fire(c, 'ready'); } });
+} = useMdiHistory({
+  fire: (c) => { fire(c, 'ready'); },
+  // The send disables the line for the busy latch and drops its focus: the
+  // guarded return keeps the shortcut map closed until the line holds focus
+  // again (or the operator moved on) — the next keystroke is MDI, never a
+  // shortcut (review round 4).
+  afterSend: () => returnFocusTo(_mdiInputEl()),
+});
 
 // ── Input helpers in the bottom strip (WP8, UI-15) ──
 // ONE session (inputSession.ts): the number keypad OR the text/code
@@ -400,6 +407,7 @@ function mdiTarget(): TextTarget {
     },
     canConfirm: () => !!permissions.value.ready,
     isVisible: () => { const el = _mdiInputEl(); return !!el && el.offsetParent !== null; },
+    focusEl: _mdiInputEl,
   };
 }
 function openMdiSession() {
@@ -1861,16 +1869,21 @@ watch(viewerGcode, (newGcode) => {
           <template #mdi>
             <div class="mdiTab stack-controls">
               <div class="mdiRow">
+                <!-- v-model, like every other text field: one ref (mdiText) is the
+                     line's single source — physical typing, the on-screen keys
+                     (mdiTarget) and the history all write it. `:value` + `@input`
+                     against MachineInput's own model left two writers on the
+                     element and lost every typed character (review round 4,
+                     UI-I11). Enter sends on keydown (onMdiKeydown). -->
                 <MachineInput
                   ref="mdiInputRef"
                   gate="mdiText"
                   type="text"
                   class="mdiInput"
-                  :value="mdiText"
+                  v-model="mdiText"
+                  label="MDI command"
                   :session-owner="MDI_OWNER"
                   :session-open="openMdiSession"
-                  @input="mdiText = ($event.target as HTMLInputElement).value"
-                  @keyup.enter="handleMdiSend"
                   @keydown="onMdiKeydown"
                   placeholder="G-code command (↑↓ history)"
                 />
@@ -2124,8 +2137,9 @@ watch(viewerGcode, (newGcode) => {
           <div class="dialogBody">
             <div class="stack-controls">
               <div v-for="p in macroParamDialog.macro.params" :key="p.name" class="row-controls">
-                <label class="macroParamLabel">{{ p.label || p.name }}</label>
+                <label class="macroParamLabel" :for="`macro-param-${p.name}`">{{ p.label || p.name }}</label>
                 <MachineInput
+                  :id="`macro-param-${p.name}`"
                   gate="macroParam"
                   v-model="macroParamDialog.values[p.name]"
                   @keydown.enter="confirmMacroParams"

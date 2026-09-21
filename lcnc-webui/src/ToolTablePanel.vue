@@ -597,6 +597,7 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
       gate="toolSearch"
       type="text"
       v-model="searchText"
+      label="Search tools"
       placeholder="Search tools…"
       class="toolSearch"
     />
@@ -675,8 +676,8 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
                       <option value="">-</option>
                       <option v-for="tt in TOOL_TYPES" :key="tt" :value="tt">{{ toolTypeLabel(tt) }}</option>
                     </MachineSelect>
-                    <label>Description</label>
-                    <MachineInput gate="toolEdit" type="text" v-model="editForm.description" class="full"
+                    <label for="tool-description">Description</label>
+                    <MachineInput id="tool-description" gate="toolEdit" type="text" v-model="editForm.description" class="full"
                       label="Description" :context="fieldContext('Description', 'count')" />
                     <label>Diameter</label>
                     <MachineInput gate="toolEditNum" type="number" v-model.number="editForm.D" min="0"
@@ -687,8 +688,8 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
                     <label>Flutes</label>
                     <MachineInput gate="toolEditNum" type="number" v-model.number="editForm.flutes" min="0" integer
                       label="Flutes" :context="fieldContext('Flutes', 'count')" />
-                    <label>Material</label>
-                    <MachineInput gate="toolEdit" type="text" v-model="editForm.material" placeholder="hss, carbide..." class="full"
+                    <label for="tool-material">Material</label>
+                    <MachineInput id="tool-material" gate="toolEdit" type="text" v-model="editForm.material" placeholder="hss, carbide..." class="full"
                       label="Material" :context="fieldContext('Material', 'count')" />
                   </div>
                 </div>
@@ -720,8 +721,8 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
                     <label>Point °</label>
                     <MachineInput gate="toolEditNum" type="number" v-model.number="editForm.point_angle" min="0" max="180"
                       label="Point" :context="fieldContext('Point', 'deg')" placeholder="deg" />
-                    <label>Holder</label>
-                    <MachineInput gate="toolEdit" type="text" v-model="editForm.holder" placeholder="Holder name" class="full spanRest"
+                    <label for="tool-holder">Holder</label>
+                    <MachineInput id="tool-holder" gate="toolEdit" type="text" v-model="editForm.holder" placeholder="Holder name" class="full spanRest"
                       label="Holder" :context="fieldContext('Holder', 'count')" />
                   </div>
                 </div>
