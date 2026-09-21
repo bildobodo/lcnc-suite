@@ -23,6 +23,7 @@ import {
   STEP_RPM,
   loadKeyboardDefaults, type KeyboardDefaults, DEFAULT_KB_MAPPING,
 } from "./defaults";
+import { saveStatus, saveStatusText } from "./settingsSaveStatus";
 import type { MappingSource } from "./gamepadProfile";
 import { enableWakeLock, disableWakeLock } from "./wakeLock";
 import { ChevronUp, ChevronDown, Pencil, Trash2, RotateCcw } from "lucide-vue-next";
@@ -489,7 +490,13 @@ function resetMachineColor(id: string) {
 
 <template>
   <div class="settings">
-    <div class="hint">Settings are saved automatically and shared across all connected clients.</div>
+    <!-- The promise and its proof (UX-08): changes save on the server as they
+         are made, except where a section shows Save/Cancel (macro editor,
+         gamepad wizard) — and the status says what the last save did. -->
+    <div class="settingsHead row-controls">
+      <div class="hint">Changes save automatically and are shared across all connected clients.</div>
+      <span class="saveStatus" :class="saveStatus.state" role="status" aria-live="polite">{{ saveStatusText(saveStatus) }}</span>
+    </div>
     <TabPanel :tabs="subTabs" v-model="activeTab" class="subTabs">
       <template #viewer>
         <div v-if="!serverSettingsReady" class="settingsLoading">Waiting for server settings…</div>
@@ -804,6 +811,7 @@ function resetMachineColor(id: string) {
                 </div>
               </div>
               <div class="macroEditActions">
+                <div class="hint">Unsaved edit — Save or Cancel</div>
                 <MachineBtn type="dialogCancel" @click="editingMacro = null">Cancel</MachineBtn>
                 <MachineBtn type="dialogConfirm" @click="saveMacro" :disabled="!editingMacro.name.trim() || !editingMacro.command.trim()">Save</MachineBtn>
               </div>
@@ -891,11 +899,16 @@ function resetMachineColor(id: string) {
   flex-direction: column;
 }
 
+.settingsHead {
+  margin-bottom: var(--gap-section);
+  flex-shrink: 0;
+  align-items: baseline;
+}
+.settingsHead > .hint { flex: 1; }
+.macroEditActions > .hint { margin-right: auto; }
 .hint {
   font-size: var(--fs-sm);
   opacity: var(--opacity-disabled);
-  margin-bottom: var(--gap-section);
-  flex-shrink: 0;
 }
 
 .resetRow {

@@ -469,6 +469,40 @@ test("a jog key released after a field opened mid-jog still sends jog_stop", asy
   await expect.poll(recordedCmds).toContain("jog_stop");
 });
 
+test("settings save status: Saving… on a change, Saved on the gateway's ok, the reason on ok:false", async ({ page }) => {
+  // UX-08: the header's "saved automatically" is a promise with a proof —
+  // the status follows the correlated reply, never the send alone.
+  await openReady(page);
+  await page.getByTitle("Settings", { exact: true }).click();
+  const dialog = page.locator(".dialogOverlay").first();
+  const status = dialog.locator(".saveStatus");
+  await expect(status).toHaveText("");
+  await dialog.getByRole("button", { name: "Keyboard", exact: true }).click();
+  const abortCell = dialog.locator("tr").filter({ hasText: "Abort" }).locator(".kbKeyCell");
+  await ctl({ op: "clearCmds" });
+  await abortCell.click();
+  await page.keyboard.press("F9");
+  await expect(status).toHaveText("Saving…");
+  const saveReq = async () => {
+    const sent = ((await ctl({ op: "lastCmds" })).cmds ?? []) as { cmd?: string; section?: string; req_id?: string }[];
+    return sent.filter(c => c.cmd === "save_settings" && c.section === "keyboard").at(-1)?.req_id;
+  };
+  await expect.poll(saveReq).toMatch(/\S/);
+  await ctl({ op: "raw", frame: { type: "reply", cmd: "save_settings", ok: true, req_id: await saveReq() } });
+  await expect(status).toHaveText("Saved");
+  await ctl({ op: "clearCmds" });
+  await abortCell.click();
+  await page.keyboard.press("F10");
+  await expect(status).toHaveText("Saving…");
+  await expect.poll(saveReq).toMatch(/\S/);
+  await ctl({ op: "raw", frame: { type: "reply", cmd: "save_settings", ok: false, error: "disk full", req_id: await saveReq() } });
+  await expect(status).toHaveText("Save failed — disk full");
+  // A foreign reply moves nothing.
+  await ctl({ op: "raw", frame: { type: "reply", cmd: "save_settings", ok: true, req_id: "nobody-1" } });
+  await page.waitForTimeout(100);
+  await expect(status).toHaveText("Save failed — disk full");
+});
+
 test("keyboard tab: a capture edits a local copy, no page error, a server change refreshes it", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", e => errors.push(e.message));

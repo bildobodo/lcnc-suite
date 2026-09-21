@@ -38,7 +38,7 @@ The bundled routines retract with `G53 G0 Z0` and assume **machine Z0 is the top
 - `OffsetPanel.vue` — WCS offset table editor (G54–G59.3), inline cell editing, auxiliary rows (G92, Tool, Comp)
 - `CameraPip.vue` — Picture-in-picture camera overlay with MJPEG feed, SVG crosshair/circle/grid overlay
 - `ScrubBar.vue` — Program-scrub timeline overlay (viewer-hosted): poses the machine model along the loaded program via `viewer/scrubTrack.ts` (see "Program scrub"); also the control surface for the collision sweep (`viewer/collision.ts` + `collisionWorker.ts`, see "Collision sweep")
-- `SettingsPanel.vue` — Sub-tabbed settings (3D Viewer | Machine | Display | Macros | Gamepad | Keyboard | HAL | Debug)
+- `SettingsPanel.vue` — Sub-tabbed settings (3D Viewer | Machine | Display | Macros | Gamepad | Keyboard | HAL | Debug) The header states the save model per area — changes save automatically, the macro editor and the gamepad wizard say Save/Cancel — and carries the save status (UX-08).
 - `Gate.vue` — Permission gate wrapper: `<fieldset :disabled="!allow">` with `#exempt` slot
 - `permissions.ts` — Permission evaluation (evaluatePermissions + provide/inject). `PERMISSIONS_KEY` = the gates with the client overlay (armed, busy, sim); `OWNER_PERMISSIONS_KEY` / `useOwnerPermissions()` = the same WITHOUT the busy latch — what an input owner's context (session + draft) lives by
 - `machineControls.ts` — Machine controls catalog: BUTTON_TYPES + INPUT_DEFS (single source of truth for permissions + styling)
@@ -48,11 +48,11 @@ The bundled routines retract with `G53 G0 Z0` and assume **machine Z0 is the top
 - `lcncWs.ts` — WebSocket client, heartbeat, server-authoritative armed state
 - `lcncApi.ts` — REST helpers for file listing and upload
 - `lcnc.ts` — LinuxCNC constants (TASK_MODE_*, INTERP_*, SPINDLE_*) and WsCommand union type
-- `defaults.ts` — Server-synced settings with section registry pattern (no localStorage)
+- `defaults.ts` — Server-synced settings with section registry pattern (no localStorage) A save is never silent (UX-08): `saveSection` drives `settingsSaveStatus.ts` — pending through the debounce, `saving` once the saver returned the `req_id`, `saved`/`error` from the CORRELATED reply (lcncWs), `blocked` before the server's settings arrived, `error` on a lost connection — and the Settings header shows it (`.saveStatus`).
 - `useKeyboardShortcuts.ts` — Global shortcut map. **Escape is the reserved E-Stop key**: a capture listener registered at App setup (before any child mounts its own), not re-bindable (`normalizeKeyboardMapping` pins it, KeyboardTab shows it fixed, its key-capture lets Escape through); E-Stop RESET is button-only. Space/Enter belong to any focused element; behind a dialog or the keypad (`modalOpen`) nothing but E-Stop passes; Cycle Start needs gate `run` and no open editor; jog KEYUP is never filtered (a field opened mid-jog must not swallow the `jog_stop`)
 - `main.ts` — Vue app entry point with settings migration
 - `style.css` — Global styles, theme vars, design tokens
-- `SafetyStrip.vue` — Bottom strip: Arm/Disarm, E-Stop, Machine On/Off, status display (in #exempt slot). In PORTRAIT with an input helper open the status detail folds away (title + the three buttons stay): the sticky section's 172 px detail is what pushed the 150 % keyboard below the fold (review UI-I08); the banner names the machine state meanwhile
+- `SafetyStrip.vue` — Bottom strip: Arm/Disarm, E-Stop, Machine On/Off, status display (in #exempt slot). In PORTRAIT with an input helper open the status detail folds away (title + the three buttons stay): the sticky section's 172 px detail is what pushed the 150 % keyboard below the fold (review UI-I08); the banner names the machine state meanwhile Arm and Machine Power are labelled with the NEXT ACTION (`Arm`/`Disarm`, `Power on`/`Power off`), like E-Stop/Reset — the state stays in the variant, the header pill and the status rows; the unacknowledged-trip case is a `reason`, not a title (UX-10, operator decision 2026-09-21).
 - `JogStrip.vue` — Bottom strip: jog wheel, speed slider, step increments
 - `SetupStrip.vue` — Bottom strip: DRO display, axis touchoff, homing grid, WCS selector
 - `OverridesStrip.vue` — Bottom strip: Feed/Spindle/Rapid override sliders
@@ -1072,7 +1072,7 @@ low rapid traverse rams the trunnion (stage 1 quiet, stage 3 flags it).
   - Every component that renders a `.dialogOverlay` calls `registerModal()` (modalRegistry.ts); Escape never closes a dialog (it is E-Stop)
 - **z-index scale** — `--z-base` (0) / `--z-raised` (1, sticky cells, viewer overlays) / `--z-fade` (2) / `--z-pane-overlay` (5) / `--z-float` (10, PIP, sim bar) / `--z-banner` (11) / `--z-modal` (1000) / `--z-modal-top` (1010). Never a literal.
 - **Viewer overlay chrome** — `.overlay-card` (HUD, sim bar) and `.overlay-card.warn` (sim banner, STL-failed chip): one chrome, components add layout only. `--viewcube-size` (140px) is the ViewCube edge the quick grid offsets by.
-- **Utilities** — `.w-full` (width: 100%) instead of an inline `style="width: 100%"`.
+- **Utilities** — `.w-full` (width: 100%) instead of an inline `style="width: 100%"`. `.saveStatus` (+ `.saved`/`.error`/`.blocked`) is the one save-status readout (Settings header).
 - **Axis fallback** — `DEFAULT_AXES` in `useAxes.ts` is the only pre-`viewer_init` axis set; never a local `["X","Y","Z"]`.
 - **Number fields** — `MachineInput type="number"` opens the keypad with the field's contract: `min`/`max` attrs and the explicit `integer` prop (never `step`), plus `label`/`context` for the readout. Out-of-range values are refused, never clamped.
 - **Program upload** — `POST /upload` never replaces an existing program unless `overwrite=1` (409 → Cancel / Rename / Replace dialog); the no-replace publish is an `os.link`, and a filesystem that cannot link REFUSES the upload (no copy fallback — a partial file must never appear under the final name).

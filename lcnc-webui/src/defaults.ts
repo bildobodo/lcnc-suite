@@ -1,5 +1,6 @@
 import { ref } from "vue";
 import { withToken } from "./auth";
+import { noteSavePending, noteSaveSent, noteSaveBlocked, noteSaveFailed } from "./settingsSaveStatus";
 import { resetServerSettings } from "./lcncApi";
 import type { GamepadProfile } from "./gamepadProfile";
 
@@ -7,8 +8,10 @@ import type { GamepadProfile } from "./gamepadProfile";
 // WITHOUT importing lcncWs (which imports defaults) — removes the import cycle and
 // the ineffective-dynamic-import build warning (P6). Registered when lcncWs loads
 // (app startup), long before any user-triggered save flush.
-let _settingsSaver: ((section: string, data: any) => void) | null = null;
-export function registerSettingsSaver(fn: (section: string, data: any) => void): void {
+// The saver returns the `req_id` the save went out with (null = nothing
+// reached the transport) so the save status can follow the reply (UX-08).
+let _settingsSaver: ((section: string, data: any) => string | null) | null = null;
+export function registerSettingsSaver(fn: (section: string, data: any) => string | null): void {
   _settingsSaver = fn;
 }
 
@@ -173,8 +176,9 @@ export function loadSection<T>(key: string): T {
 
 /** Save a section. Routes server sections through WS, local sections to localStorage. */
 export function saveSection(key: string, data: any): void {
-  // Block saves until server data is confirmed (prevents overwriting with fallback zeros)
-  if (!serverSettingsReady.value) return;
+  // Block saves until server data is confirmed (prevents overwriting with
+  // fallback zeros) — visibly: the Settings header says so (UX-08).
+  if (!serverSettingsReady.value) { noteSaveBlocked(key, "waiting for server settings"); return; }
 
   const all = readAll();
   all[key] = data;
@@ -182,17 +186,21 @@ export function saveSection(key: string, data: any): void {
 
   // Track pending save for sendBeacon flush on page exit
   _pendingSaves.set(key, data);
+  noteSavePending(key);
   // Debounce server saves (camera sliders fire rapidly)
   clearTimeout(_saveTimers[key]);
   _saveTimers[key] = setTimeout(() => {
     _pendingSaves.delete(key);
     if (_settingsSaver) {
-      _settingsSaver(key, data);  // registered by lcncWs (avoids the import cycle)
+      const reqId = _settingsSaver(key, data);  // registered by lcncWs (avoids the import cycle)
+      if (reqId === null) noteSaveFailed(key, "not connected");
+      else noteSaveSent(key, reqId);
     } else {
       // No silent drop: lcncWs registers at module load, so this "can't happen" —
       // which is exactly why it must be loud if it does (the save would vanish).
       // console.error is captured by the error.console telemetry hook → auditable.
       console.error(`[settings] save DROPPED — no saver registered (section=${key})`);
+      noteSaveFailed(key, "no saver registered");
     }
   }, 300);
 }

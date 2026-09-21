@@ -1576,6 +1576,13 @@ label:has(input:disabled, select:disabled) {
 /* Safety button label */
 .btn-label-sm   { font-size: var(--fs-xs); font-weight: var(--fw-semibold); text-transform: uppercase; }
 
+/* Save status (Settings header, UX-08): the honest state of the last
+   server-side settings save — text carries the state, colour underlines it
+   (--ok saved, --danger failed / blocked). */
+.saveStatus { font-size: var(--fs-sm); font-weight: var(--fw-semibold); white-space: nowrap; }
+.saveStatus.saved { color: var(--ok); }
+.saveStatus.error, .saveStatus.blocked { color: var(--danger); }
+
 /* Empty state (no data / drag target) */
 .emptyState { text-align: center; opacity: var(--opacity-muted); font-size: var(--fs-md); }
 

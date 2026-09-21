@@ -5858,3 +5858,37 @@ with the operator's decisions of 2026-09-21. Plan: Fassung 4, WP-B.
   in the guard specs is `Close .*`, new cases for the keypad X (tap and
   Tab + Enter) and the tool editor's ask (by click and by touch), the
   audit fixture `close.vue`.
+
+## 2026-09-21 late — State and saving (WP-C of Fassung 4): Arm/Power name the next action, a settings save has a visible outcome
+
+Codex UX-08 and UX-10 with the operator's decision of 2026-09-21. Plan:
+Fassung 4, WP-C.
+
+- **Arm and Machine Power are labelled with the next action.** `Armed`
+  (a state, on a button whose click disarms, tooltip "Disarm") and `On`
+  (click turns the machine off, no tooltip) become `Arm`/`Disarm` and
+  `Power on`/`Power off` in the same `stable-width` pair, the pattern
+  E-Stop/Reset already had; the state stays visible in the ok variant,
+  the header pill and the status rows. The unacknowledged-trip case is the
+  button's `reason` (tap/keyboard explanation) instead of a title. The
+  smoke test pins the button by role and name; the layout gate re-measured
+  the strip with the longer words: POWER OFF needed 89 px in an 83 px
+  button, so the safety buttons drop the size's 12 px side padding to
+  the tight token (78 px in 74 px remained in the 280 px portrait column,
+  where the label now wraps onto two lines — the row grows for all three,
+  inside the 150 % portrait budget the input-session test measures).
+- **A settings save is never silent.** `saveSection` was fire-and-forget:
+  a 300 ms debounce into a send whose reply nobody read, a silent return
+  before the server's settings arrived, a console line when no saver was
+  registered — under a header promising "saved automatically". A pure
+  status module (`settingsSaveStatus.ts`) now holds what the last save
+  did: pending → saving (the saver returns the `req_id`) → saved / error
+  from the correlated reply that lcncWs routes by `req_id`; blocked before
+  the server's settings; error on a null send or a lost connection. The
+  Settings header shows it (`.saveStatus`, a global pattern: text carries
+  the state, --ok/--danger underline it) next to a promise that names its
+  exceptions; the macro editor says "Unsaved edit — Save or Cancel" in its
+  action row (the gamepad wizard already has Save Profile).
+- Tests: vitest `settingsSaveStatus.test.ts` (six transitions incl. two
+  sections in flight, a foreign reply, connection loss), e2e in
+  keyboard-guards with the mock's correlated replies.

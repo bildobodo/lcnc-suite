@@ -16,6 +16,7 @@ import { ref } from "vue";
 import { decode as msgpackDecode } from "@msgpack/msgpack";
 import { type WsCommand, OPERATOR_ERROR, isQueueSafe } from "./lcnc";
 import { updateServerCache, loadDisplayDefaults, registerSettingsSaver } from "./defaults";
+import { noteSaveReply, noteSaveConnectionLost } from "./settingsSaveStatus";
 import { enableWakeLock, disableWakeLock } from "./wakeLock";
 import { applyHalshowSnapshot, applyHalshowUpdate, resetHalshow } from "./ws/halshowStore";
 import { emitTelemetry } from "./ws/telemetry";
@@ -124,6 +125,7 @@ function onWorkerMessage(m: any) {
         code: m.code, reason: m.reason, clean: m.wasClean, since_attempt_ms: m.sinceAttemptMs,
       });
       connected.value = false;
+      noteSaveConnectionLost();   // a settings save in flight is not saved (UX-08)
       // Server-going-away close codes double as a shutdown signal: the
       // gateway closes 1001 on lifespan teardown, uvicorn closes 1012 on
       // graceful restart. The explicit server_shutdown frame is the richer
@@ -280,6 +282,8 @@ function onFrame(data: string | ArrayBuffer) {
       handleStatusError(msg);
     } else if (msg.type === "reply") {
       lastReply.value = msg;
+      // A settings save's reply moves the Settings header's status (UX-08).
+      if (typeof msg.req_id === "string") noteSaveReply(msg.req_id, msg.ok !== false, msg.error);
       if (msg.ok === false && msg.error) {
         pushMessage(OPERATOR_ERROR, `Command: ${msg.error}`);
       }
@@ -333,8 +337,8 @@ export function send(obj: WsCommand): string | null {
   return posted ? req_id : null;
 }
 
-export function saveSettings(section: string, data: any) {
-  send({ cmd: "save_settings", section, data });
+export function saveSettings(section: string, data: any): string | null {
+  return send({ cmd: "save_settings", section, data });
 }
 // Let defaults.ts flush settings through us without importing this module (P6).
 registerSettingsSaver(saveSettings);

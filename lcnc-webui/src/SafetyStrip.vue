@@ -87,18 +87,21 @@ const compact = computed(() => isPortrait.value && activeKind.value !== null);
       <div class="btnGate">
         <!-- Gateway rejects arm while a safety trip is unacknowledged; mirror
              that here so the greyed button points at the recovery path
-             (Acknowledge) instead of a rejected click. Disarm stays allowed. -->
+             (Acknowledge) instead of a rejected click. Disarm stays allowed.
+             The label is the NEXT ACTION (Arm / Disarm), like E-Stop / Reset
+             — the state stays visible in the variant, the header pill and
+             the status rows (UX-10, operator decision 2026-09-21). -->
         <MachineBtn
           type="arm"
           :variant="armed ? 'ok' : 'default'"
           :disabled="busy || (!armed && tripUnacked)"
-          :title="armed ? 'Disarm' : (tripUnacked ? 'Acknowledge the safety trip first' : 'Arm')"
+          :reason="!armed && tripUnacked ? 'Acknowledge the safety trip first' : undefined"
           @click="emit('arm', !armed)"
           class="safetyBtn"
           block
         >
           <component :is="armed ? LockOpen : Lock" :size="18" />
-          <span class="btn-label-sm stable-width"><span :class="{ alt: !armed }">Armed</span><span :class="{ alt: armed }">Arm</span></span>
+          <span class="btn-label-sm stable-width"><span :class="{ alt: armed }">Arm</span><span :class="{ alt: !armed }">Disarm</span></span>
         </MachineBtn>
       </div>
 
@@ -127,7 +130,7 @@ const compact = computed(() => isPortrait.value && activeKind.value !== null);
           block
         >
           <Power :size="18" />
-          <span class="btn-label-sm stable-width"><span :class="{ alt: !isEnabled }">On</span><span :class="{ alt: isEnabled }">Off</span></span>
+          <span class="btn-label-sm stable-width"><span :class="{ alt: isEnabled }">Power on</span><span :class="{ alt: !isEnabled }">Power off</span></span>
         </MachineBtn>
       </Gate>
     </div>
@@ -187,6 +190,17 @@ const compact = computed(() => isPortrait.value && activeKind.value !== null);
   justify-content: center;
   gap: var(--gap-tight);
   flex: 1;
+  /* Three buttons share the sticky section: the action words (POWER OFF,
+     DISARM — UX-10) need the width the size's 12 px side padding took
+     (89 px of content in an 83 px box, layout gate). Layout only. */
+  padding-left: var(--gap-tight);
+  padding-right: var(--gap-tight);
+}
+/* Portrait: the 280 px column gives each button ~74 px — POWER OFF (78 px)
+   wraps onto two lines instead of clipping; the row grows for all three
+   (block buttons stretch), which the 150 % portrait budget test measures. */
+@media (orientation: portrait) {
+  .safetyBtn .btn-label-sm { white-space: normal; text-align: center; }
 }
 /* ── Status detail ── */
 .statusDetail {
