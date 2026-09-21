@@ -15,7 +15,7 @@ import { useMediaMql } from "./useMediaMql";
 import { emitTelemetry, pushMessage } from "./lcncWs";
 import { OPERATOR_DISPLAY } from "./lcnc";
 import { GCODE_LOOKUP, GCODE_REFERENCE } from "./gcodeReference";
-import { Play, SkipForward, Pause } from "lucide-vue-next";
+import { Play, SkipForward, Pause, X } from "lucide-vue-next";
 import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineInput from "./MachineInput.vue";
@@ -849,7 +849,7 @@ async function saveEdit() {
     <!-- Error banner -->
     <div v-if="uploadError" class="errorBanner">
         <span>{{ uploadError }}</span>
-        <MachineBtn type="close" @click="uploadError = null">&times;</MachineBtn>
+        <MachineBtn type="close" aria-label="Dismiss upload error" title="Dismiss upload error" @click="uploadError = null"><X :size="14" /></MachineBtn>
     </div>
 
     <!-- Soft-limit violations surface in the viewer's scrub bar (yellow
@@ -886,7 +886,7 @@ async function saveEdit() {
       <div v-if="editing" class="stack-controls editArea">
         <div v-if="saveError" class="errorBanner">
           <span>{{ saveError }}</span>
-          <MachineBtn type="close" @click="saveError = null">&times;</MachineBtn>
+          <MachineBtn type="close" aria-label="Dismiss save error" title="Dismiss save error" @click="saveError = null"><X :size="14" /></MachineBtn>
         </div>
         <!-- The loaded program changed under an open session: the buffer is
              kept and stays bound to its file; nothing is saved elsewhere. -->
@@ -993,7 +993,7 @@ async function saveEdit() {
       <div class="dialog md runDialog">
         <div class="dialogHeader">
           <span class="dialogTitle">Run from Line {{ selectedLine }}</span>
-          <MachineBtn type="close" @click="showRunDialog = false">&times;</MachineBtn>
+          <MachineBtn type="close" aria-label="Close run-from-line" title="Close run-from-line" @click="showRunDialog = false"><X :size="14" /></MachineBtn>
         </div>
         <div class="dialogContent">
           <div class="dialogBody">

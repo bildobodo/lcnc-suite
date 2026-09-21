@@ -122,7 +122,7 @@ test("keypad OK: Space through the whole focus return never starts the program; 
     await page.keyboard.press(" ");
     await page.waitForTimeout(8);
   }
-  if (await nk.count()) await nk.getByRole("button", { name: "Cancel", exact: true }).click();
+  if (await nk.count()) await nk.getByRole("button", { name: "Discard", exact: true }).click();
   await expect(x).toBeFocused();
   let cmds = await recordedCmds();
   expect(cmds.filter(c => c === "touchoff")).toHaveLength(1);
@@ -132,7 +132,7 @@ test("keypad OK: Space through the whole focus return never starts the program; 
   await ctl({ op: "clearCmds" });
   await x.click();
   await page.keyboard.type("18");
-  await nk.getByRole("button", { name: "OK", exact: true }).click();
+  await nk.getByRole("button", { name: "Apply", exact: true }).click();
   await page.keyboard.press("Escape");
   await expect.poll(recordedCmds).toContain("estop");
   await expect(x).toBeFocused();
@@ -154,7 +154,7 @@ async function tabTo(page: Page, target: import("@playwright/test").Locator, lim
   return target.evaluate(el => el === document.activeElement);
 }
 
-test("a focused key acts as itself: Enter on Cancel cancels, Space on a digit appends, Enter on OK confirms once; text keys act on Enter/Space", async ({ page }) => {
+test("a focused key acts as itself: Enter on Discard discards, Space on a digit appends, Enter on OK confirms once; text keys act on Enter/Space", async ({ page }) => {
   // Review UI-I10 (P1): the keypad root's Enter handler confirmed the value
   // whichever key held focus — Tab to Cancel + Enter sent a touch-off — and
   // the text keyboard's keys, acting on pointerdown only, were dead to a
@@ -165,13 +165,13 @@ test("a focused key acts as itself: Enter on Cancel cancels, Space on a digit ap
   await x.click();
   await expect(nk).toBeFocused();
   await page.keyboard.type("17");
-  expect(await tabTo(page, nk.getByRole("button", { name: "Cancel", exact: true })), "Cancel reached by real Tab navigation").toBe(true);
+  expect(await tabTo(page, nk.getByRole("button", { name: "Discard", exact: true })), "Discard reached by real Tab navigation").toBe(true);
   await page.keyboard.press("Enter");
   await expect(nk).toHaveCount(0);
   await settle(page);
   expectNoMachineAction(await recordedCmds());
   await expect(x).toBeFocused();
-  // Cancel is Cancel: the draft is gone, the field re-opens with its value.
+  // Discard is Discard: the draft is gone, the field re-opens with its value.
   await x.click();
   await expect(nk).toBeFocused();
   await expect(nk.locator("[data-draft]")).toHaveCount(0);
@@ -182,7 +182,7 @@ test("a focused key acts as itself: Enter on Cancel cancels, Space on a digit ap
   await page.keyboard.press(" ");
   await expect(nk.locator(".nkExpr")).toHaveText("77");
   // Enter on the focused OK confirms exactly once.
-  expect(await tabTo(page, nk.getByRole("button", { name: "OK", exact: true }))).toBe(true);
+  expect(await tabTo(page, nk.getByRole("button", { name: "Apply", exact: true }))).toBe(true);
   await page.keyboard.press("Enter");
   await expect(nk).toHaveCount(0);
   await expect.poll(async () => (await recordedCmds()).filter(c => c === "touchoff").length).toBe(1);
@@ -264,7 +264,7 @@ test("an explicit close by keyboard returns focus: Enter/Space on the keyboard's
   await expect(search).toBeFocused();
   await page.keyboard.press(" ");
   await expect(search).toHaveValue("g ");
-  await overlay.getByRole("button", { name: /^(Cancel|×)$/ }).first().click();
+  await overlay.getByRole("button", { name: /^(Cancel|Close .*)$/ }).first().click();
   await expect(overlay).toHaveCount(0);
   // The editor: its X hands focus to the CodeMirror content.
   await page.getByRole("button", { name: "Program", exact: true }).click();
@@ -355,11 +355,40 @@ test("tool dialog, messages and reference dialogs block Space/Enter/Backspace", 
     await expect.poll(recordedCmds).toContain("estop");
     expect(await recordedCmds()).not.toContain("estop_reset");
     // Close via the dialog's own control (Escape is never a close).
-    const close = overlay.getByRole("button", { name: /^(Cancel|×)$/ }).first();
+    const close = overlay.getByRole("button", { name: /^(Cancel|Close .*)$/ }).first();
     await close.click();
     await expect(overlay).toHaveCount(0);
     await expectRegistryMatchesDom(page);
   }
+});
+
+test("tool editor: header X and footer Cancel close an unchanged form at once and ask when it was edited; Keep editing keeps the values", async ({ page }) => {
+  // UX-02: the X ran the same silent discard as Cancel while the overlay
+  // was already hardened against a mis-grab. One check for both now.
+  await openReady(page);
+  await page.getByRole("button", { name: "Tools", exact: true }).click();
+  await page.getByRole("button", { name: "+ Add", exact: true }).click();
+  const dialog = page.locator(".editDialog");
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole("button", { name: "Close tool editor", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  await page.getByRole("button", { name: "+ Add", exact: true }).click();
+  await expect(dialog).toBeVisible();
+  const desc = dialog.locator("#tool-description");
+  await desc.click();
+  await page.keyboard.type("6 mm endmill");
+  await dialog.getByRole("button", { name: "Close tool editor", exact: true }).click();
+  const ask = page.locator(".dialogOverlay").last();
+  await expect(ask.getByText("Discard changes?")).toBeVisible();
+  await expectRegistryMatchesDom(page);
+  await ask.getByRole("button", { name: "Keep editing", exact: true }).click();
+  await expect(dialog).toBeVisible();
+  await expect(desc).toHaveValue("6 mm endmill");
+  await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+  await page.locator(".dialogOverlay").last().getByRole("button", { name: "Discard", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  await settle(page);
+  expectNoMachineAction(await recordedCmds());
 });
 
 test("documented remainder: Tab leaves the dialog (no focus trap in this wave)", async ({ page }) => {

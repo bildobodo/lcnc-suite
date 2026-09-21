@@ -3943,8 +3943,8 @@ defineExpose({
 
     <!-- Quick-access grid under the ViewCube: Reset, Clear, PIP, Settings -->
     <div class="viewerQuickGrid">
-      <MachineBtn type="viewPreset" @click="setView('reset')">Reset</MachineBtn>
-      <MachineBtn type="viewPreset" @click="resetBackplot">Clear</MachineBtn>
+      <MachineBtn type="viewPreset" aria-label="Reset view" title="Reset view" @click="setView('reset')">Reset</MachineBtn>
+      <MachineBtn type="viewPreset" aria-label="Clear backplot" title="Clear backplot" @click="resetBackplot">Clear</MachineBtn>
       <MachineBtn type="viewerQuickToggle" :selected="pipVisible" @click="togglePip" title="Show/hide camera">
         <Camera :size="14" />
       </MachineBtn>

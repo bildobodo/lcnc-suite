@@ -98,6 +98,11 @@ def test_tofixed_seen_after_a_nested_template_close(audit):
     assert ("TOFIXED", 13) in hits, hits
 
 
+def test_close_without_aria_label_hit_named_and_multiline_ok_audit_ok_suppressed(audit):
+    hits = _drift(audit, "close.vue")
+    assert hits == [("CLOSE", 7)], hits
+
+
 def test_clean_fixture_has_no_findings(audit):
     assert _drift(audit, "clean.vue") == []
 

@@ -96,7 +96,7 @@ test("MDI → number → MDI: exactly one helper at a time, the title names the 
   await expect(nk).toBeVisible();
   await expect(tk).toHaveCount(0);
   await expect(nk.locator(".sub")).toHaveText("New tool · Diameter · mm");
-  await key(nk, "Cancel");
+  await key(nk, "Discard");
   await expect(nk).toHaveCount(0);
   await page.locator(".editDialog").getByRole("button", { name: "Cancel", exact: true }).click();
   // The number keypad ENDED the text session; back on MDI a tap re-opens it.
@@ -136,7 +136,7 @@ test("number A → number B: A is not confirmed, its draft returns marked as dra
   // A second tap on the field being edited keeps the expression.
   await x.click();
   await expect(nk.locator(".nkExpr")).toHaveText("12");
-  await key(nk, "Cancel");
+  await key(nk, "Discard");
   await x.click();
   await expect(nk.locator("[data-draft]")).toHaveCount(0);
 });
@@ -167,20 +167,54 @@ test("number → text → number keeps the draft; a tap outside hides the keypad
   await x.click();
   await expect(nk.locator(".nkExpr")).toHaveText("123");
   // OK delivers the value once and returns focus to the field.
-  await key(nk, "OK");
+  await key(nk, "Apply");
   await expect(nk).toHaveCount(0);
   await expect.poll(async () => (await cmds()).filter(c => c === "touchoff").length).toBe(1);
   await expect(x).toBeFocused();
   // Cancel returns focus too; no draft survives it.
   await x.click();
   await page.keyboard.type("5");
-  await key(nk, "Cancel");
+  await key(nk, "Discard");
   await expect(nk).toHaveCount(0);
   await expect(x).toBeFocused();
   await x.click();
   await expect(nk.locator("[data-draft]")).toHaveCount(0);
-  await key(nk, "Cancel");
+  await key(nk, "Discard");
   expectNoMachineAction((await cmds()).filter(c => c !== "touchoff"));
+});
+
+test("number keypad: X hides and keeps the draft (tap and Tab + Enter), Discard throws it away; both return focus, nothing is sent", async ({ page }) => {
+  // UX-01 (operator decision 2026-09-21): both helpers close the same way —
+  // X = hide, the entry stays as the owner's draft; Discard is the explicit
+  // throw-away. Both hand focus back through the guarded return.
+  await open(page);
+  const x = page.locator("input.setupInput").first();
+  const nk = page.locator(".nkStrip");
+  await x.click();
+  await expect(nk).toBeFocused();
+  await page.keyboard.type("17");
+  await key(nk, "Close keyboard");
+  await expect(nk).toHaveCount(0);
+  await expect(x).toBeFocused();
+  await x.click();
+  await expect(nk.locator("[data-draft]")).toHaveCount(1);
+  await expect(nk.locator(".nkExpr")).toHaveText("17");
+  // By keyboard: the focused X, Enter. Focus lands on the field; the next
+  // Space is the field's own opener, never a shortcut.
+  await nk.getByRole("button", { name: "Close keyboard", exact: true }).focus();
+  await page.keyboard.press("Enter");
+  await expect(nk).toHaveCount(0);
+  await expect(x).toBeFocused();
+  await page.keyboard.press(" ");
+  await expect(nk).toBeFocused();
+  await expect(nk.locator("[data-draft]")).toHaveCount(1);
+  await key(nk, "Discard");
+  await expect(nk).toHaveCount(0);
+  await expect(x).toBeFocused();
+  await x.click();
+  await expect(nk.locator("[data-draft]")).toHaveCount(0);
+  await key(nk, "Discard");
+  expectNoMachineAction(await cmds());
 });
 
 test("drafts: Clear is a draft of 0; a sibling's OK (busy latch) is not an owner end, the field's gate ending is", async ({ page }) => {
@@ -193,7 +227,7 @@ test("drafts: Clear is a draft of 0; a sibling's OK (busy latch) is not an owner
   // Clear, leave for a text session, come back: the empty entry is the
   // draft "0", visibly — not the field's old value.
   await x.click();
-  await key(nk, "C");
+  await key(nk, "Clear entry");
   await expect(nk.locator(".nkExpr")).toHaveText("0");
   await page.locator(".mdiInput").click();
   await expect(tk).toBeVisible();
@@ -208,7 +242,7 @@ test("drafts: Clear is a draft of 0; a sibling's OK (busy latch) is not an owner
   await y.click();
   await expect(nk.locator(".sub")).toContainText("Touch off Y");
   await page.keyboard.type("5");
-  await key(nk, "OK");
+  await key(nk, "Apply");
   await expect(nk).toHaveCount(0);
   await expect.poll(async () => (await sentCmds()).filter(c => c.cmd === "touchoff")).toEqual([
     expect.objectContaining({ cmd: "touchoff", axes: { Y: 5 } }),
@@ -238,7 +272,7 @@ test("drafts: Clear is a draft of 0; a sibling's OK (busy latch) is not an owner
   await y.click();
   await expect(nk.locator(".sub")).toContainText("Touch off Y");
   await page.keyboard.type("6");
-  await key(nk, "OK");
+  await key(nk, "Apply");
   await expect(x).toBeDisabled();   // inside the latch
   await ctl({ op: "status_delta", data: { permissions: { ...PERMS_ALL, touchoff: false } } });
   // Two frames, not one batch: status frames are applied per animation
@@ -250,7 +284,7 @@ test("drafts: Clear is a draft of 0; a sibling's OK (busy latch) is not an owner
   await expect(nk).toBeVisible();
   await expect(nk.locator("[data-draft]")).toHaveCount(0);
   await expect(nk.locator(".nkExpr")).toHaveText(xBefore);
-  await key(nk, "Cancel");
+  await key(nk, "Discard");
   expect((await cmds()).filter(c => c === "touchoff")).toHaveLength(2);
   expectNoMachineAction((await cmds()).filter(c => c !== "touchoff"));
 });
@@ -387,7 +421,7 @@ test("field contract: every text field is a technical field — no autofill, aut
   await scan("Tools");
   await page.getByTitle("G-code Reference", { exact: true }).click();
   await scan("Reference");
-  await page.locator(".dialogOverlay").first().getByRole("button", { name: /^(Cancel|×)$/ }).first().click();
+  await page.locator(".dialogOverlay").first().getByRole("button", { name: /^(Cancel|Close .*)$/ }).first().click();
   await page.getByTitle("Settings", { exact: true }).click();
   await page.locator(".dialogOverlay").first().getByRole("button", { name: "Machine", exact: true }).click();
   await scan("Settings · Machine");
@@ -420,7 +454,7 @@ test("editor → number → editor keeps the buffer; a hidden tab locks, not end
   await dialogField(page, "Diameter").click();
   await expect(page.locator(".nkStrip")).toBeVisible();
   await expect(tk).toHaveCount(0);
-  await key(page.locator(".nkStrip"), "Cancel");
+  await key(page.locator(".nkStrip"), "Discard");
   await page.locator(".editDialog").getByRole("button", { name: "Cancel", exact: true }).click();
   await page.getByRole("button", { name: "Program", exact: true }).click();
   await expect(page.locator(".cm-content")).toContainText("(edited)");
@@ -471,7 +505,7 @@ test("offset cell: leaving the tab closes the keypad with its draft; only the vi
   await expect(nk.locator(".sub")).toContainText("G54 · Y");
   await cell.click();
   await expect(nk.locator(".nkExpr")).toHaveText("17");
-  await key(nk, "OK");
+  await key(nk, "Apply");
   await expect(nk).toHaveCount(0);
   await expect.poll(async () => (await sentCmds()).filter(c => c.cmd === "set_wcs")).toEqual([
     expect.objectContaining({ cmd: "set_wcs", target: "G54", x: 17 }),
@@ -492,7 +526,7 @@ test("offset drafts end with the probe gate, not with a sibling cell's OK", asyn
   await cells.nth(1).click();
   await expect(nk.locator(".sub")).toContainText("G54 · Y");
   await page.keyboard.type("5");
-  await key(nk, "OK");
+  await key(nk, "Apply");
   await expect(nk).toHaveCount(0);
   await expect.poll(async () => (await sentCmds()).filter(c => c.cmd === "set_wcs")).toEqual([
     expect.objectContaining({ cmd: "set_wcs", target: "G54", y: 5 }),
@@ -521,7 +555,7 @@ test("offset drafts end with the probe gate, not with a sibling cell's OK", asyn
   await cells.nth(1).click();
   await expect(nk.locator(".sub")).toContainText("G54 · Y");
   await page.keyboard.type("6");
-  await key(nk, "OK");
+  await key(nk, "Apply");
   await expect(cells).toHaveCount(0);   // inside the latch
   await ctl({ op: "status_delta", data: { permissions: { ...PERMS_ALL, probe: false } } });
   await page.waitForTimeout(50);        // a second frame (see above)
@@ -531,7 +565,7 @@ test("offset drafts end with the probe gate, not with a sibling cell's OK", asyn
   await expect(nk).toBeVisible();
   await expect(nk.locator("[data-draft]")).toHaveCount(0);
   await expect(nk.locator(".nkExpr")).not.toHaveText("17");
-  await key(nk, "Cancel");
+  await key(nk, "Discard");
   expect((await cmds()).filter(c => c === "set_wcs")).toHaveLength(2);
   expectNoMachineAction((await cmds()).filter(c => c !== "set_wcs"));
 });

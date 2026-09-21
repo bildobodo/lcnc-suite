@@ -50,6 +50,9 @@ WS-C extension — design-token drift checks over every .vue <style> block
                bindings are fine — they carry computed layout values).
   TOFIXED    — `.toFixed(` inside the <template> (formatting belongs in
                format.ts, the ONE place a number becomes text).
+  CLOSE      — `<MachineBtn type="close"` without an `aria-label`: a close
+               control is named for its context ("Close settings",
+               "Dismiss upload error"), never announced as "times" (UX-05).
 
 The <template> range is NESTING-AWARE: a nested `<template v-if>` /
 `<template #slot>` no longer ends the scan at its `</template>` (App.vue's
@@ -309,8 +312,9 @@ def _template_audit_ok(lines: list[str], idx: int) -> bool:
 
 
 def template_findings(path: str) -> list[tuple[str, int, str]]:
-    """INLINE (static style=) and TOFIXED (number formatting) inside the
-    SFC's top-level template — nothing outside it (script/style)."""
+    """INLINE (static style=), TOFIXED (number formatting) and CLOSE (an
+    unnamed close control) inside the SFC's top-level template — nothing
+    outside it (script/style)."""
     findings: list[tuple[str, int, str]] = []
     tpl = template_range(path)
     if not tpl:
@@ -326,6 +330,15 @@ def template_findings(path: str) -> list[tuple[str, int, str]]:
             findings.append(("INLINE", ln, "static style=\"…\" — use a utility class (.w-full) or a scoped layout rule"))
         if ".toFixed(" in line:
             findings.append(("TOFIXED", ln, ".toFixed( in the template — format through format.ts"))
+        # a close control without an accessible name: read the whole tag (it
+        # may span lines) and look for aria-label / :aria-label on it
+        if '<MachineBtn' in line and 'type="close"' in line:
+            tag, j = line, idx
+            while ">" not in tag and j + 1 < len(lines):
+                j += 1
+                tag += " " + lines[j]
+            if "aria-label" not in tag:
+                findings.append(("CLOSE", ln, 'type="close" without aria-label — name the close for its context ("Close settings", "Dismiss upload error")'))
     return findings
 
 

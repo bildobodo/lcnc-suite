@@ -5,6 +5,7 @@ import { evaluate, fmtEval, validateEntry } from './mathEval';
 import { saveDraft, takeDraft, dropDraft, returnFocusTo } from './inputSession';
 import { armed } from './lcncWs';
 import MachineBtn from './MachineBtn.vue';
+import { X, Delete } from 'lucide-vue-next';
 
 const expr = ref('');
 const rootEl = ref<HTMLElement | null>(null);
@@ -147,12 +148,24 @@ function confirm() {
   returnFocusTo(trigger);
 }
 
+// Discard: throw the entry away and close (the owner keeps its value).
 function cancel() {
   const onCancel = keypadState.onCancel;
   const trigger = keypadState.trigger;
   dropDraft(_owner); _dirty = false; isDraft.value = false;
   closeKeypad();
   onCancel?.();
+  returnFocusTo(trigger);
+}
+
+// The X (UX-01, operator decision 2026-09-21): hide the helper and KEEP the
+// entry as the owner's draft — the contract the text keyboard's X and the
+// outside/Tab leave already have (closeKeypad(keepDraft): the strip files
+// the draft on unmount, it comes back marked "draft"). Discard is the
+// explicit throw-away; both hand focus back through the guarded return.
+function hide() {
+  const trigger = keypadState.trigger;
+  closeKeypad(true);
   returnFocusTo(trigger);
 }
 
@@ -212,38 +225,41 @@ function onKeydown(e: KeyboardEvent) {
     </div>
     <!-- One grid holds keys AND actions so orientation can reorder them:
          landscape puts the actions in a 6th column, portrait moves them to
-         a full-width bottom row (Cancel | ═ | OK). -->
+         a full-width bottom row (X | Discard | ═ | Apply). -->
     <div class="nkGrid">
         <!-- Row 1 -->
         <MachineBtn type="numKey" class="nkKey" @pointerdown.prevent @click="append('7')" @contextmenu.prevent>7</MachineBtn>
         <MachineBtn type="numKey" class="nkKey" @pointerdown.prevent @click="append('8')" @contextmenu.prevent>8</MachineBtn>
         <MachineBtn type="numKey" class="nkKey" @pointerdown.prevent @click="append('9')" @contextmenu.prevent>9</MachineBtn>
-        <MachineBtn type="numOp"  class="nkKey" @pointerdown.prevent @click="append('/')" @contextmenu.prevent>÷</MachineBtn>
-        <MachineBtn type="numDel" class="nkKey" @pointerdown.prevent @click="del" @contextmenu.prevent>⌫</MachineBtn>
+        <MachineBtn type="numOp"  class="nkKey" @pointerdown.prevent aria-label="Divide" title="Divide" @click="append('/')" @contextmenu.prevent>÷</MachineBtn>
+        <MachineBtn type="numDel" class="nkKey" aria-label="Backspace" title="Backspace" @pointerdown.prevent @click="del" @contextmenu.prevent><Delete :size="16" /></MachineBtn>
         <!-- Row 2 -->
         <MachineBtn type="numKey" class="nkKey" @pointerdown.prevent @click="append('4')" @contextmenu.prevent>4</MachineBtn>
         <MachineBtn type="numKey" class="nkKey" @pointerdown.prevent @click="append('5')" @contextmenu.prevent>5</MachineBtn>
         <MachineBtn type="numKey" class="nkKey" @pointerdown.prevent @click="append('6')" @contextmenu.prevent>6</MachineBtn>
-        <MachineBtn type="numOp"  class="nkKey" @pointerdown.prevent @click="append('*')" @contextmenu.prevent>×</MachineBtn>
-        <MachineBtn type="numClr" class="nkKey" @pointerdown.prevent @click="clear" @contextmenu.prevent>C</MachineBtn>
+        <MachineBtn type="numOp"  class="nkKey" @pointerdown.prevent aria-label="Multiply" title="Multiply" @click="append('*')" @contextmenu.prevent>×</MachineBtn>
+        <MachineBtn type="numClr" class="nkKey" aria-label="Clear entry" title="Clear the entry (= 0)" @pointerdown.prevent @click="clear" @contextmenu.prevent>Clr</MachineBtn>
         <!-- Row 3 -->
         <MachineBtn type="numKey" class="nkKey" @pointerdown.prevent @click="append('1')" @contextmenu.prevent>1</MachineBtn>
         <MachineBtn type="numKey" class="nkKey" @pointerdown.prevent @click="append('2')" @contextmenu.prevent>2</MachineBtn>
         <MachineBtn type="numKey" class="nkKey" @pointerdown.prevent @click="append('3')" @contextmenu.prevent>3</MachineBtn>
-        <MachineBtn type="numOp"  class="nkKey" @pointerdown.prevent @click="append('-')" @contextmenu.prevent>−</MachineBtn>
-        <MachineBtn type="numOp"  class="nkKey" @pointerdown.prevent @click="negate" @contextmenu.prevent>±</MachineBtn>
+        <MachineBtn type="numOp"  class="nkKey" @pointerdown.prevent aria-label="Minus" title="Minus" @click="append('-')" @contextmenu.prevent>−</MachineBtn>
+        <MachineBtn type="numOp"  class="nkKey" @pointerdown.prevent aria-label="Negate" title="Negate the value" @click="negate" @contextmenu.prevent>±</MachineBtn>
         <!-- Row 4 -->
-        <MachineBtn type="numOp"  class="nkKey" @pointerdown.prevent @click="append('(')" @contextmenu.prevent><span class="mono">(</span></MachineBtn>
+        <MachineBtn type="numOp"  class="nkKey" @pointerdown.prevent aria-label="Open parenthesis" title="Open parenthesis" @click="append('(')" @contextmenu.prevent><span class="mono">(</span></MachineBtn>
         <MachineBtn type="numKey" class="nkKey" @pointerdown.prevent @click="append('0')" @contextmenu.prevent>0</MachineBtn>
         <MachineBtn type="numKey" class="nkKey" @pointerdown.prevent @click="append('.')" @contextmenu.prevent>.</MachineBtn>
-        <MachineBtn type="numOp"  class="nkKey" @pointerdown.prevent @click="append('+')" @contextmenu.prevent>+</MachineBtn>
-        <MachineBtn type="numOp"  class="nkKey" @pointerdown.prevent @click="append(')')" @contextmenu.prevent><span class="mono">)</span></MachineBtn>
-        <!-- Actions — same key types as the G-code keyboard's ops column
-             (numOp + primary numKey), so both strips look alike. Explicitly
-             grid-placed; the digit/operator keys auto-place around them. -->
-        <MachineBtn type="numOp" class="nkKey nkCancel" @pointerdown.prevent @click="cancel" @contextmenu.prevent>Cancel</MachineBtn>
-        <MachineBtn type="numEq" class="nkKey nkEq" :disabled="result === null" @pointerdown.prevent @click="evalExpr" @contextmenu.prevent>═</MachineBtn>
-        <MachineBtn type="numKey" variant="primary" class="nkKey nkOk" :disabled="verdict.value === null" @pointerdown.prevent @click="confirm" @contextmenu.prevent>OK</MachineBtn>
+        <MachineBtn type="numOp"  class="nkKey" @pointerdown.prevent aria-label="Plus" title="Plus" @click="append('+')" @contextmenu.prevent>+</MachineBtn>
+        <MachineBtn type="numOp"  class="nkKey" @pointerdown.prevent aria-label="Close parenthesis" title="Close parenthesis" @click="append(')')" @contextmenu.prevent><span class="mono">)</span></MachineBtn>
+        <!-- Actions (UX-01/UX-04): X hides and keeps the entry as a draft,
+             Discard throws it away, ═ evaluates, Apply confirms — same key
+             types as the text keyboard's rails, so both strips look alike.
+             Explicitly grid-placed; the digit/operator keys auto-place
+             around them. -->
+        <MachineBtn type="numOp" class="nkKey nkClose" aria-label="Close keyboard" title="Close keyboard — keeps the entry as a draft" @pointerdown.prevent @click="hide" @contextmenu.prevent><X :size="16" /></MachineBtn>
+        <MachineBtn type="numOp" class="nkKey nkDiscard" aria-label="Discard" title="Discard the entry" @pointerdown.prevent @click="cancel" @contextmenu.prevent>Discard</MachineBtn>
+        <MachineBtn type="numEq" class="nkKey nkEq" aria-label="Evaluate" title="Evaluate the expression" :disabled="result === null" @pointerdown.prevent @click="evalExpr" @contextmenu.prevent>═</MachineBtn>
+        <MachineBtn type="numKey" variant="primary" class="nkKey nkOk" aria-label="Apply" title="Apply the value" :disabled="verdict.value === null" @pointerdown.prevent @click="confirm" @contextmenu.prevent>Apply</MachineBtn>
     </div>
   </div>
 </template>
@@ -279,21 +295,27 @@ function onKeydown(e: KeyboardEvent) {
   grid-auto-rows: var(--key-size);
   gap: var(--gap-tight);
 }
-.nkCancel { grid-column: 6; grid-row: 1; }
-.nkEq     { grid-column: 6; grid-row: 2; }
-.nkOk     { grid-column: 6; grid-row: 3 / 5; }
+.nkClose   { grid-column: 6; grid-row: 1; }
+.nkDiscard { grid-column: 6; grid-row: 2; }
+.nkEq      { grid-column: 6; grid-row: 3; }
+.nkOk      { grid-column: 6; grid-row: 4; }
 .nkKey {
   min-height: 0; /* grid rows own the height — override the touch layer's button floor */
+  /* Word keys (Discard, Apply, Clr) in a --key-size cell: the cell owns the
+     width, like .tkKey — the size's horizontal padding would leave 16 px. */
+  padding-left: 0;
+  padding-right: 0;
 }
 
 @media (orientation: portrait) {
   /* Reorder: the actions column becomes a full-width bottom row
-     (Cancel | ═ | OK) so the grid is 5 key columns wide instead of 6 —
-     it must fit the narrow strip without horizontal overflow. */
+     (X | Discard | ═ | Apply) so the grid is 5 key columns wide instead of
+     6 — it must fit the narrow strip without horizontal overflow. */
   .nkGrid { grid-template-columns: repeat(5, var(--key-size)); }
-  .nkCancel { grid-column: 1 / 3; grid-row: 5; }
-  .nkEq     { grid-column: 3;     grid-row: 5; }
-  .nkOk     { grid-column: 4 / 6; grid-row: 5; }
+  .nkClose   { grid-column: 1;     grid-row: 5; }
+  .nkDiscard { grid-column: 2 / 4; grid-row: 5; }
+  .nkEq      { grid-column: 4;     grid-row: 5; }
+  .nkOk      { grid-column: 5;     grid-row: 5; }
   /* The display tracks the grid width so both edges align. */
   .nkDisplay { max-width: calc(5 * var(--key-size) + 4 * var(--gap-tight)); }
 }

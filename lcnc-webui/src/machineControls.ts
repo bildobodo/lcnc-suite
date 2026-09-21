@@ -169,7 +169,7 @@ export const BUTTON_TYPES = {
   numKey:  { gate: 'always', variant: 'default', size: 'lg', mono: true },  // digits, decimal
   numOp:   { gate: 'always', variant: 'default', size: 'lg', mono: true },  // operators, ±, ( )
   numDel:  { gate: 'always', variant: 'default', size: 'lg' },              // ⌫ backspace
-  numClr:  { gate: 'always', variant: 'danger',  size: 'lg' },              // C clear
+  numClr:  { gate: 'always', variant: 'default', size: 'lg' },              // Clr — clears the unconfirmed entry only: no danger style (UX-03)
   numEq:   { gate: 'always', variant: 'primary', size: 'lg', mono: true },  // ═ evaluate
 } as const satisfies Record<string, ButtonDef>;
 

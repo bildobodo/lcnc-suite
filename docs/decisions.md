@@ -5819,3 +5819,42 @@ WP-B … WP-E, one commit each.
   …" (a DOM scan across four surfaces, ≥ 4 fields). No component unit
   test: `@vue/test-utils`/jsdom are not in the tree (Vitest runs in the
   node environment) — a DOM environment is a separate decision.
+
+## 2026-09-21 late — UX action contract (WP-B of Fassung 4): X hides, Discard discards, every close is named
+
+Codex's UX addendum (docs/reviews/ui-optimierungen.review.md, UX-01–UX-06)
+with the operator's decisions of 2026-09-21. Plan: Fassung 4, WP-B.
+
+- **Both helpers close the same way.** The number keypad had two leave
+  semantics (Cancel discarded, outside/Tab kept) and no close at all; the
+  text keyboard's X only hid. Now: the X hides and KEEPS the entry as the
+  owner's draft on both helpers (`closeKeypad(true)` + the guarded focus
+  return), `Discard` is the number keypad's explicit throw-away (the old
+  Cancel), `Apply` confirms (was OK — visible label = the action, UX-04).
+  Layout without a new row: landscape column 6 = X · Discard · ═ · Apply
+  (Apply one row, was two), portrait row 5 = X · Discard (2 cells) · ═ ·
+  Apply; `.nkKey` drops the size's horizontal padding like `.tkKey` (a word
+  in a 44 px cell had 16 px). `Clr` (was the red `C`) is neutral — it clears
+  the unconfirmed entry, no danger — and every key carries an accessible
+  name (UX-03); the text keyboard's Enter for plain text reads `Done`.
+- **A close is a named control.** 17 `type="close"` buttons rendered a bare
+  `×` (announced "times"); three of them were not closes. Every close
+  carries a Lucide `X` at 14 px (16 px grew each dialog header by 2 px —
+  the visual references caught it) and a contextual `aria-label`/`title`;
+  `scripts/audit-scoped-css.py` gained the `CLOSE` category with a fixture
+  in the audit-css gate, so a nameless close fails the offline run. Remove
+  binding (KeyboardTab) is a `Trash2`, Reset color (Settings) a `RotateCcw`,
+  both named for their target (UX-02/UX-05).
+- **The tool editor asks before discarding.** Header X and footer Cancel
+  run one check: unchanged → close; edited (snapshot on open) → "Discard
+  changes?" with Keep editing / Discard, the G-code editor's dialog,
+  registered as a modal (UX-02).
+- **Reset/Clear name their target** in the accessible name — Reset view,
+  Clear backplot, Reset feed/spindle/rapid override to 100 % (visible
+  `100 %`), Clear MDI history (an inline action, no longer the dialogCancel
+  type), Reset E-Stop — the visible word stays short where the context is
+  unambiguous (UX-06).
+- Tests: keypad labels re-pinned (Discard/Apply/Clear entry), the `×` regex
+  in the guard specs is `Close .*`, new cases for the keypad X (tap and
+  Tab + Enter) and the tool editor's ask (by click and by touch), the
+  audit fixture `close.vue`.

@@ -458,7 +458,7 @@ test("Space on a focused control never reaches the Cycle Start shortcut", async 
     await page.keyboard.press(" ");
     await expect(page.getByText(/^Messages \(\d+\)$/)).toBeVisible();
     expectNoMachineAction(await recordedCmds());
-    await page.getByRole("button", { name: "×", exact: true }).first().click();
+    await page.getByRole("button", { name: "Close messages", exact: true }).click();
   } finally {
     await ctlSend({ op: "quiet", on: false });
     await ctlSend({ op: "reset" });
@@ -557,13 +557,13 @@ test("keypad refuses 1.2.3 on a touch-off field, shows empty as 0, confirms a va
     await page.keyboard.type("1.2.3");
     await expect(strip.locator(".nkExpr")).toHaveText("1.2.3");
     await expect(strip.locator(".nkPreview")).toHaveText("invalid");
-    const ok = strip.getByRole("button", { name: "OK", exact: true });
+    const ok = strip.getByRole("button", { name: "Apply", exact: true });
     await expect(ok).toBeDisabled();
     await page.keyboard.press("Enter");
     await expect(strip).toBeVisible();
     expect(await recordedCmds()).not.toContain("touchoff");
     // C → empty → "= 0" is visible, not implied.
-    await strip.getByRole("button", { name: "C", exact: true }).click();
+    await strip.getByRole("button", { name: "Clear entry", exact: true }).click();
     await expect(strip.locator(".nkPreview")).toHaveText("= 0");
     await expect(ok).toBeEnabled();
     await page.keyboard.type("5");
@@ -591,7 +591,7 @@ test("tool number field: minimum 1 and whole numbers only, on Enter and on OK", 
     const strip = page.locator(".nkStrip");
     await expect(strip).toBeVisible();
     await expect(strip.locator(".sub")).toContainText("Tool #");
-    const ok = strip.getByRole("button", { name: "OK", exact: true });
+    const ok = strip.getByRole("button", { name: "Apply", exact: true });
     await page.keyboard.type("0");
     await expect(strip.locator(".nkPreview")).toContainText("minimum 1");
     await expect(ok).toBeDisabled();
@@ -601,13 +601,13 @@ test("tool number field: minimum 1 and whole numbers only, on Enter and on OK", 
     await ok.click({ force: true });
     await expect(strip).toBeVisible();
     await expect(toolNo).toHaveValue(before);
-    await strip.getByRole("button", { name: "C", exact: true }).click();
+    await strip.getByRole("button", { name: "Clear entry", exact: true }).click();
     await expect(strip.locator(".nkPreview")).toContainText("= 0 · minimum 1");
     await page.keyboard.type("2.5");
     await expect(strip.locator(".nkPreview")).toContainText("whole number required");
     await page.keyboard.press("Enter");
     await expect(strip).toBeVisible();
-    await strip.getByRole("button", { name: "C", exact: true }).click();
+    await strip.getByRole("button", { name: "Clear entry", exact: true }).click();
     await page.keyboard.type("3");
     await page.keyboard.press("Enter");
     await expect(strip).toHaveCount(0);

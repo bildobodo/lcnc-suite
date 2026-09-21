@@ -107,6 +107,8 @@ const compact = computed(() => isPortrait.value && activeKind.value !== null);
           type="estop"
           :flashing="isEstop"
           :disabled="!(isEstop ? canResetEstop : canEstop)"
+          :aria-label="isEstop ? 'Reset E-Stop' : undefined"
+          :title="isEstop ? 'Reset E-Stop' : undefined"
           @click="isEstop ? emit('estopReset') : emit('estop')"
           class="safetyBtn"
           block

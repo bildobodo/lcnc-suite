@@ -6,7 +6,7 @@ import { loadMachineDefaults, type ToolChangeMode } from "./defaults";
 import { TOOL_TYPE_LABELS, toolTypeLabel } from "./toolTypes";
 import { fmtCell } from "./format";
 import { authHeaders } from "./auth";
-import { Pencil, Trash2 } from "lucide-vue-next";
+import { Pencil, Trash2, X } from "lucide-vue-next";
 import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
 import FileBrowser from "./FileBrowser.vue";
@@ -179,6 +179,20 @@ const showNominalHolder = ref(false);
 const editPreviewMeta = computed(() => ({ ...editTool.value, ...editForm.value }));
 const hasNominalHolder = computed(() => nominalHolderBase(editPreviewMeta.value) !== null);
 const editNotice = computed(() => toolPreviewNotice(editPreviewMeta.value, unitsPerMm.value));
+// Header X and footer Cancel run ONE check (UX-02): an unchanged form closes
+// at once, an edited one asks (Keep editing / Discard) — the overlay was
+// hardened against a mis-grab, the X still discarded silently.
+const editSnapshot = ref("");
+function snapshotEdit() { editSnapshot.value = JSON.stringify(editForm.value); }
+const editDirty = computed(() => JSON.stringify(editForm.value) !== editSnapshot.value);
+const showEditDiscard = ref(false);
+registerModal(() => showEditDiscard.value);
+function closeEditModal() {
+  if (saving.value) return;   // a pending write owns the dialog until its reply
+  if (editDirty.value) { showEditDiscard.value = true; return; }
+  cancelEditModal();
+}
+function confirmEditDiscard() { showEditDiscard.value = false; cancelEditModal(); }
 // Keypad readout context per field: "T12 · Diameter · mm" (UI-13).
 type FieldUnit = "len" | "deg" | "count" | "";
 function fieldContext(name: string, unit: FieldUnit): string {
@@ -213,6 +227,7 @@ function openEdit(tool: Tool) {
     holder: tool.holder || "",
   };
   isNewTool.value = false;
+  snapshotEdit();
 }
 
 function openAdd() {
@@ -232,6 +247,7 @@ function openAdd() {
     tip_diameter: null, material: "", holder: "",
   };
   isNewTool.value = true;
+  snapshotEdit();
 }
 
 function buildToolMsg(form: typeof editForm.value) {
@@ -612,7 +628,7 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
     </div>
     <div v-if="importError && !importPreview" class="errorBanner row-controls" role="alert">
       <span>{{ importError }}</span>
-      <MachineBtn type="close" aria-label="Dismiss import error" @click="importError = null">&times;</MachineBtn>
+      <MachineBtn type="close" aria-label="Dismiss import error" title="Dismiss import error" @click="importError = null"><X :size="14" /></MachineBtn>
     </div>
 
     <!-- Import result banner -->
@@ -624,7 +640,7 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
         Imported {{ importResult.added }} tools. {{ importSummary.resultNotice }}
       </template>
       <template v-if="importResult.skipped"> {{ importResult.skipped }} skipped.</template>
-      <MachineBtn type="close" @click="importResult = null">&times;</MachineBtn>
+      <MachineBtn type="close" aria-label="Dismiss import result" title="Dismiss import result" @click="importResult = null"><X :size="14" /></MachineBtn>
     </div>
 
     <!-- Delete confirm dialog -->
@@ -652,7 +668,7 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
         <div class="dialog md wide editDialog">
           <div class="dialogHeader">
             <span class="dialogTitle">{{ isNewTool ? "Add Tool" : `Edit Tool T${editTool.T}` }}</span>
-            <MachineBtn type="close" :disabled="saving" @click="cancelEditModal">&times;</MachineBtn>
+            <MachineBtn type="close" aria-label="Close tool editor" title="Close tool editor" :disabled="saving" @click="closeEditModal"><X :size="14" /></MachineBtn>
           </div>
 
           <div class="dialogContent scroll-thin stack-sections">
@@ -755,9 +771,20 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
           </div>
 
           <Gate gate="setup" class="dialogActions">
-            <MachineBtn type="dialogCancel" :disabled="saving" @click="cancelEditModal">Cancel</MachineBtn>
+            <MachineBtn type="dialogCancel" :disabled="saving" @click="closeEditModal">Cancel</MachineBtn>
             <MachineBtn type="fileSave" :disabled="saving" @click="saveEdit">{{ saving ? 'Saving…' : isNewTool ? "Add" : "Save" }}</MachineBtn>
           </Gate>
+        </div>
+      </div>
+      <!-- Discard unsaved tool edits (UX-02) — the same ask as the G-code editor's. -->
+      <div v-if="showEditDiscard" class="dialogOverlay" @click.self="showEditDiscard = false">
+        <div class="dialog">
+          <div class="dialogTitle danger">Discard changes?</div>
+          <div class="dialogBody">{{ isNewTool ? "The new tool" : `T${editTool?.T}` }} has unsaved changes.</div>
+          <div class="dialogActions">
+            <MachineBtn type="dialogCancel" @click="showEditDiscard = false">Keep editing</MachineBtn>
+            <MachineBtn type="dialogDanger" @click="confirmEditDiscard">Discard</MachineBtn>
+          </div>
         </div>
       </div>
     </Teleport>
@@ -768,7 +795,7 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
         <div class="dialog md wide importDialog">
           <div class="dialogHeader">
             <span class="dialogTitle">{{ importSummary.isExample ? 'Example Tool Library' : `Import ${importSource} Tool Library` }}</span>
-            <MachineBtn type="close" @click="cancelImport">&times;</MachineBtn>
+            <MachineBtn type="close" aria-label="Close import preview" title="Close import preview" @click="cancelImport"><X :size="14" /></MachineBtn>
           </div>
           <div class="dialogContent">
             <div v-if="importSummary.isExample" class="importStats">

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import MachineBtn from "./MachineBtn.vue";
+import { X } from "lucide-vue-next";
 const props = defineProps<{
   tabs: Array<{ id: string; label: string }>;
   modelValue: string;
@@ -28,7 +29,7 @@ const emit = defineEmits<{
             <span v-if="badges?.[tab.id]" class="badge">{{ badges[tab.id]! > 99 ? '99+' : badges[tab.id] }}</span>
           </MachineBtn>
         </div>
-        <MachineBtn v-if="closable" type="close" @click="emit('close')">&times;</MachineBtn>
+        <MachineBtn v-if="closable" type="close" aria-label="Close tab" title="Close tab" @click="emit('close')"><X :size="14" /></MachineBtn>
     </div>
 
     <div class="tab-content">

@@ -3,6 +3,7 @@ import { ref, computed, watch } from "vue";
 import { registerModal } from "./modalRegistry";
 import { GCODE_REFERENCE, GCODE_GROUPS, type GcodeEntry } from "./gcodeReference";
 import MachineBtn from "./MachineBtn.vue";
+import { X } from "lucide-vue-next";
 import MachineInput from "./MachineInput.vue";
 import MachineSelect from "./MachineSelect.vue";
 
@@ -51,7 +52,7 @@ function toggleSort(key: "code" | "name") {
     <div class="dialog lg dialog-full">
       <div class="dialogHeader">
         <span class="dialogTitle">G-code Reference</span>
-        <MachineBtn type="close" @click="emit('close')">&times;</MachineBtn>
+        <MachineBtn type="close" aria-label="Close reference" title="Close reference" @click="emit('close')"><X :size="14" /></MachineBtn>
       </div>
       <div class="stack-controls refContent">
         <MachineInput

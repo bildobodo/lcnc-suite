@@ -25,7 +25,7 @@ import {
 } from "./defaults";
 import type { MappingSource } from "./gamepadProfile";
 import { enableWakeLock, disableWakeLock } from "./wakeLock";
-import { ChevronUp, ChevronDown, Pencil, Trash2 } from "lucide-vue-next";
+import { ChevronUp, ChevronDown, Pencil, Trash2, RotateCcw } from "lucide-vue-next";
 import DebugTab from "./DebugTab.vue";
 import HalshowTab from "./HalshowTab.vue";
 import KeyboardTab from "./KeyboardTab.vue";
@@ -621,7 +621,7 @@ function resetMachineColor(id: string) {
                   @update:modelValue="onMachineColorChange(part.id, $event!)"
                 />
                 <span class="colorLabel">{{ formatPartLabel(part.id) }}</span>
-                <MachineBtn v-if="machineColors[part.id]" type="close" @click="resetMachineColor(part.id)">&times;</MachineBtn>
+                <MachineBtn v-if="machineColors[part.id]" type="listAction" :aria-label="`Reset color for ${formatPartLabel(part.id)}`" :title="`Reset color for ${formatPartLabel(part.id)}`" @click="resetMachineColor(part.id)"><RotateCcw :size="14" /></MachineBtn>
               </div>
             </div>
             <MachineToggle gate="viewerSetting" v-model="machineEdgesOn" @update:modelValue="setMachineEdges(machineEdgesOn); save()" label="Edge outline" />

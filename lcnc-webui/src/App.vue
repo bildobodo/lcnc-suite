@@ -34,7 +34,7 @@ import { highlightGcode } from "./gcodeHighlight";
 import { fmtElapsed, fmtDuration, fmtDist, fmtSize, fmtProgressTimes, fmtNum } from "./format";
 import type { GcodeStats } from "./GcodePanel.vue";
 import type { LimitViolation } from "./ws/bulkData";
-import { Settings, MessageSquare, PowerOff, Gamepad2, Keyboard, BookOpen, ClipboardCopy, Expand, Shrink } from "lucide-vue-next";
+import { Settings, MessageSquare, PowerOff, Gamepad2, Keyboard, BookOpen, ClipboardCopy, Expand, Shrink, X } from "lucide-vue-next";
 import GcodeReferenceDialog from "./GcodeReferenceDialog.vue";
 import NumberKeypadStrip from "./NumberKeypadStrip.vue";
 import FloatingOverlays from "./FloatingOverlays.vue";
@@ -1892,7 +1892,7 @@ watch(viewerGcode, (newGcode) => {
               </div>
               <div class="mdiHistoryHeader">
                 <span class="sub">History</span>
-                <MachineBtn type="dialogCancel" @click="clearMdiHistory" :disabled="mdiHistory.length === 0">Clear</MachineBtn>
+                <MachineBtn type="inlineMd" aria-label="Clear MDI history" title="Clear MDI history" @click="clearMdiHistory" :disabled="mdiHistory.length === 0">Clear</MachineBtn>
               </div>
               <div class="codeViewer mdiHistoryList scroll-thin fade-scroll">
                 <div v-for="(entry, i) in mdiHistory" :key="entry.id"
@@ -1964,7 +1964,7 @@ watch(viewerGcode, (newGcode) => {
           <div class="dialog md statsDialog">
             <div class="dialogHeader">
               <span class="dialogTitle">Program Stats</span>
-              <MachineBtn type="close" @click="statsDialogOpen = false">&times;</MachineBtn>
+              <MachineBtn type="close" aria-label="Close program stats" title="Close program stats" @click="statsDialogOpen = false"><X :size="14" /></MachineBtn>
             </div>
             <div class="dialogContent stack-sections scroll-thin fade-scroll">
               <StatsDonut :stats="gcodeStats" />
@@ -2059,7 +2059,7 @@ watch(viewerGcode, (newGcode) => {
         <div class="dialog lg dialog-full">
           <div class="dialogHeader">
             <span class="dialogTitle">Settings</span>
-            <MachineBtn type="close" @click="settingsDialogOpen = false">&times;</MachineBtn>
+            <MachineBtn type="close" aria-label="Close settings" title="Close settings" @click="settingsDialogOpen = false"><X :size="14" /></MachineBtn>
           </div>
           <div class="dialogContent">
             <SettingsPanel
@@ -2092,7 +2092,7 @@ watch(viewerGcode, (newGcode) => {
             <div class="row-tight">
               <MachineBtn type="inline" @click="copyAllMessages" :disabled="messages.length === 0">Copy All</MachineBtn>
               <MachineBtn type="inline" @click="clearAllMessages" :disabled="messages.length === 0">Clear All</MachineBtn>
-              <MachineBtn type="close" @click="messagesDialogOpen = false; markMessagesRead()">&times;</MachineBtn>
+              <MachineBtn type="close" aria-label="Close messages" title="Close messages" @click="messagesDialogOpen = false; markMessagesRead()"><X :size="14" /></MachineBtn>
             </div>
           </div>
           <div class="dialogContent stack-tight scroll-thin fade-scroll">

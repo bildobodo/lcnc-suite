@@ -135,7 +135,7 @@ test("teleported tool dialog under touch: scroll the form, keypad on a field, co
     await touch(cdp, "touchStart", [{ x: k.x + k.width / 2, y: k.y + k.height / 2 }]);
     await touch(cdp, "touchEnd", []);
   }
-  const ok = (await strip.getByRole("button", { name: "OK", exact: true }).boundingBox())!;
+  const ok = (await strip.getByRole("button", { name: "Apply", exact: true }).boundingBox())!;
   await touch(cdp, "touchStart", [{ x: ok.x + ok.width / 2, y: ok.y + ok.height / 2 }]);
   await touch(cdp, "touchEnd", []);
   await expect(strip).toHaveCount(0);
@@ -147,6 +147,12 @@ test("teleported tool dialog under touch: scroll the form, keypad on a field, co
   await expect(footer.getByRole("button", { name: "Cancel", exact: true })).toBeVisible();
   const c = (await footer.getByRole("button", { name: "Cancel", exact: true }).boundingBox())!;
   await touch(cdp, "touchStart", [{ x: c.x + c.width / 2, y: c.y + c.height / 2 }]);
+  await touch(cdp, "touchEnd", []);
+  // The form was edited (flutes): Cancel asks first (UX-02); Discard by touch.
+  const ask = page.locator(".dialogOverlay").last();
+  await expect(ask.getByText("Discard changes?")).toBeVisible();
+  const d = (await ask.getByRole("button", { name: "Discard", exact: true }).boundingBox())!;
+  await touch(cdp, "touchStart", [{ x: d.x + d.width / 2, y: d.y + d.height / 2 }]);
   await touch(cdp, "touchEnd", []);
   await expect(dialog).toHaveCount(0);
 });

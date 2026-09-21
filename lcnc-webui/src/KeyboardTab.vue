@@ -17,6 +17,7 @@ import {
 import { viewerInit } from "./lcncWs";
 import { isRotaryAxis, DEFAULT_AXES } from "./useAxes";
 import MachineBtn from "./MachineBtn.vue";
+import { Trash2 } from "lucide-vue-next";
 import MachineToggle from "./MachineToggle.vue";
 
 const props = defineProps<{ kbConfig: KeyboardDefaults }>();
@@ -166,7 +167,7 @@ onUnmounted(() => {
                 {{ listeningAction === action ? 'Press a key...' : formatKeyName(kbConfig.mapping[action]) }}
               </td>
               <td class="kbUnbind">
-                <MachineBtn type="close" v-if="kbConfig.mapping[action]" @click.stop="unbindKey(action)" title="Unbind">&times;</MachineBtn>
+                <MachineBtn type="listAction" v-if="kbConfig.mapping[action]" :aria-label="`Remove binding for ${KEYBOARD_ACTION_LABELS[action]}`" :title="`Remove binding for ${KEYBOARD_ACTION_LABELS[action]}`" @click.stop="unbindKey(action)"><Trash2 :size="14" /></MachineBtn>
               </td>
             </tr>
             <template v-if="hasRotaryAxes">
@@ -178,7 +179,7 @@ onUnmounted(() => {
                   {{ listeningAction === action ? 'Press a key...' : formatKeyName(kbConfig.mapping[action]) }}
                 </td>
                 <td class="kbUnbind">
-                  <MachineBtn type="close" v-if="kbConfig.mapping[action]" @click.stop="unbindKey(action)" title="Unbind">&times;</MachineBtn>
+                  <MachineBtn type="listAction" v-if="kbConfig.mapping[action]" :aria-label="`Remove binding for ${KEYBOARD_ACTION_LABELS[action]}`" :title="`Remove binding for ${KEYBOARD_ACTION_LABELS[action]}`" @click.stop="unbindKey(action)"><Trash2 :size="14" /></MachineBtn>
                 </td>
               </tr>
             </template>
@@ -199,7 +200,7 @@ onUnmounted(() => {
                 {{ listeningAction === action ? 'Press a key...' : formatKeyName(kbConfig.mapping[action]) }}
               </td>
               <td class="kbUnbind">
-                <MachineBtn type="close" v-if="kbConfig.mapping[action]" @click.stop="unbindKey(action)" title="Unbind">&times;</MachineBtn>
+                <MachineBtn type="listAction" v-if="kbConfig.mapping[action]" :aria-label="`Remove binding for ${KEYBOARD_ACTION_LABELS[action]}`" :title="`Remove binding for ${KEYBOARD_ACTION_LABELS[action]}`" @click.stop="unbindKey(action)"><Trash2 :size="14" /></MachineBtn>
               </td>
             </tr>
           </tbody>
