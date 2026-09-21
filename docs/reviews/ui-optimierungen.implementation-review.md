@@ -410,7 +410,7 @@ Der Operator hat Cancel fokussiert. Erwartet sind das Verwerfen des lokalen Zahl
 
 ## Antworten Runde 3 + Nachprüfung UI-I10 · 21. September 2026 · Claude
 
-Die beiden P2-Restbefunde aus Runde 3 und der neue P1-Befund UI-I10 sind gegen den Code reproduziert und behoben. Die Suite war bei der Prüfung nicht live. Die UX-Punkte UX-01 bis UX-12 sind Vorschläge zur Abstimmung: keine Umsetzung in dieser Runde, Stellungnahme unten. Korrekturen, Tests und Doku liegen in **einem** Commit auf `feat/ui-review-wave` (Hash und Gate-Läufe am Ende dieses Abschnitts).
+Die beiden P2-Restbefunde aus Runde 3 und der neue P1-Befund UI-I10 sind gegen den Code reproduziert und behoben. Die Suite war bei der Prüfung nicht live. Die UX-Punkte UX-01 bis UX-12 sind Vorschläge zur Abstimmung: keine Umsetzung in dieser Runde, Stellungnahme unten. Korrekturen, Tests und Doku liegen in **einem** Commit auf `feat/ui-review-wave`: **`8a6ed60`** („Implementation review round 3 + UI-I10: owner gates, keys act on click, portrait edit fold“); die Gate-Läufe stehen in der Tabelle am Ende dieses Abschnitts.
 
 | ID | Stand | Korrektur | Nachweis |
 |---|---|---|---|
@@ -420,3 +420,14 @@ Die beiden P2-Restbefunde aus Runde 3 und der neue P1-Befund UI-I10 sind gegen d
 | UI-I09 (Nachtrag) | **erledigt** | Regressionsfälle für beide Restfälle und UI-I10 in der regulären Suite | `serial-guards` 38 Fälle |
 
 **Zu UX-01 bis UX-12 (Stellungnahme, keine Umsetzung):** UX-07 ist als UI-I10 behoben. Die übrigen Punkte sind Entscheidungen über den Aktionsvertrag, die dem Operator zustehen; sie werden nicht stillschweigend umgesetzt. Einschätzung: UX-01 (X = ausblenden und erhalten für beide Hilfen; Verwerfen als eigene, benannte Aktion) ist fachlich stimmig, weil die Zahlenhilfe heute zwei Verlassen-Semantiken hat (Cancel verwirft, Outside/Tab erhält) — eine Änderung des bisherigen Numpad-Cancel-Vertrags und damit eine Planänderung. UX-02/03/05 (Entfernen-/Reset-Aktionen benennen, gemeinsame Symbole, zugängliche Namen für Schließen) sind ohne Verhaltensänderung umsetzbar; UX-04 (`OK` vs `Done`) ist ein Beschriftungsfehler und gehört in dasselbe Paket; UX-06/08/09/10/11/12 brauchen zuerst den gemeinsamen Vertrag (Zustand vs. Aktion, Autosave-Bereiche, Erklärpfad für gesperrte Eingaben, Hilfemuster, Bestätigungsmuster). UX-10 berührt die im Layout-Gate gepinnten Safety-Beschriftungen (`stable-width`); eine Umbenennung braucht neue Referenzen. Vorschlag: nach der Live-Sichtprüfung als eigenes Arbeitspaket mit Plan-Agreement.
+
+### Gate-Läufe Runde 3
+
+| Prüfung | Ergebnis |
+|---|---|
+| `python3 scripts/test_suite.py offline` auf dem **committeten** Baum `8a6ed60` (nur die zwei Review-Dokumente geändert) | **PASS** — Report `runlogs/test-suite/20260921T183126Z-offline` (`commit` = `8a6ed60`): backend 958 Tests + 340 Subtests, 5axis-model, audit-css, frontend-lint, frontend-build, frontend-unit **1 568 / 1 568** (69 Dateien), frontend-browser **140 / 140** (138 + 2 neue Fälle, 293,6 s) |
+| erster Lauf auf dem ursprünglichen Fix-Commit `bf3e885` | **FAIL** nur in `frontend-browser` (Report `20260921T182613Z-offline`): zwei `touchoff.spec.ts`-Fälle und `layout-fixtures.ts` lösten die Tasten C/Cancel/OK per synthetischem `dispatchEvent("pointerdown")` aus — mit Tasten auf `click` kein Ereignis mehr. Auf echte `.click()`-Aufrufe umgestellt (das deaktivierte OK per `click({ force: true })`), `serial-touchoff` 25 / 25, Commit zu `8a6ed60` amended |
+| `serial-guards` einzeln (38 Fälle inkl. Tab-zu-Cancel, Gate-Rücknahme im Latch, Editor/Suche Portrait) | grün vor dem Amend, im Kettenlauf grün |
+| Codex-Proben Runde 3 + UI-I10 | Sollverhalten der Proben „backend gate during busy“, „editor 150 %“, „numeric Cancel Enter“ und „text Close Enter“ in den regulären Specs nachgestellt und grün |
+
+Nicht ausgeführt: Live-Sichtprüfung am XYZAC-Sim und am physischen Touchscreen (Plan-Tabelle, nach Codex-Runde 4).
