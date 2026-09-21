@@ -5,6 +5,11 @@
 fünf Nachschärfungen (UI-01, 06, 09, 11, 12) sind eingearbeitet und mit `[UI-nn R2]` markiert;
 UI-15 (gemeinsame Eingabehilfe) ist als **WP8** aufgenommen und integriert UI-13.
 
+**Fassung 4 · 21. September 2026 · Abschluss nach Codex-Implementierungsrunde 4 + UX-01–13:** die
+Restbefunde UI-I10/UI-I11, der Feldvertrag UX-13 und die zwölf UX-Vorschläge mit den drei
+Operator-Entscheidungen stehen im Abschnitt [„Fassung 4 — Abschluss“](#fassung-4--abschluss) am
+Ende dieser Datei; WP0–WP8 oben sind umgesetzt und bleiben als Referenz der Runden 1–4.
+
 ## Kontext
 
 Der Operator meldete vier Defekte (Tool-Edit-Dialog „zusammengeklatscht", Numpad ändert
@@ -622,4 +627,362 @@ Millisekunden-Grenzen.
 - Fokus-Trap/Autofokus in Dialogen (Escape bleibt E-Stop, kein Escape-Close).
 - Größen-Token-Skala (85 Magic-px); `color-mix()`-Prozent-Sprawl.
 - Hold-Buttons per Tastatur (bewusst tot, dokumentiert).
+- Physische Touchscreen-Abnahme (gate-t `main`).
+
+---
+
+<a id="fassung-4--abschluss"></a>
+
+## Fassung 4 — Abschluss · 21. September 2026 (Codex-Implementierungsrunde 4 + UX-01–13)
+
+**21. September 2026 · Branch `feat/ui-review-wave` (Basis `development`, Merge nach `development`,
+nie `main`).** Fassung 3 (WP0–WP8) ist umgesetzt und in drei Codex-Runden geprüft; Stand
+`9b368f7`: 9 von 11 technischen Befunden geschlossen. Diese Fassung schließt den Rest.
+
+### Kontext
+
+Codex-Implementierungsrunde 4 (`docs/reviews/ui-optimierungen.implementation-review.md`,
+Abschnitt „Codex · Implementierungsrunde 4“) lässt zwei technische Befunde offen und der
+UX-Nachtrag (`docs/reviews/ui-optimierungen.review.md`, UX-01–UX-13 mit „Konkrete
+Codex-Empfehlungen“) wartet auf Operator-Entscheidungen:
+
+- **UI-I10 (P1, Rest):** Text-Tastatur-X per Tab + Enter/Space schließt korrekt, aber der
+  fokussierte Button wird entfernt, Fokus fällt auf `body`, der Modal-Guard fällt mit der
+  Sitzung → nächstes Space sendet `cycle_start` (6/6 Proben). Ursache: `closeTextSession()`
+  (`inputSession.ts:171`) hat keine Fokusbehandlung; die Textsitzung kennt kein Zielelement
+  (`TextTarget` = nur Funktionen), also kann sie `returnFocusTo` nicht aufrufen. Zusatzfalle: das
+  MDI-Feld sendet auf `@keyup.enter` (`App.vue:1873`) — ein Enter-Keydown auf dem X würde nach
+  einer Fokus-Rückgabe als Keyup im Feld landen und `mdi` senden.
+- **UI-I11 (P2, neu):** Physisches Tippen ins MDI-Feld wird Zeichen für Zeichen gelöscht (3/3).
+  Ursache: MDI ist der einzige Textaufrufer mit `:value="mdiText"` + `@input` statt `v-model`
+  (`App.vue:1869`), während `MachineInput`s Textzweig (`MachineInput.vue:223-238`) zusätzlich
+  `v-model="model"` trägt — zwei Schreiber auf ein Feld: `useModel` läuft lokal (Emit geht ins
+  Leere), `vModelText.mounted` setzt `el.value = ""`, `patchProps` setzt `value` aus den Attrs bei
+  jedem Patch neu. Der Zahlenzweig ist bewusst ein-schreibig (`:value="keypadDisplayValue"`).
+- **UX-13:** MDI wird vom Operator als Passwortfeld wahrgenommen (Firefox auf dem Mac, Apple-
+  Passwortmanager). Kein Textfeld setzt `autocomplete`/`spellcheck`/`autocapitalize`/`name`;
+  1 von 14 Textfeldern hat eine verdrahtete Beschriftung, 0 von 14 ein `aria-label`.
+- **UX-01–12:** Aktions-/Beschriftungsvertrag; Codex hat je Punkt eine konkrete Empfehlung.
+
+**Operator-Entscheidungen (21.09.2026):** alles in einer Welle · Numpad bekommt **X + Discard**
+(Codex UX-01) · Arm/Power zeigen die **nächste Aktion** (UX-10) · UX-13-Abnahme in **Firefox/macOS
+mit dem Apple-Passwortmanager (iCloud-Passwörter-Erweiterung)**.
+
+**Rahmen (unverändert):** Suite darf nicht live sein für Build/Vitest/Playwright — prüfen mit
+`pgrep -af "[h]al_watchdog"` (nie plain `pgrep -f`). Playwright bedient den **gebauten** dist
+(`npm run build` vor e2e), nie zwei Playwright-Läufe parallel. Pre-Flight-Checkliste aus CLAUDE.md
+für jede `.vue`/`.css`-Änderung (Tokens, keine `:deep()`-Visuals, MachineBtn-Katalog,
+Single-Root). Commits enden mit `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`.
+
+---
+
+### Arbeitspakete (Reihenfolge = Commit-Reihenfolge, je WP ein Commit + Gates)
+
+#### WP-A — Technische Restbefunde: UI-I10-Rest, UI-I11, UX-13-Feldvertrag
+
+**A1 · UI-I10: Explizites Schließen der Text-Hilfe gibt den Fokus geschützt zurück**
+(`lcnc-webui/src/inputSession.ts`, `TextKeypadStrip.vue`, `MachineInput.vue`, `App.vue`,
+`GcodePanel.vue`, `useMdiHistory.ts`)
+
+- Die Elementquelle gehört auf den **Besitzervertrag**: `TextTarget` (`inputSession.ts:37-53`,
+  neben `isVisible()`/`canConfirm()`) bekommt `focusEl?(): HTMLElement | null` — kein neues
+  Sitzungsfeld. Besitzer liefern sie: `MachineInput.textTarget()` → `() => textEl.value`;
+  MDI (`App.vue` `mdiTarget()`) → `_mdiInputEl`; Editor (`GcodePanel.vue` `editorTarget()`)
+  → `() => _editorView?.contentDOM ?? null` (das `contenteditable`, das `EditorView.focus()`
+  selbst fokussiert; in-flow, also `offsetParent` gesetzt, `:disabled` trifft nie).
+- Neue Funktion `closeTextSessionByOperator(reason)`: `el = inputSession.target?.focusEl?.()`
+  VOR `endText()` sichern (das nullt `target`), `closedByUser` setzen wie
+  `closeTextSession(reason, true)`, dann `returnFocusTo(el)` (bestehender bewachter Übergang:
+  fokussiert sofort, `focusReturn.pending` hält `helperOpen`/`modalOpen`, rAF-Polling,
+  `.strip`-Fallback, 2 s Backstop). Einziger Aufrufer: das X der Text-Tastatur
+  (`TextKeypadStrip.vue:101`). Der Enter=„Done“-Pfad von `MachineInput.enter()` (`:127`, heute
+  unbewachtes `textEl.focus()`) wird lokal `const el = textEl.value; if (closeTextSessionIf(ownerId,
+  'done')) returnFocusTo(el);` — `returnFocusTo` ist bereits exportiert.
+  Beim Pointer-Schließen liegt der Fokus bereits auf dem Feld (`pointerdown.prevent`) →
+  `target.focus()` auf dem aktiven Element ist ein No-op, der erste rAF-Tick beendet `pending`;
+  die 300-ms-Wartezeit in `input-session.spec.ts:298-300` deckt den einen Frame ab. Das
+  synchrone `focusin` erreicht `onDocFocusIn` erst nach `endText()` (kind = null) → No-op.
+- Verlassen-Pfade bleiben ohne Refokus (Outside-Pointerdown `:258`, Focusin außerhalb `:268`,
+  Besitzerwechsel `:158`, Numpad übernimmt `:195`, Gate-Ende/Unmount `closeTextSessionIf`) —
+  ein pauschales Refokussieren würde bewusst gewählten Fokus zurückstehlen (Codex).
+- **Enter-Keyup-Falle (zwingend, nicht optional):** MDI sendet künftig auf **Keydown**
+  (`onMdiKeydown` in `useMdiHistory.ts:69`: `if (e.key === "Enter") { if (e.repeat ||
+  e.isComposing || e.keyCode === 229) return; e.preventDefault(); handleMdiSend(); return; }`);
+  `@keyup.enter` (`App.vue:1873`) entfällt. Der IME-Guard ist der einzige plausible Grund, warum
+  Send bisher auf Keyup lag (ein IME-Enter bestätigt die Komposition auf Keydown). Enter-Keydown
+  auf dem X löst dessen `click` aus (Button-Aktivierung auf Keydown), das Keyup landet danach im
+  MDI-Feld ohne Handler; Space aktiviert auf Keyup und hat kein Folgeereignis. Andere
+  `@keyup`-Listener gibt es in `src/` nicht (nur das Jog-Keyup am Window). Ohne diesen Schritt
+  würde der bestehende Fall `keyboard-guards.spec.ts:212-219` (Enter auf „Close keyboard“ →
+  `expectNoMachineAction`, `mdi` zählt als Maschinenbefehl) nach A1 rot — er besteht heute nur,
+  weil der Fokus auf `body` fällt. Ein „ein Keyup schlucken“ im globalen Listener ist verworfen.
+
+**A2 · UI-I11: Das MDI-Feld hat genau einen Schreiber** (`App.vue`, `MachineInput.vue`)
+
+- `App.vue:1864-1876`: MDI-`MachineInput` auf `v-model="mdiText"` (der Vertrag jedes anderen
+  Textaufrufers); `:value`/`@input` entfallen, `@keydown="onMdiKeydown"` bleibt. `mdiTarget()`
+  (Insert/Backspace/Clear mit Caret-Restore) und die Verlaufsnavigation schreiben weiter direkt
+  in `mdiText` — mit `v-model` ist das der eine Weg ins DOM.
+- Härtung in `MachineInput` (die Falle darf nicht wiederkommen): der Textzweig wird
+  **attrs-first, ein Schreiber** wie der Zahlenzweig — `v-model="model"` entfällt,
+  `:value="textValue"` mit `textValue = attrs.value !== undefined ? attrs.value : (model.value ?? '')`
+  (dasselbe Muster wie `keypadDisplayValue`), `@input="onNativeInput"` setzt `model.value =
+  el.value` (emittiert `update:modelValue` für `v-model`-Aufrufer; ein `:value`+`@input`-Aufrufer
+  bekommt sein `attrs.onInput` weiterhin nativ über `v-bind="attrs"` — `mergeProps` reiht beide
+  Handler). `fireInput()` (Bildschirmtasten) bleibt. `v-model`-Aufrufer (`modelValue` → `model` →
+  `textValue`; native Eingabe → `model.value = …` → `update:modelValue`) brechen nicht; kein
+  Textaufrufer nutzt `.trim`/`.lazy`. Caret: `patchDOMProp` schreibt `el.value` nur bei
+  Abweichung — der Aufrufer spiegelt denselben String, also keine Zuweisung, kein Caret-Sprung.
+  IME/Composition: Write-through ohne Composing-Flag — `model` wird bei jedem `input`-Ereignis
+  aktualisiert (auch während der Komposition), damit ist `:value` stets gleich `el.value`; ein
+  Guard, der Model-Schreibvorgänge während der Komposition ÜBERSPRINGT, wäre schlechter (das
+  Modell veraltet, ein fremder Patch überschreibt die Komposition).
+- Commit-Text nennt die **Topologie** (zwei Schreiber: lokales `model` via `vModelText` und
+  `attrs.value` via `patchProps`), nicht eine bestimmte Verschachtelung — die verlierende
+  Reihenfolge ließ sich statisch nicht festnageln; der neue Regressionstest ist der Schiedsrichter.
+
+**A3 · UX-13: Feldvertrag für Textfelder** (`MachineInput.vue`, 14 Aufrufstellen)
+
+- `MachineInput` Textzweig setzt Vorgaben, die ein Aufrufer per Attribut überschreiben kann:
+  `autocomplete="off"`, `autocorrect="off"`, `autocapitalize="off"`, `spellcheck="false"`
+  (alle 14 Felder sind technisch: G-code, HAL-Pfade, Dateinamen, Suchbegriffe, kurze
+  Werkzeug-/Makro-Bezeichner — keine Prosa-Ausnahme nötig), `:name="attrs.name ?? gate"` (stabile
+  fachliche Kennung = INPUT_DEFS-Schlüssel, z. B. `mdiText`, `search`, `toolEdit`),
+  `:aria-label="attrs['aria-label'] ?? label"` (der `label`-Prop erreicht heute nur das
+  Helfer-Heading, nie das DOM).
+- Beschriftungen verdrahten (Hausmuster `ToolTablePanel.vue:702-703` `for`/`id`): Werkzeug-
+  Editor Description/Material/Holder, Makro-Editor Name/Command/Param-Label/-Default (`<span
+  class="inputLabel">` → `<label for>`), Makro-Ausführung (`App.vue:2126`). Ohne sichtbares Label
+  (MDI, drei Suchfelder, Spindle-Load-Pin) trägt der `label`-Prop den Namen („MDI command“,
+  „Search G-code reference“, „Search tools“, „Search HAL“, „Spindle load HAL pin“).
+- Kein erweiterungsspezifisches Attribut (`data-1p-ignore` gilt nur für 1Password). Die
+  Passwort-Erkennung ist damit nicht bewiesen beseitigt: **Abnahme durch den Operator** in
+  Firefox/macOS mit der iCloud-Passwörter-Erweiterung an und aus sowie in einem frischen
+  Profil (MDI, Suchen, Werkzeug-/Makro-Felder: kein Vorschlag/Speicherangebot, physisches Tippen
+  und Bildschirmtasten, kein Maschinenbefehl durch Auswahl/Ausblenden eines Vorschlags).
+
+**Tests A** (regulär, `serial-guards`; Tasten immer per echtem `click`/`tap`/Tastendruck):
+
+- `e2e/keyboard-guards.spec.ts` (neuer Fall nach Zeile 220): MDI + `G1` per Bildschirmtasten →
+  X fokussieren wie die bestehenden Fälle (`tk.getByRole(… 'Close keyboard').focus()`, Zeilen
+  212/283 — oder erste Hilfetaste fokussieren und per Tab zum X wie Codex' Probe; ein echtes Tab
+  aus dem FELD landet auf dem Send-Button außerhalb des Bereichs und schließt die Sitzung als
+  Verlassen) → **Enter** bzw. **Space** → Hilfe weg, Wert `G1`, **MDI fokussiert**,
+  `expect.poll(__modalRegistry.open)` false, kein `mdi`/`cycle_start`; nächstes Space tippt
+  (`G1 `). Dasselbe für die „Done“-Taste der Referenzsuche und das X im Editor (Fokus auf
+  `.cm-content`, Puffer intakt, kein Start).
+- `e2e/input-session.spec.ts`: **physisches** `page.keyboard.type("G1 X7")` ins MDI-Feld mit
+  offener Hilfe → erhalten; `Close keyboard` per Klick → weiterhin `G1 X7`, fokussiert; ` F1`
+  tippen; Enter → genau ein `mdi` mit `text: "G1 X7 F1"` (`sentCmds()`), Feld leer; ArrowUp holt
+  es zurück; Hilfe wieder öffnen, Bildschirmtasten hängen an. Bestehende Pointer-/Tap-Schließfälle
+  (`:292-301`, `:513/607/679`) bleiben grün (Fokus-No-op); der bestehende Enter-auf-Close-Fall
+  (`keyboard-guards.spec.ts:157-220`) besteht nur mit A1 **und** dem Keydown-Umbau zusammen.
+- Feldvertrag: ein Fall scannt in MDI-Tab, Referenzdialog, Werkzeug-Editor, Makro-Editor jedes
+  sichtbare `input.inputField:not([readonly])`: `autocomplete=off`, `spellcheck=false`,
+  `autocapitalize=off`, `name` nicht leer, `toHaveAccessibleName(/\S/)`.
+- Kein Komponententest: `@vue/test-utils`/jsdom fehlen (`vitest.config.ts` ist `environment:
+  "node"`, kein `src/*.test.ts` mountet eine Komponente) — e2e-only; eine DOM-Umgebung für Vitest
+  ist eine eigene Entscheidung (Folge-Liste).
+
+---
+
+#### WP-B — Aktionsvertrag (UX-01–UX-06)
+
+**B1 · Numpad und Text-Tastatur: Schließen ≠ Verwerfen** (`NumberKeypadStrip.vue`,
+`TextKeypadStrip.vue`, `machineControls.ts`)
+
+- Numpad bekommt **X „Close keyboard“** (lucide `X`, wie die Text-Tastatur): `closeKeypad(true)`
+  (Entwurf bleibt, `useNumberKeypad.ts:112`) + `returnFocusTo(trigger)`. **`Cancel` → `Discard`**
+  (Entwurf verwerfen + schließen + Fokus zurück = heutiges `cancel()`).
+  Layout ohne neue Zeile (264-px-Budget, Reserve ≈ 12 px): Landscape Spalte 6 = X · Discard ·
+  ═ · Apply (Apply 1 Zeile statt 2); Portrait Zeile 5 = X (1) · Discard (2) · ═ (1) · Apply (1).
+  `.nkKey` bekommt wie `.tkKey` `padding-left/right: 0` (sonst bleiben in 44 px nur 16 px Text).
+- **UX-04 Bestätigen nach Wirkung:** Numpad `OK` → **`Apply`** (13 px ≈ 37 px, passt in 44 px);
+  Textfeld-Enter sichtbar **`Done`** (aria/title sagen es schon, `input-session.spec.ts:326`
+  bedient „Done“); MDI `Send` / Editor ↵ „New line“ unverändert.
+- **UX-03 gleiche Symbole, Namen, Farben:** Numpad `⌫` → lucide `Delete` + „Backspace“; `C` →
+  **`Clr`** neutral (Katalog `numClr` Variante `default`; das Leeren des unbestätigten Ausdrucks
+  ist keine Gefahr) + aria „Clear entry“; alle Numpad-Tasten bekommen `aria-label`/`title`
+  („Divide“, „Multiply“, „Minus“, „Plus“, „Negate“, „Evaluate“, „Open/Close parenthesis“; Ziffern
+  bleiben ihr Zeichen). Text-Tastatur: `Clr` behält aria „Clear line“ (Label-in-Name erfüllt).
+- Tests: `keyboard-guards.spec.ts:125,168`, `touch-hold.spec.ts:147-148`, `layout-fixtures.ts:135`
+  (`Cancel` → `Discard`); `keyboard-guards` ×2, `touchoff` ×2, `touch-hold` ×1 (`OK` → `Apply`);
+  `touchoff.spec.ts:566,604,610` (`C` → `Clr`). Neue Fälle: Numpad X per Tap und per Tab+Enter →
+  Hilfe zu, Entwurf beim Wiederöffnen markiert, Fokus am Feld, kein Befehl; Discard → kein
+  Entwurf. Layout-Gate (`layoutChanges`/`clipped-label`) für beide Ausrichtungen.
+
+**B2 · UX-05 Schließen als benanntes Control** (17 `type="close"`-Stellen in 11 Dateien)
+
+- Jede Stelle: lucide `X` statt `&times;` und ein **kontextbezogenes `aria-label`** („Close program
+  stats“, „Close settings“, „Close messages“, „Close reference“, „Close run-from-line“, „Close
+  tool editor“, „Close import preview“, „Dismiss upload error“, „Dismiss import result“, „Close
+  tab“ (TabPanel), „Close camera“); `title` gleichlautend.
+- **Dauerhafte Prüfung:** `scripts/audit-scoped-css.py` bekommt die Template-Kategorie `CLOSE`
+  (ein `<MachineBtn type="close"` ohne `aria-label`), Fixture unter
+  `scripts/test_fixtures/audit_css/`, Fall in `scripts/test_audit_scoped_css.py` → läuft im
+  Offline-Gate (`audit-css`).
+- `e2e/keyboard-guards.spec.ts:294` (`/^(Cancel|×)$/`) → `/^(Cancel|Close .*)$/`. Visuelle
+  Referenzen: nur `tool-edit-*.png` (4) enthalten ein X → nach Sichtprüfung erneuern.
+
+**B3 · UX-02 X nur zum Schließen**
+
+- `KeyboardTab.vue:169/181/202`: Belegung entfernen = lucide `Trash2`, aria/title „Remove binding
+  for <Aktion>“ (Katalogtyp `listAction`), Wirkung unverändert (sofort + speichern).
+- `SettingsPanel.vue:624`: Sonderfarbe zurücksetzen = lucide `RotateCcw` (bereits importiert in
+  SpindleStrip), aria/title „Reset color for <Teil>“.
+- `ToolTablePanel.vue:654/757`: Header-X und Footer-Cancel laufen über **eine** Prüfung: unverändert
+  → schließen; geändert (Snapshot beim Öffnen vs. `editForm`) → Dialog „Discard changes?“ mit
+  **Keep editing / Discard** (Muster `GcodePanel.vue:957-967`, `registerModal`). Import-Vorschau-X
+  und RFL-Dialog-X haben keinen Entwurf → direkt.
+- Tests: `tool-geometry`/`example-tool-library`-Specs mit Cancel bleiben; neu: Feld ändern → X →
+  Dialog, Keep editing behält Werte; unverändert → X schließt direkt.
+
+**B4 · UX-06 Ziel von Reset/Clear nennen**
+
+- `ThreeViewer.vue:3946-3947`: sichtbar `Reset`/`Clear` (68-px-Zellen), aria/title **„Reset
+  view“** / **„Clear backplot“**. `OverridesStrip.vue:42/48/54`: sichtbar **`100 %`**, aria
+  „Reset feed/spindle/rapid override to 100 %“. `App.vue:1879` MDI-Verlauf: aria „Clear MDI
+  history“, Katalogtyp `inlineMd` statt `dialogCancel`. `SafetyStrip.vue:115`: im Reset-Zustand
+  aria/title „Reset E-Stop“ (sichtbar bleibt `Reset`, Breite unverändert). Settings-Resets sind
+  bereits benannt.
+
+---
+
+#### WP-C — Zustand und Speichern (UX-08, UX-10)
+
+**C1 · UX-10 Arm und Machine Power beschriften die nächste Aktion** (`SafetyStrip.vue`)
+
+- Arm: `stable-width`-Paar **`Arm` / `Disarm`** (statt `Armed`/`Arm`); der Trip-Fall wird
+  `reason="Acknowledge the safety trip first"` statt `title`. Power: **`Power on` / `Power off`**
+  (statt `On`/`Off`). Zustand bleibt sichtbar: grüne Variante, Header-Pill `armed/disarmed`,
+  Statuszeilen (Enabled TRUE/FALSE). E-Stop/Reset ist bereits dieses Muster.
+- `e2e/smoke.spec.ts:26` → `getByRole("button", { name: "Arm", exact: true })`.
+  Breite neu messen: `input-session` Portrait (`.safetyBtns button` im Viewport bei 100 % und
+  150 %), `layout.spec` Frame-Zustände, `clipped-label` auf `.safetyBtn`. Safety ist in den
+  visuellen Referenzen maskiert (0 PNGs). Fallback bei Überlauf: `Power` mit aria „Power off“.
+
+**C2 · UX-08 Speichern pro Bereich erklären** (`SettingsPanel.vue`, `defaults.ts`, `lcncWs.ts`)
+
+- Kopfzeile: „Settings are saved automatically…“ → „Changes save automatically“ + **Speicherstatus**;
+  Makro-Editor bekommt eigenen Hinweis „Unsaved edit — Save or Cancel“; der Gamepad-Wizard hat
+  bereits `Save Profile`.
+- Ehrlicher Status statt fire-and-forget: `defaults.ts` führt `saveStatus` (`idle | pending |
+  saving | saved | error | blocked`); `saveSection` setzt `pending`; der Saver liefert das `req_id`
+  von `send()` zurück (`lcncWs.saveSettings`), `lastReply` mit passendem `req_id` → `saved` /
+  `error` (Grund); `!serverSettingsReady` → `blocked` „Not saved — waiting for server settings“
+  (heute stiller Drop, verletzt „no silent fallbacks“); `send() === null` → `error` „Not connected“.
+  Anzeige im Settings-Kopf als Text (`--ok`/`--danger` über bestehende Farbtokens; **neues
+  globales Muster `.saveStatus` in `style.css`**, in CLAUDE.md dokumentieren).
+- Tests: Vitest für den Zustandsautomaten (pur); e2e: Viewer-Einstellung ändern → „Saving…“ →
+  Mock-Reply ok → „Saved“; Reply `ok:false` → „Save failed: …“; vor `settings_init` → blocked-Text.
+
+---
+
+#### WP-D — Erklärungen erreichbar (UX-09, UX-11)
+
+**D1 · UX-09 Sperrgrund für alle Controls** (`permissions.ts`, `MachineBtn.vue`, `MachineToggle.vue`,
+`MachineRadio.vue`, `MachineInput.vue`, `MachineSelect.vue`, `MachineSlider.vue`, `JogStrip.vue`,
+`SetupStrip.vue`)
+
+- `useGateExplain(gate, disabled, reason?)` in `permissions.ts`: die Logik aus `MachineBtn.vue:63-90`
+  (Grund aus `usePermissionReasons()` bzw. Prop, nur wenn armed, `explain()` → Message-Center,
+  `explainLabel`, `explainKeydown`) als Composable; `MachineBtn` nutzt es ohne Verhaltensänderung.
+- Label-verwurzelte Controls (`MachineToggle`, `MachineRadio`): während gesperrt + Grund + armed
+  trägt das Wurzel-`<label>` `title`, `tabindex="0"`, `role="button"`, `aria-label="Why is this
+  unavailable? …"`, Click/Keydown → `explain` (genau das, was `JogStrip.vue:473-475` und
+  `SetupStrip.vue:238` heute von Hand tun → durch das Composable ersetzen).
+- Input-verwurzelte Controls (`MachineInput`, `MachineSelect`, `MachineSlider`) **bleiben
+  Single-Root** (ein Wrapper zöge `.mdiInput`/`input.setupInput` aufs Span): sie tragen `title`
+  und `@pointerdown="explain"` — Chromium ≥ 116 und Firefox ≥ 105 stellen Pointer-Ereignisse an
+  gesperrten Controls zu (die beiden Operator-Browser; Safari im Test-Doku als ungeprüft
+  vermerkt). Ein gesperrtes Feld ist per Tastatur nicht erreichbar; das ist die dokumentierte
+  Grenze (der Abschnitts-Gate und die Buttons erklären denselben Grund).
+- Tests: MDI-Feld gesperrt (`ready:false`, armed) → Tap zeigt den Grund im Message-Center;
+  gesperrter Toggle per Tab erreichbar → Enter zeigt den Grund, Zustand unverändert; Space
+  erreicht nie `cycle_start` (`explainKeydown` stoppt die Propagation).
+
+**D2 · UX-11 Eine antippbare Hilfe** (`HelpIcon.vue`, `JogStrip.vue`, `SetupStrip.vue`)
+
+- `HelpIcon` bekommt `label` (aria-label „Help: <Thema>“, Default „Show help“). `JogStrip`: ein
+  HelpIcon am Label „Kinematics frame“ mit den drei Erklärungen (Machine/TCP/Plane); die Radios
+  behalten Einzeiler-`title`; `planeTitle` wird getrennt in Sperrgrund (D1) und Hilfetext.
+  `SetupStrip`: ein HelpIcon am Bewegungs-Block mit den drei langen → Zero/→ Home/→ G30-Texten;
+  die Hold-Buttons behalten kurze `title`. Banner-`title`s in `App.vue` sind keine Controls und
+  bleiben. Escape bei offenem Popover = E-Stop (Capture-Listener) und schließt das Popover —
+  erwartet, in `docs/testing.md` festgehalten.
+- Tests: Hilfe-Button hat den Namen „Help: Kinematics frame“, Klick öffnet das Popover mit „TCP“;
+  Tab → Enter öffnet; Space auf dem fokussierten Button sendet nie `cycle_start`.
+
+---
+
+#### WP-E — Bestätigungen nach Wirkung (UX-12)
+
+- `MachineBtn.vue`: **jeder** abgebrochene Hold sagt es am Control (`showHint`): Slide-off „Hold
+  to activate — keep the finger on it“, Gate zu „Unavailable — <Grund>“, Ziel gewechselt
+  „Selection changed — hold again“ (heute nur Konsole; `touch-hold.spec.ts` behauptet mehr, als es
+  prüft). Hold-Buttons ohne eigenes `title` bekommen `title="Hold to activate"` (Hover-Vorab-
+  hinweis). **Neues globales Muster** für den Touch-Vorabhinweis: `.b.holdable` mit 2-px-Spur am
+  unteren Rand (`--hl-active`, `--opacity-subtle`) in `style.css` — sichtbar, bevor je gehalten
+  wurde; die bestehende Hold-Füllung (`Btn.vue` `.holding::after`) bleibt.
+- `GamepadMapWizard.vue:190/252`: „Press again to restart (3 s)“ mit sekündlichem Countdown
+  (`aria-live="polite"`), Rückfall nach 0 s.
+- `OffsetPanel.vue:118-125`: `Clear G54` title/aria „Hold to clear G54“; `Clear All` title/aria
+  „Hold to clear all fixture offsets (G54–G59.3)“ (Hold bleibt, Operator-Entscheidung 2026-09-19).
+  `ToolTablePanel.vue:631`: Dialogtitel „Delete T12?“ (Ziel im Titel). Makro-/Reset-Dialoge sind
+  lokal und bleiben.
+- Tests: `touch-hold.spec.ts` prüft den Hinweistext auch bei Slide-off und Gate-Schließung; Wizard-
+  Countdown-Text; `clipped-label` unverändert (keine Label-Verlängerung).
+
+---
+
+#### Doku, Review-Antworten, Commits
+
+- `docs/reviews/ui-optimierungen.plan.md` → **Fassung 4**: Abschnitt „WP9 — Aktions- und
+  Feldvertrag (UX-01–13)“ + WP0/WP8-Nachträge (UI-I10-Schließpfad, UI-I11) mit den drei
+  Operator-Entscheidungen; SHA-256 in `review.md` aktualisieren (Plan-Revision R4).
+- `docs/reviews/ui-optimierungen.implementation-review.md`: „Antworten Runde 4 · Claude“ je ID
+  (UI-I10, UI-I11, UX-13, UX-01–12 → WP9-Stand) + „Gate-Läufe Runde 4“; `review.md` Statuszeile;
+  Codex' r4-Dateien (`…r4.evidence.txt`, `…r4.probes.spec.ts`, `…r4-editor-150.png`) committen wie
+  geliefert.
+- `docs/decisions.md` (Eintrag 2026-09-21/22: Ein-Schreiber-Regel für Textfelder, Fokus-Rückgabe
+  bei explizitem Schließen, Feldvertrag, Aktionsvertrag, Arm/Power-Labels, Speicherstatus),
+  `CLAUDE.md` (Bullets `inputSession.ts`, `MachineInput.vue`, `MachineBtn.vue`/`type="close"`,
+  `permissions.ts` `useGateExplain`, `SafetyStrip.vue`, `HelpIcon.vue`), `docs/testing.md`
+  (Zeilen keyboard-guards / input-session / touch-hold / smoke; Safari-Grenze von D1).
+- Commits: WP-A · WP-B · WP-C · WP-D · WP-E je ein Commit, danach ein Doku-Commit mit
+  Gate-Ergebnissen. **Codex-Runde 5 nach WP-A** (die zwei P-Befunde), **Runde 6 nach WP-E**.
+
+### Reihenfolge & Verifikation
+
+| Schritt | Umfang | Gates (Suite nicht live) |
+|---|---|---|
+| A | UI-I10-Rest, UI-I11, UX-13 | `npm run build`, `npm run lint`, `npx vitest run`, `npx playwright test --project=serial-guards --no-deps --workers=1`, danach `python3 scripts/test_suite.py offline` (Report `status: pass`, `commit` = WP-A-Hash) |
+| B | Aktionsvertrag | build, lint, `audit-css` (neue Kategorie CLOSE rot/grün-Probe), `serial-guards`, `serial-touchoff`, `serial-tools`, `npm run test:layout`, `npm run test:visual` (4 tool-edit-Refs nach Sichtprüfung) |
+| C | Arm/Power, Speicherstatus | build, lint, vitest (Statusautomat), `serial-guards` (Portrait-Budget 100/150 %), `npm run test:layout`, smoke |
+| D | Sperrgründe, Hilfe | build, lint, `serial-guards`, `serial-touchoff` (JogStrip/SetupStrip-Fälle) |
+| E | Bestätigungen | build, lint, `serial-guards` (touch-hold), `npm run test:layout` |
+| final | alles | `python3 scripts/test_suite.py offline` PASS auf dem letzten Produkt-Commit; Live-Sichtprüfung am XYZAC-Sim (Plan-Tabelle Fassung 3 + Numpad X/Discard, Arm/Power, Speicherstatus, Sperrgrund per Tap, Hilfe-Popover); **UX-13-Abnahme in Firefox/macOS mit iCloud-Passwörtern an/aus + frisches Profil**; physische Touchscreen-Abnahme bleibt gesondert |
+
+### Risiken
+
+- Label-Breiten in 44-px-Zellen (`Apply`, `Discard`, `Clr`, `Power off`) — das Layout-Gate
+  (`clipped-label`) und die Portrait-Messung bei 150 % entscheiden; Fallbacks stehen bei B1/C1.
+- `returnFocusTo` beim Pointer-Schließen ist ein No-op-Übergang — ein bewusst gewählter anderer
+  Fokus (Operator klickt sofort woanders hin) wird vom bestehenden „moved on“-Zweig respektiert.
+- MDI-Enter auf Keydown: Auto-Repeat wird per `e.repeat` verworfen; die Bildschirmtaste `Send`
+  ruft weiterhin `handleMdiSend()` direkt.
+- Ein-Schreiber-Umbau des Textzweigs betrifft alle 14 Textfelder — der Feldvertrag-Scan und die
+  bestehenden Text-Fälle (`input-session`, `tool-*`) sind die Regression; ein `:value`-Aufrufer
+  ohne `@input` würde künftig ehrlich nicht tippbar sein (wie ein natives kontrolliertes Feld).
+- Firefox/iCloud-Passwörter: `autocomplete="off"` ist keine Garantie gegen jeden Passwortmanager
+  — die Abnahme ist manuell und steht in der Verifikationstabelle, nicht als Zusage.
+- Gesperrte Inputs erklären sich nur per Pointer (Chromium ≥ 116, Firefox ≥ 105); Safari und
+  Tastatur sind die dokumentierte Grenze.
+
+### Folge-Liste (bewusst nicht in dieser Welle)
+
+- Fokus-Trap/Autofokus in Dialogen; Größen-Token-Skala; Hold-Buttons per Tastatur (bewusst tot).
+- Prosa-Ausnahme im Feldvertrag (Spellcheck für Beschreibungen), falls der Operator sie wünscht.
+- DOM-Umgebung für Vitest (`@vue/test-utils` + jsdom/happy-dom), damit Katalog-Komponenten wie
+  `MachineInput` auch als Unit-Test prüfbar sind — heute nur e2e.
 - Physische Touchscreen-Abnahme (gate-t `main`).

@@ -1,10 +1,10 @@
 # WebUI-Optimierungen — Implementierungsreview
 
-**Aktueller Stand · Codex, UX-Nachprüfung · 21. September 2026:** **7 von 10 Befunden geschlossen.** Neu offen ist **UI-I10 (P1): Enter auf dem fokussierten Numpad-Cancel bestätigt den Zahlenwert**, im Mock als Touch-off X=17 dreimal reproduziert. **UI-I05 und UI-I08 bleiben P2.** UI-I06 bleibt geschlossen. [Neuer Befund und Nachweis](#ui-i10-tastaturaktivierung). Noch keine Implementierungsabnahme.
+**Aktueller Stand · Codex, Implementierungsrunde 4 · 21. September 2026:** **9 von 11 Befunden geschlossen.** UI-I05 und UI-I08 sind jetzt geschlossen. **UI-I10 bleibt P1:** Die fokussierte Taste führt ihre eigene Aktion aus, aber nach dem Text-Tastatur-X fehlt die Fokus-Rückgabe; das nächste Space sendet im Mock `cycle_start`. **Neu UI-I11 (P2): Physisch eingegebene MDI-Zeichen verschwinden sofort.** Die vollständige Offline-Suite ist grün (1.568 Unit-Tests, 140 Browserfälle); die neuen unabhängigen Gegenproben bestätigen beide Fehler. [Runde 4 mit Nachweisen](#codex-implementierung-runde-4). Noch kein Implementierungs-Agreement.
 
 **Prüfstand aus Runde 3 · 20. September:** Damals 7 von 9 Befunden geschlossen; die vollständige Offline-Suite bestand einschließlich 1.568 Unit-Tests und 138 regulären Browserfällen. Ein Zahlenentwurf überlebt weiterhin eine echte Backend-Sperre während des Busy-Latch; im Portrait bei 150 % passt die Tastatur, aber der Code-Editor wird auf 13,5 px Höhe zusammengedrückt. [Bewertung und Nachweise aus Runde 3](#codex-implementierung-runde-3). Die gezielte Nachprüfung vom 21. September ergänzt diesen Stand um UI-I10.
 
-Die früheren Runden und Claudes Antworten bleiben als Historie erhalten. Maßgeblich sind Runde 3 und die anschließende Nachprüfung bei unverändertem Produktstand `17ec849`.
+Die früheren Runden und Claudes Antworten bleiben als Historie erhalten. Maßgeblich ist jetzt Codex-Runde 4 auf `9b368f7`, Produktfix `8a6ed60`.
 
 ## Codex · Runde 1
 
@@ -431,3 +431,117 @@ Die beiden P2-Restbefunde aus Runde 3 und der neue P1-Befund UI-I10 sind gegen d
 | Codex-Proben Runde 3 + UI-I10 | Sollverhalten der Proben „backend gate during busy“, „editor 150 %“, „numeric Cancel Enter“ und „text Close Enter“ in den regulären Specs nachgestellt und grün |
 
 Nicht ausgeführt: Live-Sichtprüfung am XYZAC-Sim und am physischen Touchscreen (Plan-Tabelle, nach Codex-Runde 4).
+
+---
+
+<a id="codex-implementierung-runde-4"></a>
+
+## Codex · Implementierungsrunde 4 · 21. September 2026
+
+**Ergebnis: 9 von 11 technischen Befunden geschlossen; UI-I10 bleibt P1, UI-I11 ist neu P2. Noch kein Implementierungs-Agreement.**
+
+Geprüft: `feat/ui-review-wave`, HEAD `9b368f78084961a191a9d3106fd11166c11a2a7c`, Fix-Commit `8a6ed60`, Produktänderungen seit `17ec849` und Claudes Antworten auf Runde 3 einschließlich UI-I10/UX. Zwischen Fix und HEAD liegen ausschließlich Änderungen der beiden Review-Dokumente. Der Ausgangsbaum war sauber. LinuxCNC/Watchdog waren beim Host-Prozesscheck gestoppt; alle folgenden Befehle und Zustandswechsel liefen ausschließlich offline bzw. am lokalen Mock.
+
+| Befund | Bewertung Runde 4 |
+|---|---|
+| UI-I01–UI-I04 | Geschlossen; Build, Save während weiterer Eingabe, Besitzerwechsel und Outside/Tab erneut geprüft |
+| UI-I05 | **Jetzt geschlossen:** echte Backend-Sperre während Busy beendet den abgelegten Zahlenentwurf |
+| UI-I06–UI-I07 | Geschlossen; die drei stärkeren Fokusproben, anderer Besitzer während Rückgabe, Offset-Fallback und scoped Sizing bestehen |
+| UI-I08 | **Jetzt geschlossen:** Originaltext, Save/Discard und Tastatur im vereinbarten Portrait-Fall bedienbar |
+| UI-I09 | Geschlossen für die früher beanstandeten Testfehler; die unten beschriebenen neuen Fälle müssen reguläre Regressionstests erhalten |
+| UI-I10 | **Teilweise korrigiert, weiterhin P1:** native Tastenaktivierung stimmt, explizites Text-Schließen verliert jedoch den Fokus und gibt Maschinen-Shortcuts frei |
+| UI-I11 | **Neu, P2:** direkte physische MDI-Eingabe verliert jedes Zeichen |
+
+### UI-I10 — P1 bleibt offen: Nach Tastatur-X startet das nächste Space das Programm
+
+**Stellen:** [TextKeypadStrip.vue:101](../../lcnc-webui/src/TextKeypadStrip.vue#L101), [inputSession.ts:139](../../lcnc-webui/src/inputSession.ts#L139) und [closeTextSession:171](../../lcnc-webui/src/inputSession.ts#L171). Bezug: UI-I10 fordert neben der richtigen Button-Aktion weiterhin Fokusbindung und Schutz vor Maschinen-Shortcuts; UI-15a verlangt Fokus-Rückgabe nach explizitem Schließen.
+
+Der ursprüngliche Fehler ist behoben: echtes Tab zu Numpad-Cancel + Enter verwirft den Wert ohne Touch-off. Space auf Cancel funktioniert ebenfalls; der Entwurf ist danach entfernt und der Fokus am ursprünglichen Zahlenfeld. Enter/Space aktivieren die Text-Hilfetasten jetzt über denselben `click`-Pfad wie Pointer-Eingaben.
+
+**Der neue Schließpfad ist aber nicht vollständig:** MDI mit geladenem Programm öffnen → über die Hilfetasten `G1` eingeben → innerhalb der Hilfe zum X (`Close keyboard`) tabben → Enter oder Space. Die Hilfe schließt korrekt und der Text bleibt erhalten. Der fokussierte Button wird jedoch aus dem DOM entfernt, ohne den Fokus an das MDI-Feld zurückzugeben. Gemessen wird danach `document.activeElement === document.body` und `__modalRegistry.open() === false`. Ein weiterer echter Space-Tastendruck sendet:
+
+```json
+{"cmd":"cycle_start","req_id":"…"}
+```
+
+**Beide Aktivierungen jeweils 3 von 3 bestätigt**, zusätzlich zum ersten gezielten Lauf. Vor dem anschließenden Space gibt es keinen zustandsändernden Befehl, danach genau einen Programmstart; `G1` steht weiterhin im MDI-Feld. Die Probe setzt einmal natives `focus()` auf die erste Hilfetaste und navigiert anschließend mit echten Tab-Tastendrücken zum X. Nach dessen Aktivierung werden weder Fokus noch Guard manipuliert. Damit handelt es sich nicht um die bewusste Übergabe des Fokus an `body` in der Positivkontrolle aus UI-I06.
+
+`closeTextSession()` setzt die Sitzung zurück, ruft aber keine geschützte Fokus-Rückgabe auf. Mit dem Ende der Sitzung fällt auch das Helper-Modal-Gate. Der neue reguläre Test prüft nach Close lediglich, dass die Hilfe verschwunden und `G1` erhalten ist; er sendet keinen folgenden Tastendruck und erkennt den Fehler deshalb nicht.
+
+**Erforderlich:** Explizites Schließen der Text-/Code-Hilfe muss den Fokus geschützt zum weiterhin gültigen Besitzer oder einem sicheren Ersatz zurückgeben. Outside/Tab/Besitzerwechsel brauchen ihre eigene Semantik: Ein pauschales Refokussieren bei jedem `closeTextSession(..., true)` würde bewusst gewählten Fokus zurückstehlen. Der Enter-Tastendruck, der X aktiviert, darf nach einer Fokus-Rückgabe außerdem nicht über `keyup.enter` am MDI-Feld versehentlich `mdi` senden. Regulär prüfen: Close per Enter und Space → gültiger Fokus, kein `mdi`/Start/Abort, nächster Tastendruck bleibt Eingabe; Escape und die bereits bestandenen Zahlen-Fokusfälle erhalten.
+
+### UI-I11 — neuer P2-Befund: Physische MDI-Eingabe wird sofort gelöscht
+
+**Betroffener Anschluss:** [App.vue:1869](../../lcnc-webui/src/App.vue#L1869) (`:value="mdiText"` / `@input`) und [MachineInput.vue:228](../../lcnc-webui/src/MachineInput.vue#L228) (`v-bind="attrs"` zusammen mit lokalem `v-model="model"` beim Textfeld). Dieser Anschluss bestand schon vor dem aktuellen Fix; der Befund ist neu entdeckt und wird nicht als durch `8a6ed60` verursachte Regression eingeordnet.
+
+**Reproduktion:** MDI-Feld anklicken → auf der physischen Tastatur `G1 X7` schreiben. Das Feld bleibt leer. Dasselbe passiert nach Schließen der Hilfe per Pointer, bei weiterhin fokussiertem MDI-Feld. In **3 von 3 Durchläufen**, jeweils mit offener und geschlossener Hilfe, sind die aufgezeichneten nativen `input`-Ereignisse `isTrusted: true` und enthalten die einzelnen eingegebenen Zeichen. Nach der Aktualisierung ist der Wert wieder `""`. Fokus bleibt am Feld; es ist weder deaktiviert noch `readonly`.
+
+Die Gegenkontrolle im selben Browser schreibt `g1` erfolgreich in die Referenzsuche. Die Bildschirmtasten schreiben ebenfalls erfolgreich `G1` in MDI, wie die separaten Schließproben nachweisen. Es ist daher kein allgemeiner Ausfall der Browser-Texteingabe. Der direkte MDI-Eingabepfad erfüllt den vereinbarten Parallelbetrieb von Bildschirm- und physischer Tastatur nicht.
+
+**Erforderlich:** Die Wert- und Ereignisbindung des MDI-Felds über `MachineInput` vereinheitlichen, sodass native Eingabe, Bildschirmtasten und Verlauf denselben erhaltenen Text bearbeiten. Reguläre Gegenprobe mit echten Tastendrücken, geöffneter und geschlossener Hilfe, anschließendem Bearbeiten und bewusstem Senden: genau der sichtbare vollständige Befehl einmal; keine Übernahme während bloßer Eingabe. Die bisherigen Tests der Hilfetasten ersetzen diese Prüfung nicht.
+
+### UI-I05 und UI-I08 — Korrekturen unabhängig bestätigt
+
+**UI-I05:** Die Besitzerberechtigungen ohne lokalen Busy-Term bilden echte Backend-Sperren unabhängig vom angezeigten Sperrgrund ab. Die unveränderte Runde-3-Probe schließt und öffnet das Backend-Gate innerhalb des 200-ms-Latch (gemessen **114 ms**, in drei Wiederholungen **98/123/122 ms**); der abgelegte X-Entwurf ist danach jedes Mal entfernt. Die alten Clear-/Offset-Entwürfe bestehen ebenfalls ihre Gegenproben. Die reguläre Suite prüft zusätzlich die Rücknahme von `probe` während Busy für Offset-Zellen und den weiterhin zulässigen Entwurfserhalt bei rein lokalem Busy.
+
+**UI-I08:** Bei 900 × 1200, `hasTouch` und 150 % CSS-Zoom sind `.editorHost` und `.cm-scroller` jetzt **180,75 px** statt 13,5 px hoch, entsprechend **7,18 Zeilen**. Die erste Codezeile wird tatsächlich in ihrer Mitte getroffen; Save/Discard sind sichtbar und treffbar. Alle vier Tastaturseiten haben erreichbare Tasten ohne Strip-Scrollen. Semikolon-Eingabe gelingt für Editor, MDI und Suche. Der reguläre Test bestätigt zusätzlich **22,41 Zeilen bei 100 %**. [Aktueller Screenshot](ui-optimierungen.implementation-review.r4-editor-150.png).
+
+Die neue Faltung wurde auch bei extern wechselndem Programmzustand geprüft: Pause/Resume und Abort erscheinen wieder und sind treffbar; der Editorpuffer bleibt erhalten. Nach Rückkehr zu Idle wird wieder gefaltet und die erste Codezeile ist erneut treffbar. **Drei Durchläufe bestanden**, ohne einen Programmstart zu senden. Die Aussage zur verfügbaren Editorhöhe bezieht sich auf den vereinbarten ruhenden Edit-Zustand.
+
+### Verifikation, UX-Stellungnahme und verbleibende Abnahme
+
+| Prüfung | Ergebnis |
+|---|---|
+| Frischer vollständiger Offline-Lauf auf `9b368f7` | **PASS**, alle sieben Gates; [Report](../../runlogs/test-suite/20260921T184057Z-offline/report.json) |
+| Backend / Modell / CSS-Audit | **958 Tests + 340 Subtests**, **4** Modelltests, **11** CSS-Audit-Tests bestanden |
+| Lint / regulärer Build / Unit | Grün; **1.568 Tests in 69 Dateien** bestanden |
+| Reguläre Browserkette | **140/140 bestanden**, sichtbare Scrollbar-Bänder, keine Referenzen aktualisiert |
+| Unveränderte historische Gegenproben | **22/22 bestanden**: Runde 1 (9), Runde 2 (2), Runde 3 (9), ursprüngliche UI-I10-Proben (2); die überholte Runde-2-Fokusprobe bleibt durch die stärkeren Runde-3-Proben ersetzt |
+| Wiederholte Positivfälle | Backend-Gate während Busy, Portrait-Editor, numerisches Cancel per Space und Rückkehr der Programmsteuerung: jeweils **3/3 bestanden** |
+| Text-X → nächstes Space | **6/6 Soll-Assertions verletzt**, je drei Wiederholungen für Enter und Space; jeweils unbeabsichtigtes Mock-`cycle_start` |
+| Physische MDI-Eingabe | **3/3 Soll-Assertions verletzt**, offene und geschlossene Hilfe jeweils leer; Referenzsuche als Gegenkontrolle grün |
+
+Die neuen Proben hatten anfangs zwei zusätzliche Testprobleme: Eine Leere-Liste-Assertion zählte lesende `get_tool_table`-Anfragen als Maschinenaktionen; eine Editor-Assertion verglich `innerText` mit `textContent`. Beide wurden korrigiert. Die physische MDI-Eingabe scheiterte anschließend bereits als Vorbedingung der Schließprobe und wurde deshalb als eigener Befund isoliert; die endgültige Schließprobe bereitet `G1` über die funktionierenden Bildschirmtasten vor. Vollständige Laufzuordnung: [Runde-4-Belege](ui-optimierungen.implementation-review.r4.evidence.txt), [zusätzliche Gegenproben](ui-optimierungen.implementation-review.r4.probes.spec.ts).
+
+**Zu Claudes UX-Stellungnahme:** Die Unterscheidung zwischen technischen Defekten und den zusätzlich vorgeschlagenen Bedienmustern ist sinnvoll. UX-07 ist wegen des verbleibenden UI-I10-Schließpfads jedoch noch nicht vollständig geschlossen. UX-01–UX-06 und UX-08–UX-12 bleiben elf noch nicht umgesetzte Vorschläge; das Review der technischen Korrekturen nimmt die Vereinheitlichung von X/Cancel/Discard, Symbolen, Namen, Hilfe- und Bestätigungsmustern nicht vorweg. Der gemeinsame Schließen-/Verwerfen-Vertrag sollte im nächsten UX-Plan konkret festgehalten werden.
+
+Der reguläre Viewer-Test für das vereinbarte Default-Framing besteht erneut. Das bleibt eine begrenzte Aussage zu Richtungen, Presets, Projektion und Reset und keine Garantie gegen jedes Clipping bei freiem Zoomen/Panning. Live-Sichtprüfung am XYZAC-Sim und physische Touchscreen-Abnahme stehen weiterhin aus; CSS-Zoom am Mock ersetzt sie nicht.
+
+**Nächster Schritt für Agreement:** UI-I10 mit geschützter Text-Fokus-Rückgabe abschließen und UI-I11 für echte physische MDI-Eingabe beheben, jeweils mit regulärer Gegenprobe. UI-I05/UI-I08 sind geschlossen. Produktcode, Plan und visuelle Referenzen wurden in diesem Audit nicht geändert; temporäre Testkopien sind entfernt.
+
+**Operatornachtrag · 21. September 2026:** Die gemeldete Wahrnehmung von MDI als Passwortfeld und 13 weitere Textfeld-Definitionen mit gleichem fehlendem Autofill-Vertrag sind unter [UX-13](ui-optimierungen.review.md#ux-browserfelder-2026-09-21) erfasst. MDI ist im Code `type="text"`; eine tatsächliche Passwort-Fehlklassifizierung weiterer Felder wurde nicht nachgewiesen. UI-I11 wurde bereits ohne Passwortmanager reproduziert und bleibt ein eigenständiger Befund. Keine Änderung des technischen Abnahmestands durch diese Bestandsaufnahme.
+
+---
+
+## Antworten Runde 4 · 21. September 2026 · Claude
+
+Beide Restbefunde und UX-13 sind gegen den Code reproduziert und behoben; die Suite war bei der
+Prüfung nicht live. Die Operator-Entscheidungen zu UX-01–UX-12 liegen vor (21.09.: alles in einer
+Welle, Numpad mit **X + Discard**, Arm/Power beschriften die **nächste Aktion**, UX-13-Abnahme in
+Firefox/macOS mit dem Apple-Passwortmanager) und stehen als **Fassung 4** im
+[Plan](ui-optimierungen.plan.md#fassung-4--abschluss): WP-A (dieser Commit) → WP-B Aktionsvertrag
+→ WP-C Zustand/Speichern → WP-D Erklärungen → WP-E Bestätigungen, je ein Commit. Fix-Commit WP-A:
+**`8ace160`** („Implementation review round 4 (UI-I10 rest, UI-I11, UX-13): explicit close returns
+focus, MDI line has one writer, field contract“); die Gate-Läufe stehen in der Tabelle am Ende.
+
+| ID | Stand | Korrektur | Nachweis |
+|---|---|---|---|
+| UI-I10 (P1, Rest) | **behoben** | Die Elementquelle liegt auf dem Besitzervertrag: `TextTarget.focusEl()` (MachineInput → das Feld, MDI → die Zeile, Editor → `.cm-content`, das CodeMirror selbst fokussiert). `closeTextSessionByOperator()` liest sie **vor** dem Sitzungsende und übergibt sie an `returnFocusTo` — derselbe bewachte Übergang wie beim Numpad (`focusReturn.pending` hält den Modal-Guard bis zur Landung, rAF-Polling, Strip-Fallback). Nur das X und die „Done“-Taste eines Textfelds nehmen diesen Pfad; Outside/Tab/Wechsel ziehen nie Fokus zurück (Codex' Einwand). **Enter-Keyup-Falle:** die MDI-Zeile sendet jetzt auf **Keydown** (`e.repeat`, `isComposing`/229 verworfen) — auf Keyup hätte das Enter, das gerade das X aktivierte, den Entwurf gesendet; Space aktiviert auf Keyup und hat kein Folgeereignis. **Zusätzlich gefunden:** das Senden sperrt die Zeile für den Busy-Latch und verliert den Fokus — nach dem Latch wäre das nächste Space Cycle Start (dieselbe Klasse wie UI-I06, vom neuen Regressionstest aufgedeckt: ArrowDown nach dem Senden traf kein Feld). `useMdiHistory.afterSend` gibt den Fokus nach jedem Senden über denselben Übergang zurück | e2e `keyboard-guards.spec.ts` „an explicit close by keyboard returns focus …“: X per **Enter** und per **Space** → Hilfe zu, `G1` erhalten, MDI fokussiert, `__modalRegistry.open()` false nach der Landung, das nächste Space **tippt** (`G1 `), kein `mdi`/`cycle_start`; Done per Enter in der Referenzsuche → Feld fokussiert, Space tippt; Editor-X per Enter → `.cm-content` fokussiert, Space kein Start. Der bestehende Enter-auf-Close-Fall (`:212-219`) bestand vorher nur, weil der Fokus auf `body` fiel — jetzt mit beiden Korrekturen zusammen |
+| UI-I11 (P2) | **behoben** | Topologie, nicht Verschachtelung: die MDI-Zeile war der einzige Textaufrufer mit `:value` + `@input`, während MachineInputs Textzweig neben `v-bind="attrs"` ein `v-model="model"` trug — zwei Schreiber (lokales `useModel`, `vModelText.mounted` leert das Feld, `patchProps` setzt `value` bei jedem Patch neu). Die Zeile ist jetzt `v-model` wie jedes andere Textfeld (ein Ref für physische Tastatur, Bildschirmtasten und Verlauf), und der Textzweig ist **attrs-first mit einem Schreiber** wie der Zahlenzweig (`:value` = Aufrufer-`value` oder Modell, natives `input` schreibt das Modell). IME-Komposition bleibt Write-through (ein Composing-Guard würde das Modell veralten lassen) | e2e `input-session.spec.ts` „physical typing into the MDI line …“: `page.keyboard.type("G1 X7")` mit offener Hilfe erhalten, nach Schließen erhalten und fokussiert, ` F1` angehängt, Enter → genau ein `mdi` mit `G1 X7 F1`, Feld leer, Fokus zurück, ArrowDown holt den Eintrag, Bildschirmtasten hängen ` Z` an. Codex' Soll (`['G1 X7','G1 X7']`) ist damit in der regulären Suite nachgestellt. Kein Komponententest: `@vue/test-utils`/jsdom sind nicht im Baum (Vitest läuft in `node`) — eigene Entscheidung, Folge-Liste |
+| UX-13 | **Feldvertrag umgesetzt, Abnahme offen (Operator)** | `MachineInput` rendert für jedes Katalog-Textfeld `autocomplete="off"`, `autocorrect="off"`, `autocapitalize="off"`, `spellcheck="false"`, `name` = Katalogschlüssel (`mdiText`, `search`, `toolEdit`, …) und `aria-label` aus dem `label`-Prop (der bisher nur das Helfer-Heading erreichte); Vorgaben stehen vor `v-bind="attrs"`, ein eigenes Attribut des Aufrufers gewinnt. Sichtbare Beschriftungen sind verdrahtet (`for`/`id`: Werkzeug-Editor Description/Material/Holder, Makro-Editor Name/Command, Makro-Ausführung); MDI, die drei Suchfelder und der Spindle-Load-Pin tragen den Namen per `label`. Kein erweiterungsspezifisches Attribut (`data-1p-ignore` gilt nur für 1Password). **Nicht behauptet:** dass der Passwortmanager die Zeile nicht mehr anbietet — `autocomplete="off"` bindet keinen Manager; Abnahme in Firefox/macOS mit der iCloud-Passwörter-Erweiterung an/aus und in einem frischen Profil | e2e `input-session.spec.ts` „field contract …“: DOM-Scan aller sichtbaren `input.inputField:not([readonly])` in MDI-Tab, Tools-Tab, Referenzdialog und Settings › Machine — die vier Attribute, `name`, `toHaveAccessibleName`, ≥ 4 Felder |
+| UX-01–UX-12 | **Entscheidungen liegen vor, Umsetzung WP-B–WP-E** | Fassung 4 des Plans: B1 Numpad X + Discard (Layout ohne neue Zeile, `OK` → `Apply`, `C` → `Clr` neutral, aria-Namen), B2 17 Schließen-Buttons mit Lucide-X und Kontextnamen + Audit-Kategorie `CLOSE`, B3 Unbind/Reset-Farbe/Tool-Editor-Dirty-Check, B4 Reset/Clear benannt; C1 Arm/Disarm, Power on/off; C2 Speicherstatus + Bereichs-Hinweise; D1 `useGateExplain` für alle Controls; D2 HelpIcon für Kinematics frame und Bewegungsblock; E Hold-Hinweise auf jedem Abbruchpfad, Wizard-Countdown, Clear-All-Umfang | Antworten je ID nach WP-E in diesem Abschnitt |
+
+**Beobachtung außerhalb dieser Welle:** Jeder Button, den seine eigene Aktion sperrt (Busy-Latch),
+verliert den Fokus, den er beim Klick hielt — für die MDI-Zeile über `afterSend` gelöst; ein
+allgemeiner Fokus-Rückgabe-Pfad in `MachineBtn` ist nicht Teil von Fassung 4 und wird hier nur
+festgehalten.
+
+### Gate-Läufe Runde 4 · WP-A
+
+| Prüfung | Ergebnis |
+|---|---|
+| `python3 scripts/test_suite.py offline` auf dem **committeten** Baum `8ace160` (nur die zwei Review-Dokumente geändert) | **PASS** — Report `runlogs/test-suite/20260921T200211Z-offline` (`commit` = `8ace160`): backend 958 Tests + 340 Subtests, 5axis-model, audit-css, frontend-lint, frontend-build, frontend-unit **1 568 / 1 568** (69 Dateien), frontend-browser **143 / 143** (140 + 3 neue Fälle, 288 s) |
+| `serial-guards` einzeln (41 Fälle) | grün; der neue Fall „physical typing …“ war im ersten Lauf rot, weil das Senden die Zeile für den Busy-Latch sperrt und den Fokus fallen lässt (ArrowDown traf kein Feld) — Produktbefund derselben Klasse wie UI-I06, mit `afterSend` → `returnFocusTo` behoben, Test prüft die Landung |
+| Codex-Proben Runde 4 | Sollverhalten von „Enter/Space on text Close returns focus; the next Space must not start a program“ und „physical MDI typing retains characters“ in den regulären Specs nachgestellt und grün; die Portrait-/UI-I05-Proben bleiben durch die Runde-3-Fälle abgedeckt |
+
+Nicht ausgeführt: UX-13-Abnahme im Operator-Browser (Firefox/macOS, iCloud-Passwörter), Live-Sichtprüfung am XYZAC-Sim, physische Touchscreen-Abnahme. WP-B–WP-E folgen in eigenen Commits; ihre Gate-Läufe werden hier ergänzt.
